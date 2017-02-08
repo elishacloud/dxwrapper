@@ -1,0 +1,6 @@
+LIBRARY "ddraw"
+EXPORTS
+ValidatePixelShader			= FakeValidatePixelShader			@1
+ValidateVertexShader		= FakeValidateVertexShader			@2
+DebugSetMute				= FakeDebugSetMute					@3
+Direct3DCreate8				= FakeDirect3DCreate8				@4

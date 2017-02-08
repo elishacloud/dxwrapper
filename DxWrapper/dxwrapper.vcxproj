@@ -1,0 +1,242 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="14.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|Win32">
+      <Configuration>Debug</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|Win32">
+      <Configuration>Release</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{579E7FE7-2745-4100-A802-23511711FCDE}</ProjectGuid>
+    <RootNamespace>dxwrapper</RootNamespace>
+    <WindowsTargetPlatformVersion>10.0.14393.0</WindowsTargetPlatformVersion>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
+    <PlatformToolset>v140</PlatformToolset>
+    <UseOfMfc>false</UseOfMfc>
+    <CharacterSet>MultiByte</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
+    <PlatformToolset>v140</PlatformToolset>
+    <UseOfMfc>false</UseOfMfc>
+    <CharacterSet>MultiByte</CharacterSet>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+    <Import Project="$(VCTargetsPath)Microsoft.CPP.UpgradeFromVC60.props" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+    <Import Project="$(VCTargetsPath)Microsoft.CPP.UpgradeFromVC60.props" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup>
+    <_ProjectFileVersion>14.0.25431.1</_ProjectFileVersion>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <OutDir>.\Debug\</OutDir>
+    <IntDir>.\Debug\</IntDir>
+    <LinkIncremental>true</LinkIncremental>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <OutDir>$(Configuration)\</OutDir>
+    <IntDir>$(Configuration)\</IntDir>
+    <LinkIncremental>false</LinkIncremental>
+    <IncludePath>$(ProjectDir);..\DDrawCompat\v0.2.1;..\DxWnd\v2_03_60_src\Include;C:\Program Files %28x86%29\Microsoft Research\Detours Express 3.0\include;$(IncludePath)</IncludePath>
+    <LibraryPath>C:\Program Files %28x86%29\Microsoft DirectX SDK (June 2010)\Lib\x86;C:\Program Files %28x86%29\Microsoft Research\Detours Express 3.0\lib.X86;$(LibraryPath)</LibraryPath>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <Midl>
+      <PreprocessorDefinitions>_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <MkTypLibCompatible>true</MkTypLibCompatible>
+      <SuppressStartupBanner>true</SuppressStartupBanner>
+      <TargetEnvironment>Win32</TargetEnvironment>
+      <HeaderFileName />
+    </Midl>
+    <ClCompile>
+      <AdditionalOptions>/IInclude %(AdditionalOptions)</AdditionalOptions>
+      <Optimization>Disabled</Optimization>
+      <PreprocessorDefinitions>WIN32;_DEBUG;_WINDOWS;_USRDLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <MinimalRebuild>true</MinimalRebuild>
+      <ExceptionHandling>Async</ExceptionHandling>
+      <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
+      <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
+      <AssemblerListingLocation>.\Debug/</AssemblerListingLocation>
+      <ObjectFileName>.\Debug/</ObjectFileName>
+      <ProgramDataBaseFileName>.\Debug/</ProgramDataBaseFileName>
+      <WarningLevel>Level3</WarningLevel>
+      <SuppressStartupBanner>true</SuppressStartupBanner>
+      <DebugInformationFormat>EditAndContinue</DebugInformationFormat>
+    </ClCompile>
+    <ResourceCompile>
+      <PreprocessorDefinitions>_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <Culture>0x0000</Culture>
+    </ResourceCompile>
+    <Link>
+      <AdditionalDependencies>shlwapi.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <OutputFile>./Debug/dxwrapper.dll</OutputFile>
+      <SuppressStartupBanner>true</SuppressStartupBanner>
+      <IgnoreAllDefaultLibraries>false</IgnoreAllDefaultLibraries>
+      <ModuleDefinitionFile>.\dxwrapper.def</ModuleDefinitionFile>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <RandomizedBaseAddress>false</RandomizedBaseAddress>
+      <DataExecutionPrevention />
+      <TargetMachine>MachineX86</TargetMachine>
+    </Link>
+    <Bscmake>
+      <SuppressStartupBanner>true</SuppressStartupBanner>
+    </Bscmake>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <Midl>
+      <PreprocessorDefinitions>NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <MkTypLibCompatible>true</MkTypLibCompatible>
+      <SuppressStartupBanner>true</SuppressStartupBanner>
+      <TargetEnvironment>Win32</TargetEnvironment>
+      <HeaderFileName />
+    </Midl>
+    <ClCompile>
+      <AdditionalOptions>/GS- %(AdditionalOptions)</AdditionalOptions>
+      <Optimization>Full</Optimization>
+      <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
+      <OmitFramePointers>true</OmitFramePointers>
+      <EnableFiberSafeOptimizations>true</EnableFiberSafeOptimizations>
+      <WholeProgramOptimization>true</WholeProgramOptimization>
+      <AdditionalIncludeDirectories>
+      </AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>WIN32;NDEBUG;_WINDOWS;_USRDLL;DDRAWCOMPAT_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <StringPooling>true</StringPooling>
+      <ExceptionHandling>Async</ExceptionHandling>
+      <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <OpenMPSupport>true</OpenMPSupport>
+      <PrecompiledHeaderOutputFile />
+      <AssemblerListingLocation>$(IntDir)</AssemblerListingLocation>
+      <ObjectFileName>$(Configuration)\Object\$(IntDir)%(RelativeDir)</ObjectFileName>
+      <ProgramDataBaseFileName>$(IntDir)vc$(PlatformToolsetVersion).pdb</ProgramDataBaseFileName>
+      <WarningLevel>Level4</WarningLevel>
+      <SuppressStartupBanner>true</SuppressStartupBanner>
+      <BufferSecurityCheck>false</BufferSecurityCheck>
+      <AdditionalUsingDirectories>
+      </AdditionalUsingDirectories>
+      <DebugInformationFormat>None</DebugInformationFormat>
+    </ClCompile>
+    <ResourceCompile>
+      <PreprocessorDefinitions>NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <Culture>0x0409</Culture>
+      <AdditionalIncludeDirectories>
+      </AdditionalIncludeDirectories>
+    </ResourceCompile>
+    <Link>
+      <OutputFile>$(OutDir)\dxwrapper.dll</OutputFile>
+      <SuppressStartupBanner>true</SuppressStartupBanner>
+      <ModuleDefinitionFile>.\dxwrapper.def</ModuleDefinitionFile>
+      <ProgramDatabaseFile />
+      <RandomizedBaseAddress>false</RandomizedBaseAddress>
+      <DataExecutionPrevention />
+      <ImportLibrary />
+      <TargetMachine>MachineX86</TargetMachine>
+      <AdditionalDependencies>dxguid.lib;detours.lib;msimg32.lib;oleacc.lib;uxtheme.lib;dwmapi.lib;winmm.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <GenerateDebugInformation>false</GenerateDebugInformation>
+      <LinkTimeCodeGeneration>UseLinkTimeCodeGeneration</LinkTimeCodeGeneration>
+    </Link>
+    <Bscmake>
+      <SuppressStartupBanner>true</SuppressStartupBanner>
+      <OutputFile />
+    </Bscmake>
+    <PostBuildEvent>
+      <Command>copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\ddraw.dll"
+copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\d3d9.dll"
+copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\d3d8.dll"
+copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\winmm.dll"
+copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\dsound.dll"
+copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\dxgi.dll"
+copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\dplayx.dll"
+</Command>
+    </PostBuildEvent>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ClCompile Include="..\DDrawCompat\v0.2.1\CompatActivateAppHandler.cpp" />
+    <ClCompile Include="..\DDrawCompat\v0.2.1\CompatDirectDraw.cpp" />
+    <ClCompile Include="..\DDrawCompat\v0.2.1\CompatDirectDrawPalette.cpp" />
+    <ClCompile Include="..\DDrawCompat\v0.2.1\CompatDirectDrawSurface.cpp" />
+    <ClCompile Include="..\DDrawCompat\v0.2.1\CompatGdi.cpp" />
+    <ClCompile Include="..\DDrawCompat\v0.2.1\CompatGdiCaret.cpp" />
+    <ClCompile Include="..\DDrawCompat\v0.2.1\CompatGdiDc.cpp" />
+    <ClCompile Include="..\DDrawCompat\v0.2.1\CompatGdiDcCache.cpp" />
+    <ClCompile Include="..\DDrawCompat\v0.2.1\CompatGdiDcFunctions.cpp" />
+    <ClCompile Include="..\DDrawCompat\v0.2.1\CompatGdiPaintHandlers.cpp" />
+    <ClCompile Include="..\DDrawCompat\v0.2.1\CompatGdiScrollBar.cpp" />
+    <ClCompile Include="..\DDrawCompat\v0.2.1\CompatGdiScrollFunctions.cpp" />
+    <ClCompile Include="..\DDrawCompat\v0.2.1\CompatGdiTitleBar.cpp" />
+    <ClCompile Include="..\DDrawCompat\v0.2.1\CompatGdiWinProc.cpp" />
+    <ClCompile Include="..\DDrawCompat\v0.2.1\CompatPaletteConverter.cpp" />
+    <ClCompile Include="..\DDrawCompat\v0.2.1\CompatPrimarySurface.cpp" />
+    <ClCompile Include="..\DDrawCompat\v0.2.1\CompatRegistry.cpp" />
+    <ClCompile Include="..\DDrawCompat\v0.2.1\DDrawLog.cpp" />
+    <ClCompile Include="..\DDrawCompat\v0.2.1\DDrawProcs.cpp" />
+    <ClCompile Include="..\DDrawCompat\v0.2.1\DDrawRepository.cpp" />
+    <ClCompile Include="..\DDrawCompat\v0.2.1\DllMainCompat.cpp" />
+    <ClCompile Include="..\DDrawCompat\v0.2.1\Hook.cpp" />
+    <ClCompile Include="..\DDrawCompat\v0.2.1\IReleaseNotifier.cpp" />
+    <ClCompile Include="..\DDrawCompat\v0.2.1\RealPrimarySurface.cpp" />
+    <ClCompile Include="..\DDrawCompat\v0.2.1\Time.cpp" />
+    <ClCompile Include="..\DDrawCompat\v0.2.1\UnmodifiedDDrawProcs.cpp" />
+    <ClCompile Include="..\DxWnd\v2_03_60_src\proxy\init.cpp" />
+    <ClCompile Include="cfg.cpp" />
+    <ClCompile Include="d3d8to9\d3d8to9.cpp" />
+    <ClCompile Include="disasm\cmdlist.c" />
+    <ClCompile Include="disasm\Disasm.c" />
+    <ClCompile Include="disasm\initdisasm.cpp" />
+    <ClCompile Include="dllmain.cpp" />
+    <ClCompile Include="dsound\dsound_hook.cpp" />
+    <ClCompile Include="dxwrapper.cpp" />
+    <ClCompile Include="fullscreen.cpp" />
+    <ClCompile Include="hook\hotpatch.cpp" />
+    <ClCompile Include="hook\iatpatch.cpp" />
+    <ClCompile Include="utils.cpp" />
+    <ClCompile Include="wrappers\d3d8.cpp" />
+    <ClCompile Include="wrappers\d3d9.cpp" />
+    <ClCompile Include="wrappers\ddraw.cpp" />
+    <ClCompile Include="wrappers\dplayx.cpp" />
+    <ClCompile Include="wrappers\dsound.cpp" />
+    <ClCompile Include="wrappers\dxgi.cpp" />
+    <ClCompile Include="wrappers\winmm.cpp" />
+    <ClCompile Include="writememory\writememory.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="dxwrapper.def" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\DDrawCompat\v0.2.1\DDrawLog.h" />
+    <ClInclude Include="d3d8to9\d3d8to9.hpp" />
+    <ClInclude Include="d3d8to9\d3d8types.h" />
+    <ClInclude Include="dgame.h" />
+    <ClInclude Include="dxwrapper.h" />
+    <ClInclude Include="hook\MinHook.h" />
+    <ClInclude Include="resource.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="dxwrapper.rc">
+      <AdditionalIncludeDirectories Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+      </AdditionalIncludeDirectories>
+      <IgnoreStandardIncludePath Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+      </IgnoreStandardIncludePath>
+    </ResourceCompile>
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>
