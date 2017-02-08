@@ -70,9 +70,6 @@
     <ClCompile Include="wrappers\winmm.cpp">
       <Filter>wrappers</Filter>
     </ClCompile>
-    <ClCompile Include="..\DxWnd\v2_03_60_src\proxy\init.cpp">
-      <Filter>dxwnd</Filter>
-    </ClCompile>
     <ClCompile Include="disasm\initdisasm.cpp">
       <Filter>disasm</Filter>
     </ClCompile>
@@ -94,82 +91,85 @@
     <ClCompile Include="writememory\writememory.cpp">
       <Filter>writememory</Filter>
     </ClCompile>
-    <ClCompile Include="..\DDrawCompat\v0.2.1\DDrawLog.cpp">
+    <ClCompile Include="DxWnd\v2_03_60_src\proxy\init.cpp">
+      <Filter>dxwnd</Filter>
+    </ClCompile>
+    <ClCompile Include="DDrawCompat\v0.2.1\DDrawLog.cpp">
       <Filter>ddrawcompat</Filter>
     </ClCompile>
-    <ClCompile Include="..\DDrawCompat\v0.2.1\DllMainCompat.cpp">
+    <ClCompile Include="DDrawCompat\v0.2.1\DllMainCompat.cpp">
       <Filter>ddrawcompat</Filter>
     </ClCompile>
-    <ClCompile Include="..\DDrawCompat\v0.2.1\CompatDirectDrawPalette.cpp">
+    <ClCompile Include="DDrawCompat\v0.2.1\CompatDirectDrawPalette.cpp">
       <Filter>ddrawcompat</Filter>
     </ClCompile>
-    <ClCompile Include="..\DDrawCompat\v0.2.1\RealPrimarySurface.cpp">
+    <ClCompile Include="DDrawCompat\v0.2.1\RealPrimarySurface.cpp">
       <Filter>ddrawcompat</Filter>
     </ClCompile>
-    <ClCompile Include="..\DDrawCompat\v0.2.1\Time.cpp">
+    <ClCompile Include="DDrawCompat\v0.2.1\Time.cpp">
       <Filter>ddrawcompat</Filter>
     </ClCompile>
-    <ClCompile Include="..\DDrawCompat\v0.2.1\UnmodifiedDDrawProcs.cpp">
+    <ClCompile Include="DDrawCompat\v0.2.1\UnmodifiedDDrawProcs.cpp">
       <Filter>ddrawcompat</Filter>
     </ClCompile>
-    <ClCompile Include="..\DDrawCompat\v0.2.1\IReleaseNotifier.cpp">
+    <ClCompile Include="DDrawCompat\v0.2.1\IReleaseNotifier.cpp">
       <Filter>ddrawcompat</Filter>
     </ClCompile>
-    <ClCompile Include="..\DDrawCompat\v0.2.1\Hook.cpp">
+    <ClCompile Include="DDrawCompat\v0.2.1\Hook.cpp">
       <Filter>ddrawcompat</Filter>
     </ClCompile>
-    <ClCompile Include="..\DDrawCompat\v0.2.1\DDrawRepository.cpp">
+    <ClCompile Include="DDrawCompat\v0.2.1\DDrawRepository.cpp">
       <Filter>ddrawcompat</Filter>
     </ClCompile>
-    <ClCompile Include="..\DDrawCompat\v0.2.1\DDrawProcs.cpp">
+    <ClCompile Include="DDrawCompat\v0.2.1\DDrawProcs.cpp">
       <Filter>ddrawcompat</Filter>
     </ClCompile>
-    <ClCompile Include="..\DDrawCompat\v0.2.1\CompatRegistry.cpp">
+    <ClCompile Include="DDrawCompat\v0.2.1\CompatRegistry.cpp">
       <Filter>ddrawcompat</Filter>
     </ClCompile>
-    <ClCompile Include="..\DDrawCompat\v0.2.1\CompatPrimarySurface.cpp">
+    <ClCompile Include="DDrawCompat\v0.2.1\CompatPrimarySurface.cpp">
       <Filter>ddrawcompat</Filter>
     </ClCompile>
-    <ClCompile Include="..\DDrawCompat\v0.2.1\CompatPaletteConverter.cpp">
+    <ClCompile Include="DDrawCompat\v0.2.1\CompatPaletteConverter.cpp">
       <Filter>ddrawcompat</Filter>
     </ClCompile>
-    <ClCompile Include="..\DDrawCompat\v0.2.1\CompatGdiWinProc.cpp">
+    <ClCompile Include="DDrawCompat\v0.2.1\CompatGdiWinProc.cpp">
       <Filter>ddrawcompat</Filter>
     </ClCompile>
-    <ClCompile Include="..\DDrawCompat\v0.2.1\CompatGdiTitleBar.cpp">
+    <ClCompile Include="DDrawCompat\v0.2.1\CompatGdiTitleBar.cpp">
       <Filter>ddrawcompat</Filter>
     </ClCompile>
-    <ClCompile Include="..\DDrawCompat\v0.2.1\CompatGdiScrollFunctions.cpp">
+    <ClCompile Include="DDrawCompat\v0.2.1\CompatGdiScrollFunctions.cpp">
       <Filter>ddrawcompat</Filter>
     </ClCompile>
-    <ClCompile Include="..\DDrawCompat\v0.2.1\CompatGdiScrollBar.cpp">
+    <ClCompile Include="DDrawCompat\v0.2.1\CompatGdiScrollBar.cpp">
       <Filter>ddrawcompat</Filter>
     </ClCompile>
-    <ClCompile Include="..\DDrawCompat\v0.2.1\CompatGdiPaintHandlers.cpp">
+    <ClCompile Include="DDrawCompat\v0.2.1\CompatGdiPaintHandlers.cpp">
       <Filter>ddrawcompat</Filter>
     </ClCompile>
-    <ClCompile Include="..\DDrawCompat\v0.2.1\CompatGdiDcFunctions.cpp">
+    <ClCompile Include="DDrawCompat\v0.2.1\CompatGdiDcFunctions.cpp">
       <Filter>ddrawcompat</Filter>
     </ClCompile>
-    <ClCompile Include="..\DDrawCompat\v0.2.1\CompatGdiDcCache.cpp">
+    <ClCompile Include="DDrawCompat\v0.2.1\CompatGdiDcCache.cpp">
       <Filter>ddrawcompat</Filter>
     </ClCompile>
-    <ClCompile Include="..\DDrawCompat\v0.2.1\CompatGdiDc.cpp">
+    <ClCompile Include="DDrawCompat\v0.2.1\CompatGdiDc.cpp">
       <Filter>ddrawcompat</Filter>
     </ClCompile>
-    <ClCompile Include="..\DDrawCompat\v0.2.1\CompatGdiCaret.cpp">
+    <ClCompile Include="DDrawCompat\v0.2.1\CompatGdiCaret.cpp">
       <Filter>ddrawcompat</Filter>
     </ClCompile>
-    <ClCompile Include="..\DDrawCompat\v0.2.1\CompatGdi.cpp">
+    <ClCompile Include="DDrawCompat\v0.2.1\CompatGdi.cpp">
       <Filter>ddrawcompat</Filter>
     </ClCompile>
-    <ClCompile Include="..\DDrawCompat\v0.2.1\CompatDirectDrawSurface.cpp">
+    <ClCompile Include="DDrawCompat\v0.2.1\CompatDirectDrawSurface.cpp">
       <Filter>ddrawcompat</Filter>
     </ClCompile>
-    <ClCompile Include="..\DDrawCompat\v0.2.1\CompatDirectDraw.cpp">
+    <ClCompile Include="DDrawCompat\v0.2.1\CompatDirectDraw.cpp">
       <Filter>ddrawcompat</Filter>
     </ClCompile>
-    <ClCompile Include="..\DDrawCompat\v0.2.1\CompatActivateAppHandler.cpp">
+    <ClCompile Include="DDrawCompat\v0.2.1\CompatActivateAppHandler.cpp">
       <Filter>ddrawcompat</Filter>
     </ClCompile>
   </ItemGroup>
@@ -196,9 +196,6 @@
     </ClInclude>
     <ClInclude Include="hook\MinHook.h">
       <Filter>hook</Filter>
-    </ClInclude>
-    <ClInclude Include="..\DDrawCompat\v0.2.1\DDrawLog.h">
-      <Filter>ddrawcompat</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
