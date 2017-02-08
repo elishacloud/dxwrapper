@@ -85,10 +85,10 @@ So far I have tested this with over 70 games (that don't otherwise work correctl
 # License
 This project uses code from several other projects. So to give credit where credit is due, below is a list of locations that source code was taken from:
 
-DdrawCompat - https://github.com/narzoul/DDrawCompat/
-DxWnd - https://sourceforge.net/projects/dxwnd/
-OllyDbg - http://www.ollydbg.de/
-Ultimate-ASI-Loader - https://github.com/ThirteenAG/Ultimate-ASI-Loader
-Aqrit's ddwrapper - http://bitpatch.com/ddwrapper.html
+ - DdrawCompat: https://github.com/narzoul/DDrawCompat/
+ - DxWnd: https://sourceforge.net/projects/dxwnd/
+ - OllyDbg: http://www.ollydbg.de/
+ - Ultimate-ASI-Loader: https://github.com/ThirteenAG/Ultimate-ASI-Loader
+ - Aqrit's ddwrapper: http://bitpatch.com/ddwrapper.html
 
 Thanks for stopping by!
