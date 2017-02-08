@@ -27,3 +27,20 @@
 *.exe
 *.out
 *.app
+
+# Other Visual Studio files
+*.user
+*.suo
+*.aps
+*.log
+*.tlog
+*.exp
+*.ncb
+*.res
+*.sdf
+*.lastbuildstate
+*.ipsh
+*.idb
+*.pdb
+*.db
+RC*.
