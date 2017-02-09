@@ -17,71 +17,7 @@ DxWrapper has a number of features that it includes.  Below is a list of feature
  - Run custom processes when the game starts up
 
 ### Windows 10 Games Compatibility
-So far I have tested this with over 70 games (that don't otherwise work correctly) to get them running on Windows 10.  Below is a list of some of the games I have tested so far.  Most work flawlessly, some still have issues I need to resolve.  I am planning to create a page for each game explaining how I got them working and include a simple download for anyone who wants to run these games on Windows 10.
-
- - Alien Nations
- - Atlantis The Lost Tales
- - Blitzkrieg
- - Blitzkrieg BHRT
- - Close Combat IV
- - Codename Outbreak
- - Combat Mission Beyond Overlord
- - Conquest Frontier Wars
- - Dark Fall 2 Lights Out
- - Dark Reign
- - Deadlock II
- - Desperados Wanted Dead or Alive
- - Diablo
- - Diablo Hellfire
- - Double Dragon Trilogy
- - Dungeons and Dragons Dragonshard
- - Freespace 2
- - Gangsters Organized Crime
- - Gothic
- - Guilty Gear Isuka
- - Guilty Gear X2 Reload
- - Heretic Kingdoms
- - InkBall
- - Interstate 82
- - Jagged Alliance 2
- - Majesty Gold HD
- - MechWarrior 4
- - Might and Magic IX
- - Moto Racer 3
- - Myst III Exile
- - Oddworld Abe's Oddysee
- - Outpost 2
- - Pandemonium
- - Patrician 3
- - Perimeter
- - Port Royale
- - Prince of Persia
- - Raiden Legacy
- - RavenShield
- - Return of TIM
- - RollerCoaster Tycoon 3 Platinum
- - SimCity 4 Deluxe Edition
- - SimCity Classic
- - Splinter Cell
- - Star Trek Armada
- - Star Trek Starfleet Command
- - Star Trek Voyager Elite Force
- - Star Wars Battlefront
- - Star Wars Starfighter
- - SWAT 3
- - Temple of Elemental Evil
- - The Great Battles of Caesar
- - The Great Battles of Hannibal
- - The Longest Journey
- - The Nations Gold
- - The Settlers IV Gold
- - The Summoner
- - TIM Even More Contraptions
- - Tomb Raider The Angel of Darkness
- - War Wind
- - War Wind II Human Onslaught
- - WarGames
- - Warhammer 40,000 Chaos Gate
+So far I have tested this with over 70 games (that don't otherwise work correctly) to get them running on Windows 10.  Most work flawlessly, some still have issues I need to resolve.  Check out the [Compatible Games wiki](https://github.com/elishacloud/dxwrapper/wiki/Compatible-Games) for a full list.
 
 ### Installation
 
@@ -99,7 +35,7 @@ Delete DxWrapper dll files and the ini files from the game's directory. You can 
 
 ### Configuration
 
-I am planning to add a configuration page later.  Please check back soon!
+To configure DxWrapper you just need to edit the ini file and enable the settings you want.  See the [Configuration wiki](https://github.com/elishacloud/dxwrapper/wiki/Configuration) for more details.
 
 ### License
 Copyright (C) 2017 Elisha Riedlinger
