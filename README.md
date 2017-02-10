@@ -7,7 +7,7 @@ DxWrapper has a number of features that it includes.  Below is a list of feature
 
  - Integration of [DdrawCompat](https://github.com/narzoul/DDrawCompat/)
  - Proxy for [DxWnd](https://sourceforge.net/projects/dxwnd/)
- - Convert D3D8 to D3D9
+ - Convert Direct3D8 (d3d8.dll) to Direct3D9 (d3d9.dll)
  - Hot patch memory support (update game memory at run time, can be used to remove CD/DVD checks or resolve graphics or other glitches)
  - Set single CPU affinity (some games have issue with multi-core CPUs)
  - Disable display scaling on high DPI setting
