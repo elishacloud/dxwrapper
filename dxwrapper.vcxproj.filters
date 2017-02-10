@@ -172,6 +172,33 @@
     <ClCompile Include="DDrawCompat\v0.2.1\CompatActivateAppHandler.cpp">
       <Filter>ddrawcompat</Filter>
     </ClCompile>
+    <ClCompile Include="d3d8to9\d3d8to9_base.cpp">
+      <Filter>d3d8to9</Filter>
+    </ClCompile>
+    <ClCompile Include="d3d8to9\d3d8to9_device.cpp">
+      <Filter>d3d8to9</Filter>
+    </ClCompile>
+    <ClCompile Include="d3d8to9\d3d8to9_index_buffer.cpp">
+      <Filter>d3d8to9</Filter>
+    </ClCompile>
+    <ClCompile Include="d3d8to9\d3d8to9_surface.cpp">
+      <Filter>d3d8to9</Filter>
+    </ClCompile>
+    <ClCompile Include="d3d8to9\d3d8to9_swap_chain.cpp">
+      <Filter>d3d8to9</Filter>
+    </ClCompile>
+    <ClCompile Include="d3d8to9\d3d8to9_texture.cpp">
+      <Filter>d3d8to9</Filter>
+    </ClCompile>
+    <ClCompile Include="d3d8to9\d3d8to9_vertex_buffer.cpp">
+      <Filter>d3d8to9</Filter>
+    </ClCompile>
+    <ClCompile Include="d3d8to9\d3d8to9_volume.cpp">
+      <Filter>d3d8to9</Filter>
+    </ClCompile>
+    <ClCompile Include="d3d8to9\d3d8types.cpp">
+      <Filter>d3d8to9</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="dxwrapper.def">
@@ -180,9 +207,6 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="d3d8to9\d3d8to9.hpp">
-      <Filter>d3d8to9</Filter>
-    </ClInclude>
-    <ClInclude Include="d3d8to9\d3d8types.h">
       <Filter>d3d8to9</Filter>
     </ClInclude>
     <ClInclude Include="resource.h">
@@ -196,6 +220,9 @@
     </ClInclude>
     <ClInclude Include="hook\MinHook.h">
       <Filter>hook</Filter>
+    </ClInclude>
+    <ClInclude Include="d3d8to9\d3d8types.hpp">
+      <Filter>d3d8to9</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

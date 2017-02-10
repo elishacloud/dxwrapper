@@ -51,12 +51,12 @@ DxWrapper uses code from several other projects. So to give credit where credit 
  - [DdrawCompat](https://github.com/narzoul/DDrawCompat/): Includes the full DdrawCompat version 2.0b and 2.1.
  - [DxWnd](https://sourceforge.net/projects/dxwnd/): Includes code from the proxy dll, single CPU affinity and exception handling. 
  - [OllyDbg](http://www.ollydbg.de/): Includes the full disasm.c (disasm.dll) code used for exception handling.
- - [Ultimate-ASI-Loader](https://github.com/ThirteenAG/Ultimate-ASI-Loader): Includes the full D3D8 to D3D9 code.
+ - [d3d8to9](https://github.com/crosire/d3d8to9): Includes the full D3D8 to D3D9 code.
  - [Aqrit's ddwrapper](http://bitpatch.com/ddwrapper.html): Includes code for single CPU affinity, disable display scaling on high DPI and code to read the ini config file.
 
 ### Development
 DxWrapper is written in C++ using Microsoft Visual Studio Community 2015.
 
-Compilation depends on [Detours Express 3.0](http://research.microsoft.com/en-us/projects/detours/). It needs to be installed first before DxWrapper can be built. You will need to change the include and library paths as needed if you didn't install/build Detours in the default directory.
+Compilation depends on [Detours Express 3.0](http://research.microsoft.com/en-us/projects/detours/)and the standalone DirectX SDK, required for the D3DX headers and libraries used for disassembling and assembling the shaders. You will need to change the include and library paths as needed if you didn't install Detours or the DirectX SDK in the default directory.
 
 Thanks for stopping by!

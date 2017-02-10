@@ -1,22 +1,11 @@
 /**
- * Copyright (C) 2015 Patrick Mours
- *
- * This software is  provided 'as-is', without any express  or implied  warranty. In no event will the
- * authors be held liable for any damages arising from the use of this software.
- * Permission  is granted  to anyone  to use  this software  for  any  purpose,  including  commercial
- * applications, and to alter it and redistribute it freely, subject to the following restrictions:
- *
- *   1. The origin of this software must not be misrepresented; you must not claim that you  wrote the
- *      original  software. If you use this  software  in a product, an  acknowledgment in the product
- *      documentation would be appreciated but is not required.
- *   2. Altered source versions must  be plainly  marked as such, and  must not be  misrepresented  as
- *      being the original software.
- *   3. This notice may not be removed or altered from any source distribution.
+ * Copyright (C) 2015 Patrick Mours. All rights reserved.
+ * License: https://github.com/crosire/d3d8to9#license
  */
 
 #pragma once
 
-#include "d3d8types.h"
+#include "d3d8types.hpp"
 
 class __declspec(uuid("1DD9E8DA-1C77-4D40-B0CF-98FEFDFF9512")) Direct3D8;
 class __declspec(uuid("7385E5DF-8FE8-41D5-86B6-D7B48547B6CF")) Direct3DDevice8;
@@ -31,7 +20,7 @@ class __declspec(uuid("BD7349F5-14F1-42E4-9C79-972380DB40C0")) Direct3DVolume8;
 class __declspec(uuid("8AEEEAC7-05F9-44D4-B591-000B0DF1CB95")) Direct3DVertexBuffer8;
 class __declspec(uuid("0E689C9A-053D-44A0-9D92-DB0E3D750F86")) Direct3DIndexBuffer8;
 
-class Direct3D8 : IUnknown
+class Direct3D8 : public IUnknown
 {
 	Direct3D8(const Direct3D8 &) = delete;
 	Direct3D8 &operator=(const Direct3D8 &) = delete;
@@ -64,7 +53,7 @@ public:
 private:
 	IDirect3D9 *const _proxy;
 };
-class Direct3DDevice8 : IUnknown
+class Direct3DDevice8 : public IUnknown
 {
 	Direct3DDevice8(const Direct3DDevice8 &) = delete;
 	Direct3DDevice8 &operator=(const Direct3DDevice8 &) = delete;
@@ -189,7 +178,7 @@ private:
 	DWORD _current_vertex_shader = 0, _current_pixel_shader = 0;
 	Direct3DSurface8 *_current_rendertarget = nullptr, *_current_depthstencil = nullptr;
 };
-class Direct3DSwapChain8 : IUnknown
+class Direct3DSwapChain8 : public IUnknown
 {
 	Direct3DSwapChain8(const Direct3DSwapChain8 &) = delete;
 	Direct3DSwapChain8 &operator=(const Direct3DSwapChain8 &) = delete;
@@ -217,7 +206,7 @@ private:
 	Direct3DDevice8 *const _device;
 	IDirect3DSwapChain9 *const _proxy;
 };
-class Direct3DResource8 : IUnknown
+class Direct3DResource8 : public IUnknown
 {
 public:
 	virtual HRESULT STDMETHODCALLTYPE GetDevice(Direct3DDevice8 **ppDevice) = 0;
@@ -371,7 +360,7 @@ private:
 	Direct3DDevice8 *const _device;
 	IDirect3DVolumeTexture9 *const _proxy;
 };
-class Direct3DSurface8 : IUnknown
+class Direct3DSurface8 : public IUnknown
 {
 	Direct3DSurface8(const Direct3DSurface8 &) = delete;
 	Direct3DSurface8 &operator=(const Direct3DSurface8 &) = delete;
@@ -406,7 +395,7 @@ private:
 	Direct3DDevice8 *const _device;
 	IDirect3DSurface9 *const _proxy;
 };
-class Direct3DVolume8 : IUnknown
+class Direct3DVolume8 : public IUnknown
 {
 	Direct3DVolume8(const Direct3DVolume8 &) = delete;
 	Direct3DVolume8 &operator=(const Direct3DVolume8 &) = delete;
@@ -520,8 +509,6 @@ private:
 	IDirect3DIndexBuffer9 *const _proxy;
 };
 
-struct Direct3DVertexShader8
-{
-	IDirect3DVertexShader9 *shader;
-	IDirect3DVertexDeclaration9 *declaration;
-};
+//#include "dgame.h"
+
+//extern std::ofstream LOG;

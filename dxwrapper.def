@@ -43,6 +43,8 @@ Preparedisasm		@991
 Finishdisasm		@992
 Disasm				@993
 Geterrwarnmessage	@994
+
+
 ; ****
 ;LIBRARY "DDraw_Compat"
 ; ****

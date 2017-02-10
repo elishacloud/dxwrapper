@@ -1,4 +1,11 @@
+/**
+ * Copyright (C) 2015 Patrick Mours. All rights reserved.
+ * License: https://github.com/crosire/d3d8to9#license
+ */
+
 #pragma once
+
+struct IUnknown;
 
 #include <d3d9.h>
 
@@ -50,21 +57,11 @@
 #define D3DCAPS2_CANRENDERWINDOWED 0x00080000L
 #define D3DPRASTERCAPS_ZBIAS 0x00004000L
 
-typedef D3DCLIPSTATUS9 D3DCLIPSTATUS8;
 typedef D3DLIGHT9 D3DLIGHT8;
 typedef D3DMATERIAL9 D3DMATERIAL8;
 typedef D3DVIEWPORT9 D3DVIEWPORT8;
+typedef D3DCLIPSTATUS9 D3DCLIPSTATUS8;
 
-struct D3DADAPTER_IDENTIFIER8
-{
-	char Driver[MAX_DEVICE_IDENTIFIER_STRING];
-	char Description[MAX_DEVICE_IDENTIFIER_STRING];
-	LARGE_INTEGER DriverVersion;
-	DWORD VendorId, DeviceId, SubSysId;
-	DWORD Revision;
-	GUID DeviceIdentifier;
-	DWORD WHQLLevel;
-};
 struct D3DCAPS8
 {
 	D3DDEVTYPE DeviceType;
@@ -115,6 +112,27 @@ struct D3DCAPS8
 	DWORD PixelShaderVersion;
 	float MaxPixelShaderValue;
 };
+
+struct D3DVOLUME_DESC8
+{
+	D3DFORMAT Format;
+	D3DRESOURCETYPE Type;
+	DWORD Usage;
+	D3DPOOL Pool;
+	UINT Size;
+	UINT Width, Height, Depth;
+};
+struct D3DSURFACE_DESC8
+{
+	D3DFORMAT Format;
+	D3DRESOURCETYPE Type;
+	DWORD Usage;
+	D3DPOOL Pool;
+	UINT Size;
+	D3DMULTISAMPLE_TYPE MultiSampleType;
+	UINT Width, Height;
+};
+
 struct D3DPRESENT_PARAMETERS8
 {
 	UINT BackBufferWidth, BackBufferHeight;
@@ -129,22 +147,20 @@ struct D3DPRESENT_PARAMETERS8
 	DWORD Flags;
 	UINT FullScreen_RefreshRateInHz, FullScreen_PresentationInterval;
 };
-struct D3DSURFACE_DESC8
+
+struct D3DADAPTER_IDENTIFIER8
 {
-	D3DFORMAT Format;
-	D3DRESOURCETYPE Type;
-	DWORD Usage;
-	D3DPOOL Pool;
-	UINT Size;
-	D3DMULTISAMPLE_TYPE MultiSampleType;
-	UINT Width, Height;
+	char Driver[MAX_DEVICE_IDENTIFIER_STRING];
+	char Description[MAX_DEVICE_IDENTIFIER_STRING];
+	LARGE_INTEGER DriverVersion;
+	DWORD VendorId, DeviceId, SubSysId;
+	DWORD Revision;
+	GUID DeviceIdentifier;
+	DWORD WHQLLevel;
 };
-struct D3DVOLUME_DESC8
-{
-	D3DFORMAT Format;
-	D3DRESOURCETYPE Type;
-	DWORD Usage;
-	D3DPOOL Pool;
-	UINT Size;
-	UINT Width, Height, Depth;
-};
+
+void convert_caps(D3DCAPS9 &input, D3DCAPS8 &output);
+void convert_volume_desc(D3DVOLUME_DESC &input, D3DVOLUME_DESC8 &output);
+void convert_surface_desc(D3DSURFACE_DESC &input, D3DSURFACE_DESC8 &output);
+void convert_present_parameters(D3DPRESENT_PARAMETERS8 &input, D3DPRESENT_PARAMETERS &output);
+void convert_adapter_identifier(D3DADAPTER_IDENTIFIER9 &input, D3DADAPTER_IDENTIFIER8 &output);
