@@ -248,6 +248,7 @@ void __stdcall ParseCallback(char* name, char* value)
 	if (!_strcmpi(name, "ForceWindowResize")) { Config.ForceWindowResize = IsValueEnabled(value); return; }
 	if (!_strcmpi(name, "HandleExceptions")) { Config.HandleExceptions = IsValueEnabled(value); return; }
 	if (!_strcmpi(name, "HookDirectSound")) { Config.HookDsound = IsValueEnabled(value); return; }
+	if (!_strcmpi(name, "ResetScreenRes")) { Config.ResetScreenRes = IsValueEnabled(value); return; }
 	if (!_strcmpi(name, "SendAltEnter")) { Config.SendAltEnter = IsValueEnabled(value); return; }
 	if (!_strcmpi(name, "WaitForProcess")) { Config.WaitForProcess = IsValueEnabled(value); return; }
 	if (!_strcmpi(name, "WaitForWindowChanges")) { Config.WaitForWindowChanges = IsValueEnabled(value); return; }
@@ -320,6 +321,7 @@ void ClearConfigSettings()
 	Config.ForceWindowResize = false;
 	Config.HandleExceptions = false;
 	Config.HookDsound = false;
+	Config.ResetScreenRes = false;
 	Config.SendAltEnter = false;
 	Config.WaitForProcess = false;
 	Config.WaitForWindowChanges = false;
@@ -391,6 +393,7 @@ void CONFIG::Init()
 	Config.DpiAware = true;
 	Config.DxWnd = true;
 	Config.HandleExceptions = true;
+	Config.ResetScreenRes = true;
 	Config.LoopSleepTime = 120;
 	Config.WindowSleepTime = 500;
 	SetConfigList(szExclude, ExcludeCount, "dxwnd.exe");

@@ -145,6 +145,7 @@ struct CONFIG
 	bool ForceWindowResize;				// Forces main window to fullscreen
 	bool HandleExceptions;				// Handles unhandled exceptions in the application
 	bool HookDsound;					// Work in progress
+	bool ResetScreenRes;				// Reset the screen resolution on close
 	bool SendAltEnter;					// Sends an Alt+Enter message to the wind to tell it to go into fullscreen
 	bool WaitForProcess;				// Enables 'WindowSleepTime'
 	bool WaitForWindowChanges;			// Waits for window handle to stabilize before setting fullsreen

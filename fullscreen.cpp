@@ -831,7 +831,7 @@ void MainFullScreenFunc()
 					LastFullscreenLoop = CurrentLoop;
 
 					// Update and store CurrentScreenRes
-					CallCheckCurrentScreenRes();
+					if (Config.ResetScreenRes) CallCheckCurrentScreenRes();
 
 					// Release ownership of the critical section.
 					LeaveCriticalSection(&CriticalSection);

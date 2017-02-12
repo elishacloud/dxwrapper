@@ -37,8 +37,11 @@ void RunExitFunctions(bool ForceTerminate)
 	if (ForceTerminate)
 	{
 		Compat::Log() << "Process not exiting, attempting to terminate process...";
-		SetScreen(m_ScreenRes);		// Should be run after StopThread and before unloading anything else
-		ResetScreen();				// Reset screen back to original Windows settings
+		if (Config.ResetScreenRes)
+		{
+			SetScreen(m_ScreenRes);		// Should be run after StopThread and before unloading anything else
+			ResetScreen();				// Reset screen back to original Windows settings
+		}
 		HANDLE processHandle = OpenProcess(PROCESS_ALL_ACCESS, false, GetCurrentProcessId());
 		Compat::Log() << "Terminating process!";
 		TerminateProcess(processHandle, 0);
@@ -48,7 +51,7 @@ void RunExitFunctions(bool ForceTerminate)
 	Compat::Log() << "Quiting dxwrapper";
 	StopThread();
 	StopHotpatchThread();
-	SetScreen(m_ScreenRes);		// Should be run after StopThread and before unloading anything else
+	if (Config.ResetScreenRes) SetScreen(m_ScreenRes);		// Should be run after StopThread and before unloading anything else
 	if (Config.DxWnd)
 	{
 		Compat::Log() << "Unloading dxwnd";
@@ -58,7 +61,7 @@ void RunExitFunctions(bool ForceTerminate)
 	DllDetach();
 	Config.CleanUp();
 	if (Config.HandleExceptions) UnHookExceptionHandler();
-	ResetScreen();				// Reset screen back to original Windows settings
+	if (Config.ResetScreenRes) ResetScreen();				// Reset screen back to original Windows settings
 	Compat::Log() << "dxwrapper terminated!";
 }
 
@@ -117,7 +120,7 @@ bool APIENTRY DllMain(HMODULE hModule, DWORD ul_reason_for_call, LPVOID /*lpRese
 		// Set single process affinity
 		if (Config.Affinity) SetSingleCoreAffinity();
 		// Check and store screen resolution
-		CheckCurrentScreenRes(m_ScreenRes);
+		if (Config.ResetScreenRes) CheckCurrentScreenRes(m_ScreenRes);
 		// Check if thread has started
 		if (Config.ForceTermination && IsMyThreadRunning())
 			ThreadStartedFlag = true;
