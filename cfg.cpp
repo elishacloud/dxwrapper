@@ -360,6 +360,7 @@ void GetWrapperMode()
 	if (_strcmpi(buffer, "dsound.dll") == 0) { Config.RealWrapperMode = dtype.dsound; return; }
 	if (_strcmpi(buffer, "dxgi.dll") == 0) { Config.RealWrapperMode = dtype.dxgi; return; }
 	if (_strcmpi(buffer, "dplayx.dll") == 0) { Config.RealWrapperMode = dtype.dplayx; return; }
+	if (_strcmpi(buffer, "winspool.drv") == 0) { Config.RealWrapperMode = dtype.winspool; return; }
 
 	// Special for winmm.dll because sometimes it is changed to win32 or winnm or some other name
 	if (strlen(buffer) > 8)

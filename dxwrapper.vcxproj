@@ -164,6 +164,7 @@ copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\winmm.dll"
 copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\dsound.dll"
 copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\dxgi.dll"
 copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\dplayx.dll"
+copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\winspool.drv"
 </Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
@@ -223,6 +224,7 @@ copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\dplayx.dll"
     <ClCompile Include="wrappers\dsound.cpp" />
     <ClCompile Include="wrappers\dxgi.cpp" />
     <ClCompile Include="wrappers\winmm.cpp" />
+    <ClCompile Include="wrappers\winspool.cpp" />
     <ClCompile Include="writememory\writememory.cpp" />
   </ItemGroup>
   <ItemGroup>

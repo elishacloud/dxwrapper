@@ -37,15 +37,6 @@ _DirectSoundCaptureCreate8		= _DirectSoundCaptureCreate8			@32
 
 
 ; ****
-;LIBRARY "Disasm"
-; ****
-Preparedisasm		@991
-Finishdisasm		@992
-Disasm				@993
-Geterrwarnmessage	@994
-
-
-; ****
 ;LIBRARY "DDraw_Compat"
 ; ****
 _AcquireDDThreadLock			= AcquireDDThreadLock					@50
@@ -74,137 +65,348 @@ _DirectInputCreateA				= DirectInputCreateA					@72
 
 
 ; ****
+;LIBRARY "winspool"
+; ****
+ADVANCEDSETUPDIALOG = FakeADVANCEDSETUPDIALOG @101
+AdvancedSetupDialog = FakeAdvancedSetupDialog @102
+ConvertAnsiDevModeToUnicodeDevmode = FakeConvertAnsiDevModeToUnicodeDevmode @103
+ConvertUnicodeDevModeToAnsiDevmode = FakeConvertUnicodeDevModeToAnsiDevmode @104
+DEVICEMODE = FakeDEVICEMODE @105
+DeviceMode = FakeDeviceMode @106
+DocumentEvent = FakeDocumentEvent @107
+PerfClose = FakePerfClose @108
+PerfCollect = FakePerfCollect @109
+PerfOpen = FakePerfOpen @110
+QueryColorProfile = FakeQueryColorProfile @111
+QueryRemoteFonts = FakeQueryRemoteFonts @112
+QuerySpoolMode = FakeQuerySpoolMode @113
+SpoolerDevQueryPrintW = FakeSpoolerDevQueryPrintW @114
+StartDocDlgW = FakeStartDocDlgW @115
+AbortPrinter = FakeAbortPrinter @116
+AddFormA = FakeAddFormA @117
+AddFormW = FakeAddFormW @118
+AddJobA = FakeAddJobA @119
+AddJobW = FakeAddJobW @120
+AddMonitorA = FakeAddMonitorA @121
+AddMonitorW = FakeAddMonitorW @122
+AddPortA = FakeAddPortA @123
+AddPortExA = FakeAddPortExA @124
+AddPortExW = FakeAddPortExW @125
+AddPortW = FakeAddPortW @126
+AddPrintProcessorA = FakeAddPrintProcessorA @127
+AddPrintProcessorW = FakeAddPrintProcessorW @128
+AddPrintProvidorA = FakeAddPrintProvidorA @129
+AddPrintProvidorW = FakeAddPrintProvidorW @130
+AddPrinterA = FakeAddPrinterA @131
+AddPrinterConnection2A = FakeAddPrinterConnection2A @132
+AddPrinterConnection2W = FakeAddPrinterConnection2W @133
+AddPrinterConnectionA = FakeAddPrinterConnectionA @134
+AddPrinterConnectionW = FakeAddPrinterConnectionW @135
+AddPrinterDriverA = FakeAddPrinterDriverA @136
+AddPrinterDriverExA = FakeAddPrinterDriverExA @137
+AddPrinterDriverExW = FakeAddPrinterDriverExW @138
+AddPrinterDriverW = FakeAddPrinterDriverW @139
+AddPrinterW = FakeAddPrinterW @140
+AdvancedDocumentPropertiesA = FakeAdvancedDocumentPropertiesA @141
+AdvancedDocumentPropertiesW = FakeAdvancedDocumentPropertiesW @142
+ClosePrinter = FakeClosePrinter @143
+CloseSpoolFileHandle = FakeCloseSpoolFileHandle @144
+CommitSpoolData = FakeCommitSpoolData @145
+ConfigurePortA = FakeConfigurePortA @146
+ConfigurePortW = FakeConfigurePortW @147
+ConnectToPrinterDlg = FakeConnectToPrinterDlg @148
+CorePrinterDriverInstalledA = FakeCorePrinterDriverInstalledA @149
+CorePrinterDriverInstalledW = FakeCorePrinterDriverInstalledW @150
+CreatePrintAsyncNotifyChannel = FakeCreatePrintAsyncNotifyChannel @151
+CreatePrinterIC = FakeCreatePrinterIC @152
+DEVICECAPABILITIES = FakeDEVICECAPABILITIES @153
+DeleteFormA = FakeDeleteFormA @154
+DeleteFormW = FakeDeleteFormW @155
+DeleteJobNamedProperty = FakeDeleteJobNamedProperty @156
+DeleteMonitorA = FakeDeleteMonitorA @157
+DeleteMonitorW = FakeDeleteMonitorW @158
+DeletePortA = FakeDeletePortA @159
+DeletePortW = FakeDeletePortW @160
+DeletePrintProcessorA = FakeDeletePrintProcessorA @161
+DeletePrintProcessorW = FakeDeletePrintProcessorW @162
+DeletePrintProvidorA = FakeDeletePrintProvidorA @163
+DeletePrintProvidorW = FakeDeletePrintProvidorW @164
+DeletePrinter = FakeDeletePrinter @165
+DeletePrinterConnectionA = FakeDeletePrinterConnectionA @166
+DeletePrinterConnectionW = FakeDeletePrinterConnectionW @167
+DeletePrinterDataA = FakeDeletePrinterDataA @168
+DeletePrinterDataExA = FakeDeletePrinterDataExA @169
+DeletePrinterDataExW = FakeDeletePrinterDataExW @170
+DeletePrinterDataW = FakeDeletePrinterDataW @171
+DeletePrinterDriverA = FakeDeletePrinterDriverA @172
+DeletePrinterDriverExA = FakeDeletePrinterDriverExA @173
+DeletePrinterDriverExW = FakeDeletePrinterDriverExW @174
+DeletePrinterDriverPackageA = FakeDeletePrinterDriverPackageA @175
+DeletePrinterDriverPackageW = FakeDeletePrinterDriverPackageW @176
+DeletePrinterDriverW = FakeDeletePrinterDriverW @177
+DeletePrinterIC = FakeDeletePrinterIC @178
+DeletePrinterKeyA = FakeDeletePrinterKeyA @179
+DeletePrinterKeyW = FakeDeletePrinterKeyW @180
+DevQueryPrint = FakeDevQueryPrint @181
+DevQueryPrintEx = FakeDevQueryPrintEx @182
+DeviceCapabilities = FakeDeviceCapabilities @183
+DeviceCapabilitiesA = FakeDeviceCapabilitiesA @184
+DeviceCapabilitiesW = FakeDeviceCapabilitiesW @185
+DevicePropertySheets = FakeDevicePropertySheets @186
+DocumentPropertiesA = FakeDocumentPropertiesA @187
+DocumentPropertiesW = FakeDocumentPropertiesW @188
+DocumentPropertySheets = FakeDocumentPropertySheets @189
+EXTDEVICEMODE = FakeEXTDEVICEMODE @190
+EndDocPrinter = FakeEndDocPrinter @191
+EndPagePrinter = FakeEndPagePrinter @192
+EnumFormsA = FakeEnumFormsA @193
+EnumFormsW = FakeEnumFormsW @194
+EnumJobNamedProperties = FakeEnumJobNamedProperties @195
+EnumJobsA = FakeEnumJobsA @196
+EnumJobsW = FakeEnumJobsW @197
+EnumMonitorsA = FakeEnumMonitorsA @198
+EnumMonitorsW = FakeEnumMonitorsW @199
+EnumPortsA = FakeEnumPortsA @200
+GetDefaultPrinterA = FakeGetDefaultPrinterA @201
+SetDefaultPrinterA = FakeSetDefaultPrinterA @202
+GetDefaultPrinterW = FakeGetDefaultPrinterW @203
+SetDefaultPrinterW = FakeSetDefaultPrinterW @204
+EnumPortsW = FakeEnumPortsW @225
+EnumPrintProcessorDatatypesA = FakeEnumPrintProcessorDatatypesA @232
+EnumPrintProcessorDatatypesW = FakeEnumPrintProcessorDatatypesW @235
+EnumPrintProcessorsA = FakeEnumPrintProcessorsA @236
+EnumPrintProcessorsW = FakeEnumPrintProcessorsW @237
+EnumPrinterDataA = FakeEnumPrinterDataA @238
+EnumPrinterDataExA = FakeEnumPrinterDataExA @239
+EnumPrinterDataExW = FakeEnumPrinterDataExW @240
+EnumPrinterDataW = FakeEnumPrinterDataW @241
+EnumPrinterDriversA = FakeEnumPrinterDriversA @242
+EnumPrinterDriversW = FakeEnumPrinterDriversW @243
+EnumPrinterKeyA = FakeEnumPrinterKeyA @244
+EnumPrinterKeyW = FakeEnumPrinterKeyW @245
+EnumPrintersA = FakeEnumPrintersA @246
+EnumPrintersW = FakeEnumPrintersW @247
+ExtDeviceMode = FakeExtDeviceMode @248
+FindClosePrinterChangeNotification = FakeFindClosePrinterChangeNotification @249
+FindFirstPrinterChangeNotification = FakeFindFirstPrinterChangeNotification @263
+FindNextPrinterChangeNotification = FakeFindNextPrinterChangeNotification @264
+FlushPrinter = FakeFlushPrinter @265
+FreePrintNamedPropertyArray = FakeFreePrintNamedPropertyArray @266
+FreePrintPropertyValue = FakeFreePrintPropertyValue @267
+FreePrinterNotifyInfo = FakeFreePrinterNotifyInfo @268
+GetCorePrinterDriversA = FakeGetCorePrinterDriversA @269
+GetCorePrinterDriversW = FakeGetCorePrinterDriversW @270
+GetFormA = FakeGetFormA @271
+GetFormW = FakeGetFormW @272
+GetJobA = FakeGetJobA @273
+GetJobNamedPropertyValue = FakeGetJobNamedPropertyValue @274
+GetJobW = FakeGetJobW @275
+GetPrintExecutionData = FakeGetPrintExecutionData @276
+GetPrintOutputInfo = FakeGetPrintOutputInfo @277
+GetPrintProcessorDirectoryA = FakeGetPrintProcessorDirectoryA @278
+GetPrintProcessorDirectoryW = FakeGetPrintProcessorDirectoryW @279
+GetPrinterA = FakeGetPrinterA @280
+GetPrinterDataA = FakeGetPrinterDataA @281
+GetPrinterDataExA = FakeGetPrinterDataExA @282
+GetPrinterDataExW = FakeGetPrinterDataExW @283
+GetPrinterDataW = FakeGetPrinterDataW @284
+GetPrinterDriver2A = FakeGetPrinterDriver2A @285
+GetPrinterDriver2W = FakeGetPrinterDriver2W @286
+GetPrinterDriverA = FakeGetPrinterDriverA @287
+GetPrinterDriverDirectoryA = FakeGetPrinterDriverDirectoryA @288
+GetPrinterDriverDirectoryW = FakeGetPrinterDriverDirectoryW @289
+GetPrinterDriverPackagePathA = FakeGetPrinterDriverPackagePathA @290
+GetPrinterDriverPackagePathW = FakeGetPrinterDriverPackagePathW @291
+GetPrinterDriverW = FakeGetPrinterDriverW @292
+GetPrinterW = FakeGetPrinterW @293
+GetSpoolFileHandle = FakeGetSpoolFileHandle @294
+InstallPrinterDriverFromPackageA = FakeInstallPrinterDriverFromPackageA @295
+InstallPrinterDriverFromPackageW = FakeInstallPrinterDriverFromPackageW @296
+IsValidDevmodeA = FakeIsValidDevmodeA @297
+IsValidDevmodeW = FakeIsValidDevmodeW @298
+OpenPrinter2A = FakeOpenPrinter2A @299
+OpenPrinter2W = FakeOpenPrinter2W @300
+OpenPrinterA = FakeOpenPrinterA @301
+OpenPrinterW = FakeOpenPrinterW @302
+PlayGdiScriptOnPrinterIC = FakePlayGdiScriptOnPrinterIC @303
+PrinterMessageBoxA = FakePrinterMessageBoxA @304
+PrinterMessageBoxW = FakePrinterMessageBoxW @305
+PrinterProperties = FakePrinterProperties @306
+ReadPrinter = FakeReadPrinter @307
+RegisterForPrintAsyncNotifications = FakeRegisterForPrintAsyncNotifications @308
+ReportJobProcessingProgress = FakeReportJobProcessingProgress @309
+ResetPrinterA = FakeResetPrinterA @310
+ResetPrinterW = FakeResetPrinterW @311
+ScheduleJob = FakeScheduleJob @312
+SeekPrinter = FakeSeekPrinter @313
+SetFormA = FakeSetFormA @314
+SetFormW = FakeSetFormW @315
+SetJobA = FakeSetJobA @316
+SetJobNamedProperty = FakeSetJobNamedProperty @317
+SetJobW = FakeSetJobW @318
+SetPortA = FakeSetPortA @319
+SetPortW = FakeSetPortW @320
+SetPrinterA = FakeSetPrinterA @321
+SetPrinterDataA = FakeSetPrinterDataA @322
+SetPrinterDataExA = FakeSetPrinterDataExA @323
+SetPrinterDataExW = FakeSetPrinterDataExW @324
+SetPrinterDataW = FakeSetPrinterDataW @325
+SetPrinterW = FakeSetPrinterW @326
+SplDriverUnloadComplete = FakeSplDriverUnloadComplete @327
+SpoolerPrinterEvent = FakeSpoolerPrinterEvent @328
+StartDocDlgA = FakeStartDocDlgA @329
+StartDocPrinterA = FakeStartDocPrinterA @330
+StartDocPrinterW = FakeStartDocPrinterW @331
+StartPagePrinter = FakeStartPagePrinter @332
+UnRegisterForPrintAsyncNotifications = FakeUnRegisterForPrintAsyncNotifications @333
+UploadPrinterDriverPackageA = FakeUploadPrinterDriverPackageA @334
+UploadPrinterDriverPackageW = FakeUploadPrinterDriverPackageW @335
+WaitForPrinterChange = FakeWaitForPrinterChange @336
+WritePrinter = FakeWritePrinter @337
+XcvDataW = FakeXcvDataW @341
+
+
+; ****
 ;LIBRARY "ddraw"
 ; ****
-AcquireDDThreadLock				= FakeAcquireDDThreadLock				@101
-CheckFullscreen					= FakeCheckFullscreen					@102
-CompleteCreateSysmemSurface		= FakeCompleteCreateSysmemSurface		@103
-D3DParseUnknownCommand			= FakeD3DParseUnknownCommand			@104
-DDGetAttachedSurfaceLcl			= FakeDDGetAttachedSurfaceLcl			@105
-DDInternalLock					= FakeDDInternalLock					@106
-DDInternalUnlock				= FakeDDInternalUnlock					@107
-DSoundHelp						= FakeDSoundHelp						@108
-DirectDrawCreate				= FakeDirectDrawCreate					@109
-DirectDrawCreateClipper			= FakeDirectDrawCreateClipper			@110
-DirectDrawCreateEx				= FakeDirectDrawCreateEx				@111
-DirectDrawEnumerateA			= FakeDirectDrawEnumerateA				@112
-DirectDrawEnumerateExA			= FakeDirectDrawEnumerateExA			@113
-DirectDrawEnumerateExW			= FakeDirectDrawEnumerateExW			@114
-DirectDrawEnumerateW			= FakeDirectDrawEnumerateW				@115
+AcquireDDThreadLock				= FakeAcquireDDThreadLock				@401
+CheckFullscreen					= FakeCheckFullscreen					@402
+CompleteCreateSysmemSurface		= FakeCompleteCreateSysmemSurface		@403
+D3DParseUnknownCommand			= FakeD3DParseUnknownCommand			@404
+DDGetAttachedSurfaceLcl			= FakeDDGetAttachedSurfaceLcl			@405
+DDInternalLock					= FakeDDInternalLock					@406
+DDInternalUnlock				= FakeDDInternalUnlock					@407
+DSoundHelp						= FakeDSoundHelp						@408
+DirectDrawCreate				= FakeDirectDrawCreate					@409
+DirectDrawCreateClipper			= FakeDirectDrawCreateClipper			@410
+DirectDrawCreateEx				= FakeDirectDrawCreateEx				@411
+DirectDrawEnumerateA			= FakeDirectDrawEnumerateA				@412
+DirectDrawEnumerateExA			= FakeDirectDrawEnumerateExA			@413
+DirectDrawEnumerateExW			= FakeDirectDrawEnumerateExW			@414
+DirectDrawEnumerateW			= FakeDirectDrawEnumerateW				@415
 DllCanUnloadNow					= FakeDllCanUnloadNow					PRIVATE
 DllGetClassObject				= FakeDllGetClassObject					PRIVATE
-GetDDSurfaceLocal				= FakeGetDDSurfaceLocal					@116
-GetOLEThunkData					= FakeGetOLEThunkData					@117
-GetSurfaceFromDC				= FakeGetSurfaceFromDC					@118
-RegisterSpecialCase				= FakeRegisterSpecialCase				@119
-ReleaseDDThreadLock				= FakeReleaseDDThreadLock				@120
-SetAppCompatData				= FakeSetAppCompatData					@121
-DirectInputCreateA				= FakeDirectInputCreateA				@122
+GetDDSurfaceLocal				= FakeGetDDSurfaceLocal					@416
+GetOLEThunkData					= FakeGetOLEThunkData					@417
+GetSurfaceFromDC				= FakeGetSurfaceFromDC					@418
+RegisterSpecialCase				= FakeRegisterSpecialCase				@419
+ReleaseDDThreadLock				= FakeReleaseDDThreadLock				@420
+SetAppCompatData				= FakeSetAppCompatData					@421
+DirectInputCreateA				= FakeDirectInputCreateA				@422
 
 
 ; ****
 ;LIBRARY "d3d8"
 ; ****
-;DebugSetMute					= FakeDebugSetMute						@140         <---  Shared with d3d9.dll
-Direct3DCreate8					= FakeDirect3DCreate8					@141
-ValidatePixelShader				= FakeValidatePixelShader				@142
-ValidateVertexShader			= FakeValidateVertexShader				@143
+;DebugSetMute					= FakeDebugSetMute						@440         <---  Shared with d3d9.dll
+Direct3DCreate8					= FakeDirect3DCreate8					@441
+ValidatePixelShader				= FakeValidatePixelShader				@442
+ValidateVertexShader			= FakeValidateVertexShader				@443
 
 
 ; ****
 ;LIBRARY "d3d8to9"
 ; ****
-_Direct3DCreate8				= _Direct3DCreate8						@199
+_Direct3DCreate8				= _Direct3DCreate8						@445
 
 
 ; ****
 ;LIBRARY "d3d9"
 ; ****
-Direct3DShaderValidatorCreate9	= FakeDirect3DShaderValidatorCreate9	@144
-PSGPError						= FakePSGPError							@145
-PSGPSampleTexture				= FakePSGPSampleTexture					@146
-D3DPERF_BeginEvent				= FakeD3DPERF_BeginEvent				@147
-D3DPERF_EndEvent				= FakeD3DPERF_EndEvent					@148
-D3DPERF_GetStatus				= FakeD3DPERF_GetStatus					@149
-D3DPERF_QueryRepeatFrame		= FakeD3DPERF_QueryRepeatFrame			@150
-D3DPERF_SetMarker				= FakeD3DPERF_SetMarker					@151
-D3DPERF_SetOptions				= FakeD3DPERF_SetOptions				@152
-D3DPERF_SetRegion				= FakeD3DPERF_SetRegion					@153
-DebugSetLevel					= FakeDebugSetLevel						@154
-DebugSetMute					= FakeDebugSetMute						@155
-Direct3DCreate9					= FakeDirect3DCreate9					@157
-Direct3DCreate9Ex				= FakeDirect3DCreate9Ex					@158
+Direct3DShaderValidatorCreate9	= FakeDirect3DShaderValidatorCreate9	@454
+PSGPError						= FakePSGPError							@455
+PSGPSampleTexture				= FakePSGPSampleTexture					@456
+D3DPERF_BeginEvent				= FakeD3DPERF_BeginEvent				@457
+D3DPERF_EndEvent				= FakeD3DPERF_EndEvent					@458
+D3DPERF_GetStatus				= FakeD3DPERF_GetStatus					@459
+D3DPERF_QueryRepeatFrame		= FakeD3DPERF_QueryRepeatFrame			@460
+D3DPERF_SetMarker				= FakeD3DPERF_SetMarker					@461
+D3DPERF_SetOptions				= FakeD3DPERF_SetOptions				@462
+D3DPERF_SetRegion				= FakeD3DPERF_SetRegion					@463
+DebugSetLevel					= FakeDebugSetLevel						@464
+DebugSetMute					= FakeDebugSetMute						@465
+Direct3DCreate9					= FakeDirect3DCreate9					@467
+Direct3DCreate9Ex				= FakeDirect3DCreate9Ex					@468
 
 
 ; ****
 ;LIBRARY dplayx.dll
 ; ****
-DirectPlayCreate				= FakeDirectPlayCreate					@201
-DirectPlayEnumerate				= FakeDirectPlayEnumerate				@202
-DirectPlayEnumerateA			= FakeDirectPlayEnumerateA				@203
-DirectPlayEnumerateW			= FakeDirectPlayEnumerateW				@204
-DirectPlayLobbyCreateA			= FakeDirectPlayLobbyCreateA			@205
-DirectPlayLobbyCreateW			= FakeDirectPlayLobbyCreateW			@206
+DirectPlayCreate				= FakeDirectPlayCreate					@470
+DirectPlayEnumerate				= FakeDirectPlayEnumerate				@471
+DirectPlayEnumerateA			= FakeDirectPlayEnumerateA				@472
+DirectPlayEnumerateW			= FakeDirectPlayEnumerateW				@473
+DirectPlayLobbyCreateA			= FakeDirectPlayLobbyCreateA			@474
+DirectPlayLobbyCreateW			= FakeDirectPlayLobbyCreateW			@475
 
 
 ; ****
 ;LIBRARY "dxgi"
 ; ****
-ApplyCompatResolutionQuirking = FakeApplyCompatResolutionQuirking @301
-CompatString = FakeCompatString @302
-CompatValue = FakeCompatValue @303
-DXGIDumpJournal = FakeDXGIDumpJournal @304
-DXGIRevertToSxS = FakeDXGIRevertToSxS @305
-PIXBeginCapture = FakePIXBeginCapture @306
-PIXEndCapture = FakePIXEndCapture @307
-PIXGetCaptureState = FakePIXGetCaptureState @308
-SetAppCompatStringPointer = FakeSetAppCompatStringPointer @309
-CreateDXGIFactory1 = FakeCreateDXGIFactory1 @310
-CreateDXGIFactory2 = FakeCreateDXGIFactory2 @311
-CreateDXGIFactory = FakeCreateDXGIFactory @312
-DXGID3D10CreateDevice = FakeDXGID3D10CreateDevice @313
-DXGID3D10CreateLayeredDevice = FakeDXGID3D10CreateLayeredDevice @314
-DXGID3D10ETWRundown = FakeDXGID3D10ETWRundown @315
-DXGID3D10GetLayeredDeviceSize = FakeDXGID3D10GetLayeredDeviceSize @316
-DXGID3D10RegisterLayers = FakeDXGID3D10RegisterLayers @317
-DXGIGetDebugInterface1 = FakeDXGIGetDebugInterface1 @318
-DXGIReportAdapterConfiguration = FakeDXGIReportAdapterConfiguration @319
-D3DKMTCloseAdapter = FakeD3DKMTCloseAdapter @320
-D3DKMTDestroyAllocation = FakeD3DKMTDestroyAllocation @321
-D3DKMTDestroyContext = FakeD3DKMTDestroyContext @322
-D3DKMTDestroyDevice = FakeD3DKMTDestroyDevice @323
-D3DKMTDestroySynchronizationObject = FakeD3DKMTDestroySynchronizationObject @324
-D3DKMTQueryAdapterInfo = FakeD3DKMTQueryAdapterInfo @325
-D3DKMTSetDisplayPrivateDriverFormat = FakeD3DKMTSetDisplayPrivateDriverFormat @326
-D3DKMTSignalSynchronizationObject = FakeD3DKMTSignalSynchronizationObject @327
-D3DKMTUnlock = FakeD3DKMTUnlock @328
-OpenAdapter10 = FakeOpenAdapter10 @329
-OpenAdapter10_2 = FakeOpenAdapter10_2 @330
-D3DKMTCreateAllocation = FakeD3DKMTCreateAllocation @331
-D3DKMTCreateContext = FakeD3DKMTCreateContext @332
-D3DKMTCreateDevice = FakeD3DKMTCreateDevice @333
-D3DKMTCreateSynchronizationObject = FakeD3DKMTCreateSynchronizationObject @334
-D3DKMTEscape = FakeD3DKMTEscape @335
-D3DKMTGetContextSchedulingPriority = FakeD3DKMTGetContextSchedulingPriority @336
-D3DKMTGetDeviceState = FakeD3DKMTGetDeviceState @337
-D3DKMTGetDisplayModeList = FakeD3DKMTGetDisplayModeList @338
-D3DKMTGetMultisampleMethodList = FakeD3DKMTGetMultisampleMethodList @339
-D3DKMTGetRuntimeData = FakeD3DKMTGetRuntimeData @340
-D3DKMTGetSharedPrimaryHandle = FakeD3DKMTGetSharedPrimaryHandle @341
-D3DKMTLock = FakeD3DKMTLock @342
-D3DKMTOpenAdapterFromHdc = FakeD3DKMTOpenAdapterFromHdc @343
-D3DKMTOpenResource = FakeD3DKMTOpenResource @344
-D3DKMTPresent = FakeD3DKMTPresent @345
-D3DKMTQueryAllocationResidency = FakeD3DKMTQueryAllocationResidency @346
-D3DKMTQueryResourceInfo = FakeD3DKMTQueryResourceInfo @347
-D3DKMTRender = FakeD3DKMTRender @348
-D3DKMTSetAllocationPriority = FakeD3DKMTSetAllocationPriority @349
-D3DKMTSetContextSchedulingPriority = FakeD3DKMTSetContextSchedulingPriority @350
-D3DKMTSetDisplayMode = FakeD3DKMTSetDisplayMode @351
-D3DKMTSetGammaRamp = FakeD3DKMTSetGammaRamp @352
-D3DKMTSetVidPnSourceOwner = FakeD3DKMTSetVidPnSourceOwner @353
-D3DKMTWaitForSynchronizationObject = FakeD3DKMTWaitForSynchronizationObject @354
-D3DKMTWaitForVerticalBlankEvent = FakeD3DKMTWaitForVerticalBlankEvent @355
+ApplyCompatResolutionQuirking = FakeApplyCompatResolutionQuirking @501
+CompatString = FakeCompatString @502
+CompatValue = FakeCompatValue @503
+DXGIDumpJournal = FakeDXGIDumpJournal @504
+DXGIRevertToSxS = FakeDXGIRevertToSxS @505
+PIXBeginCapture = FakePIXBeginCapture @506
+PIXEndCapture = FakePIXEndCapture @507
+PIXGetCaptureState = FakePIXGetCaptureState @508
+SetAppCompatStringPointer = FakeSetAppCompatStringPointer @509
+CreateDXGIFactory1 = FakeCreateDXGIFactory1 @510
+CreateDXGIFactory2 = FakeCreateDXGIFactory2 @511
+CreateDXGIFactory = FakeCreateDXGIFactory @512
+DXGID3D10CreateDevice = FakeDXGID3D10CreateDevice @513
+DXGID3D10CreateLayeredDevice = FakeDXGID3D10CreateLayeredDevice @514
+DXGID3D10ETWRundown = FakeDXGID3D10ETWRundown @515
+DXGID3D10GetLayeredDeviceSize = FakeDXGID3D10GetLayeredDeviceSize @516
+DXGID3D10RegisterLayers = FakeDXGID3D10RegisterLayers @517
+DXGIGetDebugInterface1 = FakeDXGIGetDebugInterface1 @518
+DXGIReportAdapterConfiguration = FakeDXGIReportAdapterConfiguration @519
+D3DKMTCloseAdapter = FakeD3DKMTCloseAdapter @520
+D3DKMTDestroyAllocation = FakeD3DKMTDestroyAllocation @521
+D3DKMTDestroyContext = FakeD3DKMTDestroyContext @522
+D3DKMTDestroyDevice = FakeD3DKMTDestroyDevice @523
+D3DKMTDestroySynchronizationObject = FakeD3DKMTDestroySynchronizationObject @524
+D3DKMTQueryAdapterInfo = FakeD3DKMTQueryAdapterInfo @525
+D3DKMTSetDisplayPrivateDriverFormat = FakeD3DKMTSetDisplayPrivateDriverFormat @526
+D3DKMTSignalSynchronizationObject = FakeD3DKMTSignalSynchronizationObject @527
+D3DKMTUnlock = FakeD3DKMTUnlock @528
+OpenAdapter10 = FakeOpenAdapter10 @529
+OpenAdapter10_2 = FakeOpenAdapter10_2 @530
+D3DKMTCreateAllocation = FakeD3DKMTCreateAllocation @531
+D3DKMTCreateContext = FakeD3DKMTCreateContext @532
+D3DKMTCreateDevice = FakeD3DKMTCreateDevice @533
+D3DKMTCreateSynchronizationObject = FakeD3DKMTCreateSynchronizationObject @534
+D3DKMTEscape = FakeD3DKMTEscape @535
+D3DKMTGetContextSchedulingPriority = FakeD3DKMTGetContextSchedulingPriority @536
+D3DKMTGetDeviceState = FakeD3DKMTGetDeviceState @537
+D3DKMTGetDisplayModeList = FakeD3DKMTGetDisplayModeList @538
+D3DKMTGetMultisampleMethodList = FakeD3DKMTGetMultisampleMethodList @539
+D3DKMTGetRuntimeData = FakeD3DKMTGetRuntimeData @540
+D3DKMTGetSharedPrimaryHandle = FakeD3DKMTGetSharedPrimaryHandle @541
+D3DKMTLock = FakeD3DKMTLock @542
+D3DKMTOpenAdapterFromHdc = FakeD3DKMTOpenAdapterFromHdc @543
+D3DKMTOpenResource = FakeD3DKMTOpenResource @544
+D3DKMTPresent = FakeD3DKMTPresent @545
+D3DKMTQueryAllocationResidency = FakeD3DKMTQueryAllocationResidency @546
+D3DKMTQueryResourceInfo = FakeD3DKMTQueryResourceInfo @547
+D3DKMTRender = FakeD3DKMTRender @548
+D3DKMTSetAllocationPriority = FakeD3DKMTSetAllocationPriority @549
+D3DKMTSetContextSchedulingPriority = FakeD3DKMTSetContextSchedulingPriority @550
+D3DKMTSetDisplayMode = FakeD3DKMTSetDisplayMode @551
+D3DKMTSetGammaRamp = FakeD3DKMTSetGammaRamp @552
+D3DKMTSetVidPnSourceOwner = FakeD3DKMTSetVidPnSourceOwner @553
+D3DKMTWaitForSynchronizationObject = FakeD3DKMTWaitForSynchronizationObject @554
+D3DKMTWaitForVerticalBlankEvent = FakeD3DKMTWaitForVerticalBlankEvent @555
+
+
+; ****
+;LIBRARY "Disasm"
+; ****
+Preparedisasm		@601
+Finishdisasm		@602
+Disasm				@603
+Geterrwarnmessage	@604
 
 
 ; ****

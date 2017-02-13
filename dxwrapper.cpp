@@ -108,6 +108,7 @@ void FreeCustomLibrary()
 // Load wrapper dll files
 void DllAttach()
 {
+	if (Config.WrapperMode == dtype.winspool || Config.WrapperMode == 0 || Config.WrapperMode == 255) LoadWinspool();
 	if (Config.WrapperMode == dtype.dplayx || Config.WrapperMode == 0 || Config.WrapperMode == 255) LoadDplayx();
 	if (Config.WrapperMode == dtype.d3d8 || Config.WrapperMode == 0 || Config.WrapperMode == 255) LoadD3d8();
 	if (Config.WrapperMode == dtype.dxgi || Config.WrapperMode == 0 || Config.WrapperMode == 255) LoadDxgi();
@@ -121,6 +122,7 @@ void DllAttach()
 // Unload all dll files loaded by the wrapper
 void DllDetach()
 {
+	FreeWinspoolLibrary();
 	FreeDplayxLibrary();
 	FreeD3d8Library();
 	FreeDxgiLibrary();

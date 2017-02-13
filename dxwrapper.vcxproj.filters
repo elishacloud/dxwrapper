@@ -199,6 +199,9 @@
     <ClCompile Include="d3d8to9\d3d8types.cpp">
       <Filter>d3d8to9</Filter>
     </ClCompile>
+    <ClCompile Include="wrappers\winspool.cpp">
+      <Filter>wrappers</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="dxwrapper.def">

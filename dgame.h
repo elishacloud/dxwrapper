@@ -60,6 +60,10 @@ void FreeDxgiLibrary();
 void LoadDplayx();
 void FreeDplayxLibrary();
 
+// winspool.cpp
+void LoadWinspool();
+void FreeWinspoolLibrary();
+
 // ddrawcompat (dllmaincompat.cpp)
 bool StartDdrawCompat(HINSTANCE);
 void UnloadDdrawCompat();
@@ -182,6 +186,7 @@ struct DLLTYPE
 	DWORD dsound = 5;
 	DWORD dxgi = 6;
 	DWORD dplayx = 7;
+	DWORD winspool = 8;
 };
 extern DLLTYPE dtype;
 
