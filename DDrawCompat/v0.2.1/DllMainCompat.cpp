@@ -26,6 +26,8 @@
 #include "Time1.h"
 //********** Begin Edit *************
 #include "dgame.h"
+
+bool Compat::DebugEnabled;
 //********** End Edit ***************
 
 struct IDirectInput;
@@ -159,6 +161,7 @@ if (fdwReason == DLL_PROCESS_ATTACH)
 {*/
 bool StartDdrawCompat(HINSTANCE hinstDLL)
 {
+	Compat::DebugEnabled = Config.Debug;
 //********** End Edit ***************
 
 	char currentProcessPath[MAX_PATH] = {};

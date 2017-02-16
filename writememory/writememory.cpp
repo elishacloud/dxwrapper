@@ -89,8 +89,10 @@ bool CheckVerificationMemory()
 }
 
 // Thread to undo hotpatch after ResetMemoryAfter time
-static DWORD WINAPI HotPatchThreadFunc(LPVOID /*pvParam*/)
+static DWORD WINAPI HotPatchThreadFunc(LPVOID pvParam)
 {
+	UNREFERENCED_PARAMETER(pvParam);
+
 	// Get thread handle
 	p_hThread = GetCurrentThread();
 

@@ -509,6 +509,6 @@ private:
 	IDirect3DIndexBuffer9 *const _proxy;
 };
 
-//#include "dgame.h"
+#include "dgame.h"
 
 //extern std::ofstream LOG;

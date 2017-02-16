@@ -66,8 +66,10 @@ void RunExitFunctions(bool ForceTerminate)
 }
 
 // Dll main function
-bool APIENTRY DllMain(HMODULE hModule, DWORD ul_reason_for_call, LPVOID /*lpReserved*/)
+bool APIENTRY DllMain(HMODULE hModule, DWORD ul_reason_for_call, LPVOID lpReserved)
 {
+	UNREFERENCED_PARAMETER(lpReserved);
+
 	static bool ThreadStartedFlag = false;
 
 	switch (ul_reason_for_call)

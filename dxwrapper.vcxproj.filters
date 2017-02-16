@@ -227,6 +227,9 @@
     <ClInclude Include="d3d8to9\d3d8types.hpp">
       <Filter>d3d8to9</Filter>
     </ClInclude>
+    <ClInclude Include="DDrawCompat\v0.2.1\DDrawLog.h">
+      <Filter>ddrawcompat</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="dxwrapper.rc">

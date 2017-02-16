@@ -569,8 +569,10 @@ inline void CheckForTermination(DWORD m_ProcessId)
 //*********************************************************************************
 
 // Start main thread function
-static DWORD WINAPI StartThreadFunc(LPVOID /*pvParam*/)
+static DWORD WINAPI StartThreadFunc(LPVOID pvParam)
 {
+	UNREFERENCED_PARAMETER(pvParam);
+
 	// Starting thread
 	Compat::Log() << "Starting fullscreen thread...";
 

@@ -1,6 +1,8 @@
 /**
  * Copyright (C) 2015 Patrick Mours. All rights reserved.
  * License: https://github.com/crosire/d3d8to9#license
+ *
+ * Updated 2017 by Elisha Riedlinger
  */
 
 #include "d3d8to9.hpp"
@@ -164,7 +166,7 @@ HMONITOR STDMETHODCALLTYPE Direct3D8::GetAdapterMonitor(UINT Adapter)
 }
 HRESULT STDMETHODCALLTYPE Direct3D8::CreateDevice(UINT Adapter, D3DDEVTYPE DeviceType, HWND hFocusWindow, DWORD BehaviorFlags, D3DPRESENT_PARAMETERS8 *pPresentationParameters, Direct3DDevice8 **ppReturnedDeviceInterface)
 {
-	//Compat::Log() << "Redirecting '" << "IDirect3D8::CreateDevice" << "(" << this << ", " << Adapter << ", " << DeviceType << ", " << hFocusWindow << ", " << BehaviorFlags << ", " << pPresentationParameters << ", " << ppReturnedDeviceInterface << ")' ...";
+	if (Config.Debug) Compat::Log() << "Redirecting '" << "IDirect3D8::CreateDevice" << "(" << this << ", " << Adapter << ", " << DeviceType << ", " << hFocusWindow << ", " << BehaviorFlags << ", " << pPresentationParameters << ", " << ppReturnedDeviceInterface << ")' ...";
 
 	if (pPresentationParameters == nullptr || ppReturnedDeviceInterface == nullptr)
 	{
@@ -188,7 +190,7 @@ HRESULT STDMETHODCALLTYPE Direct3D8::CreateDevice(UINT Adapter, D3DDEVTYPE Devic
 	const auto device_proxy = new Direct3DDevice8(this, device, (pp.Flags & D3DPRESENTFLAG_DISCARD_DEPTHSTENCIL) != 0);
 
 	// Set default vertex declaration
-	device->SetFVF(D3DFVF_XYZ);
+	//device->SetFVF(D3DFVF_XYZ);			//  <--- Updated from original source to fix an issue with game Haegemonia
 
 	// Set default render target
 	IDirect3DSurface9 *rendertarget = nullptr, *depthstencil = nullptr;

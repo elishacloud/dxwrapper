@@ -64,6 +64,8 @@ std::ostream& operator<<(std::ostream& os, T** t)
 
 namespace Compat
 {
+	extern bool DebugEnabled;
+
 	class Log
 	{
 	public:
