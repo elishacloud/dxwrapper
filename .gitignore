@@ -44,4 +44,5 @@
 *.idb
 *.pdb
 *.db
+.opendb
 RC*
