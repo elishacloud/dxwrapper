@@ -170,23 +170,16 @@ copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\winspool.drv"
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="cfg.cpp" />
-    <ClCompile Include="DDrawCompat\v0.2.0b\CompatDirectDraw.cpp" />
-    <ClCompile Include="DDrawCompat\v0.2.0b\CompatDirectDrawPalette.cpp" />
-    <ClCompile Include="DDrawCompat\v0.2.0b\CompatDirectDrawSurface.cpp" />
-    <ClCompile Include="DDrawCompat\v0.2.0b\CompatGdi.cpp" />
-    <ClCompile Include="DDrawCompat\v0.2.0b\CompatGdiCaret.cpp" />
-    <ClCompile Include="DDrawCompat\v0.2.0b\CompatGdiDc.cpp" />
-    <ClCompile Include="DDrawCompat\v0.2.0b\CompatGdiDcCache.cpp" />
-    <ClCompile Include="DDrawCompat\v0.2.0b\CompatGdiFunctions.cpp" />
-    <ClCompile Include="DDrawCompat\v0.2.0b\CompatGdiWinProc.cpp" />
-    <ClCompile Include="DDrawCompat\v0.2.0b\CompatPrimarySurface.cpp" />
-    <ClCompile Include="DDrawCompat\v0.2.0b\CompatVtable.cpp" />
-    <ClCompile Include="DDrawCompat\v0.2.0b\DDrawLog.cpp" />
-    <ClCompile Include="DDrawCompat\v0.2.0b\DDrawProcs.cpp" />
-    <ClCompile Include="DDrawCompat\v0.2.0b\DllMainCompat.cpp" />
-    <ClCompile Include="DDrawCompat\v0.2.0b\IReleaseNotifier.cpp" />
-    <ClCompile Include="DDrawCompat\v0.2.0b\RealPrimarySurface.cpp" />
-    <ClCompile Include="DDrawCompat\v0.2.0b\UnmodifiedDDrawProcs.cpp" />
+    <ClCompile Include="d3d8to9\d3d8to9.cpp" />
+    <ClCompile Include="d3d8to9\d3d8to9_base.cpp" />
+    <ClCompile Include="d3d8to9\d3d8to9_device.cpp" />
+    <ClCompile Include="d3d8to9\d3d8to9_index_buffer.cpp" />
+    <ClCompile Include="d3d8to9\d3d8to9_surface.cpp" />
+    <ClCompile Include="d3d8to9\d3d8to9_swap_chain.cpp" />
+    <ClCompile Include="d3d8to9\d3d8to9_texture.cpp" />
+    <ClCompile Include="d3d8to9\d3d8to9_vertex_buffer.cpp" />
+    <ClCompile Include="d3d8to9\d3d8to9_volume.cpp" />
+    <ClCompile Include="d3d8to9\d3d8types.cpp" />
     <ClCompile Include="DDrawCompat\v0.2.1\CompatActivateAppHandler.cpp" />
     <ClCompile Include="DDrawCompat\v0.2.1\CompatDirectDraw.cpp" />
     <ClCompile Include="DDrawCompat\v0.2.1\CompatDirectDrawPalette.cpp" />
@@ -240,6 +233,8 @@ copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\winspool.drv"
     <None Include="Release\Build\dgame.ini" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="d3d8to9\d3d8to9.hpp" />
+    <ClInclude Include="d3d8to9\d3d8types.hpp" />
     <ClInclude Include="DDrawCompat\v0.2.1\DDrawLog.h" />
     <ClInclude Include="dgame.h" />
     <ClInclude Include="dxwrapper.h" />
