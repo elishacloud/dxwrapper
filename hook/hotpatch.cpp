@@ -3,18 +3,16 @@
 * https://sourceforge.net/projects/dxwnd/
 *
 * Updated 2017 by Elisha Riedlinger
-*
 */
 
 // hotpatch compiled system dlls come with Windows XP SP2 or later
 
-// return: 
+// return:
 // 0 = patch failed
 // 1 = already patched
 // addr = address of the original function
 
 #include "dgame.h"
-//#define USEMINHOOK
 
 #ifdef USEMINHOOK
 #include "hook\MinHook.h"
@@ -28,35 +26,41 @@ void *HotPatch(void *apiproc, const char *apiname, void *hookproc)
 
 	if(DoOnce){
 		if (MH_Initialize() != MH_OK) {
-			//OutTraceE("HotPatch: MH_Initialize FAILED\n");
+			Compat::Log() << "HotPatch: MH_Initialize FAILED";
 			// What to do here? No recovery action ...
 			return 0;
 		}
 		DoOnce = FALSE;
 	}
 
-	//OutTraceH("HotPatch: api=%s addr=%x hook=%x\n", apiname, apiproc, hookproc);
-	
+#ifdef _DEBUG
+	Compat::Log() << "HotPatch: api="<< apiname << " addr=" << std::showbase << std::hex << apiproc << std::dec << std::noshowbase << " hook=" << hookproc;
+#endif
+
 	if(!strcmp(apiname, "GetProcAddress")) return 0; // do not mess with this one!
 
 	if (MH_CreateHook(apiproc, hookproc, reinterpret_cast<void**>(&pProc)) != MH_OK){
-		//OutTraceH("HotPatch: MH_CreateHook FAILED\n");
-        return 0;
+		Compat::Log() << "HotPatch: MH_CreateHook FAILED";
+		return 0;
 	}
 
 	if (MH_EnableHook(apiproc) != MH_OK){
-		//OutTraceH("HotPatch: MH_EnableHook FAILED\n");
-        return 0;
+		Compat::Log() << "HotPatch: MH_EnableHook FAILED";
+		return 0;
 	}
 
-	//OutTrace("HotPatch: api=%s addr=%x->%x hook=%x\n", apiname, apiproc, pProc, hookproc);
+#ifdef _DEBUG
+	Compat::Log() << "HotPatch: api=" << apiname << " addr=" << std::showbase << std::hex << apiproc << "->" << pProc << std::dec << std::noshowbase << " hook=" << hookproc;
+#endif
 	return pProc;
 #else
 	DWORD dwPrevProtect;
 	BYTE* patch_address;
 	void *orig_address;
 
-	//OutTraceH("HotPatch: api=%s addr=%x hook=%x\n", apiname, apiproc, hookproc);
+#ifdef _DEBUG
+	Compat::Log() << "HotPatch: api=" << apiname << " addr=" << std::showbase << std::hex << apiproc << std::dec << std::noshowbase << " hook=" << hookproc;
+#endif
 
 	if(!strcmp(apiname, "GetProcAddress")) return 0; // do not mess with this one!
 
@@ -66,7 +70,7 @@ void *HotPatch(void *apiproc, const char *apiname, void *hookproc)
 	// entry point could be at the top of a page? so VirtualProtect first to make sure patch_address is readable
 	//if(!VirtualProtect(patch_address, 7, PAGE_EXECUTE_READWRITE, &dwPrevProtect)){
 	if(!VirtualProtect(patch_address, 12, PAGE_EXECUTE_WRITECOPY, &dwPrevProtect)){
-		//OutTraceH("HotPatch: access denied. err=%x\n", GetLastError());
+		Compat::Log() << "HotPatch: access denied. err=" << GetLastError();
 		return (void *)0; // access denied
 	}
 
@@ -77,7 +81,9 @@ void *HotPatch(void *apiproc, const char *apiname, void *hookproc)
 		*((WORD *)apiproc) = 0xF9EB; // should be atomic write (jmp $-5)
 		
 		VirtualProtect( patch_address, 12, dwPrevProtect, &dwPrevProtect ); // restore protection
-		//OutTrace("HotPatch: api=%s addr=%x->%x hook=%x\n", apiname, apiproc, orig_address, hookproc);
+#ifdef _DEBUG
+		Compat::Log() << "HotPatch: api=" << apiname << " addr=" << std::showbase << std::hex << apiproc << "->" << orig_address << std::dec << std::noshowbase << " hook=" << hookproc;
+#endif
 		return orig_address;
 	}
 
@@ -87,11 +93,11 @@ void *HotPatch(void *apiproc, const char *apiname, void *hookproc)
 		// check it wasn't patched already
 		if((*patch_address==0xE9) && (*(WORD *)apiproc == 0xF9EB)){
 			// should never go through here ...
-			//OutTraceH("HotPatch: patched already\n");
+			Compat::Log() << "HotPatch: patched already\n";
 			return (void *)1;
 		}
 		else{
-			//OutTraceH("HotPatch: not patch aware.\n");
+			Compat::Log() << "HotPatch: not patch aware.";
 			return (void *)0; // not hot patch "aware"
 		}
 	}
@@ -101,7 +107,9 @@ void *HotPatch(void *apiproc, const char *apiname, void *hookproc)
 	*((WORD *)apiproc) = 0xF9EB; // should be atomic write (jmp $-5)
 	
 	VirtualProtect( patch_address, 12, dwPrevProtect, &dwPrevProtect ); // restore protection
-	//OutTrace("HotPatch: api=%s addr=%x->%x hook=%x\n", apiname, apiproc, orig_address, hookproc);
+#ifdef _DEBUG
+	Compat::Log() << "HotPatch: api=" << apiname << " addr=" << std::showbase << std::hex << apiproc << "->" << orig_address << std::dec << std::noshowbase << " hook=" << hookproc;
+#endif
 	return orig_address;
 #endif
 }  

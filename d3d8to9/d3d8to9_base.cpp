@@ -166,7 +166,10 @@ HMONITOR STDMETHODCALLTYPE Direct3D8::GetAdapterMonitor(UINT Adapter)
 }
 HRESULT STDMETHODCALLTYPE Direct3D8::CreateDevice(UINT Adapter, D3DDEVTYPE DeviceType, HWND hFocusWindow, DWORD BehaviorFlags, D3DPRESENT_PARAMETERS8 *pPresentationParameters, Direct3DDevice8 **ppReturnedDeviceInterface)
 {
-	if (Config.Debug) Compat::Log() << "Redirecting '" << "IDirect3D8::CreateDevice" << "(" << this << ", " << Adapter << ", " << DeviceType << ", " << hFocusWindow << ", " << BehaviorFlags << ", " << pPresentationParameters << ", " << ppReturnedDeviceInterface << ")' ...";
+
+#ifdef _DEBUG
+	Compat::Log() << "Redirecting '" << "IDirect3D8::CreateDevice" << "(" << this << ", " << Adapter << ", " << DeviceType << ", " << hFocusWindow << ", " << BehaviorFlags << ", " << pPresentationParameters << ", " << ppReturnedDeviceInterface << ")' ...";
+#endif
 
 	if (pPresentationParameters == nullptr || ppReturnedDeviceInterface == nullptr)
 	{
@@ -190,7 +193,12 @@ HRESULT STDMETHODCALLTYPE Direct3D8::CreateDevice(UINT Adapter, D3DDEVTYPE Devic
 	const auto device_proxy = new Direct3DDevice8(this, device, (pp.Flags & D3DPRESENTFLAG_DISCARD_DEPTHSTENCIL) != 0);
 
 	// Set default vertex declaration
-	//device->SetFVF(D3DFVF_XYZ);			//  <--- Updated from original source to fix an issue with game Haegemonia
+	//device->SetFVF(D3DFVF_XYZ);		// ** Disabled to fix an issue with game Haegemonia Legions of Iron **
+	//										 It seems there is no need to declare a defualt vertex here.
+	//										 According to Microsoft documentation D3D8 applicaitons should
+	//										 call SetVertexShader API before using a vertex and SetFVF
+	//										 already called when an application calls SetVertexShader.
+	//										 https://msdn.microsoft.com/en-us/library/windows/desktop/bb204851(v=vs.85).aspx#Vertex_Declaration_Changes
 
 	// Set default render target
 	IDirect3DSurface9 *rendertarget = nullptr, *depthstencil = nullptr;

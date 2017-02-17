@@ -98,9 +98,9 @@ HWND FindMainWindow(DWORD, bool, bool = false);
 void MainFullScreenFunc();
 
 // Exception handler
-int filterException(int code, PEXCEPTION_POINTERS /*ex*/)
+int filterException(int code, PEXCEPTION_POINTERS ex)
 {
-	Compat::Log() << "Exception caught " << std::hex << code;
+	Compat::Log() << "Exception caught code:" << code << " details:" << ex->ExceptionRecord->ExceptionInformation;
 	return EXCEPTION_EXECUTE_HANDLER;
 }
 
@@ -316,6 +316,7 @@ BOOL CALLBACK EnumWindowsCallback(HWND hwnd, LPARAM lParam)
 	}
 
 	//Debugging window layers
+#ifdef _DEBUG
 	if (data.Debug)
 	{
 		++data.LayerNumber;
@@ -334,6 +335,7 @@ BOOL CALLBACK EnumWindowsCallback(HWND hwnd, LPARAM lParam)
 		}
 		return true;
 	}
+#endif
 
 	// AutoDetect to search for main and fullscreen windows
 	if (data.AutoDetect || (Config.SetFullScreenLayer == 0 && Config.NamedLayerCount == 0))
@@ -660,7 +662,9 @@ void MainFullScreenFunc()
 	while (!StopThreadFlag)
 	{
 		// Starting loop
-		if (Config.Debug) Compat::Log() << "Starting Main Fullscreen loop...";
+#ifdef _DEBUG
+		Compat::Log() << "Starting Main Fullscreen loop...";
+#endif
 
 		// Get window hwnd for specific layer
 		CurrentLoop.hwnd = FindMainWindow(m_ProcessId, false);
@@ -687,7 +691,8 @@ void MainFullScreenFunc()
 			NoChangeFromLastRunFlag = (CurrentLoop == PreviousLoop);
 
 			// Debug window changes
-			if (Config.Debug && ChangeDetectedFlag)
+#ifdef _DEBUG
+			if (ChangeDetectedFlag)
 			{
 				// ChangeDetected
 				if (IsNotFullScreenFlag) Compat::Log() << "Found window not fullscreen";
@@ -731,14 +736,14 @@ void MainFullScreenFunc()
 					Compat::Log() << buffer;
 				}
 			}
+#endif
 
 			// Change detected in screen resolution or window
 			if (ChangeDetectedFlag && NoChangeFromLastRunFlag && HasNoMenu && IsWindow(CurrentLoop.hwnd))
 			{
 				// Debug the window
-				if (Config.Debug)
-				{
-					Compat::Log() << "Entering change detected loop";
+#ifdef _DEBUG
+				Compat::Log() << "Entering change detected loop";
 					char buffer1[7], buffer2[7], buffer3[7], buffer4[7];
 					_itoa_s(CurrentLoop.rect.left, buffer1, 10);
 					_itoa_s(CurrentLoop.rect.top, buffer2, 10);
@@ -746,7 +751,7 @@ void MainFullScreenFunc()
 					_itoa_s(CurrentLoop.rect.bottom, buffer4, 10);
 					Compat::Log() << "Window coordinates for selected layer '" << class_name << "' | Left: " << buffer1 << " Top: " << buffer2 << " Right: " << buffer3 << " Bottom: " << buffer4;
 					FindMainWindow(m_ProcessId, true, true);
-				}
+#endif
 
 				// Check if window is not too small
 				if (Config.ForceWindowResize || !IsWindowTooSmall(WindowSize))
@@ -767,9 +772,8 @@ void MainFullScreenFunc()
 						if (Delta <= WindowDelta)
 						{
 							// Debug the screen resolution
-							if (Config.Debug)
-							{
-								char buffer1[7], buffer2[7];
+#ifdef _DEBUG
+							char buffer1[7], buffer2[7];
 								_itoa_s(WindowSize.Width, buffer1, 10);
 								_itoa_s(WindowSize.Height, buffer2, 10);
 								Compat::Log() << "Changing resolution on window size " << buffer1 << "x" << buffer2 << " layer: " << class_name;
@@ -779,7 +783,7 @@ void MainFullScreenFunc()
 								_itoa_s(SizeTemp.Width, buffer1, 10);
 								_itoa_s(SizeTemp.Height, buffer2, 10);
 								Compat::Log() << "Setting resolution to: " << buffer1 << "x" << buffer2;
-							}
+#endif
 
 							// Set screen to new resolution
 							SetScreenResolution(SizeTemp.Width, SizeTemp.Height);
@@ -792,7 +796,9 @@ void MainFullScreenFunc()
 						else
 						{
 							// Debug log
-							if (Config.Debug) Compat::Log() << "Excluding window layer: " << class_name;
+#ifdef _DEBUG
+							Compat::Log() << "Excluding window layer: " << class_name;
+#endif
 
 							// Add window to excluded list
 							SetConfigList(Config.szIgnoreWindowName, Config.IgnoreWindowCount, class_name);
@@ -806,7 +812,9 @@ void MainFullScreenFunc()
 						IsWindow(CurrentLoop.hwnd)))														// Check for valide window handle
 					{
 						// Debug log
-						if (Config.Debug) Compat::Log() << "Setting fullscreen on window layer: " << class_name;
+#ifdef _DEBUG
+						Compat::Log() << "Setting fullscreen on window layer: " << class_name;
+#endif
 
 						// Set window to fullscreen
 						SetFullScreen(CurrentLoop.hwnd, mi);
@@ -816,14 +824,18 @@ void MainFullScreenFunc()
 					if (Config.SendAltEnter && IsWindow(CurrentLoop.hwnd))
 					{
 						// Debug log
-						if (Config.Debug) Compat::Log() << "Pressing alt+enter on window layer: " << class_name;
+#ifdef _DEBUG
+						Compat::Log() << "Pressing alt+enter on window layer: " << class_name;
+#endif
 
 						// Send Alt+Enter to window
 						SendAltEnter(CurrentLoop.hwnd);
 					}
 
 					// Debug log
-					if (Config.Debug) FindMainWindow(m_ProcessId, true, true);
+#ifdef _DEBUG
+					FindMainWindow(m_ProcessId, true, true);
+#endif
 
 					// Update window and monitor information
 					GetWindowSize(CurrentLoop.hwnd, WindowSize, CurrentLoop.rect);
@@ -854,7 +866,9 @@ void MainFullScreenFunc()
 		}
 
 		// Debug logs
-		if (Config.Debug) Compat::Log() << "Finish Main Fullscreen loop!";
+#ifdef _DEBUG
+		Compat::Log() << "Finish Main Fullscreen loop!";
+#endif
 
 		// Wait for a while
 		Sleep(Config.LoopSleepTime + (ChangeDetectedFlag * Config.WaitForWindowChanges * Config.WindowSleepTime));

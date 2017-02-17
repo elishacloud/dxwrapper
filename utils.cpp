@@ -100,18 +100,24 @@ void SetSingleProcessAffinity(bool first)
 	DWORD ProcessAffinityMask, SystemAffinityMask;
 	if (!GetProcessAffinityMask(GetCurrentProcess(), &ProcessAffinityMask, &SystemAffinityMask))
 	{
-		//OutTraceE("GetProcessAffinityMask: ERROR err=%d\n", GetLastError());
+		Compat::Log() << "GetProcessAffinityMask: ERROR err=" << GetLastError();
 	}
-	//OutTraceDW("Process affinity=%x\n", ProcessAffinityMask);
+#ifdef _DEBUG
+	Compat::Log() << "Process affinity=" << ProcessAffinityMask;
+#endif
 	if (first) {
 		for (i = 0; i<(8 * sizeof(DWORD)); i++) {
 			if (ProcessAffinityMask & 0x1) break;
 			ProcessAffinityMask >>= 1;
 		}
-		//OutTraceDW("First process affinity bit=%d\n", i);
+#ifdef _DEBUG
+		Compat::Log() << "First process affinity bit=" << i;
+#endif
 		ProcessAffinityMask = 0x1;
 		for (; i; i--) ProcessAffinityMask <<= 1;
-		//OutTraceDW("Process affinity=%x\n", ProcessAffinityMask);
+#ifdef _DEBUG
+		Compat::Log() << "Process affinity=" << ProcessAffinityMask;
+#endif
 	}
 	else {
 		for (i = 0; i<(8 * sizeof(DWORD)); i++) {
@@ -119,13 +125,17 @@ void SetSingleProcessAffinity(bool first)
 			ProcessAffinityMask <<= 1;
 		}
 		i = 31 - i;
-		//OutTraceDW("Last process affinity bit=%d\n", i);
+#ifdef _DEBUG
+		Compat::Log() << "Last process affinity bit=" << i;
+#endif
 		ProcessAffinityMask = 0x1;
 		for (; i; i--) ProcessAffinityMask <<= 1;
-		//OutTraceDW("Process affinity=%x\n", ProcessAffinityMask);
+#ifdef _DEBUG
+		Compat::Log() << "Process affinity=" << ProcessAffinityMask;
+#endif
 	}
 	if (!SetProcessAffinityMask(GetCurrentProcess(), ProcessAffinityMask))
 	{
-		//OutTraceE("SetProcessAffinityMask: ERROR err=%d\n", GetLastError());
+		Compat::Log() << "GetProcessAffinityMask: ERROR err=" << GetLastError();
 	}
 }

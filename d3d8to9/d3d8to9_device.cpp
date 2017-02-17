@@ -150,7 +150,9 @@ BOOL STDMETHODCALLTYPE Direct3DDevice8::ShowCursor(BOOL bShow)
 }
 HRESULT STDMETHODCALLTYPE Direct3DDevice8::CreateAdditionalSwapChain(D3DPRESENT_PARAMETERS8 *pPresentationParameters, Direct3DSwapChain8 **ppSwapChain)
 {
-	if (Config.Debug) Compat::Log() << "Redirecting '" << "IDirect3DDevice8::CreateAdditionalSwapChain" << "(" << this << ", " << pPresentationParameters << ", " << ppSwapChain << ")' ...";
+#ifdef _DEBUG
+	Compat::Log() << "Redirecting '" << "IDirect3DDevice8::CreateAdditionalSwapChain" << "(" << this << ", " << pPresentationParameters << ", " << ppSwapChain << ")' ...";
+#endif
 
 	if (pPresentationParameters == nullptr || ppSwapChain == nullptr)
 	{
@@ -177,7 +179,9 @@ HRESULT STDMETHODCALLTYPE Direct3DDevice8::CreateAdditionalSwapChain(D3DPRESENT_
 }
 HRESULT STDMETHODCALLTYPE Direct3DDevice8::Reset(D3DPRESENT_PARAMETERS8 *pPresentationParameters)
 {
-	if (Config.Debug) Compat::Log() << "Redirecting '" << "IDirect3DDevice8::Reset" << "(" << this << ", " << pPresentationParameters << ")' ...";
+#ifdef _DEBUG
+	Compat::Log() << "Redirecting '" << "IDirect3DDevice8::Reset" << "(" << this << ", " << pPresentationParameters << ")' ...";
+#endif
 
 	if (pPresentationParameters == nullptr)
 	{
@@ -462,7 +466,9 @@ HRESULT STDMETHODCALLTYPE Direct3DDevice8::CreateDepthStencilSurface(UINT Width,
 }
 HRESULT STDMETHODCALLTYPE Direct3DDevice8::CreateImageSurface(UINT Width, UINT Height, D3DFORMAT Format, Direct3DSurface8 **ppSurface)
 {
-	if (Config.Debug) Compat::Log() << "Redirecting '" << "IDirect3DDevice8::CreateImageSurface" << "(" << this << ", " << Width << ", " << Height << ", " << Format << ", " << ppSurface << ")' ...";
+#ifdef _DEBUG
+	Compat::Log() << "Redirecting '" << "IDirect3DDevice8::CreateImageSurface" << "(" << this << ", " << Width << ", " << Height << ", " << Format << ", " << ppSurface << ")' ...";
+#endif
 
 	if (ppSurface == nullptr)
 	{
@@ -473,7 +479,9 @@ HRESULT STDMETHODCALLTYPE Direct3DDevice8::CreateImageSurface(UINT Width, UINT H
 
 	if (Format == D3DFMT_R8G8B8)
 	{
-		if (Config.Debug) Compat::Log() << "> Replacing format 'D3DFMT_R8G8B8' with 'D3DFMT_X8R8G8B8' ...";
+#ifdef _DEBUG
+		Compat::Log() << "> Replacing format 'D3DFMT_R8G8B8' with 'D3DFMT_X8R8G8B8' ...";
+#endif
 
 		Format = D3DFMT_X8R8G8B8;
 	}
@@ -849,7 +857,9 @@ HRESULT STDMETHODCALLTYPE Direct3DDevice8::DeleteStateBlock(DWORD Token)
 }
 HRESULT STDMETHODCALLTYPE Direct3DDevice8::CreateStateBlock(D3DSTATEBLOCKTYPE Type, DWORD *pToken)
 {
-	if (Config.Debug) Compat::Log() << "Redirecting '" << "IDirect3DDevice8::CreateStateBlock" << "(" << Type << ", " << pToken << ")' ...";
+#ifdef _DEBUG
+	Compat::Log() << "Redirecting '" << "IDirect3DDevice8::CreateStateBlock" << "(" << Type << ", " << pToken << ")' ...";
+#endif
 
 	if (pToken == nullptr)
 	{
@@ -1006,7 +1016,9 @@ HRESULT STDMETHODCALLTYPE Direct3DDevice8::GetInfo(DWORD DevInfoID, void *pDevIn
 	UNREFERENCED_PARAMETER(pDevInfoStruct);
 	UNREFERENCED_PARAMETER(DevInfoStructSize);
 
-	if (Config.Debug) Compat::Log() << "Redirecting '" << "IDirect3DDevice8::GetInfo" << "(" << this << ", " << DevInfoID << ", " << pDevInfoStruct << ", " << DevInfoStructSize << ")' ...";
+#ifdef _DEBUG
+	Compat::Log() << "Redirecting '" << "IDirect3DDevice8::GetInfo" << "(" << this << ", " << DevInfoID << ", " << pDevInfoStruct << ", " << DevInfoStructSize << ")' ...";
+#endif
 
 	return S_FALSE;
 }
@@ -1055,7 +1067,9 @@ HRESULT STDMETHODCALLTYPE Direct3DDevice8::CreateVertexShader(CONST DWORD *pDecl
 {
 	UNREFERENCED_PARAMETER(Usage);
 
-	if (Config.Debug) Compat::Log() << "Redirecting '" << "IDirect3DDevice8::CreateVertexShader" << "(" << this << ", " << pDeclaration << ", " << pFunction << ", " << pHandle << ", " << Usage << ")' ...";
+#ifdef _DEBUG
+	Compat::Log() << "Redirecting '" << "IDirect3DDevice8::CreateVertexShader" << "(" << this << ", " << pDeclaration << ", " << pFunction << ", " << pHandle << ", " << Usage << ")' ...";
+#endif
 
 	if (pDeclaration == nullptr || pHandle == nullptr)
 	{
@@ -1071,7 +1085,9 @@ HRESULT STDMETHODCALLTYPE Direct3DDevice8::CreateVertexShader(CONST DWORD *pDecl
 	DWORD inputs[limit];
 	D3DVERTEXELEMENT9 elements[limit];
 
-	if (Config.Debug) Compat::Log() << "> Translating vertex declaration ...";
+#ifdef _DEBUG
+	Compat::Log() << "> Translating vertex declaration ...";
+#endif
 
 	static const BYTE sTypes[][2] =
 	{
@@ -1213,7 +1229,9 @@ HRESULT STDMETHODCALLTYPE Direct3DDevice8::CreateVertexShader(CONST DWORD *pDecl
 
 	if (pFunction != nullptr)
 	{
-		if (Config.Debug) Compat::Log() << "> Disassembling shader and translating assembly to Direct3D 9 compatible code ...";
+#ifdef _DEBUG
+		Compat::Log() << "> Disassembling shader and translating assembly to Direct3D 9 compatible code ...";
+#endif
 
 		if (*pFunction < D3DVS_VERSION(1, 0) || *pFunction > D3DVS_VERSION(1, 1))
 		{
@@ -1240,7 +1258,9 @@ HRESULT STDMETHODCALLTYPE Direct3DDevice8::CreateVertexShader(CONST DWORD *pDecl
 
 		if (source.at(verpos + 5) == '0')
 		{
-			if (Config.Debug) Compat::Log() << "> Replacing version 'vs_1_0' with 'vs_1_1' ...";
+#ifdef _DEBUG
+			Compat::Log() << "> Replacing version 'vs_1_0' with 'vs_1_1' ...";
+#endif
 
 			source.replace(verpos, 6, "vs_1_1");
 		}
@@ -1327,7 +1347,9 @@ HRESULT STDMETHODCALLTYPE Direct3DDevice8::CreateVertexShader(CONST DWORD *pDecl
 		source = std::regex_replace(source, std::regex("(add|sub|mul|min|max) (oFog|oPts), (.+), ([cr][0-9]+)\\n"), "$1 $2, $3, $4.x /* added swizzle */\n");
 		source = std::regex_replace(source, std::regex("mov (oFog|oPts)(.*), (-?)([crv][0-9]+)(?!\\.)"), "mov $1$2, $3$4.x /* select single component */");
 
-		if (Config.Debug) Compat::Log() << "> Dumping translated shader assembly:\n" << source;
+#ifdef _DEBUG
+		Compat::Log() << "> Dumping translated shader assembly:\n" << source;
+#endif
 
 		hr = D3DXAssembleShader(source.data(), static_cast<UINT>(source.size()), nullptr, nullptr, 0, &assembly, &errors);
 
@@ -1480,16 +1502,18 @@ HRESULT STDMETHODCALLTYPE Direct3DDevice8::GetVertexShaderDeclaration(DWORD Hand
 	UNREFERENCED_PARAMETER(pData);
 	UNREFERENCED_PARAMETER(pSizeOfData);
 
-	if (Config.Debug) {
+#ifdef _DEBUG
 		Compat::Log() << "Redirecting '" << "IDirect3DDevice8::GetVertexShaderDeclaration" << "(" << this << ", " << Handle << ", " << pData << ", " << pSizeOfData << ")' ...";
 		Compat::Log() << "> 'IDirect3DDevice8::GetVertexShaderDeclaration' is not implemented!";
-	}
+#endif
 
 	return E_NOTIMPL;
 }
 HRESULT STDMETHODCALLTYPE Direct3DDevice8::GetVertexShaderFunction(DWORD Handle, void *pData, DWORD *pSizeOfData)
 {
-	if (Config.Debug) Compat::Log() << "Redirecting '" << "IDirect3DDevice8::GetVertexShaderFunction" << "(" << this << ", " << Handle << ", " << pData << ", " << pSizeOfData << ")' ...";
+#ifdef _DEBUG
+	Compat::Log() << "Redirecting '" << "IDirect3DDevice8::GetVertexShaderFunction" << "(" << this << ", " << Handle << ", " << pData << ", " << pSizeOfData << ")' ...";
+#endif
 
 	if ((Handle & 0x80000000) == 0)
 	{
@@ -1504,7 +1528,9 @@ HRESULT STDMETHODCALLTYPE Direct3DDevice8::GetVertexShaderFunction(DWORD Handle,
 		return D3DERR_INVALIDCALL;
 	}
 
-	if (Config.Debug) Compat::Log() << "> Returning translated shader byte code.";
+#ifdef _DEBUG
+	Compat::Log() << "> Returning translated shader byte code.";
+#endif
 
 	return shader->GetFunction(pData, reinterpret_cast<UINT *>(pSizeOfData));
 }
@@ -1588,7 +1614,9 @@ HRESULT STDMETHODCALLTYPE Direct3DDevice8::GetIndices(Direct3DIndexBuffer8 **ppI
 }
 HRESULT STDMETHODCALLTYPE Direct3DDevice8::CreatePixelShader(CONST DWORD *pFunction, DWORD *pHandle)
 {
-	if (Config.Debug) Compat::Log() << "Redirecting '" << "IDirect3DDevice8::CreatePixelShader" << "(" << this << ", " << pFunction << ", " << pHandle << ")' ...";
+#ifdef _DEBUG
+	Compat::Log() << "Redirecting '" << "IDirect3DDevice8::CreatePixelShader" << "(" << this << ", " << pFunction << ", " << pHandle << ")' ...";
+#endif
 
 	if (pFunction == nullptr || pHandle == nullptr)
 	{
@@ -1597,7 +1625,9 @@ HRESULT STDMETHODCALLTYPE Direct3DDevice8::CreatePixelShader(CONST DWORD *pFunct
 
 	*pHandle = 0;
 
-	if (Config.Debug) Compat::Log() << "> Disassembling shader and translating assembly to Direct3D 9 compatible code ...";
+#ifdef _DEBUG
+	Compat::Log() << "> Disassembling shader and translating assembly to Direct3D 9 compatible code ...";
+#endif
 
 	if (*pFunction < D3DPS_VERSION(1, 0) || *pFunction > D3DPS_VERSION(1, 4))
 	{
@@ -1624,7 +1654,9 @@ HRESULT STDMETHODCALLTYPE Direct3DDevice8::CreatePixelShader(CONST DWORD *pFunct
 
 	if (source.at(verpos + 5) == '0')
 	{
-		if (Config.Debug) Compat::Log() << "> Replacing version 'ps_1_0' with 'ps_1_1' ...";
+#ifdef _DEBUG
+		Compat::Log() << "> Replacing version 'ps_1_0' with 'ps_1_1' ...";
+#endif
 
 		source.replace(verpos, 6, "ps_1_1");
 	}
@@ -1633,7 +1665,9 @@ HRESULT STDMETHODCALLTYPE Direct3DDevice8::CreatePixelShader(CONST DWORD *pFunct
 	source = std::regex_replace(source, std::regex("(1?-)(c[0-9]+)"), "$2 /* removed modifier $1 */");
 	source = std::regex_replace(source, std::regex("(c[0-9]+)(_bx2|_bias)"), "$1 /* removed modifier $2 */");
 
-	if (Config.Debug) Compat::Log() << "> Dumping translated shader assembly:\n"  << source;
+#ifdef _DEBUG
+	Compat::Log() << "> Dumping translated shader assembly:\n"  << source;
+#endif
 
 	hr = D3DXAssembleShader(source.data(), static_cast<UINT>(source.size()), nullptr, nullptr, 0, &assembly, &errors);
 
@@ -1707,7 +1741,9 @@ HRESULT STDMETHODCALLTYPE Direct3DDevice8::GetPixelShaderConstant(DWORD Register
 }
 HRESULT STDMETHODCALLTYPE Direct3DDevice8::GetPixelShaderFunction(DWORD Handle, void *pData, DWORD *pSizeOfData)
 {
-	if (Config.Debug) Compat::Log() << "Redirecting '" << "IDirect3DDevice8::GetPixelShaderFunction" << "(" << this << ", " << Handle << ", " << pData << ", " << pSizeOfData << ")' ...";
+#ifdef _DEBUG
+	Compat::Log() << "Redirecting '" << "IDirect3DDevice8::GetPixelShaderFunction" << "(" << this << ", " << Handle << ", " << pData << ", " << pSizeOfData << ")' ...";
+#endif
 
 	if (Handle == 0)
 	{
@@ -1716,7 +1752,9 @@ HRESULT STDMETHODCALLTYPE Direct3DDevice8::GetPixelShaderFunction(DWORD Handle, 
 
 	const auto shader = reinterpret_cast<IDirect3DPixelShader9 *>(Handle);
 
-	if (Config.Debug) Compat::Log() << "> Returning translated shader byte code.";
+#ifdef _DEBUG
+	Compat::Log() << "> Returning translated shader byte code.";
+#endif
 
 	return shader->GetFunction(pData, reinterpret_cast<UINT *>(pSizeOfData));
 }

@@ -21,10 +21,12 @@
 *.la
 *.a
 *.lib
+*.dll
 
 # Executables
 *.out
 *.app
+*.exe
 
 # Other Visual Studio files
 *.user

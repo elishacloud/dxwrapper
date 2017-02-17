@@ -3,7 +3,6 @@
 * https://github.com/narzoul/DDrawCompat/
 *
 * Updated 2017 by Elisha Riedlinger
-*
 */
 
 #define WIN32_LEAN_AND_MEAN
@@ -26,8 +25,6 @@
 #include "Time1.h"
 //********** Begin Edit *************
 #include "dgame.h"
-
-bool Compat::DebugEnabled;
 //********** End Edit ***************
 
 struct IDirectInput;
@@ -161,7 +158,6 @@ if (fdwReason == DLL_PROCESS_ATTACH)
 {*/
 bool StartDdrawCompat(HINSTANCE hinstDLL)
 {
-	Compat::DebugEnabled = Config.Debug;
 //********** End Edit ***************
 
 	char currentProcessPath[MAX_PATH] = {};

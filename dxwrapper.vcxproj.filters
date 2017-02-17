@@ -94,84 +94,6 @@
     <ClCompile Include="DxWnd\v2_03_60_src\proxy\init.cpp">
       <Filter>dxwnd</Filter>
     </ClCompile>
-    <ClCompile Include="DDrawCompat\v0.2.1\DDrawLog.cpp">
-      <Filter>ddrawcompat</Filter>
-    </ClCompile>
-    <ClCompile Include="DDrawCompat\v0.2.1\DllMainCompat.cpp">
-      <Filter>ddrawcompat</Filter>
-    </ClCompile>
-    <ClCompile Include="DDrawCompat\v0.2.1\CompatDirectDrawPalette.cpp">
-      <Filter>ddrawcompat</Filter>
-    </ClCompile>
-    <ClCompile Include="DDrawCompat\v0.2.1\RealPrimarySurface.cpp">
-      <Filter>ddrawcompat</Filter>
-    </ClCompile>
-    <ClCompile Include="DDrawCompat\v0.2.1\Time.cpp">
-      <Filter>ddrawcompat</Filter>
-    </ClCompile>
-    <ClCompile Include="DDrawCompat\v0.2.1\UnmodifiedDDrawProcs.cpp">
-      <Filter>ddrawcompat</Filter>
-    </ClCompile>
-    <ClCompile Include="DDrawCompat\v0.2.1\IReleaseNotifier.cpp">
-      <Filter>ddrawcompat</Filter>
-    </ClCompile>
-    <ClCompile Include="DDrawCompat\v0.2.1\Hook.cpp">
-      <Filter>ddrawcompat</Filter>
-    </ClCompile>
-    <ClCompile Include="DDrawCompat\v0.2.1\DDrawRepository.cpp">
-      <Filter>ddrawcompat</Filter>
-    </ClCompile>
-    <ClCompile Include="DDrawCompat\v0.2.1\DDrawProcs.cpp">
-      <Filter>ddrawcompat</Filter>
-    </ClCompile>
-    <ClCompile Include="DDrawCompat\v0.2.1\CompatRegistry.cpp">
-      <Filter>ddrawcompat</Filter>
-    </ClCompile>
-    <ClCompile Include="DDrawCompat\v0.2.1\CompatPrimarySurface.cpp">
-      <Filter>ddrawcompat</Filter>
-    </ClCompile>
-    <ClCompile Include="DDrawCompat\v0.2.1\CompatPaletteConverter.cpp">
-      <Filter>ddrawcompat</Filter>
-    </ClCompile>
-    <ClCompile Include="DDrawCompat\v0.2.1\CompatGdiWinProc.cpp">
-      <Filter>ddrawcompat</Filter>
-    </ClCompile>
-    <ClCompile Include="DDrawCompat\v0.2.1\CompatGdiTitleBar.cpp">
-      <Filter>ddrawcompat</Filter>
-    </ClCompile>
-    <ClCompile Include="DDrawCompat\v0.2.1\CompatGdiScrollFunctions.cpp">
-      <Filter>ddrawcompat</Filter>
-    </ClCompile>
-    <ClCompile Include="DDrawCompat\v0.2.1\CompatGdiScrollBar.cpp">
-      <Filter>ddrawcompat</Filter>
-    </ClCompile>
-    <ClCompile Include="DDrawCompat\v0.2.1\CompatGdiPaintHandlers.cpp">
-      <Filter>ddrawcompat</Filter>
-    </ClCompile>
-    <ClCompile Include="DDrawCompat\v0.2.1\CompatGdiDcFunctions.cpp">
-      <Filter>ddrawcompat</Filter>
-    </ClCompile>
-    <ClCompile Include="DDrawCompat\v0.2.1\CompatGdiDcCache.cpp">
-      <Filter>ddrawcompat</Filter>
-    </ClCompile>
-    <ClCompile Include="DDrawCompat\v0.2.1\CompatGdiDc.cpp">
-      <Filter>ddrawcompat</Filter>
-    </ClCompile>
-    <ClCompile Include="DDrawCompat\v0.2.1\CompatGdiCaret.cpp">
-      <Filter>ddrawcompat</Filter>
-    </ClCompile>
-    <ClCompile Include="DDrawCompat\v0.2.1\CompatGdi.cpp">
-      <Filter>ddrawcompat</Filter>
-    </ClCompile>
-    <ClCompile Include="DDrawCompat\v0.2.1\CompatDirectDrawSurface.cpp">
-      <Filter>ddrawcompat</Filter>
-    </ClCompile>
-    <ClCompile Include="DDrawCompat\v0.2.1\CompatDirectDraw.cpp">
-      <Filter>ddrawcompat</Filter>
-    </ClCompile>
-    <ClCompile Include="DDrawCompat\v0.2.1\CompatActivateAppHandler.cpp">
-      <Filter>ddrawcompat</Filter>
-    </ClCompile>
     <ClCompile Include="d3d8to9\d3d8to9_base.cpp">
       <Filter>d3d8to9</Filter>
     </ClCompile>
@@ -202,9 +124,66 @@
     <ClCompile Include="wrappers\winspool.cpp">
       <Filter>wrappers</Filter>
     </ClCompile>
+    <ClCompile Include="DDrawCompat\v0.2.0b\DDrawLog.cpp">
+      <Filter>ddrawcompat</Filter>
+    </ClCompile>
+    <ClCompile Include="DDrawCompat\v0.2.0b\DllMainCompat.cpp">
+      <Filter>ddrawcompat</Filter>
+    </ClCompile>
+    <ClCompile Include="DDrawCompat\v0.2.0b\UnmodifiedDDrawProcs.cpp">
+      <Filter>ddrawcompat</Filter>
+    </ClCompile>
+    <ClCompile Include="DDrawCompat\v0.2.0b\RealPrimarySurface.cpp">
+      <Filter>ddrawcompat</Filter>
+    </ClCompile>
+    <ClCompile Include="DDrawCompat\v0.2.0b\IReleaseNotifier.cpp">
+      <Filter>ddrawcompat</Filter>
+    </ClCompile>
+    <ClCompile Include="DDrawCompat\v0.2.0b\DDrawProcs.cpp">
+      <Filter>ddrawcompat</Filter>
+    </ClCompile>
+    <ClCompile Include="DDrawCompat\v0.2.0b\CompatVtable.cpp">
+      <Filter>ddrawcompat</Filter>
+    </ClCompile>
+    <ClCompile Include="DDrawCompat\v0.2.0b\CompatPrimarySurface.cpp">
+      <Filter>ddrawcompat</Filter>
+    </ClCompile>
+    <ClCompile Include="DDrawCompat\v0.2.0b\CompatGdiWinProc.cpp">
+      <Filter>ddrawcompat</Filter>
+    </ClCompile>
+    <ClCompile Include="DDrawCompat\v0.2.0b\CompatGdiFunctions.cpp">
+      <Filter>ddrawcompat</Filter>
+    </ClCompile>
+    <ClCompile Include="DDrawCompat\v0.2.0b\CompatGdiDcCache.cpp">
+      <Filter>ddrawcompat</Filter>
+    </ClCompile>
+    <ClCompile Include="DDrawCompat\v0.2.0b\CompatGdiDc.cpp">
+      <Filter>ddrawcompat</Filter>
+    </ClCompile>
+    <ClCompile Include="DDrawCompat\v0.2.0b\CompatGdiCaret.cpp">
+      <Filter>ddrawcompat</Filter>
+    </ClCompile>
+    <ClCompile Include="DDrawCompat\v0.2.0b\CompatGdi.cpp">
+      <Filter>ddrawcompat</Filter>
+    </ClCompile>
+    <ClCompile Include="DDrawCompat\v0.2.0b\CompatDirectDrawSurface.cpp">
+      <Filter>ddrawcompat</Filter>
+    </ClCompile>
+    <ClCompile Include="DDrawCompat\v0.2.0b\CompatDirectDrawPalette.cpp">
+      <Filter>ddrawcompat</Filter>
+    </ClCompile>
+    <ClCompile Include="DDrawCompat\v0.2.0b\CompatDirectDraw.cpp">
+      <Filter>ddrawcompat</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="dxwrapper.def">
+      <Filter>Source Files</Filter>
+    </None>
+    <None Include="Release\Build\allsettings.ini">
+      <Filter>Source Files</Filter>
+    </None>
+    <None Include="Release\Build\dgame.ini">
       <Filter>Source Files</Filter>
     </None>
   </ItemGroup>
@@ -226,9 +205,6 @@
     </ClInclude>
     <ClInclude Include="d3d8to9\d3d8types.hpp">
       <Filter>d3d8to9</Filter>
-    </ClInclude>
-    <ClInclude Include="DDrawCompat\v0.2.1\DDrawLog.h">
-      <Filter>ddrawcompat</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

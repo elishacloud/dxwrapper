@@ -33,7 +33,7 @@ void InitDxWnd(void)
 	char DxWndPath[MAX_PATH];
 	GetPrivateProfileString("system", "dxwndpath", ".", DxWndPath, MAX_PATH, DxWndIniPath);
 	//MessageBox(0, DxWndPath, "dxwnd", MB_ICONERROR);
-	sprintf_s(DxWndPath, "%s\\dxwnd.dll", DxWndPath);
+	//sprintf_s(DxWndPath, "%s\\dxwnd.dll", DxWndPath);
 	//MessageBox(0, DxWndPath, "dxwnd", MB_ICONERROR);
 
 	hModule = LoadLibraryA(DxWndPath);

@@ -3,7 +3,6 @@
 * https://github.com/narzoul/DDrawCompat/
 *
 * Updated 2017 by Elisha Riedlinger
-*
 */
 
 #define WIN32_LEAN_AND_MEAN

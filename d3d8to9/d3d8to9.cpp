@@ -19,11 +19,10 @@ extern "C" Direct3D8 *WINAPI _Direct3DCreate8(UINT SDKVersion)
 		MessageBoxA(nullptr, "Failed to open debug log file \"d3d8.log\"!", nullptr, MB_ICONWARNING);
 	}*/
 
-	if (Config.Debug)
-	{
-		Compat::Log() << "Redirecting '" << "Direct3DCreate8" << "(" << SDKVersion << ")' ...";
-		Compat::Log() << "> Passing on to 'Direct3DCreate9':";
-	}
+#ifdef _DEBUG
+	Compat::Log() << "Redirecting '" << "Direct3DCreate8" << "(" << SDKVersion << ")' ...";
+	Compat::Log() << "> Passing on to 'Direct3DCreate9':";
+#endif
 
 	IDirect3D9 *const d3d = Direct3DCreate9(D3D_SDK_VERSION);
 

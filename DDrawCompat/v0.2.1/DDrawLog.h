@@ -3,7 +3,6 @@
 * https://github.com/narzoul/DDrawCompat/
 *
 * Updated 2017 by Elisha Riedlinger
-*
 */
 
 #pragma once
@@ -64,8 +63,6 @@ std::ostream& operator<<(std::ostream& os, T** t)
 
 namespace Compat
 {
-	extern bool DebugEnabled;
-
 	class Log
 	{
 	public:

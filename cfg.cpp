@@ -252,7 +252,6 @@ void __stdcall ParseCallback(char* name, char* value)
 	if (!_strcmpi(name, "SendAltEnter")) { Config.SendAltEnter = IsValueEnabled(value); return; }
 	if (!_strcmpi(name, "WaitForProcess")) { Config.WaitForProcess = IsValueEnabled(value); return; }
 	if (!_strcmpi(name, "WaitForWindowChanges")) { Config.WaitForWindowChanges = IsValueEnabled(value); return; }
-	if (!_strcmpi(name, "Debug")) { Config.Debug = IsValueEnabled(value); return; }
 	//  Numeric values
 	if (!_strcmpi(name, "LoopSleepTime")) { Config.LoopSleepTime = atoi(value); return; }
 	if (!_strcmpi(name, "ResetMemoryAfter")) { Config.ResetMemoryAfter = atoi(value); return; }
@@ -325,7 +324,6 @@ void ClearConfigSettings()
 	Config.SendAltEnter = false;
 	Config.WaitForProcess = false;
 	Config.WaitForWindowChanges = false;
-	Config.Debug = false;
 	// Numeric values
 	Config.LoopSleepTime = 0;
 	Config.ResetMemoryAfter = 0;

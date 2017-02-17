@@ -3,7 +3,6 @@
 * https://sourceforge.net/projects/dxwnd/
 *
 * Updated 2017 by Elisha Riedlinger
-*
 */
 
 #include "dgame.h"
@@ -26,18 +25,19 @@ Disasm_Type pDisasm;
 
 void *HookAPI(HMODULE module, char *dll, void *apiproc, const char *apiname, void *hookproc)
 {
-	/*if (dxw.dwTFlags & OUTIMPORTTABLE) OutTrace("HookAPI: module=%x dll=%s apiproc=%x apiname=%s hookproc=%x\n",
-		module, dll, apiproc, apiname, hookproc);*/
+#ifdef _DEBUG
+	Compat::Log() << "HookAPI: module=" << module << " dll=" << dll << " apiproc=" << apiproc << " apiname=" << apiname << " hookproc=" << hookproc;
+#endif
 
 	if (!*apiname) { // check
-		//char *sMsg = "HookAPI: NULL api name\n";
-		//OutTraceE(sMsg);
-		//if (IsAssertEnabled) MessageBox(0, sMsg, "HookAPI", MB_OK | MB_ICONEXCLAMATION);
+		char *sMsg = "HookAPI: NULL api name\n";
+		Compat::Log() << sMsg;
 		return 0;
 	}
 
-	//Hopatch
-	//if (dxw.dwFlags4 & HOTPATCHALWAYS) {
+	// Hopatch
+	// Currenlty disbaling hotpatch
+	// Todo: add option for this later
 	if (false) {
 		void *orig;
 		orig = HotPatch(apiproc, apiname, hookproc);
@@ -57,28 +57,28 @@ static HMODULE LoadDisasm()
 
 	disasmlib = LoadLibrary(buffer);
 	if (!disasmlib) {
-		//OutTraceDW("DXWND: Load lib=\"%s\" failed err=%d\n", "disasm.dll", GetLastError());
+		Compat::Log() << "Load lib=" << buffer <<" failed err=" << GetLastError();
 		return NULL;
 	}
 	pGeterrwarnmessage = (Geterrwarnmessage_Type)(*GetProcAddress)(disasmlib, "Geterrwarnmessage");
 	pPreparedisasm = (Preparedisasm_Type)(*GetProcAddress)(disasmlib, "Preparedisasm");
 	pFinishdisasm = (Finishdisasm_Type)(*GetProcAddress)(disasmlib, "Finishdisasm");
 	pDisasm = (Disasm_Type)(*GetProcAddress)(disasmlib, "Disasm");
-	//OutTraceDW("DXWND: Load disasm.dll ptrs=%x,%x,%x,%x\n", pGeterrwarnmessage, pPreparedisasm, pFinishdisasm, pDisasm);
+#ifdef _DEBUG
+	Compat::Log() << "Load " << buffer << " ptrs=" << pGeterrwarnmessage << std::showbase << std::hex << pPreparedisasm << pFinishdisasm << pDisasm << std::dec << std::noshowbase;
+#endif
 	return disasmlib;
 }
 
 #pragma warning (disable : 4706)
 LONG WINAPI myUnhandledExceptionFilter(LPEXCEPTION_POINTERS ExceptionInfo)
 {
-	/*OutTrace("UnhandledExceptionFilter: exception code=%x flags=%x addr=%x\n",
-		ExceptionInfo->ExceptionRecord->ExceptionCode,
-		ExceptionInfo->ExceptionRecord->ExceptionFlags,
-		ExceptionInfo->ExceptionRecord->ExceptionAddress);*/
-	if (Config.Debug) Compat::Log() << "UnhandledExceptionFilter: exception code=" <<
+//#ifdef _DEBUG
+	Compat::Log() << "UnhandledExceptionFilter: exception code=" <<
 		ExceptionInfo->ExceptionRecord->ExceptionCode << 
-		" flags=" << ExceptionInfo->ExceptionRecord->ExceptionFlags << 
-		" addr=" << ExceptionInfo->ExceptionRecord->ExceptionAddress;
+		" flags=" << ExceptionInfo->ExceptionRecord->ExceptionFlags << std::showbase << std::hex <<
+		" addr=" << ExceptionInfo->ExceptionRecord->ExceptionAddress << std::dec << std::noshowbase;
+//#endif
 	DWORD oldprot;
 	static HMODULE disasmlib = NULL;
 	PVOID target = ExceptionInfo->ExceptionRecord->ExceptionAddress;
@@ -96,15 +96,14 @@ LONG WINAPI myUnhandledExceptionFilter(LPEXCEPTION_POINTERS ExceptionInfo)
 		}
 		if (!VirtualProtect(target, 10, PAGE_READWRITE, &oldprot)) return EXCEPTION_CONTINUE_SEARCH; // error condition
 		cmdlen = (*pDisasm)((BYTE *)target, 10, 0, &da, 0, NULL, NULL);
-		//OutTrace("UnhandledExceptionFilter: NOP opcode=%x len=%d\n", *(BYTE *)target, cmdlen);
-		if (Config.Debug) Compat::Log() << "UnhandledExceptionFilter: NOP opcode=" << *(BYTE *)target << " len=" << cmdlen;
+		Compat::Log() << "UnhandledExceptionFilter: NOP opcode=" << std::showbase << std::hex << *(BYTE *)target << std::dec << std::noshowbase << " len=" << cmdlen;
 		memset((BYTE *)target, 0x90, cmdlen);
 		VirtualProtect(target, 10, oldprot, &oldprot);
 		if (!FlushInstructionCache(GetCurrentProcess(), target, cmdlen))
 		{
-			//OutTrace("UnhandledExceptionFilter: FlushInstructionCache ERROR target=%x, err=%x\n", target, GetLastError());
+			Compat::Log() << "UnhandledExceptionFilter: FlushInstructionCache ERROR target=" << std::showbase << std::hex << target << std::dec << std::noshowbase <<", err=" << GetLastError();
 		}
-		// v2.03.10 skip replaced opcode
+		// skip replaced opcode
 		ExceptionInfo->ContextRecord->Eip += cmdlen; // skip ahead op-code length
 		return EXCEPTION_CONTINUE_EXECUTION;
 		break;
@@ -117,7 +116,7 @@ LONG WINAPI myUnhandledExceptionFilter(LPEXCEPTION_POINTERS ExceptionInfo)
 #pragma warning (disable : 4100)
 LPTOP_LEVEL_EXCEPTION_FILTER WINAPI extSetUnhandledExceptionFilter(LPTOP_LEVEL_EXCEPTION_FILTER lpTopLevelExceptionFilter)
 {
-	//OutTraceDW("SetUnhandledExceptionFilter: lpExceptionFilter=%x\n", lpTopLevelExceptionFilter);
+	Compat::Log() << "SetUnhandledExceptionFilter: lpExceptionFilter=" << lpTopLevelExceptionFilter;
 	extern LONG WINAPI myUnhandledExceptionFilter(LPEXCEPTION_POINTERS);
 	return (*pSetUnhandledExceptionFilter)(myUnhandledExceptionFilter);
 }
@@ -128,10 +127,10 @@ void HookExceptionHandler(void)
 	void *tmp;
 	HMODULE base;
 
-	Compat::Log() << "Set exception handlers";
+	Compat::Log() << "Set exception handler";
 	base = GetModuleHandle(NULL);
 	pSetUnhandledExceptionFilter = SetUnhandledExceptionFilter;
-	//v2.1.75 override default exception handler, if any....
+	// override default exception handler, if any....
 	LONG WINAPI myUnhandledExceptionFilter(LPEXCEPTION_POINTERS);
 	tmp = HookAPI(base, "KERNEL32.dll", UnhandledExceptionFilter, "UnhandledExceptionFilter", myUnhandledExceptionFilter);
 	// so far, no need to save the previous handler, but anyway...
@@ -145,6 +144,8 @@ void HookExceptionHandler(void)
 void UnHookExceptionHandler(void)
 {
 	// Not sure how to unload exception handler
+	// Unloading it sometimes crashes the program
+	// Todo: look into this later
 	//Compat::Log() << "Unload exception handlers";
 	//(*pFinishdisasm)();
 }

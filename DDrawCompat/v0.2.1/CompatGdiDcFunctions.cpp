@@ -63,30 +63,29 @@ namespace
 	template <typename OrigFuncPtr, OrigFuncPtr origFunc, typename Result, typename... Params>
 	Result WINAPI compatGdiDcFunc(Params... params)
 	{
-		if (Compat::DebugEnabled)
-		{
-			Compat::LogEnter(g_funcNames[origFunc], params...);
-		}
+#ifdef _DEBUG
+		Compat::LogEnter(g_funcNames[origFunc], params...);
+#endif
+
 		if (!hasDisplayDcArg(params...) || !CompatGdi::beginGdiRendering())
 		{
 			Result result = Compat::getOrigFuncPtr<OrigFuncPtr, origFunc>()(params...);
 
-			if (Compat::DebugEnabled)
+#ifdef _DEBUG
+			if (!hasDisplayDcArg(params...))
 			{
-				if (!hasDisplayDcArg(params...))
-				{
-					Compat::Log() << "Skipping redirection since there is no display DC argument";
-				}
-				else if (!CompatGdi::isEmulationEnabled())
-				{
-					Compat::Log() << "Skipping redirection since GDI emulation is disabled";
-				}
-				else
-				{
-					Compat::Log() << "Skipping redirection since the primary surface could not be locked";
-				}
-				Compat::LogLeave(g_funcNames[origFunc], params...) << result;
+				Compat::Log() << "Skipping redirection since there is no display DC argument";
 			}
+			else if (!CompatGdi::isEmulationEnabled())
+			{
+				Compat::Log() << "Skipping redirection since GDI emulation is disabled";
+			}
+			else
+			{
+				Compat::Log() << "Skipping redirection since the primary surface could not be locked";
+			}
+			Compat::LogLeave(g_funcNames[origFunc], params...) << result;
+#endif
 
 			return result;
 		}
@@ -95,10 +94,10 @@ namespace
 		releaseDc(params...);
 		CompatGdi::endGdiRendering();
 
-		if (Compat::DebugEnabled)
-		{
-			Compat::LogLeave(g_funcNames[origFunc], params...) << result;
-		}
+#ifdef _DEBUG
+		Compat::LogLeave(g_funcNames[origFunc], params...) << result;
+#endif
+
 		return result;
 	}
 
@@ -111,10 +110,10 @@ namespace
 	template <typename OrigFuncPtr, OrigFuncPtr origFunc>
 	void hookGdiDcFunction(const char* moduleName, const char* funcName)
 	{
-		if (Compat::DebugEnabled)
-		{
-			g_funcNames[origFunc] = funcName;
-		}
+#ifdef _DEBUG
+		g_funcNames[origFunc] = funcName;
+#endif
+
 		Compat::hookFunction<OrigFuncPtr, origFunc>(
 			moduleName, funcName, getCompatGdiDcFuncPtr<OrigFuncPtr, origFunc>(origFunc));
 	}

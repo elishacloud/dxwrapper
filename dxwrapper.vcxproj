@@ -52,7 +52,7 @@
     <OutDir>$(Configuration)\</OutDir>
     <IntDir>$(Configuration)\</IntDir>
     <LinkIncremental>false</LinkIncremental>
-    <IncludePath>$(ProjectDir);DDrawCompat\v0.2.1;DxWnd\v2_03_60_src\Include;d3d8to9;C:\Program Files %28x86%29\Microsoft Research\Detours Express 3.0\include;$(IncludePath)</IncludePath>
+    <IncludePath>$(ProjectDir);DDrawCompat\v0.2.0b;DxWnd\v2_03_60_src\Include;d3d8to9;C:\Program Files %28x86%29\Microsoft Research\Detours Express 3.0\include;$(IncludePath)</IncludePath>
     <LibraryPath>C:\Program Files %28x86%29\Microsoft DirectX SDK (June 2010)\Lib\x86;C:\Program Files %28x86%29\Microsoft Research\Detours Express 3.0\lib.X86;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
@@ -180,32 +180,23 @@ copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\winspool.drv"
     <ClCompile Include="d3d8to9\d3d8to9_vertex_buffer.cpp" />
     <ClCompile Include="d3d8to9\d3d8to9_volume.cpp" />
     <ClCompile Include="d3d8to9\d3d8types.cpp" />
-    <ClCompile Include="DDrawCompat\v0.2.1\CompatActivateAppHandler.cpp" />
-    <ClCompile Include="DDrawCompat\v0.2.1\CompatDirectDraw.cpp" />
-    <ClCompile Include="DDrawCompat\v0.2.1\CompatDirectDrawPalette.cpp" />
-    <ClCompile Include="DDrawCompat\v0.2.1\CompatDirectDrawSurface.cpp" />
-    <ClCompile Include="DDrawCompat\v0.2.1\CompatGdi.cpp" />
-    <ClCompile Include="DDrawCompat\v0.2.1\CompatGdiCaret.cpp" />
-    <ClCompile Include="DDrawCompat\v0.2.1\CompatGdiDc.cpp" />
-    <ClCompile Include="DDrawCompat\v0.2.1\CompatGdiDcCache.cpp" />
-    <ClCompile Include="DDrawCompat\v0.2.1\CompatGdiDcFunctions.cpp" />
-    <ClCompile Include="DDrawCompat\v0.2.1\CompatGdiPaintHandlers.cpp" />
-    <ClCompile Include="DDrawCompat\v0.2.1\CompatGdiScrollBar.cpp" />
-    <ClCompile Include="DDrawCompat\v0.2.1\CompatGdiScrollFunctions.cpp" />
-    <ClCompile Include="DDrawCompat\v0.2.1\CompatGdiTitleBar.cpp" />
-    <ClCompile Include="DDrawCompat\v0.2.1\CompatGdiWinProc.cpp" />
-    <ClCompile Include="DDrawCompat\v0.2.1\CompatPaletteConverter.cpp" />
-    <ClCompile Include="DDrawCompat\v0.2.1\CompatPrimarySurface.cpp" />
-    <ClCompile Include="DDrawCompat\v0.2.1\CompatRegistry.cpp" />
-    <ClCompile Include="DDrawCompat\v0.2.1\DDrawLog.cpp" />
-    <ClCompile Include="DDrawCompat\v0.2.1\DDrawProcs.cpp" />
-    <ClCompile Include="DDrawCompat\v0.2.1\DDrawRepository.cpp" />
-    <ClCompile Include="DDrawCompat\v0.2.1\DllMainCompat.cpp" />
-    <ClCompile Include="DDrawCompat\v0.2.1\Hook.cpp" />
-    <ClCompile Include="DDrawCompat\v0.2.1\IReleaseNotifier.cpp" />
-    <ClCompile Include="DDrawCompat\v0.2.1\RealPrimarySurface.cpp" />
-    <ClCompile Include="DDrawCompat\v0.2.1\Time.cpp" />
-    <ClCompile Include="DDrawCompat\v0.2.1\UnmodifiedDDrawProcs.cpp" />
+    <ClCompile Include="DDrawCompat\v0.2.0b\CompatDirectDraw.cpp" />
+    <ClCompile Include="DDrawCompat\v0.2.0b\CompatDirectDrawPalette.cpp" />
+    <ClCompile Include="DDrawCompat\v0.2.0b\CompatDirectDrawSurface.cpp" />
+    <ClCompile Include="DDrawCompat\v0.2.0b\CompatGdi.cpp" />
+    <ClCompile Include="DDrawCompat\v0.2.0b\CompatGdiCaret.cpp" />
+    <ClCompile Include="DDrawCompat\v0.2.0b\CompatGdiDc.cpp" />
+    <ClCompile Include="DDrawCompat\v0.2.0b\CompatGdiDcCache.cpp" />
+    <ClCompile Include="DDrawCompat\v0.2.0b\CompatGdiFunctions.cpp" />
+    <ClCompile Include="DDrawCompat\v0.2.0b\CompatGdiWinProc.cpp" />
+    <ClCompile Include="DDrawCompat\v0.2.0b\CompatPrimarySurface.cpp" />
+    <ClCompile Include="DDrawCompat\v0.2.0b\CompatVtable.cpp" />
+    <ClCompile Include="DDrawCompat\v0.2.0b\DDrawLog.cpp" />
+    <ClCompile Include="DDrawCompat\v0.2.0b\DDrawProcs.cpp" />
+    <ClCompile Include="DDrawCompat\v0.2.0b\DllMainCompat.cpp" />
+    <ClCompile Include="DDrawCompat\v0.2.0b\IReleaseNotifier.cpp" />
+    <ClCompile Include="DDrawCompat\v0.2.0b\RealPrimarySurface.cpp" />
+    <ClCompile Include="DDrawCompat\v0.2.0b\UnmodifiedDDrawProcs.cpp" />
     <ClCompile Include="disasm\cmdlist.c" />
     <ClCompile Include="disasm\Disasm.c" />
     <ClCompile Include="disasm\initdisasm.cpp" />
@@ -229,11 +220,12 @@ copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\winspool.drv"
   </ItemGroup>
   <ItemGroup>
     <None Include="dxwrapper.def" />
+    <None Include="Release\Build\allsettings.ini" />
+    <None Include="Release\Build\dgame.ini" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="d3d8to9\d3d8to9.hpp" />
     <ClInclude Include="d3d8to9\d3d8types.hpp" />
-    <ClInclude Include="DDrawCompat\v0.2.1\DDrawLog.h" />
     <ClInclude Include="dgame.h" />
     <ClInclude Include="dxwrapper.h" />
     <ClInclude Include="hook\MinHook.h" />
