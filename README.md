@@ -21,7 +21,7 @@ So far I have tested this with over 70 games (that don't otherwise work correctl
 
 ### Installation
 
-1. Download all the files from the repository [Build](https://github.com/elishacloud/dxwrapper/tree/master/Release/Build) page and save them to a folder.
+1. Download the latest binary release from the repository's [Release](https://github.com/elishacloud/dxwrapper/releases) page and unzip it to a folder.
 2. Determine which dll file is needed for the game.  This depends on many factors, I will add a page explaining this later.  Most commonly it is `ddraw.dll` or `dsound.dll`.
 3. Copy this dll file and the `dgame.ini` file into the game's installation directory, next to the main executable file.  For some games the main executable is in a subdirectory (like 'Bin', 'Exe' or 'App') you will need to copy it into that directory.  It is not recommended to overwrite any existing files from the game.
 4. (Optional, but recommended) Rename the `dgame.ini` to match the name of the dll file.  Example if you are using the `ddraw.dll` then you want to rename `dgame.ini` to `ddraw.ini`.
