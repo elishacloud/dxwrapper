@@ -192,7 +192,9 @@ bool StartDdrawCompat(HINSTANCE hinstDLL)
 	VISIT_ALL_DDRAW_PROCS(LOAD_ORIGINAL_DDRAW_PROC);
 	Compat::origProcs.DirectInputCreateA = GetProcAddress(g_origDInputModule, "DirectInputCreateA");
 
-	SetProcessAffinityMask(GetCurrentProcess(), 1);
+	//********** Begin Edit *************
+	if (Config.Affinity) SetProcessAffinityMask(GetCurrentProcess(), 1);
+	//********** End Edit ***************
 	SetThemeAppProperties(0);
 	Time::init();
 

@@ -8,6 +8,95 @@
 #include <assert.h>
 #include <d3dx9shader.h>
 
+bool IsD3dx9Loaded = false;
+
+// D3DXLoadSurfaceFromSurface
+typedef HRESULT (__stdcall *D3DXLoadSurfaceFromSurfaceType)(
+	_In_       LPDIRECT3DSURFACE9 pDestSurface,
+	_In_ const PALETTEENTRY       *pDestPalette,
+	_In_ const RECT               *pDestRect,
+	_In_       LPDIRECT3DSURFACE9 pSrcSurface,
+	_In_ const PALETTEENTRY       *pSrcPalette,
+	_In_ const RECT               *pSrcRect,
+	_In_       DWORD              Filter,
+	_In_       D3DCOLOR           ColorKey
+	);
+D3DXLoadSurfaceFromSurfaceType D3DXLoadSurfaceFromSurfacePtr = NULL;
+
+// D3DXAssembleShader
+typedef HRESULT (__stdcall *D3DXAssembleShaderType)(
+	_In_        LPCSTR        pSrcData,
+	_In_        UINT          SrcDataLen,
+	_In_  const D3DXMACRO     *pDefines,
+	_In_        LPD3DXINCLUDE pInclude,
+	_In_        DWORD         Flags,
+	_Out_       LPD3DXBUFFER  *ppShader,
+	_Out_       LPD3DXBUFFER  *ppErrorMsgs
+	);
+D3DXAssembleShaderType D3DXAssembleShaderPtr = NULL;
+
+// D3DXDisassembleShader
+typedef HRESULT (__stdcall *D3DXDisassembleShaderType)(
+	_In_  const DWORD        *pShader,
+	_In_        BOOL         EnableColorCode,
+	_In_        LPCSTR       pComments,
+	_Out_       LPD3DXBUFFER *ppDisassembly
+	);
+D3DXDisassembleShaderType D3DXDisassembleShaderPtr = NULL;
+
+void LoadD3dx9()
+{
+	HMODULE dllHandle = NULL;
+	char d3dx9name[MAX_PATH];
+
+	// Check for different versions of D3DX9_XX.DLL
+	for (int x = 47; x > 0 && dllHandle == NULL; x--)
+	{
+		// Get dll name
+		strcpy_s(d3dx9name, "D3DX9_");
+		char buffer[33];
+		_itoa_s(x, buffer, 10);
+		strcat_s(d3dx9name, buffer);
+		strcat_s(d3dx9name, ".DLL");
+
+		// Load dll
+		dllHandle = LoadLibrary(d3dx9name);
+
+		// Load default dll from system folder
+		if (dllHandle == NULL)
+		{
+			char path[MAX_PATH];
+			GetSystemDirectory(path, MAX_PATH);
+			strcat_s(path, MAX_PATH, "\\");
+			strcat_s(path, MAX_PATH, d3dx9name);
+			dllHandle = LoadLibrary(path);
+		}
+
+		// Log dll loading
+		if (dllHandle != NULL)
+		{
+			Compat::Log() << "Loaded " << d3dx9name;
+		}
+	}
+
+	// Cannot load dll
+	if (dllHandle == NULL)
+	{
+		Compat::Log() << "Failed to load D3DX9_XX.DLL";
+	}
+	else
+	// Loaded dll file
+	{
+		IsD3dx9Loaded = true;
+		D3DXLoadSurfaceFromSurfacePtr = (D3DXLoadSurfaceFromSurfaceType)GetProcAddress(dllHandle, "D3DXLoadSurfaceFromSurface");
+		D3DXAssembleShaderPtr = (D3DXAssembleShaderType)GetProcAddress(dllHandle, "D3DXAssembleShader");
+		D3DXDisassembleShaderPtr = (D3DXDisassembleShaderType)GetProcAddress(dllHandle, "D3DXDisassembleShader");
+		if (D3DXLoadSurfaceFromSurfacePtr == NULL) Compat::Log() << "Failed get address of D3DXLoadSurfaceFromSurface";
+		if (D3DXAssembleShaderPtr == NULL) Compat::Log() << "Failed get address of D3DXAssembleShader";
+		if (D3DXDisassembleShaderPtr == NULL) Compat::Log() << "Failed get address of D3DXDisassembleShader";
+	}
+}
+
 struct vertex_shader_info
 {
 	IDirect3DVertexShader9 *shader;
@@ -554,7 +643,12 @@ HRESULT STDMETHODCALLTYPE Direct3DDevice8::CopyRects(Direct3DSurface8 *pSourceSu
 
 		if (desc_source.Pool == D3DPOOL_MANAGED || desc_destination.Pool != D3DPOOL_DEFAULT)
 		{
-			hr = D3DXLoadSurfaceFromSurface(pDestinationSurface->GetProxyInterface(), nullptr, &rect_destination, pSourceSurface->GetProxyInterface(), nullptr, &rect_source, D3DX_FILTER_NONE, 0);
+			hr = E_FAIL;
+			if (!IsD3dx9Loaded) LoadD3dx9();
+			if (NULL != D3DXLoadSurfaceFromSurfacePtr)
+			{
+				hr = (D3DXLoadSurfaceFromSurfacePtr) (pDestinationSurface->GetProxyInterface(), nullptr, &rect_destination, pSourceSurface->GetProxyInterface(), nullptr, &rect_source, D3DX_FILTER_NONE, 0);
+			}
 		}
 		else if (desc_source.Pool == D3DPOOL_DEFAULT)
 		{
@@ -1242,7 +1336,12 @@ HRESULT STDMETHODCALLTYPE Direct3DDevice8::CreateVertexShader(CONST DWORD *pDecl
 
 		ID3DXBuffer *disassembly = nullptr, *assembly = nullptr, *errors = nullptr;
 
-		hr = D3DXDisassembleShader(pFunction, FALSE, nullptr, &disassembly);
+		hr = E_FAIL;
+		if (!IsD3dx9Loaded) LoadD3dx9();
+		if (NULL != D3DXDisassembleShaderPtr)
+		{
+			hr = (D3DXDisassembleShaderPtr) (pFunction, FALSE, nullptr, &disassembly);
+		}
 
 		if (FAILED(hr))
 		{
@@ -1351,7 +1450,12 @@ HRESULT STDMETHODCALLTYPE Direct3DDevice8::CreateVertexShader(CONST DWORD *pDecl
 		Compat::Log() << "> Dumping translated shader assembly:\n" << source;
 #endif
 
-		hr = D3DXAssembleShader(source.data(), static_cast<UINT>(source.size()), nullptr, nullptr, 0, &assembly, &errors);
+		hr = E_FAIL;
+		if (!IsD3dx9Loaded) LoadD3dx9();
+		if (NULL != D3DXAssembleShaderPtr)
+		{
+			hr = (D3DXAssembleShaderPtr) (source.data(), static_cast<UINT>(source.size()), nullptr, nullptr, 0, &assembly, &errors);
+		}
 
 		disassembly->Release();
 
@@ -1638,7 +1742,12 @@ HRESULT STDMETHODCALLTYPE Direct3DDevice8::CreatePixelShader(CONST DWORD *pFunct
 
 	ID3DXBuffer *disassembly = nullptr, *assembly = nullptr, *errors = nullptr;
 
-	HRESULT hr = D3DXDisassembleShader(pFunction, FALSE, nullptr, &disassembly);
+	HRESULT hr = E_FAIL;
+	if (!IsD3dx9Loaded) LoadD3dx9();
+	if (NULL != D3DXDisassembleShaderPtr)
+	{
+		hr = (D3DXDisassembleShaderPtr) (pFunction, FALSE, nullptr, &disassembly);
+	}
 
 	if (FAILED(hr))
 	{
@@ -1669,7 +1778,12 @@ HRESULT STDMETHODCALLTYPE Direct3DDevice8::CreatePixelShader(CONST DWORD *pFunct
 	Compat::Log() << "> Dumping translated shader assembly:\n"  << source;
 #endif
 
-	hr = D3DXAssembleShader(source.data(), static_cast<UINT>(source.size()), nullptr, nullptr, 0, &assembly, &errors);
+	hr = E_FAIL;
+	if (!IsD3dx9Loaded) LoadD3dx9();
+	if (NULL != D3DXAssembleShaderPtr)
+	{
+		hr = (D3DXAssembleShaderPtr)(source.data(), static_cast<UINT>(source.size()), nullptr, nullptr, 0, &assembly, &errors);
+	}
 
 	disassembly->Release();
 

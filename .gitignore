@@ -46,3 +46,4 @@
 *.db
 .opendb
 RC*
+*.opendb
