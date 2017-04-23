@@ -46,14 +46,21 @@ D3DXDisassembleShaderType D3DXDisassembleShaderPtr = NULL;
 
 void LoadD3dx9()
 {
+	// DLL handle
 	HMODULE dllHandle = NULL;
-	char d3dx9name[MAX_PATH];
+
+	// Get system path
+	char syspath[MAX_PATH];
+	GetSystemDirectory(syspath, MAX_PATH);
+	strcat_s(syspath, MAX_PATH, "\\");
 
 	// Check for different versions of D3DX9_XX.DLL
-	for (int x = 47; x > 0 && dllHandle == NULL; x--)
+	for (int x = 99; x > 0 && dllHandle == NULL; x--)
 	{
 		// Get dll name
+		char d3dx9name[MAX_PATH];
 		strcpy_s(d3dx9name, "D3DX9_");
+		if (x < 10) strcat_s(d3dx9name, "0");
 		char buffer[33];
 		_itoa_s(x, buffer, 10);
 		strcat_s(d3dx9name, buffer);
@@ -66,8 +73,7 @@ void LoadD3dx9()
 		if (dllHandle == NULL)
 		{
 			char path[MAX_PATH];
-			GetSystemDirectory(path, MAX_PATH);
-			strcat_s(path, MAX_PATH, "\\");
+			strcpy_s(path, MAX_PATH, syspath);
 			strcat_s(path, MAX_PATH, d3dx9name);
 			dllHandle = LoadLibrary(path);
 		}
@@ -82,7 +88,7 @@ void LoadD3dx9()
 	// Cannot load dll
 	if (dllHandle == NULL)
 	{
-		Compat::Log() << "Failed to load D3DX9_XX.DLL";
+		Compat::Log() << "Failed to load d3dx9_xx.dll!";
 	}
 	else
 	// Loaded dll file
