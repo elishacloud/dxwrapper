@@ -14,7 +14,9 @@
 *   3. This notice may not be removed or altered from any source distribution.
 */
 
-#include "dgame.h"
+#include "cfg.h"
+#include "ddraw.h"
+#include "wrapper.h"
 
 bool dsoundFlag = false;
 
@@ -50,7 +52,7 @@ __declspec(naked) void  FakeDirectSoundCaptureCreate8()		{ _asm { jmp [dsound.Di
 
 void LoadDsound()
 {
-	if (Config.HookDsound)
+	/*if (Config.HookDsound)
 	{
 		// Load real dll
 		dsound.dll = LoadDsoundHook();
@@ -72,7 +74,7 @@ void LoadDsound()
 			dsound.DirectSoundCaptureCreate8		= GetProcAddress(hModule_dll, "_DirectSoundCaptureCreate8");
 		}
 	}
-	else
+	else*/
 	{
 		// Load real dll
 		dsound.dll = LoadDll("dsound.dll", dtype.dsound);

@@ -17,7 +17,8 @@
 * http://bitpatch.com/ddwrapper.html
 */
 
-#include "dgame.h"
+#include "cfg.h"
+#include "dllmain.h"
 
 CONFIG Config;
 DLLTYPE dtype;

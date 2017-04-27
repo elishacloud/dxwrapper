@@ -1,5 +1,5 @@
 /**
-* Created from source code found in DxWnd v 2.03.60
+* Created from source code found in DxWnd v2.03.60
 * https://sourceforge.net/projects/dxwnd/
 *
 * Updated 2017 by Elisha Riedlinger
@@ -12,10 +12,10 @@
 // 1 = already patched
 // addr = address of the original function
 
-#include "dgame.h"
+#include "cfg.h"
 
 #ifdef USEMINHOOK
-#include "hook\MinHook.h"
+#include "MinHook.h"
 #endif
 
 void *HotPatch(void *apiproc, const char *apiname, void *hookproc)
@@ -112,4 +112,4 @@ void *HotPatch(void *apiproc, const char *apiname, void *hookproc)
 #endif
 	return orig_address;
 #endif
-}  
+}

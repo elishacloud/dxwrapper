@@ -1,12 +1,15 @@
 /**
-* Created from source code found in DxWnd v 2.03.60
+* Created from source code found in DxWnd v2.03.60
 * https://sourceforge.net/projects/dxwnd/
 *
 * Updated 2017 by Elisha Riedlinger
 */
 
-#include "dgame.h"
-#include "disasm\disasm.h"
+#include "cfg.h"
+#include "dllmain.h"
+#include "disasm.h"
+#include "hook\hotpatch.h"
+#include "hook\iatpatch.h"
 
 typedef LPTOP_LEVEL_EXCEPTION_FILTER
 (WINAPI *SetUnhandledExceptionFilter_Type)(LPTOP_LEVEL_EXCEPTION_FILTER);

@@ -1,5 +1,4 @@
-#ifndef DGAME_H    // To make sure you don't declare the function more than once by including the header multiple times.
-#define DGAME_H
+#pragma once
 
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
@@ -8,133 +7,16 @@
 #include "DDrawLog.h"
 #endif
 
-// Main resource file details
-#define APP_NAME				"DirectX Dynamic Link Library"
-#define APP_MAJOR				1
-#define APP_MINOR				0
-#define APP_BUILDNUMBER			16
-#define APP_COMPANYNAME			"Sadrate Presents"
-#define APP_DESCRPTION			"Wraps or hooks DirectX files to fix compatibility issues in older games. Also allows code to be executed from inside the application. Wraps the following files: d3d8.dll, d3d9.dll, ddraw.dll, dplayx.dll, dsound.dll, dxgi.dll or winmm.dll"
-#define APP_COPYRIGHT			"Copyright (C) 2017 Elisha Riedlinger"
-#define APP_ORIGINALVERSION		"dxwrapper.dll"
-#define APP_INTERNALNAME		"dxwrapper"
-
-// dllmain.cpp
-extern HMODULE hModule_dll;
-extern CRITICAL_SECTION CriticalSection;
-void CallCheckCurrentScreenRes();
-void RunExitFunctions(bool = false);
-
-// dwrapper.cpp
-void DllAttach();
-HMODULE LoadDll(char*, DWORD);
-void DllDetach();
-
-// ddraw.cpp
-void LoadDdraw();
-void SetSharedDdraw(HMODULE);
-void FreeDdrawLibrary();
-
-// d3d9.cpp
-void LoadD3d9();
-void SetSharedD3d9(HMODULE);
-void FreeD3d9Library();
-
-// d3d8.cpp
-void LoadD3d8();
-void FreeD3d8Library();
-
-// winmm.cpp
-void LoadWinmm();
-void FreeWinmmLibrary();
-
-// dsound.cpp
-void LoadDsound();
-void FreeDsoundLibrary();
-
-// dxgi.cpp
-void LoadDxgi();
-void FreeDxgiLibrary();
-
-// dplayx.cpp
-void LoadDplayx();
-void FreeDplayxLibrary();
-
-// winspool.cpp
-void LoadWinspool();
-void FreeWinspoolLibrary();
-
-// ddrawcompat (dllmaincompat.cpp)
-bool StartDdrawCompat(HINSTANCE);
-void UnloadDdrawCompat();
-
-// dxwnd (init.cpp)
-void InitDxWnd();
-void DxWndEndHook();
-
-// dsound_hook.cpp
-HMODULE LoadDsoundHook();
-
-// fullscreen.cpp
-struct screen_res
-{
-	long Width = 0;
-	long Height = 0;
-
-	screen_res& operator=(const screen_res& a)
-	{
-		Width = a.Width;
-		Height = a.Height;
-		return *this;
-	}
-
-	bool operator==(const screen_res& a) const
-	{
-		return (Width == a.Width && Height == a.Height);
-	}
-
-	bool operator!=(const screen_res& a) const
-	{
-		return (Width != a.Width || Height != a.Height);
-	}
-};
-void CheckCurrentScreenRes(screen_res&);
-void SetScreen(screen_res);
-void ResetScreen();
-void StartThread();
-bool IsMyThreadRunning();
-void StopThread();
-void CreateTimer(HWND);
-
-// utils.cpp
-void Shell(char*);
-void DisableHighDPIScaling();
-void SetSingleProcessAffinity(bool);
-void SetSingleCoreAffinity();
-
-// WriteMemory.cpp
-void HotPatchMemory();
-void StopHotpatchThread();
-
-// initdisasm.cpp
-void HookExceptionHandler();
-void UnHookExceptionHandler();
-
-// iatpatch.cpp
-void *IATPatch(HMODULE, DWORD, char*, void*, const char*, void*);
-
-// hotpatch.cpp
-void *HotPatch(void*, const char*, void*);
-
-// cfg.cpp
 bool IfStringExistsInList(char*, char*[256], uint8_t, bool = true);
 void SetConfigList(char*[], uint8_t&, char*);
+
 struct MEMORYINFO						// Used for hot patching memory
 {
 	DWORD AddressPointer = 0;			// Hot patch address
 	byte* Bytes;						// Hot patch bytes
 	size_t SizeOfBytes = 0;				// Size of bytes to hot patch
 };
+
 struct CONFIG
 {
 	void Init();						// Initialize the config setting
@@ -210,5 +92,3 @@ struct APPCOMPATDATATYPE
 	const uint8_t DisableMaxWindowedMode = 12;
 };
 extern APPCOMPATDATATYPE AppCompatDataType;
-
-#endif

@@ -20,7 +20,7 @@
 * https://sourceforge.net/projects/dxwnd/
 */
 
-#include "dgame.h"
+#include "cfg.h"
 
 // Execute a specified string
 void Shell(char* fileName)

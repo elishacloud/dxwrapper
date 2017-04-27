@@ -14,9 +14,9 @@
 *   3. This notice may not be removed or altered from any source distribution.
 */
 
-#include <windows.h>
 #include <dsound.h>
-#include "dgame.h"
+#include "cfg.h"
+#include "wrappers\wrapper.h"
 
 struct dsound_dll_hook
 {

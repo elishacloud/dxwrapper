@@ -14,7 +14,9 @@
 *   3. This notice may not be removed or altered from any source distribution.
 */
 
-#include "dgame.h"
+#include "cfg.h"
+#include "dllmain.h"
+#include "fullscreen.h"
 
 // Declare constants
 const LONG MinWindowWidth = 320;			// Minimum window width for valid window check

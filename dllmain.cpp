@@ -14,7 +14,10 @@
 *   3. This notice may not be removed or altered from any source distribution.
 */
 
-#include "dgame.h"
+#include "cfg.h"
+#include "dllmain.h"
+#include "wrappers\wrapper.h"
+#include "utils.h"
 
 // Declare varables
 HMODULE hModule_dll = NULL;

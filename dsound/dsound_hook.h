@@ -1,0 +1,3 @@
+#pragma once
+
+HMODULE LoadDsoundHook();

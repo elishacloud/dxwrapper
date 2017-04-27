@@ -1,9 +1,7 @@
 // Microsoft Visual C++ generated resource script.
 //
-#include "resource.h"
-#include "dgame.h"
-
-//Other defnintions
+#include "dxwrapper.h"
+#include "cfg.h"
 #include "dxwnd.h"
 
 #define PPCAT_NX(A, B, C, D, E, F, G) 0. ## A ## . ## B ## . ## C ## \x20 ## D ## \x20 ## E ## \x20 ## F ## \x20 ## G

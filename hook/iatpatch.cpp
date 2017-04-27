@@ -1,11 +1,11 @@
 /**
-* Created from source code found in DxWnd v 2.03.60
+* Created from source code found in DxWnd v2.03.60
 * https://sourceforge.net/projects/dxwnd/
 *
 * Updated 2017 by Elisha Riedlinger
 */
 
-#include "dgame.h"
+#include "cfg.h"
 
 void *IATPatch(HMODULE module, DWORD ordinal, char *dll, void *apiproc, const char *apiname, void *hookproc)
 {

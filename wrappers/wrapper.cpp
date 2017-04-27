@@ -14,7 +14,15 @@
 *   3. This notice may not be removed or altered from any source distribution.
 */
 
-#include "dgame.h"
+#include "cfg.h"
+#include "d3d8.h"
+#include "d3d9.h"
+#include "ddraw.h"
+#include "dplayx.h"
+#include "dsound.h"
+#include "dxgi.h"
+#include "winmm.h"
+#include "winspool.h"
 
 struct custom_dll
 {

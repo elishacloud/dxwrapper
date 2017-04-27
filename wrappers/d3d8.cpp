@@ -14,7 +14,10 @@
 *   3. This notice may not be removed or altered from any source distribution.
 */
 
-#include "dgame.h"
+#include "cfg.h"
+#include "dllmain.h"
+#include "wrapper.h"
+#include "d3d9.h"
 
 bool d3d8Flag = false;
 

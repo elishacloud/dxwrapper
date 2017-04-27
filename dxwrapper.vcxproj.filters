@@ -37,9 +37,6 @@
     <ClCompile Include="dllmain.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="dxwrapper.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="fullscreen.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -202,6 +199,9 @@
     <ClCompile Include="DDrawCompat\v0.2.1\CompatActivateAppHandler.cpp">
       <Filter>ddrawcompat</Filter>
     </ClCompile>
+    <ClCompile Include="wrappers\wrapper.cpp">
+      <Filter>wrappers</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="dxwrapper.def">
@@ -215,12 +215,6 @@
     </None>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="resource.h">
-      <Filter>Source Files</Filter>
-    </ClInclude>
-    <ClInclude Include="dgame.h">
-      <Filter>Source Files</Filter>
-    </ClInclude>
     <ClInclude Include="dxwrapper.h">
       <Filter>Source Files</Filter>
     </ClInclude>
@@ -235,6 +229,60 @@
     </ClInclude>
     <ClInclude Include="DDrawCompat\v0.2.1\DDrawLog.h">
       <Filter>ddrawcompat</Filter>
+    </ClInclude>
+    <ClInclude Include="wrappers\d3d8.h">
+      <Filter>wrappers</Filter>
+    </ClInclude>
+    <ClInclude Include="wrappers\d3d9.h">
+      <Filter>wrappers</Filter>
+    </ClInclude>
+    <ClInclude Include="wrappers\ddraw.h">
+      <Filter>wrappers</Filter>
+    </ClInclude>
+    <ClInclude Include="wrappers\dplayx.h">
+      <Filter>wrappers</Filter>
+    </ClInclude>
+    <ClInclude Include="wrappers\dsound.h">
+      <Filter>wrappers</Filter>
+    </ClInclude>
+    <ClInclude Include="wrappers\dxgi.h">
+      <Filter>wrappers</Filter>
+    </ClInclude>
+    <ClInclude Include="wrappers\winmm.h">
+      <Filter>wrappers</Filter>
+    </ClInclude>
+    <ClInclude Include="wrappers\winspool.h">
+      <Filter>wrappers</Filter>
+    </ClInclude>
+    <ClInclude Include="wrappers\wrapper.h">
+      <Filter>wrappers</Filter>
+    </ClInclude>
+    <ClInclude Include="fullscreen.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="dsound\dsound_hook.h">
+      <Filter>dsound</Filter>
+    </ClInclude>
+    <ClInclude Include="utils.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="writememory\writememory.h">
+      <Filter>writememory</Filter>
+    </ClInclude>
+    <ClInclude Include="hook\iatpatch.h">
+      <Filter>hook</Filter>
+    </ClInclude>
+    <ClInclude Include="hook\hotpatch.h">
+      <Filter>hook</Filter>
+    </ClInclude>
+    <ClInclude Include="dllmain.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="disasm\initdisasm.h">
+      <Filter>disasm</Filter>
+    </ClInclude>
+    <ClInclude Include="cfg.h">
+      <Filter>Source Files</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
