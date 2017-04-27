@@ -193,18 +193,23 @@ bool StartDdrawCompat(HINSTANCE hinstDLL)
 	Compat::origProcs.DirectInputCreateA = GetProcAddress(g_origDInputModule, "DirectInputCreateA");
 
 	//********** Begin Edit *************
-	if (Config.Affinity) SetProcessAffinityMask(GetCurrentProcess(), 1);
+	if (Config.AffinityNotSet || Config.Affinity) SetProcessAffinityMask(GetCurrentProcess(), 1);
 	//********** End Edit ***************
 	SetThemeAppProperties(0);
 	Time::init();
 
-	if (Compat::origProcs.SetAppCompatData)
+	//********** Begin Edit *************
+	if (Config.DisableMaxWindowedModeNotSet || Config.DXPrimaryEmulation[AppCompatDataType.DisableMaxWindowedMode])
 	{
-		typedef HRESULT WINAPI SetAppCompatDataFunc(DWORD, DWORD);
-		auto setAppCompatData = reinterpret_cast<SetAppCompatDataFunc*>(Compat::origProcs.SetAppCompatData);
-		const DWORD disableMaxWindowedMode = 12;
-		setAppCompatData(disableMaxWindowedMode, 0);
+		if (Compat::origProcs.SetAppCompatData)
+		{
+			typedef HRESULT WINAPI SetAppCompatDataFunc(DWORD, DWORD);
+			auto setAppCompatData = reinterpret_cast<SetAppCompatDataFunc*>(Compat::origProcs.SetAppCompatData);
+			const DWORD disableMaxWindowedMode = 12;
+			setAppCompatData(disableMaxWindowedMode, 0);
+		}
 	}
+	//********** End Edit ***************
 
 	Compat::Log() << "DDrawCompat loaded successfully";
 	

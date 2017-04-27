@@ -114,6 +114,7 @@ void SetSingleCoreAffinity();
 
 // WriteMemory.cpp
 void HotPatchMemory();
+void StopHotpatchThread();
 
 // initdisasm.cpp
 void HookExceptionHandler();
@@ -124,7 +125,6 @@ void *IATPatch(HMODULE, DWORD, char*, void*, const char*, void*);
 
 // hotpatch.cpp
 void *HotPatch(void*, const char*, void*);
-void StopHotpatchThread();
 
 // cfg.cpp
 bool IfStringExistsInList(char*, char*[256], uint8_t, bool = true);
@@ -140,6 +140,7 @@ struct CONFIG
 	void Init();						// Initialize the config setting
 	void CleanUp();						// Deletes all 'new' varables created by config
 	bool Affinity;						// Sets the CPU affinity for this process and thread
+	bool AffinityNotSet;				// If the CPU affinity option exists in the config file
 	bool D3d8to9;						// Converts D3D8 to D3D9
 	bool DdrawCompat;					// Enables DdrawCompat functions https://github.com/narzoul/DDrawCompat/
 	bool DpiAware;						// Disables display scaling on high DPI settings
@@ -174,20 +175,40 @@ struct CONFIG
 	char* szCustomDllPath[256];			// List of custom dlls to load
 	char* szSetNamedLayer[256];			// List of named layers to select for fullscreen
 	char* szIgnoreWindowName[256];		// Lit of window classes to ignore
+	bool DXPrimaryEmulation[256];		// SetAppCompatData exported functions from ddraw.dll
+	DWORD LockColorkey;					// DXPrimaryEmulation option that needs a second parameter
+	bool DisableMaxWindowedModeNotSet;	// If the DisableMaxWindowedMode option exists in the config file
 };
 extern CONFIG Config;
 
 struct DLLTYPE
 {
-	DWORD ddraw = 1;
-	DWORD d3d9 = 2;
-	DWORD d3d8 = 3;
-	DWORD winmm = 4;
-	DWORD dsound = 5;
-	DWORD dxgi = 6;
-	DWORD dplayx = 7;
-	DWORD winspool = 8;
+	const uint8_t ddraw = 1;
+	const uint8_t d3d9 = 2;
+	const uint8_t d3d8 = 3;
+	const uint8_t winmm = 4;
+	const uint8_t dsound = 5;
+	const uint8_t dxgi = 6;
+	const uint8_t dplayx = 7;
+	const uint8_t winspool = 8;
 };
 extern DLLTYPE dtype;
+
+struct APPCOMPATDATATYPE
+{
+	const uint8_t LockEmulation = 1;
+	const uint8_t BltEmulation = 2;
+	const uint8_t ForceLockNoWindow = 3;
+	const uint8_t ForceBltNoWindow = 4;
+	const uint8_t LockColorkey = 5;
+	const uint8_t FullscreenWithDWM = 6;
+	const uint8_t DisableLockEmulation = 7;
+	const uint8_t EnableOverlays = 8;
+	const uint8_t DisableSurfaceLocks = 9;
+	const uint8_t RedirectPrimarySurfBlts = 10;
+	const uint8_t StripBorderStyle = 11;
+	const uint8_t DisableMaxWindowedMode = 12;
+};
+extern APPCOMPATDATATYPE AppCompatDataType;
 
 #endif

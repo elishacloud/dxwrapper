@@ -1,6 +1,6 @@
 //{{NO_DEPENDENCIES}}
 // Microsoft Visual C++ generated include file.
-// Used by ddraw.rc
+// Used by dxwrapper.rc
 
 // Next default values for new objects
 // 

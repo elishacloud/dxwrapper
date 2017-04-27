@@ -137,6 +137,29 @@ void LoadDdraw()
 			ddraw.DirectInputCreateA = GetProcAddress(ddraw.dll, "DirectInputCreateA");
 		}
 	}
+	// SetAppCompatData see: http://www.blitzbasic.com/Community/post.php?topic=99477&post=1202996
+	if (ddraw.SetAppCompatData)
+	{
+		typedef HRESULT(__stdcall *SetAppCompatDataFunc)(DWORD, DWORD);
+		SetAppCompatDataFunc SetAppCompatData = (SetAppCompatDataFunc)ddraw.SetAppCompatData;
+		for (int x = 1; x <= 12; x++)
+		{
+			if (Config.DXPrimaryEmulation[x])
+			{
+				Compat::Log() << "SetAppCompatData: " << x;
+				// For LockColorkey, this one uses the second parameter
+				if (x == AppCompatDataType.LockColorkey)
+				{
+					(SetAppCompatData)(x, Config.LockColorkey);
+				}
+				// For all the other items
+				else
+				{
+					(SetAppCompatData)(x, 0);
+				}
+			}
+		}
+	}
 }
 
 void SetSharedDdraw(HMODULE dll)

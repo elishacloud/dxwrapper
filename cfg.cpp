@@ -21,6 +21,7 @@
 
 CONFIG Config;
 DLLTYPE dtype;
+APPCOMPATDATATYPE AppCompatDataType;
 
 uint8_t ExcludeCount;
 uint8_t IncludeCount;
@@ -238,7 +239,7 @@ bool IsValueEnabled(char* name)
 void __stdcall ParseCallback(char* name, char* value)
 {
 	// Boolean values
-	if (!_strcmpi(name, "SingleProcAffinity")) { Config.Affinity = IsValueEnabled(value); return; }
+	if (!_strcmpi(name, "SingleProcAffinity")) { Config.Affinity = IsValueEnabled(value); Config.AffinityNotSet = false; return; }
 	if (!_strcmpi(name, "D3d8ToD3d9")) { Config.D3d8to9 = IsValueEnabled(value); return; }
 	if (!_strcmpi(name, "DdrawCompat")) { Config.DdrawCompat = IsValueEnabled(value); return; }
 	if (!_strcmpi(name, "DisableHighDpiScaling")) { Config.DpiAware = IsValueEnabled(value); return; }
@@ -252,7 +253,20 @@ void __stdcall ParseCallback(char* name, char* value)
 	if (!_strcmpi(name, "SendAltEnter")) { Config.SendAltEnter = IsValueEnabled(value); return; }
 	if (!_strcmpi(name, "WaitForProcess")) { Config.WaitForProcess = IsValueEnabled(value); return; }
 	if (!_strcmpi(name, "WaitForWindowChanges")) { Config.WaitForWindowChanges = IsValueEnabled(value); return; }
-	//  Numeric values
+	// AppCompatData
+	if (!_strcmpi(name, "LockEmulation")) { Config.DXPrimaryEmulation[AppCompatDataType.LockEmulation] = IsValueEnabled(value); return; }
+	if (!_strcmpi(name, "BltEmulation")) { Config.DXPrimaryEmulation[AppCompatDataType.BltEmulation] = IsValueEnabled(value); return; }
+	if (!_strcmpi(name, "ForceLockNoWindow")) { Config.DXPrimaryEmulation[AppCompatDataType.ForceLockNoWindow] = IsValueEnabled(value); return; }
+	if (!_strcmpi(name, "ForceBltNoWindow")) { Config.DXPrimaryEmulation[AppCompatDataType.ForceBltNoWindow] = IsValueEnabled(value); return; }
+	if (!_strcmpi(name, "LockColorkey")) { Config.DXPrimaryEmulation[AppCompatDataType.LockColorkey] = true; Config.LockColorkey = atoi(value); return; }
+	if (!_strcmpi(name, "FullscreenWithDWM")) { Config.DXPrimaryEmulation[AppCompatDataType.FullscreenWithDWM] = IsValueEnabled(value); return; }
+	if (!_strcmpi(name, "DisableLockEmulation")) { Config.DXPrimaryEmulation[AppCompatDataType.DisableLockEmulation] = IsValueEnabled(value); return; }
+	if (!_strcmpi(name, "EnableOverlays")) { Config.DXPrimaryEmulation[AppCompatDataType.EnableOverlays] = IsValueEnabled(value); return; }
+	if (!_strcmpi(name, "DisableSurfaceLocks")) { Config.DXPrimaryEmulation[AppCompatDataType.DisableSurfaceLocks] = IsValueEnabled(value); return; }
+	if (!_strcmpi(name, "RedirectPrimarySurfBlts")) { Config.DXPrimaryEmulation[AppCompatDataType.RedirectPrimarySurfBlts] = IsValueEnabled(value); return; }
+	if (!_strcmpi(name, "StripBorderStyle")) { Config.DXPrimaryEmulation[AppCompatDataType.StripBorderStyle] = IsValueEnabled(value); return; }
+	if (!_strcmpi(name, "DisableMaxWindowedMode")) { Config.DXPrimaryEmulation[AppCompatDataType.DisableMaxWindowedMode] = IsValueEnabled(value); Config.DisableMaxWindowedModeNotSet = false; return; }
+	// Numeric values
 	if (!_strcmpi(name, "LoopSleepTime")) { Config.LoopSleepTime = atoi(value); return; }
 	if (!_strcmpi(name, "ResetMemoryAfter")) { Config.ResetMemoryAfter = atoi(value); return; }
 	if (!_strcmpi(name, "WindowSleepTime")) { Config.WindowSleepTime = atoi(value); return; }
@@ -311,6 +325,7 @@ void ClearConfigSettings()
 	Config.CleanUp();
 	// Clear Config values
 	Config.Affinity = false;
+	Config.AffinityNotSet = true;  // Default to 'true' until we know it is set
 	Config.D3d8to9 = false;
 	Config.DdrawCompat = false;
 	Config.DpiAware = false;
@@ -340,6 +355,13 @@ void ClearConfigSettings()
 	Config.szShellPath[0] = '\0';
 	Config.szDllPath[0] = '\0';
 	Config.szSetNamedLayer[0] = '\0';
+	// AppCompatData
+	for (int x = 1; x <= 12; x++)
+	{
+		Config.DXPrimaryEmulation[x] = false;
+	}
+	Config.LockColorkey = 0;
+	Config.DisableMaxWindowedModeNotSet = true;  // Default to 'true' until we know it is set
 	// Set local default values
 	ExcludeCount = 0;
 	IncludeCount = 0;
@@ -388,7 +410,7 @@ void CONFIG::Init()
 	Config.WrapperMode = Config.RealWrapperMode;
 
 	// Set defaults
-	Config.D3d8to9 = true;
+	//Config.D3d8to9 = true;
 	Config.DpiAware = true;
 	Config.DxWnd = true;
 	Config.HandleExceptions = true;
