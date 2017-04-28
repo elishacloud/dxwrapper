@@ -1,15 +1,9 @@
 /**
-*
 * Copyright (C) 2015 Patrick Mours. All rights reserved.
-
 * License: https://github.com/crosire/d3d8to9#license
-
 *
-
-* From source code found in DdrawCompat
-* https://github.com/narzoul/DDrawCompat/
+* From source code found in d3d8to9
+* https://github.com/crosire/d3d8to9/
 *
-
 * Updated 2017 by Elisha Riedlinger
-
 */

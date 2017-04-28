@@ -2,9 +2,5 @@
 * From source code found in DdrawCompat
 * https://github.com/narzoul/DDrawCompat/
 *
-
 * Updated 2017 by Elisha Riedlinger
-
-*
-
 */
