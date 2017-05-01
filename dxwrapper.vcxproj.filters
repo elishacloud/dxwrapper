@@ -284,6 +284,9 @@
     <ClInclude Include="cfg.h">
       <Filter>Source Files</Filter>
     </ClInclude>
+    <ClInclude Include="d3d8to9\d3dx9.hpp">
+      <Filter>d3d8to9</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="dxwrapper.rc">

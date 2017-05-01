@@ -235,6 +235,7 @@ copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\winspool.drv"
   <ItemGroup>
     <ClInclude Include="d3d8to9\d3d8to9.hpp" />
     <ClInclude Include="d3d8to9\d3d8types.hpp" />
+    <ClInclude Include="d3d8to9\d3dx9.hpp" />
     <ClInclude Include="DDrawCompat\v0.2.1\DDrawLog.h" />
     <ClInclude Include="cfg.h" />
     <ClInclude Include="disasm\initdisasm.h" />

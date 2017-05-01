@@ -1,8 +1,3 @@
-/**
- * Copyright (C) 2015 Patrick Mours. All rights reserved.
- * License: https://github.com/crosire/d3d8to9#license
- */
-
 #pragma once
 
 struct IUnknown;
