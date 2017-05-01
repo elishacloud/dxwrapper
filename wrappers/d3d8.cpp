@@ -44,7 +44,7 @@ void LoadD3d8()
 	{
 		d3d8Flag = true;
 		d3d8.Direct3DCreate8 = GetProcAddress(d3d8.dll, "Direct3DCreate8");
-		//d3d8.Direct3DCreate8				= GetProcAddress(d3d8.dll, "DebugSetMute");		 // <---  Shared with d3d9.dll
+		//d3d8.DebugSetMute				= GetProcAddress(d3d8.dll, "DebugSetMute");		 // <---  Shared with d3d9.dll
 		SetSharedD3d9(d3d8.dll);
 		d3d8.ValidateVertexShader = GetProcAddress(d3d8.dll, "ValidateVertexShader");
 		d3d8.ValidatePixelShader = GetProcAddress(d3d8.dll, "ValidatePixelShader");
