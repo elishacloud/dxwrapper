@@ -6,6 +6,16 @@
 #include "d3d8to9.hpp"
 
 // IDirect3DSwapChain8
+Direct3DSwapChain8::Direct3DSwapChain8(Direct3DDevice8 *Device, IDirect3DSwapChain9 *ProxyInterface) :
+	Device(Device), ProxyInterface(ProxyInterface)
+{
+	Device->AddRef();
+}
+Direct3DSwapChain8::~Direct3DSwapChain8()
+{
+	Device->Release();
+}
+
 HRESULT STDMETHODCALLTYPE Direct3DSwapChain8::QueryInterface(REFIID riid, void **ppvObj)
 {
 	if (ppvObj == nullptr)
@@ -23,28 +33,29 @@ HRESULT STDMETHODCALLTYPE Direct3DSwapChain8::QueryInterface(REFIID riid, void *
 		return S_OK;
 	}
 
-	return _proxy->QueryInterface(riid, ppvObj);
+	return ProxyInterface->QueryInterface(riid, ppvObj);
 }
 ULONG STDMETHODCALLTYPE Direct3DSwapChain8::AddRef()
 {
-	return _proxy->AddRef();
+	return ProxyInterface->AddRef();
 }
 ULONG STDMETHODCALLTYPE Direct3DSwapChain8::Release()
 {
-	const auto ref = _proxy->Release();
+	const ULONG LastRefCount = ProxyInterface->Release();
 
-	if (ref == 0)
+	if (LastRefCount == 0)
 	{
 		delete this;
 	}
 
-	return ref;
+	return LastRefCount;
 }
-HRESULT STDMETHODCALLTYPE Direct3DSwapChain8::Present(CONST RECT *pSourceRect, CONST RECT *pDestRect, HWND hDestWindowOverride, CONST RGNDATA *pDirtyRegion)
+
+HRESULT STDMETHODCALLTYPE Direct3DSwapChain8::Present(const RECT *pSourceRect, const RECT *pDestRect, HWND hDestWindowOverride, const RGNDATA *pDirtyRegion)
 {
 	UNREFERENCED_PARAMETER(pDirtyRegion);
 
-	return _proxy->Present(pSourceRect, pDestRect, hDestWindowOverride, nullptr, 0);
+	return ProxyInterface->Present(pSourceRect, pDestRect, hDestWindowOverride, nullptr, 0);
 }
 HRESULT STDMETHODCALLTYPE Direct3DSwapChain8::GetBackBuffer(UINT iBackBuffer, D3DBACKBUFFER_TYPE Type, Direct3DSurface8 **ppBackBuffer)
 {
@@ -55,16 +66,16 @@ HRESULT STDMETHODCALLTYPE Direct3DSwapChain8::GetBackBuffer(UINT iBackBuffer, D3
 
 	*ppBackBuffer = nullptr;
 
-	IDirect3DSurface9 *surface = nullptr;
+	IDirect3DSurface9 *SurfaceInterface = nullptr;
 
-	const auto hr = _proxy->GetBackBuffer(iBackBuffer, Type, &surface);
+	const HRESULT hr = ProxyInterface->GetBackBuffer(iBackBuffer, Type, &SurfaceInterface);
 
 	if (FAILED(hr))
 	{
 		return hr;
 	}
 
-	*ppBackBuffer = new Direct3DSurface8(_device, surface);
+	*ppBackBuffer = new Direct3DSurface8(Device, SurfaceInterface);
 
 	return D3D_OK;
 }

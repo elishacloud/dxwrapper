@@ -1,16 +1,14 @@
 /**
  * Copyright (C) 2015 Patrick Mours. All rights reserved.
  * License: https://github.com/crosire/d3d8to9#license
- *
- * Updated 2017 by Elisha Riedlinger
  */
 
 #include "d3d8types.hpp"
 #include <assert.h>
 
-static UINT calc_texture_size(UINT width, UINT height, UINT depth, D3DFORMAT format)
+static UINT CalcTextureSize(UINT Width, UINT Height, UINT Depth, D3DFORMAT Format)
 {
-	switch (static_cast<DWORD>(format))
+	switch (static_cast<DWORD>(Format))
 	{
 		default:
 		case D3DFMT_UNKNOWN:
@@ -20,7 +18,7 @@ static UINT calc_texture_size(UINT width, UINT height, UINT depth, D3DFORMAT for
 		case D3DFMT_P8:
 		case D3DFMT_L8:
 		case D3DFMT_A4L4:
-			return width * height * depth;
+			return Width * Height * Depth;
 		case D3DFMT_R5G6B5:
 		case D3DFMT_X1R5G5B5:
 		case D3DFMT_A1R5G5B5:
@@ -36,9 +34,9 @@ static UINT calc_texture_size(UINT width, UINT height, UINT depth, D3DFORMAT for
 		case D3DFMT_D16:
 		case D3DFMT_UYVY:
 		case D3DFMT_YUY2:
-			return width * 2 * height * depth;
+			return Width * 2 * Height * Depth;
 		case D3DFMT_R8G8B8:
-			return width * 3 * height * depth;
+			return Width * 3 * Height * Depth;
 		case D3DFMT_A8R8G8B8:
 		case D3DFMT_X8R8G8B8:
 		case D3DFMT_A2B10G10R10:
@@ -54,107 +52,115 @@ static UINT calc_texture_size(UINT width, UINT height, UINT depth, D3DFORMAT for
 		case D3DFMT_D24S8:
 		case D3DFMT_D24X8:
 		case D3DFMT_D24X4S4:
-			return width * 4 * height * depth;
+			return Width * 4 * Height * Depth;
 		case D3DFMT_DXT1:
-			assert(depth <= 1);
-			return ((width + 3) >> 2) * ((height + 3) >> 2) * 8;
+			assert(Depth <= 1);
+			return ((Width + 3) >> 2) * ((Height + 3) >> 2) * 8;
 		case D3DFMT_DXT2:
 		case D3DFMT_DXT3:
 		case D3DFMT_DXT4:
 		case D3DFMT_DXT5:
-			assert(depth <= 1);
-			return ((width + 3) >> 2) * ((height + 3) >> 2) * 16;
+			assert(Depth <= 1);
+			return ((Width + 3) >> 2) * ((Height + 3) >> 2) * 16;
 	}
 }
 
-void convert_caps(D3DCAPS9 &input, D3DCAPS8 &output)
+void ConvertCaps(D3DCAPS9 &Input, D3DCAPS8 &Output)
 {
-	CopyMemory(&output, &input, sizeof(output));
+	CopyMemory(&Output, &Input, sizeof(Output));
 
-	output.Caps2 |= D3DCAPS2_CANRENDERWINDOWED;								// Tell application that window mode is supported
-	output.RasterCaps |= D3DPRASTERCAPS_ZBIAS;								// Tell application that z-bias is supported
-	output.StencilCaps &= ~D3DSTENCILCAPS_TWOSIDED;							// Remove unsupported StencilCaps type
-	output.PixelShaderVersion = D3DPS_VERSION(1, 4);						// Set default PixelShaderVersion to 1.4 for D3D8 compatibility
-	output.VertexShaderVersion = D3DVS_VERSION(1, 1);						// Set default VertexShaderVersion to 1.1 for D3D8 compatibility
-	output.MaxVertexShaderConst = min(256, input.MaxVertexShaderConst);		// D3D8 can only handle upto 256 for MaxVertexShaderConst
+	// Tell application that window mode is supported
+	Output.Caps2 |= D3DCAPS2_CANRENDERWINDOWED;
+	// Tell application that z-bias is supported
+	Output.RasterCaps |= D3DPRASTERCAPS_ZBIAS;
+	// Remove unsupported stencil capability
+	Output.StencilCaps &= ~D3DSTENCILCAPS_TWOSIDED;
+	// Set default pixel shader version to 1.4 for D3D8 compatibility
+	Output.PixelShaderVersion = D3DPS_VERSION(1, 4);
+	// Set default vertex shader version to 1.1 for D3D8 compatibility
+	Output.VertexShaderVersion = D3DVS_VERSION(1, 1);
+	// D3D8 can only handle up to 256 for MaxVertexShaderConst
+	Output.MaxVertexShaderConst = min(256, Input.MaxVertexShaderConst);
 }
-void convert_volume_desc(D3DVOLUME_DESC &input, D3DVOLUME_DESC8 &output)
+
+void ConvertVolumeDesc(D3DVOLUME_DESC &Input, D3DVOLUME_DESC8 &Output)
 {
-	output.Format = input.Format;
-	output.Type = input.Type;
-	output.Usage = input.Usage;
-	output.Pool = input.Pool;
-	output.Size = calc_texture_size(input.Width, input.Height, input.Depth, input.Format);
-	output.Width = input.Width;
-	output.Height = input.Height;
-	output.Depth = input.Depth;
+	Output.Format = Input.Format;
+	Output.Type = Input.Type;
+	Output.Usage = Input.Usage;
+	Output.Pool = Input.Pool;
+	Output.Size = CalcTextureSize(Input.Width, Input.Height, Input.Depth, Input.Format);
+	Output.Width = Input.Width;
+	Output.Height = Input.Height;
+	Output.Depth = Input.Depth;
 }
-void convert_surface_desc(D3DSURFACE_DESC &input, D3DSURFACE_DESC8 &output)
+void ConvertSurfaceDesc(D3DSURFACE_DESC &Input, D3DSURFACE_DESC8 &Output)
 {
-	output.Format = input.Format;
-	output.Type = input.Type;
-	output.Usage = input.Usage;
-	output.Pool = input.Pool;
-	output.Size = calc_texture_size(input.Width, input.Height, 1, input.Format);
-	output.MultiSampleType = input.MultiSampleType;
-	output.Width = input.Width;
-	output.Height = input.Height;
+	Output.Format = Input.Format;
+	Output.Type = Input.Type;
+	Output.Usage = Input.Usage;
+	Output.Pool = Input.Pool;
+	Output.Size = CalcTextureSize(Input.Width, Input.Height, 1, Input.Format);
+	Output.MultiSampleType = Input.MultiSampleType;
+	Output.Width = Input.Width;
+	Output.Height = Input.Height;
 
 	// Check for D3DMULTISAMPLE_NONMASKABLE and change it to D3DMULTISAMPLE_NONE for best D3D8 compatibility.
-	if (output.MultiSampleType == D3DMULTISAMPLE_NONMASKABLE)
+	if (Output.MultiSampleType == D3DMULTISAMPLE_NONMASKABLE)
 	{
-		output.MultiSampleType = D3DMULTISAMPLE_NONE;
+		Output.MultiSampleType = D3DMULTISAMPLE_NONE;
 	}
 }
-void convert_present_parameters(D3DPRESENT_PARAMETERS8 &input, D3DPRESENT_PARAMETERS &output)
+
+void ConvertPresentParameters(D3DPRESENT_PARAMETERS8 &Input, D3DPRESENT_PARAMETERS &Output)
 {
-	output.BackBufferWidth = input.BackBufferWidth;
-	output.BackBufferHeight = input.BackBufferHeight;
-	output.BackBufferFormat = input.BackBufferFormat;
-	output.BackBufferCount = input.BackBufferCount;
-	output.MultiSampleType = input.MultiSampleType;
-	output.MultiSampleQuality = 0;
-	output.SwapEffect = input.SwapEffect;
-	output.hDeviceWindow = input.hDeviceWindow;
-	output.Windowed = input.Windowed;
-	output.EnableAutoDepthStencil = input.EnableAutoDepthStencil;
-	output.AutoDepthStencilFormat = input.AutoDepthStencilFormat;
-	output.Flags = input.Flags;
-	output.FullScreen_RefreshRateInHz = input.FullScreen_RefreshRateInHz;
-	output.PresentationInterval = input.FullScreen_PresentationInterval;
+	Output.BackBufferWidth = Input.BackBufferWidth;
+	Output.BackBufferHeight = Input.BackBufferHeight;
+	Output.BackBufferFormat = Input.BackBufferFormat;
+	Output.BackBufferCount = Input.BackBufferCount;
+	Output.MultiSampleType = Input.MultiSampleType;
+	Output.MultiSampleQuality = 0;
+	Output.SwapEffect = Input.SwapEffect;
+	Output.hDeviceWindow = Input.hDeviceWindow;
+	Output.Windowed = Input.Windowed;
+	Output.EnableAutoDepthStencil = Input.EnableAutoDepthStencil;
+	Output.AutoDepthStencilFormat = Input.AutoDepthStencilFormat;
+	Output.Flags = Input.Flags;
+	Output.FullScreen_RefreshRateInHz = Input.FullScreen_RefreshRateInHz;
+	Output.PresentationInterval = Input.FullScreen_PresentationInterval;
 
 	// MultiSampleType must be D3DMULTISAMPLE_NONE unless SwapEffect has been set to D3DSWAPEFFECT_DISCARD.
 	// https://msdn.microsoft.com/en-us/library/windows/desktop/bb172588(v=vs.85).aspx
 	// Check for D3DMULTISAMPLE_NONMASKABLE and change it to D3DMULTISAMPLE_NONE for best D3D8 compatibility.
-	if (output.SwapEffect != D3DSWAPEFFECT_DISCARD || output.MultiSampleType == D3DMULTISAMPLE_NONMASKABLE)
+	if (Output.SwapEffect != D3DSWAPEFFECT_DISCARD || Output.MultiSampleType == D3DMULTISAMPLE_NONMASKABLE)
 	{
-		output.MultiSampleType = D3DMULTISAMPLE_NONE;
+		Output.MultiSampleType = D3DMULTISAMPLE_NONE;
 	}
 
 	// D3DPRESENT_RATE_UNLIMITED is no longer supported in D3D9
 	// Update PresentationInterval when SwapEffect = D3DSWAPEFFECT_COPY_VSYNC and
 	// application is not windowed for best D3D8 compatibility
-	if (output.PresentationInterval == D3DPRESENT_RATE_UNLIMITED ||
-		(output.SwapEffect == D3DSWAPEFFECT_COPY_VSYNC && !output.Windowed))
+	if (Output.PresentationInterval == D3DPRESENT_RATE_UNLIMITED ||
+		(Output.SwapEffect == D3DSWAPEFFECT_COPY_VSYNC && !Output.Windowed))
 	{
-		output.PresentationInterval = D3DPRESENT_INTERVAL_ONE;
+		Output.PresentationInterval = D3DPRESENT_INTERVAL_ONE;
 	}
 
 	// D3DSWAPEFFECT_COPY_VSYNC is no longer supported in D3D9
-	if (output.SwapEffect == D3DSWAPEFFECT_COPY_VSYNC)
+	if (Output.SwapEffect == D3DSWAPEFFECT_COPY_VSYNC)
 	{
-		output.SwapEffect = D3DSWAPEFFECT_COPY;
+		Output.SwapEffect = D3DSWAPEFFECT_COPY;
 	}
 }
-void convert_adapter_identifier(D3DADAPTER_IDENTIFIER9 &input, D3DADAPTER_IDENTIFIER8 &output)
+void ConvertAdapterIdentifier(D3DADAPTER_IDENTIFIER9 &Input, D3DADAPTER_IDENTIFIER8 &Output)
 {
-	CopyMemory(output.Driver, input.Driver, MAX_DEVICE_IDENTIFIER_STRING);
-	CopyMemory(output.Description, input.Description, MAX_DEVICE_IDENTIFIER_STRING);
-	output.DriverVersion = input.DriverVersion;
-	output.VendorId = input.VendorId;
-	output.DeviceId = input.DeviceId;
-	output.SubSysId = input.SubSysId;
-	output.Revision = input.Revision;
-	output.DeviceIdentifier = input.DeviceIdentifier;
-	output.WHQLLevel = input.WHQLLevel;
+	CopyMemory(Output.Driver, Input.Driver, MAX_DEVICE_IDENTIFIER_STRING);
+	CopyMemory(Output.Description, Input.Description, MAX_DEVICE_IDENTIFIER_STRING);
+	Output.DriverVersion = Input.DriverVersion;
+	Output.VendorId = Input.VendorId;
+	Output.DeviceId = Input.DeviceId;
+	Output.SubSysId = Input.SubSysId;
+	Output.Revision = Input.Revision;
+	Output.DeviceIdentifier = Input.DeviceIdentifier;
+	Output.WHQLLevel = Input.WHQLLevel;
 }

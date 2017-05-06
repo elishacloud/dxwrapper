@@ -411,7 +411,6 @@ void CONFIG::Init()
 	Config.WrapperMode = Config.RealWrapperMode;
 
 	// Set defaults
-	//Config.D3d8to9 = true;
 	Config.DpiAware = true;
 	Config.DxWnd = true;
 	Config.HandleExceptions = true;

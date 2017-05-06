@@ -1,6 +1,8 @@
 /**
  * Copyright (C) 2015 Patrick Mours. All rights reserved.
  * License: https://github.com/crosire/d3d8to9#license
+ *
+ * Updated 2017 by Elisha Riedlinger
  */
 
 #include "d3dx9.hpp"
@@ -39,17 +41,36 @@ extern "C" Direct3D8 *WINAPI _Direct3DCreate8(UINT SDKVersion)
 	// Load D3DX
 	if (!D3DXAssembleShader || !D3DXDisassembleShader || !D3DXLoadSurfaceFromSurface)
 	{
-		const HMODULE module = LoadLibrary(TEXT("d3dx9_43.dll"));
+		// Declare vars
+		HMODULE dllHandle = NULL;
+		char d3dx9name[MAX_PATH];
+
+		// Check for different versions of d3dx9_xx.dll
+		for (int x = 99; x > 9 && dllHandle == NULL; x--)
+		{
+			// Get dll name
+			strcpy_s(d3dx9name, "d3dx9_");
+			char buffer[11];
+			_itoa_s(x, buffer, 10);
+			strcat_s(d3dx9name, buffer);
+			strcat_s(d3dx9name, ".dll");
+
+			// Load dll
+			dllHandle = LoadLibrary(d3dx9name);
+		}
+
+		const HMODULE module = dllHandle;
 
 		if (module != nullptr)
 		{
+			Compat::Log() << "Loaded " << d3dx9name;
 			D3DXAssembleShader = reinterpret_cast<PFN_D3DXAssembleShader>(GetProcAddress(module, "D3DXAssembleShader"));
 			D3DXDisassembleShader = reinterpret_cast<PFN_D3DXDisassembleShader>(GetProcAddress(module, "D3DXDisassembleShader"));
 			D3DXLoadSurfaceFromSurface = reinterpret_cast<PFN_D3DXLoadSurfaceFromSurface>(GetProcAddress(module, "D3DXLoadSurfaceFromSurface"));
 		}
 		else
 		{
-			Compat::Log() << "Failed to load d3dx9_43.dll! Some features will not work correctly.";
+			Compat::Log() << "Failed to load d3dx9_xx.dll! Some features will not work correctly.";
 		}
 	}
 

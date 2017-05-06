@@ -7,7 +7,21 @@
 
 #include "d3d8to9.hpp"
 
+static const D3DFORMAT AdapterFormats[] = {
+	D3DFMT_A8R8G8B8,
+	D3DFMT_X8R8G8B8,
+	D3DFMT_R5G6B5,
+	D3DFMT_X1R5G5B5,
+	D3DFMT_A1R5G5B5,
+	D3DFMT_A2R10G10B10
+};
+
 // IDirect3D8
+Direct3D8::Direct3D8(IDirect3D9 *ProxyInterface) :
+	ProxyInterface(ProxyInterface)
+{
+}
+
 HRESULT STDMETHODCALLTYPE Direct3D8::QueryInterface(REFIID riid, void **ppvObj)
 {
 	if (ppvObj == nullptr)
@@ -25,30 +39,31 @@ HRESULT STDMETHODCALLTYPE Direct3D8::QueryInterface(REFIID riid, void **ppvObj)
 		return S_OK;
 	}
 
-	return _proxy->QueryInterface(riid, ppvObj);
+	return ProxyInterface->QueryInterface(riid, ppvObj);
 }
 ULONG STDMETHODCALLTYPE Direct3D8::AddRef()
 {
-	return _proxy->AddRef();
+	return ProxyInterface->AddRef();
 }
 ULONG STDMETHODCALLTYPE Direct3D8::Release()
 {
-	const auto ref = _proxy->Release();
+	const ULONG LastRefCount = ProxyInterface->Release();
 
-	if (ref == 0)
+	if (LastRefCount == 0)
 	{
 		delete this;
 	}
 
-	return ref;
+	return LastRefCount;
 }
+
 HRESULT STDMETHODCALLTYPE Direct3D8::RegisterSoftwareDevice(void *pInitializeFunction)
 {
-	return _proxy->RegisterSoftwareDevice(pInitializeFunction);
+	return ProxyInterface->RegisterSoftwareDevice(pInitializeFunction);
 }
 UINT STDMETHODCALLTYPE Direct3D8::GetAdapterCount()
 {
-	return _proxy->GetAdapterCount();
+	return ProxyInterface->GetAdapterCount();
 }
 HRESULT STDMETHODCALLTYPE Direct3D8::GetAdapterIdentifier(UINT Adapter, DWORD Flags, D3DADAPTER_IDENTIFIER8 *pIdentifier)
 {
@@ -57,7 +72,7 @@ HRESULT STDMETHODCALLTYPE Direct3D8::GetAdapterIdentifier(UINT Adapter, DWORD Fl
 		return D3DERR_INVALIDCALL;
 	}
 
-	D3DADAPTER_IDENTIFIER9 identifier;
+	D3DADAPTER_IDENTIFIER9 AdapterIndentifier;
 
 	if ((Flags & D3DENUM_NO_WHQL_LEVEL) == 0)
 	{
@@ -68,29 +83,27 @@ HRESULT STDMETHODCALLTYPE Direct3D8::GetAdapterIdentifier(UINT Adapter, DWORD Fl
 		Flags ^= D3DENUM_NO_WHQL_LEVEL;
 	}
 
-	const auto hr = _proxy->GetAdapterIdentifier(Adapter, Flags, &identifier);
+	const HRESULT hr = ProxyInterface->GetAdapterIdentifier(Adapter, Flags, &AdapterIndentifier);
 
 	if (FAILED(hr))
 	{
 		return hr;
 	}
 
-	convert_adapter_identifier(identifier, *pIdentifier);
+	ConvertAdapterIdentifier(AdapterIndentifier, *pIdentifier);
 
 	return D3D_OK;
 }
-
-static const D3DFORMAT AdapterFormats[] = { D3DFMT_A8R8G8B8, D3DFMT_X8R8G8B8, D3DFMT_R5G6B5, D3DFMT_X1R5G5B5, D3DFMT_A1R5G5B5, D3DFMT_A2R10G10B10 };
 UINT STDMETHODCALLTYPE Direct3D8::GetAdapterModeCount(UINT Adapter)
 {
-	UINT count = 0;
+	UINT ModeCount = 0;
 
-	for (auto format : AdapterFormats)
+	for (D3DFORMAT Format : AdapterFormats)
 	{
-		count += _proxy->GetAdapterModeCount(Adapter, format);
+		ModeCount += ProxyInterface->GetAdapterModeCount(Adapter, Format);
 	}
 
-	return count;
+	return ModeCount;
 }
 HRESULT STDMETHODCALLTYPE Direct3D8::EnumAdapterModes(UINT Adapter, UINT Mode, D3DDISPLAYMODE *pMode)
 {
@@ -99,46 +112,46 @@ HRESULT STDMETHODCALLTYPE Direct3D8::EnumAdapterModes(UINT Adapter, UINT Mode, D
 		return D3DERR_INVALIDCALL;
 	}
 
-	UINT offset = 0;
+	UINT ModeOffset = 0;
 
-	for (auto format : AdapterFormats)
+	for (D3DFORMAT Format : AdapterFormats)
 	{
-		const auto modes = _proxy->GetAdapterModeCount(Adapter, format);
+		const UINT ModeCount = ProxyInterface->GetAdapterModeCount(Adapter, Format);
 
-		if (modes == 0)
+		if (ModeCount == 0)
 		{
 			continue;
 		}
 
-		if (Mode < offset + modes)
+		if (Mode < ModeOffset + ModeCount)
 		{
-			return _proxy->EnumAdapterModes(Adapter, format, Mode - offset, pMode);
+			return ProxyInterface->EnumAdapterModes(Adapter, Format, Mode - ModeOffset, pMode);
 		}
 
-		offset += modes;
+		ModeOffset += ModeCount;
 	}
 
 	return D3DERR_INVALIDCALL;
 }
 HRESULT STDMETHODCALLTYPE Direct3D8::GetAdapterDisplayMode(UINT Adapter, D3DDISPLAYMODE *pMode)
 {
-	return _proxy->GetAdapterDisplayMode(Adapter, pMode);
+	return ProxyInterface->GetAdapterDisplayMode(Adapter, pMode);
 }
 HRESULT STDMETHODCALLTYPE Direct3D8::CheckDeviceType(UINT Adapter, D3DDEVTYPE CheckType, D3DFORMAT DisplayFormat, D3DFORMAT BackBufferFormat, BOOL bWindowed)
 {
-	return _proxy->CheckDeviceType(Adapter, CheckType, DisplayFormat, BackBufferFormat, bWindowed);
+	return ProxyInterface->CheckDeviceType(Adapter, CheckType, DisplayFormat, BackBufferFormat, bWindowed);
 }
 HRESULT STDMETHODCALLTYPE Direct3D8::CheckDeviceFormat(UINT Adapter, D3DDEVTYPE DeviceType, D3DFORMAT AdapterFormat, DWORD Usage, D3DRESOURCETYPE RType, D3DFORMAT CheckFormat)
 {
-	return _proxy->CheckDeviceFormat(Adapter, DeviceType, AdapterFormat, Usage, RType, CheckFormat);
+	return ProxyInterface->CheckDeviceFormat(Adapter, DeviceType, AdapterFormat, Usage, RType, CheckFormat);
 }
 HRESULT STDMETHODCALLTYPE Direct3D8::CheckDeviceMultiSampleType(UINT Adapter, D3DDEVTYPE DeviceType, D3DFORMAT SurfaceFormat, BOOL Windowed, D3DMULTISAMPLE_TYPE MultiSampleType)
 {
-	return _proxy->CheckDeviceMultiSampleType(Adapter, DeviceType, SurfaceFormat, Windowed, MultiSampleType, nullptr);
+	return ProxyInterface->CheckDeviceMultiSampleType(Adapter, DeviceType, SurfaceFormat, Windowed, MultiSampleType, nullptr);
 }
 HRESULT STDMETHODCALLTYPE Direct3D8::CheckDepthStencilMatch(UINT Adapter, D3DDEVTYPE DeviceType, D3DFORMAT AdapterFormat, D3DFORMAT RenderTargetFormat, D3DFORMAT DepthStencilFormat)
 {
-	return _proxy->CheckDepthStencilMatch(Adapter, DeviceType, AdapterFormat, RenderTargetFormat, DepthStencilFormat);
+	return ProxyInterface->CheckDepthStencilMatch(Adapter, DeviceType, AdapterFormat, RenderTargetFormat, DepthStencilFormat);
 }
 HRESULT STDMETHODCALLTYPE Direct3D8::GetDeviceCaps(UINT Adapter, D3DDEVTYPE DeviceType, D3DCAPS8 *pCaps)
 {
@@ -147,22 +160,22 @@ HRESULT STDMETHODCALLTYPE Direct3D8::GetDeviceCaps(UINT Adapter, D3DDEVTYPE Devi
 		return D3DERR_INVALIDCALL;
 	}
 
-	D3DCAPS9 caps;
+	D3DCAPS9 DeviceCaps;
 
-	const auto hr = _proxy->GetDeviceCaps(Adapter, DeviceType, &caps);
+	const HRESULT hr = ProxyInterface->GetDeviceCaps(Adapter, DeviceType, &DeviceCaps);
 
 	if (FAILED(hr))
 	{
 		return hr;
 	}
 
-	convert_caps(caps, *pCaps);
+	ConvertCaps(DeviceCaps, *pCaps);
 
 	return D3D_OK;
 }
 HMONITOR STDMETHODCALLTYPE Direct3D8::GetAdapterMonitor(UINT Adapter)
 {
-	return _proxy->GetAdapterMonitor(Adapter);
+	return ProxyInterface->GetAdapterMonitor(Adapter);
 }
 HRESULT STDMETHODCALLTYPE Direct3D8::CreateDevice(UINT Adapter, D3DDEVTYPE DeviceType, HWND hFocusWindow, DWORD BehaviorFlags, D3DPRESENT_PARAMETERS8 *pPresentationParameters, Direct3DDevice8 **ppReturnedDeviceInterface)
 {
@@ -178,56 +191,51 @@ HRESULT STDMETHODCALLTYPE Direct3D8::CreateDevice(UINT Adapter, D3DDEVTYPE Devic
 
 	*ppReturnedDeviceInterface = nullptr;
 
-	D3DPRESENT_PARAMETERS pp;
-	IDirect3DDevice9 *device = nullptr;
+	D3DPRESENT_PARAMETERS PresentParams;
+	ConvertPresentParameters(*pPresentationParameters, PresentParams);
 
-	convert_present_parameters(*pPresentationParameters, pp);
+	IDirect3DDevice9 *DeviceInterface = nullptr;
 
-	const auto hr = _proxy->CreateDevice(Adapter, DeviceType, hFocusWindow, BehaviorFlags, &pp, &device);
+	const HRESULT hr = ProxyInterface->CreateDevice(Adapter, DeviceType, hFocusWindow, BehaviorFlags, &PresentParams, &DeviceInterface);
 
 	if (FAILED(hr))
 	{
 		return hr;
 	}
 
-	const auto device_proxy = new Direct3DDevice8(this, device, (pp.Flags & D3DPRESENTFLAG_DISCARD_DEPTHSTENCIL) != 0);
-
-	// Set default vertex declaration
-	//device->SetFVF(D3DFVF_XYZ);		// ** Disabled to fix an issue with game Haegemonia Legions of Iron **
-	//										 It seems there is no need to declare a defualt vertex here.
-	//										 According to Microsoft documentation D3D8 applicaitons should
-	//										 call SetVertexShader API before using a vertex and SetFVF
-	//										 already called when an application calls SetVertexShader.
-	//										 https://msdn.microsoft.com/en-us/library/windows/desktop/bb204851(v=vs.85).aspx#Vertex_Declaration_Changes
+	Direct3DDevice8 *const DeviceProxyObject = new Direct3DDevice8(this, DeviceInterface, (PresentParams.Flags & D3DPRESENTFLAG_DISCARD_DEPTHSTENCIL) != 0);
 
 	// Set default render target
-	IDirect3DSurface9 *rendertarget = nullptr, *depthstencil = nullptr;
-	Direct3DSurface8 *rendertarget_proxy = nullptr, *depthstencil_proxy = nullptr;
+	IDirect3DSurface9 *RenderTargetInterface = nullptr;
+	IDirect3DSurface9 *DepthStencilInterface = nullptr;
 
-	device->GetRenderTarget(0, &rendertarget);
-	device->GetDepthStencilSurface(&depthstencil);
+	DeviceInterface->GetRenderTarget(0, &RenderTargetInterface);
+	DeviceInterface->GetDepthStencilSurface(&DepthStencilInterface);
 
-	if (rendertarget != nullptr)
+	Direct3DSurface8 *RenderTargetProxyObject = nullptr;
+	Direct3DSurface8 *DepthStencilProxyObject = nullptr;
+
+	if (RenderTargetInterface != nullptr)
 	{
-		rendertarget_proxy = new Direct3DSurface8(device_proxy, rendertarget);
+		RenderTargetProxyObject = new Direct3DSurface8(DeviceProxyObject, RenderTargetInterface);
 	}
-	if (depthstencil != nullptr)
+	if (DepthStencilInterface != nullptr)
 	{
-		depthstencil_proxy = new Direct3DSurface8(device_proxy, depthstencil);
-	}
-
-	device_proxy->SetRenderTarget(rendertarget_proxy, depthstencil_proxy);
-
-	if (rendertarget_proxy != nullptr)
-	{
-		rendertarget_proxy->Release();
-	}
-	if (depthstencil_proxy != nullptr)
-	{
-		depthstencil_proxy->Release();
+		DepthStencilProxyObject = new Direct3DSurface8(DeviceProxyObject, DepthStencilInterface);
 	}
 
-	*ppReturnedDeviceInterface = device_proxy;
+	DeviceProxyObject->SetRenderTarget(RenderTargetProxyObject, DepthStencilProxyObject);
+
+	if (RenderTargetProxyObject != nullptr)
+	{
+		RenderTargetProxyObject->Release();
+	}
+	if (DepthStencilProxyObject != nullptr)
+	{
+		DepthStencilProxyObject->Release();
+	}
+
+	*ppReturnedDeviceInterface = DeviceProxyObject;
 
 	return D3D_OK;
 }
