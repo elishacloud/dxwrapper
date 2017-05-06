@@ -76,8 +76,8 @@ __declspec(naked) void FakeDirectInputCreateA()				{ _asm { jmp [ddraw.DirectInp
 
 void LoadDdraw()
 {
-	// Enable DdrawCompat
-	if (Config.DdrawCompat)
+	// Enable DDrawCompat
+	if (Config.DDrawCompat)
 	{
 		ddraw.dll = nullptr;
 		ddraw.AcquireDDThreadLock = GetProcAddress(hModule_dll, "_AcquireDDThreadLock");

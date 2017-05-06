@@ -49,10 +49,10 @@ void LoadD3d8()
 		d3d8.ValidateVertexShader = GetProcAddress(d3d8.dll, "ValidateVertexShader");
 		d3d8.ValidatePixelShader = GetProcAddress(d3d8.dll, "ValidatePixelShader");
 	}
-	// Enable d3d8 to d3d9 conversion
+	// Enable D3d8to9 conversion
 	if (Config.D3d8to9)
 	{
-		Compat::Log() << "Enabling D3d8 to D3d9 function";
+		Compat::Log() << "Enabling D3d8to9 function";
 		d3d8.Direct3DCreate8 = GetProcAddress(hModule_dll, "_Direct3DCreate8");
 	}
 }

@@ -241,8 +241,8 @@ void __stdcall ParseCallback(char* name, char* value)
 {
 	// Boolean values
 	if (!_strcmpi(name, "SingleProcAffinity")) { Config.Affinity = IsValueEnabled(value); Config.AffinityNotSet = false; return; }
-	if (!_strcmpi(name, "D3d8ToD3d9")) { Config.D3d8to9 = IsValueEnabled(value); return; }
-	if (!_strcmpi(name, "DdrawCompat")) { Config.DdrawCompat = IsValueEnabled(value); return; }
+	if (!_strcmpi(name, "D3d8to9")) { Config.D3d8to9 = IsValueEnabled(value); return; }
+	if (!_strcmpi(name, "DDrawCompat")) { Config.DDrawCompat = IsValueEnabled(value); return; }
 	if (!_strcmpi(name, "DisableHighDpiScaling")) { Config.DpiAware = IsValueEnabled(value); return; }
 	if (!_strcmpi(name, "DxWnd")) { Config.DxWnd = IsValueEnabled(value); return; }
 	if (!_strcmpi(name, "FullScreen")) { Config.FullScreen = IsValueEnabled(value); return; }
@@ -328,7 +328,7 @@ void ClearConfigSettings()
 	Config.Affinity = false;
 	Config.AffinityNotSet = true;  // Default to 'true' until we know it is set
 	Config.D3d8to9 = false;
-	Config.DdrawCompat = false;
+	Config.DDrawCompat = false;
 	Config.DpiAware = false;
 	Config.DxWnd = false;
 	Config.FullScreen = false;

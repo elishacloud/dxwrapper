@@ -60,7 +60,7 @@ void RunExitFunctions(bool ForceTerminate)
 		Compat::Log() << "Unloading dxwnd";
 		DxWndEndHook();
 	}
-	if (Config.DdrawCompat) UnloadDdrawCompat();
+	if (Config.DDrawCompat) UnloadDdrawCompat();
 	DllDetach();
 	Config.CleanUp();
 	if (Config.HandleExceptions) UnHookExceptionHandler();
@@ -99,7 +99,7 @@ bool APIENTRY DllMain(HMODULE hModule, DWORD ul_reason_for_call, LPVOID lpReserv
 			SetSingleProcessAffinity(true);
 			SetSingleCoreAffinity();
 		}
-		if (Config.DdrawCompat) Config.DdrawCompat = StartDdrawCompat(hModule_dll);
+		if (Config.DDrawCompat) Config.DDrawCompat = StartDdrawCompat(hModule_dll);
 		DllAttach();
 		if (Config.DxWnd)
 		{

@@ -23,8 +23,8 @@ struct CONFIG
 	void CleanUp();						// Deletes all 'new' varables created by config
 	bool Affinity;						// Sets the CPU affinity for this process and thread
 	bool AffinityNotSet;				// If the CPU affinity option exists in the config file
-	bool D3d8to9;						// Converts D3D8 to D3D9
-	bool DdrawCompat;					// Enables DdrawCompat functions https://github.com/narzoul/DDrawCompat/
+	bool D3d8to9;						// Converts Direct3D8 (d3d8.dll) to Direct3D9 (d3d9.dll)
+	bool DDrawCompat;					// Enables DDrawCompat functions https://github.com/narzoul/DDrawCompat/
 	bool DpiAware;						// Disables display scaling on high DPI settings
 	bool DxWnd;							// Enables dXwnd https://sourceforge.net/projects/dxwnd/
 	bool FullScreen;					// Sets the main window to fullscreen
