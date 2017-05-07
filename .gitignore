@@ -1,3 +1,10 @@
+# Build results
+[Bb]in/
+[Oo]bj/
+[Bb]uild/
+[Dd]ebug/
+[Rr]elease/
+
 # Compiled Object files
 *.slo
 *.lo
@@ -30,6 +37,7 @@
 *.exe
 
 # Other Visual Studio files
+ipch/
 *.user
 *.suo
 *.aps
@@ -39,6 +47,7 @@
 *.ncb
 *.res
 *.sdf
+*.opensdf
 *.lastbuildstate
 *.ipsh
 *.idb
@@ -47,3 +56,4 @@
 .opendb
 RC*
 *.opendb
+*.htm
