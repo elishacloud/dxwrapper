@@ -23,11 +23,11 @@
     <Filter Include="hook">
       <UniqueIdentifier>{dd986a8a-7ff1-403f-8a75-794ded77510d}</UniqueIdentifier>
     </Filter>
-    <Filter Include="dsound">
-      <UniqueIdentifier>{f07d4373-1b9a-4464-a239-c9bae002d95b}</UniqueIdentifier>
-    </Filter>
     <Filter Include="writememory">
       <UniqueIdentifier>{70c5125d-c4ff-4ec9-8a5d-c1c24e61ac75}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="DSoundCtrl">
+      <UniqueIdentifier>{f07d4373-1b9a-4464-a239-c9bae002d95b}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -78,9 +78,6 @@
     </ClCompile>
     <ClCompile Include="disasm\cmdlist.c">
       <Filter>disasm</Filter>
-    </ClCompile>
-    <ClCompile Include="dsound\dsound_hook.cpp">
-      <Filter>dsound</Filter>
     </ClCompile>
     <ClCompile Include="writememory\writememory.cpp">
       <Filter>writememory</Filter>
@@ -259,9 +256,6 @@
     </ClInclude>
     <ClInclude Include="fullscreen.h">
       <Filter>Source Files</Filter>
-    </ClInclude>
-    <ClInclude Include="dsound\dsound_hook.h">
-      <Filter>dsound</Filter>
     </ClInclude>
     <ClInclude Include="utils.h">
       <Filter>Source Files</Filter>

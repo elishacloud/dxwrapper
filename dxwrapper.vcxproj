@@ -151,6 +151,8 @@
       <AdditionalDependencies>d3d9.lib;dxguid.lib;detours.lib;msimg32.lib;oleacc.lib;uxtheme.lib;dwmapi.lib;winmm.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <GenerateDebugInformation>false</GenerateDebugInformation>
       <LinkTimeCodeGeneration>UseLinkTimeCodeGeneration</LinkTimeCodeGeneration>
+      <IgnoreAllDefaultLibraries>
+      </IgnoreAllDefaultLibraries>
     </Link>
     <Bscmake>
       <SuppressStartupBanner>true</SuppressStartupBanner>
@@ -210,7 +212,6 @@ copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\winspool.drv"
     <ClCompile Include="disasm\Disasm.c" />
     <ClCompile Include="disasm\initdisasm.cpp" />
     <ClCompile Include="dllmain.cpp" />
-    <ClCompile Include="dsound\dsound_hook.cpp" />
     <ClCompile Include="DxWnd\v2_03_60_src\proxy\init.cpp" />
     <ClCompile Include="fullscreen.cpp" />
     <ClCompile Include="hook\hotpatch.cpp" />
@@ -240,7 +241,6 @@ copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\winspool.drv"
     <ClInclude Include="cfg.h" />
     <ClInclude Include="disasm\initdisasm.h" />
     <ClInclude Include="dllmain.h" />
-    <ClInclude Include="dsound\dsound_hook.h" />
     <ClInclude Include="dxwrapper.h" />
     <ClInclude Include="fullscreen.h" />
     <ClInclude Include="hook\hotpatch.h" />
