@@ -22,18 +22,18 @@ DirectSoundCaptureCreate8		= FakeDirectSoundCaptureCreate8			@12
 ; ****
 ;LIBRARY "DSoundCtrl"
 ; ****
-;_DirectSoundCreate				= DirectSoundCreate						@21
-;_DirectSoundEnumerateA			= DirectSoundEnumerateA					@22
-;_DirectSoundEnumerateW			= DirectSoundEnumerateW					@23
-;_DllCanUnloadNow_DSoundCtrl		= DllCanUnload_DSoundCtrl				PRIVATE
-;_DllGetClassObject_DSoundCtrl	= DllGetClassObject_DSoundCtrl			PRIVATE
-;_DirectSoundCaptureCreate		= DirectSoundCaptureCreate				@26
-;_DirectSoundCaptureEnumerateA	= DirectSoundCaptureEnumerateA			@27
-;_DirectSoundCaptureEnumerateW	= DirectSoundCaptureEnumerateW			@28
-;_GetDeviceID					= GetDeviceID							@29
-;_DirectSoundFullDuplexCreate	= DirectSoundFullDuplexCreate			@30
-;_DirectSoundCreate8				= DirectSoundCreate8					@31
-;_DirectSoundCaptureCreate8		= DirectSoundCaptureCreate8				@32
+_DirectSoundCreate				= DirectSoundCreate						@21
+_DirectSoundEnumerateA			= DirectSoundEnumerateA					@22
+_DirectSoundEnumerateW			= DirectSoundEnumerateW					@23
+_DllCanUnloadNow_DSoundCtrl		= DllCanUnloadNow_DSoundCtrl			PRIVATE
+_DllGetClassObject_DSoundCtrl	= DllGetClassObject_DSoundCtrl			PRIVATE
+_DirectSoundCaptureCreate		= DirectSoundCaptureCreate				@26
+_DirectSoundCaptureEnumerateA	= DirectSoundCaptureEnumerateA			@27
+_DirectSoundCaptureEnumerateW	= DirectSoundCaptureEnumerateW			@28
+_GetDeviceID					= GetDeviceID							@29
+_DirectSoundFullDuplexCreate	= DirectSoundFullDuplexCreate			@30
+_DirectSoundCreate8				= DirectSoundCreate8					@31
+_DirectSoundCaptureCreate8		= DirectSoundCaptureCreate8				@32
 
 
 ; ****

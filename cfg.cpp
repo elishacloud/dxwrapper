@@ -249,11 +249,29 @@ void __stdcall ParseCallback(char* name, char* value)
 	if (!_strcmpi(name, "ForceTermination")) { Config.ForceTermination = IsValueEnabled(value); return; }
 	if (!_strcmpi(name, "ForceWindowResize")) { Config.ForceWindowResize = IsValueEnabled(value); return; }
 	if (!_strcmpi(name, "HandleExceptions")) { Config.HandleExceptions = IsValueEnabled(value); return; }
-	if (!_strcmpi(name, "HookDirectSound")) { Config.HookDsound = IsValueEnabled(value); return; }
+	if (!_strcmpi(name, "DSoundCtrl")) { Config.DSoundCtrl = IsValueEnabled(value); return; }
 	if (!_strcmpi(name, "ResetScreenRes")) { Config.ResetScreenRes = IsValueEnabled(value); return; }
 	if (!_strcmpi(name, "SendAltEnter")) { Config.SendAltEnter = IsValueEnabled(value); return; }
 	if (!_strcmpi(name, "WaitForProcess")) { Config.WaitForProcess = IsValueEnabled(value); return; }
 	if (!_strcmpi(name, "WaitForWindowChanges")) { Config.WaitForWindowChanges = IsValueEnabled(value); return; }
+	// DSoundCtrl
+	if (!_strcmpi(name, "Num2DBuffers")) { Config.Num2DBuffers = atoi(value); return; }
+	if (!_strcmpi(name, "Num3DBuffers")) { Config.Num3DBuffers = atoi(value); return; }
+	if (!_strcmpi(name, "ForceCertification")) { Config.ForceCertification = IsValueEnabled(value); return; }
+	if (!_strcmpi(name, "ForceExclusiveMode")) { Config.ForceExclusiveMode = IsValueEnabled(value); return; }
+	if (!_strcmpi(name, "ForceSoftwareMixing")) { Config.ForceSoftwareMixing = IsValueEnabled(value); return; }
+	if (!_strcmpi(name, "ForceHardwareMixing")) { Config.ForceHardwareMixing = IsValueEnabled(value); return; }
+	if (!_strcmpi(name, "PreventSpeakerSetup")) { Config.PreventSpeakerSetup = IsValueEnabled(value); return; }
+	if (!_strcmpi(name, "ForceHQ3DSoftMixing")) { Config.ForceHQ3DSoftMixing = IsValueEnabled(value); return; }
+	if (!_strcmpi(name, "ForceNonStaticBuffers")) { Config.ForceNonStaticBuffers = IsValueEnabled(value); return; }
+	if (!_strcmpi(name, "ForceVoiceManagement")) { Config.ForceVoiceManagement = IsValueEnabled(value); return; }
+	if (!_strcmpi(name, "ForcePrimaryBufferFormat")) { Config.ForcePrimaryBufferFormat = IsValueEnabled(value); return; }
+	if (!_strcmpi(name, "PrimaryBufferBits")) { Config.PrimaryBufferBits = atoi(value); return; }
+	if (!_strcmpi(name, "PrimaryBufferSamples")) { Config.PrimaryBufferSamples = atoi(value); return; }
+	if (!_strcmpi(name, "PrimaryBufferChannels")) { Config.PrimaryBufferChannels = atoi(value); return; }
+	if (!_strcmpi(name, "ForceSpeakerConfig")) { Config.ForceSpeakerConfig = IsValueEnabled(value); return; }
+	if (!_strcmpi(name, "SpeakerConfig")) { Config.SpeakerConfig = atoi(value); return; }
+	if (!_strcmpi(name, "EnableStoppedDriverWorkaround")) { Config.EnableStoppedDriverWorkaround = IsValueEnabled(value); return; }
 	// AppCompatData
 	if (!_strcmpi(name, "LockEmulation")) { Config.DXPrimaryEmulation[AppCompatDataType.LockEmulation] = IsValueEnabled(value); return; }
 	if (!_strcmpi(name, "BltEmulation")) { Config.DXPrimaryEmulation[AppCompatDataType.BltEmulation] = IsValueEnabled(value); return; }
@@ -335,7 +353,7 @@ void ClearConfigSettings()
 	Config.ForceTermination = false;
 	Config.ForceWindowResize = false;
 	Config.HandleExceptions = false;
-	Config.HookDsound = false;
+	Config.DSoundCtrl = false;
 	Config.ResetScreenRes = false;
 	Config.SendAltEnter = false;
 	Config.WaitForProcess = false;
@@ -346,6 +364,24 @@ void ClearConfigSettings()
 	Config.WindowSleepTime = 0;
 	Config.SetFullScreenLayer = 0;
 	Config.WrapperMode = 0;
+	// DSoundCtrl
+	Config.Num2DBuffers = 0;
+	Config.Num3DBuffers = 0;
+	Config.ForceCertification = false;
+	Config.ForceExclusiveMode = false;
+	Config.ForceSoftwareMixing = false;
+	Config.ForceHardwareMixing = false;
+	Config.PreventSpeakerSetup = false;
+	Config.ForceHQ3DSoftMixing = false;
+	Config.ForceNonStaticBuffers = false;
+	Config.ForceVoiceManagement = false;
+	Config.ForcePrimaryBufferFormat = false;
+	Config.PrimaryBufferBits = 16;
+	Config.PrimaryBufferSamples = 44100;
+	Config.PrimaryBufferChannels = 2;
+	Config.ForceSpeakerConfig = false;
+	Config.SpeakerConfig = 6;
+	Config.EnableStoppedDriverWorkaround = false;
 	// Arrary counters
 	Config.AddressPointerCount = 0;
 	Config.BytesToWriteCount = 0;

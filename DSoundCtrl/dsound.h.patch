@@ -1,0 +1,87 @@
+--- dsound.h	2007-07-11 19:27:53.000000000 +0200
++++ dsound.h.orig	2003-01-03 13:29:43.000000000 +0100
+@@ -456,33 +456,7 @@
+ typedef BOOL (CALLBACK *LPDSENUMCALLBACKA)(LPGUID, LPCSTR, LPCSTR, LPVOID);
+ typedef BOOL (CALLBACK *LPDSENUMCALLBACKW)(LPGUID, LPCWSTR, LPCWSTR, LPVOID);
+ 
+-/////////////////////////////////////////////////////////////////////////// Added ABo
+-#ifndef DSOUNDCTRL_EXPORTS
+-/////////////////////////////////////////////////////////////////////////// Added ABo END
+-
+-extern HRESULT WINAPI DirectSoundCreate(LPCGUID pcGuidDevice, LPDIRECTSOUND *ppDS, LPUNKNOWN pUnkOuter);
+-extern HRESULT WINAPI DirectSoundEnumerateA(LPDSENUMCALLBACKA pDSEnumCallback, LPVOID pContext);
+-extern HRESULT WINAPI DirectSoundEnumerateW(LPDSENUMCALLBACKW pDSEnumCallback, LPVOID pContext);
+-
+-extern HRESULT WINAPI DirectSoundCaptureCreate(LPCGUID pcGuidDevice, LPDIRECTSOUNDCAPTURE *ppDSC, LPUNKNOWN pUnkOuter);
+-extern HRESULT WINAPI DirectSoundCaptureEnumerateA(LPDSENUMCALLBACKA pDSEnumCallback, LPVOID pContext);
+-extern HRESULT WINAPI DirectSoundCaptureEnumerateW(LPDSENUMCALLBACKW pDSEnumCallback, LPVOID pContext);
+ 
+-#if DIRECTSOUND_VERSION >= 0x0800
+-extern HRESULT WINAPI DirectSoundCreate8(LPCGUID pcGuidDevice, LPDIRECTSOUND8 *ppDS8, LPUNKNOWN pUnkOuter);
+-extern HRESULT WINAPI DirectSoundCaptureCreate8(LPCGUID pcGuidDevice, LPDIRECTSOUNDCAPTURE8 *ppDSC8, LPUNKNOWN pUnkOuter);
+-extern HRESULT WINAPI DirectSoundFullDuplexCreate(LPCGUID pcGuidCaptureDevice, LPCGUID pcGuidRenderDevice,
+-        LPCDSCBUFFERDESC pcDSCBufferDesc, LPCDSBUFFERDESC pcDSBufferDesc, HWND hWnd,
+-        DWORD dwLevel, LPDIRECTSOUNDFULLDUPLEX* ppDSFD, LPDIRECTSOUNDCAPTUREBUFFER8 *ppDSCBuffer8,
+-        LPDIRECTSOUNDBUFFER8 *ppDSBuffer8, LPUNKNOWN pUnkOuter);
+-#define DirectSoundFullDuplexCreate8 DirectSoundFullDuplexCreate
+-
+-extern HRESULT WINAPI GetDeviceID(LPCGUID pGuidSrc, LPGUID pGuidDest);
+-#endif // DIRECTSOUND_VERSION >= 0x0800
+-
+-/////////////////////////////////////////////////////////////////////////// Added ABo
+-#endif // DSOUNDCTRL_EXPORTS
+-/////////////////////////////////////////////////////////////////////////// Added ABo END
+ 
+ #ifdef UNICODE
+ #define LPDSENUMCALLBACK            LPDSENUMCALLBACKW
+@@ -1977,6 +1951,7 @@
+ 
+ // No sound driver is available for use
+ #define DSERR_NODRIVER                  MAKE_DSHRESULT(120)
++
+ // This object is already initialized
+ #define DSERR_ALREADYINITIALIZED        MAKE_DSHRESULT(130)
+ 
+@@ -2045,14 +2020,8 @@
+ #define DSSPEAKER_QUAD              0x00000003
+ #define DSSPEAKER_STEREO            0x00000004
+ #define DSSPEAKER_SURROUND          0x00000005
+-#define DSSPEAKER_5POINT1           0x00000006  // obsolete 5.1 setting
+-#define DSSPEAKER_7POINT1           0x00000007  // obsolete 7.1 setting
+-#define DSSPEAKER_7POINT1_SURROUND  0x00000008  // correct 7.1 Home Theater setting
+-#define DSSPEAKER_7POINT1_WIDE      DSSPEAKER_7POINT1
+-#if (DIRECTSOUND_VERSION >= 0x1000)
+-    #define DSSPEAKER_5POINT1_SURROUND  0x00000009  // correct 5.1 setting
+-    #define DSSPEAKER_5POINT1_BACK      DSSPEAKER_5POINT1
+-#endif
++#define DSSPEAKER_5POINT1           0x00000006
++#define DSSPEAKER_7POINT1           0x00000007
+ 
+ #define DSSPEAKER_GEOMETRY_MIN      0x00000005  //   5 degrees
+ #define DSSPEAKER_GEOMETRY_NARROW   0x0000000A  //  10 degrees
+@@ -2078,11 +2047,6 @@
+ #define DSBCAPS_GETCURRENTPOSITION2 0x00010000
+ #define DSBCAPS_MUTE3DATMAXDISTANCE 0x00020000
+ #define DSBCAPS_LOCDEFER            0x00040000
+-#if (DIRECTSOUND_VERSION >= 0x1000)
+-    // Force GetCurrentPosition() to return a buffer's true play position;
+-    // unmodified by aids to enhance backward compatibility.
+-    #define DSBCAPS_TRUEPLAYPOSITION    0x00080000
+-#endif
+ 
+ #define DSBPLAY_LOOPING             0x00000001
+ #define DSBPLAY_LOCHARDWARE         0x00000002
+@@ -2120,8 +2084,6 @@
+ #define DSBSIZE_MAX                 0x0FFFFFFF
+ #define DSBSIZE_FX_MIN              150  // NOTE: Milliseconds, not bytes
+ 
+-#define DSBNOTIFICATIONS_MAX        100000UL
+-
+ #define DS3DMODE_NORMAL             0x00000000
+ #define DS3DMODE_HEADRELATIVE       0x00000001
+ #define DS3DMODE_DISABLE            0x00000002
+@@ -2375,3 +2337,4 @@
+ };
+ #endif // __cplusplus
+ 
++

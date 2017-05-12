@@ -9,6 +9,7 @@ DxWrapper has a number of features that it includes.  Below is a list of feature
  - Can enable and disable DDrawCompat features to improve compatibility
  - Proxy for [DxWnd](https://sourceforge.net/projects/dxwnd/)
  - Convert Direct3D8 (d3d8.dll) to Direct3D9 (d3d9.dll) using [d3d8to9](https://github.com/crosire/d3d8to9)
+ - Allows tweaking some Microsoft DirectSound function calls using [DSoundCtrl](http://www.bockholdt.com/dsc/)
  - Hot patch memory support (update game memory at run time, can be used to remove CD/DVD checks or resolve graphics or other glitches)
  - Set single CPU affinity (some games have issue with multi-core CPUs)
  - Disable display scaling on high DPI setting
@@ -54,6 +55,7 @@ DxWrapper uses code from several other projects. So to give credit where credit 
  - [DxWnd](https://sourceforge.net/projects/dxwnd/): Includes code from the proxy dll, single CPU affinity and exception handling. 
  - [OllyDbg](http://www.ollydbg.de/): Includes the full disasm.c (disasm.dll) code used for exception handling.
  - [d3d8to9](https://github.com/crosire/d3d8to9): Includes the full D3D8 to D3D9 code.
+ - [DSoundCtrl](https://github.com/nRaecheR/DirectSoundControl): Includes the full DirectSoundControl code.
  - [Aqrit's ddwrapper](http://bitpatch.com/ddwrapper.html): Includes code for single CPU affinity, disable display scaling on high DPI and code to read the ini config file.
 
 ### Development

@@ -31,7 +31,7 @@ struct CONFIG
 	bool ForceTermination;				// Terminates application when main window closes
 	bool ForceWindowResize;				// Forces main window to fullscreen
 	bool HandleExceptions;				// Handles unhandled exceptions in the application
-	bool HookDsound;					// Work in progress
+	bool DSoundCtrl;					// Enables DirectSoundControl https://github.com/nRaecheR/DirectSoundControl
 	bool ResetScreenRes;				// Reset the screen resolution on close
 	bool SendAltEnter;					// Sends an Alt+Enter message to the wind to tell it to go into fullscreen
 	bool WaitForProcess;				// Enables 'WindowSleepTime'
@@ -60,6 +60,25 @@ struct CONFIG
 	bool DXPrimaryEmulation[256];		// SetAppCompatData exported functions from ddraw.dll
 	DWORD LockColorkey;					// DXPrimaryEmulation option that needs a second parameter
 	bool DisableMaxWindowedModeNotSet;	// If the DisableMaxWindowedMode option exists in the config file
+
+	// DSoundCtrl
+	int Num2DBuffers;
+	int Num3DBuffers;
+	bool ForceCertification;
+	bool ForceExclusiveMode;
+	bool ForceSoftwareMixing;
+	bool ForceHardwareMixing;
+	bool PreventSpeakerSetup;
+	bool ForceHQ3DSoftMixing;
+	bool ForceNonStaticBuffers;
+	bool ForceVoiceManagement;
+	bool ForcePrimaryBufferFormat;
+	int PrimaryBufferBits;
+	int PrimaryBufferSamples;
+	int PrimaryBufferChannels;
+	bool ForceSpeakerConfig;
+	int SpeakerConfig;
+	bool EnableStoppedDriverWorkaround;
 };
 extern CONFIG Config;
 

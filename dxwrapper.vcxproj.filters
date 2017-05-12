@@ -199,6 +199,24 @@
     <ClCompile Include="wrappers\wrapper.cpp">
       <Filter>wrappers</Filter>
     </ClCompile>
+    <ClCompile Include="DSoundCtrl\DSoundCtrl.cpp">
+      <Filter>DSoundCtrl</Filter>
+    </ClCompile>
+    <ClCompile Include="DSoundCtrl\IDirectSound3DBufferEx.cpp">
+      <Filter>DSoundCtrl</Filter>
+    </ClCompile>
+    <ClCompile Include="DSoundCtrl\IDirectSound3DListenerEx.cpp">
+      <Filter>DSoundCtrl</Filter>
+    </ClCompile>
+    <ClCompile Include="DSoundCtrl\IDirectSoundBufferEx.cpp">
+      <Filter>DSoundCtrl</Filter>
+    </ClCompile>
+    <ClCompile Include="DSoundCtrl\IDirectSoundClassFactoryEx.cpp">
+      <Filter>DSoundCtrl</Filter>
+    </ClCompile>
+    <ClCompile Include="DSoundCtrl\IDirectSoundEx.cpp">
+      <Filter>DSoundCtrl</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="dxwrapper.def">
@@ -280,6 +298,33 @@
     </ClInclude>
     <ClInclude Include="d3d8to9\d3dx9.hpp">
       <Filter>d3d8to9</Filter>
+    </ClInclude>
+    <ClInclude Include="DSoundCtrl\dsound.h">
+      <Filter>DSoundCtrl</Filter>
+    </ClInclude>
+    <ClInclude Include="DSoundCtrl\DSoundCtrl.h">
+      <Filter>DSoundCtrl</Filter>
+    </ClInclude>
+    <ClInclude Include="DSoundCtrl\DSoundCtrlExtl.h">
+      <Filter>DSoundCtrl</Filter>
+    </ClInclude>
+    <ClInclude Include="DSoundCtrl\DSoundTypes.h">
+      <Filter>DSoundCtrl</Filter>
+    </ClInclude>
+    <ClInclude Include="DSoundCtrl\IDirectSound3DBufferEx.h">
+      <Filter>DSoundCtrl</Filter>
+    </ClInclude>
+    <ClInclude Include="DSoundCtrl\IDirectSound3DListenerEx.h">
+      <Filter>DSoundCtrl</Filter>
+    </ClInclude>
+    <ClInclude Include="DSoundCtrl\IDirectSoundBufferEx.h">
+      <Filter>DSoundCtrl</Filter>
+    </ClInclude>
+    <ClInclude Include="DSoundCtrl\IDirectSoundClassFactoryEx.h">
+      <Filter>DSoundCtrl</Filter>
+    </ClInclude>
+    <ClInclude Include="DSoundCtrl\IDirectSoundEx.h">
+      <Filter>DSoundCtrl</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
