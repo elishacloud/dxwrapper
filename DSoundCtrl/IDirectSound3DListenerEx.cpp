@@ -34,12 +34,12 @@ IDirectSound3DListener8Ex::IDirectSound3DListener8Ex(void)
 {
 	m_lpDirectSound3DListener8	= NULL;
 
-#ifdef ENABLE_LOG
+#ifdef _DEBUG
 	m_cszClassName = IDIRECTSOUND3DLISTENER8EX_CLASS_NAME;
 
 	if( g_bLogDirectSound3DListener == true )
 		::LogMessage( m_cszClassName, this, "Constructor called....");
-#endif // ENABLE_LOG
+#endif // _DEBUG
 
 }
 
@@ -47,10 +47,10 @@ IDirectSound3DListener8Ex::IDirectSound3DListener8Ex(void)
 
 IDirectSound3DListener8Ex::~IDirectSound3DListener8Ex(void)
 {
-#ifdef ENABLE_LOG
+#ifdef _DEBUG
 	if( g_bLogDirectSound3DListener == true )
 		::LogMessage( m_cszClassName, this, "Destructor called....");
-#endif // ENABLE_LOG
+#endif // _DEBUG
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////
@@ -58,10 +58,10 @@ IDirectSound3DListener8Ex::~IDirectSound3DListener8Ex(void)
 
 HRESULT IDirectSound3DListener8Ex::QueryInterface( REFIID refIID, LPVOID * pVoid )
 {
-#ifdef ENABLE_LOG
+#ifdef _DEBUG
 	if( g_bLogDirectSound3DListener == true )
 		::LogMessage( m_cszClassName, this, "QueryInterface called....");
-#endif // ENABLE_LOG
+#endif // _DEBUG
 
 	*pVoid = (LPVOID) NULL;
 	HRESULT hRes;
@@ -85,10 +85,10 @@ HRESULT IDirectSound3DListener8Ex::QueryInterface( REFIID refIID, LPVOID * pVoid
 	// Unknown interface, let DX handle this...
 	hRes =  m_lpDirectSound3DListener8->QueryInterface( refIID, pVoid );
 
-#ifdef ENABLE_LOG
+#ifdef _DEBUG
 	if( g_bLogDirectSound3DListener == true )
 		::LogMessage( m_cszClassName, this, "QueryInterface for unknown interface IID called....");
-#endif // ENABLE_LOG
+#endif // _DEBUG
 
 	return hRes;
 }
@@ -99,7 +99,7 @@ ULONG IDirectSound3DListener8Ex::AddRef()
 {
 	ULONG nRefCnt = m_lpDirectSound3DListener8->AddRef();
 
-#ifdef ENABLE_LOG
+#ifdef _DEBUG
 	if( g_bLogDirectSound3DListener == true )
 	{
 		CString sLogString;
@@ -107,7 +107,7 @@ ULONG IDirectSound3DListener8Ex::AddRef()
 
 		::LogMessage( m_cszClassName, this, sLogString.GetBuffer());
 	}
-#endif // ENABLE_LOG
+#endif // _DEBUG
 
 	return nRefCnt; 
 }
@@ -118,7 +118,7 @@ ULONG IDirectSound3DListener8Ex::Release()
 {
 	ULONG nRefCnt = m_lpDirectSound3DListener8->Release();
 
-#ifdef ENABLE_LOG
+#ifdef _DEBUG
 	if( g_bLogDirectSound3DListener == true )
 	{
 		CString sLogString;
@@ -126,7 +126,7 @@ ULONG IDirectSound3DListener8Ex::Release()
 
 		::LogMessage( m_cszClassName, this, sLogString.GetBuffer());
 	}
-#endif // ENABLE_LOG
+#endif // _DEBUG
 
 	if ( nRefCnt == 0 )
 	{
@@ -143,10 +143,10 @@ ULONG IDirectSound3DListener8Ex::Release()
 // IDirectSound3DListener methods
 HRESULT IDirectSound3DListener8Ex::GetAllParameters( LPDS3DLISTENER pListener )
 {
-#ifdef ENABLE_LOG
+#ifdef _DEBUG
 	if( g_bLogDirectSound3DListener == true )
 		LogMessage( m_cszClassName, this, "GetAllParameter called....");
-#endif // ENABLE_LOG
+#endif // _DEBUG
 
 	return m_lpDirectSound3DListener8->GetAllParameters( pListener );
 }
@@ -155,10 +155,10 @@ HRESULT IDirectSound3DListener8Ex::GetAllParameters( LPDS3DLISTENER pListener )
 
 HRESULT IDirectSound3DListener8Ex::GetDistanceFactor( D3DVALUE* pflDistanceFactor )
 {
-#ifdef ENABLE_LOG
+#ifdef _DEBUG
 	if( g_bLogDirectSound3DListener == true )
 		LogMessage( m_cszClassName, this, "GetDistanceFactor called....");
-#endif // ENABLE_LOG
+#endif // _DEBUG
 
 	return m_lpDirectSound3DListener8->GetDistanceFactor( pflDistanceFactor );
 }
@@ -167,10 +167,10 @@ HRESULT IDirectSound3DListener8Ex::GetDistanceFactor( D3DVALUE* pflDistanceFacto
 
 HRESULT IDirectSound3DListener8Ex::GetDopplerFactor( D3DVALUE* pflDopplerFactor )
 {
-#ifdef ENABLE_LOG
+#ifdef _DEBUG
 	if( g_bLogDirectSound3DListener == true )
 		LogMessage( m_cszClassName, this, "GetDopplerFactor called....");
-#endif // ENABLE_LOG
+#endif // _DEBUG
 
 	return m_lpDirectSound3DListener8->GetDopplerFactor( pflDopplerFactor );
 }
@@ -179,10 +179,10 @@ HRESULT IDirectSound3DListener8Ex::GetDopplerFactor( D3DVALUE* pflDopplerFactor 
 
 HRESULT IDirectSound3DListener8Ex::GetOrientation( D3DVECTOR* pvOrientFront, D3DVECTOR* pvOrientTop)
 {
-#ifdef ENABLE_LOG
+#ifdef _DEBUG
 	if( g_bLogDirectSound3DListener == true )
 		LogMessage( m_cszClassName, this, "GetOrientation called....");
-#endif // ENABLE_LOG
+#endif // _DEBUG
 
 	return m_lpDirectSound3DListener8->GetOrientation( pvOrientFront, pvOrientTop );
 }
@@ -191,10 +191,10 @@ HRESULT IDirectSound3DListener8Ex::GetOrientation( D3DVECTOR* pvOrientFront, D3D
 
 HRESULT IDirectSound3DListener8Ex::GetPosition( D3DVECTOR* pvPosition)
 {
-#ifdef ENABLE_LOG
+#ifdef _DEBUG
 	if( g_bLogDirectSound3DListener == true )
 		LogMessage( m_cszClassName, this, "GetPosition called....");
-#endif // ENABLE_LOG
+#endif // _DEBUG
 
 	return m_lpDirectSound3DListener8->GetPosition( pvPosition );
 }
@@ -203,10 +203,10 @@ HRESULT IDirectSound3DListener8Ex::GetPosition( D3DVECTOR* pvPosition)
 
 HRESULT IDirectSound3DListener8Ex::GetRolloffFactor( D3DVALUE* pflRolloffFactor)
 {
-#ifdef ENABLE_LOG
+#ifdef _DEBUG
 	if( g_bLogDirectSound3DListener == true )
 		LogMessage( m_cszClassName, this, "GetRolloffFactor called....");
-#endif // ENABLE_LOG
+#endif // _DEBUG
 
 	return m_lpDirectSound3DListener8->GetRolloffFactor( pflRolloffFactor );
 }
@@ -215,10 +215,10 @@ HRESULT IDirectSound3DListener8Ex::GetRolloffFactor( D3DVALUE* pflRolloffFactor)
 
 HRESULT IDirectSound3DListener8Ex::GetVelocity( D3DVECTOR* pvVelocity)
 {
-#ifdef ENABLE_LOG
+#ifdef _DEBUG
 	if( g_bLogDirectSound3DListener == true )
 		LogMessage( m_cszClassName, this, "GetVelocity called....");
-#endif // ENABLE_LOG
+#endif // _DEBUG
 
 	return m_lpDirectSound3DListener8->GetVelocity( pvVelocity );
 }
@@ -227,10 +227,10 @@ HRESULT IDirectSound3DListener8Ex::GetVelocity( D3DVECTOR* pvVelocity)
 
 HRESULT IDirectSound3DListener8Ex::SetAllParameters( LPCDS3DLISTENER pcListener, DWORD dwApply)
 {
-#ifdef ENABLE_LOG
+#ifdef _DEBUG
 	if( g_bLogDirectSound3DListener == true )
 		LogMessage( m_cszClassName, this, "SetAllParameters called....");
-#endif // ENABLE_LOG
+#endif // _DEBUG
 
 	return m_lpDirectSound3DListener8->SetAllParameters( pcListener, dwApply );
 }
@@ -239,10 +239,10 @@ HRESULT IDirectSound3DListener8Ex::SetAllParameters( LPCDS3DLISTENER pcListener,
 
 HRESULT IDirectSound3DListener8Ex::SetDistanceFactor( D3DVALUE flDistanceFactor, DWORD dwApply)
 {
-#ifdef ENABLE_LOG
+#ifdef _DEBUG
 	if( g_bLogDirectSound3DListener == true )
 		LogMessage( m_cszClassName, this, "SetDistanceFactor called....");
-#endif // ENABLE_LOG
+#endif // _DEBUG
 
 	return m_lpDirectSound3DListener8->SetDistanceFactor( flDistanceFactor, dwApply );
 }
@@ -251,10 +251,10 @@ HRESULT IDirectSound3DListener8Ex::SetDistanceFactor( D3DVALUE flDistanceFactor,
 
 HRESULT IDirectSound3DListener8Ex::SetDopplerFactor( D3DVALUE flDopplerFactor, DWORD dwApply)
 {
-#ifdef ENABLE_LOG
+#ifdef _DEBUG
 	if( g_bLogDirectSound3DListener == true )
 		LogMessage( m_cszClassName, this, "SetDopplerFactor called....");
-#endif // ENABLE_LOG
+#endif // _DEBUG
 
 	return m_lpDirectSound3DListener8->SetDopplerFactor( flDopplerFactor, dwApply );
 }
@@ -263,10 +263,10 @@ HRESULT IDirectSound3DListener8Ex::SetDopplerFactor( D3DVALUE flDopplerFactor, D
 
 HRESULT IDirectSound3DListener8Ex::SetOrientation( D3DVALUE xFront, D3DVALUE yFront, D3DVALUE zFront, D3DVALUE xTop, D3DVALUE yTop, D3DVALUE zTop, DWORD dwApply)
 {
-#ifdef ENABLE_LOG
+#ifdef _DEBUG
 	if( g_bLogDirectSound3DListener == true )
 		LogMessage( m_cszClassName, this, "SetOrientation called....");
-#endif // ENABLE_LOG
+#endif // _DEBUG
 
 	return m_lpDirectSound3DListener8->SetOrientation( xFront, yFront, zFront, xTop, yTop, zTop, dwApply );
 }
@@ -275,10 +275,10 @@ HRESULT IDirectSound3DListener8Ex::SetOrientation( D3DVALUE xFront, D3DVALUE yFr
 
 HRESULT IDirectSound3DListener8Ex::SetPosition( D3DVALUE x, D3DVALUE y, D3DVALUE z, DWORD dwApply)
 {
-#ifdef ENABLE_LOG
+#ifdef _DEBUG
 	if( g_bLogDirectSound3DListener == true )
 		LogMessage( m_cszClassName, this, "SetPosition called....");
-#endif // ENABLE_LOG
+#endif // _DEBUG
 
 	return m_lpDirectSound3DListener8->SetPosition( x, y, z, dwApply );
 }
@@ -287,10 +287,10 @@ HRESULT IDirectSound3DListener8Ex::SetPosition( D3DVALUE x, D3DVALUE y, D3DVALUE
 
 HRESULT IDirectSound3DListener8Ex::SetRolloffFactor( D3DVALUE flRolloffFactor, DWORD dwApply)
 {
-#ifdef ENABLE_LOG
+#ifdef _DEBUG
 	if( g_bLogDirectSound3DListener == true )
 		LogMessage( m_cszClassName, this, "SetRolloffFactor called....");
-#endif // ENABLE_LOG
+#endif // _DEBUG
 
 	return m_lpDirectSound3DListener8->SetRolloffFactor( flRolloffFactor, dwApply );
 }
@@ -299,10 +299,10 @@ HRESULT IDirectSound3DListener8Ex::SetRolloffFactor( D3DVALUE flRolloffFactor, D
 
 HRESULT IDirectSound3DListener8Ex::SetVelocity( D3DVALUE x, D3DVALUE y, D3DVALUE z, DWORD dwApply)
 {
-#ifdef ENABLE_LOG
+#ifdef _DEBUG
 	if( g_bLogDirectSound3DListener == true )
 		LogMessage( m_cszClassName, this, "SetVelocity called....");
-#endif // ENABLE_LOG
+#endif // _DEBUG
 
 	return m_lpDirectSound3DListener8->SetVelocity( x, y, z, dwApply );
 }
@@ -311,12 +311,10 @@ HRESULT IDirectSound3DListener8Ex::SetVelocity( D3DVALUE x, D3DVALUE y, D3DVALUE
 
 HRESULT IDirectSound3DListener8Ex::CommitDeferredSettings()
 {
-#ifdef ENABLE_LOG
+#ifdef _DEBUG
 	if( g_bLogDirectSound3DListener == true )
 		LogMessage( m_cszClassName, this, "CommitDeferredSettings called....");
-#endif // ENABLE_LOG
+#endif // _DEBUG
 
 	return m_lpDirectSound3DListener8->CommitDeferredSettings();
 }
-
-//////////////////////////////////////////////////////////////////////////////////////////////

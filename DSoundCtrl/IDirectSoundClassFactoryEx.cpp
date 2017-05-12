@@ -34,12 +34,14 @@
 
 IDirectSoundClassFactoryEx::IDirectSoundClassFactoryEx(void)
 {
-#ifdef ENABLE_LOG
+#ifdef _DEBUG
 	m_cszClassName = IDIRECTSOUNDCLASSFACTORYEX_CLASS_NAME;
+#endif // _DEBUG
 
+#ifdef _DEBUG
 	if( g_bLogSystem == true )
 		LogMessage( m_cszClassName, this, "Constructor called....");
-#endif // ENABLE_LOG
+#endif // _DEBUG
 
 }
 
@@ -47,10 +49,10 @@ IDirectSoundClassFactoryEx::IDirectSoundClassFactoryEx(void)
 
 IDirectSoundClassFactoryEx::~IDirectSoundClassFactoryEx(void)
 {
-#ifdef ENABLE_LOG
+#ifdef _DEBUG
 	if( g_bLogSystem == true )
 		LogMessage( m_cszClassName, this, "Destructor called....");
-#endif // ENABLE_LOG
+#endif // _DEBUG
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////
@@ -67,10 +69,10 @@ HRESULT IDirectSoundClassFactoryEx::QueryInterface( REFIID refIID, LPVOID * pVoi
 
 		if( hRes != S_OK )
 		{
-#ifdef ENABLE_LOG
+#ifdef _DEBUG
 			if( g_bLogSystem == true )
 				::LogMessage( m_cszClassName, this, "QueryInterface for interface IID_IClassFactory failed...");
-#endif // ENABLE_LOG
+#endif // _DEBUG
 		
 			return hRes;	
 		}
@@ -79,18 +81,18 @@ HRESULT IDirectSoundClassFactoryEx::QueryInterface( REFIID refIID, LPVOID * pVoi
 
 		*pVoid = (LPVOID) this;
 
-#ifdef ENABLE_LOG
+#ifdef _DEBUG
 		if( g_bLogSystem == true )
 			::LogMessage( m_cszClassName, this, "QueryInterface called,Interface=IID_IClassFactory");
-#endif // ENABLE_LOG
+#endif // _DEBUG
 
 		return S_OK;
 	}
 
-#ifdef ENABLE_LOG
+#ifdef _DEBUG
 	if( g_bLogSystem == true )
 		LogMessage( m_cszClassName, this, "QueryInterface called for unknown IID interface ....");
-#endif // ENABLE_LOG
+#endif // _DEBUG
 
 	return m_lpClassFactory->QueryInterface( refIID, pVoid );
 }
@@ -101,7 +103,7 @@ ULONG IDirectSoundClassFactoryEx::AddRef()
 {
 	ULONG nRefCnt = m_lpClassFactory->AddRef();
 
-#ifdef ENABLE_LOG
+#ifdef _DEBUG
 	if( g_bLogSystem == true )
 	{
 		CString sLogString;
@@ -109,7 +111,7 @@ ULONG IDirectSoundClassFactoryEx::AddRef()
 
 		::LogMessage( m_cszClassName, this, sLogString.GetBuffer());
 	}
-#endif // ENABLE_LOG
+#endif // _DEBUG
 
 	return nRefCnt;
 }
@@ -120,7 +122,7 @@ ULONG IDirectSoundClassFactoryEx::Release()
 {
 	ULONG nRefCnt = m_lpClassFactory->Release();
 
-#ifdef ENABLE_LOG
+#ifdef _DEBUG
 	if( g_bLogSystem == true )
 	{
 		CString sLogString;
@@ -128,7 +130,7 @@ ULONG IDirectSoundClassFactoryEx::Release()
 
 		::LogMessage( m_cszClassName, this, sLogString.GetBuffer());
 	}
-#endif // ENABLE_LOG
+#endif // _DEBUG
 	
 	if ( nRefCnt == 0 )
 	{
@@ -147,10 +149,10 @@ HRESULT IDirectSoundClassFactoryEx::CreateInstance( IUnknown *pUnkOuter, REFIID 
 
 	if(( riid == IID_IDirectSound ) || ( riid == IID_IDirectSound8 ))
 	{
-#ifdef ENABLE_LOG
+#ifdef _DEBUG
 	if( g_bLogSystem == true )
 		::LogMessage( m_cszClassName, this, "CreateInstance called for IID_IDirectSound(8) interface....");
-#endif // ENABLE_LOG
+#endif // _DEBUG
 
 		IDirectSound8Ex* pDSX = new IDirectSound8Ex;
 
@@ -158,10 +160,10 @@ HRESULT IDirectSoundClassFactoryEx::CreateInstance( IUnknown *pUnkOuter, REFIID 
 
 		if( hRes != S_OK )
 		{
-#ifdef ENABLE_LOG
+#ifdef _DEBUG
 			if( g_bLogSystem == true )
 				::LogMessage( m_cszClassName, this, "DirectSoundCreate failed....");
-#endif // ENABLE_LOG
+#endif // _DEBUG
 
 			delete pDSX;
 			return S_FALSE;
@@ -172,10 +174,10 @@ HRESULT IDirectSoundClassFactoryEx::CreateInstance( IUnknown *pUnkOuter, REFIID 
 		return S_OK;
 	}
 
-#ifdef ENABLE_LOG
+#ifdef _DEBUG
 	if( g_bLogSystem == true )
 		::LogMessage( m_cszClassName, this, "CreateInstance called for unknown IID interface....");
-#endif // ENABLE_LOG
+#endif // _DEBUG
 
 
 	return m_lpClassFactory->CreateInstance(pUnkOuter, riid, ppvObject);
@@ -185,12 +187,10 @@ HRESULT IDirectSoundClassFactoryEx::CreateInstance( IUnknown *pUnkOuter, REFIID 
 
 HRESULT IDirectSoundClassFactoryEx::LockServer( BOOL fLock )
 {
-#ifdef ENABLE_LOG
+#ifdef _DEBUG
 	if( g_bLogSystem == true )
 		::LogMessage( m_cszClassName, this, "LockServer called....");
-#endif // ENABLE_LOG
+#endif // _DEBUG
 
 	return m_lpClassFactory->LockServer(fLock);
 }
-
-//////////////////////////////////////////////////////////////////////////////////////////////

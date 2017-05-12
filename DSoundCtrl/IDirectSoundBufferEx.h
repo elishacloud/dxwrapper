@@ -32,10 +32,10 @@
 //////////////////////////////////////////////////////////////////////////////////////////////
 
 
-#ifdef ENABLE_LOG
+#ifdef _DEBUG
 extern void LogMessage(const char* szClassName, void* pInstance, char* szMessage );
 extern bool	g_bLogDirectSoundBuffer;
-#endif // ENABLE_LOG
+#endif // _DEBUG
 
 extern bool	g_bForcePrimaryBufferFormat;
 extern int	g_nPrimaryBufferBits;
@@ -87,10 +87,10 @@ public:
 	
 	
 protected : 
-#ifdef ENABLE_LOG
+#ifdef _DEBUG
 	const char*					m_cszClassName;
 	char						m_acLogBuffer[ 1024 ];
-#endif // ENABLE_LOG
+#endif // _DEBUG
 
 	DWORD						m_dwOldWriteCursorPos;
 	BYTE						m_nWriteCursorIdent;

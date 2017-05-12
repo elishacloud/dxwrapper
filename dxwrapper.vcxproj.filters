@@ -305,9 +305,6 @@
     <ClInclude Include="DSoundCtrl\DSoundCtrl.h">
       <Filter>DSoundCtrl</Filter>
     </ClInclude>
-    <ClInclude Include="DSoundCtrl\DSoundCtrlExtl.h">
-      <Filter>DSoundCtrl</Filter>
-    </ClInclude>
     <ClInclude Include="DSoundCtrl\DSoundTypes.h">
       <Filter>DSoundCtrl</Filter>
     </ClInclude>
@@ -324,6 +321,9 @@
       <Filter>DSoundCtrl</Filter>
     </ClInclude>
     <ClInclude Include="DSoundCtrl\IDirectSoundEx.h">
+      <Filter>DSoundCtrl</Filter>
+    </ClInclude>
+    <ClInclude Include="DSoundCtrl\DSoundCtrlExternal.h">
       <Filter>DSoundCtrl</Filter>
     </ClInclude>
   </ItemGroup>

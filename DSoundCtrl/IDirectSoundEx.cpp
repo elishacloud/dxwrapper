@@ -36,12 +36,12 @@ IDirectSound8Ex::IDirectSound8Ex(void)
 {
 	m_lpDirectSound8 = NULL;
 
-#ifdef ENABLE_LOG
+#ifdef _DEBUG
 	m_cszClassName = IDIRECTSOUND8EX_CLASS_NAME;
 
 	if( g_bLogDirectSound == true )
 		LogMessage( m_cszClassName, this, "Constructor called....");
-#endif // ENABLE_LOG
+#endif // _DEBUG
 
 }
 
@@ -49,10 +49,10 @@ IDirectSound8Ex::IDirectSound8Ex(void)
 
 IDirectSound8Ex::~IDirectSound8Ex(void)
 {
-#ifdef ENABLE_LOG
+#ifdef _DEBUG
 	if( g_bLogDirectSound == true )
 		LogMessage( m_cszClassName, this, "Destructor called....");
-#endif // ENABLE_LOG
+#endif // _DEBUG
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////
@@ -68,10 +68,10 @@ HRESULT IDirectSound8Ex::QueryInterface( REFIID refIID, LPVOID * pVoid )
 
 		if( hRes != S_OK )
 		{
-#ifdef ENABLE_LOG
+#ifdef _DEBUG
 			if( g_bLogDirectSound == true )
 				::LogMessage( m_cszClassName, this, "QueryInterface for interface IID_IDirectSound8 failed...");
-#endif // ENABLE_LOG
+#endif // _DEBUG
 		
 			return hRes;	
 		}
@@ -80,18 +80,18 @@ HRESULT IDirectSound8Ex::QueryInterface( REFIID refIID, LPVOID * pVoid )
 
 		*pVoid = (LPVOID) this;
 
-#ifdef ENABLE_LOG
+#ifdef _DEBUG
 		if( g_bLogDirectSound == true )
 			::LogMessage( m_cszClassName, this, "QueryInterface called,Interface=IID_IDirectSound8");
-#endif // ENABLE_LOG
+#endif // _DEBUG
 
 		return S_OK;
 	}
 
-#ifdef ENABLE_LOG
+#ifdef _DEBUG
 	if( g_bLogDirectSound == true )
 		LogMessage( m_cszClassName, this, "QueryInterface called for unknown IID interface ....");
-#endif // ENABLE_LOG
+#endif // _DEBUG
 
 	return m_lpDirectSound8->QueryInterface( refIID, pVoid );
 }
@@ -102,7 +102,7 @@ ULONG IDirectSound8Ex::AddRef()
 {
 	ULONG nRefCnt = m_lpDirectSound8->AddRef();
 
-#ifdef ENABLE_LOG
+#ifdef _DEBUG
 	if( g_bLogDirectSound == true )
 	{
 		CString sLogString;
@@ -110,7 +110,7 @@ ULONG IDirectSound8Ex::AddRef()
 
 		::LogMessage( m_cszClassName, this, sLogString.GetBuffer());
 	}
-#endif // ENABLE_LOG
+#endif // _DEBUG
 
 	return nRefCnt;
 }
@@ -121,7 +121,7 @@ ULONG IDirectSound8Ex::Release()
 {
 	ULONG nRefCnt = m_lpDirectSound8->Release();
 
-#ifdef ENABLE_LOG
+#ifdef _DEBUG
 	if( g_bLogDirectSound == true )
 	{
 		CString sLogString;
@@ -129,7 +129,7 @@ ULONG IDirectSound8Ex::Release()
 
 		::LogMessage( m_cszClassName, this, sLogString.GetBuffer());
 	}
-#endif // ENABLE_LOG
+#endif // _DEBUG
 
 	if ( nRefCnt == 0 )
 	{
@@ -146,7 +146,7 @@ HRESULT IDirectSound8Ex::CreateSoundBuffer    (LPCDSBUFFERDESC pcDSBufferDesc, L
 {
 	DSBUFFERDESC dsdesc = *pcDSBufferDesc;
 
-#ifdef ENABLE_LOG
+#ifdef _DEBUG
 	if( g_bLogDirectSound == true )
 	{
 		CString sLogString;
@@ -207,14 +207,14 @@ HRESULT IDirectSound8Ex::CreateSoundBuffer    (LPCDSBUFFERDESC pcDSBufferDesc, L
 
 		::LogMessage( m_cszClassName, this, sLogString.GetBuffer());
 	}
-#endif // ENABLE_LOG
+#endif // _DEBUG
 
 	if( g_bForceSoftwareMixing == true )
 	{
-#ifdef ENABLE_LOG
+#ifdef _DEBUG
 		if( g_bLogDirectSound == true )
 			::LogMessage( m_cszClassName, this, "CreateSoundBuffer FORCING SOFTWARE MIXED BUFFER....");
-#endif // ENABLE_LOG
+#endif // _DEBUG
 
 		dsdesc.dwFlags &= ~DSBCAPS_LOCHARDWARE;
 		dsdesc.dwFlags |= DSBCAPS_LOCSOFTWARE;
@@ -223,10 +223,10 @@ HRESULT IDirectSound8Ex::CreateSoundBuffer    (LPCDSBUFFERDESC pcDSBufferDesc, L
 	if( g_bForceHardwareMixing == true )
 	{
 		
-#ifdef ENABLE_LOG
+#ifdef _DEBUG
 		if( g_bLogDirectSound == true )
 			::LogMessage( m_cszClassName, this, "CreateSoundBuffer FORCING HARDWARE MIXED BUFFER....");
-#endif // ENABLE_LOG
+#endif // _DEBUG
 
 		dsdesc.dwFlags &= ~DSBCAPS_LOCSOFTWARE;
 		dsdesc.dwFlags |= DSBCAPS_LOCHARDWARE;
@@ -236,28 +236,28 @@ HRESULT IDirectSound8Ex::CreateSoundBuffer    (LPCDSBUFFERDESC pcDSBufferDesc, L
 	{
 		dsdesc.guid3DAlgorithm = DS3DALG_HRTF_FULL;
 
-#ifdef ENABLE_LOG
+#ifdef _DEBUG
 		if( g_bLogDirectSound == true )
 			::LogMessage( m_cszClassName, this, "CreateSoundBuffer FORCING HQ 3D SOFTWARE PROCESSING....");
-#endif // ENABLE_LOG
+#endif // _DEBUG
 	}
 
 	if(( g_bForceNonStatic == true ) && ( dsdesc.dwFlags & DSBCAPS_STATIC ))
 	{
-#ifdef ENABLE_LOG
+#ifdef _DEBUG
 		if( g_bLogDirectSound == true )
 			::LogMessage( m_cszClassName, this, "CreateSoundBuffer FORCING NON-STATIC BUFFER....");
-#endif // ENABLE_LOG
+#endif // _DEBUG
 
 		dsdesc.dwFlags &= ~DSBCAPS_STATIC;
 	}
 
 	if(( g_bForceVoiceManagement == true ) && (( dsdesc.dwFlags & DSBCAPS_LOCDEFER ) == 0 ))
 	{
-#ifdef ENABLE_LOG
+#ifdef _DEBUG
 		if( g_bLogDirectSound == true )
 			::LogMessage(m_cszClassName, this, "CreateSoundBuffer FORCING BUFFER MANAGMEMENT....");
-#endif // ENABLE_LOG
+#endif // _DEBUG
 
 		dsdesc.dwFlags &= ~DSBCAPS_LOCSOFTWARE;
 		dsdesc.dwFlags &= ~DSBCAPS_LOCHARDWARE;
@@ -277,7 +277,7 @@ HRESULT IDirectSound8Ex::CreateSoundBuffer    (LPCDSBUFFERDESC pcDSBufferDesc, L
 		if((hRes == S_OK) && ( g_bForcePrimaryBufferFormat == true ))
 		{
 
-	#ifdef ENABLE_LOG
+	#ifdef _DEBUG
 			if( g_bLogDirectSound == true )
 			{
 				CString sMessage;
@@ -285,7 +285,7 @@ HRESULT IDirectSound8Ex::CreateSoundBuffer    (LPCDSBUFFERDESC pcDSBufferDesc, L
 
 				::LogMessage(m_cszClassName, this, sMessage.GetBuffer() );
 			}
-	#endif // ENABLE_LOG
+	#endif // _DEBUG
 
 			WAVEFORMATEX fxFormat;
 			fxFormat.wFormatTag		=	WAVE_FORMAT_PCM;
@@ -297,12 +297,9 @@ HRESULT IDirectSound8Ex::CreateSoundBuffer    (LPCDSBUFFERDESC pcDSBufferDesc, L
 			fxFormat.nAvgBytesPerSec=	fxFormat.nBlockAlign * fxFormat.nSamplesPerSec;
 			
 			HRESULT hResult = pDSBX->m_lpDirectSoundBuffer8->SetFormat	( &fxFormat );
-	#ifdef ENABLE_LOG
+
 			if(( g_bLogDirectSound == true ) && ( hResult != S_OK ))
 				::LogMessage(m_cszClassName, this, "ERROR: FORCING PRIMARY BUFFER FORMAT failed....");
-	#else
-			UNREFERENCED_PARAMETER(hResult);
-	#endif // ENABLE_LOG
 		}
 	}
 
@@ -313,10 +310,10 @@ HRESULT IDirectSound8Ex::CreateSoundBuffer    (LPCDSBUFFERDESC pcDSBufferDesc, L
 
 HRESULT IDirectSound8Ex::GetCaps              (LPDSCAPS pDSCaps)
 {
-#ifdef ENABLE_LOG
+#ifdef _DEBUG
 	if( g_bLogDirectSound == true )
 		::LogMessage(m_cszClassName, this, "GetCaps called....");
-#endif // ENABLE_LOG
+#endif // _DEBUG
 
 	HRESULT hRes = m_lpDirectSound8->GetCaps( pDSCaps );
 
@@ -335,18 +332,18 @@ HRESULT IDirectSound8Ex::GetCaps              (LPDSCAPS pDSCaps)
 			pDSCaps->dwMaxHwMixingStaticBuffers		=	g_nNum2DBuffers;
 			pDSCaps->dwMaxHwMixingStreamingBuffers	=	g_nNum2DBuffers;
 
-#ifdef ENABLE_LOG
+#ifdef _DEBUG
 			if( g_bLogDirectSound == true )
 				::LogMessage( m_cszClassName, this, "GetCaps number of 2D buffers changed....");
-#endif // ENABLE_LOG
+#endif // _DEBUG
 
 		}
 		else
 		{
-#ifdef ENABLE_LOG
+#ifdef _DEBUG
 			if( g_bLogDirectSound == true )
 				LogMessage( m_cszClassName, this, "ERROR: GetCaps INVALID number of 2D buffers given, no change....");
-#endif // ENABLE_LOG
+#endif // _DEBUG
 		}
 	}
 	
@@ -365,17 +362,15 @@ HRESULT IDirectSound8Ex::GetCaps              (LPDSCAPS pDSCaps)
 			pDSCaps->dwMaxHw3DStaticBuffers			=	g_nNum3DBuffers;
 			pDSCaps->dwMaxHw3DStreamingBuffers		=	g_nNum3DBuffers;
 
-#ifdef ENABLE_LOG
+#ifdef _DEBUG
 			if( g_bLogDirectSound == true )
 				::LogMessage( m_cszClassName, this, "GetCaps number of 3D buffers changed....");
-#endif // ENABLE_LOG
+#endif // _DEBUG
 		}
 		else
 		{
-#ifdef ENABLE_LOG
 			if( g_bLogDirectSound == true )
 				::LogMessage( m_cszClassName, this, "ERROR: GetCaps INVALID number of 3D buffers given, no change....");
-#endif // ENABLE_LOG
 		}
 	}
 
@@ -386,7 +381,7 @@ HRESULT IDirectSound8Ex::GetCaps              (LPDSCAPS pDSCaps)
 
 HRESULT IDirectSound8Ex::DuplicateSoundBuffer (LPDIRECTSOUNDBUFFER pDSBufferOriginal, LPDIRECTSOUNDBUFFER *ppDSBufferDuplicate)
 {
-#ifdef ENABLE_LOG
+#ifdef _DEBUG
 	if( g_bLogDirectSound == true )
 	{
 		CString sLogString;
@@ -394,7 +389,7 @@ HRESULT IDirectSound8Ex::DuplicateSoundBuffer (LPDIRECTSOUNDBUFFER pDSBufferOrig
 
 		::LogMessage( m_cszClassName, this, sLogString.GetBuffer());
 	}
-#endif // ENABLE_LOG
+#endif // _DEBUG
 
 	*ppDSBufferDuplicate = NULL;
 
@@ -417,7 +412,7 @@ HRESULT IDirectSound8Ex::DuplicateSoundBuffer (LPDIRECTSOUNDBUFFER pDSBufferOrig
 
 HRESULT IDirectSound8Ex::SetCooperativeLevel  (HWND hwnd, DWORD dwLevel)
 {
-#ifdef ENABLE_LOG
+#ifdef _DEBUG
 	if( g_bLogDirectSound == true )
 	{
 		switch (dwLevel )
@@ -428,7 +423,7 @@ HRESULT IDirectSound8Ex::SetCooperativeLevel  (HWND hwnd, DWORD dwLevel)
 			case DSSCL_WRITEPRIMARY : ::LogMessage( m_cszClassName, this, "SetCooperativeLevel called,Level=DSSCL_WRITEPRIMARY"); break;
 		}
 	}
-#endif // ENABLE_LOG
+#endif // _DEBUG
 
 	if( dwLevel == DSSCL_NORMAL )
 	{
@@ -436,10 +431,10 @@ HRESULT IDirectSound8Ex::SetCooperativeLevel  (HWND hwnd, DWORD dwLevel)
 		{
 			dwLevel = DSSCL_EXCLUSIVE;
 
-#ifdef ENABLE_LOG
+#ifdef _DEBUG
 			if( g_bLogDirectSound == true )
 				::LogMessage( m_cszClassName, this, "SetCooperativeLevel FORCING EXCLUSIVE MODE ....");
-#endif // ENABLE_LOG
+#endif // _DEBUG
 		}
 	}
 
@@ -450,10 +445,10 @@ HRESULT IDirectSound8Ex::SetCooperativeLevel  (HWND hwnd, DWORD dwLevel)
 
 HRESULT IDirectSound8Ex::Compact()
 {
-#ifdef ENABLE_LOG
+#ifdef _DEBUG
 	if( g_bLogDirectSound == true )
 		::LogMessage( m_cszClassName, this, "Compact called....");
-#endif // ENABLE_LOG
+#endif // _DEBUG
 
 	return m_lpDirectSound8->Compact();
 }
@@ -462,17 +457,17 @@ HRESULT IDirectSound8Ex::Compact()
 
 HRESULT IDirectSound8Ex::GetSpeakerConfig     (LPDWORD pdwSpeakerConfig)
 {
-#ifdef ENABLE_LOG
+#ifdef _DEBUG
 	if( g_bLogDirectSound == true )
 		::LogMessage( m_cszClassName, this, "GetSpeakerConfig called....");
-#endif // ENABLE_LOG
+#endif // _DEBUG
 
 	if( g_bForceSpeakerConfig == true )
 	{
-#ifdef ENABLE_LOG
+#ifdef _DEBUG
 		if( g_bLogDirectSound == true )
 			::LogMessage( m_cszClassName, this, "GetSpeakerConfig FORCED....");
-#endif  // ENABLE_LOG
+#endif  // _DEBUG
 	
 		*pdwSpeakerConfig = g_nSpeakerConfig;
 
@@ -487,7 +482,7 @@ HRESULT IDirectSound8Ex::GetSpeakerConfig     (LPDWORD pdwSpeakerConfig)
 
 HRESULT IDirectSound8Ex::SetSpeakerConfig     (DWORD dwSpeakerConfig)
 {
-#ifdef ENABLE_LOG
+#ifdef _DEBUG
 	if( g_bLogDirectSound == true )
 	{
 		CString sLogString;
@@ -505,14 +500,14 @@ HRESULT IDirectSound8Ex::SetSpeakerConfig     (DWORD dwSpeakerConfig)
 
 		::LogMessage( m_cszClassName, this, sLogString.GetBuffer());
 	}
-#endif // ENABLE_LOG
+#endif // _DEBUG
 
 	if( g_bPreventSpeakerSetup == true )
 	{
-#ifdef ENABLE_LOG
+#ifdef _DEBUG
 		if( g_bLogDirectSound == true )
 			::LogMessage( m_cszClassName, this, "SetSpeakerConfig PREVENTED....");
-#endif  // ENABLE_LOG
+#endif  // _DEBUG
 	
 		return S_OK;
 	}
@@ -524,10 +519,10 @@ HRESULT IDirectSound8Ex::SetSpeakerConfig     (DWORD dwSpeakerConfig)
 
 HRESULT IDirectSound8Ex::Initialize(LPCGUID pcGuidDevice) 
 {
-#ifdef ENABLE_LOG
+#ifdef _DEBUG
 	if( g_bLogDirectSound == true )
 		::LogMessage( m_cszClassName, this, "Initialize called....");
-#endif // ENABLE_LOG
+#endif // _DEBUG
 	
 	return m_lpDirectSound8->Initialize( pcGuidDevice ) ;
 }
@@ -536,10 +531,10 @@ HRESULT IDirectSound8Ex::Initialize(LPCGUID pcGuidDevice)
 
 HRESULT  IDirectSound8Ex::VerifyCertification(LPDWORD pdwCertified)
 {
-#ifdef ENABLE_LOG
+#ifdef _DEBUG
 	if( g_bLogDirectSound == true )
 		::LogMessage( m_cszClassName, this, "VerifyCertification called....");
-#endif // ENABLE_LOG
+#endif // _DEBUG
 
 	HRESULT hRes = m_lpDirectSound8->VerifyCertification( pdwCertified ) ;
 
@@ -547,15 +542,13 @@ HRESULT  IDirectSound8Ex::VerifyCertification(LPDWORD pdwCertified)
 	{
 		*pdwCertified = DS_CERTIFIED;
 
-#ifdef ENABLE_LOG
+#ifdef _DEBUG
 		if( g_bLogDirectSound == true )
 			::LogMessage( m_cszClassName, this, "VerifyCertification WHQL certification FORCED....");
-#endif // ENABLE_LOG
+#endif // _DEBUG
 	
 		return S_OK;
 	}
 
 	return hRes;
 }
-
-//////////////////////////////////////////////////////////////////////////////////////////////

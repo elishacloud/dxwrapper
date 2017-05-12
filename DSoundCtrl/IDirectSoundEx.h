@@ -31,10 +31,8 @@
 
 //////////////////////////////////////////////////////////////////////////////////////////////
 
-#ifdef ENABLE_LOG
 extern void LogMessage(const char* szClassName, void* pInstance, char* szMessage );
 extern bool	g_bLogDirectSound;
-#endif // ENABLE_LOG
 
 extern bool g_bForceExclusiveMode;
 extern bool g_bForceCertification;
@@ -77,9 +75,7 @@ public:
 	LPDIRECTSOUND8	m_lpDirectSound8;
 
 protected : 
-#ifdef ENABLE_LOG
 	const char* m_cszClassName;
-#endif // ENABLE_LOG
 };
 
 //////////////////////////////////////////////////////////////////////////////////////////////

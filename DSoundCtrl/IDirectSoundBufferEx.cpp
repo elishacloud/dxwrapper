@@ -40,12 +40,12 @@ IDirectSoundBuffer8Ex::IDirectSoundBuffer8Ex(void)
 	m_dwOldWriteCursorPos	= 0;
 	m_nWriteCursorIdent		= 0;
 
-#ifdef ENABLE_LOG
+#ifdef _DEBUG
 	m_cszClassName = IDIRECTSOUNDBUFFER8EX_CLASS_NAME;
 
 	if( g_bLogDirectSoundBuffer == true )
 		::LogMessage( m_cszClassName, this, "Constructor called....");
-#endif // ENABLE_LOG
+#endif // _DEBUG
 
 }
 
@@ -53,10 +53,10 @@ IDirectSoundBuffer8Ex::IDirectSoundBuffer8Ex(void)
 
 IDirectSoundBuffer8Ex::~IDirectSoundBuffer8Ex(void)
 {
-#ifdef ENABLE_LOG
+#ifdef _DEBUG
 	if( g_bLogDirectSoundBuffer == true )
 		::LogMessage( m_cszClassName, this, "Destructor called....");
-#endif // ENABLE_LOG
+#endif // _DEBUG
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////
@@ -80,10 +80,10 @@ HRESULT IDirectSoundBuffer8Ex::QueryInterface( REFIID refIID, LPVOID * pVoid )
 			//m_lpDirectSoundBuffer8->AddRef();
 		}
 
-#ifdef ENABLE_LOG
+#ifdef _DEBUG
 	if( g_bLogDirectSoundBuffer == true )
 		::LogMessage( m_cszClassName, this, "QueryInterface called,Interface=IID_IDirectSoundBuffer8");
-#endif // ENABLE_LOG
+#endif // _DEBUG
 
 		return hRes;
 	}
@@ -97,10 +97,10 @@ HRESULT IDirectSoundBuffer8Ex::QueryInterface( REFIID refIID, LPVOID * pVoid )
 		if( hRes == S_OK )
 			*pVoid = (LPVOID) pDS3DBX;
 
-#ifdef ENABLE_LOG
+#ifdef _DEBUG
 	if( g_bLogDirectSoundBuffer == true )
 		::LogMessage( m_cszClassName, this, "QueryInterface called,Interface=IID_IDirectSound3DBuffer8");
-#endif // ENABLE_LOG
+#endif // _DEBUG
 
 		return hRes;
 	}
@@ -114,10 +114,10 @@ HRESULT IDirectSoundBuffer8Ex::QueryInterface( REFIID refIID, LPVOID * pVoid )
 		if( hRes == S_OK )
 			*pVoid = (LPVOID) pDS3DLX;
 
-#ifdef ENABLE_LOG
+#ifdef _DEBUG
 	if( g_bLogDirectSoundBuffer == true )
 		::LogMessage( m_cszClassName, this, "QueryInterface called,Interface=IID_IDirectSound3DListener8");
-#endif // ENABLE_LOG
+#endif // _DEBUG
 
 		return hRes;
 	}
@@ -125,10 +125,10 @@ HRESULT IDirectSoundBuffer8Ex::QueryInterface( REFIID refIID, LPVOID * pVoid )
 	// Unknown interface, let DX handle this...
 	hRes =  m_lpDirectSoundBuffer8->QueryInterface( refIID, pVoid );
 
-#ifdef ENABLE_LOG
+#ifdef _DEBUG
 	if( g_bLogDirectSoundBuffer == true )
 		::LogMessage( m_cszClassName, this, "QueryInterface for unknown interface IID called....");
-#endif // ENABLE_LOG
+#endif // _DEBUG
 
 	return hRes;
 }
@@ -139,7 +139,7 @@ ULONG IDirectSoundBuffer8Ex::AddRef()
 {
 	ULONG nRefCnt = m_lpDirectSoundBuffer8->AddRef();
 
-#ifdef ENABLE_LOG
+#ifdef _DEBUG
 	if( g_bLogDirectSoundBuffer == true )
 	{
 		CString sLogString;
@@ -147,7 +147,7 @@ ULONG IDirectSoundBuffer8Ex::AddRef()
 
 		::LogMessage( m_cszClassName, this, sLogString.GetBuffer());
 	}
-#endif // ENABLE_LOG
+#endif // _DEBUG
 
 	return nRefCnt;
 }
@@ -158,7 +158,7 @@ ULONG IDirectSoundBuffer8Ex::Release()
 {
 	ULONG nRefCnt = m_lpDirectSoundBuffer8->Release();
 
-#ifdef ENABLE_LOG
+#ifdef _DEBUG
 	if( g_bLogDirectSoundBuffer == true )
 	{
 		CString sLogString;
@@ -166,7 +166,7 @@ ULONG IDirectSoundBuffer8Ex::Release()
 
 		::LogMessage( m_cszClassName, this, sLogString.GetBuffer());
 	}
-#endif // ENABLE_LOG
+#endif // _DEBUG
 
 	if ( nRefCnt == 0 )
 	{
@@ -182,10 +182,10 @@ ULONG IDirectSoundBuffer8Ex::Release()
 
 HRESULT IDirectSoundBuffer8Ex::GetCaps				(LPDSBCAPS pDSBufferCaps)
 {
-#ifdef ENABLE_LOG
+#ifdef _DEBUG
 	if( g_bLogDirectSoundBuffer == true )
 		LogMessage( m_cszClassName, this, "GetCaps called....");
-#endif // ENABLE_LOG
+#endif // _DEBUG
 
 	return m_lpDirectSoundBuffer8->GetCaps( pDSBufferCaps );
 }
@@ -196,13 +196,13 @@ HRESULT IDirectSoundBuffer8Ex::GetCurrentPosition	(LPDWORD pdwCurrentPlayCursor,
 {
 	HRESULT hRes = m_lpDirectSoundBuffer8->GetCurrentPosition( pdwCurrentPlayCursor,pdwCurrentWriteCursor );
 
-#ifdef ENABLE_LOG
+#ifdef _DEBUG
 	if( g_bLogDirectSoundBuffer == true )
 	{
 		sprintf_s( m_acLogBuffer, "GetCurrentPosition called,HRES=0x%x,PlayCursor=%u,WriteCursor=%u", hRes,(pdwCurrentPlayCursor==NULL?0:*pdwCurrentPlayCursor), (pdwCurrentWriteCursor==NULL?0:*pdwCurrentWriteCursor) );
 		LogMessage( m_cszClassName, this, m_acLogBuffer );
 	}
-#endif // ENABLE_LOG
+#endif // _DEBUG
 
 	if( g_bStoppedDriverWorkaround == true )
 	{
@@ -218,9 +218,9 @@ HRESULT IDirectSoundBuffer8Ex::GetCurrentPosition	(LPDWORD pdwCurrentPlayCursor,
 				{
 					if( ++m_nWriteCursorIdent > 1 )
 					{
-#ifdef ENABLE_LOG
+#ifdef _DEBUG
 						LogMessage( m_cszClassName, this, "Driver has stopped playing...enabling workaround" );
-#endif // ENABLE_LOG
+#endif // _DEBUG
 						m_lpDirectSoundBuffer8->Stop();
 						m_lpDirectSoundBuffer8->Play(0, 0, dwStatus & DSBPLAY_LOOPING );
 					}
@@ -240,10 +240,10 @@ HRESULT IDirectSoundBuffer8Ex::GetCurrentPosition	(LPDWORD pdwCurrentPlayCursor,
 
 HRESULT IDirectSoundBuffer8Ex::GetFormat (LPWAVEFORMATEX pwfxFormat, DWORD dwSizeAllocated, LPDWORD pdwSizeWritten)
 {
-#ifdef ENABLE_LOG
+#ifdef _DEBUG
 	if( g_bLogDirectSoundBuffer == true )
 		LogMessage( m_cszClassName, this, "GetFormat called....");
-#endif // ENABLE_LOG
+#endif // _DEBUG
 
 	return m_lpDirectSoundBuffer8->GetFormat( pwfxFormat, dwSizeAllocated, pdwSizeWritten );
 }
@@ -252,10 +252,10 @@ HRESULT IDirectSoundBuffer8Ex::GetFormat (LPWAVEFORMATEX pwfxFormat, DWORD dwSiz
 
 HRESULT IDirectSoundBuffer8Ex::GetVolume				(LPLONG plVolume)
 {
-#ifdef ENABLE_LOG
+#ifdef _DEBUG
 	if( g_bLogDirectSoundBuffer == true )
 		LogMessage( m_cszClassName, this, "GetVolume called....");
-#endif // ENABLE_LOG
+#endif // _DEBUG
 
 	return m_lpDirectSoundBuffer8->GetVolume( plVolume );
 }
@@ -264,10 +264,10 @@ HRESULT IDirectSoundBuffer8Ex::GetVolume				(LPLONG plVolume)
 
 HRESULT IDirectSoundBuffer8Ex::GetPan				(LPLONG plPan)
 {
-#ifdef ENABLE_LOG
+#ifdef _DEBUG
 	if( g_bLogDirectSoundBuffer == true )
 		LogMessage( m_cszClassName, this, "GetPan called....");
-#endif // ENABLE_LOG
+#endif // _DEBUG
 
 	return m_lpDirectSoundBuffer8->GetPan( plPan );
 }
@@ -276,10 +276,10 @@ HRESULT IDirectSoundBuffer8Ex::GetPan				(LPLONG plPan)
 
 HRESULT IDirectSoundBuffer8Ex::GetFrequency	( LPDWORD pdwFrequency )
 {
-#ifdef ENABLE_LOG
+#ifdef _DEBUG
 	if( g_bLogDirectSoundBuffer == true )
 		LogMessage( m_cszClassName, this, "GetFrequency called....");
-#endif // ENABLE_LOG
+#endif // _DEBUG
 
 	return m_lpDirectSoundBuffer8->GetFrequency	( pdwFrequency );
 }
@@ -290,13 +290,13 @@ HRESULT IDirectSoundBuffer8Ex::GetStatus				(LPDWORD pdwStatus)
 {
 	HRESULT hRes = m_lpDirectSoundBuffer8->GetStatus	( pdwStatus );
 
-#ifdef ENABLE_LOG
+#ifdef _DEBUG
 	if( g_bLogDirectSoundBuffer == true )
 	{
 		sprintf_s( m_acLogBuffer, "GetStatus called,HRES=0x%x,Status=%u", hRes, (pdwStatus==NULL?0:*pdwStatus) );
 		LogMessage( m_cszClassName, this, m_acLogBuffer );
 	}
-#endif // ENABLE_LOG
+#endif // _DEBUG
 
 
 	return hRes;
@@ -306,10 +306,10 @@ HRESULT IDirectSoundBuffer8Ex::GetStatus				(LPDWORD pdwStatus)
 
 HRESULT IDirectSoundBuffer8Ex::Initialize(LPDIRECTSOUND pDirectSound, LPCDSBUFFERDESC pcDSBufferDesc)
 {
-#ifdef ENABLE_LOG
+#ifdef _DEBUG
 	if( g_bLogDirectSoundBuffer == true )
 		LogMessage( m_cszClassName, this, "Initialize called....");
-#endif // ENABLE_LOG
+#endif // _DEBUG
 
 	return m_lpDirectSoundBuffer8->Initialize	( ((IDirectSound8Ex*)pDirectSound)->m_lpDirectSound8, pcDSBufferDesc );
 }
@@ -319,13 +319,13 @@ HRESULT IDirectSoundBuffer8Ex::Initialize(LPDIRECTSOUND pDirectSound, LPCDSBUFFE
 HRESULT IDirectSoundBuffer8Ex::Lock	(DWORD dwOffset, DWORD dwBytes, LPVOID *ppvAudioPtr1, LPDWORD pdwAudioBytes1,LPVOID *ppvAudioPtr2, LPDWORD pdwAudioBytes2, DWORD dwFlags)
 {
 	HRESULT hRes = m_lpDirectSoundBuffer8->Lock	( dwOffset, dwBytes, ppvAudioPtr1, pdwAudioBytes1,ppvAudioPtr2, pdwAudioBytes2, dwFlags);
-#ifdef ENABLE_LOG
+#ifdef _DEBUG
 	if( g_bLogDirectSoundBuffer == true )
 	{
 		sprintf_s( m_acLogBuffer, "Lock,HRES=0x%x,Offset=%u,Bytes=%u,Ptr1=0x%x,BytesPtr1=0x%x,Ptr2=0x%x,BytesPtr2=0x%x,Flags=0x%x",hRes,dwOffset,dwBytes,(DWORD) ppvAudioPtr1, (DWORD) pdwAudioBytes1, (DWORD) ppvAudioPtr2, (DWORD) pdwAudioBytes2, dwFlags );
 		LogMessage( m_cszClassName, this, m_acLogBuffer );
 	}
-#endif // ENABLE_LOG
+#endif // _DEBUG
 
 	return hRes;
 }
@@ -334,10 +334,10 @@ HRESULT IDirectSoundBuffer8Ex::Lock	(DWORD dwOffset, DWORD dwBytes, LPVOID *ppvA
 
 HRESULT IDirectSoundBuffer8Ex::Play					(DWORD dwReserved1, DWORD dwPriority, DWORD dwFlags)
 {
-#ifdef ENABLE_LOG
+#ifdef _DEBUG
 	if( g_bLogDirectSoundBuffer == true )
 		LogMessage( m_cszClassName, this, "Play called....");
-#endif // ENABLE_LOG
+#endif // _DEBUG
 
 	return m_lpDirectSoundBuffer8->Play	( dwReserved1, dwPriority, dwFlags );
 }
@@ -346,10 +346,10 @@ HRESULT IDirectSoundBuffer8Ex::Play					(DWORD dwReserved1, DWORD dwPriority, DW
 
 HRESULT IDirectSoundBuffer8Ex::SetCurrentPosition	(DWORD dwNewPosition)
 {
-#ifdef ENABLE_LOG
+#ifdef _DEBUG
 	if( g_bLogDirectSoundBuffer == true )
 		LogMessage( m_cszClassName, this, "SetCurrentPosition called....");
-#endif // ENABLE_LOG
+#endif // _DEBUG
 
 	return m_lpDirectSoundBuffer8->SetCurrentPosition	( dwNewPosition );
 }
@@ -358,14 +358,14 @@ HRESULT IDirectSoundBuffer8Ex::SetCurrentPosition	(DWORD dwNewPosition)
 
 HRESULT IDirectSoundBuffer8Ex::SetFormat(LPCWAVEFORMATEX pcfxFormat)
 {
-#ifdef ENABLE_LOG
+#ifdef _DEBUG
 	if( g_bLogDirectSoundBuffer == true )
 		LogMessage( m_cszClassName, this, "SetFormat called....");
-#endif // ENABLE_LOG
+#endif // _DEBUG
 
 	if(( g_bForcePrimaryBufferFormat == true ) && this->GetPrimaryBuffer() )
 	{
-#ifdef ENABLE_LOG
+#ifdef _DEBUG
 		if( g_bLogDirectSoundBuffer == true )
 		{
 			CString sMessage;
@@ -373,7 +373,7 @@ HRESULT IDirectSoundBuffer8Ex::SetFormat(LPCWAVEFORMATEX pcfxFormat)
 
 			::LogMessage(m_cszClassName, this, sMessage.GetBuffer() );
 		}
-#endif // ENABLE_LOG
+#endif // _DEBUG
 
 		WAVEFORMATEX fxFormat;
 		fxFormat.wFormatTag		=	WAVE_FORMAT_PCM;
@@ -394,10 +394,10 @@ HRESULT IDirectSoundBuffer8Ex::SetFormat(LPCWAVEFORMATEX pcfxFormat)
 
 HRESULT IDirectSoundBuffer8Ex::SetVolume				(LONG lVolume)
 {
-#ifdef ENABLE_LOG
+#ifdef _DEBUG
 	if( g_bLogDirectSoundBuffer == true )
 		LogMessage( m_cszClassName, this, "SetVolume called....");
-#endif // ENABLE_LOG
+#endif // _DEBUG
 
 	return m_lpDirectSoundBuffer8->SetVolume( lVolume );
 }
@@ -406,10 +406,10 @@ HRESULT IDirectSoundBuffer8Ex::SetVolume				(LONG lVolume)
 
 HRESULT IDirectSoundBuffer8Ex::SetPan				(LONG lPan)
 {
-#ifdef ENABLE_LOG
+#ifdef _DEBUG
 	if( g_bLogDirectSoundBuffer == true )
 		LogMessage( m_cszClassName, this, "SetPan called....");
-#endif // ENABLE_LOG
+#endif // _DEBUG
 
 	return m_lpDirectSoundBuffer8->SetPan( lPan );
 }
@@ -418,10 +418,10 @@ HRESULT IDirectSoundBuffer8Ex::SetPan				(LONG lPan)
 
 HRESULT IDirectSoundBuffer8Ex::SetFrequency	(DWORD dwFrequency)
 {
-#ifdef ENABLE_LOG
+#ifdef _DEBUG
 	if( g_bLogDirectSoundBuffer == true )
 		LogMessage( m_cszClassName, this, "SetFrequency called....");
-#endif // ENABLE_LOG
+#endif // _DEBUG
 
 	return m_lpDirectSoundBuffer8->SetFrequency	( dwFrequency );
 }
@@ -430,10 +430,10 @@ HRESULT IDirectSoundBuffer8Ex::SetFrequency	(DWORD dwFrequency)
 
 HRESULT IDirectSoundBuffer8Ex::Stop					()
 {
-#ifdef ENABLE_LOG
+#ifdef _DEBUG
 	if( g_bLogDirectSoundBuffer == true )
 		LogMessage( m_cszClassName, this, "Stop called....");
-#endif // ENABLE_LOG
+#endif // _DEBUG
 
 	return m_lpDirectSoundBuffer8->Stop	();
 }
@@ -444,14 +444,14 @@ HRESULT IDirectSoundBuffer8Ex::Unlock				(LPVOID pvAudioPtr1, DWORD dwAudioBytes
 {
 	HRESULT hRes = m_lpDirectSoundBuffer8->Unlock(pvAudioPtr1, dwAudioBytes1, pvAudioPtr2, dwAudioBytes2 );
 
-#ifdef ENABLE_LOG
+#ifdef _DEBUG
 	if( g_bLogDirectSoundBuffer == true )
 	{
 		sprintf_s( m_acLogBuffer, "Unlock,HRES=0x%x,Ptr1=0x%x,Bytes1=%u,Ptr2=0x%x,Bytes2=%u,", hRes, (DWORD) pvAudioPtr1, dwAudioBytes1, (DWORD) pvAudioPtr2, dwAudioBytes2 );
 		LogMessage( m_cszClassName, this, m_acLogBuffer );
 	}
 
-#endif // ENABLE_LOG
+#endif // _DEBUG
 
 	return hRes;
 }
@@ -460,10 +460,10 @@ HRESULT IDirectSoundBuffer8Ex::Unlock				(LPVOID pvAudioPtr1, DWORD dwAudioBytes
 
 HRESULT IDirectSoundBuffer8Ex::Restore()
 {
-#ifdef ENABLE_LOG
+#ifdef _DEBUG
 	if( g_bLogDirectSoundBuffer == true )
 		LogMessage( m_cszClassName, this, "Restore called....");
-#endif // ENABLE_LOG
+#endif // _DEBUG
 
 	return m_lpDirectSoundBuffer8->Restore();
 }
@@ -473,10 +473,10 @@ HRESULT IDirectSoundBuffer8Ex::Restore()
 	// IDirectSoundBuffer8 methods
 HRESULT IDirectSoundBuffer8Ex::SetFX(DWORD dwEffectsCount, LPDSEFFECTDESC pDSFXDesc, LPDWORD pdwResultCodes)
 {
-#ifdef ENABLE_LOG
+#ifdef _DEBUG
 	if( g_bLogDirectSoundBuffer == true )
 		LogMessage( m_cszClassName, this, "SetFX called....");
-#endif // ENABLE_LOG
+#endif // _DEBUG
 
 	return m_lpDirectSoundBuffer8->SetFX(dwEffectsCount, pDSFXDesc, pdwResultCodes);
 }
@@ -485,10 +485,10 @@ HRESULT IDirectSoundBuffer8Ex::SetFX(DWORD dwEffectsCount, LPDSEFFECTDESC pDSFXD
 
 HRESULT IDirectSoundBuffer8Ex::AcquireResources	(DWORD dwFlags, DWORD dwEffectsCount, LPDWORD pdwResultCodes)
 {
-#ifdef ENABLE_LOG
+#ifdef _DEBUG
 	if( g_bLogDirectSoundBuffer == true )
 		LogMessage( m_cszClassName, this, "AcquireResources called....");
-#endif // ENABLE_LOG
+#endif // _DEBUG
 
 	return m_lpDirectSoundBuffer8->AcquireResources( dwFlags, dwEffectsCount, pdwResultCodes);
 }
@@ -497,14 +497,10 @@ HRESULT IDirectSoundBuffer8Ex::AcquireResources	(DWORD dwFlags, DWORD dwEffectsC
 
 HRESULT IDirectSoundBuffer8Ex::GetObjectInPath(REFGUID rguidObject, DWORD dwIndex, REFGUID rguidInterface, LPVOID *ppObject)
 {
-#ifdef ENABLE_LOG
+#ifdef _DEBUG
 	if( g_bLogDirectSoundBuffer == true )
 		LogMessage( m_cszClassName, this, "GetObjectInPath called....");
-#endif // ENABLE_LOG
+#endif // _DEBUG
 
 	return m_lpDirectSoundBuffer8->GetObjectInPath(rguidObject, dwIndex, rguidInterface, ppObject);
 }
-
-//////////////////////////////////////////////////////////////////////////////////////////////
-
-	

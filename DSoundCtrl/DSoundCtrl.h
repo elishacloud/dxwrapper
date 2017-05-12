@@ -31,57 +31,11 @@
 
 //////////////////////////////////////////////////////////////////////////////////////////////
 
-#define PROGRAM_VERSION					"V1.82"
-
-//////////////////////////////////////////////////////////////////////////////////////////////
-
-#define INI_FILE_NAME					".\\dsoundctrl.ini"
-#define LOG_FILE_NAME					"dsoundctrl.csv"
-
-#define SECTION_TWEAK					"Tweak"
-
-#ifdef ENABLE_LOG
-	#define SECTION_DEBUG					"Debug"
-
-	#define KEY_LOGSYSTEM					"LogSystem"
-	#define KEY_LOGDIRECTSOUND				"LogIDirectSound"
-	#define KEY_LOGDIRECTSOUNDBUFFER		"LogIDirectSoundBuffer"
-	#define KEY_LOGDIRECTSOUND3DBUFFER		"LogIDirectSound3DBuffer"
-	#define KEY_LOGDIRECTSOUND3DLISTENER	"LogIDirectSound3DListener"
-	#define KEY_DEBUGBEEP					"DebugBeep"
-#endif // ENABLE_LOG
-
-#define KEY_NUM2DBUFF					"Num2DBuffers"
-#define KEY_NUM3DBUFF					"Num3DBuffers"
-#define KEY_FORCECERT					"ForceCertification"
-#define KEY_FORCEEXCLUSIVEMODE			"ForceExclusiveMode" 
-#define KEY_FORCESOFTMIX				"ForceSoftwareMixing"
-#define KEY_FORCEHARDMIX				"ForceHardwareMixing"
-#define KEY_PREVSPEAKSETUP				"PreventSpeakerSetup"
-#define KEY_HQSOFT3D					"ForceHQ3DSoftMixing"
-#define KEY_FORCENONSTATIC				"ForceNonStaticBuffers"
-#define KEY_FORCEVOICEMANAGEMENT		"ForceVoiceManagement"
-#define KEY_FORCEPRIMARYBUFFERFORMAT	"ForcePrimaryBufferFormat"
-#define KEY_PRIMARYBUFFERBITS			"PrimaryBufferBits"
-#define KEY_PRIMARYBUFFERSAMPLES		"PrimaryBufferSamples"
-#define KEY_PRIMARYBUFFERCHANNELS		"PrimaryBufferChannels"
-
-#define KEY_WORKAROUNDSTOPPEDDRIVER		"EnableStoppedDriverWorkaround"
-
-#define KEY_FORCESPEAKERCONFIG			"ForceSpeakerConfig"
-#define KEY_SPEAKERCONFIG				"SpeakerConfig"
-
-//////////////////////////////////////////////////////////////////////////////////////////////
-
 #ifdef __cplusplus
 
 extern "C" {  // only need to export C interface if
               // used by C++ source code
 #endif
-
-//////////////////////////////////////////////////////////////////////////////////////////////
-
-#undef DirectSoundCreate
 
 //////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -113,9 +67,9 @@ extern "C" {  // only need to export C interface if
 
 //////////////////////////////////////////////////////////////////////////////////////////////
 
-#ifdef ENABLE_LOG
+#ifdef _DEBUG
 extern void LogMessage(const char* szClassName, void* pInstance, char* szMessage );
-#endif //ENABLE_LOG
+#endif //_DEBUG
 
 //////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -143,15 +97,12 @@ int				g_nSpeakerConfig				=	DSSPEAKER_5POINT1;
 
 bool			g_bStoppedDriverWorkaround		=	false;
 
-#ifdef ENABLE_LOG
-DWORD			g_dwStartTime					=	0;
 bool			g_bLogSystem					=	true;
 bool			g_bLogDirectSound				=	true;
 bool			g_bLogDirectSoundBuffer			=	true;
 bool			g_bLogDirectSound3DBuffer		=	true;
 bool			g_bLogDirectSound3DListener		=	true;
 bool			g_bDebugBeep					=	true;
-#endif // ENABLE_LOG
 
 //////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -169,12 +120,12 @@ public:
 public:
 	virtual BOOL InitInstance();
 
-#ifdef ENABLE_LOG
+#ifdef _DEBUG
 	bool EnumCallback( LPGUID  lpGuid,    LPCSTR  lpcstrDescription,  LPCSTR  lpcstrModule );
-#endif // ENABLE_LOG
+#endif // _DEBUG
 
 protected : 
-#ifdef ENABLE_LOG
 	const char* m_cszClassName;
-#endif // ENABLE_LOG
 };
+
+//////////////////////////////////////////////////////////////////////////////////////////////

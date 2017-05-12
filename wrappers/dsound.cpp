@@ -17,7 +17,7 @@
 #include "cfg.h"
 #include "ddraw.h"
 #include "dllmain.h"
-#include "DSoundCtrl\DSoundCtrlExtl.h"
+#include "DSoundCtrl\DSoundCtrlExternal.h"
 #include "wrapper.h"
 
 bool dsoundFlag = false;

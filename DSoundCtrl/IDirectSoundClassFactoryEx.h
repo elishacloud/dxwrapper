@@ -44,10 +44,10 @@
 //////////////////////////////////////////////////////////////////////////////////////////////
 
 
-#ifdef ENABLE_LOG
+#ifdef _DEBUG
 extern void LogMessage(const char* szClassName, void* pInstance, char* szMessage );
 extern bool	g_bLogSystem;
-#endif // ENABLE_LOG
+#endif // _DEBUG
 
 
 #ifdef __cplusplus
@@ -84,9 +84,9 @@ public:
 
 	LPCLASSFACTORY				m_lpClassFactory;
 protected : 
-#ifdef ENABLE_LOG
+#ifdef _DEBUG
 	const char*					m_cszClassName;
-#endif // ENABLE_LOG
+#endif // _DEBUG
 };
 
 //////////////////////////////////////////////////////////////////////////////////////////////

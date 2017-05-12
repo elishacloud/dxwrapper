@@ -32,10 +32,10 @@
 //////////////////////////////////////////////////////////////////////////////////////////////
 
 
-#ifdef ENABLE_LOG
+#ifdef _DEBUG
 extern void LogMessage(const char* szClassName, void* pInstance, char* szMessage );
 extern bool	g_bLogDirectSound3DListener;
-#endif // ENABLE_LOG
+#endif // _DEBUG
 
 //////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -68,9 +68,9 @@ public:
 
 	LPDIRECTSOUND3DLISTENER8	m_lpDirectSound3DListener8;
 protected : 
-#ifdef ENABLE_LOG
+#ifdef _DEBUG
 	const char*					m_cszClassName;
-#endif // ENABLE_LOG
+#endif // _DEBUG
 };
 
 //////////////////////////////////////////////////////////////////////////////////////////////

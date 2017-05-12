@@ -52,8 +52,8 @@
     <OutDir>$(Configuration)\</OutDir>
     <IntDir>$(Configuration)\</IntDir>
     <LinkIncremental>false</LinkIncremental>
-    <IncludePath>$(ProjectDir);DDrawCompat\v0.2.1;DxWnd\v2_03_60_src\Include;d3d8to9;C:\Program Files %28x86%29\Microsoft Research\Detours Express 3.0\include;$(IncludePath)</IncludePath>
-    <LibraryPath>C:\Program Files %28x86%29\Microsoft DirectX SDK (June 2010)\Lib\x86;C:\Program Files %28x86%29\Microsoft Research\Detours Express 3.0\lib.X86;$(LibraryPath)</LibraryPath>
+    <IncludePath>$(ProjectDir);DDrawCompat\v0.2.1;DxWnd\v2_03_60_src\Include;C:\Program Files (x86)\Microsoft Research\Detours Express 3.0\include;$(IncludePath)</IncludePath>
+    <LibraryPath>C:\Program Files (x86)\Microsoft DirectX SDK (June 2010)\Lib\x86;C:\Program Files (x86)\Microsoft Research\Detours Express 3.0\lib.X86;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <Midl>
@@ -131,7 +131,8 @@
       <BufferSecurityCheck>false</BufferSecurityCheck>
       <AdditionalUsingDirectories>
       </AdditionalUsingDirectories>
-      <DebugInformationFormat>None</DebugInformationFormat>
+      <DebugInformationFormat>
+      </DebugInformationFormat>
     </ClCompile>
     <ResourceCompile>
       <PreprocessorDefinitions>NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
@@ -249,7 +250,7 @@ copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\winspool.drv"
     <ClInclude Include="dllmain.h" />
     <ClInclude Include="DSoundCtrl\dsound.h" />
     <ClInclude Include="DSoundCtrl\DSoundCtrl.h" />
-    <ClInclude Include="DSoundCtrl\DSoundCtrlExtl.h" />
+    <ClInclude Include="DSoundCtrl\DSoundCtrlExternal.h" />
     <ClInclude Include="DSoundCtrl\DSoundTypes.h" />
     <ClInclude Include="DSoundCtrl\IDirectSound3DBufferEx.h" />
     <ClInclude Include="DSoundCtrl\IDirectSound3DListenerEx.h" />
