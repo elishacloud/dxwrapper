@@ -5,6 +5,8 @@
 #include "fullscreen.h"
 
 // utils.cpp
+void GetOSVersion();
+void GetProcessNameAndPID();
 void Shell(char*);
 void DisableHighDPIScaling();
 void SetSingleProcessAffinity(bool);

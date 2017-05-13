@@ -2,6 +2,9 @@
 // Microsoft Visual C++ generated include file.
 // Used by dxwrapper.rc
 
+#include "cfg.h"
+#include "dxwnd.h"
+
 // Main resource file details
 #define APP_NAME				"DirectX Dynamic Link Library"
 #define APP_MAJOR				1
@@ -12,6 +15,27 @@
 #define APP_COPYRIGHT			"Copyright (C) 2017 Elisha Riedlinger"
 #define APP_ORIGINALVERSION		"dxwrapper.dll"
 #define APP_INTERNALNAME		"dxwrapper"
+
+// Get APP_VERSION
+#define _TO_STRING_(x) #x
+#define _TO_STRING(x) _TO_STRING_(x)
+#define APP_VERSION "0." _TO_STRING(APP_MAJOR) "." _TO_STRING(APP_MINOR) "." _TO_STRING(APP_BUILDNUMBER) " " _TO_STRING(APP_DDRAWNAME) " " _TO_STRING(APP_DDRAWVERSION) " " _TO_STRING(APP_DXWNDNAME) " " _TO_STRING(APP_DXWNDVERSION)
+
+//Verify defintions exist in DDrawLog.h
+#ifndef APP_DDRAWNAME
+#include "Missing APP_DDRAWNAME definition in DDrawLog.h file"
+#endif
+#ifndef APP_DDRAWVERSION
+#include "Missing APP_DDRAWVERSION definition in DDrawLog.h file"
+#endif
+
+//Verify defintions exist in dxwnd.h
+#ifndef APP_DXWNDNAME
+#include "Missing APP_DXWNDNAME definition in dxwnd.h file"
+#endif
+#ifndef APP_DXWNDVERSION
+#include "Missing APP_DXWNDVERSION definition in dxwnd.h file"
+#endif
 
 // Next default values for new objects
 // 

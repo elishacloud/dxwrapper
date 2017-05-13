@@ -236,75 +236,133 @@ bool IsValueEnabled(char* name)
 		_strcmpi("enabled", name) == 0);
 }
 
+// Log setting value for bool
+void LogSetting(char* name, char* value)
+{
+#ifdef _DEBUG
+	Compat::Log() << name << " set to '" << value << "'";
+#else
+	UNREFERENCED_PARAMETER(name);
+	UNREFERENCED_PARAMETER(value);
+#endif
+}
+
+// Set value for DWORD
+void SetValue(char* name, char* value, DWORD* setting)
+{
+	DWORD NewValue = atoi(value);
+	if (*setting != NewValue)
+	{
+#ifdef _DEBUG
+		Compat::Log() << name << " set to '" << NewValue << "'";
+#else
+		UNREFERENCED_PARAMETER(name);
+#endif
+		*setting = NewValue;
+	}
+}
+
+// Set value for int
+void SetValue(char* name, char* value, int* setting)
+{
+	int NewValue = atoi(value);
+	if (*setting != NewValue)
+	{
+#ifdef _DEBUG
+		Compat::Log() << name << " set to '" << NewValue << "'";
+#else
+		UNREFERENCED_PARAMETER(name);
+#endif
+		*setting = NewValue;
+	}
+}
+
+// Set value for bool
+void SetValue(char* name, char* value, bool* setting)
+{
+	bool NewValue = IsValueEnabled(value);
+	if (*setting != NewValue)
+	{
+#ifdef _DEBUG
+		char* NewValueText = "false";
+		if (NewValue) NewValueText = "true";
+		Compat::Log() << name << " set to '" << NewValueText << "'";
+#else
+		UNREFERENCED_PARAMETER(name);
+#endif
+		*setting = NewValue;
+	}
+}
+
 // Set config from string (file)
 void __stdcall ParseCallback(char* name, char* value)
 {
 	// Boolean values
-	if (!_strcmpi(name, "SingleProcAffinity")) { Config.Affinity = IsValueEnabled(value); Config.AffinityNotSet = false; return; }
-	if (!_strcmpi(name, "D3d8to9")) { Config.D3d8to9 = IsValueEnabled(value); return; }
-	if (!_strcmpi(name, "DDrawCompat")) { Config.DDrawCompat = IsValueEnabled(value); return; }
-	if (!_strcmpi(name, "DisableHighDpiScaling")) { Config.DpiAware = IsValueEnabled(value); return; }
-	if (!_strcmpi(name, "DxWnd")) { Config.DxWnd = IsValueEnabled(value); return; }
-	if (!_strcmpi(name, "FullScreen")) { Config.FullScreen = IsValueEnabled(value); return; }
-	if (!_strcmpi(name, "ForceTermination")) { Config.ForceTermination = IsValueEnabled(value); return; }
-	if (!_strcmpi(name, "ForceWindowResize")) { Config.ForceWindowResize = IsValueEnabled(value); return; }
-	if (!_strcmpi(name, "HandleExceptions")) { Config.HandleExceptions = IsValueEnabled(value); return; }
-	if (!_strcmpi(name, "DSoundCtrl")) { Config.DSoundCtrl = IsValueEnabled(value); return; }
-	if (!_strcmpi(name, "ResetScreenRes")) { Config.ResetScreenRes = IsValueEnabled(value); return; }
-	if (!_strcmpi(name, "SendAltEnter")) { Config.SendAltEnter = IsValueEnabled(value); return; }
-	if (!_strcmpi(name, "WaitForProcess")) { Config.WaitForProcess = IsValueEnabled(value); return; }
-	if (!_strcmpi(name, "WaitForWindowChanges")) { Config.WaitForWindowChanges = IsValueEnabled(value); return; }
+	if (!_strcmpi(name, "SingleProcAffinity")) { SetValue(name, value, &Config.Affinity); Config.AffinityNotSet = false; return; }  // Sets Affinity and AffinityNotSet flags
+	if (!_strcmpi(name, "D3d8to9")) { SetValue(name, value, &Config.D3d8to9); return; }
+	if (!_strcmpi(name, "DDrawCompat")) { SetValue(name, value, &Config.DDrawCompat); return; }
+	if (!_strcmpi(name, "DisableHighDpiScaling")) { SetValue(name, value, &Config.DpiAware); return; }
+	if (!_strcmpi(name, "DxWnd")) { SetValue(name, value, &Config.DxWnd); return; }
+	if (!_strcmpi(name, "FullScreen")) { SetValue(name, value, &Config.FullScreen); return; }
+	if (!_strcmpi(name, "ForceTermination")) { SetValue(name, value, &Config.ForceTermination); return; }
+	if (!_strcmpi(name, "ForceWindowResize")) { SetValue(name, value, &Config.ForceWindowResize); return; }
+	if (!_strcmpi(name, "HandleExceptions")) { SetValue(name, value, &Config.HandleExceptions); return; }
+	if (!_strcmpi(name, "DSoundCtrl")) { SetValue(name, value, &Config.DSoundCtrl); return; }
+	if (!_strcmpi(name, "ResetScreenRes")) { SetValue(name, value, &Config.ResetScreenRes); return; }
+	if (!_strcmpi(name, "SendAltEnter")) { SetValue(name, value, &Config.SendAltEnter); return; }
+	if (!_strcmpi(name, "WaitForProcess")) { SetValue(name, value, &Config.WaitForProcess); return; }
+	if (!_strcmpi(name, "WaitForWindowChanges")) { SetValue(name, value, &Config.WaitForWindowChanges); return; }
 	// DSoundCtrl
-	if (!_strcmpi(name, "Num2DBuffers")) { Config.Num2DBuffers = atoi(value); return; }
-	if (!_strcmpi(name, "Num3DBuffers")) { Config.Num3DBuffers = atoi(value); return; }
-	if (!_strcmpi(name, "ForceCertification")) { Config.ForceCertification = IsValueEnabled(value); return; }
-	if (!_strcmpi(name, "ForceExclusiveMode")) { Config.ForceExclusiveMode = IsValueEnabled(value); return; }
-	if (!_strcmpi(name, "ForceSoftwareMixing")) { Config.ForceSoftwareMixing = IsValueEnabled(value); return; }
-	if (!_strcmpi(name, "ForceHardwareMixing")) { Config.ForceHardwareMixing = IsValueEnabled(value); return; }
-	if (!_strcmpi(name, "PreventSpeakerSetup")) { Config.PreventSpeakerSetup = IsValueEnabled(value); return; }
-	if (!_strcmpi(name, "ForceHQ3DSoftMixing")) { Config.ForceHQ3DSoftMixing = IsValueEnabled(value); return; }
-	if (!_strcmpi(name, "ForceNonStaticBuffers")) { Config.ForceNonStaticBuffers = IsValueEnabled(value); return; }
-	if (!_strcmpi(name, "ForceVoiceManagement")) { Config.ForceVoiceManagement = IsValueEnabled(value); return; }
-	if (!_strcmpi(name, "ForcePrimaryBufferFormat")) { Config.ForcePrimaryBufferFormat = IsValueEnabled(value); return; }
-	if (!_strcmpi(name, "PrimaryBufferBits")) { Config.PrimaryBufferBits = atoi(value); return; }
-	if (!_strcmpi(name, "PrimaryBufferSamples")) { Config.PrimaryBufferSamples = atoi(value); return; }
-	if (!_strcmpi(name, "PrimaryBufferChannels")) { Config.PrimaryBufferChannels = atoi(value); return; }
-	if (!_strcmpi(name, "ForceSpeakerConfig")) { Config.ForceSpeakerConfig = IsValueEnabled(value); return; }
-	if (!_strcmpi(name, "SpeakerConfig")) { Config.SpeakerConfig = atoi(value); return; }
-	if (!_strcmpi(name, "EnableStoppedDriverWorkaround")) { Config.EnableStoppedDriverWorkaround = IsValueEnabled(value); return; }
+	if (!_strcmpi(name, "Num2DBuffers")) { SetValue(name, value, &Config.Num2DBuffers); return; }
+	if (!_strcmpi(name, "Num3DBuffers")) { SetValue(name, value, &Config.Num3DBuffers); return; }
+	if (!_strcmpi(name, "ForceCertification")) { SetValue(name, value, &Config.ForceCertification); return; }
+	if (!_strcmpi(name, "ForceExclusiveMode")) { SetValue(name, value, &Config.ForceExclusiveMode); return; }
+	if (!_strcmpi(name, "ForceSoftwareMixing")) { SetValue(name, value, &Config.ForceSoftwareMixing); return; }
+	if (!_strcmpi(name, "ForceHardwareMixing")) { SetValue(name, value, &Config.ForceHardwareMixing); return; }
+	if (!_strcmpi(name, "PreventSpeakerSetup")) { SetValue(name, value, &Config.PreventSpeakerSetup); return; }
+	if (!_strcmpi(name, "ForceHQ3DSoftMixing")) { SetValue(name, value, &Config.ForceHQ3DSoftMixing); return; }
+	if (!_strcmpi(name, "ForceNonStaticBuffers")) { SetValue(name, value, &Config.ForceNonStaticBuffers); return; }
+	if (!_strcmpi(name, "ForceVoiceManagement")) { SetValue(name, value, &Config.ForceVoiceManagement); return; }
+	if (!_strcmpi(name, "ForcePrimaryBufferFormat")) { SetValue(name, value, &Config.ForcePrimaryBufferFormat); return; }
+	if (!_strcmpi(name, "PrimaryBufferBits")) { SetValue(name, value, &Config.PrimaryBufferBits); return; }
+	if (!_strcmpi(name, "PrimaryBufferSamples")) { SetValue(name, value, &Config.PrimaryBufferSamples); return; }
+	if (!_strcmpi(name, "PrimaryBufferChannels")) { SetValue(name, value, &Config.PrimaryBufferChannels); return; }
+	if (!_strcmpi(name, "ForceSpeakerConfig")) { SetValue(name, value, &Config.ForceSpeakerConfig); return; }
+	if (!_strcmpi(name, "SpeakerConfig")) { SetValue(name, value, &Config.SpeakerConfig); return; }
+	if (!_strcmpi(name, "EnableStoppedDriverWorkaround")) { SetValue(name, value, &Config.EnableStoppedDriverWorkaround); return; }
 	// AppCompatData
-	if (!_strcmpi(name, "LockEmulation")) { Config.DXPrimaryEmulation[AppCompatDataType.LockEmulation] = IsValueEnabled(value); return; }
-	if (!_strcmpi(name, "BltEmulation")) { Config.DXPrimaryEmulation[AppCompatDataType.BltEmulation] = IsValueEnabled(value); return; }
-	if (!_strcmpi(name, "ForceLockNoWindow")) { Config.DXPrimaryEmulation[AppCompatDataType.ForceLockNoWindow] = IsValueEnabled(value); return; }
-	if (!_strcmpi(name, "ForceBltNoWindow")) { Config.DXPrimaryEmulation[AppCompatDataType.ForceBltNoWindow] = IsValueEnabled(value); return; }
-	if (!_strcmpi(name, "LockColorkey")) { Config.DXPrimaryEmulation[AppCompatDataType.LockColorkey] = true; Config.LockColorkey = atoi(value); return; }
-	if (!_strcmpi(name, "FullscreenWithDWM")) { Config.DXPrimaryEmulation[AppCompatDataType.FullscreenWithDWM] = IsValueEnabled(value); return; }
-	if (!_strcmpi(name, "DisableLockEmulation")) { Config.DXPrimaryEmulation[AppCompatDataType.DisableLockEmulation] = IsValueEnabled(value); return; }
-	if (!_strcmpi(name, "EnableOverlays")) { Config.DXPrimaryEmulation[AppCompatDataType.EnableOverlays] = IsValueEnabled(value); return; }
-	if (!_strcmpi(name, "DisableSurfaceLocks")) { Config.DXPrimaryEmulation[AppCompatDataType.DisableSurfaceLocks] = IsValueEnabled(value); return; }
-	if (!_strcmpi(name, "RedirectPrimarySurfBlts")) { Config.DXPrimaryEmulation[AppCompatDataType.RedirectPrimarySurfBlts] = IsValueEnabled(value); return; }
-	if (!_strcmpi(name, "StripBorderStyle")) { Config.DXPrimaryEmulation[AppCompatDataType.StripBorderStyle] = IsValueEnabled(value); return; }
-	if (!_strcmpi(name, "DisableMaxWindowedMode")) { Config.DXPrimaryEmulation[AppCompatDataType.DisableMaxWindowedMode] = IsValueEnabled(value); Config.DisableMaxWindowedModeNotSet = false; return; }
+	if (!_strcmpi(name, "LockEmulation")) { SetValue(name, value, &Config.DXPrimaryEmulation[AppCompatDataType.LockEmulation]); return; }
+	if (!_strcmpi(name, "BltEmulation")) { SetValue(name, value, &Config.DXPrimaryEmulation[AppCompatDataType.BltEmulation]); return; }
+	if (!_strcmpi(name, "ForceLockNoWindow")) { SetValue(name, value, &Config.DXPrimaryEmulation[AppCompatDataType.ForceLockNoWindow]); return; }
+	if (!_strcmpi(name, "ForceBltNoWindow")) { SetValue(name, value, &Config.DXPrimaryEmulation[AppCompatDataType.ForceBltNoWindow]); return; }
+	if (!_strcmpi(name, "LockColorkey")) { Config.DXPrimaryEmulation[AppCompatDataType.LockColorkey] = true; SetValue(name, value, &Config.LockColorkey); return; }  // Sets DXPrimaryEmulation and LockColorkey
+	if (!_strcmpi(name, "FullscreenWithDWM")) { SetValue(name, value, &Config.DXPrimaryEmulation[AppCompatDataType.FullscreenWithDWM]); return; }
+	if (!_strcmpi(name, "DisableLockEmulation")) { SetValue(name, value, &Config.DXPrimaryEmulation[AppCompatDataType.DisableLockEmulation]); return; }
+	if (!_strcmpi(name, "EnableOverlays")) { SetValue(name, value, &Config.DXPrimaryEmulation[AppCompatDataType.EnableOverlays]); return; }
+	if (!_strcmpi(name, "DisableSurfaceLocks")) { SetValue(name, value, &Config.DXPrimaryEmulation[AppCompatDataType.DisableSurfaceLocks]); return; }
+	if (!_strcmpi(name, "RedirectPrimarySurfBlts")) { SetValue(name, value, &Config.DXPrimaryEmulation[AppCompatDataType.RedirectPrimarySurfBlts]); return; }
+	if (!_strcmpi(name, "StripBorderStyle")) { SetValue(name, value, &Config.DXPrimaryEmulation[AppCompatDataType.StripBorderStyle]); return; }
+	if (!_strcmpi(name, "DisableMaxWindowedMode")) { SetValue(name, value, &Config.DXPrimaryEmulation[AppCompatDataType.DisableMaxWindowedMode]); Config.DisableMaxWindowedModeNotSet = false; return; }  // Sets DisableMaxWindowedMode and DisableMaxWindowedModeNotSet flags
 	// Numeric values
-	if (!_strcmpi(name, "LoopSleepTime")) { Config.LoopSleepTime = atoi(value); return; }
-	if (!_strcmpi(name, "ResetMemoryAfter")) { Config.ResetMemoryAfter = atoi(value); return; }
-	if (!_strcmpi(name, "WindowSleepTime")) { Config.WindowSleepTime = atoi(value); return; }
-	if (!_strcmpi(name, "SetFullScreenLayer")) { Config.SetFullScreenLayer = atoi(value); return; }
-	if (!_strcmpi(name, "WrapperMode")) { Config.WrapperMode = atoi(value); return; }
+	if (!_strcmpi(name, "LoopSleepTime")) { SetValue(name, value, &Config.LoopSleepTime); return; }
+	if (!_strcmpi(name, "ResetMemoryAfter")) { SetValue(name, value, &Config.ResetMemoryAfter); return; }
+	if (!_strcmpi(name, "WindowSleepTime")) { SetValue(name, value, &Config.WindowSleepTime); return; }
+	if (!_strcmpi(name, "SetFullScreenLayer")) { SetValue(name, value, &Config.SetFullScreenLayer); return; }
+	if (!_strcmpi(name, "WrapperMode")) { SetValue(name, value, &Config.WrapperMode); return; }
 	// Char values
-	if (!_strcmpi(name, "RealDllPath")) { SetConfig(Config.szDllPath, value); return; }
-	if (!_strcmpi(name, "RunProcess")) { SetConfig(Config.szShellPath, value); return; }
+	if (!_strcmpi(name, "RealDllPath")) { SetConfig(Config.szDllPath, value); LogSetting(name, value); return; }
+	if (!_strcmpi(name, "RunProcess")) { SetConfig(Config.szShellPath, value); LogSetting(name, value); return; }
 	// Memory Hack items
-	if (!_strcmpi(name, "VerificationAddress")) { SetAddressPointerList(Config.VerifyMemoryInfo, value); return; }
-	if (!_strcmpi(name, "VerificationBytes")) { SetBytesList(Config.VerifyMemoryInfo, value); return; }
-	if (!_strcmpi(name, "AddressPointer")) { SetAddressPointerList(Config.MemoryInfo[++Config.AddressPointerCount], value); return; }
-	if (!_strcmpi(name, "BytesToWrite")) { SetBytesList(Config.MemoryInfo[++Config.BytesToWriteCount], value); return; }
+	if (!_strcmpi(name, "VerificationAddress")) { SetAddressPointerList(Config.VerifyMemoryInfo, value); LogSetting(name, value); return; }
+	if (!_strcmpi(name, "VerificationBytes")) { SetBytesList(Config.VerifyMemoryInfo, value); LogSetting(name, value); return; }
+	if (!_strcmpi(name, "AddressPointer")) { SetAddressPointerList(Config.MemoryInfo[++Config.AddressPointerCount], value); LogSetting(name, value); return; }
+	if (!_strcmpi(name, "BytesToWrite")) { SetBytesList(Config.MemoryInfo[++Config.BytesToWriteCount], value); LogSetting(name, value); return; }
 	// Lists of values
-	if (!_strcmpi(name, "LoadCustomDllPath")) { SetConfigList(Config.szCustomDllPath, Config.CustomDllCount, value); return; }
-	if (!_strcmpi(name, "SetNamedLayer")) { SetConfigList(Config.szSetNamedLayer, Config.NamedLayerCount, value); return; }
-	if (!_strcmpi(name, "IgnoreWindowName")) { SetConfigList(Config.szIgnoreWindowName, Config.IgnoreWindowCount, value); return; }
-	if (!_strcmpi(name, "ExcludeProcess")) { SetConfigList(szExclude, ExcludeCount, value); return; }
-	if (!_strcmpi(name, "IncludeProcess")) { SetConfigList(szInclude, IncludeCount, value); return; }
+	if (!_strcmpi(name, "LoadCustomDllPath")) { SetConfigList(Config.szCustomDllPath, Config.CustomDllCount, value); LogSetting(name, value); return; }
+	if (!_strcmpi(name, "SetNamedLayer")) { SetConfigList(Config.szSetNamedLayer, Config.NamedLayerCount, value); LogSetting(name, value); return; }
+	if (!_strcmpi(name, "IgnoreWindowName")) { SetConfigList(Config.szIgnoreWindowName, Config.IgnoreWindowCount, value); LogSetting(name, value); return; }
+	if (!_strcmpi(name, "ExcludeProcess")) { SetConfigList(szExclude, ExcludeCount, value); LogSetting(name, value); return; }
+	if (!_strcmpi(name, "IncludeProcess")) { SetConfigList(szInclude, IncludeCount, value); LogSetting(name, value); return; }
 	// Logging
 	Compat::Log() << "Warning. Config setting not recognized: " << name;
 }
@@ -501,6 +559,7 @@ void CONFIG::Init()
 	if ((ExcludeCount > 0 && IfStringExistsInList(szFileName, szExclude, ExcludeCount, false)) ||
 		(IncludeCount > 0 && !IfStringExistsInList(szFileName, szInclude, IncludeCount, false)))
 	{
+		Compat::Log() << "Clearing config and disabling dxwrapper!";
 		ClearConfigSettings();
 	}
 

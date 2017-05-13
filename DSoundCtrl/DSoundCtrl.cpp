@@ -81,85 +81,6 @@ void LogMessage(const char* szClassName, void* pInstance, char* szMessage)
 
 //////////////////////////////////////////////////////////////////////////////////////////////
 
-CString GetDirectXVersionFromReg()
-{
-	HKEY			RegKey;
-    unsigned long	iSize = 255;
-	DWORD			dwType;
-	CString			sTemp = "";
-
-	if(::RegOpenKeyEx(HKEY_LOCAL_MACHINE,"Software\\Microsoft\\DirectX",0,KEY_ALL_ACCESS,&RegKey) == ERROR_SUCCESS)
-	{
-		RegQueryValueEx(RegKey, "Version",NULL,&dwType,(BYTE*)  sTemp.GetBuffer(255), &iSize);
-
-		sTemp.ReleaseBuffer();
-		RegCloseKey(RegKey);
-	}
-
-	return sTemp;
-}
-
-//////////////////////////////////////////////////////////////////////////////////////////////
-
-CString GetOSVersion()		//<----TODO: update this function
-{
-	CString			sTemp = "";
-	CString			sOSName = "Unknown platform";
-
-	OSVERSIONINFO oOS_version;
-	oOS_version.dwOSVersionInfoSize = sizeof(OSVERSIONINFO); 
-	::GetVersionEx( &oOS_version );
-
-	switch( oOS_version.dwPlatformId )
-	{
-		case VER_PLATFORM_WIN32_WINDOWS : 
-			{
-				switch(oOS_version.dwMinorVersion)
-				{
-					case 0   : sOSName = "Windows 95"; break;
-					case 10  : sOSName = "Windows 98"; break;
-					case 90  : sOSName = "Windows ME"; break;
-					default  : sOSName = "Unknown Windows 9x-based version";
-				}					
-				break;
-			}
-			break;
-		case VER_PLATFORM_WIN32_NT :
-			{
-				switch( oOS_version.dwMajorVersion )
-				{
-					case 3  : sOSName = "Windows NT 3.x (not supported)"; break;
-					case 4  : sOSName = "Windows NT 4 (not supported)"; break;
-					case 5  :
-						switch( oOS_version.dwMinorVersion )
-						{
-							case 0 : sOSName	= "Windows 2000"; break;
-							case 1 : sOSName	= "Windows XP"; break;
-							case 2 : sOSName	= "Windows Server 2003 (R2) or Windows XP Professional x64"; break;
-							default : sOSName	= "Unknown Windows 2k-based version";
-						}
-						break;
-					case 6  : 
-						switch( oOS_version.dwMinorVersion )
-						{
-							case 0 : sOSName	= "Windows Vista or Windows Server 2008 (not tested)"; break;
-							default : sOSName	= "Unknown Windows Vista-based version";
-						}
-						break;
-		
-					default : sOSName = "Unknown Windows NT-based version";
-				}				
-				break;
-			}
-	}
-
-	sTemp.Format(" V%d.%d Build %u %s",oOS_version.dwMajorVersion,oOS_version.dwMinorVersion,(oOS_version.dwBuildNumber&0xffff),oOS_version.szCSDVersion );
-	return sOSName + sTemp;
-}
-
-//////////////////////////////////////////////////////////////////////////////////////////////
-
-
 BOOL CALLBACK DSEnumCallback( LPGUID  lpGuid,    LPCSTR  lpcstrDescription,  LPCSTR  lpcstrModule,   LPVOID  lpContext  )
 {
 	return ((CDSoundCtrlApp*)lpContext)->EnumCallback( lpGuid, lpcstrDescription, lpcstrModule );
@@ -270,13 +191,11 @@ BOOL CDSoundCtrlApp::InitInstance()
 	// Get path to original DSOUND.DLL
 	//
 
-	char buffer[1024];
+	char buffer[MAX_PATH];
 
-	::GetSystemDirectory(buffer, 1024);
+	::GetSystemDirectory(buffer, MAX_PATH);
 	::PathAddBackslash(buffer);
-	strcat_s(buffer, 1024, "dsound.dll");
-	//strcpy_s( buffer + strlen( buffer ), 1024, "dsound.dll" );
-
+	strcat_s(buffer, MAX_PATH, "dsound.dll");
 
 	//
 	// Load DLL and get entry points

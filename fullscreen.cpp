@@ -624,19 +624,25 @@ bool IsMyThreadRunning()
 // Stop thread
 void StopThread()
 {
-	Compat::Log() << "Stopping thread...";
+	if (Config.FullScreen || Config.ForceTermination)
+	{
+		if (IsMyThreadRunning())
+		{
+			Compat::Log() << "Stopping thread...";
 
-	// Set flag to stop thread
-	StopThreadFlag = true;
+			// Set flag to stop thread
+			StopThreadFlag = true;
 
-	// Wait for thread to exit
-	if (IsMyThreadRunning()) WaitForSingleObject(m_hThread, INFINITE);
+			// Wait for thread to exit
+			WaitForSingleObject(m_hThread, INFINITE);
+		}
 
-	// Close handle
-	CloseHandle(m_hThread);
+		// Close handle
+		CloseHandle(m_hThread);
 
-	// Thread stopped
-	Compat::Log() << "Thread stopped";
+		// Thread stopped
+		Compat::Log() << "Thread stopped";
+	}
 }
 
 //*********************************************************************************

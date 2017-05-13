@@ -463,10 +463,13 @@ private:
 	IDirect3DIndexBuffer9 *const ProxyInterface;
 };
 
-#include <fstream>
+//********** Begin Edit *************
+/*#include <fstream>
 
-/*#ifndef D3D8TO9NOLOG
+#ifndef D3D8TO9NOLOG
 extern std::ofstream LOG;
 #endif*/
 
 #include "cfg.h"
+#pragma comment(lib, "d3d9.lib")
+//********** End Edit ***************

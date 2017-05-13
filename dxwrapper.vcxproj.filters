@@ -8,12 +8,6 @@
     <Filter Include="d3d8to9">
       <UniqueIdentifier>{949143ed-bc01-4b7e-bc10-16804fd83e7b}</UniqueIdentifier>
     </Filter>
-    <Filter Include="ddrawcompat">
-      <UniqueIdentifier>{bf6f3d22-aab2-413e-af84-ee52035f125f}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="dxwnd">
-      <UniqueIdentifier>{e266cd78-1c44-4ae4-83ae-9a0b7b6a3d53}</UniqueIdentifier>
-    </Filter>
     <Filter Include="wrappers">
       <UniqueIdentifier>{75433a20-7313-4d29-9e1c-1b75db6897cb}</UniqueIdentifier>
     </Filter>
@@ -28,6 +22,12 @@
     </Filter>
     <Filter Include="DSoundCtrl">
       <UniqueIdentifier>{f07d4373-1b9a-4464-a239-c9bae002d95b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="DDrawCompat">
+      <UniqueIdentifier>{bf6f3d22-aab2-413e-af84-ee52035f125f}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="DxWnd">
+      <UniqueIdentifier>{e266cd78-1c44-4ae4-83ae-9a0b7b6a3d53}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -83,7 +83,7 @@
       <Filter>writememory</Filter>
     </ClCompile>
     <ClCompile Include="DxWnd\v2_03_60_src\proxy\init.cpp">
-      <Filter>dxwnd</Filter>
+      <Filter>DxWnd</Filter>
     </ClCompile>
     <ClCompile Include="wrappers\winspool.cpp">
       <Filter>wrappers</Filter>
@@ -119,82 +119,82 @@
       <Filter>d3d8to9</Filter>
     </ClCompile>
     <ClCompile Include="DDrawCompat\v0.2.1\DDrawLog.cpp">
-      <Filter>ddrawcompat</Filter>
+      <Filter>DDrawCompat</Filter>
     </ClCompile>
     <ClCompile Include="DDrawCompat\v0.2.1\DllMainCompat.cpp">
-      <Filter>ddrawcompat</Filter>
+      <Filter>DDrawCompat</Filter>
     </ClCompile>
     <ClCompile Include="DDrawCompat\v0.2.1\CompatDirectDrawPalette.cpp">
-      <Filter>ddrawcompat</Filter>
+      <Filter>DDrawCompat</Filter>
     </ClCompile>
     <ClCompile Include="DDrawCompat\v0.2.1\RealPrimarySurface.cpp">
-      <Filter>ddrawcompat</Filter>
+      <Filter>DDrawCompat</Filter>
     </ClCompile>
     <ClCompile Include="DDrawCompat\v0.2.1\Time.cpp">
-      <Filter>ddrawcompat</Filter>
+      <Filter>DDrawCompat</Filter>
     </ClCompile>
     <ClCompile Include="DDrawCompat\v0.2.1\UnmodifiedDDrawProcs.cpp">
-      <Filter>ddrawcompat</Filter>
+      <Filter>DDrawCompat</Filter>
     </ClCompile>
     <ClCompile Include="DDrawCompat\v0.2.1\IReleaseNotifier.cpp">
-      <Filter>ddrawcompat</Filter>
+      <Filter>DDrawCompat</Filter>
     </ClCompile>
     <ClCompile Include="DDrawCompat\v0.2.1\Hook.cpp">
-      <Filter>ddrawcompat</Filter>
+      <Filter>DDrawCompat</Filter>
     </ClCompile>
     <ClCompile Include="DDrawCompat\v0.2.1\DDrawRepository.cpp">
-      <Filter>ddrawcompat</Filter>
+      <Filter>DDrawCompat</Filter>
     </ClCompile>
     <ClCompile Include="DDrawCompat\v0.2.1\DDrawProcs.cpp">
-      <Filter>ddrawcompat</Filter>
+      <Filter>DDrawCompat</Filter>
     </ClCompile>
     <ClCompile Include="DDrawCompat\v0.2.1\CompatRegistry.cpp">
-      <Filter>ddrawcompat</Filter>
+      <Filter>DDrawCompat</Filter>
     </ClCompile>
     <ClCompile Include="DDrawCompat\v0.2.1\CompatPrimarySurface.cpp">
-      <Filter>ddrawcompat</Filter>
+      <Filter>DDrawCompat</Filter>
     </ClCompile>
     <ClCompile Include="DDrawCompat\v0.2.1\CompatPaletteConverter.cpp">
-      <Filter>ddrawcompat</Filter>
+      <Filter>DDrawCompat</Filter>
     </ClCompile>
     <ClCompile Include="DDrawCompat\v0.2.1\CompatGdiWinProc.cpp">
-      <Filter>ddrawcompat</Filter>
+      <Filter>DDrawCompat</Filter>
     </ClCompile>
     <ClCompile Include="DDrawCompat\v0.2.1\CompatGdiTitleBar.cpp">
-      <Filter>ddrawcompat</Filter>
+      <Filter>DDrawCompat</Filter>
     </ClCompile>
     <ClCompile Include="DDrawCompat\v0.2.1\CompatGdiScrollFunctions.cpp">
-      <Filter>ddrawcompat</Filter>
+      <Filter>DDrawCompat</Filter>
     </ClCompile>
     <ClCompile Include="DDrawCompat\v0.2.1\CompatGdiScrollBar.cpp">
-      <Filter>ddrawcompat</Filter>
+      <Filter>DDrawCompat</Filter>
     </ClCompile>
     <ClCompile Include="DDrawCompat\v0.2.1\CompatGdiPaintHandlers.cpp">
-      <Filter>ddrawcompat</Filter>
+      <Filter>DDrawCompat</Filter>
     </ClCompile>
     <ClCompile Include="DDrawCompat\v0.2.1\CompatGdiDcFunctions.cpp">
-      <Filter>ddrawcompat</Filter>
+      <Filter>DDrawCompat</Filter>
     </ClCompile>
     <ClCompile Include="DDrawCompat\v0.2.1\CompatGdiDcCache.cpp">
-      <Filter>ddrawcompat</Filter>
+      <Filter>DDrawCompat</Filter>
     </ClCompile>
     <ClCompile Include="DDrawCompat\v0.2.1\CompatGdiDc.cpp">
-      <Filter>ddrawcompat</Filter>
+      <Filter>DDrawCompat</Filter>
     </ClCompile>
     <ClCompile Include="DDrawCompat\v0.2.1\CompatGdiCaret.cpp">
-      <Filter>ddrawcompat</Filter>
+      <Filter>DDrawCompat</Filter>
     </ClCompile>
     <ClCompile Include="DDrawCompat\v0.2.1\CompatGdi.cpp">
-      <Filter>ddrawcompat</Filter>
+      <Filter>DDrawCompat</Filter>
     </ClCompile>
     <ClCompile Include="DDrawCompat\v0.2.1\CompatDirectDrawSurface.cpp">
-      <Filter>ddrawcompat</Filter>
+      <Filter>DDrawCompat</Filter>
     </ClCompile>
     <ClCompile Include="DDrawCompat\v0.2.1\CompatDirectDraw.cpp">
-      <Filter>ddrawcompat</Filter>
+      <Filter>DDrawCompat</Filter>
     </ClCompile>
     <ClCompile Include="DDrawCompat\v0.2.1\CompatActivateAppHandler.cpp">
-      <Filter>ddrawcompat</Filter>
+      <Filter>DDrawCompat</Filter>
     </ClCompile>
     <ClCompile Include="wrappers\wrapper.cpp">
       <Filter>wrappers</Filter>
@@ -243,7 +243,7 @@
       <Filter>d3d8to9</Filter>
     </ClInclude>
     <ClInclude Include="DDrawCompat\v0.2.1\DDrawLog.h">
-      <Filter>ddrawcompat</Filter>
+      <Filter>DDrawCompat</Filter>
     </ClInclude>
     <ClInclude Include="wrappers\d3d8.h">
       <Filter>wrappers</Filter>

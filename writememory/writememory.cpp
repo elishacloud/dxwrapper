@@ -133,7 +133,10 @@ void HotPatchMemory()
 	}
 	else
 	{
-		Compat::Log() << "Verification for hot patch failed";
+		if (Config.VerifyMemoryInfo.AddressPointer != 0)
+		{
+			Compat::Log() << "Verification for hot patch failed";
+		}
 	}
 }
 

@@ -14,7 +14,7 @@
 *   3. This notice may not be removed or altered from any source distribution.
 */
 
-#include "cfg.h"
+#include "dxwrapper.h"
 #include "dllmain.h"
 #include "wrappers\wrapper.h"
 #include "utils.h"
@@ -79,13 +79,21 @@ bool APIENTRY DllMain(HMODULE hModule, DWORD ul_reason_for_call, LPVOID lpReserv
 	{
 	case DLL_PROCESS_ATTACH:
 	{
-		Compat::Log() << "Starting dxwrapper";
+		// Init logs
+		Compat::Log() << "Starting dxwrapper v" << APP_VERSION;
+		GetOSVersion();
+		GetProcessNameAndPID();
+
+		// Get handle
 		hModule_dll = hModule;
 		HANDLE hCurrentThread = GetCurrentThread();
+
 		// Initialize the critical section one time only.
 		InitializeCriticalSectionAndSpinCount(&CriticalSection, 0);
+
 		// Set thread priority
 		SetThreadPriority(hCurrentThread, THREAD_PRIORITY_HIGHEST);		// Trick to reduce concurrency problems at program startup
+
 		// ***
 		// Initialize config
 		Config.Init();
@@ -124,8 +132,10 @@ bool APIENTRY DllMain(HMODULE hModule, DWORD ul_reason_for_call, LPVOID lpReserv
 	case DLL_THREAD_ATTACH:
 		// Set single process affinity
 		if (Config.Affinity) SetSingleCoreAffinity();
+
 		// Check and store screen resolution
 		if (Config.ResetScreenRes) CheckCurrentScreenRes(m_ScreenRes);
+
 		// Check if thread has started
 		if (Config.ForceTermination && IsMyThreadRunning())
 			ThreadStartedFlag = true;
@@ -135,11 +145,14 @@ bool APIENTRY DllMain(HMODULE hModule, DWORD ul_reason_for_call, LPVOID lpReserv
 		{
 			// Check if thread has started
 			if (IsMyThreadRunning()) ThreadStartedFlag = true;
+
 			// Check if thread has stopped
 			if (ThreadStartedFlag && !IsMyThreadRunning()) RunExitFunctions(true);
 		}
 		break;
 	case DLL_PROCESS_DETACH:
+
+		// Run all clean up functions
 		RunExitFunctions();
 		break;
 	}
