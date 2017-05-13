@@ -25,7 +25,6 @@ struct CONFIG
 	bool AffinityNotSet;				// If the CPU affinity option exists in the config file
 	bool D3d8to9;						// Converts Direct3D8 (d3d8.dll) to Direct3D9 (d3d9.dll) https://github.com/crosire/d3d8to9
 	bool DDrawCompat;					// Enables DDrawCompat functions https://github.com/narzoul/DDrawCompat/
-	bool DDrawCompatDefault32Bit;		// Sets DDrawCompat to default to 32bit mode
 	bool DDrawCompatDisableGDIHook;		// Disables DDrawCompat GDI hooks
 	bool DpiAware;						// Disables display scaling on high DPI settings
 	bool DxWnd;							// Enables dXwnd https://sourceforge.net/projects/dxwnd/
