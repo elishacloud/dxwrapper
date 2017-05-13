@@ -2,6 +2,9 @@
 #include "CompatDirectDraw.h"
 #include "CompatDirectDrawSurface.h"
 #include "CompatPrimarySurface.h"
+//********** Begin Edit *************
+#include "cfg.h"
+//********** End Edit ***************
 
 namespace
 {
@@ -36,6 +39,14 @@ namespace
 		case 2: desc.ddpfPixelFormat.dwFlags |= DDPF_PALETTEINDEXED2; break;
 		case 4: desc.ddpfPixelFormat.dwFlags |= DDPF_PALETTEINDEXED4; break;
 		case 8: desc.ddpfPixelFormat.dwFlags |= DDPF_PALETTEINDEXED8; break;
+		//********** Begin Edit *************
+		default:
+			if (Config.DDrawCompatDefault32Bit)
+			{
+				desc.ddpfPixelFormat.dwRGBBitCount = 32;
+			}
+			break;
+		//********** End Edit ***************
 		}
 
 		DDPIXELFORMAT pf = {};

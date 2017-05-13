@@ -113,8 +113,13 @@ namespace
 				hookDirectDrawPalette(*dd);
 				CompatActivateAppHandler::installHooks();
 
-				Compat::Log() << "Installing GDI hooks";
-				CompatGdi::installHooks();
+				//********** Begin Edit *************
+				if (!Config.DDrawCompatDisableGDIHook)
+				{
+					Compat::Log() << "Installing GDI hooks";
+					CompatGdi::installHooks();
+				}
+				//********** End Edit ***************
 
 				Compat::Log() << "Installing registry hooks";
 				CompatRegistry::installHooks();
@@ -225,10 +230,17 @@ void UnloadDdrawCompat()
 	Compat::Log() << "Detaching DDrawCompat";
 	RealPrimarySurface::removeUpdateThread();
 	CompatActivateAppHandler::uninstallHooks();
-	CompatGdi::uninstallHooks();
+	//********** Begin Edit *************
+	if (!Config.DDrawCompatDisableGDIHook)
+	{
+		CompatGdi::uninstallHooks();
+	}
+	//********** End Edit ***************
 	Compat::unhookAllFunctions();
+	//********** Begin Edit *************
 	//FreeLibrary(g_origDInputModule);
 	//FreeLibrary(g_origDDrawModule);
+	//********** End Edit ***************
 	Compat::Log() << "DDrawCompat detached successfully";
 
 //********** Begin Edit *************
