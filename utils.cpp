@@ -27,7 +27,7 @@
 #include <VersionHelpers.h>
 #pragma comment(lib, "version.lib")
 
-// Get Windows Operation System version number from the registry
+// Get Windows Operating System version number from the registry
 void GetVersionReg(OSVERSIONINFO *oOS_version)
 {
 	// Initualize variables
@@ -55,7 +55,7 @@ void GetVersionReg(OSVERSIONINFO *oOS_version)
 	}
 }
 
-// Get Windows Operation System version number from kernel32.dll
+// Get Windows Operating System version number from kernel32.dll
 void GetVersionFile(OSVERSIONINFO *oOS_version)
 {
 	// Initualize variables
@@ -101,7 +101,7 @@ void GetVersionFile(OSVERSIONINFO *oOS_version)
 	}
 }
 
-// Log Windows Operation System type
+// Log Windows Operating System type
 void GetOSVersion()
 {
 	// Declare vars
@@ -138,12 +138,13 @@ void GetOSVersion()
 			case 2:
 				if (GetSystemMetrics(SM_SERVERR2) == 0)
 				{
-					sOSName = "Windows Server 2003"; break;
+					sOSName = "Windows Server 2003";
 				}
 				else
 				{
-					sOSName = "Windows Server 2003 R2"; break;
+					sOSName = "Windows Server 2003 R2";
 				}
+				break;
 			}
 			break;
 		case 6:
