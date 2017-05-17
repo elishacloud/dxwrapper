@@ -119,7 +119,9 @@ LONG WINAPI myUnhandledExceptionFilter(LPEXCEPTION_POINTERS ExceptionInfo)
 #pragma warning (disable : 4100)
 LPTOP_LEVEL_EXCEPTION_FILTER WINAPI extSetUnhandledExceptionFilter(LPTOP_LEVEL_EXCEPTION_FILTER lpTopLevelExceptionFilter)
 {
+#ifdef _DEBUG
 	Compat::Log() << "SetUnhandledExceptionFilter: lpExceptionFilter=" << lpTopLevelExceptionFilter;
+#endif
 	extern LONG WINAPI myUnhandledExceptionFilter(LPEXCEPTION_POINTERS);
 	return (*pSetUnhandledExceptionFilter)(myUnhandledExceptionFilter);
 }

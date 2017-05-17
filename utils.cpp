@@ -16,28 +16,31 @@
 * Some functions taken from source code found in Aqrit's ddwrapper
 * http://bitpatch.com/ddwrapper.html
 *
-* Some functions taken from source code found in DxWnd v 2.03.60
+* Some functions taken from source code found in DxWnd v2.03.60
 * https://sourceforge.net/projects/dxwnd/
+*
+* Some functions taken from source code found in DirectSoundControl
+* https://github.com/nRaecheR/DirectSoundControl
 */
 
 #include "cfg.h"
 #include <VersionHelpers.h>
 #pragma comment(lib, "version.lib")
 
-// Get Windows Operation System type from the registry
+// Get Windows Operation System version number from the registry
 void GetVersionReg(OSVERSIONINFO *oOS_version)
 {
-	// Define registry keys
-	HKEY			RegKey;
-	DWORD			dwDataMajor;
-	DWORD			dwDataMinor;
-	unsigned long	iSize = sizeof(DWORD);
-	DWORD			dwType;
-
 	// Initualize variables
 	oOS_version->dwMajorVersion = 0;
 	oOS_version->dwMinorVersion = 0;
 	oOS_version->dwBuildNumber = 0;
+
+	// Define registry keys
+	HKEY			RegKey = NULL;
+	DWORD			dwDataMajor = 0;
+	DWORD			dwDataMinor = 0;
+	unsigned long	iSize = sizeof(DWORD);
+	DWORD			dwType = 0;
 
 	// Get version
 	if (RegOpenKeyEx(HKEY_LOCAL_MACHINE, "SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion", 0, KEY_ALL_ACCESS, &RegKey) == ERROR_SUCCESS)
@@ -52,17 +55,13 @@ void GetVersionReg(OSVERSIONINFO *oOS_version)
 	}
 }
 
-// Log Windows Operation System type
-void GetOSVersion()
+// Get Windows Operation System version number from kernel32.dll
+void GetVersionFile(OSVERSIONINFO *oOS_version)
 {
-	// Declare vars
-	OSVERSIONINFO oOS_version, rOS_version, fOS_version;
-	oOS_version.dwOSVersionInfoSize = sizeof(OSVERSIONINFO);
-	rOS_version.dwOSVersionInfoSize = sizeof(OSVERSIONINFO);
-	fOS_version.dwOSVersionInfoSize = sizeof(OSVERSIONINFO);
-
-	// GetVersion from registry which is more relayable for Windows 10
-	GetVersionReg(&rOS_version);
+	// Initualize variables
+	oOS_version->dwMajorVersion = 0;
+	oOS_version->dwMinorVersion = 0;
+	oOS_version->dwBuildNumber = 0;
 
 	// Get kernel32.dll path
 	char buffer[MAX_PATH];
@@ -75,11 +74,6 @@ void GetOSVersion()
 	LPBYTE lpBuffer = NULL;
 	LPCSTR szVersionFile = buffer;
 	DWORD  verSize = GetFileVersionInfoSize(szVersionFile, &verHandle);
-
-	// Initualize variables
-	fOS_version.dwMajorVersion = 0;
-	fOS_version.dwMinorVersion = 0;
-	fOS_version.dwBuildNumber = 0;
 
 	// GetVersion from a file
 	if (verSize != NULL)
@@ -95,9 +89,9 @@ void GetOSVersion()
 					VS_FIXEDFILEINFO *verInfo = (VS_FIXEDFILEINFO *)lpBuffer;
 					if (verInfo->dwSignature == 0xfeef04bd)
 					{
-						fOS_version.dwMajorVersion = (verInfo->dwFileVersionMS >> 16) & 0xffff;
-						fOS_version.dwMinorVersion = (verInfo->dwFileVersionMS >> 0) & 0xffff;
-						fOS_version.dwBuildNumber = (verInfo->dwFileVersionLS >> 16) & 0xffff;
+						oOS_version->dwMajorVersion = (verInfo->dwFileVersionMS >> 16) & 0xffff;
+						oOS_version->dwMinorVersion = (verInfo->dwFileVersionMS >> 0) & 0xffff;
+						oOS_version->dwBuildNumber = (verInfo->dwFileVersionLS >> 16) & 0xffff;
 						//(verInfo->dwFileVersionLS >> 0) & 0xffff		//  <-- Other data not used
 					}
 				}
@@ -105,83 +99,109 @@ void GetOSVersion()
 		}
 		delete[] verData;
 	}
+}
 
-	// Choose whichever is higher
-	if (rOS_version.dwMajorVersion > fOS_version.dwMajorVersion)
+// Log Windows Operation System type
+void GetOSVersion()
+{
+	// Declare vars
+	OSVERSIONINFO oOS_version, rOS_version;
+	oOS_version.dwOSVersionInfoSize = sizeof(OSVERSIONINFO);
+	rOS_version.dwOSVersionInfoSize = sizeof(OSVERSIONINFO);
+
+	// GetVersion from registry which is more relayable for Windows 10
+	GetVersionReg(&rOS_version);
+
+	// GetVersion from a file which is needed to get the build number
+	GetVersionFile(&oOS_version);
+
+	// Choose whichever version is higher
+	// Newer OS's report older version numbers for compatibility
+	// This allows dxwrapper to get the proper OS version number
+	if (rOS_version.dwMajorVersion > oOS_version.dwMajorVersion)
 	{
 		oOS_version.dwMajorVersion = rOS_version.dwMajorVersion;
 		oOS_version.dwMinorVersion = rOS_version.dwMinorVersion;
-		oOS_version.dwBuildNumber = fOS_version.dwBuildNumber;
-	}
-	else
-	{
-		oOS_version.dwMajorVersion = fOS_version.dwMajorVersion;
-		oOS_version.dwMinorVersion = fOS_version.dwMinorVersion;
-		oOS_version.dwBuildNumber = fOS_version.dwBuildNumber;
 	}
 
 	// Get OS string name
-	char sOSName[255] = "Unknown platform";
+	char *sOSName = "Unknown platform";
 	if (IsWindowsServer())
 	{
-		strcpy_s(sOSName, "Unknown Windows Server");
+		sOSName = "Unknown Windows Server";
 		switch (oOS_version.dwMajorVersion)
 		{
 		case 5:
 			switch (oOS_version.dwMinorVersion)
 			{
-			case 0: strcpy_s(sOSName, "Windows 2000 Server"); break;
-			case 2: strcpy_s(sOSName, "Windows Server 2003"); break;
+			case 0: sOSName = "Windows 2000 Server"; break;
+			case 2:
+				if (GetSystemMetrics(SM_SERVERR2) == 0)
+				{
+					sOSName = "Windows Server 2003"; break;
+				}
+				else
+				{
+					sOSName = "Windows Server 2003 R2"; break;
+				}
 			}
 			break;
 		case 6:
 			switch (oOS_version.dwMinorVersion)
 			{
-			case 0: strcpy_s(sOSName, "Windows Server 2008"); break;
-			case 1: strcpy_s(sOSName, "Windows Server 2008 R2"); break;
-			case 2: strcpy_s(sOSName, "Windows Server 2012"); break;
-			case 3: strcpy_s(sOSName, "Windows Server 2012 R2"); break;
+			case 0: sOSName = "Windows Server 2008"; break;
+			case 1: sOSName = "Windows Server 2008 R2"; break;
+			case 2: sOSName = "Windows Server 2012"; break;
+			case 3: sOSName = "Windows Server 2012 R2"; break;
 			}
 			break;
 		case 10:
 			switch (oOS_version.dwMinorVersion)
 			{
-			case 0: strcpy_s(sOSName, "Windows Server 2016"); break;
+			case 0: sOSName = "Windows Server 2016"; break;
 			}
 			break;
 		}
 	}
 	else
 	{
+		sOSName = "Unknown Windows Desktop";
 		switch (oOS_version.dwMajorVersion)
 		{
 		case 5:
 			switch (oOS_version.dwMinorVersion)
 			{
-			case 0: strcpy_s(sOSName, "Windows 2000"); break;
-			case 1: strcpy_s(sOSName, "Windows XP"); break;
-			case 2: strcpy_s(sOSName, "Windows XP Professional x64"); break;
+			case 0: sOSName = "Windows 2000"; break;
+			case 1: sOSName = "Windows XP"; break;
+			case 2: sOSName = "Windows XP Professional"; break; // Windows XP Professional x64
 			}
 			break;
 		case 6:
 			switch (oOS_version.dwMinorVersion)
 			{
-			case 0: strcpy_s(sOSName, "Windows Vista"); break;
-			case 1: strcpy_s(sOSName, "Windows 7"); break;
-			case 2: strcpy_s(sOSName, "Windows 8"); break;
-			case 3: strcpy_s(sOSName, "Windows 8.1"); break;
+			case 0: sOSName = "Windows Vista"; break;
+			case 1: sOSName = "Windows 7"; break;
+			case 2: sOSName = "Windows 8"; break;
+			case 3: sOSName = "Windows 8.1"; break;
 			}
 			break;
 		case 10:
 			switch (oOS_version.dwMinorVersion)
 			{
-			case 0: strcpy_s(sOSName, "Windows 10"); break;
+			case 0: sOSName = "Windows 10"; break;
 			}
 			break;
 		}
 	}
 
-	Compat::Log() << sOSName << " (" << oOS_version.dwMajorVersion << "." << oOS_version.dwMinorVersion << "." << oOS_version.dwBuildNumber << ")";
+	// Get bitness (32bit vs 64bit)
+	char *bitness = "";
+	SYSTEM_INFO SystemInfo;
+	GetNativeSystemInfo(&SystemInfo);
+	if (SystemInfo.wProcessorArchitecture == 9) bitness = " 64-bit";
+
+	// Log operating system version and type
+	Compat::Log() << sOSName << bitness << " (" << oOS_version.dwMajorVersion << "." << oOS_version.dwMinorVersion << "." << oOS_version.dwBuildNumber << ")";
 }
 
 // Logs the process name and PID

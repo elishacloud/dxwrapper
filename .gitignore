@@ -56,3 +56,4 @@ ipch/
 .opendb
 RC*
 *.opendb
+*.TMP
