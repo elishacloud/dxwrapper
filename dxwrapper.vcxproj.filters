@@ -29,6 +29,9 @@
     <Filter Include="DxWnd">
       <UniqueIdentifier>{e266cd78-1c44-4ae4-83ae-9a0b7b6a3d53}</UniqueIdentifier>
     </Filter>
+    <Filter Include="libraries">
+      <UniqueIdentifier>{9fc26822-b540-4070-82bc-320a8ccaec4c}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="cfg.cpp">
@@ -139,15 +142,6 @@
     <ClCompile Include="DSoundCtrl\IDirectSoundEx.cpp">
       <Filter>DSoundCtrl</Filter>
     </ClCompile>
-    <ClCompile Include="uxtheme.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="dwmapi.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="winmm.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="DDrawCompat\v0.2.1\RealPrimarySurface.cpp">
       <Filter>DDrawCompat</Filter>
     </ClCompile>
@@ -226,15 +220,24 @@
     <ClCompile Include="DDrawCompat\v0.2.1\CompatActivateAppHandler.cpp">
       <Filter>DDrawCompat</Filter>
     </ClCompile>
+    <ClCompile Include="libraries\dwmapi.cpp">
+      <Filter>libraries</Filter>
+    </ClCompile>
+    <ClCompile Include="libraries\uxtheme.cpp">
+      <Filter>libraries</Filter>
+    </ClCompile>
+    <ClCompile Include="libraries\winmm.cpp">
+      <Filter>libraries</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="dxwrapper.def">
       <Filter>Source Files</Filter>
     </None>
-    <None Include="Release\Build\allsettings.ini">
+    <None Include="allsettings.ini">
       <Filter>Source Files</Filter>
     </None>
-    <None Include="Release\Build\dgame.ini">
+    <None Include="dgame.ini">
       <Filter>Source Files</Filter>
     </None>
   </ItemGroup>
@@ -332,14 +335,14 @@
     <ClInclude Include="DSoundCtrl\DSoundCtrlExternal.h">
       <Filter>DSoundCtrl</Filter>
     </ClInclude>
-    <ClInclude Include="uxtheme.h">
-      <Filter>Source Files</Filter>
+    <ClInclude Include="libraries\dwmapi.h">
+      <Filter>libraries</Filter>
     </ClInclude>
-    <ClInclude Include="dwmapi.h">
-      <Filter>Source Files</Filter>
+    <ClInclude Include="libraries\uxtheme.h">
+      <Filter>libraries</Filter>
     </ClInclude>
-    <ClInclude Include="winmm.h">
-      <Filter>Source Files</Filter>
+    <ClInclude Include="libraries\winmm.h">
+      <Filter>libraries</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

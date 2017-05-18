@@ -52,7 +52,7 @@
     <OutDir>$(Configuration)\</OutDir>
     <IntDir>$(Configuration)\</IntDir>
     <LinkIncremental>false</LinkIncremental>
-    <IncludePath>$(ProjectDir);DDrawCompat\v0.2.1;DxWnd\v2_03_60_src\Include;C:\Program Files (x86)\Microsoft Research\Detours Express 3.0\include;$(IncludePath)</IncludePath>
+    <IncludePath>$(ProjectDir);libraries;DDrawCompat\v0.2.1;DxWnd\v2_03_60_src\Include;C:\Program Files (x86)\Microsoft Research\Detours Express 3.0\include;$(IncludePath)</IncludePath>
     <LibraryPath>C:\Program Files (x86)\Microsoft DirectX SDK (June 2010)\Lib\x86;C:\Program Files (x86)\Microsoft Research\Detours Express 3.0\lib.X86;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
@@ -168,6 +168,8 @@ copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\dsound.dll"
 copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\dxgi.dll"
 copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\dplayx.dll"
 copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\winspool.drv"
+copy /Y "$(ProjectDir)allsettings.ini" "$(TargetDir)Build\allsettings.ini"
+copy /Y "$(ProjectDir)dgame.ini" "$(TargetDir)Build\dgame.ini"
 </Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
@@ -219,14 +221,14 @@ copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\winspool.drv"
     <ClCompile Include="DSoundCtrl\IDirectSoundBufferEx.cpp" />
     <ClCompile Include="DSoundCtrl\IDirectSoundClassFactoryEx.cpp" />
     <ClCompile Include="DSoundCtrl\IDirectSoundEx.cpp" />
-    <ClCompile Include="dwmapi.cpp" />
     <ClCompile Include="DxWnd\v2_03_60_src\proxy\init.cpp" />
     <ClCompile Include="fullscreen.cpp" />
     <ClCompile Include="hook\hotpatch.cpp" />
     <ClCompile Include="hook\iatpatch.cpp" />
+    <ClCompile Include="libraries\dwmapi.cpp" />
+    <ClCompile Include="libraries\uxtheme.cpp" />
+    <ClCompile Include="libraries\winmm.cpp" />
     <ClCompile Include="utils.cpp" />
-    <ClCompile Include="uxtheme.cpp" />
-    <ClCompile Include="winmm.cpp" />
     <ClCompile Include="wrappers\d3d8.cpp" />
     <ClCompile Include="wrappers\d3d9.cpp" />
     <ClCompile Include="wrappers\ddraw.cpp" />
@@ -239,9 +241,9 @@ copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\winspool.drv"
     <ClCompile Include="writememory\writememory.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="allsettings.ini" />
+    <None Include="dgame.ini" />
     <None Include="dxwrapper.def" />
-    <None Include="Release\Build\allsettings.ini" />
-    <None Include="Release\Build\dgame.ini" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="d3d8to9\d3d8to9.hpp" />
@@ -259,15 +261,15 @@ copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\winspool.drv"
     <ClInclude Include="DSoundCtrl\IDirectSoundBufferEx.h" />
     <ClInclude Include="DSoundCtrl\IDirectSoundClassFactoryEx.h" />
     <ClInclude Include="DSoundCtrl\IDirectSoundEx.h" />
-    <ClInclude Include="dwmapi.h" />
     <ClInclude Include="dxwrapper.h" />
     <ClInclude Include="fullscreen.h" />
     <ClInclude Include="hook\hotpatch.h" />
     <ClInclude Include="hook\iatpatch.h" />
     <ClInclude Include="hook\MinHook.h" />
+    <ClInclude Include="libraries\dwmapi.h" />
+    <ClInclude Include="libraries\uxtheme.h" />
+    <ClInclude Include="libraries\winmm.h" />
     <ClInclude Include="utils.h" />
-    <ClInclude Include="uxtheme.h" />
-    <ClInclude Include="winmm.h" />
     <ClInclude Include="wrappers\d3d8.h" />
     <ClInclude Include="wrappers\d3d9.h" />
     <ClInclude Include="wrappers\ddraw.h" />

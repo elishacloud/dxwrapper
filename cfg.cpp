@@ -336,7 +336,7 @@ void __stdcall ParseCallback(char* name, char* value)
 	if (!_strcmpi(name, "BltEmulation")) { SetValue(name, value, &Config.DXPrimaryEmulation[AppCompatDataType.BltEmulation]); return; }
 	if (!_strcmpi(name, "ForceLockNoWindow")) { SetValue(name, value, &Config.DXPrimaryEmulation[AppCompatDataType.ForceLockNoWindow]); return; }
 	if (!_strcmpi(name, "ForceBltNoWindow")) { SetValue(name, value, &Config.DXPrimaryEmulation[AppCompatDataType.ForceBltNoWindow]); return; }
-	if (!_strcmpi(name, "LockColorkey")) { Config.DXPrimaryEmulation[AppCompatDataType.LockColorkey] = true; SetValue(name, value, &Config.LockColorkey); return; }  // Sets DXPrimaryEmulation and LockColorkey
+	if (!_strcmpi(name, "LockColorkey")) { SetValue(name, value, &Config.LockColorkey); Config.DXPrimaryEmulation[AppCompatDataType.LockColorkey] = true; return; }  // Sets DXPrimaryEmulation and LockColorkey
 	if (!_strcmpi(name, "FullscreenWithDWM")) { SetValue(name, value, &Config.DXPrimaryEmulation[AppCompatDataType.FullscreenWithDWM]); return; }
 	if (!_strcmpi(name, "DisableLockEmulation")) { SetValue(name, value, &Config.DXPrimaryEmulation[AppCompatDataType.DisableLockEmulation]); return; }
 	if (!_strcmpi(name, "EnableOverlays")) { SetValue(name, value, &Config.DXPrimaryEmulation[AppCompatDataType.EnableOverlays]); return; }
