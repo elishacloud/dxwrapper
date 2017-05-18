@@ -7,6 +7,7 @@
 
 #include "d3dx9.hpp"
 #include "d3d8to9.hpp"
+#include "wrappers\wrapper.h"
 
 PFN_D3DXAssembleShader D3DXAssembleShader = nullptr;
 PFN_D3DXDisassembleShader D3DXDisassembleShader = nullptr;
@@ -31,6 +32,26 @@ extern "C" Direct3D8 *WINAPI _Direct3DCreate8(UINT SDKVersion)
 	Compat::Log() << "> Passing on to 'Direct3DCreate9':";
 #endif
 
+
+	// Load version.dll
+	static HMODULE d3d9Module = LoadDll("d3d9.dll", dtype.d3d9);
+	if (!d3d9Module)
+	{
+		Compat::Log() << "Failed to load d3d9.dll!";
+		return nullptr;
+	}
+
+	// Declare functions
+	typedef LPDIRECT3D9(WINAPI *PFN_Direct3DCreate9)(UINT SDKVersion);
+
+	// Get functions ProcAddress
+	PFN_Direct3DCreate9 Direct3DCreate9 = reinterpret_cast<PFN_Direct3DCreate9>(GetProcAddress(d3d9Module, "Direct3DCreate9"));
+	if (!Direct3DCreate9)
+	{
+		Compat::Log() << "Failed to get 'Direct3DCreate9' ProcAddress of d3d9.dll!";
+		return nullptr;
+	}
+
 	IDirect3D9 *const d3d = Direct3DCreate9(D3D_SDK_VERSION);
 
 	if (d3d == nullptr)
@@ -42,21 +63,24 @@ extern "C" Direct3D8 *WINAPI _Direct3DCreate8(UINT SDKVersion)
 	if (!D3DXAssembleShader || !D3DXDisassembleShader || !D3DXLoadSurfaceFromSurface)
 	{
 		// Declare vars
-		HMODULE dllHandle = NULL;
+		static HMODULE dllHandle = NULL;
 		char d3dx9name[MAX_PATH];
 
 		// Check for different versions of d3dx9_xx.dll
-		for (int x = 99; x > 9 && dllHandle == NULL; x--)
+		if (!dllHandle)
 		{
-			// Get dll name
-			strcpy_s(d3dx9name, "d3dx9_");
-			char buffer[11];
-			_itoa_s(x, buffer, 10);
-			strcat_s(d3dx9name, buffer);
-			strcat_s(d3dx9name, ".dll");
+			for (int x = 99; x > 9 && dllHandle == NULL; x--)
+			{
+				// Get dll name
+				strcpy_s(d3dx9name, "d3dx9_");
+				char buffer[11];
+				_itoa_s(x, buffer, 10);
+				strcat_s(d3dx9name, buffer);
+				strcat_s(d3dx9name, ".dll");
 
-			// Load dll
-			dllHandle = LoadLibrary(d3dx9name);
+				// Load dll
+				dllHandle = LoadLibrary(d3dx9name);
+			}
 		}
 
 		const HMODULE module = dllHandle;

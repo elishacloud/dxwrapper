@@ -14,6 +14,9 @@
 #include "IReleaseNotifier.h"
 #include "RealPrimarySurface.h"
 #include "Time1.h"
+//********** Begin Edit *************
+#include "winmm.h"
+//********** End Edit ***************
 
 namespace
 {
@@ -109,7 +112,9 @@ namespace
 		Compat::LogEnter("RealPrimarySurface::onRelease");
 
 		ResetEvent(g_updateEvent);
-		timeEndPeriod(1);
+		//********** Begin Edit *************
+		_timeEndPeriod(1);
+		//********** End Edit ***************
 		g_frontBuffer = nullptr;
 		if (g_backBuffer)
 		{
@@ -240,7 +245,9 @@ HRESULT RealPrimarySurface::create(DirectDraw& dd)
 		IID_IReleaseNotifier, &g_releaseNotifier, sizeof(&g_releaseNotifier), DDSPD_IUNKNOWNPOINTER);
 
 	g_isFullScreen = isFlippable;
-	timeBeginPeriod(1);
+	//********** Begin Edit *************
+	_timeBeginPeriod(1);
+	//********** End Edit ***************
 
 	return DD_OK;
 }

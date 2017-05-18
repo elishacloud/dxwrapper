@@ -471,5 +471,4 @@ extern std::ofstream LOG;
 #endif*/
 
 #include "cfg.h"
-#pragma comment(lib, "d3d9.lib")
 //********** End Edit ***************

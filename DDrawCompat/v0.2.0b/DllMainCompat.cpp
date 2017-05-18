@@ -106,8 +106,13 @@ namespace
 				hookDirectDrawSurface(*dd);
 				hookDirectDrawPalette(*dd);
 
-				Compat::Log() << "Installing GDI hooks";
-				CompatGdi::installHooks();
+				//********** Begin Edit *************
+				if (!Config.DDrawCompatDisableGDIHook)
+				{
+					Compat::Log() << "Installing GDI hooks";
+					CompatGdi::installHooks();
+				}
+				//********** End Edit ***************
 
 				dd->lpVtbl->Release(dd);
 			}
@@ -209,12 +214,10 @@ bool StartDdrawCompat(HINSTANCE hinstDLL)
 //else if (fdwReason == DLL_PROCESS_DETACH)
 void UnloadDdrawCompat()
 {
-//********** End Edit ***************
-	
-	FreeLibrary(g_origDInputModule);
-	FreeLibrary(g_origDDrawModule);
-
-//********** Begin Edit *************
+	//********** Begin Edit *************
+	//FreeLibrary(g_origDInputModule);
+	//FreeLibrary(g_origDDrawModule);
+	//********** End Edit ***************
 }
 /*	return TRUE;
 }*/

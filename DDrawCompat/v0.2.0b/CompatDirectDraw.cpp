@@ -108,15 +108,27 @@ static HRESULT STDMETHODCALLTYPE CompatDirectDraw<TDirectDraw>::SetDisplayMode(
 	case 8: desc.ddpfPixelFormat.dwFlags |= DDPF_PALETTEINDEXED8; break;
 	}
 
+	//********** Begin Edit *************
+	desc.ddpfPixelFormat.dwFlags |= DDPF_ALPHAPIXELS;
+	//********** End Edit ***************
+
 	DDPIXELFORMAT pf = {};
 	if (dwBPP > 8)
 	{
 		if (FAILED(s_origVtable.EnumDisplayModes(This, 0, &desc, &pf, &enumDisplayModesCallback)) ||
 			0 == pf.dwSize)
 		{
-			Compat::Log() << "Failed to find the requested display mode: " <<
-				dwWidth << "x" << dwHeight << "x" << dwBPP;
-			return DDERR_INVALIDMODE;
+			//********** Begin Edit *************
+			// Try again with 32bit mode
+			desc.ddpfPixelFormat.dwRGBBitCount = 32;
+			if (FAILED(CompatDirectDraw<TDirectDraw>::s_origVtable.EnumDisplayModes(
+				This, 0, &desc, &pf, &enumDisplayModesCallback)) || 0 == pf.dwSize)
+			{
+				Compat::Log() << "Failed to find the requested display mode: " <<
+					dwWidth << "x" << dwHeight << "x" << dwBPP;
+				return DDERR_INVALIDMODE;
+			}
+			//********** End Edit ***************
 		}
 	}
 	else

@@ -149,7 +149,7 @@
       <DataExecutionPrevention />
       <ImportLibrary />
       <TargetMachine>MachineX86</TargetMachine>
-      <AdditionalDependencies>winmm.lib;dxguid.lib;detours.lib;msimg32.lib;oleacc.lib;uxtheme.lib;dwmapi.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>dxguid.lib;detours.lib;msimg32.lib;oleacc.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <GenerateDebugInformation>false</GenerateDebugInformation>
       <LinkTimeCodeGeneration>UseLinkTimeCodeGeneration</LinkTimeCodeGeneration>
       <IgnoreAllDefaultLibraries>
@@ -219,11 +219,14 @@ copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\winspool.drv"
     <ClCompile Include="DSoundCtrl\IDirectSoundBufferEx.cpp" />
     <ClCompile Include="DSoundCtrl\IDirectSoundClassFactoryEx.cpp" />
     <ClCompile Include="DSoundCtrl\IDirectSoundEx.cpp" />
+    <ClCompile Include="dwmapi.cpp" />
     <ClCompile Include="DxWnd\v2_03_60_src\proxy\init.cpp" />
     <ClCompile Include="fullscreen.cpp" />
     <ClCompile Include="hook\hotpatch.cpp" />
     <ClCompile Include="hook\iatpatch.cpp" />
     <ClCompile Include="utils.cpp" />
+    <ClCompile Include="uxtheme.cpp" />
+    <ClCompile Include="winmm.cpp" />
     <ClCompile Include="wrappers\d3d8.cpp" />
     <ClCompile Include="wrappers\d3d9.cpp" />
     <ClCompile Include="wrappers\ddraw.cpp" />
@@ -244,7 +247,6 @@ copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\winspool.drv"
     <ClInclude Include="d3d8to9\d3d8to9.hpp" />
     <ClInclude Include="d3d8to9\d3d8types.hpp" />
     <ClInclude Include="d3d8to9\d3dx9.hpp" />
-    <ClInclude Include="DDrawCompat\v0.2.1\DDrawLog.h" />
     <ClInclude Include="cfg.h" />
     <ClInclude Include="disasm\initdisasm.h" />
     <ClInclude Include="dllmain.h" />
@@ -257,12 +259,15 @@ copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\winspool.drv"
     <ClInclude Include="DSoundCtrl\IDirectSoundBufferEx.h" />
     <ClInclude Include="DSoundCtrl\IDirectSoundClassFactoryEx.h" />
     <ClInclude Include="DSoundCtrl\IDirectSoundEx.h" />
+    <ClInclude Include="dwmapi.h" />
     <ClInclude Include="dxwrapper.h" />
     <ClInclude Include="fullscreen.h" />
     <ClInclude Include="hook\hotpatch.h" />
     <ClInclude Include="hook\iatpatch.h" />
     <ClInclude Include="hook\MinHook.h" />
     <ClInclude Include="utils.h" />
+    <ClInclude Include="uxtheme.h" />
+    <ClInclude Include="winmm.h" />
     <ClInclude Include="wrappers\d3d8.h" />
     <ClInclude Include="wrappers\d3d9.h" />
     <ClInclude Include="wrappers\ddraw.h" />

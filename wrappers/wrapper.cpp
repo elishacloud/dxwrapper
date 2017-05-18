@@ -23,6 +23,8 @@
 #include "dxgi.h"
 #include "winmm.h"
 #include "winspool.h"
+#include "uxtheme.h"
+#include "dwmapi.h"
 
 struct custom_dll
 {
@@ -130,6 +132,8 @@ void DllAttach()
 // Unload all dll files loaded by the wrapper
 void DllDetach()
 {
+	UnLoaddwmapi();
+	UnLoadUxtheme();
 	FreeWinspoolLibrary();
 	FreeDplayxLibrary();
 	FreeD3d8Library();

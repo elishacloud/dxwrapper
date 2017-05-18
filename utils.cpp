@@ -25,7 +25,6 @@
 
 #include "cfg.h"
 #include <VersionHelpers.h>
-#pragma comment(lib, "version.lib")
 
 // Get Windows Operating System version number from the registry
 void GetVersionReg(OSVERSIONINFO *oOS_version)
@@ -63,6 +62,31 @@ void GetVersionFile(OSVERSIONINFO *oOS_version)
 	oOS_version->dwMinorVersion = 0;
 	oOS_version->dwBuildNumber = 0;
 
+	// Load version.dll
+	HMODULE Module = LoadLibrary("version.dll");
+	if (!Module)
+	{
+		Compat::Log() << "Failed to load version.dll!";
+		return;
+	}
+
+	// Declare functions
+	typedef DWORD(WINAPI *PFN_GetFileVersionInfoSize)(LPCTSTR lptstrFilename, LPDWORD lpdwHandle);
+	typedef BOOL(WINAPI *PFN_GetFileVersionInfo)(LPCTSTR lptstrFilename, DWORD dwHandle, DWORD dwLen, LPVOID lpData);
+	typedef BOOL(WINAPI *PFN_VerQueryValue)(LPCVOID pBlock, LPCTSTR lpSubBlock, LPVOID *lplpBuffer, PUINT puLen);
+
+	// Get functions ProcAddress
+	PFN_GetFileVersionInfoSize GetFileVersionInfoSize = reinterpret_cast<PFN_GetFileVersionInfoSize>(GetProcAddress(Module, "GetFileVersionInfoSizeA"));
+	PFN_GetFileVersionInfo GetFileVersionInfo = reinterpret_cast<PFN_GetFileVersionInfo>(GetProcAddress(Module, "GetFileVersionInfoA"));
+	PFN_VerQueryValue VerQueryValue = reinterpret_cast<PFN_VerQueryValue>(GetProcAddress(Module, "VerQueryValueA"));
+	if (!GetFileVersionInfoSize || !GetFileVersionInfo || !VerQueryValue)
+	{
+		if (!GetFileVersionInfoSize) Compat::Log() << "Failed to get 'GetFileVersionInfoSize' ProcAddress of version.dll!";
+		if (!GetFileVersionInfo) Compat::Log() << "Failed to get 'GetFileVersionInfo' ProcAddress of version.dll!";
+		if (!VerQueryValue) Compat::Log() << "Failed to get 'VerQueryValue' ProcAddress of version.dll!";
+		return;
+	}
+
 	// Get kernel32.dll path
 	char buffer[MAX_PATH];
 	GetSystemDirectory(buffer, MAX_PATH);
@@ -99,6 +123,7 @@ void GetVersionFile(OSVERSIONINFO *oOS_version)
 		}
 		delete[] verData;
 	}
+	FreeLibrary(Module);
 }
 
 // Log Windows Operating System type

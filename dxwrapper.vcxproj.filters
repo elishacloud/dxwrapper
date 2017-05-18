@@ -118,16 +118,55 @@
     <ClCompile Include="d3d8to9\d3d8types.cpp">
       <Filter>d3d8to9</Filter>
     </ClCompile>
-    <ClCompile Include="DDrawCompat\v0.2.1\DDrawLog.cpp">
+    <ClCompile Include="wrappers\wrapper.cpp">
+      <Filter>wrappers</Filter>
+    </ClCompile>
+    <ClCompile Include="DSoundCtrl\DSoundCtrl.cpp">
+      <Filter>DSoundCtrl</Filter>
+    </ClCompile>
+    <ClCompile Include="DSoundCtrl\IDirectSound3DBufferEx.cpp">
+      <Filter>DSoundCtrl</Filter>
+    </ClCompile>
+    <ClCompile Include="DSoundCtrl\IDirectSound3DListenerEx.cpp">
+      <Filter>DSoundCtrl</Filter>
+    </ClCompile>
+    <ClCompile Include="DSoundCtrl\IDirectSoundBufferEx.cpp">
+      <Filter>DSoundCtrl</Filter>
+    </ClCompile>
+    <ClCompile Include="DSoundCtrl\IDirectSoundClassFactoryEx.cpp">
+      <Filter>DSoundCtrl</Filter>
+    </ClCompile>
+    <ClCompile Include="DSoundCtrl\IDirectSoundEx.cpp">
+      <Filter>DSoundCtrl</Filter>
+    </ClCompile>
+    <ClCompile Include="uxtheme.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="dwmapi.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="winmm.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="DDrawCompat\v0.2.1\RealPrimarySurface.cpp">
+      <Filter>DDrawCompat</Filter>
+    </ClCompile>
+    <ClCompile Include="DDrawCompat\v0.2.1\CompatGdiDcFunctions.cpp">
       <Filter>DDrawCompat</Filter>
     </ClCompile>
     <ClCompile Include="DDrawCompat\v0.2.1\DllMainCompat.cpp">
       <Filter>DDrawCompat</Filter>
     </ClCompile>
-    <ClCompile Include="DDrawCompat\v0.2.1\CompatDirectDrawPalette.cpp">
+    <ClCompile Include="DDrawCompat\v0.2.1\CompatDirectDraw.cpp">
       <Filter>DDrawCompat</Filter>
     </ClCompile>
-    <ClCompile Include="DDrawCompat\v0.2.1\RealPrimarySurface.cpp">
+    <ClCompile Include="DDrawCompat\v0.2.1\CompatDirectDrawSurface.cpp">
+      <Filter>DDrawCompat</Filter>
+    </ClCompile>
+    <ClCompile Include="DDrawCompat\v0.2.1\DDrawLog.cpp">
+      <Filter>DDrawCompat</Filter>
+    </ClCompile>
+    <ClCompile Include="DDrawCompat\v0.2.1\CompatDirectDrawPalette.cpp">
       <Filter>DDrawCompat</Filter>
     </ClCompile>
     <ClCompile Include="DDrawCompat\v0.2.1\Time.cpp">
@@ -172,9 +211,6 @@
     <ClCompile Include="DDrawCompat\v0.2.1\CompatGdiPaintHandlers.cpp">
       <Filter>DDrawCompat</Filter>
     </ClCompile>
-    <ClCompile Include="DDrawCompat\v0.2.1\CompatGdiDcFunctions.cpp">
-      <Filter>DDrawCompat</Filter>
-    </ClCompile>
     <ClCompile Include="DDrawCompat\v0.2.1\CompatGdiDcCache.cpp">
       <Filter>DDrawCompat</Filter>
     </ClCompile>
@@ -187,35 +223,8 @@
     <ClCompile Include="DDrawCompat\v0.2.1\CompatGdi.cpp">
       <Filter>DDrawCompat</Filter>
     </ClCompile>
-    <ClCompile Include="DDrawCompat\v0.2.1\CompatDirectDrawSurface.cpp">
-      <Filter>DDrawCompat</Filter>
-    </ClCompile>
-    <ClCompile Include="DDrawCompat\v0.2.1\CompatDirectDraw.cpp">
-      <Filter>DDrawCompat</Filter>
-    </ClCompile>
     <ClCompile Include="DDrawCompat\v0.2.1\CompatActivateAppHandler.cpp">
       <Filter>DDrawCompat</Filter>
-    </ClCompile>
-    <ClCompile Include="wrappers\wrapper.cpp">
-      <Filter>wrappers</Filter>
-    </ClCompile>
-    <ClCompile Include="DSoundCtrl\DSoundCtrl.cpp">
-      <Filter>DSoundCtrl</Filter>
-    </ClCompile>
-    <ClCompile Include="DSoundCtrl\IDirectSound3DBufferEx.cpp">
-      <Filter>DSoundCtrl</Filter>
-    </ClCompile>
-    <ClCompile Include="DSoundCtrl\IDirectSound3DListenerEx.cpp">
-      <Filter>DSoundCtrl</Filter>
-    </ClCompile>
-    <ClCompile Include="DSoundCtrl\IDirectSoundBufferEx.cpp">
-      <Filter>DSoundCtrl</Filter>
-    </ClCompile>
-    <ClCompile Include="DSoundCtrl\IDirectSoundClassFactoryEx.cpp">
-      <Filter>DSoundCtrl</Filter>
-    </ClCompile>
-    <ClCompile Include="DSoundCtrl\IDirectSoundEx.cpp">
-      <Filter>DSoundCtrl</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -241,9 +250,6 @@
     </ClInclude>
     <ClInclude Include="d3d8to9\d3d8types.hpp">
       <Filter>d3d8to9</Filter>
-    </ClInclude>
-    <ClInclude Include="DDrawCompat\v0.2.1\DDrawLog.h">
-      <Filter>DDrawCompat</Filter>
     </ClInclude>
     <ClInclude Include="wrappers\d3d8.h">
       <Filter>wrappers</Filter>
@@ -325,6 +331,15 @@
     </ClInclude>
     <ClInclude Include="DSoundCtrl\DSoundCtrlExternal.h">
       <Filter>DSoundCtrl</Filter>
+    </ClInclude>
+    <ClInclude Include="uxtheme.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="dwmapi.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="winmm.h">
+      <Filter>Source Files</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

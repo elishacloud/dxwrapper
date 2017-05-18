@@ -9,6 +9,9 @@
 #include "DDrawTypes.h"
 #include "IReleaseNotifier.h"
 #include "RealPrimarySurface.h"
+//********** Begin Edit *************
+#include "winmm.h"
+//********** End Edit ***************
 
 namespace
 {
