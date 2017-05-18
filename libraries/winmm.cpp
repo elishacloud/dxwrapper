@@ -22,7 +22,7 @@ void Loadwinmm()
 	}
 	else
 	{
-		Compat::Log() << "Failed to load uxtheme.dll!";
+		Compat::Log() << "Failed to load winmm.dll!";
 	}
 }
 
