@@ -9,6 +9,8 @@
 #include "d3d8to9.hpp"
 #include "wrappers\wrapper.h"
 
+typedef LPDIRECT3D9(WINAPI *PFN_Direct3DCreate9)(UINT SDKVersion);
+
 PFN_D3DXAssembleShader D3DXAssembleShader = nullptr;
 PFN_D3DXDisassembleShader D3DXDisassembleShader = nullptr;
 PFN_D3DXLoadSurfaceFromSurface D3DXLoadSurfaceFromSurface = nullptr;
@@ -32,28 +34,35 @@ extern "C" Direct3D8 *WINAPI _Direct3DCreate8(UINT SDKVersion)
 	Compat::Log() << "> Passing on to 'Direct3DCreate9':";
 #endif
 
+	// Declare Direct3DCreate9
+	static PFN_Direct3DCreate9 Direct3DCreate9 = nullptr;
 
-	// Load version.dll
-	static HMODULE d3d9Module = LoadDll("d3d9.dll", dtype.d3d9);
-	if (!d3d9Module)
-	{
-		Compat::Log() << "Failed to load d3d9.dll!";
-		return nullptr;
-	}
-
-	// Declare functions
-	typedef LPDIRECT3D9(WINAPI *PFN_Direct3DCreate9)(UINT SDKVersion);
-
-	// Get functions ProcAddress
-	PFN_Direct3DCreate9 Direct3DCreate9 = reinterpret_cast<PFN_Direct3DCreate9>(GetProcAddress(d3d9Module, "Direct3DCreate9"));
+	// Load d3d9.dll
 	if (!Direct3DCreate9)
 	{
-		Compat::Log() << "Failed to get 'Direct3DCreate9' ProcAddress of d3d9.dll!";
-		return nullptr;
+		// Load module
+		static HMODULE d3d9Module = LoadDll("d3d9.dll", dtype.d3d9);
+
+		// Check if module is loaded
+		if (!d3d9Module)
+		{
+			Compat::Log() << "Failed to load d3d9.dll!";
+			return nullptr;
+		}
+
+		// Get function ProcAddress
+		Direct3DCreate9 = reinterpret_cast<PFN_Direct3DCreate9>(GetProcAddress(d3d9Module, "Direct3DCreate9"));
+		if (!Direct3DCreate9)
+		{
+			Compat::Log() << "Failed to get 'Direct3DCreate9' ProcAddress of d3d9.dll!";
+			return nullptr;
+		}
 	}
 
+	// Create Direct3D9 interface
 	IDirect3D9 *const d3d = Direct3DCreate9(D3D_SDK_VERSION);
 
+	// Check for valid Direct3D9 interface
 	if (d3d == nullptr)
 	{
 		return nullptr;
@@ -62,14 +71,17 @@ extern "C" Direct3D8 *WINAPI _Direct3DCreate8(UINT SDKVersion)
 	// Load D3DX
 	if (!D3DXAssembleShader || !D3DXDisassembleShader || !D3DXLoadSurfaceFromSurface)
 	{
-		// Declare vars
-		static HMODULE dllHandle = NULL;
-		char d3dx9name[MAX_PATH];
+		// Declare module vars
+		static HMODULE module = NULL;
 
-		// Check for different versions of d3dx9_xx.dll
-		if (!dllHandle)
+		// Load d3dx9_xx.dll module
+		if (!module)
 		{
-			for (int x = 99; x > 9 && dllHandle == NULL; x--)
+			// Declare d3dx9_xx.dll name
+			char d3dx9name[MAX_PATH];
+
+			// Declare d3dx9_xx.dll version
+			for (int x = 99; x > 9 && module == NULL; x--)
 			{
 				// Get dll name
 				strcpy_s(d3dx9name, "d3dx9_");
@@ -79,22 +91,21 @@ extern "C" Direct3D8 *WINAPI _Direct3DCreate8(UINT SDKVersion)
 				strcat_s(d3dx9name, ".dll");
 
 				// Load dll
-				dllHandle = LoadLibrary(d3dx9name);
+				module = LoadLibrary(d3dx9name);
 			}
-		}
 
-		const HMODULE module = dllHandle;
-
-		if (module != nullptr)
-		{
-			Compat::Log() << "Loaded " << d3dx9name;
-			D3DXAssembleShader = reinterpret_cast<PFN_D3DXAssembleShader>(GetProcAddress(module, "D3DXAssembleShader"));
-			D3DXDisassembleShader = reinterpret_cast<PFN_D3DXDisassembleShader>(GetProcAddress(module, "D3DXDisassembleShader"));
-			D3DXLoadSurfaceFromSurface = reinterpret_cast<PFN_D3DXLoadSurfaceFromSurface>(GetProcAddress(module, "D3DXLoadSurfaceFromSurface"));
-		}
-		else
-		{
-			Compat::Log() << "Failed to load d3dx9_xx.dll! Some features will not work correctly.";
+			// Check if module is loaded
+			if (module != nullptr)
+			{
+				Compat::Log() << "Loaded " << d3dx9name;
+				D3DXAssembleShader = reinterpret_cast<PFN_D3DXAssembleShader>(GetProcAddress(module, "D3DXAssembleShader"));
+				D3DXDisassembleShader = reinterpret_cast<PFN_D3DXDisassembleShader>(GetProcAddress(module, "D3DXDisassembleShader"));
+				D3DXLoadSurfaceFromSurface = reinterpret_cast<PFN_D3DXLoadSurfaceFromSurface>(GetProcAddress(module, "D3DXLoadSurfaceFromSurface"));
+			}
+			else
+			{
+				Compat::Log() << "Failed to load d3dx9_xx.dll! Some features will not work correctly.";
+			}
 		}
 	}
 
