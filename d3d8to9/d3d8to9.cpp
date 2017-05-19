@@ -7,28 +7,38 @@
 
 #include "d3dx9.hpp"
 #include "d3d8to9.hpp"
+//********** Begin Edit *************
 #include "wrappers\wrapper.h"
-
 typedef LPDIRECT3D9(WINAPI *PFN_Direct3DCreate9)(UINT SDKVersion);
+//********** End Edit ***************
 
 PFN_D3DXAssembleShader D3DXAssembleShader = nullptr;
 PFN_D3DXDisassembleShader D3DXDisassembleShader = nullptr;
 PFN_D3DXLoadSurfaceFromSurface D3DXLoadSurfaceFromSurface = nullptr;
 
-// Very simple logging for the purpose of debugging only.
-//std::ofstream LOG;
+#ifndef D3D8TO9NOLOG
+ // Very simple logging for the purpose of debugging only.
+std::ofstream LOG;
+#endif
 
 extern "C" Direct3D8 *WINAPI _Direct3DCreate8(UINT SDKVersion)
 {
+//********** Begin Edit *************
 	UNREFERENCED_PARAMETER(SDKVersion);
+//********** End Edit ***************
 
-	/*LOG.open("d3d8.log", std::ios::trunc);
+#ifndef D3D8TO9NOLOG
+	LOG.open("d3d8.log", std::ios::trunc);
 
 	if (!LOG.is_open())
 	{
-		MessageBoxA(nullptr, "Failed to open debug log file \"d3d8.log\"!", nullptr, MB_ICONWARNING);
-	}*/
+		MessageBox(nullptr, TEXT("Failed to open debug log file \"d3d8.log\"!"), nullptr, MB_ICONWARNING);
+	}
 
+	LOG << "Redirecting '" << "Direct3DCreate8" << "(" << SDKVersion << ")' ..." << std::endl;
+	LOG << "> Passing on to 'Direct3DCreate9':" << std::endl;
+#endif
+//********** Begin Edit *************
 #ifdef _DEBUG
 	Compat::Log() << "Redirecting '" << "Direct3DCreate8" << "(" << SDKVersion << ")' ...";
 	Compat::Log() << "> Passing on to 'Direct3DCreate9':";
@@ -58,11 +68,10 @@ extern "C" Direct3D8 *WINAPI _Direct3DCreate8(UINT SDKVersion)
 			return nullptr;
 		}
 	}
+//********** End Edit ***************
 
-	// Create Direct3D9 interface
 	IDirect3D9 *const d3d = Direct3DCreate9(D3D_SDK_VERSION);
 
-	// Check for valid Direct3D9 interface
 	if (d3d == nullptr)
 	{
 		return nullptr;
@@ -71,15 +80,15 @@ extern "C" Direct3D8 *WINAPI _Direct3DCreate8(UINT SDKVersion)
 	// Load D3DX
 	if (!D3DXAssembleShader || !D3DXDisassembleShader || !D3DXLoadSurfaceFromSurface)
 	{
+		//********** Begin Edit *************
+		//const HMODULE module = LoadLibrary(TEXT("d3dx9_43.dll"));
+		
 		// Declare module vars
 		static HMODULE module = NULL;
-
-		// Load d3dx9_xx.dll module
+		// Declare d3dx9_xx.dll name
+		static char d3dx9name[MAX_PATH];
 		if (!module)
 		{
-			// Declare d3dx9_xx.dll name
-			char d3dx9name[MAX_PATH];
-
 			// Declare d3dx9_xx.dll version
 			for (int x = 99; x > 9 && module == NULL; x--)
 			{
@@ -89,24 +98,33 @@ extern "C" Direct3D8 *WINAPI _Direct3DCreate8(UINT SDKVersion)
 				_itoa_s(x, buffer, 10);
 				strcat_s(d3dx9name, buffer);
 				strcat_s(d3dx9name, ".dll");
-
 				// Load dll
 				module = LoadLibrary(d3dx9name);
 			}
-
-			// Check if module is loaded
-			if (module != nullptr)
-			{
-				Compat::Log() << "Loaded " << d3dx9name;
-				D3DXAssembleShader = reinterpret_cast<PFN_D3DXAssembleShader>(GetProcAddress(module, "D3DXAssembleShader"));
-				D3DXDisassembleShader = reinterpret_cast<PFN_D3DXDisassembleShader>(GetProcAddress(module, "D3DXDisassembleShader"));
-				D3DXLoadSurfaceFromSurface = reinterpret_cast<PFN_D3DXLoadSurfaceFromSurface>(GetProcAddress(module, "D3DXLoadSurfaceFromSurface"));
-			}
-			else
-			{
-				Compat::Log() << "Failed to load d3dx9_xx.dll! Some features will not work correctly.";
-			}
 		}
+		//********** End Edit ***************
+
+		if (module != nullptr)
+		{
+			//********** Begin Edit *************
+			Compat::Log() << "Loaded " << d3dx9name;
+			//********** End Edit ***************
+			D3DXAssembleShader = reinterpret_cast<PFN_D3DXAssembleShader>(GetProcAddress(module, "D3DXAssembleShader"));
+			D3DXDisassembleShader = reinterpret_cast<PFN_D3DXDisassembleShader>(GetProcAddress(module, "D3DXDisassembleShader"));
+			D3DXLoadSurfaceFromSurface = reinterpret_cast<PFN_D3DXLoadSurfaceFromSurface>(GetProcAddress(module, "D3DXLoadSurfaceFromSurface"));
+		}
+#ifndef D3D8TO9NOLOG
+		else
+		{
+			LOG << "Failed to load d3dx9_43.dll! Some features will not work correctly." << std::endl;
+		}
+#endif
+		//********** Begin Edit *************
+		else
+		{
+			Compat::Log() << "Failed to load d3dx9_xx.dll! Some features will not work correctly.";
+		}
+		//********** End Edit ***************
 	}
 
 	return new Direct3D8(d3d);
