@@ -22,7 +22,6 @@
 
 CONFIG Config;
 DLLTYPE dtype;
-char* dtypename[256] = { nullptr };
 APPCOMPATDATATYPE AppCompatDataType;
 
 uint8_t ExcludeCount;
@@ -463,16 +462,6 @@ void ClearConfigSettings()
 	// Set local default values
 	ExcludeCount = 0;
 	IncludeCount = 0;
-	// Set dllname
-	dtypename[dtype.ddraw] = "ddraw.dll";
-	dtypename[dtype.d3d9] = "d3d9.dll";
-	dtypename[dtype.d3d8] = "d3d8.dll";
-	dtypename[dtype.winmm] = "winmm.dll";
-	dtypename[dtype.dsound] = "dsound.dll";
-	dtypename[dtype.dxgi] = "dxgi.dll";
-	dtypename[dtype.dplayx] = "dplayx.dll";
-	dtypename[dtype.winspool] = "winspool.drv";
-	dtypename[dtype.dinput] = "dinput.dll";
 }
 
 // Get wrapper mode based on dll name

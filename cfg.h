@@ -46,11 +46,11 @@ struct CONFIG
 	DWORD WrapperMode;					// 0			= Auto
 										// 1 ... 245	= DLLTYPE
 										// 255			= All
-	uint8_t AddressPointerCount = 0;	// Count of addresses to hot patch
-	uint8_t BytesToWriteCount = 0;		// Count of bytes to hot patch
-	uint8_t CustomDllCount = 0;			// Count of custom dlls to load
-	uint8_t NamedLayerCount = 0;		// Count of names layers to select for fullscreen
-	uint8_t IgnoreWindowCount = 0;		// Count of window classes to ignore
+	uint8_t AddressPointerCount;		// Count of addresses to hot patch
+	uint8_t BytesToWriteCount;			// Count of bytes to hot patch
+	uint8_t CustomDllCount;				// Count of custom dlls to load
+	uint8_t NamedLayerCount;			// Count of names layers to select for fullscreen
+	uint8_t IgnoreWindowCount;			// Count of window classes to ignore
 	MEMORYINFO VerifyMemoryInfo;		// Memory used for verification before hot patching
 	MEMORYINFO MemoryInfo[256];			// Addresses and memory used in hot patching
 	char szDllPath[MAX_PATH];			// Manually set Dll to wrap
@@ -97,7 +97,19 @@ struct DLLTYPE
 };
 extern DLLTYPE dtype;
 
-extern char* dtypename[256];
+// Designated Initializer does not work in VS 2015 so must pay attention to the order
+const static char* dtypename[] = {
+	nullptr,		// 0
+	"ddraw.dll",	// 1
+	"d3d9.dll",		// 2
+	"d3d8.dll",		// 3
+	"winmm.dll",	// 4
+	"dsound.dll",	// 5
+	"dxgi.dll",		// 6
+	"dplayx.dll",	// 7
+	"winspool.drv",	// 8
+	"dinput.dll",	// 9
+	};
 
 struct APPCOMPATDATATYPE
 {

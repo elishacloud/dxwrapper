@@ -35,11 +35,12 @@ struct custom_dll
 // Load real dll file that is being wrapped
 HMODULE LoadDll(uint8_t dlltype)
 {
-	// Check for valid dlltype
-	if (!dtypename[dlltype]) return nullptr;
-
 	// Declare vars
-	static custom_dll dllhandle[256];
+	static const uint8_t ArraySize = (sizeof(dtypename) / sizeof(*dtypename));
+	static custom_dll dllhandle[ArraySize];
+
+	// Check for valid dlltype
+	if (dlltype == 0 || dlltype >= ArraySize) return nullptr;
 
 	// Check if dll is already loaded
 	if (dllhandle[dlltype].Flag) return dllhandle[dlltype].dll;
