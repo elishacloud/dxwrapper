@@ -29,45 +29,55 @@
 struct custom_dll
 {
 	bool Flag = false;
-	HMODULE dll = NULL;
+	HMODULE dll = nullptr;
 } custom[256];
 
 // Load real dll file that is being wrapped
-HMODULE LoadDll(char *szDllPath, DWORD dlltype)
+HMODULE LoadDll(char *szDllPath, uint8_t dlltype)
 {
-	HMODULE dll = NULL;
+	// Declare vars
+	static custom_dll dllhandle[256];
+
+	// Check if dll is already loaded
+	if (dllhandle[dlltype].Flag) return dllhandle[dlltype].dll;
+	dllhandle[dlltype].Flag = true;
 
 	// Load dll from ini, if DllPath is not '0'
 	if (Config.szDllPath[0] != '\0' && Config.RealWrapperMode == dlltype)
 	{
 		Compat::Log() << "Loading " << Config.szDllPath << " library";
-		dll = LoadLibrary(Config.szDllPath);
-		if (dll == NULL) Compat::Log() << "Cannot load " << Config.szDllPath << " library";
+		dllhandle[dlltype].dll = LoadLibrary(Config.szDllPath);
+		if (!dllhandle[dlltype].dll) Compat::Log() << "Cannot load " << Config.szDllPath << " library";
 	}
+
 	// Load current dll
-	if (dll == NULL && Config.RealWrapperMode != dlltype)
+	if (!dllhandle[dlltype].dll && Config.RealWrapperMode != dlltype)
 	{
 		Compat::Log() << "Loading " << szDllPath << " library";
-		dll = LoadLibrary(szDllPath);
-		if (dll == NULL) Compat::Log() << "Cannot load " << szDllPath << " library";
+		dllhandle[dlltype].dll = LoadLibrary(szDllPath);
+		if (!dllhandle[dlltype].dll) Compat::Log() << "Cannot load " << szDllPath << " library";
 	}
+
 	// Load default system dll
-	if (dll == NULL)
+	if (!dllhandle[dlltype].dll)
 	{
 		char path[MAX_PATH];
 		GetSystemDirectory(path, MAX_PATH);
 		strcat_s(path, MAX_PATH, "\\");
 		strcat_s(path, MAX_PATH, szDllPath);
 		Compat::Log() << "Loading " << path << " library";
-		dll = LoadLibrary(path);
+		dllhandle[dlltype].dll = LoadLibrary(path);
 	}
+
 	// Cannot load dll
-	if (dll == NULL)
+	if (!dllhandle[dlltype].dll)
 	{
 		Compat::Log() << "Cannot load " << szDllPath << " library";
 		if (Config.WrapperMode != 0 && Config.WrapperMode != 255) ExitProcess(0);
 	}
-	return dll;
+
+	// Return dll handle
+	return dllhandle[dlltype].dll;
 }
 
 // Load custom dll files
@@ -81,7 +91,7 @@ void LoadCustomDll()
 			// Load dll from ini
 			custom[x].dll = LoadLibrary(Config.szCustomDllPath[x]);
 			// Load from system
-			if (custom[x].dll == NULL)
+			if (!custom[x].dll)
 			{
 				char path[MAX_PATH];
 				GetSystemDirectory(path, MAX_PATH);
@@ -90,7 +100,7 @@ void LoadCustomDll()
 				custom[x].dll = LoadLibrary(path);
 			}
 			// Cannot load dll
-			if (custom[x].dll == NULL)
+			if (!custom[x].dll)
 			{
 				Compat::Log() << "Cannot load custom " << Config.szCustomDllPath[x] << " library";
 			}
