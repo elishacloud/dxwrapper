@@ -422,7 +422,7 @@ __declspec(naked) void FakeXcvDataW() { _asm { jmp[winspool.XcvDataW] } }
 void LoadWinspool()
 {
 	// Load real dll
-	winspool.dll = LoadDll("winspool.drv", dtype.winspool);
+	winspool.dll = LoadDll(dtype.winspool);
 	// Load dll functions
 	winspoolFlag = true;
 	winspool.ADVANCEDSETUPDIALOG = GetProcAddress(winspool.dll, "ADVANCEDSETUPDIALOG");

@@ -33,8 +33,11 @@ struct custom_dll
 } custom[256];
 
 // Load real dll file that is being wrapped
-HMODULE LoadDll(char *szDllPath, uint8_t dlltype)
+HMODULE LoadDll(uint8_t dlltype)
 {
+	// Check for valid dlltype
+	if (!dtypename[dlltype]) return nullptr;
+
 	// Declare vars
 	static custom_dll dllhandle[256];
 
@@ -53,9 +56,9 @@ HMODULE LoadDll(char *szDllPath, uint8_t dlltype)
 	// Load current dll
 	if (!dllhandle[dlltype].dll && Config.RealWrapperMode != dlltype)
 	{
-		Compat::Log() << "Loading " << szDllPath << " library";
-		dllhandle[dlltype].dll = LoadLibrary(szDllPath);
-		if (!dllhandle[dlltype].dll) Compat::Log() << "Cannot load " << szDllPath << " library";
+		Compat::Log() << "Loading " << dtypename[dlltype] << " library";
+		dllhandle[dlltype].dll = LoadLibrary(dtypename[dlltype]);
+		if (!dllhandle[dlltype].dll) Compat::Log() << "Cannot load " << dtypename[dlltype] << " library";
 	}
 
 	// Load default system dll
@@ -64,7 +67,7 @@ HMODULE LoadDll(char *szDllPath, uint8_t dlltype)
 		char path[MAX_PATH];
 		GetSystemDirectory(path, MAX_PATH);
 		strcat_s(path, MAX_PATH, "\\");
-		strcat_s(path, MAX_PATH, szDllPath);
+		strcat_s(path, MAX_PATH, dtypename[dlltype]);
 		Compat::Log() << "Loading " << path << " library";
 		dllhandle[dlltype].dll = LoadLibrary(path);
 	}
@@ -72,7 +75,7 @@ HMODULE LoadDll(char *szDllPath, uint8_t dlltype)
 	// Cannot load dll
 	if (!dllhandle[dlltype].dll)
 	{
-		Compat::Log() << "Cannot load " << szDllPath << " library";
+		Compat::Log() << "Cannot load " << dtypename[dlltype] << " library";
 		if (Config.WrapperMode != 0 && Config.WrapperMode != 255) ExitProcess(0);
 	}
 

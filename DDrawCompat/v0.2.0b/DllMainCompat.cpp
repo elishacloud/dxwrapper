@@ -176,8 +176,8 @@ bool StartDdrawCompat(HINSTANCE hinstDLL)
 	}
 
 	//********** Begin Edit *************
-	g_origDDrawModule = LoadDll("ddraw.dll", dtype.ddraw);
-	g_origDInputModule = LoadDll("dinput.dll", dtype.ddraw);
+	g_origDDrawModule = LoadDll(dtype.ddraw);
+	g_origDInputModule = LoadDll(dtype.dinput);
 	if (!g_origDDrawModule || !g_origDInputModule)
 	//if (!loadLibrary(systemDirectory, "ddraw.dll", g_origDDrawModule) ||
 	//	!loadLibrary(systemDirectory, "dinput.dll", g_origDInputModule))

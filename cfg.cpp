@@ -22,6 +22,7 @@
 
 CONFIG Config;
 DLLTYPE dtype;
+char* dtypename[256] = { nullptr };
 APPCOMPATDATATYPE AppCompatDataType;
 
 uint8_t ExcludeCount;
@@ -462,6 +463,16 @@ void ClearConfigSettings()
 	// Set local default values
 	ExcludeCount = 0;
 	IncludeCount = 0;
+	// Set dllname
+	dtypename[dtype.ddraw] = "ddraw.dll";
+	dtypename[dtype.d3d9] = "d3d9.dll";
+	dtypename[dtype.d3d8] = "d3d8.dll";
+	dtypename[dtype.winmm] = "winmm.dll";
+	dtypename[dtype.dsound] = "dsound.dll";
+	dtypename[dtype.dxgi] = "dxgi.dll";
+	dtypename[dtype.dplayx] = "dplayx.dll";
+	dtypename[dtype.winspool] = "winspool.drv";
+	dtypename[dtype.dinput] = "dinput.dll";
 }
 
 // Get wrapper mode based on dll name
@@ -471,13 +482,13 @@ void GetWrapperMode()
 	Config.RealWrapperMode = 0;
 	GetModuleFileNameA(hModule_dll, buffer, sizeof(buffer));
 	strippath(buffer);
-	if (_strcmpi(buffer, "ddraw.dll") == 0) { Config.RealWrapperMode = dtype.ddraw; return; }
-	if (_strcmpi(buffer, "d3d9.dll") == 0) { Config.RealWrapperMode = dtype.d3d9; return; }
-	if (_strcmpi(buffer, "d3d8.dll") == 0) { Config.RealWrapperMode = dtype.d3d8; return; }
-	if (_strcmpi(buffer, "dsound.dll") == 0) { Config.RealWrapperMode = dtype.dsound; return; }
-	if (_strcmpi(buffer, "dxgi.dll") == 0) { Config.RealWrapperMode = dtype.dxgi; return; }
-	if (_strcmpi(buffer, "dplayx.dll") == 0) { Config.RealWrapperMode = dtype.dplayx; return; }
-	if (_strcmpi(buffer, "winspool.drv") == 0) { Config.RealWrapperMode = dtype.winspool; return; }
+	if (_strcmpi(buffer, dtypename[dtype.ddraw]) == 0) { Config.RealWrapperMode = dtype.ddraw; return; }
+	if (_strcmpi(buffer, dtypename[dtype.d3d9]) == 0) { Config.RealWrapperMode = dtype.d3d9; return; }
+	if (_strcmpi(buffer, dtypename[dtype.d3d8]) == 0) { Config.RealWrapperMode = dtype.d3d8; return; }
+	if (_strcmpi(buffer, dtypename[dtype.dsound]) == 0) { Config.RealWrapperMode = dtype.dsound; return; }
+	if (_strcmpi(buffer, dtypename[dtype.dxgi]) == 0) { Config.RealWrapperMode = dtype.dxgi; return; }
+	if (_strcmpi(buffer, dtypename[dtype.dplayx]) == 0) { Config.RealWrapperMode = dtype.dplayx; return; }
+	if (_strcmpi(buffer, dtypename[dtype.winspool]) == 0) { Config.RealWrapperMode = dtype.winspool; return; }
 
 	// Special for winmm.dll because sometimes it is changed to win32 or winnm or some other name
 	if (strlen(buffer) > 8)
@@ -485,7 +496,7 @@ void GetWrapperMode()
 		buffer[3] = 'm';
 		buffer[4] = 'm';
 	}
-	if (_strcmpi(buffer, "winmm.dll") == 0) { Config.RealWrapperMode = dtype.winmm; return; }
+	if (_strcmpi(buffer, dtypename[dtype.winmm]) == 0) { Config.RealWrapperMode = dtype.winmm; return; }
 }
 
 void CONFIG::CleanUp()

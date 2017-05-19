@@ -41,7 +41,7 @@ extern "C" Direct3D8 *WINAPI _Direct3DCreate8(UINT SDKVersion)
 	if (!Direct3DCreate9)
 	{
 		// Load module
-		static HMODULE d3d9Module = LoadDll("d3d9.dll", dtype.d3d9);
+		static HMODULE d3d9Module = LoadDll(dtype.d3d9);
 
 		// Check if module is loaded
 		if (!d3d9Module)

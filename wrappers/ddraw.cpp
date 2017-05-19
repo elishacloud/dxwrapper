@@ -108,7 +108,7 @@ void LoadDdraw()
 	else
 	{
 		// Load real dll
-		ddraw.dll = LoadDll("ddraw.dll", dtype.ddraw);
+		ddraw.dll = LoadDll(dtype.ddraw);
 		// Load dll functions
 		if (ddraw.dll)
 		{

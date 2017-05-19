@@ -55,7 +55,7 @@ __declspec(naked) void  FakeDirectSoundCaptureCreate8()		{ _asm { jmp [dsound.Di
 void LoadDsound()
 {
 	// Load real dll
-	dsound.dll = LoadDll("dsound.dll", dtype.dsound);
+	dsound.dll = LoadDll(dtype.dsound);
 	// Load dll functions
 	if (dsound.dll)
 	{

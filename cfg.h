@@ -93,8 +93,11 @@ struct DLLTYPE
 	const uint8_t dxgi = 6;
 	const uint8_t dplayx = 7;
 	const uint8_t winspool = 8;
+	const uint8_t dinput = 9;
 };
 extern DLLTYPE dtype;
+
+extern char* dtypename[256];
 
 struct APPCOMPATDATATYPE
 {

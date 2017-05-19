@@ -40,7 +40,7 @@ __declspec(naked) void FakeDirectPlayLobbyCreateW()			{ _asm { jmp [dplayx.Direc
 void LoadDplayx()
 {
 	// Load real dll
-	dplayx.dll = LoadDll("dplayx.dll", dtype.dplayx);
+	dplayx.dll = LoadDll(dtype.dplayx);
 	// Load dll functions
 	if (dplayx.dll)
 	{

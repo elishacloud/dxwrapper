@@ -56,7 +56,7 @@ __declspec(naked) void FakeDirect3DCreate9Ex()				{ _asm { jmp [d3d9.Direct3DCre
 void LoadD3d9()
 {
 	// Load real dll
-	d3d9.dll = LoadDll("d3d9.dll", dtype.d3d9);
+	d3d9.dll = LoadDll(dtype.d3d9);
 	// Load dll functions
 	if (d3d9.dll)
 	{

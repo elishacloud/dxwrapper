@@ -138,7 +138,7 @@ __declspec(naked) void FakeD3DKMTWaitForVerticalBlankEvent() { _asm { jmp [dxgi.
 void LoadDxgi()
 {
 	// Load real dll
-	dxgi.dll = LoadDll("dxgi.dll", dtype.dxgi);
+	dxgi.dll = LoadDll(dtype.dxgi);
 	// Load dll functions
 	if (dxgi.dll)
 	{

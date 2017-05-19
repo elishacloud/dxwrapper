@@ -12,7 +12,7 @@ void Loadwinmm()
 	static bool IsLoaded = false;
 	if (IsLoaded) return; // Only load the dll once
 	IsLoaded = true;
-	winmmModule = LoadDll("winmm.dll", dtype.winmm);
+	winmmModule = LoadDll(dtype.winmm);
 	if (winmmModule)
 	{
 		timeBeginPeriodPtr = reinterpret_cast<PFN_timeBeginPeriod>(GetProcAddress(winmmModule, "timeBeginPeriod"));

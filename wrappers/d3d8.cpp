@@ -38,7 +38,7 @@ __declspec(naked) void FakeValidatePixelShader()			{ _asm { jmp [d3d8.ValidatePi
 void LoadD3d8()
 {
 	// Load real dll
-	d3d8.dll = LoadDll("d3d8.dll", dtype.d3d8);
+	d3d8.dll = LoadDll(dtype.d3d8);
 	// Load dll functions
 	if (d3d8.dll)
 	{

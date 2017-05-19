@@ -416,7 +416,7 @@ __declspec(naked) void  Fakewod32Message()					{ _asm { jmp [winmm.wod32Message]
 void LoadWinmm()
 {
 	// Load real dll
-	winmm.dll = LoadDll("winmm.dll", dtype.winmm);
+	winmm.dll = LoadDll(dtype.winmm);
 	// Load dll functions
 	if (winmm.dll)
 	{
