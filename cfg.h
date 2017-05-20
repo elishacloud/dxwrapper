@@ -7,6 +7,8 @@
 #include "DDrawLog.h"
 #endif
 
+void LogText(char*);
+
 bool IfStringExistsInList(char*, char*[256], uint8_t, bool = true);
 void SetConfigList(char*[], uint8_t&, char*);
 

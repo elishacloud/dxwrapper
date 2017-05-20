@@ -29,6 +29,11 @@ uint8_t IncludeCount;
 char* szExclude[256];
 char* szInclude[256];
 
+void LogText(char *MyText)
+{
+	Compat::Log() << MyText;
+}
+
 // Checks if a string value exists in a string array
 inline bool IfStringExistsInList(char* szValue, char* szList[256], uint8_t ListCount, bool CaseSensitive)
 {

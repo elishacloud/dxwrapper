@@ -1,5 +1,5 @@
 /**
-* Created from source code found in DxWnd v2.03.60
+* Created from source code found in DxWnd v2.03.99
 * https://sourceforge.net/projects/dxwnd/
 *
 * Updated 2017 by Elisha Riedlinger
@@ -20,6 +20,9 @@
 
 void *HotPatch(void *apiproc, const char *apiname, void *hookproc)
 {
+	const DWORD BuffSize = 250;
+	char buffer[BuffSize];
+
 #ifdef USEMINHOOK
 	void *pProc;
 	static BOOL DoOnce = TRUE;
@@ -34,7 +37,8 @@ void *HotPatch(void *apiproc, const char *apiname, void *hookproc)
 	}
 
 #ifdef _DEBUG
-	Compat::Log() << "HotPatch: api="<< apiname << " addr=" << std::showbase << std::hex << apiproc << std::dec << std::noshowbase << " hook=" << hookproc;
+	sprintf_s(buffer, BuffSize, "HotPatch: api=%s addr=%x hook=%x\n", apiname, apiproc, hookproc);
+	LogText(buffer);
 #endif
 
 	if(!strcmp(apiname, "GetProcAddress")) return 0; // do not mess with this one!
@@ -50,7 +54,8 @@ void *HotPatch(void *apiproc, const char *apiname, void *hookproc)
 	}
 
 #ifdef _DEBUG
-	Compat::Log() << "HotPatch: api=" << apiname << " addr=" << std::showbase << std::hex << apiproc << "->" << pProc << std::dec << std::noshowbase << " hook=" << hookproc;
+	sprintf_s(buffer, BuffSize, "HotPatch: api=%s addr=%x->%x hook=%x", apiname, apiproc, pProc, hookproc);
+	LogText(buffer);
 #endif
 	return pProc;
 #else
@@ -59,7 +64,8 @@ void *HotPatch(void *apiproc, const char *apiname, void *hookproc)
 	void *orig_address;
 
 #ifdef _DEBUG
-	Compat::Log() << "HotPatch: api=" << apiname << " addr=" << std::showbase << std::hex << apiproc << std::dec << std::noshowbase << " hook=" << hookproc;
+	sprintf_s(buffer, BuffSize, "HotPatch: api=%s addr=%x hook=%x", apiname, apiproc, hookproc);
+	LogText(buffer);
 #endif
 
 	if(!strcmp(apiname, "GetProcAddress")) return 0; // do not mess with this one!
@@ -70,7 +76,8 @@ void *HotPatch(void *apiproc, const char *apiname, void *hookproc)
 	// entry point could be at the top of a page? so VirtualProtect first to make sure patch_address is readable
 	//if(!VirtualProtect(patch_address, 7, PAGE_EXECUTE_READWRITE, &dwPrevProtect)){
 	if(!VirtualProtect(patch_address, 12, PAGE_EXECUTE_WRITECOPY, &dwPrevProtect)){
-		Compat::Log() << "HotPatch: access denied. err=" << GetLastError();
+		sprintf_s(buffer, BuffSize, "HotPatch: access denied. err=%x", GetLastError());
+		LogText(buffer);
 		return (void *)0; // access denied
 	}
 
@@ -82,7 +89,8 @@ void *HotPatch(void *apiproc, const char *apiname, void *hookproc)
 		
 		VirtualProtect( patch_address, 12, dwPrevProtect, &dwPrevProtect ); // restore protection
 #ifdef _DEBUG
-		Compat::Log() << "HotPatch: api=" << apiname << " addr=" << std::showbase << std::hex << apiproc << "->" << orig_address << std::dec << std::noshowbase << " hook=" << hookproc;
+		sprintf_s(buffer, BuffSize, "HotPatch: api=%s addr=%x->%x hook=%x", apiname, apiproc, orig_address, hookproc);
+		LogText(buffer);
 #endif
 		return orig_address;
 	}
@@ -93,7 +101,7 @@ void *HotPatch(void *apiproc, const char *apiname, void *hookproc)
 		// check it wasn't patched already
 		if((*patch_address==0xE9) && (*(WORD *)apiproc == 0xF9EB)){
 			// should never go through here ...
-			Compat::Log() << "HotPatch: patched already\n";
+			Compat::Log() << "HotPatch: patched already";
 			return (void *)1;
 		}
 		else{
@@ -108,7 +116,8 @@ void *HotPatch(void *apiproc, const char *apiname, void *hookproc)
 	
 	VirtualProtect( patch_address, 12, dwPrevProtect, &dwPrevProtect ); // restore protection
 #ifdef _DEBUG
-	Compat::Log() << "HotPatch: api=" << apiname << " addr=" << std::showbase << std::hex << apiproc << "->" << orig_address << std::dec << std::noshowbase << " hook=" << hookproc;
+	sprintf_s(buffer, BuffSize, "HotPatch: api=%s addr=%x->%x hook=%x", apiname, apiproc, orig_address, hookproc);
+	LogText(buffer);
 #endif
 	return orig_address;
 #endif
