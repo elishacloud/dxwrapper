@@ -101,12 +101,7 @@ bool APIENTRY DllMain(HMODULE hModule, DWORD ul_reason_for_call, LPVOID lpReserv
 		if (Config.szShellPath[0] != '\0') Shell(Config.szShellPath);
 		if (Config.HandleExceptions) HookExceptionHandler();
 		if (Config.DpiAware) DisableHighDPIScaling();
-		if (Config.Affinity)
-		{
-			Compat::Log() << "Setting single process affinity";
-			SetSingleProcessAffinity(true);
-			SetSingleCoreAffinity();
-		}
+		if (Config.Affinity) SetProcessAffinityMask(GetCurrentProcess(), 1);
 		if (Config.DDrawCompat) Config.DDrawCompat = StartDdrawCompat(hModule_dll);
 		DllAttach();
 		if (Config.DxWnd)
@@ -125,14 +120,12 @@ bool APIENTRY DllMain(HMODULE hModule, DWORD ul_reason_for_call, LPVOID lpReserv
 		}
 		if (Config.FullScreen || Config.ForceTermination) StartThread();
 		// ***
+
 		SetThreadPriority(hCurrentThread, THREAD_PRIORITY_NORMAL);
 		CloseHandle(hCurrentThread);
 	}
 	break;
 	case DLL_THREAD_ATTACH:
-		// Set single process affinity
-		if (Config.Affinity) SetSingleCoreAffinity();
-
 		// Check and store screen resolution
 		if (Config.ResetScreenRes) CheckCurrentScreenRes(m_ScreenRes);
 
@@ -151,7 +144,6 @@ bool APIENTRY DllMain(HMODULE hModule, DWORD ul_reason_for_call, LPVOID lpReserv
 		}
 		break;
 	case DLL_PROCESS_DETACH:
-
 		// Run all clean up functions
 		RunExitFunctions();
 		break;

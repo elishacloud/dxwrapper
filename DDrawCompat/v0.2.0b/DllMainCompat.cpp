@@ -190,11 +190,11 @@ bool StartDdrawCompat(HINSTANCE hinstDLL)
 	Compat::origProcs.DirectInputCreateA = GetProcAddress(g_origDInputModule, "DirectInputCreateA");
 
 	//********** Begin Edit *************
-	if (Config.AffinityNotSet || Config.Affinity) SetProcessAffinityMask(GetCurrentProcess(), 1);
+	if (Config.AffinityNotSet) SetProcessAffinityMask(GetCurrentProcess(), 1);
 	//********** End Edit ***************
 
 	//********** Begin Edit *************
-	if (Config.DisableMaxWindowedModeNotSet || Config.DXPrimaryEmulation[AppCompatDataType.DisableMaxWindowedMode])
+	if (Config.DisableMaxWindowedModeNotSet)
 	{
 		if (Compat::origProcs.SetAppCompatData)
 		{

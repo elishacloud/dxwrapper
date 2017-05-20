@@ -16,9 +16,6 @@
 * Some functions taken from source code found in Aqrit's ddwrapper
 * http://bitpatch.com/ddwrapper.html
 *
-* Some functions taken from source code found in DxWnd v2.03.60
-* https://sourceforge.net/projects/dxwnd/
-*
 * Some functions taken from source code found in DirectSoundControl
 * https://github.com/nRaecheR/DirectSoundControl
 */
@@ -294,70 +291,5 @@ void DisableHighDPIScaling()
 	{
 		SetProcessDPIAwareFunc setDPIAware = (SetProcessDPIAwareFunc)GetProcAddress(hUser32, "SetProcessDPIAware");
 		if (setDPIAware) setDPIAware();
-	}
-}
-
-// Sets the thread to use only one CPU
-void SetSingleCoreAffinity()
-{
-	HANDLE hProcess = GetCurrentProcess();
-	DWORD ProcessAffinityMask;
-	DWORD SystemAffinityMask;
-	typedef bool(__stdcall* SetProcessAffinityMask_t)(HANDLE, DWORD);
-	if (GetProcessAffinityMask(hProcess, &ProcessAffinityMask, &SystemAffinityMask))
-	{
-		if (ProcessAffinityMask & 1)
-		{
-			SetProcessAffinityMask_t spam = (SetProcessAffinityMask_t)GetProcAddress(GetModuleHandle("kernel32.dll"), "SetProcessAffinityMask");
-			if (spam) spam(hProcess, 1);
-			else SetThreadAffinityMask(GetCurrentThread(), 1);
-		}
-	}
-}
-
-// Sets the process to use only one CPU
-void SetSingleProcessAffinity(bool first)
-{
-	int i;
-	DWORD ProcessAffinityMask, SystemAffinityMask;
-	if (!GetProcessAffinityMask(GetCurrentProcess(), &ProcessAffinityMask, &SystemAffinityMask))
-	{
-		Compat::Log() << "GetProcessAffinityMask: ERROR err=" << GetLastError();
-	}
-#ifdef _DEBUG
-	Compat::Log() << "Process affinity=" << ProcessAffinityMask;
-#endif
-	if (first) {
-		for (i = 0; i<(8 * sizeof(DWORD)); i++) {
-			if (ProcessAffinityMask & 0x1) break;
-			ProcessAffinityMask >>= 1;
-		}
-#ifdef _DEBUG
-		Compat::Log() << "First process affinity bit=" << i;
-#endif
-		ProcessAffinityMask = 0x1;
-		for (; i; i--) ProcessAffinityMask <<= 1;
-#ifdef _DEBUG
-		Compat::Log() << "Process affinity=" << ProcessAffinityMask;
-#endif
-	}
-	else {
-		for (i = 0; i<(8 * sizeof(DWORD)); i++) {
-			if (ProcessAffinityMask & 0x80000000) break;
-			ProcessAffinityMask <<= 1;
-		}
-		i = 31 - i;
-#ifdef _DEBUG
-		Compat::Log() << "Last process affinity bit=" << i;
-#endif
-		ProcessAffinityMask = 0x1;
-		for (; i; i--) ProcessAffinityMask <<= 1;
-#ifdef _DEBUG
-		Compat::Log() << "Process affinity=" << ProcessAffinityMask;
-#endif
-	}
-	if (!SetProcessAffinityMask(GetCurrentProcess(), ProcessAffinityMask))
-	{
-		Compat::Log() << "GetProcessAffinityMask: ERROR err=" << GetLastError();
 	}
 }
