@@ -14,10 +14,16 @@
 *   3. This notice may not be removed or altered from any source distribution.
 */
 
-#include "dxwrapper.h"
+#include "cfg.h"
 #include "dllmain.h"
-#include "wrappers\wrapper.h"
+#include "dxwrapper.h"
+#include "DDrawCompatExternal.h"
+#include "DxWndExternal.h"
 #include "utils.h"
+#include "fullscreen.h"
+#include "wrappers\wrapper.h"
+#include "writememory\writememory.h"
+#include "disasm\initdisasm.h"
 
 // Declare varables
 HMODULE hModule_dll = NULL;

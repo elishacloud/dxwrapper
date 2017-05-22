@@ -47,14 +47,14 @@
     <OutDir>$(OutDir)</OutDir>
     <IntDir>$(IntDir)</IntDir>
     <LinkIncremental>false</LinkIncremental>
-    <IncludePath>$(ProjectDir);libraries;DDrawCompat\v0.2.1;DxWnd\v2_03_60_src\Include;C:\Program Files (x86)\Microsoft Research\Detours Express 3.0\include;$(IncludePath)</IncludePath>
+    <IncludePath>$(ProjectDir);libraries;DDrawCompat\v0.2.1;DxWnd\v2_03_60_src;C:\Program Files (x86)\Microsoft Research\Detours Express 3.0\include;$(IncludePath)</IncludePath>
     <LibraryPath>C:\Program Files (x86)\Microsoft DirectX SDK (June 2010)\Lib\x86;C:\Program Files (x86)\Microsoft Research\Detours Express 3.0\lib.X86;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <OutDir>$(OutDir)</OutDir>
     <IntDir>$(IntDir)</IntDir>
     <LinkIncremental>false</LinkIncremental>
-    <IncludePath>$(ProjectDir);libraries;DDrawCompat\v0.2.1;DxWnd\v2_03_60_src\Include;C:\Program Files (x86)\Microsoft Research\Detours Express 3.0\include;$(IncludePath)</IncludePath>
+    <IncludePath>$(ProjectDir);libraries;DDrawCompat\v0.2.1;DxWnd\v2_03_60_src;C:\Program Files (x86)\Microsoft Research\Detours Express 3.0\include;$(IncludePath)</IncludePath>
     <LibraryPath>C:\Program Files (x86)\Microsoft DirectX SDK (June 2010)\Lib\x86;C:\Program Files (x86)\Microsoft Research\Detours Express 3.0\lib.X86;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
@@ -245,7 +245,7 @@ copy /Y "$(ProjectDir)dgame.ini" "$(TargetDir)Build\dgame.ini"
     <ClCompile Include="DSoundCtrl\IDirectSoundBufferEx.cpp" />
     <ClCompile Include="DSoundCtrl\IDirectSoundClassFactoryEx.cpp" />
     <ClCompile Include="DSoundCtrl\IDirectSoundEx.cpp" />
-    <ClCompile Include="DxWnd\v2_03_60_src\proxy\init.cpp" />
+    <ClCompile Include="DxWnd\v2_03_60_src\init.cpp" />
     <ClCompile Include="fullscreen.cpp" />
     <ClCompile Include="hook\hotpatch.cpp" />
     <ClCompile Include="hook\iatpatch.cpp" />

@@ -85,9 +85,6 @@
     <ClCompile Include="writememory\writememory.cpp">
       <Filter>writememory</Filter>
     </ClCompile>
-    <ClCompile Include="DxWnd\v2_03_60_src\proxy\init.cpp">
-      <Filter>DxWnd</Filter>
-    </ClCompile>
     <ClCompile Include="wrappers\winspool.cpp">
       <Filter>wrappers</Filter>
     </ClCompile>
@@ -231,6 +228,9 @@
     </ClCompile>
     <ClCompile Include="hook\inithook.cpp">
       <Filter>hook</Filter>
+    </ClCompile>
+    <ClCompile Include="DxWnd\v2_03_60_src\init.cpp">
+      <Filter>DxWnd</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
