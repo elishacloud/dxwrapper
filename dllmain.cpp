@@ -17,13 +17,14 @@
 #include "cfg.h"
 #include "dllmain.h"
 #include "dxwrapper.h"
+#include "wrappers\wrapper.h"
 #include "DDrawCompatExternal.h"
 #include "DxWndExternal.h"
+#include "DSoundCtrl\DSoundCtrlExternal.h"
 #include "utils.h"
 #include "fullscreen.h"
-#include "wrappers\wrapper.h"
-#include "writememory\writememory.h"
 #include "disasm\initdisasm.h"
+#include "writememory\writememory.h"
 
 // Declare varables
 HMODULE hModule_dll = NULL;
@@ -107,8 +108,10 @@ bool APIENTRY DllMain(HMODULE hModule, DWORD ul_reason_for_call, LPVOID lpReserv
 		if (Config.szShellPath[0] != '\0') Shell(Config.szShellPath);
 		if (Config.HandleExceptions) HookExceptionHandler();
 		if (Config.DpiAware) DisableHighDPIScaling();
+		SetAppCompat();
 		if (Config.Affinity) SetProcessAffinityMask(GetCurrentProcess(), 1);
 		if (Config.DDrawCompat) Config.DDrawCompat = StartDdrawCompat(hModule_dll);
+		if (Config.DSoundCtrl) RunDSoundCtrl();
 		DllAttach();
 		if (Config.DxWnd)
 		{

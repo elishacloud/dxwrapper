@@ -17,11 +17,9 @@
 #include "cfg.h"
 #include "wrapper.h"
 
-bool winmmFlag = false;
-
 struct winmm_dll
 {
-	HMODULE dll;
+	HMODULE dll = nullptr;
  	FARPROC CloseDriver;
  	FARPROC DefDriverProc;
  	FARPROC DriverCallback;
@@ -420,7 +418,6 @@ void LoadWinmm()
 	// Load dll functions
 	if (winmm.dll)
 	{
-		winmmFlag = true;
 		winmm.CloseDriver					= GetProcAddress(winmm.dll, "CloseDriver");
 		winmm.DefDriverProc					= GetProcAddress(winmm.dll, "DefDriverProc");
 		winmm.DriverCallback				= GetProcAddress(winmm.dll, "DriverCallback");
@@ -620,5 +617,5 @@ void LoadWinmm()
 
 void FreeWinmmLibrary()
 {
-	if (winmmFlag) FreeLibrary(winmm.dll);
+	if (winmm.dll) FreeLibrary(winmm.dll);
 }

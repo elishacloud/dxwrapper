@@ -529,5 +529,6 @@ STDAPI STDMETHODCALLTYPE DllGetClassObject_DSoundCtrl(IN REFCLSID rclsid, IN REF
 
 void RunDSoundCtrl()
 {
+	Compat::Log() << "Enabling DSoundCtrl function";
 	theApp.InitInstance();
 }

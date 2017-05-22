@@ -21,6 +21,7 @@
 */
 
 #include "cfg.h"
+#include "wrappers\wrapper.h"
 #include <VersionHelpers.h>
 
 // Get Windows Operating System version number from the registry
@@ -291,5 +292,48 @@ void DisableHighDPIScaling()
 	{
 		SetProcessDPIAwareFunc setDPIAware = (SetProcessDPIAwareFunc)GetProcAddress(hUser32, "SetProcessDPIAware");
 		if (setDPIAware) setDPIAware();
+	}
+}
+
+void SetAppCompat()
+{
+	// Check if any DXPrimaryEmulation flags is set
+	bool appCompatFlag = false;
+	for (int x = 1; x <= 12; x++) if (Config.DXPrimaryEmulation[x]) appCompatFlag = true;
+
+	// SetAppCompatData see: http://www.blitzbasic.com/Community/post.php?topic=99477&post=1202996
+	if (appCompatFlag)
+	{
+		typedef HRESULT(__stdcall *SetAppCompatDataFunc)(DWORD, DWORD);
+		HMODULE module = LoadDll(dtype.ddraw);
+		if (module)
+		{
+			FARPROC SetAppCompatDataPtr = GetProcAddress(module, "SetAppCompatData");
+			SetAppCompatDataFunc SetAppCompatData = (SetAppCompatDataFunc)SetAppCompatDataPtr;
+			for (int x = 1; x <= 12; x++)
+			{
+				if (Config.DXPrimaryEmulation[x])
+				{
+					if (SetAppCompatData)
+					{
+						Compat::Log() << "SetAppCompatData: " << x;
+						// For LockColorkey, this one uses the second parameter
+						if (x == AppCompatDataType.LockColorkey)
+						{
+							(SetAppCompatData)(x, Config.LockColorkey);
+						}
+						// For all the other items
+						else
+						{
+							(SetAppCompatData)(x, 0);
+						}
+					}
+				}
+			}
+		}
+		else
+		{
+			Compat::Log() << "Cannnot open ddraw.dll to SetAppCompatData";
+		}
 	}
 }

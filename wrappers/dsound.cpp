@@ -15,16 +15,13 @@
 */
 
 #include "cfg.h"
-#include "ddraw.h"
 #include "dllmain.h"
-#include "DSoundCtrl\DSoundCtrlExternal.h"
 #include "wrapper.h"
-
-bool dsoundFlag = false;
+#include "ddraw.h"
 
 struct dsound_dll
 {
-	HMODULE dll;
+	HMODULE dll = nullptr;
 	FARPROC DirectSoundCreate;
 	FARPROC DirectSoundEnumerateA;
 	FARPROC DirectSoundEnumerateW;
@@ -59,7 +56,6 @@ void LoadDsound()
 	// Load dll functions
 	if (dsound.dll)
 	{
-		dsoundFlag = true;
 		dsound.DirectSoundCreate = GetProcAddress(dsound.dll, "DirectSoundCreate");
 		dsound.DirectSoundEnumerateA = GetProcAddress(dsound.dll, "DirectSoundEnumerateA");
 		dsound.DirectSoundEnumerateW = GetProcAddress(dsound.dll, "DirectSoundEnumerateW");
@@ -74,12 +70,9 @@ void LoadDsound()
 		dsound.DirectSoundCreate8 = GetProcAddress(dsound.dll, "DirectSoundCreate8");
 		dsound.DirectSoundCaptureCreate8 = GetProcAddress(dsound.dll, "DirectSoundCaptureCreate8");
 	}
-
 	// Enable DSoundCtrl functions
 	if (Config.DSoundCtrl)
 	{
-		Compat::Log() << "Enabling DSoundCtrl function";
-		RunDSoundCtrl();
 		// Load dll functions
 		dsound.DirectSoundCreate = GetProcAddress(hModule_dll, "_DirectSoundCreate");
 		dsound.DirectSoundEnumerateA = GetProcAddress(hModule_dll, "_DirectSoundEnumerateA");
@@ -98,5 +91,5 @@ void LoadDsound()
 
 void FreeDsoundLibrary()
 {
-	if (dsoundFlag) FreeLibrary(dsound.dll);
+	if (dsound.dll) FreeLibrary(dsound.dll);
 }

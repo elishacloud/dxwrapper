@@ -17,11 +17,9 @@
 #include "cfg.h"
 #include "wrapper.h"
 
-bool d3d9Flag = false;
-
 struct d3d9_dll
 {
-	HMODULE dll;
+	HMODULE dll = nullptr;
 	FARPROC Direct3DShaderValidatorCreate9;
 	FARPROC PSGPError;
 	FARPROC PSGPSampleTexture;
@@ -60,7 +58,6 @@ void LoadD3d9()
 	// Load dll functions
 	if (d3d9.dll)
 	{
-		d3d9Flag = true;
 		d3d9.Direct3DShaderValidatorCreate9	= GetProcAddress(d3d9.dll, "Direct3DShaderValidatorCreate9");
 		d3d9.PSGPError						= GetProcAddress(d3d9.dll, "PSGPError");
 		d3d9.PSGPSampleTexture				= GetProcAddress(d3d9.dll, "PSGPSampleTexture");
@@ -85,5 +82,5 @@ void SetSharedD3d9(HMODULE dll)
 
 void FreeD3d9Library()
 {
-	if (d3d9Flag) FreeLibrary(d3d9.dll);
+	if (d3d9.dll) FreeLibrary(d3d9.dll);
 }

@@ -19,11 +19,9 @@
 #include "wrapper.h"
 #include "d3d9.h"
 
-bool d3d8Flag = false;
-
 struct d3d8_dll
 {
-	HMODULE dll;
+	HMODULE dll = nullptr;
 	FARPROC Direct3DCreate8;
 	FARPROC DebugSetMute;		 // <---  Shared with d3d9.dll
 	FARPROC ValidateVertexShader;
@@ -42,7 +40,6 @@ void LoadD3d8()
 	// Load dll functions
 	if (d3d8.dll)
 	{
-		d3d8Flag = true;
 		d3d8.Direct3DCreate8 = GetProcAddress(d3d8.dll, "Direct3DCreate8");
 		//d3d8.DebugSetMute				= GetProcAddress(d3d8.dll, "DebugSetMute");		 // <---  Shared with d3d9.dll
 		SetSharedD3d9(d3d8.dll);
@@ -59,5 +56,5 @@ void LoadD3d8()
 
 void FreeD3d8Library()
 {
-	if (d3d8Flag) FreeLibrary(d3d8.dll);
+	if (d3d8.dll) FreeLibrary(d3d8.dll);
 }

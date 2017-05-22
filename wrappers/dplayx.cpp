@@ -17,11 +17,9 @@
 #include "cfg.h"
 #include "wrapper.h"
 
-bool dplayxFlag = false;
-
 struct dplayx_dll
 {
-	HMODULE dll;
+	HMODULE dll = nullptr;
 	FARPROC DirectPlayCreate;
 	FARPROC DirectPlayEnumerate;
 	FARPROC DirectPlayEnumerateA;
@@ -44,7 +42,6 @@ void LoadDplayx()
 	// Load dll functions
 	if (dplayx.dll)
 	{
-		dplayxFlag = true;
 		dplayx.DirectPlayCreate				= GetProcAddress(dplayx.dll, "DirectPlayCreate");
 		dplayx.DirectPlayEnumerate			= GetProcAddress(dplayx.dll, "DirectPlayEnumerate");
 		dplayx.DirectPlayEnumerateA			= GetProcAddress(dplayx.dll, "DirectPlayEnumerateA");
@@ -56,5 +53,5 @@ void LoadDplayx()
 
 void FreeDplayxLibrary()
 {
-	if (dplayxFlag) FreeLibrary(dplayx.dll);
+	if (dplayx.dll) FreeLibrary(dplayx.dll);
 }

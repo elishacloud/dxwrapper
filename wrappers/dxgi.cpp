@@ -17,11 +17,9 @@
 #include "cfg.h"
 #include "wrapper.h"
 
-bool dxgiFlag = false;
-
 struct dxgi_dll
 {
-	HMODULE dll;
+	HMODULE dll = nullptr;
 	FARPROC ApplyCompatResolutionQuirking;
 	FARPROC CompatString;
 	FARPROC CompatValue;
@@ -142,7 +140,6 @@ void LoadDxgi()
 	// Load dll functions
 	if (dxgi.dll)
 	{
-		dxgiFlag = true;
 		dxgi.ApplyCompatResolutionQuirking = GetProcAddress(dxgi.dll, "ApplyCompatResolutionQuirking");
 		dxgi.CompatString = GetProcAddress(dxgi.dll, "CompatString");
 		dxgi.CompatValue = GetProcAddress(dxgi.dll, "CompatValue");
@@ -203,5 +200,5 @@ void LoadDxgi()
 
 void FreeDxgiLibrary()
 {
-	if (dxgiFlag) FreeLibrary(dxgi.dll);
+	if (dxgi.dll) FreeLibrary(dxgi.dll);
 }
