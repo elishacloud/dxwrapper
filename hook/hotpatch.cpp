@@ -64,7 +64,7 @@ void *HotPatch(void *apiproc, const char *apiname, void *hookproc)
 	void *orig_address;
 
 #ifdef _DEBUG
-	sprintf_s(buffer, BuffSize, "HotPatch: api=%s addr=%x hook=%x", apiname, apiproc, hookproc);
+	sprintf_s(buffer, BuffSize, "HotPatch: api=%s addr=%p hook=%p", apiname, apiproc, hookproc);
 	LogText(buffer);
 #endif
 
@@ -89,7 +89,7 @@ void *HotPatch(void *apiproc, const char *apiname, void *hookproc)
 		
 		VirtualProtect( patch_address, 12, dwPrevProtect, &dwPrevProtect ); // restore protection
 #ifdef _DEBUG
-		sprintf_s(buffer, BuffSize, "HotPatch: api=%s addr=%x->%x hook=%x", apiname, apiproc, orig_address, hookproc);
+		sprintf_s(buffer, BuffSize, "HotPatch: api=%s addr=%p->%p hook=%p", apiname, apiproc, orig_address, hookproc);
 		LogText(buffer);
 #endif
 		return orig_address;
@@ -116,7 +116,7 @@ void *HotPatch(void *apiproc, const char *apiname, void *hookproc)
 	
 	VirtualProtect( patch_address, 12, dwPrevProtect, &dwPrevProtect ); // restore protection
 #ifdef _DEBUG
-	sprintf_s(buffer, BuffSize, "HotPatch: api=%s addr=%x->%x hook=%x", apiname, apiproc, orig_address, hookproc);
+	sprintf_s(buffer, BuffSize, "HotPatch: api=%s addr=%p->%p hook=%p", apiname, apiproc, orig_address, hookproc);
 	LogText(buffer);
 #endif
 	return orig_address;

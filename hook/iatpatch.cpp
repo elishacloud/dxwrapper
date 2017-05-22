@@ -19,16 +19,16 @@ void *IATPatch(HMODULE module, DWORD ordinal, char *dll, void *apiproc, const ch
 	DWORD oldprotect;
 	void *org;
 
+	const DWORD BuffSize = 250;
+	char buffer[BuffSize];
+
 #ifdef _DEBUG
-	sprintf_s(buffer, BuffSize, "IATPatch: module=%x ordinal=%x name=%s dll=%s", module, ordinal, apiname, dll);
+	sprintf_s(buffer, BuffSize, "IATPatch: module=%p ordinal=%x name=%s dll=%s", module, ordinal, apiname, dll);
 	LogText(buffer);
 #endif
 
 	base = (DWORD)module;
 	org = 0; // by default, ret = 0 => API not found
-
-	const DWORD BuffSize = 250;
-	char buffer[BuffSize];
 
 	__try {
 		pnth = PIMAGE_NT_HEADERS(PBYTE(base) + PIMAGE_DOS_HEADER(base)->e_lfanew);
@@ -56,7 +56,7 @@ void *IATPatch(HMODULE module, DWORD ordinal, char *dll, void *apiproc, const ch
 
 			if (!lstrcmpi(dll, impmodule)) {
 #ifdef _DEBUG
-				sprintf_s(buffer, BuffSize, "IATPatch: dll=%s found at %x", dll, impmodule);
+				sprintf_s(buffer, BuffSize, "IATPatch: dll=%s found at %p", dll, impmodule);
 				LogText(buffer);
 #endif
 
@@ -145,7 +145,7 @@ void *IATPatch(HMODULE module, DWORD ordinal, char *dll, void *apiproc, const ch
 						return 0;
 					}
 #ifdef _DEBUG
-					sprintf_s(buffer, BuffSize, "IATPatch hook=%s address=%x->%x", apiname, org, hookproc);
+					sprintf_s(buffer, BuffSize, "IATPatch hook=%s address=%p->%p", apiname, org, hookproc);
 					LogText(buffer);
 #endif
 

@@ -229,6 +229,9 @@
     <ClCompile Include="libraries\winmm.cpp">
       <Filter>libraries</Filter>
     </ClCompile>
+    <ClCompile Include="hook\inithook.cpp">
+      <Filter>hook</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="dxwrapper.def">
@@ -343,6 +346,9 @@
     </ClInclude>
     <ClInclude Include="libraries\winmm.h">
       <Filter>libraries</Filter>
+    </ClInclude>
+    <ClInclude Include="hook\inithook.h">
+      <Filter>hook</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

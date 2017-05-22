@@ -8,70 +8,21 @@
 #include "cfg.h"
 #include "dllmain.h"
 #include "disasm.h"
-#include "hook\hotpatch.h"
-#include "hook\iatpatch.h"
+#include "hook\inithook.h"
 
-typedef LPTOP_LEVEL_EXCEPTION_FILTER
-(WINAPI *SetUnhandledExceptionFilter_Type)(LPTOP_LEVEL_EXCEPTION_FILTER);
+static HMODULE LoadDisasm();
 
-SetUnhandledExceptionFilter_Type pSetUnhandledExceptionFilter;
-
+typedef LPTOP_LEVEL_EXCEPTION_FILTER (WINAPI *SetUnhandledExceptionFilter_Type)(LPTOP_LEVEL_EXCEPTION_FILTER);
 typedef char *(*Geterrwarnmessage_Type)(unsigned long, unsigned long);
 typedef int(*Preparedisasm_Type)(void);
 typedef void(*Finishdisasm_Type)(void);
 typedef unsigned long(*Disasm_Type)(const unsigned char *, unsigned long, unsigned long, t_disasm *, int, t_config *, int(*)(tchar *, unsigned long));
 
+SetUnhandledExceptionFilter_Type pSetUnhandledExceptionFilter;
 Geterrwarnmessage_Type pGeterrwarnmessage;
 Preparedisasm_Type pPreparedisasm;
 Finishdisasm_Type pFinishdisasm;
 Disasm_Type pDisasm;
-
-void *HookAPI(HMODULE module, char *dll, void *apiproc, const char *apiname, void *hookproc)
-{
-#ifdef _DEBUG
-	Compat::Log() << "HookAPI: module=" << module << " dll=" << dll << " apiproc=" << apiproc << " apiname=" << apiname << " hookproc=" << hookproc;
-#endif
-
-	if (!*apiname) { // check
-		char *sMsg = "HookAPI: NULL api name\n";
-		Compat::Log() << sMsg;
-		return 0;
-	}
-
-	// Hopatch
-	// Currenlty disbaling hotpatch
-	// Todo: add option for this later
-	if (false) {
-		void *orig;
-		orig = HotPatch(apiproc, apiname, hookproc);
-		if (orig) return orig;
-	}
-
-	return IATPatch(module, 0, dll, apiproc, apiname, hookproc);
-}
-
-static HMODULE LoadDisasm()
-{
-	HMODULE disasmlib;
-
-	// Get dxwrapper path
-	char buffer[MAX_PATH];
-	GetModuleFileName(hModule_dll, buffer, MAX_PATH);
-
-	disasmlib = LoadLibrary(buffer);
-	if (!disasmlib) {
-		Compat::Log() << "Load lib=" << buffer <<" failed err=" << GetLastError();
-		return NULL;
-	}
-	pGeterrwarnmessage = (Geterrwarnmessage_Type)(*GetProcAddress)(disasmlib, "Geterrwarnmessage");
-	pPreparedisasm = (Preparedisasm_Type)(*GetProcAddress)(disasmlib, "Preparedisasm");
-	pFinishdisasm = (Finishdisasm_Type)(*GetProcAddress)(disasmlib, "Finishdisasm");
-	pDisasm = (Disasm_Type)(*GetProcAddress)(disasmlib, "Disasm");
-#ifdef _DEBUG
-	Compat::Log() << "Load " << buffer << " ptrs=" << pGeterrwarnmessage << std::showbase << std::hex << pPreparedisasm << pFinishdisasm << pDisasm << std::dec << std::noshowbase;
-#endif
-	return disasmlib;
-}
 
 #pragma warning (disable : 4706)
 LONG WINAPI myUnhandledExceptionFilter(LPEXCEPTION_POINTERS ExceptionInfo)
@@ -126,6 +77,29 @@ LPTOP_LEVEL_EXCEPTION_FILTER WINAPI extSetUnhandledExceptionFilter(LPTOP_LEVEL_E
 	return (*pSetUnhandledExceptionFilter)(myUnhandledExceptionFilter);
 }
 #pragma warning (default : 4100)
+
+static HMODULE LoadDisasm()
+{
+	HMODULE disasmlib;
+
+	// Get dxwrapper path
+	char buffer[MAX_PATH];
+	GetModuleFileName(hModule_dll, buffer, MAX_PATH);
+
+	disasmlib = LoadLibrary(buffer);
+	if (!disasmlib) {
+		Compat::Log() << "Load lib=" << buffer << " failed err=" << GetLastError();
+		return NULL;
+	}
+	pGeterrwarnmessage = (Geterrwarnmessage_Type)(*GetProcAddress)(disasmlib, "Geterrwarnmessage");
+	pPreparedisasm = (Preparedisasm_Type)(*GetProcAddress)(disasmlib, "Preparedisasm");
+	pFinishdisasm = (Finishdisasm_Type)(*GetProcAddress)(disasmlib, "Finishdisasm");
+	pDisasm = (Disasm_Type)(*GetProcAddress)(disasmlib, "Disasm");
+#ifdef _DEBUG
+	Compat::Log() << "Load " << buffer << " ptrs=" << pGeterrwarnmessage << std::showbase << std::hex << pPreparedisasm << pFinishdisasm << pDisasm << std::dec << std::noshowbase;
+#endif
+	return disasmlib;
+}
 
 void HookExceptionHandler(void)
 {

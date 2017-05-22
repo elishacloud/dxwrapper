@@ -781,7 +781,6 @@ void MainFullScreenFunc()
 						{
 							// Debug the screen resolution
 #ifdef _DEBUG
-							char buffer1[7], buffer2[7];
 								_itoa_s(WindowSize.Width, buffer1, 10);
 								_itoa_s(WindowSize.Height, buffer2, 10);
 								Compat::Log() << "Changing resolution on window size " << buffer1 << "x" << buffer2 << " layer: " << class_name;

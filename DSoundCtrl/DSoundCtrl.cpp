@@ -236,12 +236,6 @@ BOOL CDSoundCtrlApp::InitInstance()
 		sMessage.Format("Location,%s", buffer);
 		::LogMessage(m_cszClassName, this, sMessage.GetBuffer());
 
-		sMessage = "OS," + ::GetOSVersion();
-		::LogMessage(m_cszClassName, this, sMessage.GetBuffer());
-
-		sMessage = "DirectX," + ::GetDirectXVersionFromReg();
-		::LogMessage(m_cszClassName, this, sMessage.GetBuffer());
-
 		::GetCurrentDirectory(255, sMessage.GetBuffer(255));
 		sMessage.ReleaseBuffer();
 		sMessage = "Working directory," + sMessage;
