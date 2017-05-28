@@ -65,7 +65,7 @@ void RunExitFunctions(bool ForceTerminate)
 	StopWriteMemoryThread();
 
 	// Setting screen resolution before exit
-	//Should be run after StopThread and before unloading anything else
+	// Should be run after StopThread and before unloading anything else
 	if (Config.ResetScreenRes) SetScreen(m_ScreenRes);
 
 	// Unload and Unhook DxWnd
@@ -76,7 +76,7 @@ void RunExitFunctions(bool ForceTerminate)
 		if (dxwnd_dll) FreeLibrary(dxwnd_dll);
 	}
 
-	// Unload and Unhook DxWnd
+	// Unload and Unhook DDrawCompat
 	if (Config.DDrawCompat) UnloadDdrawCompat();
 
 	// Unload dlls
@@ -115,8 +115,8 @@ bool APIENTRY DllMain(HMODULE hModule, DWORD ul_reason_for_call, LPVOID lpReserv
 		hModule_dll = hModule;
 		HANDLE hCurrentThread = GetCurrentThread();
 
-		// Set thread priority
-		SetThreadPriority(hCurrentThread, THREAD_PRIORITY_HIGHEST);		// Trick to reduce concurrency problems at program startup
+		// Set thread priority a trick to reduce concurrency problems at program startup
+		SetThreadPriority(hCurrentThread, THREAD_PRIORITY_HIGHEST);
 
 		// Initialize config
 		Config.Init();
