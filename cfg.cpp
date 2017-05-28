@@ -13,7 +13,7 @@
 *      being the original software.
 *   3. This notice may not be removed or altered from any source distribution.
 *
-* Some functions taken from source code found in Aqrit's ddwrapper
+* Code in EraseCppComments, Parse, Read, ParseCallback and strippath functions taken from source code found in Aqrit's ddwrapper
 * http://bitpatch.com/ddwrapper.html
 */
 

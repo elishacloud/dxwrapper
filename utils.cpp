@@ -13,11 +13,17 @@
 *      being the original software.
 *   3. This notice may not be removed or altered from any source distribution.
 *
-* Some functions taken from source code found in Aqrit's ddwrapper
+* Code in GetOSVersion and GetVersionReg functions taken from source code found in DirectSoundControl
+* https://github.com/nRaecheR/DirectSoundControl
+*
+* Code in GetVersionFile function taken from source code found on stackoverflow.com
+* https://stackoverflow.com/questions/940707/how-do-i-programmatically-get-the-version-of-a-dll-or-exe-file
+*
+* Code in DisableHighDPIScaling function taken from source code found in Aqrit's ddwrapper
 * http://bitpatch.com/ddwrapper.html
 *
-* Some functions taken from source code found in DirectSoundControl
-* https://github.com/nRaecheR/DirectSoundControl
+* Code in GetFunctionAddress function taken from source code found on rohitab.com
+* http://www.rohitab.com/discuss/topic/40594-parsing-pe-export-table/
 */
 
 #include "cfg.h"
