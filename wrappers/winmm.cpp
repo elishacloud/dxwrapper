@@ -614,8 +614,3 @@ void LoadWinmm()
 		winmm.wod32Message					= GetProcAddress(winmm.dll, "wod32Message");
 	}
 }
-
-void FreeWinmmLibrary()
-{
-	if (winmm.dll) FreeLibrary(winmm.dll);
-}

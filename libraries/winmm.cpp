@@ -26,14 +26,6 @@ void Loadwinmm()
 	}
 }
 
-void UnLoadwinmm()
-{
-	if (winmmModule)
-	{
-		FreeLibrary(winmmModule);
-	}
-}
-
 void _timeBeginPeriod(UINT uPeriod)
 {
 	// Load module

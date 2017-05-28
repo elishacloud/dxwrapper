@@ -623,8 +623,3 @@ void LoadWinspool()
 		winspool.XcvDataW = GetProcAddress(winspool.dll, "XcvDataW");
 	}
 }
-
-void FreeWinspoolLibrary()
-{
-	if (winspool.dll) FreeLibrary(winspool.dll);
-}

@@ -79,8 +79,3 @@ void Set_DebugSetMute(FARPROC ProcAddress)
 {
 	d3d9.DebugSetMute = ProcAddress;
 }
-
-void FreeD3d9Library()
-{
-	if (d3d9.dll) FreeLibrary(d3d9.dll);
-}

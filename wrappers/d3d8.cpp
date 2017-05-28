@@ -67,8 +67,3 @@ void LoadD3d8()
 		}
 	}
 }
-
-void FreeD3d8Library()
-{
-	if (d3d8.dll) FreeLibrary(d3d8.dll);
-}

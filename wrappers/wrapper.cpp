@@ -32,13 +32,12 @@ struct custom_dll
 	HMODULE dll = nullptr;
 } custom[256];
 
+const uint8_t ArraySize = (sizeof(dtypename) / sizeof(*dtypename));
+custom_dll dllhandle[ArraySize];
+
 // Load real dll file that is being wrapped
 HMODULE LoadDll(uint8_t dlltype)
 {
-	// Declare vars
-	static const uint8_t ArraySize = (sizeof(dtypename) / sizeof(*dtypename));
-	static custom_dll dllhandle[ArraySize];
-
 	// Check for valid dlltype
 	if (dlltype == 0 || dlltype >= ArraySize) return nullptr;
 
@@ -146,15 +145,21 @@ void DllAttach()
 // Unload all dll files loaded by the wrapper
 void DllDetach()
 {
+	// Unload custom libraries
+	FreeCustomLibrary();
+
+	// Unload wrapper libraries
+	for (int x = 1; x <= ArraySize; ++x)
+	{
+		// If dll was loaded
+		if (dllhandle[x].dll)
+		{
+			// Unload dll
+			FreeLibrary(dllhandle[x].dll);
+		}
+	}
+
+	// Unload dynmaic libraries
 	UnLoaddwmapi();
 	UnLoadUxtheme();
-	FreeWinspoolLibrary();
-	FreeDplayxLibrary();
-	FreeD3d8Library();
-	FreeDxgiLibrary();
-	FreeWinmmLibrary();
-	FreeDsoundLibrary();
-	FreeD3d9Library();
-	FreeDdrawLibrary();
-	FreeCustomLibrary();
 }

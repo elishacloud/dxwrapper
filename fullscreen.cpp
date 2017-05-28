@@ -155,11 +155,13 @@ LONG GetBestResolution(screen_res& ScreenRes, LONG xWidth, LONG xHeight)
 void SetScreenResolution(LONG xWidth, LONG xHeight)
 {
 	DEVMODE newSettings;
-	EnumDisplaySettings(NULL, 0, &newSettings);
-	newSettings.dmPelsWidth = xWidth;
-	newSettings.dmPelsHeight = xHeight;
-	newSettings.dmFields = DM_PELSWIDTH | DM_PELSHEIGHT;
-	ChangeDisplaySettings(&newSettings, CDS_FULLSCREEN);
+	if (EnumDisplaySettings(NULL, ENUM_CURRENT_SETTINGS, &newSettings) != 0)
+	{
+		newSettings.dmPelsWidth = xWidth;
+		newSettings.dmPelsHeight = xHeight;
+		newSettings.dmFields = DM_PELSWIDTH | DM_PELSHEIGHT;
+		ChangeDisplaySettings(&newSettings, CDS_FULLSCREEN);
+	}
 }
 
 // Verifies input and sets screen res to the values sent
@@ -764,9 +766,6 @@ void MainFullScreenFunc()
 				// Check if window is not too small
 				if (Config.ForceWindowResize || !IsWindowTooSmall(WindowSize))
 				{
-					// Request ownership of the critical section.
-					EnterCriticalSection(&CriticalSection);
-
 					// Change resolution if not fullscreen and ignore certian windows
 					if (IsNotFullScreenFlag &&																										// Check if it is already fullscreen
 						!(Config.IgnoreWindowCount > 0 && IfStringExistsInList(class_name, Config.szIgnoreWindowName, Config.IgnoreWindowCount)) && // Ignore certian windows
@@ -853,9 +852,6 @@ void MainFullScreenFunc()
 
 					// Update and store CurrentScreenRes
 					if (Config.ResetScreenRes) CallCheckCurrentScreenRes();
-
-					// Release ownership of the critical section.
-					LeaveCriticalSection(&CriticalSection);
 
 				} // Window is too small
 

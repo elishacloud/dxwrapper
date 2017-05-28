@@ -197,8 +197,3 @@ void LoadDxgi()
 		dxgi.D3DKMTWaitForVerticalBlankEvent = GetProcAddress(dxgi.dll, "D3DKMTWaitForVerticalBlankEvent");
 	}
 }
-
-void FreeDxgiLibrary()
-{
-	if (dxgi.dll) FreeLibrary(dxgi.dll);
-}

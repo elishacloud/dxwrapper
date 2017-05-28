@@ -182,8 +182,3 @@ void Set_DllGetClassObject(FARPROC ProcAddress)
 {
 	ddraw.DllGetClassObject = ProcAddress;
 }
-
-void FreeDdrawLibrary()
-{
-	if (ddraw.dll) FreeLibrary(ddraw.dll);
-}

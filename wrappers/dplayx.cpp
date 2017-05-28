@@ -50,8 +50,3 @@ void LoadDplayx()
 		dplayx.DirectPlayLobbyCreateW		= GetProcAddress(dplayx.dll, "DirectPlayLobbyCreateW");
 	}
 }
-
-void FreeDplayxLibrary()
-{
-	if (dplayx.dll) FreeLibrary(dplayx.dll);
-}

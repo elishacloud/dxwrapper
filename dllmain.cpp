@@ -27,8 +27,8 @@
 #include "writememory\writememory.h"
 
 // Declare varables
-HMODULE hModule_dll = NULL;
-CRITICAL_SECTION CriticalSection;
+HMODULE hModule_dll = nullptr;
+HMODULE dxwnd_dll = nullptr;
 screen_res m_ScreenRes;
 
 // Check and store screen resolution
@@ -40,20 +40,16 @@ void CallCheckCurrentScreenRes()
 // Clean up tasks and unhook dlls
 void RunExitFunctions(bool ForceTerminate)
 {
-	// Release resources used by the critical section object.
-	DeleteCriticalSection(&CriticalSection);
-
 	// *** Force termination ***
 	if (ForceTerminate)
 	{
 		Compat::Log() << "Process not exiting, attempting to terminate process...";
 
-		// Resetting screen resolution to fix some display errors on exit
-		if (Config.ResetScreenRes)
-		{
-			SetScreen(m_ScreenRes);		// Should be run after StopThread and before unloading anything else
-			ResetScreen();				// Reset screen back to original Windows settings
-		}
+		// Setting screen resolution to fix some display errors on exit
+		if (Config.ResetScreenRes) SetScreen(m_ScreenRes);
+
+		// Reset screen back to original Windows settings to fix some display errors on exit
+		ResetScreen();
 
 		// Terminate the current process
 		HANDLE processHandle = OpenProcess(PROCESS_ALL_ACCESS, false, GetCurrentProcessId());
@@ -69,13 +65,15 @@ void RunExitFunctions(bool ForceTerminate)
 	StopWriteMemoryThread();
 
 	// Setting screen resolution before exit
-	if (Config.ResetScreenRes) SetScreen(m_ScreenRes);		// Should be run after StopThread and before unloading anything else
+	//Should be run after StopThread and before unloading anything else
+	if (Config.ResetScreenRes) SetScreen(m_ScreenRes);
 
 	// Unload and Unhook DxWnd
 	if (Config.DxWnd)
 	{
 		Compat::Log() << "Unloading dxwnd";
 		DxWndEndHook();
+		if (dxwnd_dll) FreeLibrary(dxwnd_dll);
 	}
 
 	// Unload and Unhook DxWnd
@@ -90,8 +88,8 @@ void RunExitFunctions(bool ForceTerminate)
 	// Unload exception handler
 	if (Config.HandleExceptions) UnHookExceptionHandler();
 
-	// Resetting screen resolution to fix some display errors on exit
-	if (Config.ResetScreenRes) ResetScreen();				// Reset screen back to original Windows settings
+	// Reset screen back to original Windows settings to fix some display errors on exit
+	ResetScreen();
 
 	// Final log
 	Compat::Log() << "dxwrapper terminated!";
@@ -116,9 +114,6 @@ bool APIENTRY DllMain(HMODULE hModule, DWORD ul_reason_for_call, LPVOID lpReserv
 		// Get handle
 		hModule_dll = hModule;
 		HANDLE hCurrentThread = GetCurrentThread();
-
-		// Initialize the critical section one time only.
-		InitializeCriticalSectionAndSpinCount(&CriticalSection, 0);
 
 		// Set thread priority
 		SetThreadPriority(hCurrentThread, THREAD_PRIORITY_HIGHEST);		// Trick to reduce concurrency problems at program startup
@@ -145,7 +140,8 @@ bool APIENTRY DllMain(HMODULE hModule, DWORD ul_reason_for_call, LPVOID lpReserv
 		if (Config.DxWnd)
 		{
 			// Check if dxwnd.dll exists then load it
-			if (LoadLibrary("dxwnd.dll"))
+			dxwnd_dll = LoadLibrary("dxwnd.dll");
+			if (dxwnd_dll)
 			{
 				Compat::Log() << "Loading dxwnd";
 				InitDxWnd();

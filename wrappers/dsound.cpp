@@ -113,8 +113,3 @@ void LoadDsound()
 		}
 	}
 }
-
-void FreeDsoundLibrary()
-{
-	if (dsound.dll) FreeLibrary(dsound.dll);
-}

@@ -231,12 +231,7 @@ BOOL CDSoundCtrlApp::InitInstance()
 
 	if (g_bLogSystem == true)
 	{
-		::LogMessage(m_cszClassName, this, "Original DSOUND.DLL loaded....");
-
 		CString sMessage;
-
-		sMessage.Format("Location,%s", buffer);
-		::LogMessage(m_cszClassName, this, sMessage.GetBuffer());
 
 		::GetCurrentDirectory(255, sMessage.GetBuffer(255));
 		sMessage.ReleaseBuffer();

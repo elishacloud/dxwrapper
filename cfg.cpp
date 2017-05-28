@@ -23,6 +23,7 @@
 CONFIG Config;
 DLLTYPE dtype;
 APPCOMPATDATATYPE AppCompatDataType;
+CRITICAL_SECTION CriticalSectionCfg;
 
 uint8_t ExcludeCount;
 uint8_t IncludeCount;
@@ -303,7 +304,7 @@ void SetValue(char* name, char* value, bool* setting)
 void __stdcall ParseCallback(char* name, char* value)
 {
 	// Critical section
-	EnterCriticalSection(&CriticalSection);
+	EnterCriticalSection(&CriticalSectionCfg);
 	// Boolean values
 	if (!_strcmpi(name, "SingleProcAffinity")) { SetValue(name, value, &Config.Affinity); Config.AffinityNotSet = false; return; }  // Sets Affinity and AffinityNotSet flags
 	if (!_strcmpi(name, "D3d8to9")) { SetValue(name, value, &Config.D3d8to9); return; }
@@ -374,7 +375,7 @@ void __stdcall ParseCallback(char* name, char* value)
 	// Logging
 	Compat::Log() << "Warning. Config setting not recognized: " << name;
 	// Critical section
-	LeaveCriticalSection(&CriticalSection);
+	LeaveCriticalSection(&CriticalSectionCfg);
 }
 
 // Strip path from a string
@@ -508,6 +509,9 @@ void CONFIG::CleanUp()
 
 void CONFIG::Init()
 {
+	// Initialize the critical section one time only.
+	InitializeCriticalSectionAndSpinCount(&CriticalSectionCfg, 0);
+
 	// Reset all values
 	ClearConfigSettings();
 
@@ -519,7 +523,6 @@ void CONFIG::Init()
 	Config.DpiAware = true;
 	Config.DxWnd = true;
 	Config.HandleExceptions = true;
-	Config.ResetScreenRes = true;
 	Config.LoopSleepTime = 120;
 	Config.WindowSleepTime = 500;
 	SetConfigList(szExclude, ExcludeCount, "dxwnd.exe");
@@ -576,4 +579,7 @@ void CONFIG::Init()
 
 	// Update wrapper mode
 	if (Config.WrapperMode == 0) Config.WrapperMode = Config.RealWrapperMode;
+
+	// Release resources used by the critical section object.
+	DeleteCriticalSection(&CriticalSectionCfg);
 }
