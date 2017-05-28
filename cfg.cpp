@@ -302,6 +302,8 @@ void SetValue(char* name, char* value, bool* setting)
 // Set config from string (file)
 void __stdcall ParseCallback(char* name, char* value)
 {
+	// Critical section
+	EnterCriticalSection(&CriticalSection);
 	// Boolean values
 	if (!_strcmpi(name, "SingleProcAffinity")) { SetValue(name, value, &Config.Affinity); Config.AffinityNotSet = false; return; }  // Sets Affinity and AffinityNotSet flags
 	if (!_strcmpi(name, "D3d8to9")) { SetValue(name, value, &Config.D3d8to9); return; }
@@ -335,7 +337,7 @@ void __stdcall ParseCallback(char* name, char* value)
 	if (!_strcmpi(name, "PrimaryBufferChannels")) { SetValue(name, value, &Config.PrimaryBufferChannels); return; }
 	if (!_strcmpi(name, "ForceSpeakerConfig")) { SetValue(name, value, &Config.ForceSpeakerConfig); return; }
 	if (!_strcmpi(name, "SpeakerConfig")) { SetValue(name, value, &Config.SpeakerConfig); return; }
-	if (!_strcmpi(name, "EnableStoppedDriverWorkaround")) { SetValue(name, value, &Config.EnableStoppedDriverWorkaround); return; }
+	if (!_strcmpi(name, "StoppedDriverWorkaround")) { SetValue(name, value, &Config.StoppedDriverWorkaround); return; }
 	// AppCompatData
 	if (!_strcmpi(name, "LockEmulation")) { SetValue(name, value, &Config.DXPrimaryEmulation[AppCompatDataType.LockEmulation]); return; }
 	if (!_strcmpi(name, "BltEmulation")) { SetValue(name, value, &Config.DXPrimaryEmulation[AppCompatDataType.BltEmulation]); return; }
@@ -371,6 +373,8 @@ void __stdcall ParseCallback(char* name, char* value)
 	if (!_strcmpi(name, "IncludeProcess")) { SetConfigList(szInclude, IncludeCount, value); LogSetting(name, value); return; }
 	// Logging
 	Compat::Log() << "Warning. Config setting not recognized: " << name;
+	// Critical section
+	LeaveCriticalSection(&CriticalSection);
 }
 
 // Strip path from a string
@@ -446,7 +450,7 @@ void ClearConfigSettings()
 	Config.PrimaryBufferChannels = 2;
 	Config.ForceSpeakerConfig = false;
 	Config.SpeakerConfig = 6;
-	Config.EnableStoppedDriverWorkaround = false;
+	Config.StoppedDriverWorkaround = false;
 	// Arrary counters
 	Config.AddressPointerCount = 0;
 	Config.BytesToWriteCount = 0;

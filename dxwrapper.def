@@ -316,7 +316,7 @@ ValidateVertexShader			= FakeValidateVertexShader				@443
 ; ****
 ;LIBRARY "d3d8to9"
 ; ****
-_Direct3DCreate8				= _Direct3DCreate8						@445
+_Direct3DCreate8				= Direct3DCreate8						@445
 
 
 ; ****

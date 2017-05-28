@@ -75,9 +75,9 @@ void LoadD3d9()
 	}
 }
 
-void SetSharedD3d9(HMODULE dll)
+void Set_DebugSetMute(FARPROC ProcAddress)
 {
-		d3d9.DebugSetMute					= GetProcAddress(dll, "DebugSetMute");
+	d3d9.DebugSetMute = ProcAddress;
 }
 
 void FreeD3d9Library()

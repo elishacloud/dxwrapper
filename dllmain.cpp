@@ -43,35 +43,57 @@ void RunExitFunctions(bool ForceTerminate)
 	// Release resources used by the critical section object.
 	DeleteCriticalSection(&CriticalSection);
 
-	// Force termination
+	// *** Force termination ***
 	if (ForceTerminate)
 	{
 		Compat::Log() << "Process not exiting, attempting to terminate process...";
+
+		// Resetting screen resolution to fix some display errors on exit
 		if (Config.ResetScreenRes)
 		{
 			SetScreen(m_ScreenRes);		// Should be run after StopThread and before unloading anything else
 			ResetScreen();				// Reset screen back to original Windows settings
 		}
+
+		// Terminate the current process
 		HANDLE processHandle = OpenProcess(PROCESS_ALL_ACCESS, false, GetCurrentProcessId());
 		Compat::Log() << "Terminating process!";
 		TerminateProcess(processHandle, 0);
 	}
 
-	// Normal module exit
+	// *** Normal exit ***
 	Compat::Log() << "Quiting dxwrapper";
-	StopThread();
-	StopHotpatchThread();
+
+	// Stop threads
+	StopFullscreenThread();
+	StopWriteMemoryThread();
+
+	// Setting screen resolution before exit
 	if (Config.ResetScreenRes) SetScreen(m_ScreenRes);		// Should be run after StopThread and before unloading anything else
+
+	// Unload and Unhook DxWnd
 	if (Config.DxWnd)
 	{
 		Compat::Log() << "Unloading dxwnd";
 		DxWndEndHook();
 	}
+
+	// Unload and Unhook DxWnd
 	if (Config.DDrawCompat) UnloadDdrawCompat();
+
+	// Unload dlls
 	DllDetach();
+
+	// Clean up memory
 	Config.CleanUp();
+
+	// Unload exception handler
 	if (Config.HandleExceptions) UnHookExceptionHandler();
+
+	// Resetting screen resolution to fix some display errors on exit
 	if (Config.ResetScreenRes) ResetScreen();				// Reset screen back to original Windows settings
+
+	// Final log
 	Compat::Log() << "dxwrapper terminated!";
 }
 
@@ -80,7 +102,7 @@ bool APIENTRY DllMain(HMODULE hModule, DWORD ul_reason_for_call, LPVOID lpReserv
 {
 	UNREFERENCED_PARAMETER(lpReserved);
 
-	static bool ThreadStartedFlag = false;
+	static bool FullscreenThreadStartedFlag = false;
 
 	switch (ul_reason_for_call)
 	{
@@ -101,18 +123,25 @@ bool APIENTRY DllMain(HMODULE hModule, DWORD ul_reason_for_call, LPVOID lpReserv
 		// Set thread priority
 		SetThreadPriority(hCurrentThread, THREAD_PRIORITY_HIGHEST);		// Trick to reduce concurrency problems at program startup
 
-		// ***
 		// Initialize config
 		Config.Init();
-		if (Config.AddressPointerCount > 0 && Config.BytesToWriteCount > 0) HotPatchMemory();
+
+		// Launch processes
 		if (Config.szShellPath[0] != '\0') Shell(Config.szShellPath);
+
+		// Set application compatibility options
+		if (Config.AddressPointerCount > 0 && Config.BytesToWriteCount > 0) WriteMemory();
 		if (Config.HandleExceptions) HookExceptionHandler();
 		if (Config.DpiAware) DisableHighDPIScaling();
 		SetAppCompat();
 		if (Config.Affinity) SetProcessAffinityMask(GetCurrentProcess(), 1);
+
+		// Attach real wrapper dll
+		DllAttach();
+
+		// Start compatibility modules
 		if (Config.DDrawCompat) Config.DDrawCompat = StartDdrawCompat(hModule_dll);
 		if (Config.DSoundCtrl) RunDSoundCtrl();
-		DllAttach();
 		if (Config.DxWnd)
 		{
 			// Check if dxwnd.dll exists then load it
@@ -127,10 +156,14 @@ bool APIENTRY DllMain(HMODULE hModule, DWORD ul_reason_for_call, LPVOID lpReserv
 				Config.DxWnd = false;
 			}
 		}
-		if (Config.FullScreen || Config.ForceTermination) StartThread();
-		// ***
 
+		// Start fullscreen thread
+		if (Config.FullScreen || Config.ForceTermination) StartFullscreenThread();
+
+		// Resetting thread priority
 		SetThreadPriority(hCurrentThread, THREAD_PRIORITY_NORMAL);
+
+		// Closing handle
 		CloseHandle(hCurrentThread);
 	}
 	break;
@@ -139,17 +172,17 @@ bool APIENTRY DllMain(HMODULE hModule, DWORD ul_reason_for_call, LPVOID lpReserv
 		if (Config.ResetScreenRes) CheckCurrentScreenRes(m_ScreenRes);
 
 		// Check if thread has started
-		if (Config.ForceTermination && IsMyThreadRunning())
-			ThreadStartedFlag = true;
+		if (Config.ForceTermination && IsFullscreenThreadRunning())
+			FullscreenThreadStartedFlag = true;
 		break;
 	case DLL_THREAD_DETACH:
 		if (Config.ForceTermination)
 		{
 			// Check if thread has started
-			if (IsMyThreadRunning()) ThreadStartedFlag = true;
+			if (IsFullscreenThreadRunning()) FullscreenThreadStartedFlag = true;
 
 			// Check if thread has stopped
-			if (ThreadStartedFlag && !IsMyThreadRunning()) RunExitFunctions(true);
+			if (FullscreenThreadStartedFlag && !IsFullscreenThreadRunning()) RunExitFunctions(true);
 		}
 		break;
 	case DLL_PROCESS_DETACH:

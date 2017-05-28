@@ -7,7 +7,7 @@
 
 #include "cfg.h"
 
-void *IATPatch(HMODULE module, DWORD ordinal, char *dll, void *apiproc, const char *apiname, void *hookproc)
+void *IATPatch(HMODULE module, DWORD ordinal, const char *dll, void *apiproc, const char *apiname, void *hookproc)
 {
 	PIMAGE_NT_HEADERS pnth;
 	PIMAGE_IMPORT_DESCRIPTOR pidesc;

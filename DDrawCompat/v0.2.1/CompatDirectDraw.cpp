@@ -38,10 +38,6 @@ namespace
 		case 8: desc.ddpfPixelFormat.dwFlags |= DDPF_PALETTEINDEXED8; break;
 		}
 
-		//********** Begin Edit *************
-		desc.ddpfPixelFormat.dwFlags |= DDPF_ALPHAPIXELS;
-		//********** End Edit ***************
-
 		DDPIXELFORMAT pf = {};
 		if (dwBPP > 8)
 		{

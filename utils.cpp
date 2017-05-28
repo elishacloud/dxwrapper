@@ -337,3 +337,69 @@ void SetAppCompat()
 		}
 	}
 }
+
+// Get pointer for funtion name from binary file
+FARPROC GetFunctionAddress(HMODULE hModule, LPCSTR FunctionName)
+{
+	PIMAGE_DOS_HEADER pIDH;
+	PIMAGE_NT_HEADERS pINH;
+	PIMAGE_EXPORT_DIRECTORY pIED;
+
+	PDWORD Address, Name;
+	PWORD Ordinal;
+
+	DWORD i;
+
+	if (!hModule)
+	{
+		return nullptr;
+	}
+
+	FARPROC ProcAddress = GetProcAddress(hModule, FunctionName);
+
+	__try {
+		pIDH = (PIMAGE_DOS_HEADER)hModule;
+
+		if (pIDH->e_magic != IMAGE_DOS_SIGNATURE)
+		{
+			return ProcAddress;
+		}
+
+		pINH = (PIMAGE_NT_HEADERS)((LPBYTE)hModule + pIDH->e_lfanew);
+
+		if (pINH->Signature != IMAGE_NT_SIGNATURE)
+		{
+			return ProcAddress;
+		}
+
+		if (pINH->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_EXPORT].VirtualAddress == 0)
+		{
+			return ProcAddress;
+		}
+
+		pIED = (PIMAGE_EXPORT_DIRECTORY)((LPBYTE)hModule + pINH->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_EXPORT].VirtualAddress);
+
+		Address = (PDWORD)((LPBYTE)hModule + pIED->AddressOfFunctions);
+		Name = (PDWORD)((LPBYTE)hModule + pIED->AddressOfNames);
+		Ordinal = (PWORD)((LPBYTE)hModule + pIED->AddressOfNameOrdinals);
+
+		for (i = 0; i < pIED->AddressOfFunctions; i++)
+		{
+			if (!strcmp(FunctionName, (char*)hModule + Name[i]))
+			{
+				return (FARPROC)((LPBYTE)hModule + Address[Ordinal[i]]);
+			}
+		}
+	}
+	__except (EXCEPTION_EXECUTE_HANDLER)
+	{
+#ifdef _DEBUG
+		const DWORD BuffSize = 250;
+		char buffer[BuffSize];
+		sprintf_s(buffer, BuffSize, "GetFunctionAddress: EXCEPTION module=%s Failed to get address.", FunctionName);
+		LogText(buffer);
+#endif
+	}
+
+	return ProcAddress;
+}

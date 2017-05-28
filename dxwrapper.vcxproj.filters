@@ -248,9 +248,6 @@
     <ClInclude Include="dxwrapper.h">
       <Filter>Source Files</Filter>
     </ClInclude>
-    <ClInclude Include="hook\MinHook.h">
-      <Filter>hook</Filter>
-    </ClInclude>
     <ClInclude Include="d3d8to9\d3d8to9.hpp">
       <Filter>d3d8to9</Filter>
     </ClInclude>

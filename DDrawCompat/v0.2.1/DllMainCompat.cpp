@@ -25,6 +25,7 @@
 #include "Time1.h"
 //********** Begin Edit *************
 #include "cfg.h"
+#include "dllmain.h"
 #include "wrappers\wrapper.h"
 //********** End Edit ***************
 
@@ -185,7 +186,14 @@ bool StartDdrawCompat(HINSTANCE hinstDLL)
 	}
 
 	//********** Begin Edit *************
-	g_origDDrawModule = LoadDll(dtype.ddraw);
+	if (Config.RealWrapperMode == dtype.ddraw)
+	{
+		g_origDDrawModule = LoadDll(dtype.ddraw);
+	}
+	else
+	{
+		g_origDDrawModule = hModule_dll;
+	}
 	g_origDInputModule = LoadDll(dtype.dinput);
 	if (!g_origDDrawModule || !g_origDInputModule)
 	//if (!loadLibrary(systemDirectory, "ddraw.dll", g_origDDrawModule) ||

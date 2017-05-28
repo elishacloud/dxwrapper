@@ -18,6 +18,8 @@
 #include "dllmain.h"
 #include "wrapper.h"
 #include "d3d9.h"
+#include "utils.h"
+#include "hook\inithook.h"
 
 struct d3d8_dll
 {
@@ -37,20 +39,32 @@ void LoadD3d8()
 {
 	// Load real dll
 	d3d8.dll = LoadDll(dtype.d3d8);
+
+	// Overload GetProcAddress function to GetFunctionAddress
+	typedef FARPROC(*GetFunctionAddress_type)(HMODULE, LPCSTR);
+	GetFunctionAddress_type GetProcAddress = nullptr;
+	GetProcAddress = reinterpret_cast<GetFunctionAddress_type>(GetFunctionAddress);
+
 	// Load dll functions
 	if (d3d8.dll)
 	{
 		d3d8.Direct3DCreate8 = GetProcAddress(d3d8.dll, "Direct3DCreate8");
-		//d3d8.DebugSetMute				= GetProcAddress(d3d8.dll, "DebugSetMute");		 // <---  Shared with d3d9.dll
-		SetSharedD3d9(d3d8.dll);
+		Set_DebugSetMute(GetProcAddress(d3d8.dll, "DebugSetMute"));			 // <---  Shared with d3d9.dll
 		d3d8.ValidateVertexShader = GetProcAddress(d3d8.dll, "ValidateVertexShader");
 		d3d8.ValidatePixelShader = GetProcAddress(d3d8.dll, "ValidatePixelShader");
 	}
 	// Enable D3d8to9 conversion
 	if (Config.D3d8to9)
 	{
-		Compat::Log() << "Enabling D3d8to9 function";
-		d3d8.Direct3DCreate8 = GetProcAddress(hModule_dll, "_Direct3DCreate8");
+		if (Config.RealWrapperMode == dtype.d3d8)
+		{
+			d3d8.Direct3DCreate8 = GetProcAddress(hModule_dll, "_Direct3DCreate8");
+		}
+		else
+		{
+			Compat::Log() << "Hooking d3d8.dll APIs...";
+			d3d8.Direct3DCreate8 = (FARPROC)HookAPI(hModule_dll, dtypename[dtype.d3d8], d3d8.Direct3DCreate8, "Direct3DCreate8", GetProcAddress(hModule_dll, "_Direct3DCreate8"));
+		}
 	}
 }
 

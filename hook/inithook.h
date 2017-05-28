@@ -1,3 +1,3 @@
 #pragma once
 
-void *HookAPI(HMODULE, char *, void *, const char *, void *);
+void *HookAPI(HMODULE, const char *, void *, const char *, void *);

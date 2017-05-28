@@ -1,5 +1,6 @@
 #pragma once
 
 void LoadDdraw();
-void SetSharedDdraw(HMODULE);
+void Set_DllCanUnloadNow(FARPROC);
+void Set_DllGetClassObject(FARPROC);
 void FreeDdrawLibrary();

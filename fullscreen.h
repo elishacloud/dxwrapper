@@ -25,7 +25,7 @@ struct screen_res
 void CheckCurrentScreenRes(screen_res&);
 void SetScreen(screen_res);
 void ResetScreen();
-void StartThread();
-bool IsMyThreadRunning();
-void StopThread();
+void StartFullscreenThread();
+bool IsFullscreenThreadRunning();
+void StopFullscreenThread();
 void CreateTimer(HWND);

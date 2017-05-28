@@ -1,4 +1,4 @@
 #pragma once
 
-void HotPatchMemory();
-void StopHotpatchThread();
+void WriteMemory();
+void StopWriteMemoryThread();

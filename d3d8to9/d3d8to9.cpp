@@ -21,12 +21,8 @@ PFN_D3DXLoadSurfaceFromSurface D3DXLoadSurfaceFromSurface = nullptr;
 std::ofstream LOG;
 #endif
 
-extern "C" Direct3D8 *WINAPI _Direct3DCreate8(UINT SDKVersion)
+extern "C" Direct3D8 *WINAPI Direct3DCreate8(UINT SDKVersion)
 {
-//********** Begin Edit *************
-	UNREFERENCED_PARAMETER(SDKVersion);
-//********** End Edit ***************
-
 #ifndef D3D8TO9NOLOG
 	LOG.open("d3d8.log", std::ios::trunc);
 
@@ -39,10 +35,7 @@ extern "C" Direct3D8 *WINAPI _Direct3DCreate8(UINT SDKVersion)
 	LOG << "> Passing on to 'Direct3DCreate9':" << std::endl;
 #endif
 //********** Begin Edit *************
-#ifdef _DEBUG
-	Compat::Log() << "Redirecting '" << "Direct3DCreate8" << "(" << SDKVersion << ")' ...";
-	Compat::Log() << "> Passing on to 'Direct3DCreate9':";
-#endif
+	Compat::Log() << "Enabling D3d8to9 function (" << SDKVersion << ")";
 
 	// Declare Direct3DCreate9
 	static PFN_Direct3DCreate9 Direct3DCreate9 = nullptr;

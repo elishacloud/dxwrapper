@@ -134,12 +134,12 @@ void DllAttach()
 {
 	if (Config.WrapperMode == dtype.winspool || Config.WrapperMode == 0 || Config.WrapperMode == 255) LoadWinspool();
 	if (Config.WrapperMode == dtype.dplayx || Config.WrapperMode == 0 || Config.WrapperMode == 255) LoadDplayx();
-	if (Config.WrapperMode == dtype.d3d8 || Config.WrapperMode == 0 || Config.WrapperMode == 255) LoadD3d8();
+	if (Config.WrapperMode == dtype.d3d8 || Config.WrapperMode == 0 || Config.WrapperMode == 255 || Config.D3d8to9) LoadD3d8();
 	if (Config.WrapperMode == dtype.dxgi || Config.WrapperMode == 0 || Config.WrapperMode == 255) LoadDxgi();
 	if (Config.WrapperMode == dtype.winmm || Config.WrapperMode == 0 || Config.WrapperMode == 255) LoadWinmm();
-	if (Config.WrapperMode == dtype.dsound || Config.WrapperMode == 0 || Config.WrapperMode == 255) LoadDsound();
+	if (Config.WrapperMode == dtype.dsound || Config.WrapperMode == 0 || Config.WrapperMode == 255 || Config.DSoundCtrl) LoadDsound();
 	if (Config.WrapperMode == dtype.d3d9 || Config.WrapperMode == 0 || Config.WrapperMode == 255) LoadD3d9();
-	if (Config.WrapperMode == dtype.ddraw || Config.WrapperMode == 0 || Config.WrapperMode == 255) LoadDdraw();
+	if (Config.WrapperMode == dtype.ddraw || Config.WrapperMode == 0 || Config.WrapperMode == 255 || Config.DDrawCompat) LoadDdraw();
 	if (Config.CustomDllCount > 0) LoadCustomDll();
 }
 

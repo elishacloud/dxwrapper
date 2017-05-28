@@ -22,19 +22,8 @@ bool p_ThreadRunningFlag = false;
 HANDLE p_hThread = NULL;
 DWORD p_dwThreadID = 0;
 
-// Write specified bytes to memory
-void WriteMemory(DWORD AddressPointer, byte BytesToWrite[], size_t SizeOfBytes)
-{
-	// Make meory writeable
-	unsigned long oldProtect;
-	VirtualProtect((LPVOID)AddressPointer, SizeOfBytes, PAGE_EXECUTE_READWRITE, &oldProtect);
-
-	// Write to memory
-	memcpy((void*)AddressPointer, BytesToWrite, SizeOfBytes);
-}
-
 // Writes all bytes in Config to memory
-void UpdateAllByteMemory()
+void WriteAllByteMemory()
 {
 	HANDLE hProcess = GetCurrentProcess();
 
@@ -44,21 +33,39 @@ void UpdateAllByteMemory()
 		{
 			// Get current memory
 			byte* lpBuffer = new byte[Config.MemoryInfo[x].SizeOfBytes];
-			ReadProcessMemory(hProcess, (LPVOID)Config.MemoryInfo[x].AddressPointer, lpBuffer, Config.MemoryInfo[x].SizeOfBytes, NULL);
+			void* AddressPointer = (void*)Config.MemoryInfo[x].AddressPointer;
+			if (ReadProcessMemory(hProcess, AddressPointer, lpBuffer, Config.MemoryInfo[x].SizeOfBytes, NULL))
+			{
+				// Make memory writeable
+				unsigned long oldProtect;
+				if (VirtualProtect(AddressPointer, Config.MemoryInfo[x].SizeOfBytes, PAGE_EXECUTE_READWRITE, &oldProtect))
+				{
+					// Write to memory
+					memcpy(AddressPointer, Config.MemoryInfo[x].Bytes, Config.MemoryInfo[x].SizeOfBytes);
 
-			// Set new memory
-			WriteMemory(Config.MemoryInfo[x].AddressPointer, Config.MemoryInfo[x].Bytes, Config.MemoryInfo[x].SizeOfBytes);
+					// Restore protection
+					VirtualProtect(AddressPointer, Config.MemoryInfo[x].SizeOfBytes, oldProtect, &oldProtect);
 
-			// Delete varable
-			delete Config.MemoryInfo[x].Bytes;
+					// Delete varable
+					delete Config.MemoryInfo[x].Bytes;
 
-			// Store new variable
-			Config.MemoryInfo[x].Bytes = lpBuffer;
+					// Store new variable
+					Config.MemoryInfo[x].Bytes = lpBuffer;
+				}
+				else
+				{
+					Compat::Log() << "Access Denied at memory address: 0x" << std::showbase << std::hex << Config.MemoryInfo[x].AddressPointer << std::dec << std::noshowbase;
+				}
+			}
+			else
+			{
+				Compat::Log() << "Failed to read memory at address: 0x" << std::showbase << std::hex << Config.MemoryInfo[x].AddressPointer << std::dec << std::noshowbase;
+			}
 		}
 	}
 }
 
-// Verify process bytes before hot patching
+// Verify process bytes before writing memory
 bool CheckVerificationMemory()
 {
 	HANDLE hProcess = GetCurrentProcess();
@@ -88,8 +95,8 @@ bool CheckVerificationMemory()
 	return false;
 }
 
-// Thread to undo hotpatch after ResetMemoryAfter time
-static DWORD WINAPI HotPatchThreadFunc(LPVOID pvParam)
+// Thread to undo memory write after ResetMemoryAfter time
+static DWORD WINAPI WriteMemoryThreadFunc(LPVOID pvParam)
 {
 	UNREFERENCED_PARAMETER(pvParam);
 
@@ -108,52 +115,52 @@ static DWORD WINAPI HotPatchThreadFunc(LPVOID pvParam)
 	};
 
 	// Logging
-	Compat::Log() << "Undoing hot patched memory...";
+	Compat::Log() << "Undoing memory write...";
 
-	// Undo the hot patch
-	UpdateAllByteMemory();
+	// Undo the memory write
+	WriteAllByteMemory();
 
 	// Return value
 	return 0;
 }
 
-// Main sub for hot patching the application
-void HotPatchMemory()
+// Main sub for writing to the memory of the application
+void WriteMemory()
 {
 	if (CheckVerificationMemory())
 	{
 		// Logging
-		Compat::Log() << "Hot patching memory...";
+		Compat::Log() << "Writing bytes to memory...";
 
-		// Hot patching memory
-		UpdateAllByteMemory();
+		// Writing bytes to memory
+		WriteAllByteMemory();
 
-		// Starting thread to undo hotpatch after ResetMemoryAfter time
-		if (Config.ResetMemoryAfter > 0) CreateThread(NULL, 0, HotPatchThreadFunc, NULL, 0, &p_dwThreadID);
+		// Starting thread to undo memory write after ResetMemoryAfter time
+		if (Config.ResetMemoryAfter > 0) CreateThread(NULL, 0, WriteMemoryThreadFunc, NULL, 0, &p_dwThreadID);
 	}
 	else
 	{
 		if (Config.VerifyMemoryInfo.AddressPointer != 0)
 		{
-			Compat::Log() << "Verification for hot patch failed";
+			Compat::Log() << "Verification for memory write failed";
 		}
 	}
 }
 
 // Is thread running
-bool IsHotpatchThreadRunning()
+bool IsWriteMemoryThreadRunning()
 {
 	return p_ThreadRunningFlag && GetThreadId(p_hThread) == p_dwThreadID && p_dwThreadID != 0;
 }
 
-// Stop hotpatch thread
-void StopHotpatchThread()
+// Stop WriteMemory thread
+void StopWriteMemoryThread()
 {
 		// Set flag to stop thread
 		p_StopThreadFlag = true;
 
 		// Wait for thread to exit
-		if (IsHotpatchThreadRunning()) WaitForSingleObject(p_hThread, INFINITE);
+		if (IsWriteMemoryThreadRunning()) WaitForSingleObject(p_hThread, INFINITE);
 
 		// Close handle
 		CloseHandle(p_hThread);

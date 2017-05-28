@@ -5,8 +5,6 @@
 * Updated 2017 by Elisha Riedlinger
 */
 
-// hotpatch compiled system dlls come with Windows XP SP2 or later
-
 // return:
 // 0 = patch failed
 // 1 = already patched
@@ -14,51 +12,11 @@
 
 #include "cfg.h"
 
-#ifdef USEMINHOOK
-#include "MinHook.h"
-#endif
-
 void *HotPatch(void *apiproc, const char *apiname, void *hookproc)
 {
 	const DWORD BuffSize = 250;
 	char buffer[BuffSize];
 
-#ifdef USEMINHOOK
-	void *pProc;
-	static BOOL DoOnce = TRUE;
-
-	if(DoOnce){
-		if (MH_Initialize() != MH_OK) {
-			Compat::Log() << "HotPatch: MH_Initialize FAILED";
-			// What to do here? No recovery action ...
-			return 0;
-		}
-		DoOnce = FALSE;
-	}
-
-#ifdef _DEBUG
-	sprintf_s(buffer, BuffSize, "HotPatch: api=%s addr=%x hook=%x\n", apiname, apiproc, hookproc);
-	LogText(buffer);
-#endif
-
-	if(!strcmp(apiname, "GetProcAddress")) return 0; // do not mess with this one!
-
-	if (MH_CreateHook(apiproc, hookproc, reinterpret_cast<void**>(&pProc)) != MH_OK){
-		Compat::Log() << "HotPatch: MH_CreateHook FAILED";
-		return 0;
-	}
-
-	if (MH_EnableHook(apiproc) != MH_OK){
-		Compat::Log() << "HotPatch: MH_EnableHook FAILED";
-		return 0;
-	}
-
-#ifdef _DEBUG
-	sprintf_s(buffer, BuffSize, "HotPatch: api=%s addr=%x->%x hook=%x", apiname, apiproc, pProc, hookproc);
-	LogText(buffer);
-#endif
-	return pProc;
-#else
 	DWORD dwPrevProtect;
 	BYTE* patch_address;
 	void *orig_address;
@@ -82,7 +40,9 @@ void *HotPatch(void *apiproc, const char *apiname, void *hookproc)
 	}
 
 	// some calls (QueryPerformanceCounter) are sort of hot patched already....
-	if(!memcmp( "\x90\x90\x90\x90\x90\xEB\x05\x90\x90\x90\x90\x90", patch_address, 12)){
+	if (!(memcmp("\x90\x90\x90\x90\x90\xEB\x05\x90\x90\x90\x90\x90", patch_address, 12) &&
+		memcmp("\xCC\xCC\xCC\xCC\xCC\xEB\x05\xCC\xCC\xCC\xCC\xCC", patch_address, 12)))
+	{
 		*patch_address = 0xE9; // jmp (4-byte relative)
 		*((DWORD *)(patch_address + 1)) = (DWORD)hookproc - (DWORD)patch_address - 5; // relative address
 		*((WORD *)apiproc) = 0xF9EB; // should be atomic write (jmp $-5)
@@ -96,16 +56,22 @@ void *HotPatch(void *apiproc, const char *apiname, void *hookproc)
 	}
 
 	// make sure it is a hotpatchable image... check for 5 nops followed by mov edi,edi
-	if(memcmp( "\x90\x90\x90\x90\x90\x8B\xFF", patch_address, 7) && memcmp( "\x90\x90\x90\x90\x90\x89\xFF", patch_address, 7)){
+	if (memcmp("\x90\x90\x90\x90\x90\x8B\xFF", patch_address, 7) && memcmp("\x90\x90\x90\x90\x90\x89\xFF", patch_address, 7) &&
+		memcmp("\xCC\xCC\xCC\xCC\xCC\x8B\xFF", patch_address, 7) && memcmp("\xCC\xCC\xCC\xCC\xCC\x89\xFF", patch_address, 7))
+	{
 		VirtualProtect( patch_address, 12, dwPrevProtect, &dwPrevProtect ); // restore protection
 		// check it wasn't patched already
 		if((*patch_address==0xE9) && (*(WORD *)apiproc == 0xF9EB)){
 			// should never go through here ...
+#ifdef _DEBUG
 			Compat::Log() << "HotPatch: patched already";
+#endif
 			return (void *)1;
 		}
 		else{
+#ifdef _DEBUG
 			Compat::Log() << "HotPatch: not patch aware.";
+#endif
 			return (void *)0; // not hot patch "aware"
 		}
 	}
@@ -120,5 +86,4 @@ void *HotPatch(void *apiproc, const char *apiname, void *hookproc)
 	LogText(buffer);
 #endif
 	return orig_address;
-#endif
 }

@@ -600,8 +600,8 @@ static DWORD WINAPI StartThreadFunc(LPVOID pvParam)
 	return 0;
 }
 
-// Create thread
-void StartThread()
+// Create fullscreen thread
+void StartFullscreenThread()
 {
 	// Get dxwrapper path
 	char buffer[MAX_PATH];
@@ -616,17 +616,17 @@ void StartThread()
 }
 
 // Is thread running
-bool IsMyThreadRunning()
+bool IsFullscreenThreadRunning()
 {
 	return ThreadRunningFlag && GetThreadId(m_hThread) == m_dwThreadID && m_dwThreadID != 0;
 }
 
 // Stop thread
-void StopThread()
+void StopFullscreenThread()
 {
 	if (Config.FullScreen || Config.ForceTermination)
 	{
-		if (IsMyThreadRunning())
+		if (IsFullscreenThreadRunning())
 		{
 			Compat::Log() << "Stopping thread...";
 

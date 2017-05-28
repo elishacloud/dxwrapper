@@ -291,7 +291,6 @@ copy /Y "$(ProjectDir)dgame.ini" "$(TargetDir)Build\dgame.ini"
     <ClInclude Include="hook\hotpatch.h" />
     <ClInclude Include="hook\iatpatch.h" />
     <ClInclude Include="hook\inithook.h" />
-    <ClInclude Include="hook\MinHook.h" />
     <ClInclude Include="libraries\dwmapi.h" />
     <ClInclude Include="libraries\uxtheme.h" />
     <ClInclude Include="libraries\winmm.h" />

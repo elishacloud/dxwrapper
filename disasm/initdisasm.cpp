@@ -104,16 +104,14 @@ static HMODULE LoadDisasm()
 void HookExceptionHandler(void)
 {
 	void *tmp;
-	HMODULE base;
 
 	Compat::Log() << "Set exception handler";
-	base = GetModuleHandle(NULL);
 	pSetUnhandledExceptionFilter = SetUnhandledExceptionFilter;
 	// override default exception handler, if any....
 	LONG WINAPI myUnhandledExceptionFilter(LPEXCEPTION_POINTERS);
-	tmp = HookAPI(base, "KERNEL32.dll", UnhandledExceptionFilter, "UnhandledExceptionFilter", myUnhandledExceptionFilter);
+	tmp = HookAPI(hModule_dll, "KERNEL32.dll", UnhandledExceptionFilter, "UnhandledExceptionFilter", myUnhandledExceptionFilter);
 	// so far, no need to save the previous handler, but anyway...
-	tmp = HookAPI(base, "KERNEL32.dll", SetUnhandledExceptionFilter, "SetUnhandledExceptionFilter", extSetUnhandledExceptionFilter);
+	tmp = HookAPI(hModule_dll, "KERNEL32.dll", SetUnhandledExceptionFilter, "SetUnhandledExceptionFilter", extSetUnhandledExceptionFilter);
 	if (tmp) pSetUnhandledExceptionFilter = (SetUnhandledExceptionFilter_Type)tmp;
 
 	SetErrorMode(SEM_NOGPFAULTERRORBOX | SEM_NOOPENFILEERRORBOX | SEM_FAILCRITICALERRORS);

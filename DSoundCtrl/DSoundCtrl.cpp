@@ -47,6 +47,8 @@
 #include "DSoundCtrlExternal.h"
 #include "IDirectSoundClassFactoryEx.h"
 #include "cfg.h"
+#include "dllmain.h"
+#include "wrappers\wrapper.h"
 
 //////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -137,6 +139,9 @@ CDSoundCtrlApp::~CDSoundCtrlApp()
 
 BOOL CDSoundCtrlApp::InitInstance()
 {
+	// Starting DirectSoundControl
+	Compat::Log() << "Enabling DSoundCtrl function";
+
 	//
 	// Read configuration from file
 	//
@@ -166,7 +171,7 @@ BOOL CDSoundCtrlApp::InitInstance()
 	g_bForceSpeakerConfig = Config.ForceSpeakerConfig;
 	g_nSpeakerConfig = Config.SpeakerConfig;
 
-	g_bStoppedDriverWorkaround = Config.EnableStoppedDriverWorkaround;
+	g_bStoppedDriverWorkaround = Config.StoppedDriverWorkaround;
 
 #ifdef _DEBUG		//<----TODO: update all logging
 	::LogMessage((const char*)NULL, NULL, "********* DirectSound Control Logging started *********");
@@ -188,24 +193,21 @@ BOOL CDSoundCtrlApp::InitInstance()
 	}
 
 	//
-	// Get path to original DSOUND.DLL
+	// Load DSOUND.DLL and get entry points
 	//
 
-	char buffer[MAX_PATH];
-
-	::GetSystemDirectory(buffer, MAX_PATH);
-	::PathAddBackslash(buffer);
-	strcat_s(buffer, MAX_PATH, "dsound.dll");
-
-	//
-	// Load DLL and get entry points
-	//
-
-	g_hDLL = ::LoadLibrary(buffer);
+	if (Config.RealWrapperMode == dtype.dsound)
+	{
+		g_hDLL = LoadDll(dtype.dsound);
+	}
+	else
+	{
+		g_hDLL = hModule_dll;
+	}
 
 	if (g_hDLL == NULL)
 	{
-		LogMessage(m_cszClassName, this, "ERROR: Can't load original DLL...fatal...");
+		LogMessage(m_cszClassName, this, "ERROR: Can't load original dsound.dll...fatal...");
 
 		return FALSE;
 	}
@@ -529,6 +531,5 @@ STDAPI STDMETHODCALLTYPE DllGetClassObject_DSoundCtrl(IN REFCLSID rclsid, IN REF
 
 void RunDSoundCtrl()
 {
-	Compat::Log() << "Enabling DSoundCtrl function";
 	theApp.InitInstance();
 }

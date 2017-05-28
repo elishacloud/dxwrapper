@@ -81,7 +81,7 @@ struct CONFIG
 	int PrimaryBufferChannels;
 	bool ForceSpeakerConfig;
 	int SpeakerConfig;
-	bool EnableStoppedDriverWorkaround;
+	bool StoppedDriverWorkaround;
 };
 extern CONFIG Config;
 
@@ -100,7 +100,7 @@ struct DLLTYPE
 extern DLLTYPE dtype;
 
 // Designated Initializer does not work in VS 2015 so must pay attention to the order
-const static char* dtypename[] = {
+static const char* dtypename[] = {
 	nullptr,		// 0
 	"ddraw.dll",	// 1
 	"d3d9.dll",		// 2
