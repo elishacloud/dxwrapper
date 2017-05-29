@@ -176,11 +176,18 @@ bool StartDdrawCompat(HINSTANCE hinstDLL)
 	}
 
 	//********** Begin Edit *************
-	g_origDDrawModule = LoadDll(dtype.ddraw);
+	if (Config.RealWrapperMode == dtype.ddraw)
+	{
+		g_origDDrawModule = LoadDll(dtype.ddraw);
+	}
+	else
+	{
+		g_origDDrawModule = hinstDLL;
+	}
 	g_origDInputModule = LoadDll(dtype.dinput);
 	if (!g_origDDrawModule || !g_origDInputModule)
-	//if (!loadLibrary(systemDirectory, "ddraw.dll", g_origDDrawModule) ||
-	//	!loadLibrary(systemDirectory, "dinput.dll", g_origDInputModule))
+		//if (!loadLibrary(systemDirectory, "ddraw.dll", g_origDDrawModule) ||
+		//	!loadLibrary(systemDirectory, "dinput.dll", g_origDInputModule))
 	{
 		return false;
 	}
@@ -214,10 +221,14 @@ bool StartDdrawCompat(HINSTANCE hinstDLL)
 //else if (fdwReason == DLL_PROCESS_DETACH)
 void UnloadDdrawCompat()
 {
+//********** End Edit ***************
+
 	//********** Begin Edit *************
 	//FreeLibrary(g_origDInputModule);
 	//FreeLibrary(g_origDDrawModule);
 	//********** End Edit ***************
+
+//********** Begin Edit *************
 }
 /*	return TRUE;
 }*/

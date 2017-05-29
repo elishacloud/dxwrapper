@@ -25,7 +25,6 @@
 #include "Time1.h"
 //********** Begin Edit *************
 #include "cfg.h"
-#include "dllmain.h"
 #include "wrappers\wrapper.h"
 //********** End Edit ***************
 
@@ -192,7 +191,7 @@ bool StartDdrawCompat(HINSTANCE hinstDLL)
 	}
 	else
 	{
-		g_origDDrawModule = hModule_dll;
+		g_origDDrawModule = hinstDLL;
 	}
 	g_origDInputModule = LoadDll(dtype.dinput);
 	if (!g_origDDrawModule || !g_origDInputModule)
