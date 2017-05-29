@@ -481,13 +481,18 @@ void GetWrapperMode()
 	Config.RealWrapperMode = 0;
 	GetModuleFileNameA(hModule_dll, buffer, sizeof(buffer));
 	strippath(buffer);
-	if (_strcmpi(buffer, dtypename[dtype.ddraw]) == 0) { Config.RealWrapperMode = dtype.ddraw; return; }
-	if (_strcmpi(buffer, dtypename[dtype.d3d9]) == 0) { Config.RealWrapperMode = dtype.d3d9; return; }
-	if (_strcmpi(buffer, dtypename[dtype.d3d8]) == 0) { Config.RealWrapperMode = dtype.d3d8; return; }
-	if (_strcmpi(buffer, dtypename[dtype.dsound]) == 0) { Config.RealWrapperMode = dtype.dsound; return; }
-	if (_strcmpi(buffer, dtypename[dtype.dxgi]) == 0) { Config.RealWrapperMode = dtype.dxgi; return; }
-	if (_strcmpi(buffer, dtypename[dtype.dplayx]) == 0) { Config.RealWrapperMode = dtype.dplayx; return; }
-	if (_strcmpi(buffer, dtypename[dtype.winspool]) == 0) { Config.RealWrapperMode = dtype.winspool; return; }
+
+	// Check each wrapper library
+	for (int x = 1; x <= dtypeArraySize; ++x)
+	{
+		// Check dll name
+		if (_strcmpi(buffer, dtypename[x]) == 0)
+		{
+			// Set RealWrapperMode
+			Config.RealWrapperMode = x;
+			return;
+		}
+	}
 
 	// Special for winmm.dll because sometimes it is changed to win32 or winnm or some other name
 	if (strlen(buffer) > 8)

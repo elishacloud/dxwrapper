@@ -111,7 +111,8 @@ static const char* dtypename[] = {
 	"dplayx.dll",	// 7
 	"winspool.drv",	// 8
 	"dinput.dll",	// 9
-	};
+};
+static const uint8_t dtypeArraySize = (sizeof(dtypename) / sizeof(*dtypename));
 
 struct APPCOMPATDATATYPE
 {

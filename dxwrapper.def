@@ -55,6 +55,8 @@ _DirectDrawEnumerateExW			= DirectDrawEnumerateExW				@62
 _DirectDrawEnumerateW			= DirectDrawEnumerateW					@63
 _DllCanUnloadNow_ddraw			= DllCanUnloadNow						PRIVATE
 _DllGetClassObject_ddraw		= DllGetClassObject						PRIVATE
+_DllCanUnloadNow_dinput			= DllCanUnloadNow						PRIVATE
+_DllGetClassObject_dinput		= DllGetClassObject						PRIVATE
 _GetDDSurfaceLocal				= GetDDSurfaceLocal						@66
 _GetOLEThunkData				= GetOLEThunkData						@67
 _GetSurfaceFromDC				= GetSurfaceFromDC						@68
@@ -301,8 +303,18 @@ GetSurfaceFromDC				= FakeGetSurfaceFromDC					@418
 RegisterSpecialCase				= FakeRegisterSpecialCase				@419
 ReleaseDDThreadLock				= FakeReleaseDDThreadLock				@420
 SetAppCompatData				= FakeSetAppCompatData					@421
-DirectInputCreateA				= FakeDirectInputCreateA				@422
 
+
+; ****
+;LIBRARY "dinput"
+; ****
+DirectInputCreateA				= FakeDirectInputCreateA				@430
+DirectInputCreateEx				= FakeDirectInputCreateEx				@431
+DirectInputCreateW				= FakeDirectInputCreateW				@432
+;DllCanUnloadNow				= FakeDllCanUnloadNow					PRIVATE         <---  Shared with ddraw.dll
+;DllGetClassObject				= FakeDllGetClassObject					PRIVATE         <---  Shared with ddraw.dll
+DllRegisterServer				= FakeDllRegisterServer					PRIVATE
+DllUnregisterServer				= FakeDllUnregisterServer				PRIVATE
 
 ; ****
 ;LIBRARY "d3d8"

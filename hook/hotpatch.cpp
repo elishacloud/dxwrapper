@@ -34,7 +34,7 @@ void *HotPatch(void *apiproc, const char *apiname, void *hookproc)
 	// entry point could be at the top of a page? so VirtualProtect first to make sure patch_address is readable
 	//if(!VirtualProtect(patch_address, 7, PAGE_EXECUTE_READWRITE, &dwPrevProtect)){
 	if(!VirtualProtect(patch_address, 12, PAGE_EXECUTE_WRITECOPY, &dwPrevProtect)){
-		sprintf_s(buffer, BuffSize, "HotPatch: access denied. err=%x", GetLastError());
+		sprintf_s(buffer, BuffSize, "HotPatch: access denied.  Cannot hook api=%s at addr=%p err=%x", apiname, apiproc, GetLastError());
 		LogText(buffer);
 		return (void *)0; // access denied
 	}
@@ -63,15 +63,13 @@ void *HotPatch(void *apiproc, const char *apiname, void *hookproc)
 		// check it wasn't patched already
 		if((*patch_address==0xE9) && (*(WORD *)apiproc == 0xF9EB)){
 			// should never go through here ...
-#ifdef _DEBUG
-			Compat::Log() << "HotPatch: patched already";
-#endif
+			sprintf_s(buffer, BuffSize, "HotPatch: '%s' patched already at addr=%p", apiname, apiproc);
+			LogText(buffer);
 			return (void *)1;
 		}
 		else{
-#ifdef _DEBUG
-			Compat::Log() << "HotPatch: not patch aware.";
-#endif
+			sprintf_s(buffer, BuffSize, "HotPatch: '%s' is not patch aware at addr=%p", apiname, apiproc);
+			LogText(buffer);
 			return (void *)0; // not hot patch "aware"
 		}
 	}

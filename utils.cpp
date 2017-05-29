@@ -356,8 +356,15 @@ FARPROC GetFunctionAddress(HMODULE hModule, LPCSTR FunctionName)
 
 	DWORD i;
 
+	if (!FunctionName)
+	{
+		LogText("GetFunctionAddress: NULL api name");
+		return nullptr;
+	}
+
 	if (!hModule)
 	{
+		LogText("GetFunctionAddress: NULL api module address");
 		return nullptr;
 	}
 

@@ -20,6 +20,7 @@
 #include "ddraw.h"
 #include "dplayx.h"
 #include "dsound.h"
+#include "dinput.h"
 #include "dxgi.h"
 #include "winmm.h"
 #include "winspool.h"
@@ -32,14 +33,13 @@ struct custom_dll
 	HMODULE dll = nullptr;
 } custom[256];
 
-const uint8_t ArraySize = (sizeof(dtypename) / sizeof(*dtypename));
-custom_dll dllhandle[ArraySize];
+custom_dll dllhandle[dtypeArraySize];
 
 // Load real dll file that is being wrapped
 HMODULE LoadDll(uint8_t dlltype)
 {
 	// Check for valid dlltype
-	if (dlltype == 0 || dlltype >= ArraySize) return nullptr;
+	if (dlltype == 0 || dlltype >= dtypeArraySize) return nullptr;
 
 	// Check if dll is already loaded
 	if (dllhandle[dlltype].Flag) return dllhandle[dlltype].dll;
@@ -137,6 +137,7 @@ void DllAttach()
 	if (Config.WrapperMode == dtype.dxgi || Config.WrapperMode == 0 || Config.WrapperMode == 255) LoadDxgi();
 	if (Config.WrapperMode == dtype.winmm || Config.WrapperMode == 0 || Config.WrapperMode == 255) LoadWinmm();
 	if (Config.WrapperMode == dtype.dsound || Config.WrapperMode == 0 || Config.WrapperMode == 255 || Config.DSoundCtrl) LoadDsound();
+	if (Config.WrapperMode == dtype.dinput || Config.WrapperMode == 0 || Config.WrapperMode == 255) LoadDinput();
 	if (Config.WrapperMode == dtype.d3d9 || Config.WrapperMode == 0 || Config.WrapperMode == 255) LoadD3d9();
 	if (Config.WrapperMode == dtype.ddraw || Config.WrapperMode == 0 || Config.WrapperMode == 255 || Config.DDrawCompat) LoadDdraw();
 	if (Config.CustomDllCount > 0) LoadCustomDll();
@@ -149,7 +150,7 @@ void DllDetach()
 	FreeCustomLibrary();
 
 	// Unload wrapper libraries
-	for (int x = 1; x <= ArraySize; ++x)
+	for (int x = 1; x <= dtypeArraySize; ++x)
 	{
 		// If dll was loaded
 		if (dllhandle[x].dll)

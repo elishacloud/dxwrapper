@@ -106,17 +106,17 @@ bool APIENTRY DllMain(HMODULE hModule, DWORD ul_reason_for_call, LPVOID lpReserv
 	{
 	case DLL_PROCESS_ATTACH:
 	{
-		// Init logs
-		Compat::Log() << "Starting dxwrapper v" << APP_VERSION;
-		GetOSVersion();
-		GetProcessNameAndPID();
-
 		// Get handle
 		hModule_dll = hModule;
 		HANDLE hCurrentThread = GetCurrentThread();
 
 		// Set thread priority a trick to reduce concurrency problems at program startup
 		SetThreadPriority(hCurrentThread, THREAD_PRIORITY_HIGHEST);
+
+		// Init logs
+		Compat::Log() << "Starting dxwrapper v" << APP_VERSION;
+		GetOSVersion();
+		GetProcessNameAndPID();
 
 		// Initialize config
 		Config.Init();

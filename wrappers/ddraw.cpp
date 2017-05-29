@@ -46,7 +46,6 @@ struct ddraw_dll
 	FARPROC RegisterSpecialCase;
 	FARPROC ReleaseDDThreadLock;
 	FARPROC SetAppCompatData;
-	FARPROC DirectInputCreateA;
 } ddraw;
 
 __declspec(naked) void FakeAcquireDDThreadLock()			{ _asm { jmp [ddraw.AcquireDDThreadLock] } }
@@ -72,7 +71,6 @@ __declspec(naked) void FakeGetSurfaceFromDC()				{ _asm { jmp [ddraw.GetSurfaceF
 __declspec(naked) void FakeRegisterSpecialCase()			{ _asm { jmp [ddraw.RegisterSpecialCase] } }
 __declspec(naked) void FakeReleaseDDThreadLock()			{ _asm { jmp [ddraw.ReleaseDDThreadLock] } }
 __declspec(naked) void FakeSetAppCompatData()				{ _asm { jmp [ddraw.SetAppCompatData] } }
-__declspec(naked) void FakeDirectInputCreateA()				{ _asm { jmp [ddraw.DirectInputCreateA] } }
 
 void LoadDdraw()
 {
@@ -110,7 +108,6 @@ void LoadDdraw()
 		ddraw.RegisterSpecialCase = GetProcAddress(ddraw.dll, "RegisterSpecialCase");
 		ddraw.ReleaseDDThreadLock = GetProcAddress(ddraw.dll, "ReleaseDDThreadLock");
 		ddraw.SetAppCompatData = GetProcAddress(ddraw.dll, "SetAppCompatData");
-		ddraw.DirectInputCreateA = GetProcAddress(ddraw.dll, "DirectInputCreateA");
 	}
 	// Enable DDrawCompat
 	if (Config.DDrawCompat)
@@ -140,13 +137,11 @@ void LoadDdraw()
 			ddraw.RegisterSpecialCase = GetProcAddress(hModule_dll, "_RegisterSpecialCase");
 			ddraw.ReleaseDDThreadLock = GetProcAddress(hModule_dll, "_ReleaseDDThreadLock");
 			ddraw.SetAppCompatData = GetProcAddress(hModule_dll, "_SetAppCompatData");
-			ddraw.DirectInputCreateA = GetProcAddress(hModule_dll, "_DirectInputCreateA");
 		}
 		else
 		{
 			Compat::Log() << "Hooking ddraw.dll APIs...";
 			ddraw.AcquireDDThreadLock = (FARPROC)HookAPI(hModule_dll, dtypename[dtype.ddraw], ddraw.AcquireDDThreadLock, "AcquireDDThreadLock", GetProcAddress(hModule_dll, "_AcquireDDThreadLock"));
-			ddraw.CheckFullscreen = (FARPROC)HookAPI(hModule_dll, dtypename[dtype.ddraw], ddraw.CheckFullscreen, "CheckFullscreen", GetProcAddress(hModule_dll, "_CheckFullscreen"));
 			ddraw.CompleteCreateSysmemSurface = (FARPROC)HookAPI(hModule_dll, dtypename[dtype.ddraw], ddraw.CompleteCreateSysmemSurface, "CompleteCreateSysmemSurface", GetProcAddress(hModule_dll, "_CompleteCreateSysmemSurface"));
 			ddraw.D3DParseUnknownCommand = (FARPROC)HookAPI(hModule_dll, dtypename[dtype.ddraw], ddraw.D3DParseUnknownCommand, "D3DParseUnknownCommand", GetProcAddress(hModule_dll, "_D3DParseUnknownCommand"));
 			ddraw.DDGetAttachedSurfaceLcl = (FARPROC)HookAPI(hModule_dll, dtypename[dtype.ddraw], ddraw.DDGetAttachedSurfaceLcl, "DDGetAttachedSurfaceLcl", GetProcAddress(hModule_dll, "_DDGetAttachedSurfaceLcl"));
@@ -160,15 +155,14 @@ void LoadDdraw()
 			ddraw.DirectDrawEnumerateExA = (FARPROC)HookAPI(hModule_dll, dtypename[dtype.ddraw], ddraw.DirectDrawEnumerateExA, "DirectDrawEnumerateExA", GetProcAddress(hModule_dll, "_DirectDrawEnumerateExA"));
 			ddraw.DirectDrawEnumerateExW = (FARPROC)HookAPI(hModule_dll, dtypename[dtype.ddraw], ddraw.DirectDrawEnumerateExW, "DirectDrawEnumerateExW", GetProcAddress(hModule_dll, "_DirectDrawEnumerateExW"));
 			ddraw.DirectDrawEnumerateW = (FARPROC)HookAPI(hModule_dll, dtypename[dtype.ddraw], ddraw.DirectDrawEnumerateW, "DirectDrawEnumerateW", GetProcAddress(hModule_dll, "_DirectDrawEnumerateW"));
-			ddraw.DllCanUnloadNow = (FARPROC)HookAPI(hModule_dll, dtypename[dtype.ddraw], ddraw.DllCanUnloadNow, "DllCanUnloadNow", GetProcAddress(hModule_dll, "_DllCanUnloadNow_ddraw"));
-			ddraw.DllGetClassObject = (FARPROC)HookAPI(hModule_dll, dtypename[dtype.ddraw], ddraw.DllGetClassObject, "DllGetClassObject", GetProcAddress(hModule_dll, "_DllGetClassObject_ddraw"));
+			//ddraw.DllCanUnloadNow = (FARPROC)HookAPI(hModule_dll, dtypename[dtype.ddraw], ddraw.DllCanUnloadNow, "DllCanUnloadNow", GetProcAddress(hModule_dll, "_DllCanUnloadNow_ddraw"));				//		<---  Don't hook shared API name
+			//ddraw.DllGetClassObject = (FARPROC)HookAPI(hModule_dll, dtypename[dtype.ddraw], ddraw.DllGetClassObject, "DllGetClassObject", GetProcAddress(hModule_dll, "_DllGetClassObject_ddraw"));		//		<---  Don't hook shared API name
 			ddraw.GetDDSurfaceLocal = (FARPROC)HookAPI(hModule_dll, dtypename[dtype.ddraw], ddraw.GetDDSurfaceLocal, "GetDDSurfaceLocal", GetProcAddress(hModule_dll, "_GetDDSurfaceLocal"));
 			ddraw.GetOLEThunkData = (FARPROC)HookAPI(hModule_dll, dtypename[dtype.ddraw], ddraw.GetOLEThunkData, "GetOLEThunkData", GetProcAddress(hModule_dll, "_GetOLEThunkData"));
 			ddraw.GetSurfaceFromDC = (FARPROC)HookAPI(hModule_dll, dtypename[dtype.ddraw], ddraw.GetSurfaceFromDC, "GetSurfaceFromDC", GetProcAddress(hModule_dll, "_GetSurfaceFromDC"));
 			ddraw.RegisterSpecialCase = (FARPROC)HookAPI(hModule_dll, dtypename[dtype.ddraw], ddraw.RegisterSpecialCase, "RegisterSpecialCase", GetProcAddress(hModule_dll, "_RegisterSpecialCase"));
 			ddraw.ReleaseDDThreadLock = (FARPROC)HookAPI(hModule_dll, dtypename[dtype.ddraw], ddraw.ReleaseDDThreadLock, "ReleaseDDThreadLock", GetProcAddress(hModule_dll, "_ReleaseDDThreadLock"));
 			ddraw.SetAppCompatData = (FARPROC)HookAPI(hModule_dll, dtypename[dtype.ddraw], ddraw.SetAppCompatData, "SetAppCompatData", GetProcAddress(hModule_dll, "_SetAppCompatData"));
-			ddraw.DirectInputCreateA = (FARPROC)HookAPI(hModule_dll, dtypename[dtype.ddraw], ddraw.DirectInputCreateA, "DirectInputCreateA", GetProcAddress(hModule_dll, "_DirectInputCreateA"));
 		}
 	}
 }

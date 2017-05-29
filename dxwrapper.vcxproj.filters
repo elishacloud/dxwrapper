@@ -232,6 +232,9 @@
     <ClCompile Include="DxWnd\v2_03_60_src\init.cpp">
       <Filter>DxWnd</Filter>
     </ClCompile>
+    <ClCompile Include="wrappers\dinput.cpp">
+      <Filter>wrappers</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="dxwrapper.def">
@@ -346,6 +349,9 @@
     </ClInclude>
     <ClInclude Include="hook\inithook.h">
       <Filter>hook</Filter>
+    </ClInclude>
+    <ClInclude Include="wrappers\dinput.h">
+      <Filter>wrappers</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

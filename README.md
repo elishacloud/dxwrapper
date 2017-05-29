@@ -1,6 +1,6 @@
 # DxWrapper
 ### Introduction
-DxWrapper is a dll file designed to wrap or hook DirectX (or other) files to fix compatibility issues in older games.  This project is primarily targeted to fixing compatibility issues with running games on Windows 10, ideally by simply dropping a dll file and ini file into the game folder.  A secondary purpose for this is to offer a single tool (one stop shop, so to speak) by combining several other projects into one.  So far this dll can wrap the following files: d3d8.dll, d3d9.dll, ddraw.dll, dplayx.dll, dsound.dll, dxgi.dll, winmm.dll or winspool.drv
+DxWrapper is a dll file designed to wrap or hook DirectX (or other) files to fix compatibility issues in older games.  This project is primarily targeted to fixing compatibility issues with running games on Windows 10, ideally by simply dropping a dll file and ini file into the game folder.  A secondary purpose for this is to offer a single tool (one stop shop, so to speak) by combining several other projects into one.  So far this dll can wrap the following files: d3d8.dll, d3d9.dll, ddraw.dll, dinput.dll, dplayx.dll, dsound.dll, dxgi.dll, winmm.dll or winspool.drv
 
 ### Features
 DxWrapper has a number of features that it includes.  Below is a list of features:
@@ -25,7 +25,7 @@ So far I have tested this with over 70 games (that don't otherwise work correctl
 ### Installation
 
 1. Download the latest binary release from the repository's [Release](https://github.com/elishacloud/dxwrapper/releases) page and unzip it to a folder.
-2. Determine which dll file is needed for the game.  This depends on many factors, I will add a page explaining this later.  Most commonly it is `ddraw.dll` or `dsound.dll`.
+2. Determine which dll file is needed for the game.  This depends on many factors, I will add a page explaining this later.  Most commonly it is `ddraw.dll` or `winmm.dll`.
 3. Copy this dll file and the `dgame.ini` file into the game's installation directory, next to the main executable file.  For some games the main executable is in a subdirectory (like 'Bin', 'Exe' or 'App') you will need to copy it into that directory.  It is not recommended to overwrite any existing files from the game.
 4. (Optional, but recommended) Rename the `dgame.ini` to match the name of the dll file.  Example if you are using the `ddraw.dll` then you want to rename `dgame.ini` to `ddraw.ini`.
 5. Open up the ini file in a text editor (like Notepad) and enable settings needed for the game.
