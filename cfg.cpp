@@ -301,10 +301,8 @@ void SetValue(char* name, char* value, bool* setting)
 }
 
 // Set config from string (file)
-void __stdcall ParseCallback(char* name, char* value)
+void ParseConfigValue(char* name, char* value)
 {
-	// Critical section
-	EnterCriticalSection(&CriticalSectionCfg);
 	// Boolean values
 	if (!_strcmpi(name, "SingleProcAffinity")) { SetValue(name, value, &Config.Affinity); Config.AffinityNotSet = false; return; }  // Sets Affinity and AffinityNotSet flags
 	if (!_strcmpi(name, "D3d8to9")) { SetValue(name, value, &Config.D3d8to9); return; }
@@ -374,6 +372,15 @@ void __stdcall ParseCallback(char* name, char* value)
 	if (!_strcmpi(name, "IncludeProcess")) { SetConfigList(szInclude, IncludeCount, value); LogSetting(name, value); return; }
 	// Logging
 	Compat::Log() << "Warning. Config setting not recognized: " << name;
+}
+
+// Set config from string (file)
+void __stdcall ParseCallback(char* name, char* value)
+{
+	// Critical section
+	EnterCriticalSection(&CriticalSectionCfg);
+	// Parce config value
+	ParseConfigValue(name, value);
 	// Critical section
 	LeaveCriticalSection(&CriticalSectionCfg);
 }
