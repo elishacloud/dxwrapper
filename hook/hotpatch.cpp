@@ -14,7 +14,7 @@
 
 void *HotPatch(void *apiproc, const char *apiname, void *hookproc)
 {
-	const DWORD BuffSize = 250;
+	static constexpr DWORD BuffSize = 250;
 	char buffer[BuffSize];
 
 	DWORD dwPrevProtect;

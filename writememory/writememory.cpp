@@ -19,7 +19,7 @@
 // Declare varables
 bool p_StopThreadFlag = false;
 bool p_ThreadRunningFlag = false;
-HANDLE p_hThread = NULL;
+HANDLE p_hThread = nullptr;
 DWORD p_dwThreadID = 0;
 
 // Writes all bytes in Config to memory
@@ -34,7 +34,7 @@ void WriteAllByteMemory()
 			// Get current memory
 			byte* lpBuffer = new byte[Config.MemoryInfo[x].SizeOfBytes];
 			void* AddressPointer = (void*)Config.MemoryInfo[x].AddressPointer;
-			if (ReadProcessMemory(hProcess, AddressPointer, lpBuffer, Config.MemoryInfo[x].SizeOfBytes, NULL))
+			if (ReadProcessMemory(hProcess, AddressPointer, lpBuffer, Config.MemoryInfo[x].SizeOfBytes, nullptr))
 			{
 				// Make memory writeable
 				unsigned long oldProtect;
@@ -75,7 +75,7 @@ bool CheckVerificationMemory()
 	{
 		// Get current memory
 		byte* lpBuffer = new byte[Config.VerifyMemoryInfo.SizeOfBytes];
-		if (ReadProcessMemory(hProcess, (LPVOID)Config.VerifyMemoryInfo.AddressPointer, lpBuffer, Config.VerifyMemoryInfo.SizeOfBytes, NULL))
+		if (ReadProcessMemory(hProcess, (LPVOID)Config.VerifyMemoryInfo.AddressPointer, lpBuffer, Config.VerifyMemoryInfo.SizeOfBytes, nullptr))
 		{
 			for (UINT x = 0; x < Config.VerifyMemoryInfo.SizeOfBytes; x++)
 			{
@@ -96,7 +96,7 @@ bool CheckVerificationMemory()
 }
 
 // Thread to undo memory write after ResetMemoryAfter time
-static DWORD WINAPI WriteMemoryThreadFunc(LPVOID pvParam)
+DWORD WINAPI WriteMemoryThreadFunc(LPVOID pvParam)
 {
 	UNREFERENCED_PARAMETER(pvParam);
 
@@ -120,6 +120,9 @@ static DWORD WINAPI WriteMemoryThreadFunc(LPVOID pvParam)
 	// Undo the memory write
 	WriteAllByteMemory();
 
+	// Set thread ID back to 0
+	p_dwThreadID = 0;
+
 	// Return value
 	return 0;
 }
@@ -136,7 +139,7 @@ void WriteMemory()
 		WriteAllByteMemory();
 
 		// Starting thread to undo memory write after ResetMemoryAfter time
-		if (Config.ResetMemoryAfter > 0) CreateThread(NULL, 0, WriteMemoryThreadFunc, NULL, 0, &p_dwThreadID);
+		if (Config.ResetMemoryAfter > 0) CreateThread(nullptr, 0, WriteMemoryThreadFunc, nullptr, 0, &p_dwThreadID);
 	}
 	else
 	{

@@ -39,7 +39,7 @@ void GetVersionReg(OSVERSIONINFO *oOS_version)
 	oOS_version->dwBuildNumber = 0;
 
 	// Define registry keys
-	HKEY			RegKey = NULL;
+	HKEY			RegKey = nullptr;
 	DWORD			dwDataMajor = 0;
 	DWORD			dwDataMinor = 0;
 	unsigned long	iSize = sizeof(DWORD);
@@ -48,8 +48,8 @@ void GetVersionReg(OSVERSIONINFO *oOS_version)
 	// Get version
 	if (RegOpenKeyEx(HKEY_LOCAL_MACHINE, "SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion", 0, KEY_ALL_ACCESS, &RegKey) == ERROR_SUCCESS)
 	{
-		if (RegQueryValueEx(RegKey, "CurrentMajorVersionNumber", NULL, &dwType, (LPBYTE)&dwDataMajor, &iSize) == ERROR_SUCCESS &&
-			RegQueryValueEx(RegKey, "CurrentMinorVersionNumber", NULL, &dwType, (LPBYTE)&dwDataMinor, &iSize) == ERROR_SUCCESS)
+		if (RegQueryValueEx(RegKey, "CurrentMajorVersionNumber", nullptr, &dwType, (LPBYTE)&dwDataMajor, &iSize) == ERROR_SUCCESS &&
+			RegQueryValueEx(RegKey, "CurrentMinorVersionNumber", nullptr, &dwType, (LPBYTE)&dwDataMinor, &iSize) == ERROR_SUCCESS)
 		{
 			oOS_version->dwMajorVersion = dwDataMajor;
 			oOS_version->dwMinorVersion = dwDataMinor;
@@ -99,12 +99,12 @@ void GetVersionFile(OSVERSIONINFO *oOS_version)
 	// Define registry keys
 	DWORD  verHandle = 0;
 	UINT   size = 0;
-	LPBYTE lpBuffer = NULL;
+	LPBYTE lpBuffer = nullptr;
 	LPCSTR szVersionFile = buffer;
 	DWORD  verSize = GetFileVersionInfoSize(szVersionFile, &verHandle);
 
 	// GetVersion from a file
-	if (verSize != NULL)
+	if (verSize != 0)
 	{
 		LPSTR verData = new char[verSize];
 
@@ -239,7 +239,7 @@ void GetProcessNameAndPID()
 {
 	// Get process name
 	char exepath[MAX_PATH];
-	GetModuleFileName(NULL, exepath, MAX_PATH);
+	GetModuleFileName(nullptr, exepath, MAX_PATH);
 
 	// Remove path and add process name
 	char *pdest = strrchr(exepath, '\\');
@@ -262,7 +262,7 @@ void Shell(char* fileName)
 	ZeroMemory(&pi, sizeof(pi));
 
 	// Start the child process
-	if (!CreateProcess(NULL, fileName, NULL, NULL, true, CREATE_NO_WINDOW, NULL, NULL, &si, &pi))
+	if (!CreateProcess(nullptr, fileName, nullptr, nullptr, true, CREATE_NO_WINDOW, nullptr, nullptr, &si, &pi))
 	{
 		// Failed to launch process!
 		Compat::Log() << "Failed to launch process!";
@@ -407,7 +407,7 @@ FARPROC GetFunctionAddress(HMODULE hModule, LPCSTR FunctionName)
 	__except (EXCEPTION_EXECUTE_HANDLER)
 	{
 #ifdef _DEBUG
-		const DWORD BuffSize = 250;
+		static constexpr DWORD BuffSize = 250;
 		char buffer[BuffSize];
 		sprintf_s(buffer, BuffSize, "GetFunctionAddress: EXCEPTION module=%s Failed to get address.", FunctionName);
 		LogText(buffer);

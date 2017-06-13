@@ -39,18 +39,18 @@ extern "C" {  // only need to export C interface if
 
 //////////////////////////////////////////////////////////////////////////////////////////////
 
-	DirectSoundCreate8func				g_pDirectSoundCreate8 = NULL;
-	DirectSoundCreatefunc				g_pDirectSoundCreate = NULL;
-	GetDeviceIDfunc						g_pGetDeviceIDfunc = NULL;
-	DirectSoundEnumerateAfunc			g_pDirectSoundEnumerateAfunc = NULL;
-	DirectSoundEnumerateWfunc			g_pDirectSoundEnumerateWfunc = NULL;
-	DirectSoundCaptureCreatefunc		g_pDirectSoundCaptureCreatefunc = NULL;
-	DirectSoundCaptureEnumerateAfunc	g_pDirectSoundCaptureEnumerateAfunc = NULL;
-	DirectSoundCaptureEnumerateWfunc	g_pDirectSoundCaptureEnumerateWfunc = NULL;
-	DirectSoundCaptureCreate8func		g_pDirectSoundCaptureCreate8func = NULL;
-	DirectSoundFullDuplexCreatefunc		g_pDirectSoundFullDuplexCreatefunc = NULL;
-	DllGetClassObjectfunc				g_pDllGetClassObjectfunc = NULL;
-	DllCanUnloadNowfunc					g_pDllCanUnloadNowfunc = NULL;
+	DirectSoundCreate8func				g_pDirectSoundCreate8 = nullptr;
+	DirectSoundCreatefunc				g_pDirectSoundCreate = nullptr;
+	GetDeviceIDfunc						g_pGetDeviceIDfunc = nullptr;
+	DirectSoundEnumerateAfunc			g_pDirectSoundEnumerateAfunc = nullptr;
+	DirectSoundEnumerateWfunc			g_pDirectSoundEnumerateWfunc = nullptr;
+	DirectSoundCaptureCreatefunc		g_pDirectSoundCaptureCreatefunc = nullptr;
+	DirectSoundCaptureEnumerateAfunc	g_pDirectSoundCaptureEnumerateAfunc = nullptr;
+	DirectSoundCaptureEnumerateWfunc	g_pDirectSoundCaptureEnumerateWfunc = nullptr;
+	DirectSoundCaptureCreate8func		g_pDirectSoundCaptureCreate8func = nullptr;
+	DirectSoundFullDuplexCreatefunc		g_pDirectSoundFullDuplexCreatefunc = nullptr;
+	DllGetClassObjectfunc				g_pDllGetClassObjectfunc = nullptr;
+	DllCanUnloadNowfunc					g_pDllCanUnloadNowfunc = nullptr;
 
 //////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -73,7 +73,7 @@ extern void LogMessage(const char* szClassName, void* pInstance, char* szMessage
 
 //////////////////////////////////////////////////////////////////////////////////////////////
 
-HMODULE			g_hDLL					=	NULL;
+HMODULE			g_hDLL					=	nullptr;
 
 //////////////////////////////////////////////////////////////////////////////////////////////
 

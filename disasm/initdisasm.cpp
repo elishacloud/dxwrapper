@@ -34,7 +34,7 @@ LONG WINAPI myUnhandledExceptionFilter(LPEXCEPTION_POINTERS ExceptionInfo)
 		" addr=" << ExceptionInfo->ExceptionRecord->ExceptionAddress << std::dec << std::noshowbase;
 //#endif
 	DWORD oldprot;
-	static HMODULE disasmlib = NULL;
+	static HMODULE disasmlib = nullptr;
 	PVOID target = ExceptionInfo->ExceptionRecord->ExceptionAddress;
 	switch (ExceptionInfo->ExceptionRecord->ExceptionCode) {
 	case 0xc0000094: // IDIV reg (Ultim@te Race Pro)
@@ -49,7 +49,7 @@ LONG WINAPI myUnhandledExceptionFilter(LPEXCEPTION_POINTERS ExceptionInfo)
 			(*pPreparedisasm)();
 		}
 		if (!VirtualProtect(target, 10, PAGE_READWRITE, &oldprot)) return EXCEPTION_CONTINUE_SEARCH; // error condition
-		cmdlen = (*pDisasm)((BYTE *)target, 10, 0, &da, 0, NULL, NULL);
+		cmdlen = (*pDisasm)((BYTE *)target, 10, 0, &da, 0, nullptr, nullptr);
 		Compat::Log() << "UnhandledExceptionFilter: NOP opcode=" << std::showbase << std::hex << *(BYTE *)target << std::dec << std::noshowbase << " len=" << cmdlen;
 		memset((BYTE *)target, 0x90, cmdlen);
 		VirtualProtect(target, 10, oldprot, &oldprot);
@@ -89,7 +89,7 @@ static HMODULE LoadDisasm()
 	disasmlib = LoadLibrary(buffer);
 	if (!disasmlib) {
 		Compat::Log() << "Load lib=" << buffer << " failed err=" << GetLastError();
-		return NULL;
+		return nullptr;
 	}
 	pGeterrwarnmessage = (Geterrwarnmessage_Type)(*GetProcAddress)(disasmlib, "Geterrwarnmessage");
 	pPreparedisasm = (Preparedisasm_Type)(*GetProcAddress)(disasmlib, "Preparedisasm");

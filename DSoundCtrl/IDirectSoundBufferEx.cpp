@@ -35,7 +35,7 @@
 
 IDirectSoundBuffer8Ex::IDirectSoundBuffer8Ex(void)
 {
-	m_lpDirectSoundBuffer8	= NULL;
+	m_lpDirectSoundBuffer8	= nullptr;
 	m_bIsPrimary			= false;
 	m_dwOldWriteCursorPos	= 0;
 	m_nWriteCursorIdent		= 0;
@@ -64,7 +64,7 @@ IDirectSoundBuffer8Ex::~IDirectSoundBuffer8Ex(void)
 
 HRESULT IDirectSoundBuffer8Ex::QueryInterface( REFIID refIID, LPVOID * pVoid )
 {
-	*pVoid = (LPVOID) NULL;
+	*pVoid = (LPVOID) nullptr;
 	HRESULT hRes;
 
 	if(( refIID == IID_IDirectSoundBuffer ) || ( refIID == IID_IDirectSoundBuffer8 ))
@@ -199,14 +199,14 @@ HRESULT IDirectSoundBuffer8Ex::GetCurrentPosition	(LPDWORD pdwCurrentPlayCursor,
 #ifdef _DEBUG
 	if( g_bLogDirectSoundBuffer == true )
 	{
-		sprintf_s( m_acLogBuffer, "GetCurrentPosition called,HRES=0x%x,PlayCursor=%u,WriteCursor=%u", hRes,(pdwCurrentPlayCursor==NULL?0:*pdwCurrentPlayCursor), (pdwCurrentWriteCursor==NULL?0:*pdwCurrentWriteCursor) );
+		sprintf_s( m_acLogBuffer, "GetCurrentPosition called,HRES=0x%x,PlayCursor=%u,WriteCursor=%u", hRes,(!pdwCurrentPlayCursor?0:*pdwCurrentPlayCursor), (!pdwCurrentWriteCursor?0:*pdwCurrentWriteCursor) );
 		LogMessage( m_cszClassName, this, m_acLogBuffer );
 	}
 #endif // _DEBUG
 
 	if( g_bStoppedDriverWorkaround == true )
 	{
-		if( pdwCurrentWriteCursor != NULL )
+		if( pdwCurrentWriteCursor )
 		{
 			DWORD dwStatus;
 
@@ -293,7 +293,7 @@ HRESULT IDirectSoundBuffer8Ex::GetStatus				(LPDWORD pdwStatus)
 #ifdef _DEBUG
 	if( g_bLogDirectSoundBuffer == true )
 	{
-		sprintf_s( m_acLogBuffer, "GetStatus called,HRES=0x%x,Status=%u", hRes, (pdwStatus==NULL?0:*pdwStatus) );
+		sprintf_s( m_acLogBuffer, "GetStatus called,HRES=0x%x,Status=%u", hRes, (!pdwStatus?0:*pdwStatus) );
 		LogMessage( m_cszClassName, this, m_acLogBuffer );
 	}
 #endif // _DEBUG

@@ -60,7 +60,7 @@ IDirectSoundClassFactoryEx::~IDirectSoundClassFactoryEx(void)
 
 HRESULT IDirectSoundClassFactoryEx::QueryInterface( REFIID refIID, LPVOID * pVoid)
 {
-*pVoid = NULL;
+*pVoid = nullptr;
 
 	if( refIID == IID_IClassFactory )
 	{
@@ -145,7 +145,7 @@ ULONG IDirectSoundClassFactoryEx::Release()
 
 HRESULT IDirectSoundClassFactoryEx::CreateInstance( IUnknown *pUnkOuter, REFIID riid, void **ppvObject)
 {
-	*ppvObject = NULL;
+	*ppvObject = nullptr;
 
 	if(( riid == IID_IDirectSound ) || ( riid == IID_IDirectSound8 ))
 	{

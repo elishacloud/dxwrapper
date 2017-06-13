@@ -32,7 +32,7 @@
 
 IDirectSound3DListener8Ex::IDirectSound3DListener8Ex(void)
 {
-	m_lpDirectSound3DListener8	= NULL;
+	m_lpDirectSound3DListener8 = nullptr;
 
 #ifdef _DEBUG
 	m_cszClassName = IDIRECTSOUND3DLISTENER8EX_CLASS_NAME;
@@ -63,7 +63,7 @@ HRESULT IDirectSound3DListener8Ex::QueryInterface( REFIID refIID, LPVOID * pVoid
 		::LogMessage( m_cszClassName, this, "QueryInterface called....");
 #endif // _DEBUG
 
-	*pVoid = (LPVOID) NULL;
+	*pVoid = (LPVOID) nullptr;
 	HRESULT hRes;
 
 	if(( refIID == IID_IDirectSound3DListener ) || ( refIID == IID_IDirectSound3DListener8 ))

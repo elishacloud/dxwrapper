@@ -19,25 +19,25 @@
 #include "fullscreen.h"
 
 // Declare constants
-const LONG MinWindowWidth = 320;			// Minimum window width for valid window check
-const LONG MinWindowHeight = 240;			// Minimum window height for valid window check
-const LONG WindowDelta = 40;				// Delta between window size and screensize for fullscreen check
-const LONG TerminationCount = 10;			// Minimum number of loops to check for termination
-const LONG TerminationWaitTime = 2000;		// Minimum time to wait for termination (LoopSleepTime * NumberOfLoops)
+static constexpr LONG MinWindowWidth = 320;			// Minimum window width for valid window check
+static constexpr LONG MinWindowHeight = 240;			// Minimum window height for valid window check
+static constexpr LONG WindowDelta = 40;				// Delta between window size and screensize for fullscreen check
+static constexpr LONG TerminationCount = 10;			// Minimum number of loops to check for termination
+static constexpr LONG TerminationWaitTime = 2000;		// Minimum time to wait for termination (LoopSleepTime * NumberOfLoops)
 
 // Declare varables
 bool StopThreadFlag = false;
 bool ThreadRunningFlag = false;
-HANDLE m_hThread = NULL;
+HANDLE m_hThread = nullptr;
 DWORD m_dwThreadID = 0;
 
 // Overload functions
-inline bool operator==(const RECT& a, const RECT& b)
+bool operator==(const RECT& a, const RECT& b)
 {
 	return (a.bottom == b.bottom && a.left == b.left && a.right == b.right && a.top == b.top);
 }
 
-inline bool operator!=(const RECT& a, const RECT& b)
+bool operator!=(const RECT& a, const RECT& b)
 {
 	return (a.bottom != b.bottom || a.left != b.left || a.right != b.right || a.top != b.top);
 }
@@ -45,7 +45,7 @@ inline bool operator!=(const RECT& a, const RECT& b)
 // Declare structures
 struct window_update
 {
-	HWND hwnd = NULL;
+	HWND hwnd = nullptr;
 	RECT rect = { sizeof(rect) };
 	screen_res ScreenSize;
 
@@ -73,7 +73,7 @@ struct window_update
 
 struct window_layer
 {
-	HWND hwnd = NULL;
+	HWND hwnd = nullptr;
 	bool IsMain = false;
 	bool IsFullScreen = false;
 };
@@ -81,7 +81,7 @@ struct window_layer
 struct handle_data
 {
 	DWORD process_id = 0;
-	HWND best_handle = NULL;
+	HWND best_handle = nullptr;
 	uint8_t LayerNumber = 0;
 	window_layer Windows[256];
 	bool AutoDetect = true;
@@ -111,7 +111,7 @@ int filterException(int code, PEXCEPTION_POINTERS ex)
 //*********************************************************************************
 
 // Gets the screen size from a wnd handle
-inline void GetScreenSize(HWND& hwnd, screen_res& Res, MONITORINFO& mi)
+void GetScreenSize(HWND& hwnd, screen_res& Res, MONITORINFO& mi)
 {
 	__try
 	{
@@ -122,7 +122,7 @@ inline void GetScreenSize(HWND& hwnd, screen_res& Res, MONITORINFO& mi)
 	__except (filterException(GetExceptionCode(), GetExceptionInformation()))
 	{
 		// Set hwnd back to NULL
-		hwnd = NULL;
+		hwnd = nullptr;
 	}
 }
 
@@ -138,7 +138,7 @@ LONG GetBestResolution(screen_res& ScreenRes, LONG xWidth, LONG xHeight)
 	ScreenRes.Height = 0;
 
 	// Get closest resolution
-	for (int iModeNum = 0; EnumDisplaySettings(NULL, iModeNum, &dm) != 0; iModeNum++)
+	for (int iModeNum = 0; EnumDisplaySettings(nullptr, iModeNum, &dm) != 0; iModeNum++)
 	{
 		NewDiff = abs((LONG)dm.dmPelsWidth - xWidth) + abs((LONG)dm.dmPelsHeight - xHeight);
 		if (NewDiff < diff)
@@ -155,7 +155,7 @@ LONG GetBestResolution(screen_res& ScreenRes, LONG xWidth, LONG xHeight)
 void SetScreenResolution(LONG xWidth, LONG xHeight)
 {
 	DEVMODE newSettings;
-	if (EnumDisplaySettings(NULL, ENUM_CURRENT_SETTINGS, &newSettings) != 0)
+	if (EnumDisplaySettings(nullptr, ENUM_CURRENT_SETTINGS, &newSettings) != 0)
 	{
 		newSettings.dmPelsWidth = xWidth;
 		newSettings.dmPelsHeight = xHeight;
@@ -205,32 +205,32 @@ void CheckCurrentScreenRes(screen_res& m_ScreenRes)
 void ResetScreen()
 {
 	// Reset resolution
-	ChangeDisplaySettings(NULL, 0);
+	ChangeDisplaySettings(nullptr, 0);
 }
 
 //*********************************************************************************
 // Window functions below
 //*********************************************************************************
 
-inline bool IsWindowTooSmall(screen_res WindowSize)
+bool IsWindowTooSmall(screen_res WindowSize)
 {
 	return WindowSize.Width < MinWindowWidth || WindowSize.Height < MinWindowHeight;
 }
 
-inline bool IsWindowFullScreen(screen_res WindowSize, screen_res ScreenSize)
+bool IsWindowFullScreen(screen_res WindowSize, screen_res ScreenSize)
 {
 	return abs(ScreenSize.Width - WindowSize.Width) <= WindowDelta ||		// Window width matches screen width
 		abs(ScreenSize.Height - WindowSize.Height) <= WindowDelta;			// Window height matches screen height
 }
 
-inline bool IsWindowNotFullScreen(screen_res WindowSize, screen_res ScreenSize)
+bool IsWindowNotFullScreen(screen_res WindowSize, screen_res ScreenSize)
 {
 	return (ScreenSize.Width - WindowSize.Width) > WindowDelta ||			// Window width does not match screen width
 		(ScreenSize.Height - WindowSize.Height) > WindowDelta;				// Window height does not match screen height
 }
 
 // Checks if the handle is the main window handle
-inline bool IsMainWindow(HWND hwnd)
+bool IsMainWindow(HWND hwnd)
 {
 	bool flag = false;
 	__try
@@ -245,7 +245,7 @@ inline bool IsMainWindow(HWND hwnd)
 }
 
 // Gets the class name to the window from a handle
-inline void GetMyClassName(HWND hwnd, char* class_name, int size)
+void GetMyClassName(HWND hwnd, char* class_name, int size)
 {
 	__try
 	{
@@ -254,12 +254,12 @@ inline void GetMyClassName(HWND hwnd, char* class_name, int size)
 	__except (filterException(GetExceptionCode(), GetExceptionInformation()))
 	{
 		// Set hwnd back to NULL
-		hwnd = NULL;
+		hwnd = nullptr;
 	}
 }
 
 // Gets the window size from a handle
-inline void GetWindowSize(HWND& hwnd, screen_res& Res, RECT& rect)
+void GetWindowSize(HWND& hwnd, screen_res& Res, RECT& rect)
 {
 	__try
 	{
@@ -270,12 +270,12 @@ inline void GetWindowSize(HWND& hwnd, screen_res& Res, RECT& rect)
 	__except (filterException(GetExceptionCode(), GetExceptionInformation()))
 	{
 		// Handle error
-		hwnd = NULL;
+		hwnd = nullptr;
 	}
 }
 
 // Gets the process ID of a window from a window handle
-inline DWORD GetMyWindowThreadProcessId(HWND hwnd)
+DWORD GetMyWindowThreadProcessId(HWND hwnd)
 {
 	DWORD process_id = 0;
 	__try
@@ -386,9 +386,9 @@ BOOL CALLBACK EnumWindowsCallback(HWND hwnd, LPARAM lParam)
 HWND FindMainWindow(DWORD process_id, bool AutoDetect, bool Debug)
 {
 	// Set varables
-	HWND WindowsHandle = NULL;
+	HWND WindowsHandle = nullptr;
 	handle_data data;
-	data.best_handle = NULL;
+	data.best_handle = nullptr;
 	data.process_id = process_id;
 	data.AutoDetect = AutoDetect;
 	data.LayerNumber = 0;
@@ -399,7 +399,7 @@ HWND FindMainWindow(DWORD process_id, bool AutoDetect, bool Debug)
 	WindowsHandle = data.best_handle;
 
 	// If no main fullscreen window found then check for other windows
-	if (WindowsHandle == NULL)
+	if (!WindowsHandle)
 	{
 		for (UINT x = 1; x <= data.LayerNumber; x++)
 		{
@@ -409,7 +409,7 @@ HWND FindMainWindow(DWORD process_id, bool AutoDetect, bool Debug)
 				return data.Windows[x].hwnd;
 			}
 			// If no fullscreen layer then return the first 'main' window
-			if (data.Windows[x].IsMain && WindowsHandle == NULL)
+			if (!WindowsHandle && data.Windows[x].IsMain)
 			{
 				WindowsHandle = data.Windows[x].hwnd;
 			}
@@ -417,7 +417,7 @@ HWND FindMainWindow(DWORD process_id, bool AutoDetect, bool Debug)
 	}
 
 	// Get first window handle if no handle has been found yet
-	if (WindowsHandle == NULL && data.LayerNumber > 0)
+	if (!WindowsHandle && data.LayerNumber > 0)
 	{
 		WindowsHandle = data.Windows[1].hwnd;
 	}
@@ -468,7 +468,7 @@ void SendAltEnter(HWND& hwnd)
 	__except (filterException(GetExceptionCode(), GetExceptionInformation()))
 	{
 		// Set hwnd back to NULL
-		hwnd = NULL;
+		hwnd = nullptr;
 	}
 }
 
@@ -478,7 +478,7 @@ void SetFullScreen(HWND& hwnd, const MONITORINFO& mi)
 	__try
 	{
 		// Attach to window thread
-		DWORD h_ThreadID = GetWindowThreadProcessId(hwnd, NULL);
+		DWORD h_ThreadID = GetWindowThreadProcessId(hwnd, nullptr);
 		AttachThreadInput(m_dwThreadID, h_ThreadID, true);
 
 		// Try restoring the window to normal
@@ -516,7 +516,7 @@ void SetFullScreen(HWND& hwnd, const MONITORINFO& mi)
 	__except (filterException(GetExceptionCode(), GetExceptionInformation()))
 	{
 		// Set hwnd back to NULL
-		hwnd = NULL;
+		hwnd = nullptr;
 	}
 }
 
@@ -525,7 +525,7 @@ void SetFullScreen(HWND& hwnd, const MONITORINFO& mi)
 //*********************************************************************************
 
 // Check if process should be termianted
-inline void CheckForTermination(DWORD m_ProcessId)
+void CheckForTermination(DWORD m_ProcessId)
 {
 	static int countAttempts = 0;
 	static bool FoundWindow = false;
@@ -578,7 +578,7 @@ inline void CheckForTermination(DWORD m_ProcessId)
 //*********************************************************************************
 
 // Start main thread function
-static DWORD WINAPI StartThreadFunc(LPVOID pvParam)
+DWORD WINAPI StartThreadFunc(LPVOID pvParam)
 {
 	UNREFERENCED_PARAMETER(pvParam);
 
@@ -601,6 +601,9 @@ static DWORD WINAPI StartThreadFunc(LPVOID pvParam)
 	// Start main fullscreen function
 	MainFullScreenFunc();
 
+	// Set thread ID back to 0
+	m_dwThreadID = 0;
+
 	// Return value
 	return 0;
 }
@@ -617,7 +620,7 @@ void StartFullscreenThread()
 	dxwrapperhandle = LoadLibrary(buffer);
 
 	// Start thread
-	CreateThread(NULL, 0, StartThreadFunc, NULL, 0, &m_dwThreadID);
+	CreateThread(nullptr, 0, StartThreadFunc, nullptr, 0, &m_dwThreadID);
 }
 
 // Is thread running

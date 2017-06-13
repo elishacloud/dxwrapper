@@ -22,6 +22,7 @@ struct screen_res
 		return (Width != a.Width || Height != a.Height);
 	}
 };
+
 void CheckCurrentScreenRes(screen_res&);
 void SetScreen(screen_res);
 void ResetScreen();

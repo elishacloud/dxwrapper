@@ -16,7 +16,7 @@ void *HookAPI(HMODULE module, const char *dll, void *apiproc, const char *apinam
 #endif
 
 	// Check if API name is blank
-	if (!*apiname)
+	if (!apiname)
 	{
 		Compat::Log() << "HookAPI: NULL api name";
 		return apiproc;
@@ -42,7 +42,7 @@ void *HookAPI(HMODULE module, const char *dll, void *apiproc, const char *apinam
 	if ((DWORD)orig > 1) return orig;
 
 	// Check if dll name is blank
-	if (!*apiname)
+	if (!apiname)
 	{
 		Compat::Log() << "HookAPI: NULL dll name";
 		return apiproc;

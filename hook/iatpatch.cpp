@@ -19,7 +19,7 @@ void *IATPatch(HMODULE module, DWORD ordinal, const char *dll, void *apiproc, co
 	DWORD oldprotect;
 	void *org;
 
-	const DWORD BuffSize = 250;
+	static constexpr DWORD BuffSize = 250;
 	char buffer[BuffSize];
 
 #ifdef _DEBUG
@@ -61,7 +61,7 @@ void *IATPatch(HMODULE module, DWORD ordinal, const char *dll, void *apiproc, co
 #endif
 
 				ptaddr = (PIMAGE_THUNK_DATA)(base + (DWORD)pidesc->FirstThunk);
-				ptname = (pidesc->OriginalFirstThunk) ? (PIMAGE_THUNK_DATA)(base + (DWORD)pidesc->OriginalFirstThunk) : NULL;
+				ptname = (pidesc->OriginalFirstThunk) ? (PIMAGE_THUNK_DATA)(base + (DWORD)pidesc->OriginalFirstThunk) : nullptr;
 
 				while (ptaddr->u1.Function) {
 #ifdef _DEBUG

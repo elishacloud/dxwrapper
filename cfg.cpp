@@ -36,7 +36,7 @@ void LogText(char *MyText)
 }
 
 // Checks if a string value exists in a string array
-inline bool IfStringExistsInList(char* szValue, char* szList[256], uint8_t ListCount, bool CaseSensitive)
+bool IfStringExistsInList(char* szValue, char* szList[256], uint8_t ListCount, bool CaseSensitive)
 {
 	for (UINT x = 1; x <= ListCount; ++x)
 	{
@@ -135,24 +135,24 @@ char* Read(char* szFileName)
 	DWORD dwBytesToRead;
 	DWORD dwBytesRead;
 
-	char* szCfg = NULL;
-	hFile = CreateFile(szFileName, GENERIC_READ, FILE_SHARE_READ, NULL,
-		OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, 0);
+	char* szCfg = nullptr;
+	hFile = CreateFile(szFileName, GENERIC_READ, FILE_SHARE_READ, nullptr,
+		OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr);
 	if (hFile != INVALID_HANDLE_VALUE)
 	{
-		dwBytesToRead = GetFileSize(hFile, NULL);
+		dwBytesToRead = GetFileSize(hFile, nullptr);
 		if ((dwBytesToRead != 0) && (dwBytesToRead != 0xFFFFFFFF))
 		{
 			szCfg = (char*)malloc(dwBytesToRead + 1); // +1 so a NULL terminator can be added
-			if (szCfg != NULL)
+			if (szCfg)
 			{
-				if (ReadFile(hFile, szCfg, dwBytesToRead, &dwBytesRead, NULL))
+				if (ReadFile(hFile, szCfg, dwBytesToRead, &dwBytesRead, nullptr))
 				{
 					if (dwBytesRead != 0) szCfg[dwBytesRead] = '\0'; // make txt file easy to deal with 
 				}
 				else {
 					free(szCfg);
-					szCfg = NULL;
+					szCfg = nullptr;
 				}
 			}
 		}
@@ -188,10 +188,10 @@ void SetConfigList(char* name[], uint8_t& count, char* value)
 void SetAddressPointerList(MEMORYINFO& MemoryInfo, char* value)
 {
 	// Get address pointer
-	if (strtoul(value, NULL, 16) > 0 &&							// Verify pointer has a value higher than 0
+	if (strtoul(value, nullptr, 16) > 0 &&							// Verify pointer has a value higher than 0
 		value[0] == '0' && (char)tolower(value[1]) == 'x')		// Check for leading "0x" to indicate hex number
 	{
-		MemoryInfo.AddressPointer = strtoul(value, NULL, 16);
+		MemoryInfo.AddressPointer = strtoul(value, nullptr, 16);
 	}
 	// Set to 0 if invalid address pointer
 	else
@@ -222,7 +222,7 @@ void SetBytesList(MEMORYINFO& MemoryInfo, char* value)
 		{
 			charTemp[2] = value[x * 2];
 			charTemp[3] = value[(x * 2) + 1];
-			MemoryInfo.Bytes[x - 1] = (byte)strtoul(charTemp, NULL, 16);
+			MemoryInfo.Bytes[x - 1] = (byte)strtoul(charTemp, nullptr, 16);
 		}
 	}
 	// Set to 0 if invalid Bytes are set
@@ -391,13 +391,13 @@ void strippath(char* str)
 	int ch = '\\';
 	size_t len;
 	char* pdest;
-	char* inpfile = NULL;
+	char* inpfile = nullptr;
 
 	// Search backwards for last backslash in filepath 
 	pdest = strrchr(str, ch);
 
 	// if backslash not found in filepath
-	if (pdest == NULL)
+	if (!pdest)
 	{
 		return;
 	}
@@ -556,7 +556,7 @@ void CONFIG::Init()
 	szCfg = Read(path);
 
 	// Read from dgame.ini config file if config does not already exist
-	if (szCfg == NULL) {
+	if (!szCfg) {
 		strcpy_s(pdest, MAX_PATH, "dgame.ini");
 		Compat::Log() << "Reading config file: dgame.ini";
 		szCfg = Read(path);
@@ -577,7 +577,7 @@ void CONFIG::Init()
 
 	// Get porcess name
 	char szFileName[MAX_PATH];
-	GetModuleFileName(NULL, szFileName, MAX_PATH);
+	GetModuleFileName(nullptr, szFileName, MAX_PATH);
 	strippath(szFileName);
 
 	// Check if process should be excluded or not included

@@ -87,20 +87,20 @@ extern CONFIG Config;
 
 struct DLLTYPE
 {
-	const uint8_t ddraw = 1;
-	const uint8_t d3d9 = 2;
-	const uint8_t d3d8 = 3;
-	const uint8_t winmm = 4;
-	const uint8_t dsound = 5;
-	const uint8_t dxgi = 6;
-	const uint8_t dplayx = 7;
-	const uint8_t winspool = 8;
-	const uint8_t dinput = 9;
+	static constexpr int ddraw = 1;
+	static constexpr int d3d9 = 2;
+	static constexpr int d3d8 = 3;
+	static constexpr int winmm = 4;
+	static constexpr int dsound = 5;
+	static constexpr int dxgi = 6;
+	static constexpr int dplayx = 7;
+	static constexpr int winspool = 8;
+	static constexpr int dinput = 9;
 };
 extern DLLTYPE dtype;
 
 // Designated Initializer does not work in VS 2015 so must pay attention to the order
-static const char* dtypename[] = {
+static constexpr char* dtypename[] = {
 	nullptr,		// 0
 	"ddraw.dll",	// 1
 	"d3d9.dll",		// 2
@@ -112,21 +112,21 @@ static const char* dtypename[] = {
 	"winspool.drv",	// 8
 	"dinput.dll",	// 9
 };
-static const uint8_t dtypeArraySize = (sizeof(dtypename) / sizeof(*dtypename));
+static constexpr int dtypeArraySize = (sizeof(dtypename) / sizeof(*dtypename));
 
 struct APPCOMPATDATATYPE
 {
-	const uint8_t LockEmulation = 1;
-	const uint8_t BltEmulation = 2;
-	const uint8_t ForceLockNoWindow = 3;
-	const uint8_t ForceBltNoWindow = 4;
-	const uint8_t LockColorkey = 5;
-	const uint8_t FullscreenWithDWM = 6;
-	const uint8_t DisableLockEmulation = 7;
-	const uint8_t EnableOverlays = 8;
-	const uint8_t DisableSurfaceLocks = 9;
-	const uint8_t RedirectPrimarySurfBlts = 10;
-	const uint8_t StripBorderStyle = 11;
-	const uint8_t DisableMaxWindowedMode = 12;
+	static constexpr int LockEmulation = 1;
+	static constexpr int BltEmulation = 2;
+	static constexpr int ForceLockNoWindow = 3;
+	static constexpr int ForceBltNoWindow = 4;
+	static constexpr int LockColorkey = 5;
+	static constexpr int FullscreenWithDWM = 6;
+	static constexpr int DisableLockEmulation = 7;
+	static constexpr int EnableOverlays = 8;
+	static constexpr int DisableSurfaceLocks = 9;
+	static constexpr int RedirectPrimarySurfBlts = 10;
+	static constexpr int StripBorderStyle = 11;
+	static constexpr int DisableMaxWindowedMode = 12;
 };
 extern APPCOMPATDATATYPE AppCompatDataType;

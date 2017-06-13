@@ -34,7 +34,7 @@
 
 IDirectSound8Ex::IDirectSound8Ex(void)
 {
-	m_lpDirectSound8 = NULL;
+	m_lpDirectSound8 = nullptr;
 
 #ifdef _DEBUG
 	m_cszClassName = IDIRECTSOUND8EX_CLASS_NAME;
@@ -59,7 +59,7 @@ IDirectSound8Ex::~IDirectSound8Ex(void)
 
 HRESULT IDirectSound8Ex::QueryInterface( REFIID refIID, LPVOID * pVoid )
 {
-	*pVoid = NULL;
+	*pVoid = nullptr;
 
 	if(( refIID == IID_IDirectSound ) || ( refIID == IID_IDirectSound8 ))
 	{
@@ -199,7 +199,7 @@ HRESULT IDirectSound8Ex::CreateSoundBuffer    (LPCDSBUFFERDESC pcDSBufferDesc, L
 				sLogString += "DS3DALG_HRTF_LIGHT";
 		}
 
-		if( pcDSBufferDesc->lpwfxFormat != NULL )
+		if( pcDSBufferDesc->lpwfxFormat )
 		{
 			sTempString.Format(",Format=%ub %uhz %uch", pcDSBufferDesc->lpwfxFormat->wBitsPerSample, pcDSBufferDesc->lpwfxFormat->nSamplesPerSec, pcDSBufferDesc->lpwfxFormat->nChannels );
 			sLogString += sTempString;
@@ -391,7 +391,7 @@ HRESULT IDirectSound8Ex::DuplicateSoundBuffer (LPDIRECTSOUNDBUFFER pDSBufferOrig
 	}
 #endif // _DEBUG
 
-	*ppDSBufferDuplicate = NULL;
+	*ppDSBufferDuplicate = nullptr;
 
 	IDirectSoundBuffer8Ex* pDSBX = new IDirectSoundBuffer8Ex;
 
