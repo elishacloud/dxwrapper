@@ -26,8 +26,8 @@ static constexpr LONG TerminationCount = 10;		// Minimum number of loops to chec
 static constexpr LONG TerminationWaitTime = 2000;	// Minimum time to wait for termination (LoopSleepTime * NumberOfLoops)
 
 // Declare varables
-bool StopThreadFlag = false;
-bool ThreadRunningFlag = false;
+bool m_StopThreadFlag = false;
+bool m_ThreadRunningFlag = false;
 HANDLE m_hThread = nullptr;
 DWORD m_dwThreadID = 0;
 
@@ -608,13 +608,16 @@ DWORD WINAPI StartThreadFunc(LPVOID pvParam)
 	}
 
 	// Set thread flag to running
-	ThreadRunningFlag = true;
+	m_ThreadRunningFlag = true;
 
 	// Set threat priority high, trick to reduce concurrency problems
 	SetThreadPriority(m_hThread, THREAD_PRIORITY_HIGHEST);
 
 	// Start main fullscreen function
 	MainFullScreenFunc();
+
+	// Reset thread flag before exiting
+	m_ThreadRunningFlag = false;
 
 	// Set thread ID back to 0
 	m_dwThreadID = 0;
@@ -638,10 +641,25 @@ void StartFullscreenThread()
 	CreateThread(nullptr, 0, StartThreadFunc, nullptr, 0, &m_dwThreadID);
 }
 
+// Get the ID of a thread
+DWORD GetMyThreadId(HANDLE Thread)
+{
+	DWORD ThreadID = 0;
+	__try
+	{
+		ThreadID = GetThreadId(Thread);
+	}
+	__except (filterException(GetExceptionCode(), GetExceptionInformation()))
+	{
+		// Do nothing
+	}
+	return ThreadID;
+}
+
 // Is thread running
 bool IsFullscreenThreadRunning()
 {
-	return ThreadRunningFlag && GetThreadId(m_hThread) == m_dwThreadID && m_dwThreadID != 0;
+	return m_ThreadRunningFlag && GetMyThreadId(m_hThread) == m_dwThreadID && m_dwThreadID != 0;
 }
 
 // Stop thread
@@ -654,7 +672,7 @@ void StopFullscreenThread()
 			Compat::Log() << "Stopping thread...";
 
 			// Set flag to stop thread
-			StopThreadFlag = true;
+			m_StopThreadFlag = true;
 
 			// Wait for thread to exit
 			WaitForSingleObject(m_hThread, INFINITE);
@@ -693,7 +711,7 @@ void MainFullScreenFunc()
 	Sleep(100);
 
 	// Start main fullscreen loop
-	while (!StopThreadFlag)
+	while (!m_StopThreadFlag)
 	{
 		// Starting loop
 #ifdef _DEBUG

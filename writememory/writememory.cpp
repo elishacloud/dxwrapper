@@ -15,6 +15,7 @@
 */
 
 #include "cfg.h"
+#include "fullscreen.h"
 
 // Declare varables
 bool p_StopThreadFlag = false;
@@ -120,6 +121,9 @@ DWORD WINAPI WriteMemoryThreadFunc(LPVOID pvParam)
 	// Undo the memory write
 	WriteAllByteMemory();
 
+	// Reset thread flag before exiting
+	p_ThreadRunningFlag = false;
+
 	// Set thread ID back to 0
 	p_dwThreadID = 0;
 
@@ -153,7 +157,7 @@ void WriteMemory()
 // Is thread running
 bool IsWriteMemoryThreadRunning()
 {
-	return p_ThreadRunningFlag && GetThreadId(p_hThread) == p_dwThreadID && p_dwThreadID != 0;
+	return p_ThreadRunningFlag && GetMyThreadId(p_hThread) == p_dwThreadID && p_dwThreadID != 0;
 }
 
 // Stop WriteMemory thread
