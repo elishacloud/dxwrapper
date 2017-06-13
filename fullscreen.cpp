@@ -20,10 +20,10 @@
 
 // Declare constants
 static constexpr LONG MinWindowWidth = 320;			// Minimum window width for valid window check
-static constexpr LONG MinWindowHeight = 240;			// Minimum window height for valid window check
+static constexpr LONG MinWindowHeight = 240;		// Minimum window height for valid window check
 static constexpr LONG WindowDelta = 40;				// Delta between window size and screensize for fullscreen check
-static constexpr LONG TerminationCount = 10;			// Minimum number of loops to check for termination
-static constexpr LONG TerminationWaitTime = 2000;		// Minimum time to wait for termination (LoopSleepTime * NumberOfLoops)
+static constexpr LONG TerminationCount = 10;		// Minimum number of loops to check for termination
+static constexpr LONG TerminationWaitTime = 2000;	// Minimum time to wait for termination (LoopSleepTime * NumberOfLoops)
 
 // Declare varables
 bool StopThreadFlag = false;
@@ -244,6 +244,21 @@ bool IsMainWindow(HWND hwnd)
 	return flag;
 }
 
+// Checks if the window has any menu items
+bool IsWindowMenu(HWND hwnd)
+{
+	bool flag = false;
+	__try
+	{
+		if (GetMenu(hwnd)) flag = true;
+	}
+	__except (filterException(GetExceptionCode(), GetExceptionInformation()))
+	{
+		// Do nothing
+	}
+	return flag;
+}
+
 // Gets the class name to the window from a handle
 void GetMyClassName(HWND hwnd, char* class_name, int size)
 {
@@ -440,7 +455,7 @@ BOOL CALLBACK EnumMenuWindowsCallback(HWND hwnd, LPARAM lParam)
 	}
 
 	// Check if there is menu handle
-	if (GetMenu(hwnd))
+	if (IsWindowMenu(hwnd))
 	{
 		data.Menu = true;
 		return false;
