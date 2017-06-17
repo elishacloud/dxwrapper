@@ -198,6 +198,12 @@ copy /Y "$(ProjectDir)allsettings.ini" "$(TargetDir)Build\allsettings.ini"
 copy /Y "$(ProjectDir)dgame.ini" "$(TargetDir)Build\dgame.ini"
 </Command>
     </PostBuildEvent>
+    <PreBuildEvent>
+      <Command>cmd /c "cd /D ""$(ProjectDir)"" &amp;&amp; if not exist BuildNo.rc echo #define BUILD_NUMBER 0 &gt;BuildNo.rc"
+cmd /c "cd /D ""$(ProjectDir)"" &amp;&amp; FOR /F "tokens=3" %%i IN (BuildNo.rc) DO set /a var=%%i+1 &gt;Build.txt"
+cmd /c "cd /D ""$(ProjectDir)"" &amp;&amp; FOR /F %%i IN (Build.txt) DO echo #define BUILD_NUMBER %%i &gt;BuildNo.rc"
+cmd /c "cd /D ""$(ProjectDir)"" &amp;&amp; del Build.txt"</Command>
+    </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="cfg.cpp" />
@@ -311,6 +317,7 @@ copy /Y "$(ProjectDir)dgame.ini" "$(TargetDir)Build\dgame.ini"
     <ClInclude Include="writememory\writememory.h" />
   </ItemGroup>
   <ItemGroup>
+    <ResourceCompile Include="BuildNo.rc" />
     <ResourceCompile Include="dxwrapper.rc">
       <AdditionalIncludeDirectories Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
       </AdditionalIncludeDirectories>

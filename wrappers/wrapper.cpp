@@ -150,7 +150,7 @@ void DllDetach()
 	FreeCustomLibrary();
 
 	// Unload wrapper libraries
-	for (int x = 1; x <= dtypeArraySize; ++x)
+	for (int x = 1; x < dtypeArraySize; ++x)
 	{
 		// If dll was loaded
 		if (dllhandle[x].dll)

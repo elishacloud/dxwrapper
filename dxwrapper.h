@@ -4,12 +4,14 @@
 
 #include "cfg.h"
 #include "dxwnd.h"
+#include "BuildNo.rc"
 
 // Main resource file details
 #define APP_NAME				"DirectX Dynamic Link Library"
 #define APP_MAJOR				1
 #define APP_MINOR				0
-#define APP_BUILDNUMBER			18
+#define APP_BUILDNUMBER			BUILD_NUMBER
+#define APP_REVISION			18
 #define APP_COMPANYNAME			"Sadrate Presents"
 #define APP_DESCRPTION			"Wraps or hooks DirectX files to fix compatibility issues in older games. Also allows code to be executed from inside the application. Wraps the following files: d3d8.dll, d3d9.dll, ddraw.dll, dplayx.dll, dsound.dll, dxgi.dll or winmm.dll"
 #define APP_COPYRIGHT			"Copyright (C) 2017 Elisha Riedlinger"
@@ -19,7 +21,7 @@
 // Get APP_VERSION
 #define _TO_STRING_(x) #x
 #define _TO_STRING(x) _TO_STRING_(x)
-#define APP_VERSION "0." _TO_STRING(APP_MAJOR) "." _TO_STRING(APP_MINOR) "." _TO_STRING(APP_BUILDNUMBER) " " _TO_STRING(APP_DDRAWNAME) " " _TO_STRING(APP_DDRAWVERSION) " " _TO_STRING(APP_DXWNDNAME) " " _TO_STRING(APP_DXWNDVERSION)
+#define APP_VERSION _TO_STRING(APP_MAJOR) "." _TO_STRING(APP_MINOR) "." _TO_STRING(APP_BUILDNUMBER) "." _TO_STRING(APP_REVISION) " " _TO_STRING(APP_DDRAWNAME) " " _TO_STRING(APP_DDRAWVERSION) " " _TO_STRING(APP_DXWNDNAME) " " _TO_STRING(APP_DXWNDVERSION)
 
 //Verify defintions exist in DDrawLog.h
 #ifndef APP_DDRAWNAME
