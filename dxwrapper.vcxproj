@@ -94,7 +94,7 @@
       <SuppressStartupBanner>true</SuppressStartupBanner>
       <IgnoreAllDefaultLibraries>
       </IgnoreAllDefaultLibraries>
-      <ModuleDefinitionFile>.\dxwrapper.def</ModuleDefinitionFile>
+      <ModuleDefinitionFile>.\Dllmain\dxwrapper.def</ModuleDefinitionFile>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <RandomizedBaseAddress>false</RandomizedBaseAddress>
       <DataExecutionPrevention />
@@ -106,19 +106,20 @@
       <SuppressStartupBanner>true</SuppressStartupBanner>
     </Bscmake>
     <PostBuildEvent>
-      <Command>IF NOT EXIST "$(TargetDir)Build" mkdir "$(TargetDir)Build"
-copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\ddraw.dll"
-copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\d3d9.dll"
-copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\d3d8.dll"
-copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\winmm.dll"
-copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\dsound.dll"
-copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\dinput.dll"
-copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\dxgi.dll"
-copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\dplayx.dll"
-copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\winspool.drv"
-copy /Y "$(ProjectDir)allsettings.ini" "$(TargetDir)Build\allsettings.ini"
-copy /Y "$(ProjectDir)dgame.ini" "$(TargetDir)Build\dgame.ini"
-</Command>
+      <Command>IF NOT EXIST "$(TargetDir)Build" mkdir "$(TargetDir)Build" &gt;nul
+copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\ddraw.dll" &gt;nul
+copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\d3d9.dll" &gt;nul
+copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\d3d8.dll" &gt;nul
+copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\winmm.dll" &gt;nul
+copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\dsound.dll" &gt;nul
+copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\dinput.dll" &gt;nul
+copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\dxgi.dll" &gt;nul
+copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\dplayx.dll" &gt;nul
+copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\bcrypt.dll" &gt;nul
+copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\cryptsp.dll" &gt;nul
+copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\winspool.drv" &gt;nul
+copy /Y "$(ProjectDir)Settings\AllSettings.ini" "$(TargetDir)Build\" &gt;nul
+copy /Y "$(ProjectDir)Settings\Settings.ini" "$(TargetDir)Build\" &gt;nul</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -184,20 +185,20 @@ copy /Y "$(ProjectDir)dgame.ini" "$(TargetDir)Build\dgame.ini"
       <OutputFile />
     </Bscmake>
     <PostBuildEvent>
-      <Command>IF NOT EXIST "$(TargetDir)Build" mkdir "$(TargetDir)Build"
-copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\ddraw.dll"
-copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\d3d9.dll"
-copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\d3d8.dll"
-copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\winmm.dll"
-copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\dsound.dll"
-copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\dinput.dll"
-copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\dxgi.dll"
-copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\dplayx.dll"
-copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\bcrypt.dll"
-copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\cryptsp.dll"
-copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\winspool.drv"
-copy /Y "$(ProjectDir)Settings\AllSettings.ini" "$(TargetDir)Build\"
-copy /Y "$(ProjectDir)Settings\Settings.ini" "$(TargetDir)Build\"
+      <Command>IF NOT EXIST "$(TargetDir)Build" mkdir "$(TargetDir)Build" &gt;nul
+copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\ddraw.dll" &gt;nul
+copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\d3d9.dll" &gt;nul
+copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\d3d8.dll" &gt;nul
+copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\winmm.dll" &gt;nul
+copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\dsound.dll" &gt;nul
+copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\dinput.dll" &gt;nul
+copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\dxgi.dll" &gt;nul
+copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\dplayx.dll" &gt;nul
+copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\bcrypt.dll" &gt;nul
+copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\cryptsp.dll" &gt;nul
+copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\winspool.drv" &gt;nul
+copy /Y "$(ProjectDir)Settings\AllSettings.ini" "$(TargetDir)Build\" &gt;nul
+copy /Y "$(ProjectDir)Settings\Settings.ini" "$(TargetDir)Build\" &gt;nul
 </Command>
     </PostBuildEvent>
     <PreBuildEvent>

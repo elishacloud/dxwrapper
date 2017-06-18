@@ -160,6 +160,18 @@
     <ClCompile Include="WriteMemory\WriteMemory.cpp">
       <Filter>WriteMemory</Filter>
     </ClCompile>
+    <ClCompile Include="Settings\Settings.cpp">
+      <Filter>Settings</Filter>
+    </ClCompile>
+    <ClCompile Include="Wrappers\bcrypt.cpp">
+      <Filter>Wrappers</Filter>
+    </ClCompile>
+    <ClCompile Include="Wrappers\winspool.cpp">
+      <Filter>Wrappers</Filter>
+    </ClCompile>
+    <ClCompile Include="Wrappers\cryptsp.cpp">
+      <Filter>Wrappers</Filter>
+    </ClCompile>
     <ClCompile Include="DDrawCompat\v0.2.1\CompatActivateAppHandler.cpp">
       <Filter>DDrawCompat</Filter>
     </ClCompile>
@@ -237,18 +249,6 @@
     </ClCompile>
     <ClCompile Include="DDrawCompat\v0.2.1\UnmodifiedDDrawProcs.cpp">
       <Filter>DDrawCompat</Filter>
-    </ClCompile>
-    <ClCompile Include="Settings\Settings.cpp">
-      <Filter>Settings</Filter>
-    </ClCompile>
-    <ClCompile Include="Wrappers\bcrypt.cpp">
-      <Filter>Wrappers</Filter>
-    </ClCompile>
-    <ClCompile Include="Wrappers\winspool.cpp">
-      <Filter>Wrappers</Filter>
-    </ClCompile>
-    <ClCompile Include="Wrappers\cryptsp.cpp">
-      <Filter>Wrappers</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -371,6 +371,18 @@
     <ClInclude Include="DxWnd\v2_03_60_src\DxWndExternal.h">
       <Filter>DxWnd</Filter>
     </ClInclude>
+    <ClInclude Include="Settings\Settings.h">
+      <Filter>Settings</Filter>
+    </ClInclude>
+    <ClInclude Include="Wrappers\bcrypt.h">
+      <Filter>Wrappers</Filter>
+    </ClInclude>
+    <ClInclude Include="Wrappers\winspool.h">
+      <Filter>Wrappers</Filter>
+    </ClInclude>
+    <ClInclude Include="Wrappers\cryptsp.h">
+      <Filter>Wrappers</Filter>
+    </ClInclude>
     <ClInclude Include="DDrawCompat\v0.2.1\CompatActivateAppHandler.h">
       <Filter>DDrawCompat</Filter>
     </ClInclude>
@@ -472,18 +484,6 @@
     </ClInclude>
     <ClInclude Include="DDrawCompat\v0.2.1\Time1.h">
       <Filter>DDrawCompat</Filter>
-    </ClInclude>
-    <ClInclude Include="Settings\Settings.h">
-      <Filter>Settings</Filter>
-    </ClInclude>
-    <ClInclude Include="Wrappers\bcrypt.h">
-      <Filter>Wrappers</Filter>
-    </ClInclude>
-    <ClInclude Include="Wrappers\winspool.h">
-      <Filter>Wrappers</Filter>
-    </ClInclude>
-    <ClInclude Include="Wrappers\cryptsp.h">
-      <Filter>Wrappers</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

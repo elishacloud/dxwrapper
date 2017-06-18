@@ -15,8 +15,8 @@
 #include "CompatVtable.h"
 #include "DDrawProcs.h"
 //********** Begin Edit *************
-#include "Config\Config.h"
-#include "wrappers\wrapper.h"
+#include "Settings\Settings.h"
+#include "Wrappers\wrapper.h"
 //********** End Edit ***************
 
 struct IDirectInput;

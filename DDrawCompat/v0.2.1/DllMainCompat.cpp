@@ -25,7 +25,7 @@
 #include "Time1.h"
 //********** Begin Edit *************
 #include "Settings\Settings.h"
-#include "wrappers\wrapper.h"
+#include "Wrappers\wrapper.h"
 //********** End Edit ***************
 
 struct IDirectInput;
