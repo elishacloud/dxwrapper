@@ -143,7 +143,7 @@ __declspec(naked) void FakeBCryptVerifySignature() { _asm { jmp[bcrypt.BCryptVer
 void LoadBcrypt()
 {
 	// Load real dll
-	bcrypt.dll = LoadDll(dtype.d3d9);
+	bcrypt.dll = LoadDll(dtype.bcrypt);
 	// Load dll functions
 	if (bcrypt.dll)
 	{

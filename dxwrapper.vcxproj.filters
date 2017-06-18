@@ -244,6 +244,12 @@
     <ClCompile Include="Wrappers\bcrypt.cpp">
       <Filter>Wrappers</Filter>
     </ClCompile>
+    <ClCompile Include="Wrappers\winspool.cpp">
+      <Filter>Wrappers</Filter>
+    </ClCompile>
+    <ClCompile Include="Wrappers\cryptsp.cpp">
+      <Filter>Wrappers</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="Dllmain\dxwrapper.def">
@@ -471,6 +477,12 @@
       <Filter>Settings</Filter>
     </ClInclude>
     <ClInclude Include="Wrappers\bcrypt.h">
+      <Filter>Wrappers</Filter>
+    </ClInclude>
+    <ClInclude Include="Wrappers\winspool.h">
+      <Filter>Wrappers</Filter>
+    </ClInclude>
+    <ClInclude Include="Wrappers\cryptsp.h">
       <Filter>Wrappers</Filter>
     </ClInclude>
   </ItemGroup>

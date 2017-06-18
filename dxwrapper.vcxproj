@@ -194,6 +194,8 @@ copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\dinput.dll"
 copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\dxgi.dll"
 copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\dplayx.dll"
 copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\bcrypt.dll"
+copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\cryptsp.dll"
+copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\winspool.drv"
 copy /Y "$(ProjectDir)Settings\AllSettings.ini" "$(TargetDir)Build\"
 copy /Y "$(ProjectDir)Settings\Settings.ini" "$(TargetDir)Build\"
 </Command>
@@ -263,6 +265,7 @@ cmd /c "@echo off &amp;&amp; cd /D ""$(ProjectDir)Dllmain\"" &amp;&amp; type Bui
     <ClCompile Include="libraries\winmm.cpp" />
     <ClCompile Include="Settings\Settings.cpp" />
     <ClCompile Include="Utils\Utils.cpp" />
+    <ClCompile Include="Wrappers\cryptsp.cpp" />
     <ClCompile Include="wrappers\d3d8.cpp" />
     <ClCompile Include="wrappers\d3d9.cpp" />
     <ClCompile Include="wrappers\ddraw.cpp" />
@@ -272,6 +275,7 @@ cmd /c "@echo off &amp;&amp; cd /D ""$(ProjectDir)Dllmain\"" &amp;&amp; type Bui
     <ClCompile Include="wrappers\dxgi.cpp" />
     <ClCompile Include="Wrappers\bcrypt.cpp" />
     <ClCompile Include="wrappers\winmm.cpp" />
+    <ClCompile Include="Wrappers\winspool.cpp" />
     <ClCompile Include="wrappers\wrapper.cpp" />
     <ClCompile Include="WriteMemory\WriteMemory.cpp" />
   </ItemGroup>
@@ -342,6 +346,7 @@ cmd /c "@echo off &amp;&amp; cd /D ""$(ProjectDir)Dllmain\"" &amp;&amp; type Bui
     <ClInclude Include="libraries\winmm.h" />
     <ClInclude Include="Settings\Settings.h" />
     <ClInclude Include="Utils\Utils.h" />
+    <ClInclude Include="Wrappers\cryptsp.h" />
     <ClInclude Include="wrappers\d3d8.h" />
     <ClInclude Include="wrappers\d3d9.h" />
     <ClInclude Include="wrappers\ddraw.h" />
@@ -351,6 +356,7 @@ cmd /c "@echo off &amp;&amp; cd /D ""$(ProjectDir)Dllmain\"" &amp;&amp; type Bui
     <ClInclude Include="wrappers\dxgi.h" />
     <ClInclude Include="Wrappers\bcrypt.h" />
     <ClInclude Include="wrappers\winmm.h" />
+    <ClInclude Include="Wrappers\winspool.h" />
     <ClInclude Include="wrappers\wrapper.h" />
     <ClInclude Include="WriteMemory\WriteMemory.h" />
   </ItemGroup>

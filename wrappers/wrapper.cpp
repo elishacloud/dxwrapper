@@ -24,6 +24,8 @@
 #include "dxgi.h"
 #include "winmm.h"
 #include "bcrypt.h"
+#include "cryptsp.h"
+#include "winspool.h"
 #include "uxtheme.h"
 #include "dwmapi.h"
 
@@ -131,6 +133,8 @@ void FreeCustomLibrary()
 // Load wrapper dll files
 void DllAttach()
 {
+	if (Config.WrapperMode == dtype.winspool || Config.WrapperMode == 0 || Config.WrapperMode == 255) LoadWinspool();
+	if (Config.WrapperMode == dtype.cryptsp || Config.WrapperMode == 0 || Config.WrapperMode == 255) LoadCryptsp();
 	if (Config.WrapperMode == dtype.bcrypt || Config.WrapperMode == 0 || Config.WrapperMode == 255) LoadBcrypt();
 	if (Config.WrapperMode == dtype.dplayx || Config.WrapperMode == 0 || Config.WrapperMode == 255) LoadDplayx();
 	if (Config.WrapperMode == dtype.d3d8 || Config.WrapperMode == 0 || Config.WrapperMode == 255 || Config.D3d8to9) LoadD3d8();
