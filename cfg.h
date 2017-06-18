@@ -9,8 +9,8 @@
 
 void LogText(char*);
 
-bool IfStringExistsInList(char*, char*[256], uint8_t, bool = true);
-void SetConfigList(char*[], uint8_t&, char*);
+bool IfStringExistsInList(char*, char*[256], byte, bool = true);
+void SetConfigList(char*[], byte&, char*);
 
 struct MEMORYINFO						// Used for hot patching memory
 {
@@ -48,11 +48,11 @@ struct CONFIG
 	DWORD WrapperMode;					// 0			= Auto
 										// 1 ... 245	= DLLTYPE
 										// 255			= All
-	uint8_t AddressPointerCount;		// Count of addresses to hot patch
-	uint8_t BytesToWriteCount;			// Count of bytes to hot patch
-	uint8_t CustomDllCount;				// Count of custom dlls to load
-	uint8_t NamedLayerCount;			// Count of names layers to select for fullscreen
-	uint8_t IgnoreWindowCount;			// Count of window classes to ignore
+	byte AddressPointerCount;		// Count of addresses to hot patch
+	byte BytesToWriteCount;			// Count of bytes to hot patch
+	byte CustomDllCount;				// Count of custom dlls to load
+	byte NamedLayerCount;			// Count of names layers to select for fullscreen
+	byte IgnoreWindowCount;			// Count of window classes to ignore
 	MEMORYINFO VerifyMemoryInfo;		// Memory used for verification before hot patching
 	MEMORYINFO MemoryInfo[256];			// Addresses and memory used in hot patching
 	char szDllPath[MAX_PATH];			// Manually set Dll to wrap

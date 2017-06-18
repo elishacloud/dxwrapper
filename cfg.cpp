@@ -23,8 +23,8 @@
 CONFIG Config;
 CRITICAL_SECTION CriticalSectionCfg;
 
-uint8_t ExcludeCount;
-uint8_t IncludeCount;
+byte ExcludeCount;
+byte IncludeCount;
 char* szExclude[256];
 char* szInclude[256];
 
@@ -34,7 +34,7 @@ void LogText(char *MyText)
 }
 
 // Checks if a string value exists in a string array
-bool IfStringExistsInList(char* szValue, char* szList[256], uint8_t ListCount, bool CaseSensitive)
+bool IfStringExistsInList(char* szValue, char* szList[256], byte ListCount, bool CaseSensitive)
 {
 	for (UINT x = 1; x <= ListCount; ++x)
 	{
@@ -55,7 +55,7 @@ bool IfStringExistsInList(char* szValue, char* szList[256], uint8_t ListCount, b
 }
 
 // Deletes all string values from an array
-void DeleteArrayMemory(char* szList[256], uint8_t ListCount)
+void DeleteArrayMemory(char* szList[256], byte ListCount)
 {
 	for (UINT x = 1; x <= ListCount; ++x)
 	{
@@ -172,7 +172,7 @@ void SetConfig(char* name, char* value)
 }
 
 // Set config from string (file)
-void SetConfigList(char* name[], uint8_t& count, char* value)
+void SetConfigList(char* name[], byte& count, char* value)
 {
 	if (strlen(value) <= MAX_PATH)
 	{
@@ -186,7 +186,7 @@ void SetConfigList(char* name[], uint8_t& count, char* value)
 void SetAddressPointerList(MEMORYINFO& MemoryInfo, char* value)
 {
 	// Get address pointer
-	if (strtoul(value, nullptr, 16) > 0 &&							// Verify pointer has a value higher than 0
+	if (strtoul(value, nullptr, 16) > 0 &&						// Verify pointer has a value higher than 0
 		value[0] == '0' && (char)tolower(value[1]) == 'x')		// Check for leading "0x" to indicate hex number
 	{
 		MemoryInfo.AddressPointer = strtoul(value, nullptr, 16);
@@ -390,9 +390,9 @@ void strippath(char* str)
 
 	// extract filename from file path
 	len = strlen(pdest) + 1;
-	inpfile = (char*)malloc(len);  // Make space for the zero.
-	strcpy_s(inpfile, MAX_PATH, pdest);  // Copy. 
-	strcpy_s(str, MAX_PATH, inpfile);  // Copy back. 
+	inpfile = (char*)malloc(len);			// Make space for the zero.
+	strcpy_s(inpfile, MAX_PATH, pdest);		// Copy. 
+	strcpy_s(str, MAX_PATH, inpfile);		// Copy back. 
 	return;
 }
 
