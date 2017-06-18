@@ -417,6 +417,7 @@ __declspec(naked) void FakeWaitForPrinterChange() { _asm { jmp[winspool.WaitForP
 __declspec(naked) void FakeWritePrinter() { _asm { jmp[winspool.WritePrinter] } }
 __declspec(naked) void FakeXcvDataW() { _asm { jmp[winspool.XcvDataW] } }
 
+
 void LoadWinspool()
 {
 	// Load real dll

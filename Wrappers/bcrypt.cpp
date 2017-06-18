@@ -139,7 +139,6 @@ __declspec(naked) void FakeBCryptUnregisterConfigChangeNotify() { _asm { jmp[bcr
 __declspec(naked) void FakeBCryptUnregisterProvider() { _asm { jmp[bcrypt.BCryptUnregisterProvider] } }
 __declspec(naked) void FakeBCryptVerifySignature() { _asm { jmp[bcrypt.BCryptVerifySignature] } }
 
-
 void LoadBcrypt()
 {
 	// Load real dll

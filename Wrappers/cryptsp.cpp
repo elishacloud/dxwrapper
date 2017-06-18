@@ -153,7 +153,6 @@ __declspec(naked) void FakeSystemFunction032() { _asm { jmp[cryptsp.SystemFuncti
 __declspec(naked) void FakeSystemFunction033() { _asm { jmp[cryptsp.SystemFunction033] } }
 __declspec(naked) void FakeSystemFunction035() { _asm { jmp[cryptsp.SystemFunction035] } }
 
-
 void LoadCryptsp()
 {
 	// Load real dll
