@@ -14,9 +14,10 @@
 *   3. This notice may not be removed or altered from any source distribution.
 */
 
-#include "cfg.h"
-#include "dllmain.h"
-#include "fullscreen.h"
+#include "Settings\Settings.h"
+#include "Dllmain\Dllmain.h"
+#include "Utils\Utils.h"
+#include "Fullscreen.h"
 
 // Declare constants
 static constexpr LONG MinWindowWidth = 320;			// Minimum window width for valid window check
@@ -98,13 +99,6 @@ struct menu_data
 bool IsWindowTooSmall(screen_res);
 HWND FindMainWindow(DWORD, bool, bool = false);
 void MainFullScreenFunc();
-
-// Exception handler
-int filterException(int code, PEXCEPTION_POINTERS ex)
-{
-	Compat::Log() << "Exception caught code:" << code << " details:" << ex->ExceptionRecord->ExceptionInformation;
-	return EXCEPTION_EXECUTE_HANDLER;
-}
 
 //*********************************************************************************
 // Screen/monitor functions below
@@ -639,21 +633,6 @@ void StartFullscreenThread()
 
 	// Start thread
 	CreateThread(nullptr, 0, StartThreadFunc, nullptr, 0, &m_dwThreadID);
-}
-
-// Get the ID of a thread
-DWORD GetMyThreadId(HANDLE Thread)
-{
-	DWORD ThreadID = 0;
-	__try
-	{
-		ThreadID = GetThreadId(Thread);
-	}
-	__except (filterException(GetExceptionCode(), GetExceptionInformation()))
-	{
-		// Do nothing
-	}
-	return ThreadID;
 }
 
 // Is thread running

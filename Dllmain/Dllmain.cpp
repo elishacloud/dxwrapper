@@ -14,17 +14,17 @@
 *   3. This notice may not be removed or altered from any source distribution.
 */
 
-#include "cfg.h"
-#include "dllmain.h"
+#include "Settings\Settings.h"
+#include "Dllmain.h"
 #include "dxwrapper.h"
-#include "wrappers\wrapper.h"
+#include "Wrappers\wrapper.h"
 #include "DDrawCompatExternal.h"
 #include "DxWndExternal.h"
 #include "DSoundCtrl\DSoundCtrlExternal.h"
-#include "utils.h"
-#include "fullscreen.h"
-#include "disasm\initdisasm.h"
-#include "writememory\writememory.h"
+#include "Utils\Utils.h"
+#include "Fullscreen\Fullscreen.h"
+#include "Disasm\initdisasm.h"
+#include "Writememory\writememory.h"
 
 // Declare varables
 HMODULE hModule_dll = nullptr;

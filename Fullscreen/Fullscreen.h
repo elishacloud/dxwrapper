@@ -28,6 +28,5 @@ void SetScreen(screen_res);
 void ResetScreen();
 void StartFullscreenThread();
 bool IsFullscreenThreadRunning();
-DWORD GetMyThreadId(HANDLE);
 void StopFullscreenThread();
 void CreateTimer(HWND);

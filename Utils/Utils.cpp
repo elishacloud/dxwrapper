@@ -26,9 +26,16 @@
 * http://www.rohitab.com/discuss/topic/40594-parsing-pe-export-table/
 */
 
-#include "cfg.h"
-#include "wrappers\wrapper.h"
+#include "Settings\Settings.h"
+#include "Wrappers\wrapper.h"
 #include <VersionHelpers.h>
+
+// Exception handler
+int filterException(int code, PEXCEPTION_POINTERS ex)
+{
+	Compat::Log() << "Exception caught code:" << code << " details:" << ex->ExceptionRecord->ExceptionInformation;
+	return EXCEPTION_EXECUTE_HANDLER;
+}
 
 // Get Windows Operating System version number from the registry
 void GetVersionReg(OSVERSIONINFO *oOS_version)
@@ -333,6 +340,21 @@ void SetAppCompat()
 			Compat::Log() << "Cannnot open ddraw.dll to SetAppCompatData";
 		}
 	}
+}
+
+// Get the ID of a thread
+DWORD GetMyThreadId(HANDLE Thread)
+{
+	DWORD ThreadID = 0;
+	__try
+	{
+		ThreadID = GetThreadId(Thread);
+	}
+	__except (filterException(GetExceptionCode(), GetExceptionInformation()))
+	{
+		// Do nothing
+	}
+	return ThreadID;
 }
 
 // Get pointer for funtion name from binary file

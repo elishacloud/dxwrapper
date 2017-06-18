@@ -470,5 +470,5 @@ private:
 extern std::ofstream LOG;
 #endif*/
 
-#include "cfg.h"
+#include "Settings\Settings.h"
 //********** End Edit ***************

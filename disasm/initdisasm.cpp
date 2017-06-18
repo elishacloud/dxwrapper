@@ -5,8 +5,8 @@
 * Updated 2017 by Elisha Riedlinger
 */
 
-#include "cfg.h"
-#include "dllmain.h"
+#include "Settings\Settings.h"
+#include "Dllmain\Dllmain.h"
 #include "disasm.h"
 #include "hook\inithook.h"
 

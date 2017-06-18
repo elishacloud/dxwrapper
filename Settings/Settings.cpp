@@ -17,8 +17,8 @@
 * http://bitpatch.com/ddwrapper.html
 */
 
-#include "cfg.h"
-#include "dllmain.h"
+#include "Settings.h"
+#include "Dllmain\Dllmain.h"
 
 CONFIG Config;
 CRITICAL_SECTION CriticalSectionCfg;

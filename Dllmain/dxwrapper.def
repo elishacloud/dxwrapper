@@ -1,0 +1,482 @@
+LIBRARY "dxwrapper"
+EXPORTS
+
+
+; ****
+;LIBRARY "dsound"
+; ****
+DirectSoundCreate				= FakeDirectSoundCreate					@1
+DirectSoundEnumerateA			= FakeDirectSoundEnumerateA				@2
+DirectSoundEnumerateW			= FakeDirectSoundEnumerateW				@3
+;DllCanUnloadNow				= FakeDllCanUnloadNow					PRIVATE         <---  Shared with ddraw.dll
+;DllGetClassObject				= FakeDllGetClassObject					PRIVATE         <---  Shared with ddraw.dll
+DirectSoundCaptureCreate		= FakeDirectSoundCaptureCreate			@6
+DirectSoundCaptureEnumerateA	= FakeDirectSoundCaptureEnumerateA		@7
+DirectSoundCaptureEnumerateW	= FakeDirectSoundCaptureEnumerateW		@8
+GetDeviceID						= FakeGetDeviceID						@9
+DirectSoundFullDuplexCreate		= FakeDirectSoundFullDuplexCreate		@10
+DirectSoundCreate8				= FakeDirectSoundCreate8				@11
+DirectSoundCaptureCreate8		= FakeDirectSoundCaptureCreate8			@12
+
+
+; ****
+;LIBRARY "DSoundCtrl"
+; ****
+_DirectSoundCreate				= DirectSoundCreate						@13
+_DirectSoundEnumerateA			= DirectSoundEnumerateA					@14
+_DirectSoundEnumerateW			= DirectSoundEnumerateW					@15
+_DllCanUnloadNow_DSoundCtrl		= DllCanUnloadNow_DSoundCtrl			PRIVATE
+_DllGetClassObject_DSoundCtrl	= DllGetClassObject_DSoundCtrl			PRIVATE
+_DirectSoundCaptureCreate		= DirectSoundCaptureCreate				@18
+_DirectSoundCaptureEnumerateA	= DirectSoundCaptureEnumerateA			@19
+_DirectSoundCaptureEnumerateW	= DirectSoundCaptureEnumerateW			@20
+_GetDeviceID					= GetDeviceID							@21
+_DirectSoundFullDuplexCreate	= DirectSoundFullDuplexCreate			@22
+_DirectSoundCreate8				= DirectSoundCreate8					@23
+_DirectSoundCaptureCreate8		= DirectSoundCaptureCreate8				@24
+
+
+; ****
+;LIBRARY "Disasm"
+; ****
+Preparedisasm															@25
+Finishdisasm															@26
+Disasm																	@27
+Geterrwarnmessage														@28
+
+
+; ****
+;LIBRARY "d3d8"
+; ****
+;DebugSetMute					= FakeDebugSetMute						@29         <---  Shared with d3d9.dll
+Direct3DCreate8					= FakeDirect3DCreate8					@30
+ValidatePixelShader				= FakeValidatePixelShader				@31
+ValidateVertexShader			= FakeValidateVertexShader				@32
+
+
+; ****
+;LIBRARY "d3d8to9"
+; ****
+_Direct3DCreate8				= Direct3DCreate8						@33
+
+
+; ****
+;LIBRARY "d3d9"
+; ****
+Direct3DShaderValidatorCreate9	= FakeDirect3DShaderValidatorCreate9	@34
+PSGPError						= FakePSGPError							@35
+PSGPSampleTexture				= FakePSGPSampleTexture					@36
+D3DPERF_BeginEvent				= FakeD3DPERF_BeginEvent				@37
+D3DPERF_EndEvent				= FakeD3DPERF_EndEvent					@38
+D3DPERF_GetStatus				= FakeD3DPERF_GetStatus					@39
+D3DPERF_QueryRepeatFrame		= FakeD3DPERF_QueryRepeatFrame			@40
+D3DPERF_SetMarker				= FakeD3DPERF_SetMarker					@41
+D3DPERF_SetOptions				= FakeD3DPERF_SetOptions				@42
+D3DPERF_SetRegion				= FakeD3DPERF_SetRegion					@43
+DebugSetLevel					= FakeDebugSetLevel						@44
+DebugSetMute					= FakeDebugSetMute						@45
+Direct3DCreate9					= FakeDirect3DCreate9					@46
+Direct3DCreate9Ex				= FakeDirect3DCreate9Ex					@47
+
+
+; ****
+;LIBRARY "dinput"
+; ****
+DirectInputCreateA				= FakeDirectInputCreateA				@48
+DirectInputCreateEx				= FakeDirectInputCreateEx				@49
+DirectInputCreateW				= FakeDirectInputCreateW				@50
+;DllCanUnloadNow				= FakeDllCanUnloadNow					PRIVATE         <---  Shared with ddraw.dll
+;DllGetClassObject				= FakeDllGetClassObject					PRIVATE         <---  Shared with ddraw.dll
+DllRegisterServer				= FakeDllRegisterServer					PRIVATE
+DllUnregisterServer				= FakeDllUnregisterServer				PRIVATE
+
+
+; ****
+;LIBRARY dplayx.dll
+; ****
+DirectPlayCreate				= FakeDirectPlayCreate					@55
+DirectPlayEnumerate				= FakeDirectPlayEnumerate				@56
+DirectPlayEnumerateA			= FakeDirectPlayEnumerateA				@57
+DirectPlayEnumerateW			= FakeDirectPlayEnumerateW				@58
+DirectPlayLobbyCreateA			= FakeDirectPlayLobbyCreateA			@59
+DirectPlayLobbyCreateW			= FakeDirectPlayLobbyCreateW			@60
+
+
+; ****
+;LIBRARY "ddraw"
+; ****
+AcquireDDThreadLock				= FakeAcquireDDThreadLock				@71
+CheckFullscreen					= FakeCheckFullscreen					@72
+CompleteCreateSysmemSurface		= FakeCompleteCreateSysmemSurface		@73
+D3DParseUnknownCommand			= FakeD3DParseUnknownCommand			@74
+DDGetAttachedSurfaceLcl			= FakeDDGetAttachedSurfaceLcl			@75
+DDInternalLock					= FakeDDInternalLock					@76
+DDInternalUnlock				= FakeDDInternalUnlock					@77
+DSoundHelp						= FakeDSoundHelp						@78
+DirectDrawCreate				= FakeDirectDrawCreate					@79
+DirectDrawCreateClipper			= FakeDirectDrawCreateClipper			@80
+DirectDrawCreateEx				= FakeDirectDrawCreateEx				@81
+DirectDrawEnumerateA			= FakeDirectDrawEnumerateA				@82
+DirectDrawEnumerateExA			= FakeDirectDrawEnumerateExA			@83
+DirectDrawEnumerateExW			= FakeDirectDrawEnumerateExW			@84
+DirectDrawEnumerateW			= FakeDirectDrawEnumerateW				@85
+DllCanUnloadNow					= FakeDllCanUnloadNow					PRIVATE
+DllGetClassObject				= FakeDllGetClassObject					PRIVATE
+GetDDSurfaceLocal				= FakeGetDDSurfaceLocal					@86
+GetOLEThunkData					= FakeGetOLEThunkData					@87
+GetSurfaceFromDC				= FakeGetSurfaceFromDC					@88
+RegisterSpecialCase				= FakeRegisterSpecialCase				@89
+ReleaseDDThreadLock				= FakeReleaseDDThreadLock				@90
+SetAppCompatData				= FakeSetAppCompatData					@91
+
+
+; ****
+;LIBRARY "DDraw_Compat"
+; ****
+_AcquireDDThreadLock			= AcquireDDThreadLock					@92
+_CompleteCreateSysmemSurface	= CompleteCreateSysmemSurface			@93
+_D3DParseUnknownCommand			= D3DParseUnknownCommand				@94
+_DDGetAttachedSurfaceLcl		= DDGetAttachedSurfaceLcl				@95
+_DDInternalLock					= DDInternalLock						@96
+_DDInternalUnlock				= DDInternalUnlock						@97
+_DSoundHelp						= DSoundHelp							@98
+_DirectDrawCreate				= DirectDrawCreate						@99
+_DirectDrawCreateClipper		= DirectDrawCreateClipper				@100
+_DirectDrawCreateEx				= DirectDrawCreateEx					@101
+_DirectDrawEnumerateA			= DirectDrawEnumerateA					@102
+_DirectDrawEnumerateExA			= DirectDrawEnumerateExA				@103
+_DirectDrawEnumerateExW			= DirectDrawEnumerateExW				@104
+_DirectDrawEnumerateW			= DirectDrawEnumerateW					@105
+_DllCanUnloadNow_ddraw			= DllCanUnloadNow						PRIVATE
+_DllGetClassObject_ddraw		= DllGetClassObject						PRIVATE
+_DllCanUnloadNow_dinput			= DllCanUnloadNow						PRIVATE
+_DllGetClassObject_dinput		= DllGetClassObject						PRIVATE
+_GetDDSurfaceLocal				= GetDDSurfaceLocal						@110
+_GetOLEThunkData				= GetOLEThunkData						@111
+_GetSurfaceFromDC				= GetSurfaceFromDC						@112
+_RegisterSpecialCase			= RegisterSpecialCase					@113
+_ReleaseDDThreadLock			= ReleaseDDThreadLock					@114
+_SetAppCompatData				= SetAppCompatData						@115
+_DirectInputCreateA				= DirectInputCreateA					@116
+
+
+; ****
+;LIBRARY "dxgi"
+; ****
+ApplyCompatResolutionQuirking = FakeApplyCompatResolutionQuirking @117
+CompatString = FakeCompatString @118
+CompatValue = FakeCompatValue @119
+DXGIDumpJournal = FakeDXGIDumpJournal @120
+DXGIRevertToSxS = FakeDXGIRevertToSxS @121
+PIXBeginCapture = FakePIXBeginCapture @122
+PIXEndCapture = FakePIXEndCapture @123
+PIXGetCaptureState = FakePIXGetCaptureState @124
+SetAppCompatStringPointer = FakeSetAppCompatStringPointer @125
+CreateDXGIFactory1 = FakeCreateDXGIFactory1 @126
+CreateDXGIFactory2 = FakeCreateDXGIFactory2 @127
+CreateDXGIFactory = FakeCreateDXGIFactory @128
+DXGID3D10CreateDevice = FakeDXGID3D10CreateDevice @129
+DXGID3D10CreateLayeredDevice = FakeDXGID3D10CreateLayeredDevice @130
+DXGID3D10ETWRundown = FakeDXGID3D10ETWRundown @131
+DXGID3D10GetLayeredDeviceSize = FakeDXGID3D10GetLayeredDeviceSize @132
+DXGID3D10RegisterLayers = FakeDXGID3D10RegisterLayers @133
+DXGIGetDebugInterface1 = FakeDXGIGetDebugInterface1 @134
+DXGIReportAdapterConfiguration = FakeDXGIReportAdapterConfiguration @135
+D3DKMTCloseAdapter = FakeD3DKMTCloseAdapter @136
+D3DKMTDestroyAllocation = FakeD3DKMTDestroyAllocation @137
+D3DKMTDestroyContext = FakeD3DKMTDestroyContext @138
+D3DKMTDestroyDevice = FakeD3DKMTDestroyDevice @139
+D3DKMTDestroySynchronizationObject = FakeD3DKMTDestroySynchronizationObject @140
+D3DKMTQueryAdapterInfo = FakeD3DKMTQueryAdapterInfo @141
+D3DKMTSetDisplayPrivateDriverFormat = FakeD3DKMTSetDisplayPrivateDriverFormat @142
+D3DKMTSignalSynchronizationObject = FakeD3DKMTSignalSynchronizationObject @143
+D3DKMTUnlock = FakeD3DKMTUnlock @144
+OpenAdapter10 = FakeOpenAdapter10 @145
+OpenAdapter10_2 = FakeOpenAdapter10_2 @146
+D3DKMTCreateAllocation = FakeD3DKMTCreateAllocation @147
+D3DKMTCreateContext = FakeD3DKMTCreateContext @148
+D3DKMTCreateDevice = FakeD3DKMTCreateDevice @149
+D3DKMTCreateSynchronizationObject = FakeD3DKMTCreateSynchronizationObject @150
+D3DKMTEscape = FakeD3DKMTEscape @151
+D3DKMTGetContextSchedulingPriority = FakeD3DKMTGetContextSchedulingPriority @152
+D3DKMTGetDeviceState = FakeD3DKMTGetDeviceState @153
+D3DKMTGetDisplayModeList = FakeD3DKMTGetDisplayModeList @154
+D3DKMTGetMultisampleMethodList = FakeD3DKMTGetMultisampleMethodList @155
+D3DKMTGetRuntimeData = FakeD3DKMTGetRuntimeData @156
+D3DKMTGetSharedPrimaryHandle = FakeD3DKMTGetSharedPrimaryHandle @157
+D3DKMTLock = FakeD3DKMTLock @158
+D3DKMTOpenAdapterFromHdc = FakeD3DKMTOpenAdapterFromHdc @159
+D3DKMTOpenResource = FakeD3DKMTOpenResource @160
+D3DKMTPresent = FakeD3DKMTPresent @161
+D3DKMTQueryAllocationResidency = FakeD3DKMTQueryAllocationResidency @162
+D3DKMTQueryResourceInfo = FakeD3DKMTQueryResourceInfo @163
+D3DKMTRender = FakeD3DKMTRender @164
+D3DKMTSetAllocationPriority = FakeD3DKMTSetAllocationPriority @165
+D3DKMTSetContextSchedulingPriority = FakeD3DKMTSetContextSchedulingPriority @166
+D3DKMTSetDisplayMode = FakeD3DKMTSetDisplayMode @167
+D3DKMTSetGammaRamp = FakeD3DKMTSetGammaRamp @168
+D3DKMTSetVidPnSourceOwner = FakeD3DKMTSetVidPnSourceOwner @169
+D3DKMTWaitForSynchronizationObject = FakeD3DKMTWaitForSynchronizationObject @170
+D3DKMTWaitForVerticalBlankEvent = FakeD3DKMTWaitForVerticalBlankEvent @171
+
+
+; ****
+;LIBRARY "bcrypt"
+; ****
+BCryptAddContextFunction = FakeBCryptAddContextFunction @172
+BCryptAddContextFunctionProvider = FakeBCryptAddContextFunctionProvider @173
+BCryptCloseAlgorithmProvider = FakeBCryptCloseAlgorithmProvider @174
+BCryptConfigureContext = FakeBCryptConfigureContext @175
+BCryptConfigureContextFunction = FakeBCryptConfigureContextFunction @176
+BCryptCreateContext = FakeBCryptCreateContext @177
+BCryptCreateHash = FakeBCryptCreateHash @178
+BCryptCreateMultiHash = FakeBCryptCreateMultiHash @179
+BCryptDecrypt = FakeBCryptDecrypt @180
+BCryptDeleteContext = FakeBCryptDeleteContext @181
+BCryptDeriveKey = FakeBCryptDeriveKey @182
+BCryptDeriveKeyCapi = FakeBCryptDeriveKeyCapi @183
+BCryptDeriveKeyPBKDF2 = FakeBCryptDeriveKeyPBKDF2 @184
+BCryptDestroyHash = FakeBCryptDestroyHash @185
+BCryptDestroyKey = FakeBCryptDestroyKey @186
+BCryptDestroySecret = FakeBCryptDestroySecret @187
+BCryptDuplicateHash = FakeBCryptDuplicateHash @188
+BCryptDuplicateKey = FakeBCryptDuplicateKey @189
+BCryptEncrypt = FakeBCryptEncrypt @190
+BCryptEnumAlgorithms = FakeBCryptEnumAlgorithms @191
+BCryptEnumContextFunctionProviders = FakeBCryptEnumContextFunctionProviders @192
+BCryptEnumContextFunctions = FakeBCryptEnumContextFunctions @193
+BCryptEnumContexts = FakeBCryptEnumContexts @194
+BCryptEnumProviders = FakeBCryptEnumProviders @195
+BCryptEnumRegisteredProviders = FakeBCryptEnumRegisteredProviders @196
+BCryptExportKey = FakeBCryptExportKey @197
+BCryptFinalizeKeyPair = FakeBCryptFinalizeKeyPair @198
+BCryptFinishHash = FakeBCryptFinishHash @199
+BCryptFreeBuffer = FakeBCryptFreeBuffer @200
+BCryptGenRandom = FakeBCryptGenRandom @201
+BCryptGenerateKeyPair = FakeBCryptGenerateKeyPair @202
+BCryptGenerateSymmetricKey = FakeBCryptGenerateSymmetricKey @203
+BCryptGetFipsAlgorithmMode = FakeBCryptGetFipsAlgorithmMode @204
+BCryptGetProperty = FakeBCryptGetProperty @205
+BCryptHash = FakeBCryptHash @206
+BCryptHashData = FakeBCryptHashData @207
+BCryptImportKey = FakeBCryptImportKey @208
+BCryptImportKeyPair = FakeBCryptImportKeyPair @209
+BCryptKeyDerivation = FakeBCryptKeyDerivation @210
+BCryptOpenAlgorithmProvider = FakeBCryptOpenAlgorithmProvider @211
+BCryptProcessMultiOperations = FakeBCryptProcessMultiOperations @212
+BCryptQueryContextConfiguration = FakeBCryptQueryContextConfiguration @213
+BCryptQueryContextFunctionConfiguration = FakeBCryptQueryContextFunctionConfiguration @214
+BCryptQueryContextFunctionProperty = FakeBCryptQueryContextFunctionProperty @215
+BCryptQueryProviderRegistration = FakeBCryptQueryProviderRegistration @216
+BCryptRegisterConfigChangeNotify = FakeBCryptRegisterConfigChangeNotify @217
+BCryptRegisterProvider = FakeBCryptRegisterProvider @218
+BCryptRemoveContextFunction = FakeBCryptRemoveContextFunction @219
+BCryptRemoveContextFunctionProvider = FakeBCryptRemoveContextFunctionProvider @220
+BCryptResolveProviders = FakeBCryptResolveProviders @221
+BCryptSecretAgreement = FakeBCryptSecretAgreement @222
+BCryptSetAuditingInterface = FakeBCryptSetAuditingInterface @223
+BCryptSetContextFunctionProperty = FakeBCryptSetContextFunctionProperty @224
+BCryptSetProperty = FakeBCryptSetProperty @225
+BCryptSignHash = FakeBCryptSignHash @226
+BCryptUnregisterConfigChangeNotify = FakeBCryptUnregisterConfigChangeNotify @227
+BCryptUnregisterProvider = FakeBCryptUnregisterProvider @228
+BCryptVerifySignature = FakeBCryptVerifySignature @229
+
+
+; ****
+;LIBRARY "winmm"
+; ****
+CloseDriver = FakeCloseDriver @230
+DefDriverProc = FakeDefDriverProc @231
+DriverCallback = FakeDriverCallback @232
+DrvGetModuleHandle = FakeDrvGetModuleHandle @233
+GetDriverModuleHandle = FakeGetDriverModuleHandle @234
+NotifyCallbackData = FakeNotifyCallbackData @235
+OpenDriver = FakeOpenDriver @236
+PlaySound = FakePlaySound @237
+PlaySoundA = FakePlaySoundA @238
+PlaySoundW = FakePlaySoundW @239
+SendDriverMessage = FakeSendDriverMessage @240
+WOW32DriverCallback = FakeWOW32DriverCallback @241
+WOW32ResolveMultiMediaHandle = FakeWOW32ResolveMultiMediaHandle @242
+WOWAppExit = FakeWOWAppExit @243
+aux32Message = Fakeaux32Message @244
+auxGetDevCapsA = FakeauxGetDevCapsA @245
+auxGetDevCapsW = FakeauxGetDevCapsW @246
+auxGetNumDevs = FakeauxGetNumDevs @247
+auxGetVolume = FakeauxGetVolume @248
+auxOutMessage = FakeauxOutMessage @249
+auxSetVolume = FakeauxSetVolume @250
+joy32Message = Fakejoy32Message @251
+joyConfigChanged = FakejoyConfigChanged @252
+joyGetDevCapsA = FakejoyGetDevCapsA @253
+joyGetDevCapsW = FakejoyGetDevCapsW @254
+joyGetNumDevs = FakejoyGetNumDevs @255
+joyGetPos = FakejoyGetPos @256
+joyGetPosEx = FakejoyGetPosEx @257
+joyGetThreshold = FakejoyGetThreshold @258
+joyReleaseCapture = FakejoyReleaseCapture @259
+joySetCapture = FakejoySetCapture @260
+joySetThreshold = FakejoySetThreshold @261
+mci32Message = Fakemci32Message @262
+mciDriverNotify = FakemciDriverNotify @263
+mciDriverYield = FakemciDriverYield @264
+mciExecute = FakemciExecute @265
+mciFreeCommandResource = FakemciFreeCommandResource @266
+mciGetCreatorTask = FakemciGetCreatorTask @267
+mciGetDeviceIDA = FakemciGetDeviceIDA @268
+mciGetDeviceIDFromElementIDA = FakemciGetDeviceIDFromElementIDA @269
+mciGetDeviceIDFromElementIDW = FakemciGetDeviceIDFromElementIDW @270
+mciGetDeviceIDW = FakemciGetDeviceIDW @271
+mciGetDriverData = FakemciGetDriverData @272
+mciGetErrorStringA = FakemciGetErrorStringA @273
+mciGetErrorStringW = FakemciGetErrorStringW @274
+mciGetYieldProc = FakemciGetYieldProc @275
+mciLoadCommandResource = FakemciLoadCommandResource @276
+mciSendCommandA = FakemciSendCommandA @277
+mciSendCommandW = FakemciSendCommandW @278
+mciSendStringA = FakemciSendStringA @279
+mciSendStringW = FakemciSendStringW @280
+mciSetDriverData = FakemciSetDriverData @281
+mciSetYieldProc = FakemciSetYieldProc @282
+mid32Message = Fakemid32Message @283
+midiConnect = FakemidiConnect @284
+midiDisconnect = FakemidiDisconnect @285
+midiInAddBuffer = FakemidiInAddBuffer @286
+midiInClose = FakemidiInClose @287
+midiInGetDevCapsA = FakemidiInGetDevCapsA @288
+midiInGetDevCapsW = FakemidiInGetDevCapsW @289
+midiInGetErrorTextA = FakemidiInGetErrorTextA @290
+midiInGetErrorTextW = FakemidiInGetErrorTextW @291
+midiInGetID = FakemidiInGetID @292
+midiInGetNumDevs = FakemidiInGetNumDevs @293
+midiInMessage = FakemidiInMessage @294
+midiInOpen = FakemidiInOpen @295
+midiInPrepareHeader = FakemidiInPrepareHeader @296
+midiInReset = FakemidiInReset @297
+midiInStart = FakemidiInStart @298
+midiInStop = FakemidiInStop @299
+midiInUnprepareHeader = FakemidiInUnprepareHeader @300
+midiOutCacheDrumPatches = FakemidiOutCacheDrumPatches @301
+midiOutCachePatches = FakemidiOutCachePatches @302
+midiOutClose = FakemidiOutClose @303
+midiOutGetDevCapsA = FakemidiOutGetDevCapsA @304
+midiOutGetDevCapsW = FakemidiOutGetDevCapsW @305
+midiOutGetErrorTextA = FakemidiOutGetErrorTextA @306
+midiOutGetErrorTextW = FakemidiOutGetErrorTextW @307
+midiOutGetID = FakemidiOutGetID @308
+midiOutGetNumDevs = FakemidiOutGetNumDevs @309
+midiOutGetVolume = FakemidiOutGetVolume @310
+midiOutLongMsg = FakemidiOutLongMsg @311
+midiOutMessage = FakemidiOutMessage @312
+midiOutOpen = FakemidiOutOpen @313
+midiOutPrepareHeader = FakemidiOutPrepareHeader @314
+midiOutReset = FakemidiOutReset @315
+midiOutSetVolume = FakemidiOutSetVolume @316
+midiOutShortMsg = FakemidiOutShortMsg @317
+midiOutUnprepareHeader = FakemidiOutUnprepareHeader @318
+midiStreamClose = FakemidiStreamClose @319
+midiStreamOpen = FakemidiStreamOpen @320
+midiStreamOut = FakemidiStreamOut @321
+midiStreamPause = FakemidiStreamPause @322
+midiStreamPosition = FakemidiStreamPosition @323
+midiStreamProperty = FakemidiStreamProperty @324
+midiStreamRestart = FakemidiStreamRestart @325
+midiStreamStop = FakemidiStreamStop @326
+mixerClose = FakemixerClose @327
+mixerGetControlDetailsA = FakemixerGetControlDetailsA @328
+mixerGetControlDetailsW = FakemixerGetControlDetailsW @329
+mixerGetDevCapsA = FakemixerGetDevCapsA @330
+mixerGetDevCapsW = FakemixerGetDevCapsW @331
+mixerGetID = FakemixerGetID @332
+mixerGetLineControlsA = FakemixerGetLineControlsA @333
+mixerGetLineControlsW = FakemixerGetLineControlsW @334
+mixerGetLineInfoA = FakemixerGetLineInfoA @335
+mixerGetLineInfoW = FakemixerGetLineInfoW @336
+mixerGetNumDevs = FakemixerGetNumDevs @337
+mixerMessage = FakemixerMessage @338
+mixerOpen = FakemixerOpen @339
+mixerSetControlDetails = FakemixerSetControlDetails @340
+mmDrvInstall = FakemmDrvInstall @341
+mmGetCurrentTask = FakemmGetCurrentTask @342
+mmTaskBlock = FakemmTaskBlock @343
+mmTaskCreate = FakemmTaskCreate @344
+mmTaskSignal = FakemmTaskSignal @345
+mmTaskYield = FakemmTaskYield @346
+mmioAdvance = FakemmioAdvance @347
+mmioAscend = FakemmioAscend @348
+mmioClose = FakemmioClose @349
+mmioCreateChunk = FakemmioCreateChunk @350
+mmioDescend = FakemmioDescend @351
+mmioFlush = FakemmioFlush @352
+mmioGetInfo = FakemmioGetInfo @353
+mmioInstallIOProcA = FakemmioInstallIOProcA @354
+mmioInstallIOProcW = FakemmioInstallIOProcW @355
+mmioOpenA = FakemmioOpenA @356
+mmioOpenW = FakemmioOpenW @357
+mmioRead = FakemmioRead @358
+mmioRenameA = FakemmioRenameA @359
+mmioRenameW = FakemmioRenameW @360
+mmioSeek = FakemmioSeek @361
+mmioSendMessage = FakemmioSendMessage @362
+mmioSetBuffer = FakemmioSetBuffer @363
+mmioSetInfo = FakemmioSetInfo @364
+mmioStringToFOURCCA = FakemmioStringToFOURCCA @365
+mmioStringToFOURCCW = FakemmioStringToFOURCCW @366
+mmioWrite = FakemmioWrite @367
+mmsystemGetVersion = FakemmsystemGetVersion @368
+mod32Message = Fakemod32Message @369
+mxd32Message = Fakemxd32Message @370
+sndPlaySoundA = FakesndPlaySoundA @371
+sndPlaySoundW = FakesndPlaySoundW @372
+tid32Message = Faketid32Message @373
+timeBeginPeriod = FaketimeBeginPeriod @374
+timeEndPeriod = FaketimeEndPeriod @375
+timeGetDevCaps = FaketimeGetDevCaps @376
+timeGetSystemTime = FaketimeGetSystemTime @377
+timeGetTime = FaketimeGetTime @378
+timeKillEvent = FaketimeKillEvent @379
+timeSetEvent = FaketimeSetEvent @380
+waveInAddBuffer = FakewaveInAddBuffer @381
+waveInClose = FakewaveInClose @382
+waveInGetDevCapsA = FakewaveInGetDevCapsA @383
+waveInGetDevCapsW = FakewaveInGetDevCapsW @384
+waveInGetErrorTextA = FakewaveInGetErrorTextA @385
+waveInGetErrorTextW = FakewaveInGetErrorTextW @386
+waveInGetID = FakewaveInGetID @387
+waveInGetNumDevs = FakewaveInGetNumDevs @388
+waveInGetPosition = FakewaveInGetPosition @389
+waveInMessage = FakewaveInMessage @390
+waveInOpen = FakewaveInOpen @391
+waveInPrepareHeader = FakewaveInPrepareHeader @392
+waveInReset = FakewaveInReset @393
+waveInStart = FakewaveInStart @394
+waveInStop = FakewaveInStop @395
+waveInUnprepareHeader = FakewaveInUnprepareHeader @396
+waveOutBreakLoop = FakewaveOutBreakLoop @397
+waveOutClose = FakewaveOutClose @398
+waveOutGetDevCapsA = FakewaveOutGetDevCapsA @399
+waveOutGetDevCapsW = FakewaveOutGetDevCapsW @400
+waveOutGetErrorTextA = FakewaveOutGetErrorTextA @401
+waveOutGetErrorTextW = FakewaveOutGetErrorTextW @402
+waveOutGetID = FakewaveOutGetID @403
+waveOutGetNumDevs = FakewaveOutGetNumDevs @404
+waveOutGetPitch = FakewaveOutGetPitch @405
+waveOutGetPlaybackRate = FakewaveOutGetPlaybackRate @406
+waveOutGetPosition = FakewaveOutGetPosition @407
+waveOutGetVolume = FakewaveOutGetVolume @408
+waveOutMessage = FakewaveOutMessage @409
+waveOutOpen = FakewaveOutOpen @410
+waveOutPause = FakewaveOutPause @411
+waveOutPrepareHeader = FakewaveOutPrepareHeader @412
+waveOutReset = FakewaveOutReset @413
+waveOutRestart = FakewaveOutRestart @414
+waveOutSetPitch = FakewaveOutSetPitch @415
+waveOutSetPlaybackRate = FakewaveOutSetPlaybackRate @416
+waveOutSetVolume = FakewaveOutSetVolume @417
+waveOutUnprepareHeader = FakewaveOutUnprepareHeader @418
+waveOutWrite = FakewaveOutWrite @419
+wid32Message = Fakewid32Message @420
+winmmDbgOut = FakewinmmDbgOut @421
+winmmSetDebugLevel = FakewinmmSetDebugLevel @422
+wod32Message = Fakewod32Message @423

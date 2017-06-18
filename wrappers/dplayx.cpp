@@ -14,7 +14,7 @@
 *   3. This notice may not be removed or altered from any source distribution.
 */
 
-#include "cfg.h"
+#include "Settings\Settings.h"
 #include "wrapper.h"
 
 struct dplayx_dll

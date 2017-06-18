@@ -14,7 +14,7 @@
 *   3. This notice may not be removed or altered from any source distribution.
 */
 
-#include "cfg.h"
+#include "Settings\Settings.h"
 #include "d3d8.h"
 #include "d3d9.h"
 #include "ddraw.h"
@@ -23,7 +23,7 @@
 #include "dinput.h"
 #include "dxgi.h"
 #include "winmm.h"
-#include "winspool.h"
+#include "bcrypt.h"
 #include "uxtheme.h"
 #include "dwmapi.h"
 
@@ -131,7 +131,7 @@ void FreeCustomLibrary()
 // Load wrapper dll files
 void DllAttach()
 {
-	if (Config.WrapperMode == dtype.winspool || Config.WrapperMode == 0 || Config.WrapperMode == 255) LoadWinspool();
+	if (Config.WrapperMode == dtype.bcrypt || Config.WrapperMode == 0 || Config.WrapperMode == 255) LoadBcrypt();
 	if (Config.WrapperMode == dtype.dplayx || Config.WrapperMode == 0 || Config.WrapperMode == 255) LoadDplayx();
 	if (Config.WrapperMode == dtype.d3d8 || Config.WrapperMode == 0 || Config.WrapperMode == 255 || Config.D3d8to9) LoadD3d8();
 	if (Config.WrapperMode == dtype.dxgi || Config.WrapperMode == 0 || Config.WrapperMode == 255) LoadDxgi();

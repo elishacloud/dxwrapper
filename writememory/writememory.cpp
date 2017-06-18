@@ -14,8 +14,8 @@
 *   3. This notice may not be removed or altered from any source distribution.
 */
 
-#include "cfg.h"
-#include "fullscreen.h"
+#include "Settings\Settings.h"
+#include "Utils\Utils.h"
 
 // Declare varables
 bool p_StopThreadFlag = false;

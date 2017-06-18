@@ -1,4 +1,4 @@
-#include  "cfg.h"
+#include  "Settings\Settings.h"
 
 typedef void(WINAPI *PFN_SetThemeAppProperties)(DWORD dwFlags);
 PFN_SetThemeAppProperties SetThemeAppPropertiesPtr = nullptr;

@@ -94,8 +94,8 @@ struct DLLTYPE
 	const DWORD dsound = 5;
 	const DWORD dxgi = 6;
 	const DWORD dplayx = 7;
-	const DWORD winspool = 8;
-	const DWORD dinput = 9;
+	const DWORD dinput = 8;
+	const DWORD bcrypt = 9;
 };
 static const DLLTYPE dtype;
 
@@ -109,8 +109,8 @@ static constexpr char* dtypename[] = {
 	"dsound.dll",	// 5
 	"dxgi.dll",		// 6
 	"dplayx.dll",	// 7
-	"winspool.drv",	// 8
-	"dinput.dll",	// 9
+	"dinput.dll",	// 8
+	"bcrypt.dll",	// 9
 };
 static constexpr int dtypeArraySize = (sizeof(dtypename) / sizeof(*dtypename));
 

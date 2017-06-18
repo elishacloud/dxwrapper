@@ -14,11 +14,11 @@
 *   3. This notice may not be removed or altered from any source distribution.
 */
 
-#include "cfg.h"
-#include "dllmain.h"
+#include "Settings\Settings.h"
+#include "Dllmain\Dllmain.h"
 #include "wrapper.h"
-#include "utils.h"
-#include "hook\inithook.h"
+#include "Utils\Utils.h"
+#include "Hook\inithook.h"
 
 struct ddraw_dll
 {

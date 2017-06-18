@@ -5,7 +5,7 @@
 * Updated 2017 by Elisha Riedlinger
 */
 
-#include "cfg.h"
+#include "Settings\Settings.h"
 #include "hotpatch.h"
 #include "iatpatch.h"
 

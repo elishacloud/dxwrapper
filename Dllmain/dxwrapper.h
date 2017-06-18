@@ -2,9 +2,9 @@
 // Microsoft Visual C++ generated include file.
 // Used by dxwrapper.rc
 
-#include "cfg.h"
+#include "Settings\Settings.h"
 #include "dxwnd.h"
-#include "BuildNo.rc"
+#include "Dllmain\BuildNo.rc"
 
 // Main resource file details
 #define APP_NAME				"DirectX Dynamic Link Library"

@@ -24,7 +24,7 @@
 #include "RealPrimarySurface.h"
 #include "Time1.h"
 //********** Begin Edit *************
-#include "cfg.h"
+#include "Settings\Settings.h"
 #include "wrappers\wrapper.h"
 //********** End Edit ***************
 

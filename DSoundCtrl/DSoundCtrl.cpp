@@ -46,9 +46,9 @@
 #include "DSoundCtrl.h"
 #include "DSoundCtrlExternal.h"
 #include "IDirectSoundClassFactoryEx.h"
-#include "cfg.h"
-#include "dllmain.h"
-#include "wrappers\wrapper.h"
+#include "Settings\Settings.h"
+#include "Dllmain\Dllmain.h"
+#include "Wrappers\wrapper.h"
 
 //////////////////////////////////////////////////////////////////////////////////////////////
 

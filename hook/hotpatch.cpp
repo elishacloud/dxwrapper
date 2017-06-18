@@ -10,7 +10,7 @@
 // 1 = already patched
 // addr = address of the original function
 
-#include "cfg.h"
+#include "Settings\Settings.h"
 
 void *HotPatch(void *apiproc, const char *apiname, void *hookproc)
 {

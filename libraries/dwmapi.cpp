@@ -1,4 +1,4 @@
-#include  "cfg.h"
+#include  "Settings\Settings.h"
 
 typedef HRESULT(WINAPI *PFN_DwmSetWindowAttribute)(HWND hwnd, DWORD dwAttribute, LPCVOID pvAttribute, DWORD cbAttribute);
 PFN_DwmSetWindowAttribute DwmSetWindowAttributePtr = nullptr;

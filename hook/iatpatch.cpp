@@ -5,7 +5,7 @@
 * Updated 2017 by Elisha Riedlinger
 */
 
-#include "cfg.h"
+#include "Settings\Settings.h"
 
 void *IATPatch(HMODULE module, DWORD ordinal, const char *dll, void *apiproc, const char *apiname, void *hookproc)
 {

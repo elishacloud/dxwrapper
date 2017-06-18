@@ -9,7 +9,7 @@
 #include <windows.h>
 #include <stdio.h>
 //********** Begin Edit *************
-#include "cfg.h"
+#include "Settings\Settings.h"
 //********** End Edit ***************
 #include "dxwnd.h"
 

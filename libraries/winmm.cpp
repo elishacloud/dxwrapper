@@ -1,5 +1,5 @@
-#include  "cfg.h"
-#include  "wrappers\wrapper.h"
+#include  "Settings\Settings.h"
+#include  "Wrappers\wrapper.h"
 
 typedef void(WINAPI *PFN_timeBeginPeriod)(UINT uPeriod);
 typedef void(WINAPI *PFN_timeEndPeriod)(UINT uPeriod);
