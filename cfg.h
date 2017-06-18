@@ -65,8 +65,8 @@ struct CONFIG
 	bool DisableMaxWindowedModeNotSet;	// If the DisableMaxWindowedMode option exists in the config file
 
 	// DSoundCtrl
-	int Num2DBuffers;
-	int Num3DBuffers;
+	DWORD Num2DBuffers;
+	DWORD Num3DBuffers;
 	bool ForceCertification;
 	bool ForceExclusiveMode;
 	bool ForceSoftwareMixing;
@@ -76,28 +76,28 @@ struct CONFIG
 	bool ForceNonStaticBuffers;
 	bool ForceVoiceManagement;
 	bool ForcePrimaryBufferFormat;
-	int PrimaryBufferBits;
-	int PrimaryBufferSamples;
-	int PrimaryBufferChannels;
+	DWORD PrimaryBufferBits;
+	DWORD PrimaryBufferSamples;
+	DWORD PrimaryBufferChannels;
 	bool ForceSpeakerConfig;
-	int SpeakerConfig;
+	DWORD SpeakerConfig;
 	bool StoppedDriverWorkaround;
 };
 extern CONFIG Config;
 
 struct DLLTYPE
 {
-	static constexpr int ddraw = 1;
-	static constexpr int d3d9 = 2;
-	static constexpr int d3d8 = 3;
-	static constexpr int winmm = 4;
-	static constexpr int dsound = 5;
-	static constexpr int dxgi = 6;
-	static constexpr int dplayx = 7;
-	static constexpr int winspool = 8;
-	static constexpr int dinput = 9;
+	const DWORD ddraw = 1;
+	const DWORD d3d9 = 2;
+	const DWORD d3d8 = 3;
+	const DWORD winmm = 4;
+	const DWORD dsound = 5;
+	const DWORD dxgi = 6;
+	const DWORD dplayx = 7;
+	const DWORD winspool = 8;
+	const DWORD dinput = 9;
 };
-extern DLLTYPE dtype;
+static const DLLTYPE dtype;
 
 // Designated Initializer does not work in VS 2015 so must pay attention to the order
 static constexpr char* dtypename[] = {
@@ -116,17 +116,17 @@ static constexpr int dtypeArraySize = (sizeof(dtypename) / sizeof(*dtypename));
 
 struct APPCOMPATDATATYPE
 {
-	static constexpr int LockEmulation = 1;
-	static constexpr int BltEmulation = 2;
-	static constexpr int ForceLockNoWindow = 3;
-	static constexpr int ForceBltNoWindow = 4;
-	static constexpr int LockColorkey = 5;
-	static constexpr int FullscreenWithDWM = 6;
-	static constexpr int DisableLockEmulation = 7;
-	static constexpr int EnableOverlays = 8;
-	static constexpr int DisableSurfaceLocks = 9;
-	static constexpr int RedirectPrimarySurfBlts = 10;
-	static constexpr int StripBorderStyle = 11;
-	static constexpr int DisableMaxWindowedMode = 12;
+	const DWORD LockEmulation = 1;
+	const DWORD BltEmulation = 2;
+	const DWORD ForceLockNoWindow = 3;
+	const DWORD ForceBltNoWindow = 4;
+	const DWORD LockColorkey = 5;
+	const DWORD FullscreenWithDWM = 6;
+	const DWORD DisableLockEmulation = 7;
+	const DWORD EnableOverlays = 8;
+	const DWORD DisableSurfaceLocks = 9;
+	const DWORD RedirectPrimarySurfBlts = 10;
+	const DWORD StripBorderStyle = 11;
+	const DWORD DisableMaxWindowedMode = 12;
 };
-extern APPCOMPATDATATYPE AppCompatDataType;
+static const APPCOMPATDATATYPE AppCompatDataType;

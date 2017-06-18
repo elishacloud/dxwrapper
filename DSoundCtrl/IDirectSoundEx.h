@@ -39,16 +39,16 @@ extern bool g_bForceCertification;
 extern bool g_bForceSoftwareMixing;
 extern bool g_bForceHardwareMixing;
 extern bool g_bPreventSpeakerSetup;
-extern int	g_nNum2DBuffers;
-extern int	g_nNum3DBuffers;
+extern DWORD g_nNum2DBuffers;
+extern DWORD g_nNum3DBuffers;
 extern bool	g_bForceHQSoftware3D;
 extern bool	g_bForceNonStatic;
 extern bool g_bForceVoiceManagement;
 extern bool	g_bForcePrimaryBufferFormat;
-extern int	g_nPrimaryBufferBits;
-extern int	g_nPrimaryBufferSamples;
-extern int	g_nPrimaryBufferChannels;
-extern int	g_nSpeakerConfig;
+extern DWORD g_nPrimaryBufferBits;
+extern DWORD g_nPrimaryBufferSamples;
+extern DWORD g_nPrimaryBufferChannels;
+extern DWORD g_nSpeakerConfig;
 extern bool g_bForceSpeakerConfig;
 
 //////////////////////////////////////////////////////////////////////////////////////////////

@@ -319,11 +319,11 @@ HRESULT IDirectSound8Ex::GetCaps              (LPDSCAPS pDSCaps)
 
 	if( g_nNum2DBuffers	!=	0 )
 	{
-		if( pDSCaps->dwMaxHwMixingAllBuffers >= (DWORD) g_nNum2DBuffers )
+		if( pDSCaps->dwMaxHwMixingAllBuffers >= g_nNum2DBuffers )
 		{
-			assert( g_nNum2DBuffers >= (int)( pDSCaps->dwMaxHwMixingAllBuffers - pDSCaps->dwFreeHwMixingAllBuffers ));
-			assert( g_nNum2DBuffers >= (int)( pDSCaps->dwMaxHwMixingStaticBuffers		-	pDSCaps->dwFreeHwMixingStaticBuffers ));
-			assert( g_nNum2DBuffers >= (int)( pDSCaps->dwFreeHwMixingStreamingBuffers	-	pDSCaps->dwMaxHwMixingStreamingBuffers ));
+			assert( g_nNum2DBuffers >= pDSCaps->dwMaxHwMixingAllBuffers			-	pDSCaps->dwFreeHwMixingAllBuffers );
+			assert( g_nNum2DBuffers >= pDSCaps->dwMaxHwMixingStaticBuffers		-	pDSCaps->dwFreeHwMixingStaticBuffers );
+			assert( g_nNum2DBuffers >= pDSCaps->dwFreeHwMixingStreamingBuffers	-	pDSCaps->dwMaxHwMixingStreamingBuffers );
 
 			pDSCaps->dwFreeHwMixingAllBuffers		=	g_nNum2DBuffers - ( pDSCaps->dwMaxHwMixingAllBuffers		-	pDSCaps->dwFreeHwMixingAllBuffers );
 			pDSCaps->dwFreeHwMixingStaticBuffers	=	g_nNum2DBuffers - ( pDSCaps->dwMaxHwMixingStaticBuffers		-	pDSCaps->dwFreeHwMixingStaticBuffers );
@@ -349,11 +349,11 @@ HRESULT IDirectSound8Ex::GetCaps              (LPDSCAPS pDSCaps)
 	
 	if( g_nNum3DBuffers	!=	0 )
 	{
-		if( pDSCaps->dwMaxHw3DAllBuffers >= (DWORD) g_nNum3DBuffers )
+		if( pDSCaps->dwMaxHw3DAllBuffers >= g_nNum3DBuffers )
 		{
-			assert( g_nNum3DBuffers >= (int)( pDSCaps->dwMaxHw3DAllBuffers - pDSCaps->dwFreeHw3DAllBuffers ));
-			assert( g_nNum3DBuffers >= (int)( pDSCaps->dwMaxHw3DStaticBuffers		-	pDSCaps->dwFreeHw3DStaticBuffers ));
-			assert( g_nNum3DBuffers >= (int)( pDSCaps->dwFreeHw3DStreamingBuffers	-	pDSCaps->dwMaxHw3DStreamingBuffers ));
+			assert( g_nNum3DBuffers >= pDSCaps->dwMaxHw3DAllBuffers			-	pDSCaps->dwFreeHw3DAllBuffers );
+			assert( g_nNum3DBuffers >= pDSCaps->dwMaxHw3DStaticBuffers		-	pDSCaps->dwFreeHw3DStaticBuffers );
+			assert( g_nNum3DBuffers >= pDSCaps->dwFreeHw3DStreamingBuffers	-	pDSCaps->dwMaxHw3DStreamingBuffers );
 
 			pDSCaps->dwFreeHw3DAllBuffers			=	g_nNum3DBuffers - ( pDSCaps->dwMaxHw3DAllBuffers		-	pDSCaps->dwFreeHw3DAllBuffers );
 			pDSCaps->dwFreeHw3DStaticBuffers		=	g_nNum3DBuffers - ( pDSCaps->dwMaxHw3DStaticBuffers		-	pDSCaps->dwFreeHw3DStaticBuffers );

@@ -1,5 +1,5 @@
 #pragma once
 
 void DllAttach();
-HMODULE LoadDll(uint8_t);
+HMODULE LoadDll(DWORD);
 void DllDetach();

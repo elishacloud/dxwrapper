@@ -164,16 +164,7 @@ void GetOSVersion()
 			switch (oOS_version.dwMinorVersion)
 			{
 			case 0: sOSName = "Windows 2000 Server"; break;
-			case 2:
-				if (GetSystemMetrics(SM_SERVERR2) == 0)
-				{
-					sOSName = "Windows Server 2003";
-				}
-				else
-				{
-					sOSName = "Windows Server 2003 R2";
-				}
-				break;
+			case 2: sOSName = (GetSystemMetrics(SM_SERVERR2) == 0) ? "Windows Server 2003" : "Windows Server 2003 R2"; break;
 			}
 			break;
 		case 6:
@@ -305,7 +296,7 @@ void SetAppCompat()
 {
 	// Check if any DXPrimaryEmulation flags is set
 	bool appCompatFlag = false;
-	for (int x = 1; x <= 12; x++) if (Config.DXPrimaryEmulation[x]) appCompatFlag = true;
+	for (UINT x = 1; x <= 12; x++) if (Config.DXPrimaryEmulation[x]) appCompatFlag = true;
 
 	// SetAppCompatData see: http://www.blitzbasic.com/Community/post.php?topic=99477&post=1202996
 	if (appCompatFlag)
@@ -316,7 +307,7 @@ void SetAppCompat()
 		{
 			FARPROC SetAppCompatDataPtr = GetProcAddress(module, "SetAppCompatData");
 			SetAppCompatDataFunc SetAppCompatData = (SetAppCompatDataFunc)SetAppCompatDataPtr;
-			for (int x = 1; x <= 12; x++)
+			for (DWORD x = 1; x <= 12; x++)
 			{
 				if (Config.DXPrimaryEmulation[x])
 				{
@@ -353,8 +344,6 @@ FARPROC GetFunctionAddress(HMODULE hModule, LPCSTR FunctionName)
 
 	PDWORD Address, Name;
 	PWORD Ordinal;
-
-	DWORD i;
 
 	if (!FunctionName)
 	{
@@ -396,7 +385,7 @@ FARPROC GetFunctionAddress(HMODULE hModule, LPCSTR FunctionName)
 		Name = (PDWORD)((LPBYTE)hModule + pIED->AddressOfNames);
 		Ordinal = (PWORD)((LPBYTE)hModule + pIED->AddressOfNameOrdinals);
 
-		for (i = 0; i < pIED->AddressOfFunctions; i++)
+		for (DWORD i = 0; i < pIED->AddressOfFunctions; i++)
 		{
 			if (!strcmp(FunctionName, (char*)hModule + Name[i]))
 			{

@@ -22,8 +22,8 @@
 static constexpr LONG MinWindowWidth = 320;			// Minimum window width for valid window check
 static constexpr LONG MinWindowHeight = 240;		// Minimum window height for valid window check
 static constexpr LONG WindowDelta = 40;				// Delta between window size and screensize for fullscreen check
-static constexpr LONG TerminationCount = 10;		// Minimum number of loops to check for termination
-static constexpr LONG TerminationWaitTime = 2000;	// Minimum time to wait for termination (LoopSleepTime * NumberOfLoops)
+static constexpr DWORD TerminationCount = 10;		// Minimum number of loops to check for termination
+static constexpr DWORD TerminationWaitTime = 2000;	// Minimum time to wait for termination (LoopSleepTime * NumberOfLoops)
 
 // Declare varables
 bool m_StopThreadFlag = false;
@@ -82,7 +82,7 @@ struct handle_data
 {
 	DWORD process_id = 0;
 	HWND best_handle = nullptr;
-	uint8_t LayerNumber = 0;
+	DWORD LayerNumber = 0;
 	window_layer Windows[256];
 	bool AutoDetect = true;
 	bool Debug = false;
@@ -138,7 +138,7 @@ LONG GetBestResolution(screen_res& ScreenRes, LONG xWidth, LONG xHeight)
 	ScreenRes.Height = 0;
 
 	// Get closest resolution
-	for (int iModeNum = 0; EnumDisplaySettings(nullptr, iModeNum, &dm) != 0; iModeNum++)
+	for (DWORD iModeNum = 0; EnumDisplaySettings(nullptr, iModeNum, &dm) != 0; iModeNum++)
 	{
 		NewDiff = abs((LONG)dm.dmPelsWidth - xWidth) + abs((LONG)dm.dmPelsHeight - xHeight);
 		if (NewDiff < diff)
@@ -196,8 +196,8 @@ void CheckCurrentScreenRes(screen_res& m_ScreenRes)
 	if (!IsWindowTooSmall(ScreenSize))
 	{
 		// Save screen resolution
-		m_ScreenRes.Width = ScreenSize.Width;
-		m_ScreenRes.Height = ScreenSize.Height;
+		InterlockedExchange(&m_ScreenRes.Width, ScreenSize.Width);
+		InterlockedExchange(&m_ScreenRes.Height, ScreenSize.Height);
 	}
 }
 
@@ -416,7 +416,7 @@ HWND FindMainWindow(DWORD process_id, bool AutoDetect, bool Debug)
 	// If no main fullscreen window found then check for other windows
 	if (!WindowsHandle)
 	{
-		for (UINT x = 1; x <= data.LayerNumber; x++)
+		for (DWORD x = 1; x <= data.LayerNumber; x++)
 		{
 			// Return the first fullscreen window layer
 			if (data.Windows[x].IsFullScreen)
@@ -542,7 +542,7 @@ void SetFullScreen(HWND& hwnd, const MONITORINFO& mi)
 // Check if process should be termianted
 void CheckForTermination(DWORD m_ProcessId)
 {
-	static int countAttempts = 0;
+	static DWORD countAttempts = 0;
 	static bool FoundWindow = false;
 	screen_res WindowSize;
 	RECT rect = { sizeof(rect) };
@@ -575,8 +575,8 @@ void CheckForTermination(DWORD m_ProcessId)
 			!IsWindow(hwnd)))	// No window found
 	{
 		// Check for number of loops and wait time before terminating application
-		if ((++countAttempts > TerminationCount) &&						// Minimum number of loops
-			(countAttempts * Config.LoopSleepTime > TerminationWaitTime))		// Minimum time to wait
+		if ((++countAttempts > TerminationCount) &&							// Minimum number of loops
+			(countAttempts * Config.LoopSleepTime > TerminationWaitTime))	// Minimum time to wait
 		{
 			RunExitFunctions(true);
 		}
@@ -601,7 +601,7 @@ DWORD WINAPI StartThreadFunc(LPVOID pvParam)
 	Compat::Log() << "Starting fullscreen thread...";
 
 	// Get thread handle
-	m_hThread = GetCurrentThread();
+	InterlockedExchangePointer(&m_hThread, GetCurrentThread());
 	if (!m_hThread) {
 		Compat::Log() << "Failed to get thread handle exiting thread!";
 		return 0;
@@ -620,7 +620,7 @@ DWORD WINAPI StartThreadFunc(LPVOID pvParam)
 	m_ThreadRunningFlag = false;
 
 	// Set thread ID back to 0
-	m_dwThreadID = 0;
+	InterlockedExchange(&m_dwThreadID, 0);
 
 	// Return value
 	return 0;

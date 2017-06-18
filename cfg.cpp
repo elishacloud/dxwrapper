@@ -21,8 +21,6 @@
 #include "dllmain.h"
 
 CONFIG Config;
-DLLTYPE dtype;
-APPCOMPATDATATYPE AppCompatDataType;
 CRITICAL_SECTION CriticalSectionCfg;
 
 uint8_t ExcludeCount;
@@ -218,7 +216,7 @@ void SetBytesList(MEMORYINFO& MemoryInfo, char* value)
 		MemoryInfo.SizeOfBytes = size;
 
 		// Get byte data
-		for (UINT x = 1; x <= size; x++)
+		for (DWORD x = 1; x <= size; x++)
 		{
 			charTemp[2] = value[x * 2];
 			charTemp[3] = value[(x * 2) + 1];
@@ -257,21 +255,6 @@ void LogSetting(char* name, char* value)
 void SetValue(char* name, char* value, DWORD* setting)
 {
 	DWORD NewValue = atoi(value);
-	if (*setting != NewValue)
-	{
-#ifdef _DEBUG
-		Compat::Log() << name << " set to '" << NewValue << "'";
-#else
-		UNREFERENCED_PARAMETER(name);
-#endif
-		*setting = NewValue;
-	}
-}
-
-// Set value for int
-void SetValue(char* name, char* value, int* setting)
-{
-	int NewValue = atoi(value);
 	if (*setting != NewValue)
 	{
 #ifdef _DEBUG
@@ -470,7 +453,7 @@ void ClearConfigSettings()
 	Config.szDllPath[0] = '\0';
 	Config.szSetNamedLayer[0] = '\0';
 	// AppCompatData
-	for (int x = 1; x <= 12; x++)
+	for (UINT x = 1; x <= 12; x++)
 	{
 		Config.DXPrimaryEmulation[x] = false;
 	}
@@ -490,7 +473,7 @@ void GetWrapperMode()
 	strippath(buffer);
 
 	// Check each wrapper library
-	for (int x = 1; x < dtypeArraySize; ++x)
+	for (UINT x = 1; x < dtypeArraySize; ++x)
 	{
 		// Check dll name
 		if (_strcmpi(buffer, dtypename[x]) == 0)

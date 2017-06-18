@@ -36,7 +36,7 @@ struct custom_dll
 custom_dll dllhandle[dtypeArraySize];
 
 // Load real dll file that is being wrapped
-HMODULE LoadDll(uint8_t dlltype)
+HMODULE LoadDll(DWORD dlltype)
 {
 	// Check for valid dlltype
 	if (dlltype == 0 || dlltype >= dtypeArraySize) return nullptr;
@@ -86,7 +86,7 @@ HMODULE LoadDll(uint8_t dlltype)
 // Load custom dll files
 void LoadCustomDll()
 {
-	for (int x = 1; x <= Config.CustomDllCount; ++x)
+	for (UINT x = 1; x <= Config.CustomDllCount; ++x)
 	{
 		if (Config.szCustomDllPath[x] != '\0')
 		{
@@ -117,7 +117,7 @@ void LoadCustomDll()
 // Unload custom dll files
 void FreeCustomLibrary()
 {
-	for (int x = 1; x <= Config.CustomDllCount; ++x)
+	for (UINT x = 1; x <= Config.CustomDllCount; ++x)
 	{
 		// If dll was loaded
 		if (custom[x].Flag)
@@ -150,7 +150,7 @@ void DllDetach()
 	FreeCustomLibrary();
 
 	// Unload wrapper libraries
-	for (int x = 1; x < dtypeArraySize; ++x)
+	for (UINT x = 1; x < dtypeArraySize; ++x)
 	{
 		// If dll was loaded
 		if (dllhandle[x].dll)

@@ -38,7 +38,7 @@ void WriteAllByteMemory()
 			if (ReadProcessMemory(hProcess, AddressPointer, lpBuffer, Config.MemoryInfo[x].SizeOfBytes, nullptr))
 			{
 				// Make memory writeable
-				unsigned long oldProtect;
+				DWORD oldProtect;
 				if (VirtualProtect(AddressPointer, Config.MemoryInfo[x].SizeOfBytes, PAGE_EXECUTE_READWRITE, &oldProtect))
 				{
 					// Write to memory
@@ -102,7 +102,7 @@ DWORD WINAPI WriteMemoryThreadFunc(LPVOID pvParam)
 	UNREFERENCED_PARAMETER(pvParam);
 
 	// Get thread handle
-	p_hThread = GetCurrentThread();
+	InterlockedExchangePointer(&p_hThread, GetCurrentThread());
 
 	// Set thread flag to running
 	p_ThreadRunningFlag = true;
@@ -125,7 +125,7 @@ DWORD WINAPI WriteMemoryThreadFunc(LPVOID pvParam)
 	p_ThreadRunningFlag = false;
 
 	// Set thread ID back to 0
-	p_dwThreadID = 0;
+	InterlockedExchange(&p_dwThreadID, 0);
 
 	// Return value
 	return 0;

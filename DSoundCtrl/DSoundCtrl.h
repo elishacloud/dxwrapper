@@ -77,8 +77,8 @@ HMODULE			g_hDLL					=	nullptr;
 
 //////////////////////////////////////////////////////////////////////////////////////////////
 
-int				g_nNum2DBuffers					=	0;
-int				g_nNum3DBuffers					=	0;
+DWORD			g_nNum2DBuffers					=	0;
+DWORD			g_nNum3DBuffers					=	0;
 bool			g_bForceCertification			=	false;
 bool			g_bForceSoftwareMixing			=	false;
 bool			g_bForceHardwareMixing			=	false;
@@ -88,12 +88,12 @@ bool			g_bForceHQSoftware3D			=	false;
 bool			g_bForceNonStatic				=	false;
 bool			g_bForceVoiceManagement			=	false;
 bool			g_bForcePrimaryBufferFormat		=	false;
-int				g_nPrimaryBufferBits			=	16;
-int				g_nPrimaryBufferSamples			=	44100;
-int				g_nPrimaryBufferChannels		=	2;
+DWORD			g_nPrimaryBufferBits			=	16;
+DWORD			g_nPrimaryBufferSamples			=	44100;
+DWORD			g_nPrimaryBufferChannels		=	2;
 
 bool			g_bForceSpeakerConfig			=	false;
-int				g_nSpeakerConfig				=	DSSPEAKER_5POINT1;
+DWORD			g_nSpeakerConfig				=	DSSPEAKER_5POINT1;
 
 bool			g_bStoppedDriverWorkaround		=	false;
 

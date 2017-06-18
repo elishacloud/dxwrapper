@@ -2,8 +2,8 @@
 
 struct screen_res
 {
-	long Width = 0;
-	long Height = 0;
+	LONG Width = 0;
+	LONG Height = 0;
 
 	screen_res& operator=(const screen_res& a)
 	{

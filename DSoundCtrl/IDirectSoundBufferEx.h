@@ -38,9 +38,9 @@ extern bool	g_bLogDirectSoundBuffer;
 #endif // _DEBUG
 
 extern bool	g_bForcePrimaryBufferFormat;
-extern int	g_nPrimaryBufferBits;
-extern int	g_nPrimaryBufferSamples;
-extern int	g_nPrimaryBufferChannels;
+extern DWORD g_nPrimaryBufferBits;
+extern DWORD g_nPrimaryBufferSamples;
+extern DWORD g_nPrimaryBufferChannels;
 extern bool g_bStoppedDriverWorkaround;
 
 //////////////////////////////////////////////////////////////////////////////////////////////
