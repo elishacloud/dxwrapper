@@ -415,6 +415,7 @@ void LoadWinmm()
 {
 	// Load real dll
 	winmm.dll = LoadDll(dtype.winmm);
+
 	// Load dll functions
 	if (winmm.dll)
 	{

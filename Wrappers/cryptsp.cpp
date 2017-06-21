@@ -157,6 +157,7 @@ void LoadCryptsp()
 {
 	// Load real dll
 	cryptsp.dll = LoadDll(dtype.cryptsp);
+
 	// Load dll functions
 	if (cryptsp.dll)
 	{

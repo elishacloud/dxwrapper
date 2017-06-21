@@ -39,6 +39,7 @@ void LoadDplayx()
 {
 	// Load real dll
 	dplayx.dll = LoadDll(dtype.dplayx);
+
 	// Load dll functions
 	if (dplayx.dll)
 	{

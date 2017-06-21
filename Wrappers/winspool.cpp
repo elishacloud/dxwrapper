@@ -422,6 +422,7 @@ void LoadWinspool()
 {
 	// Load real dll
 	winspool.dll = LoadDll(dtype.winspool);
+
 	// Load dll functions
 	if (winspool.dll)
 	{

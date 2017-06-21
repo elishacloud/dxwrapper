@@ -143,6 +143,7 @@ void LoadBcrypt()
 {
 	// Load real dll
 	bcrypt.dll = LoadDll(dtype.bcrypt);
+
 	// Load dll functions
 	if (bcrypt.dll)
 	{

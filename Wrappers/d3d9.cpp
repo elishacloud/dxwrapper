@@ -55,6 +55,7 @@ void LoadD3d9()
 {
 	// Load real dll
 	d3d9.dll = LoadDll(dtype.d3d9);
+
 	// Load dll functions
 	if (d3d9.dll)
 	{

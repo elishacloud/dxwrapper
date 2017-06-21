@@ -17,7 +17,7 @@
 #include "Settings\Settings.h"
 #include "Dllmain\Dllmain.h"
 #include "wrapper.h"
-#include "ddraw.h"
+#include "dsound.h"
 
 struct dinput_dll
 {
@@ -25,8 +25,8 @@ struct dinput_dll
 	FARPROC DirectInputCreateA;
 	FARPROC DirectInputCreateEx;
 	FARPROC DirectInputCreateW;
-	FARPROC DllCanUnloadNow;	//		<---  Shared with ddraw.dll
-	FARPROC DllGetClassObject;	//		<---  Shared with ddraw.dll
+	FARPROC DllCanUnloadNow;
+	FARPROC DllGetClassObject;
 	FARPROC DllRegisterServer;
 	FARPROC DllUnregisterServer;
 } dinput;
@@ -34,8 +34,8 @@ struct dinput_dll
 __declspec(naked) void  FakeDirectInputCreateA() { _asm { jmp[dinput.DirectInputCreateA] } }
 __declspec(naked) void  FakeDirectInputCreateEx() { _asm { jmp[dinput.DirectInputCreateEx] } }
 __declspec(naked) void  FakeDirectInputCreateW() { _asm { jmp[dinput.DirectInputCreateW] } }
-//__declspec(naked) void  FakeDllCanUnloadNow()				{ _asm { jmp [dinput.DllCanUnloadNow] } }	//		<---  Shared with ddraw.dll
-//__declspec(naked) void  FakeDllGetClassObject()			{ _asm { jmp [dinput.DllGetClassObject] } }	//		<---  Shared with ddraw.dll
+//__declspec(naked) void  FakeDllCanUnloadNow() { _asm { jmp [dinput.DllCanUnloadNow] } }			 // <---  Shared with dsound.dll
+//__declspec(naked) void  FakeDllGetClassObject() { _asm { jmp [dinput.DllGetClassObject] } }		 // <---  Shared with dsound.dll
 __declspec(naked) void  FakeDllRegisterServer() { _asm { jmp[dinput.DllRegisterServer] } }
 __declspec(naked) void  FakeDllUnregisterServer() { _asm { jmp[dinput.DllUnregisterServer] } }
 
@@ -43,14 +43,15 @@ void LoadDinput()
 {
 	// Load real dll
 	dinput.dll = LoadDll(dtype.dinput);
+
 	// Load dll functions
 	if (dinput.dll)
 	{
 		dinput.DirectInputCreateA = GetProcAddress(dinput.dll, "DirectInputCreateA");
 		dinput.DirectInputCreateEx = GetProcAddress(dinput.dll, "DirectInputCreateEx");
 		dinput.DirectInputCreateW = GetProcAddress(dinput.dll, "DirectInputCreateW");
-		Set_DllCanUnloadNow(GetProcAddress(dinput.dll, "DllCanUnloadNow"));								//		<---  Shared with ddraw.dll
-		Set_DllGetClassObject(GetProcAddress(dinput.dll, "DllGetClassObject"));							//		<---  Shared with ddraw.dll
+		Set_DllCanUnloadNow(GetProcAddress(dinput.dll, "DllCanUnloadNow"));
+		Set_DllGetClassObject(GetProcAddress(dinput.dll, "DllGetClassObject"));
 		dinput.DllRegisterServer = GetProcAddress(dinput.dll, "DllRegisterServer");
 		dinput.DllUnregisterServer = GetProcAddress(dinput.dll, "DllUnregisterServer");
 	}

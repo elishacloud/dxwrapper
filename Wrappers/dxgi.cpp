@@ -137,6 +137,7 @@ void LoadDxgi()
 {
 	// Load real dll
 	dxgi.dll = LoadDll(dtype.dxgi);
+
 	// Load dll functions
 	if (dxgi.dll)
 	{

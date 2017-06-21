@@ -538,13 +538,6 @@ void CONFIG::Init()
 	// Read config file
 	szCfg = Read(path);
 
-	// Read from dgame.ini config file if config does not already exist
-	if (!szCfg) {
-		strcpy_s(pdest, MAX_PATH, "dgame.ini");
-		Compat::Log() << "Reading config file: dgame.ini";
-		szCfg = Read(path);
-	}
-
 	// Parce config file
 	if (szCfg)
 	{
