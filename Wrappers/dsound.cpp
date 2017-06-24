@@ -52,62 +52,60 @@ __declspec(naked) void  FakeDirectSoundCaptureCreate8()		{ _asm { jmp [dsound.Di
 
 void LoadDsound()
 {
-	// Enable DSoundCtrl functions
-	if (Config.DSoundCtrl && Config.RealWrapperMode == dtype.dsound)
-	{
-		dsound.DirectSoundCreate = GetProcAddress(hModule_dll, "_DirectSoundCreate");
-		dsound.DirectSoundEnumerateA = GetProcAddress(hModule_dll, "_DirectSoundEnumerateA");
-		dsound.DirectSoundEnumerateW = GetProcAddress(hModule_dll, "_DirectSoundEnumerateW");
-		dsound.DllCanUnloadNow = GetProcAddress(hModule_dll, "_DllCanUnloadNow_DSoundCtrl");
-		dsound.DllGetClassObject = GetProcAddress(hModule_dll, "_DllGetClassObject_DSoundCtrl");
-		dsound.DirectSoundCaptureCreate = GetProcAddress(hModule_dll, "_DirectSoundCaptureCreate");
-		dsound.DirectSoundCaptureEnumerateA = GetProcAddress(hModule_dll, "_DirectSoundCaptureEnumerateA");
-		dsound.DirectSoundCaptureEnumerateW = GetProcAddress(hModule_dll, "_DirectSoundCaptureEnumerateW");
-		dsound.GetDeviceID = GetProcAddress(hModule_dll, "_GetDeviceID");
-		dsound.DirectSoundFullDuplexCreate = GetProcAddress(hModule_dll, "_DirectSoundFullDuplexCreate");
-		dsound.DirectSoundCreate8 = GetProcAddress(hModule_dll, "_DirectSoundCreate8");
-		dsound.DirectSoundCaptureCreate8 = GetProcAddress(hModule_dll, "_DirectSoundCaptureCreate8");
-	}
-	else
-	{
-		// Load real dll
-		dsound.dll = LoadDll(dtype.dsound);
+	// Load real dll
+	dsound.dll = LoadDll(dtype.dsound);
 
-		// Overload GetProcAddress function to GetFunctionAddress
-		typedef FARPROC(*GetFunctionAddress_type)(HMODULE, LPCSTR);
-		GetFunctionAddress_type GetProcAddress = reinterpret_cast<GetFunctionAddress_type>(GetFunctionAddress);
+	// Overload GetProcAddress function to GetFunctionAddress
+	typedef FARPROC(*GetFunctionAddress_type)(HMODULE, LPCSTR);
+	GetFunctionAddress_type GetProcAddress = reinterpret_cast<GetFunctionAddress_type>(GetFunctionAddress);
 
-		// Load dll functions
-		if (dsound.dll)
+	// Load dll functions
+	if (dsound.dll)
+	{
+		dsound.DirectSoundCreate = GetProcAddress(dsound.dll, "DirectSoundCreate");
+		dsound.DirectSoundEnumerateA = GetProcAddress(dsound.dll, "DirectSoundEnumerateA");
+		dsound.DirectSoundEnumerateW = GetProcAddress(dsound.dll, "DirectSoundEnumerateW");
+		dsound.DllCanUnloadNow = GetProcAddress(dsound.dll, "DllCanUnloadNow");
+		dsound.DllGetClassObject = GetProcAddress(dsound.dll, "DllGetClassObject");
+		dsound.DirectSoundCaptureCreate = GetProcAddress(dsound.dll, "DirectSoundCaptureCreate");
+		dsound.DirectSoundCaptureEnumerateA = GetProcAddress(dsound.dll, "DirectSoundCaptureEnumerateA");
+		dsound.DirectSoundCaptureEnumerateW = GetProcAddress(dsound.dll, "DirectSoundCaptureEnumerateW");
+		dsound.GetDeviceID = GetProcAddress(dsound.dll, "GetDeviceID");
+		dsound.DirectSoundFullDuplexCreate = GetProcAddress(dsound.dll, "DirectSoundFullDuplexCreate");
+		dsound.DirectSoundCreate8 = GetProcAddress(dsound.dll, "DirectSoundCreate8");
+		dsound.DirectSoundCaptureCreate8 = GetProcAddress(dsound.dll, "DirectSoundCaptureCreate8");
+
+		// Enable DSoundCtrl functions
+		if (Config.DSoundCtrl && Config.RealWrapperMode == dtype.dsound)
 		{
-			dsound.DirectSoundCreate = GetProcAddress(dsound.dll, "DirectSoundCreate");
-			dsound.DirectSoundEnumerateA = GetProcAddress(dsound.dll, "DirectSoundEnumerateA");
-			dsound.DirectSoundEnumerateW = GetProcAddress(dsound.dll, "DirectSoundEnumerateW");
-			dsound.DllCanUnloadNow = GetProcAddress(dsound.dll, "DllCanUnloadNow");
-			dsound.DllGetClassObject = GetProcAddress(dsound.dll, "DllGetClassObject");
-			dsound.DirectSoundCaptureCreate = GetProcAddress(dsound.dll, "DirectSoundCaptureCreate");
-			dsound.DirectSoundCaptureEnumerateA = GetProcAddress(dsound.dll, "DirectSoundCaptureEnumerateA");
-			dsound.DirectSoundCaptureEnumerateW = GetProcAddress(dsound.dll, "DirectSoundCaptureEnumerateW");
-			dsound.GetDeviceID = GetProcAddress(dsound.dll, "GetDeviceID");
-			dsound.DirectSoundFullDuplexCreate = GetProcAddress(dsound.dll, "DirectSoundFullDuplexCreate");
-			dsound.DirectSoundCreate8 = GetProcAddress(dsound.dll, "DirectSoundCreate8");
-			dsound.DirectSoundCaptureCreate8 = GetProcAddress(dsound.dll, "DirectSoundCaptureCreate8");
+			dsound.DirectSoundCreate = GetProcAddress(hModule_dll, "_DirectSoundCreate");
+			dsound.DirectSoundEnumerateA = GetProcAddress(hModule_dll, "_DirectSoundEnumerateA");
+			dsound.DirectSoundEnumerateW = GetProcAddress(hModule_dll, "_DirectSoundEnumerateW");
+			dsound.DllCanUnloadNow = GetProcAddress(hModule_dll, "_DllCanUnloadNow_DSoundCtrl");
+			dsound.DllGetClassObject = GetProcAddress(hModule_dll, "_DllGetClassObject_DSoundCtrl");
+			dsound.DirectSoundCaptureCreate = GetProcAddress(hModule_dll, "_DirectSoundCaptureCreate");
+			dsound.DirectSoundCaptureEnumerateA = GetProcAddress(hModule_dll, "_DirectSoundCaptureEnumerateA");
+			dsound.DirectSoundCaptureEnumerateW = GetProcAddress(hModule_dll, "_DirectSoundCaptureEnumerateW");
+			dsound.GetDeviceID = GetProcAddress(hModule_dll, "_GetDeviceID");
+			dsound.DirectSoundFullDuplexCreate = GetProcAddress(hModule_dll, "_DirectSoundFullDuplexCreate");
+			dsound.DirectSoundCreate8 = GetProcAddress(hModule_dll, "_DirectSoundCreate8");
+			dsound.DirectSoundCaptureCreate8 = GetProcAddress(hModule_dll, "_DirectSoundCaptureCreate8");
+		}
 
-			// Hook APIs for DSoundCtrl functions
-			if (Config.DSoundCtrl)
-			{
-				Compat::Log() << "Hooking dsound.dll APIs...";
-				dsound.DirectSoundCreate = (FARPROC)HookAPI(hModule_dll, dtypename[dtype.dsound], dsound.DirectSoundCreate, "DirectSoundCreate", GetProcAddress(hModule_dll, "_DirectSoundCreate"));
-				dsound.DirectSoundEnumerateA = (FARPROC)HookAPI(hModule_dll, dtypename[dtype.dsound], dsound.DirectSoundEnumerateA, "DirectSoundEnumerateA", GetProcAddress(hModule_dll, "_DirectSoundEnumerateA"));
-				dsound.DirectSoundEnumerateW = (FARPROC)HookAPI(hModule_dll, dtypename[dtype.dsound], dsound.DirectSoundEnumerateW, "DirectSoundEnumerateW", GetProcAddress(hModule_dll, "_DirectSoundEnumerateW"));
-				dsound.DirectSoundCaptureCreate = (FARPROC)HookAPI(hModule_dll, dtypename[dtype.dsound], dsound.DirectSoundCaptureCreate, "DirectSoundCaptureCreate", GetProcAddress(hModule_dll, "_DirectSoundCaptureCreate"));
-				dsound.DirectSoundCaptureEnumerateA = (FARPROC)HookAPI(hModule_dll, dtypename[dtype.dsound], dsound.DirectSoundCaptureEnumerateA, "DirectSoundCaptureEnumerateA", GetProcAddress(hModule_dll, "_DirectSoundCaptureEnumerateA"));
-				dsound.DirectSoundCaptureEnumerateW = (FARPROC)HookAPI(hModule_dll, dtypename[dtype.dsound], dsound.DirectSoundCaptureEnumerateW, "DirectSoundCaptureEnumerateW", GetProcAddress(hModule_dll, "_DirectSoundCaptureEnumerateW"));
-				dsound.GetDeviceID = (FARPROC)HookAPI(hModule_dll, dtypename[dtype.dsound], dsound.GetDeviceID, "GetDeviceID", GetProcAddress(hModule_dll, "_GetDeviceID"));
-				dsound.DirectSoundFullDuplexCreate = (FARPROC)HookAPI(hModule_dll, dtypename[dtype.dsound], dsound.DirectSoundFullDuplexCreate, "DirectSoundFullDuplexCreate", GetProcAddress(hModule_dll, "_DirectSoundFullDuplexCreate"));
-				dsound.DirectSoundCreate8 = (FARPROC)HookAPI(hModule_dll, dtypename[dtype.dsound], dsound.DirectSoundCreate8, "DirectSoundCreate8", GetProcAddress(hModule_dll, "_DirectSoundCreate8"));
-				dsound.DirectSoundCaptureCreate8 = (FARPROC)HookAPI(hModule_dll, dtypename[dtype.dsound], dsound.DirectSoundCaptureCreate8, "DirectSoundCaptureCreate8", GetProcAddress(hModule_dll, "_DirectSoundCaptureCreate8"));
-			}
+		// Hook APIs for DSoundCtrl functions
+		else if (Config.DSoundCtrl)
+		{
+			Compat::Log() << "Hooking dsound.dll APIs...";
+			dsound.DirectSoundCreate = (FARPROC)HookAPI(hModule_dll, dtypename[dtype.dsound], dsound.DirectSoundCreate, "DirectSoundCreate", GetProcAddress(hModule_dll, "_DirectSoundCreate"));
+			dsound.DirectSoundEnumerateA = (FARPROC)HookAPI(hModule_dll, dtypename[dtype.dsound], dsound.DirectSoundEnumerateA, "DirectSoundEnumerateA", GetProcAddress(hModule_dll, "_DirectSoundEnumerateA"));
+			dsound.DirectSoundEnumerateW = (FARPROC)HookAPI(hModule_dll, dtypename[dtype.dsound], dsound.DirectSoundEnumerateW, "DirectSoundEnumerateW", GetProcAddress(hModule_dll, "_DirectSoundEnumerateW"));
+			dsound.DirectSoundCaptureCreate = (FARPROC)HookAPI(hModule_dll, dtypename[dtype.dsound], dsound.DirectSoundCaptureCreate, "DirectSoundCaptureCreate", GetProcAddress(hModule_dll, "_DirectSoundCaptureCreate"));
+			dsound.DirectSoundCaptureEnumerateA = (FARPROC)HookAPI(hModule_dll, dtypename[dtype.dsound], dsound.DirectSoundCaptureEnumerateA, "DirectSoundCaptureEnumerateA", GetProcAddress(hModule_dll, "_DirectSoundCaptureEnumerateA"));
+			dsound.DirectSoundCaptureEnumerateW = (FARPROC)HookAPI(hModule_dll, dtypename[dtype.dsound], dsound.DirectSoundCaptureEnumerateW, "DirectSoundCaptureEnumerateW", GetProcAddress(hModule_dll, "_DirectSoundCaptureEnumerateW"));
+			dsound.GetDeviceID = (FARPROC)HookAPI(hModule_dll, dtypename[dtype.dsound], dsound.GetDeviceID, "GetDeviceID", GetProcAddress(hModule_dll, "_GetDeviceID"));
+			dsound.DirectSoundFullDuplexCreate = (FARPROC)HookAPI(hModule_dll, dtypename[dtype.dsound], dsound.DirectSoundFullDuplexCreate, "DirectSoundFullDuplexCreate", GetProcAddress(hModule_dll, "_DirectSoundFullDuplexCreate"));
+			dsound.DirectSoundCreate8 = (FARPROC)HookAPI(hModule_dll, dtypename[dtype.dsound], dsound.DirectSoundCreate8, "DirectSoundCreate8", GetProcAddress(hModule_dll, "_DirectSoundCreate8"));
+			dsound.DirectSoundCaptureCreate8 = (FARPROC)HookAPI(hModule_dll, dtypename[dtype.dsound], dsound.DirectSoundCaptureCreate8, "DirectSoundCaptureCreate8", GetProcAddress(hModule_dll, "_DirectSoundCaptureCreate8"));
 		}
 	}
 }

@@ -55,12 +55,4 @@ void LoadDinput()
 		dinput.DllRegisterServer = GetProcAddress(dinput.dll, "DllRegisterServer");
 		dinput.DllUnregisterServer = GetProcAddress(dinput.dll, "DllUnregisterServer");
 	}
-	// Enable DDrawCompat
-	if (Config.DDrawCompat)
-	{
-		if (Config.RealWrapperMode == dtype.dinput)
-		{
-			dinput.DirectInputCreateA = GetProcAddress(hModule_dll, "_DirectInputCreateA");
-		}
-	}
 }

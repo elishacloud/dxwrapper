@@ -37,34 +37,32 @@ __declspec(naked) void FakeValidatePixelShader()			{ _asm { jmp [d3d8.ValidatePi
 
 void LoadD3d8()
 {
-	// Enable d3d8to9 conversion
-	if (Config.D3d8to9 && Config.RealWrapperMode == dtype.d3d8)
-	{
-		d3d8.Direct3DCreate8 = GetProcAddress(hModule_dll, "_Direct3DCreate8");
-	}
-	else
-	{
-		// Load real dll
-		d3d8.dll = LoadDll(dtype.d3d8);
+	// Load real dll
+	d3d8.dll = LoadDll(dtype.d3d8);
 
-		// Overload GetProcAddress function to GetFunctionAddress
-		typedef FARPROC(*GetFunctionAddress_type)(HMODULE, LPCSTR);
-		GetFunctionAddress_type GetProcAddress = reinterpret_cast<GetFunctionAddress_type>(GetFunctionAddress);
+	// Overload GetProcAddress function to GetFunctionAddress
+	typedef FARPROC(*GetFunctionAddress_type)(HMODULE, LPCSTR);
+	GetFunctionAddress_type GetProcAddress = reinterpret_cast<GetFunctionAddress_type>(GetFunctionAddress);
 
-		// Load dll functions
-		if (d3d8.dll)
+	// Load dll functions
+	if (d3d8.dll)
+	{
+		d3d8.Direct3DCreate8 = GetProcAddress(d3d8.dll, "Direct3DCreate8");
+		Set_DebugSetMute(GetProcAddress(d3d8.dll, "DebugSetMute"));
+		d3d8.ValidateVertexShader = GetProcAddress(d3d8.dll, "ValidateVertexShader");
+		d3d8.ValidatePixelShader = GetProcAddress(d3d8.dll, "ValidatePixelShader");
+
+		// Enable d3d8to9 conversion
+		if (Config.D3d8to9 && Config.RealWrapperMode == dtype.d3d8)
 		{
-			d3d8.Direct3DCreate8 = GetProcAddress(d3d8.dll, "Direct3DCreate8");
-			Set_DebugSetMute(GetProcAddress(d3d8.dll, "DebugSetMute"));
-			d3d8.ValidateVertexShader = GetProcAddress(d3d8.dll, "ValidateVertexShader");
-			d3d8.ValidatePixelShader = GetProcAddress(d3d8.dll, "ValidatePixelShader");
+			d3d8.Direct3DCreate8 = GetProcAddress(hModule_dll, "_Direct3DCreate8");
+		}
 
-			// Hook APIs for d3d8to9 conversion
-			if (Config.D3d8to9)
-			{
-				Compat::Log() << "Hooking d3d8.dll APIs...";
-				d3d8.Direct3DCreate8 = (FARPROC)HookAPI(hModule_dll, dtypename[dtype.d3d8], d3d8.Direct3DCreate8, "Direct3DCreate8", GetProcAddress(hModule_dll, "_Direct3DCreate8"));
-			}
+		// Hook APIs for d3d8to9 conversion
+		else if (Config.D3d8to9)
+		{
+			Compat::Log() << "Hooking d3d8.dll APIs...";
+			d3d8.Direct3DCreate8 = (FARPROC)HookAPI(hModule_dll, dtypename[dtype.d3d8], d3d8.Direct3DCreate8, "Direct3DCreate8", GetProcAddress(hModule_dll, "_Direct3DCreate8"));
 		}
 	}
 }
