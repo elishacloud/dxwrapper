@@ -261,6 +261,7 @@ cmd /c "@echo off &amp;&amp; cd /D ""$(ProjectDir)Dllmain\"" &amp;&amp; type Bui
     <ClCompile Include="hook\hotpatch.cpp" />
     <ClCompile Include="hook\iatpatch.cpp" />
     <ClCompile Include="hook\inithook.cpp" />
+    <ClCompile Include="Libraries\d3dx9.cpp" />
     <ClCompile Include="libraries\dwmapi.cpp" />
     <ClCompile Include="libraries\uxtheme.cpp" />
     <ClCompile Include="libraries\winmm.cpp" />
@@ -342,6 +343,7 @@ cmd /c "@echo off &amp;&amp; cd /D ""$(ProjectDir)Dllmain\"" &amp;&amp; type Bui
     <ClInclude Include="hook\hotpatch.h" />
     <ClInclude Include="hook\iatpatch.h" />
     <ClInclude Include="hook\inithook.h" />
+    <ClInclude Include="Libraries\d3dx9.h" />
     <ClInclude Include="libraries\dwmapi.h" />
     <ClInclude Include="libraries\uxtheme.h" />
     <ClInclude Include="libraries\winmm.h" />

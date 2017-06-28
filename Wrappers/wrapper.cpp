@@ -28,6 +28,7 @@
 #include "winspool.h"
 #include "uxtheme.h"
 #include "dwmapi.h"
+#include "d3dx9.h"
 
 struct custom_dll
 {
@@ -167,4 +168,5 @@ void DllDetach()
 	// Unload dynmaic libraries
 	UnLoaddwmapi();
 	UnLoadUxtheme();
+	UnLoadd3dx9();
 }

@@ -250,6 +250,9 @@
     <ClCompile Include="DDrawCompat\v0.2.1\UnmodifiedDDrawProcs.cpp">
       <Filter>DDrawCompat</Filter>
     </ClCompile>
+    <ClCompile Include="Libraries\d3dx9.cpp">
+      <Filter>Libraries</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="Dllmain\dxwrapper.def">
@@ -484,6 +487,9 @@
     </ClInclude>
     <ClInclude Include="DDrawCompat\v0.2.1\Time1.h">
       <Filter>DDrawCompat</Filter>
+    </ClInclude>
+    <ClInclude Include="Libraries\d3dx9.h">
+      <Filter>Libraries</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

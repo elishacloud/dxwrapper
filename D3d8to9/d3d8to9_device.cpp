@@ -5,7 +5,9 @@
  * Updated 2017 by Elisha Riedlinger
  */
 
-#include "d3dx9.hpp"
+//********** Begin Edit *************
+#include "d3dx9.h"
+//********** End Edit ***************
 #include "d3d8to9.hpp"
 #include <regex>
 #include <assert.h>
@@ -594,9 +596,7 @@ HRESULT STDMETHODCALLTYPE Direct3DDevice8::CopyRects(Direct3DSurface8 *pSourceSu
 
 		if (FAILED(hr))
 		{
-#ifdef _DEBUG
 			Compat::Log() << "Failed to translate 'IDirect3DDevice8::CopyRects' call from '[" << SourceDesc.Width << "x" << SourceDesc.Height << ", " << SourceDesc.Format << ", " << SourceDesc.MultiSampleType << ", " << SourceDesc.Usage << ", " << SourceDesc.Pool << "]' to '[" << DestinationDesc.Width << "x" << DestinationDesc.Height << ", " << DestinationDesc.Format << ", " << DestinationDesc.MultiSampleType << ", " << DestinationDesc.Usage << ", " << DestinationDesc.Pool << "]'!";
-#endif
 			break;
 		}
 	}
@@ -1245,9 +1245,7 @@ HRESULT STDMETHODCALLTYPE Direct3DDevice8::CreateVertexShader(const DWORD *pDecl
 		}
 		else
 		{
-#ifdef _DEBUG
 			Compat::Log() << "> Failed because token type '" << TokenType << "' is not supported!";
-#endif
 
 			return D3DERR_INVALIDCALL;
 		}
@@ -1269,9 +1267,7 @@ HRESULT STDMETHODCALLTYPE Direct3DDevice8::CreateVertexShader(const DWORD *pDecl
 
 		if (*pFunction < D3DVS_VERSION(1, 0) || *pFunction > D3DVS_VERSION(1, 1))
 		{
-#ifdef _DEBUG
 			Compat::Log() << "> Failed because of version mismatch ('" << std::showbase << std::hex << *pFunction << std::dec << std::noshowbase << "')! Only 'vs_1_x' shaders are supported.";
-#endif
 
 			return D3DERR_INVALIDCALL;
 		}
