@@ -52,10 +52,16 @@ void CallReturn()
 HMODULE LoadDll(DWORD dlltype)
 {
 	// Check for valid dlltype
-	if (dlltype == 0 || dlltype >= dtypeArraySize) return nullptr;
+	if (dlltype == 0 || dlltype >= dtypeArraySize)
+	{
+		return nullptr;
+	}
 
 	// Check if dll is already loaded
-	if (dllhandle[dlltype].Flag) return dllhandle[dlltype].dll;
+	if (dllhandle[dlltype].Flag)
+	{
+		return dllhandle[dlltype].dll;
+	}
 	dllhandle[dlltype].Flag = true;
 
 	// Load dll from ini, if DllPath is not '0'
@@ -63,7 +69,10 @@ HMODULE LoadDll(DWORD dlltype)
 	{
 		Compat::Log() << "Loading " << Config.szDllPath << " library";
 		dllhandle[dlltype].dll = LoadLibrary(Config.szDllPath);
-		if (!dllhandle[dlltype].dll) Compat::Log() << "Cannot load " << Config.szDllPath << " library";
+		if (!dllhandle[dlltype].dll)
+		{
+			Compat::Log() << "Cannot load " << Config.szDllPath << " library";
+		}
 	}
 
 	// Load current dll
@@ -71,7 +80,10 @@ HMODULE LoadDll(DWORD dlltype)
 	{
 		Compat::Log() << "Loading " << dtypename[dlltype] << " library";
 		dllhandle[dlltype].dll = LoadLibrary(dtypename[dlltype]);
-		if (!dllhandle[dlltype].dll) Compat::Log() << "Cannot load " << dtypename[dlltype] << " library";
+		if (!dllhandle[dlltype].dll)
+		{
+			Compat::Log() << "Cannot load " << dtypename[dlltype] << " library";
+		}
 	}
 
 	// Load default system dll
@@ -89,7 +101,10 @@ HMODULE LoadDll(DWORD dlltype)
 	if (!dllhandle[dlltype].dll)
 	{
 		Compat::Log() << "Cannot load " << dtypename[dlltype] << " library";
-		if (Config.WrapperMode != 0 && Config.WrapperMode != 255) ExitProcess(0);
+		if (Config.WrapperMode != 0 && Config.WrapperMode != 255)
+		{
+			ExitProcess(0);
+		}
 	}
 
 	// Return dll handle
@@ -144,18 +159,54 @@ void FreeCustomLibrary()
 // Load wrapper dll files
 void DllAttach()
 {
-	if (Config.WrapperMode == dtype.winspool || Config.WrapperMode == 0 || Config.WrapperMode == 255) LoadWinspool();
-	if (Config.WrapperMode == dtype.cryptsp || Config.WrapperMode == 0 || Config.WrapperMode == 255) LoadCryptsp();
-	if (Config.WrapperMode == dtype.bcrypt || Config.WrapperMode == 0 || Config.WrapperMode == 255) LoadBcrypt();
-	if (Config.WrapperMode == dtype.dplayx || Config.WrapperMode == 0 || Config.WrapperMode == 255) LoadDplayx();
-	if (Config.WrapperMode == dtype.d3d8 || Config.WrapperMode == 0 || Config.WrapperMode == 255 || Config.D3d8to9) LoadD3d8();
-	if (Config.WrapperMode == dtype.dxgi || Config.WrapperMode == 0 || Config.WrapperMode == 255) LoadDxgi();
-	if (Config.WrapperMode == dtype.winmm || Config.WrapperMode == 0 || Config.WrapperMode == 255) LoadWinmm();
-	if (Config.WrapperMode == dtype.dsound || Config.WrapperMode == 0 || Config.WrapperMode == 255 || Config.DSoundCtrl) LoadDsound();
-	if (Config.WrapperMode == dtype.dinput || Config.WrapperMode == 0 || Config.WrapperMode == 255) LoadDinput();
-	if (Config.WrapperMode == dtype.d3d9 || Config.WrapperMode == 0 || Config.WrapperMode == 255) LoadD3d9();
-	if (Config.WrapperMode == dtype.ddraw || Config.WrapperMode == 0 || Config.WrapperMode == 255 || Config.DDrawCompat) LoadDdraw();
-	if (Config.CustomDllCount > 0) LoadCustomDll();
+	if (Config.WrapperMode == dtype.winspool || Config.WrapperMode == 0)
+	{
+		LoadWinspool();
+	}
+	if (Config.WrapperMode == dtype.cryptsp || Config.WrapperMode == 0)
+	{
+		LoadCryptsp();
+	}
+	if (Config.WrapperMode == dtype.bcrypt || Config.WrapperMode == 0)
+	{
+		LoadBcrypt();
+	}
+	if (Config.WrapperMode == dtype.dplayx || Config.WrapperMode == 0)
+	{
+		LoadDplayx();
+	}
+	if (Config.WrapperMode == dtype.d3d8 || Config.WrapperMode == 0 || Config.D3d8to9)
+	{
+		LoadD3d8();
+	}
+	if (Config.WrapperMode == dtype.dxgi || Config.WrapperMode == 0)
+	{
+		LoadDxgi();
+	}
+	if (Config.WrapperMode == dtype.winmm || Config.WrapperMode == 0)
+	{
+		LoadWinmm();
+	}
+	if (Config.WrapperMode == dtype.dsound || Config.WrapperMode == 0 || Config.DSoundCtrl)
+	{
+		LoadDsound();
+	}
+	if (Config.WrapperMode == dtype.dinput || Config.WrapperMode == 0)
+	{
+		LoadDinput();
+	}
+	if (Config.WrapperMode == dtype.d3d9 || Config.WrapperMode == 0)
+	{
+		LoadD3d9();
+	}
+	if (Config.WrapperMode == dtype.ddraw || Config.WrapperMode == 0 || Config.DDrawCompat)
+	{
+		LoadDdraw();
+	}
+	if (Config.CustomDllCount > 0)
+	{
+		LoadCustomDll();
+	}
 }
 
 // Unload all dll files loaded by the wrapper

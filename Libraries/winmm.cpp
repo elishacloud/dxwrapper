@@ -10,7 +10,10 @@ HMODULE winmmModule = nullptr;
 void Loadwinmm()
 {
 	static bool IsLoaded = false;
-	if (IsLoaded) return; // Only load the dll once
+	if (IsLoaded)
+	{
+		return; // Only load the dll once
+	}
 	IsLoaded = true;
 	winmmModule = LoadDll(dtype.winmm);
 	if (winmmModule)

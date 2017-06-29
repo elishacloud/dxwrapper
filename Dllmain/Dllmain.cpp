@@ -46,7 +46,10 @@ void RunExitFunctions(bool ForceTerminate)
 		Compat::Log() << "Process not exiting, attempting to terminate process...";
 
 		// Setting screen resolution to fix some display errors on exit
-		if (Config.ResetScreenRes) SetScreen(m_ScreenRes);
+		if (Config.ResetScreenRes)
+		{
+			SetScreen(m_ScreenRes);
+		}
 
 		// Reset screen back to original Windows settings to fix some display errors on exit
 		ResetScreen();
@@ -66,18 +69,27 @@ void RunExitFunctions(bool ForceTerminate)
 
 	// Setting screen resolution before exit
 	// Should be run after StopThread and before unloading anything else
-	if (Config.ResetScreenRes) SetScreen(m_ScreenRes);
+	if (Config.ResetScreenRes)
+	{
+		SetScreen(m_ScreenRes);
+	}
 
 	// Unload and Unhook DxWnd
 	if (Config.DxWnd)
 	{
 		Compat::Log() << "Unloading dxwnd";
 		DxWndEndHook();
-		if (dxwnd_dll) FreeLibrary(dxwnd_dll);
+		if (dxwnd_dll)
+		{
+			FreeLibrary(dxwnd_dll);
+		}
 	}
 
 	// Unload and Unhook DDrawCompat
-	if (Config.DDrawCompat) UnloadDdrawCompat();
+	if (Config.DDrawCompat)
+	{
+		UnloadDdrawCompat();
+	}
 
 	// Unload dlls
 	DllDetach();
@@ -86,7 +98,10 @@ void RunExitFunctions(bool ForceTerminate)
 	Config.CleanUp();
 
 	// Unload exception handler
-	if (Config.HandleExceptions) UnHookExceptionHandler();
+	if (Config.HandleExceptions)
+	{
+		UnHookExceptionHandler();
+	}
 
 	// Reset screen back to original Windows settings to fix some display errors on exit
 	ResetScreen();
@@ -115,28 +130,49 @@ bool APIENTRY DllMain(HMODULE hModule, DWORD ul_reason_for_call, LPVOID lpReserv
 
 		// Init logs
 		Compat::Log() << "Starting dxwrapper v" << APP_VERSION;
-		GetOSVersion();
-		GetProcessNameAndPID();
+		LogOSVersion();
+		LogProcessNameAndPID();
 
 		// Initialize config
 		Config.Init();
 
 		// Launch processes
-		if (Config.szShellPath[0] != '\0') Shell(Config.szShellPath);
+		if (Config.szShellPath[0] != '\0')
+		{
+			Shell(Config.szShellPath);
+		}
 
 		// Set application compatibility options
-		if (Config.AddressPointerCount > 0 && Config.BytesToWriteCount > 0) WriteMemory();
-		if (Config.HandleExceptions) HookExceptionHandler();
-		if (Config.DpiAware) DisableHighDPIScaling();
+		if (Config.AddressPointerCount > 0 && Config.BytesToWriteCount > 0)
+		{
+			WriteMemory();
+		}
+		if (Config.HandleExceptions)
+		{
+			HookExceptionHandler();
+		}
+		if (Config.DpiAware)
+		{
+			DisableHighDPIScaling();
+		}
 		SetAppCompat();
-		if (Config.Affinity) SetProcessAffinityMask(GetCurrentProcess(), 1);
+		if (Config.Affinity)
+		{
+			SetProcessAffinityMask(GetCurrentProcess(), 1);
+		}
 
 		// Attach real wrapper dll
 		DllAttach();
 
 		// Start compatibility modules
-		if (Config.DDrawCompat) Config.DDrawCompat = StartDdrawCompat(hModule_dll);
-		if (Config.DSoundCtrl) RunDSoundCtrl();
+		if (Config.DDrawCompat)
+		{
+			Config.DDrawCompat = StartDdrawCompat(hModule_dll);
+		}
+		if (Config.DSoundCtrl)
+		{
+			RunDSoundCtrl();
+		}
 		if (Config.DxWnd)
 		{
 			// Check if dxwnd.dll exists then load it
@@ -154,7 +190,10 @@ bool APIENTRY DllMain(HMODULE hModule, DWORD ul_reason_for_call, LPVOID lpReserv
 		}
 
 		// Start fullscreen thread
-		if (Config.FullScreen || Config.ForceTermination) StartFullscreenThread();
+		if (Config.FullScreen || Config.ForceTermination)
+		{
+			StartFullscreenThread();
+		}
 
 		// Resetting thread priority
 		SetThreadPriority(hCurrentThread, THREAD_PRIORITY_NORMAL);
@@ -165,20 +204,31 @@ bool APIENTRY DllMain(HMODULE hModule, DWORD ul_reason_for_call, LPVOID lpReserv
 	break;
 	case DLL_THREAD_ATTACH:
 		// Check and store screen resolution
-		if (Config.ResetScreenRes) CheckCurrentScreenRes(m_ScreenRes);
+		if (Config.ResetScreenRes)
+		{
+			CheckCurrentScreenRes(m_ScreenRes);
+		}
 
 		// Check if thread has started
 		if (Config.ForceTermination && IsFullscreenThreadRunning())
+		{
 			FullscreenThreadStartedFlag = true;
+		}
 		break;
 	case DLL_THREAD_DETACH:
 		if (Config.ForceTermination)
 		{
 			// Check if thread has started
-			if (IsFullscreenThreadRunning()) FullscreenThreadStartedFlag = true;
+			if (IsFullscreenThreadRunning())
+			{
+				FullscreenThreadStartedFlag = true;
+			}
 
 			// Check if thread has stopped
-			if (FullscreenThreadStartedFlag && !IsFullscreenThreadRunning()) RunExitFunctions(true);
+			if (FullscreenThreadStartedFlag && !IsFullscreenThreadRunning())
+			{
+				RunExitFunctions(true);
+			}
 		}
 		break;
 	case DLL_PROCESS_DETACH:

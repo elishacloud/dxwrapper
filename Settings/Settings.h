@@ -46,8 +46,7 @@ struct CONFIG
 	DWORD SetFullScreenLayer;			// The layer to be selected for fullscreen
 	DWORD RealWrapperMode;				// Internal wrapper mode
 	DWORD WrapperMode;					// 0			= Auto
-										// 1 ... 245	= DLLTYPE
-										// 255			= All
+										// 1 ... 255	= DLLTYPE
 	byte AddressPointerCount;		// Count of addresses to hot patch
 	byte BytesToWriteCount;			// Count of bytes to hot patch
 	byte CustomDllCount;				// Count of custom dlls to load

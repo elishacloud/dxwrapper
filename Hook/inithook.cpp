@@ -39,7 +39,10 @@ void *HookAPI(HMODULE module, const char *dll, void *apiproc, const char *apinam
 	// Try HotPatch first
 	void *orig;
 	orig = HotPatch(apiproc, apiname, hookproc);
-	if ((DWORD)orig > 1) return orig;
+	if ((DWORD)orig > 1)
+	{
+		return orig;
+	}
 
 	// Check if dll name is blank
 	if (!apiname)
@@ -57,7 +60,10 @@ void *HookAPI(HMODULE module, const char *dll, void *apiproc, const char *apinam
 
 	// Try IATPatch next
 	orig = IATPatch(module, 0, dll, apiproc, apiname, hookproc);
-	if ((DWORD)orig > 1) return orig;
+	if ((DWORD)orig > 1)
+	{
+		return orig;
+	}
 
 	// Return default address
 	return apiproc;

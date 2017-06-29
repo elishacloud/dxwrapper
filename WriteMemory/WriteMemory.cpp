@@ -143,7 +143,10 @@ void WriteMemory()
 		WriteAllByteMemory();
 
 		// Starting thread to undo memory write after ResetMemoryAfter time
-		if (Config.ResetMemoryAfter > 0) CreateThread(nullptr, 0, WriteMemoryThreadFunc, nullptr, 0, &p_dwThreadID);
+		if (Config.ResetMemoryAfter > 0)
+		{
+			CreateThread(nullptr, 0, WriteMemoryThreadFunc, nullptr, 0, &p_dwThreadID);
+		}
 	}
 	else
 	{
@@ -157,7 +160,7 @@ void WriteMemory()
 // Is thread running
 bool IsWriteMemoryThreadRunning()
 {
-	return p_ThreadRunningFlag && GetMyThreadId(p_hThread) == p_dwThreadID && p_dwThreadID != 0;
+	return p_ThreadRunningFlag && GetThreadId(p_hThread) == p_dwThreadID && p_dwThreadID != 0;
 }
 
 // Stop WriteMemory thread
@@ -167,7 +170,10 @@ void StopWriteMemoryThread()
 		p_StopThreadFlag = true;
 
 		// Wait for thread to exit
-		if (IsWriteMemoryThreadRunning()) WaitForSingleObject(p_hThread, INFINITE);
+		if (IsWriteMemoryThreadRunning())
+		{
+			WaitForSingleObject(p_hThread, INFINITE);
+		}
 
 		// Close handle
 		CloseHandle(p_hThread);

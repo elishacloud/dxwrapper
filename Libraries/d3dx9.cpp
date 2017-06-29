@@ -12,7 +12,10 @@ HMODULE d3dx9Module = nullptr;
 void Loadd3dx9()
 {
 	static bool IsLoaded = false;
-	if (IsLoaded) return; // Only load the dll once
+	if (IsLoaded)
+	{
+		return; // Only load the dll once
+	}
 	IsLoaded = true;
 
 	// Declare module vars

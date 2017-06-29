@@ -107,17 +107,9 @@ void MainFullScreenFunc();
 // Gets the screen size from a wnd handle
 void GetScreenSize(HWND& hwnd, screen_res& Res, MONITORINFO& mi)
 {
-	__try
-	{
-		GetMonitorInfo(MonitorFromWindow(hwnd, MONITOR_DEFAULTTOPRIMARY), &mi);
-		Res.Width = mi.rcMonitor.right - mi.rcMonitor.left;
-		Res.Height = mi.rcMonitor.bottom - mi.rcMonitor.top;
-	}
-	__except (filterException(GetExceptionCode(), GetExceptionInformation()))
-	{
-		// Set hwnd back to NULL
-		hwnd = nullptr;
-	}
+	GetMonitorInfo(MonitorFromWindow(hwnd, MONITOR_DEFAULTTOPRIMARY), &mi);
+	Res.Width = mi.rcMonitor.right - mi.rcMonitor.left;
+	Res.Height = mi.rcMonitor.bottom - mi.rcMonitor.top;
 }
 
 // Check with resolution is best
@@ -223,79 +215,12 @@ bool IsWindowNotFullScreen(screen_res WindowSize, screen_res ScreenSize)
 		(ScreenSize.Height - WindowSize.Height) > WindowDelta;				// Window height does not match screen height
 }
 
-// Checks if the handle is the main window handle
-bool IsMainWindow(HWND hwnd)
-{
-	bool flag = false;
-	__try
-	{
-		flag = GetWindow(hwnd, GW_OWNER) == (HWND)0 && IsWindowVisible(hwnd);
-	}
-	__except (filterException(GetExceptionCode(), GetExceptionInformation()))
-	{
-		// Do nothing
-	}
-	return flag;
-}
-
-// Checks if the window has any menu items
-bool IsWindowMenu(HWND hwnd)
-{
-	bool flag = false;
-	__try
-	{
-		if (GetMenu(hwnd)) flag = true;
-	}
-	__except (filterException(GetExceptionCode(), GetExceptionInformation()))
-	{
-		// Do nothing
-	}
-	return flag;
-}
-
-// Gets the class name to the window from a handle
-void GetMyClassName(HWND hwnd, char* class_name, int size)
-{
-	__try
-	{
-		GetClassName(hwnd, class_name, size);
-	}
-	__except (filterException(GetExceptionCode(), GetExceptionInformation()))
-	{
-		// Set hwnd back to NULL
-		hwnd = nullptr;
-	}
-}
-
 // Gets the window size from a handle
 void GetWindowSize(HWND& hwnd, screen_res& Res, RECT& rect)
 {
-	__try
-	{
-		GetWindowRect(hwnd, &rect);
-		Res.Width = abs(rect.right - rect.left);
-		Res.Height = abs(rect.bottom - rect.top);
-	}
-	__except (filterException(GetExceptionCode(), GetExceptionInformation()))
-	{
-		// Handle error
-		hwnd = nullptr;
-	}
-}
-
-// Gets the process ID of a window from a window handle
-DWORD GetMyWindowThreadProcessId(HWND hwnd)
-{
-	DWORD process_id = 0;
-	__try
-	{
-		GetWindowThreadProcessId(hwnd, &process_id);
-	}
-	__except (filterException(GetExceptionCode(), GetExceptionInformation()))
-	{
-		// Do nothing
-	}
-	return process_id;
+	GetWindowRect(hwnd, &rect);
+	Res.Width = abs(rect.right - rect.left);
+	Res.Height = abs(rect.bottom - rect.top);
 }
 
 // Enums all windows and returns the handle to the active window
@@ -305,7 +230,8 @@ BOOL CALLBACK EnumWindowsCallback(HWND hwnd, LPARAM lParam)
 	handle_data& data = *(handle_data*)lParam;
 
 	// Skip windows that are from a different process ID
-	DWORD process_id = GetMyWindowThreadProcessId(hwnd);
+	DWORD process_id;
+	GetWindowThreadProcessId(hwnd, &process_id);
 	if (data.process_id != process_id)
 	{
 		return true;
@@ -313,7 +239,7 @@ BOOL CALLBACK EnumWindowsCallback(HWND hwnd, LPARAM lParam)
 
 	// Skip compatibility class windows
 	char class_name[80] = "";
-	GetMyClassName(hwnd, class_name, sizeof(class_name));
+	GetClassName(hwnd, class_name, sizeof(class_name));
 	if (strcmp(class_name, "CompatWindowDesktopReplacement") == 0)			// Compatibility class windows
 	{
 		return true;
@@ -336,7 +262,10 @@ BOOL CALLBACK EnumWindowsCallback(HWND hwnd, LPARAM lParam)
 		char buffer[7];
 		_itoa_s(data.LayerNumber, buffer, 10);
 		char* isMain = "";
-		if (IsMainWindow(hwnd)) isMain = "*";
+		if (IsMainWindow(hwnd))
+		{
+			isMain = "*";
+		}
 		if (WindowSize.Height != 0 && WindowSize.Width != 0)		// Filter out screens that are zero size
 		{
 			char buffer1[7], buffer2[7], buffer3[7], buffer4[7];
@@ -364,7 +293,7 @@ BOOL CALLBACK EnumWindowsCallback(HWND hwnd, LPARAM lParam)
 		++data.LayerNumber;
 		data.Windows[data.LayerNumber].hwnd = hwnd;
 		data.Windows[data.LayerNumber].IsFullScreen = IsWindowFullScreen(WindowSize, ScreenSize);
-		data.Windows[data.LayerNumber].IsMain = IsMainWindow(hwnd);
+		data.Windows[data.LayerNumber].IsMain = GetWindow(hwnd, GW_OWNER) == (HWND)0 && IsWindowVisible(hwnd);
 
 		// Check if the window is the best window
 		if (data.Windows[data.LayerNumber].IsFullScreen && data.Windows[data.LayerNumber].IsMain)
@@ -442,14 +371,15 @@ BOOL CALLBACK EnumMenuWindowsCallback(HWND hwnd, LPARAM lParam)
 	menu_data& data = *(menu_data*)lParam;
 
 	// Skip windows that are from a different process ID
-	DWORD process_id = GetMyWindowThreadProcessId(hwnd);
+	DWORD process_id;
+	GetWindowThreadProcessId(hwnd, &process_id);
 	if (data.process_id != process_id)
 	{
 		return true;
 	}
 
 	// Check if there is menu handle
-	if (IsWindowMenu(hwnd))
+	if (GetMenu(hwnd))
 	{
 		data.Menu = true;
 		return false;
@@ -469,64 +399,48 @@ bool CheckForMenu(DWORD process_id)
 // Sends Alt+Enter to window handle
 void SendAltEnter(HWND& hwnd)
 {
-	__try
-	{
-		SendMessage(hwnd, WM_SYSKEYDOWN, VK_RETURN, 0x20000000);
-		SendMessage(hwnd, WM_SYSKEYUP, VK_RETURN, 0x20000000);
-	}
-	__except (filterException(GetExceptionCode(), GetExceptionInformation()))
-	{
-		// Set hwnd back to NULL
-		hwnd = nullptr;
-	}
+	SendMessage(hwnd, WM_SYSKEYDOWN, VK_RETURN, 0x20000000);
+	SendMessage(hwnd, WM_SYSKEYUP, VK_RETURN, 0x20000000);
 }
 
 // Sets the window to fullscreen
 void SetFullScreen(HWND& hwnd, const MONITORINFO& mi)
 {
-	__try
-	{
-		// Attach to window thread
-		DWORD h_ThreadID = GetWindowThreadProcessId(hwnd, nullptr);
-		AttachThreadInput(m_dwThreadID, h_ThreadID, true);
+	// Attach to window thread
+	DWORD h_ThreadID = GetWindowThreadProcessId(hwnd, nullptr);
+	AttachThreadInput(m_dwThreadID, h_ThreadID, true);
 
-		// Try restoring the window to normal
-		PostMessage(hwnd, WM_SYSCOMMAND, SW_SHOWNORMAL, 0);
+	// Try restoring the window to normal
+	PostMessage(hwnd, WM_SYSCOMMAND, SW_SHOWNORMAL, 0);
 
-		// Window placement helps ensure the window can be seen (sometimes windows appear as minimized)
-		WINDOWPLACEMENT wp;
-		wp.length = sizeof(wp);
-		GetWindowPlacement(hwnd, &wp);
-		wp.showCmd = SW_MAXIMIZE | SW_RESTORE | SW_SHOW | SW_SHOWMAXIMIZED | SW_SHOWNORMAL;
-		wp.flags = WPF_RESTORETOMAXIMIZED;
-		SetWindowPlacement(hwnd, &wp);
+	// Window placement helps ensure the window can be seen (sometimes windows appear as minimized)
+	WINDOWPLACEMENT wp;
+	wp.length = sizeof(wp);
+	GetWindowPlacement(hwnd, &wp);
+	wp.showCmd = SW_MAXIMIZE | SW_RESTORE | SW_SHOW | SW_SHOWMAXIMIZED | SW_SHOWNORMAL;
+	wp.flags = WPF_RESTORETOMAXIMIZED;
+	SetWindowPlacement(hwnd, &wp);
 
-		// Set window style
-		DWORD dwStyle = GetWindowLong(hwnd, GWL_STYLE);
-		SetWindowLong(hwnd, GWL_STYLE, dwStyle & ~WS_OVERLAPPEDWINDOW);
+	// Set window style
+	DWORD dwStyle = GetWindowLong(hwnd, GWL_STYLE);
+	SetWindowLong(hwnd, GWL_STYLE, dwStyle & ~WS_OVERLAPPEDWINDOW);
 
-		// Set window to fullscreen
-		SetWindowPos(hwnd, HWND_TOP,
-			mi.rcMonitor.left, mi.rcMonitor.top,
-			mi.rcMonitor.right - mi.rcMonitor.left,
-			mi.rcMonitor.bottom - mi.rcMonitor.top,
-			SWP_NOOWNERZORDER | SWP_FRAMECHANGED);
+	// Set window to fullscreen
+	SetWindowPos(hwnd, HWND_TOP,
+		mi.rcMonitor.left, mi.rcMonitor.top,
+		mi.rcMonitor.right - mi.rcMonitor.left,
+		mi.rcMonitor.bottom - mi.rcMonitor.top,
+		SWP_NOOWNERZORDER | SWP_FRAMECHANGED);
 
-		// Set window to forground
-		SetForegroundWindow(hwnd);
+	// Set window to forground
+	SetForegroundWindow(hwnd);
 
-		// Dettach from window thread
-		AttachThreadInput(m_dwThreadID, h_ThreadID, false);
+	// Dettach from window thread
+	AttachThreadInput(m_dwThreadID, h_ThreadID, false);
 
-		// Set focus and activate
-		SetFocus(hwnd);
-		SetActiveWindow(hwnd);
-	}
-	__except (filterException(GetExceptionCode(), GetExceptionInformation()))
-	{
-		// Set hwnd back to NULL
-		hwnd = nullptr;
-	}
+	// Set focus and activate
+	SetFocus(hwnd);
+	SetActiveWindow(hwnd);
 }
 
 //*********************************************************************************
@@ -546,7 +460,10 @@ void CheckForTermination(DWORD m_ProcessId)
 	HWND hwnd = FindMainWindow(m_ProcessId, true);
 
 	// Get window information
-	if (IsWindow(hwnd)) GetWindowSize(hwnd, WindowSize, rect);
+	if (IsWindow(hwnd))
+	{
+		GetWindowSize(hwnd, WindowSize, rect);
+	}
 
 	// Check if there is a valid hwnd
 	if (IsWindow(hwnd))
@@ -638,7 +555,7 @@ void StartFullscreenThread()
 // Is thread running
 bool IsFullscreenThreadRunning()
 {
-	return m_ThreadRunningFlag && GetMyThreadId(m_hThread) == m_dwThreadID && m_dwThreadID != 0;
+	return m_ThreadRunningFlag && GetThreadId(m_hThread) == m_dwThreadID && m_dwThreadID != 0;
 }
 
 // Stop thread
@@ -707,7 +624,7 @@ void MainFullScreenFunc()
 			HasNoMenu = !CheckForMenu(m_ProcessId);
 
 			// Get window and monitor information
-			GetMyClassName(CurrentLoop.hwnd, class_name, sizeof(class_name));
+			GetClassName(CurrentLoop.hwnd, class_name, sizeof(class_name));
 			GetWindowSize(CurrentLoop.hwnd, WindowSize, CurrentLoop.rect);
 			GetScreenSize(CurrentLoop.hwnd, CurrentLoop.ScreenSize, mi);
 
@@ -873,7 +790,10 @@ void MainFullScreenFunc()
 					LastFullscreenLoop = CurrentLoop;
 
 					// Update and store CurrentScreenRes
-					if (Config.ResetScreenRes) CallCheckCurrentScreenRes();
+					if (Config.ResetScreenRes)
+					{
+						CallCheckCurrentScreenRes();
+					}
 
 				} // Window is too small
 

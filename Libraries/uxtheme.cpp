@@ -7,7 +7,10 @@ HMODULE UxThemeModule = nullptr;
 void LoadUxtheme()
 {
 	static bool IsLoaded = false;
-	if (IsLoaded) return; // Only load the dll once
+	if (IsLoaded)
+	{
+		return; // Only load the dll once
+	}
 	IsLoaded = true;
 	UxThemeModule = LoadLibrary("uxtheme.dll");
 	if (UxThemeModule)

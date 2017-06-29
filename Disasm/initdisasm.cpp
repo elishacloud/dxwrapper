@@ -27,16 +27,14 @@ Disasm_Type pDisasm;
 #pragma warning (disable : 4706)
 LONG WINAPI myUnhandledExceptionFilter(LPEXCEPTION_POINTERS ExceptionInfo)
 {
-//#ifdef _DEBUG
-	Compat::Log() << "UnhandledExceptionFilter: exception code=" <<
-		ExceptionInfo->ExceptionRecord->ExceptionCode << 
+	Compat::Log() << "UnhandledExceptionFilter: exception code=" << ExceptionInfo->ExceptionRecord->ExceptionCode <<
 		" flags=" << ExceptionInfo->ExceptionRecord->ExceptionFlags << std::showbase << std::hex <<
 		" addr=" << ExceptionInfo->ExceptionRecord->ExceptionAddress << std::dec << std::noshowbase;
-//#endif
 	DWORD oldprot;
 	static HMODULE disasmlib = nullptr;
 	PVOID target = ExceptionInfo->ExceptionRecord->ExceptionAddress;
-	switch (ExceptionInfo->ExceptionRecord->ExceptionCode) {
+	switch (ExceptionInfo->ExceptionRecord->ExceptionCode)
+	{
 	case 0xc0000094: // IDIV reg (Ultim@te Race Pro)
 	case 0xc0000095: // DIV by 0 (divide overflow) exception (SonicR)
 	case 0xc0000096: // CLI Priviliged instruction exception (Resident Evil), FB (Asterix & Obelix)
@@ -44,18 +42,22 @@ LONG WINAPI myUnhandledExceptionFilter(LPEXCEPTION_POINTERS ExceptionInfo)
 	case 0xc0000005: // Memory exception (Tie Fighter)
 		int cmdlen;
 		t_disasm da;
-		if (!disasmlib) {
+		if (!disasmlib)
+		{
 			if (!(disasmlib = LoadDisasm())) return EXCEPTION_CONTINUE_SEARCH;
 			(*pPreparedisasm)();
 		}
-		if (!VirtualProtect(target, 10, PAGE_READWRITE, &oldprot)) return EXCEPTION_CONTINUE_SEARCH; // error condition
+		if (!VirtualProtect(target, 10, PAGE_READWRITE, &oldprot))
+		{
+			return EXCEPTION_CONTINUE_SEARCH; // error condition
+		}
 		cmdlen = (*pDisasm)((BYTE *)target, 10, 0, &da, 0, nullptr, nullptr);
 		Compat::Log() << "UnhandledExceptionFilter: NOP opcode=" << std::showbase << std::hex << *(BYTE *)target << std::dec << std::noshowbase << " len=" << cmdlen;
 		memset((BYTE *)target, 0x90, cmdlen);
 		VirtualProtect(target, 10, oldprot, &oldprot);
 		if (!FlushInstructionCache(GetCurrentProcess(), target, cmdlen))
 		{
-			Compat::Log() << "UnhandledExceptionFilter: FlushInstructionCache ERROR target=" << std::showbase << std::hex << target << std::dec << std::noshowbase <<", err=" << GetLastError();
+			Compat::Log() << "UnhandledExceptionFilter: FlushInstructionCache ERROR target=" << std::showbase << std::hex << target << std::dec << std::noshowbase << ", err=" << GetLastError();
 		}
 		// skip replaced opcode
 		ExceptionInfo->ContextRecord->Eip += cmdlen; // skip ahead op-code length
@@ -87,7 +89,8 @@ static HMODULE LoadDisasm()
 	GetModuleFileName(hModule_dll, buffer, MAX_PATH);
 
 	disasmlib = LoadLibrary(buffer);
-	if (!disasmlib) {
+	if (!disasmlib)
+	{
 		Compat::Log() << "Load lib=" << buffer << " failed err=" << GetLastError();
 		return nullptr;
 	}
@@ -112,7 +115,10 @@ void HookExceptionHandler(void)
 	tmp = HookAPI(hModule_dll, "KERNEL32.dll", UnhandledExceptionFilter, "UnhandledExceptionFilter", myUnhandledExceptionFilter);
 	// so far, no need to save the previous handler, but anyway...
 	tmp = HookAPI(hModule_dll, "KERNEL32.dll", SetUnhandledExceptionFilter, "SetUnhandledExceptionFilter", extSetUnhandledExceptionFilter);
-	if (tmp) pSetUnhandledExceptionFilter = (SetUnhandledExceptionFilter_Type)tmp;
+	if (tmp)
+	{
+		pSetUnhandledExceptionFilter = (SetUnhandledExceptionFilter_Type)tmp;
+	}
 
 	SetErrorMode(SEM_NOGPFAULTERRORBOX | SEM_NOOPENFILEERRORBOX | SEM_FAILCRITICALERRORS);
 	(*pSetUnhandledExceptionFilter)((LPTOP_LEVEL_EXCEPTION_FILTER)myUnhandledExceptionFilter);

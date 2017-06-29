@@ -30,13 +30,6 @@
 #include "Wrappers\wrapper.h"
 #include <VersionHelpers.h>
 
-// Exception handler
-int filterException(int code, PEXCEPTION_POINTERS ex)
-{
-	Compat::Log() << "Exception caught code:" << code << " details:" << ex->ExceptionRecord->ExceptionInformation;
-	return EXCEPTION_EXECUTE_HANDLER;
-}
-
 // Get Windows Operating System version number from the registry
 void GetVersionReg(OSVERSIONINFO *oOS_version)
 {
@@ -92,9 +85,18 @@ void GetVersionFile(OSVERSIONINFO *oOS_version)
 	PFN_VerQueryValue VerQueryValue = reinterpret_cast<PFN_VerQueryValue>(GetProcAddress(Module, "VerQueryValueA"));
 	if (!GetFileVersionInfoSize || !GetFileVersionInfo || !VerQueryValue)
 	{
-		if (!GetFileVersionInfoSize) Compat::Log() << "Failed to get 'GetFileVersionInfoSize' ProcAddress of version.dll!";
-		if (!GetFileVersionInfo) Compat::Log() << "Failed to get 'GetFileVersionInfo' ProcAddress of version.dll!";
-		if (!VerQueryValue) Compat::Log() << "Failed to get 'VerQueryValue' ProcAddress of version.dll!";
+		if (!GetFileVersionInfoSize)
+		{
+			Compat::Log() << "Failed to get 'GetFileVersionInfoSize' ProcAddress of version.dll!";
+		}
+		if (!GetFileVersionInfo)
+		{
+			Compat::Log() << "Failed to get 'GetFileVersionInfo' ProcAddress of version.dll!";
+		}
+		if (!VerQueryValue)
+		{
+			Compat::Log() << "Failed to get 'VerQueryValue' ProcAddress of version.dll!";
+		}
 		return;
 	}
 
@@ -138,7 +140,7 @@ void GetVersionFile(OSVERSIONINFO *oOS_version)
 }
 
 // Log Windows Operating System type
-void GetOSVersion()
+void LogOSVersion()
 {
 	// Declare vars
 	OSVERSIONINFO oOS_version, rOS_version;
@@ -170,23 +172,37 @@ void GetOSVersion()
 		case 5:
 			switch (oOS_version.dwMinorVersion)
 			{
-			case 0: sOSName = "Windows 2000 Server"; break;
-			case 2: sOSName = (GetSystemMetrics(SM_SERVERR2) == 0) ? "Windows Server 2003" : "Windows Server 2003 R2"; break;
+			case 0:
+				sOSName = "Windows 2000 Server";
+				break;
+			case 2:
+				sOSName = (GetSystemMetrics(SM_SERVERR2) == 0) ? "Windows Server 2003" : "Windows Server 2003 R2";
+				break;
 			}
 			break;
 		case 6:
 			switch (oOS_version.dwMinorVersion)
 			{
-			case 0: sOSName = "Windows Server 2008"; break;
-			case 1: sOSName = "Windows Server 2008 R2"; break;
-			case 2: sOSName = "Windows Server 2012"; break;
-			case 3: sOSName = "Windows Server 2012 R2"; break;
+			case 0:
+				sOSName = "Windows Server 2008";
+				break;
+			case 1:
+				sOSName = "Windows Server 2008 R2";
+				break;
+			case 2:
+				sOSName = "Windows Server 2012";
+				break;
+			case 3:
+				sOSName = "Windows Server 2012 R2";
+				break;
 			}
 			break;
 		case 10:
 			switch (oOS_version.dwMinorVersion)
 			{
-			case 0: sOSName = "Windows Server 2016"; break;
+			case 0:
+				sOSName = "Windows Server 2016";
+				break;
 			}
 			break;
 		}
@@ -199,24 +215,40 @@ void GetOSVersion()
 		case 5:
 			switch (oOS_version.dwMinorVersion)
 			{
-			case 0: sOSName = "Windows 2000"; break;
-			case 1: sOSName = "Windows XP"; break;
-			case 2: sOSName = "Windows XP Professional"; break; // Windows XP Professional x64
+			case 0:
+				sOSName = "Windows 2000";
+				break;
+			case 1:
+				sOSName = "Windows XP";
+				break;
+			case 2:
+				sOSName = "Windows XP Professional"; // Windows XP Professional x64
+				break;
 			}
 			break;
 		case 6:
 			switch (oOS_version.dwMinorVersion)
 			{
-			case 0: sOSName = "Windows Vista"; break;
-			case 1: sOSName = "Windows 7"; break;
-			case 2: sOSName = "Windows 8"; break;
-			case 3: sOSName = "Windows 8.1"; break;
+			case 0:
+				sOSName = "Windows Vista";
+				break;
+			case 1:
+				sOSName = "Windows 7";
+				break;
+			case 2:
+				sOSName = "Windows 8";
+				break;
+			case 3:
+				sOSName = "Windows 8.1";
+				break;
 			}
 			break;
 		case 10:
 			switch (oOS_version.dwMinorVersion)
 			{
-			case 0: sOSName = "Windows 10"; break;
+			case 0:
+				sOSName = "Windows 10";
+				break;
 			}
 			break;
 		}
@@ -226,14 +258,17 @@ void GetOSVersion()
 	char *bitness = "";
 	SYSTEM_INFO SystemInfo;
 	GetNativeSystemInfo(&SystemInfo);
-	if (SystemInfo.wProcessorArchitecture == 9) bitness = " 64-bit";
+	if (SystemInfo.wProcessorArchitecture == 9)
+	{
+		bitness = " 64-bit";
+	}
 
 	// Log operating system version and type
 	Compat::Log() << sOSName << bitness << " (" << oOS_version.dwMajorVersion << "." << oOS_version.dwMinorVersion << "." << oOS_version.dwBuildNumber << ")";
 }
 
 // Logs the process name and PID
-void GetProcessNameAndPID()
+void LogProcessNameAndPID()
 {
 	// Get process name
 	char exepath[MAX_PATH];
@@ -295,7 +330,10 @@ void DisableHighDPIScaling()
 	if (hUser32)
 	{
 		SetProcessDPIAwareFunc setDPIAware = (SetProcessDPIAwareFunc)GetProcAddress(hUser32, "SetProcessDPIAware");
-		if (setDPIAware) setDPIAware();
+		if (setDPIAware)
+		{
+			setDPIAware();
+		}
 	}
 }
 
@@ -303,7 +341,13 @@ void SetAppCompat()
 {
 	// Check if any DXPrimaryEmulation flags is set
 	bool appCompatFlag = false;
-	for (UINT x = 1; x <= 12; x++) if (Config.DXPrimaryEmulation[x]) appCompatFlag = true;
+	for (UINT x = 1; x <= 12; x++)
+	{
+		if (Config.DXPrimaryEmulation[x])
+		{
+			appCompatFlag = true;
+		}
+	}
 
 	// SetAppCompatData see: http://www.blitzbasic.com/Community/post.php?topic=99477&post=1202996
 	if (appCompatFlag)
@@ -340,21 +384,6 @@ void SetAppCompat()
 			Compat::Log() << "Cannnot open ddraw.dll to SetAppCompatData";
 		}
 	}
-}
-
-// Get the ID of a thread
-DWORD GetMyThreadId(HANDLE Thread)
-{
-	DWORD ThreadID = 0;
-	__try
-	{
-		ThreadID = GetThreadId(Thread);
-	}
-	__except (filterException(GetExceptionCode(), GetExceptionInformation()))
-	{
-		// Do nothing
-	}
-	return ThreadID;
 }
 
 // Get pointer for funtion name from binary file
@@ -422,12 +451,10 @@ FARPROC GetFunctionAddress(HMODULE hModule, LPCSTR FunctionName, FARPROC SetRetu
 	}
 	__except (EXCEPTION_EXECUTE_HANDLER)
 	{
-#ifdef _DEBUG
 		static constexpr DWORD BuffSize = 250;
 		char buffer[BuffSize];
 		sprintf_s(buffer, BuffSize, "GetFunctionAddress: EXCEPTION module=%s Failed to get address.", FunctionName);
 		LogText(buffer);
-#endif
 	}
 
 	return ProcAddress;

@@ -26,14 +26,18 @@ void *HotPatch(void *apiproc, const char *apiname, void *hookproc)
 	LogText(buffer);
 #endif
 
-	if(!strcmp(apiname, "GetProcAddress")) return 0; // do not mess with this one!
+	if (!strcmp(apiname, "GetProcAddress"))
+	{
+		return 0; // do not mess with this one!
+	}
 
 	patch_address = ((BYTE *)apiproc) - 5;
 	orig_address = (BYTE *)apiproc + 2;
 
-	// entry point could be at the top of a page? so VirtualProtect first to make sure patch_address is readable
+	// Entry point could be at the top of a page? so VirtualProtect first to make sure patch_address is readable
 	//if(!VirtualProtect(patch_address, 7, PAGE_EXECUTE_READWRITE, &dwPrevProtect)){
-	if(!VirtualProtect(patch_address, 12, PAGE_EXECUTE_WRITECOPY, &dwPrevProtect)){
+	if (!VirtualProtect(patch_address, 12, PAGE_EXECUTE_WRITECOPY, &dwPrevProtect))
+	{
 		sprintf_s(buffer, BuffSize, "HotPatch: access denied.  Cannot hook api=%s at addr=%p err=%x", apiname, apiproc, GetLastError());
 		LogText(buffer);
 		return (void *)0; // access denied
@@ -46,8 +50,8 @@ void *HotPatch(void *apiproc, const char *apiname, void *hookproc)
 		*patch_address = 0xE9; // jmp (4-byte relative)
 		*((DWORD *)(patch_address + 1)) = (DWORD)hookproc - (DWORD)patch_address - 5; // relative address
 		*((WORD *)apiproc) = 0xF9EB; // should be atomic write (jmp $-5)
-		
-		VirtualProtect( patch_address, 12, dwPrevProtect, &dwPrevProtect ); // restore protection
+
+		VirtualProtect(patch_address, 12, dwPrevProtect, &dwPrevProtect); // restore protection
 #ifdef _DEBUG
 		sprintf_s(buffer, BuffSize, "HotPatch: api=%s addr=%p->%p hook=%p", apiname, apiproc, orig_address, hookproc);
 		LogText(buffer);
@@ -59,26 +63,28 @@ void *HotPatch(void *apiproc, const char *apiname, void *hookproc)
 	if (memcmp("\x90\x90\x90\x90\x90\x8B\xFF", patch_address, 7) && memcmp("\x90\x90\x90\x90\x90\x89\xFF", patch_address, 7) &&
 		memcmp("\xCC\xCC\xCC\xCC\xCC\x8B\xFF", patch_address, 7) && memcmp("\xCC\xCC\xCC\xCC\xCC\x89\xFF", patch_address, 7))
 	{
-		VirtualProtect( patch_address, 12, dwPrevProtect, &dwPrevProtect ); // restore protection
-		// check it wasn't patched already
-		if((*patch_address==0xE9) && (*(WORD *)apiproc == 0xF9EB)){
+		VirtualProtect(patch_address, 12, dwPrevProtect, &dwPrevProtect); // restore protection
+																		  // check it wasn't patched already
+		if ((*patch_address == 0xE9) && (*(WORD *)apiproc == 0xF9EB))
+		{
 			// should never go through here ...
 			sprintf_s(buffer, BuffSize, "HotPatch: '%s' patched already at addr=%p", apiname, apiproc);
 			LogText(buffer);
 			return (void *)1;
 		}
-		else{
+		else
+		{
 			sprintf_s(buffer, BuffSize, "HotPatch: '%s' is not patch aware at addr=%p", apiname, apiproc);
 			LogText(buffer);
 			return (void *)0; // not hot patch "aware"
 		}
 	}
-	
+
 	*patch_address = 0xE9; // jmp (4-byte relative)
 	*((DWORD *)(patch_address + 1)) = (DWORD)hookproc - (DWORD)patch_address - 5; // relative address
 	*((WORD *)apiproc) = 0xF9EB; // should be atomic write (jmp $-5)
-	
-	VirtualProtect( patch_address, 12, dwPrevProtect, &dwPrevProtect ); // restore protection
+
+	VirtualProtect(patch_address, 12, dwPrevProtect, &dwPrevProtect); // restore protection
 #ifdef _DEBUG
 	sprintf_s(buffer, BuffSize, "HotPatch: api=%s addr=%p->%p hook=%p", apiname, apiproc, orig_address, hookproc);
 	LogText(buffer);

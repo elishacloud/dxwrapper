@@ -7,7 +7,10 @@ HMODULE dwmapiModule = nullptr;
 void Loaddwmapi()
 {
 	static bool IsLoaded = false;
-	if (IsLoaded) return; // Only load the dll once
+	if (IsLoaded)
+	{
+		return; // Only load the dll once
+	}
 	IsLoaded = true;
 	dwmapiModule = LoadLibrary("dwmapi.dll");
 	if (dwmapiModule)

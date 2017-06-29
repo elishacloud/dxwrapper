@@ -20,6 +20,8 @@
 #include "Settings.h"
 #include "Dllmain\Dllmain.h"
 
+typedef void(__stdcall* NV)(char* name, char* value);
+
 CONFIG Config;
 CRITICAL_SECTION CriticalSectionCfg;
 
@@ -42,13 +44,14 @@ bool IfStringExistsInList(char* szValue, char* szList[256], byte ListCount, bool
 		if (CaseSensitive)
 		{
 			if (strcmp(szValue, szList[x]) == 0)
+			{
 				return true;
+			}
 		}
 		// Case insensitive check
-		else
+		else if (_strcmpi(szValue, szList[x]) == 0)
 		{
-			if (_strcmpi(szValue, szList[x]) == 0)
-				return true;
+			return true;
 		}
 	}
 	return false;
@@ -68,7 +71,10 @@ void DeleteByteToWriteArrayMemory()
 {
 	for (UINT x = 1; x <= Config.BytesToWriteCount; ++x)
 	{
-		if (Config.MemoryInfo[x].SizeOfBytes > 0) delete Config.MemoryInfo[x].Bytes;
+		if (Config.MemoryInfo[x].SizeOfBytes > 0)
+		{
+			delete Config.MemoryInfo[x].Bytes;
+		}
 	}
 }
 
@@ -79,14 +85,33 @@ void EraseCppComments(char* str)
 {
 	while (str = strchr(str, '/'))
 	{
-		if (str[1] == '/') for (; ((*str != '\0') && (*str != '\n')); str++) *str = '\x20';
+		if (str[1] == '/')
+		{
+			for (; ((*str != '\0') && (*str != '\n')); str++)
+			{
+				*str = '\x20';
+			}
+		}
 		else if (str[1] == '*')
 		{
-			for (; ((*str != '\0') && ((str[0] != '*') || (str[1] != '/'))); str++) *str = '\x20';
-			if (*str) { *str++ = '\x20'; *str = '\x20'; }
+			for (; ((*str != '\0') && ((str[0] != '*') || (str[1] != '/'))); str++)
+			{
+				*str = '\x20';
+			}
+			if (*str)
+			{
+				*str++ = '\x20';
+				*str = '\x20';
+			}
 		}
-		if (*str) str++;
-		else break;
+		if (*str)
+		{
+			str++;
+		}
+		else
+		{
+			break;
+		}
 	}
 }
 #pragma warning (default : 4706)
@@ -101,26 +126,40 @@ void EraseCppComments(char* str)
 //	0x09 - horizontal tab
 //	0x0D - carriage return
 #pragma warning (disable : 4996)
-typedef void(__stdcall* NV)(char* name, char* value);
 void Parse(char* str, NV NameValueCallback)
 {
 	EraseCppComments(str);
 	for (str = strtok(str, "\n"); str; str = strtok(0, "\n"))
 	{
-		if (*str == ';' || *str == '#') continue; // skip INI style comments ( must be at start of line )
+		if (*str == ';' || *str == '#')
+		{
+			continue; // skip INI style comments ( must be at start of line )
+		}
 		char* rvalue = strchr(str, '=');
-		if (!rvalue) rvalue = strchr(str, ':');
+		if (!rvalue)
+		{
+			rvalue = strchr(str, ':');
+		}
 		if (rvalue)
 		{
 			*rvalue++ = '\0'; // split left and right values
 
 			rvalue = &rvalue[strspn(rvalue, "\x20\t\r")]; // skip beginning whitespace
-			for (char* end = strchr(rvalue, '\0'); (--end >= rvalue) && (*end == '\x20' || *end == '\t' || *end == '\r');) *end = '\0';  // truncate ending whitespace
+			for (char* end = strchr(rvalue, '\0'); (--end >= rvalue) && (*end == '\x20' || *end == '\t' || *end == '\r');)
+			{
+				*end = '\0';  // truncate ending whitespace
+			}
 
 			char* lvalue = &str[strspn(str, "\x20\t\r")]; // skip beginning whitespace
-			for (char* end = strchr(lvalue, '\0'); (--end >= lvalue) && (*end == '\x20' || *end == '\t' || *end == '\r');) *end = '\0';  // truncate ending whitespace
+			for (char* end = strchr(lvalue, '\0'); (--end >= lvalue) && (*end == '\x20' || *end == '\t' || *end == '\r');)
+			{
+				*end = '\0';  // truncate ending whitespace
+			}
 
-			if (*lvalue && *rvalue) NameValueCallback(lvalue, rvalue);
+			if (*lvalue && *rvalue)
+			{
+				NameValueCallback(lvalue, rvalue);
+			}
 		}
 	}
 }
@@ -134,8 +173,7 @@ char* Read(char* szFileName)
 	DWORD dwBytesRead;
 
 	char* szCfg = nullptr;
-	hFile = CreateFile(szFileName, GENERIC_READ, FILE_SHARE_READ, nullptr,
-		OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr);
+	hFile = CreateFile(szFileName, GENERIC_READ, FILE_SHARE_READ, nullptr, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr);
 	if (hFile != INVALID_HANDLE_VALUE)
 	{
 		dwBytesToRead = GetFileSize(hFile, nullptr);
@@ -146,9 +184,13 @@ char* Read(char* szFileName)
 			{
 				if (ReadFile(hFile, szCfg, dwBytesToRead, &dwBytesRead, nullptr))
 				{
-					if (dwBytesRead != 0) szCfg[dwBytesRead] = '\0'; // make txt file easy to deal with 
+					if (dwBytesRead != 0)
+					{
+						szCfg[dwBytesRead] = '\0'; // make txt file easy to deal with 
+					}
 				}
-				else {
+				else
+				{
 					free(szCfg);
 					szCfg = nullptr;
 				}
@@ -166,8 +208,9 @@ void SetConfig(char* name, char* value)
 	{
 		name[0] = '\0';
 	}
-	else {
-		if (strlen(value) <= MAX_PATH) strcpy_s(name, MAX_PATH, value);
+	else if (strlen(value) <= MAX_PATH)
+	{
+		strcpy_s(name, MAX_PATH, value);
 	}
 }
 
@@ -384,7 +427,8 @@ void strippath(char* str)
 	{
 		return;
 	}
-	else {
+	else
+	{
 		pdest++; // Skip the backslash itself.
 	}
 
@@ -490,7 +534,11 @@ void GetWrapperMode()
 		buffer[3] = 'm';
 		buffer[4] = 'm';
 	}
-	if (_strcmpi(buffer, dtypename[dtype.winmm]) == 0) { Config.RealWrapperMode = dtype.winmm; return; }
+	if (_strcmpi(buffer, dtypename[dtype.winmm]) == 0)
+	{
+		// Set RealWrapperMode
+		Config.RealWrapperMode = dtype.winmm;
+	}
 }
 
 void CONFIG::CleanUp()
@@ -532,7 +580,10 @@ void CONFIG::Init()
 
 	// Get config file name for log
 	pdest = strrchr(path, '\\')+1;
-	for (char* p = pdest; *p != '\0'; p++) *p = (char)tolower(*p);
+	for (char* p = pdest; *p != '\0'; p++)
+	{
+		*p = (char)tolower(*p);
+	}
 	Compat::Log() << "Reading config file: " << pdest;
 
 	// Read config file
@@ -544,7 +595,8 @@ void CONFIG::Init()
 		Parse(szCfg, ParseCallback);
 		free(szCfg);
 	}
-	else {
+	else
+	{
 		Compat::Log() << "Could not load config file using defaults";
 	}
 
@@ -566,7 +618,10 @@ void CONFIG::Init()
 	}
 
 	// Update wrapper mode
-	if (Config.WrapperMode == 0) Config.WrapperMode = Config.RealWrapperMode;
+	if (Config.WrapperMode == 0)
+	{
+		Config.WrapperMode = Config.RealWrapperMode;
+	}
 
 	// Release resources used by the critical section object.
 	DeleteCriticalSection(&CriticalSectionCfg);
