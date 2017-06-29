@@ -14,7 +14,9 @@
 *   3. This notice may not be removed or altered from any source distribution.
 */
 
+// Default
 #include "Settings\Settings.h"
+// Wrappers
 #include "d3d8.h"
 #include "d3d9.h"
 #include "ddraw.h"
@@ -26,6 +28,7 @@
 #include "bcrypt.h"
 #include "cryptsp.h"
 #include "winspool.h"
+// Libraries
 #include "uxtheme.h"
 #include "dwmapi.h"
 #include "d3dx9.h"
@@ -34,9 +37,16 @@ struct custom_dll
 {
 	bool Flag = false;
 	HMODULE dll = nullptr;
-} custom[256];
+};
 
+custom_dll custom[256];
 custom_dll dllhandle[dtypeArraySize];
+
+// Default function
+void CallReturn()
+{
+	// Do nothing
+}
 
 // Load real dll file that is being wrapped
 HMODULE LoadDll(DWORD dlltype)

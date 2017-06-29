@@ -24,45 +24,47 @@
 struct d3d8_dll
 {
 	HMODULE dll = nullptr;
-	FARPROC Direct3DCreate8;
-	FARPROC DebugSetMute;
-	FARPROC ValidateVertexShader;
-	FARPROC ValidatePixelShader;
+	FARPROC Direct3DCreate8 = jmpaddr;
+	FARPROC DebugSetMute = jmpaddr;
+	FARPROC Direct3D8EnableMaximizedWindowedModeShim = jmpaddr;
+	FARPROC ValidateVertexShader = jmpaddr;
+	FARPROC ValidatePixelShader = jmpaddr;
 } d3d8;
 
 __declspec(naked) void FakeDirect3DCreate8()				{ _asm { jmp [d3d8.Direct3DCreate8] } }
 //__declspec(naked) void FakeDebugSetMute()					{ _asm { jmp [d3d8.DebugSetMute] } }		 // <---  Shared with d3d9.dll
+__declspec(naked) void FakeDirect3D8EnableMaximizedWindowedModeShim() { _asm { jmp[d3d8.Direct3D8EnableMaximizedWindowedModeShim] } }
 __declspec(naked) void FakeValidateVertexShader()			{ _asm { jmp [d3d8.ValidateVertexShader] } }
 __declspec(naked) void FakeValidatePixelShader()			{ _asm { jmp [d3d8.ValidatePixelShader] } }
 
 void LoadD3d8()
 {
-	// Load real dll
-	d3d8.dll = LoadDll(dtype.d3d8);
-
-	// Overload GetProcAddress function to GetFunctionAddress
-	typedef FARPROC(*GetFunctionAddress_type)(HMODULE, LPCSTR);
-	GetFunctionAddress_type GetProcAddress = reinterpret_cast<GetFunctionAddress_type>(GetFunctionAddress);
-
-	// Load dll functions
-	if (d3d8.dll)
+	// Enable d3d8to9 conversion
+	if (Config.D3d8to9 && Config.RealWrapperMode == dtype.d3d8)
 	{
-		d3d8.Direct3DCreate8 = GetProcAddress(d3d8.dll, "Direct3DCreate8");
-		Set_DebugSetMute(GetProcAddress(d3d8.dll, "DebugSetMute"));
-		d3d8.ValidateVertexShader = GetProcAddress(d3d8.dll, "ValidateVertexShader");
-		d3d8.ValidatePixelShader = GetProcAddress(d3d8.dll, "ValidatePixelShader");
+		d3d8.Direct3DCreate8 = GetFunctionAddress(hModule_dll, "_Direct3DCreate8", jmpaddr);
+	}
 
-		// Enable d3d8to9 conversion
-		if (Config.D3d8to9 && Config.RealWrapperMode == dtype.d3d8)
-		{
-			d3d8.Direct3DCreate8 = GetProcAddress(hModule_dll, "_Direct3DCreate8");
-		}
+	// Load real dll
+	else
+	{
+		d3d8.dll = LoadDll(dtype.d3d8);
 
-		// Hook APIs for d3d8to9 conversion
-		else if (Config.D3d8to9)
+		// Load dll functions
+		if (d3d8.dll)
 		{
-			Compat::Log() << "Hooking d3d8.dll APIs...";
-			d3d8.Direct3DCreate8 = (FARPROC)HookAPI(hModule_dll, dtypename[dtype.d3d8], d3d8.Direct3DCreate8, "Direct3DCreate8", GetProcAddress(hModule_dll, "_Direct3DCreate8"));
+			d3d8.Direct3DCreate8 = GetFunctionAddress(d3d8.dll, "Direct3DCreate8", jmpaddr);
+			Set_DebugSetMute(GetFunctionAddress(d3d8.dll, "DebugSetMute", jmpaddr));
+			d3d8.Direct3D8EnableMaximizedWindowedModeShim = GetFunctionAddress(d3d8.dll, "Direct3D8EnableMaximizedWindowedModeShim", jmpaddr);
+			d3d8.ValidateVertexShader = GetFunctionAddress(d3d8.dll, "ValidateVertexShader", jmpaddr);
+			d3d8.ValidatePixelShader = GetFunctionAddress(d3d8.dll, "ValidatePixelShader", jmpaddr);
+
+			// Hook APIs for d3d8to9 conversion
+			if (Config.D3d8to9)
+			{
+				Compat::Log() << "Hooking d3d8.dll APIs...";
+				d3d8.Direct3DCreate8 = (FARPROC)HookAPI(hModule_dll, dtypename[dtype.d3d8], GetFunctionAddress(d3d8.dll, "Direct3DCreate8"), "Direct3DCreate8", GetFunctionAddress(hModule_dll, "_Direct3DCreate8"));
+			}
 		}
 	}
 }

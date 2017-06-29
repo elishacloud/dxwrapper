@@ -16,29 +16,28 @@
 
 #include "Settings\Settings.h"
 #include "wrapper.h"
+#include "Utils\Utils.h"
 
 struct d3d9_dll
 {
 	HMODULE dll = nullptr;
-	FARPROC Direct3DShaderValidatorCreate9;
-	FARPROC PSGPError;
-	FARPROC PSGPSampleTexture;
-	FARPROC D3DPERF_BeginEvent;
-	FARPROC D3DPERF_EndEvent;
-	FARPROC D3DPERF_GetStatus;
-	FARPROC D3DPERF_QueryRepeatFrame;
-	FARPROC D3DPERF_SetMarker;
-	FARPROC D3DPERF_SetOptions;
-	FARPROC D3DPERF_SetRegion;
-	FARPROC DebugSetLevel;
-	FARPROC DebugSetMute;
-	FARPROC Direct3DCreate9;
-	FARPROC Direct3DCreate9Ex;
+	FARPROC D3DPERF_BeginEvent = jmpaddr;
+	FARPROC D3DPERF_EndEvent = jmpaddr;
+	FARPROC D3DPERF_GetStatus = jmpaddr;
+	FARPROC D3DPERF_QueryRepeatFrame = jmpaddr;
+	FARPROC D3DPERF_SetMarker = jmpaddr;
+	FARPROC D3DPERF_SetOptions = jmpaddr;
+	FARPROC D3DPERF_SetRegion = jmpaddr;
+	FARPROC DebugSetLevel = jmpaddr;
+	FARPROC DebugSetMute = jmpaddr;
+	FARPROC Direct3D9EnableMaximizedWindowedModeShim = jmpaddr;
+	FARPROC Direct3DCreate9 = jmpaddr;
+	FARPROC Direct3DCreate9Ex = jmpaddr;
+	FARPROC Direct3DShaderValidatorCreate9 = jmpaddr;
+	FARPROC PSGPError = jmpaddr;
+	FARPROC PSGPSampleTexture = jmpaddr;
 } d3d9;
 
-__declspec(naked) void FakeDirect3DShaderValidatorCreate9()	{ _asm { jmp [d3d9.Direct3DShaderValidatorCreate9] } }
-__declspec(naked) void FakePSGPError()						{ _asm { jmp [d3d9.PSGPError] } }
-__declspec(naked) void FakePSGPSampleTexture()				{ _asm { jmp [d3d9.PSGPSampleTexture] } }
 __declspec(naked) void FakeD3DPERF_BeginEvent()				{ _asm { jmp [d3d9.D3DPERF_BeginEvent] } }
 __declspec(naked) void FakeD3DPERF_EndEvent()				{ _asm { jmp [d3d9.D3DPERF_EndEvent] } }
 __declspec(naked) void FakeD3DPERF_GetStatus()				{ _asm { jmp [d3d9.D3DPERF_GetStatus] } }
@@ -48,8 +47,12 @@ __declspec(naked) void FakeD3DPERF_SetOptions()				{ _asm { jmp [d3d9.D3DPERF_Se
 __declspec(naked) void FakeD3DPERF_SetRegion()				{ _asm { jmp [d3d9.D3DPERF_SetRegion] } }
 __declspec(naked) void FakeDebugSetLevel()					{ _asm { jmp [d3d9.DebugSetLevel] } }
 __declspec(naked) void FakeDebugSetMute()					{ _asm { jmp [d3d9.DebugSetMute] } }
+__declspec(naked) void FakeDirect3D9EnableMaximizedWindowedModeShim() { _asm { jmp[d3d9.Direct3D9EnableMaximizedWindowedModeShim] } }
 __declspec(naked) void FakeDirect3DCreate9()				{ _asm { jmp [d3d9.Direct3DCreate9] } }
 __declspec(naked) void FakeDirect3DCreate9Ex()				{ _asm { jmp [d3d9.Direct3DCreate9Ex] } }
+__declspec(naked) void FakeDirect3DShaderValidatorCreate9()	{ _asm { jmp [d3d9.Direct3DShaderValidatorCreate9] } }
+__declspec(naked) void FakePSGPError()						{ _asm { jmp [d3d9.PSGPError] } }
+__declspec(naked) void FakePSGPSampleTexture()				{ _asm { jmp [d3d9.PSGPSampleTexture] } }
 
 void LoadD3d9()
 {
@@ -59,20 +62,21 @@ void LoadD3d9()
 	// Load dll functions
 	if (d3d9.dll)
 	{
-		d3d9.Direct3DShaderValidatorCreate9	= GetProcAddress(d3d9.dll, "Direct3DShaderValidatorCreate9");
-		d3d9.PSGPError						= GetProcAddress(d3d9.dll, "PSGPError");
-		d3d9.PSGPSampleTexture				= GetProcAddress(d3d9.dll, "PSGPSampleTexture");
-		d3d9.D3DPERF_BeginEvent				= GetProcAddress(d3d9.dll, "D3DPERF_BeginEvent");
-		d3d9.D3DPERF_EndEvent				= GetProcAddress(d3d9.dll, "D3DPERF_EndEvent");
-		d3d9.D3DPERF_GetStatus				= GetProcAddress(d3d9.dll, "D3DPERF_GetStatus");
-		d3d9.D3DPERF_QueryRepeatFrame		= GetProcAddress(d3d9.dll, "D3DPERF_QueryRepeatFrame");
-		d3d9.D3DPERF_SetMarker				= GetProcAddress(d3d9.dll, "D3DPERF_SetMarker");
-		d3d9.D3DPERF_SetOptions				= GetProcAddress(d3d9.dll, "D3DPERF_SetOptions");
-		d3d9.D3DPERF_SetRegion				= GetProcAddress(d3d9.dll, "D3DPERF_SetRegion");
-		d3d9.DebugSetLevel					= GetProcAddress(d3d9.dll, "DebugSetLevel");
-		d3d9.DebugSetMute					= GetProcAddress(d3d9.dll, "DebugSetMute");
-		d3d9.Direct3DCreate9				= GetProcAddress(d3d9.dll, "Direct3DCreate9");
-		d3d9.Direct3DCreate9Ex				= GetProcAddress(d3d9.dll, "Direct3DCreate9Ex");
+		d3d9.D3DPERF_BeginEvent				= GetFunctionAddress(d3d9.dll, "D3DPERF_BeginEvent", jmpaddr);
+		d3d9.D3DPERF_EndEvent				= GetFunctionAddress(d3d9.dll, "D3DPERF_EndEvent", jmpaddr);
+		d3d9.D3DPERF_GetStatus				= GetFunctionAddress(d3d9.dll, "D3DPERF_GetStatus", jmpaddr);
+		d3d9.D3DPERF_QueryRepeatFrame		= GetFunctionAddress(d3d9.dll, "D3DPERF_QueryRepeatFrame", jmpaddr);
+		d3d9.D3DPERF_SetMarker				= GetFunctionAddress(d3d9.dll, "D3DPERF_SetMarker", jmpaddr);
+		d3d9.D3DPERF_SetOptions				= GetFunctionAddress(d3d9.dll, "D3DPERF_SetOptions", jmpaddr);
+		d3d9.D3DPERF_SetRegion				= GetFunctionAddress(d3d9.dll, "D3DPERF_SetRegion", jmpaddr);
+		d3d9.DebugSetLevel					= GetFunctionAddress(d3d9.dll, "DebugSetLevel", jmpaddr);
+		d3d9.DebugSetMute					= GetFunctionAddress(d3d9.dll, "DebugSetMute", jmpaddr);
+		d3d9.Direct3D9EnableMaximizedWindowedModeShim = GetFunctionAddress(d3d9.dll, "Direct3D9EnableMaximizedWindowedModeShim", jmpaddr);
+		d3d9.Direct3DCreate9				= GetFunctionAddress(d3d9.dll, "Direct3DCreate9", jmpaddr);
+		d3d9.Direct3DCreate9Ex				= GetFunctionAddress(d3d9.dll, "Direct3DCreate9Ex", jmpaddr);
+		d3d9.Direct3DShaderValidatorCreate9	= GetFunctionAddress(d3d9.dll, "Direct3DShaderValidatorCreate9", jmpaddr);
+		d3d9.PSGPError						= GetFunctionAddress(d3d9.dll, "PSGPError", jmpaddr);
+		d3d9.PSGPSampleTexture				= GetFunctionAddress(d3d9.dll, "PSGPSampleTexture", jmpaddr);
 	}
 }
 

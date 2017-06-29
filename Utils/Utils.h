@@ -7,4 +7,4 @@ void Shell(char*);
 void DisableHighDPIScaling();
 void SetAppCompat();
 DWORD GetMyThreadId(HANDLE);
-FARPROC GetFunctionAddress(HMODULE, LPCSTR);
+FARPROC GetFunctionAddress(HMODULE, LPCSTR, FARPROC = nullptr);

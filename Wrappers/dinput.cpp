@@ -18,17 +18,18 @@
 #include "Dllmain\Dllmain.h"
 #include "wrapper.h"
 #include "dsound.h"
+#include "Utils\Utils.h"
 
 struct dinput_dll
 {
 	HMODULE dll = nullptr;
-	FARPROC DirectInputCreateA;
-	FARPROC DirectInputCreateEx;
-	FARPROC DirectInputCreateW;
-	FARPROC DllCanUnloadNow;
-	FARPROC DllGetClassObject;
-	FARPROC DllRegisterServer;
-	FARPROC DllUnregisterServer;
+	FARPROC DirectInputCreateA = jmpaddr;
+	FARPROC DirectInputCreateEx = jmpaddr;
+	FARPROC DirectInputCreateW = jmpaddr;
+	FARPROC DllCanUnloadNow = jmpaddr;
+	FARPROC DllGetClassObject = jmpaddr;
+	FARPROC DllRegisterServer = jmpaddr;
+	FARPROC DllUnregisterServer = jmpaddr;
 } dinput;
 
 __declspec(naked) void  FakeDirectInputCreateA() { _asm { jmp[dinput.DirectInputCreateA] } }
@@ -47,12 +48,12 @@ void LoadDinput()
 	// Load dll functions
 	if (dinput.dll)
 	{
-		dinput.DirectInputCreateA = GetProcAddress(dinput.dll, "DirectInputCreateA");
-		dinput.DirectInputCreateEx = GetProcAddress(dinput.dll, "DirectInputCreateEx");
-		dinput.DirectInputCreateW = GetProcAddress(dinput.dll, "DirectInputCreateW");
-		Set_DllCanUnloadNow(GetProcAddress(dinput.dll, "DllCanUnloadNow"));
-		Set_DllGetClassObject(GetProcAddress(dinput.dll, "DllGetClassObject"));
-		dinput.DllRegisterServer = GetProcAddress(dinput.dll, "DllRegisterServer");
-		dinput.DllUnregisterServer = GetProcAddress(dinput.dll, "DllUnregisterServer");
+		dinput.DirectInputCreateA = GetFunctionAddress(dinput.dll, "DirectInputCreateA", jmpaddr);
+		dinput.DirectInputCreateEx = GetFunctionAddress(dinput.dll, "DirectInputCreateEx", jmpaddr);
+		dinput.DirectInputCreateW = GetFunctionAddress(dinput.dll, "DirectInputCreateW", jmpaddr);
+		Set_DllCanUnloadNow(GetFunctionAddress(dinput.dll, "DllCanUnloadNow", jmpaddr));
+		Set_DllGetClassObject(GetFunctionAddress(dinput.dll, "DllGetClassObject", jmpaddr));
+		dinput.DllRegisterServer = GetFunctionAddress(dinput.dll, "DllRegisterServer", jmpaddr);
+		dinput.DllUnregisterServer = GetFunctionAddress(dinput.dll, "DllUnregisterServer", jmpaddr);
 	}
 }

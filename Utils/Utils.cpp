@@ -358,7 +358,7 @@ DWORD GetMyThreadId(HANDLE Thread)
 }
 
 // Get pointer for funtion name from binary file
-FARPROC GetFunctionAddress(HMODULE hModule, LPCSTR FunctionName)
+FARPROC GetFunctionAddress(HMODULE hModule, LPCSTR FunctionName, FARPROC SetReturnValue)
 {
 	PIMAGE_DOS_HEADER pIDH;
 	PIMAGE_NT_HEADERS pINH;
@@ -370,16 +370,21 @@ FARPROC GetFunctionAddress(HMODULE hModule, LPCSTR FunctionName)
 	if (!FunctionName)
 	{
 		LogText("GetFunctionAddress: NULL api name");
-		return nullptr;
+		return SetReturnValue;
 	}
 
 	if (!hModule)
 	{
 		LogText("GetFunctionAddress: NULL api module address");
-		return nullptr;
+		return SetReturnValue;
 	}
 
 	FARPROC ProcAddress = GetProcAddress(hModule, FunctionName);
+
+	if (!ProcAddress)
+	{
+		ProcAddress = SetReturnValue;
+	}
 
 	__try {
 		pIDH = (PIMAGE_DOS_HEADER)hModule;
