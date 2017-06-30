@@ -25,17 +25,17 @@ struct d3d8_dll
 {
 	HMODULE dll = nullptr;
 	FARPROC Direct3DCreate8 = jmpaddr;
-	FARPROC DebugSetMute = jmpaddr;
+	//FARPROC DebugSetMute = jmpaddr;		 // <---  Shared with d3d9.dll
 	FARPROC Direct3D8EnableMaximizedWindowedModeShim = jmpaddr;
 	FARPROC ValidateVertexShader = jmpaddr;
 	FARPROC ValidatePixelShader = jmpaddr;
 } d3d8;
 
-__declspec(naked) void FakeDirect3DCreate8()				{ _asm { jmp [d3d8.Direct3DCreate8] } }
-//__declspec(naked) void FakeDebugSetMute()					{ _asm { jmp [d3d8.DebugSetMute] } }		 // <---  Shared with d3d9.dll
+__declspec(naked) void FakeDirect3DCreate8() { _asm { jmp[d3d8.Direct3DCreate8] } }
+//__declspec(naked) void FakeDebugSetMute() { _asm { jmp [d3d8.DebugSetMute] } }		 // <---  Shared with d3d9.dll
 __declspec(naked) void FakeDirect3D8EnableMaximizedWindowedModeShim() { _asm { jmp[d3d8.Direct3D8EnableMaximizedWindowedModeShim] } }
-__declspec(naked) void FakeValidateVertexShader()			{ _asm { jmp [d3d8.ValidateVertexShader] } }
-__declspec(naked) void FakeValidatePixelShader()			{ _asm { jmp [d3d8.ValidatePixelShader] } }
+__declspec(naked) void FakeValidateVertexShader() { _asm { jmp[d3d8.ValidateVertexShader] } }
+__declspec(naked) void FakeValidatePixelShader() { _asm { jmp[d3d8.ValidatePixelShader] } }
 
 void LoadD3d8()
 {

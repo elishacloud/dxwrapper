@@ -12,7 +12,7 @@
 
 static HMODULE LoadDisasm();
 
-typedef LPTOP_LEVEL_EXCEPTION_FILTER (WINAPI *SetUnhandledExceptionFilter_Type)(LPTOP_LEVEL_EXCEPTION_FILTER);
+typedef LPTOP_LEVEL_EXCEPTION_FILTER(WINAPI *SetUnhandledExceptionFilter_Type)(LPTOP_LEVEL_EXCEPTION_FILTER);
 typedef char *(*Geterrwarnmessage_Type)(unsigned long, unsigned long);
 typedef int(*Preparedisasm_Type)(void);
 typedef void(*Finishdisasm_Type)(void);

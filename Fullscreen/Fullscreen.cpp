@@ -198,6 +198,11 @@ void ResetScreen()
 // Window functions below
 //*********************************************************************************
 
+bool IsMainWindow(HWND hwnd)
+{
+	return GetWindow(hwnd, GW_OWNER) == (HWND)0 && IsWindowVisible(hwnd);
+}
+
 bool IsWindowTooSmall(screen_res WindowSize)
 {
 	return WindowSize.Width < MinWindowWidth || WindowSize.Height < MinWindowHeight;
@@ -293,7 +298,7 @@ BOOL CALLBACK EnumWindowsCallback(HWND hwnd, LPARAM lParam)
 		++data.LayerNumber;
 		data.Windows[data.LayerNumber].hwnd = hwnd;
 		data.Windows[data.LayerNumber].IsFullScreen = IsWindowFullScreen(WindowSize, ScreenSize);
-		data.Windows[data.LayerNumber].IsMain = GetWindow(hwnd, GW_OWNER) == (HWND)0 && IsWindowVisible(hwnd);
+		data.Windows[data.LayerNumber].IsMain = IsMainWindow(hwnd);
 
 		// Check if the window is the best window
 		if (data.Windows[data.LayerNumber].IsFullScreen && data.Windows[data.LayerNumber].IsMain)

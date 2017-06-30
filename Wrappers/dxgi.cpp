@@ -78,61 +78,61 @@ struct dxgi_dll
 	FARPROC D3DKMTWaitForVerticalBlankEvent = jmpaddr;
 } dxgi;
 
-__declspec(naked) void FakeApplyCompatResolutionQuirking() { _asm { jmp [dxgi.ApplyCompatResolutionQuirking] } }
-__declspec(naked) void FakeCompatString() { _asm { jmp [dxgi.CompatString] } }
-__declspec(naked) void FakeCompatValue() { _asm { jmp [dxgi.CompatValue] } }
-__declspec(naked) void FakeDXGIDumpJournal() { _asm { jmp [dxgi.DXGIDumpJournal] } }
-__declspec(naked) void FakeDXGIRevertToSxS() { _asm { jmp [dxgi.DXGIRevertToSxS] } }
-__declspec(naked) void FakePIXBeginCapture() { _asm { jmp [dxgi.PIXBeginCapture] } }
-__declspec(naked) void FakePIXEndCapture() { _asm { jmp [dxgi.PIXEndCapture] } }
-__declspec(naked) void FakePIXGetCaptureState() { _asm { jmp [dxgi.PIXGetCaptureState] } }
-__declspec(naked) void FakeSetAppCompatStringPointer() { _asm { jmp [dxgi.SetAppCompatStringPointer] } }
-__declspec(naked) void FakeCreateDXGIFactory1() { _asm { jmp [dxgi.CreateDXGIFactory1] } }
-__declspec(naked) void FakeCreateDXGIFactory2() { _asm { jmp [dxgi.CreateDXGIFactory2] } }
-__declspec(naked) void FakeCreateDXGIFactory() { _asm { jmp [dxgi.CreateDXGIFactory] } }
-__declspec(naked) void FakeDXGID3D10CreateDevice() { _asm { jmp [dxgi.DXGID3D10CreateDevice] } }
-__declspec(naked) void FakeDXGID3D10CreateLayeredDevice() { _asm { jmp [dxgi.DXGID3D10CreateLayeredDevice] } }
-__declspec(naked) void FakeDXGID3D10ETWRundown() { _asm { jmp [dxgi.DXGID3D10ETWRundown] } }
-__declspec(naked) void FakeDXGID3D10GetLayeredDeviceSize() { _asm { jmp [dxgi.DXGID3D10GetLayeredDeviceSize] } }
-__declspec(naked) void FakeDXGID3D10RegisterLayers() { _asm { jmp [dxgi.DXGID3D10RegisterLayers] } }
-__declspec(naked) void FakeDXGIGetDebugInterface1() { _asm { jmp [dxgi.DXGIGetDebugInterface1] } }
-__declspec(naked) void FakeDXGIReportAdapterConfiguration() { _asm { jmp [dxgi.DXGIReportAdapterConfiguration] } }
-__declspec(naked) void FakeD3DKMTCloseAdapter() { _asm { jmp [dxgi.D3DKMTCloseAdapter] } }
-__declspec(naked) void FakeD3DKMTDestroyAllocation() { _asm { jmp [dxgi.D3DKMTDestroyAllocation] } }
-__declspec(naked) void FakeD3DKMTDestroyContext() { _asm { jmp [dxgi.D3DKMTDestroyContext] } }
-__declspec(naked) void FakeD3DKMTDestroyDevice() { _asm { jmp [dxgi.D3DKMTDestroyDevice] } }
-__declspec(naked) void FakeD3DKMTDestroySynchronizationObject() { _asm { jmp [dxgi.D3DKMTDestroySynchronizationObject] } }
-__declspec(naked) void FakeD3DKMTQueryAdapterInfo() { _asm { jmp [dxgi.D3DKMTQueryAdapterInfo] } }
-__declspec(naked) void FakeD3DKMTSetDisplayPrivateDriverFormat() { _asm { jmp [dxgi.D3DKMTSetDisplayPrivateDriverFormat] } }
-__declspec(naked) void FakeD3DKMTSignalSynchronizationObject() { _asm { jmp [dxgi.D3DKMTSignalSynchronizationObject] } }
-__declspec(naked) void FakeD3DKMTUnlock() { _asm { jmp [dxgi.D3DKMTUnlock] } }
-__declspec(naked) void FakeOpenAdapter10() { _asm { jmp [dxgi.OpenAdapter10] } }
-__declspec(naked) void FakeOpenAdapter10_2() { _asm { jmp [dxgi.OpenAdapter10_2] } }
-__declspec(naked) void FakeD3DKMTCreateAllocation() { _asm { jmp [dxgi.D3DKMTCreateAllocation] } }
-__declspec(naked) void FakeD3DKMTCreateContext() { _asm { jmp [dxgi.D3DKMTCreateContext] } }
-__declspec(naked) void FakeD3DKMTCreateDevice() { _asm { jmp [dxgi.D3DKMTCreateDevice] } }
-__declspec(naked) void FakeD3DKMTCreateSynchronizationObject() { _asm { jmp [dxgi.D3DKMTCreateSynchronizationObject] } }
-__declspec(naked) void FakeD3DKMTEscape() { _asm { jmp [dxgi.D3DKMTEscape] } }
-__declspec(naked) void FakeD3DKMTGetContextSchedulingPriority() { _asm { jmp [dxgi.D3DKMTGetContextSchedulingPriority] } }
-__declspec(naked) void FakeD3DKMTGetDeviceState() { _asm { jmp [dxgi.D3DKMTGetDeviceState] } }
-__declspec(naked) void FakeD3DKMTGetDisplayModeList() { _asm { jmp [dxgi.D3DKMTGetDisplayModeList] } }
-__declspec(naked) void FakeD3DKMTGetMultisampleMethodList() { _asm { jmp [dxgi.D3DKMTGetMultisampleMethodList] } }
-__declspec(naked) void FakeD3DKMTGetRuntimeData() { _asm { jmp [dxgi.D3DKMTGetRuntimeData] } }
-__declspec(naked) void FakeD3DKMTGetSharedPrimaryHandle() { _asm { jmp [dxgi.D3DKMTGetSharedPrimaryHandle] } }
-__declspec(naked) void FakeD3DKMTLock() { _asm { jmp [dxgi.D3DKMTLock] } }
-__declspec(naked) void FakeD3DKMTOpenAdapterFromHdc() { _asm { jmp [dxgi.D3DKMTOpenAdapterFromHdc] } }
-__declspec(naked) void FakeD3DKMTOpenResource() { _asm { jmp [dxgi.D3DKMTOpenResource] } }
-__declspec(naked) void FakeD3DKMTPresent() { _asm { jmp [dxgi.D3DKMTPresent] } }
-__declspec(naked) void FakeD3DKMTQueryAllocationResidency() { _asm { jmp [dxgi.D3DKMTQueryAllocationResidency] } }
-__declspec(naked) void FakeD3DKMTQueryResourceInfo() { _asm { jmp [dxgi.D3DKMTQueryResourceInfo] } }
-__declspec(naked) void FakeD3DKMTRender() { _asm { jmp [dxgi.D3DKMTRender] } }
-__declspec(naked) void FakeD3DKMTSetAllocationPriority() { _asm { jmp [dxgi.D3DKMTSetAllocationPriority] } }
-__declspec(naked) void FakeD3DKMTSetContextSchedulingPriority() { _asm { jmp [dxgi.D3DKMTSetContextSchedulingPriority] } }
-__declspec(naked) void FakeD3DKMTSetDisplayMode() { _asm { jmp [dxgi.D3DKMTSetDisplayMode] } }
-__declspec(naked) void FakeD3DKMTSetGammaRamp() { _asm { jmp [dxgi.D3DKMTSetGammaRamp] } }
-__declspec(naked) void FakeD3DKMTSetVidPnSourceOwner() { _asm { jmp [dxgi.D3DKMTSetVidPnSourceOwner] } }
-__declspec(naked) void FakeD3DKMTWaitForSynchronizationObject() { _asm { jmp [dxgi.D3DKMTWaitForSynchronizationObject] } }
-__declspec(naked) void FakeD3DKMTWaitForVerticalBlankEvent() { _asm { jmp [dxgi.D3DKMTWaitForVerticalBlankEvent] } }
+__declspec(naked) void FakeApplyCompatResolutionQuirking() { _asm { jmp[dxgi.ApplyCompatResolutionQuirking] } }
+__declspec(naked) void FakeCompatString() { _asm { jmp[dxgi.CompatString] } }
+__declspec(naked) void FakeCompatValue() { _asm { jmp[dxgi.CompatValue] } }
+__declspec(naked) void FakeDXGIDumpJournal() { _asm { jmp[dxgi.DXGIDumpJournal] } }
+__declspec(naked) void FakeDXGIRevertToSxS() { _asm { jmp[dxgi.DXGIRevertToSxS] } }
+__declspec(naked) void FakePIXBeginCapture() { _asm { jmp[dxgi.PIXBeginCapture] } }
+__declspec(naked) void FakePIXEndCapture() { _asm { jmp[dxgi.PIXEndCapture] } }
+__declspec(naked) void FakePIXGetCaptureState() { _asm { jmp[dxgi.PIXGetCaptureState] } }
+__declspec(naked) void FakeSetAppCompatStringPointer() { _asm { jmp[dxgi.SetAppCompatStringPointer] } }
+__declspec(naked) void FakeCreateDXGIFactory1() { _asm { jmp[dxgi.CreateDXGIFactory1] } }
+__declspec(naked) void FakeCreateDXGIFactory2() { _asm { jmp[dxgi.CreateDXGIFactory2] } }
+__declspec(naked) void FakeCreateDXGIFactory() { _asm { jmp[dxgi.CreateDXGIFactory] } }
+__declspec(naked) void FakeDXGID3D10CreateDevice() { _asm { jmp[dxgi.DXGID3D10CreateDevice] } }
+__declspec(naked) void FakeDXGID3D10CreateLayeredDevice() { _asm { jmp[dxgi.DXGID3D10CreateLayeredDevice] } }
+__declspec(naked) void FakeDXGID3D10ETWRundown() { _asm { jmp[dxgi.DXGID3D10ETWRundown] } }
+__declspec(naked) void FakeDXGID3D10GetLayeredDeviceSize() { _asm { jmp[dxgi.DXGID3D10GetLayeredDeviceSize] } }
+__declspec(naked) void FakeDXGID3D10RegisterLayers() { _asm { jmp[dxgi.DXGID3D10RegisterLayers] } }
+__declspec(naked) void FakeDXGIGetDebugInterface1() { _asm { jmp[dxgi.DXGIGetDebugInterface1] } }
+__declspec(naked) void FakeDXGIReportAdapterConfiguration() { _asm { jmp[dxgi.DXGIReportAdapterConfiguration] } }
+__declspec(naked) void FakeD3DKMTCloseAdapter() { _asm { jmp[dxgi.D3DKMTCloseAdapter] } }
+__declspec(naked) void FakeD3DKMTDestroyAllocation() { _asm { jmp[dxgi.D3DKMTDestroyAllocation] } }
+__declspec(naked) void FakeD3DKMTDestroyContext() { _asm { jmp[dxgi.D3DKMTDestroyContext] } }
+__declspec(naked) void FakeD3DKMTDestroyDevice() { _asm { jmp[dxgi.D3DKMTDestroyDevice] } }
+__declspec(naked) void FakeD3DKMTDestroySynchronizationObject() { _asm { jmp[dxgi.D3DKMTDestroySynchronizationObject] } }
+__declspec(naked) void FakeD3DKMTQueryAdapterInfo() { _asm { jmp[dxgi.D3DKMTQueryAdapterInfo] } }
+__declspec(naked) void FakeD3DKMTSetDisplayPrivateDriverFormat() { _asm { jmp[dxgi.D3DKMTSetDisplayPrivateDriverFormat] } }
+__declspec(naked) void FakeD3DKMTSignalSynchronizationObject() { _asm { jmp[dxgi.D3DKMTSignalSynchronizationObject] } }
+__declspec(naked) void FakeD3DKMTUnlock() { _asm { jmp[dxgi.D3DKMTUnlock] } }
+__declspec(naked) void FakeOpenAdapter10() { _asm { jmp[dxgi.OpenAdapter10] } }
+__declspec(naked) void FakeOpenAdapter10_2() { _asm { jmp[dxgi.OpenAdapter10_2] } }
+__declspec(naked) void FakeD3DKMTCreateAllocation() { _asm { jmp[dxgi.D3DKMTCreateAllocation] } }
+__declspec(naked) void FakeD3DKMTCreateContext() { _asm { jmp[dxgi.D3DKMTCreateContext] } }
+__declspec(naked) void FakeD3DKMTCreateDevice() { _asm { jmp[dxgi.D3DKMTCreateDevice] } }
+__declspec(naked) void FakeD3DKMTCreateSynchronizationObject() { _asm { jmp[dxgi.D3DKMTCreateSynchronizationObject] } }
+__declspec(naked) void FakeD3DKMTEscape() { _asm { jmp[dxgi.D3DKMTEscape] } }
+__declspec(naked) void FakeD3DKMTGetContextSchedulingPriority() { _asm { jmp[dxgi.D3DKMTGetContextSchedulingPriority] } }
+__declspec(naked) void FakeD3DKMTGetDeviceState() { _asm { jmp[dxgi.D3DKMTGetDeviceState] } }
+__declspec(naked) void FakeD3DKMTGetDisplayModeList() { _asm { jmp[dxgi.D3DKMTGetDisplayModeList] } }
+__declspec(naked) void FakeD3DKMTGetMultisampleMethodList() { _asm { jmp[dxgi.D3DKMTGetMultisampleMethodList] } }
+__declspec(naked) void FakeD3DKMTGetRuntimeData() { _asm { jmp[dxgi.D3DKMTGetRuntimeData] } }
+__declspec(naked) void FakeD3DKMTGetSharedPrimaryHandle() { _asm { jmp[dxgi.D3DKMTGetSharedPrimaryHandle] } }
+__declspec(naked) void FakeD3DKMTLock() { _asm { jmp[dxgi.D3DKMTLock] } }
+__declspec(naked) void FakeD3DKMTOpenAdapterFromHdc() { _asm { jmp[dxgi.D3DKMTOpenAdapterFromHdc] } }
+__declspec(naked) void FakeD3DKMTOpenResource() { _asm { jmp[dxgi.D3DKMTOpenResource] } }
+__declspec(naked) void FakeD3DKMTPresent() { _asm { jmp[dxgi.D3DKMTPresent] } }
+__declspec(naked) void FakeD3DKMTQueryAllocationResidency() { _asm { jmp[dxgi.D3DKMTQueryAllocationResidency] } }
+__declspec(naked) void FakeD3DKMTQueryResourceInfo() { _asm { jmp[dxgi.D3DKMTQueryResourceInfo] } }
+__declspec(naked) void FakeD3DKMTRender() { _asm { jmp[dxgi.D3DKMTRender] } }
+__declspec(naked) void FakeD3DKMTSetAllocationPriority() { _asm { jmp[dxgi.D3DKMTSetAllocationPriority] } }
+__declspec(naked) void FakeD3DKMTSetContextSchedulingPriority() { _asm { jmp[dxgi.D3DKMTSetContextSchedulingPriority] } }
+__declspec(naked) void FakeD3DKMTSetDisplayMode() { _asm { jmp[dxgi.D3DKMTSetDisplayMode] } }
+__declspec(naked) void FakeD3DKMTSetGammaRamp() { _asm { jmp[dxgi.D3DKMTSetGammaRamp] } }
+__declspec(naked) void FakeD3DKMTSetVidPnSourceOwner() { _asm { jmp[dxgi.D3DKMTSetVidPnSourceOwner] } }
+__declspec(naked) void FakeD3DKMTWaitForSynchronizationObject() { _asm { jmp[dxgi.D3DKMTWaitForSynchronizationObject] } }
+__declspec(naked) void FakeD3DKMTWaitForVerticalBlankEvent() { _asm { jmp[dxgi.D3DKMTWaitForVerticalBlankEvent] } }
 
 void LoadDxgi()
 {

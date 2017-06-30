@@ -37,18 +37,18 @@ struct dsound_dll
 	FARPROC DirectSoundCaptureCreate8 = jmpaddr;
 } dsound;
 
-__declspec(naked) void  FakeDirectSoundCreate()				{ _asm { jmp [dsound.DirectSoundCreate] } }
-__declspec(naked) void  FakeDirectSoundEnumerateA()			{ _asm { jmp [dsound.DirectSoundEnumerateA] } }
-__declspec(naked) void  FakeDirectSoundEnumerateW()			{ _asm { jmp [dsound.DirectSoundEnumerateW] } }
-__declspec(naked) void  FakeDllCanUnloadNow()				{ _asm { jmp [dsound.DllCanUnloadNow] } }
-__declspec(naked) void  FakeDllGetClassObject()				{ _asm { jmp [dsound.DllGetClassObject] } }
-__declspec(naked) void  FakeDirectSoundCaptureCreate()		{ _asm { jmp [dsound.DirectSoundCaptureCreate] } }
-__declspec(naked) void  FakeDirectSoundCaptureEnumerateA()	{ _asm { jmp [dsound.DirectSoundCaptureEnumerateA] } }
-__declspec(naked) void  FakeDirectSoundCaptureEnumerateW()	{ _asm { jmp [dsound.DirectSoundCaptureEnumerateW] } }
-__declspec(naked) void  FakeGetDeviceID()					{ _asm { jmp [dsound.GetDeviceID] } }
-__declspec(naked) void  FakeDirectSoundFullDuplexCreate()	{ _asm { jmp [dsound.DirectSoundFullDuplexCreate] } }
-__declspec(naked) void  FakeDirectSoundCreate8()			{ _asm { jmp [dsound.DirectSoundCreate8] } }
-__declspec(naked) void  FakeDirectSoundCaptureCreate8()		{ _asm { jmp [dsound.DirectSoundCaptureCreate8] } }
+__declspec(naked) void  FakeDirectSoundCreate() { _asm { jmp[dsound.DirectSoundCreate] } }
+__declspec(naked) void  FakeDirectSoundEnumerateA() { _asm { jmp[dsound.DirectSoundEnumerateA] } }
+__declspec(naked) void  FakeDirectSoundEnumerateW() { _asm { jmp[dsound.DirectSoundEnumerateW] } }
+__declspec(naked) void  FakeDllCanUnloadNow() { _asm { jmp[dsound.DllCanUnloadNow] } }
+__declspec(naked) void  FakeDllGetClassObject() { _asm { jmp[dsound.DllGetClassObject] } }
+__declspec(naked) void  FakeDirectSoundCaptureCreate() { _asm { jmp[dsound.DirectSoundCaptureCreate] } }
+__declspec(naked) void  FakeDirectSoundCaptureEnumerateA() { _asm { jmp[dsound.DirectSoundCaptureEnumerateA] } }
+__declspec(naked) void  FakeDirectSoundCaptureEnumerateW() { _asm { jmp[dsound.DirectSoundCaptureEnumerateW] } }
+__declspec(naked) void  FakeGetDeviceID() { _asm { jmp[dsound.GetDeviceID] } }
+__declspec(naked) void  FakeDirectSoundFullDuplexCreate() { _asm { jmp[dsound.DirectSoundFullDuplexCreate] } }
+__declspec(naked) void  FakeDirectSoundCreate8() { _asm { jmp[dsound.DirectSoundCreate8] } }
+__declspec(naked) void  FakeDirectSoundCaptureCreate8() { _asm { jmp[dsound.DirectSoundCaptureCreate8] } }
 
 void LoadDsound()
 {

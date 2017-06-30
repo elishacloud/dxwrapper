@@ -26,8 +26,8 @@ struct dinput_dll
 	FARPROC DirectInputCreateA = jmpaddr;
 	FARPROC DirectInputCreateEx = jmpaddr;
 	FARPROC DirectInputCreateW = jmpaddr;
-	FARPROC DllCanUnloadNow = jmpaddr;
-	FARPROC DllGetClassObject = jmpaddr;
+	//FARPROC DllCanUnloadNow = jmpaddr;		 // <---  Shared with dsound.dll
+	//FARPROC DllGetClassObject = jmpaddr;		 // <---  Shared with dsound.dll
 	FARPROC DllRegisterServer = jmpaddr;
 	FARPROC DllUnregisterServer = jmpaddr;
 } dinput;

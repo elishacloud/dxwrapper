@@ -166,15 +166,15 @@ bool IsWriteMemoryThreadRunning()
 // Stop WriteMemory thread
 void StopWriteMemoryThread()
 {
-		// Set flag to stop thread
-		p_StopThreadFlag = true;
+	// Set flag to stop thread
+	p_StopThreadFlag = true;
 
-		// Wait for thread to exit
-		if (IsWriteMemoryThreadRunning())
-		{
-			WaitForSingleObject(p_hThread, INFINITE);
-		}
+	// Wait for thread to exit
+	if (IsWriteMemoryThreadRunning())
+	{
+		WaitForSingleObject(p_hThread, INFINITE);
+	}
 
-		// Close handle
-		CloseHandle(p_hThread);
+	// Close handle
+	CloseHandle(p_hThread);
 }

@@ -29,12 +29,12 @@ struct dplayx_dll
 	FARPROC DirectPlayLobbyCreateW = jmpaddr;
 } dplayx;
 
-__declspec(naked) void FakeDirectPlayCreate()				{ _asm { jmp [dplayx.DirectPlayCreate] } }
-__declspec(naked) void FakeDirectPlayEnumerate()			{ _asm { jmp [dplayx.DirectPlayEnumerate] } }
-__declspec(naked) void FakeDirectPlayEnumerateA()			{ _asm { jmp [dplayx.DirectPlayEnumerateA] } }
-__declspec(naked) void FakeDirectPlayEnumerateW()			{ _asm { jmp [dplayx.DirectPlayEnumerateW] } }
-__declspec(naked) void FakeDirectPlayLobbyCreateA()			{ _asm { jmp [dplayx.DirectPlayLobbyCreateA] } }
-__declspec(naked) void FakeDirectPlayLobbyCreateW()			{ _asm { jmp [dplayx.DirectPlayLobbyCreateW] } }
+__declspec(naked) void FakeDirectPlayCreate() { _asm { jmp[dplayx.DirectPlayCreate] } }
+__declspec(naked) void FakeDirectPlayEnumerate() { _asm { jmp[dplayx.DirectPlayEnumerate] } }
+__declspec(naked) void FakeDirectPlayEnumerateA() { _asm { jmp[dplayx.DirectPlayEnumerateA] } }
+__declspec(naked) void FakeDirectPlayEnumerateW() { _asm { jmp[dplayx.DirectPlayEnumerateW] } }
+__declspec(naked) void FakeDirectPlayLobbyCreateA() { _asm { jmp[dplayx.DirectPlayLobbyCreateA] } }
+__declspec(naked) void FakeDirectPlayLobbyCreateW() { _asm { jmp[dplayx.DirectPlayLobbyCreateW] } }
 
 void LoadDplayx()
 {
@@ -44,11 +44,11 @@ void LoadDplayx()
 	// Load dll functions
 	if (dplayx.dll)
 	{
-		dplayx.DirectPlayCreate				= GetFunctionAddress(dplayx.dll, "DirectPlayCreate", jmpaddr);
-		dplayx.DirectPlayEnumerate			= GetFunctionAddress(dplayx.dll, "DirectPlayEnumerate", jmpaddr);
-		dplayx.DirectPlayEnumerateA			= GetFunctionAddress(dplayx.dll, "DirectPlayEnumerateA", jmpaddr);
-		dplayx.DirectPlayEnumerateW			= GetFunctionAddress(dplayx.dll, "DirectPlayEnumerateW", jmpaddr);
-		dplayx.DirectPlayLobbyCreateA		= GetFunctionAddress(dplayx.dll, "DirectPlayLobbyCreateA", jmpaddr);
-		dplayx.DirectPlayLobbyCreateW		= GetFunctionAddress(dplayx.dll, "DirectPlayLobbyCreateW", jmpaddr);
+		dplayx.DirectPlayCreate = GetFunctionAddress(dplayx.dll, "DirectPlayCreate", jmpaddr);
+		dplayx.DirectPlayEnumerate = GetFunctionAddress(dplayx.dll, "DirectPlayEnumerate", jmpaddr);
+		dplayx.DirectPlayEnumerateA = GetFunctionAddress(dplayx.dll, "DirectPlayEnumerateA", jmpaddr);
+		dplayx.DirectPlayEnumerateW = GetFunctionAddress(dplayx.dll, "DirectPlayEnumerateW", jmpaddr);
+		dplayx.DirectPlayLobbyCreateA = GetFunctionAddress(dplayx.dll, "DirectPlayLobbyCreateA", jmpaddr);
+		dplayx.DirectPlayLobbyCreateW = GetFunctionAddress(dplayx.dll, "DirectPlayLobbyCreateW", jmpaddr);
 	}
 }
