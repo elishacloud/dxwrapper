@@ -1,6 +1,6 @@
 #pragma once
 
-void CallReturn();
+HRESULT CallReturn();
 static constexpr FARPROC jmpaddr = (FARPROC)*CallReturn;
 
 void DllAttach();

@@ -43,9 +43,10 @@ custom_dll custom[256];
 custom_dll dllhandle[dtypeArraySize];
 
 // Default function
-void CallReturn()
+HRESULT CallReturn()
 {
 	// Do nothing
+	return E_NOTIMPL;
 }
 
 // Load real dll file that is being wrapped
