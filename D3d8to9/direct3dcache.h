@@ -6,55 +6,28 @@
 class Direct3DCache
 {
 private:
-	struct Direct3DSurfaceInfo
+	struct AddrStruct
 	{
-		Direct3DSurface8* Surface8 = nullptr;
-		IDirect3DSurface9* Surface9 = nullptr;
+		void* Address8 = nullptr;
+		void* Address9 = nullptr;
 	};
 
-	struct Direct3DTextureInfo
-	{
-		Direct3DTexture8* Texture8 = nullptr;
-		IDirect3DTexture9* Texture9 = nullptr;
-	};
+	static constexpr DWORD SizeOfVector = 7;
 
-	struct Direct3DVolumeTextureInfo
-	{
-		Direct3DVolumeTexture8* Texture8 = nullptr;
-		IDirect3DVolumeTexture9* Texture9 = nullptr;
-	};
+	std::vector<AddrStruct> AddressVector[SizeOfVector];
 
-	struct Direct3DCubeTextureInfo
-	{
-		Direct3DCubeTexture8* Texture8 = nullptr;
-		IDirect3DCubeTexture9* Texture9 = nullptr;
-	};
+	static constexpr DWORD SurfaceVector = 0;
+	static constexpr DWORD TextureVector = 1;
+	static constexpr DWORD VolumeTextureVector = 2;
+	static constexpr DWORD CubeTextureVector = 3;
+	static constexpr DWORD VolumeVector = 4;
+	static constexpr DWORD VertexBufferVector = 5;
+	static constexpr DWORD IndexBufferVector = 6;
 
-	struct Direct3DVolumeInfo
-	{
-		Direct3DVolume8* Volume8 = nullptr;
-		IDirect3DVolume9* Volume9 = nullptr;
-	};
+	void SetDirect3D(void*, void*, const DWORD);
+	void* GetDirect3D(void*, const DWORD);
+	void DeleteDirect3D(void*, const DWORD);
 
-	struct Direct3DVertexBufferInfo
-	{
-		Direct3DVertexBuffer8* VertexBuffer8 = nullptr;
-		IDirect3DVertexBuffer9* VertexBuffer9 = nullptr;
-	};
-
-	struct Direct3DIndexBufferInfo
-	{
-		Direct3DIndexBuffer8* IndexBuffer8 = nullptr;
-		IDirect3DIndexBuffer9* IndexBuffer9 = nullptr;
-	};
-
-	std::vector<Direct3DSurfaceInfo> SurfaceVector;
-	std::vector<Direct3DTextureInfo> TextureVector;
-	std::vector<Direct3DVolumeTextureInfo> VolumeTextureVector;
-	std::vector<Direct3DCubeTextureInfo> CubeTextureVector;
-	std::vector<Direct3DVolumeInfo> VolumeVector;
-	std::vector<Direct3DVertexBufferInfo> VertexBufferVector;
-	std::vector<Direct3DIndexBufferInfo> IndexBufferVector;
 public:
 	Direct3DCache();
 	~Direct3DCache();
