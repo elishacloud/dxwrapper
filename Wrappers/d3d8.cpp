@@ -21,47 +21,114 @@
 #include "Utils\Utils.h"
 #include "Hook\inithook.h"
 
+HRESULT WINAPI ValidateVertexShader(DWORD* vertexshader, DWORD* reserved1, DWORD* reserved2, BOOL flag, DWORD* toto);
+HRESULT WINAPI ValidatePixelShader(DWORD* pixelshader, DWORD* reserved1, BOOL flag, DWORD* toto);
+
 struct d3d8_dll
 {
 	HMODULE dll = nullptr;
 	FARPROC Direct3DCreate8 = jmpaddr;
 	//FARPROC DebugSetMute = jmpaddr;		 // <---  Shared with d3d9.dll
-	FARPROC Direct3D8EnableMaximizedWindowedModeShim = jmpaddr;
 	FARPROC ValidateVertexShader = jmpaddr;
 	FARPROC ValidatePixelShader = jmpaddr;
 } d3d8;
 
 __declspec(naked) void FakeDirect3DCreate8() { _asm { jmp[d3d8.Direct3DCreate8] } }
 //__declspec(naked) void FakeDebugSetMute() { _asm { jmp [d3d8.DebugSetMute] } }		 // <---  Shared with d3d9.dll
-__declspec(naked) void FakeDirect3D8EnableMaximizedWindowedModeShim() { _asm { jmp[d3d8.Direct3D8EnableMaximizedWindowedModeShim] } }
 __declspec(naked) void FakeValidateVertexShader() { _asm { jmp[d3d8.ValidateVertexShader] } }
 __declspec(naked) void FakeValidatePixelShader() { _asm { jmp[d3d8.ValidatePixelShader] } }
 
 void LoadD3d8()
 {
-	// Load real dll
-	d3d8.dll = LoadDll(dtype.d3d8);
 
-	// Load dll functions
-	if (d3d8.dll)
+	// Enable d3d8to9 conversion
+	if (Config.D3d8to9 && Config.RealWrapperMode == dtype.d3d8)
 	{
-		d3d8.Direct3DCreate8 = GetFunctionAddress(d3d8.dll, "Direct3DCreate8", jmpaddr);
-		Set_DebugSetMute(GetFunctionAddress(d3d8.dll, "DebugSetMute", jmpaddr));
-		d3d8.Direct3D8EnableMaximizedWindowedModeShim = GetFunctionAddress(d3d8.dll, "Direct3D8EnableMaximizedWindowedModeShim", jmpaddr);
-		d3d8.ValidateVertexShader = GetFunctionAddress(d3d8.dll, "ValidateVertexShader", jmpaddr);
-		d3d8.ValidatePixelShader = GetFunctionAddress(d3d8.dll, "ValidatePixelShader", jmpaddr);
+		d3d8.Direct3DCreate8 = GetFunctionAddress(hModule_dll, "_Direct3DCreate8", jmpaddr);
+		d3d8.ValidateVertexShader = (FARPROC)*ValidateVertexShader;
+		d3d8.ValidatePixelShader = (FARPROC)*ValidatePixelShader;
+	}
 
-		// Enable d3d8to9 conversion
-		if (Config.D3d8to9 && Config.RealWrapperMode == dtype.d3d8)
-		{
-			d3d8.Direct3DCreate8 = GetFunctionAddress(hModule_dll, "_Direct3DCreate8", jmpaddr);
-		}
+	// Load normal dll
+	else
+	{
+		// Load real dll
+		d3d8.dll = LoadDll(dtype.d3d8);
 
-		// Hook APIs for d3d8to9 conversion
-		else if (Config.D3d8to9)
+		// Load dll functions
+		if (d3d8.dll)
 		{
-			Compat::Log() << "Hooking d3d8.dll APIs...";
-			d3d8.Direct3DCreate8 = (FARPROC)HookAPI(hModule_dll, dtypename[dtype.d3d8], GetFunctionAddress(d3d8.dll, "Direct3DCreate8"), "Direct3DCreate8", GetFunctionAddress(hModule_dll, "_Direct3DCreate8"));
+			d3d8.Direct3DCreate8 = GetFunctionAddress(d3d8.dll, "Direct3DCreate8", jmpaddr);
+			Set_DebugSetMute(GetFunctionAddress(d3d8.dll, "DebugSetMute", jmpaddr));
+			d3d8.ValidateVertexShader = GetFunctionAddress(d3d8.dll, "ValidateVertexShader", jmpaddr);
+			d3d8.ValidatePixelShader = GetFunctionAddress(d3d8.dll, "ValidatePixelShader", jmpaddr);
+
+			// Hook APIs for d3d8to9 conversion
+			if (Config.D3d8to9)
+			{
+				Compat::Log() << "Hooking d3d8.dll APIs...";
+				d3d8.Direct3DCreate8 = (FARPROC)HookAPI(hModule_dll, dtypename[dtype.d3d8], GetFunctionAddress(d3d8.dll, "Direct3DCreate8"), "Direct3DCreate8", GetFunctionAddress(hModule_dll, "_Direct3DCreate8"));
+			}
 		}
 	}
+}
+
+HRESULT WINAPI ValidateVertexShader(DWORD* vertexshader, DWORD* reserved1, DWORD* reserved2, BOOL flag, DWORD* toto)
+{
+	UNREFERENCED_PARAMETER(toto);
+	UNREFERENCED_PARAMETER(flag);
+
+	HRESULT ret;
+
+	if (!vertexshader)
+	{
+		return E_FAIL;
+	}
+
+	if (reserved1 || reserved2)
+	{
+		return E_FAIL;
+	}
+
+	switch (*vertexshader) {
+	case 0xFFFE0101:
+	case 0xFFFE0100:
+		ret = S_OK;
+		break;
+	default:
+		ret = E_FAIL;
+	}
+
+	return ret;
+}
+
+HRESULT WINAPI ValidatePixelShader(DWORD* pixelshader, DWORD* reserved1, BOOL flag, DWORD* toto)
+{
+	UNREFERENCED_PARAMETER(toto);
+	UNREFERENCED_PARAMETER(flag);
+
+	HRESULT ret;
+
+	if (!pixelshader)
+	{
+		return E_FAIL;
+	}
+
+	if (reserved1)
+	{
+		return E_FAIL;
+	}
+
+	switch (*pixelshader) {
+	case 0xFFFF0100:
+	case 0xFFFF0101:
+	case 0xFFFF0102:
+	case 0xFFFF0103:
+	case 0xFFFF0104:
+		ret = S_OK;
+		break;
+	default:
+		ret = E_FAIL;
+	}
+	return ret;
 }

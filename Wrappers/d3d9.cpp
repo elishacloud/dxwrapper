@@ -30,7 +30,6 @@ struct d3d9_dll
 	FARPROC D3DPERF_SetRegion = jmpaddr;
 	FARPROC DebugSetLevel = jmpaddr;
 	FARPROC DebugSetMute = jmpaddr;
-	FARPROC Direct3D9EnableMaximizedWindowedModeShim = jmpaddr;
 	FARPROC Direct3DCreate9 = jmpaddr;
 	FARPROC Direct3DCreate9Ex = jmpaddr;
 	FARPROC Direct3DShaderValidatorCreate9 = jmpaddr;
@@ -47,7 +46,6 @@ __declspec(naked) void FakeD3DPERF_SetOptions() { _asm { jmp[d3d9.D3DPERF_SetOpt
 __declspec(naked) void FakeD3DPERF_SetRegion() { _asm { jmp[d3d9.D3DPERF_SetRegion] } }
 __declspec(naked) void FakeDebugSetLevel() { _asm { jmp[d3d9.DebugSetLevel] } }
 __declspec(naked) void FakeDebugSetMute() { _asm { jmp[d3d9.DebugSetMute] } }
-__declspec(naked) void FakeDirect3D9EnableMaximizedWindowedModeShim() { _asm { jmp[d3d9.Direct3D9EnableMaximizedWindowedModeShim] } }
 __declspec(naked) void FakeDirect3DCreate9() { _asm { jmp[d3d9.Direct3DCreate9] } }
 __declspec(naked) void FakeDirect3DCreate9Ex() { _asm { jmp[d3d9.Direct3DCreate9Ex] } }
 __declspec(naked) void FakeDirect3DShaderValidatorCreate9() { _asm { jmp[d3d9.Direct3DShaderValidatorCreate9] } }
@@ -71,7 +69,6 @@ void LoadD3d9()
 		d3d9.D3DPERF_SetRegion = GetFunctionAddress(d3d9.dll, "D3DPERF_SetRegion", jmpaddr);
 		d3d9.DebugSetLevel = GetFunctionAddress(d3d9.dll, "DebugSetLevel", jmpaddr);
 		d3d9.DebugSetMute = GetFunctionAddress(d3d9.dll, "DebugSetMute", jmpaddr);
-		d3d9.Direct3D9EnableMaximizedWindowedModeShim = GetFunctionAddress(d3d9.dll, "Direct3D9EnableMaximizedWindowedModeShim", jmpaddr);
 		d3d9.Direct3DCreate9 = GetFunctionAddress(d3d9.dll, "Direct3DCreate9", jmpaddr);
 		d3d9.Direct3DCreate9Ex = GetFunctionAddress(d3d9.dll, "Direct3DCreate9Ex", jmpaddr);
 		d3d9.Direct3DShaderValidatorCreate9 = GetFunctionAddress(d3d9.dll, "Direct3DShaderValidatorCreate9", jmpaddr);

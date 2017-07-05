@@ -49,7 +49,6 @@ Geterrwarnmessage														@28
 ;LIBRARY "d3d8"
 ; ****
 ;DebugSetMute					= FakeDebugSetMute						@29         <---  Shared with d3d9.dll
-Direct3D8EnableMaximizedWindowedModeShim = FakeDirect3D8EnableMaximizedWindowedModeShim @685
 Direct3DCreate8					= FakeDirect3DCreate8					@30
 ValidatePixelShader				= FakeValidatePixelShader				@31
 ValidateVertexShader			= FakeValidateVertexShader				@32
@@ -73,7 +72,6 @@ D3DPERF_SetOptions				= FakeD3DPERF_SetOptions				@39
 D3DPERF_SetRegion				= FakeD3DPERF_SetRegion					@40
 DebugSetLevel					= FakeDebugSetLevel						@41
 DebugSetMute					= FakeDebugSetMute						@42
-Direct3D9EnableMaximizedWindowedModeShim = FakeDirect3D9EnableMaximizedWindowedModeShim @686
 Direct3DCreate9					= FakeDirect3DCreate9					@43
 Direct3DCreate9Ex				= FakeDirect3DCreate9Ex					@44
 Direct3DShaderValidatorCreate9	= FakeDirect3DShaderValidatorCreate9	@45
@@ -753,4 +751,4 @@ SystemFunction030 = FakeSystemFunction030 @681
 SystemFunction031 = FakeSystemFunction031 @682
 SystemFunction032 = FakeSystemFunction032 @683
 SystemFunction033 = FakeSystemFunction033 @684
-SystemFunction035 = FakeSystemFunction035 @687
+SystemFunction035 = FakeSystemFunction035 @685

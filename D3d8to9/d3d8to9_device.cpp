@@ -277,7 +277,6 @@ HRESULT STDMETHODCALLTYPE Direct3DDevice8::GetBackBuffer(UINT iBackBuffer, D3DBA
 	}
 
 	*ppBackBuffer = new Direct3DSurface8(this, SurfaceInterface);
-	(*ppBackBuffer)->AddRef();
 	
 	return D3D_OK;
 }
@@ -934,17 +933,14 @@ HRESULT STDMETHODCALLTYPE Direct3DDevice8::GetTexture(DWORD Stage, Direct3DBaseT
 			case D3DRTYPE_TEXTURE:
 				BaseTextureInterface->QueryInterface(IID_PPV_ARGS(&TextureInterface));
 				*ppTexture = new Direct3DTexture8(this, TextureInterface);
-				(*ppTexture)->AddRef();
 				break;
 			case D3DRTYPE_VOLUMETEXTURE:
 				BaseTextureInterface->QueryInterface(IID_PPV_ARGS(&VolumeTextureInterface));
 				*ppTexture = new Direct3DVolumeTexture8(this, VolumeTextureInterface);
-				(*ppTexture)->AddRef();
 				break;
 			case D3DRTYPE_CUBETEXTURE:
 				BaseTextureInterface->QueryInterface(IID_PPV_ARGS(&CubeTextureInterface));
 				*ppTexture = new Direct3DCubeTexture8(this, CubeTextureInterface);
-				(*ppTexture)->AddRef();
 				break;
 			default:
 				BaseTextureInterface->Release();
@@ -1618,7 +1614,6 @@ HRESULT STDMETHODCALLTYPE Direct3DDevice8::GetStreamSource(UINT StreamNumber, Di
 	if (VertexBufferInterface != nullptr)
 	{
 		*ppStreamData = new Direct3DVertexBuffer8(this, VertexBufferInterface);
-		(*ppStreamData)->AddRef();
 	}
 
 	return D3D_OK;
@@ -1660,16 +1655,15 @@ HRESULT STDMETHODCALLTYPE Direct3DDevice8::GetIndices(Direct3DIndexBuffer8 **ppI
 	if (IntexBufferInterface != nullptr)
 	{
 		*ppIndexData = new Direct3DIndexBuffer8(this, IntexBufferInterface);
-		(*ppIndexData)->AddRef();
 	}
 
 	return D3D_OK;
 }
 HRESULT STDMETHODCALLTYPE Direct3DDevice8::CreatePixelShader(const DWORD *pFunction, DWORD *pHandle)
 {
-//#ifdef _DEBUG
+#ifdef _DEBUG
 	Compat::Log() << "Redirecting '" << "IDirect3DDevice8::CreatePixelShader" << "(" << this << ", " << pFunction << ", " << pHandle << ")' ...";
-//#endif
+#endif
 
 	if (pFunction == nullptr || pHandle == nullptr)
 	{

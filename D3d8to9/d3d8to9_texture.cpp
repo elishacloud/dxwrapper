@@ -148,7 +148,6 @@ HRESULT STDMETHODCALLTYPE Direct3DTexture8::GetSurfaceLevel(UINT Level, Direct3D
 	}
 
 	*ppSurfaceLevel = new Direct3DSurface8(Device, SurfaceInterface);
-	(*ppSurfaceLevel)->AddRef();
 
 	return D3D_OK;
 }
@@ -309,7 +308,6 @@ HRESULT STDMETHODCALLTYPE Direct3DCubeTexture8::GetCubeMapSurface(D3DCUBEMAP_FAC
 	}
 
 	*ppCubeMapSurface = new Direct3DSurface8(Device, SurfaceInterface);
-	(*ppCubeMapSurface)->AddRef();
 
 	return D3D_OK;
 }
@@ -470,7 +468,6 @@ HRESULT STDMETHODCALLTYPE Direct3DVolumeTexture8::GetVolumeLevel(UINT Level, Dir
 	}
 
 	*ppVolumeLevel = new Direct3DVolume8(Device, VolumeInterface);
-	(*ppVolumeLevel)->AddRef();
 
 	return D3D_OK;
 }
