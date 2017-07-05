@@ -22,6 +22,8 @@ class __declspec(uuid("BD7349F5-14F1-42E4-9C79-972380DB40C0")) Direct3DVolume8;
 class __declspec(uuid("8AEEEAC7-05F9-44D4-B591-000B0DF1CB95")) Direct3DVertexBuffer8;
 class __declspec(uuid("0E689C9A-053D-44A0-9D92-DB0E3D750F86")) Direct3DIndexBuffer8;
 
+#include "direct3dcache.h"
+
 class Direct3D8 : public IUnknown
 {
 	Direct3D8(const Direct3D8 &) = delete;
@@ -64,6 +66,8 @@ public:
 	~Direct3DDevice8();
 
 	IDirect3DDevice9 *GetProxyInterface() const { return ProxyInterface; }
+
+	Direct3DCache* MyDirect3DCache;
 
 	virtual HRESULT STDMETHODCALLTYPE QueryInterface(REFIID riid, void **ppvObj) override;
 	virtual ULONG STDMETHODCALLTYPE AddRef() override;

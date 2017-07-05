@@ -23,11 +23,13 @@ Direct3DDevice8::Direct3DDevice8(Direct3D8 *d3d, IDirect3DDevice9 *ProxyInterfac
 	D3D(d3d), ProxyInterface(ProxyInterface), ZBufferDiscarding(EnableZBufferDiscarding)
 {
 	D3D->AddRef();
+	MyDirect3DCache = new Direct3DCache;
 }
 Direct3DDevice8::~Direct3DDevice8()
 {
 	ProxyInterface->Release();
 	D3D->Release();
+	delete MyDirect3DCache;
 }
 
 HRESULT STDMETHODCALLTYPE Direct3DDevice8::QueryInterface(REFIID riid, void **ppvObj)
@@ -276,7 +278,11 @@ HRESULT STDMETHODCALLTYPE Direct3DDevice8::GetBackBuffer(UINT iBackBuffer, D3DBA
 		return hr;
 	}
 
-	*ppBackBuffer = new Direct3DSurface8(this, SurfaceInterface);
+	*ppBackBuffer = MyDirect3DCache->GetDirect3D(SurfaceInterface);
+	if (*ppBackBuffer == nullptr)
+	{
+		*ppBackBuffer = new Direct3DSurface8(this, SurfaceInterface);
+	}
 	
 	return D3D_OK;
 }
@@ -932,15 +938,27 @@ HRESULT STDMETHODCALLTYPE Direct3DDevice8::GetTexture(DWORD Stage, Direct3DBaseT
 		{
 			case D3DRTYPE_TEXTURE:
 				BaseTextureInterface->QueryInterface(IID_PPV_ARGS(&TextureInterface));
-				*ppTexture = new Direct3DTexture8(this, TextureInterface);
+				*ppTexture = MyDirect3DCache->GetDirect3D(TextureInterface);
+				if (*ppTexture == nullptr)
+				{
+					*ppTexture = new Direct3DTexture8(this, TextureInterface);
+				}
 				break;
 			case D3DRTYPE_VOLUMETEXTURE:
 				BaseTextureInterface->QueryInterface(IID_PPV_ARGS(&VolumeTextureInterface));
-				*ppTexture = new Direct3DVolumeTexture8(this, VolumeTextureInterface);
+				*ppTexture = MyDirect3DCache->GetDirect3D(TextureInterface);
+				if (*ppTexture == nullptr)
+				{
+					*ppTexture = new Direct3DVolumeTexture8(this, VolumeTextureInterface);
+				}
 				break;
 			case D3DRTYPE_CUBETEXTURE:
 				BaseTextureInterface->QueryInterface(IID_PPV_ARGS(&CubeTextureInterface));
-				*ppTexture = new Direct3DCubeTexture8(this, CubeTextureInterface);
+				*ppTexture = MyDirect3DCache->GetDirect3D(TextureInterface);
+				if (*ppTexture == nullptr)
+				{
+					*ppTexture = new Direct3DCubeTexture8(this, CubeTextureInterface);
+				}
 				break;
 			default:
 				BaseTextureInterface->Release();
@@ -1613,7 +1631,11 @@ HRESULT STDMETHODCALLTYPE Direct3DDevice8::GetStreamSource(UINT StreamNumber, Di
 
 	if (VertexBufferInterface != nullptr)
 	{
-		*ppStreamData = new Direct3DVertexBuffer8(this, VertexBufferInterface);
+		*ppStreamData = MyDirect3DCache->GetDirect3D(VertexBufferInterface);
+		if (*ppStreamData == nullptr)
+		{
+			*ppStreamData = new Direct3DVertexBuffer8(this, VertexBufferInterface);
+		}
 	}
 
 	return D3D_OK;
@@ -1654,7 +1676,11 @@ HRESULT STDMETHODCALLTYPE Direct3DDevice8::GetIndices(Direct3DIndexBuffer8 **ppI
 
 	if (IntexBufferInterface != nullptr)
 	{
-		*ppIndexData = new Direct3DIndexBuffer8(this, IntexBufferInterface);
+		*ppIndexData = MyDirect3DCache->GetDirect3D(IntexBufferInterface);
+		if (*ppIndexData == nullptr)
+		{
+			*ppIndexData = new Direct3DIndexBuffer8(this, IntexBufferInterface);
+		}
 	}
 
 	return D3D_OK;

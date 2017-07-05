@@ -75,7 +75,11 @@ HRESULT STDMETHODCALLTYPE Direct3DSwapChain8::GetBackBuffer(UINT iBackBuffer, D3
 		return hr;
 	}
 
-	*ppBackBuffer = new Direct3DSurface8(Device, SurfaceInterface);
+	*ppBackBuffer = Device->MyDirect3DCache->GetDirect3D(SurfaceInterface);
+	if (*ppBackBuffer == nullptr)
+	{
+		*ppBackBuffer = new Direct3DSurface8(Device, SurfaceInterface);
+	}
 
 	return D3D_OK;
 }

@@ -210,6 +210,7 @@ cmd /c "@echo off &amp;&amp; cd /D ""$(ProjectDir)Dllmain\"" &amp;&amp; type Bui
     </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="D3d8to9\direct3dcache.cpp" />
     <ClCompile Include="D3d8to9\d3d8to9.cpp" />
     <ClCompile Include="D3d8to9\d3d8to9_base.cpp" />
     <ClCompile Include="D3d8to9\d3d8to9_device.cpp" />
@@ -287,6 +288,7 @@ cmd /c "@echo off &amp;&amp; cd /D ""$(ProjectDir)Dllmain\"" &amp;&amp; type Bui
     <None Include="Settings\Settings.ini" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="D3d8to9\direct3dcache.h" />
     <ClInclude Include="D3d8to9\d3d8to9.hpp" />
     <ClInclude Include="D3d8to9\d3d8types.hpp" />
     <ClInclude Include="D3d8to9\d3dx9.hpp" />

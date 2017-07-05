@@ -253,6 +253,9 @@
     <ClCompile Include="Libraries\d3dx9.cpp">
       <Filter>Libraries</Filter>
     </ClCompile>
+    <ClCompile Include="D3d8to9\direct3dcache.cpp">
+      <Filter>D3d8to9</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="Dllmain\dxwrapper.def">
@@ -490,6 +493,9 @@
     </ClInclude>
     <ClInclude Include="Libraries\d3dx9.h">
       <Filter>Libraries</Filter>
+    </ClInclude>
+    <ClInclude Include="D3d8to9\direct3dcache.h">
+      <Filter>D3d8to9</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

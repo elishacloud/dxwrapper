@@ -10,11 +10,11 @@ Direct3DTexture8::Direct3DTexture8(Direct3DDevice8 *Device, IDirect3DTexture9 *P
 	Device(Device), ProxyInterface(ProxyInterface)
 {
 	Device->AddRef();
+	Device->MyDirect3DCache->SetDirect3D(this, ProxyInterface);
 }
 Direct3DTexture8::~Direct3DTexture8()
 {
-	ProxyInterface->Release();
-	Device->Release();
+	Device->MyDirect3DCache->DeleteDirect3D(this);
 }
 
 HRESULT STDMETHODCALLTYPE Direct3DTexture8::QueryInterface(REFIID riid, void **ppvObj)
@@ -40,11 +40,11 @@ HRESULT STDMETHODCALLTYPE Direct3DTexture8::QueryInterface(REFIID riid, void **p
 }
 ULONG STDMETHODCALLTYPE Direct3DTexture8::AddRef()
 {
-	return InterlockedIncrement(&RefCount);
+	return ProxyInterface->AddRef();
 }
 ULONG STDMETHODCALLTYPE Direct3DTexture8::Release()
 {
-	const ULONG LastRefCount = InterlockedDecrement(&RefCount);
+	const ULONG LastRefCount = ProxyInterface->Release();
 
 	if (LastRefCount == 0)
 	{
@@ -147,7 +147,11 @@ HRESULT STDMETHODCALLTYPE Direct3DTexture8::GetSurfaceLevel(UINT Level, Direct3D
 		return hr;
 	}
 
-	*ppSurfaceLevel = new Direct3DSurface8(Device, SurfaceInterface);
+	*ppSurfaceLevel = Device->MyDirect3DCache->GetDirect3D(SurfaceInterface);
+	if (*ppSurfaceLevel == nullptr)
+	{
+		*ppSurfaceLevel = new Direct3DSurface8(Device, SurfaceInterface);
+	}
 
 	return D3D_OK;
 }
@@ -170,11 +174,11 @@ Direct3DCubeTexture8::Direct3DCubeTexture8(Direct3DDevice8 *device, IDirect3DCub
 	Device(device)
 {
 	Device->AddRef();
+	Device->MyDirect3DCache->SetDirect3D(this, ProxyInterface);
 }
 Direct3DCubeTexture8::~Direct3DCubeTexture8()
 {
-	ProxyInterface->Release();
-	Device->Release();
+	Device->MyDirect3DCache->DeleteDirect3D(this);
 }
 
 HRESULT STDMETHODCALLTYPE Direct3DCubeTexture8::QueryInterface(REFIID riid, void **ppvObj)
@@ -200,11 +204,11 @@ HRESULT STDMETHODCALLTYPE Direct3DCubeTexture8::QueryInterface(REFIID riid, void
 }
 ULONG STDMETHODCALLTYPE Direct3DCubeTexture8::AddRef()
 {
-	return InterlockedIncrement(&RefCount);
+	return ProxyInterface->AddRef();
 }
 ULONG STDMETHODCALLTYPE Direct3DCubeTexture8::Release()
 {
-	const ULONG LastRefCount = InterlockedDecrement(&RefCount);
+	const ULONG LastRefCount = ProxyInterface->Release();
 
 	if (LastRefCount == 0)
 	{
@@ -307,7 +311,11 @@ HRESULT STDMETHODCALLTYPE Direct3DCubeTexture8::GetCubeMapSurface(D3DCUBEMAP_FAC
 		return hr;
 	}
 
-	*ppCubeMapSurface = new Direct3DSurface8(Device, SurfaceInterface);
+	*ppCubeMapSurface = Device->MyDirect3DCache->GetDirect3D(SurfaceInterface);
+	if (*ppCubeMapSurface == nullptr)
+	{
+		*ppCubeMapSurface = new Direct3DSurface8(Device, SurfaceInterface);
+	}
 
 	return D3D_OK;
 }
@@ -330,11 +338,11 @@ Direct3DVolumeTexture8::Direct3DVolumeTexture8(Direct3DDevice8 *device, IDirect3
 	Device(device)
 {
 	Device->AddRef();
+	Device->MyDirect3DCache->SetDirect3D(this, ProxyInterface);
 }
 Direct3DVolumeTexture8::~Direct3DVolumeTexture8()
 {
-	ProxyInterface->Release();
-	Device->Release();
+	Device->MyDirect3DCache->DeleteDirect3D(this);
 }
 
 HRESULT STDMETHODCALLTYPE Direct3DVolumeTexture8::QueryInterface(REFIID riid, void **ppvObj)
@@ -360,11 +368,11 @@ HRESULT STDMETHODCALLTYPE Direct3DVolumeTexture8::QueryInterface(REFIID riid, vo
 }
 ULONG STDMETHODCALLTYPE Direct3DVolumeTexture8::AddRef()
 {
-	return InterlockedIncrement(&RefCount);
+	return ProxyInterface->AddRef();
 }
 ULONG STDMETHODCALLTYPE Direct3DVolumeTexture8::Release()
 {
-	const ULONG LastRefCount = InterlockedDecrement(&RefCount);
+	const ULONG LastRefCount = ProxyInterface->Release();
 
 	if (LastRefCount == 0)
 	{
@@ -467,7 +475,11 @@ HRESULT STDMETHODCALLTYPE Direct3DVolumeTexture8::GetVolumeLevel(UINT Level, Dir
 		return hr;
 	}
 
-	*ppVolumeLevel = new Direct3DVolume8(Device, VolumeInterface);
+	*ppVolumeLevel = Device->MyDirect3DCache->GetDirect3D(VolumeInterface);
+	if (*ppVolumeLevel == nullptr)
+	{
+		*ppVolumeLevel = new Direct3DVolume8(Device, VolumeInterface);
+	}
 
 	return D3D_OK;
 }
