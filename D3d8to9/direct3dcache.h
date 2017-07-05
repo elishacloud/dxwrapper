@@ -12,10 +12,6 @@ private:
 		void* Address9 = nullptr;
 	};
 
-	static constexpr DWORD SizeOfVector = 7;
-
-	std::vector<AddrStruct> AddressVector[SizeOfVector];
-
 	static constexpr DWORD SurfaceVector = 0;
 	static constexpr DWORD TextureVector = 1;
 	static constexpr DWORD VolumeTextureVector = 2;
@@ -23,6 +19,10 @@ private:
 	static constexpr DWORD VolumeVector = 4;
 	static constexpr DWORD VertexBufferVector = 5;
 	static constexpr DWORD IndexBufferVector = 6;
+
+	static constexpr DWORD SizeOfVector = 7;
+
+	std::vector<AddrStruct> AddressVector[SizeOfVector];
 
 	void SetDirect3D(void*, void*, const DWORD);
 	void* GetDirect3D(void*, const DWORD);

@@ -49,16 +49,14 @@ Direct3DCache::~Direct3DCache()
 // Function template
 void* Direct3DCache::GetDirect3D(void* pAddress9, DWORD VectorNum)
 {
-	if (pAddress9 == nullptr)
+	if (pAddress9)
 	{
-		return nullptr;
-	}
-
-	for (UINT i = 0; i < AddressVector[VectorNum].size(); i++)
-	{
-		if (AddressVector[VectorNum][i].Address9 == pAddress9)
+		for (UINT i = 0; i < AddressVector[VectorNum].size(); i++)
 		{
-			return AddressVector[VectorNum][i].Address8;
+			if (AddressVector[VectorNum][i].Address9 == pAddress9)
+			{
+				return AddressVector[VectorNum][i].Address8;
+			}
 		}
 	}
 	return nullptr;
