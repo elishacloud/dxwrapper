@@ -14,7 +14,16 @@ Direct3DTexture8::Direct3DTexture8(Direct3DDevice8 *Device, IDirect3DTexture9 *P
 }
 Direct3DTexture8::~Direct3DTexture8()
 {
-	Device->MyDirect3DCache->DeleteDirect3D(this);
+	if (CleanUpFlag)
+	{
+		Device->MyDirect3DCache->DeleteDirect3D(this);
+		Device->Release();
+	}
+}
+void Direct3DTexture8::DeleteMe(bool CleanUp)
+{
+	CleanUpFlag = CleanUp;
+	delete this;
 }
 
 HRESULT STDMETHODCALLTYPE Direct3DTexture8::QueryInterface(REFIID riid, void **ppvObj)
@@ -178,7 +187,16 @@ Direct3DCubeTexture8::Direct3DCubeTexture8(Direct3DDevice8 *device, IDirect3DCub
 }
 Direct3DCubeTexture8::~Direct3DCubeTexture8()
 {
-	Device->MyDirect3DCache->DeleteDirect3D(this);
+	if (CleanUpFlag)
+	{
+		Device->MyDirect3DCache->DeleteDirect3D(this);
+		Device->Release();
+	}
+}
+void Direct3DCubeTexture8::DeleteMe(bool CleanUp)
+{
+	CleanUpFlag = CleanUp;
+	delete this;
 }
 
 HRESULT STDMETHODCALLTYPE Direct3DCubeTexture8::QueryInterface(REFIID riid, void **ppvObj)
@@ -342,7 +360,16 @@ Direct3DVolumeTexture8::Direct3DVolumeTexture8(Direct3DDevice8 *device, IDirect3
 }
 Direct3DVolumeTexture8::~Direct3DVolumeTexture8()
 {
-	Device->MyDirect3DCache->DeleteDirect3D(this);
+	if (CleanUpFlag)
+	{
+		Device->MyDirect3DCache->DeleteDirect3D(this);
+		Device->Release();
+	}
+}
+void Direct3DVolumeTexture8::DeleteMe(bool CleanUp)
+{
+	CleanUpFlag = CleanUp;
+	delete this;
 }
 
 HRESULT STDMETHODCALLTYPE Direct3DVolumeTexture8::QueryInterface(REFIID riid, void **ppvObj)

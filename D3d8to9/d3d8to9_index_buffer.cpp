@@ -14,7 +14,16 @@ Direct3DIndexBuffer8::Direct3DIndexBuffer8(Direct3DDevice8 *Device, IDirect3DInd
 }
 Direct3DIndexBuffer8::~Direct3DIndexBuffer8()
 {
-	Device->MyDirect3DCache->DeleteDirect3D(this);
+	if (CleanUpFlag)
+	{
+		Device->MyDirect3DCache->DeleteDirect3D(this);
+		Device->Release();
+	}
+}
+void Direct3DIndexBuffer8::DeleteMe(bool CleanUp)
+{
+	CleanUpFlag = CleanUp;
+	delete this;
 }
 
 HRESULT STDMETHODCALLTYPE Direct3DIndexBuffer8::QueryInterface(REFIID riid, void **ppvObj)

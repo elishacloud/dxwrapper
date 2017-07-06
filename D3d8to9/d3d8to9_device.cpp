@@ -53,38 +53,11 @@ HRESULT STDMETHODCALLTYPE Direct3DDevice8::QueryInterface(REFIID riid, void **pp
 }
 ULONG STDMETHODCALLTYPE Direct3DDevice8::AddRef()
 {
-	return InterlockedIncrement(&RefCount);
+	return ProxyInterface->AddRef();
 }
 ULONG STDMETHODCALLTYPE Direct3DDevice8::Release()
 {
-	ULONG LastRefCount = InterlockedExchange(&RefCount, RefCount);
-	
-	Direct3DSurface8 *const RenderTarget = CurrentRenderTarget;
-	Direct3DSurface8 *const DepthStencil = CurrentDepthStencilSurface;
-
-	if (RenderTarget != nullptr &&
-		DepthStencil != nullptr &&
-		LastRefCount == 3)
-	{
-		CurrentRenderTarget = nullptr;
-		CurrentDepthStencilSurface = nullptr;
-		RenderTarget->Release();
-		DepthStencil->Release();
-	}
-	else if (RenderTarget != nullptr &&
-		LastRefCount == 2)
-	{
-		CurrentRenderTarget = nullptr;
-		RenderTarget->Release();
-	}
-	else if (DepthStencil != nullptr &&
-		LastRefCount == 2)
-	{
-		CurrentDepthStencilSurface = nullptr;
-		DepthStencil->Release();
-	}
-
-	LastRefCount = InterlockedDecrement(&RefCount);
+	ULONG LastRefCount = ProxyInterface->Release();
 
 	if (LastRefCount == 0)
 	{
@@ -209,50 +182,7 @@ HRESULT STDMETHODCALLTYPE Direct3DDevice8::Reset(D3DPRESENT_PARAMETERS8 *pPresen
 	D3DPRESENT_PARAMETERS PresentParams;
 	ConvertPresentParameters(*pPresentationParameters, PresentParams);
 
-	if (CurrentRenderTarget != nullptr)
-	{
-		CurrentRenderTarget->Release();
-		CurrentRenderTarget = nullptr;
-	}
-	if (CurrentDepthStencilSurface != nullptr)
-	{
-		CurrentDepthStencilSurface->Release();
-		CurrentDepthStencilSurface = nullptr;
-	}
-
-	const HRESULT hr = ProxyInterface->Reset(&PresentParams);
-
-	if (FAILED(hr))
-	{
-		return hr;
-	}
-
-	// Set default render target
-	IDirect3DSurface9 *RenderTargetInterface = nullptr;
-	IDirect3DSurface9 *DepthStencilInterface = nullptr;
-
-	ProxyInterface->GetRenderTarget(0, &RenderTargetInterface);
-	ProxyInterface->GetDepthStencilSurface(&DepthStencilInterface);
-
-	Direct3DSurface8 *RenderTargetProxyObject = nullptr;
-	Direct3DSurface8 *DepthStencilProxyObject = nullptr;
-
-	if (RenderTargetInterface != nullptr)
-	{
-		RenderTargetProxyObject = new Direct3DSurface8(this, RenderTargetInterface);
-
-		RenderTargetInterface->Release();
-	}
-	if (DepthStencilInterface != nullptr)
-	{
-		DepthStencilProxyObject = new Direct3DSurface8(this, DepthStencilInterface);
-
-		DepthStencilInterface->Release();
-	}
-
-	SetRenderTarget(RenderTargetProxyObject, DepthStencilProxyObject);
-
-	return D3D_OK;
+	return ProxyInterface->Reset(&PresentParams);
 }
 HRESULT STDMETHODCALLTYPE Direct3DDevice8::Present(const RECT *pSourceRect, const RECT *pDestRect, HWND hDestWindowOverride, const RGNDATA *pDirtyRegion)
 {
@@ -283,7 +213,7 @@ HRESULT STDMETHODCALLTYPE Direct3DDevice8::GetBackBuffer(UINT iBackBuffer, D3DBA
 	{
 		*ppBackBuffer = new Direct3DSurface8(this, SurfaceInterface);
 	}
-	
+
 	return D3D_OK;
 }
 HRESULT STDMETHODCALLTYPE Direct3DDevice8::GetRasterStatus(D3DRASTER_STATUS *pRasterStatus)
@@ -659,14 +589,6 @@ HRESULT STDMETHODCALLTYPE Direct3DDevice8::SetRenderTarget(Direct3DSurface8 *pRe
 		{
 			return hr;
 		}
-
-		if (CurrentRenderTarget != nullptr)
-		{
-			CurrentRenderTarget->Release();
-		}
-
-		CurrentRenderTarget = pRenderTarget;
-		CurrentRenderTarget->AddRef();
 	}
 
 	if (pNewZStencil != nullptr)
@@ -677,25 +599,10 @@ HRESULT STDMETHODCALLTYPE Direct3DDevice8::SetRenderTarget(Direct3DSurface8 *pRe
 		{
 			return hr;
 		}
-
-		if (CurrentDepthStencilSurface != nullptr)
-		{
-			CurrentDepthStencilSurface->Release();
-		}
-
-		CurrentDepthStencilSurface = pNewZStencil;
-		CurrentDepthStencilSurface->AddRef();
 	}
 	else
 	{
 		ProxyInterface->SetDepthStencilSurface(nullptr);
-
-		if (CurrentDepthStencilSurface != nullptr)
-		{
-			CurrentDepthStencilSurface->Release();
-		}
-
-		CurrentDepthStencilSurface = nullptr;
 	}
 
 	return D3D_OK;
@@ -707,12 +614,20 @@ HRESULT STDMETHODCALLTYPE Direct3DDevice8::GetRenderTarget(Direct3DSurface8 **pp
 		return D3DERR_INVALIDCALL;
 	}
 
-	if (CurrentRenderTarget != nullptr)
+	IDirect3DSurface9 *SurfaceInterface = nullptr;
+
+	const HRESULT hr = ProxyInterface->GetRenderTarget(0, &SurfaceInterface);
+
+	if (FAILED(hr))
 	{
-		CurrentRenderTarget->AddRef();
+		return hr;
 	}
 
-	*ppRenderTarget = CurrentRenderTarget;
+	*ppRenderTarget = MyDirect3DCache->GetDirect3D(SurfaceInterface);
+	if (*ppRenderTarget == nullptr)
+	{
+		*ppRenderTarget = new Direct3DSurface8(this, SurfaceInterface);
+	}
 
 	return D3D_OK;
 }
@@ -723,12 +638,20 @@ HRESULT STDMETHODCALLTYPE Direct3DDevice8::GetDepthStencilSurface(Direct3DSurfac
 		return D3DERR_INVALIDCALL;
 	}
 
-	if (CurrentDepthStencilSurface != nullptr)
+	IDirect3DSurface9 *SurfaceInterface = nullptr;
+
+	const HRESULT hr = ProxyInterface->GetDepthStencilSurface(&SurfaceInterface);
+
+	if (FAILED(hr))
 	{
-		CurrentDepthStencilSurface->AddRef();
+		return hr;
 	}
 
-	*ppZStencilSurface = CurrentDepthStencilSurface;
+	*ppZStencilSurface = MyDirect3DCache->GetDirect3D(SurfaceInterface);
+	if (*ppZStencilSurface == nullptr)
+	{
+		*ppZStencilSurface = new Direct3DSurface8(this, SurfaceInterface);
+	}
 
 	return D3D_OK;
 }

@@ -14,7 +14,16 @@ Direct3DVolume8::Direct3DVolume8(Direct3DDevice8 *Device, IDirect3DVolume9 *Prox
 }
 Direct3DVolume8::~Direct3DVolume8()
 {
-	Device->MyDirect3DCache->DeleteDirect3D(this);
+	if (CleanUpFlag)
+	{
+		Device->MyDirect3DCache->DeleteDirect3D(this);
+		Device->Release();
+	}
+}
+void Direct3DVolume8::DeleteMe(bool CleanUp)
+{
+	CleanUpFlag = CleanUp;
+	delete this;
 }
 
 HRESULT STDMETHODCALLTYPE Direct3DVolume8::QueryInterface(REFIID riid, void **ppvObj)

@@ -203,39 +203,7 @@ HRESULT STDMETHODCALLTYPE Direct3D8::CreateDevice(UINT Adapter, D3DDEVTYPE Devic
 		return hr;
 	}
 
-	Direct3DDevice8 *const DeviceProxyObject = new Direct3DDevice8(this, DeviceInterface, (PresentParams.Flags & D3DPRESENTFLAG_DISCARD_DEPTHSTENCIL) != 0);
-
-	// Set default render target
-	IDirect3DSurface9 *RenderTargetInterface = nullptr;
-	IDirect3DSurface9 *DepthStencilInterface = nullptr;
-
-	DeviceInterface->GetRenderTarget(0, &RenderTargetInterface);
-	DeviceInterface->GetDepthStencilSurface(&DepthStencilInterface);
-
-	Direct3DSurface8 *RenderTargetProxyObject = nullptr;
-	Direct3DSurface8 *DepthStencilProxyObject = nullptr;
-
-	if (RenderTargetInterface != nullptr)
-	{
-		RenderTargetProxyObject = new Direct3DSurface8(DeviceProxyObject, RenderTargetInterface);
-	}
-	if (DepthStencilInterface != nullptr)
-	{
-		DepthStencilProxyObject = new Direct3DSurface8(DeviceProxyObject, DepthStencilInterface);
-	}
-
-	DeviceProxyObject->SetRenderTarget(RenderTargetProxyObject, DepthStencilProxyObject);
-
-	if (RenderTargetProxyObject != nullptr)
-	{
-		RenderTargetProxyObject->Release();
-	}
-	if (DepthStencilProxyObject != nullptr)
-	{
-		DepthStencilProxyObject->Release();
-	}
-
-	*ppReturnedDeviceInterface = DeviceProxyObject;
+	*ppReturnedDeviceInterface = new Direct3DDevice8(this, DeviceInterface, (PresentParams.Flags & D3DPRESENTFLAG_DISCARD_DEPTHSTENCIL) != 0);
 
 	return D3D_OK;
 }

@@ -18,25 +18,25 @@ Direct3DCache::~Direct3DCache()
 				switch (x)
 				{
 				case SurfaceVector:
-					delete reinterpret_cast<Direct3DSurface8*>(MyAddress8);
+					reinterpret_cast<Direct3DSurface8*>(MyAddress8)->DeleteMe(false);
 					break;
 				case TextureVector:
-					delete reinterpret_cast<Direct3DTexture8*>(MyAddress8);
+					reinterpret_cast<Direct3DTexture8*>(MyAddress8)->DeleteMe(false);
 					break;
 				case VolumeTextureVector:
-					delete reinterpret_cast<Direct3DVolumeTexture8*>(MyAddress8);
+					reinterpret_cast<Direct3DVolumeTexture8*>(MyAddress8)->DeleteMe(false);
 					break;
 				case CubeTextureVector:
-					delete reinterpret_cast<Direct3DCubeTexture8*>(MyAddress8);
+					reinterpret_cast<Direct3DCubeTexture8*>(MyAddress8)->DeleteMe(false);
 					break;
 				case VolumeVector:
-					delete reinterpret_cast<Direct3DVolume8*>(MyAddress8);
+					reinterpret_cast<Direct3DVolume8*>(MyAddress8)->DeleteMe(false);
 					break;
 				case VertexBufferVector:
-					delete reinterpret_cast<Direct3DVertexBuffer8*>(MyAddress8);
+					reinterpret_cast<Direct3DVertexBuffer8*>(MyAddress8)->DeleteMe(false);
 					break;
 				case IndexBufferVector:
-					delete reinterpret_cast<Direct3DIndexBuffer8*>(MyAddress8);
+					reinterpret_cast<Direct3DIndexBuffer8*>(MyAddress8)->DeleteMe(false);
 					break;
 				}
 			}

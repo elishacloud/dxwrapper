@@ -14,7 +14,16 @@ Direct3DSurface8::Direct3DSurface8(Direct3DDevice8 *Device, IDirect3DSurface9 *P
 }
 Direct3DSurface8::~Direct3DSurface8()
 {
-	Device->MyDirect3DCache->DeleteDirect3D(this);
+	if (CleanUpFlag)
+	{
+		Device->MyDirect3DCache->DeleteDirect3D(this);
+		Device->Release();
+	}
+}
+void Direct3DSurface8::DeleteMe(bool CleanUp)
+{
+	CleanUpFlag = CleanUp;
+	delete this;
 }
 
 HRESULT STDMETHODCALLTYPE Direct3DSurface8::QueryInterface(REFIID riid, void **ppvObj)
@@ -46,7 +55,7 @@ ULONG STDMETHODCALLTYPE Direct3DSurface8::Release()
 
 	if (LastRefCount == 0)
 	{
-		delete this;
+		//delete this;
 	}
 
 	return LastRefCount;
