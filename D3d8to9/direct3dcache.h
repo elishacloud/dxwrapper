@@ -14,13 +14,14 @@ private:
 
 	static constexpr DWORD SurfaceVector = 0;
 	static constexpr DWORD TextureVector = 1;
-	static constexpr DWORD VolumeTextureVector = 2;
-	static constexpr DWORD CubeTextureVector = 3;
+	static constexpr DWORD CubeTextureVector = 2;
+	static constexpr DWORD VolumeTextureVector = 3;
 	static constexpr DWORD VolumeVector = 4;
 	static constexpr DWORD VertexBufferVector = 5;
 	static constexpr DWORD IndexBufferVector = 6;
+	static constexpr DWORD SwapChainVector = 7;
 
-	static constexpr DWORD SizeOfVector = 7;
+	static constexpr DWORD SizeOfVector = 8;
 
 	std::vector<AddrStruct> AddressVector[SizeOfVector];
 
@@ -66,4 +67,9 @@ public:
 	void SetDirect3D(Direct3DIndexBuffer8*, IDirect3DIndexBuffer9*);
 	Direct3DIndexBuffer8* GetDirect3D(IDirect3DIndexBuffer9*);
 	void DeleteDirect3D(Direct3DIndexBuffer8*);
+
+	// Direct3DSwapChain8
+	void SetDirect3D(Direct3DSwapChain8*, IDirect3DSwapChain9*);
+	Direct3DSwapChain8* GetDirect3D(IDirect3DSwapChain9*);
+	void DeleteDirect3D(Direct3DSwapChain8*);
 };

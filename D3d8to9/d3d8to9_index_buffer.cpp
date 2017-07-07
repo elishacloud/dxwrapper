@@ -54,7 +54,7 @@ ULONG STDMETHODCALLTYPE Direct3DIndexBuffer8::Release()
 
 	if (LastRefCount == 0)
 	{
-		delete this;
+		//delete this;
 	}
 
 	return LastRefCount;

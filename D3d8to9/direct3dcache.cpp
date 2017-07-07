@@ -36,6 +36,9 @@ Direct3DCache::~Direct3DCache()
 				case IndexBufferVector:
 					reinterpret_cast<Direct3DIndexBuffer8*>(AddressVector[x].back().Address8)->DeleteMe(false);
 					break;
+				case SwapChainVector:
+					reinterpret_cast<Direct3DSwapChain8*>(AddressVector[x].back().Address8)->DeleteMe(false);
+					break;
 				}
 			}
 			AddressVector[x].pop_back();
@@ -191,4 +194,19 @@ void Direct3DCache::SetDirect3D(Direct3DIndexBuffer8* pIndexBuffer8, IDirect3DIn
 void Direct3DCache::DeleteDirect3D(Direct3DIndexBuffer8* pIndexBuffer8)
 {
 	GetDirect3D(reinterpret_cast<void*>(pIndexBuffer8), IndexBufferVector);
+}
+
+
+// Direct3DSwapChain8
+Direct3DSwapChain8* Direct3DCache::GetDirect3D(IDirect3DSwapChain9* pSwapChain9)
+{
+	return reinterpret_cast<Direct3DSwapChain8*>(GetDirect3D(reinterpret_cast<void*>(pSwapChain9), SwapChainVector));
+}
+void Direct3DCache::SetDirect3D(Direct3DSwapChain8* pSwapChain8, IDirect3DSwapChain9* pSwapChain9)
+{
+	SetDirect3D(reinterpret_cast<void*>(pSwapChain8), reinterpret_cast<void*>(pSwapChain9), SwapChainVector);
+}
+void Direct3DCache::DeleteDirect3D(Direct3DSwapChain8* pSwapChain8)
+{
+	GetDirect3D(reinterpret_cast<void*>(pSwapChain8), SwapChainVector);
 }

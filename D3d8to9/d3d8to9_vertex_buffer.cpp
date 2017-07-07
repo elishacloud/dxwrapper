@@ -54,7 +54,7 @@ ULONG STDMETHODCALLTYPE Direct3DVertexBuffer8::Release()
 
 	if (LastRefCount == 0)
 	{
-		delete this;
+		//delete this;
 	}
 
 	return LastRefCount;

@@ -53,7 +53,7 @@ ULONG STDMETHODCALLTYPE Direct3DVolume8::Release()
 
 	if (LastRefCount == 0)
 	{
-		delete this;
+		//delete this;
 	}
 
 	return LastRefCount;

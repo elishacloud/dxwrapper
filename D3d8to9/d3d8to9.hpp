@@ -185,6 +185,8 @@ public:
 	Direct3DSwapChain8(Direct3DDevice8 *device, IDirect3DSwapChain9 *ProxyInterface);
 	~Direct3DSwapChain8();
 
+	void DeleteMe(bool CleanUp = true);
+
 	IDirect3DSwapChain9 *GetProxyInterface() const { return ProxyInterface; }
 
 	virtual HRESULT STDMETHODCALLTYPE QueryInterface(REFIID riid, void **ppvObj) override;
@@ -195,6 +197,7 @@ public:
 	virtual HRESULT STDMETHODCALLTYPE GetBackBuffer(UINT iBackBuffer, D3DBACKBUFFER_TYPE Type, Direct3DSurface8 **ppBackBuffer);
 
 private:
+	bool CleanUpFlag = true;
 	Direct3DDevice8 *const Device;
 	IDirect3DSwapChain9 *const ProxyInterface;
 };
