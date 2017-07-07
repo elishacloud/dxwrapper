@@ -27,9 +27,9 @@ Direct3DDevice8::Direct3DDevice8(Direct3D8 *d3d, IDirect3DDevice9 *ProxyInterfac
 }
 Direct3DDevice8::~Direct3DDevice8()
 {
+	delete MyDirect3DCache;
 	ProxyInterface->Release();
 	D3D->Release();
-	delete MyDirect3DCache;
 }
 
 HRESULT STDMETHODCALLTYPE Direct3DDevice8::QueryInterface(REFIID riid, void **ppvObj)

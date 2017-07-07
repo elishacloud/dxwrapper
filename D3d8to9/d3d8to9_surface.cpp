@@ -9,7 +9,6 @@
 Direct3DSurface8::Direct3DSurface8(Direct3DDevice8 *Device, IDirect3DSurface9 *ProxyInterface) :
 	Device(Device), ProxyInterface(ProxyInterface)
 {
-	Device->AddRef();
 	Device->MyDirect3DCache->SetDirect3D(this, ProxyInterface);
 }
 Direct3DSurface8::~Direct3DSurface8()
@@ -17,7 +16,6 @@ Direct3DSurface8::~Direct3DSurface8()
 	if (CleanUpFlag)
 	{
 		Device->MyDirect3DCache->DeleteDirect3D(this);
-		Device->Release();
 	}
 }
 void Direct3DSurface8::DeleteMe(bool CleanUp)
