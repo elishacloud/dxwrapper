@@ -9,6 +9,7 @@
 Direct3DVolume8::Direct3DVolume8(Direct3DDevice8 *Device, IDirect3DVolume9 *ProxyInterface) :
 	Device(Device), ProxyInterface(ProxyInterface)
 {
+	Device->AddRef();
 	Device->MyDirect3DCache->SetDirect3D(this, ProxyInterface);
 }
 Direct3DVolume8::~Direct3DVolume8()
@@ -16,6 +17,11 @@ Direct3DVolume8::~Direct3DVolume8()
 	if (CleanUpFlag)
 	{
 		Device->MyDirect3DCache->DeleteDirect3D(this);
+		if (Active)
+		{
+			Active = false;
+			Device->Release();
+		}
 	}
 }
 void Direct3DVolume8::DeleteMe(bool CleanUp)
@@ -53,6 +59,11 @@ ULONG STDMETHODCALLTYPE Direct3DVolume8::Release()
 
 	if (LastRefCount == 0)
 	{
+		if (Active)
+		{
+			Active = false;
+			Device->Release();
+		}
 		//delete this;
 	}
 

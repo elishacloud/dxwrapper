@@ -9,6 +9,7 @@
 Direct3DVertexBuffer8::Direct3DVertexBuffer8(Direct3DDevice8 *Device, IDirect3DVertexBuffer9 *ProxyInterface) :
 	Device(Device), ProxyInterface(ProxyInterface)
 {
+	Device->AddRef();
 	Device->MyDirect3DCache->SetDirect3D(this, ProxyInterface);
 }
 Direct3DVertexBuffer8::~Direct3DVertexBuffer8()
@@ -16,6 +17,11 @@ Direct3DVertexBuffer8::~Direct3DVertexBuffer8()
 	if (CleanUpFlag)
 	{
 		Device->MyDirect3DCache->DeleteDirect3D(this);
+		if (Active)
+		{
+			Active = false;
+			Device->Release();
+		}
 	}
 }
 void Direct3DVertexBuffer8::DeleteMe(bool CleanUp)
@@ -54,6 +60,11 @@ ULONG STDMETHODCALLTYPE Direct3DVertexBuffer8::Release()
 
 	if (LastRefCount == 0)
 	{
+		if (Active)
+		{
+			Active = false;
+			Device->Release();
+		}
 		//delete this;
 	}
 

@@ -9,6 +9,7 @@
 Direct3DTexture8::Direct3DTexture8(Direct3DDevice8 *Device, IDirect3DTexture9 *ProxyInterface) :
 	Device(Device), ProxyInterface(ProxyInterface)
 {
+	Device->AddRef();
 	Device->MyDirect3DCache->SetDirect3D(this, ProxyInterface);
 }
 Direct3DTexture8::~Direct3DTexture8()
@@ -16,6 +17,11 @@ Direct3DTexture8::~Direct3DTexture8()
 	if (CleanUpFlag)
 	{
 		Device->MyDirect3DCache->DeleteDirect3D(this);
+		if (Active)
+		{
+			Active = false;
+			Device->Release();
+		}
 	}
 }
 void Direct3DTexture8::DeleteMe(bool CleanUp)
@@ -55,6 +61,11 @@ ULONG STDMETHODCALLTYPE Direct3DTexture8::Release()
 
 	if (LastRefCount == 0)
 	{
+		if (Active)
+		{
+			Active = false;
+			Device->Release();
+		}
 		//delete this;
 	}
 
@@ -180,6 +191,7 @@ Direct3DCubeTexture8::Direct3DCubeTexture8(Direct3DDevice8 *device, IDirect3DCub
 	ProxyInterface(ProxyInterface),
 	Device(device)
 {
+	Device->AddRef();
 	Device->MyDirect3DCache->SetDirect3D(this, ProxyInterface);
 }
 Direct3DCubeTexture8::~Direct3DCubeTexture8()
@@ -187,6 +199,11 @@ Direct3DCubeTexture8::~Direct3DCubeTexture8()
 	if (CleanUpFlag)
 	{
 		Device->MyDirect3DCache->DeleteDirect3D(this);
+		if (Active)
+		{
+			Active = false;
+			Device->Release();
+		}
 	}
 }
 void Direct3DCubeTexture8::DeleteMe(bool CleanUp)
@@ -226,6 +243,11 @@ ULONG STDMETHODCALLTYPE Direct3DCubeTexture8::Release()
 
 	if (LastRefCount == 0)
 	{
+		if (Active)
+		{
+			Active = false;
+			Device->Release();
+		}
 		//delete this;
 	}
 
@@ -351,6 +373,7 @@ Direct3DVolumeTexture8::Direct3DVolumeTexture8(Direct3DDevice8 *device, IDirect3
 	ProxyInterface(ProxyInterface),
 	Device(device)
 {
+	Device->AddRef();
 	Device->MyDirect3DCache->SetDirect3D(this, ProxyInterface);
 }
 Direct3DVolumeTexture8::~Direct3DVolumeTexture8()
@@ -358,6 +381,11 @@ Direct3DVolumeTexture8::~Direct3DVolumeTexture8()
 	if (CleanUpFlag)
 	{
 		Device->MyDirect3DCache->DeleteDirect3D(this);
+		if (Active)
+		{
+			Active = false;
+			Device->Release();
+		}
 	}
 }
 void Direct3DVolumeTexture8::DeleteMe(bool CleanUp)
@@ -397,6 +425,11 @@ ULONG STDMETHODCALLTYPE Direct3DVolumeTexture8::Release()
 
 	if (LastRefCount == 0)
 	{
+		if (Active)
+		{
+			Active = false;
+			Device->Release();
+		}
 		//delete this;
 	}
 

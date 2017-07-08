@@ -31,6 +31,7 @@ class Direct3D8 : public IUnknown
 
 public:
 	Direct3D8(IDirect3D9 *ProxyInterface);
+	~Direct3D8();
 
 	IDirect3D9 *GetProxyInterface() const { return ProxyInterface; }
 
@@ -54,6 +55,10 @@ public:
 
 private:
 	IDirect3D9 *const ProxyInterface;
+	static const UINT MaxAdapters = 8;
+	UINT CurrentAdapterCount = 0;
+	UINT CurrentAdapterModeCount[MaxAdapters] = { 0 };
+	std::vector<D3DDISPLAYMODE> CurrentAdapterModes[MaxAdapters];
 };
 
 class Direct3DDevice8 : public IUnknown
@@ -197,6 +202,7 @@ public:
 	virtual HRESULT STDMETHODCALLTYPE GetBackBuffer(UINT iBackBuffer, D3DBACKBUFFER_TYPE Type, Direct3DSurface8 **ppBackBuffer);
 
 private:
+	bool Active = true;
 	bool CleanUpFlag = true;
 	Direct3DDevice8 *const Device;
 	IDirect3DSwapChain9 *const ProxyInterface;
@@ -259,6 +265,7 @@ public:
 	virtual HRESULT STDMETHODCALLTYPE AddDirtyRect(const RECT *pDirtyRect);
 
 private:
+	bool Active = true;
 	bool CleanUpFlag = true;
 	Direct3DDevice8 *const Device;
 	IDirect3DTexture9 *const ProxyInterface;
@@ -300,6 +307,7 @@ public:
 	virtual HRESULT STDMETHODCALLTYPE AddDirtyRect(D3DCUBEMAP_FACES FaceType, const RECT *pDirtyRect);
 
 private:
+	bool Active = true;
 	bool CleanUpFlag = true;
 	Direct3DDevice8 *const Device;
 	IDirect3DCubeTexture9 *const ProxyInterface;
@@ -341,6 +349,7 @@ public:
 	virtual HRESULT STDMETHODCALLTYPE AddDirtyBox(const D3DBOX *pDirtyBox);
 
 private:
+	bool Active = true;
 	bool CleanUpFlag = true;
 	Direct3DDevice8 *const Device;
 	IDirect3DVolumeTexture9 *const ProxyInterface;
@@ -373,6 +382,7 @@ public:
 	virtual HRESULT STDMETHODCALLTYPE UnlockRect();
 
 private:
+	bool Active = true;
 	bool CleanUpFlag = true;
 	Direct3DDevice8 *const Device;
 	IDirect3DSurface9 *const ProxyInterface;
@@ -405,6 +415,7 @@ public:
 	virtual HRESULT STDMETHODCALLTYPE UnlockBox();
 
 private:
+	bool Active = true;
 	bool CleanUpFlag = true;
 	Direct3DDevice8 *const Device;
 	IDirect3DVolume9 *const ProxyInterface;
@@ -441,6 +452,7 @@ public:
 	virtual HRESULT STDMETHODCALLTYPE GetDesc(D3DVERTEXBUFFER_DESC *pDesc);
 
 private:
+	bool Active = true;
 	bool CleanUpFlag = true;
 	Direct3DDevice8 *const Device;
 	IDirect3DVertexBuffer9 *const ProxyInterface;
@@ -477,6 +489,7 @@ public:
 	virtual HRESULT STDMETHODCALLTYPE GetDesc(D3DINDEXBUFFER_DESC *pDesc);
 
 private:
+	bool Active = true;
 	bool CleanUpFlag = true;
 	Direct3DDevice8 *const Device;
 	IDirect3DIndexBuffer9 *const ProxyInterface;

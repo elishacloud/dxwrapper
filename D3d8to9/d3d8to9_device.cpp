@@ -317,6 +317,8 @@ HRESULT STDMETHODCALLTYPE Direct3DDevice8::CreateVertexBuffer(UINT Length, DWORD
 		return D3DERR_INVALIDCALL;
 	}
 
+	Usage &= (D3DUSAGE_DYNAMIC ^ 0xFFFF);
+
 	*ppVertexBuffer = nullptr;
 
 	IDirect3DVertexBuffer9 *BufferInterface = nullptr;

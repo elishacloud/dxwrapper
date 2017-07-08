@@ -20,6 +20,36 @@ static const D3DFORMAT AdapterFormats[] = {
 Direct3D8::Direct3D8(IDirect3D9 *ProxyInterface) :
 	ProxyInterface(ProxyInterface)
 {
+	D3DDISPLAYMODE pMode;
+
+	CurrentAdapterCount = ProxyInterface->GetAdapterCount();
+
+	if (CurrentAdapterCount > MaxAdapters)
+	{
+		CurrentAdapterCount = MaxAdapters;
+	}
+
+	for (UINT Adapter = 0; Adapter < CurrentAdapterCount; Adapter++)
+	{
+		for (D3DFORMAT Format : AdapterFormats)
+		{
+			const UINT ModeCount = ProxyInterface->GetAdapterModeCount(Adapter, Format);
+
+			for (UINT Mode = 0; Mode < ModeCount; Mode++)
+			{
+				ProxyInterface->EnumAdapterModes(Adapter, Format, Mode, &pMode);
+				CurrentAdapterModes[Adapter].push_back(pMode);
+				CurrentAdapterModeCount[Adapter]++;
+			}
+		}
+	}
+}
+Direct3D8::~Direct3D8()
+{
+	for (UINT x = 0; x < CurrentAdapterCount; x++)
+	{
+		CurrentAdapterModes[x].clear();
+	}
 }
 
 HRESULT STDMETHODCALLTYPE Direct3D8::QueryInterface(REFIID riid, void **ppvObj)
@@ -63,7 +93,7 @@ HRESULT STDMETHODCALLTYPE Direct3D8::RegisterSoftwareDevice(void *pInitializeFun
 }
 UINT STDMETHODCALLTYPE Direct3D8::GetAdapterCount()
 {
-	return ProxyInterface->GetAdapterCount();
+	return CurrentAdapterCount;
 }
 HRESULT STDMETHODCALLTYPE Direct3D8::GetAdapterIdentifier(UINT Adapter, DWORD Flags, D3DADAPTER_IDENTIFIER8 *pIdentifier)
 {
@@ -96,14 +126,7 @@ HRESULT STDMETHODCALLTYPE Direct3D8::GetAdapterIdentifier(UINT Adapter, DWORD Fl
 }
 UINT STDMETHODCALLTYPE Direct3D8::GetAdapterModeCount(UINT Adapter)
 {
-	UINT ModeCount = 0;
-
-	for (D3DFORMAT Format : AdapterFormats)
-	{
-		ModeCount += ProxyInterface->GetAdapterModeCount(Adapter, Format);
-	}
-
-	return ModeCount;
+	return CurrentAdapterModeCount[Adapter];
 }
 HRESULT STDMETHODCALLTYPE Direct3D8::EnumAdapterModes(UINT Adapter, UINT Mode, D3DDISPLAYMODE *pMode)
 {
@@ -112,23 +135,13 @@ HRESULT STDMETHODCALLTYPE Direct3D8::EnumAdapterModes(UINT Adapter, UINT Mode, D
 		return D3DERR_INVALIDCALL;
 	}
 
-	UINT ModeOffset = 0;
-
-	for (D3DFORMAT Format : AdapterFormats)
+	if (Adapter < CurrentAdapterCount && Mode < CurrentAdapterModeCount[Adapter])
 	{
-		const UINT ModeCount = ProxyInterface->GetAdapterModeCount(Adapter, Format);
-
-		if (ModeCount == 0)
-		{
-			continue;
-		}
-
-		if (Mode < ModeOffset + ModeCount)
-		{
-			return ProxyInterface->EnumAdapterModes(Adapter, Format, Mode - ModeOffset, pMode);
-		}
-
-		ModeOffset += ModeCount;
+		pMode->Format = CurrentAdapterModes[Adapter].at(Mode).Format;
+		pMode->Height = CurrentAdapterModes[Adapter].at(Mode).Height;
+		pMode->RefreshRate = CurrentAdapterModes[Adapter].at(Mode).RefreshRate;
+		pMode->Width = CurrentAdapterModes[Adapter].at(Mode).Width;
+		return D3D_OK;
 	}
 
 	return D3DERR_INVALIDCALL;
