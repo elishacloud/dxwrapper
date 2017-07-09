@@ -120,7 +120,7 @@ HRESULT STDMETHODCALLTYPE Direct3DVertexBuffer8::Lock(UINT OffsetToLock, UINT Si
 		D3DVERTEXBUFFER_DESC desc;
 		ProxyInterface->GetDesc(&desc);
 
-		if ((desc.Usage & D3DUSAGE_DYNAMIC) == 0)
+		if ((desc.Usage & D3DUSAGE_DYNAMIC) == 0 || (desc.Usage & D3DUSAGE_WRITEONLY) == 0)
 		{
 			Flags ^= D3DLOCK_DISCARD;
 		}

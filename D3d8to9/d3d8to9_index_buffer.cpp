@@ -115,6 +115,17 @@ D3DRESOURCETYPE STDMETHODCALLTYPE Direct3DIndexBuffer8::GetType()
 
 HRESULT STDMETHODCALLTYPE Direct3DIndexBuffer8::Lock(UINT OffsetToLock, UINT SizeToLock, BYTE **ppbData, DWORD Flags)
 {
+	if ((Flags & D3DLOCK_DISCARD) != 0)
+	{
+		D3DINDEXBUFFER_DESC desc;
+		ProxyInterface->GetDesc(&desc);
+
+		if ((desc.Usage & D3DUSAGE_DYNAMIC) == 0 || (desc.Usage & D3DUSAGE_WRITEONLY) == 0)
+		{
+			Flags ^= D3DLOCK_DISCARD;
+		}
+	}
+
 	return ProxyInterface->Lock(OffsetToLock, SizeToLock, reinterpret_cast<void **>(ppbData), Flags);
 }
 HRESULT STDMETHODCALLTYPE Direct3DIndexBuffer8::Unlock()
