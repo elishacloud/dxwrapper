@@ -112,10 +112,6 @@ Direct3DTexture8* AddressLookupTable::FindAddress(IDirect3DTexture9* pTexture9)
 {
 	return reinterpret_cast<Direct3DTexture8*>(FindAddress(reinterpret_cast<void*>(pTexture9), TextureVector));
 }
-Direct3DTexture8* AddressLookupTable::FindAddress(IDirect3DBaseTexture9* pTexture9)
-{
-	return reinterpret_cast<Direct3DTexture8*>(FindAddress(reinterpret_cast<void*>(pTexture9), TextureVector));
-}
 void AddressLookupTable::SaveAddress(Direct3DTexture8* pTexture8, IDirect3DTexture9* pTexture9)
 {
 	SaveAddress(reinterpret_cast<void*>(pTexture8), reinterpret_cast<void*>(pTexture9), TextureVector);

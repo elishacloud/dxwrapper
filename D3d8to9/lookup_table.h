@@ -41,7 +41,6 @@ public:
 	// Direct3DTexture8
 	void SaveAddress(Direct3DTexture8*, IDirect3DTexture9*);
 	Direct3DTexture8* FindAddress(IDirect3DTexture9*);
-	Direct3DTexture8* FindAddress(IDirect3DBaseTexture9*);
 	void DeleteAddress(Direct3DTexture8*);
 
 	// Direct3DVolumeTexture8

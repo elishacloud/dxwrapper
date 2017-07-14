@@ -853,32 +853,42 @@ HRESULT STDMETHODCALLTYPE Direct3DDevice8::GetTexture(DWORD Stage, Direct3DBaseT
 
 	if (BaseTextureInterface != nullptr)
 	{
-		*ppTexture = ProxyAddressLookupTable->FindAddress(BaseTextureInterface);
+		IDirect3DTexture9 *TextureInterface = nullptr;
+		IDirect3DCubeTexture9 *CubeTextureInterface = nullptr;
+		IDirect3DVolumeTexture9 *VolumeTextureInterface = nullptr;
 
-		if (*ppTexture == nullptr)
+		switch (BaseTextureInterface->GetType())
 		{
-			IDirect3DTexture9 *TextureInterface = nullptr;
-			IDirect3DCubeTexture9 *CubeTextureInterface = nullptr;
-			IDirect3DVolumeTexture9 *VolumeTextureInterface = nullptr;
-
-			switch (BaseTextureInterface->GetType())
+		case D3DRTYPE_TEXTURE:
+			BaseTextureInterface->QueryInterface(IID_PPV_ARGS(&TextureInterface));
+			*ppTexture = ProxyAddressLookupTable->FindAddress(TextureInterface);
+			if (*ppTexture == nullptr)
 			{
-			case D3DRTYPE_TEXTURE:
-				BaseTextureInterface->QueryInterface(IID_PPV_ARGS(&TextureInterface));
 				*ppTexture = new Direct3DTexture8(this, TextureInterface);
-				break;
-			case D3DRTYPE_VOLUMETEXTURE:
-				BaseTextureInterface->QueryInterface(IID_PPV_ARGS(&VolumeTextureInterface));
-				*ppTexture = new Direct3DVolumeTexture8(this, VolumeTextureInterface);
-				break;
-			case D3DRTYPE_CUBETEXTURE:
-				BaseTextureInterface->QueryInterface(IID_PPV_ARGS(&CubeTextureInterface));
-				*ppTexture = new Direct3DCubeTexture8(this, CubeTextureInterface);
-				break;
-			default:
-				return D3DERR_INVALIDCALL;
 			}
+			break;
+		case D3DRTYPE_VOLUMETEXTURE:
+			BaseTextureInterface->QueryInterface(IID_PPV_ARGS(&VolumeTextureInterface));
+			*ppTexture = ProxyAddressLookupTable->FindAddress(VolumeTextureInterface);
+			if (*ppTexture == nullptr)
+			{
+				*ppTexture = new Direct3DVolumeTexture8(this, VolumeTextureInterface);
+			}
+			break;
+		case D3DRTYPE_CUBETEXTURE:
+			BaseTextureInterface->QueryInterface(IID_PPV_ARGS(&CubeTextureInterface));
+			*ppTexture = ProxyAddressLookupTable->FindAddress(CubeTextureInterface);
+			if (*ppTexture == nullptr)
+			{
+				*ppTexture = new Direct3DCubeTexture8(this, CubeTextureInterface);
+			}
+			break;
+		default:
+			BaseTextureInterface->Release();
+			return D3DERR_INVALIDCALL;
 		}
+
+		BaseTextureInterface->Release();
 	}
 
 	return D3D_OK;
