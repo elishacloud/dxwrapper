@@ -10,13 +10,13 @@ Direct3DTexture8::Direct3DTexture8(Direct3DDevice8 *Device, IDirect3DTexture9 *P
 	Device(Device), ProxyInterface(ProxyInterface)
 {
 	Device->AddRef();
-	Device->MyDirect3DCache->SetDirect3D(this, ProxyInterface);
+	Device->ProxyAddressLookupTable->SaveAddress(this, ProxyInterface);
 }
 Direct3DTexture8::~Direct3DTexture8()
 {
 	if (CleanUpFlag)
 	{
-		Device->MyDirect3DCache->DeleteDirect3D(this);
+		Device->ProxyAddressLookupTable->DeleteAddress(this);
 		if (Active)
 		{
 			Active = false;
@@ -165,7 +165,7 @@ HRESULT STDMETHODCALLTYPE Direct3DTexture8::GetSurfaceLevel(UINT Level, Direct3D
 		return hr;
 	}
 
-	*ppSurfaceLevel = Device->MyDirect3DCache->GetDirect3D(SurfaceInterface);
+	*ppSurfaceLevel = Device->ProxyAddressLookupTable->FindAddress(SurfaceInterface);
 	if (*ppSurfaceLevel == nullptr)
 	{
 		*ppSurfaceLevel = new Direct3DSurface8(Device, SurfaceInterface);
@@ -192,13 +192,13 @@ Direct3DCubeTexture8::Direct3DCubeTexture8(Direct3DDevice8 *device, IDirect3DCub
 	Device(device)
 {
 	Device->AddRef();
-	Device->MyDirect3DCache->SetDirect3D(this, ProxyInterface);
+	Device->ProxyAddressLookupTable->SaveAddress(this, ProxyInterface);
 }
 Direct3DCubeTexture8::~Direct3DCubeTexture8()
 {
 	if (CleanUpFlag)
 	{
-		Device->MyDirect3DCache->DeleteDirect3D(this);
+		Device->ProxyAddressLookupTable->DeleteAddress(this);
 		if (Active)
 		{
 			Active = false;
@@ -347,7 +347,7 @@ HRESULT STDMETHODCALLTYPE Direct3DCubeTexture8::GetCubeMapSurface(D3DCUBEMAP_FAC
 		return hr;
 	}
 
-	*ppCubeMapSurface = Device->MyDirect3DCache->GetDirect3D(SurfaceInterface);
+	*ppCubeMapSurface = Device->ProxyAddressLookupTable->FindAddress(SurfaceInterface);
 	if (*ppCubeMapSurface == nullptr)
 	{
 		*ppCubeMapSurface = new Direct3DSurface8(Device, SurfaceInterface);
@@ -374,13 +374,13 @@ Direct3DVolumeTexture8::Direct3DVolumeTexture8(Direct3DDevice8 *device, IDirect3
 	Device(device)
 {
 	Device->AddRef();
-	Device->MyDirect3DCache->SetDirect3D(this, ProxyInterface);
+	Device->ProxyAddressLookupTable->SaveAddress(this, ProxyInterface);
 }
 Direct3DVolumeTexture8::~Direct3DVolumeTexture8()
 {
 	if (CleanUpFlag)
 	{
-		Device->MyDirect3DCache->DeleteDirect3D(this);
+		Device->ProxyAddressLookupTable->DeleteAddress(this);
 		if (Active)
 		{
 			Active = false;
@@ -529,7 +529,7 @@ HRESULT STDMETHODCALLTYPE Direct3DVolumeTexture8::GetVolumeLevel(UINT Level, Dir
 		return hr;
 	}
 
-	*ppVolumeLevel = Device->MyDirect3DCache->GetDirect3D(VolumeInterface);
+	*ppVolumeLevel = Device->ProxyAddressLookupTable->FindAddress(VolumeInterface);
 	if (*ppVolumeLevel == nullptr)
 	{
 		*ppVolumeLevel = new Direct3DVolume8(Device, VolumeInterface);

@@ -210,7 +210,6 @@ cmd /c "@echo off &amp;&amp; cd /D ""$(ProjectDir)Dllmain\"" &amp;&amp; type Bui
     </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="D3d8to9\direct3dcache.cpp" />
     <ClCompile Include="D3d8to9\d3d8to9.cpp" />
     <ClCompile Include="D3d8to9\d3d8to9_base.cpp" />
     <ClCompile Include="D3d8to9\d3d8to9_device.cpp" />
@@ -221,6 +220,7 @@ cmd /c "@echo off &amp;&amp; cd /D ""$(ProjectDir)Dllmain\"" &amp;&amp; type Bui
     <ClCompile Include="D3d8to9\d3d8to9_vertex_buffer.cpp" />
     <ClCompile Include="D3d8to9\d3d8to9_volume.cpp" />
     <ClCompile Include="D3d8to9\d3d8types.cpp" />
+    <ClCompile Include="D3d8to9\lookup_table.cpp" />
     <ClCompile Include="DDrawCompat\v0.2.1\CompatActivateAppHandler.cpp" />
     <ClCompile Include="DDrawCompat\v0.2.1\CompatDirectDraw.cpp" />
     <ClCompile Include="DDrawCompat\v0.2.1\CompatDirectDrawPalette.cpp" />
@@ -288,10 +288,10 @@ cmd /c "@echo off &amp;&amp; cd /D ""$(ProjectDir)Dllmain\"" &amp;&amp; type Bui
     <None Include="Settings\Settings.ini" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="D3d8to9\direct3dcache.h" />
     <ClInclude Include="D3d8to9\d3d8to9.hpp" />
     <ClInclude Include="D3d8to9\d3d8types.hpp" />
     <ClInclude Include="D3d8to9\d3dx9.hpp" />
+    <ClInclude Include="D3d8to9\lookup_table.h" />
     <ClInclude Include="DDrawCompat\v0.2.1\CompatActivateAppHandler.h" />
     <ClInclude Include="DDrawCompat\v0.2.1\CompatDirectDraw.h" />
     <ClInclude Include="DDrawCompat\v0.2.1\CompatDirectDrawPalette.h" />

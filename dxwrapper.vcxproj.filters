@@ -253,7 +253,7 @@
     <ClCompile Include="Libraries\d3dx9.cpp">
       <Filter>Libraries</Filter>
     </ClCompile>
-    <ClCompile Include="D3d8to9\direct3dcache.cpp">
+    <ClCompile Include="D3d8to9\lookup_table.cpp">
       <Filter>D3d8to9</Filter>
     </ClCompile>
   </ItemGroup>
@@ -494,7 +494,7 @@
     <ClInclude Include="Libraries\d3dx9.h">
       <Filter>Libraries</Filter>
     </ClInclude>
-    <ClInclude Include="D3d8to9\direct3dcache.h">
+    <ClInclude Include="D3d8to9\lookup_table.h">
       <Filter>D3d8to9</Filter>
     </ClInclude>
   </ItemGroup>

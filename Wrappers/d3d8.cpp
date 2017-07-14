@@ -21,9 +21,6 @@
 #include "Utils\Utils.h"
 #include "Hook\inithook.h"
 
-HRESULT WINAPI ValidateVertexShader(DWORD* vertexshader, DWORD* reserved1, DWORD* reserved2, BOOL flag, DWORD* toto);
-HRESULT WINAPI ValidatePixelShader(DWORD* pixelshader, DWORD* reserved1, BOOL flag, DWORD* toto);
-
 struct d3d8_dll
 {
 	HMODULE dll = nullptr;
@@ -37,6 +34,61 @@ __declspec(naked) void FakeDirect3DCreate8() { _asm { jmp[d3d8.Direct3DCreate8] 
 //__declspec(naked) void FakeDebugSetMute() { _asm { jmp [d3d8.DebugSetMute] } }		 // <---  Shared with d3d9.dll
 __declspec(naked) void FakeValidateVertexShader() { _asm { jmp[d3d8.ValidateVertexShader] } }
 __declspec(naked) void FakeValidatePixelShader() { _asm { jmp[d3d8.ValidatePixelShader] } }
+
+HRESULT WINAPI ValidateVertexShader(DWORD* vertexshader, DWORD* reserved1, DWORD* reserved2, BOOL flag, DWORD* toto)
+{
+	UNREFERENCED_PARAMETER(flag);
+	UNREFERENCED_PARAMETER(toto);
+
+	if (!vertexshader)
+	{
+		return E_FAIL;
+	}
+
+	if (reserved1 || reserved2)
+	{
+		return E_FAIL;
+	}
+
+	switch (*vertexshader)
+	{
+	case 0xFFFE0100:
+	case 0xFFFE0101:
+		return S_OK;
+		break;
+	default:
+		return E_FAIL;
+	}
+}
+
+HRESULT WINAPI ValidatePixelShader(DWORD* pixelshader, DWORD* reserved1, BOOL flag, DWORD* toto)
+{
+	UNREFERENCED_PARAMETER(flag);
+	UNREFERENCED_PARAMETER(toto);
+
+	if (!pixelshader)
+	{
+		return E_FAIL;
+	}
+
+	if (reserved1)
+	{
+		return E_FAIL;
+	}
+
+	switch (*pixelshader)
+	{
+	case 0xFFFF0100:
+	case 0xFFFF0101:
+	case 0xFFFF0102:
+	case 0xFFFF0103:
+	case 0xFFFF0104:
+		return S_OK;
+		break;
+	default:
+		return E_FAIL;
+	}
+}
 
 void LoadD3d8()
 {
@@ -71,64 +123,4 @@ void LoadD3d8()
 			}
 		}
 	}
-}
-
-HRESULT WINAPI ValidateVertexShader(DWORD* vertexshader, DWORD* reserved1, DWORD* reserved2, BOOL flag, DWORD* toto)
-{
-	UNREFERENCED_PARAMETER(toto);
-	UNREFERENCED_PARAMETER(flag);
-
-	HRESULT ret;
-
-	if (!vertexshader)
-	{
-		return E_FAIL;
-	}
-
-	if (reserved1 || reserved2)
-	{
-		return E_FAIL;
-	}
-
-	switch (*vertexshader) {
-	case 0xFFFE0101:
-	case 0xFFFE0100:
-		ret = S_OK;
-		break;
-	default:
-		ret = E_FAIL;
-	}
-
-	return ret;
-}
-
-HRESULT WINAPI ValidatePixelShader(DWORD* pixelshader, DWORD* reserved1, BOOL flag, DWORD* toto)
-{
-	UNREFERENCED_PARAMETER(toto);
-	UNREFERENCED_PARAMETER(flag);
-
-	HRESULT ret;
-
-	if (!pixelshader)
-	{
-		return E_FAIL;
-	}
-
-	if (reserved1)
-	{
-		return E_FAIL;
-	}
-
-	switch (*pixelshader) {
-	case 0xFFFF0100:
-	case 0xFFFF0101:
-	case 0xFFFF0102:
-	case 0xFFFF0103:
-	case 0xFFFF0104:
-		ret = S_OK;
-		break;
-	default:
-		ret = E_FAIL;
-	}
-	return ret;
 }

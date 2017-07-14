@@ -10,13 +10,13 @@ Direct3DSurface8::Direct3DSurface8(Direct3DDevice8 *Device, IDirect3DSurface9 *P
 	Device(Device), ProxyInterface(ProxyInterface)
 {
 	Device->AddRef();
-	Device->MyDirect3DCache->SetDirect3D(this, ProxyInterface);
+	Device->ProxyAddressLookupTable->SaveAddress(this, ProxyInterface);
 }
 Direct3DSurface8::~Direct3DSurface8()
 {
 	if (CleanUpFlag)
 	{
-		Device->MyDirect3DCache->DeleteDirect3D(this);
+		Device->ProxyAddressLookupTable->DeleteAddress(this);
 		if (Active)
 		{
 			Active = false;
