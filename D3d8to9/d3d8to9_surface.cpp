@@ -24,11 +24,6 @@ Direct3DSurface8::~Direct3DSurface8()
 		}
 	}
 }
-void Direct3DSurface8::DeleteMe(bool CleanUp)
-{
-	CleanUpFlag = CleanUp;
-	delete this;
-}
 
 HRESULT STDMETHODCALLTYPE Direct3DSurface8::QueryInterface(REFIID riid, void **ppvObj)
 {

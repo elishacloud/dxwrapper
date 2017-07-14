@@ -29,8 +29,10 @@ private:
 	void* FindAddress(void*, const DWORD);
 	void DeleteAddress(void*, const DWORD);
 
+	Direct3DDevice8 *const Device;
+
 public:
-	AddressLookupTable();
+	AddressLookupTable(Direct3DDevice8 *Device);
 	~AddressLookupTable();
 
 	// Direct3DSurface8
@@ -72,4 +74,19 @@ public:
 	void SaveAddress(Direct3DSwapChain8*, IDirect3DSwapChain9*);
 	Direct3DSwapChain8* FindAddress(IDirect3DSwapChain9*);
 	void DeleteAddress(Direct3DSwapChain8*);
+};
+
+class AddressLookupTableObject
+{
+public:
+	virtual ~AddressLookupTableObject() { }
+
+	void DeleteMe(bool CleanUp = true)
+	{
+		CleanUpFlag = CleanUp;
+		delete this;
+	}
+
+protected:
+	bool CleanUpFlag = true;
 };

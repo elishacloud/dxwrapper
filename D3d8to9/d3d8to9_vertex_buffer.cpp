@@ -24,11 +24,6 @@ Direct3DVertexBuffer8::~Direct3DVertexBuffer8()
 		}
 	}
 }
-void Direct3DVertexBuffer8::DeleteMe(bool CleanUp)
-{
-	CleanUpFlag = CleanUp;
-	delete this;
-}
 
 HRESULT STDMETHODCALLTYPE Direct3DVertexBuffer8::QueryInterface(REFIID riid, void **ppvObj)
 {

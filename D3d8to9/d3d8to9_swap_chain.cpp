@@ -24,11 +24,6 @@ Direct3DSwapChain8::~Direct3DSwapChain8()
 		}
 	}
 }
-void Direct3DSwapChain8::DeleteMe(bool CleanUp)
-{
-	CleanUpFlag = CleanUp;
-	delete this;
-}
 
 HRESULT STDMETHODCALLTYPE Direct3DSwapChain8::QueryInterface(REFIID riid, void **ppvObj)
 {
@@ -95,10 +90,6 @@ HRESULT STDMETHODCALLTYPE Direct3DSwapChain8::GetBackBuffer(UINT iBackBuffer, D3
 	}
 
 	*ppBackBuffer = Device->ProxyAddressLookupTable->FindAddress(SurfaceInterface);
-	if (*ppBackBuffer == nullptr)
-	{
-		*ppBackBuffer = new Direct3DSurface8(Device, SurfaceInterface);
-	}
 
 	return D3D_OK;
 }

@@ -22,7 +22,7 @@ class __declspec(uuid("BD7349F5-14F1-42E4-9C79-972380DB40C0")) Direct3DVolume8;
 class __declspec(uuid("8AEEEAC7-05F9-44D4-B591-000B0DF1CB95")) Direct3DVertexBuffer8;
 class __declspec(uuid("0E689C9A-053D-44A0-9D92-DB0E3D750F86")) Direct3DIndexBuffer8;
 
-#include "lookup_table.h"
+#include "lookup_table.hpp"
 
 class Direct3D8 : public IUnknown
 {
@@ -181,7 +181,7 @@ private:
 	DWORD CurrentVertexShaderHandle = 0, CurrentPixelShaderHandle = 0;
 };
 
-class Direct3DSwapChain8 : public IUnknown
+class Direct3DSwapChain8 : public IUnknown, public AddressLookupTableObject
 {
 	Direct3DSwapChain8(const Direct3DSwapChain8 &) = delete;
 	Direct3DSwapChain8 &operator=(const Direct3DSwapChain8 &) = delete;
@@ -189,8 +189,6 @@ class Direct3DSwapChain8 : public IUnknown
 public:
 	Direct3DSwapChain8(Direct3DDevice8 *device, IDirect3DSwapChain9 *ProxyInterface);
 	~Direct3DSwapChain8();
-
-	void DeleteMe(bool CleanUp = true);
 
 	IDirect3DSwapChain9 *GetProxyInterface() const { return ProxyInterface; }
 
@@ -203,7 +201,6 @@ public:
 
 private:
 	bool Active = true;
-	bool CleanUpFlag = true;
 	Direct3DDevice8 *const Device;
 	IDirect3DSwapChain9 *const ProxyInterface;
 };
@@ -228,7 +225,7 @@ public:
 	virtual DWORD STDMETHODCALLTYPE GetLOD() = 0;
 	virtual DWORD STDMETHODCALLTYPE GetLevelCount() = 0;
 };
-class Direct3DTexture8 : public Direct3DBaseTexture8
+class Direct3DTexture8 : public Direct3DBaseTexture8, public AddressLookupTableObject
 {
 	Direct3DTexture8(const Direct3DTexture8 &) = delete;
 	Direct3DTexture8 &operator=(const Direct3DTexture8 &) = delete;
@@ -236,8 +233,6 @@ class Direct3DTexture8 : public Direct3DBaseTexture8
 public:
 	Direct3DTexture8(Direct3DDevice8 *device, IDirect3DTexture9 *ProxyInterface);
 	~Direct3DTexture8();
-
-	void DeleteMe(bool CleanUp = true);
 
 	IDirect3DTexture9 *GetProxyInterface() const { return ProxyInterface; }
 
@@ -266,11 +261,10 @@ public:
 
 private:
 	bool Active = true;
-	bool CleanUpFlag = true;
 	Direct3DDevice8 *const Device;
 	IDirect3DTexture9 *const ProxyInterface;
 };
-class Direct3DCubeTexture8 : public Direct3DBaseTexture8
+class Direct3DCubeTexture8 : public Direct3DBaseTexture8, public AddressLookupTableObject
 {
 	Direct3DCubeTexture8(const Direct3DCubeTexture8 &) = delete;
 	Direct3DCubeTexture8 &operator=(const Direct3DCubeTexture8 &) = delete;
@@ -278,8 +272,6 @@ class Direct3DCubeTexture8 : public Direct3DBaseTexture8
 public:
 	Direct3DCubeTexture8(Direct3DDevice8 *device, IDirect3DCubeTexture9 *ProxyInterface);
 	~Direct3DCubeTexture8();
-
-	void DeleteMe(bool CleanUp = true);
 
 	IDirect3DCubeTexture9 *GetProxyInterface() const { return ProxyInterface; }
 
@@ -308,11 +300,10 @@ public:
 
 private:
 	bool Active = true;
-	bool CleanUpFlag = true;
 	Direct3DDevice8 *const Device;
 	IDirect3DCubeTexture9 *const ProxyInterface;
 };
-class Direct3DVolumeTexture8 : public Direct3DBaseTexture8
+class Direct3DVolumeTexture8 : public Direct3DBaseTexture8, public AddressLookupTableObject
 {
 	Direct3DVolumeTexture8(const Direct3DVolumeTexture8 &) = delete;
 	Direct3DVolumeTexture8 &operator=(const Direct3DVolumeTexture8 &) = delete;
@@ -320,8 +311,6 @@ class Direct3DVolumeTexture8 : public Direct3DBaseTexture8
 public:
 	Direct3DVolumeTexture8(Direct3DDevice8 *device, IDirect3DVolumeTexture9 *ProxyInterface);
 	~Direct3DVolumeTexture8();
-
-	void DeleteMe(bool CleanUp = true);
 
 	IDirect3DVolumeTexture9 *GetProxyInterface() const { return ProxyInterface; }
 
@@ -350,12 +339,11 @@ public:
 
 private:
 	bool Active = true;
-	bool CleanUpFlag = true;
 	Direct3DDevice8 *const Device;
 	IDirect3DVolumeTexture9 *const ProxyInterface;
 };
 
-class Direct3DSurface8 : public IUnknown
+class Direct3DSurface8 : public IUnknown, public AddressLookupTableObject
 {
 	Direct3DSurface8(const Direct3DSurface8 &) = delete;
 	Direct3DSurface8 &operator=(const Direct3DSurface8 &) = delete;
@@ -363,8 +351,6 @@ class Direct3DSurface8 : public IUnknown
 public:
 	Direct3DSurface8(Direct3DDevice8 *device, IDirect3DSurface9 *ProxyInterface);
 	~Direct3DSurface8();
-
-	void DeleteMe(bool CleanUp = true);
 
 	IDirect3DSurface9 *GetProxyInterface() const { return ProxyInterface; }
 
@@ -383,12 +369,11 @@ public:
 
 private:
 	bool Active = true;
-	bool CleanUpFlag = true;
 	Direct3DDevice8 *const Device;
 	IDirect3DSurface9 *const ProxyInterface;
 };
 
-class Direct3DVolume8 : public IUnknown
+class Direct3DVolume8 : public IUnknown, public AddressLookupTableObject
 {
 	Direct3DVolume8(const Direct3DVolume8 &) = delete;
 	Direct3DVolume8 &operator=(const Direct3DVolume8 &) = delete;
@@ -396,8 +381,6 @@ class Direct3DVolume8 : public IUnknown
 public:
 	Direct3DVolume8(Direct3DDevice8 *Device, IDirect3DVolume9 *ProxyInterface);
 	~Direct3DVolume8();
-
-	void DeleteMe(bool CleanUp = true);
 
 	IDirect3DVolume9 *GetProxyInterface() const { return ProxyInterface; }
 
@@ -416,12 +399,11 @@ public:
 
 private:
 	bool Active = true;
-	bool CleanUpFlag = true;
 	Direct3DDevice8 *const Device;
 	IDirect3DVolume9 *const ProxyInterface;
 };
 
-class Direct3DVertexBuffer8 : public Direct3DResource8
+class Direct3DVertexBuffer8 : public Direct3DResource8, public AddressLookupTableObject
 {
 	Direct3DVertexBuffer8(const Direct3DVertexBuffer8 &) = delete;
 	Direct3DVertexBuffer8 &operator=(const Direct3DVertexBuffer8 &) = delete;
@@ -429,8 +411,6 @@ class Direct3DVertexBuffer8 : public Direct3DResource8
 public:
 	Direct3DVertexBuffer8(Direct3DDevice8 *Device, IDirect3DVertexBuffer9 *ProxyInterface);
 	~Direct3DVertexBuffer8();
-
-	void DeleteMe(bool CleanUp = true);
 
 	IDirect3DVertexBuffer9 *GetProxyInterface() const { return ProxyInterface; }
 
@@ -453,12 +433,11 @@ public:
 
 private:
 	bool Active = true;
-	bool CleanUpFlag = true;
 	Direct3DDevice8 *const Device;
 	IDirect3DVertexBuffer9 *const ProxyInterface;
 };
 
-class Direct3DIndexBuffer8 : public Direct3DResource8
+class Direct3DIndexBuffer8 : public Direct3DResource8, public AddressLookupTableObject
 {
 	Direct3DIndexBuffer8(const Direct3DIndexBuffer8 &) = delete;
 	Direct3DIndexBuffer8 &operator=(const Direct3DIndexBuffer8 &) = delete;
@@ -466,8 +445,6 @@ class Direct3DIndexBuffer8 : public Direct3DResource8
 public:
 	Direct3DIndexBuffer8(Direct3DDevice8 *Device, IDirect3DIndexBuffer9 *ProxyInterface);
 	~Direct3DIndexBuffer8();
-
-	void DeleteMe(bool CleanUp = true);
 
 	IDirect3DIndexBuffer9 *GetProxyInterface() const { return ProxyInterface; }
 
@@ -490,7 +467,6 @@ public:
 
 private:
 	bool Active = true;
-	bool CleanUpFlag = true;
 	Direct3DDevice8 *const Device;
 	IDirect3DIndexBuffer9 *const ProxyInterface;
 };

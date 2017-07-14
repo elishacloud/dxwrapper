@@ -24,11 +24,6 @@ Direct3DTexture8::~Direct3DTexture8()
 		}
 	}
 }
-void Direct3DTexture8::DeleteMe(bool CleanUp)
-{
-	CleanUpFlag = CleanUp;
-	delete this;
-}
 
 HRESULT STDMETHODCALLTYPE Direct3DTexture8::QueryInterface(REFIID riid, void **ppvObj)
 {
@@ -166,10 +161,6 @@ HRESULT STDMETHODCALLTYPE Direct3DTexture8::GetSurfaceLevel(UINT Level, Direct3D
 	}
 
 	*ppSurfaceLevel = Device->ProxyAddressLookupTable->FindAddress(SurfaceInterface);
-	if (*ppSurfaceLevel == nullptr)
-	{
-		*ppSurfaceLevel = new Direct3DSurface8(Device, SurfaceInterface);
-	}
 
 	return D3D_OK;
 }
@@ -205,11 +196,6 @@ Direct3DCubeTexture8::~Direct3DCubeTexture8()
 			Device->Release();
 		}
 	}
-}
-void Direct3DCubeTexture8::DeleteMe(bool CleanUp)
-{
-	CleanUpFlag = CleanUp;
-	delete this;
 }
 
 HRESULT STDMETHODCALLTYPE Direct3DCubeTexture8::QueryInterface(REFIID riid, void **ppvObj)
@@ -348,10 +334,6 @@ HRESULT STDMETHODCALLTYPE Direct3DCubeTexture8::GetCubeMapSurface(D3DCUBEMAP_FAC
 	}
 
 	*ppCubeMapSurface = Device->ProxyAddressLookupTable->FindAddress(SurfaceInterface);
-	if (*ppCubeMapSurface == nullptr)
-	{
-		*ppCubeMapSurface = new Direct3DSurface8(Device, SurfaceInterface);
-	}
 
 	return D3D_OK;
 }
@@ -387,11 +369,6 @@ Direct3DVolumeTexture8::~Direct3DVolumeTexture8()
 			Device->Release();
 		}
 	}
-}
-void Direct3DVolumeTexture8::DeleteMe(bool CleanUp)
-{
-	CleanUpFlag = CleanUp;
-	delete this;
 }
 
 HRESULT STDMETHODCALLTYPE Direct3DVolumeTexture8::QueryInterface(REFIID riid, void **ppvObj)
@@ -530,10 +507,6 @@ HRESULT STDMETHODCALLTYPE Direct3DVolumeTexture8::GetVolumeLevel(UINT Level, Dir
 	}
 
 	*ppVolumeLevel = Device->ProxyAddressLookupTable->FindAddress(VolumeInterface);
-	if (*ppVolumeLevel == nullptr)
-	{
-		*ppVolumeLevel = new Direct3DVolume8(Device, VolumeInterface);
-	}
 
 	return D3D_OK;
 }
