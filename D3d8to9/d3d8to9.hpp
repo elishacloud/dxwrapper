@@ -466,11 +466,5 @@ private:
 };
 
 //********** Begin Edit *************
-/*#include <fstream>
-
-#ifndef D3D8TO9NOLOG
-extern std::ofstream LOG;
-#endif*/
-
 #include "Settings\Settings.h"
 //********** End Edit ***************

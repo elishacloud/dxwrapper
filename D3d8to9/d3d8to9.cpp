@@ -11,24 +11,9 @@
 typedef LPDIRECT3D9(WINAPI *PFN_Direct3DCreate9)(UINT SDKVersion);
 //********** End Edit ***************
 
-#ifndef D3D8TO9NOLOG
- // Very simple logging for the purpose of debugging only.
-//std::ofstream LOG;
-#endif
 
 extern "C" Direct3D8 *WINAPI Direct3DCreate8(UINT SDKVersion)
 {
-#ifndef D3D8TO9NOLOG
-	/*LOG.open("d3d8.log", std::ios::trunc);
-
-	if (!LOG.is_open())
-	{
-		MessageBox(nullptr, TEXT("Failed to open debug log file \"d3d8.log\"!"), nullptr, MB_ICONWARNING);
-	}*/
-
-	LOG << "Redirecting '" << "Direct3DCreate8" << "(" << SDKVersion << ")' ..." << std::endl;
-	LOG << "> Passing on to 'Direct3DCreate9':" << std::endl;
-#endif
 	//********** Begin Edit *************
 	LOG << "Enabling D3d8to9 function (" << SDKVersion << ")";
 
