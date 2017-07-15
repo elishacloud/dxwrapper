@@ -20,35 +20,29 @@
 #include "Utils\Utils.h"
 #include "Hook\inithook.h"
 
+#define module dsound
+
+#define VISIT_PROCS(visit) \
+	visit(DirectSoundCreate) \
+	visit(DirectSoundEnumerateA) \
+	visit(DirectSoundEnumerateW) \
+	visit(DllCanUnloadNow) \
+	visit(DllGetClassObject) \
+	visit(DirectSoundCaptureCreate) \
+	visit(DirectSoundCaptureEnumerateA) \
+	visit(DirectSoundCaptureEnumerateW) \
+	visit(GetDeviceID) \
+	visit(DirectSoundFullDuplexCreate) \
+	visit(DirectSoundCreate8) \
+	visit(DirectSoundCaptureCreate8) \
+
 struct dsound_dll
 {
 	HMODULE dll = nullptr;
-	FARPROC DirectSoundCreate = jmpaddr;
-	FARPROC DirectSoundEnumerateA = jmpaddr;
-	FARPROC DirectSoundEnumerateW = jmpaddr;
-	FARPROC DllCanUnloadNow = jmpaddr;
-	FARPROC DllGetClassObject = jmpaddr;
-	FARPROC DirectSoundCaptureCreate = jmpaddr;
-	FARPROC DirectSoundCaptureEnumerateA = jmpaddr;
-	FARPROC DirectSoundCaptureEnumerateW = jmpaddr;
-	FARPROC GetDeviceID = jmpaddr;
-	FARPROC DirectSoundFullDuplexCreate = jmpaddr;
-	FARPROC DirectSoundCreate8 = jmpaddr;
-	FARPROC DirectSoundCaptureCreate8 = jmpaddr;
+	VISIT_PROCS(ADD_FARPROC_MEMBER);
 } dsound;
 
-__declspec(naked) void  FakeDirectSoundCreate() { _asm { jmp[dsound.DirectSoundCreate] } }
-__declspec(naked) void  FakeDirectSoundEnumerateA() { _asm { jmp[dsound.DirectSoundEnumerateA] } }
-__declspec(naked) void  FakeDirectSoundEnumerateW() { _asm { jmp[dsound.DirectSoundEnumerateW] } }
-__declspec(naked) void  FakeDllCanUnloadNow() { _asm { jmp[dsound.DllCanUnloadNow] } }
-__declspec(naked) void  FakeDllGetClassObject() { _asm { jmp[dsound.DllGetClassObject] } }
-__declspec(naked) void  FakeDirectSoundCaptureCreate() { _asm { jmp[dsound.DirectSoundCaptureCreate] } }
-__declspec(naked) void  FakeDirectSoundCaptureEnumerateA() { _asm { jmp[dsound.DirectSoundCaptureEnumerateA] } }
-__declspec(naked) void  FakeDirectSoundCaptureEnumerateW() { _asm { jmp[dsound.DirectSoundCaptureEnumerateW] } }
-__declspec(naked) void  FakeGetDeviceID() { _asm { jmp[dsound.GetDeviceID] } }
-__declspec(naked) void  FakeDirectSoundFullDuplexCreate() { _asm { jmp[dsound.DirectSoundFullDuplexCreate] } }
-__declspec(naked) void  FakeDirectSoundCreate8() { _asm { jmp[dsound.DirectSoundCreate8] } }
-__declspec(naked) void  FakeDirectSoundCaptureCreate8() { _asm { jmp[dsound.DirectSoundCaptureCreate8] } }
+VISIT_PROCS(CREATE_PROC_STUB)
 
 void LoadDsound()
 {
@@ -58,18 +52,7 @@ void LoadDsound()
 	// Load dll functions
 	if (dsound.dll)
 	{
-		dsound.DirectSoundCreate = GetFunctionAddress(dsound.dll, "DirectSoundCreate", jmpaddr);
-		dsound.DirectSoundEnumerateA = GetFunctionAddress(dsound.dll, "DirectSoundEnumerateA", jmpaddr);
-		dsound.DirectSoundEnumerateW = GetFunctionAddress(dsound.dll, "DirectSoundEnumerateW", jmpaddr);
-		dsound.DllCanUnloadNow = GetFunctionAddress(dsound.dll, "DllCanUnloadNow", jmpaddr);
-		dsound.DllGetClassObject = GetFunctionAddress(dsound.dll, "DllGetClassObject", jmpaddr);
-		dsound.DirectSoundCaptureCreate = GetFunctionAddress(dsound.dll, "DirectSoundCaptureCreate", jmpaddr);
-		dsound.DirectSoundCaptureEnumerateA = GetFunctionAddress(dsound.dll, "DirectSoundCaptureEnumerateA", jmpaddr);
-		dsound.DirectSoundCaptureEnumerateW = GetFunctionAddress(dsound.dll, "DirectSoundCaptureEnumerateW", jmpaddr);
-		dsound.GetDeviceID = GetFunctionAddress(dsound.dll, "GetDeviceID", jmpaddr);
-		dsound.DirectSoundFullDuplexCreate = GetFunctionAddress(dsound.dll, "DirectSoundFullDuplexCreate", jmpaddr);
-		dsound.DirectSoundCreate8 = GetFunctionAddress(dsound.dll, "DirectSoundCreate8", jmpaddr);
-		dsound.DirectSoundCaptureCreate8 = GetFunctionAddress(dsound.dll, "DirectSoundCaptureCreate8", jmpaddr);
+		VISIT_PROCS(LOAD_ORIGINAL_PROC);
 
 		// Enable DSoundCtrl functions
 		if (Config.DSoundCtrl && Config.RealWrapperMode == dtype.dsound)

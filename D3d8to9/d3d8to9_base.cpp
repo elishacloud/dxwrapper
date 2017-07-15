@@ -130,21 +130,17 @@ UINT STDMETHODCALLTYPE Direct3D8::GetAdapterModeCount(UINT Adapter)
 }
 HRESULT STDMETHODCALLTYPE Direct3D8::EnumAdapterModes(UINT Adapter, UINT Mode, D3DDISPLAYMODE *pMode)
 {
-	if (pMode == nullptr)
+	if (pMode == nullptr || !(Adapter < CurrentAdapterCount && Mode < CurrentAdapterModeCount[Adapter]))
 	{
 		return D3DERR_INVALIDCALL;
 	}
 
-	if (Adapter < CurrentAdapterCount && Mode < CurrentAdapterModeCount[Adapter])
-	{
-		pMode->Format = CurrentAdapterModes[Adapter].at(Mode).Format;
-		pMode->Height = CurrentAdapterModes[Adapter].at(Mode).Height;
-		pMode->RefreshRate = CurrentAdapterModes[Adapter].at(Mode).RefreshRate;
-		pMode->Width = CurrentAdapterModes[Adapter].at(Mode).Width;
-		return D3D_OK;
-	}
+	pMode->Format = CurrentAdapterModes[Adapter].at(Mode).Format;
+	pMode->Height = CurrentAdapterModes[Adapter].at(Mode).Height;
+	pMode->RefreshRate = CurrentAdapterModes[Adapter].at(Mode).RefreshRate;
+	pMode->Width = CurrentAdapterModes[Adapter].at(Mode).Width;
 
-	return D3DERR_INVALIDCALL;
+	return D3D_OK;
 }
 HRESULT STDMETHODCALLTYPE Direct3D8::GetAdapterDisplayMode(UINT Adapter, D3DDISPLAYMODE *pMode)
 {

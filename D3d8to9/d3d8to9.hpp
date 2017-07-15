@@ -8,6 +8,7 @@
 #pragma once
 
 #include "d3d8types.hpp"
+#include <vector>
 
 class __declspec(uuid("1DD9E8DA-1C77-4D40-B0CF-98FEFDFF9512")) Direct3D8;
 class __declspec(uuid("7385E5DF-8FE8-41D5-86B6-D7B48547B6CF")) Direct3DDevice8;
@@ -71,8 +72,6 @@ public:
 	~Direct3DDevice8();
 
 	IDirect3DDevice9 *GetProxyInterface() const { return ProxyInterface; }
-
-	AddressLookupTable* ProxyAddressLookupTable;
 
 	virtual HRESULT STDMETHODCALLTYPE QueryInterface(REFIID riid, void **ppvObj) override;
 	virtual ULONG STDMETHODCALLTYPE AddRef() override;
@@ -173,6 +172,8 @@ public:
 	virtual HRESULT STDMETHODCALLTYPE DrawTriPatch(UINT Handle, const float *pNumSegs, const D3DTRIPATCH_INFO *pTriPatchInfo);
 	virtual HRESULT STDMETHODCALLTYPE DeletePatch(UINT Handle);
 
+	AddressLookupTable *ProxyAddressLookupTable;
+
 private:
 	Direct3D8 *const D3D;
 	IDirect3DDevice9 *const ProxyInterface;
@@ -200,7 +201,6 @@ public:
 	virtual HRESULT STDMETHODCALLTYPE GetBackBuffer(UINT iBackBuffer, D3DBACKBUFFER_TYPE Type, Direct3DSurface8 **ppBackBuffer);
 
 private:
-	bool Active = true;
 	Direct3DDevice8 *const Device;
 	IDirect3DSwapChain9 *const ProxyInterface;
 };
@@ -260,7 +260,6 @@ public:
 	virtual HRESULT STDMETHODCALLTYPE AddDirtyRect(const RECT *pDirtyRect);
 
 private:
-	bool Active = true;
 	Direct3DDevice8 *const Device;
 	IDirect3DTexture9 *const ProxyInterface;
 };
@@ -299,7 +298,6 @@ public:
 	virtual HRESULT STDMETHODCALLTYPE AddDirtyRect(D3DCUBEMAP_FACES FaceType, const RECT *pDirtyRect);
 
 private:
-	bool Active = true;
 	Direct3DDevice8 *const Device;
 	IDirect3DCubeTexture9 *const ProxyInterface;
 };
@@ -338,7 +336,6 @@ public:
 	virtual HRESULT STDMETHODCALLTYPE AddDirtyBox(const D3DBOX *pDirtyBox);
 
 private:
-	bool Active = true;
 	Direct3DDevice8 *const Device;
 	IDirect3DVolumeTexture9 *const ProxyInterface;
 };
@@ -368,7 +365,6 @@ public:
 	virtual HRESULT STDMETHODCALLTYPE UnlockRect();
 
 private:
-	bool Active = true;
 	Direct3DDevice8 *const Device;
 	IDirect3DSurface9 *const ProxyInterface;
 };
@@ -398,7 +394,6 @@ public:
 	virtual HRESULT STDMETHODCALLTYPE UnlockBox();
 
 private:
-	bool Active = true;
 	Direct3DDevice8 *const Device;
 	IDirect3DVolume9 *const ProxyInterface;
 };
@@ -432,7 +427,6 @@ public:
 	virtual HRESULT STDMETHODCALLTYPE GetDesc(D3DVERTEXBUFFER_DESC *pDesc);
 
 private:
-	bool Active = true;
 	Direct3DDevice8 *const Device;
 	IDirect3DVertexBuffer9 *const ProxyInterface;
 };
@@ -466,7 +460,6 @@ public:
 	virtual HRESULT STDMETHODCALLTYPE GetDesc(D3DINDEXBUFFER_DESC *pDesc);
 
 private:
-	bool Active = true;
 	Direct3DDevice8 *const Device;
 	IDirect3DIndexBuffer9 *const ProxyInterface;
 };

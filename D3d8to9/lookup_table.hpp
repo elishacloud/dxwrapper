@@ -1,79 +1,118 @@
+/**
+ * Copyright (C) 2015 Patrick Mours. All rights reserved.
+ * License: https://github.com/crosire/d3d8to9#license
+ */
+
 #pragma once
 
-#include <iostream>
 #include <vector>
+#include <iostream>
 
 class AddressLookupTable
 {
-private:
-	struct AddrStruct
+	struct AddressStruct
 	{
-		void* Address8 = nullptr;
-		void* Address9 = nullptr;
+		class AddressLookupTableObject *Address8 = nullptr;
+		void *Address9 = nullptr;
 	};
 
-	static constexpr DWORD SurfaceVector = 0;
-	static constexpr DWORD TextureVector = 1;
-	static constexpr DWORD CubeTextureVector = 2;
-	static constexpr DWORD VolumeTextureVector = 3;
-	static constexpr DWORD VolumeVector = 4;
-	static constexpr DWORD VertexBufferVector = 5;
-	static constexpr DWORD IndexBufferVector = 6;
-	static constexpr DWORD SwapChainVector = 7;
+	template <typename T>
+	struct AddressCacheIndex;
+	template <>
+	struct AddressCacheIndex<Direct3DSurface8>
+	{ static constexpr UINT CacheIndex = 0; using Type9 = IDirect3DSurface9; };
+	template <>
+	struct AddressCacheIndex<Direct3DTexture8>
+	{ static constexpr UINT CacheIndex = 1; using Type9 = IDirect3DTexture9; };
+	template <>
+	struct AddressCacheIndex<Direct3DVolumeTexture8>
+	{ static constexpr UINT CacheIndex = 2; using Type9 = IDirect3DVolumeTexture9; };
+	template <>
+	struct AddressCacheIndex<Direct3DCubeTexture8>
+	{ static constexpr UINT CacheIndex = 3; using Type9 = IDirect3DCubeTexture9; };
+	template <>
+	struct AddressCacheIndex<Direct3DVolume8>
+	{ static constexpr UINT CacheIndex = 4; using Type9 = IDirect3DVolume9; };
+	template <>
+	struct AddressCacheIndex<Direct3DVertexBuffer8>
+	{ static constexpr UINT CacheIndex = 5; using Type9 = IDirect3DVertexBuffer9; };
+	template <>
+	struct AddressCacheIndex<Direct3DIndexBuffer8>
+	{ static constexpr UINT CacheIndex = 6; using Type9 = IDirect3DIndexBuffer9; };
+	template <>
+	struct AddressCacheIndex<Direct3DSwapChain8>
+	{ static constexpr UINT CacheIndex = 7; using Type9 = IDirect3DSwapChain9; };
 
-	static constexpr DWORD SizeOfVector = 8;
-
-	std::vector<AddrStruct> AddressVector[SizeOfVector];
-
-	void SaveAddress(void*, void*, const DWORD);
-	void* FindAddress(void*, const DWORD);
-	void DeleteAddress(void*, const DWORD);
-
-	Direct3DDevice8 *const Device;
 
 public:
-	AddressLookupTable(Direct3DDevice8 *Device);
+	explicit AddressLookupTable(Direct3DDevice8 *Device);
 	~AddressLookupTable();
 
-	// Direct3DSurface8
-	void SaveAddress(Direct3DSurface8*, IDirect3DSurface9*);
-	Direct3DSurface8* FindAddress(IDirect3DSurface9*);
-	void DeleteAddress(Direct3DSurface8*);
+	template <typename T>
+	T *FindAddress(void *pAddress9)
+	{
+		if (pAddress9 == nullptr)
+		{
+			return nullptr;
+		}
 
-	// Direct3DTexture8
-	void SaveAddress(Direct3DTexture8*, IDirect3DTexture9*);
-	Direct3DTexture8* FindAddress(IDirect3DTexture9*);
-	void DeleteAddress(Direct3DTexture8*);
+		T *pAddress8 = nullptr;
+		constexpr UINT CacheIndex = AddressCacheIndex<T>::CacheIndex;
 
-	// Direct3DVolumeTexture8
-	void SaveAddress(Direct3DVolumeTexture8*, IDirect3DVolumeTexture9*);
-	Direct3DVolumeTexture8* FindAddress(IDirect3DVolumeTexture9*);
-	void DeleteAddress(Direct3DVolumeTexture8*);
+		for (size_t i = 0; i < AddressCache[CacheIndex].size(); i++)
+		{
+			if (AddressCache[CacheIndex][i].Address9 == pAddress9)
+			{
+				pAddress8 = static_cast<T *>(AddressCache[CacheIndex][i].Address8);
+			}
+		}
 
-	// Direct3DCubeTexture8
-	void SaveAddress(Direct3DCubeTexture8*, IDirect3DCubeTexture9*);
-	Direct3DCubeTexture8* FindAddress(IDirect3DCubeTexture9*);
-	void DeleteAddress(Direct3DCubeTexture8*);
+		if (pAddress8 == nullptr)
+		{
+			pAddress8 = new T(Device, static_cast<AddressCacheIndex<T>::Type9 *>(pAddress9));
+		}
 
-	// Direct3DVolume8
-	void SaveAddress(Direct3DVolume8*, IDirect3DVolume9*);
-	Direct3DVolume8* FindAddress(IDirect3DVolume9*);
-	void DeleteAddress(Direct3DVolume8*);
+		return pAddress8;
+	}
 
-	// Direct3DVertexBuffer8
-	void SaveAddress(Direct3DVertexBuffer8*, IDirect3DVertexBuffer9*);
-	Direct3DVertexBuffer8* FindAddress(IDirect3DVertexBuffer9*);
-	void DeleteAddress(Direct3DVertexBuffer8*);
+	template <typename T>
+	void SaveAddress(T *pAddress8, void *pAddress9)
+	{
+		if (pAddress8 == nullptr || pAddress9 == nullptr)
+		{
+			return;
+		}
 
-	// Direct3DIndexBuffer8
-	void SaveAddress(Direct3DIndexBuffer8*, IDirect3DIndexBuffer9*);
-	Direct3DIndexBuffer8* FindAddress(IDirect3DIndexBuffer9*);
-	void DeleteAddress(Direct3DIndexBuffer8*);
+		AddressStruct CacheData;
+		CacheData.Address8 = pAddress8;
+		CacheData.Address9 = pAddress9;
 
-	// Direct3DSwapChain8
-	void SaveAddress(Direct3DSwapChain8*, IDirect3DSwapChain9*);
-	Direct3DSwapChain8* FindAddress(IDirect3DSwapChain9*);
-	void DeleteAddress(Direct3DSwapChain8*);
+		AddressCache[AddressCacheIndex<T>::CacheIndex].push_back(std::move(CacheData));
+	}
+	template <typename T>
+	void DeleteAddress(T *pAddress8)
+	{
+		if (pAddress8 == nullptr)
+		{
+			return;
+		}
+
+		constexpr UINT CacheIndex = AddressCacheIndex<T>::CacheIndex;
+
+		for (size_t i = 0; i < AddressCache[CacheIndex].size(); i++)
+		{
+			if (AddressCache[CacheIndex][i].Address8 == pAddress8)
+			{
+				std::swap(AddressCache[CacheIndex][i], AddressCache[CacheIndex].back());
+				AddressCache[CacheIndex].pop_back();
+				return;
+			}
+		}
+	}
+
+private:
+	Direct3DDevice8 *const Device;
+	std::vector<AddressStruct> AddressCache[8];
 };
 
 class AddressLookupTableObject
@@ -84,9 +123,11 @@ public:
 	void DeleteMe(bool CleanUp = true)
 	{
 		CleanUpFlag = CleanUp;
+
 		delete this;
 	}
 
 protected:
+	bool Active = true;
 	bool CleanUpFlag = true;
 };

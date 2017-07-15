@@ -160,7 +160,7 @@ HRESULT STDMETHODCALLTYPE Direct3DTexture8::GetSurfaceLevel(UINT Level, Direct3D
 		return hr;
 	}
 
-	*ppSurfaceLevel = Device->ProxyAddressLookupTable->FindAddress(SurfaceInterface);
+	*ppSurfaceLevel = Device->ProxyAddressLookupTable->FindAddress<Direct3DSurface8>(SurfaceInterface);
 
 	return D3D_OK;
 }
@@ -333,7 +333,7 @@ HRESULT STDMETHODCALLTYPE Direct3DCubeTexture8::GetCubeMapSurface(D3DCUBEMAP_FAC
 		return hr;
 	}
 
-	*ppCubeMapSurface = Device->ProxyAddressLookupTable->FindAddress(SurfaceInterface);
+	*ppCubeMapSurface = Device->ProxyAddressLookupTable->FindAddress<Direct3DSurface8>(SurfaceInterface);
 
 	return D3D_OK;
 }
@@ -506,7 +506,7 @@ HRESULT STDMETHODCALLTYPE Direct3DVolumeTexture8::GetVolumeLevel(UINT Level, Dir
 		return hr;
 	}
 
-	*ppVolumeLevel = Device->ProxyAddressLookupTable->FindAddress(VolumeInterface);
+	*ppVolumeLevel = Device->ProxyAddressLookupTable->FindAddress<Direct3DVolume8>(VolumeInterface);
 
 	return D3D_OK;
 }

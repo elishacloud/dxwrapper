@@ -21,19 +21,21 @@
 #include "Utils\Utils.h"
 #include "Hook\inithook.h"
 
-struct d3d8_dll
+#define module d3d8
+
+#define VISIT_PROCS(visit) \
+	visit(Direct3DCreate8) \
+	visit(ValidateVertexShader) \
+	visit(ValidatePixelShader) \
+	//visit(DebugSetMute)		 // <---  Shared with d3d9.dll
+
+static struct d3d8_dll
 {
 	HMODULE dll = nullptr;
-	FARPROC Direct3DCreate8 = jmpaddr;
-	//FARPROC DebugSetMute = jmpaddr;		 // <---  Shared with d3d9.dll
-	FARPROC ValidateVertexShader = jmpaddr;
-	FARPROC ValidatePixelShader = jmpaddr;
+	VISIT_PROCS(ADD_FARPROC_MEMBER);
 } d3d8;
 
-__declspec(naked) void FakeDirect3DCreate8() { _asm { jmp[d3d8.Direct3DCreate8] } }
-//__declspec(naked) void FakeDebugSetMute() { _asm { jmp [d3d8.DebugSetMute] } }		 // <---  Shared with d3d9.dll
-__declspec(naked) void FakeValidateVertexShader() { _asm { jmp[d3d8.ValidateVertexShader] } }
-__declspec(naked) void FakeValidatePixelShader() { _asm { jmp[d3d8.ValidatePixelShader] } }
+VISIT_PROCS(CREATE_PROC_STUB)
 
 HRESULT WINAPI ValidateVertexShader(DWORD* vertexshader, DWORD* reserved1, DWORD* reserved2, BOOL flag, DWORD* toto)
 {
@@ -110,10 +112,8 @@ void LoadD3d8()
 		// Load dll functions
 		if (d3d8.dll)
 		{
-			d3d8.Direct3DCreate8 = GetFunctionAddress(d3d8.dll, "Direct3DCreate8", jmpaddr);
+			VISIT_PROCS(LOAD_ORIGINAL_PROC);
 			Set_DebugSetMute(GetFunctionAddress(d3d8.dll, "DebugSetMute", jmpaddr));
-			d3d8.ValidateVertexShader = GetFunctionAddress(d3d8.dll, "ValidateVertexShader", jmpaddr);
-			d3d8.ValidatePixelShader = GetFunctionAddress(d3d8.dll, "ValidatePixelShader", jmpaddr);
 
 			// Hook APIs for d3d8to9 conversion
 			if (Config.D3d8to9)

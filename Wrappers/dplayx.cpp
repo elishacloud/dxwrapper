@@ -18,23 +18,23 @@
 #include "wrapper.h"
 #include "Utils\Utils.h"
 
+#define module dplayx
+
+#define VISIT_PROCS(visit) \
+	visit(DirectPlayCreate) \
+	visit(DirectPlayEnumerate) \
+	visit(DirectPlayEnumerateA) \
+	visit(DirectPlayEnumerateW) \
+	visit(DirectPlayLobbyCreateA) \
+	visit(DirectPlayLobbyCreateW)
+
 struct dplayx_dll
 {
 	HMODULE dll = nullptr;
-	FARPROC DirectPlayCreate = jmpaddr;
-	FARPROC DirectPlayEnumerate = jmpaddr;
-	FARPROC DirectPlayEnumerateA = jmpaddr;
-	FARPROC DirectPlayEnumerateW = jmpaddr;
-	FARPROC DirectPlayLobbyCreateA = jmpaddr;
-	FARPROC DirectPlayLobbyCreateW = jmpaddr;
+	VISIT_PROCS(ADD_FARPROC_MEMBER);
 } dplayx;
 
-__declspec(naked) void FakeDirectPlayCreate() { _asm { jmp[dplayx.DirectPlayCreate] } }
-__declspec(naked) void FakeDirectPlayEnumerate() { _asm { jmp[dplayx.DirectPlayEnumerate] } }
-__declspec(naked) void FakeDirectPlayEnumerateA() { _asm { jmp[dplayx.DirectPlayEnumerateA] } }
-__declspec(naked) void FakeDirectPlayEnumerateW() { _asm { jmp[dplayx.DirectPlayEnumerateW] } }
-__declspec(naked) void FakeDirectPlayLobbyCreateA() { _asm { jmp[dplayx.DirectPlayLobbyCreateA] } }
-__declspec(naked) void FakeDirectPlayLobbyCreateW() { _asm { jmp[dplayx.DirectPlayLobbyCreateW] } }
+VISIT_PROCS(CREATE_PROC_STUB)
 
 void LoadDplayx()
 {
@@ -44,11 +44,6 @@ void LoadDplayx()
 	// Load dll functions
 	if (dplayx.dll)
 	{
-		dplayx.DirectPlayCreate = GetFunctionAddress(dplayx.dll, "DirectPlayCreate", jmpaddr);
-		dplayx.DirectPlayEnumerate = GetFunctionAddress(dplayx.dll, "DirectPlayEnumerate", jmpaddr);
-		dplayx.DirectPlayEnumerateA = GetFunctionAddress(dplayx.dll, "DirectPlayEnumerateA", jmpaddr);
-		dplayx.DirectPlayEnumerateW = GetFunctionAddress(dplayx.dll, "DirectPlayEnumerateW", jmpaddr);
-		dplayx.DirectPlayLobbyCreateA = GetFunctionAddress(dplayx.dll, "DirectPlayLobbyCreateA", jmpaddr);
-		dplayx.DirectPlayLobbyCreateW = GetFunctionAddress(dplayx.dll, "DirectPlayLobbyCreateW", jmpaddr);
+		VISIT_PROCS(LOAD_ORIGINAL_PROC);
 	}
 }

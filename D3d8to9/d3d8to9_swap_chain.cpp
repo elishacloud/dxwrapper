@@ -89,7 +89,7 @@ HRESULT STDMETHODCALLTYPE Direct3DSwapChain8::GetBackBuffer(UINT iBackBuffer, D3
 		return hr;
 	}
 
-	*ppBackBuffer = Device->ProxyAddressLookupTable->FindAddress(SurfaceInterface);
+	*ppBackBuffer = Device->ProxyAddressLookupTable->FindAddress<Direct3DSurface8>(SurfaceInterface);
 
 	return D3D_OK;
 }

@@ -20,25 +20,25 @@
 #include "dsound.h"
 #include "Utils\Utils.h"
 
+#define module dinput
+
+#define VISIT_PROCS(visit) \
+	visit(DirectInputCreateA) \
+	visit(DirectInputCreateEx) \
+	visit(DirectInputCreateW) \
+	visit(DllRegisterServer) \
+	visit(DllUnregisterServer) \
+	//visit(DllCanUnloadNow) \		 // <---  Shared with dsound.dll
+	//visit(DllGetClassObject)		 // <---  Shared with dsound.dll
+
+
 struct dinput_dll
 {
 	HMODULE dll = nullptr;
-	FARPROC DirectInputCreateA = jmpaddr;
-	FARPROC DirectInputCreateEx = jmpaddr;
-	FARPROC DirectInputCreateW = jmpaddr;
-	//FARPROC DllCanUnloadNow = jmpaddr;		 // <---  Shared with dsound.dll
-	//FARPROC DllGetClassObject = jmpaddr;		 // <---  Shared with dsound.dll
-	FARPROC DllRegisterServer = jmpaddr;
-	FARPROC DllUnregisterServer = jmpaddr;
+	VISIT_PROCS(ADD_FARPROC_MEMBER);
 } dinput;
 
-__declspec(naked) void  FakeDirectInputCreateA() { _asm { jmp[dinput.DirectInputCreateA] } }
-__declspec(naked) void  FakeDirectInputCreateEx() { _asm { jmp[dinput.DirectInputCreateEx] } }
-__declspec(naked) void  FakeDirectInputCreateW() { _asm { jmp[dinput.DirectInputCreateW] } }
-//__declspec(naked) void  FakeDllCanUnloadNow() { _asm { jmp [dinput.DllCanUnloadNow] } }			 // <---  Shared with dsound.dll
-//__declspec(naked) void  FakeDllGetClassObject() { _asm { jmp [dinput.DllGetClassObject] } }		 // <---  Shared with dsound.dll
-__declspec(naked) void  FakeDllRegisterServer() { _asm { jmp[dinput.DllRegisterServer] } }
-__declspec(naked) void  FakeDllUnregisterServer() { _asm { jmp[dinput.DllUnregisterServer] } }
+VISIT_PROCS(CREATE_PROC_STUB)
 
 void LoadDinput()
 {
@@ -48,12 +48,8 @@ void LoadDinput()
 	// Load dll functions
 	if (dinput.dll)
 	{
-		dinput.DirectInputCreateA = GetFunctionAddress(dinput.dll, "DirectInputCreateA", jmpaddr);
-		dinput.DirectInputCreateEx = GetFunctionAddress(dinput.dll, "DirectInputCreateEx", jmpaddr);
-		dinput.DirectInputCreateW = GetFunctionAddress(dinput.dll, "DirectInputCreateW", jmpaddr);
+		VISIT_PROCS(LOAD_ORIGINAL_PROC);
 		Set_DllCanUnloadNow(GetFunctionAddress(dinput.dll, "DllCanUnloadNow", jmpaddr));
 		Set_DllGetClassObject(GetFunctionAddress(dinput.dll, "DllGetClassObject", jmpaddr));
-		dinput.DllRegisterServer = GetFunctionAddress(dinput.dll, "DllRegisterServer", jmpaddr);
-		dinput.DllUnregisterServer = GetFunctionAddress(dinput.dll, "DllUnregisterServer", jmpaddr);
 	}
 }
