@@ -164,3 +164,10 @@ void ConvertAdapterIdentifier(D3DADAPTER_IDENTIFIER9 &Input, D3DADAPTER_IDENTIFI
 	Output.DeviceIdentifier = Input.DeviceIdentifier;
 	Output.WHQLLevel = Input.WHQLLevel;
 }
+bool SupportsPalettes()
+{
+	HDC hDC = GetDC(nullptr);
+	bool hasPalette = (GetDeviceCaps(hDC, RASTERCAPS) & RC_PALETTE) != 0;
+	ReleaseDC(nullptr, hDC);
+	return hasPalette;
+}

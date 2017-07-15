@@ -24,6 +24,7 @@ Direct3DDevice8::Direct3DDevice8(Direct3D8 *d3d, IDirect3DDevice9 *ProxyInterfac
 {
 	D3D->AddRef();
 	ProxyAddressLookupTable = new AddressLookupTable(this);
+	PaletteFlag = SupportsPalettes();
 }
 Direct3DDevice8::~Direct3DDevice8()
 {
@@ -973,20 +974,34 @@ HRESULT STDMETHODCALLTYPE Direct3DDevice8::GetInfo(DWORD DevInfoID, void *pDevIn
 }
 HRESULT STDMETHODCALLTYPE Direct3DDevice8::SetPaletteEntries(UINT PaletteNumber, const PALETTEENTRY *pEntries)
 {
-	PaletteNumber = (PaletteNumber & 0xFFF) | (PC_NOCOLLAPSE << 12);
+	if (pEntries == nullptr)
+	{
+		return D3DERR_INVALIDCALL;
+	}
 	return ProxyInterface->SetPaletteEntries(PaletteNumber, pEntries);
 }
 HRESULT STDMETHODCALLTYPE Direct3DDevice8::GetPaletteEntries(UINT PaletteNumber, PALETTEENTRY *pEntries)
 {
+	if (pEntries == nullptr)
+	{
+		return D3DERR_INVALIDCALL;
+	}
 	return ProxyInterface->GetPaletteEntries(PaletteNumber, pEntries);
 }
 HRESULT STDMETHODCALLTYPE Direct3DDevice8::SetCurrentTexturePalette(UINT PaletteNumber)
 {
-	PaletteNumber = (PaletteNumber & 0xFFF) | (PC_NOCOLLAPSE << 12);
+	if (!PaletteFlag)
+	{
+		PaletteNumber = (PaletteNumber & 0xFFF) | (PC_NOCOLLAPSE << 12);
+	}
 	return ProxyInterface->SetCurrentTexturePalette(PaletteNumber);
 }
 HRESULT STDMETHODCALLTYPE Direct3DDevice8::GetCurrentTexturePalette(UINT *pPaletteNumber)
 {
+	if (pPaletteNumber == nullptr)
+	{
+		return D3DERR_INVALIDCALL;
+	}
 	return ProxyInterface->GetCurrentTexturePalette(pPaletteNumber);
 }
 HRESULT STDMETHODCALLTYPE Direct3DDevice8::DrawPrimitive(D3DPRIMITIVETYPE PrimitiveType, UINT StartVertex, UINT PrimitiveCount)
