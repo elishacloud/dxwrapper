@@ -998,7 +998,7 @@ HRESULT STDMETHODCALLTYPE Direct3DDevice8::SetCurrentTexturePalette(UINT Palette
 }
 HRESULT STDMETHODCALLTYPE Direct3DDevice8::GetCurrentTexturePalette(UINT *pPaletteNumber)
 {
-	if (pPaletteNumber == nullptr)
+	if (!PaletteFlag)
 	{
 		return D3DERR_INVALIDCALL;
 	}
