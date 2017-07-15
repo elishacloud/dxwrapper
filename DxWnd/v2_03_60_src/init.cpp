@@ -80,7 +80,7 @@ void InitDxWnd(void)
     }
 	else
 		//********** Begin Edit *************
-		Compat::Log() << "Cannot load dxwnd.dll library";
+		LOG << "Cannot load dxwnd.dll library";
 		//MessageBox(0, "Cannot load dxwnd.dll library", "dxwnd", MB_ICONERROR);
 		//********** End Edit ***************
 }

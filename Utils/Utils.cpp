@@ -70,7 +70,7 @@ void GetVersionFile(OSVERSIONINFO *oOS_version)
 	HMODULE Module = LoadLibrary("version.dll");
 	if (!Module)
 	{
-		Compat::Log() << "Failed to load version.dll!";
+		LOG << "Failed to load version.dll!";
 		return;
 	}
 
@@ -87,15 +87,15 @@ void GetVersionFile(OSVERSIONINFO *oOS_version)
 	{
 		if (!GetFileVersionInfoSize)
 		{
-			Compat::Log() << "Failed to get 'GetFileVersionInfoSize' ProcAddress of version.dll!";
+			LOG << "Failed to get 'GetFileVersionInfoSize' ProcAddress of version.dll!";
 		}
 		if (!GetFileVersionInfo)
 		{
-			Compat::Log() << "Failed to get 'GetFileVersionInfo' ProcAddress of version.dll!";
+			LOG << "Failed to get 'GetFileVersionInfo' ProcAddress of version.dll!";
 		}
 		if (!VerQueryValue)
 		{
-			Compat::Log() << "Failed to get 'VerQueryValue' ProcAddress of version.dll!";
+			LOG << "Failed to get 'VerQueryValue' ProcAddress of version.dll!";
 		}
 		return;
 	}
@@ -264,7 +264,7 @@ void LogOSVersion()
 	}
 
 	// Log operating system version and type
-	Compat::Log() << sOSName << bitness << " (" << oOS_version.dwMajorVersion << "." << oOS_version.dwMinorVersion << "." << oOS_version.dwBuildNumber << ")";
+	LOG << sOSName << bitness << " (" << oOS_version.dwMajorVersion << "." << oOS_version.dwMinorVersion << "." << oOS_version.dwBuildNumber << ")";
 }
 
 // Logs the process name and PID
@@ -278,13 +278,13 @@ void LogProcessNameAndPID()
 	char *pdest = strrchr(exepath, '\\');
 
 	// Log process name and ID
-	Compat::Log() << (++pdest) << " (PID:" << GetCurrentProcessId() << ")";
+	LOG << (++pdest) << " (PID:" << GetCurrentProcessId() << ")";
 }
 
 // Execute a specified string
 void Shell(char* fileName)
 {
-	Compat::Log() << "Running process: " << fileName;
+	LOG << "Running process: " << fileName;
 
 	// Get StartupInfo and ProcessInfo memory size and set process window to hidden
 	STARTUPINFO si;
@@ -298,7 +298,7 @@ void Shell(char* fileName)
 	if (!CreateProcess(nullptr, fileName, nullptr, nullptr, true, CREATE_NO_WINDOW, nullptr, nullptr, &si, &pi))
 	{
 		// Failed to launch process!
-		Compat::Log() << "Failed to launch process!";
+		LOG << "Failed to launch process!";
 	}
 	else
 	{
@@ -322,7 +322,7 @@ void Shell(char* fileName)
 // if your going to Disable DPI Scaling then do it as soon as possible
 void DisableHighDPIScaling()
 {
-	Compat::Log() << "Disabling High DPI Scaling...";
+	LOG << "Disabling High DPI Scaling...";
 	// use GetProcAddress because SetProcessDPIAware exists only on win6+
 	// and "High" dpi scaling only exits on win6+?
 	HMODULE hUser32 = GetModuleHandle("user32.dll");
@@ -364,7 +364,7 @@ void SetAppCompat()
 				{
 					if (SetAppCompatData)
 					{
-						Compat::Log() << "SetAppCompatData: " << x;
+						LOG << "SetAppCompatData: " << x;
 						// For LockColorkey, this one uses the second parameter
 						if (x == AppCompatDataType.LockColorkey)
 						{
@@ -381,7 +381,7 @@ void SetAppCompat()
 		}
 		else
 		{
-			Compat::Log() << "Cannnot open ddraw.dll to SetAppCompatData";
+			LOG << "Cannnot open ddraw.dll to SetAppCompatData";
 		}
 	}
 }

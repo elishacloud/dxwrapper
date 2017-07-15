@@ -12,27 +12,27 @@
 void *HookAPI(HMODULE module, const char *dll, void *apiproc, const char *apiname, void *hookproc)
 {
 #ifdef _DEBUG
-	Compat::Log() << "HookAPI: module=" << module << " dll=" << dll << " apiproc=" << apiproc << " apiname=" << apiname << " hookproc=" << hookproc;
+	LOG << "HookAPI: module=" << module << " dll=" << dll << " apiproc=" << apiproc << " apiname=" << apiname << " hookproc=" << hookproc;
 #endif
 
 	// Check if API name is blank
 	if (!apiname)
 	{
-		Compat::Log() << "HookAPI: NULL api name";
+		LOG << "HookAPI: NULL api name";
 		return apiproc;
 	}
 
 	// Check API address
 	if (!apiproc)
 	{
-		Compat::Log() << "Failed to find '" << apiname << "' api";
+		LOG << "Failed to find '" << apiname << "' api";
 		return apiproc;
 	}
 
 	// Check hook address
 	if (!hookproc)
 	{
-		Compat::Log() << "Invalid hook address for '" << apiname << "'";
+		LOG << "Invalid hook address for '" << apiname << "'";
 		return apiproc;
 	}
 
@@ -47,14 +47,14 @@ void *HookAPI(HMODULE module, const char *dll, void *apiproc, const char *apinam
 	// Check if dll name is blank
 	if (!apiname)
 	{
-		Compat::Log() << "HookAPI: NULL dll name";
+		LOG << "HookAPI: NULL dll name";
 		return apiproc;
 	}
 
 	// Check module addresses
 	if (!module)
 	{
-		Compat::Log() << "HookAPI: NULL api module address for '" << dll << "'";
+		LOG << "HookAPI: NULL api module address for '" << dll << "'";
 		return apiproc;
 	}
 

@@ -55,12 +55,12 @@ void WriteAllByteMemory()
 				}
 				else
 				{
-					Compat::Log() << "Access Denied at memory address: 0x" << std::showbase << std::hex << Config.MemoryInfo[x].AddressPointer << std::dec << std::noshowbase;
+					LOG << "Access Denied at memory address: 0x" << std::showbase << std::hex << Config.MemoryInfo[x].AddressPointer << std::dec << std::noshowbase;
 				}
 			}
 			else
 			{
-				Compat::Log() << "Failed to read memory at address: 0x" << std::showbase << std::hex << Config.MemoryInfo[x].AddressPointer << std::dec << std::noshowbase;
+				LOG << "Failed to read memory at address: 0x" << std::showbase << std::hex << Config.MemoryInfo[x].AddressPointer << std::dec << std::noshowbase;
 			}
 		}
 	}
@@ -116,7 +116,7 @@ DWORD WINAPI WriteMemoryThreadFunc(LPVOID pvParam)
 	};
 
 	// Logging
-	Compat::Log() << "Undoing memory write...";
+	LOG << "Undoing memory write...";
 
 	// Undo the memory write
 	WriteAllByteMemory();
@@ -137,7 +137,7 @@ void WriteMemory()
 	if (CheckVerificationMemory())
 	{
 		// Logging
-		Compat::Log() << "Writing bytes to memory...";
+		LOG << "Writing bytes to memory...";
 
 		// Writing bytes to memory
 		WriteAllByteMemory();
@@ -152,7 +152,7 @@ void WriteMemory()
 	{
 		if (Config.VerifyMemoryInfo.AddressPointer != 0)
 		{
-			Compat::Log() << "Verification for memory write failed";
+			LOG << "Verification for memory write failed";
 		}
 	}
 }

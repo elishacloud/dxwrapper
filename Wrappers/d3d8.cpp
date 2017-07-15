@@ -118,7 +118,7 @@ void LoadD3d8()
 			// Hook APIs for d3d8to9 conversion
 			if (Config.D3d8to9)
 			{
-				Compat::Log() << "Hooking d3d8.dll APIs...";
+				LOG << "Hooking d3d8.dll APIs...";
 				d3d8.Direct3DCreate8 = (FARPROC)HookAPI(hModule_dll, dtypename[dtype.d3d8], GetFunctionAddress(d3d8.dll, "Direct3DCreate8"), "Direct3DCreate8", GetFunctionAddress(hModule_dll, "_Direct3DCreate8"));
 			}
 		}

@@ -7,6 +7,16 @@
 #include "DDrawLog.h"
 #endif
 
+#define LOG Compat::Log()
+
+namespace newstd
+{
+	using namespace std;
+	static constexpr char endl = '\n';
+};
+
+#define std newstd
+
 void LogText(char*);
 
 bool IfStringExistsInList(char*, char*[256], byte, bool = true);

@@ -68,22 +68,22 @@ HMODULE LoadDll(DWORD dlltype)
 	// Load dll from ini, if DllPath is not '0'
 	if (Config.szDllPath[0] != '\0' && Config.RealWrapperMode == dlltype)
 	{
-		Compat::Log() << "Loading " << Config.szDllPath << " library";
+		LOG << "Loading " << Config.szDllPath << " library";
 		dllhandle[dlltype].dll = LoadLibrary(Config.szDllPath);
 		if (!dllhandle[dlltype].dll)
 		{
-			Compat::Log() << "Cannot load " << Config.szDllPath << " library";
+			LOG << "Cannot load " << Config.szDllPath << " library";
 		}
 	}
 
 	// Load current dll
 	if (!dllhandle[dlltype].dll && Config.RealWrapperMode != dlltype)
 	{
-		Compat::Log() << "Loading " << dtypename[dlltype] << " library";
+		LOG << "Loading " << dtypename[dlltype] << " library";
 		dllhandle[dlltype].dll = LoadLibrary(dtypename[dlltype]);
 		if (!dllhandle[dlltype].dll)
 		{
-			Compat::Log() << "Cannot load " << dtypename[dlltype] << " library";
+			LOG << "Cannot load " << dtypename[dlltype] << " library";
 		}
 	}
 
@@ -94,14 +94,14 @@ HMODULE LoadDll(DWORD dlltype)
 		GetSystemDirectory(path, MAX_PATH);
 		strcat_s(path, MAX_PATH, "\\");
 		strcat_s(path, MAX_PATH, dtypename[dlltype]);
-		Compat::Log() << "Loading " << path << " library";
+		LOG << "Loading " << path << " library";
 		dllhandle[dlltype].dll = LoadLibrary(path);
 	}
 
 	// Cannot load dll
 	if (!dllhandle[dlltype].dll)
 	{
-		Compat::Log() << "Cannot load " << dtypename[dlltype] << " library";
+		LOG << "Cannot load " << dtypename[dlltype] << " library";
 		if (Config.WrapperMode != 0 && Config.WrapperMode != 255)
 		{
 			ExitProcess(0);
@@ -119,7 +119,7 @@ void LoadCustomDll()
 	{
 		if (Config.szCustomDllPath[x] != '\0')
 		{
-			Compat::Log() << "Loading custom " << Config.szCustomDllPath[x] << " library";
+			LOG << "Loading custom " << Config.szCustomDllPath[x] << " library";
 			// Load dll from ini
 			custom[x].dll = LoadLibrary(Config.szCustomDllPath[x]);
 			// Load from system
@@ -134,7 +134,7 @@ void LoadCustomDll()
 			// Cannot load dll
 			if (!custom[x].dll)
 			{
-				Compat::Log() << "Cannot load custom " << Config.szCustomDllPath[x] << " library";
+				LOG << "Cannot load custom " << Config.szCustomDllPath[x] << " library";
 			}
 			else {
 				custom[x].Flag = true;

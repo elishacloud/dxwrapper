@@ -74,7 +74,7 @@ void LoadDsound()
 		// Hook APIs for DSoundCtrl functions
 		else if (Config.DSoundCtrl)
 		{
-			Compat::Log() << "Hooking dsound.dll APIs...";
+			LOG << "Hooking dsound.dll APIs...";
 			dsound.DirectSoundCreate = (FARPROC)HookAPI(hModule_dll, dtypename[dtype.dsound], GetFunctionAddress(dsound.dll, "DirectSoundCreate"), "DirectSoundCreate", GetFunctionAddress(hModule_dll, "_DirectSoundCreate"));
 			dsound.DirectSoundEnumerateA = (FARPROC)HookAPI(hModule_dll, dtypename[dtype.dsound], GetFunctionAddress(dsound.dll, "DirectSoundEnumerateA"), "DirectSoundEnumerateA", GetFunctionAddress(hModule_dll, "_DirectSoundEnumerateA"));
 			dsound.DirectSoundEnumerateW = (FARPROC)HookAPI(hModule_dll, dtypename[dtype.dsound], GetFunctionAddress(dsound.dll, "DirectSoundEnumerateW"), "DirectSoundEnumerateW", GetFunctionAddress(hModule_dll, "_DirectSoundEnumerateW"));

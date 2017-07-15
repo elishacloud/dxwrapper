@@ -347,9 +347,6 @@
     <ClInclude Include="D3d8to9\d3d8types.hpp">
       <Filter>D3d8to9</Filter>
     </ClInclude>
-    <ClInclude Include="D3d8to9\d3dx9.hpp">
-      <Filter>D3d8to9</Filter>
-    </ClInclude>
     <ClInclude Include="Disasm\disasm.h">
       <Filter>Disasm</Filter>
     </ClInclude>

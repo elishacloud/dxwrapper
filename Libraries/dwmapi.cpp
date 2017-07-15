@@ -15,16 +15,16 @@ void Loaddwmapi()
 	dwmapiModule = LoadLibrary("dwmapi.dll");
 	if (dwmapiModule)
 	{
-		Compat::Log() << "Loaded dwmapi.dll library";
+		LOG << "Loaded dwmapi.dll library";
 		DwmSetWindowAttributePtr = reinterpret_cast<PFN_DwmSetWindowAttribute>(GetProcAddress(dwmapiModule, "DwmSetWindowAttribute"));
 		if (!DwmSetWindowAttributePtr)
 		{
-			Compat::Log() << "Failed to get 'DwmSetWindowAttribute' ProcAddress of dwmapi.dll!";
+			LOG << "Failed to get 'DwmSetWindowAttribute' ProcAddress of dwmapi.dll!";
 		}
 	}
 	else
 	{
-		Compat::Log() << "Failed to load dwmapi.dll!";
+		LOG << "Failed to load dwmapi.dll!";
 	}
 }
 

@@ -141,7 +141,7 @@ copy /Y "$(ProjectDir)Settings\Settings.ini" "$(TargetDir)Build\" &gt;nul</Comma
       <WholeProgramOptimization>true</WholeProgramOptimization>
       <AdditionalIncludeDirectories>
       </AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>WIN32;NDEBUG;_WINDOWS;_USRDLL;DDRAWCOMPAT_EXPORTS;D3D8TO9NOLOG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32;NDEBUG;_WINDOWS;_USRDLL;DDRAWCOMPAT_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <StringPooling>true</StringPooling>
       <ExceptionHandling>Async</ExceptionHandling>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
@@ -290,7 +290,6 @@ cmd /c "@echo off &amp;&amp; cd /D ""$(ProjectDir)Dllmain\"" &amp;&amp; type Bui
   <ItemGroup>
     <ClInclude Include="D3d8to9\d3d8to9.hpp" />
     <ClInclude Include="D3d8to9\d3d8types.hpp" />
-    <ClInclude Include="D3d8to9\d3dx9.hpp" />
     <ClInclude Include="D3d8to9\lookup_table.hpp" />
     <ClInclude Include="DDrawCompat\v0.2.1\CompatActivateAppHandler.h" />
     <ClInclude Include="DDrawCompat\v0.2.1\CompatDirectDraw.h" />

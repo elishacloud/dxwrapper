@@ -43,7 +43,7 @@ void RunExitFunctions(bool ForceTerminate)
 	// *** Force termination ***
 	if (ForceTerminate)
 	{
-		Compat::Log() << "Process not exiting, attempting to terminate process...";
+		LOG << "Process not exiting, attempting to terminate process...";
 
 		// Setting screen resolution to fix some display errors on exit
 		if (Config.ResetScreenRes)
@@ -56,12 +56,12 @@ void RunExitFunctions(bool ForceTerminate)
 
 		// Terminate the current process
 		HANDLE processHandle = OpenProcess(PROCESS_ALL_ACCESS, false, GetCurrentProcessId());
-		Compat::Log() << "Terminating process!";
+		LOG << "Terminating process!";
 		TerminateProcess(processHandle, 0);
 	}
 
 	// *** Normal exit ***
-	Compat::Log() << "Quiting dxwrapper";
+	LOG << "Quiting dxwrapper";
 
 	// Stop threads
 	StopFullscreenThread();
@@ -77,7 +77,7 @@ void RunExitFunctions(bool ForceTerminate)
 	// Unload and Unhook DxWnd
 	if (Config.DxWnd)
 	{
-		Compat::Log() << "Unloading dxwnd";
+		LOG << "Unloading dxwnd";
 		DxWndEndHook();
 		if (dxwnd_dll)
 		{
@@ -107,7 +107,7 @@ void RunExitFunctions(bool ForceTerminate)
 	ResetScreen();
 
 	// Final log
-	Compat::Log() << "dxwrapper terminated!";
+	LOG << "dxwrapper terminated!";
 }
 
 // Dll main function
@@ -129,7 +129,7 @@ bool APIENTRY DllMain(HMODULE hModule, DWORD ul_reason_for_call, LPVOID lpReserv
 		SetThreadPriority(hCurrentThread, THREAD_PRIORITY_HIGHEST);
 
 		// Init logs
-		Compat::Log() << "Starting dxwrapper v" << APP_VERSION;
+		LOG << "Starting dxwrapper v" << APP_VERSION;
 		LogOSVersion();
 		LogProcessNameAndPID();
 
@@ -179,7 +179,7 @@ bool APIENTRY DllMain(HMODULE hModule, DWORD ul_reason_for_call, LPVOID lpReserv
 			dxwnd_dll = LoadLibrary("dxwnd.dll");
 			if (dxwnd_dll)
 			{
-				Compat::Log() << "Loading dxwnd";
+				LOG << "Loading dxwnd";
 				InitDxWnd();
 			}
 			// If dxwnd.dll does not exist than disable dxwnd setting

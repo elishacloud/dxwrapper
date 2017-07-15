@@ -56,7 +56,7 @@ void LogMessage(const char* szClassName, void* pInstance, char* szMessage)
 	else
 		sprintf_s(buffer, ",,%s", szMessage);
 
-	Compat::Log() << buffer;
+	LOG << buffer;
 
 #ifdef _DEBUG
 	ATLTRACE(buffer);
@@ -105,7 +105,7 @@ CDSoundCtrlApp::~CDSoundCtrlApp()
 BOOL CDSoundCtrlApp::InitInstance()
 {
 	// Starting DirectSoundControl
-	Compat::Log() << "Enabling DSoundCtrl function";
+	LOG << "Enabling DSoundCtrl function";
 
 	// Get configuration settings
 	g_bLogSystem = true;

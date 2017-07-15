@@ -41,26 +41,26 @@ void Loadd3dx9()
 
 	if (d3dx9Module)
 	{
-		Compat::Log() << "Loaded " << d3dx9name << " library";
+		LOG << "Loaded " << d3dx9name << " library";
 		D3DXAssembleShaderPtr = reinterpret_cast<PFN_D3DXAssembleShader>(GetProcAddress(d3dx9Module, "D3DXAssembleShader"));
 		D3DXDisassembleShaderPtr = reinterpret_cast<PFN_D3DXDisassembleShader>(GetProcAddress(d3dx9Module, "D3DXDisassembleShader"));
 		D3DXLoadSurfaceFromSurfacePtr = reinterpret_cast<PFN_D3DXLoadSurfaceFromSurface>(GetProcAddress(d3dx9Module, "D3DXLoadSurfaceFromSurface"));
 		if (!D3DXAssembleShaderPtr)
 		{
-			Compat::Log() << "Failed to get 'D3DXAssembleShader' ProcAddress of d3dx9_xx.dll!";
+			LOG << "Failed to get 'D3DXAssembleShader' ProcAddress of d3dx9_xx.dll!";
 		}
 		if (!D3DXDisassembleShaderPtr)
 		{
-			Compat::Log() << "Failed to get 'D3DXDisassembleShader' ProcAddress of d3dx9_xx.dll!";
+			LOG << "Failed to get 'D3DXDisassembleShader' ProcAddress of d3dx9_xx.dll!";
 		}
 		if (!D3DXLoadSurfaceFromSurfacePtr)
 		{
-			Compat::Log() << "Failed to get 'D3DXLoadSurfaceFromSurface' ProcAddress of d3dx9_xx.dll!";
+			LOG << "Failed to get 'D3DXLoadSurfaceFromSurface' ProcAddress of d3dx9_xx.dll!";
 		}
 	}
 	else
 	{
-		Compat::Log() << "Failed to load dwmapi.dll!";
+		LOG << "Failed to load dwmapi.dll!";
 	}
 }
 

@@ -15,16 +15,16 @@ void LoadUxtheme()
 	UxThemeModule = LoadLibrary("uxtheme.dll");
 	if (UxThemeModule)
 	{
-		Compat::Log() << "Loaded uxtheme.dll library";
+		LOG << "Loaded uxtheme.dll library";
 		SetThemeAppPropertiesPtr = reinterpret_cast<PFN_SetThemeAppProperties>(GetProcAddress(UxThemeModule, "SetThemeAppProperties"));
 		if (!SetThemeAppPropertiesPtr)
 		{
-			Compat::Log() << "Failed to get 'SetThemeAppProperties' ProcAddress of uxtheme.dll!";
+			LOG << "Failed to get 'SetThemeAppProperties' ProcAddress of uxtheme.dll!";
 		}
 	}
 	else
 	{
-		Compat::Log() << "Failed to load uxtheme.dll!";
+		LOG << "Failed to load uxtheme.dll!";
 	}
 }
 

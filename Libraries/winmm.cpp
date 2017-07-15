@@ -20,12 +20,12 @@ void Loadwinmm()
 	{
 		timeBeginPeriodPtr = reinterpret_cast<PFN_timeBeginPeriod>(GetProcAddress(winmmModule, "timeBeginPeriod"));
 		timeEndPeriodPtr = reinterpret_cast<PFN_timeEndPeriod>(GetProcAddress(winmmModule, "timeEndPeriod"));
-		if (!timeBeginPeriodPtr) Compat::Log() << "Failed to get 'timeBeginPeriod' ProcAddress of winmm.dll!";
-		if (!timeEndPeriodPtr) Compat::Log() << "Failed to get 'timeEndPeriod' ProcAddress of winmm.dll!";
+		if (!timeBeginPeriodPtr) LOG << "Failed to get 'timeBeginPeriod' ProcAddress of winmm.dll!";
+		if (!timeEndPeriodPtr) LOG << "Failed to get 'timeEndPeriod' ProcAddress of winmm.dll!";
 	}
 	else
 	{
-		Compat::Log() << "Failed to load winmm.dll!";
+		LOG << "Failed to load winmm.dll!";
 	}
 }
 

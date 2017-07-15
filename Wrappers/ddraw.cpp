@@ -79,7 +79,7 @@ void LoadDdraw()
 		// Hook ddraw APIs for DDrawCompat
 		else if (Config.DDrawCompat)
 		{
-			Compat::Log() << "Hooking ddraw.dll APIs...";
+			LOG << "Hooking ddraw.dll APIs...";
 			ddraw.DirectDrawCreate = (FARPROC)HookAPI(hModule_dll, dtypename[dtype.ddraw], GetFunctionAddress(ddraw.dll, "DirectDrawCreate"), "DirectDrawCreate", GetFunctionAddress(hModule_dll, "_DirectDrawCreate"));
 			ddraw.DirectDrawCreateEx = (FARPROC)HookAPI(hModule_dll, dtypename[dtype.ddraw], GetFunctionAddress(ddraw.dll, "DirectDrawCreateEx"), "DirectDrawCreateEx", GetFunctionAddress(hModule_dll, "_DirectDrawCreateEx"));
 		}

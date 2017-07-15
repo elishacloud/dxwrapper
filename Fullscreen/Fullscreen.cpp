@@ -278,7 +278,7 @@ BOOL CALLBACK EnumWindowsCallback(HWND hwnd, LPARAM lParam)
 			_itoa_s(rect.top, buffer2, 10);
 			_itoa_s(rect.right, buffer3, 10);
 			_itoa_s(rect.bottom, buffer4, 10);
-			Compat::Log() << "Layer " << buffer << " found window class " << isMain << class_name << " | Left: " << buffer1 << " Top: " << buffer2 << " Right: " << buffer3 << " Bottom: " << buffer4;
+			LOG << "Layer " << buffer << " found window class " << isMain << class_name << " | Left: " << buffer1 << " Top: " << buffer2 << " Right: " << buffer3 << " Bottom: " << buffer4;
 		}
 		return true;
 	}
@@ -514,12 +514,12 @@ DWORD WINAPI StartThreadFunc(LPVOID pvParam)
 	UNREFERENCED_PARAMETER(pvParam);
 
 	// Starting thread
-	Compat::Log() << "Starting fullscreen thread...";
+	LOG << "Starting fullscreen thread...";
 
 	// Get thread handle
 	InterlockedExchangePointer(&m_hThread, GetCurrentThread());
 	if (!m_hThread) {
-		Compat::Log() << "Failed to get thread handle exiting thread!";
+		LOG << "Failed to get thread handle exiting thread!";
 		return 0;
 	}
 
@@ -570,7 +570,7 @@ void StopFullscreenThread()
 	{
 		if (IsFullscreenThreadRunning())
 		{
-			Compat::Log() << "Stopping thread...";
+			LOG << "Stopping thread...";
 
 			// Set flag to stop thread
 			m_StopThreadFlag = true;
@@ -583,7 +583,7 @@ void StopFullscreenThread()
 		CloseHandle(m_hThread);
 
 		// Thread stopped
-		Compat::Log() << "Thread stopped";
+		LOG << "Thread stopped";
 	}
 }
 
@@ -616,7 +616,7 @@ void MainFullScreenFunc()
 	{
 		// Starting loop
 #ifdef _DEBUG
-		Compat::Log() << "Starting Main Fullscreen loop...";
+		LOG << "Starting Main Fullscreen loop...";
 #endif
 
 		// Get window hwnd for specific layer
@@ -648,16 +648,16 @@ void MainFullScreenFunc()
 			if (ChangeDetectedFlag)
 			{
 				// ChangeDetected
-				if (IsNotFullScreenFlag) Compat::Log() << "Found window not fullscreen";
-				if (CurrentLoop.hwnd != LastFullscreenLoop.hwnd) Compat::Log() << "Found new window handle";
-				if (CurrentLoop.rect != LastFullscreenLoop.rect) Compat::Log() << "Found rect does not match";
-				if (CurrentLoop.ScreenSize != LastFullscreenLoop.ScreenSize) Compat::Log() << "Found screen size does not match";
-				if (!HasNoMenu) Compat::Log() << "Found window has a menu";
+				if (IsNotFullScreenFlag) LOG << "Found window not fullscreen";
+				if (CurrentLoop.hwnd != LastFullscreenLoop.hwnd) LOG << "Found new window handle";
+				if (CurrentLoop.rect != LastFullscreenLoop.rect) LOG << "Found rect does not match";
+				if (CurrentLoop.ScreenSize != LastFullscreenLoop.ScreenSize) LOG << "Found screen size does not match";
+				if (!HasNoMenu) LOG << "Found window has a menu";
 
 				// LastRunChangeNotDetectedFlag
-				if (CurrentLoop.hwnd != PreviousLoop.hwnd) Compat::Log() << "Found last-window handle changed";
-				if (CurrentLoop.rect != PreviousLoop.rect) Compat::Log() << "Found last-window rect does not match";
-				if (CurrentLoop.ScreenSize != PreviousLoop.ScreenSize) Compat::Log() << "Found last-screen size does not match";
+				if (CurrentLoop.hwnd != PreviousLoop.hwnd) LOG << "Found last-window handle changed";
+				if (CurrentLoop.rect != PreviousLoop.rect) LOG << "Found last-window rect does not match";
+				if (CurrentLoop.ScreenSize != PreviousLoop.ScreenSize) LOG << "Found last-screen size does not match";
 
 				// Log windows coordinates
 				char buffer1[7], buffer2[7], buffer3[7], buffer4[7];
@@ -665,7 +665,7 @@ void MainFullScreenFunc()
 				_itoa_s(CurrentLoop.rect.top, buffer2, 10);
 				_itoa_s(CurrentLoop.rect.right, buffer3, 10);
 				_itoa_s(CurrentLoop.rect.bottom, buffer4, 10);
-				Compat::Log() << "Window coordinates for selected layer '" << class_name << "' | Left: " << buffer1 << " Top: " << buffer2 << " Right: " << buffer3 << " Bottom: " << buffer4;
+				LOG << "Window coordinates for selected layer '" << class_name << "' | Left: " << buffer1 << " Top: " << buffer2 << " Right: " << buffer3 << " Bottom: " << buffer4;
 
 				// Log window placement flag
 				WINDOWPLACEMENT wp;
@@ -686,7 +686,7 @@ void MainFullScreenFunc()
 					if (wp.showCmd & SW_SHOWNA) strcat_s(buffer, MAX_PATH, " SW_SHOWNA");
 					if (wp.showCmd & SW_SHOWNOACTIVATE) strcat_s(buffer, MAX_PATH, " SW_SHOWNOACTIVATE");
 					if (wp.showCmd & SW_SHOWNORMAL) strcat_s(buffer, MAX_PATH, " SW_SHOWNORMAL");
-					Compat::Log() << buffer;
+					LOG << buffer;
 				}
 			}
 #endif
@@ -696,13 +696,13 @@ void MainFullScreenFunc()
 			{
 #ifdef _DEBUG
 				// Debug the window
-				Compat::Log() << "Entering change detected loop";
+				LOG << "Entering change detected loop";
 				char buffer1[7], buffer2[7], buffer3[7], buffer4[7];
 				_itoa_s(CurrentLoop.rect.left, buffer1, 10);
 				_itoa_s(CurrentLoop.rect.top, buffer2, 10);
 				_itoa_s(CurrentLoop.rect.right, buffer3, 10);
 				_itoa_s(CurrentLoop.rect.bottom, buffer4, 10);
-				Compat::Log() << "Window coordinates for selected layer '" << class_name << "' | Left: " << buffer1 << " Top: " << buffer2 << " Right: " << buffer3 << " Bottom: " << buffer4;
+				LOG << "Window coordinates for selected layer '" << class_name << "' | Left: " << buffer1 << " Top: " << buffer2 << " Right: " << buffer3 << " Bottom: " << buffer4;
 				FindMainWindow(m_ProcessId, true, true);
 #endif
 
@@ -726,13 +726,13 @@ void MainFullScreenFunc()
 							char buffer5[7], buffer6[7];
 							_itoa_s(WindowSize.Width, buffer5, 10);
 							_itoa_s(WindowSize.Height, buffer6, 10);
-							Compat::Log() << "Changing resolution on window size " << buffer5 << "x" << buffer6 << " layer: " << class_name;
+							LOG << "Changing resolution on window size " << buffer5 << "x" << buffer6 << " layer: " << class_name;
 							_itoa_s(CurrentLoop.ScreenSize.Width, buffer5, 10);
 							_itoa_s(CurrentLoop.ScreenSize.Height, buffer6, 10);
-							Compat::Log() << "Current screen size is: " << buffer5 << "x" << buffer6;
+							LOG << "Current screen size is: " << buffer5 << "x" << buffer6;
 							_itoa_s(SizeTemp.Width, buffer5, 10);
 							_itoa_s(SizeTemp.Height, buffer6, 10);
-							Compat::Log() << "Setting resolution to: " << buffer5 << "x" << buffer6;
+							LOG << "Setting resolution to: " << buffer5 << "x" << buffer6;
 #endif
 
 							// Set screen to new resolution
@@ -747,7 +747,7 @@ void MainFullScreenFunc()
 						{
 #ifdef _DEBUG
 							// Debug log
-							Compat::Log() << "Excluding window layer: " << class_name;
+							LOG << "Excluding window layer: " << class_name;
 #endif
 
 							// Add window to excluded list
@@ -763,7 +763,7 @@ void MainFullScreenFunc()
 					{
 #ifdef _DEBUG
 						// Debug log
-						Compat::Log() << "Setting fullscreen on window layer: " << class_name;
+						LOG << "Setting fullscreen on window layer: " << class_name;
 #endif
 
 						// Set window to fullscreen
@@ -775,7 +775,7 @@ void MainFullScreenFunc()
 					{
 #ifdef _DEBUG
 						// Debug log
-						Compat::Log() << "Pressing alt+enter on window layer: " << class_name;
+						LOG << "Pressing alt+enter on window layer: " << class_name;
 #endif
 
 						// Send Alt+Enter to window
@@ -817,7 +817,7 @@ void MainFullScreenFunc()
 
 #ifdef _DEBUG
 		// Debug logs
-		Compat::Log() << "Finish Main Fullscreen loop!";
+		LOG << "Finish Main Fullscreen loop!";
 #endif
 
 		// Wait for a while

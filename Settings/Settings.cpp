@@ -32,7 +32,7 @@ char* szInclude[256];
 
 void LogText(char *MyText)
 {
-	Compat::Log() << MyText;
+	LOG << MyText;
 }
 
 // Checks if a string value exists in a string array
@@ -287,7 +287,7 @@ bool IsValueEnabled(char* name)
 void LogSetting(char* name, char* value)
 {
 #ifdef _DEBUG
-	Compat::Log() << name << " set to '" << value << "'";
+	LOG << name << " set to '" << value << "'";
 #else
 	UNREFERENCED_PARAMETER(name);
 	UNREFERENCED_PARAMETER(value);
@@ -301,7 +301,7 @@ void SetValue(char* name, char* value, DWORD* setting)
 	if (*setting != NewValue)
 	{
 #ifdef _DEBUG
-		Compat::Log() << name << " set to '" << NewValue << "'";
+		LOG << name << " set to '" << NewValue << "'";
 #else
 		UNREFERENCED_PARAMETER(name);
 #endif
@@ -318,7 +318,7 @@ void SetValue(char* name, char* value, bool* setting)
 #ifdef _DEBUG
 		char* NewValueText = "false";
 		if (NewValue) NewValueText = "true";
-		Compat::Log() << name << " set to '" << NewValueText << "'";
+		LOG << name << " set to '" << NewValueText << "'";
 #else
 		UNREFERENCED_PARAMETER(name);
 #endif
@@ -653,7 +653,7 @@ void ParseConfigValue(char* name, char* value)
 		return;
 	}
 	// Logging
-	Compat::Log() << "Warning. Config setting not recognized: " << name;
+	LOG << "Warning. Config setting not recognized: " << name;
 }
 
 // Set config from string (file)
@@ -840,7 +840,7 @@ void CONFIG::Init()
 	{
 		*p = (char)tolower(*p);
 	}
-	Compat::Log() << "Reading config file: " << pdest;
+	LOG << "Reading config file: " << pdest;
 
 	// Read config file
 	szCfg = Read(path);
@@ -853,7 +853,7 @@ void CONFIG::Init()
 	}
 	else
 	{
-		Compat::Log() << "Could not load config file using defaults";
+		LOG << "Could not load config file using defaults";
 	}
 
 	// Verify sleep time to make sure it is not be set too low (can be perf issues if it is too low)
@@ -869,7 +869,7 @@ void CONFIG::Init()
 	if ((ExcludeCount > 0 && IfStringExistsInList(szFileName, szExclude, ExcludeCount, false)) ||
 		(IncludeCount > 0 && !IfStringExistsInList(szFileName, szInclude, IncludeCount, false)))
 	{
-		Compat::Log() << "Clearing config and disabling dxwrapper!";
+		LOG << "Clearing config and disabling dxwrapper!";
 		ClearConfigSettings();
 	}
 
