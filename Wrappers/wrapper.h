@@ -9,11 +9,34 @@
 	}
 
 #define	LOAD_ORIGINAL_PROC(procName) \
-	module.procName = GetFunctionAddress(module.dll, #procName, jmpaddr);
+	procName = GetFunctionAddress(dll, #procName, jmpaddr);
 
-HRESULT CallReturn();
-static constexpr FARPROC jmpaddr = (FARPROC)*CallReturn;
+#define jmpaddr (FARPROC)*ReturnProc
 
-void DllAttach();
-HMODULE LoadDll(DWORD);
-void DllDetach();
+HRESULT ReturnProc();
+
+class DllWrapper
+{
+public:
+	DllWrapper() { };
+	~DllWrapper() { };
+
+	virtual HMODULE LoadDll(DWORD);
+	void DllAttach();
+	void DllDetach();
+
+private:
+	struct custom_dll
+	{
+		bool Flag = false;
+		HMODULE dll = nullptr;
+	};
+
+	custom_dll custom[256];
+	custom_dll dllhandle[dtypeArraySize];
+
+	void LoadCustomDll();
+	void FreeCustomLibrary();
+};
+
+extern DllWrapper Wrapper;

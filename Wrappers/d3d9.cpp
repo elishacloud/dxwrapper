@@ -15,48 +15,26 @@
 */
 
 #include "Settings\Settings.h"
-#include "wrapper.h"
 #include "Utils\Utils.h"
+#include "wrapper.h"
+#include "d3d8.h"
+#include "d3d9.h"
+
+d3d9_dll d3d9;
 
 #define module d3d9
 
-#define VISIT_PROCS(visit) \
-	visit(D3DPERF_BeginEvent) \
-	visit(D3DPERF_EndEvent) \
-	visit(D3DPERF_GetStatus) \
-	visit(D3DPERF_QueryRepeatFrame) \
-	visit(D3DPERF_SetMarker) \
-	visit(D3DPERF_SetOptions) \
-	visit(D3DPERF_SetRegion) \
-	visit(DebugSetLevel) \
-	visit(DebugSetMute) \
-	visit(Direct3DCreate9) \
-	visit(Direct3DCreate9Ex) \
-	visit(Direct3DShaderValidatorCreate9) \
-	visit(PSGPError) \
-	visit(PSGPSampleTexture)
+VISIT_D3D9_PROCS(CREATE_PROC_STUB)
 
-struct d3d9_dll
-{
-	HMODULE dll = nullptr;
-	VISIT_PROCS(ADD_FARPROC_MEMBER);
-} d3d9;
-
-VISIT_PROCS(CREATE_PROC_STUB)
-
-void LoadD3d9()
+void d3d9_dll::Load()
 {
 	// Load real dll
-	d3d9.dll = LoadDll(dtype.d3d9);
+	dll = Wrapper.LoadDll(dtype.d3d9);
 
 	// Load dll functions
-	if (d3d9.dll)
+	if (dll)
 	{
-		VISIT_PROCS(LOAD_ORIGINAL_PROC);
+		VISIT_D3D9_PROCS(LOAD_ORIGINAL_PROC);
+		d3d8.Set_DebugSetMute(GetFunctionAddress(dll, "DebugSetMute", jmpaddr));		// <---  Shared with d3d8.dll
 	}
-}
-
-void Set_DebugSetMute(FARPROC ProcAddress)
-{
-	d3d9.DebugSetMute = ProcAddress;
 }

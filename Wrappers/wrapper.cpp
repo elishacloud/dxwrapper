@@ -16,41 +16,36 @@
 
 // Default
 #include "Settings\Settings.h"
+#include "wrapper.h"
 // Wrappers
+#include "bcrypt.h"
+#include "cryptsp.h"
 #include "d3d8.h"
 #include "d3d9.h"
 #include "ddraw.h"
+#include "dinput.h"
 #include "dplayx.h"
 #include "dsound.h"
-#include "dinput.h"
 #include "dxgi.h"
 #include "winmm.h"
-#include "bcrypt.h"
-#include "cryptsp.h"
 #include "winspool.h"
 // Libraries
-#include "uxtheme.h"
-#include "dwmapi.h"
 #include "d3dx9.h"
+#include "dwmapi.h"
+#include "uxtheme.h"
 
-struct custom_dll
-{
-	bool Flag = false;
-	HMODULE dll = nullptr;
-};
-
-custom_dll custom[256];
-custom_dll dllhandle[dtypeArraySize];
+// Wrapper class
+DllWrapper Wrapper;
 
 // Default function
-HRESULT CallReturn()
+HRESULT ReturnProc()
 {
 	// Do nothing
 	return E_NOTIMPL;
 }
 
 // Load real dll file that is being wrapped
-HMODULE LoadDll(DWORD dlltype)
+HMODULE DllWrapper::LoadDll(DWORD dlltype)
 {
 	// Check for valid dlltype
 	if (dlltype == 0 || dlltype >= dtypeArraySize)
@@ -113,7 +108,7 @@ HMODULE LoadDll(DWORD dlltype)
 }
 
 // Load custom dll files
-void LoadCustomDll()
+void DllWrapper::LoadCustomDll()
 {
 	for (UINT x = 1; x <= Config.CustomDllCount; ++x)
 	{
@@ -144,7 +139,7 @@ void LoadCustomDll()
 }
 
 // Unload custom dll files
-void FreeCustomLibrary()
+void DllWrapper::FreeCustomLibrary()
 {
 	for (UINT x = 1; x <= Config.CustomDllCount; ++x)
 	{
@@ -158,51 +153,51 @@ void FreeCustomLibrary()
 }
 
 // Load wrapper dll files
-void DllAttach()
+void DllWrapper::DllAttach()
 {
 	if (Config.WrapperMode == dtype.winspool || Config.WrapperMode == 0)
 	{
-		LoadWinspool();
+		winspool.Load();
 	}
 	if (Config.WrapperMode == dtype.cryptsp || Config.WrapperMode == 0)
 	{
-		LoadCryptsp();
+		cryptsp.Load();
 	}
 	if (Config.WrapperMode == dtype.bcrypt || Config.WrapperMode == 0)
 	{
-		LoadBcrypt();
+		bcrypt.Load();
 	}
 	if (Config.WrapperMode == dtype.dplayx || Config.WrapperMode == 0)
 	{
-		LoadDplayx();
+		dplayx.Load();
 	}
 	if (Config.WrapperMode == dtype.d3d8 || Config.WrapperMode == 0 || Config.D3d8to9)
 	{
-		LoadD3d8();
+		d3d8.Load();
 	}
 	if (Config.WrapperMode == dtype.dxgi || Config.WrapperMode == 0)
 	{
-		LoadDxgi();
+		dxgi.Load();
 	}
 	if (Config.WrapperMode == dtype.winmm || Config.WrapperMode == 0)
 	{
-		LoadWinmm();
+		winmm.Load();
 	}
 	if (Config.WrapperMode == dtype.dsound || Config.WrapperMode == 0 || Config.DSoundCtrl)
 	{
-		LoadDsound();
+		dsound.Load();
 	}
 	if (Config.WrapperMode == dtype.dinput || Config.WrapperMode == 0)
 	{
-		LoadDinput();
+		dinput.Load();
 	}
 	if (Config.WrapperMode == dtype.d3d9 || Config.WrapperMode == 0)
 	{
-		LoadD3d9();
+		d3d9.Load();
 	}
 	if (Config.WrapperMode == dtype.ddraw || Config.WrapperMode == 0 || Config.DDrawCompat)
 	{
-		LoadDdraw();
+		ddraw.Load();
 	}
 	if (Config.CustomDllCount > 0)
 	{
@@ -211,7 +206,7 @@ void DllAttach()
 }
 
 // Unload all dll files loaded by the wrapper
-void DllDetach()
+void DllWrapper::DllDetach()
 {
 	// Unload custom libraries
 	FreeCustomLibrary();
@@ -228,7 +223,7 @@ void DllDetach()
 	}
 
 	// Unload dynmaic libraries
+	UnLoadd3dx9();
 	UnLoaddwmapi();
 	UnLoadUxtheme();
-	UnLoadd3dx9();
 }

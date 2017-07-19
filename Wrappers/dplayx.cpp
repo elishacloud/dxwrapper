@@ -15,35 +15,24 @@
 */
 
 #include "Settings\Settings.h"
-#include "wrapper.h"
 #include "Utils\Utils.h"
+#include "wrapper.h"
+#include "dplayx.h"
+
+dplayx_dll dplayx;
 
 #define module dplayx
 
-#define VISIT_PROCS(visit) \
-	visit(DirectPlayCreate) \
-	visit(DirectPlayEnumerate) \
-	visit(DirectPlayEnumerateA) \
-	visit(DirectPlayEnumerateW) \
-	visit(DirectPlayLobbyCreateA) \
-	visit(DirectPlayLobbyCreateW)
+VISIT_DPLAYX_PROCS(CREATE_PROC_STUB)
 
-struct dplayx_dll
-{
-	HMODULE dll = nullptr;
-	VISIT_PROCS(ADD_FARPROC_MEMBER);
-} dplayx;
-
-VISIT_PROCS(CREATE_PROC_STUB)
-
-void LoadDplayx()
+void dplayx_dll::Load()
 {
 	// Load real dll
-	dplayx.dll = LoadDll(dtype.dplayx);
+	dll = Wrapper.LoadDll(dtype.dplayx);
 
 	// Load dll functions
-	if (dplayx.dll)
+	if (dll)
 	{
-		VISIT_PROCS(LOAD_ORIGINAL_PROC);
+		VISIT_DPLAYX_PROCS(LOAD_ORIGINAL_PROC);
 	}
 }

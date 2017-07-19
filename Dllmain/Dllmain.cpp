@@ -18,8 +18,8 @@
 #include "Dllmain.h"
 #include "dxwrapper.h"
 #include "Wrappers\wrapper.h"
-#include "DDrawCompatExternal.h"
-#include "DxWndExternal.h"
+#include "DDrawCompat\DDrawCompatExternal.h"
+#include "DxWnd\DxWndExternal.h"
 #include "DSoundCtrl\DSoundCtrlExternal.h"
 #include "Utils\Utils.h"
 #include "Fullscreen\Fullscreen.h"
@@ -88,11 +88,11 @@ void RunExitFunctions(bool ForceTerminate)
 	// Unload and Unhook DDrawCompat
 	if (Config.DDrawCompat)
 	{
-		UnloadDdrawCompat();
+		DllMain_DDrawCompat(nullptr, DLL_PROCESS_DETACH, nullptr);
 	}
 
 	// Unload dlls
-	DllDetach();
+	Wrapper.DllDetach();
 
 	// Clean up memory
 	Config.CleanUp();
@@ -111,13 +111,13 @@ void RunExitFunctions(bool ForceTerminate)
 }
 
 // Dll main function
-bool APIENTRY DllMain(HMODULE hModule, DWORD ul_reason_for_call, LPVOID lpReserved)
+bool APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 {
 	UNREFERENCED_PARAMETER(lpReserved);
 
 	static bool FullscreenThreadStartedFlag = false;
 
-	switch (ul_reason_for_call)
+	switch (fdwReason)
 	{
 	case DLL_PROCESS_ATTACH:
 	{
@@ -162,16 +162,16 @@ bool APIENTRY DllMain(HMODULE hModule, DWORD ul_reason_for_call, LPVOID lpReserv
 		}
 
 		// Attach real wrapper dll
-		DllAttach();
+		Wrapper.DllAttach();
 
 		// Start compatibility modules
 		if (Config.DDrawCompat)
 		{
-			Config.DDrawCompat = StartDdrawCompat(hModule_dll);
+			Config.DDrawCompat = (DllMain_DDrawCompat(hModule_dll, fdwReason, nullptr) != 0);
 		}
 		if (Config.DSoundCtrl)
 		{
-			RunDSoundCtrl();
+			DllMain_DSoundCtrl(hModule, fdwReason, nullptr);
 		}
 		if (Config.DxWnd)
 		{

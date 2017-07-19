@@ -43,27 +43,6 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="wrappers\d3d8.cpp">
-      <Filter>Wrappers</Filter>
-    </ClCompile>
-    <ClCompile Include="wrappers\d3d9.cpp">
-      <Filter>Wrappers</Filter>
-    </ClCompile>
-    <ClCompile Include="wrappers\ddraw.cpp">
-      <Filter>Wrappers</Filter>
-    </ClCompile>
-    <ClCompile Include="wrappers\dplayx.cpp">
-      <Filter>Wrappers</Filter>
-    </ClCompile>
-    <ClCompile Include="wrappers\dsound.cpp">
-      <Filter>Wrappers</Filter>
-    </ClCompile>
-    <ClCompile Include="wrappers\dxgi.cpp">
-      <Filter>Wrappers</Filter>
-    </ClCompile>
-    <ClCompile Include="wrappers\winmm.cpp">
-      <Filter>Wrappers</Filter>
-    </ClCompile>
     <ClCompile Include="hook\iatpatch.cpp">
       <Filter>Hook</Filter>
     </ClCompile>
@@ -105,9 +84,6 @@
     </ClCompile>
     <ClCompile Include="DxWnd\v2_03_60_src\init.cpp">
       <Filter>DxWnd</Filter>
-    </ClCompile>
-    <ClCompile Include="wrappers\dinput.cpp">
-      <Filter>Wrappers</Filter>
     </ClCompile>
     <ClCompile Include="D3d8to9\d3d8to9.cpp">
       <Filter>D3d8to9</Filter>
@@ -163,14 +139,11 @@
     <ClCompile Include="Settings\Settings.cpp">
       <Filter>Settings</Filter>
     </ClCompile>
-    <ClCompile Include="Wrappers\bcrypt.cpp">
-      <Filter>Wrappers</Filter>
+    <ClCompile Include="Libraries\d3dx9.cpp">
+      <Filter>Libraries</Filter>
     </ClCompile>
-    <ClCompile Include="Wrappers\winspool.cpp">
-      <Filter>Wrappers</Filter>
-    </ClCompile>
-    <ClCompile Include="Wrappers\cryptsp.cpp">
-      <Filter>Wrappers</Filter>
+    <ClCompile Include="D3d8to9\lookup_table.cpp">
+      <Filter>D3d8to9</Filter>
     </ClCompile>
     <ClCompile Include="DDrawCompat\v0.2.1\CompatActivateAppHandler.cpp">
       <Filter>DDrawCompat</Filter>
@@ -250,11 +223,38 @@
     <ClCompile Include="DDrawCompat\v0.2.1\UnmodifiedDDrawProcs.cpp">
       <Filter>DDrawCompat</Filter>
     </ClCompile>
-    <ClCompile Include="Libraries\d3dx9.cpp">
-      <Filter>Libraries</Filter>
+    <ClCompile Include="Wrappers\bcrypt.cpp">
+      <Filter>Wrappers</Filter>
     </ClCompile>
-    <ClCompile Include="D3d8to9\lookup_table.cpp">
-      <Filter>D3d8to9</Filter>
+    <ClCompile Include="Wrappers\cryptsp.cpp">
+      <Filter>Wrappers</Filter>
+    </ClCompile>
+    <ClCompile Include="Wrappers\d3d8.cpp">
+      <Filter>Wrappers</Filter>
+    </ClCompile>
+    <ClCompile Include="Wrappers\d3d9.cpp">
+      <Filter>Wrappers</Filter>
+    </ClCompile>
+    <ClCompile Include="Wrappers\ddraw.cpp">
+      <Filter>Wrappers</Filter>
+    </ClCompile>
+    <ClCompile Include="Wrappers\dinput.cpp">
+      <Filter>Wrappers</Filter>
+    </ClCompile>
+    <ClCompile Include="Wrappers\dsound.cpp">
+      <Filter>Wrappers</Filter>
+    </ClCompile>
+    <ClCompile Include="Wrappers\dplayx.cpp">
+      <Filter>Wrappers</Filter>
+    </ClCompile>
+    <ClCompile Include="Wrappers\dxgi.cpp">
+      <Filter>Wrappers</Filter>
+    </ClCompile>
+    <ClCompile Include="Wrappers\winmm.cpp">
+      <Filter>Wrappers</Filter>
+    </ClCompile>
+    <ClCompile Include="Wrappers\winspool.cpp">
+      <Filter>Wrappers</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -371,9 +371,6 @@
     <ClInclude Include="DxWnd\v2_03_60_src\dxwnd.h">
       <Filter>DxWnd</Filter>
     </ClInclude>
-    <ClInclude Include="DxWnd\v2_03_60_src\DxWndExternal.h">
-      <Filter>DxWnd</Filter>
-    </ClInclude>
     <ClInclude Include="Settings\Settings.h">
       <Filter>Settings</Filter>
     </ClInclude>
@@ -385,6 +382,12 @@
     </ClInclude>
     <ClInclude Include="Wrappers\cryptsp.h">
       <Filter>Wrappers</Filter>
+    </ClInclude>
+    <ClInclude Include="Libraries\d3dx9.h">
+      <Filter>Libraries</Filter>
+    </ClInclude>
+    <ClInclude Include="D3d8to9\lookup_table.hpp">
+      <Filter>D3d8to9</Filter>
     </ClInclude>
     <ClInclude Include="DDrawCompat\v0.2.1\CompatActivateAppHandler.h">
       <Filter>DDrawCompat</Filter>
@@ -443,9 +446,6 @@
     <ClInclude Include="DDrawCompat\v0.2.1\Config.h">
       <Filter>DDrawCompat</Filter>
     </ClInclude>
-    <ClInclude Include="DDrawCompat\v0.2.1\DDrawCompatExternal.h">
-      <Filter>DDrawCompat</Filter>
-    </ClInclude>
     <ClInclude Include="DDrawCompat\v0.2.1\DDrawLog.h">
       <Filter>DDrawCompat</Filter>
     </ClInclude>
@@ -488,12 +488,6 @@
     <ClInclude Include="DDrawCompat\v0.2.1\Time1.h">
       <Filter>DDrawCompat</Filter>
     </ClInclude>
-    <ClInclude Include="Libraries\d3dx9.h">
-      <Filter>Libraries</Filter>
-    </ClInclude>
-    <ClInclude Include="D3d8to9\lookup_table.hpp">
-      <Filter>D3d8to9</Filter>
-    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="Dllmain\BuildNo.rc">
@@ -502,5 +496,10 @@
     <ResourceCompile Include="Dllmain\dxwrapper.rc">
       <Filter>Dllmain</Filter>
     </ResourceCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <Text Include="DDrawCompat\v0.2.1\License.txt">
+      <Filter>DDrawCompat</Filter>
+    </Text>
   </ItemGroup>
 </Project>

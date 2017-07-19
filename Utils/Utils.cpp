@@ -353,7 +353,7 @@ void SetAppCompat()
 	if (appCompatFlag)
 	{
 		typedef HRESULT(__stdcall *SetAppCompatDataFunc)(DWORD, DWORD);
-		HMODULE module = LoadDll(dtype.ddraw);
+		HMODULE module = Wrapper.LoadDll(dtype.ddraw);
 		if (module)
 		{
 			FARPROC SetAppCompatDataPtr = GetProcAddress(module, "SetAppCompatData");

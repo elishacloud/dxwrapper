@@ -94,7 +94,7 @@ public:
 
 	// Overrides
 public:
-	virtual BOOL InitInstance();
+	virtual BOOL InitInstance(HMODULE hModule);
 
 #ifdef _DEBUG
 	bool EnumCallback(LPGUID  lpGuid, LPCSTR  lpcstrDescription, LPCSTR  lpcstrModule);

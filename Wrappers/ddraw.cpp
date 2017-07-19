@@ -16,72 +16,43 @@
 
 #include "Settings\Settings.h"
 #include "Dllmain\Dllmain.h"
+#include "Hook\inithook.h"
+#include "Utils\Utils.h"
 #include "wrapper.h"
 #include "dsound.h"
-#include "Utils\Utils.h"
-#include "Hook\inithook.h"
+#include "ddraw.h"
 
+ddraw_dll ddraw;
 
 #define module ddraw
 
-#define VISIT_PROCS(visit) \
-	visit(AcquireDDThreadLock) \
-	visit(CheckFullscreen) \
-	visit(CompleteCreateSysmemSurface) \
-	visit(D3DParseUnknownCommand) \
-	visit(DDGetAttachedSurfaceLcl) \
-	visit(DDInternalLock) \
-	visit(DDInternalUnlock) \
-	visit(DSoundHelp) \
-	visit(DirectDrawCreate) \
-	visit(DirectDrawCreateClipper) \
-	visit(DirectDrawCreateEx) \
-	visit(DirectDrawEnumerateA) \
-	visit(DirectDrawEnumerateExA) \
-	visit(DirectDrawEnumerateExW) \
-	visit(DirectDrawEnumerateW) \
-	visit(GetDDSurfaceLocal) \
-	visit(GetOLEThunkData) \
-	visit(GetSurfaceFromDC) \
-	visit(RegisterSpecialCase) \
-	visit(ReleaseDDThreadLock) \
-	visit(SetAppCompatData) \
-	//visit(DllCanUnloadNow) \		 // <---  Shared with dsound.dll
-	//visit(DllGetClassObject)		 // <---  Shared with dsound.dll
+VISIT_DRAW_PROCS(CREATE_PROC_STUB)
 
-struct ddraw_dll
-{
-	HMODULE dll = nullptr;
-	VISIT_PROCS(ADD_FARPROC_MEMBER);
-} ddraw;
-
-VISIT_PROCS(CREATE_PROC_STUB)
-
-void LoadDdraw()
+void ddraw_dll::Load()
 {
 	// Load real dll
-	ddraw.dll = LoadDll(dtype.ddraw);
+	dll = Wrapper.LoadDll(dtype.ddraw);
 
 	// Load dll functions
-	if (ddraw.dll)
+	if (dll)
 	{
-		VISIT_PROCS(LOAD_ORIGINAL_PROC);
-		Set_DllCanUnloadNow(GetFunctionAddress(ddraw.dll, "DllCanUnloadNow", jmpaddr));
-		Set_DllGetClassObject(GetFunctionAddress(ddraw.dll, "DllGetClassObject", jmpaddr));
+		VISIT_DRAW_PROCS(LOAD_ORIGINAL_PROC);
+		dsound.Set_DllCanUnloadNow(GetFunctionAddress(dll, "DllCanUnloadNow", jmpaddr));			 // <---  Shared with dsound.dll
+		dsound.Set_DllGetClassObject(GetFunctionAddress(dll, "DllGetClassObject", jmpaddr));		 // <---  Shared with dsound.dll
 
 		// Enable DDrawCompat
 		if (Config.DDrawCompat && Config.RealWrapperMode == dtype.ddraw)
 		{
-			ddraw.DirectDrawCreate = GetFunctionAddress(hModule_dll, "_DirectDrawCreate", jmpaddr);
-			ddraw.DirectDrawCreateEx = GetFunctionAddress(hModule_dll, "_DirectDrawCreateEx", jmpaddr);
+			DirectDrawCreate = GetFunctionAddress(hModule_dll, "_DirectDrawCreate", jmpaddr);
+			DirectDrawCreateEx = GetFunctionAddress(hModule_dll, "_DirectDrawCreateEx", jmpaddr);
 		}
 
 		// Hook ddraw APIs for DDrawCompat
 		else if (Config.DDrawCompat)
 		{
 			LOG << "Hooking ddraw.dll APIs...";
-			ddraw.DirectDrawCreate = (FARPROC)HookAPI(hModule_dll, dtypename[dtype.ddraw], GetFunctionAddress(ddraw.dll, "DirectDrawCreate"), "DirectDrawCreate", GetFunctionAddress(hModule_dll, "_DirectDrawCreate"));
-			ddraw.DirectDrawCreateEx = (FARPROC)HookAPI(hModule_dll, dtypename[dtype.ddraw], GetFunctionAddress(ddraw.dll, "DirectDrawCreateEx"), "DirectDrawCreateEx", GetFunctionAddress(hModule_dll, "_DirectDrawCreateEx"));
+			DirectDrawCreate = (FARPROC)HookAPI(hModule_dll, dtypename[dtype.ddraw], GetFunctionAddress(dll, "DirectDrawCreate"), "DirectDrawCreate", GetFunctionAddress(hModule_dll, "_DirectDrawCreate"));
+			DirectDrawCreateEx = (FARPROC)HookAPI(hModule_dll, dtypename[dtype.ddraw], GetFunctionAddress(dll, "DirectDrawCreateEx"), "DirectDrawCreateEx", GetFunctionAddress(hModule_dll, "_DirectDrawCreateEx"));
 		}
 	}
 }

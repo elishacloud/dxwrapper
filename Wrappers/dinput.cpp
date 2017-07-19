@@ -15,41 +15,27 @@
 */
 
 #include "Settings\Settings.h"
-#include "Dllmain\Dllmain.h"
+#include "Utils\Utils.h"
 #include "wrapper.h"
 #include "dsound.h"
-#include "Utils\Utils.h"
+#include "dinput.h"
+
+dinput_dll dinput;
 
 #define module dinput
 
-#define VISIT_PROCS(visit) \
-	visit(DirectInputCreateA) \
-	visit(DirectInputCreateEx) \
-	visit(DirectInputCreateW) \
-	visit(DllRegisterServer) \
-	visit(DllUnregisterServer) \
-	//visit(DllCanUnloadNow) \		 // <---  Shared with dsound.dll
-	//visit(DllGetClassObject)		 // <---  Shared with dsound.dll
+VISIT_DINPUT_PROCS(CREATE_PROC_STUB)
 
-
-struct dinput_dll
-{
-	HMODULE dll = nullptr;
-	VISIT_PROCS(ADD_FARPROC_MEMBER);
-} dinput;
-
-VISIT_PROCS(CREATE_PROC_STUB)
-
-void LoadDinput()
+void dinput_dll::Load()
 {
 	// Load real dll
-	dinput.dll = LoadDll(dtype.dinput);
+	dll = Wrapper.LoadDll(dtype.dinput);
 
 	// Load dll functions
-	if (dinput.dll)
+	if (dll)
 	{
-		VISIT_PROCS(LOAD_ORIGINAL_PROC);
-		Set_DllCanUnloadNow(GetFunctionAddress(dinput.dll, "DllCanUnloadNow", jmpaddr));
-		Set_DllGetClassObject(GetFunctionAddress(dinput.dll, "DllGetClassObject", jmpaddr));
+		VISIT_DINPUT_PROCS(LOAD_ORIGINAL_PROC);
+		dsound.Set_DllCanUnloadNow(GetFunctionAddress(dll, "DllCanUnloadNow", jmpaddr));			 // <---  Shared with dsound.dll
+		dsound.Set_DllGetClassObject(GetFunctionAddress(dll, "DllGetClassObject", jmpaddr));		 // <---  Shared with dsound.dll
 	}
 }

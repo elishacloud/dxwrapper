@@ -268,16 +268,16 @@ cmd /c "@echo off &amp;&amp; cd /D ""$(ProjectDir)Dllmain\"" &amp;&amp; type Bui
     <ClCompile Include="libraries\winmm.cpp" />
     <ClCompile Include="Settings\Settings.cpp" />
     <ClCompile Include="Utils\Utils.cpp" />
-    <ClCompile Include="Wrappers\cryptsp.cpp" />
-    <ClCompile Include="wrappers\d3d8.cpp" />
-    <ClCompile Include="wrappers\d3d9.cpp" />
-    <ClCompile Include="wrappers\ddraw.cpp" />
-    <ClCompile Include="wrappers\dinput.cpp" />
-    <ClCompile Include="wrappers\dplayx.cpp" />
-    <ClCompile Include="wrappers\dsound.cpp" />
-    <ClCompile Include="wrappers\dxgi.cpp" />
     <ClCompile Include="Wrappers\bcrypt.cpp" />
-    <ClCompile Include="wrappers\winmm.cpp" />
+    <ClCompile Include="Wrappers\cryptsp.cpp" />
+    <ClCompile Include="Wrappers\d3d8.cpp" />
+    <ClCompile Include="Wrappers\d3d9.cpp" />
+    <ClCompile Include="Wrappers\ddraw.cpp" />
+    <ClCompile Include="Wrappers\dinput.cpp" />
+    <ClCompile Include="Wrappers\dplayx.cpp" />
+    <ClCompile Include="Wrappers\dsound.cpp" />
+    <ClCompile Include="Wrappers\dxgi.cpp" />
+    <ClCompile Include="Wrappers\winmm.cpp" />
     <ClCompile Include="Wrappers\winspool.cpp" />
     <ClCompile Include="wrappers\wrapper.cpp" />
     <ClCompile Include="WriteMemory\WriteMemory.cpp" />
@@ -310,7 +310,6 @@ cmd /c "@echo off &amp;&amp; cd /D ""$(ProjectDir)Dllmain\"" &amp;&amp; type Bui
     <ClInclude Include="DDrawCompat\v0.2.1\CompatRegistry.h" />
     <ClInclude Include="DDrawCompat\v0.2.1\CompatVtable.h" />
     <ClInclude Include="DDrawCompat\v0.2.1\Config.h" />
-    <ClInclude Include="DDrawCompat\v0.2.1\DDrawCompatExternal.h" />
     <ClInclude Include="DDrawCompat\v0.2.1\DDrawLog.h" />
     <ClInclude Include="DDrawCompat\v0.2.1\DDrawProcs.h" />
     <ClInclude Include="DDrawCompat\v0.2.1\DDrawRepository.h" />
@@ -339,7 +338,6 @@ cmd /c "@echo off &amp;&amp; cd /D ""$(ProjectDir)Dllmain\"" &amp;&amp; type Bui
     <ClInclude Include="DSoundCtrl\IDirectSoundClassFactoryEx.h" />
     <ClInclude Include="DSoundCtrl\IDirectSoundEx.h" />
     <ClInclude Include="DxWnd\v2_03_60_src\dxwnd.h" />
-    <ClInclude Include="DxWnd\v2_03_60_src\DxWndExternal.h" />
     <ClInclude Include="Fullscreen\Fullscreen.h" />
     <ClInclude Include="hook\hotpatch.h" />
     <ClInclude Include="hook\iatpatch.h" />
@@ -367,6 +365,9 @@ cmd /c "@echo off &amp;&amp; cd /D ""$(ProjectDir)Dllmain\"" &amp;&amp; type Bui
   <ItemGroup>
     <ResourceCompile Include="Dllmain\BuildNo.rc" />
     <ResourceCompile Include="Dllmain\dxwrapper.rc" />
+  </ItemGroup>
+  <ItemGroup>
+    <Text Include="DDrawCompat\v0.2.1\License.txt" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

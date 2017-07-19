@@ -1,3 +1,3 @@
 #pragma once
 
-void RunDSoundCtrl();
+BOOL APIENTRY DllMain_DSoundCtrl(HMODULE, DWORD, LPVOID);

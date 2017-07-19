@@ -48,7 +48,7 @@ Geterrwarnmessage														@28
 ; ****
 ;LIBRARY "d3d8"
 ; ****
-;DebugSetMute					= FakeDebugSetMute						@29         <---  Shared with d3d9.dll
+DebugSetMute					= FakeDebugSetMute						@29
 Direct3DCreate8					= FakeDirect3DCreate8					@30
 ValidatePixelShader				= FakeValidatePixelShader				@31
 ValidateVertexShader			= FakeValidateVertexShader				@32
@@ -71,7 +71,7 @@ D3DPERF_SetMarker				= FakeD3DPERF_SetMarker					@38
 D3DPERF_SetOptions				= FakeD3DPERF_SetOptions				@39
 D3DPERF_SetRegion				= FakeD3DPERF_SetRegion					@40
 DebugSetLevel					= FakeDebugSetLevel						@41
-DebugSetMute					= FakeDebugSetMute						@42
+;DebugSetMute					= FakeDebugSetMute						@42         <---  Shared with d3d8.dll
 Direct3DCreate9					= FakeDirect3DCreate9					@43
 Direct3DCreate9Ex				= FakeDirect3DCreate9Ex					@44
 Direct3DShaderValidatorCreate9	= FakeDirect3DShaderValidatorCreate9	@45

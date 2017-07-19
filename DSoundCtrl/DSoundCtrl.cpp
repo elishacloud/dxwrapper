@@ -39,7 +39,6 @@
 #include "DSoundCtrlExternal.h"
 #include "IDirectSoundClassFactoryEx.h"
 #include "Settings\Settings.h"
-#include "Dllmain\Dllmain.h"
 #include "Wrappers\wrapper.h"
 
 LPDSENUMCALLBACKA	g_pAppDSEnumCallbackA;
@@ -70,12 +69,10 @@ BOOL CALLBACK DSEnumCallback(LPGUID  lpGuid, LPCSTR  lpcstrDescription, LPCSTR  
 }
 #endif  // _DEBUG
 
-CDSoundCtrlApp theApp;
+CDSoundCtrlApp IDSoundCtrl;
 
 CDSoundCtrlApp::CDSoundCtrlApp()
 {
-	// TODO: add construction code here,
-	// Place all significant initialization in InitInstance
 	m_cszClassName = CDSOUNDCTRLAPP_CLASS_NAME;
 }
 
@@ -83,14 +80,18 @@ CDSoundCtrlApp::~CDSoundCtrlApp()
 {
 #ifdef _DEBUG
 	if (g_bLogSystem)
+	{
 		LogMessage(m_cszClassName, this, "Destructor called....");
+	}
 #endif // _DEBUG
 
 	::FreeLibrary(g_hDLL);
 
 #ifdef _DEBUG
 	if (g_bDebugBeep)
+	{
 		Beep(3000, 100);
+	}
 
 	if (g_bLogSystem)
 	{
@@ -102,7 +103,7 @@ CDSoundCtrlApp::~CDSoundCtrlApp()
 #endif // _DEBUG
 }
 
-BOOL CDSoundCtrlApp::InitInstance()
+BOOL CDSoundCtrlApp::InitInstance(HMODULE hModule)
 {
 	// Starting DirectSoundControl
 	LOG << "Enabling DSoundCtrl function";
@@ -153,11 +154,11 @@ BOOL CDSoundCtrlApp::InitInstance()
 	// Load DSOUND.DLL and get entry points
 	if (Config.RealWrapperMode == dtype.dsound)
 	{
-		g_hDLL = LoadDll(dtype.dsound);
+		g_hDLL = Wrapper.LoadDll(dtype.dsound);
 	}
 	else
 	{
-		g_hDLL = hModule_dll;
+		g_hDLL = hModule;
 	}
 
 	if (!g_hDLL)
@@ -182,7 +183,9 @@ BOOL CDSoundCtrlApp::InitInstance()
 
 #ifdef _DEBUG
 	if (g_bDebugBeep)
+	{
 		Beep(1000, 100);
+	}
 
 	if (g_bLogSystem)
 	{
@@ -219,14 +222,18 @@ HRESULT STDMETHODCALLTYPE DirectSoundCreate(LPCGUID pcGuidDevice, LPDIRECTSOUND 
 {
 #ifdef _DEBUG
 	if (g_bLogSystem)
+	{
 		LogMessage(g_cszClassName, nullptr, "DirectSoundCreate called...");
+	}
 #endif // _DEBUG
 
 	assert(g_pDirectSoundCreate);
 
 #ifdef _DEBUG
 	if (g_bDebugBeep)
+	{
 		Beep(4000, 100);
+	}
 #endif // _DEBUG
 
 	IDirectSound8Ex* pDSX = new IDirectSound8Ex;
@@ -276,7 +283,9 @@ HRESULT STDMETHODCALLTYPE DirectSoundEnumerateA(LPDSENUMCALLBACKA pDSEnumCallbac
 {
 #ifdef _DEBUG
 	if (g_bLogSystem)
+	{
 		LogMessage(g_cszClassName, nullptr, "DirectSoundEnumerateA called...");
+	}
 #endif // _DEBUG
 
 	g_pAppDSEnumCallbackA = pDSEnumCallback;
@@ -288,7 +297,9 @@ HRESULT STDMETHODCALLTYPE DirectSoundEnumerateW(LPDSENUMCALLBACKW pDSEnumCallbac
 {
 #ifdef _DEBUG
 	if (g_bLogSystem)
+	{
 		LogMessage(g_cszClassName, nullptr, "DirectSoundEnumerateW called...");
+	}
 #endif // _DEBUG
 
 	g_pAppDSEnumCallbackW = pDSEnumCallback;
@@ -300,7 +311,9 @@ HRESULT STDMETHODCALLTYPE DirectSoundCaptureCreate(LPCGUID pcGuidDevice, LPDIREC
 {
 #ifdef _DEBUG
 	if (g_bLogSystem)
+	{
 		LogMessage(g_cszClassName, nullptr, "DirectSoundCaptureCreate called...");
+	}
 #endif // _DEBUG
 
 	return g_pDirectSoundCaptureCreatefunc(pcGuidDevice, ppDSC, pUnkOuter);
@@ -310,7 +323,9 @@ HRESULT STDMETHODCALLTYPE DirectSoundCaptureEnumerateA(LPDSENUMCALLBACKA pDSEnum
 {
 #ifdef _DEBUG
 	if (g_bLogSystem)
+	{
 		LogMessage(g_cszClassName, nullptr, "DirectSoundCaptureEnumerateA called...");
+	}
 #endif // _DEBUG
 
 	return g_pDirectSoundCaptureEnumerateAfunc(pDSEnumCallback, pContext);
@@ -320,7 +335,9 @@ HRESULT STDMETHODCALLTYPE DirectSoundCaptureEnumerateW(LPDSENUMCALLBACKW pDSEnum
 {
 #ifdef _DEBUG
 	if (g_bLogSystem)
+	{
 		LogMessage(g_cszClassName, nullptr, "DirectSoundCaptureEnumerateW called...");
+	}
 #endif // _DEBUG
 
 	return g_pDirectSoundCaptureEnumerateWfunc(pDSEnumCallback, pContext);
@@ -330,10 +347,14 @@ HRESULT STDMETHODCALLTYPE DirectSoundCreate8(LPCGUID pcGuidDevice, LPDIRECTSOUND
 {
 #ifdef _DEBUG
 	if (g_bLogSystem)
+	{
 		LogMessage(g_cszClassName, nullptr, "DirectSoundCreate8 called...");
+	}
 
 	if (g_bDebugBeep)
+	{
 		Beep(2000, 100);
+	}
 #endif // _DEBUG
 
 	assert(g_pDirectSoundCreate8);
@@ -357,7 +378,9 @@ HRESULT STDMETHODCALLTYPE DirectSoundCaptureCreate8(LPCGUID pcGuidDevice, LPDIRE
 {
 #ifdef _DEBUG
 	if (g_bLogSystem)
+	{
 		LogMessage(g_cszClassName, nullptr, "DirectSoundCaptureCreate8 called...");
+	}
 #endif // _DEBUG
 
 	return g_pDirectSoundCaptureCreate8func(pcGuidDevice, ppDSC8, pUnkOuter);
@@ -370,7 +393,9 @@ HRESULT STDMETHODCALLTYPE DirectSoundFullDuplexCreate(LPCGUID pcGuidCaptureDevic
 {
 #ifdef _DEBUG
 	if (g_bLogSystem)
+	{
 		LogMessage(g_cszClassName, nullptr, "DirectSoundFullDuplexCreate called...");
+	}
 #endif // _DEBUG
 
 	return g_pDirectSoundFullDuplexCreatefunc(pcGuidCaptureDevice, pcGuidRenderDevice,
@@ -383,7 +408,9 @@ HRESULT STDMETHODCALLTYPE GetDeviceID(LPCGUID pGuidSrc, LPGUID pGuidDest)
 {
 #ifdef _DEBUG
 	if (g_bLogSystem)
+	{
 		LogMessage(g_cszClassName, nullptr, "GetDeviceID called...");
+	}
 #endif // _DEBUG
 
 	return g_pGetDeviceIDfunc(pGuidSrc, pGuidDest);
@@ -393,7 +420,9 @@ STDAPI STDMETHODCALLTYPE DllCanUnloadNow_DSoundCtrl(void)
 {
 #ifdef _DEBUG
 	if (g_bLogSystem)
+	{
 		LogMessage(g_cszClassName, nullptr, "DllCanUnloadNow called...");
+	}
 #endif // _DEBUG
 
 	return g_pDllCanUnloadNowfunc();
@@ -407,7 +436,9 @@ STDAPI STDMETHODCALLTYPE DllGetClassObject_DSoundCtrl(IN REFCLSID rclsid, IN REF
 	{
 #ifdef _DEBUG
 		if (g_bLogSystem)
+		{
 			LogMessage(g_cszClassName, nullptr, "DllGetClassObject with unknown CLSID called...");
+		}
 #endif // _DEBUG
 
 		return g_pDllGetClassObjectfunc(rclsid, riid, ppv);
@@ -454,7 +485,14 @@ STDAPI STDMETHODCALLTYPE DllGetClassObject_DSoundCtrl(IN REFCLSID rclsid, IN REF
 	return g_pDllGetClassObjectfunc(rclsid, riid, ppv);
 }
 
-void RunDSoundCtrl()
+BOOL APIENTRY DllMain_DSoundCtrl(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 {
-	theApp.InitInstance();
+	UNREFERENCED_PARAMETER(lpReserved);
+
+	if (fdwReason == DLL_PROCESS_ATTACH)
+	{
+		IDSoundCtrl.InitInstance(hModule);
+	}
+
+	return TRUE;
 }

@@ -16,28 +16,18 @@
 
 #include "Settings\Settings.h"
 #include "Dllmain\Dllmain.h"
-#include "wrapper.h"
-#include "d3d9.h"
-#include "Utils\Utils.h"
 #include "Hook\inithook.h"
+#include "Utils\Utils.h"
+#include "wrapper.h"
+#include "d3d8.h"
+
+d3d8_dll d3d8;
 
 #define module d3d8
 
-#define VISIT_PROCS(visit) \
-	visit(Direct3DCreate8) \
-	visit(ValidateVertexShader) \
-	visit(ValidatePixelShader) \
-	//visit(DebugSetMute)		 // <---  Shared with d3d9.dll
+VISIT_D3D8_PROCS(CREATE_PROC_STUB)
 
-static struct d3d8_dll
-{
-	HMODULE dll = nullptr;
-	VISIT_PROCS(ADD_FARPROC_MEMBER);
-} d3d8;
-
-VISIT_PROCS(CREATE_PROC_STUB)
-
-HRESULT WINAPI ValidateVertexShader(DWORD* vertexshader, DWORD* reserved1, DWORD* reserved2, BOOL flag, DWORD* toto)
+HRESULT WINAPI _ValidateVertexShader(DWORD* vertexshader, DWORD* reserved1, DWORD* reserved2, BOOL flag, DWORD* toto)
 {
 	UNREFERENCED_PARAMETER(flag);
 	UNREFERENCED_PARAMETER(toto);
@@ -63,7 +53,7 @@ HRESULT WINAPI ValidateVertexShader(DWORD* vertexshader, DWORD* reserved1, DWORD
 	}
 }
 
-HRESULT WINAPI ValidatePixelShader(DWORD* pixelshader, DWORD* reserved1, BOOL flag, DWORD* toto)
+HRESULT WINAPI _ValidatePixelShader(DWORD* pixelshader, DWORD* reserved1, BOOL flag, DWORD* toto)
 {
 	UNREFERENCED_PARAMETER(flag);
 	UNREFERENCED_PARAMETER(toto);
@@ -92,34 +82,32 @@ HRESULT WINAPI ValidatePixelShader(DWORD* pixelshader, DWORD* reserved1, BOOL fl
 	}
 }
 
-void LoadD3d8()
+void d3d8_dll::Load()
 {
-
 	// Enable d3d8to9 conversion
 	if (Config.D3d8to9 && Config.RealWrapperMode == dtype.d3d8)
 	{
-		d3d8.Direct3DCreate8 = GetFunctionAddress(hModule_dll, "_Direct3DCreate8", jmpaddr);
-		d3d8.ValidateVertexShader = (FARPROC)*ValidateVertexShader;
-		d3d8.ValidatePixelShader = (FARPROC)*ValidatePixelShader;
+		Direct3DCreate8 = GetFunctionAddress(hModule_dll, "_Direct3DCreate8", jmpaddr);
+		ValidateVertexShader = (FARPROC)*_ValidateVertexShader;
+		ValidatePixelShader = (FARPROC)*_ValidatePixelShader;
 	}
 
 	// Load normal dll
 	else
 	{
 		// Load real dll
-		d3d8.dll = LoadDll(dtype.d3d8);
+		dll = Wrapper.LoadDll(dtype.d3d8);
 
 		// Load dll functions
-		if (d3d8.dll)
+		if (dll)
 		{
-			VISIT_PROCS(LOAD_ORIGINAL_PROC);
-			Set_DebugSetMute(GetFunctionAddress(d3d8.dll, "DebugSetMute", jmpaddr));
+			VISIT_D3D8_PROCS(LOAD_ORIGINAL_PROC);
 
 			// Hook APIs for d3d8to9 conversion
 			if (Config.D3d8to9)
 			{
 				LOG << "Hooking d3d8.dll APIs...";
-				d3d8.Direct3DCreate8 = (FARPROC)HookAPI(hModule_dll, dtypename[dtype.d3d8], GetFunctionAddress(d3d8.dll, "Direct3DCreate8"), "Direct3DCreate8", GetFunctionAddress(hModule_dll, "_Direct3DCreate8"));
+				Direct3DCreate8 = (FARPROC)HookAPI(hModule_dll, dtypename[dtype.d3d8], GetFunctionAddress(dll, "Direct3DCreate8"), "Direct3DCreate8", GetFunctionAddress(hModule_dll, "_Direct3DCreate8"));
 			}
 		}
 	}

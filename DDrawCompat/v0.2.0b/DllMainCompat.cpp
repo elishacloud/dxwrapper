@@ -153,86 +153,73 @@ namespace
 	Compat::origProcs.procName = GetProcAddress(g_origDDrawModule, #procName);
 
 //********** Begin Edit *************
-//BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID /*lpvReserved*/)
-/*{
-if (fdwReason == DLL_PROCESS_ATTACH)
-{*/
-bool StartDdrawCompat(HINSTANCE hinstDLL)
-{
+BOOL WINAPI DllMain_DDrawCompat(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID /*lpvReserved*/)
 //********** End Edit ***************
-
-	char currentDllPath[MAX_PATH] = {};
-	GetModuleFileName(hinstDLL, currentDllPath, MAX_PATH);
-	Compat::Log() << "Loading DDrawCompat from " << currentDllPath;
-
-	char systemDirectory[MAX_PATH] = {};
-	GetSystemDirectory(systemDirectory, MAX_PATH);
-
-	std::string systemDDrawDllPath = std::string(systemDirectory) + "\\ddraw.dll";
-	if (0 == _stricmp(currentDllPath, systemDDrawDllPath.c_str()))
+{
+	if (fdwReason == DLL_PROCESS_ATTACH)
 	{
-		Compat::Log() << "DDrawCompat cannot be installed as the system ddraw.dll";
-		return false;
-	}
+		char currentDllPath[MAX_PATH] = {};
+		GetModuleFileName(hinstDLL, currentDllPath, MAX_PATH);
+		Compat::Log() << "Loading DDrawCompat from " << currentDllPath;
 
-	//********** Begin Edit *************
-	if (Config.RealWrapperMode == dtype.ddraw)
-	{
-		g_origDDrawModule = LoadDll(dtype.ddraw);
-	}
-	else
-	{
-		g_origDDrawModule = hinstDLL;
-	}
-	g_origDInputModule = LoadDll(dtype.dinput);
-	if (!g_origDDrawModule || !g_origDInputModule)
-		//if (!loadLibrary(systemDirectory, "ddraw.dll", g_origDDrawModule) ||
-		//	!loadLibrary(systemDirectory, "dinput.dll", g_origDInputModule))
-	{
-		return false;
-	}
-	//********** End Edit ***************
+		char systemDirectory[MAX_PATH] = {};
+		GetSystemDirectory(systemDirectory, MAX_PATH);
 
-	VISIT_ALL_DDRAW_PROCS(LOAD_ORIGINAL_DDRAW_PROC);
-	Compat::origProcs.DirectInputCreateA = GetProcAddress(g_origDInputModule, "DirectInputCreateA");
-
-	//********** Begin Edit *************
-	if (Config.AffinityNotSet) SetProcessAffinityMask(GetCurrentProcess(), 1);
-	//********** End Edit ***************
-
-	//********** Begin Edit *************
-	if (Config.DisableMaxWindowedModeNotSet)
-	{
-		if (Compat::origProcs.SetAppCompatData)
+		std::string systemDDrawDllPath = std::string(systemDirectory) + "\\ddraw.dll";
+		if (0 == _stricmp(currentDllPath, systemDDrawDllPath.c_str()))
 		{
-			typedef HRESULT WINAPI SetAppCompatDataFunc(DWORD, DWORD);
-			auto setAppCompatData = reinterpret_cast<SetAppCompatDataFunc*>(Compat::origProcs.SetAppCompatData);
-			const DWORD disableMaxWindowedMode = 12;
-			setAppCompatData(disableMaxWindowedMode, 0);
+			Compat::Log() << "DDrawCompat cannot be installed as the system ddraw.dll";
+			return false;
 		}
+
+		//********** Begin Edit *************
+		if (Config.RealWrapperMode == dtype.ddraw)
+		{
+			g_origDDrawModule = LoadDll(dtype.ddraw);
+		}
+		else
+		{
+			g_origDDrawModule = hinstDLL;
+		}
+		g_origDInputModule = LoadDll(dtype.dinput);
+		if (!g_origDDrawModule || !g_origDInputModule)
+		{
+			return false;
+		}
+		//********** End Edit ***************
+
+		VISIT_ALL_DDRAW_PROCS(LOAD_ORIGINAL_DDRAW_PROC);
+		Compat::origProcs.DirectInputCreateA = GetProcAddress(g_origDInputModule, "DirectInputCreateA");
+
+		//********** Begin Edit *************
+		if (Config.AffinityNotSet) SetProcessAffinityMask(GetCurrentProcess(), 1);
+		//********** End Edit ***************
+
+		//********** Begin Edit *************
+		if (Config.DisableMaxWindowedModeNotSet)
+		{
+			if (Compat::origProcs.SetAppCompatData)
+			{
+				typedef HRESULT WINAPI SetAppCompatDataFunc(DWORD, DWORD);
+				auto setAppCompatData = reinterpret_cast<SetAppCompatDataFunc*>(Compat::origProcs.SetAppCompatData);
+				const DWORD disableMaxWindowedMode = 12;
+				setAppCompatData(disableMaxWindowedMode, 0);
+			}
+		}
+		//********** End Edit ***************
+
+		Compat::Log() << "DDrawCompat loaded successfully";
 	}
-	//********** End Edit ***************
+	else if (fdwReason == DLL_PROCESS_DETACH)
+	{
+		//********** Begin Edit *************
+		//FreeLibrary(g_origDInputModule);
+		//FreeLibrary(g_origDDrawModule);
+		//********** End Edit ***************
+	}
 
-	Compat::Log() << "DDrawCompat loaded successfully";
-
-//********** Begin Edit *************
-	return true;
+	return TRUE;
 }
-//else if (fdwReason == DLL_PROCESS_DETACH)
-void UnloadDdrawCompat()
-{
-//********** End Edit ***************
-
-	//********** Begin Edit *************
-	//FreeLibrary(g_origDInputModule);
-	//FreeLibrary(g_origDDrawModule);
-	//********** End Edit ***************
-
-//********** Begin Edit *************
-}
-/*	return TRUE;
-}*/
-//********** End Edit ***************
 
 extern "C" HRESULT WINAPI DirectDrawCreate(
 	GUID* lpGUID,
