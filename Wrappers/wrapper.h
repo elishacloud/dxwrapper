@@ -43,25 +43,9 @@
 
 HRESULT WINAPI ReturnProc();
 
-class DllWrapper
+namespace Wrapper
 {
-public:
 	HMODULE LoadDll(DWORD);
 	void DllAttach();
 	void DllDetach();
-
-private:
-	struct custom_dll
-	{
-		bool Flag = false;
-		HMODULE dll = nullptr;
-	};
-
-	custom_dll custom[256];
-	custom_dll dllhandle[dtypeArraySize];
-
-	void LoadCustomDll();
-	void FreeCustomLibrary();
 };
-
-extern DllWrapper Wrapper;

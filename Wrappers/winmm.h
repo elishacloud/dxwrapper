@@ -204,7 +204,7 @@ namespace winmm
 		void Load()
 		{
 			// Load real dll
-			dll = Wrapper.LoadDll(dtype.winmm);
+			dll = Wrapper::LoadDll(dtype.winmm);
 
 			// Load dll functions
 			if (dll)

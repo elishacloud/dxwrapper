@@ -92,7 +92,7 @@ void RunExitFunctions(bool ForceTerminate)
 	}
 
 	// Unload dlls
-	Wrapper.DllDetach();
+	Wrapper::DllDetach();
 
 	// Clean up memory
 	Config.CleanUp();
@@ -162,7 +162,7 @@ bool APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 		}
 
 		// Attach real wrapper dll
-		Wrapper.DllAttach();
+		Wrapper::DllAttach();
 
 		// Start compatibility modules
 		if (Config.DDrawCompat)

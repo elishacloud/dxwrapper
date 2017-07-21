@@ -187,13 +187,13 @@ BOOL WINAPI DllMain_DDrawCompat(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID /*lp
 		//********** Begin Edit *************
 		if (Config.RealWrapperMode == dtype.ddraw)
 		{
-			g_origDDrawModule = Wrapper.LoadDll(dtype.ddraw);
+			g_origDDrawModule = Wrapper::LoadDll(dtype.ddraw);
 		}
 		else
 		{
 			g_origDDrawModule = hinstDLL;
 		}
-		g_origDInputModule = Wrapper.LoadDll(dtype.dinput);
+		g_origDInputModule = Wrapper::LoadDll(dtype.dinput);
 		if (!g_origDDrawModule || !g_origDInputModule)
 		{
 			return false;

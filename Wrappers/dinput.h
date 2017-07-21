@@ -17,7 +17,7 @@ namespace dinput
 		void Load()
 		{
 			// Load real dll
-			dll = Wrapper.LoadDll(dtype.dinput);
+			dll = Wrapper::LoadDll(dtype.dinput);
 
 			// Load dll functions
 			if (dll)

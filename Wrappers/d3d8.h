@@ -25,7 +25,7 @@ namespace d3d8
 			else
 			{
 				// Load real dll
-				dll = Wrapper.LoadDll(dtype.d3d8);
+				dll = Wrapper::LoadDll(dtype.d3d8);
 
 				// Load dll functions
 				if (dll)

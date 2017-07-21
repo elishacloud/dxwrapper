@@ -22,7 +22,7 @@ namespace dsound
 		void Load()
 		{
 			// Load real dll
-			dll = Wrapper.LoadDll(dtype.dsound);
+			dll = Wrapper::LoadDll(dtype.dsound);
 
 			// Load dll functions
 			if (dll)

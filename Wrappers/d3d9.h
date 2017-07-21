@@ -24,7 +24,7 @@ namespace d3d9
 		void Load()
 		{
 			// Load real dll
-			dll = Wrapper.LoadDll(dtype.d3d9);
+			dll = Wrapper::LoadDll(dtype.d3d9);
 
 			// Load dll functions
 			if (dll)

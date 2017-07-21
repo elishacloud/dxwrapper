@@ -38,8 +38,22 @@
 #include "dwmapi.h"
 #include "uxtheme.h"
 
+namespace Wrapper
+{
+	struct custom_dll
+	{
+		bool Flag = false;
+		HMODULE dll = nullptr;
+	};
+
+	custom_dll custom[256];
+	custom_dll dllhandle[dtypeArraySize];
+
+	void LoadCustomDll();
+	void FreeCustomLibrary();
+}
+
 // Wrapper classes
-DllWrapper Wrapper;
 VISIT_WRAPPERS(ADD_NAMESPACE_CLASS)
 
 // Proc functions
@@ -53,7 +67,7 @@ HRESULT WINAPI ReturnProc()
 }
 
 // Load real dll file that is being wrapped
-HMODULE DllWrapper::LoadDll(DWORD dlltype)
+HMODULE Wrapper::LoadDll(DWORD dlltype)
 {
 	// Check for valid dlltype
 	if (dlltype == 0 || dlltype >= dtypeArraySize)
@@ -116,7 +130,7 @@ HMODULE DllWrapper::LoadDll(DWORD dlltype)
 }
 
 // Load custom dll files
-void DllWrapper::LoadCustomDll()
+void Wrapper::LoadCustomDll()
 {
 	for (UINT x = 1; x <= Config.CustomDllCount; ++x)
 	{
@@ -147,7 +161,7 @@ void DllWrapper::LoadCustomDll()
 }
 
 // Unload custom dll files
-void DllWrapper::FreeCustomLibrary()
+void Wrapper::FreeCustomLibrary()
 {
 	for (UINT x = 1; x <= Config.CustomDllCount; ++x)
 	{
@@ -161,7 +175,7 @@ void DllWrapper::FreeCustomLibrary()
 }
 
 // Load wrapper dll files
-void DllWrapper::DllAttach()
+void Wrapper::DllAttach()
 {
 	VISIT_WRAPPERS(LOAD_WRAPPER);
 	if (Config.WrapperMode != 0)
@@ -186,7 +200,7 @@ void DllWrapper::DllAttach()
 }
 
 // Unload all dll files loaded by the wrapper
-void DllWrapper::DllDetach()
+void Wrapper::DllDetach()
 {
 	// Unload custom libraries
 	FreeCustomLibrary();

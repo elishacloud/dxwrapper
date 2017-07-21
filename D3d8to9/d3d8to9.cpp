@@ -18,7 +18,7 @@ extern "C" Direct3D8 *WINAPI Direct3DCreate8(UINT SDKVersion)
 	LOG << "Enabling D3d8to9 function (" << SDKVersion << ")";
 
 	// Load module
-	static HMODULE d3d9Module = Wrapper.LoadDll(dtype.d3d9);
+	static HMODULE d3d9Module = Wrapper::LoadDll(dtype.d3d9);
 	if (!d3d9Module)
 	{
 		LOG << "Failed to load d3d9.dll!";

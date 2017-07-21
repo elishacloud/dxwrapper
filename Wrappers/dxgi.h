@@ -65,7 +65,7 @@ namespace dxgi
 		void Load()
 		{
 			// Load real dll
-			dll = Wrapper.LoadDll(dtype.dxgi);
+			dll = Wrapper::LoadDll(dtype.dxgi);
 
 			// Load dll functions
 			if (dll)

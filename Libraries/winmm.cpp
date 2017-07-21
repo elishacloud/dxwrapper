@@ -31,7 +31,7 @@ void Loadwinmm()
 		return; // Only load the dll once
 	}
 	IsLoaded = true;
-	winmmModule = Wrapper.LoadDll(dtype.winmm);
+	winmmModule = Wrapper::LoadDll(dtype.winmm);
 	if (winmmModule)
 	{
 		timeBeginPeriodPtr = reinterpret_cast<PFN_timeBeginPeriod>(GetProcAddress(winmmModule, "timeBeginPeriod"));

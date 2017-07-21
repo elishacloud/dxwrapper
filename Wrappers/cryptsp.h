@@ -78,7 +78,7 @@ namespace cryptsp
 		void Load()
 		{
 			// Load real dll
-			dll = Wrapper.LoadDll(dtype.cryptsp);
+			dll = Wrapper::LoadDll(dtype.cryptsp);
 
 			// Load dll functions
 			if (dll)

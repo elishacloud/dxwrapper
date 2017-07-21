@@ -154,7 +154,7 @@ BOOL CDSoundCtrlApp::InitInstance(HMODULE hModule)
 	// Load DSOUND.DLL and get entry points
 	if (Config.RealWrapperMode == dtype.dsound)
 	{
-		g_hDLL = Wrapper.LoadDll(dtype.dsound);
+		g_hDLL = Wrapper::LoadDll(dtype.dsound);
 	}
 	else
 	{

@@ -209,7 +209,7 @@ namespace winspool
 		void Load()
 		{
 			// Load real dll
-			dll = Wrapper.LoadDll(dtype.winspool);
+			dll = Wrapper::LoadDll(dtype.winspool);
 
 			// Load dll functions
 			if (dll)

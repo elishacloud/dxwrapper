@@ -33,7 +33,7 @@ namespace ddraw
 		void Load()
 		{
 			// Load real dll
-			dll = Wrapper.LoadDll(dtype.ddraw);
+			dll = Wrapper::LoadDll(dtype.ddraw);
 
 			// Load dll functions
 			if (dll)
