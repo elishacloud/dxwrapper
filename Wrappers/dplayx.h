@@ -8,18 +8,25 @@
 	visit(DirectPlayLobbyCreateA) \
 	visit(DirectPlayLobbyCreateW)
 
-class dplayx_dll
+namespace dplayx
 {
-public:
-	dplayx_dll() { };
-	~dplayx_dll() { };
+	class dplayx_dll
+	{
+	public:
+		void Load()
+		{
+			// Load real dll
+			dll = Wrapper.LoadDll(dtype.dplayx);
 
-	void Load();
+			// Load dll functions
+			if (dll)
+			{
+				VISIT_DPLAYX_PROCS(LOAD_ORIGINAL_PROC);
+			}
+		}
+		HMODULE dll = nullptr;
+		VISIT_DPLAYX_PROCS(ADD_FARPROC_MEMBER);
+	};
 
-	HMODULE dll = nullptr;
-
-private:
-	VISIT_DPLAYX_PROCS(ADD_FARPROC_MEMBER);
-};
-
-extern dplayx_dll dplayx;
+	extern dplayx_dll module;
+}

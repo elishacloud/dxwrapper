@@ -9,18 +9,27 @@
 	//visit(DllCanUnloadNow) \		 // <---  Shared with dsound.dll
 	//visit(DllGetClassObject)		 // <---  Shared with dsound.dll
 
-class dinput_dll
+namespace dinput
 {
-public:
-	dinput_dll() { };
-	~dinput_dll() { };
+	class dinput_dll
+	{
+	public:
+		void Load()
+		{
+			// Load real dll
+			dll = Wrapper.LoadDll(dtype.dinput);
 
-	void Load();
+			// Load dll functions
+			if (dll)
+			{
+				VISIT_DINPUT_PROCS(LOAD_ORIGINAL_PROC);
+				dsound::module.DllCanUnloadNow = GetFunctionAddress(dll, "DllCanUnloadNow", jmpaddr);			 // <---  Shared with dsound.dll
+				dsound::module.DllGetClassObject = GetFunctionAddress(dll, "DllGetClassObject", jmpaddr);		 // <---  Shared with dsound.dll
+			}
+		}
+		HMODULE dll = nullptr;
+		VISIT_DINPUT_PROCS(ADD_FARPROC_MEMBER);
+	};
 
-	HMODULE dll = nullptr;
-
-private:
-	VISIT_DINPUT_PROCS(ADD_FARPROC_MEMBER);
-};
-
-extern dinput_dll dinput;
+	extern dinput_dll module;
+}

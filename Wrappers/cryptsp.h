@@ -67,18 +67,26 @@
 	visit(SystemFunction033) \
 	visit(SystemFunction035)
 
-class cryptsp_dll
+namespace cryptsp
 {
-public:
-	cryptsp_dll() { };
-	~cryptsp_dll() { };
+	class cryptsp_dll
+	{
+	public:
+		HMODULE dll = nullptr;
+		VISIT_CRYTPSP_PROCS(ADD_FARPROC_MEMBER);
 
-	void Load();
+		void Load()
+		{
+			// Load real dll
+			dll = Wrapper.LoadDll(dtype.cryptsp);
 
-	HMODULE dll = nullptr;
+			// Load dll functions
+			if (dll)
+			{
+				VISIT_CRYTPSP_PROCS(LOAD_ORIGINAL_PROC);
+			}
+		}
+	};
 
-private:
-	VISIT_CRYTPSP_PROCS(ADD_FARPROC_MEMBER);
+	extern cryptsp_dll module;
 };
-
-extern cryptsp_dll cryptsp;

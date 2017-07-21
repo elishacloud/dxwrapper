@@ -196,18 +196,25 @@
 	visit(winmmSetDebugLevel) \
 	visit(wod32Message)
 
-class winmm_dll
+namespace winmm
 {
-public:
-	winmm_dll() { };
-	~winmm_dll() { };
+	class winmm_dll
+	{
+	public:
+		void Load()
+		{
+			// Load real dll
+			dll = Wrapper.LoadDll(dtype.winmm);
 
-	void Load();
-	
-	HMODULE dll = nullptr;
+			// Load dll functions
+			if (dll)
+			{
+				VISIT_WINMM_PROCS(LOAD_ORIGINAL_PROC);
+			}
+		}
+		HMODULE dll = nullptr;
+		VISIT_WINMM_PROCS(ADD_FARPROC_MEMBER);
+	};
 
-private:
-	VISIT_WINMM_PROCS(ADD_FARPROC_MEMBER);
-};
-
-extern winmm_dll winmm;
+	extern winmm_dll module;
+}

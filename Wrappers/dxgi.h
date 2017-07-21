@@ -57,18 +57,25 @@
 	visit(D3DKMTWaitForSynchronizationObject) \
 	visit(D3DKMTWaitForVerticalBlankEvent)
 
-class dxgi_dll
+namespace dxgi
 {
-public:
-	dxgi_dll() { };
-	~dxgi_dll() { };
+	class dxgi_dll
+	{
+	public:
+		void Load()
+		{
+			// Load real dll
+			dll = Wrapper.LoadDll(dtype.dxgi);
 
-	void Load();
+			// Load dll functions
+			if (dll)
+			{
+				VISIT_DXGI_PROCS(LOAD_ORIGINAL_PROC);
+			}
+		}
+		HMODULE dll = nullptr;
+		VISIT_DXGI_PROCS(ADD_FARPROC_MEMBER);
+	};
 
-	HMODULE dll = nullptr;
-
-private:
-	VISIT_DXGI_PROCS(ADD_FARPROC_MEMBER);
-};
-
-extern dxgi_dll dxgi;
+	extern dxgi_dll module;
+}

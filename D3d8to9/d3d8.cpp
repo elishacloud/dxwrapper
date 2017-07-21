@@ -14,25 +14,60 @@
 *   3. This notice may not be removed or altered from any source distribution.
 */
 
-#include "Settings\Settings.h"
-#include "Utils\Utils.h"
-#include "wrapper.h"
-#include "dplayx.h"
+#define WIN32_LEAN_AND_MEAN
+#include <windows.h>
 
-dplayx_dll dplayx;
-
-#define module dplayx
-
-VISIT_DPLAYX_PROCS(CREATE_PROC_STUB)
-
-void dplayx_dll::Load()
+HRESULT WINAPI _ValidateVertexShader(DWORD* vertexshader, DWORD* reserved1, DWORD* reserved2, BOOL flag, DWORD* toto)
 {
-	// Load real dll
-	dll = Wrapper.LoadDll(dtype.dplayx);
+	UNREFERENCED_PARAMETER(flag);
+	UNREFERENCED_PARAMETER(toto);
 
-	// Load dll functions
-	if (dll)
+	if (!vertexshader)
 	{
-		VISIT_DPLAYX_PROCS(LOAD_ORIGINAL_PROC);
+		return E_FAIL;
+	}
+
+	if (reserved1 || reserved2)
+	{
+		return E_FAIL;
+	}
+
+	switch (*vertexshader)
+	{
+	case 0xFFFE0100:
+	case 0xFFFE0101:
+		return S_OK;
+		break;
+	default:
+		return E_FAIL;
+	}
+}
+
+HRESULT WINAPI _ValidatePixelShader(DWORD* pixelshader, DWORD* reserved1, BOOL flag, DWORD* toto)
+{
+	UNREFERENCED_PARAMETER(flag);
+	UNREFERENCED_PARAMETER(toto);
+
+	if (!pixelshader)
+	{
+		return E_FAIL;
+	}
+
+	if (reserved1)
+	{
+		return E_FAIL;
+	}
+
+	switch (*pixelshader)
+	{
+	case 0xFFFF0100:
+	case 0xFFFF0101:
+	case 0xFFFF0102:
+	case 0xFFFF0103:
+	case 0xFFFF0104:
+		return S_OK;
+		break;
+	default:
+		return E_FAIL;
 	}
 }

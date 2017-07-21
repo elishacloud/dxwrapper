@@ -16,18 +16,26 @@
 	visit(PSGPSampleTexture) \
 	//visit(DebugSetMute)		// <---  Shared with d3d8.dll
 
-class d3d9_dll
+namespace d3d9
 {
-public:
-	d3d9_dll() { };
-	~d3d9_dll() { };
+	class d3d9_dll
+	{
+	public:
+		void Load()
+		{
+			// Load real dll
+			dll = Wrapper.LoadDll(dtype.d3d9);
 
-	void Load();
+			// Load dll functions
+			if (dll)
+			{
+				VISIT_D3D9_PROCS(LOAD_ORIGINAL_PROC);
+				d3d8::module.DebugSetMute = GetFunctionAddress(dll, "DebugSetMute", jmpaddr);		// <---  Shared with d3d8.dll
+			}
+		}
+		HMODULE dll = nullptr;
+		VISIT_D3D9_PROCS(ADD_FARPROC_MEMBER);
+	};
 
-	HMODULE dll = nullptr;
-
-private:
-	VISIT_D3D9_PROCS(ADD_FARPROC_MEMBER);
-};
-
-extern d3d9_dll d3d9;
+	extern d3d9_dll module;
+}

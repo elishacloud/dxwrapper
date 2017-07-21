@@ -201,18 +201,25 @@
 
 #undef DeviceCapabilities
 
-class winspool_dll
+namespace winspool
 {
-public:
-	winspool_dll() { };
-	~winspool_dll() { };
+	class winspool_dll
+	{
+	public:
+		void Load()
+		{
+			// Load real dll
+			dll = Wrapper.LoadDll(dtype.winspool);
 
-	void Load();
+			// Load dll functions
+			if (dll)
+			{
+				VISIT_WINSPOOL_PROCS(LOAD_ORIGINAL_PROC);
+			}
+		}
+		HMODULE dll = nullptr;
+		VISIT_WINSPOOL_PROCS(ADD_FARPROC_MEMBER);
+	};
 
-	HMODULE dll = nullptr;
-
-private:
-	VISIT_WINSPOOL_PROCS(ADD_FARPROC_MEMBER);
-};
-
-extern winspool_dll winspool;
+	extern winspool_dll module;
+}

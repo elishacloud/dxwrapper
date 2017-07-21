@@ -166,7 +166,7 @@ copy /Y "$(ProjectDir)Settings\Settings.ini" "$(TargetDir)Build\" &gt;nul</Comma
       </AdditionalIncludeDirectories>
     </ResourceCompile>
     <Link>
-      <OutputFile>$(OutDir)\dxwrapper.dll</OutputFile>
+      <OutputFile>$(OutDir)dxwrapper.dll</OutputFile>
       <SuppressStartupBanner>true</SuppressStartupBanner>
       <ModuleDefinitionFile>.\Dllmain\dxwrapper.def</ModuleDefinitionFile>
       <ProgramDatabaseFile />
@@ -210,6 +210,7 @@ cmd /c "@echo off &amp;&amp; cd /D ""$(ProjectDir)Dllmain\"" &amp;&amp; type Bui
     </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="D3d8to9\d3d8.cpp" />
     <ClCompile Include="D3d8to9\d3d8to9.cpp" />
     <ClCompile Include="D3d8to9\d3d8to9_base.cpp" />
     <ClCompile Include="D3d8to9\d3d8to9_device.cpp" />
@@ -268,17 +269,6 @@ cmd /c "@echo off &amp;&amp; cd /D ""$(ProjectDir)Dllmain\"" &amp;&amp; type Bui
     <ClCompile Include="libraries\winmm.cpp" />
     <ClCompile Include="Settings\Settings.cpp" />
     <ClCompile Include="Utils\Utils.cpp" />
-    <ClCompile Include="Wrappers\bcrypt.cpp" />
-    <ClCompile Include="Wrappers\cryptsp.cpp" />
-    <ClCompile Include="Wrappers\d3d8.cpp" />
-    <ClCompile Include="Wrappers\d3d9.cpp" />
-    <ClCompile Include="Wrappers\ddraw.cpp" />
-    <ClCompile Include="Wrappers\dinput.cpp" />
-    <ClCompile Include="Wrappers\dplayx.cpp" />
-    <ClCompile Include="Wrappers\dsound.cpp" />
-    <ClCompile Include="Wrappers\dxgi.cpp" />
-    <ClCompile Include="Wrappers\winmm.cpp" />
-    <ClCompile Include="Wrappers\winspool.cpp" />
     <ClCompile Include="wrappers\wrapper.cpp" />
     <ClCompile Include="WriteMemory\WriteMemory.cpp" />
   </ItemGroup>
@@ -288,6 +278,7 @@ cmd /c "@echo off &amp;&amp; cd /D ""$(ProjectDir)Dllmain\"" &amp;&amp; type Bui
     <None Include="Settings\Settings.ini" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="D3d8to9\d3d8.h" />
     <ClInclude Include="D3d8to9\d3d8to9.hpp" />
     <ClInclude Include="D3d8to9\d3d8types.hpp" />
     <ClInclude Include="D3d8to9\lookup_table.hpp" />

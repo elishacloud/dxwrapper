@@ -60,18 +60,25 @@
 	visit(BCryptUnregisterProvider) \
 	visit(BCryptVerifySignature)
 
-class bcrypt_dll
+namespace bcrypt
 {
-public:
-	bcrypt_dll() { };
-	~bcrypt_dll() { };
+	class bcrypt_dll
+	{
+	public:
+		void Load()
+		{
+			// Load real dll
+			dll = Wrapper.LoadDll(dtype.bcrypt);
 
-	void Load();
+			// Load dll functions
+			if (dll)
+			{
+				VISIT_BCRYPT_PROCS(LOAD_ORIGINAL_PROC);
+			}
+		}
+		HMODULE dll = nullptr;
+		VISIT_BCRYPT_PROCS(ADD_FARPROC_MEMBER);
+	};
 
-	HMODULE dll = nullptr;
-
-private:
-	VISIT_BCRYPT_PROCS(ADD_FARPROC_MEMBER);
+	extern bcrypt_dll module;
 };
-
-extern bcrypt_dll bcrypt;

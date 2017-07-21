@@ -223,38 +223,8 @@
     <ClCompile Include="DDrawCompat\v0.2.1\UnmodifiedDDrawProcs.cpp">
       <Filter>DDrawCompat</Filter>
     </ClCompile>
-    <ClCompile Include="Wrappers\bcrypt.cpp">
-      <Filter>Wrappers</Filter>
-    </ClCompile>
-    <ClCompile Include="Wrappers\cryptsp.cpp">
-      <Filter>Wrappers</Filter>
-    </ClCompile>
-    <ClCompile Include="Wrappers\d3d8.cpp">
-      <Filter>Wrappers</Filter>
-    </ClCompile>
-    <ClCompile Include="Wrappers\d3d9.cpp">
-      <Filter>Wrappers</Filter>
-    </ClCompile>
-    <ClCompile Include="Wrappers\ddraw.cpp">
-      <Filter>Wrappers</Filter>
-    </ClCompile>
-    <ClCompile Include="Wrappers\dinput.cpp">
-      <Filter>Wrappers</Filter>
-    </ClCompile>
-    <ClCompile Include="Wrappers\dsound.cpp">
-      <Filter>Wrappers</Filter>
-    </ClCompile>
-    <ClCompile Include="Wrappers\dplayx.cpp">
-      <Filter>Wrappers</Filter>
-    </ClCompile>
-    <ClCompile Include="Wrappers\dxgi.cpp">
-      <Filter>Wrappers</Filter>
-    </ClCompile>
-    <ClCompile Include="Wrappers\winmm.cpp">
-      <Filter>Wrappers</Filter>
-    </ClCompile>
-    <ClCompile Include="Wrappers\winspool.cpp">
-      <Filter>Wrappers</Filter>
+    <ClCompile Include="D3d8to9\d3d8.cpp">
+      <Filter>D3d8to9</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -487,6 +457,9 @@
     </ClInclude>
     <ClInclude Include="DDrawCompat\v0.2.1\Time1.h">
       <Filter>DDrawCompat</Filter>
+    </ClInclude>
+    <ClInclude Include="D3d8to9\d3d8.h">
+      <Filter>D3d8to9</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

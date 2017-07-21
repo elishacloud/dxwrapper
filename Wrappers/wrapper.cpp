@@ -16,16 +16,20 @@
 
 // Default
 #include "Settings\Settings.h"
+#include "Dllmain\Dllmain.h"
+#include "Hook\inithook.h"
+#include "Utils\Utils.h"
 #include "wrapper.h"
 // Wrappers
 #include "bcrypt.h"
 #include "cryptsp.h"
+#include "D3d8to9\d3d8.h"
 #include "d3d8.h"
 #include "d3d9.h"
+#include "dsound.h"
 #include "ddraw.h"
 #include "dinput.h"
 #include "dplayx.h"
-#include "dsound.h"
 #include "dxgi.h"
 #include "winmm.h"
 #include "winspool.h"
@@ -34,11 +38,15 @@
 #include "dwmapi.h"
 #include "uxtheme.h"
 
-// Wrapper class
+// Wrapper classes
 DllWrapper Wrapper;
+VISIT_WRAPPERS(ADD_NAMESPACE_CLASS)
+
+// Proc functions
+VISIT_WRAPPERS(CREATE_ALL_PROC_STUB)
 
 // Default function
-HRESULT ReturnProc()
+HRESULT WINAPI ReturnProc()
 {
 	// Do nothing
 	return E_NOTIMPL;
@@ -155,49 +163,21 @@ void DllWrapper::FreeCustomLibrary()
 // Load wrapper dll files
 void DllWrapper::DllAttach()
 {
-	if (Config.WrapperMode == dtype.winspool || Config.WrapperMode == 0)
+	VISIT_WRAPPERS(LOAD_WRAPPER);
+	if (Config.WrapperMode != 0)
 	{
-		winspool.Load();
-	}
-	if (Config.WrapperMode == dtype.cryptsp || Config.WrapperMode == 0)
-	{
-		cryptsp.Load();
-	}
-	if (Config.WrapperMode == dtype.bcrypt || Config.WrapperMode == 0)
-	{
-		bcrypt.Load();
-	}
-	if (Config.WrapperMode == dtype.dplayx || Config.WrapperMode == 0)
-	{
-		dplayx.Load();
-	}
-	if (Config.WrapperMode == dtype.d3d8 || Config.WrapperMode == 0 || Config.D3d8to9)
-	{
-		d3d8.Load();
-	}
-	if (Config.WrapperMode == dtype.dxgi || Config.WrapperMode == 0)
-	{
-		dxgi.Load();
-	}
-	if (Config.WrapperMode == dtype.winmm || Config.WrapperMode == 0)
-	{
-		winmm.Load();
-	}
-	if (Config.WrapperMode == dtype.dsound || Config.WrapperMode == 0 || Config.DSoundCtrl)
-	{
-		dsound.Load();
-	}
-	if (Config.WrapperMode == dtype.dinput || Config.WrapperMode == 0)
-	{
-		dinput.Load();
-	}
-	if (Config.WrapperMode == dtype.d3d9 || Config.WrapperMode == 0)
-	{
-		d3d9.Load();
-	}
-	if (Config.WrapperMode == dtype.ddraw || Config.WrapperMode == 0 || Config.DDrawCompat)
-	{
-		ddraw.Load();
+		if (Config.WrapperMode != dtype.d3d8 && Config.D3d8to9)
+		{
+			d3d8::module.Load();
+		}
+		if (Config.WrapperMode != dtype.dsound && Config.DSoundCtrl)
+		{
+			dsound::module.Load();
+		}
+		if (Config.WrapperMode != dtype.ddraw && Config.DDrawCompat)
+		{
+			ddraw::module.Load();
+		}
 	}
 	if (Config.CustomDllCount > 0)
 	{
