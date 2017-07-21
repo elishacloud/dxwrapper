@@ -201,6 +201,9 @@ namespace winmm
 	class winmm_dll
 	{
 	public:
+		HMODULE dll = nullptr;
+		VISIT_WINMM_PROCS(ADD_FARPROC_MEMBER);
+
 		void Load()
 		{
 			// Load real dll
@@ -212,8 +215,6 @@ namespace winmm
 				VISIT_WINMM_PROCS(LOAD_ORIGINAL_PROC);
 			}
 		}
-		HMODULE dll = nullptr;
-		VISIT_WINMM_PROCS(ADD_FARPROC_MEMBER);
 	};
 
 	extern winmm_dll module;

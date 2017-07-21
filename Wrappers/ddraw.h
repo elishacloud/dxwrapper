@@ -30,6 +30,9 @@ namespace ddraw
 	class ddraw_dll
 	{
 	public:
+		HMODULE dll = nullptr;
+		VISIT_DDRAW_PROCS(ADD_FARPROC_MEMBER);
+
 		void Load()
 		{
 			// Load real dll
@@ -58,9 +61,6 @@ namespace ddraw
 				}
 			}
 		}
-
-		HMODULE dll = nullptr;
-		VISIT_DDRAW_PROCS(ADD_FARPROC_MEMBER);
 	};
 
 	extern ddraw_dll module;

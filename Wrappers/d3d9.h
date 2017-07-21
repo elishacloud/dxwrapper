@@ -21,6 +21,9 @@ namespace d3d9
 	class d3d9_dll
 	{
 	public:
+		HMODULE dll = nullptr;
+		VISIT_D3D9_PROCS(ADD_FARPROC_MEMBER);
+
 		void Load()
 		{
 			// Load real dll
@@ -33,8 +36,6 @@ namespace d3d9
 				d3d8::module.DebugSetMute = GetFunctionAddress(dll, "DebugSetMute", jmpaddr);		// <---  Shared with d3d8.dll
 			}
 		}
-		HMODULE dll = nullptr;
-		VISIT_D3D9_PROCS(ADD_FARPROC_MEMBER);
 	};
 
 	extern d3d9_dll module;

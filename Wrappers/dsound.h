@@ -19,6 +19,9 @@ namespace dsound
 	class dsound_dll
 	{
 	public:
+		HMODULE dll = nullptr;
+		VISIT_DSOUND_PROCS(ADD_FARPROC_MEMBER);
+
 		void Load()
 		{
 			// Load real dll
@@ -63,8 +66,6 @@ namespace dsound
 				}
 			}
 		}
-		HMODULE dll = nullptr;
-		VISIT_DSOUND_PROCS(ADD_FARPROC_MEMBER);
 	};
 
 	extern dsound_dll module;

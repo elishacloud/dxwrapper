@@ -65,6 +65,9 @@ namespace bcrypt
 	class bcrypt_dll
 	{
 	public:
+		HMODULE dll = nullptr;
+		VISIT_BCRYPT_PROCS(ADD_FARPROC_MEMBER);
+
 		void Load()
 		{
 			// Load real dll
@@ -76,8 +79,6 @@ namespace bcrypt
 				VISIT_BCRYPT_PROCS(LOAD_ORIGINAL_PROC);
 			}
 		}
-		HMODULE dll = nullptr;
-		VISIT_BCRYPT_PROCS(ADD_FARPROC_MEMBER);
 	};
 
 	extern bcrypt_dll module;

@@ -206,6 +206,9 @@ namespace winspool
 	class winspool_dll
 	{
 	public:
+		HMODULE dll = nullptr;
+		VISIT_WINSPOOL_PROCS(ADD_FARPROC_MEMBER);
+
 		void Load()
 		{
 			// Load real dll
@@ -217,8 +220,6 @@ namespace winspool
 				VISIT_WINSPOOL_PROCS(LOAD_ORIGINAL_PROC);
 			}
 		}
-		HMODULE dll = nullptr;
-		VISIT_WINSPOOL_PROCS(ADD_FARPROC_MEMBER);
 	};
 
 	extern winspool_dll module;

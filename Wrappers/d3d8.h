@@ -11,6 +11,9 @@ namespace d3d8
 	class d3d8_dll
 	{
 	public:
+		HMODULE dll = nullptr;
+		VISIT_D3D8_PROCS(ADD_FARPROC_MEMBER);
+
 		void Load()
 		{
 			// Enable d3d8to9 conversion
@@ -41,8 +44,6 @@ namespace d3d8
 				}
 			}
 		}
-		HMODULE dll = nullptr;
-		VISIT_D3D8_PROCS(ADD_FARPROC_MEMBER);
 	};
 
 	extern d3d8_dll module;

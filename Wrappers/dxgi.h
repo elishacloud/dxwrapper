@@ -62,6 +62,9 @@ namespace dxgi
 	class dxgi_dll
 	{
 	public:
+		HMODULE dll = nullptr;
+		VISIT_DXGI_PROCS(ADD_FARPROC_MEMBER);
+
 		void Load()
 		{
 			// Load real dll
@@ -73,8 +76,6 @@ namespace dxgi
 				VISIT_DXGI_PROCS(LOAD_ORIGINAL_PROC);
 			}
 		}
-		HMODULE dll = nullptr;
-		VISIT_DXGI_PROCS(ADD_FARPROC_MEMBER);
 	};
 
 	extern dxgi_dll module;

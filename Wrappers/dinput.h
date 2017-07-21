@@ -14,6 +14,9 @@ namespace dinput
 	class dinput_dll
 	{
 	public:
+		HMODULE dll = nullptr;
+		VISIT_DINPUT_PROCS(ADD_FARPROC_MEMBER);
+
 		void Load()
 		{
 			// Load real dll
@@ -27,8 +30,6 @@ namespace dinput
 				dsound::module.DllGetClassObject = GetFunctionAddress(dll, "DllGetClassObject", jmpaddr);		 // <---  Shared with dsound.dll
 			}
 		}
-		HMODULE dll = nullptr;
-		VISIT_DINPUT_PROCS(ADD_FARPROC_MEMBER);
 	};
 
 	extern dinput_dll module;

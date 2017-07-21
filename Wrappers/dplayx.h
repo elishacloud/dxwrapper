@@ -13,6 +13,9 @@ namespace dplayx
 	class dplayx_dll
 	{
 	public:
+		HMODULE dll = nullptr;
+		VISIT_DPLAYX_PROCS(ADD_FARPROC_MEMBER);
+
 		void Load()
 		{
 			// Load real dll
@@ -24,8 +27,6 @@ namespace dplayx
 				VISIT_DPLAYX_PROCS(LOAD_ORIGINAL_PROC);
 			}
 		}
-		HMODULE dll = nullptr;
-		VISIT_DPLAYX_PROCS(ADD_FARPROC_MEMBER);
 	};
 
 	extern dplayx_dll module;
