@@ -17,26 +17,46 @@
 * http://bitpatch.com/ddwrapper.html
 */
 
+#include <stdlib.h>
 #include "Settings.h"
 #include "Dllmain\Dllmain.h"
+#include "Logging\Logging.h"
 
 typedef void(__stdcall* NV)(char* name, char* value);
 
 CONFIG Config;
-CRITICAL_SECTION CriticalSectionCfg;
 
-byte ExcludeCount;
-byte IncludeCount;
-char* szExclude[256];
-char* szInclude[256];
-
-void LogText(char *MyText)
+namespace Settings
 {
-	LOG << MyText;
+	// Declare varables
+	CRITICAL_SECTION CriticalSectionCfg;
+	byte ExcludeCount;
+	byte IncludeCount;
+	char* szExclude[256];
+	char* szInclude[256];
+
+	// Function declarations
+	void DeleteArrayMemory(char* [256], byte);
+	void DeleteByteToWriteArrayMemory();
+	void EraseCppComments(char*);
+	void Parse(char*, NV);
+	char* Read(char*);
+	void SetConfig(char*, char*);
+	void SetAddressPointerList(MEMORYINFO&, char*);
+	void SetBytesList(MEMORYINFO&, char*);
+	bool IsValueEnabled(char*);
+	void LogSetting(char*, char*);
+	void SetValue(char*, char*, DWORD*);
+	void SetValue(char*, char*, bool*);
+	void ParseConfigValue(char*, char*);
+	void __stdcall ParseCallback(char*, char*);
+	void strippath(char*);
+	void ClearConfigSettings();
+	void GetWrapperMode();
 }
 
 // Checks if a string value exists in a string array
-bool IfStringExistsInList(char* szValue, char* szList[256], byte ListCount, bool CaseSensitive)
+bool Settings::IfStringExistsInList(char* szValue, char* szList[256], byte ListCount, bool CaseSensitive)
 {
 	for (UINT x = 1; x <= ListCount; ++x)
 	{
@@ -58,7 +78,7 @@ bool IfStringExistsInList(char* szValue, char* szList[256], byte ListCount, bool
 }
 
 // Deletes all string values from an array
-void DeleteArrayMemory(char* szList[256], byte ListCount)
+void Settings::DeleteArrayMemory(char* szList[256], byte ListCount)
 {
 	for (UINT x = 1; x <= ListCount; ++x)
 	{
@@ -67,7 +87,7 @@ void DeleteArrayMemory(char* szList[256], byte ListCount)
 }
 
 // Deletes all BytesToWrite values from the BytesToWrite array
-void DeleteByteToWriteArrayMemory()
+void Settings::DeleteByteToWriteArrayMemory()
 {
 	for (UINT x = 1; x <= Config.BytesToWriteCount; ++x)
 	{
@@ -81,7 +101,7 @@ void DeleteByteToWriteArrayMemory()
 // any C++ style (both inline and block) commented text is replaced with a space character 
 // todo: skip comments inside double quotes
 #pragma warning (disable : 4706)
-void EraseCppComments(char* str)
+void Settings::EraseCppComments(char* str)
 {
 	while (str = strchr(str, '/'))
 	{
@@ -126,7 +146,7 @@ void EraseCppComments(char* str)
 //	0x09 - horizontal tab
 //	0x0D - carriage return
 #pragma warning (disable : 4996)
-void Parse(char* str, NV NameValueCallback)
+void Settings::Parse(char* str, NV NameValueCallback)
 {
 	EraseCppComments(str);
 	for (str = strtok(str, "\n"); str; str = strtok(0, "\n"))
@@ -166,7 +186,7 @@ void Parse(char* str, NV NameValueCallback)
 #pragma warning (default : 4996)
 
 // Reads szFileName from disk
-char* Read(char* szFileName)
+char* Settings::Read(char* szFileName)
 {
 	HANDLE hFile;
 	DWORD dwBytesToRead;
@@ -202,7 +222,7 @@ char* Read(char* szFileName)
 }
 
 // Set config from string (file)
-void SetConfig(char* name, char* value)
+void Settings::SetConfig(char* name, char* value)
 {
 	if (!_strcmpi(value, "AUTO") != 0)
 	{
@@ -215,7 +235,7 @@ void SetConfig(char* name, char* value)
 }
 
 // Set config from string (file)
-void SetConfigList(char* name[], byte& count, char* value)
+void Settings::SetConfigList(char* name[], byte& count, char* value)
 {
 	if (strlen(value) <= MAX_PATH)
 	{
@@ -226,7 +246,7 @@ void SetConfigList(char* name[], byte& count, char* value)
 }
 
 // Set AddressPointer array from string (file)
-void SetAddressPointerList(MEMORYINFO& MemoryInfo, char* value)
+void Settings::SetAddressPointerList(MEMORYINFO& MemoryInfo, char* value)
 {
 	// Get address pointer
 	if (strtoul(value, nullptr, 16) > 0 &&						// Verify pointer has a value higher than 0
@@ -242,7 +262,7 @@ void SetAddressPointerList(MEMORYINFO& MemoryInfo, char* value)
 }
 
 // Set BytesToWrite to memory from string (file)
-void SetBytesList(MEMORYINFO& MemoryInfo, char* value)
+void Settings::SetBytesList(MEMORYINFO& MemoryInfo, char* value)
 {
 	// Declare vars
 	char charTemp[] = { '0', 'x', '0' , '0' };
@@ -274,7 +294,7 @@ void SetBytesList(MEMORYINFO& MemoryInfo, char* value)
 }
 
 // Set booloean value from string (file)
-bool IsValueEnabled(char* name)
+bool Settings::IsValueEnabled(char* name)
 {
 	return (atoi(name) > 0 ||
 		_strcmpi("on", name) == 0 ||
@@ -284,10 +304,10 @@ bool IsValueEnabled(char* name)
 }
 
 // Log setting value for bool
-void LogSetting(char* name, char* value)
+void Settings::LogSetting(char* name, char* value)
 {
 #ifdef _DEBUG
-	LOG << name << " set to '" << value << "'";
+	Logging::Log() << name << " set to '" << value << "'";
 #else
 	UNREFERENCED_PARAMETER(name);
 	UNREFERENCED_PARAMETER(value);
@@ -295,13 +315,13 @@ void LogSetting(char* name, char* value)
 }
 
 // Set value for DWORD
-void SetValue(char* name, char* value, DWORD* setting)
+void Settings::SetValue(char* name, char* value, DWORD* setting)
 {
 	DWORD NewValue = atoi(value);
 	if (*setting != NewValue)
 	{
 #ifdef _DEBUG
-		LOG << name << " set to '" << NewValue << "'";
+		Logging::Log() << name << " set to '" << NewValue << "'";
 #else
 		UNREFERENCED_PARAMETER(name);
 #endif
@@ -310,7 +330,7 @@ void SetValue(char* name, char* value, DWORD* setting)
 }
 
 // Set value for bool
-void SetValue(char* name, char* value, bool* setting)
+void Settings::SetValue(char* name, char* value, bool* setting)
 {
 	bool NewValue = IsValueEnabled(value);
 	if (*setting != NewValue)
@@ -318,7 +338,7 @@ void SetValue(char* name, char* value, bool* setting)
 #ifdef _DEBUG
 		char* NewValueText = "false";
 		if (NewValue) NewValueText = "true";
-		LOG << name << " set to '" << NewValueText << "'";
+		Logging::Log() << name << " set to '" << NewValueText << "'";
 #else
 		UNREFERENCED_PARAMETER(name);
 #endif
@@ -327,7 +347,7 @@ void SetValue(char* name, char* value, bool* setting)
 }
 
 // Set config from string (file)
-void ParseConfigValue(char* name, char* value)
+void Settings::ParseConfigValue(char* name, char* value)
 {
 	// Boolean values
 	if (!_strcmpi(name, "SingleProcAffinity"))
@@ -653,11 +673,11 @@ void ParseConfigValue(char* name, char* value)
 		return;
 	}
 	// Logging
-	LOG << "Warning. Config setting not recognized: " << name;
+	Logging::Log() << "Warning. Config setting not recognized: " << name;
 }
 
 // Set config from string (file)
-void __stdcall ParseCallback(char* name, char* value)
+void __stdcall Settings::ParseCallback(char* name, char* value)
 {
 	// Critical section
 	EnterCriticalSection(&CriticalSectionCfg);
@@ -668,7 +688,7 @@ void __stdcall ParseCallback(char* name, char* value)
 }
 
 // Strip path from a string
-void strippath(char* str)
+void Settings::strippath(char* str)
 {
 	int ch = '\\';
 	size_t len;
@@ -697,7 +717,7 @@ void strippath(char* str)
 }
 
 // Set default values
-void ClearConfigSettings()
+void Settings::ClearConfigSettings()
 {
 	// Cleanup memory (needs to be done first)
 	Config.CleanUp();
@@ -765,7 +785,7 @@ void ClearConfigSettings()
 }
 
 // Get wrapper mode based on dll name
-void GetWrapperMode()
+void Settings::GetWrapperMode()
 {
 	char buffer[MAX_PATH];
 	Config.RealWrapperMode = 0;
@@ -799,6 +819,7 @@ void GetWrapperMode()
 
 void CONFIG::CleanUp()
 {
+	using namespace Settings;
 	DeleteArrayMemory(szExclude, ExcludeCount);
 	DeleteArrayMemory(szInclude, IncludeCount);
 	DeleteArrayMemory(Config.szCustomDllPath, Config.CustomDllCount);
@@ -808,6 +829,8 @@ void CONFIG::CleanUp()
 
 void CONFIG::Init()
 {
+	using namespace Settings;
+
 	// Initialize the critical section one time only.
 	InitializeCriticalSectionAndSpinCount(&CriticalSectionCfg, 0);
 
@@ -840,7 +863,7 @@ void CONFIG::Init()
 	{
 		*p = (char)tolower(*p);
 	}
-	LOG << "Reading config file: " << pdest;
+	Logging::Log() << "Reading config file: " << pdest;
 
 	// Read config file
 	szCfg = Read(path);
@@ -853,7 +876,7 @@ void CONFIG::Init()
 	}
 	else
 	{
-		LOG << "Could not load config file using defaults";
+		Logging::Log() << "Could not load config file using defaults";
 	}
 
 	// Verify sleep time to make sure it is not be set too low (can be perf issues if it is too low)
@@ -869,7 +892,7 @@ void CONFIG::Init()
 	if ((ExcludeCount > 0 && IfStringExistsInList(szFileName, szExclude, ExcludeCount, false)) ||
 		(IncludeCount > 0 && !IfStringExistsInList(szFileName, szInclude, IncludeCount, false)))
 	{
-		LOG << "Clearing config and disabling dxwrapper!";
+		Logging::Log() << "Clearing config and disabling dxwrapper!";
 		ClearConfigSettings();
 	}
 

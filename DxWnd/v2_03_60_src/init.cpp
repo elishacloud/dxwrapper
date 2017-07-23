@@ -3,13 +3,12 @@
 * https://sourceforge.net/projects/dxwnd/
 *
 * Updated 2017 by Elisha Riedlinger
-*
 */
 
 #include <windows.h>
 #include <stdio.h>
 //********** Begin Edit *************
-#include "Settings\Settings.h"
+#include "Logging\Logging.h"
 //********** End Edit ***************
 #include "dxwnd.h"
 
@@ -80,7 +79,7 @@ void InitDxWnd(void)
     }
 	else
 		//********** Begin Edit *************
-		LOG << "Cannot load dxwnd.dll library";
+		Logging::Log() << "Cannot load dxwnd.dll library";
 		//MessageBox(0, "Cannot load dxwnd.dll library", "dxwnd", MB_ICONERROR);
 		//********** End Edit ***************
 }

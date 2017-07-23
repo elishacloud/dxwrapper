@@ -14,8 +14,8 @@
 *   3. This notice may not be removed or altered from any source distribution.
 */
 
-#include  "Settings\Settings.h"
 #include "d3dx9.h"
+#include "Logging\Logging.h"
 
 typedef HRESULT(WINAPI *PFN_D3DXAssembleShader)(LPCSTR pSrcData, UINT SrcDataLen, const D3DXMACRO *pDefines, LPD3DXINCLUDE pInclude, DWORD Flags, LPD3DXBUFFER *ppShader, LPD3DXBUFFER *ppErrorMsgs);
 typedef HRESULT(WINAPI *PFN_D3DXDisassembleShader)(const DWORD *pShader, BOOL EnableColorCode, LPCSTR pComments, LPD3DXBUFFER *ppDisassembly);
@@ -57,26 +57,26 @@ void Loadd3dx9()
 
 	if (d3dx9Module)
 	{
-		LOG << "Loaded " << d3dx9name << " library";
+		Logging::Log() << "Loaded " << d3dx9name << " library";
 		D3DXAssembleShaderPtr = reinterpret_cast<PFN_D3DXAssembleShader>(GetProcAddress(d3dx9Module, "D3DXAssembleShader"));
 		D3DXDisassembleShaderPtr = reinterpret_cast<PFN_D3DXDisassembleShader>(GetProcAddress(d3dx9Module, "D3DXDisassembleShader"));
 		D3DXLoadSurfaceFromSurfacePtr = reinterpret_cast<PFN_D3DXLoadSurfaceFromSurface>(GetProcAddress(d3dx9Module, "D3DXLoadSurfaceFromSurface"));
 		if (!D3DXAssembleShaderPtr)
 		{
-			LOG << "Failed to get 'D3DXAssembleShader' ProcAddress of d3dx9_xx.dll!";
+			Logging::Log() << "Failed to get 'D3DXAssembleShader' ProcAddress of d3dx9_xx.dll!";
 		}
 		if (!D3DXDisassembleShaderPtr)
 		{
-			LOG << "Failed to get 'D3DXDisassembleShader' ProcAddress of d3dx9_xx.dll!";
+			Logging::Log() << "Failed to get 'D3DXDisassembleShader' ProcAddress of d3dx9_xx.dll!";
 		}
 		if (!D3DXLoadSurfaceFromSurfacePtr)
 		{
-			LOG << "Failed to get 'D3DXLoadSurfaceFromSurface' ProcAddress of d3dx9_xx.dll!";
+			Logging::Log() << "Failed to get 'D3DXLoadSurfaceFromSurface' ProcAddress of d3dx9_xx.dll!";
 		}
 	}
 	else
 	{
-		LOG << "Failed to load dwmapi.dll!";
+		Logging::Log() << "Failed to load dwmapi.dll!";
 	}
 }
 

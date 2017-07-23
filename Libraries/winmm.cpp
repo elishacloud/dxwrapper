@@ -14,8 +14,9 @@
 *   3. This notice may not be removed or altered from any source distribution.
 */
 
-#include  "Settings\Settings.h"
-#include  "Wrappers\wrapper.h"
+#include "Settings\Settings.h"
+#include "Wrappers\wrapper.h"
+#include "Logging\Logging.h"
 
 typedef void(WINAPI *PFN_timeBeginPeriod)(UINT uPeriod);
 typedef void(WINAPI *PFN_timeEndPeriod)(UINT uPeriod);
@@ -36,12 +37,12 @@ void Loadwinmm()
 	{
 		timeBeginPeriodPtr = reinterpret_cast<PFN_timeBeginPeriod>(GetProcAddress(winmmModule, "timeBeginPeriod"));
 		timeEndPeriodPtr = reinterpret_cast<PFN_timeEndPeriod>(GetProcAddress(winmmModule, "timeEndPeriod"));
-		if (!timeBeginPeriodPtr) LOG << "Failed to get 'timeBeginPeriod' ProcAddress of winmm.dll!";
-		if (!timeEndPeriodPtr) LOG << "Failed to get 'timeEndPeriod' ProcAddress of winmm.dll!";
+		if (!timeBeginPeriodPtr) Logging::Log() << "Failed to get 'timeBeginPeriod' ProcAddress of winmm.dll!";
+		if (!timeEndPeriodPtr) Logging::Log() << "Failed to get 'timeEndPeriod' ProcAddress of winmm.dll!";
 	}
 	else
 	{
-		LOG << "Failed to load winmm.dll!";
+		Logging::Log() << "Failed to load winmm.dll!";
 	}
 }
 

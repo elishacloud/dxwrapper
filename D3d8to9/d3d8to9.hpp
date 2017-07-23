@@ -467,4 +467,15 @@ private:
 
 //********** Begin Edit *************
 #include "Settings\Settings.h"
+#include "Logging\Logging.h"
+
+#define LOG Logging::Log()
+
+namespace newstd
+{
+	using namespace std;
+	static constexpr char endl = '\n';
+};
+
+#define std newstd
 //********** End Edit ***************

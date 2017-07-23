@@ -31,7 +31,7 @@
 	}
 
 #define	LOAD_ORIGINAL_PROC(procName) \
-	procName = GetFunctionAddress(dll, #procName, jmpaddr);
+	procName = Wrapper::GetProcAddress(dll, #procName, jmpaddr);
 
 #define	LOAD_WRAPPER(className, Z) \
 	if (Config.WrapperMode == dtype.className || Config.WrapperMode == 0) \
@@ -39,13 +39,13 @@
 		className::module.Load(); \
 	}
 
-#define jmpaddr (FARPROC)*ReturnProc
-
-HRESULT WINAPI ReturnProc();
+#define jmpaddr Wrapper::_jmpaddr
 
 namespace Wrapper
 {
+	extern const FARPROC _jmpaddr;
 	HMODULE LoadDll(DWORD);
 	void DllAttach();
 	void DllDetach();
+	FARPROC GetProcAddress(HMODULE, LPCSTR, FARPROC);
 };

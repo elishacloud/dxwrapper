@@ -26,8 +26,8 @@ namespace dinput
 			if (dll)
 			{
 				VISIT_DINPUT_PROCS(LOAD_ORIGINAL_PROC);
-				dsound::module.DllCanUnloadNow = GetFunctionAddress(dll, "DllCanUnloadNow", jmpaddr);			 // <---  Shared with dsound.dll
-				dsound::module.DllGetClassObject = GetFunctionAddress(dll, "DllGetClassObject", jmpaddr);		 // <---  Shared with dsound.dll
+				dsound::module.DllCanUnloadNow = Wrapper::GetProcAddress(dll, "DllCanUnloadNow", jmpaddr);			 // <---  Shared with dsound.dll
+				dsound::module.DllGetClassObject = Wrapper::GetProcAddress(dll, "DllGetClassObject", jmpaddr);		 // <---  Shared with dsound.dll
 			}
 		}
 	};

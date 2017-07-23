@@ -2,6 +2,7 @@
 //#include "dxwcore.hpp"
 
 //********** Begin Edit *************
+#define DXWND_H
 #define APP_DXWNDNAME			DxWnd
 #define APP_DXWNDVERSION		v2.03.60
 //********** End Edit ***************

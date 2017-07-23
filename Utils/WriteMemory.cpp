@@ -15,15 +15,26 @@
 */
 
 #include "Settings\Settings.h"
+#include "Utils.h"
+#include "Logging\Logging.h"
 
-// Declare varables
-bool p_StopThreadFlag = false;
-bool p_ThreadRunningFlag = false;
-HANDLE p_hThread = nullptr;
-DWORD p_dwThreadID = 0;
+namespace Utils
+{
+	// Declare varables
+	bool p_StopThreadFlag = false;
+	bool p_ThreadRunningFlag = false;
+	HANDLE p_hThread = nullptr;
+	DWORD p_dwThreadID = 0;
+
+	// Function declarations
+	void WriteAllByteMemory();
+	bool CheckVerificationMemory();
+	DWORD WINAPI WriteMemoryThreadFunc(LPVOID);
+	bool IsWriteMemoryThreadRunning();
+}
 
 // Writes all bytes in Config to memory
-void WriteAllByteMemory()
+void Utils::WriteAllByteMemory()
 {
 	HANDLE hProcess = GetCurrentProcess();
 
@@ -54,19 +65,19 @@ void WriteAllByteMemory()
 				}
 				else
 				{
-					LOG << "Access Denied at memory address: 0x" << std::showbase << std::hex << Config.MemoryInfo[x].AddressPointer << std::dec << std::noshowbase;
+					Logging::Log() << "Access Denied at memory address: 0x" << std::showbase << std::hex << Config.MemoryInfo[x].AddressPointer << std::dec << std::noshowbase;
 				}
 			}
 			else
 			{
-				LOG << "Failed to read memory at address: 0x" << std::showbase << std::hex << Config.MemoryInfo[x].AddressPointer << std::dec << std::noshowbase;
+				Logging::Log() << "Failed to read memory at address: 0x" << std::showbase << std::hex << Config.MemoryInfo[x].AddressPointer << std::dec << std::noshowbase;
 			}
 		}
 	}
 }
 
 // Verify process bytes before writing memory
-bool CheckVerificationMemory()
+bool Utils::CheckVerificationMemory()
 {
 	HANDLE hProcess = GetCurrentProcess();
 
@@ -96,7 +107,7 @@ bool CheckVerificationMemory()
 }
 
 // Thread to undo memory write after ResetMemoryAfter time
-DWORD WINAPI WriteMemoryThreadFunc(LPVOID pvParam)
+DWORD WINAPI Utils::WriteMemoryThreadFunc(LPVOID pvParam)
 {
 	UNREFERENCED_PARAMETER(pvParam);
 
@@ -115,7 +126,7 @@ DWORD WINAPI WriteMemoryThreadFunc(LPVOID pvParam)
 	};
 
 	// Logging
-	LOG << "Undoing memory write...";
+	Logging::Log() << "Undoing memory write...";
 
 	// Undo the memory write
 	WriteAllByteMemory();
@@ -131,12 +142,12 @@ DWORD WINAPI WriteMemoryThreadFunc(LPVOID pvParam)
 }
 
 // Main sub for writing to the memory of the application
-void WriteMemory()
+void Utils::WriteMemory()
 {
 	if (CheckVerificationMemory())
 	{
 		// Logging
-		LOG << "Writing bytes to memory...";
+		Logging::Log() << "Writing bytes to memory...";
 
 		// Writing bytes to memory
 		WriteAllByteMemory();
@@ -151,19 +162,19 @@ void WriteMemory()
 	{
 		if (Config.VerifyMemoryInfo.AddressPointer != 0)
 		{
-			LOG << "Verification for memory write failed";
+			Logging::Log() << "Verification for memory write failed";
 		}
 	}
 }
 
 // Is thread running
-bool IsWriteMemoryThreadRunning()
+bool Utils::IsWriteMemoryThreadRunning()
 {
 	return p_ThreadRunningFlag && GetThreadId(p_hThread) == p_dwThreadID && p_dwThreadID != 0;
 }
 
 // Stop WriteMemory thread
-void StopWriteMemoryThread()
+void Utils::StopWriteMemoryThread()
 {
 	// Set flag to stop thread
 	p_StopThreadFlag = true;

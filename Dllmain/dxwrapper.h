@@ -2,8 +2,12 @@
 // Microsoft Visual C++ generated include file.
 // Used by dxwrapper.rc
 
-#include "Settings\Settings.h"
+#ifndef DDRAWLOG_H
+#include "DDrawLog.h"
+#endif
+#ifndef DXWND_H
 #include "dxwnd.h"
+#endif
 #include "Dllmain\BuildNo.rc"
 
 // Main resource file details

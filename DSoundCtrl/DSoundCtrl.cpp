@@ -40,6 +40,7 @@
 #include "IDirectSoundClassFactoryEx.h"
 #include "Settings\Settings.h"
 #include "Wrappers\wrapper.h"
+#include "Logging\Logging.h"
 
 LPDSENUMCALLBACKA	g_pAppDSEnumCallbackA;
 LPDSENUMCALLBACKW	g_pAppDSEnumCallbackW;
@@ -55,7 +56,7 @@ void LogMessage(const char* szClassName, void* pInstance, char* szMessage)
 	else
 		sprintf_s(buffer, ",,%s", szMessage);
 
-	LOG << buffer;
+	Logging::Log() << buffer;
 
 #ifdef _DEBUG
 	ATLTRACE(buffer);
@@ -106,7 +107,7 @@ CDSoundCtrlApp::~CDSoundCtrlApp()
 BOOL CDSoundCtrlApp::InitInstance(HMODULE hModule)
 {
 	// Starting DirectSoundControl
-	LOG << "Enabling DSoundCtrl function";
+	Logging::Log() << "Enabling DSoundCtrl function";
 
 	// Get configuration settings
 	g_bLogSystem = true;

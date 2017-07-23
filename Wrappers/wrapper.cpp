@@ -17,8 +17,8 @@
 // Default
 #include "Settings\Settings.h"
 #include "Dllmain\Dllmain.h"
-#include "Hook\inithook.h"
-#include "Utils\Utils.h"
+#include "Hooking\Hook.h"
+#include "Logging\Logging.h"
 #include "wrapper.h"
 // Wrappers
 #include "bcrypt.h"
@@ -51,6 +51,8 @@ namespace Wrapper
 
 	void LoadCustomDll();
 	void FreeCustomLibrary();
+	HRESULT WINAPI ReturnProc();
+	const FARPROC _jmpaddr = (FARPROC)*ReturnProc;
 }
 
 // Wrapper classes
@@ -60,10 +62,28 @@ VISIT_WRAPPERS(ADD_NAMESPACE_CLASS)
 VISIT_WRAPPERS(CREATE_ALL_PROC_STUB)
 
 // Default function
-HRESULT WINAPI ReturnProc()
+HRESULT WINAPI Wrapper::ReturnProc()
 {
 	// Do nothing
 	return E_NOTIMPL;
+}
+
+// Get pointer for funtion name use custom return value
+FARPROC Wrapper::GetProcAddress(HMODULE hModule, LPCSTR FunctionName, FARPROC SetReturnValue)
+{
+	if (!FunctionName || !hModule)
+	{
+		return SetReturnValue;
+	}
+
+	FARPROC ProcAddress = GetProcAddress(hModule, FunctionName);
+
+	if (!ProcAddress)
+	{
+		ProcAddress = SetReturnValue;
+	}
+
+	return ProcAddress;
 }
 
 // Load real dll file that is being wrapped
@@ -85,22 +105,22 @@ HMODULE Wrapper::LoadDll(DWORD dlltype)
 	// Load dll from ini, if DllPath is not '0'
 	if (Config.szDllPath[0] != '\0' && Config.RealWrapperMode == dlltype)
 	{
-		LOG << "Loading " << Config.szDllPath << " library";
+		Logging::Log() << "Loading " << Config.szDllPath << " library";
 		dllhandle[dlltype].dll = LoadLibrary(Config.szDllPath);
 		if (!dllhandle[dlltype].dll)
 		{
-			LOG << "Cannot load " << Config.szDllPath << " library";
+			Logging::Log() << "Cannot load " << Config.szDllPath << " library";
 		}
 	}
 
 	// Load current dll
 	if (!dllhandle[dlltype].dll && Config.RealWrapperMode != dlltype)
 	{
-		LOG << "Loading " << dtypename[dlltype] << " library";
+		Logging::Log() << "Loading " << dtypename[dlltype] << " library";
 		dllhandle[dlltype].dll = LoadLibrary(dtypename[dlltype]);
 		if (!dllhandle[dlltype].dll)
 		{
-			LOG << "Cannot load " << dtypename[dlltype] << " library";
+			Logging::Log() << "Cannot load " << dtypename[dlltype] << " library";
 		}
 	}
 
@@ -111,14 +131,14 @@ HMODULE Wrapper::LoadDll(DWORD dlltype)
 		GetSystemDirectory(path, MAX_PATH);
 		strcat_s(path, MAX_PATH, "\\");
 		strcat_s(path, MAX_PATH, dtypename[dlltype]);
-		LOG << "Loading " << path << " library";
+		Logging::Log() << "Loading " << path << " library";
 		dllhandle[dlltype].dll = LoadLibrary(path);
 	}
 
 	// Cannot load dll
 	if (!dllhandle[dlltype].dll)
 	{
-		LOG << "Cannot load " << dtypename[dlltype] << " library";
+		Logging::Log() << "Cannot load " << dtypename[dlltype] << " library";
 		if (Config.WrapperMode != 0 && Config.WrapperMode != 255)
 		{
 			ExitProcess(0);
@@ -136,7 +156,7 @@ void Wrapper::LoadCustomDll()
 	{
 		if (Config.szCustomDllPath[x] != '\0')
 		{
-			LOG << "Loading custom " << Config.szCustomDllPath[x] << " library";
+			Logging::Log() << "Loading custom " << Config.szCustomDllPath[x] << " library";
 			// Load dll from ini
 			custom[x].dll = LoadLibrary(Config.szCustomDllPath[x]);
 			// Load from system
@@ -151,7 +171,7 @@ void Wrapper::LoadCustomDll()
 			// Cannot load dll
 			if (!custom[x].dll)
 			{
-				LOG << "Cannot load custom " << Config.szCustomDllPath[x] << " library";
+				Logging::Log() << "Cannot load custom " << Config.szCustomDllPath[x] << " library";
 			}
 			else {
 				custom[x].Flag = true;

@@ -19,7 +19,7 @@ namespace d3d8
 			// Enable d3d8to9 conversion
 			if (Config.D3d8to9 && Config.RealWrapperMode == dtype.d3d8)
 			{
-				Direct3DCreate8 = GetFunctionAddress(hModule_dll, "_Direct3DCreate8", jmpaddr);
+				Direct3DCreate8 = Wrapper::GetProcAddress(hModule_dll, "_Direct3DCreate8", jmpaddr);
 				ValidateVertexShader = (FARPROC)*_ValidateVertexShader;
 				ValidatePixelShader = (FARPROC)*_ValidatePixelShader;
 			}
@@ -38,8 +38,8 @@ namespace d3d8
 					// Hook APIs for d3d8to9 conversion
 					if (Config.D3d8to9)
 					{
-						LOG << "Hooking d3d8.dll APIs...";
-						Direct3DCreate8 = (FARPROC)HookAPI(hModule_dll, dtypename[dtype.d3d8], GetFunctionAddress(dll, "Direct3DCreate8"), "Direct3DCreate8", GetFunctionAddress(hModule_dll, "_Direct3DCreate8"));
+						Logging::Log() << "Hooking d3d8.dll APIs...";
+						Direct3DCreate8 = (FARPROC)Hook::HookAPI(hModule_dll, dtypename[dtype.d3d8], Hook::GetFunctionAddress(dll, "Direct3DCreate8"), "Direct3DCreate8", Hook::GetFunctionAddress(hModule_dll, "_Direct3DCreate8"));
 					}
 				}
 			}

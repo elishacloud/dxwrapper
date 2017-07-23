@@ -16,96 +16,139 @@
 
 #include "Settings\Settings.h"
 #include "Dllmain\Dllmain.h"
-#include "Utils\Utils.h"
 #include "Fullscreen.h"
+#include "Logging\Logging.h"
 
-// Declare constants
-static constexpr LONG MinWindowWidth = 320;			// Minimum window width for valid window check
-static constexpr LONG MinWindowHeight = 240;		// Minimum window height for valid window check
-static constexpr LONG WindowDelta = 40;				// Delta between window size and screensize for fullscreen check
-static constexpr DWORD TerminationCount = 10;		// Minimum number of loops to check for termination
-static constexpr DWORD TerminationWaitTime = 2000;	// Minimum time to wait for termination (LoopSleepTime * NumberOfLoops)
-
-// Declare varables
-bool m_StopThreadFlag = false;
-bool m_ThreadRunningFlag = false;
-HANDLE m_hThread = nullptr;
-DWORD m_dwThreadID = 0;
-
-// Overload functions
-bool operator==(const RECT& a, const RECT& b)
+namespace Fullscreen
 {
-	return (a.bottom == b.bottom && a.left == b.left && a.right == b.right && a.top == b.top);
+	// Declare constants
+	static constexpr LONG MinWindowWidth = 320;			// Minimum window width for valid window check
+	static constexpr LONG MinWindowHeight = 240;		// Minimum window height for valid window check
+	static constexpr LONG WindowDelta = 40;				// Delta between window size and screensize for fullscreen check
+	static constexpr DWORD TerminationCount = 10;		// Minimum number of loops to check for termination
+	static constexpr DWORD TerminationWaitTime = 2000;	// Minimum time to wait for termination (LoopSleepTime * NumberOfLoops)
+
+	// Overload functions
+	bool operator==(const RECT& a, const RECT& b)
+	{
+		return (a.bottom == b.bottom && a.left == b.left && a.right == b.right && a.top == b.top);
+	}
+
+	bool operator!=(const RECT& a, const RECT& b)
+	{
+		return (a.bottom != b.bottom || a.left != b.left || a.right != b.right || a.top != b.top);
+	}
+
+	// Declare structures
+	struct screen_res
+	{
+		LONG Width = 0;
+		LONG Height = 0;
+
+		screen_res& operator=(const screen_res& a)
+		{
+			Width = a.Width;
+			Height = a.Height;
+			return *this;
+		}
+
+		bool operator==(const screen_res& a) const
+		{
+			return (Width == a.Width && Height == a.Height);
+		}
+
+		bool operator!=(const screen_res& a) const
+		{
+			return (Width != a.Width || Height != a.Height);
+		}
+	};
+
+	struct window_update
+	{
+		HWND hwnd = nullptr;
+		RECT rect = { sizeof(rect) };
+		screen_res ScreenSize;
+
+		window_update& operator=(const window_update& a)
+		{
+			hwnd = a.hwnd;
+			rect.bottom = a.rect.bottom;
+			rect.left = a.rect.left;
+			rect.right = a.rect.right;
+			rect.top = a.rect.top;
+			ScreenSize = a.ScreenSize;
+			return *this;
+		}
+
+		bool operator==(const window_update& a) const
+		{
+			return (hwnd == a.hwnd && rect == a.rect && ScreenSize == a.ScreenSize);
+		}
+
+		bool operator!=(const window_update& a) const
+		{
+			return (hwnd != a.hwnd || rect != a.rect || ScreenSize != a.ScreenSize);
+		}
+	};
+
+	struct window_layer
+	{
+		HWND hwnd = nullptr;
+		bool IsMain = false;
+		bool IsFullScreen = false;
+	};
+
+	struct handle_data
+	{
+		DWORD process_id = 0;
+		HWND best_handle = nullptr;
+		DWORD LayerNumber = 0;
+		window_layer Windows[256];
+		bool AutoDetect = true;
+		bool Debug = false;
+	};
+
+	struct menu_data
+	{
+		DWORD process_id = 0;
+		bool Menu = false;
+	};
+
+	// Declare varables
+	bool m_StopThreadFlag = false;
+	bool m_ThreadRunningFlag = false;
+	HANDLE m_hThread = nullptr;
+	DWORD m_dwThreadID = 0;
+	screen_res m_Current_ScreenRes;
+
+	// Function declarations
+	void GetScreenSize(HWND&, screen_res&, MONITORINFO&);
+	LONG GetBestResolution(screen_res&, LONG, LONG);
+	void SetScreenResolution(LONG, LONG);
+	void SetScreen(screen_res);
+	bool IsMainWindow(HWND);
+	bool IsWindowTooSmall(screen_res);
+	bool IsWindowFullScreen(screen_res, screen_res);
+	bool IsWindowNotFullScreen(screen_res, screen_res);
+	void GetWindowSize(HWND&, screen_res&, RECT&);
+	BOOL CALLBACK EnumWindowsCallback(HWND, LPARAM);
+	HWND FindMainWindow(DWORD, bool, bool = false);
+	BOOL CALLBACK EnumMenuWindowsCallback(HWND, LPARAM);
+	bool CheckForMenu(DWORD);
+	void SendAltEnter(HWND&);
+	void SetFullScreen(HWND&, const MONITORINFO&);
+	void CheckForTermination(DWORD);
+	DWORD WINAPI StartThreadFunc(LPVOID);
+	void MainFunc();
 }
 
-bool operator!=(const RECT& a, const RECT& b)
-{
-	return (a.bottom != b.bottom || a.left != b.left || a.right != b.right || a.top != b.top);
-}
-
-// Declare structures
-struct window_update
-{
-	HWND hwnd = nullptr;
-	RECT rect = { sizeof(rect) };
-	screen_res ScreenSize;
-
-	window_update& operator=(const window_update& a)
-	{
-		hwnd = a.hwnd;
-		rect.bottom = a.rect.bottom;
-		rect.left = a.rect.left;
-		rect.right = a.rect.right;
-		rect.top = a.rect.top;
-		ScreenSize = a.ScreenSize;
-		return *this;
-	}
-
-	bool operator==(const window_update& a) const
-	{
-		return (hwnd == a.hwnd && rect == a.rect && ScreenSize == a.ScreenSize);
-	}
-
-	bool operator!=(const window_update& a) const
-	{
-		return (hwnd != a.hwnd || rect != a.rect || ScreenSize != a.ScreenSize);
-	}
-};
-
-struct window_layer
-{
-	HWND hwnd = nullptr;
-	bool IsMain = false;
-	bool IsFullScreen = false;
-};
-
-struct handle_data
-{
-	DWORD process_id = 0;
-	HWND best_handle = nullptr;
-	DWORD LayerNumber = 0;
-	window_layer Windows[256];
-	bool AutoDetect = true;
-	bool Debug = false;
-};
-
-struct menu_data
-{
-	DWORD process_id = 0;
-	bool Menu = false;
-};
-
-// Function declarations
-bool IsWindowTooSmall(screen_res);
-HWND FindMainWindow(DWORD, bool, bool = false);
-void MainFullScreenFunc();
 
 //*********************************************************************************
 // Screen/monitor functions below
 //*********************************************************************************
 
 // Gets the screen size from a wnd handle
-void GetScreenSize(HWND& hwnd, screen_res& Res, MONITORINFO& mi)
+void Fullscreen::GetScreenSize(HWND& hwnd, screen_res& Res, MONITORINFO& mi)
 {
 	GetMonitorInfo(MonitorFromWindow(hwnd, MONITOR_DEFAULTTOPRIMARY), &mi);
 	Res.Width = mi.rcMonitor.right - mi.rcMonitor.left;
@@ -113,7 +156,7 @@ void GetScreenSize(HWND& hwnd, screen_res& Res, MONITORINFO& mi)
 }
 
 // Check with resolution is best
-LONG GetBestResolution(screen_res& ScreenRes, LONG xWidth, LONG xHeight)
+LONG Fullscreen::GetBestResolution(screen_res& ScreenRes, LONG xWidth, LONG xHeight)
 {
 	//Set vars
 	DEVMODE dm = { 0 };
@@ -138,7 +181,7 @@ LONG GetBestResolution(screen_res& ScreenRes, LONG xWidth, LONG xHeight)
 }
 
 // Sets the resolution of the screen
-void SetScreenResolution(LONG xWidth, LONG xHeight)
+void Fullscreen::SetScreenResolution(LONG xWidth, LONG xHeight)
 {
 	DEVMODE newSettings;
 	if (EnumDisplaySettings(nullptr, ENUM_CURRENT_SETTINGS, &newSettings) != 0)
@@ -151,7 +194,7 @@ void SetScreenResolution(LONG xWidth, LONG xHeight)
 }
 
 // Verifies input and sets screen res to the values sent
-void SetScreen(screen_res ScreenRes)
+void Fullscreen::SetScreen(screen_res ScreenRes)
 {
 	// Verify stored values are large enough
 	if (!IsWindowTooSmall(ScreenRes))
@@ -165,7 +208,7 @@ void SetScreen(screen_res ScreenRes)
 }
 
 // Checks is the current screen res is smaller and returns the smaller screen res
-void CheckCurrentScreenRes(screen_res& m_ScreenRes)
+void Fullscreen::CheckCurrentScreenRes()
 {
 	// Declare vars
 	HWND hwnd;
@@ -182,46 +225,56 @@ void CheckCurrentScreenRes(screen_res& m_ScreenRes)
 	if (!IsWindowTooSmall(ScreenSize))
 	{
 		// Save screen resolution
-		InterlockedExchange(&m_ScreenRes.Width, ScreenSize.Width);
-		InterlockedExchange(&m_ScreenRes.Height, ScreenSize.Height);
+		InterlockedExchange(&m_Current_ScreenRes.Width, ScreenSize.Width);
+		InterlockedExchange(&m_Current_ScreenRes.Height, ScreenSize.Height);
 	}
 }
 
 // Resets the screen to the registry-stored values
-void ResetScreen()
+void Fullscreen::ResetScreen()
 {
+	// Setting screen resolution to fix some display errors on exit
+	if (Config.ResetScreenRes)
+	{
+		SetScreen(m_Current_ScreenRes);
+	}
+
+	// Sleep short amout of time
+	Sleep(100);
+
 	// Reset resolution
 	ChangeDisplaySettings(nullptr, 0);
 }
+
 
 //*********************************************************************************
 // Window functions below
 //*********************************************************************************
 
-bool IsMainWindow(HWND hwnd)
+bool Fullscreen::IsMainWindow(HWND hwnd)
 {
 	return GetWindow(hwnd, GW_OWNER) == (HWND)0 && IsWindowVisible(hwnd);
 }
 
-bool IsWindowTooSmall(screen_res WindowSize)
+bool Fullscreen::IsWindowTooSmall(screen_res WindowSize)
 {
 	return WindowSize.Width < MinWindowWidth || WindowSize.Height < MinWindowHeight;
 }
 
-bool IsWindowFullScreen(screen_res WindowSize, screen_res ScreenSize)
+bool Fullscreen::IsWindowFullScreen(screen_res WindowSize, screen_res ScreenSize)
 {
 	return abs(ScreenSize.Width - WindowSize.Width) <= WindowDelta ||		// Window width matches screen width
 		abs(ScreenSize.Height - WindowSize.Height) <= WindowDelta;			// Window height matches screen height
 }
 
-bool IsWindowNotFullScreen(screen_res WindowSize, screen_res ScreenSize)
+bool Fullscreen::IsWindowNotFullScreen(screen_res WindowSize, screen_res ScreenSize)
 {
 	return (ScreenSize.Width - WindowSize.Width) > WindowDelta ||			// Window width does not match screen width
 		(ScreenSize.Height - WindowSize.Height) > WindowDelta;				// Window height does not match screen height
 }
 
 // Gets the window size from a handle
-void GetWindowSize(HWND& hwnd, screen_res& Res, RECT& rect)
+void Fullscreen::GetWindowSize(HWND& hwnd, screen_res& Res, RECT& rect)
 {
 	GetWindowRect(hwnd, &rect);
 	Res.Width = abs(rect.right - rect.left);
@@ -229,7 +282,7 @@ void GetWindowSize(HWND& hwnd, screen_res& Res, RECT& rect)
 }
 
 // Enums all windows and returns the handle to the active window
-BOOL CALLBACK EnumWindowsCallback(HWND hwnd, LPARAM lParam)
+BOOL CALLBACK Fullscreen::EnumWindowsCallback(HWND hwnd, LPARAM lParam)
 {
 	// Get varables from call back
 	handle_data& data = *(handle_data*)lParam;
@@ -278,7 +331,7 @@ BOOL CALLBACK EnumWindowsCallback(HWND hwnd, LPARAM lParam)
 			_itoa_s(rect.top, buffer2, 10);
 			_itoa_s(rect.right, buffer3, 10);
 			_itoa_s(rect.bottom, buffer4, 10);
-			LOG << "Layer " << buffer << " found window class " << isMain << class_name << " | Left: " << buffer1 << " Top: " << buffer2 << " Right: " << buffer3 << " Bottom: " << buffer4;
+			Logging::Log() << "Layer " << buffer << " found window class " << isMain << class_name << " | Left: " << buffer1 << " Top: " << buffer2 << " Right: " << buffer3 << " Bottom: " << buffer4;
 		}
 		return true;
 	}
@@ -312,8 +365,8 @@ BOOL CALLBACK EnumWindowsCallback(HWND hwnd, LPARAM lParam)
 	else
 	{
 		// Check other windows for a match
-		if ((Config.NamedLayerCount == 0 && ++data.LayerNumber == Config.SetFullScreenLayer) ||			// Check for specific window layer
-			IfStringExistsInList(class_name, Config.szSetNamedLayer, Config.NamedLayerCount))			// Check for specific window class name
+		if ((Config.NamedLayerCount == 0 && ++data.LayerNumber == Config.SetFullScreenLayer) ||					// Check for specific window layer
+			Settings::IfStringExistsInList(class_name, Config.szSetNamedLayer, Config.NamedLayerCount))			// Check for specific window class name
 		{
 			// Match found returning value
 			data.best_handle = hwnd;
@@ -326,7 +379,7 @@ BOOL CALLBACK EnumWindowsCallback(HWND hwnd, LPARAM lParam)
 }
 
 // Finds the active window
-HWND FindMainWindow(DWORD process_id, bool AutoDetect, bool Debug)
+HWND Fullscreen::FindMainWindow(DWORD process_id, bool AutoDetect, bool Debug)
 {
 	// Set varables
 	HWND WindowsHandle = nullptr;
@@ -370,7 +423,7 @@ HWND FindMainWindow(DWORD process_id, bool AutoDetect, bool Debug)
 }
 
 // Enums all windows and returns is there is a menu on the window
-BOOL CALLBACK EnumMenuWindowsCallback(HWND hwnd, LPARAM lParam)
+BOOL CALLBACK Fullscreen::EnumMenuWindowsCallback(HWND hwnd, LPARAM lParam)
 {
 	// Get  varables from callback
 	menu_data& data = *(menu_data*)lParam;
@@ -393,7 +446,7 @@ BOOL CALLBACK EnumMenuWindowsCallback(HWND hwnd, LPARAM lParam)
 }
 
 // Checks if there is a menu on this window
-bool CheckForMenu(DWORD process_id)
+bool Fullscreen::CheckForMenu(DWORD process_id)
 {
 	menu_data data;
 	data.process_id = process_id;
@@ -402,14 +455,14 @@ bool CheckForMenu(DWORD process_id)
 }
 
 // Sends Alt+Enter to window handle
-void SendAltEnter(HWND& hwnd)
+void Fullscreen::SendAltEnter(HWND& hwnd)
 {
 	SendMessage(hwnd, WM_SYSKEYDOWN, VK_RETURN, 0x20000000);
 	SendMessage(hwnd, WM_SYSKEYUP, VK_RETURN, 0x20000000);
 }
 
 // Sets the window to fullscreen
-void SetFullScreen(HWND& hwnd, const MONITORINFO& mi)
+void Fullscreen::SetFullScreen(HWND& hwnd, const MONITORINFO& mi)
 {
 	// Attach to window thread
 	DWORD h_ThreadID = GetWindowThreadProcessId(hwnd, nullptr);
@@ -448,12 +501,13 @@ void SetFullScreen(HWND& hwnd, const MONITORINFO& mi)
 	SetActiveWindow(hwnd);
 }
 
+
 //*********************************************************************************
 // Process Termination check function below
 //*********************************************************************************
 
 // Check if process should be termianted
-void CheckForTermination(DWORD m_ProcessId)
+void Fullscreen::CheckForTermination(DWORD m_ProcessId)
 {
 	static DWORD countAttempts = 0;
 	static bool FoundWindow = false;
@@ -494,7 +548,15 @@ void CheckForTermination(DWORD m_ProcessId)
 		if ((++countAttempts > TerminationCount) &&							// Minimum number of loops
 			(countAttempts * Config.LoopSleepTime > TerminationWaitTime))	// Minimum time to wait
 		{
-			RunExitFunctions(true);
+			Logging::Log() << "Process not exiting, attempting to terminate process...";
+
+			// Reset screen back to original Windows settings to fix some display errors on exit
+			Fullscreen::ResetScreen();
+
+			// Terminate the current process
+			HANDLE processHandle = OpenProcess(PROCESS_ALL_ACCESS, false, GetCurrentProcessId());
+			Logging::Log() << "Terminating process!";
+			TerminateProcess(processHandle, 0);
 		}
 	}
 	// Reset counter
@@ -504,22 +566,23 @@ void CheckForTermination(DWORD m_ProcessId)
 	}
 }
 
+
 //*********************************************************************************
 // Thread functions below
 //*********************************************************************************
 
 // Start main thread function
-DWORD WINAPI StartThreadFunc(LPVOID pvParam)
+DWORD WINAPI Fullscreen::StartThreadFunc(LPVOID pvParam)
 {
 	UNREFERENCED_PARAMETER(pvParam);
 
 	// Starting thread
-	LOG << "Starting fullscreen thread...";
+	Logging::Log() << "Starting fullscreen thread...";
 
 	// Get thread handle
 	InterlockedExchangePointer(&m_hThread, GetCurrentThread());
 	if (!m_hThread) {
-		LOG << "Failed to get thread handle exiting thread!";
+		Logging::Log() << "Failed to get thread handle exiting thread!";
 		return 0;
 	}
 
@@ -530,7 +593,7 @@ DWORD WINAPI StartThreadFunc(LPVOID pvParam)
 	SetThreadPriority(m_hThread, THREAD_PRIORITY_HIGHEST);
 
 	// Start main fullscreen function
-	MainFullScreenFunc();
+	MainFunc();
 
 	// Reset thread flag before exiting
 	m_ThreadRunningFlag = false;
@@ -543,7 +606,7 @@ DWORD WINAPI StartThreadFunc(LPVOID pvParam)
 }
 
 // Create fullscreen thread
-void StartFullscreenThread()
+void Fullscreen::StartThread()
 {
 	// Get dxwrapper path
 	char buffer[MAX_PATH];
@@ -558,19 +621,19 @@ void StartFullscreenThread()
 }
 
 // Is thread running
-bool IsFullscreenThreadRunning()
+bool Fullscreen::IsThreadRunning()
 {
 	return m_ThreadRunningFlag && GetThreadId(m_hThread) == m_dwThreadID && m_dwThreadID != 0;
 }
 
 // Stop thread
-void StopFullscreenThread()
+void Fullscreen::StopThread()
 {
 	if (Config.FullScreen || Config.ForceTermination)
 	{
-		if (IsFullscreenThreadRunning())
+		if (IsThreadRunning())
 		{
-			LOG << "Stopping thread...";
+			Logging::Log() << "Stopping thread...";
 
 			// Set flag to stop thread
 			m_StopThreadFlag = true;
@@ -583,15 +646,16 @@ void StopFullscreenThread()
 		CloseHandle(m_hThread);
 
 		// Thread stopped
-		LOG << "Thread stopped";
+		Logging::Log() << "Thread stopped";
 	}
 }
+
 
 //*********************************************************************************
 // Main fullscreen function below
 //*********************************************************************************
 
-void MainFullScreenFunc()
+void Fullscreen::MainFunc()
 {
 	// Declare vars
 	window_update CurrentLoop;
@@ -616,7 +680,7 @@ void MainFullScreenFunc()
 	{
 		// Starting loop
 #ifdef _DEBUG
-		LOG << "Starting Main Fullscreen loop...";
+		Logging::Log() << "Starting Main Fullscreen loop...";
 #endif
 
 		// Get window hwnd for specific layer
@@ -648,16 +712,16 @@ void MainFullScreenFunc()
 			if (ChangeDetectedFlag)
 			{
 				// ChangeDetected
-				if (IsNotFullScreenFlag) LOG << "Found window not fullscreen";
-				if (CurrentLoop.hwnd != LastFullscreenLoop.hwnd) LOG << "Found new window handle";
-				if (CurrentLoop.rect != LastFullscreenLoop.rect) LOG << "Found rect does not match";
-				if (CurrentLoop.ScreenSize != LastFullscreenLoop.ScreenSize) LOG << "Found screen size does not match";
-				if (!HasNoMenu) LOG << "Found window has a menu";
+				if (IsNotFullScreenFlag) Logging::Log() << "Found window not fullscreen";
+				if (CurrentLoop.hwnd != LastFullscreenLoop.hwnd) Logging::Log() << "Found new window handle";
+				if (CurrentLoop.rect != LastFullscreenLoop.rect) Logging::Log() << "Found rect does not match";
+				if (CurrentLoop.ScreenSize != LastFullscreenLoop.ScreenSize) Logging::Log() << "Found screen size does not match";
+				if (!HasNoMenu) Logging::Log() << "Found window has a menu";
 
 				// LastRunChangeNotDetectedFlag
-				if (CurrentLoop.hwnd != PreviousLoop.hwnd) LOG << "Found last-window handle changed";
-				if (CurrentLoop.rect != PreviousLoop.rect) LOG << "Found last-window rect does not match";
-				if (CurrentLoop.ScreenSize != PreviousLoop.ScreenSize) LOG << "Found last-screen size does not match";
+				if (CurrentLoop.hwnd != PreviousLoop.hwnd) Logging::Log() << "Found last-window handle changed";
+				if (CurrentLoop.rect != PreviousLoop.rect) Logging::Log() << "Found last-window rect does not match";
+				if (CurrentLoop.ScreenSize != PreviousLoop.ScreenSize) Logging::Log() << "Found last-screen size does not match";
 
 				// Log windows coordinates
 				char buffer1[7], buffer2[7], buffer3[7], buffer4[7];
@@ -665,7 +729,7 @@ void MainFullScreenFunc()
 				_itoa_s(CurrentLoop.rect.top, buffer2, 10);
 				_itoa_s(CurrentLoop.rect.right, buffer3, 10);
 				_itoa_s(CurrentLoop.rect.bottom, buffer4, 10);
-				LOG << "Window coordinates for selected layer '" << class_name << "' | Left: " << buffer1 << " Top: " << buffer2 << " Right: " << buffer3 << " Bottom: " << buffer4;
+				Logging::Log() << "Window coordinates for selected layer '" << class_name << "' | Left: " << buffer1 << " Top: " << buffer2 << " Right: " << buffer3 << " Bottom: " << buffer4;
 
 				// Log window placement flag
 				WINDOWPLACEMENT wp;
@@ -686,7 +750,7 @@ void MainFullScreenFunc()
 					if (wp.showCmd & SW_SHOWNA) strcat_s(buffer, MAX_PATH, " SW_SHOWNA");
 					if (wp.showCmd & SW_SHOWNOACTIVATE) strcat_s(buffer, MAX_PATH, " SW_SHOWNOACTIVATE");
 					if (wp.showCmd & SW_SHOWNORMAL) strcat_s(buffer, MAX_PATH, " SW_SHOWNORMAL");
-					LOG << buffer;
+					Logging::Log() << buffer;
 				}
 			}
 #endif
@@ -696,13 +760,13 @@ void MainFullScreenFunc()
 			{
 #ifdef _DEBUG
 				// Debug the window
-				LOG << "Entering change detected loop";
+				Logging::Log() << "Entering change detected loop";
 				char buffer1[7], buffer2[7], buffer3[7], buffer4[7];
 				_itoa_s(CurrentLoop.rect.left, buffer1, 10);
 				_itoa_s(CurrentLoop.rect.top, buffer2, 10);
 				_itoa_s(CurrentLoop.rect.right, buffer3, 10);
 				_itoa_s(CurrentLoop.rect.bottom, buffer4, 10);
-				LOG << "Window coordinates for selected layer '" << class_name << "' | Left: " << buffer1 << " Top: " << buffer2 << " Right: " << buffer3 << " Bottom: " << buffer4;
+				Logging::Log() << "Window coordinates for selected layer '" << class_name << "' | Left: " << buffer1 << " Top: " << buffer2 << " Right: " << buffer3 << " Bottom: " << buffer4;
 				FindMainWindow(m_ProcessId, true, true);
 #endif
 
@@ -710,9 +774,9 @@ void MainFullScreenFunc()
 				if (Config.ForceWindowResize || !IsWindowTooSmall(WindowSize))
 				{
 					// Change resolution if not fullscreen and ignore certian windows
-					if (IsNotFullScreenFlag &&																										// Check if it is already fullscreen
-						!(Config.IgnoreWindowCount > 0 && IfStringExistsInList(class_name, Config.szIgnoreWindowName, Config.IgnoreWindowCount)) && // Ignore certian windows
-						IsWindow(CurrentLoop.hwnd))																									// Check window handle
+					if (IsNotFullScreenFlag &&																													// Check if it is already fullscreen
+						!(Config.IgnoreWindowCount > 0 && Settings::IfStringExistsInList(class_name, Config.szIgnoreWindowName, Config.IgnoreWindowCount)) &&	// Ignore certian windows
+						IsWindow(CurrentLoop.hwnd))																												// Check window handle
 					{
 						// Get the best screen resolution
 						screen_res SizeTemp;
@@ -726,13 +790,13 @@ void MainFullScreenFunc()
 							char buffer5[7], buffer6[7];
 							_itoa_s(WindowSize.Width, buffer5, 10);
 							_itoa_s(WindowSize.Height, buffer6, 10);
-							LOG << "Changing resolution on window size " << buffer5 << "x" << buffer6 << " layer: " << class_name;
+							Logging::Log() << "Changing resolution on window size " << buffer5 << "x" << buffer6 << " layer: " << class_name;
 							_itoa_s(CurrentLoop.ScreenSize.Width, buffer5, 10);
 							_itoa_s(CurrentLoop.ScreenSize.Height, buffer6, 10);
-							LOG << "Current screen size is: " << buffer5 << "x" << buffer6;
+							Logging::Log() << "Current screen size is: " << buffer5 << "x" << buffer6;
 							_itoa_s(SizeTemp.Width, buffer5, 10);
 							_itoa_s(SizeTemp.Height, buffer6, 10);
-							LOG << "Setting resolution to: " << buffer5 << "x" << buffer6;
+							Logging::Log() << "Setting resolution to: " << buffer5 << "x" << buffer6;
 #endif
 
 							// Set screen to new resolution
@@ -747,11 +811,11 @@ void MainFullScreenFunc()
 						{
 #ifdef _DEBUG
 							// Debug log
-							LOG << "Excluding window layer: " << class_name;
+							Logging::Log() << "Excluding window layer: " << class_name;
 #endif
 
 							// Add window to excluded list
-							SetConfigList(Config.szIgnoreWindowName, Config.IgnoreWindowCount, class_name);
+							Settings::SetConfigList(Config.szIgnoreWindowName, Config.IgnoreWindowCount, class_name);
 						}
 					} // Change resolution
 
@@ -763,7 +827,7 @@ void MainFullScreenFunc()
 					{
 #ifdef _DEBUG
 						// Debug log
-						LOG << "Setting fullscreen on window layer: " << class_name;
+						Logging::Log() << "Setting fullscreen on window layer: " << class_name;
 #endif
 
 						// Set window to fullscreen
@@ -775,7 +839,7 @@ void MainFullScreenFunc()
 					{
 #ifdef _DEBUG
 						// Debug log
-						LOG << "Pressing alt+enter on window layer: " << class_name;
+						Logging::Log() << "Pressing alt+enter on window layer: " << class_name;
 #endif
 
 						// Send Alt+Enter to window
@@ -797,7 +861,7 @@ void MainFullScreenFunc()
 					// Update and store CurrentScreenRes
 					if (Config.ResetScreenRes)
 					{
-						CallCheckCurrentScreenRes();
+						CheckCurrentScreenRes();
 					}
 
 				} // Window is too small
@@ -817,7 +881,7 @@ void MainFullScreenFunc()
 
 #ifdef _DEBUG
 		// Debug logs
-		LOG << "Finish Main Fullscreen loop!";
+		Logging::Log() << "Finish Main Fullscreen loop!";
 #endif
 
 		// Wait for a while

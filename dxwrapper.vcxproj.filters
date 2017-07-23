@@ -16,17 +16,11 @@
     <Filter Include="Disasm">
       <UniqueIdentifier>{2768b966-6a71-4031-9b49-a1b7dec51afb}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Hook">
-      <UniqueIdentifier>{dd986a8a-7ff1-403f-8a75-794ded77510d}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Libraries">
       <UniqueIdentifier>{9fc26822-b540-4070-82bc-320a8ccaec4c}</UniqueIdentifier>
     </Filter>
     <Filter Include="Wrappers">
       <UniqueIdentifier>{75433a20-7313-4d29-9e1c-1b75db6897cb}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="WriteMemory">
-      <UniqueIdentifier>{70c5125d-c4ff-4ec9-8a5d-c1c24e61ac75}</UniqueIdentifier>
     </Filter>
     <Filter Include="Fullscreen">
       <UniqueIdentifier>{c2d82d8c-8e32-44bf-883e-141af0404950}</UniqueIdentifier>
@@ -41,14 +35,14 @@
     <Filter Include="Settings">
       <UniqueIdentifier>{c1f95f1f-7745-47bd-9ffd-67b4c20d1eb2}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Logging">
+      <UniqueIdentifier>{83902b61-6ee7-42ec-9601-3e16804fcd18}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Hooking">
+      <UniqueIdentifier>{dd986a8a-7ff1-403f-8a75-794ded77510d}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="hook\iatpatch.cpp">
-      <Filter>Hook</Filter>
-    </ClCompile>
-    <ClCompile Include="hook\hotpatch.cpp">
-      <Filter>Hook</Filter>
-    </ClCompile>
     <ClCompile Include="wrappers\wrapper.cpp">
       <Filter>Wrappers</Filter>
     </ClCompile>
@@ -78,9 +72,6 @@
     </ClCompile>
     <ClCompile Include="libraries\winmm.cpp">
       <Filter>Libraries</Filter>
-    </ClCompile>
-    <ClCompile Include="hook\inithook.cpp">
-      <Filter>Hook</Filter>
     </ClCompile>
     <ClCompile Include="DxWnd\v2_03_60_src\init.cpp">
       <Filter>DxWnd</Filter>
@@ -121,9 +112,6 @@
     <ClCompile Include="Disasm\Disasm.c">
       <Filter>Disasm</Filter>
     </ClCompile>
-    <ClCompile Include="Disasm\initdisasm.cpp">
-      <Filter>Disasm</Filter>
-    </ClCompile>
     <ClCompile Include="Dllmain\Dllmain.cpp">
       <Filter>Dllmain</Filter>
     </ClCompile>
@@ -132,9 +120,6 @@
     </ClCompile>
     <ClCompile Include="Utils\Utils.cpp">
       <Filter>Utils</Filter>
-    </ClCompile>
-    <ClCompile Include="WriteMemory\WriteMemory.cpp">
-      <Filter>WriteMemory</Filter>
     </ClCompile>
     <ClCompile Include="Settings\Settings.cpp">
       <Filter>Settings</Filter>
@@ -226,6 +211,21 @@
     <ClCompile Include="D3d8to9\d3d8.cpp">
       <Filter>D3d8to9</Filter>
     </ClCompile>
+    <ClCompile Include="Logging\Logging.cpp">
+      <Filter>Logging</Filter>
+    </ClCompile>
+    <ClCompile Include="Hooking\HotPatch.cpp">
+      <Filter>Hooking</Filter>
+    </ClCompile>
+    <ClCompile Include="Hooking\IATPatch.cpp">
+      <Filter>Hooking</Filter>
+    </ClCompile>
+    <ClCompile Include="Hooking\Hook.cpp">
+      <Filter>Hooking</Filter>
+    </ClCompile>
+    <ClCompile Include="Utils\WriteMemory.cpp">
+      <Filter>Utils</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="Dllmain\dxwrapper.def">
@@ -263,12 +263,6 @@
     <ClInclude Include="wrappers\wrapper.h">
       <Filter>Wrappers</Filter>
     </ClInclude>
-    <ClInclude Include="hook\iatpatch.h">
-      <Filter>Hook</Filter>
-    </ClInclude>
-    <ClInclude Include="hook\hotpatch.h">
-      <Filter>Hook</Filter>
-    </ClInclude>
     <ClInclude Include="DSoundCtrl\dsound.h">
       <Filter>DSoundCtrl</Filter>
     </ClInclude>
@@ -305,9 +299,6 @@
     <ClInclude Include="libraries\winmm.h">
       <Filter>Libraries</Filter>
     </ClInclude>
-    <ClInclude Include="hook\inithook.h">
-      <Filter>Hook</Filter>
-    </ClInclude>
     <ClInclude Include="wrappers\dinput.h">
       <Filter>Wrappers</Filter>
     </ClInclude>
@@ -318,9 +309,6 @@
       <Filter>D3d8to9</Filter>
     </ClInclude>
     <ClInclude Include="Disasm\disasm.h">
-      <Filter>Disasm</Filter>
-    </ClInclude>
-    <ClInclude Include="Disasm\initdisasm.h">
       <Filter>Disasm</Filter>
     </ClInclude>
     <ClInclude Include="Dllmain\Dllmain.h">
@@ -334,9 +322,6 @@
     </ClInclude>
     <ClInclude Include="Utils\Utils.h">
       <Filter>Utils</Filter>
-    </ClInclude>
-    <ClInclude Include="WriteMemory\WriteMemory.h">
-      <Filter>WriteMemory</Filter>
     </ClInclude>
     <ClInclude Include="DxWnd\v2_03_60_src\dxwnd.h">
       <Filter>DxWnd</Filter>
@@ -460,6 +445,12 @@
     </ClInclude>
     <ClInclude Include="D3d8to9\d3d8.h">
       <Filter>D3d8to9</Filter>
+    </ClInclude>
+    <ClInclude Include="Logging\Logging.h">
+      <Filter>Logging</Filter>
+    </ClInclude>
+    <ClInclude Include="Hooking\Hook.h">
+      <Filter>Hooking</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

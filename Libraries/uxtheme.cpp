@@ -14,7 +14,7 @@
 *   3. This notice may not be removed or altered from any source distribution.
 */
 
-#include  "Settings\Settings.h"
+#include "Logging\Logging.h"
 
 typedef void(WINAPI *PFN_SetThemeAppProperties)(DWORD dwFlags);
 PFN_SetThemeAppProperties SetThemeAppPropertiesPtr = nullptr;
@@ -31,16 +31,16 @@ void LoadUxtheme()
 	UxThemeModule = LoadLibrary("uxtheme.dll");
 	if (UxThemeModule)
 	{
-		LOG << "Loaded uxtheme.dll library";
+		Logging::Log() << "Loaded uxtheme.dll library";
 		SetThemeAppPropertiesPtr = reinterpret_cast<PFN_SetThemeAppProperties>(GetProcAddress(UxThemeModule, "SetThemeAppProperties"));
 		if (!SetThemeAppPropertiesPtr)
 		{
-			LOG << "Failed to get 'SetThemeAppProperties' ProcAddress of uxtheme.dll!";
+			Logging::Log() << "Failed to get 'SetThemeAppProperties' ProcAddress of uxtheme.dll!";
 		}
 	}
 	else
 	{
-		LOG << "Failed to load uxtheme.dll!";
+		Logging::Log() << "Failed to load uxtheme.dll!";
 	}
 }
 

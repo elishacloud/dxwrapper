@@ -5,5 +5,8 @@
 * From source code found in d3d8to9
 * https://github.com/crosire/d3d8to9/
 *
+* From source code found in Wine
+* https://github.com/alexhenrie/wine
+*
 * Updated 2017 by Elisha Riedlinger
 */

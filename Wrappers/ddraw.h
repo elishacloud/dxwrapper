@@ -42,22 +42,22 @@ namespace ddraw
 			if (dll)
 			{
 				VISIT_DDRAW_PROCS(LOAD_ORIGINAL_PROC);
-				dsound::module.DllCanUnloadNow = GetFunctionAddress(dll, "DllCanUnloadNow", jmpaddr);			 // <---  Shared with dsound.dll
-				dsound::module.DllGetClassObject = GetFunctionAddress(dll, "DllGetClassObject", jmpaddr);		 // <---  Shared with dsound.dll
+				dsound::module.DllCanUnloadNow = Wrapper::GetProcAddress(dll, "DllCanUnloadNow", jmpaddr);			 // <---  Shared with dsound.dll
+				dsound::module.DllGetClassObject = Wrapper::GetProcAddress(dll, "DllGetClassObject", jmpaddr);		 // <---  Shared with dsound.dll
 
 				// Enable DDrawCompat
 				if (Config.DDrawCompat && Config.RealWrapperMode == dtype.ddraw)
 				{
-					DirectDrawCreate = GetFunctionAddress(hModule_dll, "_DirectDrawCreate", jmpaddr);
-					DirectDrawCreateEx = GetFunctionAddress(hModule_dll, "_DirectDrawCreateEx", jmpaddr);
+					DirectDrawCreate = Wrapper::GetProcAddress(hModule_dll, "_DirectDrawCreate", jmpaddr);
+					DirectDrawCreateEx = Wrapper::GetProcAddress(hModule_dll, "_DirectDrawCreateEx", jmpaddr);
 				}
 
 				// Hook ddraw APIs for DDrawCompat
 				else if (Config.DDrawCompat)
 				{
-					LOG << "Hooking ddraw.dll APIs...";
-					DirectDrawCreate = (FARPROC)HookAPI(hModule_dll, dtypename[dtype.ddraw], GetFunctionAddress(dll, "DirectDrawCreate"), "DirectDrawCreate", GetFunctionAddress(hModule_dll, "_DirectDrawCreate"));
-					DirectDrawCreateEx = (FARPROC)HookAPI(hModule_dll, dtypename[dtype.ddraw], GetFunctionAddress(dll, "DirectDrawCreateEx"), "DirectDrawCreateEx", GetFunctionAddress(hModule_dll, "_DirectDrawCreateEx"));
+					Logging::Log() << "Hooking ddraw.dll APIs...";
+					DirectDrawCreate = (FARPROC)Hook::HookAPI(hModule_dll, dtypename[dtype.ddraw], Hook::GetFunctionAddress(dll, "DirectDrawCreate"), "DirectDrawCreate", Hook::GetFunctionAddress(hModule_dll, "_DirectDrawCreate"));
+					DirectDrawCreateEx = (FARPROC)Hook::HookAPI(hModule_dll, dtypename[dtype.ddraw], Hook::GetFunctionAddress(dll, "DirectDrawCreateEx"), "DirectDrawCreateEx", Hook::GetFunctionAddress(hModule_dll, "_DirectDrawCreateEx"));
 				}
 			}
 		}

@@ -133,9 +133,9 @@ copy /Y "$(ProjectDir)Settings\Settings.ini" "$(TargetDir)Build\" &gt;nul</Comma
     <ClCompile>
       <AdditionalOptions>/GS- %(AdditionalOptions)</AdditionalOptions>
       <Optimization>Full</Optimization>
-      <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
+      <InlineFunctionExpansion>Default</InlineFunctionExpansion>
       <IntrinsicFunctions>true</IntrinsicFunctions>
-      <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
+      <FavorSizeOrSpeed>Size</FavorSizeOrSpeed>
       <OmitFramePointers>true</OmitFramePointers>
       <EnableFiberSafeOptimizations>true</EnableFiberSafeOptimizations>
       <WholeProgramOptimization>true</WholeProgramOptimization>
@@ -156,8 +156,7 @@ copy /Y "$(ProjectDir)Settings\Settings.ini" "$(TargetDir)Build\" &gt;nul</Comma
       <BufferSecurityCheck>false</BufferSecurityCheck>
       <AdditionalUsingDirectories>
       </AdditionalUsingDirectories>
-      <DebugInformationFormat>
-      </DebugInformationFormat>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
     </ClCompile>
     <ResourceCompile>
       <PreprocessorDefinitions>NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
@@ -179,6 +178,7 @@ copy /Y "$(ProjectDir)Settings\Settings.ini" "$(TargetDir)Build\" &gt;nul</Comma
       <LinkTimeCodeGeneration>UseLinkTimeCodeGeneration</LinkTimeCodeGeneration>
       <IgnoreAllDefaultLibraries>
       </IgnoreAllDefaultLibraries>
+      <OptimizeReferences>true</OptimizeReferences>
     </Link>
     <Bscmake>
       <SuppressStartupBanner>true</SuppressStartupBanner>
@@ -250,7 +250,6 @@ cmd /c "@echo off &amp;&amp; cd /D ""$(ProjectDir)Dllmain\"" &amp;&amp; type Bui
     <ClCompile Include="DDrawCompat\v0.2.1\UnmodifiedDDrawProcs.cpp" />
     <ClCompile Include="Disasm\cmdlist.c" />
     <ClCompile Include="Disasm\Disasm.c" />
-    <ClCompile Include="Disasm\initdisasm.cpp" />
     <ClCompile Include="Dllmain\Dllmain.cpp" />
     <ClCompile Include="DSoundCtrl\DSoundCtrl.cpp" />
     <ClCompile Include="DSoundCtrl\IDirectSound3DBufferEx.cpp" />
@@ -260,17 +259,18 @@ cmd /c "@echo off &amp;&amp; cd /D ""$(ProjectDir)Dllmain\"" &amp;&amp; type Bui
     <ClCompile Include="DSoundCtrl\IDirectSoundEx.cpp" />
     <ClCompile Include="DxWnd\v2_03_60_src\init.cpp" />
     <ClCompile Include="Fullscreen\Fullscreen.cpp" />
-    <ClCompile Include="hook\hotpatch.cpp" />
-    <ClCompile Include="hook\iatpatch.cpp" />
-    <ClCompile Include="hook\inithook.cpp" />
+    <ClCompile Include="Hooking\Hook.cpp" />
+    <ClCompile Include="Hooking\HotPatch.cpp" />
+    <ClCompile Include="Hooking\IATPatch.cpp" />
     <ClCompile Include="Libraries\d3dx9.cpp" />
     <ClCompile Include="libraries\dwmapi.cpp" />
     <ClCompile Include="libraries\uxtheme.cpp" />
     <ClCompile Include="libraries\winmm.cpp" />
+    <ClCompile Include="Logging\Logging.cpp" />
     <ClCompile Include="Settings\Settings.cpp" />
     <ClCompile Include="Utils\Utils.cpp" />
+    <ClCompile Include="Utils\WriteMemory.cpp" />
     <ClCompile Include="wrappers\wrapper.cpp" />
-    <ClCompile Include="WriteMemory\WriteMemory.cpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Dllmain\dxwrapper.def" />
@@ -316,7 +316,6 @@ cmd /c "@echo off &amp;&amp; cd /D ""$(ProjectDir)Dllmain\"" &amp;&amp; type Bui
     <ClInclude Include="DDrawCompat\v0.2.1\ScopedCriticalSection.h" />
     <ClInclude Include="DDrawCompat\v0.2.1\Time1.h" />
     <ClInclude Include="Disasm\disasm.h" />
-    <ClInclude Include="Disasm\initdisasm.h" />
     <ClInclude Include="Dllmain\Dllmain.h" />
     <ClInclude Include="Dllmain\dxwrapper.h" />
     <ClInclude Include="DSoundCtrl\dsound.h" />
@@ -330,13 +329,12 @@ cmd /c "@echo off &amp;&amp; cd /D ""$(ProjectDir)Dllmain\"" &amp;&amp; type Bui
     <ClInclude Include="DSoundCtrl\IDirectSoundEx.h" />
     <ClInclude Include="DxWnd\v2_03_60_src\dxwnd.h" />
     <ClInclude Include="Fullscreen\Fullscreen.h" />
-    <ClInclude Include="hook\hotpatch.h" />
-    <ClInclude Include="hook\iatpatch.h" />
-    <ClInclude Include="hook\inithook.h" />
+    <ClInclude Include="Hooking\Hook.h" />
     <ClInclude Include="Libraries\d3dx9.h" />
     <ClInclude Include="libraries\dwmapi.h" />
     <ClInclude Include="libraries\uxtheme.h" />
     <ClInclude Include="libraries\winmm.h" />
+    <ClInclude Include="Logging\Logging.h" />
     <ClInclude Include="Settings\Settings.h" />
     <ClInclude Include="Utils\Utils.h" />
     <ClInclude Include="Wrappers\cryptsp.h" />
@@ -351,7 +349,6 @@ cmd /c "@echo off &amp;&amp; cd /D ""$(ProjectDir)Dllmain\"" &amp;&amp; type Bui
     <ClInclude Include="wrappers\winmm.h" />
     <ClInclude Include="Wrappers\winspool.h" />
     <ClInclude Include="wrappers\wrapper.h" />
-    <ClInclude Include="WriteMemory\WriteMemory.h" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="Dllmain\BuildNo.rc" />

@@ -13,278 +13,49 @@
 *      being the original software.
 *   3. This notice may not be removed or altered from any source distribution.
 *
-* Code in GetOSVersion and GetVersionReg functions taken from source code found in DirectSoundControl
-* https://github.com/nRaecheR/DirectSoundControl
+* Exception handling code taken from source code found in DxWnd v2.03.99
+* https://sourceforge.net/projects/dxwnd/
 *
 * Code in GetVersionFile function taken from source code found on stackoverflow.com
 * https://stackoverflow.com/questions/940707/how-do-i-programmatically-get-the-version-of-a-dll-or-exe-file
 *
 * Code in DisableHighDPIScaling function taken from source code found in Aqrit's ddwrapper
 * http://bitpatch.com/ddwrapper.html
-*
-* Code in GetFunctionAddress function taken from source code found on rohitab.com
-* http://www.rohitab.com/discuss/topic/40594-parsing-pe-export-table/
 */
 
 #include "Settings\Settings.h"
 #include "Wrappers\wrapper.h"
-#include <VersionHelpers.h>
+#include "Dllmain\Dllmain.h"
+#include "Disasm\disasm.h"
+#include "Hooking\Hook.h"
+#include "Utils.h"
+#include "Logging\Logging.h"
 
-// Get Windows Operating System version number from the registry
-void GetVersionReg(OSVERSIONINFO *oOS_version)
+typedef LPTOP_LEVEL_EXCEPTION_FILTER(WINAPI *SetUnhandledExceptionFilter_Type)(LPTOP_LEVEL_EXCEPTION_FILTER);
+typedef char *(*Geterrwarnmessage_Type)(unsigned long, unsigned long);
+typedef int(*Preparedisasm_Type)(void);
+typedef void(*Finishdisasm_Type)(void);
+typedef unsigned long(*Disasm_Type)(const unsigned char *, unsigned long, unsigned long, t_disasm *, int, t_config *, int(*)(tchar *, unsigned long));
+
+namespace Utils
 {
-	// Initualize variables
-	oOS_version->dwMajorVersion = 0;
-	oOS_version->dwMinorVersion = 0;
-	oOS_version->dwBuildNumber = 0;
+	// Declare varables
+	SetUnhandledExceptionFilter_Type pSetUnhandledExceptionFilter;
+	Geterrwarnmessage_Type pGeterrwarnmessage;
+	Preparedisasm_Type pPreparedisasm;
+	Finishdisasm_Type pFinishdisasm;
+	Disasm_Type pDisasm;
 
-	// Define registry keys
-	HKEY			RegKey = nullptr;
-	DWORD			dwDataMajor = 0;
-	DWORD			dwDataMinor = 0;
-	unsigned long	iSize = sizeof(DWORD);
-	DWORD			dwType = 0;
-
-	// Get version
-	if (RegOpenKeyEx(HKEY_LOCAL_MACHINE, "SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion", 0, KEY_ALL_ACCESS, &RegKey) == ERROR_SUCCESS)
-	{
-		if (RegQueryValueEx(RegKey, "CurrentMajorVersionNumber", nullptr, &dwType, (LPBYTE)&dwDataMajor, &iSize) == ERROR_SUCCESS &&
-			RegQueryValueEx(RegKey, "CurrentMinorVersionNumber", nullptr, &dwType, (LPBYTE)&dwDataMinor, &iSize) == ERROR_SUCCESS)
-		{
-			oOS_version->dwMajorVersion = dwDataMajor;
-			oOS_version->dwMinorVersion = dwDataMinor;
-		}
-		RegCloseKey(RegKey);
-	}
-}
-
-// Get Windows Operating System version number from kernel32.dll
-void GetVersionFile(OSVERSIONINFO *oOS_version)
-{
-	// Initualize variables
-	oOS_version->dwMajorVersion = 0;
-	oOS_version->dwMinorVersion = 0;
-	oOS_version->dwBuildNumber = 0;
-
-	// Load version.dll
-	HMODULE Module = LoadLibrary("version.dll");
-	if (!Module)
-	{
-		LOG << "Failed to load version.dll!";
-		return;
-	}
-
-	// Declare functions
-	typedef DWORD(WINAPI *PFN_GetFileVersionInfoSize)(LPCTSTR lptstrFilename, LPDWORD lpdwHandle);
-	typedef BOOL(WINAPI *PFN_GetFileVersionInfo)(LPCTSTR lptstrFilename, DWORD dwHandle, DWORD dwLen, LPVOID lpData);
-	typedef BOOL(WINAPI *PFN_VerQueryValue)(LPCVOID pBlock, LPCTSTR lpSubBlock, LPVOID *lplpBuffer, PUINT puLen);
-
-	// Get functions ProcAddress
-	PFN_GetFileVersionInfoSize GetFileVersionInfoSize = reinterpret_cast<PFN_GetFileVersionInfoSize>(GetProcAddress(Module, "GetFileVersionInfoSizeA"));
-	PFN_GetFileVersionInfo GetFileVersionInfo = reinterpret_cast<PFN_GetFileVersionInfo>(GetProcAddress(Module, "GetFileVersionInfoA"));
-	PFN_VerQueryValue VerQueryValue = reinterpret_cast<PFN_VerQueryValue>(GetProcAddress(Module, "VerQueryValueA"));
-	if (!GetFileVersionInfoSize || !GetFileVersionInfo || !VerQueryValue)
-	{
-		if (!GetFileVersionInfoSize)
-		{
-			LOG << "Failed to get 'GetFileVersionInfoSize' ProcAddress of version.dll!";
-		}
-		if (!GetFileVersionInfo)
-		{
-			LOG << "Failed to get 'GetFileVersionInfo' ProcAddress of version.dll!";
-		}
-		if (!VerQueryValue)
-		{
-			LOG << "Failed to get 'VerQueryValue' ProcAddress of version.dll!";
-		}
-		return;
-	}
-
-	// Get kernel32.dll path
-	char buffer[MAX_PATH];
-	GetSystemDirectory(buffer, MAX_PATH);
-	strcat_s(buffer, MAX_PATH, "\\kernel32.dll");
-
-	// Define registry keys
-	DWORD  verHandle = 0;
-	UINT   size = 0;
-	LPBYTE lpBuffer = nullptr;
-	LPCSTR szVersionFile = buffer;
-	DWORD  verSize = GetFileVersionInfoSize(szVersionFile, &verHandle);
-
-	// GetVersion from a file
-	if (verSize != 0)
-	{
-		LPSTR verData = new char[verSize];
-
-		if (GetFileVersionInfo(szVersionFile, verHandle, verSize, verData))
-		{
-			if (VerQueryValue(verData, "\\", (VOID FAR* FAR*)&lpBuffer, &size))
-			{
-				if (size)
-				{
-					VS_FIXEDFILEINFO *verInfo = (VS_FIXEDFILEINFO *)lpBuffer;
-					if (verInfo->dwSignature == 0xfeef04bd)
-					{
-						oOS_version->dwMajorVersion = (verInfo->dwFileVersionMS >> 16) & 0xffff;
-						oOS_version->dwMinorVersion = (verInfo->dwFileVersionMS >> 0) & 0xffff;
-						oOS_version->dwBuildNumber = (verInfo->dwFileVersionLS >> 16) & 0xffff;
-						//(verInfo->dwFileVersionLS >> 0) & 0xffff		//  <-- Other data not used
-					}
-				}
-			}
-		}
-		delete[] verData;
-	}
-	FreeLibrary(Module);
-}
-
-// Log Windows Operating System type
-void LogOSVersion()
-{
-	// Declare vars
-	OSVERSIONINFO oOS_version, rOS_version;
-	oOS_version.dwOSVersionInfoSize = sizeof(OSVERSIONINFO);
-	rOS_version.dwOSVersionInfoSize = sizeof(OSVERSIONINFO);
-
-	// GetVersion from registry which is more relayable for Windows 10
-	GetVersionReg(&rOS_version);
-
-	// GetVersion from a file which is needed to get the build number
-	GetVersionFile(&oOS_version);
-
-	// Choose whichever version is higher
-	// Newer OS's report older version numbers for compatibility
-	// This allows dxwrapper to get the proper OS version number
-	if (rOS_version.dwMajorVersion > oOS_version.dwMajorVersion)
-	{
-		oOS_version.dwMajorVersion = rOS_version.dwMajorVersion;
-		oOS_version.dwMinorVersion = rOS_version.dwMinorVersion;
-	}
-
-	// Get OS string name
-	char *sOSName = "Unknown platform";
-	if (IsWindowsServer())
-	{
-		sOSName = "Unknown Windows Server";
-		switch (oOS_version.dwMajorVersion)
-		{
-		case 5:
-			switch (oOS_version.dwMinorVersion)
-			{
-			case 0:
-				sOSName = "Windows 2000 Server";
-				break;
-			case 2:
-				sOSName = (GetSystemMetrics(SM_SERVERR2) == 0) ? "Windows Server 2003" : "Windows Server 2003 R2";
-				break;
-			}
-			break;
-		case 6:
-			switch (oOS_version.dwMinorVersion)
-			{
-			case 0:
-				sOSName = "Windows Server 2008";
-				break;
-			case 1:
-				sOSName = "Windows Server 2008 R2";
-				break;
-			case 2:
-				sOSName = "Windows Server 2012";
-				break;
-			case 3:
-				sOSName = "Windows Server 2012 R2";
-				break;
-			}
-			break;
-		case 10:
-			switch (oOS_version.dwMinorVersion)
-			{
-			case 0:
-				sOSName = "Windows Server 2016";
-				break;
-			}
-			break;
-		}
-	}
-	else
-	{
-		sOSName = "Unknown Windows Desktop";
-		switch (oOS_version.dwMajorVersion)
-		{
-		case 5:
-			switch (oOS_version.dwMinorVersion)
-			{
-			case 0:
-				sOSName = "Windows 2000";
-				break;
-			case 1:
-				sOSName = "Windows XP";
-				break;
-			case 2:
-				sOSName = "Windows XP Professional"; // Windows XP Professional x64
-				break;
-			}
-			break;
-		case 6:
-			switch (oOS_version.dwMinorVersion)
-			{
-			case 0:
-				sOSName = "Windows Vista";
-				break;
-			case 1:
-				sOSName = "Windows 7";
-				break;
-			case 2:
-				sOSName = "Windows 8";
-				break;
-			case 3:
-				sOSName = "Windows 8.1";
-				break;
-			}
-			break;
-		case 10:
-			switch (oOS_version.dwMinorVersion)
-			{
-			case 0:
-				sOSName = "Windows 10";
-				break;
-			}
-			break;
-		}
-	}
-
-	// Get bitness (32bit vs 64bit)
-	char *bitness = "";
-	SYSTEM_INFO SystemInfo;
-	GetNativeSystemInfo(&SystemInfo);
-	if (SystemInfo.wProcessorArchitecture == 9)
-	{
-		bitness = " 64-bit";
-	}
-
-	// Log operating system version and type
-	LOG << sOSName << bitness << " (" << oOS_version.dwMajorVersion << "." << oOS_version.dwMinorVersion << "." << oOS_version.dwBuildNumber << ")";
-}
-
-// Logs the process name and PID
-void LogProcessNameAndPID()
-{
-	// Get process name
-	char exepath[MAX_PATH];
-	GetModuleFileName(nullptr, exepath, MAX_PATH);
-
-	// Remove path and add process name
-	char *pdest = strrchr(exepath, '\\');
-
-	// Log process name and ID
-	LOG << (++pdest) << " (PID:" << GetCurrentProcessId() << ")";
+	// Function declarations
+	static HMODULE LoadDisasm();
+	LONG WINAPI myUnhandledExceptionFilter(LPEXCEPTION_POINTERS);
+	LPTOP_LEVEL_EXCEPTION_FILTER WINAPI extSetUnhandledExceptionFilter(LPTOP_LEVEL_EXCEPTION_FILTER);
 }
 
 // Execute a specified string
-void Shell(char* fileName)
+void Utils::Shell(char* fileName)
 {
-	LOG << "Running process: " << fileName;
+	Logging::Log() << "Running process: " << fileName;
 
 	// Get StartupInfo and ProcessInfo memory size and set process window to hidden
 	STARTUPINFO si;
@@ -298,7 +69,7 @@ void Shell(char* fileName)
 	if (!CreateProcess(nullptr, fileName, nullptr, nullptr, true, CREATE_NO_WINDOW, nullptr, nullptr, &si, &pi))
 	{
 		// Failed to launch process!
-		LOG << "Failed to launch process!";
+		Logging::Log() << "Failed to launch process!";
 	}
 	else
 	{
@@ -320,9 +91,9 @@ void Shell(char* fileName)
 // "Rendering of full-screen DX applications partially off screen" - Mircosoft
 // ...drawing(writting) to someplace that doesn't exist may cause crashes... 
 // if your going to Disable DPI Scaling then do it as soon as possible
-void DisableHighDPIScaling()
+void Utils::DisableHighDPIScaling()
 {
-	LOG << "Disabling High DPI Scaling...";
+	Logging::Log() << "Disabling High DPI Scaling...";
 	// use GetProcAddress because SetProcessDPIAware exists only on win6+
 	// and "High" dpi scaling only exits on win6+?
 	HMODULE hUser32 = GetModuleHandle("user32.dll");
@@ -333,11 +104,14 @@ void DisableHighDPIScaling()
 		if (setDPIAware)
 		{
 			setDPIAware();
+			return;
 		}
 	}
+	Logging::Log() << "Failed to disable High DPI Scaling!";
 }
 
-void SetAppCompat()
+// Sets Application Compatibility Toolkit options for DXPrimaryEmulation using SetAppCompatData API
+void Utils::SetAppCompat()
 {
 	// Check if any DXPrimaryEmulation flags is set
 	bool appCompatFlag = false;
@@ -364,7 +138,7 @@ void SetAppCompat()
 				{
 					if (SetAppCompatData)
 					{
-						LOG << "SetAppCompatData: " << x;
+						Logging::Log() << "SetAppCompatData: " << x;
 						// For LockColorkey, this one uses the second parameter
 						if (x == AppCompatDataType.LockColorkey)
 						{
@@ -381,81 +155,111 @@ void SetAppCompat()
 		}
 		else
 		{
-			LOG << "Cannnot open ddraw.dll to SetAppCompatData";
+			Logging::Log() << "Cannnot open ddraw.dll to SetAppCompatData";
 		}
 	}
 }
 
-// Get pointer for funtion name from binary file
-FARPROC GetFunctionAddress(HMODULE hModule, LPCSTR FunctionName, FARPROC SetReturnValue)
+// Add filter for UnhandledExceptionFilter used by the exception handler to catch exceptions
+#pragma warning (disable : 4706)
+LONG WINAPI Utils::myUnhandledExceptionFilter(LPEXCEPTION_POINTERS ExceptionInfo)
 {
-	PIMAGE_DOS_HEADER pIDH;
-	PIMAGE_NT_HEADERS pINH;
-	PIMAGE_EXPORT_DIRECTORY pIED;
-
-	PDWORD Address, Name;
-	PWORD Ordinal;
-
-	if (!FunctionName)
+	Logging::Log() << "UnhandledExceptionFilter: exception code=" << ExceptionInfo->ExceptionRecord->ExceptionCode <<
+		" flags=" << ExceptionInfo->ExceptionRecord->ExceptionFlags << std::showbase << std::hex <<
+		" addr=" << ExceptionInfo->ExceptionRecord->ExceptionAddress << std::dec << std::noshowbase;
+	DWORD oldprot;
+	static HMODULE disasmlib = nullptr;
+	PVOID target = ExceptionInfo->ExceptionRecord->ExceptionAddress;
+	switch (ExceptionInfo->ExceptionRecord->ExceptionCode)
 	{
-		LogText("GetFunctionAddress: NULL api name");
-		return SetReturnValue;
+	case 0xc0000094: // IDIV reg (Ultim@te Race Pro)
+	case 0xc0000095: // DIV by 0 (divide overflow) exception (SonicR)
+	case 0xc0000096: // CLI Priviliged instruction exception (Resident Evil), FB (Asterix & Obelix)
+	case 0xc000001d: // FEMMS (eXpendable)
+	case 0xc0000005: // Memory exception (Tie Fighter)
+		int cmdlen;
+		t_disasm da;
+		if (!disasmlib)
+		{
+			if (!(disasmlib = LoadDisasm())) return EXCEPTION_CONTINUE_SEARCH;
+			(*pPreparedisasm)();
+		}
+		if (!VirtualProtect(target, 10, PAGE_READWRITE, &oldprot))
+		{
+			return EXCEPTION_CONTINUE_SEARCH; // error condition
+		}
+		cmdlen = (*pDisasm)((BYTE *)target, 10, 0, &da, 0, nullptr, nullptr);
+		Logging::Log() << "UnhandledExceptionFilter: NOP opcode=" << std::showbase << std::hex << *(BYTE *)target << std::dec << std::noshowbase << " len=" << cmdlen;
+		memset((BYTE *)target, 0x90, cmdlen);
+		VirtualProtect(target, 10, oldprot, &oldprot);
+		if (!FlushInstructionCache(GetCurrentProcess(), target, cmdlen))
+		{
+			Logging::Log() << "UnhandledExceptionFilter: FlushInstructionCache ERROR target=" << std::showbase << std::hex << target << std::dec << std::noshowbase << ", err=" << GetLastError();
+		}
+		// skip replaced opcode
+		ExceptionInfo->ContextRecord->Eip += cmdlen; // skip ahead op-code length
+		return EXCEPTION_CONTINUE_EXECUTION;
+		break;
+	default:
+		return EXCEPTION_CONTINUE_SEARCH;
 	}
+}
+#pragma warning (default : 4706)
 
-	if (!hModule)
+// Add filter for SetUnhandledExceptionFilter used by the exception handler to catch exceptions
+#pragma warning (disable : 4100)
+LPTOP_LEVEL_EXCEPTION_FILTER WINAPI Utils::extSetUnhandledExceptionFilter(LPTOP_LEVEL_EXCEPTION_FILTER lpTopLevelExceptionFilter)
+{
+#ifdef _DEBUG
+	Logging::Log() << "SetUnhandledExceptionFilter: lpExceptionFilter=" << lpTopLevelExceptionFilter;
+#endif
+	extern LONG WINAPI myUnhandledExceptionFilter(LPEXCEPTION_POINTERS);
+	return (*pSetUnhandledExceptionFilter)(myUnhandledExceptionFilter);
+}
+#pragma warning (default : 4100)
+
+// Loads the disasembler which is used in by the exception handler to correct exceptions
+static HMODULE Utils::LoadDisasm()
+{
+	HMODULE disasmlib;
+
+	// Get dxwrapper path
+	char buffer[MAX_PATH];
+	GetModuleFileName(hModule_dll, buffer, MAX_PATH);
+
+	disasmlib = LoadLibrary(buffer);
+	if (!disasmlib)
 	{
-		LogText("GetFunctionAddress: NULL api module address");
-		return SetReturnValue;
+		Logging::Log() << "Load lib=" << buffer << " failed err=" << GetLastError();
+		return nullptr;
 	}
+	pGeterrwarnmessage = (Geterrwarnmessage_Type)(*GetProcAddress)(disasmlib, "Geterrwarnmessage");
+	pPreparedisasm = (Preparedisasm_Type)(*GetProcAddress)(disasmlib, "Preparedisasm");
+	pFinishdisasm = (Finishdisasm_Type)(*GetProcAddress)(disasmlib, "Finishdisasm");
+	pDisasm = (Disasm_Type)(*GetProcAddress)(disasmlib, "Disasm");
+#ifdef _DEBUG
+	Logging::Log() << "Load " << buffer << " ptrs=" << pGeterrwarnmessage << std::showbase << std::hex << pPreparedisasm << pFinishdisasm << pDisasm << std::dec << std::noshowbase;
+#endif
+	return disasmlib;
+}
 
-	FARPROC ProcAddress = GetProcAddress(hModule, FunctionName);
+// Sets the exception handler by hooking UnhandledExceptionFilter
+void Utils::HookExceptionHandler(void)
+{
+	void *tmp;
 
-	if (!ProcAddress)
+	Logging::Log() << "Set exception handler";
+	pSetUnhandledExceptionFilter = SetUnhandledExceptionFilter;
+	// override default exception handler, if any....
+	LONG WINAPI myUnhandledExceptionFilter(LPEXCEPTION_POINTERS);
+	tmp = Hook::HookAPI(hModule_dll, "KERNEL32.dll", UnhandledExceptionFilter, "UnhandledExceptionFilter", myUnhandledExceptionFilter);
+	// so far, no need to save the previous handler, but anyway...
+	tmp = Hook::HookAPI(hModule_dll, "KERNEL32.dll", SetUnhandledExceptionFilter, "SetUnhandledExceptionFilter", extSetUnhandledExceptionFilter);
+	if (tmp)
 	{
-		ProcAddress = SetReturnValue;
+		pSetUnhandledExceptionFilter = (SetUnhandledExceptionFilter_Type)tmp;
 	}
 
-	__try {
-		pIDH = (PIMAGE_DOS_HEADER)hModule;
-
-		if (pIDH->e_magic != IMAGE_DOS_SIGNATURE)
-		{
-			return ProcAddress;
-		}
-
-		pINH = (PIMAGE_NT_HEADERS)((LPBYTE)hModule + pIDH->e_lfanew);
-
-		if (pINH->Signature != IMAGE_NT_SIGNATURE)
-		{
-			return ProcAddress;
-		}
-
-		if (pINH->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_EXPORT].VirtualAddress == 0)
-		{
-			return ProcAddress;
-		}
-
-		pIED = (PIMAGE_EXPORT_DIRECTORY)((LPBYTE)hModule + pINH->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_EXPORT].VirtualAddress);
-
-		Address = (PDWORD)((LPBYTE)hModule + pIED->AddressOfFunctions);
-		Name = (PDWORD)((LPBYTE)hModule + pIED->AddressOfNames);
-		Ordinal = (PWORD)((LPBYTE)hModule + pIED->AddressOfNameOrdinals);
-
-		for (DWORD i = 0; i < pIED->AddressOfFunctions; i++)
-		{
-			if (!strcmp(FunctionName, (char*)hModule + Name[i]))
-			{
-				return (FARPROC)((LPBYTE)hModule + Address[Ordinal[i]]);
-			}
-		}
-	}
-	__except (EXCEPTION_EXECUTE_HANDLER)
-	{
-		static constexpr DWORD BuffSize = 250;
-		char buffer[BuffSize];
-		sprintf_s(buffer, BuffSize, "GetFunctionAddress: EXCEPTION module=%s Failed to get address.", FunctionName);
-		LogText(buffer);
-	}
-
-	return ProcAddress;
+	SetErrorMode(SEM_NOGPFAULTERRORBOX | SEM_NOOPENFILEERRORBOX | SEM_FAILCRITICALERRORS);
+	(*pSetUnhandledExceptionFilter)((LPTOP_LEVEL_EXCEPTION_FILTER)myUnhandledExceptionFilter);
 }

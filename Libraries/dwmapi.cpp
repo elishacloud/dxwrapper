@@ -14,7 +14,7 @@
 *   3. This notice may not be removed or altered from any source distribution.
 */
 
-#include  "Settings\Settings.h"
+#include "Logging\Logging.h"
 
 typedef HRESULT(WINAPI *PFN_DwmSetWindowAttribute)(HWND hwnd, DWORD dwAttribute, LPCVOID pvAttribute, DWORD cbAttribute);
 PFN_DwmSetWindowAttribute DwmSetWindowAttributePtr = nullptr;
@@ -31,16 +31,16 @@ void Loaddwmapi()
 	dwmapiModule = LoadLibrary("dwmapi.dll");
 	if (dwmapiModule)
 	{
-		LOG << "Loaded dwmapi.dll library";
+		Logging::Log() << "Loaded dwmapi.dll library";
 		DwmSetWindowAttributePtr = reinterpret_cast<PFN_DwmSetWindowAttribute>(GetProcAddress(dwmapiModule, "DwmSetWindowAttribute"));
 		if (!DwmSetWindowAttributePtr)
 		{
-			LOG << "Failed to get 'DwmSetWindowAttribute' ProcAddress of dwmapi.dll!";
+			Logging::Log() << "Failed to get 'DwmSetWindowAttribute' ProcAddress of dwmapi.dll!";
 		}
 	}
 	else
 	{
-		LOG << "Failed to load dwmapi.dll!";
+		Logging::Log() << "Failed to load dwmapi.dll!";
 	}
 }
 

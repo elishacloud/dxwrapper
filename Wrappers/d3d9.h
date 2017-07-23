@@ -33,7 +33,7 @@ namespace d3d9
 			if (dll)
 			{
 				VISIT_D3D9_PROCS(LOAD_ORIGINAL_PROC);
-				d3d8::module.DebugSetMute = GetFunctionAddress(dll, "DebugSetMute", jmpaddr);		// <---  Shared with d3d8.dll
+				d3d8::module.DebugSetMute = Wrapper::GetProcAddress(dll, "DebugSetMute", jmpaddr);		// <---  Shared with d3d8.dll
 			}
 		}
 	};
