@@ -98,8 +98,7 @@ void Settings::DeleteByteToWriteArrayMemory()
 	}
 }
 
-// any C++ style (both inline and block) commented text is replaced with a space character 
-// todo: skip comments inside double quotes
+// Commented text is replaced with a space character
 void Settings::EraseCppComments(char* str)
 {
 	while ((str = strchr(str, '/')) != 0)

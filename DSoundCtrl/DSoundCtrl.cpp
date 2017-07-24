@@ -21,10 +21,6 @@
 * Updated 2017 by Elisha Riedlinger
 */
 
-#ifndef _DEBUG
-//#define new DEBUG_NEW		//<----TODO: fix this line
-#endif
-
 #include "Settings\Settings.h"
 #include <stdio.h>
 #include <atlstr.h>
