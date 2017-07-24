@@ -770,7 +770,7 @@ void Settings::ClearConfigSettings()
 	Config.szSetNamedLayer[0] = '\0';
 	// AppCompatData
 	Config.DisableMaxWindowedModeNotSet = true;  // Default to 'true' until we know it is set
-	for (UINT x = 1; x <= 12; x++)
+	for (UINT x = 0; x <= 12; x++)
 	{
 		Config.DXPrimaryEmulation[x] = false;
 	}

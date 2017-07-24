@@ -63,8 +63,6 @@ BOOL CALLBACK DSEnumCallback(LPGUID  lpGuid, LPCSTR  lpcstrDescription, LPCSTR  
 }
 #endif  // _DEBUG
 
-CDSoundCtrlApp IDSoundCtrl;
-
 CDSoundCtrlApp::CDSoundCtrlApp()
 {
 	m_cszClassName = CDSOUNDCTRLAPP_CLASS_NAME;
@@ -77,11 +75,7 @@ CDSoundCtrlApp::~CDSoundCtrlApp()
 	{
 		LogMessage(m_cszClassName, this, "Destructor called....");
 	}
-#endif // _DEBUG
 
-	::FreeLibrary(g_hDLL);
-
-#ifdef _DEBUG
 	if (g_bDebugBeep)
 	{
 		Beep(3000, 100);
@@ -93,7 +87,6 @@ CDSoundCtrlApp::~CDSoundCtrlApp()
 
 		::LogMessage((const char*) nullptr, nullptr, "********* DirectSound Control Logging ended *********");
 	}
-
 #endif // _DEBUG
 }
 
@@ -483,9 +476,20 @@ BOOL APIENTRY DllMain_DSoundCtrl(HMODULE hModule, DWORD fdwReason, LPVOID lpRese
 {
 	UNREFERENCED_PARAMETER(lpReserved);
 
-	if (fdwReason == DLL_PROCESS_ATTACH)
+	static CDSoundCtrlApp *IDSoundCtrl = nullptr;
+
+	switch (fdwReason)
 	{
-		IDSoundCtrl.InitInstance(hModule);
+	case DLL_PROCESS_ATTACH:
+		IDSoundCtrl = new CDSoundCtrlApp;
+		IDSoundCtrl->InitInstance(hModule);
+		break;
+	case DLL_PROCESS_DETACH:
+		if (IDSoundCtrl)
+		{
+			delete IDSoundCtrl;
+		}
+		break;
 	}
 
 	return TRUE;

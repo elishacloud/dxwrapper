@@ -31,6 +31,7 @@
 #include "Utils.h"
 #include "Logging\Logging.h"
 
+typedef HRESULT(__stdcall *SetAppCompatDataFunc)(DWORD, DWORD);
 typedef LPTOP_LEVEL_EXCEPTION_FILTER(WINAPI *SetUnhandledExceptionFilter_Type)(LPTOP_LEVEL_EXCEPTION_FILTER);
 typedef char *(*Geterrwarnmessage_Type)(unsigned long, unsigned long);
 typedef int(*Preparedisasm_Type)(void);
@@ -126,12 +127,11 @@ void Utils::SetAppCompat()
 	// SetAppCompatData see: http://www.blitzbasic.com/Community/post.php?topic=99477&post=1202996
 	if (appCompatFlag)
 	{
-		typedef HRESULT(__stdcall *SetAppCompatDataFunc)(DWORD, DWORD);
 		HMODULE module = Wrapper::LoadDll(dtype.ddraw);
-		if (module)
+		FARPROC SetAppCompatDataPtr = (module) ? GetProcAddress(module, "SetAppCompatData") : nullptr;
+		SetAppCompatDataFunc SetAppCompatData = (SetAppCompatDataFunc)SetAppCompatDataPtr;
+		if (module && SetAppCompatDataPtr)
 		{
-			FARPROC SetAppCompatDataPtr = GetProcAddress(module, "SetAppCompatData");
-			SetAppCompatDataFunc SetAppCompatData = (SetAppCompatDataFunc)SetAppCompatDataPtr;
 			for (DWORD x = 1; x <= 12; x++)
 			{
 				if (Config.DXPrimaryEmulation[x])

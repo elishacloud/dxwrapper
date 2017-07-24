@@ -170,7 +170,7 @@ void Utils::WriteMemory()
 // Is thread running
 bool Utils::IsWriteMemoryThreadRunning()
 {
-	return p_ThreadRunningFlag && GetThreadId(p_hThread) == p_dwThreadID && p_dwThreadID != 0;
+	return p_ThreadRunningFlag && p_dwThreadID != 0 && GetThreadId(p_hThread) == p_dwThreadID;
 }
 
 // Stop WriteMemory thread

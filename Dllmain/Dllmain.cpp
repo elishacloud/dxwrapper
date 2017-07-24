@@ -181,6 +181,10 @@ bool APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 		{
 			DllMain_DDrawCompat(nullptr, DLL_PROCESS_DETACH, nullptr);
 		}
+		if (Config.DSoundCtrl)
+		{
+			DllMain_DSoundCtrl(nullptr, DLL_PROCESS_DETACH, nullptr);
+		}
 
 		// Unload dlls
 		Wrapper::DllDetach();

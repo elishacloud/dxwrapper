@@ -53,6 +53,7 @@ static constexpr int dtypeArraySize = (sizeof(dtypename) / sizeof(*dtypename));
 
 struct APPCOMPATDATATYPE
 {
+	const DWORD Empty = 0;
 	const DWORD LockEmulation = 1;
 	const DWORD BltEmulation = 2;
 	const DWORD ForceLockNoWindow = 3;
@@ -108,7 +109,7 @@ struct CONFIG
 	char* szCustomDllPath[256];			// List of custom dlls to load
 	char* szSetNamedLayer[256];			// List of named layers to select for fullscreen
 	char* szIgnoreWindowName[256];		// Lit of window classes to ignore
-	bool DXPrimaryEmulation[256];		// SetAppCompatData exported functions from ddraw.dll http://www.blitzbasic.com/Community/posts.php?topic=99477
+	bool DXPrimaryEmulation[13];		// SetAppCompatData exported functions from ddraw.dll http://www.blitzbasic.com/Community/posts.php?topic=99477
 	DWORD LockColorkey;					// DXPrimaryEmulation option that needs a second parameter
 	bool DisableMaxWindowedModeNotSet;	// If the DisableMaxWindowedMode option exists in the config file
 

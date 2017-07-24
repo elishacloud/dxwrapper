@@ -623,7 +623,7 @@ void Fullscreen::StartThread()
 // Is thread running
 bool Fullscreen::IsThreadRunning()
 {
-	return m_ThreadRunningFlag && GetThreadId(m_hThread) == m_dwThreadID && m_dwThreadID != 0;
+	return m_ThreadRunningFlag && m_dwThreadID != 0 && GetThreadId(m_hThread) == m_dwThreadID;
 }
 
 // Stop thread
