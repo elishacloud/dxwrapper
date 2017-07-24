@@ -118,6 +118,7 @@ copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\dplayx.dll" &gt;nul
 copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\bcrypt.dll" &gt;nul
 copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\cryptsp.dll" &gt;nul
 copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\winspool.drv" &gt;nul
+copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\dciman32.dll" &gt;nul
 copy /Y "$(ProjectDir)Settings\AllSettings.ini" "$(TargetDir)Build\" &gt;nul
 copy /Y "$(ProjectDir)Settings\Settings.ini" "$(TargetDir)Build\" &gt;nul</Command>
     </PostBuildEvent>
@@ -197,6 +198,7 @@ copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\dplayx.dll" &gt;nul
 copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\bcrypt.dll" &gt;nul
 copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\cryptsp.dll" &gt;nul
 copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\winspool.drv" &gt;nul
+copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\dciman32.dll" &gt;nul
 copy /Y "$(ProjectDir)Settings\AllSettings.ini" "$(TargetDir)Build\" &gt;nul
 copy /Y "$(ProjectDir)Settings\Settings.ini" "$(TargetDir)Build\" &gt;nul
 </Command>
@@ -340,6 +342,7 @@ cmd /c "@echo off &amp;&amp; cd /D ""$(ProjectDir)Dllmain\"" &amp;&amp; type Bui
     <ClInclude Include="Wrappers\cryptsp.h" />
     <ClInclude Include="wrappers\d3d8.h" />
     <ClInclude Include="wrappers\d3d9.h" />
+    <ClInclude Include="Wrappers\dciman32.h" />
     <ClInclude Include="wrappers\ddraw.h" />
     <ClInclude Include="wrappers\dinput.h" />
     <ClInclude Include="wrappers\dplayx.h" />
@@ -353,9 +356,6 @@ cmd /c "@echo off &amp;&amp; cd /D ""$(ProjectDir)Dllmain\"" &amp;&amp; type Bui
   <ItemGroup>
     <ResourceCompile Include="Dllmain\BuildNo.rc" />
     <ResourceCompile Include="Dllmain\dxwrapper.rc" />
-  </ItemGroup>
-  <ItemGroup>
-    <Text Include="DDrawCompat\v0.2.1\License.txt" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

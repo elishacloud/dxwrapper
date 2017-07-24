@@ -11,7 +11,8 @@
 	visit(dsound, DSOUND) \
 	visit(dxgi, DXGI) \
 	visit(winmm, WINMM) \
-	visit(winspool, WINSPOOL)
+	visit(winspool, WINSPOOL) \
+	visit(dciman32, DCIMAN32)
 
 #define ADD_FARPROC_MEMBER(memberName) FARPROC memberName = jmpaddr;
 

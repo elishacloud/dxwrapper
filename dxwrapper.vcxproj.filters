@@ -452,6 +452,9 @@
     <ClInclude Include="Hooking\Hook.h">
       <Filter>Hooking</Filter>
     </ClInclude>
+    <ClInclude Include="Wrappers\dciman32.h">
+      <Filter>Wrappers</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="Dllmain\BuildNo.rc">
@@ -460,10 +463,5 @@
     <ResourceCompile Include="Dllmain\dxwrapper.rc">
       <Filter>Dllmain</Filter>
     </ResourceCompile>
-  </ItemGroup>
-  <ItemGroup>
-    <Text Include="DDrawCompat\v0.2.1\License.txt">
-      <Filter>DDrawCompat</Filter>
-    </Text>
   </ItemGroup>
 </Project>

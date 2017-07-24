@@ -1,6 +1,6 @@
 # DxWrapper
 ### Introduction
-DxWrapper is a dll file designed to wrap or hook DirectX (or other) files to fix compatibility issues in older games.  This project is primarily targeted to fixing compatibility issues with running games on Windows 10, ideally by simply dropping a dll file and ini file into the game folder.  A secondary purpose for this is to offer a single tool (one stop shop, so to speak) by combining several other projects into one.  So far this dll can wrap the following files: bcrypt.dll, cryptsp.dll, d3d8.dll, d3d9.dll, ddraw.dll, dinput.dll, dplayx.dll, dsound.dll, dxgi.dll, winmm.dll or winspool.drv
+DxWrapper is a dll file designed to wrap or hook DirectX (or other) files to fix compatibility issues in older games.  This project is primarily targeted to fixing compatibility issues with running games on Windows 10, ideally by simply dropping a dll file and ini file into the game folder.  A secondary purpose for this is to offer a single tool (one stop shop, so to speak) by combining several other projects into one.  So far this dll can wrap the following files: bcrypt.dll, cryptsp.dll, d3d8.dll, d3d9.dll, dciman32.dll, ddraw.dll, dinput.dll, dplayx.dll, dsound.dll, dxgi.dll, winmm.dll or winspool.drv
 
 ### Features
 DxWrapper has a number of features that it includes.  Below is a list of features:

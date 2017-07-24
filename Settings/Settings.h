@@ -31,6 +31,7 @@ struct DLLTYPE
 	const DWORD bcrypt = 9;
 	const DWORD cryptsp = 10;
 	const DWORD winspool = 11;
+	const DWORD dciman32 = 12;
 };
 static const DLLTYPE dtype;
 
@@ -48,6 +49,7 @@ static constexpr char* dtypename[] = {
 	"bcrypt.dll",	// 9
 	"cryptsp.dll",	// 10
 	"winspool.drv",	// 11
+	"dciman32.dll",	// 12
 };
 static constexpr int dtypeArraySize = (sizeof(dtypename) / sizeof(*dtypename));
 

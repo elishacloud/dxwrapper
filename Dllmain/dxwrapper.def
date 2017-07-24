@@ -752,3 +752,28 @@ SystemFunction031 = FakeSystemFunction031 @682
 SystemFunction032 = FakeSystemFunction032 @683
 SystemFunction033 = FakeSystemFunction033 @684
 SystemFunction035 = FakeSystemFunction035 @685
+
+
+; ****
+;LIBRARY "dciman32"
+; ****
+DCIBeginAccess = FakeDCIBeginAccess	@686
+DCICloseProvider = FakeDCICloseProvider	@687
+DCICreateOffscreen = FakeDCICreateOffscreen	@688
+DCICreateOverlay = FakeDCICreateOverlay	@689
+DCICreatePrimary = FakeDCICreatePrimary	@690
+DCIDestroy = FakeDCIDestroy	@691
+DCIDraw = FakeDCIDraw	@692
+DCIEndAccess = FakeDCIEndAccess	@693
+DCIEnum = FakeDCIEnum	@694
+DCIOpenProvider = FakeDCIOpenProvider	@695
+DCISetClipList = FakeDCISetClipList	@696
+DCISetDestination = FakeDCISetDestination	@697
+DCISetSrcDestClip = FakeDCISetSrcDestClip	@698
+GetDCRegionData = FakeGetDCRegionData	@699
+GetWindowRegionData = FakeGetWindowRegionData	@700
+WinWatchClose = FakeWinWatchClose	@701
+WinWatchDidStatusChange = FakeWinWatchDidStatusChange	@702
+WinWatchGetClipList = FakeWinWatchGetClipList	@703
+WinWatchNotify = FakeWinWatchNotify	@704
+WinWatchOpen = FakeWinWatchOpen	@705
