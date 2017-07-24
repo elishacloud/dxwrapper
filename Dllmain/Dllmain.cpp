@@ -15,7 +15,6 @@
 */
 
 #include "Settings\Settings.h"
-#include "Dllmain.h"
 #include "dxwrapper.h"
 #include "Wrappers\wrapper.h"
 #include "DDrawCompat\DDrawCompatExternal.h"

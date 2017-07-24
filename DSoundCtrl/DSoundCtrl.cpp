@@ -21,13 +21,11 @@
 * Updated 2017 by Elisha Riedlinger
 */
 
-#define WIN32_LEAN_AND_MEAN
-
 #ifndef _DEBUG
 //#define new DEBUG_NEW		//<----TODO: fix this line
 #endif
 
-#include <windows.h>
+#include "Settings\Settings.h"
 #include <stdio.h>
 #include <atlstr.h>
 #include <assert.h>
@@ -38,7 +36,6 @@
 #include "DSoundCtrl.h"
 #include "DSoundCtrlExternal.h"
 #include "IDirectSoundClassFactoryEx.h"
-#include "Settings\Settings.h"
 #include "Wrappers\wrapper.h"
 #include "Logging\Logging.h"
 

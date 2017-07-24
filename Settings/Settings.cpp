@@ -100,10 +100,9 @@ void Settings::DeleteByteToWriteArrayMemory()
 
 // any C++ style (both inline and block) commented text is replaced with a space character 
 // todo: skip comments inside double quotes
-#pragma warning (disable : 4706)
 void Settings::EraseCppComments(char* str)
 {
-	while (str = strchr(str, '/'))
+	while ((str = strchr(str, '/')) != 0)
 	{
 		if (str[1] == '/')
 		{
@@ -134,7 +133,6 @@ void Settings::EraseCppComments(char* str)
 		}
 	}
 }
-#pragma warning (default : 4706)
 
 // [sections] are ignored
 // escape characters NOT support 
@@ -145,11 +143,11 @@ void Settings::EraseCppComments(char* str)
 //  0x20 - space
 //	0x09 - horizontal tab
 //	0x0D - carriage return
-#pragma warning (disable : 4996)
 void Settings::Parse(char* str, NV NameValueCallback)
 {
+	char *next_token = nullptr;
 	EraseCppComments(str);
-	for (str = strtok(str, "\n"); str; str = strtok(0, "\n"))
+	for (str = strtok_s(str, "\n", &next_token); str; str = strtok_s(0, "\n", &next_token))
 	{
 		if (*str == ';' || *str == '#')
 		{
@@ -183,7 +181,6 @@ void Settings::Parse(char* str, NV NameValueCallback)
 		}
 	}
 }
-#pragma warning (default : 4996)
 
 // Reads szFileName from disk
 char* Settings::Read(char* szFileName)

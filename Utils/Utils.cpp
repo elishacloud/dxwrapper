@@ -161,7 +161,6 @@ void Utils::SetAppCompat()
 }
 
 // Add filter for UnhandledExceptionFilter used by the exception handler to catch exceptions
-#pragma warning (disable : 4706)
 LONG WINAPI Utils::myUnhandledExceptionFilter(LPEXCEPTION_POINTERS ExceptionInfo)
 {
 	Logging::Log() << "UnhandledExceptionFilter: exception code=" << ExceptionInfo->ExceptionRecord->ExceptionCode <<
@@ -181,7 +180,10 @@ LONG WINAPI Utils::myUnhandledExceptionFilter(LPEXCEPTION_POINTERS ExceptionInfo
 		t_disasm da;
 		if (!disasmlib)
 		{
-			if (!(disasmlib = LoadDisasm())) return EXCEPTION_CONTINUE_SEARCH;
+			if ((disasmlib = LoadDisasm()) == 0)
+			{
+				return EXCEPTION_CONTINUE_SEARCH;
+			}
 			(*pPreparedisasm)();
 		}
 		if (!VirtualProtect(target, 10, PAGE_READWRITE, &oldprot))
@@ -204,19 +206,18 @@ LONG WINAPI Utils::myUnhandledExceptionFilter(LPEXCEPTION_POINTERS ExceptionInfo
 		return EXCEPTION_CONTINUE_SEARCH;
 	}
 }
-#pragma warning (default : 4706)
 
 // Add filter for SetUnhandledExceptionFilter used by the exception handler to catch exceptions
-#pragma warning (disable : 4100)
 LPTOP_LEVEL_EXCEPTION_FILTER WINAPI Utils::extSetUnhandledExceptionFilter(LPTOP_LEVEL_EXCEPTION_FILTER lpTopLevelExceptionFilter)
 {
 #ifdef _DEBUG
 	Logging::Log() << "SetUnhandledExceptionFilter: lpExceptionFilter=" << lpTopLevelExceptionFilter;
+#else
+	UNREFERENCED_PARAMETER(lpTopLevelExceptionFilter);
 #endif
 	extern LONG WINAPI myUnhandledExceptionFilter(LPEXCEPTION_POINTERS);
 	return (*pSetUnhandledExceptionFilter)(myUnhandledExceptionFilter);
 }
-#pragma warning (default : 4100)
 
 // Loads the disasembler which is used in by the exception handler to correct exceptions
 static HMODULE Utils::LoadDisasm()
