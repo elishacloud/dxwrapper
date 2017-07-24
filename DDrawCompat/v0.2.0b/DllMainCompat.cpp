@@ -175,13 +175,13 @@ BOOL WINAPI DllMain_DDrawCompat(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID /*lp
 		//********** Begin Edit *************
 		if (Config.RealWrapperMode == dtype.ddraw)
 		{
-			g_origDDrawModule = LoadDll(dtype.ddraw);
+			g_origDDrawModule = Wrapper::LoadDll(dtype.ddraw);
 		}
 		else
 		{
 			g_origDDrawModule = hinstDLL;
 		}
-		g_origDInputModule = LoadDll(dtype.dinput);
+		g_origDInputModule = Wrapper::LoadDll(dtype.dinput);
 		if (!g_origDDrawModule || !g_origDInputModule)
 		{
 			return false;
@@ -247,6 +247,20 @@ extern "C" HRESULT WINAPI DirectDrawCreateEx(
 	Compat::LogLeave(__func__, lpGUID, lplpDD, iid, pUnkOuter) << result;
 	return result;
 }
+
+//********** Begin Edit *************
+extern "C" HRESULT WINAPI DllGetClassObject(
+	REFCLSID rclsid,
+	REFIID   riid,
+	LPVOID   *ppv)
+{
+	Compat::LogEnter(__func__, rclsid, riid, ppv);
+	installHooks();
+	HRESULT result = CALL_ORIG_DDRAW(DllGetClassObject, rclsid, riid, ppv);
+	Compat::LogLeave(__func__, rclsid, riid, ppv) << result;
+	return result;
+}
+//********** End Edit ***************
 
 extern "C" HRESULT WINAPI DirectInputCreateA(
 	HINSTANCE hinst,

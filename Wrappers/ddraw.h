@@ -50,6 +50,7 @@ namespace ddraw
 				{
 					DirectDrawCreate = Wrapper::GetProcAddress(hModule_dll, "_DirectDrawCreate", jmpaddr);
 					DirectDrawCreateEx = Wrapper::GetProcAddress(hModule_dll, "_DirectDrawCreateEx", jmpaddr);
+					dsound::module.DllGetClassObject = Wrapper::GetProcAddress(hModule_dll, "_DllGetClassObject_ddraw", jmpaddr);
 				}
 
 				// Hook ddraw APIs for DDrawCompat
@@ -58,6 +59,7 @@ namespace ddraw
 					Logging::Log() << "Hooking ddraw.dll APIs...";
 					DirectDrawCreate = (FARPROC)Hook::HookAPI(hModule_dll, dtypename[dtype.ddraw], Hook::GetFunctionAddress(dll, "DirectDrawCreate"), "DirectDrawCreate", Hook::GetFunctionAddress(hModule_dll, "_DirectDrawCreate"));
 					DirectDrawCreateEx = (FARPROC)Hook::HookAPI(hModule_dll, dtypename[dtype.ddraw], Hook::GetFunctionAddress(dll, "DirectDrawCreateEx"), "DirectDrawCreateEx", Hook::GetFunctionAddress(hModule_dll, "_DirectDrawCreateEx"));
+					dsound::module.DllGetClassObject = (FARPROC)Hook::HookAPI(hModule_dll, dtypename[dtype.ddraw], Hook::GetFunctionAddress(dll, "DllGetClassObject"), "DllGetClassObject", Hook::GetFunctionAddress(hModule_dll, "_DllGetClassObject_ddraw"));
 				}
 			}
 		}

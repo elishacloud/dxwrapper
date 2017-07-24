@@ -18,7 +18,6 @@
 	visit(DirectDrawEnumerateExW) \
 	visit(DirectDrawEnumerateW) \
 	visit(DllCanUnloadNow) \
-	visit(DllGetClassObject) \
 	visit(GetDDSurfaceLocal) \
 	visit(GetOLEThunkData) \
 	visit(GetSurfaceFromDC) \
@@ -26,9 +25,12 @@
 	visit(ReleaseDDThreadLock) \
 	visit(SetAppCompatData)
 
+//********** Begin Edit *************
 #define VISIT_MODIFIED_DDRAW_PROCS(visit) \
 	visit(DirectDrawCreate) \
-	visit(DirectDrawCreateEx)
+	visit(DirectDrawCreateEx) \
+	visit(DllGetClassObject)
+//********** End Edit ***************
 
 #define VISIT_ALL_DDRAW_PROCS(visit) \
 	VISIT_UNMODIFIED_DDRAW_PROCS(visit) \

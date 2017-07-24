@@ -273,6 +273,20 @@ extern "C" HRESULT WINAPI DirectDrawCreateEx(
 	return result;
 }
 
+//********** Begin Edit *************
+extern "C" HRESULT WINAPI DllGetClassObject(
+	REFCLSID rclsid,
+	REFIID   riid,
+	LPVOID   *ppv)
+{
+	Compat::LogEnter(__func__, rclsid, riid, ppv);
+	installHooks();
+	HRESULT result = CALL_ORIG_DDRAW(DllGetClassObject, rclsid, riid, ppv);
+	Compat::LogLeave(__func__, rclsid, riid, ppv) << result;
+	return result;
+}
+//********** End Edit ***************
+
 extern "C" HRESULT WINAPI DirectInputCreateA(
 	HINSTANCE hinst,
 	DWORD dwVersion,
