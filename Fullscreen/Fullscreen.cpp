@@ -463,7 +463,7 @@ BOOL CALLBACK Fullscreen::EnumChildWindowsProc(HWND hwnd, LPARAM lParam)
 	HWND &data = *(HWND*)lParam;
 	data = hwnd;
 
-	return TRUE;
+	return true;
 }
 
 // Sends Alt+Enter to window handle
@@ -704,7 +704,7 @@ void Fullscreen::MainFunc()
 			// Check if window has a menu
 			HasNoMenu = !CheckForMenu(m_ProcessId);
 
-			// Get first window child
+			// Get window child hwnd
 			EnumChildWindows(CurrentLoop.hwnd, EnumChildWindowsProc, (LPARAM)&CurrentLoop.ChildHwnd);
 
 			// Get window and monitor information
