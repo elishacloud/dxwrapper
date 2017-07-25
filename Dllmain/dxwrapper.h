@@ -3,7 +3,7 @@
 // Used by dxwrapper.rc
 
 #ifndef DDRAWLOG_H
-#include "DDrawLog.h"
+#include "Logging\Logging.h"
 #endif
 #ifndef DXWND_H
 #include "dxwnd.h"

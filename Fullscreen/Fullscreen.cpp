@@ -66,12 +66,14 @@ namespace Fullscreen
 	struct window_update
 	{
 		HWND hwnd = nullptr;
+		HWND ChildHwnd = nullptr;
 		RECT rect = { sizeof(rect) };
 		screen_res ScreenSize;
 
 		window_update& operator=(const window_update& a)
 		{
 			hwnd = a.hwnd;
+			ChildHwnd = a.ChildHwnd;
 			rect.bottom = a.rect.bottom;
 			rect.left = a.rect.left;
 			rect.right = a.rect.right;
@@ -82,12 +84,12 @@ namespace Fullscreen
 
 		bool operator==(const window_update& a) const
 		{
-			return (hwnd == a.hwnd && rect == a.rect && ScreenSize == a.ScreenSize);
+			return (hwnd == a.hwnd && ChildHwnd == a.ChildHwnd && rect == a.rect && ScreenSize == a.ScreenSize);
 		}
 
 		bool operator!=(const window_update& a) const
 		{
-			return (hwnd != a.hwnd || rect != a.rect || ScreenSize != a.ScreenSize);
+			return (hwnd != a.hwnd || ChildHwnd != a.ChildHwnd || rect != a.rect || ScreenSize != a.ScreenSize);
 		}
 	};
 
@@ -135,6 +137,7 @@ namespace Fullscreen
 	HWND FindMainWindow(DWORD, bool, bool = false);
 	BOOL CALLBACK EnumMenuWindowsCallback(HWND, LPARAM);
 	bool CheckForMenu(DWORD);
+	BOOL CALLBACK EnumChildWindowsProc(HWND, LPARAM);
 	void SendAltEnter(HWND&);
 	void SetFullScreen(HWND&, const MONITORINFO&);
 	void CheckForTermination(DWORD);
@@ -454,6 +457,15 @@ bool Fullscreen::CheckForMenu(DWORD process_id)
 	return data.Menu;
 }
 
+// Get child window handle
+BOOL CALLBACK Fullscreen::EnumChildWindowsProc(HWND hwnd, LPARAM lParam)
+{
+	HWND &data = *(HWND*)lParam;
+	data = hwnd;
+
+	return TRUE;
+}
+
 // Sends Alt+Enter to window handle
 void Fullscreen::SendAltEnter(HWND& hwnd)
 {
@@ -692,6 +704,9 @@ void Fullscreen::MainFunc()
 			// Check if window has a menu
 			HasNoMenu = !CheckForMenu(m_ProcessId);
 
+			// Get first window child
+			EnumChildWindows(CurrentLoop.hwnd, EnumChildWindowsProc, (LPARAM)&CurrentLoop.ChildHwnd);
+
 			// Get window and monitor information
 			GetClassName(CurrentLoop.hwnd, class_name, sizeof(class_name));
 			GetWindowSize(CurrentLoop.hwnd, WindowSize, CurrentLoop.rect);
@@ -773,6 +788,9 @@ void Fullscreen::MainFunc()
 				// Check if window is not too small
 				if (Config.ForceWindowResize || !IsWindowTooSmall(WindowSize))
 				{
+					// Update screen when change detected
+					SetWindowPos(CurrentLoop.hwnd, HWND_TOP, 0, 0, 0, 0, SWP_NOOWNERZORDER | SWP_FRAMECHANGED | SWP_NOSIZE);
+
 					// Change resolution if not fullscreen and ignore certian windows
 					if (IsNotFullScreenFlag &&																													// Check if it is already fullscreen
 						!(Config.IgnoreWindowCount > 0 && Settings::IfStringExistsInList(class_name, Config.szIgnoreWindowName, Config.IgnoreWindowCount)) &&	// Ignore certian windows
