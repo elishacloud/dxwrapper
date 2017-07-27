@@ -1,5 +1,8 @@
 #include <atomic>
 
+//********** Begin Edit *************
+#include "winmm.h"
+//********** End Edit ***************
 #include "CompatDirectDraw.h"
 #include "CompatDirectDrawPalette.h"
 #include "CompatDirectDrawSurface.h"
@@ -14,9 +17,6 @@
 #include "IReleaseNotifier.h"
 #include "RealPrimarySurface.h"
 #include "Time1.h"
-//********** Begin Edit *************
-#include "winmm.h"
-//********** End Edit ***************
 
 namespace
 {
@@ -112,9 +112,7 @@ namespace
 		Compat::LogEnter("RealPrimarySurface::onRelease");
 
 		ResetEvent(g_updateEvent);
-		//********** Begin Edit *************
-		_timeEndPeriod(1);
-		//********** End Edit ***************
+		timeEndPeriod(1);
 		g_frontBuffer = nullptr;
 		if (g_backBuffer)
 		{
@@ -245,9 +243,7 @@ HRESULT RealPrimarySurface::create(DirectDraw& dd)
 		IID_IReleaseNotifier, &g_releaseNotifier, sizeof(&g_releaseNotifier), DDSPD_IUNKNOWNPOINTER);
 
 	g_isFullScreen = isFlippable;
-	//********** Begin Edit *************
-	_timeBeginPeriod(1);
-	//********** End Edit ***************
+	timeBeginPeriod(1);
 
 	return DD_OK;
 }

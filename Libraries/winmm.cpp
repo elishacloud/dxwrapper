@@ -14,12 +14,13 @@
 *   3. This notice may not be removed or altered from any source distribution.
 */
 
+#include "winmm.h"
 #include "Settings\Settings.h"
 #include "Wrappers\wrapper.h"
 #include "Logging\Logging.h"
 
-typedef void(WINAPI *PFN_timeBeginPeriod)(UINT uPeriod);
-typedef void(WINAPI *PFN_timeEndPeriod)(UINT uPeriod);
+typedef MMRESULT(WINAPI *PFN_timeBeginPeriod)(UINT uPeriod);
+typedef MMRESULT(WINAPI *PFN_timeEndPeriod)(UINT uPeriod);
 PFN_timeBeginPeriod timeBeginPeriodPtr = nullptr;
 PFN_timeEndPeriod timeEndPeriodPtr = nullptr;
 HMODULE winmmModule = nullptr;
@@ -46,7 +47,7 @@ void Loadwinmm()
 	}
 }
 
-void _timeBeginPeriod(UINT uPeriod)
+MMRESULT timeBeginPeriod(UINT uPeriod)
 {
 	// Load module
 	Loadwinmm();
@@ -54,11 +55,12 @@ void _timeBeginPeriod(UINT uPeriod)
 	// Call function
 	if (timeBeginPeriodPtr)
 	{
-		timeBeginPeriodPtr(uPeriod);
+		return timeBeginPeriodPtr(uPeriod);
 	}
+	return S_FALSE;
 }
 
-void _timeEndPeriod(UINT uPeriod)
+MMRESULT timeEndPeriod(UINT uPeriod)
 {
 	// Load module
 	Loadwinmm();
@@ -66,6 +68,7 @@ void _timeEndPeriod(UINT uPeriod)
 	// Call function
 	if (timeEndPeriodPtr)
 	{
-		timeEndPeriodPtr(uPeriod);
+		return timeEndPeriodPtr(uPeriod);
 	}
+	return S_FALSE;
 }
