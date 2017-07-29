@@ -32,11 +32,10 @@ namespace Settings
 	CRITICAL_SECTION CriticalSectionCfg;
 	byte ExcludeCount;
 	byte IncludeCount;
-	char* szExclude[256];
-	char* szInclude[256];
+	std::string szExclude[256];
+	std::string szInclude[256];
 
 	// Function declarations
-	void DeleteArrayMemory(char* [256], byte);
 	void DeleteByteToWriteArrayMemory();
 	void EraseCppComments(char*);
 	void Parse(char*, NV);
@@ -56,20 +55,20 @@ namespace Settings
 }
 
 // Checks if a string value exists in a string array
-bool Settings::IfStringExistsInList(char* szValue, char* szList[256], byte ListCount, bool CaseSensitive)
+bool Settings::IfStringExistsInList(char* szValue, std::string szList[], byte ListCount, bool CaseSensitive)
 {
-	for (UINT x = 1; x <= ListCount; ++x)
+	for (UINT x = 0; x < ListCount; ++x)
 	{
 		// Case sensitive check
 		if (CaseSensitive)
 		{
-			if (strcmp(szValue, szList[x]) == 0)
+			if (strcmp(szValue, szList[x].c_str()) == 0)
 			{
 				return true;
 			}
 		}
 		// Case insensitive check
-		else if (_strcmpi(szValue, szList[x]) == 0)
+		else if (_strcmpi(szValue, szList[x].c_str()) == 0)
 		{
 			return true;
 		}
@@ -77,19 +76,10 @@ bool Settings::IfStringExistsInList(char* szValue, char* szList[256], byte ListC
 	return false;
 }
 
-// Deletes all string values from an array
-void Settings::DeleteArrayMemory(char* szList[256], byte ListCount)
-{
-	for (UINT x = 1; x <= ListCount; ++x)
-	{
-		delete szList[x];
-	}
-}
-
 // Deletes all BytesToWrite values from the BytesToWrite array
 void Settings::DeleteByteToWriteArrayMemory()
 {
-	for (UINT x = 1; x <= Config.BytesToWriteCount; ++x)
+	for (UINT x = 0; x < Config.BytesToWriteCount; ++x)
 	{
 		if (Config.MemoryInfo[x].SizeOfBytes > 0)
 		{
@@ -231,13 +221,11 @@ void Settings::SetConfig(char* name, char* value)
 }
 
 // Set config from string (file)
-void Settings::SetConfigList(char* name[], byte& count, char* value)
+void Settings::SetConfigList(std::string name[], byte& count, char* value)
 {
 	if (strlen(value) <= MAX_PATH)
 	{
-		count++;
-		name[count] = new char[strlen(value) + 1];
-		strcpy_s(name[count], MAX_PATH, value);
+		name[count++].append(value);
 	}
 }
 
@@ -627,13 +615,13 @@ void Settings::ParseConfigValue(char* name, char* value)
 	}
 	if (!_strcmpi(name, "AddressPointer"))
 	{
-		SetAddressPointerList(Config.MemoryInfo[++Config.AddressPointerCount], value);
+		SetAddressPointerList(Config.MemoryInfo[Config.AddressPointerCount++], value);
 		LogSetting(name, value);
 		return;
 	}
 	if (!_strcmpi(name, "BytesToWrite"))
 	{
-		SetBytesList(Config.MemoryInfo[++Config.BytesToWriteCount], value);
+		SetBytesList(Config.MemoryInfo[Config.BytesToWriteCount++], value);
 		LogSetting(name, value);
 		return;
 	}
@@ -770,7 +758,7 @@ void Settings::ClearConfigSettings()
 	Config.szSetNamedLayer[0] = '\0';
 	// AppCompatData
 	Config.DisableMaxWindowedModeNotSet = true;  // Default to 'true' until we know it is set
-	for (UINT x = 0; x <= 12; x++)
+	for (UINT x = 0; x < 13; x++)
 	{
 		Config.DXPrimaryEmulation[x] = false;
 	}
@@ -789,7 +777,7 @@ void Settings::GetWrapperMode()
 	strippath(buffer);
 
 	// Check each wrapper library
-	for (UINT x = 1; x < dtypeArraySize; ++x)
+	for (UINT x = 0; x < dtypeArraySize; ++x)
 	{
 		// Check dll name
 		if (_strcmpi(buffer, dtypename[x]) == 0)
@@ -816,10 +804,6 @@ void Settings::GetWrapperMode()
 void CONFIG::CleanUp()
 {
 	using namespace Settings;
-	DeleteArrayMemory(szExclude, ExcludeCount);
-	DeleteArrayMemory(szInclude, IncludeCount);
-	DeleteArrayMemory(Config.szCustomDllPath, Config.CustomDllCount);
-	DeleteArrayMemory(Config.szIgnoreWindowName, Config.IgnoreWindowCount);
 	DeleteByteToWriteArrayMemory();
 }
 

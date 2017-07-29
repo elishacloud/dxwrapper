@@ -2,13 +2,14 @@
 
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
+#include <string>
 
 typedef unsigned char byte;
 
 namespace Settings
 {
-	bool IfStringExistsInList(char*, char*[256], byte, bool = true);
-	void SetConfigList(char*[], byte&, char*);
+	bool IfStringExistsInList(char*, std::string[], byte, bool = true);
+	void SetConfigList(std::string[], byte&, char*);
 }
 
 struct MEMORYINFO						// Used for hot patching memory
@@ -20,6 +21,7 @@ struct MEMORYINFO						// Used for hot patching memory
 
 struct DLLTYPE
 {
+	const DWORD dciman32 = 0;
 	const DWORD ddraw = 1;
 	const DWORD d3d9 = 2;
 	const DWORD d3d8 = 3;
@@ -31,13 +33,12 @@ struct DLLTYPE
 	const DWORD bcrypt = 9;
 	const DWORD cryptsp = 10;
 	const DWORD winspool = 11;
-	const DWORD dciman32 = 12;
 };
 static const DLLTYPE dtype;
 
 // Designated Initializer does not work in VS 2015 so must pay attention to the order
 static constexpr char* dtypename[] = {
-	nullptr,		// 0
+	"dciman32.dll",	// 0
 	"ddraw.dll",	// 1
 	"d3d9.dll",		// 2
 	"d3d8.dll",		// 3
@@ -49,7 +50,6 @@ static constexpr char* dtypename[] = {
 	"bcrypt.dll",	// 9
 	"cryptsp.dll",	// 10
 	"winspool.drv",	// 11
-	"dciman32.dll",	// 12
 };
 static constexpr int dtypeArraySize = (sizeof(dtypename) / sizeof(*dtypename));
 
@@ -108,9 +108,9 @@ struct CONFIG
 	MEMORYINFO MemoryInfo[256];			// Addresses and memory used in hot patching
 	char szDllPath[MAX_PATH];			// Manually set Dll to wrap
 	char szShellPath[MAX_PATH];			// Process to run on load
-	char* szCustomDllPath[256];			// List of custom dlls to load
-	char* szSetNamedLayer[256];			// List of named layers to select for fullscreen
-	char* szIgnoreWindowName[256];		// Lit of window classes to ignore
+	std::string szCustomDllPath[256];	// List of custom dlls to load
+	std::string szSetNamedLayer[256];	// List of named layers to select for fullscreen
+	std::string szIgnoreWindowName[256];// Lit of window classes to ignore
 	bool DXPrimaryEmulation[13];		// SetAppCompatData exported functions from ddraw.dll http://www.blitzbasic.com/Community/posts.php?topic=99477
 	DWORD LockColorkey;					// DXPrimaryEmulation option that needs a second parameter
 	bool DisableMaxWindowedModeNotSet;	// If the DisableMaxWindowedMode option exists in the config file

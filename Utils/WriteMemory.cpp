@@ -38,9 +38,9 @@ void Utils::WriteAllByteMemory()
 {
 	HANDLE hProcess = GetCurrentProcess();
 
-	for (UINT x = 1; x <= Config.AddressPointerCount && x <= Config.BytesToWriteCount; x++)
+	for (UINT x = 0; x < Config.AddressPointerCount && x < Config.BytesToWriteCount; x++)
 	{
-		if (Config.MemoryInfo[x].AddressPointer > 0 && Config.MemoryInfo[x].SizeOfBytes > 0)
+		if (Config.MemoryInfo[x].AddressPointer != 0 && Config.MemoryInfo[x].SizeOfBytes != 0)
 		{
 			// Get current memory
 			byte* lpBuffer = new byte[Config.MemoryInfo[x].SizeOfBytes];

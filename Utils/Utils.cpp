@@ -128,10 +128,10 @@ void Utils::SetAppCompat()
 	if (appCompatFlag)
 	{
 		HMODULE module = Wrapper::LoadDll(dtype.ddraw);
-		FARPROC SetAppCompatDataPtr = (module) ? GetProcAddress(module, "SetAppCompatData") : nullptr;
-		SetAppCompatDataFunc SetAppCompatData = (SetAppCompatDataFunc)SetAppCompatDataPtr;
+		FARPROC SetAppCompatDataPtr = (module != nullptr) ? GetProcAddress(module, "SetAppCompatData") : nullptr;
 		if (module && SetAppCompatDataPtr)
 		{
+			SetAppCompatDataFunc SetAppCompatData = (SetAppCompatDataFunc)SetAppCompatDataPtr;
 			for (DWORD x = 1; x <= 12; x++)
 			{
 				if (Config.DXPrimaryEmulation[x])

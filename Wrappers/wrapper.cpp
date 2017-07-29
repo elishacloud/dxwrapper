@@ -155,18 +155,18 @@ void Wrapper::LoadCustomDll()
 {
 	for (UINT x = 1; x <= Config.CustomDllCount; ++x)
 	{
-		if (Config.szCustomDllPath[x] != '\0')
+		if (!Config.szCustomDllPath[x].empty())
 		{
 			Logging::Log() << "Loading custom " << Config.szCustomDllPath[x] << " library";
 			// Load dll from ini
-			custom[x].dll = LoadLibrary(Config.szCustomDllPath[x]);
+			custom[x].dll = LoadLibrary(Config.szCustomDllPath[x].c_str());
 			// Load from system
 			if (!custom[x].dll)
 			{
 				char path[MAX_PATH];
 				GetSystemDirectory(path, MAX_PATH);
 				strcat_s(path, MAX_PATH, "\\");
-				strcat_s(path, MAX_PATH, Config.szCustomDllPath[x]);
+				strcat_s(path, MAX_PATH, Config.szCustomDllPath[x].c_str());
 				custom[x].dll = LoadLibrary(path);
 			}
 			// Cannot load dll
