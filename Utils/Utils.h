@@ -2,7 +2,7 @@
 
 namespace Utils
 {
-	void Shell(char*);
+	void Shell(const char*);
 	void DisableHighDPIScaling();
 	void SetAppCompat();
 	void HookExceptionHandler();

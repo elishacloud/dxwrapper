@@ -15,7 +15,7 @@ namespace Settings
 struct MEMORYINFO						// Used for hot patching memory
 {
 	DWORD AddressPointer = 0;			// Hot patch address
-	byte* Bytes;						// Hot patch bytes
+	byte* Bytes = nullptr;				// Hot patch bytes
 	size_t SizeOfBytes = 0;				// Size of bytes to hot patch
 };
 
@@ -106,11 +106,11 @@ struct CONFIG
 	byte IgnoreWindowCount;				// Count of window classes to ignore
 	MEMORYINFO VerifyMemoryInfo;		// Memory used for verification before hot patching
 	MEMORYINFO MemoryInfo[256];			// Addresses and memory used in hot patching
-	char szDllPath[MAX_PATH];			// Manually set Dll to wrap
-	char szShellPath[MAX_PATH];			// Process to run on load
+	std::string szDllPath;				// Manually set Dll to wrap
+	std::string szShellPath;			// Process to run on load
 	std::string szCustomDllPath[256];	// List of custom dlls to load
 	std::string szSetNamedLayer[256];	// List of named layers to select for fullscreen
-	std::string szIgnoreWindowName[256];// Lit of window classes to ignore
+	std::string szIgnoreWindowName[256];// List of window classes to ignore
 	bool DXPrimaryEmulation[13];		// SetAppCompatData exported functions from ddraw.dll http://www.blitzbasic.com/Community/posts.php?topic=99477
 	DWORD LockColorkey;					// DXPrimaryEmulation option that needs a second parameter
 	bool DisableMaxWindowedModeNotSet;	// If the DisableMaxWindowedMode option exists in the config file

@@ -40,7 +40,7 @@ namespace Settings
 	void EraseCppComments(char*);
 	void Parse(char*, NV);
 	char* Read(char*);
-	void SetConfig(char*, char*);
+	void SetConfig(std::string&, char*);
 	void SetAddressPointerList(MEMORYINFO&, char*);
 	void SetBytesList(MEMORYINFO&, char*);
 	bool IsValueEnabled(char*);
@@ -83,7 +83,7 @@ void Settings::DeleteByteToWriteArrayMemory()
 	{
 		if (Config.MemoryInfo[x].SizeOfBytes > 0)
 		{
-			delete Config.MemoryInfo[x].Bytes;
+			delete [] Config.MemoryInfo[x].Bytes;
 		}
 	}
 }
@@ -208,25 +208,22 @@ char* Settings::Read(char* szFileName)
 }
 
 // Set config from string (file)
-void Settings::SetConfig(char* name, char* value)
+void Settings::SetConfig(std::string& name, char* value)
 {
 	if (!_strcmpi(value, "AUTO") != 0)
 	{
-		name[0] = '\0';
+		name.clear();
 	}
-	else if (strlen(value) <= MAX_PATH)
+	else
 	{
-		strcpy_s(name, MAX_PATH, value);
+		name.append(value);
 	}
 }
 
 // Set config from string (file)
 void Settings::SetConfigList(std::string name[], byte& count, char* value)
 {
-	if (strlen(value) <= MAX_PATH)
-	{
-		name[count++].append(value);
-	}
+	name[count++].append(value);
 }
 
 // Set AddressPointer array from string (file)
@@ -587,7 +584,7 @@ void Settings::ParseConfigValue(char* name, char* value)
 		SetValue(name, value, &Config.WrapperMode);
 		return;
 	}
-	// Char values
+	// String values
 	if (!_strcmpi(name, "RealDllPath"))
 	{
 		SetConfig(Config.szDllPath, value);
@@ -752,10 +749,8 @@ void Settings::ClearConfigSettings()
 	Config.CustomDllCount = 0;
 	Config.NamedLayerCount = 0;
 	Config.IgnoreWindowCount = 0;
-	// Char of values
-	Config.szShellPath[0] = '\0';
-	Config.szDllPath[0] = '\0';
-	Config.szSetNamedLayer[0] = '\0';
+	// String of values
+	Config.szShellPath.clear();
 	// AppCompatData
 	Config.DisableMaxWindowedModeNotSet = true;  // Default to 'true' until we know it is set
 	for (UINT x = 0; x < 13; x++)

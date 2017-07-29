@@ -58,7 +58,7 @@ void Utils::WriteAllByteMemory()
 					VirtualProtect(AddressPointer, Config.MemoryInfo[x].SizeOfBytes, oldProtect, &oldProtect);
 
 					// Delete varable
-					delete Config.MemoryInfo[x].Bytes;
+					delete [] Config.MemoryInfo[x].Bytes;
 
 					// Store new variable
 					Config.MemoryInfo[x].Bytes = lpBuffer;

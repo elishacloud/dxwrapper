@@ -55,9 +55,9 @@ bool APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 		Config.Init();
 
 		// Launch processes
-		if (Config.szShellPath[0] != '\0')
+		if (!Config.szShellPath.empty())
 		{
-			Utils::Shell(Config.szShellPath);
+			Utils::Shell(Config.szShellPath.c_str());
 		}
 
 		// Set application compatibility options

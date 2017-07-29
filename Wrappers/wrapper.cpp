@@ -104,10 +104,10 @@ HMODULE Wrapper::LoadDll(DWORD dlltype)
 	dllhandle[dlltype].Flag = true;
 
 	// Load dll from ini, if DllPath is not '0'
-	if (Config.szDllPath[0] != '\0' && Config.RealWrapperMode == dlltype)
+	if (!Config.szDllPath.empty() && Config.RealWrapperMode == dlltype)
 	{
 		Logging::Log() << "Loading " << Config.szDllPath << " library";
-		dllhandle[dlltype].dll = LoadLibrary(Config.szDllPath);
+		dllhandle[dlltype].dll = LoadLibrary(Config.szDllPath.c_str());
 		if (!dllhandle[dlltype].dll)
 		{
 			Logging::Log() << "Cannot load " << Config.szDllPath << " library";

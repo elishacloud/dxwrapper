@@ -54,7 +54,7 @@ namespace Utils
 }
 
 // Execute a specified string
-void Utils::Shell(char* fileName)
+void Utils::Shell(const char* fileName)
 {
 	Logging::Log() << "Running process: " << fileName;
 
@@ -67,7 +67,7 @@ void Utils::Shell(char* fileName)
 	ZeroMemory(&pi, sizeof(pi));
 
 	// Start the child process
-	if (!CreateProcess(nullptr, fileName, nullptr, nullptr, true, CREATE_NO_WINDOW, nullptr, nullptr, &si, &pi))
+	if (!CreateProcess(nullptr, const_cast<LPSTR>(fileName), nullptr, nullptr, true, CREATE_NO_WINDOW, nullptr, nullptr, &si, &pi))
 	{
 		// Failed to launch process!
 		Logging::Log() << "Failed to launch process!";
