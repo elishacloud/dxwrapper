@@ -222,24 +222,13 @@ LPTOP_LEVEL_EXCEPTION_FILTER WINAPI Utils::extSetUnhandledExceptionFilter(LPTOP_
 // Loads the disasembler which is used in by the exception handler to correct exceptions
 static HMODULE Utils::LoadDisasm()
 {
-	HMODULE disasmlib;
-
-	// Get dxwrapper path
-	char buffer[MAX_PATH];
-	GetModuleFileName(hModule_dll, buffer, MAX_PATH);
-
-	disasmlib = LoadLibrary(buffer);
-	if (!disasmlib)
-	{
-		Logging::Log() << "Load lib=" << buffer << " failed err=" << GetLastError();
-		return nullptr;
-	}
+	HMODULE disasmlib = hModule_dll;
 	pGeterrwarnmessage = (Geterrwarnmessage_Type)(*GetProcAddress)(disasmlib, "Geterrwarnmessage");
 	pPreparedisasm = (Preparedisasm_Type)(*GetProcAddress)(disasmlib, "Preparedisasm");
 	pFinishdisasm = (Finishdisasm_Type)(*GetProcAddress)(disasmlib, "Finishdisasm");
 	pDisasm = (Disasm_Type)(*GetProcAddress)(disasmlib, "Disasm");
 #ifdef _DEBUG
-	Logging::Log() << "Load " << buffer << " ptrs=" << pGeterrwarnmessage << std::showbase << std::hex << pPreparedisasm << pFinishdisasm << pDisasm << std::dec << std::noshowbase;
+	Logging::Log() << "Load Disasm ptrs=" << pGeterrwarnmessage << std::showbase << std::hex << pPreparedisasm << pFinishdisasm << pDisasm << std::dec << std::noshowbase;
 #endif
 	return disasmlib;
 }

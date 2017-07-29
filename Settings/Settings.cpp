@@ -30,13 +30,13 @@ namespace Settings
 {
 	// Declare varables
 	CRITICAL_SECTION CriticalSectionCfg;
-	byte ExcludeCount;
-	byte IncludeCount;
-	std::string szExclude[256];
-	std::string szInclude[256];
+	size_t AddressPointerCount = 0;			// Count of addresses to hot patch
+	size_t BytesToWriteCount = 0;			// Count of bytes to hot patch
+	std::vector<std::string> szExclude;		// List of excluded applications
+	std::vector<std::string> szInclude;		// List of included applications
 
 	// Function declarations
-	void DeleteByteToWriteArrayMemory();
+	void DeleteMemoryInfoVector();
 	void EraseCppComments(char*);
 	void Parse(char*, NV);
 	char* Read(char*);
@@ -55,9 +55,9 @@ namespace Settings
 }
 
 // Checks if a string value exists in a string array
-bool Settings::IfStringExistsInList(char* szValue, std::string szList[], byte ListCount, bool CaseSensitive)
+bool Settings::IfStringExistsInList(char* szValue, std::vector<std::string> szList, bool CaseSensitive)
 {
-	for (UINT x = 0; x < ListCount; ++x)
+	for (UINT x = 0; x < szList.size(); ++x)
 	{
 		// Case sensitive check
 		if (CaseSensitive)
@@ -77,15 +77,18 @@ bool Settings::IfStringExistsInList(char* szValue, std::string szList[], byte Li
 }
 
 // Deletes all BytesToWrite values from the BytesToWrite array
-void Settings::DeleteByteToWriteArrayMemory()
+void Settings::DeleteMemoryInfoVector()
 {
-	for (UINT x = 0; x < Config.BytesToWriteCount; ++x)
+	for (UINT x = 0; x < Config.MemoryInfo.size(); ++x)
 	{
-		if (Config.MemoryInfo[x].SizeOfBytes > 0)
+		if (Config.MemoryInfo[x].SizeOfBytes != 0)
 		{
 			delete [] Config.MemoryInfo[x].Bytes;
 		}
 	}
+	Config.MemoryInfo.clear();
+	AddressPointerCount = 0;
+	BytesToWriteCount = 0;
 }
 
 // Commented text is replaced with a space character
@@ -210,20 +213,15 @@ char* Settings::Read(char* szFileName)
 // Set config from string (file)
 void Settings::SetConfig(std::string& name, char* value)
 {
-	if (!_strcmpi(value, "AUTO") != 0)
-	{
-		name.clear();
-	}
-	else
-	{
-		name.append(value);
-	}
+	name.append(value);
 }
 
 // Set config from string (file)
-void Settings::SetConfigList(std::string name[], byte& count, char* value)
+void Settings::SetConfigList(std::vector<std::string>& name, char* value)
 {
-	name[count++].append(value);
+	std::string newString;
+	newString.append(value);
+	name.push_back(newString);
 }
 
 // Set AddressPointer array from string (file)
@@ -330,12 +328,24 @@ void Settings::SetValue(char* name, char* value, bool* setting)
 // Set config from string (file)
 void Settings::ParseConfigValue(char* name, char* value)
 {
+	// Check for valid entries
+	if (!name || !value)
+	{
+		return;
+	}
+	if (strlen(name) == 0 || strlen(value) == 0 ||
+		name[0] == '\0' || value[0] == '\0' ||
+		!_strcmpi(value, "AUTO"))
+	{
+		return;
+	}
 	// Boolean values
 	if (!_strcmpi(name, "SingleProcAffinity"))
 	{
 		// Sets Affinity and AffinityNotSet flags
 		SetValue(name, value, &Config.Affinity);
-		Config.AffinityNotSet = false; return;
+		Config.AffinityNotSet = false;
+		return;
 	}
 	if (!_strcmpi(name, "D3d8to9"))
 	{
@@ -612,44 +622,54 @@ void Settings::ParseConfigValue(char* name, char* value)
 	}
 	if (!_strcmpi(name, "AddressPointer"))
 	{
-		SetAddressPointerList(Config.MemoryInfo[Config.AddressPointerCount++], value);
+		if (Config.MemoryInfo.size() < AddressPointerCount + 1)
+		{
+			MEMORYINFO newMemoryInfo;
+			Config.MemoryInfo.push_back(newMemoryInfo);
+		}
+		SetAddressPointerList(Config.MemoryInfo[AddressPointerCount++], value);
 		LogSetting(name, value);
 		return;
 	}
 	if (!_strcmpi(name, "BytesToWrite"))
 	{
-		SetBytesList(Config.MemoryInfo[Config.BytesToWriteCount++], value);
+		if (Config.MemoryInfo.size() < BytesToWriteCount + 1)
+		{
+			MEMORYINFO newMemoryInfo;
+			Config.MemoryInfo.push_back(newMemoryInfo);
+		}
+		SetBytesList(Config.MemoryInfo[BytesToWriteCount++], value);
 		LogSetting(name, value);
 		return;
 	}
 	// Lists of values
 	if (!_strcmpi(name, "LoadCustomDllPath"))
 	{
-		SetConfigList(Config.szCustomDllPath, Config.CustomDllCount, value);
+		SetConfigList(Config.szCustomDllPath, value);
 		LogSetting(name, value);
 		return;
 	}
 	if (!_strcmpi(name, "SetNamedLayer"))
 	{
-		SetConfigList(Config.szSetNamedLayer, Config.NamedLayerCount, value);
+		SetConfigList(Config.szSetNamedLayer, value);
 		LogSetting(name, value);
 		return;
 	}
 	if (!_strcmpi(name, "IgnoreWindowName"))
 	{
-		SetConfigList(Config.szIgnoreWindowName, Config.IgnoreWindowCount, value);
+		SetConfigList(Config.szIgnoreWindowName, value);
 		LogSetting(name, value);
 		return;
 	}
 	if (!_strcmpi(name, "ExcludeProcess"))
 	{
-		SetConfigList(szExclude, ExcludeCount, value);
+		SetConfigList(szExclude, value);
 		LogSetting(name, value);
 		return;
 	}
 	if (!_strcmpi(name, "IncludeProcess"))
 	{
-		SetConfigList(szInclude, IncludeCount, value);
+		SetConfigList(szInclude, value);
 		LogSetting(name, value);
 		return;
 	}
@@ -724,7 +744,6 @@ void Settings::ClearConfigSettings()
 	Config.ResetMemoryAfter = 0;
 	Config.WindowSleepTime = 0;
 	Config.SetFullScreenLayer = 0;
-	Config.WrapperMode = 0;
 	// DSoundCtrl
 	Config.Num2DBuffers = 0;
 	Config.Num3DBuffers = 0;
@@ -743,12 +762,6 @@ void Settings::ClearConfigSettings()
 	Config.ForceSpeakerConfig = false;
 	Config.SpeakerConfig = 6;
 	Config.StoppedDriverWorkaround = false;
-	// Arrary counters
-	Config.AddressPointerCount = 0;
-	Config.BytesToWriteCount = 0;
-	Config.CustomDllCount = 0;
-	Config.NamedLayerCount = 0;
-	Config.IgnoreWindowCount = 0;
 	// String of values
 	Config.szShellPath.clear();
 	// AppCompatData
@@ -758,9 +771,6 @@ void Settings::ClearConfigSettings()
 		Config.DXPrimaryEmulation[x] = false;
 	}
 	Config.LockColorkey = 0;
-	// Set local default values
-	ExcludeCount = 0;
-	IncludeCount = 0;
 }
 
 // Get wrapper mode based on dll name
@@ -799,7 +809,12 @@ void Settings::GetWrapperMode()
 void CONFIG::CleanUp()
 {
 	using namespace Settings;
-	DeleteByteToWriteArrayMemory();
+	DeleteMemoryInfoVector();
+	Config.szCustomDllPath.clear();
+	Config.szSetNamedLayer.clear();
+	Config.szIgnoreWindowName.clear();
+	szExclude.clear();
+	szInclude.clear();
 }
 
 void CONFIG::Init()
@@ -822,8 +837,8 @@ void CONFIG::Init()
 	Config.HandleExceptions = true;
 	Config.LoopSleepTime = 120;
 	Config.WindowSleepTime = 500;
-	SetConfigList(szExclude, ExcludeCount, "dxwnd.exe");
-	SetConfigList(szExclude, ExcludeCount, "dgVoodooSetup.exe");
+	SetConfigList(szExclude, "dxwnd.exe");
+	SetConfigList(szExclude, "dgVoodooSetup.exe");
 
 	// Get config file path
 	char* szCfg;
@@ -864,8 +879,8 @@ void CONFIG::Init()
 
 	// Check if process should be excluded or not included
 	// if so, then clear all settings (disable everything)
-	if ((ExcludeCount > 0 && IfStringExistsInList(szFileName, szExclude, ExcludeCount, false)) ||
-		(IncludeCount > 0 && !IfStringExistsInList(szFileName, szInclude, IncludeCount, false)))
+	if ((szExclude.size() != 0 && IfStringExistsInList(szFileName, szExclude, false)) ||
+		(szInclude.size() != 0 && !IfStringExistsInList(szFileName, szInclude, false)))
 	{
 		Logging::Log() << "Clearing config and disabling dxwrapper!";
 		ClearConfigSettings();

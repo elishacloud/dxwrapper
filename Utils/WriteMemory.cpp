@@ -38,7 +38,7 @@ void Utils::WriteAllByteMemory()
 {
 	HANDLE hProcess = GetCurrentProcess();
 
-	for (UINT x = 0; x < Config.AddressPointerCount && x < Config.BytesToWriteCount; x++)
+	for (UINT x = 0; x < Config.MemoryInfo.size(); x++)
 	{
 		if (Config.MemoryInfo[x].AddressPointer != 0 && Config.MemoryInfo[x].SizeOfBytes != 0)
 		{

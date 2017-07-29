@@ -61,7 +61,7 @@ bool APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 		}
 
 		// Set application compatibility options
-		if (Config.AddressPointerCount > 0 && Config.BytesToWriteCount > 0)
+		if (Config.MemoryInfo.size() != 0)
 		{
 			Utils::WriteMemory();
 		}

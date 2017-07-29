@@ -2,14 +2,15 @@
 
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
+#include <vector>
 #include <string>
 
 typedef unsigned char byte;
 
 namespace Settings
 {
-	bool IfStringExistsInList(char*, std::string[], byte, bool = true);
-	void SetConfigList(std::string[], byte&, char*);
+	bool IfStringExistsInList(char*, std::vector<std::string>, bool = true);
+	void SetConfigList(std::vector<std::string>&, char*);
 }
 
 struct MEMORYINFO						// Used for hot patching memory
@@ -99,21 +100,16 @@ struct CONFIG
 	DWORD RealWrapperMode;				// Internal wrapper mode
 	DWORD WrapperMode;					// 0			= Auto
 										// 1 ... 255	= DLLTYPE
-	byte AddressPointerCount;			// Count of addresses to hot patch
-	byte BytesToWriteCount;				// Count of bytes to hot patch
-	byte CustomDllCount;				// Count of custom dlls to load
-	byte NamedLayerCount;				// Count of names layers to select for fullscreen
-	byte IgnoreWindowCount;				// Count of window classes to ignore
-	MEMORYINFO VerifyMemoryInfo;		// Memory used for verification before hot patching
-	MEMORYINFO MemoryInfo[256];			// Addresses and memory used in hot patching
-	std::string szDllPath;				// Manually set Dll to wrap
-	std::string szShellPath;			// Process to run on load
-	std::string szCustomDllPath[256];	// List of custom dlls to load
-	std::string szSetNamedLayer[256];	// List of named layers to select for fullscreen
-	std::string szIgnoreWindowName[256];// List of window classes to ignore
 	bool DXPrimaryEmulation[13];		// SetAppCompatData exported functions from ddraw.dll http://www.blitzbasic.com/Community/posts.php?topic=99477
 	DWORD LockColorkey;					// DXPrimaryEmulation option that needs a second parameter
 	bool DisableMaxWindowedModeNotSet;	// If the DisableMaxWindowedMode option exists in the config file
+	MEMORYINFO VerifyMemoryInfo;		// Memory used for verification before hot patching
+	std::vector<MEMORYINFO> MemoryInfo;	// Addresses and memory used in hot patching
+	std::string szDllPath;				// Manually set Dll to wrap
+	std::string szShellPath;			// Process to run on load
+	std::vector<std::string> szCustomDllPath;		// List of custom dlls to load
+	std::vector<std::string> szSetNamedLayer;		// List of named layers to select for fullscreen
+	std::vector<std::string> szIgnoreWindowName;	// List of window classes to ignore
 
 	// DSoundCtrl
 	DWORD Num2DBuffers;

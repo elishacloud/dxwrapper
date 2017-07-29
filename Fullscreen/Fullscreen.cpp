@@ -341,7 +341,7 @@ BOOL CALLBACK Fullscreen::EnumWindowsCallback(HWND hwnd, LPARAM lParam)
 #endif
 
 	// AutoDetect to search for main and fullscreen windows
-	if (data.AutoDetect || (Config.SetFullScreenLayer == 0 && Config.NamedLayerCount == 0))
+	if (data.AutoDetect || (Config.SetFullScreenLayer == 0 && Config.szSetNamedLayer.size() == 0))
 	{
 		// Declare vars
 		MONITORINFO mi = { sizeof(mi) };
@@ -368,8 +368,8 @@ BOOL CALLBACK Fullscreen::EnumWindowsCallback(HWND hwnd, LPARAM lParam)
 	else
 	{
 		// Check other windows for a match
-		if ((Config.NamedLayerCount == 0 && ++data.LayerNumber == Config.SetFullScreenLayer) ||					// Check for specific window layer
-			Settings::IfStringExistsInList(class_name, Config.szSetNamedLayer, Config.NamedLayerCount))			// Check for specific window class name
+		if ((Config.szSetNamedLayer.size() == 0 && ++data.LayerNumber == Config.SetFullScreenLayer) ||		// Check for specific window layer
+			Settings::IfStringExistsInList(class_name, Config.szSetNamedLayer))								// Check for specific window class name
 		{
 			// Match found returning value
 			data.best_handle = hwnd;
@@ -792,9 +792,9 @@ void Fullscreen::MainFunc()
 					SetWindowPos(CurrentLoop.hwnd, HWND_TOP, 0, 0, 0, 0, SWP_NOOWNERZORDER | SWP_FRAMECHANGED | SWP_NOSIZE);
 
 					// Change resolution if not fullscreen and ignore certian windows
-					if (IsNotFullScreenFlag &&																													// Check if it is already fullscreen
-						!(Config.IgnoreWindowCount > 0 && Settings::IfStringExistsInList(class_name, Config.szIgnoreWindowName, Config.IgnoreWindowCount)) &&	// Ignore certian windows
-						IsWindow(CurrentLoop.hwnd))																												// Check window handle
+					if (IsNotFullScreenFlag &&																									// Check if it is already fullscreen
+						!(Config.szIgnoreWindowName.size() != 0 && Settings::IfStringExistsInList(class_name, Config.szIgnoreWindowName)) &&	// Ignore certian windows
+						IsWindow(CurrentLoop.hwnd))																								// Check window handle
 					{
 						// Get the best screen resolution
 						screen_res SizeTemp;
@@ -833,7 +833,7 @@ void Fullscreen::MainFunc()
 #endif
 
 							// Add window to excluded list
-							Settings::SetConfigList(Config.szIgnoreWindowName, Config.IgnoreWindowCount, class_name);
+							Settings::SetConfigList(Config.szIgnoreWindowName, class_name);
 						}
 					} // Change resolution
 

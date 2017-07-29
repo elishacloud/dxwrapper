@@ -47,7 +47,7 @@ namespace Wrapper
 		HMODULE dll = nullptr;
 	};
 
-	custom_dll custom[256];
+	std::vector<custom_dll> custom;
 	custom_dll dllhandle[dtypeArraySize];
 
 	void LoadCustomDll();
@@ -153,8 +153,13 @@ HMODULE Wrapper::LoadDll(DWORD dlltype)
 // Load custom dll files
 void Wrapper::LoadCustomDll()
 {
-	for (UINT x = 1; x <= Config.CustomDllCount; ++x)
+	for (UINT x = 0; x < Config.szCustomDllPath.size(); ++x)
 	{
+		// Add entry into 'custom'
+		custom_dll newCustom;
+		custom.push_back(newCustom);
+
+		// Check if path is empty
 		if (!Config.szCustomDllPath[x].empty())
 		{
 			Logging::Log() << "Loading custom " << Config.szCustomDllPath[x] << " library";
@@ -174,7 +179,8 @@ void Wrapper::LoadCustomDll()
 			{
 				Logging::Log() << "Cannot load custom " << Config.szCustomDllPath[x] << " library";
 			}
-			else {
+			else
+			{
 				custom[x].Flag = true;
 			}
 		}
@@ -184,7 +190,7 @@ void Wrapper::LoadCustomDll()
 // Unload custom dll files
 void Wrapper::FreeCustomLibrary()
 {
-	for (UINT x = 1; x <= Config.CustomDllCount; ++x)
+	for (UINT x = 0; x < Config.szCustomDllPath.size(); ++x)
 	{
 		// If dll was loaded
 		if (custom[x].Flag)
@@ -193,6 +199,7 @@ void Wrapper::FreeCustomLibrary()
 			FreeLibrary(custom[x].dll);
 		}
 	}
+	custom.clear();
 }
 
 // Load wrapper dll files
@@ -214,7 +221,7 @@ void Wrapper::DllAttach()
 			ddraw::module.Load();
 		}
 	}
-	if (Config.CustomDllCount > 0)
+	if (Config.szCustomDllPath.size() != 0)
 	{
 		LoadCustomDll();
 	}
