@@ -334,6 +334,7 @@ void Settings::ParseConfigValue(char* name, char* value)
 		return;
 	}
 	if (strlen(name) == 0 || strlen(value) == 0 ||
+		strlen(name) == ((size_t)(-1)) || strlen(value) == ((size_t)(-1)) ||
 		name[0] == '\0' || value[0] == '\0' ||
 		!_strcmpi(value, "AUTO"))
 	{
