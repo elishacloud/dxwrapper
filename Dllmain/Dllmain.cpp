@@ -65,10 +65,6 @@ bool APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 		{
 			Utils::WriteMemory();
 		}
-		if (Config.HandleExceptions)
-		{
-			Utils::HookExceptionHandler();
-		}
 		if (Config.DpiAware)
 		{
 			Utils::DisableHighDPIScaling();
@@ -77,6 +73,10 @@ bool APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 		if (Config.Affinity)
 		{
 			SetProcessAffinityMask(GetCurrentProcess(), 1);
+		}
+		if (Config.HandleExceptions)
+		{
+			Utils::HookExceptionHandler();
 		}
 
 		// Attach real wrapper dll
@@ -191,6 +191,12 @@ bool APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 
 		// Clean up memory
 		Config.CleanUp();
+
+		// Unload exception handler
+		if (Config.HandleExceptions)
+		{
+			Utils::UnHookExceptionHandler();
+		}
 
 		// Reset screen back to original Windows settings to fix some display errors on exit
 		Fullscreen::ResetScreen();

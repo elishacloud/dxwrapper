@@ -34,7 +34,7 @@ void *Hook::HotPatch(void *apiproc, const char *apiname, void *hookproc)
 	char buffer[BuffSize];
 
 	DWORD dwPrevProtect;
-	BYTE* patch_address;
+	BYTE *patch_address;
 	void *orig_address;
 
 #ifdef _DEBUG
@@ -51,17 +51,18 @@ void *Hook::HotPatch(void *apiproc, const char *apiname, void *hookproc)
 	orig_address = (BYTE *)apiproc + 2;
 
 	// Entry point could be at the top of a page? so VirtualProtect first to make sure patch_address is readable
-	//if(!VirtualProtect(patch_address, 7, PAGE_EXECUTE_READWRITE, &dwPrevProtect)){
 	if (!VirtualProtect(patch_address, 12, PAGE_EXECUTE_WRITECOPY, &dwPrevProtect))
 	{
 		sprintf_s(buffer, "HotPatch: access denied.  Cannot hook api=%s at addr=%p err=%x", apiname, apiproc, GetLastError());
 		Logging::LogText(buffer);
-		return (void *)0; // access denied
+		return 0; // access denied
 	}
 
-	// some calls (QueryPerformanceCounter) are sort of hot patched already....
-	if (!(memcmp("\x90\x90\x90\x90\x90\xEB\x05\x90\x90\x90\x90\x90", patch_address, 12) &&
-		memcmp("\xCC\xCC\xCC\xCC\xCC\xEB\x05\xCC\xCC\xCC\xCC\xCC", patch_address, 12)))
+	// Check if API can be patched
+	if (!(memcmp("\x90\x90\x90\x90\x90\xEB\x05\x90\x90\x90\x90\x90", patch_address, 12) &&											// Some calls (QueryPerformanceCounter) are sort of hot patched already....
+		memcmp("\xCC\xCC\xCC\xCC\xCC\xEB\x05\xCC\xCC\xCC\xCC\xCC", patch_address, 12) &&											// For debugging
+		memcmp("\x90\x90\x90\x90\x90\x8B\xFF", patch_address, 7) && memcmp("\x90\x90\x90\x90\x90\x89\xFF", patch_address, 7) &&		// Make sure it is a hotpatchable image... check for 5 nops followed by mov edi,edi
+		memcmp("\xCC\xCC\xCC\xCC\xCC\x8B\xFF", patch_address, 7) && memcmp("\xCC\xCC\xCC\xCC\xCC\x89\xFF", patch_address, 7)))		// For debugging
 	{
 		*patch_address = 0xE9; // jmp (4-byte relative)
 		*((DWORD *)(patch_address + 1)) = (DWORD)hookproc - (DWORD)patch_address - 5; // relative address
@@ -75,12 +76,12 @@ void *Hook::HotPatch(void *apiproc, const char *apiname, void *hookproc)
 		return orig_address;
 	}
 
-	// make sure it is a hotpatchable image... check for 5 nops followed by mov edi,edi
-	if (memcmp("\x90\x90\x90\x90\x90\x8B\xFF", patch_address, 7) && memcmp("\x90\x90\x90\x90\x90\x89\xFF", patch_address, 7) &&
-		memcmp("\xCC\xCC\xCC\xCC\xCC\x8B\xFF", patch_address, 7) && memcmp("\xCC\xCC\xCC\xCC\xCC\x89\xFF", patch_address, 7))
+	// API cannot be patched
+	else
 	{
 		VirtualProtect(patch_address, 12, dwPrevProtect, &dwPrevProtect); // restore protection
-																		  // check it wasn't patched already
+		
+		// check it wasn't patched already
 		if ((*patch_address == 0xE9) && (*(WORD *)apiproc == 0xF9EB))
 		{
 			// should never go through here ...
@@ -92,18 +93,62 @@ void *Hook::HotPatch(void *apiproc, const char *apiname, void *hookproc)
 		{
 			sprintf_s(buffer, "HotPatch: '%s' is not patch aware at addr=%p", apiname, apiproc);
 			Logging::LogText(buffer);
-			return (void *)0; // not hot patch "aware"
+			return 0; // not hot patch "aware"
 		}
 	}
+}
 
-	*patch_address = 0xE9; // jmp (4-byte relative)
-	*((DWORD *)(patch_address + 1)) = (DWORD)hookproc - (DWORD)patch_address - 5; // relative address
-	*((WORD *)apiproc) = 0xF9EB; // should be atomic write (jmp $-5)
+// Unhook hot patched API
+bool Hook::UnhookHotPatch(void *apiproc, const char *apiname, void *hookproc)
+{
+	static constexpr DWORD BuffSize = 250;
+	char buffer[BuffSize];
+
+	DWORD dwPrevProtect;
+	BYTE *patch_address;
+	void *orig_address;
+
+#ifdef _DEBUG
+	sprintf_s(buffer, "UnhookHotPatch: api=%s addr=%p hook=%p", apiname, apiproc, hookproc);
+	Logging::LogText(buffer);
+#endif
+
+	if (!strcmp(apiname, "GetProcAddress"))
+	{
+		return false; // do not mess with this one!
+	}
+
+	patch_address = ((BYTE *)apiproc) - 5;
+	orig_address = (BYTE *)apiproc + 2;
+
+	// Entry point could be at the top of a page? so VirtualProtect first to make sure patch_address is readable
+	if (!VirtualProtect(patch_address, 12, PAGE_EXECUTE_WRITECOPY, &dwPrevProtect))
+	{
+		sprintf_s(buffer, "UnhookHotPatch: access denied.  Cannot hook api=%s at addr=%p err=%x", apiname, apiproc, GetLastError());
+		Logging::LogText(buffer);
+		return false; // access denied
+	}
+
+	// Check if API is hot patched
+	if ((*patch_address == 0xE9) && (*(WORD *)apiproc == 0xF9EB) &&
+		*((DWORD *)(patch_address + 1)) == (DWORD)hookproc - (DWORD)patch_address - 5)
+	{
+		*patch_address = 0x90; // nop
+		*((DWORD *)(patch_address + 1)) = 0x90909090; // 4 nops
+		*((WORD *)(patch_address + 5)) = 0x9090; // 2 nops
+
+		VirtualProtect(patch_address, 12, dwPrevProtect, &dwPrevProtect); // restore protection
+#ifdef _DEBUG
+		sprintf_s(buffer, "UnhookHotPatch: api=%s addr=%p->%p hook=%p", apiname, apiproc, orig_address, hookproc);
+		Logging::LogText(buffer);
+#endif
+		return true;
+	}
 
 	VirtualProtect(patch_address, 12, dwPrevProtect, &dwPrevProtect); // restore protection
 #ifdef _DEBUG
-	sprintf_s(buffer, "HotPatch: api=%s addr=%p->%p hook=%p", apiname, apiproc, orig_address, hookproc);
+	sprintf_s(buffer, "UnhookHotPatch: api=%s addr=%p->%p hook=%p", apiname, apiproc, orig_address, hookproc);
 	Logging::LogText(buffer);
 #endif
-	return orig_address;
+	return false;
 }

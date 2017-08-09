@@ -46,6 +46,9 @@ namespace Utils
 	Preparedisasm_Type pPreparedisasm;
 	Finishdisasm_Type pFinishdisasm;
 	Disasm_Type pDisasm;
+	bool IsDisasmLoaded = false;
+	Hook::HOOKVARS h_UnhandledExceptionFilter;
+	Hook::HOOKVARS h_SetUnhandledExceptionFilter;
 
 	// Function declarations
 	static HMODULE LoadDisasm();
@@ -184,6 +187,7 @@ LONG WINAPI Utils::myUnhandledExceptionFilter(LPEXCEPTION_POINTERS ExceptionInfo
 			{
 				return EXCEPTION_CONTINUE_SEARCH;
 			}
+			IsDisasmLoaded = true;
 			(*pPreparedisasm)();
 		}
 		if (!VirtualProtect(target, 10, PAGE_READWRITE, &oldprot))
@@ -242,9 +246,13 @@ void Utils::HookExceptionHandler(void)
 	pSetUnhandledExceptionFilter = SetUnhandledExceptionFilter;
 	// override default exception handler, if any....
 	LONG WINAPI myUnhandledExceptionFilter(LPEXCEPTION_POINTERS);
-	tmp = Hook::HookAPI(hModule_dll, "KERNEL32.dll", UnhandledExceptionFilter, "UnhandledExceptionFilter", myUnhandledExceptionFilter);
+	h_UnhandledExceptionFilter.apiproc = UnhandledExceptionFilter;
+	h_UnhandledExceptionFilter.hookproc = myUnhandledExceptionFilter;
+	tmp = Hook::HookAPI(hModule_dll, "KERNEL32.dll", h_UnhandledExceptionFilter.apiproc, "UnhandledExceptionFilter", h_UnhandledExceptionFilter.hookproc);
 	// so far, no need to save the previous handler, but anyway...
-	tmp = Hook::HookAPI(hModule_dll, "KERNEL32.dll", SetUnhandledExceptionFilter, "SetUnhandledExceptionFilter", extSetUnhandledExceptionFilter);
+	h_SetUnhandledExceptionFilter.apiproc = SetUnhandledExceptionFilter;
+	h_SetUnhandledExceptionFilter.hookproc = extSetUnhandledExceptionFilter;
+	tmp = Hook::HookAPI(hModule_dll, "KERNEL32.dll", h_SetUnhandledExceptionFilter.apiproc, "SetUnhandledExceptionFilter", h_SetUnhandledExceptionFilter.hookproc);
 	if (tmp)
 	{
 		pSetUnhandledExceptionFilter = (SetUnhandledExceptionFilter_Type)tmp;
@@ -252,4 +260,17 @@ void Utils::HookExceptionHandler(void)
 
 	SetErrorMode(SEM_NOGPFAULTERRORBOX | SEM_NOOPENFILEERRORBOX | SEM_FAILCRITICALERRORS);
 	(*pSetUnhandledExceptionFilter)((LPTOP_LEVEL_EXCEPTION_FILTER)myUnhandledExceptionFilter);
+}
+
+// Unhooks the exception handler
+void Utils::UnHookExceptionHandler(void)
+{
+	Compat::Log() << "Unload exception handlers";
+	Hook::UnhookAPI(hModule_dll, "KERNEL32.dll", h_UnhandledExceptionFilter.apiproc, "UnhandledExceptionFilter", h_UnhandledExceptionFilter.hookproc);
+	Hook::UnhookAPI(hModule_dll, "KERNEL32.dll", h_SetUnhandledExceptionFilter.apiproc, "SetUnhandledExceptionFilter", h_SetUnhandledExceptionFilter.hookproc);
+	if (IsDisasmLoaded)
+	{
+		IsDisasmLoaded = false;
+		(*pFinishdisasm)();
+	}
 }

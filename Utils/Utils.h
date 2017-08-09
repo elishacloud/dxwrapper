@@ -6,6 +6,7 @@ namespace Utils
 	void DisableHighDPIScaling();
 	void SetAppCompat();
 	void HookExceptionHandler();
+	void UnHookExceptionHandler();
 	void WriteMemory();
 	void StopWriteMemoryThread();
 }

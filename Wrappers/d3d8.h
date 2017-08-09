@@ -38,13 +38,33 @@ namespace d3d8
 					// Hook APIs for d3d8to9 conversion
 					if (Config.D3d8to9)
 					{
+						IsHooked = true;
 						Logging::Log() << "Hooking d3d8.dll APIs...";
-						Direct3DCreate8 = (FARPROC)Hook::HookAPI(hModule_dll, dtypename[dtype.d3d8], Hook::GetFunctionAddress(dll, "Direct3DCreate8"), "Direct3DCreate8", Hook::GetFunctionAddress(hModule_dll, "_Direct3DCreate8"));
+						// Direct3DCreate8
+						h_Direct3DCreate8.apiproc = Hook::GetFunctionAddress(dll, "Direct3DCreate8");
+						h_Direct3DCreate8.hookproc = Hook::GetFunctionAddress(hModule_dll, "_Direct3DCreate8");
+						Direct3DCreate8 = (FARPROC)Hook::HookAPI(hModule_dll, dtypename[dtype.d3d8], h_Direct3DCreate8.apiproc, "Direct3DCreate8", h_Direct3DCreate8.hookproc);
 					}
 				}
 			}
 		}
+
+		void Unhook()
+		{
+			// If hooks are installed
+			if (IsHooked)
+			{
+				IsHooked = false;
+				Logging::Log() << "Unhooking d3d8.dll APIs...";
+				Hook::UnhookAPI(hModule_dll, dtypename[dtype.d3d8], h_Direct3DCreate8.apiproc, "Direct3DCreate8", h_Direct3DCreate8.hookproc);
+			}
+		}
+
+	private:
+		bool IsHooked = false;
+		Hook::HOOKVARS h_Direct3DCreate8;
 	};
 
 	extern d3d8_dll module;
+
 }

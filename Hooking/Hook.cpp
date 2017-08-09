@@ -42,14 +42,14 @@ void *Hook::HookAPI(HMODULE module, const char *dll, void *apiproc, const char *
 	// Check API address
 	if (!apiproc)
 	{
-		Logging::Log() << "Failed to find '" << apiname << "' api";
+		Logging::Log() << "HookAPI: Failed to find '" << apiname << "' api";
 		return apiproc;
 	}
 
 	// Check hook address
 	if (!hookproc)
 	{
-		Logging::Log() << "Invalid hook address for '" << apiname << "'";
+		Logging::Log() << "HookAPI: Invalid hook address for '" << apiname << "'";
 		return apiproc;
 	}
 
@@ -62,7 +62,7 @@ void *Hook::HookAPI(HMODULE module, const char *dll, void *apiproc, const char *
 	}
 
 	// Check if dll name is blank
-	if (!apiname)
+	if (!dll)
 	{
 		Logging::Log() << "HookAPI: NULL dll name";
 		return apiproc;
@@ -84,6 +84,55 @@ void *Hook::HookAPI(HMODULE module, const char *dll, void *apiproc, const char *
 
 	// Return default address
 	return apiproc;
+}
+
+// Unhook API
+void Hook::UnhookAPI(HMODULE module, const char *dll, void *apiproc, const char *apiname, void *hookproc)
+{
+#ifdef _DEBUG
+	Logging::Log() << "HookAPI: module=" << module << " dll=" << dll << " apiproc=" << apiproc << " apiname=" << apiname << " hookproc=" << hookproc;
+#endif
+
+	// Check if API name is blank
+	if (!apiname)
+	{
+		Logging::Log() << "UnhookAPI: NULL api name";
+		return;
+	}
+
+	// Check API address
+	if (!apiproc)
+	{
+		Logging::Log() << "UnhookAPI: Failed to find '" << apiname << "' api";
+		return;
+	}
+
+	// Check hook address
+	if (!hookproc)
+	{
+		Logging::Log() << "UnhookAPI: Invalid hook address for '" << apiname << "'";
+		return;
+	}
+
+	// Unhooking HotPatch
+	UnhookHotPatch(apiproc, apiname, hookproc);
+
+	// Check if dll name is blank
+	if (!dll)
+	{
+		Logging::Log() << "UnhookAPI: NULL dll name";
+		return;
+	}
+
+	// Check module addresses
+	if (!module)
+	{
+		Logging::Log() << "UnhookAPI: NULL api module address for '" << dll << "'";
+		return;
+	}
+
+	// Unhook IATPatch
+	UnhookIATPatch(module, 0, dll, apiproc, apiname, hookproc);
 }
 
 // Get pointer for funtion name from binary file

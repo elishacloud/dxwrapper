@@ -233,6 +233,11 @@ void Wrapper::DllDetach()
 	// Unload custom libraries
 	FreeCustomLibrary();
 
+	// Unhook APIs
+	d3d8::module.Unhook();
+	dsound::module.Unhook();
+	ddraw::module.Unhook();
+
 	// Unload wrapper libraries
 	for (UINT x = 1; x < dtypeArraySize; ++x)
 	{

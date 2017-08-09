@@ -52,20 +52,84 @@ namespace dsound
 				// Hook APIs for DSoundCtrl functions
 				else if (Config.DSoundCtrl)
 				{
-					Logging::Log() << "Hooking dll APIs...";
-					DirectSoundCreate = (FARPROC)Hook::HookAPI(hModule_dll, dtypename[dtype.dsound], Hook::GetFunctionAddress(dll, "DirectSoundCreate"), "DirectSoundCreate", Hook::GetFunctionAddress(hModule_dll, "_DirectSoundCreate"));
-					DirectSoundEnumerateA = (FARPROC)Hook::HookAPI(hModule_dll, dtypename[dtype.dsound], Hook::GetFunctionAddress(dll, "DirectSoundEnumerateA"), "DirectSoundEnumerateA", Hook::GetFunctionAddress(hModule_dll, "_DirectSoundEnumerateA"));
-					DirectSoundEnumerateW = (FARPROC)Hook::HookAPI(hModule_dll, dtypename[dtype.dsound], Hook::GetFunctionAddress(dll, "DirectSoundEnumerateW"), "DirectSoundEnumerateW", Hook::GetFunctionAddress(hModule_dll, "_DirectSoundEnumerateW"));
-					DirectSoundCaptureCreate = (FARPROC)Hook::HookAPI(hModule_dll, dtypename[dtype.dsound], Hook::GetFunctionAddress(dll, "DirectSoundCaptureCreate"), "DirectSoundCaptureCreate", Hook::GetFunctionAddress(hModule_dll, "_DirectSoundCaptureCreate"));
-					DirectSoundCaptureEnumerateA = (FARPROC)Hook::HookAPI(hModule_dll, dtypename[dtype.dsound], Hook::GetFunctionAddress(dll, "DirectSoundCaptureEnumerateA"), "DirectSoundCaptureEnumerateA", Hook::GetFunctionAddress(hModule_dll, "_DirectSoundCaptureEnumerateA"));
-					DirectSoundCaptureEnumerateW = (FARPROC)Hook::HookAPI(hModule_dll, dtypename[dtype.dsound], Hook::GetFunctionAddress(dll, "DirectSoundCaptureEnumerateW"), "DirectSoundCaptureEnumerateW", Hook::GetFunctionAddress(hModule_dll, "_DirectSoundCaptureEnumerateW"));
-					GetDeviceID = (FARPROC)Hook::HookAPI(hModule_dll, dtypename[dtype.dsound], Hook::GetFunctionAddress(dll, "GetDeviceID"), "GetDeviceID", Hook::GetFunctionAddress(hModule_dll, "_GetDeviceID"));
-					DirectSoundFullDuplexCreate = (FARPROC)Hook::HookAPI(hModule_dll, dtypename[dtype.dsound], Hook::GetFunctionAddress(dll, "DirectSoundFullDuplexCreate"), "DirectSoundFullDuplexCreate", Hook::GetFunctionAddress(hModule_dll, "_DirectSoundFullDuplexCreate"));
-					DirectSoundCreate8 = (FARPROC)Hook::HookAPI(hModule_dll, dtypename[dtype.dsound], Hook::GetFunctionAddress(dll, "DirectSoundCreate8"), "DirectSoundCreate8", Hook::GetFunctionAddress(hModule_dll, "_DirectSoundCreate8"));
-					DirectSoundCaptureCreate8 = (FARPROC)Hook::HookAPI(hModule_dll, dtypename[dtype.dsound], Hook::GetFunctionAddress(dll, "DirectSoundCaptureCreate8"), "DirectSoundCaptureCreate8", Hook::GetFunctionAddress(hModule_dll, "_DirectSoundCaptureCreate8"));
+					IsHooked = true;
+					Logging::Log() << "Hooking dsound.dll APIs...";
+					// DirectSoundCreate
+					h_DirectSoundCreate.apiproc = Hook::GetFunctionAddress(dll, "DirectSoundCreate");
+					h_DirectSoundCreate.hookproc = Hook::GetFunctionAddress(hModule_dll, "_DirectSoundCreate");
+					DirectSoundCreate = (FARPROC)Hook::HookAPI(hModule_dll, dtypename[dtype.dsound], h_DirectSoundCreate.apiproc, "DirectSoundCreate", h_DirectSoundCreate.hookproc);
+					// DirectSoundEnumerateA
+					h_DirectSoundEnumerateA.apiproc = Hook::GetFunctionAddress(dll, "DirectSoundEnumerateA");
+					h_DirectSoundEnumerateA.hookproc = Hook::GetFunctionAddress(hModule_dll, "_DirectSoundEnumerateA");
+					DirectSoundEnumerateA = (FARPROC)Hook::HookAPI(hModule_dll, dtypename[dtype.dsound], h_DirectSoundEnumerateA.apiproc, "DirectSoundEnumerateA", h_DirectSoundEnumerateA.hookproc);
+					// DirectSoundEnumerateW
+					h_DirectSoundEnumerateW.apiproc = Hook::GetFunctionAddress(dll, "DirectSoundEnumerateW");
+					h_DirectSoundEnumerateW.hookproc = Hook::GetFunctionAddress(hModule_dll, "_DirectSoundEnumerateW");
+					DirectSoundEnumerateW = (FARPROC)Hook::HookAPI(hModule_dll, dtypename[dtype.dsound], h_DirectSoundEnumerateW.apiproc, "DirectSoundEnumerateW", h_DirectSoundEnumerateW.hookproc);
+					// DirectSoundCaptureCreate
+					h_DirectSoundCaptureCreate.apiproc = Hook::GetFunctionAddress(dll, "DirectSoundCaptureCreate");
+					h_DirectSoundCaptureCreate.hookproc = Hook::GetFunctionAddress(hModule_dll, "_DirectSoundCaptureCreate");
+					DirectSoundCaptureCreate = (FARPROC)Hook::HookAPI(hModule_dll, dtypename[dtype.dsound], h_DirectSoundCaptureCreate.apiproc, "DirectSoundCaptureCreate", h_DirectSoundCaptureCreate.hookproc);
+					// DirectSoundCaptureEnumerateA
+					h_DirectSoundCaptureEnumerateA.apiproc = Hook::GetFunctionAddress(dll, "DirectSoundCaptureEnumerateA");
+					h_DirectSoundCaptureEnumerateA.hookproc = Hook::GetFunctionAddress(hModule_dll, "_DirectSoundCaptureEnumerateA");
+					DirectSoundCaptureEnumerateA = (FARPROC)Hook::HookAPI(hModule_dll, dtypename[dtype.dsound], h_DirectSoundCaptureEnumerateA.apiproc, "DirectSoundCaptureEnumerateA", h_DirectSoundCaptureEnumerateA.hookproc);
+					// DirectSoundCaptureEnumerateW
+					h_DirectSoundCaptureEnumerateW.apiproc = Hook::GetFunctionAddress(dll, "DirectSoundCaptureEnumerateW");
+					h_DirectSoundCaptureEnumerateW.hookproc = Hook::GetFunctionAddress(hModule_dll, "_DirectSoundCaptureEnumerateW");
+					DirectSoundCaptureEnumerateW = (FARPROC)Hook::HookAPI(hModule_dll, dtypename[dtype.dsound], h_DirectSoundCaptureEnumerateW.apiproc, "DirectSoundCaptureEnumerateW", h_DirectSoundCaptureEnumerateW.hookproc);
+					// GetDeviceID
+					h_GetDeviceID.apiproc = Hook::GetFunctionAddress(dll, "GetDeviceID");
+					h_GetDeviceID.hookproc = Hook::GetFunctionAddress(hModule_dll, "_GetDeviceID");
+					GetDeviceID = (FARPROC)Hook::HookAPI(hModule_dll, dtypename[dtype.dsound], h_GetDeviceID.apiproc, "GetDeviceID", h_GetDeviceID.hookproc);
+					// DirectSoundFullDuplexCreate
+					h_DirectSoundFullDuplexCreate.apiproc = Hook::GetFunctionAddress(dll, "DirectSoundFullDuplexCreate");
+					h_DirectSoundFullDuplexCreate.hookproc = Hook::GetFunctionAddress(hModule_dll, "_DirectSoundFullDuplexCreate");
+					DirectSoundFullDuplexCreate = (FARPROC)Hook::HookAPI(hModule_dll, dtypename[dtype.dsound], h_DirectSoundFullDuplexCreate.apiproc, "DirectSoundFullDuplexCreate", h_DirectSoundFullDuplexCreate.hookproc);
+					// DirectSoundCreate8
+					h_DirectSoundCreate8.apiproc = Hook::GetFunctionAddress(dll, "DirectSoundCreate8");
+					h_DirectSoundCreate8.hookproc = Hook::GetFunctionAddress(hModule_dll, "_DirectSoundCreate8");
+					DirectSoundCreate8 = (FARPROC)Hook::HookAPI(hModule_dll, dtypename[dtype.dsound], h_DirectSoundCreate8.apiproc, "DirectSoundCreate8", h_DirectSoundCreate8.hookproc);
+					// DirectSoundCaptureCreate8
+					h_DirectSoundCaptureCreate8.apiproc = Hook::GetFunctionAddress(dll, "DirectSoundCaptureCreate8");
+					h_DirectSoundCaptureCreate8.hookproc = Hook::GetFunctionAddress(hModule_dll, "_DirectSoundCaptureCreate8");
+					DirectSoundCaptureCreate8 = (FARPROC)Hook::HookAPI(hModule_dll, dtypename[dtype.dsound], h_DirectSoundCaptureCreate8.apiproc, "DirectSoundCaptureCreate8", h_DirectSoundCaptureCreate8.hookproc);
 				}
 			}
 		}
+
+		void Unhook()
+		{
+			// If hooks are installed
+			if (IsHooked)
+			{
+				IsHooked = false;
+				Logging::Log() << "Unhooking dsound.dll APIs...";
+				Hook::UnhookAPI(hModule_dll, dtypename[dtype.dsound], h_DirectSoundCreate.apiproc, "DirectSoundCreate", h_DirectSoundCreate.hookproc);
+				Hook::UnhookAPI(hModule_dll, dtypename[dtype.dsound], h_DirectSoundEnumerateA.apiproc, "DirectSoundEnumerateA", h_DirectSoundEnumerateA.hookproc);
+				Hook::UnhookAPI(hModule_dll, dtypename[dtype.dsound], h_DirectSoundEnumerateW.apiproc, "DirectSoundEnumerateW", h_DirectSoundEnumerateW.hookproc);
+				Hook::UnhookAPI(hModule_dll, dtypename[dtype.dsound], h_DirectSoundCaptureCreate.apiproc, "DirectSoundCaptureCreate", h_DirectSoundCaptureCreate.hookproc);
+				Hook::UnhookAPI(hModule_dll, dtypename[dtype.dsound], h_DirectSoundCaptureEnumerateA.apiproc, "DirectSoundCaptureEnumerateA", h_DirectSoundCaptureEnumerateA.hookproc);
+				Hook::UnhookAPI(hModule_dll, dtypename[dtype.dsound], h_DirectSoundCaptureEnumerateW.apiproc, "DirectSoundCaptureEnumerateW", h_DirectSoundCaptureEnumerateW.hookproc);
+				Hook::UnhookAPI(hModule_dll, dtypename[dtype.dsound], h_GetDeviceID.apiproc, "GetDeviceID", h_GetDeviceID.hookproc);
+				Hook::UnhookAPI(hModule_dll, dtypename[dtype.dsound], h_DirectSoundFullDuplexCreate.apiproc, "DirectSoundFullDuplexCreate", h_DirectSoundFullDuplexCreate.hookproc);
+				Hook::UnhookAPI(hModule_dll, dtypename[dtype.dsound], h_DirectSoundCreate8.apiproc, "DirectSoundCreate8", h_DirectSoundCreate8.hookproc);
+				Hook::UnhookAPI(hModule_dll, dtypename[dtype.dsound], h_DirectSoundCaptureCreate8.apiproc, "DirectSoundCaptureCreate8", h_DirectSoundCaptureCreate8.hookproc);
+			}
+		}
+
+	private:
+		bool IsHooked = false;
+		Hook::HOOKVARS h_DirectSoundCreate;
+		Hook::HOOKVARS h_DirectSoundEnumerateA;
+		Hook::HOOKVARS h_DirectSoundEnumerateW;
+		Hook::HOOKVARS h_DirectSoundCaptureCreate;
+		Hook::HOOKVARS h_DirectSoundCaptureEnumerateA;
+		Hook::HOOKVARS h_DirectSoundCaptureEnumerateW;
+		Hook::HOOKVARS h_GetDeviceID;
+		Hook::HOOKVARS h_DirectSoundFullDuplexCreate;
+		Hook::HOOKVARS h_DirectSoundCreate8;
+		Hook::HOOKVARS h_DirectSoundCaptureCreate8;
 	};
 
 	extern dsound_dll module;
