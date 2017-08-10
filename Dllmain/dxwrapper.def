@@ -37,15 +37,6 @@ _DirectSoundCaptureCreate8		= DirectSoundCaptureCreate8				@24
 
 
 ; ****
-;LIBRARY "Disasm"
-; ****
-Preparedisasm															@25
-Finishdisasm															@26
-Disasm																	@27
-Geterrwarnmessage														@28
-
-
-; ****
 ;LIBRARY "d3d8"
 ; ****
 DebugSetMute					= FakeDebugSetMute						@29

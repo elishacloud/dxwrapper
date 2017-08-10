@@ -26,26 +26,22 @@
 #include "Settings\Settings.h"
 #include "Wrappers\wrapper.h"
 #include "Dllmain\Dllmain.h"
+extern "C"
+{
 #include "Disasm\disasm.h"
+}
 #include "Hooking\Hook.h"
 #include "Utils.h"
 #include "Logging\Logging.h"
 
 typedef HRESULT(__stdcall *SetAppCompatDataFunc)(DWORD, DWORD);
-typedef LPTOP_LEVEL_EXCEPTION_FILTER(WINAPI *SetUnhandledExceptionFilter_Type)(LPTOP_LEVEL_EXCEPTION_FILTER);
-typedef int(*Preparedisasm_Type)(void);
-typedef void(*Finishdisasm_Type)(void);
-typedef unsigned long(*Disasm_Type)(const unsigned char *, unsigned long, unsigned long, t_disasm *, int, t_config *, int(*)(tchar *, unsigned long));
+typedef LPTOP_LEVEL_EXCEPTION_FILTER(WINAPI *PFN_SetUnhandledExceptionFilter)(LPTOP_LEVEL_EXCEPTION_FILTER);
 
 namespace Utils
 {
 	// Declare varables
-	bool IsDisasmLoaded = false;
-	LPTOP_LEVEL_EXCEPTION_FILTER pOriginalSetUnhandledExceptionFilter;
-	SetUnhandledExceptionFilter_Type pSetUnhandledExceptionFilter;
-	Preparedisasm_Type pPreparedisasm;
-	Finishdisasm_Type pFinishdisasm;
-	Disasm_Type pDisasm;
+	LPTOP_LEVEL_EXCEPTION_FILTER pOriginalSetUnhandledExceptionFilter = SetUnhandledExceptionFilter((LPTOP_LEVEL_EXCEPTION_FILTER)EXCEPTION_CONTINUE_EXECUTION);
+	PFN_SetUnhandledExceptionFilter pSetUnhandledExceptionFilter = reinterpret_cast<PFN_SetUnhandledExceptionFilter>(SetUnhandledExceptionFilter);
 	Hook::HOOKVARS h_UnhandledExceptionFilter;
 	Hook::HOOKVARS h_SetUnhandledExceptionFilter;
 
@@ -179,13 +175,12 @@ LONG WINAPI Utils::myUnhandledExceptionFilter(LPEXCEPTION_POINTERS ExceptionInfo
 	case 0xc0000005: // Memory exception (Tie Fighter)
 		int cmdlen;
 		t_disasm da;
-		IsDisasmLoaded = true;
-		(*pPreparedisasm)();
+		Preparedisasm();
 		if (!VirtualProtect(target, 10, PAGE_READWRITE, &oldprot))
 		{
 			return EXCEPTION_CONTINUE_SEARCH; // error condition
 		}
-		cmdlen = (*pDisasm)((BYTE *)target, 10, 0, &da, 0, nullptr, nullptr);
+		cmdlen = Disasm((BYTE *)target, 10, 0, &da, 0, nullptr, nullptr);
 		Logging::Log() << "UnhandledExceptionFilter: NOP opcode=" << std::showbase << std::hex << *(BYTE *)target << std::dec << std::noshowbase << " len=" << cmdlen;
 		memset((BYTE *)target, 0x90, cmdlen);
 		VirtualProtect(target, 10, oldprot, &oldprot);
@@ -211,7 +206,7 @@ LPTOP_LEVEL_EXCEPTION_FILTER WINAPI Utils::extSetUnhandledExceptionFilter(LPTOP_
 	UNREFERENCED_PARAMETER(lpTopLevelExceptionFilter);
 #endif
 	extern LONG WINAPI myUnhandledExceptionFilter(LPEXCEPTION_POINTERS);
-	return (*pSetUnhandledExceptionFilter)(myUnhandledExceptionFilter);
+	return pSetUnhandledExceptionFilter(myUnhandledExceptionFilter);
 }
 
 // Sets the exception handler by hooking UnhandledExceptionFilter
@@ -220,12 +215,6 @@ void Utils::HookExceptionHandler(void)
 	void *tmp;
 
 	Logging::Log() << "Set exception handler";
-	pPreparedisasm = (Preparedisasm_Type)(*GetProcAddress)(hModule_dll, "Preparedisasm");
-	pFinishdisasm = (Finishdisasm_Type)(*GetProcAddress)(hModule_dll, "Finishdisasm");
-	pDisasm = (Disasm_Type)(*GetProcAddress)(hModule_dll, "Disasm");
-
-	pSetUnhandledExceptionFilter = SetUnhandledExceptionFilter;
-	pOriginalSetUnhandledExceptionFilter = SetUnhandledExceptionFilter((LPTOP_LEVEL_EXCEPTION_FILTER)EXCEPTION_CONTINUE_EXECUTION);
 	// override default exception handler, if any....
 	LONG WINAPI myUnhandledExceptionFilter(LPEXCEPTION_POINTERS);
 	h_UnhandledExceptionFilter.apiproc = UnhandledExceptionFilter;
@@ -237,11 +226,11 @@ void Utils::HookExceptionHandler(void)
 	tmp = Hook::HookAPI(hModule_dll, "KERNEL32.dll", h_SetUnhandledExceptionFilter.apiproc, "SetUnhandledExceptionFilter", h_SetUnhandledExceptionFilter.hookproc);
 	if (tmp)
 	{
-		pSetUnhandledExceptionFilter = (SetUnhandledExceptionFilter_Type)tmp;
+		pSetUnhandledExceptionFilter = reinterpret_cast<PFN_SetUnhandledExceptionFilter>(tmp);
 	}
 
 	SetErrorMode(SEM_NOGPFAULTERRORBOX | SEM_NOOPENFILEERRORBOX | SEM_FAILCRITICALERRORS);
-	(*pSetUnhandledExceptionFilter)((LPTOP_LEVEL_EXCEPTION_FILTER)myUnhandledExceptionFilter);
+	pSetUnhandledExceptionFilter((LPTOP_LEVEL_EXCEPTION_FILTER)myUnhandledExceptionFilter);
 }
 
 // Unhooks the exception handler
@@ -250,11 +239,7 @@ void Utils::UnHookExceptionHandler(void)
 	Compat::Log() << "Unload exception handlers";
 	Hook::UnhookAPI(hModule_dll, "KERNEL32.dll", h_UnhandledExceptionFilter.apiproc, "UnhandledExceptionFilter", h_UnhandledExceptionFilter.hookproc);
 	Hook::UnhookAPI(hModule_dll, "KERNEL32.dll", h_SetUnhandledExceptionFilter.apiproc, "SetUnhandledExceptionFilter", h_SetUnhandledExceptionFilter.hookproc);
-	if (IsDisasmLoaded)
-	{
-		IsDisasmLoaded = false;
-		(*pFinishdisasm)();
-	}
 	SetErrorMode(0);
 	SetUnhandledExceptionFilter(pOriginalSetUnhandledExceptionFilter);
+	Finishdisasm();
 }
