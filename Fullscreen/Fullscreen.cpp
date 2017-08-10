@@ -237,10 +237,7 @@ void Fullscreen::CheckCurrentScreenRes()
 void Fullscreen::ResetScreen()
 {
 	// Setting screen resolution to fix some display errors on exit
-	if (Config.ResetScreenRes)
-	{
-		SetScreen(m_Current_ScreenRes);
-	}
+	SetScreen(m_Current_ScreenRes);
 
 	// Sleep short amout of time
 	Sleep(100);
@@ -563,7 +560,10 @@ void Fullscreen::CheckForTermination(DWORD m_ProcessId)
 			Logging::Log() << "Process not exiting, attempting to terminate process...";
 
 			// Reset screen back to original Windows settings to fix some display errors on exit
-			Fullscreen::ResetScreen();
+			if (Config.ResetScreenRes)
+			{
+				Fullscreen::ResetScreen();
+			}
 
 			// Terminate the current process
 			HANDLE processHandle = OpenProcess(PROCESS_ALL_ACCESS, false, GetCurrentProcessId());

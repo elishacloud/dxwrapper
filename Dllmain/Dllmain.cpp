@@ -148,7 +148,10 @@ bool APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 				Logging::Log() << "Process not exiting, attempting to terminate process...";
 
 				// Reset screen back to original Windows settings to fix some display errors on exit
-				Fullscreen::ResetScreen();
+				if (Config.ResetScreenRes)
+				{
+					Fullscreen::ResetScreen();
+				}
 
 				// Terminate the current process
 				HANDLE processHandle = OpenProcess(PROCESS_ALL_ACCESS, false, GetCurrentProcessId());
@@ -189,9 +192,6 @@ bool APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 		// Unload dlls
 		Wrapper::DllDetach();
 
-		// Clean up memory
-		Config.CleanUp();
-
 		// Unload exception handler
 		if (Config.HandleExceptions)
 		{
@@ -199,7 +199,13 @@ bool APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 		}
 
 		// Reset screen back to original Windows settings to fix some display errors on exit
-		Fullscreen::ResetScreen();
+		if (Config.ResetScreenRes)
+		{
+			Fullscreen::ResetScreen();
+		}
+
+		// Clean up memory
+		Config.CleanUp();
 
 		// Final log
 		Logging::Log() << "dxwrapper terminated!";
