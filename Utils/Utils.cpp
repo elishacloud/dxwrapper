@@ -33,7 +33,6 @@
 
 typedef HRESULT(__stdcall *SetAppCompatDataFunc)(DWORD, DWORD);
 typedef LPTOP_LEVEL_EXCEPTION_FILTER(WINAPI *SetUnhandledExceptionFilter_Type)(LPTOP_LEVEL_EXCEPTION_FILTER);
-typedef char *(*Geterrwarnmessage_Type)(unsigned long, unsigned long);
 typedef int(*Preparedisasm_Type)(void);
 typedef void(*Finishdisasm_Type)(void);
 typedef unsigned long(*Disasm_Type)(const unsigned char *, unsigned long, unsigned long, t_disasm *, int, t_config *, int(*)(tchar *, unsigned long));
@@ -41,17 +40,16 @@ typedef unsigned long(*Disasm_Type)(const unsigned char *, unsigned long, unsign
 namespace Utils
 {
 	// Declare varables
+	bool IsDisasmLoaded = false;
+	LPTOP_LEVEL_EXCEPTION_FILTER pOriginalSetUnhandledExceptionFilter;
 	SetUnhandledExceptionFilter_Type pSetUnhandledExceptionFilter;
-	Geterrwarnmessage_Type pGeterrwarnmessage;
 	Preparedisasm_Type pPreparedisasm;
 	Finishdisasm_Type pFinishdisasm;
 	Disasm_Type pDisasm;
-	bool IsDisasmLoaded = false;
 	Hook::HOOKVARS h_UnhandledExceptionFilter;
 	Hook::HOOKVARS h_SetUnhandledExceptionFilter;
 
 	// Function declarations
-	static HMODULE LoadDisasm();
 	LONG WINAPI myUnhandledExceptionFilter(LPEXCEPTION_POINTERS);
 	LPTOP_LEVEL_EXCEPTION_FILTER WINAPI extSetUnhandledExceptionFilter(LPTOP_LEVEL_EXCEPTION_FILTER);
 }
@@ -181,15 +179,8 @@ LONG WINAPI Utils::myUnhandledExceptionFilter(LPEXCEPTION_POINTERS ExceptionInfo
 	case 0xc0000005: // Memory exception (Tie Fighter)
 		int cmdlen;
 		t_disasm da;
-		if (!disasmlib)
-		{
-			if ((disasmlib = LoadDisasm()) == 0)
-			{
-				return EXCEPTION_CONTINUE_SEARCH;
-			}
-			IsDisasmLoaded = true;
-			(*pPreparedisasm)();
-		}
+		IsDisasmLoaded = true;
+		(*pPreparedisasm)();
 		if (!VirtualProtect(target, 10, PAGE_READWRITE, &oldprot))
 		{
 			return EXCEPTION_CONTINUE_SEARCH; // error condition
@@ -223,27 +214,18 @@ LPTOP_LEVEL_EXCEPTION_FILTER WINAPI Utils::extSetUnhandledExceptionFilter(LPTOP_
 	return (*pSetUnhandledExceptionFilter)(myUnhandledExceptionFilter);
 }
 
-// Loads the disasembler which is used in by the exception handler to correct exceptions
-static HMODULE Utils::LoadDisasm()
-{
-	HMODULE disasmlib = hModule_dll;
-	pGeterrwarnmessage = (Geterrwarnmessage_Type)(*GetProcAddress)(disasmlib, "Geterrwarnmessage");
-	pPreparedisasm = (Preparedisasm_Type)(*GetProcAddress)(disasmlib, "Preparedisasm");
-	pFinishdisasm = (Finishdisasm_Type)(*GetProcAddress)(disasmlib, "Finishdisasm");
-	pDisasm = (Disasm_Type)(*GetProcAddress)(disasmlib, "Disasm");
-#ifdef _DEBUG
-	Logging::Log() << "Load Disasm ptrs=" << pGeterrwarnmessage << std::showbase << std::hex << pPreparedisasm << pFinishdisasm << pDisasm << std::dec << std::noshowbase;
-#endif
-	return disasmlib;
-}
-
 // Sets the exception handler by hooking UnhandledExceptionFilter
 void Utils::HookExceptionHandler(void)
 {
 	void *tmp;
 
 	Logging::Log() << "Set exception handler";
+	pPreparedisasm = (Preparedisasm_Type)(*GetProcAddress)(hModule_dll, "Preparedisasm");
+	pFinishdisasm = (Finishdisasm_Type)(*GetProcAddress)(hModule_dll, "Finishdisasm");
+	pDisasm = (Disasm_Type)(*GetProcAddress)(hModule_dll, "Disasm");
+
 	pSetUnhandledExceptionFilter = SetUnhandledExceptionFilter;
+	pOriginalSetUnhandledExceptionFilter = SetUnhandledExceptionFilter((LPTOP_LEVEL_EXCEPTION_FILTER)EXCEPTION_CONTINUE_EXECUTION);
 	// override default exception handler, if any....
 	LONG WINAPI myUnhandledExceptionFilter(LPEXCEPTION_POINTERS);
 	h_UnhandledExceptionFilter.apiproc = UnhandledExceptionFilter;
@@ -273,4 +255,6 @@ void Utils::UnHookExceptionHandler(void)
 		IsDisasmLoaded = false;
 		(*pFinishdisasm)();
 	}
+	SetErrorMode(0);
+	SetUnhandledExceptionFilter(pOriginalSetUnhandledExceptionFilter);
 }
