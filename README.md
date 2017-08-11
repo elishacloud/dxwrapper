@@ -56,7 +56,7 @@ DxWrapper uses code from several other projects. So to give credit where credit 
  - [OllyDbg](http://www.ollydbg.de/): Includes the full disasm.c (disasm.dll) code used for exception handling.
  - [d3d8to9](https://github.com/crosire/d3d8to9): Includes the full D3D8 to D3D9 code.
  - [DSoundCtrl](https://github.com/nRaecheR/DirectSoundControl): Includes the full DirectSoundControl code.
- - [Aqrit's ddwrapper](http://bitpatch.com/ddwrapper.html): Includes code for single CPU affinity, disable display scaling on high DPI and code to read the ini config file.
+ - [Aqrit's ddwrapper](http://bitpatch.com/ddwrapper.html): Includes code to disable display scaling on high DPI and code to read the ini config file.
 
 ### Development
 DxWrapper is written in C++ using Microsoft Visual Studio Community 2015.
