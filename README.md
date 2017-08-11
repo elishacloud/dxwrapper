@@ -52,8 +52,8 @@ This software is provided 'as-is', without any express or implied warranty. In n
 DxWrapper uses code from several other projects. So to give credit where credit is due, below is a list of locations that source code was taken from:
 
  - [DDrawCompat](https://github.com/narzoul/DDrawCompat/): Includes the full DDrawCompat version 2.0b and 2.1.
- - [DxWnd](https://sourceforge.net/projects/dxwnd/): Includes code from the proxy dll, single CPU affinity and exception handling. 
- - [OllyDbg](http://www.ollydbg.de/): Includes the full disasm.c (disasm.dll) code used for exception handling.
+ - [DxWnd](https://sourceforge.net/projects/dxwnd/): Includes code from the proxy dll and exception handling. 
+ - [OllyDbg](http://www.ollydbg.de/): Includes the full disasm.c (disasm.dll) and cmdlist.c code used for exception handling.
  - [d3d8to9](https://github.com/crosire/d3d8to9): Includes the full D3D8 to D3D9 code.
  - [DSoundCtrl](https://github.com/nRaecheR/DirectSoundControl): Includes the full DirectSoundControl code.
  - [Aqrit's ddwrapper](http://bitpatch.com/ddwrapper.html): Includes code to disable display scaling on high DPI and code to read the ini config file.
