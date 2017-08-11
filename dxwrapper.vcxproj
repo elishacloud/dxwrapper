@@ -260,7 +260,6 @@ cmd /c "@echo off &amp;&amp; cd /D ""$(ProjectDir)Dllmain\"" &amp;&amp; type Bui
     <ClCompile Include="DSoundCtrl\IDirectSoundClassFactoryEx.cpp" />
     <ClCompile Include="DSoundCtrl\IDirectSoundEx.cpp" />
     <ClCompile Include="DxWnd\v2_03_60_src\init.cpp" />
-    <ClCompile Include="Fullscreen\Fullscreen.cpp" />
     <ClCompile Include="Hooking\Hook.cpp" />
     <ClCompile Include="Hooking\HotPatch.cpp" />
     <ClCompile Include="Hooking\IATPatch.cpp" />
@@ -270,6 +269,7 @@ cmd /c "@echo off &amp;&amp; cd /D ""$(ProjectDir)Dllmain\"" &amp;&amp; type Bui
     <ClCompile Include="libraries\winmm.cpp" />
     <ClCompile Include="Logging\Logging.cpp" />
     <ClCompile Include="Settings\Settings.cpp" />
+    <ClCompile Include="Utils\Fullscreen.cpp" />
     <ClCompile Include="Utils\Utils.cpp" />
     <ClCompile Include="Utils\WriteMemory.cpp" />
     <ClCompile Include="wrappers\wrapper.cpp" />
@@ -330,7 +330,6 @@ cmd /c "@echo off &amp;&amp; cd /D ""$(ProjectDir)Dllmain\"" &amp;&amp; type Bui
     <ClInclude Include="DSoundCtrl\IDirectSoundClassFactoryEx.h" />
     <ClInclude Include="DSoundCtrl\IDirectSoundEx.h" />
     <ClInclude Include="DxWnd\v2_03_60_src\dxwnd.h" />
-    <ClInclude Include="Fullscreen\Fullscreen.h" />
     <ClInclude Include="Hooking\Hook.h" />
     <ClInclude Include="Libraries\d3dx9.h" />
     <ClInclude Include="libraries\dwmapi.h" />

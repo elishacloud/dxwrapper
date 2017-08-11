@@ -21,7 +21,6 @@
 #include "DxWnd\DxWndExternal.h"
 #include "DSoundCtrl\DSoundCtrlExternal.h"
 #include "Utils\Utils.h"
-#include "Fullscreen\Fullscreen.h"
 #include "Logging\Logging.h"
 
 // Declare varables
@@ -47,7 +46,7 @@ bool APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 		SetThreadPriority(hCurrentThread, THREAD_PRIORITY_HIGHEST);
 
 		// Init logs
-		Logging::Log() << "Starting dxwrapper v" << APP_VERSION;
+		Logging::Log() << "Starting DxWrapper v" << APP_VERSION;
 		Logging::LogOSVersion();
 		Logging::LogProcessNameAndPID();
 
@@ -63,7 +62,7 @@ bool APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 		// Set application compatibility options
 		if (Config.MemoryInfo.size() != 0)
 		{
-			Utils::WriteMemory();
+			Utils::WriteMemory::WriteMemory();
 		}
 		if (Config.DpiAware)
 		{
@@ -72,7 +71,7 @@ bool APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 		Utils::SetAppCompat();
 		if (Config.Affinity)
 		{
-			SetProcessAffinityMask(GetCurrentProcess(), 1);
+			Utils::SetProcessAffinity();
 		}
 		if (Config.HandleExceptions)
 		{
@@ -85,7 +84,7 @@ bool APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 		// Start compatibility modules
 		if (Config.DDrawCompat)
 		{
-			Config.DDrawCompat = (DllMain_DDrawCompat(hModule_dll, fdwReason, nullptr) != 0);
+			Config.DDrawCompat = (DllMain_DDrawCompat(hModule_dll, fdwReason, nullptr) == TRUE);
 		}
 		if (Config.DSoundCtrl)
 		{
@@ -98,7 +97,7 @@ bool APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 			if (dxwnd_dll)
 			{
 				Logging::Log() << "Loading dxwnd";
-				InitDxWnd();
+				InitDxWnd(dxwnd_dll);
 			}
 			// If dxwnd.dll does not exist than disable dxwnd setting
 			else
@@ -110,7 +109,7 @@ bool APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 		// Start fullscreen thread
 		if (Config.FullScreen || Config.ForceTermination)
 		{
-			Fullscreen::StartThread();
+			Utils::Fullscreen::StartThread();
 		}
 
 		// Resetting thread priority
@@ -124,11 +123,11 @@ bool APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 		// Check and store screen resolution
 		if (Config.ResetScreenRes)
 		{
-			Fullscreen::CheckCurrentScreenRes();
+			Utils::Fullscreen::CheckCurrentScreenRes();
 		}
 
 		// Check if thread has started
-		if (Config.ForceTermination && Fullscreen::IsThreadRunning())
+		if (Config.ForceTermination && Utils::Fullscreen::IsThreadRunning())
 		{
 			FullscreenThreadStartedFlag = true;
 		}
@@ -137,20 +136,20 @@ bool APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 		if (Config.ForceTermination)
 		{
 			// Check if thread has started
-			if (Fullscreen::IsThreadRunning())
+			if (Utils::Fullscreen::IsThreadRunning())
 			{
 				FullscreenThreadStartedFlag = true;
 			}
 
 			// Check if thread has stopped
-			if (FullscreenThreadStartedFlag && !Fullscreen::IsThreadRunning())
+			if (FullscreenThreadStartedFlag && !Utils::Fullscreen::IsThreadRunning())
 			{
 				Logging::Log() << "Process not exiting, attempting to terminate process...";
 
 				// Reset screen back to original Windows settings to fix some display errors on exit
 				if (Config.ResetScreenRes)
 				{
-					Fullscreen::ResetScreen();
+					Utils::Fullscreen::ResetScreen();
 				}
 
 				// Terminate the current process
@@ -161,16 +160,16 @@ bool APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 		break;
 	case DLL_PROCESS_DETACH:
 		// Run all clean up functions
-		Logging::Log() << "Quiting dxwrapper";
+		Logging::Log() << "Quiting DxWrapper";
 
 		// Stop threads
-		Fullscreen::StopThread();
-		Utils::StopWriteMemoryThread();
+		Utils::Fullscreen::StopThread();
+		Utils::WriteMemory::StopThread();
 
 		// Unload and Unhook DxWnd
 		if (Config.DxWnd)
 		{
-			Logging::Log() << "Unloading dxwnd";
+			Logging::Log() << "Unloading DxWnd";
 			DxWndEndHook();
 			if (dxwnd_dll)
 			{
@@ -202,14 +201,14 @@ bool APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 		// Reset screen back to original Windows settings to fix some display errors on exit
 		if (Config.ResetScreenRes)
 		{
-			Fullscreen::ResetScreen();
+			Utils::Fullscreen::ResetScreen();
 		}
 
 		// Clean up memory
 		Config.CleanUp();
 
 		// Final log
-		Logging::Log() << "dxwrapper terminated!";
+		Logging::Log() << "DxWrapper terminated!";
 		break;
 	}
 	return true;

@@ -20,21 +20,26 @@
 
 namespace Utils
 {
-	// Declare varables
-	bool p_StopThreadFlag = false;
-	bool p_ThreadRunningFlag = false;
-	HANDLE p_hThread = nullptr;
-	DWORD p_dwThreadID = 0;
+	namespace WriteMemory
+	{
+		// Declare varables
+		bool m_StopThreadFlag = false;
+		bool m_ThreadRunningFlag = false;
+		HANDLE m_hThread = nullptr;
+		DWORD m_dwThreadID = 0;
 
-	// Function declarations
-	void WriteAllByteMemory();
-	bool CheckVerificationMemory();
-	DWORD WINAPI WriteMemoryThreadFunc(LPVOID);
-	bool IsWriteMemoryThreadRunning();
+		// Function declarations
+		void WriteAllByteMemory();
+		bool CheckVerificationMemory();
+		DWORD WINAPI StartThreadFunc(LPVOID);
+		bool IsThreadRunning();
+	}
 }
 
+using namespace Utils;
+
 // Writes all bytes in Config to memory
-void Utils::WriteAllByteMemory()
+void WriteMemory::WriteAllByteMemory()
 {
 	HANDLE hProcess = GetCurrentProcess();
 
@@ -77,7 +82,7 @@ void Utils::WriteAllByteMemory()
 }
 
 // Verify process bytes before writing memory
-bool Utils::CheckVerificationMemory()
+bool WriteMemory::CheckVerificationMemory()
 {
 	// Check Verification details
 	if (Config.VerifyMemoryInfo.SizeOfBytes == 0 || Config.VerifyMemoryInfo.AddressPointer == 0)
@@ -100,19 +105,19 @@ bool Utils::CheckVerificationMemory()
 }
 
 // Thread to undo memory write after ResetMemoryAfter time
-DWORD WINAPI Utils::WriteMemoryThreadFunc(LPVOID pvParam)
+DWORD WINAPI WriteMemory::StartThreadFunc(LPVOID pvParam)
 {
 	UNREFERENCED_PARAMETER(pvParam);
 
 	// Get thread handle
-	InterlockedExchangePointer(&p_hThread, GetCurrentThread());
+	InterlockedExchangePointer(&m_hThread, GetCurrentThread());
 
 	// Set thread flag to running
-	p_ThreadRunningFlag = true;
+	m_ThreadRunningFlag = true;
 
 	// Sleep for a while
 	DWORD timer = 0;
-	while (!p_StopThreadFlag && timer < Config.ResetMemoryAfter)
+	while (!m_StopThreadFlag && timer < Config.ResetMemoryAfter)
 	{
 		Sleep(120);
 		timer += 120;
@@ -125,17 +130,21 @@ DWORD WINAPI Utils::WriteMemoryThreadFunc(LPVOID pvParam)
 	WriteAllByteMemory();
 
 	// Reset thread flag before exiting
-	p_ThreadRunningFlag = false;
+	m_ThreadRunningFlag = false;
+
+	// Close handle
+	CloseHandle(m_hThread);
+	InterlockedExchangePointer(&m_hThread, nullptr);
 
 	// Set thread ID back to 0
-	InterlockedExchange(&p_dwThreadID, 0);
+	InterlockedExchange(&m_dwThreadID, 0);
 
 	// Return value
 	return 0;
 }
 
 // Main sub for writing to the memory of the application
-void Utils::WriteMemory()
+void WriteMemory::WriteMemory()
 {
 	if (CheckVerificationMemory())
 	{
@@ -148,7 +157,7 @@ void Utils::WriteMemory()
 		// Starting thread to undo memory write after ResetMemoryAfter time
 		if (Config.ResetMemoryAfter > 0)
 		{
-			CreateThread(nullptr, 0, WriteMemoryThreadFunc, nullptr, 0, &p_dwThreadID);
+			CreateThread(nullptr, 0, StartThreadFunc, nullptr, 0, &m_dwThreadID);
 		}
 	}
 	else
@@ -161,23 +170,26 @@ void Utils::WriteMemory()
 }
 
 // Is thread running
-bool Utils::IsWriteMemoryThreadRunning()
+bool WriteMemory::IsThreadRunning()
 {
-	return p_ThreadRunningFlag && p_dwThreadID != 0 && GetThreadId(p_hThread) == p_dwThreadID;
+	return m_ThreadRunningFlag && m_dwThreadID && GetThreadId(m_hThread) == m_dwThreadID;
 }
 
-// Stop WriteMemory thread
-void Utils::StopWriteMemoryThread()
+// Stop thread
+void WriteMemory::StopThread()
 {
 	// Set flag to stop thread
-	p_StopThreadFlag = true;
+	m_StopThreadFlag = true;
 
 	// Wait for thread to exit
-	if (IsWriteMemoryThreadRunning())
+	if (IsThreadRunning())
 	{
-		WaitForSingleObject(p_hThread, INFINITE);
-	}
+		Logging::Log() << "Stopping WriteMemory thread...";
 
-	// Close handle
-	CloseHandle(p_hThread);
+		// Wait for thread to exit
+		WaitForSingleObject(m_hThread, INFINITE);
+
+		// Thread stopped
+		Logging::Log() << "WriteMemory thread stopped";
+	}
 }

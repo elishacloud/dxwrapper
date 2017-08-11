@@ -4,9 +4,23 @@ namespace Utils
 {
 	void Shell(const char*);
 	void DisableHighDPIScaling();
+	void SetProcessAffinity();
 	void SetAppCompat();
 	void HookExceptionHandler();
 	void UnHookExceptionHandler();
-	void WriteMemory();
-	void StopWriteMemoryThread();
+
+	namespace WriteMemory
+	{
+		void WriteMemory();
+		void StopThread();
+	}
+
+	namespace Fullscreen
+	{
+		void StartThread();
+		bool IsThreadRunning();
+		void StopThread();
+		void CheckCurrentScreenRes();
+		void ResetScreen();
+	}
 }

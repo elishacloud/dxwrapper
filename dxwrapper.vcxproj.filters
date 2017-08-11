@@ -22,9 +22,6 @@
     <Filter Include="Wrappers">
       <UniqueIdentifier>{75433a20-7313-4d29-9e1c-1b75db6897cb}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Fullscreen">
-      <UniqueIdentifier>{c2d82d8c-8e32-44bf-883e-141af0404950}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Utils">
       <UniqueIdentifier>{a23457e0-30fc-48cc-a984-26f316b4cadf}</UniqueIdentifier>
     </Filter>
@@ -114,9 +111,6 @@
     </ClCompile>
     <ClCompile Include="Dllmain\Dllmain.cpp">
       <Filter>Dllmain</Filter>
-    </ClCompile>
-    <ClCompile Include="Fullscreen\Fullscreen.cpp">
-      <Filter>Fullscreen</Filter>
     </ClCompile>
     <ClCompile Include="Utils\Utils.cpp">
       <Filter>Utils</Filter>
@@ -226,6 +220,9 @@
     <ClCompile Include="Utils\WriteMemory.cpp">
       <Filter>Utils</Filter>
     </ClCompile>
+    <ClCompile Include="Utils\Fullscreen.cpp">
+      <Filter>Utils</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="Dllmain\dxwrapper.def">
@@ -316,9 +313,6 @@
     </ClInclude>
     <ClInclude Include="Dllmain\dxwrapper.h">
       <Filter>Dllmain</Filter>
-    </ClInclude>
-    <ClInclude Include="Fullscreen\Fullscreen.h">
-      <Filter>Fullscreen</Filter>
     </ClInclude>
     <ClInclude Include="Utils\Utils.h">
       <Filter>Utils</Filter>

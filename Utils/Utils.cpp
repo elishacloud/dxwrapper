@@ -84,6 +84,14 @@ void Utils::Shell(const char* fileName)
 	return;
 }
 
+// Sets the proccess to single core affinity
+void Utils::SetProcessAffinity()
+{
+	HANDLE hCurrentProcess = GetCurrentProcess();
+	SetProcessAffinityMask(hCurrentProcess, 1);
+	CloseHandle(hCurrentProcess);
+}
+
 // DPI virtualization causes:
 // Text Clipping, Blurring, or Inconsistent font sizes.
 // "Rendering of full-screen DX applications partially off screen" - Mircosoft
@@ -173,6 +181,7 @@ LONG WINAPI Utils::myUnhandledExceptionFilter(LPEXCEPTION_POINTERS ExceptionInfo
 	case 0xc0000096: // CLI Priviliged instruction exception (Resident Evil), FB (Asterix & Obelix)
 	case 0xc000001d: // FEMMS (eXpendable)
 	case 0xc0000005: // Memory exception (Tie Fighter)
+	{
 		int cmdlen;
 		t_disasm da;
 		Preparedisasm();
@@ -184,14 +193,17 @@ LONG WINAPI Utils::myUnhandledExceptionFilter(LPEXCEPTION_POINTERS ExceptionInfo
 		Logging::Log() << "UnhandledExceptionFilter: NOP opcode=" << std::showbase << std::hex << *(BYTE *)target << std::dec << std::noshowbase << " len=" << cmdlen;
 		memset((BYTE *)target, 0x90, cmdlen);
 		VirtualProtect(target, 10, oldprot, &oldprot);
-		if (!FlushInstructionCache(GetCurrentProcess(), target, cmdlen))
+		HANDLE hCurrentProcess = GetCurrentProcess();
+		if (!FlushInstructionCache(hCurrentProcess, target, cmdlen))
 		{
 			Logging::Log() << "UnhandledExceptionFilter: FlushInstructionCache ERROR target=" << std::showbase << std::hex << target << std::dec << std::noshowbase << ", err=" << GetLastError();
 		}
+		CloseHandle(hCurrentProcess);
 		// skip replaced opcode
 		ExceptionInfo->ContextRecord->Eip += cmdlen; // skip ahead op-code length
 		return EXCEPTION_CONTINUE_EXECUTION;
-		break;
+	}
+	break;
 	default:
 		return EXCEPTION_CONTINUE_SEARCH;
 	}
@@ -236,7 +248,7 @@ void Utils::HookExceptionHandler(void)
 // Unhooks the exception handler
 void Utils::UnHookExceptionHandler(void)
 {
-	Compat::Log() << "Unload exception handlers";
+	Compat::Log() << "Unloading exception handlers";
 	Hook::UnhookAPI(hModule_dll, "KERNEL32.dll", h_UnhandledExceptionFilter.apiproc, "UnhandledExceptionFilter", h_UnhandledExceptionFilter.hookproc);
 	Hook::UnhookAPI(hModule_dll, "KERNEL32.dll", h_SetUnhandledExceptionFilter.apiproc, "SetUnhandledExceptionFilter", h_SetUnhandledExceptionFilter.hookproc);
 	SetErrorMode(0);

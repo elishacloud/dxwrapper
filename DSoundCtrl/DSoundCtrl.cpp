@@ -481,12 +481,14 @@ BOOL APIENTRY DllMain_DSoundCtrl(HMODULE hModule, DWORD fdwReason, LPVOID lpRese
 	switch (fdwReason)
 	{
 	case DLL_PROCESS_ATTACH:
+		Logging::Log() << "Loading DSoundCtrl";
 		IDSoundCtrl = new CDSoundCtrlApp;
 		IDSoundCtrl->InitInstance(hModule);
 		break;
 	case DLL_PROCESS_DETACH:
 		if (IDSoundCtrl)
 		{
+			Logging::Log() << "Unloading DSoundCtrl";
 			delete IDSoundCtrl;
 		}
 		break;

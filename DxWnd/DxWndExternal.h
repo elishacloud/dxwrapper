@@ -1,4 +1,4 @@
 #pragma once
 
-void InitDxWnd();
+void InitDxWnd(HMODULE);
 void DxWndEndHook();

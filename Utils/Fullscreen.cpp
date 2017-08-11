@@ -16,135 +16,139 @@
 
 #include "Settings\Settings.h"
 #include "Dllmain\Dllmain.h"
-#include "Fullscreen.h"
+#include "Utils.h"
 #include "Logging\Logging.h"
 
-namespace Fullscreen
+namespace Utils
 {
-	// Declare constants
-	static constexpr LONG MinWindowWidth = 320;			// Minimum window width for valid window check
-	static constexpr LONG MinWindowHeight = 240;		// Minimum window height for valid window check
-	static constexpr LONG WindowDelta = 40;				// Delta between window size and screensize for fullscreen check
-	static constexpr DWORD TerminationCount = 10;		// Minimum number of loops to check for termination
-	static constexpr DWORD TerminationWaitTime = 2000;	// Minimum time to wait for termination (LoopSleepTime * NumberOfLoops)
-
-	// Overload functions
-	bool operator==(const RECT& a, const RECT& b)
+	namespace Fullscreen
 	{
-		return (a.bottom == b.bottom && a.left == b.left && a.right == b.right && a.top == b.top);
+		// Declare constants
+		static constexpr LONG MinWindowWidth = 320;			// Minimum window width for valid window check
+		static constexpr LONG MinWindowHeight = 240;		// Minimum window height for valid window check
+		static constexpr LONG WindowDelta = 40;				// Delta between window size and screensize for fullscreen check
+		static constexpr DWORD TerminationCount = 10;		// Minimum number of loops to check for termination
+		static constexpr DWORD TerminationWaitTime = 2000;	// Minimum time to wait for termination (LoopSleepTime * NumberOfLoops)
+
+		// Overload functions
+		bool operator==(const RECT& a, const RECT& b)
+		{
+			return (a.bottom == b.bottom && a.left == b.left && a.right == b.right && a.top == b.top);
+		}
+
+		bool operator!=(const RECT& a, const RECT& b)
+		{
+			return (a.bottom != b.bottom || a.left != b.left || a.right != b.right || a.top != b.top);
+		}
+
+		// Declare structures
+		struct screen_res
+		{
+			LONG Width = 0;
+			LONG Height = 0;
+
+			screen_res& operator=(const screen_res& a)
+			{
+				Width = a.Width;
+				Height = a.Height;
+				return *this;
+			}
+
+			bool operator==(const screen_res& a) const
+			{
+				return (Width == a.Width && Height == a.Height);
+			}
+
+			bool operator!=(const screen_res& a) const
+			{
+				return (Width != a.Width || Height != a.Height);
+			}
+		};
+
+		struct window_update
+		{
+			HWND hwnd = nullptr;
+			HWND ChildHwnd = nullptr;
+			RECT rect = { sizeof(rect) };
+			screen_res ScreenSize;
+
+			window_update& operator=(const window_update& a)
+			{
+				hwnd = a.hwnd;
+				ChildHwnd = a.ChildHwnd;
+				rect.bottom = a.rect.bottom;
+				rect.left = a.rect.left;
+				rect.right = a.rect.right;
+				rect.top = a.rect.top;
+				ScreenSize = a.ScreenSize;
+				return *this;
+			}
+
+			bool operator==(const window_update& a) const
+			{
+				return (hwnd == a.hwnd && ChildHwnd == a.ChildHwnd && rect == a.rect && ScreenSize == a.ScreenSize);
+			}
+
+			bool operator!=(const window_update& a) const
+			{
+				return (hwnd != a.hwnd || ChildHwnd != a.ChildHwnd || rect != a.rect || ScreenSize != a.ScreenSize);
+			}
+		};
+
+		struct window_layer
+		{
+			HWND hwnd = nullptr;
+			bool IsMain = false;
+			bool IsFullScreen = false;
+		};
+
+		struct handle_data
+		{
+			DWORD process_id = 0;
+			HWND best_handle = nullptr;
+			DWORD LayerNumber = 0;
+			window_layer Windows[256];
+			bool AutoDetect = true;
+			bool Debug = false;
+		};
+
+		struct menu_data
+		{
+			DWORD process_id = 0;
+			bool Menu = false;
+		};
+
+		// Declare varables
+		bool m_StopThreadFlag = false;
+		bool m_ThreadRunningFlag = false;
+		HANDLE m_hThread = nullptr;
+		DWORD m_dwThreadID = 0;
+		screen_res m_Current_ScreenRes;
+
+		// Function declarations
+		void GetScreenSize(HWND&, screen_res&, MONITORINFO&);
+		LONG GetBestResolution(screen_res&, LONG, LONG);
+		void SetScreenResolution(LONG, LONG);
+		void SetScreen(screen_res);
+		bool IsMainWindow(HWND);
+		bool IsWindowTooSmall(screen_res);
+		bool IsWindowFullScreen(screen_res, screen_res);
+		bool IsWindowNotFullScreen(screen_res, screen_res);
+		void GetWindowSize(HWND&, screen_res&, RECT&);
+		BOOL CALLBACK EnumWindowsCallback(HWND, LPARAM);
+		HWND FindMainWindow(DWORD, bool, bool = false);
+		BOOL CALLBACK EnumMenuWindowsCallback(HWND, LPARAM);
+		bool CheckForMenu(DWORD);
+		BOOL CALLBACK EnumChildWindowsProc(HWND, LPARAM);
+		void SendAltEnter(HWND&);
+		void SetFullScreen(HWND&, const MONITORINFO&);
+		void CheckForTermination(DWORD);
+		DWORD WINAPI StartThreadFunc(LPVOID);
+		void MainFunc();
 	}
-
-	bool operator!=(const RECT& a, const RECT& b)
-	{
-		return (a.bottom != b.bottom || a.left != b.left || a.right != b.right || a.top != b.top);
-	}
-
-	// Declare structures
-	struct screen_res
-	{
-		LONG Width = 0;
-		LONG Height = 0;
-
-		screen_res& operator=(const screen_res& a)
-		{
-			Width = a.Width;
-			Height = a.Height;
-			return *this;
-		}
-
-		bool operator==(const screen_res& a) const
-		{
-			return (Width == a.Width && Height == a.Height);
-		}
-
-		bool operator!=(const screen_res& a) const
-		{
-			return (Width != a.Width || Height != a.Height);
-		}
-	};
-
-	struct window_update
-	{
-		HWND hwnd = nullptr;
-		HWND ChildHwnd = nullptr;
-		RECT rect = { sizeof(rect) };
-		screen_res ScreenSize;
-
-		window_update& operator=(const window_update& a)
-		{
-			hwnd = a.hwnd;
-			ChildHwnd = a.ChildHwnd;
-			rect.bottom = a.rect.bottom;
-			rect.left = a.rect.left;
-			rect.right = a.rect.right;
-			rect.top = a.rect.top;
-			ScreenSize = a.ScreenSize;
-			return *this;
-		}
-
-		bool operator==(const window_update& a) const
-		{
-			return (hwnd == a.hwnd && ChildHwnd == a.ChildHwnd && rect == a.rect && ScreenSize == a.ScreenSize);
-		}
-
-		bool operator!=(const window_update& a) const
-		{
-			return (hwnd != a.hwnd || ChildHwnd != a.ChildHwnd || rect != a.rect || ScreenSize != a.ScreenSize);
-		}
-	};
-
-	struct window_layer
-	{
-		HWND hwnd = nullptr;
-		bool IsMain = false;
-		bool IsFullScreen = false;
-	};
-
-	struct handle_data
-	{
-		DWORD process_id = 0;
-		HWND best_handle = nullptr;
-		DWORD LayerNumber = 0;
-		window_layer Windows[256];
-		bool AutoDetect = true;
-		bool Debug = false;
-	};
-
-	struct menu_data
-	{
-		DWORD process_id = 0;
-		bool Menu = false;
-	};
-
-	// Declare varables
-	bool m_StopThreadFlag = false;
-	bool m_ThreadRunningFlag = false;
-	HANDLE m_hThread = nullptr;
-	DWORD m_dwThreadID = 0;
-	screen_res m_Current_ScreenRes;
-
-	// Function declarations
-	void GetScreenSize(HWND&, screen_res&, MONITORINFO&);
-	LONG GetBestResolution(screen_res&, LONG, LONG);
-	void SetScreenResolution(LONG, LONG);
-	void SetScreen(screen_res);
-	bool IsMainWindow(HWND);
-	bool IsWindowTooSmall(screen_res);
-	bool IsWindowFullScreen(screen_res, screen_res);
-	bool IsWindowNotFullScreen(screen_res, screen_res);
-	void GetWindowSize(HWND&, screen_res&, RECT&);
-	BOOL CALLBACK EnumWindowsCallback(HWND, LPARAM);
-	HWND FindMainWindow(DWORD, bool, bool = false);
-	BOOL CALLBACK EnumMenuWindowsCallback(HWND, LPARAM);
-	bool CheckForMenu(DWORD);
-	BOOL CALLBACK EnumChildWindowsProc(HWND, LPARAM);
-	void SendAltEnter(HWND&);
-	void SetFullScreen(HWND&, const MONITORINFO&);
-	void CheckForTermination(DWORD);
-	DWORD WINAPI StartThreadFunc(LPVOID);
-	void MainFunc();
 }
 
+using namespace Utils;
 
 //*********************************************************************************
 // Screen/monitor functions below
@@ -236,6 +240,8 @@ void Fullscreen::CheckCurrentScreenRes()
 // Resets the screen to the registry-stored values
 void Fullscreen::ResetScreen()
 {
+	Logging::Log() << "Reseting screen resolution...";
+
 	// Setting screen resolution to fix some display errors on exit
 	SetScreen(m_Current_ScreenRes);
 
@@ -609,6 +615,10 @@ DWORD WINAPI Fullscreen::StartThreadFunc(LPVOID pvParam)
 	// Reset thread flag before exiting
 	m_ThreadRunningFlag = false;
 
+	// Close handle
+	CloseHandle(m_hThread);
+	InterlockedExchangePointer(&m_hThread, nullptr);
+
 	// Set thread ID back to 0
 	InterlockedExchange(&m_dwThreadID, 0);
 
@@ -634,30 +644,25 @@ void Fullscreen::StartThread()
 // Is thread running
 bool Fullscreen::IsThreadRunning()
 {
-	return m_ThreadRunningFlag && m_dwThreadID != 0 && GetThreadId(m_hThread) == m_dwThreadID;
+	return m_ThreadRunningFlag && m_dwThreadID && GetThreadId(m_hThread) == m_dwThreadID;
 }
 
 // Stop thread
 void Fullscreen::StopThread()
 {
-	if (Config.FullScreen || Config.ForceTermination)
+	// Set flag to stop thread
+	m_StopThreadFlag = true;
+
+	// Wait for thread to exit
+	if (IsThreadRunning())
 	{
-		if (IsThreadRunning())
-		{
-			Logging::Log() << "Stopping thread...";
+		Logging::Log() << "Stopping Fullscreen thread...";
 
-			// Set flag to stop thread
-			m_StopThreadFlag = true;
-
-			// Wait for thread to exit
-			WaitForSingleObject(m_hThread, INFINITE);
-		}
-
-		// Close handle
-		CloseHandle(m_hThread);
+		// Wait for thread to exit
+		WaitForSingleObject(m_hThread, INFINITE);
 
 		// Thread stopped
-		Logging::Log() << "Thread stopped";
+		Logging::Log() << "Fullscreen thread stopped";
 	}
 }
 

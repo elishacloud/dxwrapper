@@ -27,16 +27,15 @@ static int GetIntEntry(char *tag, int default)
 	return GetPrivateProfileInt("target", tag, default, DxWndIniPath); 
 }
 
-void InitDxWnd(void)
+//********** Begin Edit *************
+void InitDxWnd(HMODULE Module)
 {
+	hModule = Module;
+//********** End Edit ***************
+
 	char DxWndPath[MAX_PATH];
 	GetPrivateProfileString("system", "dxwndpath", ".", DxWndPath, MAX_PATH, DxWndIniPath);
-	//MessageBox(0, DxWndPath, "dxwnd", MB_ICONERROR);
-	sprintf_s(DxWndPath, "%s\\dxwnd.dll", DxWndPath);
-	//MessageBox(0, DxWndPath, "dxwnd", MB_ICONERROR);
 
-	hModule = LoadLibraryA(DxWndPath);
-	//hModule = LoadLibraryA("dxwnd.dll");
     if (hModule)
     {
         StartHook_ startHook = (StartHook_)GetProcAddress(hModule, "StartHook");
@@ -77,11 +76,13 @@ void InitDxWnd(void)
             startHook();
         }
     }
+	//********** Begin Edit *************
 	else
-		//********** Begin Edit *************
+	{
 		Logging::Log() << "Cannot load dxwnd.dll library";
 		//MessageBox(0, "Cannot load dxwnd.dll library", "dxwnd", MB_ICONERROR);
-		//********** End Edit ***************
+	}
+	//********** End Edit ***************
 }
 
 void DxWndEndHook(void)
