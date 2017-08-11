@@ -566,9 +566,8 @@ void Fullscreen::CheckForTermination(DWORD m_ProcessId)
 			}
 
 			// Terminate the current process
-			HANDLE processHandle = OpenProcess(PROCESS_ALL_ACCESS, false, GetCurrentProcessId());
 			Logging::Log() << "Terminating process!";
-			TerminateProcess(processHandle, 0);
+			TerminateProcess(OpenProcess(PROCESS_ALL_ACCESS, false, GetCurrentProcessId()), 0);
 		}
 	}
 	// Reset counter

@@ -29,7 +29,6 @@ CONFIG Config;
 namespace Settings
 {
 	// Declare varables
-	CRITICAL_SECTION CriticalSectionCfg;
 	size_t AddressPointerCount = 0;			// Count of addresses to hot patch
 	size_t BytesToWriteCount = 0;			// Count of bytes to hot patch
 	std::vector<std::string> szExclude;		// List of excluded applications
@@ -47,7 +46,6 @@ namespace Settings
 	void LogSetting(char*, char*);
 	void SetValue(char*, char*, DWORD*);
 	void SetValue(char*, char*, bool*);
-	void ParseConfigValue(char*, char*);
 	void __stdcall ParseCallback(char*, char*);
 	void strippath(char*);
 	void ClearConfigSettings();
@@ -79,14 +77,14 @@ bool Settings::IfStringExistsInList(char* szValue, std::vector<std::string> szLi
 // Deletes all BytesToWrite values from the BytesToWrite array
 void Settings::DeleteMemoryInfoVector()
 {
-	for (UINT x = 0; x < Config.MemoryInfo.size(); ++x)
+	while (Config.MemoryInfo.size() != 0)
 	{
-		if (Config.MemoryInfo[x].SizeOfBytes != 0)
+		if (Config.MemoryInfo.back().Bytes)
 		{
-			delete [] Config.MemoryInfo[x].Bytes;
+			delete [] Config.MemoryInfo.back().Bytes;
 		}
+		Config.MemoryInfo.pop_back();
 	}
-	Config.MemoryInfo.clear();
 	AddressPointerCount = 0;
 	BytesToWriteCount = 0;
 }
@@ -265,11 +263,6 @@ void Settings::SetBytesList(MEMORYINFO& MemoryInfo, char* value)
 			MemoryInfo.Bytes[x - 1] = (byte)strtoul(charTemp, nullptr, 16);
 		}
 	}
-	// Set to 0 if invalid Bytes are set
-	else
-	{
-		MemoryInfo.SizeOfBytes = 0;
-	}
 }
 
 // Set booloean value from string (file)
@@ -326,7 +319,7 @@ void Settings::SetValue(char* name, char* value, bool* setting)
 }
 
 // Set config from string (file)
-void Settings::ParseConfigValue(char* name, char* value)
+void __stdcall Settings::ParseCallback(char* name, char* value)
 {
 	// Check for valid entries
 	if (!name || !value)
@@ -678,17 +671,6 @@ void Settings::ParseConfigValue(char* name, char* value)
 	Logging::Log() << "Warning. Config setting not recognized: " << name;
 }
 
-// Set config from string (file)
-void __stdcall Settings::ParseCallback(char* name, char* value)
-{
-	// Critical section
-	EnterCriticalSection(&CriticalSectionCfg);
-	// Parce config value
-	ParseConfigValue(name, value);
-	// Critical section
-	LeaveCriticalSection(&CriticalSectionCfg);
-}
-
 // Strip path from a string
 void Settings::strippath(char* str)
 {
@@ -811,19 +793,11 @@ void CONFIG::CleanUp()
 {
 	using namespace Settings;
 	DeleteMemoryInfoVector();
-	Config.szCustomDllPath.clear();
-	Config.szSetNamedLayer.clear();
-	Config.szIgnoreWindowName.clear();
-	szExclude.clear();
-	szInclude.clear();
 }
 
 void CONFIG::Init()
 {
 	using namespace Settings;
-
-	// Initialize the critical section one time only.
-	InitializeCriticalSectionAndSpinCount(&CriticalSectionCfg, 0);
 
 	// Reset all values
 	ClearConfigSettings();
@@ -892,7 +866,4 @@ void CONFIG::Init()
 	{
 		Config.WrapperMode = Config.RealWrapperMode;
 	}
-
-	// Release resources used by the critical section object.
-	DeleteCriticalSection(&CriticalSectionCfg);
 }

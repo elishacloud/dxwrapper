@@ -154,9 +154,8 @@ bool APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 				}
 
 				// Terminate the current process
-				HANDLE processHandle = OpenProcess(PROCESS_ALL_ACCESS, false, GetCurrentProcessId());
 				Logging::Log() << "Terminating process!";
-				TerminateProcess(processHandle, 0);
+				TerminateProcess(OpenProcess(PROCESS_ALL_ACCESS, false, GetCurrentProcessId()), 0);
 			}
 		}
 		break;
@@ -184,6 +183,8 @@ bool APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 		{
 			DllMain_DDrawCompat(nullptr, DLL_PROCESS_DETACH, nullptr);
 		}
+
+		// Unload DSoundCtrl
 		if (Config.DSoundCtrl)
 		{
 			DllMain_DSoundCtrl(nullptr, DLL_PROCESS_DETACH, nullptr);

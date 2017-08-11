@@ -79,31 +79,24 @@ void Utils::WriteAllByteMemory()
 // Verify process bytes before writing memory
 bool Utils::CheckVerificationMemory()
 {
-	HANDLE hProcess = GetCurrentProcess();
-
 	// Check Verification details
-	if (Config.VerifyMemoryInfo.SizeOfBytes > 0 && Config.VerifyMemoryInfo.AddressPointer > 0)
+	if (Config.VerifyMemoryInfo.SizeOfBytes == 0 || Config.VerifyMemoryInfo.AddressPointer == 0)
 	{
-		// Get current memory
-		byte* lpBuffer = new byte[Config.VerifyMemoryInfo.SizeOfBytes];
-		if (ReadProcessMemory(hProcess, (LPVOID)Config.VerifyMemoryInfo.AddressPointer, lpBuffer, Config.VerifyMemoryInfo.SizeOfBytes, nullptr))
-		{
-			for (UINT x = 0; x < Config.VerifyMemoryInfo.SizeOfBytes; x++)
-			{
-				if (lpBuffer[x] != Config.VerifyMemoryInfo.Bytes[x])
-				{
-					// Check failed
-					return false;
-				}
-			}
+		return false;
+	}
 
-			// All checks pass return true
-			return true;
+	// Check current memory
+	for (UINT x = 0; x < Config.VerifyMemoryInfo.SizeOfBytes; x++)
+	{
+		if (*((byte*)(Config.VerifyMemoryInfo.AddressPointer + x)) != Config.VerifyMemoryInfo.Bytes[x])
+		{
+			// Check failed
+			return false;
 		}
 	}
 
-	// Default to fail
-	return false;
+	// All checks pass return true
+	return true;
 }
 
 // Thread to undo memory write after ResetMemoryAfter time
@@ -162,7 +155,7 @@ void Utils::WriteMemory()
 	{
 		if (Config.VerifyMemoryInfo.AddressPointer != 0)
 		{
-			Logging::Log() << "Verification for memory write failed";
+			Logging::Log() << "Failed verification for memory write!";
 		}
 	}
 }
