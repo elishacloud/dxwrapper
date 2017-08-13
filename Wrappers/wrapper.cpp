@@ -104,7 +104,7 @@ HMODULE Wrapper::LoadDll(DWORD dlltype)
 	dllhandle[dlltype].Flag = true;
 
 	// Load dll from ini, if DllPath is not '0'
-	if (!Config.szDllPath.empty() && Config.RealWrapperMode == dlltype)
+	if (!Config.szDllPath.empty() && Config.WrapperMode == dlltype)
 	{
 		Logging::Log() << "Loading " << Config.szDllPath << " library";
 		dllhandle[dlltype].dll = LoadLibrary(Config.szDllPath.c_str());
@@ -115,7 +115,7 @@ HMODULE Wrapper::LoadDll(DWORD dlltype)
 	}
 
 	// Load current dll
-	if (!dllhandle[dlltype].dll && Config.RealWrapperMode != dlltype)
+	if (!dllhandle[dlltype].dll && Config.WrapperMode != dlltype)
 	{
 		Logging::Log() << "Loading " << dtypename[dlltype] << " library";
 		dllhandle[dlltype].dll = LoadLibrary(dtypename[dlltype]);
@@ -140,7 +140,7 @@ HMODULE Wrapper::LoadDll(DWORD dlltype)
 	if (!dllhandle[dlltype].dll)
 	{
 		Logging::Log() << "Cannot load " << dtypename[dlltype] << " library";
-		if (Config.WrapperMode != 0 && Config.WrapperMode != 255)
+		if (Config.WrapperMode != dtype.Auto)
 		{
 			ExitProcess(0);
 		}
@@ -206,21 +206,6 @@ void Wrapper::FreeCustomLibrary()
 void Wrapper::DllAttach()
 {
 	VISIT_WRAPPERS(LOAD_WRAPPER);
-	if (Config.WrapperMode != 0)
-	{
-		if (Config.WrapperMode != dtype.d3d8 && Config.D3d8to9)
-		{
-			d3d8::module.Load();
-		}
-		if (Config.WrapperMode != dtype.dsound && Config.DSoundCtrl)
-		{
-			dsound::module.Load();
-		}
-		if (Config.WrapperMode != dtype.ddraw && Config.DDrawCompat)
-		{
-			ddraw::module.Load();
-		}
-	}
 	if (Config.szCustomDllPath.size() != 0)
 	{
 		LoadCustomDll();
@@ -234,9 +219,7 @@ void Wrapper::DllDetach()
 	FreeCustomLibrary();
 
 	// Unhook APIs
-	d3d8::module.Unhook();
-	dsound::module.Unhook();
-	ddraw::module.Unhook();
+	VISIT_WRAPPERS(UNHOOK_WRAPPER)
 
 	// Unload wrapper libraries
 	for (UINT x = 1; x < dtypeArraySize; ++x)

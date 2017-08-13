@@ -267,6 +267,7 @@ cmd /c "@echo off &amp;&amp; cd /D ""$(ProjectDir)Dllmain\"" &amp;&amp; type Bui
     <ClCompile Include="libraries\dwmapi.cpp" />
     <ClCompile Include="libraries\uxtheme.cpp" />
     <ClCompile Include="libraries\winmm.cpp" />
+    <ClCompile Include="Logging\d3d9log.cpp" />
     <ClCompile Include="Logging\Logging.cpp" />
     <ClCompile Include="Settings\Settings.cpp" />
     <ClCompile Include="Utils\Fullscreen.cpp" />
@@ -335,6 +336,7 @@ cmd /c "@echo off &amp;&amp; cd /D ""$(ProjectDir)Dllmain\"" &amp;&amp; type Bui
     <ClInclude Include="libraries\dwmapi.h" />
     <ClInclude Include="libraries\uxtheme.h" />
     <ClInclude Include="libraries\winmm.h" />
+    <ClInclude Include="Logging\d3d9log.h" />
     <ClInclude Include="Logging\Logging.h" />
     <ClInclude Include="Settings\Settings.h" />
     <ClInclude Include="Utils\Utils.h" />

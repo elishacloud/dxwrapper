@@ -77,6 +77,11 @@ namespace cryptsp
 
 		void Load()
 		{
+			if (Config.WrapperMode != dtype.cryptsp && Config.WrapperMode != dtype.Auto)
+			{
+				return;
+			}
+
 			// Load real dll
 			dll = Wrapper::LoadDll(dtype.cryptsp);
 
@@ -86,6 +91,8 @@ namespace cryptsp
 				VISIT_CRYTPSP_PROCS(LOAD_ORIGINAL_PROC);
 			}
 		}
+
+		void Unhook() {}
 	};
 
 	extern cryptsp_dll module;

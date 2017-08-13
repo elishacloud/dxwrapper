@@ -24,6 +24,11 @@ namespace dsound
 
 		void Load()
 		{
+			if (Config.WrapperMode != dtype.dsound && Config.WrapperMode != dtype.Auto && !Config.DSoundCtrl)
+			{
+				return;
+			}
+
 			// Load real dll
 			dll = Wrapper::LoadDll(dtype.dsound);
 

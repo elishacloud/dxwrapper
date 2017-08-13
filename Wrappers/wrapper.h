@@ -35,16 +35,19 @@
 	procName = Wrapper::GetProcAddress(dll, #procName, jmpaddr);
 
 #define	LOAD_WRAPPER(className, Z) \
-	if (Config.WrapperMode == dtype.className || Config.WrapperMode == 0) \
-	{ \
-		className::module.Load(); \
-	}
+		className::module.Load();
+
+#define	UNHOOK_WRAPPER(className, Z) \
+		className::module.Unhook();
 
 #define jmpaddr Wrapper::_jmpaddr
 
 namespace Wrapper
 {
 	extern const FARPROC _jmpaddr;
+	extern FARPROC Direct3DCreate9_Proc;
+	extern FARPROC Direct3DCreate9_Logging;
+
 	HMODULE LoadDll(DWORD);
 	void DllAttach();
 	void DllDetach();

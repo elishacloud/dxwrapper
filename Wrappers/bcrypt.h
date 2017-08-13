@@ -70,6 +70,11 @@ namespace bcrypt
 
 		void Load()
 		{
+			if (Config.WrapperMode != dtype.bcrypt && Config.WrapperMode != dtype.Auto)
+			{
+				return;
+			}
+			
 			// Load real dll
 			dll = Wrapper::LoadDll(dtype.bcrypt);
 
@@ -79,6 +84,8 @@ namespace bcrypt
 				VISIT_BCRYPT_PROCS(LOAD_ORIGINAL_PROC);
 			}
 		}
+
+		void Unhook() {}
 	};
 
 	extern bcrypt_dll module;

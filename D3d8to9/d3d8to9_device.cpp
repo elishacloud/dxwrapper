@@ -992,7 +992,7 @@ HRESULT STDMETHODCALLTYPE Direct3DDevice8::SetCurrentTexturePalette(UINT Palette
 {
 	if (!PaletteFlag)
 	{
-		PaletteNumber = (PaletteNumber & 0xFFF) | (PC_NOCOLLAPSE << 12);
+		return D3DERR_INVALIDCALL;
 	}
 	return ProxyInterface->SetCurrentTexturePalette(PaletteNumber);
 }

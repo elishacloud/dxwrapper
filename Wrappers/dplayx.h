@@ -18,6 +18,11 @@ namespace dplayx
 
 		void Load()
 		{
+			if (Config.WrapperMode != dtype.dplayx && Config.WrapperMode != dtype.Auto)
+			{
+				return;
+			}
+
 			// Load real dll
 			dll = Wrapper::LoadDll(dtype.dplayx);
 
@@ -27,6 +32,8 @@ namespace dplayx
 				VISIT_DPLAYX_PROCS(LOAD_ORIGINAL_PROC);
 			}
 		}
+
+		void Unhook() {}
 	};
 
 	extern dplayx_dll module;

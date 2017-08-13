@@ -206,6 +206,11 @@ namespace winmm
 
 		void Load()
 		{
+			if (Config.WrapperMode != dtype.winmm && Config.WrapperMode != dtype.Auto)
+			{
+				return;
+			}
+
 			// Load real dll
 			dll = Wrapper::LoadDll(dtype.winmm);
 
@@ -215,6 +220,8 @@ namespace winmm
 				VISIT_WINMM_PROCS(LOAD_ORIGINAL_PROC);
 			}
 		}
+
+		void Unhook() {}
 	};
 
 	extern winmm_dll module;

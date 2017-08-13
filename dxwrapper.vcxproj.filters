@@ -223,6 +223,9 @@
     <ClCompile Include="Utils\Fullscreen.cpp">
       <Filter>Utils</Filter>
     </ClCompile>
+    <ClCompile Include="Logging\d3d9log.cpp">
+      <Filter>Logging</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="Dllmain\dxwrapper.def">
@@ -448,6 +451,9 @@
     </ClInclude>
     <ClInclude Include="Wrappers\dciman32.h">
       <Filter>Wrappers</Filter>
+    </ClInclude>
+    <ClInclude Include="Logging\d3d9log.h">
+      <Filter>Logging</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

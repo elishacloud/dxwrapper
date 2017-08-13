@@ -37,6 +37,12 @@ _DirectSoundCaptureCreate8		= DirectSoundCaptureCreate8				@24
 
 
 ; ****
+;LIBRARY "Debugging"
+; ****
+_Direct3DCreate9_Logging	@25
+
+
+; ****
 ;LIBRARY "d3d8"
 ; ****
 DebugSetMute					= FakeDebugSetMute						@29

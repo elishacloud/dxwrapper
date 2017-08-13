@@ -211,6 +211,11 @@ namespace winspool
 
 		void Load()
 		{
+			if (Config.WrapperMode != dtype.winspool && Config.WrapperMode != dtype.Auto)
+			{
+				return;
+			}
+
 			// Load real dll
 			dll = Wrapper::LoadDll(dtype.winspool);
 
@@ -220,6 +225,8 @@ namespace winspool
 				VISIT_WINSPOOL_PROCS(LOAD_ORIGINAL_PROC);
 			}
 		}
+
+		void Unhook() {}
 	};
 
 	extern winspool_dll module;

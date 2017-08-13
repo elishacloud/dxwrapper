@@ -32,6 +32,11 @@ namespace dciman32
 
 		void Load()
 		{
+			if (Config.WrapperMode != dtype.dciman32 && Config.WrapperMode != dtype.Auto)
+			{
+				return;
+			}
+
 			// Load real dll
 			dll = Wrapper::LoadDll(dtype.dciman32);
 
@@ -41,6 +46,8 @@ namespace dciman32
 				VISIT_DCIMAN32_PROCS(LOAD_ORIGINAL_PROC);
 			}
 		}
+
+		void Unhook() {}
 	};
 
 	extern dciman32_dll module;

@@ -411,6 +411,11 @@ void __stdcall Settings::ParseCallback(char* name, char* value)
 		SetValue(name, value, &Config.WaitForWindowChanges);
 		return;
 	}
+	if (!_strcmpi(name, "WrapperLogging"))
+	{
+		SetValue(name, value, &Config.WrapperLogging);
+		return;
+	}
 	// DSoundCtrl
 	if (!_strcmpi(name, "Num2DBuffers"))
 	{
@@ -722,6 +727,7 @@ void Settings::ClearConfigSettings()
 	Config.SendAltEnter = false;
 	Config.WaitForProcess = false;
 	Config.WaitForWindowChanges = false;
+	Config.WrapperLogging = false;
 	// Numeric values
 	Config.LoopSleepTime = 0;
 	Config.ResetMemoryAfter = 0;
@@ -760,7 +766,7 @@ void Settings::ClearConfigSettings()
 void Settings::GetWrapperMode()
 {
 	char buffer[MAX_PATH];
-	Config.RealWrapperMode = 0;
+	Config.RealWrapperMode = dtype.Auto;
 	GetModuleFileNameA(hModule_dll, buffer, sizeof(buffer));
 	strippath(buffer);
 
@@ -862,7 +868,8 @@ void CONFIG::Init()
 	}
 
 	// Update wrapper mode
-	if (Config.WrapperMode == 0)
+	if (Config.RealWrapperMode != dtype.Auto || 
+		(Config.WrapperMode >= dtypeArraySize && Config.WrapperMode != dtype.Auto))
 	{
 		Config.WrapperMode = Config.RealWrapperMode;
 	}

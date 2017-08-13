@@ -34,6 +34,7 @@ struct DLLTYPE
 	const DWORD bcrypt = 9;
 	const DWORD cryptsp = 10;
 	const DWORD winspool = 11;
+	const DWORD Auto = 255;
 };
 static const DLLTYPE dtype;
 
@@ -98,8 +99,9 @@ struct CONFIG
 	DWORD WindowSleepTime;				// Time to wait (sleep) for window handle and screen updates to finish
 	DWORD SetFullScreenLayer;			// The layer to be selected for fullscreen
 	DWORD RealWrapperMode;				// Internal wrapper mode
-	DWORD WrapperMode;					// 0			= Auto
-										// 1 ... 255	= DLLTYPE
+	DWORD WrapperMode;					// 0 ... 254	= DLLTYPE
+										// 255			= Auto
+	bool WrapperLogging;				// Log calls from the wrapped API
 	bool DXPrimaryEmulation[13];		// SetAppCompatData exported functions from ddraw.dll http://www.blitzbasic.com/Community/posts.php?topic=99477
 	DWORD LockColorkey;					// DXPrimaryEmulation option that needs a second parameter
 	bool DisableMaxWindowedModeNotSet;	// If the DisableMaxWindowedMode option exists in the config file

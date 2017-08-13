@@ -19,6 +19,11 @@ namespace dinput
 
 		void Load()
 		{
+			if (Config.WrapperMode != dtype.dinput && Config.WrapperMode != dtype.Auto)
+			{
+				return;
+			}
+
 			// Load real dll
 			dll = Wrapper::LoadDll(dtype.dinput);
 
@@ -30,6 +35,8 @@ namespace dinput
 				dsound::module.DllGetClassObject = Wrapper::GetProcAddress(dll, "DllGetClassObject", jmpaddr);		 // <---  Shared with dsound.dll
 			}
 		}
+
+		void Unhook() {}
 	};
 
 	extern dinput_dll module;

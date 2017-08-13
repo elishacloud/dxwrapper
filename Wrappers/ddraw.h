@@ -35,6 +35,11 @@ namespace ddraw
 
 		void Load()
 		{
+			if (Config.WrapperMode != dtype.ddraw && Config.WrapperMode != dtype.Auto && !Config.DDrawCompat)
+			{
+				return;
+			}
+
 			// Load real dll
 			dll = Wrapper::LoadDll(dtype.ddraw);
 

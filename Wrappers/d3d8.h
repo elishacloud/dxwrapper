@@ -16,6 +16,11 @@ namespace d3d8
 
 		void Load()
 		{
+			if (Config.WrapperMode != dtype.d3d8 && Config.WrapperMode != dtype.Auto && !Config.D3d8to9)
+			{
+				return;
+			}
+
 			// Enable d3d8to9 conversion
 			if (Config.D3d8to9 && Config.RealWrapperMode == dtype.d3d8)
 			{

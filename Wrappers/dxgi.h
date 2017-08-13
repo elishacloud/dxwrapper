@@ -67,6 +67,11 @@ namespace dxgi
 
 		void Load()
 		{
+			if (Config.WrapperMode != dtype.dxgi && Config.WrapperMode != dtype.Auto)
+			{
+				return;
+			}
+
 			// Load real dll
 			dll = Wrapper::LoadDll(dtype.dxgi);
 
@@ -76,6 +81,8 @@ namespace dxgi
 				VISIT_DXGI_PROCS(LOAD_ORIGINAL_PROC);
 			}
 		}
+
+		void Unhook() {}
 	};
 
 	extern dxgi_dll module;
