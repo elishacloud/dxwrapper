@@ -403,7 +403,7 @@ HRESULT STDMETHODCALLTYPE GetDeviceID(LPCGUID pGuidSrc, LPGUID pGuidDest)
 	return g_pGetDeviceIDfunc(pGuidSrc, pGuidDest);
 }
 
-STDAPI STDMETHODCALLTYPE DllCanUnloadNow_DSoundCtrl(void)
+STDAPI STDMETHODCALLTYPE DllCanUnloadNow_DSoundCtrl()
 {
 #ifdef _DEBUG
 	if (g_bLogSystem)
@@ -495,4 +495,23 @@ BOOL APIENTRY DllMain_DSoundCtrl(HMODULE hModule, DWORD fdwReason, LPVOID lpRese
 	}
 
 	return TRUE;
+}
+
+namespace Wrapper
+{
+	namespace DSoundCtrl
+	{
+		FARPROC _DirectSoundCreate = (FARPROC)*DirectSoundCreate;
+		FARPROC _DirectSoundEnumerateA = (FARPROC)*DirectSoundEnumerateA;
+		FARPROC _DirectSoundEnumerateW = (FARPROC)*DirectSoundEnumerateW;
+		FARPROC _DllCanUnloadNow = (FARPROC)*DllCanUnloadNow_DSoundCtrl;
+		FARPROC _DllGetClassObject = (FARPROC)*DllGetClassObject_DSoundCtrl;
+		FARPROC _DirectSoundCaptureCreate = (FARPROC)*DirectSoundCaptureCreate;
+		FARPROC _DirectSoundCaptureEnumerateA = (FARPROC)*DirectSoundCaptureEnumerateA;
+		FARPROC _DirectSoundCaptureEnumerateW = (FARPROC)*DirectSoundCaptureEnumerateW;
+		FARPROC _GetDeviceID = (FARPROC)*GetDeviceID;
+		FARPROC _DirectSoundFullDuplexCreate = (FARPROC)*DirectSoundFullDuplexCreate;
+		FARPROC _DirectSoundCreate8 = (FARPROC)*DirectSoundCreate8;
+		FARPROC _DirectSoundCaptureCreate8 = (FARPROC)*DirectSoundCaptureCreate8;
+	}
 }

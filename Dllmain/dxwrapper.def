@@ -20,41 +20,12 @@ DirectSoundCaptureCreate8		= FakeDirectSoundCaptureCreate8			@12
 
 
 ; ****
-;LIBRARY "DSoundCtrl"
-; ****
-_DirectSoundCreate				= DirectSoundCreate						@13
-_DirectSoundEnumerateA			= DirectSoundEnumerateA					@14
-_DirectSoundEnumerateW			= DirectSoundEnumerateW					@15
-_DllCanUnloadNow_DSoundCtrl		= DllCanUnloadNow_DSoundCtrl			PRIVATE
-_DllGetClassObject_DSoundCtrl	= DllGetClassObject_DSoundCtrl			PRIVATE
-_DirectSoundCaptureCreate		= DirectSoundCaptureCreate				@18
-_DirectSoundCaptureEnumerateA	= DirectSoundCaptureEnumerateA			@19
-_DirectSoundCaptureEnumerateW	= DirectSoundCaptureEnumerateW			@20
-_GetDeviceID					= GetDeviceID							@21
-_DirectSoundFullDuplexCreate	= DirectSoundFullDuplexCreate			@22
-_DirectSoundCreate8				= DirectSoundCreate8					@23
-_DirectSoundCaptureCreate8		= DirectSoundCaptureCreate8				@24
-
-
-; ****
-;LIBRARY "Debugging"
-; ****
-_Direct3DCreate9_Logging	@25
-
-
-; ****
 ;LIBRARY "d3d8"
 ; ****
 DebugSetMute					= FakeDebugSetMute						@29
 Direct3DCreate8					= FakeDirect3DCreate8					@30
 ValidatePixelShader				= FakeValidatePixelShader				@31
 ValidateVertexShader			= FakeValidateVertexShader				@32
-
-
-; ****
-;LIBRARY "d3d8to9"
-; ****
-_Direct3DCreate8				= Direct3DCreate8						@33
 
 
 ; ****
@@ -125,36 +96,6 @@ GetSurfaceFromDC				= FakeGetSurfaceFromDC					@88
 RegisterSpecialCase				= FakeRegisterSpecialCase				@89
 ReleaseDDThreadLock				= FakeReleaseDDThreadLock				@90
 SetAppCompatData				= FakeSetAppCompatData					@91
-
-
-; ****
-;LIBRARY "DDraw_Compat"
-; ****
-_AcquireDDThreadLock			= AcquireDDThreadLock					@92
-_CompleteCreateSysmemSurface	= CompleteCreateSysmemSurface			@93
-_D3DParseUnknownCommand			= D3DParseUnknownCommand				@94
-_DDGetAttachedSurfaceLcl		= DDGetAttachedSurfaceLcl				@95
-_DDInternalLock					= DDInternalLock						@96
-_DDInternalUnlock				= DDInternalUnlock						@97
-_DSoundHelp						= DSoundHelp							@98
-_DirectDrawCreate				= DirectDrawCreate						@99
-_DirectDrawCreateClipper		= DirectDrawCreateClipper				@100
-_DirectDrawCreateEx				= DirectDrawCreateEx					@101
-_DirectDrawEnumerateA			= DirectDrawEnumerateA					@102
-_DirectDrawEnumerateExA			= DirectDrawEnumerateExA				@103
-_DirectDrawEnumerateExW			= DirectDrawEnumerateExW				@104
-_DirectDrawEnumerateW			= DirectDrawEnumerateW					@105
-_DllCanUnloadNow_ddraw			= DllCanUnloadNow						PRIVATE
-_DllGetClassObject_ddraw		= DllGetClassObject						PRIVATE
-_DllCanUnloadNow_dinput			= DllCanUnloadNow						PRIVATE
-_DllGetClassObject_dinput		= DllGetClassObject						PRIVATE
-_GetDDSurfaceLocal				= GetDDSurfaceLocal						@110
-_GetOLEThunkData				= GetOLEThunkData						@111
-_GetSurfaceFromDC				= GetSurfaceFromDC						@112
-_RegisterSpecialCase			= RegisterSpecialCase					@113
-_ReleaseDDThreadLock			= ReleaseDDThreadLock					@114
-_SetAppCompatData				= SetAppCompatData						@115
-_DirectInputCreateA				= DirectInputCreateA					@116
 
 
 ; ****

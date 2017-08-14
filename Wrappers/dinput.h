@@ -25,14 +25,14 @@ namespace dinput
 			}
 
 			// Load real dll
-			dll = Wrapper::LoadDll(dtype.dinput);
+			dll = LoadDll(dtype.dinput);
 
 			// Load dll functions
 			if (dll)
 			{
 				VISIT_DINPUT_PROCS(LOAD_ORIGINAL_PROC);
-				dsound::module.DllCanUnloadNow = Wrapper::GetProcAddress(dll, "DllCanUnloadNow", jmpaddr);			 // <---  Shared with dsound.dll
-				dsound::module.DllGetClassObject = Wrapper::GetProcAddress(dll, "DllGetClassObject", jmpaddr);		 // <---  Shared with dsound.dll
+				dsound::module.DllCanUnloadNow = GetProcAddress(dll, "DllCanUnloadNow", jmpaddr);			 // <---  Shared with dsound.dll
+				dsound::module.DllGetClassObject = GetProcAddress(dll, "DllGetClassObject", jmpaddr);		 // <---  Shared with dsound.dll
 			}
 		}
 

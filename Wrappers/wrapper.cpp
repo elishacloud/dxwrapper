@@ -20,6 +20,13 @@
 #include "Hooking\Hook.h"
 #include "Logging\Logging.h"
 #include "wrapper.h"
+// Libraries
+#include "d3dx9.h"
+#include "dwmapi.h"
+#include "uxtheme.h"
+
+using namespace Wrapper;
+
 // Wrappers
 #include "bcrypt.h"
 #include "cryptsp.h"
@@ -34,10 +41,6 @@
 #include "winmm.h"
 #include "winspool.h"
 #include "dciman32.h"
-// Libraries
-#include "d3dx9.h"
-#include "dwmapi.h"
-#include "uxtheme.h"
 
 namespace Wrapper
 {

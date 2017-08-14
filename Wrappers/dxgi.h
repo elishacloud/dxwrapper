@@ -73,7 +73,7 @@ namespace dxgi
 			}
 
 			// Load real dll
-			dll = Wrapper::LoadDll(dtype.dxgi);
+			dll = LoadDll(dtype.dxgi);
 
 			// Load dll functions
 			if (dll)

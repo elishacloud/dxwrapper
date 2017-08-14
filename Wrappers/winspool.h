@@ -217,7 +217,7 @@ namespace winspool
 			}
 
 			// Load real dll
-			dll = Wrapper::LoadDll(dtype.winspool);
+			dll = LoadDll(dtype.winspool);
 
 			// Load dll functions
 			if (dll)

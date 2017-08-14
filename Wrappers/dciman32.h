@@ -38,7 +38,7 @@ namespace dciman32
 			}
 
 			// Load real dll
-			dll = Wrapper::LoadDll(dtype.dciman32);
+			dll = LoadDll(dtype.dciman32);
 
 			// Load dll functions
 			if (dll)

@@ -20,6 +20,7 @@
 
 #include <d3d9.h>
 
+#ifdef WRAPPERLOGGING
 typedef IDirect3D9 *(WINAPI *D3DC9)(UINT);
 D3DC9 orig_Direct3DCreate9;
 
@@ -119,13 +120,13 @@ public:
 	STDMETHOD(Clear)(THIS_ DWORD Count, CONST D3DRECT* pRects, DWORD Flags, D3DCOLOR Color, float Z, DWORD Stencil);
 	STDMETHOD(SetTransform)(THIS_ D3DTRANSFORMSTATETYPE State, CONST D3DMATRIX* pMatrix);
 	STDMETHOD(GetTransform)(THIS_ D3DTRANSFORMSTATETYPE State, D3DMATRIX* pMatrix);
-	STDMETHOD(MultiplyTransform)(THIS_ D3DTRANSFORMSTATETYPE, CONST D3DMATRIX*);
+	STDMETHOD(MultiplyTransform)(THIS_ D3DTRANSFORMSTATETYPE State, CONST D3DMATRIX* pMatrix);
 	STDMETHOD(SetViewport)(THIS_ CONST D3DVIEWPORT9* pViewport);
 	STDMETHOD(GetViewport)(THIS_ D3DVIEWPORT9* pViewport);
 	STDMETHOD(SetMaterial)(THIS_ CONST D3DMATERIAL9* pMaterial);
 	STDMETHOD(GetMaterial)(THIS_ D3DMATERIAL9* pMaterial);
-	STDMETHOD(SetLight)(THIS_ DWORD Index, CONST D3DLIGHT9*);
-	STDMETHOD(GetLight)(THIS_ DWORD Index, D3DLIGHT9*);
+	STDMETHOD(SetLight)(THIS_ DWORD Index, CONST D3DLIGHT9* pLight);
+	STDMETHOD(GetLight)(THIS_ DWORD Index, D3DLIGHT9* pLight);
 	STDMETHOD(LightEnable)(THIS_ DWORD Index, BOOL Enable);
 	STDMETHOD(GetLightEnable)(THIS_ DWORD Index, BOOL* pEnable);
 	STDMETHOD(SetClipPlane)(THIS_ DWORD Index, CONST float* pPlane);
@@ -193,3 +194,4 @@ public:
 	STDMETHOD(DeletePatch)(THIS_ UINT Handle);
 	STDMETHOD(CreateQuery)(THIS_ D3DQUERYTYPE Type, IDirect3DQuery9** ppQuery);
 };
+#endif

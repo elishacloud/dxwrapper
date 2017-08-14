@@ -1,5 +1,7 @@
 #pragma once
 
+//#define WRAPPERLOGGING
+
 #define VISIT_WRAPPERS(visit) \
 	visit(bcrypt, BCRYPT) \
 	visit(cryptsp, CRYTPSP) \
@@ -32,7 +34,7 @@
 	}
 
 #define	LOAD_ORIGINAL_PROC(procName) \
-	procName = Wrapper::GetProcAddress(dll, #procName, jmpaddr);
+	procName = GetProcAddress(dll, #procName, jmpaddr);
 
 #define	LOAD_WRAPPER(className, Z) \
 		className::module.Load();
@@ -40,16 +42,50 @@
 #define	UNHOOK_WRAPPER(className, Z) \
 		className::module.Unhook();
 
-#define jmpaddr Wrapper::_jmpaddr
+#define jmpaddr _jmpaddr
 
 namespace Wrapper
 {
 	extern const FARPROC _jmpaddr;
-	extern FARPROC Direct3DCreate9_Proc;
-	extern FARPROC Direct3DCreate9_Logging;
 
 	HMODULE LoadDll(DWORD);
 	void DllAttach();
 	void DllDetach();
 	FARPROC GetProcAddress(HMODULE, LPCSTR, FARPROC);
+
+#ifdef WRAPPERLOGGING
+	namespace d3d9_Logging
+	{
+		extern FARPROC _Direct3DCreate9_RealProc;
+		extern FARPROC _Direct3DCreate9_LoggingProc;
+	}
+#endif
+
+	namespace D3d8to9
+	{
+		extern FARPROC _Direct3DCreate8;
+	}
+
+	namespace DDrawCompat
+	{
+		extern FARPROC _DirectDrawCreate;
+		extern FARPROC _DirectDrawCreateEx;
+		extern FARPROC _DllGetClassObject;
+	}
+
+	namespace DSoundCtrl
+	{
+		extern FARPROC _DirectSoundCreate;
+		extern FARPROC _DirectSoundEnumerateA;
+		extern FARPROC _DirectSoundEnumerateW;
+		extern FARPROC _DllCanUnloadNow;
+		extern FARPROC _DllGetClassObject;
+		extern FARPROC _DirectSoundCaptureCreate;
+		extern FARPROC _DirectSoundCaptureEnumerateA;
+		extern FARPROC _DirectSoundCaptureEnumerateW;
+		extern FARPROC _GetDeviceID;
+		extern FARPROC _DirectSoundFullDuplexCreate;
+		extern FARPROC _DirectSoundCreate8;
+		extern FARPROC _DirectSoundCaptureCreate8;
+	}
 };

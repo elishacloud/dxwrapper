@@ -41,21 +41,21 @@ namespace ddraw
 			}
 
 			// Load real dll
-			dll = Wrapper::LoadDll(dtype.ddraw);
+			dll = LoadDll(dtype.ddraw);
 
 			// Load dll functions
 			if (dll)
 			{
 				VISIT_DDRAW_PROCS(LOAD_ORIGINAL_PROC);
-				dsound::module.DllCanUnloadNow = Wrapper::GetProcAddress(dll, "DllCanUnloadNow", jmpaddr);			 // <---  Shared with dsound.dll
-				dsound::module.DllGetClassObject = Wrapper::GetProcAddress(dll, "DllGetClassObject", jmpaddr);		 // <---  Shared with dsound.dll
+				dsound::module.DllCanUnloadNow = GetProcAddress(dll, "DllCanUnloadNow", jmpaddr);			 // <---  Shared with dsound.dll
+				dsound::module.DllGetClassObject = GetProcAddress(dll, "DllGetClassObject", jmpaddr);		 // <---  Shared with dsound.dll
 
 				// Enable DDrawCompat
 				if (Config.DDrawCompat && Config.RealWrapperMode == dtype.ddraw)
 				{
-					DirectDrawCreate = Wrapper::GetProcAddress(hModule_dll, "_DirectDrawCreate", jmpaddr);
-					DirectDrawCreateEx = Wrapper::GetProcAddress(hModule_dll, "_DirectDrawCreateEx", jmpaddr);
-					dsound::module.DllGetClassObject = Wrapper::GetProcAddress(hModule_dll, "_DllGetClassObject_ddraw", jmpaddr);
+					DirectDrawCreate = DDrawCompat::_DirectDrawCreate;
+					DirectDrawCreateEx = DDrawCompat::_DirectDrawCreateEx;
+					dsound::module.DllGetClassObject = DDrawCompat::_DllGetClassObject;
 				}
 
 				// Hook ddraw APIs for DDrawCompat
@@ -65,15 +65,15 @@ namespace ddraw
 					Logging::Log() << "Hooking ddraw.dll APIs...";
 					// DirectDrawCreate
 					h_DirectDrawCreate.apiproc = Hook::GetFunctionAddress(dll, "DirectDrawCreate");
-					h_DirectDrawCreate.hookproc = Hook::GetFunctionAddress(hModule_dll, "_DirectDrawCreate");
+					h_DirectDrawCreate.hookproc = DDrawCompat::_DirectDrawCreate;
 					DirectDrawCreate = (FARPROC)Hook::HookAPI(hModule_dll, dtypename[dtype.ddraw], h_DirectDrawCreate.apiproc, "DirectDrawCreate", h_DirectDrawCreate.hookproc);
 					// DirectDrawCreateEx
 					h_DirectDrawCreateEx.apiproc = Hook::GetFunctionAddress(dll, "DirectDrawCreateEx");
-					h_DirectDrawCreateEx.hookproc = Hook::GetFunctionAddress(hModule_dll, "_DirectDrawCreateEx");
+					h_DirectDrawCreateEx.hookproc = DDrawCompat::_DirectDrawCreateEx;
 					DirectDrawCreateEx = (FARPROC)Hook::HookAPI(hModule_dll, dtypename[dtype.ddraw], h_DirectDrawCreateEx.apiproc, "DirectDrawCreateEx", h_DirectDrawCreateEx.hookproc);
 					// DllGetClassObject
 					h_DllGetClassObject.apiproc = Hook::GetFunctionAddress(dll, "DllGetClassObject");
-					h_DllGetClassObject.hookproc = Hook::GetFunctionAddress(hModule_dll, "_DllGetClassObject_ddraw");
+					h_DllGetClassObject.hookproc = DDrawCompat::_DllGetClassObject;
 					dsound::module.DllGetClassObject = (FARPROC)Hook::HookAPI(hModule_dll, dtypename[dtype.ddraw], h_DllGetClassObject.apiproc, "DllGetClassObject", h_DllGetClassObject.hookproc);
 				}
 			}

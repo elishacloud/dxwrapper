@@ -76,7 +76,7 @@ namespace bcrypt
 			}
 			
 			// Load real dll
-			dll = Wrapper::LoadDll(dtype.bcrypt);
+			dll = LoadDll(dtype.bcrypt);
 
 			// Load dll functions
 			if (dll)

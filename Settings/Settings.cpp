@@ -411,11 +411,6 @@ void __stdcall Settings::ParseCallback(char* name, char* value)
 		SetValue(name, value, &Config.WaitForWindowChanges);
 		return;
 	}
-	if (!_strcmpi(name, "WrapperLogging"))
-	{
-		SetValue(name, value, &Config.WrapperLogging);
-		return;
-	}
 	// DSoundCtrl
 	if (!_strcmpi(name, "Num2DBuffers"))
 	{
@@ -727,7 +722,6 @@ void Settings::ClearConfigSettings()
 	Config.SendAltEnter = false;
 	Config.WaitForProcess = false;
 	Config.WaitForWindowChanges = false;
-	Config.WrapperLogging = false;
 	// Numeric values
 	Config.LoopSleepTime = 0;
 	Config.ResetMemoryAfter = 0;

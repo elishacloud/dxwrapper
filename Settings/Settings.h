@@ -101,7 +101,6 @@ struct CONFIG
 	DWORD RealWrapperMode;				// Internal wrapper mode
 	DWORD WrapperMode;					// 0 ... 254	= DLLTYPE
 										// 255			= Auto
-	bool WrapperLogging;				// Log calls from the wrapped API
 	bool DXPrimaryEmulation[13];		// SetAppCompatData exported functions from ddraw.dll http://www.blitzbasic.com/Community/posts.php?topic=99477
 	DWORD LockColorkey;					// DXPrimaryEmulation option that needs a second parameter
 	bool DisableMaxWindowedModeNotSet;	// If the DisableMaxWindowedMode option exists in the config file

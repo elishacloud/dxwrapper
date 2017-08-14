@@ -32,29 +32,28 @@ namespace d3d9
 			}
 
 			// Load real dll
-			dll = Wrapper::LoadDll(dtype.d3d9);
+			dll = LoadDll(dtype.d3d9);
 
 			// Load dll functions
 			if (dll)
 			{
 				VISIT_D3D9_PROCS(LOAD_ORIGINAL_PROC);
-				d3d8::module.DebugSetMute = Wrapper::GetProcAddress(dll, "DebugSetMute", jmpaddr);		// <---  Shared with d3d8.dll
+				d3d8::module.DebugSetMute = GetProcAddress(dll, "DebugSetMute", jmpaddr);		// <---  Shared with d3d8.dll
 
 				// Enable debug logging
-				if (Config.WrapperLogging)
+#ifdef WRAPPERLOGGING
+				d3d9_Logging::_Direct3DCreate9_RealProc = Direct3DCreate9;
+				Direct3DCreate9 = d3d9_Logging::_Direct3DCreate9_LoggingProc;
+				if (Config.RealWrapperMode != dtype.d3d9)
 				{
-					Wrapper::Direct3DCreate9_Proc = Direct3DCreate9;
-					Direct3DCreate9 = Wrapper::Direct3DCreate9_Logging;
-					if (Config.RealWrapperMode != dtype.d3d9)
-					{
-						IsHooked = true;
-						Logging::Log() << "Hooking d3d9.dll APIs...";
-						// Direct3DCreate9
-						h_Direct3DCreate9.apiproc = Hook::GetFunctionAddress(dll, "Direct3DCreate9");
-						h_Direct3DCreate9.hookproc = Wrapper::Direct3DCreate9_Logging;
-						Wrapper::Direct3DCreate9_Proc = (FARPROC)Hook::HookAPI(hModule_dll, dtypename[dtype.d3d9], h_Direct3DCreate9.apiproc, "Direct3DCreate9", h_Direct3DCreate9.hookproc);
-					}
+					IsHooked = true;
+					Logging::Log() << "Hooking d3d9.dll APIs...";
+					// Direct3DCreate9
+					h_Direct3DCreate9.apiproc = Hook::GetFunctionAddress(dll, "Direct3DCreate9");
+					h_Direct3DCreate9.hookproc = d3d9_Logging::_Direct3DCreate9_LoggingProc;
+					d3d9_Logging::_Direct3DCreate9_RealProc = (FARPROC)Hook::HookAPI(hModule_dll, dtypename[dtype.d3d9], h_Direct3DCreate9.apiproc, "Direct3DCreate9", h_Direct3DCreate9.hookproc);
 				}
+#endif
 			}
 		}
 

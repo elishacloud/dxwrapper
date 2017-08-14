@@ -24,7 +24,7 @@ namespace dplayx
 			}
 
 			// Load real dll
-			dll = Wrapper::LoadDll(dtype.dplayx);
+			dll = LoadDll(dtype.dplayx);
 
 			// Load dll functions
 			if (dll)

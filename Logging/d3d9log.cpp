@@ -22,17 +22,21 @@
 #include "d3dx9.h"
 #include "Logging\Logging.h"
 
+#ifdef WRAPPERLOGGING
 IDirect3D9 *WINAPI _Direct3DCreate9_Logging(UINT SDKVersion)
 {
 	Logging::Log() << "Direct3DCreate9 function (" << SDKVersion << ")";
-	orig_Direct3DCreate9 = (D3DC9)Wrapper::Direct3DCreate9_Proc;
+	orig_Direct3DCreate9 = (D3DC9)Wrapper::d3d9_Logging::_Direct3DCreate9_RealProc;
 	return new f_iD3D9(orig_Direct3DCreate9(SDKVersion));
 }
 
 namespace Wrapper
 {
-	FARPROC Direct3DCreate9_Proc;
-	FARPROC Direct3DCreate9_Logging = (FARPROC)*_Direct3DCreate9_Logging;
+	namespace d3d9_Logging
+	{
+		FARPROC _Direct3DCreate9_RealProc;
+		FARPROC _Direct3DCreate9_LoggingProc = (FARPROC)*_Direct3DCreate9_Logging;
+	}
 }
 
 /*************************
@@ -84,7 +88,7 @@ ULONG f_iD3D9::AddRef()
 	return f_pD3D->AddRef();
 }
 
-HRESULT f_iD3D9::QueryInterface(REFIID riid, LPVOID *ppvObj)
+HRESULT f_iD3D9::QueryInterface(REFIID riid, void** ppvObj)
 {
 	return f_pD3D->QueryInterface(riid, ppvObj);
 }
@@ -179,7 +183,7 @@ ULONG f_IDirect3DDevice9::AddRef()
 	return f_pD3DDevice->AddRef();
 }
 
-HRESULT f_IDirect3DDevice9::QueryInterface(REFIID riid, LPVOID *ppvObj)
+HRESULT f_IDirect3DDevice9::QueryInterface(REFIID riid, void** ppvObj)
 {
 	return f_pD3DDevice->QueryInterface(riid, ppvObj);
 }
@@ -821,3 +825,4 @@ HRESULT f_IDirect3DDevice9::GetSwapChain(THIS_ UINT iSwapChain, IDirect3DSwapCha
 {
 	return f_pD3DDevice->GetSwapChain(iSwapChain, pSwapChain);
 }
+#endif
