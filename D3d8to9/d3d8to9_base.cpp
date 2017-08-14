@@ -13,7 +13,7 @@ static const D3DFORMAT AdapterFormats[] = {
 	D3DFMT_A1R5G5B5
 };
 
-Direct3DDevice8 *pCurrentReturnedDeviceInterface = nullptr;
+IDirect3DDevice9 *pCurrentDeviceInterface = nullptr;
 
 // IDirect3D8
 Direct3D8::Direct3D8(IDirect3D9 *ProxyInterface) :
@@ -205,9 +205,9 @@ HRESULT STDMETHODCALLTYPE Direct3D8::CreateDevice(UINT Adapter, D3DDEVTYPE Devic
 
 	HRESULT hr = ProxyInterface->CreateDevice(Adapter, DeviceType, hFocusWindow, BehaviorFlags, &PresentParams, &DeviceInterface);
 
-	if ((hr & D3DERR_DEVICELOST) == D3DERR_DEVICELOST && pCurrentReturnedDeviceInterface)
+	if ((hr & D3DERR_DEVICELOST) == D3DERR_DEVICELOST && pCurrentDeviceInterface)
 	{
-		while (pCurrentReturnedDeviceInterface->Release() != 0) {}
+		while (pCurrentDeviceInterface->Release() != 0) {}
 		hr = ProxyInterface->CreateDevice(Adapter, DeviceType, hFocusWindow, BehaviorFlags, &PresentParams, &DeviceInterface);
 	}
 
@@ -216,8 +216,8 @@ HRESULT STDMETHODCALLTYPE Direct3D8::CreateDevice(UINT Adapter, D3DDEVTYPE Devic
 		return hr;
 	}
 
+	pCurrentDeviceInterface = DeviceInterface;
 	*ppReturnedDeviceInterface = new Direct3DDevice8(this, DeviceInterface, (PresentParams.Flags & D3DPRESENTFLAG_DISCARD_DEPTHSTENCIL) != 0);
-	pCurrentReturnedDeviceInterface = *ppReturnedDeviceInterface;
 
 	return D3D_OK;
 }
