@@ -61,6 +61,6 @@ DxWrapper uses code from several other projects. So to give credit where credit 
 ### Development
 DxWrapper is mostly written in C++ using Microsoft Visual Studio Community 2015.
 
-Compilation depends on [Detours Express 3.0](http://research.microsoft.com/en-us/projects/detours/) and the standalone [DirectX SDK](https://www.microsoft.com/en-us/download/details.aspx?id=3035). You may need to change the include and library paths if you didn't install Detours or the DirectX SDK in the default directory.
+Compilation depends on [Detours Express 3.0](http://research.microsoft.com/en-us/projects/detours/) and the standalone [DirectX SDK](https://www.microsoft.com/en-us/download/details.aspx?id=6812). You may need to change the include and library paths if you didn't install Detours or the DirectX SDK in the default directory.
 
 Thanks for stopping by!
