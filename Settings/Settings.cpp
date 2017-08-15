@@ -816,7 +816,6 @@ void CONFIG::Init()
 	SetConfigList(szExclude, "dgVoodooSetup.exe");
 
 	// Get config file path
-	char* szCfg;
 	char path[MAX_PATH];
 	GetModuleFileNameA(hModule_dll, path, sizeof(path));
 	char* pdest = strrchr(path, '.');
@@ -831,6 +830,7 @@ void CONFIG::Init()
 	Logging::Log() << "Reading config file: " << pdest;
 
 	// Read config file
+	char* szCfg;
 	szCfg = Read(path);
 
 	// Parce config file

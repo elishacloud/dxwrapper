@@ -1701,10 +1701,6 @@ HRESULT STDMETHODCALLTYPE Direct3DDevice8::CreatePixelShader(const DWORD *pFunct
 	SourceCode = std::regex_replace(SourceCode,
 		std::regex("(mad)([_satxd248]*) (r[0-9][\\.wxyz]*), (1?-?[crtv][0-9][\\.wxyz_abdis2]*), (1?-?[crtv][0-9][\\.wxyz_abdis2]*), (-)(c[0-9][\\.wxyz]*)(_bx2|_bias|_x2|_d[zbwa]|)(?![_\\.wxyz])"),
 		"sub$2 $3, $4, $7$8 /* changed 'mad' to 'sub' removed $5 removed modifier $6 */");
-	// Change '_bx2' modifier for constant values to use _x2 modifier
-	SourceCode = std::regex_replace(SourceCode,
-		std::regex("(...)(_sat|) (r[0-9][\\.wxyz]*), ([crtv][0-9][\\.wxyz]*)_bx2, (c[0-9][\\.wxyz]*)_bx2(?!,)"),
-		"$1_x2$2 $3, $4, $5 /* removed modifiers _bx2 added modifier _x2 */");
 	// Remove trailing modifiers for constant values
 	SourceCode = std::regex_replace(SourceCode,
 		std::regex("(c[0-9][\\.wxyz]*)(_bx2|_bias|_x2|_d[zbwa])"),
