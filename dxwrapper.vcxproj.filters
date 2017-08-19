@@ -38,6 +38,9 @@
     <Filter Include="Hooking">
       <UniqueIdentifier>{dd986a8a-7ff1-403f-8a75-794ded77510d}</UniqueIdentifier>
     </Filter>
+    <Filter Include="D3d9">
+      <UniqueIdentifier>{58f67609-5b76-4ec4-8b6e-1c557d101b53}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="wrappers\wrapper.cpp">
@@ -223,8 +226,8 @@
     <ClCompile Include="Utils\Fullscreen.cpp">
       <Filter>Utils</Filter>
     </ClCompile>
-    <ClCompile Include="Logging\d3d9log.cpp">
-      <Filter>Logging</Filter>
+    <ClCompile Include="D3d9\d3d9.cpp">
+      <Filter>D3d9</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -452,8 +455,8 @@
     <ClInclude Include="Wrappers\dciman32.h">
       <Filter>Wrappers</Filter>
     </ClInclude>
-    <ClInclude Include="Logging\d3d9log.h">
-      <Filter>Logging</Filter>
+    <ClInclude Include="D3d9\d3d9.h">
+      <Filter>D3d9</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

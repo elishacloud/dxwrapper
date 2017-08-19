@@ -583,6 +583,11 @@ void __stdcall Settings::ParseCallback(char* name, char* value)
 		SetValue(name, value, &Config.SetFullScreenLayer);
 		return;
 	}
+	if (!_strcmpi(name, "AntiAliasing"))
+	{
+		SetValue(name, value, &Config.AntiAliasing);
+		return;
+	}
 	if (!_strcmpi(name, "WrapperMode"))
 	{
 		SetValue(name, value, &Config.WrapperMode);
@@ -727,6 +732,7 @@ void Settings::ClearConfigSettings()
 	Config.ResetMemoryAfter = 0;
 	Config.WindowSleepTime = 0;
 	Config.SetFullScreenLayer = 0;
+	Config.AntiAliasing = 0;
 	// DSoundCtrl
 	Config.Num2DBuffers = 0;
 	Config.Num3DBuffers = 0;

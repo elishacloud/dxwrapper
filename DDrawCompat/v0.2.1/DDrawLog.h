@@ -138,7 +138,10 @@ namespace Compat
 		static std::ofstream s_logFile;
 	};
 
-#ifdef _DEBUG
+//********** Begin Edit *************
+#include "Logging\Logging.h"
+#ifdef DDRAWCOMPATLOG
+//********** End Edit ***************
 	typedef Log LogDebug;
 
 	class LogEnter : private Log

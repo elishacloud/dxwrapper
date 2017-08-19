@@ -18,24 +18,23 @@
 
 #include "Settings\Settings.h"
 #include "Wrappers\Wrapper.h"
-#include "d3d9log.h"
+#include "d3d9.h"
 #include "d3dx9.h"
 #include "Logging\Logging.h"
 
-#ifdef WRAPPERLOGGING
-IDirect3D9 *WINAPI _Direct3DCreate9_Logging(UINT SDKVersion)
+IDirect3D9 *WINAPI _Direct3DCreate9_Wrapper(UINT SDKVersion)
 {
 	Logging::Log() << "Direct3DCreate9 function (" << SDKVersion << ")";
-	orig_Direct3DCreate9 = (D3DC9)Wrapper::d3d9_Logging::_Direct3DCreate9_RealProc;
+	orig_Direct3DCreate9 = (D3DC9)Wrapper::d3d9_Wrapper::_Direct3DCreate9_RealProc;
 	return new f_iD3D9(orig_Direct3DCreate9(SDKVersion));
 }
 
 namespace Wrapper
 {
-	namespace d3d9_Logging
+	namespace d3d9_Wrapper
 	{
 		FARPROC _Direct3DCreate9_RealProc;
-		FARPROC _Direct3DCreate9_LoggingProc = (FARPROC)*_Direct3DCreate9_Logging;
+		FARPROC _Direct3DCreate9_WrapperProc = (FARPROC)*_Direct3DCreate9_Wrapper;
 	}
 }
 
@@ -54,7 +53,63 @@ HRESULT f_iD3D9::CreateDevice(UINT Adapter, D3DDEVTYPE DeviceType,
 	*ppReturnedDeviceInterface = *temp;
 	delete temp;
 
+	// Check for AntiAliasing
+	bool MultiSampleFlag = false;
+	DWORD QualityLevels = 0;
+	DWORD SampleType = 0;
+	D3DPRESENT_PARAMETERS d3dpp;
+	DWORD bFlags = BehaviorFlags;
+	if (Config.AntiAliasing != 0)
+	{
+		CopyMemory(&d3dpp, pPresentationParameters, sizeof(d3dpp));
+
+		// Check AntiAliasing quality
+		for (int x = min(16, Config.AntiAliasing); x > 0; x--)
+		{
+			f_pD3D->CheckDeviceMultiSampleType(Adapter,
+				DeviceType, (*pPresentationParameters).BackBufferFormat, (*pPresentationParameters).Windowed,
+				(D3DMULTISAMPLE_TYPE)x, &QualityLevels);
+			if (QualityLevels > 1)
+			{
+				MultiSampleFlag = true;
+				SampleType = x;
+				QualityLevels -= 1;
+				break;
+			}
+		}
+
+		// Enable AntiAliasing
+		if (MultiSampleFlag)
+		{
+			// Full-scene antialiasing is supported. Enable it here.
+			(*pPresentationParameters).Flags = (*pPresentationParameters).Flags & ~D3DPRESENTFLAG_LOCKABLE_BACKBUFFER & ~D3DPRESENTFLAG_VIDEO;
+			(*pPresentationParameters).MultiSampleType = (D3DMULTISAMPLE_TYPE)SampleType;
+			(*pPresentationParameters).MultiSampleQuality = QualityLevels;
+			(*pPresentationParameters).SwapEffect = D3DSWAPEFFECT_DISCARD;
+			BehaviorFlags = D3DCREATE_HARDWARE_VERTEXPROCESSING | (BehaviorFlags & ~D3DCREATE_SOFTWARE_VERTEXPROCESSING);
+		}
+	}
+
+	// Create Device
 	HRESULT hr = f_pD3D->CreateDevice(Adapter, DeviceType, hFocusWindow, BehaviorFlags, pPresentationParameters, ppReturnedDeviceInterface);
+
+	// Check for AntiAliasing
+	if (Config.AntiAliasing != 0)
+	{
+		// Check if device was created successfully
+		if (!SUCCEEDED(hr))
+		{
+			MultiSampleFlag = false;
+			hr = f_pD3D->CreateDevice(Adapter, DeviceType, hFocusWindow, bFlags, &d3dpp, ppReturnedDeviceInterface);
+		}
+
+		// Set AntiAliasing render state
+		if (MultiSampleFlag && SUCCEEDED(hr))
+		{
+			Logging::Log() << "Setting MultiSample " << SampleType << " Quality " << QualityLevels;
+			(*ppReturnedDeviceInterface)->SetRenderState(D3DRS_MULTISAMPLEANTIALIAS, TRUE);
+		}
+	}
 
 	// NOTE: initialize your custom D3D components here.
 
@@ -106,7 +161,9 @@ HRESULT f_iD3D9::EnumAdapterModes(THIS_ UINT Adapter, D3DFORMAT Format, UINT Mod
 UINT f_iD3D9::GetAdapterCount()
 {
 	UINT Count = f_pD3D->GetAdapterCount();
+#ifdef D3D9LOGGING
 	Logging::Log() << "AdapterCount " << Count;
+#endif // D3D9LOGGING
 	return  Count;
 }
 
@@ -123,7 +180,9 @@ HRESULT f_iD3D9::GetAdapterIdentifier(UINT Adapter, DWORD Flags, D3DADAPTER_IDEN
 UINT f_iD3D9::GetAdapterModeCount(THIS_ UINT Adapter, D3DFORMAT Format)
 {
 	UINT Count = f_pD3D->GetAdapterModeCount(Adapter, Format);
+#ifdef D3D9LOGGING
 	Logging::Log() << "AdapterModeCount Adapter " << Adapter << " Format " << Format << " Count " << Count;
+#endif // D3D9LOGGING
 	return Count;
 }
 
@@ -144,7 +203,9 @@ HRESULT f_iD3D9::RegisterSoftwareDevice(void *pInitializeFunction)
 
 HRESULT f_iD3D9::CheckDepthStencilMatch(UINT Adapter, D3DDEVTYPE DeviceType, D3DFORMAT AdapterFormat, D3DFORMAT RenderTargetFormat, D3DFORMAT DepthStencilFormat)
 {
+#ifdef D3D9LOGGING
 	Logging::Log() << "CheckDepthStencilMatch " << Adapter << " " << DeviceType << " " << AdapterFormat << " " << RenderTargetFormat << " " << DepthStencilFormat;
+#endif // D3D9LOGGING
 	return f_pD3D->CheckDepthStencilMatch(Adapter, DeviceType, AdapterFormat, RenderTargetFormat, DepthStencilFormat);
 }
 
@@ -295,7 +356,9 @@ HRESULT f_IDirect3DDevice9::SetClipStatus(CONST D3DCLIPSTATUS9 *pClipStatus)
 
 HRESULT f_IDirect3DDevice9::SetRenderState(D3DRENDERSTATETYPE State, DWORD Value)
 {
+#ifdef D3D9LOGGING
 	Logging::Log() << "SetRenderState " << State << " " << Value;
+#endif // D3D9LOGGING
 	return f_pD3DDevice->SetRenderState(State, Value);
 }
 
@@ -437,6 +500,7 @@ HRESULT f_IDirect3DDevice9::SetPaletteEntries(UINT PaletteNumber, CONST PALETTEE
 
 HRESULT f_IDirect3DDevice9::CreatePixelShader(THIS_ CONST DWORD* pFunction, IDirect3DPixelShader9** ppShader)
 {
+#ifdef D3D9LOGGING
 	if (pFunction != nullptr)
 	{
 		Logging::Log() << "<CreatePixelShader> Disassembling shader and translating assembly to Direct3D 9 compatible code ...";
@@ -464,6 +528,7 @@ HRESULT f_IDirect3DDevice9::CreatePixelShader(THIS_ CONST DWORD* pFunction, IDir
 
 		Logging::Log() << "> Dumping translated shader assembly:\n" << cstr;
 	}
+#endif // D3D9LOGGING
 
 	return f_pD3DDevice->CreatePixelShader(pFunction, ppShader);
 }
@@ -545,7 +610,9 @@ HRESULT f_IDirect3DDevice9::SetTexture(DWORD Stage, IDirect3DBaseTexture9 *pText
 
 HRESULT f_IDirect3DDevice9::SetTextureStageState(DWORD Stage, D3DTEXTURESTAGESTATETYPE Type, DWORD Value)
 {
+#ifdef D3D9LOGGING
 	Logging::Log() << "SetTextureStageState " << Stage << " " << Type << " " << Value;
+#endif // D3D9LOGGING
 	return f_pD3DDevice->SetTextureStageState(Stage, Type, Value);
 }
 
@@ -557,7 +624,9 @@ HRESULT f_IDirect3DDevice9::UpdateTexture(IDirect3DBaseTexture9 *pSourceTexture,
 HRESULT f_IDirect3DDevice9::ValidateDevice(DWORD *pNumPasses)
 {
 	HRESULT rt = f_pD3DDevice->ValidateDevice(pNumPasses);
+#ifdef D3D9LOGGING
 	Logging::Log() << "ValidateDevice " << rt << "\n";
+#endif // D3D9LOGGING
 	return rt;
 }
 
@@ -588,6 +657,7 @@ HRESULT f_IDirect3DDevice9::SetViewport(CONST D3DVIEWPORT9 *pViewport)
 
 HRESULT f_IDirect3DDevice9::CreateVertexShader(THIS_ CONST DWORD* pFunction, IDirect3DVertexShader9** ppShader)
 {
+#ifdef D3D9LOGGING
 	if (pFunction != nullptr)
 	{
 		Logging::Log() << "<CreateVertexShader> Disassembling shader and translating assembly to Direct3D 9 compatible code ...";
@@ -615,6 +685,7 @@ HRESULT f_IDirect3DDevice9::CreateVertexShader(THIS_ CONST DWORD* pFunction, IDi
 
 		Logging::Log() << "> Dumping translated shader assembly:\n" << cstr;
 	}
+#endif // D3D9LOGGING
 
 	return f_pD3DDevice->CreateVertexShader(pFunction, ppShader);
 }
@@ -706,13 +777,17 @@ HRESULT f_IDirect3DDevice9::GetVertexShaderConstantI(THIS_ UINT StartRegister, i
 
 HRESULT f_IDirect3DDevice9::SetFVF(THIS_ DWORD FVF)
 {
+#ifdef D3D9LOGGING
 	Logging::Log() << "SetFVF " << FVF;
+#endif // D3D9LOGGING
 	return f_pD3DDevice->SetFVF(FVF);
 }
 
 HRESULT f_IDirect3DDevice9::GetFVF(THIS_ DWORD* pFVF)
 {
-	Logging::Log() << "SetFVF " << *pFVF;
+#ifdef D3D9LOGGING
+	Logging::Log() << "GetFVF " << *pFVF;
+#endif // D3D9LOGGING
 	return f_pD3DDevice->GetFVF(pFVF);
 }
 
@@ -825,4 +900,3 @@ HRESULT f_IDirect3DDevice9::GetSwapChain(THIS_ UINT iSwapChain, IDirect3DSwapCha
 {
 	return f_pD3DDevice->GetSwapChain(iSwapChain, pSwapChain);
 }
-#endif

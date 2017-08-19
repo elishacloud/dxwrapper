@@ -68,7 +68,7 @@
     <ClCompile>
       <AdditionalOptions>/IInclude %(AdditionalOptions)</AdditionalOptions>
       <Optimization>Disabled</Optimization>
-      <PreprocessorDefinitions>WIN32;_DEBUG;_WINDOWS;_USRDLL;WRAPPERLOGGING;DDRAWCOMPAT_EXPORTS;D3D8TO9NOLOG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32;_DEBUG;_WINDOWS;_USRDLL;FULLSCREENLOG;WRAPPERLOGGING;DDRAWCOMPATLOG;DDRAWCOMPAT_EXPORTS;D3D8TO9NOLOG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <MinimalRebuild>false</MinimalRebuild>
       <ExceptionHandling>Async</ExceptionHandling>
       <BasicRuntimeChecks>Default</BasicRuntimeChecks>
@@ -224,6 +224,7 @@ cmd /c "@echo off &amp;&amp; cd /D ""$(ProjectDir)Dllmain\"" &amp;&amp; type Bui
     <ClCompile Include="D3d8to9\d3d8to9_volume.cpp" />
     <ClCompile Include="D3d8to9\d3d8types.cpp" />
     <ClCompile Include="D3d8to9\lookup_table.cpp" />
+    <ClCompile Include="D3d9\d3d9.cpp" />
     <ClCompile Include="DDrawCompat\v0.2.1\CompatActivateAppHandler.cpp" />
     <ClCompile Include="DDrawCompat\v0.2.1\CompatDirectDraw.cpp" />
     <ClCompile Include="DDrawCompat\v0.2.1\CompatDirectDrawPalette.cpp" />
@@ -267,7 +268,6 @@ cmd /c "@echo off &amp;&amp; cd /D ""$(ProjectDir)Dllmain\"" &amp;&amp; type Bui
     <ClCompile Include="libraries\dwmapi.cpp" />
     <ClCompile Include="libraries\uxtheme.cpp" />
     <ClCompile Include="libraries\winmm.cpp" />
-    <ClCompile Include="Logging\d3d9log.cpp" />
     <ClCompile Include="Logging\Logging.cpp" />
     <ClCompile Include="Settings\Settings.cpp" />
     <ClCompile Include="Utils\Fullscreen.cpp" />
@@ -285,6 +285,7 @@ cmd /c "@echo off &amp;&amp; cd /D ""$(ProjectDir)Dllmain\"" &amp;&amp; type Bui
     <ClInclude Include="D3d8to9\d3d8to9.hpp" />
     <ClInclude Include="D3d8to9\d3d8types.hpp" />
     <ClInclude Include="D3d8to9\lookup_table.hpp" />
+    <ClInclude Include="D3d9\d3d9.h" />
     <ClInclude Include="DDrawCompat\v0.2.1\CompatActivateAppHandler.h" />
     <ClInclude Include="DDrawCompat\v0.2.1\CompatDirectDraw.h" />
     <ClInclude Include="DDrawCompat\v0.2.1\CompatDirectDrawPalette.h" />
@@ -336,7 +337,6 @@ cmd /c "@echo off &amp;&amp; cd /D ""$(ProjectDir)Dllmain\"" &amp;&amp; type Bui
     <ClInclude Include="libraries\dwmapi.h" />
     <ClInclude Include="libraries\uxtheme.h" />
     <ClInclude Include="libraries\winmm.h" />
-    <ClInclude Include="Logging\d3d9log.h" />
     <ClInclude Include="Logging\Logging.h" />
     <ClInclude Include="Settings\Settings.h" />
     <ClInclude Include="Utils\Utils.h" />

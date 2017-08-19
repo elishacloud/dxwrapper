@@ -27,7 +27,11 @@ namespace d3d9
 
 		void Load()
 		{
-			if (Config.WrapperMode != dtype.d3d9 && Config.WrapperMode != dtype.Auto && !Config.D3d8to9)
+			bool D3d9Logging = false;
+#ifdef D3D9LOGGING
+			D3d9Logging = true;
+#endif // D3D9LOGGING
+			if (Config.WrapperMode != dtype.d3d9 && Config.WrapperMode != dtype.Auto && !Config.D3d8to9 && !D3d9Logging && Config.AntiAliasing == 0)
 			{
 				return;
 			}
@@ -41,20 +45,29 @@ namespace d3d9
 				VISIT_D3D9_PROCS(LOAD_ORIGINAL_PROC);
 				d3d8::module.DebugSetMute = GetProcAddress(dll, "DebugSetMute", jmpaddr);		// <---  Shared with d3d8.dll
 
-				// Enable debug logging
-#ifdef WRAPPERLOGGING
-				d3d9_Logging::_Direct3DCreate9_RealProc = Direct3DCreate9;
-				Direct3DCreate9 = d3d9_Logging::_Direct3DCreate9_LoggingProc;
-				if (Config.RealWrapperMode != dtype.d3d9)
+				// Set d3d9 wrapper addresses
+				if (D3d9Logging || Config.AntiAliasing != 0)
 				{
-					IsHooked = true;
-					Logging::Log() << "Hooking d3d9.dll APIs...";
-					// Direct3DCreate9
-					h_Direct3DCreate9.apiproc = Hook::GetFunctionAddress(dll, "Direct3DCreate9");
-					h_Direct3DCreate9.hookproc = d3d9_Logging::_Direct3DCreate9_LoggingProc;
-					d3d9_Logging::_Direct3DCreate9_RealProc = (FARPROC)Hook::HookAPI(hModule_dll, dtypename[dtype.d3d9], h_Direct3DCreate9.apiproc, "Direct3DCreate9", h_Direct3DCreate9.hookproc);
+					d3d9_Wrapper::_Direct3DCreate9_RealProc = Direct3DCreate9;
+					Direct3DCreate9 = d3d9_Wrapper::_Direct3DCreate9_WrapperProc;
+					if (Config.RealWrapperMode != dtype.d3d9 &&
+						(Config.RealWrapperMode != dtype.d3d8 && !Config.D3d8to9))
+					{
+						IsHooked = true;
+						Logging::Log() << "Hooking d3d9.dll APIs...";
+						// Direct3DCreate9
+						h_Direct3DCreate9.apiproc = Hook::GetFunctionAddress(dll, "Direct3DCreate9");
+						h_Direct3DCreate9.hookproc = d3d9_Wrapper::_Direct3DCreate9_WrapperProc;
+						Direct3DCreate9 = (FARPROC)Hook::HookAPI(hModule_dll, dtypename[dtype.d3d9], h_Direct3DCreate9.apiproc, "Direct3DCreate9", h_Direct3DCreate9.hookproc);
+						d3d9_Wrapper::_Direct3DCreate9_RealProc = Direct3DCreate9;
+					}
 				}
-#endif
+
+				// Set d3d8to9 addresses
+				if (Config.D3d8to9)
+				{
+					D3d8to9::_Direct3DCreate9 = (FARPROC)Direct3DCreate9;
+				}
 			}
 		}
 

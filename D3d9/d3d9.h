@@ -20,7 +20,6 @@
 
 #include <d3d9.h>
 
-#ifdef WRAPPERLOGGING
 typedef IDirect3D9 *(WINAPI *D3DC9)(UINT);
 D3DC9 orig_Direct3DCreate9;
 
@@ -194,4 +193,3 @@ public:
 	STDMETHOD(DeletePatch)(THIS_ UINT Handle);
 	STDMETHOD(CreateQuery)(THIS_ D3DQUERYTYPE Type, IDirect3DQuery9** ppQuery);
 };
-#endif

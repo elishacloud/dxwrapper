@@ -98,6 +98,7 @@ struct CONFIG
 	DWORD ResetMemoryAfter;				// Undo hot patch after this amount of time
 	DWORD WindowSleepTime;				// Time to wait (sleep) for window handle and screen updates to finish
 	DWORD SetFullScreenLayer;			// The layer to be selected for fullscreen
+	DWORD AntiAliasing;					// Enable AntiAliasing for d3d9 CreateDevice
 	DWORD RealWrapperMode;				// Internal wrapper mode
 	DWORD WrapperMode;					// 0 ... 254	= DLLTYPE
 										// 255			= Auto

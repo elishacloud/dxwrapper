@@ -13,5 +13,6 @@ namespace Wrapper
 	namespace D3d8to9
 	{
 		FARPROC _Direct3DCreate8 = (FARPROC)*Direct3DCreate8;
+		FARPROC _Direct3DCreate9 = nullptr;
 	}
 }

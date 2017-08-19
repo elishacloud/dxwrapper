@@ -17,16 +17,8 @@ extern "C" Direct3D8 *WINAPI Direct3DCreate8(UINT SDKVersion)
 	//********** Begin Edit *************
 	LOG << "Enabling D3d8to9 function (" << SDKVersion << ")";
 
-	// Load module
-	static HMODULE d3d9Module = Wrapper::LoadDll(dtype.d3d9);
-	if (!d3d9Module)
-	{
-		LOG << "Failed to load d3d9.dll!";
-		return nullptr;
-	}
-
 	// Declare Direct3DCreate9
-	static PFN_Direct3DCreate9 Direct3DCreate9 = reinterpret_cast<PFN_Direct3DCreate9>(GetProcAddress(d3d9Module, "Direct3DCreate9"));
+	static PFN_Direct3DCreate9 Direct3DCreate9 = reinterpret_cast<PFN_Direct3DCreate9>(Wrapper::D3d8to9::_Direct3DCreate9);
 	if (!Direct3DCreate9)
 	{
 		LOG << "Failed to get 'Direct3DCreate9' ProcAddress of d3d9.dll!";

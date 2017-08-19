@@ -1,7 +1,5 @@
 #pragma once
 
-//#define WRAPPERLOGGING
-
 #define VISIT_WRAPPERS(visit) \
 	visit(bcrypt, BCRYPT) \
 	visit(cryptsp, CRYTPSP) \
@@ -53,17 +51,16 @@ namespace Wrapper
 	void DllDetach();
 	FARPROC GetProcAddress(HMODULE, LPCSTR, FARPROC);
 
-#ifdef WRAPPERLOGGING
-	namespace d3d9_Logging
+	namespace d3d9_Wrapper
 	{
 		extern FARPROC _Direct3DCreate9_RealProc;
-		extern FARPROC _Direct3DCreate9_LoggingProc;
+		extern FARPROC _Direct3DCreate9_WrapperProc;
 	}
-#endif
 
 	namespace D3d8to9
 	{
 		extern FARPROC _Direct3DCreate8;
+		extern FARPROC _Direct3DCreate9;
 	}
 
 	namespace DDrawCompat

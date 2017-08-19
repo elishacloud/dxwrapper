@@ -318,7 +318,7 @@ BOOL CALLBACK Fullscreen::EnumWindowsCallback(HWND hwnd, LPARAM lParam)
 		return true;
 	}
 
-#ifdef _DEBUG
+#ifdef FULLSCREENLOG
 	//Debugging window layers
 	if (data.Debug)
 	{
@@ -695,7 +695,7 @@ void Fullscreen::MainFunc()
 	while (!m_StopThreadFlag)
 	{
 		// Starting loop
-#ifdef _DEBUG
+#ifdef FULLSCREENLOG
 		Logging::Log() << "Starting Main Fullscreen loop...";
 #endif
 
@@ -726,7 +726,7 @@ void Fullscreen::MainFunc()
 			// Check if there is no change from the last run
 			NoChangeFromLastRunFlag = (CurrentLoop == PreviousLoop);
 
-#ifdef _DEBUG
+#ifdef FULLSCREENLOG
 			// Debug window changes
 			if (ChangeDetectedFlag)
 			{
@@ -777,7 +777,7 @@ void Fullscreen::MainFunc()
 			// Change detected in screen resolution or window
 			if (ChangeDetectedFlag && NoChangeFromLastRunFlag && HasNoMenu && IsWindow(CurrentLoop.hwnd))
 			{
-#ifdef _DEBUG
+#ifdef FULLSCREENLOG
 				// Debug the window
 				Logging::Log() << "Entering change detected loop";
 				char buffer1[7], buffer2[7], buffer3[7], buffer4[7];
@@ -807,7 +807,7 @@ void Fullscreen::MainFunc()
 						// Check if the window is same size as a supported screen resolution
 						if (Delta <= WindowDelta)
 						{
-#ifdef _DEBUG
+#ifdef FULLSCREENLOG
 							// Debug the screen resolution
 							char buffer5[7], buffer6[7];
 							_itoa_s(WindowSize.Width, buffer5, 10);
@@ -831,7 +831,7 @@ void Fullscreen::MainFunc()
 						// If non-supported resolution than add window to excluded list
 						else
 						{
-#ifdef _DEBUG
+#ifdef FULLSCREENLOG
 							// Debug log
 							Logging::Log() << "Excluding window layer: " << class_name;
 #endif
@@ -847,7 +847,7 @@ void Fullscreen::MainFunc()
 						abs(CurrentLoop.rect.bottom) > 30000 || abs(CurrentLoop.rect.right) > 30000) &&		// Check if window is outside coordinate range
 						IsWindow(CurrentLoop.hwnd)))														// Check for valide window handle
 					{
-#ifdef _DEBUG
+#ifdef FULLSCREENLOG
 						// Debug log
 						Logging::Log() << "Setting fullscreen on window layer: " << class_name;
 #endif
@@ -859,7 +859,7 @@ void Fullscreen::MainFunc()
 					// Send alt+enter
 					if (Config.SendAltEnter && IsWindow(CurrentLoop.hwnd))
 					{
-#ifdef _DEBUG
+#ifdef FULLSCREENLOG
 						// Debug log
 						Logging::Log() << "Pressing alt+enter on window layer: " << class_name;
 #endif
@@ -868,7 +868,7 @@ void Fullscreen::MainFunc()
 						SendAltEnter(CurrentLoop.hwnd);
 					}
 
-#ifdef _DEBUG
+#ifdef FULLSCREENLOG
 					// Debug log
 					FindMainWindow(m_ProcessId, true, true);
 #endif
@@ -901,7 +901,7 @@ void Fullscreen::MainFunc()
 			CheckForTermination(m_ProcessId);
 		}
 
-#ifdef _DEBUG
+#ifdef FULLSCREENLOG
 		// Debug logs
 		Logging::Log() << "Finish Main Fullscreen loop!";
 #endif
