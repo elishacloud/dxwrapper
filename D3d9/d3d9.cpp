@@ -100,7 +100,9 @@ HRESULT f_iD3D9::CreateDevice(UINT Adapter, D3DDEVTYPE DeviceType,
 		if (!SUCCEEDED(hr))
 		{
 			MultiSampleFlag = false;
-			hr = f_pD3D->CreateDevice(Adapter, DeviceType, hFocusWindow, bFlags, &d3dpp, ppReturnedDeviceInterface);
+			BehaviorFlags = bFlags;
+			CopyMemory(pPresentationParameters, &d3dpp, sizeof(d3dpp));
+			hr = f_pD3D->CreateDevice(Adapter, DeviceType, hFocusWindow, BehaviorFlags, pPresentationParameters, ppReturnedDeviceInterface);
 		}
 
 		// Set AntiAliasing render state
