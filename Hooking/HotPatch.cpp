@@ -30,9 +30,6 @@
 // Hook API using hot patch
 void *Hook::HotPatch(void *apiproc, const char *apiname, void *hookproc)
 {
-	static constexpr DWORD BuffSize = 250;
-	char buffer[BuffSize];
-
 	DWORD dwPrevProtect;
 	BYTE *patch_address;
 	void *orig_address;
@@ -53,8 +50,7 @@ void *Hook::HotPatch(void *apiproc, const char *apiname, void *hookproc)
 	// Entry point could be at the top of a page? so VirtualProtect first to make sure patch_address is readable
 	if (!VirtualProtect(patch_address, 12, PAGE_EXECUTE_WRITECOPY, &dwPrevProtect))
 	{
-		sprintf_s(buffer, "HotPatch: access denied.  Cannot hook api=%s at addr=%p err=%x", apiname, apiproc, GetLastError());
-		Logging::LogText(buffer);
+		Logging::LogFormat("HotPatch: access denied.  Cannot hook api=%s at addr=%p err=%x", apiname, apiproc, GetLastError());
 		return 0; // access denied
 	}
 
@@ -85,14 +81,12 @@ void *Hook::HotPatch(void *apiproc, const char *apiname, void *hookproc)
 		if ((*patch_address == 0xE9) && (*(WORD *)apiproc == 0xF9EB))
 		{
 			// should never go through here ...
-			sprintf_s(buffer, "HotPatch: '%s' patched already at addr=%p", apiname, apiproc);
-			Logging::LogText(buffer);
+			Logging::LogFormat("HotPatch: '%s' patched already at addr=%p", apiname, apiproc);
 			return (void *)1;
 		}
 		else
 		{
-			sprintf_s(buffer, "HotPatch: '%s' is not patch aware at addr=%p", apiname, apiproc);
-			Logging::LogText(buffer);
+			Logging::LogFormat("HotPatch: '%s' is not patch aware at addr=%p", apiname, apiproc);
 			return 0; // not hot patch "aware"
 		}
 	}
@@ -101,9 +95,6 @@ void *Hook::HotPatch(void *apiproc, const char *apiname, void *hookproc)
 // Unhook hot patched API
 bool Hook::UnhookHotPatch(void *apiproc, const char *apiname, void *hookproc)
 {
-	static constexpr DWORD BuffSize = 250;
-	char buffer[BuffSize];
-
 	DWORD dwPrevProtect;
 	BYTE *patch_address;
 	void *orig_address;
@@ -124,8 +115,7 @@ bool Hook::UnhookHotPatch(void *apiproc, const char *apiname, void *hookproc)
 	// Entry point could be at the top of a page? so VirtualProtect first to make sure patch_address is readable
 	if (!VirtualProtect(patch_address, 12, PAGE_EXECUTE_WRITECOPY, &dwPrevProtect))
 	{
-		sprintf_s(buffer, "UnhookHotPatch: access denied.  Cannot hook api=%s at addr=%p err=%x", apiname, apiproc, GetLastError());
-		Logging::LogText(buffer);
+		Logging::LogFormat("UnhookHotPatch: access denied.  Cannot hook api=%s at addr=%p err=%x", apiname, apiproc, GetLastError());
 		return false; // access denied
 	}
 

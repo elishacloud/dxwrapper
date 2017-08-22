@@ -38,10 +38,6 @@ namespace Wrapper
 	}
 }
 
-/*************************
-Augmented Callbacks
-*************************/
-
 HRESULT f_iD3D9::CreateDevice(UINT Adapter, D3DDEVTYPE DeviceType,
 	HWND hFocusWindow, DWORD BehaviorFlags,
 	D3DPRESENT_PARAMETERS *pPresentationParameters,
@@ -58,11 +54,10 @@ HRESULT f_iD3D9::CreateDevice(UINT Adapter, D3DDEVTYPE DeviceType,
 	DWORD QualityLevels = 0;
 	DWORD SampleType = 0;
 	D3DPRESENT_PARAMETERS d3dpp;
+	CopyMemory(&d3dpp, pPresentationParameters, sizeof(d3dpp));
 	DWORD bFlags = BehaviorFlags;
 	if (Config.AntiAliasing != 0)
 	{
-		CopyMemory(&d3dpp, pPresentationParameters, sizeof(d3dpp));
-
 		// Check AntiAliasing quality
 		for (int x = min(16, Config.AntiAliasing); x > 0; x--)
 		{
@@ -94,52 +89,27 @@ HRESULT f_iD3D9::CreateDevice(UINT Adapter, D3DDEVTYPE DeviceType,
 	HRESULT hr = f_pD3D->CreateDevice(Adapter, DeviceType, hFocusWindow, BehaviorFlags, pPresentationParameters, ppReturnedDeviceInterface);
 
 	// Check for AntiAliasing
-	if (Config.AntiAliasing != 0)
+	if (MultiSampleFlag)
 	{
 		// Check if device was created successfully
-		if (!SUCCEEDED(hr))
+		if (SUCCEEDED(hr))
+		{
+			Logging::Log() << "Setting MultiSample " << SampleType << " Quality " << QualityLevels;
+			(*ppReturnedDeviceInterface)->SetRenderState(D3DRS_MULTISAMPLEANTIALIAS, TRUE);
+		}
+		// Try creating device with original settings
+		else
 		{
 			MultiSampleFlag = false;
 			BehaviorFlags = bFlags;
 			CopyMemory(pPresentationParameters, &d3dpp, sizeof(d3dpp));
 			hr = f_pD3D->CreateDevice(Adapter, DeviceType, hFocusWindow, BehaviorFlags, pPresentationParameters, ppReturnedDeviceInterface);
 		}
-
-		// Set AntiAliasing render state
-		if (MultiSampleFlag && SUCCEEDED(hr))
-		{
-			Logging::Log() << "Setting MultiSample " << SampleType << " Quality " << QualityLevels;
-			(*ppReturnedDeviceInterface)->SetRenderState(D3DRS_MULTISAMPLEANTIALIAS, TRUE);
-		}
 	}
 
-	// NOTE: initialize your custom D3D components here.
-
 	return hr;
 }
 
-HRESULT f_IDirect3DDevice9::Reset(D3DPRESENT_PARAMETERS *pPresentationParameters)
-{
-	// NOTE: call onLostDevice for custom D3D components here.
-
-	HRESULT hr = f_pD3DDevice->Reset(pPresentationParameters);
-
-	// NOTE: call onResetDevice for custom D3D components here.
-
-	return hr;
-}
-
-HRESULT f_IDirect3DDevice9::EndScene()
-{
-
-	// NOTE: draw your custom D3D components here.
-
-	return f_pD3DDevice->EndScene();
-}
-
-/*************************
-Bare D3D Callbacks
-*************************/
 ULONG f_iD3D9::AddRef()
 {
 	return f_pD3D->AddRef();
@@ -232,9 +202,6 @@ HRESULT f_iD3D9::CheckDeviceFormatConversion(THIS_ UINT Adapter, D3DDEVTYPE Devi
 	return f_pD3D->CheckDeviceFormatConversion(Adapter, DeviceType, SourceFormat, TargetFormat);
 }
 
-/*************************
-Bare Device Callbacks
-*************************/
 f_IDirect3DDevice9::f_IDirect3DDevice9(LPDIRECT3DDEVICE9 pDevice, LPDIRECT3DDEVICE9 **ppDevice)
 {
 	f_pD3DDevice = pDevice;
@@ -254,6 +221,18 @@ HRESULT f_IDirect3DDevice9::QueryInterface(REFIID riid, void** ppvObj)
 ULONG f_IDirect3DDevice9::Release()
 {
 	return f_pD3DDevice->Release();
+}
+
+HRESULT f_IDirect3DDevice9::Reset(D3DPRESENT_PARAMETERS *pPresentationParameters)
+{
+	HRESULT hr = f_pD3DDevice->Reset(pPresentationParameters);
+
+	return hr;
+}
+
+HRESULT f_IDirect3DDevice9::EndScene()
+{
+	return f_pD3DDevice->EndScene();
 }
 
 void f_IDirect3DDevice9::SetCursorPosition(int X, int Y, DWORD Flags)

@@ -12,7 +12,7 @@
 namespace Logging
 {
 	using namespace Compat;
-	void LogText(char*);
+	void LogFormat(char * fmt, ...);
 	void LogOSVersion();
 	void LogProcessNameAndPID();
 }

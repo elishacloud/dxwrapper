@@ -40,9 +40,6 @@ void *Hook::IATPatch(HMODULE module, DWORD ordinal, const char *dll, void *apipr
 	DWORD oldprotect;
 	void *org;
 
-	static constexpr DWORD BuffSize = 250;
-	char buffer[BuffSize];
-
 #ifdef _DEBUG
 	sprintf_s(buffer, "IATPatch: module=%p ordinal=%x name=%s dll=%s", module, ordinal, apiname, dll);
 	Logging::LogText(buffer);
@@ -56,15 +53,13 @@ void *Hook::IATPatch(HMODULE module, DWORD ordinal, const char *dll, void *apipr
 		pnth = PIMAGE_NT_HEADERS(PBYTE(base) + PIMAGE_DOS_HEADER(base)->e_lfanew);
 		if (!pnth)
 		{
-			sprintf_s(buffer, "IATPatch: ERROR no PNTH at %d", __LINE__);
-			Logging::LogText(buffer);
+			Logging::LogFormat("IATPatch: ERROR no PNTH at %d", __LINE__);
 			return 0;
 		}
 		rva = pnth->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_IMPORT].VirtualAddress;
 		if (!rva)
 		{
-			sprintf_s(buffer, "IATPatch: ERROR no RVA at %d", __LINE__);
-			Logging::LogText(buffer);
+			Logging::LogFormat("IATPatch: ERROR no RVA at %d", __LINE__);
 			return 0;
 		}
 		pidesc = (PIMAGE_IMPORT_DESCRIPTOR)(base + rva);
@@ -211,8 +206,7 @@ void *Hook::IATPatch(HMODULE module, DWORD ordinal, const char *dll, void *apipr
 	}
 	__except (EXCEPTION_EXECUTE_HANDLER)
 	{
-		sprintf_s(buffer, "IATPatchEx: EXCEPTION hook=%s:%s Hook Failed.", dll, apiname);
-		Logging::LogText(buffer);
+		Logging::LogFormat("IATPatchEx: EXCEPTION hook=%s:%s Hook Failed.", dll, apiname);
 	}
 	return org;
 }
@@ -230,9 +224,6 @@ bool Hook::UnhookIATPatch(HMODULE module, DWORD ordinal, const char *dll, void *
 	DWORD oldprotect;
 	void *org;
 
-	static constexpr DWORD BuffSize = 250;
-	char buffer[BuffSize];
-
 #ifdef _DEBUG
 	sprintf_s(buffer, "IATPatch: module=%p ordinal=%x name=%s dll=%s", module, ordinal, apiname, dll);
 	Logging::LogText(buffer);
@@ -246,15 +237,13 @@ bool Hook::UnhookIATPatch(HMODULE module, DWORD ordinal, const char *dll, void *
 		pnth = PIMAGE_NT_HEADERS(PBYTE(base) + PIMAGE_DOS_HEADER(base)->e_lfanew);
 		if (!pnth)
 		{
-			sprintf_s(buffer, "IATPatch: ERROR no PNTH at %d", __LINE__);
-			Logging::LogText(buffer);
+			Logging::LogFormat("IATPatch: ERROR no PNTH at %d", __LINE__);
 			return false;
 		}
 		rva = pnth->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_IMPORT].VirtualAddress;
 		if (!rva)
 		{
-			sprintf_s(buffer, "IATPatch: ERROR no RVA at %d", __LINE__);
-			Logging::LogText(buffer);
+			Logging::LogFormat("IATPatch: ERROR no RVA at %d", __LINE__);
 			return false;
 		}
 		pidesc = (PIMAGE_IMPORT_DESCRIPTOR)(base + rva);
@@ -406,8 +395,7 @@ bool Hook::UnhookIATPatch(HMODULE module, DWORD ordinal, const char *dll, void *
 	}
 	__except (EXCEPTION_EXECUTE_HANDLER)
 	{
-		sprintf_s(buffer, "IATPatchEx: EXCEPTION hook=%s:%s Hook Failed.", dll, apiname);
-		Logging::LogText(buffer);
+		Logging::LogFormat("IATPatchEx: EXCEPTION hook=%s:%s Hook Failed.", dll, apiname);
 	}
 	return false;
 }

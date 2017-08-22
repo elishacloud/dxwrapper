@@ -28,11 +28,15 @@ namespace Logging
 	void GetVersionFile(OSVERSIONINFO *);
 }
 
-void Logging::LogText(char *MyText)
+void Logging::LogFormat(char * fmt, ...)
 {
-	Log() << MyText;
+	va_list ap;
+	va_start(ap, fmt);
+	static constexpr DWORD BuffSize = 1024;
+	static char buffer[BuffSize];
+	sprintf_s(buffer, fmt, ap);
+	Log() << buffer;
 }
-
 // Logs the process name and PID
 void Logging::LogProcessNameAndPID()
 {

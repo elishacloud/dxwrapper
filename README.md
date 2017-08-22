@@ -57,6 +57,7 @@ DxWrapper uses code from several other projects. So to give credit where credit 
  - [d3d8to9](https://github.com/crosire/d3d8to9): Includes the full Direct3D 8 to Direct3D 9 code.
  - [DSoundCtrl](https://github.com/nRaecheR/DirectSoundControl): Includes the full DirectSoundControl code.
  - [Aqrit's ddwrapper](http://bitpatch.com/ddwrapper.html): Includes code to disable high DPI scaling and code to read the ini config file.
+ - [Direct3D9 Wrapper DLL](https://gist.github.com/shaunlebron/3854bf4eec5bec297907): Includes the full wrapper code used for logging and manipulating Direct3D9 calls, such as enabling Anti-Aliasing.
 
 ### Development
 DxWrapper is mostly written in C++ using Microsoft Visual Studio Community 2015.

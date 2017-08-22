@@ -188,10 +188,7 @@ FARPROC Hook::GetFunctionAddress(HMODULE hModule, LPCSTR FunctionName)
 	}
 	__except (EXCEPTION_EXECUTE_HANDLER)
 	{
-		static constexpr DWORD BuffSize = 250;
-		char buffer[BuffSize];
-		sprintf_s(buffer, "GetFunctionAddress: EXCEPTION module=%s Failed to get address.", FunctionName);
-		Logging::LogText(buffer);
+		Logging::LogFormat("GetFunctionAddress: EXCEPTION module=%s Failed to get address.", FunctionName);
 	}
 
 	return ProcAddress;
