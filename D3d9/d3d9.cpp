@@ -100,7 +100,6 @@ HRESULT f_iD3D9::CreateDevice(UINT Adapter, D3DDEVTYPE DeviceType,
 		// Try creating device with original settings
 		else
 		{
-			MultiSampleFlag = false;
 			BehaviorFlags = bFlags;
 			CopyMemory(pPresentationParameters, &d3dpp, sizeof(d3dpp));
 			hr = f_pD3D->CreateDevice(Adapter, DeviceType, hFocusWindow, BehaviorFlags, pPresentationParameters, ppReturnedDeviceInterface);

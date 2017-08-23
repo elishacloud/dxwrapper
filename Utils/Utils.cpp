@@ -16,11 +16,11 @@
 * Exception handling code taken from source code found in DxWnd v2.03.99
 * https://sourceforge.net/projects/dxwnd/
 *
-* Code in GetVersionFile function taken from source code found on stackoverflow.com
-* https://stackoverflow.com/questions/940707/how-do-i-programmatically-get-the-version-of-a-dll-or-exe-file
-*
 * Code in DisableHighDPIScaling function taken from source code found in Aqrit's ddwrapper
 * http://bitpatch.com/ddwrapper.html
+*
+* SetAppCompatData code created based on information from here:
+* http://www.blitzbasic.com/Community/post.php?topic=99477&post=1202996
 */
 
 #include "Settings\Settings.h"
@@ -129,7 +129,7 @@ void Utils::SetAppCompat()
 		}
 	}
 
-	// SetAppCompatData see: http://www.blitzbasic.com/Community/post.php?topic=99477&post=1202996
+	// SetAppCompatData
 	if (appCompatFlag)
 	{
 		HMODULE module = Wrapper::LoadDll(dtype.ddraw);

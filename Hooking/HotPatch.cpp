@@ -15,8 +15,6 @@
 *
 * Created from source code found in DxWnd v2.03.99
 * https://sourceforge.net/projects/dxwnd/
-*
-* Updated 2017 by Elisha Riedlinger
 */
 
 // return:

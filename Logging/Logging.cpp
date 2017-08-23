@@ -15,6 +15,9 @@
 *
 * Code in GetOSVersion and GetVersionReg functions taken from source code found in DirectSoundControl
 * https://github.com/nRaecheR/DirectSoundControl
+*
+* Code in GetVersionFile function taken from source code found on stackoverflow.com
+* https://stackoverflow.com/questions/940707/how-do-i-programmatically-get-the-version-of-a-dll-or-exe-file
 */
 
 #define WIN32_LEAN_AND_MEAN
@@ -37,6 +40,7 @@ void Logging::LogFormat(char * fmt, ...)
 	sprintf_s(buffer, fmt, ap);
 	Log() << buffer;
 }
+
 // Logs the process name and PID
 void Logging::LogProcessNameAndPID()
 {

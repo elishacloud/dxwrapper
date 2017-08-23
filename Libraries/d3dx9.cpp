@@ -45,11 +45,7 @@ void Loadd3dx9()
 		for (int x = 99; x > 9 && d3dx9Module == nullptr; x--)
 		{
 			// Get dll name
-			strcpy_s(d3dx9name, "d3dx9_");
-			char buffer[11];
-			_itoa_s(x, buffer, 10);
-			strcat_s(d3dx9name, buffer);
-			strcat_s(d3dx9name, ".dll");
+			sprintf_s(d3dx9name, "d3dx9_%d.dll", x);
 			// Load dll
 			d3dx9Module = LoadLibrary(d3dx9name);
 		}

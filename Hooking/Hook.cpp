@@ -18,8 +18,6 @@
 *
 * Code in GetFunctionAddress function taken from source code found on rohitab.com
 * http://www.rohitab.com/discuss/topic/40594-parsing-pe-export-table/
-*
-* Updated 2017 by Elisha Riedlinger
 */
 
 #include "Hook.h"

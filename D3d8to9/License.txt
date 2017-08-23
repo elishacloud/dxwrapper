@@ -6,7 +6,7 @@
 * https://github.com/crosire/d3d8to9/
 *
 * From source code found in Wine
-* https://github.com/alexhenrie/wine
+* https://github.com/alexhenrie/wine/tree/master/dlls/d3d8
 *
 * Updated 2017 by Elisha Riedlinger
 */

@@ -12,12 +12,4 @@
 *   2. Altered source versions must  be plainly  marked as such, and  must not be  misrepresented  as
 *      being the original software.
 *   3. This notice may not be removed or altered from any source distribution.
-*
-* Created from source code found in DxWnd v2.03.99
-* https://sourceforge.net/projects/dxwnd/
-*
-* Code in GetFunctionAddress function taken from source code found on rohitab.com
-* http://www.rohitab.com/discuss/topic/40594-parsing-pe-export-table/
-*
-* Updated 2017 by Elisha Riedlinger
 */

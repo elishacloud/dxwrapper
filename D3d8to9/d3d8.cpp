@@ -14,7 +14,7 @@
 *   3. This notice may not be removed or altered from any source distribution.
 *
 * Created from source code found in Wine
-* https://github.com/alexhenrie/wine
+* https://github.com/alexhenrie/wine/tree/master/dlls/d3d8
 */
 
 #define WIN32_LEAN_AND_MEAN
