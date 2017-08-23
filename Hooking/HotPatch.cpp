@@ -33,8 +33,7 @@ void *Hook::HotPatch(void *apiproc, const char *apiname, void *hookproc)
 	void *orig_address;
 
 #ifdef _DEBUG
-	sprintf_s(buffer, "HotPatch: api=%s addr=%p hook=%p", apiname, apiproc, hookproc);
-	Logging::LogText(buffer);
+	Logging::LogFormat("HotPatch: api=%s addr=%p hook=%p", apiname, apiproc, hookproc);
 #endif
 
 	if (!strcmp(apiname, "GetProcAddress"))
@@ -64,8 +63,7 @@ void *Hook::HotPatch(void *apiproc, const char *apiname, void *hookproc)
 
 		VirtualProtect(patch_address, 12, dwPrevProtect, &dwPrevProtect); // restore protection
 #ifdef _DEBUG
-		sprintf_s(buffer, "HotPatch: api=%s addr=%p->%p hook=%p", apiname, apiproc, orig_address, hookproc);
-		Logging::LogText(buffer);
+		Logging::LogFormat("HotPatch: api=%s addr=%p->%p hook=%p", apiname, apiproc, orig_address, hookproc);
 #endif
 		return orig_address;
 	}
@@ -74,7 +72,7 @@ void *Hook::HotPatch(void *apiproc, const char *apiname, void *hookproc)
 	else
 	{
 		VirtualProtect(patch_address, 12, dwPrevProtect, &dwPrevProtect); // restore protection
-		
+
 		// check it wasn't patched already
 		if ((*patch_address == 0xE9) && (*(WORD *)apiproc == 0xF9EB))
 		{
@@ -98,8 +96,7 @@ bool Hook::UnhookHotPatch(void *apiproc, const char *apiname, void *hookproc)
 	void *orig_address;
 
 #ifdef _DEBUG
-	sprintf_s(buffer, "UnhookHotPatch: api=%s addr=%p hook=%p", apiname, apiproc, hookproc);
-	Logging::LogText(buffer);
+	Logging::LogFormat("UnhookHotPatch: api=%s addr=%p hook=%p", apiname, apiproc, hookproc);
 #endif
 
 	if (!strcmp(apiname, "GetProcAddress"))
@@ -127,16 +124,14 @@ bool Hook::UnhookHotPatch(void *apiproc, const char *apiname, void *hookproc)
 
 		VirtualProtect(patch_address, 12, dwPrevProtect, &dwPrevProtect); // restore protection
 #ifdef _DEBUG
-		sprintf_s(buffer, "UnhookHotPatch: api=%s addr=%p->%p hook=%p", apiname, apiproc, orig_address, hookproc);
-		Logging::LogText(buffer);
+		Logging::LogFormat("UnhookHotPatch: api=%s addr=%p->%p hook=%p", apiname, apiproc, orig_address, hookproc);
 #endif
 		return true;
 	}
 
 	VirtualProtect(patch_address, 12, dwPrevProtect, &dwPrevProtect); // restore protection
 #ifdef _DEBUG
-	sprintf_s(buffer, "UnhookHotPatch: api=%s addr=%p->%p hook=%p", apiname, apiproc, orig_address, hookproc);
-	Logging::LogText(buffer);
+	Logging::LogFormat("UnhookHotPatch: api=%s addr=%p->%p hook=%p", apiname, apiproc, orig_address, hookproc);
 #endif
 	return false;
 }
