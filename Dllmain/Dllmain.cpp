@@ -78,14 +78,8 @@ bool APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 			Utils::HookExceptionHandler();
 		}
 
-		// Attach real wrapper dll
+		// Attach real wrapper dll, load custom dlls and load asi plugins
 		Wrapper::DllAttach();
-
-		// Load ASI plugins
-		if (Config.LoadPlugins)
-		{
-			Utils::LoadPlugins();
-		}
 
 		// Start compatibility modules
 		if (Config.DDrawCompat)
