@@ -10,6 +10,7 @@ DxWrapper has a number of features that it includes.  Below is a list of feature
  - Proxy for [DxWnd](https://sourceforge.net/projects/dxwnd/)
  - Convert Direct3D8 (d3d8.dll) to Direct3D9 (d3d9.dll) using [d3d8to9](https://github.com/crosire/d3d8to9)
  - Allows tweaking some Microsoft DirectSound function calls using [DSoundCtrl](http://www.bockholdt.com/dsc/)
+ - Can load custom libraries with the file extension .asi into game processes using code from [Ultimate ASI Loader](https://github.com/ThirteenAG/Ultimate-ASI-Loader)
  - Hot patch memory support (update game memory at run time, can be used to remove CD/DVD checks or resolve graphics or other glitches)
  - Set single CPU affinity (some games have issues with multi-core CPUs)
  - Disable display scaling on high DPI setting
@@ -59,6 +60,7 @@ DxWrapper uses code from several other projects. So to give credit where credit 
  - [Aqrit's ddwrapper](http://bitpatch.com/ddwrapper.html): Includes code to disable high DPI scaling and code to read the ini config file.
  - [Direct3D9 Wrapper DLL](https://gist.github.com/shaunlebron/3854bf4eec5bec297907): Includes the full wrapper code used for logging and manipulating Direct3D9 calls, such as enabling Anti-Aliasing.
  - [WineD3D d3d8.dll](https://github.com/alexhenrie/wine/tree/master/dlls/d3d8): Includes functions ValidatePixelShader and ValidateVertexShader.
+ - [Ultimate ASI Loader](https://github.com/ThirteenAG/Ultimate-ASI-Loader): Includes code for loading ASI pluggins.
  - [Parsing PE export table](http://www.rohitab.com/discuss/topic/40594-parsing-pe-export-table/): Includes the full GetProcAddress.
  - [How do I programmatically get the version of a DLL or EXE file?](https://stackoverflow.com/questions/940707/how-do-i-programmatically-get-the-version-of-a-dll-or-exe-file): Includes code for getting the version of an EXE file.
  - http://www.blitzbasic.com/Community/post.php?topic=99477&post=1202996: Used date here to create ability to set all 12 SetAppCompatData settings.

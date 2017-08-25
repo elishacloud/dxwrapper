@@ -361,6 +361,11 @@ void __stdcall Settings::ParseCallback(char* name, char* value)
 		SetValue(name, value, &Config.DpiAware);
 		return;
 	}
+	if (!_strcmpi(name, "DSoundCtrl"))
+	{
+		SetValue(name, value, &Config.DSoundCtrl);
+		return;
+	}
 	if (!_strcmpi(name, "DxWnd"))
 	{
 		SetValue(name, value, &Config.DxWnd);
@@ -386,9 +391,14 @@ void __stdcall Settings::ParseCallback(char* name, char* value)
 		SetValue(name, value, &Config.HandleExceptions);
 		return;
 	}
-	if (!_strcmpi(name, "DSoundCtrl"))
+	if (!_strcmpi(name, "LoadPlugins"))
 	{
-		SetValue(name, value, &Config.DSoundCtrl);
+		SetValue(name, value, &Config.LoadPlugins);
+		return;
+	}
+	if (!_strcmpi(name, "LoadFromScriptsOnly"))
+	{
+		SetValue(name, value, &Config.LoadFromScriptsOnly);
 		return;
 	}
 	if (!_strcmpi(name, "ResetScreenRes"))
@@ -717,12 +727,14 @@ void Settings::ClearConfigSettings()
 	Config.DDrawCompat = false;
 	Config.DDrawCompatDisableGDIHook = false;
 	Config.DpiAware = false;
+	Config.DSoundCtrl = false;
 	Config.DxWnd = false;
 	Config.FullScreen = false;
 	Config.ForceTermination = false;
 	Config.ForceWindowResize = false;
 	Config.HandleExceptions = false;
-	Config.DSoundCtrl = false;
+	Config.LoadPlugins = false;
+	Config.LoadFromScriptsOnly = false;
 	Config.ResetScreenRes = false;
 	Config.SendAltEnter = false;
 	Config.WaitForProcess = false;

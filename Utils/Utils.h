@@ -2,6 +2,7 @@
 
 namespace Utils
 {
+	void LoadPlugins();
 	void Shell(const char*);
 	void DisableHighDPIScaling();
 	void SetProcessAffinity();

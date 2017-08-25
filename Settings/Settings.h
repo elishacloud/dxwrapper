@@ -83,17 +83,18 @@ struct CONFIG
 	bool DDrawCompat;					// Enables DDrawCompat functions https://github.com/narzoul/DDrawCompat/
 	bool DDrawCompatDisableGDIHook;		// Disables DDrawCompat GDI hooks
 	bool DpiAware;						// Disables display scaling on high DPI settings
+	bool DSoundCtrl;					// Enables DirectSoundControl https://github.com/nRaecheR/DirectSoundControl
 	bool DxWnd;							// Enables dXwnd https://sourceforge.net/projects/dxwnd/
 	bool FullScreen;					// Sets the main window to fullscreen
 	bool ForceTermination;				// Terminates application when main window closes
 	bool ForceWindowResize;				// Forces main window to fullscreen
 	bool HandleExceptions;				// Handles unhandled exceptions in the application
-	bool DSoundCtrl;					// Enables DirectSoundControl https://github.com/nRaecheR/DirectSoundControl
+	bool LoadPlugins;					// Loads ASI plugins
+	bool LoadFromScriptsOnly;			// Loads ASI plugins from 'scripts' and 'plugins' folder only
 	bool ResetScreenRes;				// Reset the screen resolution on close
 	bool SendAltEnter;					// Sends an Alt+Enter message to the wind to tell it to go into fullscreen
 	bool WaitForProcess;				// Enables 'WindowSleepTime'
 	bool WaitForWindowChanges;			// Waits for window handle to stabilize before setting fullsreen
-	bool Debug;							// Enables debug logging
 	DWORD LoopSleepTime;				// Time to sleep between each window handle check loop
 	DWORD ResetMemoryAfter;				// Undo hot patch after this amount of time
 	DWORD WindowSleepTime;				// Time to wait (sleep) for window handle and screen updates to finish

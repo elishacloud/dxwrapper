@@ -13,6 +13,9 @@
 *      being the original software.
 *   3. This notice may not be removed or altered from any source distribution.
 *
+* ASI plugin loader taken from source code found in Ultimate ASI Loader
+* https://github.com/ThirteenAG/Ultimate-ASI-Loader
+*
 * Exception handling code taken from source code found in DxWnd v2.03.99
 * https://sourceforge.net/projects/dxwnd/
 *
@@ -46,8 +49,76 @@ namespace Utils
 	Hook::HOOKVARS h_SetUnhandledExceptionFilter;
 
 	// Function declarations
+	void FindFiles(WIN32_FIND_DATA*);
 	LONG WINAPI myUnhandledExceptionFilter(LPEXCEPTION_POINTERS);
 	LPTOP_LEVEL_EXCEPTION_FILTER WINAPI extSetUnhandledExceptionFilter(LPTOP_LEVEL_EXCEPTION_FILTER);
+}
+
+// Find asi plugins to load
+void Utils::FindFiles(WIN32_FIND_DATA* fd)
+{
+	char dir[MAX_PATH] = { 0 };
+	GetCurrentDirectory(MAX_PATH, dir);
+
+	HANDLE asiFile = FindFirstFile("*.asi", fd);
+	if (asiFile != INVALID_HANDLE_VALUE)
+	{
+		do {
+			if (!(fd->dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY))
+			{
+				auto pos = strlen(fd->cFileName);
+
+				if (fd->cFileName[pos - 4] == '.' &&
+					(fd->cFileName[pos - 3] == 'a' || fd->cFileName[pos - 3] == 'A') &&
+					(fd->cFileName[pos - 2] == 's' || fd->cFileName[pos - 2] == 'S') &&
+					(fd->cFileName[pos - 1] == 'i' || fd->cFileName[pos - 1] == 'I'))
+				{
+					char path[MAX_PATH] = { 0 };
+					sprintf_s(path, "%s\\%s", dir, fd->cFileName);
+
+					Logging::Log() << "Loading Plugin: " << path;
+					auto h = LoadLibrary(path);
+					SetCurrentDirectory(dir); //in case asi switched it
+
+					if (h == NULL)
+					{
+						Logging::LogFormat("Unable to load %s. Error: %d", fd->cFileName, GetLastError());
+					}
+				}
+			}
+		} while (FindNextFile(asiFile, fd));
+		FindClose(asiFile);
+	}
+}
+
+// Load asi plugins
+void Utils::LoadPlugins()
+{
+	Logging::Log() << "Loading ASI Plugins";
+
+	char oldDir[MAX_PATH]; // store the current directory
+	GetCurrentDirectory(MAX_PATH, oldDir);
+
+	char selfPath[MAX_PATH];
+	GetModuleFileName(hModule_dll, selfPath, MAX_PATH);
+	*strrchr(selfPath, '\\') = '\0';
+	SetCurrentDirectory(selfPath);
+
+	WIN32_FIND_DATA fd;
+	if (!Config.LoadFromScriptsOnly)
+		FindFiles(&fd);
+
+	SetCurrentDirectory(selfPath);
+
+	if (SetCurrentDirectory("scripts\\"))
+		FindFiles(&fd);
+
+	SetCurrentDirectory(selfPath);
+
+	if (SetCurrentDirectory("plugins\\"))
+		FindFiles(&fd);
+
+	SetCurrentDirectory(oldDir); // Reset the current directory
 }
 
 // Execute a specified string
