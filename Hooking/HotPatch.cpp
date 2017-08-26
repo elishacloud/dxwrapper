@@ -129,6 +129,8 @@ bool Hook::UnhookHotPatch(void *apiproc, const char *apiname, void *hookproc)
 		return true;
 	}
 
+	Logging::LogFormat("HotPatch: failed to unhook '%s' at addr=%p", apiname, apiproc);
+
 	VirtualProtect(patch_address, 12, dwPrevProtect, &dwPrevProtect); // restore protection
 #ifdef _DEBUG
 	Logging::LogFormat("UnhookHotPatch: api=%s addr=%p->%p hook=%p", apiname, apiproc, orig_address, hookproc);

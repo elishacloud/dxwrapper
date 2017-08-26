@@ -110,20 +110,17 @@ namespace Compat
 
 			// Set lower case, remove extension and add dash (-)
 			for (int z = 0; z < MAX_PATH && wrappername[z] != '\0'; z++) { wrappername[z] = (char)tolower(wrappername[z]); }
-			char* pdest = strrchr(wrappername, '.');
-			strcpy_s(pdest, MAX_PATH, "-");
+			strcpy_s(strrchr(wrappername, '.'), MAX_PATH - strlen(wrappername), "-");
 
 			// Get process name
 			char exepath[MAX_PATH];
 			GetModuleFileName(NULL, exepath, MAX_PATH);
 
 			// Remove path and add process name
-			pdest = strrchr(exepath, '\\');
-			strcat_s(wrappername, MAX_PATH, ++pdest);
+			strcat_s(wrappername, MAX_PATH, strrchr(exepath, '\\') + 1);
 
 			// Change extension to .log
-			pdest = strrchr(wrappername, '.');
-			strcpy_s(pdest, MAX_PATH, ".log");
+			strcpy_s(strrchr(wrappername, '.'), MAX_PATH - strlen(wrappername), ".log");
 
 			return wrappername;
 		}

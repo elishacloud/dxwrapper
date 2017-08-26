@@ -710,8 +710,9 @@ void Settings::strippath(char* str)
 	// extract filename from file path
 	len = strlen(pdest) + 1;
 	inpfile = (char*)malloc(len);			// Make space for the zero.
-	strcpy_s(inpfile, MAX_PATH, pdest);		// Copy. 
-	strcpy_s(str, MAX_PATH, inpfile);		// Copy back. 
+	strcpy_s(inpfile, len, pdest);			// Copy.
+	strcpy_s(str, len, inpfile);			// Copy back.
+	free(inpfile);							// Free memory after malloc.
 	return;
 }
 
@@ -836,11 +837,10 @@ void CONFIG::Init()
 	// Get config file path
 	char path[MAX_PATH];
 	GetModuleFileNameA(hModule_dll, path, sizeof(path));
-	char* pdest = strrchr(path, '.');
-	strcpy_s(pdest, MAX_PATH, ".ini");
+	strcpy_s(strrchr(path, '.'), MAX_PATH - strlen(path), ".ini");
 
 	// Get config file name for log
-	pdest = strrchr(path, '\\') + 1;
+	char* pdest = strrchr(path, '\\') + 1;
 	for (char* p = pdest; *p != '\0'; p++)
 	{
 		*p = (char)tolower(*p);
