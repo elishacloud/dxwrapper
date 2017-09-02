@@ -16,11 +16,13 @@
 * Created from source code found in DxWnd v2.03.99
 * https://sourceforge.net/projects/dxwnd/
 *
-* Code in GetFunctionAddress function taken from source code found on rohitab.com
+* Code in GetProcAddress function taken from source code found on rohitab.com
 * http://www.rohitab.com/discuss/topic/40594-parsing-pe-export-table/
 */
 
 #include "Hook.h"
+#include <stdio.h>
+#include <psapi.h>
 #include "Logging\Logging.h"
 
 // Hook API using host patch or IAT patch
@@ -134,40 +136,45 @@ void Hook::UnhookAPI(HMODULE module, const char *dll, void *apiproc, const char 
 }
 
 // Get pointer for funtion name from binary file
-FARPROC Hook::GetFunctionAddress(HMODULE hModule, LPCSTR FunctionName)
+FARPROC Hook::GetProcAddress(HMODULE hModule, LPCSTR FunctionName)
 {
 	PIMAGE_DOS_HEADER pIDH;
 	PIMAGE_NT_HEADERS pINH;
 	PIMAGE_EXPORT_DIRECTORY pIED;
-
 	PDWORD Address, Name;
 	PWORD Ordinal;
 
 	if (!FunctionName || !hModule)
 	{
+		Logging::LogFormat("GetModuleHandle: NULL module or function name.");
 		return nullptr;
 	}
 
-	FARPROC ProcAddress = GetProcAddress(hModule, FunctionName);
+#ifdef _DEBUG
+	Logging::LogFormat("GetProcAddress: Searching for %s.", FunctionName);
+#endif
 
 	__try {
 		pIDH = (PIMAGE_DOS_HEADER)hModule;
 
 		if (pIDH->e_magic != IMAGE_DOS_SIGNATURE)
 		{
-			return ProcAddress;
+			Logging::LogFormat("GetProcAddress: %s is not IMAGE_DOS_SIGNATURE.", FunctionName);
+			return nullptr;
 		}
 
 		pINH = (PIMAGE_NT_HEADERS)((LPBYTE)hModule + pIDH->e_lfanew);
 
 		if (pINH->Signature != IMAGE_NT_SIGNATURE)
 		{
-			return ProcAddress;
+			Logging::LogFormat("GetProcAddress: %s is not IMAGE_NT_SIGNATURE.", FunctionName);
+			return nullptr;
 		}
 
 		if (pINH->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_EXPORT].VirtualAddress == 0)
 		{
-			return ProcAddress;
+			Logging::LogFormat("GetProcAddress: Could not get VirtualAddress in %s.", FunctionName);
+			return nullptr;
 		}
 
 		pIED = (PIMAGE_EXPORT_DIRECTORY)((LPBYTE)hModule + pINH->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_EXPORT].VirtualAddress);
@@ -180,14 +187,81 @@ FARPROC Hook::GetFunctionAddress(HMODULE hModule, LPCSTR FunctionName)
 		{
 			if (!strcmp(FunctionName, (char*)hModule + Name[i]))
 			{
-				return (FARPROC)((LPBYTE)hModule + Address[Ordinal[i]]);
+				return (FARPROC)((DWORD)Address[Ordinal[i]] + (DWORD)hModule);
 			}
 		}
 	}
 	__except (EXCEPTION_EXECUTE_HANDLER)
 	{
-		Logging::LogFormat("GetFunctionAddress: EXCEPTION module=%s Failed to get address.", FunctionName);
+		DWORD ErrorCode = GetExceptionCode();
+		Logging::LogFormat("GetProcAddress: EXCEPTION module=%s Failed to get address. Code=%x", FunctionName, ErrorCode);
 	}
 
-	return ProcAddress;
+	// Exit function
+	Logging::LogFormat("GetProcAddress: Could not find %s.", FunctionName);
+	return nullptr;
+}
+
+// Unhook all APIs
+bool Hook::UnhookAll()
+{
+	return (UnHotPatchAll() && UnIATPatchAll());
+}
+
+// Get pointer for funtion name from binary file
+HMODULE Hook::GetModuleHandle(char* ProcName)
+{
+	DWORD processID = GetCurrentProcessId();
+	HMODULE hMods[1024];
+	HANDLE hProcess;
+	DWORD cbNeeded;
+
+	if (!ProcName)
+	{
+		Logging::Log() << "GetModuleHandle: NULL process name.";
+		return nullptr;
+	}
+
+#ifdef _DEBUG
+	Logging::Log() << "GetModuleHandle: Searching for " << ProcName << ".";
+#endif
+
+	// Get a handle to the process.
+	hProcess = OpenProcess(PROCESS_QUERY_INFORMATION | PROCESS_VM_READ, FALSE, processID);
+	if (!hProcess)
+	{
+		Logging::Log() << "GetModuleHandle: Could not open process.";
+		return nullptr;
+	}
+
+	// Get a list of all the modules in this process.
+	if (EnumProcessModules(hProcess, hMods, sizeof(hMods), &cbNeeded))
+	{
+		for (UINT i = 0; i < (cbNeeded / sizeof(HMODULE)); i++)
+		{
+			char szModName[MAX_PATH];
+
+			// Get the full path to the module's file.
+			if (GetModuleFileNameEx(hProcess, hMods[i], szModName,
+				sizeof(szModName) / sizeof(char)))
+			{
+				// Check the module name.
+				if (!_strcmpi(ProcName, szModName))
+				{
+					// Release the handle to the process.
+					CloseHandle(hProcess);
+
+					// Return module handle
+					return hMods[i];
+				}
+			}
+		}
+	}
+
+	// Release the handle to the process.
+	CloseHandle(hProcess);
+
+	// Exit function
+	Logging::Log() << "GetModuleHandle: Could not file module " << ProcName << ".";
+	return nullptr;
 }

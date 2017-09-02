@@ -17,6 +17,7 @@
 #include "Settings\Settings.h"
 #include "dxwrapper.h"
 #include "Wrappers\wrapper.h"
+#include "Hooking\Hook.h"
 #include "DDrawCompat\DDrawCompatExternal.h"
 #include "DxWnd\DxWndExternal.h"
 #include "DSoundCtrl\DSoundCtrlExternal.h"
@@ -188,6 +189,10 @@ bool APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 		{
 			DllMain_DSoundCtrl(nullptr, DLL_PROCESS_DETACH, nullptr);
 		}
+
+		// Unhook all APIs
+		Logging::Log() << "Unhooking APIs";
+		Hook::UnhookAll();
 
 		// Unload dlls
 		Wrapper::DllDetach();

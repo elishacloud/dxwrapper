@@ -42,8 +42,6 @@ namespace Utils
 	// Declare varables
 	LPTOP_LEVEL_EXCEPTION_FILTER pOriginalSetUnhandledExceptionFilter = SetUnhandledExceptionFilter((LPTOP_LEVEL_EXCEPTION_FILTER)EXCEPTION_CONTINUE_EXECUTION);
 	PFN_SetUnhandledExceptionFilter pSetUnhandledExceptionFilter = reinterpret_cast<PFN_SetUnhandledExceptionFilter>(SetUnhandledExceptionFilter);
-	Hook::HOOKVARS h_UnhandledExceptionFilter;
-	Hook::HOOKVARS h_SetUnhandledExceptionFilter;
 
 	// Function declarations
 	LONG WINAPI myUnhandledExceptionFilter(LPEXCEPTION_POINTERS);
@@ -229,13 +227,9 @@ void Utils::HookExceptionHandler(void)
 	Logging::Log() << "Set exception handler";
 	// override default exception handler, if any....
 	LONG WINAPI myUnhandledExceptionFilter(LPEXCEPTION_POINTERS);
-	h_UnhandledExceptionFilter.apiproc = UnhandledExceptionFilter;
-	h_UnhandledExceptionFilter.hookproc = myUnhandledExceptionFilter;
-	tmp = Hook::HookAPI(hModule_dll, "KERNEL32.dll", h_UnhandledExceptionFilter.apiproc, "UnhandledExceptionFilter", h_UnhandledExceptionFilter.hookproc);
+	tmp = Hook::HookAPI(hModule_dll, "KERNEL32.dll", UnhandledExceptionFilter, "UnhandledExceptionFilter", myUnhandledExceptionFilter);
 	// so far, no need to save the previous handler, but anyway...
-	h_SetUnhandledExceptionFilter.apiproc = SetUnhandledExceptionFilter;
-	h_SetUnhandledExceptionFilter.hookproc = extSetUnhandledExceptionFilter;
-	tmp = Hook::HookAPI(hModule_dll, "KERNEL32.dll", h_SetUnhandledExceptionFilter.apiproc, "SetUnhandledExceptionFilter", h_SetUnhandledExceptionFilter.hookproc);
+	tmp = Hook::HookAPI(hModule_dll, "KERNEL32.dll", SetUnhandledExceptionFilter, "SetUnhandledExceptionFilter", extSetUnhandledExceptionFilter);
 	if (tmp)
 	{
 		pSetUnhandledExceptionFilter = reinterpret_cast<PFN_SetUnhandledExceptionFilter>(tmp);
@@ -249,8 +243,6 @@ void Utils::HookExceptionHandler(void)
 void Utils::UnHookExceptionHandler(void)
 {
 	Compat::Log() << "Unloading exception handlers";
-	Hook::UnhookAPI(hModule_dll, "KERNEL32.dll", h_UnhandledExceptionFilter.apiproc, "UnhandledExceptionFilter", h_UnhandledExceptionFilter.hookproc);
-	Hook::UnhookAPI(hModule_dll, "KERNEL32.dll", h_SetUnhandledExceptionFilter.apiproc, "SetUnhandledExceptionFilter", h_SetUnhandledExceptionFilter.hookproc);
 	SetErrorMode(0);
 	SetUnhandledExceptionFilter(pOriginalSetUnhandledExceptionFilter);
 	Finishdisasm();

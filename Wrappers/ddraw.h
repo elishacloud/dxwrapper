@@ -61,42 +61,16 @@ namespace ddraw
 				// Hook ddraw APIs for DDrawCompat
 				else if (Config.DDrawCompat)
 				{
-					IsHooked = true;
 					Logging::Log() << "Hooking ddraw.dll APIs...";
 					// DirectDrawCreate
-					h_DirectDrawCreate.apiproc = Hook::GetFunctionAddress(dll, "DirectDrawCreate");
-					h_DirectDrawCreate.hookproc = DDrawCompat::_DirectDrawCreate;
-					DirectDrawCreate = (FARPROC)Hook::HookAPI(hModule_dll, dtypename[dtype.ddraw], h_DirectDrawCreate.apiproc, "DirectDrawCreate", h_DirectDrawCreate.hookproc);
+					DirectDrawCreate = (FARPROC)Hook::HookAPI(hModule_dll, dtypename[dtype.ddraw], Hook::GetProcAddress(dll, "DirectDrawCreate"), "DirectDrawCreate", DDrawCompat::_DirectDrawCreate);
 					// DirectDrawCreateEx
-					h_DirectDrawCreateEx.apiproc = Hook::GetFunctionAddress(dll, "DirectDrawCreateEx");
-					h_DirectDrawCreateEx.hookproc = DDrawCompat::_DirectDrawCreateEx;
-					DirectDrawCreateEx = (FARPROC)Hook::HookAPI(hModule_dll, dtypename[dtype.ddraw], h_DirectDrawCreateEx.apiproc, "DirectDrawCreateEx", h_DirectDrawCreateEx.hookproc);
+					DirectDrawCreateEx = (FARPROC)Hook::HookAPI(hModule_dll, dtypename[dtype.ddraw], Hook::GetProcAddress(dll, "DirectDrawCreateEx"), "DirectDrawCreateEx", DDrawCompat::_DirectDrawCreateEx);
 					// DllGetClassObject
-					h_DllGetClassObject.apiproc = Hook::GetFunctionAddress(dll, "DllGetClassObject");
-					h_DllGetClassObject.hookproc = DDrawCompat::_DllGetClassObject;
-					dsound::module.DllGetClassObject = (FARPROC)Hook::HookAPI(hModule_dll, dtypename[dtype.ddraw], h_DllGetClassObject.apiproc, "DllGetClassObject", h_DllGetClassObject.hookproc);
+					dsound::module.DllGetClassObject = (FARPROC)Hook::HookAPI(hModule_dll, dtypename[dtype.ddraw], Hook::GetProcAddress(dll, "DllGetClassObject"), "DllGetClassObject", DDrawCompat::_DllGetClassObject);
 				}
 			}
 		}
-
-		void Unhook()
-		{
-			// If hooks are installed
-			if (IsHooked)
-			{
-				IsHooked = false;
-				Logging::Log() << "Unhooking ddraw.dll APIs...";
-				Hook::UnhookAPI(hModule_dll, dtypename[dtype.ddraw], h_DirectDrawCreate.apiproc, "DirectDrawCreate", h_DirectDrawCreate.hookproc);
-				Hook::UnhookAPI(hModule_dll, dtypename[dtype.ddraw], h_DirectDrawCreateEx.apiproc, "DirectDrawCreateEx", h_DirectDrawCreateEx.hookproc);
-				Hook::UnhookAPI(hModule_dll, dtypename[dtype.ddraw], h_DllGetClassObject.apiproc, "DllGetClassObject", h_DllGetClassObject.hookproc);
-			}
-		}
-
-	private:
-		bool IsHooked = false;
-		Hook::HOOKVARS h_DirectDrawCreate;
-		Hook::HOOKVARS h_DirectDrawCreateEx;
-		Hook::HOOKVARS h_DllGetClassObject;
 	};
 
 	extern ddraw_dll module;

@@ -55,7 +55,7 @@ namespace Wrapper
 	void LoadPlugins();
 	void FindFiles(WIN32_FIND_DATA*);
 	void LoadCustomDll();
-	HRESULT WINAPI ReturnProc();
+	HRESULT WINAPI ReturnProc(...);
 	const FARPROC _jmpaddr = (FARPROC)*ReturnProc;
 }
 
@@ -66,7 +66,7 @@ VISIT_WRAPPERS(ADD_NAMESPACE_CLASS)
 VISIT_WRAPPERS(CREATE_ALL_PROC_STUB)
 
 // Default function
-HRESULT WINAPI Wrapper::ReturnProc()
+HRESULT WINAPI Wrapper::ReturnProc(...)
 {
 	// Do nothing
 	return E_NOTIMPL;
@@ -278,9 +278,6 @@ void Wrapper::DllDetach()
 		custom_dll.pop_back();
 	}
 	custom_dll.clear();
-
-	// Unhook APIs
-	VISIT_WRAPPERS(UNHOOK_WRAPPER);
 
 	// Unload wrapper libraries
 	for (int x = 1; x < dtypeArraySize; ++x)
