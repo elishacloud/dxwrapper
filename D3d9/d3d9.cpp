@@ -43,11 +43,7 @@ HRESULT f_iD3D9::CreateDevice(UINT Adapter, D3DDEVTYPE DeviceType,
 	D3DPRESENT_PARAMETERS *pPresentationParameters,
 	IDirect3DDevice9 **ppReturnedDeviceInterface)
 {
-	LPDIRECT3DDEVICE9 *temp = ppReturnedDeviceInterface;
-
-	*temp = new f_IDirect3DDevice9(*ppReturnedDeviceInterface, &ppReturnedDeviceInterface);
-	*ppReturnedDeviceInterface = *temp;
-	delete temp;
+	*ppReturnedDeviceInterface = new f_IDirect3DDevice9(*ppReturnedDeviceInterface, f_pD3D);
 
 	// Check for AntiAliasing
 	bool MultiSampleFlag = false;
@@ -199,12 +195,6 @@ HRESULT f_iD3D9::CheckDeviceType(UINT Adapter, D3DDEVTYPE CheckType, D3DFORMAT D
 HRESULT f_iD3D9::CheckDeviceFormatConversion(THIS_ UINT Adapter, D3DDEVTYPE DeviceType, D3DFORMAT SourceFormat, D3DFORMAT TargetFormat)
 {
 	return f_pD3D->CheckDeviceFormatConversion(Adapter, DeviceType, SourceFormat, TargetFormat);
-}
-
-f_IDirect3DDevice9::f_IDirect3DDevice9(LPDIRECT3DDEVICE9 pDevice, LPDIRECT3DDEVICE9 **ppDevice)
-{
-	f_pD3DDevice = pDevice;
-	*ppDevice = &f_pD3DDevice;
 }
 
 ULONG f_IDirect3DDevice9::AddRef()
@@ -404,7 +394,8 @@ HRESULT f_IDirect3DDevice9::GetDeviceCaps(D3DCAPS9 *pCaps)
 
 HRESULT f_IDirect3DDevice9::GetDirect3D(IDirect3D9 **ppD3D9)
 {
-	return f_pD3DDevice->GetDirect3D(ppD3D9);
+	*ppD3D9 = f_pD3D;
+	return D3D_OK;
 }
 
 HRESULT f_IDirect3DDevice9::GetRasterStatus(THIS_ UINT iSwapChain, D3DRASTER_STATUS* pRasterStatus)

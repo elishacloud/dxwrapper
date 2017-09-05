@@ -64,11 +64,14 @@ class f_IDirect3DDevice9 : public IDirect3DDevice9
 {
 private:
 	LPDIRECT3DDEVICE9 f_pD3DDevice;
-	//ID3DXFont *pFont;
+	LPDIRECT3D9 f_pD3D = nullptr;
 
 public:
-	f_IDirect3DDevice9(LPDIRECT3DDEVICE9 pDevice, LPDIRECT3DDEVICE9 **ppDevice);
-	f_IDirect3DDevice9() { f_pD3DDevice = NULL; }
+	f_IDirect3DDevice9(LPDIRECT3DDEVICE9 pDevice, LPDIRECT3D9 D3D)
+	{
+		f_pD3DDevice = pDevice;
+		f_pD3D = D3D;
+	}
 
 	/*** IUnknown methods ***/
 	STDMETHOD(QueryInterface)(THIS_ REFIID riid, void** ppvObj);
