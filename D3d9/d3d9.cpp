@@ -43,8 +43,6 @@ HRESULT f_iD3D9::CreateDevice(UINT Adapter, D3DDEVTYPE DeviceType,
 	D3DPRESENT_PARAMETERS *pPresentationParameters,
 	IDirect3DDevice9 **ppReturnedDeviceInterface)
 {
-	*ppReturnedDeviceInterface = new f_IDirect3DDevice9(*ppReturnedDeviceInterface, f_pD3D);
-
 	// Check for AntiAliasing
 	bool MultiSampleFlag = false;
 	DWORD QualityLevels = 0;
@@ -100,6 +98,11 @@ HRESULT f_iD3D9::CreateDevice(UINT Adapter, D3DDEVTYPE DeviceType,
 			CopyMemory(pPresentationParameters, &d3dpp, sizeof(d3dpp));
 			hr = f_pD3D->CreateDevice(Adapter, DeviceType, hFocusWindow, BehaviorFlags, pPresentationParameters, ppReturnedDeviceInterface);
 		}
+	}
+
+	if (SUCCEEDED(hr))
+	{
+		*ppReturnedDeviceInterface = new f_IDirect3DDevice9(*ppReturnedDeviceInterface, f_pD3D);
 	}
 
 	return hr;
