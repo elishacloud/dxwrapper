@@ -9,20 +9,10 @@
 Direct3DTexture8::Direct3DTexture8(Direct3DDevice8 *Device, IDirect3DTexture9 *ProxyInterface) :
 	Device(Device), ProxyInterface(ProxyInterface)
 {
-	Device->AddRef();
 	Device->ProxyAddressLookupTable->SaveAddress(this, ProxyInterface);
 }
 Direct3DTexture8::~Direct3DTexture8()
 {
-	if (CleanUpFlag)
-	{
-		Device->ProxyAddressLookupTable->DeleteAddress(this);
-		if (Active)
-		{
-			Active = false;
-			Device->Release();
-		}
-	}
 }
 
 HRESULT STDMETHODCALLTYPE Direct3DTexture8::QueryInterface(REFIID riid, void **ppvObj)
@@ -52,19 +42,7 @@ ULONG STDMETHODCALLTYPE Direct3DTexture8::AddRef()
 }
 ULONG STDMETHODCALLTYPE Direct3DTexture8::Release()
 {
-	const ULONG LastRefCount = ProxyInterface->Release();
-
-	if (LastRefCount == 0)
-	{
-		if (Active)
-		{
-			Active = false;
-			Device->Release();
-		}
-		//delete this;
-	}
-
-	return LastRefCount;
+	return ProxyInterface->Release();
 }
 
 HRESULT STDMETHODCALLTYPE Direct3DTexture8::GetDevice(Direct3DDevice8 **ppDevice)
@@ -182,20 +160,10 @@ Direct3DCubeTexture8::Direct3DCubeTexture8(Direct3DDevice8 *device, IDirect3DCub
 	ProxyInterface(ProxyInterface),
 	Device(device)
 {
-	Device->AddRef();
 	Device->ProxyAddressLookupTable->SaveAddress(this, ProxyInterface);
 }
 Direct3DCubeTexture8::~Direct3DCubeTexture8()
 {
-	if (CleanUpFlag)
-	{
-		Device->ProxyAddressLookupTable->DeleteAddress(this);
-		if (Active)
-		{
-			Active = false;
-			Device->Release();
-		}
-	}
 }
 
 HRESULT STDMETHODCALLTYPE Direct3DCubeTexture8::QueryInterface(REFIID riid, void **ppvObj)
@@ -225,19 +193,7 @@ ULONG STDMETHODCALLTYPE Direct3DCubeTexture8::AddRef()
 }
 ULONG STDMETHODCALLTYPE Direct3DCubeTexture8::Release()
 {
-	const ULONG LastRefCount = ProxyInterface->Release();
-
-	if (LastRefCount == 0)
-	{
-		if (Active)
-		{
-			Active = false;
-			Device->Release();
-		}
-		//delete this;
-	}
-
-	return LastRefCount;
+	return ProxyInterface->Release();
 }
 
 HRESULT STDMETHODCALLTYPE Direct3DCubeTexture8::GetDevice(Direct3DDevice8 **ppDevice)
@@ -355,20 +311,10 @@ Direct3DVolumeTexture8::Direct3DVolumeTexture8(Direct3DDevice8 *device, IDirect3
 	ProxyInterface(ProxyInterface),
 	Device(device)
 {
-	Device->AddRef();
 	Device->ProxyAddressLookupTable->SaveAddress(this, ProxyInterface);
 }
 Direct3DVolumeTexture8::~Direct3DVolumeTexture8()
 {
-	if (CleanUpFlag)
-	{
-		Device->ProxyAddressLookupTable->DeleteAddress(this);
-		if (Active)
-		{
-			Active = false;
-			Device->Release();
-		}
-	}
 }
 
 HRESULT STDMETHODCALLTYPE Direct3DVolumeTexture8::QueryInterface(REFIID riid, void **ppvObj)
@@ -398,19 +344,7 @@ ULONG STDMETHODCALLTYPE Direct3DVolumeTexture8::AddRef()
 }
 ULONG STDMETHODCALLTYPE Direct3DVolumeTexture8::Release()
 {
-	const ULONG LastRefCount = ProxyInterface->Release();
-
-	if (LastRefCount == 0)
-	{
-		if (Active)
-		{
-			Active = false;
-			Device->Release();
-		}
-		//delete this;
-	}
-
-	return LastRefCount;
+	return ProxyInterface->Release();
 }
 
 HRESULT STDMETHODCALLTYPE Direct3DVolumeTexture8::GetDevice(Direct3DDevice8 **ppDevice)

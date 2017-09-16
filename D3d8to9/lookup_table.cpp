@@ -17,11 +17,11 @@ AddressLookupTable::~AddressLookupTable()
 	{
 		while (AddressCache[i].size())
 		{
-			assert(AddressCache[i].back().Address8 != nullptr);
+			auto it = AddressCache[i].begin();
 
-			AddressCache[i].back().Address8->DeleteMe(false);
+			it->second->DeleteMe();
 
-			AddressCache[i].pop_back();
+			it = AddressCache[i].erase(it);
 		}
 	}
 }

@@ -5,17 +5,10 @@
 
 #pragma once
 
-#include <vector>
-#include <iostream>
+#include <unordered_map>
 
 class AddressLookupTable
 {
-	struct AddressStruct
-	{
-		class AddressLookupTableObject *Address8 = nullptr;
-		void *Address9 = nullptr;
-	};
-
 	template <typename T>
 	struct AddressCacheIndex;
 	template <>
@@ -56,16 +49,7 @@ public:
 			return nullptr;
 		}
 
-		T *pAddress8 = nullptr;
-		constexpr UINT CacheIndex = AddressCacheIndex<T>::CacheIndex;
-
-		for (size_t i = 0; i < AddressCache[CacheIndex].size(); i++)
-		{
-			if (AddressCache[CacheIndex][i].Address9 == pAddress9)
-			{
-				pAddress8 = static_cast<T *>(AddressCache[CacheIndex][i].Address8);
-			}
-		}
+		T *pAddress8 = static_cast<T *>(AddressCache[AddressCacheIndex<T>::CacheIndex][pAddress9]);
 
 		if (pAddress8 == nullptr)
 		{
@@ -83,12 +67,9 @@ public:
 			return;
 		}
 
-		AddressStruct CacheData;
-		CacheData.Address8 = pAddress8;
-		CacheData.Address9 = pAddress9;
-
-		AddressCache[AddressCacheIndex<T>::CacheIndex].push_back(std::move(CacheData));
+		AddressCache[AddressCacheIndex<T>::CacheIndex][pAddress9] = pAddress8;
 	}
+
 	template <typename T>
 	void DeleteAddress(T *pAddress8)
 	{
@@ -98,13 +79,11 @@ public:
 		}
 
 		constexpr UINT CacheIndex = AddressCacheIndex<T>::CacheIndex;
-
-		for (size_t i = 0; i < AddressCache[CacheIndex].size(); i++)
+		for (auto it = AddressCache[CacheIndex].begin(); it != AddressCache[CacheIndex].end(); ++it)
 		{
-			if (AddressCache[CacheIndex][i].Address8 == pAddress8)
+			if (it->second == pAddress8)
 			{
-				std::swap(AddressCache[CacheIndex][i], AddressCache[CacheIndex].back());
-				AddressCache[CacheIndex].pop_back();
+				it = AddressCache[CacheIndex].erase(it);
 				return;
 			}
 		}
@@ -112,7 +91,7 @@ public:
 
 private:
 	Direct3DDevice8 *const Device;
-	std::vector<AddressStruct> AddressCache[8];
+	std::unordered_map<void*, class AddressLookupTableObject*> AddressCache[8];
 };
 
 class AddressLookupTableObject
@@ -120,14 +99,8 @@ class AddressLookupTableObject
 public:
 	virtual ~AddressLookupTableObject() { }
 
-	void DeleteMe(bool CleanUp = true)
+	void DeleteMe()
 	{
-		CleanUpFlag = CleanUp;
-
 		delete this;
 	}
-
-protected:
-	bool Active = true;
-	bool CleanUpFlag = true;
 };
