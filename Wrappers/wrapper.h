@@ -40,11 +40,17 @@
 #define	UNHOOK_WRAPPER(className, Z) \
 		className::module.Unhook();
 
-#define jmpaddr _jmpaddr
-
 namespace Wrapper
 {
-	extern const FARPROC _jmpaddr;
+	__declspec(naked) static HRESULT __stdcall ReturnProc()
+	{
+		__asm {
+			mov eax, 0x80004001L	// return E_NOTIMPL
+			retn 16
+		}
+	}
+
+	constexpr FARPROC jmpaddr = (FARPROC)*ReturnProc;
 
 	HMODULE LoadDll(DWORD);
 	void DllAttach();

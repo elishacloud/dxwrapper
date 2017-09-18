@@ -55,8 +55,6 @@ namespace Wrapper
 	void LoadPlugins();
 	void FindFiles(WIN32_FIND_DATA*);
 	void LoadCustomDll();
-	HRESULT WINAPI ReturnProc(...);
-	const FARPROC _jmpaddr = (FARPROC)*ReturnProc;
 }
 
 // Wrapper classes
@@ -64,13 +62,6 @@ VISIT_WRAPPERS(ADD_NAMESPACE_CLASS)
 
 // Proc functions
 VISIT_WRAPPERS(CREATE_ALL_PROC_STUB)
-
-// Default function
-HRESULT WINAPI Wrapper::ReturnProc(...)
-{
-	// Do nothing
-	return E_NOTIMPL;
-}
 
 // Get pointer for funtion name use custom return value
 FARPROC Wrapper::GetProcAddress(HMODULE hModule, LPCSTR FunctionName, FARPROC SetReturnValue)
