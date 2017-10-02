@@ -202,9 +202,6 @@
     <ClCompile Include="DDrawCompat\v0.2.1\UnmodifiedDDrawProcs.cpp">
       <Filter>DDrawCompat</Filter>
     </ClCompile>
-    <ClCompile Include="D3d8to9\d3d8.cpp">
-      <Filter>D3d8to9</Filter>
-    </ClCompile>
     <ClCompile Include="Logging\Logging.cpp">
       <Filter>Logging</Filter>
     </ClCompile>
@@ -407,9 +404,6 @@
     <ClInclude Include="DDrawCompat\v0.2.1\Time1.h">
       <Filter>DDrawCompat</Filter>
     </ClInclude>
-    <ClInclude Include="D3d8to9\d3d8.h">
-      <Filter>D3d8to9</Filter>
-    </ClInclude>
     <ClInclude Include="Logging\Logging.h">
       <Filter>Logging</Filter>
     </ClInclude>
@@ -424,6 +418,9 @@
     </ClInclude>
     <ClInclude Include="D3d9\D3d9External.h">
       <Filter>D3d9</Filter>
+    </ClInclude>
+    <ClInclude Include="D3d8to9\d3d8to9External.h">
+      <Filter>D3d8to9</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

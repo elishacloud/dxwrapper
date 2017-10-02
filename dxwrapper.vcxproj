@@ -189,7 +189,6 @@ cmd /c "@echo off &amp;&amp; cd /D ""$(ProjectDir)Dllmain\"" &amp;&amp; type Bui
     </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="D3d8to9\d3d8.cpp" />
     <ClCompile Include="D3d8to9\d3d8to9.cpp" />
     <ClCompile Include="D3d8to9\d3d8to9_base.cpp" />
     <ClCompile Include="D3d8to9\d3d8to9_device.cpp" />
@@ -258,7 +257,7 @@ cmd /c "@echo off &amp;&amp; cd /D ""$(ProjectDir)Dllmain\"" &amp;&amp; type Bui
     <None Include="Wrappers\wrapper.def" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="D3d8to9\d3d8.h" />
+    <ClInclude Include="D3d8to9\d3d8to9External.h" />
     <ClInclude Include="D3d8to9\d3d8to9.hpp" />
     <ClInclude Include="D3d8to9\d3d8types.hpp" />
     <ClInclude Include="D3d8to9\lookup_table.hpp" />
