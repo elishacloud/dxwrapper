@@ -93,7 +93,7 @@ DxWrapper uses code from several other projects. So to give credit where credit 
  - [MemoryModule](https://github.com/fancycode/MemoryModule): Includes code for loading libraries from memory.
  - [Parsing PE export table](http://www.rohitab.com/discuss/topic/40594-parsing-pe-export-table/): Includes the full GetProcAddress.
  - [How do I programmatically get the version of a DLL or EXE file?](https://stackoverflow.com/questions/940707/how-do-i-programmatically-get-the-version-of-a-dll-or-exe-file): Includes code for getting the version of an EXE file.
- - hxxp://www.blitzbasic.com/Community/post.php?topic=99477&post=1202996 (site no longer exists): Used date here to create ability to set all 12 SetAppCompatData settings.
+ - http://www_blitzbasic_com/Community/post.php?topic=99477&post=1202996 (site no longer exists): Used date here to create ability to set all 12 SetAppCompatData settings.
 
 ### Development
 DxWrapper is mostly written in C++ using Microsoft Visual Studio Community 2015.
