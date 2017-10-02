@@ -17,25 +17,21 @@
 */
 
 #include "Settings\Settings.h"
-#include "Wrappers\Wrapper.h"
 #include "d3d9.h"
+#include "d3d9External.h"
 #include "d3dx9.h"
 #include "Logging\Logging.h"
 
-IDirect3D9 *WINAPI _Direct3DCreate9_Wrapper(UINT SDKVersion)
+namespace d3d9_wrap
 {
-	Logging::Log() << "Direct3DCreate9 function (" << SDKVersion << ")";
-	orig_Direct3DCreate9 = (D3DC9)Wrapper::d3d9_Wrapper::_Direct3DCreate9_RealProc;
-	return new f_iD3D9(orig_Direct3DCreate9(SDKVersion));
+	FARPROC Direct3DCreate9_Proxy = nullptr;
 }
 
-namespace Wrapper
+IDirect3D9 *WINAPI _Direct3DCreate9(UINT SDKVersion)
 {
-	namespace d3d9_Wrapper
-	{
-		FARPROC _Direct3DCreate9_RealProc;
-		FARPROC _Direct3DCreate9_WrapperProc = (FARPROC)*_Direct3DCreate9_Wrapper;
-	}
+	Logging::Log() << "Direct3DCreate9 function (" << SDKVersion << ")";
+	orig_Direct3DCreate9 = (D3DC9)d3d9_wrap::Direct3DCreate9_Proxy;
+	return new f_iD3D9(orig_Direct3DCreate9(SDKVersion));
 }
 
 HRESULT f_iD3D9::CreateDevice(UINT Adapter, D3DDEVTYPE DeviceType,

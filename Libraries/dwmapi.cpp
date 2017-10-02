@@ -14,6 +14,8 @@
 *   3. This notice may not be removed or altered from any source distribution.
 */
 
+#include "Settings\Settings.h"
+#include "Utils\Utils.h"
 #include "Logging\Logging.h"
 
 typedef HRESULT(WINAPI *PFN_DwmSetWindowAttribute)(HWND hwnd, DWORD dwAttribute, LPCVOID pvAttribute, DWORD cbAttribute);
@@ -28,10 +30,9 @@ void Loaddwmapi()
 		return; // Only load the dll once
 	}
 	IsLoaded = true;
-	dwmapiModule = LoadLibrary("dwmapi.dll");
+	dwmapiModule = Utils::LoadLibrary("dwmapi.dll");
 	if (dwmapiModule)
 	{
-		Logging::Log() << "Loaded dwmapi.dll library";
 		DwmSetWindowAttributePtr = reinterpret_cast<PFN_DwmSetWindowAttribute>(GetProcAddress(dwmapiModule, "DwmSetWindowAttribute"));
 		if (!DwmSetWindowAttributePtr)
 		{
@@ -41,14 +42,6 @@ void Loaddwmapi()
 	else
 	{
 		Logging::Log() << "Failed to load dwmapi.dll!";
-	}
-}
-
-void UnLoaddwmapi()
-{
-	if (dwmapiModule)
-	{
-		FreeLibrary(dwmapiModule);
 	}
 }
 

@@ -1,20 +1,14 @@
 #pragma once
 
-#include "Wrappers\Wrapper.h"
-
 BOOL WINAPI DllMain_DDrawCompat(HINSTANCE, DWORD, LPVOID);
 
-extern "C" HRESULT WINAPI DirectDrawCreate(GUID*, LPDIRECTDRAW*, IUnknown*);
-extern "C" HRESULT WINAPI DirectDrawCreateEx(GUID*, LPVOID*, REFIID, IUnknown*);
-extern "C" HRESULT WINAPI DllGetClassObject(REFCLSID, REFIID, LPVOID*);
+extern "C" HRESULT WINAPI _DirectDrawCreate(GUID*, LPDIRECTDRAW*, IUnknown*);
+extern "C" HRESULT WINAPI _DirectDrawCreateEx(GUID*, LPVOID*, REFIID, IUnknown*);
+extern "C" HRESULT WINAPI _DllGetClassObject(REFCLSID, REFIID, LPVOID*);
 
-namespace Wrapper
+namespace DDrawCompat
 {
-	namespace DDrawCompat
-	{
-		FARPROC _DirectDrawCreate = (FARPROC)*DirectDrawCreate;
-		FARPROC _DirectDrawCreateEx = (FARPROC)*DirectDrawCreateEx;
-		FARPROC _DllGetClassObject = (FARPROC)*DllGetClassObject;
-	}
-
+	constexpr FARPROC DirectDrawCreate = (FARPROC)*_DirectDrawCreate;
+	constexpr FARPROC DirectDrawCreateEx = (FARPROC)*_DirectDrawCreateEx;
+	constexpr FARPROC DllGetClassObject = (FARPROC)*_DllGetClassObject;
 }

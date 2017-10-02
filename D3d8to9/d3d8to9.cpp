@@ -7,18 +7,20 @@
 
 //********** Begin Edit *************
 #include "d3d8to9.hpp"
-#include "wrappers\wrapper.h"
+#include "Utils\Utils.h"
+#include "Hooking\Hook.h"
 typedef LPDIRECT3D9(WINAPI *PFN_Direct3DCreate9)(UINT SDKVersion);
 //********** End Edit ***************
 
 
-extern "C" Direct3D8 *WINAPI Direct3DCreate8(UINT SDKVersion)
+extern "C" Direct3D8 *WINAPI _Direct3DCreate8(UINT SDKVersion)
 {
 	//********** Begin Edit *************
 	LOG << "Enabling D3d8to9 function (" << SDKVersion << ")";
 
 	// Declare Direct3DCreate9
-	static PFN_Direct3DCreate9 Direct3DCreate9 = reinterpret_cast<PFN_Direct3DCreate9>(Wrapper::D3d8to9::_Direct3DCreate9);
+	HMODULE dll = Utils::LoadLibrary(dtypename[dtype.d3d9]);
+	static PFN_Direct3DCreate9 Direct3DCreate9 = reinterpret_cast<PFN_Direct3DCreate9>(Hook::GetProcAddress(dll, "Direct3DCreate9"));
 	if (!Direct3DCreate9)
 	{
 		LOG << "Failed to get 'Direct3DCreate9' ProcAddress of d3d9.dll!";

@@ -1,7 +1,7 @@
 #include "DDrawProcs.h"
 
 #define CREATE_DDRAW_PROC_STUB(procName) \
-	extern "C" __declspec(naked) void __stdcall procName() \
+	extern "C" __declspec(naked) void __stdcall _ ## procName() \
 	{ \
 		__asm jmp Compat::origProcs.procName \
 	}

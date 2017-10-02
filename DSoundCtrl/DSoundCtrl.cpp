@@ -30,10 +30,12 @@
 #include "dsound.h"
 #include "DSoundTypes.h"
 #include "DSoundCtrl.h"
-#include "DSoundCtrlExternal.h"
 #include "IDirectSoundClassFactoryEx.h"
-#include "Wrappers\wrapper.h"
 #include "Logging\Logging.h"
+#include "Hooking\Hook.h"
+#include "Utils\Utils.h"
+
+#define DllMain DllMain_DSoundCtrl
 
 LPDSENUMCALLBACKA	g_pAppDSEnumCallbackA;
 LPDSENUMCALLBACKW	g_pAppDSEnumCallbackW;
@@ -141,7 +143,7 @@ BOOL CDSoundCtrlApp::InitInstance(HMODULE hModule)
 	// Load DSOUND.DLL and get entry points
 	if (Config.RealWrapperMode == dtype.dsound)
 	{
-		g_hDLL = Wrapper::LoadDll(dtype.dsound);
+		g_hDLL = Utils::LoadLibrary("dsound.dll");
 	}
 	else
 	{
@@ -155,18 +157,18 @@ BOOL CDSoundCtrlApp::InitInstance(HMODULE hModule)
 		return FALSE;
 	}
 
-	g_pDirectSoundCreate = (DirectSoundCreatefunc)  ::GetProcAddress(g_hDLL, "DirectSoundCreate");
-	g_pDirectSoundCreate8 = (DirectSoundCreate8func) ::GetProcAddress(g_hDLL, "DirectSoundCreate8");
-	g_pGetDeviceIDfunc = (GetDeviceIDfunc) ::GetProcAddress(g_hDLL, "GetDeviceID");
-	g_pDirectSoundEnumerateAfunc = (DirectSoundEnumerateAfunc)  ::GetProcAddress(g_hDLL, "DirectSoundEnumerateA");
-	g_pDirectSoundEnumerateWfunc = (DirectSoundEnumerateWfunc) ::GetProcAddress(g_hDLL, "DirectSoundEnumerateW");
-	g_pDirectSoundCaptureCreatefunc = (DirectSoundCaptureCreatefunc) ::GetProcAddress(g_hDLL, "DirectSoundCaptureCreate");
-	g_pDirectSoundCaptureEnumerateAfunc = (DirectSoundCaptureEnumerateAfunc)  ::GetProcAddress(g_hDLL, "DirectSoundCaptureEnumerateA");
-	g_pDirectSoundCaptureEnumerateWfunc = (DirectSoundCaptureEnumerateWfunc)  ::GetProcAddress(g_hDLL, "DirectSoundCaptureEnumerateW");
-	g_pDirectSoundCaptureCreate8func = (DirectSoundCaptureCreate8func)  ::GetProcAddress(g_hDLL, "DirectSoundCaptureCreate8");
-	g_pDirectSoundFullDuplexCreatefunc = (DirectSoundFullDuplexCreatefunc)  ::GetProcAddress(g_hDLL, "DirectSoundFullDuplexCreate");
-	g_pDllGetClassObjectfunc = (DllGetClassObjectfunc) ::GetProcAddress(g_hDLL, "DllGetClassObject");
-	g_pDllCanUnloadNowfunc = (DllCanUnloadNowfunc) ::GetProcAddress(g_hDLL, "DllCanUnloadNow");
+	g_pDirectSoundCreate = (DirectSoundCreatefunc)Hook::GetProcAddress(g_hDLL, "DirectSoundCreate");
+	g_pDirectSoundCreate8 = (DirectSoundCreate8func)Hook::GetProcAddress(g_hDLL, "DirectSoundCreate8");
+	g_pGetDeviceIDfunc = (GetDeviceIDfunc)Hook::GetProcAddress(g_hDLL, "GetDeviceID");
+	g_pDirectSoundEnumerateAfunc = (DirectSoundEnumerateAfunc)Hook::GetProcAddress(g_hDLL, "DirectSoundEnumerateA");
+	g_pDirectSoundEnumerateWfunc = (DirectSoundEnumerateWfunc)Hook::GetProcAddress(g_hDLL, "DirectSoundEnumerateW");
+	g_pDirectSoundCaptureCreatefunc = (DirectSoundCaptureCreatefunc)Hook::GetProcAddress(g_hDLL, "DirectSoundCaptureCreate");
+	g_pDirectSoundCaptureEnumerateAfunc = (DirectSoundCaptureEnumerateAfunc)Hook::GetProcAddress(g_hDLL, "DirectSoundCaptureEnumerateA");
+	g_pDirectSoundCaptureEnumerateWfunc = (DirectSoundCaptureEnumerateWfunc)Hook::GetProcAddress(g_hDLL, "DirectSoundCaptureEnumerateW");
+	g_pDirectSoundCaptureCreate8func = (DirectSoundCaptureCreate8func)Hook::GetProcAddress(g_hDLL, "DirectSoundCaptureCreate8");
+	g_pDirectSoundFullDuplexCreatefunc = (DirectSoundFullDuplexCreatefunc)Hook::GetProcAddress(g_hDLL, "DirectSoundFullDuplexCreate");
+	g_pDllGetClassObjectfunc = (DllGetClassObjectfunc)Hook::GetProcAddress(g_hDLL, "DllGetClassObject");
+	g_pDllCanUnloadNowfunc = (DllCanUnloadNowfunc)Hook::GetProcAddress(g_hDLL, "DllCanUnloadNow");
 
 #ifdef _DEBUG
 	if (g_bDebugBeep)
@@ -205,7 +207,7 @@ bool CDSoundCtrlApp::EnumCallback(LPGUID  lpGuid, LPCSTR  lpcstrDescription, LPC
 }
 #endif
 
-HRESULT STDMETHODCALLTYPE DirectSoundCreate(LPCGUID pcGuidDevice, LPDIRECTSOUND *ppDS, LPUNKNOWN pUnkOuter)
+HRESULT STDMETHODCALLTYPE _DirectSoundCreate(LPCGUID pcGuidDevice, LPDIRECTSOUND *ppDS, LPUNKNOWN pUnkOuter)
 {
 #ifdef _DEBUG
 	if (g_bLogSystem)
@@ -238,7 +240,7 @@ HRESULT STDMETHODCALLTYPE DirectSoundCreate(LPCGUID pcGuidDevice, LPDIRECTSOUND 
 	return hRes;
 }
 
-BOOL STDMETHODCALLTYPE DSDLLEnumCallbackA(LPGUID lpGuid, LPCSTR lpcstrDescription, LPCSTR lpcstrModule, LPVOID lpContext)
+BOOL STDMETHODCALLTYPE _DSDLLEnumCallbackA(LPGUID lpGuid, LPCSTR lpcstrDescription, LPCSTR lpcstrModule, LPVOID lpContext)
 {
 #ifdef _DEBUG
 	if (g_bLogSystem)
@@ -252,7 +254,7 @@ BOOL STDMETHODCALLTYPE DSDLLEnumCallbackA(LPGUID lpGuid, LPCSTR lpcstrDescriptio
 	return g_pAppDSEnumCallbackA(lpGuid, lpcstrDescription, lpcstrModule, lpContext);
 }
 
-BOOL STDMETHODCALLTYPE DSDLLEnumCallbackW(LPGUID lpGuid, LPCWSTR lpcstrDescription, LPCWSTR lpcstrModule, LPVOID lpContext)
+BOOL STDMETHODCALLTYPE _DSDLLEnumCallbackW(LPGUID lpGuid, LPCWSTR lpcstrDescription, LPCWSTR lpcstrModule, LPVOID lpContext)
 {
 #ifdef _DEBUG
 	if (g_bLogSystem)
@@ -266,7 +268,7 @@ BOOL STDMETHODCALLTYPE DSDLLEnumCallbackW(LPGUID lpGuid, LPCWSTR lpcstrDescripti
 	return g_pAppDSEnumCallbackW(lpGuid, lpcstrDescription, lpcstrModule, lpContext);
 }
 
-HRESULT STDMETHODCALLTYPE DirectSoundEnumerateA(LPDSENUMCALLBACKA pDSEnumCallback, LPVOID pContext)
+HRESULT STDMETHODCALLTYPE _DirectSoundEnumerateA(LPDSENUMCALLBACKA pDSEnumCallback, LPVOID pContext)
 {
 #ifdef _DEBUG
 	if (g_bLogSystem)
@@ -277,10 +279,10 @@ HRESULT STDMETHODCALLTYPE DirectSoundEnumerateA(LPDSENUMCALLBACKA pDSEnumCallbac
 
 	g_pAppDSEnumCallbackA = pDSEnumCallback;
 
-	return g_pDirectSoundEnumerateAfunc((LPDSENUMCALLBACKA)DSDLLEnumCallbackA, pContext);
+	return g_pDirectSoundEnumerateAfunc((LPDSENUMCALLBACKA)_DSDLLEnumCallbackA, pContext);
 }
 
-HRESULT STDMETHODCALLTYPE DirectSoundEnumerateW(LPDSENUMCALLBACKW pDSEnumCallback, LPVOID pContext)
+HRESULT STDMETHODCALLTYPE _DirectSoundEnumerateW(LPDSENUMCALLBACKW pDSEnumCallback, LPVOID pContext)
 {
 #ifdef _DEBUG
 	if (g_bLogSystem)
@@ -291,10 +293,10 @@ HRESULT STDMETHODCALLTYPE DirectSoundEnumerateW(LPDSENUMCALLBACKW pDSEnumCallbac
 
 	g_pAppDSEnumCallbackW = pDSEnumCallback;
 
-	return g_pDirectSoundEnumerateWfunc((LPDSENUMCALLBACKW)DSDLLEnumCallbackW, pContext);
+	return g_pDirectSoundEnumerateWfunc((LPDSENUMCALLBACKW)_DSDLLEnumCallbackW, pContext);
 }
 
-HRESULT STDMETHODCALLTYPE DirectSoundCaptureCreate(LPCGUID pcGuidDevice, LPDIRECTSOUNDCAPTURE *ppDSC, LPUNKNOWN pUnkOuter)
+HRESULT STDMETHODCALLTYPE _DirectSoundCaptureCreate(LPCGUID pcGuidDevice, LPDIRECTSOUNDCAPTURE *ppDSC, LPUNKNOWN pUnkOuter)
 {
 #ifdef _DEBUG
 	if (g_bLogSystem)
@@ -306,7 +308,7 @@ HRESULT STDMETHODCALLTYPE DirectSoundCaptureCreate(LPCGUID pcGuidDevice, LPDIREC
 	return g_pDirectSoundCaptureCreatefunc(pcGuidDevice, ppDSC, pUnkOuter);
 }
 
-HRESULT STDMETHODCALLTYPE DirectSoundCaptureEnumerateA(LPDSENUMCALLBACKA pDSEnumCallback, LPVOID pContext)
+HRESULT STDMETHODCALLTYPE _DirectSoundCaptureEnumerateA(LPDSENUMCALLBACKA pDSEnumCallback, LPVOID pContext)
 {
 #ifdef _DEBUG
 	if (g_bLogSystem)
@@ -318,7 +320,7 @@ HRESULT STDMETHODCALLTYPE DirectSoundCaptureEnumerateA(LPDSENUMCALLBACKA pDSEnum
 	return g_pDirectSoundCaptureEnumerateAfunc(pDSEnumCallback, pContext);
 }
 
-HRESULT STDMETHODCALLTYPE DirectSoundCaptureEnumerateW(LPDSENUMCALLBACKW pDSEnumCallback, LPVOID pContext)
+HRESULT STDMETHODCALLTYPE _DirectSoundCaptureEnumerateW(LPDSENUMCALLBACKW pDSEnumCallback, LPVOID pContext)
 {
 #ifdef _DEBUG
 	if (g_bLogSystem)
@@ -330,7 +332,7 @@ HRESULT STDMETHODCALLTYPE DirectSoundCaptureEnumerateW(LPDSENUMCALLBACKW pDSEnum
 	return g_pDirectSoundCaptureEnumerateWfunc(pDSEnumCallback, pContext);
 }
 
-HRESULT STDMETHODCALLTYPE DirectSoundCreate8(LPCGUID pcGuidDevice, LPDIRECTSOUND8 *ppDS8, LPUNKNOWN pUnkOuter)
+HRESULT STDMETHODCALLTYPE _DirectSoundCreate8(LPCGUID pcGuidDevice, LPDIRECTSOUND8 *ppDS8, LPUNKNOWN pUnkOuter)
 {
 #ifdef _DEBUG
 	if (g_bLogSystem)
@@ -361,7 +363,7 @@ HRESULT STDMETHODCALLTYPE DirectSoundCreate8(LPCGUID pcGuidDevice, LPDIRECTSOUND
 	return hRes;
 }
 
-HRESULT STDMETHODCALLTYPE DirectSoundCaptureCreate8(LPCGUID pcGuidDevice, LPDIRECTSOUNDCAPTURE8 *ppDSC8, LPUNKNOWN pUnkOuter)
+HRESULT STDMETHODCALLTYPE _DirectSoundCaptureCreate8(LPCGUID pcGuidDevice, LPDIRECTSOUNDCAPTURE8 *ppDSC8, LPUNKNOWN pUnkOuter)
 {
 #ifdef _DEBUG
 	if (g_bLogSystem)
@@ -373,7 +375,7 @@ HRESULT STDMETHODCALLTYPE DirectSoundCaptureCreate8(LPCGUID pcGuidDevice, LPDIRE
 	return g_pDirectSoundCaptureCreate8func(pcGuidDevice, ppDSC8, pUnkOuter);
 }
 
-HRESULT STDMETHODCALLTYPE DirectSoundFullDuplexCreate(LPCGUID pcGuidCaptureDevice, LPCGUID pcGuidRenderDevice,
+HRESULT STDMETHODCALLTYPE _DirectSoundFullDuplexCreate(LPCGUID pcGuidCaptureDevice, LPCGUID pcGuidRenderDevice,
 	LPCDSCBUFFERDESC pcDSCBufferDesc, LPCDSBUFFERDESC pcDSBufferDesc, HWND hWnd,
 	DWORD dwLevel, LPDIRECTSOUNDFULLDUPLEX* ppDSFD, LPDIRECTSOUNDCAPTUREBUFFER8 *ppDSCBuffer8,
 	LPDIRECTSOUNDBUFFER8 *ppDSBuffer8, LPUNKNOWN pUnkOuter)
@@ -391,7 +393,7 @@ HRESULT STDMETHODCALLTYPE DirectSoundFullDuplexCreate(LPCGUID pcGuidCaptureDevic
 		ppDSBuffer8, pUnkOuter);
 }
 
-HRESULT STDMETHODCALLTYPE GetDeviceID(LPCGUID pGuidSrc, LPGUID pGuidDest)
+HRESULT STDMETHODCALLTYPE _GetDeviceID(LPCGUID pGuidSrc, LPGUID pGuidDest)
 {
 #ifdef _DEBUG
 	if (g_bLogSystem)
@@ -403,7 +405,7 @@ HRESULT STDMETHODCALLTYPE GetDeviceID(LPCGUID pGuidSrc, LPGUID pGuidDest)
 	return g_pGetDeviceIDfunc(pGuidSrc, pGuidDest);
 }
 
-STDAPI STDMETHODCALLTYPE DllCanUnloadNow_DSoundCtrl()
+STDAPI STDMETHODCALLTYPE _DllCanUnloadNow_DSoundCtrl()
 {
 #ifdef _DEBUG
 	if (g_bLogSystem)
@@ -415,7 +417,7 @@ STDAPI STDMETHODCALLTYPE DllCanUnloadNow_DSoundCtrl()
 	return g_pDllCanUnloadNowfunc();
 }
 
-STDAPI STDMETHODCALLTYPE DllGetClassObject_DSoundCtrl(IN REFCLSID rclsid, IN REFIID riid, OUT LPVOID FAR* ppv)
+STDAPI STDMETHODCALLTYPE _DllGetClassObject_DSoundCtrl(IN REFCLSID rclsid, IN REFIID riid, OUT LPVOID FAR* ppv)
 {
 	*ppv = nullptr;
 
@@ -472,7 +474,7 @@ STDAPI STDMETHODCALLTYPE DllGetClassObject_DSoundCtrl(IN REFCLSID rclsid, IN REF
 	return g_pDllGetClassObjectfunc(rclsid, riid, ppv);
 }
 
-BOOL APIENTRY DllMain_DSoundCtrl(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
+BOOL APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 {
 	UNREFERENCED_PARAMETER(lpReserved);
 
@@ -495,23 +497,4 @@ BOOL APIENTRY DllMain_DSoundCtrl(HMODULE hModule, DWORD fdwReason, LPVOID lpRese
 	}
 
 	return TRUE;
-}
-
-namespace Wrapper
-{
-	namespace DSoundCtrl
-	{
-		FARPROC _DirectSoundCreate = (FARPROC)*DirectSoundCreate;
-		FARPROC _DirectSoundEnumerateA = (FARPROC)*DirectSoundEnumerateA;
-		FARPROC _DirectSoundEnumerateW = (FARPROC)*DirectSoundEnumerateW;
-		FARPROC _DllCanUnloadNow = (FARPROC)*DllCanUnloadNow_DSoundCtrl;
-		FARPROC _DllGetClassObject = (FARPROC)*DllGetClassObject_DSoundCtrl;
-		FARPROC _DirectSoundCaptureCreate = (FARPROC)*DirectSoundCaptureCreate;
-		FARPROC _DirectSoundCaptureEnumerateA = (FARPROC)*DirectSoundCaptureEnumerateA;
-		FARPROC _DirectSoundCaptureEnumerateW = (FARPROC)*DirectSoundCaptureEnumerateW;
-		FARPROC _GetDeviceID = (FARPROC)*GetDeviceID;
-		FARPROC _DirectSoundFullDuplexCreate = (FARPROC)*DirectSoundFullDuplexCreate;
-		FARPROC _DirectSoundCreate8 = (FARPROC)*DirectSoundCreate8;
-		FARPROC _DirectSoundCaptureCreate8 = (FARPROC)*DirectSoundCaptureCreate8;
-	}
 }

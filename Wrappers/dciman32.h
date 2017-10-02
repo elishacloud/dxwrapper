@@ -1,6 +1,6 @@
 #pragma once
 
-#define VISIT_DCIMAN32_PROCS(visit) \
+#define VISIT_PROCS(visit) \
 	visit(DCIBeginAccess) \
 	visit(DCICloseProvider) \
 	visit(DCICreateOffscreen) \
@@ -22,33 +22,6 @@
 	visit(WinWatchNotify) \
 	visit(WinWatchOpen)
 
-namespace dciman32
-{
-	class dciman32_dll
-	{
-	public:
-		HMODULE dll = nullptr;
-		VISIT_DCIMAN32_PROCS(ADD_FARPROC_MEMBER);
+PROC_CLASS(dciman32, dll)
 
-		void Load()
-		{
-			if (Config.WrapperMode != dtype.dciman32 && Config.WrapperMode != dtype.Auto)
-			{
-				return;
-			}
-
-			// Load real dll
-			dll = LoadDll(dtype.dciman32);
-
-			// Load dll functions
-			if (dll)
-			{
-				VISIT_DCIMAN32_PROCS(LOAD_ORIGINAL_PROC);
-			}
-		}
-
-		void Unhook() {}
-	};
-
-	extern dciman32_dll module;
-};
+#undef VISIT_PROCS

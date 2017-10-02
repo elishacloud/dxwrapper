@@ -15,6 +15,8 @@
 */
 
 #include "d3dx9.h"
+#include "Settings\Settings.h"
+#include "Utils\Utils.h"
 #include "Logging\Logging.h"
 
 typedef HRESULT(WINAPI *PFN_D3DXAssembleShader)(LPCSTR pSrcData, UINT SrcDataLen, const D3DXMACRO *pDefines, LPD3DXINCLUDE pInclude, DWORD Flags, LPD3DXBUFFER *ppShader, LPD3DXBUFFER *ppErrorMsgs);
@@ -41,19 +43,19 @@ void Loadd3dx9()
 	static char d3dx9name[MAX_PATH];
 	if (!d3dx9Module)
 	{
+		Logging::Log() << "Loading d3dx9_xx.dll";
 		// Declare d3dx9_xx.dll version
 		for (int x = 99; x > 9 && d3dx9Module == nullptr; x--)
 		{
 			// Get dll name
 			sprintf_s(d3dx9name, "d3dx9_%d.dll", x);
 			// Load dll
-			d3dx9Module = LoadLibrary(d3dx9name);
+			d3dx9Module = Utils::LoadLibrary(d3dx9name, false);
 		}
 	}
 
 	if (d3dx9Module)
 	{
-		Logging::Log() << "Loaded " << d3dx9name << " library";
 		D3DXAssembleShaderPtr = reinterpret_cast<PFN_D3DXAssembleShader>(GetProcAddress(d3dx9Module, "D3DXAssembleShader"));
 		D3DXDisassembleShaderPtr = reinterpret_cast<PFN_D3DXDisassembleShader>(GetProcAddress(d3dx9Module, "D3DXDisassembleShader"));
 		D3DXLoadSurfaceFromSurfacePtr = reinterpret_cast<PFN_D3DXLoadSurfaceFromSurface>(GetProcAddress(d3dx9Module, "D3DXLoadSurfaceFromSurface"));
@@ -73,14 +75,6 @@ void Loadd3dx9()
 	else
 	{
 		Logging::Log() << "Failed to load dwmapi.dll!";
-	}
-}
-
-void UnLoadd3dx9()
-{
-	if (d3dx9Module)
-	{
-		FreeLibrary(d3dx9Module);
 	}
 }
 

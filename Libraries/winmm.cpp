@@ -16,7 +16,7 @@
 
 #include "winmm.h"
 #include "Settings\Settings.h"
-#include "Wrappers\wrapper.h"
+#include "Utils\Utils.h"
 #include "Logging\Logging.h"
 
 typedef MMRESULT(WINAPI *PFN_timeBeginPeriod)(UINT uPeriod);
@@ -33,7 +33,7 @@ void Loadwinmm()
 		return; // Only load the dll once
 	}
 	IsLoaded = true;
-	winmmModule = Wrapper::LoadDll(dtype.winmm);
+	winmmModule = Utils::LoadLibrary("winmm.dll");
 	if (winmmModule)
 	{
 		timeBeginPeriodPtr = reinterpret_cast<PFN_timeBeginPeriod>(GetProcAddress(winmmModule, "timeBeginPeriod"));

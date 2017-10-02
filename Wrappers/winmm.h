@@ -1,6 +1,6 @@
 #pragma once
 
-#define VISIT_WINMM_PROCS(visit) \
+#define VISIT_PROCS(visit) \
 	visit(CloseDriver) \
 	visit(DefDriverProc) \
 	visit(DriverCallback) \
@@ -194,35 +194,13 @@
 	visit(wid32Message) \
 	visit(winmmDbgOut) \
 	visit(winmmSetDebugLevel) \
-	visit(wod32Message)
+	visit(wod32Message) \
+	visit(sndOpenSound) \
+	visit(winmmbaseFreeMMEHandles) \
+	visit(winmmbaseGetWOWHandle) \
+	visit(winmmbaseHandle32FromHandle16) \
+	visit(winmmbaseSetWOWHandle)
 
-namespace winmm
-{
-	class winmm_dll
-	{
-	public:
-		HMODULE dll = nullptr;
-		VISIT_WINMM_PROCS(ADD_FARPROC_MEMBER);
+PROC_CLASS(winmm, dll)
 
-		void Load()
-		{
-			if (Config.WrapperMode != dtype.winmm && Config.WrapperMode != dtype.Auto)
-			{
-				return;
-			}
-
-			// Load real dll
-			dll = LoadDll(dtype.winmm);
-
-			// Load dll functions
-			if (dll)
-			{
-				VISIT_WINMM_PROCS(LOAD_ORIGINAL_PROC);
-			}
-		}
-
-		void Unhook() {}
-	};
-
-	extern winmm_dll module;
-}
+#undef VISIT_PROCS

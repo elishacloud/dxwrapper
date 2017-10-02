@@ -14,6 +14,8 @@
 *   3. This notice may not be removed or altered from any source distribution.
 */
 
+#include "Settings\Settings.h"
+#include "Utils\Utils.h"
 #include "Logging\Logging.h"
 
 typedef void(WINAPI *PFN_SetThemeAppProperties)(DWORD dwFlags);
@@ -28,10 +30,9 @@ void LoadUxtheme()
 		return; // Only load the dll once
 	}
 	IsLoaded = true;
-	UxThemeModule = LoadLibrary("uxtheme.dll");
+	UxThemeModule = Utils::LoadLibrary("uxtheme.dll");
 	if (UxThemeModule)
 	{
-		Logging::Log() << "Loaded uxtheme.dll library";
 		SetThemeAppPropertiesPtr = reinterpret_cast<PFN_SetThemeAppProperties>(GetProcAddress(UxThemeModule, "SetThemeAppProperties"));
 		if (!SetThemeAppPropertiesPtr)
 		{
@@ -41,14 +42,6 @@ void LoadUxtheme()
 	else
 	{
 		Logging::Log() << "Failed to load uxtheme.dll!";
-	}
-}
-
-void UnLoadUxtheme()
-{
-	if (UxThemeModule)
-	{
-		FreeLibrary(UxThemeModule);
 	}
 }
 

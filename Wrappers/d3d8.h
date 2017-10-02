@@ -1,56 +1,11 @@
 #pragma once
 
-#define VISIT_D3D8_PROCS(visit) \
-	visit(Direct3DCreate8) \
+#define VISIT_PROCS(visit) \
+	visit(Direct3D8EnableMaximizedWindowedModeShim) \
 	visit(ValidateVertexShader) \
 	visit(ValidatePixelShader) \
-	visit(DebugSetMute)
+	visit(Direct3DCreate8)
 
-namespace d3d8
-{
-	class d3d8_dll
-	{
-	public:
-		HMODULE dll = nullptr;
-		VISIT_D3D8_PROCS(ADD_FARPROC_MEMBER);
+PROC_CLASS(d3d8, dll)
 
-		void Load()
-		{
-			if (Config.WrapperMode != dtype.d3d8 && Config.WrapperMode != dtype.Auto && !Config.D3d8to9)
-			{
-				return;
-			}
-
-			// Enable d3d8to9 conversion
-			if (Config.D3d8to9 && Config.RealWrapperMode == dtype.d3d8)
-			{
-				Direct3DCreate8 = D3d8to9::_Direct3DCreate8;
-				ValidateVertexShader = (FARPROC)*_ValidateVertexShader;
-				ValidatePixelShader = (FARPROC)*_ValidatePixelShader;
-			}
-
-			// Load normal dll
-			else
-			{
-				// Load real dll
-				dll = LoadDll(dtype.d3d8);
-
-				// Load dll functions
-				if (dll)
-				{
-					VISIT_D3D8_PROCS(LOAD_ORIGINAL_PROC);
-
-					// Hook APIs for d3d8to9 conversion
-					if (Config.D3d8to9)
-					{
-						Logging::Log() << "Hooking d3d8.dll APIs...";
-						// Direct3DCreate8
-						Direct3DCreate8 = (FARPROC)Hook::HookAPI(hModule_dll, dtypename[dtype.d3d8], Hook::GetProcAddress(dll, "Direct3DCreate8"), "Direct3DCreate8", D3d8to9::_Direct3DCreate8);
-					}
-				}
-			}
-		}
-	};
-
-	extern d3d8_dll module;
-}
+#undef VISIT_PROCS

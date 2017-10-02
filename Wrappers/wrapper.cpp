@@ -12,58 +12,105 @@
 *   2. Altered source versions must  be plainly  marked as such, and  must not be  misrepresented  as
 *      being the original software.
 *   3. This notice may not be removed or altered from any source distribution.
-*
-* ASI plugin loader taken from source code found in Ultimate ASI Loader
-* https://github.com/ThirteenAG/Ultimate-ASI-Loader
 */
 
-// Default
-#include "Settings\Settings.h"
-#include "Dllmain\Dllmain.h"
-#include "Hooking\Hook.h"
-#include "Logging\Logging.h"
+#define WIN32_LEAN_AND_MEAN
+#include <Windows.h>
+#include <fstream>
 #include "wrapper.h"
-// Libraries
-#include "d3dx9.h"
-#include "dwmapi.h"
-#include "uxtheme.h"
 
-using namespace Wrapper;
+#define ADD_FARPROC_MEMBER(procName) \
+	FARPROC procName ## _var = jmpaddr;
+
+#define	LOAD_ORIGINAL_PROC(procName) \
+	procName ## _var = GetProcAddress(dll, #procName, jmpaddr);
+
+#define CREATE_PROC_STUB(procName) \
+	extern "C" __declspec(naked) void __stdcall procName() \
+	{ \
+		__asm mov edi, edi \
+		__asm jmp procName ## _var \
+	}
+
+#define PROC_CLASS(className, Extension) \
+	namespace className \
+	{ \
+		using namespace Wrapper; \
+		char *Name = #className ## "." ## #Extension; \
+		VISIT_PROCS(ADD_FARPROC_MEMBER); \
+		HMODULE Load(char *strName) \
+		{ \
+			char path[MAX_PATH]; \
+			GetSystemDirectoryA(path, MAX_PATH); \
+			strcat_s(path, MAX_PATH, "\\"); \
+			if (strName) \
+			{ \
+				strcat_s(path, MAX_PATH, strName); \
+			} \
+			else \
+			{ \
+				strcat_s(path, MAX_PATH, Name); \
+			} \
+			HMODULE dll = LoadLibraryA(path); \
+			if (dll) \
+			{ \
+				VISIT_PROCS(LOAD_ORIGINAL_PROC); \
+				ShardProcs::Load(dll); \
+			} \
+			return dll; \
+		} \
+		HMODULE Load() \
+		{ \
+			return Load(nullptr); \
+		} \
+		VISIT_PROCS(CREATE_PROC_STUB) \
+	}
+
+namespace Wrapper
+{
+	FARPROC GetProcAddress(HMODULE hModule, LPCSTR FunctionName, FARPROC SetReturnValue);
+	__declspec() HRESULT __stdcall _jmpaddr();
+	constexpr FARPROC jmpaddr = (FARPROC)*_jmpaddr;
+}
+
+// Shared procs
+#include "shared.h"
 
 // Wrappers
 #include "bcrypt.h"
 #include "cryptsp.h"
-#include "D3d8to9\d3d8.h"
+#include "d2d1.h"
 #include "d3d8.h"
 #include "d3d9.h"
-#include "dsound.h"
+#include "d3d10.h"
+#include "d3d10core.h"
+#include "d3d11.h"
+#include "d3d12.h"
+#include "d3dim.h"
+#include "d3dim700.h"
+#include "dciman32.h"
 #include "ddraw.h"
 #include "dinput.h"
+#include "dinput8.h"
 #include "dplayx.h"
+#include "dsound.h"
 #include "dxgi.h"
+#include "msacm32.h"
+#include "msvfw32.h"
+#include "vorbisfile.h"
 #include "winmm.h"
 #include "winspool.h"
-#include "dciman32.h"
+#include "xlive.h"
 
-namespace Wrapper
+__declspec(naked) HRESULT __stdcall Wrapper::_jmpaddr()
 {
-	// Declare varables
-	std::vector<HMODULE> custom_dll;					// Used for custom dll's and asi plugins
-	HMODULE dllhandle[dtypeArraySize] = { nullptr };	// Used for wrapper dll's
-
-	// Function declarations
-	void LoadPlugins();
-	void FindFiles(WIN32_FIND_DATA*);
-	void LoadCustomDll();
+	__asm
+	{
+		mov eax, 0x80004001L	// return E_NOTIMPL
+		retn 16
+	}
 }
 
-// Wrapper classes
-VISIT_WRAPPERS(ADD_NAMESPACE_CLASS)
-
-// Proc functions
-VISIT_WRAPPERS(CREATE_ALL_PROC_STUB)
-
-// Get pointer for funtion name use custom return value
 FARPROC Wrapper::GetProcAddress(HMODULE hModule, LPCSTR FunctionName, FARPROC SetReturnValue)
 {
 	if (!FunctionName || !hModule)
@@ -81,208 +128,60 @@ FARPROC Wrapper::GetProcAddress(HMODULE hModule, LPCSTR FunctionName, FARPROC Se
 	return ProcAddress;
 }
 
-// Load real dll file that is being wrapped
-HMODULE Wrapper::LoadDll(DWORD dlltype)
+HMODULE Wrapper::CreateWrapper(HMODULE hModule)
 {
-	// Check for valid dlltype
-	if (dlltype == 0 || dlltype >= dtypeArraySize)
+	// Declare vars
+	HMODULE dll = nullptr;
+
+	// Get module full path and name
+	char path[MAX_PATH];
+	GetModuleFileNameA(hModule, path, sizeof(path));
+
+	// Search backwards for last backslash in filepath 
+	char* pdest = strrchr(path, '\\');
+
+	// If backslash not found in filepath
+	if (pdest)
 	{
-		return nullptr;
+		// Extract filename from file path
+		std::string input(pdest+1);
+		strcpy_s(path, MAX_PATH, input.c_str());
 	}
 
-	// Check if dll is already loaded
-	if (dllhandle[dlltype])
+	// Check dll name and load correct wrapper
+	{ using namespace bcrypt; if (_strcmpi(path, Name) == 0) dll = Load(); }
+	{ using namespace cryptsp; if (_strcmpi(path, Name) == 0) dll = Load(); }
+	{ using namespace d2d1; if (_strcmpi(path, Name) == 0) dll = Load(); }
+	{ using namespace d3d8; if (_strcmpi(path, Name) == 0) dll = Load(); }
+	{ using namespace d3d9; if (_strcmpi(path, Name) == 0) dll = Load(); }
+	{ using namespace d3d10; if (_strcmpi(path, Name) == 0) dll = Load(); }
+	{ using namespace d3d10core; if (_strcmpi(path, Name) == 0) dll = Load(); }
+	{ using namespace d3d11; if (_strcmpi(path, Name) == 0) dll = Load(); }
+	{ using namespace d3d12; if (_strcmpi(path, Name) == 0) dll = Load(); }
+	{ using namespace d3dim; if (_strcmpi(path, Name) == 0) dll = Load(); }
+	{ using namespace d3dim700; if (_strcmpi(path, Name) == 0) dll = Load(); }
+	{ using namespace dciman32; if (_strcmpi(path, Name) == 0) dll = Load(); }
+	{ using namespace ddraw; if (_strcmpi(path, Name) == 0) dll = Load(); }
+	{ using namespace dinput; if (_strcmpi(path, Name) == 0) dll = Load(); }
+	{ using namespace dinput8; if (_strcmpi(path, Name) == 0) dll = Load(); }
+	{ using namespace dplayx; if (_strcmpi(path, Name) == 0) dll = Load(); }
+	{ using namespace dsound; if (_strcmpi(path, Name) == 0) dll = Load(); }
+	{ using namespace dxgi; if (_strcmpi(path, Name) == 0) dll = Load(); }
+	{ using namespace msacm32; if (_strcmpi(path, Name) == 0) dll = Load(); }
+	{ using namespace msvfw32; if (_strcmpi(path, Name) == 0) dll = Load(); }
+	{ using namespace vorbisfile; if (_strcmpi(path, Name) == 0) dll = Load(); }
+	{ using namespace winmm; if (_strcmpi(path, "winmmbase.dll") == 0) dll = Load("winmmbase.dll"); }
+	{ using namespace winspool; if (_strcmpi(path, Name) == 0) dll = Load(); }
+	{ using namespace xlive; if (_strcmpi(path, Name) == 0) dll = Load(); }
+
+	// Special for winmm.dll because sometimes it is changed to win32 or winnm or some other name
+	if (strlen(path) > 8)
 	{
-		return dllhandle[dlltype];
+		path[3] = 'm';
+		path[4] = 'm';
 	}
+	{ using namespace winmm; if (_strcmpi(path, Name) == 0) dll = Load(); }
 
-	// Load dll from ini, if DllPath is not '0'
-	if (!Config.szDllPath.empty() && Config.WrapperMode == dlltype)
-	{
-		Logging::Log() << "Loading " << Config.szDllPath << " library";
-		dllhandle[dlltype] = LoadLibrary(Config.szDllPath.c_str());
-		if (!dllhandle[dlltype])
-		{
-			Logging::Log() << "Cannot load " << Config.szDllPath << " library";
-		}
-	}
-
-	// Load current dll
-	if (!dllhandle[dlltype] && Config.WrapperMode != dlltype)
-	{
-		Logging::Log() << "Loading " << dtypename[dlltype] << " library";
-		dllhandle[dlltype] = LoadLibrary(dtypename[dlltype]);
-		if (!dllhandle[dlltype])
-		{
-			Logging::Log() << "Cannot load " << dtypename[dlltype] << " library";
-		}
-	}
-
-	// Load default system dll
-	if (!dllhandle[dlltype])
-	{
-		char path[MAX_PATH];
-		GetSystemDirectory(path, MAX_PATH);
-		strcat_s(path, MAX_PATH, "\\");
-		strcat_s(path, MAX_PATH, dtypename[dlltype]);
-		Logging::Log() << "Loading " << path << " library";
-		dllhandle[dlltype] = LoadLibrary(path);
-	}
-
-	// Cannot load dll
-	if (!dllhandle[dlltype])
-	{
-		Logging::Log() << "Cannot load " << dtypename[dlltype] << " library";
-		if (Config.WrapperMode != dtype.Auto)
-		{
-			ExitProcess(0);
-		}
-	}
-
-	// Return dll handle
-	return dllhandle[dlltype];
-}
-
-// Load custom dll files
-void Wrapper::LoadCustomDll()
-{
-	for (size_t x = 0; x < Config.szCustomDllPath.size(); ++x)
-	{
-		// Check if path is empty
-		if (!Config.szCustomDllPath[x].empty())
-		{
-			Logging::Log() << "Loading custom " << Config.szCustomDllPath[x] << " library";
-			// Load dll from ini
-			auto h = LoadLibrary(Config.szCustomDllPath[x].c_str());
-
-			// Cannot load dll
-			if (!h)
-			{
-				Logging::Log() << "Cannot load custom " << Config.szCustomDllPath[x] << " library";
-			}
-			else
-			{
-				custom_dll.push_back(h);
-			}
-		}
-	}
-}
-
-// Find asi plugins to load
-void Wrapper::FindFiles(WIN32_FIND_DATA* fd)
-{
-	char dir[MAX_PATH] = { 0 };
-	GetCurrentDirectory(MAX_PATH, dir);
-
-	HANDLE asiFile = FindFirstFile("*.asi", fd);
-	if (asiFile != INVALID_HANDLE_VALUE)
-	{
-		do {
-			if (!(fd->dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY))
-			{
-				auto pos = strlen(fd->cFileName);
-
-				if (fd->cFileName[pos - 4] == '.' &&
-					(fd->cFileName[pos - 3] == 'a' || fd->cFileName[pos - 3] == 'A') &&
-					(fd->cFileName[pos - 2] == 's' || fd->cFileName[pos - 2] == 'S') &&
-					(fd->cFileName[pos - 1] == 'i' || fd->cFileName[pos - 1] == 'I'))
-				{
-					char path[MAX_PATH] = { 0 };
-					sprintf_s(path, "%s\\%s", dir, fd->cFileName);
-
-					Logging::Log() << "Loading Plugin: " << path;
-					auto h = LoadLibrary(path);
-					SetCurrentDirectory(dir); //in case asi switched it
-
-					if (!h)
-					{
-						Logging::LogFormat("Unable to load %s. Error: %d", fd->cFileName, GetLastError());
-					}
-					else
-					{
-						custom_dll.push_back(h);
-					}
-				}
-			}
-		} while (FindNextFile(asiFile, fd));
-		FindClose(asiFile);
-	}
-}
-
-// Load asi plugins
-void Wrapper::LoadPlugins()
-{
-	Logging::Log() << "Loading ASI Plugins";
-
-	char oldDir[MAX_PATH]; // store the current directory
-	GetCurrentDirectory(MAX_PATH, oldDir);
-
-	char selfPath[MAX_PATH];
-	GetModuleFileName(hModule_dll, selfPath, MAX_PATH);
-	*strrchr(selfPath, '\\') = '\0';
-	SetCurrentDirectory(selfPath);
-
-	WIN32_FIND_DATA fd;
-	if (!Config.LoadFromScriptsOnly)
-		FindFiles(&fd);
-
-	SetCurrentDirectory(selfPath);
-
-	if (SetCurrentDirectory("scripts\\"))
-		FindFiles(&fd);
-
-	SetCurrentDirectory(selfPath);
-
-	if (SetCurrentDirectory("plugins\\"))
-		FindFiles(&fd);
-
-	SetCurrentDirectory(oldDir); // Reset the current directory
-}
-
-// Load wrapper dll files
-void Wrapper::DllAttach()
-{
-	// Load wrappers
-	VISIT_WRAPPERS(LOAD_WRAPPER);
-
-	// Load custom dlls
-	if (Config.szCustomDllPath.size() != 0)
-	{
-		LoadCustomDll();
-	}
-
-	// Load ASI plugins
-	if (Config.LoadPlugins)
-	{
-		LoadPlugins();
-	}
-}
-
-// Unload all dll files loaded by the wrapper
-void Wrapper::DllDetach()
-{
-	// Unload custom libraries
-	while (Config.szCustomDllPath.size() != 0)
-	{
-		// Unload dll
-		FreeLibrary(custom_dll.back());
-		custom_dll.pop_back();
-	}
-	custom_dll.clear();
-
-	// Unload wrapper libraries
-	for (int x = 1; x < dtypeArraySize; ++x)
-	{
-		// If dll was loaded
-		if (dllhandle[x])
-		{
-			// Unload dll
-			FreeLibrary(dllhandle[x]);
-		}
-	}
-
-	// Unload dynmaic libraries
-	UnLoadd3dx9();
-	UnLoaddwmapi();
-	UnLoadUxtheme();
+	// Exit and return handle
+	return dll;
 }

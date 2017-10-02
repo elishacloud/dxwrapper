@@ -21,10 +21,12 @@
 *
 * SetAppCompatData code created based on information from here:
 * http://www.blitzbasic.com/Community/post.php?topic=99477&post=1202996
+*
+* ASI plugin loader taken from source code found in Ultimate ASI Loader
+* https://github.com/ThirteenAG/Ultimate-ASI-Loader
 */
 
 #include "Settings\Settings.h"
-#include "Wrappers\wrapper.h"
 #include "Dllmain\Dllmain.h"
 extern "C"
 {
@@ -39,11 +41,20 @@ typedef LPTOP_LEVEL_EXCEPTION_FILTER(WINAPI *PFN_SetUnhandledExceptionFilter)(LP
 
 namespace Utils
 {
+	// Strictures
+	struct type_dll
+	{
+		HMODULE dll;
+		std::string name;
+	};
+
 	// Declare varables
+	std::vector<type_dll> custom_dll;		// Used for custom dll's and asi plugins
 	LPTOP_LEVEL_EXCEPTION_FILTER pOriginalSetUnhandledExceptionFilter = SetUnhandledExceptionFilter((LPTOP_LEVEL_EXCEPTION_FILTER)EXCEPTION_CONTINUE_EXECUTION);
 	PFN_SetUnhandledExceptionFilter pSetUnhandledExceptionFilter = reinterpret_cast<PFN_SetUnhandledExceptionFilter>(SetUnhandledExceptionFilter);
 
 	// Function declarations
+	void FindFiles(WIN32_FIND_DATA*);
 	LONG WINAPI myUnhandledExceptionFilter(LPEXCEPTION_POINTERS);
 	LPTOP_LEVEL_EXCEPTION_FILTER WINAPI extSetUnhandledExceptionFilter(LPTOP_LEVEL_EXCEPTION_FILTER);
 }
@@ -130,7 +141,7 @@ void Utils::SetAppCompat()
 	// SetAppCompatData
 	if (appCompatFlag)
 	{
-		HMODULE module = Wrapper::LoadDll(dtype.ddraw);
+		HMODULE module = Utils::LoadLibrary("ddraw.dll");
 		FARPROC SetAppCompatDataPtr = (module != nullptr) ? GetProcAddress(module, "SetAppCompatData") : nullptr;
 		if (module && SetAppCompatDataPtr)
 		{
@@ -246,4 +257,190 @@ void Utils::UnHookExceptionHandler(void)
 	SetErrorMode(0);
 	SetUnhandledExceptionFilter(pOriginalSetUnhandledExceptionFilter);
 	Finishdisasm();
+}
+
+// Add HMODULE to vector
+void Utils::AddHandleToVector(HMODULE dll, const char *name)
+{
+	if (dll)
+	{
+		type_dll newCustom_dll;
+		newCustom_dll.dll = dll;
+		newCustom_dll.name.assign((strrchr(name, '\\')) ? strrchr(name, '\\') + 1 : name);
+		custom_dll.push_back(newCustom_dll);
+	}
+}
+
+// Load real dll file that is being wrapped
+HMODULE Utils::LoadLibrary(const char *dllname, bool EnableLogging)
+{
+	// Declare vars
+	HMODULE dll = nullptr;
+	const char *loadpath;
+	char path[MAX_PATH];
+	bool isCurrentDll = (_strcmpi(Config.WrapperName.c_str(), dllname) == 0);
+
+	// Get module name
+	const char *pdest = (strrchr(dllname, '\\')) ? strrchr(dllname, '\\') + 1 : dllname;
+
+	// Check if dll is already loaded
+	for (size_t x = 0; x < custom_dll.size(); x++)
+	{
+		if (_strcmpi(custom_dll[x].name.c_str(), pdest) == 0)
+		{
+			return custom_dll[x].dll;
+		}
+	}
+
+	// Logging
+	if (EnableLogging)
+	{
+		Logging::Log() << "Loading " << dllname;
+	}
+
+	// Load dll from config
+	if (!Config.RealDllPath.empty() && isCurrentDll)
+	{
+		loadpath = Config.RealDllPath.c_str();
+		dll = ::LoadLibrary(loadpath);
+	}
+
+	// Load default dll
+	if (!dll && !isCurrentDll)
+	{
+		loadpath = dllname;
+		dll = ::LoadLibrary(loadpath);
+	}
+
+	// Load system dll
+	if (!dll && !(strrchr(dllname, '\\')))
+	{
+		//Load library
+		GetSystemDirectory(path, MAX_PATH);
+		strcat_s(path, MAX_PATH, "\\");
+		strcat_s(path, MAX_PATH, dllname);
+		loadpath = path;
+		dll = ::LoadLibrary(loadpath);
+	}
+
+	// Store handle and dll name
+	if (dll)
+	{
+		Logging::Log() << "Loaded " << loadpath << " library";
+		AddHandleToVector(dll, pdest);
+	}
+
+	// Return dll handle
+	return dll;
+}
+
+// Load custom dll files
+void Utils::LoadCustomDll()
+{
+	for (size_t x = 0; x < Config.LoadCustomDllPath.size(); ++x)
+	{
+		// Check if path is empty
+		if (!Config.LoadCustomDllPath[x].empty())
+		{
+			Logging::Log() << "Loading custom " << Config.LoadCustomDllPath[x] << " library";
+			// Load dll from ini
+			auto h = LoadLibrary(Config.LoadCustomDllPath[x].c_str(), false);
+
+			// Cannot load dll
+			if (h)
+			{
+				AddHandleToVector(h, Config.LoadCustomDllPath[x].c_str());
+			}
+			else
+			{
+				Logging::Log() << "Cannot load custom " << Config.LoadCustomDllPath[x] << " library";
+			}
+		}
+	}
+}
+
+// Find asi plugins to load
+void Utils::FindFiles(WIN32_FIND_DATA* fd)
+{
+	char dir[MAX_PATH] = { 0 };
+	GetCurrentDirectory(MAX_PATH, dir);
+
+	HANDLE asiFile = FindFirstFile("*.asi", fd);
+	if (asiFile != INVALID_HANDLE_VALUE)
+	{
+		do {
+			if (!(fd->dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY))
+			{
+				auto pos = strlen(fd->cFileName);
+
+				if (fd->cFileName[pos - 4] == '.' &&
+					(fd->cFileName[pos - 3] == 'a' || fd->cFileName[pos - 3] == 'A') &&
+					(fd->cFileName[pos - 2] == 's' || fd->cFileName[pos - 2] == 'S') &&
+					(fd->cFileName[pos - 1] == 'i' || fd->cFileName[pos - 1] == 'I'))
+				{
+					char path[MAX_PATH] = { 0 };
+					sprintf_s(path, "%s\\%s", dir, fd->cFileName);
+
+					Logging::Log() << "Loading Plugin: " << path;
+					auto h = LoadLibrary(path, false);
+					SetCurrentDirectory(dir); //in case asi switched it
+
+					if (h)
+					{
+						AddHandleToVector(h, path);
+					}
+					else
+					{
+						Logging::LogFormat("Unable to load %s. Error: %d", fd->cFileName, GetLastError());
+					}
+				}
+			}
+		} while (FindNextFile(asiFile, fd));
+		FindClose(asiFile);
+	}
+}
+
+// Load asi plugins
+void Utils::LoadPlugins()
+{
+	Logging::Log() << "Loading ASI Plugins";
+
+	char oldDir[MAX_PATH]; // store the current directory
+	GetCurrentDirectory(MAX_PATH, oldDir);
+
+	char selfPath[MAX_PATH];
+	GetModuleFileName(hModule_dll, selfPath, MAX_PATH);
+	*strrchr(selfPath, '\\') = '\0';
+	SetCurrentDirectory(selfPath);
+
+	WIN32_FIND_DATA fd;
+	if (!Config.LoadFromScriptsOnly)
+		FindFiles(&fd);
+
+	SetCurrentDirectory(selfPath);
+
+	if (SetCurrentDirectory("scripts\\"))
+		FindFiles(&fd);
+
+	SetCurrentDirectory(selfPath);
+
+	if (SetCurrentDirectory("plugins\\"))
+		FindFiles(&fd);
+
+	SetCurrentDirectory(oldDir); // Reset the current directory
+}
+
+// Unload all dll files loaded by the wrapper
+void Utils::UnloadAllDlls()
+{
+	// Logging
+	Logging::Log() << "Unloading libraries...";
+
+	// Unload custom libraries
+	while (custom_dll.size() != 0)
+	{
+		// Unload dll
+		FreeLibrary(custom_dll.back().dll);
+		custom_dll.pop_back();
+	}
 }

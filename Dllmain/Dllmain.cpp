@@ -18,6 +18,8 @@
 #include "dxwrapper.h"
 #include "Wrappers\wrapper.h"
 #include "Hooking\Hook.h"
+#include "D3d8to9\d3d8.h"
+#include "D3d9\D3d9External.h"
 #include "DDrawCompat\DDrawCompatExternal.h"
 #include "DxWnd\DxWndExternal.h"
 #include "DSoundCtrl\DSoundCtrlExternal.h"
@@ -33,7 +35,6 @@ bool APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 	UNREFERENCED_PARAMETER(lpReserved);
 
 	static bool FullscreenThreadStartedFlag = false;
-	static HMODULE dxwnd_dll = nullptr;
 
 	switch (fdwReason)
 	{
@@ -55,9 +56,9 @@ bool APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 		Config.Init();
 
 		// Launch processes
-		if (!Config.szShellPath.empty())
+		if (!Config.RunProcess.empty())
 		{
-			Utils::Shell(Config.szShellPath.c_str());
+			Utils::Shell(Config.RunProcess.c_str());
 		}
 
 		// Set application compatibility options
@@ -65,12 +66,12 @@ bool APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 		{
 			Utils::WriteMemory::WriteMemory();
 		}
-		if (Config.DpiAware)
+		if (Config.DisableHighDPIScaling)
 		{
 			Utils::DisableHighDPIScaling();
 		}
 		Utils::SetAppCompat();
-		if (Config.Affinity)
+		if (Config.SingleProcAffinity)
 		{
 			Utils::SetProcessAffinity();
 		}
@@ -79,22 +80,150 @@ bool APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 			Utils::HookExceptionHandler();
 		}
 
-		// Attach real wrapper dll, load custom dlls and load asi plugins
-		Wrapper::DllAttach();
+		// Attach real wrapper dll
+		if (Config.RealWrapperMode != dtype.dxwrapper)
+		{
+			HMODULE dll = Wrapper::CreateWrapper(hModule_dll);
+			if (dll)
+			{
+				Utils::AddHandleToVector(dll, Config.WrapperName.c_str());
+			}
+		}
 
-		// Start compatibility modules
+		// Load custom dlls
+		if (Config.LoadCustomDllPath.size() != 0)
+		{
+			Utils::LoadCustomDll();
+		}
+
+		// Load ASI plugins
+		if (Config.LoadPlugins)
+		{
+			Utils::LoadPlugins();
+		}
+
+		// Start DDrawCompat module
 		if (Config.DDrawCompat)
 		{
+			// If wrapper mode is ddraw update wrapper
+			if (Config.RealWrapperMode == dtype.ddraw)
+			{
+				// Update dxwrapper.dll -> DDrawCompat
+				ddraw::DirectDrawCreate_var = DDrawCompat::DirectDrawCreate;
+				ddraw::DirectDrawCreateEx_var = DDrawCompat::DirectDrawCreateEx;
+				ShardProcs::DllGetClassObject_var = DDrawCompat::DllGetClassObject;
+			}
+			// Hook ddraw APIs for DDrawCompat
+			else
+			{
+				// Load ddraw procs
+				HMODULE dll = ddraw::Load();
+				if (dll)
+				{
+					Utils::AddHandleToVector(dll, dtypename[dtype.ddraw]);
+				}
+
+				// Hook ddraw.dll -> DDrawCompat
+				Logging::Log() << "Hooking ddraw.dll APIs...";
+				ddraw::DirectDrawCreate_var = (FARPROC)Hook::HookAPI(hModule_dll, dtypename[dtype.ddraw], Hook::GetProcAddress(dll, "DirectDrawCreate"), "DirectDrawCreate", DDrawCompat::DirectDrawCreate);
+				ddraw::DirectDrawCreateEx_var = (FARPROC)Hook::HookAPI(hModule_dll, dtypename[dtype.ddraw], Hook::GetProcAddress(dll, "DirectDrawCreateEx"), "DirectDrawCreateEx", DDrawCompat::DirectDrawCreateEx);
+				ShardProcs::DllGetClassObject_var = (FARPROC)Hook::HookAPI(hModule_dll, dtypename[dtype.ddraw], Hook::GetProcAddress(dll, "DllGetClassObject"), "DllGetClassObject", DDrawCompat::DllGetClassObject);
+			}
+
+			// Start DDrawCompat
 			Config.DDrawCompat = (DllMain_DDrawCompat(hModule_dll, fdwReason, nullptr) == TRUE);
 		}
+
+		// Start D3d8to9 module
+		if (Config.D3d8to9)
+		{
+			// If wrapper mode is d3d8 update wrapper
+			if (Config.RealWrapperMode == dtype.d3d8)
+			{
+				// Update dxwrapper.dll -> D3d8to9
+				d3d8::Direct3DCreate8_var = D3d8to9::Direct3DCreate8;
+			}
+			// Hook d3d8 APIs for D3d8to9
+			else
+			{
+				// Load d3d8
+				HMODULE dll = Utils::LoadLibrary(dtypename[dtype.d3d8]);
+
+				// Hook d3d8.dll -> D3d8to9	
+				Logging::Log() << "Hooking d3d8.dll APIs...";
+				(FARPROC)Hook::HookAPI(hModule_dll, dtypename[dtype.d3d8], Hook::GetProcAddress(dll, "Direct3DCreate8"), "Direct3DCreate8", D3d8to9::Direct3DCreate8);
+			}
+		}
+
+		// Check for d3d9_wrap module
+		bool StartD3d9Wrap = false;
+		if (Config.AntiAliasing)
+		{
+			StartD3d9Wrap = true;
+		}
+#ifdef D3D9LOGGING
+		StartD3d9Wrap = true;
+#endif // D3D9LOGGING
+
+		// Start d3d9_wrap module
+		if (StartD3d9Wrap)
+		{
+			// Load d3d9 procs
+			HMODULE dll = Utils::LoadLibrary(dtypename[dtype.d3d9]);
+			d3d9_wrap::Direct3DCreate9_Proxy = Hook::GetProcAddress(dll, "Direct3DCreate9");
+
+			// If wrapper mode is d3d9 update wrapper
+			if (Config.RealWrapperMode == dtype.d3d9)
+			{
+				// Update dxwrapper.dll -> d3d9_wrap
+				d3d8::Direct3DCreate8_var = d3d9_wrap::Direct3DCreate9;
+			}
+			// Hook d3d9 APIs for d3d9_wrap
+			else
+			{
+				// Hook d3d9.dll -> d3d9_wrap
+				Logging::Log() << "Hooking d3d9.dll APIs...";
+				d3d9_wrap::Direct3DCreate9_Proxy = (FARPROC)Hook::HookAPI(hModule_dll, dtypename[dtype.d3d9], Hook::GetProcAddress(dll, "Direct3DCreate9"), "Direct3DCreate9", d3d9_wrap::Direct3DCreate9);
+			}
+		}
+
+		// Start DSoundCtrl module
 		if (Config.DSoundCtrl)
 		{
+			// If wrapper mode is dsound update wrapper
+			if (Config.RealWrapperMode == dtype.dsound)
+			{
+				// Update dxwrapper.dll -> DSoundCtrl
+				dsound::DirectSoundCreate_var = DSoundCtrl::DirectSoundCreate;
+				dsound::DirectSoundCreate8_var = DSoundCtrl::DirectSoundCreate8;
+				ShardProcs::DllGetClassObject_var = DSoundCtrl::DllGetClassObject;
+			}
+			// Hook dsound APIs for DSoundCtrl
+			else
+			{
+				// Load dsound procs
+				HMODULE dll = dsound::Load();
+				if (dll)
+				{
+					Utils::AddHandleToVector(dll, dtypename[dtype.dsound]);
+				}
+
+				// Hook dsound.dll -> DSoundCtrl
+				Logging::Log() << "Hooking dsound.dll APIs...";
+				dsound::DirectSoundCreate_var = (FARPROC)Hook::HookAPI(hModule_dll, dtypename[dtype.dsound], Hook::GetProcAddress(dll, "DirectSoundCreate"), "DirectSoundCreate", DSoundCtrl::DirectSoundCreate);
+				dsound::DirectSoundCreate8_var = (FARPROC)Hook::HookAPI(hModule_dll, dtypename[dtype.dsound], Hook::GetProcAddress(dll, "DirectSoundCreate8"), "DirectSoundCreate8", DSoundCtrl::DirectSoundCreate8);
+				ShardProcs::DllGetClassObject_var = (FARPROC)Hook::HookAPI(hModule_dll, dtypename[dtype.dsound], Hook::GetProcAddress(dll, "DllGetClassObject"), "DllGetClassObject", DSoundCtrl::DllGetClassObject);
+			}
+
+			// Start DSoundCtrl
 			DllMain_DSoundCtrl(hModule, fdwReason, nullptr);
 		}
+
+		// Start DxWnd module
 		if (Config.DxWnd)
 		{
 			// Check if dxwnd.dll exists then load it
-			dxwnd_dll = LoadLibrary("dxwnd.dll");
+			HMODULE dxwnd_dll = Utils::LoadLibrary("dxwnd.dll");
 			if (dxwnd_dll)
 			{
 				Logging::Log() << "Loading dxwnd";
@@ -172,10 +301,6 @@ bool APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 		{
 			Logging::Log() << "Unloading DxWnd";
 			DxWndEndHook();
-			if (dxwnd_dll)
-			{
-				FreeLibrary(dxwnd_dll);
-			}
 		}
 
 		// Unload and Unhook DDrawCompat
@@ -194,8 +319,8 @@ bool APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 		Logging::Log() << "Unhooking APIs";
 		Hook::UnhookAll();
 
-		// Unload dlls
-		Wrapper::DllDetach();
+		// Unload loaded dlls
+		Utils::UnloadAllDlls();
 
 		// Unload exception handler
 		if (Config.HandleExceptions)

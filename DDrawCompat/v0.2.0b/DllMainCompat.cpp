@@ -16,7 +16,10 @@
 #include "DDrawProcs.h"
 //********** Begin Edit *************
 #include "Settings\Settings.h"
-#include "Wrappers\wrapper.h"
+#include "Hooking\Hook.h"
+#include "Utils\Utils.h"
+#define DllMain DllMain_DDrawCompat
+#define GetProcAddress Hook::GetProcAddress
 //********** End Edit ***************
 
 struct IDirectInput;
@@ -152,10 +155,10 @@ namespace
 #define	LOAD_ORIGINAL_DDRAW_PROC(procName) \
 	Compat::origProcs.procName = GetProcAddress(g_origDDrawModule, #procName);
 
-//********** Begin Edit *************
-BOOL WINAPI DllMain_DDrawCompat(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID /*lpvReserved*/)
-//********** End Edit ***************
+BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpvReserved)
 {
+	UNREFERENCED_PARAMETER(lpvReserved);
+
 	if (fdwReason == DLL_PROCESS_ATTACH)
 	{
 		char currentDllPath[MAX_PATH] = {};
@@ -175,13 +178,13 @@ BOOL WINAPI DllMain_DDrawCompat(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID /*lp
 		//********** Begin Edit *************
 		if (Config.RealWrapperMode == dtype.ddraw)
 		{
-			g_origDDrawModule = Wrapper::LoadDll(dtype.ddraw);
+			g_origDDrawModule = Utils::LoadLibrary("ddraw.dll");
 		}
 		else
 		{
 			g_origDDrawModule = hinstDLL;
 		}
-		g_origDInputModule = Wrapper::LoadDll(dtype.dinput);
+		g_origDInputModule = Utils::LoadLibrary("dinput.dll");
 		if (!g_origDDrawModule || !g_origDInputModule)
 		{
 			return false;
@@ -192,7 +195,7 @@ BOOL WINAPI DllMain_DDrawCompat(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID /*lp
 		Compat::origProcs.DirectInputCreateA = GetProcAddress(g_origDInputModule, "DirectInputCreateA");
 
 		//********** Begin Edit *************
-		if (Config.AffinityNotSet) SetProcessAffinityMask(GetCurrentProcess(), 1);
+		if (Config.SingleProcAffinityNotSet) SetProcessAffinityMask(GetCurrentProcess(), 1);
 		//********** End Edit ***************
 
 		//********** Begin Edit *************
@@ -221,7 +224,7 @@ BOOL WINAPI DllMain_DDrawCompat(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID /*lp
 	return TRUE;
 }
 
-extern "C" HRESULT WINAPI DirectDrawCreate(
+extern "C" HRESULT WINAPI _DirectDrawCreate(
 	GUID* lpGUID,
 	LPDIRECTDRAW* lplpDD,
 	IUnknown* pUnkOuter)
@@ -234,7 +237,7 @@ extern "C" HRESULT WINAPI DirectDrawCreate(
 	return result;
 }
 
-extern "C" HRESULT WINAPI DirectDrawCreateEx(
+extern "C" HRESULT WINAPI _DirectDrawCreateEx(
 	GUID* lpGUID,
 	LPVOID* lplpDD,
 	REFIID iid,
@@ -249,7 +252,7 @@ extern "C" HRESULT WINAPI DirectDrawCreateEx(
 }
 
 //********** Begin Edit *************
-extern "C" HRESULT WINAPI DllGetClassObject(
+extern "C" HRESULT WINAPI _DllGetClassObject(
 	REFCLSID rclsid,
 	REFIID   riid,
 	LPVOID   *ppv)
@@ -262,7 +265,7 @@ extern "C" HRESULT WINAPI DllGetClassObject(
 }
 //********** End Edit ***************
 
-extern "C" HRESULT WINAPI DirectInputCreateA(
+/*extern "C" HRESULT WINAPI DirectInputCreateA(
 	HINSTANCE hinst,
 	DWORD dwVersion,
 	IDirectInput** lplpDirectInput,
@@ -272,4 +275,4 @@ extern "C" HRESULT WINAPI DirectInputCreateA(
 	HRESULT result = CALL_ORIG_DDRAW(DirectInputCreateA, hinst, dwVersion, lplpDirectInput, punkOuter);
 	Compat::LogLeave(__func__, hinst, dwVersion, lplpDirectInput, punkOuter) << result;
 	return result;
-}
+}*/
