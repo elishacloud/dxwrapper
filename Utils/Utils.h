@@ -8,6 +8,11 @@ namespace Utils
 	void SetAppCompat();
 	void HookExceptionHandler();
 	void UnHookExceptionHandler();
+	void AddHandleToVector(HMODULE dll, const char *name);
+	HMODULE LoadLibrary(const char *dllname, bool EnableLogging = true);
+	void LoadCustomDll();
+	void LoadPlugins();
+	void UnloadAllDlls();
 
 	namespace WriteMemory
 	{

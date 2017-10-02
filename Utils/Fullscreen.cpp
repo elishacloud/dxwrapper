@@ -344,7 +344,7 @@ BOOL CALLBACK Fullscreen::EnumWindowsCallback(HWND hwnd, LPARAM lParam)
 #endif
 
 	// AutoDetect to search for main and fullscreen windows
-	if (data.AutoDetect || (Config.SetFullScreenLayer == 0 && Config.szSetNamedLayer.size() == 0))
+	if (data.AutoDetect || (Config.SetFullScreenLayer == 0 && Config.SetNamedLayer.size() == 0))
 	{
 		// Declare vars
 		MONITORINFO mi = { sizeof(mi) };
@@ -371,8 +371,8 @@ BOOL CALLBACK Fullscreen::EnumWindowsCallback(HWND hwnd, LPARAM lParam)
 	else
 	{
 		// Check other windows for a match
-		if ((Config.szSetNamedLayer.size() == 0 && ++data.LayerNumber == Config.SetFullScreenLayer) ||		// Check for specific window layer
-			Settings::IfStringExistsInList(class_name, Config.szSetNamedLayer))								// Check for specific window class name
+		if ((Config.SetNamedLayer.size() == 0 && ++data.LayerNumber == Config.SetFullScreenLayer) ||		// Check for specific window layer
+			Settings::IfStringExistsInList(class_name, Config.SetNamedLayer))								// Check for specific window class name
 		{
 			// Match found returning value
 			data.best_handle = hwnd;
@@ -797,7 +797,7 @@ void Fullscreen::MainFunc()
 
 					// Change resolution if not fullscreen and ignore certian windows
 					if (IsNotFullScreenFlag &&																									// Check if it is already fullscreen
-						!(Config.szIgnoreWindowName.size() != 0 && Settings::IfStringExistsInList(class_name, Config.szIgnoreWindowName)) &&	// Ignore certian windows
+						!(Config.IgnoreWindowName.size() != 0 && Settings::IfStringExistsInList(class_name, Config.IgnoreWindowName)) &&	// Ignore certian windows
 						IsWindow(CurrentLoop.hwnd))																								// Check window handle
 					{
 						// Get the best screen resolution
@@ -837,7 +837,7 @@ void Fullscreen::MainFunc()
 #endif
 
 							// Add window to excluded list
-							Settings::SetConfigList(Config.szIgnoreWindowName, class_name);
+							Settings::SetValue("IgnoreWindowName", class_name, &Config.IgnoreWindowName);
 						}
 					} // Change resolution
 

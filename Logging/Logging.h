@@ -4,6 +4,7 @@
 //#undef D3D8TO9NOLOG
 //#define DDRAWCOMPATLOG
 //#define FULLSCREENLOG
+//#define SETTINGSLOG
 
 #ifndef DDRAWLOG_H
 #include "DDrawLog.h"

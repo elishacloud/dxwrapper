@@ -13,7 +13,7 @@
 *      being the original software.
 *   3. This notice may not be removed or altered from any source distribution.
 *
-* Code in EraseCppComments, Parse, Read, ParseCallback and strippath functions taken from source code found in Aqrit's ddwrapper
+* Code in EraseCppComments, Parse, Read and ParseCallback functions taken from source code found in Aqrit's ddwrapper
 * http://bitpatch.com/ddwrapper.html
 */
 
@@ -29,31 +29,53 @@ CONFIG Config;
 namespace Settings
 {
 	// Declare varables
-	size_t AddressPointerCount = 0;			// Count of addresses to hot patch
-	size_t BytesToWriteCount = 0;			// Count of bytes to hot patch
-	std::vector<std::string> szExclude;		// List of excluded applications
-	std::vector<std::string> szInclude;		// List of included applications
+	size_t AddressPointerCount = 0;				// Count of addresses to hot patch
+	size_t BytesToWriteCount = 0;				// Count of bytes to hot patch
 
 	// Function declarations
 	void DeleteMemoryInfoVector();
 	void EraseCppComments(char*);
 	void Parse(char*, NV);
 	char* Read(char*);
-	void SetConfig(std::string&, char*);
-	void SetAddressPointerList(MEMORYINFO&, char*);
-	void SetBytesList(MEMORYINFO&, char*);
 	bool IsValueEnabled(char*);
-	void LogSetting(char*, char*);
+	void ClearValue(void**);
+	void ClearValue(std::vector<std::string>*);
+	void ClearValue(std::string*);
+	void ClearValue(DWORD*);
+	void ClearValue(bool*);
+	void SetValue(char*, char*, MEMORYINFO*);
+	void SetValue(char*, char*, void**);
+	void SetValue(char*, char*, std::string*);
 	void SetValue(char*, char*, DWORD*);
 	void SetValue(char*, char*, bool*);
 	void __stdcall ParseCallback(char*, char*);
-	void strippath(char*);
 	void ClearConfigSettings();
+	void SetDefaultConfigSettings();
 	void GetWrapperMode();
 }
 
+#define SET_VALUE(functionName) \
+	if (!_strcmpi(name, #functionName)) \
+	{ \
+		SetValue(name, value, &Config.functionName); \
+		return; \
+	}
+
+#define SET_APPCOMPATDATA_VALUE(functionName) \
+	if (!_strcmpi(name, #functionName)) \
+	{ \
+		SetValue(name, value, &Config.DXPrimaryEmulation[AppCompatDataType.functionName]); \
+		return; \
+	}
+
+#define CLEAR_VALUE(functionName) \
+	ClearValue(&Config.functionName);
+
+#define CLEAR_APPCOMPATDATA_VALUE(functionName) \
+	ClearValue(&Config.DXPrimaryEmulation[AppCompatDataType.functionName]);
+
 // Checks if a string value exists in a string array
-bool Settings::IfStringExistsInList(char* szValue, std::vector<std::string> szList, bool CaseSensitive)
+bool Settings::IfStringExistsInList(const char* szValue, std::vector<std::string> szList, bool CaseSensitive)
 {
 	for (UINT x = 0; x < szList.size(); ++x)
 	{
@@ -77,14 +99,24 @@ bool Settings::IfStringExistsInList(char* szValue, std::vector<std::string> szLi
 // Deletes all BytesToWrite values from the BytesToWrite array
 void Settings::DeleteMemoryInfoVector()
 {
+	// Delete Verification memory bytes
+	if (Config.VerifyMemoryInfo.Bytes)
+	{
+		delete[] Config.VerifyMemoryInfo.Bytes;
+		Config.VerifyMemoryInfo.SizeOfBytes = 0;
+	}
+
+	// Delete bytes to write
 	while (Config.MemoryInfo.size() != 0)
 	{
 		if (Config.MemoryInfo.back().Bytes)
 		{
-			delete [] Config.MemoryInfo.back().Bytes;
+			delete[] Config.MemoryInfo.back().Bytes;
 		}
 		Config.MemoryInfo.pop_back();
 	}
+
+	// Set array size to zero
 	AddressPointerCount = 0;
 	BytesToWriteCount = 0;
 }
@@ -208,63 +240,6 @@ char* Settings::Read(char* szFileName)
 	return szCfg;
 }
 
-// Set config from string (file)
-void Settings::SetConfig(std::string& name, char* value)
-{
-	name.append(value);
-}
-
-// Set config from string (file)
-void Settings::SetConfigList(std::vector<std::string>& name, char* value)
-{
-	std::string newString;
-	newString.append(value);
-	name.push_back(newString);
-}
-
-// Set AddressPointer array from string (file)
-void Settings::SetAddressPointerList(MEMORYINFO& MemoryInfo, char* value)
-{
-	// Get address pointer
-	if (strtoul(value, nullptr, 16) > 0 &&						// Verify pointer has a value higher than 0
-		value[0] == '0' && (char)tolower(value[1]) == 'x')		// Check for leading "0x" to indicate hex number
-	{
-		MemoryInfo.AddressPointer = strtoul(value, nullptr, 16);
-	}
-	// Set to 0 if invalid address pointer
-	else
-	{
-		MemoryInfo.AddressPointer = 0;
-	}
-}
-
-// Set BytesToWrite to memory from string (file)
-void Settings::SetBytesList(MEMORYINFO& MemoryInfo, char* value)
-{
-	// Declare vars
-	char charTemp[] = { '0', 'x', '0' , '0' };
-	DWORD len = strlen(value);
-
-	// Check for valid bytes
-	if ((len > 3) &&											// String has at least one byte
-		(len % 2 == 0) &&										// String is even
-		value[0] == '0' && (char)tolower(value[1]) == 'x')		// Check for leading "0x" to indicate hex number
-	{
-		// Get bytes size
-		DWORD size = (len / 2) - 1;
-		MemoryInfo.Bytes = new byte[size];
-		MemoryInfo.SizeOfBytes = size;
-
-		// Get byte data
-		for (DWORD x = 1; x <= size; x++)
-		{
-			charTemp[2] = value[x * 2];
-			charTemp[3] = value[(x * 2) + 1];
-			MemoryInfo.Bytes[x - 1] = (byte)strtoul(charTemp, nullptr, 16);
-		}
-	}
-}
-
 // Set booloean value from string (file)
 bool Settings::IsValueEnabled(char* name)
 {
@@ -275,14 +250,84 @@ bool Settings::IsValueEnabled(char* name)
 		_strcmpi("enabled", name) == 0);
 }
 
-// Log setting value for bool
-void Settings::LogSetting(char* name, char* value)
+// Set value for MEMORYINFO
+void Settings::SetValue(char* name, char* value, MEMORYINFO* MemoryInfo)
 {
-#ifdef _DEBUG
-	Logging::Log() << name << " set to '" << value << "'";
+	// Declare vars
+	char charTemp[] = { '0', 'x', '0' , '0' };
+	char *charEnd = &charTemp[3];
+	DWORD len = strlen(value);
+
+	// Check for valid bytes
+	if ((len > 3) &&											// String has at least one byte
+		(len % 2 == 0) &&										// String is even
+		value[0] == '0' && (char)tolower(value[1]) == 'x')		// Check for leading "0x" to indicate hex number
+	{
+		// Get bytes size
+		DWORD size = (len / 2) - 1;
+		MemoryInfo->Bytes = new byte[size];
+		MemoryInfo->SizeOfBytes = size;
+
+		// Get byte data
+		for (DWORD x = 1; x <= size; x++)
+		{
+			charTemp[2] = value[x * 2];
+			charTemp[3] = value[(x * 2) + 1];
+			MemoryInfo->Bytes[x - 1] = (byte)strtoul(charTemp, &charEnd, 16);
+		}
+#ifdef SETTINGSLOG
+		std::string buffer((size + 2) * 2, '\0');
+		for (size_t j = 0; j < size; j++)
+		{
+			sprintf_s(&buffer[2 * j], 3, "%02X", MemoryInfo->Bytes[j]);
+		}
+		Logging::Log() << name << " set to '" << buffer.c_str() << "'";
+#else
+		UNREFERENCED_PARAMETER(name);
+#endif
+	}
+}
+
+// Set value for pointers
+void Settings::SetValue(char* name, char* value, void** setting)
+{
+	// Set to zero
+	*setting = nullptr;
+
+	// Get address pointer
+	if (strtoul(value, nullptr, 16) > 0 &&						// Verify pointer has a value higher than 0
+		value[0] == '0' && (char)tolower(value[1]) == 'x')		// Check for leading "0x" to indicate hex number
+	{
+		*setting = (void*)strtoul(value, nullptr, 16);
+	}
+#ifdef SETTINGSLOG
+	Logging::Log() << name << " set to '" << *setting << "'";
 #else
 	UNREFERENCED_PARAMETER(name);
-	UNREFERENCED_PARAMETER(value);
+#endif
+}
+
+// Set value for vector of strings
+void Settings::SetValue(char* name, char* value, std::vector<std::string>* setting)
+{
+	std::string newString;
+	newString.assign(value);
+	setting->push_back(newString);
+#ifdef SETTINGSLOG
+	Logging::Log() << name << " set to '" << setting->back().c_str() << "'";
+#else
+	UNREFERENCED_PARAMETER(name);
+#endif
+}
+
+// Set value for string
+void Settings::SetValue(char* name, char* value, std::string* setting)
+{
+	setting->assign(value);
+#ifdef SETTINGSLOG
+	Logging::Log() << name << " set to '" << setting->c_str() << "'";
+#else
+	UNREFERENCED_PARAMETER(name);
 #endif
 }
 
@@ -292,12 +337,12 @@ void Settings::SetValue(char* name, char* value, DWORD* setting)
 	DWORD NewValue = atoi(value);
 	if (*setting != NewValue)
 	{
-#ifdef _DEBUG
-		Logging::Log() << name << " set to '" << NewValue << "'";
+		*setting = NewValue;
+#ifdef SETTINGSLOG
+		Logging::Log() << name << " set to '" << *setting << "'";
 #else
 		UNREFERENCED_PARAMETER(name);
 #endif
-		*setting = NewValue;
 	}
 }
 
@@ -307,14 +352,14 @@ void Settings::SetValue(char* name, char* value, bool* setting)
 	bool NewValue = IsValueEnabled(value);
 	if (*setting != NewValue)
 	{
-#ifdef _DEBUG
+		*setting = NewValue;
+#ifdef SETTINGSLOG
 		char* NewValueText = "false";
-		if (NewValue) NewValueText = "true";
+		if (*setting) NewValueText = "true";
 		Logging::Log() << name << " set to '" << NewValueText << "'";
 #else
 		UNREFERENCED_PARAMETER(name);
 #endif
-		*setting = NewValue;
 	}
 }
 
@@ -333,300 +378,40 @@ void __stdcall Settings::ParseCallback(char* name, char* value)
 	{
 		return;
 	}
-	// Boolean values
+
+	// Check for the existance of certian values
 	if (!_strcmpi(name, "SingleProcAffinity"))
 	{
-		// Sets Affinity and AffinityNotSet flags
-		SetValue(name, value, &Config.Affinity);
-		Config.AffinityNotSet = false;
-		return;
+		Config.SingleProcAffinityNotSet = false;
 	}
-	if (!_strcmpi(name, "D3d8to9"))
+	if (!_strcmpi(name, "DisableMaxWindowedMode"))
 	{
-		SetValue(name, value, &Config.D3d8to9);
-		return;
+		Config.DisableMaxWindowedModeNotSet = false;
 	}
-	if (!_strcmpi(name, "DDrawCompat"))
-	{
-		SetValue(name, value, &Config.DDrawCompat);
-		return;
-	}
-	if (!_strcmpi(name, "DDrawCompatDisableGDIHook"))
-	{
-		SetValue(name, value, &Config.DDrawCompatDisableGDIHook);
-		return;
-	}
-	if (!_strcmpi(name, "DisableHighDpiScaling"))
-	{
-		SetValue(name, value, &Config.DpiAware);
-		return;
-	}
-	if (!_strcmpi(name, "DSoundCtrl"))
-	{
-		SetValue(name, value, &Config.DSoundCtrl);
-		return;
-	}
-	if (!_strcmpi(name, "DxWnd"))
-	{
-		SetValue(name, value, &Config.DxWnd);
-		return;
-	}
-	if (!_strcmpi(name, "FullScreen"))
-	{
-		SetValue(name, value, &Config.FullScreen);
-		return;
-	}
-	if (!_strcmpi(name, "ForceTermination"))
-	{
-		SetValue(name, value, &Config.ForceTermination);
-		return;
-	}
-	if (!_strcmpi(name, "ForceWindowResize"))
-	{
-		SetValue(name, value, &Config.ForceWindowResize);
-		return;
-	}
-	if (!_strcmpi(name, "HandleExceptions"))
-	{
-		SetValue(name, value, &Config.HandleExceptions);
-		return;
-	}
-	if (!_strcmpi(name, "LoadPlugins"))
-	{
-		SetValue(name, value, &Config.LoadPlugins);
-		return;
-	}
-	if (!_strcmpi(name, "LoadFromScriptsOnly"))
-	{
-		SetValue(name, value, &Config.LoadFromScriptsOnly);
-		return;
-	}
-	if (!_strcmpi(name, "ResetScreenRes"))
-	{
-		SetValue(name, value, &Config.ResetScreenRes);
-		return;
-	}
-	if (!_strcmpi(name, "SendAltEnter"))
-	{
-		SetValue(name, value, &Config.SendAltEnter);
-		return;
-	}
-	if (!_strcmpi(name, "WaitForProcess"))
-	{
-		SetValue(name, value, &Config.WaitForProcess);
-		return;
-	}
-	if (!_strcmpi(name, "WaitForWindowChanges"))
-	{
-		SetValue(name, value, &Config.WaitForWindowChanges);
-		return;
-	}
-	// DSoundCtrl
-	if (!_strcmpi(name, "Num2DBuffers"))
-	{
-		SetValue(name, value, &Config.Num2DBuffers);
-		return;
-	}
-	if (!_strcmpi(name, "Num3DBuffers"))
-	{
-		SetValue(name, value, &Config.Num3DBuffers);
-		return;
-	}
-	if (!_strcmpi(name, "ForceCertification"))
-	{
-		SetValue(name, value, &Config.ForceCertification);
-		return;
-	}
-	if (!_strcmpi(name, "ForceExclusiveMode"))
-	{
-		SetValue(name, value, &Config.ForceExclusiveMode);
-		return;
-	}
-	if (!_strcmpi(name, "ForceSoftwareMixing"))
-	{
-		SetValue(name, value, &Config.ForceSoftwareMixing);
-		return;
-	}
-	if (!_strcmpi(name, "ForceHardwareMixing"))
-	{
-		SetValue(name, value, &Config.ForceHardwareMixing);
-		return;
-	}
-	if (!_strcmpi(name, "PreventSpeakerSetup"))
-	{
-		SetValue(name, value, &Config.PreventSpeakerSetup);
-		return;
-	}
-	if (!_strcmpi(name, "ForceHQ3DSoftMixing"))
-	{
-		SetValue(name, value, &Config.ForceHQ3DSoftMixing);
-		return;
-	}
-	if (!_strcmpi(name, "ForceNonStaticBuffers"))
-	{
-		SetValue(name, value, &Config.ForceNonStaticBuffers);
-		return;
-	}
-	if (!_strcmpi(name, "ForceVoiceManagement"))
-	{
-		SetValue(name, value, &Config.ForceVoiceManagement);
-		return;
-	}
-	if (!_strcmpi(name, "ForcePrimaryBufferFormat"))
-	{
-		SetValue(name, value, &Config.ForcePrimaryBufferFormat);
-		return;
-	}
-	if (!_strcmpi(name, "PrimaryBufferBits"))
-	{
-		SetValue(name, value, &Config.PrimaryBufferBits);
-		return;
-	}
-	if (!_strcmpi(name, "PrimaryBufferSamples"))
-	{
-		SetValue(name, value, &Config.PrimaryBufferSamples);
-		return;
-	}
-	if (!_strcmpi(name, "PrimaryBufferChannels"))
-	{
-		SetValue(name, value, &Config.PrimaryBufferChannels);
-		return;
-	}
-	if (!_strcmpi(name, "ForceSpeakerConfig"))
-	{
-		SetValue(name, value, &Config.ForceSpeakerConfig);
-		return;
-	}
-	if (!_strcmpi(name, "SpeakerConfig"))
-	{
-		SetValue(name, value, &Config.SpeakerConfig);
-		return;
-	}
-	if (!_strcmpi(name, "StoppedDriverWorkaround"))
-	{
-		SetValue(name, value, &Config.StoppedDriverWorkaround);
-		return;
-	}
-	// AppCompatData
-	if (!_strcmpi(name, "LockEmulation"))
-	{
-		SetValue(name, value, &Config.DXPrimaryEmulation[AppCompatDataType.LockEmulation]);
-		return;
-	}
-	if (!_strcmpi(name, "BltEmulation"))
-	{
-		SetValue(name, value, &Config.DXPrimaryEmulation[AppCompatDataType.BltEmulation]);
-		return;
-	}
-	if (!_strcmpi(name, "ForceLockNoWindow"))
-	{
-		SetValue(name, value, &Config.DXPrimaryEmulation[AppCompatDataType.ForceLockNoWindow]);
-		return;
-	}
-	if (!_strcmpi(name, "ForceBltNoWindow"))
-	{
-		SetValue(name, value, &Config.DXPrimaryEmulation[AppCompatDataType.ForceBltNoWindow]);
-		return;
-	}
+
+	// Set Value of normal config settings
+	VISIT_CONFIG_SETTINGS(SET_VALUE);
+
+	// Set Value of AppCompatData LockColorkey setting
 	if (!_strcmpi(name, "LockColorkey"))
 	{
-		// Sets DXPrimaryEmulation and LockColorkey
 		SetValue(name, value, &Config.LockColorkey);
 		Config.DXPrimaryEmulation[AppCompatDataType.LockColorkey] = true;
 		return;
 	}
-	if (!_strcmpi(name, "FullscreenWithDWM"))
-	{
-		SetValue(name, value, &Config.DXPrimaryEmulation[AppCompatDataType.FullscreenWithDWM]);
-		return;
-	}
-	if (!_strcmpi(name, "DisableLockEmulation"))
-	{
-		SetValue(name, value, &Config.DXPrimaryEmulation[AppCompatDataType.DisableLockEmulation]);
-		return;
-	}
-	if (!_strcmpi(name, "EnableOverlays"))
-	{
-		SetValue(name, value, &Config.DXPrimaryEmulation[AppCompatDataType.EnableOverlays]);
-		return;
-	}
-	if (!_strcmpi(name, "DisableSurfaceLocks"))
-	{
-		SetValue(name, value, &Config.DXPrimaryEmulation[AppCompatDataType.DisableSurfaceLocks]);
-		return;
-	}
-	if (!_strcmpi(name, "RedirectPrimarySurfBlts"))
-	{
-		SetValue(name, value, &Config.DXPrimaryEmulation[AppCompatDataType.RedirectPrimarySurfBlts]);
-		return;
-	}
-	if (!_strcmpi(name, "StripBorderStyle"))
-	{
-		SetValue(name, value, &Config.DXPrimaryEmulation[AppCompatDataType.StripBorderStyle]);
-		return;
-	}
-	if (!_strcmpi(name, "DisableMaxWindowedMode"))
-	{
-		// Sets DisableMaxWindowedMode and DisableMaxWindowedModeNotSet flags
-		SetValue(name, value, &Config.DXPrimaryEmulation[AppCompatDataType.DisableMaxWindowedMode]);
-		Config.DisableMaxWindowedModeNotSet = false;
-		return;
-	}
-	// Numeric values
-	if (!_strcmpi(name, "LoopSleepTime"))
-	{
-		SetValue(name, value, &Config.LoopSleepTime);
-		return;
-	}
-	if (!_strcmpi(name, "ResetMemoryAfter"))
-	{
-		SetValue(name, value, &Config.ResetMemoryAfter);
-		return;
-	}
-	if (!_strcmpi(name, "WindowSleepTime"))
-	{
-		SetValue(name, value, &Config.WindowSleepTime);
-		return;
-	}
-	if (!_strcmpi(name, "SetFullScreenLayer"))
-	{
-		SetValue(name, value, &Config.SetFullScreenLayer);
-		return;
-	}
-	if (!_strcmpi(name, "AntiAliasing"))
-	{
-		SetValue(name, value, &Config.AntiAliasing);
-		return;
-	}
-	if (!_strcmpi(name, "WrapperMode"))
-	{
-		SetValue(name, value, &Config.WrapperMode);
-		return;
-	}
-	// String values
-	if (!_strcmpi(name, "RealDllPath"))
-	{
-		SetConfig(Config.szDllPath, value);
-		LogSetting(name, value);
-		return;
-	}
-	if (!_strcmpi(name, "RunProcess"))
-	{
-		SetConfig(Config.szShellPath, value);
-		LogSetting(name, value);
-		return;
-	}
-	// Memory Hack items
+
+	// Set Value of AppCompatData config settings
+	VISIT_APPCOMPATDATA_SETTINGS(SET_APPCOMPATDATA_VALUE);
+
+	// Set Value of Memory Hack config settings
 	if (!_strcmpi(name, "VerificationAddress"))
 	{
-		SetAddressPointerList(Config.VerifyMemoryInfo, value);
-		LogSetting(name, value);
+		SetValue(name, value, &Config.VerifyMemoryInfo.AddressPointer);
 		return;
 	}
 	if (!_strcmpi(name, "VerificationBytes"))
 	{
-		SetBytesList(Config.VerifyMemoryInfo, value);
-		LogSetting(name, value);
+		SetValue(name, value, &Config.VerifyMemoryInfo);
 		return;
 	}
 	if (!_strcmpi(name, "AddressPointer"))
@@ -636,8 +421,7 @@ void __stdcall Settings::ParseCallback(char* name, char* value)
 			MEMORYINFO newMemoryInfo;
 			Config.MemoryInfo.push_back(newMemoryInfo);
 		}
-		SetAddressPointerList(Config.MemoryInfo[AddressPointerCount++], value);
-		LogSetting(name, value);
+		SetValue(name, value, &Config.MemoryInfo[AddressPointerCount++].AddressPointer);
 		return;
 	}
 	if (!_strcmpi(name, "BytesToWrite"))
@@ -647,147 +431,69 @@ void __stdcall Settings::ParseCallback(char* name, char* value)
 			MEMORYINFO newMemoryInfo;
 			Config.MemoryInfo.push_back(newMemoryInfo);
 		}
-		SetBytesList(Config.MemoryInfo[BytesToWriteCount++], value);
-		LogSetting(name, value);
+		SetValue(name, value, &Config.MemoryInfo[BytesToWriteCount++]);
 		return;
 	}
-	// Lists of values
-	if (!_strcmpi(name, "LoadCustomDllPath"))
-	{
-		SetConfigList(Config.szCustomDllPath, value);
-		LogSetting(name, value);
-		return;
-	}
-	if (!_strcmpi(name, "SetNamedLayer"))
-	{
-		SetConfigList(Config.szSetNamedLayer, value);
-		LogSetting(name, value);
-		return;
-	}
-	if (!_strcmpi(name, "IgnoreWindowName"))
-	{
-		SetConfigList(Config.szIgnoreWindowName, value);
-		LogSetting(name, value);
-		return;
-	}
-	if (!_strcmpi(name, "ExcludeProcess"))
-	{
-		SetConfigList(szExclude, value);
-		LogSetting(name, value);
-		return;
-	}
-	if (!_strcmpi(name, "IncludeProcess"))
-	{
-		SetConfigList(szInclude, value);
-		LogSetting(name, value);
-		return;
-	}
+
 	// Logging
 	Logging::Log() << "Warning. Config setting not recognized: " << name;
 }
 
-// Strip path from a string
-void Settings::strippath(char* str)
+// Clear pointers
+void Settings::ClearValue(void** setting)
 {
-	int ch = '\\';
-	size_t len;
-	char* pdest;
-	char* inpfile = nullptr;
-
-	// Search backwards for last backslash in filepath 
-	pdest = strrchr(str, ch);
-
-	// if backslash not found in filepath
-	if (!pdest)
-	{
-		return;
-	}
-	else
-	{
-		pdest++; // Skip the backslash itself.
-	}
-
-	// extract filename from file path
-	len = strlen(pdest) + 1;
-	inpfile = (char*)malloc(len);			// Make space for the zero.
-	strcpy_s(inpfile, len, pdest);			// Copy.
-	strcpy_s(str, len, inpfile);			// Copy back.
-	free(inpfile);							// Free memory after malloc.
-	return;
+	*setting = nullptr;
 }
 
-// Set default values
+// Clear vector of strings
+void Settings::ClearValue(std::vector<std::string>* setting)
+{
+	setting->clear();
+}
+
+// Clear strings
+void Settings::ClearValue(std::string* setting)
+{
+	setting->clear();
+}
+
+// Clear DWORD
+void Settings::ClearValue(DWORD* setting)
+{
+	*setting = 0;
+}
+
+// Clear bool
+void Settings::ClearValue(bool* setting)
+{
+	*setting = false;
+}
+
+// Clear all values
 void Settings::ClearConfigSettings()
 {
 	// Cleanup memory (needs to be done first)
 	Config.CleanUp();
-	// Clear Config values
-	Config.Affinity = false;
-	Config.AffinityNotSet = true;  // Default to 'true' until we know it is set
-	Config.D3d8to9 = false;
-	Config.DDrawCompat = false;
-	Config.DDrawCompatDisableGDIHook = false;
-	Config.DpiAware = false;
-	Config.DSoundCtrl = false;
-	Config.DxWnd = false;
-	Config.FullScreen = false;
-	Config.ForceTermination = false;
-	Config.ForceWindowResize = false;
-	Config.HandleExceptions = false;
-	Config.LoadPlugins = false;
-	Config.LoadFromScriptsOnly = false;
-	Config.ResetScreenRes = false;
-	Config.SendAltEnter = false;
-	Config.WaitForProcess = false;
-	Config.WaitForWindowChanges = false;
-	// Numeric values
-	Config.LoopSleepTime = 0;
-	Config.ResetMemoryAfter = 0;
-	Config.WindowSleepTime = 0;
-	Config.SetFullScreenLayer = 0;
-	Config.AntiAliasing = 0;
-	// DSoundCtrl
-	Config.Num2DBuffers = 0;
-	Config.Num3DBuffers = 0;
-	Config.ForceCertification = false;
-	Config.ForceExclusiveMode = false;
-	Config.ForceSoftwareMixing = false;
-	Config.ForceHardwareMixing = false;
-	Config.PreventSpeakerSetup = false;
-	Config.ForceHQ3DSoftMixing = false;
-	Config.ForceNonStaticBuffers = false;
-	Config.ForceVoiceManagement = false;
-	Config.ForcePrimaryBufferFormat = false;
-	Config.PrimaryBufferBits = 16;
-	Config.PrimaryBufferSamples = 44100;
-	Config.PrimaryBufferChannels = 2;
-	Config.ForceSpeakerConfig = false;
-	Config.SpeakerConfig = 6;
-	Config.StoppedDriverWorkaround = false;
-	// String of values
-	Config.szShellPath.clear();
-	// AppCompatData
-	Config.DisableMaxWindowedModeNotSet = true;  // Default to 'true' until we know it is set
-	for (UINT x = 0; x < 13; x++)
-	{
-		Config.DXPrimaryEmulation[x] = false;
-	}
-	Config.LockColorkey = 0;
+
+	// Clear normal config settings
+	VISIT_CONFIG_SETTINGS(CLEAR_VALUE);
+
+	// Set Value of AppCompatData config settings
+	VISIT_APPCOMPATDATA_SETTINGS(CLEAR_APPCOMPATDATA_VALUE);
+
+	// Default to 'true' until we know it is set
+	Config.DisableMaxWindowedModeNotSet = true;
+	Config.SingleProcAffinityNotSet = true;
 }
 
 // Get wrapper mode based on dll name
 void Settings::GetWrapperMode()
 {
-	char buffer[MAX_PATH];
-	Config.RealWrapperMode = dtype.Auto;
-	GetModuleFileNameA(hModule_dll, buffer, sizeof(buffer));
-	strippath(buffer);
-
 	// Check each wrapper library
 	for (UINT x = 0; x < dtypeArraySize; ++x)
 	{
 		// Check dll name
-		if (_strcmpi(buffer, dtypename[x]) == 0)
+		if (_strcmpi(Config.WrapperName.c_str(), dtypename[x]) == 0)
 		{
 			// Set RealWrapperMode
 			Config.RealWrapperMode = x;
@@ -796,16 +502,40 @@ void Settings::GetWrapperMode()
 	}
 
 	// Special for winmm.dll because sometimes it is changed to win32 or winnm or some other name
-	if (strlen(buffer) > 8)
+	if (Config.WrapperName.size() > 8)
 	{
-		buffer[3] = 'm';
-		buffer[4] = 'm';
+		if (dtypename[dtype.winmm][0] == Config.WrapperName[0] &&
+			dtypename[dtype.winmm][1] == Config.WrapperName[1] &&
+			dtypename[dtype.winmm][2] == Config.WrapperName[2] &&
+			dtypename[dtype.winmm][5] == Config.WrapperName[5] &&
+			dtypename[dtype.winmm][6] == Config.WrapperName[6] &&
+			dtypename[dtype.winmm][7] == Config.WrapperName[7] &&
+			dtypename[dtype.winmm][8] == Config.WrapperName[8])
+		{
+			// Set RealWrapperMode
+			Config.RealWrapperMode = dtype.winmm;
+			return;
+		}
 	}
-	if (_strcmpi(buffer, dtypename[dtype.winmm]) == 0)
-	{
-		// Set RealWrapperMode
-		Config.RealWrapperMode = dtype.winmm;
-	}
+}
+
+// Set default values
+void Settings::SetDefaultConfigSettings()
+{
+	// Set defaults
+	Config.DisableHighDPIScaling = true;
+	Config.DxWnd = true;
+	Config.HandleExceptions = true;
+	Config.LoopSleepTime = 120;
+	Config.WindowSleepTime = 500;
+
+	// Set other default values
+	Config.PrimaryBufferBits = 16;
+	Config.PrimaryBufferSamples = 44100;
+	Config.PrimaryBufferChannels = 2;
+	Config.SpeakerConfig = 6;
+	SetValue("ExcludeProcess", "dxwnd.exe", &Config.ExcludeProcess);
+	SetValue("ExcludeProcess", "dgVoodooSetup.exe", &Config.ExcludeProcess);
 }
 
 void CONFIG::CleanUp()
@@ -821,35 +551,45 @@ void CONFIG::Init()
 	// Reset all values
 	ClearConfigSettings();
 
-	// Get wrapper mode from dll name
-	GetWrapperMode();
-	Config.WrapperMode = Config.RealWrapperMode;
+	// Get module handle
+	HMODULE hModule = NULL;
+	GetModuleHandleEx(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT, (LPCTSTR)Settings::GetWrapperMode, &hModule);
 
-	// Set defaults
-	Config.DpiAware = true;
-	Config.DxWnd = true;
-	Config.HandleExceptions = true;
-	Config.LoopSleepTime = 120;
-	Config.WindowSleepTime = 500;
-	SetConfigList(szExclude, "dxwnd.exe");
-	SetConfigList(szExclude, "dgVoodooSetup.exe");
+	// Get module name
+	char wrappername[MAX_PATH];
+	GetModuleFileName(hModule, wrappername, MAX_PATH);
+	char* p_wName = strrchr(wrappername, '\\') + 1;
+
+	// Set lower case
+	for (char* p = p_wName; *p != '\0'; p++) { *p = (char)tolower(*p); }
+
+	// Get process name
+	char processname[MAX_PATH];
+	GetModuleFileName(nullptr, processname, MAX_PATH);
+	char* p_pName = strrchr(processname, '\\') + 1;
+
+	// Get module name and set RealWrapperMode
+	if (_strcmpi(p_wName, p_pName) == 0)
+	{
+		WrapperName.assign("dxwrapper.dll");
+		RealWrapperMode = dtype.dxwrapper;
+	}
+	else
+	{
+		WrapperName.assign(p_wName);
+		GetWrapperMode();
+	}
+
+	// Set default settings
+	SetDefaultConfigSettings();
 
 	// Get config file path
-	char path[MAX_PATH];
-	GetModuleFileNameA(hModule_dll, path, sizeof(path));
-	strcpy_s(strrchr(path, '.'), MAX_PATH - strlen(path), ".ini");
+	strcpy_s(p_wName, MAX_PATH - strlen(wrappername), WrapperName.c_str());
+	strcpy_s(strrchr(wrappername, '.'), MAX_PATH - strlen(wrappername), ".ini");
 
-	// Get config file name for log
-	char* pdest = strrchr(path, '\\') + 1;
-	for (char* p = pdest; *p != '\0'; p++)
-	{
-		*p = (char)tolower(*p);
-	}
-	Logging::Log() << "Reading config file: " << pdest;
-
-	// Read config file
-	char* szCfg;
-	szCfg = Read(path);
+	// Read defualt config file
+	char* szCfg = Read(wrappername);
+	Logging::Log() << "Reading config file: " << wrappername;
 
 	// Parce config file
 	if (szCfg)
@@ -857,32 +597,22 @@ void CONFIG::Init()
 		Parse(szCfg, ParseCallback);
 		free(szCfg);
 	}
+
+	// If config file cannot be read
 	else
 	{
 		Logging::Log() << "Could not load config file using defaults";
 	}
 
 	// Verify sleep time to make sure it is not be set too low (can be perf issues if it is too low)
-	if (Config.LoopSleepTime < 30) Config.LoopSleepTime = 30;
-
-	// Get porcess name
-	char szFileName[MAX_PATH];
-	GetModuleFileName(nullptr, szFileName, MAX_PATH);
-	strippath(szFileName);
+	if (LoopSleepTime < 30) LoopSleepTime = 30;
 
 	// Check if process should be excluded or not included
 	// if so, then clear all settings (disable everything)
-	if ((szExclude.size() != 0 && IfStringExistsInList(szFileName, szExclude, false)) ||
-		(szInclude.size() != 0 && !IfStringExistsInList(szFileName, szInclude, false)))
+	if ((ExcludeProcess.size() != 0 && IfStringExistsInList(p_pName, ExcludeProcess, false)) ||
+		(IncludeProcess.size() != 0 && !IfStringExistsInList(p_pName, IncludeProcess, false)))
 	{
 		Logging::Log() << "Clearing config and disabling dxwrapper!";
 		ClearConfigSettings();
-	}
-
-	// Update wrapper mode
-	if (Config.RealWrapperMode != dtype.Auto || 
-		(Config.WrapperMode >= dtypeArraySize && Config.WrapperMode != dtype.Auto))
-	{
-		Config.WrapperMode = Config.RealWrapperMode;
 	}
 }

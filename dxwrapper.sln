@@ -5,6 +5,8 @@ VisualStudioVersion = 14.0.25420.1
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "dxwrapper", "dxwrapper.vcxproj", "{579E7FE7-2745-4100-A802-23511711FCDE}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Stub", "Stub\stub.vcxproj", "{E204DCB3-D122-4F2E-88A8-89AC22CE3274}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Win32 = Debug|Win32
@@ -15,6 +17,10 @@ Global
 		{579E7FE7-2745-4100-A802-23511711FCDE}.Debug|Win32.Build.0 = Debug|Win32
 		{579E7FE7-2745-4100-A802-23511711FCDE}.Release|Win32.ActiveCfg = Release|Win32
 		{579E7FE7-2745-4100-A802-23511711FCDE}.Release|Win32.Build.0 = Release|Win32
+		{E204DCB3-D122-4F2E-88A8-89AC22CE3274}.Debug|Win32.ActiveCfg = Debug|Win32
+		{E204DCB3-D122-4F2E-88A8-89AC22CE3274}.Debug|Win32.Build.0 = Debug|Win32
+		{E204DCB3-D122-4F2E-88A8-89AC22CE3274}.Release|Win32.ActiveCfg = Release|Win32
+		{E204DCB3-D122-4F2E-88A8-89AC22CE3274}.Release|Win32.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

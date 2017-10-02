@@ -1,6 +1,6 @@
 #pragma once
 
-#define VISIT_CRYTPSP_PROCS(visit) \
+#define VISIT_PROCS(visit) \
 	visit(CheckSignatureInFile) \
 	visit(CryptAcquireContextA) \
 	visit(CryptAcquireContextW) \
@@ -67,33 +67,6 @@
 	visit(SystemFunction033) \
 	visit(SystemFunction035)
 
-namespace cryptsp
-{
-	class cryptsp_dll
-	{
-	public:
-		HMODULE dll = nullptr;
-		VISIT_CRYTPSP_PROCS(ADD_FARPROC_MEMBER);
+PROC_CLASS(cryptsp, dll)
 
-		void Load()
-		{
-			if (Config.WrapperMode != dtype.cryptsp && Config.WrapperMode != dtype.Auto)
-			{
-				return;
-			}
-
-			// Load real dll
-			dll = LoadDll(dtype.cryptsp);
-
-			// Load dll functions
-			if (dll)
-			{
-				VISIT_CRYTPSP_PROCS(LOAD_ORIGINAL_PROC);
-			}
-		}
-
-		void Unhook() {}
-	};
-
-	extern cryptsp_dll module;
-};
+#undef VISIT_PROCS

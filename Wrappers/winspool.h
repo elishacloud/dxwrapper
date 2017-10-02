@@ -1,6 +1,8 @@
 #pragma once
 
-#define VISIT_WINSPOOL_PROCS(visit) \
+#undef DeviceCapabilities
+
+#define VISIT_PROCS(visit) \
 	visit(ADVANCEDSETUPDIALOG) \
 	visit(AdvancedSetupDialog) \
 	visit(ConvertAnsiDevModeToUnicodeDevmode) \
@@ -199,35 +201,6 @@
 	visit(WritePrinter) \
 	visit(XcvDataW)
 
-#undef DeviceCapabilities
+PROC_CLASS(winspool, drv)
 
-namespace winspool
-{
-	class winspool_dll
-	{
-	public:
-		HMODULE dll = nullptr;
-		VISIT_WINSPOOL_PROCS(ADD_FARPROC_MEMBER);
-
-		void Load()
-		{
-			if (Config.WrapperMode != dtype.winspool && Config.WrapperMode != dtype.Auto)
-			{
-				return;
-			}
-
-			// Load real dll
-			dll = LoadDll(dtype.winspool);
-
-			// Load dll functions
-			if (dll)
-			{
-				VISIT_WINSPOOL_PROCS(LOAD_ORIGINAL_PROC);
-			}
-		}
-
-		void Unhook() {}
-	};
-
-	extern winspool_dll module;
-}
+#undef VISIT_PROCS

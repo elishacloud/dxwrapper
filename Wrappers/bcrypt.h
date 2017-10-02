@@ -1,6 +1,6 @@
 #pragma once
 
-#define VISIT_BCRYPT_PROCS(visit) \
+#define VISIT_PROCS(visit) \
 	visit(BCryptAddContextFunction) \
 	visit(BCryptAddContextFunctionProvider) \
 	visit(BCryptCloseAlgorithmProvider) \
@@ -60,33 +60,6 @@
 	visit(BCryptUnregisterProvider) \
 	visit(BCryptVerifySignature)
 
-namespace bcrypt
-{
-	class bcrypt_dll
-	{
-	public:
-		HMODULE dll = nullptr;
-		VISIT_BCRYPT_PROCS(ADD_FARPROC_MEMBER);
+PROC_CLASS(bcrypt, dll)
 
-		void Load()
-		{
-			if (Config.WrapperMode != dtype.bcrypt && Config.WrapperMode != dtype.Auto)
-			{
-				return;
-			}
-			
-			// Load real dll
-			dll = LoadDll(dtype.bcrypt);
-
-			// Load dll functions
-			if (dll)
-			{
-				VISIT_BCRYPT_PROCS(LOAD_ORIGINAL_PROC);
-			}
-		}
-
-		void Unhook() {}
-	};
-
-	extern bcrypt_dll module;
-};
+#undef VISIT_PROCS

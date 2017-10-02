@@ -1,6 +1,6 @@
 # DxWrapper
 ### Introduction
-DxWrapper is a dll file designed to wrap or hook DirectX (or other) files to fix compatibility issues in older games.  This project is primarily targeted to fixing compatibility issues with running games on Windows 10, ideally by simply dropping a dll file and ini file into the game folder.  A secondary purpose for this is to offer a single tool (one stop shop, so to speak) by combining several other projects into one.  So far this dll can wrap the following files: bcrypt.dll, cryptsp.dll, d3d8.dll, d3d9.dll, dciman32.dll, ddraw.dll, dinput.dll, dplayx.dll, dsound.dll, dxgi.dll, winmm.dll or winspool.drv
+DxWrapper is a dll file designed to wrap or hook DirectX (or other) files to fix compatibility issues in older games.  This project is primarily targeted to fixing compatibility issues with running games on Windows 10, ideally by simply dropping a dll file and ini file into the game folder.  A secondary purpose for this is to offer a single tool (one stop shop, so to speak) by combining several other projects into one.
 
 ### Features
 DxWrapper has a number of features that it includes.  Below is a list of features:
@@ -41,6 +41,35 @@ Delete DxWrapper dll files and the ini files from the game's directory. You can 
 
 To configure DxWrapper you just need to edit the ini file and enable the settings you want.  See the [Configuration wiki](https://github.com/elishacloud/dxwrapper/wiki/Configuration) for more details.
 
+### Supported DLLs
+
+DxWrapper can wrap the following dlls:
+ - bcrypt.dll
+ - cryptsp.dll
+ - d2d1.dll
+ - d3d8.dll
+ - d3d9.dll
+ - d3d10.dll
+ - d3d10core.dll
+ - d3d11.dll
+ - d3d12.dll
+ - d3dim.dll
+ - d3dim700.dll
+ - dciman32.dll
+ - ddraw.dll
+ - dinput.dll
+ - dinput8.dll
+ - dplayx.dll
+ - dsound.dll
+ - dxgi.dll
+ - msacm32.dll
+ - msvfw32.dll
+ - vorbisfile.dll
+ - winmm.dll
+ - winmmbase.dll
+ - winspool.drv
+ - xlive.dll
+
 ### License
 Copyright (C) 2017 Elisha Riedlinger
 
@@ -53,7 +82,7 @@ This software is provided 'as-is', without any express or implied warranty. In n
 DxWrapper uses code from several other projects. So to give credit where credit is due, below is a list of locations that source code was taken from:
 
  - [DDrawCompat](https://github.com/narzoul/DDrawCompat/): Includes the full DDrawCompat version 2.0b and 2.1.
- - [DxWnd](https://sourceforge.net/projects/dxwnd/): Includes code from the proxy dll and exception handling. 
+ - [DxWnd](https://sourceforge.net/projects/dxwnd/): Includes code from the proxy dll and exception handling.
  - [OllyDbg](http://www.ollydbg.de/): Includes the full cmdlist.c and disasm.c (disasm.dll) code used for exception handling.
  - [d3d8to9](https://github.com/crosire/d3d8to9): Includes the full Direct3D 8 to Direct3D 9 code.
  - [DSoundCtrl](https://github.com/nRaecheR/DirectSoundControl): Includes the full DirectSoundControl code.
@@ -61,9 +90,10 @@ DxWrapper uses code from several other projects. So to give credit where credit 
  - [Direct3D9 Wrapper DLL](https://gist.github.com/shaunlebron/3854bf4eec5bec297907): Includes the full wrapper code used for logging and manipulating Direct3D9 calls, such as enabling Anti-Aliasing.
  - [WineD3D d3d8.dll](https://github.com/alexhenrie/wine/tree/master/dlls/d3d8): Includes functions ValidatePixelShader and ValidateVertexShader.
  - [Ultimate ASI Loader](https://github.com/ThirteenAG/Ultimate-ASI-Loader): Includes code for loading ASI pluggins.
+ - [MemoryModule](https://github.com/fancycode/MemoryModule): Includes code for loading libraries from memory.
  - [Parsing PE export table](http://www.rohitab.com/discuss/topic/40594-parsing-pe-export-table/): Includes the full GetProcAddress.
  - [How do I programmatically get the version of a DLL or EXE file?](https://stackoverflow.com/questions/940707/how-do-i-programmatically-get-the-version-of-a-dll-or-exe-file): Includes code for getting the version of an EXE file.
- - http://www.blitzbasic.com/Community/post.php?topic=99477&post=1202996: Used date here to create ability to set all 12 SetAppCompatData settings.
+ - hxxp://www.blitzbasic.com/Community/post.php?topic=99477&post=1202996 (site no longer exists): Used date here to create ability to set all 12 SetAppCompatData settings.
 
 ### Development
 DxWrapper is mostly written in C++ using Microsoft Visual Studio Community 2015.

@@ -33,6 +33,4 @@ enum DWMNCRENDERINGPOLICY
 	DWMNCRP_LAST
 };
 
-void UnLoaddwmapi();
-
 HRESULT DwmSetWindowAttribute(HWND, DWORD, LPCVOID, DWORD);

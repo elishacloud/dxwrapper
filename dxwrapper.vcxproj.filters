@@ -39,13 +39,10 @@
       <UniqueIdentifier>{dd986a8a-7ff1-403f-8a75-794ded77510d}</UniqueIdentifier>
     </Filter>
     <Filter Include="D3d9">
-      <UniqueIdentifier>{58f67609-5b76-4ec4-8b6e-1c557d101b53}</UniqueIdentifier>
+      <UniqueIdentifier>{c922409a-b895-4ab0-a6e9-36287ac4f350}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="wrappers\wrapper.cpp">
-      <Filter>Wrappers</Filter>
-    </ClCompile>
     <ClCompile Include="DSoundCtrl\DSoundCtrl.cpp">
       <Filter>DSoundCtrl</Filter>
     </ClCompile>
@@ -226,46 +223,25 @@
     <ClCompile Include="Utils\Fullscreen.cpp">
       <Filter>Utils</Filter>
     </ClCompile>
+    <ClCompile Include="Wrappers\wrapper.cpp">
+      <Filter>Wrappers</Filter>
+    </ClCompile>
     <ClCompile Include="D3d9\d3d9.cpp">
       <Filter>D3d9</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <None Include="Dllmain\dxwrapper.def">
-      <Filter>Dllmain</Filter>
-    </None>
     <None Include="Settings\AllSettings.ini">
       <Filter>Settings</Filter>
     </None>
     <None Include="Settings\Settings.ini">
       <Filter>Settings</Filter>
     </None>
+    <None Include="Wrappers\wrapper.def">
+      <Filter>Wrappers</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="wrappers\d3d8.h">
-      <Filter>Wrappers</Filter>
-    </ClInclude>
-    <ClInclude Include="wrappers\d3d9.h">
-      <Filter>Wrappers</Filter>
-    </ClInclude>
-    <ClInclude Include="wrappers\ddraw.h">
-      <Filter>Wrappers</Filter>
-    </ClInclude>
-    <ClInclude Include="wrappers\dplayx.h">
-      <Filter>Wrappers</Filter>
-    </ClInclude>
-    <ClInclude Include="wrappers\dsound.h">
-      <Filter>Wrappers</Filter>
-    </ClInclude>
-    <ClInclude Include="wrappers\dxgi.h">
-      <Filter>Wrappers</Filter>
-    </ClInclude>
-    <ClInclude Include="wrappers\winmm.h">
-      <Filter>Wrappers</Filter>
-    </ClInclude>
-    <ClInclude Include="wrappers\wrapper.h">
-      <Filter>Wrappers</Filter>
-    </ClInclude>
     <ClInclude Include="DSoundCtrl\dsound.h">
       <Filter>DSoundCtrl</Filter>
     </ClInclude>
@@ -302,9 +278,6 @@
     <ClInclude Include="libraries\winmm.h">
       <Filter>Libraries</Filter>
     </ClInclude>
-    <ClInclude Include="wrappers\dinput.h">
-      <Filter>Wrappers</Filter>
-    </ClInclude>
     <ClInclude Include="D3d8to9\d3d8to9.hpp">
       <Filter>D3d8to9</Filter>
     </ClInclude>
@@ -328,15 +301,6 @@
     </ClInclude>
     <ClInclude Include="Settings\Settings.h">
       <Filter>Settings</Filter>
-    </ClInclude>
-    <ClInclude Include="Wrappers\bcrypt.h">
-      <Filter>Wrappers</Filter>
-    </ClInclude>
-    <ClInclude Include="Wrappers\winspool.h">
-      <Filter>Wrappers</Filter>
-    </ClInclude>
-    <ClInclude Include="Wrappers\cryptsp.h">
-      <Filter>Wrappers</Filter>
     </ClInclude>
     <ClInclude Include="Libraries\d3dx9.h">
       <Filter>Libraries</Filter>
@@ -452,10 +416,13 @@
     <ClInclude Include="Hooking\Hook.h">
       <Filter>Hooking</Filter>
     </ClInclude>
-    <ClInclude Include="Wrappers\dciman32.h">
+    <ClInclude Include="Wrappers\wrapper.h">
       <Filter>Wrappers</Filter>
     </ClInclude>
     <ClInclude Include="D3d9\d3d9.h">
+      <Filter>D3d9</Filter>
+    </ClInclude>
+    <ClInclude Include="D3d9\D3d9External.h">
       <Filter>D3d9</Filter>
     </ClInclude>
   </ItemGroup>

@@ -1,0 +1,160 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="14.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|Win32">
+      <Configuration>Debug</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|Win32">
+      <Configuration>Release</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{E204DCB3-D122-4F2E-88A8-89AC22CE3274}</ProjectGuid>
+    <Keyword>Win32Proj</Keyword>
+    <RootNamespace>stub</RootNamespace>
+    <WindowsTargetPlatformVersion>10.0.14393.0</WindowsTargetPlatformVersion>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <CharacterSet>MultiByte</CharacterSet>
+    <PlatformToolset>v140</PlatformToolset>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>Unicode</CharacterSet>
+    <PlatformToolset>v140</PlatformToolset>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <LinkIncremental>true</LinkIncremental>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <LinkIncremental>false</LinkIncremental>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <ClCompile>
+      <PrecompiledHeader>
+      </PrecompiledHeader>
+      <WarningLevel>Level3</WarningLevel>
+      <Optimization>Disabled</Optimization>
+    </ClCompile>
+    <Link>
+      <SubSystem>Windows</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <ModuleDefinitionFile>..\Wrappers\wrapper.def</ModuleDefinitionFile>
+    </Link>
+    <PostBuildEvent>
+      <Command>IF NOT EXIST "$(TargetDir)Build" mkdir "$(TargetDir)Build" &gt;nul
+copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\bcrypt.dll" &gt;nul
+copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\cryptsp.dll" &gt;nul
+copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\d2d1.dll" &gt;nul
+copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\d3d8.dll" &gt;nul
+copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\d3d9.dll" &gt;nul
+copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\d3d10.dll" &gt;nul
+copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\d3d10core.dll" &gt;nul
+copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\d3d11.dll" &gt;nul
+copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\d3d12.dll" &gt;nul
+copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\d3dim.dll" &gt;nul
+copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\d3dim700.dll" &gt;nul
+copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\dciman32.dll" &gt;nul
+copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\ddraw.dll" &gt;nul
+copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\dinput.dll" &gt;nul
+copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\dinput8.dll" &gt;nul
+copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\dplayx.dll" &gt;nul
+copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\dsound.dll" &gt;nul
+copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\dxgi.dll" &gt;nul
+copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\msacm32.dll" &gt;nul
+copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\msvfw32.dll" &gt;nul
+copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\vorbisfile.dll" &gt;nul
+copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\winmm.dll" &gt;nul
+copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\winmmbase.dll" &gt;nul
+copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\winspool.drv" &gt;nul
+copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\xlive.dll" &gt;nul</Command>
+    </PostBuildEvent>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <PrecompiledHeader>
+      </PrecompiledHeader>
+      <Optimization>MaxSpeed</Optimization>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <EnableEnhancedInstructionSet>StreamingSIMDExtensions2</EnableEnhancedInstructionSet>
+    </ClCompile>
+    <Link>
+      <SubSystem>Windows</SubSystem>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+      <ModuleDefinitionFile>..\Wrappers\wrapper.def</ModuleDefinitionFile>
+    </Link>
+    <PreBuildEvent>
+      <Command>cmd /c "@echo off &amp;&amp; cd /D ""$(ProjectDir)"" &amp;&amp; if not exist BuildNo.rc echo #define BUILD_NUMBER 0 &gt;BuildNo.rc"
+cmd /c "@echo off &amp;&amp; cd /D ""$(ProjectDir)"" &amp;&amp; FOR /F "tokens=3" %%i IN (BuildNo.rc) DO set /a var=%%i+1 &gt;Build.txt"
+cmd /c "@echo off &amp;&amp; cd /D ""$(ProjectDir)"" &amp;&amp; FOR /F %%i IN (Build.txt) DO echo #define BUILD_NUMBER %%i &gt;BuildNo.rc"
+cmd /c "@echo off &amp;&amp; cd /D ""$(ProjectDir)"" &amp;&amp; del Build.txt"
+cmd /c "@echo off &amp;&amp; cd /D ""$(ProjectDir)"" &amp;&amp; type BuildNo.rc"</Command>
+    </PreBuildEvent>
+    <PostBuildEvent>
+      <Command>IF NOT EXIST "$(TargetDir)Build" mkdir "$(TargetDir)Build" &gt;nul
+copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\bcrypt.dll" &gt;nul
+copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\cryptsp.dll" &gt;nul
+copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\d2d1.dll" &gt;nul
+copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\d3d8.dll" &gt;nul
+copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\d3d9.dll" &gt;nul
+copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\d3d10.dll" &gt;nul
+copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\d3d10core.dll" &gt;nul
+copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\d3d11.dll" &gt;nul
+copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\d3d12.dll" &gt;nul
+copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\d3dim.dll" &gt;nul
+copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\d3dim700.dll" &gt;nul
+copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\dciman32.dll" &gt;nul
+copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\ddraw.dll" &gt;nul
+copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\dinput.dll" &gt;nul
+copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\dinput8.dll" &gt;nul
+copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\dplayx.dll" &gt;nul
+copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\dsound.dll" &gt;nul
+copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\dxgi.dll" &gt;nul
+copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\msacm32.dll" &gt;nul
+copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\msvfw32.dll" &gt;nul
+copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\vorbisfile.dll" &gt;nul
+copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\winmm.dll" &gt;nul
+copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\winmmbase.dll" &gt;nul
+copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\winspool.drv" &gt;nul
+copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\xlive.dll" &gt;nul</Command>
+    </PostBuildEvent>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ClCompile Include="..\MemoryModule\MemoryModule.c" />
+    <ClCompile Include="..\Wrappers\wrapper.cpp" />
+    <ClCompile Include="Dllmain.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\Wrappers\wrapper.def" />
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="BuildNo.rc" />
+    <ResourceCompile Include="stub.rc" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="stub.h" />
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>

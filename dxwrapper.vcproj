@@ -82,7 +82,7 @@
 				AdditionalLibraryDirectories=""
 				IgnoreAllDefaultLibraries="false"
 				IgnoreDefaultLibraryNames=""
-				ModuleDefinitionFile=".\dxwrapper.def"
+				ModuleDefinitionFile="Wrappers\wrapper.def"
 				GenerateDebugInformation="true"
 				RandomizedBaseAddress="1"
 				DataExecutionPrevention="0"
@@ -181,7 +181,7 @@
 				OutputFile="./Build/dxwrapper.dll"
 				LinkIncremental="1"
 				SuppressStartupBanner="true"
-				ModuleDefinitionFile=".\dxwrapper.def"
+				ModuleDefinitionFile="Wrappers\wrapper.def"
 				ProgramDatabaseFile=""
 				RandomizedBaseAddress="1"
 				DataExecutionPrevention="0"
@@ -259,10 +259,6 @@
 			</File>
 			<File
 				RelativePath=".\dxwrapper.cpp"
-				>
-			</File>
-			<File
-				RelativePath=".\dxwrapper.def"
 				>
 			</File>
 			<File

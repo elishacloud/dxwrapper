@@ -45,11 +45,11 @@ void WriteMemory::WriteAllByteMemory()
 
 	for (UINT x = 0; x < Config.MemoryInfo.size(); x++)
 	{
-		if (Config.MemoryInfo[x].AddressPointer != 0 && Config.MemoryInfo[x].SizeOfBytes != 0)
+		if (Config.MemoryInfo[x].AddressPointer != nullptr && Config.MemoryInfo[x].SizeOfBytes != 0)
 		{
 			// Get current memory
 			byte* lpBuffer = new byte[Config.MemoryInfo[x].SizeOfBytes];
-			void* AddressPointer = (void*)Config.MemoryInfo[x].AddressPointer;
+			void* AddressPointer = Config.MemoryInfo[x].AddressPointer;
 			if (ReadProcessMemory(hProcess, AddressPointer, lpBuffer, Config.MemoryInfo[x].SizeOfBytes, nullptr))
 			{
 				// Make memory writeable
@@ -70,12 +70,12 @@ void WriteMemory::WriteAllByteMemory()
 				}
 				else
 				{
-					Logging::Log() << "Access Denied at memory address: 0x" << std::showbase << std::hex << Config.MemoryInfo[x].AddressPointer << std::dec << std::noshowbase;
+					Logging::Log() << "Access Denied at memory address: 0x" << Config.MemoryInfo[x].AddressPointer;
 				}
 			}
 			else
 			{
-				Logging::Log() << "Failed to read memory at address: 0x" << std::showbase << std::hex << Config.MemoryInfo[x].AddressPointer << std::dec << std::noshowbase;
+				Logging::Log() << "Failed to read memory at address: 0x" << Config.MemoryInfo[x].AddressPointer;
 			}
 		}
 	}
@@ -85,7 +85,7 @@ void WriteMemory::WriteAllByteMemory()
 bool WriteMemory::CheckVerificationMemory()
 {
 	// Check Verification details
-	if (Config.VerifyMemoryInfo.SizeOfBytes == 0 || Config.VerifyMemoryInfo.AddressPointer == 0)
+	if (Config.VerifyMemoryInfo.SizeOfBytes == 0 || Config.VerifyMemoryInfo.AddressPointer == nullptr)
 	{
 		return false;
 	}
@@ -93,7 +93,7 @@ bool WriteMemory::CheckVerificationMemory()
 	// Check current memory
 	for (UINT x = 0; x < Config.VerifyMemoryInfo.SizeOfBytes; x++)
 	{
-		if (*((byte*)(Config.VerifyMemoryInfo.AddressPointer + x)) != Config.VerifyMemoryInfo.Bytes[x])
+		if (*((byte*)((DWORD)Config.VerifyMemoryInfo.AddressPointer + x)) != Config.VerifyMemoryInfo.Bytes[x])
 		{
 			// Check failed
 			return false;
@@ -162,7 +162,7 @@ void WriteMemory::WriteMemory()
 	}
 	else
 	{
-		if (Config.VerifyMemoryInfo.AddressPointer != 0)
+		if (Config.VerifyMemoryInfo.AddressPointer != nullptr)
 		{
 			Logging::Log() << "Failed verification for memory write!";
 		}

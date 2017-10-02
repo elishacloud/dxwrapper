@@ -5,53 +5,97 @@
 #include <vector>
 #include <string>
 
-typedef unsigned char byte;
+#define VISIT_CONFIG_SETTINGS(visit) \
+	visit(AntiAliasing) \
+	visit(D3d8to9) \
+	visit(DDrawCompat) \
+	visit(DDrawCompatDisableGDIHook) \
+	visit(DisableHighDPIScaling) \
+	visit(DSoundCtrl) \
+	visit(DxWnd) \
+	visit(ExcludeProcess) \
+	visit(ForceCertification) \
+	visit(ForceExclusiveMode) \
+	visit(ForceHardwareMixing) \
+	visit(ForceHQ3DSoftMixing) \
+	visit(ForceNonStaticBuffers) \
+	visit(ForcePrimaryBufferFormat) \
+	visit(ForceSoftwareMixing) \
+	visit(ForceSpeakerConfig) \
+	visit(ForceTermination) \
+	visit(ForceVoiceManagement) \
+	visit(ForceWindowResize) \
+	visit(FullScreen) \
+	visit(HandleExceptions) \
+	visit(IgnoreWindowName) \
+	visit(IncludeProcess) \
+	visit(LoadCustomDllPath) \
+	visit(LoadFromScriptsOnly) \
+	visit(LoadPlugins) \
+	visit(LockColorkey) \
+	visit(LoopSleepTime) \
+	visit(Num2DBuffers) \
+	visit(Num3DBuffers) \
+	visit(PreventSpeakerSetup) \
+	visit(PrimaryBufferBits) \
+	visit(PrimaryBufferChannels) \
+	visit(PrimaryBufferSamples) \
+	visit(RealDllPath) \
+	visit(ResetMemoryAfter) \
+	visit(ResetScreenRes) \
+	visit(RunProcess) \
+	visit(SendAltEnter) \
+	visit(SetFullScreenLayer) \
+	visit(SetNamedLayer) \
+	visit(SingleProcAffinity) \
+	visit(SpeakerConfig) \
+	visit(StoppedDriverWorkaround) \
+	visit(WaitForProcess) \
+	visit(WaitForWindowChanges) \
+	visit(WindowSleepTime)
 
-namespace Settings
-{
-	bool IfStringExistsInList(char*, std::vector<std::string>, bool = true);
-	void SetConfigList(std::vector<std::string>&, char*);
-}
+#define VISIT_APPCOMPATDATA_SETTINGS(visit) \
+	visit(LockEmulation) \
+	visit(BltEmulation) \
+	visit(ForceLockNoWindow) \
+	visit(ForceBltNoWindow) \
+	visit(LockColorkey) \
+	visit(FullscreenWithDWM) \
+	visit(DisableLockEmulation) \
+	visit(EnableOverlays) \
+	visit(DisableSurfaceLocks) \
+	visit(RedirectPrimarySurfBlts) \
+	visit(StripBorderStyle) \
+	visit(DisableMaxWindowedMode)
+
+typedef unsigned char byte;
 
 struct MEMORYINFO						// Used for hot patching memory
 {
-	DWORD AddressPointer = 0;			// Hot patch address
+	void* AddressPointer = nullptr;	// Hot patch address
 	byte* Bytes = nullptr;				// Hot patch bytes
 	size_t SizeOfBytes = 0;				// Size of bytes to hot patch
 };
 
 struct DLLTYPE
 {
-	const DWORD dciman32 = 0;
+	const DWORD dxwrapper = 0;
 	const DWORD ddraw = 1;
-	const DWORD d3d9 = 2;
-	const DWORD d3d8 = 3;
-	const DWORD winmm = 4;
-	const DWORD dsound = 5;
-	const DWORD dxgi = 6;
-	const DWORD dplayx = 7;
-	const DWORD dinput = 8;
-	const DWORD bcrypt = 9;
-	const DWORD cryptsp = 10;
-	const DWORD winspool = 11;
-	const DWORD Auto = 255;
+	const DWORD d3d8 = 2;
+	const DWORD d3d9 = 3;
+	const DWORD dsound = 4;
+	const DWORD winmm = 5;
 };
 static const DLLTYPE dtype;
 
 // Designated Initializer does not work in VS 2015 so must pay attention to the order
 static constexpr char* dtypename[] = {
-	"dciman32.dll",	// 0
+	"dxwrapper.dll",// 0
 	"ddraw.dll",	// 1
-	"d3d9.dll",		// 2
-	"d3d8.dll",		// 3
-	"winmm.dll",	// 4
-	"dsound.dll",	// 5
-	"dxgi.dll",		// 6
-	"dplayx.dll",	// 7
-	"dinput.dll",	// 8
-	"bcrypt.dll",	// 9
-	"cryptsp.dll",	// 10
-	"winspool.drv",	// 11
+	"d3d8.dll",		// 2
+	"d3d9.dll",		// 3
+	"dsound.dll",	// 4
+	"winmm.dll",	// 5
 };
 static constexpr int dtypeArraySize = (sizeof(dtypename) / sizeof(*dtypename));
 
@@ -77,12 +121,12 @@ struct CONFIG
 {
 	void Init();						// Initialize the config setting
 	void CleanUp();						// Deletes all 'new' varables created by config
-	bool Affinity;						// Sets the CPU affinity for this process and thread
-	bool AffinityNotSet;				// If the CPU affinity option exists in the config file
+	bool SingleProcAffinity;			// Sets the CPU affinity for this process and thread
+	bool SingleProcAffinityNotSet;		// If the CPU affinity option exists in the config file
 	bool D3d8to9;						// Converts Direct3D8 (d3d8.dll) to Direct3D9 (d3d9.dll) https://github.com/crosire/d3d8to9
 	bool DDrawCompat;					// Enables DDrawCompat functions https://github.com/narzoul/DDrawCompat/
 	bool DDrawCompatDisableGDIHook;		// Disables DDrawCompat GDI hooks
-	bool DpiAware;						// Disables display scaling on high DPI settings
+	bool DisableHighDPIScaling;			// Disables display scaling on high DPI settings
 	bool DSoundCtrl;					// Enables DirectSoundControl https://github.com/nRaecheR/DirectSoundControl
 	bool DxWnd;							// Enables dXwnd https://sourceforge.net/projects/dxwnd/
 	bool FullScreen;					// Sets the main window to fullscreen
@@ -101,18 +145,21 @@ struct CONFIG
 	DWORD SetFullScreenLayer;			// The layer to be selected for fullscreen
 	DWORD AntiAliasing;					// Enable AntiAliasing for d3d9 CreateDevice
 	DWORD RealWrapperMode;				// Internal wrapper mode
-	DWORD WrapperMode;					// 0 ... 254	= DLLTYPE
-										// 255			= Auto
+	MEMORYINFO VerifyMemoryInfo;		// Memory used for verification before hot patching
+	std::vector<MEMORYINFO> MemoryInfo;	// Addresses and memory used in hot patching
+	std::string WrapperName;			// Name of dxwrapper
+	std::string RealDllPath;			// Manually set Dll to wrap
+	std::string RunProcess;				// Process to run on load
+	std::vector<std::string> SetNamedLayer;		// List of named layers to select for fullscreen
+	std::vector<std::string> IgnoreWindowName;	// List of window classes to ignore
+	std::vector<std::string> LoadCustomDllPath;	// List of custom dlls to load
+	std::vector<std::string> ExcludeProcess;	// List of excluded applications
+	std::vector<std::string> IncludeProcess;	// List of included applications
+
+	// SetAppCompatData
 	bool DXPrimaryEmulation[13];		// SetAppCompatData exported functions from ddraw.dll http://www.blitzbasic.com/Community/posts.php?topic=99477
 	DWORD LockColorkey;					// DXPrimaryEmulation option that needs a second parameter
 	bool DisableMaxWindowedModeNotSet;	// If the DisableMaxWindowedMode option exists in the config file
-	MEMORYINFO VerifyMemoryInfo;		// Memory used for verification before hot patching
-	std::vector<MEMORYINFO> MemoryInfo;	// Addresses and memory used in hot patching
-	std::string szDllPath;				// Manually set Dll to wrap
-	std::string szShellPath;			// Process to run on load
-	std::vector<std::string> szCustomDllPath;		// List of custom dlls to load
-	std::vector<std::string> szSetNamedLayer;		// List of named layers to select for fullscreen
-	std::vector<std::string> szIgnoreWindowName;	// List of window classes to ignore
 
 	// DSoundCtrl
 	DWORD Num2DBuffers;
@@ -134,3 +181,9 @@ struct CONFIG
 	bool StoppedDriverWorkaround;
 };
 extern CONFIG Config;
+
+namespace Settings
+{
+	bool IfStringExistsInList(const char*, std::vector<std::string>, bool = true);
+	void SetValue(char*, char*, std::vector<std::string>*);
+}
