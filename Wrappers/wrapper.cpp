@@ -38,20 +38,21 @@
 		using namespace Wrapper; \
 		char *Name = #className ## "." ## #Extension; \
 		VISIT_PROCS(ADD_FARPROC_MEMBER); \
-		HMODULE Load(char *strName) \
+		HMODULE Load(const char *strName) \
 		{ \
 			char path[MAX_PATH]; \
-			GetSystemDirectoryA(path, MAX_PATH); \
-			strcat_s(path, MAX_PATH, "\\"); \
-			if (strName) \
+			HMODULE dll = nullptr; \
+			if (strName && _strcmpi(strName, Name) != 0) \
 			{ \
-				strcat_s(path, MAX_PATH, strName); \
+				dll = LoadLibraryA(strName); \
 			} \
-			else \
+			if (!dll) \
 			{ \
+				GetSystemDirectoryA(path, MAX_PATH); \
+				strcat_s(path, MAX_PATH, "\\"); \
 				strcat_s(path, MAX_PATH, Name); \
+				dll = LoadLibraryA(path); \
 			} \
-			HMODULE dll = LoadLibraryA(path); \
 			if (dll) \
 			{ \
 				VISIT_PROCS(LOAD_ORIGINAL_PROC); \
@@ -59,16 +60,13 @@
 			} \
 			return dll; \
 		} \
-		HMODULE Load() \
-		{ \
-			return Load(nullptr); \
-		} \
 		VISIT_PROCS(CREATE_PROC_STUB) \
 	}
 
 namespace Wrapper
 {
 	FARPROC GetProcAddress(HMODULE hModule, LPCSTR FunctionName, FARPROC SetReturnValue);
+	HMODULE LoadWrapper(const char *ProxyDll, const char *WrapperMode);
 	__declspec() HRESULT __stdcall _jmpaddr();
 	constexpr FARPROC jmpaddr = (FARPROC)*_jmpaddr;
 }
@@ -128,59 +126,90 @@ FARPROC Wrapper::GetProcAddress(HMODULE hModule, LPCSTR FunctionName, FARPROC Se
 	return ProcAddress;
 }
 
-HMODULE Wrapper::CreateWrapper(HMODULE hModule)
+HMODULE Wrapper::LoadWrapper(const char *ProxyDll, const char *WrapperMode)
 {
 	// Declare vars
 	HMODULE dll = nullptr;
 
-	// Get module full path and name
-	char path[MAX_PATH];
-	GetModuleFileNameA(hModule, path, sizeof(path));
-
-	// Search backwards for last backslash in filepath 
-	char* pdest = strrchr(path, '\\');
-
-	// If backslash not found in filepath
-	if (pdest)
-	{
-		// Extract filename from file path
-		std::string input(pdest+1);
-		strcpy_s(path, MAX_PATH, input.c_str());
-	}
-
 	// Check dll name and load correct wrapper
-	{ using namespace bcrypt; if (_strcmpi(path, Name) == 0) dll = Load(); }
-	{ using namespace cryptsp; if (_strcmpi(path, Name) == 0) dll = Load(); }
-	{ using namespace d2d1; if (_strcmpi(path, Name) == 0) dll = Load(); }
-	{ using namespace d3d8; if (_strcmpi(path, Name) == 0) dll = Load(); }
-	{ using namespace d3d9; if (_strcmpi(path, Name) == 0) dll = Load(); }
-	{ using namespace d3d10; if (_strcmpi(path, Name) == 0) dll = Load(); }
-	{ using namespace d3d10core; if (_strcmpi(path, Name) == 0) dll = Load(); }
-	{ using namespace d3d11; if (_strcmpi(path, Name) == 0) dll = Load(); }
-	{ using namespace d3d12; if (_strcmpi(path, Name) == 0) dll = Load(); }
-	{ using namespace d3dim; if (_strcmpi(path, Name) == 0) dll = Load(); }
-	{ using namespace d3dim700; if (_strcmpi(path, Name) == 0) dll = Load(); }
-	{ using namespace dciman32; if (_strcmpi(path, Name) == 0) dll = Load(); }
-	{ using namespace ddraw; if (_strcmpi(path, Name) == 0) dll = Load(); }
-	{ using namespace dinput; if (_strcmpi(path, Name) == 0) dll = Load(); }
-	{ using namespace dinput8; if (_strcmpi(path, Name) == 0) dll = Load(); }
-	{ using namespace dplayx; if (_strcmpi(path, Name) == 0) dll = Load(); }
-	{ using namespace dsound; if (_strcmpi(path, Name) == 0) dll = Load(); }
-	{ using namespace dxgi; if (_strcmpi(path, Name) == 0) dll = Load(); }
-	{ using namespace msacm32; if (_strcmpi(path, Name) == 0) dll = Load(); }
-	{ using namespace msvfw32; if (_strcmpi(path, Name) == 0) dll = Load(); }
-	{ using namespace vorbisfile; if (_strcmpi(path, Name) == 0) dll = Load(); }
-	{ using namespace winmm; if (_strcmpi(path, "winmmbase.dll") == 0) dll = Load("winmmbase.dll"); }
-	{ using namespace winspool; if (_strcmpi(path, Name) == 0) dll = Load(); }
-	{ using namespace xlive; if (_strcmpi(path, Name) == 0) dll = Load(); }
+	{ using namespace bcrypt; if (_strcmpi(WrapperMode, Name) == 0) dll = Load(ProxyDll); }
+	{ using namespace cryptsp; if (_strcmpi(WrapperMode, Name) == 0) dll = Load(ProxyDll); }
+	{ using namespace d2d1; if (_strcmpi(WrapperMode, Name) == 0) dll = Load(ProxyDll); }
+	{ using namespace d3d8; if (_strcmpi(WrapperMode, Name) == 0) dll = Load(ProxyDll); }
+	{ using namespace d3d9; if (_strcmpi(WrapperMode, Name) == 0) dll = Load(ProxyDll); }
+	{ using namespace d3d10; if (_strcmpi(WrapperMode, Name) == 0) dll = Load(ProxyDll); }
+	{ using namespace d3d10core; if (_strcmpi(WrapperMode, Name) == 0) dll = Load(ProxyDll); }
+	{ using namespace d3d11; if (_strcmpi(WrapperMode, Name) == 0) dll = Load(ProxyDll); }
+	{ using namespace d3d12; if (_strcmpi(WrapperMode, Name) == 0) dll = Load(ProxyDll); }
+	{ using namespace d3dim; if (_strcmpi(WrapperMode, Name) == 0) dll = Load(ProxyDll); }
+	{ using namespace d3dim700; if (_strcmpi(WrapperMode, Name) == 0) dll = Load(ProxyDll); }
+	{ using namespace dciman32; if (_strcmpi(WrapperMode, Name) == 0) dll = Load(ProxyDll); }
+	{ using namespace ddraw; if (_strcmpi(WrapperMode, Name) == 0) dll = Load(ProxyDll); }
+	{ using namespace dinput; if (_strcmpi(WrapperMode, Name) == 0) dll = Load(ProxyDll); }
+	{ using namespace dinput8; if (_strcmpi(WrapperMode, Name) == 0) dll = Load(ProxyDll); }
+	{ using namespace dplayx; if (_strcmpi(WrapperMode, Name) == 0) dll = Load(ProxyDll); }
+	{ using namespace dsound; if (_strcmpi(WrapperMode, Name) == 0) dll = Load(ProxyDll); }
+	{ using namespace dxgi; if (_strcmpi(WrapperMode, Name) == 0) dll = Load(ProxyDll); }
+	{ using namespace msacm32; if (_strcmpi(WrapperMode, Name) == 0) dll = Load(ProxyDll); }
+	{ using namespace msvfw32; if (_strcmpi(WrapperMode, Name) == 0) dll = Load(ProxyDll); }
+	{ using namespace vorbisfile; if (_strcmpi(WrapperMode, Name) == 0) dll = Load(ProxyDll); }
+	{ using namespace winspool; if (_strcmpi(WrapperMode, Name) == 0) dll = Load(ProxyDll); }
+	{ using namespace xlive; if (_strcmpi(WrapperMode, Name) == 0) dll = Load(ProxyDll); }
 
 	// Special for winmm.dll because sometimes it is changed to win32 or winnm or some other name
-	if (strlen(path) > 8)
+	if (strlen(WrapperMode) > 8)
 	{
-		path[3] = 'm';
-		path[4] = 'm';
+		using namespace winmm;
+		if (tolower(WrapperMode[0]) == Name[0] &&
+			tolower(WrapperMode[1]) == Name[1] &&
+			tolower(WrapperMode[2]) == Name[2] &&
+			tolower(WrapperMode[5]) == Name[5] &&
+			tolower(WrapperMode[6]) == Name[6] &&
+			tolower(WrapperMode[7]) == Name[7] &&
+			tolower(WrapperMode[8]) == Name[8])
+		{
+			Name = "winmm.dll";
+			dll = Load(ProxyDll);
+		}
 	}
-	{ using namespace winmm; if (_strcmpi(path, Name) == 0) dll = Load(); }
+	// Special for winmmbase.dll because it is sharing procs from winmm
+	{ using namespace winmm; if (_strcmpi(WrapperMode, "winmmbase.dll") == 0) { Name = "winmmbase.dll";  dll = Load(ProxyDll); }}
+
+	// Exit and return handle
+	return dll;
+}
+
+HMODULE Wrapper::CreateWrapper(HMODULE hModule, const char *ProxyDll, const char *WrapperMode)
+{
+	// Declare vars
+	HMODULE dll = nullptr;
+
+	// If WrapperMode is specified try that first
+	if (WrapperMode)
+	{
+		dll = LoadWrapper(ProxyDll, WrapperMode);
+	}
+
+	if (!dll)
+	{
+		// Get module full path and name
+		char path[MAX_PATH];
+		GetModuleFileNameA(hModule, path, sizeof(path));
+
+		// Search backwards for last backslash in filepath 
+		char* pdest = strrchr(path, '\\');
+
+		// If backslash is found in filepath
+		if (pdest)
+		{
+			// Extract filename from file path
+			std::string input(pdest + 1);
+			strcpy_s(path, MAX_PATH, input.c_str());
+		}
+
+		// Load dll
+		dll = LoadWrapper(ProxyDll, path);
+	}
 
 	// Exit and return handle
 	return dll;

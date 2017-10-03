@@ -4,13 +4,13 @@ namespace ddraw
 {
 	extern FARPROC DirectDrawCreate_var;
 	extern FARPROC DirectDrawCreateEx_var;
-	HMODULE Load();
+	HMODULE Load(const char *strName);
 }
 namespace dsound
 {
 	extern FARPROC DirectSoundCreate_var;
 	extern FARPROC DirectSoundCreate8_var;
-	HMODULE Load();
+	HMODULE Load(const char *strName);
 }
 namespace d3d8
 {
@@ -22,5 +22,5 @@ namespace ShardProcs
 }
 namespace Wrapper
 {
-	HMODULE CreateWrapper(HMODULE hModule);
+	HMODULE CreateWrapper(HMODULE hModule, const char *ProxyDll, const char *WrapperMode);
 }

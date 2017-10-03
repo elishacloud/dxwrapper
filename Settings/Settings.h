@@ -52,7 +52,8 @@
 	visit(StoppedDriverWorkaround) \
 	visit(WaitForProcess) \
 	visit(WaitForWindowChanges) \
-	visit(WindowSleepTime)
+	visit(WindowSleepTime) \
+	visit(WrapperMode)
 
 #define VISIT_APPCOMPATDATA_SETTINGS(visit) \
 	visit(LockEmulation) \
@@ -147,9 +148,10 @@ struct CONFIG
 	DWORD RealWrapperMode;				// Internal wrapper mode
 	MEMORYINFO VerifyMemoryInfo;		// Memory used for verification before hot patching
 	std::vector<MEMORYINFO> MemoryInfo;	// Addresses and memory used in hot patching
-	std::string WrapperName;			// Name of dxwrapper
 	std::string RealDllPath;			// Manually set Dll to wrap
 	std::string RunProcess;				// Process to run on load
+	std::string WrapperMode;			// Name of dxwrapper
+	std::string WrapperName;			// Name of dxwrapper
 	std::vector<std::string> SetNamedLayer;		// List of named layers to select for fullscreen
 	std::vector<std::string> IgnoreWindowName;	// List of window classes to ignore
 	std::vector<std::string> LoadCustomDllPath;	// List of custom dlls to load

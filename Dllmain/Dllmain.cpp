@@ -83,7 +83,7 @@ bool APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 		// Attach real wrapper dll
 		if (Config.RealWrapperMode != dtype.dxwrapper)
 		{
-			HMODULE dll = Wrapper::CreateWrapper(hModule_dll);
+			HMODULE dll = Wrapper::CreateWrapper(hModule_dll, (Config.RealDllPath.size()) ? Config.RealDllPath.c_str() : nullptr, (Config.WrapperMode.size()) ? Config.WrapperMode.c_str() : nullptr);
 			if (dll)
 			{
 				Utils::AddHandleToVector(dll, Config.WrapperName.c_str());
@@ -117,7 +117,7 @@ bool APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 			else
 			{
 				// Load ddraw procs
-				HMODULE dll = ddraw::Load();
+				HMODULE dll = ddraw::Load((Config.RealDllPath.size()) ? Config.RealDllPath.c_str() : nullptr);
 				if (dll)
 				{
 					Utils::AddHandleToVector(dll, dtypename[dtype.ddraw]);
@@ -202,7 +202,7 @@ bool APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 			else
 			{
 				// Load dsound procs
-				HMODULE dll = dsound::Load();
+				HMODULE dll = dsound::Load((Config.RealDllPath.size()) ? Config.RealDllPath.c_str() : nullptr);
 				if (dll)
 				{
 					Utils::AddHandleToVector(dll, dtypename[dtype.dsound]);

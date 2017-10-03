@@ -152,6 +152,7 @@ copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\xlive.dll" &gt;nul</C
     <ResourceCompile Include="stub.rc" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\Wrappers\wrapper.h" />
     <ClInclude Include="stub.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
