@@ -11,6 +11,10 @@
 *
 **************************************************************************/
 
+#define WIN32_LEAN_AND_MEAN
+#include <windows.h>
+#include <mmsystem.h>
+
 #define COM_NO_WINDOWS_H
 #include <objbase.h>
 #include <float.h>

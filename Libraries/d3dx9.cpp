@@ -15,7 +15,6 @@
 */
 
 #include "d3dx9.h"
-#include "Settings\Settings.h"
 #include "Utils\Utils.h"
 #include "Logging\Logging.h"
 
@@ -50,7 +49,7 @@ void Loadd3dx9()
 			// Get dll name
 			sprintf_s(d3dx9name, "d3dx9_%d.dll", x);
 			// Load dll
-			d3dx9Module = Utils::LoadLibrary(d3dx9name, false);
+			d3dx9Module = LoadLibrary(d3dx9name, false);
 		}
 	}
 

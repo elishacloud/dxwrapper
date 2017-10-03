@@ -526,10 +526,11 @@ void Settings::SetDefaultConfigSettings()
 	Config.DisableHighDPIScaling = true;
 	Config.DxWnd = true;
 	Config.HandleExceptions = true;
-	Config.LoopSleepTime = 120;
-	Config.WindowSleepTime = 500;
+	Config.ResetScreenRes = true;
 
 	// Set other default values
+	Config.LoopSleepTime = 120;
+	Config.WindowSleepTime = 500;
 	Config.PrimaryBufferBits = 16;
 	Config.PrimaryBufferSamples = 44100;
 	Config.PrimaryBufferChannels = 2;

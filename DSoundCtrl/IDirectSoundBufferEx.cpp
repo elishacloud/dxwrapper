@@ -19,8 +19,6 @@
 * Updated 2017 by Elisha Riedlinger
 */
 
-#include <atlstr.h>
-#include "mmsystem.h"
 #include "dsound.h"
 #include "idirectsoundBufferex.h"
 #include "idirectsound3dBufferex.h"

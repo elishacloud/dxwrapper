@@ -23,6 +23,7 @@
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 #include <VersionHelpers.h>
+#include "Utils\Utils.h"
 #include "Logging.h"
 
 namespace Logging

@@ -246,7 +246,7 @@ void Fullscreen::ResetScreen()
 	SetScreen(m_Current_ScreenRes);
 
 	// Sleep short amout of time
-	Sleep(100);
+	Sleep(0);
 
 	// Reset resolution
 	ChangeDisplaySettings(nullptr, 0);

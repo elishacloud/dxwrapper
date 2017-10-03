@@ -19,7 +19,7 @@ extern "C" Direct3D8 *WINAPI _Direct3DCreate8(UINT SDKVersion)
 	LOG << "Enabling D3d8to9 function (" << SDKVersion << ")";
 
 	// Declare Direct3DCreate9
-	HMODULE dll = Utils::LoadLibrary(dtypename[dtype.d3d9]);
+	HMODULE dll = LoadLibrary(dtypename[dtype.d3d9]);
 	static PFN_Direct3DCreate9 Direct3DCreate9 = reinterpret_cast<PFN_Direct3DCreate9>(Hook::GetProcAddress(dll, "Direct3DCreate9"));
 	if (!Direct3DCreate9)
 	{

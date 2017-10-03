@@ -36,6 +36,8 @@ extern "C"
 #include "Utils.h"
 #include "Logging\Logging.h"
 
+#undef LoadLibrary
+
 typedef HRESULT(__stdcall *SetAppCompatDataFunc)(DWORD, DWORD);
 typedef LPTOP_LEVEL_EXCEPTION_FILTER(WINAPI *PFN_SetUnhandledExceptionFilter)(LPTOP_LEVEL_EXCEPTION_FILTER);
 
@@ -141,7 +143,7 @@ void Utils::SetAppCompat()
 	// SetAppCompatData
 	if (appCompatFlag)
 	{
-		HMODULE module = Utils::LoadLibrary("ddraw.dll");
+		HMODULE module = LoadLibrary("ddraw.dll");
 		FARPROC SetAppCompatDataPtr = (module != nullptr) ? GetProcAddress(module, "SetAppCompatData") : nullptr;
 		if (module && SetAppCompatDataPtr)
 		{
@@ -302,14 +304,14 @@ HMODULE Utils::LoadLibrary(const char *dllname, bool EnableLogging)
 	if (!Config.RealDllPath.empty() && isCurrentDll)
 	{
 		loadpath = Config.RealDllPath.c_str();
-		dll = ::LoadLibrary(loadpath);
+		dll = ::LoadLibraryA(loadpath);
 	}
 
 	// Load default dll
 	if (!dll && !isCurrentDll)
 	{
 		loadpath = dllname;
-		dll = ::LoadLibrary(loadpath);
+		dll = ::LoadLibraryA(loadpath);
 	}
 
 	// Load system dll
@@ -320,7 +322,7 @@ HMODULE Utils::LoadLibrary(const char *dllname, bool EnableLogging)
 		strcat_s(path, MAX_PATH, "\\");
 		strcat_s(path, MAX_PATH, dllname);
 		loadpath = path;
-		dll = ::LoadLibrary(loadpath);
+		dll = ::LoadLibraryA(loadpath);
 	}
 
 	// Store handle and dll name

@@ -14,7 +14,6 @@
 *   3. This notice may not be removed or altered from any source distribution.
 */
 
-#include "Settings\Settings.h"
 #include "Utils\Utils.h"
 #include "Logging\Logging.h"
 
@@ -30,7 +29,7 @@ void Loaddwmapi()
 		return; // Only load the dll once
 	}
 	IsLoaded = true;
-	dwmapiModule = Utils::LoadLibrary("dwmapi.dll");
+	dwmapiModule = LoadLibrary("dwmapi.dll");
 	if (dwmapiModule)
 	{
 		DwmSetWindowAttributePtr = reinterpret_cast<PFN_DwmSetWindowAttribute>(GetProcAddress(dwmapiModule, "DwmSetWindowAttribute"));

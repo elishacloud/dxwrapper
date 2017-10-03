@@ -14,7 +14,6 @@
 *   3. This notice may not be removed or altered from any source distribution.
 */
 
-#include "Settings\Settings.h"
 #include "Utils\Utils.h"
 #include "Logging\Logging.h"
 
@@ -30,7 +29,7 @@ void LoadUxtheme()
 		return; // Only load the dll once
 	}
 	IsLoaded = true;
-	UxThemeModule = Utils::LoadLibrary("uxtheme.dll");
+	UxThemeModule = LoadLibrary("uxtheme.dll");
 	if (UxThemeModule)
 	{
 		SetThemeAppPropertiesPtr = reinterpret_cast<PFN_SetThemeAppProperties>(GetProcAddress(UxThemeModule, "SetThemeAppProperties"));

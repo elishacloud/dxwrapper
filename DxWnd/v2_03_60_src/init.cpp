@@ -5,6 +5,9 @@
 * Updated 2017 by Elisha Riedlinger
 */
 
+//********** Begin Edit *************
+#define WIN32_LEAN_AND_MEAN
+//********** End Edit ***************
 #include <windows.h>
 #include <stdio.h>
 //********** Begin Edit *************

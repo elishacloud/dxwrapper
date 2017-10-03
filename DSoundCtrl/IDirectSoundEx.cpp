@@ -19,9 +19,7 @@
 * Updated 2017 by Elisha Riedlinger
 */
 
-#include <atlstr.h>
 #include <assert.h>
-#include "mmsystem.h"
 #include "dsound.h"
 #include "idirectsoundex.h"
 #include "idirectsoundbufferex.h"

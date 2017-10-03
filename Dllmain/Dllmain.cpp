@@ -147,7 +147,7 @@ bool APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 			else
 			{
 				// Load d3d8
-				HMODULE dll = Utils::LoadLibrary(dtypename[dtype.d3d8]);
+				HMODULE dll = LoadLibrary(dtypename[dtype.d3d8]);
 
 				// Hook d3d8.dll -> D3d8to9	
 				Logging::Log() << "Hooking d3d8.dll APIs...";
@@ -169,7 +169,7 @@ bool APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 		if (StartD3d9Wrap)
 		{
 			// Load d3d9 procs
-			HMODULE dll = Utils::LoadLibrary(dtypename[dtype.d3d9]);
+			HMODULE dll = LoadLibrary(dtypename[dtype.d3d9]);
 			d3d9_wrap::Direct3DCreate9_Proxy = Hook::GetProcAddress(dll, "Direct3DCreate9");
 
 			// If wrapper mode is d3d9 update wrapper
@@ -223,7 +223,7 @@ bool APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 		if (Config.DxWnd)
 		{
 			// Check if dxwnd.dll exists then load it
-			HMODULE dxwnd_dll = Utils::LoadLibrary("dxwnd.dll");
+			HMODULE dxwnd_dll = LoadLibrary("dxwnd.dll");
 			if (dxwnd_dll)
 			{
 				Logging::Log() << "Loading dxwnd";

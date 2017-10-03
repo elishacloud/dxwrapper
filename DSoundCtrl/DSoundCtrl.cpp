@@ -22,18 +22,14 @@
 */
 
 #include "Settings\Settings.h"
-#include <stdio.h>
-#include <atlstr.h>
 #include <assert.h>
-#include <atltrace.h>
-#include "mmsystem.h"
 #include "dsound.h"
 #include "DSoundTypes.h"
 #include "DSoundCtrl.h"
 #include "IDirectSoundClassFactoryEx.h"
-#include "Logging\Logging.h"
 #include "Hooking\Hook.h"
 #include "Utils\Utils.h"
+#include "Logging\Logging.h"
 
 #define DllMain DllMain_DSoundCtrl
 
@@ -143,7 +139,7 @@ BOOL CDSoundCtrlApp::InitInstance(HMODULE hModule)
 	// Load DSOUND.DLL and get entry points
 	if (Config.RealWrapperMode == dtype.dsound)
 	{
-		g_hDLL = Utils::LoadLibrary("dsound.dll");
+		g_hDLL = LoadLibrary("dsound.dll");
 	}
 	else
 	{
