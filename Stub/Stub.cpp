@@ -222,15 +222,11 @@ bool APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 		{
 			// Read file
 			myfile.seekg(0, std::ios::beg);
-			char * memblock;
-			memblock = new char[size];
-			myfile.read(memblock, size);
+			std::string memblock(size + 1, '\0');
+			myfile.read(&memblock[0], size);
 
 			// Load library into memory
-			wrapper_dll = MemoryLoadLibrary(memblock, size);
-
-			// Delete memory block from the loaded file
-			delete[] memblock;
+			wrapper_dll = MemoryLoadLibrary(&memblock[0], size);
 		}
 
 		// Close the file

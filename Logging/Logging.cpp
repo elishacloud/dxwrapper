@@ -23,7 +23,6 @@
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 #include <VersionHelpers.h>
-#include "Utils\Utils.h"
 #include "Logging.h"
 
 namespace Logging
@@ -98,7 +97,7 @@ void Logging::GetVersionFile(OSVERSIONINFO *oOS_version)
 	oOS_version->dwBuildNumber = 0;
 
 	// Load version.dll
-	HMODULE Module = LoadLibrary("version.dll");
+	HMODULE Module = ::LoadLibraryA("version.dll");
 	if (!Module)
 	{
 		Log() << "Failed to load version.dll!";
@@ -146,11 +145,11 @@ void Logging::GetVersionFile(OSVERSIONINFO *oOS_version)
 	// GetVersion from a file
 	if (verSize != 0)
 	{
-		LPSTR verData = new char[verSize];
+		std::string verData(verSize + 1, '\0');
 
-		if (GetFileVersionInfo(szVersionFile, verHandle, verSize, verData))
+		if (GetFileVersionInfo(szVersionFile, verHandle, verSize, &verData[0]))
 		{
-			if (VerQueryValue(verData, "\\", (VOID FAR* FAR*)&lpBuffer, &size))
+			if (VerQueryValue(&verData[0], "\\", (VOID FAR* FAR*)&lpBuffer, &size))
 			{
 				if (size)
 				{
@@ -165,7 +164,6 @@ void Logging::GetVersionFile(OSVERSIONINFO *oOS_version)
 				}
 			}
 		}
-		delete[] verData;
 	}
 	FreeLibrary(Module);
 }

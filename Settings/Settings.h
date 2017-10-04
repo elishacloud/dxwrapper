@@ -73,7 +73,7 @@ typedef unsigned char byte;
 
 struct MEMORYINFO						// Used for hot patching memory
 {
-	void* AddressPointer = nullptr;	// Hot patch address
+	void* AddressPointer = nullptr;		// Hot patch address
 	byte* Bytes = nullptr;				// Hot patch bytes
 	size_t SizeOfBytes = 0;				// Size of bytes to hot patch
 };
@@ -136,6 +136,7 @@ struct CONFIG
 	bool HandleExceptions;				// Handles unhandled exceptions in the application
 	bool LoadPlugins;					// Loads ASI plugins
 	bool LoadFromScriptsOnly;			// Loads ASI plugins from 'scripts' and 'plugins' folder only
+	bool ProcessExcluded;				// Reset the screen resolution on close
 	bool ResetScreenRes;				// Reset the screen resolution on close
 	bool SendAltEnter;					// Sends an Alt+Enter message to the wind to tell it to go into fullscreen
 	bool WaitForProcess;				// Enables 'WindowSleepTime'

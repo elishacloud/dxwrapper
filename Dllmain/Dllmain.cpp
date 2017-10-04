@@ -35,13 +35,7 @@ bool APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 	UNREFERENCED_PARAMETER(lpReserved);
 
 	static HANDLE hMutex = nullptr;
-	static bool DxWrapperAlreadyRunning = false;
 	static bool FullscreenThreadStartedFlag = false;
-
-	if (DxWrapperAlreadyRunning)
-	{
-		return true;
-	}
 
 	switch (fdwReason)
 	{
@@ -54,29 +48,6 @@ bool APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 		// Set thread priority a trick to reduce concurrency problems at program startup
 		SetThreadPriority(hCurrentThread, THREAD_PRIORITY_HIGHEST);
 
-		// Create DxWrapper Mutex
-		char MutexName[MAX_PATH];
-		sprintf_s(MutexName, MAX_PATH, "DxWrapper %d", GetCurrentProcessId());
-		hMutex = CreateMutex(nullptr, false, MutexName);
-
-		// Check Mutex to see if DxWrapper is already running
-		if (GetLastError() == ERROR_ALREADY_EXISTS)
-		{
-			// Release Mutex
-			ReleaseMutex(hMutex);
-
-			// Resetting thread priority
-			SetThreadPriority(hCurrentThread, THREAD_PRIORITY_NORMAL);
-
-			// Closing handle
-			CloseHandle(hCurrentThread);
-
-			// DxWrapper already running
-			DxWrapperAlreadyRunning = true;
-			Logging::Log() << "DxWrapper already running!";
-			return false;
-		}
-
 		// Init logs
 		Logging::Log() << "Starting DxWrapper v" << APP_VERSION;
 		Logging::LogOSVersion();
@@ -84,6 +55,41 @@ bool APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 
 		// Initialize config
 		Config.Init();
+
+		// Create DxWrapper Mutex
+		char MutexName[MAX_PATH];
+		sprintf_s(MutexName, MAX_PATH, "DxWrapper %d", GetCurrentProcessId());
+		hMutex = CreateMutex(nullptr, false, MutexName);
+
+		// Check Mutex or if process is excluded to see if DxWrapper should exit
+		bool IsAlreadyRunning = (GetLastError() == ERROR_ALREADY_EXISTS);
+		if (IsAlreadyRunning || Config.ProcessExcluded)
+		{
+			// Resetting thread priority
+			SetThreadPriority(hCurrentThread, THREAD_PRIORITY_NORMAL);
+
+			// Closing handle
+			CloseHandle(hCurrentThread);
+
+			// DxWrapper already running
+			if (IsAlreadyRunning)
+			{
+				Logging::Log() << "DxWrapper already running!";
+			}
+
+			// Return false on process attach causes dll to get unloaded
+			return false;
+		}
+
+		// Attach real dll
+		if (Config.RealWrapperMode != dtype.dxwrapper)
+		{
+			HMODULE dll = Wrapper::CreateWrapper(hModule_dll, (Config.RealDllPath.size()) ? Config.RealDllPath.c_str() : nullptr, (Config.WrapperMode.size()) ? Config.WrapperMode.c_str() : nullptr);
+			if (dll)
+			{
+				Utils::AddHandleToVector(dll, Config.WrapperName.c_str());
+			}
+		}
 
 		// Launch processes
 		if (!Config.RunProcess.empty())
@@ -108,16 +114,6 @@ bool APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 		if (Config.HandleExceptions)
 		{
 			Utils::HookExceptionHandler();
-		}
-
-		// Attach real wrapper dll
-		if (Config.RealWrapperMode != dtype.dxwrapper)
-		{
-			HMODULE dll = Wrapper::CreateWrapper(hModule_dll, (Config.RealDllPath.size()) ? Config.RealDllPath.c_str() : nullptr, (Config.WrapperMode.size()) ? Config.WrapperMode.c_str() : nullptr);
-			if (dll)
-			{
-				Utils::AddHandleToVector(dll, Config.WrapperName.c_str());
-			}
 		}
 
 		// Load custom dlls
@@ -277,7 +273,7 @@ bool APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 
 		// Closing handle
 		CloseHandle(hCurrentThread);
-		}
+	}
 	break;
 	case DLL_THREAD_ATTACH:
 		// Check and store screen resolution
@@ -378,4 +374,4 @@ bool APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 		break;
 	}
 	return true;
-	}
+}

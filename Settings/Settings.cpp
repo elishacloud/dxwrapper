@@ -599,21 +599,43 @@ void CONFIG::Init()
 		free(szCfg);
 	}
 
+	// If cannot load config file check with process path
+	if (!szCfg)
+	{
+		// Get new config path to include process name
+		strcpy_s(strrchr(wrappername, '.'), MAX_PATH - strlen(wrappername), "-");
+		strcat_s(wrappername, MAX_PATH, strrchr(processname, '\\') + 1);
+		strcpy_s(strrchr(wrappername, '.'), MAX_PATH - strlen(wrappername), ".ini");
+
+		// Open config file
+		Logging::Log() << "Reading config file: " << wrappername;
+		szCfg = Read(wrappername);
+
+		// Parce config file
+		if (szCfg)
+		{
+			Parse(szCfg, ParseCallback);
+			free(szCfg);
+		}
+	}
+	
 	// If config file cannot be read
-	else
+	if (!szCfg)
 	{
 		Logging::Log() << "Could not load config file using defaults";
 	}
 
-	// Verify sleep time to make sure it is not be set too low (can be perf issues if it is too low)
+	// Verify sleep time to make sure it is not set too low (can be perf issues if it is too low)
 	if (LoopSleepTime < 30) LoopSleepTime = 30;
 
 	// Check if process should be excluded or not included
 	// if so, then clear all settings (disable everything)
+	ProcessExcluded = false;
 	if ((ExcludeProcess.size() != 0 && IfStringExistsInList(p_pName, ExcludeProcess, false)) ||
 		(IncludeProcess.size() != 0 && !IfStringExistsInList(p_pName, IncludeProcess, false)))
 	{
 		Logging::Log() << "Clearing config and disabling dxwrapper!";
 		ClearConfigSettings();
+		ProcessExcluded = true;
 	}
 }
