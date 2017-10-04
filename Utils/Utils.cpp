@@ -411,7 +411,9 @@ void Utils::LoadPlugins()
 	GetCurrentDirectory(MAX_PATH, oldDir);
 
 	char selfPath[MAX_PATH];
-	GetModuleFileName(hModule_dll, selfPath, MAX_PATH);
+	HMODULE hModule = NULL;
+	GetModuleHandleEx(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT, (LPCTSTR)Utils::LoadPlugins, &hModule);
+	GetModuleFileName(hModule, selfPath, MAX_PATH);
 	*strrchr(selfPath, '\\') = '\0';
 	SetCurrentDirectory(selfPath);
 
