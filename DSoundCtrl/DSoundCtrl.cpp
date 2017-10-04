@@ -23,6 +23,9 @@
 
 #include "Settings\Settings.h"
 #include <assert.h>
+#ifdef _DEBUG
+#include <atlstr.h>
+#endif //_DEBUG
 #include "dsound.h"
 #include "DSoundTypes.h"
 #include "DSoundCtrl.h"

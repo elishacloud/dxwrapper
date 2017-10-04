@@ -19,6 +19,9 @@
 * Updated 2017 by Elisha Riedlinger
 */
 
+#ifdef _DEBUG
+#include <atlstr.h>
+#endif //_DEBUG
 #include "dsound.h"
 #include "idirectsoundBufferex.h"
 #include "idirectsound3dBufferex.h"

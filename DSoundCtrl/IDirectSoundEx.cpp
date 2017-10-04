@@ -20,6 +20,9 @@
 */
 
 #include <assert.h>
+#ifdef _DEBUG
+#include <atlstr.h>
+#endif //_DEBUG
 #include "dsound.h"
 #include "idirectsoundex.h"
 #include "idirectsoundbufferex.h"

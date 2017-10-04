@@ -34,7 +34,14 @@ bool APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 {
 	UNREFERENCED_PARAMETER(lpReserved);
 
+	static HANDLE hMutex = nullptr;
+	static bool DxWrapperAlreadyRunning = false;
 	static bool FullscreenThreadStartedFlag = false;
+
+	if (DxWrapperAlreadyRunning)
+	{
+		return true;
+	}
 
 	switch (fdwReason)
 	{
@@ -46,6 +53,29 @@ bool APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 
 		// Set thread priority a trick to reduce concurrency problems at program startup
 		SetThreadPriority(hCurrentThread, THREAD_PRIORITY_HIGHEST);
+
+		// Create DxWrapper Mutex
+		char MutexName[MAX_PATH];
+		sprintf_s(MutexName, MAX_PATH, "DxWrapper %d", GetCurrentProcessId());
+		hMutex = CreateMutex(nullptr, false, MutexName);
+
+		// Check Mutex to see if DxWrapper is already running
+		if (GetLastError() == ERROR_ALREADY_EXISTS)
+		{
+			// Release Mutex
+			ReleaseMutex(hMutex);
+
+			// Resetting thread priority
+			SetThreadPriority(hCurrentThread, THREAD_PRIORITY_NORMAL);
+
+			// Closing handle
+			CloseHandle(hCurrentThread);
+
+			// DxWrapper already running
+			DxWrapperAlreadyRunning = true;
+			Logging::Log() << "DxWrapper already running!";
+			return false;
+		}
 
 		// Init logs
 		Logging::Log() << "Starting DxWrapper v" << APP_VERSION;
@@ -247,7 +277,7 @@ bool APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 
 		// Closing handle
 		CloseHandle(hCurrentThread);
-	}
+		}
 	break;
 	case DLL_THREAD_ATTACH:
 		// Check and store screen resolution
@@ -337,9 +367,15 @@ bool APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 		// Clean up memory
 		Config.CleanUp();
 
+		// Release Mutex
+		if (hMutex)
+		{
+			ReleaseMutex(hMutex);
+		}
+
 		// Final log
 		Logging::Log() << "DxWrapper terminated!";
 		break;
 	}
 	return true;
-}
+	}
