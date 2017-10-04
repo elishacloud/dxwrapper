@@ -48,6 +48,7 @@ namespace Utils
 	{
 		HMODULE dll;
 		std::string name;
+		std::string fullname;
 	};
 
 	// Declare varables
@@ -269,6 +270,7 @@ void Utils::AddHandleToVector(HMODULE dll, const char *name)
 		type_dll newCustom_dll;
 		newCustom_dll.dll = dll;
 		newCustom_dll.name.assign((strrchr(name, '\\')) ? strrchr(name, '\\') + 1 : name);
+		newCustom_dll.fullname.assign(name);
 		custom_dll.push_back(newCustom_dll);
 	}
 }
@@ -282,13 +284,10 @@ HMODULE Utils::LoadLibrary(const char *dllname, bool EnableLogging)
 	char path[MAX_PATH];
 	bool isCurrentDll = (_strcmpi(Config.WrapperName.c_str(), dllname) == 0);
 
-	// Get module name
-	const char *pdest = (strrchr(dllname, '\\')) ? strrchr(dllname, '\\') + 1 : dllname;
-
 	// Check if dll is already loaded
 	for (size_t x = 0; x < custom_dll.size(); x++)
 	{
-		if (_strcmpi(custom_dll[x].name.c_str(), pdest) == 0)
+		if (_strcmpi(custom_dll[x].name.c_str(), dllname) == 0 || _strcmpi(custom_dll[x].fullname.c_str(), dllname) == 0)
 		{
 			return custom_dll[x].dll;
 		}
@@ -322,7 +321,7 @@ HMODULE Utils::LoadLibrary(const char *dllname, bool EnableLogging)
 	if (dll)
 	{
 		Logging::Log() << "Loaded " << loadpath << " library";
-		AddHandleToVector(dll, pdest);
+		AddHandleToVector(dll, dllname);
 	}
 
 	// Return dll handle

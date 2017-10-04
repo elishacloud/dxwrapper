@@ -348,7 +348,6 @@ bool APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 		}
 
 		// Unhook all APIs
-		Logging::Log() << "Unhooking APIs";
 		Hook::UnhookAll();
 
 		// Unload loaded dlls

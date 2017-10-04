@@ -205,6 +205,7 @@ FARPROC Hook::GetProcAddress(HMODULE hModule, LPCSTR FunctionName)
 // Unhook all APIs
 bool Hook::UnhookAll()
 {
+	Logging::Log() << "Unhooking APIs...";
 	return (UnHotPatchAll() && UnIATPatchAll());
 }
 
