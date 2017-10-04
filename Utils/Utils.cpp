@@ -300,13 +300,6 @@ HMODULE Utils::LoadLibrary(const char *dllname, bool EnableLogging)
 		Logging::Log() << "Loading " << dllname;
 	}
 
-	// Load dll from config
-	if (!Config.RealDllPath.empty() && isCurrentDll)
-	{
-		loadpath = Config.RealDllPath.c_str();
-		dll = ::LoadLibraryA(loadpath);
-	}
-
 	// Load default dll
 	if (!dll && !isCurrentDll)
 	{

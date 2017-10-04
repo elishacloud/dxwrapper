@@ -6,5 +6,6 @@ extern "C" Direct3D8 *WINAPI _Direct3DCreate8(UINT);
 
 namespace D3d8to9
 {
-	FARPROC Direct3DCreate8 = (FARPROC)*_Direct3DCreate8;
+	constexpr FARPROC Direct3DCreate8 = (FARPROC)*_Direct3DCreate8;
+	extern FARPROC Direct3DCreate9;
 }

@@ -116,18 +116,6 @@ bool APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 			Utils::HookExceptionHandler();
 		}
 
-		// Load custom dlls
-		if (Config.LoadCustomDllPath.size() != 0)
-		{
-			Utils::LoadCustomDll();
-		}
-
-		// Load ASI plugins
-		if (Config.LoadPlugins)
-		{
-			Utils::LoadPlugins();
-		}
-
 		// Start DDrawCompat module
 		if (Config.DDrawCompat)
 		{
@@ -179,6 +167,10 @@ bool APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 				Logging::Log() << "Hooking d3d8.dll APIs...";
 				(FARPROC)Hook::HookAPI(hModule_dll, dtypename[dtype.d3d8], Hook::GetProcAddress(dll, "Direct3DCreate8"), "Direct3DCreate8", D3d8to9::Direct3DCreate8);
 			}
+
+			// Load d3d9 functions
+			HMODULE dll = LoadLibrary(dtypename[dtype.d3d9]);
+			D3d8to9::Direct3DCreate9 = Hook::GetProcAddress(dll, "Direct3DCreate9");
 		}
 
 		// Check for d3d9_wrap module
@@ -260,6 +252,18 @@ bool APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 			{
 				Config.DxWnd = false;
 			}
+		}
+
+		// Load custom dlls
+		if (Config.LoadCustomDllPath.size() != 0)
+		{
+			Utils::LoadCustomDll();
+		}
+
+		// Load ASI plugins
+		if (Config.LoadPlugins)
+		{
+			Utils::LoadPlugins();
 		}
 
 		// Start fullscreen thread

@@ -10,8 +10,11 @@
 #include "Utils\Utils.h"
 #include "Hooking\Hook.h"
 typedef LPDIRECT3D9(WINAPI *PFN_Direct3DCreate9)(UINT SDKVersion);
+namespace D3d8to9
+{
+	FARPROC Direct3DCreate9;
+}
 //********** End Edit ***************
-
 
 extern "C" Direct3D8 *WINAPI _Direct3DCreate8(UINT SDKVersion)
 {
