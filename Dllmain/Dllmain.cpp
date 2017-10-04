@@ -46,6 +46,8 @@ bool APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 		HANDLE hCurrentThread = GetCurrentThread();
 
 		// Set thread priority a trick to reduce concurrency problems at program startup
+		int dwPriorityClass = GetThreadPriority(hCurrentThread);
+		dwPriorityClass = (GetLastError() == THREAD_PRIORITY_ERROR_RETURN) ? THREAD_PRIORITY_NORMAL : dwPriorityClass;
 		SetThreadPriority(hCurrentThread, THREAD_PRIORITY_HIGHEST);
 
 		// Init logs
@@ -66,7 +68,7 @@ bool APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 		if (IsAlreadyRunning || Config.ProcessExcluded)
 		{
 			// Resetting thread priority
-			SetThreadPriority(hCurrentThread, THREAD_PRIORITY_NORMAL);
+			SetThreadPriority(hCurrentThread, dwPriorityClass);
 
 			// Closing handle
 			CloseHandle(hCurrentThread);
@@ -273,7 +275,7 @@ bool APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 		}
 
 		// Resetting thread priority
-		SetThreadPriority(hCurrentThread, THREAD_PRIORITY_NORMAL);
+		SetThreadPriority(hCurrentThread, dwPriorityClass);
 
 		// Closing handle
 		CloseHandle(hCurrentThread);
