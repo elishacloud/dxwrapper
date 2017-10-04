@@ -33,7 +33,6 @@ namespace Settings
 	size_t BytesToWriteCount = 0;				// Count of bytes to hot patch
 
 	// Function declarations
-	void DeleteMemoryInfoVector();
 	void EraseCppComments(char*);
 	void Parse(char*, NV);
 	char* Read(char*);
@@ -94,31 +93,6 @@ bool Settings::IfStringExistsInList(const char* szValue, std::vector<std::string
 		}
 	}
 	return false;
-}
-
-// Deletes all BytesToWrite values from the BytesToWrite array
-void Settings::DeleteMemoryInfoVector()
-{
-	// Delete Verification memory bytes
-	if (Config.VerifyMemoryInfo.Bytes)
-	{
-		delete[] Config.VerifyMemoryInfo.Bytes;
-		Config.VerifyMemoryInfo.SizeOfBytes = 0;
-	}
-
-	// Delete bytes to write
-	while (Config.MemoryInfo.size() != 0)
-	{
-		if (Config.MemoryInfo.back().Bytes)
-		{
-			delete[] Config.MemoryInfo.back().Bytes;
-		}
-		Config.MemoryInfo.pop_back();
-	}
-
-	// Set array size to zero
-	AddressPointerCount = 0;
-	BytesToWriteCount = 0;
 }
 
 // Commented text is replaced with a space character
@@ -265,8 +239,7 @@ void Settings::SetValue(char* name, char* value, MEMORYINFO* MemoryInfo)
 	{
 		// Get bytes size
 		DWORD size = (len / 2) - 1;
-		MemoryInfo->Bytes = new byte[size];
-		MemoryInfo->SizeOfBytes = size;
+		MemoryInfo->Bytes.resize(size, '\0');
 
 		// Get byte data
 		for (DWORD x = 1; x <= size; x++)
@@ -279,7 +252,7 @@ void Settings::SetValue(char* name, char* value, MEMORYINFO* MemoryInfo)
 		std::string buffer((size + 2) * 2, '\0');
 		for (size_t j = 0; j < size; j++)
 		{
-			sprintf_s(&buffer[2 * j], 3, "%02X", MemoryInfo->Bytes[j]);
+			sprintf_s(&buffer[2 * j], 3, "%02X", (byte)MemoryInfo->Bytes[j]);
 		}
 		Logging::Log() << name << " set to '" << buffer.c_str() << "'";
 #else
@@ -472,8 +445,16 @@ void Settings::ClearValue(bool* setting)
 // Clear all values
 void Settings::ClearConfigSettings()
 {
-	// Cleanup memory (needs to be done first)
-	Config.CleanUp();
+	// Set array size to zero
+	AddressPointerCount = 0;
+	BytesToWriteCount = 0;
+
+	// Clear Verification memory bytes
+	Config.VerifyMemoryInfo.AddressPointer = nullptr;
+	Config.VerifyMemoryInfo.Bytes.clear();
+
+	// Clear MemoryInfo vector
+	Config.MemoryInfo.clear();
 
 	// Clear normal config settings
 	VISIT_CONFIG_SETTINGS(CLEAR_VALUE);
@@ -537,12 +518,6 @@ void Settings::SetDefaultConfigSettings()
 	Config.SpeakerConfig = 6;
 	SetValue("ExcludeProcess", "dxwnd.exe", &Config.ExcludeProcess);
 	SetValue("ExcludeProcess", "dgVoodooSetup.exe", &Config.ExcludeProcess);
-}
-
-void CONFIG::CleanUp()
-{
-	using namespace Settings;
-	DeleteMemoryInfoVector();
 }
 
 void CONFIG::Init()
@@ -634,8 +609,8 @@ void CONFIG::Init()
 	if ((ExcludeProcess.size() != 0 && IfStringExistsInList(p_pName, ExcludeProcess, false)) ||
 		(IncludeProcess.size() != 0 && !IfStringExistsInList(p_pName, IncludeProcess, false)))
 	{
+		ProcessExcluded = true;
 		Logging::Log() << "Clearing config and disabling dxwrapper!";
 		ClearConfigSettings();
-		ProcessExcluded = true;
 	}
 }

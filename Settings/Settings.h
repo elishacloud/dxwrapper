@@ -74,8 +74,7 @@ typedef unsigned char byte;
 struct MEMORYINFO						// Used for hot patching memory
 {
 	void* AddressPointer = nullptr;		// Hot patch address
-	byte* Bytes = nullptr;				// Hot patch bytes
-	size_t SizeOfBytes = 0;				// Size of bytes to hot patch
+	std::string Bytes;					// Hot patch bytes
 };
 
 struct DLLTYPE
@@ -121,7 +120,6 @@ static const APPCOMPATDATATYPE AppCompatDataType;
 struct CONFIG
 {
 	void Init();						// Initialize the config setting
-	void CleanUp();						// Deletes all 'new' varables created by config
 	bool SingleProcAffinity;			// Sets the CPU affinity for this process and thread
 	bool SingleProcAffinityNotSet;		// If the CPU affinity option exists in the config file
 	bool D3d8to9;						// Converts Direct3D8 (d3d8.dll) to Direct3D9 (d3d9.dll) https://github.com/crosire/d3d8to9

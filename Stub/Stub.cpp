@@ -222,7 +222,7 @@ bool APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 		{
 			// Read file
 			myfile.seekg(0, std::ios::beg);
-			std::string memblock(size + 1, '\0');
+			std::string memblock(size, '\0');
 			myfile.read(&memblock[0], size);
 
 			// Load library into memory

@@ -360,9 +360,6 @@ bool APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 			Utils::Fullscreen::ResetScreen();
 		}
 
-		// Clean up memory
-		Config.CleanUp();
-
 		// Release Mutex
 		if (hMutex)
 		{

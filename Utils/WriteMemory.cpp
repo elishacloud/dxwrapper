@@ -45,28 +45,25 @@ void WriteMemory::WriteAllByteMemory()
 
 	for (UINT x = 0; x < Config.MemoryInfo.size(); x++)
 	{
-		if (Config.MemoryInfo[x].AddressPointer != nullptr && Config.MemoryInfo[x].SizeOfBytes != 0)
+		if (Config.MemoryInfo[x].AddressPointer != nullptr && Config.MemoryInfo[x].Bytes.size() != 0)
 		{
 			// Get current memory
-			byte* lpBuffer = new byte[Config.MemoryInfo[x].SizeOfBytes];
+			std::string lpBuffer(Config.MemoryInfo[x].Bytes.size(), '\0');
 			void* AddressPointer = Config.MemoryInfo[x].AddressPointer;
-			if (ReadProcessMemory(hProcess, AddressPointer, lpBuffer, Config.MemoryInfo[x].SizeOfBytes, nullptr))
+			if (ReadProcessMemory(hProcess, AddressPointer, (byte*)&lpBuffer[0], Config.MemoryInfo[x].Bytes.size(), nullptr))
 			{
 				// Make memory writeable
 				DWORD oldProtect;
-				if (VirtualProtect(AddressPointer, Config.MemoryInfo[x].SizeOfBytes, PAGE_EXECUTE_READWRITE, &oldProtect))
+				if (VirtualProtect(AddressPointer, Config.MemoryInfo[x].Bytes.size(), PAGE_EXECUTE_READWRITE, &oldProtect))
 				{
 					// Write to memory
-					memcpy(AddressPointer, Config.MemoryInfo[x].Bytes, Config.MemoryInfo[x].SizeOfBytes);
+					memcpy(AddressPointer, (byte*)&Config.MemoryInfo[x].Bytes[0], Config.MemoryInfo[x].Bytes.size());
 
 					// Restore protection
-					VirtualProtect(AddressPointer, Config.MemoryInfo[x].SizeOfBytes, oldProtect, &oldProtect);
-
-					// Delete varable
-					delete [] Config.MemoryInfo[x].Bytes;
+					VirtualProtect(AddressPointer, Config.MemoryInfo[x].Bytes.size(), oldProtect, &oldProtect);
 
 					// Store new variable
-					Config.MemoryInfo[x].Bytes = lpBuffer;
+					memcpy((byte*)&Config.MemoryInfo[x].Bytes[0], (byte*)&lpBuffer[0], Config.MemoryInfo[x].Bytes.size());
 				}
 				else
 				{
@@ -85,15 +82,15 @@ void WriteMemory::WriteAllByteMemory()
 bool WriteMemory::CheckVerificationMemory()
 {
 	// Check Verification details
-	if (Config.VerifyMemoryInfo.SizeOfBytes == 0 || Config.VerifyMemoryInfo.AddressPointer == nullptr)
+	if (Config.VerifyMemoryInfo.Bytes.size() == 0 || Config.VerifyMemoryInfo.AddressPointer == nullptr)
 	{
 		return false;
 	}
 
 	// Check current memory
-	for (UINT x = 0; x < Config.VerifyMemoryInfo.SizeOfBytes; x++)
+	for (UINT x = 0; x < Config.VerifyMemoryInfo.Bytes.size(); x++)
 	{
-		if (*((byte*)((DWORD)Config.VerifyMemoryInfo.AddressPointer + x)) != Config.VerifyMemoryInfo.Bytes[x])
+		if (*((byte*)((DWORD)Config.VerifyMemoryInfo.AddressPointer + x)) != (byte)Config.VerifyMemoryInfo.Bytes[x])
 		{
 			// Check failed
 			return false;

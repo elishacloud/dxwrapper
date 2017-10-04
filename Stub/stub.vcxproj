@@ -142,7 +142,7 @@ copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\xlive.dll" &gt;nul</C
   <ItemGroup>
     <ClCompile Include="..\MemoryModule\MemoryModule.c" />
     <ClCompile Include="..\Wrappers\wrapper.cpp" />
-    <ClCompile Include="Stub.cpp" />
+    <ClCompile Include="stub.cpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="..\Wrappers\wrapper.def" />
