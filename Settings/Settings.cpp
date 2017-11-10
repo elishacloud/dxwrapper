@@ -12,17 +12,11 @@
 *   2. Altered source versions must  be plainly  marked as such, and  must not be  misrepresented  as
 *      being the original software.
 *   3. This notice may not be removed or altered from any source distribution.
-*
-* Code in EraseCppComments, Read, Parse and ParseCallback functions taken from source code found in Aqrit's ddwrapper
-* http://bitpatch.com/ddwrapper.html
 */
 
-#include <stdlib.h>
 #include "Settings.h"
 #include "Dllmain\Dllmain.h"
 #include "Logging\Logging.h"
-
-typedef void(__stdcall* NV)(char* name, char* value);
 
 CONFIG Config;
 
@@ -33,9 +27,6 @@ namespace Settings
 	size_t BytesToWriteCount = 0;				// Count of bytes to hot patch
 
 	// Function declarations
-	void EraseCppComments(char*);
-	void Parse(char*, NV);
-	char* Read(char*);
 	bool IsValueEnabled(char*);
 	void ClearValue(void**);
 	void ClearValue(std::vector<std::string>*);
@@ -93,125 +84,6 @@ bool Settings::IfStringExistsInList(const char* szValue, std::vector<std::string
 		}
 	}
 	return false;
-}
-
-// Commented text is replaced with a space character
-void Settings::EraseCppComments(char* str)
-{
-	while ((str = strchr(str, '/')) != 0)
-	{
-		if (str[1] == '/')
-		{
-			for (; ((*str != '\0') && (*str != '\n')); str++)
-			{
-				*str = '\x20';
-			}
-		}
-		else if (str[1] == '*')
-		{
-			for (; ((*str != '\0') && ((str[0] != '*') || (str[1] != '/'))); str++)
-			{
-				*str = '\x20';
-			}
-			if (*str)
-			{
-				*str++ = '\x20';
-				*str = '\x20';
-			}
-		}
-		if (*str)
-		{
-			str++;
-		}
-		else
-		{
-			break;
-		}
-	}
-}
-
-// [sections] are ignored
-// escape characters NOT support 
-// double quotes NOT suppoted
-// Name/value delimiter is an equal sign or colon 
-// whitespace is removed from before and after both the name and value
-// characters considered to be whitespace:
-//  0x20 - space
-//	0x09 - horizontal tab
-//	0x0D - carriage return
-void Settings::Parse(char* str, NV NameValueCallback)
-{
-	char *next_token = nullptr;
-	EraseCppComments(str);
-	for (str = strtok_s(str, "\n", &next_token); str; str = strtok_s(0, "\n", &next_token))
-	{
-		if (*str == ';' || *str == '#')
-		{
-			continue; // skip INI style comments ( must be at start of line )
-		}
-		char* rvalue = strchr(str, '=');
-		if (!rvalue)
-		{
-			rvalue = strchr(str, ':');
-		}
-		if (rvalue)
-		{
-			*rvalue++ = '\0'; // split left and right values
-
-			rvalue = &rvalue[strspn(rvalue, "\x20\t\r")]; // skip beginning whitespace
-			for (char* end = strchr(rvalue, '\0'); (--end >= rvalue) && (*end == '\x20' || *end == '\t' || *end == '\r');)
-			{
-				*end = '\0';  // truncate ending whitespace
-			}
-
-			char* lvalue = &str[strspn(str, "\x20\t\r")]; // skip beginning whitespace
-			for (char* end = strchr(lvalue, '\0'); (--end >= lvalue) && (*end == '\x20' || *end == '\t' || *end == '\r');)
-			{
-				*end = '\0';  // truncate ending whitespace
-			}
-
-			if (*lvalue && *rvalue)
-			{
-				NameValueCallback(lvalue, rvalue);
-			}
-		}
-	}
-}
-
-// Reads szFileName from disk
-char* Settings::Read(char* szFileName)
-{
-	HANDLE hFile;
-	DWORD dwBytesToRead;
-	DWORD dwBytesRead;
-
-	char* szCfg = nullptr;
-	hFile = CreateFile(szFileName, GENERIC_READ, FILE_SHARE_READ, nullptr, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr);
-	if (hFile != INVALID_HANDLE_VALUE)
-	{
-		dwBytesToRead = GetFileSize(hFile, nullptr);
-		if ((dwBytesToRead != 0) && (dwBytesToRead != 0xFFFFFFFF))
-		{
-			szCfg = (char*)malloc(dwBytesToRead + 1); // +1 so a NULL terminator can be added
-			if (szCfg)
-			{
-				if (ReadFile(hFile, szCfg, dwBytesToRead, &dwBytesRead, nullptr))
-				{
-					if (dwBytesRead != 0)
-					{
-						szCfg[dwBytesRead] = '\0'; // make txt file easy to deal with 
-					}
-				}
-				else
-				{
-					free(szCfg);
-					szCfg = nullptr;
-				}
-			}
-		}
-		CloseHandle(hFile);
-	}
-	return szCfg;
 }
 
 // Set booloean value from string (file)
@@ -339,19 +211,6 @@ void Settings::SetValue(char* name, char* value, bool* setting)
 // Set config from string (file)
 void __stdcall Settings::ParseCallback(char* name, char* value)
 {
-	// Check for valid entries
-	if (!name || !value)
-	{
-		return;
-	}
-	if (strlen(name) == 0 || strlen(value) == 0 ||
-		strlen(name) == ((size_t)(-1)) || strlen(value) == ((size_t)(-1)) ||
-		name[0] == '\0' || value[0] == '\0' ||
-		!_strcmpi(value, "AUTO"))
-	{
-		return;
-	}
-
 	// Check for the existance of certian values
 	if (!_strcmpi(name, "SingleProcAffinity"))
 	{

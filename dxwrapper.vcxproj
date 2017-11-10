@@ -247,6 +247,7 @@ cmd /c "@echo off &amp;&amp; cd /D ""$(ProjectDir)Dllmain\"" &amp;&amp; type Bui
     <ClCompile Include="libraries\uxtheme.cpp" />
     <ClCompile Include="libraries\winmm.cpp" />
     <ClCompile Include="Logging\Logging.cpp" />
+    <ClCompile Include="Settings\ReadParse.cpp" />
     <ClCompile Include="Settings\Settings.cpp" />
     <ClCompile Include="Utils\Fullscreen.cpp" />
     <ClCompile Include="Utils\Utils.cpp" />

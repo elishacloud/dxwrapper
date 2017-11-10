@@ -226,6 +226,9 @@
     <ClCompile Include="D3d9\d3d9.cpp">
       <Filter>D3d9</Filter>
     </ClCompile>
+    <ClCompile Include="Settings\ReadParse.cpp">
+      <Filter>Settings</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="Settings\AllSettings.ini">

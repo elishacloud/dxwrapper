@@ -185,6 +185,9 @@ extern CONFIG Config;
 
 namespace Settings
 {
+	typedef void(__stdcall* NV)(char* name, char* value);
 	bool IfStringExistsInList(const char*, std::vector<std::string>, bool = true);
 	void SetValue(char*, char*, std::vector<std::string>*);
+	char* Read(char* szFileName);
+	void Parse(char* str, NV NameValueCallback);
 }
