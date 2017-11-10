@@ -35,6 +35,7 @@ bool APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 	UNREFERENCED_PARAMETER(lpReserved);
 
 	static HANDLE hMutex = nullptr;
+	static HANDLE n_hMutex = nullptr;
 	static bool FullscreenThreadStartedFlag = false;
 
 	switch (fdwReason)
@@ -58,29 +59,52 @@ bool APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 		// Initialize config
 		Config.Init();
 
-		// Create DxWrapper Mutex
+		// Create Mutex to ensure only one copy of DxWrapper is running
 		char MutexName[MAX_PATH];
 		sprintf_s(MutexName, MAX_PATH, "DxWrapper %d", GetCurrentProcessId());
 		hMutex = CreateMutex(nullptr, false, MutexName);
+		bool IsAlreadyRunning = (GetLastError() == ERROR_ALREADY_EXISTS);
+
+		// Allow DxWrapper to be loaded more than once from the same dll
+		if (Config.RealWrapperMode != dtype.dxwrapper)
+		{
+			sprintf_s(MutexName, MAX_PATH, "DxWrapper %d %s", GetCurrentProcessId(), Config.WrapperName.c_str());
+			n_hMutex = CreateMutex(nullptr, false, MutexName);
+			IsAlreadyRunning = IsAlreadyRunning && (GetLastError() != ERROR_ALREADY_EXISTS);
+		}
 
 		// Check Mutex or if process is excluded to see if DxWrapper should exit
-		bool IsAlreadyRunning = (GetLastError() == ERROR_ALREADY_EXISTS);
 		if (IsAlreadyRunning || Config.ProcessExcluded)
 		{
-			// Resetting thread priority
-			SetThreadPriority(hCurrentThread, dwPriorityClass);
-
-			// Closing handle
-			CloseHandle(hCurrentThread);
-
 			// DxWrapper already running
 			if (IsAlreadyRunning)
 			{
 				Logging::Log() << "DxWrapper already running!";
 			}
 
-			// Return false on process attach causes dll to get unloaded
-			return false;
+			if (Config.RealWrapperMode == dtype.dxwrapper)
+			{
+				// Resetting thread priority
+				SetThreadPriority(hCurrentThread, dwPriorityClass);
+
+				// Closing handle
+				CloseHandle(hCurrentThread);
+
+				// Return false on process attach causes dll to get unloaded
+				return false;
+			}
+			else
+			{
+				// Disable wrapper
+				Logging::Log() << "Disabling DxWrapper...";
+				Settings::ClearConfigSettings();
+
+				// Release named Mutex
+				if (n_hMutex)
+				{
+					ReleaseMutex(n_hMutex);
+				}
+			}
 		}
 
 		// Attach real dll
@@ -369,6 +393,10 @@ bool APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 		if (hMutex)
 		{
 			ReleaseMutex(hMutex);
+		}
+		if (n_hMutex)
+		{
+			ReleaseMutex(n_hMutex);
 		}
 
 		// Final log

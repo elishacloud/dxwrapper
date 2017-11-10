@@ -18,8 +18,9 @@
 */
 
 #define WIN32_LEAN_AND_MEAN
+#include <Windows.h>
 #include <stdlib.h>
-#include "Settings.h"
+#include "ReadParse.h"
 
 namespace Settings
 {

@@ -39,7 +39,6 @@ namespace Settings
 	void SetValue(char*, char*, DWORD*);
 	void SetValue(char*, char*, bool*);
 	void __stdcall ParseCallback(char*, char*);
-	void ClearConfigSettings();
 	void SetDefaultConfigSettings();
 	void GetWrapperMode();
 }

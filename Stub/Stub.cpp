@@ -16,7 +16,7 @@
 
 #define WIN32_LEAN_AND_MEAN
 #include <fstream>
-#include "..\Settings\Settings.h"
+#include "..\Settings\ReadParse.h"
 #include "..\MemoryModule\MemoryModule.h"
 #include "..\Wrappers\wrapper.h"
 

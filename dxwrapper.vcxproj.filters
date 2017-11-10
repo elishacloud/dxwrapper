@@ -425,6 +425,9 @@
     <ClInclude Include="D3d8to9\d3d8to9External.h">
       <Filter>D3d8to9</Filter>
     </ClInclude>
+    <ClInclude Include="Settings\ReadParse.h">
+      <Filter>Settings</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="Dllmain\BuildNo.rc">
