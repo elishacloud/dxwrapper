@@ -6,6 +6,7 @@
 #pragma once
 
 #include <unordered_map>
+#include <algorithm>
 
 class AddressLookupTable
 {
@@ -49,14 +50,14 @@ public:
 			return nullptr;
 		}
 
-		T *pAddress8 = static_cast<T *>(AddressCache[AddressCacheIndex<T>::CacheIndex][pAddress9]);
+		auto it = AddressCache[AddressCacheIndex<T>::CacheIndex].find(pAddress9);
 
-		if (pAddress8 == nullptr)
+		if (it != std::end(AddressCache[AddressCacheIndex<T>::CacheIndex]))
 		{
-			pAddress8 = new T(Device, static_cast<AddressCacheIndex<T>::Type9 *>(pAddress9));
+			return static_cast<T *>(it->second);
 		}
 
-		return pAddress8;
+		return new T(Device, static_cast<AddressCacheIndex<T>::Type9 *>(pAddress9));
 	}
 
 	template <typename T>
@@ -79,13 +80,13 @@ public:
 		}
 
 		constexpr UINT CacheIndex = AddressCacheIndex<T>::CacheIndex;
-		for (auto it = AddressCache[CacheIndex].begin(); it != AddressCache[CacheIndex].end(); ++it)
+
+		auto it = std::find_if(AddressCache[CacheIndex].begin(), AddressCache[CacheIndex].end(),
+			[pAddress8](std::pair<void*, class AddressLookupTableObject*> Map) -> bool { return Map.second == pAddress8; });
+
+		if (it != std::end(AddressCache[CacheIndex]))
 		{
-			if (it->second == pAddress8)
-			{
-				it = AddressCache[CacheIndex].erase(it);
-				return;
-			}
+			it = AddressCache[CacheIndex].erase(it);
 		}
 	}
 

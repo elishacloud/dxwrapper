@@ -565,11 +565,11 @@ void CONFIG::Init()
 
 	// Read defualt config file
 	char* szCfg = Read(wrappername);
-	Logging::Log() << "Reading config file: " << wrappername;
 
 	// Parce config file
 	if (szCfg)
 	{
+		Logging::Log() << "Reading config file: " << wrappername;
 		Parse(szCfg, ParseCallback);
 		free(szCfg);
 	}

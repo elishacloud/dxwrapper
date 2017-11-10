@@ -210,5 +210,8 @@ HRESULT STDMETHODCALLTYPE Direct3D8::CreateDevice(UINT Adapter, D3DDEVTYPE Devic
 
 	*ppReturnedDeviceInterface = new Direct3DDevice8(this, DeviceInterface, (PresentParams.Flags & D3DPRESENTFLAG_DISCARD_DEPTHSTENCIL) != 0);
 
+	// Set default vertex declaration
+	DeviceInterface->SetFVF(D3DFVF_XYZ);
+
 	return D3D_OK;
 }

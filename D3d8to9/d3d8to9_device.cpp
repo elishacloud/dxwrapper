@@ -721,7 +721,7 @@ HRESULT STDMETHODCALLTYPE Direct3DDevice8::SetRenderState(D3DRENDERSTATETYPE Sta
 		case D3DRS_PATCHSEGMENTS:
 			return D3DERR_INVALIDCALL;
 		case D3DRS_SOFTWAREVERTEXPROCESSING:
-			return ProxyInterface->SetSoftwareVertexProcessing(Value);
+			return D3D_OK;
 		case D3DRS_ZBIAS:
 			Biased = static_cast<FLOAT>(Value) * -0.000005f;
 			Value = *reinterpret_cast<const DWORD *>(&Biased);
@@ -1145,6 +1145,11 @@ HRESULT STDMETHODCALLTYPE Direct3DDevice8::CreateVertexShader(const DWORD *pDecl
 			VertexElements[ElementIndex].Usage = DeclAddressUsages[Address][0];
 			VertexElements[ElementIndex].UsageIndex = DeclAddressUsages[Address][1];
 
+			if (VertexElements[ElementIndex].Usage == D3DDECLUSAGE_BLENDINDICES)
+			{
+				VertexElements[ElementIndex].Method = D3DDECLMETHOD_DEFAULT;
+			}
+
 			VertexShaderInputs[ElementIndex++] = Address;
 		}
 		else if (TokenType == D3DVSD_TOKEN_TESSELLATOR && (Token & 0x10000000))
@@ -1156,6 +1161,11 @@ HRESULT STDMETHODCALLTYPE Direct3DDevice8::CreateVertexShader(const DWORD *pDecl
 			const DWORD Address = (Token & 0xF);
 			VertexElements[ElementIndex].Usage = DeclAddressUsages[Address][0];
 			VertexElements[ElementIndex].UsageIndex = DeclAddressUsages[Address][1];
+
+			if (VertexElements[ElementIndex].Usage == D3DDECLUSAGE_BLENDINDICES)
+			{
+				VertexElements[ElementIndex].Method = D3DDECLMETHOD_DEFAULT;
+			}
 
 			VertexShaderInputs[ElementIndex++] = Address;
 		}
@@ -1690,8 +1700,8 @@ HRESULT STDMETHODCALLTYPE Direct3DDevice8::CreatePixelShader(const DWORD *pFunct
 		const size_t beforeReplace = SourceCode.size();
 		// Only replace one match
 		SourceCode = std::regex_replace(SourceCode,
-			std::regex("(...)(_[_satxd248]*|) (r[0-9][\\.wxyz]*), (1?-?[crtv][0-9][\\.wxyz_abdis2]*, )?(1?-?[crtv][0-9][\\.wxyz_abdis2]*, )?(1?-?[crtv][0-9][\\.wxyz_abdis2]*, )?((1?-)(c[0-9])([\\.wxyz]*)(_bx2|_bias|_x2|_d[zbwa]|)|(1?-?)(c[0-9])([\\.wxyz]*)(_bx2|_bias|_x2|_d[zbwa]))(?![_\\.wxyz])"),
-			"mov $3, $9$10$13$14 /* added line */\n    $1$2 $3, $4$5$8$12$3$10$11$14$15 /* changed $9$13 to $3 */", std::regex_constants::format_first_only);
+			std::regex("    (...)(_[_satxd248]*|) (r[0-9][\\.wxyz]*), (1?-?[crtv][0-9][\\.wxyz_abdis2]*, )?(1?-?[crtv][0-9][\\.wxyz_abdis2]*, )?(1?-?[crtv][0-9][\\.wxyz_abdis2]*, )?((1?-)(c[0-9])([\\.wxyz]*)(_bx2|_bias|_x2|_d[zbwa]|)|(1?-?)(c[0-9])([\\.wxyz]*)(_bx2|_bias|_x2|_d[zbwa]))(?![_\\.wxyz])"),
+			"    mov $3, $9$10$13$14 /* added line */\n    $1$2 $3, $4$5$8$12$3$11$15 /* changed $9$10$13$14 to $3 */", std::regex_constants::format_first_only);
 		// Check if string was replaced
 		if (SourceCode.size() - beforeReplace == 0)
 		{

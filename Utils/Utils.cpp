@@ -282,7 +282,6 @@ HMODULE Utils::LoadLibrary(const char *dllname, bool EnableLogging)
 	HMODULE dll = nullptr;
 	const char *loadpath;
 	char path[MAX_PATH];
-	bool isCurrentDll = (_strcmpi(Config.WrapperName.c_str(), dllname) == 0);
 
 	// Check if dll is already loaded
 	for (size_t x = 0; x < custom_dll.size(); x++)
@@ -299,15 +298,15 @@ HMODULE Utils::LoadLibrary(const char *dllname, bool EnableLogging)
 		Logging::Log() << "Loading " << dllname;
 	}
 
-	// Load default dll
-	if (!dll && !isCurrentDll)
+	// Load default dll if not loading current dll
+	if (_strcmpi(Config.WrapperName.c_str(), dllname) != 0)
 	{
 		loadpath = dllname;
 		dll = ::LoadLibraryA(loadpath);
 	}
 
 	// Load system dll
-	if (!dll && !(strrchr(dllname, '\\')))
+	if (!dll)
 	{
 		//Load library
 		GetSystemDirectory(path, MAX_PATH);
