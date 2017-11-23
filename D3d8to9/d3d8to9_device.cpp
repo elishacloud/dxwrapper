@@ -1299,7 +1299,7 @@ HRESULT STDMETHODCALLTYPE Direct3DDevice8::CreateVertexShader(const DWORD *pDecl
 
 		// Get number of arithmetic instructions used
 		const size_t InstructionPosition = SourceCode.find("instruction");
-		int InstructionCount = InstructionPosition > 2 && InstructionPosition < SourceCode.size() ? atoi(&SourceCode[InstructionPosition - 4]) : 0;
+		size_t InstructionCount = InstructionPosition > 2 && InstructionPosition < SourceCode.size() ? strtoul(SourceCode.substr(InstructionPosition - 4, 4).c_str(), nullptr, 10) : 0;
 
 		for (size_t j = 0; j < 8; j++)
 		{
@@ -1338,6 +1338,41 @@ HRESULT STDMETHODCALLTYPE Direct3DDevice8::CreateVertexShader(const DWORD *pDecl
 		SourceCode = std::regex_replace(SourceCode, std::regex("(add|sub|mul|min|max) (oFog|oPts), ([cr][0-9]+), (.+)\\n"), "$1 $2, $3.x /* added swizzle */, $4\n");
 		SourceCode = std::regex_replace(SourceCode, std::regex("(add|sub|mul|min|max) (oFog|oPts), (.+), ([cr][0-9]+)\\n"), "$1 $2, $3, $4.x /* added swizzle */\n");
 		SourceCode = std::regex_replace(SourceCode, std::regex("mov (oFog|oPts)(.*), (-?)([crv][0-9]+(?![\\.0-9]))"), "mov $1$2, $3$4.x /* select single component */");
+
+		// Dest register cannot be the same as first source register for m*x* instructions.
+		if (std::regex_search(SourceCode, std::regex("m.x.")))
+		{
+			// Check for unused register
+			size_t r;
+			for (r = 0; r < 12; r++)
+			{
+				if (SourceCode.find("r" + std::to_string(r)) == std::string::npos) break;
+			}
+
+			// Check if first source register is the same as the destination register
+			for (size_t j = 0; j < 12; j++)
+			{
+				const std::string reg = "(m.x.) (r" + std::to_string(j) + "), ((-?)r" + std::to_string(j) + "([\\.xyzw]*))(?![0-9])";
+
+				while (std::regex_search(SourceCode, std::regex(reg)))
+				{
+					// If there is enough remaining instructions and an unused register then update to use a temp register
+					if (r < 12 && InstructionCount < 128)
+					{
+						++InstructionCount;
+						SourceCode = std::regex_replace(SourceCode, std::regex(reg),
+							"mov r" + std::to_string(r) + ", $2 /* added line */\n    $1 $2, $4r" + std::to_string(r) + "$5 /* changed $3 to r" + std::to_string(r) + " */",
+							std::regex_constants::format_first_only);
+					}
+					// Disable line to prevent assembly error
+					else
+					{
+						SourceCode = std::regex_replace(SourceCode, std::regex("(.*" + reg + ".*)"), "/*$1*/ /* disabled this line */");
+						break;
+					}
+				}
+			}
+		}
 
 #ifndef D3D8TO9NOLOG
 		LOG << "> Dumping translated shader assembly:" << std::endl << std::endl << SourceCode << std::endl;
@@ -1680,42 +1715,318 @@ HRESULT STDMETHODCALLTYPE Direct3DDevice8::CreatePixelShader(const DWORD *pFunct
 
 	// Get number of arithmetic instructions used
 	const size_t ArithmeticPosition = SourceCode.find("arithmetic");
-	int ArithmeticCount = ArithmeticPosition > 2 && ArithmeticPosition < SourceCode.size() ? atoi(&SourceCode[ArithmeticPosition - 2]) : 0;
-	if (ArithmeticCount == 0)
-	{
-		ArithmeticCount = 10; // Default to 10
-	}
+	size_t ArithmeticCount = ArithmeticPosition > 2 && ArithmeticPosition < SourceCode.size() ? strtoul(SourceCode.substr(ArithmeticPosition - 2, 2).c_str(), nullptr, 10) : 0;
+	ArithmeticCount = (ArithmeticCount != 0) ? ArithmeticCount : 10;	// Default to 10
 
 	// Remove lines when "    // ps.1.1" string is found and the next line does not start with a space
 	SourceCode = std::regex_replace(SourceCode,
 		std::regex("    \\/\\/ ps\\.1\\.[1-4]\\n((?! ).+\\n)+"),
 		"");
+
 	// Fix '-' modifier for constant values when using 'add' arithmetic by changing it to use 'sub'
 	SourceCode = std::regex_replace(SourceCode,
 		std::regex("(add)([_satxd248]*) (r[0-9][\\.wxyz]*), ((1-|)[crtv][0-9][\\.wxyz_abdis2]*), (-)(c[0-9][\\.wxyz]*)(_bx2|_bias|_x2|_d[zbwa]|)(?![_\\.wxyz])"),
 		"sub$2 $3, $4, $7$8 /* changed 'add' to 'sub' removed modifier $6 */");
+
+	// Create temporary varables for ps_1_4
+	std::string SourceCode14 = SourceCode;
+	int ArithmeticCount14 = ArithmeticCount;
+
 	// Fix modifiers for constant values by using any remaining arithmetic places to add an instruction to move the constant value to a temporary register
-	for (int x = 8 - ArithmeticCount; x > 0; x--)
+	while (std::regex_search(SourceCode, std::regex("-c[0-9]|c[0-9][\\.wxyz]*_")) && ArithmeticCount < 8)
 	{
-		const size_t beforeReplace = SourceCode.size();
-		// Only replace one match
-		SourceCode = std::regex_replace(SourceCode,
-			std::regex("    (...)(_[_satxd248]*|) (r[0-9][\\.wxyz]*), (1?-?[crtv][0-9][\\.wxyz_abdis2]*, )?(1?-?[crtv][0-9][\\.wxyz_abdis2]*, )?(1?-?[crtv][0-9][\\.wxyz_abdis2]*, )?((1?-)(c[0-9])([\\.wxyz]*)(_bx2|_bias|_x2|_d[zbwa]|)|(1?-?)(c[0-9])([\\.wxyz]*)(_bx2|_bias|_x2|_d[zbwa]))(?![_\\.wxyz])"),
-			"    mov $3, $9$10$13$14 /* added line */\n    $1$2 $3, $4$5$8$12$3$11$15 /* changed $9$10$13$14 to $3 */", std::regex_constants::format_first_only);
-		// Check if string was replaced
-		if (SourceCode.size() - beforeReplace == 0)
+		// Make sure that the dest register is not already being used
+		std::string tmpLine = "\n" + std::regex_replace(SourceCode, std::regex("1?-(c[0-9])[\\._a-z0-9]*|(c[0-9])[\\.wxyz]*_[a-z0-9]*"), "-$1$2") + "\n";
+		size_t start = tmpLine.substr(0, tmpLine.find("-c")).rfind("\n") + 1;
+		tmpLine = tmpLine.substr(start, tmpLine.find("\n", start) - start);
+		const std::string destReg = std::regex_replace(tmpLine, std::regex("[ \\+]+[a-z_\\.0-9]+ (r[0-9]).*-c[0-9].*"),"$1");
+		const std::string sourceReg = std::regex_replace(tmpLine, std::regex("[ \\+]+[a-z_\\.0-9]+ r[0-9][\\._a-z0-9]*, (.*)-c[0-9](.*)"), "$1$2");
+		if (sourceReg.find(destReg) != std::string::npos)
 		{
 			break;
 		}
+
+		// Replace one constant modifier using the dest register as a temporary register
+		SourceCode = std::regex_replace(SourceCode,
+			std::regex("    (...)(_[_satxd248]*|) (r[0-9][\\.wxyz]*), (1?-?[crtv][0-9][\\.wxyz_abdis2]*, )?(1?-?[crtv][0-9][\\.wxyz_abdis2]*, )?(1?-?[crtv][0-9][\\.wxyz_abdis2]*, )?((1?-)(c[0-9])([\\.wxyz]*)(_bx2|_bias|_x2|_d[zbwa]|)|(1?-?)(c[0-9])([\\.wxyz]*)(_bx2|_bias|_x2|_d[zbwa]))(?![_\\.wxyz])"),
+			"    mov $3, $9$10$13$14 /* added line */\n    $1$2 $3, $4$5$8$12$3$11$15 /* changed $9$10$13$14 to $3 */", std::regex_constants::format_first_only);
+		ArithmeticCount++;
 	}
+
+	// Check if this should be converted to ps_1_4
+	if (std::regex_search(SourceCode, std::regex("-c[0-9]|c[0-9][\\.wxyz]*_")) &&	// Check for modifiers on constants
+		!std::regex_search(SourceCode, std::regex("tex[bcdmr]")) &&					// Verify unsupported instructions are not used
+		std::regex_search(SourceCode, std::regex("ps_1_[0-3]")))					// Verify PixelShader is using version 1.0 to 1.3
+	{
+		bool ConvertError = false;
+		bool RegisterUsed[7] = { false };
+		RegisterUsed[6] = true;
+		struct MyStrings
+		{
+			std::string dest;
+			std::string source;
+		};
+		std::vector<MyStrings> ReplaceReg;
+		std::string NewSourceCode = "    ps_1_4 /* converted */\n";
+
+		// Ensure at least one command will be above the phase marker
+		bool PhaseMarkerSet = (ArithmeticCount14 >= 8);
+		if (SourceCode14.find("def c") == std::string::npos && !PhaseMarkerSet)
+		{
+			for (size_t j = 0; j < 8; j++)
+			{
+				const std::string reg = "c" + std::to_string(j);
+
+				if (SourceCode14.find(reg) == std::string::npos)
+				{
+					PhaseMarkerSet = true;
+					NewSourceCode.append("    def " + reg + ", 0, 0, 0, 0 /* added line */\n");
+					break;
+				}
+			}
+		}
+
+		// Update registers to use different numbers from textures
+		size_t FirstReg = 0;
+		for (size_t j = 0; j < 2; j++)
+		{
+			const std::string reg = "r" + std::to_string(j);
+
+			if (SourceCode14.find(reg) != std::string::npos)
+			{
+				while (SourceCode14.find("t" + std::to_string(FirstReg)) != std::string::npos ||
+					(SourceCode14.find("r" + std::to_string(FirstReg)) != std::string::npos && j != FirstReg))
+				{
+					FirstReg++;
+				}
+				SourceCode14 = std::regex_replace(SourceCode14, std::regex(reg), "r" + std::to_string(FirstReg));
+				FirstReg++;
+			}
+		}
+
+		// Set phase location
+		size_t PhasePosition = NewSourceCode.length();
+		size_t TexturePosition = 0;
+
+		// Loop through each line
+		size_t LinePosition = 1;
+		std::string NewLine = SourceCode14;
+		while (true)
+		{
+			// Get next line
+			size_t tmpLinePos = SourceCode14.find("\n", LinePosition) + 1;
+			if (tmpLinePos == std::string::npos || tmpLinePos < LinePosition)
+			{
+				break;
+			}
+			LinePosition = tmpLinePos;
+			NewLine = SourceCode14.substr(LinePosition, SourceCode14.length());
+			tmpLinePos = NewLine.find("\n");
+			if (tmpLinePos != std::string::npos)
+			{
+				NewLine.resize(tmpLinePos);
+			}
+
+			// Skip 'ps_x_x' lines
+			if (std::regex_search(NewLine, std::regex("ps_._.")))
+			{
+				// Do nothing
+			}
+
+			// Check for 'def' and add before 'phase' statement
+			else if (NewLine.find("def c") != std::string::npos)
+			{
+				PhaseMarkerSet = true;
+				const std::string tmpLine = NewLine + "\n";
+				NewSourceCode.insert(PhasePosition, tmpLine);
+				PhasePosition += tmpLine.length();
+			}
+
+			// Check for 'tex' and update to 'texld'
+			else if (NewLine.find("tex t") != std::string::npos)
+			{
+				const std::string regNum = std::regex_replace(NewLine, std::regex(".*tex t([0-9]).*"), "$1");
+				const std::string tmpLine = "    texld r" + regNum + ", t" + regNum + "\n";
+
+				// Mark as a texture register and add 'texld' statement before or after the 'phase' statement
+				const unsigned long Num = strtoul(regNum.c_str(), nullptr, 10);
+				RegisterUsed[(Num < 6) ? Num : 6] = true;
+				NewSourceCode.insert(PhasePosition, tmpLine);
+				if (PhaseMarkerSet)
+				{
+					TexturePosition += tmpLine.length();
+				}
+				else
+				{
+					PhaseMarkerSet = true;
+					PhasePosition += tmpLine.length();
+				}
+			}
+
+			// Other instructions
+			else
+			{
+				// Check for constant modifiers and update them to use unused temp register
+				if (std::regex_search(NewLine, std::regex("-c[0-9]|c[0-9][\\.wxyz]*_")))
+				{
+					for (size_t j = 0; j < 6; j++)
+					{
+						std::string reg = "r" + std::to_string(j);
+
+						if (NewSourceCode.find(reg) == std::string::npos)
+						{
+							const std::string constReg = std::regex_replace(NewLine, std::regex(".*-(c[0-9]).*|.*(c[0-9])[\\.wxyz]*_.*"), "$1$2");
+
+							// Check if this constant has modifiers in more than one line
+							if (std::regex_search(SourceCode14.substr(LinePosition + NewLine.length(), SourceCode14.length()), std::regex("-" + constReg + "|" + constReg + "[\\.wxyz]*_")))
+							{
+								// Find an unused register
+								while (j < 6 && 
+									(NewSourceCode.find("r" + std::to_string(j)) != std::string::npos ||
+									SourceCode14.find("r" + std::to_string(j)) != std::string::npos))
+								{
+									j++;
+								}
+								// Replace all constants with the unused register
+								if (j < 6)
+								{
+									reg = "r" + std::to_string(j);
+									SourceCode14 = std::regex_replace(SourceCode14, std::regex(constReg), reg);
+								}
+							}
+
+							const std::string tmpLine = "    mov " + reg + ", " + constReg + "\n";
+
+							// Update the constant in this line and add 'mov' statement before or after the 'phase' statement
+							NewLine = std::regex_replace(NewLine, std::regex(constReg), reg);
+							if (ArithmeticCount14 < 8)
+							{
+								NewSourceCode.insert(PhasePosition + TexturePosition, tmpLine);
+								ArithmeticCount14++;
+							}
+							else
+							{
+								PhaseMarkerSet = true;
+								NewSourceCode.insert(PhasePosition, tmpLine);
+								PhasePosition += tmpLine.length();
+							}
+							break;
+						}
+					}
+				}
+
+				// Update register from vector once it is used for the last time
+				if (ReplaceReg.size() > 0)
+				{
+					for (size_t x = 0; x < ReplaceReg.size(); x++)
+					{
+						// Check if register is used in this line
+						if (NewLine.find(ReplaceReg[x].dest) != std::string::npos)
+						{
+							// Get position of all lines after this line
+							size_t start = LinePosition + NewLine.length();
+							// Move position to next line if the first line is a co-issed command
+							start = (SourceCode14.substr(start, 4).find("+") == std::string::npos) ? start : SourceCode14.find("\n", start + 1);
+
+							// Check if register is used in the code after this position
+							if (SourceCode14.find(ReplaceReg[x].dest, start) == std::string::npos)
+							{
+								// Update dest register using source register from the vector
+								NewLine = std::regex_replace(NewLine, std::regex("([ \\+]+[a-z_\\.0-9]+ )r[0-9](.*)"), "$1" + ReplaceReg[x].source + "$2");
+								ReplaceReg.erase(ReplaceReg.begin() + x);
+								break;
+							}
+						}
+					}
+				}
+
+				// Check if texture is no longer being used and update the dest register
+				if (std::regex_search(NewLine, std::regex("t[0-9]")))
+				{
+					const std::string texNum = std::regex_replace(NewLine, std::regex(".*t([0-9]).*"), "$1");
+
+					// Get position of all lines after this line
+					size_t start = LinePosition + NewLine.length();
+					// Move position to next line if the first line is a co-issed command
+					start = (SourceCode14.substr(start, 4).find("+") == std::string::npos) ? start : SourceCode14.find("\n", start + 1);
+
+					// Check if texture is used in the code after this position
+					if (SourceCode14.find("t" + texNum, start) == std::string::npos)
+					{
+						const std::string destRegNum = std::regex_replace(NewLine, std::regex("[ \\+]+[a-z_\\.0-9]+ r([0-9]).*"), "$1");
+
+						// Check if destination register is already being used by a texture register
+						const unsigned long Num = strtoul(destRegNum.c_str(), nullptr, 10);
+						if (!RegisterUsed[(Num < 6) ? Num : 6])
+						{
+							// Check if line is using more than one texture and error out
+							if (std::regex_search(std::regex_replace(NewLine, std::regex("t" + texNum), "r" + texNum), std::regex("t[0-9]")))
+							{
+								ConvertError = true;
+								break;
+							}
+							// Check if this is the first or last time the register is used
+							if (NewSourceCode.find("r" + destRegNum) == std::string::npos ||
+								SourceCode14.find("r" + destRegNum, start) == std::string::npos)
+							{
+								// Update dest register using texture register
+								NewLine = std::regex_replace(NewLine, std::regex("([ \\+]+[a-z_\\.0-9]+ )r[0-9](.*)"), "$1r" + texNum + "$2");
+								// Update code replacing all regsiters after the marked position with the texture register
+								const std::string tempSourceCode = std::regex_replace(SourceCode14.substr(start, SourceCode14.length()), std::regex("r" + destRegNum), "r" + texNum);
+								SourceCode14.resize(start);
+								SourceCode14.append(tempSourceCode);
+							}
+							else
+							{
+								// If register is still being used then add registers to vector to be replaced later
+								RegisterUsed[(Num < 6) ? Num : 6] = true;
+								MyStrings tempReplaceReg;
+								tempReplaceReg.dest = "r" + destRegNum;
+								tempReplaceReg.source = "r" + texNum;
+								ReplaceReg.push_back(tempReplaceReg);
+							}
+						}
+					}
+				}
+
+				// Add line to SourceCode
+				NewLine = std::regex_replace(NewLine, std::regex("t([0-9])"), "r$1") + "\n";
+				NewSourceCode.append(NewLine);
+			}
+		}
+
+		// Add 'phase' instruction
+		NewSourceCode.insert(PhasePosition, "    phase\n");
+
+		// If no errors were encountered then check if code assembles
+		if (!ConvertError)
+		{
+			// Test if ps_1_4 assembles
+			if (SUCCEEDED(D3DXAssembleShader(NewSourceCode.data(), static_cast<UINT>(NewSourceCode.size()), nullptr, nullptr, 0, &Assembly, &ErrorBuffer)))
+			{
+				SourceCode = NewSourceCode;
+			}
+			else
+			{
+#ifndef D3D8TO9NOLOG
+				LOG << "> Failed to convert shader to ps_1_4" << std::endl;
+				LOG << "> Dumping translated shader assembly:" << std::endl << std::endl << NewSourceCode << std::endl;
+				LOG << "> Failed to reassemble shader:" << std::endl << std::endl << static_cast<const char *>(ErrorBuffer->GetBufferPointer()) << std::endl;
+#endif
+			}
+		}
+	}
+
 	// Change '-' modifier for constant values when using 'mad' arithmetic by changing it to use 'sub'
 	SourceCode = std::regex_replace(SourceCode,
 		std::regex("(mad)([_satxd248]*) (r[0-9][\\.wxyz]*), (1?-?[crtv][0-9][\\.wxyz_abdis2]*), (1?-?[crtv][0-9][\\.wxyz_abdis2]*), (-)(c[0-9][\\.wxyz]*)(_bx2|_bias|_x2|_d[zbwa]|)(?![_\\.wxyz])"),
 		"sub$2 $3, $4, $7$8 /* changed 'mad' to 'sub' removed $5 removed modifier $6 */");
+
 	// Remove trailing modifiers for constant values
 	SourceCode = std::regex_replace(SourceCode,
 		std::regex("(c[0-9][\\.wxyz]*)(_bx2|_bias|_x2|_d[zbwa])"),
 		"$1 /* removed modifier $2 */");
+
 	// Remove remaining modifiers for constant values
 	SourceCode = std::regex_replace(SourceCode,
 		std::regex("(1?-)(c[0-9][\\.wxyz]*(?![\\.wxyz]))"),
