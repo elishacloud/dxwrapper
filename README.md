@@ -81,18 +81,18 @@ This software is provided 'as-is', without any express or implied warranty. In n
 
 DxWrapper uses code from several other projects. So to give credit where credit is due, below is a list of locations that source code was taken from:
 
- - [DDrawCompat](https://github.com/narzoul/DDrawCompat/): Includes the full DDrawCompat version 2.0b and 2.1.
- - [DxWnd](https://sourceforge.net/projects/dxwnd/): Includes code from the proxy dll and exception handling.
- - [OllyDbg](http://www.ollydbg.de/): Includes the full cmdlist.c and disasm.c (disasm.dll) code used for exception handling.
- - [d3d8to9](https://github.com/crosire/d3d8to9): Includes the full Direct3D 8 to Direct3D 9 code.
- - [DSoundCtrl](https://github.com/nRaecheR/DirectSoundControl): Includes the full DirectSoundControl code.
  - [Aqrit's ddwrapper](http://bitpatch.com/ddwrapper.html): Includes code to disable high DPI scaling and code to read the ini config file.
+ - [d3d8to9](https://github.com/crosire/d3d8to9): Includes the full Direct3D 8 to Direct3D 9 code.
+ - [DDrawCompat](https://github.com/narzoul/DDrawCompat/): Includes the full DDrawCompat version 2.0b and 2.1.
  - [Direct3D9 Wrapper DLL](https://gist.github.com/shaunlebron/3854bf4eec5bec297907): Includes the full wrapper code used for logging and manipulating Direct3D9 calls, such as enabling Anti-Aliasing.
- - [Ultimate ASI Loader](https://github.com/ThirteenAG/Ultimate-ASI-Loader): Includes code for loading ASI pluggins.
+ - [DSoundCtrl](https://github.com/nRaecheR/DirectSoundControl): Includes the full DirectSoundControl code.
+ - [DxWnd](https://sourceforge.net/projects/dxwnd/): Includes code from DxWnd for API hooking, DxWnd proxy loading (init.cpp) and exception handling.
  - [MemoryModule](https://github.com/fancycode/MemoryModule): Includes code for loading libraries from memory.
- - [Parsing PE export table](http://www.rohitab.com/discuss/topic/40594-parsing-pe-export-table/): Includes the full GetProcAddress.
- - [Get version of a PE file](https://stackoverflow.com/questions/940707/how-do-i-programmatically-get-the-version-of-a-dll-or-exe-file): Includes code for getting the version of an EXE file.
- - [SetAppCompatData] http://www_blitzbasic_com/Community/post.php?topic=99477&post=1202996 (site no longer exists): Used comments from here to allow setting all 12 SetAppCompatData settings.
+ - [OllyDbg](http://www.ollydbg.de/): Includes the full cmdlist.c and disasm.c (disasm.dll) code used for exception handling.
+ - [rohitab.com](http://www.rohitab.com/discuss/topic/40594-parsing-pe-export-table/): Includes the full GetProcAddress.
+ - [SetAppCompatData]: Used comments from here to allow setting all 12 SetAppCompatData settings. (site no longer exists):  http://www_blitzbasic_com/Community/post.php?topic=99477&post=1202996
+ - [stackoverflow.com](https://stackoverflow.com/questions/940707/how-do-i-programmatically-get-the-version-of-a-dll-or-exe-file): Includes code for getting the version of an EXE file.
+ - [Ultimate ASI Loader](https://github.com/ThirteenAG/Ultimate-ASI-Loader): Includes code for loading ASI pluggins.
 
 ### Development
 DxWrapper is mostly written in C++ using Microsoft Visual Studio Community 2015.
