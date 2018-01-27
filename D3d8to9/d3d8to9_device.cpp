@@ -1,16 +1,12 @@
 /**
  * Copyright (C) 2015 Patrick Mours. All rights reserved.
  * License: https://github.com/crosire/d3d8to9#license
- *
- * Updated 2017 by Elisha Riedlinger
  */
 
+#include "d3dx9.hpp"
+#include "d3d8to9.hpp"
 #include <regex>
 #include <assert.h>
-//********** Begin Edit *************
-#include "d3d8to9.hpp"
-#include "d3dx9.h"
-//********** End Edit ***************
 
 struct VertexShaderInfo
 {

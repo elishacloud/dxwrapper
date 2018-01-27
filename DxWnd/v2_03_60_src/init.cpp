@@ -2,17 +2,15 @@
 * Created from source code found in DxWnd v 2.03.60
 * https://sourceforge.net/projects/dxwnd/
 *
-* Updated 2017 by Elisha Riedlinger
+* Updated 2018 by Elisha Riedlinger
 */
 
 //********** Begin Edit *************
 #define WIN32_LEAN_AND_MEAN
+#include "Logging\Logging.h"
 //********** End Edit ***************
 #include <windows.h>
 #include <stdio.h>
-//********** Begin Edit *************
-#include "Logging\Logging.h"
-//********** End Edit ***************
 #include "dxwnd.h"
 
 typedef int (*StartHook_)();

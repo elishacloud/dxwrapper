@@ -2,7 +2,7 @@
  * Copyright (C) 2015 Patrick Mours. All rights reserved.
  * License: https://github.com/crosire/d3d8to9#license
  *
- * Updated 2017 by Elisha Riedlinger
+ * Updated 2018 by Elisha Riedlinger
  */
 
 #pragma once
@@ -465,17 +465,12 @@ private:
 	IDirect3DIndexBuffer9 *const ProxyInterface;
 };
 
+#include <fstream>
+
+#ifndef D3D8TO9NOLOG
+extern std::ofstream LOG;
+#endif
+
 //********** Begin Edit *************
-#include "Settings\Settings.h"
-#include "Logging\Logging.h"
-
-#define LOG Logging::Log()
-
-namespace newstd
-{
-	using namespace std;
-	static constexpr char endl = '\n';
-};
-
-#define std newstd
+#include "d3dx9.hpp"
 //********** End Edit ***************

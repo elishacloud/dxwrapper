@@ -263,6 +263,7 @@ cmd /c "@echo off &amp;&amp; cd /D ""$(ProjectDir)Dllmain\"" &amp;&amp; type Bui
     <ClInclude Include="D3d8to9\d3d8to9External.h" />
     <ClInclude Include="D3d8to9\d3d8to9.hpp" />
     <ClInclude Include="D3d8to9\d3d8types.hpp" />
+    <ClInclude Include="D3d8to9\d3dx9.hpp" />
     <ClInclude Include="D3d8to9\lookup_table.hpp" />
     <ClInclude Include="D3d9\d3d9.h" />
     <ClInclude Include="D3d9\D3d9External.h" />

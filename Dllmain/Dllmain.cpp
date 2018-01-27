@@ -267,7 +267,7 @@ bool APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 		if (Config.DxWnd)
 		{
 			// Check if dxwnd.dll exists then load it
-			HMODULE dxwnd_dll = LoadLibrary("dxwnd.dll");
+			HMODULE dxwnd_dll = LoadLibrary("dxwnd.dll", false);
 			if (dxwnd_dll)
 			{
 				Logging::Log() << "Loading dxwnd";
