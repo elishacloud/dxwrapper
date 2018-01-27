@@ -319,7 +319,7 @@ HMODULE Utils::LoadLibrary(const char *dllname, bool EnableLogging)
 	// Store handle and dll name
 	if (dll)
 	{
-		Logging::Log() << "Loaded " << loadpath << " library";
+		Logging::Log() << "Loaded library: " << loadpath;
 		AddHandleToVector(dll, dllname);
 	}
 
@@ -335,9 +335,8 @@ void Utils::LoadCustomDll()
 		// Check if path is empty
 		if (!Config.LoadCustomDllPath[x].empty())
 		{
-			Logging::Log() << "Loading custom " << Config.LoadCustomDllPath[x] << " library";
 			// Load dll from ini
-			auto h = LoadLibrary(Config.LoadCustomDllPath[x].c_str(), false);
+			auto h = LoadLibrary(Config.LoadCustomDllPath[x].c_str());
 
 			// Cannot load dll
 			if (h)
@@ -346,7 +345,7 @@ void Utils::LoadCustomDll()
 			}
 			else
 			{
-				Logging::Log() << "Cannot load custom " << Config.LoadCustomDllPath[x] << " library";
+				Logging::Log() << "Cannot load custom library: " << Config.LoadCustomDllPath[x];
 			}
 		}
 	}
@@ -374,8 +373,7 @@ void Utils::FindFiles(WIN32_FIND_DATA* fd)
 					char path[MAX_PATH] = { 0 };
 					sprintf_s(path, "%s\\%s", dir, fd->cFileName);
 
-					Logging::Log() << "Loading Plugin: " << path;
-					auto h = LoadLibrary(path, false);
+					auto h = LoadLibrary(path);
 					SetCurrentDirectory(dir); //in case asi switched it
 
 					if (h)
@@ -384,7 +382,7 @@ void Utils::FindFiles(WIN32_FIND_DATA* fd)
 					}
 					else
 					{
-						Logging::LogFormat("Unable to load %s. Error: %d", fd->cFileName, GetLastError());
+						Logging::LogFormat("Unable to load '%s'. Error: %d", fd->cFileName, GetLastError());
 					}
 				}
 			}

@@ -14,7 +14,7 @@ namespace Utils
 	void HookExceptionHandler();
 	void UnHookExceptionHandler();
 	void AddHandleToVector(HMODULE dll, const char *name);
-	HMODULE LoadLibrary(const char *dllname, bool EnableLogging = true);
+	HMODULE LoadLibrary(const char *dllname, bool EnableLogging = false);
 	void LoadCustomDll();
 	void LoadPlugins();
 	void UnloadAllDlls();
