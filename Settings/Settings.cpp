@@ -370,6 +370,9 @@ void Settings::SetDefaultConfigSettings()
 	// Set other default values
 	Config.LoopSleepTime = 120;
 	Config.WindowSleepTime = 500;
+	Config.ForceNonStaticBuffers = true;
+	Config.ForceVoiceManagement = true;
+	Config.ForceHQ3DSoftMixing = true;
 	Config.PrimaryBufferBits = 16;
 	Config.PrimaryBufferSamples = 44100;
 	Config.PrimaryBufferChannels = 2;
@@ -460,6 +463,35 @@ void CONFIG::Init()
 
 	// Verify sleep time to make sure it is not set too low (can be perf issues if it is too low)
 	if (LoopSleepTime < 30) LoopSleepTime = 30;
+
+	// Verify DSoundCtrl options
+	if (ForceSoftwareMixing && ForceHardwareMixing)
+	{
+		Logging::Log() << "Cannot set both ForceSoftwareMixing and ForceHardwareMixing!  Disabling ForceSoftwareMixing.";
+		ForceSoftwareMixing = false;
+	}
+	if (ForceVoiceManagement && (ForceSoftwareMixing || ForceHardwareMixing))
+	{
+		if (ForceSoftwareMixing)
+		{
+			Logging::Log() << "Cannot set both ForceVoiceManagement and ForceSoftwareMixing!  Disabling ForceVoiceManagement.";
+		}
+		else
+		{
+			Logging::Log() << "Cannot set both ForceVoiceManagement and ForceSoftwareMixing!  Disabling ForceVoiceManagement.";
+		}
+		ForceVoiceManagement = false;
+	}
+	if (ForceVoiceManagement && !ForceNonStaticBuffers)
+	{
+		Logging::Log() << "ForceNonStaticBuffers should always be enabled with ForceVoiceManagement!  Enabling ForceNonStaticBuffers.";
+		ForceNonStaticBuffers = true;
+	}
+	if (ForceHQ3DSoftMixing && ForceHardwareMixing)
+	{
+		Logging::Log() << "ForceHQ3DSoftMixing has no effect whenForceHardwareMixing is enabled!  Disabling ForceHQ3DSoftMixing.";
+		ForceHQ3DSoftMixing = false;
+	}
 
 	// Check if process should be excluded or not included
 	// if so, then clear all settings (disable everything)
