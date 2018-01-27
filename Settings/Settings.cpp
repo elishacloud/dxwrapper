@@ -420,8 +420,10 @@ void CONFIG::Init()
 	// Set default settings
 	SetDefaultConfigSettings();
 
-	// Get config file path
-	strcpy_s(p_wName, MAX_PATH - strlen(wrappername), WrapperName.c_str());
+	// Get config path to include process name
+	strcpy_s(wrappername, MAX_PATH - strlen(wrappername), WrapperName.c_str());
+	strcpy_s(strrchr(wrappername, '.'), MAX_PATH - strlen(wrappername), "-");
+	strcat_s(wrappername, MAX_PATH, p_pName);
 	strcpy_s(strrchr(wrappername, '.'), MAX_PATH - strlen(wrappername), ".ini");
 
 	// Read defualt config file
@@ -435,26 +437,25 @@ void CONFIG::Init()
 		free(szCfg);
 	}
 
-	// If cannot load config file check with process path
+	// If cannot load config file check for default config
 	if (!szCfg)
 	{
-		// Get new config path to include process name
-		strcpy_s(strrchr(wrappername, '.'), MAX_PATH - strlen(wrappername), "-");
-		strcat_s(wrappername, MAX_PATH, strrchr(processname, '\\') + 1);
+		// Get config file path
+		strcpy_s(wrappername, MAX_PATH - strlen(wrappername), WrapperName.c_str());
 		strcpy_s(strrchr(wrappername, '.'), MAX_PATH - strlen(wrappername), ".ini");
 
 		// Open config file
-		Logging::Log() << "Reading config file: " << wrappername;
 		szCfg = Read(wrappername);
 
 		// Parce config file
 		if (szCfg)
 		{
+			Logging::Log() << "Reading config file: " << wrappername;
 			Parse(szCfg, ParseCallback);
 			free(szCfg);
 		}
 	}
-	
+
 	// If config file cannot be read
 	if (!szCfg)
 	{
