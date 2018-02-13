@@ -110,7 +110,7 @@ bool APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 		// Attach real dll
 		if (Config.RealWrapperMode != dtype.dxwrapper)
 		{
-			HMODULE dll = Wrapper::CreateWrapper(hModule_dll, (Config.RealDllPath.size()) ? Config.RealDllPath.c_str() : nullptr, (Config.WrapperMode.size()) ? Config.WrapperMode.c_str() : nullptr);
+			HMODULE dll = Wrapper::CreateWrapper((Config.RealDllPath.size()) ? Config.RealDllPath.c_str() : nullptr, (Config.WrapperMode.size()) ? Config.WrapperMode.c_str() : Config.WrapperName.c_str());
 			if (dll)
 			{
 				Utils::AddHandleToVector(dll, Config.WrapperName.c_str());

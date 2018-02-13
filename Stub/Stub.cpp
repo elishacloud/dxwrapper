@@ -54,6 +54,8 @@ bool APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 		// Get config file path
 		char configname[MAX_PATH];
 		GetModuleFileNameA(hModule, configname, MAX_PATH);
+		std::string WrapperName;
+		WrapperName.assign(strrchr(configname, '\\') + 1);
 		strcpy_s(strrchr(configname, '.'), MAX_PATH - strlen(configname), ".ini");
 
 		// Read config file
@@ -67,7 +69,7 @@ bool APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 		}
 
 		// Start wrapper
-		proxy_dll = Wrapper::CreateWrapper(hModule, (RealDllPath.size()) ? RealDllPath.c_str() : nullptr, (WrapperMode.size()) ? WrapperMode.c_str() : nullptr);
+		proxy_dll = Wrapper::CreateWrapper((RealDllPath.size()) ? RealDllPath.c_str() : nullptr, (WrapperMode.size()) ? WrapperMode.c_str() : WrapperName.c_str());
 
 		// Open file and get size
 		char path[MAX_PATH];

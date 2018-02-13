@@ -66,7 +66,6 @@
 namespace Wrapper
 {
 	FARPROC GetProcAddress(HMODULE hModule, LPCSTR FunctionName, FARPROC SetReturnValue);
-	HMODULE LoadWrapper(const char *ProxyDll, const char *WrapperMode);
 	__declspec() HRESULT __stdcall _jmpaddr();
 	constexpr FARPROC jmpaddr = (FARPROC)*_jmpaddr;
 }
@@ -126,7 +125,7 @@ FARPROC Wrapper::GetProcAddress(HMODULE hModule, LPCSTR FunctionName, FARPROC Se
 	return ProcAddress;
 }
 
-HMODULE Wrapper::LoadWrapper(const char *ProxyDll, const char *WrapperMode)
+HMODULE Wrapper::CreateWrapper(const char *ProxyDll, const char *WrapperMode)
 {
 	// Declare vars
 	HMODULE dll = nullptr;
@@ -174,42 +173,6 @@ HMODULE Wrapper::LoadWrapper(const char *ProxyDll, const char *WrapperMode)
 	}
 	// Special for winmmbase.dll because it is sharing procs from winmm
 	{ using namespace winmm; if (_strcmpi(WrapperMode, "winmmbase.dll") == 0) { Name = "winmmbase.dll";  dll = Load(ProxyDll); }}
-
-	// Exit and return handle
-	return dll;
-}
-
-HMODULE Wrapper::CreateWrapper(HMODULE hModule, const char *ProxyDll, const char *WrapperMode)
-{
-	// Declare vars
-	HMODULE dll = nullptr;
-
-	// If WrapperMode is specified try that first
-	if (WrapperMode)
-	{
-		dll = LoadWrapper(ProxyDll, WrapperMode);
-	}
-
-	if (!dll)
-	{
-		// Get module full path and name
-		char path[MAX_PATH];
-		GetModuleFileNameA(hModule, path, sizeof(path));
-
-		// Search backwards for last backslash in filepath 
-		char* pdest = strrchr(path, '\\');
-
-		// If backslash is found in filepath
-		if (pdest)
-		{
-			// Extract filename from file path
-			std::string input(pdest + 1);
-			strcpy_s(path, MAX_PATH, input.c_str());
-		}
-
-		// Load dll
-		dll = LoadWrapper(ProxyDll, path);
-	}
 
 	// Exit and return handle
 	return dll;

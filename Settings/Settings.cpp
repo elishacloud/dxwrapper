@@ -40,7 +40,7 @@ namespace Settings
 	void SetValue(char*, char*, bool*);
 	void __stdcall ParseCallback(char*, char*);
 	void SetDefaultConfigSettings();
-	void GetWrapperMode();
+	UINT GetWrapperMode();
 }
 
 #define SET_VALUE(functionName) \
@@ -326,7 +326,7 @@ void Settings::ClearConfigSettings()
 }
 
 // Get wrapper mode based on dll name
-void Settings::GetWrapperMode()
+UINT Settings::GetWrapperMode()
 {
 	// Check each wrapper library
 	for (UINT x = 0; x < dtypeArraySize; ++x)
@@ -334,28 +334,25 @@ void Settings::GetWrapperMode()
 		// Check dll name
 		if (_strcmpi(Config.WrapperName.c_str(), dtypename[x]) == 0)
 		{
-			// Set RealWrapperMode
-			Config.RealWrapperMode = x;
-			return;
+			return x;
 		}
 	}
 
 	// Special for winmm.dll because sometimes it is changed to win32 or winnm or some other name
 	if (Config.WrapperName.size() > 8)
 	{
-		if (dtypename[dtype.winmm][0] == Config.WrapperName[0] &&
-			dtypename[dtype.winmm][1] == Config.WrapperName[1] &&
-			dtypename[dtype.winmm][2] == Config.WrapperName[2] &&
-			dtypename[dtype.winmm][5] == Config.WrapperName[5] &&
-			dtypename[dtype.winmm][6] == Config.WrapperName[6] &&
-			dtypename[dtype.winmm][7] == Config.WrapperName[7] &&
-			dtypename[dtype.winmm][8] == Config.WrapperName[8])
+		if (dtypename[dtype.winmm][0] == (char)tolower(Config.WrapperName[0]) &&
+			dtypename[dtype.winmm][1] == (char)tolower(Config.WrapperName[1]) &&
+			dtypename[dtype.winmm][2] == (char)tolower(Config.WrapperName[2]) &&
+			dtypename[dtype.winmm][5] == (char)tolower(Config.WrapperName[5]) &&
+			dtypename[dtype.winmm][6] == (char)tolower(Config.WrapperName[6]) &&
+			dtypename[dtype.winmm][7] == (char)tolower(Config.WrapperName[7]) &&
+			dtypename[dtype.winmm][8] == (char)tolower(Config.WrapperName[8]))
 		{
-			// Set RealWrapperMode
-			Config.RealWrapperMode = dtype.winmm;
-			return;
+			return dtype.winmm;
 		}
 	}
+	return (UINT)-1;
 }
 
 // Set default values
@@ -397,9 +394,6 @@ void CONFIG::Init()
 	GetModuleFileName(hModule, wrappername, MAX_PATH);
 	char* p_wName = strrchr(wrappername, '\\') + 1;
 
-	// Set lower case
-	for (char* p = p_wName; *p != '\0'; p++) { *p = (char)tolower(*p); }
-
 	// Get process name
 	char processname[MAX_PATH];
 	GetModuleFileName(nullptr, processname, MAX_PATH);
@@ -414,7 +408,7 @@ void CONFIG::Init()
 	else
 	{
 		WrapperName.assign(p_wName);
-		GetWrapperMode();
+		RealWrapperMode = GetWrapperMode();
 	}
 
 	// Set default settings

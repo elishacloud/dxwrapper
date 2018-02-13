@@ -150,8 +150,8 @@ struct CONFIG
 	std::vector<MEMORYINFO> MemoryInfo;	// Addresses and memory used in hot patching
 	std::string RealDllPath;			// Manually set Dll to wrap
 	std::string RunProcess;				// Process to run on load
-	std::string WrapperMode;			// Name of dxwrapper
-	std::string WrapperName;			// Name of dxwrapper
+	std::string WrapperMode;			// Mode of dxwrapper from config file
+	std::string WrapperName;			// dxwrapper dll filename
 	std::vector<std::string> SetNamedLayer;		// List of named layers to select for fullscreen
 	std::vector<std::string> IgnoreWindowName;	// List of window classes to ignore
 	std::vector<std::string> LoadCustomDllPath;	// List of custom dlls to load

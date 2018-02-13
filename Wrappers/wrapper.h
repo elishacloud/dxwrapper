@@ -22,5 +22,5 @@ namespace ShardProcs
 }
 namespace Wrapper
 {
-	HMODULE CreateWrapper(HMODULE hModule, const char *ProxyDll, const char *WrapperMode);
+	HMODULE CreateWrapper(const char *ProxyDll, const char *WrapperMode);
 }
