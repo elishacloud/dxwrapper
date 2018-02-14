@@ -41,6 +41,9 @@
     <Filter Include="D3d9">
       <UniqueIdentifier>{c922409a-b895-4ab0-a6e9-36287ac4f350}</UniqueIdentifier>
     </Filter>
+    <Filter Include="ddraw">
+      <UniqueIdentifier>{bfe7d7d5-d3af-4ef3-a6a1-3e3fc5e8ce4a}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="DSoundCtrl\DSoundCtrl.cpp">
@@ -228,6 +231,120 @@
     </ClCompile>
     <ClCompile Include="Settings\ReadParse.cpp">
       <Filter>Settings</Filter>
+    </ClCompile>
+    <ClCompile Include="ddraw\ddraw.cpp">
+      <Filter>ddraw</Filter>
+    </ClCompile>
+    <ClCompile Include="ddraw\IDirect3D.cpp">
+      <Filter>ddraw</Filter>
+    </ClCompile>
+    <ClCompile Include="ddraw\IDirect3D2.cpp">
+      <Filter>ddraw</Filter>
+    </ClCompile>
+    <ClCompile Include="ddraw\IDirect3D3.cpp">
+      <Filter>ddraw</Filter>
+    </ClCompile>
+    <ClCompile Include="ddraw\IDirect3D7.cpp">
+      <Filter>ddraw</Filter>
+    </ClCompile>
+    <ClCompile Include="ddraw\IDirect3DDevice.cpp">
+      <Filter>ddraw</Filter>
+    </ClCompile>
+    <ClCompile Include="ddraw\IDirect3DDevice2.cpp">
+      <Filter>ddraw</Filter>
+    </ClCompile>
+    <ClCompile Include="ddraw\IDirect3DDevice3.cpp">
+      <Filter>ddraw</Filter>
+    </ClCompile>
+    <ClCompile Include="ddraw\IDirect3DDevice7.cpp">
+      <Filter>ddraw</Filter>
+    </ClCompile>
+    <ClCompile Include="ddraw\IDirect3DExecuteBuffer.cpp">
+      <Filter>ddraw</Filter>
+    </ClCompile>
+    <ClCompile Include="ddraw\IDirect3DLight.cpp">
+      <Filter>ddraw</Filter>
+    </ClCompile>
+    <ClCompile Include="ddraw\IDirect3DMaterial.cpp">
+      <Filter>ddraw</Filter>
+    </ClCompile>
+    <ClCompile Include="ddraw\IDirect3DMaterial2.cpp">
+      <Filter>ddraw</Filter>
+    </ClCompile>
+    <ClCompile Include="ddraw\IDirect3DMaterial3.cpp">
+      <Filter>ddraw</Filter>
+    </ClCompile>
+    <ClCompile Include="ddraw\IDirect3DTexture.cpp">
+      <Filter>ddraw</Filter>
+    </ClCompile>
+    <ClCompile Include="ddraw\IDirect3DTexture2.cpp">
+      <Filter>ddraw</Filter>
+    </ClCompile>
+    <ClCompile Include="ddraw\IDirect3DVertexBuffer.cpp">
+      <Filter>ddraw</Filter>
+    </ClCompile>
+    <ClCompile Include="ddraw\IDirect3DVertexBuffer7.cpp">
+      <Filter>ddraw</Filter>
+    </ClCompile>
+    <ClCompile Include="ddraw\IDirect3DViewport.cpp">
+      <Filter>ddraw</Filter>
+    </ClCompile>
+    <ClCompile Include="ddraw\IDirect3DViewport2.cpp">
+      <Filter>ddraw</Filter>
+    </ClCompile>
+    <ClCompile Include="ddraw\IDirect3DViewport3.cpp">
+      <Filter>ddraw</Filter>
+    </ClCompile>
+    <ClCompile Include="ddraw\IDirectDraw.cpp">
+      <Filter>ddraw</Filter>
+    </ClCompile>
+    <ClCompile Include="ddraw\IDirectDraw2.cpp">
+      <Filter>ddraw</Filter>
+    </ClCompile>
+    <ClCompile Include="ddraw\IDirectDraw3.cpp">
+      <Filter>ddraw</Filter>
+    </ClCompile>
+    <ClCompile Include="ddraw\IDirectDraw4.cpp">
+      <Filter>ddraw</Filter>
+    </ClCompile>
+    <ClCompile Include="ddraw\IDirectDraw7.cpp">
+      <Filter>ddraw</Filter>
+    </ClCompile>
+    <ClCompile Include="ddraw\IDirectDrawClipper.cpp">
+      <Filter>ddraw</Filter>
+    </ClCompile>
+    <ClCompile Include="ddraw\IDirectDrawColorControl.cpp">
+      <Filter>ddraw</Filter>
+    </ClCompile>
+    <ClCompile Include="ddraw\IDirectDrawEnumSurface.cpp">
+      <Filter>ddraw</Filter>
+    </ClCompile>
+    <ClCompile Include="ddraw\IDirectDrawFactory.cpp">
+      <Filter>ddraw</Filter>
+    </ClCompile>
+    <ClCompile Include="ddraw\IDirectDrawGammaControl.cpp">
+      <Filter>ddraw</Filter>
+    </ClCompile>
+    <ClCompile Include="ddraw\IDirectDrawPalette.cpp">
+      <Filter>ddraw</Filter>
+    </ClCompile>
+    <ClCompile Include="ddraw\IDirectDrawSurface.cpp">
+      <Filter>ddraw</Filter>
+    </ClCompile>
+    <ClCompile Include="ddraw\IDirectDrawSurface2.cpp">
+      <Filter>ddraw</Filter>
+    </ClCompile>
+    <ClCompile Include="ddraw\IDirectDrawSurface3.cpp">
+      <Filter>ddraw</Filter>
+    </ClCompile>
+    <ClCompile Include="ddraw\IDirectDrawSurface4.cpp">
+      <Filter>ddraw</Filter>
+    </ClCompile>
+    <ClCompile Include="ddraw\IDirectDrawSurface7.cpp">
+      <Filter>ddraw</Filter>
+    </ClCompile>
+    <ClCompile Include="ddraw\InterfaceQuery.cpp">
+      <Filter>ddraw</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -430,6 +547,120 @@
     </ClInclude>
     <ClInclude Include="D3d8to9\d3dx9.hpp">
       <Filter>D3d8to9</Filter>
+    </ClInclude>
+    <ClInclude Include="ddraw\ddraw.h">
+      <Filter>ddraw</Filter>
+    </ClInclude>
+    <ClInclude Include="ddraw\IDirect3D.h">
+      <Filter>ddraw</Filter>
+    </ClInclude>
+    <ClInclude Include="ddraw\IDirect3D2.h">
+      <Filter>ddraw</Filter>
+    </ClInclude>
+    <ClInclude Include="ddraw\IDirect3D3.h">
+      <Filter>ddraw</Filter>
+    </ClInclude>
+    <ClInclude Include="ddraw\IDirect3D7.h">
+      <Filter>ddraw</Filter>
+    </ClInclude>
+    <ClInclude Include="ddraw\IDirect3DDevice.h">
+      <Filter>ddraw</Filter>
+    </ClInclude>
+    <ClInclude Include="ddraw\IDirect3DDevice2.h">
+      <Filter>ddraw</Filter>
+    </ClInclude>
+    <ClInclude Include="ddraw\IDirect3DDevice3.h">
+      <Filter>ddraw</Filter>
+    </ClInclude>
+    <ClInclude Include="ddraw\IDirect3DDevice7.h">
+      <Filter>ddraw</Filter>
+    </ClInclude>
+    <ClInclude Include="ddraw\IDirect3DExecuteBuffer.h">
+      <Filter>ddraw</Filter>
+    </ClInclude>
+    <ClInclude Include="ddraw\IDirect3DLight.h">
+      <Filter>ddraw</Filter>
+    </ClInclude>
+    <ClInclude Include="ddraw\IDirect3DMaterial.h">
+      <Filter>ddraw</Filter>
+    </ClInclude>
+    <ClInclude Include="ddraw\IDirect3DMaterial2.h">
+      <Filter>ddraw</Filter>
+    </ClInclude>
+    <ClInclude Include="ddraw\IDirect3DMaterial3.h">
+      <Filter>ddraw</Filter>
+    </ClInclude>
+    <ClInclude Include="ddraw\IDirect3DTexture.h">
+      <Filter>ddraw</Filter>
+    </ClInclude>
+    <ClInclude Include="ddraw\IDirect3DTexture2.h">
+      <Filter>ddraw</Filter>
+    </ClInclude>
+    <ClInclude Include="ddraw\IDirect3DVertexBuffer.h">
+      <Filter>ddraw</Filter>
+    </ClInclude>
+    <ClInclude Include="ddraw\IDirect3DVertexBuffer7.h">
+      <Filter>ddraw</Filter>
+    </ClInclude>
+    <ClInclude Include="ddraw\IDirect3DViewport.h">
+      <Filter>ddraw</Filter>
+    </ClInclude>
+    <ClInclude Include="ddraw\IDirect3DViewport2.h">
+      <Filter>ddraw</Filter>
+    </ClInclude>
+    <ClInclude Include="ddraw\IDirect3DViewport3.h">
+      <Filter>ddraw</Filter>
+    </ClInclude>
+    <ClInclude Include="ddraw\IDirectDraw.h">
+      <Filter>ddraw</Filter>
+    </ClInclude>
+    <ClInclude Include="ddraw\IDirectDraw2.h">
+      <Filter>ddraw</Filter>
+    </ClInclude>
+    <ClInclude Include="ddraw\IDirectDraw3.h">
+      <Filter>ddraw</Filter>
+    </ClInclude>
+    <ClInclude Include="ddraw\IDirectDraw4.h">
+      <Filter>ddraw</Filter>
+    </ClInclude>
+    <ClInclude Include="ddraw\IDirectDraw7.h">
+      <Filter>ddraw</Filter>
+    </ClInclude>
+    <ClInclude Include="ddraw\IDirectDrawClipper.h">
+      <Filter>ddraw</Filter>
+    </ClInclude>
+    <ClInclude Include="ddraw\IDirectDrawColorControl.h">
+      <Filter>ddraw</Filter>
+    </ClInclude>
+    <ClInclude Include="ddraw\IDirectDrawEnumSurface.h">
+      <Filter>ddraw</Filter>
+    </ClInclude>
+    <ClInclude Include="ddraw\IDirectDrawFactory.h">
+      <Filter>ddraw</Filter>
+    </ClInclude>
+    <ClInclude Include="ddraw\IDirectDrawGammaControl.h">
+      <Filter>ddraw</Filter>
+    </ClInclude>
+    <ClInclude Include="ddraw\IDirectDrawPalette.h">
+      <Filter>ddraw</Filter>
+    </ClInclude>
+    <ClInclude Include="ddraw\IDirectDrawSurface.h">
+      <Filter>ddraw</Filter>
+    </ClInclude>
+    <ClInclude Include="ddraw\IDirectDrawSurface2.h">
+      <Filter>ddraw</Filter>
+    </ClInclude>
+    <ClInclude Include="ddraw\IDirectDrawSurface3.h">
+      <Filter>ddraw</Filter>
+    </ClInclude>
+    <ClInclude Include="ddraw\IDirectDrawSurface4.h">
+      <Filter>ddraw</Filter>
+    </ClInclude>
+    <ClInclude Include="ddraw\IDirectDrawSurface7.h">
+      <Filter>ddraw</Filter>
+    </ClInclude>
+    <ClInclude Include="ddraw\ddrawExternal.h">
+      <Filter>ddraw</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

@@ -8,6 +8,7 @@
 
 #define VISIT_CONFIG_SETTINGS(visit) \
 	visit(AntiAliasing) \
+	visit(ArmadaFix) \
 	visit(D3d8to9) \
 	visit(DDrawCompat) \
 	visit(DDrawCompatDisableGDIHook) \
@@ -121,6 +122,7 @@ static const APPCOMPATDATATYPE AppCompatDataType;
 struct CONFIG
 {
 	void Init();						// Initialize the config setting
+	bool ArmadaFix;						// Fix for Start Trek Armada 1
 	bool SingleProcAffinity;			// Sets the CPU affinity for this process and thread
 	bool SingleProcAffinityNotSet;		// If the CPU affinity option exists in the config file
 	bool D3d8to9;						// Converts Direct3D8 (d3d8.dll) to Direct3D9 (d3d9.dll) https://github.com/crosire/d3d8to9

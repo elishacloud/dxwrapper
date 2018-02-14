@@ -299,7 +299,8 @@ HMODULE Utils::LoadLibrary(const char *dllname, bool EnableLogging)
 	}
 
 	// Load default dll if not loading current dll
-	if (_strcmpi(Config.WrapperName.c_str(), dllname) != 0)
+	if (_strcmpi(Config.WrapperName.c_str(), dllname) != 0 &&
+		_strcmpi(dtypename[(Config.RealWrapperMode < sizeof(dtypename) / sizeof(dtypename[0])) ? Config.RealWrapperMode : 0], dllname) != 0)
 	{
 		loadpath = dllname;
 		dll = ::LoadLibraryA(loadpath);

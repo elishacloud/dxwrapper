@@ -40,7 +40,7 @@ namespace Settings
 	void SetValue(char*, char*, bool*);
 	void __stdcall ParseCallback(char*, char*);
 	void SetDefaultConfigSettings();
-	UINT GetWrapperMode();
+	UINT GetWrapperMode(std::string *name);
 }
 
 #define SET_VALUE(functionName) \
@@ -326,28 +326,28 @@ void Settings::ClearConfigSettings()
 }
 
 // Get wrapper mode based on dll name
-UINT Settings::GetWrapperMode()
+UINT Settings::GetWrapperMode(std::string *name)
 {
 	// Check each wrapper library
 	for (UINT x = 0; x < dtypeArraySize; ++x)
 	{
 		// Check dll name
-		if (_strcmpi(Config.WrapperName.c_str(), dtypename[x]) == 0)
+		if (_strcmpi(name->c_str(), dtypename[x]) == 0)
 		{
 			return x;
 		}
 	}
 
 	// Special for winmm.dll because sometimes it is changed to win32 or winnm or some other name
-	if (Config.WrapperName.size() > 8)
+	if (name->size() > 8)
 	{
-		if (dtypename[dtype.winmm][0] == (char)tolower(Config.WrapperName[0]) &&
-			dtypename[dtype.winmm][1] == (char)tolower(Config.WrapperName[1]) &&
-			dtypename[dtype.winmm][2] == (char)tolower(Config.WrapperName[2]) &&
-			dtypename[dtype.winmm][5] == (char)tolower(Config.WrapperName[5]) &&
-			dtypename[dtype.winmm][6] == (char)tolower(Config.WrapperName[6]) &&
-			dtypename[dtype.winmm][7] == (char)tolower(Config.WrapperName[7]) &&
-			dtypename[dtype.winmm][8] == (char)tolower(Config.WrapperName[8]))
+		if (dtypename[dtype.winmm][0] == (char)tolower((*name)[0]) &&
+			dtypename[dtype.winmm][1] == (char)tolower((*name)[1]) &&
+			dtypename[dtype.winmm][2] == (char)tolower((*name)[2]) &&
+			dtypename[dtype.winmm][5] == (char)tolower((*name)[5]) &&
+			dtypename[dtype.winmm][6] == (char)tolower((*name)[6]) &&
+			dtypename[dtype.winmm][7] == (char)tolower((*name)[7]) &&
+			dtypename[dtype.winmm][8] == (char)tolower((*name)[8]))
 		{
 			return dtype.winmm;
 		}
@@ -399,34 +399,30 @@ void CONFIG::Init()
 	GetModuleFileName(nullptr, processname, MAX_PATH);
 	char* p_pName = strrchr(processname, '\\') + 1;
 
-	// Get module name and set RealWrapperMode
-	if (_strcmpi(p_wName, p_pName) == 0)
-	{
-		WrapperName.assign("dxwrapper.dll");
-		RealWrapperMode = dtype.dxwrapper;
-	}
-	else
-	{
-		WrapperName.assign(p_wName);
-		RealWrapperMode = GetWrapperMode();
-	}
-
 	// Set default settings
 	SetDefaultConfigSettings();
 
+	// Check for memory loading
+	if (_strcmpi(p_wName, p_pName) == 0)
+	{
+		strcpy_s(wrappername, MAX_PATH, processname);
+		strcpy_s(strrchr(wrappername, '\\'), MAX_PATH - strlen(wrappername), "\\dxwrapper.dll");
+	}
+
 	// Get config path to include process name
-	strcpy_s(wrappername, MAX_PATH - strlen(wrappername), WrapperName.c_str());
-	strcpy_s(strrchr(wrappername, '.'), MAX_PATH - strlen(wrappername), "-");
-	strcat_s(wrappername, MAX_PATH, p_pName);
-	strcpy_s(strrchr(wrappername, '.'), MAX_PATH - strlen(wrappername), ".ini");
+	char buffer[MAX_PATH];
+	strcpy_s(buffer, MAX_PATH, wrappername);
+	strcpy_s(strrchr(buffer, '.'), MAX_PATH - strlen(buffer), "-");
+	strcat_s(buffer, MAX_PATH, p_pName);
+	strcpy_s(strrchr(buffer, '.'), MAX_PATH - strlen(buffer), ".ini");
 
 	// Read defualt config file
-	char* szCfg = Read(wrappername);
+	char* szCfg = Read(buffer);
 
 	// Parce config file
 	if (szCfg)
 	{
-		Logging::Log() << "Reading config file: " << wrappername;
+		Logging::Log() << "Reading config file: " << strrchr(buffer, '\\') + 1;
 		Parse(szCfg, ParseCallback);
 		free(szCfg);
 	}
@@ -435,16 +431,16 @@ void CONFIG::Init()
 	if (!szCfg)
 	{
 		// Get config file path
-		strcpy_s(wrappername, MAX_PATH - strlen(wrappername), WrapperName.c_str());
-		strcpy_s(strrchr(wrappername, '.'), MAX_PATH - strlen(wrappername), ".ini");
+		strcpy_s(buffer, MAX_PATH, wrappername);
+		strcpy_s(strrchr(buffer, '.'), MAX_PATH - strlen(buffer), ".ini");
 
 		// Open config file
-		szCfg = Read(wrappername);
+		szCfg = Read(buffer);
 
 		// Parce config file
 		if (szCfg)
 		{
-			Logging::Log() << "Reading config file: " << wrappername;
+			Logging::Log() << "Reading config file: " << strrchr(buffer, '\\') + 1;
 			Parse(szCfg, ParseCallback);
 			free(szCfg);
 		}
@@ -454,6 +450,18 @@ void CONFIG::Init()
 	if (!szCfg)
 	{
 		Logging::Log() << "Could not load config file using defaults";
+	}
+
+	// Get module name and set RealWrapperMode
+	if (_strcmpi(p_wName, p_pName) == 0)
+	{
+		WrapperName.assign("dxwrapper.dll");
+		RealWrapperMode = dtype.dxwrapper;
+	}
+	else
+	{
+		WrapperName.assign(p_wName);
+		RealWrapperMode = GetWrapperMode((WrapperMode.size()) ? &WrapperMode : &WrapperName);
 	}
 
 	// Verify sleep time to make sure it is not set too low (can be perf issues if it is too low)
