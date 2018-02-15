@@ -130,8 +130,7 @@ DWORD WINAPI WriteMemory::StartThreadFunc(LPVOID pvParam)
 	m_ThreadRunningFlag = false;
 
 	// Close handle
-	CloseHandle(m_hThread);
-	InterlockedExchangePointer(&m_hThread, nullptr);
+	CloseHandle(InterlockedExchangePointer(&m_hThread, nullptr));
 
 	// Set thread ID back to 0
 	InterlockedExchange(&m_dwThreadID, 0);
@@ -169,7 +168,7 @@ void WriteMemory::WriteMemory()
 // Is thread running
 bool WriteMemory::IsThreadRunning()
 {
-	return m_ThreadRunningFlag && m_dwThreadID && GetThreadId(m_hThread) == m_dwThreadID;
+	return m_ThreadRunningFlag && InterlockedCompareExchange(&m_dwThreadID, 0, 0) && GetThreadId(InterlockedCompareExchangePointer(&m_hThread, nullptr, nullptr)) == InterlockedCompareExchange(&m_dwThreadID, 0, 0);
 }
 
 // Stop thread
@@ -184,7 +183,7 @@ void WriteMemory::StopThread()
 		Logging::Log() << "Stopping WriteMemory thread...";
 
 		// Wait for thread to exit
-		WaitForSingleObject(m_hThread, INFINITE);
+		WaitForSingleObject(InterlockedCompareExchangePointer(&m_hThread, nullptr, nullptr), INFINITE);
 
 		// Thread stopped
 		Logging::Log() << "WriteMemory thread stopped";

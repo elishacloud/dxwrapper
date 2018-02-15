@@ -438,7 +438,7 @@ STDAPI STDMETHODCALLTYPE _DllGetClassObject_DSoundCtrl(IN REFCLSID rclsid, IN RE
 
 		HRESULT hRes = g_pDllGetClassObjectfunc(rclsid, riid, (LPVOID*) &(pDSCFX->m_lpClassFactory));
 
-		if (hRes)
+		if (SUCCEEDED(hRes))
 		{
 #ifdef _DEBUG
 			if (g_bLogSystem)

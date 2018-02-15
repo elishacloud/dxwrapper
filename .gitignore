@@ -4,6 +4,8 @@
 [Bb]uild/*
 [Dd]ebug/*
 [Rr]elease/*
+[Ss]tub/[Dd]ebug/*
+[Ss]tub/[Rr]elease/*
 
 # Compiled Object files
 *.slo

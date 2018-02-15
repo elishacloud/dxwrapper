@@ -191,6 +191,7 @@ LONG Fullscreen::GetBestResolution(screen_res& ScreenRes, LONG xWidth, LONG xHei
 void Fullscreen::SetScreenResolution(LONG xWidth, LONG xHeight)
 {
 	DEVMODE newSettings;
+	ZeroMemory(&newSettings, sizeof(newSettings));
 	if (EnumDisplaySettings(nullptr, ENUM_CURRENT_SETTINGS, &newSettings) != 0)
 	{
 		newSettings.dmPelsWidth = xWidth;
@@ -243,7 +244,10 @@ void Fullscreen::ResetScreen()
 	Logging::Log() << "Reseting screen resolution...";
 
 	// Setting screen resolution to fix some display errors on exit
-	SetScreen(m_Current_ScreenRes);
+	screen_res tmp_screen_res;
+	InterlockedExchange(&tmp_screen_res.Width, m_Current_ScreenRes.Width);
+	InterlockedExchange(&tmp_screen_res.Height, m_Current_ScreenRes.Height);
+	SetScreen(tmp_screen_res);
 
 	// Sleep short amout of time
 	Sleep(0);
@@ -481,7 +485,7 @@ void Fullscreen::SetFullScreen(HWND& hwnd, const MONITORINFO& mi)
 {
 	// Attach to window thread
 	DWORD h_ThreadID = GetWindowThreadProcessId(hwnd, nullptr);
-	AttachThreadInput(m_dwThreadID, h_ThreadID, true);
+	AttachThreadInput(InterlockedCompareExchange(&m_dwThreadID, 0, 0), h_ThreadID, true);
 
 	// Try restoring the window to normal
 	PostMessage(hwnd, WM_SYSCOMMAND, SW_SHOWNORMAL, 0);
@@ -509,7 +513,7 @@ void Fullscreen::SetFullScreen(HWND& hwnd, const MONITORINFO& mi)
 	SetForegroundWindow(hwnd);
 
 	// Dettach from window thread
-	AttachThreadInput(m_dwThreadID, h_ThreadID, false);
+	AttachThreadInput(InterlockedCompareExchange(&m_dwThreadID, 0, 0), h_ThreadID, false);
 
 	// Set focus and activate
 	SetFocus(hwnd);
@@ -598,7 +602,7 @@ DWORD WINAPI Fullscreen::StartThreadFunc(LPVOID pvParam)
 
 	// Get thread handle
 	InterlockedExchangePointer(&m_hThread, GetCurrentThread());
-	if (!m_hThread) {
+	if (!InterlockedCompareExchangePointer(&m_hThread, nullptr, nullptr)) {
 		Logging::Log() << "Failed to get thread handle exiting thread!";
 		return 0;
 	}
@@ -607,7 +611,7 @@ DWORD WINAPI Fullscreen::StartThreadFunc(LPVOID pvParam)
 	m_ThreadRunningFlag = true;
 
 	// Set threat priority high, trick to reduce concurrency problems
-	SetThreadPriority(m_hThread, THREAD_PRIORITY_HIGHEST);
+	SetThreadPriority(InterlockedCompareExchangePointer(&m_hThread, nullptr, nullptr), THREAD_PRIORITY_HIGHEST);
 
 	// Start main fullscreen function
 	MainFunc();
@@ -616,8 +620,7 @@ DWORD WINAPI Fullscreen::StartThreadFunc(LPVOID pvParam)
 	m_ThreadRunningFlag = false;
 
 	// Close handle
-	CloseHandle(m_hThread);
-	InterlockedExchangePointer(&m_hThread, nullptr);
+	CloseHandle(InterlockedExchangePointer(&m_hThread, nullptr));
 
 	// Set thread ID back to 0
 	InterlockedExchange(&m_dwThreadID, 0);
@@ -644,7 +647,7 @@ void Fullscreen::StartThread()
 // Is thread running
 bool Fullscreen::IsThreadRunning()
 {
-	return m_ThreadRunningFlag && m_dwThreadID && GetThreadId(m_hThread) == m_dwThreadID;
+	return m_ThreadRunningFlag && InterlockedCompareExchange(&m_dwThreadID, 0, 0) && GetThreadId(InterlockedCompareExchangePointer(&m_hThread, nullptr, nullptr)) == InterlockedCompareExchange(&m_dwThreadID, 0, 0);
 }
 
 // Stop thread
@@ -659,7 +662,7 @@ void Fullscreen::StopThread()
 		Logging::Log() << "Stopping Fullscreen thread...";
 
 		// Wait for thread to exit
-		WaitForSingleObject(m_hThread, INFINITE);
+		WaitForSingleObject(InterlockedCompareExchangePointer(&m_hThread, nullptr, nullptr), INFINITE);
 
 		// Thread stopped
 		Logging::Log() << "Fullscreen thread stopped";
