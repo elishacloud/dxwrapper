@@ -1,58 +1,58 @@
 #pragma once
 
 #define VISIT_PROCS(visit) \
-	visit(DllCanUnloadNow) \
-	visit(DllGetClassObject) \
-	visit(DllRegisterServer) \
-	visit(DllUnregisterServer) \
-	visit(DebugSetMute) \
-	visit(SetAppCompatStringPointer) \
-	visit(D3DFree) \
-	visit(D3DMalloc) \
-	visit(D3DRealloc) \
-	visit(Direct3DCreateDevice) \
-	visit(Direct3DCreate) \
-	visit(Direct3D_HALCleanUp) \
-	visit(FlushD3DDevices) \
-	visit(PaletteAssociateNotify) \
-	visit(PaletteUpdateNotify) \
-	visit(SurfaceFlipNotify) \
-	visit(D3DKMTCloseAdapter) \
-	visit(D3DKMTDestroyAllocation) \
-	visit(D3DKMTDestroyContext) \
-	visit(D3DKMTDestroyDevice) \
-	visit(D3DKMTDestroySynchronizationObject) \
-	visit(D3DKMTPresent) \
-	visit(D3DKMTQueryAdapterInfo) \
-	visit(D3DKMTSetDisplayPrivateDriverFormat) \
-	visit(D3DKMTSignalSynchronizationObject) \
-	visit(D3DKMTUnlock) \
-	visit(D3DKMTWaitForSynchronizationObject) \
-	visit(D3DKMTCreateAllocation) \
-	visit(D3DKMTCreateContext) \
-	visit(D3DKMTCreateDevice) \
-	visit(D3DKMTCreateSynchronizationObject) \
-	visit(D3DKMTEscape) \
-	visit(D3DKMTGetContextSchedulingPriority) \
-	visit(D3DKMTGetDeviceState) \
-	visit(D3DKMTGetDisplayModeList) \
-	visit(D3DKMTGetMultisampleMethodList) \
-	visit(D3DKMTGetRuntimeData) \
-	visit(D3DKMTGetSharedPrimaryHandle) \
-	visit(D3DKMTLock) \
-	visit(D3DKMTOpenAdapterFromHdc) \
-	visit(D3DKMTOpenResource) \
-	visit(D3DKMTQueryAllocationResidency) \
-	visit(D3DKMTQueryResourceInfo) \
-	visit(D3DKMTRender) \
-	visit(D3DKMTSetAllocationPriority) \
-	visit(D3DKMTSetContextSchedulingPriority) \
-	visit(D3DKMTSetDisplayMode) \
-	visit(D3DKMTSetGammaRamp) \
-	visit(D3DKMTSetVidPnSourceOwner) \
-	visit(D3DKMTWaitForVerticalBlankEvent) \
-	visit(OpenAdapter10) \
-	visit(OpenAdapter10_2)
+	visit(DllCanUnloadNow, jmpaddr) \
+	visit(DllGetClassObject, jmpaddr) \
+	visit(DllRegisterServer, jmpaddr) \
+	visit(DllUnregisterServer, jmpaddr) \
+	visit(DebugSetMute, jmpaddrvoid) \
+	visit(SetAppCompatStringPointer, jmpaddr) \
+	visit(D3DFree, jmpaddr) \
+	visit(D3DMalloc, jmpaddr) \
+	visit(D3DRealloc, jmpaddr) \
+	visit(Direct3DCreateDevice, jmpaddr) \
+	visit(Direct3DCreate, jmpaddr) \
+	visit(Direct3D_HALCleanUp, jmpaddr) \
+	visit(FlushD3DDevices, jmpaddr) \
+	visit(PaletteAssociateNotify, jmpaddr) \
+	visit(PaletteUpdateNotify, jmpaddr) \
+	visit(SurfaceFlipNotify, jmpaddr) \
+	visit(D3DKMTCloseAdapter, jmpaddr) \
+	visit(D3DKMTDestroyAllocation, jmpaddr) \
+	visit(D3DKMTDestroyContext, jmpaddr) \
+	visit(D3DKMTDestroyDevice, jmpaddr) \
+	visit(D3DKMTDestroySynchronizationObject, jmpaddr) \
+	visit(D3DKMTPresent, jmpaddr) \
+	visit(D3DKMTQueryAdapterInfo, jmpaddr) \
+	visit(D3DKMTSetDisplayPrivateDriverFormat, jmpaddr) \
+	visit(D3DKMTSignalSynchronizationObject, jmpaddr) \
+	visit(D3DKMTUnlock, jmpaddr) \
+	visit(D3DKMTWaitForSynchronizationObject, jmpaddr) \
+	visit(D3DKMTCreateAllocation, jmpaddr) \
+	visit(D3DKMTCreateContext, jmpaddr) \
+	visit(D3DKMTCreateDevice, jmpaddr) \
+	visit(D3DKMTCreateSynchronizationObject, jmpaddr) \
+	visit(D3DKMTEscape, jmpaddr) \
+	visit(D3DKMTGetContextSchedulingPriority, jmpaddr) \
+	visit(D3DKMTGetDeviceState, jmpaddr) \
+	visit(D3DKMTGetDisplayModeList, jmpaddr) \
+	visit(D3DKMTGetMultisampleMethodList, jmpaddr) \
+	visit(D3DKMTGetRuntimeData, jmpaddr) \
+	visit(D3DKMTGetSharedPrimaryHandle, jmpaddr) \
+	visit(D3DKMTLock, jmpaddr) \
+	visit(D3DKMTOpenAdapterFromHdc, jmpaddr) \
+	visit(D3DKMTOpenResource, jmpaddr) \
+	visit(D3DKMTQueryAllocationResidency, jmpaddr) \
+	visit(D3DKMTQueryResourceInfo, jmpaddr) \
+	visit(D3DKMTRender, jmpaddr) \
+	visit(D3DKMTSetAllocationPriority, jmpaddr) \
+	visit(D3DKMTSetContextSchedulingPriority, jmpaddr) \
+	visit(D3DKMTSetDisplayMode, jmpaddr) \
+	visit(D3DKMTSetGammaRamp, jmpaddr) \
+	visit(D3DKMTSetVidPnSourceOwner, jmpaddr) \
+	visit(D3DKMTWaitForVerticalBlankEvent, jmpaddr) \
+	visit(OpenAdapter10, jmpaddr) \
+	visit(OpenAdapter10_2, jmpaddr)
 
 namespace ShardProcs
 {

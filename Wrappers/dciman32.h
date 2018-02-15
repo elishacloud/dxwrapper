@@ -1,26 +1,26 @@
 #pragma once
 
 #define VISIT_PROCS(visit) \
-	visit(DCIBeginAccess) \
-	visit(DCICloseProvider) \
-	visit(DCICreateOffscreen) \
-	visit(DCICreateOverlay) \
-	visit(DCICreatePrimary) \
-	visit(DCIDestroy) \
-	visit(DCIDraw) \
-	visit(DCIEndAccess) \
-	visit(DCIEnum) \
-	visit(DCIOpenProvider) \
-	visit(DCISetClipList) \
-	visit(DCISetDestination) \
-	visit(DCISetSrcDestClip) \
-	visit(GetDCRegionData) \
-	visit(GetWindowRegionData) \
-	visit(WinWatchClose) \
-	visit(WinWatchDidStatusChange) \
-	visit(WinWatchGetClipList) \
-	visit(WinWatchNotify) \
-	visit(WinWatchOpen)
+	visit(DCIBeginAccess, jmpaddr) \
+	visit(DCICloseProvider, jmpaddr) \
+	visit(DCICreateOffscreen, jmpaddr) \
+	visit(DCICreateOverlay, jmpaddr) \
+	visit(DCICreatePrimary, jmpaddr) \
+	visit(DCIDestroy, jmpaddr) \
+	visit(DCIDraw, jmpaddr) \
+	visit(DCIEndAccess, jmpaddr) \
+	visit(DCIEnum, jmpaddr) \
+	visit(DCIOpenProvider, jmpaddr) \
+	visit(DCISetClipList, jmpaddr) \
+	visit(DCISetDestination, jmpaddr) \
+	visit(DCISetSrcDestClip, jmpaddr) \
+	visit(GetDCRegionData, jmpaddr) \
+	visit(GetWindowRegionData, jmpaddr) \
+	visit(WinWatchClose, jmpaddr) \
+	visit(WinWatchDidStatusChange, jmpaddr) \
+	visit(WinWatchGetClipList, jmpaddr) \
+	visit(WinWatchNotify, jmpaddr) \
+	visit(WinWatchOpen, jmpaddr)
 
 PROC_CLASS(dciman32, dll)
 

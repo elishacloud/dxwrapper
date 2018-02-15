@@ -1,24 +1,24 @@
 #pragma once
 
 #define VISIT_PROCS(visit) \
-	visit(ApplyCompatResolutionQuirking) \
-	visit(CompatString) \
-	visit(CompatValue) \
-	visit(DXGIDumpJournal) \
-	visit(DXGIRevertToSxS) \
-	visit(PIXBeginCapture) \
-	visit(PIXEndCapture) \
-	visit(PIXGetCaptureState) \
-	visit(CreateDXGIFactory1) \
-	visit(CreateDXGIFactory2) \
-	visit(CreateDXGIFactory) \
-	visit(DXGID3D10CreateDevice) \
-	visit(DXGID3D10CreateLayeredDevice) \
-	visit(DXGID3D10ETWRundown) \
-	visit(DXGID3D10GetLayeredDeviceSize) \
-	visit(DXGID3D10RegisterLayers) \
-	visit(DXGIGetDebugInterface1) \
-	visit(DXGIReportAdapterConfiguration)
+	visit(ApplyCompatResolutionQuirking, jmpaddr) \
+	visit(CompatString, jmpaddr) \
+	visit(CompatValue, jmpaddr) \
+	visit(DXGIDumpJournal, jmpaddr) \
+	visit(DXGIRevertToSxS, jmpaddr) \
+	visit(PIXBeginCapture, jmpaddr) \
+	visit(PIXEndCapture, jmpaddr) \
+	visit(PIXGetCaptureState, jmpaddr) \
+	visit(CreateDXGIFactory1, jmpaddr) \
+	visit(CreateDXGIFactory2, jmpaddr) \
+	visit(CreateDXGIFactory, jmpaddr) \
+	visit(DXGID3D10CreateDevice, jmpaddr) \
+	visit(DXGID3D10CreateLayeredDevice, jmpaddr) \
+	visit(DXGID3D10ETWRundown, jmpaddr) \
+	visit(DXGID3D10GetLayeredDeviceSize, jmpaddr) \
+	visit(DXGID3D10RegisterLayers, jmpaddr) \
+	visit(DXGIGetDebugInterface1, jmpaddr) \
+	visit(DXGIReportAdapterConfiguration, jmpaddr)
 
 PROC_CLASS(dxgi, dll)
 

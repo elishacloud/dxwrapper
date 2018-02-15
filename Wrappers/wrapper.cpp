@@ -19,13 +19,13 @@
 #include <fstream>
 #include "wrapper.h"
 
-#define ADD_FARPROC_MEMBER(procName) \
+#define ADD_FARPROC_MEMBER(procName, unused) \
 	FARPROC procName ## _var = jmpaddr;
 
-#define	LOAD_ORIGINAL_PROC(procName) \
-	procName ## _var = GetProcAddress(dll, #procName, jmpaddr);
+#define	LOAD_ORIGINAL_PROC(procName, prodAddr) \
+	procName ## _var = GetProcAddress(dll, #procName, prodAddr);
 
-#define CREATE_PROC_STUB(procName) \
+#define CREATE_PROC_STUB(procName, unused) \
 	extern "C" __declspec(naked) void __stdcall procName() \
 	{ \
 		__asm mov edi, edi \
@@ -63,6 +63,14 @@
 		VISIT_PROCS(CREATE_PROC_STUB) \
 	}
 
+namespace Wrapper
+{
+	HRESULT __stdcall _jmpaddr();
+	HRESULT __stdcall _jmpaddrvoid();
+	constexpr FARPROC jmpaddr = (FARPROC)*_jmpaddr;
+	constexpr FARPROC jmpaddrvoid = (FARPROC)*_jmpaddrvoid;
+}
+
 // Shared procs
 #include "shared.h"
 
@@ -91,6 +99,14 @@
 #include "winmm.h"
 #include "winspool.h"
 #include "xlive.h"
+
+__declspec(naked) HRESULT __stdcall Wrapper::_jmpaddrvoid()
+{
+	__asm
+	{
+		retn
+	}
+}
 
 __declspec(naked) HRESULT __stdcall Wrapper::_jmpaddr()
 {

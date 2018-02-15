@@ -283,9 +283,9 @@ bool APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 
 			// Load d3d9 functions
 			HMODULE dll = LoadLibrary(dtypename[dtype.d3d9]);
-			d3d8::Direct3D8EnableMaximizedWindowedModeShim_var = Wrapper::GetProcAddress(dll, "Direct3D9EnableMaximizedWindowedModeShim", Wrapper::jmpaddr);
-			ShardProcs::DebugSetMute_var = Wrapper::GetProcAddress(dll, "DebugSetMute", Wrapper::jmpaddr);
-			D3d8to9::Direct3DCreate9 = Wrapper::GetProcAddress(dll, "Direct3DCreate9", Wrapper::jmpaddr);
+			d3d8::Direct3D8EnableMaximizedWindowedModeShim_var = Wrapper::GetProcAddress(dll, "Direct3D9EnableMaximizedWindowedModeShim", d3d8::Direct3D8EnableMaximizedWindowedModeShim_var);
+			ShardProcs::DebugSetMute_var = Wrapper::GetProcAddress(dll, "DebugSetMute", ShardProcs::DebugSetMute_var);
+			D3d8to9::Direct3DCreate9 = Wrapper::GetProcAddress(dll, "Direct3DCreate9", D3d8to9::Direct3DCreate9);
 		}
 
 		// Start d3d9.dll module
@@ -368,7 +368,7 @@ bool APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 			}
 
 			// Start DSoundCtrl
-			DllMain_DSoundCtrl(hModule, fdwReason, nullptr);
+			DllMain_DSoundCtrl(hModule_dll, fdwReason, nullptr);
 		}
 
 		// Start DxWnd module

@@ -1,12 +1,12 @@
 #pragma once
 
 #define VISIT_PROCS(visit) \
-	visit(DirectPlayCreate) \
-	visit(DirectPlayEnumerate) \
-	visit(DirectPlayEnumerateA) \
-	visit(DirectPlayEnumerateW) \
-	visit(DirectPlayLobbyCreateA) \
-	visit(DirectPlayLobbyCreateW)
+	visit(DirectPlayCreate, jmpaddr) \
+	visit(DirectPlayEnumerate, jmpaddr) \
+	visit(DirectPlayEnumerateA, jmpaddr) \
+	visit(DirectPlayEnumerateW, jmpaddr) \
+	visit(DirectPlayLobbyCreateA, jmpaddr) \
+	visit(DirectPlayLobbyCreateW, jmpaddr)
 
 PROC_CLASS(dplayx, dll)
 

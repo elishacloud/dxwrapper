@@ -1,143 +1,143 @@
 #pragma once
 
 #define VISIT_PROCS(visit) \
-	visit(_XWSAStartup) \
-	visit(_XGetOverlappedExtendedError) \
-	visit(_XGetOverlappedResult) \
-	visit(_XSocketBind) \
-	visit(_XSocketConnect) \
-	visit(_XSocketListen) \
-	visit(_XSocketAccept) \
-	visit(_XSocketSelect) \
-	visit(_XSocketRecv) \
-	visit(_XWSACleanup) \
-	visit(_XSocketRecvFrom) \
-	visit(_XSocketSend) \
-	visit(_XSocketSendTo) \
-	visit(_XSocketInet_Addr) \
-	visit(_XWSAGetLastError) \
-	visit(_XCreateSocket) \
-	visit(_XSocketNTOHS) \
-	visit(_XSocketNTOHL) \
-	visit(_XSockeClose) \
-	visit(_XCustomGetLastActionPress) \
-	visit(_XSocketShutdown) \
-	visit(_XLiveInitialize) \
-	visit(_XLiveInput) \
-	visit(_XLiveRender) \
-	visit(_XLiveUninitialize) \
-	visit(_XLiveOnCreateDevice) \
-	visit(_XLiveOnResetDevice) \
-	visit(_XHVCreateEngine) \
-	visit(_XLivePBufferAllocate) \
-	visit(_XLivePBufferFree) \
-	visit(_XLivePBufferGetByte) \
-	visit(_XLivePBufferSetByte) \
-	visit(_XLivePBufferGetDWORD) \
-	visit(_XLivePBufferSetDWORD) \
-	visit(_XLiveGetUpdateInformation) \
-	visit(_XLiveUpdateSystem) \
-	visit(_XLiveSetSponsorToken) \
-	visit(_XLivePreTranslateMessage) \
-	visit(_XLiveSetDebugLevel) \
-	visit(_XLiveProtectData) \
-	visit(_XLiveUnprotectData) \
-	visit(_XLiveCreateProtectedDataContext) \
-	visit(_XLiveQueryProtectedDataInformation) \
-	visit(_XLiveCloseProtectedDataContext) \
-	visit(_XNetStartup) \
-	visit(_XNetCleanup) \
-	visit(_XShowPlayerReviewUI) \
-	visit(_XShowGuideUI) \
-	visit(_XShowKeyboardUI) \
-	visit(_XCloseHandle) \
-	visit(_XShowGamerCardUI) \
-	visit(_XCancelOverlapped) \
-	visit(_XEnumerate) \
-	visit(_XShowSigninUI) \
-	visit(_XUserGetXUID) \
-	visit(_XUserGetSigninState) \
-	visit(_XUserGetName) \
-	visit(_XUserAreUsersFriends) \
-	visit(_XUserCheckPrivilege) \
-	visit(_XUserGetSigninInfo) \
-	visit(_XNotifyCreateListener) \
-	visit(_XUserReadGamerpictureByKey) \
-	visit(_XShowFriendsUI) \
-	visit(_XUserSetProperty) \
-	visit(_XUserSetContext) \
-	visit(_XUserWriteAchievements) \
-	visit(_XUserCreateAchievementEnumerator) \
-	visit(_XUserReadStats) \
-	visit(_XUserCreateStatsEnumeratorByRank) \
-	visit(_XUserCreateStatsEnumeratorByXuid) \
-	visit(_XUserSetContextEx) \
-	visit(_XUserSetPropertyEx) \
-	visit(_XLivePBufferGetByteArray) \
-	visit(_XLivePBufferSetByteArray) \
-	visit(_XLiveInitializeEx) \
-	visit(_XSessionCreate) \
-	visit(_XStringVerify) \
-	visit(_XStorageUploadFromMemory) \
-	visit(_XStorageEnumerate) \
-	visit(_XOnlineStartup) \
-	visit(_XOnlineCleanup) \
-	visit(_XFriendsCreateEnumerator) \
-	visit(_XUserMuteListQuery) \
-	visit(_XInviteGetAcceptedInfo) \
-	visit(_XInviteSend) \
-	visit(_XSessionWriteStats) \
-	visit(_XSessionStart) \
-	visit(_XSessionSearchEx) \
-	visit(_XSessionModify) \
-	visit(_XSessionMigrateHost) \
-	visit(_XOnlineGetNatType) \
-	visit(_XSessionLeaveLocal) \
-	visit(_XSessionJoinRemote) \
-	visit(_XSessionJoinLocal) \
-	visit(_XSessionGetDetails) \
-	visit(_XSessionFlushStats) \
-	visit(_XSessionDelete) \
-	visit(_XUserReadProfileSettings) \
-	visit(_XSessionEnd) \
-	visit(_XSessionArbitrationRegister) \
-	visit(_XTitleServerCreateEnumerator) \
-	visit(_XSessionLeaveRemote) \
-	visit(_XUserWriteProfileSettings) \
-	visit(_XUserReadProfileSettingsByXuid) \
-	visit(_XLiveCalculateSkill) \
-	visit(_XStorageBuildServerPath) \
-	visit(_XStorageDownloadToMemory) \
-	visit(_XLiveProtectedVerifyFile) \
-	visit(_XLiveContentCreateAccessHandle) \
-	visit(_XLiveContentUninstall) \
-	visit(_XLiveContentGetPath) \
-	visit(_XLiveContentCreateEnumerator) \
-	visit(_XLiveContentRetrieveOffersByDate) \
-	visit(_XShowMarketplaceUI) \
-	visit(_xlive_5367) \
-	visit(_xlive_5372) \
-	visit(_XNetCreateKey) \
-	visit(_XNetRegisterKey) \
-	visit(_XNetUnregisterKey) \
-	visit(_XNetXnAddrToInAddr) \
-	visit(_XNetServerToInAddr) \
-	visit(_XSocketIOCTLSocket) \
-	visit(_XNetInAddrToXnAddr) \
-	visit(_XNetUnregisterInAddr) \
-	visit(_XNetConnect) \
-	visit(_XNotifyGetNext) \
-	visit(_XNotifyPositionUI) \
-	visit(_XNetGetConnectStatus) \
-	visit(_XNetQosListen) \
-	visit(_XSocketSetSockOpt) \
-	visit(_XNetQosLookup) \
-	visit(_XNetQosServiceLookup) \
-	visit(_XNetQosRelease) \
-	visit(_XNetGetTitleXnAddr) \
-	visit(_XNetGetEthernetLinkStatus) \
-	visit(_XNetSetSystemLinkPort) \
-	visit(_XSocketGetSockName)
+	visit(_XWSAStartup, jmpaddr) \
+	visit(_XGetOverlappedExtendedError, jmpaddr) \
+	visit(_XGetOverlappedResult, jmpaddr) \
+	visit(_XSocketBind, jmpaddr) \
+	visit(_XSocketConnect, jmpaddr) \
+	visit(_XSocketListen, jmpaddr) \
+	visit(_XSocketAccept, jmpaddr) \
+	visit(_XSocketSelect, jmpaddr) \
+	visit(_XSocketRecv, jmpaddr) \
+	visit(_XWSACleanup, jmpaddr) \
+	visit(_XSocketRecvFrom, jmpaddr) \
+	visit(_XSocketSend, jmpaddr) \
+	visit(_XSocketSendTo, jmpaddr) \
+	visit(_XSocketInet_Addr, jmpaddr) \
+	visit(_XWSAGetLastError, jmpaddr) \
+	visit(_XCreateSocket, jmpaddr) \
+	visit(_XSocketNTOHS, jmpaddr) \
+	visit(_XSocketNTOHL, jmpaddr) \
+	visit(_XSockeClose, jmpaddr) \
+	visit(_XCustomGetLastActionPress, jmpaddr) \
+	visit(_XSocketShutdown, jmpaddr) \
+	visit(_XLiveInitialize, jmpaddr) \
+	visit(_XLiveInput, jmpaddr) \
+	visit(_XLiveRender, jmpaddr) \
+	visit(_XLiveUninitialize, jmpaddr) \
+	visit(_XLiveOnCreateDevice, jmpaddr) \
+	visit(_XLiveOnResetDevice, jmpaddr) \
+	visit(_XHVCreateEngine, jmpaddr) \
+	visit(_XLivePBufferAllocate, jmpaddr) \
+	visit(_XLivePBufferFree, jmpaddr) \
+	visit(_XLivePBufferGetByte, jmpaddr) \
+	visit(_XLivePBufferSetByte, jmpaddr) \
+	visit(_XLivePBufferGetDWORD, jmpaddr) \
+	visit(_XLivePBufferSetDWORD, jmpaddr) \
+	visit(_XLiveGetUpdateInformation, jmpaddr) \
+	visit(_XLiveUpdateSystem, jmpaddr) \
+	visit(_XLiveSetSponsorToken, jmpaddr) \
+	visit(_XLivePreTranslateMessage, jmpaddr) \
+	visit(_XLiveSetDebugLevel, jmpaddr) \
+	visit(_XLiveProtectData, jmpaddr) \
+	visit(_XLiveUnprotectData, jmpaddr) \
+	visit(_XLiveCreateProtectedDataContext, jmpaddr) \
+	visit(_XLiveQueryProtectedDataInformation, jmpaddr) \
+	visit(_XLiveCloseProtectedDataContext, jmpaddr) \
+	visit(_XNetStartup, jmpaddr) \
+	visit(_XNetCleanup, jmpaddr) \
+	visit(_XShowPlayerReviewUI, jmpaddr) \
+	visit(_XShowGuideUI, jmpaddr) \
+	visit(_XShowKeyboardUI, jmpaddr) \
+	visit(_XCloseHandle, jmpaddr) \
+	visit(_XShowGamerCardUI, jmpaddr) \
+	visit(_XCancelOverlapped, jmpaddr) \
+	visit(_XEnumerate, jmpaddr) \
+	visit(_XShowSigninUI, jmpaddr) \
+	visit(_XUserGetXUID, jmpaddr) \
+	visit(_XUserGetSigninState, jmpaddr) \
+	visit(_XUserGetName, jmpaddr) \
+	visit(_XUserAreUsersFriends, jmpaddr) \
+	visit(_XUserCheckPrivilege, jmpaddr) \
+	visit(_XUserGetSigninInfo, jmpaddr) \
+	visit(_XNotifyCreateListener, jmpaddr) \
+	visit(_XUserReadGamerpictureByKey, jmpaddr) \
+	visit(_XShowFriendsUI, jmpaddr) \
+	visit(_XUserSetProperty, jmpaddr) \
+	visit(_XUserSetContext, jmpaddr) \
+	visit(_XUserWriteAchievements, jmpaddr) \
+	visit(_XUserCreateAchievementEnumerator, jmpaddr) \
+	visit(_XUserReadStats, jmpaddr) \
+	visit(_XUserCreateStatsEnumeratorByRank, jmpaddr) \
+	visit(_XUserCreateStatsEnumeratorByXuid, jmpaddr) \
+	visit(_XUserSetContextEx, jmpaddr) \
+	visit(_XUserSetPropertyEx, jmpaddr) \
+	visit(_XLivePBufferGetByteArray, jmpaddr) \
+	visit(_XLivePBufferSetByteArray, jmpaddr) \
+	visit(_XLiveInitializeEx, jmpaddr) \
+	visit(_XSessionCreate, jmpaddr) \
+	visit(_XStringVerify, jmpaddr) \
+	visit(_XStorageUploadFromMemory, jmpaddr) \
+	visit(_XStorageEnumerate, jmpaddr) \
+	visit(_XOnlineStartup, jmpaddr) \
+	visit(_XOnlineCleanup, jmpaddr) \
+	visit(_XFriendsCreateEnumerator, jmpaddr) \
+	visit(_XUserMuteListQuery, jmpaddr) \
+	visit(_XInviteGetAcceptedInfo, jmpaddr) \
+	visit(_XInviteSend, jmpaddr) \
+	visit(_XSessionWriteStats, jmpaddr) \
+	visit(_XSessionStart, jmpaddr) \
+	visit(_XSessionSearchEx, jmpaddr) \
+	visit(_XSessionModify, jmpaddr) \
+	visit(_XSessionMigrateHost, jmpaddr) \
+	visit(_XOnlineGetNatType, jmpaddr) \
+	visit(_XSessionLeaveLocal, jmpaddr) \
+	visit(_XSessionJoinRemote, jmpaddr) \
+	visit(_XSessionJoinLocal, jmpaddr) \
+	visit(_XSessionGetDetails, jmpaddr) \
+	visit(_XSessionFlushStats, jmpaddr) \
+	visit(_XSessionDelete, jmpaddr) \
+	visit(_XUserReadProfileSettings, jmpaddr) \
+	visit(_XSessionEnd, jmpaddr) \
+	visit(_XSessionArbitrationRegister, jmpaddr) \
+	visit(_XTitleServerCreateEnumerator, jmpaddr) \
+	visit(_XSessionLeaveRemote, jmpaddr) \
+	visit(_XUserWriteProfileSettings, jmpaddr) \
+	visit(_XUserReadProfileSettingsByXuid, jmpaddr) \
+	visit(_XLiveCalculateSkill, jmpaddr) \
+	visit(_XStorageBuildServerPath, jmpaddr) \
+	visit(_XStorageDownloadToMemory, jmpaddr) \
+	visit(_XLiveProtectedVerifyFile, jmpaddr) \
+	visit(_XLiveContentCreateAccessHandle, jmpaddr) \
+	visit(_XLiveContentUninstall, jmpaddr) \
+	visit(_XLiveContentGetPath, jmpaddr) \
+	visit(_XLiveContentCreateEnumerator, jmpaddr) \
+	visit(_XLiveContentRetrieveOffersByDate, jmpaddr) \
+	visit(_XShowMarketplaceUI, jmpaddr) \
+	visit(_xlive_5367, jmpaddr) \
+	visit(_xlive_5372, jmpaddr) \
+	visit(_XNetCreateKey, jmpaddr) \
+	visit(_XNetRegisterKey, jmpaddr) \
+	visit(_XNetUnregisterKey, jmpaddr) \
+	visit(_XNetXnAddrToInAddr, jmpaddr) \
+	visit(_XNetServerToInAddr, jmpaddr) \
+	visit(_XSocketIOCTLSocket, jmpaddr) \
+	visit(_XNetInAddrToXnAddr, jmpaddr) \
+	visit(_XNetUnregisterInAddr, jmpaddr) \
+	visit(_XNetConnect, jmpaddr) \
+	visit(_XNotifyGetNext, jmpaddr) \
+	visit(_XNotifyPositionUI, jmpaddr) \
+	visit(_XNetGetConnectStatus, jmpaddr) \
+	visit(_XNetQosListen, jmpaddr) \
+	visit(_XSocketSetSockOpt, jmpaddr) \
+	visit(_XNetQosLookup, jmpaddr) \
+	visit(_XNetQosServiceLookup, jmpaddr) \
+	visit(_XNetQosRelease, jmpaddr) \
+	visit(_XNetGetTitleXnAddr, jmpaddr) \
+	visit(_XNetGetEthernetLinkStatus, jmpaddr) \
+	visit(_XNetSetSystemLinkPort, jmpaddr) \
+	visit(_XSocketGetSockName, jmpaddr)
 
 PROC_CLASS(xlive, dll)
 

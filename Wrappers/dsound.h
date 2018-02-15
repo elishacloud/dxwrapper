@@ -1,16 +1,16 @@
 #pragma once
 
 #define VISIT_PROCS(visit) \
-	visit(DirectSoundCreate) \
-	visit(DirectSoundEnumerateA) \
-	visit(DirectSoundEnumerateW) \
-	visit(DirectSoundCaptureCreate) \
-	visit(DirectSoundCaptureEnumerateA) \
-	visit(DirectSoundCaptureEnumerateW) \
-	visit(GetDeviceID) \
-	visit(DirectSoundFullDuplexCreate) \
-	visit(DirectSoundCreate8) \
-	visit(DirectSoundCaptureCreate8)
+	visit(DirectSoundCreate, jmpaddr) \
+	visit(DirectSoundEnumerateA, jmpaddr) \
+	visit(DirectSoundEnumerateW, jmpaddr) \
+	visit(DirectSoundCaptureCreate, jmpaddr) \
+	visit(DirectSoundCaptureEnumerateA, jmpaddr) \
+	visit(DirectSoundCaptureEnumerateW, jmpaddr) \
+	visit(GetDeviceID, jmpaddr) \
+	visit(DirectSoundFullDuplexCreate, jmpaddr) \
+	visit(DirectSoundCreate8, jmpaddr) \
+	visit(DirectSoundCaptureCreate8, jmpaddr)
 
 PROC_CLASS(dsound, dll)
 

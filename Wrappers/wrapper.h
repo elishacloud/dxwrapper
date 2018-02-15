@@ -63,6 +63,4 @@ namespace Wrapper
 {
 	HMODULE CreateWrapper(const char *ProxyDll, const char *WrapperMode);
 	FARPROC GetProcAddress(HMODULE hModule, LPCSTR FunctionName, FARPROC SetReturnValue);
-	HRESULT __stdcall _jmpaddr();
-	constexpr FARPROC jmpaddr = (FARPROC)*_jmpaddr;
 }

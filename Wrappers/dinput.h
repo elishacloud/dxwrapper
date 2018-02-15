@@ -1,9 +1,9 @@
 #pragma once
 
 #define VISIT_PROCS(visit) \
-	visit(DirectInputCreateA) \
-	visit(DirectInputCreateEx) \
-	visit(DirectInputCreateW)
+	visit(DirectInputCreateA, jmpaddr) \
+	visit(DirectInputCreateEx, jmpaddr) \
+	visit(DirectInputCreateW, jmpaddr)
 
 PROC_CLASS(dinput, dll)
 

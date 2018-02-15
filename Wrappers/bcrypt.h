@@ -1,64 +1,64 @@
 #pragma once
 
 #define VISIT_PROCS(visit) \
-	visit(BCryptAddContextFunction) \
-	visit(BCryptAddContextFunctionProvider) \
-	visit(BCryptCloseAlgorithmProvider) \
-	visit(BCryptConfigureContext) \
-	visit(BCryptConfigureContextFunction) \
-	visit(BCryptCreateContext) \
-	visit(BCryptCreateHash) \
-	visit(BCryptCreateMultiHash) \
-	visit(BCryptDecrypt) \
-	visit(BCryptDeleteContext) \
-	visit(BCryptDeriveKey) \
-	visit(BCryptDeriveKeyCapi) \
-	visit(BCryptDeriveKeyPBKDF2) \
-	visit(BCryptDestroyHash) \
-	visit(BCryptDestroyKey) \
-	visit(BCryptDestroySecret) \
-	visit(BCryptDuplicateHash) \
-	visit(BCryptDuplicateKey) \
-	visit(BCryptEncrypt) \
-	visit(BCryptEnumAlgorithms) \
-	visit(BCryptEnumContextFunctionProviders) \
-	visit(BCryptEnumContextFunctions) \
-	visit(BCryptEnumContexts) \
-	visit(BCryptEnumProviders) \
-	visit(BCryptEnumRegisteredProviders) \
-	visit(BCryptExportKey) \
-	visit(BCryptFinalizeKeyPair) \
-	visit(BCryptFinishHash) \
-	visit(BCryptFreeBuffer) \
-	visit(BCryptGenRandom) \
-	visit(BCryptGenerateKeyPair) \
-	visit(BCryptGenerateSymmetricKey) \
-	visit(BCryptGetFipsAlgorithmMode) \
-	visit(BCryptGetProperty) \
-	visit(BCryptHash) \
-	visit(BCryptHashData) \
-	visit(BCryptImportKey) \
-	visit(BCryptImportKeyPair) \
-	visit(BCryptKeyDerivation) \
-	visit(BCryptOpenAlgorithmProvider) \
-	visit(BCryptProcessMultiOperations) \
-	visit(BCryptQueryContextConfiguration) \
-	visit(BCryptQueryContextFunctionConfiguration) \
-	visit(BCryptQueryContextFunctionProperty) \
-	visit(BCryptQueryProviderRegistration) \
-	visit(BCryptRegisterConfigChangeNotify) \
-	visit(BCryptRegisterProvider) \
-	visit(BCryptRemoveContextFunction) \
-	visit(BCryptRemoveContextFunctionProvider) \
-	visit(BCryptResolveProviders) \
-	visit(BCryptSecretAgreement) \
-	visit(BCryptSetAuditingInterface) \
-	visit(BCryptSetContextFunctionProperty) \
-	visit(BCryptSetProperty) \
-	visit(BCryptSignHash) \
-	visit(BCryptUnregisterConfigChangeNotify) \
-	visit(BCryptUnregisterProvider) \
-	visit(BCryptVerifySignature)
+	visit(BCryptAddContextFunction, jmpaddr) \
+	visit(BCryptAddContextFunctionProvider, jmpaddr) \
+	visit(BCryptCloseAlgorithmProvider, jmpaddr) \
+	visit(BCryptConfigureContext, jmpaddr) \
+	visit(BCryptConfigureContextFunction, jmpaddr) \
+	visit(BCryptCreateContext, jmpaddr) \
+	visit(BCryptCreateHash, jmpaddr) \
+	visit(BCryptCreateMultiHash, jmpaddr) \
+	visit(BCryptDecrypt, jmpaddr) \
+	visit(BCryptDeleteContext, jmpaddr) \
+	visit(BCryptDeriveKey, jmpaddr) \
+	visit(BCryptDeriveKeyCapi, jmpaddr) \
+	visit(BCryptDeriveKeyPBKDF2, jmpaddr) \
+	visit(BCryptDestroyHash, jmpaddr) \
+	visit(BCryptDestroyKey, jmpaddr) \
+	visit(BCryptDestroySecret, jmpaddr) \
+	visit(BCryptDuplicateHash, jmpaddr) \
+	visit(BCryptDuplicateKey, jmpaddr) \
+	visit(BCryptEncrypt, jmpaddr) \
+	visit(BCryptEnumAlgorithms, jmpaddr) \
+	visit(BCryptEnumContextFunctionProviders, jmpaddr) \
+	visit(BCryptEnumContextFunctions, jmpaddr) \
+	visit(BCryptEnumContexts, jmpaddr) \
+	visit(BCryptEnumProviders, jmpaddr) \
+	visit(BCryptEnumRegisteredProviders, jmpaddr) \
+	visit(BCryptExportKey, jmpaddr) \
+	visit(BCryptFinalizeKeyPair, jmpaddr) \
+	visit(BCryptFinishHash, jmpaddr) \
+	visit(BCryptFreeBuffer, jmpaddr) \
+	visit(BCryptGenRandom, jmpaddr) \
+	visit(BCryptGenerateKeyPair, jmpaddr) \
+	visit(BCryptGenerateSymmetricKey, jmpaddr) \
+	visit(BCryptGetFipsAlgorithmMode, jmpaddr) \
+	visit(BCryptGetProperty, jmpaddr) \
+	visit(BCryptHash, jmpaddr) \
+	visit(BCryptHashData, jmpaddr) \
+	visit(BCryptImportKey, jmpaddr) \
+	visit(BCryptImportKeyPair, jmpaddr) \
+	visit(BCryptKeyDerivation, jmpaddr) \
+	visit(BCryptOpenAlgorithmProvider, jmpaddr) \
+	visit(BCryptProcessMultiOperations, jmpaddr) \
+	visit(BCryptQueryContextConfiguration, jmpaddr) \
+	visit(BCryptQueryContextFunctionConfiguration, jmpaddr) \
+	visit(BCryptQueryContextFunctionProperty, jmpaddr) \
+	visit(BCryptQueryProviderRegistration, jmpaddr) \
+	visit(BCryptRegisterConfigChangeNotify, jmpaddr) \
+	visit(BCryptRegisterProvider, jmpaddr) \
+	visit(BCryptRemoveContextFunction, jmpaddr) \
+	visit(BCryptRemoveContextFunctionProvider, jmpaddr) \
+	visit(BCryptResolveProviders, jmpaddr) \
+	visit(BCryptSecretAgreement, jmpaddr) \
+	visit(BCryptSetAuditingInterface, jmpaddr) \
+	visit(BCryptSetContextFunctionProperty, jmpaddr) \
+	visit(BCryptSetProperty, jmpaddr) \
+	visit(BCryptSignHash, jmpaddr) \
+	visit(BCryptUnregisterConfigChangeNotify, jmpaddr) \
+	visit(BCryptUnregisterProvider, jmpaddr) \
+	visit(BCryptVerifySignature, jmpaddr)
 
 PROC_CLASS(bcrypt, dll)
 

@@ -1,50 +1,50 @@
 #pragma once
 
 #define VISIT_PROCS(visit) \
-visit(XRegThunkEntry) \
-visit(acmDriverAddA) \
-visit(acmDriverAddW) \
-visit(acmDriverClose) \
-visit(acmDriverDetailsA) \
-visit(acmDriverDetailsW) \
-visit(acmDriverEnum) \
-visit(acmDriverID) \
-visit(acmDriverMessage) \
-visit(acmDriverOpen) \
-visit(acmDriverPriority) \
-visit(acmDriverRemove) \
-visit(acmFilterChooseA) \
-visit(acmFilterChooseW) \
-visit(acmFilterDetailsA) \
-visit(acmFilterDetailsW) \
-visit(acmFilterEnumA) \
-visit(acmFilterEnumW) \
-visit(acmFilterTagDetailsA) \
-visit(acmFilterTagDetailsW) \
-visit(acmFilterTagEnumA) \
-visit(acmFilterTagEnumW) \
-visit(acmFormatChooseA) \
-visit(acmFormatChooseW) \
-visit(acmFormatDetailsA) \
-visit(acmFormatDetailsW) \
-visit(acmFormatEnumA) \
-visit(acmFormatEnumW) \
-visit(acmFormatSuggest) \
-visit(acmFormatTagDetailsA) \
-visit(acmFormatTagDetailsW) \
-visit(acmFormatTagEnumA) \
-visit(acmFormatTagEnumW) \
-visit(acmGetVersion) \
-visit(acmMessage32) \
-visit(acmMetrics) \
-visit(acmStreamClose) \
-visit(acmStreamConvert) \
-visit(acmStreamMessage) \
-visit(acmStreamOpen) \
-visit(acmStreamPrepareHeader) \
-visit(acmStreamReset) \
-visit(acmStreamSize) \
-visit(acmStreamUnprepareHeader)
+visit(XRegThunkEntry, jmpaddr) \
+visit(acmDriverAddA, jmpaddr) \
+visit(acmDriverAddW, jmpaddr) \
+visit(acmDriverClose, jmpaddr) \
+visit(acmDriverDetailsA, jmpaddr) \
+visit(acmDriverDetailsW, jmpaddr) \
+visit(acmDriverEnum, jmpaddr) \
+visit(acmDriverID, jmpaddr) \
+visit(acmDriverMessage, jmpaddr) \
+visit(acmDriverOpen, jmpaddr) \
+visit(acmDriverPriority, jmpaddr) \
+visit(acmDriverRemove, jmpaddr) \
+visit(acmFilterChooseA, jmpaddr) \
+visit(acmFilterChooseW, jmpaddr) \
+visit(acmFilterDetailsA, jmpaddr) \
+visit(acmFilterDetailsW, jmpaddr) \
+visit(acmFilterEnumA, jmpaddr) \
+visit(acmFilterEnumW, jmpaddr) \
+visit(acmFilterTagDetailsA, jmpaddr) \
+visit(acmFilterTagDetailsW, jmpaddr) \
+visit(acmFilterTagEnumA, jmpaddr) \
+visit(acmFilterTagEnumW, jmpaddr) \
+visit(acmFormatChooseA, jmpaddr) \
+visit(acmFormatChooseW, jmpaddr) \
+visit(acmFormatDetailsA, jmpaddr) \
+visit(acmFormatDetailsW, jmpaddr) \
+visit(acmFormatEnumA, jmpaddr) \
+visit(acmFormatEnumW, jmpaddr) \
+visit(acmFormatSuggest, jmpaddr) \
+visit(acmFormatTagDetailsA, jmpaddr) \
+visit(acmFormatTagDetailsW, jmpaddr) \
+visit(acmFormatTagEnumA, jmpaddr) \
+visit(acmFormatTagEnumW, jmpaddr) \
+visit(acmGetVersion, jmpaddr) \
+visit(acmMessage32, jmpaddr) \
+visit(acmMetrics, jmpaddr) \
+visit(acmStreamClose, jmpaddr) \
+visit(acmStreamConvert, jmpaddr) \
+visit(acmStreamMessage, jmpaddr) \
+visit(acmStreamOpen, jmpaddr) \
+visit(acmStreamPrepareHeader, jmpaddr) \
+visit(acmStreamReset, jmpaddr) \
+visit(acmStreamSize, jmpaddr) \
+visit(acmStreamUnprepareHeader, jmpaddr)
 
 PROC_CLASS(msacm32, dll)
 

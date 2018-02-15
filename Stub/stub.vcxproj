@@ -153,7 +153,32 @@ copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\xlive.dll" &gt;nul</C
     <ResourceCompile Include="stub.rc" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\Wrappers\bcrypt.h" />
+    <ClInclude Include="..\Wrappers\cryptsp.h" />
+    <ClInclude Include="..\Wrappers\d2d1.h" />
+    <ClInclude Include="..\Wrappers\d3d10.h" />
+    <ClInclude Include="..\Wrappers\d3d10core.h" />
+    <ClInclude Include="..\Wrappers\d3d11.h" />
+    <ClInclude Include="..\Wrappers\d3d12.h" />
+    <ClInclude Include="..\Wrappers\d3d8.h" />
+    <ClInclude Include="..\Wrappers\d3d9.h" />
+    <ClInclude Include="..\Wrappers\d3dim.h" />
+    <ClInclude Include="..\Wrappers\d3dim700.h" />
+    <ClInclude Include="..\Wrappers\dciman32.h" />
+    <ClInclude Include="..\Wrappers\ddraw.h" />
+    <ClInclude Include="..\Wrappers\dinput.h" />
+    <ClInclude Include="..\Wrappers\dinput8.h" />
+    <ClInclude Include="..\Wrappers\dplayx.h" />
+    <ClInclude Include="..\Wrappers\dsound.h" />
+    <ClInclude Include="..\Wrappers\dxgi.h" />
+    <ClInclude Include="..\Wrappers\msacm32.h" />
+    <ClInclude Include="..\Wrappers\msvfw32.h" />
+    <ClInclude Include="..\Wrappers\shared.h" />
+    <ClInclude Include="..\Wrappers\vorbisFile.h" />
+    <ClInclude Include="..\Wrappers\winmm.h" />
+    <ClInclude Include="..\Wrappers\winspool.h" />
     <ClInclude Include="..\Wrappers\wrapper.h" />
+    <ClInclude Include="..\Wrappers\xlive.h" />
     <ClInclude Include="stub.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

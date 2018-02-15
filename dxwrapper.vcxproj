@@ -339,6 +339,7 @@ cmd /c "@echo off &amp;&amp; cd /D ""$(ProjectDir)Dllmain\"" &amp;&amp; type Bui
     <ClInclude Include="d3d9\IDirect3DVertexShader9.h" />
     <ClInclude Include="d3d9\IDirect3DVolume9.h" />
     <ClInclude Include="d3d9\IDirect3DVolumeTexture9.h" />
+    <ClInclude Include="DDrawCompat\DDrawCompatExternal.h" />
     <ClInclude Include="DDrawCompat\v0.2.1\CompatActivateAppHandler.h" />
     <ClInclude Include="DDrawCompat\v0.2.1\CompatDirectDraw.h" />
     <ClInclude Include="DDrawCompat\v0.2.1\CompatDirectDrawPalette.h" />
@@ -422,6 +423,7 @@ cmd /c "@echo off &amp;&amp; cd /D ""$(ProjectDir)Dllmain\"" &amp;&amp; type Bui
     <ClInclude Include="DSoundCtrl\IDirectSoundBufferEx.h" />
     <ClInclude Include="DSoundCtrl\IDirectSoundClassFactoryEx.h" />
     <ClInclude Include="DSoundCtrl\IDirectSoundEx.h" />
+    <ClInclude Include="DxWnd\DxWndExternal.h" />
     <ClInclude Include="DxWnd\v2_03_60_src\dxwnd.h" />
     <ClInclude Include="Hooking\Hook.h" />
     <ClInclude Include="Libraries\d3dx9.h" />
@@ -432,7 +434,32 @@ cmd /c "@echo off &amp;&amp; cd /D ""$(ProjectDir)Dllmain\"" &amp;&amp; type Bui
     <ClInclude Include="Settings\ReadParse.h" />
     <ClInclude Include="Settings\Settings.h" />
     <ClInclude Include="Utils\Utils.h" />
+    <ClInclude Include="Wrappers\bcrypt.h" />
+    <ClInclude Include="Wrappers\cryptsp.h" />
+    <ClInclude Include="Wrappers\d2d1.h" />
+    <ClInclude Include="Wrappers\d3d10.h" />
+    <ClInclude Include="Wrappers\d3d10core.h" />
+    <ClInclude Include="Wrappers\d3d11.h" />
+    <ClInclude Include="Wrappers\d3d12.h" />
+    <ClInclude Include="Wrappers\d3d8.h" />
+    <ClInclude Include="Wrappers\d3d9.h" />
+    <ClInclude Include="Wrappers\d3dim.h" />
+    <ClInclude Include="Wrappers\d3dim700.h" />
+    <ClInclude Include="Wrappers\dciman32.h" />
+    <ClInclude Include="Wrappers\ddraw.h" />
+    <ClInclude Include="Wrappers\dinput.h" />
+    <ClInclude Include="Wrappers\dinput8.h" />
+    <ClInclude Include="Wrappers\dplayx.h" />
+    <ClInclude Include="Wrappers\dsound.h" />
+    <ClInclude Include="Wrappers\dxgi.h" />
+    <ClInclude Include="Wrappers\msacm32.h" />
+    <ClInclude Include="Wrappers\msvfw32.h" />
+    <ClInclude Include="Wrappers\shared.h" />
+    <ClInclude Include="Wrappers\vorbisFile.h" />
+    <ClInclude Include="Wrappers\winmm.h" />
+    <ClInclude Include="Wrappers\winspool.h" />
     <ClInclude Include="Wrappers\wrapper.h" />
+    <ClInclude Include="Wrappers\xlive.h" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="Dllmain\BuildNo.rc" />

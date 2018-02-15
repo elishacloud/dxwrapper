@@ -165,7 +165,7 @@ HRESULT m_IDirect3D9::CreateDevice(UINT Adapter, D3DDEVTYPE DeviceType, HWND hFo
 		// Try creating device with original settings
 		else
 		{
-			Logging::Log() << "Error with AntiAliasing, cannot enable it!";
+			Logging::Log() << "Error enabling AntiAliasing!";
 			BehaviorFlags = bFlags;
 			CopyMemory(pPresentationParameters, &d3dpp, sizeof(d3dpp));
 			hr = ProxyInterface->CreateDevice(Adapter, DeviceType, hFocusWindow, BehaviorFlags, pPresentationParameters, ppReturnedDeviceInterface);
