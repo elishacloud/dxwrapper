@@ -25,7 +25,7 @@
 #include "Utils\Utils.h"
 #include "Logging\Logging.h"
 // Wrappers last
-#include "D3d9\D3d9External.h"
+#include "d3d9\d3d9External.h"
 #include "ddraw\ddrawExternal.h"
 
 // Declare varables
@@ -283,29 +283,49 @@ bool APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 
 			// Load d3d9 functions
 			HMODULE dll = LoadLibrary(dtypename[dtype.d3d9]);
-			D3d8to9::Direct3DCreate9 = Hook::GetProcAddress(dll, "Direct3DCreate9");
+			d3d8::Direct3D8EnableMaximizedWindowedModeShim_var = Wrapper::GetProcAddress(dll, "Direct3D9EnableMaximizedWindowedModeShim", Wrapper::jmpaddr);
+			ShardProcs::DebugSetMute_var = Wrapper::GetProcAddress(dll, "DebugSetMute", Wrapper::jmpaddr);
+			D3d8to9::Direct3DCreate9 = Wrapper::GetProcAddress(dll, "Direct3DCreate9", Wrapper::jmpaddr);
 		}
 
-		// Check for d3d9_wrap module
-		bool StartD3d9Wrap = false;
-		if (Config.AntiAliasing)
-		{
-			StartD3d9Wrap = true;
-		}
-#ifdef D3D9LOGGING
-		StartD3d9Wrap = true;
-#endif // D3D9LOGGING
-
-		// Start d3d9_wrap module
-		if (StartD3d9Wrap)
+		// Start d3d9.dll module
+		if (Config.isD3d9WrapperEnabled)
 		{
 			// If wrapper mode is d3d9 update wrapper
 			if (Config.RealWrapperMode == dtype.d3d9)
 			{
-				d3d9_wrap::Direct3DCreate9_Proxy = d3d9::Direct3DCreate9_var;
+				D3d9Wrapper::Direct3DShaderValidatorCreate9_out = d3d9::Direct3DShaderValidatorCreate9_var;
+				D3d9Wrapper::PSGPError_out = d3d9::PSGPError_var;
+				D3d9Wrapper::PSGPSampleTexture_out = d3d9::PSGPSampleTexture_var;
+				D3d9Wrapper::D3DPERF_BeginEvent_out = d3d9::D3DPERF_BeginEvent_var;
+				D3d9Wrapper::D3DPERF_EndEvent_out = d3d9::D3DPERF_EndEvent_var;
+				D3d9Wrapper::D3DPERF_GetStatus_out = d3d9::D3DPERF_GetStatus_var;
+				D3d9Wrapper::D3DPERF_QueryRepeatFrame_out = d3d9::D3DPERF_QueryRepeatFrame_var;
+				D3d9Wrapper::D3DPERF_SetMarker_out = d3d9::D3DPERF_SetMarker_var;
+				D3d9Wrapper::D3DPERF_SetOptions_out = d3d9::D3DPERF_SetOptions_var;
+				D3d9Wrapper::D3DPERF_SetRegion_out = d3d9::D3DPERF_SetRegion_var;
+				D3d9Wrapper::DebugSetLevel_out = d3d9::DebugSetLevel_var;
+				D3d9Wrapper::DebugSetMute_out = ShardProcs::DebugSetMute_var;
+				D3d9Wrapper::Direct3D9EnableMaximizedWindowedModeShim_out = d3d9::Direct3D9EnableMaximizedWindowedModeShim_var;
+				D3d9Wrapper::Direct3DCreate9_out = d3d9::Direct3DCreate9_var;
+				D3d9Wrapper::Direct3DCreate9Ex_out = d3d9::Direct3DCreate9Ex_var;
 
 				// Update dxwrapper.dll -> d3d9_wrap
-				d3d9::Direct3DCreate9_var = d3d9_wrap::Direct3DCreate9;
+				d3d9::Direct3DShaderValidatorCreate9_var = D3d9Wrapper::Direct3DShaderValidatorCreate9_in;
+				d3d9::PSGPError_var = D3d9Wrapper::PSGPError_in;
+				d3d9::PSGPSampleTexture_var = D3d9Wrapper::PSGPSampleTexture_in;
+				d3d9::D3DPERF_BeginEvent_var = D3d9Wrapper::D3DPERF_BeginEvent_in;
+				d3d9::D3DPERF_EndEvent_var = D3d9Wrapper::D3DPERF_EndEvent_in;
+				d3d9::D3DPERF_GetStatus_var = D3d9Wrapper::D3DPERF_GetStatus_in;
+				d3d9::D3DPERF_QueryRepeatFrame_var = D3d9Wrapper::D3DPERF_QueryRepeatFrame_in;
+				d3d9::D3DPERF_SetMarker_var = D3d9Wrapper::D3DPERF_SetMarker_in;
+				d3d9::D3DPERF_SetOptions_var = D3d9Wrapper::D3DPERF_SetOptions_in;
+				d3d9::D3DPERF_SetRegion_var = D3d9Wrapper::D3DPERF_SetRegion_in;
+				d3d9::DebugSetLevel_var = D3d9Wrapper::DebugSetLevel_in;
+				ShardProcs::DebugSetMute_var = D3d9Wrapper::DebugSetMute_in;
+				d3d9::Direct3D9EnableMaximizedWindowedModeShim_var = D3d9Wrapper::Direct3D9EnableMaximizedWindowedModeShim_in;
+				d3d9::Direct3DCreate9_var = D3d9Wrapper::Direct3DCreate9_in;
+				d3d9::Direct3DCreate9Ex_var = D3d9Wrapper::Direct3DCreate9Ex_in;
 			}
 			// Hook d3d9 APIs for d3d9_wrap
 			else
@@ -315,7 +335,7 @@ bool APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 
 				// Hook d3d9.dll -> d3d9_wrap
 				Logging::Log() << "Hooking d3d9.dll APIs...";
-				d3d9_wrap::Direct3DCreate9_Proxy = (FARPROC)Hook::HookAPI(hModule_dll, dtypename[dtype.d3d9], Hook::GetProcAddress(dll, "Direct3DCreate9"), "Direct3DCreate9", d3d9_wrap::Direct3DCreate9);
+				D3d9Wrapper::Direct3DCreate9_out = (FARPROC)Hook::HookAPI(hModule_dll, dtypename[dtype.d3d9], Hook::GetProcAddress(dll, "Direct3DCreate9"), "Direct3DCreate9", D3d9Wrapper::Direct3DCreate9_in);
 			}
 		}
 

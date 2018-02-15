@@ -226,9 +226,6 @@
     <ClCompile Include="Wrappers\wrapper.cpp">
       <Filter>Wrappers</Filter>
     </ClCompile>
-    <ClCompile Include="D3d9\d3d9.cpp">
-      <Filter>d3d9</Filter>
-    </ClCompile>
     <ClCompile Include="Settings\ReadParse.cpp">
       <Filter>Settings</Filter>
     </ClCompile>
@@ -345,6 +342,60 @@
     </ClCompile>
     <ClCompile Include="ddraw\InterfaceQuery.cpp">
       <Filter>ddraw</Filter>
+    </ClCompile>
+    <ClCompile Include="d3d9\d3d9.cpp">
+      <Filter>d3d9</Filter>
+    </ClCompile>
+    <ClCompile Include="d3d9\IDirect3D9.cpp">
+      <Filter>d3d9</Filter>
+    </ClCompile>
+    <ClCompile Include="d3d9\IDirect3D9Ex.cpp">
+      <Filter>d3d9</Filter>
+    </ClCompile>
+    <ClCompile Include="d3d9\IDirect3DCubeTexture9.cpp">
+      <Filter>d3d9</Filter>
+    </ClCompile>
+    <ClCompile Include="d3d9\IDirect3DDevice9.cpp">
+      <Filter>d3d9</Filter>
+    </ClCompile>
+    <ClCompile Include="d3d9\IDirect3DDevice9Ex.cpp">
+      <Filter>d3d9</Filter>
+    </ClCompile>
+    <ClCompile Include="d3d9\IDirect3DIndexBuffer9.cpp">
+      <Filter>d3d9</Filter>
+    </ClCompile>
+    <ClCompile Include="d3d9\IDirect3DPixelShader9.cpp">
+      <Filter>d3d9</Filter>
+    </ClCompile>
+    <ClCompile Include="d3d9\IDirect3DQuery9.cpp">
+      <Filter>d3d9</Filter>
+    </ClCompile>
+    <ClCompile Include="d3d9\IDirect3DStateBlock9.cpp">
+      <Filter>d3d9</Filter>
+    </ClCompile>
+    <ClCompile Include="d3d9\IDirect3DSurface9.cpp">
+      <Filter>d3d9</Filter>
+    </ClCompile>
+    <ClCompile Include="d3d9\IDirect3DSwapChain9.cpp">
+      <Filter>d3d9</Filter>
+    </ClCompile>
+    <ClCompile Include="d3d9\IDirect3DTexture9.cpp">
+      <Filter>d3d9</Filter>
+    </ClCompile>
+    <ClCompile Include="d3d9\IDirect3DVertexBuffer9.cpp">
+      <Filter>d3d9</Filter>
+    </ClCompile>
+    <ClCompile Include="d3d9\IDirect3DVertexDeclaration9.cpp">
+      <Filter>d3d9</Filter>
+    </ClCompile>
+    <ClCompile Include="d3d9\IDirect3DVertexShader9.cpp">
+      <Filter>d3d9</Filter>
+    </ClCompile>
+    <ClCompile Include="d3d9\IDirect3DVolume9.cpp">
+      <Filter>d3d9</Filter>
+    </ClCompile>
+    <ClCompile Include="d3d9\IDirect3DVolumeTexture9.cpp">
+      <Filter>d3d9</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -533,12 +584,6 @@
     <ClInclude Include="Wrappers\wrapper.h">
       <Filter>Wrappers</Filter>
     </ClInclude>
-    <ClInclude Include="D3d9\d3d9.h">
-      <Filter>d3d9</Filter>
-    </ClInclude>
-    <ClInclude Include="D3d9\D3d9External.h">
-      <Filter>d3d9</Filter>
-    </ClInclude>
     <ClInclude Include="D3d8to9\d3d8to9External.h">
       <Filter>D3d8to9</Filter>
     </ClInclude>
@@ -661,6 +706,63 @@
     </ClInclude>
     <ClInclude Include="ddraw\ddrawExternal.h">
       <Filter>ddraw</Filter>
+    </ClInclude>
+    <ClInclude Include="d3d9\d3d9.h">
+      <Filter>d3d9</Filter>
+    </ClInclude>
+    <ClInclude Include="d3d9\IDirect3D9.h">
+      <Filter>d3d9</Filter>
+    </ClInclude>
+    <ClInclude Include="d3d9\IDirect3D9Ex.h">
+      <Filter>d3d9</Filter>
+    </ClInclude>
+    <ClInclude Include="d3d9\IDirect3DCubeTexture9.h">
+      <Filter>d3d9</Filter>
+    </ClInclude>
+    <ClInclude Include="d3d9\IDirect3DDevice9.h">
+      <Filter>d3d9</Filter>
+    </ClInclude>
+    <ClInclude Include="d3d9\IDirect3DDevice9Ex.h">
+      <Filter>d3d9</Filter>
+    </ClInclude>
+    <ClInclude Include="d3d9\IDirect3DIndexBuffer9.h">
+      <Filter>d3d9</Filter>
+    </ClInclude>
+    <ClInclude Include="d3d9\IDirect3DPixelShader9.h">
+      <Filter>d3d9</Filter>
+    </ClInclude>
+    <ClInclude Include="d3d9\IDirect3DQuery9.h">
+      <Filter>d3d9</Filter>
+    </ClInclude>
+    <ClInclude Include="d3d9\IDirect3DStateBlock9.h">
+      <Filter>d3d9</Filter>
+    </ClInclude>
+    <ClInclude Include="d3d9\IDirect3DSurface9.h">
+      <Filter>d3d9</Filter>
+    </ClInclude>
+    <ClInclude Include="d3d9\IDirect3DSwapChain9.h">
+      <Filter>d3d9</Filter>
+    </ClInclude>
+    <ClInclude Include="d3d9\IDirect3DTexture9.h">
+      <Filter>d3d9</Filter>
+    </ClInclude>
+    <ClInclude Include="d3d9\IDirect3DVertexBuffer9.h">
+      <Filter>d3d9</Filter>
+    </ClInclude>
+    <ClInclude Include="d3d9\IDirect3DVertexDeclaration9.h">
+      <Filter>d3d9</Filter>
+    </ClInclude>
+    <ClInclude Include="d3d9\IDirect3DVertexShader9.h">
+      <Filter>d3d9</Filter>
+    </ClInclude>
+    <ClInclude Include="d3d9\IDirect3DVolume9.h">
+      <Filter>d3d9</Filter>
+    </ClInclude>
+    <ClInclude Include="d3d9\IDirect3DVolumeTexture9.h">
+      <Filter>d3d9</Filter>
+    </ClInclude>
+    <ClInclude Include="d3d9\d3d9External.h">
+      <Filter>d3d9</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

@@ -4,6 +4,7 @@ namespace ShardProcs
 {
 	extern FARPROC DllCanUnloadNow_var;
 	extern FARPROC DllGetClassObject_var;
+	extern FARPROC DebugSetMute_var;
 }
 namespace ddraw
 {
@@ -32,11 +33,25 @@ namespace ddraw
 }
 namespace d3d8
 {
+	extern FARPROC Direct3D8EnableMaximizedWindowedModeShim_var;
 	extern FARPROC Direct3DCreate8_var;
 }
 namespace d3d9
 {
+	extern FARPROC Direct3DShaderValidatorCreate9_var;
+	extern FARPROC PSGPError_var;
+	extern FARPROC PSGPSampleTexture_var;
+	extern FARPROC D3DPERF_BeginEvent_var;
+	extern FARPROC D3DPERF_EndEvent_var;
+	extern FARPROC D3DPERF_GetStatus_var;
+	extern FARPROC D3DPERF_QueryRepeatFrame_var;
+	extern FARPROC D3DPERF_SetMarker_var;
+	extern FARPROC D3DPERF_SetOptions_var;
+	extern FARPROC D3DPERF_SetRegion_var;
+	extern FARPROC DebugSetLevel_var;
+	extern FARPROC Direct3D9EnableMaximizedWindowedModeShim_var;
 	extern FARPROC Direct3DCreate9_var;
+	extern FARPROC Direct3DCreate9Ex_var;
 }
 namespace dsound
 {

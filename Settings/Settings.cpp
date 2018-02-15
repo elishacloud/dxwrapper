@@ -14,6 +14,7 @@
 *   3. This notice may not be removed or altered from any source distribution.
 */
 
+#include <algorithm>
 #include "Settings.h"
 #include "Dllmain\Dllmain.h"
 #include "Logging\Logging.h"
@@ -461,6 +462,7 @@ void CONFIG::Init()
 	else
 	{
 		WrapperName.assign(p_wName);
+		std::transform(WrapperName.begin(), WrapperName.end(), WrapperName.begin(), ::tolower);
 		RealWrapperMode = GetWrapperMode((WrapperMode.size()) ? &WrapperMode : &WrapperName);
 	}
 
@@ -509,4 +511,5 @@ void CONFIG::Init()
 
 	// Enable other settings
 	isDdrawWrapperEnabled = ArmadaFix;
+	isD3d9WrapperEnabled = (AntiAliasing != 0);
 }
