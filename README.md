@@ -79,6 +79,7 @@ This software is provided 'as-is', without any express or implied warranty. In n
 2. Altered source versions must be plainly marked as such, and must not be misrepresented as being the original software.
 3. This notice may not be removed or altered from any source distribution.
 
+### Credits
 DxWrapper uses code from several other projects. So to give credit where credit is due, below is a list of locations that source code was taken from:
 
  - [Aqrit's ddwrapper](http://bitpatch.com/ddwrapper.html): Includes code to disable high DPI scaling and code to read the ini config file.
@@ -97,6 +98,6 @@ DxWrapper uses code from several other projects. So to give credit where credit 
 ### Development
 DxWrapper is mostly written in C++ using Microsoft Visual Studio Community 2015.
 
-Compilation depends on [Detours Express 3.0](http://research.microsoft.com/en-us/projects/detours/) and the standalone [DirectX SDK](https://www.microsoft.com/en-us/download/details.aspx?id=6812). You may need to change the include and library paths if you didn't install Detours or the DirectX SDK in the default directory.
+Compilation depends on [Detours Express 3.0](http://research.microsoft.com/en-us/projects/detours/), the standalone [DirectX SDK](https://www.microsoft.com/en-us/download/details.aspx?id=6812) and the [DirectX 8.1 SDK](https://www.microsoft.com/en-us/download/details.aspx?id=13287). You may need to change the include and library paths depending on where you install Detours or the DirectX SDK/8.1.
 
 Thanks for stopping by!
