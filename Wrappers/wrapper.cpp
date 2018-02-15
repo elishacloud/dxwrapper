@@ -63,13 +63,6 @@
 		VISIT_PROCS(CREATE_PROC_STUB) \
 	}
 
-namespace Wrapper
-{
-	FARPROC GetProcAddress(HMODULE hModule, LPCSTR FunctionName, FARPROC SetReturnValue);
-	__declspec() HRESULT __stdcall _jmpaddr();
-	constexpr FARPROC jmpaddr = (FARPROC)*_jmpaddr;
-}
-
 // Shared procs
 #include "shared.h"
 

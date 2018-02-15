@@ -506,4 +506,7 @@ void CONFIG::Init()
 		Logging::Log() << "Clearing config and disabling dxwrapper!";
 		ClearConfigSettings();
 	}
+
+	// Enable other settings
+	isDdrawWrapperEnabled = ArmadaFix;
 }

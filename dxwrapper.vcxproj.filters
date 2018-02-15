@@ -38,11 +38,11 @@
     <Filter Include="Hooking">
       <UniqueIdentifier>{dd986a8a-7ff1-403f-8a75-794ded77510d}</UniqueIdentifier>
     </Filter>
-    <Filter Include="D3d9">
-      <UniqueIdentifier>{c922409a-b895-4ab0-a6e9-36287ac4f350}</UniqueIdentifier>
-    </Filter>
     <Filter Include="ddraw">
       <UniqueIdentifier>{bfe7d7d5-d3af-4ef3-a6a1-3e3fc5e8ce4a}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="d3d9">
+      <UniqueIdentifier>{c922409a-b895-4ab0-a6e9-36287ac4f350}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -227,7 +227,7 @@
       <Filter>Wrappers</Filter>
     </ClCompile>
     <ClCompile Include="D3d9\d3d9.cpp">
-      <Filter>D3d9</Filter>
+      <Filter>d3d9</Filter>
     </ClCompile>
     <ClCompile Include="Settings\ReadParse.cpp">
       <Filter>Settings</Filter>
@@ -534,10 +534,10 @@
       <Filter>Wrappers</Filter>
     </ClInclude>
     <ClInclude Include="D3d9\d3d9.h">
-      <Filter>D3d9</Filter>
+      <Filter>d3d9</Filter>
     </ClInclude>
     <ClInclude Include="D3d9\D3d9External.h">
-      <Filter>D3d9</Filter>
+      <Filter>d3d9</Filter>
     </ClInclude>
     <ClInclude Include="D3d8to9\d3d8to9External.h">
       <Filter>D3d8to9</Filter>

@@ -24,8 +24,9 @@
 #include "DSoundCtrl\DSoundCtrlExternal.h"
 #include "Utils\Utils.h"
 #include "Logging\Logging.h"
-#include "ddraw\ddrawExternal.h"
+// Wrappers last
 #include "D3d9\D3d9External.h"
+#include "ddraw\ddrawExternal.h"
 
 // Declare varables
 HMODULE hModule_dll = nullptr;
@@ -144,31 +145,69 @@ bool APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 		}
 
 		// Start ddraw.dll module
-		bool isDdrawWrapperEnabled = Config.ArmadaFix;
-		if (Config.DDrawCompat || isDdrawWrapperEnabled)
+		if (Config.DDrawCompat || Config.isDdrawWrapperEnabled)
 		{
 			// If wrapper mode is ddraw update wrapper
 			if (Config.RealWrapperMode == dtype.ddraw)
 			{
 				// Update dxwrapper.dll -> DdrawWrapper
-				if (isDdrawWrapperEnabled)
+				if (Config.isDdrawWrapperEnabled)
 				{
-					ddraw::DirectDrawCreate_var = DdrawWrapper::in_DirectDrawCreate;
-					ddraw::DirectDrawCreateEx_var = DdrawWrapper::in_DirectDrawCreateEx;
+					DdrawWrapper::AcquireDDThreadLock_out = ddraw::AcquireDDThreadLock_var;
+					DdrawWrapper::CheckFullscreen_out = ddraw::CheckFullscreen_var;
+					DdrawWrapper::CompleteCreateSysmemSurface_out = ddraw::CompleteCreateSysmemSurface_var;
+					DdrawWrapper::D3DParseUnknownCommand_out = ddraw::D3DParseUnknownCommand_var;
+					DdrawWrapper::DDGetAttachedSurfaceLcl_out = ddraw::DDGetAttachedSurfaceLcl_var;
+					DdrawWrapper::DDInternalLock_out = ddraw::DDInternalLock_var;
+					DdrawWrapper::DDInternalUnlock_out = ddraw::DDInternalUnlock_var;
+					DdrawWrapper::DSoundHelp_out = ddraw::DSoundHelp_var;
+					DdrawWrapper::DirectDrawCreate_out = ddraw::DirectDrawCreate_var;
+					DdrawWrapper::DirectDrawCreateClipper_out = ddraw::DirectDrawCreateClipper_var;
+					DdrawWrapper::DirectDrawCreateEx_out = ddraw::DirectDrawCreateEx_var;
+					DdrawWrapper::DirectDrawEnumerateA_out = ddraw::DirectDrawEnumerateA_var;
+					DdrawWrapper::DirectDrawEnumerateExA_out = ddraw::DirectDrawEnumerateExA_var;
+					DdrawWrapper::DirectDrawEnumerateExW_out = ddraw::DirectDrawEnumerateExW_var;
+					DdrawWrapper::DirectDrawEnumerateW_out = ddraw::DirectDrawEnumerateW_var;
+					DdrawWrapper::DllCanUnloadNow_out = ShardProcs::DllCanUnloadNow_var;
+					DdrawWrapper::DllGetClassObject_out = ShardProcs::DllGetClassObject_var;
+					DdrawWrapper::GetDDSurfaceLocal_out = ddraw::GetDDSurfaceLocal_var;
+					DdrawWrapper::GetOLEThunkData_out = ddraw::GetOLEThunkData_var;
+					DdrawWrapper::GetSurfaceFromDC_out = ddraw::GetSurfaceFromDC_var;
+					DdrawWrapper::RegisterSpecialCase_out = ddraw::RegisterSpecialCase_var;
+					DdrawWrapper::ReleaseDDThreadLock_out = ddraw::ReleaseDDThreadLock_var;
+					DdrawWrapper::SetAppCompatData_out = ddraw::SetAppCompatData_var;
+
+					// dxwrapper.dll -> DdrawWrapper
+					ddraw::AcquireDDThreadLock_var = DdrawWrapper::AcquireDDThreadLock_in;
+					ddraw::CheckFullscreen_var = DdrawWrapper::CheckFullscreen_in;
+					ddraw::CompleteCreateSysmemSurface_var = DdrawWrapper::CompleteCreateSysmemSurface_in;
+					ddraw::D3DParseUnknownCommand_var = DdrawWrapper::D3DParseUnknownCommand_in;
+					ddraw::DDGetAttachedSurfaceLcl_var = DdrawWrapper::DDGetAttachedSurfaceLcl_in;
+					ddraw::DDInternalLock_var = DdrawWrapper::DDInternalLock_in;
+					ddraw::DDInternalUnlock_var = DdrawWrapper::DDInternalUnlock_in;
+					ddraw::DSoundHelp_var = DdrawWrapper::DSoundHelp_in;
+					ddraw::DirectDrawCreate_var = DdrawWrapper::DirectDrawCreate_in;
+					ddraw::DirectDrawCreateClipper_var = DdrawWrapper::DirectDrawCreateClipper_in;
+					ddraw::DirectDrawCreateEx_var = DdrawWrapper::DirectDrawCreateEx_in;
+					ddraw::DirectDrawEnumerateA_var = DdrawWrapper::DirectDrawEnumerateA_in;
+					ddraw::DirectDrawEnumerateExA_var = DdrawWrapper::DirectDrawEnumerateExA_in;
+					ddraw::DirectDrawEnumerateExW_var = DdrawWrapper::DirectDrawEnumerateExW_in;
+					ddraw::DirectDrawEnumerateW_var = DdrawWrapper::DirectDrawEnumerateW_in;
+					ShardProcs::DllCanUnloadNow_var = DdrawWrapper::DllCanUnloadNow_in;
+					ShardProcs::DllGetClassObject_var = DdrawWrapper::DllGetClassObject_in;
+					ddraw::GetDDSurfaceLocal_var = DdrawWrapper::GetDDSurfaceLocal_in;
+					ddraw::GetOLEThunkData_var = DdrawWrapper::GetOLEThunkData_in;
+					ddraw::GetSurfaceFromDC_var = DdrawWrapper::GetSurfaceFromDC_in;
+					ddraw::RegisterSpecialCase_var = DdrawWrapper::RegisterSpecialCase_in;
+					ddraw::ReleaseDDThreadLock_var = DdrawWrapper::ReleaseDDThreadLock_in;
+					ddraw::SetAppCompatData_var = DdrawWrapper::SetAppCompatData_in;
+
 					// Update DdrawWrapper -> DDrawCompat
 					if (Config.DDrawCompat)
 					{
-						DdrawWrapper::out_DirectDrawCreate = DDrawCompat::DirectDrawCreate;
-						DdrawWrapper::out_DirectDrawCreateEx = DDrawCompat::DirectDrawCreateEx;
-						ShardProcs::DllGetClassObject_var = DDrawCompat::DllGetClassObject;
-					}
-					// Update DdrawWrapper -> ddraw.dll
-					else
-					{
-						// Load d3d9 functions
-						HMODULE dll = LoadLibrary(dtypename[dtype.ddraw]);
-						DdrawWrapper::out_DirectDrawCreate = Hook::GetProcAddress(dll, "DirectDrawCreate");
-						DdrawWrapper::out_DirectDrawCreateEx = Hook::GetProcAddress(dll, "DirectDrawCreateEx");
+						DdrawWrapper::DirectDrawCreate_out = DDrawCompat::DirectDrawCreate;
+						DdrawWrapper::DirectDrawCreateEx_out = DDrawCompat::DirectDrawCreateEx;
+						DdrawWrapper::DllGetClassObject_out = DDrawCompat::DllGetClassObject;
 					}
 				}
 				// Update dxwrapper.dll -> DDrawCompat
@@ -183,7 +222,7 @@ bool APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 			else
 			{
 				// Load ddraw procs
-				HMODULE dll = ddraw::Load((Config.RealDllPath.size()) ? Config.RealDllPath.c_str() : nullptr);
+				HMODULE dll = ddraw::Load(nullptr);
 				if (dll)
 				{
 					Utils::AddHandleToVector(dll, dtypename[dtype.ddraw]);
@@ -191,20 +230,20 @@ bool APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 
 				// Hook ddraw.dll -> DDrawCompat
 				Logging::Log() << "Hooking ddraw.dll APIs...";
-				if (isDdrawWrapperEnabled)
+				if (Config.isDdrawWrapperEnabled)
 				{
-					ddraw::DirectDrawCreate_var = (FARPROC)Hook::HookAPI(hModule_dll, dtypename[dtype.ddraw], Hook::GetProcAddress(dll, "DirectDrawCreate"), "DirectDrawCreate", DdrawWrapper::in_DirectDrawCreate);
-					ddraw::DirectDrawCreateEx_var = (FARPROC)Hook::HookAPI(hModule_dll, dtypename[dtype.ddraw], Hook::GetProcAddress(dll, "DirectDrawCreateEx"), "DirectDrawCreateEx", DdrawWrapper::in_DirectDrawCreateEx);
+					ddraw::DirectDrawCreate_var = (FARPROC)Hook::HookAPI(hModule_dll, dtypename[dtype.ddraw], Hook::GetProcAddress(dll, "DirectDrawCreate"), "DirectDrawCreate", DdrawWrapper::DirectDrawCreate_in);
+					ddraw::DirectDrawCreateEx_var = (FARPROC)Hook::HookAPI(hModule_dll, dtypename[dtype.ddraw], Hook::GetProcAddress(dll, "DirectDrawCreateEx"), "DirectDrawCreateEx", DdrawWrapper::DirectDrawCreateEx_in);
 					if (Config.DDrawCompat)
 					{
-						DdrawWrapper::out_DirectDrawCreate = DDrawCompat::DirectDrawCreate;
-						DdrawWrapper::out_DirectDrawCreateEx = DDrawCompat::DirectDrawCreateEx;
+						DdrawWrapper::DirectDrawCreate_out = DDrawCompat::DirectDrawCreate;
+						DdrawWrapper::DirectDrawCreateEx_out = DDrawCompat::DirectDrawCreateEx;
 						ShardProcs::DllGetClassObject_var = (FARPROC)Hook::HookAPI(hModule_dll, dtypename[dtype.ddraw], Hook::GetProcAddress(dll, "DllGetClassObject"), "DllGetClassObject", DDrawCompat::DllGetClassObject);
 					}
 					else
 					{
-						DdrawWrapper::out_DirectDrawCreate = ddraw::DirectDrawCreate_var;
-						DdrawWrapper::out_DirectDrawCreateEx = ddraw::DirectDrawCreateEx_var;
+						DdrawWrapper::DirectDrawCreate_out = ddraw::DirectDrawCreate_var;
+						DdrawWrapper::DirectDrawCreateEx_out = ddraw::DirectDrawCreateEx_var;
 					}
 				}
 				else
@@ -234,7 +273,7 @@ bool APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 			// Hook d3d8 APIs for D3d8to9
 			else
 			{
-				// Load d3d8
+				// Load d3d8 procs
 				HMODULE dll = LoadLibrary(dtypename[dtype.d3d8]);
 
 				// Hook d3d8.dll -> D3d8to9	
@@ -260,19 +299,20 @@ bool APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 		// Start d3d9_wrap module
 		if (StartD3d9Wrap)
 		{
-			// Load d3d9 procs
-			HMODULE dll = LoadLibrary(dtypename[dtype.d3d9]);
-			d3d9_wrap::Direct3DCreate9_Proxy = Hook::GetProcAddress(dll, "Direct3DCreate9");
-
 			// If wrapper mode is d3d9 update wrapper
 			if (Config.RealWrapperMode == dtype.d3d9)
 			{
+				d3d9_wrap::Direct3DCreate9_Proxy = d3d9::Direct3DCreate9_var;
+
 				// Update dxwrapper.dll -> d3d9_wrap
-				d3d8::Direct3DCreate8_var = d3d9_wrap::Direct3DCreate9;
+				d3d9::Direct3DCreate9_var = d3d9_wrap::Direct3DCreate9;
 			}
 			// Hook d3d9 APIs for d3d9_wrap
 			else
 			{
+				// Load d3d9 procs
+				HMODULE dll = LoadLibrary(dtypename[dtype.d3d9]);
+
 				// Hook d3d9.dll -> d3d9_wrap
 				Logging::Log() << "Hooking d3d9.dll APIs...";
 				d3d9_wrap::Direct3DCreate9_Proxy = (FARPROC)Hook::HookAPI(hModule_dll, dtypename[dtype.d3d9], Hook::GetProcAddress(dll, "Direct3DCreate9"), "Direct3DCreate9", d3d9_wrap::Direct3DCreate9);
@@ -294,7 +334,7 @@ bool APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 			else
 			{
 				// Load dsound procs
-				HMODULE dll = dsound::Load((Config.RealDllPath.size()) ? Config.RealDllPath.c_str() : nullptr);
+				HMODULE dll = dsound::Load(nullptr);
 				if (dll)
 				{
 					Utils::AddHandleToVector(dll, dtypename[dtype.dsound]);
