@@ -27,6 +27,7 @@
 
 namespace Logging
 {
+	void GetOsVersion(RTL_OSVERSIONINFOEXW *);
 	void GetVersionReg(OSVERSIONINFO *);
 	void GetVersionFile(OSVERSIONINFO *);
 }
@@ -60,10 +61,43 @@ void Logging::LogProcessNameAndPID()
 	Log() << (++pdest) << " (PID:" << GetCurrentProcessId() << ")";
 }
 
+// Get Windows Operating System version number from RtlGetVersion
+void Logging::GetOsVersion(RTL_OSVERSIONINFOEXW* pk_OsVer)
+{
+	// Initualize variables
+	pk_OsVer->dwOSVersionInfoSize = sizeof(RTL_OSVERSIONINFOEXW);
+	ZeroMemory(&(pk_OsVer->szCSDVersion), 128 * sizeof(WCHAR));
+	pk_OsVer->dwMajorVersion = 0;
+	pk_OsVer->dwMinorVersion = 0;
+	pk_OsVer->dwBuildNumber = 0;
+
+	// Load ntdll.dll
+	HMODULE Module = ::LoadLibraryA("ntdll.dll");
+	if (!Module)
+	{
+		Log() << "Failed to load ntdll.dll!";
+		return;
+	}
+
+	// Call RtlGetVersion API
+	typedef LONG(WINAPI* tRtlGetVersion)(RTL_OSVERSIONINFOEXW*);
+	tRtlGetVersion f_RtlGetVersion = (tRtlGetVersion)GetProcAddress(Module, "RtlGetVersion");
+
+	// Get version data
+	if (f_RtlGetVersion)
+	{
+		f_RtlGetVersion(pk_OsVer);
+	}
+
+	// Unload ntdll.dll
+	FreeLibrary(Module);
+}
+
 // Get Windows Operating System version number from the registry
 void Logging::GetVersionReg(OSVERSIONINFO *oOS_version)
 {
 	// Initualize variables
+	oOS_version->dwOSVersionInfoSize = sizeof(OSVERSIONINFO);
 	oOS_version->dwMajorVersion = 0;
 	oOS_version->dwMinorVersion = 0;
 	oOS_version->dwBuildNumber = 0;
@@ -92,6 +126,7 @@ void Logging::GetVersionReg(OSVERSIONINFO *oOS_version)
 void Logging::GetVersionFile(OSVERSIONINFO *oOS_version)
 {
 	// Initualize variables
+	oOS_version->dwOSVersionInfoSize = sizeof(OSVERSIONINFO);
 	oOS_version->dwMajorVersion = 0;
 	oOS_version->dwMinorVersion = 0;
 	oOS_version->dwBuildNumber = 0;
@@ -172,15 +207,20 @@ void Logging::GetVersionFile(OSVERSIONINFO *oOS_version)
 void Logging::LogOSVersion()
 {
 	// Declare vars
-	OSVERSIONINFO oOS_version, rOS_version;
-	oOS_version.dwOSVersionInfoSize = sizeof(OSVERSIONINFO);
-	rOS_version.dwOSVersionInfoSize = sizeof(OSVERSIONINFO);
+	RTL_OSVERSIONINFOEXW oOS_version;
+	OSVERSIONINFO fOS_version, rOS_version;
+
+	// GetVersion from RtlGetVersion which is needed for some cases (Need for Speed III)
+	GetOsVersion(&oOS_version);
+	std::wstring ws(L" " + std::wstring(oOS_version.szCSDVersion));
+	std::string str(ws.begin(), ws.end());
+	char *ServicePack = &str[0];
 
 	// GetVersion from registry which is more relayable for Windows 10
 	GetVersionReg(&rOS_version);
 
 	// GetVersion from a file which is needed to get the build number
-	GetVersionFile(&oOS_version);
+	GetVersionFile(&fOS_version);
 
 	// Choose whichever version is higher
 	// Newer OS's report older version numbers for compatibility
@@ -189,6 +229,18 @@ void Logging::LogOSVersion()
 	{
 		oOS_version.dwMajorVersion = rOS_version.dwMajorVersion;
 		oOS_version.dwMinorVersion = rOS_version.dwMinorVersion;
+		ServicePack = "";
+	}
+	if (fOS_version.dwMajorVersion > oOS_version.dwMajorVersion)
+	{
+		oOS_version.dwMajorVersion = fOS_version.dwMajorVersion;
+		oOS_version.dwMinorVersion = fOS_version.dwMinorVersion;
+		ServicePack = "";
+	}
+	// The file almost always has the right build number
+	if (fOS_version.dwBuildNumber != 0)
+	{
+		oOS_version.dwBuildNumber = fOS_version.dwBuildNumber;
 	}
 
 	// Get OS string name
@@ -284,14 +336,19 @@ void Logging::LogOSVersion()
 	}
 
 	// Get bitness (32bit vs 64bit)
-	char *bitness = "";
 	SYSTEM_INFO SystemInfo;
 	GetNativeSystemInfo(&SystemInfo);
-	if (SystemInfo.wProcessorArchitecture == 9)
-	{
-		bitness = " 64-bit";
-	}
 
 	// Log operating system version and type
-	Log() << sOSName << bitness << " (" << oOS_version.dwMajorVersion << "." << oOS_version.dwMinorVersion << "." << oOS_version.dwBuildNumber << ")";
+	Log() << sOSName << ((SystemInfo.wProcessorArchitecture == 9) ? " 64-bit" : "") << " (" << oOS_version.dwMajorVersion << "." << oOS_version.dwMinorVersion << "." << oOS_version.dwBuildNumber << ")" << ServicePack;
+}
+
+void Logging::LogVideoCard()
+{
+	DISPLAY_DEVICE DispDev;
+	ZeroMemory(&DispDev, sizeof(DispDev));
+	DispDev.cb = sizeof(DispDev);
+	DWORD nDeviceIndex = 0;
+	EnumDisplayDevices(NULL, nDeviceIndex, &DispDev, 0);
+	Log() << DispDev.DeviceString;
 }

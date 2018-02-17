@@ -410,6 +410,9 @@ void CONFIG::Init()
 		strcpy_s(strrchr(wrappername, '\\'), MAX_PATH - strlen(wrappername), "\\dxwrapper.dll");
 	}
 
+	// Set lower case
+	for (char* p = wrappername; *p != '\0'; p++) { *p = (char)tolower(*p); }
+
 	// Get config path to include process name
 	char buffer[MAX_PATH];
 	strcpy_s(buffer, MAX_PATH, wrappername);

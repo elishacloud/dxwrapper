@@ -15,4 +15,5 @@ namespace Logging
 	void LogFormat(char * fmt, ...);
 	void LogOSVersion();
 	void LogProcessNameAndPID();
+	void LogVideoCard();
 }

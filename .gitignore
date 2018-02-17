@@ -17,27 +17,6 @@
 *.gch
 *.pch
 
-# Compiled Dynamic libraries
-*.so
-*.dylib
-
-# Fortran module files
-*.mod
-*.smod
-
-# Compiled Static libraries
-*.lai
-*.la
-*.a
-*.lib
-*.dll
-*.drv
-
-# Executables
-*.out
-*.app
-*.exe
-
 # Other Visual Studio files
 ipch/*
 *.user
