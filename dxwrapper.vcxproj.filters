@@ -187,9 +187,6 @@
     <ClCompile Include="DDrawCompat\v0.2.1\DDrawRepository.cpp">
       <Filter>DDrawCompat</Filter>
     </ClCompile>
-    <ClCompile Include="DDrawCompat\v0.2.1\DllMainCompat.cpp">
-      <Filter>DDrawCompat</Filter>
-    </ClCompile>
     <ClCompile Include="DDrawCompat\v0.2.1\Hook.cpp">
       <Filter>DDrawCompat</Filter>
     </ClCompile>
@@ -396,6 +393,9 @@
     </ClCompile>
     <ClCompile Include="d3d9\IDirect3DVolumeTexture9.cpp">
       <Filter>d3d9</Filter>
+    </ClCompile>
+    <ClCompile Include="DDrawCompat\v0.2.1\DllMain.cpp">
+      <Filter>DDrawCompat</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

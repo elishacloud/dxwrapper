@@ -104,9 +104,11 @@ namespace
 
 	void installHooks()
 	{
+		//********** Begin Edit *************
 		static bool isAlreadyInstalled = false;
 		if (!isAlreadyInstalled)
 		{
+			//********** End Edit ***************
 			Compat::Log() << "Installing DirectDraw hooks";
 			IDirectDraw7* dd = DDrawRepository::getDirectDraw();
 			if (dd)
@@ -129,8 +131,10 @@ namespace
 
 				Compat::Log() << "Finished installing hooks";
 			}
+			//********** Begin Edit *************
 			isAlreadyInstalled = true;
 		}
+		//********** End Edit ***************
 	}
 
 	bool loadLibrary(const std::string& systemDirectory, const std::string& dllName, HMODULE& module)
