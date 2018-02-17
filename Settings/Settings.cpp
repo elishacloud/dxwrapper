@@ -466,38 +466,6 @@ void CONFIG::Init()
 		RealWrapperMode = GetWrapperMode((WrapperMode.size()) ? &WrapperMode : &WrapperName);
 	}
 
-	// Verify sleep time to make sure it is not set too low (can be perf issues if it is too low)
-	if (LoopSleepTime < 30) LoopSleepTime = 30;
-
-	// Verify DSoundCtrl options
-	if (ForceSoftwareMixing && ForceHardwareMixing)
-	{
-		Logging::Log() << "Cannot set both ForceSoftwareMixing and ForceHardwareMixing!  Disabling ForceSoftwareMixing.";
-		ForceSoftwareMixing = false;
-	}
-	if (ForceVoiceManagement && (ForceSoftwareMixing || ForceHardwareMixing))
-	{
-		if (ForceSoftwareMixing)
-		{
-			Logging::Log() << "Cannot set both ForceVoiceManagement and ForceSoftwareMixing!  Disabling ForceVoiceManagement.";
-		}
-		else
-		{
-			Logging::Log() << "Cannot set both ForceVoiceManagement and ForceSoftwareMixing!  Disabling ForceVoiceManagement.";
-		}
-		ForceVoiceManagement = false;
-	}
-	if (ForceVoiceManagement && !ForceNonStaticBuffers)
-	{
-		Logging::Log() << "ForceNonStaticBuffers should always be enabled with ForceVoiceManagement!  Enabling ForceNonStaticBuffers.";
-		ForceNonStaticBuffers = true;
-	}
-	if (ForceHQ3DSoftMixing && ForceHardwareMixing)
-	{
-		Logging::Log() << "ForceHQ3DSoftMixing has no effect whenForceHardwareMixing is enabled!  Disabling ForceHQ3DSoftMixing.";
-		ForceHQ3DSoftMixing = false;
-	}
-
 	// Check if process should be excluded or not included
 	// if so, then clear all settings (disable everything)
 	ProcessExcluded = false;
@@ -509,7 +477,56 @@ void CONFIG::Init()
 		ClearConfigSettings();
 	}
 
-	// Enable other settings
-	isDdrawWrapperEnabled = ArmadaFix;
-	isD3d9WrapperEnabled = (AntiAliasing != 0);
+	// Verify sleep time to make sure it is not set too low (can be perf issues if it is too low)
+	if (LoopSleepTime < 30)
+	{
+		Logging::Log() << "Cannot set LoopSleepTime to less than 30ms!  Resetting to 30ms.";
+		LoopSleepTime = 30;
+	}
+
+	// Verify DSoundCtrl options
+	if (DSoundCtrl)
+	{
+		if (ForceSoftwareMixing && ForceHardwareMixing)
+		{
+			Logging::Log() << "Cannot set both ForceSoftwareMixing and ForceHardwareMixing!  Disabling ForceSoftwareMixing.";
+			ForceSoftwareMixing = false;
+		}
+		if (ForceVoiceManagement && (ForceSoftwareMixing || ForceHardwareMixing))
+		{
+			if (ForceSoftwareMixing)
+			{
+				Logging::Log() << "Cannot set both ForceVoiceManagement and ForceSoftwareMixing!  Disabling ForceVoiceManagement.";
+			}
+			else
+			{
+				Logging::Log() << "Cannot set both ForceVoiceManagement and ForceSoftwareMixing!  Disabling ForceVoiceManagement.";
+			}
+			ForceVoiceManagement = false;
+		}
+		if (ForceVoiceManagement && !ForceNonStaticBuffers)
+		{
+			Logging::Log() << "ForceNonStaticBuffers should always be enabled with ForceVoiceManagement!  Enabling ForceNonStaticBuffers.";
+			ForceNonStaticBuffers = true;
+		}
+		if (ForceHQ3DSoftMixing && ForceHardwareMixing)
+		{
+			Logging::Log() << "ForceHQ3DSoftMixing has no effect whenForceHardwareMixing is enabled!  Disabling ForceHQ3DSoftMixing.";
+			ForceHQ3DSoftMixing = false;
+		}
+	}
+
+	// Enable wrapper settings
+	if ((isDdrawWrapperEnabled = ArmadaFix) != 0)
+	{
+		Logging::Log() << "Enabling ddraw wrapper";
+	}
+	if ((isD3d9WrapperEnabled = (AntiAliasing != 0)) != 0)
+	{
+		Logging::Log() << "Enabling d3d9 wrapper";
+	}
+	if ((D3d8to9 = D3d8to9 || isD3d9WrapperEnabled) != 0)
+	{
+		Logging::Log() << "Enabling d3d8to9 wrapper";
+	}
 }
