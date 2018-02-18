@@ -42,20 +42,18 @@ const char* g_cszClassName = "ExportFunction";
 
 namespace DSoundCtrl
 {
-	FARPROC DirectSoundCreate_out = nullptr;
-	FARPROC DirectSoundCreate8_out = nullptr;
-	FARPROC GetDeviceID_out = nullptr;
-	FARPROC DirectSoundEnumerateA_out = nullptr;
-	FARPROC DirectSoundEnumerateW_out = nullptr;
-	FARPROC DirectSoundCaptureCreate_out = nullptr;
-	FARPROC DirectSoundCaptureEnumerateA_out = nullptr;
-	FARPROC DirectSoundCaptureEnumerateW_out = nullptr;
-	FARPROC DirectSoundCaptureCreate8_out = nullptr;
-	FARPROC DirectSoundFullDuplexCreate_out = nullptr;
-	FARPROC DSDLLEnumCallbackA_out = nullptr;
-	FARPROC DSDLLEnumCallbackW_out = nullptr;
-	FARPROC DllGetClassObject_out = nullptr;
-	FARPROC DllCanUnloadNow_out = nullptr;
+	FARPROC DirectSoundCreate_out = (FARPROC)*(dsound::DirectSoundCreate);
+	FARPROC DirectSoundCreate8_out = (FARPROC)*(dsound::DirectSoundCreate8);
+	FARPROC GetDeviceID_out = (FARPROC)*(dsound::GetDeviceID);
+	FARPROC DirectSoundEnumerateA_out = (FARPROC)*(dsound::DirectSoundEnumerateA);
+	FARPROC DirectSoundEnumerateW_out = (FARPROC)*(dsound::DirectSoundEnumerateW);
+	FARPROC DirectSoundCaptureCreate_out = (FARPROC)*(dsound::DirectSoundCaptureCreate);
+	FARPROC DirectSoundCaptureEnumerateA_out = (FARPROC)*(dsound::DirectSoundCaptureEnumerateA);
+	FARPROC DirectSoundCaptureEnumerateW_out = (FARPROC)*(dsound::DirectSoundCaptureEnumerateW);
+	FARPROC DirectSoundCaptureCreate8_out = (FARPROC)*(dsound::DirectSoundCaptureCreate8);
+	FARPROC DirectSoundFullDuplexCreate_out = (FARPROC)*(dsound::DirectSoundFullDuplexCreate);
+	FARPROC DllGetClassObject_out = (FARPROC)*(ShardProcs::DllGetClassObject);
+	FARPROC DllCanUnloadNow_out = (FARPROC)*(ShardProcs::DllCanUnloadNow);
 }
 
 using namespace DSoundCtrl;

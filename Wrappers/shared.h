@@ -68,6 +68,7 @@ namespace ShardProcs
 	}
 	void AddToArray()
 	{
+		wrapper_map tmpMap;
 		VISIT_PROCS(STORE_ORIGINAL_PROC);
 	}
 }

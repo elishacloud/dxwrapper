@@ -22,29 +22,29 @@ AddressLookupTable<void> ProxyAddressLookupTable = AddressLookupTable<void>(null
 
 namespace DdrawWrapper
 {
-	FARPROC AcquireDDThreadLock_out = nullptr;
-	FARPROC CheckFullscreen_out = nullptr;
-	FARPROC CompleteCreateSysmemSurface_out = nullptr;
-	FARPROC D3DParseUnknownCommand_out = nullptr;
-	FARPROC DDGetAttachedSurfaceLcl_out = nullptr;
-	FARPROC DDInternalLock_out = nullptr;
-	FARPROC DDInternalUnlock_out = nullptr;
-	FARPROC DSoundHelp_out = nullptr;
-	FARPROC DirectDrawCreate_out = nullptr;
-	FARPROC DirectDrawCreateClipper_out = nullptr;
-	FARPROC DirectDrawCreateEx_out = nullptr;
-	FARPROC DirectDrawEnumerateA_out = nullptr;
-	FARPROC DirectDrawEnumerateExA_out = nullptr;
-	FARPROC DirectDrawEnumerateExW_out = nullptr;
-	FARPROC DirectDrawEnumerateW_out = nullptr;
-	FARPROC DllCanUnloadNow_out = nullptr;
-	FARPROC DllGetClassObject_out = nullptr;
-	FARPROC GetDDSurfaceLocal_out = nullptr;
-	FARPROC GetOLEThunkData_out = nullptr;
-	FARPROC GetSurfaceFromDC_out = nullptr;
-	FARPROC RegisterSpecialCase_out = nullptr;
-	FARPROC ReleaseDDThreadLock_out = nullptr;
-	FARPROC SetAppCompatData_out = nullptr;
+	FARPROC AcquireDDThreadLock_out = (FARPROC)*(ddraw::AcquireDDThreadLock);
+	FARPROC CheckFullscreen_out = (FARPROC)*(ddraw::CheckFullscreen);
+	FARPROC CompleteCreateSysmemSurface_out = (FARPROC)*(ddraw::CompleteCreateSysmemSurface);
+	FARPROC D3DParseUnknownCommand_out = (FARPROC)*(ddraw::D3DParseUnknownCommand);
+	FARPROC DDGetAttachedSurfaceLcl_out = (FARPROC)*(ddraw::DDGetAttachedSurfaceLcl);
+	FARPROC DDInternalLock_out = (FARPROC)*(ddraw::DDInternalLock);
+	FARPROC DDInternalUnlock_out = (FARPROC)*(ddraw::DDInternalUnlock);
+	FARPROC DSoundHelp_out = (FARPROC)*(ddraw::DSoundHelp);
+	FARPROC DirectDrawCreate_out = (FARPROC)*(ddraw::DirectDrawCreate);
+	FARPROC DirectDrawCreateClipper_out = (FARPROC)*(ddraw::DirectDrawCreateClipper);
+	FARPROC DirectDrawCreateEx_out = (FARPROC)*(ddraw::DirectDrawCreateEx);
+	FARPROC DirectDrawEnumerateA_out = (FARPROC)*(ddraw::DirectDrawEnumerateA);
+	FARPROC DirectDrawEnumerateExA_out = (FARPROC)*(ddraw::DirectDrawEnumerateExA);
+	FARPROC DirectDrawEnumerateExW_out = (FARPROC)*(ddraw::DirectDrawEnumerateExW);
+	FARPROC DirectDrawEnumerateW_out = (FARPROC)*(ddraw::DirectDrawEnumerateW);
+	FARPROC DllCanUnloadNow_out = (FARPROC)*(ShardProcs::DllCanUnloadNow);
+	FARPROC DllGetClassObject_out = (FARPROC)*(ShardProcs::DllGetClassObject);
+	FARPROC GetDDSurfaceLocal_out = (FARPROC)*(ddraw::GetDDSurfaceLocal);
+	FARPROC GetOLEThunkData_out = (FARPROC)*(ddraw::GetOLEThunkData);
+	FARPROC GetSurfaceFromDC_out = (FARPROC)*(ddraw::GetSurfaceFromDC);
+	FARPROC RegisterSpecialCase_out = (FARPROC)*(ddraw::RegisterSpecialCase);
+	FARPROC ReleaseDDThreadLock_out = (FARPROC)*(ddraw::ReleaseDDThreadLock);
+	FARPROC SetAppCompatData_out = (FARPROC)*(ddraw::SetAppCompatData);
 }
 
 using namespace DdrawWrapper;

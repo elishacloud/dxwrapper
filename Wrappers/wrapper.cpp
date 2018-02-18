@@ -16,51 +16,20 @@
 
 #define WIN32_LEAN_AND_MEAN
 #include <Windows.h>
+#include <vector>
 #include <algorithm>
 #include <fstream>
 #include "wrapper.h"
 
-#define VISIT_DLLS(visit) \
-	visit(bcrypt) \
-	visit(cryptsp) \
-	visit(d2d1) \
-	visit(d3d8) \
-	visit(d3d9) \
-	visit(d3d10) \
-	visit(d3d10core) \
-	visit(d3d11) \
-	visit(d3d12) \
-	visit(d3dim) \
-	visit(d3dim700) \
-	visit(dciman32) \
-	visit(ddraw) \
-	visit(dinput) \
-	visit(dinput8) \
-	visit(dplayx) \
-	visit(dsound) \
-	visit(dxgi) \
-	visit(msacm32) \
-	visit(msvfw32) \
-	visit(vorbisfile) \
-	visit(winspool) \
-	visit(xlive)
-
-#define CHECK_FOR_WRAPPER(dllName) \
-	{ using namespace dllName; if (_strcmpi(WrapperMode, Name) == 0) { dll = Load(ProxyDll); return dll; }}
-
-#define ADD_PROC_TO_ARRAY(dllName) \
-	dllName::AddToArray();
-
-#define	STORE_ORIGINAL_PROC(procName, prodAddr) \
-	{ \
-		wrapper_map tmpMap; \
-		tmpMap.Proc = (FARPROC)*(procName); \
-		tmpMap.val = &(procName ## _var); \
-		jmpArray.push_back(tmpMap); \
-	}
-
 #define ADD_FARPROC_MEMBER(procName, unused) \
 	FARPROC procName ## _var = jmpaddr;
+
+#define CREATE_PROC_STUB(procName, unused) \
+	extern "C" __declspec(naked) void __stdcall procName() \
+	{ \
+		__asm mov edi, edi \
+		__asm jmp procName ## _var \
+	}
 
 #define	LOAD_ORIGINAL_PROC(procName, prodAddr) \
 	procName ## _var = GetProcAddress(dll, #procName); \
@@ -69,12 +38,10 @@
 		procName ## _var =  prodAddr; \
 	}
 
-#define CREATE_PROC_STUB(procName, unused) \
-	extern "C" __declspec(naked) void __stdcall procName() \
-	{ \
-		__asm mov edi, edi \
-		__asm jmp procName ## _var \
-	}
+#define	STORE_ORIGINAL_PROC(procName, prodAddr) \
+	tmpMap.Proc = (FARPROC)*(procName); \
+	tmpMap.val = &(procName ## _var); \
+	jmpArray.push_back(tmpMap);
 
 #define PROC_CLASS(className, Extension) \
 	namespace className \
@@ -107,20 +74,24 @@
 		} \
 		void AddToArray() \
 		{ \
+			wrapper_map tmpMap; \
 			VISIT_PROCS(STORE_ORIGINAL_PROC); \
 		} \
 	}
 
-struct wrapper_map
-{
-	FARPROC Proc;
-	FARPROC *val;
-};
-
 namespace Wrapper
 {
+	struct wrapper_map
+	{
+		FARPROC Proc;
+		FARPROC *val;
+	};
+
+	// Forward function decalration
 	HRESULT __stdcall _jmpaddr();
 	HRESULT __stdcall _jmpaddrvoid();
+
+	// Varable decalration
 	constexpr FARPROC jmpaddr = (FARPROC)*_jmpaddr;
 	constexpr FARPROC jmpaddrvoid = (FARPROC)*_jmpaddrvoid;
 	std::vector<wrapper_map> jmpArray;
@@ -128,6 +99,32 @@ namespace Wrapper
 
 // Shared procs
 #include "shared.h"
+
+#define VISIT_DLLS(visit) \
+	visit(bcrypt) \
+	visit(cryptsp) \
+	visit(d2d1) \
+	visit(d3d8) \
+	visit(d3d9) \
+	visit(d3d10) \
+	visit(d3d10core) \
+	visit(d3d11) \
+	visit(d3d12) \
+	visit(d3dim) \
+	visit(d3dim700) \
+	visit(dciman32) \
+	visit(ddraw) \
+	visit(dinput) \
+	visit(dinput8) \
+	visit(dplayx) \
+	visit(dsound) \
+	visit(dxgi) \
+	visit(msacm32) \
+	visit(msvfw32) \
+	visit(vorbisfile) \
+	visit(winmm) \
+	visit(winspool) \
+	visit(xlive)
 
 // Wrappers
 #include "bcrypt.h"
@@ -198,6 +195,12 @@ void Wrapper::ShimProc(FARPROC &var, FARPROC in, FARPROC &out)
 	}
 }
 
+#define ADD_PROC_TO_ARRAY(dllName) \
+	dllName::AddToArray();
+
+#define CHECK_FOR_WRAPPER(dllName) \
+	{ using namespace dllName; if (_strcmpi(WrapperMode, Name) == 0) { dll = Load(ProxyDll); return dll; }}
+
 HMODULE Wrapper::CreateWrapper(const char *ProxyDll, const char *WrapperMode)
 {
 	// Declare vars
@@ -224,6 +227,7 @@ HMODULE Wrapper::CreateWrapper(const char *ProxyDll, const char *WrapperMode)
 		{
 			Name = "winmm.dll";
 			dll = Load(ProxyDll);
+			return dll;
 		}
 	}
 	// Special for winmmbase.dll because it is sharing procs from winmm

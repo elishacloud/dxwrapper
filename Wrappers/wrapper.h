@@ -1,15 +1,37 @@
 #pragma once
 
-#include <vector>
-
 namespace ShardProcs
 {
+	extern "C" void __stdcall DllCanUnloadNow();
+	extern "C" void __stdcall DllGetClassObject();
+	extern "C" void __stdcall DebugSetMute();
 	extern FARPROC DllCanUnloadNow_var;
 	extern FARPROC DllGetClassObject_var;
 	extern FARPROC DebugSetMute_var;
 }
 namespace ddraw
 {
+	extern "C" void __stdcall AcquireDDThreadLock();
+	extern "C" void __stdcall CheckFullscreen();
+	extern "C" void __stdcall CompleteCreateSysmemSurface();
+	extern "C" void __stdcall D3DParseUnknownCommand();
+	extern "C" void __stdcall DDGetAttachedSurfaceLcl();
+	extern "C" void __stdcall DDInternalLock();
+	extern "C" void __stdcall DDInternalUnlock();
+	extern "C" void __stdcall DSoundHelp();
+	extern "C" void __stdcall DirectDrawCreate();
+	extern "C" void __stdcall DirectDrawCreateClipper();
+	extern "C" void __stdcall DirectDrawCreateEx();
+	extern "C" void __stdcall DirectDrawEnumerateA();
+	extern "C" void __stdcall DirectDrawEnumerateExA();
+	extern "C" void __stdcall DirectDrawEnumerateExW();
+	extern "C" void __stdcall DirectDrawEnumerateW();
+	extern "C" void __stdcall GetDDSurfaceLocal();
+	extern "C" void __stdcall GetOLEThunkData();
+	extern "C" void __stdcall GetSurfaceFromDC();
+	extern "C" void __stdcall RegisterSpecialCase();
+	extern "C" void __stdcall ReleaseDDThreadLock();
+	extern "C" void __stdcall SetAppCompatData();
 	extern FARPROC AcquireDDThreadLock_var;
 	extern FARPROC CheckFullscreen_var;
 	extern FARPROC CompleteCreateSysmemSurface_var;
@@ -41,6 +63,20 @@ namespace d3d8
 }
 namespace d3d9
 {
+	extern "C" void __stdcall Direct3DShaderValidatorCreate9();
+	extern "C" void __stdcall PSGPError();
+	extern "C" void __stdcall PSGPSampleTexture();
+	extern "C" void __stdcall D3DPERF_BeginEvent();
+	extern "C" void __stdcall D3DPERF_EndEvent();
+	extern "C" void __stdcall D3DPERF_GetStatus();
+	extern "C" void __stdcall D3DPERF_QueryRepeatFrame();
+	extern "C" void __stdcall D3DPERF_SetMarker();
+	extern "C" void __stdcall D3DPERF_SetOptions();
+	extern "C" void __stdcall D3DPERF_SetRegion();
+	extern "C" void __stdcall DebugSetLevel();
+	extern "C" void __stdcall Direct3D9EnableMaximizedWindowedModeShim();
+	extern "C" void __stdcall Direct3DCreate9();
+	extern "C" void __stdcall Direct3DCreate9Ex();
 	extern FARPROC Direct3DShaderValidatorCreate9_var;
 	extern FARPROC PSGPError_var;
 	extern FARPROC PSGPSampleTexture_var;
@@ -59,6 +95,16 @@ namespace d3d9
 }
 namespace dsound
 {
+	extern "C" void __stdcall DirectSoundCreate();
+	extern "C" void __stdcall DirectSoundCreate8();
+	extern "C" void __stdcall GetDeviceID();
+	extern "C" void __stdcall DirectSoundEnumerateA();
+	extern "C" void __stdcall DirectSoundEnumerateW();
+	extern "C" void __stdcall DirectSoundCaptureCreate();
+	extern "C" void __stdcall DirectSoundCaptureEnumerateA();
+	extern "C" void __stdcall DirectSoundCaptureEnumerateW();
+	extern "C" void __stdcall DirectSoundCaptureCreate8();
+	extern "C" void __stdcall DirectSoundFullDuplexCreate();
 	extern FARPROC DirectSoundCreate_var;
 	extern FARPROC DirectSoundCreate8_var;
 	extern FARPROC GetDeviceID_var;
@@ -75,6 +121,7 @@ namespace dsound
 }
 namespace Wrapper
 {
+	// Shared Functions
 	bool ValidProcAddress(FARPROC ProcAddress);
 	void ShimProc(FARPROC &var, FARPROC in, FARPROC &out);
 	HMODULE CreateWrapper(const char *ProxyDll, const char *WrapperMode);
