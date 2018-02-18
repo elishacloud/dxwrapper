@@ -16,6 +16,7 @@
 
 #include "ddraw.h"
 #include "ddrawExternal.h"
+#include "Wrappers\wrapper.h"
 
 AddressLookupTable<void> ProxyAddressLookupTable = AddressLookupTable<void>(nullptr);
 
@@ -50,6 +51,10 @@ using namespace DdrawWrapper;
 
 void WINAPI dd_AcquireDDThreadLock()
 {
+	if (!Wrapper::ValidProcAddress(AcquireDDThreadLock_out))
+	{
+		return;
+	}
 	return ((AcquireDDThreadLockProc)AcquireDDThreadLock_out)();
 }
 
@@ -65,6 +70,10 @@ void __declspec(naked) dd_CompleteCreateSysmemSurface()
 
 HRESULT WINAPI dd_D3DParseUnknownCommand(LPVOID lpCmd, LPVOID *lpRetCmd)
 {
+	if (!Wrapper::ValidProcAddress(D3DParseUnknownCommand_out))
+	{
+		return E_NOTIMPL;
+	}
 	return ((D3DParseUnknownCommandProc)D3DParseUnknownCommand_out)(lpCmd, lpRetCmd);
 }
 
@@ -90,6 +99,11 @@ void __declspec(naked) dd_DSoundHelp()
 
 HRESULT WINAPI dd_DirectDrawCreate(GUID FAR *lpGUID, LPDIRECTDRAW FAR *lplpDD, IUnknown FAR *pUnkOuter)
 {
+	if (!Wrapper::ValidProcAddress(DirectDrawCreate_out))
+	{
+		return E_NOTIMPL;
+	}
+
 	HRESULT hr = ((DirectDrawCreateProc)DirectDrawCreate_out)(lpGUID, lplpDD, pUnkOuter);
 
 	if (SUCCEEDED(hr))
@@ -102,11 +116,20 @@ HRESULT WINAPI dd_DirectDrawCreate(GUID FAR *lpGUID, LPDIRECTDRAW FAR *lplpDD, I
 
 HRESULT WINAPI dd_DirectDrawCreateClipper(DWORD dwFlags, LPDIRECTDRAWCLIPPER *lplpDDClipper, LPUNKNOWN pUnkOuter)
 {
+	if (!Wrapper::ValidProcAddress(DirectDrawCreateClipper_out))
+	{
+		return E_NOTIMPL;
+	}
 	return ((DirectDrawCreateClipperProc)DirectDrawCreateClipper_out)(dwFlags, lplpDDClipper, pUnkOuter);
 }
 
 HRESULT WINAPI dd_DirectDrawCreateEx(GUID FAR *lpGUID, LPVOID *lplpDD, REFIID riid, IUnknown FAR *pUnkOuter)
 {
+	if (!Wrapper::ValidProcAddress(DirectDrawCreateEx_out))
+	{
+		return E_NOTIMPL;
+	}
+
 	HRESULT hr = ((DDrawCreateExProc)DirectDrawCreateEx_out)(lpGUID, lplpDD, riid, pUnkOuter);
 
 	if (SUCCEEDED(hr))
@@ -119,31 +142,56 @@ HRESULT WINAPI dd_DirectDrawCreateEx(GUID FAR *lpGUID, LPVOID *lplpDD, REFIID ri
 
 HRESULT WINAPI dd_DirectDrawEnumerateA(LPDDENUMCALLBACKA lpCallback, LPVOID lpContext)
 {
+	if (!Wrapper::ValidProcAddress(DirectDrawEnumerateA_out))
+	{
+		return E_NOTIMPL;
+	}
 	return ((DDrawEnumerateAProc)DirectDrawEnumerateA_out)(lpCallback, lpContext);
 }
 
 HRESULT WINAPI dd_DirectDrawEnumerateExA(LPDDENUMCALLBACKEXA lpCallback, LPVOID lpContext, DWORD dwFlags)
 {
+	if (!Wrapper::ValidProcAddress(DirectDrawEnumerateExA_out))
+	{
+		return E_NOTIMPL;
+	}
 	return ((DDrawEnumerateExAProc)DirectDrawEnumerateExA_out)(lpCallback, lpContext, dwFlags);
 }
 
 HRESULT WINAPI dd_DirectDrawEnumerateExW(LPDDENUMCALLBACKEXW lpCallback, LPVOID lpContext, DWORD dwFlags)
 {
+	if (!Wrapper::ValidProcAddress(DirectDrawEnumerateExW_out))
+	{
+		return E_NOTIMPL;
+	}
 	return ((DDrawEnumerateExWProc)DirectDrawEnumerateExW_out)(lpCallback, lpContext, dwFlags);
 }
 
 HRESULT WINAPI dd_DirectDrawEnumerateW(LPDDENUMCALLBACKW lpCallback, LPVOID lpContext)
 {
+	if (!Wrapper::ValidProcAddress(DirectDrawEnumerateW_out))
+	{
+		return E_NOTIMPL;
+	}
 	return ((DDrawEnumerateWProc)DirectDrawEnumerateW_out)(lpCallback, lpContext);
 }
 
 HRESULT WINAPI dd_DllCanUnloadNow()
 {
+	if (!Wrapper::ValidProcAddress(DllCanUnloadNow_out))
+	{
+		return E_NOTIMPL;
+	}
 	return ((DllCanUnloadNowProc)DllCanUnloadNow_out)();
 }
 
 HRESULT WINAPI dd_DllGetClassObject(REFCLSID rclsid, REFIID riid, LPVOID *ppv)
 {
+	if (!Wrapper::ValidProcAddress(DllGetClassObject_out))
+	{
+		return E_NOTIMPL;
+	}
+
 	HRESULT hr = ((DllGetClassObjectProc)DllGetClassObject_out)(rclsid, riid, ppv);
 
 	if (SUCCEEDED(hr))
@@ -166,6 +214,11 @@ void __declspec(naked) dd_GetOLEThunkData()
 
 HRESULT WINAPI dd_GetSurfaceFromDC(HDC hdc, LPDIRECTDRAWSURFACE7 *lpDDS)
 {
+	if (!Wrapper::ValidProcAddress(GetSurfaceFromDC_out))
+	{
+		return E_NOTIMPL;
+	}
+
 	HRESULT hr = ((GetSurfaceFromDCProc)GetSurfaceFromDC_out)(hdc, lpDDS);
 
 	if (SUCCEEDED(hr))
@@ -183,10 +236,18 @@ void __declspec(naked) dd_RegisterSpecialCase()
 
 void WINAPI dd_ReleaseDDThreadLock()
 {
+	if (!Wrapper::ValidProcAddress(ReleaseDDThreadLock_out))
+	{
+		return;
+	}
 	return ((ReleaseDDThreadLockProc)ReleaseDDThreadLock_out)();
 }
 
 HRESULT WINAPI dd_SetAppCompatData(DWORD Type, DWORD Value)
 {
+	if (!Wrapper::ValidProcAddress(SetAppCompatData_out))
+	{
+		return E_NOTIMPL;
+	}
 	return ((SetAppCompatDataProc)SetAppCompatData_out)(Type, Value);
 }

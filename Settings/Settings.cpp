@@ -368,9 +368,6 @@ void Settings::SetDefaultConfigSettings()
 	// Set other default values
 	Config.LoopSleepTime = 120;
 	Config.WindowSleepTime = 500;
-	Config.ForceNonStaticBuffers = true;
-	Config.ForceVoiceManagement = true;
-	Config.ForceHQ3DSoftMixing = true;
 	Config.PrimaryBufferBits = 16;
 	Config.PrimaryBufferSamples = 44100;
 	Config.PrimaryBufferChannels = 2;
@@ -391,12 +388,12 @@ void CONFIG::Init()
 	GetModuleHandleEx(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT, (LPCTSTR)Settings::GetWrapperMode, &hModule);
 
 	// Get module name
-	char wrappername[MAX_PATH];
+	char wrappername[MAX_PATH] = { 0 };
 	GetModuleFileName(hModule, wrappername, MAX_PATH);
 	char* p_wName = strrchr(wrappername, '\\') + 1;
 
 	// Get process name
-	char processname[MAX_PATH];
+	char processname[MAX_PATH] = { 0 };
 	GetModuleFileName(nullptr, processname, MAX_PATH);
 	char* p_pName = strrchr(processname, '\\') + 1;
 
@@ -414,7 +411,7 @@ void CONFIG::Init()
 	for (char* p = wrappername; *p != '\0'; p++) { *p = (char)tolower(*p); }
 
 	// Get config path to include process name
-	char buffer[MAX_PATH];
+	char buffer[MAX_PATH] = { 0 };
 	strcpy_s(buffer, MAX_PATH, wrappername);
 	strcpy_s(strrchr(buffer, '.'), MAX_PATH - strlen(buffer), "-");
 	strcat_s(buffer, MAX_PATH, p_pName);

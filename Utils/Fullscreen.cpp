@@ -306,7 +306,7 @@ BOOL CALLBACK Fullscreen::EnumWindowsCallback(HWND hwnd, LPARAM lParam)
 	}
 
 	// Skip compatibility class windows
-	char class_name[80] = "";
+	char class_name[80] = { 0 };
 	GetClassName(hwnd, class_name, sizeof(class_name));
 	if (strcmp(class_name, "CompatWindowDesktopReplacement") == 0)			// Compatibility class windows
 	{
@@ -327,7 +327,7 @@ BOOL CALLBACK Fullscreen::EnumWindowsCallback(HWND hwnd, LPARAM lParam)
 	if (data.Debug)
 	{
 		++data.LayerNumber;
-		char buffer[7];
+		char buffer[7] = { 0 };
 		_itoa_s(data.LayerNumber, buffer, 10);
 		char* isMain = "";
 		if (IsMainWindow(hwnd))
@@ -336,7 +336,7 @@ BOOL CALLBACK Fullscreen::EnumWindowsCallback(HWND hwnd, LPARAM lParam)
 		}
 		if (WindowSize.Height != 0 && WindowSize.Width != 0)		// Filter out screens that are zero size
 		{
-			char buffer1[7], buffer2[7], buffer3[7], buffer4[7];
+			char buffer1[7] = { 0 }, buffer2[7] = { 0 }, buffer3[7] = { 0 }, buffer4[7] = { 0 };
 			_itoa_s(rect.left, buffer1, 10);
 			_itoa_s(rect.top, buffer2, 10);
 			_itoa_s(rect.right, buffer3, 10);
@@ -632,13 +632,14 @@ DWORD WINAPI Fullscreen::StartThreadFunc(LPVOID pvParam)
 // Create fullscreen thread
 void Fullscreen::StartThread()
 {
-	// Get dxwrapper path
-	char buffer[MAX_PATH];
-	GetModuleFileName(hModule_dll, buffer, MAX_PATH);
-
 	// Load dxwrapper to prevent program from unloading dll while thread is running
-	HMODULE dxwrapperhandle;
-	dxwrapperhandle = LoadLibrary(buffer);
+	if (Config.RealWrapperMode != dtype.dxwrapper)
+	{
+		char buffer[MAX_PATH] = { 0 };
+		GetModuleFileName(hModule_dll, buffer, MAX_PATH);
+		HMODULE dxwrapperhandle;
+		dxwrapperhandle = LoadLibrary(buffer);
+	}
 
 	// Start thread
 	CreateThread(nullptr, 0, StartThreadFunc, nullptr, 0, &m_dwThreadID);
@@ -682,7 +683,7 @@ void Fullscreen::MainFunc()
 	window_update LastFullscreenLoop;
 	screen_res WindowSize;
 	MONITORINFO mi = { sizeof(mi) };
-	char class_name[80] = "";
+	char class_name[80] = { 0 };
 	bool ChangeDetectedFlag = false;
 	bool NoChangeFromLastRunFlag = false;
 	bool HasNoMenu = false;
@@ -746,7 +747,7 @@ void Fullscreen::MainFunc()
 				if (CurrentLoop.ScreenSize != PreviousLoop.ScreenSize) Logging::Log() << "Found last-screen size does not match";
 
 				// Log windows coordinates
-				char buffer1[7], buffer2[7], buffer3[7], buffer4[7];
+				char buffer1[7] = { 0 }, buffer2[7] = { 0 }, buffer3[7] = { 0 }, buffer4[7] = { 0 };
 				_itoa_s(CurrentLoop.rect.left, buffer1, 10);
 				_itoa_s(CurrentLoop.rect.top, buffer2, 10);
 				_itoa_s(CurrentLoop.rect.right, buffer3, 10);
@@ -759,7 +760,7 @@ void Fullscreen::MainFunc()
 				GetWindowPlacement(CurrentLoop.hwnd, &wp);
 				if (wp.showCmd)
 				{
-					char buffer[MAX_PATH] = "";
+					char buffer[MAX_PATH] = { 0 };
 					strcat_s(buffer, MAX_PATH, "Window has following flags: ");
 					if (wp.showCmd & SW_HIDE) strcat_s(buffer, MAX_PATH, " SW_HIDE");
 					if (wp.showCmd & SW_MAXIMIZE) strcat_s(buffer, MAX_PATH, " SW_MAXIMIZE");
@@ -783,7 +784,7 @@ void Fullscreen::MainFunc()
 #ifdef FULLSCREENLOG
 				// Debug the window
 				Logging::Log() << "Entering change detected loop";
-				char buffer1[7], buffer2[7], buffer3[7], buffer4[7];
+				char buffer1[7] = { 0 }, buffer2[7] = { 0 }, buffer3[7] = { 0 }, buffer4[7] = { 0 };
 				_itoa_s(CurrentLoop.rect.left, buffer1, 10);
 				_itoa_s(CurrentLoop.rect.top, buffer2, 10);
 				_itoa_s(CurrentLoop.rect.right, buffer3, 10);
@@ -812,7 +813,7 @@ void Fullscreen::MainFunc()
 						{
 #ifdef FULLSCREENLOG
 							// Debug the screen resolution
-							char buffer5[7], buffer6[7];
+							char buffer5[7] = { 0 }, buffer6[7] = { 0 };
 							_itoa_s(WindowSize.Width, buffer5, 10);
 							_itoa_s(WindowSize.Height, buffer6, 10);
 							Logging::Log() << "Changing resolution on window size " << buffer5 << "x" << buffer6 << " layer: " << class_name;

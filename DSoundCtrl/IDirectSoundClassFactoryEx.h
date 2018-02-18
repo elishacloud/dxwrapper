@@ -40,19 +40,6 @@ extern void LogMessage(const char* szClassName, void* pInstance, char* szMessage
 extern bool	g_bLogSystem;
 #endif // _DEBUG
 
-
-#ifdef __cplusplus
-extern "C" {  // only need to export C interface if
-			  // used by C++ source code
-#endif
-
-	extern DirectSoundCreatefunc g_pDirectSoundCreate;
-	extern DirectSoundCreate8func g_pDirectSoundCreate8;
-
-#ifdef __cplusplus
-}
-#endif
-
 class IDirectSoundClassFactoryEx : public IClassFactory
 {
 public:

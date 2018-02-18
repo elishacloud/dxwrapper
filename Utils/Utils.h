@@ -11,6 +11,13 @@ namespace Utils
 	void DisableHighDPIScaling();
 	void SetProcessAffinity();
 	void SetAppCompat();
+	FARPROC GetProcAddress(HMODULE hModule, LPCSTR FunctionName, FARPROC SetReturnValue);
+	extern FARPROC pGetProcAddress;
+	FARPROC WINAPI GetProcAddressHandler(HMODULE hModule, LPSTR lpProcName);
+	extern FARPROC pGetModuleFileNameA;
+	extern FARPROC pGetModuleFileNameW;
+	DWORD WINAPI GetModuleFileNameAHandler(HMODULE hModule, LPSTR lpFilename, DWORD nSize);
+	DWORD WINAPI GetModuleFileNameWHandler(HMODULE hModule, LPWSTR lpFilename, DWORD nSize);
 	void HookExceptionHandler();
 	void UnHookExceptionHandler();
 	void AddHandleToVector(HMODULE dll, const char *name);

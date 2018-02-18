@@ -28,6 +28,7 @@
 
 #include "Settings\Settings.h"
 #include "Dllmain\Dllmain.h"
+#include "Wrappers\wrapper.h"
 extern "C"
 {
 #include "Disasm\disasm.h"
@@ -38,6 +39,9 @@ extern "C"
 
 #undef LoadLibrary
 
+typedef FARPROC(WINAPI *GetProcAddressProc)(HMODULE, LPSTR);
+typedef DWORD(WINAPI *GetModuleFileNameAProc)(HMODULE, LPSTR, DWORD);
+typedef DWORD(WINAPI *GetModuleFileNameWProc)(HMODULE, LPWSTR, DWORD);
 typedef HRESULT(__stdcall *SetAppCompatDataFunc)(DWORD, DWORD);
 typedef LPTOP_LEVEL_EXCEPTION_FILTER(WINAPI *PFN_SetUnhandledExceptionFilter)(LPTOP_LEVEL_EXCEPTION_FILTER);
 
@@ -52,6 +56,9 @@ namespace Utils
 	};
 
 	// Declare varables
+	FARPROC pGetProcAddress = nullptr;
+	FARPROC pGetModuleFileNameA = nullptr;
+	FARPROC pGetModuleFileNameW = nullptr;
 	std::vector<type_dll> custom_dll;		// Used for custom dll's and asi plugins
 	LPTOP_LEVEL_EXCEPTION_FILTER pOriginalSetUnhandledExceptionFilter = SetUnhandledExceptionFilter((LPTOP_LEVEL_EXCEPTION_FILTER)EXCEPTION_CONTINUE_EXECUTION);
 	PFN_SetUnhandledExceptionFilter pSetUnhandledExceptionFilter = reinterpret_cast<PFN_SetUnhandledExceptionFilter>(SetUnhandledExceptionFilter);
@@ -177,6 +184,106 @@ void Utils::SetAppCompat()
 	}
 }
 
+FARPROC Utils::GetProcAddress(HMODULE hModule, LPCSTR lpProcName, FARPROC SetReturnValue)
+{
+	if (!lpProcName || !hModule)
+	{
+		return SetReturnValue;
+	}
+
+	FARPROC ProcAddress = GetProcAddress(hModule, lpProcName);
+
+	if (!ProcAddress)
+	{
+		ProcAddress = SetReturnValue;
+	}
+
+	return ProcAddress;
+}
+
+// Update GetProcAddress to check for bad addresses
+FARPROC WINAPI Utils::GetProcAddressHandler(HMODULE hModule, LPSTR lpProcName)
+{
+	FARPROC ProAddr = nullptr;
+
+	FARPROC t_pGetProcAddress = nullptr;
+	InterlockedExchangePointer((PVOID*)&t_pGetProcAddress, pGetProcAddress);
+	if (t_pGetProcAddress)
+	{
+		ProAddr = ((GetProcAddressProc)t_pGetProcAddress)(hModule, lpProcName);
+	}
+	if (ProAddr == nullptr)
+	{
+		SetLastError(127);
+	}
+	else if (!(Wrapper::ValidProcAddress(ProAddr)))
+	{
+		Logging::Log() << "Found jmpaddr!";
+		ProAddr = nullptr;
+		SetLastError(127);
+	}
+
+	return ProAddr;
+}
+
+// Update GetModuleFileNameA to fix module name
+DWORD WINAPI Utils::GetModuleFileNameAHandler(HMODULE hModule, LPSTR lpFilename, DWORD nSize)
+{
+	FARPROC t_pGetModuleFileNameA = nullptr;
+	InterlockedExchangePointer((PVOID*)&t_pGetModuleFileNameA, pGetModuleFileNameA);
+	if (t_pGetModuleFileNameA)
+	{
+		if (hModule == hModule_dll && Config.RealWrapperMode == dtype.dxwrapper)
+		{
+			hModule = nullptr;
+			DWORD lSize = ((GetModuleFileNameAProc)t_pGetModuleFileNameA)(hModule, lpFilename, nSize);
+			char *pdest = strrchr(lpFilename, '\\');
+			if (pdest && lSize > 0 && nSize - lSize + strlen(dtypename[dtype.dxwrapper]) > 0)
+			{
+				strcpy_s(pdest + 1, nSize - lSize, dtypename[dtype.dxwrapper]);
+				return nSize - lSize + strlen(dtypename[dtype.dxwrapper]);
+			}
+			return lSize;
+		}
+		else
+		{
+			return ((GetModuleFileNameAProc)t_pGetModuleFileNameA)(hModule, lpFilename, nSize);
+		}
+	}
+	SetLastError(5);
+	return 0;
+}
+
+// Update GetModuleFileNameW to fix module name
+DWORD WINAPI Utils::GetModuleFileNameWHandler(HMODULE hModule, LPWSTR lpFilename, DWORD nSize)
+{
+	FARPROC t_pGetModuleFileNameW = nullptr;
+	InterlockedExchangePointer((PVOID*)&t_pGetModuleFileNameW, pGetModuleFileNameW);
+	if (t_pGetModuleFileNameW)
+	{
+		if (hModule == hModule_dll && Config.RealWrapperMode == dtype.dxwrapper)
+		{
+			hModule = nullptr;
+			DWORD lSize = ((GetModuleFileNameWProc)t_pGetModuleFileNameW)(hModule, lpFilename, nSize);
+			wchar_t *pdest = wcsrchr(lpFilename, '\\');
+			std::string str(dtypename[dtype.dxwrapper]);
+			std::wstring wrappername(str.begin(), str.end());
+			if (pdest && lSize > 0 && nSize - lSize + strlen(dtypename[dtype.dxwrapper]) > 0)
+			{
+				wcscpy_s(pdest + 1, nSize - lSize, &wrappername[0]);
+				return nSize - lSize + strlen(dtypename[dtype.dxwrapper]);
+			}
+			return lSize;
+		}
+		else
+		{
+			return ((GetModuleFileNameWProc)t_pGetModuleFileNameW)(hModule, lpFilename, nSize);
+		}
+	}
+	SetLastError(5);
+	return 0;
+}
+
 // Add filter for UnhandledExceptionFilter used by the exception handler to catch exceptions
 LONG WINAPI Utils::myUnhandledExceptionFilter(LPEXCEPTION_POINTERS ExceptionInfo)
 {
@@ -239,11 +346,17 @@ void Utils::HookExceptionHandler(void)
 	void *tmp;
 
 	Logging::Log() << "Set exception handler";
+	HMODULE dll = LoadLibrary("kernel32.dll");
+	if (!dll)
+	{
+		Logging::Log() << "Failed to load kernel32.dll!";
+		return;
+	}
 	// override default exception handler, if any....
 	LONG WINAPI myUnhandledExceptionFilter(LPEXCEPTION_POINTERS);
-	tmp = Hook::HookAPI(hModule_dll, "KERNEL32.dll", UnhandledExceptionFilter, "UnhandledExceptionFilter", myUnhandledExceptionFilter);
+	tmp = Hook::HookAPI(dll, "kernel32.dll", UnhandledExceptionFilter, "UnhandledExceptionFilter", myUnhandledExceptionFilter);
 	// so far, no need to save the previous handler, but anyway...
-	tmp = Hook::HookAPI(hModule_dll, "KERNEL32.dll", SetUnhandledExceptionFilter, "SetUnhandledExceptionFilter", extSetUnhandledExceptionFilter);
+	tmp = Hook::HookAPI(dll, "kernel32.dll", SetUnhandledExceptionFilter, "SetUnhandledExceptionFilter", extSetUnhandledExceptionFilter);
 	if (tmp)
 	{
 		pSetUnhandledExceptionFilter = reinterpret_cast<PFN_SetUnhandledExceptionFilter>(tmp);
@@ -251,6 +364,7 @@ void Utils::HookExceptionHandler(void)
 
 	SetErrorMode(SEM_NOGPFAULTERRORBOX | SEM_NOOPENFILEERRORBOX | SEM_FAILCRITICALERRORS);
 	pSetUnhandledExceptionFilter((LPTOP_LEVEL_EXCEPTION_FILTER)myUnhandledExceptionFilter);
+	Logging::Log() << "Finished setting exception handler";
 }
 
 // Unhooks the exception handler
@@ -281,7 +395,7 @@ HMODULE Utils::LoadLibrary(const char *dllname, bool EnableLogging)
 	// Declare vars
 	HMODULE dll = nullptr;
 	const char *loadpath;
-	char path[MAX_PATH];
+	char path[MAX_PATH] = { 0 };
 
 	// Check if dll is already loaded
 	for (size_t x = 0; x < custom_dll.size(); x++)
@@ -397,10 +511,10 @@ void Utils::LoadPlugins()
 {
 	Logging::Log() << "Loading ASI Plugins";
 
-	char oldDir[MAX_PATH]; // store the current directory
+	char oldDir[MAX_PATH] = { 0 }; // store the current directory
 	GetCurrentDirectory(MAX_PATH, oldDir);
 
-	char selfPath[MAX_PATH];
+	char selfPath[MAX_PATH] = { 0 };
 	HMODULE hModule = NULL;
 	GetModuleHandleEx(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT, (LPCTSTR)Utils::LoadPlugins, &hModule);
 	GetModuleFileName(hModule, selfPath, MAX_PATH);

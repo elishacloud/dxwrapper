@@ -83,6 +83,7 @@ void *Hook::HookAPI(HMODULE module, const char *dll, void *apiproc, const char *
 	}
 
 	// Return default address
+	Logging::Log() << "HookAPI: Failed to hook '" << apiname << "'";
 	return apiproc;
 }
 

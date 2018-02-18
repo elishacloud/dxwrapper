@@ -1,5 +1,7 @@
 #pragma once
 
+#include <vector>
+
 namespace ShardProcs
 {
 	extern FARPROC DllCanUnloadNow_var;
@@ -35,6 +37,7 @@ namespace d3d8
 {
 	extern FARPROC Direct3D8EnableMaximizedWindowedModeShim_var;
 	extern FARPROC Direct3DCreate8_var;
+	HMODULE Load(const char *strName);
 }
 namespace d3d9
 {
@@ -52,15 +55,27 @@ namespace d3d9
 	extern FARPROC Direct3D9EnableMaximizedWindowedModeShim_var;
 	extern FARPROC Direct3DCreate9_var;
 	extern FARPROC Direct3DCreate9Ex_var;
+	HMODULE Load(const char *strName);
 }
 namespace dsound
 {
 	extern FARPROC DirectSoundCreate_var;
 	extern FARPROC DirectSoundCreate8_var;
+	extern FARPROC GetDeviceID_var;
+	extern FARPROC DirectSoundEnumerateA_var;
+	extern FARPROC DirectSoundEnumerateW_var;
+	extern FARPROC DirectSoundCaptureCreate_var;
+	extern FARPROC DirectSoundCaptureEnumerateA_var;
+	extern FARPROC DirectSoundCaptureEnumerateW_var;
+	extern FARPROC DirectSoundCaptureCreate8_var;
+	extern FARPROC DirectSoundFullDuplexCreate_var;
+	extern FARPROC DllGetClassObject_var;
+	extern FARPROC DllCanUnloadNow_var;
 	HMODULE Load(const char *strName);
 }
 namespace Wrapper
 {
+	bool ValidProcAddress(FARPROC ProcAddress);
+	void ShimProc(FARPROC &var, FARPROC in, FARPROC &out);
 	HMODULE CreateWrapper(const char *ProxyDll, const char *WrapperMode);
-	FARPROC GetProcAddress(HMODULE hModule, LPCSTR FunctionName, FARPROC SetReturnValue);
 }

@@ -58,6 +58,7 @@ namespace ShardProcs
 {
 	using namespace Wrapper;
 	VISIT_PROCS(ADD_FARPROC_MEMBER);
+	VISIT_PROCS(CREATE_PROC_STUB);
 	void Load(HMODULE dll)
 	{
 		if (dll)
@@ -65,7 +66,10 @@ namespace ShardProcs
 			VISIT_PROCS(LOAD_ORIGINAL_PROC);
 		}
 	}
-	VISIT_PROCS(CREATE_PROC_STUB)
+	void AddToArray()
+	{
+		VISIT_PROCS(STORE_ORIGINAL_PROC);
+	}
 }
 
 #undef VISIT_PROCS

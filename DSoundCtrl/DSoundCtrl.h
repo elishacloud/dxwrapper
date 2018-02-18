@@ -23,29 +23,6 @@
 
 #pragma once
 
-#ifdef __cplusplus
-
-extern "C" {  // only need to export C interface if
-			  // used by C++ source code
-#endif
-
-	DirectSoundCreate8func g_pDirectSoundCreate8 = nullptr;
-	DirectSoundCreatefunc g_pDirectSoundCreate = nullptr;
-	GetDeviceIDfunc g_pGetDeviceIDfunc = nullptr;
-	DirectSoundEnumerateAfunc g_pDirectSoundEnumerateAfunc = nullptr;
-	DirectSoundEnumerateWfunc g_pDirectSoundEnumerateWfunc = nullptr;
-	DirectSoundCaptureCreatefunc g_pDirectSoundCaptureCreatefunc = nullptr;
-	DirectSoundCaptureEnumerateAfunc g_pDirectSoundCaptureEnumerateAfunc = nullptr;
-	DirectSoundCaptureEnumerateWfunc g_pDirectSoundCaptureEnumerateWfunc = nullptr;
-	DirectSoundCaptureCreate8func g_pDirectSoundCaptureCreate8func = nullptr;
-	DirectSoundFullDuplexCreatefunc g_pDirectSoundFullDuplexCreatefunc = nullptr;
-	DllGetClassObjectfunc g_pDllGetClassObjectfunc = nullptr;
-	DllCanUnloadNowfunc g_pDllCanUnloadNowfunc = nullptr;
-
-#ifdef __cplusplus
-}
-#endif
-
 #include "IDirectSoundEx.h"
 #include "IDirectSoundBufferEx.h"
 
@@ -94,7 +71,7 @@ public:
 
 	// Overrides
 public:
-	virtual BOOL InitInstance(HMODULE hModule);
+	virtual BOOL InitInstance();
 
 #ifdef _DEBUG
 	bool EnumCallback(LPGUID  lpGuid, LPCSTR  lpcstrDescription, LPCSTR  lpcstrModule);

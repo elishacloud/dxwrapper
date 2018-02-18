@@ -16,14 +16,58 @@
 
 #define WIN32_LEAN_AND_MEAN
 #include <Windows.h>
+#include <algorithm>
 #include <fstream>
 #include "wrapper.h"
+
+#define VISIT_DLLS(visit) \
+	visit(bcrypt) \
+	visit(cryptsp) \
+	visit(d2d1) \
+	visit(d3d8) \
+	visit(d3d9) \
+	visit(d3d10) \
+	visit(d3d10core) \
+	visit(d3d11) \
+	visit(d3d12) \
+	visit(d3dim) \
+	visit(d3dim700) \
+	visit(dciman32) \
+	visit(ddraw) \
+	visit(dinput) \
+	visit(dinput8) \
+	visit(dplayx) \
+	visit(dsound) \
+	visit(dxgi) \
+	visit(msacm32) \
+	visit(msvfw32) \
+	visit(vorbisfile) \
+	visit(winspool) \
+	visit(xlive)
+
+#define CHECK_FOR_WRAPPER(dllName) \
+	{ using namespace dllName; if (_strcmpi(WrapperMode, Name) == 0) { dll = Load(ProxyDll); return dll; }}
+
+#define ADD_PROC_TO_ARRAY(dllName) \
+	dllName::AddToArray();
+
+#define	STORE_ORIGINAL_PROC(procName, prodAddr) \
+	{ \
+		wrapper_map tmpMap; \
+		tmpMap.Proc = (FARPROC)*(procName); \
+		tmpMap.val = &(procName ## _var); \
+		jmpArray.push_back(tmpMap); \
+	}
 
 #define ADD_FARPROC_MEMBER(procName, unused) \
 	FARPROC procName ## _var = jmpaddr;
 
 #define	LOAD_ORIGINAL_PROC(procName, prodAddr) \
-	procName ## _var = GetProcAddress(dll, #procName, prodAddr);
+	procName ## _var = GetProcAddress(dll, #procName); \
+	if (procName ## _var == nullptr) \
+	{ \
+		procName ## _var =  prodAddr; \
+	}
 
 #define CREATE_PROC_STUB(procName, unused) \
 	extern "C" __declspec(naked) void __stdcall procName() \
@@ -38,6 +82,7 @@
 		using namespace Wrapper; \
 		char *Name = #className ## "." ## #Extension; \
 		VISIT_PROCS(ADD_FARPROC_MEMBER); \
+		VISIT_PROCS(CREATE_PROC_STUB); \
 		HMODULE Load(const char *strName) \
 		{ \
 			char path[MAX_PATH]; \
@@ -60,8 +105,17 @@
 			} \
 			return dll; \
 		} \
-		VISIT_PROCS(CREATE_PROC_STUB) \
+		void AddToArray() \
+		{ \
+			VISIT_PROCS(STORE_ORIGINAL_PROC); \
+		} \
 	}
+
+struct wrapper_map
+{
+	FARPROC Proc;
+	FARPROC *val;
+};
 
 namespace Wrapper
 {
@@ -69,6 +123,7 @@ namespace Wrapper
 	HRESULT __stdcall _jmpaddrvoid();
 	constexpr FARPROC jmpaddr = (FARPROC)*_jmpaddr;
 	constexpr FARPROC jmpaddrvoid = (FARPROC)*_jmpaddrvoid;
+	std::vector<wrapper_map> jmpArray;
 }
 
 // Shared procs
@@ -117,21 +172,30 @@ __declspec(naked) HRESULT __stdcall Wrapper::_jmpaddr()
 	}
 }
 
-FARPROC Wrapper::GetProcAddress(HMODULE hModule, LPCSTR FunctionName, FARPROC SetReturnValue)
+bool Wrapper::ValidProcAddress(FARPROC ProcAddress)
 {
-	if (!FunctionName || !hModule)
+	for (wrapper_map i : jmpArray)
 	{
-		return SetReturnValue;
+		if (i.Proc == ProcAddress)
+		{
+			if (*(i.val) == jmpaddr || *(i.val) == jmpaddrvoid || *(i.val) == nullptr)
+			{
+				return false;
+			}
+		}
 	}
+	return (ProcAddress != nullptr &&
+		ProcAddress != jmpaddr &&
+		ProcAddress != jmpaddrvoid);
+}
 
-	FARPROC ProcAddress = GetProcAddress(hModule, FunctionName);
-
-	if (!ProcAddress)
+void Wrapper::ShimProc(FARPROC &var, FARPROC in, FARPROC &out)
+{
+	if (ValidProcAddress(var))
 	{
-		ProcAddress = SetReturnValue;
+		out = var;
+		var = in;
 	}
-
-	return ProcAddress;
 }
 
 HMODULE Wrapper::CreateWrapper(const char *ProxyDll, const char *WrapperMode)
@@ -139,30 +203,12 @@ HMODULE Wrapper::CreateWrapper(const char *ProxyDll, const char *WrapperMode)
 	// Declare vars
 	HMODULE dll = nullptr;
 
+	// Add all procs to array
+	VISIT_DLLS(ADD_PROC_TO_ARRAY);
+	ShardProcs::AddToArray();
+
 	// Check dll name and load correct wrapper
-	{ using namespace bcrypt; if (_strcmpi(WrapperMode, Name) == 0) dll = Load(ProxyDll); }
-	{ using namespace cryptsp; if (_strcmpi(WrapperMode, Name) == 0) dll = Load(ProxyDll); }
-	{ using namespace d2d1; if (_strcmpi(WrapperMode, Name) == 0) dll = Load(ProxyDll); }
-	{ using namespace d3d8; if (_strcmpi(WrapperMode, Name) == 0) dll = Load(ProxyDll); }
-	{ using namespace d3d9; if (_strcmpi(WrapperMode, Name) == 0) dll = Load(ProxyDll); }
-	{ using namespace d3d10; if (_strcmpi(WrapperMode, Name) == 0) dll = Load(ProxyDll); }
-	{ using namespace d3d10core; if (_strcmpi(WrapperMode, Name) == 0) dll = Load(ProxyDll); }
-	{ using namespace d3d11; if (_strcmpi(WrapperMode, Name) == 0) dll = Load(ProxyDll); }
-	{ using namespace d3d12; if (_strcmpi(WrapperMode, Name) == 0) dll = Load(ProxyDll); }
-	{ using namespace d3dim; if (_strcmpi(WrapperMode, Name) == 0) dll = Load(ProxyDll); }
-	{ using namespace d3dim700; if (_strcmpi(WrapperMode, Name) == 0) dll = Load(ProxyDll); }
-	{ using namespace dciman32; if (_strcmpi(WrapperMode, Name) == 0) dll = Load(ProxyDll); }
-	{ using namespace ddraw; if (_strcmpi(WrapperMode, Name) == 0) dll = Load(ProxyDll); }
-	{ using namespace dinput; if (_strcmpi(WrapperMode, Name) == 0) dll = Load(ProxyDll); }
-	{ using namespace dinput8; if (_strcmpi(WrapperMode, Name) == 0) dll = Load(ProxyDll); }
-	{ using namespace dplayx; if (_strcmpi(WrapperMode, Name) == 0) dll = Load(ProxyDll); }
-	{ using namespace dsound; if (_strcmpi(WrapperMode, Name) == 0) dll = Load(ProxyDll); }
-	{ using namespace dxgi; if (_strcmpi(WrapperMode, Name) == 0) dll = Load(ProxyDll); }
-	{ using namespace msacm32; if (_strcmpi(WrapperMode, Name) == 0) dll = Load(ProxyDll); }
-	{ using namespace msvfw32; if (_strcmpi(WrapperMode, Name) == 0) dll = Load(ProxyDll); }
-	{ using namespace vorbisfile; if (_strcmpi(WrapperMode, Name) == 0) dll = Load(ProxyDll); }
-	{ using namespace winspool; if (_strcmpi(WrapperMode, Name) == 0) dll = Load(ProxyDll); }
-	{ using namespace xlive; if (_strcmpi(WrapperMode, Name) == 0) dll = Load(ProxyDll); }
+	VISIT_DLLS(CHECK_FOR_WRAPPER);
 
 	// Special for winmm.dll because sometimes it is changed to win32 or winnm or some other name
 	if (strlen(WrapperMode) > 8)
@@ -181,7 +227,7 @@ HMODULE Wrapper::CreateWrapper(const char *ProxyDll, const char *WrapperMode)
 		}
 	}
 	// Special for winmmbase.dll because it is sharing procs from winmm
-	{ using namespace winmm; if (_strcmpi(WrapperMode, "winmmbase.dll") == 0) { Name = "winmmbase.dll";  dll = Load(ProxyDll); }}
+	{ using namespace winmm; if (_strcmpi(WrapperMode, "winmmbase.dll") == 0) { Name = "winmmbase.dll";  dll = Load(ProxyDll); return dll; }}
 
 	// Exit and return handle
 	return dll;

@@ -49,11 +49,6 @@ void *Hook::HotPatch(void *apiproc, const char *apiname, void *hookproc, bool fo
 	Logging::LogFormat("HotPatch: api=%s addr=%p hook=%p", apiname, apiproc, hookproc);
 #endif
 
-	if (!strcmp(apiname, "GetProcAddress"))
-	{
-		return 0; // do not mess with this one!
-	}
-
 	patch_address = ((BYTE *)apiproc) - 5;
 	orig_address = (BYTE *)apiproc + 2;
 
@@ -187,11 +182,6 @@ bool Hook::UnhookHotPatch(void *apiproc, const char *apiname, void *hookproc)
 #ifdef _DEBUG
 	Logging::LogFormat("UnhookHotPatch: api=%s addr=%p hook=%p", apiname, apiproc, hookproc);
 #endif
-
-	if (!strcmp(apiname, "GetProcAddress"))
-	{
-		return false; // do not mess with this one!
-	}
 
 	patch_address = ((BYTE *)apiproc) - 5;
 	orig_address = (BYTE *)apiproc + 2;

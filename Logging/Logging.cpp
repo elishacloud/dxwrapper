@@ -51,7 +51,7 @@ void Logging::LogFormat(char * fmt, ...)
 void Logging::LogProcessNameAndPID()
 {
 	// Get process name
-	char exepath[MAX_PATH];
+	char exepath[MAX_PATH] = { 0 };
 	GetModuleFileName(nullptr, exepath, MAX_PATH);
 
 	// Remove path and add process name
@@ -72,7 +72,7 @@ void Logging::GetOsVersion(RTL_OSVERSIONINFOEXW* pk_OsVer)
 	pk_OsVer->dwBuildNumber = 0;
 
 	// Load ntdll.dll
-	HMODULE Module = ::LoadLibraryA("ntdll.dll");
+	HMODULE Module = LoadLibrary("ntdll.dll");
 	if (!Module)
 	{
 		Log() << "Failed to load ntdll.dll!";
@@ -88,9 +88,6 @@ void Logging::GetOsVersion(RTL_OSVERSIONINFOEXW* pk_OsVer)
 	{
 		f_RtlGetVersion(pk_OsVer);
 	}
-
-	// Unload ntdll.dll
-	FreeLibrary(Module);
 }
 
 // Get Windows Operating System version number from the registry
@@ -132,7 +129,7 @@ void Logging::GetVersionFile(OSVERSIONINFO *oOS_version)
 	oOS_version->dwBuildNumber = 0;
 
 	// Load version.dll
-	HMODULE Module = ::LoadLibraryA("version.dll");
+	HMODULE Module = LoadLibrary("version.dll");
 	if (!Module)
 	{
 		Log() << "Failed to load version.dll!";
@@ -166,7 +163,7 @@ void Logging::GetVersionFile(OSVERSIONINFO *oOS_version)
 	}
 
 	// Get kernel32.dll path
-	char buffer[MAX_PATH];
+	char buffer[MAX_PATH] = { 0 };
 	GetSystemDirectory(buffer, MAX_PATH);
 	strcat_s(buffer, MAX_PATH, "\\kernel32.dll");
 
@@ -200,7 +197,6 @@ void Logging::GetVersionFile(OSVERSIONINFO *oOS_version)
 			}
 		}
 	}
-	FreeLibrary(Module);
 }
 
 // Log Windows Operating System type
