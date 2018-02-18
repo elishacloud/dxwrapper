@@ -206,11 +206,9 @@ FARPROC WINAPI Utils::GetProcAddressHandler(HMODULE hModule, LPSTR lpProcName)
 {
 	FARPROC ProAddr = nullptr;
 
-	FARPROC t_pGetProcAddress = nullptr;
-	InterlockedExchangePointer((PVOID*)&t_pGetProcAddress, pGetProcAddress);
-	if (t_pGetProcAddress)
+	if (InterlockedCompareExchangePointer((PVOID*)&pGetProcAddress, nullptr, nullptr))
 	{
-		ProAddr = ((GetProcAddressProc)t_pGetProcAddress)(hModule, lpProcName);
+		ProAddr = ((GetProcAddressProc)InterlockedCompareExchangePointer((PVOID*)&pGetProcAddress, nullptr, nullptr))(hModule, lpProcName);
 	}
 	if (ProAddr == nullptr)
 	{
@@ -229,14 +227,12 @@ FARPROC WINAPI Utils::GetProcAddressHandler(HMODULE hModule, LPSTR lpProcName)
 // Update GetModuleFileNameA to fix module name
 DWORD WINAPI Utils::GetModuleFileNameAHandler(HMODULE hModule, LPSTR lpFilename, DWORD nSize)
 {
-	FARPROC t_pGetModuleFileNameA = nullptr;
-	InterlockedExchangePointer((PVOID*)&t_pGetModuleFileNameA, pGetModuleFileNameA);
-	if (t_pGetModuleFileNameA)
+	if (InterlockedCompareExchangePointer((PVOID*)&pGetModuleFileNameA, nullptr, nullptr))
 	{
 		if (hModule == hModule_dll && Config.RealWrapperMode == dtype.dxwrapper)
 		{
 			hModule = nullptr;
-			DWORD lSize = ((GetModuleFileNameAProc)t_pGetModuleFileNameA)(hModule, lpFilename, nSize);
+			DWORD lSize = ((GetModuleFileNameAProc)InterlockedCompareExchangePointer((PVOID*)&pGetModuleFileNameA, nullptr, nullptr))(hModule, lpFilename, nSize);
 			char *pdest = strrchr(lpFilename, '\\');
 			if (pdest && lSize > 0 && nSize - lSize + strlen(dtypename[dtype.dxwrapper]) > 0)
 			{
@@ -247,7 +243,7 @@ DWORD WINAPI Utils::GetModuleFileNameAHandler(HMODULE hModule, LPSTR lpFilename,
 		}
 		else
 		{
-			return ((GetModuleFileNameAProc)t_pGetModuleFileNameA)(hModule, lpFilename, nSize);
+			return ((GetModuleFileNameAProc)InterlockedCompareExchangePointer((PVOID*)&pGetModuleFileNameA, nullptr, nullptr))(hModule, lpFilename, nSize);
 		}
 	}
 	SetLastError(5);
@@ -257,14 +253,12 @@ DWORD WINAPI Utils::GetModuleFileNameAHandler(HMODULE hModule, LPSTR lpFilename,
 // Update GetModuleFileNameW to fix module name
 DWORD WINAPI Utils::GetModuleFileNameWHandler(HMODULE hModule, LPWSTR lpFilename, DWORD nSize)
 {
-	FARPROC t_pGetModuleFileNameW = nullptr;
-	InterlockedExchangePointer((PVOID*)&t_pGetModuleFileNameW, pGetModuleFileNameW);
-	if (t_pGetModuleFileNameW)
+	if (InterlockedCompareExchangePointer((PVOID*)&pGetModuleFileNameW, nullptr, nullptr))
 	{
 		if (hModule == hModule_dll && Config.RealWrapperMode == dtype.dxwrapper)
 		{
 			hModule = nullptr;
-			DWORD lSize = ((GetModuleFileNameWProc)t_pGetModuleFileNameW)(hModule, lpFilename, nSize);
+			DWORD lSize = ((GetModuleFileNameWProc)InterlockedCompareExchangePointer((PVOID*)&pGetModuleFileNameW, nullptr, nullptr))(hModule, lpFilename, nSize);
 			wchar_t *pdest = wcsrchr(lpFilename, '\\');
 			std::string str(dtypename[dtype.dxwrapper]);
 			std::wstring wrappername(str.begin(), str.end());
@@ -277,7 +271,7 @@ DWORD WINAPI Utils::GetModuleFileNameWHandler(HMODULE hModule, LPWSTR lpFilename
 		}
 		else
 		{
-			return ((GetModuleFileNameWProc)t_pGetModuleFileNameW)(hModule, lpFilename, nSize);
+			return ((GetModuleFileNameWProc)InterlockedCompareExchangePointer((PVOID*)&pGetModuleFileNameW, nullptr, nullptr))(hModule, lpFilename, nSize);
 		}
 	}
 	SetLastError(5);

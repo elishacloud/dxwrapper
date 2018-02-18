@@ -231,7 +231,7 @@ BOOL WINAPI ds_DSDLLEnumCallbackA(LPGUID lpGuid, LPCSTR lpcstrDescription, LPCST
 
 	if (!Wrapper::ValidProcAddress((FARPROC)g_pAppDSEnumCallbackA))
 	{
-		return E_NOTIMPL;
+		return false;
 	}
 
 	return g_pAppDSEnumCallbackA(lpGuid, lpcstrDescription, lpcstrModule, lpContext);
@@ -250,7 +250,7 @@ BOOL WINAPI ds_DSDLLEnumCallbackW(LPGUID lpGuid, LPCWSTR lpcstrDescription, LPCW
 
 	if (!Wrapper::ValidProcAddress((FARPROC)g_pAppDSEnumCallbackW))
 	{
-		return E_NOTIMPL;
+		return false;
 	}
 
 	return g_pAppDSEnumCallbackW(lpGuid, lpcstrDescription, lpcstrModule, lpContext);
