@@ -41,13 +41,13 @@
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <OutDir>$(SolutionDir)bin\$(Configuration)\</OutDir>
-    <IntDir>$(SolutionDir)bin\Object\$(Configuration)\dxwrapper\</IntDir>
+    <IntDir>$(SolutionDir)bin\Intermediate\$(Configuration)\dxwrapper\</IntDir>
     <IncludePath>$(ProjectDir);libraries;Dllmain;DDrawCompat\v0.2.1;DxWnd\v2_03_60_src;C:\Program Files (x86)\Microsoft Research\Detours Express 3.0\include;$(IncludePath);C:\Program Files (x86)\Windows Kits\dx8sdk\include</IncludePath>
     <LibraryPath>$(DXSDK_DIR)\Lib\x86;C:\Program Files (x86)\Microsoft Research\Detours Express 3.0\lib.X86;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <OutDir>$(SolutionDir)bin\$(Configuration)\</OutDir>
-    <IntDir>$(SolutionDir)bin\Object\$(Configuration)\dxwrapper\</IntDir>
+    <IntDir>$(SolutionDir)bin\Intermediate\$(Configuration)\dxwrapper\</IntDir>
     <IncludePath>$(ProjectDir);libraries;Dllmain;DDrawCompat\v0.2.1;DxWnd\v2_03_60_src;C:\Program Files (x86)\Microsoft Research\Detours Express 3.0\include;$(IncludePath);C:\Program Files (x86)\Windows Kits\dx8sdk\include</IncludePath>
     <LibraryPath>$(DXSDK_DIR)\Lib\x86;C:\Program Files (x86)\Microsoft Research\Detours Express 3.0\lib.X86;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
@@ -55,7 +55,7 @@
     <ClCompile>
       <PreprocessorDefinitions>WIN32;_DEBUG;_WINDOWS;_USRDLL;FULLSCREENLOG;WRAPPERLOGGING;DDRAWCOMPATLOG;DDRAWCOMPAT_EXPORTS;D3D8TO9NOLOG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
-      <ObjectFileName>$(SolutionDir)bin\Object\$(Configuration)\%(RelativeDir)</ObjectFileName>
+      <ObjectFileName>$(SolutionDir)bin\Intermediate\$(Configuration)\Object\%(RelativeDir)</ObjectFileName>
       <WarningLevel>Level4</WarningLevel>
       <BufferSecurityCheck>false</BufferSecurityCheck>
     </ClCompile>
@@ -79,7 +79,7 @@ copy /Y "$(ProjectDir)Resources\dxwnd.exe" "$(TargetDir)Build\" &gt;nul</Command
     <ClCompile>
       <PreprocessorDefinitions>WIN32;NDEBUG;_WINDOWS;_USRDLL;D3D8TO9NOLOG;DDRAWCOMPAT_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
-      <ObjectFileName>$(SolutionDir)bin\Object\$(Configuration)\%(RelativeDir)</ObjectFileName>
+      <ObjectFileName>$(SolutionDir)bin\Intermediate\$(Configuration)\Object\%(RelativeDir)</ObjectFileName>
       <WarningLevel>Level4</WarningLevel>
       <BufferSecurityCheck>false</BufferSecurityCheck>
       <WholeProgramOptimization>true</WholeProgramOptimization>

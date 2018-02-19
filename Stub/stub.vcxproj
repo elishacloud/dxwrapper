@@ -36,16 +36,17 @@
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <OutDir>$(SolutionDir)bin\$(Configuration)\</OutDir>
-    <IntDir>$(SolutionDir)bin\Object\$(Configuration)\Stub\</IntDir>
+    <IntDir>$(SolutionDir)bin\Intermediate\$(Configuration)\Stub\</IntDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <OutDir>$(SolutionDir)bin\$(Configuration)\</OutDir>
-    <IntDir>$(SolutionDir)bin\Object\$(Configuration)\Stub\</IntDir>
+    <IntDir>$(SolutionDir)bin\Intermediate\$(Configuration)\Stub\</IntDir>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
       <WarningLevel>Level4</WarningLevel>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
+      <ObjectFileName>$(SolutionDir)bin\Intermediate\$(Configuration)\Object\Stub\</ObjectFileName>
     </ClCompile>
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
@@ -85,6 +86,7 @@ copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\Stub\xlive.dll" &gt;n
     <ClCompile>
       <WarningLevel>Level4</WarningLevel>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
+      <ObjectFileName>$(SolutionDir)bin\Intermediate\$(Configuration)\Object\Stub\</ObjectFileName>
     </ClCompile>
     <Link>
       <OptimizeReferences>true</OptimizeReferences>
