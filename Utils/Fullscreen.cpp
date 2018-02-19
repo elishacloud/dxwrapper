@@ -123,7 +123,6 @@ namespace Utils
 		bool m_ThreadRunningFlag = false;
 		HANDLE m_hThread = nullptr;
 		DWORD m_dwThreadID = 0;
-		screen_res m_Current_ScreenRes;
 
 		// Function declarations
 		void GetScreenSize(HWND&, screen_res&, MONITORINFO&);
@@ -215,44 +214,18 @@ void Fullscreen::SetScreen(screen_res ScreenRes)
 	}
 }
 
-// Checks is the current screen res is smaller and returns the smaller screen res
-void Fullscreen::CheckCurrentScreenRes()
-{
-	// Declare vars
-	HWND hwnd;
-	MONITORINFO mi = { sizeof(mi) };
-	screen_res ScreenSize;
-
-	// Get window handle
-	hwnd = FindMainWindow(GetCurrentProcessId(), true);
-
-	// Get monitor size
-	GetScreenSize(hwnd, ScreenSize, mi);
-
-	// Check if screen resolution is too small
-	if (!IsWindowTooSmall(ScreenSize))
-	{
-		// Save screen resolution
-		InterlockedExchange(&m_Current_ScreenRes.Width, ScreenSize.Width);
-		InterlockedExchange(&m_Current_ScreenRes.Height, ScreenSize.Height);
-	}
-}
-
 // Resets the screen to the registry-stored values
 void Fullscreen::ResetScreen()
 {
+	// Reset screen settings
 	Logging::Log() << "Reseting screen resolution...";
-
-	// Setting screen resolution to fix some display errors on exit
-	screen_res tmp_screen_res;
-	InterlockedExchange(&tmp_screen_res.Width, m_Current_ScreenRes.Width);
-	InterlockedExchange(&tmp_screen_res.Height, m_Current_ScreenRes.Height);
-	SetScreen(tmp_screen_res);
-
-	// Sleep short amout of time
+	std::string lpRamp((3 * 256 * 2), '\0');
+	HDC hDC = GetDC(nullptr);
+	GetDeviceGammaRamp(hDC, &lpRamp[0]);
 	Sleep(0);
-
-	// Reset resolution
+	SetDeviceGammaRamp(hDC, &lpRamp[0]);
+	ReleaseDC(nullptr, hDC);
+	Sleep(0);
 	ChangeDisplaySettings(nullptr, 0);
 }
 
@@ -883,12 +856,6 @@ void Fullscreen::MainFunc()
 
 					// Save last loop information
 					LastFullscreenLoop = CurrentLoop;
-
-					// Update and store CurrentScreenRes
-					if (Config.ResetScreenRes)
-					{
-						CheckCurrentScreenRes();
-					}
 
 				} // Window is too small
 

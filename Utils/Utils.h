@@ -37,7 +37,6 @@ namespace Utils
 		void StartThread();
 		bool IsThreadRunning();
 		void StopThread();
-		void CheckCurrentScreenRes();
 		void ResetScreen();
 	}
 }

@@ -20,12 +20,36 @@
 #include "..\MemoryModule\MemoryModule.h"
 #include "..\Wrappers\wrapper.h"
 
+bool StubOnly = false;				// Don't load dxwrapper
+bool LoadFromMemory = false;		// Use MemoryModule to load dxwrapper
 std::string RealDllPath;			// Manually set Dll to wrap
 std::string WrapperMode;			// Name of dxwrapper
+
+// Set booloean value from string (file)
+bool IsValueEnabled(char* name)
+{
+	return (atoi(name) > 0 ||
+		_strcmpi("on", name) == 0 ||
+		_strcmpi("yes", name) == 0 ||
+		_strcmpi("true", name) == 0 ||
+		_strcmpi("enabled", name) == 0);
+}
 
 // Set config from string (file)
 void __stdcall ParseCallback(char* name, char* value)
 {
+	if (!_strcmpi(name, "StubOnly"))
+	{
+		StubOnly = IsValueEnabled(value);
+		return;
+	}
+
+	if (!_strcmpi(name, "LoadFromMemory"))
+	{
+		LoadFromMemory = IsValueEnabled(value);
+		return;
+	}
+
 	if (!_strcmpi(name, "RealDllPath"))
 	{
 		RealDllPath.assign(value);
@@ -44,7 +68,8 @@ bool APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 {
 	UNREFERENCED_PARAMETER(lpReserved);
 
-	static HMEMORYMODULE wrapper_dll = nullptr;
+	static HMEMORYMODULE m_wrapper_dll = nullptr;
+	static HMODULE wrapper_dll = nullptr;
 	static HMODULE proxy_dll = nullptr;
 
 	switch (fdwReason)
@@ -71,6 +96,12 @@ bool APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 		// Start wrapper
 		proxy_dll = Wrapper::CreateWrapper((RealDllPath.size()) ? RealDllPath.c_str() : nullptr, (WrapperMode.size()) ? WrapperMode.c_str() : WrapperName.c_str());
 
+		// Don't load DxWrapper
+		if (StubOnly)
+		{
+			return true;
+		}
+
 		// Open file and get size
 		char path[MAX_PATH];
 		std::ifstream myfile;
@@ -79,27 +110,36 @@ bool APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 		GetModuleFileNameA(hModule, path, sizeof(path));
 		strcpy_s(strrchr(path, '\\'), MAX_PATH - strlen(path), "\\dxwrapper.dll");
 
-		// Get config file name for log
-		myfile.open(path, std::ios::binary | std::ios::in | std::ios::ate);
-		DWORD size = (DWORD)myfile.tellg();
-
-		// If size is greater than 0
-		if (size && myfile.is_open())
+		// Use MemoryModule to load dxwrapper
+		if (LoadFromMemory)
 		{
-			// Read file
-			myfile.seekg(0, std::ios::beg);
-			std::string memblock(size, '\0');
-			myfile.read(&memblock[0], size);
+			// Get config file name for log
+			myfile.open(path, std::ios::binary | std::ios::in | std::ios::ate);
+			DWORD size = (DWORD)myfile.tellg();
 
-			// Load library into memory
-			wrapper_dll = MemoryLoadLibrary(&memblock[0], size);
+			// If size is greater than 0
+			if (size && myfile.is_open())
+			{
+				// Read file
+				myfile.seekg(0, std::ios::beg);
+				std::string memblock(size, '\0');
+				myfile.read(&memblock[0], size);
+
+				// Load library into memory
+				m_wrapper_dll = MemoryLoadLibrary(&memblock[0], size);
+			}
+
+			// Close the file
+			myfile.close();
+		}
+		// Load dxwrapper normally
+		else
+		{
+			wrapper_dll = LoadLibrary(path);
 		}
 
-		// Close the file
-		myfile.close();
-
 		// Check if DxWrapper is loaded
-		if (!wrapper_dll)
+		if (!m_wrapper_dll && !wrapper_dll)
 		{
 			MessageBoxA(nullptr, "Could not find DxWrapper.dll functions will be disabled!", "DxWrapper Stub", MB_ICONWARNING | MB_TOPMOST | MB_SETFOREGROUND);
 		}
@@ -114,9 +154,13 @@ bool APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 		}
 
 		// Unload dxwrapper dll from memory
-		if (wrapper_dll)
+		if (m_wrapper_dll && LoadFromMemory)
 		{
-			MemoryFreeLibrary(wrapper_dll);
+			MemoryFreeLibrary(m_wrapper_dll);
+		}
+		else if (wrapper_dll && !LoadFromMemory)
+		{
+			FreeLibrary(wrapper_dll);
 		}
 		break;
 	}

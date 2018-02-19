@@ -382,12 +382,6 @@ bool APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 	}
 	break;
 	case DLL_THREAD_ATTACH:
-		// Check and store screen resolution
-		if (Config.ResetScreenRes)
-		{
-			Utils::Fullscreen::CheckCurrentScreenRes();
-		}
-
 		// Check if thread has started
 		if (Config.ForceTermination && Utils::Fullscreen::IsThreadRunning())
 		{
