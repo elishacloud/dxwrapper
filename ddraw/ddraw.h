@@ -5,7 +5,7 @@
 #include <ddraw.h>
 #include <ddrawex.h>
 #include <d3d.h>
-#include "Utils\Wrapper.h"
+#include "Utils\AddressLookupTable.h"
 #include "Settings\Settings.h"
 #include "Logging\Logging.h"
 

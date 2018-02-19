@@ -845,6 +845,9 @@
     <ClInclude Include="DxWnd\DxWndExternal.h">
       <Filter>DxWnd</Filter>
     </ClInclude>
+    <ClInclude Include="Utils\AddressLookupTable.h">
+      <Filter>Utils</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="Dllmain\BuildNo.rc">

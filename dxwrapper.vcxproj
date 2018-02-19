@@ -413,6 +413,7 @@ cmd /c "@echo off &amp;&amp; cd /D ""$(ProjectDir)Dllmain\"" &amp;&amp; type Bui
     <ClInclude Include="Settings\ReadParse.h" />
     <ClInclude Include="Settings\Settings.h" />
     <ClInclude Include="Utils\Utils.h" />
+    <ClInclude Include="Utils\AddressLookupTable.h" />
     <ClInclude Include="Wrappers\bcrypt.h" />
     <ClInclude Include="Wrappers\cryptsp.h" />
     <ClInclude Include="Wrappers\d2d1.h" />

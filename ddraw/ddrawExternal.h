@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Wrappers\wrapper.h"
+
 void WINAPI dd_AcquireDDThreadLock();
 void dd_CheckFullscreen();
 void dd_CompleteCreateSysmemSurface();
@@ -24,52 +26,22 @@ void dd_RegisterSpecialCase();
 void WINAPI dd_ReleaseDDThreadLock();
 HRESULT WINAPI dd_SetAppCompatData(DWORD Type, DWORD Value);
 
+#define DECLARE_IN_WRAPPED_PROC(procName, unused) \
+	constexpr FARPROC procName ## _in = (FARPROC)*dd_ ## procName;
+
+#define EXPORT_OUT_WRAPPED_PROC(procName, unused) \
+	extern FARPROC procName ## _out;
+
 namespace DdrawWrapper
 {
-	constexpr FARPROC AcquireDDThreadLock_in = (FARPROC)*dd_AcquireDDThreadLock;
-	constexpr FARPROC CheckFullscreen_in = (FARPROC)*dd_CheckFullscreen;
-	constexpr FARPROC CompleteCreateSysmemSurface_in = (FARPROC)*dd_CompleteCreateSysmemSurface;
-	constexpr FARPROC D3DParseUnknownCommand_in = (FARPROC)*dd_D3DParseUnknownCommand;
-	constexpr FARPROC DDGetAttachedSurfaceLcl_in = (FARPROC)*dd_DDGetAttachedSurfaceLcl;
-	constexpr FARPROC DDInternalLock_in = (FARPROC)*dd_DDInternalLock;
-	constexpr FARPROC DDInternalUnlock_in = (FARPROC)*dd_DDInternalUnlock;
-	constexpr FARPROC DSoundHelp_in = (FARPROC)*dd_DSoundHelp;
-	constexpr FARPROC DirectDrawCreate_in = (FARPROC)*dd_DirectDrawCreate;
-	constexpr FARPROC DirectDrawCreateClipper_in = (FARPROC)*dd_DirectDrawCreateClipper;
-	constexpr FARPROC DirectDrawCreateEx_in = (FARPROC)*dd_DirectDrawCreateEx;
-	constexpr FARPROC DirectDrawEnumerateA_in = (FARPROC)*dd_DirectDrawEnumerateA;
-	constexpr FARPROC DirectDrawEnumerateExA_in = (FARPROC)*dd_DirectDrawEnumerateExA;
-	constexpr FARPROC DirectDrawEnumerateExW_in = (FARPROC)*dd_DirectDrawEnumerateExW;
-	constexpr FARPROC DirectDrawEnumerateW_in = (FARPROC)*dd_DirectDrawEnumerateW;
+	VISIT_PROCS_DDRAW(DECLARE_IN_WRAPPED_PROC);
 	constexpr FARPROC DllCanUnloadNow_in = (FARPROC)*dd_DllCanUnloadNow;
 	constexpr FARPROC DllGetClassObject_in = (FARPROC)*dd_DllGetClassObject;
-	constexpr FARPROC GetDDSurfaceLocal_in = (FARPROC)*dd_GetDDSurfaceLocal;
-	constexpr FARPROC GetOLEThunkData_in = (FARPROC)*dd_GetOLEThunkData;
-	constexpr FARPROC GetSurfaceFromDC_in = (FARPROC)*dd_GetSurfaceFromDC;
-	constexpr FARPROC RegisterSpecialCase_in = (FARPROC)*dd_RegisterSpecialCase;
-	constexpr FARPROC ReleaseDDThreadLock_in = (FARPROC)*dd_ReleaseDDThreadLock;
-	constexpr FARPROC SetAppCompatData_in = (FARPROC)*dd_SetAppCompatData;
-	extern FARPROC AcquireDDThreadLock_out;
-	extern FARPROC CheckFullscreen_out;
-	extern FARPROC CompleteCreateSysmemSurface_out;
-	extern FARPROC D3DParseUnknownCommand_out;
-	extern FARPROC DDGetAttachedSurfaceLcl_out;
-	extern FARPROC DDInternalLock_out;
-	extern FARPROC DDInternalUnlock_out;
-	extern FARPROC DSoundHelp_out;
-	extern FARPROC DirectDrawCreate_out;
-	extern FARPROC DirectDrawCreateClipper_out;
-	extern FARPROC DirectDrawCreateEx_out;
-	extern FARPROC DirectDrawEnumerateA_out;
-	extern FARPROC DirectDrawEnumerateExA_out;
-	extern FARPROC DirectDrawEnumerateExW_out;
-	extern FARPROC DirectDrawEnumerateW_out;
+
+	VISIT_PROCS_DDRAW(EXPORT_OUT_WRAPPED_PROC);
 	extern FARPROC DllCanUnloadNow_out;
 	extern FARPROC DllGetClassObject_out;
-	extern FARPROC GetDDSurfaceLocal_out;
-	extern FARPROC GetOLEThunkData_out;
-	extern FARPROC GetSurfaceFromDC_out;
-	extern FARPROC RegisterSpecialCase_out;
-	extern FARPROC ReleaseDDThreadLock_out;
-	extern FARPROC SetAppCompatData_out;
 }
+
+#undef DECLARE_IN_WRAPPED_PROC
+#undef EXPORT_OUT_WRAPPED_PROC

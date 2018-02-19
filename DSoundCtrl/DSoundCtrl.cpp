@@ -30,7 +30,7 @@
 #include "DSoundTypes.h"
 #include "DSoundCtrl.h"
 #include "IDirectSoundClassFactoryEx.h"
-#include "Wrappers\wrapper.h"
+#include "DSoundCtrlExternal.h"
 #include "Logging\Logging.h"
 
 #define DllMain DllMain_DSoundCtrl

@@ -16,7 +16,6 @@
 
 #include "ddraw.h"
 #include "ddrawExternal.h"
-#include "Wrappers\wrapper.h"
 
 AddressLookupTable<void> ProxyAddressLookupTable = AddressLookupTable<void>(nullptr);
 
