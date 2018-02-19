@@ -862,8 +862,10 @@ static PIMAGE_RESOURCE_DIRECTORY_ENTRY _MemorySearchResourceEntry(
             _searchKey = &_searchKeySpace[0];
         }
 
-        mbstowcs(_searchKey, key, searchKeyLen);
-        _searchKey[searchKeyLen] = 0;
+#pragma warning(disable: 4996)
+		mbstowcs(_searchKey, key, searchKeyLen);
+#pragma warning(default: 4996)
+		_searchKey[searchKeyLen] = 0;
         searchKey = _searchKey;
 #endif
         start = 0;
@@ -1021,7 +1023,9 @@ MemoryLoadStringEx(HMEMORYMODULE module, UINT id, LPTSTR buffer, int maxsize, WO
 #if defined(UNICODE)
     wcsncpy_s(buffer, size + sizeof *buffer, data->NameString, size);
 #else
-    wcstombs(buffer, data->NameString, size);
+#pragma warning(disable: 4996)
+	wcstombs(buffer, data->NameString, size);
+#pragma warning(default: 4996)
 #endif
     return size;
 }

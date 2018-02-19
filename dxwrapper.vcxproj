@@ -19,7 +19,6 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
     <ConfigurationType>DynamicLibrary</ConfigurationType>
     <PlatformToolset>v140</PlatformToolset>
-    <WholeProgramOptimization>true</WholeProgramOptimization>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
     <ConfigurationType>DynamicLibrary</ConfigurationType>
@@ -41,54 +40,29 @@
     <_ProjectFileVersion>14.0.25431.1</_ProjectFileVersion>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
-    <OutDir>$(OutDir)</OutDir>
-    <IntDir>$(IntDir)</IntDir>
-    <LinkIncremental>false</LinkIncremental>
+    <OutDir>$(SolutionDir)bin\$(Configuration)\</OutDir>
+    <IntDir>$(SolutionDir)bin\Object\$(Configuration)\dxwrapper\</IntDir>
     <IncludePath>$(ProjectDir);libraries;Dllmain;DDrawCompat\v0.2.1;DxWnd\v2_03_60_src;C:\Program Files (x86)\Microsoft Research\Detours Express 3.0\include;$(IncludePath);C:\Program Files (x86)\Windows Kits\dx8sdk\include</IncludePath>
     <LibraryPath>$(DXSDK_DIR)\Lib\x86;C:\Program Files (x86)\Microsoft Research\Detours Express 3.0\lib.X86;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
-    <OutDir>$(OutDir)</OutDir>
-    <IntDir>$(IntDir)</IntDir>
-    <LinkIncremental>false</LinkIncremental>
+    <OutDir>$(SolutionDir)bin\$(Configuration)\</OutDir>
+    <IntDir>$(SolutionDir)bin\Object\$(Configuration)\dxwrapper\</IntDir>
     <IncludePath>$(ProjectDir);libraries;Dllmain;DDrawCompat\v0.2.1;DxWnd\v2_03_60_src;C:\Program Files (x86)\Microsoft Research\Detours Express 3.0\include;$(IncludePath);C:\Program Files (x86)\Windows Kits\dx8sdk\include</IncludePath>
     <LibraryPath>$(DXSDK_DIR)\Lib\x86;C:\Program Files (x86)\Microsoft Research\Detours Express 3.0\lib.X86;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
-    <Midl>
-      <PreprocessorDefinitions>_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <MkTypLibCompatible>true</MkTypLibCompatible>
-      <TargetEnvironment>Win32</TargetEnvironment>
-      <HeaderFileName />
-    </Midl>
     <ClCompile>
-      <AdditionalOptions>/IInclude %(AdditionalOptions)</AdditionalOptions>
-      <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>WIN32;_DEBUG;_WINDOWS;_USRDLL;FULLSCREENLOG;WRAPPERLOGGING;DDRAWCOMPATLOG;DDRAWCOMPAT_EXPORTS;D3D8TO9NOLOG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <MinimalRebuild>false</MinimalRebuild>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
-      <AssemblerListingLocation>$(OutDir)</AssemblerListingLocation>
-      <ObjectFileName>$(OutDir)Object\%(RelativeDir)</ObjectFileName>
-      <ProgramDataBaseFileName>$(OutDir)vc$(PlatformToolsetVersion).pdb</ProgramDataBaseFileName>
+      <ObjectFileName>$(SolutionDir)bin\Object\$(Configuration)\%(RelativeDir)</ObjectFileName>
       <WarningLevel>Level4</WarningLevel>
-      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
-      <StringPooling>true</StringPooling>
       <BufferSecurityCheck>false</BufferSecurityCheck>
-      <FunctionLevelLinking>true</FunctionLevelLinking>
-      <OpenMPSupport>true</OpenMPSupport>
     </ClCompile>
-    <ResourceCompile>
-      <PreprocessorDefinitions>_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-    </ResourceCompile>
     <Link>
       <AdditionalDependencies>dxguid.lib;detours.lib;msimg32.lib;oleacc.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <OutputFile>$(OutDir)dxwrapper.dll</OutputFile>
-      <IgnoreAllDefaultLibraries>
-      </IgnoreAllDefaultLibraries>
       <ModuleDefinitionFile>Wrappers\wrapper.def</ModuleDefinitionFile>
-      <GenerateDebugInformation>true</GenerateDebugInformation>
-      <RandomizedBaseAddress>false</RandomizedBaseAddress>
-      <DataExecutionPrevention />
       <OptimizeReferences>false</OptimizeReferences>
     </Link>
     <PostBuildEvent>
@@ -102,54 +76,19 @@ copy /Y "$(ProjectDir)Resources\dxwnd.exe" "$(TargetDir)Build\" &gt;nul</Command
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
-    <Midl>
-      <PreprocessorDefinitions>NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <MkTypLibCompatible>true</MkTypLibCompatible>
-      <TargetEnvironment>Win32</TargetEnvironment>
-      <HeaderFileName />
-    </Midl>
     <ClCompile>
-      <AdditionalOptions>/GS- %(AdditionalOptions)</AdditionalOptions>
-      <Optimization>Full</Optimization>
-      <IntrinsicFunctions>true</IntrinsicFunctions>
-      <FavorSizeOrSpeed>Size</FavorSizeOrSpeed>
-      <OmitFramePointers>true</OmitFramePointers>
-      <EnableFiberSafeOptimizations>true</EnableFiberSafeOptimizations>
-      <AdditionalIncludeDirectories>
-      </AdditionalIncludeDirectories>
       <PreprocessorDefinitions>WIN32;NDEBUG;_WINDOWS;_USRDLL;D3D8TO9NOLOG;DDRAWCOMPAT_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <StringPooling>true</StringPooling>
-      <ExceptionHandling>Async</ExceptionHandling>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
-      <FunctionLevelLinking>true</FunctionLevelLinking>
-      <OpenMPSupport>true</OpenMPSupport>
-      <PrecompiledHeaderOutputFile />
-      <AssemblerListingLocation>$(OutDir)</AssemblerListingLocation>
-      <ObjectFileName>$(OutDir)Object\%(RelativeDir)</ObjectFileName>
-      <ProgramDataBaseFileName>$(OutDir)vc$(PlatformToolsetVersion).pdb</ProgramDataBaseFileName>
+      <ObjectFileName>$(SolutionDir)bin\Object\$(Configuration)\%(RelativeDir)</ObjectFileName>
       <WarningLevel>Level4</WarningLevel>
       <BufferSecurityCheck>false</BufferSecurityCheck>
-      <AdditionalUsingDirectories>
-      </AdditionalUsingDirectories>
-      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <WholeProgramOptimization>true</WholeProgramOptimization>
     </ClCompile>
-    <ResourceCompile>
-      <PreprocessorDefinitions>NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>
-      </AdditionalIncludeDirectories>
-    </ResourceCompile>
     <Link>
       <OutputFile>$(OutDir)dxwrapper.dll</OutputFile>
       <ModuleDefinitionFile>Wrappers\wrapper.def</ModuleDefinitionFile>
-      <ProgramDatabaseFile />
-      <RandomizedBaseAddress>false</RandomizedBaseAddress>
-      <DataExecutionPrevention />
-      <ImportLibrary />
       <AdditionalDependencies>dxguid.lib;detours.lib;msimg32.lib;oleacc.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <GenerateDebugInformation>false</GenerateDebugInformation>
       <LinkTimeCodeGeneration>UseLinkTimeCodeGeneration</LinkTimeCodeGeneration>
-      <IgnoreAllDefaultLibraries>
-      </IgnoreAllDefaultLibraries>
       <OptimizeReferences>true</OptimizeReferences>
     </Link>
     <PostBuildEvent>

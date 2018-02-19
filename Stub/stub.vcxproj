@@ -12,20 +12,16 @@
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{E204DCB3-D122-4F2E-88A8-89AC22CE3274}</ProjectGuid>
-    <Keyword>Win32Proj</Keyword>
     <RootNamespace>stub</RootNamespace>
     <WindowsTargetPlatformVersion>10.0.14393.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
     <ConfigurationType>DynamicLibrary</ConfigurationType>
-    <UseDebugLibraries>true</UseDebugLibraries>
     <PlatformToolset>v140</PlatformToolset>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
     <ConfigurationType>DynamicLibrary</ConfigurationType>
-    <UseDebugLibraries>false</UseDebugLibraries>
-    <WholeProgramOptimization>true</WholeProgramOptimization>
     <PlatformToolset>v140</PlatformToolset>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
@@ -39,72 +35,60 @@
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
-    <LinkIncremental>true</LinkIncremental>
+    <OutDir>$(SolutionDir)bin\$(Configuration)\</OutDir>
+    <IntDir>$(SolutionDir)bin\Object\$(Configuration)\Stub\</IntDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
-    <LinkIncremental>false</LinkIncremental>
+    <OutDir>$(SolutionDir)bin\$(Configuration)\</OutDir>
+    <IntDir>$(SolutionDir)bin\Object\$(Configuration)\Stub\</IntDir>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
-      <PrecompiledHeader>
-      </PrecompiledHeader>
-      <WarningLevel>Level3</WarningLevel>
-      <Optimization>Disabled</Optimization>
+      <WarningLevel>Level4</WarningLevel>
+      <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
     </ClCompile>
     <Link>
-      <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <ModuleDefinitionFile>..\Wrappers\wrapper.def</ModuleDefinitionFile>
     </Link>
     <PostBuildEvent>
       <Command>IF NOT EXIST "$(TargetDir)Build" mkdir "$(TargetDir)Build" &gt;nul
-copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\bcrypt.dll" &gt;nul
-copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\cryptsp.dll" &gt;nul
-copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\d2d1.dll" &gt;nul
-copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\d3d8.dll" &gt;nul
-copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\d3d9.dll" &gt;nul
-copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\d3d10.dll" &gt;nul
-copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\d3d10core.dll" &gt;nul
-copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\d3d11.dll" &gt;nul
-copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\d3d12.dll" &gt;nul
-copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\d3dim.dll" &gt;nul
-copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\d3dim700.dll" &gt;nul
-copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\dciman32.dll" &gt;nul
-copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\ddraw.dll" &gt;nul
-copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\dinput.dll" &gt;nul
-copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\dinput8.dll" &gt;nul
-copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\dplayx.dll" &gt;nul
-copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\dsound.dll" &gt;nul
-copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\dxgi.dll" &gt;nul
-copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\msacm32.dll" &gt;nul
-copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\msvfw32.dll" &gt;nul
-copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\vorbisfile.dll" &gt;nul
-copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\winmm.dll" &gt;nul
-copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\winmmbase.dll" &gt;nul
-copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\winspool.drv" &gt;nul
-copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\xlive.dll" &gt;nul</Command>
+IF NOT EXIST "$(TargetDir)Build\Stub" mkdir "$(TargetDir)Build\Stub" &gt;nul
+copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\Stub\bcrypt.dll" &gt;nul
+copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\Stub\cryptsp.dll" &gt;nul
+copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\Stub\d2d1.dll" &gt;nul
+copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\Stub\d3d8.dll" &gt;nul
+copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\Stub\d3d9.dll" &gt;nul
+copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\Stub\d3d10.dll" &gt;nul
+copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\Stub\d3d10core.dll" &gt;nul
+copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\Stub\d3d11.dll" &gt;nul
+copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\Stub\d3d12.dll" &gt;nul
+copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\Stub\d3dim.dll" &gt;nul
+copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\Stub\d3dim700.dll" &gt;nul
+copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\Stub\dciman32.dll" &gt;nul
+copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\Stub\ddraw.dll" &gt;nul
+copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\Stub\dinput.dll" &gt;nul
+copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\Stub\dinput8.dll" &gt;nul
+copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\Stub\dplayx.dll" &gt;nul
+copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\Stub\dsound.dll" &gt;nul
+copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\Stub\dxgi.dll" &gt;nul
+copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\Stub\msacm32.dll" &gt;nul
+copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\Stub\msvfw32.dll" &gt;nul
+copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\Stub\vorbisfile.dll" &gt;nul
+copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\Stub\winmm.dll" &gt;nul
+copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\Stub\winmmbase.dll" &gt;nul
+copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\Stub\winspool.drv" &gt;nul
+copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\Stub\xlive.dll" &gt;nul</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
-      <WarningLevel>Level3</WarningLevel>
-      <PrecompiledHeader>
-      </PrecompiledHeader>
-      <Optimization>Full</Optimization>
-      <FunctionLevelLinking>true</FunctionLevelLinking>
-      <IntrinsicFunctions>true</IntrinsicFunctions>
-      <FavorSizeOrSpeed>Size</FavorSizeOrSpeed>
-      <OmitFramePointers>true</OmitFramePointers>
-      <EnableFiberSafeOptimizations>true</EnableFiberSafeOptimizations>
-      <StringPooling>true</StringPooling>
-      <ExceptionHandling>Async</ExceptionHandling>
+      <WarningLevel>Level4</WarningLevel>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
     </ClCompile>
     <Link>
-      <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <ModuleDefinitionFile>..\Wrappers\wrapper.def</ModuleDefinitionFile>
-      <LinkTimeCodeGeneration>UseLinkTimeCodeGeneration</LinkTimeCodeGeneration>
     </Link>
     <PreBuildEvent>
       <Command>cmd /c "@echo off &amp;&amp; cd /D ""$(ProjectDir)"" &amp;&amp; if not exist BuildNo.rc echo #define BUILD_NUMBER 0 &gt;BuildNo.rc"
@@ -115,31 +99,32 @@ cmd /c "@echo off &amp;&amp; cd /D ""$(ProjectDir)"" &amp;&amp; type BuildNo.rc"
     </PreBuildEvent>
     <PostBuildEvent>
       <Command>IF NOT EXIST "$(TargetDir)Build" mkdir "$(TargetDir)Build" &gt;nul
-copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\bcrypt.dll" &gt;nul
-copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\cryptsp.dll" &gt;nul
-copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\d2d1.dll" &gt;nul
-copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\d3d8.dll" &gt;nul
-copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\d3d9.dll" &gt;nul
-copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\d3d10.dll" &gt;nul
-copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\d3d10core.dll" &gt;nul
-copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\d3d11.dll" &gt;nul
-copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\d3d12.dll" &gt;nul
-copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\d3dim.dll" &gt;nul
-copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\d3dim700.dll" &gt;nul
-copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\dciman32.dll" &gt;nul
-copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\ddraw.dll" &gt;nul
-copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\dinput.dll" &gt;nul
-copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\dinput8.dll" &gt;nul
-copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\dplayx.dll" &gt;nul
-copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\dsound.dll" &gt;nul
-copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\dxgi.dll" &gt;nul
-copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\msacm32.dll" &gt;nul
-copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\msvfw32.dll" &gt;nul
-copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\vorbisfile.dll" &gt;nul
-copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\winmm.dll" &gt;nul
-copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\winmmbase.dll" &gt;nul
-copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\winspool.drv" &gt;nul
-copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\xlive.dll" &gt;nul</Command>
+IF NOT EXIST "$(TargetDir)Build\Stub" mkdir "$(TargetDir)Build\Stub" &gt;nul
+copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\Stub\bcrypt.dll" &gt;nul
+copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\Stub\cryptsp.dll" &gt;nul
+copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\Stub\d2d1.dll" &gt;nul
+copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\Stub\d3d8.dll" &gt;nul
+copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\Stub\d3d9.dll" &gt;nul
+copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\Stub\d3d10.dll" &gt;nul
+copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\Stub\d3d10core.dll" &gt;nul
+copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\Stub\d3d11.dll" &gt;nul
+copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\Stub\d3d12.dll" &gt;nul
+copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\Stub\d3dim.dll" &gt;nul
+copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\Stub\d3dim700.dll" &gt;nul
+copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\Stub\dciman32.dll" &gt;nul
+copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\Stub\ddraw.dll" &gt;nul
+copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\Stub\dinput.dll" &gt;nul
+copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\Stub\dinput8.dll" &gt;nul
+copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\Stub\dplayx.dll" &gt;nul
+copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\Stub\dsound.dll" &gt;nul
+copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\Stub\dxgi.dll" &gt;nul
+copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\Stub\msacm32.dll" &gt;nul
+copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\Stub\msvfw32.dll" &gt;nul
+copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\Stub\vorbisfile.dll" &gt;nul
+copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\Stub\winmm.dll" &gt;nul
+copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\Stub\winmmbase.dll" &gt;nul
+copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\Stub\winspool.drv" &gt;nul
+copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\Stub\xlive.dll" &gt;nul</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
