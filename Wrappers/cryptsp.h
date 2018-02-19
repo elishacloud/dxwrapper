@@ -1,6 +1,6 @@
 #pragma once
 
-#define VISIT_PROCS(visit) \
+#define VISIT_PROCS_CRYPTSP(visit) \
 	visit(CheckSignatureInFile, jmpaddr) \
 	visit(CryptAcquireContextA, jmpaddr) \
 	visit(CryptAcquireContextW, jmpaddr) \
@@ -67,6 +67,6 @@
 	visit(SystemFunction033, jmpaddr) \
 	visit(SystemFunction035, jmpaddr)
 
-PROC_CLASS(cryptsp, dll)
-
-#undef VISIT_PROCS
+#ifdef PROC_CLASS
+PROC_CLASS(cryptsp, dll, VISIT_PROCS_CRYPTSP)
+#endif

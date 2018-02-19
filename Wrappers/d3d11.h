@@ -1,6 +1,6 @@
 #pragma once
 
-#define VISIT_PROCS(visit) \
+#define VISIT_PROCS_D3D11(visit) \
 	visit(D3D11CreateDeviceForD3D12, jmpaddr) \
 	visit(EnableFeatureLevelUpgrade, jmpaddr) \
 	visit(CreateDirect3D11DeviceFromDXGIDevice, jmpaddr) \
@@ -17,6 +17,6 @@
 	visit(D3DPerformance_GetStatus, jmpaddr) \
 	visit(D3DPerformance_SetMarker, jmpaddr)
 
-PROC_CLASS(d3d11, dll)
-
-#undef VISIT_PROCS
+#ifdef PROC_CLASS
+PROC_CLASS(d3d11, dll, VISIT_PROCS_D3D11)
+#endif

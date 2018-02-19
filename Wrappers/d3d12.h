@@ -1,6 +1,6 @@
 #pragma once
 
-#define VISIT_PROCS(visit) \
+#define VISIT_PROCS_D3D12(visit) \
 	visit(GetBehaviorValue, jmpaddr) \
 	visit(D3D12CreateDevice, jmpaddr) \
 	visit(D3D12GetDebugInterface, jmpaddr) \
@@ -13,6 +13,6 @@
 	visit(D3D12SerializeRootSignature, jmpaddr) \
 	visit(D3D12SerializeVersionedRootSignature, jmpaddr)
 
-PROC_CLASS(d3d12, dll)
-
-#undef VISIT_PROCS
+#ifdef PROC_CLASS
+PROC_CLASS(d3d12, dll, VISIT_PROCS_D3D12)
+#endif

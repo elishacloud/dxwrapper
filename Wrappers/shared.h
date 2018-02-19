@@ -1,6 +1,6 @@
 #pragma once
 
-#define VISIT_PROCS(visit) \
+#define VISIT_PROCS_SHAREDPROCS(visit) \
 	visit(DllCanUnloadNow, jmpaddr) \
 	visit(DllGetClassObject, jmpaddr) \
 	visit(DllRegisterServer, jmpaddr) \
@@ -54,23 +54,23 @@
 	visit(OpenAdapter10, jmpaddr) \
 	visit(OpenAdapter10_2, jmpaddr)
 
+#ifdef PROC_CLASS
 namespace ShardProcs
 {
 	using namespace Wrapper;
-	VISIT_PROCS(ADD_FARPROC_MEMBER);
-	VISIT_PROCS(CREATE_PROC_STUB);
+	VISIT_PROCS_SHAREDPROCS(ADD_FARPROC_MEMBER);
+	VISIT_PROCS_SHAREDPROCS(CREATE_PROC_STUB);
 	void Load(HMODULE dll)
 	{
 		if (dll)
 		{
-			VISIT_PROCS(LOAD_ORIGINAL_PROC);
+			VISIT_PROCS_SHAREDPROCS(LOAD_ORIGINAL_PROC);
 		}
 	}
 	void AddToArray()
 	{
 		wrapper_map tmpMap;
-		VISIT_PROCS(STORE_ORIGINAL_PROC);
+		VISIT_PROCS_SHAREDPROCS(STORE_ORIGINAL_PROC);
 	}
 }
-
-#undef VISIT_PROCS
+#endif

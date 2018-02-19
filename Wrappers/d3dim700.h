@@ -1,6 +1,6 @@
 #pragma once
 
-#define VISIT_PROCS(visit) \
+#define VISIT_PROCS_D3DIM700(visit) \
 	visit(CreateTexture, jmpaddr) \
 	visit(D3DBreakVBLock, jmpaddr) \
 	visit(D3DTextureUpdate, jmpaddr) \
@@ -10,6 +10,6 @@
 	visit(SetLOD, jmpaddr) \
 	visit(SetPriority, jmpaddr)
 
-PROC_CLASS(d3dim700, dll)
-
-#undef VISIT_PROCS
+#ifdef PROC_CLASS
+PROC_CLASS(d3dim700, dll, VISIT_PROCS_D3DIM700)
+#endif

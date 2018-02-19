@@ -1,6 +1,6 @@
 #pragma once
 
-#define VISIT_PROCS(visit) \
+#define VISIT_PROCS_D3D10(visit) \
 	visit(RevertToOldImplementation, jmpaddr) \
 	visit(D3D10CompileEffectFromMemory, jmpaddr) \
 	visit(D3D10CompileShader, jmpaddr) \
@@ -32,6 +32,6 @@
 	visit(D3D10StateBlockMaskIntersect, jmpaddr) \
 	visit(D3D10StateBlockMaskUnion, jmpaddr)
 
-PROC_CLASS(d3d10, dll)
-
-#undef VISIT_PROCS
+#ifdef PROC_CLASS
+PROC_CLASS(d3d10, dll, VISIT_PROCS_D3D10)
+#endif

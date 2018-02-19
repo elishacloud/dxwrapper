@@ -1,6 +1,6 @@
 #pragma once
 
-#define VISIT_PROCS(visit) \
+#define VISIT_PROCS_DXGI(visit) \
 	visit(ApplyCompatResolutionQuirking, jmpaddr) \
 	visit(CompatString, jmpaddr) \
 	visit(CompatValue, jmpaddr) \
@@ -20,6 +20,6 @@
 	visit(DXGIGetDebugInterface1, jmpaddr) \
 	visit(DXGIReportAdapterConfiguration, jmpaddr)
 
-PROC_CLASS(dxgi, dll)
-
-#undef VISIT_PROCS
+#ifdef PROC_CLASS
+PROC_CLASS(dxgi, dll, VISIT_PROCS_DXGI)
+#endif

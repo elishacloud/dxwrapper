@@ -1,6 +1,6 @@
 #pragma once
 
-#define VISIT_PROCS(visit) \
+#define VISIT_PROCS_XLIVE(visit) \
 	visit(_XWSAStartup, jmpaddr) \
 	visit(_XGetOverlappedExtendedError, jmpaddr) \
 	visit(_XGetOverlappedResult, jmpaddr) \
@@ -139,6 +139,6 @@
 	visit(_XNetSetSystemLinkPort, jmpaddr) \
 	visit(_XSocketGetSockName, jmpaddr)
 
-PROC_CLASS(xlive, dll)
-
-#undef VISIT_PROCS
+#ifdef PROC_CLASS
+PROC_CLASS(xlive, dll, VISIT_PROCS_XLIVE)
+#endif

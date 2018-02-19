@@ -1,6 +1,6 @@
 #pragma once
 
-#define VISIT_PROCS(visit) \
+#define VISIT_PROCS_MSACM32(visit) \
 visit(XRegThunkEntry, jmpaddr) \
 visit(acmDriverAddA, jmpaddr) \
 visit(acmDriverAddW, jmpaddr) \
@@ -46,6 +46,6 @@ visit(acmStreamReset, jmpaddr) \
 visit(acmStreamSize, jmpaddr) \
 visit(acmStreamUnprepareHeader, jmpaddr)
 
-PROC_CLASS(msacm32, dll)
-
-#undef VISIT_PROCS
+#ifdef PROC_CLASS
+PROC_CLASS(msacm32, dll, VISIT_PROCS_MSACM32)
+#endif

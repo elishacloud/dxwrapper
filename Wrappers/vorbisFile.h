@@ -1,6 +1,6 @@
 #pragma once
 
-#define VISIT_PROCS(visit) \
+#define VISIT_PROCS_VORBISFILE(visit) \
 	visit(ov_clear, jmpaddr) \
 	visit(ov_open, jmpaddr) \
 	visit(ov_open_callbacks, jmpaddr) \
@@ -37,6 +37,6 @@
 	visit(ov_halfrate_p, jmpaddr) \
 	visit(ov_fopen, jmpaddr)
 
-PROC_CLASS(vorbisfile, dll)
-
-#undef VISIT_PROCS
+#ifdef PROC_CLASS
+PROC_CLASS(vorbisfile, dll, VISIT_PROCS_VORBISFILE)
+#endif

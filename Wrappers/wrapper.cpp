@@ -16,10 +16,8 @@
 
 #define WIN32_LEAN_AND_MEAN
 #include <Windows.h>
-#include <vector>
 #include <algorithm>
 #include <fstream>
-#include "wrapper.h"
 
 #define ADD_FARPROC_MEMBER(procName, unused) \
 	FARPROC procName ## _var = jmpaddr;
@@ -43,7 +41,7 @@
 	tmpMap.val = &(procName ## _var); \
 	jmpArray.push_back(tmpMap);
 
-#define PROC_CLASS(className, Extension) \
+#define PROC_CLASS(className, Extension, VISIT_PROCS) \
 	namespace className \
 	{ \
 		using namespace Wrapper; \
@@ -79,78 +77,12 @@
 		} \
 	}
 
+#include "wrapper.h"
+
 namespace Wrapper
 {
-	struct wrapper_map
-	{
-		FARPROC Proc;
-		FARPROC *val;
-	};
-
-	// Forward function decalration
-	HRESULT __stdcall _jmpaddr();
-	HRESULT __stdcall _jmpaddrvoid();
-
-	// Varable decalration
-	constexpr FARPROC jmpaddr = (FARPROC)*_jmpaddr;
-	constexpr FARPROC jmpaddrvoid = (FARPROC)*_jmpaddrvoid;
 	std::vector<wrapper_map> jmpArray;
 }
-
-// Shared procs
-#include "shared.h"
-
-#define VISIT_DLLS(visit) \
-	visit(bcrypt) \
-	visit(cryptsp) \
-	visit(d2d1) \
-	visit(d3d8) \
-	visit(d3d9) \
-	visit(d3d10) \
-	visit(d3d10core) \
-	visit(d3d11) \
-	visit(d3d12) \
-	visit(d3dim) \
-	visit(d3dim700) \
-	visit(dciman32) \
-	visit(ddraw) \
-	visit(dinput) \
-	visit(dinput8) \
-	visit(dplayx) \
-	visit(dsound) \
-	visit(dxgi) \
-	visit(msacm32) \
-	visit(msvfw32) \
-	visit(vorbisfile) \
-	visit(winmm) \
-	visit(winspool) \
-	visit(xlive)
-
-// Wrappers
-#include "bcrypt.h"
-#include "cryptsp.h"
-#include "d2d1.h"
-#include "d3d8.h"
-#include "d3d9.h"
-#include "d3d10.h"
-#include "d3d10core.h"
-#include "d3d11.h"
-#include "d3d12.h"
-#include "d3dim.h"
-#include "d3dim700.h"
-#include "dciman32.h"
-#include "ddraw.h"
-#include "dinput.h"
-#include "dinput8.h"
-#include "dplayx.h"
-#include "dsound.h"
-#include "dxgi.h"
-#include "msacm32.h"
-#include "msvfw32.h"
-#include "vorbisfile.h"
-#include "winmm.h"
-#include "winspool.h"
-#include "xlive.h"
 
 __declspec(naked) HRESULT __stdcall Wrapper::_jmpaddrvoid()
 {

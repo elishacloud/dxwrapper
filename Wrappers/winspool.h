@@ -2,7 +2,7 @@
 
 #undef DeviceCapabilities
 
-#define VISIT_PROCS(visit) \
+#define VISIT_PROCS_WINSPOOL(visit) \
 	visit(ADVANCEDSETUPDIALOG, jmpaddr) \
 	visit(AdvancedSetupDialog, jmpaddr) \
 	visit(ConvertAnsiDevModeToUnicodeDevmode, jmpaddr) \
@@ -201,6 +201,6 @@
 	visit(WritePrinter, jmpaddr) \
 	visit(XcvDataW, jmpaddr)
 
-PROC_CLASS(winspool, drv)
-
-#undef VISIT_PROCS
+#ifdef PROC_CLASS
+PROC_CLASS(winspool, drv, VISIT_PROCS_WINSPOOL)
+#endif

@@ -28,6 +28,9 @@
 #include "d3d9\d3d9External.h"
 #include "ddraw\ddrawExternal.h"
 
+#define SHIM_WRAPPED_PROC(procName, unused) \
+	Wrapper::ShimProc(procName ## _var, procName ## _in, procName ## _out);
+
 // Declare varables
 HMODULE hModule_dll = nullptr;
 
@@ -177,29 +180,9 @@ bool APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 				// Update dxwrapper.dll -> DdrawWrapper
 				if (Config.isDdrawWrapperEnabled)
 				{
-					Wrapper::ShimProc(AcquireDDThreadLock_var, AcquireDDThreadLock_in, AcquireDDThreadLock_out);
-					Wrapper::ShimProc(CheckFullscreen_var, CheckFullscreen_in, CheckFullscreen_out);
-					Wrapper::ShimProc(CompleteCreateSysmemSurface_var, CompleteCreateSysmemSurface_in, CompleteCreateSysmemSurface_out);
-					Wrapper::ShimProc(D3DParseUnknownCommand_var, D3DParseUnknownCommand_in, D3DParseUnknownCommand_out);
-					Wrapper::ShimProc(DDGetAttachedSurfaceLcl_var, DDGetAttachedSurfaceLcl_in, DDGetAttachedSurfaceLcl_out);
-					Wrapper::ShimProc(DDInternalLock_var, DDInternalLock_in, DDInternalLock_out);
-					Wrapper::ShimProc(DDInternalUnlock_var, DDInternalUnlock_in, DDInternalUnlock_out);
-					Wrapper::ShimProc(DSoundHelp_var, DSoundHelp_in, DSoundHelp_out);
-					Wrapper::ShimProc(DirectDrawCreate_var, DirectDrawCreate_in, DirectDrawCreate_out);
-					Wrapper::ShimProc(DirectDrawCreateClipper_var, DirectDrawCreateClipper_in, DirectDrawCreateClipper_out);
-					Wrapper::ShimProc(DirectDrawCreateEx_var, DirectDrawCreateEx_in, DirectDrawCreateEx_out);
-					Wrapper::ShimProc(DirectDrawEnumerateA_var, DirectDrawEnumerateA_in, DirectDrawEnumerateA_out);
-					Wrapper::ShimProc(DirectDrawEnumerateExA_var, DirectDrawEnumerateExA_in, DirectDrawEnumerateExA_out);
-					Wrapper::ShimProc(DirectDrawEnumerateExW_var, DirectDrawEnumerateExW_in, DirectDrawEnumerateExW_out);
-					Wrapper::ShimProc(DirectDrawEnumerateW_var, DirectDrawEnumerateW_in, DirectDrawEnumerateW_out);
+					VISIT_PROCS_DDRAW(SHIM_WRAPPED_PROC);
 					Wrapper::ShimProc(ShardProcs::DllCanUnloadNow_var, DllCanUnloadNow_in, DllCanUnloadNow_out);
 					Wrapper::ShimProc(ShardProcs::DllGetClassObject_var, DllGetClassObject_in, DllGetClassObject_out);
-					Wrapper::ShimProc(GetDDSurfaceLocal_var, GetDDSurfaceLocal_in, GetDDSurfaceLocal_out);
-					Wrapper::ShimProc(GetOLEThunkData_var, GetOLEThunkData_in, GetOLEThunkData_out);
-					Wrapper::ShimProc(GetSurfaceFromDC_var, GetSurfaceFromDC_in, GetSurfaceFromDC_out);
-					Wrapper::ShimProc(RegisterSpecialCase_var, RegisterSpecialCase_in, RegisterSpecialCase_out);
-					Wrapper::ShimProc(ReleaseDDThreadLock_var, ReleaseDDThreadLock_in, ReleaseDDThreadLock_out);
-					Wrapper::ShimProc(SetAppCompatData_var, SetAppCompatData_in, SetAppCompatData_out);
 
 					// Update DdrawWrapper -> DDrawCompat
 					if (Config.DDrawCompat)
@@ -300,21 +283,8 @@ bool APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 			// If wrapper mode is d3d9 update wrapper
 			if (Config.RealWrapperMode == dtype.d3d9)
 			{
-				Wrapper::ShimProc(Direct3DShaderValidatorCreate9_var, Direct3DShaderValidatorCreate9_in, Direct3DShaderValidatorCreate9_out);
-				Wrapper::ShimProc(PSGPError_var, PSGPError_in, PSGPError_out);
-				Wrapper::ShimProc(PSGPSampleTexture_var, PSGPSampleTexture_in, PSGPSampleTexture_out);
-				Wrapper::ShimProc(D3DPERF_BeginEvent_var, D3DPERF_BeginEvent_in, D3DPERF_BeginEvent_out);
-				Wrapper::ShimProc(D3DPERF_EndEvent_var, D3DPERF_EndEvent_in, D3DPERF_EndEvent_out);
-				Wrapper::ShimProc(D3DPERF_GetStatus_var, D3DPERF_GetStatus_in, D3DPERF_GetStatus_out);
-				Wrapper::ShimProc(D3DPERF_QueryRepeatFrame_var, D3DPERF_QueryRepeatFrame_in, D3DPERF_QueryRepeatFrame_out);
-				Wrapper::ShimProc(D3DPERF_SetMarker_var, D3DPERF_SetMarker_in, D3DPERF_SetMarker_out);
-				Wrapper::ShimProc(D3DPERF_SetOptions_var, D3DPERF_SetOptions_in, D3DPERF_SetOptions_out);
-				Wrapper::ShimProc(D3DPERF_SetRegion_var, D3DPERF_SetRegion_in, D3DPERF_SetRegion_out);
-				Wrapper::ShimProc(DebugSetLevel_var, DebugSetLevel_in, DebugSetLevel_out);
+				VISIT_PROCS_D3D9(SHIM_WRAPPED_PROC);
 				Wrapper::ShimProc(ShardProcs::DebugSetMute_var, DebugSetMute_in, DebugSetMute_out);
-				Wrapper::ShimProc(Direct3D9EnableMaximizedWindowedModeShim_var, Direct3D9EnableMaximizedWindowedModeShim_in, Direct3D9EnableMaximizedWindowedModeShim_out);
-				Wrapper::ShimProc(Direct3DCreate9_var, Direct3DCreate9_in, Direct3DCreate9_out);
-				Wrapper::ShimProc(Direct3DCreate9Ex_var, Direct3DCreate9Ex_in, Direct3DCreate9Ex_out);
 			}
 			// Hook d3d9 APIs
 			else
@@ -342,16 +312,7 @@ bool APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 			// If wrapper mode is dsound update wrapper
 			if (Config.RealWrapperMode == dtype.dsound)
 			{
-				Wrapper::ShimProc(DirectSoundCreate_var, DirectSoundCreate_in, DirectSoundCreate_out);
-				Wrapper::ShimProc(DirectSoundCreate8_var, DirectSoundCreate8_in, DirectSoundCreate8_out);
-				Wrapper::ShimProc(GetDeviceID_var, GetDeviceID_in, GetDeviceID_out);
-				Wrapper::ShimProc(DirectSoundEnumerateA_var, DirectSoundEnumerateA_in, DirectSoundEnumerateA_out);
-				Wrapper::ShimProc(DirectSoundEnumerateW_var, DirectSoundEnumerateW_in, DirectSoundEnumerateW_out);
-				Wrapper::ShimProc(DirectSoundCaptureCreate_var, DirectSoundCaptureCreate_in, DirectSoundCaptureCreate_out);
-				Wrapper::ShimProc(DirectSoundCaptureEnumerateA_var, DirectSoundCaptureEnumerateA_in, DirectSoundCaptureEnumerateA_out);
-				Wrapper::ShimProc(DirectSoundCaptureEnumerateW_var, DirectSoundCaptureEnumerateW_in, DirectSoundCaptureEnumerateW_out);
-				Wrapper::ShimProc(DirectSoundCaptureCreate8_var, DirectSoundCaptureCreate8_in, DirectSoundCaptureCreate8_out);
-				Wrapper::ShimProc(DirectSoundFullDuplexCreate_var, DirectSoundFullDuplexCreate_in, DirectSoundFullDuplexCreate_out);
+				VISIT_PROCS_DSOUND(SHIM_WRAPPED_PROC);
 				Wrapper::ShimProc(ShardProcs::DllGetClassObject_var, DllGetClassObject_in, DllGetClassObject_out);
 				Wrapper::ShimProc(ShardProcs::DllCanUnloadNow_var, DllCanUnloadNow_in, DllCanUnloadNow_out);
 			}

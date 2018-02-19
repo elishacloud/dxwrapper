@@ -40,18 +40,12 @@ LPDSENUMCALLBACKW	g_pAppDSEnumCallbackW;
 
 const char* g_cszClassName = "ExportFunction";
 
+#define INITUALIZE_WRAPPED_PROC(procName, unused) \
+	FARPROC procName ## _out = (FARPROC)*(dsound::procName);
+
 namespace DSoundCtrl
 {
-	FARPROC DirectSoundCreate_out = (FARPROC)*(dsound::DirectSoundCreate);
-	FARPROC DirectSoundCreate8_out = (FARPROC)*(dsound::DirectSoundCreate8);
-	FARPROC GetDeviceID_out = (FARPROC)*(dsound::GetDeviceID);
-	FARPROC DirectSoundEnumerateA_out = (FARPROC)*(dsound::DirectSoundEnumerateA);
-	FARPROC DirectSoundEnumerateW_out = (FARPROC)*(dsound::DirectSoundEnumerateW);
-	FARPROC DirectSoundCaptureCreate_out = (FARPROC)*(dsound::DirectSoundCaptureCreate);
-	FARPROC DirectSoundCaptureEnumerateA_out = (FARPROC)*(dsound::DirectSoundCaptureEnumerateA);
-	FARPROC DirectSoundCaptureEnumerateW_out = (FARPROC)*(dsound::DirectSoundCaptureEnumerateW);
-	FARPROC DirectSoundCaptureCreate8_out = (FARPROC)*(dsound::DirectSoundCaptureCreate8);
-	FARPROC DirectSoundFullDuplexCreate_out = (FARPROC)*(dsound::DirectSoundFullDuplexCreate);
+	VISIT_PROCS_DSOUND(INITUALIZE_WRAPPED_PROC);
 	FARPROC DllGetClassObject_out = (FARPROC)*(ShardProcs::DllGetClassObject);
 	FARPROC DllCanUnloadNow_out = (FARPROC)*(ShardProcs::DllCanUnloadNow);
 }

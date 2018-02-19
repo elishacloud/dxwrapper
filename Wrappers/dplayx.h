@@ -1,6 +1,6 @@
 #pragma once
 
-#define VISIT_PROCS(visit) \
+#define VISIT_PROCS_DPLAYX(visit) \
 	visit(DirectPlayCreate, jmpaddr) \
 	visit(DirectPlayEnumerate, jmpaddr) \
 	visit(DirectPlayEnumerateA, jmpaddr) \
@@ -8,6 +8,6 @@
 	visit(DirectPlayLobbyCreateA, jmpaddr) \
 	visit(DirectPlayLobbyCreateW, jmpaddr)
 
-PROC_CLASS(dplayx, dll)
-
-#undef VISIT_PROCS
+#ifdef PROC_CLASS
+PROC_CLASS(dplayx, dll, VISIT_PROCS_DPLAYX)
+#endif

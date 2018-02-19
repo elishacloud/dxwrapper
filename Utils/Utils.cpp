@@ -210,13 +210,8 @@ FARPROC WINAPI Utils::GetProcAddressHandler(HMODULE hModule, LPSTR lpProcName)
 	{
 		ProAddr = ((GetProcAddressProc)InterlockedCompareExchangePointer((PVOID*)&pGetProcAddress, nullptr, nullptr))(hModule, lpProcName);
 	}
-	if (ProAddr == nullptr)
+	if (!(Wrapper::ValidProcAddress(ProAddr)))
 	{
-		SetLastError(127);
-	}
-	else if (!(Wrapper::ValidProcAddress(ProAddr)))
-	{
-		Logging::Log() << "Found jmpaddr!";
 		ProAddr = nullptr;
 		SetLastError(127);
 	}

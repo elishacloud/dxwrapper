@@ -1,11 +1,11 @@
 #pragma once
 
-#define VISIT_PROCS(visit) \
+#define VISIT_PROCS_D3D8(visit) \
 	visit(Direct3D8EnableMaximizedWindowedModeShim, jmpaddrvoid) \
 	visit(ValidateVertexShader, jmpaddr) \
 	visit(ValidatePixelShader, jmpaddr) \
 	visit(Direct3DCreate8, jmpaddr)
 
-PROC_CLASS(d3d8, dll)
-
-#undef VISIT_PROCS
+#ifdef PROC_CLASS
+PROC_CLASS(d3d8, dll, VISIT_PROCS_D3D8)
+#endif

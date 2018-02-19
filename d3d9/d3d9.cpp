@@ -18,23 +18,13 @@
 #include "d3d9External.h"
 #include "Wrappers\wrapper.h"
 
+#define INITUALIZE_WRAPPED_PROC(procName, unused) \
+	FARPROC procName ## _out = (FARPROC)*(d3d9::procName);
+
 namespace D3d9Wrapper
 {
-	FARPROC Direct3DShaderValidatorCreate9_out = (FARPROC)*(d3d9::Direct3DShaderValidatorCreate9);
-	FARPROC PSGPError_out = (FARPROC)*(d3d9::PSGPError);
-	FARPROC PSGPSampleTexture_out = (FARPROC)*(d3d9::PSGPSampleTexture);
-	FARPROC D3DPERF_BeginEvent_out = (FARPROC)*(d3d9::D3DPERF_BeginEvent);
-	FARPROC D3DPERF_EndEvent_out = (FARPROC)*(d3d9::D3DPERF_EndEvent);
-	FARPROC D3DPERF_GetStatus_out = (FARPROC)*(d3d9::D3DPERF_GetStatus);
-	FARPROC D3DPERF_QueryRepeatFrame_out = (FARPROC)*(d3d9::D3DPERF_QueryRepeatFrame);
-	FARPROC D3DPERF_SetMarker_out = (FARPROC)*(d3d9::D3DPERF_SetMarker);
-	FARPROC D3DPERF_SetOptions_out = (FARPROC)*(d3d9::D3DPERF_SetOptions);
-	FARPROC D3DPERF_SetRegion_out = (FARPROC)*(d3d9::D3DPERF_SetRegion);
-	FARPROC DebugSetLevel_out = (FARPROC)*(d3d9::DebugSetLevel);
+	VISIT_PROCS_D3D9(INITUALIZE_WRAPPED_PROC);
 	FARPROC DebugSetMute_out = (FARPROC)*(ShardProcs::DebugSetMute);
-	FARPROC Direct3D9EnableMaximizedWindowedModeShim_out = (FARPROC)*(d3d9::Direct3D9EnableMaximizedWindowedModeShim);
-	FARPROC Direct3DCreate9_out = (FARPROC)*(d3d9::Direct3DCreate9);
-	FARPROC Direct3DCreate9Ex_out = (FARPROC)*(d3d9::Direct3DCreate9Ex);
 }
 
 using namespace D3d9Wrapper;

@@ -1,6 +1,6 @@
 #pragma once
 
-#define VISIT_PROCS(visit) \
+#define VISIT_PROCS_DCIMAN32(visit) \
 	visit(DCIBeginAccess, jmpaddr) \
 	visit(DCICloseProvider, jmpaddr) \
 	visit(DCICreateOffscreen, jmpaddr) \
@@ -22,6 +22,6 @@
 	visit(WinWatchNotify, jmpaddr) \
 	visit(WinWatchOpen, jmpaddr)
 
-PROC_CLASS(dciman32, dll)
-
-#undef VISIT_PROCS
+#ifdef PROC_CLASS
+PROC_CLASS(dciman32, dll, VISIT_PROCS_DCIMAN32)
+#endif

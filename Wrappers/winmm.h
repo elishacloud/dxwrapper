@@ -1,6 +1,6 @@
 #pragma once
 
-#define VISIT_PROCS(visit) \
+#define VISIT_PROCS_WINMM(visit) \
 	visit(CloseDriver, jmpaddr) \
 	visit(DefDriverProc, jmpaddr) \
 	visit(DriverCallback, jmpaddr) \
@@ -201,6 +201,6 @@
 	visit(winmmbaseHandle32FromHandle16, jmpaddr) \
 	visit(winmmbaseSetWOWHandle, jmpaddr)
 
-PROC_CLASS(winmm, dll)
-
-#undef VISIT_PROCS
+#ifdef PROC_CLASS
+PROC_CLASS(winmm, dll, VISIT_PROCS_WINMM)
+#endif

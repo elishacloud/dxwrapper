@@ -1,6 +1,6 @@
 #pragma once
 
-#define VISIT_PROCS(visit) \
+#define VISIT_PROCS_BCRYPT(visit) \
 	visit(BCryptAddContextFunction, jmpaddr) \
 	visit(BCryptAddContextFunctionProvider, jmpaddr) \
 	visit(BCryptCloseAlgorithmProvider, jmpaddr) \
@@ -60,6 +60,6 @@
 	visit(BCryptUnregisterProvider, jmpaddr) \
 	visit(BCryptVerifySignature, jmpaddr)
 
-PROC_CLASS(bcrypt, dll)
-
-#undef VISIT_PROCS
+#ifdef PROC_CLASS
+PROC_CLASS(bcrypt, dll, VISIT_PROCS_BCRYPT)
+#endif

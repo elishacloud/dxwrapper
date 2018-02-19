@@ -1,8 +1,6 @@
 #pragma once
 
-#include "wrapper.h"
-
-#define VISIT_PROCS(visit) \
+#define VISIT_PROCS_DDRAW(visit) \
 	visit(AcquireDDThreadLock, jmpaddrvoid) \
 	visit(CheckFullscreen, jmpaddr) \
 	visit(CompleteCreateSysmemSurface, jmpaddr) \
@@ -25,6 +23,6 @@
 	visit(ReleaseDDThreadLock, jmpaddrvoid) \
 	visit(SetAppCompatData, jmpaddr)
 
-PROC_CLASS(ddraw, dll)
-
-#undef VISIT_PROCS
+#ifdef PROC_CLASS
+PROC_CLASS(ddraw, dll, VISIT_PROCS_DDRAW)
+#endif

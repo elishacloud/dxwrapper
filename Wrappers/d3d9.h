@@ -1,6 +1,6 @@
 #pragma once
 
-#define VISIT_PROCS(visit) \
+#define VISIT_PROCS_D3D9(visit) \
 	visit(Direct3DShaderValidatorCreate9, jmpaddr) \
 	visit(PSGPError, jmpaddr) \
 	visit(PSGPSampleTexture, jmpaddr) \
@@ -16,6 +16,6 @@
 	visit(Direct3DCreate9, jmpaddr) \
 	visit(Direct3DCreate9Ex, jmpaddr)
 
-PROC_CLASS(d3d9, dll)
-
-#undef VISIT_PROCS
+#ifdef PROC_CLASS
+PROC_CLASS(d3d9, dll, VISIT_PROCS_D3D9)
+#endif

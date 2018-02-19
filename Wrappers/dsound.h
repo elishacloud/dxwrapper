@@ -1,6 +1,6 @@
 #pragma once
 
-#define VISIT_PROCS(visit) \
+#define VISIT_PROCS_DSOUND(visit) \
 	visit(DirectSoundCreate, jmpaddr) \
 	visit(DirectSoundEnumerateA, jmpaddr) \
 	visit(DirectSoundEnumerateW, jmpaddr) \
@@ -12,6 +12,6 @@
 	visit(DirectSoundCreate8, jmpaddr) \
 	visit(DirectSoundCaptureCreate8, jmpaddr)
 
-PROC_CLASS(dsound, dll)
-
-#undef VISIT_PROCS
+#ifdef PROC_CLASS
+PROC_CLASS(dsound, dll, VISIT_PROCS_DSOUND)
+#endif

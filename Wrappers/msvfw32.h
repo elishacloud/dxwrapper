@@ -1,6 +1,6 @@
 #pragma once
 
-#define VISIT_PROCS(visit) \
+#define VISIT_PROCS_MSVFW32(visit) \
 	visit(VideoForWindowsVersion, jmpaddr) \
 	visit(DrawDibBegin, jmpaddr) \
 	visit(DrawDibChangePalette, jmpaddr) \
@@ -49,6 +49,6 @@
 	visit(MCIWndRegisterClass, jmpaddr) \
 	visit(StretchDIB, jmpaddr)
 
-PROC_CLASS(msvfw32, dll)
-
-#undef VISIT_PROCS
+#ifdef PROC_CLASS
+PROC_CLASS(msvfw32, dll, VISIT_PROCS_MSVFW32)
+#endif

@@ -1,6 +1,6 @@
 #pragma once
 
-#define VISIT_PROCS(visit) \
+#define VISIT_PROCS_D2D1(visit) \
 	visit(D2D1CreateFactory, jmpaddr) \
 	visit(D2D1MakeRotateMatrix, jmpaddr) \
 	visit(D2D1MakeSkewMatrix, jmpaddr) \
@@ -17,6 +17,6 @@
 	visit(D2DTkCreateOn12Device, jmpaddr) \
 	visit(D2DTkCreateAlgorithmFactory, jmpaddr)
 
-PROC_CLASS(d2d1, dll)
-
-#undef VISIT_PROCS
+#ifdef PROC_CLASS
+PROC_CLASS(d2d1, dll, VISIT_PROCS_D2D1)
+#endif

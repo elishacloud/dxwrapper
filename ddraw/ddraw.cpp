@@ -20,31 +20,14 @@
 
 AddressLookupTable<void> ProxyAddressLookupTable = AddressLookupTable<void>(nullptr);
 
+#define INITUALIZE_WRAPPED_PROC(procName, unused) \
+	FARPROC procName ## _out = (FARPROC)*(ddraw::procName);
+
 namespace DdrawWrapper
 {
-	FARPROC AcquireDDThreadLock_out = (FARPROC)*(ddraw::AcquireDDThreadLock);
-	FARPROC CheckFullscreen_out = (FARPROC)*(ddraw::CheckFullscreen);
-	FARPROC CompleteCreateSysmemSurface_out = (FARPROC)*(ddraw::CompleteCreateSysmemSurface);
-	FARPROC D3DParseUnknownCommand_out = (FARPROC)*(ddraw::D3DParseUnknownCommand);
-	FARPROC DDGetAttachedSurfaceLcl_out = (FARPROC)*(ddraw::DDGetAttachedSurfaceLcl);
-	FARPROC DDInternalLock_out = (FARPROC)*(ddraw::DDInternalLock);
-	FARPROC DDInternalUnlock_out = (FARPROC)*(ddraw::DDInternalUnlock);
-	FARPROC DSoundHelp_out = (FARPROC)*(ddraw::DSoundHelp);
-	FARPROC DirectDrawCreate_out = (FARPROC)*(ddraw::DirectDrawCreate);
-	FARPROC DirectDrawCreateClipper_out = (FARPROC)*(ddraw::DirectDrawCreateClipper);
-	FARPROC DirectDrawCreateEx_out = (FARPROC)*(ddraw::DirectDrawCreateEx);
-	FARPROC DirectDrawEnumerateA_out = (FARPROC)*(ddraw::DirectDrawEnumerateA);
-	FARPROC DirectDrawEnumerateExA_out = (FARPROC)*(ddraw::DirectDrawEnumerateExA);
-	FARPROC DirectDrawEnumerateExW_out = (FARPROC)*(ddraw::DirectDrawEnumerateExW);
-	FARPROC DirectDrawEnumerateW_out = (FARPROC)*(ddraw::DirectDrawEnumerateW);
+	VISIT_PROCS_DDRAW(INITUALIZE_WRAPPED_PROC);
 	FARPROC DllCanUnloadNow_out = (FARPROC)*(ShardProcs::DllCanUnloadNow);
 	FARPROC DllGetClassObject_out = (FARPROC)*(ShardProcs::DllGetClassObject);
-	FARPROC GetDDSurfaceLocal_out = (FARPROC)*(ddraw::GetDDSurfaceLocal);
-	FARPROC GetOLEThunkData_out = (FARPROC)*(ddraw::GetOLEThunkData);
-	FARPROC GetSurfaceFromDC_out = (FARPROC)*(ddraw::GetSurfaceFromDC);
-	FARPROC RegisterSpecialCase_out = (FARPROC)*(ddraw::RegisterSpecialCase);
-	FARPROC ReleaseDDThreadLock_out = (FARPROC)*(ddraw::ReleaseDDThreadLock);
-	FARPROC SetAppCompatData_out = (FARPROC)*(ddraw::SetAppCompatData);
 }
 
 using namespace DdrawWrapper;
