@@ -1,25 +1,7 @@
 #pragma once
 
-#include <vector>
-
 namespace Wrapper
 {
-	struct wrapper_map
-	{
-		FARPROC Proc;
-		FARPROC *val;
-	};
-
-	// Forward function decalration
-	HRESULT __stdcall _jmpaddr();
-	HRESULT __stdcall _jmpaddrvoid();
-
-	// Varable decalration
-	constexpr FARPROC jmpaddr = (FARPROC)*_jmpaddr;
-	constexpr FARPROC jmpaddrvoid = (FARPROC)*_jmpaddrvoid;
-	extern std::vector<wrapper_map> jmpArray;
-
-	// Shared Functions
 	bool ValidProcAddress(FARPROC ProcAddress);
 	void ShimProc(FARPROC &var, FARPROC in, FARPROC &out);
 	HMODULE CreateWrapper(const char *ProxyDll, const char *WrapperMode);

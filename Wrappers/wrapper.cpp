@@ -16,6 +16,7 @@
 
 #define WIN32_LEAN_AND_MEAN
 #include <Windows.h>
+#include <vector>
 #include <algorithm>
 #include <fstream>
 
@@ -77,12 +78,25 @@
 		} \
 	}
 
-#include "wrapper.h"
-
 namespace Wrapper
 {
+	struct wrapper_map
+	{
+		FARPROC Proc;
+		FARPROC *val;
+	};
+
+	// Forward function decalration
+	HRESULT __stdcall _jmpaddr();
+	HRESULT __stdcall _jmpaddrvoid();
+
+	// Varable decalration
+	constexpr FARPROC jmpaddr = (FARPROC)*_jmpaddr;
+	constexpr FARPROC jmpaddrvoid = (FARPROC)*_jmpaddrvoid;
 	std::vector<wrapper_map> jmpArray;
 }
+
+#include "wrapper.h"
 
 __declspec(naked) HRESULT __stdcall Wrapper::_jmpaddrvoid()
 {
