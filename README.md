@@ -6,14 +6,16 @@ DxWrapper is a dll file designed to wrap or hook DirectX (or other) files to fix
 DxWrapper has a number of features that it includes.  Below is a list of features:
 
  - Integration of [DDrawCompat](https://github.com/narzoul/DDrawCompat/)
- - Can enable and disable DDrawCompat features to improve compatibility
+ - Enable and disable DDrawCompat features to improve compatibility
  - Proxy for [DxWnd](https://sourceforge.net/projects/dxwnd/)
  - Convert Direct3D8 (d3d8.dll) to Direct3D9 (d3d9.dll) using [d3d8to9](https://github.com/crosire/d3d8to9)
- - Allows tweaking some Microsoft DirectSound function calls using [DSoundCtrl](http://www.bockholdt.com/dsc/)
- - Can load custom libraries with the file extension .asi into game processes using code from [Ultimate ASI Loader](https://github.com/ThirteenAG/Ultimate-ASI-Loader)
+ - Tweaking of some Microsoft DirectSound function calls using [DSoundCtrl](http://www.bockholdt.com/dsc/)
+ - ASI loader to load custom libraries with the file extension .asi into game processes using code from [Ultimate ASI Loader](https://github.com/ThirteenAG/Ultimate-ASI-Loader)
+ - Supports being loaded as an ASI plug-in
+ - Adding AntiAliasing support into some DirectX 8 or 9 games even if the game does not support it (Windows 10 only)
  - Hot patch memory support (update game memory at run time, can be used to remove CD/DVD checks or resolve graphics or other glitches)
  - Set single CPU affinity (some games have issues with multi-core CPUs)
- - Disable display scaling on high DPI setting
+ - Disable display scaling on high DPI mode
  - Ability to set all 12 Application Compatibility Toolkit options for DXPrimaryEmulation using SetAppCompatData API
  - Set game window to fullscreen (some games have fullscreen issues)
  - Handle exceptions or crashes in games
