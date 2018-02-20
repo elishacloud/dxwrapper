@@ -408,6 +408,9 @@
     <None Include="Wrappers\wrapper.def">
       <Filter>Wrappers</Filter>
     </None>
+    <None Include="Settings\Stub.ini">
+      <Filter>Settings</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="DSoundCtrl\dsound.h">

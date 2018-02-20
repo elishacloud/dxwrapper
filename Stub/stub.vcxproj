@@ -55,6 +55,7 @@
     <PostBuildEvent>
       <Command>IF NOT EXIST "$(TargetDir)Build" mkdir "$(TargetDir)Build" &gt;nul
 IF NOT EXIST "$(TargetDir)Build\Stub" mkdir "$(TargetDir)Build\Stub" &gt;nul
+copy /Y "$(SolutionDir)Settings\Stub.ini" "$(TargetDir)Build\Stub" &gt;nul
 copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\Stub\bcrypt.dll" &gt;nul
 copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\Stub\cryptsp.dll" &gt;nul
 copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\Stub\d2d1.dll" &gt;nul
@@ -102,6 +103,7 @@ cmd /c "@echo off &amp;&amp; cd /D ""$(ProjectDir)"" &amp;&amp; type BuildNo.rc"
     <PostBuildEvent>
       <Command>IF NOT EXIST "$(TargetDir)Build" mkdir "$(TargetDir)Build" &gt;nul
 IF NOT EXIST "$(TargetDir)Build\Stub" mkdir "$(TargetDir)Build\Stub" &gt;nul
+copy /Y "$(SolutionDir)Settings\Stub.ini" "$(TargetDir)Build\Stub" &gt;nul
 copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\Stub\bcrypt.dll" &gt;nul
 copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\Stub\cryptsp.dll" &gt;nul
 copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\Stub\d2d1.dll" &gt;nul
