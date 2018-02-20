@@ -78,9 +78,7 @@ copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\Stub\msacm32.dll" &gt
 copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\Stub\msvfw32.dll" &gt;nul
 copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\Stub\vorbisfile.dll" &gt;nul
 copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\Stub\winmm.dll" &gt;nul
-copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\Stub\winmmbase.dll" &gt;nul
-copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\Stub\winspool.drv" &gt;nul
-copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\Stub\xlive.dll" &gt;nul</Command>
+copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\Stub\winmmbase.dll" &gt;nul</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -126,9 +124,7 @@ copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\Stub\msacm32.dll" &gt
 copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\Stub\msvfw32.dll" &gt;nul
 copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\Stub\vorbisfile.dll" &gt;nul
 copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\Stub\winmm.dll" &gt;nul
-copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\Stub\winmmbase.dll" &gt;nul
-copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\Stub\winspool.drv" &gt;nul
-copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\Stub\xlive.dll" &gt;nul</Command>
+copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\Stub\winmmbase.dll" &gt;nul</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
@@ -168,9 +164,7 @@ copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\Stub\xlive.dll" &gt;n
     <ClInclude Include="..\Wrappers\shared.h" />
     <ClInclude Include="..\Wrappers\vorbisFile.h" />
     <ClInclude Include="..\Wrappers\winmm.h" />
-    <ClInclude Include="..\Wrappers\winspool.h" />
     <ClInclude Include="..\Wrappers\wrapper.h" />
-    <ClInclude Include="..\Wrappers\xlive.h" />
     <ClInclude Include="stub.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

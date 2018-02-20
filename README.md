@@ -67,8 +67,6 @@ DxWrapper can wrap the following dlls:
  - vorbisfile.dll
  - winmm.dll
  - winmmbase.dll
- - winspool.drv
- - xlive.dll
 
 ### License
 Copyright (C) 2017 Elisha Riedlinger
