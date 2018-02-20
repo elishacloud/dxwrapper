@@ -377,9 +377,7 @@ cmd /c "@echo off &amp;&amp; cd /D ""$(ProjectDir)Dllmain\"" &amp;&amp; type Bui
     <ClInclude Include="Wrappers\shared.h" />
     <ClInclude Include="Wrappers\vorbisFile.h" />
     <ClInclude Include="Wrappers\winmm.h" />
-    <ClInclude Include="Wrappers\winspool.h" />
     <ClInclude Include="Wrappers\wrapper.h" />
-    <ClInclude Include="Wrappers\xlive.h" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="Dllmain\BuildNo.rc" />

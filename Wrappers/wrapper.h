@@ -32,9 +32,7 @@ namespace Wrapper
 	visit(msacm32) \
 	visit(msvfw32) \
 	visit(vorbisfile) \
-	visit(winmm) \
-	visit(winspool) \
-	visit(xlive)
+	visit(winmm)
 
 // Wrappers
 #include "bcrypt.h"
@@ -59,8 +57,6 @@ namespace Wrapper
 #include "msvfw32.h"
 #include "vorbisfile.h"
 #include "winmm.h"
-#include "winspool.h"
-#include "xlive.h"
 
 #define DECLARE_FORWARD_FUNCTIONS(procName, unused) \
 	extern "C" void __stdcall procName();

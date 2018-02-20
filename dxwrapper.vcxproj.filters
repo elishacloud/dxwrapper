@@ -839,12 +839,6 @@
     <ClInclude Include="Wrappers\winmm.h">
       <Filter>Wrappers</Filter>
     </ClInclude>
-    <ClInclude Include="Wrappers\winspool.h">
-      <Filter>Wrappers</Filter>
-    </ClInclude>
-    <ClInclude Include="Wrappers\xlive.h">
-      <Filter>Wrappers</Filter>
-    </ClInclude>
     <ClInclude Include="DxWnd\DxWndExternal.h">
       <Filter>DxWnd</Filter>
     </ClInclude>

@@ -9,6 +9,7 @@
 	visit(PIXBeginCapture, jmpaddr) \
 	visit(PIXEndCapture, jmpaddr) \
 	visit(PIXGetCaptureState, jmpaddr) \
+	visit(UpdateHMDEmulationStatus, jmpaddr) \
 	visit(CreateDXGIFactory1, jmpaddr) \
 	visit(CreateDXGIFactory2, jmpaddr) \
 	visit(CreateDXGIFactory, jmpaddr) \
