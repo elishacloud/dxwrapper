@@ -189,14 +189,7 @@ BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpvReserved)
 		}
 
 		//********** Begin Edit *************
-		if (Config.RealWrapperMode == dtype.ddraw)
-		{
-			g_origDDrawModule = LoadLibrary("ddraw.dll");
-		}
-		else
-		{
-			g_origDDrawModule = hinstDLL;
-		}
+		g_origDDrawModule = hinstDLL;
 		g_origDInputModule = LoadLibrary("dinput.dll");
 		if (!g_origDDrawModule || !g_origDInputModule)
 		{

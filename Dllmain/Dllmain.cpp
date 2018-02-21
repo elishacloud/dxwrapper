@@ -132,14 +132,14 @@ bool APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 			if (dll)
 			{
 				Utils::AddHandleToVector(dll, (Config.RealDllPath.size()) ? Config.RealDllPath.c_str() : Config.WrapperName.c_str());
-			}
 
-			// Hook GetProcAddress to handle wrapped functions that are missing or not available in the OS
-			dll = LoadLibrary("kernel32.dll");
-			if (dll)
-			{
-				Logging::Log() << "Hooking 'GetProcAddress' API...";
-				InterlockedExchangePointer((PVOID*)&Utils::pGetProcAddress, Hook::HookAPI(dll, "kernel32.dll", Hook::GetProcAddress(dll, "GetProcAddress"), "GetProcAddress", Utils::GetProcAddressHandler));
+				// Hook GetProcAddress to handle wrapped functions that are missing or not available in the OS
+				dll = LoadLibrary("kernel32.dll");
+				if (dll)
+				{
+					Logging::Log() << "Hooking 'GetProcAddress' API...";
+					InterlockedExchangePointer((PVOID*)&Utils::pGetProcAddress, Hook::HookAPI(dll, "kernel32.dll", Hook::GetProcAddress(dll, "GetProcAddress"), "GetProcAddress", Utils::GetProcAddressHandler));
+				}
 			}
 		}
 
@@ -239,7 +239,7 @@ bool APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 			// Start DDrawCompat
 			if (Config.DDrawCompat)
 			{
-				Config.DDrawCompat = (DllMain_DDrawCompat(hModule_dll, fdwReason, nullptr) == TRUE);
+				Config.DDrawCompat = (DllMain_DDrawCompat((Config.RealWrapperMode == dtype.ddraw) ? LoadLibrary("ddraw.dll") : hModule_dll, fdwReason, nullptr) == TRUE);
 			}
 		}
 
@@ -264,7 +264,7 @@ bool APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 
 				// Hook d3d8.dll -> D3d8to9	
 				Logging::Log() << "Hooking d3d8.dll APIs...";
-				(FARPROC)Hook::HookAPI(dll, dtypename[dtype.d3d8], Hook::GetProcAddress(dll, "Direct3DCreate8"), "Direct3DCreate8", D3d8to9::Direct3DCreate8);
+				Hook::HookAPI(dll, dtypename[dtype.d3d8], Hook::GetProcAddress(dll, "Direct3DCreate8"), "Direct3DCreate8", D3d8to9::Direct3DCreate8);
 			}
 
 			// Load d3d9 functions

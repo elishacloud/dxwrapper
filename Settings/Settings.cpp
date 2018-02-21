@@ -330,7 +330,8 @@ void Settings::ClearConfigSettings()
 UINT Settings::GetWrapperMode(std::string *name)
 {
 	// Check each wrapper library
-	for (UINT x = 0; x < dtypeArraySize; ++x)
+	// Start at '1' to exclude '0' and dxwrapper.dll
+	for (UINT x = 1; x < dtypeArraySize; ++x)
 	{
 		// Check dll name
 		if (_strcmpi(name->c_str(), dtypename[x]) == 0)
@@ -463,6 +464,7 @@ void CONFIG::Init()
 	{
 		WrapperName.assign(p_wName);
 		std::transform(WrapperName.begin(), WrapperName.end(), WrapperName.begin(), ::tolower);
+		std::transform(WrapperMode.begin(), WrapperMode.end(), WrapperMode.begin(), ::tolower);
 		RealWrapperMode = GetWrapperMode((WrapperMode.size()) ? &WrapperMode : &WrapperName);
 	}
 

@@ -95,9 +95,11 @@ namespace
 
 	void installHooks()
 	{
+		//********** Begin Edit *************
 		static bool isAlreadyInstalled = false;
 		if (!isAlreadyInstalled)
 		{
+			//********** End Edit ***************
 			Compat::Log() << "Installing DirectDraw hooks";
 			IDirectDraw* dd = nullptr;
 			HRESULT result = CALL_ORIG_DDRAW(DirectDrawCreate, nullptr, &dd, nullptr);
@@ -124,8 +126,10 @@ namespace
 				Compat::Log() << "Failed to create a DirectDraw object for hooking" << result;
 			}
 			Compat::Log() << "Finished installing hooks";
+			//********** Begin Edit *************
 			isAlreadyInstalled = true;
 		}
+		//********** End Edit ***************
 	}
 
 	bool loadLibrary(const std::string& systemDirectory, const std::string& dllName, HMODULE& module)
@@ -176,14 +180,7 @@ BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpvReserved)
 		}
 
 		//********** Begin Edit *************
-		if (Config.RealWrapperMode == dtype.ddraw)
-		{
-			g_origDDrawModule = LoadLibrary("ddraw.dll");
-		}
-		else
-		{
-			g_origDDrawModule = hinstDLL;
-		}
+		g_origDDrawModule = hinstDLL;
 		g_origDInputModule = LoadLibrary("dinput.dll");
 		if (!g_origDDrawModule || !g_origDInputModule)
 		{
