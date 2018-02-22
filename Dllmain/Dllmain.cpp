@@ -171,37 +171,8 @@ bool APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 		// Start ddraw.dll module
 		if (Config.DDrawCompat || Config.isDdrawWrapperEnabled)
 		{
-			using namespace ddraw;
-			using namespace DdrawWrapper;
-
-			// If wrapper mode is ddraw update wrapper
-			if (Config.RealWrapperMode == dtype.ddraw)
-			{
-				// Update dxwrapper.dll -> DdrawWrapper
-				if (Config.isDdrawWrapperEnabled)
-				{
-					VISIT_PROCS_DDRAW(SHIM_WRAPPED_PROC);
-					Wrapper::ShimProc(ShardProcs::DllCanUnloadNow_var, DllCanUnloadNow_in, DllCanUnloadNow_out);
-					Wrapper::ShimProc(ShardProcs::DllGetClassObject_var, DllGetClassObject_in, DllGetClassObject_out);
-
-					// Update DdrawWrapper -> DDrawCompat
-					if (Config.DDrawCompat)
-					{
-						DirectDrawCreate_out = DDrawCompat::DirectDrawCreate;
-						DirectDrawCreateEx_out = DDrawCompat::DirectDrawCreateEx;
-						DllGetClassObject_out = DDrawCompat::DllGetClassObject;
-					}
-				}
-				// Update dxwrapper.dll -> DDrawCompat
-				else
-				{
-					DirectDrawCreate_var = DDrawCompat::DirectDrawCreate;
-					DirectDrawCreateEx_var = DDrawCompat::DirectDrawCreateEx;
-					ShardProcs::DllGetClassObject_var = DDrawCompat::DllGetClassObject;
-				}
-			}
-			// Hook ddraw APIs for DDrawCompat
-			else
+			// Check wrapper mode
+			if (Config.RealWrapperMode != dtype.ddraw)
 			{
 				// Load ddraw procs
 				HMODULE dll = ddraw::Load(nullptr);
@@ -210,36 +181,37 @@ bool APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 					Utils::AddHandleToVector(dll, dtypename[dtype.ddraw]);
 				}
 
-				// Hook ddraw.dll -> DDrawCompat
+				// Hook ddraw.dll APIs
 				Logging::Log() << "Hooking ddraw.dll APIs...";
-				if (Config.isDdrawWrapperEnabled)
-				{
-					DirectDrawCreate_var = (FARPROC)Hook::HookAPI(dll, dtypename[dtype.ddraw], Hook::GetProcAddress(dll, "DirectDrawCreate"), "DirectDrawCreate", DirectDrawCreate_in);
-					DirectDrawCreateEx_var = (FARPROC)Hook::HookAPI(dll, dtypename[dtype.ddraw], Hook::GetProcAddress(dll, "DirectDrawCreateEx"), "DirectDrawCreateEx", DirectDrawCreateEx_in);
-					if (Config.DDrawCompat)
-					{
-						DirectDrawCreate_out = DDrawCompat::DirectDrawCreate;
-						DirectDrawCreateEx_out = DDrawCompat::DirectDrawCreateEx;
-						ShardProcs::DllGetClassObject_var = (FARPROC)Hook::HookAPI(dll, dtypename[dtype.ddraw], Hook::GetProcAddress(dll, "DllGetClassObject"), "DllGetClassObject", DDrawCompat::DllGetClassObject);
-					}
-					else
-					{
-						DirectDrawCreate_out = DirectDrawCreate_var;
-						DirectDrawCreateEx_out = DirectDrawCreateEx_var;
-					}
-				}
-				else
-				{
-					DirectDrawCreate_var = (FARPROC)Hook::HookAPI(dll, dtypename[dtype.ddraw], Hook::GetProcAddress(dll, "DirectDrawCreate"), "DirectDrawCreate", DDrawCompat::DirectDrawCreate);
-					DirectDrawCreateEx_var = (FARPROC)Hook::HookAPI(dll, dtypename[dtype.ddraw], Hook::GetProcAddress(dll, "DirectDrawCreateEx"), "DirectDrawCreateEx", DDrawCompat::DirectDrawCreateEx);
-					ShardProcs::DllGetClassObject_var = (FARPROC)Hook::HookAPI(dll, dtypename[dtype.ddraw], Hook::GetProcAddress(dll, "DllGetClassObject"), "DllGetClassObject", DDrawCompat::DllGetClassObject);
-				}
+				ddraw::DirectDrawCreate_var = (FARPROC)Hook::HookAPI(dll, dtypename[dtype.ddraw], Hook::GetProcAddress(dll, "DirectDrawCreate"), "DirectDrawCreate", (FARPROC)*(ddraw::DirectDrawCreate));
+				ddraw::DirectDrawCreateEx_var = (FARPROC)Hook::HookAPI(dll, dtypename[dtype.ddraw], Hook::GetProcAddress(dll, "DirectDrawCreateEx"), "DirectDrawCreateEx", (FARPROC)*(ddraw::DirectDrawCreateEx));
+				ShardProcs::DllGetClassObject_var = (FARPROC)Hook::HookAPI(dll, dtypename[dtype.ddraw], Hook::GetProcAddress(dll, "DllGetClassObject"), "DllGetClassObject", (FARPROC)*(ShardProcs::DllGetClassObject));
+			}
+
+			//  Add DDrawCompat to the chain
+			if (Config.DDrawCompat)
+			{
+				using namespace ddraw;
+				using namespace DDrawCompat;
+				VISIT_PROCS_DDRAW(SHIM_WRAPPED_PROC);
+				Wrapper::ShimProc(ShardProcs::DllCanUnloadNow_var, DllCanUnloadNow_in, DllCanUnloadNow_out);
+				Wrapper::ShimProc(ShardProcs::DllGetClassObject_var, DllGetClassObject_in, DllGetClassObject_out);
+			}
+
+			//  Add DdrawWrapper to the chain
+			if (Config.isDdrawWrapperEnabled)
+			{
+				using namespace ddraw;
+				using namespace DdrawWrapper;
+				VISIT_PROCS_DDRAW(SHIM_WRAPPED_PROC);
+				Wrapper::ShimProc(ShardProcs::DllCanUnloadNow_var, DllCanUnloadNow_in, DllCanUnloadNow_out);
+				Wrapper::ShimProc(ShardProcs::DllGetClassObject_var, DllGetClassObject_in, DllGetClassObject_out);
 			}
 
 			// Start DDrawCompat
 			if (Config.DDrawCompat)
 			{
-				Config.DDrawCompat = (DllMain_DDrawCompat((Config.RealWrapperMode == dtype.ddraw) ? LoadLibrary("ddraw.dll") : hModule_dll, DLL_PROCESS_ATTACH, nullptr) == TRUE);
+				Config.DDrawCompat =(DllMain_DDrawCompat(hModule_dll, DLL_PROCESS_ATTACH, nullptr) == TRUE);
 			}
 		}
 

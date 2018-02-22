@@ -3,7 +3,6 @@
 * https://github.com/narzoul/DDrawCompat/
 *
 * Updated 2017 by Elisha Riedlinger
-*
 */
 
 #include <string>
@@ -15,11 +14,24 @@
 #include "CompatVtable.h"
 #include "DDrawProcs.h"
 //********** Begin Edit *************
-#include "Settings\Settings.h"
-#include "Hooking\Hook.h"
-#include "Utils\Utils.h"
+#include "DDrawCompatExternal.h"
 #define DllMain DllMain_DDrawCompat
-#define GetProcAddress Hook::GetProcAddress
+
+extern "C" HRESULT WINAPI _DirectDrawCreate(GUID*, LPDIRECTDRAW*, IUnknown*);
+extern "C" HRESULT WINAPI _DirectDrawCreateEx(GUID*, LPVOID*, REFIID, IUnknown*);
+extern "C" HRESULT WINAPI _DllGetClassObject(REFCLSID, REFIID, LPVOID*);
+
+#define EXTERN_PROC_STUB(procName) extern "C" void __stdcall _ ## procName();
+VISIT_UNMODIFIED_DDRAW_PROCS(EXTERN_PROC_STUB);
+
+namespace DDrawCompat
+{
+#define INITUALIZE_WRAPPED_PROC(procName) \
+	FARPROC procName ## _in = (FARPROC)*_ ## procName; \
+	FARPROC procName ## _out = nullptr; \
+
+	VISIT_ALL_DDRAW_PROCS(INITUALIZE_WRAPPED_PROC);
+}
 //********** End Edit ***************
 
 struct IDirectInput;
@@ -152,8 +164,10 @@ namespace
 	}
 }
 
+//********** Begin Edit *************
 #define	LOAD_ORIGINAL_DDRAW_PROC(procName) \
-	Compat::origProcs.procName = GetProcAddress(g_origDDrawModule, #procName);
+	Compat::origProcs.procName = DDrawCompat::procName ## _out;
+//********** End Edit ***************
 
 BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpvReserved)
 {
@@ -175,14 +189,11 @@ BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpvReserved)
 			return false;
 		}
 
-		//********** Begin Edit *************
-		g_origDDrawModule = hinstDLL;
-		g_origDInputModule = LoadLibrary("dinput.dll");
-		if (!g_origDDrawModule || !g_origDInputModule)
+		if (!loadLibrary(systemDirectory, "ddraw.dll", g_origDDrawModule) ||
+			!loadLibrary(systemDirectory, "dinput.dll", g_origDInputModule))
 		{
-			return false;
+			return FALSE;
 		}
-		//********** End Edit ***************
 
 		VISIT_ALL_DDRAW_PROCS(LOAD_ORIGINAL_DDRAW_PROC);
 		Compat::origProcs.DirectInputCreateA = GetProcAddress(g_origDInputModule, "DirectInputCreateA");
@@ -208,10 +219,8 @@ BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpvReserved)
 	}
 	else if (fdwReason == DLL_PROCESS_DETACH)
 	{
-		//********** Begin Edit *************
-		//FreeLibrary(g_origDInputModule);
-		//FreeLibrary(g_origDDrawModule);
-		//********** End Edit ***************
+		FreeLibrary(g_origDInputModule);
+		FreeLibrary(g_origDDrawModule);
 	}
 
 	return TRUE;

@@ -6,6 +6,7 @@
 
 #define VISIT_UNMODIFIED_DDRAW_PROCS(visit) \
 	visit(AcquireDDThreadLock) \
+	visit(CheckFullscreen) \
 	visit(CompleteCreateSysmemSurface) \
 	visit(D3DParseUnknownCommand) \
 	visit(DDGetAttachedSurfaceLcl) \
