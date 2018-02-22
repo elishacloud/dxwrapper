@@ -239,7 +239,7 @@ bool APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 			// Start DDrawCompat
 			if (Config.DDrawCompat)
 			{
-				Config.DDrawCompat = (DllMain_DDrawCompat((Config.RealWrapperMode == dtype.ddraw) ? LoadLibrary("ddraw.dll") : hModule_dll, fdwReason, nullptr) == TRUE);
+				Config.DDrawCompat = (DllMain_DDrawCompat((Config.RealWrapperMode == dtype.ddraw) ? LoadLibrary("ddraw.dll") : hModule_dll, DLL_PROCESS_ATTACH, nullptr) == TRUE);
 			}
 		}
 
@@ -336,7 +336,7 @@ bool APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 			}
 
 			// Start DSoundCtrl
-			DllMain_DSoundCtrl(hModule_dll, fdwReason, nullptr);
+			DllMain_DSoundCtrl(hModule_dll, DLL_PROCESS_ATTACH, nullptr);
 		}
 
 		// Start DxWnd module
@@ -346,7 +346,7 @@ bool APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 			HMODULE dxwnd_dll = LoadLibrary("dxwnd.dll");
 			if (dxwnd_dll)
 			{
-				Logging::Log() << "Loading dxwnd";
+				Logging::Log() << "Loading DxWnd " << _TO_STRING(APP_DXWNDVERSION);
 				InitDxWnd(dxwnd_dll);
 			}
 			// If dxwnd.dll does not exist than disable dxwnd setting

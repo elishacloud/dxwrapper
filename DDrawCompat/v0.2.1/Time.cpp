@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Time1.h"
+#include "Time.h"
 
 namespace Time
 {

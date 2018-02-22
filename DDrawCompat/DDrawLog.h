@@ -1,23 +1,18 @@
-/**
-* Created from source code found in DdrawCompat v2.1
-* https://github.com/narzoul/DDrawCompat/
-*
-* Updated 2017 by Elisha Riedlinger
-*/
-
 #pragma once
 
 #define CINTERFACE
+
+#include <ddraw.h>
+#include <fstream>
+#include <ostream>
+#include <type_traits>
 
 //********** Begin Edit *************
 #define DDRAWLOG_H
 #define APP_DDRAWNAME			DDrawCompat
 #define APP_DDRAWVERSION		v0.2.1
+#include "Logging\Logging.h"
 //********** End Edit ***************
-
-#include <ddraw.h>
-#include <fstream>
-#include <type_traits>
 
 #define LOG_ONCE(msg) \
 	static bool isAlreadyLogged##__LINE__ = false; \
@@ -30,6 +25,8 @@
 std::ostream& operator<<(std::ostream& os, const char* str);
 std::ostream& operator<<(std::ostream& os, const unsigned char* data);
 std::ostream& operator<<(std::ostream& os, const WCHAR* wstr);
+std::ostream& operator<<(std::ostream& os, const DEVMODEA& dm);
+std::ostream& operator<<(std::ostream& os, const DEVMODEW& dm);
 std::ostream& operator<<(std::ostream& os, const RECT& rect);
 std::ostream& operator<<(std::ostream& os, HDC__& dc);
 std::ostream& operator<<(std::ostream& os, HWND__& hwnd);
@@ -41,28 +38,42 @@ std::ostream& operator<<(std::ostream& os, const DDSURFACEDESC2& sd);
 std::ostream& operator<<(std::ostream& os, const CWPSTRUCT& cwrp);
 std::ostream& operator<<(std::ostream& os, const CWPRETSTRUCT& cwrp);
 
-template <typename T>
-typename std::enable_if<std::is_class<T>::value && !std::is_same<T, std::string>::value, std::ostream&>::type
-operator<<(std::ostream& os, const T& t)
-{
-	return os << static_cast<const void*>(&t);
-}
-
-template <typename T>
-typename std::enable_if<std::is_class<T>::value, std::ostream&>::type
-operator<<(std::ostream& os, T* t)
-{
-	return t ? (os << *t) : (os << "null");
-}
-
-template <typename T>
-std::ostream& operator<<(std::ostream& os, T** t)
-{
-	return t ? (os << reinterpret_cast<void*>(t) << '=' << *t) : (os << "null");
-}
-
 namespace Compat
 {
+	using ::operator<<;
+
+	template <typename Num>
+	struct Hex
+	{
+		explicit Hex(Num val) : val(val) {}
+		Num val;
+	};
+
+	template <typename Num> Hex<Num> hex(Num val) { return Hex<Num>(val); }
+
+	template <typename Elem>
+	struct Array
+	{
+		Array(const Elem* elem, const unsigned long size) : elem(elem), size(size) {}
+		const Elem* elem;
+		const unsigned long size;
+	};
+
+	template <typename Elem>
+	Array<Elem> array(const Elem* elem, const unsigned long size)
+	{
+		return Array<Elem>(elem, size);
+	}
+
+	template <typename T>
+	struct Out
+	{
+		explicit Out(const T& val) : val(val) {}
+		const T& val;
+	};
+
+	template <typename T> Out<T> out(const T& val) { return Out<T>(val); }
+
 	class Log
 	{
 	public:
@@ -76,6 +87,8 @@ namespace Compat
 			return *this;
 		}
 
+		static bool isPointerDereferencingAllowed() { return s_isLeaveLog || 0 == s_outParamDepth; }
+
 	protected:
 		template <typename... Params>
 		Log(const char* prefix, const char* funcName, Params... params) : Log()
@@ -86,6 +99,9 @@ namespace Compat
 		}
 
 	private:
+		friend class LogLeaveGuard;
+		template <typename T> friend std::ostream& operator<<(std::ostream& os, Out<T> out);
+
 		void toList()
 		{
 		}
@@ -102,6 +118,10 @@ namespace Compat
 			s_logFile << firstParam << ", ";
 			toList(remainingParams...);
 		}
+
+		static std::ofstream s_logFile;
+		static DWORD s_outParamDepth;
+		static bool s_isLeaveLog;
 
 		//********** Begin Edit *************
 		// Get wrapper file name
@@ -139,14 +159,43 @@ namespace Compat
 			return wrappername;
 		}
 		//********** End Edit ***************
-
-		static std::ofstream s_logFile;
 	};
 
-//********** Begin Edit *************
+	class LogParams;
+
+	class LogFirstParam
+	{
+	public:
+		LogFirstParam(std::ostream& os) : m_os(os) {}
+		template <typename T> LogParams operator<<(const T& val) { m_os << val; return LogParams(m_os); }
+
+	protected:
+		std::ostream& m_os;
+	};
+
+	class LogParams
+	{
+	public:
+		LogParams(std::ostream& os) : m_os(os) {}
+		template <typename T> LogParams& operator<<(const T& val) { m_os << ',' << val; return *this; }
+
+		operator std::ostream&() { return m_os; }
+
+	private:
+		std::ostream& m_os;
+	};
+
+	class LogStruct : public LogFirstParam
+	{
+	public:
+		LogStruct(std::ostream& os) : LogFirstParam(os) { m_os << '{'; }
+		~LogStruct() { m_os << '}'; }
+	};
+
+	//********** Begin Edit *************
 #include "Logging\Logging.h"
 #ifdef DDRAWCOMPATLOG
-//********** End Edit ***************
+	//********** End Edit ***************
 	typedef Log LogDebug;
 
 	class LogEnter : private Log
@@ -158,7 +207,14 @@ namespace Compat
 		}
 	};
 
-	class LogLeave : private Log
+	class LogLeaveGuard
+	{
+	public:
+		LogLeaveGuard() { Log::s_isLeaveLog = true; }
+		~LogLeaveGuard() { Log::s_isLeaveLog = false; }
+	};
+
+	class LogLeave : private LogLeaveGuard, private Log
 	{
 	public:
 		template <typename... Params>
@@ -173,19 +229,96 @@ namespace Compat
 		}
 	};
 #else
-	class LogDebug
+	class LogNull
 	{
 	public:
-		template <typename T> LogDebug& operator<<(const T&) { return *this;  }
+		template <typename T> LogNull& operator<<(const T&) { return *this;  }
 	};
 
-	class LogEnter
+	typedef LogNull LogDebug;
+
+	class LogEnter : public LogNull
 	{
 	public:
 		template <typename... Params> LogEnter(const char*, Params...) {}
-		template <typename Result> void operator<<(const Result&) {}
 	};
 
 	typedef LogEnter LogLeave;
 #endif
+
+	template <typename Num>
+	std::ostream& operator<<(std::ostream& os, Hex<Num> hex)
+	{
+		os << "0x" << std::hex << hex.val << std::dec;
+		return os;
+	}
+
+	template <typename Elem>
+	std::ostream& operator<<(std::ostream& os, Array<Elem> array)
+	{
+		os << '[';
+		if (Log::isPointerDereferencingAllowed())
+		{
+			if (0 != array.size)
+			{
+				os << array.elem[0];
+			}
+			for (unsigned long i = 1; i < array.size; ++i)
+			{
+				os << ',' << array.elem[i];
+			}
+		}
+		return os << ']';
+	}
+
+	template <typename T>
+	std::ostream& operator<<(std::ostream& os, Out<T> out)
+	{
+		++Log::s_outParamDepth;
+		os << out.val;
+		--Log::s_outParamDepth;
+		return os;
+	}
+}
+
+template <typename T>
+typename std::enable_if<std::is_class<T>::value && !std::is_same<T, std::string>::value, std::ostream&>::type
+operator<<(std::ostream& os, const T& t)
+{
+	return os << static_cast<const void*>(&t);
+}
+
+template <typename T>
+typename std::enable_if<std::is_class<T>::value, std::ostream&>::type
+operator<<(std::ostream& os, T* t)
+{
+	if (!t)
+	{
+		return os << "null";
+	}
+
+	if (!Compat::Log::isPointerDereferencingAllowed())
+	{
+		return os << static_cast<const void*>(t);
+	}
+
+	return os << *t;
+}
+
+template <typename T>
+std::ostream& operator<<(std::ostream& os, T** t)
+{
+	if (!t)
+	{
+		return os << "null";
+	}
+
+	os << static_cast<const void*>(t);
+
+	if (Compat::Log::isPointerDereferencingAllowed())
+	{
+		os << '=' << *t;
+	}
+
+	return os;
 }

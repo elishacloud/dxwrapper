@@ -359,7 +359,7 @@ void Utils::HookExceptionHandler(void)
 // Unhooks the exception handler
 void Utils::UnHookExceptionHandler(void)
 {
-	Compat::Log() << "Unloading exception handlers";
+	Logging::Log() << "Unloading exception handlers";
 	SetErrorMode(0);
 	SetUnhandledExceptionFilter(pOriginalSetUnhandledExceptionFilter);
 	Finishdisasm();

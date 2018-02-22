@@ -42,13 +42,13 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <OutDir>$(SolutionDir)bin\$(Configuration)\</OutDir>
     <IntDir>$(SolutionDir)bin\Intermediate\$(Configuration)\dxwrapper\</IntDir>
-    <IncludePath>$(ProjectDir);libraries;Dllmain;DDrawCompat\v0.2.1;DxWnd\v2_03_60_src;C:\Program Files (x86)\Microsoft Research\Detours Express 3.0\include;$(IncludePath);C:\Program Files (x86)\Windows Kits\dx8sdk\include</IncludePath>
+    <IncludePath>$(ProjectDir);libraries;Dllmain;DDrawCompat;DxWnd\v2_03_60_src;C:\Program Files (x86)\Microsoft Research\Detours Express 3.0\include;$(IncludePath);C:\Program Files (x86)\Windows Kits\dx8sdk\include</IncludePath>
     <LibraryPath>$(DXSDK_DIR)\Lib\x86;C:\Program Files (x86)\Microsoft Research\Detours Express 3.0\lib.X86;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <OutDir>$(SolutionDir)bin\$(Configuration)\</OutDir>
     <IntDir>$(SolutionDir)bin\Intermediate\$(Configuration)\dxwrapper\</IntDir>
-    <IncludePath>$(ProjectDir);libraries;Dllmain;DDrawCompat\v0.2.1;DxWnd\v2_03_60_src;C:\Program Files (x86)\Microsoft Research\Detours Express 3.0\include;$(IncludePath);C:\Program Files (x86)\Windows Kits\dx8sdk\include</IncludePath>
+    <IncludePath>$(ProjectDir);libraries;Dllmain;DDrawCompat;DxWnd\v2_03_60_src;C:\Program Files (x86)\Microsoft Research\Detours Express 3.0\include;$(IncludePath);C:\Program Files (x86)\Windows Kits\dx8sdk\include</IncludePath>
     <LibraryPath>$(DXSDK_DIR)\Lib\x86;C:\Program Files (x86)\Microsoft Research\Detours Express 3.0\lib.X86;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
@@ -61,9 +61,7 @@
     </ClCompile>
     <Link>
       <AdditionalDependencies>dxguid.lib;detours.lib;msimg32.lib;oleacc.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <OutputFile>$(OutDir)dxwrapper.dll</OutputFile>
       <ModuleDefinitionFile>Wrappers\wrapper.def</ModuleDefinitionFile>
-      <OptimizeReferences>false</OptimizeReferences>
     </Link>
     <PostBuildEvent>
       <Command>IF NOT EXIST "$(TargetDir)Build" mkdir "$(TargetDir)Build" &gt;nul
@@ -85,7 +83,6 @@ copy /Y "$(ProjectDir)Resources\dxwnd.exe" "$(TargetDir)Build\" &gt;nul</Command
       <WholeProgramOptimization>true</WholeProgramOptimization>
     </ClCompile>
     <Link>
-      <OutputFile>$(OutDir)dxwrapper.dll</OutputFile>
       <ModuleDefinitionFile>Wrappers\wrapper.def</ModuleDefinitionFile>
       <AdditionalDependencies>dxguid.lib;detours.lib;msimg32.lib;oleacc.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <LinkTimeCodeGeneration>UseLinkTimeCodeGeneration</LinkTimeCodeGeneration>
@@ -138,6 +135,7 @@ cmd /c "@echo off &amp;&amp; cd /D ""$(ProjectDir)Dllmain\"" &amp;&amp; type Bui
     <ClCompile Include="d3d9\IDirect3DVertexShader9.cpp" />
     <ClCompile Include="d3d9\IDirect3DVolume9.cpp" />
     <ClCompile Include="d3d9\IDirect3DVolumeTexture9.cpp" />
+    <ClCompile Include="DDrawCompat\DDrawLog.cpp" />
     <ClCompile Include="DDrawCompat\v0.2.1\CompatActivateAppHandler.cpp" />
     <ClCompile Include="DDrawCompat\v0.2.1\CompatDirectDraw.cpp" />
     <ClCompile Include="DDrawCompat\v0.2.1\CompatDirectDrawPalette.cpp" />
@@ -155,7 +153,6 @@ cmd /c "@echo off &amp;&amp; cd /D ""$(ProjectDir)Dllmain\"" &amp;&amp; type Bui
     <ClCompile Include="DDrawCompat\v0.2.1\CompatPaletteConverter.cpp" />
     <ClCompile Include="DDrawCompat\v0.2.1\CompatPrimarySurface.cpp" />
     <ClCompile Include="DDrawCompat\v0.2.1\CompatRegistry.cpp" />
-    <ClCompile Include="DDrawCompat\v0.2.1\DDrawLog.cpp" />
     <ClCompile Include="DDrawCompat\v0.2.1\DDrawProcs.cpp" />
     <ClCompile Include="DDrawCompat\v0.2.1\DDrawRepository.cpp" />
     <ClCompile Include="DDrawCompat\v0.2.1\DllMain.cpp" />
@@ -259,6 +256,7 @@ cmd /c "@echo off &amp;&amp; cd /D ""$(ProjectDir)Dllmain\"" &amp;&amp; type Bui
     <ClInclude Include="d3d9\IDirect3DVolume9.h" />
     <ClInclude Include="d3d9\IDirect3DVolumeTexture9.h" />
     <ClInclude Include="DDrawCompat\DDrawCompatExternal.h" />
+    <ClInclude Include="DDrawCompat\DDrawLog.h" />
     <ClInclude Include="DDrawCompat\v0.2.1\CompatActivateAppHandler.h" />
     <ClInclude Include="DDrawCompat\v0.2.1\CompatDirectDraw.h" />
     <ClInclude Include="DDrawCompat\v0.2.1\CompatDirectDrawPalette.h" />
@@ -278,7 +276,7 @@ cmd /c "@echo off &amp;&amp; cd /D ""$(ProjectDir)Dllmain\"" &amp;&amp; type Bui
     <ClInclude Include="DDrawCompat\v0.2.1\CompatRegistry.h" />
     <ClInclude Include="DDrawCompat\v0.2.1\CompatVtable.h" />
     <ClInclude Include="DDrawCompat\v0.2.1\Config.h" />
-    <ClInclude Include="DDrawCompat\v0.2.1\DDrawLog.h" />
+    <ClInclude Include="DDrawCompat\v0.2.1\DDrawCompatExternal.h" />
     <ClInclude Include="DDrawCompat\v0.2.1\DDrawProcs.h" />
     <ClInclude Include="DDrawCompat\v0.2.1\DDrawRepository.h" />
     <ClInclude Include="DDrawCompat\v0.2.1\DDrawScopedThreadLock.h" />
@@ -291,7 +289,7 @@ cmd /c "@echo off &amp;&amp; cd /D ""$(ProjectDir)Dllmain\"" &amp;&amp; type Bui
     <ClInclude Include="DDrawCompat\v0.2.1\IReleaseNotifier.h" />
     <ClInclude Include="DDrawCompat\v0.2.1\RealPrimarySurface.h" />
     <ClInclude Include="DDrawCompat\v0.2.1\ScopedCriticalSection.h" />
-    <ClInclude Include="DDrawCompat\v0.2.1\Time1.h" />
+    <ClInclude Include="DDrawCompat\v0.2.1\Time.h" />
     <ClInclude Include="ddraw\ddraw.h" />
     <ClInclude Include="ddraw\ddrawExternal.h" />
     <ClInclude Include="ddraw\IDirect3D.h" />

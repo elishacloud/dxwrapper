@@ -16,7 +16,7 @@
 #include "Hook.h"
 #include "IReleaseNotifier.h"
 #include "RealPrimarySurface.h"
-#include "Time1.h"
+#include "Time.h"
 
 namespace
 {

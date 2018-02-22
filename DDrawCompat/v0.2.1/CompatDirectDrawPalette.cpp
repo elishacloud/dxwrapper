@@ -5,7 +5,7 @@
 #include "CompatPrimarySurface.h"
 #include "Config.h"
 #include "RealPrimarySurface.h"
-#include "Time1.h"
+#include "Time.h"
 
 void CompatDirectDrawPalette::setCompatVtable(IDirectDrawPaletteVtbl& vtable)
 {

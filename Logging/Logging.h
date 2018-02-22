@@ -9,6 +9,10 @@
 #include "DDrawLog.h"
 #endif
 
+namespace Compat
+{
+}
+
 namespace Logging
 {
 	using namespace Compat;

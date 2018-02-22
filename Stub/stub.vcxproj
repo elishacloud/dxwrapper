@@ -49,7 +49,6 @@
       <ObjectFileName>$(SolutionDir)bin\Intermediate\$(Configuration)\Object\Stub\</ObjectFileName>
     </ClCompile>
     <Link>
-      <GenerateDebugInformation>true</GenerateDebugInformation>
       <ModuleDefinitionFile>..\Wrappers\wrapper.def</ModuleDefinitionFile>
     </Link>
     <PostBuildEvent>

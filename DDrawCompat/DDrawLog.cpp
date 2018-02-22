@@ -1,10 +1,3 @@
-/**
-* Created from source code found in DdrawCompat v2.1
-* https://github.com/narzoul/DDrawCompat/
-*
-* Updated 2017 by Elisha Riedlinger
-*/
-
 #define WIN32_LEAN_AND_MEAN
 
 #include <atlstr.h>
@@ -12,15 +5,17 @@
 
 #include "DDrawLog.h"
 
-
 namespace
 {
-	template <typename T>
-	bool isEmptyStruct(const T& t)
+	template <typename DevMode>
+	std::ostream& streamDevMode(std::ostream& os, const DevMode& dm)
 	{
-		static T empty = {};
-		empty.dwSize = t.dwSize;
-		return 0 == memcmp(&t, &empty, sizeof(t));
+		return Compat::LogStruct(os)
+			<< dm.dmPelsWidth
+			<< dm.dmPelsHeight
+			<< dm.dmBitsPerPel
+			<< dm.dmDisplayFrequency
+			<< dm.dmDisplayFlags;
 	}
 }
 
@@ -29,6 +24,11 @@ std::ostream& operator<<(std::ostream& os, const char* str)
 	if (!str)
 	{
 		return os << "null";
+	}
+
+	if (!Compat::Log::isPointerDereferencingAllowed())
+	{
+		return os << static_cast<const void*>(str);
 	}
 
 	return os.write(str, strlen(str));
@@ -46,13 +46,32 @@ std::ostream& operator<<(std::ostream& os, const WCHAR* wstr)
 		return os << "null";
 	}
 
+	if (!Compat::Log::isPointerDereferencingAllowed())
+	{
+		return os << static_cast<const void*>(wstr);
+	}
+
 	CStringA str(wstr);
 	return os << '"' << static_cast<const char*>(str) << '"';
 }
 
+std::ostream& operator<<(std::ostream& os, const DEVMODEA& dm)
+{
+	return streamDevMode(os, dm);
+}
+
+std::ostream& operator<<(std::ostream& os, const DEVMODEW& dm)
+{
+	return streamDevMode(os, dm);
+}
+
 std::ostream& operator<<(std::ostream& os, const RECT& rect)
 {
-	return os << "R(" << rect.left << ',' << rect.top << ',' << rect.right << ',' << rect.bottom << ')';
+	return Compat::LogStruct(os)
+		<< rect.left
+		<< rect.top
+		<< rect.right
+		<< rect.bottom;
 }
 
 std::ostream& operator<<(std::ostream& os, HDC__& dc)
@@ -71,59 +90,72 @@ std::ostream& operator<<(std::ostream& os, HWND__& hwnd)
 
 std::ostream& operator<<(std::ostream& os, const DDSCAPS& caps)
 {
-	return os << "C(" << std::hex << caps.dwCaps << std::dec << ')';
+	return Compat::LogStruct(os)
+		<< Compat::hex(caps.dwCaps);
 }
 
 std::ostream& operator<<(std::ostream& os, const DDSCAPS2& caps)
 {
-	return os << "C(" << std::hex <<
-		caps.dwCaps << ',' << caps.dwCaps2 << ',' << caps.dwCaps3 << ',' << caps.dwCaps4 << std::dec << ')';
+	return Compat::LogStruct(os)
+		<< Compat::hex(caps.dwCaps)
+		<< Compat::hex(caps.dwCaps2)
+		<< Compat::hex(caps.dwCaps3)
+		<< Compat::hex(caps.dwCaps4);
 }
 
 std::ostream& operator<<(std::ostream& os, const DDPIXELFORMAT& pf)
 {
-	if (isEmptyStruct(pf))
-	{
-		return os << "PF()";
-	}
-
-	return os << "PF(" << std::hex << pf.dwFlags << "," << pf.dwFourCC << "," <<
-		std::dec << pf.dwRGBBitCount << "," <<
-		std::hex << pf.dwRBitMask << "," << pf.dwGBitMask << "," << pf.dwBBitMask << "," <<
-		pf.dwRGBAlphaBitMask << std::dec << ')';
+	return Compat::LogStruct(os)
+		<< Compat::hex(pf.dwFlags)
+		<< Compat::hex(pf.dwFourCC)
+		<< pf.dwRGBBitCount
+		<< Compat::hex(pf.dwRBitMask)
+		<< Compat::hex(pf.dwGBitMask)
+		<< Compat::hex(pf.dwBBitMask)
+		<< Compat::hex(pf.dwRGBAlphaBitMask);
 }
 
 std::ostream& operator<<(std::ostream& os, const DDSURFACEDESC& sd)
 {
 	DDSURFACEDESC2 sd2 = {};
 	memcpy(&sd2, &sd, sizeof(sd));
-	sd2.dwSize = sizeof(sd2);
 	return os << sd2;
 }
 
 std::ostream& operator<<(std::ostream& os, const DDSURFACEDESC2& sd)
 {
-	if (isEmptyStruct(sd))
-	{
-		return os << "SD()";
-	}
-
-	return os << "SD(" << std::hex << sd.dwFlags << std::dec << "," <<
-		sd.dwHeight << "," << sd.dwWidth << "," << sd.lPitch << "," << sd.dwBackBufferCount << "," <<
-		sd.dwMipMapCount << "," << sd.dwAlphaBitDepth << "," << sd.dwReserved << "," <<
-		sd.lpSurface << "," << sd.ddpfPixelFormat << "," << sd.ddsCaps << "," << sd.dwTextureStage << ')';
+	return Compat::LogStruct(os)
+		<< Compat::hex(sd.dwFlags)
+		<< sd.dwHeight 
+		<< sd.dwWidth 
+		<< sd.lPitch 
+		<< sd.dwBackBufferCount 
+		<< sd.dwMipMapCount
+		<< sd.dwAlphaBitDepth 
+		<< sd.dwReserved 
+		<< sd.lpSurface
+		<< sd.ddpfPixelFormat
+		<< sd.ddsCaps
+		<< sd.dwTextureStage;
 }
 
 std::ostream& operator<<(std::ostream& os, const CWPSTRUCT& cwrp)
 {
-	return os << "CWP(" << std::hex << cwrp.message << "," << std::dec << cwrp.hwnd << "," <<
-		std::hex << cwrp.wParam << "," << cwrp.lParam << std::dec << ")";
+	return Compat::LogStruct(os)
+		<< Compat::hex(cwrp.message)
+		<< cwrp.hwnd 
+		<< Compat::hex(cwrp.wParam)
+		<< Compat::hex(cwrp.lParam);
 }
 
 std::ostream& operator<<(std::ostream& os, const CWPRETSTRUCT& cwrp)
 {
-	return os << "CWRP(" << std::hex << cwrp.message << "," << std::dec << cwrp.hwnd << "," <<
-		std::hex << cwrp.wParam << "," << cwrp.lParam << "," << cwrp.lResult << std::dec << ")";
+	return Compat::LogStruct(os) 
+		<< Compat::hex(cwrp.message)
+		<< cwrp.hwnd 
+		<< Compat::hex(cwrp.wParam)
+		<< Compat::hex(cwrp.lParam)
+		<< Compat::hex(cwrp.lResult);
 }
 
 namespace Compat
@@ -148,4 +180,6 @@ namespace Compat
 	//std::ofstream Log::s_logFile("ddraw.log");
 	std::ofstream Log::s_logFile(Log::Init());
 	//********** End Edit ***************
+	DWORD Log::s_outParamDepth = 0;
+	bool Log::s_isLeaveLog = false;
 }
