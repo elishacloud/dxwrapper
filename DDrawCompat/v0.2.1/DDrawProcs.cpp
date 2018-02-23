@@ -1,6 +1,9 @@
 #include "DDrawProcs.h"
 
-namespace Compat
+namespace Compat21
 {
-	DDrawProcs origProcs = {};
+	namespace Compat
+	{
+		DDrawProcs origProcs = {};
+	}
 }

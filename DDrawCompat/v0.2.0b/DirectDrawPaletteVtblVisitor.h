@@ -2,17 +2,20 @@
 
 #include "DDrawVtableVisitor.h"
 
-template <>
-struct DDrawVtableForEach<IDirectDrawPaletteVtbl>
+namespace Compat20
 {
-	template <typename Vtable, typename Visitor>
-	static void forEach(Visitor& visitor)
+	template <>
+	struct DDrawVtableForEach<IDirectDrawPaletteVtbl>
 	{
-		DDrawVtableForEach<IUnknownVtbl>::forEach<Vtable>(visitor);
+		template <typename Vtable, typename Visitor>
+		static void forEach(Visitor& visitor)
+		{
+			DDrawVtableForEach<IUnknownVtbl>::forEach<Vtable>(visitor);
 
-		DD_VISIT(GetCaps);
-		DD_VISIT(GetEntries);
-		DD_VISIT(Initialize);
-		DD_VISIT(SetEntries);
-	}
-};
+			DD_VISIT(GetCaps);
+			DD_VISIT(GetEntries);
+			DD_VISIT(Initialize);
+			DD_VISIT(SetEntries);
+		}
+	};
+}

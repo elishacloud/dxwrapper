@@ -4,22 +4,25 @@
 
 #include <ddraw.h>
 
-class RealPrimarySurface
+namespace Compat20
 {
-public:
-	template <typename DirectDraw>
-	static HRESULT create(DirectDraw& dd);
+	class RealPrimarySurface
+	{
+	public:
+		template <typename DirectDraw>
+		static HRESULT create(DirectDraw& dd);
 
-	static HRESULT flip(DWORD flags);
-	static IDirectDrawSurface7* getSurface();
-	static bool isFullScreen();
-	static bool isLost();
-	static void release();
-	static HRESULT restore();
-	static void setClipper(LPDIRECTDRAWCLIPPER clipper);
-	static void setPalette(LPDIRECTDRAWPALETTE palette);
-	static void update();
-	static void updatePalette();
+		static HRESULT flip(DWORD flags);
+		static IDirectDrawSurface7* getSurface();
+		static bool isFullScreen();
+		static bool isLost();
+		static void release();
+		static HRESULT restore();
+		static void setClipper(LPDIRECTDRAWCLIPPER clipper);
+		static void setPalette(LPDIRECTDRAWPALETTE palette);
+		static void update();
+		static void updatePalette();
 
-	static DDSURFACEDESC2 s_surfaceDesc;
-};
+		static DDSURFACEDESC2 s_surfaceDesc;
+	};
+}

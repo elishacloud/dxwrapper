@@ -18,7 +18,7 @@
 	static bool isAlreadyLogged##__LINE__ = false; \
 	if (!isAlreadyLogged##__LINE__) \
 	{ \
-		Compat::Log() << msg; \
+		Logging::Log() << msg; \
 		isAlreadyLogged##__LINE__ = true; \
 	}
 

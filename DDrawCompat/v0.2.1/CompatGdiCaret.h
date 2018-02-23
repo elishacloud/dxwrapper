@@ -1,7 +1,10 @@
 #pragma once
 
-namespace CompatGdiCaret
+namespace Compat21
 {
-	void installHooks();
-	void uninstallHooks();
+	namespace CompatGdiCaret
+	{
+		void installHooks();
+		void uninstallHooks();
+	}
 }

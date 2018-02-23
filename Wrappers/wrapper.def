@@ -242,11 +242,11 @@ D3D10StateBlockMaskUnion
 ; ****
 D3DKMTCloseAdapter
 D3DKMTDestroyAllocation
-D3DKMTDestroyContext
-D3DKMTDestroyDevice
+D3DKMTDestroyContext = CF_D3DKMTDestroyContext
+D3DKMTDestroyDevice = CF_D3DKMTDestroyDevice
 D3DKMTDestroySynchronizationObject
-D3DKMTPresent
-D3DKMTQueryAdapterInfo
+D3DKMTPresent = CF_D3DKMTPresent
+D3DKMTQueryAdapterInfo = CF_D3DKMTQueryAdapterInfo
 D3DKMTSetDisplayPrivateDriverFormat
 D3DKMTSignalSynchronizationObject
 D3DKMTUnlock
@@ -258,12 +258,12 @@ D3D10CoreGetSupportedVersions
 D3D10CoreGetVersion
 D3D10CoreRegisterLayers
 D3DKMTCreateAllocation
-D3DKMTCreateContext
-D3DKMTCreateDevice
+D3DKMTCreateContext = CF_D3DKMTCreateContext
+D3DKMTCreateDevice = CF_D3DKMTCreateDevice
 D3DKMTCreateSynchronizationObject
 D3DKMTEscape
 D3DKMTGetContextSchedulingPriority
-D3DKMTGetDeviceState
+D3DKMTGetDeviceState = CF_D3DKMTGetDeviceState
 D3DKMTGetDisplayModeList
 D3DKMTGetMultisampleMethodList
 D3DKMTGetRuntimeData
@@ -278,8 +278,8 @@ D3DKMTSetAllocationPriority
 D3DKMTSetContextSchedulingPriority
 D3DKMTSetDisplayMode
 D3DKMTSetGammaRamp
-D3DKMTSetVidPnSourceOwner
-D3DKMTWaitForVerticalBlankEvent
+D3DKMTSetVidPnSourceOwner = CF_D3DKMTSetVidPnSourceOwner
+D3DKMTWaitForVerticalBlankEvent = CF_D3DKMTWaitForVerticalBlankEvent
 
 
 ; ****
@@ -288,11 +288,11 @@ D3DKMTWaitForVerticalBlankEvent
 D3D11CreateDeviceForD3D12
 D3DKMTCloseAdapter
 D3DKMTDestroyAllocation
-D3DKMTDestroyContext
-D3DKMTDestroyDevice
+D3DKMTDestroyContext = CF_D3DKMTDestroyContext
+D3DKMTDestroyDevice = CF_D3DKMTDestroyDevice
 D3DKMTDestroySynchronizationObject
-D3DKMTPresent
-D3DKMTQueryAdapterInfo
+D3DKMTPresent = CF_D3DKMTPresent
+D3DKMTQueryAdapterInfo = CF_D3DKMTQueryAdapterInfo
 D3DKMTSetDisplayPrivateDriverFormat
 D3DKMTSignalSynchronizationObject
 D3DKMTUnlock
@@ -310,12 +310,12 @@ D3D11CreateDevice
 D3D11CreateDeviceAndSwapChain
 D3D11On12CreateDevice
 D3DKMTCreateAllocation
-D3DKMTCreateContext
-D3DKMTCreateDevice
+D3DKMTCreateContext = CF_D3DKMTCreateContext
+D3DKMTCreateDevice = CF_D3DKMTCreateDevice
 D3DKMTCreateSynchronizationObject
 D3DKMTEscape
 D3DKMTGetContextSchedulingPriority
-D3DKMTGetDeviceState
+D3DKMTGetDeviceState = CF_D3DKMTGetDeviceState
 D3DKMTGetDisplayModeList
 D3DKMTGetMultisampleMethodList
 D3DKMTGetRuntimeData
@@ -330,8 +330,8 @@ D3DKMTSetAllocationPriority
 D3DKMTSetContextSchedulingPriority
 D3DKMTSetDisplayMode
 D3DKMTSetGammaRamp
-D3DKMTSetVidPnSourceOwner
-D3DKMTWaitForVerticalBlankEvent
+D3DKMTSetVidPnSourceOwner = CF_D3DKMTSetVidPnSourceOwner
+D3DKMTWaitForVerticalBlankEvent = CF_D3DKMTWaitForVerticalBlankEvent
 D3DPerformance_BeginEvent
 D3DPerformance_EndEvent
 D3DPerformance_GetStatus
@@ -499,22 +499,22 @@ DXGIGetDebugInterface1
 DXGIReportAdapterConfiguration 
 D3DKMTCloseAdapter 
 D3DKMTDestroyAllocation 
-D3DKMTDestroyContext 
-D3DKMTDestroyDevice 
+D3DKMTDestroyContext = CF_D3DKMTDestroyContext 
+D3DKMTDestroyDevice = CF_D3DKMTDestroyDevice 
 D3DKMTDestroySynchronizationObject 
-D3DKMTQueryAdapterInfo 
+D3DKMTQueryAdapterInfo = CF_D3DKMTQueryAdapterInfo 
 D3DKMTSetDisplayPrivateDriverFormat 
 D3DKMTSignalSynchronizationObject 
 D3DKMTUnlock 
 OpenAdapter10 
 OpenAdapter10_2 
 D3DKMTCreateAllocation 
-D3DKMTCreateContext 
-D3DKMTCreateDevice 
+D3DKMTCreateContext = CF_D3DKMTCreateContext 
+D3DKMTCreateDevice = CF_D3DKMTCreateDevice 
 D3DKMTCreateSynchronizationObject 
 D3DKMTEscape 
 D3DKMTGetContextSchedulingPriority 
-D3DKMTGetDeviceState 
+D3DKMTGetDeviceState = CF_D3DKMTGetDeviceState 
 D3DKMTGetDisplayModeList 
 D3DKMTGetMultisampleMethodList 
 D3DKMTGetRuntimeData 
@@ -522,7 +522,7 @@ D3DKMTGetSharedPrimaryHandle
 D3DKMTLock 
 D3DKMTOpenAdapterFromHdc 
 D3DKMTOpenResource 
-D3DKMTPresent 
+D3DKMTPresent = CF_D3DKMTPresent 
 D3DKMTQueryAllocationResidency 
 D3DKMTQueryResourceInfo 
 D3DKMTRender 
@@ -530,9 +530,9 @@ D3DKMTSetAllocationPriority
 D3DKMTSetContextSchedulingPriority 
 D3DKMTSetDisplayMode 
 D3DKMTSetGammaRamp 
-D3DKMTSetVidPnSourceOwner 
+D3DKMTSetVidPnSourceOwner = CF_D3DKMTSetVidPnSourceOwner 
 D3DKMTWaitForSynchronizationObject 
-D3DKMTWaitForVerticalBlankEvent 
+D3DKMTWaitForVerticalBlankEvent = CF_D3DKMTWaitForVerticalBlankEvent 
 
 
 ; ****

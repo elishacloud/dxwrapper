@@ -1,7 +1,10 @@
 #pragma once
 
-namespace CompatGdiPaintHandlers
+namespace Compat21
 {
-	void installHooks();
-	void uninstallHooks();
+	namespace CompatGdiPaintHandlers
+	{
+		void installHooks();
+		void uninstallHooks();
+	}
 }

@@ -7,55 +7,58 @@
 #include "CompatGdiWinProc.h"
 #include "DDrawLog.h"
 
-namespace
+namespace Compat20
 {
-	void eraseBackground(HWND hwnd, HDC dc);
-
-	LRESULT CALLBACK callWndRetProc(int nCode, WPARAM wParam, LPARAM lParam)
+	namespace
 	{
-		if (HC_ACTION == nCode)
+		void eraseBackground(HWND hwnd, HDC dc);
+
+		LRESULT CALLBACK callWndRetProc(int nCode, WPARAM wParam, LPARAM lParam)
 		{
-			auto ret = reinterpret_cast<CWPRETSTRUCT*>(lParam);
-			if (WM_ERASEBKGND == ret->message)
+			if (HC_ACTION == nCode)
 			{
-				if (0 != ret->lResult)
+				auto ret = reinterpret_cast<CWPRETSTRUCT*>(lParam);
+				if (WM_ERASEBKGND == ret->message)
 				{
-					eraseBackground(ret->hwnd, reinterpret_cast<HDC>(ret->wParam));
+					if (0 != ret->lResult)
+					{
+						eraseBackground(ret->hwnd, reinterpret_cast<HDC>(ret->wParam));
+					}
+				}
+				else if (WM_WINDOWPOSCHANGED == ret->message)
+				{
+					CompatGdi::invalidate();
+				}
+				else if (WM_VSCROLL == ret->message || WM_HSCROLL == ret->message)
+				{
+					InvalidateRect(ret->hwnd, nullptr, TRUE);
 				}
 			}
-			else if (WM_WINDOWPOSCHANGED == ret->message)
-			{
-				CompatGdi::invalidate();
-			}
-			else if (WM_VSCROLL == ret->message || WM_HSCROLL == ret->message)
-			{
-				InvalidateRect(ret->hwnd, nullptr, TRUE);
-			}
+
+			return CallNextHookEx(nullptr, nCode, wParam, lParam);
 		}
 
-		return CallNextHookEx(nullptr, nCode, wParam, lParam);
-	}
-
-	void eraseBackground(HWND hwnd, HDC dc)
-	{
-		if (CompatGdi::beginGdiRendering())
+		void eraseBackground(HWND hwnd, HDC dc)
 		{
-			HDC compatDc = CompatGdiDc::getDc(dc);
-			if (compatDc)
+			if (CompatGdi::beginGdiRendering())
 			{
-				SendMessage(hwnd, WM_ERASEBKGND, reinterpret_cast<WPARAM>(compatDc), 0);
-				CompatGdiDc::releaseDc(dc);
+				HDC compatDc = CompatGdiDc::getDc(dc);
+				if (compatDc)
+				{
+					SendMessage(hwnd, WM_ERASEBKGND, reinterpret_cast<WPARAM>(compatDc), 0);
+					CompatGdiDc::releaseDc(dc);
+				}
+				CompatGdi::endGdiRendering();
 			}
-			CompatGdi::endGdiRendering();
 		}
 	}
-}
 
-namespace CompatGdiWinProc
-{
-	void installHooks()
+	namespace CompatGdiWinProc
 	{
-		const DWORD threadId = GetCurrentThreadId();
-		SetWindowsHookEx(WH_CALLWNDPROCRET, callWndRetProc, nullptr, threadId);
+		void installHooks()
+		{
+			const DWORD threadId = GetCurrentThreadId();
+			SetWindowsHookEx(WH_CALLWNDPROCRET, callWndRetProc, nullptr, threadId);
+		}
 	}
 }

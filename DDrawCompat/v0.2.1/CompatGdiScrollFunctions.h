@@ -1,7 +1,10 @@
 #pragma once
 
-namespace CompatGdiScrollFunctions
+namespace Compat21
 {
-	void installHooks();
-	void updateScrolledWindow(HWND hwnd);
-};
+	namespace CompatGdiScrollFunctions
+	{
+		void installHooks();
+		void updateScrolledWindow(HWND hwnd);
+	};
+}

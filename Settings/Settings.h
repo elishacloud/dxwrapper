@@ -11,6 +11,9 @@
 	visit(ArmadaFix) \
 	visit(D3d8to9) \
 	visit(DDrawCompat) \
+	visit(DDrawCompat20) \
+	visit(DDrawCompat21) \
+	visit(DDrawCompatExperimental) \
 	visit(DDrawCompatDisableGDIHook) \
 	visit(DisableHighDPIScaling) \
 	visit(DSoundCtrl) \
@@ -128,7 +131,10 @@ struct CONFIG
 	bool isDdrawWrapperEnabled;			// Specifies if DdrawWrapper needs to be enabled
 	bool isD3d9WrapperEnabled;			// Specifies if D3d9Wrapper needs to be enabled
 	bool D3d8to9;						// Converts Direct3D8 (d3d8.dll) to Direct3D9 (d3d9.dll) https://github.com/crosire/d3d8to9
-	bool DDrawCompat;					// Enables DDrawCompat functions https://github.com/narzoul/DDrawCompat/
+	bool DDrawCompat;					// Enables the default DDrawCompat functions https://github.com/narzoul/DDrawCompat/
+	bool DDrawCompat20;					// Enables DDrawCompat v0.2.0b
+	bool DDrawCompat21;					// Enables DDrawCompat v0.2.1
+	bool DDrawCompatExperimental;		// Enables DDrawCompat Experimental version
 	bool DDrawCompatDisableGDIHook;		// Disables DDrawCompat GDI hooks
 	bool DisableHighDPIScaling;			// Disables display scaling on high DPI settings
 	bool DSoundCtrl;					// Enables DirectSoundControl https://github.com/nRaecheR/DirectSoundControl

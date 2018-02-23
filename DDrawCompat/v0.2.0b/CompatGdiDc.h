@@ -4,8 +4,11 @@
 
 #include <Windows.h>
 
-namespace CompatGdiDc
+namespace Compat20
 {
-	HDC getDc(HDC origDc);
-	void releaseDc(HDC origDc);
+	namespace CompatGdiDc
+	{
+		HDC getDc(HDC origDc);
+		void releaseDc(HDC origDc);
+	}
 }

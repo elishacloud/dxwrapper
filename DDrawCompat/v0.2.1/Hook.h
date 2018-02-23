@@ -5,24 +5,27 @@
 #define HOOK_FUNCTION(module, func, newFunc) \
 	Compat::hookFunction<decltype(&func), &func>(#module, #func, &newFunc)
 
-namespace Compat
+namespace Compat21
 {
-	template <typename OrigFuncPtr, OrigFuncPtr origFunc>
-	OrigFuncPtr& getOrigFuncPtr()
+	namespace Compat
 	{
-		static OrigFuncPtr origFuncPtr = origFunc;
-		return origFuncPtr;
+		template <typename OrigFuncPtr, OrigFuncPtr origFunc>
+		OrigFuncPtr& getOrigFuncPtr()
+		{
+			static OrigFuncPtr origFuncPtr = origFunc;
+			return origFuncPtr;
+		}
+
+		void hookFunction(void*& origFuncPtr, void* newFuncPtr);
+		void hookFunction(const char* moduleName, const char* funcName, void*& origFuncPtr, void* newFuncPtr);
+
+		template <typename OrigFuncPtr, OrigFuncPtr origFunc>
+		void hookFunction(const char* moduleName, const char* funcName, OrigFuncPtr newFuncPtr)
+		{
+			hookFunction(moduleName, funcName,
+				reinterpret_cast<void*&>(getOrigFuncPtr<OrigFuncPtr, origFunc>()), newFuncPtr);
+		}
+
+		void unhookAllFunctions();
 	}
-
-	void hookFunction(void*& origFuncPtr, void* newFuncPtr);
-	void hookFunction(const char* moduleName, const char* funcName, void*& origFuncPtr, void* newFuncPtr);
-
-	template <typename OrigFuncPtr, OrigFuncPtr origFunc>
-	void hookFunction(const char* moduleName, const char* funcName, OrigFuncPtr newFuncPtr)
-	{
-		hookFunction(moduleName, funcName,
-			reinterpret_cast<void*&>(getOrigFuncPtr<OrigFuncPtr, origFunc>()), newFuncPtr);
-	}
-
-	void unhookAllFunctions();
 }

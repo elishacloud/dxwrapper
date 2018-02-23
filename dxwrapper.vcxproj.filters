@@ -53,6 +53,9 @@
     <Filter Include="DxWnd\v2_03_60_src">
       <UniqueIdentifier>{8e05201f-e493-4a94-b533-2b60fb0aba68}</UniqueIdentifier>
     </Filter>
+    <Filter Include="DDrawCompat\Experimental">
+      <UniqueIdentifier>{3f9336b1-c808-471a-a31f-810a9e1ef9ee}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="DSoundCtrl\DSoundCtrl.cpp">
@@ -328,6 +331,12 @@
     <ClCompile Include="DDrawCompat\DDrawLog.cpp">
       <Filter>DDrawCompat</Filter>
     </ClCompile>
+    <ClCompile Include="DxWnd\v2_03_60_src\init.cpp">
+      <Filter>DxWnd\v2_03_60_src</Filter>
+    </ClCompile>
+    <ClCompile Include="DDrawCompat\DDrawCompatExternal.cpp">
+      <Filter>DDrawCompat</Filter>
+    </ClCompile>
     <ClCompile Include="DDrawCompat\v0.2.1\CompatActivateAppHandler.cpp">
       <Filter>DDrawCompat\v0.2.1</Filter>
     </ClCompile>
@@ -403,8 +412,212 @@
     <ClCompile Include="DDrawCompat\v0.2.1\UnmodifiedDDrawProcs.cpp">
       <Filter>DDrawCompat\v0.2.1</Filter>
     </ClCompile>
-    <ClCompile Include="DxWnd\v2_03_60_src\init.cpp">
-      <Filter>DxWnd\v2_03_60_src</Filter>
+    <ClCompile Include="DDrawCompat\v0.2.0b\CompatDirectDraw.cpp">
+      <Filter>DDrawCompat\v0.2.0b</Filter>
+    </ClCompile>
+    <ClCompile Include="DDrawCompat\v0.2.0b\CompatDirectDrawPalette.cpp">
+      <Filter>DDrawCompat\v0.2.0b</Filter>
+    </ClCompile>
+    <ClCompile Include="DDrawCompat\v0.2.0b\CompatDirectDrawSurface.cpp">
+      <Filter>DDrawCompat\v0.2.0b</Filter>
+    </ClCompile>
+    <ClCompile Include="DDrawCompat\v0.2.0b\CompatGdi.cpp">
+      <Filter>DDrawCompat\v0.2.0b</Filter>
+    </ClCompile>
+    <ClCompile Include="DDrawCompat\v0.2.0b\CompatGdiCaret.cpp">
+      <Filter>DDrawCompat\v0.2.0b</Filter>
+    </ClCompile>
+    <ClCompile Include="DDrawCompat\v0.2.0b\CompatGdiDc.cpp">
+      <Filter>DDrawCompat\v0.2.0b</Filter>
+    </ClCompile>
+    <ClCompile Include="DDrawCompat\v0.2.0b\CompatGdiDcCache.cpp">
+      <Filter>DDrawCompat\v0.2.0b</Filter>
+    </ClCompile>
+    <ClCompile Include="DDrawCompat\v0.2.0b\CompatGdiFunctions.cpp">
+      <Filter>DDrawCompat\v0.2.0b</Filter>
+    </ClCompile>
+    <ClCompile Include="DDrawCompat\v0.2.0b\CompatGdiWinProc.cpp">
+      <Filter>DDrawCompat\v0.2.0b</Filter>
+    </ClCompile>
+    <ClCompile Include="DDrawCompat\v0.2.0b\CompatPrimarySurface.cpp">
+      <Filter>DDrawCompat\v0.2.0b</Filter>
+    </ClCompile>
+    <ClCompile Include="DDrawCompat\v0.2.0b\CompatVtable.cpp">
+      <Filter>DDrawCompat\v0.2.0b</Filter>
+    </ClCompile>
+    <ClCompile Include="DDrawCompat\v0.2.0b\DDrawProcs.cpp">
+      <Filter>DDrawCompat\v0.2.0b</Filter>
+    </ClCompile>
+    <ClCompile Include="DDrawCompat\v0.2.0b\DllMain.cpp">
+      <Filter>DDrawCompat\v0.2.0b</Filter>
+    </ClCompile>
+    <ClCompile Include="DDrawCompat\v0.2.0b\IReleaseNotifier.cpp">
+      <Filter>DDrawCompat\v0.2.0b</Filter>
+    </ClCompile>
+    <ClCompile Include="DDrawCompat\v0.2.0b\RealPrimarySurface.cpp">
+      <Filter>DDrawCompat\v0.2.0b</Filter>
+    </ClCompile>
+    <ClCompile Include="DDrawCompat\v0.2.0b\UnmodifiedDDrawProcs.cpp">
+      <Filter>DDrawCompat\v0.2.0b</Filter>
+    </ClCompile>
+    <ClCompile Include="DDrawCompat\Experimental\Dll\DllMain.cpp">
+      <Filter>DDrawCompat\Experimental</Filter>
+    </ClCompile>
+    <ClCompile Include="DDrawCompat\Experimental\Dll\UnmodifiedProcs.cpp">
+      <Filter>DDrawCompat\Experimental</Filter>
+    </ClCompile>
+    <ClCompile Include="DDrawCompat\Experimental\Gdi\WinProc.cpp">
+      <Filter>DDrawCompat\Experimental</Filter>
+    </ClCompile>
+    <ClCompile Include="DDrawCompat\Experimental\Gdi\ScrollFunctions.cpp">
+      <Filter>DDrawCompat\Experimental</Filter>
+    </ClCompile>
+    <ClCompile Include="DDrawCompat\Experimental\DDraw\Repository.cpp">
+      <Filter>DDrawCompat\Experimental</Filter>
+    </ClCompile>
+    <ClCompile Include="DDrawCompat\Experimental\Win32\Registry.cpp">
+      <Filter>DDrawCompat\Experimental</Filter>
+    </ClCompile>
+    <ClCompile Include="DDrawCompat\Experimental\Gdi\PaintHandlers.cpp">
+      <Filter>DDrawCompat\Experimental</Filter>
+    </ClCompile>
+    <ClCompile Include="DDrawCompat\Experimental\D3dDdi\Log\KernelModeThunksLog.cpp">
+      <Filter>DDrawCompat\Experimental</Filter>
+    </ClCompile>
+    <ClCompile Include="DDrawCompat\Experimental\D3dDdi\KernelModeThunks.cpp">
+      <Filter>DDrawCompat\Experimental</Filter>
+    </ClCompile>
+    <ClCompile Include="DDrawCompat\Experimental\D3dDdi\Hooks.cpp">
+      <Filter>DDrawCompat\Experimental</Filter>
+    </ClCompile>
+    <ClCompile Include="DDrawCompat\Experimental\Direct3d\Hooks.cpp">
+      <Filter>DDrawCompat\Experimental</Filter>
+    </ClCompile>
+    <ClCompile Include="DDrawCompat\Experimental\DDraw\Hooks.cpp">
+      <Filter>DDrawCompat\Experimental</Filter>
+    </ClCompile>
+    <ClCompile Include="DDrawCompat\Experimental\Common\Hook.cpp">
+      <Filter>DDrawCompat\Experimental</Filter>
+    </ClCompile>
+    <ClCompile Include="DDrawCompat\Experimental\D3dDdi\Log\DeviceFuncsLog.cpp">
+      <Filter>DDrawCompat\Experimental</Filter>
+    </ClCompile>
+    <ClCompile Include="DDrawCompat\Experimental\D3dDdi\Log\DeviceCallbacksLog.cpp">
+      <Filter>DDrawCompat\Experimental</Filter>
+    </ClCompile>
+    <ClCompile Include="DDrawCompat\Experimental\Gdi\DcFunctions.cpp">
+      <Filter>DDrawCompat\Experimental</Filter>
+    </ClCompile>
+    <ClCompile Include="DDrawCompat\Experimental\Gdi\DcCache.cpp">
+      <Filter>DDrawCompat\Experimental</Filter>
+    </ClCompile>
+    <ClCompile Include="DDrawCompat\Experimental\Gdi\Dc.cpp">
+      <Filter>DDrawCompat\Experimental</Filter>
+    </ClCompile>
+    <ClCompile Include="DDrawCompat\Experimental\D3dDdi\Log\AdapterFuncsLog.cpp">
+      <Filter>DDrawCompat\Experimental</Filter>
+    </ClCompile>
+    <ClCompile Include="DDrawCompat\Experimental\DDraw\RealPrimarySurface.cpp">
+      <Filter>DDrawCompat\Experimental</Filter>
+    </ClCompile>
+    <ClCompile Include="DDrawCompat\Experimental\DDraw\DirectDrawPalette.cpp">
+      <Filter>DDrawCompat\Experimental</Filter>
+    </ClCompile>
+    <ClCompile Include="DDrawCompat\Experimental\Common\Time.cpp">
+      <Filter>DDrawCompat\Experimental</Filter>
+    </ClCompile>
+    <ClCompile Include="DDrawCompat\Experimental\Win32\MsgHooks.cpp">
+      <Filter>DDrawCompat\Experimental</Filter>
+    </ClCompile>
+    <ClCompile Include="DDrawCompat\Experimental\Win32\FontSmoothing.cpp">
+      <Filter>DDrawCompat\Experimental</Filter>
+    </ClCompile>
+    <ClCompile Include="DDrawCompat\Experimental\Win32\DisplayMode.cpp">
+      <Filter>DDrawCompat\Experimental</Filter>
+    </ClCompile>
+    <ClCompile Include="DDrawCompat\Experimental\Gdi\TitleBar.cpp">
+      <Filter>DDrawCompat\Experimental</Filter>
+    </ClCompile>
+    <ClCompile Include="DDrawCompat\Experimental\Gdi\ScrollBar.cpp">
+      <Filter>DDrawCompat\Experimental</Filter>
+    </ClCompile>
+    <ClCompile Include="DDrawCompat\Experimental\Gdi\Gdi.cpp">
+      <Filter>DDrawCompat\Experimental</Filter>
+    </ClCompile>
+    <ClCompile Include="DDrawCompat\Experimental\Gdi\Caret.cpp">
+      <Filter>DDrawCompat\Experimental</Filter>
+    </ClCompile>
+    <ClCompile Include="DDrawCompat\Experimental\Dll\Procs.cpp">
+      <Filter>DDrawCompat\Experimental</Filter>
+    </ClCompile>
+    <ClCompile Include="DDrawCompat\Experimental\Direct3d\Direct3dViewport.cpp">
+      <Filter>DDrawCompat\Experimental</Filter>
+    </ClCompile>
+    <ClCompile Include="DDrawCompat\Experimental\Direct3d\Direct3dVertexBuffer.cpp">
+      <Filter>DDrawCompat\Experimental</Filter>
+    </ClCompile>
+    <ClCompile Include="DDrawCompat\Experimental\Direct3d\Direct3dTexture.cpp">
+      <Filter>DDrawCompat\Experimental</Filter>
+    </ClCompile>
+    <ClCompile Include="DDrawCompat\Experimental\Direct3d\Direct3dDevice.cpp">
+      <Filter>DDrawCompat\Experimental</Filter>
+    </ClCompile>
+    <ClCompile Include="DDrawCompat\Experimental\Direct3d\Direct3d.cpp">
+      <Filter>DDrawCompat\Experimental</Filter>
+    </ClCompile>
+    <ClCompile Include="DDrawCompat\Experimental\Direct3d\DepthBuffer.cpp">
+      <Filter>DDrawCompat\Experimental</Filter>
+    </ClCompile>
+    <ClCompile Include="DDrawCompat\Experimental\DDraw\Surfaces\TagSurface.cpp">
+      <Filter>DDrawCompat\Experimental</Filter>
+    </ClCompile>
+    <ClCompile Include="DDrawCompat\Experimental\DDraw\Surfaces\SurfaceImpl.cpp">
+      <Filter>DDrawCompat\Experimental</Filter>
+    </ClCompile>
+    <ClCompile Include="DDrawCompat\Experimental\DDraw\Surfaces\Surface.cpp">
+      <Filter>DDrawCompat\Experimental</Filter>
+    </ClCompile>
+    <ClCompile Include="DDrawCompat\Experimental\DDraw\Surfaces\PrimarySurfaceImpl.cpp">
+      <Filter>DDrawCompat\Experimental</Filter>
+    </ClCompile>
+    <ClCompile Include="DDrawCompat\Experimental\DDraw\Surfaces\PrimarySurface.cpp">
+      <Filter>DDrawCompat\Experimental</Filter>
+    </ClCompile>
+    <ClCompile Include="DDrawCompat\Experimental\DDraw\IReleaseNotifier.cpp">
+      <Filter>DDrawCompat\Experimental</Filter>
+    </ClCompile>
+    <ClCompile Include="DDrawCompat\Experimental\DDraw\DirectDrawSurface.cpp">
+      <Filter>DDrawCompat\Experimental</Filter>
+    </ClCompile>
+    <ClCompile Include="DDrawCompat\Experimental\DDraw\DirectDrawGammaControl.cpp">
+      <Filter>DDrawCompat\Experimental</Filter>
+    </ClCompile>
+    <ClCompile Include="DDrawCompat\Experimental\DDraw\DirectDrawClipper.cpp">
+      <Filter>DDrawCompat\Experimental</Filter>
+    </ClCompile>
+    <ClCompile Include="DDrawCompat\Experimental\DDraw\DirectDraw.cpp">
+      <Filter>DDrawCompat\Experimental</Filter>
+    </ClCompile>
+    <ClCompile Include="DDrawCompat\Experimental\DDraw\ActivateAppHandler.cpp">
+      <Filter>DDrawCompat\Experimental</Filter>
+    </ClCompile>
+    <ClCompile Include="DDrawCompat\Experimental\D3dDdi\OversizedResource.cpp">
+      <Filter>DDrawCompat\Experimental</Filter>
+    </ClCompile>
+    <ClCompile Include="DDrawCompat\Experimental\D3dDdi\LockResource.cpp">
+      <Filter>DDrawCompat\Experimental</Filter>
+    </ClCompile>
+    <ClCompile Include="DDrawCompat\Experimental\D3dDdi\DeviceFuncs.cpp">
+      <Filter>DDrawCompat\Experimental</Filter>
+    </ClCompile>
+    <ClCompile Include="DDrawCompat\Experimental\D3dDdi\DeviceCallbacks.cpp">
+      <Filter>DDrawCompat\Experimental</Filter>
+    </ClCompile>
+    <ClCompile Include="DDrawCompat\Experimental\D3dDdi\AdapterFuncs.cpp">
+      <Filter>DDrawCompat\Experimental</Filter>
+    </ClCompile>
+    <ClCompile Include="DDrawCompat\Experimental\D3dDdi\AdapterCallbacks.cpp">
+      <Filter>DDrawCompat\Experimental</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -755,6 +968,9 @@
     <ClInclude Include="DDrawCompat\DDrawLog.h">
       <Filter>DDrawCompat</Filter>
     </ClInclude>
+    <ClInclude Include="DxWnd\v2_03_60_src\dxwnd.h">
+      <Filter>DxWnd\v2_03_60_src</Filter>
+    </ClInclude>
     <ClInclude Include="DDrawCompat\v0.2.1\CompatActivateAppHandler.h">
       <Filter>DDrawCompat\v0.2.1</Filter>
     </ClInclude>
@@ -812,9 +1028,6 @@
     <ClInclude Include="DDrawCompat\v0.2.1\Config.h">
       <Filter>DDrawCompat\v0.2.1</Filter>
     </ClInclude>
-    <ClInclude Include="DDrawCompat\v0.2.1\DDrawCompatExternal.h">
-      <Filter>DDrawCompat\v0.2.1</Filter>
-    </ClInclude>
     <ClInclude Include="DDrawCompat\v0.2.1\DDrawProcs.h">
       <Filter>DDrawCompat\v0.2.1</Filter>
     </ClInclude>
@@ -839,6 +1052,9 @@
     <ClInclude Include="DDrawCompat\v0.2.1\DirectDrawVtblVisitor.h">
       <Filter>DDrawCompat\v0.2.1</Filter>
     </ClInclude>
+    <ClInclude Include="DDrawCompat\v0.2.1\DllMain.h">
+      <Filter>DDrawCompat\v0.2.1</Filter>
+    </ClInclude>
     <ClInclude Include="DDrawCompat\v0.2.1\Hook.h">
       <Filter>DDrawCompat\v0.2.1</Filter>
     </ClInclude>
@@ -854,8 +1070,302 @@
     <ClInclude Include="DDrawCompat\v0.2.1\Time.h">
       <Filter>DDrawCompat\v0.2.1</Filter>
     </ClInclude>
-    <ClInclude Include="DxWnd\v2_03_60_src\dxwnd.h">
-      <Filter>DxWnd\v2_03_60_src</Filter>
+    <ClInclude Include="DDrawCompat\v0.2.0b\CompatDirectDraw.h">
+      <Filter>DDrawCompat\v0.2.0b</Filter>
+    </ClInclude>
+    <ClInclude Include="DDrawCompat\v0.2.0b\CompatDirectDrawPalette.h">
+      <Filter>DDrawCompat\v0.2.0b</Filter>
+    </ClInclude>
+    <ClInclude Include="DDrawCompat\v0.2.0b\CompatDirectDrawSurface.h">
+      <Filter>DDrawCompat\v0.2.0b</Filter>
+    </ClInclude>
+    <ClInclude Include="DDrawCompat\v0.2.0b\CompatGdi.h">
+      <Filter>DDrawCompat\v0.2.0b</Filter>
+    </ClInclude>
+    <ClInclude Include="DDrawCompat\v0.2.0b\CompatGdiCaret.h">
+      <Filter>DDrawCompat\v0.2.0b</Filter>
+    </ClInclude>
+    <ClInclude Include="DDrawCompat\v0.2.0b\CompatGdiDc.h">
+      <Filter>DDrawCompat\v0.2.0b</Filter>
+    </ClInclude>
+    <ClInclude Include="DDrawCompat\v0.2.0b\CompatGdiDcCache.h">
+      <Filter>DDrawCompat\v0.2.0b</Filter>
+    </ClInclude>
+    <ClInclude Include="DDrawCompat\v0.2.0b\CompatGdiFunctions.h">
+      <Filter>DDrawCompat\v0.2.0b</Filter>
+    </ClInclude>
+    <ClInclude Include="DDrawCompat\v0.2.0b\CompatGdiWinProc.h">
+      <Filter>DDrawCompat\v0.2.0b</Filter>
+    </ClInclude>
+    <ClInclude Include="DDrawCompat\v0.2.0b\CompatPrimarySurface.h">
+      <Filter>DDrawCompat\v0.2.0b</Filter>
+    </ClInclude>
+    <ClInclude Include="DDrawCompat\v0.2.0b\CompatVtable.h">
+      <Filter>DDrawCompat\v0.2.0b</Filter>
+    </ClInclude>
+    <ClInclude Include="DDrawCompat\v0.2.0b\Config.h">
+      <Filter>DDrawCompat\v0.2.0b</Filter>
+    </ClInclude>
+    <ClInclude Include="DDrawCompat\v0.2.0b\DDrawProcs.h">
+      <Filter>DDrawCompat\v0.2.0b</Filter>
+    </ClInclude>
+    <ClInclude Include="DDrawCompat\v0.2.0b\DDrawScopedThreadLock.h">
+      <Filter>DDrawCompat\v0.2.0b</Filter>
+    </ClInclude>
+    <ClInclude Include="DDrawCompat\v0.2.0b\DDrawTypes.h">
+      <Filter>DDrawCompat\v0.2.0b</Filter>
+    </ClInclude>
+    <ClInclude Include="DDrawCompat\v0.2.0b\DDrawVtableVisitor.h">
+      <Filter>DDrawCompat\v0.2.0b</Filter>
+    </ClInclude>
+    <ClInclude Include="DDrawCompat\v0.2.0b\DirectDrawPaletteVtblVisitor.h">
+      <Filter>DDrawCompat\v0.2.0b</Filter>
+    </ClInclude>
+    <ClInclude Include="DDrawCompat\v0.2.0b\DirectDrawSurfaceVtblVisitor.h">
+      <Filter>DDrawCompat\v0.2.0b</Filter>
+    </ClInclude>
+    <ClInclude Include="DDrawCompat\v0.2.0b\DirectDrawVtblVisitor.h">
+      <Filter>DDrawCompat\v0.2.0b</Filter>
+    </ClInclude>
+    <ClInclude Include="DDrawCompat\v0.2.0b\DllMain.h">
+      <Filter>DDrawCompat\v0.2.0b</Filter>
+    </ClInclude>
+    <ClInclude Include="DDrawCompat\v0.2.0b\IReleaseNotifier.h">
+      <Filter>DDrawCompat\v0.2.0b</Filter>
+    </ClInclude>
+    <ClInclude Include="DDrawCompat\v0.2.0b\RealPrimarySurface.h">
+      <Filter>DDrawCompat\v0.2.0b</Filter>
+    </ClInclude>
+    <ClInclude Include="DDrawCompat\Experimental\Dll\DllMain.h">
+      <Filter>DDrawCompat\Experimental</Filter>
+    </ClInclude>
+    <ClInclude Include="DDrawCompat\Experimental\Dll\Procs.h">
+      <Filter>DDrawCompat\Experimental</Filter>
+    </ClInclude>
+    <ClInclude Include="DDrawCompat\Experimental\Common\CompatVtable.h">
+      <Filter>DDrawCompat\Experimental</Filter>
+    </ClInclude>
+    <ClInclude Include="DDrawCompat\Experimental\D3dDdi\Log\DeviceCallbacksLog.h">
+      <Filter>DDrawCompat\Experimental</Filter>
+    </ClInclude>
+    <ClInclude Include="DDrawCompat\Experimental\D3dDdi\Log\KernelModeThunksLog.h">
+      <Filter>DDrawCompat\Experimental</Filter>
+    </ClInclude>
+    <ClInclude Include="DDrawCompat\Experimental\Win32\Registry.h">
+      <Filter>DDrawCompat\Experimental</Filter>
+    </ClInclude>
+    <ClInclude Include="DDrawCompat\Experimental\Win32\MsgHooks.h">
+      <Filter>DDrawCompat\Experimental</Filter>
+    </ClInclude>
+    <ClInclude Include="DDrawCompat\Experimental\Win32\FontSmoothing.h">
+      <Filter>DDrawCompat\Experimental</Filter>
+    </ClInclude>
+    <ClInclude Include="DDrawCompat\Experimental\Win32\DisplayMode.h">
+      <Filter>DDrawCompat\Experimental</Filter>
+    </ClInclude>
+    <ClInclude Include="DDrawCompat\Experimental\Gdi\WinProc.h">
+      <Filter>DDrawCompat\Experimental</Filter>
+    </ClInclude>
+    <ClInclude Include="DDrawCompat\Experimental\Gdi\TitleBar.h">
+      <Filter>DDrawCompat\Experimental</Filter>
+    </ClInclude>
+    <ClInclude Include="DDrawCompat\Experimental\Gdi\ScrollFunctions.h">
+      <Filter>DDrawCompat\Experimental</Filter>
+    </ClInclude>
+    <ClInclude Include="DDrawCompat\Experimental\Gdi\ScrollBar.h">
+      <Filter>DDrawCompat\Experimental</Filter>
+    </ClInclude>
+    <ClInclude Include="DDrawCompat\Experimental\Gdi\PaintHandlers.h">
+      <Filter>DDrawCompat\Experimental</Filter>
+    </ClInclude>
+    <ClInclude Include="DDrawCompat\Experimental\Gdi\Gdi.h">
+      <Filter>DDrawCompat\Experimental</Filter>
+    </ClInclude>
+    <ClInclude Include="DDrawCompat\Experimental\Gdi\DcFunctions.h">
+      <Filter>DDrawCompat\Experimental</Filter>
+    </ClInclude>
+    <ClInclude Include="DDrawCompat\Experimental\Gdi\DcCache.h">
+      <Filter>DDrawCompat\Experimental</Filter>
+    </ClInclude>
+    <ClInclude Include="DDrawCompat\Experimental\Gdi\Dc.h">
+      <Filter>DDrawCompat\Experimental</Filter>
+    </ClInclude>
+    <ClInclude Include="DDrawCompat\Experimental\Gdi\Caret.h">
+      <Filter>DDrawCompat\Experimental</Filter>
+    </ClInclude>
+    <ClInclude Include="DDrawCompat\Experimental\Direct3d\Visitors\Direct3dVtblVisitor.h">
+      <Filter>DDrawCompat\Experimental</Filter>
+    </ClInclude>
+    <ClInclude Include="DDrawCompat\Experimental\Direct3d\Visitors\Direct3dViewportVtblVisitor.h">
+      <Filter>DDrawCompat\Experimental</Filter>
+    </ClInclude>
+    <ClInclude Include="DDrawCompat\Experimental\Direct3d\Visitors\Direct3dVertexBufferVtblVisitor.h">
+      <Filter>DDrawCompat\Experimental</Filter>
+    </ClInclude>
+    <ClInclude Include="DDrawCompat\Experimental\Direct3d\Visitors\Direct3dTextureVtblVisitor.h">
+      <Filter>DDrawCompat\Experimental</Filter>
+    </ClInclude>
+    <ClInclude Include="DDrawCompat\Experimental\Direct3d\Visitors\Direct3dDeviceVtblVisitor.h">
+      <Filter>DDrawCompat\Experimental</Filter>
+    </ClInclude>
+    <ClInclude Include="DDrawCompat\Experimental\Direct3d\Types.h">
+      <Filter>DDrawCompat\Experimental</Filter>
+    </ClInclude>
+    <ClInclude Include="DDrawCompat\Experimental\Direct3d\Hooks.h">
+      <Filter>DDrawCompat\Experimental</Filter>
+    </ClInclude>
+    <ClInclude Include="DDrawCompat\Experimental\Direct3d\Direct3dViewport.h">
+      <Filter>DDrawCompat\Experimental</Filter>
+    </ClInclude>
+    <ClInclude Include="DDrawCompat\Experimental\Direct3d\Direct3dVertexBuffer.h">
+      <Filter>DDrawCompat\Experimental</Filter>
+    </ClInclude>
+    <ClInclude Include="DDrawCompat\Experimental\Direct3d\Direct3dTexture.h">
+      <Filter>DDrawCompat\Experimental</Filter>
+    </ClInclude>
+    <ClInclude Include="DDrawCompat\Experimental\Direct3d\Direct3dDevice.h">
+      <Filter>DDrawCompat\Experimental</Filter>
+    </ClInclude>
+    <ClInclude Include="DDrawCompat\Experimental\Direct3d\Direct3d.h">
+      <Filter>DDrawCompat\Experimental</Filter>
+    </ClInclude>
+    <ClInclude Include="DDrawCompat\Experimental\Direct3d\DepthBuffer.h">
+      <Filter>DDrawCompat\Experimental</Filter>
+    </ClInclude>
+    <ClInclude Include="DDrawCompat\Experimental\DDraw\Visitors\DirectDrawVtblVisitor.h">
+      <Filter>DDrawCompat\Experimental</Filter>
+    </ClInclude>
+    <ClInclude Include="DDrawCompat\Experimental\DDraw\Visitors\DirectDrawSurfaceVtblVisitor.h">
+      <Filter>DDrawCompat\Experimental</Filter>
+    </ClInclude>
+    <ClInclude Include="DDrawCompat\Experimental\DDraw\Visitors\DirectDrawPaletteVtblVisitor.h">
+      <Filter>DDrawCompat\Experimental</Filter>
+    </ClInclude>
+    <ClInclude Include="DDrawCompat\Experimental\DDraw\Visitors\DirectDrawGammaControlVtblVisitor.h">
+      <Filter>DDrawCompat\Experimental</Filter>
+    </ClInclude>
+    <ClInclude Include="DDrawCompat\Experimental\DDraw\Visitors\DirectDrawClipperVtblVisitor.h">
+      <Filter>DDrawCompat\Experimental</Filter>
+    </ClInclude>
+    <ClInclude Include="DDrawCompat\Experimental\DDraw\Surfaces\TagSurface.h">
+      <Filter>DDrawCompat\Experimental</Filter>
+    </ClInclude>
+    <ClInclude Include="DDrawCompat\Experimental\DDraw\Surfaces\SurfaceImpl.h">
+      <Filter>DDrawCompat\Experimental</Filter>
+    </ClInclude>
+    <ClInclude Include="DDrawCompat\Experimental\DDraw\Surfaces\Surface.h">
+      <Filter>DDrawCompat\Experimental</Filter>
+    </ClInclude>
+    <ClInclude Include="DDrawCompat\Experimental\DDraw\Surfaces\PrimarySurfaceImpl.h">
+      <Filter>DDrawCompat\Experimental</Filter>
+    </ClInclude>
+    <ClInclude Include="DDrawCompat\Experimental\DDraw\Surfaces\PrimarySurface.h">
+      <Filter>DDrawCompat\Experimental</Filter>
+    </ClInclude>
+    <ClInclude Include="DDrawCompat\Experimental\DDraw\Types.h">
+      <Filter>DDrawCompat\Experimental</Filter>
+    </ClInclude>
+    <ClInclude Include="DDrawCompat\Experimental\DDraw\ScopedThreadLock.h">
+      <Filter>DDrawCompat\Experimental</Filter>
+    </ClInclude>
+    <ClInclude Include="DDrawCompat\Experimental\DDraw\Repository.h">
+      <Filter>DDrawCompat\Experimental</Filter>
+    </ClInclude>
+    <ClInclude Include="DDrawCompat\Experimental\DDraw\RealPrimarySurface.h">
+      <Filter>DDrawCompat\Experimental</Filter>
+    </ClInclude>
+    <ClInclude Include="DDrawCompat\Experimental\DDraw\IReleaseNotifier.h">
+      <Filter>DDrawCompat\Experimental</Filter>
+    </ClInclude>
+    <ClInclude Include="DDrawCompat\Experimental\DDraw\Hooks.h">
+      <Filter>DDrawCompat\Experimental</Filter>
+    </ClInclude>
+    <ClInclude Include="DDrawCompat\Experimental\DDraw\DirectDrawSurface.h">
+      <Filter>DDrawCompat\Experimental</Filter>
+    </ClInclude>
+    <ClInclude Include="DDrawCompat\Experimental\DDraw\DirectDrawPalette.h">
+      <Filter>DDrawCompat\Experimental</Filter>
+    </ClInclude>
+    <ClInclude Include="DDrawCompat\Experimental\DDraw\DirectDrawGammaControl.h">
+      <Filter>DDrawCompat\Experimental</Filter>
+    </ClInclude>
+    <ClInclude Include="DDrawCompat\Experimental\DDraw\DirectDrawClipper.h">
+      <Filter>DDrawCompat\Experimental</Filter>
+    </ClInclude>
+    <ClInclude Include="DDrawCompat\Experimental\DDraw\DirectDraw.h">
+      <Filter>DDrawCompat\Experimental</Filter>
+    </ClInclude>
+    <ClInclude Include="DDrawCompat\Experimental\DDraw\ActivateAppHandler.h">
+      <Filter>DDrawCompat\Experimental</Filter>
+    </ClInclude>
+    <ClInclude Include="DDrawCompat\Experimental\D3dDdi\Visitors\DeviceFuncsVisitor.h">
+      <Filter>DDrawCompat\Experimental</Filter>
+    </ClInclude>
+    <ClInclude Include="DDrawCompat\Experimental\D3dDdi\Visitors\DeviceCallbacksVisitor.h">
+      <Filter>DDrawCompat\Experimental</Filter>
+    </ClInclude>
+    <ClInclude Include="DDrawCompat\Experimental\D3dDdi\Visitors\AdapterFuncsVisitor.h">
+      <Filter>DDrawCompat\Experimental</Filter>
+    </ClInclude>
+    <ClInclude Include="DDrawCompat\Experimental\D3dDdi\Visitors\AdapterCallbacksVisitor.h">
+      <Filter>DDrawCompat\Experimental</Filter>
+    </ClInclude>
+    <ClInclude Include="DDrawCompat\Experimental\D3dDdi\Log\DeviceFuncsLog.h">
+      <Filter>DDrawCompat\Experimental</Filter>
+    </ClInclude>
+    <ClInclude Include="DDrawCompat\Experimental\D3dDdi\Log\AdapterFuncsLog.h">
+      <Filter>DDrawCompat\Experimental</Filter>
+    </ClInclude>
+    <ClInclude Include="DDrawCompat\Experimental\D3dDdi\OversizedResource.h">
+      <Filter>DDrawCompat\Experimental</Filter>
+    </ClInclude>
+    <ClInclude Include="DDrawCompat\Experimental\D3dDdi\LockResource.h">
+      <Filter>DDrawCompat\Experimental</Filter>
+    </ClInclude>
+    <ClInclude Include="DDrawCompat\Experimental\D3dDdi\KernelModeThunks.h">
+      <Filter>DDrawCompat\Experimental</Filter>
+    </ClInclude>
+    <ClInclude Include="DDrawCompat\Experimental\D3dDdi\Hooks.h">
+      <Filter>DDrawCompat\Experimental</Filter>
+    </ClInclude>
+    <ClInclude Include="DDrawCompat\Experimental\D3dDdi\DeviceFuncs.h">
+      <Filter>DDrawCompat\Experimental</Filter>
+    </ClInclude>
+    <ClInclude Include="DDrawCompat\Experimental\D3dDdi\DeviceCallbacks.h">
+      <Filter>DDrawCompat\Experimental</Filter>
+    </ClInclude>
+    <ClInclude Include="DDrawCompat\Experimental\D3dDdi\AdapterFuncs.h">
+      <Filter>DDrawCompat\Experimental</Filter>
+    </ClInclude>
+    <ClInclude Include="DDrawCompat\Experimental\D3dDdi\AdapterCallbacks.h">
+      <Filter>DDrawCompat\Experimental</Filter>
+    </ClInclude>
+    <ClInclude Include="DDrawCompat\Experimental\Config\Config.h">
+      <Filter>DDrawCompat\Experimental</Filter>
+    </ClInclude>
+    <ClInclude Include="DDrawCompat\Experimental\Common\VtableVisitor.h">
+      <Filter>DDrawCompat\Experimental</Filter>
+    </ClInclude>
+    <ClInclude Include="DDrawCompat\Experimental\Common\Time.h">
+      <Filter>DDrawCompat\Experimental</Filter>
+    </ClInclude>
+    <ClInclude Include="DDrawCompat\Experimental\Common\ScopedCriticalSection.h">
+      <Filter>DDrawCompat\Experimental</Filter>
+    </ClInclude>
+    <ClInclude Include="DDrawCompat\Experimental\Common\Hook.h">
+      <Filter>DDrawCompat\Experimental</Filter>
+    </ClInclude>
+    <ClInclude Include="DDrawCompat\Experimental\Common\CompatWeakPtr.h">
+      <Filter>DDrawCompat\Experimental</Filter>
+    </ClInclude>
+    <ClInclude Include="DDrawCompat\Experimental\Common\CompatRef.h">
+      <Filter>DDrawCompat\Experimental</Filter>
+    </ClInclude>
+    <ClInclude Include="DDrawCompat\Experimental\Common\CompatQueryInterface.h">
+      <Filter>DDrawCompat\Experimental</Filter>
+    </ClInclude>
+    <ClInclude Include="DDrawCompat\Experimental\Common\CompatPtr.h">
+      <Filter>DDrawCompat\Experimental</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

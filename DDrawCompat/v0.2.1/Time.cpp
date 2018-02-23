@@ -2,14 +2,17 @@
 
 #include "Time.h"
 
-namespace Time
+namespace Compat21
 {
-	long long g_qpcFrequency = 0;
-
-	void init()
+	namespace Time
 	{
-		LARGE_INTEGER qpc;
-		QueryPerformanceFrequency(&qpc);
-		g_qpcFrequency = qpc.QuadPart;
+		long long g_qpcFrequency = 0;
+
+		void init()
+		{
+			LARGE_INTEGER qpc;
+			QueryPerformanceFrequency(&qpc);
+			g_qpcFrequency = qpc.QuadPart;
+		}
 	}
 }

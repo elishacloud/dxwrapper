@@ -1,6 +1,9 @@
 #pragma once
 
-namespace CompatGdiWinProc
+namespace Compat20
 {
-	void installHooks();
+	namespace CompatGdiWinProc
+	{
+		void installHooks();
+	}
 }

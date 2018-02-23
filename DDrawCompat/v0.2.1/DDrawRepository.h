@@ -4,20 +4,23 @@
 
 #include <ddraw.h>
 
-namespace DDrawRepository
+namespace Compat21
 {
-	struct Surface
+	namespace DDrawRepository
 	{
-		DDSURFACEDESC2 desc;
-		IDirectDrawSurface7* surface;
-	};
+		struct Surface
+		{
+			DDSURFACEDESC2 desc;
+			IDirectDrawSurface7* surface;
+		};
 
-	class ScopedSurface : public Surface
-	{
-	public:
-		ScopedSurface(const DDSURFACEDESC2& desc);
-		~ScopedSurface();
-	};
+		class ScopedSurface : public Surface
+		{
+		public:
+			ScopedSurface(const DDSURFACEDESC2& desc);
+			~ScopedSurface();
+		};
 
-	IDirectDraw7* getDirectDraw();
+		IDirectDraw7* getDirectDraw();
+	}
 }

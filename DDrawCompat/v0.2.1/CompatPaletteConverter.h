@@ -4,12 +4,15 @@
 
 #include <ddraw.h>
 
-namespace CompatPaletteConverter
+namespace Compat21
 {
-	bool create();
-	HDC getDc();
-	IDirectDrawSurface7* getSurface();
-	void release();
-	void setClipper(IDirectDrawClipper* clipper);
-	void updatePalette(DWORD startingEntry, DWORD count);
+	namespace CompatPaletteConverter
+	{
+		bool create();
+		HDC getDc();
+		IDirectDrawSurface7* getSurface();
+		void release();
+		void setClipper(IDirectDrawClipper* clipper);
+		void updatePalette(DWORD startingEntry, DWORD count);
+	}
 }

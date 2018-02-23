@@ -1,6 +1,9 @@
 #include "CompatVtable.h"
 
-namespace Compat
+namespace Compat20
 {
-	std::map<void*, DetouredMethodInfo> detouredMethods;
+	namespace Compat
+	{
+		std::map<void*, DetouredMethodInfo> detouredMethods;
+	}
 }

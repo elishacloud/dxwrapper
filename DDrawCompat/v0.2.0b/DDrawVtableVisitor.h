@@ -5,25 +5,27 @@
 #include <ddraw.h>
 #include <typeinfo>
 
-template <typename Vtable>
-struct DDrawVtableForEach;
-
-template <typename Vtable, typename Visitor>
-void forEach(Visitor& visitor)
+namespace Compat20
 {
-	DDrawVtableForEach<Vtable>::forEach<Vtable>(visitor);
-}
+	template <typename Vtable>
+	struct DDrawVtableForEach;
 
-template <typename T>
-std::string getTypeName()
-{
-	std::string typeName(typeid(T).name());
-	if (0 == typeName.find("struct "))
+	template <typename Vtable, typename Visitor>
+	void forEach(Visitor& visitor)
 	{
-		typeName = typeName.substr(typeName.find(" ") + 1);
+		DDrawVtableForEach<Vtable>::forEach<Vtable>(visitor);
 	}
-	return typeName;
-}
+
+	template <typename T>
+	std::string getTypeName()
+	{
+		std::string typeName(typeid(T).name());
+		if (0 == typeName.find("struct "))
+		{
+			typeName = typeName.substr(typeName.find(" ") + 1);
+		}
+		return typeName;
+	}
 
 #ifdef _DEBUG
 #define DD_VISIT(member) \
@@ -33,14 +35,15 @@ std::string getTypeName()
 		visitor.visit<decltype(&Vtable::member), &Vtable::member>()
 #endif
 
-template <>
-struct DDrawVtableForEach<IUnknownVtbl>
-{
-	template <typename Vtable, typename Visitor>
-	static void forEach(Visitor& visitor)
+	template <>
+	struct DDrawVtableForEach<IUnknownVtbl>
 	{
-		DD_VISIT(QueryInterface);
-		DD_VISIT(AddRef);
-		DD_VISIT(Release);
-	}
-};
+		template <typename Vtable, typename Visitor>
+		static void forEach(Visitor& visitor)
+		{
+			DD_VISIT(QueryInterface);
+			DD_VISIT(AddRef);
+			DD_VISIT(Release);
+		}
+	};
+}

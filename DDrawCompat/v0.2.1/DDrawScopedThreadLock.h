@@ -2,19 +2,22 @@
 
 #include "DDrawProcs.h"
 
-namespace Compat
+namespace Compat21
 {
-	class DDrawScopedThreadLock
+	namespace Compat
 	{
-	public:
-		DDrawScopedThreadLock()
+		class DDrawScopedThreadLock
 		{
-			origProcs.AcquireDDThreadLock();
-		}
+		public:
+			DDrawScopedThreadLock()
+			{
+				origProcs.AcquireDDThreadLock();
+			}
 
-		~DDrawScopedThreadLock()
-		{
-			origProcs.ReleaseDDThreadLock();
-		}
-	};
+			~DDrawScopedThreadLock()
+			{
+				origProcs.ReleaseDDThreadLock();
+			}
+		};
+	}
 }

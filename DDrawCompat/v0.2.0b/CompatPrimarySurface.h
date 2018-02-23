@@ -4,25 +4,28 @@
 
 #include <ddraw.h>
 
-class IReleaseNotifier;
-
-namespace CompatPrimarySurface
+namespace Compat20
 {
-	struct DisplayMode
+	class IReleaseNotifier;
+
+	namespace CompatPrimarySurface
 	{
-		LONG width;
-		LONG height;
-		DDPIXELFORMAT pixelFormat;
-	};
+		struct DisplayMode
+		{
+			LONG width;
+			LONG height;
+			DDPIXELFORMAT pixelFormat;
+		};
 
-	template <typename TDirectDraw>
-	DisplayMode getDisplayMode(TDirectDraw& dd);
+		template <typename TDirectDraw>
+		DisplayMode getDisplayMode(TDirectDraw& dd);
 
-	extern DisplayMode displayMode;
-	extern IDirectDrawSurface7* surface;
-	extern LPDIRECTDRAWPALETTE palette;
-	extern LONG width;
-	extern LONG height;
-	extern DDPIXELFORMAT pixelFormat;
-	extern IReleaseNotifier releaseNotifier;
+		extern DisplayMode displayMode;
+		extern IDirectDrawSurface7* surface;
+		extern LPDIRECTDRAWPALETTE palette;
+		extern LONG width;
+		extern LONG height;
+		extern DDPIXELFORMAT pixelFormat;
+		extern IReleaseNotifier releaseNotifier;
+	}
 }

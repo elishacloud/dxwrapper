@@ -4,29 +4,32 @@
 #include "DDrawTypes.h"
 #include "DirectDrawVtblVisitor.h"
 
-template <typename TDirectDraw>
-class CompatDirectDraw : public CompatVtable<CompatDirectDraw<TDirectDraw>, TDirectDraw>
+namespace Compat21
 {
-public:
-	typedef typename Types<TDirectDraw>::TCreatedSurface TSurface;
-	typedef typename Types<TDirectDraw>::TSurfaceDesc TSurfaceDesc;
+	template <typename TDirectDraw>
+	class CompatDirectDraw : public CompatVtable<CompatDirectDraw<TDirectDraw>, TDirectDraw>
+	{
+	public:
+		typedef typename Types<TDirectDraw>::TCreatedSurface TSurface;
+		typedef typename Types<TDirectDraw>::TSurfaceDesc TSurfaceDesc;
 
-	static void setCompatVtable(Vtable<TDirectDraw>& vtable);
+		static void setCompatVtable(Vtable<TDirectDraw>& vtable);
 
-	static HRESULT STDMETHODCALLTYPE CreateSurface(
-		TDirectDraw* This,
-		TSurfaceDesc* lpDDSurfaceDesc,
-		TSurface** lplpDDSurface,
-		IUnknown* pUnkOuter);
+		static HRESULT STDMETHODCALLTYPE CreateSurface(
+			TDirectDraw* This,
+			TSurfaceDesc* lpDDSurfaceDesc,
+			TSurface** lplpDDSurface,
+			IUnknown* pUnkOuter);
 
-	static HRESULT STDMETHODCALLTYPE RestoreDisplayMode(TDirectDraw* This);
-	static HRESULT STDMETHODCALLTYPE SetCooperativeLevel(TDirectDraw* This, HWND hWnd, DWORD dwFlags);
+		static HRESULT STDMETHODCALLTYPE RestoreDisplayMode(TDirectDraw* This);
+		static HRESULT STDMETHODCALLTYPE SetCooperativeLevel(TDirectDraw* This, HWND hWnd, DWORD dwFlags);
 
-	template <typename... Params>
-	static HRESULT STDMETHODCALLTYPE SetDisplayMode(
-		TDirectDraw* This,
-		DWORD dwWidth,
-		DWORD dwHeight,
-		DWORD dwBPP,
-		Params... params);
-};
+		template <typename... Params>
+		static HRESULT STDMETHODCALLTYPE SetDisplayMode(
+			TDirectDraw* This,
+			DWORD dwWidth,
+			DWORD dwHeight,
+			DWORD dwBPP,
+			Params... params);
+	};
+}

@@ -6,17 +6,20 @@
 #include <ddraw.h>
 #include <Windows.h>
 
-namespace CompatGdiDcCache
+namespace Compat20
 {
-	struct CachedDc
+	namespace CompatGdiDcCache
 	{
-		IDirectDrawSurface7* surface;
-		HDC dc;
-	};
+		struct CachedDc
+		{
+			IDirectDrawSurface7* surface;
+			HDC dc;
+		};
 
-	void clear();
-	CachedDc getDc();
-	bool init();
-	void releaseDc(const CachedDc& cachedDc);
-	void setSurfaceMemory(void* surfaceMemory, LONG pitch);
+		void clear();
+		CachedDc getDc();
+		bool init();
+		void releaseDc(const CachedDc& cachedDc);
+		void setSurfaceMemory(void* surfaceMemory, LONG pitch);
+	}
 }

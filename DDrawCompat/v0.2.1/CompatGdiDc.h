@@ -4,9 +4,12 @@
 
 #include <Windows.h>
 
-namespace CompatGdiDc
+namespace Compat21
 {
-	HDC getDc(HDC origDc, bool isMenuPaintDc = false);
-	HDC getOrigDc(HDC dc);
-	void releaseDc(HDC origDc);
+	namespace CompatGdiDc
+	{
+		HDC getDc(HDC origDc, bool isMenuPaintDc = false);
+		HDC getOrigDc(HDC dc);
+		void releaseDc(HDC origDc);
+	}
 }

@@ -1,6 +1,9 @@
 #pragma once
 
-namespace CompatGdiDcFunctions
+namespace Compat21
 {
-	void installHooks();
-};
+	namespace CompatGdiDcFunctions
+	{
+		void installHooks();
+	};
+}

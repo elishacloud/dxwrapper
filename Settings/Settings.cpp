@@ -531,4 +531,7 @@ void CONFIG::Init()
 	{
 		Logging::Log() << "Enabling d3d8to9 wrapper";
 	}
+
+	// Enable DDrawCompat settings
+	DDrawCompat = (DDrawCompat || DDrawCompat20 || DDrawCompat21 || DDrawCompatExperimental);
 }

@@ -4,9 +4,12 @@
 
 #include <Windows.h>
 
-namespace CompatActivateAppHandler
+namespace Compat21
 {
-	void installHooks();
-	void setFullScreenCooperativeLevel(HWND hwnd, DWORD flags);
-	void uninstallHooks();
+	namespace CompatActivateAppHandler
+	{
+		void installHooks();
+		void setFullScreenCooperativeLevel(HWND hwnd, DWORD flags);
+		void uninstallHooks();
+	}
 }

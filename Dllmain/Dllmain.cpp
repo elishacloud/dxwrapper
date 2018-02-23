@@ -193,6 +193,7 @@ bool APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 			{
 				using namespace ddraw;
 				using namespace DDrawCompat;
+				DDrawCompat::Prepare();
 				VISIT_PROCS_DDRAW(SHIM_WRAPPED_PROC);
 				Wrapper::ShimProc(ShardProcs::DllCanUnloadNow_var, DllCanUnloadNow_in, DllCanUnloadNow_out);
 				Wrapper::ShimProc(ShardProcs::DllGetClassObject_var, DllGetClassObject_in, DllGetClassObject_out);
@@ -211,7 +212,7 @@ bool APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 			// Start DDrawCompat
 			if (Config.DDrawCompat)
 			{
-				Config.DDrawCompat =(DllMain_DDrawCompat(hModule_dll, DLL_PROCESS_ATTACH, nullptr) == TRUE);
+				Config.DDrawCompat = DDrawCompat::Start(hModule_dll, DLL_PROCESS_ATTACH);
 			}
 		}
 
@@ -404,7 +405,7 @@ bool APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 		// Unload and Unhook DDrawCompat
 		if (Config.DDrawCompat)
 		{
-			DllMain_DDrawCompat(nullptr, DLL_PROCESS_DETACH, nullptr);
+			DDrawCompat::Start(nullptr, DLL_PROCESS_DETACH);
 		}
 
 		// Unload DSoundCtrl

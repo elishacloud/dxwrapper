@@ -4,8 +4,11 @@
 
 #include <Windows.h>
 
-namespace CompatRegistry
+namespace Compat21
 {
-	void installHooks();
-	void setValue(HKEY key, const char* subKey, const char* valueName, DWORD value);
+	namespace CompatRegistry
+	{
+		void installHooks();
+		void setValue(HKEY key, const char* subKey, const char* valueName, DWORD value);
+	}
 }

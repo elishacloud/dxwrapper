@@ -6,7 +6,6 @@
 
 #define VISIT_UNMODIFIED_DDRAW_PROCS(visit) \
 	visit(AcquireDDThreadLock) \
-	visit(CheckFullscreen) \
 	visit(CompleteCreateSysmemSurface) \
 	visit(D3DParseUnknownCommand) \
 	visit(DDGetAttachedSurfaceLcl) \
@@ -26,29 +25,32 @@
 	visit(ReleaseDDThreadLock) \
 	visit(SetAppCompatData)
 
-//********** Begin Edit *************
 #define VISIT_MODIFIED_DDRAW_PROCS(visit) \
 	visit(DirectDrawCreate) \
-	visit(DirectDrawCreateEx) \
-	visit(DllGetClassObject)
-//********** End Edit ***************
+	visit(DirectDrawCreateEx)
 
 #define VISIT_ALL_DDRAW_PROCS(visit) \
 	VISIT_UNMODIFIED_DDRAW_PROCS(visit) \
 	VISIT_MODIFIED_DDRAW_PROCS(visit)
 
+//********** Begin Edit *************
+#include "Wrappers\ddraw.h"
+//********** End Edit ***************
+
+namespace Compat20
+{
 #define ADD_FARPROC_MEMBER(memberName) FARPROC memberName;
 
-namespace Compat
-{
-	struct DDrawProcs
+	namespace Compat
 	{
-		VISIT_ALL_DDRAW_PROCS(ADD_FARPROC_MEMBER);
-		FARPROC DirectInputCreateA;
-	};
+		struct DDrawProcs
+		{
+			VISIT_ALL_DDRAW_PROCS(ADD_FARPROC_MEMBER);
+			FARPROC DirectInputCreateA;
+		};
 
-	extern DDrawProcs origProcs;
-}
+		extern DDrawProcs origProcs;
+	}
 
 #undef  ADD_FARPROC_MEMBER
 
@@ -56,3 +58,4 @@ namespace Compat
 	(Compat::origProcs.procName ? \
 		reinterpret_cast<decltype(procName)*>(Compat::origProcs.procName)(__VA_ARGS__) : \
 		E_FAIL)
+}

@@ -14,267 +14,254 @@
 #include "CompatVtable.h"
 #include "DDrawProcs.h"
 //********** Begin Edit *************
-#include "DDrawCompatExternal.h"
+#include "DllMain.h"
 #define DllMain DllMain_DDrawCompat
-
-extern "C" HRESULT WINAPI _DirectDrawCreate(GUID*, LPDIRECTDRAW*, IUnknown*);
-extern "C" HRESULT WINAPI _DirectDrawCreateEx(GUID*, LPVOID*, REFIID, IUnknown*);
-extern "C" HRESULT WINAPI _DllGetClassObject(REFCLSID, REFIID, LPVOID*);
-
-#define EXTERN_PROC_STUB(procName) extern "C" void __stdcall _ ## procName();
-VISIT_UNMODIFIED_DDRAW_PROCS(EXTERN_PROC_STUB);
-
-namespace DDrawCompat
-{
-#define INITUALIZE_WRAPPED_PROC(procName) \
-	FARPROC procName ## _in = (FARPROC)*_ ## procName; \
-	FARPROC procName ## _out = nullptr; \
-
-	VISIT_ALL_DDRAW_PROCS(INITUALIZE_WRAPPED_PROC);
-}
 //********** End Edit ***************
 
-struct IDirectInput;
-
-namespace
+namespace Compat20
 {
-	HMODULE g_origDDrawModule = nullptr;
-	HMODULE g_origDInputModule = nullptr;
+	struct IDirectInput;
 
-	template <typename CompatInterface>
-	void hookVtable(const GUID& guid, IUnknown& unk)
+	namespace
 	{
-		typename CompatInterface::Interface* intf = nullptr;
-		if (SUCCEEDED(unk.lpVtbl->QueryInterface(&unk, guid, reinterpret_cast<LPVOID*>(&intf))))
-		{
-			CompatInterface::hookVtable(*intf);
-			intf->lpVtbl->Release(intf);
-		}
-	}
+		HMODULE g_origDDrawModule = nullptr;
+		HMODULE g_origDInputModule = nullptr;
 
-	void hookDirectDraw(IDirectDraw& dd)
-	{
-		IUnknown& ddUnk = reinterpret_cast<IUnknown&>(dd);
-		hookVtable<CompatDirectDraw<IDirectDraw>>(IID_IDirectDraw, ddUnk);
-		hookVtable<CompatDirectDraw<IDirectDraw2>>(IID_IDirectDraw2, ddUnk);
-		hookVtable<CompatDirectDraw<IDirectDraw4>>(IID_IDirectDraw4, ddUnk);
-		hookVtable<CompatDirectDraw<IDirectDraw7>>(IID_IDirectDraw7, ddUnk);
-	}
-
-	void hookDirectDrawSurface(IDirectDraw& dd)
-	{
-		DDSURFACEDESC desc = {};
-		desc.dwSize = sizeof(desc);
-		desc.dwFlags = DDSD_WIDTH | DDSD_HEIGHT | DDSD_CAPS;
-		desc.dwWidth = 1;
-		desc.dwHeight = 1;
-		desc.ddsCaps.dwCaps = DDSCAPS_OFFSCREENPLAIN;
-
-		IDirectDrawSurface* surface = nullptr;
-		HRESULT result = CompatDirectDraw<IDirectDraw>::s_origVtable.CreateSurface(&dd, &desc, &surface, nullptr);
-		if (SUCCEEDED(result))
+		template <typename CompatInterface>
+		void hookVtable(const GUID& guid, IUnknown& unk)
 		{
-			IUnknown& surfaceUnk = reinterpret_cast<IUnknown&>(*surface);
-			hookVtable<CompatDirectDrawSurface<IDirectDrawSurface>>(IID_IDirectDrawSurface, surfaceUnk);
-			hookVtable<CompatDirectDrawSurface<IDirectDrawSurface2>>(IID_IDirectDrawSurface2, surfaceUnk);
-			hookVtable<CompatDirectDrawSurface<IDirectDrawSurface3>>(IID_IDirectDrawSurface3, surfaceUnk);
-			hookVtable<CompatDirectDrawSurface<IDirectDrawSurface4>>(IID_IDirectDrawSurface4, surfaceUnk);
-			hookVtable<CompatDirectDrawSurface<IDirectDrawSurface7>>(IID_IDirectDrawSurface7, surfaceUnk);
-			surface->lpVtbl->Release(surface);
+			typename CompatInterface::Interface* intf = nullptr;
+			if (SUCCEEDED(unk.lpVtbl->QueryInterface(&unk, guid, reinterpret_cast<LPVOID*>(&intf))))
+			{
+				CompatInterface::hookVtable(*intf);
+				intf->lpVtbl->Release(intf);
+			}
 		}
-		else
-		{
-			Compat::Log() << "Failed to create a DirectDraw surface for hooking: " << result;
-		}
-	}
 
-	void hookDirectDrawPalette(IDirectDraw& dd)
-	{
-		PALETTEENTRY paletteEntries[2] = {};
-		IDirectDrawPalette* palette = nullptr;
-		HRESULT result = CompatDirectDraw<IDirectDraw>::s_origVtable.CreatePalette(
-			&dd, DDPCAPS_1BIT, paletteEntries, &palette, nullptr);
-		if (SUCCEEDED(result))
+		void hookDirectDraw(IDirectDraw& dd)
 		{
-			CompatDirectDrawPalette::hookVtable(*palette);
-			palette->lpVtbl->Release(palette);
+			IUnknown& ddUnk = reinterpret_cast<IUnknown&>(dd);
+			hookVtable<CompatDirectDraw<IDirectDraw>>(IID_IDirectDraw, ddUnk);
+			hookVtable<CompatDirectDraw<IDirectDraw2>>(IID_IDirectDraw2, ddUnk);
+			hookVtable<CompatDirectDraw<IDirectDraw4>>(IID_IDirectDraw4, ddUnk);
+			hookVtable<CompatDirectDraw<IDirectDraw7>>(IID_IDirectDraw7, ddUnk);
 		}
-		else
-		{
-			Compat::Log() << "Failed to create a DirectDraw palette for hooking: " << result;
-		}
-	}
 
-	void installHooks()
-	{
-		static bool isAlreadyInstalled = false;
-		if (!isAlreadyInstalled)
+		void hookDirectDrawSurface(IDirectDraw& dd)
 		{
-			Compat::Log() << "Installing DirectDraw hooks";
-			IDirectDraw* dd = nullptr;
-			HRESULT result = CALL_ORIG_DDRAW(DirectDrawCreate, nullptr, &dd, nullptr);
+			DDSURFACEDESC desc = {};
+			desc.dwSize = sizeof(desc);
+			desc.dwFlags = DDSD_WIDTH | DDSD_HEIGHT | DDSD_CAPS;
+			desc.dwWidth = 1;
+			desc.dwHeight = 1;
+			desc.ddsCaps.dwCaps = DDSCAPS_OFFSCREENPLAIN;
+
+			IDirectDrawSurface* surface = nullptr;
+			HRESULT result = CompatDirectDraw<IDirectDraw>::s_origVtable.CreateSurface(&dd, &desc, &surface, nullptr);
 			if (SUCCEEDED(result))
 			{
-				dd->lpVtbl->SetCooperativeLevel(dd, nullptr, DDSCL_NORMAL);
-
-				hookDirectDraw(*dd);
-				hookDirectDrawSurface(*dd);
-				hookDirectDrawPalette(*dd);
-
-				//********** Begin Edit *************
-				if (!Config.DDrawCompatDisableGDIHook)
-				{
-					Compat::Log() << "Installing GDI hooks";
-					CompatGdi::installHooks();
-				}
-				//********** End Edit ***************
-
-				dd->lpVtbl->Release(dd);
+				IUnknown& surfaceUnk = reinterpret_cast<IUnknown&>(*surface);
+				hookVtable<CompatDirectDrawSurface<IDirectDrawSurface>>(IID_IDirectDrawSurface, surfaceUnk);
+				hookVtable<CompatDirectDrawSurface<IDirectDrawSurface2>>(IID_IDirectDrawSurface2, surfaceUnk);
+				hookVtable<CompatDirectDrawSurface<IDirectDrawSurface3>>(IID_IDirectDrawSurface3, surfaceUnk);
+				hookVtable<CompatDirectDrawSurface<IDirectDrawSurface4>>(IID_IDirectDrawSurface4, surfaceUnk);
+				hookVtable<CompatDirectDrawSurface<IDirectDrawSurface7>>(IID_IDirectDrawSurface7, surfaceUnk);
+				surface->lpVtbl->Release(surface);
 			}
 			else
 			{
-				Compat::Log() << "Failed to create a DirectDraw object for hooking" << result;
+				Logging::Log() << "Failed to create a DirectDraw surface for hooking: " << result;
 			}
-			Compat::Log() << "Finished installing hooks";
-			isAlreadyInstalled = true;
 		}
-	}
 
-	bool loadLibrary(const std::string& systemDirectory, const std::string& dllName, HMODULE& module)
-	{
-		const std::string systemDllPath = systemDirectory + '\\' + dllName;
-
-		module = LoadLibrary(systemDllPath.c_str());
-		if (!module)
+		void hookDirectDrawPalette(IDirectDraw& dd)
 		{
-			Compat::Log() << "Failed to load system " << dllName << " from " << systemDllPath;
-			return false;
+			PALETTEENTRY paletteEntries[2] = {};
+			IDirectDrawPalette* palette = nullptr;
+			HRESULT result = CompatDirectDraw<IDirectDraw>::s_origVtable.CreatePalette(
+				&dd, DDPCAPS_1BIT, paletteEntries, &palette, nullptr);
+			if (SUCCEEDED(result))
+			{
+				CompatDirectDrawPalette::hookVtable(*palette);
+				palette->lpVtbl->Release(palette);
+			}
+			else
+			{
+				Logging::Log() << "Failed to create a DirectDraw palette for hooking: " << result;
+			}
 		}
 
-		return true;
-	}
-
-	void suppressEmulatedDirectDraw(GUID*& guid)
-	{
-		if (reinterpret_cast<GUID*>(DDCREATE_EMULATIONONLY) == guid)
+		void installHooks()
 		{
-			LOG_ONCE("Warning: suppressed a request to create an emulated DirectDraw object");
-			guid = nullptr;
+			static bool isAlreadyInstalled = false;
+			if (!isAlreadyInstalled)
+			{
+				Logging::Log() << "Installing DirectDraw hooks";
+				IDirectDraw* dd = nullptr;
+				HRESULT result = CALL_ORIG_DDRAW(DirectDrawCreate, nullptr, &dd, nullptr);
+				if (SUCCEEDED(result))
+				{
+					dd->lpVtbl->SetCooperativeLevel(dd, nullptr, DDSCL_NORMAL);
+
+					hookDirectDraw(*dd);
+					hookDirectDrawSurface(*dd);
+					hookDirectDrawPalette(*dd);
+
+					//********** Begin Edit *************
+					if (!Config.DDrawCompatDisableGDIHook)
+					{
+						Logging::Log() << "Installing GDI hooks";
+						CompatGdi::installHooks();
+					}
+					//********** End Edit ***************
+
+					dd->lpVtbl->Release(dd);
+				}
+				else
+				{
+					Logging::Log() << "Failed to create a DirectDraw object for hooking" << result;
+				}
+				Logging::Log() << "Finished installing hooks";
+				isAlreadyInstalled = true;
+			}
+		}
+
+		bool loadLibrary(const std::string& systemDirectory, const std::string& dllName, HMODULE& module)
+		{
+			const std::string systemDllPath = systemDirectory + '\\' + dllName;
+
+			module = LoadLibrary(systemDllPath.c_str());
+			if (!module)
+			{
+				Logging::Log() << "Failed to load system " << dllName << " from " << systemDllPath;
+				return false;
+			}
+
+			return true;
+		}
+
+		void suppressEmulatedDirectDraw(GUID*& guid)
+		{
+			if (reinterpret_cast<GUID*>(DDCREATE_EMULATIONONLY) == guid)
+			{
+				LOG_ONCE("Warning: suppressed a request to create an emulated DirectDraw object");
+				guid = nullptr;
+			}
 		}
 	}
-}
 
-//********** Begin Edit *************
+	//********** Begin Edit *************
 #define	LOAD_ORIGINAL_DDRAW_PROC(procName) \
 	Compat::origProcs.procName = DDrawCompat::procName ## _out;
 //********** End Edit ***************
 
-BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpvReserved)
-{
-	UNREFERENCED_PARAMETER(lpvReserved);
-
-	if (fdwReason == DLL_PROCESS_ATTACH)
+	BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpvReserved)
 	{
-		char currentDllPath[MAX_PATH] = {};
-		GetModuleFileName(hinstDLL, currentDllPath, MAX_PATH);
-		Compat::Log() << "Loading DDrawCompat from " << currentDllPath;
+		UNREFERENCED_PARAMETER(lpvReserved);
 
-		char systemDirectory[MAX_PATH] = {};
-		GetSystemDirectory(systemDirectory, MAX_PATH);
-
-		std::string systemDDrawDllPath = std::string(systemDirectory) + "\\ddraw.dll";
-		if (0 == _stricmp(currentDllPath, systemDDrawDllPath.c_str()))
+		if (fdwReason == DLL_PROCESS_ATTACH)
 		{
-			Compat::Log() << "DDrawCompat cannot be installed as the system ddraw.dll";
-			return false;
-		}
+			char currentDllPath[MAX_PATH] = {};
+			GetModuleFileName(hinstDLL, currentDllPath, MAX_PATH);
+			Logging::Log() << "Loading DDrawCompat from " << currentDllPath;
 
-		if (!loadLibrary(systemDirectory, "ddraw.dll", g_origDDrawModule) ||
-			!loadLibrary(systemDirectory, "dinput.dll", g_origDInputModule))
-		{
-			return FALSE;
-		}
+			char systemDirectory[MAX_PATH] = {};
+			GetSystemDirectory(systemDirectory, MAX_PATH);
 
-		VISIT_ALL_DDRAW_PROCS(LOAD_ORIGINAL_DDRAW_PROC);
-		Compat::origProcs.DirectInputCreateA = GetProcAddress(g_origDInputModule, "DirectInputCreateA");
-
-		//********** Begin Edit *************
-		if (Config.SingleProcAffinityNotSet) SetProcessAffinityMask(GetCurrentProcess(), 1);
-		//********** End Edit ***************
-
-		//********** Begin Edit *************
-		if (Config.DisableMaxWindowedModeNotSet)
-		{
-			if (Compat::origProcs.SetAppCompatData)
+			std::string systemDDrawDllPath = std::string(systemDirectory) + "\\ddraw.dll";
+			if (0 == _stricmp(currentDllPath, systemDDrawDllPath.c_str()))
 			{
-				typedef HRESULT WINAPI SetAppCompatDataFunc(DWORD, DWORD);
-				auto setAppCompatData = reinterpret_cast<SetAppCompatDataFunc*>(Compat::origProcs.SetAppCompatData);
-				const DWORD disableMaxWindowedMode = 12;
-				setAppCompatData(disableMaxWindowedMode, 0);
+				Logging::Log() << "DDrawCompat cannot be installed as the system ddraw.dll";
+				return false;
 			}
+
+			if (!loadLibrary(systemDirectory, "ddraw.dll", g_origDDrawModule) ||
+				!loadLibrary(systemDirectory, "dinput.dll", g_origDInputModule))
+			{
+				return FALSE;
+			}
+
+			VISIT_ALL_DDRAW_PROCS(LOAD_ORIGINAL_DDRAW_PROC);
+			Compat::origProcs.DirectInputCreateA = GetProcAddress(g_origDInputModule, "DirectInputCreateA");
+
+			//********** Begin Edit *************
+			if (Config.SingleProcAffinityNotSet) SetProcessAffinityMask(GetCurrentProcess(), 1);
+			//********** End Edit ***************
+
+			//********** Begin Edit *************
+			if (Config.DisableMaxWindowedModeNotSet)
+			{
+				if (Compat::origProcs.SetAppCompatData)
+				{
+					typedef HRESULT WINAPI SetAppCompatDataFunc(DWORD, DWORD);
+					auto setAppCompatData = reinterpret_cast<SetAppCompatDataFunc*>(Compat::origProcs.SetAppCompatData);
+					const DWORD disableMaxWindowedMode = 12;
+					setAppCompatData(disableMaxWindowedMode, 0);
+				}
+			}
+			//********** End Edit ***************
+
+			Logging::Log() << "DDrawCompat v0.2.0b loaded successfully";
 		}
-		//********** End Edit ***************
+		else if (fdwReason == DLL_PROCESS_DETACH)
+		{
+			FreeLibrary(g_origDInputModule);
+			FreeLibrary(g_origDDrawModule);
+		}
 
-		Compat::Log() << "DDrawCompat v0.2.0b loaded successfully";
+		return TRUE;
 	}
-	else if (fdwReason == DLL_PROCESS_DETACH)
+
+	extern "C" HRESULT WINAPI DC20_DirectDrawCreate(
+		GUID* lpGUID,
+		LPDIRECTDRAW* lplpDD,
+		IUnknown* pUnkOuter)
 	{
-		FreeLibrary(g_origDInputModule);
-		FreeLibrary(g_origDDrawModule);
+		Logging::LogEnter(__func__, lpGUID, lplpDD, pUnkOuter);
+		installHooks();
+		suppressEmulatedDirectDraw(lpGUID);
+		HRESULT result = CALL_ORIG_DDRAW(DirectDrawCreate, lpGUID, lplpDD, pUnkOuter);
+		Logging::LogLeave(__func__, lpGUID, lplpDD, pUnkOuter) << result;
+		return result;
 	}
 
-	return TRUE;
-}
+	extern "C" HRESULT WINAPI DC20_DirectDrawCreateEx(
+		GUID* lpGUID,
+		LPVOID* lplpDD,
+		REFIID iid,
+		IUnknown* pUnkOuter)
+	{
+		Logging::LogEnter(__func__, lpGUID, lplpDD, iid, pUnkOuter);
+		installHooks();
+		suppressEmulatedDirectDraw(lpGUID);
+		HRESULT result = CALL_ORIG_DDRAW(DirectDrawCreateEx, lpGUID, lplpDD, iid, pUnkOuter);
+		Logging::LogLeave(__func__, lpGUID, lplpDD, iid, pUnkOuter) << result;
+		return result;
+	}
 
-extern "C" HRESULT WINAPI _DirectDrawCreate(
-	GUID* lpGUID,
-	LPDIRECTDRAW* lplpDD,
-	IUnknown* pUnkOuter)
-{
-	Compat::LogEnter(__func__, lpGUID, lplpDD, pUnkOuter);
-	installHooks();
-	suppressEmulatedDirectDraw(lpGUID);
-	HRESULT result = CALL_ORIG_DDRAW(DirectDrawCreate, lpGUID, lplpDD, pUnkOuter);
-	Compat::LogLeave(__func__, lpGUID, lplpDD, pUnkOuter) << result;
-	return result;
-}
+	//********** Begin Edit *************
+	extern "C" HRESULT WINAPI DC20_DllGetClassObject(
+		REFCLSID rclsid,
+		REFIID   riid,
+		LPVOID   *ppv)
+	{
+		Logging::LogEnter(__func__, rclsid, riid, ppv);
+		installHooks();
+		HRESULT result = CALL_ORIG_DDRAW(DllGetClassObject, rclsid, riid, ppv);
+		Logging::LogLeave(__func__, rclsid, riid, ppv) << result;
+		return result;
+	}
+	//********** End Edit ***************
 
-extern "C" HRESULT WINAPI _DirectDrawCreateEx(
-	GUID* lpGUID,
-	LPVOID* lplpDD,
-	REFIID iid,
-	IUnknown* pUnkOuter)
-{
-	Compat::LogEnter(__func__, lpGUID, lplpDD, iid, pUnkOuter);
-	installHooks();
-	suppressEmulatedDirectDraw(lpGUID);
-	HRESULT result = CALL_ORIG_DDRAW(DirectDrawCreateEx, lpGUID, lplpDD, iid, pUnkOuter);
-	Compat::LogLeave(__func__, lpGUID, lplpDD, iid, pUnkOuter) << result;
-	return result;
+	/*extern "C" HRESULT WINAPI DirectInputCreateA(
+		HINSTANCE hinst,
+		DWORD dwVersion,
+		IDirectInput** lplpDirectInput,
+		LPUNKNOWN punkOuter)
+	{
+		Logging::LogEnter(__func__, hinst, dwVersion, lplpDirectInput, punkOuter);
+		HRESULT result = CALL_ORIG_DDRAW(DirectInputCreateA, hinst, dwVersion, lplpDirectInput, punkOuter);
+		Logging::LogLeave(__func__, hinst, dwVersion, lplpDirectInput, punkOuter) << result;
+		return result;
+	}*/
 }
-
-//********** Begin Edit *************
-extern "C" HRESULT WINAPI _DllGetClassObject(
-	REFCLSID rclsid,
-	REFIID   riid,
-	LPVOID   *ppv)
-{
-	Compat::LogEnter(__func__, rclsid, riid, ppv);
-	installHooks();
-	HRESULT result = CALL_ORIG_DDRAW(DllGetClassObject, rclsid, riid, ppv);
-	Compat::LogLeave(__func__, rclsid, riid, ppv) << result;
-	return result;
-}
-//********** End Edit ***************
-
-/*extern "C" HRESULT WINAPI DirectInputCreateA(
-	HINSTANCE hinst,
-	DWORD dwVersion,
-	IDirectInput** lplpDirectInput,
-	LPUNKNOWN punkOuter)
-{
-	Compat::LogEnter(__func__, hinst, dwVersion, lplpDirectInput, punkOuter);
-	HRESULT result = CALL_ORIG_DDRAW(DirectInputCreateA, hinst, dwVersion, lplpDirectInput, punkOuter);
-	Compat::LogLeave(__func__, hinst, dwVersion, lplpDirectInput, punkOuter) << result;
-	return result;
-}*/

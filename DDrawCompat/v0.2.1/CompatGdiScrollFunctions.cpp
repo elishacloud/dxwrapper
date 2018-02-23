@@ -4,61 +4,64 @@
 #include "Hook.h"
 #include "RealPrimarySurface.h"
 
-namespace
+namespace Compat21
 {
-	BOOL WINAPI scrollWindow(HWND hWnd, int XAmount, int YAmount,
-		const RECT* lpRect, const RECT* lpClipRect)
+	namespace
 	{
-		Compat::LogEnter("scrollWindow", hWnd, XAmount, YAmount, lpRect, lpClipRect);
-		BOOL result = CALL_ORIG_FUNC(ScrollWindow)(hWnd, XAmount, YAmount, lpRect, lpClipRect);
-		if (result)
+		BOOL WINAPI scrollWindow(HWND hWnd, int XAmount, int YAmount,
+			const RECT* lpRect, const RECT* lpClipRect)
 		{
-			CompatGdiScrollFunctions::updateScrolledWindow(hWnd);
-		}
-		Compat::LogLeave("scrollWindow", hWnd, XAmount, YAmount, lpRect, lpClipRect) << result;
-		return result;
-	}
-
-	int WINAPI scrollWindowEx(HWND hWnd, int dx, int dy, const RECT* prcScroll, const RECT* prcClip,
-		HRGN hrgnUpdate, LPRECT prcUpdate, UINT flags)
-	{
-		Compat::LogEnter("scrollWindowEx",
-			hWnd, dx, dy, prcScroll, prcClip, hrgnUpdate, prcUpdate, flags);
-
-		if (flags & SW_SMOOTHSCROLL)
-		{
-			flags = LOWORD(flags ^ SW_SMOOTHSCROLL);
+			Logging::LogEnter("scrollWindow", hWnd, XAmount, YAmount, lpRect, lpClipRect);
+			BOOL result = CALL_ORIG_FUNC(ScrollWindow)(hWnd, XAmount, YAmount, lpRect, lpClipRect);
+			if (result)
+			{
+				CompatGdiScrollFunctions::updateScrolledWindow(hWnd);
+			}
+			Logging::LogLeave("scrollWindow", hWnd, XAmount, YAmount, lpRect, lpClipRect) << result;
+			return result;
 		}
 
-		int result = CALL_ORIG_FUNC(ScrollWindowEx)(
-			hWnd, dx, dy, prcScroll, prcClip, hrgnUpdate, prcUpdate, flags);
-		if (ERROR != result)
+		int WINAPI scrollWindowEx(HWND hWnd, int dx, int dy, const RECT* prcScroll, const RECT* prcClip,
+			HRGN hrgnUpdate, LPRECT prcUpdate, UINT flags)
 		{
-			CompatGdiScrollFunctions::updateScrolledWindow(hWnd);
+			Logging::LogEnter("scrollWindowEx",
+				hWnd, dx, dy, prcScroll, prcClip, hrgnUpdate, prcUpdate, flags);
+
+			if (flags & SW_SMOOTHSCROLL)
+			{
+				flags = LOWORD(flags ^ SW_SMOOTHSCROLL);
+			}
+
+			int result = CALL_ORIG_FUNC(ScrollWindowEx)(
+				hWnd, dx, dy, prcScroll, prcClip, hrgnUpdate, prcUpdate, flags);
+			if (ERROR != result)
+			{
+				CompatGdiScrollFunctions::updateScrolledWindow(hWnd);
+			}
+
+			Logging::LogLeave("scrollWindowEx",
+				hWnd, dx, dy, prcScroll, prcClip, hrgnUpdate, prcUpdate, flags) << result;
+			return result;
+		}
+	}
+
+	namespace CompatGdiScrollFunctions
+	{
+		void installHooks()
+		{
+			HOOK_FUNCTION(user32, ScrollWindow, scrollWindow);
+			HOOK_FUNCTION(user32, ScrollWindowEx, scrollWindowEx);
 		}
 
-		Compat::LogLeave("scrollWindowEx",
-			hWnd, dx, dy, prcScroll, prcClip, hrgnUpdate, prcUpdate, flags) << result;
-		return result;
-	}
-}
-
-namespace CompatGdiScrollFunctions
-{
-	void installHooks()
-	{
-		HOOK_FUNCTION(user32, ScrollWindow, scrollWindow);
-		HOOK_FUNCTION(user32, ScrollWindowEx, scrollWindowEx);
-	}
-
-	void updateScrolledWindow(HWND hwnd)
-	{
-		if (CompatGdi::isEmulationEnabled())
+		void updateScrolledWindow(HWND hwnd)
 		{
-			RealPrimarySurface::disableUpdates();
-			RedrawWindow(hwnd, nullptr, nullptr,
-				RDW_ERASE | RDW_FRAME | RDW_INVALIDATE | RDW_NOCHILDREN | RDW_UPDATENOW);
-			RealPrimarySurface::enableUpdates();
+			if (CompatGdi::isEmulationEnabled())
+			{
+				RealPrimarySurface::disableUpdates();
+				RedrawWindow(hwnd, nullptr, nullptr,
+					RDW_ERASE | RDW_FRAME | RDW_INVALIDATE | RDW_NOCHILDREN | RDW_UPDATENOW);
+				RealPrimarySurface::enableUpdates();
+			}
 		}
 	}
 }
