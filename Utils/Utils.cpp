@@ -16,9 +16,6 @@
 * Exception handling code taken from source code found in DxWnd v2.03.99
 * https://sourceforge.net/projects/dxwnd/
 *
-* Code in DisableHighDPIScaling function taken from source code found in Aqrit's ddwrapper
-* http://bitpatch.com/ddwrapper.html
-*
 * SetAppCompatData code created based on information from here:
 * http://www.blitzbasic.com/Community/post.php?topic=99477&post=1202996
 *
@@ -39,6 +36,12 @@ extern "C"
 
 #undef LoadLibrary
 
+typedef enum _PROCESS_DPI_AWARENESS {
+	PROCESS_DPI_UNAWARE = 0,
+	PROCESS_SYSTEM_DPI_AWARE = 1,
+	PROCESS_PER_MONITOR_DPI_AWARE = 2
+} PROCESS_DPI_AWARENESS;
+typedef HRESULT(WINAPI* SetProcessDpiAwarenessProc)(PROCESS_DPI_AWARENESS value);
 typedef FARPROC(WINAPI *GetProcAddressProc)(HMODULE, LPSTR);
 typedef DWORD(WINAPI *GetModuleFileNameAProc)(HMODULE, LPSTR, DWORD);
 typedef DWORD(WINAPI *GetModuleFileNameWProc)(HMODULE, LPWSTR, DWORD);
@@ -111,24 +114,18 @@ void Utils::SetProcessAffinity()
 	CloseHandle(hCurrentProcess);
 }
 
-// DPI virtualization causes:
-// Text Clipping, Blurring, or Inconsistent font sizes.
-// "Rendering of full-screen DX applications partially off screen" - Mircosoft
-// ...drawing(writting) to someplace that doesn't exist may cause crashes... 
-// if your going to Disable DPI Scaling then do it as soon as possible
+// Sets application DPI aware which disables DPI virtulization/High DPI scaling for this process
 void Utils::DisableHighDPIScaling()
 {
 	Logging::Log() << "Disabling High DPI Scaling...";
-	// use GetProcAddress because SetProcessDPIAware exists only on win6+
-	// and "High" dpi scaling only exits on win6+?
-	HMODULE hUser32 = GetModuleHandle("user32.dll");
-	typedef bool(__stdcall* SetProcessDPIAwareFunc)();
-	if (hUser32)
+	HMODULE module = LoadLibrary("Shcore.dll");
+
+	if (module)
 	{
-		SetProcessDPIAwareFunc setDPIAware = (SetProcessDPIAwareFunc)GetProcAddress(hUser32, "SetProcessDPIAware");
-		if (setDPIAware)
+		SetProcessDpiAwarenessProc pSetProcessDpiAwareness = (SetProcessDpiAwarenessProc)GetProcAddress(module, "SetProcessDpiAwareness");
+		if (pSetProcessDpiAwareness)
 		{
-			setDPIAware();
+			pSetProcessDpiAwareness(PROCESS_PER_MONITOR_DPI_AWARE);
 			return;
 		}
 	}
