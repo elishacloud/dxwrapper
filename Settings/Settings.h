@@ -148,7 +148,7 @@ struct CONFIG
 	bool ProcessExcluded;				// Reset the screen resolution on close
 	bool ResetScreenRes;				// Reset the screen resolution on close
 	bool SendAltEnter;					// Sends an Alt+Enter message to the wind to tell it to go into fullscreen
-	bool WaitForProcess;				// Enables 'WindowSleepTime'
+	bool WaitForProcess;				// Waits for process to end before continuing
 	bool WaitForWindowChanges;			// Waits for window handle to stabilize before setting fullsreen
 	DWORD LoopSleepTime;				// Time to sleep between each window handle check loop
 	DWORD ResetMemoryAfter;				// Undo hot patch after this amount of time
