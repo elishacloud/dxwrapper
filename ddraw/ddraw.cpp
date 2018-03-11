@@ -40,11 +40,6 @@ void WINAPI dd_AcquireDDThreadLock()
 	return ((AcquireDDThreadLockProc)AcquireDDThreadLock_out)();
 }
 
-void __declspec(naked) dd_CheckFullscreen()
-{
-	_asm jmp CheckFullscreen_out;
-}
-
 void __declspec(naked) dd_CompleteCreateSysmemSurface()
 {
 	_asm jmp CompleteCreateSysmemSurface_out;

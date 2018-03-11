@@ -2,7 +2,6 @@
 
 #define VISIT_PROCS_DDRAW(visit) \
 	visit(AcquireDDThreadLock, jmpaddrvoid) \
-	visit(CheckFullscreen, jmpaddr) \
 	visit(CompleteCreateSysmemSurface, jmpaddr) \
 	visit(D3DParseUnknownCommand, jmpaddr) \
 	visit(DDGetAttachedSurfaceLcl, jmpaddr) \
@@ -26,7 +25,6 @@
 #undef VISIT_UNMODIFIED_DDRAW_PROCS
 #define VISIT_UNMODIFIED_DDRAW_PROCS(visit) \
 	visit(AcquireDDThreadLock) \
-	visit(CheckFullscreen) \
 	visit(CompleteCreateSysmemSurface) \
 	visit(D3DParseUnknownCommand) \
 	visit(DDGetAttachedSurfaceLcl) \
