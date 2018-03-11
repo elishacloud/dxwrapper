@@ -40,7 +40,7 @@ void m_IDirectDrawEnumDisplayModes::ReleaseCallback()
 	LeaveCriticalSection(&critSec);
 }
 
-HRESULT WINAPI m_IDirectDrawEnumDisplayModes::ConvertCallback(LPDDSURFACEDESC2 lpDDSurfaceDesc, LPVOID lpContext)
+HRESULT CALLBACK m_IDirectDrawEnumDisplayModes::ConvertCallback(LPDDSURFACEDESC2 lpDDSurfaceDesc, LPVOID lpContext)
 {
 	DDSURFACEDESC Desc;
 	if (lpDDSurfaceDesc != nullptr && ProxyDirectXVersion > 3 && DirectXVersion < 4)
@@ -76,7 +76,7 @@ void m_IDirectDrawEnumSurface::ReleaseCallback()
 	LeaveCriticalSection(&critSec);
 }
 
-HRESULT WINAPI m_IDirectDrawEnumSurface::ConvertCallback(LPDIRECTDRAWSURFACE7 lpDDSurface, LPDDSURFACEDESC2 lpDDSurfaceDesc, LPVOID lpContext)
+HRESULT CALLBACK m_IDirectDrawEnumSurface::ConvertCallback(LPDIRECTDRAWSURFACE7 lpDDSurface, LPDDSURFACEDESC2 lpDDSurfaceDesc, LPVOID lpContext)
 {
 	if (lpDDSurface)
 	{

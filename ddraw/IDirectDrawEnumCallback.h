@@ -14,7 +14,7 @@ public:
 
 	static void SetCallback(LPDDENUMMODESCALLBACK2, DWORD Version, DWORD ProxyVersion);
 	static void ReleaseCallback();
-	static HRESULT WINAPI ConvertCallback(LPDDSURFACEDESC2 lpDDSurfaceDesc2, LPVOID lpContext);
+	static HRESULT CALLBACK ConvertCallback(LPDDSURFACEDESC2 lpDDSurfaceDesc2, LPVOID lpContext);
 };
 
 // IDirectDraw EnumSurface
@@ -31,5 +31,5 @@ public:
 
 	static void SetCallback(LPDDENUMSURFACESCALLBACK7, DWORD Version, DWORD ProxyVersion);
 	static void ReleaseCallback();
-	static HRESULT WINAPI ConvertCallback(LPDIRECTDRAWSURFACE7 lpDDSurface, LPDDSURFACEDESC2 lpDDSurfaceDesc, LPVOID lpContext);
+	static HRESULT CALLBACK ConvertCallback(LPDIRECTDRAWSURFACE7 lpDDSurface, LPDDSURFACEDESC2 lpDDSurfaceDesc, LPVOID lpContext);
 };
