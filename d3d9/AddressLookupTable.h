@@ -4,11 +4,11 @@
 #include <algorithm>
 
 template <typename D>
-class AddressLookupTable
+class AddressLookupTableD3d9
 {
 public:
-	explicit AddressLookupTable(D *pDevice) : pDevice(pDevice) {}
-	~AddressLookupTable()
+	explicit AddressLookupTableD3d9(D *pDevice) : pDevice(pDevice) {}
+	~AddressLookupTableD3d9()
 	{
 		while (g_map.size())
 		{
@@ -53,7 +53,7 @@ public:
 		if (Wrapper != nullptr)
 		{
 			auto it = std::find_if(g_map.begin(), g_map.end(),
-				[Wrapper](std::pair<void*, class AddressLookupTableObject*> Map) -> bool { return Map.second == Wrapper; });
+				[Wrapper](std::pair<void*, class AddressLookupTableD3d9Object*> Map) -> bool { return Map.second == Wrapper; });
 
 			if (it != std::end(g_map))
 			{
@@ -64,13 +64,13 @@ public:
 
 private:
 	D *const pDevice;
-	std::unordered_map<void*, class AddressLookupTableObject*> g_map;
+	std::unordered_map<void*, class AddressLookupTableD3d9Object*> g_map;
 };
 
-class AddressLookupTableObject
+class AddressLookupTableD3d9Object
 {
 public:
-	virtual ~AddressLookupTableObject() { }
+	virtual ~AddressLookupTableD3d9Object() { }
 
 	void DeleteMe()
 	{

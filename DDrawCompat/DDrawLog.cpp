@@ -126,9 +126,9 @@ std::ostream& operator<<(std::ostream& os, const DDSURFACEDESC2& sd)
 {
 	return Compat::LogStruct(os)
 		<< Compat::hex(sd.dwFlags)
-		<< sd.dwHeight 
 		<< sd.dwWidth 
-		<< sd.lPitch 
+		<< sd.dwHeight
+		<< sd.lPitch
 		<< sd.dwBackBufferCount 
 		<< sd.dwMipMapCount
 		<< sd.dwAlphaBitDepth 

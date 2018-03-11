@@ -1,6 +1,6 @@
 #pragma once
 
-class m_IDirect3DVertexDeclaration9 : public IDirect3DVertexDeclaration9, public AddressLookupTableObject
+class m_IDirect3DVertexDeclaration9 : public IDirect3DVertexDeclaration9, public AddressLookupTableD3d9Object
 {
 private:
 	LPDIRECT3DVERTEXDECLARATION9 ProxyInterface;

@@ -1,12 +1,12 @@
 #pragma once
 
-class m_IDirectDrawGammaControl : public IDirectDrawGammaControl, public AddressLookupTableObject
+class m_IDirectDrawGammaControl : public IDirectDrawGammaControl, public AddressLookupTableDdrawObject
 {
 private:
 	IDirectDrawGammaControl *ProxyInterface;
 
 public:
-	m_IDirectDrawGammaControl(IDirectDrawGammaControl *aOriginal, void *) : ProxyInterface(aOriginal)
+	m_IDirectDrawGammaControl(IDirectDrawGammaControl *aOriginal, REFIID) : ProxyInterface(aOriginal)
 	{
 		ProxyAddressLookupTable.SaveAddress(this, ProxyInterface);
 	}

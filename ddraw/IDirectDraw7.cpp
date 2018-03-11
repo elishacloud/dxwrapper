@@ -1,5 +1,5 @@
 /**
-* Copyright (C) 2017 Elisha Riedlinger
+* Copyright (C) 2018 Elisha Riedlinger
 *
 * This software is  provided 'as-is', without any express  or implied  warranty. In no event will the
 * authors be held liable for any damages arising from the use of this software.
@@ -18,14 +18,7 @@
 
 HRESULT m_IDirectDraw7::QueryInterface(REFIID riid, LPVOID FAR * ppvObj)
 {
-	HRESULT hr = ProxyInterface->QueryInterface(riid, ppvObj);
-
-	if (SUCCEEDED(hr))
-	{
-		genericQueryInterface(riid, ppvObj);
-	}
-
-	return hr;
+	return ProxyInterface->QueryInterface(riid, ppvObj);
 }
 
 ULONG m_IDirectDraw7::AddRef()
@@ -54,55 +47,22 @@ HRESULT m_IDirectDraw7::Compact()
 
 HRESULT m_IDirectDraw7::CreateClipper(DWORD a, LPDIRECTDRAWCLIPPER FAR * b, IUnknown FAR * c)
 {
-	HRESULT hr = ProxyInterface->CreateClipper(a, b, c);
-
-	if (SUCCEEDED(hr))
-	{
-		*b = ProxyAddressLookupTable.FindAddress<m_IDirectDrawClipper>(*b);
-	}
-
-	return hr;
+	return ProxyInterface->CreateClipper(a, b, c);
 }
 
 HRESULT m_IDirectDraw7::CreatePalette(DWORD a, LPPALETTEENTRY b, LPDIRECTDRAWPALETTE FAR * c, IUnknown FAR * d)
 {
-	HRESULT hr = ProxyInterface->CreatePalette(a, b, c, d);
-
-	if (SUCCEEDED(hr))
-	{
-		*c = ProxyAddressLookupTable.FindAddress<m_IDirectDrawPalette>(*c);
-	}
-
-	return hr;
+	return ProxyInterface->CreatePalette(a, b, c, d);
 }
 
 HRESULT m_IDirectDraw7::CreateSurface(LPDDSURFACEDESC2 a, LPDIRECTDRAWSURFACE7 FAR * b, IUnknown FAR * c)
 {
-	HRESULT hr = ProxyInterface->CreateSurface(a, b, c);
-
-	if (SUCCEEDED(hr))
-	{
-		*b = ProxyAddressLookupTable.FindAddress<m_IDirectDrawSurface7>(*b);
-	}
-
-	return hr;
+	return ProxyInterface->CreateSurface(a, b, c);
 }
 
 HRESULT m_IDirectDraw7::DuplicateSurface(LPDIRECTDRAWSURFACE7 a, LPDIRECTDRAWSURFACE7 FAR * b)
 {
-	if (a)
-	{
-		a = static_cast<m_IDirectDrawSurface7 *>(a)->GetProxyInterface();
-	}
-
-	HRESULT hr = ProxyInterface->DuplicateSurface(a, b);
-
-	if (SUCCEEDED(hr))
-	{
-		*b = ProxyAddressLookupTable.FindAddress<m_IDirectDrawSurface7>(*b);
-	}
-
-	return hr;
+	return ProxyInterface->DuplicateSurface(a, b);
 }
 
 HRESULT m_IDirectDraw7::EnumDisplayModes(DWORD a, LPDDSURFACEDESC2 b, LPVOID c, LPDDENUMMODESCALLBACK2 d)
@@ -112,13 +72,7 @@ HRESULT m_IDirectDraw7::EnumDisplayModes(DWORD a, LPDDSURFACEDESC2 b, LPVOID c, 
 
 HRESULT m_IDirectDraw7::EnumSurfaces(DWORD a, LPDDSURFACEDESC2 b, LPVOID c, LPDDENUMSURFACESCALLBACK7 d)
 {
-	m_IDirectDrawEnumSurface7::SetCallback(d);
-
-	HRESULT hr = ProxyInterface->EnumSurfaces(a, b, c, reinterpret_cast<LPDDENUMSURFACESCALLBACK7>(m_IDirectDrawEnumSurface7::EnumSurface7Callback));
-
-	m_IDirectDrawEnumSurface7::ReleaseCallback();
-
-	return hr;
+	return ProxyInterface->EnumSurfaces(a, b, c, d);
 }
 
 HRESULT m_IDirectDraw7::FlipToGDISurface()
@@ -126,9 +80,9 @@ HRESULT m_IDirectDraw7::FlipToGDISurface()
 	return ProxyInterface->FlipToGDISurface();
 }
 
-HRESULT m_IDirectDraw7::GetCaps(LPDDCAPS a, LPDDCAPS b)
+HRESULT m_IDirectDraw7::GetCaps(LPDDCAPS lpDDDriverCaps, LPDDCAPS lpDDHELCaps)
 {
-	return ProxyInterface->GetCaps(a, b);
+	return ProxyInterface->GetCaps(lpDDDriverCaps, lpDDHELCaps);
 }
 
 HRESULT m_IDirectDraw7::GetDisplayMode(LPDDSURFACEDESC2 a)
@@ -143,14 +97,7 @@ HRESULT m_IDirectDraw7::GetFourCCCodes(LPDWORD a, LPDWORD b)
 
 HRESULT m_IDirectDraw7::GetGDISurface(LPDIRECTDRAWSURFACE7 FAR * a)
 {
-	HRESULT hr = ProxyInterface->GetGDISurface(a);
-
-	if (SUCCEEDED(hr))
-	{
-		*a = ProxyAddressLookupTable.FindAddress<m_IDirectDrawSurface7>(*a);
-	}
-
-	return hr;
+	return ProxyInterface->GetGDISurface(a);
 }
 
 HRESULT m_IDirectDraw7::GetMonitorFrequency(LPDWORD a)
@@ -180,21 +127,11 @@ HRESULT m_IDirectDraw7::RestoreDisplayMode()
 
 HRESULT m_IDirectDraw7::SetCooperativeLevel(HWND a, DWORD b)
 {
-	// Star Trek Armada 1 fix
-	if (Config.ArmadaFix && b & DDSCL_EXCLUSIVE)
-	{
-		b |= DDSCL_ALLOWMODEX;
-	}
 	return ProxyInterface->SetCooperativeLevel(a, b);
 }
 
 HRESULT m_IDirectDraw7::SetDisplayMode(DWORD a, DWORD b, DWORD c, DWORD d, DWORD e)
 {
-	// Star Trek Armada 1 fix
-	if (Config.ArmadaFix && c == 16)
-	{
-		c = 32;
-	}
 	return ProxyInterface->SetDisplayMode(a, b, c, d, e);
 }
 
@@ -210,14 +147,7 @@ HRESULT m_IDirectDraw7::GetAvailableVidMem(LPDDSCAPS2 a, LPDWORD b, LPDWORD c)
 
 HRESULT m_IDirectDraw7::GetSurfaceFromDC(HDC a, LPDIRECTDRAWSURFACE7 * b)
 {
-	HRESULT hr = ProxyInterface->GetSurfaceFromDC(a, b);
-
-	if (SUCCEEDED(hr))
-	{
-		*b = ProxyAddressLookupTable.FindAddress<m_IDirectDrawSurface7>(*b);
-	}
-
-	return hr;
+	return ProxyInterface->GetSurfaceFromDC(a, b);
 }
 
 HRESULT m_IDirectDraw7::RestoreAllSurfaces()

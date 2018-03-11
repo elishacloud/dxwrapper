@@ -5,7 +5,19 @@
 #include <ddraw.h>
 #include <ddrawex.h>
 #include <d3d.h>
-#include "Utils\AddressLookupTable.h"
+
+class m_IDirectDraw;
+class m_IDirectDraw2;
+class m_IDirectDraw3;
+class m_IDirectDraw4;
+class m_IDirectDraw7;
+class m_IDirectDrawSurface;
+class m_IDirectDrawSurface2;
+class m_IDirectDrawSurface3;
+class m_IDirectDrawSurface4;
+class m_IDirectDrawSurface7;
+
+#include "AddressLookupTable.h"
 #include "Settings\Settings.h"
 #include "Logging\Logging.h"
 
@@ -24,9 +36,11 @@ typedef HRESULT(WINAPI *GetSurfaceFromDCProc)(HDC hdc, LPDIRECTDRAWSURFACE7 *lpD
 typedef void(WINAPI *ReleaseDDThreadLockProc)();
 typedef HRESULT(WINAPI *SetAppCompatDataProc)(DWORD, DWORD);
 
+REFIID ConvertREFIID(REFIID riid);
 void genericQueryInterface(REFIID riid, LPVOID * ppvObj);
-extern AddressLookupTable<void> ProxyAddressLookupTable;
+extern AddressLookupTableDdraw<void> ProxyAddressLookupTable;
 
+// Direct3D
 #include "IDirect3D.h"
 #include "IDirect3D2.h"
 #include "IDirect3D3.h"
@@ -47,6 +61,8 @@ extern AddressLookupTable<void> ProxyAddressLookupTable;
 #include "IDirect3DViewport.h"
 #include "IDirect3DViewport2.h"
 #include "IDirect3DViewport3.h"
+// DirectDraw
+#include "IDirectDrawX.h"
 #include "IDirectDraw.h"
 #include "IDirectDraw2.h"
 #include "IDirectDraw3.h"
@@ -54,12 +70,14 @@ extern AddressLookupTable<void> ProxyAddressLookupTable;
 #include "IDirectDraw7.h"
 #include "IDirectDrawClipper.h"
 #include "IDirectDrawColorControl.h"
-#include "IDirectDrawEnumSurface.h"
+#include "IDirectDrawEnumCallback.h"
 #include "IDirectDrawFactory.h"
 #include "IDirectDrawGammaControl.h"
 #include "IDirectDrawPalette.h"
+#include "IDirectDrawSurfaceX.h"
 #include "IDirectDrawSurface.h"
 #include "IDirectDrawSurface2.h"
 #include "IDirectDrawSurface3.h"
 #include "IDirectDrawSurface4.h"
 #include "IDirectDrawSurface7.h"
+#include "IDirectDrawTypes.h"

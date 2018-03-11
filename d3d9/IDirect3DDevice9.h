@@ -10,11 +10,11 @@ private:
 public:
 	m_IDirect3DDevice9(LPDIRECT3DDEVICE9 pDevice, m_IDirect3D9* pD3D) : ProxyInterface(pDevice), m_pD3D(pD3D)
 	{
-		ProxyAddressLookupTable = new AddressLookupTable<m_IDirect3DDevice9>(this);
+		ProxyAddressLookupTable = new AddressLookupTableD3d9<m_IDirect3DDevice9>(this);
 	}
 	m_IDirect3DDevice9(LPDIRECT3DDEVICE9 pDevice, m_IDirect3D9Ex* pD3D) : ProxyInterface(pDevice), m_pD3DEx(pD3D)
 	{
-		ProxyAddressLookupTable = new AddressLookupTable<m_IDirect3DDevice9>(this);
+		ProxyAddressLookupTable = new AddressLookupTableD3d9<m_IDirect3DDevice9>(this);
 	}
 	~m_IDirect3DDevice9()
 	{
@@ -22,7 +22,7 @@ public:
 	}
 
 	virtual LPDIRECT3DDEVICE9 GetProxyInterface() { return ProxyInterface; }
-	AddressLookupTable<m_IDirect3DDevice9> *ProxyAddressLookupTable;
+	AddressLookupTableD3d9<m_IDirect3DDevice9> *ProxyAddressLookupTable;
 
 	/*** IUnknown methods ***/
 	STDMETHOD(QueryInterface)(THIS_ REFIID riid, void** ppvObj);

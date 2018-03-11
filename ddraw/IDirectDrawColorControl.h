@@ -1,12 +1,12 @@
 #pragma once
 
-class m_IDirectDrawColorControl : public IDirectDrawColorControl, public AddressLookupTableObject
+class m_IDirectDrawColorControl : public IDirectDrawColorControl, public AddressLookupTableDdrawObject
 {
 private:
 	IDirectDrawColorControl *ProxyInterface;
 
 public:
-	m_IDirectDrawColorControl(IDirectDrawColorControl *aOriginal, void *) : ProxyInterface(aOriginal)
+	m_IDirectDrawColorControl(IDirectDrawColorControl *aOriginal, REFIID) : ProxyInterface(aOriginal)
 	{
 		ProxyAddressLookupTable.SaveAddress(this, ProxyInterface);
 	}

@@ -33,6 +33,7 @@
 
 // Declare varables
 HMODULE hModule_dll = nullptr;
+CRITICAL_SECTION critSec;
 
 // Dll main function
 bool APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
@@ -112,6 +113,9 @@ bool APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 				}
 			}
 		}
+
+		// Initialize Critical Section
+		InitializeCriticalSection(&critSec);
 
 		// Attach real dll
 		if (Config.RealWrapperMode == dtype.dxwrapper)
@@ -273,6 +277,13 @@ bool APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 				Logging::Log() << "Hooking d3d9.dll APIs...";
 				Direct3DCreate9_out = (FARPROC)Hook::HookAPI(dll, dtypename[dtype.d3d9], Hook::GetProcAddress(dll, "Direct3DCreate9"), "Direct3DCreate9", Direct3DCreate9_in);
 				Direct3DCreate9Ex_out = (FARPROC)Hook::HookAPI(dll, dtypename[dtype.d3d9], Hook::GetProcAddress(dll, "Direct3DCreate9Ex"), "Direct3DCreate9Ex", Direct3DCreate9Ex_in);
+			}
+
+			// Redirect d3d8to9 -> D3d9Wrapper
+			if (Config.D3d8to9)
+			{
+				d3d8::Direct3D8EnableMaximizedWindowedModeShim_var = d3d9::Direct3D9EnableMaximizedWindowedModeShim_var;
+				D3d8to9::Direct3DCreate9 = Direct3DCreate9_in;
 			}
 		}
 

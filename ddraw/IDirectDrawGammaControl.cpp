@@ -1,5 +1,5 @@
 /**
-* Copyright (C) 2017 Elisha Riedlinger
+* Copyright (C) 2018 Elisha Riedlinger
 *
 * This software is  provided 'as-is', without any express  or implied  warranty. In no event will the
 * authors be held liable for any damages arising from the use of this software.
@@ -18,7 +18,7 @@
 
 HRESULT m_IDirectDrawGammaControl::QueryInterface(REFIID riid, LPVOID FAR * ppvObj)
 {
-	HRESULT hr = ProxyInterface->QueryInterface(riid, ppvObj);
+	HRESULT hr = ProxyInterface->QueryInterface(ConvertREFIID(riid), ppvObj);
 
 	if (SUCCEEDED(hr))
 	{

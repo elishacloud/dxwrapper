@@ -1,5 +1,5 @@
 /**
-* Copyright (C) 2017 Elisha Riedlinger
+* Copyright (C) 2018 Elisha Riedlinger
 *
 * This software is  provided 'as-is', without any express  or implied  warranty. In no event will the
 * authors be held liable for any damages arising from the use of this software.
@@ -17,7 +17,7 @@
 #include "ddraw.h"
 #include "ddrawExternal.h"
 
-AddressLookupTable<void> ProxyAddressLookupTable = AddressLookupTable<void>(nullptr);
+AddressLookupTableDdraw<void> ProxyAddressLookupTable = AddressLookupTableDdraw<void>();
 
 #define INITUALIZE_WRAPPED_PROC(procName, unused) \
 	FARPROC procName ## _out = (FARPROC)*(ddraw::procName);
@@ -85,12 +85,31 @@ HRESULT WINAPI dd_DirectDrawCreate(GUID FAR *lpGUID, LPDIRECTDRAW FAR *lplpDD, I
 	{
 		return E_NOTIMPL;
 	}
-
 	HRESULT hr = ((DirectDrawCreateProc)DirectDrawCreate_out)(lpGUID, lplpDD, pUnkOuter);
 
 	if (SUCCEEDED(hr))
 	{
-		*lplpDD = ProxyAddressLookupTable.FindAddress<m_IDirectDraw>(*lplpDD);
+		// Convert to new DirectDraw version
+		if (ConvertREFIID(IID_IDirectDraw) != IID_IDirectDraw)
+		{
+			LPDIRECTDRAW lpDD = (LPDIRECTDRAW)*lplpDD;
+
+			if (SUCCEEDED(hr))
+			{
+				hr = lpDD->QueryInterface(ConvertREFIID(IID_IDirectDraw), (LPVOID*)lplpDD);
+
+				if (SUCCEEDED(hr))
+				{
+					genericQueryInterface(IID_IDirectDraw, (LPVOID*)lplpDD);
+				}
+
+				lpDD->Release();
+			}
+		}
+		else
+		{
+			*lplpDD = ProxyAddressLookupTable.FindAddress<m_IDirectDraw>(*lplpDD);
+		}
 	}
 
 	return hr;
@@ -174,7 +193,7 @@ HRESULT WINAPI dd_DllGetClassObject(REFCLSID rclsid, REFIID riid, LPVOID *ppv)
 		return E_NOTIMPL;
 	}
 
-	HRESULT hr = ((DllGetClassObjectProc)DllGetClassObject_out)(rclsid, riid, ppv);
+	HRESULT hr = ((DllGetClassObjectProc)DllGetClassObject_out)(rclsid, ConvertREFIID(riid), ppv);
 
 	if (SUCCEEDED(hr))
 	{

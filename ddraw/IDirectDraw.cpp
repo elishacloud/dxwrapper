@@ -1,5 +1,5 @@
 /**
-* Copyright (C) 2017 Elisha Riedlinger
+* Copyright (C) 2018 Elisha Riedlinger
 *
 * This software is  provided 'as-is', without any express  or implied  warranty. In no event will the
 * authors be held liable for any damages arising from the use of this software.
@@ -18,14 +18,7 @@
 
 HRESULT m_IDirectDraw::QueryInterface(REFIID riid, LPVOID FAR * ppvObj)
 {
-	HRESULT hr = ProxyInterface->QueryInterface(riid, ppvObj);
-
-	if (SUCCEEDED(hr))
-	{
-		genericQueryInterface(riid, ppvObj);
-	}
-
-	return hr;
+	return ProxyInterface->QueryInterface(riid, ppvObj);
 }
 
 ULONG m_IDirectDraw::AddRef()
@@ -54,55 +47,22 @@ HRESULT m_IDirectDraw::Compact()
 
 HRESULT m_IDirectDraw::CreateClipper(DWORD a, LPDIRECTDRAWCLIPPER FAR * b, IUnknown FAR * c)
 {
-	HRESULT hr = ProxyInterface->CreateClipper(a, b, c);
-
-	if (SUCCEEDED(hr))
-	{
-		*b = ProxyAddressLookupTable.FindAddress<m_IDirectDrawClipper>(*b);
-	}
-
-	return hr;
+	return ProxyInterface->CreateClipper(a, b, c);
 }
 
 HRESULT m_IDirectDraw::CreatePalette(DWORD a, LPPALETTEENTRY b, LPDIRECTDRAWPALETTE FAR * c, IUnknown FAR * d)
 {
-	HRESULT hr = ProxyInterface->CreatePalette(a, b, c, d);
-
-	if (SUCCEEDED(hr))
-	{
-		*c = ProxyAddressLookupTable.FindAddress<m_IDirectDrawPalette>(*c);
-	}
-
-	return hr;
+	return ProxyInterface->CreatePalette(a, b, c, d);
 }
 
 HRESULT m_IDirectDraw::CreateSurface(LPDDSURFACEDESC a, LPDIRECTDRAWSURFACE FAR * b, IUnknown FAR * c)
 {
-	HRESULT hr = ProxyInterface->CreateSurface(a, b, c);
-
-	if (SUCCEEDED(hr))
-	{
-		*b = ProxyAddressLookupTable.FindAddress<m_IDirectDrawSurface>(*b);
-	}
-
-	return hr;
+	return ProxyInterface->CreateSurface(a, (LPDIRECTDRAWSURFACE7*)b, c);
 }
 
 HRESULT m_IDirectDraw::DuplicateSurface(LPDIRECTDRAWSURFACE a, LPDIRECTDRAWSURFACE FAR * b)
 {
-	if (a)
-	{
-		a = static_cast<m_IDirectDrawSurface *>(a)->GetProxyInterface();
-	}
-
-	HRESULT hr = ProxyInterface->DuplicateSurface(a, b);
-
-	if (SUCCEEDED(hr))
-	{
-		*b = ProxyAddressLookupTable.FindAddress<m_IDirectDrawSurface>(*b);
-	}
-
-	return hr;
+	return ProxyInterface->DuplicateSurface((LPDIRECTDRAWSURFACE7)a, (LPDIRECTDRAWSURFACE7*)b);
 }
 
 HRESULT m_IDirectDraw::EnumDisplayModes(DWORD a, LPDDSURFACEDESC b, LPVOID c, LPDDENUMMODESCALLBACK d)
@@ -112,13 +72,7 @@ HRESULT m_IDirectDraw::EnumDisplayModes(DWORD a, LPDDSURFACEDESC b, LPVOID c, LP
 
 HRESULT m_IDirectDraw::EnumSurfaces(DWORD a, LPDDSURFACEDESC b, LPVOID c, LPDDENUMSURFACESCALLBACK d)
 {
-	m_IDirectDrawEnumSurface::SetCallback(d);
-
-	HRESULT hr = ProxyInterface->EnumSurfaces(a, b, c, reinterpret_cast<LPDDENUMSURFACESCALLBACK>(m_IDirectDrawEnumSurface::EnumSurfaceCallback));
-
-	m_IDirectDrawEnumSurface::ReleaseCallback();
-
-	return hr;
+	return ProxyInterface->EnumSurfaces(a, b, c, d);
 }
 
 HRESULT m_IDirectDraw::FlipToGDISurface()
@@ -143,14 +97,7 @@ HRESULT m_IDirectDraw::GetFourCCCodes(LPDWORD a, LPDWORD b)
 
 HRESULT m_IDirectDraw::GetGDISurface(LPDIRECTDRAWSURFACE FAR * a)
 {
-	HRESULT hr = ProxyInterface->GetGDISurface(a);
-
-	if (SUCCEEDED(hr))
-	{
-		*a = ProxyAddressLookupTable.FindAddress<m_IDirectDrawSurface>(*a);
-	}
-
-	return hr;
+	return ProxyInterface->GetGDISurface((LPDIRECTDRAWSURFACE7*)a);
 }
 
 HRESULT m_IDirectDraw::GetMonitorFrequency(LPDWORD a)
@@ -180,22 +127,12 @@ HRESULT m_IDirectDraw::RestoreDisplayMode()
 
 HRESULT m_IDirectDraw::SetCooperativeLevel(HWND a, DWORD b)
 {
-	// Star Trek Armada 1 fix
-	if (Config.ArmadaFix && b & DDSCL_EXCLUSIVE)
-	{
-		b |= DDSCL_ALLOWMODEX;
-	}
 	return ProxyInterface->SetCooperativeLevel(a, b);
 }
 
 HRESULT m_IDirectDraw::SetDisplayMode(DWORD a, DWORD b, DWORD c)
 {
-	// Star Trek Armada 1 fix
-	if (Config.ArmadaFix && c == 16)
-	{
-		c = 32;
-	}
-	return ProxyInterface->SetDisplayMode(a, b, c);
+	return ProxyInterface->SetDisplayMode(a, b, c, 0, 0);
 }
 
 HRESULT m_IDirectDraw::WaitForVerticalBlank(DWORD a, HANDLE b)

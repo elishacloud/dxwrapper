@@ -1,5 +1,5 @@
 /**
-* Copyright (C) 2017 Elisha Riedlinger
+* Copyright (C) 2018 Elisha Riedlinger
 *
 * This software is  provided 'as-is', without any express  or implied  warranty. In no event will the
 * authors be held liable for any damages arising from the use of this software.
@@ -519,7 +519,7 @@ void CONFIG::Init()
 	}
 
 	// Enable wrapper settings
-	if ((isDdrawWrapperEnabled = ArmadaFix) != 0)
+	if ((isDdrawWrapperEnabled = (ArmadaFix || ConvertToDirectDraw7)) != 0)
 	{
 		Logging::Log() << "Enabling ddraw wrapper";
 	}
@@ -527,7 +527,7 @@ void CONFIG::Init()
 	{
 		Logging::Log() << "Enabling d3d9 wrapper";
 	}
-	if ((D3d8to9 = D3d8to9 || isD3d9WrapperEnabled) != 0)
+	if ((D3d8to9 = (D3d8to9 || isD3d9WrapperEnabled)) != 0)
 	{
 		Logging::Log() << "Enabling d3d8to9 wrapper";
 	}

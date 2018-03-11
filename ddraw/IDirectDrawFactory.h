@@ -1,12 +1,12 @@
 #pragma once
 
-class m_IDirectDrawFactory : public IDirectDrawFactory, public AddressLookupTableObject
+class m_IDirectDrawFactory : public IDirectDrawFactory, public AddressLookupTableDdrawObject
 {
 private:
 	IDirectDrawFactory *ProxyInterface;
 
 public:
-	m_IDirectDrawFactory(IDirectDrawFactory *aOriginal, void *) : ProxyInterface(aOriginal)
+	m_IDirectDrawFactory(IDirectDrawFactory *aOriginal, REFIID) : ProxyInterface(aOriginal)
 	{
 		ProxyAddressLookupTable.SaveAddress(this, ProxyInterface);
 	}

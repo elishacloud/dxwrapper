@@ -230,6 +230,8 @@ cmd /c "@echo off &amp;&amp; cd /D ""$(ProjectDir)Dllmain\"" &amp;&amp; type Bui
     <ClCompile Include="DDrawCompat\v0.2.1\Time.cpp" />
     <ClCompile Include="DDrawCompat\v0.2.1\UnmodifiedDDrawProcs.cpp" />
     <ClCompile Include="ddraw\ddraw.cpp" />
+    <ClCompile Include="ddraw\IDirectDrawSurfaceX.cpp" />
+    <ClCompile Include="ddraw\IDirectDrawTypes.cpp" />
     <ClCompile Include="ddraw\IDirect3D.cpp" />
     <ClCompile Include="ddraw\IDirect3D2.cpp" />
     <ClCompile Include="ddraw\IDirect3D3.cpp" />
@@ -257,7 +259,7 @@ cmd /c "@echo off &amp;&amp; cd /D ""$(ProjectDir)Dllmain\"" &amp;&amp; type Bui
     <ClCompile Include="ddraw\IDirectDraw7.cpp" />
     <ClCompile Include="ddraw\IDirectDrawClipper.cpp" />
     <ClCompile Include="ddraw\IDirectDrawColorControl.cpp" />
-    <ClCompile Include="ddraw\IDirectDrawEnumSurface.cpp" />
+    <ClCompile Include="ddraw\IDirectDrawEnumCallback.cpp" />
     <ClCompile Include="ddraw\IDirectDrawFactory.cpp" />
     <ClCompile Include="ddraw\IDirectDrawGammaControl.cpp" />
     <ClCompile Include="ddraw\IDirectDrawPalette.cpp" />
@@ -266,6 +268,7 @@ cmd /c "@echo off &amp;&amp; cd /D ""$(ProjectDir)Dllmain\"" &amp;&amp; type Bui
     <ClCompile Include="ddraw\IDirectDrawSurface3.cpp" />
     <ClCompile Include="ddraw\IDirectDrawSurface4.cpp" />
     <ClCompile Include="ddraw\IDirectDrawSurface7.cpp" />
+    <ClCompile Include="ddraw\IDirectDrawX.cpp" />
     <ClCompile Include="ddraw\InterfaceQuery.cpp" />
     <ClCompile Include="Disasm\cmdlist.c" />
     <ClCompile Include="Disasm\Disasm.c" />
@@ -304,6 +307,7 @@ cmd /c "@echo off &amp;&amp; cd /D ""$(ProjectDir)Dllmain\"" &amp;&amp; type Bui
     <ClInclude Include="D3d8to9\d3d8types.hpp" />
     <ClInclude Include="D3d8to9\d3dx9.hpp" />
     <ClInclude Include="D3d8to9\lookup_table.hpp" />
+    <ClInclude Include="d3d9\AddressLookupTable.h" />
     <ClInclude Include="d3d9\d3d9.h" />
     <ClInclude Include="d3d9\d3d9External.h" />
     <ClInclude Include="d3d9\IDirect3D9.h" />
@@ -457,8 +461,11 @@ cmd /c "@echo off &amp;&amp; cd /D ""$(ProjectDir)Dllmain\"" &amp;&amp; type Bui
     <ClInclude Include="DDrawCompat\v0.2.1\RealPrimarySurface.h" />
     <ClInclude Include="DDrawCompat\v0.2.1\ScopedCriticalSection.h" />
     <ClInclude Include="DDrawCompat\v0.2.1\Time.h" />
+    <ClInclude Include="ddraw\AddressLookupTable.h" />
     <ClInclude Include="ddraw\ddraw.h" />
     <ClInclude Include="ddraw\ddrawExternal.h" />
+    <ClInclude Include="ddraw\IDirectDrawSurfaceX.h" />
+    <ClInclude Include="ddraw\IDirectDrawTypes.h" />
     <ClInclude Include="ddraw\IDirect3D.h" />
     <ClInclude Include="ddraw\IDirect3D2.h" />
     <ClInclude Include="ddraw\IDirect3D3.h" />
@@ -486,7 +493,7 @@ cmd /c "@echo off &amp;&amp; cd /D ""$(ProjectDir)Dllmain\"" &amp;&amp; type Bui
     <ClInclude Include="ddraw\IDirectDraw7.h" />
     <ClInclude Include="ddraw\IDirectDrawClipper.h" />
     <ClInclude Include="ddraw\IDirectDrawColorControl.h" />
-    <ClInclude Include="ddraw\IDirectDrawEnumSurface.h" />
+    <ClInclude Include="ddraw\IDirectDrawEnumCallback.h" />
     <ClInclude Include="ddraw\IDirectDrawFactory.h" />
     <ClInclude Include="ddraw\IDirectDrawGammaControl.h" />
     <ClInclude Include="ddraw\IDirectDrawPalette.h" />
@@ -495,6 +502,7 @@ cmd /c "@echo off &amp;&amp; cd /D ""$(ProjectDir)Dllmain\"" &amp;&amp; type Bui
     <ClInclude Include="ddraw\IDirectDrawSurface3.h" />
     <ClInclude Include="ddraw\IDirectDrawSurface4.h" />
     <ClInclude Include="ddraw\IDirectDrawSurface7.h" />
+    <ClInclude Include="ddraw\IDirectDrawX.h" />
     <ClInclude Include="Disasm\disasm.h" />
     <ClInclude Include="Dllmain\Dllmain.h" />
     <ClInclude Include="Dllmain\dxwrapper.h" />
@@ -518,7 +526,6 @@ cmd /c "@echo off &amp;&amp; cd /D ""$(ProjectDir)Dllmain\"" &amp;&amp; type Bui
     <ClInclude Include="Settings\ReadParse.h" />
     <ClInclude Include="Settings\Settings.h" />
     <ClInclude Include="Utils\Utils.h" />
-    <ClInclude Include="Utils\AddressLookupTable.h" />
     <ClInclude Include="Wrappers\bcrypt.h" />
     <ClInclude Include="Wrappers\cryptsp.h" />
     <ClInclude Include="Wrappers\d2d1.h" />

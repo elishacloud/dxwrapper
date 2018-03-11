@@ -3,7 +3,7 @@
 #define INITGUID
 
 #include <d3d9.h>
-#include "Utils\AddressLookupTable.h"
+#include "AddressLookupTable.h"
 #include "Settings\Settings.h"
 #include "Logging\Logging.h"
 

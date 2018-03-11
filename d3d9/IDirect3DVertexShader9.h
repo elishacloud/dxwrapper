@@ -1,6 +1,6 @@
 #pragma once
 
-class m_IDirect3DVertexShader9 : public IDirect3DVertexShader9, public AddressLookupTableObject
+class m_IDirect3DVertexShader9 : public IDirect3DVertexShader9, public AddressLookupTableD3d9Object
 {
 private:
 	LPDIRECT3DVERTEXSHADER9 ProxyInterface;

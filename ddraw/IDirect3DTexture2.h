@@ -1,12 +1,12 @@
 #pragma once
 
-class m_IDirect3DTexture2 : public IDirect3DTexture2, public AddressLookupTableObject
+class m_IDirect3DTexture2 : public IDirect3DTexture2, public AddressLookupTableDdrawObject
 {
 private:
 	IDirect3DTexture2 *ProxyInterface;
 
 public:
-	m_IDirect3DTexture2(IDirect3DTexture2 *aOriginal, void *) : ProxyInterface(aOriginal)
+	m_IDirect3DTexture2(IDirect3DTexture2 *aOriginal, REFIID) : ProxyInterface(aOriginal)
 	{
 		ProxyAddressLookupTable.SaveAddress(this, ProxyInterface);
 	}

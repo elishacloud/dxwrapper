@@ -1,11 +1,34 @@
 #include "ddraw.h"
 
+REFIID ConvertREFIID(REFIID riid)
+{
+	if (!Config.ConvertToDirectDraw7)
+	{
+		return riid;
+	}
+	if (riid == IID_IDirectDraw ||
+		riid == IID_IDirectDraw2 ||
+		riid == IID_IDirectDraw3 ||
+		riid == IID_IDirectDraw4)
+	{
+		return IID_IDirectDraw7;
+	}
+	else if (riid == IID_IDirectDrawSurface ||
+		riid == IID_IDirectDrawSurface2 ||
+		riid == IID_IDirectDrawSurface3 ||
+		riid == IID_IDirectDrawSurface4)
+	{
+		return IID_IDirectDrawSurface7;
+	}
+	return riid;
+}
+
 void genericQueryInterface(REFIID riid, LPVOID * ppvObj)
 {
 #define QUERYINTERFACE(x) \
 	if (riid == IID_ ## x) \
 		{ \
-			*ppvObj = ProxyAddressLookupTable.FindAddress<m_ ## x>(*ppvObj); \
+			*ppvObj = ProxyAddressLookupTable.FindAddress<m_ ## x>(*ppvObj, ConvertREFIID(IID_ ## x)); \
 		}
 
 	QUERYINTERFACE(IDirect3D);
@@ -30,6 +53,7 @@ void genericQueryInterface(REFIID riid, LPVOID * ppvObj)
 	QUERYINTERFACE(IDirect3DViewport3);
 	QUERYINTERFACE(IDirectDraw);
 	QUERYINTERFACE(IDirectDraw2);
+	QUERYINTERFACE(IDirectDraw3);
 	QUERYINTERFACE(IDirectDraw4);
 	QUERYINTERFACE(IDirectDraw7);
 	QUERYINTERFACE(IDirectDrawClipper);

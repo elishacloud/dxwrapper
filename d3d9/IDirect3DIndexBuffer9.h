@@ -1,6 +1,6 @@
 #pragma once
 
-class m_IDirect3DIndexBuffer9 : public IDirect3DIndexBuffer9, public AddressLookupTableObject
+class m_IDirect3DIndexBuffer9 : public IDirect3DIndexBuffer9, public AddressLookupTableD3d9Object
 {
 private:
 	LPDIRECT3DINDEXBUFFER9 ProxyInterface;

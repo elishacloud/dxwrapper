@@ -1,6 +1,6 @@
 #pragma once
 
-class m_IDirect3DCubeTexture9 : public IDirect3DCubeTexture9, public AddressLookupTableObject
+class m_IDirect3DCubeTexture9 : public IDirect3DCubeTexture9, public AddressLookupTableD3d9Object
 {
 private:
 	LPDIRECT3DCUBETEXTURE9 ProxyInterface;

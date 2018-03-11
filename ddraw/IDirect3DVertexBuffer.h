@@ -1,12 +1,12 @@
 #pragma once
 
-class m_IDirect3DVertexBuffer : public IDirect3DVertexBuffer, public AddressLookupTableObject
+class m_IDirect3DVertexBuffer : public IDirect3DVertexBuffer, public AddressLookupTableDdrawObject
 {
 private:
 	IDirect3DVertexBuffer *ProxyInterface;
 
 public:
-	m_IDirect3DVertexBuffer(IDirect3DVertexBuffer *aOriginal, void *) : ProxyInterface(aOriginal)
+	m_IDirect3DVertexBuffer(IDirect3DVertexBuffer *aOriginal, REFIID) : ProxyInterface(aOriginal)
 	{
 		ProxyAddressLookupTable.SaveAddress(this, ProxyInterface);
 	}

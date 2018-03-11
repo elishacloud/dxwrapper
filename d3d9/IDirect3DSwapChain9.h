@@ -1,6 +1,6 @@
 #pragma once
 
-class m_IDirect3DSwapChain9 : public IDirect3DSwapChain9, public AddressLookupTableObject
+class m_IDirect3DSwapChain9 : public IDirect3DSwapChain9, public AddressLookupTableD3d9Object
 {
 private:
 	LPDIRECT3DSWAPCHAIN9 ProxyInterface;

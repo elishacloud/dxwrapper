@@ -1,22 +1,28 @@
 #pragma once
 
-class m_IDirectDrawSurface2 : public IDirectDrawSurface2, public AddressLookupTableObject
+class m_IDirectDrawSurface2 : public IDirectDrawSurface2, public AddressLookupTableDdrawObject
 {
 private:
-	IDirectDrawSurface2 *ProxyInterface;
+	m_IDirectDrawSurfaceX *ProxyInterface;
+	IDirectDrawSurface2 *RealInterface;
 
 public:
-	m_IDirectDrawSurface2(IDirectDrawSurface2 *aOriginal, void *) : ProxyInterface(aOriginal)
+	m_IDirectDrawSurface2(IDirectDrawSurface2 *aOriginal, REFIID riid) : RealInterface(aOriginal)
 	{
-		ProxyAddressLookupTable.SaveAddress(this, ProxyInterface);
+		ProxyInterface = new m_IDirectDrawSurfaceX((IDirectDrawSurface7*)RealInterface, 2, riid);
+		ProxyAddressLookupTable.SaveAddress(this, RealInterface);
 	}
-	~m_IDirectDrawSurface2() {}
+	~m_IDirectDrawSurface2()
+	{
+		delete ProxyInterface;
+	}
 
-	IDirectDrawSurface2 *GetProxyInterface() { return ProxyInterface; }
+	IDirectDrawSurface2 *GetProxyInterface() { return RealInterface; }
+	DWORD GetDirectXVersion() { return 2; }
 
 	/*** IUnknown methods ***/
 	STDMETHOD(QueryInterface) (THIS_ REFIID riid, LPVOID FAR * ppvObj);
-	STDMETHOD_(ULONG, AddRef) (THIS) ;
+	STDMETHOD_(ULONG, AddRef) (THIS);
 	STDMETHOD_(ULONG, Release) (THIS);
 	/*** IDirectDrawSurface methods ***/
 	STDMETHOD(AddAttachedSurface)(THIS_ LPDIRECTDRAWSURFACE2);

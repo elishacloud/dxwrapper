@@ -9,7 +9,7 @@ private:
 public:
 	m_IDirect3DDevice9Ex(LPDIRECT3DDEVICE9EX pDevice, m_IDirect3D9Ex* pD3D) : ProxyInterface(pDevice), m_pD3DEx(pD3D)
 	{
-		ProxyAddressLookupTable = new AddressLookupTable<m_IDirect3DDevice9Ex>(this);
+		ProxyAddressLookupTable = new AddressLookupTableD3d9<m_IDirect3DDevice9Ex>(this);
 	}
 	~m_IDirect3DDevice9Ex()
 	{
@@ -17,7 +17,7 @@ public:
 	}
 
 	LPDIRECT3DDEVICE9EX GetProxyInterface() { return ProxyInterface; }
-	AddressLookupTable<m_IDirect3DDevice9Ex> *ProxyAddressLookupTable;
+	AddressLookupTableD3d9<m_IDirect3DDevice9Ex> *ProxyAddressLookupTable;
 
 	/*** IUnknown methods ***/
 	STDMETHOD(QueryInterface)(THIS_ REFIID riid, void** ppvObj);

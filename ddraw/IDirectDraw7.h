@@ -1,35 +1,41 @@
 #pragma once
 
-class m_IDirectDraw7 : public IDirectDraw7, public AddressLookupTableObject
+class m_IDirectDraw7 : public IDirectDraw7, public AddressLookupTableDdrawObject
 {
 private:
-	IDirectDraw7 *ProxyInterface;
+	m_IDirectDrawX *ProxyInterface;
+	IDirectDraw7 *RealInterface;
 
 public:
-	m_IDirectDraw7(IDirectDraw7 *aOriginal, void *) : ProxyInterface(aOriginal)
+	m_IDirectDraw7(IDirectDraw7 *aOriginal, REFIID riid) : RealInterface(aOriginal)
 	{
-		ProxyAddressLookupTable.SaveAddress(this, ProxyInterface);
+		ProxyInterface = new m_IDirectDrawX((IDirectDraw7*)RealInterface, 7, riid);
+		ProxyAddressLookupTable.SaveAddress(this, RealInterface);
 	}
-	~m_IDirectDraw7() {}
+	~m_IDirectDraw7()
+	{
+		delete ProxyInterface;
+	}
 
-	IDirectDraw7 *GetProxyInterface() { return ProxyInterface; }
+	IDirectDraw7 *GetProxyInterface() { return RealInterface; }
+	DWORD GetDirectXVersion() { return 7; }
 
 	/*** IUnknown methods ***/
 	STDMETHOD(QueryInterface) (THIS_ REFIID riid, LPVOID FAR * ppvObj);
-	STDMETHOD_(ULONG, AddRef) (THIS) ;
+	STDMETHOD_(ULONG, AddRef) (THIS);
 	STDMETHOD_(ULONG, Release) (THIS);
 	/*** IDirectDraw methods ***/
 	STDMETHOD(Compact)(THIS);
 	STDMETHOD(CreateClipper)(THIS_ DWORD, LPDIRECTDRAWCLIPPER FAR*, IUnknown FAR *);
 	STDMETHOD(CreatePalette)(THIS_ DWORD, LPPALETTEENTRY, LPDIRECTDRAWPALETTE FAR*, IUnknown FAR *);
-	STDMETHOD(CreateSurface)(THIS_  LPDDSURFACEDESC2, LPDIRECTDRAWSURFACE7 FAR *, IUnknown FAR *);
+	STDMETHOD(CreateSurface)(THIS_ LPDDSURFACEDESC2, LPDIRECTDRAWSURFACE7 FAR *, IUnknown FAR *);
 	STDMETHOD(DuplicateSurface)(THIS_ LPDIRECTDRAWSURFACE7, LPDIRECTDRAWSURFACE7 FAR *);
 	STDMETHOD(EnumDisplayModes)(THIS_ DWORD, LPDDSURFACEDESC2, LPVOID, LPDDENUMMODESCALLBACK2);
 	STDMETHOD(EnumSurfaces)(THIS_ DWORD, LPDDSURFACEDESC2, LPVOID, LPDDENUMSURFACESCALLBACK7);
 	STDMETHOD(FlipToGDISurface)(THIS);
 	STDMETHOD(GetCaps)(THIS_ LPDDCAPS, LPDDCAPS);
 	STDMETHOD(GetDisplayMode)(THIS_ LPDDSURFACEDESC2);
-	STDMETHOD(GetFourCCCodes)(THIS_  LPDWORD, LPDWORD);
+	STDMETHOD(GetFourCCCodes)(THIS_ LPDWORD, LPDWORD);
 	STDMETHOD(GetGDISurface)(THIS_ LPDIRECTDRAWSURFACE7 FAR *);
 	STDMETHOD(GetMonitorFrequency)(THIS_ LPDWORD);
 	STDMETHOD(GetScanLine)(THIS_ LPDWORD);

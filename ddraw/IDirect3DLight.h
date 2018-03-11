@@ -1,12 +1,12 @@
 #pragma once
 
-class m_IDirect3DLight : public IDirect3DLight, public AddressLookupTableObject
+class m_IDirect3DLight : public IDirect3DLight, public AddressLookupTableDdrawObject
 {
 private:
 	IDirect3DLight *ProxyInterface;
 
 public:
-	m_IDirect3DLight(IDirect3DLight *aOriginal, void *) : ProxyInterface(aOriginal)
+	m_IDirect3DLight(IDirect3DLight *aOriginal, REFIID) : ProxyInterface(aOriginal)
 	{
 		ProxyAddressLookupTable.SaveAddress(this, ProxyInterface);
 	}

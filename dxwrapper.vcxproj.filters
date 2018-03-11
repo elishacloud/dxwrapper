@@ -244,9 +244,6 @@
     <ClCompile Include="ddraw\IDirectDrawColorControl.cpp">
       <Filter>ddraw</Filter>
     </ClCompile>
-    <ClCompile Include="ddraw\IDirectDrawEnumSurface.cpp">
-      <Filter>ddraw</Filter>
-    </ClCompile>
     <ClCompile Include="ddraw\IDirectDrawFactory.cpp">
       <Filter>ddraw</Filter>
     </ClCompile>
@@ -619,6 +616,18 @@
     <ClCompile Include="DDrawCompat\Experimental\D3dDdi\AdapterCallbacks.cpp">
       <Filter>DDrawCompat\Experimental</Filter>
     </ClCompile>
+    <ClCompile Include="ddraw\IDirectDrawTypes.cpp">
+      <Filter>ddraw</Filter>
+    </ClCompile>
+    <ClCompile Include="ddraw\IDirectDrawSurfaceX.cpp">
+      <Filter>ddraw</Filter>
+    </ClCompile>
+    <ClCompile Include="ddraw\IDirectDrawX.cpp">
+      <Filter>ddraw</Filter>
+    </ClCompile>
+    <ClCompile Include="ddraw\IDirectDrawEnumCallback.cpp">
+      <Filter>ddraw</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="Settings\AllSettings.ini">
@@ -800,9 +809,6 @@
     <ClInclude Include="ddraw\IDirectDrawColorControl.h">
       <Filter>ddraw</Filter>
     </ClInclude>
-    <ClInclude Include="ddraw\IDirectDrawEnumSurface.h">
-      <Filter>ddraw</Filter>
-    </ClInclude>
     <ClInclude Include="ddraw\IDirectDrawFactory.h">
       <Filter>ddraw</Filter>
     </ClInclude>
@@ -958,9 +964,6 @@
     </ClInclude>
     <ClInclude Include="DxWnd\DxWndExternal.h">
       <Filter>DxWnd</Filter>
-    </ClInclude>
-    <ClInclude Include="Utils\AddressLookupTable.h">
-      <Filter>Utils</Filter>
     </ClInclude>
     <ClInclude Include="DDrawCompat\DDrawCompatExternal.h">
       <Filter>DDrawCompat</Filter>
@@ -1366,6 +1369,24 @@
     </ClInclude>
     <ClInclude Include="DDrawCompat\Experimental\Common\CompatPtr.h">
       <Filter>DDrawCompat\Experimental</Filter>
+    </ClInclude>
+    <ClInclude Include="ddraw\IDirectDrawTypes.h">
+      <Filter>ddraw</Filter>
+    </ClInclude>
+    <ClInclude Include="ddraw\IDirectDrawSurfaceX.h">
+      <Filter>ddraw</Filter>
+    </ClInclude>
+    <ClInclude Include="ddraw\AddressLookupTable.h">
+      <Filter>ddraw</Filter>
+    </ClInclude>
+    <ClInclude Include="d3d9\AddressLookupTable.h">
+      <Filter>d3d9</Filter>
+    </ClInclude>
+    <ClInclude Include="ddraw\IDirectDrawX.h">
+      <Filter>ddraw</Filter>
+    </ClInclude>
+    <ClInclude Include="ddraw\IDirectDrawEnumCallback.h">
+      <Filter>ddraw</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

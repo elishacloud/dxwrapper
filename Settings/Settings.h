@@ -18,6 +18,7 @@
 	visit(DisableHighDPIScaling) \
 	visit(DSoundCtrl) \
 	visit(DxWnd) \
+	visit(ConvertToDirectDraw7) \
 	visit(ExcludeProcess) \
 	visit(ForceCertification) \
 	visit(ForceExclusiveMode) \
@@ -138,7 +139,8 @@ struct CONFIG
 	bool DDrawCompatDisableGDIHook;		// Disables DDrawCompat GDI hooks
 	bool DisableHighDPIScaling;			// Disables display scaling on high DPI settings
 	bool DSoundCtrl;					// Enables DirectSoundControl https://github.com/nRaecheR/DirectSoundControl
-	bool DxWnd;							// Enables dXwnd https://sourceforge.net/projects/dxwnd/
+	bool DxWnd;							// Enables DxWnd https://sourceforge.net/projects/dxwnd/
+	bool ConvertToDirectDraw7;			// Converts DirectDraw 1-6 to DirectDraw 7
 	bool FullScreen;					// Sets the main window to fullscreen
 	bool ForceTermination;				// Terminates application when main window closes
 	bool ForceWindowResize;				// Forces main window to fullscreen
@@ -193,6 +195,8 @@ struct CONFIG
 	bool StoppedDriverWorkaround;
 };
 extern CONFIG Config;
+
+extern CRITICAL_SECTION critSec;
 
 namespace Settings
 {
