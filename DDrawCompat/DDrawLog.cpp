@@ -88,6 +88,51 @@ std::ostream& operator<<(std::ostream& os, HWND__& hwnd)
 	return os << "WND(" << static_cast<void*>(&hwnd) << ',' << name << ',' << rect << ')';
 }
 
+std::ostream& operator<<(std::ostream& os, const DDCAPS& caps)
+{
+	return Compat::LogStruct(os)
+		<< caps.dwSize
+		<< Compat::hex(caps.dwCaps)
+		<< Compat::hex(caps.dwCaps2)
+		<< Compat::hex(caps.dwCKeyCaps)
+		<< Compat::hex(caps.dwFXCaps)
+		<< Compat::hex(caps.dwFXAlphaCaps)
+		<< Compat::hex(caps.dwPalCaps)
+		<< Compat::hex(caps.dwSVCaps)
+		<< Compat::hex(caps.dwAlphaBltConstBitDepths)
+		<< Compat::hex(caps.dwAlphaBltPixelBitDepths)
+		<< Compat::hex(caps.dwAlphaBltSurfaceBitDepths)
+		<< Compat::hex(caps.dwAlphaOverlayConstBitDepths)
+		<< Compat::hex(caps.dwAlphaOverlayPixelBitDepths)
+		<< Compat::hex(caps.dwAlphaOverlaySurfaceBitDepths)
+		<< Compat::hex(caps.dwZBufferBitDepths)
+		<< Compat::hex(caps.dwVidMemTotal)
+		<< Compat::hex(caps.dwVidMemFree)
+		<< Compat::hex(caps.dwMaxVisibleOverlays)
+		<< Compat::hex(caps.dwCurrVisibleOverlays)
+		<< Compat::hex(caps.dwNumFourCCCodes)
+		<< Compat::hex(caps.dwAlignBoundarySrc)
+		<< Compat::hex(caps.dwAlignSizeSrc)
+		<< Compat::hex(caps.dwAlignBoundaryDest)
+		<< Compat::hex(caps.dwAlignSizeDest)
+		<< Compat::hex(caps.dwAlignStrideAlign)
+		<< "{" << caps.dwRops[0]
+		<< caps.dwRops[1]
+		<< caps.dwRops[2]
+		<< caps.dwRops[3]
+		<< caps.dwRops[4]
+		<< caps.dwRops[5]
+		<< caps.dwRops[6]
+		<< caps.dwRops[7] << "}"
+		<< caps.ddsOldCaps
+		<< Compat::hex(caps.dwMinOverlayStretch)
+		<< Compat::hex(caps.dwMaxOverlayStretch)
+		<< Compat::hex(caps.dwMinLiveVideoStretch)
+		<< Compat::hex(caps.dwMaxLiveVideoStretch)
+		<< Compat::hex(caps.dwMinHwCodecStretch)
+		<< Compat::hex(caps.dwMaxHwCodecStretch);
+}
+
 std::ostream& operator<<(std::ostream& os, const DDSCAPS& caps)
 {
 	return Compat::LogStruct(os)

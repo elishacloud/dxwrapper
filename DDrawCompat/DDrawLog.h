@@ -30,6 +30,7 @@ std::ostream& operator<<(std::ostream& os, const DEVMODEW& dm);
 std::ostream& operator<<(std::ostream& os, const RECT& rect);
 std::ostream& operator<<(std::ostream& os, HDC__& dc);
 std::ostream& operator<<(std::ostream& os, HWND__& hwnd);
+std::ostream& operator<<(std::ostream& os, const DDCAPS& caps);
 std::ostream& operator<<(std::ostream& os, const DDSCAPS& caps);
 std::ostream& operator<<(std::ostream& os, const DDSCAPS2& caps);
 std::ostream& operator<<(std::ostream& os, const DDPIXELFORMAT& pf);
