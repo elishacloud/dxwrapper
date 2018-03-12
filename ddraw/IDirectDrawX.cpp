@@ -240,7 +240,6 @@ HRESULT m_IDirectDrawX::SetCooperativeLevel(HWND a, DWORD b)
 	// Star Trek Armada 1 fix
 	if (Config.ArmadaFix && (b & DDSCL_EXCLUSIVE) && !(b & DDSCL_ALLOWMODEX))
 	{
-		Logging::Log() << "SetCooperativeLevel: Enabling ModeEx";
 		b |= DDSCL_ALLOWMODEX | DDSCL_FULLSCREEN;
 	}
 
@@ -254,7 +253,6 @@ HRESULT m_IDirectDrawX::SetDisplayMode(DWORD a, DWORD b, DWORD c, DWORD d, DWORD
 	// Star Trek Armada 1 fix
 	if (Config.ArmadaFix && c != 32)
 	{
-		Logging::Log() << "SetDisplayMode: Setting 32bit color";
 		c = 32;
 	}
 
