@@ -16,79 +16,35 @@
 
 #include "ddraw.h"
 
-//************************************************************************
-// IDirectDraw EnumDisplayModes
-//************************************************************************
-
-LPDDENUMMODESCALLBACK2 m_IDirectDrawEnumDisplayModes::lpCallback;
-DWORD m_IDirectDrawEnumDisplayModes::DirectXVersion;
-DWORD m_IDirectDrawEnumDisplayModes::ProxyDirectXVersion;
-
-void m_IDirectDrawEnumDisplayModes::SetCallback(LPDDENUMMODESCALLBACK2 a, DWORD Version, DWORD ProxyVersion)
-{
-	EnterCriticalSection(&critSec);
-	lpCallback = a;
-	DirectXVersion = Version;
-	ProxyDirectXVersion = ProxyVersion;
-}
-
-void m_IDirectDrawEnumDisplayModes::ReleaseCallback()
-{
-	ProxyDirectXVersion = 0;
-	DirectXVersion = 0;
-	lpCallback = nullptr;
-	LeaveCriticalSection(&critSec);
-}
-
 HRESULT CALLBACK m_IDirectDrawEnumDisplayModes::ConvertCallback(LPDDSURFACEDESC2 lpDDSurfaceDesc, LPVOID lpContext)
 {
+	ENUMDISPLAYMODES *lpCallbackContext = (ENUMDISPLAYMODES*)lpContext;
+
 	DDSURFACEDESC Desc;
-	if (lpDDSurfaceDesc != nullptr && ProxyDirectXVersion > 3 && DirectXVersion < 4)
+	if (lpDDSurfaceDesc != nullptr && lpCallbackContext->ProxyDirectXVersion > 3 && lpCallbackContext->DirectXVersion < 4)
 	{
 		ConvertSurfaceDesc(Desc, *lpDDSurfaceDesc);
 		lpDDSurfaceDesc = (LPDDSURFACEDESC2)&Desc;
 	}
 
-	return lpCallback(lpDDSurfaceDesc, lpContext);
-}
-
-//************************************************************************
-// IDirectDraw EnumSurface
-//************************************************************************
-
-LPDDENUMSURFACESCALLBACK7 m_IDirectDrawEnumSurface::lpCallback;
-DWORD m_IDirectDrawEnumSurface::DirectXVersion;
-DWORD m_IDirectDrawEnumSurface::ProxyDirectXVersion;
-
-void m_IDirectDrawEnumSurface::SetCallback(LPDDENUMSURFACESCALLBACK7 a, DWORD Version, DWORD ProxyVersion)
-{
-	EnterCriticalSection(&critSec);
-	lpCallback = a;
-	DirectXVersion = Version;
-	ProxyDirectXVersion = ProxyVersion;
-}
-
-void m_IDirectDrawEnumSurface::ReleaseCallback()
-{
-	ProxyDirectXVersion = 0;
-	DirectXVersion = 0;
-	lpCallback = nullptr;
-	LeaveCriticalSection(&critSec);
+	return lpCallbackContext->lpCallback(lpDDSurfaceDesc, lpCallbackContext->lpContext);
 }
 
 HRESULT CALLBACK m_IDirectDrawEnumSurface::ConvertCallback(LPDIRECTDRAWSURFACE7 lpDDSurface, LPDDSURFACEDESC2 lpDDSurfaceDesc, LPVOID lpContext)
 {
+	ENUMSURFACE *lpCallbackContext = (ENUMSURFACE*)lpContext;
+
 	if (lpDDSurface)
 	{
-		lpDDSurface = ProxyAddressLookupTable.FindAddress<m_IDirectDrawSurface7>(lpDDSurface, DirectXVersion);
+		lpDDSurface = ProxyAddressLookupTable.FindAddress<m_IDirectDrawSurface7>(lpDDSurface, lpCallbackContext->DirectXVersion);
 	}
 
 	DDSURFACEDESC Desc;
-	if (lpDDSurfaceDesc != nullptr && ProxyDirectXVersion > 3 && DirectXVersion < 4)
+	if (lpDDSurfaceDesc != nullptr && lpCallbackContext->ProxyDirectXVersion > 3 && lpCallbackContext->DirectXVersion < 4)
 	{
 		ConvertSurfaceDesc(Desc, *(LPDDSURFACEDESC2)lpDDSurfaceDesc);
 		lpDDSurfaceDesc = (LPDDSURFACEDESC2)&Desc;
 	}
 
-	return lpCallback(lpDDSurface, lpDDSurfaceDesc, lpContext);
+	return lpCallbackContext->lpCallback(lpDDSurface, lpDDSurfaceDesc, lpCallbackContext->lpContext);
 }

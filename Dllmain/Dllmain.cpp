@@ -33,7 +33,6 @@
 
 // Declare varables
 HMODULE hModule_dll = nullptr;
-CRITICAL_SECTION critSec;
 
 // Dll main function
 bool APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
@@ -113,9 +112,6 @@ bool APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 				}
 			}
 		}
-
-		// Initialize Critical Section
-		InitializeCriticalSection(&critSec);
 
 		// Attach real dll
 		if (Config.RealWrapperMode == dtype.dxwrapper)

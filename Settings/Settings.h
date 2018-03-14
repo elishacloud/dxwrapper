@@ -196,8 +196,6 @@ struct CONFIG
 };
 extern CONFIG Config;
 
-extern CRITICAL_SECTION critSec;
-
 namespace Settings
 {
 	bool IfStringExistsInList(const char*, std::vector<std::string>, bool = true);

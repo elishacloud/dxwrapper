@@ -119,11 +119,13 @@ HRESULT m_IDirectDrawX::EnumDisplayModes(DWORD a, T b, LPVOID c, D d)
 		b = (T)&Desc2;
 	}
 
-	m_IDirectDrawEnumDisplayModes::SetCallback((LPDDENUMMODESCALLBACK2)d, DirectXVersion, ProxyDirectXVersion);
+	ENUMDISPLAYMODES CallbackContext;
+	CallbackContext.lpContext = c;
+	CallbackContext.lpCallback = (LPDDENUMMODESCALLBACK2)d;
+	CallbackContext.DirectXVersion = DirectXVersion;
+	CallbackContext.ProxyDirectXVersion = ProxyDirectXVersion;
 
-	HRESULT hr = ProxyInterface->EnumDisplayModes(a, (LPDDSURFACEDESC2)b, c, m_IDirectDrawEnumDisplayModes::ConvertCallback);
-
-	m_IDirectDrawEnumDisplayModes::ReleaseCallback();
+	HRESULT hr = ProxyInterface->EnumDisplayModes(a, (LPDDSURFACEDESC2)b, &CallbackContext, m_IDirectDrawEnumDisplayModes::ConvertCallback);
 
 	return hr;
 }
@@ -141,11 +143,13 @@ HRESULT m_IDirectDrawX::EnumSurfaces(DWORD a, T b, LPVOID c, D d)
 		b = (T)&Desc2;
 	}
 
-	m_IDirectDrawEnumSurface::SetCallback((LPDDENUMSURFACESCALLBACK7)d, DirectXVersion, ProxyDirectXVersion);
+	ENUMSURFACE CallbackContext;
+	CallbackContext.lpContext = c;
+	CallbackContext.lpCallback = (LPDDENUMSURFACESCALLBACK7)d;
+	CallbackContext.DirectXVersion = DirectXVersion;
+	CallbackContext.ProxyDirectXVersion = ProxyDirectXVersion;
 
 	HRESULT hr = ProxyInterface->EnumSurfaces(a, (LPDDSURFACEDESC2)b, c, m_IDirectDrawEnumSurface::ConvertCallback);
-
-	m_IDirectDrawEnumSurface::ReleaseCallback();
 
 	return hr;
 }

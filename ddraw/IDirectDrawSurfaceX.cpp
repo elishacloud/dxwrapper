@@ -93,11 +93,13 @@ template HRESULT m_IDirectDrawSurfaceX::EnumAttachedSurfaces<LPDDENUMSURFACESCAL
 template <typename T>
 HRESULT m_IDirectDrawSurfaceX::EnumAttachedSurfaces(LPVOID a, T b)
 {
-	m_IDirectDrawEnumSurface::SetCallback((LPDDENUMSURFACESCALLBACK7)b, DirectXVersion, ProxyDirectXVersion);
+	ENUMSURFACE CallbackContext;
+	CallbackContext.lpContext = a;
+	CallbackContext.lpCallback = (LPDDENUMSURFACESCALLBACK7)b;
+	CallbackContext.DirectXVersion = DirectXVersion;
+	CallbackContext.ProxyDirectXVersion = ProxyDirectXVersion;
 
 	HRESULT hr = ProxyInterface->EnumAttachedSurfaces(a, m_IDirectDrawEnumSurface::ConvertCallback);
-
-	m_IDirectDrawEnumSurface::ReleaseCallback();
 
 	return hr;
 }
@@ -107,11 +109,13 @@ template HRESULT m_IDirectDrawSurfaceX::EnumOverlayZOrders<LPDDENUMSURFACESCALLB
 template <typename T>
 HRESULT m_IDirectDrawSurfaceX::EnumOverlayZOrders(DWORD a, LPVOID b, T c)
 {
-	m_IDirectDrawEnumSurface::SetCallback((LPDDENUMSURFACESCALLBACK7)c, DirectXVersion, ProxyDirectXVersion);
+	ENUMSURFACE CallbackContext;
+	CallbackContext.lpContext = b;
+	CallbackContext.lpCallback = (LPDDENUMSURFACESCALLBACK7)c;
+	CallbackContext.DirectXVersion = DirectXVersion;
+	CallbackContext.ProxyDirectXVersion = ProxyDirectXVersion;
 
 	HRESULT hr = ProxyInterface->EnumOverlayZOrders(a, b, m_IDirectDrawEnumSurface::ConvertCallback);
-
-	m_IDirectDrawEnumSurface::ReleaseCallback();
 
 	return hr;
 }
