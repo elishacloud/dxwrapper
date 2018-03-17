@@ -141,67 +141,62 @@ HRESULT m_IDirect3D9Ex::GetAdapterDisplayModeEx(THIS_ UINT Adapter, D3DDISPLAYMO
 
 HRESULT m_IDirect3D9Ex::CreateDeviceEx(THIS_ UINT Adapter, D3DDEVTYPE DeviceType, HWND hFocusWindow, DWORD BehaviorFlags, D3DPRESENT_PARAMETERS* pPresentationParameters, D3DDISPLAYMODEEX* pFullscreenDisplayMode, IDirect3DDevice9Ex** ppReturnedDeviceInterface)
 {
+	HRESULT hr = D3DERR_INVALIDCALL;
+
 	// Check for AntiAliasing
 	bool MultiSampleFlag = false;
-	DWORD QualityLevels = 0;
-	DWORD SampleType = 0;
-	D3DPRESENT_PARAMETERS d3dpp;
-	CopyMemory(&d3dpp, pPresentationParameters, sizeof(d3dpp));
-	DWORD bFlags = BehaviorFlags;
-	if (Config.AntiAliasing != 0)
+	if (Config.AntiAliasing != 0 && pPresentationParameters->SwapEffect == D3DSWAPEFFECT_DISCARD)
 	{
+		DWORD QualityLevels = 0;
+		D3DPRESENT_PARAMETERS d3dpp;
+		CopyMemory(&d3dpp, pPresentationParameters, sizeof(d3dpp));
+
 		// Check AntiAliasing quality
 		for (int x = min(16, Config.AntiAliasing); x > 0; x--)
 		{
-			ProxyInterface->CheckDeviceMultiSampleType(Adapter,
-				DeviceType, (*pPresentationParameters).BackBufferFormat, (*pPresentationParameters).Windowed,
-				(D3DMULTISAMPLE_TYPE)x, &QualityLevels);
-			if (QualityLevels > 1)
+			if (ProxyInterface->CheckDeviceMultiSampleType(Adapter,
+				DeviceType, d3dpp.BackBufferFormat, d3dpp.Windowed,
+				(D3DMULTISAMPLE_TYPE)x, &QualityLevels) == S_OK &&
+				ProxyInterface->CheckDeviceMultiSampleType(Adapter,
+					DeviceType, d3dpp.AutoDepthStencilFormat, d3dpp.Windowed,
+					(D3DMULTISAMPLE_TYPE)x, &QualityLevels) == S_OK)
 			{
-				MultiSampleFlag = true;
-				SampleType = x;
-				QualityLevels -= 1;
+				d3dpp.Flags &= ~D3DPRESENTFLAG_LOCKABLE_BACKBUFFER;
+				d3dpp.MultiSampleType = (D3DMULTISAMPLE_TYPE)x;
+				d3dpp.MultiSampleQuality = (QualityLevels > 0) ? QualityLevels - 1 : 0;
+
+				// Create Device
+				hr = ProxyInterface->CreateDeviceEx(Adapter, DeviceType, hFocusWindow, BehaviorFlags, &d3dpp, pFullscreenDisplayMode, ppReturnedDeviceInterface);
+
+				// Check if device was created successfully
+				if (SUCCEEDED(hr))
+				{
+					MultiSampleFlag = true;
+					Logging::Log() << "Setting MultiSample " << d3dpp.MultiSampleType << " Quality " << d3dpp.MultiSampleQuality;
+				}
+				else
+				{
+					Logging::Log() << "Failed to set AntiAliasing!";
+				}
 				break;
 			}
-		}
-
-		// Enable AntiAliasing
-		if (MultiSampleFlag)
-		{
-			// Full-scene AntiAliasing is supported. Enable it here.
-			(*pPresentationParameters).Flags = (*pPresentationParameters).Flags & ~D3DPRESENTFLAG_LOCKABLE_BACKBUFFER & ~D3DPRESENTFLAG_VIDEO;
-			(*pPresentationParameters).MultiSampleType = (D3DMULTISAMPLE_TYPE)SampleType;
-			(*pPresentationParameters).MultiSampleQuality = QualityLevels;
-			(*pPresentationParameters).SwapEffect = D3DSWAPEFFECT_DISCARD;
-			BehaviorFlags = D3DCREATE_HARDWARE_VERTEXPROCESSING | (BehaviorFlags & ~D3DCREATE_SOFTWARE_VERTEXPROCESSING);
 		}
 	}
 
 	// Create Device
-	HRESULT hr = ProxyInterface->CreateDeviceEx(Adapter, DeviceType, hFocusWindow, BehaviorFlags, pPresentationParameters, pFullscreenDisplayMode, ppReturnedDeviceInterface);
-
-	// Check for AntiAliasing
-	if (MultiSampleFlag)
+	if (FAILED(hr))
 	{
-		// Check if device was created successfully
-		if (SUCCEEDED(hr))
-		{
-			Logging::Log() << "Setting MultiSample " << SampleType << " Quality " << QualityLevels;
-			(*ppReturnedDeviceInterface)->SetRenderState(D3DRS_MULTISAMPLEANTIALIAS, TRUE);
-		}
-		// Try creating device with original settings
-		else
-		{
-			Logging::Log() << "Error enabling AntiAliasing!";
-			BehaviorFlags = bFlags;
-			CopyMemory(pPresentationParameters, &d3dpp, sizeof(d3dpp));
-			hr = ProxyInterface->CreateDeviceEx(Adapter, DeviceType, hFocusWindow, BehaviorFlags, pPresentationParameters, pFullscreenDisplayMode, ppReturnedDeviceInterface);
-		}
+		hr = ProxyInterface->CreateDeviceEx(Adapter, DeviceType, hFocusWindow, BehaviorFlags, pPresentationParameters, pFullscreenDisplayMode, ppReturnedDeviceInterface);
 	}
 
 	if (SUCCEEDED(hr))
 	{
 		*ppReturnedDeviceInterface = new m_IDirect3DDevice9Ex(*ppReturnedDeviceInterface, this);
+		if (MultiSampleFlag)
+		{
+			((m_IDirect3DDevice9*)(*ppReturnedDeviceInterface))->SetMultiSampleType(pPresentationParameters->MultiSampleType);
+			((m_IDirect3DDevice9*)(*ppReturnedDeviceInterface))->SetMultiSampleQuality(pPresentationParameters->MultiSampleQuality);
+		}
 	}
 
 	return hr;

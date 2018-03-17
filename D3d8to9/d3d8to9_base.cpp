@@ -199,6 +199,21 @@ HRESULT STDMETHODCALLTYPE Direct3D8::CreateDevice(UINT Adapter, D3DDEVTYPE Devic
 	D3DPRESENT_PARAMETERS PresentParams;
 	ConvertPresentParameters(*pPresentationParameters, PresentParams);
 
+	// Get multisample quality level
+	if (PresentParams.MultiSampleType != D3DMULTISAMPLE_NONE)
+	{
+		DWORD QualityLevels = 0;
+		if (ProxyInterface->CheckDeviceMultiSampleType(Adapter,
+			DeviceType, PresentParams.BackBufferFormat, PresentParams.Windowed,
+			PresentParams.MultiSampleType, &QualityLevels) == S_OK &&
+			ProxyInterface->CheckDeviceMultiSampleType(Adapter,
+				DeviceType, PresentParams.AutoDepthStencilFormat, PresentParams.Windowed,
+				PresentParams.MultiSampleType, &QualityLevels) == S_OK)
+		{
+			PresentParams.MultiSampleQuality = (QualityLevels != 0) ? QualityLevels - 1 : 0;
+		}
+	}
+
 	IDirect3DDevice9 *DeviceInterface = nullptr;
 
 	HRESULT hr = ProxyInterface->CreateDevice(Adapter, DeviceType, hFocusWindow, BehaviorFlags, &PresentParams, &DeviceInterface);

@@ -48,6 +48,12 @@ ULONG m_IDirect3DDevice9Ex::Release()
 }
 HRESULT m_IDirect3DDevice9Ex::Reset(D3DPRESENT_PARAMETERS *pPresentationParameters)
 {
+	if (DeviceMultiSampleType != D3DMULTISAMPLE_NONE)
+	{
+		pPresentationParameters->MultiSampleType = DeviceMultiSampleType;
+		pPresentationParameters->MultiSampleQuality = DeviceMultiSampleQuality;
+	}
+
 	return ProxyInterface->Reset(pPresentationParameters);
 }
 
@@ -78,6 +84,12 @@ BOOL m_IDirect3DDevice9Ex::ShowCursor(BOOL bShow)
 
 HRESULT m_IDirect3DDevice9Ex::CreateAdditionalSwapChain(D3DPRESENT_PARAMETERS *pPresentationParameters, IDirect3DSwapChain9 **ppSwapChain)
 {
+	if (DeviceMultiSampleType != D3DMULTISAMPLE_NONE)
+	{
+		pPresentationParameters->MultiSampleType = DeviceMultiSampleType;
+		pPresentationParameters->MultiSampleQuality = DeviceMultiSampleQuality;
+	}
+
 	HRESULT hr = ProxyInterface->CreateAdditionalSwapChain(pPresentationParameters, ppSwapChain);
 
 	if (SUCCEEDED(hr))
@@ -102,6 +114,12 @@ HRESULT m_IDirect3DDevice9Ex::CreateCubeTexture(THIS_ UINT EdgeLength, UINT Leve
 
 HRESULT m_IDirect3DDevice9Ex::CreateDepthStencilSurface(THIS_ UINT Width, UINT Height, D3DFORMAT Format, D3DMULTISAMPLE_TYPE MultiSample, DWORD MultisampleQuality, BOOL Discard, IDirect3DSurface9** ppSurface, HANDLE* pSharedHandle)
 {
+	if (DeviceMultiSampleType != D3DMULTISAMPLE_NONE)
+	{
+		MultiSample = DeviceMultiSampleType;
+		MultisampleQuality = DeviceMultiSampleQuality;
+	}
+
 	HRESULT hr = ProxyInterface->CreateDepthStencilSurface(Width, Height, Format, MultiSample, MultisampleQuality, Discard, ppSurface, pSharedHandle);
 
 	if (SUCCEEDED(hr))
@@ -126,6 +144,12 @@ HRESULT m_IDirect3DDevice9Ex::CreateIndexBuffer(THIS_ UINT Length, DWORD Usage, 
 
 HRESULT m_IDirect3DDevice9Ex::CreateRenderTarget(THIS_ UINT Width, UINT Height, D3DFORMAT Format, D3DMULTISAMPLE_TYPE MultiSample, DWORD MultisampleQuality, BOOL Lockable, IDirect3DSurface9** ppSurface, HANDLE* pSharedHandle)
 {
+	if (DeviceMultiSampleType != D3DMULTISAMPLE_NONE)
+	{
+		MultiSample = DeviceMultiSampleType;
+		MultisampleQuality = DeviceMultiSampleQuality;
+	}
+
 	HRESULT hr = ProxyInterface->CreateRenderTarget(Width, Height, Format, MultiSample, MultisampleQuality, Lockable, ppSurface, pSharedHandle);
 
 	if (SUCCEEDED(hr))
@@ -1074,6 +1098,12 @@ HRESULT m_IDirect3DDevice9Ex::CheckDeviceState(THIS_ HWND hDestinationWindow)
 
 HRESULT m_IDirect3DDevice9Ex::CreateRenderTargetEx(THIS_ UINT Width, UINT Height, D3DFORMAT Format, D3DMULTISAMPLE_TYPE MultiSample, DWORD MultisampleQuality, BOOL Lockable, IDirect3DSurface9** ppSurface, HANDLE* pSharedHandle, DWORD Usage)
 {
+	if (DeviceMultiSampleType != D3DMULTISAMPLE_NONE)
+	{
+		MultiSample = DeviceMultiSampleType;
+		MultisampleQuality = DeviceMultiSampleQuality;
+	}
+
 	HRESULT hr = ProxyInterface->CreateRenderTargetEx(Width, Height, Format, MultiSample, MultisampleQuality, Lockable, ppSurface, pSharedHandle, Usage);
 
 	if (SUCCEEDED(hr))
@@ -1098,6 +1128,12 @@ HRESULT m_IDirect3DDevice9Ex::CreateOffscreenPlainSurfaceEx(THIS_ UINT Width, UI
 
 HRESULT m_IDirect3DDevice9Ex::CreateDepthStencilSurfaceEx(THIS_ UINT Width, UINT Height, D3DFORMAT Format, D3DMULTISAMPLE_TYPE MultiSample, DWORD MultisampleQuality, BOOL Discard, IDirect3DSurface9** ppSurface, HANDLE* pSharedHandle, DWORD Usage)
 {
+	if (DeviceMultiSampleType != D3DMULTISAMPLE_NONE)
+	{
+		MultiSample = DeviceMultiSampleType;
+		MultisampleQuality = DeviceMultiSampleQuality;
+	}
+
 	HRESULT hr = ProxyInterface->CreateDepthStencilSurfaceEx(Width, Height, Format, MultiSample, MultisampleQuality, Discard, ppSurface, pSharedHandle, Usage);
 
 	if (SUCCEEDED(hr))
@@ -1110,6 +1146,12 @@ HRESULT m_IDirect3DDevice9Ex::CreateDepthStencilSurfaceEx(THIS_ UINT Width, UINT
 
 HRESULT m_IDirect3DDevice9Ex::ResetEx(THIS_ D3DPRESENT_PARAMETERS* pPresentationParameters, D3DDISPLAYMODEEX *pFullscreenDisplayMode)
 {
+	if (DeviceMultiSampleType != D3DMULTISAMPLE_NONE)
+	{
+		pPresentationParameters->MultiSampleType = DeviceMultiSampleType;
+		pPresentationParameters->MultiSampleQuality = DeviceMultiSampleQuality;
+	}
+
 	return ProxyInterface->ResetEx(pPresentationParameters, pFullscreenDisplayMode);
 }
 

@@ -6,6 +6,8 @@ private:
 	LPDIRECT3DDEVICE9 ProxyInterface;
 	m_IDirect3D9* m_pD3D = nullptr;
 	m_IDirect3D9Ex* m_pD3DEx = nullptr;
+	D3DMULTISAMPLE_TYPE DeviceMultiSampleType = D3DMULTISAMPLE_NONE;
+	DWORD DeviceMultiSampleQuality = 0;
 
 public:
 	m_IDirect3DDevice9(LPDIRECT3DDEVICE9 pDevice, m_IDirect3D9* pD3D) : ProxyInterface(pDevice), m_pD3D(pD3D)
@@ -21,6 +23,8 @@ public:
 		delete ProxyAddressLookupTable;
 	}
 
+	void SetMultiSampleType(D3DMULTISAMPLE_TYPE MultiSampleType) { DeviceMultiSampleType = MultiSampleType; }
+	void SetMultiSampleQuality(DWORD MultiSampleQuality) { DeviceMultiSampleQuality = MultiSampleQuality; }
 	virtual LPDIRECT3DDEVICE9 GetProxyInterface() { return ProxyInterface; }
 	AddressLookupTableD3d9<m_IDirect3DDevice9> *ProxyAddressLookupTable;
 

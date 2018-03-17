@@ -129,26 +129,28 @@ void ConvertPresentParameters(D3DPRESENT_PARAMETERS8 &Input, D3DPRESENT_PARAMETE
 	Output.FullScreen_RefreshRateInHz = Input.FullScreen_RefreshRateInHz;
 	Output.PresentationInterval = Input.FullScreen_PresentationInterval;
 
-	// MultiSampleType must be D3DMULTISAMPLE_NONE unless SwapEffect has been set to D3DSWAPEFFECT_DISCARD.
-	// https://msdn.microsoft.com/en-us/library/windows/desktop/bb172588(v=vs.85).aspx
-	// Check for D3DMULTISAMPLE_NONMASKABLE and change it to D3DMULTISAMPLE_NONE for best D3D8 compatibility.
-	if (Output.SwapEffect != D3DSWAPEFFECT_DISCARD || Output.MultiSampleType == D3DMULTISAMPLE_NONMASKABLE)
+	// MultiSampleType must be D3DMULTISAMPLE_NONE unless SwapEffect has been set to D3DSWAPEFFECT_DISCARD
+	if (Output.SwapEffect != D3DSWAPEFFECT_DISCARD)
 	{
 		Output.MultiSampleType = D3DMULTISAMPLE_NONE;
 	}
 
-	// D3DPRESENT_RATE_UNLIMITED is no longer supported in D3D9
-	// Update PresentationInterval when SwapEffect = D3DSWAPEFFECT_COPY_VSYNC and
-	// application is not windowed for best D3D8 compatibility
-	if (Output.PresentationInterval == D3DPRESENT_RATE_UNLIMITED ||
-		(Output.SwapEffect == D3DSWAPEFFECT_COPY_VSYNC && !Output.Windowed))
+	// Remove Flags that are not compatible with multisampling
+	if (Output.MultiSampleType != D3DMULTISAMPLE_NONE)
 	{
-		Output.PresentationInterval = D3DPRESENT_INTERVAL_ONE;
+		Output.Flags &= ~D3DPRESENTFLAG_LOCKABLE_BACKBUFFER;
+	}
+
+	// D3DPRESENT_RATE_UNLIMITED is no longer supported in D3D9
+	if (Output.PresentationInterval == D3DPRESENT_RATE_UNLIMITED)
+	{
+		Output.PresentationInterval = D3DPRESENT_INTERVAL_IMMEDIATE;
 	}
 
 	// D3DSWAPEFFECT_COPY_VSYNC is no longer supported in D3D9
 	if (Output.SwapEffect == D3DSWAPEFFECT_COPY_VSYNC)
 	{
+		Output.PresentationInterval = D3DPRESENT_INTERVAL_ONE;
 		Output.SwapEffect = D3DSWAPEFFECT_COPY;
 	}
 }
