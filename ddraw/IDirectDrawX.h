@@ -6,11 +6,12 @@ private:
 	IDirectDraw7 *ProxyInterface;
 	DWORD DirectXVersion;
 	DWORD ProxyDirectXVersion;
+	REFIID RealIID;
 
 public:
-	m_IDirectDrawX(IDirectDraw7 *aOriginal, DWORD Version, REFIID riid) : ProxyInterface(aOriginal), DirectXVersion(Version)
+	m_IDirectDrawX(IDirectDraw7 *aOriginal, DWORD Version, REFIID riid) : ProxyInterface(aOriginal), DirectXVersion(Version), RealIID(riid)
 	{
-		if (riid ==  IID_IDirectDraw) { ProxyDirectXVersion = 1; }
+		if (riid == IID_IDirectDraw) { ProxyDirectXVersion = 1; }
 		else if (riid == IID_IDirectDraw2) { ProxyDirectXVersion = 2; }
 		else if (riid == IID_IDirectDraw3) { ProxyDirectXVersion = 3; }
 		else if (riid == IID_IDirectDraw4) { ProxyDirectXVersion = 4; }

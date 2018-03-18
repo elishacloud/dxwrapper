@@ -126,7 +126,18 @@ HRESULT WINAPI dd_DirectDrawCreateEx(GUID FAR *lpGUID, LPVOID *lplpDD, REFIID ri
 		return E_NOTIMPL;
 	}
 
-	HRESULT hr = ((DDrawCreateExProc)DirectDrawCreateEx_out)(lpGUID, lplpDD, riid, pUnkOuter);
+	if (riid != CLSID_DirectDraw &&
+		riid != IID_IDirectDraw &&
+		riid != IID_IDirectDraw2 &&
+		riid != IID_IDirectDraw3 &&
+		riid != IID_IDirectDraw4 &&
+		riid != IID_IDirectDraw7 &&
+		riid != CLSID_DirectDraw7)
+	{
+		return DDERR_INVALIDPARAMS;
+	}
+
+	HRESULT hr = ((DDrawCreateExProc)DirectDrawCreateEx_out)(lpGUID, lplpDD, IID_IDirectDraw7, pUnkOuter);
 
 	if (SUCCEEDED(hr))
 	{

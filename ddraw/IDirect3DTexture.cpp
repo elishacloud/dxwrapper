@@ -18,14 +18,7 @@
 
 HRESULT m_IDirect3DTexture::QueryInterface(REFIID riid, LPVOID * ppvObj)
 {
-	HRESULT hr = ProxyInterface->QueryInterface(ConvertREFIID(riid), ppvObj);
-
-	if (SUCCEEDED(hr))
-	{
-		genericQueryInterface(riid, ppvObj);
-	}
-
-	return hr;
+	return ProxyQueryInterface(ProxyInterface, riid, ppvObj, IID_IDirect3DTexture);
 }
 
 ULONG m_IDirect3DTexture::AddRef()

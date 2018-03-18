@@ -18,14 +18,7 @@
 
 HRESULT m_IDirect3D::QueryInterface(REFIID riid, LPVOID * ppvObj)
 {
-	HRESULT hr = ProxyInterface->QueryInterface(ConvertREFIID(riid), ppvObj);
-
-	if (SUCCEEDED(hr))
-	{
-		genericQueryInterface(riid, ppvObj);
-	}
-
-	return hr;
+	return ProxyQueryInterface(ProxyInterface, riid, ppvObj, IID_IDirect3D);
 }
 
 ULONG m_IDirect3D::AddRef()

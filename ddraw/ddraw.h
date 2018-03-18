@@ -37,6 +37,7 @@ typedef void(WINAPI *ReleaseDDThreadLockProc)();
 typedef HRESULT(WINAPI *SetAppCompatDataProc)(DWORD, DWORD);
 
 REFIID ConvertREFIID(REFIID riid);
+HRESULT ProxyQueryInterface(LPVOID ProxyInterface, REFIID CalledID, LPVOID * ppvObj, REFIID RealIID);
 void genericQueryInterface(REFIID riid, LPVOID * ppvObj);
 extern AddressLookupTableDdraw<void> ProxyAddressLookupTable;
 

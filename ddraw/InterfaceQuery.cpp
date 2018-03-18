@@ -1,30 +1,58 @@
 #include "ddraw.h"
 
-REFIID ConvertREFIID(REFIID riid)
+REFIID ConvertREFIID(REFIID CalledID)
 {
-	if (!Config.ConvertToDirectDraw7)
+	REFIID riid = (CalledID == CLSID_DirectDraw) ? IID_IDirectDraw :
+		(CalledID == CLSID_DirectDraw7) ? IID_IDirectDraw7 :
+		(CalledID == CLSID_DirectDrawClipper) ? IID_IDirectDrawClipper :
+		CalledID;
+
+	if (Config.ConvertToDirectDraw7)
 	{
-		return riid;
+		if (riid == IID_IDirectDraw ||
+			riid == IID_IDirectDraw2 ||
+			riid == IID_IDirectDraw3 ||
+			riid == IID_IDirectDraw4)
+		{
+			return IID_IDirectDraw7;
+		}
+		else if (riid == IID_IDirectDrawSurface ||
+			riid == IID_IDirectDrawSurface2 ||
+			riid == IID_IDirectDrawSurface3 ||
+			riid == IID_IDirectDrawSurface4)
+		{
+			return IID_IDirectDrawSurface7;
+		}
 	}
-	if (riid == IID_IDirectDraw ||
-		riid == IID_IDirectDraw2 ||
-		riid == IID_IDirectDraw3 ||
-		riid == IID_IDirectDraw4)
-	{
-		return IID_IDirectDraw7;
-	}
-	else if (riid == IID_IDirectDrawSurface ||
-		riid == IID_IDirectDrawSurface2 ||
-		riid == IID_IDirectDrawSurface3 ||
-		riid == IID_IDirectDrawSurface4)
-	{
-		return IID_IDirectDrawSurface7;
-	}
+
 	return riid;
 }
 
-void genericQueryInterface(REFIID riid, LPVOID * ppvObj)
+HRESULT ProxyQueryInterface(LPVOID ProxyInterface, REFIID CalledID, LPVOID * ppvObj, REFIID RealIID)
 {
+	REFIID riid = (CalledID == IID_IUnknown) ? RealIID :
+		(CalledID == CLSID_DirectDraw) ? IID_IDirectDraw :
+		(CalledID == CLSID_DirectDraw7) ? IID_IDirectDraw7 :
+		(CalledID == CLSID_DirectDrawClipper) ? IID_IDirectDrawClipper :
+		CalledID;
+
+	HRESULT hr = ((IDirectDraw*)ProxyInterface)->QueryInterface(ConvertREFIID(riid), ppvObj);
+
+	if (SUCCEEDED(hr))
+	{
+		genericQueryInterface(riid, ppvObj);
+	}
+
+	return hr;
+}
+
+void genericQueryInterface(REFIID CalledID, LPVOID * ppvObj)
+{
+	REFIID riid = (CalledID == CLSID_DirectDraw) ? IID_IDirectDraw :
+		(CalledID == CLSID_DirectDraw7) ? IID_IDirectDraw7 :
+		(CalledID == CLSID_DirectDrawClipper) ? IID_IDirectDrawClipper :
+		CalledID;
+
 #define QUERYINTERFACE(x) \
 	if (riid == IID_ ## x) \
 		{ \
