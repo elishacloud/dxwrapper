@@ -18,7 +18,7 @@
 
 HRESULT m_IDirectDrawClipper::QueryInterface(REFIID riid, LPVOID FAR * ppvObj)
 {
-	return ProxyQueryInterface(ProxyInterface, riid, ppvObj, IID_IDirectDrawClipper);
+	return ProxyQueryInterface(ProxyInterface, riid, ppvObj, this);
 }
 
 ULONG m_IDirectDrawClipper::AddRef()

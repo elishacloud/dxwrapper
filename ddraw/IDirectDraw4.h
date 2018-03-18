@@ -9,7 +9,7 @@ private:
 public:
 	m_IDirectDraw4(IDirectDraw4 *aOriginal, REFIID riid) : RealInterface(aOriginal)
 	{
-		ProxyInterface = new m_IDirectDrawX((IDirectDraw7*)RealInterface, 4, riid);
+		ProxyInterface = new m_IDirectDrawX((IDirectDraw7*)RealInterface, 4, riid, this);
 		ProxyAddressLookupTable.SaveAddress(this, RealInterface);
 	}
 	~m_IDirectDraw4()

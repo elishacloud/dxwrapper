@@ -4,12 +4,12 @@ class m_IDirectDrawX
 {
 private:
 	IDirectDraw7 *ProxyInterface;
+	IDirectDraw *WrapperInterface;
 	DWORD DirectXVersion;
 	DWORD ProxyDirectXVersion;
-	REFIID RealIID;
 
 public:
-	m_IDirectDrawX(IDirectDraw7 *aOriginal, DWORD Version, REFIID riid) : ProxyInterface(aOriginal), DirectXVersion(Version), RealIID(riid)
+	m_IDirectDrawX(IDirectDraw7 *aOriginal, DWORD Version, REFIID riid, LPVOID m_pvObj) : ProxyInterface(aOriginal), DirectXVersion(Version), WrapperInterface((IDirectDraw*)m_pvObj)
 	{
 		if (riid == IID_IDirectDraw) { ProxyDirectXVersion = 1; }
 		else if (riid == IID_IDirectDraw2) { ProxyDirectXVersion = 2; }

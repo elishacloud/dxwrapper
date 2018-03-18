@@ -18,7 +18,7 @@
 
 HRESULT m_IDirectDrawSurfaceX::QueryInterface(REFIID riid, LPVOID FAR * ppvObj)
 {
-	return ProxyQueryInterface(ProxyInterface, riid, ppvObj, RealIID);
+	return ProxyQueryInterface(ProxyInterface, riid, ppvObj, WrapperInterface);
 }
 
 ULONG m_IDirectDrawSurfaceX::AddRef()

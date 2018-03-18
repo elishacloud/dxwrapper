@@ -4,12 +4,12 @@ class m_IDirectDrawSurfaceX
 {
 private:
 	IDirectDrawSurface7 *ProxyInterface;
+	IDirectDrawSurface *WrapperInterface;
 	DWORD DirectXVersion;
 	DWORD ProxyDirectXVersion;
-	REFIID RealIID;
 
 public:
-	m_IDirectDrawSurfaceX(IDirectDrawSurface7 *pOriginal, DWORD Version, REFIID riid) : ProxyInterface(pOriginal), DirectXVersion(Version), RealIID(riid)
+	m_IDirectDrawSurfaceX(IDirectDrawSurface7 *pOriginal, DWORD Version, REFIID riid, LPVOID m_pvObj) : ProxyInterface(pOriginal), DirectXVersion(Version), WrapperInterface((IDirectDrawSurface*)m_pvObj)
 	{
 		if (riid == IID_IDirectDrawSurface) { ProxyDirectXVersion = 1; }
 		else if (riid == IID_IDirectDrawSurface2) { ProxyDirectXVersion = 2; }

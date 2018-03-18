@@ -1,11 +1,16 @@
 #include "ddraw.h"
 
-REFIID ConvertREFIID(REFIID CalledID)
+REFIID GetIID(REFIID CalledID)
 {
-	REFIID riid = (CalledID == CLSID_DirectDraw) ? IID_IDirectDraw :
+	return (CalledID == CLSID_DirectDraw) ? IID_IDirectDraw :
 		(CalledID == CLSID_DirectDraw7) ? IID_IDirectDraw7 :
 		(CalledID == CLSID_DirectDrawClipper) ? IID_IDirectDrawClipper :
 		CalledID;
+}
+
+REFIID ConvertREFIID(REFIID CalledID)
+{
+	REFIID riid = GetIID(CalledID);
 
 	if (Config.ConvertToDirectDraw7)
 	{
@@ -28,13 +33,16 @@ REFIID ConvertREFIID(REFIID CalledID)
 	return riid;
 }
 
-HRESULT ProxyQueryInterface(LPVOID ProxyInterface, REFIID CalledID, LPVOID * ppvObj, REFIID RealIID)
+HRESULT ProxyQueryInterface(LPVOID ProxyInterface, REFIID CalledID, LPVOID * ppvObj, LPVOID m_pvObj)
 {
-	REFIID riid = (CalledID == IID_IUnknown) ? RealIID :
-		(CalledID == CLSID_DirectDraw) ? IID_IDirectDraw :
-		(CalledID == CLSID_DirectDraw7) ? IID_IDirectDraw7 :
-		(CalledID == CLSID_DirectDrawClipper) ? IID_IDirectDrawClipper :
-		CalledID;
+	REFIID riid = GetIID(CalledID);
+
+	if (riid == IID_IUnknown)
+	{
+		((IDirectDraw*)m_pvObj)->AddRef();
+		*ppvObj = m_pvObj;
+		return S_OK;
+	}
 
 	HRESULT hr = ((IDirectDraw*)ProxyInterface)->QueryInterface(ConvertREFIID(riid), ppvObj);
 
@@ -48,10 +56,7 @@ HRESULT ProxyQueryInterface(LPVOID ProxyInterface, REFIID CalledID, LPVOID * ppv
 
 void genericQueryInterface(REFIID CalledID, LPVOID * ppvObj)
 {
-	REFIID riid = (CalledID == CLSID_DirectDraw) ? IID_IDirectDraw :
-		(CalledID == CLSID_DirectDraw7) ? IID_IDirectDraw7 :
-		(CalledID == CLSID_DirectDrawClipper) ? IID_IDirectDrawClipper :
-		CalledID;
+	REFIID riid = GetIID(CalledID);
 
 #define QUERYINTERFACE(x) \
 	if (riid == IID_ ## x) \
