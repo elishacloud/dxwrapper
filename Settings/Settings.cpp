@@ -14,6 +14,7 @@
 *   3. This notice may not be removed or altered from any source distribution.
 */
 
+#include <regex>
 #include <algorithm>
 #include "Settings.h"
 #include "Dllmain\Dllmain.h"
@@ -157,7 +158,12 @@ void Settings::SetValue(char* name, char* value, std::vector<std::string>* setti
 {
 	std::string newString;
 	newString.assign(value);
-	setting->push_back(newString);
+	// Trim whitespaces
+	newString = std::regex_replace(newString, std::regex("(^\\s*(.*\\S)\\s*$)|(^\\s*$)"), "$2");
+	if (newString.size() != 0)
+	{
+		setting->push_back(newString);
+	}
 #ifdef SETTINGSLOG
 	Logging::Log() << name << " set to '" << setting->back().c_str() << "'";
 #else
@@ -169,6 +175,8 @@ void Settings::SetValue(char* name, char* value, std::vector<std::string>* setti
 void Settings::SetValue(char* name, char* value, std::string* setting)
 {
 	setting->assign(value);
+	// Trim whitespaces
+	*setting = std::regex_replace(*setting, std::regex("(^\\s*(.*\\S)\\s*$)|(^\\s*$)"), "$2");
 #ifdef SETTINGSLOG
 	Logging::Log() << name << " set to '" << setting->c_str() << "'";
 #else

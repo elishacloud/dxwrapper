@@ -145,41 +145,48 @@ HRESULT m_IDirect3D9Ex::CreateDeviceEx(THIS_ UINT Adapter, D3DDEVTYPE DeviceType
 
 	// Check for AntiAliasing
 	bool MultiSampleFlag = false;
-	if (Config.AntiAliasing != 0 && pPresentationParameters->SwapEffect == D3DSWAPEFFECT_DISCARD)
+	if (Config.AntiAliasing != 0)
 	{
-		DWORD QualityLevels = 0;
-		D3DPRESENT_PARAMETERS d3dpp;
-		CopyMemory(&d3dpp, pPresentationParameters, sizeof(d3dpp));
-
-		// Check AntiAliasing quality
-		for (int x = min(16, Config.AntiAliasing); x > 0; x--)
+		if (pPresentationParameters->SwapEffect == D3DSWAPEFFECT_DISCARD)
 		{
-			if (ProxyInterface->CheckDeviceMultiSampleType(Adapter,
-				DeviceType, d3dpp.BackBufferFormat, d3dpp.Windowed,
-				(D3DMULTISAMPLE_TYPE)x, &QualityLevels) == S_OK &&
-				ProxyInterface->CheckDeviceMultiSampleType(Adapter,
-					DeviceType, d3dpp.AutoDepthStencilFormat, d3dpp.Windowed,
-					(D3DMULTISAMPLE_TYPE)x, &QualityLevels) == S_OK)
+			DWORD QualityLevels = 0;
+			D3DPRESENT_PARAMETERS d3dpp;
+			CopyMemory(&d3dpp, pPresentationParameters, sizeof(d3dpp));
+
+			// Check AntiAliasing quality
+			for (int x = min(16, Config.AntiAliasing); x > 0; x--)
 			{
-				d3dpp.Flags &= ~D3DPRESENTFLAG_LOCKABLE_BACKBUFFER;
-				d3dpp.MultiSampleType = (D3DMULTISAMPLE_TYPE)x;
-				d3dpp.MultiSampleQuality = (QualityLevels > 0) ? QualityLevels - 1 : 0;
-
-				// Create Device
-				hr = ProxyInterface->CreateDeviceEx(Adapter, DeviceType, hFocusWindow, BehaviorFlags, &d3dpp, pFullscreenDisplayMode, ppReturnedDeviceInterface);
-
-				// Check if device was created successfully
-				if (SUCCEEDED(hr))
+				if (ProxyInterface->CheckDeviceMultiSampleType(Adapter,
+					DeviceType, d3dpp.BackBufferFormat, d3dpp.Windowed,
+					(D3DMULTISAMPLE_TYPE)x, &QualityLevels) == S_OK &&
+					ProxyInterface->CheckDeviceMultiSampleType(Adapter,
+						DeviceType, d3dpp.AutoDepthStencilFormat, d3dpp.Windowed,
+						(D3DMULTISAMPLE_TYPE)x, &QualityLevels) == S_OK)
 				{
-					MultiSampleFlag = true;
-					Logging::Log() << "Setting MultiSample " << d3dpp.MultiSampleType << " Quality " << d3dpp.MultiSampleQuality;
+					d3dpp.Flags &= ~D3DPRESENTFLAG_LOCKABLE_BACKBUFFER;
+					d3dpp.MultiSampleType = (D3DMULTISAMPLE_TYPE)x;
+					d3dpp.MultiSampleQuality = (QualityLevels > 0) ? QualityLevels - 1 : 0;
+
+					// Create Device
+					hr = ProxyInterface->CreateDeviceEx(Adapter, DeviceType, hFocusWindow, BehaviorFlags, &d3dpp, pFullscreenDisplayMode, ppReturnedDeviceInterface);
+
+					// Check if device was created successfully
+					if (SUCCEEDED(hr))
+					{
+						MultiSampleFlag = true;
+						Logging::Log() << "Setting MultiSample " << d3dpp.MultiSampleType << " Quality " << d3dpp.MultiSampleQuality;
+					}
+					else
+					{
+						Logging::Log() << "Failed to set AntiAliasing!";
+					}
+					break;
 				}
-				else
-				{
-					Logging::Log() << "Failed to set AntiAliasing!";
-				}
-				break;
 			}
+		}
+		if (FAILED(hr))
+		{
+			Logging::Log() << "Could not enable AntiAliasing!";
 		}
 	}
 
