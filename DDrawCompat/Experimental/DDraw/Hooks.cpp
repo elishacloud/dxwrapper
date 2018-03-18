@@ -4,7 +4,7 @@
 
 #include "Common/CompatPtr.h"
 #include "Common/CompatRef.h"
-#include "DDrawLog.h"
+#include "DDrawCompat\DDrawLog.h"
 #include "DDraw/ActivateAppHandler.h"
 #include "DDraw/DirectDraw.h"
 #include "DDraw/DirectDrawClipper.h"

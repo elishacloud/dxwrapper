@@ -6,7 +6,7 @@
 //#define SETTINGSLOG
 
 #ifndef DDRAWLOG_H
-#include "DDrawLog.h"
+#include "DDrawCompat\DDrawLog.h"
 #endif
 
 namespace Compat

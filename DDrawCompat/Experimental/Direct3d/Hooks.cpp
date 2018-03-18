@@ -6,7 +6,7 @@
 
 #include "Common/CompatPtr.h"
 #include "Common/CompatRef.h"
-#include "DDrawLog.h"
+#include "DDrawCompat\DDrawLog.h"
 #include "DDraw/Repository.h"
 #include "Direct3d/Direct3d.h"
 #include "Direct3d/Direct3dDevice.h"

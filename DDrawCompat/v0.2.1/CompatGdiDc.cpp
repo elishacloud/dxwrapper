@@ -4,7 +4,7 @@
 #include "CompatGdi.h"
 #include "CompatGdiDc.h"
 #include "CompatGdiDcCache.h"
-#include "DDrawLog.h"
+#include "DDrawCompat\DDrawLog.h"
 #include "Hook.h"
 #include "ScopedCriticalSection.h"
 

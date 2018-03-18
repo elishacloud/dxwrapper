@@ -9,7 +9,7 @@
 #include <Windows.h>
 #include <detours.h>
 
-#include "DDrawLog.h"
+#include "DDrawCompat\DDrawLog.h"
 #include "DDrawVtableVisitor.h"
 
 namespace Compat20

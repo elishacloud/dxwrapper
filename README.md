@@ -8,6 +8,7 @@ DxWrapper has a number of features that it includes.  Below is a list of feature
  - Integration of [DDrawCompat](https://github.com/narzoul/DDrawCompat/)
  - Enable and disable DDrawCompat features to improve compatibility
  - Proxy for [DxWnd](https://sourceforge.net/projects/dxwnd/)
+ - Convert from DirectDraw 1-6 to DirectDraw 7
  - Convert Direct3D8 (d3d8.dll) to Direct3D9 (d3d9.dll) using [d3d8to9](https://github.com/crosire/d3d8to9)
  - Tweaking of some Microsoft DirectSound function calls using [DSoundCtrl](http://www.bockholdt.com/dsc/)
  - ASI loader to load custom libraries with the file extension .asi into game processes using code from [Ultimate ASI Loader](https://github.com/ThirteenAG/Ultimate-ASI-Loader)
@@ -84,19 +85,21 @@ DxWrapper uses code from several other projects. So to give credit where credit 
 
  - [Aqrit's ddwrapper](http://bitpatch.com/ddwrapper.html): Includes code to read the ini config file.
  - [d3d8to9](https://github.com/crosire/d3d8to9): Includes the full Direct3D 8 to Direct3D 9 code.
- - [DDrawCompat](https://github.com/narzoul/DDrawCompat/): Includes the full DDrawCompat version 2.0b, 2.1 and Experimental version.
+ - [DDrawCompat](https://github.com/narzoul/DDrawCompat/): Includes the full DDrawCompat v0.2.0b, v0.2.1 and Experimental version.
  - [DSoundCtrl](https://github.com/nRaecheR/DirectSoundControl): Includes the full DirectSoundControl code.
  - [DxWnd](https://sourceforge.net/projects/dxwnd/): Includes code from DxWnd for API hooking, DxWnd proxy loading (init.cpp) and exception handling.
  - [MemoryModule](https://github.com/fancycode/MemoryModule): Includes code for loading libraries from memory.
  - [OllyDbg](http://www.ollydbg.de/): Includes the full cmdlist.c and disasm.c (disasm.dll) code used for exception handling.
  - [rohitab.com](http://www.rohitab.com/discuss/topic/40594-parsing-pe-export-table/): Includes the full GetProcAddress.
- - [SetAppCompatData]: Used comments from here to allow setting all 12 SetAppCompatData settings. (site no longer exists):  http://www_blitzbasic_com/Community/post.php?topic=99477&post=1202996
+ - **BlitzBasic.com**: `http://www.blitzbasic.com/Community/post.php?topic=99477&post=1202996` (site no longer exists) Used comments from here to build the feature to configure the DirectDraw AppCompatData settings.
  - [stackoverflow.com](https://stackoverflow.com/questions/940707/how-do-i-programmatically-get-the-version-of-a-dll-or-exe-file): Includes code for getting the version of an EXE file.
  - [Ultimate ASI Loader](https://github.com/ThirteenAG/Ultimate-ASI-Loader): Includes code for loading ASI pluggins.
 
 ### Development
 DxWrapper is mostly written in C++ using Microsoft Visual Studio Community 2015.
 
-Compilation depends on [Detours Express 3.0](http://research.microsoft.com/en-us/projects/detours/), the standalone [DirectX SDK](https://www.microsoft.com/en-us/download/details.aspx?id=6812) and the [DirectX 8.1 SDK](https://www.microsoft.com/en-us/download/details.aspx?id=13287). You may need to change the include and library paths depending on where you install Detours or the DirectX SDK/8.1.
+Compilation depends on [Detours Express 3.0](http://research.microsoft.com/en-us/projects/detours/). You may need to change the include and library paths depending on where you installed Detours.
+
+The project is using the Windows 10 SDK and WDK. The exact version required can be seen in the project properties in Visual Studio.
 
 Thanks for stopping by!

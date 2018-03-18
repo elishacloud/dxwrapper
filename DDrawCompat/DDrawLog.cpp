@@ -3,7 +3,7 @@
 #include <atlstr.h>
 #include <Windows.h>
 
-#include "DDrawLog.h"
+#include "DDrawCompat\DDrawLog.h"
 
 namespace
 {

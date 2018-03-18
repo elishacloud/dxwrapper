@@ -3,7 +3,7 @@
 
 #include "CompatDirectDraw.h"
 #include "CompatDirectDrawSurface.h"
-#include "DDrawLog.h"
+#include "DDrawCompat\DDrawLog.h"
 #include "DDrawProcs.h"
 #include "DDrawRepository.h"
 

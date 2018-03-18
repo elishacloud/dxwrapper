@@ -6,7 +6,7 @@
 #include <d3dumddi.h>
 #include <../km/d3dkmthk.h>
 
-#include "DDrawLog.h"
+#include "DDrawCompat\DDrawLog.h"
 #include "Common/Hook.h"
 #include "D3dDdi/Hooks.h"
 #include "D3dDdi/KernelModeThunks.h"

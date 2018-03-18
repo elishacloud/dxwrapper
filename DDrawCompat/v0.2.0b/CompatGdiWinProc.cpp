@@ -5,7 +5,7 @@
 #include "CompatGdi.h"
 #include "CompatGdiDc.h"
 #include "CompatGdiWinProc.h"
-#include "DDrawLog.h"
+#include "DDrawCompat\DDrawLog.h"
 
 namespace Compat20
 {

@@ -3,7 +3,7 @@
 #include "CompatDirectDrawSurface.h"
 #include "CompatGdi.h"
 #include "CompatPrimarySurface.h"
-#include "DDrawLog.h"
+#include "DDrawCompat\DDrawLog.h"
 #include "RealPrimarySurface.h"
 
 namespace Compat21

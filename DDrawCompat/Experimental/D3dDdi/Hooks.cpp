@@ -8,7 +8,7 @@
 #include <..\km\d3dkmthk.h>
 
 #include "Common/Hook.h"
-#include "DDrawLog.h"
+#include "DDrawCompat\DDrawLog.h"
 #include "D3dDdi/AdapterCallbacks.h"
 #include "D3dDdi/AdapterFuncs.h"
 #include "D3dDdi/KernelModeThunks.h"

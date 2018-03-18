@@ -1,4 +1,4 @@
-#include "DDrawLog.h"
+#include "DDrawCompat\DDrawLog.h"
 #include "D3dDdi/Log/KernelModeThunksLog.h"
 
 std::ostream& operator<<(std::ostream& os, const D3DKMT_CREATECONTEXT& data)

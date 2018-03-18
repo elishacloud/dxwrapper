@@ -1,5 +1,5 @@
 #include "Common/Hook.h"
-#include "DDrawLog.h"
+#include "DDrawCompat\DDrawLog.h"
 #include "DDraw/RealPrimarySurface.h"
 #include "Gdi/Gdi.h"
 #include "Gdi/ScrollFunctions.h"

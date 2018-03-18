@@ -3,7 +3,7 @@
 #include "CompatGdi.h"
 #include "CompatGdiDc.h"
 #include "CompatGdiDcFunctions.h"
-#include "DDrawLog.h"
+#include "DDrawCompat\DDrawLog.h"
 #include "Hook.h"
 
 namespace Compat21

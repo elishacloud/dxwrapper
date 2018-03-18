@@ -7,7 +7,7 @@
 #include <dwmapi.h>
 #include <Windows.h>
 
-#include "DDrawLog.h"
+#include "DDrawCompat\DDrawLog.h"
 #include "Common/ScopedCriticalSection.h"
 #include "Gdi/Dc.h"
 #include "Gdi/ScrollBar.h"

@@ -1,4 +1,4 @@
-#include "DDrawLog.h"
+#include "DDrawCompat\DDrawLog.h"
 #include "D3dDdi/Log/DeviceFuncsLog.h"
 
 std::ostream& operator<<(std::ostream& os, const D3DDDI_RATIONAL& val)

@@ -9,7 +9,7 @@
 #include <Uxtheme.h>
 
 #include "Common/Hook.h"
-#include "DDrawLog.h"
+#include "DDrawCompat\DDrawLog.h"
 #include "Common/Time.h"
 #include "D3dDdi/Hooks.h"
 #include "DDraw/DirectDraw.h"

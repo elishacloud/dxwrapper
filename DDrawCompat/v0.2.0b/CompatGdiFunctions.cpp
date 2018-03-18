@@ -1,7 +1,7 @@
 #include "CompatGdi.h"
 #include "CompatGdiDc.h"
 #include "CompatGdiFunctions.h"
-#include "DDrawLog.h"
+#include "DDrawCompat\DDrawLog.h"
 
 #include <detours.h>
 

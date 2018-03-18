@@ -12,7 +12,7 @@
 #include <Psapi.h>
 
 #include "Common/Hook.h"
-#include "DDrawLog.h"
+#include "DDrawCompat\DDrawLog.h"
 
 namespace
 {

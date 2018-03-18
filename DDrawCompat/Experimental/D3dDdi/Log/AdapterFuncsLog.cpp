@@ -1,4 +1,4 @@
-#include "DDrawLog.h"
+#include "DDrawCompat\DDrawLog.h"
 #include "D3dDdi/Log/AdapterFuncsLog.h"
 
 std::ostream& operator<<(std::ostream& os, const D3DDDI_ALLOCATIONLIST& data)

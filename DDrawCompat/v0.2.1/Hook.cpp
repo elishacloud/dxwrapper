@@ -6,7 +6,7 @@
 #include <Windows.h>
 #include <detours.h>
 
-#include "DDrawLog.h"
+#include "DDrawCompat\DDrawLog.h"
 #include "Hook.h"
 
 namespace Compat21

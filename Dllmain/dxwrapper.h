@@ -6,7 +6,7 @@
 #include "Logging\Logging.h"
 #endif
 #ifndef DXWND_H
-#include "dxwnd.h"
+#include "DxWnd\v2_03_60_src\dxwnd.h"
 #endif
 #include "Dllmain\BuildNo.rc"
 

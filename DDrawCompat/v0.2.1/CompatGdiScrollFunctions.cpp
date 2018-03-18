@@ -1,6 +1,6 @@
 #include "CompatGdi.h"
 #include "CompatGdiScrollFunctions.h"
-#include "DDrawLog.h"
+#include "DDrawCompat\DDrawLog.h"
 #include "Hook.h"
 #include "RealPrimarySurface.h"
 

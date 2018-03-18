@@ -11,7 +11,7 @@
 #include "CompatGdiScrollFunctions.h"
 #include "CompatGdiTitleBar.h"
 #include "CompatGdiWinProc.h"
-#include "DDrawLog.h"
+#include "DDrawCompat\DDrawLog.h"
 #include "ScopedCriticalSection.h"
 
 namespace Compat21

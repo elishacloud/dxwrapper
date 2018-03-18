@@ -6,7 +6,7 @@
 
 #include <Windows.h>
 
-#include "DDrawLog.h"
+#include "DDrawCompat\DDrawLog.h"
 
 #define CALL_ORIG_GDI(func) CompatGdi::getOrigFuncPtr<decltype(&func), &func>()
 

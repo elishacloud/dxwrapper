@@ -1,7 +1,7 @@
 #include <unordered_map>
 
 #include "Common/Hook.h"
-#include "DDrawLog.h"
+#include "DDrawCompat\DDrawLog.h"
 #include "Gdi/Dc.h"
 #include "Gdi/DcFunctions.h"
 #include "Gdi/Gdi.h"

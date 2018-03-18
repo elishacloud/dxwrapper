@@ -42,14 +42,14 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <OutDir>$(SolutionDir)bin\$(Configuration)\</OutDir>
     <IntDir>$(SolutionDir)bin\Intermediate\$(Configuration)\dxwrapper\</IntDir>
-    <IncludePath>$(ProjectDir);libraries;Dllmain;DDrawCompat;DDrawCompat\Experimental;DxWnd\v2_03_60_src;C:\Program Files (x86)\Microsoft Research\Detours Express 3.0\include;$(IncludePath);C:\Program Files (x86)\Windows Kits\dx8sdk\include</IncludePath>
-    <LibraryPath>$(DXSDK_DIR)\Lib\x86;C:\Program Files (x86)\Microsoft Research\Detours Express 3.0\lib.X86;$(LibraryPath)</LibraryPath>
+    <IncludePath>$(ProjectDir);libraries;DDrawCompat\Experimental;C:\Program Files %28x86%29\Microsoft Research\Detours Express 3.0\include;$(IncludePath)</IncludePath>
+    <LibraryPath>C:\Program Files %28x86%29\Microsoft Research\Detours Express 3.0\lib.X86;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <OutDir>$(SolutionDir)bin\$(Configuration)\</OutDir>
     <IntDir>$(SolutionDir)bin\Intermediate\$(Configuration)\dxwrapper\</IntDir>
-    <IncludePath>$(ProjectDir);libraries;Dllmain;DDrawCompat;DDrawCompat\Experimental;DxWnd\v2_03_60_src;C:\Program Files (x86)\Microsoft Research\Detours Express 3.0\include;$(IncludePath);C:\Program Files (x86)\Windows Kits\dx8sdk\include</IncludePath>
-    <LibraryPath>$(DXSDK_DIR)\Lib\x86;C:\Program Files (x86)\Microsoft Research\Detours Express 3.0\lib.X86;$(LibraryPath)</LibraryPath>
+    <IncludePath>$(ProjectDir);libraries;DDrawCompat\Experimental;C:\Program Files %28x86%29\Microsoft Research\Detours Express 3.0\include;$(IncludePath)</IncludePath>
+    <LibraryPath>C:\Program Files %28x86%29\Microsoft Research\Detours Express 3.0\lib.X86;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>

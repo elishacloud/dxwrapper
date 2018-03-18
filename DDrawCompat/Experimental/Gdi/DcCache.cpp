@@ -2,7 +2,7 @@
 #include <vector>
 
 #include "Common/CompatPtr.h"
-#include "DDrawLog.h"
+#include "DDrawCompat\DDrawLog.h"
 #include "Config/Config.h"
 #include "DDraw/Repository.h"
 #include "DDraw/Surfaces/PrimarySurface.h"

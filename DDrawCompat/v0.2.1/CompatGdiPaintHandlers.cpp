@@ -6,7 +6,7 @@
 #include "CompatGdiTitleBar.h"
 #include "CompatPrimarySurface.h"
 #include "CompatRegistry.h"
-#include "DDrawLog.h"
+#include "DDrawCompat\DDrawLog.h"
 #include "Hook.h"
 #include "RealPrimarySurface.h"
 

@@ -4,7 +4,7 @@
 #include <string>
 #include <vector>
 
-#include "DDrawLog.h"
+#include "DDrawCompat\DDrawLog.h"
 #include "DDrawVtableVisitor.h"
 #include "Hook.h"
 

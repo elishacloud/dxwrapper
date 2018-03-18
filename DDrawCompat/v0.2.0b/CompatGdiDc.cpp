@@ -3,7 +3,7 @@
 
 #include "CompatGdiDc.h"
 #include "CompatGdiDcCache.h"
-#include "DDrawLog.h"
+#include "DDrawCompat\DDrawLog.h"
 
 namespace Compat20
 {

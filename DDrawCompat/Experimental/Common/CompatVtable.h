@@ -5,7 +5,7 @@
 #include <vector>
 
 #include "Common/Hook.h"
-#include "DDrawLog.h"
+#include "DDrawCompat\DDrawLog.h"
 #include "Common/VtableVisitor.h"
 #include "DDraw/ScopedThreadLock.h"
 

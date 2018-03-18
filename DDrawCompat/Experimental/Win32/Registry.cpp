@@ -6,7 +6,7 @@
 #include <atlstr.h>
 
 #include "Common/Hook.h"
-#include "DDrawLog.h"
+#include "DDrawCompat\DDrawLog.h"
 #include "Win32/Registry.h"
 
 namespace

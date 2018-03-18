@@ -3,7 +3,7 @@
 #include <vector>
 
 #include "Common/CompatPtr.h"
-#include "DDrawLog.h"
+#include "DDrawCompat\DDrawLog.h"
 #include "DDraw/DirectDraw.h"
 #include "DDraw/Repository.h"
 #include "Dll/Procs.h"

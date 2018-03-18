@@ -7,7 +7,7 @@
 #include "CompatGdiDcCache.h"
 #include "CompatPrimarySurface.h"
 #include "Config.h"
-#include "DDrawLog.h"
+#include "DDrawCompat\DDrawLog.h"
 #include "DDrawProcs.h"
 #include "DDrawRepository.h"
 
