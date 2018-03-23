@@ -120,37 +120,36 @@ HRESULT m_IDirect3D9::CreateDevice(UINT Adapter, D3DDEVTYPE DeviceType, HWND hFo
 	bool MultiSampleFlag = false;
 	if (Config.AntiAliasing != 0)
 	{
-		if (pPresentationParameters->SwapEffect == D3DSWAPEFFECT_DISCARD)
+		DWORD QualityLevels = 0;
+		D3DPRESENT_PARAMETERS d3dpp;
+		CopyMemory(&d3dpp, pPresentationParameters, sizeof(d3dpp));
+
+		// Check AntiAliasing quality
+		for (int x = min(16, Config.AntiAliasing); x > 0; x--)
 		{
-			DWORD QualityLevels = 0;
-			D3DPRESENT_PARAMETERS d3dpp;
-			CopyMemory(&d3dpp, pPresentationParameters, sizeof(d3dpp));
-
-			// Check AntiAliasing quality
-			for (int x = min(16, Config.AntiAliasing); x > 0; x--)
+			if (ProxyInterface->CheckDeviceMultiSampleType(Adapter,
+				DeviceType, d3dpp.BackBufferFormat, d3dpp.Windowed,
+				(D3DMULTISAMPLE_TYPE)x, &QualityLevels) == S_OK &&
+				ProxyInterface->CheckDeviceMultiSampleType(Adapter,
+					DeviceType, d3dpp.AutoDepthStencilFormat, d3dpp.Windowed,
+					(D3DMULTISAMPLE_TYPE)x, &QualityLevels) == S_OK)
 			{
-				if (ProxyInterface->CheckDeviceMultiSampleType(Adapter,
-					DeviceType, d3dpp.BackBufferFormat, d3dpp.Windowed,
-					(D3DMULTISAMPLE_TYPE)x, &QualityLevels) == S_OK &&
-					ProxyInterface->CheckDeviceMultiSampleType(Adapter,
-						DeviceType, d3dpp.AutoDepthStencilFormat, d3dpp.Windowed,
-						(D3DMULTISAMPLE_TYPE)x, &QualityLevels) == S_OK)
+				d3dpp.Flags &= ~D3DPRESENTFLAG_LOCKABLE_BACKBUFFER;
+				d3dpp.SwapEffect = D3DSWAPEFFECT_DISCARD;
+				d3dpp.MultiSampleType = (D3DMULTISAMPLE_TYPE)x;
+				d3dpp.MultiSampleQuality = (QualityLevels > 0) ? QualityLevels - 1 : 0;
+
+				// Create Device
+				hr = ProxyInterface->CreateDevice(Adapter, DeviceType, hFocusWindow, BehaviorFlags, &d3dpp, ppReturnedDeviceInterface);
+
+				// Check if device was created successfully
+				if (SUCCEEDED(hr))
 				{
-					d3dpp.Flags &= ~D3DPRESENTFLAG_LOCKABLE_BACKBUFFER;
-					d3dpp.MultiSampleType = (D3DMULTISAMPLE_TYPE)x;
-					d3dpp.MultiSampleQuality = (QualityLevels > 0) ? QualityLevels - 1 : 0;
-
-					// Create Device
-					hr = ProxyInterface->CreateDevice(Adapter, DeviceType, hFocusWindow, BehaviorFlags, &d3dpp, ppReturnedDeviceInterface);
-
-					// Check if device was created successfully
-					if (SUCCEEDED(hr))
-					{
-						MultiSampleFlag = true;
-						Logging::Log() << "Setting MultiSample " << d3dpp.MultiSampleType << " Quality " << d3dpp.MultiSampleQuality;
-					}
-					break;
+					MultiSampleFlag = true;
+					(*ppReturnedDeviceInterface)->SetRenderState(D3DRS_MULTISAMPLEANTIALIAS, TRUE);
+					Logging::Log() << "Setting MultiSample " << d3dpp.MultiSampleType << " Quality " << d3dpp.MultiSampleQuality;
 				}
+				break;
 			}
 		}
 		if (FAILED(hr))
