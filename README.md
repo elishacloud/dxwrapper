@@ -6,7 +6,7 @@ DxWrapper is a .dll file designed to wrap DirectX files to fix compatibility iss
 DxWrapper has many features including:
 
  - Integration of [DDrawCompat](https://github.com/narzoul/DDrawCompat/)
- - Enabling or disabling DDrawCompat to improve compatibility
+ - Configuring DDrawCompat options to improve compatibility
  - Proxy for [DxWnd](https://sourceforge.net/projects/dxwnd/)
  - Conversion of DirectDraw 1-6 to DirectDraw 7
  - Conversion of Direct3D8 (d3d8.dll) to Direct3D9 (d3d9.dll) using [d3d8to9](https://github.com/crosire/d3d8to9)
@@ -30,9 +30,8 @@ So far I have tested this with over 70 games (that don't otherwise work correctl
 
 1. Download the latest binary release from the repository's [Release](https://github.com/elishacloud/dxwrapper/releases) page and unzip it to a folder.
 2. Determine which .dll file is needed for the game.  This depends on many factors which will be explained on page created later.  Most commonly it is `ddraw.dll`, `dsound.dll` or `winmm.dll`.
-3. Copy this .dll file and the `Settings.ini` file into the game's installation directory, next to the main executable file.  For some games the main executable is in a subdirectory (like 'Bin', 'Exe' or 'App') so the files will need to be copied it into that directory.  Overwriting of any existing game files is not recommended.
-4. Rename the `Settings.ini` to match the name of the .dll file.  For example, if you are using `ddraw.dll`, then rename `Settings.ini` to `ddraw.ini`.
-5. Open up the .ini file in a text editor and enable the settings needed for the game.
+3. Copy this .dll file from the 'Stub' folder plus the `dxwrapper.dll` and `dxwrapper.ini` files into the game's installation directory, next to the main executable file.  For some games the main executable is in a subdirectory (like 'Bin', 'Exe' or 'App') so the files will need to be copied it into that directory.  Overwriting of any existing game files is not recommended.
+4. Open up the `dxwrapper.ini` file in a text editor and enable the settings needed for the game.
 
 Do not attempt to overwrite any .dll in a Windows system directory as it is currently not supported and will not work.
 
@@ -96,7 +95,7 @@ DxWrapper uses code from several other projects. So to give credit where credit 
  - [Ultimate ASI Loader](https://github.com/ThirteenAG/Ultimate-ASI-Loader): Includes code for loading ASI pluggins.
 
 ### Development
-DxWrapper is mostly written in C++ using Microsoft Visual Studio Community 2015.
+DxWrapper is written mostly in C++ using Microsoft Visual Studio Community 2015.
 
 Compilation depends on [Detours Express 3.0](http://research.microsoft.com/en-us/projects/detours/). The include and library paths may need to be changed depending on where Detours is installed.
 
