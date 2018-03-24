@@ -18,7 +18,7 @@
 
 HRESULT m_IDirectDrawSurfaceX::QueryInterface(REFIID riid, LPVOID FAR * ppvObj)
 {
-	return ProxyQueryInterface(ProxyInterface, riid, ppvObj, WrapperInterface);
+	return ProxyQueryInterface(ProxyInterface, riid, ppvObj, WrapperID, WrapperInterface);
 }
 
 ULONG m_IDirectDrawSurfaceX::AddRef()
@@ -92,9 +92,7 @@ HRESULT m_IDirectDrawSurfaceX::EnumAttachedSurfaces(LPVOID a, T b)
 	CallbackContext.DirectXVersion = DirectXVersion;
 	CallbackContext.ProxyDirectXVersion = ProxyDirectXVersion;
 
-	HRESULT hr = ProxyInterface->EnumAttachedSurfaces(a, m_IDirectDrawEnumSurface::ConvertCallback);
-
-	return hr;
+	return ProxyInterface->EnumAttachedSurfaces(&CallbackContext, m_IDirectDrawEnumSurface::ConvertCallback);
 }
 
 template HRESULT m_IDirectDrawSurfaceX::EnumOverlayZOrders<LPDDENUMSURFACESCALLBACK>(DWORD a, LPVOID b, LPDDENUMSURFACESCALLBACK c);
@@ -108,9 +106,7 @@ HRESULT m_IDirectDrawSurfaceX::EnumOverlayZOrders(DWORD a, LPVOID b, T c)
 	CallbackContext.DirectXVersion = DirectXVersion;
 	CallbackContext.ProxyDirectXVersion = ProxyDirectXVersion;
 
-	HRESULT hr = ProxyInterface->EnumOverlayZOrders(a, b, m_IDirectDrawEnumSurface::ConvertCallback);
-
-	return hr;
+	return ProxyInterface->EnumOverlayZOrders(a, &CallbackContext, m_IDirectDrawEnumSurface::ConvertCallback);
 }
 
 HRESULT m_IDirectDrawSurfaceX::Flip(LPDIRECTDRAWSURFACE7 a, DWORD b)

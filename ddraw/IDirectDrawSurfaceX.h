@@ -7,9 +7,10 @@ private:
 	IDirectDrawSurface *WrapperInterface;
 	DWORD DirectXVersion;
 	DWORD ProxyDirectXVersion;
+	REFIID WrapperID;
 
 public:
-	m_IDirectDrawSurfaceX(IDirectDrawSurface7 *pOriginal, DWORD Version, REFIID riid, LPVOID m_pvObj) : ProxyInterface(pOriginal), DirectXVersion(Version), WrapperInterface((IDirectDrawSurface*)m_pvObj)
+	m_IDirectDrawSurfaceX(IDirectDrawSurface7 *pOriginal, DWORD Version, REFIID riid, LPVOID m_pvObj) : ProxyInterface(pOriginal), DirectXVersion(Version), WrapperID(riid), WrapperInterface((IDirectDrawSurface*)m_pvObj)
 	{
 		if (riid == IID_IDirectDrawSurface) { ProxyDirectXVersion = 1; }
 		else if (riid == IID_IDirectDrawSurface2) { ProxyDirectXVersion = 2; }
@@ -17,6 +18,10 @@ public:
 		else if (riid == IID_IDirectDrawSurface4) { ProxyDirectXVersion = 4; }
 		else if (riid == IID_IDirectDrawSurface7) { ProxyDirectXVersion = 7; }
 		else { ProxyDirectXVersion = DirectXVersion; }
+		if (ProxyDirectXVersion != DirectXVersion)
+		{
+			Logging::Log() << "Convert DirectDrawSurface v" << DirectXVersion << " to v" << ProxyDirectXVersion;
+		}
 	}
 	~m_IDirectDrawSurfaceX() { }
 

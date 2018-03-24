@@ -725,7 +725,7 @@ HRESULT m_IDirect3DDevice9::CreateQuery(THIS_ D3DQUERYTYPE Type, IDirect3DQuery9
 {
 	HRESULT hr = ProxyInterface->CreateQuery(Type, ppQuery);
 
-	if (SUCCEEDED(hr))
+	if (SUCCEEDED(hr) && ppQuery)
 	{
 		*ppQuery = ProxyAddressLookupTable->FindAddress<m_IDirect3DQuery9>(*ppQuery);
 	}

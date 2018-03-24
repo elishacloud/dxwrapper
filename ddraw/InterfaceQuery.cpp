@@ -33,18 +33,26 @@ REFIID ConvertREFIID(REFIID CalledID)
 	return riid;
 }
 
-HRESULT ProxyQueryInterface(LPVOID ProxyInterface, REFIID CalledID, LPVOID * ppvObj, LPVOID m_pvObj)
+HRESULT ProxyQueryInterface(LPVOID ProxyInterface, REFIID CalledID, LPVOID * ppvObj, REFIID CallerID, LPVOID WrapperInterface)
 {
 	REFIID riid = GetIID(CalledID);
 
-	if (riid == IID_IUnknown)
+	if (ppvObj == nullptr)
 	{
-		((IDirectDraw*)m_pvObj)->AddRef();
-		*ppvObj = m_pvObj;
+		return E_POINTER;
+	}
+
+	if (riid == CallerID ||
+		riid == IID_IUnknown)
+	{
+		((IUnknown*)ProxyInterface)->AddRef();
+
+		*ppvObj = WrapperInterface;
+
 		return S_OK;
 	}
 
-	HRESULT hr = ((IDirectDraw*)ProxyInterface)->QueryInterface(ConvertREFIID(riid), ppvObj);
+	HRESULT hr = ((IUnknown*)ProxyInterface)->QueryInterface(ConvertREFIID(riid), ppvObj);
 
 	if (SUCCEEDED(hr))
 	{

@@ -7,9 +7,10 @@ private:
 	IDirectDraw *WrapperInterface;
 	DWORD DirectXVersion;
 	DWORD ProxyDirectXVersion;
+	REFIID WrapperID;
 
 public:
-	m_IDirectDrawX(IDirectDraw7 *aOriginal, DWORD Version, REFIID riid, LPVOID m_pvObj) : ProxyInterface(aOriginal), DirectXVersion(Version), WrapperInterface((IDirectDraw*)m_pvObj)
+	m_IDirectDrawX(IDirectDraw7 *aOriginal, DWORD Version, REFIID riid, LPVOID m_pvObj) : ProxyInterface(aOriginal), DirectXVersion(Version), WrapperID(riid), WrapperInterface((IDirectDraw*)m_pvObj)
 	{
 		if (riid == IID_IDirectDraw) { ProxyDirectXVersion = 1; }
 		else if (riid == IID_IDirectDraw2) { ProxyDirectXVersion = 2; }
