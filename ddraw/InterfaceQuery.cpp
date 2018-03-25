@@ -5,6 +5,7 @@ REFIID GetIID(REFIID CalledID)
 	return (CalledID == CLSID_DirectDraw) ? IID_IDirectDraw :
 		(CalledID == CLSID_DirectDraw7) ? IID_IDirectDraw7 :
 		(CalledID == CLSID_DirectDrawClipper) ? IID_IDirectDrawClipper :
+		(CalledID == CLSID_DirectDrawFactory) ? IID_IDirectDrawFactory :
 		CalledID;
 }
 
@@ -35,15 +36,13 @@ REFIID ConvertREFIID(REFIID CalledID)
 
 HRESULT ProxyQueryInterface(LPVOID ProxyInterface, REFIID CalledID, LPVOID * ppvObj, REFIID CallerID, LPVOID WrapperInterface)
 {
+#ifdef _DEBUG
+	Logging::Log() << "Query for " << CalledID << " from " << CallerID;
+#endif // DEBUG
+
 	REFIID riid = GetIID(CalledID);
 
-	if (ppvObj == nullptr)
-	{
-		return E_POINTER;
-	}
-
-	if (riid == CallerID ||
-		riid == IID_IUnknown)
+	if ((riid == CallerID || riid == IID_IUnknown) && ppvObj)
 	{
 		((IUnknown*)ProxyInterface)->AddRef();
 
@@ -58,6 +57,12 @@ HRESULT ProxyQueryInterface(LPVOID ProxyInterface, REFIID CalledID, LPVOID * ppv
 	{
 		genericQueryInterface(riid, ppvObj);
 	}
+#ifdef _DEBUG
+	else
+	{
+		Logging::Log() << "Query failed!";
+	}
+#endif // DEBUG
 
 	return hr;
 }
