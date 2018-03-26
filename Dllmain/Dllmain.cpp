@@ -58,9 +58,9 @@ bool APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 
 		// Init logs
 		Logging::Log() << "Starting DxWrapper v" << APP_VERSION;
-		Logging::LogOSVersion();
 		Logging::LogComputerManufacturer();
 		Logging::LogVideoCard();
+		Logging::LogOSVersion();
 		Logging::LogProcessNameAndPID();
 
 		// Initialize config

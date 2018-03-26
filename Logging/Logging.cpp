@@ -472,13 +472,13 @@ void Logging::LogComputerManufacturer()
 						if (Buffer1.size() != 0)
 						{
 							Buffer1.append(" ");
+							Buffer1.append(lpString3);
 						}
-						Buffer1.append(lpString3);
 						if (Buffer2.size() != 0)
 						{
 							Buffer2.append(" ");
+							Buffer2.append(lpString3);
 						}
-						Buffer2.append(lpString3);
 						break;
 					}
 					uString++;
@@ -514,6 +514,7 @@ void Logging::LogVideoCard()
 	DISPLAY_DEVICE DispDev;
 	ZeroMemory(&DispDev, sizeof(DispDev));
 	DispDev.cb = sizeof(DispDev);
+	DispDev.StateFlags = DISPLAY_DEVICE_PRIMARY_DEVICE;
 	DWORD nDeviceIndex = 0;
 	EnumDisplayDevices(NULL, nDeviceIndex, &DispDev, 0);
 	Log() << DispDev.DeviceString;
