@@ -345,57 +345,49 @@ void Logging::LogOSVersion()
 void Logging::LogComputerManufacturer()
 {
 	std::string Buffer1, Buffer2;
-	HKEY   hkData;
-	LPSTR  lpString1 = nullptr, lpString2 = nullptr, lpString3 = nullptr;
+	HKEY hkData;
+	LPSTR lpString1 = nullptr, lpString2 = nullptr, lpString3 = nullptr;
 	LPBYTE lpData = nullptr;
-	DWORD  dwType = 0, dwSize = 0;
-	UINT   uIndex, uStart, uEnd, uString, uState = 0;
-	LONG   lErr;
+	DWORD dwType = 0, dwSize = 0;
+	UINT uIndex, uStart, uEnd, uString, uState = 0;
+	HRESULT hr;
 
-	if ((lErr = RegOpenKeyEx(HKEY_LOCAL_MACHINE, "SYSTEM\\CurrentControlSet\\Services\\mssmbios\\Data", 0, KEY_QUERY_VALUE, &hkData)) != ERROR_SUCCESS)
+	if ((hr = RegOpenKeyEx(HKEY_LOCAL_MACHINE, "SYSTEM\\CurrentControlSet\\Services\\mssmbios\\Data", 0, KEY_QUERY_VALUE, &hkData)) != ERROR_SUCCESS)
 	{
-		SetLastError(lErr);
 		return;
 	}
 
-	if ((lErr = RegQueryValueEx(hkData, "SMBiosData", nullptr, &dwType, nullptr, &dwSize)) == ERROR_SUCCESS)
+	if ((hr = RegQueryValueEx(hkData, "SMBiosData", nullptr, &dwType, nullptr, &dwSize)) == ERROR_SUCCESS)
 	{
 		if (dwSize < 8 || dwType != REG_BINARY)
 		{
-			lErr = ERROR_BADKEY;
+			hr = ERROR_BADKEY;
 		}
 		else
 		{
 			lpData = new BYTE[dwSize];
 			if (!lpData)
 			{
-				lErr = ERROR_NOT_ENOUGH_MEMORY;
+				hr = ERROR_NOT_ENOUGH_MEMORY;
 			}
 			else
 			{
-				lErr = RegQueryValueEx(hkData, "SMBiosData", nullptr, nullptr, lpData, &dwSize);
+				hr = RegQueryValueEx(hkData, "SMBiosData", nullptr, nullptr, lpData, &dwSize);
 			}
 		}
 	}
 
 	RegCloseKey(hkData);
 
-	if (lErr == ERROR_SUCCESS)
+	if (hr == ERROR_SUCCESS)
 	{
 		uIndex = 8 + *(WORD *)(lpData + 6);
-		uEnd = 8 + *(WORD *)(lpData + 4);
+		uEnd = min(dwSize, (DWORD)(8 + *(WORD *)(lpData + 4))) - 1;
+		lpData[uEnd] = 0x00;
 
-		while (uIndex < uEnd && lpData[uIndex] != 0x7F)
+		while (uIndex + 1 < uEnd && lpData[uIndex] != 0x7F)
 		{
-			UINT tmp = ((uStart = uIndex) + 1);
-			if (tmp < uEnd)
-			{
-				uIndex += lpData[tmp];
-			}
-			else
-			{
-				while (++uIndex && uIndex < uEnd && (lpData[uIndex - 1] || lpData[uIndex]));
-			}
+			uIndex += lpData[(uStart = uIndex) + 1];
 			uString = 1;
 			if (uIndex < uEnd && uStart + 6 < uEnd)
 			{
