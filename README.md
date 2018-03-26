@@ -71,7 +71,7 @@ DxWrapper can wrap the following dlls:
  - winmmbase.dll
 
 ### License
-Copyright (C) 2017 Elisha Riedlinger
+Copyright (C) 2018 Elisha Riedlinger
 
 This software is provided 'as-is', without any express or implied warranty. In no event will the author(s) be held liable for any damages arising from the use of this software. Permission is granted to anyone to use this software for any purpose, including commercial applications, and to alter it and redistribute it freely, subject to the following restrictions:
 
@@ -89,9 +89,10 @@ DxWrapper uses code from several other projects. So to give credit where credit 
  - [DxWnd](https://sourceforge.net/projects/dxwnd/): Includes code from DxWnd for API hooking, DxWnd proxy loading (init.cpp) and exception handling.
  - [MemoryModule](https://github.com/fancycode/MemoryModule): Includes code for loading libraries from memory.
  - [OllyDbg](http://www.ollydbg.de/): Includes the full cmdlist.c and disasm.c (disasm.dll) code used for exception handling.
- - [rohitab.com](http://www.rohitab.com/discuss/topic/40594-parsing-pe-export-table/): Includes the full GetProcAddress.
- - **BlitzBasic.com**: `http://www.blitzbasic.com/Community/post.php?topic=99477&post=1202996` (site no longer exists) Used comments from here to build the feature to configure the DirectDraw AppCompatData settings.
- - [stackoverflow.com](https://stackoverflow.com/questions/940707/how-do-i-programmatically-get-the-version-of-a-dll-or-exe-file): Includes code for getting the version of an EXE file.
+ - [GetFunctionAddress](http://www.rohitab.com/discuss/topic/40594-parsing-pe-export-table/): Includes code from rohitab.com to parse the PE export table.
+ - [GetComputerManufacturer](http://www.rohitab.com/discuss/topic/35915-win32-api-to-get-system-information/): Includes code from rohitab.com to get the computer vendor and model.
+ - **AppCompatData**: `http://www.blitzbasic.com/Community/post.php?topic=99477&post=1202996` (site no longer exists) Used comments from here to build the feature to configure the DirectDraw AppCompatData settings.
+ - [GetFileVersionInfo ](https://stackoverflow.com/a/940743): Includes code from stackoverflow.com for getting the version of a PE file.
  - [Ultimate ASI Loader](https://github.com/ThirteenAG/Ultimate-ASI-Loader): Includes code for loading ASI pluggins.
 
 ### Development

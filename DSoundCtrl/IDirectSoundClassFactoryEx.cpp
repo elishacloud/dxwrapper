@@ -53,9 +53,14 @@ IDirectSoundClassFactoryEx::~IDirectSoundClassFactoryEx(void)
 
 HRESULT IDirectSoundClassFactoryEx::QueryInterface(REFIID refIID, LPVOID * pVoid)
 {
+	if (pVoid == nullptr)
+	{
+		return E_POINTER;
+	}
+
 	*pVoid = nullptr;
 
-	if (refIID == IID_IClassFactory)
+	if (refIID == IID_IClassFactory || refIID == IID_IUnknown)
 	{
 		LPVOID pTemp;
 		HRESULT hRes = m_lpClassFactory->QueryInterface(refIID, &pTemp);

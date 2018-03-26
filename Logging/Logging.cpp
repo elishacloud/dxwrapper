@@ -18,6 +18,9 @@
 *
 * Code in GetVersionFile function taken from source code found on stackoverflow.com
 * https://stackoverflow.com/questions/940707/how-do-i-programmatically-get-the-version-of-a-dll-or-exe-file
+*
+* Code in LogComputerManufacturer function taken from source code found on rohitab.com
+* http://www.rohitab.com/discuss/topic/35915-win32-api-to-get-system-information/
 */
 
 #define WIN32_LEAN_AND_MEAN
@@ -337,6 +340,173 @@ void Logging::LogOSVersion()
 
 	// Log operating system version and type
 	Log() << sOSName << ((SystemInfo.wProcessorArchitecture == 9) ? " 64-bit" : "") << " (" << oOS_version.dwMajorVersion << "." << oOS_version.dwMinorVersion << "." << oOS_version.dwBuildNumber << ")" << ServicePack;
+}
+
+void Logging::LogComputerManufacturer()
+{
+	std::string Buffer1, Buffer2;
+	HKEY   hkData;
+	LPSTR  lpString1 = nullptr, lpString2 = nullptr, lpString3 = nullptr;
+	LPBYTE lpData = nullptr;
+	DWORD  dwType = 0, dwSize = 0;
+	UINT   uIndex, uStart, uEnd, uString, uState = 0;
+	LONG   lErr;
+
+	if ((lErr = RegOpenKeyEx(HKEY_LOCAL_MACHINE, "SYSTEM\\CurrentControlSet\\Services\\mssmbios\\Data", 0, KEY_QUERY_VALUE, &hkData)) != ERROR_SUCCESS)
+	{
+		SetLastError(lErr);
+		return;
+	}
+
+	if ((lErr = RegQueryValueEx(hkData, "SMBiosData", nullptr, &dwType, nullptr, &dwSize)) == ERROR_SUCCESS)
+	{
+		if (dwSize < 8 || dwType != REG_BINARY)
+		{
+			lErr = ERROR_BADKEY;
+		}
+		else
+		{
+			lpData = new BYTE[dwSize];
+			if (!lpData)
+			{
+				lErr = ERROR_NOT_ENOUGH_MEMORY;
+			}
+			else
+			{
+				lErr = RegQueryValueEx(hkData, "SMBiosData", nullptr, nullptr, lpData, &dwSize);
+			}
+		}
+	}
+
+	RegCloseKey(hkData);
+
+	if (lErr == ERROR_SUCCESS)
+	{
+		uIndex = 8 + *(WORD *)(lpData + 6);
+		uEnd = 8 + *(WORD *)(lpData + 4);
+
+		while (uIndex < uEnd && lpData[uIndex] != 0x7F)
+		{
+			UINT tmp = ((uStart = uIndex) + 1);
+			if (tmp < uEnd)
+			{
+				uIndex += lpData[tmp];
+			}
+			else
+			{
+				while (++uIndex && uIndex < uEnd && (lpData[uIndex - 1] || lpData[uIndex]));
+			}
+			uString = 1;
+			if (uIndex < uEnd && uStart + 6 < uEnd)
+			{
+				do
+				{
+					if (lpData[uStart] == 0x01 && uState == 0)
+					{
+						if (lpData[uStart + 4] == uString ||
+							lpData[uStart + 5] == uString ||
+							lpData[uStart + 6] == uString)
+						{
+							lpString1 = (LPSTR)(lpData + uIndex);
+							if (!_strcmpi(lpString1, "System manufacturer"))
+							{
+								lpString1 = nullptr;
+								uState++;
+							}
+						}
+					}
+					else if (lpData[uStart] == 0x02 && uState == 1)
+					{
+						if (lpData[uStart + 4] == uString ||
+							lpData[uStart + 5] == uString ||
+							lpData[uStart + 6] == uString)
+						{
+							lpString1 = (LPSTR)(lpData + uIndex);
+						}
+					}
+					else if (lpData[uStart] == 0x02 && uState == 0)
+					{
+						if (lpData[uStart + 4] == uString ||
+							lpData[uStart + 5] == uString ||
+							lpData[uStart + 6] == uString)
+						{
+							lpString2 = (LPSTR)(lpData + uIndex);
+						}
+					}
+					else if (lpData[uStart] == 0x03 && uString == 1)
+					{
+						switch (lpData[uStart + 5])
+						{
+						default:   lpString3 = "(Other)";               break;
+						case 0x02: lpString3 = "(Unknown)";             break;
+						case 0x03: lpString3 = "(Desktop)";             break;
+						case 0x04: lpString3 = "(Low Profile Desktop)"; break;
+						case 0x06: lpString3 = "(Mini Tower)";          break;
+						case 0x07: lpString3 = "(Tower)";               break;
+						case 0x08: lpString3 = "(Portable)";            break;
+						case 0x09: lpString3 = "(Laptop)";              break;
+						case 0x0A: lpString3 = "(Notebook)";            break;
+						case 0x0E: lpString3 = "(Sub Notebook)";        break;
+						}
+					}
+					if (lpString1 != nullptr)
+					{
+						if (Buffer1.size() != 0)
+						{
+							Buffer1.append(" ");
+						}
+						Buffer1.append(lpString1);
+						lpString1 = nullptr;
+					}
+					else if (lpString2 != nullptr)
+					{
+						if (Buffer2.size() != 0)
+						{
+							Buffer2.append(" ");
+						}
+						Buffer2.append(lpString2);
+						lpString2 = nullptr;
+					}
+					else if (lpString3 != nullptr)
+					{
+						if (Buffer1.size() != 0)
+						{
+							Buffer1.append(" ");
+						}
+						Buffer1.append(lpString3);
+						if (Buffer2.size() != 0)
+						{
+							Buffer2.append(" ");
+						}
+						Buffer2.append(lpString3);
+						break;
+					}
+					uString++;
+					while (++uIndex && uIndex < uEnd && lpData[uIndex]);
+					uIndex++;
+				} while (uIndex < uEnd && lpData[uIndex]);
+				if (lpString3 != nullptr)
+				{
+					break;
+				}
+			}
+			uIndex++;
+		}
+	}
+
+	if (lpData)
+	{
+		delete[] lpData;
+	}
+
+	if (Buffer1.size() != 0)
+	{
+		Log() << Buffer1.c_str();
+	}
+	if (Buffer2.size() != 0)
+	{
+		Log() << Buffer2.c_str();
+	}
 }
 
 void Logging::LogVideoCard()

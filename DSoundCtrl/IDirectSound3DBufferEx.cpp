@@ -59,10 +59,15 @@ HRESULT IDirectSound3DBuffer8Ex::QueryInterface(REFIID refIID, LPVOID * pVoid)
 	}
 #endif // _DEBUG
 
+	if (pVoid == nullptr)
+	{
+		return E_POINTER;
+	}
+
 	*pVoid = (LPVOID) nullptr;
 	HRESULT hRes;
 
-	if ((refIID == IID_IDirectSound3DBuffer) || (refIID == IID_IDirectSound3DBuffer8))
+	if (refIID == IID_IDirectSound3DBuffer || refIID == IID_IDirectSound3DBuffer8 || refIID == IID_IUnknown)
 	{
 		LPVOID pTemp;
 		hRes = m_lpDirectSound3DBuffer8->QueryInterface(refIID, &pTemp);

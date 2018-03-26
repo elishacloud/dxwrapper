@@ -54,9 +54,14 @@ IDirectSound8Ex::~IDirectSound8Ex(void)
 
 HRESULT IDirectSound8Ex::QueryInterface(REFIID refIID, LPVOID * pVoid)
 {
+	if (pVoid == nullptr)
+	{
+		return E_POINTER;
+	}
+
 	*pVoid = nullptr;
 
-	if ((refIID == IID_IDirectSound) || (refIID == IID_IDirectSound8))
+	if (refIID == IID_IDirectSound || refIID == IID_IDirectSound8 || refIID == IID_IUnknown)
 	{
 		LPVOID pTemp;
 		HRESULT hRes = m_lpDirectSound8->QueryInterface(refIID, &pTemp);
