@@ -398,11 +398,12 @@ HRESULT STDMETHODCALLTYPE Direct3DDevice8::CreateRenderTarget(UINT Width, UINT H
 		ProxyInterface->GetCreationParameters(&CreationParams);
 
 		D3D->GetProxyInterface()->CheckDeviceMultiSampleType(CreationParams.AdapterOrdinal, CreationParams.DeviceType, Format, FALSE, MultiSample, &QualityLevels);
+		QualityLevels = (QualityLevels != 0) ? QualityLevels - 1 : 0;
 	}
 
 	IDirect3DSurface9 *SurfaceInterface = nullptr;
 
-	HRESULT hr = ProxyInterface->CreateRenderTarget(Width, Height, Format, MultiSample, (QualityLevels != 0) ? QualityLevels - 1 : 0, Lockable, &SurfaceInterface, nullptr);
+	HRESULT hr = ProxyInterface->CreateRenderTarget(Width, Height, Format, MultiSample, QualityLevels, Lockable, &SurfaceInterface, nullptr);
 
 	if (FAILED(hr))
 	{
@@ -431,11 +432,12 @@ HRESULT STDMETHODCALLTYPE Direct3DDevice8::CreateDepthStencilSurface(UINT Width,
 		ProxyInterface->GetCreationParameters(&CreationParams);
 
 		D3D->GetProxyInterface()->CheckDeviceMultiSampleType(CreationParams.AdapterOrdinal, CreationParams.DeviceType, Format, FALSE, MultiSample, &QualityLevels);
+		QualityLevels = (QualityLevels != 0) ? QualityLevels - 1 : 0;
 	}
 
 	IDirect3DSurface9 *SurfaceInterface = nullptr;
 
-	HRESULT hr = ProxyInterface->CreateDepthStencilSurface(Width, Height, Format, MultiSample, (QualityLevels != 0) ? QualityLevels - 1 : 0, ZBufferDiscarding, &SurfaceInterface, nullptr);
+	HRESULT hr = ProxyInterface->CreateDepthStencilSurface(Width, Height, Format, MultiSample, QualityLevels, ZBufferDiscarding, &SurfaceInterface, nullptr);
 
 	if (FAILED(hr))
 	{
