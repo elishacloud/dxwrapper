@@ -6,7 +6,7 @@ private:
 	IDirectDrawGammaControl *ProxyInterface;
 
 public:
-	m_IDirectDrawGammaControl(IDirectDrawGammaControl *aOriginal, REFIID) : ProxyInterface(aOriginal)
+	m_IDirectDrawGammaControl(IDirectDrawGammaControl *aOriginal) : ProxyInterface(aOriginal)
 	{
 		ProxyAddressLookupTable.SaveAddress(this, ProxyInterface);
 	}

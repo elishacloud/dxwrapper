@@ -6,7 +6,7 @@ private:
 	IDirectDrawColorControl *ProxyInterface;
 
 public:
-	m_IDirectDrawColorControl(IDirectDrawColorControl *aOriginal, REFIID) : ProxyInterface(aOriginal)
+	m_IDirectDrawColorControl(IDirectDrawColorControl *aOriginal) : ProxyInterface(aOriginal)
 	{
 		ProxyAddressLookupTable.SaveAddress(this, ProxyInterface);
 	}

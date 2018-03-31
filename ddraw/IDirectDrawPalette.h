@@ -6,7 +6,7 @@ private:
 	IDirectDrawPalette *ProxyInterface;
 
 public:
-	m_IDirectDrawPalette(IDirectDrawPalette *aOriginal, REFIID) : ProxyInterface(aOriginal)
+	m_IDirectDrawPalette(IDirectDrawPalette *aOriginal) : ProxyInterface(aOriginal)
 	{
 		ProxyAddressLookupTable.SaveAddress(this, ProxyInterface);
 	}

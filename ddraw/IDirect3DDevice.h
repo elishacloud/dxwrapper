@@ -6,7 +6,7 @@ private:
 	IDirect3DDevice *ProxyInterface;
 
 public:
-	m_IDirect3DDevice(IDirect3DDevice *aOriginal, REFIID) : ProxyInterface(aOriginal)
+	m_IDirect3DDevice(IDirect3DDevice *aOriginal) : ProxyInterface(aOriginal)
 	{
 		ProxyAddressLookupTable.SaveAddress(this, ProxyInterface);
 	}

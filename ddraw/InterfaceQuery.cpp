@@ -90,7 +90,7 @@ void genericQueryInterface(REFIID CalledID, LPVOID * ppvObj)
 #define QUERYINTERFACE(x) \
 	if (riid == IID_ ## x) \
 		{ \
-			*ppvObj = ProxyAddressLookupTable.FindAddress<m_ ## x>(*ppvObj, ConvertREFIID(IID_ ## x)); \
+			*ppvObj = ProxyAddressLookupTable.FindAddress<m_ ## x>(*ppvObj); \
 		}
 
 	QUERYINTERFACE(IDirect3D);

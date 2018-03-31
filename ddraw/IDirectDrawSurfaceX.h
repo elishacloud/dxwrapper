@@ -4,20 +4,59 @@ class m_IDirectDrawSurfaceX
 {
 private:
 	IDirectDrawSurface7 *ProxyInterface;
-	IDirectDrawSurface *WrapperInterface;
+	IDirectDrawSurface7 *WrapperInterface;
 	DWORD DirectXVersion;
 	DWORD ProxyDirectXVersion;
-	REFIID WrapperID;
+	IID WrapperID;
 
 public:
-	m_IDirectDrawSurfaceX(IDirectDrawSurface7 *pOriginal, DWORD Version, REFIID riid, LPVOID m_pvObj) : ProxyInterface(pOriginal), DirectXVersion(Version), WrapperID(riid), WrapperInterface((IDirectDrawSurface*)m_pvObj)
+	m_IDirectDrawSurfaceX(IDirectDrawSurface7 *pOriginal, DWORD Version, IDirectDrawSurface7 *Interface) : ProxyInterface(pOriginal), DirectXVersion(Version), WrapperInterface(Interface)
 	{
-		if (riid == IID_IDirectDrawSurface) { ProxyDirectXVersion = 1; }
-		else if (riid == IID_IDirectDrawSurface2) { ProxyDirectXVersion = 2; }
-		else if (riid == IID_IDirectDrawSurface3) { ProxyDirectXVersion = 3; }
-		else if (riid == IID_IDirectDrawSurface4) { ProxyDirectXVersion = 4; }
-		else if (riid == IID_IDirectDrawSurface7) { ProxyDirectXVersion = 7; }
-		else { ProxyDirectXVersion = DirectXVersion; }
+		switch (DirectXVersion)
+		{
+		case 1:
+			WrapperID = IID_IDirectDrawSurface;
+			break;
+		case 2:
+			WrapperID = IID_IDirectDrawSurface2;
+			break;
+		case 3:
+			WrapperID = IID_IDirectDrawSurface3;
+			break;
+		case 4:
+			WrapperID = IID_IDirectDrawSurface4;
+			break;
+		default:
+			WrapperID = IID_IDirectDrawSurface7;
+			break;
+		}
+
+		REFIID ProxyID = ConvertREFIID(WrapperID);
+		if (ProxyID == IID_IDirectDrawSurface)
+		{
+			ProxyDirectXVersion = 1;
+		}
+		else if (ProxyID == IID_IDirectDrawSurface2)
+		{
+			ProxyDirectXVersion = 2;
+		}
+		else if (ProxyID == IID_IDirectDrawSurface3)
+		{
+			ProxyDirectXVersion = 3;
+		}
+		else if (ProxyID == IID_IDirectDrawSurface4)
+		{
+			ProxyDirectXVersion = 4;
+		}
+		else if (ProxyID == IID_IDirectDrawSurface7)
+		{
+			ProxyDirectXVersion = 7;
+		}
+		else
+		{
+			ProxyDirectXVersion = DirectXVersion;
+		}
+
 		if (ProxyDirectXVersion != DirectXVersion)
 		{
 			Logging::Log() << "Convert DirectDrawSurface v" << DirectXVersion << " to v" << ProxyDirectXVersion;

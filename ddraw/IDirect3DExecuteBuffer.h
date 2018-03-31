@@ -6,7 +6,7 @@ private:
 	IDirect3DExecuteBuffer *ProxyInterface;
 
 public:
-	m_IDirect3DExecuteBuffer(IDirect3DExecuteBuffer *aOriginal, REFIID) : ProxyInterface(aOriginal)
+	m_IDirect3DExecuteBuffer(IDirect3DExecuteBuffer *aOriginal) : ProxyInterface(aOriginal)
 	{
 		ProxyAddressLookupTable.SaveAddress(this, ProxyInterface);
 	}

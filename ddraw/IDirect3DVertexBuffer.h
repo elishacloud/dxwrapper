@@ -6,7 +6,7 @@ private:
 	IDirect3DVertexBuffer *ProxyInterface;
 
 public:
-	m_IDirect3DVertexBuffer(IDirect3DVertexBuffer *aOriginal, REFIID) : ProxyInterface(aOriginal)
+	m_IDirect3DVertexBuffer(IDirect3DVertexBuffer *aOriginal) : ProxyInterface(aOriginal)
 	{
 		ProxyAddressLookupTable.SaveAddress(this, ProxyInterface);
 	}

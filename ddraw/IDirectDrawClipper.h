@@ -6,7 +6,7 @@ private:
 	IDirectDrawClipper *ProxyInterface;
 
 public:
-	m_IDirectDrawClipper(IDirectDrawClipper *aOriginal, REFIID) : ProxyInterface(aOriginal)
+	m_IDirectDrawClipper(IDirectDrawClipper *aOriginal) : ProxyInterface(aOriginal)
 	{
 		ProxyAddressLookupTable.SaveAddress(this, ProxyInterface);
 	}

@@ -6,7 +6,7 @@ private:
 	IDirect3DViewport2 *ProxyInterface;
 
 public:
-	m_IDirect3DViewport2(IDirect3DViewport2 *aOriginal, REFIID) : ProxyInterface(aOriginal)
+	m_IDirect3DViewport2(IDirect3DViewport2 *aOriginal) : ProxyInterface(aOriginal)
 	{
 		ProxyAddressLookupTable.SaveAddress(this, ProxyInterface);
 	}

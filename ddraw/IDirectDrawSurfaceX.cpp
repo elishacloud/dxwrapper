@@ -81,8 +81,8 @@ HRESULT m_IDirectDrawSurfaceX::DeleteAttachedSurface(DWORD a, LPDIRECTDRAWSURFAC
 	return ProxyInterface->DeleteAttachedSurface(a, b);
 }
 
-template HRESULT m_IDirectDrawSurfaceX::EnumAttachedSurfaces<LPDDENUMSURFACESCALLBACK>(LPVOID a, LPDDENUMSURFACESCALLBACK b);
-template HRESULT m_IDirectDrawSurfaceX::EnumAttachedSurfaces<LPDDENUMSURFACESCALLBACK7>(LPVOID a, LPDDENUMSURFACESCALLBACK7 b);
+template HRESULT m_IDirectDrawSurfaceX::EnumAttachedSurfaces<LPDDENUMSURFACESCALLBACK>(LPVOID, LPDDENUMSURFACESCALLBACK);
+template HRESULT m_IDirectDrawSurfaceX::EnumAttachedSurfaces<LPDDENUMSURFACESCALLBACK7>(LPVOID, LPDDENUMSURFACESCALLBACK7);
 template <typename T>
 HRESULT m_IDirectDrawSurfaceX::EnumAttachedSurfaces(LPVOID a, T b)
 {
@@ -95,8 +95,8 @@ HRESULT m_IDirectDrawSurfaceX::EnumAttachedSurfaces(LPVOID a, T b)
 	return ProxyInterface->EnumAttachedSurfaces(&CallbackContext, m_IDirectDrawEnumSurface::ConvertCallback);
 }
 
-template HRESULT m_IDirectDrawSurfaceX::EnumOverlayZOrders<LPDDENUMSURFACESCALLBACK>(DWORD a, LPVOID b, LPDDENUMSURFACESCALLBACK c);
-template HRESULT m_IDirectDrawSurfaceX::EnumOverlayZOrders<LPDDENUMSURFACESCALLBACK7>(DWORD a, LPVOID b, LPDDENUMSURFACESCALLBACK7 c);
+template HRESULT m_IDirectDrawSurfaceX::EnumOverlayZOrders<LPDDENUMSURFACESCALLBACK>(DWORD, LPVOID, LPDDENUMSURFACESCALLBACK);
+template HRESULT m_IDirectDrawSurfaceX::EnumOverlayZOrders<LPDDENUMSURFACESCALLBACK7>(DWORD, LPVOID, LPDDENUMSURFACESCALLBACK7);
 template <typename T>
 HRESULT m_IDirectDrawSurfaceX::EnumOverlayZOrders(DWORD a, LPVOID b, T c)
 {
@@ -119,8 +119,8 @@ HRESULT m_IDirectDrawSurfaceX::Flip(LPDIRECTDRAWSURFACE7 a, DWORD b)
 	return ProxyInterface->Flip(a, b);
 }
 
-template HRESULT m_IDirectDrawSurfaceX::GetAttachedSurface<LPDDSCAPS>(LPDDSCAPS a, LPDIRECTDRAWSURFACE7 FAR * b);
-template HRESULT m_IDirectDrawSurfaceX::GetAttachedSurface<LPDDSCAPS2>(LPDDSCAPS2 a, LPDIRECTDRAWSURFACE7 FAR * b);
+template HRESULT m_IDirectDrawSurfaceX::GetAttachedSurface<LPDDSCAPS>(LPDDSCAPS, LPDIRECTDRAWSURFACE7 FAR *);
+template HRESULT m_IDirectDrawSurfaceX::GetAttachedSurface<LPDDSCAPS2>(LPDDSCAPS2, LPDIRECTDRAWSURFACE7 FAR *);
 template <typename T>
 HRESULT m_IDirectDrawSurfaceX::GetAttachedSurface(T a, LPDIRECTDRAWSURFACE7 FAR * b)
 {
@@ -146,8 +146,8 @@ HRESULT m_IDirectDrawSurfaceX::GetBltStatus(DWORD a)
 	return ProxyInterface->GetBltStatus(a);
 }
 
-template HRESULT m_IDirectDrawSurfaceX::GetCaps<LPDDSCAPS>(LPDDSCAPS lpDDSCaps);
-template HRESULT m_IDirectDrawSurfaceX::GetCaps<LPDDSCAPS2>(LPDDSCAPS2 lpDDSCaps);
+template HRESULT m_IDirectDrawSurfaceX::GetCaps<LPDDSCAPS>(LPDDSCAPS);
+template HRESULT m_IDirectDrawSurfaceX::GetCaps<LPDDSCAPS2>(LPDDSCAPS2);
 template <typename T>
 HRESULT m_IDirectDrawSurfaceX::GetCaps(T lpDDSCaps)
 {
@@ -218,8 +218,8 @@ HRESULT m_IDirectDrawSurfaceX::GetPixelFormat(LPDDPIXELFORMAT a)
 	return ProxyInterface->GetPixelFormat(a);
 }
 
-template HRESULT m_IDirectDrawSurfaceX::GetSurfaceDesc<LPDDSURFACEDESC>(LPDDSURFACEDESC lpDDSCaps);
-template HRESULT m_IDirectDrawSurfaceX::GetSurfaceDesc<LPDDSURFACEDESC2>(LPDDSURFACEDESC2 lpDDSCaps);
+template HRESULT m_IDirectDrawSurfaceX::GetSurfaceDesc<LPDDSURFACEDESC>(LPDDSURFACEDESC);
+template HRESULT m_IDirectDrawSurfaceX::GetSurfaceDesc<LPDDSURFACEDESC2>(LPDDSURFACEDESC2);
 template <typename T>
 HRESULT m_IDirectDrawSurfaceX::GetSurfaceDesc(T lpDDSurfaceDesc)
 {
@@ -241,8 +241,8 @@ HRESULT m_IDirectDrawSurfaceX::GetSurfaceDesc(T lpDDSurfaceDesc)
 	return hr;
 }
 
-template HRESULT m_IDirectDrawSurfaceX::Initialize<LPDDSURFACEDESC>(LPDIRECTDRAW a, LPDDSURFACEDESC b);
-template HRESULT m_IDirectDrawSurfaceX::Initialize<LPDDSURFACEDESC2>(LPDIRECTDRAW a, LPDDSURFACEDESC2 b);
+template HRESULT m_IDirectDrawSurfaceX::Initialize<LPDDSURFACEDESC>(LPDIRECTDRAW, LPDDSURFACEDESC);
+template HRESULT m_IDirectDrawSurfaceX::Initialize<LPDDSURFACEDESC2>(LPDIRECTDRAW, LPDDSURFACEDESC2);
 template <typename T>
 HRESULT m_IDirectDrawSurfaceX::Initialize(LPDIRECTDRAW a, T b)
 {
@@ -266,8 +266,8 @@ HRESULT m_IDirectDrawSurfaceX::IsLost()
 	return ProxyInterface->IsLost();
 }
 
-template HRESULT m_IDirectDrawSurfaceX::Lock<LPDDSURFACEDESC>(LPRECT lpDestRect, LPDDSURFACEDESC lpDDSurfaceDesc, DWORD dwFlags, HANDLE hEvent);
-template HRESULT m_IDirectDrawSurfaceX::Lock<LPDDSURFACEDESC2>(LPRECT lpDestRect, LPDDSURFACEDESC2 lpDDSurfaceDesc, DWORD dwFlags, HANDLE hEvent);
+template HRESULT m_IDirectDrawSurfaceX::Lock<LPDDSURFACEDESC>(LPRECT, LPDDSURFACEDESC, DWORD, HANDLE);
+template HRESULT m_IDirectDrawSurfaceX::Lock<LPDDSURFACEDESC2>(LPRECT, LPDDSURFACEDESC2, DWORD, HANDLE);
 template <typename T>
 HRESULT m_IDirectDrawSurfaceX::Lock(LPRECT lpDestRect, T lpDDSurfaceDesc, DWORD dwFlags, HANDLE hEvent)
 {
@@ -393,8 +393,8 @@ HRESULT m_IDirectDrawSurfaceX::PageUnlock(DWORD a)
 	return ProxyInterface->PageUnlock(a);
 }
 
-template HRESULT m_IDirectDrawSurfaceX::SetSurfaceDesc<LPDDSURFACEDESC>(LPDDSURFACEDESC a, DWORD b);
-template HRESULT m_IDirectDrawSurfaceX::SetSurfaceDesc<LPDDSURFACEDESC2>(LPDDSURFACEDESC2 a, DWORD b);
+template HRESULT m_IDirectDrawSurfaceX::SetSurfaceDesc<LPDDSURFACEDESC>(LPDDSURFACEDESC, DWORD);
+template HRESULT m_IDirectDrawSurfaceX::SetSurfaceDesc<LPDDSURFACEDESC2>(LPDDSURFACEDESC2, DWORD);
 template <typename T>
 HRESULT m_IDirectDrawSurfaceX::SetSurfaceDesc(T a, DWORD b)
 {

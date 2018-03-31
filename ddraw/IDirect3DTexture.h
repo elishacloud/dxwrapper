@@ -6,7 +6,7 @@ private:
 	IDirect3DTexture *ProxyInterface;
 
 public:
-	m_IDirect3DTexture(IDirect3DTexture *aOriginal, REFIID) : ProxyInterface(aOriginal)
+	m_IDirect3DTexture(IDirect3DTexture *aOriginal) : ProxyInterface(aOriginal)
 	{
 		ProxyAddressLookupTable.SaveAddress(this, ProxyInterface);
 	}

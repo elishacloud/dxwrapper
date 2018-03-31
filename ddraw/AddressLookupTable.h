@@ -36,11 +36,6 @@ public:
 		using Type3 = m_IDirectDrawSurface3;
 		using Type4 = m_IDirectDrawSurface4;
 		using Type7 = m_IDirectDrawSurface7;
-		static constexpr REFIID riid1 = IID_IDirectDrawSurface;
-		static constexpr REFIID riid2 = IID_IDirectDrawSurface2;
-		static constexpr REFIID riid3 = IID_IDirectDrawSurface3;
-		static constexpr REFIID riid4 = IID_IDirectDrawSurface4;
-		static constexpr REFIID riid7 = IID_IDirectDrawSurface7;
 	};
 
 	explicit AddressLookupTableDdraw() {}
@@ -65,37 +60,18 @@ public:
 		switch (Version)
 		{
 		case 1:
-			return (T*)FindAddress<AddressCacheIndex<T>::Type1>(Proxy, ConvertREFIID(AddressCacheIndex<T>::riid1));
+			return (T*)FindAddress<AddressCacheIndex<T>::Type1>(Proxy);
 		case 2:
-			return (T*)FindAddress<AddressCacheIndex<T>::Type2>(Proxy, ConvertREFIID(AddressCacheIndex<T>::riid2));
+			return (T*)FindAddress<AddressCacheIndex<T>::Type2>(Proxy);
 		case 3:
-			return (T*)FindAddress<AddressCacheIndex<T>::Type3>(Proxy, ConvertREFIID(AddressCacheIndex<T>::riid3));
+			return (T*)FindAddress<AddressCacheIndex<T>::Type3>(Proxy);
 		case 4:
-			return (T*)FindAddress<AddressCacheIndex<T>::Type4>(Proxy, ConvertREFIID(AddressCacheIndex<T>::riid4));
+			return (T*)FindAddress<AddressCacheIndex<T>::Type4>(Proxy);
 		case 7:
-			return (T*)FindAddress<AddressCacheIndex<T>::Type7>(Proxy, ConvertREFIID(AddressCacheIndex<T>::riid7));
+			return (T*)FindAddress<AddressCacheIndex<T>::Type7>(Proxy);
 		default:
 			return nullptr;
 		}
-	}
-
-	template <typename T>
-	T *FindAddress(void *Proxy, REFIID riid)
-	{
-		if (Proxy == nullptr)
-		{
-			return nullptr;
-		}
-
-		constexpr UINT CacheIndex = AddressCacheIndex<T>::CacheIndex;
-		auto it = g_map[CacheIndex].find(Proxy);
-
-		if (it != std::end(g_map[CacheIndex]))
-		{
-			return static_cast<T *>(it->second);
-		}
-
-		return new T(static_cast<T *>(Proxy), riid);
 	}
 
 	template <typename T>
@@ -114,7 +90,7 @@ public:
 			return static_cast<T *>(it->second);
 		}
 
-		return new T(static_cast<T *>(Proxy), IID_IUnknown);
+		return new T(static_cast<T *>(Proxy));
 	}
 
 	template <typename T>

@@ -60,8 +60,8 @@ HRESULT m_IDirectDrawX::CreatePalette(DWORD a, LPPALETTEENTRY b, LPDIRECTDRAWPAL
 	return hr;
 }
 
-template HRESULT m_IDirectDrawX::CreateSurface<LPDDSURFACEDESC>(LPDDSURFACEDESC a, LPDIRECTDRAWSURFACE7 FAR * b, IUnknown FAR * c);
-template HRESULT m_IDirectDrawX::CreateSurface<LPDDSURFACEDESC2>(LPDDSURFACEDESC2 a, LPDIRECTDRAWSURFACE7 FAR * b, IUnknown FAR * c);
+template HRESULT m_IDirectDrawX::CreateSurface<LPDDSURFACEDESC>(LPDDSURFACEDESC, LPDIRECTDRAWSURFACE7 FAR *, IUnknown FAR *);
+template HRESULT m_IDirectDrawX::CreateSurface<LPDDSURFACEDESC2>(LPDDSURFACEDESC2, LPDIRECTDRAWSURFACE7 FAR *, IUnknown FAR *);
 template <typename T>
 HRESULT m_IDirectDrawX::CreateSurface(T a, LPDIRECTDRAWSURFACE7 FAR * b, IUnknown FAR * c)
 {
@@ -100,8 +100,8 @@ HRESULT m_IDirectDrawX::DuplicateSurface(LPDIRECTDRAWSURFACE7 a, LPDIRECTDRAWSUR
 	return hr;
 }
 
-template HRESULT m_IDirectDrawX::EnumDisplayModes<LPDDSURFACEDESC>(DWORD a, LPDDSURFACEDESC b, LPVOID c, LPDDENUMMODESCALLBACK d);
-template HRESULT m_IDirectDrawX::EnumDisplayModes<LPDDSURFACEDESC2>(DWORD a, LPDDSURFACEDESC2 b, LPVOID c, LPDDENUMMODESCALLBACK2 d);
+template HRESULT m_IDirectDrawX::EnumDisplayModes<LPDDSURFACEDESC>(DWORD, LPDDSURFACEDESC, LPVOID, LPDDENUMMODESCALLBACK);
+template HRESULT m_IDirectDrawX::EnumDisplayModes<LPDDSURFACEDESC2>(DWORD, LPDDSURFACEDESC2, LPVOID, LPDDENUMMODESCALLBACK2);
 template <typename T, typename D>
 HRESULT m_IDirectDrawX::EnumDisplayModes(DWORD a, T b, LPVOID c, D d)
 {
@@ -121,9 +121,9 @@ HRESULT m_IDirectDrawX::EnumDisplayModes(DWORD a, T b, LPVOID c, D d)
 	return ProxyInterface->EnumDisplayModes(a, (LPDDSURFACEDESC2)b, &CallbackContext, m_IDirectDrawEnumDisplayModes::ConvertCallback);
 }
 
-template HRESULT m_IDirectDrawX::EnumSurfaces<LPDDSURFACEDESC>(DWORD a, LPDDSURFACEDESC b, LPVOID c, LPDDENUMSURFACESCALLBACK d);
-template HRESULT m_IDirectDrawX::EnumSurfaces<LPDDSURFACEDESC2>(DWORD a, LPDDSURFACEDESC2 b, LPVOID c, LPDDENUMSURFACESCALLBACK2 d);
-template HRESULT m_IDirectDrawX::EnumSurfaces<LPDDSURFACEDESC2>(DWORD a, LPDDSURFACEDESC2 b, LPVOID c, LPDDENUMSURFACESCALLBACK7 d);
+template HRESULT m_IDirectDrawX::EnumSurfaces<LPDDSURFACEDESC>(DWORD, LPDDSURFACEDESC, LPVOID, LPDDENUMSURFACESCALLBACK);
+template HRESULT m_IDirectDrawX::EnumSurfaces<LPDDSURFACEDESC2>(DWORD, LPDDSURFACEDESC2, LPVOID, LPDDENUMSURFACESCALLBACK2);
+template HRESULT m_IDirectDrawX::EnumSurfaces<LPDDSURFACEDESC2>(DWORD, LPDDSURFACEDESC2, LPVOID, LPDDENUMSURFACESCALLBACK7);
 template <typename T, typename D>
 HRESULT m_IDirectDrawX::EnumSurfaces(DWORD a, T b, LPVOID c, D d)
 {
@@ -171,8 +171,8 @@ HRESULT m_IDirectDrawX::GetCaps(LPDDCAPS lpDDDriverCaps, LPDDCAPS lpDDHELCaps)
 	return hr;
 }
 
-template HRESULT m_IDirectDrawX::GetDisplayMode<LPDDSURFACEDESC>(LPDDSURFACEDESC a);
-template HRESULT m_IDirectDrawX::GetDisplayMode<LPDDSURFACEDESC2>(LPDDSURFACEDESC2 a);
+template HRESULT m_IDirectDrawX::GetDisplayMode<LPDDSURFACEDESC>(LPDDSURFACEDESC);
+template HRESULT m_IDirectDrawX::GetDisplayMode<LPDDSURFACEDESC2>(LPDDSURFACEDESC2);
 template <typename T>
 HRESULT m_IDirectDrawX::GetDisplayMode(T a)
 {
@@ -262,19 +262,26 @@ HRESULT m_IDirectDrawX::WaitForVerticalBlank(DWORD a, HANDLE b)
 	return ProxyInterface->WaitForVerticalBlank(a, b);
 }
 
-template HRESULT m_IDirectDrawX::GetAvailableVidMem<LPDDSCAPS>(LPDDSCAPS a, LPDWORD b, LPDWORD c);
-template HRESULT m_IDirectDrawX::GetAvailableVidMem<LPDDSCAPS2>(LPDDSCAPS2 a, LPDWORD b, LPDWORD c);
+template HRESULT m_IDirectDrawX::GetAvailableVidMem<LPDDSCAPS>(LPDDSCAPS, LPDWORD, LPDWORD);
+template HRESULT m_IDirectDrawX::GetAvailableVidMem<LPDDSCAPS2>(LPDDSCAPS2, LPDWORD, LPDWORD);
 template <typename T>
-HRESULT m_IDirectDrawX::GetAvailableVidMem(T a, LPDWORD b, LPDWORD c)
+HRESULT m_IDirectDrawX::GetAvailableVidMem(T lpDDSCaps, LPDWORD lpdwTotal, LPDWORD lpdwFree)
 {
 	DDSCAPS2 Caps2;
-	if (a != nullptr && ProxyDirectXVersion > 3 && DirectXVersion < 4)
+	if (lpDDSCaps != nullptr && ProxyDirectXVersion > 3 && DirectXVersion < 4)
 	{
-		ConvertCaps(Caps2, *a);
-		a = (T)&Caps2;
+		ConvertCaps(Caps2, *lpDDSCaps);
+		lpDDSCaps = (T)&Caps2;
 	}
 
-	return ProxyInterface->GetAvailableVidMem((LPDDSCAPS2)a, b, c);
+	// Set available memory, some games have issues if this is set to high
+	if (Config.ConvertToDirectDraw7 && *lpdwTotal > 0x8000000)
+	{
+		*lpdwFree = 0x8000000 - (*lpdwTotal - *lpdwFree);
+		*lpdwTotal = 0x8000000;
+	}
+
+	return ProxyInterface->GetAvailableVidMem((LPDDSCAPS2)lpDDSCaps, lpdwTotal, lpdwFree);
 }
 
 HRESULT m_IDirectDrawX::GetSurfaceFromDC(HDC a, LPDIRECTDRAWSURFACE7 * b)
@@ -299,8 +306,8 @@ HRESULT m_IDirectDrawX::TestCooperativeLevel()
 	return ProxyInterface->TestCooperativeLevel();
 }
 
-template HRESULT m_IDirectDrawX::GetDeviceIdentifier<LPDDDEVICEIDENTIFIER>(LPDDDEVICEIDENTIFIER lpdddi, DWORD dwFlags);
-template HRESULT m_IDirectDrawX::GetDeviceIdentifier<LPDDDEVICEIDENTIFIER2>(LPDDDEVICEIDENTIFIER2 lpdddi, DWORD dwFlags);
+template HRESULT m_IDirectDrawX::GetDeviceIdentifier<LPDDDEVICEIDENTIFIER>(LPDDDEVICEIDENTIFIER, DWORD);
+template HRESULT m_IDirectDrawX::GetDeviceIdentifier<LPDDDEVICEIDENTIFIER2>(LPDDDEVICEIDENTIFIER2, DWORD);
 template <typename T>
 HRESULT m_IDirectDrawX::GetDeviceIdentifier(T lpdddi, DWORD dwFlags)
 {
