@@ -17,7 +17,7 @@
 * https://sourceforge.net/projects/dxwnd/
 *
 * SetAppCompatData code created based on information from here:
-* http://www.blitzbasic.com/Community/post.php?topic=99477&post=1202996
+* http://web.archive.org/web/20170418171908/http://www.blitzbasic.com/Community/posts.php?topic=99477
 *
 * ASI plugin loader taken from source code found in Ultimate ASI Loader
 * https://github.com/ThirteenAG/Ultimate-ASI-Loader
