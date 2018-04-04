@@ -18,6 +18,7 @@
 	visit(DisableHighDPIScaling) \
 	visit(DSoundCtrl) \
 	visit(DxWnd) \
+	visit(CacheClipPlane) \
 	visit(ConvertToDirectDraw7) \
 	visit(ExcludeProcess) \
 	visit(ForceCertification) \
@@ -140,6 +141,7 @@ struct CONFIG
 	bool DisableHighDPIScaling;			// Disables display scaling on high DPI settings
 	bool DSoundCtrl;					// Enables DirectSoundControl https://github.com/nRaecheR/DirectSoundControl
 	bool DxWnd;							// Enables DxWnd https://sourceforge.net/projects/dxwnd/
+	bool CacheClipPlane;				// Caches the ClipPlane for Direct3D9 to fix an issue in d3d9 on Windows 8 and newer
 	bool ConvertToDirectDraw7;			// Converts DirectDraw 1-6 to DirectDraw 7
 	bool FullScreen;					// Sets the main window to fullscreen
 	bool ForceTermination;				// Terminates application when main window closes

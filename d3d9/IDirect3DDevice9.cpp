@@ -264,7 +264,15 @@ HRESULT m_IDirect3DDevice9::SetClipStatus(CONST D3DCLIPSTATUS9 *pClipStatus)
 
 HRESULT m_IDirect3DDevice9::SetRenderState(D3DRENDERSTATETYPE State, DWORD Value)
 {
-	return ProxyInterface->SetRenderState(State, Value);
+	HRESULT hr = ProxyInterface->SetRenderState(State, Value);
+
+	// CacheClipPlane
+	if (SUCCEEDED(hr) && State == D3DRS_CLIPPLANEENABLE)
+	{
+		m_clipPlaneRenderState = Value;
+	}
+
+	return hr;
 }
 
 HRESULT m_IDirect3DDevice9::SetRenderTarget(THIS_ DWORD RenderTargetIndex, IDirect3DSurface9* pRenderTarget)
@@ -490,21 +498,45 @@ HRESULT m_IDirect3DDevice9::Present(CONST RECT *pSourceRect, CONST RECT *pDestRe
 
 HRESULT m_IDirect3DDevice9::DrawIndexedPrimitive(THIS_ D3DPRIMITIVETYPE Type, INT BaseVertexIndex, UINT MinVertexIndex, UINT NumVertices, UINT startIndex, UINT primCount)
 {
+	// CacheClipPlane
+	if (Config.CacheClipPlane)
+	{
+		ApplyClipPlanes();
+	}
+
 	return ProxyInterface->DrawIndexedPrimitive(Type, BaseVertexIndex, MinVertexIndex, NumVertices, startIndex, primCount);
 }
 
 HRESULT m_IDirect3DDevice9::DrawIndexedPrimitiveUP(D3DPRIMITIVETYPE PrimitiveType, UINT MinIndex, UINT NumVertices, UINT PrimitiveCount, CONST void *pIndexData, D3DFORMAT IndexDataFormat, CONST void *pVertexStreamZeroData, UINT VertexStreamZeroStride)
 {
+	// CacheClipPlane
+	if (Config.CacheClipPlane)
+	{
+		ApplyClipPlanes();
+	}
+
 	return ProxyInterface->DrawIndexedPrimitiveUP(PrimitiveType, MinIndex, NumVertices, PrimitiveCount, pIndexData, IndexDataFormat, pVertexStreamZeroData, VertexStreamZeroStride);
 }
 
 HRESULT m_IDirect3DDevice9::DrawPrimitive(D3DPRIMITIVETYPE PrimitiveType, UINT StartVertex, UINT PrimitiveCount)
 {
+	// CacheClipPlane
+	if (Config.CacheClipPlane)
+	{
+		ApplyClipPlanes();
+	}
+
 	return ProxyInterface->DrawPrimitive(PrimitiveType, StartVertex, PrimitiveCount);
 }
 
 HRESULT m_IDirect3DDevice9::DrawPrimitiveUP(D3DPRIMITIVETYPE PrimitiveType, UINT PrimitiveCount, CONST void *pVertexStreamZeroData, UINT VertexStreamZeroStride)
 {
+	// CacheClipPlane
+	if (Config.CacheClipPlane)
+	{
+		ApplyClipPlanes();
+	}
+
 	return ProxyInterface->DrawPrimitiveUP(PrimitiveType, PrimitiveCount, pVertexStreamZeroData, VertexStreamZeroStride);
 }
 
@@ -664,12 +696,56 @@ HRESULT m_IDirect3DDevice9::ValidateDevice(DWORD *pNumPasses)
 
 HRESULT m_IDirect3DDevice9::GetClipPlane(DWORD Index, float *pPlane)
 {
-	return ProxyInterface->GetClipPlane(Index, pPlane);
+	// CacheClipPlane
+	if (Config.CacheClipPlane)
+	{
+		if (pPlane == nullptr || Index >= MAX_CLIP_PLANES)
+		{
+			return D3DERR_INVALIDCALL;
+		}
+
+		memcpy(pPlane, m_storedClipPlanes[Index], sizeof(m_storedClipPlanes[0]));
+
+		return D3D_OK;
+	}
+	else
+	{
+		return ProxyInterface->GetClipPlane(Index, pPlane);
+	}
 }
 
 HRESULT m_IDirect3DDevice9::SetClipPlane(DWORD Index, CONST float *pPlane)
 {
-	return ProxyInterface->SetClipPlane(Index, pPlane);
+	// CacheClipPlane
+	if (Config.CacheClipPlane)
+	{
+		if (pPlane == nullptr || Index >= MAX_CLIP_PLANES)
+		{
+			return D3DERR_INVALIDCALL;
+		}
+
+		memcpy(m_storedClipPlanes[Index], pPlane, sizeof(m_storedClipPlanes[0]));
+
+		return D3D_OK;
+	}
+	else
+	{
+		return ProxyInterface->SetClipPlane(Index, pPlane);
+	}
+}
+
+// CacheClipPlane
+void m_IDirect3DDevice9::ApplyClipPlanes()
+{
+	DWORD index = 0;
+	for (const auto clipPlane : m_storedClipPlanes)
+	{
+		if ((m_clipPlaneRenderState & (1 << index)) != 0)
+		{
+			ProxyInterface->SetClipPlane(index, clipPlane);
+		}
+		index++;
+	}
 }
 
 HRESULT m_IDirect3DDevice9::Clear(DWORD Count, CONST D3DRECT *pRects, DWORD Flags, D3DCOLOR Color, float Z, DWORD Stencil)

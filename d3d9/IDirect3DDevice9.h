@@ -8,6 +8,9 @@ private:
 	m_IDirect3D9Ex* m_pD3DEx = nullptr;
 	D3DMULTISAMPLE_TYPE DeviceMultiSampleType = D3DMULTISAMPLE_NONE;
 	DWORD DeviceMultiSampleQuality = 0;
+	DWORD m_clipPlaneRenderState = 0;
+	static constexpr size_t MAX_CLIP_PLANES = 6;
+	float m_storedClipPlanes[MAX_CLIP_PLANES][4];
 
 public:
 	m_IDirect3DDevice9(LPDIRECT3DDEVICE9 pDevice, m_IDirect3D9* pD3D) : ProxyInterface(pDevice), m_pD3D(pD3D)
@@ -88,6 +91,7 @@ public:
 	STDMETHOD(GetLightEnable)(THIS_ DWORD Index, BOOL* pEnable);
 	STDMETHOD(SetClipPlane)(THIS_ DWORD Index, CONST float* pPlane);
 	STDMETHOD(GetClipPlane)(THIS_ DWORD Index, float* pPlane);
+	void ApplyClipPlanes();
 	STDMETHOD(SetRenderState)(THIS_ D3DRENDERSTATETYPE State, DWORD Value);
 	STDMETHOD(GetRenderState)(THIS_ D3DRENDERSTATETYPE State, DWORD* pValue);
 	STDMETHOD(CreateStateBlock)(THIS_ D3DSTATEBLOCKTYPE Type, IDirect3DStateBlock9** ppSB);
