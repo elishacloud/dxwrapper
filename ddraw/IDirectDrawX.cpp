@@ -28,7 +28,14 @@ ULONG m_IDirectDrawX::AddRef()
 
 ULONG m_IDirectDrawX::Release()
 {
-	return ProxyInterface->Release();
+	ULONG x = ProxyInterface->Release();
+
+	if (x == 0)
+	{
+		delete this;
+	}
+
+	return x;
 }
 
 HRESULT m_IDirectDrawX::Compact()

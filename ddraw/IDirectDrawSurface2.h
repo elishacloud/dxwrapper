@@ -14,7 +14,7 @@ public:
 	}
 	~m_IDirectDrawSurface2()
 	{
-		delete ProxyInterface;
+		ProxyAddressLookupTable.DeleteAddress(this);
 	}
 
 	IDirectDrawSurface2 *GetProxyInterface() { return RealInterface; }

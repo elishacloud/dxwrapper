@@ -32,8 +32,6 @@ ULONG m_IDirectDraw7::Release()
 
 	if (x == 0)
 	{
-		ProxyAddressLookupTable.DeleteAddress(this);
-
 		delete this;
 	}
 

@@ -78,12 +78,12 @@ public:
 	STDMETHOD(BltFast)(THIS_ DWORD, DWORD, LPDIRECTDRAWSURFACE7, LPRECT, DWORD);
 	STDMETHOD(DeleteAttachedSurface)(THIS_ DWORD, LPDIRECTDRAWSURFACE7);
 	template <typename T>
-	HRESULT EnumAttachedSurfaces(LPVOID a, T b);
+	HRESULT EnumAttachedSurfaces(LPVOID, T);
 	template <typename T>
-	HRESULT EnumOverlayZOrders(DWORD a, LPVOID b, T c);
+	HRESULT EnumOverlayZOrders(DWORD, LPVOID, T);
 	STDMETHOD(Flip)(THIS_ LPDIRECTDRAWSURFACE7, DWORD);
 	template <typename T>
-	HRESULT GetAttachedSurface(T a, LPDIRECTDRAWSURFACE7 FAR * b);
+	HRESULT GetAttachedSurface(T, LPDIRECTDRAWSURFACE7 FAR *);
 	STDMETHOD(GetBltStatus)(THIS_ DWORD);
 	template <typename T>
 	HRESULT GetCaps(T lpDDSCaps);
@@ -95,12 +95,12 @@ public:
 	STDMETHOD(GetPalette)(THIS_ LPDIRECTDRAWPALETTE FAR*);
 	STDMETHOD(GetPixelFormat)(THIS_ LPDDPIXELFORMAT);
 	template <typename T>
-	HRESULT GetSurfaceDesc(T a);
+	HRESULT GetSurfaceDesc(T);
 	template <typename T>
-	HRESULT Initialize(LPDIRECTDRAW a, T b);
+	HRESULT Initialize(LPDIRECTDRAW, T);
 	STDMETHOD(IsLost)(THIS);
 	template <typename T>
-	HRESULT Lock(LPRECT a, T b, DWORD c, HANDLE d);
+	HRESULT Lock(LPRECT, T, DWORD, HANDLE);
 	STDMETHOD(ReleaseDC)(THIS_ HDC);
 	STDMETHOD(Restore)(THIS);
 	STDMETHOD(SetClipper)(THIS_ LPDIRECTDRAWCLIPPER);
@@ -117,7 +117,7 @@ public:
 	STDMETHOD(PageUnlock)(THIS_ DWORD);
 	/*** Added in the v3 interface ***/
 	template <typename T>
-	HRESULT SetSurfaceDesc(T a, DWORD b);
+	HRESULT SetSurfaceDesc(T, DWORD);
 	/*** Added in the v4 interface ***/
 	STDMETHOD(SetPrivateData)(THIS_ REFGUID, LPVOID, DWORD, DWORD);
 	STDMETHOD(GetPrivateData)(THIS_ REFGUID, LPVOID, LPDWORD);

@@ -12,9 +12,9 @@ public:
 		ProxyInterface = new m_IDirectDrawX((IDirectDraw7*)RealInterface, 1, (IDirectDraw7*)this);
 		ProxyAddressLookupTable.SaveAddress(this, RealInterface);
 	}
-	~m_IDirectDraw() 
+	~m_IDirectDraw()
 	{
-		delete ProxyInterface;
+		ProxyAddressLookupTable.DeleteAddress(this);
 	}
 
 	IDirectDraw *GetProxyInterface() { return RealInterface; }

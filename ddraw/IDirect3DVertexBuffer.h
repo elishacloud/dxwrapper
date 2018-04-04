@@ -10,7 +10,10 @@ public:
 	{
 		ProxyAddressLookupTable.SaveAddress(this, ProxyInterface);
 	}
-	~m_IDirect3DVertexBuffer() {}
+	~m_IDirect3DVertexBuffer()
+	{
+		ProxyAddressLookupTable.DeleteAddress(this);
+	}
 
 	IDirect3DVertexBuffer *GetProxyInterface() { return ProxyInterface; }
 

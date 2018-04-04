@@ -10,7 +10,10 @@ public:
 	{
 		ProxyAddressLookupTable.SaveAddress(this, ProxyInterface);
 	}
-	~m_IDirectDrawColorControl() {}
+	~m_IDirectDrawColorControl()
+	{
+		ProxyAddressLookupTable.DeleteAddress(this);
+	}
 
 	IDirectDrawColorControl *GetProxyInterface() { return ProxyInterface; }
 

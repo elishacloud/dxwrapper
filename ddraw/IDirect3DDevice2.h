@@ -10,7 +10,10 @@ public:
 	{
 		ProxyAddressLookupTable.SaveAddress(this, ProxyInterface);
 	}
-	~m_IDirect3DDevice2() {}
+	~m_IDirect3DDevice2()
+	{
+		ProxyAddressLookupTable.DeleteAddress(this);
+	}
 
 	IDirect3DDevice2 *GetProxyInterface() { return ProxyInterface; }
 

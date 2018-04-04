@@ -32,8 +32,6 @@ ULONG m_IDirect3DDevice3::Release()
 
 	if (x == 0)
 	{
-		ProxyAddressLookupTable.DeleteAddress(this);
-
 		delete this;
 	}
 

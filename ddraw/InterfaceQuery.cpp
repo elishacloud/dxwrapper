@@ -76,7 +76,7 @@ HRESULT ProxyQueryInterface(LPVOID ProxyInterface, REFIID CalledID, LPVOID * ppv
 #ifdef _DEBUG
 	else
 	{
-		Logging::Log() << "Query failed!";
+		Logging::Log() << "Query failed for " << CalledID;
 	}
 #endif // DEBUG
 
