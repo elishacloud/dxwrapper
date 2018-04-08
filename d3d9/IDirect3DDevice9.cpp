@@ -708,10 +708,8 @@ HRESULT m_IDirect3DDevice9::GetClipPlane(DWORD Index, float *pPlane)
 
 		return D3D_OK;
 	}
-	else
-	{
-		return ProxyInterface->GetClipPlane(Index, pPlane);
-	}
+
+	return ProxyInterface->GetClipPlane(Index, pPlane);
 }
 
 HRESULT m_IDirect3DDevice9::SetClipPlane(DWORD Index, CONST float *pPlane)
@@ -728,10 +726,8 @@ HRESULT m_IDirect3DDevice9::SetClipPlane(DWORD Index, CONST float *pPlane)
 
 		return D3D_OK;
 	}
-	else
-	{
-		return ProxyInterface->SetClipPlane(Index, pPlane);
-	}
+
+	return ProxyInterface->SetClipPlane(Index, pPlane);
 }
 
 // CacheClipPlane

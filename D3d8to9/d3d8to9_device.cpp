@@ -1368,6 +1368,7 @@ HRESULT STDMETHODCALLTYPE Direct3DDevice8::CreateVertexShader(const DWORD *pDecl
 		#pragma endregion
 
 		SourceCode = std::regex_replace(SourceCode, std::regex("    \\/\\/ vs\\.1\\.1\\n((?! ).+\\n)+"), "");
+		SourceCode = std::regex_replace(SourceCode, std::regex("([^\\n]\\n)[\\s]*#line [0123456789]+.*\\n"), "$1");
 		SourceCode = std::regex_replace(SourceCode, std::regex("(oFog|oPts)\\.x"), "$1 /* removed swizzle */");
 		SourceCode = std::regex_replace(SourceCode, std::regex("(add|sub|mul|min|max) (oFog|oPts), ([cr][0-9]+), (.+)\\n"), "$1 $2, $3.x /* added swizzle */, $4\n");
 		SourceCode = std::regex_replace(SourceCode, std::regex("(add|sub|mul|min|max) (oFog|oPts), (.+), ([cr][0-9]+)\\n"), "$1 $2, $3, $4.x /* added swizzle */\n");
@@ -1414,7 +1415,7 @@ HRESULT STDMETHODCALLTYPE Direct3DDevice8::CreateVertexShader(const DWORD *pDecl
 
 		if (D3DXAssembleShader != nullptr)
 		{
-			hr = D3DXAssembleShader(SourceCode.data(), static_cast<UINT>(SourceCode.size()), nullptr, nullptr, 0, &Assembly, &ErrorBuffer);
+			hr = D3DXAssembleShader(SourceCode.data(), static_cast<UINT>(SourceCode.size()), nullptr, nullptr, D3DXASM, &Assembly, &ErrorBuffer);
 		}
 		else
 		{
@@ -1757,6 +1758,11 @@ HRESULT STDMETHODCALLTYPE Direct3DDevice8::CreatePixelShader(const DWORD *pFunct
 		std::regex("    \\/\\/ ps\\.1\\.[1-4]\\n((?! ).+\\n)+"),
 		"");
 
+	// Remove debug lines
+	SourceCode = std::regex_replace(SourceCode,
+		std::regex("([^\\n]\\n)[\\s]*#line [0123456789]+.*\\n"),
+		"$1");
+
 	// Fix '-' modifier for constant values when using 'add' arithmetic by changing it to use 'sub'
 	SourceCode = std::regex_replace(SourceCode,
 		std::regex("(add)([_satxd248]*) (r[0-9][\\.wxyz]*), ((1-|)[crtv][0-9][\\.wxyz_abdis2]*), (-)(c[0-9][\\.wxyz]*)(_bx2|_bias|_x2|_d[zbwa]|)(?![_\\.wxyz])"),
@@ -1783,14 +1789,14 @@ HRESULT STDMETHODCALLTYPE Direct3DDevice8::CreatePixelShader(const DWORD *pFunct
 		// Replace one constant modifier using the dest register as a temporary register
 		size_t SourceSize = SourceCode.size();
 		SourceCode = std::regex_replace(SourceCode,
-			std::regex("    (...)(_[_satxd248]*|) (r[0-9][\\.wxyz]*), (1?-?[crtv][0-9][\\.wxyz_abdis2]*, )?(1?-?[crtv][0-9][\\.wxyz_abdis2]*, )?(1?-?[crtv][0-9][\\.wxyz_abdis2]*, )?((1?-)(c[0-9])([\\.wxyz]*)(_bx2|_bias|_x2|_d[zbwa]|)|(1?-?)(c[0-9])([\\.wxyz]*)(_bx2|_bias|_x2|_d[zbwa]))(?![_\\.wxyz])"),
-			"    mov $3, $9$10$13$14 /* added line */\n    $1$2 $3, $4$5$8$12$3$11$15 /* changed $9$10$13$14 to $3 */", std::regex_constants::format_first_only);
+			std::regex("    (...)(_[_satxd248]*|) (r[0-9])([\\.wxyz]*), (1?-?[crtv][0-9][\\.wxyz_abdis2]*, )?(1?-?[crtv][0-9][\\.wxyz_abdis2]*, )?(1?-?[crtv][0-9][\\.wxyz_abdis2]*, )?((1?-)(c[0-9])([\\.wxyz]*)(_bx2|_bias|_x2|_d[zbwa]|)|(1?-?)(c[0-9])([\\.wxyz]*)(_bx2|_bias|_x2|_d[zbwa]))(?![_\\.wxyz])"),
+			"    mov $3$4, $10$11$14$15 /* added line */\n    $1$2 $3$4, $5$6$9$13$3$12$16$4 /* changed $10$11$14$15 to $3$4 */", std::regex_constants::format_first_only);
 		// Replace one constant modifier on coissued commands using the dest register as a temporary register
 		if (SourceSize == SourceCode.size())
 		{
 			SourceCode = std::regex_replace(SourceCode,
-				std::regex("(    .*\\n)  \\+ (...)(_[_satxd248]*|) (r[0-9][\\.wxyz]*), (1?-?[crtv][0-9][\\.wxyz_abdis2]*, )?(1?-?[crtv][0-9][\\.wxyz_abdis2]*, )?(1?-?[crtv][0-9][\\.wxyz_abdis2]*, )?((1?-)(c[0-9])([\\.wxyz]*)(_bx2|_bias|_x2|_d[zbwa]|)|(1?-?)(c[0-9])([\\.wxyz]*)(_bx2|_bias|_x2|_d[zbwa]))(?![_\\.wxyz])"),
-				"    mov $4, $10$11$14$15 /* added line */\n$1  + $2$3 $4, $5$6$9$13$4$12$16 /* changed $10$11$14$15 to $4 */", std::regex_constants::format_first_only);
+				std::regex("(    .*\\n)  \\+ (...)(_[_satxd248]*|) (r[0-9])([\\.wxyz]*), (1?-?[crtv][0-9][\\.wxyz_abdis2]*, )?(1?-?[crtv][0-9][\\.wxyz_abdis2]*, )?(1?-?[crtv][0-9][\\.wxyz_abdis2]*, )?((1?-)(c[0-9])([\\.wxyz]*)(_bx2|_bias|_x2|_d[zbwa]|)|(1?-?)(c[0-9])([\\.wxyz]*)(_bx2|_bias|_x2|_d[zbwa]))(?![_\\.wxyz])"),
+				"    mov $4$5, $11$12$15$16 /* added line */\n$1  + $2$3 $4$5, $6$7$10$14$4$13$17$5 /* changed $11$12$15$16 to $4$5 */", std::regex_constants::format_first_only);
 		}
 		if (SourceSize == SourceCode.size())
 		{
@@ -2084,7 +2090,7 @@ HRESULT STDMETHODCALLTYPE Direct3DDevice8::CreatePixelShader(const DWORD *pFunct
 
 	if (D3DXAssembleShader != nullptr)
 	{
-		hr = D3DXAssembleShader(SourceCode.data(), static_cast<UINT>(SourceCode.size()), nullptr, nullptr, 0, &Assembly, &ErrorBuffer);
+		hr = D3DXAssembleShader(SourceCode.data(), static_cast<UINT>(SourceCode.size()), nullptr, nullptr, D3DXASM, &Assembly, &ErrorBuffer);
 	}
 	else
 	{
