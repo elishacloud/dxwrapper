@@ -8,9 +8,9 @@
 #define D3DXASM_SKIPVALIDATION  0x0010
 
 #if _DEBUG
-#define D3DXASM D3DXASM_DEBUG
+#define D3DXASM_FLAGS D3DXASM_DEBUG
 #else
-#define D3DXASM  0
+#define D3DXASM_FLAGS  0
 #endif // _DEBUG
 
 struct D3DXMACRO
