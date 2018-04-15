@@ -12,57 +12,25 @@ private:
 public:
 	m_IDirectDrawX(IDirectDraw7 *aOriginal, DWORD Version, IDirectDraw7 *Interface) : ProxyInterface(aOriginal), DirectXVersion(Version), WrapperInterface(Interface)
 	{
-		switch (DirectXVersion)
-		{
-		case 1:
-			WrapperID = IID_IDirectDraw;
-			break;
-		case 2:
-			WrapperID = IID_IDirectDraw2;
-			break;
-		case 3:
-			WrapperID = IID_IDirectDraw3;
-			break;
-		case 4:
-			WrapperID = IID_IDirectDraw4;
-			break;
-		default:
-			WrapperID = IID_IDirectDraw7;
-			break;
-		}
+		WrapperID = (DirectXVersion == 1) ? IID_IDirectDraw :
+			(DirectXVersion == 2) ? IID_IDirectDraw2 :
+			(DirectXVersion == 3) ? IID_IDirectDraw3 :
+			(DirectXVersion == 4) ? IID_IDirectDraw4 :
+			(DirectXVersion == 7) ? IID_IDirectDraw7 : IID_IDirectDraw7;
 
 		REFIID ProxyID = ConvertREFIID(WrapperID);
-		if (ProxyID == IID_IDirectDraw)
-		{
-			ProxyDirectXVersion = 1;
-		}
-		else if (ProxyID == IID_IDirectDraw2)
-		{
-			ProxyDirectXVersion = 2;
-		}
-		else if (ProxyID == IID_IDirectDraw3)
-		{
-			ProxyDirectXVersion = 3;
-		}
-		else if (ProxyID == IID_IDirectDraw4)
-		{
-			ProxyDirectXVersion = 4;
-		}
-		else if (ProxyID == IID_IDirectDraw7)
-		{
-			ProxyDirectXVersion = 7;
-		}
-		else
-		{
-			ProxyDirectXVersion = DirectXVersion;
-		}
+		ProxyDirectXVersion = (ProxyID == IID_IDirectDraw) ? 1 :
+			(ProxyID == IID_IDirectDraw2) ? 2 :
+			(ProxyID == IID_IDirectDraw3) ? 3 :
+			(ProxyID == IID_IDirectDraw4) ? 4 :
+			(ProxyID == IID_IDirectDraw7) ? 7 : 7;
 
 		if (ProxyDirectXVersion != DirectXVersion)
 		{
-			Logging::Log() << "Convert DirectDraw v" << DirectXVersion << " to v" << ProxyDirectXVersion;
+			Logging::LogDebug() << "Convert DirectDraw v" << DirectXVersion << " to v" << ProxyDirectXVersion;
 		}
 	}
-	~m_IDirectDrawX() { }
+	~m_IDirectDrawX() {}
 
 	DWORD GetDirectXVersion() { return DirectXVersion; }
 

@@ -50,15 +50,13 @@ REFIID ConvertREFIID(REFIID CalledID)
 	return riid;
 }
 
-HRESULT ProxyQueryInterface(LPVOID ProxyInterface, REFIID CalledID, LPVOID * ppvObj, REFIID CallerID, LPVOID WrapperInterface)
+HRESULT ProxyQueryInterface(LPVOID ProxyInterface, REFIID CalledID, LPVOID * ppvObj, REFIID WrapperID, LPVOID WrapperInterface)
 {
-#ifdef _DEBUG
-	Logging::Log() << "Query for " << CalledID << " from " << CallerID;
-#endif // DEBUG
+	Logging::LogDebug() << "Query for " << CalledID << " from " << WrapperID;
 
 	REFIID riid = GetIID(CalledID);
 
-	if ((riid == CallerID || riid == IID_IUnknown) && ppvObj)
+	if ((riid == WrapperID || riid == IID_IUnknown) && ppvObj)
 	{
 		((IUnknown*)ProxyInterface)->AddRef();
 
@@ -73,12 +71,10 @@ HRESULT ProxyQueryInterface(LPVOID ProxyInterface, REFIID CalledID, LPVOID * ppv
 	{
 		genericQueryInterface(riid, ppvObj);
 	}
-#ifdef _DEBUG
 	else
 	{
-		Logging::Log() << "Query failed for " << CalledID;
+		Logging::LogDebug() << "Query failed for " << CalledID;
 	}
-#endif // DEBUG
 
 	return hr;
 }

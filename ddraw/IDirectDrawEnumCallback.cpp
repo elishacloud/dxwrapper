@@ -21,7 +21,7 @@ HRESULT CALLBACK m_IDirectDrawEnumDisplayModes::ConvertCallback(LPDDSURFACEDESC2
 	ENUMDISPLAYMODES *lpCallbackContext = (ENUMDISPLAYMODES*)lpContext;
 
 	DDSURFACEDESC Desc;
-	if (lpDDSurfaceDesc != nullptr && lpCallbackContext->ProxyDirectXVersion > 3 && lpCallbackContext->DirectXVersion < 4)
+	if (lpDDSurfaceDesc && lpCallbackContext->ProxyDirectXVersion > 3 && lpCallbackContext->DirectXVersion < 4)
 	{
 		ConvertSurfaceDesc(Desc, *lpDDSurfaceDesc);
 		lpDDSurfaceDesc = (LPDDSURFACEDESC2)&Desc;
@@ -40,7 +40,7 @@ HRESULT CALLBACK m_IDirectDrawEnumSurface::ConvertCallback(LPDIRECTDRAWSURFACE7 
 	}
 
 	DDSURFACEDESC Desc;
-	if (lpDDSurfaceDesc != nullptr && lpCallbackContext->ProxyDirectXVersion > 3 && lpCallbackContext->DirectXVersion < 4)
+	if (lpDDSurfaceDesc && lpCallbackContext->ProxyDirectXVersion > 3 && lpCallbackContext->DirectXVersion < 4)
 	{
 		ConvertSurfaceDesc(Desc, *(LPDDSURFACEDESC2)lpDDSurfaceDesc);
 		lpDDSurfaceDesc = (LPDDSURFACEDESC2)&Desc;

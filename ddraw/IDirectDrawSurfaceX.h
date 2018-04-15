@@ -12,57 +12,25 @@ private:
 public:
 	m_IDirectDrawSurfaceX(IDirectDrawSurface7 *pOriginal, DWORD Version, IDirectDrawSurface7 *Interface) : ProxyInterface(pOriginal), DirectXVersion(Version), WrapperInterface(Interface)
 	{
-		switch (DirectXVersion)
-		{
-		case 1:
-			WrapperID = IID_IDirectDrawSurface;
-			break;
-		case 2:
-			WrapperID = IID_IDirectDrawSurface2;
-			break;
-		case 3:
-			WrapperID = IID_IDirectDrawSurface3;
-			break;
-		case 4:
-			WrapperID = IID_IDirectDrawSurface4;
-			break;
-		default:
-			WrapperID = IID_IDirectDrawSurface7;
-			break;
-		}
+		WrapperID = (DirectXVersion == 1) ? IID_IDirectDrawSurface :
+			(DirectXVersion == 2) ? IID_IDirectDrawSurface2 :
+			(DirectXVersion == 3) ? IID_IDirectDrawSurface3 :
+			(DirectXVersion == 4) ? IID_IDirectDrawSurface4 :
+			(DirectXVersion == 7) ? IID_IDirectDrawSurface7 : IID_IDirectDrawSurface7;
 
 		REFIID ProxyID = ConvertREFIID(WrapperID);
-		if (ProxyID == IID_IDirectDrawSurface)
-		{
-			ProxyDirectXVersion = 1;
-		}
-		else if (ProxyID == IID_IDirectDrawSurface2)
-		{
-			ProxyDirectXVersion = 2;
-		}
-		else if (ProxyID == IID_IDirectDrawSurface3)
-		{
-			ProxyDirectXVersion = 3;
-		}
-		else if (ProxyID == IID_IDirectDrawSurface4)
-		{
-			ProxyDirectXVersion = 4;
-		}
-		else if (ProxyID == IID_IDirectDrawSurface7)
-		{
-			ProxyDirectXVersion = 7;
-		}
-		else
-		{
-			ProxyDirectXVersion = DirectXVersion;
-		}
+		ProxyDirectXVersion = (ProxyID == IID_IDirectDrawSurface) ? 1 :
+			(ProxyID == IID_IDirectDrawSurface2) ? 2 :
+			(ProxyID == IID_IDirectDrawSurface3) ? 3 :
+			(ProxyID == IID_IDirectDrawSurface4) ? 4 :
+			(ProxyID == IID_IDirectDrawSurface7) ? 7 : 7;
 
 		if (ProxyDirectXVersion != DirectXVersion)
 		{
-			Logging::Log() << "Convert DirectDrawSurface v" << DirectXVersion << " to v" << ProxyDirectXVersion;
+			Logging::LogDebug() << "Convert DirectDrawSurface v" << DirectXVersion << " to v" << ProxyDirectXVersion;
 		}
 	}
-	~m_IDirectDrawSurfaceX() { }
+	~m_IDirectDrawSurfaceX() {}
 
 	DWORD GetDirectXVersion() { return DirectXVersion; }
 
