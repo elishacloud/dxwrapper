@@ -43,10 +43,6 @@ Direct3D8::Direct3D8(IDirect3D9 *ProxyInterface) :
 }
 Direct3D8::~Direct3D8()
 {
-	for (UINT x = 0; x < CurrentAdapterCount; x++)
-	{
-		CurrentAdapterModes[x].clear();
-	}
 }
 
 HRESULT STDMETHODCALLTYPE Direct3D8::QueryInterface(REFIID riid, void **ppvObj)

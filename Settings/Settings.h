@@ -129,7 +129,7 @@ struct CONFIG
 	void Init();						// Initialize the config setting
 	bool ArmadaFix;						// Fix for Start Trek Armada 1
 	bool SingleProcAffinity;			// Sets the CPU affinity for this process and thread
-	bool SingleProcAffinityNotSet;		// If the CPU affinity option exists in the config file
+	bool SingleProcAffinityNotSet;		// If the SingleProcAffinity option exists in the config file
 	bool isDdrawWrapperEnabled;			// Specifies if DdrawWrapper needs to be enabled
 	bool isD3d9WrapperEnabled;			// Specifies if D3d9Wrapper needs to be enabled
 	bool D3d8to9;						// Converts Direct3D8 (d3d8.dll) to Direct3D9 (d3d9.dll) https://github.com/crosire/d3d8to9
@@ -142,6 +142,7 @@ struct CONFIG
 	bool DSoundCtrl;					// Enables DirectSoundControl https://github.com/nRaecheR/DirectSoundControl
 	bool DxWnd;							// Enables DxWnd https://sourceforge.net/projects/dxwnd/
 	bool CacheClipPlane;				// Caches the ClipPlane for Direct3D9 to fix an issue in d3d9 on Windows 8 and newer
+	bool CacheClipPlaneNotSet;			// If the CacheClipPlane option exists in the config file
 	bool ConvertToDirectDraw7;			// Converts DirectDraw 1-6 to DirectDraw 7
 	bool FullScreen;					// Sets the main window to fullscreen
 	bool ForceTermination;				// Terminates application when main window closes

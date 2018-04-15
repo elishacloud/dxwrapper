@@ -10,13 +10,9 @@ public:
 	explicit AddressLookupTableD3d9(D *pDevice) : pDevice(pDevice) {}
 	~AddressLookupTableD3d9()
 	{
-		while (g_map.size())
+		for (const auto& entry : g_map)
 		{
-			auto it = g_map.begin();
-
-			it->second->DeleteMe();
-
-			it = g_map.erase(it);
+			entry.second->DeleteMe();
 		}
 	}
 
@@ -57,7 +53,7 @@ public:
 
 			if (it != std::end(g_map))
 			{
-					it = g_map.erase(it);
+				it = g_map.erase(it);
 			}
 		}
 	}

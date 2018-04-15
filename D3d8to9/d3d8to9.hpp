@@ -175,12 +175,18 @@ public:
 	AddressLookupTable *ProxyAddressLookupTable;
 
 private:
+	void ApplyClipPlanes();
+
 	Direct3D8 *const D3D;
 	IDirect3DDevice9 *const ProxyInterface;
 	INT CurrentBaseVertexIndex = 0;
 	const BOOL ZBufferDiscarding = FALSE;
 	DWORD CurrentVertexShaderHandle = 0, CurrentPixelShaderHandle = 0;
 	bool PaletteFlag = false;
+
+	static constexpr size_t MAX_CLIP_PLANES = 6;
+	float StoredClipPlanes[MAX_CLIP_PLANES][4] = {};
+	DWORD ClipPlaneRenderState = 0;
 };
 
 class Direct3DSwapChain8 : public IUnknown, public AddressLookupTableObject

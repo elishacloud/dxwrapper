@@ -13,15 +13,11 @@ AddressLookupTable::AddressLookupTable(Direct3DDevice8 *Device) :
 }
 AddressLookupTable::~AddressLookupTable()
 {
-	for (UINT i = 0; i < 8; i++)
+	for (const auto& cache : AddressCache)
 	{
-		while (AddressCache[i].size())
+		for (const auto& entry : cache)
 		{
-			auto it = AddressCache[i].begin();
-
-			it->second->DeleteMe();
-
-			it = AddressCache[i].erase(it);
+			entry.second->DeleteMe();
 		}
 	}
 }

@@ -41,15 +41,12 @@ public:
 	explicit AddressLookupTableDdraw() {}
 	~AddressLookupTableDdraw()
 	{
-		for (UINT x = 0; x < MaxIndex; x++)
+		ConstructorFlag = true;
+		for (const auto& cache : g_map)
 		{
-			while (g_map[x].size())
+			for (const auto& entry : cache)
 			{
-				auto it = g_map[x].begin();
-
-				it->second->DeleteMe();
-
-				it = g_map[x].erase(it);
+				entry.second->DeleteMe();
 			}
 		}
 	}
@@ -106,7 +103,7 @@ public:
 	template <typename T>
 	void DeleteAddress(T *Wrapper)
 	{
-		if (Wrapper != nullptr)
+		if (Wrapper != nullptr && !ConstructorFlag)
 		{
 			constexpr UINT CacheIndex = AddressCacheIndex<T>::CacheIndex;
 			auto it = std::find_if(g_map[CacheIndex].begin(), g_map[CacheIndex].end(),
@@ -114,12 +111,13 @@ public:
 
 			if (it != std::end(g_map[CacheIndex]))
 			{
-					it = g_map[CacheIndex].erase(it);
+				it = g_map[CacheIndex].erase(it);
 			}
 		}
 	}
 
 private:
+	bool ConstructorFlag = false;
 	D * unused = nullptr;
 	std::unordered_map<void*, class AddressLookupTableDdrawObject*> g_map[MaxIndex];
 };

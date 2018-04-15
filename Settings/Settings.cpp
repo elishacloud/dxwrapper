@@ -220,13 +220,17 @@ void Settings::SetValue(char* name, char* value, bool* setting)
 void __stdcall Settings::ParseCallback(char* name, char* value)
 {
 	// Check for the existance of certian values
-	if (!_strcmpi(name, "SingleProcAffinity"))
-	{
-		Config.SingleProcAffinityNotSet = false;
-	}
 	if (!_strcmpi(name, "DisableMaxWindowedMode"))
 	{
 		Config.DisableMaxWindowedModeNotSet = false;
+	}
+	if (!_strcmpi(name, "CacheClipPlane"))
+	{
+		Config.CacheClipPlaneNotSet = false;
+	}
+	if (!_strcmpi(name, "SingleProcAffinity"))
+	{
+		Config.SingleProcAffinityNotSet = false;
 	}
 
 	// Set Value of normal config settings
@@ -331,6 +335,7 @@ void Settings::ClearConfigSettings()
 
 	// Default to 'true' until we know it is set
 	Config.DisableMaxWindowedModeNotSet = true;
+	Config.CacheClipPlaneNotSet = true;
 	Config.SingleProcAffinityNotSet = true;
 }
 
@@ -538,6 +543,10 @@ void CONFIG::Init()
 	if ((D3d8to9 = (D3d8to9 || isD3d9WrapperEnabled)) != 0)
 	{
 		Logging::Log() << "Enabling d3d8to9 wrapper";
+	}
+	if (CacheClipPlaneNotSet)
+	{
+		CacheClipPlane = true;
 	}
 
 	// Enable DDrawCompat settings

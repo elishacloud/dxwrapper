@@ -737,15 +737,22 @@ HRESULT STDMETHODCALLTYPE Direct3DDevice8::GetLightEnable(DWORD Index, BOOL *pEn
 }
 HRESULT STDMETHODCALLTYPE Direct3DDevice8::SetClipPlane(DWORD Index, const float *pPlane)
 {
-	return ProxyInterface->SetClipPlane(Index, pPlane);
+	if (pPlane == nullptr || Index >= MAX_CLIP_PLANES) return D3DERR_INVALIDCALL;
+
+	memcpy(StoredClipPlanes[Index], pPlane, sizeof(StoredClipPlanes[0]));
+	return D3D_OK;
 }
 HRESULT STDMETHODCALLTYPE Direct3DDevice8::GetClipPlane(DWORD Index, float *pPlane)
 {
-	return ProxyInterface->GetClipPlane(Index, pPlane);
+	if (pPlane == nullptr || Index >= MAX_CLIP_PLANES) return D3DERR_INVALIDCALL;
+
+	memcpy(pPlane, StoredClipPlanes[Index], sizeof(StoredClipPlanes[0]));
+	return D3D_OK;
 }
 HRESULT STDMETHODCALLTYPE Direct3DDevice8::SetRenderState(D3DRENDERSTATETYPE State, DWORD Value)
 {
 	FLOAT Biased;
+	HRESULT hr;
 
 	switch (static_cast<DWORD>(State))
 	{
@@ -756,6 +763,13 @@ HRESULT STDMETHODCALLTYPE Direct3DDevice8::SetRenderState(D3DRENDERSTATETYPE Sta
 			return D3DERR_INVALIDCALL;
 		case D3DRS_SOFTWAREVERTEXPROCESSING:
 			return D3D_OK;
+		case D3DRS_CLIPPLANEENABLE:
+			hr = ProxyInterface->SetRenderState(State, Value);
+			if (SUCCEEDED(hr))
+			{
+				ClipPlaneRenderState = Value;
+			}
+			return hr;
 		case D3DRS_ZBIAS:
 			Biased = static_cast<FLOAT>(Value) * -0.000005f;
 			Value = *reinterpret_cast<const DWORD *>(&Biased);
@@ -1034,18 +1048,22 @@ HRESULT STDMETHODCALLTYPE Direct3DDevice8::GetCurrentTexturePalette(UINT *pPalet
 }
 HRESULT STDMETHODCALLTYPE Direct3DDevice8::DrawPrimitive(D3DPRIMITIVETYPE PrimitiveType, UINT StartVertex, UINT PrimitiveCount)
 {
+	ApplyClipPlanes();
 	return ProxyInterface->DrawPrimitive(PrimitiveType, StartVertex, PrimitiveCount);
 }
 HRESULT STDMETHODCALLTYPE Direct3DDevice8::DrawIndexedPrimitive(D3DPRIMITIVETYPE PrimitiveType, UINT MinIndex, UINT NumVertices, UINT StartIndex, UINT PrimitiveCount)
 {
+	ApplyClipPlanes();
 	return ProxyInterface->DrawIndexedPrimitive(PrimitiveType, CurrentBaseVertexIndex, MinIndex, NumVertices, StartIndex, PrimitiveCount);
 }
 HRESULT STDMETHODCALLTYPE Direct3DDevice8::DrawPrimitiveUP(D3DPRIMITIVETYPE PrimitiveType, UINT PrimitiveCount, const void *pVertexStreamZeroData, UINT VertexStreamZeroStride)
 {
+	ApplyClipPlanes();
 	return ProxyInterface->DrawPrimitiveUP(PrimitiveType, PrimitiveCount, pVertexStreamZeroData, VertexStreamZeroStride);
 }
 HRESULT STDMETHODCALLTYPE Direct3DDevice8::DrawIndexedPrimitiveUP(D3DPRIMITIVETYPE PrimitiveType, UINT MinVertexIndex, UINT NumVertexIndices, UINT PrimitiveCount, const void *pIndexData, D3DFORMAT IndexDataFormat, const void *pVertexStreamZeroData, UINT VertexStreamZeroStride)
 {
+	ApplyClipPlanes();
 	return ProxyInterface->DrawIndexedPrimitiveUP(PrimitiveType, MinVertexIndex, NumVertexIndices, PrimitiveCount, pIndexData, IndexDataFormat, pVertexStreamZeroData, VertexStreamZeroStride);
 }
 HRESULT STDMETHODCALLTYPE Direct3DDevice8::ProcessVertices(UINT SrcStartIndex, UINT DestIndex, UINT VertexCount, Direct3DVertexBuffer8 *pDestBuffer, DWORD Flags)
@@ -1273,6 +1291,11 @@ HRESULT STDMETHODCALLTYPE Direct3DDevice8::CreateVertexShader(const DWORD *pDecl
 		}
 
 		std::string SourceCode(static_cast<const char *>(Disassembly->GetBufferPointer()), Disassembly->GetBufferSize() - 1);
+
+#ifndef D3D8TO9NOLOG
+		LOG << "> Dumping original shader assembly:" << std::endl << std::endl << SourceCode << std::endl;
+#endif
+
 		const size_t VersionPosition = SourceCode.find("vs_1_");
 
 		assert(VersionPosition != std::string::npos);
@@ -1374,7 +1397,7 @@ HRESULT STDMETHODCALLTYPE Direct3DDevice8::CreateVertexShader(const DWORD *pDecl
 		SourceCode = std::regex_replace(SourceCode, std::regex("(add|sub|mul|min|max) (oFog|oPts), (.+), ([cr][0-9]+)\\n"), "$1 $2, $3, $4.x /* added swizzle */\n");
 		SourceCode = std::regex_replace(SourceCode, std::regex("mov (oFog|oPts)(.*), (-?)([crv][0-9]+(?![\\.0-9]))"), "mov $1$2, $3$4.x /* select single component */");
 
-		// Dest register cannot be the same as first source register for m*x* instructions.
+		// Destination register cannot be the same as first source register for m*x* instructions.
 		if (std::regex_search(SourceCode, std::regex("m.x.")))
 		{
 			// Check for unused register
@@ -1790,13 +1813,13 @@ HRESULT STDMETHODCALLTYPE Direct3DDevice8::CreatePixelShader(const DWORD *pFunct
 		size_t SourceSize = SourceCode.size();
 		SourceCode = std::regex_replace(SourceCode,
 			std::regex("    (...)(_[_satxd248]*|) (r[0-9])([\\.wxyz]*), (1?-?[crtv][0-9][\\.wxyz_abdis2]*, )?(1?-?[crtv][0-9][\\.wxyz_abdis2]*, )?(1?-?[crtv][0-9][\\.wxyz_abdis2]*, )?((1?-)(c[0-9])([\\.wxyz]*)(_bx2|_bias|_x2|_d[zbwa]|)|(1?-?)(c[0-9])([\\.wxyz]*)(_bx2|_bias|_x2|_d[zbwa]))(?![_\\.wxyz])"),
-			"    mov $3$4, $10$11$14$15 /* added line */\n    $1$2 $3$4, $5$6$9$13$3$12$16$4 /* changed $10$11$14$15 to $3$4 */", std::regex_constants::format_first_only);
+			"    mov $3$4, $10$11$14$15 /* added line */\n    $1$2 $3$4, $5$6$9$13$3$12$16 /* changed $10$11$14$15 to $3 */", std::regex_constants::format_first_only);
 		// Replace one constant modifier on coissued commands using the dest register as a temporary register
 		if (SourceSize == SourceCode.size())
 		{
 			SourceCode = std::regex_replace(SourceCode,
 				std::regex("(    .*\\n)  \\+ (...)(_[_satxd248]*|) (r[0-9])([\\.wxyz]*), (1?-?[crtv][0-9][\\.wxyz_abdis2]*, )?(1?-?[crtv][0-9][\\.wxyz_abdis2]*, )?(1?-?[crtv][0-9][\\.wxyz_abdis2]*, )?((1?-)(c[0-9])([\\.wxyz]*)(_bx2|_bias|_x2|_d[zbwa]|)|(1?-?)(c[0-9])([\\.wxyz]*)(_bx2|_bias|_x2|_d[zbwa]))(?![_\\.wxyz])"),
-				"    mov $4$5, $11$12$15$16 /* added line */\n$1  + $2$3 $4$5, $6$7$10$14$4$13$17$5 /* changed $11$12$15$16 to $4$5 */", std::regex_constants::format_first_only);
+				"    mov $4$5, $11$12$15$16 /* added line */\n$1  + $2$3 $4$5, $6$7$10$14$4$13$17 /* changed $11$12$15$16 to $4 */", std::regex_constants::format_first_only);
 		}
 		if (SourceSize == SourceCode.size())
 		{
@@ -2201,4 +2224,17 @@ HRESULT STDMETHODCALLTYPE Direct3DDevice8::DrawTriPatch(UINT Handle, const float
 HRESULT STDMETHODCALLTYPE Direct3DDevice8::DeletePatch(UINT Handle)
 {
 	return ProxyInterface->DeletePatch(Handle);
+}
+
+void Direct3DDevice8::ApplyClipPlanes()
+{
+	DWORD index = 0;
+	for (const auto clipPlane : StoredClipPlanes)
+	{
+		if ((ClipPlaneRenderState & (1 << index)) != 0)
+		{
+			ProxyInterface->SetClipPlane(index, clipPlane);
+		}
+		index++;
+	}
 }
