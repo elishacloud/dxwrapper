@@ -53,25 +53,25 @@ HRESULT m_IDirectDrawSurfaceX::Blt(LPRECT lpDestRect, LPDIRECTDRAWSURFACE7 lpDDS
 		lpDDSrcSurface = static_cast<m_IDirectDrawSurface7 *>(lpDDSrcSurface)->GetProxyInterface();
 	}
 
-	if (lpDDBltFx)
+	if (lpDDBltFx && lpDDBltFx->dwSize > 12 * 8)
 	{
-		if (lpDDBltFx->lpDDSAlphaDest)
+		if (lpDDBltFx->dwSize > 21 * 8 && lpDDBltFx->lpDDSAlphaDest)
 		{
 			lpDDBltFx->lpDDSAlphaDest = static_cast<m_IDirectDrawSurface *>(lpDDBltFx->lpDDSAlphaDest)->GetProxyInterface();
 		}
-		if (lpDDBltFx->lpDDSAlphaSrc)
+		if (lpDDBltFx->dwSize > 24 * 8 && lpDDBltFx->lpDDSAlphaSrc)
 		{
 			lpDDBltFx->lpDDSAlphaSrc = static_cast<m_IDirectDrawSurface *>(lpDDBltFx->lpDDSAlphaSrc)->GetProxyInterface();
 		}
-		if (lpDDBltFx->lpDDSPattern)
+		if (lpDDBltFx->dwSize > 28 * 8 && lpDDBltFx->lpDDSPattern)
 		{
 			lpDDBltFx->lpDDSPattern = static_cast<m_IDirectDrawSurface *>(lpDDBltFx->lpDDSPattern)->GetProxyInterface();
 		}
-		if (lpDDBltFx->lpDDSZBufferDest)
+		if (lpDDBltFx->dwSize > 12 * 8 && lpDDBltFx->lpDDSZBufferDest)
 		{
 			lpDDBltFx->lpDDSZBufferDest = static_cast<m_IDirectDrawSurface *>(lpDDBltFx->lpDDSZBufferDest)->GetProxyInterface();
 		}
-		if (lpDDBltFx->lpDDSZBufferSrc)
+		if (lpDDBltFx->dwSize > 15 * 8 && lpDDBltFx->lpDDSZBufferSrc)
 		{
 			lpDDBltFx->lpDDSZBufferSrc = static_cast<m_IDirectDrawSurface *>(lpDDBltFx->lpDDSZBufferSrc)->GetProxyInterface();
 		}
@@ -88,25 +88,25 @@ HRESULT m_IDirectDrawSurfaceX::BltBatch(LPDDBLTBATCH lpDDBltBatch, DWORD dwCount
 		{
 			lpDDBltBatch->lpDDSSrc = static_cast<m_IDirectDrawSurface *>(lpDDBltBatch->lpDDSSrc)->GetProxyInterface();
 		}
-		if (lpDDBltBatch->lpDDBltFx)
+		if (lpDDBltBatch->lpDDBltFx && lpDDBltBatch->lpDDBltFx->dwSize > 12 * 8)
 		{
-			if (lpDDBltBatch->lpDDBltFx->lpDDSAlphaDest)
+			if (lpDDBltBatch->lpDDBltFx->dwSize > 21 * 8 && lpDDBltBatch->lpDDBltFx->lpDDSAlphaDest)
 			{
 				lpDDBltBatch->lpDDBltFx->lpDDSAlphaDest = static_cast<m_IDirectDrawSurface *>(lpDDBltBatch->lpDDBltFx->lpDDSAlphaDest)->GetProxyInterface();
 			}
-			if (lpDDBltBatch->lpDDBltFx->lpDDSAlphaSrc)
+			if (lpDDBltBatch->lpDDBltFx->dwSize > 24 * 8 && lpDDBltBatch->lpDDBltFx->lpDDSAlphaSrc)
 			{
 				lpDDBltBatch->lpDDBltFx->lpDDSAlphaSrc = static_cast<m_IDirectDrawSurface *>(lpDDBltBatch->lpDDBltFx->lpDDSAlphaSrc)->GetProxyInterface();
 			}
-			if (lpDDBltBatch->lpDDBltFx->lpDDSPattern)
+			if (lpDDBltBatch->lpDDBltFx->dwSize > 28 * 8 && lpDDBltBatch->lpDDBltFx->lpDDSPattern)
 			{
 				lpDDBltBatch->lpDDBltFx->lpDDSPattern = static_cast<m_IDirectDrawSurface *>(lpDDBltBatch->lpDDBltFx->lpDDSPattern)->GetProxyInterface();
 			}
-			if (lpDDBltBatch->lpDDBltFx->lpDDSZBufferDest)
+			if (lpDDBltBatch->lpDDBltFx->dwSize > 12 * 8 && lpDDBltBatch->lpDDBltFx->lpDDSZBufferDest)
 			{
 				lpDDBltBatch->lpDDBltFx->lpDDSZBufferDest = static_cast<m_IDirectDrawSurface *>(lpDDBltBatch->lpDDBltFx->lpDDSZBufferDest)->GetProxyInterface();
 			}
-			if (lpDDBltBatch->lpDDBltFx->lpDDSZBufferSrc)
+			if (lpDDBltBatch->lpDDBltFx->dwSize > 15 * 8 && lpDDBltBatch->lpDDBltFx->lpDDSZBufferSrc)
 			{
 				lpDDBltBatch->lpDDBltFx->lpDDSZBufferSrc = static_cast<m_IDirectDrawSurface *>(lpDDBltBatch->lpDDBltFx->lpDDSZBufferSrc)->GetProxyInterface();
 			}
@@ -399,13 +399,13 @@ HRESULT m_IDirectDrawSurfaceX::UpdateOverlay(LPRECT lpSrcRect, LPDIRECTDRAWSURFA
 		lpDDDestSurface = static_cast<m_IDirectDrawSurface7 *>(lpDDDestSurface)->GetProxyInterface();
 	}
 
-	if (lpDDOverlayFx)
+	if (lpDDOverlayFx && lpDDOverlayFx->dwSize > 7 * 8)
 	{
-		if (lpDDOverlayFx->lpDDSAlphaSrc)
+		if (lpDDOverlayFx->dwSize > 7 * 8 && lpDDOverlayFx->lpDDSAlphaSrc)
 		{
 			lpDDOverlayFx->lpDDSAlphaSrc = static_cast<m_IDirectDrawSurface *>(lpDDOverlayFx->lpDDSAlphaSrc)->GetProxyInterface();
 		}
-		if (lpDDOverlayFx->lpDDSAlphaDest)
+		if (lpDDOverlayFx->dwSize > 10 * 8 && lpDDOverlayFx->lpDDSAlphaDest)
 		{
 			lpDDOverlayFx->lpDDSAlphaDest = static_cast<m_IDirectDrawSurface *>(lpDDOverlayFx->lpDDSAlphaDest)->GetProxyInterface();
 		}
@@ -435,7 +435,7 @@ HRESULT m_IDirectDrawSurfaceX::GetDDInterface(LPVOID FAR * lplpDD)
 
 	if (SUCCEEDED(hr) && lplpDD)
 	{
-		*lplpDD = ProxyAddressLookupTable.FindAddress<m_IDirectDrawSurface7>(*lplpDD, DirectXVersion);
+		*lplpDD = ProxyAddressLookupTable.FindAddress<m_IDirectDraw7>(*lplpDD, DirectXVersion);
 	}
 
 	return hr;

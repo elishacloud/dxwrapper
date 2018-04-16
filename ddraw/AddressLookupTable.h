@@ -20,7 +20,13 @@ public:
 	template <>
 	struct AddressCacheIndex<m_IDirectDraw4> { static constexpr UINT CacheIndex = 4; };
 	template <>
-	struct AddressCacheIndex<m_IDirectDraw7> { static constexpr UINT CacheIndex = 7; };
+	struct AddressCacheIndex<m_IDirectDraw7> { static constexpr UINT CacheIndex = 7;
+		using Type1 = m_IDirectDraw;
+		using Type2 = m_IDirectDraw2;
+		using Type3 = m_IDirectDraw3;
+		using Type4 = m_IDirectDraw4;
+		using Type7 = m_IDirectDraw7;
+	};
 	template <>
 	struct AddressCacheIndex<m_IDirectDrawSurface> { static constexpr UINT CacheIndex = 1; };
 	template <>
