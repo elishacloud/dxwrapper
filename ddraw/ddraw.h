@@ -5,6 +5,7 @@
 #include <ddraw.h>
 #include <ddrawex.h>
 #include <d3d.h>
+#include <memory>
 
 class m_IDirectDraw;
 class m_IDirectDraw2;

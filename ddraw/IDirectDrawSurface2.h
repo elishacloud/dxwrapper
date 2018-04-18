@@ -3,19 +3,18 @@
 class m_IDirectDrawSurface2 : public IDirectDrawSurface2, public AddressLookupTableDdrawObject
 {
 private:
-	m_IDirectDrawSurfaceX *ProxyInterface;
+	std::unique_ptr<m_IDirectDrawSurfaceX> ProxyInterface;
 	IDirectDrawSurface2 *RealInterface;
 
 public:
 	m_IDirectDrawSurface2(IDirectDrawSurface2 *aOriginal) : RealInterface(aOriginal)
 	{
-		ProxyInterface = new m_IDirectDrawSurfaceX((IDirectDrawSurface7*)RealInterface, 2, (IDirectDrawSurface7*)this);
+		ProxyInterface = std::make_unique<m_IDirectDrawSurfaceX>((IDirectDrawSurface7*)RealInterface, 2, (IDirectDrawSurface7*)this);
 		ProxyAddressLookupTable.SaveAddress(this, RealInterface);
 	}
 	~m_IDirectDrawSurface2()
 	{
 		ProxyAddressLookupTable.DeleteAddress(this);
-		delete ProxyInterface;
 	}
 
 	IDirectDrawSurface2 *GetProxyInterface() { return RealInterface; }

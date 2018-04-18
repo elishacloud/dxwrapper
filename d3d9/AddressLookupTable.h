@@ -10,6 +10,7 @@ public:
 	explicit AddressLookupTableD3d9(D *pDevice) : pDevice(pDevice) {}
 	~AddressLookupTableD3d9()
 	{
+		ConstructorFlag = true;
 		for (const auto& entry : g_map)
 		{
 			entry.second->DeleteMe();
@@ -46,7 +47,7 @@ public:
 	template <typename T>
 	void DeleteAddress(T *Wrapper)
 	{
-		if (Wrapper != nullptr)
+		if (Wrapper != nullptr && !ConstructorFlag)
 		{
 			auto it = std::find_if(g_map.begin(), g_map.end(),
 				[Wrapper](std::pair<void*, class AddressLookupTableD3d9Object*> Map) -> bool { return Map.second == Wrapper; });
@@ -59,6 +60,7 @@ public:
 	}
 
 private:
+	bool ConstructorFlag = false;
 	D *const pDevice;
 	std::unordered_map<void*, class AddressLookupTableD3d9Object*> g_map;
 };
