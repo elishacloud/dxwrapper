@@ -38,27 +38,27 @@ ULONG m_IDirectDrawPalette::Release()
 	return x;
 }
 
-HRESULT m_IDirectDrawPalette::GetCaps(LPDWORD a)
+HRESULT m_IDirectDrawPalette::GetCaps(LPDWORD lpdwCaps)
 {
-	return ProxyInterface->GetCaps(a);
+	return ProxyInterface->GetCaps(lpdwCaps);
 }
 
-HRESULT m_IDirectDrawPalette::GetEntries(DWORD a, DWORD b, DWORD c, LPPALETTEENTRY d)
+HRESULT m_IDirectDrawPalette::GetEntries(DWORD dwFlags, DWORD dwBase, DWORD dwNumEntries, LPPALETTEENTRY lpEntries)
 {
-	return ProxyInterface->GetEntries(a, b, c, d);
+	return ProxyInterface->GetEntries(dwFlags, dwBase, dwNumEntries, lpEntries);
 }
 
-HRESULT m_IDirectDrawPalette::Initialize(LPDIRECTDRAW a, DWORD b, LPPALETTEENTRY c)
+HRESULT m_IDirectDrawPalette::Initialize(LPDIRECTDRAW lpDD, DWORD dwFlags, LPPALETTEENTRY lpDDColorTable)
 {
-	if (a)
+	if (lpDD)
 	{
-		a = static_cast<m_IDirectDraw *>(a)->GetProxyInterface();
+		lpDD = static_cast<m_IDirectDraw *>(lpDD)->GetProxyInterface();
 	}
 
-	return ProxyInterface->Initialize(a, b, c);
+	return ProxyInterface->Initialize(lpDD, dwFlags, lpDDColorTable);
 }
 
-HRESULT m_IDirectDrawPalette::SetEntries(DWORD a, DWORD b, DWORD c, LPPALETTEENTRY d)
+HRESULT m_IDirectDrawPalette::SetEntries(DWORD dwFlags, DWORD dwStartingEntry, DWORD dwCount, LPPALETTEENTRY lpEntries)
 {
-	return ProxyInterface->SetEntries(a, b, c, d);
+	return ProxyInterface->SetEntries(dwFlags, dwStartingEntry, dwCount, lpEntries);
 }

@@ -38,37 +38,37 @@ ULONG m_IDirectDrawClipper::Release()
 	return x;
 }
 
-HRESULT m_IDirectDrawClipper::GetClipList(LPRECT a, LPRGNDATA b, LPDWORD c)
+HRESULT m_IDirectDrawClipper::GetClipList(LPRECT lpRect, LPRGNDATA lpClipList, LPDWORD lpdwSize)
 {
-	return ProxyInterface->GetClipList(a, b, c);
+	return ProxyInterface->GetClipList(lpRect, lpClipList, lpdwSize);
 }
 
-HRESULT m_IDirectDrawClipper::GetHWnd(HWND FAR * a)
+HRESULT m_IDirectDrawClipper::GetHWnd(HWND FAR * lphWnd)
 {
-	return ProxyInterface->GetHWnd(a);
+	return ProxyInterface->GetHWnd(lphWnd);
 }
 
-HRESULT m_IDirectDrawClipper::Initialize(LPDIRECTDRAW a, DWORD b)
+HRESULT m_IDirectDrawClipper::Initialize(LPDIRECTDRAW lpDD, DWORD dwFlags)
 {
-	if (a)
+	if (lpDD)
 	{
-		a = static_cast<m_IDirectDraw *>(a)->GetProxyInterface();
+		lpDD = static_cast<m_IDirectDraw *>(lpDD)->GetProxyInterface();
 	}
 
-	return ProxyInterface->Initialize(a, b);
+	return ProxyInterface->Initialize(lpDD, dwFlags);
 }
 
-HRESULT m_IDirectDrawClipper::IsClipListChanged(BOOL FAR * a)
+HRESULT m_IDirectDrawClipper::IsClipListChanged(BOOL FAR * lpbChanged)
 {
-	return ProxyInterface->IsClipListChanged(a);
+	return ProxyInterface->IsClipListChanged(lpbChanged);
 }
 
-HRESULT m_IDirectDrawClipper::SetClipList(LPRGNDATA a, DWORD b)
+HRESULT m_IDirectDrawClipper::SetClipList(LPRGNDATA lpClipList, DWORD dwFlags)
 {
-	return ProxyInterface->SetClipList(a, b);
+	return ProxyInterface->SetClipList(lpClipList, dwFlags);
 }
 
-HRESULT m_IDirectDrawClipper::SetHWnd(DWORD a, HWND b)
+HRESULT m_IDirectDrawClipper::SetHWnd(DWORD dwFlags, HWND hWnd)
 {
-	return ProxyInterface->SetHWnd(a, b);
+	return ProxyInterface->SetHWnd(dwFlags, hWnd);
 }

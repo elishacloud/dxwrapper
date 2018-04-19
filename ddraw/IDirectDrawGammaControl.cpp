@@ -38,12 +38,12 @@ ULONG m_IDirectDrawGammaControl::Release()
 	return x;
 }
 
-HRESULT m_IDirectDrawGammaControl::GetGammaRamp(DWORD a, LPDDGAMMARAMP b)
+HRESULT m_IDirectDrawGammaControl::GetGammaRamp(DWORD dwFlags, LPDDGAMMARAMP lpRampData)
 {
-	return ProxyInterface->GetGammaRamp(a, b);
+	return ProxyInterface->GetGammaRamp(dwFlags, lpRampData);
 }
 
-HRESULT m_IDirectDrawGammaControl::SetGammaRamp(DWORD a, LPDDGAMMARAMP b)
+HRESULT m_IDirectDrawGammaControl::SetGammaRamp(DWORD dwFlags, LPDDGAMMARAMP lpRampData)
 {
-	return ProxyInterface->SetGammaRamp(a, b);
+	return ProxyInterface->SetGammaRamp(dwFlags, lpRampData);
 }

@@ -38,12 +38,12 @@ ULONG m_IDirectDrawColorControl::Release()
 	return x;
 }
 
-HRESULT m_IDirectDrawColorControl::GetColorControls(LPDDCOLORCONTROL a)
+HRESULT m_IDirectDrawColorControl::GetColorControls(LPDDCOLORCONTROL lpColorControl)
 {
-	return ProxyInterface->GetColorControls(a);
+	return ProxyInterface->GetColorControls(lpColorControl);
 }
 
-HRESULT m_IDirectDrawColorControl::SetColorControls(LPDDCOLORCONTROL a)
+HRESULT m_IDirectDrawColorControl::SetColorControls(LPDDCOLORCONTROL lpColorControl)
 {
-	return ProxyInterface->SetColorControls(a);
+	return ProxyInterface->SetColorControls(lpColorControl);
 }
