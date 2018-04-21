@@ -18,7 +18,7 @@
 
 HRESULT m_IDirect3D2::QueryInterface(REFIID riid, LPVOID * ppvObj)
 {
-	return ProxyQueryInterface(ProxyInterface, riid, ppvObj, IID_IDirect3D2, this);
+	return ProxyInterface->QueryInterface(riid, ppvObj);
 }
 
 ULONG m_IDirect3D2::AddRef()
@@ -28,55 +28,27 @@ ULONG m_IDirect3D2::AddRef()
 
 ULONG m_IDirect3D2::Release()
 {
-	ULONG x = ProxyInterface->Release();
-
-	if (x == 0)
-	{
-		delete this;
-	}
-
-	return x;
+	return ProxyInterface->Release();
 }
 
 HRESULT m_IDirect3D2::EnumDevices(LPD3DENUMDEVICESCALLBACK a, LPVOID b)
 {
-	return ProxyInterface->EnumDevices(a, b);
+	return ProxyInterface->EnumDevices((LPD3DENUMDEVICESCALLBACK7)a, b);
 }
 
 HRESULT m_IDirect3D2::CreateLight(LPDIRECT3DLIGHT * a, IUnknown * b)
 {
-	HRESULT hr = ProxyInterface->CreateLight(a, b);
-
-	if (SUCCEEDED(hr))
-	{
-		*a = ProxyAddressLookupTable.FindAddress<m_IDirect3DLight>(*a);
-	}
-
-	return hr;
+	return ProxyInterface->CreateLight(a, b);
 }
 
 HRESULT m_IDirect3D2::CreateMaterial(LPDIRECT3DMATERIAL2 * a, IUnknown * b)
 {
-	HRESULT hr = ProxyInterface->CreateMaterial(a, b);
-
-	if (SUCCEEDED(hr))
-	{
-		*a = ProxyAddressLookupTable.FindAddress<m_IDirect3DMaterial2>(*a);
-	}
-
-	return hr;
+	return ProxyInterface->CreateMaterial((LPDIRECT3DMATERIAL3*)a, b);
 }
 
 HRESULT m_IDirect3D2::CreateViewport(LPDIRECT3DVIEWPORT2 * a, IUnknown * b)
 {
-	HRESULT hr = ProxyInterface->CreateViewport(a, b);
-
-	if (SUCCEEDED(hr))
-	{
-		*a = ProxyAddressLookupTable.FindAddress<m_IDirect3DViewport2>(*a);
-	}
-
-	return hr;
+	return ProxyInterface->CreateViewport((LPDIRECT3DVIEWPORT3*)a, b);
 }
 
 HRESULT m_IDirect3D2::FindDevice(LPD3DFINDDEVICESEARCH a, LPD3DFINDDEVICERESULT b)
@@ -86,17 +58,5 @@ HRESULT m_IDirect3D2::FindDevice(LPD3DFINDDEVICESEARCH a, LPD3DFINDDEVICERESULT 
 
 HRESULT m_IDirect3D2::CreateDevice(REFCLSID a, LPDIRECTDRAWSURFACE b, LPDIRECT3DDEVICE2 * c)
 {
-	if (b)
-	{
-		b = static_cast<m_IDirectDrawSurface *>(b)->GetProxyInterface();
-	}
-
-	HRESULT hr = ProxyInterface->CreateDevice(a, b, c);
-
-	if (SUCCEEDED(hr))
-	{
-		*c = ProxyAddressLookupTable.FindAddress<m_IDirect3DDevice2>(*c);
-	}
-
-	return hr;
+	return ProxyInterface->CreateDevice(a, (LPDIRECTDRAWSURFACE7)b, (LPDIRECT3DDEVICE7*)c);
 }

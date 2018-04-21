@@ -7,6 +7,25 @@
 #include <d3d.h>
 #include <memory>
 
+class m_IDirect3D;
+class m_IDirect3D2;
+class m_IDirect3D3;
+class m_IDirect3D7;
+class m_IDirect3DX;
+class m_IDirect3DDevice;
+class m_IDirect3DDevice2;
+class m_IDirect3DDevice3;
+class m_IDirect3DDevice7;
+class m_IDirect3DMaterial;
+class m_IDirect3DMaterial2;
+class m_IDirect3DMaterial3;
+class m_IDirect3DTexture;
+class m_IDirect3DTexture2;
+class m_IDirect3DVertexBuffer;
+class m_IDirect3DVertexBuffer7;
+class m_IDirect3DViewport;
+class m_IDirect3DViewport2;
+class m_IDirect3DViewport3;
 class m_IDirectDraw;
 class m_IDirectDraw2;
 class m_IDirectDraw3;
@@ -49,10 +68,12 @@ extern AddressLookupTableDdraw<void> ProxyAddressLookupTable;
 #include "IDirect3D2.h"
 #include "IDirect3D3.h"
 #include "IDirect3D7.h"
+#include "IDirect3DX.h"
 #include "IDirect3DDevice.h"
 #include "IDirect3DDevice2.h"
 #include "IDirect3DDevice3.h"
 #include "IDirect3DDevice7.h"
+#include "IDirect3DEnumCallback.h"
 #include "IDirect3DExecuteBuffer.h"
 #include "IDirect3DLight.h"
 #include "IDirect3DMaterial.h"
@@ -60,6 +81,7 @@ extern AddressLookupTableDdraw<void> ProxyAddressLookupTable;
 #include "IDirect3DMaterial3.h"
 #include "IDirect3DTexture.h"
 #include "IDirect3DTexture2.h"
+#include "IDirect3DTypes.h"
 #include "IDirect3DVertexBuffer.h"
 #include "IDirect3DVertexBuffer7.h"
 #include "IDirect3DViewport.h"

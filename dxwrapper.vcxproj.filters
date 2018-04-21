@@ -628,6 +628,15 @@
     <ClCompile Include="ddraw\IDirectDrawEnumCallback.cpp">
       <Filter>ddraw</Filter>
     </ClCompile>
+    <ClCompile Include="ddraw\IDirect3DX.cpp">
+      <Filter>ddraw</Filter>
+    </ClCompile>
+    <ClCompile Include="ddraw\IDirect3DEnumCallback.cpp">
+      <Filter>ddraw</Filter>
+    </ClCompile>
+    <ClCompile Include="ddraw\IDirect3DTypes.cpp">
+      <Filter>ddraw</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="Settings\AllSettings.ini">
@@ -1386,6 +1395,15 @@
       <Filter>ddraw</Filter>
     </ClInclude>
     <ClInclude Include="ddraw\IDirectDrawEnumCallback.h">
+      <Filter>ddraw</Filter>
+    </ClInclude>
+    <ClInclude Include="ddraw\IDirect3DX.h">
+      <Filter>ddraw</Filter>
+    </ClInclude>
+    <ClInclude Include="ddraw\IDirect3DEnumCallback.h">
+      <Filter>ddraw</Filter>
+    </ClInclude>
+    <ClInclude Include="ddraw\IDirect3DTypes.h">
       <Filter>ddraw</Filter>
     </ClInclude>
   </ItemGroup>

@@ -16,42 +16,12 @@
 
 #include "ddraw.h"
 
-HRESULT m_IDirect3D7::QueryInterface(REFIID riid, LPVOID * ppvObj)
+HRESULT CALLBACK m_IDirect3DEnumDevices::ConvertCallback(LPSTR lpDeviceDescription, LPSTR lpDeviceName, LPD3DDEVICEDESC7 lpDeviceDesc7, LPVOID lpContext)
 {
-	return ProxyInterface->QueryInterface(riid, ppvObj);
-}
+	ENUMDEVICES *lpCallbackContext = (ENUMDEVICES*)lpContext;
 
-ULONG m_IDirect3D7::AddRef()
-{
-	return ProxyInterface->AddRef();
-}
+	D3DDEVICEDESC DeviceDesc;
+	ConvertDeviceDesc(DeviceDesc, *lpDeviceDesc7);
 
-ULONG m_IDirect3D7::Release()
-{
-	return ProxyInterface->Release();
-}
-
-HRESULT m_IDirect3D7::EnumDevices(LPD3DENUMDEVICESCALLBACK7 a, LPVOID b)
-{
-	return ProxyInterface->EnumDevices(a, b);
-}
-
-HRESULT m_IDirect3D7::CreateDevice(REFCLSID a, LPDIRECTDRAWSURFACE7 b, LPDIRECT3DDEVICE7 * c)
-{
-	return ProxyInterface->CreateDevice(a, b, c);
-}
-
-HRESULT m_IDirect3D7::CreateVertexBuffer(LPD3DVERTEXBUFFERDESC a, LPDIRECT3DVERTEXBUFFER7 * b, DWORD c)
-{
-	return ProxyInterface->CreateVertexBuffer(a, b, c);
-}
-
-HRESULT m_IDirect3D7::EnumZBufferFormats(REFCLSID a, LPD3DENUMPIXELFORMATSCALLBACK b, LPVOID c)
-{
-	return ProxyInterface->EnumZBufferFormats(a, b, c);
-}
-
-HRESULT m_IDirect3D7::EvictManagedTextures()
-{
-	return ProxyInterface->EvictManagedTextures();
+	return lpCallbackContext->lpCallback(nullptr, lpDeviceDescription, lpDeviceName, &DeviceDesc, nullptr, lpCallbackContext->lpContext);
 }

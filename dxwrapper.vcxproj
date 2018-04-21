@@ -230,6 +230,9 @@ cmd /c "@echo off &amp;&amp; cd /D ""$(ProjectDir)Dllmain\"" &amp;&amp; type Bui
     <ClCompile Include="DDrawCompat\v0.2.1\Time.cpp" />
     <ClCompile Include="DDrawCompat\v0.2.1\UnmodifiedDDrawProcs.cpp" />
     <ClCompile Include="ddraw\ddraw.cpp" />
+    <ClCompile Include="ddraw\IDirect3DEnumCallback.cpp" />
+    <ClCompile Include="ddraw\IDirect3DTypes.cpp" />
+    <ClCompile Include="ddraw\IDirect3DX.cpp" />
     <ClCompile Include="ddraw\IDirectDrawSurfaceX.cpp" />
     <ClCompile Include="ddraw\IDirectDrawTypes.cpp" />
     <ClCompile Include="ddraw\IDirect3D.cpp" />
@@ -464,6 +467,9 @@ cmd /c "@echo off &amp;&amp; cd /D ""$(ProjectDir)Dllmain\"" &amp;&amp; type Bui
     <ClInclude Include="ddraw\AddressLookupTable.h" />
     <ClInclude Include="ddraw\ddraw.h" />
     <ClInclude Include="ddraw\ddrawExternal.h" />
+    <ClInclude Include="ddraw\IDirect3DEnumCallback.h" />
+    <ClInclude Include="ddraw\IDirect3DTypes.h" />
+    <ClInclude Include="ddraw\IDirect3DX.h" />
     <ClInclude Include="ddraw\IDirectDrawSurfaceX.h" />
     <ClInclude Include="ddraw\IDirectDrawTypes.h" />
     <ClInclude Include="ddraw\IDirect3D.h" />

@@ -60,64 +60,14 @@ HRESULT m_IDirectDrawSurfaceX::Blt(LPRECT lpDestRect, LPDIRECTDRAWSURFACE7 lpDDS
 		lpDDSrcSurface = static_cast<m_IDirectDrawSurface7 *>(lpDDSrcSurface)->GetProxyInterface();
 	}
 
-	if (lpDDBltFx && lpDDBltFx->dwSize > 12 * 8)
-	{
-		if (lpDDBltFx->dwSize > 21 * 8 && lpDDBltFx->lpDDSAlphaDest)
-		{
-			lpDDBltFx->lpDDSAlphaDest = static_cast<m_IDirectDrawSurface *>(lpDDBltFx->lpDDSAlphaDest)->GetProxyInterface();
-		}
-		if (lpDDBltFx->dwSize > 24 * 8 && lpDDBltFx->lpDDSAlphaSrc)
-		{
-			lpDDBltFx->lpDDSAlphaSrc = static_cast<m_IDirectDrawSurface *>(lpDDBltFx->lpDDSAlphaSrc)->GetProxyInterface();
-		}
-		if (lpDDBltFx->dwSize > 28 * 8 && lpDDBltFx->lpDDSPattern)
-		{
-			lpDDBltFx->lpDDSPattern = static_cast<m_IDirectDrawSurface *>(lpDDBltFx->lpDDSPattern)->GetProxyInterface();
-		}
-		if (lpDDBltFx->dwSize > 12 * 8 && lpDDBltFx->lpDDSZBufferDest)
-		{
-			lpDDBltFx->lpDDSZBufferDest = static_cast<m_IDirectDrawSurface *>(lpDDBltFx->lpDDSZBufferDest)->GetProxyInterface();
-		}
-		if (lpDDBltFx->dwSize > 15 * 8 && lpDDBltFx->lpDDSZBufferSrc)
-		{
-			lpDDBltFx->lpDDSZBufferSrc = static_cast<m_IDirectDrawSurface *>(lpDDBltFx->lpDDSZBufferSrc)->GetProxyInterface();
-		}
-	}
-
 	return ProxyInterface->Blt(lpDestRect, lpDDSrcSurface, lpSrcRect, dwFlags, lpDDBltFx);
 }
 
 HRESULT m_IDirectDrawSurfaceX::BltBatch(LPDDBLTBATCH lpDDBltBatch, DWORD dwCount, DWORD dwFlags)
 {
-	if (lpDDBltBatch)
+	if (lpDDBltBatch && lpDDBltBatch->lpDDSSrc)
 	{
-		if (lpDDBltBatch->lpDDSSrc)
-		{
-			lpDDBltBatch->lpDDSSrc = static_cast<m_IDirectDrawSurface *>(lpDDBltBatch->lpDDSSrc)->GetProxyInterface();
-		}
-		if (lpDDBltBatch->lpDDBltFx && lpDDBltBatch->lpDDBltFx->dwSize > 12 * 8)
-		{
-			if (lpDDBltBatch->lpDDBltFx->dwSize > 21 * 8 && lpDDBltBatch->lpDDBltFx->lpDDSAlphaDest)
-			{
-				lpDDBltBatch->lpDDBltFx->lpDDSAlphaDest = static_cast<m_IDirectDrawSurface *>(lpDDBltBatch->lpDDBltFx->lpDDSAlphaDest)->GetProxyInterface();
-			}
-			if (lpDDBltBatch->lpDDBltFx->dwSize > 24 * 8 && lpDDBltBatch->lpDDBltFx->lpDDSAlphaSrc)
-			{
-				lpDDBltBatch->lpDDBltFx->lpDDSAlphaSrc = static_cast<m_IDirectDrawSurface *>(lpDDBltBatch->lpDDBltFx->lpDDSAlphaSrc)->GetProxyInterface();
-			}
-			if (lpDDBltBatch->lpDDBltFx->dwSize > 28 * 8 && lpDDBltBatch->lpDDBltFx->lpDDSPattern)
-			{
-				lpDDBltBatch->lpDDBltFx->lpDDSPattern = static_cast<m_IDirectDrawSurface *>(lpDDBltBatch->lpDDBltFx->lpDDSPattern)->GetProxyInterface();
-			}
-			if (lpDDBltBatch->lpDDBltFx->dwSize > 12 * 8 && lpDDBltBatch->lpDDBltFx->lpDDSZBufferDest)
-			{
-				lpDDBltBatch->lpDDBltFx->lpDDSZBufferDest = static_cast<m_IDirectDrawSurface *>(lpDDBltBatch->lpDDBltFx->lpDDSZBufferDest)->GetProxyInterface();
-			}
-			if (lpDDBltBatch->lpDDBltFx->dwSize > 15 * 8 && lpDDBltBatch->lpDDBltFx->lpDDSZBufferSrc)
-			{
-				lpDDBltBatch->lpDDBltFx->lpDDSZBufferSrc = static_cast<m_IDirectDrawSurface *>(lpDDBltBatch->lpDDBltFx->lpDDSZBufferSrc)->GetProxyInterface();
-			}
-		}
+		lpDDBltBatch->lpDDSSrc = static_cast<m_IDirectDrawSurface *>(lpDDBltBatch->lpDDSSrc)->GetProxyInterface();
 	}
 
 	return ProxyInterface->BltBatch(lpDDBltBatch, dwCount, dwFlags);
@@ -404,18 +354,6 @@ HRESULT m_IDirectDrawSurfaceX::UpdateOverlay(LPRECT lpSrcRect, LPDIRECTDRAWSURFA
 	if (lpDDDestSurface)
 	{
 		lpDDDestSurface = static_cast<m_IDirectDrawSurface7 *>(lpDDDestSurface)->GetProxyInterface();
-	}
-
-	if (lpDDOverlayFx && lpDDOverlayFx->dwSize > 7 * 8)
-	{
-		if (lpDDOverlayFx->dwSize > 7 * 8 && lpDDOverlayFx->lpDDSAlphaSrc)
-		{
-			lpDDOverlayFx->lpDDSAlphaSrc = static_cast<m_IDirectDrawSurface *>(lpDDOverlayFx->lpDDSAlphaSrc)->GetProxyInterface();
-		}
-		if (lpDDOverlayFx->dwSize > 10 * 8 && lpDDOverlayFx->lpDDSAlphaDest)
-		{
-			lpDDOverlayFx->lpDDSAlphaDest = static_cast<m_IDirectDrawSurface *>(lpDDOverlayFx->lpDDSAlphaDest)->GetProxyInterface();
-		}
 	}
 
 	return ProxyInterface->UpdateOverlay(lpSrcRect, lpDDDestSurface, lpDestRect, dwFlags, lpDDOverlayFx);
