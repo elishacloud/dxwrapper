@@ -19,6 +19,7 @@ class m_IDirect3DDevice7;
 class m_IDirect3DMaterial;
 class m_IDirect3DMaterial2;
 class m_IDirect3DMaterial3;
+class m_IDirect3DMaterialX;
 class m_IDirect3DTexture;
 class m_IDirect3DTexture2;
 class m_IDirect3DVertexBuffer;
@@ -79,6 +80,7 @@ extern AddressLookupTableDdraw<void> ProxyAddressLookupTable;
 #include "IDirect3DMaterial.h"
 #include "IDirect3DMaterial2.h"
 #include "IDirect3DMaterial3.h"
+#include "IDirect3DMaterialX.h"
 #include "IDirect3DTexture.h"
 #include "IDirect3DTexture2.h"
 #include "IDirect3DTypes.h"

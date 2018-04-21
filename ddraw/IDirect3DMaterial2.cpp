@@ -18,7 +18,7 @@
 
 HRESULT m_IDirect3DMaterial2::QueryInterface(REFIID riid, LPVOID * ppvObj)
 {
-	return ProxyQueryInterface(ProxyInterface, riid, ppvObj, IID_IDirect3DMaterial2, this);
+	return ProxyInterface->QueryInterface(riid, ppvObj);
 }
 
 ULONG m_IDirect3DMaterial2::AddRef()
@@ -28,14 +28,7 @@ ULONG m_IDirect3DMaterial2::AddRef()
 
 ULONG m_IDirect3DMaterial2::Release()
 {
-	ULONG x = ProxyInterface->Release();
-
-	if (x == 0)
-	{
-		delete this;
-	}
-
-	return x;
+	return ProxyInterface->Release();
 }
 
 HRESULT m_IDirect3DMaterial2::SetMaterial(LPD3DMATERIAL a)
@@ -50,10 +43,5 @@ HRESULT m_IDirect3DMaterial2::GetMaterial(LPD3DMATERIAL a)
 
 HRESULT m_IDirect3DMaterial2::GetHandle(LPDIRECT3DDEVICE2 a, LPD3DMATERIALHANDLE b)
 {
-	if (a)
-	{
-		a = static_cast<m_IDirect3DDevice2 *>(a)->GetProxyInterface();
-	}
-
-	return ProxyInterface->GetHandle(a, b);
+	return ProxyInterface->GetHandle((LPDIRECT3DDEVICE3)a, b);
 }
