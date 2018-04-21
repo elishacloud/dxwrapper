@@ -396,17 +396,17 @@ std::ostream& operator<<(std::ostream& os, REFIID riid)
 	CHECK_REFIID(IID, IDirect3DCryptoSession9);
 
 	return Compat::LogStruct(os)
-		<< Compat::hex(riid.Data1) << "-"
-		<< Compat::hex(riid.Data2) << "-"
-		<< Compat::hex(riid.Data3) << "-"
-		<< Compat::hex(riid.Data4[0])
-		<< Compat::hex(riid.Data4[1])
-		<< Compat::hex(riid.Data4[2])
-		<< Compat::hex(riid.Data4[3])
-		<< Compat::hex(riid.Data4[4])
-		<< Compat::hex(riid.Data4[5])
-		<< Compat::hex(riid.Data4[6])
-		<< Compat::hex(riid.Data4[7]);
+		<< Compat::hex(riid.Data1)
+		<< Compat::hex(riid.Data2)
+		<< Compat::hex(riid.Data3)
+		<< Compat::hex((UINT)riid.Data4[0])
+		<< Compat::hex((UINT)riid.Data4[1])
+		<< Compat::hex((UINT)riid.Data4[2])
+		<< Compat::hex((UINT)riid.Data4[3])
+		<< Compat::hex((UINT)riid.Data4[4])
+		<< Compat::hex((UINT)riid.Data4[5])
+		<< Compat::hex((UINT)riid.Data4[6])
+		<< Compat::hex((UINT)riid.Data4[7]);
 }
 
 namespace Compat

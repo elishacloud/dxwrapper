@@ -116,7 +116,15 @@ HRESULT WINAPI dd_DirectDrawCreateClipper(DWORD dwFlags, LPDIRECTDRAWCLIPPER *lp
 	{
 		return E_NOTIMPL;
 	}
-	return ((DirectDrawCreateClipperProc)DirectDrawCreateClipper_out)(dwFlags, lplpDDClipper, pUnkOuter);
+
+	HRESULT hr = ((DirectDrawCreateClipperProc)DirectDrawCreateClipper_out)(dwFlags, lplpDDClipper, pUnkOuter);
+
+	if (SUCCEEDED(hr) && lplpDDClipper)
+	{
+		*lplpDDClipper = ProxyAddressLookupTable.FindAddress<m_IDirectDrawClipper>(*lplpDDClipper);
+	}
+
+	return hr;
 }
 
 HRESULT WINAPI dd_DirectDrawCreateEx(GUID FAR *lpGUID, LPVOID *lplpDD, REFIID riid, IUnknown FAR *pUnkOuter)
