@@ -4,13 +4,13 @@ class m_IDirectDrawSurfaceX
 {
 private:
 	IDirectDrawSurface7 *ProxyInterface;
-	IDirectDrawSurface7 *WrapperInterface;
+	m_IDirectDrawSurface7 *WrapperInterface;
 	DWORD DirectXVersion;
 	DWORD ProxyDirectXVersion;
 	IID WrapperID;
 
 public:
-	m_IDirectDrawSurfaceX(IDirectDrawSurface7 *pOriginal, DWORD Version, IDirectDrawSurface7 *Interface) : ProxyInterface(pOriginal), DirectXVersion(Version), WrapperInterface(Interface)
+	m_IDirectDrawSurfaceX(IDirectDrawSurface7 *pOriginal, DWORD Version, m_IDirectDrawSurface7 *Interface) : ProxyInterface(pOriginal), DirectXVersion(Version), WrapperInterface(Interface)
 	{
 		WrapperID = (DirectXVersion == 1) ? IID_IDirectDrawSurface :
 			(DirectXVersion == 2) ? IID_IDirectDrawSurface2 :

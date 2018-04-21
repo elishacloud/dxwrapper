@@ -28,7 +28,14 @@ ULONG m_IDirectDrawSurfaceX::AddRef()
 
 ULONG m_IDirectDrawSurfaceX::Release()
 {
-	return ProxyInterface->Release();
+	ULONG x = ProxyInterface->Release();
+
+	if (x == 0)
+	{
+		WrapperInterface->DeleteMe();
+	}
+
+	return x;
 }
 
 HRESULT m_IDirectDrawSurfaceX::AddAttachedSurface(LPDIRECTDRAWSURFACE7 lpDDSurface)
@@ -454,16 +461,16 @@ HRESULT m_IDirectDrawSurfaceX::PageUnlock(DWORD dwFlags)
 template HRESULT m_IDirectDrawSurfaceX::SetSurfaceDesc<LPDDSURFACEDESC>(LPDDSURFACEDESC, DWORD);
 template HRESULT m_IDirectDrawSurfaceX::SetSurfaceDesc<LPDDSURFACEDESC2>(LPDDSURFACEDESC2, DWORD);
 template <typename T>
-HRESULT m_IDirectDrawSurfaceX::SetSurfaceDesc(T lpDDsd2, DWORD dwFlags)
+HRESULT m_IDirectDrawSurfaceX::SetSurfaceDesc(T lpDDsd, DWORD dwFlags)
 {
 	DDSURFACEDESC2 Desc2;
-	if (lpDDsd2 && ProxyDirectXVersion > 3 && DirectXVersion < 4)
+	if (lpDDsd && ProxyDirectXVersion > 3 && DirectXVersion < 4)
 	{
-		ConvertSurfaceDesc(Desc2, *lpDDsd2);
-		lpDDsd2 = (T)&Desc2;
+		ConvertSurfaceDesc(Desc2, *lpDDsd);
+		lpDDsd = (T)&Desc2;
 	}
 
-	return ProxyInterface->SetSurfaceDesc((LPDDSURFACEDESC2)lpDDsd2, dwFlags);
+	return ProxyInterface->SetSurfaceDesc((LPDDSURFACEDESC2)lpDDsd, dwFlags);
 }
 
 HRESULT m_IDirectDrawSurfaceX::SetPrivateData(REFGUID guidTag, LPVOID lpData, DWORD cbSize, DWORD dwFlags)

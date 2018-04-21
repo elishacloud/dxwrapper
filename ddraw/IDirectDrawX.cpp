@@ -28,7 +28,14 @@ ULONG m_IDirectDrawX::AddRef()
 
 ULONG m_IDirectDrawX::Release()
 {
-	return ProxyInterface->Release();
+	ULONG x = ProxyInterface->Release();
+
+	if (x == 0)
+	{
+		WrapperInterface->DeleteMe();
+	}
+
+	return x;
 }
 
 HRESULT m_IDirectDrawX::Compact()
@@ -63,17 +70,16 @@ HRESULT m_IDirectDrawX::CreatePalette(DWORD dwFlags, LPPALETTEENTRY lpDDColorArr
 template HRESULT m_IDirectDrawX::CreateSurface<LPDDSURFACEDESC>(LPDDSURFACEDESC, LPDIRECTDRAWSURFACE7 FAR *, IUnknown FAR *);
 template HRESULT m_IDirectDrawX::CreateSurface<LPDDSURFACEDESC2>(LPDDSURFACEDESC2, LPDIRECTDRAWSURFACE7 FAR *, IUnknown FAR *);
 template <typename T>
-HRESULT m_IDirectDrawX::CreateSurface(T lpDDSurfaceDesc2, LPDIRECTDRAWSURFACE7 FAR * lplpDDSurface, IUnknown FAR * pUnkOuter)
+HRESULT m_IDirectDrawX::CreateSurface(T lpDDSurfaceDesc, LPDIRECTDRAWSURFACE7 FAR * lplpDDSurface, IUnknown FAR * pUnkOuter)
 {
-	LPDDSURFACEDESC2 pDesc2 = (LPDDSURFACEDESC2)lpDDSurfaceDesc2;
-	DDSURFACEDESC2 Desc;
-	if (lpDDSurfaceDesc2 && ProxyDirectXVersion > 3 && DirectXVersion < 4)
+	DDSURFACEDESC2 Desc2;
+	if (lpDDSurfaceDesc && ProxyDirectXVersion > 3 && DirectXVersion < 4)
 	{
-		ConvertSurfaceDesc(Desc, *lpDDSurfaceDesc2);
-		pDesc2 = &Desc;
+		ConvertSurfaceDesc(Desc2, *lpDDSurfaceDesc);
+		lpDDSurfaceDesc = (T)&Desc2;
 	}
 
-	HRESULT hr = ProxyInterface->CreateSurface(pDesc2, lplpDDSurface, pUnkOuter);
+	HRESULT hr = ProxyInterface->CreateSurface((LPDDSURFACEDESC2)lpDDSurfaceDesc, lplpDDSurface, pUnkOuter);
 
 	if (SUCCEEDED(hr) && lplpDDSurface)
 	{
@@ -103,13 +109,13 @@ HRESULT m_IDirectDrawX::DuplicateSurface(LPDIRECTDRAWSURFACE7 lpDDSurface, LPDIR
 template HRESULT m_IDirectDrawX::EnumDisplayModes<LPDDSURFACEDESC>(DWORD, LPDDSURFACEDESC, LPVOID, LPDDENUMMODESCALLBACK);
 template HRESULT m_IDirectDrawX::EnumDisplayModes<LPDDSURFACEDESC2>(DWORD, LPDDSURFACEDESC2, LPVOID, LPDDENUMMODESCALLBACK2);
 template <typename T, typename D>
-HRESULT m_IDirectDrawX::EnumDisplayModes(DWORD dwFlags, T lpDDSurfaceDesc2, LPVOID lpContext, D lpEnumModesCallback)
+HRESULT m_IDirectDrawX::EnumDisplayModes(DWORD dwFlags, T lpDDSurfaceDesc, LPVOID lpContext, D lpEnumModesCallback)
 {
 	DDSURFACEDESC2 Desc2;
-	if (lpDDSurfaceDesc2 && ProxyDirectXVersion > 3 && DirectXVersion < 4)
+	if (lpDDSurfaceDesc && ProxyDirectXVersion > 3 && DirectXVersion < 4)
 	{
-		ConvertSurfaceDesc(Desc2, *lpDDSurfaceDesc2);
-		lpDDSurfaceDesc2 = (T)&Desc2;
+		ConvertSurfaceDesc(Desc2, *lpDDSurfaceDesc);
+		lpDDSurfaceDesc = (T)&Desc2;
 	}
 
 	ENUMDISPLAYMODES CallbackContext;
@@ -118,20 +124,20 @@ HRESULT m_IDirectDrawX::EnumDisplayModes(DWORD dwFlags, T lpDDSurfaceDesc2, LPVO
 	CallbackContext.DirectXVersion = DirectXVersion;
 	CallbackContext.ProxyDirectXVersion = ProxyDirectXVersion;
 
-	return ProxyInterface->EnumDisplayModes(dwFlags, (LPDDSURFACEDESC2)lpDDSurfaceDesc2, &CallbackContext, m_IDirectDrawEnumDisplayModes::ConvertCallback);
+	return ProxyInterface->EnumDisplayModes(dwFlags, (LPDDSURFACEDESC2)lpDDSurfaceDesc, &CallbackContext, m_IDirectDrawEnumDisplayModes::ConvertCallback);
 }
 
 template HRESULT m_IDirectDrawX::EnumSurfaces<LPDDSURFACEDESC>(DWORD, LPDDSURFACEDESC, LPVOID, LPDDENUMSURFACESCALLBACK);
 template HRESULT m_IDirectDrawX::EnumSurfaces<LPDDSURFACEDESC2>(DWORD, LPDDSURFACEDESC2, LPVOID, LPDDENUMSURFACESCALLBACK2);
 template HRESULT m_IDirectDrawX::EnumSurfaces<LPDDSURFACEDESC2>(DWORD, LPDDSURFACEDESC2, LPVOID, LPDDENUMSURFACESCALLBACK7);
 template <typename T, typename D>
-HRESULT m_IDirectDrawX::EnumSurfaces(DWORD dwFlags, T lpDDSD2, LPVOID lpContext, D lpEnumSurfacesCallback)
+HRESULT m_IDirectDrawX::EnumSurfaces(DWORD dwFlags, T lpDDSD, LPVOID lpContext, D lpEnumSurfacesCallback)
 {
 	DDSURFACEDESC2 Desc2;
-	if (lpDDSD2 && ProxyDirectXVersion > 3 && DirectXVersion < 4)
+	if (lpDDSD && ProxyDirectXVersion > 3 && DirectXVersion < 4)
 	{
-		ConvertSurfaceDesc(Desc2, *lpDDSD2);
-		lpDDSD2 = (T)&Desc2;
+		ConvertSurfaceDesc(Desc2, *lpDDSD);
+		lpDDSD = (T)&Desc2;
 	}
 
 	ENUMSURFACE CallbackContext;
@@ -140,7 +146,7 @@ HRESULT m_IDirectDrawX::EnumSurfaces(DWORD dwFlags, T lpDDSD2, LPVOID lpContext,
 	CallbackContext.DirectXVersion = DirectXVersion;
 	CallbackContext.ProxyDirectXVersion = ProxyDirectXVersion;
 
-	return ProxyInterface->EnumSurfaces(dwFlags, (LPDDSURFACEDESC2)lpDDSD2, &CallbackContext, m_IDirectDrawEnumSurface::ConvertCallback);
+	return ProxyInterface->EnumSurfaces(dwFlags, (LPDDSURFACEDESC2)lpDDSD, &CallbackContext, m_IDirectDrawEnumSurface::ConvertCallback);
 }
 
 HRESULT m_IDirectDrawX::FlipToGDISurface()
@@ -174,16 +180,16 @@ HRESULT m_IDirectDrawX::GetCaps(LPDDCAPS lpDDDriverCaps, LPDDCAPS lpDDHELCaps)
 template HRESULT m_IDirectDrawX::GetDisplayMode<LPDDSURFACEDESC>(LPDDSURFACEDESC);
 template HRESULT m_IDirectDrawX::GetDisplayMode<LPDDSURFACEDESC2>(LPDDSURFACEDESC2);
 template <typename T>
-HRESULT m_IDirectDrawX::GetDisplayMode(T lpDDSurfaceDesc2)
+HRESULT m_IDirectDrawX::GetDisplayMode(T lpDDSurfaceDesc)
 {
 	DDSURFACEDESC2 Desc2;
-	if (lpDDSurfaceDesc2 && ProxyDirectXVersion > 3 && DirectXVersion < 4)
+	if (lpDDSurfaceDesc && ProxyDirectXVersion > 3 && DirectXVersion < 4)
 	{
-		ConvertSurfaceDesc(Desc2, *lpDDSurfaceDesc2);
-		lpDDSurfaceDesc2 = (T)&Desc2;
+		ConvertSurfaceDesc(Desc2, *lpDDSurfaceDesc);
+		lpDDSurfaceDesc = (T)&Desc2;
 	}
 
-	return ProxyInterface->GetDisplayMode((LPDDSURFACEDESC2)lpDDSurfaceDesc2);
+	return ProxyInterface->GetDisplayMode((LPDDSURFACEDESC2)lpDDSurfaceDesc);
 }
 
 HRESULT m_IDirectDrawX::GetFourCCCodes(LPDWORD lpNumCodes, LPDWORD lpCodes)

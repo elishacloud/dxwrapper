@@ -28,14 +28,7 @@ ULONG m_IDirectDrawSurface7::AddRef()
 
 ULONG m_IDirectDrawSurface7::Release()
 {
-	ULONG x = ProxyInterface->Release();
-
-	if (x == 0)
-	{
-		delete this;
-	}
-
-	return x;
+	return ProxyInterface->Release();
 }
 
 HRESULT m_IDirectDrawSurface7::AddAttachedSurface(LPDIRECTDRAWSURFACE7 a)

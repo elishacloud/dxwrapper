@@ -9,7 +9,7 @@ private:
 public:
 	m_IDirectDrawSurface2(IDirectDrawSurface2 *aOriginal) : RealInterface(aOriginal)
 	{
-		ProxyInterface = std::make_unique<m_IDirectDrawSurfaceX>((IDirectDrawSurface7*)RealInterface, 2, (IDirectDrawSurface7*)this);
+		ProxyInterface = std::make_unique<m_IDirectDrawSurfaceX>((IDirectDrawSurface7*)RealInterface, 2, (m_IDirectDrawSurface7*)this);
 		ProxyAddressLookupTable.SaveAddress(this, RealInterface);
 	}
 	~m_IDirectDrawSurface2()
