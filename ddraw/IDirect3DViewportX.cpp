@@ -38,143 +38,143 @@ ULONG m_IDirect3DViewportX::Release()
 	return x;
 }
 
-HRESULT m_IDirect3DViewportX::Initialize(LPDIRECT3D a)
+HRESULT m_IDirect3DViewportX::Initialize(LPDIRECT3D lpDirect3D)
 {
-	if (a)
+	if (lpDirect3D)
 	{
-		a = static_cast<m_IDirect3D *>(a)->GetProxyInterface();
+		lpDirect3D = static_cast<m_IDirect3D *>(lpDirect3D)->GetProxyInterface();
 	}
 
-	return ProxyInterface->Initialize(a);
+	return ProxyInterface->Initialize(lpDirect3D);
 }
 
-HRESULT m_IDirect3DViewportX::GetViewport(LPD3DVIEWPORT a)
+HRESULT m_IDirect3DViewportX::GetViewport(LPD3DVIEWPORT lpData)
 {
-	return ProxyInterface->GetViewport(a);
+	return ProxyInterface->GetViewport(lpData);
 }
 
-HRESULT m_IDirect3DViewportX::SetViewport(LPD3DVIEWPORT a)
+HRESULT m_IDirect3DViewportX::SetViewport(LPD3DVIEWPORT lpData)
 {
-	return ProxyInterface->SetViewport(a);
+	return ProxyInterface->SetViewport(lpData);
 }
 
-HRESULT m_IDirect3DViewportX::TransformVertices(DWORD a, LPD3DTRANSFORMDATA b, DWORD c, LPDWORD d)
+HRESULT m_IDirect3DViewportX::TransformVertices(DWORD dwVertexCount, LPD3DTRANSFORMDATA lpData, DWORD dwFlags, LPDWORD lpOffscreen)
 {
-	return ProxyInterface->TransformVertices(a, b, c, d);
+	return ProxyInterface->TransformVertices(dwVertexCount, lpData, dwFlags, lpOffscreen);
 }
 
-HRESULT m_IDirect3DViewportX::LightElements(DWORD a, LPD3DLIGHTDATA b)
+HRESULT m_IDirect3DViewportX::LightElements(DWORD dwElementCount, LPD3DLIGHTDATA lpData)
 {
-	return ProxyInterface->LightElements(a, b);
+	return ProxyInterface->LightElements(dwElementCount, lpData);
 }
 
-HRESULT m_IDirect3DViewportX::SetBackground(D3DMATERIALHANDLE a)
+HRESULT m_IDirect3DViewportX::SetBackground(D3DMATERIALHANDLE hMat)
 {
-	return ProxyInterface->SetBackground(a);
+	return ProxyInterface->SetBackground(hMat);
 }
 
-HRESULT m_IDirect3DViewportX::GetBackground(LPD3DMATERIALHANDLE a, LPBOOL b)
+HRESULT m_IDirect3DViewportX::GetBackground(LPD3DMATERIALHANDLE lphMat, LPBOOL lpValid)
 {
-	return ProxyInterface->GetBackground(a, b);
+	return ProxyInterface->GetBackground(lphMat, lpValid);
 }
 
-HRESULT m_IDirect3DViewportX::SetBackgroundDepth(LPDIRECTDRAWSURFACE a)
+HRESULT m_IDirect3DViewportX::SetBackgroundDepth(LPDIRECTDRAWSURFACE lpDDSurface)
 {
-	if (a)
+	if (lpDDSurface)
 	{
-		a = static_cast<m_IDirectDrawSurface *>(a)->GetProxyInterface();
+		lpDDSurface = static_cast<m_IDirectDrawSurface *>(lpDDSurface)->GetProxyInterface();
 	}
 
-	return ProxyInterface->SetBackgroundDepth(a);
+	return ProxyInterface->SetBackgroundDepth(lpDDSurface);
 }
 
-HRESULT m_IDirect3DViewportX::GetBackgroundDepth(LPDIRECTDRAWSURFACE * a, LPBOOL b)
+HRESULT m_IDirect3DViewportX::GetBackgroundDepth(LPDIRECTDRAWSURFACE * lplpDDSurface, LPBOOL lpValid)
 {
-	HRESULT hr = ProxyInterface->GetBackgroundDepth(a, b);
+	HRESULT hr = ProxyInterface->GetBackgroundDepth(lplpDDSurface, lpValid);
 
-	if (SUCCEEDED(hr))
+	if (SUCCEEDED(hr) && lplpDDSurface)
 	{
-		*a = ProxyAddressLookupTable.FindAddress<m_IDirectDrawSurface>(*a);
-	}
-
-	return hr;
-}
-
-HRESULT m_IDirect3DViewportX::Clear(DWORD a, LPD3DRECT b, DWORD c)
-{
-	return ProxyInterface->Clear(a, b, c);
-}
-
-HRESULT m_IDirect3DViewportX::AddLight(LPDIRECT3DLIGHT a)
-{
-	if (a)
-	{
-		a = static_cast<m_IDirect3DLight *>(a)->GetProxyInterface();
-	}
-
-	return ProxyInterface->AddLight(a);
-}
-
-HRESULT m_IDirect3DViewportX::DeleteLight(LPDIRECT3DLIGHT a)
-{
-	if (a)
-	{
-		a = static_cast<m_IDirect3DLight *>(a)->GetProxyInterface();
-	}
-
-	return ProxyInterface->DeleteLight(a);
-}
-
-HRESULT m_IDirect3DViewportX::NextLight(LPDIRECT3DLIGHT a, LPDIRECT3DLIGHT * b, DWORD c)
-{
-	if (a)
-	{
-		a = static_cast<m_IDirect3DLight *>(a)->GetProxyInterface();
-	}
-
-	HRESULT hr = ProxyInterface->NextLight(a, b, c);
-
-	if (SUCCEEDED(hr))
-	{
-		*b = ProxyAddressLookupTable.FindAddress<m_IDirect3DLight>(*b);
+		*lplpDDSurface = ProxyAddressLookupTable.FindAddress<m_IDirectDrawSurface>(*lplpDDSurface);
 	}
 
 	return hr;
 }
 
-HRESULT m_IDirect3DViewportX::GetViewport2(LPD3DVIEWPORT2 a)
+HRESULT m_IDirect3DViewportX::Clear(DWORD dwCount, LPD3DRECT lpRects, DWORD dwFlags)
 {
-	return ProxyInterface->GetViewport2(a);
+	return ProxyInterface->Clear(dwCount, lpRects, dwFlags);
 }
 
-HRESULT m_IDirect3DViewportX::SetViewport2(LPD3DVIEWPORT2 a)
+HRESULT m_IDirect3DViewportX::AddLight(LPDIRECT3DLIGHT lpDirect3DLight)
 {
-	return ProxyInterface->SetViewport2(a);
-}
-
-HRESULT m_IDirect3DViewportX::SetBackgroundDepth2(LPDIRECTDRAWSURFACE4 a)
-{
-	if (a)
+	if (lpDirect3DLight)
 	{
-		a = static_cast<m_IDirectDrawSurface4 *>(a)->GetProxyInterface();
+		lpDirect3DLight = static_cast<m_IDirect3DLight *>(lpDirect3DLight)->GetProxyInterface();
 	}
 
-	return ProxyInterface->SetBackgroundDepth2(a);
+	return ProxyInterface->AddLight(lpDirect3DLight);
 }
 
-HRESULT m_IDirect3DViewportX::GetBackgroundDepth2(LPDIRECTDRAWSURFACE4 * a, LPBOOL b)
+HRESULT m_IDirect3DViewportX::DeleteLight(LPDIRECT3DLIGHT lpDirect3DLight)
 {
-	HRESULT hr = ProxyInterface->GetBackgroundDepth2(a, b);
-
-	if (SUCCEEDED(hr))
+	if (lpDirect3DLight)
 	{
-		*a = ProxyAddressLookupTable.FindAddress<m_IDirectDrawSurface4>(*a);
+		lpDirect3DLight = static_cast<m_IDirect3DLight *>(lpDirect3DLight)->GetProxyInterface();
+	}
+
+	return ProxyInterface->DeleteLight(lpDirect3DLight);
+}
+
+HRESULT m_IDirect3DViewportX::NextLight(LPDIRECT3DLIGHT lpDirect3DLight, LPDIRECT3DLIGHT * lplpDirect3DLight, DWORD dwFlags)
+{
+	if (lpDirect3DLight)
+	{
+		lpDirect3DLight = static_cast<m_IDirect3DLight *>(lpDirect3DLight)->GetProxyInterface();
+	}
+
+	HRESULT hr = ProxyInterface->NextLight(lpDirect3DLight, lplpDirect3DLight, dwFlags);
+
+	if (SUCCEEDED(hr) && lplpDirect3DLight)
+	{
+		*lplpDirect3DLight = ProxyAddressLookupTable.FindAddress<m_IDirect3DLight>(*lplpDirect3DLight);
 	}
 
 	return hr;
 }
 
-HRESULT m_IDirect3DViewportX::Clear2(DWORD a, LPD3DRECT b, DWORD c, D3DCOLOR d, D3DVALUE e, DWORD f)
+HRESULT m_IDirect3DViewportX::GetViewport2(LPD3DVIEWPORT2 lpData)
 {
-	return ProxyInterface->Clear2(a, b, c, d, e, f);
+	return ProxyInterface->GetViewport2(lpData);
+}
+
+HRESULT m_IDirect3DViewportX::SetViewport2(LPD3DVIEWPORT2 lpData)
+{
+	return ProxyInterface->SetViewport2(lpData);
+}
+
+HRESULT m_IDirect3DViewportX::SetBackgroundDepth2(LPDIRECTDRAWSURFACE4 lpDDS)
+{
+	if (lpDDS)
+	{
+		lpDDS = static_cast<m_IDirectDrawSurface4 *>(lpDDS)->GetProxyInterface();
+	}
+
+	return ProxyInterface->SetBackgroundDepth2(lpDDS);
+}
+
+HRESULT m_IDirect3DViewportX::GetBackgroundDepth2(LPDIRECTDRAWSURFACE4 * lplpDDS, LPBOOL lpValid)
+{
+	HRESULT hr = ProxyInterface->GetBackgroundDepth2(lplpDDS, lpValid);
+
+	if (SUCCEEDED(hr) && lplpDDS)
+	{
+		*lplpDDS = ProxyAddressLookupTable.FindAddress<m_IDirectDrawSurface4>(*lplpDDS);
+	}
+
+	return hr;
+}
+
+HRESULT m_IDirect3DViewportX::Clear2(DWORD dwCount, LPD3DRECT lpRects, DWORD dwFlags, D3DCOLOR dwColor, D3DVALUE dvZ, DWORD dwStencil)
+{
+	return ProxyInterface->Clear2(dwCount, lpRects, dwFlags, dwColor, dvZ, dwStencil);
 }

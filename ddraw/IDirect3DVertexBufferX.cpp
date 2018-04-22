@@ -38,9 +38,9 @@ ULONG m_IDirect3DVertexBufferX::Release()
 	return x;
 }
 
-HRESULT m_IDirect3DVertexBufferX::Lock(DWORD a, LPVOID * b, LPDWORD c)
+HRESULT m_IDirect3DVertexBufferX::Lock(DWORD dwFlags, LPVOID * lplpData, LPDWORD lpdwSize)
 {
-	return ProxyInterface->Lock(a, b, c);
+	return ProxyInterface->Lock(dwFlags, lplpData, lpdwSize);
 }
 
 HRESULT m_IDirect3DVertexBufferX::Unlock()
@@ -48,41 +48,41 @@ HRESULT m_IDirect3DVertexBufferX::Unlock()
 	return ProxyInterface->Unlock();
 }
 
-HRESULT m_IDirect3DVertexBufferX::ProcessVertices(DWORD a, DWORD b, DWORD c, LPDIRECT3DVERTEXBUFFER7 d, DWORD e, LPDIRECT3DDEVICE7 f, DWORD g)
+HRESULT m_IDirect3DVertexBufferX::ProcessVertices(DWORD dwVertexOp, DWORD dwDestIndex, DWORD dwCount, LPDIRECT3DVERTEXBUFFER7 lpSrcBuffer, DWORD dwSrcIndex, LPDIRECT3DDEVICE7 lpD3DDevice, DWORD dwFlags)
 {
-	if (d)
+	if (lpSrcBuffer)
 	{
-		d = static_cast<m_IDirect3DVertexBuffer7 *>(d)->GetProxyInterface();
+		lpSrcBuffer = static_cast<m_IDirect3DVertexBuffer7 *>(lpSrcBuffer)->GetProxyInterface();
 	}
-	if (f)
+	if (lpD3DDevice)
 	{
-		f = static_cast<m_IDirect3DDevice7 *>(f)->GetProxyInterface();
+		lpD3DDevice = static_cast<m_IDirect3DDevice7 *>(lpD3DDevice)->GetProxyInterface();
 	}
 
-	return ProxyInterface->ProcessVertices(a, b, c, d, e, f, g);
+	return ProxyInterface->ProcessVertices(dwVertexOp, dwDestIndex, dwCount, lpSrcBuffer, dwSrcIndex, lpD3DDevice, dwFlags);
 }
 
-HRESULT m_IDirect3DVertexBufferX::GetVertexBufferDesc(LPD3DVERTEXBUFFERDESC a)
+HRESULT m_IDirect3DVertexBufferX::GetVertexBufferDesc(LPD3DVERTEXBUFFERDESC lpVBDesc)
 {
-	return ProxyInterface->GetVertexBufferDesc(a);
+	return ProxyInterface->GetVertexBufferDesc(lpVBDesc);
 }
 
-HRESULT m_IDirect3DVertexBufferX::Optimize(LPDIRECT3DDEVICE7 a, DWORD b)
+HRESULT m_IDirect3DVertexBufferX::Optimize(LPDIRECT3DDEVICE7 lpD3DDevice, DWORD dwFlags)
 {
-	if (a)
+	if (lpD3DDevice)
 	{
-		a = static_cast<m_IDirect3DDevice7 *>(a)->GetProxyInterface();
+		lpD3DDevice = static_cast<m_IDirect3DDevice7 *>(lpD3DDevice)->GetProxyInterface();
 	}
 
-	return ProxyInterface->Optimize(a, b);
+	return ProxyInterface->Optimize(lpD3DDevice, dwFlags);
 }
 
-HRESULT m_IDirect3DVertexBufferX::ProcessVerticesStrided(DWORD a, DWORD b, DWORD c, LPD3DDRAWPRIMITIVESTRIDEDDATA d, DWORD e, LPDIRECT3DDEVICE7 f, DWORD g)
+HRESULT m_IDirect3DVertexBufferX::ProcessVerticesStrided(DWORD dwVertexOp, DWORD dwDestIndex, DWORD dwCount, LPD3DDRAWPRIMITIVESTRIDEDDATA lpVertexArray, DWORD dwSrcIndex, LPDIRECT3DDEVICE7 lpD3DDevice, DWORD dwFlags)
 {
-	if (f)
+	if (lpD3DDevice)
 	{
-		f = static_cast<m_IDirect3DDevice7 *>(f)->GetProxyInterface();
+		lpD3DDevice = static_cast<m_IDirect3DDevice7 *>(lpD3DDevice)->GetProxyInterface();
 	}
 
-	return ProxyInterface->ProcessVerticesStrided(a, b, c, d, e, f, g);
+	return ProxyInterface->ProcessVerticesStrided(dwVertexOp, dwDestIndex, dwCount, lpVertexArray, dwSrcIndex, lpD3DDevice, dwFlags);
 }

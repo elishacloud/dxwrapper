@@ -38,7 +38,7 @@ ULONG m_IDirect3DTextureX::Release()
 	return x;
 }
 
-HRESULT m_IDirect3DTextureX::Initialize(LPDIRECT3DDEVICE a, LPDIRECTDRAWSURFACE b)
+HRESULT m_IDirect3DTextureX::Initialize(LPDIRECT3DDEVICE lpDirect3DDevice, LPDIRECTDRAWSURFACE lplpDDSurface)
 {
 	if (ProxyDirectXVersion != 1)
 	{
@@ -46,41 +46,41 @@ HRESULT m_IDirect3DTextureX::Initialize(LPDIRECT3DDEVICE a, LPDIRECTDRAWSURFACE 
 		return E_NOTIMPL;
 	}
 
-	if (a)
+	if (lpDirect3DDevice)
 	{
-		a = static_cast<m_IDirect3DDevice *>(a)->GetProxyInterface();
+		lpDirect3DDevice = static_cast<m_IDirect3DDevice *>(lpDirect3DDevice)->GetProxyInterface();
 	}
-	if (b)
+	if (lplpDDSurface)
 	{
-		b = static_cast<m_IDirectDrawSurface *>(b)->GetProxyInterface();
+		lplpDDSurface = static_cast<m_IDirectDrawSurface *>(lplpDDSurface)->GetProxyInterface();
 	}
 
-	return ((IDirect3DTexture*)ProxyInterface)->Initialize(a, b);
+	return ((IDirect3DTexture*)ProxyInterface)->Initialize(lpDirect3DDevice, lplpDDSurface);
 }
 
-HRESULT m_IDirect3DTextureX::GetHandle(LPDIRECT3DDEVICE2 a, LPD3DTEXTUREHANDLE b)
+HRESULT m_IDirect3DTextureX::GetHandle(LPDIRECT3DDEVICE2 lpDirect3DDevice2, LPD3DTEXTUREHANDLE lpHandle)
 {
-	if (a)
+	if (lpDirect3DDevice2)
 	{
-		a = static_cast<m_IDirect3DDevice2 *>(a)->GetProxyInterface();
+		lpDirect3DDevice2 = static_cast<m_IDirect3DDevice2 *>(lpDirect3DDevice2)->GetProxyInterface();
 	}
 
-	return ProxyInterface->GetHandle(a, b);
+	return ProxyInterface->GetHandle(lpDirect3DDevice2, lpHandle);
 }
 
-HRESULT m_IDirect3DTextureX::PaletteChanged(DWORD a, DWORD b)
+HRESULT m_IDirect3DTextureX::PaletteChanged(DWORD dwStart, DWORD dwCount)
 {
-	return ProxyInterface->PaletteChanged(a, b);
+	return ProxyInterface->PaletteChanged(dwStart, dwCount);
 }
 
-HRESULT m_IDirect3DTextureX::Load(LPDIRECT3DTEXTURE2 a)
+HRESULT m_IDirect3DTextureX::Load(LPDIRECT3DTEXTURE2 lpD3DTexture2)
 {
-	if (a)
+	if (lpD3DTexture2)
 	{
-		a = static_cast<m_IDirect3DTexture2 *>(a)->GetProxyInterface();
+		lpD3DTexture2 = static_cast<m_IDirect3DTexture2 *>(lpD3DTexture2)->GetProxyInterface();
 	}
 
-	return ProxyInterface->Load(a);
+	return ProxyInterface->Load(lpD3DTexture2);
 }
 
 HRESULT m_IDirect3DTextureX::Unload()
