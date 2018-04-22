@@ -3,19 +3,22 @@
 class m_IDirect3DVertexBuffer : public IDirect3DVertexBuffer, public AddressLookupTableDdrawObject
 {
 private:
-	IDirect3DVertexBuffer *ProxyInterface;
+	std::unique_ptr<m_IDirect3DVertexBufferX> ProxyInterface;
+	IDirect3DVertexBuffer *RealInterface;
 
 public:
-	m_IDirect3DVertexBuffer(IDirect3DVertexBuffer *aOriginal) : ProxyInterface(aOriginal)
+	m_IDirect3DVertexBuffer(IDirect3DVertexBuffer *aOriginal) : RealInterface(aOriginal)
 	{
-		ProxyAddressLookupTable.SaveAddress(this, ProxyInterface);
+		ProxyInterface = std::make_unique<m_IDirect3DVertexBufferX>((IDirect3DVertexBuffer7*)RealInterface, 1, (m_IDirect3DVertexBuffer7*)this);
+		ProxyAddressLookupTable.SaveAddress(this, RealInterface);
 	}
 	~m_IDirect3DVertexBuffer()
 	{
 		ProxyAddressLookupTable.DeleteAddress(this);
 	}
 
-	IDirect3DVertexBuffer *GetProxyInterface() { return ProxyInterface; }
+	IDirect3DVertexBuffer *GetProxyInterface() { return RealInterface; }
+	DWORD GetDirectXVersion() { return 1; }
 
 	/*** IUnknown methods ***/
 	STDMETHOD(QueryInterface)(THIS_ REFIID riid, LPVOID * ppvObj);
