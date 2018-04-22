@@ -184,15 +184,6 @@
     <ClCompile Include="ddraw\IDirect3DLight.cpp">
       <Filter>ddraw</Filter>
     </ClCompile>
-    <ClCompile Include="ddraw\IDirect3DViewport.cpp">
-      <Filter>ddraw</Filter>
-    </ClCompile>
-    <ClCompile Include="ddraw\IDirect3DViewport2.cpp">
-      <Filter>ddraw</Filter>
-    </ClCompile>
-    <ClCompile Include="ddraw\IDirect3DViewport3.cpp">
-      <Filter>ddraw</Filter>
-    </ClCompile>
     <ClCompile Include="ddraw\IDirectDrawClipper.cpp">
       <Filter>ddraw</Filter>
     </ClCompile>
@@ -649,6 +640,18 @@
     <ClCompile Include="ddraw\IDirect3DVertexBuffer7.cpp">
       <Filter>ddraw\Versions</Filter>
     </ClCompile>
+    <ClCompile Include="ddraw\IDirect3DViewportX.cpp">
+      <Filter>ddraw</Filter>
+    </ClCompile>
+    <ClCompile Include="ddraw\IDirect3DViewport.cpp">
+      <Filter>ddraw\Versions</Filter>
+    </ClCompile>
+    <ClCompile Include="ddraw\IDirect3DViewport2.cpp">
+      <Filter>ddraw\Versions</Filter>
+    </ClCompile>
+    <ClCompile Include="ddraw\IDirect3DViewport3.cpp">
+      <Filter>ddraw\Versions</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="Settings\AllSettings.ini">
@@ -765,15 +768,6 @@
       <Filter>ddraw</Filter>
     </ClInclude>
     <ClInclude Include="ddraw\IDirect3DLight.h">
-      <Filter>ddraw</Filter>
-    </ClInclude>
-    <ClInclude Include="ddraw\IDirect3DViewport.h">
-      <Filter>ddraw</Filter>
-    </ClInclude>
-    <ClInclude Include="ddraw\IDirect3DViewport2.h">
-      <Filter>ddraw</Filter>
-    </ClInclude>
-    <ClInclude Include="ddraw\IDirect3DViewport3.h">
       <Filter>ddraw</Filter>
     </ClInclude>
     <ClInclude Include="ddraw\IDirectDrawClipper.h">
@@ -1425,6 +1419,18 @@
       <Filter>ddraw\Versions</Filter>
     </ClInclude>
     <ClInclude Include="ddraw\IDirect3DVertexBuffer7.h">
+      <Filter>ddraw\Versions</Filter>
+    </ClInclude>
+    <ClInclude Include="ddraw\IDirect3DViewportX.h">
+      <Filter>ddraw</Filter>
+    </ClInclude>
+    <ClInclude Include="ddraw\IDirect3DViewport.h">
+      <Filter>ddraw\Versions</Filter>
+    </ClInclude>
+    <ClInclude Include="ddraw\IDirect3DViewport2.h">
+      <Filter>ddraw\Versions</Filter>
+    </ClInclude>
+    <ClInclude Include="ddraw\IDirect3DViewport3.h">
       <Filter>ddraw\Versions</Filter>
     </ClInclude>
   </ItemGroup>

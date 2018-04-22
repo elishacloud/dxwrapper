@@ -18,7 +18,7 @@
 
 HRESULT m_IDirect3DViewport2::QueryInterface(REFIID riid, LPVOID * ppvObj)
 {
-	return ProxyQueryInterface(ProxyInterface, riid, ppvObj, IID_IDirect3DViewport2, this);
+	return ProxyInterface->QueryInterface(riid, ppvObj);
 }
 
 ULONG m_IDirect3DViewport2::AddRef()
@@ -28,23 +28,11 @@ ULONG m_IDirect3DViewport2::AddRef()
 
 ULONG m_IDirect3DViewport2::Release()
 {
-	ULONG x = ProxyInterface->Release();
-
-	if (x == 0)
-	{
-		delete this;
-	}
-
-	return x;
+	return ProxyInterface->Release();
 }
 
 HRESULT m_IDirect3DViewport2::Initialize(LPDIRECT3D a)
 {
-	if (a)
-	{
-		a = static_cast<m_IDirect3D *>(a)->GetProxyInterface();
-	}
-
 	return ProxyInterface->Initialize(a);
 }
 
@@ -80,24 +68,12 @@ HRESULT m_IDirect3DViewport2::GetBackground(LPD3DMATERIALHANDLE a, LPBOOL b)
 
 HRESULT m_IDirect3DViewport2::SetBackgroundDepth(LPDIRECTDRAWSURFACE a)
 {
-	if (a)
-	{
-		a = static_cast<m_IDirectDrawSurface *>(a)->GetProxyInterface();
-	}
-
 	return ProxyInterface->SetBackgroundDepth(a);
 }
 
 HRESULT m_IDirect3DViewport2::GetBackgroundDepth(LPDIRECTDRAWSURFACE * a, LPBOOL b)
 {
-	HRESULT hr = ProxyInterface->GetBackgroundDepth(a, b);
-
-	if (SUCCEEDED(hr))
-	{
-		*a = ProxyAddressLookupTable.FindAddress<m_IDirectDrawSurface>(*a);
-	}
-
-	return hr;
+	return ProxyInterface->GetBackgroundDepth(a, b);
 }
 
 HRESULT m_IDirect3DViewport2::Clear(DWORD a, LPD3DRECT b, DWORD c)
@@ -107,39 +83,17 @@ HRESULT m_IDirect3DViewport2::Clear(DWORD a, LPD3DRECT b, DWORD c)
 
 HRESULT m_IDirect3DViewport2::AddLight(LPDIRECT3DLIGHT a)
 {
-	if (a)
-	{
-		a = static_cast<m_IDirect3DLight *>(a)->GetProxyInterface();
-	}
-
 	return ProxyInterface->AddLight(a);
 }
 
 HRESULT m_IDirect3DViewport2::DeleteLight(LPDIRECT3DLIGHT a)
 {
-	if (a)
-	{
-		a = static_cast<m_IDirect3DLight *>(a)->GetProxyInterface();
-	}
-
 	return ProxyInterface->DeleteLight(a);
 }
 
 HRESULT m_IDirect3DViewport2::NextLight(LPDIRECT3DLIGHT a, LPDIRECT3DLIGHT * b, DWORD c)
 {
-	if (a)
-	{
-		a = static_cast<m_IDirect3DLight *>(a)->GetProxyInterface();
-	}
-
-	HRESULT hr = ProxyInterface->NextLight(a, b, c);
-
-	if (SUCCEEDED(hr))
-	{
-		*b = ProxyAddressLookupTable.FindAddress<m_IDirect3DLight>(*b);
-	}
-
-	return hr;
+	return ProxyInterface->NextLight(a, b, c);
 }
 
 HRESULT m_IDirect3DViewport2::GetViewport2(LPD3DVIEWPORT2 a)

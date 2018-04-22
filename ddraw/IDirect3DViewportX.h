@@ -1,24 +1,34 @@
 #pragma once
 
-class m_IDirect3DViewport3 : public IDirect3DViewport3, public AddressLookupTableDdrawObject
+class m_IDirect3DViewportX : public IDirect3DViewport3
 {
 private:
-	std::unique_ptr<m_IDirect3DViewportX> ProxyInterface;
-	IDirect3DViewport3 *RealInterface;
+	IDirect3DViewport3 *ProxyInterface;
+	m_IDirect3DViewport3 *WrapperInterface;
+	DWORD DirectXVersion;
+	DWORD ProxyDirectXVersion;
+	IID WrapperID;
 
 public:
-	m_IDirect3DViewport3(IDirect3DViewport3 *aOriginal) : RealInterface(aOriginal)
+	m_IDirect3DViewportX(IDirect3DViewport3 *aOriginal, DWORD Version, m_IDirect3DViewport3 *Interface) : ProxyInterface(aOriginal), DirectXVersion(Version), WrapperInterface(Interface)
 	{
-		ProxyInterface = std::make_unique<m_IDirect3DViewportX>(RealInterface, 3, this);
-		ProxyAddressLookupTable.SaveAddress(this, RealInterface);
-	}
-	~m_IDirect3DViewport3()
-	{
-		ProxyAddressLookupTable.DeleteAddress(this);
-	}
+		WrapperID = (DirectXVersion == 1) ? IID_IDirect3DViewport :
+			(DirectXVersion == 2) ? IID_IDirect3DViewport2 :
+			(DirectXVersion == 3) ? IID_IDirect3DViewport3 : IID_IDirect3DViewport3;
 
-	IDirect3DViewport3 *GetProxyInterface() { return RealInterface; }
-	DWORD GetDirectXVersion() { return 3; }
+		REFIID ProxyID = ConvertREFIID(WrapperID);
+		ProxyDirectXVersion = (ProxyID == IID_IDirect3DViewport) ? 1 :
+			(ProxyID == IID_IDirect3DViewport2) ? 2 :
+			(ProxyID == IID_IDirect3DViewport3) ? 3 : 3;
+
+		if (ProxyDirectXVersion != DirectXVersion)
+		{
+			Logging::LogDebug() << "Convert Direct3DViewport v" << DirectXVersion << " to v" << ProxyDirectXVersion;
+		}
+	}
+	~m_IDirect3DViewportX() {}
+
+	DWORD GetDirectXVersion() { return DirectXVersion; }
 
 	/*** IUnknown methods ***/
 	STDMETHOD(QueryInterface)(THIS_ REFIID riid, LPVOID * ppvObj);
