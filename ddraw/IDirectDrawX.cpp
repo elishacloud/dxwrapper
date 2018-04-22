@@ -112,19 +112,20 @@ template <typename T, typename D>
 HRESULT m_IDirectDrawX::EnumDisplayModes(DWORD dwFlags, T lpDDSurfaceDesc, LPVOID lpContext, D lpEnumModesCallback)
 {
 	DDSURFACEDESC2 Desc2;
+	ENUMDISPLAYMODES CallbackContext;
 	if (lpDDSurfaceDesc && ProxyDirectXVersion > 3 && DirectXVersion < 4)
 	{
 		ConvertSurfaceDesc(Desc2, *lpDDSurfaceDesc);
+
+		CallbackContext.lpContext = lpContext;
+		CallbackContext.lpCallback = (LPDDENUMMODESCALLBACK)lpEnumModesCallback;
+
 		lpDDSurfaceDesc = (T)&Desc2;
+		lpContext = &CallbackContext;
+		lpEnumModesCallback = (D)m_IDirectDrawEnumDisplayModes::ConvertCallback;
 	}
 
-	ENUMDISPLAYMODES CallbackContext;
-	CallbackContext.lpContext = lpContext;
-	CallbackContext.lpCallback = (LPDDENUMMODESCALLBACK2)lpEnumModesCallback;
-	CallbackContext.DirectXVersion = DirectXVersion;
-	CallbackContext.ProxyDirectXVersion = ProxyDirectXVersion;
-
-	return ProxyInterface->EnumDisplayModes(dwFlags, (LPDDSURFACEDESC2)lpDDSurfaceDesc, &CallbackContext, m_IDirectDrawEnumDisplayModes::ConvertCallback);
+	return ProxyInterface->EnumDisplayModes(dwFlags, (LPDDSURFACEDESC2)lpDDSurfaceDesc, lpContext, (LPDDENUMMODESCALLBACK2)lpEnumModesCallback);
 }
 
 template HRESULT m_IDirectDrawX::EnumSurfaces<LPDDSURFACEDESC>(DWORD, LPDDSURFACEDESC, LPVOID, LPDDENUMSURFACESCALLBACK);

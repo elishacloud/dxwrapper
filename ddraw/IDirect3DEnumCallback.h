@@ -4,8 +4,6 @@ struct ENUMDEVICES
 {
 	LPVOID lpContext;
 	LPD3DENUMDEVICESCALLBACK lpCallback;
-	DWORD DirectXVersion;
-	DWORD ProxyDirectXVersion;
 };
 
 class m_IDirect3DEnumDevices

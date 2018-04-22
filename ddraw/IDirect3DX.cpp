@@ -40,20 +40,25 @@ ULONG m_IDirect3DX::Release()
 
 HRESULT m_IDirect3DX::Initialize(REFCLSID rclsid)
 {
+	if (ProxyDirectXVersion != 1)
+	{
+		Logging::Log() << __FUNCTION__ << " Not Implimented";
+		return E_NOTIMPL;
+	}
+
 	return ((IDirect3D*)ProxyInterface)->Initialize(rclsid);
 }
 
 HRESULT m_IDirect3DX::EnumDevices(LPD3DENUMDEVICESCALLBACK7 lpEnumDevicesCallback, LPVOID lpUserArg)
 {
+	ENUMDEVICES CallbackContext;
 	if (ProxyDirectXVersion == 7 && DirectXVersion < 4)
 	{
-		ENUMDEVICES CallbackContext;
 		CallbackContext.lpContext = lpUserArg;
 		CallbackContext.lpCallback = (LPD3DENUMDEVICESCALLBACK)lpEnumDevicesCallback;
-		CallbackContext.DirectXVersion = DirectXVersion;
-		CallbackContext.ProxyDirectXVersion = ProxyDirectXVersion;
 
-		return ProxyInterface->EnumDevices(m_IDirect3DEnumDevices::ConvertCallback, &CallbackContext);
+		lpUserArg = &CallbackContext;
+		lpEnumDevicesCallback = m_IDirect3DEnumDevices::ConvertCallback;
 	}
 
 	return ProxyInterface->EnumDevices(lpEnumDevicesCallback, lpUserArg);

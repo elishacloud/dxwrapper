@@ -16,18 +16,14 @@
 
 #include "ddraw.h"
 
-HRESULT CALLBACK m_IDirectDrawEnumDisplayModes::ConvertCallback(LPDDSURFACEDESC2 lpDDSurfaceDesc, LPVOID lpContext)
+HRESULT CALLBACK m_IDirectDrawEnumDisplayModes::ConvertCallback(LPDDSURFACEDESC2 lpDDSurfaceDesc2, LPVOID lpContext)
 {
 	ENUMDISPLAYMODES *lpCallbackContext = (ENUMDISPLAYMODES*)lpContext;
 
 	DDSURFACEDESC Desc;
-	if (lpDDSurfaceDesc && lpCallbackContext->ProxyDirectXVersion > 3 && lpCallbackContext->DirectXVersion < 4)
-	{
-		ConvertSurfaceDesc(Desc, *lpDDSurfaceDesc);
-		lpDDSurfaceDesc = (LPDDSURFACEDESC2)&Desc;
-	}
+	ConvertSurfaceDesc(Desc, *lpDDSurfaceDesc2);
 
-	return lpCallbackContext->lpCallback(lpDDSurfaceDesc, lpCallbackContext->lpContext);
+	return lpCallbackContext->lpCallback(&Desc, lpCallbackContext->lpContext);
 }
 
 HRESULT CALLBACK m_IDirectDrawEnumSurface::ConvertCallback(LPDIRECTDRAWSURFACE7 lpDDSurface, LPDDSURFACEDESC2 lpDDSurfaceDesc, LPVOID lpContext)

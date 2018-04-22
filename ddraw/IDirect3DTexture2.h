@@ -3,19 +3,22 @@
 class m_IDirect3DTexture2 : public IDirect3DTexture2, public AddressLookupTableDdrawObject
 {
 private:
-	IDirect3DTexture2 *ProxyInterface;
+	std::unique_ptr<m_IDirect3DTextureX> ProxyInterface;
+	IDirect3DTexture2 *RealInterface;
 
 public:
-	m_IDirect3DTexture2(IDirect3DTexture2 *aOriginal) : ProxyInterface(aOriginal)
+	m_IDirect3DTexture2(IDirect3DTexture2 *aOriginal) : RealInterface(aOriginal)
 	{
-		ProxyAddressLookupTable.SaveAddress(this, ProxyInterface);
+		ProxyInterface = std::make_unique<m_IDirect3DTextureX>(RealInterface, 2, this);
+		ProxyAddressLookupTable.SaveAddress(this, RealInterface);
 	}
 	~m_IDirect3DTexture2()
 	{
 		ProxyAddressLookupTable.DeleteAddress(this);
 	}
 
-	IDirect3DTexture2 *GetProxyInterface() { return ProxyInterface; }
+	IDirect3DTexture2 *GetProxyInterface() { return RealInterface; }
+	DWORD GetDirectXVersion() { return 2; }
 
 	/*** IUnknown methods ***/
 	STDMETHOD(QueryInterface)(THIS_ REFIID riid, LPVOID * ppvObj);

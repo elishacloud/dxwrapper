@@ -232,6 +232,7 @@ cmd /c "@echo off &amp;&amp; cd /D ""$(ProjectDir)Dllmain\"" &amp;&amp; type Bui
     <ClCompile Include="ddraw\ddraw.cpp" />
     <ClCompile Include="ddraw\IDirect3DEnumCallback.cpp" />
     <ClCompile Include="ddraw\IDirect3DMaterialX.cpp" />
+    <ClCompile Include="ddraw\IDirect3DTextureX.cpp" />
     <ClCompile Include="ddraw\IDirect3DTypes.cpp" />
     <ClCompile Include="ddraw\IDirect3DX.cpp" />
     <ClCompile Include="ddraw\IDirectDrawSurfaceX.cpp" />
@@ -470,6 +471,7 @@ cmd /c "@echo off &amp;&amp; cd /D ""$(ProjectDir)Dllmain\"" &amp;&amp; type Bui
     <ClInclude Include="ddraw\ddrawExternal.h" />
     <ClInclude Include="ddraw\IDirect3DEnumCallback.h" />
     <ClInclude Include="ddraw\IDirect3DMaterialX.h" />
+    <ClInclude Include="ddraw\IDirect3DTextureX.h" />
     <ClInclude Include="ddraw\IDirect3DTypes.h" />
     <ClInclude Include="ddraw\IDirect3DX.h" />
     <ClInclude Include="ddraw\IDirectDrawSurfaceX.h" />

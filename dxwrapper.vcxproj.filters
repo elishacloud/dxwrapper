@@ -184,12 +184,6 @@
     <ClCompile Include="ddraw\IDirect3DLight.cpp">
       <Filter>ddraw</Filter>
     </ClCompile>
-    <ClCompile Include="ddraw\IDirect3DTexture.cpp">
-      <Filter>ddraw</Filter>
-    </ClCompile>
-    <ClCompile Include="ddraw\IDirect3DTexture2.cpp">
-      <Filter>ddraw</Filter>
-    </ClCompile>
     <ClCompile Include="ddraw\IDirect3DVertexBuffer.cpp">
       <Filter>ddraw</Filter>
     </ClCompile>
@@ -643,6 +637,15 @@
     <ClCompile Include="ddraw\IDirect3DMaterial3.cpp">
       <Filter>ddraw\Versions</Filter>
     </ClCompile>
+    <ClCompile Include="ddraw\IDirect3DTextureX.cpp">
+      <Filter>ddraw</Filter>
+    </ClCompile>
+    <ClCompile Include="ddraw\IDirect3DTexture.cpp">
+      <Filter>ddraw\Versions</Filter>
+    </ClCompile>
+    <ClCompile Include="ddraw\IDirect3DTexture2.cpp">
+      <Filter>ddraw\Versions</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="Settings\AllSettings.ini">
@@ -759,12 +762,6 @@
       <Filter>ddraw</Filter>
     </ClInclude>
     <ClInclude Include="ddraw\IDirect3DLight.h">
-      <Filter>ddraw</Filter>
-    </ClInclude>
-    <ClInclude Include="ddraw\IDirect3DTexture.h">
-      <Filter>ddraw</Filter>
-    </ClInclude>
-    <ClInclude Include="ddraw\IDirect3DTexture2.h">
       <Filter>ddraw</Filter>
     </ClInclude>
     <ClInclude Include="ddraw\IDirect3DVertexBuffer.h">
@@ -1413,6 +1410,15 @@
       <Filter>ddraw\Versions</Filter>
     </ClInclude>
     <ClInclude Include="ddraw\IDirect3DMaterial3.h">
+      <Filter>ddraw\Versions</Filter>
+    </ClInclude>
+    <ClInclude Include="ddraw\IDirect3DTextureX.h">
+      <Filter>ddraw</Filter>
+    </ClInclude>
+    <ClInclude Include="ddraw\IDirect3DTexture.h">
+      <Filter>ddraw\Versions</Filter>
+    </ClInclude>
+    <ClInclude Include="ddraw\IDirect3DTexture2.h">
       <Filter>ddraw\Versions</Filter>
     </ClInclude>
   </ItemGroup>

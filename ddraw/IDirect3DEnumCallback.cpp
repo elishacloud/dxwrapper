@@ -16,12 +16,12 @@
 
 #include "ddraw.h"
 
-HRESULT CALLBACK m_IDirect3DEnumDevices::ConvertCallback(LPSTR lpDeviceDescription, LPSTR lpDeviceName, LPD3DDEVICEDESC7 lpDeviceDesc7, LPVOID lpContext)
+HRESULT CALLBACK m_IDirect3DEnumDevices::ConvertCallback(LPSTR lpDeviceDescription, LPSTR lpDeviceName, LPD3DDEVICEDESC7 lpDeviceDesc, LPVOID lpContext)
 {
 	ENUMDEVICES *lpCallbackContext = (ENUMDEVICES*)lpContext;
 
 	D3DDEVICEDESC DeviceDesc;
-	ConvertDeviceDesc(DeviceDesc, *lpDeviceDesc7);
+	ConvertDeviceDesc(DeviceDesc, *lpDeviceDesc);
 
 	return lpCallbackContext->lpCallback(nullptr, lpDeviceDescription, lpDeviceName, &DeviceDesc, nullptr, lpCallbackContext->lpContext);
 }

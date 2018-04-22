@@ -3,9 +3,7 @@
 struct ENUMDISPLAYMODES
 {
 	LPVOID lpContext;
-	LPDDENUMMODESCALLBACK2 lpCallback;
-	DWORD DirectXVersion;
-	DWORD ProxyDirectXVersion;
+	LPDDENUMMODESCALLBACK lpCallback;
 };
 
 class m_IDirectDrawEnumDisplayModes

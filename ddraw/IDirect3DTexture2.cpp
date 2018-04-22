@@ -18,7 +18,7 @@
 
 HRESULT m_IDirect3DTexture2::QueryInterface(REFIID riid, LPVOID * ppvObj)
 {
-	return ProxyQueryInterface(ProxyInterface, riid, ppvObj, IID_IDirect3DTexture2, this);
+	return ProxyInterface->QueryInterface(riid, ppvObj);
 }
 
 ULONG m_IDirect3DTexture2::AddRef()
@@ -28,23 +28,11 @@ ULONG m_IDirect3DTexture2::AddRef()
 
 ULONG m_IDirect3DTexture2::Release()
 {
-	ULONG x = ProxyInterface->Release();
-
-	if (x == 0)
-	{
-		delete this;
-	}
-
-	return x;
+	return ProxyInterface->Release();
 }
 
 HRESULT m_IDirect3DTexture2::GetHandle(LPDIRECT3DDEVICE2 a, LPD3DTEXTUREHANDLE b)
 {
-	if (a)
-	{
-		a = static_cast<m_IDirect3DDevice2 *>(a)->GetProxyInterface();
-	}
-
 	return ProxyInterface->GetHandle(a, b);
 }
 
@@ -55,10 +43,5 @@ HRESULT m_IDirect3DTexture2::PaletteChanged(DWORD a, DWORD b)
 
 HRESULT m_IDirect3DTexture2::Load(LPDIRECT3DTEXTURE2 a)
 {
-	if (a)
-	{
-		a = static_cast<m_IDirect3DTexture2 *>(a)->GetProxyInterface();
-	}
-
 	return ProxyInterface->Load(a);
 }
