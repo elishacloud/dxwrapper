@@ -18,7 +18,7 @@
 
 HRESULT m_IDirect3DDevice7::QueryInterface(REFIID riid, LPVOID * ppvObj)
 {
-	return ProxyQueryInterface(ProxyInterface, riid, ppvObj, IID_IDirect3DDevice7, this);
+	return ProxyInterface->QueryInterface(riid, ppvObj);
 }
 
 ULONG m_IDirect3DDevice7::AddRef()
@@ -28,14 +28,7 @@ ULONG m_IDirect3DDevice7::AddRef()
 
 ULONG m_IDirect3DDevice7::Release()
 {
-	ULONG x = ProxyInterface->Release();
-
-	if (x == 0)
-	{
-		delete this;
-	}
-
-	return x;
+	return ProxyInterface->Release();
 }
 
 HRESULT m_IDirect3DDevice7::GetCaps(LPD3DDEVICEDESC7 a)
@@ -60,36 +53,17 @@ HRESULT m_IDirect3DDevice7::EndScene()
 
 HRESULT m_IDirect3DDevice7::GetDirect3D(LPDIRECT3D7 * a)
 {
-	HRESULT hr = ProxyInterface->GetDirect3D(a);
-
-	if (SUCCEEDED(hr))
-	{
-		*a = ProxyAddressLookupTable.FindAddress<m_IDirect3D7>(*a);
-	}
-
-	return hr;
+	return ProxyInterface->GetDirect3D(a);
 }
 
 HRESULT m_IDirect3DDevice7::SetRenderTarget(LPDIRECTDRAWSURFACE7 a, DWORD b)
 {
-	if (a)
-	{
-		a = static_cast<m_IDirectDrawSurface7 *>(a)->GetProxyInterface();
-	}
-
 	return ProxyInterface->SetRenderTarget(a, b);
 }
 
 HRESULT m_IDirect3DDevice7::GetRenderTarget(LPDIRECTDRAWSURFACE7 * a)
 {
-	HRESULT hr = ProxyInterface->GetRenderTarget(a);
-
-	if (SUCCEEDED(hr))
-	{
-		*a = ProxyAddressLookupTable.FindAddress<m_IDirectDrawSurface7>(*a);
-	}
-
-	return hr;
+	return ProxyInterface->GetRenderTarget(a);
 }
 
 HRESULT m_IDirect3DDevice7::Clear(DWORD a, LPD3DRECT b, DWORD c, D3DCOLOR d, D3DVALUE e, DWORD f)
@@ -164,11 +138,6 @@ HRESULT m_IDirect3DDevice7::EndStateBlock(LPDWORD a)
 
 HRESULT m_IDirect3DDevice7::PreLoad(LPDIRECTDRAWSURFACE7 a)
 {
-	if (a)
-	{
-		a = static_cast<m_IDirectDrawSurface7 *>(a)->GetProxyInterface();
-	}
-
 	return ProxyInterface->PreLoad(a);
 }
 
@@ -204,21 +173,11 @@ HRESULT m_IDirect3DDevice7::DrawIndexedPrimitiveStrided(D3DPRIMITIVETYPE a, DWOR
 
 HRESULT m_IDirect3DDevice7::DrawPrimitiveVB(D3DPRIMITIVETYPE a, LPDIRECT3DVERTEXBUFFER7 b, DWORD c, DWORD d, DWORD e)
 {
-	if (b)
-	{
-		b = static_cast<m_IDirect3DVertexBuffer7 *>(b)->GetProxyInterface();
-	}
-
 	return ProxyInterface->DrawPrimitiveVB(a, b, c, d, e);
 }
 
 HRESULT m_IDirect3DDevice7::DrawIndexedPrimitiveVB(D3DPRIMITIVETYPE a, LPDIRECT3DVERTEXBUFFER7 b, DWORD c, DWORD d, LPWORD e, DWORD f, DWORD g)
 {
-	if (b)
-	{
-		b = static_cast<m_IDirect3DVertexBuffer7 *>(b)->GetProxyInterface();
-	}
-
 	return ProxyInterface->DrawIndexedPrimitiveVB(a, b, c, d, e, f, g);
 }
 
@@ -229,23 +188,11 @@ HRESULT m_IDirect3DDevice7::ComputeSphereVisibility(LPD3DVECTOR a, LPD3DVALUE b,
 
 HRESULT m_IDirect3DDevice7::GetTexture(DWORD a, LPDIRECTDRAWSURFACE7 * b)
 {
-	HRESULT hr = ProxyInterface->GetTexture(a, b);
-
-	if (SUCCEEDED(hr))
-	{
-		*b = ProxyAddressLookupTable.FindAddress<m_IDirectDrawSurface7>(*b);
-	}
-
-	return hr;
+	return ProxyInterface->GetTexture(a, b);
 }
 
 HRESULT m_IDirect3DDevice7::SetTexture(DWORD a, LPDIRECTDRAWSURFACE7 b)
 {
-	if (b)
-	{
-		b = static_cast<m_IDirectDrawSurface7 *>(b)->GetProxyInterface();
-	}
-
 	return ProxyInterface->SetTexture(a, b);
 }
 
@@ -286,15 +233,6 @@ HRESULT m_IDirect3DDevice7::CreateStateBlock(D3DSTATEBLOCKTYPE a, LPDWORD b)
 
 HRESULT m_IDirect3DDevice7::Load(LPDIRECTDRAWSURFACE7 a, LPPOINT b, LPDIRECTDRAWSURFACE7 c, LPRECT d, DWORD e)
 {
-	if (a)
-	{
-		a = static_cast<m_IDirectDrawSurface7 *>(a)->GetProxyInterface();
-	}
-	if (c)
-	{
-		c = static_cast<m_IDirectDrawSurface7 *>(c)->GetProxyInterface();
-	}
-
 	return ProxyInterface->Load(a, b, c, d, e);
 }
 

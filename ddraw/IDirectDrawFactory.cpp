@@ -42,7 +42,7 @@ HRESULT m_IDirectDrawFactory::CreateDirectDraw(GUID * pGUID, HWND hWnd, DWORD dw
 {
 	HRESULT hr = ProxyInterface->CreateDirectDraw(pGUID, hWnd, dwCoopLevelFlags, dwReserved, pUnkOuter, ppDirectDraw);
 
-	if (SUCCEEDED(hr))
+	if (SUCCEEDED(hr) && ppDirectDraw)
 	{
 		*ppDirectDraw = ProxyAddressLookupTable.FindAddress<m_IDirectDraw>(*ppDirectDraw);
 	}

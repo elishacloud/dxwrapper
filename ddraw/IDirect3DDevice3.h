@@ -3,19 +3,22 @@
 class m_IDirect3DDevice3 : public IDirect3DDevice3, public AddressLookupTableDdrawObject
 {
 private:
-	IDirect3DDevice3 *ProxyInterface;
+	std::unique_ptr<m_IDirect3DDeviceX> ProxyInterface;
+	IDirect3DDevice3 *RealInterface;
 
 public:
-	m_IDirect3DDevice3(IDirect3DDevice3 *aOriginal) : ProxyInterface(aOriginal)
+	m_IDirect3DDevice3(IDirect3DDevice3 *aOriginal) : RealInterface(aOriginal)
 	{
-		ProxyAddressLookupTable.SaveAddress(this, ProxyInterface);
+		ProxyInterface = std::make_unique<m_IDirect3DDeviceX>((IDirect3DDevice7*)RealInterface, 3, (m_IDirect3DDevice7*)this);
+		ProxyAddressLookupTable.SaveAddress(this, RealInterface);
 	}
 	~m_IDirect3DDevice3()
 	{
 		ProxyAddressLookupTable.DeleteAddress(this);
 	}
 
-	IDirect3DDevice3 *GetProxyInterface() { return ProxyInterface; }
+	IDirect3DDevice3 *GetProxyInterface() { return RealInterface; }
+	DWORD GetDirectXVersion() { return 3; }
 
 	/*** IUnknown methods ***/
 	STDMETHOD(QueryInterface)(THIS_ REFIID riid, LPVOID * ppvObj);

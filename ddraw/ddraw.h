@@ -16,6 +16,7 @@ class m_IDirect3DDevice;
 class m_IDirect3DDevice2;
 class m_IDirect3DDevice3;
 class m_IDirect3DDevice7;
+class m_IDirect3DDeviceX;
 class m_IDirect3DMaterial;
 class m_IDirect3DMaterial2;
 class m_IDirect3DMaterial3;
@@ -77,6 +78,7 @@ extern AddressLookupTableDdraw<void> ProxyAddressLookupTable;
 #include "IDirect3DDevice2.h"
 #include "IDirect3DDevice3.h"
 #include "IDirect3DDevice7.h"
+#include "IDirect3DDeviceX.h"
 #include "IDirect3DEnumCallback.h"
 #include "IDirect3DExecuteBuffer.h"
 #include "IDirect3DLight.h"

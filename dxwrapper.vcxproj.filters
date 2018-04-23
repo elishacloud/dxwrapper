@@ -166,18 +166,6 @@
     <ClCompile Include="ddraw\ddraw.cpp">
       <Filter>ddraw</Filter>
     </ClCompile>
-    <ClCompile Include="ddraw\IDirect3DDevice.cpp">
-      <Filter>ddraw</Filter>
-    </ClCompile>
-    <ClCompile Include="ddraw\IDirect3DDevice2.cpp">
-      <Filter>ddraw</Filter>
-    </ClCompile>
-    <ClCompile Include="ddraw\IDirect3DDevice3.cpp">
-      <Filter>ddraw</Filter>
-    </ClCompile>
-    <ClCompile Include="ddraw\IDirect3DDevice7.cpp">
-      <Filter>ddraw</Filter>
-    </ClCompile>
     <ClCompile Include="ddraw\IDirect3DExecuteBuffer.cpp">
       <Filter>ddraw</Filter>
     </ClCompile>
@@ -652,6 +640,21 @@
     <ClCompile Include="ddraw\IDirect3DViewport3.cpp">
       <Filter>ddraw\Versions</Filter>
     </ClCompile>
+    <ClCompile Include="ddraw\IDirect3DDeviceX.cpp">
+      <Filter>ddraw</Filter>
+    </ClCompile>
+    <ClCompile Include="ddraw\IDirect3DDevice.cpp">
+      <Filter>ddraw\Versions</Filter>
+    </ClCompile>
+    <ClCompile Include="ddraw\IDirect3DDevice2.cpp">
+      <Filter>ddraw\Versions</Filter>
+    </ClCompile>
+    <ClCompile Include="ddraw\IDirect3DDevice3.cpp">
+      <Filter>ddraw\Versions</Filter>
+    </ClCompile>
+    <ClCompile Include="ddraw\IDirect3DDevice7.cpp">
+      <Filter>ddraw\Versions</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="Settings\AllSettings.ini">
@@ -750,18 +753,6 @@
       <Filter>D3d8to9</Filter>
     </ClInclude>
     <ClInclude Include="ddraw\ddraw.h">
-      <Filter>ddraw</Filter>
-    </ClInclude>
-    <ClInclude Include="ddraw\IDirect3DDevice.h">
-      <Filter>ddraw</Filter>
-    </ClInclude>
-    <ClInclude Include="ddraw\IDirect3DDevice2.h">
-      <Filter>ddraw</Filter>
-    </ClInclude>
-    <ClInclude Include="ddraw\IDirect3DDevice3.h">
-      <Filter>ddraw</Filter>
-    </ClInclude>
-    <ClInclude Include="ddraw\IDirect3DDevice7.h">
       <Filter>ddraw</Filter>
     </ClInclude>
     <ClInclude Include="ddraw\IDirect3DExecuteBuffer.h">
@@ -1431,6 +1422,21 @@
       <Filter>ddraw\Versions</Filter>
     </ClInclude>
     <ClInclude Include="ddraw\IDirect3DViewport3.h">
+      <Filter>ddraw\Versions</Filter>
+    </ClInclude>
+    <ClInclude Include="ddraw\IDirect3DDeviceX.h">
+      <Filter>ddraw</Filter>
+    </ClInclude>
+    <ClInclude Include="ddraw\IDirect3DDevice.h">
+      <Filter>ddraw\Versions</Filter>
+    </ClInclude>
+    <ClInclude Include="ddraw\IDirect3DDevice2.h">
+      <Filter>ddraw\Versions</Filter>
+    </ClInclude>
+    <ClInclude Include="ddraw\IDirect3DDevice3.h">
+      <Filter>ddraw\Versions</Filter>
+    </ClInclude>
+    <ClInclude Include="ddraw\IDirect3DDevice7.h">
       <Filter>ddraw\Versions</Filter>
     </ClInclude>
   </ItemGroup>

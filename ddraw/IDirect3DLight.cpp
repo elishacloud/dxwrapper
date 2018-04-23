@@ -38,22 +38,22 @@ ULONG m_IDirect3DLight::Release()
 	return x;
 }
 
-HRESULT m_IDirect3DLight::Initialize(LPDIRECT3D a)
+HRESULT m_IDirect3DLight::Initialize(LPDIRECT3D lpDirect3D)
 {
-	if (a)
+	if (lpDirect3D)
 	{
-		a = static_cast<m_IDirect3D *>(a)->GetProxyInterface();
+		lpDirect3D = static_cast<m_IDirect3D *>(lpDirect3D)->GetProxyInterface();
 	}
 
-	return ProxyInterface->Initialize(a);
+	return ProxyInterface->Initialize(lpDirect3D);
 }
 
-HRESULT m_IDirect3DLight::SetLight(LPD3DLIGHT a)
+HRESULT m_IDirect3DLight::SetLight(LPD3DLIGHT lpLight)
 {
-	return ProxyInterface->SetLight(a);
+	return ProxyInterface->SetLight(lpLight);
 }
 
-HRESULT m_IDirect3DLight::GetLight(LPD3DLIGHT a)
+HRESULT m_IDirect3DLight::GetLight(LPD3DLIGHT lpLight)
 {
-	return ProxyInterface->GetLight(a);
+	return ProxyInterface->GetLight(lpLight);
 }

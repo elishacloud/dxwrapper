@@ -1,29 +1,75 @@
 #pragma once
 
-class m_IDirect3DDevice7 : public IDirect3DDevice7, public AddressLookupTableDdrawObject
+class m_IDirect3DDeviceX : public IDirect3DDevice7, public AddressLookupTableDdrawObject
 {
 private:
-	std::unique_ptr<m_IDirect3DDeviceX> ProxyInterface;
-	IDirect3DDevice7 *RealInterface;
+	IDirect3DDevice7 *ProxyInterface;
+	m_IDirect3DDevice7 *WrapperInterface;
+	DWORD DirectXVersion;
+	DWORD ProxyDirectXVersion;
+	IID WrapperID;
 
 public:
-	m_IDirect3DDevice7(IDirect3DDevice7 *aOriginal) : RealInterface(aOriginal)
+	m_IDirect3DDeviceX(IDirect3DDevice7 *aOriginal, DWORD Version, m_IDirect3DDevice7 *Interface) : ProxyInterface(aOriginal), DirectXVersion(Version), WrapperInterface(Interface)
 	{
-		ProxyInterface = std::make_unique<m_IDirect3DDeviceX>(RealInterface, 7, this);
-		ProxyAddressLookupTable.SaveAddress(this, RealInterface);
-	}
-	~m_IDirect3DDevice7()
-	{
-		ProxyAddressLookupTable.DeleteAddress(this);
-	}
+		WrapperID = (DirectXVersion == 1) ? IID_IDirect3DDevice :
+			(DirectXVersion == 2) ? IID_IDirect3DDevice2 :
+			(DirectXVersion == 3) ? IID_IDirect3DDevice3 :
+			(DirectXVersion == 7) ? IID_IDirect3DDevice7 : IID_IDirect3DDevice7;
 
-	IDirect3DDevice7 *GetProxyInterface() { return RealInterface; }
-	DWORD GetDirectXVersion() { return 7; }
+		REFIID ProxyID = ConvertREFIID(WrapperID);
+		ProxyDirectXVersion = (ProxyID == IID_IDirect3DDevice) ? 1 :
+			(ProxyID == IID_IDirect3DDevice2) ? 2 :
+			(ProxyID == IID_IDirect3DDevice3) ? 3 :
+			(ProxyID == IID_IDirect3DDevice7) ? 7 : 7;
+
+		if (ProxyDirectXVersion != DirectXVersion)
+		{
+			Logging::LogDebug() << "Convert Direct3DDevice v" << DirectXVersion << " to v" << ProxyDirectXVersion;
+		}
+	}
+	~m_IDirect3DDeviceX() {}
+
+	DWORD GetDirectXVersion() { return DirectXVersion; }
 
 	/*** IUnknown methods ***/
 	STDMETHOD(QueryInterface)(THIS_ REFIID riid, LPVOID * ppvObj);
 	STDMETHOD_(ULONG, AddRef)(THIS);
 	STDMETHOD_(ULONG, Release)(THIS);
+
+	/*** IDirect3DDevice methods ***/
+	STDMETHOD(Initialize)(THIS_ LPDIRECT3D, LPGUID, LPD3DDEVICEDESC);
+	STDMETHOD(CreateExecuteBuffer)(THIS_ LPD3DEXECUTEBUFFERDESC, LPDIRECT3DEXECUTEBUFFER*, IUnknown*);
+	STDMETHOD(Execute)(THIS_ LPDIRECT3DEXECUTEBUFFER, LPDIRECT3DVIEWPORT, DWORD);
+	STDMETHOD(Pick)(THIS_ LPDIRECT3DEXECUTEBUFFER, LPDIRECT3DVIEWPORT, DWORD, LPD3DRECT);
+	STDMETHOD(GetPickRecords)(THIS_ LPDWORD, LPD3DPICKRECORD);
+	STDMETHOD(CreateMatrix)(THIS_ LPD3DMATRIXHANDLE);
+	STDMETHOD(SetMatrix)(THIS_ D3DMATRIXHANDLE, const LPD3DMATRIX);
+	STDMETHOD(GetMatrix)(THIS_ D3DMATRIXHANDLE, LPD3DMATRIX);
+	STDMETHOD(DeleteMatrix)(THIS_ D3DMATRIXHANDLE);
+
+	/*** IDirect3DDevice2 methods ***/
+	STDMETHOD(SwapTextureHandles)(THIS_ LPDIRECT3DTEXTURE2, LPDIRECT3DTEXTURE2);
+	STDMETHOD(EnumTextureFormats)(THIS_ LPD3DENUMTEXTUREFORMATSCALLBACK, LPVOID);
+
+	/*** IDirect3DDevice3 methods ***/
+	STDMETHOD(GetCaps)(THIS_ LPD3DDEVICEDESC, LPD3DDEVICEDESC);
+	STDMETHOD(GetStats)(THIS_ LPD3DSTATS);
+	STDMETHOD(AddViewport)(THIS_ LPDIRECT3DVIEWPORT3);
+	STDMETHOD(DeleteViewport)(THIS_ LPDIRECT3DVIEWPORT3);
+	STDMETHOD(NextViewport)(THIS_ LPDIRECT3DVIEWPORT3, LPDIRECT3DVIEWPORT3*, DWORD);
+	STDMETHOD(SetCurrentViewport)(THIS_ LPDIRECT3DVIEWPORT3);
+	STDMETHOD(GetCurrentViewport)(THIS_ LPDIRECT3DVIEWPORT3 *);
+	STDMETHOD(Begin)(THIS_ D3DPRIMITIVETYPE, DWORD, DWORD);
+	STDMETHOD(BeginIndexed)(THIS_ D3DPRIMITIVETYPE, DWORD, LPVOID, DWORD, DWORD);
+	STDMETHOD(Vertex)(THIS_ LPVOID);
+	STDMETHOD(Index)(THIS_ WORD);
+	STDMETHOD(End)(THIS_ DWORD);
+	STDMETHOD(GetLightState)(THIS_ D3DLIGHTSTATETYPE, LPDWORD);
+	STDMETHOD(SetLightState)(THIS_ D3DLIGHTSTATETYPE, DWORD);
+	STDMETHOD(DrawIndexedPrimitiveVB)(THIS_ D3DPRIMITIVETYPE, LPDIRECT3DVERTEXBUFFER, LPWORD, DWORD, DWORD);
+	STDMETHOD(GetTexture)(THIS_ DWORD, LPDIRECT3DTEXTURE2 *);
+	STDMETHOD(SetTexture)(THIS_ DWORD, LPDIRECT3DTEXTURE2);
 
 	/*** IDirect3DDevice7 methods ***/
 	STDMETHOD(GetCaps)(THIS_ LPD3DDEVICEDESC7);

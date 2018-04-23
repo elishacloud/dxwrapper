@@ -18,7 +18,7 @@
 
 HRESULT m_IDirect3DDevice::QueryInterface(REFIID riid, LPVOID * ppvObj)
 {
-	return ProxyQueryInterface(ProxyInterface, riid, ppvObj, IID_IDirect3DDevice, this);
+	return ProxyInterface->QueryInterface(riid, ppvObj);
 }
 
 ULONG m_IDirect3DDevice::AddRef()
@@ -28,23 +28,11 @@ ULONG m_IDirect3DDevice::AddRef()
 
 ULONG m_IDirect3DDevice::Release()
 {
-	ULONG x = ProxyInterface->Release();
-
-	if (x == 0)
-	{
-		delete this;
-	}
-
-	return x;
+	return ProxyInterface->Release();
 }
 
 HRESULT m_IDirect3DDevice::Initialize(LPDIRECT3D a, LPGUID b, LPD3DDEVICEDESC c)
 {
-	if (a)
-	{
-		a = static_cast<m_IDirect3D *>(a)->GetProxyInterface();
-	}
-
 	return ProxyInterface->Initialize(a, b, c);
 }
 
@@ -55,28 +43,12 @@ HRESULT m_IDirect3DDevice::GetCaps(LPD3DDEVICEDESC a, LPD3DDEVICEDESC b)
 
 HRESULT m_IDirect3DDevice::SwapTextureHandles(LPDIRECT3DTEXTURE a, LPDIRECT3DTEXTURE b)
 {
-	if (a)
-	{
-		a = static_cast<m_IDirect3DTexture *>(a)->GetProxyInterface();
-	}
-	if (b)
-	{
-		b = static_cast<m_IDirect3DTexture *>(b)->GetProxyInterface();
-	}
-
-	return ProxyInterface->SwapTextureHandles(a, b);
+	return ProxyInterface->SwapTextureHandles((LPDIRECT3DTEXTURE2)a, (LPDIRECT3DTEXTURE2)b);
 }
 
 HRESULT m_IDirect3DDevice::CreateExecuteBuffer(LPD3DEXECUTEBUFFERDESC a, LPDIRECT3DEXECUTEBUFFER * b, IUnknown * c)
 {
-	HRESULT hr = ProxyInterface->CreateExecuteBuffer(a, b, c);
-
-	if (SUCCEEDED(hr))
-	{
-		*b = ProxyAddressLookupTable.FindAddress<m_IDirect3DExecuteBuffer>(*b);
-	}
-
-	return hr;
+	return ProxyInterface->CreateExecuteBuffer(a, b, c);
 }
 
 HRESULT m_IDirect3DDevice::GetStats(LPD3DSTATS a)
@@ -86,66 +58,26 @@ HRESULT m_IDirect3DDevice::GetStats(LPD3DSTATS a)
 
 HRESULT m_IDirect3DDevice::Execute(LPDIRECT3DEXECUTEBUFFER a, LPDIRECT3DVIEWPORT b, DWORD c)
 {
-	if (a)
-	{
-		a = static_cast<m_IDirect3DExecuteBuffer *>(a)->GetProxyInterface();
-	}
-	if (b)
-	{
-		b = static_cast<m_IDirect3DViewport *>(b)->GetProxyInterface();
-	}
-
 	return ProxyInterface->Execute(a, b, c);
 }
 
 HRESULT m_IDirect3DDevice::AddViewport(LPDIRECT3DVIEWPORT a)
 {
-	if (a)
-	{
-		a = static_cast<m_IDirect3DViewport *>(a)->GetProxyInterface();
-	}
-
-	return ProxyInterface->AddViewport(a);
+	return ProxyInterface->AddViewport((LPDIRECT3DVIEWPORT3)a);
 }
 
 HRESULT m_IDirect3DDevice::DeleteViewport(LPDIRECT3DVIEWPORT a)
 {
-	if (a)
-	{
-		a = static_cast<m_IDirect3DViewport *>(a)->GetProxyInterface();
-	}
-
-	return ProxyInterface->DeleteViewport(a);
+	return ProxyInterface->DeleteViewport((LPDIRECT3DVIEWPORT3)a);
 }
 
 HRESULT m_IDirect3DDevice::NextViewport(LPDIRECT3DVIEWPORT a, LPDIRECT3DVIEWPORT * b, DWORD c)
 {
-	if (a)
-	{
-		a = static_cast<m_IDirect3DViewport *>(a)->GetProxyInterface();
-	}
-
-	HRESULT hr = ProxyInterface->NextViewport(a, b, c);
-
-	if (SUCCEEDED(hr))
-	{
-		*b = ProxyAddressLookupTable.FindAddress<m_IDirect3DViewport>(*b);
-	}
-
-	return hr;
+	return ProxyInterface->NextViewport((LPDIRECT3DVIEWPORT3)a, (LPDIRECT3DVIEWPORT3*)b, c);
 }
 
 HRESULT m_IDirect3DDevice::Pick(LPDIRECT3DEXECUTEBUFFER a, LPDIRECT3DVIEWPORT b, DWORD c, LPD3DRECT d)
 {
-	if (a)
-	{
-		a = static_cast<m_IDirect3DExecuteBuffer *>(a)->GetProxyInterface();
-	}
-	if (b)
-	{
-		b = static_cast<m_IDirect3DViewport *>(b)->GetProxyInterface();
-	}
-
 	return ProxyInterface->Pick(a, b, c, d);
 }
 
@@ -191,12 +123,5 @@ HRESULT m_IDirect3DDevice::EndScene()
 
 HRESULT m_IDirect3DDevice::GetDirect3D(LPDIRECT3D * a)
 {
-	HRESULT hr = ProxyInterface->GetDirect3D(a);
-
-	if (SUCCEEDED(hr))
-	{
-		*a = ProxyAddressLookupTable.FindAddress<m_IDirect3D>(*a);
-	}
-
-	return hr;
+	return ProxyInterface->GetDirect3D((LPDIRECT3D7*)a);
 }
