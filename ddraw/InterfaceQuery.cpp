@@ -46,6 +46,39 @@ REFIID ConvertREFIID(REFIID CalledID)
 			return IID_IDirectDrawSurface7;
 		}
 	}
+	if (Config.ConvertToDirect3D7)
+	{
+		if (riid == IID_IDirect3D ||
+			riid == IID_IDirect3D2 ||
+			riid == IID_IDirect3D3)
+		{
+			return IID_IDirect3D7;
+		}
+		else if (riid == IID_IDirect3DDevice ||
+			riid == IID_IDirect3DDevice2 ||
+			riid == IID_IDirect3DDevice3)
+		{
+			return IID_IDirect3DDevice7;
+		}
+		else if (riid == IID_IDirect3DMaterial ||
+			riid == IID_IDirect3DMaterial2)
+		{
+			return IID_IDirect3DMaterial3;
+		}
+		else if (riid == IID_IDirect3DTexture)
+		{
+			return IID_IDirect3DTexture2;
+		}
+		else if (riid == IID_IDirect3DViewport ||
+			riid == IID_IDirect3DViewport2)
+		{
+			return IID_IDirect3DViewport3;
+		}
+		else if (riid == IID_IDirect3DVertexBuffer)
+		{
+			return IID_IDirect3DVertexBuffer7;
+		}
+	}
 
 	return riid;
 }
@@ -73,7 +106,7 @@ HRESULT ProxyQueryInterface(LPVOID ProxyInterface, REFIID CalledID, LPVOID * ppv
 	}
 	else
 	{
-		Logging::LogDebug() << "Query failed for " << CalledID;
+		Logging::LogDebug() << "Query failed for " << riid << " Error " << hr;
 	}
 
 	return hr;

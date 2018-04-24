@@ -20,6 +20,7 @@
 	visit(DxWnd) \
 	visit(CacheClipPlane) \
 	visit(ConvertToDirectDraw7) \
+	visit(ConvertToDirect3D7) \
 	visit(ExcludeProcess) \
 	visit(ForceCertification) \
 	visit(ForceExclusiveMode) \
@@ -144,6 +145,7 @@ struct CONFIG
 	bool CacheClipPlane;				// Caches the ClipPlane for Direct3D9 to fix an issue in d3d9 on Windows 8 and newer
 	bool CacheClipPlaneNotSet;			// If the CacheClipPlane option exists in the config file
 	bool ConvertToDirectDraw7;			// Converts DirectDraw 1-6 to DirectDraw 7
+	bool ConvertToDirect3D7;			// Converts Direct3D 1-6 to Direct3D 7
 	bool FullScreen;					// Sets the main window to fullscreen
 	bool ForceTermination;				// Terminates application when main window closes
 	bool ForceWindowResize;				// Forces main window to fullscreen

@@ -9,7 +9,8 @@ DxWrapper has many features including:
  - Configuring DDrawCompat options to improve compatibility
  - Proxy for [DxWnd](https://sourceforge.net/projects/dxwnd/)
  - Conversion of DirectDraw 1-6 to DirectDraw 7
- - Conversion of Direct3D8 (d3d8.dll) to Direct3D9 (d3d9.dll) using [d3d8to9](https://github.com/crosire/d3d8to9)
+ - Conversion of Direct3D 1-6 to Direct3D 7
+ - Conversion of Direct3D 8 (d3d8.dll) to Direct3D 9 (d3d9.dll) using [d3d8to9](https://github.com/crosire/d3d8to9)
  - Tweaking of Microsoft DirectSound function calls using [DSoundCtrl](http://www.bockholdt.com/dsc/)
  - ASI loader to load custom libraries with the file extension .asi into game processes using [Ultimate ASI Loader](https://github.com/ThirteenAG/Ultimate-ASI-Loader)
  - Supports being loaded as an ASI plug-in

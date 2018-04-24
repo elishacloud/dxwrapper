@@ -43,7 +43,7 @@ HRESULT m_IDirect3DDeviceX::Initialize(LPDIRECT3D lpd3d, LPGUID lpGUID, LPD3DDEV
 	if (ProxyDirectXVersion != 1)
 	{
 		Logging::Log() << __FUNCTION__ << " Not Implimented";
-		return E_NOTIMPL;
+		return DD_OK;
 	}
 
 	if (lpd3d)
@@ -202,8 +202,23 @@ HRESULT m_IDirect3DDeviceX::GetCaps(LPD3DDEVICEDESC lpD3DHWDevDesc, LPD3DDEVICED
 {
 	if (ProxyDirectXVersion == 7)
 	{
-		Logging::Log() << __FUNCTION__ << " Not Implimented";
-		return E_NOTIMPL;
+		D3DDEVICEDESC7 D3DDevDesc;
+		HRESULT hr = GetCaps(&D3DDevDesc);
+
+		if (SUCCEEDED(hr))
+		{
+			if (lpD3DHWDevDesc)
+			{
+				ConvertDeviceDesc(*lpD3DHWDevDesc, D3DDevDesc);
+			}
+
+			if (lpD3DHELDevDesc)
+			{
+				ConvertDeviceDesc(*lpD3DHELDevDesc, D3DDevDesc);
+			}
+		}
+
+		return hr;
 	}
 
 	return ((IDirect3DDevice3*)ProxyInterface)->GetCaps(lpD3DHWDevDesc, lpD3DHELDevDesc);

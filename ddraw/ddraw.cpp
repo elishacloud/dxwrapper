@@ -80,6 +80,12 @@ HRESULT WINAPI dd_DirectDrawCreate(GUID FAR *lpGUID, LPDIRECTDRAW FAR *lplpDD, I
 	{
 		return E_NOTIMPL;
 	}
+
+	if (Config.ConvertToDirect3D7 && Config.ConvertToDirectDraw7)
+	{
+		return dd_DirectDrawCreateEx(lpGUID, (LPVOID*)lplpDD, IID_IDirectDraw, pUnkOuter);
+	}
+
 	HRESULT hr = ((DirectDrawCreateProc)DirectDrawCreate_out)(lpGUID, lplpDD, pUnkOuter);
 
 	if (SUCCEEDED(hr))
