@@ -56,6 +56,7 @@
 #include <ctype.h>
 #pragma hdrstop
 
+#pragma warning (push)
 #pragma warning (disable : 4090 4245 4701 4703 4996)
 #include "disasm.h"
 
@@ -2897,5 +2898,5 @@ tchar *Geterrwarnmessage(ulong errors,ulong warnings) {
     ps=NULL;
   return ps;
 };
-#pragma warning (default : 4090 4245 4701 4703 4996)
+#pragma warning (pop)
 

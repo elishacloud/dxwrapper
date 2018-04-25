@@ -33,13 +33,6 @@
 #endif
 
 #if _MSC_VER
-// Disable warning about data -> function pointer conversion
-#pragma warning(disable:4055)
- // C4244: conversion from 'uintptr_t' to 'DWORD', possible loss of data.
-#pragma warning(error: 4244)
-// C4267: conversion from 'size_t' to 'int', possible loss of data.
-#pragma warning(error: 4267)
-
 #define inline __inline
 #endif
 
@@ -665,6 +658,7 @@ HMEMORYMODULE MemoryLoadLibraryEx(const void *data, size_t size,
     // get entry point of loaded library
     if (result->headers->OptionalHeader.AddressOfEntryPoint != 0) {
         if (result->isDLL) {
+#pragma warning(suppress: 4055)
             DllEntryProc DllEntry = (DllEntryProc)(LPVOID)(code + result->headers->OptionalHeader.AddressOfEntryPoint);
             // notify library about attaching to process
             BOOL successfull = (*DllEntry)((HINSTANCE)code, DLL_PROCESS_ATTACH, 0);
@@ -674,6 +668,7 @@ HMEMORYMODULE MemoryLoadLibraryEx(const void *data, size_t size,
             }
             result->initialized = TRUE;
         } else {
+#pragma warning(suppress: 4055)
             result->exeEntry = (ExeEntryProc)(LPVOID)(code + result->headers->OptionalHeader.AddressOfEntryPoint);
         }
     } else {
@@ -743,6 +738,7 @@ FARPROC MemoryGetProcAddress(HMEMORYMODULE module, LPCSTR name)
     }
 
     // AddressOfFunctions contains the RVAs to the "real" functions
+#pragma warning(suppress: 4055)
     return (FARPROC)(LPVOID)(codeBase + (*(DWORD *) (codeBase + exports->AddressOfFunctions + (idx*4))));
 }
 
@@ -755,6 +751,7 @@ void MemoryFreeLibrary(HMEMORYMODULE mod)
     }
     if (module->initialized) {
         // notify library about detaching from process
+#pragma warning(suppress: 4055)
         DllEntryProc DllEntry = (DllEntryProc)(LPVOID)(module->codeBase + module->headers->OptionalHeader.AddressOfEntryPoint);
         (*DllEntry)((HINSTANCE)module->codeBase, DLL_PROCESS_DETACH, 0);
     }
@@ -862,9 +859,8 @@ static PIMAGE_RESOURCE_DIRECTORY_ENTRY _MemorySearchResourceEntry(
             _searchKey = &_searchKeySpace[0];
         }
 
-#pragma warning(disable: 4996)
+#pragma warning(suppress: 4996)
 		mbstowcs(_searchKey, key, searchKeyLen);
-#pragma warning(default: 4996)
 		_searchKey[searchKeyLen] = 0;
         searchKey = _searchKey;
 #endif
@@ -1023,9 +1019,8 @@ MemoryLoadStringEx(HMEMORYMODULE module, UINT id, LPTSTR buffer, int maxsize, WO
 #if defined(UNICODE)
     wcsncpy_s(buffer, size + sizeof *buffer, data->NameString, size);
 #else
-#pragma warning(disable: 4996)
+#pragma warning(suppress: 4996)
 	wcstombs(buffer, data->NameString, size);
-#pragma warning(default: 4996)
 #endif
     return size;
 }

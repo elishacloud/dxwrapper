@@ -40,8 +40,10 @@ void WINAPI dd_AcquireDDThreadLock()
 	return ((AcquireDDThreadLockProc)AcquireDDThreadLock_out)();
 }
 
+#pragma warning(suppress: 4740)
 void __declspec(naked) dd_CompleteCreateSysmemSurface()
 {
+	Logging::LogFormat("CompleteCreateSysmemSurface Not Implimented");
 	_asm jmp CompleteCreateSysmemSurface_out;
 }
 
@@ -54,23 +56,31 @@ HRESULT WINAPI dd_D3DParseUnknownCommand(LPVOID lpCmd, LPVOID *lpRetCmd)
 	return ((D3DParseUnknownCommandProc)D3DParseUnknownCommand_out)(lpCmd, lpRetCmd);
 }
 
+#pragma warning(suppress: 4740)
 void __declspec(naked) dd_DDGetAttachedSurfaceLcl()
 {
+	Logging::LogFormat("DDGetAttachedSurfaceLcl Not Implimented");
 	_asm jmp DDGetAttachedSurfaceLcl_out;
 }
 
+#pragma warning(suppress: 4740)
 void __declspec(naked) dd_DDInternalLock()
 {
+	Logging::LogFormat("DDInternalLock Not Implimented");
 	_asm jmp DDInternalLock_out;
 }
 
+#pragma warning(suppress: 4740)
 void __declspec(naked) dd_DDInternalUnlock()
 {
+	Logging::LogFormat("DDInternalUnlock Not Implimented");
 	_asm jmp DDInternalUnlock_out;
 }
 
+#pragma warning(suppress: 4740)
 void __declspec(naked) dd_DSoundHelp()
 {
+	Logging::LogFormat("DSoundHelp Not Implimented");
 	_asm jmp DSoundHelp_out;
 }
 
@@ -223,13 +233,17 @@ HRESULT WINAPI dd_DllGetClassObject(REFCLSID rclsid, REFIID riid, LPVOID *ppv)
 	return hr;
 }
 
+#pragma warning(suppress: 4740)
 void __declspec(naked) dd_GetDDSurfaceLocal()
 {
+	Logging::LogFormat("GetDDSurfaceLocal Not Implimented");
 	_asm jmp GetDDSurfaceLocal_out;
 }
 
+#pragma warning(suppress: 4740)
 void __declspec(naked) dd_GetOLEThunkData()
 {
+	Logging::LogFormat("GetOLEThunkData Not Implimented");
 	_asm jmp GetOLEThunkData_out;
 }
 
@@ -250,8 +264,10 @@ HRESULT WINAPI dd_GetSurfaceFromDC(HDC hdc, LPDIRECTDRAWSURFACE7 *lpDDS)
 	return hr;
 }
 
+#pragma warning(suppress: 4740)
 void __declspec(naked) dd_RegisterSpecialCase()
 {
+	Logging::LogFormat("RegisterSpecialCase Not Implimented");
 	_asm jmp RegisterSpecialCase_out;
 }
 

@@ -43,7 +43,7 @@ HRESULT m_IDirect3DDeviceX::Initialize(LPDIRECT3D lpd3d, LPGUID lpGUID, LPD3DDEV
 	if (ProxyDirectXVersion != 1)
 	{
 		Logging::Log() << __FUNCTION__ << " Not Implimented";
-		return DD_OK;
+		return DD_OK;	// Should not matter for newer versions of DirectX
 	}
 
 	if (lpd3d)
