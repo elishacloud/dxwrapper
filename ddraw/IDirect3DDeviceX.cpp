@@ -239,8 +239,7 @@ HRESULT m_IDirect3DDeviceX::AddViewport(LPDIRECT3DVIEWPORT3 lpDirect3DViewport)
 {
 	if (ProxyDirectXVersion == 7)
 	{
-		Logging::Log() << __FUNCTION__ << " Not Implimented";
-		return E_NOTIMPL;
+		return D3D_OK;
 	}
 
 	if (lpDirect3DViewport)
@@ -255,8 +254,7 @@ HRESULT m_IDirect3DDeviceX::DeleteViewport(LPDIRECT3DVIEWPORT3 lpDirect3DViewpor
 {
 	if (ProxyDirectXVersion == 7)
 	{
-		Logging::Log() << __FUNCTION__ << " Not Implimented";
-		return E_NOTIMPL;
+		return D3D_OK;
 	}
 
 	if (lpDirect3DViewport)
@@ -294,8 +292,25 @@ HRESULT m_IDirect3DDeviceX::SetCurrentViewport(LPDIRECT3DVIEWPORT3 lpd3dViewport
 {
 	if (ProxyDirectXVersion == 7)
 	{
-		Logging::Log() << __FUNCTION__ << " Not Implimented";
-		return E_NOTIMPL;
+		// ToDo: Validate Viewport address
+		if (lpd3dViewport)
+		{
+			D3DVIEWPORT7 Viewport7;
+			HRESULT hr = ((m_IDirect3DViewportX*)lpd3dViewport)->GetViewport7(&Viewport7);
+
+			if (SUCCEEDED(hr))
+			{
+				hr = SetViewport(&Viewport7);
+				if (SUCCEEDED(hr))
+				{
+					lpCurrentViewport = lpd3dViewport;
+				}
+			}
+
+			return hr;
+		}
+
+		return DDERR_INVALIDPARAMS;
 	}
 
 	if (lpd3dViewport)
@@ -310,8 +325,21 @@ HRESULT m_IDirect3DDeviceX::GetCurrentViewport(LPDIRECT3DVIEWPORT3 * lplpd3dView
 {
 	if (ProxyDirectXVersion == 7)
 	{
-		Logging::Log() << __FUNCTION__ << " Not Implimented";
-		return E_NOTIMPL;
+		if (lplpd3dViewport && lpCurrentViewport)
+		{
+			*lplpd3dViewport = lpCurrentViewport;
+			return D3D_OK;
+		}
+		else if (!lpCurrentViewport)
+		{
+			return  D3DERR_NOCURRENTVIEWPORT;
+		}
+		else if (!lplpd3dViewport)
+		{
+			return  DDERR_INVALIDPARAMS;
+		}
+
+		return DD_FALSE;
 	}
 
 	HRESULT hr = ((IDirect3DDevice3*)ProxyInterface)->GetCurrentViewport(lplpd3dViewport);

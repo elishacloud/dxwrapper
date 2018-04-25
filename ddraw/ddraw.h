@@ -48,6 +48,10 @@ class m_IDirectDrawSurfaceX;
 #include "Settings\Settings.h"
 #include "Logging\Logging.h"
 
+#ifdef DDRAWWRAPPER
+#define LogDebug Log
+#endif // DDRAWWRAPPER
+
 typedef void(WINAPI *AcquireDDThreadLockProc)();
 typedef HRESULT(WINAPI *D3DParseUnknownCommandProc)(LPVOID lpCmd, LPVOID *lpRetCmd);
 typedef HRESULT(WINAPI *DirectDrawCreateProc)(GUID FAR *lpGUID, LPDIRECTDRAW FAR *lplpDD, IUnknown FAR *pUnkOuter);
@@ -67,6 +71,8 @@ REFIID ConvertREFIID(REFIID riid);
 HRESULT ProxyQueryInterface(LPVOID ProxyInterface, REFIID CalledID, LPVOID * ppvObj, REFIID CallerID, LPVOID WrapperInterface);
 void genericQueryInterface(REFIID riid, LPVOID * ppvObj);
 extern AddressLookupTableDdraw<void> ProxyAddressLookupTable;
+extern IDirect3DDevice7 *lpCurrentD3DDevice;
+extern IDirect3DViewport3 *lpCurrentViewport;
 
 // Direct3D
 #include "IDirect3D.h"

@@ -18,6 +18,8 @@
 #include "ddrawExternal.h"
 
 AddressLookupTableDdraw<void> ProxyAddressLookupTable = AddressLookupTableDdraw<void>();
+IDirect3DDevice7 *lpCurrentD3DDevice = nullptr;
+IDirect3DViewport3 *lpCurrentViewport = nullptr;
 
 #define INITUALIZE_WRAPPED_PROC(procName, unused) \
 	FARPROC procName ## _out = (FARPROC)*(ddraw::procName);

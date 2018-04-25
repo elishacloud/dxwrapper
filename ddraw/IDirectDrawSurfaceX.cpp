@@ -380,7 +380,23 @@ HRESULT m_IDirectDrawSurfaceX::GetDDInterface(LPVOID FAR * lplpDD)
 
 	if (SUCCEEDED(hr) && lplpDD)
 	{
-		*lplpDD = ProxyAddressLookupTable.FindAddress<m_IDirectDraw7>(*lplpDD, DirectXVersion);
+		// Calling the GetDDInterface method from any surface created under DirectDrawEx will return a pointer to the 
+		// IUnknown interface instead of a pointer to an IDirectDraw interface. Applications must use the
+		// IUnknown::QueryInterface method to retrieve the IDirectDraw, IDirectDraw2, or IDirectDraw3 interfaces.
+		IID tmpID = (ProxyDirectXVersion == 1) ? IID_IDirectDraw :
+			(ProxyDirectXVersion == 2) ? IID_IDirectDraw2 :
+			(ProxyDirectXVersion == 3) ? IID_IDirectDraw3 :
+			(ProxyDirectXVersion == 4) ? IID_IDirectDraw4 :
+			(ProxyDirectXVersion == 7) ? IID_IDirectDraw7 : IID_IDirectDraw7;
+
+		LPDIRECTDRAW7 lpDD = (LPDIRECTDRAW7)*lplpDD;
+
+		hr = lpDD->QueryInterface(tmpID, lplpDD);
+		if (SUCCEEDED(hr))
+		{
+			*lplpDD = ProxyAddressLookupTable.FindAddress<m_IDirectDraw7>(*lplpDD, DirectXVersion);
+			lpDD->Release();
+		}
 	}
 
 	return hr;

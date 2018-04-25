@@ -104,8 +104,20 @@ HRESULT m_IDirect3DX::CreateViewport(LPDIRECT3DVIEWPORT3 * lplpD3DViewport, LPUN
 {
 	if (ProxyDirectXVersion == 7)
 	{
-		Logging::Log() << __FUNCTION__ << " Not Implimented";
-		return E_NOTIMPL;
+		if (lplpD3DViewport && lpCurrentD3DDevice)
+		{
+			*lplpD3DViewport = new m_IDirect3DViewportX((IDirect3DViewport3*)lpCurrentD3DDevice, 7, nullptr);
+			return D3D_OK;
+		}
+		else if (!lplpD3DViewport)
+		{
+			return DDERR_INVALIDPARAMS;
+		}
+		else if (!lpCurrentD3DDevice)
+		{
+			Logging::Log() << __FUNCTION__ << " No current IDirect3DDevice";
+			return D3DERR_INVALID_DEVICE;
+		}
 	}
 
 	HRESULT hr = ((IDirect3D3*)ProxyInterface)->CreateViewport(lplpD3DViewport, pUnkOuter);

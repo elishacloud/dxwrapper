@@ -2,6 +2,7 @@
 
 //#undef D3D8TO9NOLOG
 //#define DDRAWCOMPATLOG
+//#define DDRAWWRAPPER
 //#define FULLSCREENLOG
 //#define SETTINGSLOG
 

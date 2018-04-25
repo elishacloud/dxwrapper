@@ -8,6 +8,9 @@ private:
 	DWORD DirectXVersion;
 	DWORD ProxyDirectXVersion;
 	IID WrapperID;
+	ULONG RefCount = 1;
+	D3DVIEWPORT7 Viewport7;
+	bool ViewportSetFlag = false;
 
 public:
 	m_IDirect3DViewportX(IDirect3DViewport3 *aOriginal, DWORD Version, m_IDirect3DViewport3 *Interface) : ProxyInterface(aOriginal), DirectXVersion(Version), WrapperInterface(Interface)
@@ -21,12 +24,25 @@ public:
 			(ProxyID == IID_IDirect3DViewport2) ? 2 :
 			(ProxyID == IID_IDirect3DViewport3) ? 3 : 3;
 
+		if (DirectXVersion == 7)
+		{
+			lpCurrentViewport = this;
+			DirectXVersion = 3;
+			ProxyDirectXVersion = 7;
+		}
+
 		if (ProxyDirectXVersion != DirectXVersion)
 		{
 			Logging::LogDebug() << "Convert Direct3DViewport v" << DirectXVersion << " to v" << ProxyDirectXVersion;
 		}
 	}
-	~m_IDirect3DViewportX() {}
+	~m_IDirect3DViewportX()
+	{
+		if (lpCurrentViewport == this)
+		{
+			lpCurrentViewport = nullptr;
+		}
+	}
 
 	DWORD GetDirectXVersion() { return DirectXVersion; }
 
@@ -54,4 +70,5 @@ public:
 	STDMETHOD(SetBackgroundDepth2)(THIS_ LPDIRECTDRAWSURFACE4);
 	STDMETHOD(GetBackgroundDepth2)(THIS_ LPDIRECTDRAWSURFACE4*, LPBOOL);
 	STDMETHOD(Clear2)(THIS_ DWORD, LPD3DRECT, DWORD, D3DCOLOR, D3DVALUE, DWORD);
+	HRESULT GetViewport7(LPD3DVIEWPORT7 lpData);
 };

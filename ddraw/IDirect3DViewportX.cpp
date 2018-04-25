@@ -23,11 +23,27 @@ HRESULT m_IDirect3DViewportX::QueryInterface(REFIID riid, LPVOID * ppvObj)
 
 ULONG m_IDirect3DViewportX::AddRef()
 {
+	if (ProxyDirectXVersion == 7)
+	{
+		return ++RefCount;
+	}
+
 	return ProxyInterface->AddRef();
 }
 
 ULONG m_IDirect3DViewportX::Release()
 {
+	if (ProxyDirectXVersion == 7)
+	{
+		if (RefCount == 0)
+		{
+			delete this;
+			return 0;
+		}
+
+		return --RefCount;
+	}
+
 	ULONG x = ProxyInterface->Release();
 
 	if (x == 0)
@@ -40,6 +56,12 @@ ULONG m_IDirect3DViewportX::Release()
 
 HRESULT m_IDirect3DViewportX::Initialize(LPDIRECT3D lpDirect3D)
 {
+	if (ProxyDirectXVersion == 7)
+	{
+		Logging::Log() << __FUNCTION__ << " Not Implimented";
+		return D3D_OK;	// Should not matter for newer versions of DirectX
+	}
+
 	if (lpDirect3D)
 	{
 		lpDirect3D = static_cast<m_IDirect3D *>(lpDirect3D)->GetProxyInterface();
@@ -50,36 +72,87 @@ HRESULT m_IDirect3DViewportX::Initialize(LPDIRECT3D lpDirect3D)
 
 HRESULT m_IDirect3DViewportX::GetViewport(LPD3DVIEWPORT lpData)
 {
+	if (ProxyDirectXVersion == 7)
+	{
+		if (ViewportSetFlag)
+		{
+			ConvertViewport(*lpData, Viewport7);
+
+			return D3D_OK;
+		}
+
+		return D3DERR_VIEWPORTDATANOTSET;
+	}
+
 	return ProxyInterface->GetViewport(lpData);
 }
 
 HRESULT m_IDirect3DViewportX::SetViewport(LPD3DVIEWPORT lpData)
 {
+	if (ProxyDirectXVersion == 7)
+	{
+		ConvertViewport(Viewport7, *lpData);
+
+		ViewportSetFlag = true;
+
+		return D3D_OK;
+	}
+
 	return ProxyInterface->SetViewport(lpData);
 }
 
 HRESULT m_IDirect3DViewportX::TransformVertices(DWORD dwVertexCount, LPD3DTRANSFORMDATA lpData, DWORD dwFlags, LPDWORD lpOffscreen)
 {
+	if (ProxyDirectXVersion == 7)
+	{
+		Logging::Log() << __FUNCTION__ << " Not Implimented";
+		return E_NOTIMPL;
+	}
+
 	return ProxyInterface->TransformVertices(dwVertexCount, lpData, dwFlags, lpOffscreen);
 }
 
 HRESULT m_IDirect3DViewportX::LightElements(DWORD dwElementCount, LPD3DLIGHTDATA lpData)
 {
+	if (ProxyDirectXVersion == 7)
+	{
+		Logging::Log() << __FUNCTION__ << " Not Implimented";
+		return E_NOTIMPL;
+	}
+
 	return ProxyInterface->LightElements(dwElementCount, lpData);
 }
 
 HRESULT m_IDirect3DViewportX::SetBackground(D3DMATERIALHANDLE hMat)
 {
+	if (ProxyDirectXVersion == 7)
+	{
+		Logging::Log() << __FUNCTION__ << " Not Implimented";
+		return E_NOTIMPL;
+	}
+
 	return ProxyInterface->SetBackground(hMat);
 }
 
 HRESULT m_IDirect3DViewportX::GetBackground(LPD3DMATERIALHANDLE lphMat, LPBOOL lpValid)
 {
+	if (ProxyDirectXVersion == 7)
+	{
+		Logging::Log() << __FUNCTION__ << " Not Implimented";
+		return E_NOTIMPL;
+	}
+
 	return ProxyInterface->GetBackground(lphMat, lpValid);
 }
 
 HRESULT m_IDirect3DViewportX::SetBackgroundDepth(LPDIRECTDRAWSURFACE lpDDSurface)
 {
+	if (ProxyDirectXVersion == 7)
+	{
+		Logging::Log() << __FUNCTION__ << " Not Implimented";
+		return E_NOTIMPL;
+	}
+
 	if (lpDDSurface)
 	{
 		lpDDSurface = static_cast<m_IDirectDrawSurface *>(lpDDSurface)->GetProxyInterface();
@@ -90,6 +163,12 @@ HRESULT m_IDirect3DViewportX::SetBackgroundDepth(LPDIRECTDRAWSURFACE lpDDSurface
 
 HRESULT m_IDirect3DViewportX::GetBackgroundDepth(LPDIRECTDRAWSURFACE * lplpDDSurface, LPBOOL lpValid)
 {
+	if (ProxyDirectXVersion == 7)
+	{
+		Logging::Log() << __FUNCTION__ << " Not Implimented";
+		return E_NOTIMPL;
+	}
+
 	HRESULT hr = ProxyInterface->GetBackgroundDepth(lplpDDSurface, lpValid);
 
 	if (SUCCEEDED(hr) && lplpDDSurface)
@@ -102,11 +181,23 @@ HRESULT m_IDirect3DViewportX::GetBackgroundDepth(LPDIRECTDRAWSURFACE * lplpDDSur
 
 HRESULT m_IDirect3DViewportX::Clear(DWORD dwCount, LPD3DRECT lpRects, DWORD dwFlags)
 {
+	if (ProxyDirectXVersion == 7)
+	{
+		Logging::Log() << __FUNCTION__ << " Not Implimented";
+		return E_NOTIMPL;
+	}
+
 	return ProxyInterface->Clear(dwCount, lpRects, dwFlags);
 }
 
 HRESULT m_IDirect3DViewportX::AddLight(LPDIRECT3DLIGHT lpDirect3DLight)
 {
+	if (ProxyDirectXVersion == 7)
+	{
+		Logging::Log() << __FUNCTION__ << " Not Implimented";
+		return E_NOTIMPL;
+	}
+
 	if (lpDirect3DLight)
 	{
 		lpDirect3DLight = static_cast<m_IDirect3DLight *>(lpDirect3DLight)->GetProxyInterface();
@@ -117,6 +208,12 @@ HRESULT m_IDirect3DViewportX::AddLight(LPDIRECT3DLIGHT lpDirect3DLight)
 
 HRESULT m_IDirect3DViewportX::DeleteLight(LPDIRECT3DLIGHT lpDirect3DLight)
 {
+	if (ProxyDirectXVersion == 7)
+	{
+		Logging::Log() << __FUNCTION__ << " Not Implimented";
+		return E_NOTIMPL;
+	}
+
 	if (lpDirect3DLight)
 	{
 		lpDirect3DLight = static_cast<m_IDirect3DLight *>(lpDirect3DLight)->GetProxyInterface();
@@ -127,6 +224,12 @@ HRESULT m_IDirect3DViewportX::DeleteLight(LPDIRECT3DLIGHT lpDirect3DLight)
 
 HRESULT m_IDirect3DViewportX::NextLight(LPDIRECT3DLIGHT lpDirect3DLight, LPDIRECT3DLIGHT * lplpDirect3DLight, DWORD dwFlags)
 {
+	if (ProxyDirectXVersion == 7)
+	{
+		Logging::Log() << __FUNCTION__ << " Not Implimented";
+		return E_NOTIMPL;
+	}
+
 	if (lpDirect3DLight)
 	{
 		lpDirect3DLight = static_cast<m_IDirect3DLight *>(lpDirect3DLight)->GetProxyInterface();
@@ -144,16 +247,43 @@ HRESULT m_IDirect3DViewportX::NextLight(LPDIRECT3DLIGHT lpDirect3DLight, LPDIREC
 
 HRESULT m_IDirect3DViewportX::GetViewport2(LPD3DVIEWPORT2 lpData)
 {
+	if (ProxyDirectXVersion == 7)
+	{
+		if (ViewportSetFlag)
+		{
+			ConvertViewport(*lpData, Viewport7);
+
+			return D3D_OK;
+		}
+
+		return D3DERR_VIEWPORTDATANOTSET;
+	}
+
 	return ProxyInterface->GetViewport2(lpData);
 }
 
 HRESULT m_IDirect3DViewportX::SetViewport2(LPD3DVIEWPORT2 lpData)
 {
+	if (ProxyDirectXVersion == 7)
+	{
+		ConvertViewport(Viewport7, *lpData);
+
+		ViewportSetFlag = true;
+
+		return D3D_OK;
+	}
+
 	return ProxyInterface->SetViewport2(lpData);
 }
 
 HRESULT m_IDirect3DViewportX::SetBackgroundDepth2(LPDIRECTDRAWSURFACE4 lpDDS)
 {
+	if (ProxyDirectXVersion == 7)
+	{
+		Logging::Log() << __FUNCTION__ << " Not Implimented";
+		return E_NOTIMPL;
+	}
+
 	if (lpDDS)
 	{
 		lpDDS = static_cast<m_IDirectDrawSurface4 *>(lpDDS)->GetProxyInterface();
@@ -164,6 +294,12 @@ HRESULT m_IDirect3DViewportX::SetBackgroundDepth2(LPDIRECTDRAWSURFACE4 lpDDS)
 
 HRESULT m_IDirect3DViewportX::GetBackgroundDepth2(LPDIRECTDRAWSURFACE4 * lplpDDS, LPBOOL lpValid)
 {
+	if (ProxyDirectXVersion == 7)
+	{
+		Logging::Log() << __FUNCTION__ << " Not Implimented";
+		return E_NOTIMPL;
+	}
+
 	HRESULT hr = ProxyInterface->GetBackgroundDepth2(lplpDDS, lpValid);
 
 	if (SUCCEEDED(hr) && lplpDDS)
@@ -176,5 +312,23 @@ HRESULT m_IDirect3DViewportX::GetBackgroundDepth2(LPDIRECTDRAWSURFACE4 * lplpDDS
 
 HRESULT m_IDirect3DViewportX::Clear2(DWORD dwCount, LPD3DRECT lpRects, DWORD dwFlags, D3DCOLOR dwColor, D3DVALUE dvZ, DWORD dwStencil)
 {
+	if (ProxyDirectXVersion == 7)
+	{
+		Logging::Log() << __FUNCTION__ << " Not Implimented";
+		return E_NOTIMPL;
+	}
+
 	return ProxyInterface->Clear2(dwCount, lpRects, dwFlags, dwColor, dvZ, dwStencil);
+}
+
+HRESULT m_IDirect3DViewportX::GetViewport7(LPD3DVIEWPORT7 lpData)
+{
+	if (ProxyDirectXVersion == 7 && ViewportSetFlag)
+	{
+		ConvertViewport(*lpData, Viewport7);
+
+		return D3D_OK;
+	}
+
+	return DD_FALSE;
 }

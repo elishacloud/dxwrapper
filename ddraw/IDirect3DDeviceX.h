@@ -27,8 +27,20 @@ public:
 		{
 			Logging::LogDebug() << "Convert Direct3DDevice v" << DirectXVersion << " to v" << ProxyDirectXVersion;
 		}
+
+		if (ProxyDirectXVersion == 7)
+		{
+			lpCurrentD3DDevice = this;
+		}
 	}
-	~m_IDirect3DDeviceX() {}
+	~m_IDirect3DDeviceX()
+	{
+		// ToDo: check if any Viewport is using this D3DDevice
+		if (lpCurrentD3DDevice == this)
+		{
+			lpCurrentD3DDevice = nullptr;
+		}
+	}
 
 	DWORD GetDirectXVersion() { return DirectXVersion; }
 

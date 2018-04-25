@@ -16,6 +16,59 @@
 
 #include "ddraw.h"
 
+void ConvertViewport(D3DVIEWPORT &ViewPort, D3DVIEWPORT7 &ViewPort7)
+{
+	ViewPort.dwX = ViewPort7.dwX;
+	ViewPort.dwY = ViewPort7.dwY;
+	ViewPort.dwWidth = ViewPort7.dwWidth;
+	ViewPort.dwHeight = ViewPort7.dwHeight;
+	ViewPort.dvScaleX = 0;
+	ViewPort.dvScaleY = 0;
+	ViewPort.dvMaxX = 0;
+	ViewPort.dvMaxY = 0;
+	ViewPort.dvMinZ = ViewPort7.dvMinZ;
+	ViewPort.dvMaxZ = ViewPort7.dvMinZ;
+}
+
+void ConvertViewport(D3DVIEWPORT2 &ViewPort2, D3DVIEWPORT7 &ViewPort7)
+{
+	ViewPort2.dwX = ViewPort7.dwX;
+	ViewPort2.dwY = ViewPort7.dwY;
+	ViewPort2.dwWidth = ViewPort7.dwWidth;
+	ViewPort2.dwHeight = ViewPort7.dwHeight;
+	ViewPort2.dvClipX = 0;
+	ViewPort2.dvClipY = 0;
+	ViewPort2.dvClipWidth = 0;
+	ViewPort2.dvClipHeight = 0;
+	ViewPort2.dvMinZ = ViewPort7.dvMinZ;
+	ViewPort2.dvMaxZ = ViewPort7.dvMinZ;
+}
+
+void ConvertViewport(D3DVIEWPORT7 &ViewPort7, D3DVIEWPORT &ViewPort)
+{
+	ViewPort7.dwX = ViewPort.dwX;
+	ViewPort7.dwY = ViewPort.dwY;
+	ViewPort7.dwWidth = ViewPort.dwWidth;
+	ViewPort7.dwHeight = ViewPort.dwHeight;
+	ViewPort7.dvMinZ = ViewPort.dvMinZ;
+	ViewPort7.dvMaxZ = ViewPort.dvMaxZ;
+}
+
+void ConvertViewport(D3DVIEWPORT7 &ViewPort7, D3DVIEWPORT2 &ViewPort2)
+{
+	ViewPort7.dwX = ViewPort2.dwX;
+	ViewPort7.dwY = ViewPort2.dwY;
+	ViewPort7.dwWidth = ViewPort2.dwWidth;
+	ViewPort7.dwHeight = ViewPort2.dwHeight;
+	ViewPort7.dvMinZ = ViewPort2.dvMinZ;
+	ViewPort7.dvMaxZ = ViewPort2.dvMaxZ;
+}
+
+void ConvertViewport(D3DVIEWPORT7 &ViewPort, D3DVIEWPORT7 &ViewPort7)
+{
+	CopyMemory(&ViewPort, &ViewPort7, sizeof(D3DVIEWPORT7));
+}
+
 void ConvertDeviceDesc(D3DDEVICEDESC &Desc, D3DDEVICEDESC7 &Desc7)
 {
 	if (Desc.dwSize > 0)
