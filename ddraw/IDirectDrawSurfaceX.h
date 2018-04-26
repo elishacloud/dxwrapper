@@ -8,6 +8,7 @@ private:
 	DWORD DirectXVersion;
 	DWORD ProxyDirectXVersion;
 	IID WrapperID;
+	IDirect3DTexture2 *TextureInterface = nullptr;
 
 public:
 	m_IDirectDrawSurfaceX(IDirectDrawSurface7 *pOriginal, DWORD Version, m_IDirectDrawSurface7 *Interface) : ProxyInterface(pOriginal), DirectXVersion(Version), WrapperInterface(Interface)
@@ -32,6 +33,7 @@ public:
 	}
 	~m_IDirectDrawSurfaceX() {}
 
+	LPDIRECT3DTEXTURE2 GetTexture() { return TextureInterface; }
 	DWORD GetDirectXVersion() { return DirectXVersion; }
 
 	/*** IUnknown methods ***/

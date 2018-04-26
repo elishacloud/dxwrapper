@@ -8,6 +8,7 @@ private:
 	DWORD DirectXVersion;
 	DWORD ProxyDirectXVersion;
 	IID WrapperID;
+	ULONG RefCount = 1;
 
 public:
 	m_IDirect3DTextureX(IDirect3DTexture2 *aOriginal, DWORD Version, m_IDirect3DTexture2 *Interface) : ProxyInterface(aOriginal), DirectXVersion(Version), WrapperInterface(Interface)
@@ -19,6 +20,12 @@ public:
 		ProxyDirectXVersion = (ProxyID == IID_IDirect3DTexture) ? 1 :
 			(ProxyID == IID_IDirect3DTexture2) ? 2 : 2;
 
+		if (DirectXVersion == 7)
+		{
+			DirectXVersion = 3;
+			ProxyDirectXVersion = 7;
+		}
+
 		if (ProxyDirectXVersion != DirectXVersion)
 		{
 			Logging::LogDebug() << "Convert Direct3DTexture v" << DirectXVersion << " to v" << ProxyDirectXVersion;
@@ -26,6 +33,7 @@ public:
 	}
 	~m_IDirect3DTextureX() {}
 
+	IDirect3DTexture2 *GetProxyInterface() { return ProxyInterface; }
 	DWORD GetDirectXVersion() { return DirectXVersion; }
 
 	/*** IUnknown methods ***/

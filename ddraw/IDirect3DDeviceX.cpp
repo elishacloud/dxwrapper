@@ -449,8 +449,25 @@ HRESULT m_IDirect3DDeviceX::GetTexture(DWORD dwStage, LPDIRECT3DTEXTURE2 * lplpT
 {
 	if (ProxyDirectXVersion == 7)
 	{
-		Logging::Log() << __FUNCTION__ << " Not Implimented";
-		return E_NOTIMPL;
+		if (lplpTexture)
+		{
+			LPDIRECTDRAWSURFACE7 lpSurface;
+			HRESULT hr = ProxyInterface->GetTexture(dwStage, &lpSurface);
+
+			if (SUCCEEDED(hr))
+			{
+				*lplpTexture = ((m_IDirectDrawSurfaceX*)lpSurface)->GetTexture();
+
+				if (!*lplpTexture)
+				{
+					return DDERR_INVALIDOBJECT;
+				}
+			}
+
+			return hr;
+		}
+
+		return DDERR_INVALIDPARAMS;
 	}
 
 	HRESULT hr = ((IDirect3DDevice3*)ProxyInterface)->GetTexture(dwStage, lplpTexture);
@@ -467,8 +484,13 @@ HRESULT m_IDirect3DDeviceX::SetTexture(DWORD dwStage, LPDIRECT3DTEXTURE2 lpTextu
 {
 	if (ProxyDirectXVersion == 7)
 	{
-		Logging::Log() << __FUNCTION__ << " Not Implimented";
-		return E_NOTIMPL;
+		// ToDo: Validate Texture address
+		if (lpTexture)
+		{
+			return ProxyInterface->SetTexture(dwStage, (LPDIRECTDRAWSURFACE7)(((m_IDirect3DTextureX*)lpTexture)->GetProxyInterface()));
+		}
+
+		return DDERR_INVALIDPARAMS;
 	}
 
 	if (lpTexture)

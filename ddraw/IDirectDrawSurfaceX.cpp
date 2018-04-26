@@ -18,6 +18,17 @@
 
 HRESULT m_IDirectDrawSurfaceX::QueryInterface(REFIID riid, LPVOID FAR * ppvObj)
 {
+	if (Config.ConvertToDirect3D7 && ppvObj && (riid == IID_IDirect3DTexture || riid == IID_IDirect3DTexture2))
+	{
+		ProxyInterface->AddRef();
+
+		*ppvObj = new m_IDirect3DTextureX((IDirect3DTexture2*)ProxyInterface, 7, nullptr);
+
+		TextureInterface = (IDirect3DTexture2*)*ppvObj;
+
+		return S_OK;
+	}
+
 	return ProxyQueryInterface(ProxyInterface, riid, ppvObj, WrapperID, WrapperInterface);
 }
 

@@ -18,16 +18,44 @@
 
 HRESULT m_IDirect3DTextureX::QueryInterface(REFIID riid, LPVOID * ppvObj)
 {
+	if (ProxyDirectXVersion == 7)
+	{
+		if ((riid == IID_IDirect3DTexture || riid == IID_IDirect3DTexture2 || riid == IID_IUnknown) && ppvObj)
+		{
+			++RefCount;
+
+			*ppvObj = this;
+
+			return S_OK;
+		}
+	}
+
 	return ProxyQueryInterface(ProxyInterface, riid, ppvObj, IID_IDirect3DTexture, this);
 }
 
 ULONG m_IDirect3DTextureX::AddRef()
 {
+	if (ProxyDirectXVersion == 7)
+	{
+		return ++RefCount;
+	}
+
 	return ProxyInterface->AddRef();
 }
 
 ULONG m_IDirect3DTextureX::Release()
 {
+	if (ProxyDirectXVersion == 7)
+	{
+		if (RefCount == 0)
+		{
+			delete this;
+			return 0;
+		}
+
+		return --RefCount;
+	}
+
 	ULONG x = ProxyInterface->Release();
 
 	if (x == 0)
@@ -60,6 +88,12 @@ HRESULT m_IDirect3DTextureX::Initialize(LPDIRECT3DDEVICE lpDirect3DDevice, LPDIR
 
 HRESULT m_IDirect3DTextureX::GetHandle(LPDIRECT3DDEVICE2 lpDirect3DDevice2, LPD3DTEXTUREHANDLE lpHandle)
 {
+	if (ProxyDirectXVersion == 7)
+	{
+		Logging::Log() << __FUNCTION__ << " Not Implimented";
+		return E_NOTIMPL;
+	}
+
 	if (lpDirect3DDevice2)
 	{
 		lpDirect3DDevice2 = static_cast<m_IDirect3DDevice2 *>(lpDirect3DDevice2)->GetProxyInterface();
@@ -70,11 +104,23 @@ HRESULT m_IDirect3DTextureX::GetHandle(LPDIRECT3DDEVICE2 lpDirect3DDevice2, LPD3
 
 HRESULT m_IDirect3DTextureX::PaletteChanged(DWORD dwStart, DWORD dwCount)
 {
+	if (ProxyDirectXVersion == 7)
+	{
+		Logging::Log() << __FUNCTION__ << " Not Implimented";
+		return E_NOTIMPL;
+	}
+
 	return ProxyInterface->PaletteChanged(dwStart, dwCount);
 }
 
 HRESULT m_IDirect3DTextureX::Load(LPDIRECT3DTEXTURE2 lpD3DTexture2)
 {
+	if (ProxyDirectXVersion == 7)
+	{
+		Logging::Log() << __FUNCTION__ << " Not Implimented";
+		return E_NOTIMPL;
+	}
+
 	if (lpD3DTexture2)
 	{
 		lpD3DTexture2 = static_cast<m_IDirect3DTexture2 *>(lpD3DTexture2)->GetProxyInterface();
