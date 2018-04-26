@@ -30,6 +30,7 @@ public:
 	}
 	~m_IDirect3DX() {}
 
+	IDirect3D7 *GetProxyInterface() { return ProxyInterface; }
 	DWORD GetDirectXVersion() { return DirectXVersion; }
 
 	/*** IUnknown methods ***/

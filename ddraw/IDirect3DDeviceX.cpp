@@ -300,10 +300,10 @@ HRESULT m_IDirect3DDeviceX::SetCurrentViewport(LPDIRECT3DVIEWPORT3 lpd3dViewport
 
 			if (SUCCEEDED(hr))
 			{
-				hr = SetViewport(&Viewport7);
+				hr = ProxyInterface->SetViewport(&Viewport7);
 				if (SUCCEEDED(hr))
 				{
-					lpCurrentViewport = lpd3dViewport;
+					lpCurrentViewport = (m_IDirect3DViewportX*)lpd3dViewport;
 				}
 			}
 
@@ -332,11 +332,11 @@ HRESULT m_IDirect3DDeviceX::GetCurrentViewport(LPDIRECT3DVIEWPORT3 * lplpd3dView
 		}
 		else if (!lpCurrentViewport)
 		{
-			return  D3DERR_NOCURRENTVIEWPORT;
+			return D3DERR_NOCURRENTVIEWPORT;
 		}
 		else if (!lplpd3dViewport)
 		{
-			return  DDERR_INVALIDPARAMS;
+			return DDERR_INVALIDPARAMS;
 		}
 
 		return DD_FALSE;

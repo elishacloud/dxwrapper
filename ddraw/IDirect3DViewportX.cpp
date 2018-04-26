@@ -18,6 +18,18 @@
 
 HRESULT m_IDirect3DViewportX::QueryInterface(REFIID riid, LPVOID * ppvObj)
 {
+	if (ProxyDirectXVersion == 7)
+	{
+		if ((riid == IID_IDirect3DViewport || riid == IID_IDirect3DViewport2 || riid == IID_IDirect3DViewport3 || riid == IID_IUnknown) && ppvObj)
+		{
+			++RefCount;
+
+			*ppvObj = this;
+
+			return S_OK;
+		}
+	}	
+
 	return ProxyQueryInterface(ProxyInterface, riid, ppvObj, WrapperID, WrapperInterface);
 }
 
@@ -91,11 +103,18 @@ HRESULT m_IDirect3DViewportX::SetViewport(LPD3DVIEWPORT lpData)
 {
 	if (ProxyDirectXVersion == 7)
 	{
-		ConvertViewport(Viewport7, *lpData);
+		D3DVIEWPORT7 tmpViewport;
+		ConvertViewport(tmpViewport, *lpData);
 
-		ViewportSetFlag = true;
+		HRESULT hr = ((IDirect3DDevice7*)ProxyInterface)->SetViewport(&Viewport7);
 
-		return D3D_OK;
+		if (SUCCEEDED(hr))
+		{
+			ViewportSetFlag = true;
+			ConvertViewport(Viewport7, tmpViewport);
+		}
+
+		return hr;
 	}
 
 	return ProxyInterface->SetViewport(lpData);
@@ -183,8 +202,7 @@ HRESULT m_IDirect3DViewportX::Clear(DWORD dwCount, LPD3DRECT lpRects, DWORD dwFl
 {
 	if (ProxyDirectXVersion == 7)
 	{
-		Logging::Log() << __FUNCTION__ << " Not Implimented";
-		return E_NOTIMPL;
+		return ((IDirect3DDevice7*)ProxyInterface)->Clear(dwCount, lpRects, dwFlags, 0, 0, 0);
 	}
 
 	return ProxyInterface->Clear(dwCount, lpRects, dwFlags);
@@ -266,11 +284,18 @@ HRESULT m_IDirect3DViewportX::SetViewport2(LPD3DVIEWPORT2 lpData)
 {
 	if (ProxyDirectXVersion == 7)
 	{
-		ConvertViewport(Viewport7, *lpData);
+		D3DVIEWPORT7 tmpViewport;
+		ConvertViewport(tmpViewport, *lpData);
 
-		ViewportSetFlag = true;
+		HRESULT hr = ((IDirect3DDevice7*)ProxyInterface)->SetViewport(&Viewport7);
 
-		return D3D_OK;
+		if (SUCCEEDED(hr))
+		{
+			ViewportSetFlag = true;
+			ConvertViewport(Viewport7, tmpViewport);
+		}
+
+		return hr;
 	}
 
 	return ProxyInterface->SetViewport2(lpData);
@@ -314,8 +339,7 @@ HRESULT m_IDirect3DViewportX::Clear2(DWORD dwCount, LPD3DRECT lpRects, DWORD dwF
 {
 	if (ProxyDirectXVersion == 7)
 	{
-		Logging::Log() << __FUNCTION__ << " Not Implimented";
-		return E_NOTIMPL;
+		return ((IDirect3DDevice7*)ProxyInterface)->Clear(dwCount, lpRects, dwFlags, dwColor, dvZ, dwStencil);
 	}
 
 	return ProxyInterface->Clear2(dwCount, lpRects, dwFlags, dwColor, dvZ, dwStencil);

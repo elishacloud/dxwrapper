@@ -42,6 +42,7 @@ public:
 		}
 	}
 
+	IDirect3DDevice7 *GetProxyInterface() { return ProxyInterface; }
 	DWORD GetDirectXVersion() { return DirectXVersion; }
 
 	/*** IUnknown methods ***/
