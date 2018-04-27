@@ -77,6 +77,9 @@ HRESULT m_IDirectDrawX::CreateSurface(T lpDDSurfaceDesc, LPDIRECTDRAWSURFACE7 FA
 	{
 		ConvertSurfaceDesc(Desc2, *lpDDSurfaceDesc);
 		lpDDSurfaceDesc = (T)&Desc2;
+
+		// BackBufferCount must be at least 1
+		lpDDSurfaceDesc->dwBackBufferCount = (lpDDSurfaceDesc->dwBackBufferCount) ? lpDDSurfaceDesc->dwBackBufferCount : 1;
 	}
 
 	HRESULT hr = ProxyInterface->CreateSurface((LPDDSURFACEDESC2)lpDDSurfaceDesc, lplpDDSurface, pUnkOuter);

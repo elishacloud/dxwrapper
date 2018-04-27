@@ -28,7 +28,7 @@ HRESULT m_IDirect3DViewportX::QueryInterface(REFIID riid, LPVOID * ppvObj)
 
 			return S_OK;
 		}
-	}	
+	}
 
 	return ProxyQueryInterface(ProxyInterface, riid, ppvObj, WrapperID, WrapperInterface);
 }
@@ -105,6 +105,11 @@ HRESULT m_IDirect3DViewportX::SetViewport(LPD3DVIEWPORT lpData)
 		D3DVIEWPORT7 tmpViewport;
 
 		ConvertViewport(tmpViewport, *lpData);
+
+		if (lpData->dwSize > 44 && (lpData->dvScaleX != 0 || lpData->dvScaleY != 0))
+		{
+			Logging::Log() << __FUNCTION__ << " 'Scale homogeneous' Not Implimented";
+		}
 
 		return ((m_IDirect3DDeviceX*)WrapperInterface)->SetViewport(&tmpViewport);
 	}
@@ -278,6 +283,11 @@ HRESULT m_IDirect3DViewportX::SetViewport2(LPD3DVIEWPORT2 lpData)
 		D3DVIEWPORT7 tmpViewport;
 
 		ConvertViewport(tmpViewport, *lpData);
+
+		if (lpData->dwSize > 44 && (lpData->dvClipX != 0 || lpData->dvClipY != 0))
+		{
+			Logging::Log() << __FUNCTION__ << " 'clip volume' Not Implimented";
+		}
 
 		return ((m_IDirect3DDeviceX*)WrapperInterface)->SetViewport(&tmpViewport);
 	}

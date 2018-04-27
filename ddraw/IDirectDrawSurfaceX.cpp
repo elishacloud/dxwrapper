@@ -18,7 +18,7 @@
 
 HRESULT m_IDirectDrawSurfaceX::QueryInterface(REFIID riid, LPVOID FAR * ppvObj)
 {
-	if (Config.ConvertToDirect3D7 && ppvObj && (riid == IID_IDirect3DTexture || riid == IID_IDirect3DTexture2))
+	if (ProxyDirectXVersion == 7 && ppvObj && (riid == IID_IDirect3DTexture || riid == IID_IDirect3DTexture2))
 	{
 		ProxyInterface->AddRef();
 

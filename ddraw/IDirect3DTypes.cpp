@@ -109,7 +109,7 @@ void ConvertDeviceDesc(D3DDEVICEDESC &Desc, D3DDEVICEDESC7 &Desc7)
 		Desc.dwDeviceRenderBitDepth = Desc7.dwDeviceRenderBitDepth;
 		Desc.dwDeviceZBufferBitDepth = Desc7.dwDeviceZBufferBitDepth;
 		Desc.dwMaxTextureRepeat = Desc7.dwMaxTextureRepeat;
-		Desc.dwFlags = 0;
+		Desc.dwFlags = D3DDD_DEVCAPS | D3DDD_LINECAPS | D3DDD_TRICAPS | D3DDD_DEVICERENDERBITDEPTH | D3DDD_DEVICEZBUFFERBITDEPTH;
 		Desc.dcmColorModel = 0;
 		Desc.dtcTransformCaps.dwCaps = 0;
 		Desc.dtcTransformCaps.dwSize = 0;
