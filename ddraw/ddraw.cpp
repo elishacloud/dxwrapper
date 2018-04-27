@@ -19,7 +19,6 @@
 
 AddressLookupTableDdraw<void> ProxyAddressLookupTable = AddressLookupTableDdraw<void>();
 m_IDirect3DDeviceX *lpCurrentD3DDevice = nullptr;
-m_IDirect3DViewportX *lpCurrentViewport = nullptr;
 
 #define INITUALIZE_WRAPPED_PROC(procName, unused) \
 	FARPROC procName ## _out = (FARPROC)*(ddraw::procName);

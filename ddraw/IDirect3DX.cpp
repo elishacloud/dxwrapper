@@ -43,7 +43,7 @@ HRESULT m_IDirect3DX::Initialize(REFCLSID rclsid)
 	if (ProxyDirectXVersion != 1)
 	{
 		Logging::Log() << __FUNCTION__ << " Not Implimented";
-		return E_NOTIMPL;
+		return D3D_OK;	// Should not matter for newer versions of DirectX
 	}
 
 	return ((IDirect3D*)ProxyInterface)->Initialize(rclsid);
@@ -106,7 +106,7 @@ HRESULT m_IDirect3DX::CreateViewport(LPDIRECT3DVIEWPORT3 * lplpD3DViewport, LPUN
 	{
 		if (lplpD3DViewport && lpCurrentD3DDevice)
 		{
-			*lplpD3DViewport = new m_IDirect3DViewportX((IDirect3DViewport3*)lpCurrentD3DDevice->GetProxyInterface(), 7, nullptr);
+			*lplpD3DViewport = new m_IDirect3DViewportX((IDirect3DViewport3*)lpCurrentD3DDevice->GetProxyInterface(), 7, (m_IDirect3DViewport3*)lpCurrentD3DDevice);
 			return D3D_OK;
 		}
 		else if (!lplpD3DViewport)

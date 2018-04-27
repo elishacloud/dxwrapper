@@ -71,7 +71,7 @@ HRESULT m_IDirect3DTextureX::Initialize(LPDIRECT3DDEVICE lpDirect3DDevice, LPDIR
 	if (ProxyDirectXVersion != 1)
 	{
 		Logging::Log() << __FUNCTION__ << " Not Implimented";
-		return E_NOTIMPL;
+		return D3D_OK;	// Should not matter for newer versions of DirectX
 	}
 
 	if (lpDirect3DDevice)

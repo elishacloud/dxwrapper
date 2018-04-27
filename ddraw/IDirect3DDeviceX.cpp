@@ -43,7 +43,7 @@ HRESULT m_IDirect3DDeviceX::Initialize(LPDIRECT3D lpd3d, LPGUID lpGUID, LPD3DDEV
 	if (ProxyDirectXVersion != 1)
 	{
 		Logging::Log() << __FUNCTION__ << " Not Implimented";
-		return DD_OK;	// Should not matter for newer versions of DirectX
+		return D3D_OK;	// Should not matter for newer versions of DirectX
 	}
 
 	if (lpd3d)
@@ -293,24 +293,9 @@ HRESULT m_IDirect3DDeviceX::SetCurrentViewport(LPDIRECT3DVIEWPORT3 lpd3dViewport
 	if (ProxyDirectXVersion == 7)
 	{
 		// ToDo: Validate Viewport address
-		if (lpd3dViewport)
-		{
-			D3DVIEWPORT7 Viewport7;
-			HRESULT hr = ((m_IDirect3DViewportX*)lpd3dViewport)->GetViewport7(&Viewport7);
+		lpCurrentViewport = (m_IDirect3DViewportX*)lpd3dViewport;
 
-			if (SUCCEEDED(hr))
-			{
-				hr = ProxyInterface->SetViewport(&Viewport7);
-				if (SUCCEEDED(hr))
-				{
-					lpCurrentViewport = (m_IDirect3DViewportX*)lpd3dViewport;
-				}
-			}
-
-			return hr;
-		}
-
-		return DDERR_INVALIDPARAMS;
+		return D3D_OK;
 	}
 
 	if (lpd3dViewport)
@@ -327,6 +312,7 @@ HRESULT m_IDirect3DDeviceX::GetCurrentViewport(LPDIRECT3DVIEWPORT3 * lplpd3dView
 	{
 		if (lplpd3dViewport && lpCurrentViewport)
 		{
+			// ToDo: Validate current Viewport address
 			*lplpd3dViewport = lpCurrentViewport;
 			return D3D_OK;
 		}
@@ -334,12 +320,8 @@ HRESULT m_IDirect3DDeviceX::GetCurrentViewport(LPDIRECT3DVIEWPORT3 * lplpd3dView
 		{
 			return D3DERR_NOCURRENTVIEWPORT;
 		}
-		else if (!lplpd3dViewport)
-		{
-			return DDERR_INVALIDPARAMS;
-		}
 
-		return DD_FALSE;
+		return DDERR_INVALIDPARAMS;
 	}
 
 	HRESULT hr = ((IDirect3DDevice3*)ProxyInterface)->GetCurrentViewport(lplpd3dViewport);
@@ -449,25 +431,8 @@ HRESULT m_IDirect3DDeviceX::GetTexture(DWORD dwStage, LPDIRECT3DTEXTURE2 * lplpT
 {
 	if (ProxyDirectXVersion == 7)
 	{
-		if (lplpTexture)
-		{
-			LPDIRECTDRAWSURFACE7 lpSurface;
-			HRESULT hr = ProxyInterface->GetTexture(dwStage, &lpSurface);
-
-			if (SUCCEEDED(hr))
-			{
-				*lplpTexture = ((m_IDirectDrawSurfaceX*)lpSurface)->GetTexture();
-
-				if (!*lplpTexture)
-				{
-					return DDERR_INVALIDOBJECT;
-				}
-			}
-
-			return hr;
-		}
-
-		return DDERR_INVALIDPARAMS;
+		Logging::Log() << __FUNCTION__ << " Not Implimented";
+		return E_NOTIMPL;
 	}
 
 	HRESULT hr = ((IDirect3DDevice3*)ProxyInterface)->GetTexture(dwStage, lplpTexture);
@@ -487,10 +452,10 @@ HRESULT m_IDirect3DDeviceX::SetTexture(DWORD dwStage, LPDIRECT3DTEXTURE2 lpTextu
 		// ToDo: Validate Texture address
 		if (lpTexture)
 		{
-			return ProxyInterface->SetTexture(dwStage, (LPDIRECTDRAWSURFACE7)(((m_IDirect3DTextureX*)lpTexture)->GetProxyInterface()));
+			lpTexture = (((m_IDirect3DTextureX*)lpTexture)->GetProxyInterface());
 		}
 
-		return DDERR_INVALIDPARAMS;
+		return ProxyInterface->SetTexture(dwStage, (LPDIRECTDRAWSURFACE7)lpTexture);
 	}
 
 	if (lpTexture)

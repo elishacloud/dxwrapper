@@ -8,6 +8,7 @@ private:
 	DWORD DirectXVersion;
 	DWORD ProxyDirectXVersion;
 	IID WrapperID;
+	m_IDirect3DViewportX *lpCurrentViewport = nullptr;
 
 public:
 	m_IDirect3DDeviceX(IDirect3DDevice7 *aOriginal, DWORD Version, m_IDirect3DDevice7 *Interface) : ProxyInterface(aOriginal), DirectXVersion(Version), WrapperInterface(Interface)

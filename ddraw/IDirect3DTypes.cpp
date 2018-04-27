@@ -18,50 +18,80 @@
 
 void ConvertViewport(D3DVIEWPORT &ViewPort, D3DVIEWPORT7 &ViewPort7)
 {
-	ViewPort.dwX = ViewPort7.dwX;
-	ViewPort.dwY = ViewPort7.dwY;
-	ViewPort.dwWidth = ViewPort7.dwWidth;
-	ViewPort.dwHeight = ViewPort7.dwHeight;
-	ViewPort.dvScaleX = 0;
-	ViewPort.dvScaleY = 0;
-	ViewPort.dvMaxX = 0;
-	ViewPort.dvMaxY = 0;
-	ViewPort.dvMinZ = ViewPort7.dvMinZ;
-	ViewPort.dvMaxZ = ViewPort7.dvMinZ;
+	if (ViewPort.dwSize > 0)
+	{
+		ViewPort.dwX = ViewPort7.dwX;
+		ViewPort.dwY = ViewPort7.dwY;
+		if (ViewPort.dwSize > 3 * 8)
+		{
+			ViewPort.dwWidth = ViewPort7.dwWidth;
+			ViewPort.dwHeight = ViewPort7.dwHeight;
+			if (ViewPort.dwSize > 5 * 8)
+			{
+				ViewPort.dvScaleX = 0;
+				ViewPort.dvScaleY = 0;
+				if (ViewPort.dwSize > 7 * 8)
+				{
+					ViewPort.dvMaxX = 0;
+					ViewPort.dvMaxY = 0;
+					if (ViewPort.dwSize > 9 * 8)
+					{
+						ViewPort.dvMinZ = ViewPort7.dvMinZ;
+						ViewPort.dvMaxZ = ViewPort7.dvMinZ;
+					}
+				}
+			}
+		}
+	}
 }
 
 void ConvertViewport(D3DVIEWPORT2 &ViewPort2, D3DVIEWPORT7 &ViewPort7)
 {
-	ViewPort2.dwX = ViewPort7.dwX;
-	ViewPort2.dwY = ViewPort7.dwY;
-	ViewPort2.dwWidth = ViewPort7.dwWidth;
-	ViewPort2.dwHeight = ViewPort7.dwHeight;
-	ViewPort2.dvClipX = 0;
-	ViewPort2.dvClipY = 0;
-	ViewPort2.dvClipWidth = 0;
-	ViewPort2.dvClipHeight = 0;
-	ViewPort2.dvMinZ = ViewPort7.dvMinZ;
-	ViewPort2.dvMaxZ = ViewPort7.dvMinZ;
+	if (ViewPort2.dwSize > 0)
+	{
+		ViewPort2.dwX = ViewPort7.dwX;
+		ViewPort2.dwY = ViewPort7.dwY;
+		if (ViewPort2.dwSize > 3 * 8)
+		{
+			ViewPort2.dwWidth = ViewPort7.dwWidth;
+			ViewPort2.dwHeight = ViewPort7.dwHeight;
+			if (ViewPort2.dwSize > 5 * 8)
+			{
+				ViewPort2.dvClipX = 0;
+				ViewPort2.dvClipY = 0;
+				if (ViewPort2.dwSize > 7 * 8)
+				{
+					ViewPort2.dvClipWidth = 0;
+					ViewPort2.dvClipHeight = 0;
+					if (ViewPort2.dwSize > 9 * 8)
+					{
+						ViewPort2.dvMinZ = ViewPort7.dvMinZ;
+						ViewPort2.dvMaxZ = ViewPort7.dvMinZ;
+					}
+				}
+			}
+		}
+	}
 }
 
 void ConvertViewport(D3DVIEWPORT7 &ViewPort7, D3DVIEWPORT &ViewPort)
 {
-	ViewPort7.dwX = ViewPort.dwX;
-	ViewPort7.dwY = ViewPort.dwY;
-	ViewPort7.dwWidth = ViewPort.dwWidth;
-	ViewPort7.dwHeight = ViewPort.dwHeight;
-	ViewPort7.dvMinZ = ViewPort.dvMinZ;
-	ViewPort7.dvMaxZ = ViewPort.dvMaxZ;
+	ViewPort7.dwX = (ViewPort.dwSize > 1 * 8) ? ViewPort.dwX : 0;
+	ViewPort7.dwY = (ViewPort.dwSize > 2 * 8) ? ViewPort.dwY : 0;
+	ViewPort7.dwWidth = (ViewPort.dwSize > 3 * 8) ? ViewPort.dwWidth : 0;
+	ViewPort7.dwHeight = (ViewPort.dwSize > 4 * 8) ? ViewPort.dwHeight : 0;
+	ViewPort7.dvMinZ = (ViewPort.dwSize > 9 * 8) ? ViewPort.dvMinZ : 0;
+	ViewPort7.dvMaxZ = (ViewPort.dwSize > 10 * 8) ? ViewPort.dvMaxZ : 0;
 }
 
 void ConvertViewport(D3DVIEWPORT7 &ViewPort7, D3DVIEWPORT2 &ViewPort2)
 {
-	ViewPort7.dwX = ViewPort2.dwX;
-	ViewPort7.dwY = ViewPort2.dwY;
-	ViewPort7.dwWidth = ViewPort2.dwWidth;
-	ViewPort7.dwHeight = ViewPort2.dwHeight;
-	ViewPort7.dvMinZ = ViewPort2.dvMinZ;
-	ViewPort7.dvMaxZ = ViewPort2.dvMaxZ;
+	ViewPort7.dwX = (ViewPort2.dwSize > 1 * 8) ? ViewPort2.dwX : 0;
+	ViewPort7.dwY = (ViewPort2.dwSize > 2 * 8) ? ViewPort2.dwY : 0;
+	ViewPort7.dwWidth = (ViewPort2.dwSize > 3 * 8) ? ViewPort2.dwWidth : 0;
+	ViewPort7.dwHeight = (ViewPort2.dwSize > 4 * 8) ? ViewPort2.dwHeight : 0;
+	ViewPort7.dvMinZ = (ViewPort2.dwSize > 9 * 8) ? ViewPort2.dvMinZ : 0;
+	ViewPort7.dvMaxZ = (ViewPort2.dwSize > 10 * 8) ? ViewPort2.dvMaxZ : 0;
 }
 
 void ConvertViewport(D3DVIEWPORT7 &ViewPort, D3DVIEWPORT7 &ViewPort7)

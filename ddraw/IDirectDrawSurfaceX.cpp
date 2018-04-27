@@ -22,9 +22,7 @@ HRESULT m_IDirectDrawSurfaceX::QueryInterface(REFIID riid, LPVOID FAR * ppvObj)
 	{
 		ProxyInterface->AddRef();
 
-		*ppvObj = new m_IDirect3DTextureX((IDirect3DTexture2*)ProxyInterface, 7, nullptr);
-
-		TextureInterface = (IDirect3DTexture2*)*ppvObj;
+		*ppvObj = new m_IDirect3DTextureX((IDirect3DTexture2*)ProxyInterface, 7, (m_IDirect3DTexture2*)this);
 
 		return S_OK;
 	}

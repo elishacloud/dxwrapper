@@ -86,14 +86,13 @@ HRESULT m_IDirect3DViewportX::GetViewport(LPD3DVIEWPORT lpData)
 {
 	if (ProxyDirectXVersion == 7)
 	{
-		if (ViewportSetFlag)
-		{
-			ConvertViewport(*lpData, Viewport7);
+		D3DVIEWPORT7 tmpViewport;
 
-			return D3D_OK;
-		}
+		HRESULT hr = ((m_IDirect3DDeviceX*)WrapperInterface)->GetViewport(&tmpViewport);
 
-		return D3DERR_VIEWPORTDATANOTSET;
+		ConvertViewport(*lpData, tmpViewport);
+
+		return hr;
 	}
 
 	return ProxyInterface->GetViewport(lpData);
@@ -104,17 +103,10 @@ HRESULT m_IDirect3DViewportX::SetViewport(LPD3DVIEWPORT lpData)
 	if (ProxyDirectXVersion == 7)
 	{
 		D3DVIEWPORT7 tmpViewport;
+
 		ConvertViewport(tmpViewport, *lpData);
 
-		HRESULT hr = ((IDirect3DDevice7*)ProxyInterface)->SetViewport(&Viewport7);
-
-		if (SUCCEEDED(hr))
-		{
-			ViewportSetFlag = true;
-			ConvertViewport(Viewport7, tmpViewport);
-		}
-
-		return hr;
+		return ((m_IDirect3DDeviceX*)WrapperInterface)->SetViewport(&tmpViewport);
 	}
 
 	return ProxyInterface->SetViewport(lpData);
@@ -202,7 +194,7 @@ HRESULT m_IDirect3DViewportX::Clear(DWORD dwCount, LPD3DRECT lpRects, DWORD dwFl
 {
 	if (ProxyDirectXVersion == 7)
 	{
-		return ((IDirect3DDevice7*)ProxyInterface)->Clear(dwCount, lpRects, dwFlags, 0, 0, 0);
+		return ((m_IDirect3DDeviceX*)WrapperInterface)->Clear(dwCount, lpRects, dwFlags, 0, 0, 0);
 	}
 
 	return ProxyInterface->Clear(dwCount, lpRects, dwFlags);
@@ -267,14 +259,13 @@ HRESULT m_IDirect3DViewportX::GetViewport2(LPD3DVIEWPORT2 lpData)
 {
 	if (ProxyDirectXVersion == 7)
 	{
-		if (ViewportSetFlag)
-		{
-			ConvertViewport(*lpData, Viewport7);
+		D3DVIEWPORT7 tmpViewport;
 
-			return D3D_OK;
-		}
+		HRESULT hr = ((m_IDirect3DDeviceX*)WrapperInterface)->GetViewport(&tmpViewport);
 
-		return D3DERR_VIEWPORTDATANOTSET;
+		ConvertViewport(*lpData, tmpViewport);
+
+		return hr;
 	}
 
 	return ProxyInterface->GetViewport2(lpData);
@@ -285,17 +276,10 @@ HRESULT m_IDirect3DViewportX::SetViewport2(LPD3DVIEWPORT2 lpData)
 	if (ProxyDirectXVersion == 7)
 	{
 		D3DVIEWPORT7 tmpViewport;
+
 		ConvertViewport(tmpViewport, *lpData);
 
-		HRESULT hr = ((IDirect3DDevice7*)ProxyInterface)->SetViewport(&Viewport7);
-
-		if (SUCCEEDED(hr))
-		{
-			ViewportSetFlag = true;
-			ConvertViewport(Viewport7, tmpViewport);
-		}
-
-		return hr;
+		return ((m_IDirect3DDeviceX*)WrapperInterface)->SetViewport(&tmpViewport);
 	}
 
 	return ProxyInterface->SetViewport2(lpData);
@@ -339,20 +323,8 @@ HRESULT m_IDirect3DViewportX::Clear2(DWORD dwCount, LPD3DRECT lpRects, DWORD dwF
 {
 	if (ProxyDirectXVersion == 7)
 	{
-		return ((IDirect3DDevice7*)ProxyInterface)->Clear(dwCount, lpRects, dwFlags, dwColor, dvZ, dwStencil);
+		return ((m_IDirect3DDeviceX*)WrapperInterface)->Clear(dwCount, lpRects, dwFlags, dwColor, dvZ, dwStencil);
 	}
 
 	return ProxyInterface->Clear2(dwCount, lpRects, dwFlags, dwColor, dvZ, dwStencil);
-}
-
-HRESULT m_IDirect3DViewportX::GetViewport7(LPD3DVIEWPORT7 lpData)
-{
-	if (ProxyDirectXVersion == 7 && ViewportSetFlag)
-	{
-		ConvertViewport(*lpData, Viewport7);
-
-		return D3D_OK;
-	}
-
-	return DD_FALSE;
 }
