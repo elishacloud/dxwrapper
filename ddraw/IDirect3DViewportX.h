@@ -35,7 +35,10 @@ public:
 	}
 	~m_IDirect3DViewportX() {}
 
-	DWORD GetDirectXVersion() { return DirectXVersion; }
+	DWORD GetDirectXVersion() { return DDWRAPPER_TYPEX; }
+	REFIID GetWrapperType() { return WrapperID; }
+	IDirect3DViewport3 *GetProxyInterface() { return ProxyInterface; }
+	m_IDirect3DViewport3 *GetWrapperInterface() { return WrapperInterface; }
 
 	/*** IUnknown methods ***/
 	STDMETHOD(QueryInterface)(THIS_ REFIID riid, LPVOID * ppvObj);

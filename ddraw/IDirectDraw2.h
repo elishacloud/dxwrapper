@@ -5,6 +5,7 @@ class m_IDirectDraw2 : public IDirectDraw2, public AddressLookupTableDdrawObject
 private:
 	std::unique_ptr<m_IDirectDrawX> ProxyInterface;
 	IDirectDraw2 *RealInterface;
+	REFIID WrapperID = IID_IDirectDraw2;
 
 public:
 	m_IDirectDraw2(IDirectDraw2 *aOriginal) : RealInterface(aOriginal)
@@ -17,8 +18,10 @@ public:
 		ProxyAddressLookupTable.DeleteAddress(this);
 	}
 
-	IDirectDraw2 *GetProxyInterface() { return RealInterface; }
 	DWORD GetDirectXVersion() { return 2; }
+	REFIID GetWrapperType() { return WrapperID; }
+	IDirectDraw2 *GetProxyInterface() { return RealInterface; }
+	m_IDirectDrawX *GetWrapperInterface() { return ProxyInterface.get(); }
 
 	/*** IUnknown methods ***/
 	STDMETHOD(QueryInterface) (THIS_ REFIID riid, LPVOID FAR * ppvObj);

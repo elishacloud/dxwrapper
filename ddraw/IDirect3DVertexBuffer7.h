@@ -5,6 +5,7 @@ class m_IDirect3DVertexBuffer7 : public IDirect3DVertexBuffer7, public AddressLo
 private:
 	std::unique_ptr<m_IDirect3DVertexBufferX> ProxyInterface;
 	IDirect3DVertexBuffer7 *RealInterface;
+	REFIID WrapperID = IID_IDirect3DVertexBuffer7;
 
 public:
 	m_IDirect3DVertexBuffer7(IDirect3DVertexBuffer7 *aOriginal) : RealInterface(aOriginal)
@@ -17,8 +18,10 @@ public:
 		ProxyAddressLookupTable.DeleteAddress(this);
 	}
 
-	IDirect3DVertexBuffer7 *GetProxyInterface() { return RealInterface; }
 	DWORD GetDirectXVersion() { return 7; }
+	REFIID GetWrapperType() { return WrapperID; }
+	IDirect3DVertexBuffer7 *GetProxyInterface() { return RealInterface; }
+	m_IDirect3DVertexBufferX *GetWrapperInterface() { return ProxyInterface.get(); }
 
 	/*** IUnknown methods ***/
 	STDMETHOD(QueryInterface)(THIS_ REFIID riid, LPVOID * ppvObj);

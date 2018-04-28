@@ -51,7 +51,7 @@ void ConvertSurfaceDesc(DDSURFACEDESC &Desc, DDSURFACEDESC2 &Desc2)
 	ConvertPixelFormat(Desc.ddpfPixelFormat, Desc2.ddpfPixelFormat);
 	ConvertCaps(Desc.ddsCaps, Desc2.ddsCaps);
 	// Extra parameters
-	Desc.dwZBufferBitDepth = 0;	//Desc2.dwZBufferBitDepth;
+	Desc.dwZBufferBitDepth = 0;				// depth of Z buffer requested
 }
 
 void ConvertSurfaceDesc(DDSURFACEDESC2 &Desc2, DDSURFACEDESC &Desc)

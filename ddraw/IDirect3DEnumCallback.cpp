@@ -20,8 +20,10 @@ HRESULT CALLBACK m_IDirect3DEnumDevices::ConvertCallback(LPSTR lpDeviceDescripti
 {
 	ENUMDEVICES *lpCallbackContext = (ENUMDEVICES*)lpContext;
 
-	D3DDEVICEDESC DeviceDesc;
-	ConvertDeviceDesc(DeviceDesc, *lpDeviceDesc);
+	D3DDEVICEDESC D3DHWDevDesc, D3DHELDevDesc;
+	ConvertDeviceDesc(D3DHWDevDesc, *lpDeviceDesc);
+	ConvertDeviceDesc(D3DHELDevDesc, *lpDeviceDesc);
+	GUID DeviceGUID = lpDeviceDesc->deviceGUID;
 
-	return lpCallbackContext->lpCallback(nullptr, lpDeviceDescription, lpDeviceName, &DeviceDesc, nullptr, lpCallbackContext->lpContext);
+	return lpCallbackContext->lpCallback(&DeviceGUID, lpDeviceDescription, lpDeviceName, &D3DHWDevDesc, &D3DHELDevDesc, lpCallbackContext->lpContext);
 }

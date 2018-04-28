@@ -4,6 +4,7 @@ class m_IDirectDrawClipper : public IDirectDrawClipper, public AddressLookupTabl
 {
 private:
 	IDirectDrawClipper *ProxyInterface;
+	REFIID WrapperID = IID_IDirectDrawClipper;
 
 public:
 	m_IDirectDrawClipper(IDirectDrawClipper *aOriginal) : ProxyInterface(aOriginal)
@@ -15,7 +16,10 @@ public:
 		ProxyAddressLookupTable.DeleteAddress(this);
 	}
 
+	DWORD GetDirectXVersion() { return 1; }
+	REFIID GetWrapperType() { return WrapperID; }
 	IDirectDrawClipper *GetProxyInterface() { return ProxyInterface; }
+	m_IDirectDrawClipper *GetWrapperInterface() { return this; }
 
 	/*** IUnknown methods ***/
 	STDMETHOD(QueryInterface) (THIS_ REFIID riid, LPVOID FAR * ppvObj);

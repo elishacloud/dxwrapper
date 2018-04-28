@@ -4,6 +4,7 @@ class m_IDirect3DLight : public IDirect3DLight, public AddressLookupTableDdrawOb
 {
 private:
 	IDirect3DLight *ProxyInterface;
+	REFIID WrapperID = IID_IDirect3DLight;
 
 public:
 	m_IDirect3DLight(IDirect3DLight *aOriginal) : ProxyInterface(aOriginal)
@@ -15,7 +16,10 @@ public:
 		ProxyAddressLookupTable.DeleteAddress(this);
 	}
 
+	DWORD GetDirectXVersion() { return 1; }
+	REFIID GetWrapperType() { return WrapperID; }
 	IDirect3DLight *GetProxyInterface() { return ProxyInterface; }
+	m_IDirect3DLight *GetWrapperInterface() { return this; }
 
 	/*** IUnknown methods ***/
 	STDMETHOD(QueryInterface)(THIS_ REFIID riid, LPVOID * ppvObj);

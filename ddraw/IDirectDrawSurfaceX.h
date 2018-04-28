@@ -32,7 +32,10 @@ public:
 	}
 	~m_IDirectDrawSurfaceX() {}
 
-	DWORD GetDirectXVersion() { return DirectXVersion; }
+	DWORD GetDirectXVersion() { return DDWRAPPER_TYPEX; }
+	REFIID GetWrapperType() { return WrapperID; }
+	IDirectDrawSurface7 *GetProxyInterface() { return ProxyInterface; }
+	m_IDirectDrawSurface7 *GetWrapperInterface() { return WrapperInterface; }
 
 	/*** IUnknown methods ***/
 	STDMETHOD(QueryInterface) (THIS_ REFIID riid, LPVOID FAR * ppvObj);

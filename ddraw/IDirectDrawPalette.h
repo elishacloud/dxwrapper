@@ -4,6 +4,7 @@ class m_IDirectDrawPalette : public IDirectDrawPalette, public AddressLookupTabl
 {
 private:
 	IDirectDrawPalette *ProxyInterface;
+	REFIID WrapperID = IID_IDirectDrawPalette;
 
 public:
 	m_IDirectDrawPalette(IDirectDrawPalette *aOriginal) : ProxyInterface(aOriginal)
@@ -15,7 +16,10 @@ public:
 		ProxyAddressLookupTable.DeleteAddress(this);
 	}
 
+	DWORD GetDirectXVersion() { return 1; }
+	REFIID GetWrapperType() { return WrapperID; }
 	IDirectDrawPalette *GetProxyInterface() { return ProxyInterface; }
+	m_IDirectDrawPalette *GetWrapperInterface() { return this; }
 
 	/*** IUnknown methods ***/
 	STDMETHOD(QueryInterface) (THIS_ REFIID riid, LPVOID FAR * ppvObj);

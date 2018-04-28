@@ -4,6 +4,7 @@ class m_IDirectDrawGammaControl : public IDirectDrawGammaControl, public Address
 {
 private:
 	IDirectDrawGammaControl *ProxyInterface;
+	REFIID WrapperID = IID_IDirectDrawGammaControl;
 
 public:
 	m_IDirectDrawGammaControl(IDirectDrawGammaControl *aOriginal) : ProxyInterface(aOriginal)
@@ -15,7 +16,10 @@ public:
 		ProxyAddressLookupTable.DeleteAddress(this);
 	}
 
+	DWORD GetDirectXVersion() { return 1; }
+	REFIID GetWrapperType() { return WrapperID; }
 	IDirectDrawGammaControl *GetProxyInterface() { return ProxyInterface; }
+	m_IDirectDrawGammaControl *GetWrapperInterface() { return this; }
 
 	/*** IUnknown methods ***/
 	STDMETHOD(QueryInterface) (THIS_ REFIID riid, LPVOID FAR * ppvObj);

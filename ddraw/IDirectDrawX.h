@@ -8,6 +8,7 @@ private:
 	DWORD DirectXVersion;
 	DWORD ProxyDirectXVersion;
 	IID WrapperID;
+	bool IsDDrawCreateEx = false;
 
 public:
 	m_IDirectDrawX(IDirectDraw7 *aOriginal, DWORD Version, m_IDirectDraw7 *Interface) : ProxyInterface(aOriginal), DirectXVersion(Version), WrapperInterface(Interface)
@@ -32,7 +33,11 @@ public:
 	}
 	~m_IDirectDrawX() {}
 
-	DWORD GetDirectXVersion() { return DirectXVersion; }
+	DWORD GetDirectXVersion() { return DDWRAPPER_TYPEX; }
+	REFIID GetWrapperType() { return WrapperID; }
+	IDirectDraw7 *GetProxyInterface() { return ProxyInterface; }
+	m_IDirectDraw7 *GetWrapperInterface() { return WrapperInterface; }
+	void SetDDrawCreateExFlag() { IsDDrawCreateEx = true; }
 
 	/*** IUnknown methods ***/
 	STDMETHOD(QueryInterface) (THIS_ REFIID riid, LPVOID FAR * ppvObj);

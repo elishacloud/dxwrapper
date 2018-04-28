@@ -240,8 +240,8 @@ HRESULT m_IDirectDrawX::RestoreDisplayMode()
 
 HRESULT m_IDirectDrawX::SetCooperativeLevel(HWND hWnd, DWORD dwFlags)
 {
-	// Star Trek Armada 1 fix
-	if (Config.ArmadaFix && (dwFlags & DDSCL_EXCLUSIVE) && !(dwFlags & DDSCL_ALLOWMODEX))
+	// Set ModeEx to fix issues with some games like Star Trek Armada 1 & 2
+	if (IsDDrawCreateEx && (dwFlags & DDSCL_EXCLUSIVE) && !(dwFlags & DDSCL_ALLOWMODEX))
 	{
 		dwFlags |= DDSCL_ALLOWMODEX | DDSCL_FULLSCREEN;
 	}
@@ -251,8 +251,12 @@ HRESULT m_IDirectDrawX::SetCooperativeLevel(HWND hWnd, DWORD dwFlags)
 
 HRESULT m_IDirectDrawX::SetDisplayMode(DWORD dwWidth, DWORD dwHeight, DWORD dwBPP, DWORD dwRefreshRate, DWORD dwFlags)
 {
-	// Star Trek Armada 1 fix
-	if (Config.ArmadaFix && dwBPP != 32)
+	// Force color mode
+	if (Config.Force16bitColor)
+	{
+		dwBPP = 16;
+	}
+	if (Config.Force32bitColor)
 	{
 		dwBPP = 32;
 	}

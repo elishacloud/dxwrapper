@@ -532,7 +532,7 @@ void CONFIG::Init()
 	}
 
 	// Enable wrapper settings
-	if ((isDdrawWrapperEnabled = (ArmadaFix || ConvertToDirectDraw7 || ConvertToDirect3D7)) != 0)
+	if ((isDdrawWrapperEnabled = (ConvertToDirectDraw7 || ConvertToDirect3D7)) != 0)
 	{
 		Logging::Log() << "Enabling ddraw wrapper";
 	}

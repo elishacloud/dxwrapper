@@ -5,6 +5,7 @@ class m_IDirect3DMaterial3 : public IDirect3DMaterial3, public AddressLookupTabl
 private:
 	std::unique_ptr<m_IDirect3DMaterialX> ProxyInterface;
 	IDirect3DMaterial3 *RealInterface;
+	REFIID WrapperID = IID_IDirect3DMaterial3;
 
 public:
 	m_IDirect3DMaterial3(IDirect3DMaterial3 *aOriginal) : RealInterface(aOriginal)
@@ -17,8 +18,10 @@ public:
 		ProxyAddressLookupTable.DeleteAddress(this);
 	}
 
-	IDirect3DMaterial3 *GetProxyInterface() { return RealInterface; }
 	DWORD GetDirectXVersion() { return 3; }
+	REFIID GetWrapperType() { return WrapperID; }
+	IDirect3DMaterial3 *GetProxyInterface() { return RealInterface; }
+	m_IDirect3DMaterialX *GetWrapperInterface() { return ProxyInterface.get(); }
 
 	/*** IUnknown methods ***/
 	STDMETHOD(QueryInterface)(THIS_ REFIID riid, LPVOID * ppvObj);

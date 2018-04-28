@@ -167,6 +167,8 @@ HRESULT WINAPI dd_DirectDrawCreateEx(GUID FAR *lpGUID, LPVOID *lplpDD, REFIID ri
 	if (SUCCEEDED(hr))
 	{
 		genericQueryInterface(riid, lplpDD);
+
+		((m_IDirectDrawX*)*lplpDD)->SetDDrawCreateExFlag();
 	}
 
 	return hr;

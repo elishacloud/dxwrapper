@@ -26,7 +26,10 @@ public:
 	}
 	~m_IDirect3DVertexBufferX() {}
 
-	DWORD GetDirectXVersion() { return DirectXVersion; }
+	DWORD GetDirectXVersion() { return DDWRAPPER_TYPEX; }
+	REFIID GetWrapperType() { return WrapperID; }
+	IDirect3DVertexBuffer7 *GetProxyInterface() { return ProxyInterface; }
+	m_IDirect3DVertexBuffer7 *GetWrapperInterface() { return WrapperInterface; }
 
 	/*** IUnknown methods ***/
 	STDMETHOD(QueryInterface)(THIS_ REFIID riid, LPVOID * ppvObj);

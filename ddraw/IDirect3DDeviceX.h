@@ -43,8 +43,10 @@ public:
 		}
 	}
 
+	DWORD GetDirectXVersion() { return DDWRAPPER_TYPEX; }
+	REFIID GetWrapperType() { return WrapperID; }
 	IDirect3DDevice7 *GetProxyInterface() { return ProxyInterface; }
-	DWORD GetDirectXVersion() { return DirectXVersion; }
+	m_IDirect3DDevice7 *GetWrapperInterface() { return WrapperInterface; }
 
 	/*** IUnknown methods ***/
 	STDMETHOD(QueryInterface)(THIS_ REFIID riid, LPVOID * ppvObj);

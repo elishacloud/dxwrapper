@@ -18,80 +18,56 @@
 
 void ConvertViewport(D3DVIEWPORT &ViewPort, D3DVIEWPORT7 &ViewPort7)
 {
-	if (ViewPort.dwSize > 0)
-	{
-		ViewPort.dwX = ViewPort7.dwX;
-		ViewPort.dwY = ViewPort7.dwY;
-		if (ViewPort.dwSize > 3 * 8)
-		{
-			ViewPort.dwWidth = ViewPort7.dwWidth;
-			ViewPort.dwHeight = ViewPort7.dwHeight;
-			if (ViewPort.dwSize > 5 * 8)
-			{
-				ViewPort.dvScaleX = 0;
-				ViewPort.dvScaleY = 0;
-				if (ViewPort.dwSize > 7 * 8)
-				{
-					ViewPort.dvMaxX = 0;
-					ViewPort.dvMaxY = 0;
-					if (ViewPort.dwSize > 9 * 8)
-					{
-						ViewPort.dvMinZ = ViewPort7.dvMinZ;
-						ViewPort.dvMaxZ = ViewPort7.dvMinZ;
-					}
-				}
-			}
-		}
-	}
+	ViewPort.dwSize = 5 * 8;
+	ViewPort.dwX = ViewPort7.dwX;
+	ViewPort.dwY = ViewPort7.dwY;
+	ViewPort.dwWidth = ViewPort7.dwWidth;
+	ViewPort.dwHeight = ViewPort7.dwHeight;
+	// Extra parameters
+	ViewPort.dvScaleX = 0;   /* Scale homogeneous to screen */
+	ViewPort.dvScaleY = 0;   /* Scale homogeneous to screen */
+	ViewPort.dvMaxX = 0;     /* Min/max homogeneous x coord */
+	ViewPort.dvMaxY = 0;     /* Min/max homogeneous y coord */
+	ViewPort.dvMinZ = 0;
+	ViewPort.dvMaxZ = 0;     /* Min/max homogeneous z coord */
 }
 
 void ConvertViewport(D3DVIEWPORT2 &ViewPort2, D3DVIEWPORT7 &ViewPort7)
 {
-	if (ViewPort2.dwSize > 0)
-	{
-		ViewPort2.dwX = ViewPort7.dwX;
-		ViewPort2.dwY = ViewPort7.dwY;
-		if (ViewPort2.dwSize > 3 * 8)
-		{
-			ViewPort2.dwWidth = ViewPort7.dwWidth;
-			ViewPort2.dwHeight = ViewPort7.dwHeight;
-			if (ViewPort2.dwSize > 5 * 8)
-			{
-				ViewPort2.dvClipX = 0;
-				ViewPort2.dvClipY = 0;
-				if (ViewPort2.dwSize > 7 * 8)
-				{
-					ViewPort2.dvClipWidth = 0;
-					ViewPort2.dvClipHeight = 0;
-					if (ViewPort2.dwSize > 9 * 8)
-					{
-						ViewPort2.dvMinZ = ViewPort7.dvMinZ;
-						ViewPort2.dvMaxZ = ViewPort7.dvMinZ;
-					}
-				}
-			}
-		}
-	}
+	ViewPort2.dwSize = 5 * 8;
+	ViewPort2.dwX = ViewPort7.dwX;
+	ViewPort2.dwY = ViewPort7.dwY;
+	ViewPort2.dwWidth = ViewPort7.dwWidth;
+	ViewPort2.dwHeight = ViewPort7.dwHeight;
+	// Extra parameters
+	ViewPort2.dvClipX = 0;        /* Top left of clip volume */
+	ViewPort2.dvClipY = 0;
+	ViewPort2.dvClipWidth = 0;    /* Clip Volume Dimensions */
+	ViewPort2.dvClipHeight = 0;
+	ViewPort2.dvMinZ = 0;         /* Min/max of clip Volume */
+	ViewPort2.dvMaxZ = 0;
 }
 
 void ConvertViewport(D3DVIEWPORT7 &ViewPort7, D3DVIEWPORT &ViewPort)
 {
-	ViewPort7.dwX = (ViewPort.dwSize > 1 * 8) ? ViewPort.dwX : 0;
-	ViewPort7.dwY = (ViewPort.dwSize > 2 * 8) ? ViewPort.dwY : 0;
-	ViewPort7.dwWidth = (ViewPort.dwSize > 3 * 8) ? ViewPort.dwWidth : 0;
-	ViewPort7.dwHeight = (ViewPort.dwSize > 4 * 8) ? ViewPort.dwHeight : 0;
-	ViewPort7.dvMinZ = (ViewPort.dwSize > 9 * 8) ? ViewPort.dvMinZ : 0;
-	ViewPort7.dvMaxZ = (ViewPort.dwSize > 10 * 8) ? ViewPort.dvMaxZ : 0;
+	ViewPort7.dwX = ViewPort.dwX;
+	ViewPort7.dwY = ViewPort.dwY;
+	ViewPort7.dwWidth = ViewPort.dwWidth;
+	ViewPort7.dwHeight = ViewPort.dwHeight;
+	// Extra parameters
+	ViewPort7.dvMinZ = 0;         /* Min/max of clip Volume */
+	ViewPort7.dvMaxZ = 0;
 }
 
 void ConvertViewport(D3DVIEWPORT7 &ViewPort7, D3DVIEWPORT2 &ViewPort2)
 {
-	ViewPort7.dwX = (ViewPort2.dwSize > 1 * 8) ? ViewPort2.dwX : 0;
-	ViewPort7.dwY = (ViewPort2.dwSize > 2 * 8) ? ViewPort2.dwY : 0;
-	ViewPort7.dwWidth = (ViewPort2.dwSize > 3 * 8) ? ViewPort2.dwWidth : 0;
-	ViewPort7.dwHeight = (ViewPort2.dwSize > 4 * 8) ? ViewPort2.dwHeight : 0;
-	ViewPort7.dvMinZ = (ViewPort2.dwSize > 9 * 8) ? ViewPort2.dvMinZ : 0;
-	ViewPort7.dvMaxZ = (ViewPort2.dwSize > 10 * 8) ? ViewPort2.dvMaxZ : 0;
+	ViewPort7.dwX = ViewPort2.dwX;
+	ViewPort7.dwY = ViewPort2.dwY;
+	ViewPort7.dwWidth = ViewPort2.dwWidth;
+	ViewPort7.dwHeight = ViewPort2.dwHeight;
+	// Extra parameters
+	ViewPort7.dvMinZ = 0;         /* Min/max of clip Volume */
+	ViewPort7.dvMaxZ = 0;
 }
 
 void ConvertViewport(D3DVIEWPORT7 &ViewPort, D3DVIEWPORT7 &ViewPort7)
@@ -110,16 +86,17 @@ void ConvertDeviceDesc(D3DDEVICEDESC &Desc, D3DDEVICEDESC7 &Desc7)
 		Desc.dwDeviceZBufferBitDepth = Desc7.dwDeviceZBufferBitDepth;
 		Desc.dwMaxTextureRepeat = Desc7.dwMaxTextureRepeat;
 		Desc.dwFlags = D3DDD_DEVCAPS | D3DDD_LINECAPS | D3DDD_TRICAPS | D3DDD_DEVICERENDERBITDEPTH | D3DDD_DEVICEZBUFFERBITDEPTH;
-		Desc.dcmColorModel = 0;
-		Desc.dtcTransformCaps.dwCaps = 0;
+		// Extra parameters
+		Desc.dcmColorModel = 0;                 /* Color model of device */
+		Desc.dtcTransformCaps.dwCaps = 0;       /* Capabilities of transform */
 		Desc.dtcTransformCaps.dwSize = 0;
-		Desc.bClipping = 0;
-		Desc.dlcLightingCaps.dwCaps = 0;
+		Desc.bClipping = 0;                     /* Device can do 3D clipping */
+		Desc.dlcLightingCaps.dwCaps = 0;        /* Capabilities of lighting */
 		Desc.dlcLightingCaps.dwLightingModel = 0;
 		Desc.dlcLightingCaps.dwNumLights = 0;
 		Desc.dlcLightingCaps.dwSize = 0;
-		Desc.dwMaxBufferSize = 0;
-		Desc.dwMaxVertexCount = 0;
+		Desc.dwMaxBufferSize = 0;               /* Maximum execute buffer size */
+		Desc.dwMaxVertexCount = 0;              /* Maximum vertex count */
 	}
 
 	if (Desc.dwSize > 14 * 8) /* DIRECT3D_VERSION >= 0x0500 */
@@ -128,6 +105,7 @@ void ConvertDeviceDesc(D3DDEVICEDESC &Desc, D3DDEVICEDESC7 &Desc7)
 		Desc.dwMinTextureHeight = Desc7.dwMinTextureHeight;
 		Desc.dwMaxTextureWidth = Desc7.dwMaxTextureWidth;
 		Desc.dwMaxTextureHeight = Desc7.dwMaxTextureHeight;
+		// Extra parameters
 		Desc.dwMinStippleWidth = 0;
 		Desc.dwMaxStippleWidth = 0;
 		Desc.dwMinStippleHeight = 0;

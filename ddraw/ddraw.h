@@ -48,6 +48,8 @@ class m_IDirectDrawSurfaceX;
 #include "Settings\Settings.h"
 #include "Logging\Logging.h"
 
+#define DDWRAPPER_TYPEX 0x80
+
 #ifdef DDRAWWRAPPER
 #define LogDebug Log
 #endif // DDRAWWRAPPER

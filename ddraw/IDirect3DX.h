@@ -30,8 +30,10 @@ public:
 	}
 	~m_IDirect3DX() {}
 
+	DWORD GetDirectXVersion() { return DDWRAPPER_TYPEX; }
+	REFIID GetWrapperType() { return WrapperID; }
 	IDirect3D7 *GetProxyInterface() { return ProxyInterface; }
-	DWORD GetDirectXVersion() { return DirectXVersion; }
+	m_IDirect3D7 *GetWrapperInterface() { return WrapperInterface; }
 
 	/*** IUnknown methods ***/
 	STDMETHOD(QueryInterface)(THIS_ REFIID riid, LPVOID * ppvObj);

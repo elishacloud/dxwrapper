@@ -8,7 +8,6 @@
 
 #define VISIT_CONFIG_SETTINGS(visit) \
 	visit(AntiAliasing) \
-	visit(ArmadaFix) \
 	visit(D3d8to9) \
 	visit(DDrawCompat) \
 	visit(DDrawCompat20) \
@@ -22,7 +21,8 @@
 	visit(ConvertToDirectDraw7) \
 	visit(ConvertToDirect3D7) \
 	visit(ExcludeProcess) \
-	visit(ForceCertification) \
+	visit(Force16bitColor) \
+	visit(Force32bitColor) \
 	visit(ForceExclusiveMode) \
 	visit(ForceHardwareMixing) \
 	visit(ForceHQ3DSoftMixing) \
@@ -128,7 +128,8 @@ static const APPCOMPATDATATYPE AppCompatDataType;
 struct CONFIG
 {
 	void Init();						// Initialize the config setting
-	bool ArmadaFix;						// Fix for Start Trek Armada 1
+	bool Force16bitColor;				// Forces DirectX to use 16bit color
+	bool Force32bitColor;				// Forces DirectX to use 32bit color
 	bool SingleProcAffinity;			// Sets the CPU affinity for this process and thread
 	bool SingleProcAffinityNotSet;		// If the SingleProcAffinity option exists in the config file
 	bool isDdrawWrapperEnabled;			// Specifies if DdrawWrapper needs to be enabled
