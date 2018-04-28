@@ -8,7 +8,8 @@ private:
 	DWORD DirectXVersion;
 	DWORD ProxyDirectXVersion;
 	IID WrapperID;
-	bool IsDDrawCreateEx = false;
+	HHOOK g_hook = nullptr;
+	HWND chWnd = nullptr;
 
 public:
 	m_IDirectDrawX(IDirectDraw7 *aOriginal, DWORD Version, m_IDirectDraw7 *Interface) : ProxyInterface(aOriginal), DirectXVersion(Version), WrapperInterface(Interface)
@@ -26,18 +27,28 @@ public:
 			(ProxyID == IID_IDirectDraw4) ? 4 :
 			(ProxyID == IID_IDirectDraw7) ? 7 : 7;
 
+		InterlockedExchangePointer((PVOID*)&CurrentDDInterface, ProxyInterface);
+
 		if (ProxyDirectXVersion != DirectXVersion)
 		{
 			Logging::LogDebug() << "Convert DirectDraw v" << DirectXVersion << " to v" << ProxyDirectXVersion;
 		}
 	}
-	~m_IDirectDrawX() {}
+	~m_IDirectDrawX()
+	{
+		PVOID MyNull = nullptr;
+		InterlockedExchangePointer((PVOID*)&CurrentDDInterface, MyNull);
+
+		if (g_hook)
+		{
+			UnhookWindowsHookEx(g_hook);
+		}
+	}
 
 	DWORD GetDirectXVersion() { return DDWRAPPER_TYPEX; }
 	REFIID GetWrapperType() { return WrapperID; }
 	IDirectDraw7 *GetProxyInterface() { return ProxyInterface; }
 	m_IDirectDraw7 *GetWrapperInterface() { return WrapperInterface; }
-	void SetDDrawCreateExFlag() { IsDDrawCreateEx = true; }
 
 	/*** IUnknown methods ***/
 	STDMETHOD(QueryInterface) (THIS_ REFIID riid, LPVOID FAR * ppvObj);

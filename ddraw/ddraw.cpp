@@ -19,6 +19,7 @@
 
 AddressLookupTableDdraw<void> ProxyAddressLookupTable = AddressLookupTableDdraw<void>();
 m_IDirect3DDeviceX *lpCurrentD3DDevice = nullptr;
+IDirectDraw7 *CurrentDDInterface = nullptr;
 
 #define INITUALIZE_WRAPPED_PROC(procName, unused) \
 	FARPROC procName ## _out = (FARPROC)*(ddraw::procName);
@@ -167,8 +168,6 @@ HRESULT WINAPI dd_DirectDrawCreateEx(GUID FAR *lpGUID, LPVOID *lplpDD, REFIID ri
 	if (SUCCEEDED(hr))
 	{
 		genericQueryInterface(riid, lplpDD);
-
-		((m_IDirectDrawX*)*lplpDD)->SetDDrawCreateExFlag();
 	}
 
 	return hr;

@@ -15,6 +15,7 @@
 */
 
 #include "ddraw.h"
+std::unordered_map<HWND, IDirectDraw7*> g_hookmap;
 
 HRESULT m_IDirectDrawX::QueryInterface(REFIID riid, LPVOID FAR * ppvObj)
 {
@@ -238,12 +239,48 @@ HRESULT m_IDirectDrawX::RestoreDisplayMode()
 	return ProxyInterface->RestoreDisplayMode();
 }
 
+// Fixes a bug in ddraw in Windows 8 and 10 where the exclusive flag remains even after the window (hWnd) closes
+LRESULT CALLBACK CBTProc(int nCode, WPARAM wParam, LPARAM lParam)
+{
+	UNREFERENCED_PARAMETER(lParam);
+
+	if (nCode == HCBT_DESTROYWND)
+	{
+		HWND hWnd = (HWND)wParam;
+		IDirectDraw7 *Interface = (IDirectDraw7*)InterlockedExchangePointer((PVOID*)&CurrentDDInterface, nullptr);
+		if (Interface && Interface == g_hookmap[hWnd])
+		{
+			Interface->SetCooperativeLevel(hWnd, DDSCL_NORMAL);
+		}
+		g_hookmap.erase(hWnd);
+	}
+
+	return NULL;
+}
+
 HRESULT m_IDirectDrawX::SetCooperativeLevel(HWND hWnd, DWORD dwFlags)
 {
-	// Set ModeEx to fix issues with some games like Star Trek Armada 1 & 2
-	if (IsDDrawCreateEx && (dwFlags & DDSCL_EXCLUSIVE) && !(dwFlags & DDSCL_ALLOWMODEX))
+	// Release previouse Exclusive flag
+	// Hook window message to get notified when the window is about to exit to remove the exclusive flag
+	if (dwFlags & DDSCL_EXCLUSIVE && hWnd != chWnd)
 	{
-		dwFlags |= DDSCL_ALLOWMODEX | DDSCL_FULLSCREEN;
+		if (IsWindow(chWnd))
+		{
+			ProxyInterface->SetCooperativeLevel(chWnd, DDSCL_NORMAL);
+		}
+		else
+		{
+			if (g_hook)
+			{
+				UnhookWindowsHookEx(g_hook);
+				g_hook = nullptr;
+			}
+
+			g_hookmap[hWnd] = ProxyInterface;
+			g_hook = SetWindowsHookEx(WH_CBT, CBTProc, NULL, GetWindowThreadProcessId(hWnd, nullptr));
+		}
+
+		chWnd = hWnd;
 	}
 
 	return ProxyInterface->SetCooperativeLevel(hWnd, dwFlags);
