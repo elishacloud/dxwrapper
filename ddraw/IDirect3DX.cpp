@@ -86,8 +86,20 @@ HRESULT m_IDirect3DX::CreateMaterial(LPDIRECT3DMATERIAL3 * lplpDirect3DMaterial,
 {
 	if (ProxyDirectXVersion == 7)
 	{
-		Logging::Log() << __FUNCTION__ << " Not Implimented";
-		return E_NOTIMPL;
+		if (lplpDirect3DMaterial && lpCurrentD3DDevice)
+		{
+			*lplpDirect3DMaterial = new m_IDirect3DMaterialX((IDirect3DMaterial3*)lpCurrentD3DDevice->GetProxyInterface(), 7, (m_IDirect3DMaterial3*)lpCurrentD3DDevice);
+			return D3D_OK;
+		}
+		else if (!lplpDirect3DMaterial)
+		{
+			return DDERR_INVALIDPARAMS;
+		}
+		else if (!lpCurrentD3DDevice)
+		{
+			Logging::Log() << __FUNCTION__ << " No current IDirect3DDevice";
+			return D3DERR_INVALID_DEVICE;
+		}
 	}
 
 	HRESULT hr = ((IDirect3D3*)ProxyInterface)->CreateMaterial(lplpDirect3DMaterial, pUnkOuter);

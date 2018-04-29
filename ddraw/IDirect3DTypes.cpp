@@ -16,6 +16,38 @@
 
 #include "ddraw.h"
 
+void ConvertMaterial(D3DMATERIAL &Material, D3DMATERIAL7 &Material7)
+{
+	Material.dwSize = sizeof(D3DMATERIAL);
+	Material.diffuse = Material7.diffuse;
+	Material.dcvDiffuse = Material7.dcvDiffuse;
+	Material.ambient = Material7.ambient;
+	Material.dcvAmbient = Material7.dcvAmbient;
+	Material.specular = Material7.specular;
+	Material.dcvSpecular = Material7.dcvSpecular;
+	Material.emissive = Material7.emissive;
+	Material.dcvEmissive = Material7.dcvEmissive;
+	Material.power = Material7.power;
+	Material.dvPower = Material7.dvPower;
+	// Extra parameters
+	Material.hTexture = 0;    /* Handle to texture map */
+	Material.dwRampSize = 0;
+}
+
+void ConvertMaterial(D3DMATERIAL7 &Material7, D3DMATERIAL &Material)
+{
+	Material7.diffuse = Material7.diffuse;
+	Material7.dcvDiffuse = Material7.dcvDiffuse;
+	Material7.ambient = Material7.ambient;
+	Material7.dcvAmbient = Material7.dcvAmbient;
+	Material7.specular = Material7.specular;
+	Material7.dcvSpecular = Material7.dcvSpecular;
+	Material7.emissive = Material7.emissive;
+	Material7.dcvEmissive = Material7.dcvEmissive;
+	Material7.power = Material7.power;
+	Material.dvPower = Material7.dvPower;
+}
+
 void ConvertViewport(D3DVIEWPORT &ViewPort, D3DVIEWPORT7 &ViewPort7)
 {
 	ViewPort.dwSize = 5 * 8;

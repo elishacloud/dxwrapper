@@ -90,8 +90,12 @@ HRESULT m_IDirect3DTextureX::GetHandle(LPDIRECT3DDEVICE2 lpDirect3DDevice2, LPD3
 {
 	if (ProxyDirectXVersion == 7)
 	{
-		Logging::Log() << __FUNCTION__ << " Not Implimented";
-		return E_NOTIMPL;
+		lpDirect3DDevice2 = (IDirect3DDevice2*)ProxyInterface;
+
+		lpHandle = nullptr;
+
+		Logging::Log() << __FUNCTION__ << " LPD3DTEXTUREHANDLE Not Implimented";
+		return D3D_OK;
 	}
 
 	if (lpDirect3DDevice2)

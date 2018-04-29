@@ -255,14 +255,14 @@ LRESULT CALLBACK CBTProc(int nCode, WPARAM wParam, LPARAM lParam)
 		g_hookmap.erase(hWnd);
 	}
 
-	return NULL;
+	return CallNextHookEx(nullptr, nCode, wParam, lParam);
 }
 
 HRESULT m_IDirectDrawX::SetCooperativeLevel(HWND hWnd, DWORD dwFlags)
 {
 	// Release previouse Exclusive flag
 	// Hook window message to get notified when the window is about to exit to remove the exclusive flag
-	if (dwFlags & DDSCL_EXCLUSIVE && hWnd != chWnd)
+	if (dwFlags & DDSCL_EXCLUSIVE && hWnd && hWnd != chWnd)
 	{
 		if (IsWindow(chWnd))
 		{

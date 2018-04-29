@@ -8,6 +8,7 @@ private:
 	DWORD DirectXVersion;
 	DWORD ProxyDirectXVersion;
 	IID WrapperID;
+	ULONG RefCount = 1;
 
 public:
 	m_IDirect3DMaterialX(IDirect3DMaterial3 *aOriginal, DWORD Version, m_IDirect3DMaterial3 *Interface) : ProxyInterface(aOriginal), DirectXVersion(Version), WrapperInterface(Interface)
@@ -20,6 +21,12 @@ public:
 		ProxyDirectXVersion = (ProxyID == IID_IDirect3DMaterial) ? 1 :
 			(ProxyID == IID_IDirect3DMaterial2) ? 2 :
 			(ProxyID == IID_IDirect3DMaterial3) ? 3 : 3;
+
+		if (DirectXVersion == 7)
+		{
+			DirectXVersion = 3;
+			ProxyDirectXVersion = 7;
+		}
 
 		if (ProxyDirectXVersion != DirectXVersion)
 		{
