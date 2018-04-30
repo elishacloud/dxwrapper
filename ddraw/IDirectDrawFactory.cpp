@@ -50,7 +50,12 @@ HRESULT m_IDirectDrawFactory::CreateDirectDraw(GUID * pGUID, HWND hWnd, DWORD dw
 	return hr;
 }
 
-HRESULT m_IDirectDrawFactory::DirectDrawEnumerate(LPDDENUMCALLBACK lpCallback, LPVOID lpContext)
+HRESULT m_IDirectDrawFactory::DirectDrawEnumerateA(LPDDENUMCALLBACKA lpCallback, LPVOID lpContext)
 {
-	return ProxyInterface->DirectDrawEnumerate(lpCallback, lpContext);
+	return ProxyInterface->DirectDrawEnumerateA(lpCallback, lpContext);
+}
+
+HRESULT m_IDirectDrawFactory::DirectDrawEnumerateW(LPDDENUMCALLBACKW lpCallback, LPVOID lpContext)
+{
+	return ProxyInterface->DirectDrawEnumerateW(lpCallback, lpContext);
 }

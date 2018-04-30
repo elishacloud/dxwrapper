@@ -58,17 +58,13 @@ public:
 	STDMETHOD(Compact)(THIS);
 	STDMETHOD(CreateClipper)(THIS_ DWORD, LPDIRECTDRAWCLIPPER FAR*, IUnknown FAR *);
 	STDMETHOD(CreatePalette)(THIS_ DWORD, LPPALETTEENTRY, LPDIRECTDRAWPALETTE FAR*, IUnknown FAR *);
-	template <typename T>
-	HRESULT CreateSurface(T, LPDIRECTDRAWSURFACE7 FAR *, IUnknown FAR *);
+	STDMETHOD(CreateSurface)(THIS_  LPDDSURFACEDESC2, LPDIRECTDRAWSURFACE7 FAR *, IUnknown FAR *);
 	STDMETHOD(DuplicateSurface)(THIS_ LPDIRECTDRAWSURFACE7, LPDIRECTDRAWSURFACE7 FAR *);
-	template <typename T, typename D>
-	HRESULT EnumDisplayModes(DWORD, T, LPVOID, D);
-	template <typename T, typename D>
-	HRESULT EnumSurfaces(DWORD, T, LPVOID, D);
+	STDMETHOD(EnumDisplayModes)(THIS_ DWORD, LPDDSURFACEDESC2, LPVOID, LPDDENUMMODESCALLBACK2);
+	STDMETHOD(EnumSurfaces)(THIS_ DWORD, LPDDSURFACEDESC2, LPVOID, LPDDENUMSURFACESCALLBACK7);
 	STDMETHOD(FlipToGDISurface)(THIS);
 	STDMETHOD(GetCaps)(THIS_ LPDDCAPS, LPDDCAPS);
-	template <typename T>
-	HRESULT GetDisplayMode(T);
+	STDMETHOD(GetDisplayMode)(THIS_ LPDDSURFACEDESC2);
 	STDMETHOD(GetFourCCCodes)(THIS_ LPDWORD, LPDWORD);
 	STDMETHOD(GetGDISurface)(THIS_ LPDIRECTDRAWSURFACE7 FAR *);
 	STDMETHOD(GetMonitorFrequency)(THIS_ LPDWORD);
@@ -80,14 +76,12 @@ public:
 	STDMETHOD(SetDisplayMode)(THIS_ DWORD, DWORD, DWORD, DWORD, DWORD);
 	STDMETHOD(WaitForVerticalBlank)(THIS_ DWORD, HANDLE);
 	/*** Added in the v2 interface ***/
-	template <typename T>
-	HRESULT GetAvailableVidMem(T, LPDWORD, LPDWORD);
+	STDMETHOD(GetAvailableVidMem)(THIS_ LPDDSCAPS2, LPDWORD, LPDWORD);
 	/*** Added in the V4 Interface ***/
 	STDMETHOD(GetSurfaceFromDC) (THIS_ HDC, LPDIRECTDRAWSURFACE7 *);
 	STDMETHOD(RestoreAllSurfaces)(THIS);
 	STDMETHOD(TestCooperativeLevel)(THIS);
-	template <typename T>
-	HRESULT GetDeviceIdentifier(T lpdddi, DWORD dwFlags);
+	STDMETHOD(GetDeviceIdentifier)(THIS_ LPDDDEVICEIDENTIFIER2, DWORD);
 	STDMETHOD(StartModeTest)(THIS_ LPSIZE, DWORD, DWORD);
 	STDMETHOD(EvaluateMode)(THIS_ DWORD, DWORD *);
 };

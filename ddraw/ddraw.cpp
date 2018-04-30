@@ -53,7 +53,7 @@ HRESULT WINAPI dd_D3DParseUnknownCommand(LPVOID lpCmd, LPVOID *lpRetCmd)
 {
 	if (!Wrapper::ValidProcAddress(D3DParseUnknownCommand_out))
 	{
-		return E_NOTIMPL;
+		return DDERR_INVALIDOBJECT;
 	}
 	return ((D3DParseUnknownCommandProc)D3DParseUnknownCommand_out)(lpCmd, lpRetCmd);
 }
@@ -90,7 +90,7 @@ HRESULT WINAPI dd_DirectDrawCreate(GUID FAR *lpGUID, LPDIRECTDRAW FAR *lplpDD, I
 {
 	if (!Wrapper::ValidProcAddress(DirectDrawCreate_out))
 	{
-		return E_NOTIMPL;
+		return DDERR_INVALIDOBJECT;
 	}
 
 	if (Config.ConvertToDirect3D7 && Config.ConvertToDirectDraw7)
@@ -132,7 +132,7 @@ HRESULT WINAPI dd_DirectDrawCreateClipper(DWORD dwFlags, LPDIRECTDRAWCLIPPER *lp
 {
 	if (!Wrapper::ValidProcAddress(DirectDrawCreateClipper_out))
 	{
-		return E_NOTIMPL;
+		return DDERR_INVALIDOBJECT;
 	}
 
 	HRESULT hr = ((DirectDrawCreateClipperProc)DirectDrawCreateClipper_out)(dwFlags, lplpDDClipper, pUnkOuter);
@@ -149,7 +149,7 @@ HRESULT WINAPI dd_DirectDrawCreateEx(GUID FAR *lpGUID, LPVOID *lplpDD, REFIID ri
 {
 	if (!Wrapper::ValidProcAddress(DirectDrawCreateEx_out))
 	{
-		return E_NOTIMPL;
+		return DDERR_INVALIDOBJECT;
 	}
 
 	if (riid != CLSID_DirectDraw &&
@@ -177,7 +177,7 @@ HRESULT WINAPI dd_DirectDrawEnumerateA(LPDDENUMCALLBACKA lpCallback, LPVOID lpCo
 {
 	if (!Wrapper::ValidProcAddress(DirectDrawEnumerateA_out))
 	{
-		return E_NOTIMPL;
+		return DDERR_INVALIDOBJECT;
 	}
 	return ((DDrawEnumerateAProc)DirectDrawEnumerateA_out)(lpCallback, lpContext);
 }
@@ -186,7 +186,7 @@ HRESULT WINAPI dd_DirectDrawEnumerateExA(LPDDENUMCALLBACKEXA lpCallback, LPVOID 
 {
 	if (!Wrapper::ValidProcAddress(DirectDrawEnumerateExA_out))
 	{
-		return E_NOTIMPL;
+		return DDERR_INVALIDOBJECT;
 	}
 	return ((DDrawEnumerateExAProc)DirectDrawEnumerateExA_out)(lpCallback, lpContext, dwFlags);
 }
@@ -195,7 +195,7 @@ HRESULT WINAPI dd_DirectDrawEnumerateExW(LPDDENUMCALLBACKEXW lpCallback, LPVOID 
 {
 	if (!Wrapper::ValidProcAddress(DirectDrawEnumerateExW_out))
 	{
-		return E_NOTIMPL;
+		return DDERR_INVALIDOBJECT;
 	}
 	return ((DDrawEnumerateExWProc)DirectDrawEnumerateExW_out)(lpCallback, lpContext, dwFlags);
 }
@@ -204,7 +204,7 @@ HRESULT WINAPI dd_DirectDrawEnumerateW(LPDDENUMCALLBACKW lpCallback, LPVOID lpCo
 {
 	if (!Wrapper::ValidProcAddress(DirectDrawEnumerateW_out))
 	{
-		return E_NOTIMPL;
+		return DDERR_INVALIDOBJECT;
 	}
 	return ((DDrawEnumerateWProc)DirectDrawEnumerateW_out)(lpCallback, lpContext);
 }
@@ -213,7 +213,7 @@ HRESULT WINAPI dd_DllCanUnloadNow()
 {
 	if (!Wrapper::ValidProcAddress(DllCanUnloadNow_out))
 	{
-		return E_NOTIMPL;
+		return DDERR_INVALIDOBJECT;
 	}
 	return ((DllCanUnloadNowProc)DllCanUnloadNow_out)();
 }
@@ -222,7 +222,7 @@ HRESULT WINAPI dd_DllGetClassObject(REFCLSID rclsid, REFIID riid, LPVOID *ppv)
 {
 	if (!Wrapper::ValidProcAddress(DllGetClassObject_out))
 	{
-		return E_NOTIMPL;
+		return DDERR_INVALIDOBJECT;
 	}
 
 	HRESULT hr = ((DllGetClassObjectProc)DllGetClassObject_out)(rclsid, ConvertREFIID(riid), ppv);
@@ -253,7 +253,7 @@ HRESULT WINAPI dd_GetSurfaceFromDC(HDC hdc, LPDIRECTDRAWSURFACE7 *lpDDS)
 {
 	if (!Wrapper::ValidProcAddress(GetSurfaceFromDC_out))
 	{
-		return E_NOTIMPL;
+		return DDERR_INVALIDOBJECT;
 	}
 
 	HRESULT hr = ((GetSurfaceFromDCProc)GetSurfaceFromDC_out)(hdc, lpDDS);
@@ -286,7 +286,7 @@ HRESULT WINAPI dd_SetAppCompatData(DWORD Type, DWORD Value)
 {
 	if (!Wrapper::ValidProcAddress(SetAppCompatData_out))
 	{
-		return E_NOTIMPL;
+		return DDERR_INVALIDOBJECT;
 	}
 	return ((SetAppCompatDataProc)SetAppCompatData_out)(Type, Value);
 }

@@ -106,6 +106,13 @@ HRESULT ProxyQueryInterface(LPVOID ProxyInterface, REFIID CalledID, LPVOID * ppv
 	}
 	else
 	{
+		if (riid == IID_IDirectDrawColorControl)
+		{
+			*ppvObj = new m_IDirectDrawColorControl(nullptr);
+
+			return DD_OK;
+		}
+
 		Logging::LogDebug() << "Query failed for " << riid << " Error " << hr;
 	}
 

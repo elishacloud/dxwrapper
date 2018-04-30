@@ -18,16 +18,37 @@
 
 HRESULT m_IDirectDrawColorControl::QueryInterface(REFIID riid, LPVOID FAR * ppvObj)
 {
+	if (ProxyInterface == nullptr)
+	{
+		return E_NOINTERFACE;
+	}
+
 	return ProxyQueryInterface(ProxyInterface, riid, ppvObj, WrapperID, this);
 }
 
 ULONG m_IDirectDrawColorControl::AddRef()
 {
+	if (ProxyInterface == nullptr)
+	{
+		return ++RefCount;
+	}
+
 	return ProxyInterface->AddRef();
 }
 
 ULONG m_IDirectDrawColorControl::Release()
 {
+	if (ProxyInterface == nullptr)
+	{
+		if (RefCount == 0)
+		{
+			delete this;
+			return 0;
+		}
+
+		return --RefCount;
+	}
+
 	ULONG x = ProxyInterface->Release();
 
 	if (x == 0)
@@ -40,10 +61,34 @@ ULONG m_IDirectDrawColorControl::Release()
 
 HRESULT m_IDirectDrawColorControl::GetColorControls(LPDDCOLORCONTROL lpColorControl)
 {
+	if (ProxyInterface == nullptr)
+	{
+		if (!lpColorControl)
+		{
+			return DDERR_INVALIDPARAMS;
+		}
+
+		ConvertColorControl(*lpColorControl, ColorControl);
+
+		return DD_OK;
+	}
+
 	return ProxyInterface->GetColorControls(lpColorControl);
 }
 
 HRESULT m_IDirectDrawColorControl::SetColorControls(LPDDCOLORCONTROL lpColorControl)
 {
+	if (ProxyInterface == nullptr)
+	{
+		if (!lpColorControl)
+		{
+			return DDERR_INVALIDPARAMS;
+		}
+
+		ConvertColorControl(ColorControl, *lpColorControl);
+
+		return DD_OK;
+	}
+
 	return ProxyInterface->SetColorControls(lpColorControl);
 }

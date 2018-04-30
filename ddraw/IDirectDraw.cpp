@@ -48,7 +48,7 @@ HRESULT m_IDirectDraw::CreatePalette(DWORD a, LPPALETTEENTRY b, LPDIRECTDRAWPALE
 
 HRESULT m_IDirectDraw::CreateSurface(LPDDSURFACEDESC a, LPDIRECTDRAWSURFACE FAR * b, IUnknown FAR * c)
 {
-	return ProxyInterface->CreateSurface(a, (LPDIRECTDRAWSURFACE7*)b, c);
+	return ProxyInterface->CreateSurface((LPDDSURFACEDESC2)a, (LPDIRECTDRAWSURFACE7*)b, c);
 }
 
 HRESULT m_IDirectDraw::DuplicateSurface(LPDIRECTDRAWSURFACE a, LPDIRECTDRAWSURFACE FAR * b)
@@ -58,12 +58,12 @@ HRESULT m_IDirectDraw::DuplicateSurface(LPDIRECTDRAWSURFACE a, LPDIRECTDRAWSURFA
 
 HRESULT m_IDirectDraw::EnumDisplayModes(DWORD a, LPDDSURFACEDESC b, LPVOID c, LPDDENUMMODESCALLBACK d)
 {
-	return ProxyInterface->EnumDisplayModes(a, b, c, d);
+	return ProxyInterface->EnumDisplayModes(a, (LPDDSURFACEDESC2)b, c, (LPDDENUMMODESCALLBACK2)d);
 }
 
 HRESULT m_IDirectDraw::EnumSurfaces(DWORD a, LPDDSURFACEDESC b, LPVOID c, LPDDENUMSURFACESCALLBACK d)
 {
-	return ProxyInterface->EnumSurfaces(a, b, c, d);
+	return ProxyInterface->EnumSurfaces(a, (LPDDSURFACEDESC2)b, c, (LPDDENUMSURFACESCALLBACK7)d);
 }
 
 HRESULT m_IDirectDraw::FlipToGDISurface()
@@ -78,7 +78,7 @@ HRESULT m_IDirectDraw::GetCaps(LPDDCAPS a, LPDDCAPS b)
 
 HRESULT m_IDirectDraw::GetDisplayMode(LPDDSURFACEDESC a)
 {
-	return ProxyInterface->GetDisplayMode(a);
+	return ProxyInterface->GetDisplayMode((LPDDSURFACEDESC2)a);
 }
 
 HRESULT m_IDirectDraw::GetFourCCCodes(LPDWORD a, LPDWORD b)

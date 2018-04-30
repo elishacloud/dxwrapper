@@ -16,6 +16,20 @@
 
 #include "ddraw.h"
 
+void ConvertColorControl(DDCOLORCONTROL &ColorControl, DDCOLORCONTROL &ColorControl2)
+{
+	ColorControl.dwSize = ColorControl2.dwSize;
+	ColorControl.dwFlags = ColorControl2.dwFlags;
+	ColorControl.lBrightness = ColorControl2.lBrightness;
+	ColorControl.lContrast = ColorControl2.lContrast;
+	ColorControl.lHue = ColorControl2.lHue;
+	ColorControl.lSaturation = ColorControl2.lSaturation;
+	ColorControl.lSharpness = ColorControl2.lSharpness;
+	ColorControl.lGamma = ColorControl2.lGamma;
+	ColorControl.lColorEnable = ColorControl2.lColorEnable;
+	ColorControl.dwReserved1 = ColorControl2.dwReserved1;
+}
+
 void ConvertSurfaceDesc(DDSURFACEDESC &Desc, DDSURFACEDESC &Desc2)
 {
 	CopyMemory(&Desc, &Desc2, sizeof(DDSURFACEDESC));

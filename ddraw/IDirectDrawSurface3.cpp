@@ -63,12 +63,12 @@ HRESULT m_IDirectDrawSurface3::DeleteAttachedSurface(DWORD a, LPDIRECTDRAWSURFAC
 
 HRESULT m_IDirectDrawSurface3::EnumAttachedSurfaces(LPVOID a, LPDDENUMSURFACESCALLBACK b)
 {
-	return ProxyInterface->EnumAttachedSurfaces(a, b);
+	return ProxyInterface->EnumAttachedSurfaces(a, (LPDDENUMSURFACESCALLBACK7)b);
 }
 
 HRESULT m_IDirectDrawSurface3::EnumOverlayZOrders(DWORD a, LPVOID b, LPDDENUMSURFACESCALLBACK c)
 {
-	return ProxyInterface->EnumOverlayZOrders(a, b, c);
+	return ProxyInterface->EnumOverlayZOrders(a, b, (LPDDENUMSURFACESCALLBACK7)c);
 }
 
 HRESULT m_IDirectDrawSurface3::Flip(LPDIRECTDRAWSURFACE3 a, DWORD b)
@@ -78,7 +78,7 @@ HRESULT m_IDirectDrawSurface3::Flip(LPDIRECTDRAWSURFACE3 a, DWORD b)
 
 HRESULT m_IDirectDrawSurface3::GetAttachedSurface(LPDDSCAPS a, LPDIRECTDRAWSURFACE3 FAR * b)
 {
-	return ProxyInterface->GetAttachedSurface(a, (LPDIRECTDRAWSURFACE7*)b);
+	return ProxyInterface->GetAttachedSurface((LPDDSCAPS2)a, (LPDIRECTDRAWSURFACE7*)b);
 }
 
 HRESULT m_IDirectDrawSurface3::GetBltStatus(DWORD a)
@@ -88,7 +88,7 @@ HRESULT m_IDirectDrawSurface3::GetBltStatus(DWORD a)
 
 HRESULT m_IDirectDrawSurface3::GetCaps(LPDDSCAPS a)
 {
-	return ProxyInterface->GetCaps(a);
+	return ProxyInterface->GetCaps((LPDDSCAPS2)a);
 }
 
 HRESULT m_IDirectDrawSurface3::GetClipper(LPDIRECTDRAWCLIPPER FAR * a)
@@ -128,12 +128,12 @@ HRESULT m_IDirectDrawSurface3::GetPixelFormat(LPDDPIXELFORMAT a)
 
 HRESULT m_IDirectDrawSurface3::GetSurfaceDesc(LPDDSURFACEDESC a)
 {
-	return ProxyInterface->GetSurfaceDesc(a);
+	return ProxyInterface->GetSurfaceDesc((LPDDSURFACEDESC2)a);
 }
 
 HRESULT m_IDirectDrawSurface3::Initialize(LPDIRECTDRAW a, LPDDSURFACEDESC b)
 {
-	return ProxyInterface->Initialize(a, b);
+	return ProxyInterface->Initialize(a, (LPDDSURFACEDESC2)b);
 }
 
 HRESULT m_IDirectDrawSurface3::IsLost()
@@ -143,7 +143,7 @@ HRESULT m_IDirectDrawSurface3::IsLost()
 
 HRESULT m_IDirectDrawSurface3::Lock(LPRECT a, LPDDSURFACEDESC b, DWORD c, HANDLE d)
 {
-	return ProxyInterface->Lock(a, b, c, d);
+	return ProxyInterface->Lock(a, (LPDDSURFACEDESC2)b, c, d);
 }
 
 HRESULT m_IDirectDrawSurface3::ReleaseDC(HDC a)
@@ -213,5 +213,5 @@ HRESULT m_IDirectDrawSurface3::PageUnlock(DWORD a)
 
 HRESULT m_IDirectDrawSurface3::SetSurfaceDesc(LPDDSURFACEDESC a, DWORD b)
 {
-	return ProxyInterface->SetSurfaceDesc(a, b);
+	return ProxyInterface->SetSurfaceDesc((LPDDSURFACEDESC2)a, b);
 }

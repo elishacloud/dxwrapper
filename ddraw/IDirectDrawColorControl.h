@@ -5,11 +5,15 @@ class m_IDirectDrawColorControl : public IDirectDrawColorControl, public Address
 private:
 	IDirectDrawColorControl *ProxyInterface;
 	REFIID WrapperID = IID_IDirectDrawColorControl;
+	ULONG RefCount = 1;
+	DDCOLORCONTROL ColorControl = { NULL };
 
 public:
 	m_IDirectDrawColorControl(IDirectDrawColorControl *aOriginal) : ProxyInterface(aOriginal)
 	{
 		ProxyAddressLookupTable.SaveAddress(this, ProxyInterface);
+
+		ColorControl.dwSize = sizeof(DDCOLORCONTROL);
 	}
 	~m_IDirectDrawColorControl()
 	{

@@ -48,7 +48,7 @@ HRESULT m_IDirectDraw2::CreatePalette(DWORD a, LPPALETTEENTRY b, LPDIRECTDRAWPAL
 
 HRESULT m_IDirectDraw2::CreateSurface(LPDDSURFACEDESC a, LPDIRECTDRAWSURFACE FAR * b, IUnknown FAR * c)
 {
-	return ProxyInterface->CreateSurface(a, (LPDIRECTDRAWSURFACE7*)b, c);
+	return ProxyInterface->CreateSurface((LPDDSURFACEDESC2)a, (LPDIRECTDRAWSURFACE7*)b, c);
 }
 
 HRESULT m_IDirectDraw2::DuplicateSurface(LPDIRECTDRAWSURFACE a, LPDIRECTDRAWSURFACE FAR * b)
@@ -58,12 +58,12 @@ HRESULT m_IDirectDraw2::DuplicateSurface(LPDIRECTDRAWSURFACE a, LPDIRECTDRAWSURF
 
 HRESULT m_IDirectDraw2::EnumDisplayModes(DWORD a, LPDDSURFACEDESC b, LPVOID c, LPDDENUMMODESCALLBACK d)
 {
-	return ProxyInterface->EnumDisplayModes(a, b, c, d);
+	return ProxyInterface->EnumDisplayModes(a, (LPDDSURFACEDESC2)b, c, (LPDDENUMMODESCALLBACK2)d);
 }
 
 HRESULT m_IDirectDraw2::EnumSurfaces(DWORD a, LPDDSURFACEDESC b, LPVOID c, LPDDENUMSURFACESCALLBACK d)
 {
-	return ProxyInterface->EnumSurfaces(a, b, c, d);
+	return ProxyInterface->EnumSurfaces(a, (LPDDSURFACEDESC2)b, c, (LPDDENUMSURFACESCALLBACK7)d);
 }
 
 HRESULT m_IDirectDraw2::FlipToGDISurface()
@@ -78,7 +78,7 @@ HRESULT m_IDirectDraw2::GetCaps(LPDDCAPS a, LPDDCAPS b)
 
 HRESULT m_IDirectDraw2::GetDisplayMode(LPDDSURFACEDESC a)
 {
-	return ProxyInterface->GetDisplayMode(a);
+	return ProxyInterface->GetDisplayMode((LPDDSURFACEDESC2)a);
 }
 
 HRESULT m_IDirectDraw2::GetFourCCCodes(LPDWORD a, LPDWORD b)
@@ -133,5 +133,5 @@ HRESULT m_IDirectDraw2::WaitForVerticalBlank(DWORD a, HANDLE b)
 
 HRESULT m_IDirectDraw2::GetAvailableVidMem(LPDDSCAPS a, LPDWORD b, LPDWORD c)
 {
-	return ProxyInterface->GetAvailableVidMem(a, b, c);
+	return ProxyInterface->GetAvailableVidMem((LPDDSCAPS2)a, b, c);
 }
