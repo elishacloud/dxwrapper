@@ -55,13 +55,13 @@ void ConvertViewport(D3DVIEWPORT &ViewPort, D3DVIEWPORT7 &ViewPort7)
 	ViewPort.dwY = ViewPort7.dwY;
 	ViewPort.dwWidth = ViewPort7.dwWidth;
 	ViewPort.dwHeight = ViewPort7.dwHeight;
+	ViewPort.dvMinZ = ViewPort7.dvMinZ;
+	ViewPort.dvMaxZ = ViewPort7.dvMaxZ;
 	// Extra parameters
-	ViewPort.dvScaleX = 0;   /* Scale homogeneous to screen */
-	ViewPort.dvScaleY = 0;   /* Scale homogeneous to screen */
-	ViewPort.dvMaxX = 0;     /* Min/max homogeneous x coord */
-	ViewPort.dvMaxY = 0;     /* Min/max homogeneous y coord */
-	ViewPort.dvMinZ = 0;
-	ViewPort.dvMaxZ = 0;     /* Min/max homogeneous z coord */
+	ViewPort.dvScaleX = 0;        /* Scale homogeneous to screen */
+	ViewPort.dvScaleY = 0;        /* Scale homogeneous to screen */
+	ViewPort.dvMaxX = 0;          /* Min/max homogeneous x coord */
+	ViewPort.dvMaxY = 0;          /* Min/max homogeneous y coord */
 }
 
 void ConvertViewport(D3DVIEWPORT2 &ViewPort2, D3DVIEWPORT7 &ViewPort7)
@@ -71,13 +71,13 @@ void ConvertViewport(D3DVIEWPORT2 &ViewPort2, D3DVIEWPORT7 &ViewPort7)
 	ViewPort2.dwY = ViewPort7.dwY;
 	ViewPort2.dwWidth = ViewPort7.dwWidth;
 	ViewPort2.dwHeight = ViewPort7.dwHeight;
+	ViewPort2.dvMinZ = ViewPort7.dvMinZ;
+	ViewPort2.dvMaxZ = ViewPort7.dvMaxZ;
 	// Extra parameters
 	ViewPort2.dvClipX = 0;        /* Top left of clip volume */
 	ViewPort2.dvClipY = 0;
 	ViewPort2.dvClipWidth = 0;    /* Clip Volume Dimensions */
 	ViewPort2.dvClipHeight = 0;
-	ViewPort2.dvMinZ = 0;         /* Min/max of clip Volume */
-	ViewPort2.dvMaxZ = 0;
 }
 
 void ConvertViewport(D3DVIEWPORT7 &ViewPort7, D3DVIEWPORT &ViewPort)
@@ -88,7 +88,7 @@ void ConvertViewport(D3DVIEWPORT7 &ViewPort7, D3DVIEWPORT &ViewPort)
 	ViewPort7.dwHeight = ViewPort.dwHeight;
 	// Extra parameters
 	ViewPort7.dvMinZ = 0;         /* Min/max of clip Volume */
-	ViewPort7.dvMaxZ = 0;
+	ViewPort7.dvMaxZ = 1.0f;
 }
 
 void ConvertViewport(D3DVIEWPORT7 &ViewPort7, D3DVIEWPORT2 &ViewPort2)
@@ -97,9 +97,8 @@ void ConvertViewport(D3DVIEWPORT7 &ViewPort7, D3DVIEWPORT2 &ViewPort2)
 	ViewPort7.dwY = ViewPort2.dwY;
 	ViewPort7.dwWidth = ViewPort2.dwWidth;
 	ViewPort7.dwHeight = ViewPort2.dwHeight;
-	// Extra parameters
-	ViewPort7.dvMinZ = 0;         /* Min/max of clip Volume */
-	ViewPort7.dvMaxZ = 0;
+	ViewPort7.dvMinZ = ViewPort2.dvMinZ;
+	ViewPort7.dvMaxZ = ViewPort2.dvMaxZ;
 }
 
 void ConvertViewport(D3DVIEWPORT7 &ViewPort, D3DVIEWPORT7 &ViewPort7)

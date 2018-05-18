@@ -182,6 +182,7 @@ private:
 	INT CurrentBaseVertexIndex = 0;
 	const BOOL ZBufferDiscarding = FALSE;
 	DWORD CurrentVertexShaderHandle = 0, CurrentPixelShaderHandle = 0;
+	IDirect3DSurface9 *pCurrentRenderTarget = nullptr;
 	bool PaletteFlag = false;
 
 	static constexpr size_t MAX_CLIP_PLANES = 6;

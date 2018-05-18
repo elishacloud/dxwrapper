@@ -273,7 +273,7 @@ HRESULT STDMETHODCALLTYPE Direct3DDevice8::CreateTexture(UINT Width, UINT Height
 		{
 			Usage |= D3DUSAGE_RENDERTARGET;
 		}
-		else
+		else if (Usage != D3DUSAGE_DEPTHSTENCIL)
 		{
 			Usage |= D3DUSAGE_DYNAMIC;
 		}
@@ -409,6 +409,8 @@ HRESULT STDMETHODCALLTYPE Direct3DDevice8::CreateRenderTarget(UINT Width, UINT H
 	{
 		return hr;
 	}
+
+	pCurrentRenderTarget = SurfaceInterface;
 
 	*ppSurface = new Direct3DSurface8(this, SurfaceInterface);
 
@@ -621,6 +623,8 @@ HRESULT STDMETHODCALLTYPE Direct3DDevice8::SetRenderTarget(Direct3DSurface8 *pRe
 		{
 			return hr;
 		}
+
+		pCurrentRenderTarget = pRenderTarget->GetProxyInterface();
 	}
 
 	if (pNewZStencil != nullptr)
@@ -654,6 +658,8 @@ HRESULT STDMETHODCALLTYPE Direct3DDevice8::GetRenderTarget(Direct3DSurface8 **pp
 	{
 		return hr;
 	}
+
+	pCurrentRenderTarget = SurfaceInterface;
 
 	*ppRenderTarget = ProxyAddressLookupTable->FindAddress<Direct3DSurface8>(SurfaceInterface);
 
@@ -705,6 +711,16 @@ HRESULT STDMETHODCALLTYPE Direct3DDevice8::MultiplyTransform(D3DTRANSFORMSTATETY
 }
 HRESULT STDMETHODCALLTYPE Direct3DDevice8::SetViewport(const D3DVIEWPORT8 *pViewport)
 {
+	if (pCurrentRenderTarget != nullptr)
+	{
+		D3DSURFACE_DESC Desc;
+		HRESULT hr = pCurrentRenderTarget->GetDesc(&Desc);
+		if (SUCCEEDED(hr) && (pViewport->Height > Desc.Height || pViewport->Width > Desc.Width))
+		{
+			return D3DERR_INVALIDCALL;
+		}
+	}
+
 	return ProxyInterface->SetViewport(pViewport);
 }
 HRESULT STDMETHODCALLTYPE Direct3DDevice8::GetViewport(D3DVIEWPORT8 *pViewport)
