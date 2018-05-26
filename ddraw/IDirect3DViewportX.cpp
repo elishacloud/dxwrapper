@@ -22,7 +22,7 @@ HRESULT m_IDirect3DViewportX::QueryInterface(REFIID riid, LPVOID * ppvObj)
 	{
 		if ((riid == IID_IDirect3DViewport || riid == IID_IDirect3DViewport2 || riid == IID_IDirect3DViewport3 || riid == IID_IUnknown) && ppvObj)
 		{
-			++RefCount;
+			AddRef();
 
 			*ppvObj = this;
 
@@ -37,7 +37,7 @@ ULONG m_IDirect3DViewportX::AddRef()
 {
 	if (ProxyDirectXVersion == 7)
 	{
-		return ++RefCount;
+		return InterlockedIncrement(&RefCount);
 	}
 
 	return ProxyInterface->AddRef();
@@ -47,13 +47,15 @@ ULONG m_IDirect3DViewportX::Release()
 {
 	if (ProxyDirectXVersion == 7)
 	{
-		if (RefCount == 0)
+		LONG ref = InterlockedDecrement(&RefCount);
+
+		if (ref == 0)
 		{
 			delete this;
 			return 0;
 		}
 
-		return --RefCount;
+		return ref;
 	}
 
 	ULONG x = ProxyInterface->Release();

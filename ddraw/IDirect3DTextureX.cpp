@@ -22,7 +22,7 @@ HRESULT m_IDirect3DTextureX::QueryInterface(REFIID riid, LPVOID * ppvObj)
 	{
 		if ((riid == IID_IDirect3DTexture || riid == IID_IDirect3DTexture2 || riid == IID_IUnknown) && ppvObj)
 		{
-			++RefCount;
+			AddRef();
 
 			*ppvObj = this;
 
@@ -37,7 +37,7 @@ ULONG m_IDirect3DTextureX::AddRef()
 {
 	if (ProxyDirectXVersion == 7)
 	{
-		return ++RefCount;
+		return InterlockedIncrement(&RefCount);
 	}
 
 	return ProxyInterface->AddRef();
@@ -47,13 +47,15 @@ ULONG m_IDirect3DTextureX::Release()
 {
 	if (ProxyDirectXVersion == 7)
 	{
-		if (RefCount == 0)
+		LONG ref = InterlockedDecrement(&RefCount);
+
+		if (ref == 0)
 		{
 			delete this;
 			return 0;
 		}
 
-		return --RefCount;
+		return ref;
 	}
 
 	ULONG x = ProxyInterface->Release();

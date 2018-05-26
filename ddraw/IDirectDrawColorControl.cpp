@@ -20,6 +20,15 @@ HRESULT m_IDirectDrawColorControl::QueryInterface(REFIID riid, LPVOID FAR * ppvO
 {
 	if (ProxyInterface == nullptr)
 	{
+		if ((riid == IID_IDirectDrawColorControl || riid == IID_IUnknown) && ppvObj)
+		{
+			AddRef();
+
+			*ppvObj = this;
+
+			return S_OK;
+		}
+
 		return E_NOINTERFACE;
 	}
 
@@ -30,7 +39,7 @@ ULONG m_IDirectDrawColorControl::AddRef()
 {
 	if (ProxyInterface == nullptr)
 	{
-		return ++RefCount;
+		return InterlockedIncrement(&RefCount);
 	}
 
 	return ProxyInterface->AddRef();
@@ -40,13 +49,15 @@ ULONG m_IDirectDrawColorControl::Release()
 {
 	if (ProxyInterface == nullptr)
 	{
-		if (RefCount == 0)
+		LONG ref = InterlockedDecrement(&RefCount);
+
+		if (ref == 0)
 		{
 			delete this;
 			return 0;
 		}
 
-		return --RefCount;
+		return ref;
 	}
 
 	ULONG x = ProxyInterface->Release();
