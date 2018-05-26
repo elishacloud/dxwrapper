@@ -74,7 +74,7 @@ HRESULT m_IDirectDrawX::CreateClipper(DWORD dwFlags, LPDIRECTDRAWCLIPPER FAR * l
 
 HRESULT m_IDirectDrawX::CreatePalette(DWORD dwFlags, LPPALETTEENTRY lpDDColorArray, LPDIRECTDRAWPALETTE FAR * lplpDDPalette, IUnknown FAR * pUnkOuter)
 {
-	if (Config.ConvertToDirect3D7)
+	/*if (Config.ConvertToDirect3D7)
 	{
 		HRESULT hr = DDERR_GENERIC;
 
@@ -87,7 +87,7 @@ HRESULT m_IDirectDrawX::CreatePalette(DWORD dwFlags, LPPALETTEENTRY lpDDColorArr
 		}
 
 		return hr;
-	}
+	}*/
 
 	HRESULT hr = ProxyInterface->CreatePalette(dwFlags, lpDDColorArray, lplpDDPalette, pUnkOuter);
 
