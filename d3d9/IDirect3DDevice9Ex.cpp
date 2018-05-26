@@ -155,6 +155,8 @@ HRESULT m_IDirect3DDevice9Ex::CreateRenderTarget(THIS_ UINT Width, UINT Height, 
 	if (SUCCEEDED(hr))
 	{
 		*ppSurface = ProxyAddressLookupTable->FindAddress<m_IDirect3DSurface9>(*ppSurface);
+
+		pCurrentRenderTarget = *ppSurface;
 	}
 
 	return hr;
@@ -247,6 +249,8 @@ HRESULT m_IDirect3DDevice9Ex::GetRenderTarget(THIS_ DWORD RenderTargetIndex, IDi
 	if (SUCCEEDED(hr))
 	{
 		*ppRenderTarget = ProxyAddressLookupTable->FindAddress<m_IDirect3DSurface9>(*ppRenderTarget);
+
+		pCurrentRenderTarget = *ppRenderTarget;
 	}
 
 	return hr;
@@ -280,6 +284,8 @@ HRESULT m_IDirect3DDevice9Ex::SetRenderTarget(THIS_ DWORD RenderTargetIndex, IDi
 	if (pRenderTarget)
 	{
 		pRenderTarget = static_cast<m_IDirect3DSurface9 *>(pRenderTarget)->GetProxyInterface();
+
+		pCurrentRenderTarget = pRenderTarget;
 	}
 
 	return ProxyInterface->SetRenderTarget(RenderTargetIndex, pRenderTarget);
@@ -744,6 +750,16 @@ HRESULT m_IDirect3DDevice9Ex::GetViewport(D3DVIEWPORT9 *pViewport)
 
 HRESULT m_IDirect3DDevice9Ex::SetViewport(CONST D3DVIEWPORT9 *pViewport)
 {
+	if (pCurrentRenderTarget != nullptr)
+	{
+		D3DSURFACE_DESC Desc;
+		HRESULT hr = pCurrentRenderTarget->GetDesc(&Desc);
+		if (SUCCEEDED(hr) && (pViewport->Height > Desc.Height || pViewport->Width > Desc.Width))
+		{
+			return D3DERR_INVALIDCALL;
+		}
+	}
+
 	return ProxyInterface->SetViewport(pViewport);
 }
 
@@ -1180,6 +1196,8 @@ HRESULT m_IDirect3DDevice9Ex::CreateRenderTargetEx(THIS_ UINT Width, UINT Height
 	if (SUCCEEDED(hr))
 	{
 		*ppSurface = ProxyAddressLookupTable->FindAddress<m_IDirect3DSurface9>(*ppSurface);
+
+		pCurrentRenderTarget = *ppSurface;
 	}
 
 	return hr;
