@@ -72,8 +72,7 @@ HRESULT m_IDirect3DViewportX::Initialize(LPDIRECT3D lpDirect3D)
 {
 	if (ProxyDirectXVersion == 7)
 	{
-		Logging::Log() << __FUNCTION__ << " Not Implimented";
-		return D3D_OK;	// Should not matter for newer versions of DirectX
+		return D3D_OK;
 	}
 
 	if (lpDirect3D)

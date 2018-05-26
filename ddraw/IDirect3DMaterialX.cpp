@@ -72,8 +72,7 @@ HRESULT m_IDirect3DMaterialX::Initialize(LPDIRECT3D lplpD3D)
 {
 	if (ProxyDirectXVersion != 1)
 	{
-		Logging::Log() << __FUNCTION__ << " Not Implimented";
-		return D3D_OK;	// Should not matter for newer versions of DirectX
+		return D3D_OK;
 	}
 
 	if (lplpD3D)

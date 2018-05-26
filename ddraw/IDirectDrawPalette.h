@@ -5,6 +5,12 @@ class m_IDirectDrawPalette : public IDirectDrawPalette, public AddressLookupTabl
 private:
 	IDirectDrawPalette *ProxyInterface;
 	REFIID WrapperID = IID_IDirectDrawPalette;
+	ULONG RefCount = 1;
+	UINT32 *rgbPalette = nullptr;				// Rgb translated palette
+	LPPALETTEENTRY rawPalette = nullptr;		// Raw palette data
+	DWORD paletteCaps = 0;						// Palette flags
+	UINT entryCount = 0;							// Number of palette entries
+	bool hasAlpha = false;						// Raw palette has alpha data
 
 public:
 	m_IDirectDrawPalette(IDirectDrawPalette *aOriginal) : ProxyInterface(aOriginal)
@@ -14,6 +20,16 @@ public:
 	~m_IDirectDrawPalette()
 	{
 		ProxyAddressLookupTable.DeleteAddress(this);
+
+		// Free objects
+		if (rawPalette != NULL)
+		{
+			delete rawPalette;
+		}
+		if (rgbPalette != NULL)
+		{
+			delete rgbPalette;
+		}
 	}
 
 	DWORD GetDirectXVersion() { return 1; }
@@ -30,4 +46,5 @@ public:
 	STDMETHOD(GetEntries)(THIS_ DWORD, DWORD, DWORD, LPPALETTEENTRY);
 	STDMETHOD(Initialize)(THIS_ LPDIRECTDRAW, DWORD, LPPALETTEENTRY);
 	STDMETHOD(SetEntries)(THIS_ DWORD, DWORD, DWORD, LPPALETTEENTRY);
+	HRESULT WrapperInitialize(DWORD dwFlags, LPPALETTEENTRY lpDDColorArray);
 };

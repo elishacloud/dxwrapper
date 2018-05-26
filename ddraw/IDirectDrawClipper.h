@@ -5,6 +5,8 @@ class m_IDirectDrawClipper : public IDirectDrawClipper, public AddressLookupTabl
 private:
 	IDirectDrawClipper *ProxyInterface;
 	REFIID WrapperID = IID_IDirectDrawClipper;
+	ULONG RefCount = 1;
+	HWND cliphWnd = nullptr;			// Associated hwnd
 
 public:
 	m_IDirectDrawClipper(IDirectDrawClipper *aOriginal) : ProxyInterface(aOriginal)
@@ -32,4 +34,5 @@ public:
 	STDMETHOD(IsClipListChanged)(THIS_ BOOL FAR *);
 	STDMETHOD(SetClipList)(THIS_ LPRGNDATA, DWORD);
 	STDMETHOD(SetHWnd)(THIS_ DWORD, HWND);
+	HRESULT WrapperInitialize(DWORD dwFlags);
 };

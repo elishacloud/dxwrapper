@@ -46,6 +46,22 @@ HRESULT m_IDirectDrawX::Compact()
 
 HRESULT m_IDirectDrawX::CreateClipper(DWORD dwFlags, LPDIRECTDRAWCLIPPER FAR * lplpDDClipper, IUnknown FAR * pUnkOuter)
 {
+	// Disable for now until m_IDirectDrawClipper is fully implimented
+	/*if (Config.ConvertToDirect3D7)
+	{
+		HRESULT hr = DDERR_GENERIC;
+
+		if (lplpDDClipper)
+		{
+			m_IDirectDrawClipper *lpDDClipper = new m_IDirectDrawClipper(nullptr);
+			*lplpDDClipper = lpDDClipper;
+
+			hr = lpDDClipper->WrapperInitialize(dwFlags);
+		}
+
+		return hr;
+	}*/
+
 	HRESULT hr = ProxyInterface->CreateClipper(dwFlags, lplpDDClipper, pUnkOuter);
 
 	if (SUCCEEDED(hr) && lplpDDClipper)
@@ -58,6 +74,21 @@ HRESULT m_IDirectDrawX::CreateClipper(DWORD dwFlags, LPDIRECTDRAWCLIPPER FAR * l
 
 HRESULT m_IDirectDrawX::CreatePalette(DWORD dwFlags, LPPALETTEENTRY lpDDColorArray, LPDIRECTDRAWPALETTE FAR * lplpDDPalette, IUnknown FAR * pUnkOuter)
 {
+	if (Config.ConvertToDirect3D7)
+	{
+		HRESULT hr = DDERR_GENERIC;
+
+		if (lplpDDPalette)
+		{
+			m_IDirectDrawPalette *lpDDPalette = new m_IDirectDrawPalette(nullptr);
+			*lplpDDPalette = lpDDPalette;
+
+			hr = lpDDPalette->WrapperInitialize(dwFlags, lpDDColorArray);
+		}
+
+		return hr;
+	}
+
 	HRESULT hr = ProxyInterface->CreatePalette(dwFlags, lpDDColorArray, lplpDDPalette, pUnkOuter);
 
 	if (SUCCEEDED(hr) && lplpDDPalette)

@@ -96,6 +96,7 @@ DxWrapper uses code from several other projects. So to give credit where credit 
  - [AppCompatData](http://www.mojolabs.nz/posts.php?topic=99477): Used comments from blitzbasic.com to build the feature to configure the DirectDraw AppCompatData settings.
  - [GetFileVersionInfo ](https://stackoverflow.com/a/940743): Includes code from stackoverflow.com for getting the version of a PE file.
  - [Ultimate ASI Loader](https://github.com/ThirteenAG/Ultimate-ASI-Loader): Includes code for loading ASI pluggins.
+ - [diablo-ddrawwrapper] (https://github.com/strangebytes/diablo-ddrawwrapper): Includes some code for converting ddraw to Direct3D.
 
 ### Development
 DxWrapper is written mostly in C++ using Microsoft Visual Studio Community 2015.
