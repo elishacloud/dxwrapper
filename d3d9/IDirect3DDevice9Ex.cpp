@@ -48,6 +48,9 @@ ULONG m_IDirect3DDevice9Ex::Release()
 }
 HRESULT m_IDirect3DDevice9Ex::Reset(D3DPRESENT_PARAMETERS *pPresentationParameters)
 {
+	// Check for enabling VSync
+	UpdateVSyncParameter(pPresentationParameters);
+
 	if (DeviceMultiSampleType != D3DMULTISAMPLE_NONE)
 	{
 		pPresentationParameters->MultiSampleType = DeviceMultiSampleType;
@@ -84,6 +87,9 @@ BOOL m_IDirect3DDevice9Ex::ShowCursor(BOOL bShow)
 
 HRESULT m_IDirect3DDevice9Ex::CreateAdditionalSwapChain(D3DPRESENT_PARAMETERS *pPresentationParameters, IDirect3DSwapChain9 **ppSwapChain)
 {
+	// Check for enabling VSync
+	UpdateVSyncParameter(pPresentationParameters);
+
 	if (DeviceMultiSampleType != D3DMULTISAMPLE_NONE)
 	{
 		pPresentationParameters->MultiSampleType = DeviceMultiSampleType;
@@ -1235,6 +1241,9 @@ HRESULT m_IDirect3DDevice9Ex::CreateDepthStencilSurfaceEx(THIS_ UINT Width, UINT
 
 HRESULT m_IDirect3DDevice9Ex::ResetEx(THIS_ D3DPRESENT_PARAMETERS* pPresentationParameters, D3DDISPLAYMODEEX *pFullscreenDisplayMode)
 {
+	// Check for enabling VSync
+	UpdateVSyncParameter(pPresentationParameters);
+
 	if (DeviceMultiSampleType != D3DMULTISAMPLE_NONE)
 	{
 		pPresentationParameters->MultiSampleType = DeviceMultiSampleType;

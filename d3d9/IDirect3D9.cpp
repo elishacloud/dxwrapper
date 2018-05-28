@@ -116,6 +116,9 @@ HRESULT m_IDirect3D9::CreateDevice(UINT Adapter, D3DDEVTYPE DeviceType, HWND hFo
 {
 	HRESULT hr = D3DERR_INVALIDCALL;
 
+	// Check for enabling VSync
+	UpdateVSyncParameter(pPresentationParameters);
+
 	// Check for AntiAliasing
 	bool MultiSampleFlag = false;
 	if (Config.AntiAliasing != 0)

@@ -20,6 +20,7 @@
 	visit(CacheClipPlane) \
 	visit(ConvertToDirectDraw7) \
 	visit(ConvertToDirect3D7) \
+	visit(EnableVSync) \
 	visit(ExcludeProcess) \
 	visit(Force16bitColor) \
 	visit(Force32bitColor) \
@@ -147,6 +148,7 @@ struct CONFIG
 	bool CacheClipPlaneNotSet;			// If the CacheClipPlane option exists in the config file
 	bool ConvertToDirectDraw7;			// Converts DirectDraw 1-6 to DirectDraw 7
 	bool ConvertToDirect3D7;			// Converts Direct3D 1-6 to Direct3D 7
+	bool EnableVSync;					// Enables VSync for d3d9 wrapper
 	bool FullScreen;					// Sets the main window to fullscreen
 	bool ForceTermination;				// Terminates application when main window closes
 	bool ForceWindowResize;				// Forces main window to fullscreen

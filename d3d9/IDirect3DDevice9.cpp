@@ -48,6 +48,9 @@ ULONG m_IDirect3DDevice9::Release()
 }
 HRESULT m_IDirect3DDevice9::Reset(D3DPRESENT_PARAMETERS *pPresentationParameters)
 {
+	// Check for enabling VSync
+	UpdateVSyncParameter(pPresentationParameters);
+
 	if (DeviceMultiSampleType != D3DMULTISAMPLE_NONE)
 	{
 		pPresentationParameters->MultiSampleType = DeviceMultiSampleType;
@@ -84,6 +87,9 @@ BOOL m_IDirect3DDevice9::ShowCursor(BOOL bShow)
 
 HRESULT m_IDirect3DDevice9::CreateAdditionalSwapChain(D3DPRESENT_PARAMETERS *pPresentationParameters, IDirect3DSwapChain9 **ppSwapChain)
 {
+	// Check for enabling VSync
+	UpdateVSyncParameter(pPresentationParameters);
+
 	if (DeviceMultiSampleType != D3DMULTISAMPLE_NONE)
 	{
 		pPresentationParameters->MultiSampleType = DeviceMultiSampleType;
