@@ -89,6 +89,13 @@ HRESULT ProxyQueryInterface(LPVOID ProxyInterface, REFIID CalledID, LPVOID * ppv
 
 	REFIID riid = GetIID(CalledID);
 
+	if (Config.Dd7to9 || !ProxyInterface)
+	{
+		Logging::Log() << __FUNCTION__ << " Query Not Implimented for " << CalledID << " from " << WrapperID;
+
+		return E_NOINTERFACE;
+	}
+
 	if ((riid == WrapperID || riid == IID_IUnknown) && ppvObj)
 	{
 		((IUnknown*)ProxyInterface)->AddRef();

@@ -20,7 +20,7 @@
 
 HRESULT m_IDirectDrawPalette::QueryInterface(REFIID riid, LPVOID FAR * ppvObj)
 {
-	if (ProxyInterface == nullptr)
+	if (!ProxyInterface)
 	{
 		if ((riid == IID_IDirectDrawPalette || riid == IID_IUnknown) && ppvObj)
 		{
@@ -30,8 +30,6 @@ HRESULT m_IDirectDrawPalette::QueryInterface(REFIID riid, LPVOID FAR * ppvObj)
 
 			return S_OK;
 		}
-
-		return E_NOINTERFACE;
 	}
 
 	return ProxyQueryInterface(ProxyInterface, riid, ppvObj, WrapperID, this);
@@ -39,7 +37,7 @@ HRESULT m_IDirectDrawPalette::QueryInterface(REFIID riid, LPVOID FAR * ppvObj)
 
 ULONG m_IDirectDrawPalette::AddRef()
 {
-	if (ProxyInterface == nullptr)
+	if (!ProxyInterface)
 	{
 		return InterlockedIncrement(&RefCount);
 	}
@@ -49,14 +47,13 @@ ULONG m_IDirectDrawPalette::AddRef()
 
 ULONG m_IDirectDrawPalette::Release()
 {
-	if (ProxyInterface == nullptr)
+	if (!ProxyInterface)
 	{
 		LONG ref = InterlockedDecrement(&RefCount);
 
 		if (ref == 0)
 		{
 			delete this;
-			return 0;
 		}
 
 		return ref;
@@ -74,14 +71,13 @@ ULONG m_IDirectDrawPalette::Release()
 
 HRESULT m_IDirectDrawPalette::GetCaps(LPDWORD lpdwCaps)
 {
-	if (ProxyInterface == nullptr)
+	if (!lpdwCaps)
 	{
-		// lpdwCaps cannot be null
-		if (lpdwCaps == NULL)
-		{
-			return DDERR_INVALIDPARAMS;
-		}
+		return DDERR_INVALIDPARAMS;
+	}
 
+	if (!ProxyInterface)
+	{
 		// set return data to current palette caps
 		*lpdwCaps = paletteCaps;
 
@@ -93,16 +89,12 @@ HRESULT m_IDirectDrawPalette::GetCaps(LPDWORD lpdwCaps)
 
 HRESULT m_IDirectDrawPalette::GetEntries(DWORD dwFlags, DWORD dwBase, DWORD dwNumEntries, LPPALETTEENTRY lpEntries)
 {
-	if (ProxyInterface == nullptr)
+	if (!ProxyInterface)
 	{
 		// lpEntries cannot be null and dwFlags must be 0
-		if (lpEntries == NULL)
+		if (!lpEntries || !rawPalette || dwBase > entryCount)
 		{
 			return DDERR_INVALIDPARAMS;
-		}
-		else if (!rawPalette || entryCount < dwBase)
-		{
-			return DDERR_GENERIC;
 		}
 
 		// Copy raw palette entries to lpEntries(size dwNumEntries) starting at dwBase
@@ -121,7 +113,7 @@ HRESULT m_IDirectDrawPalette::GetEntries(DWORD dwFlags, DWORD dwBase, DWORD dwNu
 
 HRESULT m_IDirectDrawPalette::Initialize(LPDIRECTDRAW lpDD, DWORD dwFlags, LPPALETTEENTRY lpDDColorTable)
 {
-	if (ProxyInterface == nullptr)
+	if (!ProxyInterface)
 	{
 		return DD_OK;
 	}
@@ -136,16 +128,12 @@ HRESULT m_IDirectDrawPalette::Initialize(LPDIRECTDRAW lpDD, DWORD dwFlags, LPPAL
 
 HRESULT m_IDirectDrawPalette::SetEntries(DWORD dwFlags, DWORD dwStartingEntry, DWORD dwCount, LPPALETTEENTRY lpEntries)
 {
-	if (ProxyInterface == nullptr)
+	if (!ProxyInterface)
 	{
 		// lpEntries cannot be null and dwFlags must be 0
-		if (lpEntries == NULL)
+		if (!lpEntries || !rawPalette || !rgbPalette || dwStartingEntry > entryCount)
 		{
 			return DDERR_INVALIDPARAMS;
-		}
-		else if (!rawPalette || !rgbPalette || entryCount < dwStartingEntry)
-		{
-			return DDERR_GENERIC;
 		}
 
 		// Copy raw palette entries from dwStartingEntry and of count dwCount
@@ -177,86 +165,4 @@ HRESULT m_IDirectDrawPalette::SetEntries(DWORD dwFlags, DWORD dwStartingEntry, D
 	}
 
 	return ProxyInterface->SetEntries(dwFlags, dwStartingEntry, dwCount, lpEntries);
-}
-
-// Initialize wrapper function
-HRESULT m_IDirectDrawPalette::WrapperInitialize(DWORD dwFlags, LPPALETTEENTRY lpDDColorArray)
-{
-	// Save palette caps
-	paletteCaps = dwFlags;
-
-	// Default to 256 entries
-	entryCount = 256;
-
-	// Create palette of requested bit size
-	if (dwFlags & DDPCAPS_1BIT)
-	{
-		entryCount = 2;
-	}
-	else if (dwFlags & DDPCAPS_2BIT)
-	{
-		entryCount = 4;
-	}
-	else if (dwFlags & DDPCAPS_4BIT)
-	{
-		entryCount = 16;
-	}
-	else if (dwFlags & DDPCAPS_8BIT || dwFlags & DDPCAPS_ALLOW256)
-	{
-		entryCount = 256;
-	}
-
-	// Allocate raw ddraw palette
-	rawPalette = new PALETTEENTRY[entryCount];
-	// Memory failed to allocate, return out of memory
-	if (rawPalette == NULL)
-	{
-		return DDERR_OUTOFMEMORY;
-	}
-
-	// Copy inital palette into raw palette
-	memcpy(rawPalette, lpDDColorArray, sizeof(PALETTEENTRY) * entryCount);
-
-	// Check flags for alpha
-	if (dwFlags & DDPCAPS_ALPHA)
-	{
-		hasAlpha = true;
-	}
-	else
-	{
-		hasAlpha = false;
-	}
-
-	// Allocate rgb palette
-	rgbPalette = new UINT32[entryCount];
-	// Memory failed to allocate, return out of memory
-	if (rgbPalette == NULL)
-	{
-		return DDERR_OUTOFMEMORY;
-	}
-
-	// For all entries
-	for (UINT i = 0; i < entryCount; i++)
-	{
-		// Translate the raw palette to ARGB
-		if (hasAlpha)
-		{
-			// Include peFlags as 8bit alpha
-			rgbPalette[i] = rawPalette[i].peFlags << 24;
-			rgbPalette[i] |= rawPalette[i].peRed << 16;
-			rgbPalette[i] |= rawPalette[i].peGreen << 8;
-			rgbPalette[i] |= rawPalette[i].peBlue;
-		}
-		else
-		{
-			// Alpha is always 255
-			rgbPalette[i] = 0xFF000000;
-			rgbPalette[i] |= rawPalette[i].peRed << 16;
-			rgbPalette[i] |= rawPalette[i].peGreen << 8;
-			rgbPalette[i] |= rawPalette[i].peBlue;
-		}
-	}
-
-	// Success
-	return DD_OK;
 }

@@ -6,12 +6,15 @@ private:
 	IDirectDrawClipper *ProxyInterface;
 	REFIID WrapperID = IID_IDirectDrawClipper;
 	ULONG RefCount = 1;
-	HWND cliphWnd = nullptr;			// Associated hwnd
+	HWND cliphWnd = nullptr;
 
 public:
 	m_IDirectDrawClipper(IDirectDrawClipper *aOriginal) : ProxyInterface(aOriginal)
 	{
-		ProxyAddressLookupTable.SaveAddress(this, ProxyInterface);
+		if (ProxyInterface)
+		{
+			ProxyAddressLookupTable.SaveAddress(this, ProxyInterface);
+		}
 	}
 	~m_IDirectDrawClipper()
 	{
@@ -34,5 +37,4 @@ public:
 	STDMETHOD(IsClipListChanged)(THIS_ BOOL FAR *);
 	STDMETHOD(SetClipList)(THIS_ LPRGNDATA, DWORD);
 	STDMETHOD(SetHWnd)(THIS_ DWORD, HWND);
-	HRESULT WrapperInitialize(DWORD dwFlags);
 };

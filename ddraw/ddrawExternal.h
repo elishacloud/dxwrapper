@@ -3,7 +3,6 @@
 #include "Wrappers\wrapper.h"
 
 void WINAPI dd_AcquireDDThreadLock();
-void dd_CheckFullscreen();
 void dd_CompleteCreateSysmemSurface();
 HRESULT WINAPI dd_D3DParseUnknownCommand(LPVOID lpCmd, LPVOID *lpRetCmd);
 void dd_DDGetAttachedSurfaceLcl();
@@ -41,6 +40,7 @@ namespace DdrawWrapper
 	VISIT_PROCS_DDRAW(EXPORT_OUT_WRAPPED_PROC);
 	extern FARPROC DllCanUnloadNow_out;
 	extern FARPROC DllGetClassObject_out;
+	extern FARPROC Direct3DCreate9;
 }
 
 #undef DECLARE_IN_WRAPPED_PROC

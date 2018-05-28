@@ -532,15 +532,20 @@ void CONFIG::Init()
 	}
 
 	// Enable wrapper settings
+	if (Dd7to9)
+	{
+		ConvertToDirectDraw7 = true;
+		ConvertToDirect3D7 = true;
+	}
 	if ((isDdrawWrapperEnabled = (ConvertToDirectDraw7 || ConvertToDirect3D7)) != 0)
 	{
 		Logging::Log() << "Enabling ddraw wrapper";
 	}
-	if ((isD3d9WrapperEnabled = (AntiAliasing != 0 || CacheClipPlane)) != 0)
+	if ((isD3d9WrapperEnabled = (AntiAliasing != 0 || CacheClipPlane || Dd7to9)) != 0)
 	{
 		Logging::Log() << "Enabling d3d9 wrapper";
 	}
-	if ((D3d8to9 = (D3d8to9 || isD3d9WrapperEnabled)) != 0)
+	if ((D3d8to9 = (D3d8to9 || AntiAliasing)) != 0)
 	{
 		Logging::Log() << "Enabling d3d8to9 wrapper";
 	}

@@ -20,7 +20,7 @@
 
 HRESULT m_IDirectDrawClipper::QueryInterface(REFIID riid, LPVOID FAR * ppvObj)
 {
-	if (ProxyInterface == nullptr)
+	if (!ProxyInterface)
 	{
 		if ((riid == IID_IDirectDrawClipper || riid == IID_IUnknown) && ppvObj)
 		{
@@ -30,8 +30,6 @@ HRESULT m_IDirectDrawClipper::QueryInterface(REFIID riid, LPVOID FAR * ppvObj)
 
 			return S_OK;
 		}
-
-		return E_NOINTERFACE;
 	}
 
 	return ProxyQueryInterface(ProxyInterface, riid, ppvObj, WrapperID, this);
@@ -39,7 +37,7 @@ HRESULT m_IDirectDrawClipper::QueryInterface(REFIID riid, LPVOID FAR * ppvObj)
 
 ULONG m_IDirectDrawClipper::AddRef()
 {
-	if (ProxyInterface == nullptr)
+	if (!ProxyInterface)
 	{
 		return InterlockedIncrement(&RefCount);
 	}
@@ -49,14 +47,13 @@ ULONG m_IDirectDrawClipper::AddRef()
 
 ULONG m_IDirectDrawClipper::Release()
 {
-	if (ProxyInterface == nullptr)
+	if (!ProxyInterface)
 	{
 		LONG ref = InterlockedDecrement(&RefCount);
 
 		if (ref == 0)
 		{
 			delete this;
-			return 0;
 		}
 
 		return ref;
@@ -74,7 +71,7 @@ ULONG m_IDirectDrawClipper::Release()
 
 HRESULT m_IDirectDrawClipper::GetClipList(LPRECT lpRect, LPRGNDATA lpClipList, LPDWORD lpdwSize)
 {
-	if (ProxyInterface == nullptr)
+	if (!ProxyInterface)
 	{
 		Logging::Log() << __FUNCTION__ << " Not Implimented";
 		return DDERR_GENERIC;
@@ -85,22 +82,20 @@ HRESULT m_IDirectDrawClipper::GetClipList(LPRECT lpRect, LPRGNDATA lpClipList, L
 
 HRESULT m_IDirectDrawClipper::GetHWnd(HWND FAR * lphWnd)
 {
-	if (ProxyInterface == nullptr)
+	if (!lphWnd)
 	{
-		// lphWnd cannot be null
-		if (!lphWnd)
-		{
-			return DDERR_INVALIDPARAMS;
-		}
-		else if (!cliphWnd)
+		return DDERR_INVALIDPARAMS;
+	}
+
+	if (!ProxyInterface)
+	{
+		if (!cliphWnd)
 		{
 			return DDERR_INVALIDOBJECT;
 		}
 
-		// Set lphWnd to associated window handle
 		*lphWnd = cliphWnd;
 
-		// Success
 		return DD_OK;
 	}
 
@@ -109,7 +104,7 @@ HRESULT m_IDirectDrawClipper::GetHWnd(HWND FAR * lphWnd)
 
 HRESULT m_IDirectDrawClipper::Initialize(LPDIRECTDRAW lpDD, DWORD dwFlags)
 {
-	if (ProxyInterface == nullptr)
+	if (!ProxyInterface)
 	{
 		return DD_OK;
 	}
@@ -124,15 +119,14 @@ HRESULT m_IDirectDrawClipper::Initialize(LPDIRECTDRAW lpDD, DWORD dwFlags)
 
 HRESULT m_IDirectDrawClipper::IsClipListChanged(BOOL FAR * lpbChanged)
 {
-	if (ProxyInterface == nullptr)
+	if (!lpbChanged)
+	{
+		return DDERR_INVALIDPARAMS;
+	}
+
+	if (!ProxyInterface)
 	{
 		Logging::Log() << __FUNCTION__ << " Not Implimented";
-
-		// lpbChanged cannot be null
-		if (lpbChanged == NULL)
-		{
-			return DDERR_INVALIDPARAMS;
-		}
 
 		// lpbChanged is TRUE if the clip list has changed, and FALSE otherwise.
 
@@ -144,20 +138,18 @@ HRESULT m_IDirectDrawClipper::IsClipListChanged(BOOL FAR * lpbChanged)
 
 HRESULT m_IDirectDrawClipper::SetClipList(LPRGNDATA lpClipList, DWORD dwFlags)
 {
-	if (ProxyInterface == nullptr)
+	if (!ProxyInterface)
 	{
 		Logging::Log() << __FUNCTION__ << " Not Implimented";
 
-		//You cannot set the clip list if a window handle is already associated
-		// with the DirectDrawClipper objet.
+		// You cannot set the clip list if a window handle is already associated with the DirectDrawClipper object.
 		if (cliphWnd)
 		{
 			return DDERR_CLIPPERISUSINGHWND;
 		}
 
-		// ******NOTE:  If you call IDirectDrawSurface7::BltFast on a surface with an attached 
-		// clipper, it returns DDERR_UNSUPPORTED.
-		if (lpClipList == NULL)
+		// **NOTE:  If you call IDirectDrawSurface7::BltFast on a surface with an attached clipper, it returns DDERR_UNSUPPORTED.
+		if (!lpClipList)
 		{
 			// Delete associated clip list if it exists
 		}
@@ -174,7 +166,7 @@ HRESULT m_IDirectDrawClipper::SetClipList(LPRGNDATA lpClipList, DWORD dwFlags)
 
 HRESULT m_IDirectDrawClipper::SetHWnd(DWORD dwFlags, HWND hWnd)
 {
-	if (ProxyInterface == nullptr)
+	if (!ProxyInterface)
 	{
 		cliphWnd = hWnd;
 
@@ -184,12 +176,4 @@ HRESULT m_IDirectDrawClipper::SetHWnd(DWORD dwFlags, HWND hWnd)
 	}
 
 	return ProxyInterface->SetHWnd(dwFlags, hWnd);
-}
-
-// Initialize wrapper function
-HRESULT m_IDirectDrawClipper::WrapperInitialize(DWORD dwFlags)
-{
-	UNREFERENCED_PARAMETER(dwFlags);
-
-	return DD_OK;
 }

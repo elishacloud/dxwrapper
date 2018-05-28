@@ -215,6 +215,14 @@ bool APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 			{
 				Config.DDrawCompat = DDrawCompat::Start(hModule_dll, DLL_PROCESS_ATTACH);
 			}
+
+			// Redirect DdrawWrapper -> d3d9
+			if (Config.Dd7to9)
+			{
+				// Load d3d9 functions
+				HMODULE dll = LoadLibrary(dtypename[dtype.d3d9]);
+				DdrawWrapper::Direct3DCreate9 = Utils::GetProcAddress(dll, "Direct3DCreate9", DdrawWrapper::Direct3DCreate9);
+			}
 		}
 
 		// Start D3d8to9 module
@@ -281,6 +289,12 @@ bool APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 			{
 				d3d8::Direct3D8EnableMaximizedWindowedModeShim_var = d3d9::Direct3D9EnableMaximizedWindowedModeShim_var;
 				D3d8to9::Direct3DCreate9 = Direct3DCreate9_in;
+			}
+
+			// Redirect DdrawWrapper -> D3d9Wrapper
+			if (Config.Dd7to9)
+			{
+				DdrawWrapper::Direct3DCreate9 = Direct3DCreate9_in;
 			}
 		}
 

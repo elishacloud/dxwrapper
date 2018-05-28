@@ -8,6 +8,7 @@
 
 #define VISIT_CONFIG_SETTINGS(visit) \
 	visit(AntiAliasing) \
+	visit(Dd7to9) \
 	visit(D3d8to9) \
 	visit(DDrawCompat) \
 	visit(DDrawCompat20) \
@@ -135,6 +136,7 @@ struct CONFIG
 	bool SingleProcAffinityNotSet;		// If the SingleProcAffinity option exists in the config file
 	bool isDdrawWrapperEnabled;			// Specifies if DdrawWrapper needs to be enabled
 	bool isD3d9WrapperEnabled;			// Specifies if D3d9Wrapper needs to be enabled
+	bool Dd7to9;						// Converts DirectDraw/Direct3D (ddraw.dll) to Direct3D9 (d3d9.dll)
 	bool D3d8to9;						// Converts Direct3D8 (d3d8.dll) to Direct3D9 (d3d9.dll) https://github.com/crosire/d3d8to9
 	bool DDrawCompat;					// Enables the default DDrawCompat functions https://github.com/narzoul/DDrawCompat/
 	bool DDrawCompat20;					// Enables DDrawCompat v0.2.0b

@@ -8,9 +8,107 @@ private:
 	DWORD DirectXVersion;
 	DWORD ProxyDirectXVersion;
 	IID WrapperID;
+	ULONG RefCount = 1;
+
+	// Convert to d3d9
+	m_IDirectDrawX *ddrawParent;
+	DDSURFACEDESC2 surfaceDesc;
+	LONG surfaceWidth;
+	LONG surfaceHeight;
+	DDCOLORKEY colorKeys[4];		// Color keys(DDCKEY_DESTBLT, DDCKEY_DESTOVERLAY, DDCKEY_SRCBLT, DDCKEY_SRCOVERLAY)
+	LONG overlayX = 0;
+	LONG overlayY = 0;
+	m_IDirectDrawPalette *attachedPalette = nullptr;	// Associated palette
 
 public:
 	m_IDirectDrawSurfaceX(IDirectDrawSurface7 *pOriginal, DWORD Version, m_IDirectDrawSurface7 *Interface) : ProxyInterface(pOriginal), DirectXVersion(Version), WrapperInterface(Interface)
+	{
+		InitWrapper();
+	}
+	m_IDirectDrawSurfaceX(m_IDirectDrawX *Interface, DWORD Version, LPDDSURFACEDESC2 lpDDSurfaceDesc, DWORD displayModeWidth, DWORD displayModeHeight) : 
+		ddrawParent(Interface), DirectXVersion(Version), surfaceWidth(displayModeWidth), surfaceHeight(displayModeHeight)
+	{
+		ProxyInterface = nullptr;
+		WrapperInterface = nullptr;
+
+		InitWrapper();
+
+		// Init color keys
+		for (int i = 0; i < 4; i++)
+		{
+			memset(&colorKeys[i], 0, sizeof(DDCOLORKEY));
+		}
+
+		//set width and height
+		/*if(lpDDSurfaceDesc->dwFlags & DDSD_WIDTH)
+		{
+		surfaceWidth = lpDDSurfaceDesc->dwWidth;
+		}
+		else
+		{
+		surfaceWidth = displayModeWidth;
+		}
+		if(lpDDSurfaceDesc->dwFlags & DDSD_HEIGHT)
+		{
+		surfaceHeight = lpDDSurfaceDesc->dwHeight;
+		}
+		else
+		{
+		surfaceHeight = displayModeHeight;
+		}
+
+		//allocate virtual video memory raw
+		double indexSize = 1;
+		if(lpDDSurfaceDesc->ddpfPixelFormat.dwFlags & DDPF_PALETTEINDEXED1)
+		{
+		indexSize = 0.125;
+		}
+		else if(lpDDSurfaceDesc->ddpfPixelFormat.dwFlags & DDPF_PALETTEINDEXED2)
+		{
+		indexSize = 0.25;
+		}
+		else if(lpDDSurfaceDesc->ddpfPixelFormat.dwFlags & DDPF_PALETTEINDEXED4)
+		{
+		indexSize = 0.5;
+		}
+		else if(lpDDSurfaceDesc->ddpfPixelFormat.dwFlags & DDPF_PALETTEINDEXED8 | lpDDSurfaceDesc->ddpfPixelFormat.dwFlags & DDPF_PALETTEINDEXEDTO8)
+		{
+		indexSize = 1;
+		}*/
+
+		//Overallocate the memory to prevent access outside of memory range by the exe
+		//if(!ReInitialize(displayWidth, displayHeight)) return DDERR_OUTOFMEMORY;
+		//maximum supported resolution is 1920x1440
+		rawVideoMem = new BYTE[1920 * 1440];
+
+		// Clear raw memory
+		ZeroMemory(rawVideoMem, 1920 * 1440 * sizeof(BYTE));
+
+		// Allocate virtual video memory RGB
+		rgbVideoMem = new UINT32[surfaceWidth * surfaceHeight];
+
+		// Clear rgb memory
+		ZeroMemory(rgbVideoMem, surfaceWidth * surfaceHeight * sizeof(UINT32));
+
+		// Copy surface description
+		memcpy(&surfaceDesc, lpDDSurfaceDesc, sizeof(DDSURFACEDESC2));
+	}
+	~m_IDirectDrawSurfaceX()
+	{
+		// Free memory for internal structures
+		if (rawVideoMem != nullptr)
+		{
+			delete rawVideoMem;
+			rawVideoMem = nullptr;
+		}
+		if (rgbVideoMem != nullptr)
+		{
+			delete rawVideoMem;
+			rgbVideoMem = nullptr;
+		}
+	}
+
+	void InitWrapper()
 	{
 		WrapperID = (DirectXVersion == 1) ? IID_IDirectDrawSurface :
 			(DirectXVersion == 2) ? IID_IDirectDrawSurface2 :
@@ -18,19 +116,28 @@ public:
 			(DirectXVersion == 4) ? IID_IDirectDrawSurface4 :
 			(DirectXVersion == 7) ? IID_IDirectDrawSurface7 : IID_IDirectDrawSurface7;
 
-		REFIID ProxyID = ConvertREFIID(WrapperID);
-		ProxyDirectXVersion = (ProxyID == IID_IDirectDrawSurface) ? 1 :
-			(ProxyID == IID_IDirectDrawSurface2) ? 2 :
-			(ProxyID == IID_IDirectDrawSurface3) ? 3 :
-			(ProxyID == IID_IDirectDrawSurface4) ? 4 :
-			(ProxyID == IID_IDirectDrawSurface7) ? 7 : 7;
+		if (Config.Dd7to9)
+		{
+			ProxyDirectXVersion = 9;
+		}
+		else
+		{
+			REFIID ProxyID = ConvertREFIID(WrapperID);
+			ProxyDirectXVersion = (ProxyID == IID_IDirectDrawSurface) ? 1 :
+				(ProxyID == IID_IDirectDrawSurface2) ? 2 :
+				(ProxyID == IID_IDirectDrawSurface3) ? 3 :
+				(ProxyID == IID_IDirectDrawSurface4) ? 4 :
+				(ProxyID == IID_IDirectDrawSurface7) ? 7 : 7;
+		}
 
 		if (ProxyDirectXVersion != DirectXVersion)
 		{
 			Logging::LogDebug() << "Convert DirectDrawSurface v" << DirectXVersion << " to v" << ProxyDirectXVersion;
 		}
 	}
-	~m_IDirectDrawSurfaceX() {}
+
+	UINT32 *rgbVideoMem = nullptr;		// RGB video memory
+	BYTE *rawVideoMem = nullptr;		// Virtual video memory
 
 	DWORD GetDirectXVersion() { return DDWRAPPER_TYPEX; }
 	REFIID GetWrapperType() { return WrapperID; }

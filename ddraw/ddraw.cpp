@@ -16,6 +16,7 @@
 
 #include "ddraw.h"
 #include "ddrawExternal.h"
+#include "Dllmain\Dllmain.h"
 
 AddressLookupTableDdraw<void> ProxyAddressLookupTable = AddressLookupTableDdraw<void>();
 m_IDirect3DDeviceX *lpCurrentD3DDevice = nullptr;
@@ -29,12 +30,19 @@ namespace DdrawWrapper
 	VISIT_PROCS_DDRAW(INITUALIZE_WRAPPED_PROC);
 	FARPROC DllCanUnloadNow_out = (FARPROC)*(ShardProcs::DllCanUnloadNow);
 	FARPROC DllGetClassObject_out = (FARPROC)*(ShardProcs::DllGetClassObject);
+	FARPROC Direct3DCreate9;
 }
 
 using namespace DdrawWrapper;
 
 void WINAPI dd_AcquireDDThreadLock()
 {
+	if (Config.Dd7to9)
+	{
+		Logging::Log() << __FUNCTION__ << " Not Implimented";
+		return;
+	}
+
 	if (!Wrapper::ValidProcAddress(AcquireDDThreadLock_out))
 	{
 		return;
@@ -51,6 +59,12 @@ void __declspec(naked) dd_CompleteCreateSysmemSurface()
 
 HRESULT WINAPI dd_D3DParseUnknownCommand(LPVOID lpCmd, LPVOID *lpRetCmd)
 {
+	if (Config.Dd7to9)
+	{
+		Logging::Log() << __FUNCTION__ << " Not Implimented";
+		return E_NOTIMPL;
+	}
+
 	if (!Wrapper::ValidProcAddress(D3DParseUnknownCommand_out))
 	{
 		return DDERR_INVALIDOBJECT;
@@ -130,6 +144,12 @@ HRESULT WINAPI dd_DirectDrawCreate(GUID FAR *lpGUID, LPDIRECTDRAW FAR *lplpDD, I
 
 HRESULT WINAPI dd_DirectDrawCreateClipper(DWORD dwFlags, LPDIRECTDRAWCLIPPER *lplpDDClipper, LPUNKNOWN pUnkOuter)
 {
+	if (Config.Dd7to9)
+	{
+		Logging::Log() << __FUNCTION__ << " Not Implimented";
+		return E_NOTIMPL;
+	}
+
 	if (!Wrapper::ValidProcAddress(DirectDrawCreateClipper_out))
 	{
 		return DDERR_INVALIDOBJECT;
@@ -167,6 +187,57 @@ HRESULT WINAPI dd_DirectDrawCreateEx(GUID FAR *lpGUID, LPVOID *lplpDD, REFIID ri
 
 	if (SUCCEEDED(hr))
 	{
+		if (Config.Dd7to9)
+		{
+			// Declare Direct3DCreate9
+			static PFN_Direct3DCreate9 Direct3DCreate9 = reinterpret_cast<PFN_Direct3DCreate9>(DdrawWrapper::Direct3DCreate9);
+
+			if (!Direct3DCreate9)
+			{
+				Logging::Log() << "Failed to get 'Direct3DCreate9' ProcAddress of d3d9.dll!";
+				return DDERR_GENERIC;
+			}
+
+			// Create Direct3D9 device
+			LPDIRECT3D9 d3d9Object = Direct3DCreate9(D3D_SDK_VERSION);
+
+			if (d3d9Object == nullptr)
+			{
+				Logging::Log() << __FUNCTION__ << " Failed to create Direct3D9 object";
+				// Error creation directdraw
+				return DDERR_GENERIC;
+			}
+
+			if (riid == IID_IDirectDraw || riid == CLSID_DirectDraw)
+			{
+				m_IDirectDraw *lpDD = new m_IDirectDraw((IDirectDraw *)d3d9Object);
+				*lplpDD = lpDD;
+			}
+			else if (riid == IID_IDirectDraw2)
+			{
+				m_IDirectDraw2 *lpDD = new m_IDirectDraw2((IDirectDraw2 *)d3d9Object);
+				*lplpDD = lpDD;
+			}
+			else if	(riid == IID_IDirectDraw3)
+			{
+				m_IDirectDraw3 *lpDD = new m_IDirectDraw3((IDirectDraw3 *)d3d9Object);
+				*lplpDD = lpDD;
+			}
+			else if	(riid == IID_IDirectDraw4)
+			{
+				m_IDirectDraw4 *lpDD = new m_IDirectDraw4((IDirectDraw4 *)d3d9Object);
+				*lplpDD = lpDD;
+			}
+			else
+			{
+				m_IDirectDraw7 *lpDD = new m_IDirectDraw7((IDirectDraw7 *)d3d9Object);
+				*lplpDD = lpDD;
+			}
+
+			// Success
+			return DD_OK;
+		}
+
 		genericQueryInterface(riid, lplpDD);
 	}
 
@@ -175,6 +246,12 @@ HRESULT WINAPI dd_DirectDrawCreateEx(GUID FAR *lpGUID, LPVOID *lplpDD, REFIID ri
 
 HRESULT WINAPI dd_DirectDrawEnumerateA(LPDDENUMCALLBACKA lpCallback, LPVOID lpContext)
 {
+	if (Config.Dd7to9)
+	{
+		Logging::Log() << __FUNCTION__ << " Not Implimented";
+		return E_NOTIMPL;
+	}
+
 	if (!Wrapper::ValidProcAddress(DirectDrawEnumerateA_out))
 	{
 		return DDERR_INVALIDOBJECT;
@@ -184,6 +261,12 @@ HRESULT WINAPI dd_DirectDrawEnumerateA(LPDDENUMCALLBACKA lpCallback, LPVOID lpCo
 
 HRESULT WINAPI dd_DirectDrawEnumerateExA(LPDDENUMCALLBACKEXA lpCallback, LPVOID lpContext, DWORD dwFlags)
 {
+	if (Config.Dd7to9)
+	{
+		Logging::Log() << __FUNCTION__ << " Not Implimented";
+		return E_NOTIMPL;
+	}
+
 	if (!Wrapper::ValidProcAddress(DirectDrawEnumerateExA_out))
 	{
 		return DDERR_INVALIDOBJECT;
@@ -193,6 +276,12 @@ HRESULT WINAPI dd_DirectDrawEnumerateExA(LPDDENUMCALLBACKEXA lpCallback, LPVOID 
 
 HRESULT WINAPI dd_DirectDrawEnumerateExW(LPDDENUMCALLBACKEXW lpCallback, LPVOID lpContext, DWORD dwFlags)
 {
+	if (Config.Dd7to9)
+	{
+		Logging::Log() << __FUNCTION__ << " Not Implimented";
+		return E_NOTIMPL;
+	}
+
 	if (!Wrapper::ValidProcAddress(DirectDrawEnumerateExW_out))
 	{
 		return DDERR_INVALIDOBJECT;
@@ -202,6 +291,12 @@ HRESULT WINAPI dd_DirectDrawEnumerateExW(LPDDENUMCALLBACKEXW lpCallback, LPVOID 
 
 HRESULT WINAPI dd_DirectDrawEnumerateW(LPDDENUMCALLBACKW lpCallback, LPVOID lpContext)
 {
+	if (Config.Dd7to9)
+	{
+		Logging::Log() << __FUNCTION__ << " Not Implimented";
+		return E_NOTIMPL;
+	}
+
 	if (!Wrapper::ValidProcAddress(DirectDrawEnumerateW_out))
 	{
 		return DDERR_INVALIDOBJECT;
@@ -211,6 +306,12 @@ HRESULT WINAPI dd_DirectDrawEnumerateW(LPDDENUMCALLBACKW lpCallback, LPVOID lpCo
 
 HRESULT WINAPI dd_DllCanUnloadNow()
 {
+	if (Config.Dd7to9)
+	{
+		Logging::Log() << __FUNCTION__ << " Not Implimented";
+		return E_NOTIMPL;
+	}
+
 	if (!Wrapper::ValidProcAddress(DllCanUnloadNow_out))
 	{
 		return DDERR_INVALIDOBJECT;
@@ -220,6 +321,12 @@ HRESULT WINAPI dd_DllCanUnloadNow()
 
 HRESULT WINAPI dd_DllGetClassObject(REFCLSID rclsid, REFIID riid, LPVOID *ppv)
 {
+	if (Config.Dd7to9)
+	{
+		Logging::Log() << __FUNCTION__ << " Not Implimented";
+		return E_NOTIMPL;
+	}
+
 	if (!Wrapper::ValidProcAddress(DllGetClassObject_out))
 	{
 		return DDERR_INVALIDOBJECT;
@@ -251,6 +358,12 @@ void __declspec(naked) dd_GetOLEThunkData()
 
 HRESULT WINAPI dd_GetSurfaceFromDC(HDC hdc, LPDIRECTDRAWSURFACE7 *lpDDS)
 {
+	if (Config.Dd7to9)
+	{
+		Logging::Log() << __FUNCTION__ << " Not Implimented";
+		return E_NOTIMPL;
+	}
+
 	if (!Wrapper::ValidProcAddress(GetSurfaceFromDC_out))
 	{
 		return DDERR_INVALIDOBJECT;
@@ -275,6 +388,12 @@ void __declspec(naked) dd_RegisterSpecialCase()
 
 void WINAPI dd_ReleaseDDThreadLock()
 {
+	if (Config.Dd7to9)
+	{
+		Logging::Log() << __FUNCTION__ << " Not Implimented";
+		return;
+	}
+
 	if (!Wrapper::ValidProcAddress(ReleaseDDThreadLock_out))
 	{
 		return;
@@ -284,6 +403,12 @@ void WINAPI dd_ReleaseDDThreadLock()
 
 HRESULT WINAPI dd_SetAppCompatData(DWORD Type, DWORD Value)
 {
+	if (Config.Dd7to9)
+	{
+		Logging::Log() << __FUNCTION__ << " Not Implimented";
+		return E_NOTIMPL;
+	}
+
 	if (!Wrapper::ValidProcAddress(SetAppCompatData_out))
 	{
 		return DDERR_INVALIDOBJECT;
