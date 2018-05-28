@@ -16,6 +16,7 @@ private:
 	// Convert to d3d9
 	ULONG RefCount = 1;
 	HWND MainhWnd = nullptr;
+	bool Locked = false;
 	POINT lastPosition = {100, 100};		// Last window position
 	bool SetDefaultDisplayMode = false;		// Set native resolution
 	bool isWindowed = false;				// Window mode enabled
@@ -94,44 +95,6 @@ public:
 		{
 			UnhookWindowsHookEx(g_hook);
 		}
-
-		if (Config.Dd7to9)
-		{
-			// Release existing vertex buffer
-			if (vertexBuffer)
-			{
-				vertexBuffer->Release();
-				vertexBuffer = nullptr;
-			}
-
-			// Release existing surface texture
-			if (surfaceTexture)
-			{
-				surfaceTexture->Release();
-				surfaceTexture = nullptr;
-			}
-
-			// Release existing d3ddevice (buggy, not in thread?)
-			if (d3d9Device)
-			{
-				Logging::Log() << __FUNCTION__ << " 'd3d9Device->Release()' Not Implimented";
-				/*if (d3d9Device->Release() != 0)
-				{
-					Logging::Log() << __FUNCTION__ << " Unable to release Direct3D9 device";
-				}*/
-				d3d9Device = nullptr;
-			}
-
-			// Release existing d3dobject
-			if (d3d9Object)
-			{
-				if (d3d9Object->Release() != 0)
-				{
-					//Logging::Log() << __FUNCTION__ << " Unable to release Direct3D9 device";
-				}
-				d3d9Object = nullptr;
-			}
-		}
 	}
 
 	WNDPROC lpPrevWndFunc = nullptr;
@@ -176,9 +139,11 @@ public:
 	STDMETHOD(StartModeTest)(THIS_ LPSIZE, DWORD, DWORD);
 	STDMETHOD(EvaluateMode)(THIS_ DWORD, DWORD *);
 	// Helper functions
+	void ReleaseD3d9();
 	void AdjustWindow();
 	bool CreateD3DDevice();
 	bool CreateSurfaceTexture();
 	bool ReinitDevice();
-	HRESULT Present();
+	HRESULT Lock();
+	HRESULT Unlock();
  };

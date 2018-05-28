@@ -55,14 +55,15 @@ ULONG m_IDirectDrawX::Release()
 
 		if (ref == 0)
 		{
-			Logging::Log() << __FUNCTION__ << " Not Implimented";
+			ReleaseD3d9();
+
 			if (WrapperInterface)
 			{
-				//WrapperInterface->DeleteMe();
+				WrapperInterface->DeleteMe();
 			}
 			else
 			{
-				//delete this;
+				delete this;
 			}
 		}
 
@@ -77,6 +78,43 @@ ULONG m_IDirectDrawX::Release()
 	}
 
 	return x;
+}
+
+void m_IDirectDrawX::ReleaseD3d9()
+{
+	// Release existing vertex buffer
+	if (vertexBuffer)
+	{
+		vertexBuffer->Release();
+		vertexBuffer = nullptr;
+	}
+
+	// Release existing surface texture
+	if (surfaceTexture)
+	{
+		surfaceTexture->Release();
+		surfaceTexture = nullptr;
+	}
+
+	// Release existing d3ddevice
+	if (d3d9Device)
+	{
+		if (d3d9Device->Release() != 0)
+		{
+			Logging::Log() << __FUNCTION__ << " Unable to release Direct3D9 device";
+		}
+		d3d9Device = nullptr;
+	}
+
+	// Release existing d3dobject
+	if (d3d9Object)
+	{
+		if (d3d9Object->Release() != 0)
+		{
+			Logging::Log() << __FUNCTION__ << " Unable to release Direct3D9 device";
+		}
+		d3d9Object = nullptr;
+	}
 }
 
 HRESULT m_IDirectDrawX::Compact()
@@ -365,7 +403,7 @@ HRESULT m_IDirectDrawX::GetVerticalBlankStatus(LPBOOL lpbIsInVB)
 			return DDERR_INVALIDPARAMS;
 		}
 
-		*lpbIsInVB = false;
+		*lpbIsInVB = Locked;
 
 		return DD_OK;
 	}
@@ -447,7 +485,7 @@ HRESULT m_IDirectDrawX::SetCooperativeLevel(HWND hWnd, DWORD dwFlags)
 			}
 
 			g_hookmap[hWnd] = ProxyInterface;
-			g_hook = SetWindowsHookEx(WH_CBT, CBTProc, NULL, GetWindowThreadProcessId(hWnd, nullptr));
+			g_hook = SetWindowsHookEx(WH_CBT, CBTProc, nullptr, GetWindowThreadProcessId(hWnd, nullptr));
 		}
 
 		if (chWnd)
@@ -475,8 +513,11 @@ HRESULT m_IDirectDrawX::SetDisplayMode(DWORD dwWidth, DWORD dwHeight, DWORD dwBP
 			displayHeight = dwHeight;
 		}
 
-		// Adjust the display window to match the current display mode
-		AdjustWindow();
+		if ((displayWidth != dwWidth || displayHeight != dwHeight) || isWindowed)
+		{
+			// Adjust the display window to match the current display mode
+			AdjustWindow();
+		}
 
 		// Ignore color depth
 
@@ -678,21 +719,21 @@ void m_IDirectDrawX::AdjustWindow()
 		// Window with border/caption
 		SetWindowLong(MainhWnd, GWL_STYLE, WS_VISIBLE | WS_CAPTION);
 		// Set window size
-		SetWindowPos(MainhWnd, NULL, 0, 0, displayWidth, displayHeight, SWP_NOMOVE | SWP_NOZORDER);
+		SetWindowPos(MainhWnd, nullptr, 0, 0, displayWidth, displayHeight, SWP_NOMOVE | SWP_NOZORDER);
 		// Adjust for window decoration to ensure client area matches display size
 		RECT tempRect;
 		GetClientRect(MainhWnd, &tempRect);
 		tempRect.right = (displayWidth - tempRect.right) + displayWidth;
 		tempRect.bottom = (displayHeight - tempRect.bottom) + displayHeight;
 		// Move window to last position and adjust size
-		SetWindowPos(MainhWnd, NULL, lastPosition.x, lastPosition.y, tempRect.right, tempRect.bottom, SWP_NOZORDER);
+		SetWindowPos(MainhWnd, nullptr, lastPosition.x, lastPosition.y, tempRect.right, tempRect.bottom, SWP_NOZORDER);
 	}
 	else
 	{
 		// Window borderless and fullscreen size
 		SetWindowLong(MainhWnd, GWL_STYLE, WS_VISIBLE);
 		// Set full size
-		SetWindowPos(MainhWnd, NULL, 0, 0, displayWidth, displayHeight, SWP_NOZORDER);
+		SetWindowPos(MainhWnd, nullptr, 0, 0, displayWidth, displayHeight, SWP_NOZORDER);
 	}
 }
 
@@ -846,14 +887,14 @@ bool m_IDirectDrawX::CreateSurfaceTexture()
 	}
 
 	// Create managed dynamic texture to allow locking(debug as video size but change to display size)
-	if (d3d9Device->CreateTexture(displayModeWidth, displayModeHeight, 1, D3DUSAGE_DYNAMIC, D3DFMT_X8R8G8B8, D3DPOOL_DEFAULT, &surfaceTexture, NULL) != D3D_OK)
+	if (d3d9Device->CreateTexture(displayModeWidth, displayModeHeight, 1, D3DUSAGE_DYNAMIC, D3DFMT_X8R8G8B8, D3DPOOL_DEFAULT, &surfaceTexture, nullptr) != D3D_OK)
 	{
 		Logging::Log() << __FUNCTION__ << " Unable to create surface texture";
 		return false;
 	}
 
 	// Set vertex shader
-	if (d3d9Device->SetVertexShader(NULL) != D3D_OK)
+	if (d3d9Device->SetVertexShader(nullptr) != D3D_OK)
 	{
 		Logging::Log() << __FUNCTION__ << " Unable to set vertex shader";
 		return false;
@@ -867,7 +908,7 @@ bool m_IDirectDrawX::CreateSurfaceTexture()
 	}
 
 	// Create vertex buffer
-	if (d3d9Device->CreateVertexBuffer(sizeof(TLVERTEX) * 4, NULL, (D3DFVF_XYZRHW | D3DFVF_TEX1), D3DPOOL_MANAGED, &vertexBuffer, NULL) != D3D_OK)
+	if (d3d9Device->CreateVertexBuffer(sizeof(TLVERTEX) * 4, 0, (D3DFVF_XYZRHW | D3DFVF_TEX1), D3DPOOL_MANAGED, &vertexBuffer, nullptr) != D3D_OK)
 	{
 		Logging::Log() << __FUNCTION__ << " Unable to create vertex buffer";
 		return false;
@@ -905,7 +946,7 @@ bool m_IDirectDrawX::CreateSurfaceTexture()
 	// Setup verticies (0,0,currentWidth,currentHeight)
 	TLVERTEX* vertices;
 	// Lock
-	if (vertexBuffer->Lock(0, 0, (void**)&vertices, NULL) != D3D_OK)
+	if (vertexBuffer->Lock(0, 0, (void**)&vertices, 0) != D3D_OK)
 	{
 		Logging::Log() << __FUNCTION__ << " Unable to lock vertex buffer";
 		return false;
@@ -983,86 +1024,137 @@ bool m_IDirectDrawX::ReinitDevice()
 }
 
 // Helper function to present the d3d surface
-HRESULT m_IDirectDrawX::Present()
+HRESULT m_IDirectDrawX::Lock()
 {
+	// Make sure the surface is not locked
+	if (Locked)
+	{
+		Logging::Log() << __FUNCTION__ << " surface already locked";
+		return DDERR_GENERIC;
+	}
+
 	// Make sure the device exists
 	if (!d3d9Device)
 	{
-		Logging::Log() << __FUNCTION__ << " Present called when d3d9device doesn't exist";
-		return false;
+		Logging::Log() << __FUNCTION__ << " called when d3d9device doesn't exist";
+		return DDERR_GENERIC;
 	}
 
 	// Make sure surface texture exists
 	if (!surfaceTexture)
 	{
-		Logging::Log() << __FUNCTION__ << " Present called when texture doesn't exist";
-		return false;
+		Logging::Log() << __FUNCTION__ << " called when texture doesn't exist";
+		return DDERR_SURFACELOST;
 	}
 
 	// Make sure the attached surface exists
-	if (lpAttachedSurface)
+	if (!lpAttachedSurface)
 	{
-		// Lock full dynamic texture
-		D3DLOCKED_RECT d3dlrect;
-		if (surfaceTexture->LockRect(0, &d3dlrect, nullptr, D3DLOCK_DISCARD) != D3D_OK)
-		{
-			Logging::Log() << __FUNCTION__ << " Failed to lock texture memory";
-			return false;
-		}
-
-		// Copy bits to texture by scanline observing pitch
-		for (UINT y = 0; y < displayModeHeight; y++)
-		{
-			memcpy((BYTE *)d3dlrect.pBits + (y * d3dlrect.Pitch), &lpAttachedSurface->rgbVideoMem[y * displayModeWidth], displayModeWidth * sizeof(UINT32));
-		}
-
-		// Unlock dynamic texture
-		if (surfaceTexture->UnlockRect(NULL) != D3D_OK)
-		{
-			Logging::Log() << __FUNCTION__ << " Failed to unlock texture memory";
-			return false;
-		}
-	}
-	else
-	{
-		Logging::Log() << __FUNCTION__ << " Attempt to Present with no attached surface";
+		Logging::Log() << __FUNCTION__ << " Attempted with no attached surface";
+		return DDERR_SURFACELOST;
 	}
 
-	if (d3d9Device->Clear(0, nullptr, D3DCLEAR_TARGET, 0xFF000000, 1.0f, 0) != D3D_OK)
+	// Lock full dynamic texture
+	D3DLOCKED_RECT d3dlrect;
+	HRESULT hr = surfaceTexture->LockRect(0, &d3dlrect, nullptr, D3DLOCK_DISCARD);
+	if (FAILED(hr))
+	{
+		Logging::Log() << __FUNCTION__ << " Failed to lock texture memory";
+		return hr;
+	}
+
+	// Copy bits to texture by scanline observing pitch
+	for (UINT y = 0; y < displayModeHeight; y++)
+	{
+		memcpy((BYTE *)d3dlrect.pBits + (y * d3dlrect.Pitch), &lpAttachedSurface->rgbVideoMem[y * displayModeWidth], displayModeWidth * sizeof(UINT32));
+	}
+
+	Locked = true;
+
+	return DD_OK;
+}
+
+// Helper function to present the d3d surface
+HRESULT m_IDirectDrawX::Unlock()
+{
+	// Make sure the surface is not locked
+	if (!Locked)
+	{
+		Logging::Log() << __FUNCTION__ << " surface not locked";
+		return DDERR_NOTLOCKED;
+	}
+
+	// Make sure the device exists
+	if (!d3d9Device)
+	{
+		Logging::Log() << __FUNCTION__ << " called when d3d9device doesn't exist";
+		return DDERR_INVALIDOBJECT;
+	}
+
+	// Make sure surface texture exists
+	if (!surfaceTexture)
+	{
+		Logging::Log() << __FUNCTION__ << " called when texture doesn't exist";
+		return DDERR_SURFACELOST;
+	}
+
+	// Make sure the attached surface exists
+	if (!lpAttachedSurface)
+	{
+		Logging::Log() << __FUNCTION__ << " Attempted with no attached surface";
+		return DDERR_SURFACELOST;
+	}
+
+	// Unlock dynamic texture
+	HRESULT hr = surfaceTexture->UnlockRect(0);
+	if (FAILED(hr))
+	{
+		Logging::Log() << __FUNCTION__ << " Failed to unlock texture memory";
+		return hr;
+	}
+
+	Locked = false;
+
+	hr = d3d9Device->Clear(0, nullptr, D3DCLEAR_TARGET, 0xFF000000, 1.0f, 0);
+	if (FAILED(hr))
 	{
 		Logging::Log() << __FUNCTION__ << " Failed to clear device";
-		return false;
+		return hr;
 	}
 
-	if (d3d9Device->BeginScene() != D3D_OK)
+	hr = d3d9Device->BeginScene();
+	if (FAILED(hr))
 	{
 		Logging::Log() << __FUNCTION__ << " Failed to begin scene";
-		return false;
+		return hr;
 	}
 
 	// Set texture
-	if (d3d9Device->SetTexture(0, surfaceTexture) != D3D_OK)
+	hr = d3d9Device->SetTexture(0, surfaceTexture);
+	if (FAILED(hr))
 	{
 		Logging::Log() << __FUNCTION__ << " Failed to set texture";
-		return false;
+		return hr;
 	}
 
 	// Draw primitive
-	if (d3d9Device->DrawPrimitive(D3DPT_TRIANGLEFAN, 0, 2) != D3D_OK)
+	hr = d3d9Device->DrawPrimitive(D3DPT_TRIANGLEFAN, 0, 2);
+	if (FAILED(hr))
 	{
 		Logging::Log() << __FUNCTION__ << " Failed to draw primitive";
-		return false;
+		return hr;
 	}
 
 	// And... End scene
-	if (d3d9Device->EndScene() != D3D_OK)
+	hr = d3d9Device->EndScene();
+	if (FAILED(hr))
 	{
 		Logging::Log() << __FUNCTION__ << " Failed to end scene";
-		return false;
+		return hr;
 	}
 
 	// Present everthing!
-	HRESULT hr = d3d9Device->Present(nullptr, nullptr, nullptr, nullptr);
+	hr = d3d9Device->Present(nullptr, nullptr, nullptr, nullptr);
 
 	// Device lost
 	if (hr == D3DERR_DEVICELOST)
@@ -1071,11 +1163,11 @@ HRESULT m_IDirectDrawX::Present()
 		// Attempt to reinit device
 		return ReinitDevice();
 	}
-	else if (hr != D3D_OK)
+	else if (FAILED(hr))
 	{
 		Logging::Log() << __FUNCTION__ << " Failed to present scene";
-		return false;
+		return hr;
 	}
 
-	return true;
+	return DD_OK;
 }

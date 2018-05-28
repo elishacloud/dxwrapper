@@ -541,7 +541,7 @@ void CONFIG::Init()
 	{
 		Logging::Log() << "Enabling ddraw wrapper";
 	}
-	if ((isD3d9WrapperEnabled = (AntiAliasing != 0 || CacheClipPlane || Dd7to9)) != 0)
+	if ((isD3d9WrapperEnabled = (AntiAliasing != 0 || CacheClipPlane)) != 0)
 	{
 		Logging::Log() << "Enabling d3d9 wrapper";
 	}

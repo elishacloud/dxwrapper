@@ -64,14 +64,13 @@ ULONG m_IDirectDrawSurfaceX::Release()
 
 		if (ref == 0)
 		{
-			Logging::Log() << __FUNCTION__ << " Not Implimented";
 			if (WrapperInterface)
 			{
-				//WrapperInterface->DeleteMe();
+				WrapperInterface->DeleteMe();
 			}
 			else
 			{
-				//delete this;
+				delete this;
 			}
 		}
 
@@ -399,7 +398,7 @@ HRESULT m_IDirectDrawSurfaceX::GetOverlayPosition(LPLONG lplX, LPLONG lplY)
 
 HRESULT m_IDirectDrawSurfaceX::GetPalette(LPDIRECTDRAWPALETTE FAR * lplpDDPalette)
 {
-	if (lplpDDPalette == NULL)
+	if (!lplpDDPalette)
 	{
 		return DDERR_INVALIDPARAMS;
 	}
@@ -555,14 +554,21 @@ HRESULT m_IDirectDrawSurfaceX::Lock(LPRECT lpDestRect, LPDDSURFACEDESC2 lpDDSurf
 
 	if (Config.Dd7to9)
 	{
-		// Copy desc to passed in desc
-		memcpy(lpDDSurfaceDesc, &surfaceDesc, sizeof(DDSURFACEDESC2));
+		// Lock rect
+		hr = ddrawParent->Lock();
 
-		// Set video memory and pitch
-		lpDDSurfaceDesc->lpSurface = (LPVOID)rawVideoMem;
-		lpDDSurfaceDesc->dwFlags |= DDSD_LPSURFACE;
-		lpDDSurfaceDesc->lPitch = surfaceWidth;
-		lpDDSurfaceDesc->dwFlags |= DDSD_PITCH;
+		// Set desc and video memory
+		if (SUCCEEDED(hr))
+		{
+			// Copy desc to passed in desc
+			memcpy(lpDDSurfaceDesc, &surfaceDesc, sizeof(DDSURFACEDESC2));
+
+			// Set video memory and pitch
+			lpDDSurfaceDesc->lpSurface = (LPVOID)rawVideoMem;
+			lpDDSurfaceDesc->dwFlags |= DDSD_LPSURFACE;
+			lpDDSurfaceDesc->lPitch = surfaceWidth;
+			lpDDSurfaceDesc->dwFlags |= DDSD_PITCH;
+		}
 
 		/*sprintf_s(message, 2048, "Unsupported lpDestRect[%d,%d,%d,%d]", lpDestRect->left, lpDestRect->top, lpDestRect->right, lpDestRect->bottom);
 
@@ -608,8 +614,6 @@ HRESULT m_IDirectDrawSurfaceX::Lock(LPRECT lpDestRect, LPDDSURFACEDESC2 lpDDSurf
 		DDLOCK_WRITEONLY
 		Indicates that the surface being locked is write-enabled.
 		*/
-
-		hr = DD_OK;
 	}
 	else
 	{
@@ -782,10 +786,11 @@ HRESULT m_IDirectDrawSurfaceX::Unlock(LPRECT lpRect)
 		*/
 
 		// Present the surface
-		if (!ddrawParent->Present())
+		HRESULT hr = ddrawParent->Unlock();
+		if (FAILED(hr))
 		{
 			// Failed to presnt the surface, error reporting handled previously
-			return DDERR_GENERIC;
+			return hr;
 		}
 
 		// Success
