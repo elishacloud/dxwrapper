@@ -230,6 +230,11 @@ HRESULT m_IDirectDrawSurfaceX::Flip(LPDIRECTDRAWSURFACE7 lpDDSurfaceTargetOverri
 
 HRESULT m_IDirectDrawSurfaceX::GetAttachedSurface(LPDDSCAPS2 lpDDSCaps, LPDIRECTDRAWSURFACE7 FAR * lplpDDAttachedSurface)
 {
+	if (!lplpDDAttachedSurface)
+	{
+		return DDERR_INVALIDPARAMS;
+	}
+
 	DDSCAPS2 Caps2;
 	if (lpDDSCaps && ProxyDirectXVersion > 3 && DirectXVersion < 4)
 	{
@@ -239,13 +244,14 @@ HRESULT m_IDirectDrawSurfaceX::GetAttachedSurface(LPDDSCAPS2 lpDDSCaps, LPDIRECT
 
 	if (Config.Dd7to9)
 	{
-		Logging::Log() << __FUNCTION__ << " Not Implimented";
-		return E_NOTIMPL;
+		*lplpDDAttachedSurface = this;
+		
+		return DD_OK;
 	}
 
 	HRESULT hr = ProxyInterface->GetAttachedSurface(lpDDSCaps, lplpDDAttachedSurface);
 
-	if (SUCCEEDED(hr) && lplpDDAttachedSurface)
+	if (SUCCEEDED(hr))
 	{
 		*lplpDDAttachedSurface = ProxyAddressLookupTable.FindAddress<m_IDirectDrawSurface7>(*lplpDDAttachedSurface, DirectXVersion);
 	}
@@ -359,8 +365,22 @@ HRESULT m_IDirectDrawSurfaceX::GetDC(HDC FAR * lphDC)
 {
 	if (Config.Dd7to9)
 	{
-		Logging::Log() << __FUNCTION__ << " Not Implimented";
-		return E_NOTIMPL;
+		if (d3d9Device && *d3d9Device)
+		{
+			IDirect3DSurface9 *pBackBuffer;
+			HRESULT hr = (*d3d9Device)->GetBackBuffer(0, 0, D3DBACKBUFFER_TYPE_MONO, &pBackBuffer);
+			if (SUCCEEDED(hr))
+			{
+				return pBackBuffer->GetDC(lphDC);
+			}
+			else
+			{
+				Logging::Log() << __FUNCTION__ << " Failed to get BackBuffer error = " << hr;
+			}
+		}
+
+		Logging::Log() << __FUNCTION__ << " Failed to get d3d9Device";
+		return DDERR_GENERIC;
 	}
 
 	return ProxyInterface->GetDC(lphDC);
@@ -415,9 +435,6 @@ HRESULT m_IDirectDrawSurfaceX::GetPalette(LPDIRECTDRAWPALETTE FAR * lplpDDPalett
 
 		// Return attached palette
 		*lplpDDPalette = (LPDIRECTDRAWPALETTE)attachedPalette;
-
-		// Increment ref count
-		attachedPalette->AddRef();
 
 		// Success
 		return DD_OK;
@@ -555,7 +572,7 @@ HRESULT m_IDirectDrawSurfaceX::Lock(LPRECT lpDestRect, LPDDSURFACEDESC2 lpDDSurf
 	if (Config.Dd7to9)
 	{
 		// Lock rect
-		hr = ddrawParent->Lock();
+		hr = ddrawParent->Lock(&d3dlrect);
 
 		// Set desc and video memory
 		if (SUCCEEDED(hr))
@@ -564,7 +581,14 @@ HRESULT m_IDirectDrawSurfaceX::Lock(LPRECT lpDestRect, LPDDSURFACEDESC2 lpDDSurf
 			memcpy(lpDDSurfaceDesc, &surfaceDesc, sizeof(DDSURFACEDESC2));
 
 			// Set video memory and pitch
-			lpDDSurfaceDesc->lpSurface = (LPVOID)rawVideoMem;
+			if (attachedPalette)
+			{
+				lpDDSurfaceDesc->lpSurface = (LPVOID)rawVideoMem;
+			}
+			else
+			{
+				lpDDSurfaceDesc->lpSurface = d3dlrect.pBits;
+			}
 			lpDDSurfaceDesc->dwFlags |= DDSD_LPSURFACE;
 			lpDDSurfaceDesc->lPitch = surfaceWidth;
 			lpDDSurfaceDesc->dwFlags |= DDSD_PITCH;
@@ -723,22 +747,29 @@ HRESULT m_IDirectDrawSurfaceX::SetPalette(LPDIRECTDRAWPALETTE lpDDPalette)
 {
 	if (Config.Dd7to9)
 	{
+		static bool FirstRun = true;
+
 		// If lpDDPalette is nullptr then detach the current palette if it exists
 		if (!lpDDPalette && attachedPalette)
 		{
 			// Decrement ref count
-			if (attachedPalette->Release() == 0)
-			{
-				delete attachedPalette;
-			}
+			attachedPalette->Release();
 
 			// Detach
 			attachedPalette = nullptr;
+
+			// Reset FirstRun
+			FirstRun = true;
 		}
 
 		// When you call SetPalette to set a palette to a surface for the first time, 
 		// SetPalette increments the palette's reference count; subsequent calls to 
 		// SetPalette do not affect the palette's reference count.
+		if (FirstRun && attachedPalette)
+		{
+			attachedPalette->AddRef();
+			FirstRun = false;
+		}
 
 		attachedPalette = (m_IDirectDrawPalette *)lpDDPalette;
 
@@ -761,17 +792,18 @@ HRESULT m_IDirectDrawSurfaceX::Unlock(LPRECT lpRect)
 		// ToDo: Fix this to only unlock specified rect
 
 		// Translate all of raw video memory to rgb video memory with palette
-		if (attachedPalette)
+		if (attachedPalette && d3dlrect.pBits)
 		{
-			for (long i = 0; i < surfaceWidth * surfaceHeight; i++)
+			for (UINT i = 0; i < surfaceWidth * surfaceHeight; i++)
 			{
 				rgbVideoMem[i] = attachedPalette->rgbPalette[rawVideoMem[i]];
 			}
-		}
-		else
-		{
-			Logging::Log() << __FUNCTION__ << " Failed to translate video memory to rgb";
-			return DDERR_GENERIC;
+
+			// Copy bits to texture by scanline observing pitch
+			for (UINT y = 0; y < surfaceHeight; y++)
+			{
+				memcpy((BYTE *)d3dlrect.pBits + (y * d3dlrect.Pitch), &rgbVideoMem[y * surfaceWidth], surfaceWidth * sizeof(UINT32));
+			}
 		}
 
 		/*
@@ -852,8 +884,14 @@ HRESULT m_IDirectDrawSurfaceX::GetDDInterface(LPVOID FAR * lplpDD)
 
 	if (Config.Dd7to9)
 	{
+		if (!ddrawParent)
+		{
+			Logging::Log() << __FUNCTION__ << " Error no ddraw parent!";
+			return DDERR_INVALIDOBJECT;
+		}
+
 		// Set lplpDD to directdraw object that created this surface
-		*lplpDD = (IDirectDraw *)ddrawParent;
+		*lplpDD = ddrawParent;
 
 		return DD_OK;
 	}

@@ -1,6 +1,6 @@
 #pragma once
 
-class m_IDirectDrawSurfaceX
+class m_IDirectDrawSurfaceX : public IDirectDrawSurface7
 {
 private:
 	IDirectDrawSurface7 *ProxyInterface;
@@ -11,22 +11,26 @@ private:
 	ULONG RefCount = 1;
 
 	// Convert to d3d9
-	m_IDirectDrawX *ddrawParent;
+	m_IDirectDrawX *ddrawParent = nullptr;
+	LPDIRECT3DDEVICE9 *d3d9Device = nullptr;
 	DDSURFACEDESC2 surfaceDesc;
-	LONG surfaceWidth;
-	LONG surfaceHeight;
+	D3DLOCKED_RECT d3dlrect = { 0, nullptr };
+	DWORD surfaceWidth = 0;
+	DWORD surfaceHeight = 0;
 	DDCOLORKEY colorKeys[4];		// Color keys(DDCKEY_DESTBLT, DDCKEY_DESTOVERLAY, DDCKEY_SRCBLT, DDCKEY_SRCOVERLAY)
 	LONG overlayX = 0;
 	LONG overlayY = 0;
 	m_IDirectDrawPalette *attachedPalette = nullptr;	// Associated palette
+	UINT32 *rgbVideoMem = nullptr;						// RGB video memory
+	BYTE *rawVideoMem = nullptr;						// Virtual video memory
 
 public:
 	m_IDirectDrawSurfaceX(IDirectDrawSurface7 *pOriginal, DWORD Version, m_IDirectDrawSurface7 *Interface) : ProxyInterface(pOriginal), DirectXVersion(Version), WrapperInterface(Interface)
 	{
 		InitWrapper();
 	}
-	m_IDirectDrawSurfaceX(m_IDirectDrawX *Interface, DWORD Version, LPDDSURFACEDESC2 lpDDSurfaceDesc, DWORD displayModeWidth, DWORD displayModeHeight) : 
-		ddrawParent(Interface), DirectXVersion(Version), surfaceWidth(displayModeWidth), surfaceHeight(displayModeHeight)
+	m_IDirectDrawSurfaceX(LPDIRECT3DDEVICE9 *lplpd3d9Device, m_IDirectDrawX *Interface, DWORD Version, LPDDSURFACEDESC2 lpDDSurfaceDesc, DWORD Width, DWORD Height) :
+		d3d9Device(lplpd3d9Device), ddrawParent(Interface), DirectXVersion(Version), surfaceWidth(Width), surfaceHeight(Height)
 	{
 		ProxyInterface = nullptr;
 		WrapperInterface = nullptr;
@@ -79,10 +83,10 @@ public:
 		//Overallocate the memory to prevent access outside of memory range by the exe
 		//if(!ReInitialize(displayWidth, displayHeight)) return DDERR_OUTOFMEMORY;
 		//maximum supported resolution is 1920x1440
-		rawVideoMem = new BYTE[1920 * 1440];
+		rawVideoMem = new BYTE[1920 * 1440 * 4];
 
 		// Clear raw memory
-		ZeroMemory(rawVideoMem, 1920 * 1440 * sizeof(BYTE));
+		ZeroMemory(rawVideoMem, 1920 * 1440 * sizeof(BYTE) * 4);
 
 		// Allocate virtual video memory RGB
 		rgbVideoMem = new UINT32[surfaceWidth * surfaceHeight];
@@ -135,9 +139,6 @@ public:
 			Logging::LogDebug() << "Convert DirectDrawSurface v" << DirectXVersion << " to v" << ProxyDirectXVersion;
 		}
 	}
-
-	UINT32 *rgbVideoMem = nullptr;		// RGB video memory
-	BYTE *rawVideoMem = nullptr;		// Virtual video memory
 
 	DWORD GetDirectXVersion() { return DDWRAPPER_TYPEX; }
 	REFIID GetWrapperType() { return WrapperID; }

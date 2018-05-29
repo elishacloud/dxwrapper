@@ -219,6 +219,7 @@ std::ostream& operator<<(std::ostream& os, const DDCAPS& caps)
 		<< caps.dwRops[6]
 		<< caps.dwRops[7] << "}"
 		<< caps.ddsOldCaps
+		<< caps.ddsCaps
 		<< Compat::hex(caps.dwMinOverlayStretch)
 		<< Compat::hex(caps.dwMaxOverlayStretch)
 		<< Compat::hex(caps.dwMinLiveVideoStretch)

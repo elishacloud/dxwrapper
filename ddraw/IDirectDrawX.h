@@ -1,6 +1,6 @@
 #pragma once
 
-class m_IDirectDrawX
+class m_IDirectDrawX : public IDirectDraw7
 {
 private:
 	IDirectDraw7 *ProxyInterface;
@@ -16,20 +16,20 @@ private:
 	// Convert to d3d9
 	ULONG RefCount = 1;
 	HWND MainhWnd = nullptr;
-	bool Locked = false;
+	bool ExclusiveMode = false;
 	POINT lastPosition = {100, 100};		// Last window position
 	bool SetDefaultDisplayMode = false;		// Set native resolution
 	bool isWindowed = false;				// Window mode enabled
-	UINT refreshRate = 60;					// Refresh rate for fullscreen
-	m_IDirectDrawSurfaceX *lpAttachedSurface = nullptr;
 
 	// Application display mode
-	DWORD displayModeWidth;
-	DWORD displayModeHeight;
+	DWORD displayModeWidth = 0;
+	DWORD displayModeHeight = 0;
+	DWORD displayModeBPP = 0;
+	DWORD displayModerefreshRate = 0;		// Refresh rate for fullscreen
 
 	// Display resolution
-	UINT displayWidth = 0;
-	UINT displayHeight = 0;
+	DWORD displayWidth = 0;
+	DWORD displayHeight = 0;
 
 	// Direct3D9 Objects
 	LPDIRECT3D9 d3d9Object = nullptr;
@@ -97,8 +97,6 @@ public:
 		}
 	}
 
-	WNDPROC lpPrevWndFunc = nullptr;
-
 	DWORD GetDirectXVersion() { return DDWRAPPER_TYPEX; }
 	REFIID GetWrapperType() { return WrapperID; }
 	IDirectDraw7 *GetProxyInterface() { return ProxyInterface; }
@@ -144,6 +142,6 @@ public:
 	bool CreateD3DDevice();
 	bool CreateSurfaceTexture();
 	bool ReinitDevice();
-	HRESULT Lock();
+	HRESULT Lock(D3DLOCKED_RECT *d3dlrect);
 	HRESULT Unlock();
  };

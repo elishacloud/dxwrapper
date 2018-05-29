@@ -1,6 +1,6 @@
 #pragma once
 
-class m_IDirect3DDeviceX : public IDirect3DDevice7, public AddressLookupTableDdrawObject
+class m_IDirect3DDeviceX : public IDirect3DDevice7
 {
 private:
 	IDirect3DDevice7 *ProxyInterface;

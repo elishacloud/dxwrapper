@@ -137,8 +137,7 @@ HRESULT m_IDirectDrawX::CreateClipper(DWORD dwFlags, LPDIRECTDRAWCLIPPER FAR * l
 			return DDERR_INVALIDPARAMS;
 		}
 
-		m_IDirectDrawClipper *lpDDClipper = new m_IDirectDrawClipper(nullptr);
-		*lplpDDClipper = lpDDClipper;
+		*lplpDDClipper = new m_IDirectDrawClipper(nullptr);
 
 		return DD_OK;
 	}
@@ -162,8 +161,7 @@ HRESULT m_IDirectDrawX::CreatePalette(DWORD dwFlags, LPPALETTEENTRY lpDDColorArr
 			return DDERR_INVALIDPARAMS;
 		}
 
-		m_IDirectDrawPalette *lpDDPalette = new m_IDirectDrawPalette(dwFlags, lpDDColorArray);
-		*lplpDDPalette = lpDDPalette;
+		*lplpDDPalette = new m_IDirectDrawPalette(dwFlags, lpDDColorArray);
 
 		return DD_OK;
 	}
@@ -197,15 +195,43 @@ HRESULT m_IDirectDrawX::CreateSurface(LPDDSURFACEDESC2 lpDDSurfaceDesc, LPDIRECT
 
 	if (Config.Dd7to9)
 	{
-		lpAttachedSurface = new m_IDirectDrawSurfaceX(this, DirectXVersion, lpDDSurfaceDesc, displayModeWidth, displayModeHeight);
-		*lplpDDSurface = (LPDIRECTDRAWSURFACE7)lpAttachedSurface;
+		// Set parameters before call
+		lpDDSurfaceDesc->dwWidth = (lpDDSurfaceDesc->dwWidth) ? lpDDSurfaceDesc->dwWidth : displayModeWidth;
+		lpDDSurfaceDesc->dwHeight = (lpDDSurfaceDesc->dwHeight) ? lpDDSurfaceDesc->dwHeight : displayModeHeight;
+		lpDDSurfaceDesc->dwRefreshRate = (lpDDSurfaceDesc->dwRefreshRate) ? lpDDSurfaceDesc->dwRefreshRate : displayModerefreshRate;
+
+		if (!lpDDSurfaceDesc->ddpfPixelFormat.dwRGBBitCount && displayModeBPP)
+		{
+			// Set BitCount
+			lpDDSurfaceDesc->ddpfPixelFormat.dwRGBBitCount = displayModeBPP;
+
+			// Set BitMask
+			switch (displayModeBPP)
+			{
+				case 8:
+					break;
+				case 16:
+					lpDDSurfaceDesc->ddpfPixelFormat.dwRBitMask = 0xF800;
+					lpDDSurfaceDesc->ddpfPixelFormat.dwGBitMask = 0x7E0;
+					lpDDSurfaceDesc->ddpfPixelFormat.dwBBitMask = 0x1F;
+					break;
+				case 24:
+				case 32:
+					lpDDSurfaceDesc->ddpfPixelFormat.dwRBitMask = 0xFF0000;
+					lpDDSurfaceDesc->ddpfPixelFormat.dwGBitMask = 0xFF00;
+					lpDDSurfaceDesc->ddpfPixelFormat.dwBBitMask = 0xFF;
+					break;
+			}
+		}
+
+		*lplpDDSurface = new m_IDirectDrawSurfaceX(&d3d9Device, this, DirectXVersion, lpDDSurfaceDesc, displayModeWidth, displayModeHeight);
 
 		return DD_OK;
 	}
 
 	HRESULT hr = ProxyInterface->CreateSurface(lpDDSurfaceDesc, lplpDDSurface, pUnkOuter);
 
-	if (SUCCEEDED(hr) && lplpDDSurface)
+	if (SUCCEEDED(hr))
 	{
 		*lplpDDSurface = ProxyAddressLookupTable.FindAddress<m_IDirectDrawSurface7>(*lplpDDSurface, DirectXVersion);
 	}
@@ -298,17 +324,38 @@ HRESULT m_IDirectDrawX::FlipToGDISurface()
 
 HRESULT m_IDirectDrawX::GetCaps(LPDDCAPS lpDDDriverCaps, LPDDCAPS lpDDHELCaps)
 {
-	if (Config.Dd7to9)
-	{
-		Logging::Log() << __FUNCTION__ << " Not Implimented";
-		return E_NOTIMPL;
-	}
-
 	DDCAPS DriverCaps, HELCaps;
 	DriverCaps.dwSize = sizeof(DriverCaps);
 	HELCaps.dwSize = sizeof(HELCaps);
 
-	HRESULT hr = ProxyInterface->GetCaps(lpDDDriverCaps ? &DriverCaps : nullptr, lpDDHELCaps ? &HELCaps : nullptr);
+	HRESULT hr;
+
+	if (Config.Dd7to9)
+	{
+		ZeroMemory(&DriverCaps, sizeof(DDCAPS));
+		DriverCaps.dwSize = sizeof(DriverCaps);
+		DriverCaps.dwCaps = 0x85d277c1;
+		DriverCaps.dwCaps2 = 0xa06ab230;
+		DriverCaps.dwCKeyCaps = 0x2210;
+		DriverCaps.dwFXCaps = 0x3aad54e0;
+		DriverCaps.dwVidMemTotal = 0x8000000;		// Just hard code the memory size
+		DriverCaps.dwVidMemFree = 0x7e00000;		// Just hard code the memory size
+		DriverCaps.dwMaxVisibleOverlays = 0x1;
+		DriverCaps.dwNumFourCCCodes = 0x12;
+		DriverCaps.dwRops[6] = 4096;
+		DriverCaps.dwMinOverlayStretch = 0x1;
+		DriverCaps.dwMaxOverlayStretch = 0x4e20;
+		DriverCaps.ddsCaps.dwCaps = 809923324;
+		DriverCaps.ddsOldCaps.dwCaps = DriverCaps.ddsCaps.dwCaps;
+
+		ConvertCaps(HELCaps, DriverCaps);
+
+		hr = DD_OK;
+	}
+	else
+	{
+		hr = ProxyInterface->GetCaps(lpDDDriverCaps ? &DriverCaps : nullptr, lpDDHELCaps ? &HELCaps : nullptr);
+	}
 
 	if (SUCCEEDED(hr))
 	{
@@ -327,8 +374,13 @@ HRESULT m_IDirectDrawX::GetCaps(LPDDCAPS lpDDDriverCaps, LPDDCAPS lpDDHELCaps)
 
 HRESULT m_IDirectDrawX::GetDisplayMode(LPDDSURFACEDESC2 lpDDSurfaceDesc)
 {
+	if (!lpDDSurfaceDesc)
+	{
+		return DDERR_INVALIDPARAMS;
+	}
+
 	DDSURFACEDESC2 Desc2;
-	if (lpDDSurfaceDesc && ProxyDirectXVersion > 3 && DirectXVersion < 4)
+	if (ProxyDirectXVersion > 3 && DirectXVersion < 4)
 	{
 		ConvertSurfaceDesc(Desc2, *(LPDDSURFACEDESC)lpDDSurfaceDesc);
 		lpDDSurfaceDesc = &Desc2;
@@ -336,8 +388,18 @@ HRESULT m_IDirectDrawX::GetDisplayMode(LPDDSURFACEDESC2 lpDDSurfaceDesc)
 
 	if (Config.Dd7to9)
 	{
-		Logging::Log() << __FUNCTION__ << " Not Implimented";
-		return E_NOTIMPL;
+		if (lpDDSurfaceDesc->dwSize != sizeof(*lpDDSurfaceDesc))
+		{
+			return DDERR_INVALIDPARAMS;
+		}
+
+		lpDDSurfaceDesc->dwWidth = displayModeWidth;
+		lpDDSurfaceDesc->dwHeight = displayModeHeight;
+		lpDDSurfaceDesc->dwDepth = displayModeBPP;
+		lpDDSurfaceDesc->dwRefreshRate = displayModerefreshRate;
+		lpDDSurfaceDesc->dwFlags = DDSD_WIDTH | DDSD_HEIGHT | DDSD_DEPTH | DDSD_REFRESHRATE;
+
+		return DD_OK;
 	}
 
 	return ProxyInterface->GetDisplayMode(lpDDSurfaceDesc);
@@ -403,9 +465,8 @@ HRESULT m_IDirectDrawX::GetVerticalBlankStatus(LPBOOL lpbIsInVB)
 			return DDERR_INVALIDPARAMS;
 		}
 
-		*lpbIsInVB = Locked;
-
-		return DD_OK;
+		Logging::Log() << __FUNCTION__ << " Not Implimented";
+		return E_NOTIMPL;
 	}
 
 	return ProxyInterface->GetVerticalBlankStatus(lpbIsInVB);
@@ -426,8 +487,36 @@ HRESULT m_IDirectDrawX::RestoreDisplayMode()
 {
 	if (Config.Dd7to9)
 	{
-		Logging::Log() << __FUNCTION__ << " Not Implimented";
-		return E_NOTIMPL;
+		// Do nothing for windows mode
+		if (isWindowed)
+		{
+			return DD_OK;
+		}
+
+		// No exclusive mode
+		if (ExclusiveMode)
+		{
+			return DDERR_NOEXCLUSIVEMODE;
+		}
+
+		// Reset screen settings
+		std::string lpRamp((3 * 256 * 2), '\0');
+		HDC hDC = GetDC(nullptr);
+		GetDeviceGammaRamp(hDC, &lpRamp[0]);
+		Sleep(0);
+		SetDeviceGammaRamp(hDC, &lpRamp[0]);
+		ReleaseDC(nullptr, hDC);
+		Sleep(0);
+		ChangeDisplaySettings(nullptr, 0);
+
+		// Set mode
+		ExclusiveMode = false;
+		displayModeWidth = 0;
+		displayModeHeight = 0;
+		displayModeBPP = 0;
+		displayModerefreshRate = 0;
+
+		return DD_OK;
 	}
 
 	return ProxyInterface->RestoreDisplayMode();
@@ -462,6 +551,27 @@ HRESULT m_IDirectDrawX::SetCooperativeLevel(HWND hWnd, DWORD dwFlags)
 			return DDERR_GENERIC;
 		}
 
+		// Set windowed mode
+		if (dwFlags & DDSCL_FULLSCREEN)
+		{
+			isWindowed = false;
+		}
+		else if (dwFlags & DDSCL_NORMAL)
+		{
+			isWindowed = true;
+		}
+		else
+		{
+			return DDERR_INVALIDPARAMS;
+		}
+
+		// Set ExclusiveMode
+		ExclusiveMode = false;
+		if (dwFlags & DDSCL_EXCLUSIVE)
+		{
+			ExclusiveMode = true;
+		}
+
 		// Set display window
 		MainhWnd = hWnd;
 
@@ -470,7 +580,7 @@ HRESULT m_IDirectDrawX::SetCooperativeLevel(HWND hWnd, DWORD dwFlags)
 
 	// Release previouse Exclusive flag
 	// Hook window message to get notified when the window is about to exit to remove the exclusive flag
-	if (dwFlags & DDSCL_EXCLUSIVE && hWnd && hWnd != chWnd)
+	if ((dwFlags & DDSCL_EXCLUSIVE) && hWnd && hWnd != chWnd)
 	{
 		if (IsWindow(chWnd))
 		{
@@ -506,6 +616,8 @@ HRESULT m_IDirectDrawX::SetDisplayMode(DWORD dwWidth, DWORD dwHeight, DWORD dwBP
 		// Set display mode to dwWidth x dwHeight with dwBPP color depth
 		displayModeWidth = dwWidth;
 		displayModeHeight = dwHeight;
+		displayModeBPP = dwBPP;
+		displayModerefreshRate = dwRefreshRate;
 
 		if (SetDefaultDisplayMode)
 		{
@@ -802,8 +914,9 @@ bool m_IDirectDrawX::CreateD3DDevice()
 			Logging::Log() << __FUNCTION__ << " EnumAdapterModes failed";
 			return false;
 		}
-		if (d3ddispmode.Width == displayWidth && d3ddispmode.Height == displayHeight && d3ddispmode.RefreshRate == refreshRate &&
-			!(d3ddispmode.Width > 1920 && d3ddispmode.Height > 1440))		// No modes above maximum size
+		if (d3ddispmode.Width == displayWidth && d3ddispmode.Height == displayHeight &&				// Check height and width
+			(d3ddispmode.RefreshRate == displayModerefreshRate || displayModerefreshRate == 0) &&	// Check refresh rate
+			!(d3ddispmode.Width > 1920 && d3ddispmode.Height > 1440))								// No modes above maximum size
 		{
 			// Found a match
 			modeFound = true;
@@ -1024,15 +1137,8 @@ bool m_IDirectDrawX::ReinitDevice()
 }
 
 // Helper function to present the d3d surface
-HRESULT m_IDirectDrawX::Lock()
+HRESULT m_IDirectDrawX::Lock(D3DLOCKED_RECT *d3dlrect)
 {
-	// Make sure the surface is not locked
-	if (Locked)
-	{
-		Logging::Log() << __FUNCTION__ << " surface already locked";
-		return DDERR_GENERIC;
-	}
-
 	// Make sure the device exists
 	if (!d3d9Device)
 	{
@@ -1047,29 +1153,14 @@ HRESULT m_IDirectDrawX::Lock()
 		return DDERR_SURFACELOST;
 	}
 
-	// Make sure the attached surface exists
-	if (!lpAttachedSurface)
-	{
-		Logging::Log() << __FUNCTION__ << " Attempted with no attached surface";
-		return DDERR_SURFACELOST;
-	}
-
 	// Lock full dynamic texture
-	D3DLOCKED_RECT d3dlrect;
-	HRESULT hr = surfaceTexture->LockRect(0, &d3dlrect, nullptr, D3DLOCK_DISCARD);
+	HRESULT hr;
+	hr = surfaceTexture->LockRect(0, d3dlrect, nullptr, D3DLOCK_DISCARD);
 	if (FAILED(hr))
 	{
 		Logging::Log() << __FUNCTION__ << " Failed to lock texture memory";
 		return hr;
 	}
-
-	// Copy bits to texture by scanline observing pitch
-	for (UINT y = 0; y < displayModeHeight; y++)
-	{
-		memcpy((BYTE *)d3dlrect.pBits + (y * d3dlrect.Pitch), &lpAttachedSurface->rgbVideoMem[y * displayModeWidth], displayModeWidth * sizeof(UINT32));
-	}
-
-	Locked = true;
 
 	return DD_OK;
 }
@@ -1077,13 +1168,6 @@ HRESULT m_IDirectDrawX::Lock()
 // Helper function to present the d3d surface
 HRESULT m_IDirectDrawX::Unlock()
 {
-	// Make sure the surface is not locked
-	if (!Locked)
-	{
-		Logging::Log() << __FUNCTION__ << " surface not locked";
-		return DDERR_NOTLOCKED;
-	}
-
 	// Make sure the device exists
 	if (!d3d9Device)
 	{
@@ -1098,22 +1182,14 @@ HRESULT m_IDirectDrawX::Unlock()
 		return DDERR_SURFACELOST;
 	}
 
-	// Make sure the attached surface exists
-	if (!lpAttachedSurface)
-	{
-		Logging::Log() << __FUNCTION__ << " Attempted with no attached surface";
-		return DDERR_SURFACELOST;
-	}
-
 	// Unlock dynamic texture
-	HRESULT hr = surfaceTexture->UnlockRect(0);
+	HRESULT hr;
+	hr = surfaceTexture->UnlockRect(0);
 	if (FAILED(hr))
 	{
 		Logging::Log() << __FUNCTION__ << " Failed to unlock texture memory";
 		return hr;
 	}
-
-	Locked = false;
 
 	hr = d3d9Device->Clear(0, nullptr, D3DCLEAR_TARGET, 0xFF000000, 1.0f, 0);
 	if (FAILED(hr))
