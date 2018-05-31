@@ -50,7 +50,7 @@ public:
 		if (Wrapper != nullptr && !ConstructorFlag)
 		{
 			auto it = std::find_if(g_map.begin(), g_map.end(),
-				[Wrapper](std::pair<void*, class AddressLookupTableD3d9Object*> Map) -> bool { return Map.second == Wrapper; });
+				[=](auto Map) -> bool { return Map.second == Wrapper; });
 
 			if (it != std::end(g_map))
 			{

@@ -72,18 +72,12 @@ public:
 			if (hasAlpha)
 			{
 				// Include peFlags as 8bit alpha
-				rgbPalette[i] = rawPalette[i].peFlags << 24;
-				rgbPalette[i] |= rawPalette[i].peRed << 16;
-				rgbPalette[i] |= rawPalette[i].peGreen << 8;
-				rgbPalette[i] |= rawPalette[i].peBlue;
+				rgbPalette[i] = D3DCOLOR_ARGB(rawPalette[i].peFlags, rawPalette[i].peRed, rawPalette[i].peGreen, rawPalette[i].peBlue);
 			}
 			else
 			{
 				// Alpha is always 255
-				rgbPalette[i] = 0xFF000000;
-				rgbPalette[i] |= rawPalette[i].peRed << 16;
-				rgbPalette[i] |= rawPalette[i].peGreen << 8;
-				rgbPalette[i] |= rawPalette[i].peBlue;
+				rgbPalette[i] = D3DCOLOR_XRGB(rawPalette[i].peRed, rawPalette[i].peGreen, rawPalette[i].peBlue);
 			}
 		}
 	}

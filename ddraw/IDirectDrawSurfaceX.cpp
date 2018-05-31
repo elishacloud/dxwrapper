@@ -246,6 +246,8 @@ HRESULT m_IDirectDrawSurfaceX::GetAttachedSurface(LPDDSCAPS2 lpDDSCaps, LPDIRECT
 	{
 		*lplpDDAttachedSurface = this;
 		
+		AddRef();
+
 		return DD_OK;
 	}
 
@@ -571,26 +573,39 @@ HRESULT m_IDirectDrawSurfaceX::Lock(LPRECT lpDestRect, LPDDSURFACEDESC2 lpDDSurf
 
 	if (Config.Dd7to9)
 	{
+		if (lpDestRect)
+		{
+			memcpy(&DestRect, lpDestRect, sizeof(RECT));
+		}
+		else
+		{
+			DestRect.top = 0;
+			DestRect.left = 0;
+			DestRect.right = surfaceWidth;
+			DestRect.bottom = surfaceHeight;
+		}
+
 		// Lock rect
 		hr = ddrawParent->Lock(&d3dlrect);
 
 		// Set desc and video memory
 		if (SUCCEEDED(hr))
 		{
+			// Check buffer size
+			if (BufferSize < surfaceDesc.dwWidth * surfaceDesc.dwHeight)
+			{
+				surfaceWidth = surfaceDesc.dwWidth;
+				surfaceHeight = surfaceDesc.dwHeight;
+				AlocateVideoBuffer();
+			}
+
 			// Copy desc to passed in desc
 			memcpy(lpDDSurfaceDesc, &surfaceDesc, sizeof(DDSURFACEDESC2));
 
 			// Set video memory and pitch
-			if (attachedPalette)
-			{
-				lpDDSurfaceDesc->lpSurface = (LPVOID)rawVideoMem;
-			}
-			else
-			{
-				lpDDSurfaceDesc->lpSurface = d3dlrect.pBits;
-			}
+			lpDDSurfaceDesc->lpSurface = (LPVOID)rawVideoBuf;
 			lpDDSurfaceDesc->dwFlags |= DDSD_LPSURFACE;
-			lpDDSurfaceDesc->lPitch = surfaceWidth;
+			lpDDSurfaceDesc->lPitch = surfaceWidth * (surfaceDesc.ddpfPixelFormat.dwRGBBitCount / 8);
 			lpDDSurfaceDesc->dwFlags |= DDSD_PITCH;
 		}
 
@@ -750,28 +765,34 @@ HRESULT m_IDirectDrawSurfaceX::SetPalette(LPDIRECTDRAWPALETTE lpDDPalette)
 		static bool FirstRun = true;
 
 		// If lpDDPalette is nullptr then detach the current palette if it exists
-		if (!lpDDPalette && attachedPalette)
+		if (!lpDDPalette)
 		{
-			// Decrement ref count
-			attachedPalette->Release();
+			if (attachedPalette)
+			{
+				// Decrement ref count
+				attachedPalette->Release();
 
-			// Detach
-			attachedPalette = nullptr;
+				// Detach
+				attachedPalette = nullptr;
+			}
 
 			// Reset FirstRun
 			FirstRun = true;
+
+			return DD_OK;
 		}
+
+		// Set palette address
+		attachedPalette = (m_IDirectDrawPalette *)lpDDPalette;
 
 		// When you call SetPalette to set a palette to a surface for the first time, 
 		// SetPalette increments the palette's reference count; subsequent calls to 
 		// SetPalette do not affect the palette's reference count.
-		if (FirstRun && attachedPalette)
+		if (FirstRun)
 		{
 			attachedPalette->AddRef();
 			FirstRun = false;
 		}
-
-		attachedPalette = (m_IDirectDrawPalette *)lpDDPalette;
 
 		return DD_OK;
 	}
@@ -791,18 +812,89 @@ HRESULT m_IDirectDrawSurfaceX::Unlock(LPRECT lpRect)
 		// Currently always unlocks full rect
 		// ToDo: Fix this to only unlock specified rect
 
-		// Translate all of raw video memory to rgb video memory with palette
-		if (attachedPalette && d3dlrect.pBits)
+		// Translate raw video memory to rgb buffer
+		if (d3dlrect.pBits)
 		{
-			for (UINT i = 0; i < surfaceWidth * surfaceHeight; i++)
+			// 8-Bit surface
+			if (surfaceDesc.ddpfPixelFormat.dwRGBBitCount == 8)
 			{
-				rgbVideoMem[i] = attachedPalette->rgbPalette[rawVideoMem[i]];
-			}
+				// From a palette
+				if (attachedPalette && attachedPalette->rgbPalette)
+				{
+					// Translate palette to rgb video buffer
+					LONG x = 0, z = 0;
+					for (LONG j = DestRect.top; j < DestRect.bottom; j++)
+					{
+						z = j * surfaceWidth;
+						for (LONG i = DestRect.left; i < DestRect.right; i++)
+						{
+							x = z + i;
+							rgbVideoBuf[x] = attachedPalette->rgbPalette[rawVideoBuf[x]];
+						}
+					}
 
-			// Copy bits to texture by scanline observing pitch
-			for (UINT y = 0; y < surfaceHeight; y++)
+					// Copy rgb video memory to texture memory by scanline observing pitch
+					for (LONG y = DestRect.top; y < DestRect.bottom; y++)
+					{
+						x = DestRect.right - DestRect.left;
+						memcpy((BYTE *)d3dlrect.pBits + (y * d3dlrect.Pitch), &rgbVideoBuf[y * x], x * sizeof(UINT32));
+					}
+				}
+				else
+				{
+					Logging::Log() << __FUNCTION__ << " No support for non-palette 8-bit surfaces!";
+				}
+			}
+			// 16-bit surface
+			else if (surfaceDesc.ddpfPixelFormat.dwRGBBitCount == 16)
 			{
-				memcpy((BYTE *)d3dlrect.pBits + (y * d3dlrect.Pitch), &rgbVideoMem[y * surfaceWidth], surfaceWidth * sizeof(UINT32));
+				if (attachedPalette && attachedPalette->rgbPalette)
+				{
+					Logging::Log() << __FUNCTION__ << " No support for 16-bit surfaces with palettes!";
+				}
+				// Translate R5G6B5 to 32 bit rgb video buffer
+				else
+				{
+					LONG x = 0, z = 0;
+					WORD *RawBuffer = (WORD*)&rawVideoBuf[0];
+					for (LONG j = DestRect.top; j < DestRect.bottom; j++)
+					{
+						z = j * surfaceWidth;
+						for (LONG i = DestRect.left; i < DestRect.right; i++)
+						{
+							x = z + i;
+
+							// More accurate but twice as slow
+							/*rgbVideoBuf[x] = D3DCOLOR_XRGB(
+								((RawBuffer[x] & 0xF800) >> 11) * 255 / 31,		// Red
+								((RawBuffer[x] & 0x07E0) >> 5) * 255 / 63,		// Green
+								((RawBuffer[x] & 0x001F)) * 255 / 31);			// Blue
+								*/
+
+							rgbVideoBuf[x] = ((RawBuffer[x] & 0xF800) << 8) +
+								((RawBuffer[x] & 0x07E0) << 5) +
+								((RawBuffer[x] & 0x001F) << 3);
+						}
+					}
+
+					// Copy rgb video memory to texture memory by scanline observing pitch
+					for (LONG y = DestRect.top; y < DestRect.bottom; y++)
+					{
+						x = DestRect.right - DestRect.left;
+						memcpy((BYTE *)d3dlrect.pBits + (y * d3dlrect.Pitch), &rgbVideoBuf[y * x], x * sizeof(UINT32));
+					}
+				}
+			}
+			// 24-bit / 32-bit surfaces
+			else
+			{
+				// Copy rgb video memory to texture memory by scanline observing pitch
+				LONG x = 0;
+				for (LONG y = DestRect.top; y < DestRect.bottom; y++)
+				{
+					x = DestRect.right - DestRect.left;
+					memcpy((BYTE *)d3dlrect.pBits + (y * d3dlrect.Pitch), &rawVideoBuf[y * x], x * sizeof(UINT32));
+				}
 			}
 		}
 

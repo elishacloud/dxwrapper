@@ -552,22 +552,25 @@ HRESULT m_IDirectDrawX::SetCooperativeLevel(HWND hWnd, DWORD dwFlags)
 		}
 
 		// Set windowed mode
-		if (dwFlags & DDSCL_FULLSCREEN)
+		if (SetDefaultDisplayMode)
 		{
-			isWindowed = false;
-		}
-		else if (dwFlags & DDSCL_NORMAL)
-		{
-			isWindowed = true;
-		}
-		else
-		{
-			return DDERR_INVALIDPARAMS;
+			if (dwFlags & DDSCL_FULLSCREEN)
+			{
+				isWindowed = false;
+			}
+			else if (dwFlags & DDSCL_NORMAL)
+			{
+				isWindowed = true;
+			}
+			else
+			{
+				return DDERR_INVALIDPARAMS;
+			}
 		}
 
 		// Set ExclusiveMode
 		ExclusiveMode = false;
-		if (dwFlags & DDSCL_EXCLUSIVE)
+		if ((dwFlags & DDSCL_EXCLUSIVE) && !isWindowed)
 		{
 			ExclusiveMode = true;
 		}
@@ -619,7 +622,7 @@ HRESULT m_IDirectDrawX::SetDisplayMode(DWORD dwWidth, DWORD dwHeight, DWORD dwBP
 		displayModeBPP = dwBPP;
 		displayModerefreshRate = dwRefreshRate;
 
-		if (SetDefaultDisplayMode)
+		if (SetDefaultDisplayMode || !displayWidth || !displayHeight)
 		{
 			displayWidth = dwWidth;
 			displayHeight = dwHeight;
@@ -915,8 +918,7 @@ bool m_IDirectDrawX::CreateD3DDevice()
 			return false;
 		}
 		if (d3ddispmode.Width == displayWidth && d3ddispmode.Height == displayHeight &&				// Check height and width
-			(d3ddispmode.RefreshRate == displayModerefreshRate || displayModerefreshRate == 0) &&	// Check refresh rate
-			!(d3ddispmode.Width > 1920 && d3ddispmode.Height > 1440))								// No modes above maximum size
+			(d3ddispmode.RefreshRate == displayModerefreshRate || displayModerefreshRate == 0))		// Check refresh rate
 		{
 			// Found a match
 			modeFound = true;
@@ -1021,7 +1023,7 @@ bool m_IDirectDrawX::CreateSurfaceTexture()
 	}
 
 	// Create vertex buffer
-	if (d3d9Device->CreateVertexBuffer(sizeof(TLVERTEX) * 4, 0, (D3DFVF_XYZRHW | D3DFVF_TEX1), D3DPOOL_MANAGED, &vertexBuffer, nullptr) != D3D_OK)
+	if (d3d9Device->CreateVertexBuffer(sizeof(TLVERTEX) * 4, D3DUSAGE_DYNAMIC, (D3DFVF_XYZRHW | D3DFVF_TEX1), D3DPOOL_DEFAULT, &vertexBuffer, nullptr) != D3D_OK)
 	{
 		Logging::Log() << __FUNCTION__ << " Unable to create vertex buffer";
 		return false;
@@ -1153,8 +1155,23 @@ HRESULT m_IDirectDrawX::Lock(D3DLOCKED_RECT *d3dlrect)
 		return DDERR_SURFACELOST;
 	}
 
-	// Lock full dynamic texture
 	HRESULT hr;
+
+	hr = d3d9Device->Clear(0, nullptr, D3DCLEAR_TARGET, 0xFF000000, 1.0f, 0);
+	if (FAILED(hr))
+	{
+		Logging::Log() << __FUNCTION__ << " Failed to clear device";
+		return hr;
+	}
+
+	hr = d3d9Device->BeginScene();
+	if (FAILED(hr))
+	{
+		Logging::Log() << __FUNCTION__ << " Failed to begin scene";
+		return hr;
+	}
+
+	// Lock full dynamic texture
 	hr = surfaceTexture->LockRect(0, d3dlrect, nullptr, D3DLOCK_DISCARD);
 	if (FAILED(hr))
 	{
@@ -1191,20 +1208,6 @@ HRESULT m_IDirectDrawX::Unlock()
 		return hr;
 	}
 
-	hr = d3d9Device->Clear(0, nullptr, D3DCLEAR_TARGET, 0xFF000000, 1.0f, 0);
-	if (FAILED(hr))
-	{
-		Logging::Log() << __FUNCTION__ << " Failed to clear device";
-		return hr;
-	}
-
-	hr = d3d9Device->BeginScene();
-	if (FAILED(hr))
-	{
-		Logging::Log() << __FUNCTION__ << " Failed to begin scene";
-		return hr;
-	}
-
 	// Set texture
 	hr = d3d9Device->SetTexture(0, surfaceTexture);
 	if (FAILED(hr))
@@ -1225,7 +1228,7 @@ HRESULT m_IDirectDrawX::Unlock()
 	hr = d3d9Device->EndScene();
 	if (FAILED(hr))
 	{
-		Logging::Log() << __FUNCTION__ << " Failed to end scene";
+		Logging::Log() << __FUNCTION__ << " Failed to end scene error " << hr;
 		return hr;
 	}
 

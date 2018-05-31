@@ -185,7 +185,7 @@ public:
 		{
 			constexpr UINT CacheIndex = AddressCacheIndex<T>::CacheIndex;
 			auto it = std::find_if(g_map[CacheIndex].begin(), g_map[CacheIndex].end(),
-				[Wrapper](std::pair<void*, class AddressLookupTableDdrawObject*> Map) -> bool { return Map.second == Wrapper; });
+				[=](auto Map) -> bool { return Map.second == Wrapper; });
 
 			if (it != std::end(g_map[CacheIndex]))
 			{

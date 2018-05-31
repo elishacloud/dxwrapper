@@ -64,7 +64,7 @@ public:
 
 			ProxyDirectXVersion = 9;
 
-			if (!displayWidth || !displayHeight)
+			if ((!displayWidth || !displayHeight) && !isWindowed)
 			{
 				SetDefaultDisplayMode = true;
 			}

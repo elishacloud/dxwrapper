@@ -21,8 +21,10 @@ private:
 	LONG overlayX = 0;
 	LONG overlayY = 0;
 	m_IDirectDrawPalette *attachedPalette = nullptr;	// Associated palette
-	UINT32 *rgbVideoMem = nullptr;						// RGB video memory
-	BYTE *rawVideoMem = nullptr;						// Virtual video memory
+	UINT32 *rgbVideoBuf = nullptr;						// RGB video buffer
+	BYTE *rawVideoBuf = nullptr;						// Virtual video buffer
+	DWORD BufferSize = 0;
+	RECT DestRect;
 
 public:
 	m_IDirectDrawSurfaceX(IDirectDrawSurface7 *pOriginal, DWORD Version, m_IDirectDrawSurface7 *Interface) : ProxyInterface(pOriginal), DirectXVersion(Version), WrapperInterface(Interface)
@@ -43,73 +45,50 @@ public:
 			memset(&colorKeys[i], 0, sizeof(DDCOLORKEY));
 		}
 
-		//set width and height
-		/*if(lpDDSurfaceDesc->dwFlags & DDSD_WIDTH)
-		{
-		surfaceWidth = lpDDSurfaceDesc->dwWidth;
-		}
-		else
-		{
-		surfaceWidth = displayModeWidth;
-		}
-		if(lpDDSurfaceDesc->dwFlags & DDSD_HEIGHT)
-		{
-		surfaceHeight = lpDDSurfaceDesc->dwHeight;
-		}
-		else
-		{
-		surfaceHeight = displayModeHeight;
-		}
-
-		//allocate virtual video memory raw
-		double indexSize = 1;
-		if(lpDDSurfaceDesc->ddpfPixelFormat.dwFlags & DDPF_PALETTEINDEXED1)
-		{
-		indexSize = 0.125;
-		}
-		else if(lpDDSurfaceDesc->ddpfPixelFormat.dwFlags & DDPF_PALETTEINDEXED2)
-		{
-		indexSize = 0.25;
-		}
-		else if(lpDDSurfaceDesc->ddpfPixelFormat.dwFlags & DDPF_PALETTEINDEXED4)
-		{
-		indexSize = 0.5;
-		}
-		else if(lpDDSurfaceDesc->ddpfPixelFormat.dwFlags & DDPF_PALETTEINDEXED8 | lpDDSurfaceDesc->ddpfPixelFormat.dwFlags & DDPF_PALETTEINDEXEDTO8)
-		{
-		indexSize = 1;
-		}*/
-
-		//Overallocate the memory to prevent access outside of memory range by the exe
-		//if(!ReInitialize(displayWidth, displayHeight)) return DDERR_OUTOFMEMORY;
-		//maximum supported resolution is 1920x1440
-		rawVideoMem = new BYTE[1920 * 1440 * 4];
-
-		// Clear raw memory
-		ZeroMemory(rawVideoMem, 1920 * 1440 * sizeof(BYTE) * 4);
-
-		// Allocate virtual video memory RGB
-		rgbVideoMem = new UINT32[surfaceWidth * surfaceHeight];
-
-		// Clear rgb memory
-		ZeroMemory(rgbVideoMem, surfaceWidth * surfaceHeight * sizeof(UINT32));
+		// Alocate memory for video buffer
+		AlocateVideoBuffer();
 
 		// Copy surface description
 		memcpy(&surfaceDesc, lpDDSurfaceDesc, sizeof(DDSURFACEDESC2));
 	}
 	~m_IDirectDrawSurfaceX()
 	{
-		// Free memory for internal structures
-		if (rawVideoMem != nullptr)
+		FreeVideoBuffer();
+	}
+
+	void FreeVideoBuffer()
+	{
+		if (rawVideoBuf)
 		{
-			delete rawVideoMem;
-			rawVideoMem = nullptr;
+			delete rawVideoBuf;
+			rawVideoBuf = nullptr;
 		}
-		if (rgbVideoMem != nullptr)
+		if (rgbVideoBuf)
 		{
-			delete rawVideoMem;
-			rgbVideoMem = nullptr;
+			delete rgbVideoBuf;
+			rgbVideoBuf = nullptr;
 		}
+	}
+
+	void AlocateVideoBuffer()
+	{
+		// Free memory for internal structures in case there is an old one
+		FreeVideoBuffer();
+
+		// Buffer size
+		BufferSize = surfaceWidth * surfaceHeight;
+
+		// Allocate the raw video buffer
+		rawVideoBuf = new BYTE[BufferSize * 4];
+
+		// Clear raw memory
+		ZeroMemory(rawVideoBuf, BufferSize * 4 * sizeof(BYTE));
+
+		// Allocate virtual video memory RGB
+		rgbVideoBuf = new UINT32[BufferSize];
+
+		// Clear rgb memory
+		ZeroMemory(rgbVideoBuf, BufferSize * sizeof(UINT32));
 	}
 
 	void InitWrapper()
