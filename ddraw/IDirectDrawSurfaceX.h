@@ -12,18 +12,21 @@ private:
 
 	// Convert to d3d9
 	m_IDirectDrawX *ddrawParent = nullptr;
-	LPDIRECT3DDEVICE9 *d3d9Device = nullptr;
+	m_IDirectDrawPalette *attachedPalette = nullptr;	// Associated palette
 	DDSURFACEDESC2 surfaceDesc;
 	D3DLOCKED_RECT d3dlrect = { 0, nullptr };
+	RECT DestRect;
 	DWORD surfaceWidth = 0;
 	DWORD surfaceHeight = 0;
 	DDCOLORKEY colorKeys[4];		// Color keys(DDCKEY_DESTBLT, DDCKEY_DESTOVERLAY, DDCKEY_SRCBLT, DDCKEY_SRCOVERLAY)
 	LONG overlayX = 0;
 	LONG overlayY = 0;
-	m_IDirectDrawPalette *attachedPalette = nullptr;	// Associated palette
-	BYTE *rawVideoBuf = nullptr;						// Virtual video buffer
 	DWORD BufferSize = 0;
-	RECT DestRect;
+	BYTE *rawVideoBuf = nullptr;						// Virtual video buffer
+
+	// Direct3D9 vars
+	LPDIRECT3DDEVICE9 *d3d9Device = nullptr;
+	LPDIRECT3DSURFACE9 d3d9Surface = nullptr;
 
 public:
 	m_IDirectDrawSurfaceX(IDirectDrawSurface7 *pOriginal, DWORD Version, m_IDirectDrawSurface7 *Interface) : ProxyInterface(pOriginal), DirectXVersion(Version), WrapperInterface(Interface)

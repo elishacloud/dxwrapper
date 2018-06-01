@@ -244,6 +244,8 @@ HRESULT m_IDirectDrawSurfaceX::GetAttachedSurface(LPDDSCAPS2 lpDDSCaps, LPDIRECT
 
 	if (Config.Dd7to9)
 	{
+		Logging::Log() << __FUNCTION__ << " Not fully implimented.";
+
 		*lplpDDAttachedSurface = this;
 		
 		AddRef();
@@ -573,6 +575,9 @@ HRESULT m_IDirectDrawSurfaceX::Lock(LPRECT lpDestRect, LPDDSURFACEDESC2 lpDDSurf
 
 	if (Config.Dd7to9)
 	{
+		// Currently always locks full rect
+		// ToDo: Fix this to only lock specified rect
+
 		if (lpDestRect)
 		{
 			memcpy(&DestRect, lpDestRect, sizeof(RECT));
@@ -585,20 +590,28 @@ HRESULT m_IDirectDrawSurfaceX::Lock(LPRECT lpDestRect, LPDDSURFACEDESC2 lpDDSurf
 			DestRect.bottom = surfaceHeight;
 		}
 
-		// Lock rect
-		hr = ddrawParent->Lock(&d3dlrect);
+		// Only use primary surface
+		if ((surfaceDesc.ddsCaps.dwCaps & DDSCAPS_PRIMARYSURFACE) != 0)
+		{
+			// Lock rect
+			D3DLOCKED_RECT tmpd3dlrect = { NULL };
+			hr = ddrawParent->Lock(&tmpd3dlrect);
+
+			if (SUCCEEDED(hr))
+			{
+				d3dlrect.pBits = tmpd3dlrect.pBits;
+				d3dlrect.Pitch = tmpd3dlrect.Pitch;
+
+			}
+		}
+		else
+		{
+			hr = DD_OK;
+		}
 
 		// Set desc and video memory
 		if (SUCCEEDED(hr))
 		{
-			// Check buffer size
-			if (BufferSize < surfaceDesc.dwWidth * surfaceDesc.dwHeight)
-			{
-				surfaceWidth = surfaceDesc.dwWidth;
-				surfaceHeight = surfaceDesc.dwHeight;
-				AlocateVideoBuffer();
-			}
-
 			// Copy desc to passed in desc
 			memcpy(lpDDSurfaceDesc, &surfaceDesc, sizeof(DDSURFACEDESC2));
 
@@ -809,100 +822,108 @@ HRESULT m_IDirectDrawSurfaceX::Unlock(LPRECT lpRect)
 {
 	if (Config.Dd7to9)
 	{
-		// Currently always unlocks full rect
-		// ToDo: Fix this to only unlock specified rect
-
-		// Translate raw video memory to rgb buffer
-		if (d3dlrect.pBits)
+		// Only use primary surface
+		if (d3dlrect.pBits && (surfaceDesc.ddsCaps.dwCaps & DDSCAPS_PRIMARYSURFACE) != 0)
 		{
+			// Translate raw video memory to rgb buffer
 			UINT32 *surfaceBuffer = (UINT32*)d3dlrect.pBits;
-
-			// 8-Bit surface
-			if (surfaceDesc.ddpfPixelFormat.dwRGBBitCount == 8)
+			if ((surfaceDesc.ddpfPixelFormat.dwFlags & DDPF_RGB) != 0)
 			{
-				// From a palette
-				if (attachedPalette && attachedPalette->rgbPalette)
+				// 8-Bit surface
+				if (surfaceDesc.ddpfPixelFormat.dwRGBBitCount == 8)
 				{
-					// Translate palette to rgb video buffer
-					LONG x = 0, z = 0;
-					for (LONG j = DestRect.top; j < DestRect.bottom; j++)
+					// From a palette
+					if (attachedPalette && attachedPalette->rgbPalette)
 					{
-						z = j * (d3dlrect.Pitch / 4);
-						for (LONG i = DestRect.left; i < DestRect.right; i++)
+						// Translate palette to rgb video buffer
+						LONG x = 0, z = 0;
+						for (LONG j = DestRect.top; j < DestRect.bottom; j++)
 						{
-							x = z + i;
-							surfaceBuffer[x] = attachedPalette->rgbPalette[rawVideoBuf[x]];
+							z = j * (d3dlrect.Pitch / 4);
+							for (LONG i = DestRect.left; i < DestRect.right; i++)
+							{
+								x = z + i;
+								surfaceBuffer[x] = attachedPalette->rgbPalette[rawVideoBuf[x]];
+							}
+						}
+					}
+					else
+					{
+						Logging::Log() << __FUNCTION__ << " No support for non-palette 8-bit surfaces!";
+					}
+				}
+
+				// 16-bit surface
+				else if (surfaceDesc.ddpfPixelFormat.dwRGBBitCount == 16)
+				{
+					if (attachedPalette && attachedPalette->rgbPalette)
+					{
+						Logging::Log() << __FUNCTION__ << " No support for 16-bit surfaces with palettes!";
+					}
+					// Translate R5G6B5 to 32 bit rgb video buffer
+					else
+					{
+						LONG x = 0, z = 0;
+						WORD *RawBuffer = (WORD*)&rawVideoBuf[0];
+						for (LONG j = DestRect.top; j < DestRect.bottom; j++)
+						{
+							z = j * (d3dlrect.Pitch / 4);
+							for (LONG i = DestRect.left; i < DestRect.right; i++)
+							{
+								x = z + i;
+
+								// More accurate but twice as slow
+								/*surfaceBuffer[x] = D3DCOLOR_XRGB(
+									((RawBuffer[x] & 0xF800) >> 11) * 255 / 31,			// Red
+									((RawBuffer[x] & 0x07E0) >> 5) * 255 / 63,			// Green
+									((RawBuffer[x] & 0x001F)) * 255 / 31);				// Blue
+									*/
+
+									// Fastest but not as accurate
+								surfaceBuffer[x] = ((RawBuffer[x] & 0xF800) << 8) +		// Red
+									((RawBuffer[x] & 0x07E0) << 5) +					// Green
+									((RawBuffer[x] & 0x001F) << 3);						// Blue
+							}
 						}
 					}
 				}
+
+				// 24-bit / 32-bit surfaces
 				else
 				{
-					Logging::Log() << __FUNCTION__ << " No support for non-palette 8-bit surfaces!";
-				}
-			}
-			// 16-bit surface
-			else if (surfaceDesc.ddpfPixelFormat.dwRGBBitCount == 16)
-			{
-				if (attachedPalette && attachedPalette->rgbPalette)
-				{
-					Logging::Log() << __FUNCTION__ << " No support for 16-bit surfaces with palettes!";
-				}
-				// Translate R5G6B5 to 32 bit rgb video buffer
-				else
-				{
-					LONG x = 0, z = 0;
-					WORD *RawBuffer = (WORD*)&rawVideoBuf[0];
-					for (LONG j = DestRect.top; j < DestRect.bottom; j++)
+					// Copy rgb video memory to texture memory by scanline observing pitch
+					const LONG x = DestRect.right - DestRect.left;
+					for (LONG y = DestRect.top; y < DestRect.bottom; y++)
 					{
-						z = j * (d3dlrect.Pitch / 4);
-						for (LONG i = DestRect.left; i < DestRect.right; i++)
-						{
-							x = z + i;
-
-							// More accurate but twice as slow
-							/*surfaceBuffer[x] = D3DCOLOR_XRGB(
-								((RawBuffer[x] & 0xF800) >> 11) * 255 / 31,		// Red
-								((RawBuffer[x] & 0x07E0) >> 5) * 255 / 63,		// Green
-								((RawBuffer[x] & 0x001F)) * 255 / 31);			// Blue
-								*/
-
-							// Fastest but not as accurate
-							surfaceBuffer[x] = ((RawBuffer[x] & 0xF800) << 8) +		// Red
-								((RawBuffer[x] & 0x07E0) << 5) +					// Green
-								((RawBuffer[x] & 0x001F) << 3);						// Blue
-						}
+						memcpy((BYTE *)d3dlrect.pBits + (y * d3dlrect.Pitch), &rawVideoBuf[y * x], x * sizeof(UINT32));
 					}
 				}
 			}
-			// 24-bit / 32-bit surfaces
 			else
 			{
-				// Copy rgb video memory to texture memory by scanline observing pitch
-				const LONG x = DestRect.right - DestRect.left;
-				for (LONG y = DestRect.top; y < DestRect.bottom; y++)
-				{
-					memcpy((BYTE *)d3dlrect.pBits + (y * d3dlrect.Pitch), &rawVideoBuf[y * x], x * sizeof(UINT32));
-				}
+				Logging::Log() << __FUNCTION__ << " Unsupported surface format " << surfaceDesc.ddpfPixelFormat.dwFlags << "!";
 			}
-		}
 
-		/*
-		A pointer to a RECT structure that was used to lock the surface in the corresponding
-		call to the IDirectDrawSurface7::Lock method. This parameter can be NULL only if the
-		entire surface was locked by passing NULL in the lpDestRect parameter of the corresponding
-		call to the IDirectDrawSurface7::Lock method.
+			/*
+			A pointer to a RECT structure that was used to lock the surface in the corresponding
+			call to the IDirectDrawSurface7::Lock method. This parameter can be NULL only if the
+			entire surface was locked by passing NULL in the lpDestRect parameter of the corresponding
+			call to the IDirectDrawSurface7::Lock method.
 
-		Because you can call IDirectDrawSurface7::Lock multiple times for the same surface with
-		different destination rectangles, the pointer in lpRect links the calls to the
-		IDirectDrawSurface7::Lock and IDirectDrawSurface7::Unlock methods.
-		*/
+			Because you can call IDirectDrawSurface7::Lock multiple times for the same surface with
+			different destination rectangles, the pointer in lpRect links the calls to the
+			IDirectDrawSurface7::Lock and IDirectDrawSurface7::Unlock methods.
+			*/
 
-		// Present the surface
-		HRESULT hr = ddrawParent->Unlock();
-		if (FAILED(hr))
-		{
-			// Failed to presnt the surface, error reporting handled previously
-			return hr;
+			// Present the surface
+			HRESULT hr = ddrawParent->Unlock();
+			if (FAILED(hr))
+			{
+				// Failed to presnt the surface, error reporting handled previously
+				return hr;
+			}
+
+			d3dlrect.pBits = nullptr;
 		}
 
 		// Success

@@ -190,18 +190,31 @@ HRESULT m_IDirectDrawX::CreateSurface(LPDDSURFACEDESC2 lpDDSurfaceDesc, LPDIRECT
 		lpDDSurfaceDesc = &Desc2;
 
 		// BackBufferCount must be at least 1
-		lpDDSurfaceDesc->dwBackBufferCount = (lpDDSurfaceDesc->dwBackBufferCount) ? lpDDSurfaceDesc->dwBackBufferCount : 1;
+		if ((lpDDSurfaceDesc->dwFlags & DDSD_BACKBUFFERCOUNT) != 0 && lpDDSurfaceDesc->dwBackBufferCount == 0)
+		{
+			lpDDSurfaceDesc->dwBackBufferCount = 1;
+		}
 	}
 
 	if (Config.Dd7to9)
 	{
 		// Set parameters before call
-		lpDDSurfaceDesc->dwWidth = (lpDDSurfaceDesc->dwWidth) ? lpDDSurfaceDesc->dwWidth : displayModeWidth;
-		lpDDSurfaceDesc->dwHeight = (lpDDSurfaceDesc->dwHeight) ? lpDDSurfaceDesc->dwHeight : displayModeHeight;
-		lpDDSurfaceDesc->dwRefreshRate = (lpDDSurfaceDesc->dwRefreshRate) ? lpDDSurfaceDesc->dwRefreshRate : displayModerefreshRate;
-
-		if (!lpDDSurfaceDesc->ddpfPixelFormat.dwRGBBitCount && displayModeBPP)
+		if ((lpDDSurfaceDesc->dwFlags & (DDSD_HEIGHT | DDSD_WIDTH)) == 0)
 		{
+			lpDDSurfaceDesc->dwFlags |= DDSD_HEIGHT | DDSD_WIDTH;
+			lpDDSurfaceDesc->dwWidth = displayModeWidth;
+			lpDDSurfaceDesc->dwHeight = displayModeHeight;
+		}
+		if ((lpDDSurfaceDesc->dwFlags & DDSD_REFRESHRATE) == 0)
+		{
+			lpDDSurfaceDesc->dwFlags |= DDSD_REFRESHRATE;
+			lpDDSurfaceDesc->dwRefreshRate = displayModerefreshRate;
+		}
+		if ((lpDDSurfaceDesc->dwFlags & DDSD_PIXELFORMAT) == 0)
+		{
+			lpDDSurfaceDesc->dwFlags |= DDSD_PIXELFORMAT;
+			lpDDSurfaceDesc->ddpfPixelFormat.dwFlags |= DDPF_RGB;
+
 			// Set BitCount
 			lpDDSurfaceDesc->ddpfPixelFormat.dwRGBBitCount = displayModeBPP;
 
