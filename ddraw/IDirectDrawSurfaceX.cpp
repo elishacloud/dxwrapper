@@ -815,6 +815,8 @@ HRESULT m_IDirectDrawSurfaceX::Unlock(LPRECT lpRect)
 		// Translate raw video memory to rgb buffer
 		if (d3dlrect.pBits)
 		{
+			UINT32 *surfaceBuffer = (UINT32*)d3dlrect.pBits;
+
 			// 8-Bit surface
 			if (surfaceDesc.ddpfPixelFormat.dwRGBBitCount == 8)
 			{
@@ -825,19 +827,12 @@ HRESULT m_IDirectDrawSurfaceX::Unlock(LPRECT lpRect)
 					LONG x = 0, z = 0;
 					for (LONG j = DestRect.top; j < DestRect.bottom; j++)
 					{
-						z = j * surfaceWidth;
+						z = j * (d3dlrect.Pitch / 4);
 						for (LONG i = DestRect.left; i < DestRect.right; i++)
 						{
 							x = z + i;
-							rgbVideoBuf[x] = attachedPalette->rgbPalette[rawVideoBuf[x]];
+							surfaceBuffer[x] = attachedPalette->rgbPalette[rawVideoBuf[x]];
 						}
-					}
-
-					// Copy rgb video memory to texture memory by scanline observing pitch
-					for (LONG y = DestRect.top; y < DestRect.bottom; y++)
-					{
-						x = DestRect.right - DestRect.left;
-						memcpy((BYTE *)d3dlrect.pBits + (y * d3dlrect.Pitch), &rgbVideoBuf[y * x], x * sizeof(UINT32));
 					}
 				}
 				else
@@ -859,29 +854,23 @@ HRESULT m_IDirectDrawSurfaceX::Unlock(LPRECT lpRect)
 					WORD *RawBuffer = (WORD*)&rawVideoBuf[0];
 					for (LONG j = DestRect.top; j < DestRect.bottom; j++)
 					{
-						z = j * surfaceWidth;
+						z = j * (d3dlrect.Pitch / 4);
 						for (LONG i = DestRect.left; i < DestRect.right; i++)
 						{
 							x = z + i;
 
 							// More accurate but twice as slow
-							/*rgbVideoBuf[x] = D3DCOLOR_XRGB(
+							/*surfaceBuffer[x] = D3DCOLOR_XRGB(
 								((RawBuffer[x] & 0xF800) >> 11) * 255 / 31,		// Red
 								((RawBuffer[x] & 0x07E0) >> 5) * 255 / 63,		// Green
 								((RawBuffer[x] & 0x001F)) * 255 / 31);			// Blue
 								*/
 
-							rgbVideoBuf[x] = ((RawBuffer[x] & 0xF800) << 8) +
-								((RawBuffer[x] & 0x07E0) << 5) +
-								((RawBuffer[x] & 0x001F) << 3);
+							// Fastest but not as accurate
+							surfaceBuffer[x] = ((RawBuffer[x] & 0xF800) << 8) +		// Red
+								((RawBuffer[x] & 0x07E0) << 5) +					// Green
+								((RawBuffer[x] & 0x001F) << 3);						// Blue
 						}
-					}
-
-					// Copy rgb video memory to texture memory by scanline observing pitch
-					for (LONG y = DestRect.top; y < DestRect.bottom; y++)
-					{
-						x = DestRect.right - DestRect.left;
-						memcpy((BYTE *)d3dlrect.pBits + (y * d3dlrect.Pitch), &rgbVideoBuf[y * x], x * sizeof(UINT32));
 					}
 				}
 			}
@@ -889,10 +878,9 @@ HRESULT m_IDirectDrawSurfaceX::Unlock(LPRECT lpRect)
 			else
 			{
 				// Copy rgb video memory to texture memory by scanline observing pitch
-				LONG x = 0;
+				const LONG x = DestRect.right - DestRect.left;
 				for (LONG y = DestRect.top; y < DestRect.bottom; y++)
 				{
-					x = DestRect.right - DestRect.left;
 					memcpy((BYTE *)d3dlrect.pBits + (y * d3dlrect.Pitch), &rawVideoBuf[y * x], x * sizeof(UINT32));
 				}
 			}

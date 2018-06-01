@@ -21,7 +21,6 @@ private:
 	LONG overlayX = 0;
 	LONG overlayY = 0;
 	m_IDirectDrawPalette *attachedPalette = nullptr;	// Associated palette
-	UINT32 *rgbVideoBuf = nullptr;						// RGB video buffer
 	BYTE *rawVideoBuf = nullptr;						// Virtual video buffer
 	DWORD BufferSize = 0;
 	RECT DestRect;
@@ -63,11 +62,6 @@ public:
 			delete rawVideoBuf;
 			rawVideoBuf = nullptr;
 		}
-		if (rgbVideoBuf)
-		{
-			delete rgbVideoBuf;
-			rgbVideoBuf = nullptr;
-		}
 	}
 
 	void AlocateVideoBuffer()
@@ -83,12 +77,6 @@ public:
 
 		// Clear raw memory
 		ZeroMemory(rawVideoBuf, BufferSize * 4 * sizeof(BYTE));
-
-		// Allocate virtual video memory RGB
-		rgbVideoBuf = new UINT32[BufferSize];
-
-		// Clear rgb memory
-		ZeroMemory(rgbVideoBuf, BufferSize * sizeof(UINT32));
 	}
 
 	void InitWrapper()
