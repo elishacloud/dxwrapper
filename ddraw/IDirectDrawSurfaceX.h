@@ -9,11 +9,12 @@ private:
 	DWORD ProxyDirectXVersion;
 	IID WrapperID;
 	ULONG RefCount = 1;
+	bool ConvertSurfaceDescTo2 = false;
 
 	// Convert to d3d9
 	m_IDirectDrawX *ddrawParent = nullptr;
 	m_IDirectDrawPalette *attachedPalette = nullptr;	// Associated palette
-	DDSURFACEDESC2 surfaceDesc;
+	DDSURFACEDESC2 surfaceDesc2;
 	D3DLOCKED_RECT d3dlrect = { 0, nullptr };
 	RECT DestRect;
 	DWORD surfaceWidth = 0;
@@ -26,15 +27,15 @@ private:
 
 	// Direct3D9 vars
 	LPDIRECT3DDEVICE9 *d3d9Device = nullptr;
-	LPDIRECT3DSURFACE9 d3d9Surface = nullptr;
+	LPDIRECT3DSURFACE9 *d3d9Surface = nullptr;
 
 public:
 	m_IDirectDrawSurfaceX(IDirectDrawSurface7 *pOriginal, DWORD Version, m_IDirectDrawSurface7 *Interface) : ProxyInterface(pOriginal), DirectXVersion(Version), WrapperInterface(Interface)
 	{
 		InitWrapper();
 	}
-	m_IDirectDrawSurfaceX(LPDIRECT3DDEVICE9 *lplpd3d9Device, m_IDirectDrawX *Interface, DWORD Version, LPDDSURFACEDESC2 lpDDSurfaceDesc, DWORD Width, DWORD Height) :
-		d3d9Device(lplpd3d9Device), ddrawParent(Interface), DirectXVersion(Version), surfaceWidth(Width), surfaceHeight(Height)
+	m_IDirectDrawSurfaceX(LPDIRECT3DDEVICE9 *lplpDevice, LPDIRECT3DSURFACE9 *lplpSurface, m_IDirectDrawX *Interface, DWORD Version, LPDDSURFACEDESC2 lpDDSurfaceDesc, DWORD Width, DWORD Height) :
+		d3d9Device(lplpDevice), d3d9Surface(lplpSurface), ddrawParent(Interface), DirectXVersion(Version), surfaceWidth(Width), surfaceHeight(Height)
 	{
 		ProxyInterface = nullptr;
 		WrapperInterface = nullptr;
@@ -51,7 +52,7 @@ public:
 		AlocateVideoBuffer();
 
 		// Copy surface description
-		memcpy(&surfaceDesc, lpDDSurfaceDesc, sizeof(DDSURFACEDESC2));
+		memcpy(&surfaceDesc2, lpDDSurfaceDesc, sizeof(DDSURFACEDESC2));
 	}
 	~m_IDirectDrawSurfaceX()
 	{
@@ -102,6 +103,11 @@ public:
 				(ProxyID == IID_IDirectDrawSurface3) ? 3 :
 				(ProxyID == IID_IDirectDrawSurface4) ? 4 :
 				(ProxyID == IID_IDirectDrawSurface7) ? 7 : 7;
+		}
+
+		if (ProxyDirectXVersion > 3 && DirectXVersion < 4)
+		{
+			ConvertSurfaceDescTo2 = true;
 		}
 
 		if (ProxyDirectXVersion != DirectXVersion)

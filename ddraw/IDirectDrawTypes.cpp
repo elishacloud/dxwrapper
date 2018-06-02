@@ -247,12 +247,9 @@ D3DFORMAT GetDisplayFormat(DDPIXELFORMAT ddpfPixelFormat)
 		switch (BitCount)
 		{
 		case 8:
+			// Default 8-bit
 			return D3DFMT_X8R8G8B8;
 		case 16:
-			if (ddpfPixelFormat.dwGBitMask == 0x7E0)
-			{
-				return D3DFMT_R5G6B5;
-			}
 			if (ddpfPixelFormat.dwGBitMask == 0x3E0)
 			{
 				if (ddpfPixelFormat.dwFlags & DDPF_ALPHAPIXELS)
@@ -264,8 +261,11 @@ D3DFORMAT GetDisplayFormat(DDPIXELFORMAT ddpfPixelFormat)
 					return D3DFMT_X1R5G5B5;
 				}
 			}
+			// Default 16-bit
+			return D3DFMT_R5G6B5;
 			break;
 		case 24:
+			// Default 24-bit
 			return D3DFMT_X8R8G8B8;
 		case 32:
 			if (ddpfPixelFormat.dwBBitMask == 0xFF)
@@ -274,19 +274,15 @@ D3DFORMAT GetDisplayFormat(DDPIXELFORMAT ddpfPixelFormat)
 				{
 					return D3DFMT_A8R8G8B8;
 				}
-				else
-				{
-					return D3DFMT_X8R8G8B8;
-				}
 			}
-			if (ddpfPixelFormat.dwBBitMask == 0x3FF && ddpfPixelFormat.dwRGBAlphaBitMask == 0xC0000000)
+			else if (ddpfPixelFormat.dwBBitMask == 0x3FF && ddpfPixelFormat.dwRGBAlphaBitMask == 0xC0000000)
 			{
 				return D3DFMT_A2R10G10B10;
 			}
+			// Default 32-bit
+			return D3DFMT_X8R8G8B8;
 			break;
 		}
-		Logging::Log() << __FUNCTION__ << " Error, bit count " << BitCount << " not found!";
-		return D3DFMT_UNKNOWN;
 	}
 
 	Logging::Log() << __FUNCTION__ << " Error, PixelFormat not implimented: " << ddpfPixelFormat.dwFlags;

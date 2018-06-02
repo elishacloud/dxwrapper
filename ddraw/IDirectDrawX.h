@@ -8,6 +8,7 @@ private:
 	DWORD DirectXVersion;
 	DWORD ProxyDirectXVersion;
 	IID WrapperID;
+	bool ConvertSurfaceDescTo2 = false;
 	
 	// Fix exclusive mode issue
 	HHOOK g_hook = nullptr;
@@ -81,6 +82,11 @@ public:
 
 		InterlockedExchangePointer((PVOID*)&CurrentDDInterface, ProxyInterface);
 
+		if (ProxyDirectXVersion > 3 && DirectXVersion < 4)
+		{
+			ConvertSurfaceDescTo2 = true;
+		}
+
 		if (ProxyDirectXVersion != DirectXVersion)
 		{
 			Logging::LogDebug() << "Convert DirectDraw v" << DirectXVersion << " to v" << ProxyDirectXVersion;
@@ -142,6 +148,6 @@ public:
 	bool CreateD3DDevice();
 	bool CreateSurfaceTexture();
 	bool ReinitDevice();
-	HRESULT Lock(D3DLOCKED_RECT *d3dlrect);
-	HRESULT Unlock();
+	HRESULT CheckBeginScene(LPDIRECT3DSURFACE9 d3d9Surface);
+	HRESULT CheckEndScene(LPDIRECT3DSURFACE9 d3d9Surface);
  };

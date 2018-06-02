@@ -176,69 +176,107 @@ HRESULT m_IDirectDrawX::CreatePalette(DWORD dwFlags, LPPALETTEENTRY lpDDColorArr
 	return hr;
 }
 
-HRESULT m_IDirectDrawX::CreateSurface(LPDDSURFACEDESC2 lpDDSurfaceDesc, LPDIRECTDRAWSURFACE7 FAR * lplpDDSurface, IUnknown FAR * pUnkOuter)
+HRESULT m_IDirectDrawX::CreateSurface(LPDDSURFACEDESC2 lpDDSurfaceDesc2, LPDIRECTDRAWSURFACE7 FAR * lplpDDSurface, IUnknown FAR * pUnkOuter)
 {
-	if (!lplpDDSurface)
+	if (!lplpDDSurface || !lpDDSurfaceDesc2)
 	{
 		return DDERR_INVALIDPARAMS;
 	}
 
+	// Game using old DirectX, Convert to LPDDSURFACEDESC2
 	DDSURFACEDESC2 Desc2;
-	if (lpDDSurfaceDesc && ProxyDirectXVersion > 3 && DirectXVersion < 4)
+	if (ConvertSurfaceDescTo2)
 	{
-		ConvertSurfaceDesc(Desc2, *(LPDDSURFACEDESC)lpDDSurfaceDesc);
-		lpDDSurfaceDesc = &Desc2;
+		ConvertSurfaceDesc(Desc2, *(LPDDSURFACEDESC)lpDDSurfaceDesc2);
+		lpDDSurfaceDesc2 = &Desc2;
 
 		// BackBufferCount must be at least 1
-		if ((lpDDSurfaceDesc->dwFlags & DDSD_BACKBUFFERCOUNT) != 0 && lpDDSurfaceDesc->dwBackBufferCount == 0)
+		if ((lpDDSurfaceDesc2->dwFlags & DDSD_BACKBUFFERCOUNT) != 0 && lpDDSurfaceDesc2->dwBackBufferCount == 0)
 		{
-			lpDDSurfaceDesc->dwBackBufferCount = 1;
+			lpDDSurfaceDesc2->dwBackBufferCount = 1;
 		}
 	}
 
 	if (Config.Dd7to9)
 	{
+		if ((lpDDSurfaceDesc2->dwFlags & DDSD_CAPS) == 0)
+		{
+			return DDERR_INVALIDPARAMS;
+		}
+
+		if (!surfaceTexture)
+		{
+			// Init textures to new display mode
+			if (!CreateSurfaceTexture())
+			{
+				Logging::Log() << __FUNCTION__ << " Error creating Direct3D9 surface texture";
+				return DDERR_GENERIC;
+			}
+		}
+
 		// Set parameters before call
-		if ((lpDDSurfaceDesc->dwFlags & (DDSD_HEIGHT | DDSD_WIDTH)) == 0)
+		// Set Height and Width
+		if ((lpDDSurfaceDesc2->dwFlags & (DDSD_HEIGHT | DDSD_WIDTH)) != (DDSD_HEIGHT | DDSD_WIDTH))
 		{
-			lpDDSurfaceDesc->dwFlags |= DDSD_HEIGHT | DDSD_WIDTH;
-			lpDDSurfaceDesc->dwWidth = displayModeWidth;
-			lpDDSurfaceDesc->dwHeight = displayModeHeight;
+			lpDDSurfaceDesc2->dwFlags |= DDSD_HEIGHT | DDSD_WIDTH;
+			lpDDSurfaceDesc2->dwWidth = displayModeWidth;
+			lpDDSurfaceDesc2->dwHeight = displayModeHeight;
 		}
-		if ((lpDDSurfaceDesc->dwFlags & DDSD_REFRESHRATE) == 0)
+		// Set Refresh Rate
+		if ((lpDDSurfaceDesc2->dwFlags & DDSD_REFRESHRATE) == 0)
 		{
-			lpDDSurfaceDesc->dwFlags |= DDSD_REFRESHRATE;
-			lpDDSurfaceDesc->dwRefreshRate = displayModerefreshRate;
+			lpDDSurfaceDesc2->dwFlags |= DDSD_REFRESHRATE;
+			lpDDSurfaceDesc2->dwRefreshRate = displayModerefreshRate;
 		}
-		if ((lpDDSurfaceDesc->dwFlags & DDSD_PIXELFORMAT) == 0)
+		// Set PixelFormat
+		if ((lpDDSurfaceDesc2->dwFlags & DDSD_PIXELFORMAT) == 0)
 		{
-			lpDDSurfaceDesc->dwFlags |= DDSD_PIXELFORMAT;
-			lpDDSurfaceDesc->ddpfPixelFormat.dwFlags |= DDPF_RGB;
+			// Set PixelFormat flags
+			lpDDSurfaceDesc2->dwFlags |= DDSD_PIXELFORMAT;
+			lpDDSurfaceDesc2->ddpfPixelFormat.dwFlags = DDPF_RGB;
 
 			// Set BitMask
 			switch (displayModeBPP)
 			{
 			case 8:
+				lpDDSurfaceDesc2->ddpfPixelFormat.dwRBitMask = 0;
+				lpDDSurfaceDesc2->ddpfPixelFormat.dwGBitMask = 0;
+				lpDDSurfaceDesc2->ddpfPixelFormat.dwBBitMask = 0;
 				break;
 			case 16:
-				GetPixelDisplayFormat(D3DFMT_R5G6B5, lpDDSurfaceDesc->ddpfPixelFormat);
+				GetPixelDisplayFormat(D3DFMT_R5G6B5, lpDDSurfaceDesc2->ddpfPixelFormat);
 				break;
 			case 24:
 			case 32:
-				GetPixelDisplayFormat(D3DFMT_X8R8G8B8, lpDDSurfaceDesc->ddpfPixelFormat);
+				GetPixelDisplayFormat(D3DFMT_X8R8G8B8, lpDDSurfaceDesc2->ddpfPixelFormat);
 				break;
 			}
 
 			// Set BitCount
-			lpDDSurfaceDesc->ddpfPixelFormat.dwRGBBitCount = displayModeBPP;
+			lpDDSurfaceDesc2->ddpfPixelFormat.dwRGBBitCount = displayModeBPP;
 		}
 
-		*lplpDDSurface = new m_IDirectDrawSurfaceX(&d3d9Device, this, DirectXVersion, lpDDSurfaceDesc, displayModeWidth, displayModeHeight);
+		// Set surface format
+		/*D3DFORMAT Format = GetDisplayFormat(lpDDSurfaceDesc2->ddpfPixelFormat);
+
+		// Create surface
+		IDirect3DSurface9 *pSurface = nullptr;
+		if ((lpDDSurfaceDesc2->ddsCaps.dwCaps & DDSCAPS_PRIMARYSURFACE) != 0)
+		{
+			HRESULT hr = d3d9Device->CreateRenderTarget(lpDDSurfaceDesc2->dwWidth, lpDDSurfaceDesc2->dwHeight, Format, D3DMULTISAMPLE_NONE, 0, TRUE, &pSurface, nullptr);
+			if (FAILED(hr))
+			{
+				Logging::Log() << __FUNCTION__ << " Failed to CreateRenderTarget " << hr;
+				return hr;
+			}
+		}*/
+
+		*lplpDDSurface = new m_IDirectDrawSurfaceX(&d3d9Device, (LPDIRECT3DSURFACE9*)&surfaceTexture, this, DirectXVersion, lpDDSurfaceDesc2, displayModeWidth, displayModeHeight);
 
 		return DD_OK;
 	}
 
-	HRESULT hr = ProxyInterface->CreateSurface(lpDDSurfaceDesc, lplpDDSurface, pUnkOuter);
+	HRESULT hr = ProxyInterface->CreateSurface(lpDDSurfaceDesc2, lplpDDSurface, pUnkOuter);
 
 	if (SUCCEEDED(hr))
 	{
@@ -271,21 +309,22 @@ HRESULT m_IDirectDrawX::DuplicateSurface(LPDIRECTDRAWSURFACE7 lpDDSurface, LPDIR
 	return hr;
 }
 
-HRESULT m_IDirectDrawX::EnumDisplayModes(DWORD dwFlags, LPDDSURFACEDESC2 lpDDSurfaceDesc, LPVOID lpContext, LPDDENUMMODESCALLBACK2 lpEnumModesCallback)
+HRESULT m_IDirectDrawX::EnumDisplayModes(DWORD dwFlags, LPDDSURFACEDESC2 lpDDSurfaceDesc2, LPVOID lpContext, LPDDENUMMODESCALLBACK2 lpEnumModesCallback)
 {
+	// Game using old DirectX, Convert to LPDDSURFACEDESC2
 	DDSURFACEDESC2 Desc2;
 	ENUMDISPLAYMODES CallbackContext;
-	if (ProxyDirectXVersion > 3 && DirectXVersion < 4)
+	if (ConvertSurfaceDescTo2)
 	{
-		if (lpDDSurfaceDesc)
+		if (lpDDSurfaceDesc2)
 		{
-			ConvertSurfaceDesc(Desc2, *(LPDDSURFACEDESC)lpDDSurfaceDesc);
+			ConvertSurfaceDesc(Desc2, *(LPDDSURFACEDESC)lpDDSurfaceDesc2);
 		}
 
 		CallbackContext.lpContext = lpContext;
 		CallbackContext.lpCallback = (LPDDENUMMODESCALLBACK)lpEnumModesCallback;
 
-		lpDDSurfaceDesc = (lpDDSurfaceDesc) ? &Desc2 : nullptr;
+		lpDDSurfaceDesc2 = (lpDDSurfaceDesc2) ? &Desc2 : nullptr;
 		lpContext = &CallbackContext;
 		lpEnumModesCallback = m_IDirectDrawEnumDisplayModes::ConvertCallback;
 	}
@@ -294,22 +333,22 @@ HRESULT m_IDirectDrawX::EnumDisplayModes(DWORD dwFlags, LPDDSURFACEDESC2 lpDDSur
 	{
 		// Save refresh rate
 		DWORD EnumRefreshModes = 0;
-		if (lpDDSurfaceDesc && (dwFlags & DDEDM_REFRESHRATES) != 0)
+		if (lpDDSurfaceDesc2 && (dwFlags & DDEDM_REFRESHRATES) != 0)
 		{
-			EnumRefreshModes = lpDDSurfaceDesc->dwRefreshRate > 0;
+			EnumRefreshModes = lpDDSurfaceDesc2->dwRefreshRate > 0;
 		}
 
 		// Get display modes to enum
-		bool DisplayAllModes = (!lpDDSurfaceDesc);
+		bool DisplayAllModes = (!lpDDSurfaceDesc2);
 		DWORD DisplayBitCount = displayModeBPP;
-		if (!DisplayAllModes && lpDDSurfaceDesc && (lpDDSurfaceDesc->dwFlags & DDSD_PIXELFORMAT) != 0)
+		if (!DisplayAllModes && lpDDSurfaceDesc2 && (lpDDSurfaceDesc2->dwFlags & DDSD_PIXELFORMAT) != 0)
 		{
-			DisplayBitCount = GetBitCount(lpDDSurfaceDesc->ddpfPixelFormat);
+			DisplayBitCount = GetBitCount(lpDDSurfaceDesc2->ddpfPixelFormat);
 		}
 
 		// Setup surface desc
-		lpDDSurfaceDesc = &Desc2;
-		ZeroMemory(lpDDSurfaceDesc, sizeof(LPDDSURFACEDESC2));
+		lpDDSurfaceDesc2 = &Desc2;
+		ZeroMemory(lpDDSurfaceDesc2, sizeof(LPDDSURFACEDESC2));
 
 		// Setup display mode and format
 		D3DFORMAT Format;
@@ -356,27 +395,27 @@ HRESULT m_IDirectDrawX::EnumDisplayModes(DWORD dwFlags, LPDDSURFACEDESC2 lpDDSur
 				if (EnumRefreshModes == 0 || d3ddispmode.RefreshRate == EnumRefreshModes)
 				{
 					// Set surface desc options
-					lpDDSurfaceDesc->dwSize = sizeof(LPDDSURFACEDESC2);
-					lpDDSurfaceDesc->dwFlags = DDSD_WIDTH | DDSD_HEIGHT | DDSD_REFRESHRATE | DDSD_PITCH | DDSD_PIXELFORMAT;
-					lpDDSurfaceDesc->dwWidth = d3ddispmode.Width;
-					lpDDSurfaceDesc->dwHeight = d3ddispmode.Height;
-					lpDDSurfaceDesc->dwRefreshRate = d3ddispmode.RefreshRate;
+					lpDDSurfaceDesc2->dwSize = sizeof(LPDDSURFACEDESC2);
+					lpDDSurfaceDesc2->dwFlags = DDSD_WIDTH | DDSD_HEIGHT | DDSD_REFRESHRATE | DDSD_PITCH | DDSD_PIXELFORMAT;
+					lpDDSurfaceDesc2->dwWidth = d3ddispmode.Width;
+					lpDDSurfaceDesc2->dwHeight = d3ddispmode.Height;
+					lpDDSurfaceDesc2->dwRefreshRate = d3ddispmode.RefreshRate;
 
 					// Set adapter pixel format
-					lpDDSurfaceDesc->ddpfPixelFormat.dwSize = sizeof(DDPIXELFORMAT);
-					GetPixelDisplayFormat(Format, lpDDSurfaceDesc->ddpfPixelFormat);
+					lpDDSurfaceDesc2->ddpfPixelFormat.dwSize = sizeof(DDPIXELFORMAT);
+					GetPixelDisplayFormat(Format, lpDDSurfaceDesc2->ddpfPixelFormat);
 
 					// Special handling for 8-bit mode
 					if (DisplayBitCount == 8)
 					{
-						lpDDSurfaceDesc->ddpfPixelFormat.dwRGBBitCount = DisplayBitCount;
-						lpDDSurfaceDesc->ddpfPixelFormat.dwRBitMask = 0;
-						lpDDSurfaceDesc->ddpfPixelFormat.dwGBitMask = 0;
-						lpDDSurfaceDesc->ddpfPixelFormat.dwBBitMask = 0;
+						lpDDSurfaceDesc2->ddpfPixelFormat.dwRGBBitCount = DisplayBitCount;
+						lpDDSurfaceDesc2->ddpfPixelFormat.dwRBitMask = 0;
+						lpDDSurfaceDesc2->ddpfPixelFormat.dwGBitMask = 0;
+						lpDDSurfaceDesc2->ddpfPixelFormat.dwBBitMask = 0;
 					}
-					lpDDSurfaceDesc->lPitch = (lpDDSurfaceDesc->ddpfPixelFormat.dwRGBBitCount / 8) * lpDDSurfaceDesc->dwWidth;
+					lpDDSurfaceDesc2->lPitch = (lpDDSurfaceDesc2->ddpfPixelFormat.dwRGBBitCount / 8) * lpDDSurfaceDesc2->dwWidth;
 
-					if (lpEnumModesCallback(lpDDSurfaceDesc, lpContext) != DDENUMRET_OK)
+					if (lpEnumModesCallback(lpDDSurfaceDesc2, lpContext) != DDENUMRET_OK)
 					{
 						return DD_OK;
 					}
@@ -393,13 +432,14 @@ HRESULT m_IDirectDrawX::EnumDisplayModes(DWORD dwFlags, LPDDSURFACEDESC2 lpDDSur
 		return DD_OK;
 	}
 
-	return ProxyInterface->EnumDisplayModes(dwFlags, lpDDSurfaceDesc, lpContext, lpEnumModesCallback);
+	return ProxyInterface->EnumDisplayModes(dwFlags, lpDDSurfaceDesc2, lpContext, lpEnumModesCallback);
 }
 
 HRESULT m_IDirectDrawX::EnumSurfaces(DWORD dwFlags, LPDDSURFACEDESC2 lpDDSD, LPVOID lpContext, LPDDENUMSURFACESCALLBACK7 lpEnumSurfacesCallback)
 {
+	// Game using old DirectX, Convert to LPDDSURFACEDESC2
 	DDSURFACEDESC2 Desc2;
-	if (lpDDSD && ProxyDirectXVersion > 3 && DirectXVersion < 4)
+	if (lpDDSD && ConvertSurfaceDescTo2)
 	{
 		ConvertSurfaceDesc(Desc2, *(LPDDSURFACEDESC)lpDDSD);
 		lpDDSD = &Desc2;
@@ -415,7 +455,7 @@ HRESULT m_IDirectDrawX::EnumSurfaces(DWORD dwFlags, LPDDSURFACEDESC2 lpDDSD, LPV
 	CallbackContext.lpContext = lpContext;
 	CallbackContext.lpCallback = (LPDDENUMSURFACESCALLBACK7)lpEnumSurfacesCallback;
 	CallbackContext.DirectXVersion = DirectXVersion;
-	CallbackContext.ProxyDirectXVersion = ProxyDirectXVersion;
+	CallbackContext.ConvertSurfaceDescTo2 = ConvertSurfaceDescTo2;
 
 	return ProxyInterface->EnumSurfaces(dwFlags, lpDDSD, &CallbackContext, m_IDirectDrawEnumSurface::ConvertCallback);
 }
@@ -481,37 +521,38 @@ HRESULT m_IDirectDrawX::GetCaps(LPDDCAPS lpDDDriverCaps, LPDDCAPS lpDDHELCaps)
 	return hr;
 }
 
-HRESULT m_IDirectDrawX::GetDisplayMode(LPDDSURFACEDESC2 lpDDSurfaceDesc)
+HRESULT m_IDirectDrawX::GetDisplayMode(LPDDSURFACEDESC2 lpDDSurfaceDesc2)
 {
-	if (!lpDDSurfaceDesc)
+	if (!lpDDSurfaceDesc2)
 	{
 		return DDERR_INVALIDPARAMS;
 	}
 
+	// Game using old DirectX, Convert to LPDDSURFACEDESC2
 	DDSURFACEDESC2 Desc2;
-	if (ProxyDirectXVersion > 3 && DirectXVersion < 4)
+	if (ConvertSurfaceDescTo2)
 	{
-		ConvertSurfaceDesc(Desc2, *(LPDDSURFACEDESC)lpDDSurfaceDesc);
-		lpDDSurfaceDesc = &Desc2;
+		ConvertSurfaceDesc(Desc2, *(LPDDSURFACEDESC)lpDDSurfaceDesc2);
+		lpDDSurfaceDesc2 = &Desc2;
 	}
 
 	if (Config.Dd7to9)
 	{
-		if (lpDDSurfaceDesc->dwSize != sizeof(*lpDDSurfaceDesc))
+		if (lpDDSurfaceDesc2->dwSize != sizeof(*lpDDSurfaceDesc2))
 		{
 			return DDERR_INVALIDPARAMS;
 		}
 
-		lpDDSurfaceDesc->dwWidth = displayModeWidth;
-		lpDDSurfaceDesc->dwHeight = displayModeHeight;
-		lpDDSurfaceDesc->dwDepth = displayModeBPP;
-		lpDDSurfaceDesc->dwRefreshRate = displayModerefreshRate;
-		lpDDSurfaceDesc->dwFlags = DDSD_WIDTH | DDSD_HEIGHT | DDSD_DEPTH | DDSD_REFRESHRATE;
+		lpDDSurfaceDesc2->dwWidth = displayModeWidth;
+		lpDDSurfaceDesc2->dwHeight = displayModeHeight;
+		lpDDSurfaceDesc2->dwDepth = displayModeBPP;
+		lpDDSurfaceDesc2->dwRefreshRate = displayModerefreshRate;
+		lpDDSurfaceDesc2->dwFlags = DDSD_WIDTH | DDSD_HEIGHT | DDSD_DEPTH | DDSD_REFRESHRATE;
 
 		return DD_OK;
 	}
 
-	return ProxyInterface->GetDisplayMode(lpDDSurfaceDesc);
+	return ProxyInterface->GetDisplayMode(lpDDSurfaceDesc2);
 }
 
 HRESULT m_IDirectDrawX::GetFourCCCodes(LPDWORD lpNumCodes, LPDWORD lpCodes)
@@ -752,13 +793,6 @@ HRESULT m_IDirectDrawX::SetDisplayMode(DWORD dwWidth, DWORD dwHeight, DWORD dwBP
 			return DDERR_GENERIC;
 		}
 
-		// Init textures to new display mode
-		if (!CreateSurfaceTexture())
-		{
-			Logging::Log() << __FUNCTION__ << " Error creating Direct3D9 surface texture";
-			return DDERR_GENERIC;
-		}
-
 		return DD_OK;
 	}
 
@@ -807,8 +841,9 @@ HRESULT m_IDirectDrawX::WaitForVerticalBlank(DWORD dwFlags, HANDLE hEvent)
 
 HRESULT m_IDirectDrawX::GetAvailableVidMem(LPDDSCAPS2 lpDDSCaps, LPDWORD lpdwTotal, LPDWORD lpdwFree)
 {
+	// Game using old DirectX, Convert DDSCAPS to DDSCAPS2
 	DDSCAPS2 Caps2;
-	if (lpDDSCaps && ProxyDirectXVersion > 3 && DirectXVersion < 4)
+	if (lpDDSCaps && ConvertSurfaceDescTo2)
 	{
 		ConvertCaps(Caps2, *(LPDDSCAPS)lpDDSCaps);
 		lpDDSCaps = &Caps2;
@@ -882,7 +917,7 @@ HRESULT m_IDirectDrawX::GetDeviceIdentifier(LPDDDEVICEIDENTIFIER2 lpdddi, DWORD 
 {
 	LPDDDEVICEIDENTIFIER2 lpdddi_tmp = lpdddi;
 	DDDEVICEIDENTIFIER2 Id2 = {};
-	if (lpdddi && ProxyDirectXVersion == 7 && DirectXVersion != 7)
+	if (lpdddi && ProxyDirectXVersion == 7 && DirectXVersion < 7)
 	{
 		lpdddi = &Id2;
 	}
@@ -899,7 +934,7 @@ HRESULT m_IDirectDrawX::GetDeviceIdentifier(LPDDDEVICEIDENTIFIER2 lpdddi, DWORD 
 		hr = ProxyInterface->GetDeviceIdentifier(lpdddi, dwFlags);
 	}
 
-	if (SUCCEEDED(hr) && lpdddi_tmp && ProxyDirectXVersion == 7 && DirectXVersion != 7)
+	if (SUCCEEDED(hr) && lpdddi_tmp && ProxyDirectXVersion == 7 && DirectXVersion < 7)
 	{
 		lpdddi = lpdddi_tmp;
 		ConvertDeviceIdentifier(*(LPDDDEVICEIDENTIFIER)lpdddi, Id2);
@@ -1250,7 +1285,7 @@ bool m_IDirectDrawX::ReinitDevice()
 }
 
 // Helper function to present the d3d surface
-HRESULT m_IDirectDrawX::Lock(D3DLOCKED_RECT *d3dlrect)
+HRESULT m_IDirectDrawX::CheckBeginScene(LPDIRECT3DSURFACE9 d3d9Surface)
 {
 	// Make sure the device exists
 	if (!d3d9Device)
@@ -1260,7 +1295,7 @@ HRESULT m_IDirectDrawX::Lock(D3DLOCKED_RECT *d3dlrect)
 	}
 
 	// Make sure surface texture exists
-	if (!surfaceTexture)
+	if (!surfaceTexture || !d3d9Surface)
 	{
 		Logging::Log() << __FUNCTION__ << " called when texture doesn't exist";
 		return DDERR_SURFACELOST;
@@ -1282,19 +1317,11 @@ HRESULT m_IDirectDrawX::Lock(D3DLOCKED_RECT *d3dlrect)
 		return hr;
 	}
 
-	// Lock full dynamic texture
-	hr = surfaceTexture->LockRect(0, d3dlrect, nullptr, D3DLOCK_DISCARD);
-	if (FAILED(hr))
-	{
-		Logging::Log() << __FUNCTION__ << " Failed to lock texture memory";
-		return hr;
-	}
-
 	return DD_OK;
 }
 
 // Helper function to present the d3d surface
-HRESULT m_IDirectDrawX::Unlock()
+HRESULT m_IDirectDrawX::CheckEndScene(LPDIRECT3DSURFACE9 d3d9Surface)
 {
 	// Make sure the device exists
 	if (!d3d9Device)
@@ -1304,20 +1331,13 @@ HRESULT m_IDirectDrawX::Unlock()
 	}
 
 	// Make sure surface texture exists
-	if (!surfaceTexture)
+	if (!surfaceTexture && !d3d9Surface)
 	{
 		Logging::Log() << __FUNCTION__ << " called when texture doesn't exist";
 		return DDERR_SURFACELOST;
 	}
 
-	// Unlock dynamic texture
 	HRESULT hr;
-	hr = surfaceTexture->UnlockRect(0);
-	if (FAILED(hr))
-	{
-		Logging::Log() << __FUNCTION__ << " Failed to unlock texture memory";
-		return hr;
-	}
 
 	// Set texture
 	hr = d3d9Device->SetTexture(0, surfaceTexture);
