@@ -190,3 +190,152 @@ void ConvertCaps(DDCAPS_DX5 &Caps5, DDCAPS_DX7 &Caps7)
 	CopyMemory(&Caps5, &Caps7, sizeof(DDCAPS_DX5));
 	Caps5.dwSize = sizeof(DDCAPS_DX5);
 }
+
+DWORD GetBitCount(DDPIXELFORMAT ddpfPixelFormat)
+{
+	if ((ddpfPixelFormat.dwFlags & DDPF_RGB) != 0)
+	{
+		return ddpfPixelFormat.dwRGBBitCount;
+	}
+	else if ((ddpfPixelFormat.dwFlags & DDPF_YUV) != 0)
+	{
+		return ddpfPixelFormat.dwYUVBitCount;
+	}
+	else if ((ddpfPixelFormat.dwFlags & DDPF_ALPHA) != 0)
+	{
+		return ddpfPixelFormat.dwAlphaBitDepth;
+	}
+	else if ((ddpfPixelFormat.dwFlags & DDPF_ZBUFFER) != 0)
+	{
+		return ddpfPixelFormat.dwZBufferBitDepth;
+	}
+	else if ((ddpfPixelFormat.dwFlags & DDPF_LUMINANCE) != 0)
+	{
+		return ddpfPixelFormat.dwLuminanceBitCount;
+	}
+	else if ((ddpfPixelFormat.dwFlags & DDPF_BUMPDUDV) != 0)
+	{
+		return ddpfPixelFormat.dwBumpBitCount;
+	}
+
+	Logging::Log() << __FUNCTION__ << " Failed to get BitCount from PixelFormat!";
+	return 0;
+}
+DWORD GetBitCount(D3DFORMAT Format)
+{
+	switch (Format)
+	{
+	case D3DFMT_R5G6B5:
+	case D3DFMT_X1R5G5B5:
+	case D3DFMT_A1R5G5B5:
+		return 16;
+	case D3DFMT_X8R8G8B8:
+	case D3DFMT_A8R8G8B8:
+	case D3DFMT_A2R10G10B10:
+		return 32;
+	}
+
+	Logging::Log() << __FUNCTION__ << " Display format not implimented: " << Format;
+	return 0;
+}
+
+D3DFORMAT GetDisplayFormat(DDPIXELFORMAT ddpfPixelFormat)
+{
+	if (ddpfPixelFormat.dwFlags & DDPF_RGB)
+	{
+		DWORD BitCount = GetBitCount(ddpfPixelFormat);
+		switch (BitCount)
+		{
+		case 8:
+			return D3DFMT_X8R8G8B8;
+		case 16:
+			if (ddpfPixelFormat.dwGBitMask == 0x7E0)
+			{
+				return D3DFMT_R5G6B5;
+			}
+			if (ddpfPixelFormat.dwGBitMask == 0x3E0)
+			{
+				if (ddpfPixelFormat.dwFlags & DDPF_ALPHAPIXELS)
+				{
+					return D3DFMT_A1R5G5B5;
+				}
+				else
+				{
+					return D3DFMT_X1R5G5B5;
+				}
+			}
+			break;
+		case 24:
+			return D3DFMT_X8R8G8B8;
+		case 32:
+			if (ddpfPixelFormat.dwBBitMask == 0xFF)
+			{
+				if (ddpfPixelFormat.dwFlags & DDPF_ALPHAPIXELS)
+				{
+					return D3DFMT_A8R8G8B8;
+				}
+				else
+				{
+					return D3DFMT_X8R8G8B8;
+				}
+			}
+			if (ddpfPixelFormat.dwBBitMask == 0x3FF && ddpfPixelFormat.dwRGBAlphaBitMask == 0xC0000000)
+			{
+				return D3DFMT_A2R10G10B10;
+			}
+			break;
+		}
+		Logging::Log() << __FUNCTION__ << " Error, bit count " << BitCount << " not found!";
+		return D3DFMT_UNKNOWN;
+	}
+
+	Logging::Log() << __FUNCTION__ << " Error, PixelFormat not implimented: " << ddpfPixelFormat.dwFlags;
+	return D3DFMT_UNKNOWN;
+}
+
+void GetPixelDisplayFormat(D3DFORMAT Format, DDPIXELFORMAT &ddpfPixelFormat)
+{
+	// Supported RGB formats
+	if (Format == D3DFMT_R5G6B5 || Format == D3DFMT_X1R5G5B5 || Format == D3DFMT_A1R5G5B5 || Format == D3DFMT_X8R8G8B8 || Format == D3DFMT_A8R8G8B8 || Format == D3DFMT_A2R10G10B10)
+	{
+		ddpfPixelFormat.dwFlags = DDPF_RGB;
+		ddpfPixelFormat.dwRGBBitCount = GetBitCount(Format);
+
+		// Set BitCount and BitMask
+		switch (Format)
+		{
+		case D3DFMT_R5G6B5:
+			ddpfPixelFormat.dwRBitMask = 0xF800;
+			ddpfPixelFormat.dwGBitMask = 0x7E0;
+			ddpfPixelFormat.dwBBitMask = 0x1F;
+			break;
+		case D3DFMT_A1R5G5B5:
+			ddpfPixelFormat.dwFlags |= DDPF_ALPHAPIXELS;
+			ddpfPixelFormat.dwRGBAlphaBitMask = 0x8000;
+		case D3DFMT_X1R5G5B5:
+			ddpfPixelFormat.dwRBitMask = 0x7C00;
+			ddpfPixelFormat.dwGBitMask = 0x3E0;
+			ddpfPixelFormat.dwBBitMask = 0x1F;
+			break;
+		case D3DFMT_A8R8G8B8:
+			ddpfPixelFormat.dwFlags |= DDPF_ALPHAPIXELS;
+			ddpfPixelFormat.dwRGBAlphaBitMask = 0xFF000000;
+		case D3DFMT_X8R8G8B8:
+			ddpfPixelFormat.dwRBitMask = 0xFF0000;
+			ddpfPixelFormat.dwGBitMask = 0xFF00;
+			ddpfPixelFormat.dwBBitMask = 0xFF;
+			break;
+		case D3DFMT_A2R10G10B10:
+			ddpfPixelFormat.dwFlags |= DDPF_ALPHAPIXELS;
+			ddpfPixelFormat.dwRGBAlphaBitMask = 0xC0000000;
+			ddpfPixelFormat.dwRBitMask = 0x3FF00000;
+			ddpfPixelFormat.dwGBitMask = 0xFFC00;
+			ddpfPixelFormat.dwBBitMask = 0x3FF;
+			break;
+		}
+		return;
+	}
+
+	Logging::Log() << __FUNCTION__ << " Display format not implimented: " << Format;
+	return;
+}

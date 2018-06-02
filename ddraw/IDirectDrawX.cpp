@@ -215,26 +215,22 @@ HRESULT m_IDirectDrawX::CreateSurface(LPDDSURFACEDESC2 lpDDSurfaceDesc, LPDIRECT
 			lpDDSurfaceDesc->dwFlags |= DDSD_PIXELFORMAT;
 			lpDDSurfaceDesc->ddpfPixelFormat.dwFlags |= DDPF_RGB;
 
-			// Set BitCount
-			lpDDSurfaceDesc->ddpfPixelFormat.dwRGBBitCount = displayModeBPP;
-
 			// Set BitMask
 			switch (displayModeBPP)
 			{
-				case 8:
-					break;
-				case 16:
-					lpDDSurfaceDesc->ddpfPixelFormat.dwRBitMask = 0xF800;
-					lpDDSurfaceDesc->ddpfPixelFormat.dwGBitMask = 0x7E0;
-					lpDDSurfaceDesc->ddpfPixelFormat.dwBBitMask = 0x1F;
-					break;
-				case 24:
-				case 32:
-					lpDDSurfaceDesc->ddpfPixelFormat.dwRBitMask = 0xFF0000;
-					lpDDSurfaceDesc->ddpfPixelFormat.dwGBitMask = 0xFF00;
-					lpDDSurfaceDesc->ddpfPixelFormat.dwBBitMask = 0xFF;
-					break;
+			case 8:
+				break;
+			case 16:
+				GetPixelDisplayFormat(D3DFMT_R5G6B5, lpDDSurfaceDesc->ddpfPixelFormat);
+				break;
+			case 24:
+			case 32:
+				GetPixelDisplayFormat(D3DFMT_X8R8G8B8, lpDDSurfaceDesc->ddpfPixelFormat);
+				break;
 			}
+
+			// Set BitCount
+			lpDDSurfaceDesc->ddpfPixelFormat.dwRGBBitCount = displayModeBPP;
 		}
 
 		*lplpDDSurface = new m_IDirectDrawSurfaceX(&d3d9Device, this, DirectXVersion, lpDDSurfaceDesc, displayModeWidth, displayModeHeight);
@@ -279,22 +275,122 @@ HRESULT m_IDirectDrawX::EnumDisplayModes(DWORD dwFlags, LPDDSURFACEDESC2 lpDDSur
 {
 	DDSURFACEDESC2 Desc2;
 	ENUMDISPLAYMODES CallbackContext;
-	if (lpDDSurfaceDesc && ProxyDirectXVersion > 3 && DirectXVersion < 4)
+	if (ProxyDirectXVersion > 3 && DirectXVersion < 4)
 	{
-		ConvertSurfaceDesc(Desc2, *(LPDDSURFACEDESC)lpDDSurfaceDesc);
+		if (lpDDSurfaceDesc)
+		{
+			ConvertSurfaceDesc(Desc2, *(LPDDSURFACEDESC)lpDDSurfaceDesc);
+		}
 
 		CallbackContext.lpContext = lpContext;
 		CallbackContext.lpCallback = (LPDDENUMMODESCALLBACK)lpEnumModesCallback;
 
-		lpDDSurfaceDesc = &Desc2;
+		lpDDSurfaceDesc = (lpDDSurfaceDesc) ? &Desc2 : nullptr;
 		lpContext = &CallbackContext;
 		lpEnumModesCallback = m_IDirectDrawEnumDisplayModes::ConvertCallback;
 	}
 
 	if (Config.Dd7to9)
 	{
-		Logging::Log() << __FUNCTION__ << " Not Implimented";
-		return E_NOTIMPL;
+		// Save refresh rate
+		DWORD EnumRefreshModes = 0;
+		if (lpDDSurfaceDesc && (dwFlags & DDEDM_REFRESHRATES) != 0)
+		{
+			EnumRefreshModes = lpDDSurfaceDesc->dwRefreshRate > 0;
+		}
+
+		// Get display modes to enum
+		bool DisplayAllModes = (!lpDDSurfaceDesc);
+		DWORD DisplayBitCount = displayModeBPP;
+		if (!DisplayAllModes && lpDDSurfaceDesc && (lpDDSurfaceDesc->dwFlags & DDSD_PIXELFORMAT) != 0)
+		{
+			DisplayBitCount = GetBitCount(lpDDSurfaceDesc->ddpfPixelFormat);
+		}
+
+		// Setup surface desc
+		lpDDSurfaceDesc = &Desc2;
+		ZeroMemory(lpDDSurfaceDesc, sizeof(LPDDSURFACEDESC2));
+
+		// Setup display mode and format
+		D3DFORMAT Format;
+		D3DDISPLAYMODE d3ddispmode;
+
+		// Loop through all modes looking for the requested resolution
+		for (int x = 32; x > 7; x /= 2)
+		{
+			// Set display bit count
+			if (DisplayAllModes || DisplayBitCount == 0)
+			{
+				DisplayBitCount = x;
+			}
+
+			// Set static adapter format
+			switch (DisplayBitCount)
+			{
+			case 8:
+				Format = D3DFMT_X8R8G8B8;
+				break;
+			case 16:
+				Format = D3DFMT_R5G6B5;
+				break;
+			case 32:
+			default:
+				Format = D3DFMT_X8R8G8B8;
+				break;
+			}
+
+			// Enumerate modes for format XRGB
+			UINT modeCount = d3d9Object->GetAdapterModeCount(D3DADAPTER_DEFAULT, Format);
+
+			for (UINT i = 0; i < modeCount; i++)
+			{
+				// Get display modes
+				ZeroMemory(&d3ddispmode, sizeof(D3DDISPLAYMODE));
+				if (d3d9Object->EnumAdapterModes(D3DADAPTER_DEFAULT, Format, i, &d3ddispmode) != D3D_OK)
+				{
+					Logging::Log() << __FUNCTION__ << " EnumAdapterModes failed";
+					return false;
+				}
+
+				// Check refresh mode
+				if (EnumRefreshModes == 0 || d3ddispmode.RefreshRate == EnumRefreshModes)
+				{
+					// Set surface desc options
+					lpDDSurfaceDesc->dwSize = sizeof(LPDDSURFACEDESC2);
+					lpDDSurfaceDesc->dwFlags = DDSD_WIDTH | DDSD_HEIGHT | DDSD_REFRESHRATE | DDSD_PITCH | DDSD_PIXELFORMAT;
+					lpDDSurfaceDesc->dwWidth = d3ddispmode.Width;
+					lpDDSurfaceDesc->dwHeight = d3ddispmode.Height;
+					lpDDSurfaceDesc->dwRefreshRate = d3ddispmode.RefreshRate;
+
+					// Set adapter pixel format
+					lpDDSurfaceDesc->ddpfPixelFormat.dwSize = sizeof(DDPIXELFORMAT);
+					GetPixelDisplayFormat(Format, lpDDSurfaceDesc->ddpfPixelFormat);
+
+					// Special handling for 8-bit mode
+					if (DisplayBitCount == 8)
+					{
+						lpDDSurfaceDesc->ddpfPixelFormat.dwRGBBitCount = DisplayBitCount;
+						lpDDSurfaceDesc->ddpfPixelFormat.dwRBitMask = 0;
+						lpDDSurfaceDesc->ddpfPixelFormat.dwGBitMask = 0;
+						lpDDSurfaceDesc->ddpfPixelFormat.dwBBitMask = 0;
+					}
+					lpDDSurfaceDesc->lPitch = (lpDDSurfaceDesc->ddpfPixelFormat.dwRGBBitCount / 8) * lpDDSurfaceDesc->dwWidth;
+
+					if (lpEnumModesCallback(lpDDSurfaceDesc, lpContext) != DDENUMRET_OK)
+					{
+						return DD_OK;
+					}
+				}
+			}
+
+			// Exit if not displaying all modes
+			if (!DisplayAllModes)
+			{
+				return DD_OK;
+			}
+		}
+
+		return DD_OK;
 	}
 
 	return ProxyInterface->EnumDisplayModes(dwFlags, lpDDSurfaceDesc, lpContext, lpEnumModesCallback);
@@ -722,8 +818,10 @@ HRESULT m_IDirectDrawX::GetAvailableVidMem(LPDDSCAPS2 lpDDSCaps, LPDWORD lpdwTot
 
 	if (Config.Dd7to9)
 	{
-		Logging::Log() << __FUNCTION__ << " Not Implimented";
-		hr = E_NOTIMPL;
+		// Hard code available memory for now...
+		*lpdwFree = 0x7e00000;
+		*lpdwTotal = 0x8000000;
+		hr = DD_OK;
 	}
 	else
 	{

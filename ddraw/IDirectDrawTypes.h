@@ -16,3 +16,7 @@ void ConvertCaps(DDSCAPS2 &Caps2, DDSCAPS &Caps);
 void ConvertCaps(DDCAPS_DX1 &Caps1, DDCAPS_DX7 &Caps7);
 void ConvertCaps(DDCAPS_DX3 &Caps3, DDCAPS_DX7 &Caps7);
 void ConvertCaps(DDCAPS_DX5 &Caps5, DDCAPS_DX7 &Caps7);
+DWORD GetBitCount(DDPIXELFORMAT ddpfPixelFormat);
+DWORD GetBitCount(D3DFORMAT Format);
+D3DFORMAT GetDisplayFormat(DDPIXELFORMAT ddpfPixelFormat);
+void GetPixelDisplayFormat(D3DFORMAT Format, DDPIXELFORMAT &lpPixelFormat);

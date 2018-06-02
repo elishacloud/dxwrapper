@@ -587,7 +587,8 @@ HRESULT m_IDirectDrawSurfaceX::Lock(LPRECT lpDestRect, LPDDSURFACEDESC2 lpDDSurf
 			DestRect.bottom = surfaceHeight;
 		}
 
-		// Only use primary surface
+		// ToDo: Update this to work with games that don't use primary surface
+		// Only use primary surface for now...
 		if ((surfaceDesc.ddsCaps.dwCaps & DDSCAPS_PRIMARYSURFACE) != 0)
 		{
 			// Lock rect
@@ -819,74 +820,102 @@ HRESULT m_IDirectDrawSurfaceX::Unlock(LPRECT lpRect)
 {
 	if (Config.Dd7to9)
 	{
-		// Only use primary surface
-		if (d3dlrect.pBits && (surfaceDesc.ddsCaps.dwCaps & DDSCAPS_PRIMARYSURFACE) != 0)
+		// ToDo: Update this to work with games that don't use primary surface
+		// Only use primary surface for now...
+		if (!d3dlrect.pBits || (surfaceDesc.ddsCaps.dwCaps & DDSCAPS_PRIMARYSURFACE) == 0)
 		{
-			// Translate raw video memory to rgb buffer
-			UINT32 *surfaceBuffer = (UINT32*)d3dlrect.pBits;
-			if ((surfaceDesc.ddpfPixelFormat.dwFlags & DDPF_RGB) != 0)
+			return DD_OK;
+		}
+
+		// ToDo: Update this to work with games that use non-RGB formats
+		// Only support RGB for now...
+		if ((surfaceDesc.ddpfPixelFormat.dwFlags & DDPF_RGB) == 0)
+		{
+			Logging::Log() << __FUNCTION__ << " Unsupported surface format: " << surfaceDesc.ddpfPixelFormat.dwFlags;
+			return DD_OK;
+		}
+
+		// Translate raw video memory to rgb buffer
+		UINT32 *surfaceBuffer = (UINT32*)d3dlrect.pBits;
+		DWORD BitCount = GetBitCount(surfaceDesc.ddpfPixelFormat);
+
+		// From a palette
+		if (attachedPalette && attachedPalette->rgbPalette)
+		{
+			// Translate palette to rgb video buffer
+			switch (BitCount)
 			{
-				// 8-Bit surface
-				if (surfaceDesc.ddpfPixelFormat.dwRGBBitCount == 8)
+			case 8:
+			{
+				LONG x = 0, z = 0;
+				for (LONG j = DestRect.top; j < DestRect.bottom; j++)
 				{
-					// From a palette
-					if (attachedPalette && attachedPalette->rgbPalette)
+					z = j * (d3dlrect.Pitch / 4);
+					for (LONG i = DestRect.left; i < DestRect.right; i++)
 					{
-						// Translate palette to rgb video buffer
-						LONG x = 0, z = 0;
-						for (LONG j = DestRect.top; j < DestRect.bottom; j++)
-						{
-							z = j * (d3dlrect.Pitch / 4);
-							for (LONG i = DestRect.left; i < DestRect.right; i++)
-							{
-								x = z + i;
-								surfaceBuffer[x] = attachedPalette->rgbPalette[rawVideoBuf[x]];
-							}
-						}
-					}
-					else
-					{
-						Logging::Log() << __FUNCTION__ << " No support for non-palette 8-bit surfaces!";
+						x = z + i;
+						surfaceBuffer[x] = attachedPalette->rgbPalette[rawVideoBuf[x]];
 					}
 				}
+				break;
+			}
+			default:
+				Logging::Log() << __FUNCTION__ << " No support for palette on " << BitCount << "-bit surfaces!";
+				break;
+			}
+		}
 
-				// 16-bit surface
-				else if (surfaceDesc.ddpfPixelFormat.dwRGBBitCount == 16)
+		// From a surface
+		else
+		{
+			// Get display format
+			D3DFORMAT Format = GetDisplayFormat(surfaceDesc.ddpfPixelFormat);
+
+			// Translate palette to rgb video buffer
+			switch (BitCount)
+			{
+			case 8:
+				Logging::Log() << __FUNCTION__ << " No support for non-palette 8-bit surfaces!";
+				break;
+			case 16:
+				switch (Format)
 				{
-					if (attachedPalette && attachedPalette->rgbPalette)
+				case D3DFMT_R5G6B5:
+				{
+					LONG x = 0, z = 0;
+					WORD *RawBuffer = (WORD*)&rawVideoBuf[0];
+					for (LONG j = DestRect.top; j < DestRect.bottom; j++)
 					{
-						Logging::Log() << __FUNCTION__ << " No support for 16-bit surfaces with palettes!";
-					}
-					// Translate R5G6B5 to 32 bit rgb video buffer
-					else
-					{
-						LONG x = 0, z = 0;
-						WORD *RawBuffer = (WORD*)&rawVideoBuf[0];
-						for (LONG j = DestRect.top; j < DestRect.bottom; j++)
+						z = j * (d3dlrect.Pitch / 4);
+						for (LONG i = DestRect.left; i < DestRect.right; i++)
 						{
-							z = j * (d3dlrect.Pitch / 4);
-							for (LONG i = DestRect.left; i < DestRect.right; i++)
-							{
-								x = z + i;
+							x = z + i;
 
-								// More accurate but twice as slow
-								/*surfaceBuffer[x] = D3DCOLOR_XRGB(
-									((RawBuffer[x] & 0xF800) >> 11) * 255 / 31,			// Red
-									((RawBuffer[x] & 0x07E0) >> 5) * 255 / 63,			// Green
-									((RawBuffer[x] & 0x001F)) * 255 / 31);				// Blue
-									*/
+							// More accurate but twice as slow
+							/*surfaceBuffer[x] = D3DCOLOR_XRGB(
+							((RawBuffer[x] & 0xF800) >> 11) * 255 / 31,				// Red
+							((RawBuffer[x] & 0x07E0) >> 5) * 255 / 63,				// Green
+							((RawBuffer[x] & 0x001F)) * 255 / 31);					// Blue	*/
 
-									// Fastest but not as accurate
-								surfaceBuffer[x] = ((RawBuffer[x] & 0xF800) << 8) +		// Red
-									((RawBuffer[x] & 0x07E0) << 5) +					// Green
-									((RawBuffer[x] & 0x001F) << 3);						// Blue
-							}
+							// Fastest but not as accurate
+							surfaceBuffer[x] = ((RawBuffer[x] & 0xF800) << 8) +		// Red
+								((RawBuffer[x] & 0x07E0) << 5) +					// Green
+								((RawBuffer[x] & 0x001F) << 3);						// Blue
 						}
 					}
+					break;
 				}
-
-				// 24-bit / 32-bit surfaces
-				else
+				default:
+					Logging::Log() << __FUNCTION__ << " Unsupported format type: " << Format;
+					break;
+				}
+				break;
+			case 24:
+			case 32:
+				switch (Format)
+				{
+				case D3DFMT_A8R8G8B8:
+				case D3DFMT_X8R8G8B8:
 				{
 					// Copy rgb video memory to texture memory by scanline observing pitch
 					const LONG x = DestRect.right - DestRect.left;
@@ -894,34 +923,40 @@ HRESULT m_IDirectDrawSurfaceX::Unlock(LPRECT lpRect)
 					{
 						memcpy((BYTE *)d3dlrect.pBits + (y * d3dlrect.Pitch), &rawVideoBuf[y * x], x * sizeof(UINT32));
 					}
+					break;
 				}
+				default:
+					Logging::Log() << __FUNCTION__ << " Unsupported format type: " << Format;
+					break;
+				}
+				break;
+			default:
+				Logging::Log() << __FUNCTION__ << " Unsupported bit count: " << BitCount;
+				break;
 			}
-			else
-			{
-				Logging::Log() << __FUNCTION__ << " Unsupported surface format " << surfaceDesc.ddpfPixelFormat.dwFlags << "!";
-			}
-
-			/*
-			A pointer to a RECT structure that was used to lock the surface in the corresponding
-			call to the IDirectDrawSurface7::Lock method. This parameter can be NULL only if the
-			entire surface was locked by passing NULL in the lpDestRect parameter of the corresponding
-			call to the IDirectDrawSurface7::Lock method.
-
-			Because you can call IDirectDrawSurface7::Lock multiple times for the same surface with
-			different destination rectangles, the pointer in lpRect links the calls to the
-			IDirectDrawSurface7::Lock and IDirectDrawSurface7::Unlock methods.
-			*/
-
-			// Present the surface
-			HRESULT hr = ddrawParent->Unlock();
-			if (FAILED(hr))
-			{
-				// Failed to presnt the surface, error reporting handled previously
-				return hr;
-			}
-
-			d3dlrect.pBits = nullptr;
 		}
+
+
+		/*
+		A pointer to a RECT structure that was used to lock the surface in the corresponding
+		call to the IDirectDrawSurface7::Lock method. This parameter can be NULL only if the
+		entire surface was locked by passing NULL in the lpDestRect parameter of the corresponding
+		call to the IDirectDrawSurface7::Lock method.
+
+		Because you can call IDirectDrawSurface7::Lock multiple times for the same surface with
+		different destination rectangles, the pointer in lpRect links the calls to the
+		IDirectDrawSurface7::Lock and IDirectDrawSurface7::Unlock methods.
+		*/
+
+		// Present the surface
+		HRESULT hr = ddrawParent->Unlock();
+		if (FAILED(hr))
+		{
+			// Failed to presnt the surface, error reporting handled previously
+			return hr;
+		}
+
+		d3dlrect.pBits = nullptr;
 
 		// Success
 		return DD_OK;
