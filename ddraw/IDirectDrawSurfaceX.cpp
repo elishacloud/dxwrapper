@@ -71,6 +71,11 @@ ULONG m_IDirectDrawSurfaceX::Release()
 
 	if (ref == 0)
 	{
+		if (Config.Dd7to9)
+		{
+			ReleaseD3d9();
+		}
+
 		if (WrapperInterface)
 		{
 			WrapperInterface->DeleteMe();
@@ -82,6 +87,37 @@ ULONG m_IDirectDrawSurfaceX::Release()
 	}
 
 	return ref;
+}
+
+void m_IDirectDrawSurfaceX::ReleaseD3d9()
+{
+	if (ddrawParent)
+	{
+		ddrawParent->RemoveSurfaceFromVector(this);
+	}
+
+	ReleaseD9Surface();
+}
+
+void m_IDirectDrawSurfaceX::ReleaseD9Surface()
+{
+	// Release d3d9 surface
+	DWORD x = 0;
+	if (surfaceTexture)
+	{
+		while (surfaceTexture->Release() != 0 && ++x < 100) {}
+		surfaceTexture = nullptr;
+	}
+
+	// Release d3d9 vertex buffer
+	if (vertexBuffer)
+	{
+		while (vertexBuffer->Release() != 0 && ++x < 100) {}
+		vertexBuffer = nullptr;
+	}
+
+	// Set surface video buffer to nullptr
+	d3dlrect.pBits = nullptr;
 }
 
 HRESULT m_IDirectDrawSurfaceX::AddAttachedSurface(LPDIRECTDRAWSURFACE7 lpDDSurface)
@@ -598,21 +634,27 @@ HRESULT m_IDirectDrawSurfaceX::Lock(LPRECT lpDestRect, LPDDSURFACEDESC2 lpDDSurf
 		if ((surfaceDesc2.ddsCaps.dwCaps & DDSCAPS_PRIMARYSURFACE) != 0)
 		{
 			// Make sure surface texture exists
-			if (!d3d9Surface || !*d3d9Surface)
+			if (!surfaceTexture)
 			{
-				d3dlrect.pBits = nullptr;
-				Logging::Log() << __FUNCTION__ << " called when texture doesn't exist";
-				return DDERR_SURFACELOST;
+				hr = CreateD3d9Surface();
+				if (FAILED(hr))
+				{
+					d3dlrect.pBits = nullptr;
+					Logging::Log() << __FUNCTION__ << " could not recreate texture doesn't exist";
+				}
 			}
 
 			// Check for BeginScene
-			hr = ddrawParent->CheckBeginScene(*d3d9Surface);
+			else
+			{
+				hr = ddrawParent->CheckBeginScene(this);
+			}
 
 			// Lock rect
 			if (SUCCEEDED(hr))
 			{
 				// Lock full dynamic texture
-				hr = ((IDirect3DTexture9*)*d3d9Surface)->LockRect(0, &d3dlrect, ((lpDestRect) ? &DestRect : nullptr), D3DLOCK_DISCARD);
+				hr = surfaceTexture->LockRect(0, &d3dlrect, ((lpDestRect) ? &DestRect : nullptr), D3DLOCK_DISCARD);
 				if (FAILED(hr))
 				{
 					d3dlrect.pBits = nullptr;
@@ -970,25 +1012,33 @@ HRESULT m_IDirectDrawSurfaceX::Unlock(LPRECT lpRect)
 		*/
 
 
+		HRESULT hr = DDERR_SURFACELOST;
+
 		// Make sure surface texture exists
-		if (!d3d9Surface || !*d3d9Surface)
+		if (!surfaceTexture)
 		{
-			Logging::Log() << __FUNCTION__ << " called when texture doesn't exist";
-			return DDERR_SURFACELOST;
+			Logging::Log() << __FUNCTION__ << " texture does not exist";
+			return hr;
 		}
 
-		HRESULT hr;
-
 		// Unlock dynamic texture
-		hr = ((IDirect3DTexture9*)*d3d9Surface)->UnlockRect(0);
+		hr = surfaceTexture->UnlockRect(0);
 		if (FAILED(hr))
 		{
 			Logging::Log() << __FUNCTION__ << " Failed to unlock texture memory";
 			return hr;
 		}
 
+		// Set texture
+		hr = (*d3d9Device)->SetTexture(0, surfaceTexture);
+		if (FAILED(hr))
+		{
+			Logging::Log() << __FUNCTION__ << " Failed to set texture";
+			return hr;
+		}
+
 		// Present the surface if needed
-		hr = ddrawParent->CheckEndScene(*d3d9Surface);
+		hr = ddrawParent->CheckEndScene(this);
 		if (FAILED(hr))
 		{
 			// Failed to presnt the surface, error reporting handled previously
@@ -1237,4 +1287,151 @@ HRESULT m_IDirectDrawSurfaceX::GetLOD(LPDWORD lpdwMaxLOD)
 	}
 
 	return ProxyInterface->GetLOD(lpdwMaxLOD);
+}
+
+HRESULT m_IDirectDrawSurfaceX::CreateD3d9Surface()
+{
+	// Release existing surface texture
+	ReleaseD9Surface();
+
+	// Check for device
+	if (!d3d9Device || !*d3d9Device)
+	{
+		Logging::Log() << __FUNCTION__ << " D3d9 Device not setup.";
+		return DDERR_INVALIDOBJECT;
+	}
+
+	HRESULT hr;
+
+	// Create managed dynamic texture to allow locking(debug as video size but change to display size)
+	hr = (*d3d9Device)->CreateTexture(surfaceWidth, surfaceHeight, 1, D3DUSAGE_DYNAMIC, D3DFMT_X8R8G8B8, D3DPOOL_DEFAULT, &surfaceTexture, nullptr);
+	if (FAILED(hr))
+	{
+		Logging::Log() << __FUNCTION__ << " Unable to create surface texture";
+		return hr;
+	}
+
+	// Set vertex shader
+	hr = (*d3d9Device)->SetVertexShader(nullptr);
+	if (FAILED(hr))
+	{
+		Logging::Log() << __FUNCTION__ << " Unable to set vertex shader";
+		return hr;
+	}
+
+	// Set fv format
+	hr = (*d3d9Device)->SetFVF(D3DFVF_XYZRHW | D3DFVF_TEX1);
+	if (FAILED(hr))
+	{
+		Logging::Log() << __FUNCTION__ << " Unable to set the current vertex stream format";
+		return hr;
+	}
+
+	// Create vertex buffer
+	hr = (*d3d9Device)->CreateVertexBuffer(sizeof(TLVERTEX) * 4, D3DUSAGE_DYNAMIC, (D3DFVF_XYZRHW | D3DFVF_TEX1), D3DPOOL_DEFAULT, &vertexBuffer, nullptr);
+	if (FAILED(hr))
+	{
+		Logging::Log() << __FUNCTION__ << " Unable to create vertex buffer";
+		return hr;
+	}
+
+	// Set stream source
+	hr = (*d3d9Device)->SetStreamSource(0, vertexBuffer, 0, sizeof(TLVERTEX));
+	if (FAILED(hr))
+	{
+		Logging::Log() << __FUNCTION__ << " Unable to set vertex buffer stream source";
+		return hr;
+	}
+
+	// Set render states(no lighting)
+	hr = (*d3d9Device)->SetRenderState(D3DRS_LIGHTING, FALSE);
+	if (FAILED(hr))
+	{
+		Logging::Log() << __FUNCTION__ << " Unable to set device render state(no lighting)";
+		return hr;
+	}
+
+	IDirect3D9 *d3d9Object = nullptr;
+	hr = (*d3d9Device)->GetDirect3D(&d3d9Object);
+	if (FAILED(hr))
+	{
+		Logging::Log() << __FUNCTION__ << " Failed to get D3D object";
+	}
+	else
+	{
+		// Query the device to see if it supports anything other than point filtering
+		hr = d3d9Object->CheckDeviceFormat(D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, D3DFMT_X8R8G8B8, D3DUSAGE_QUERY_FILTER, D3DRTYPE_TEXTURE, D3DFMT_X8R8G8B8);
+
+		// Done with d3d9 object, relese
+		d3d9Object->Release();
+		
+		// Check for DeviceFormat failure
+		if (FAILED(hr))
+		{
+			Logging::Log() << __FUNCTION__ << " Device doesn't support linear sampling";
+		}
+		else
+		{
+			// Set scale mode to linear
+			hr = (*d3d9Device)->SetSamplerState(0, D3DSAMP_MAGFILTER, D3DTEXF_LINEAR);
+			if (FAILED(hr))
+			{
+				Logging::Log() << __FUNCTION__ << " Failed to set D3D device to LINEAR sampling";
+				return hr;
+			}
+		}
+	}
+
+	// Setup verticies (0,0,currentWidth,currentHeight)
+	TLVERTEX* vertices;
+	// Lock vertex buffer
+	hr = vertexBuffer->Lock(0, 0, (void**)&vertices, 0);
+	if (FAILED(hr))
+	{
+		Logging::Log() << __FUNCTION__ << " Unable to lock vertex buffer";
+		return hr;
+	}
+
+	// Set vertex points
+	// 0, 0
+	vertices[0].x = -0.5f;
+	vertices[0].y = -0.5f;
+	vertices[0].z = 0.0f;
+	vertices[0].rhw = 1.0f;
+	vertices[0].u = 0.0f;
+	vertices[0].v = 0.0f;
+
+	// currentWidth, 0
+	vertices[1].x = (float)surfaceWidth - 0.5f;
+	vertices[1].y = -0.5f;
+	vertices[1].z = 0.0f;
+	vertices[1].rhw = 1.0f;
+	vertices[1].u = 1.0f;
+	vertices[1].v = 0.0f;
+
+	// currentWidth, scaledHeight
+	vertices[2].x = (float)surfaceWidth - 0.5f;
+	vertices[2].y = (float)surfaceHeight - 0.5f;
+	vertices[2].z = 0.0f;
+	vertices[2].rhw = 1.0f;
+	vertices[2].u = 1.0f;
+	vertices[2].v = 1.0f;
+
+	// 0, currentHeight
+	vertices[3].x = -0.5f;
+	vertices[3].y = (float)surfaceHeight - 0.5f;
+	vertices[3].z = 0.0f;
+	vertices[3].rhw = 1.0f;
+	vertices[3].u = 0.0f;
+	vertices[3].v = 1.0f;
+
+	// Unlcok vertex buffer
+	hr = vertexBuffer->Unlock();
+	if (FAILED(hr))
+	{
+		Logging::Log() << __FUNCTION__ << " Unable to unlock vertex buffer";
+		return hr;
+	}
+
+	return hr;
 }

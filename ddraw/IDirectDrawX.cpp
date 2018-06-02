@@ -82,37 +82,30 @@ ULONG m_IDirectDrawX::Release()
 
 void m_IDirectDrawX::ReleaseD3d9()
 {
-	// Release existing vertex buffer
-	if (vertexBuffer)
-	{
-		vertexBuffer->Release();
-		vertexBuffer = nullptr;
-	}
+	// Release existing surfaces
+	ReleaseAllD9Surfaces();
 
-	// Release existing surface texture
-	if (surfaceTexture)
-	{
-		surfaceTexture->Release();
-		surfaceTexture = nullptr;
-	}
-
-	// Release existing d3ddevice
+	// Release existing d3d9device
 	if (d3d9Device)
 	{
-		if (d3d9Device->Release() != 0)
-		{
-			Logging::Log() << __FUNCTION__ << " Unable to release Direct3D9 device";
-		}
+		DWORD x = 0;
+		while (d3d9Device->Release() != 0 && ++x < 100) {}
+
+		// Add error checking
+		// Logging::Log() << __FUNCTION__ << " Unable to release Direct3D9 device";
+
 		d3d9Device = nullptr;
 	}
 
-	// Release existing d3dobject
+	// Release existing d3d9object
 	if (d3d9Object)
 	{
-		if (d3d9Object->Release() != 0)
-		{
-			Logging::Log() << __FUNCTION__ << " Unable to release Direct3D9 device";
-		}
+		DWORD x = 0;
+		while (d3d9Object->Release() != 0 && ++x < 100) {}
+
+		// Add error checking
+		// Logging::Log() << __FUNCTION__ << " Unable to release Direct3D9 device";
+
 		d3d9Object = nullptr;
 	}
 }
@@ -204,16 +197,6 @@ HRESULT m_IDirectDrawX::CreateSurface(LPDDSURFACEDESC2 lpDDSurfaceDesc2, LPDIREC
 			return DDERR_INVALIDPARAMS;
 		}
 
-		if (!surfaceTexture)
-		{
-			// Init textures to new display mode
-			if (!CreateSurfaceTexture())
-			{
-				Logging::Log() << __FUNCTION__ << " Error creating Direct3D9 surface texture";
-				return DDERR_GENERIC;
-			}
-		}
-
 		// Set parameters before call
 		// Set Height and Width
 		if ((lpDDSurfaceDesc2->dwFlags & (DDSD_HEIGHT | DDSD_WIDTH)) != (DDSD_HEIGHT | DDSD_WIDTH))
@@ -271,7 +254,11 @@ HRESULT m_IDirectDrawX::CreateSurface(LPDDSURFACEDESC2 lpDDSurfaceDesc2, LPDIREC
 			}
 		}*/
 
-		*lplpDDSurface = new m_IDirectDrawSurfaceX(&d3d9Device, (LPDIRECT3DSURFACE9*)&surfaceTexture, this, DirectXVersion, lpDDSurfaceDesc2, displayModeWidth, displayModeHeight);
+		m_IDirectDrawSurfaceX *lpSurfaceX = new m_IDirectDrawSurfaceX(&d3d9Device, this, DirectXVersion, lpDDSurfaceDesc2, displayModeWidth, displayModeHeight);
+		*lplpDDSurface = lpSurfaceX;
+
+		// Store surface
+		SurfaceVector.push_back(lpSurfaceX);
 
 		return DD_OK;
 	}
@@ -698,7 +685,7 @@ HRESULT m_IDirectDrawX::SetCooperativeLevel(HWND hWnd, DWORD dwFlags)
 		if (!hWnd)
 		{
 			Logging::Log() << __FUNCTION__ << " Unimplemented for NULL window handle";
-			return DDERR_GENERIC;
+			return DD_OK;
 		}
 
 		// Set windowed mode
@@ -1001,19 +988,8 @@ void m_IDirectDrawX::AdjustWindow()
 // Helper function to create/recreate D3D device
 bool m_IDirectDrawX::CreateD3DDevice()
 {
-	// Release existing vertex buffer
-	if (vertexBuffer)
-	{
-		vertexBuffer->Release();
-		vertexBuffer = nullptr;
-	}
-
-	// Release existing surface texture
-	if (surfaceTexture)
-	{
-		surfaceTexture->Release();
-		surfaceTexture = nullptr;
-	}
+	// Release all existing surfaces
+	ReleaseAllD9Surfaces();
 
 	// Release existing d3d9device
 	if (d3d9Device)
@@ -1043,17 +1019,17 @@ bool m_IDirectDrawX::CreateD3DDevice()
 		return false;
 	}
 
-	ZeroMemory(&presParams, sizeof(presParams));
 	// Set display window
+	ZeroMemory(&presParams, sizeof(presParams));
 	presParams.hDeviceWindow = MainhWnd;
 
 	// Enumerate modes for format XRGB
 	UINT modeCount = d3d9Object->GetAdapterModeCount(D3DADAPTER_DEFAULT, D3DFMT_X8R8G8B8);
 
+	// Loop through all modes looking for our requested resolution
 	D3DDISPLAYMODE d3ddispmode;
 	D3DDISPLAYMODE set_d3ddispmode = { NULL };
 	bool modeFound = false;
-	// Loop through all modes looking for our requested resolution
 	for (UINT i = 0; i < modeCount; i++)
 	{
 		// Get display modes here
@@ -1130,148 +1106,11 @@ bool m_IDirectDrawX::CreateD3DDevice()
 	return true;
 }
 
-// Helper function to create surface texture
-bool m_IDirectDrawX::CreateSurfaceTexture()
-{
-	// Release existing vertex buffer
-	if (vertexBuffer)
-	{
-		vertexBuffer->Release();
-		vertexBuffer = nullptr;
-	}
-
-	// Release existing surface texture
-	if (surfaceTexture)
-	{
-		surfaceTexture->Release();
-		surfaceTexture = nullptr;
-	}
-
-	// Create managed dynamic texture to allow locking(debug as video size but change to display size)
-	if (d3d9Device->CreateTexture(displayModeWidth, displayModeHeight, 1, D3DUSAGE_DYNAMIC, D3DFMT_X8R8G8B8, D3DPOOL_DEFAULT, &surfaceTexture, nullptr) != D3D_OK)
-	{
-		Logging::Log() << __FUNCTION__ << " Unable to create surface texture";
-		return false;
-	}
-
-	// Set vertex shader
-	if (d3d9Device->SetVertexShader(nullptr) != D3D_OK)
-	{
-		Logging::Log() << __FUNCTION__ << " Unable to set vertex shader";
-		return false;
-	}
-
-	// Set fv format
-	if (d3d9Device->SetFVF(D3DFVF_XYZRHW | D3DFVF_TEX1) != D3D_OK)
-	{
-		Logging::Log() << __FUNCTION__ << " Unable to set the current vertex stream format";
-		return false;
-	}
-
-	// Create vertex buffer
-	if (d3d9Device->CreateVertexBuffer(sizeof(TLVERTEX) * 4, D3DUSAGE_DYNAMIC, (D3DFVF_XYZRHW | D3DFVF_TEX1), D3DPOOL_DEFAULT, &vertexBuffer, nullptr) != D3D_OK)
-	{
-		Logging::Log() << __FUNCTION__ << " Unable to create vertex buffer";
-		return false;
-	}
-
-	// Set stream source
-	if (d3d9Device->SetStreamSource(0, vertexBuffer, 0, sizeof(TLVERTEX)) != D3D_OK)
-	{
-		Logging::Log() << __FUNCTION__ << " Unable to set vertex buffer stream source";
-		return false;
-	}
-
-	// Set render states(no lighting)
-	if (d3d9Device->SetRenderState(D3DRS_LIGHTING, FALSE) != D3D_OK)
-	{
-		Logging::Log() << __FUNCTION__ << " Unable to set device render state(no lighting)";
-		return false;
-	}
-
-	// Query the device to see if it supports anything other than point filtering
-	if (d3d9Object->CheckDeviceFormat(D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, D3DFMT_X8R8G8B8, D3DUSAGE_QUERY_FILTER, D3DRTYPE_TEXTURE, D3DFMT_X8R8G8B8) == D3D_OK)
-	{
-		// Set scale mode to linear
-		if (d3d9Device->SetSamplerState(0, D3DSAMP_MAGFILTER, D3DTEXF_LINEAR) != DD_OK)
-		{
-			Logging::Log() << __FUNCTION__ << " Failed to set D3D device to LINEAR sampling";
-			return false;
-		}
-	}
-	else
-	{
-		Logging::Log() << __FUNCTION__ << " Device doesn't support linear sampling";
-	}
-
-	// Setup verticies (0,0,currentWidth,currentHeight)
-	TLVERTEX* vertices;
-	// Lock
-	if (vertexBuffer->Lock(0, 0, (void**)&vertices, 0) != D3D_OK)
-	{
-		Logging::Log() << __FUNCTION__ << " Unable to lock vertex buffer";
-		return false;
-	}
-
-	// Set vertex points
-	// 0, 0
-	vertices[0].x = -0.5f;
-	vertices[0].y = -0.5f;
-	vertices[0].z = 0.0f;
-	vertices[0].rhw = 1.0f;
-	vertices[0].u = 0.0f;
-	vertices[0].v = 0.0f;
-
-	// currentWidth, 0
-	vertices[1].x = (float)displayWidth - 0.5f;
-	vertices[1].y = -0.5f;
-	vertices[1].z = 0.0f;
-	vertices[1].rhw = 1.0f;
-	vertices[1].u = 1.0f;
-	vertices[1].v = 0.0f;
-
-	// currentWidth, scaledHeight
-	vertices[2].x = (float)displayWidth - 0.5f;
-	vertices[2].y = (float)displayHeight - 0.5f;
-	vertices[2].z = 0.0f;
-	vertices[2].rhw = 1.0f;
-	vertices[2].u = 1.0f;
-	vertices[2].v = 1.0f;
-
-	// 0, currentHeight
-	vertices[3].x = -0.5f;
-	vertices[3].y = (float)displayHeight - 0.5f;
-	vertices[3].z = 0.0f;
-	vertices[3].rhw = 1.0f;
-	vertices[3].u = 0.0f;
-	vertices[3].v = 1.0f;
-
-	// Unlcok vertex buffer
-	if (vertexBuffer->Unlock() != D3D_OK)
-	{
-		Logging::Log() << __FUNCTION__ << " Unable to unlock vertex buffer";
-		return false;
-	}
-
-	return true;
-}
-
 // Helper function to reinitialize device
 bool m_IDirectDrawX::ReinitDevice()
 {
-	// Release existing vertex buffer
-	if (vertexBuffer)
-	{
-		vertexBuffer->Release();
-		vertexBuffer = nullptr;
-	}
-
-	// Release existing surface texture
-	if (surfaceTexture)
-	{
-		surfaceTexture->Release();
-		surfaceTexture = nullptr;
-	}
+	// Release existing surfaces
+	ReleaseAllD9Surfaces();
 
 	// Attempt to reset the device
 	if (d3d9Device->Reset(&presParams) != D3D_OK)
@@ -1280,12 +1119,35 @@ bool m_IDirectDrawX::ReinitDevice()
 		return false;
 	}
 
-	// Recreate the surface texutre
-	return CreateSurfaceTexture();
+	return true;
+}
+
+void m_IDirectDrawX::ReleaseAllD9Surfaces()
+{
+	for (m_IDirectDrawSurfaceX *pSurface : SurfaceVector)
+	{
+		pSurface->ReleaseD9Surface();
+	}
+}
+
+void m_IDirectDrawX::RemoveSurfaceFromVector(m_IDirectDrawSurfaceX* lpSurfaceX)
+{
+	if (!lpSurfaceX)
+	{
+		return;
+	}
+
+	auto it = std::find_if(SurfaceVector.begin(), SurfaceVector.end(),
+		[=](auto pSurface) -> bool { return pSurface == lpSurfaceX; });
+
+	if (it != std::end(SurfaceVector))
+	{
+		SurfaceVector.erase(it);
+	}
 }
 
 // Helper function to present the d3d surface
-HRESULT m_IDirectDrawX::CheckBeginScene(LPDIRECT3DSURFACE9 d3d9Surface)
+HRESULT m_IDirectDrawX::CheckBeginScene(m_IDirectDrawSurfaceX *pSurface)
 {
 	// Make sure the device exists
 	if (!d3d9Device)
@@ -1295,7 +1157,7 @@ HRESULT m_IDirectDrawX::CheckBeginScene(LPDIRECT3DSURFACE9 d3d9Surface)
 	}
 
 	// Make sure surface texture exists
-	if (!surfaceTexture || !d3d9Surface)
+	if (!pSurface)
 	{
 		Logging::Log() << __FUNCTION__ << " called when texture doesn't exist";
 		return DDERR_SURFACELOST;
@@ -1321,7 +1183,7 @@ HRESULT m_IDirectDrawX::CheckBeginScene(LPDIRECT3DSURFACE9 d3d9Surface)
 }
 
 // Helper function to present the d3d surface
-HRESULT m_IDirectDrawX::CheckEndScene(LPDIRECT3DSURFACE9 d3d9Surface)
+HRESULT m_IDirectDrawX::CheckEndScene(m_IDirectDrawSurfaceX *pSurface)
 {
 	// Make sure the device exists
 	if (!d3d9Device)
@@ -1331,21 +1193,13 @@ HRESULT m_IDirectDrawX::CheckEndScene(LPDIRECT3DSURFACE9 d3d9Surface)
 	}
 
 	// Make sure surface texture exists
-	if (!surfaceTexture && !d3d9Surface)
+	if (!pSurface)
 	{
 		Logging::Log() << __FUNCTION__ << " called when texture doesn't exist";
 		return DDERR_SURFACELOST;
 	}
 
 	HRESULT hr;
-
-	// Set texture
-	hr = d3d9Device->SetTexture(0, surfaceTexture);
-	if (FAILED(hr))
-	{
-		Logging::Log() << __FUNCTION__ << " Failed to set texture";
-		return hr;
-	}
 
 	// Draw primitive
 	hr = d3d9Device->DrawPrimitive(D3DPT_TRIANGLEFAN, 0, 2);

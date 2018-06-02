@@ -27,15 +27,27 @@ private:
 
 	// Direct3D9 vars
 	LPDIRECT3DDEVICE9 *d3d9Device = nullptr;
-	LPDIRECT3DSURFACE9 *d3d9Surface = nullptr;
+	LPDIRECT3DTEXTURE9 surfaceTexture = nullptr;
+	LPDIRECT3DVERTEXBUFFER9 vertexBuffer = nullptr;
+
+	// Custom vertex
+	struct TLVERTEX
+	{
+		float x;
+		float y;
+		float z;
+		float rhw;
+		float u;
+		float v;
+	};
 
 public:
 	m_IDirectDrawSurfaceX(IDirectDrawSurface7 *pOriginal, DWORD Version, m_IDirectDrawSurface7 *Interface) : ProxyInterface(pOriginal), DirectXVersion(Version), WrapperInterface(Interface)
 	{
 		InitWrapper();
 	}
-	m_IDirectDrawSurfaceX(LPDIRECT3DDEVICE9 *lplpDevice, LPDIRECT3DSURFACE9 *lplpSurface, m_IDirectDrawX *Interface, DWORD Version, LPDDSURFACEDESC2 lpDDSurfaceDesc, DWORD Width, DWORD Height) :
-		d3d9Device(lplpDevice), d3d9Surface(lplpSurface), ddrawParent(Interface), DirectXVersion(Version), surfaceWidth(Width), surfaceHeight(Height)
+	m_IDirectDrawSurfaceX(LPDIRECT3DDEVICE9 *lplpDevice, m_IDirectDrawX *Interface, DWORD Version, LPDDSURFACEDESC2 lpDDSurfaceDesc, DWORD Width, DWORD Height) :
+		d3d9Device(lplpDevice), ddrawParent(Interface), DirectXVersion(Version), surfaceWidth(Width), surfaceHeight(Height)
 	{
 		ProxyInterface = nullptr;
 		WrapperInterface = nullptr;
@@ -53,6 +65,12 @@ public:
 
 		// Copy surface description
 		memcpy(&surfaceDesc2, lpDDSurfaceDesc, sizeof(DDSURFACEDESC2));
+
+		if ((surfaceDesc2.ddsCaps.dwCaps & DDSCAPS_PRIMARYSURFACE) != 0)
+		{
+			// Create Surface for d3d9
+			CreateD3d9Surface();
+		}
 	}
 	~m_IDirectDrawSurfaceX()
 	{
@@ -81,6 +99,9 @@ public:
 
 		// Clear raw memory
 		ZeroMemory(rawVideoBuf, BufferSize * 4 * sizeof(BYTE));
+
+		// Set surface video buffer to nullptr
+		d3dlrect.pBits = nullptr;
 	}
 
 	void InitWrapper()
@@ -176,4 +197,8 @@ public:
 	STDMETHOD(GetPriority)(THIS_ LPDWORD);
 	STDMETHOD(SetLOD)(THIS_ DWORD);
 	STDMETHOD(GetLOD)(THIS_ LPDWORD);
+	// Helper functions
+	void ReleaseD3d9();
+	void ReleaseD9Surface();
+	HRESULT CreateD3d9Surface();
 };

@@ -36,19 +36,9 @@ private:
 	LPDIRECT3D9 d3d9Object = nullptr;
 	LPDIRECT3DDEVICE9 d3d9Device = nullptr;
 	D3DPRESENT_PARAMETERS presParams;
-	LPDIRECT3DTEXTURE9 surfaceTexture = nullptr;
-	LPDIRECT3DVERTEXBUFFER9 vertexBuffer = nullptr;
 
-	// Custom vertex
-	struct TLVERTEX
-	{
-		float x;
-		float y;
-		float z;
-		float rhw;
-		float u;
-		float v;
-	};
+	// Store a list of surfaces
+	std::vector<m_IDirectDrawSurfaceX*> SurfaceVector;
 
 public:
 	m_IDirectDrawX(IDirectDraw7 *aOriginal, DWORD Version, m_IDirectDraw7 *Interface) : ProxyInterface(aOriginal), DirectXVersion(Version), WrapperInterface(Interface)
@@ -146,8 +136,9 @@ public:
 	void ReleaseD3d9();
 	void AdjustWindow();
 	bool CreateD3DDevice();
-	bool CreateSurfaceTexture();
 	bool ReinitDevice();
-	HRESULT CheckBeginScene(LPDIRECT3DSURFACE9 d3d9Surface);
-	HRESULT CheckEndScene(LPDIRECT3DSURFACE9 d3d9Surface);
+	void ReleaseAllD9Surfaces();
+	void RemoveSurfaceFromVector(m_IDirectDrawSurfaceX* lpSurfaceX);
+	HRESULT CheckBeginScene(m_IDirectDrawSurfaceX *pSurface);
+	HRESULT CheckEndScene(m_IDirectDrawSurfaceX *pSurface);
  };
