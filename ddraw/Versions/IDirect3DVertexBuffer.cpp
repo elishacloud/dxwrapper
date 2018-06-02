@@ -14,34 +14,44 @@
 *   3. This notice may not be removed or altered from any source distribution.
 */
 
-#include "ddraw.h"
+#include "..\ddraw.h"
 
-HRESULT m_IDirect3DMaterial3::QueryInterface(REFIID riid, LPVOID * ppvObj)
+HRESULT m_IDirect3DVertexBuffer::QueryInterface(REFIID riid, LPVOID * ppvObj)
 {
 	return ProxyInterface->QueryInterface(riid, ppvObj);
 }
 
-ULONG m_IDirect3DMaterial3::AddRef()
+ULONG m_IDirect3DVertexBuffer::AddRef()
 {
 	return ProxyInterface->AddRef();
 }
 
-ULONG m_IDirect3DMaterial3::Release()
+ULONG m_IDirect3DVertexBuffer::Release()
 {
 	return ProxyInterface->Release();
 }
 
-HRESULT m_IDirect3DMaterial3::SetMaterial(LPD3DMATERIAL a)
+HRESULT m_IDirect3DVertexBuffer::Lock(DWORD a, LPVOID * b, LPDWORD c)
 {
-	return ProxyInterface->SetMaterial(a);
+	return ProxyInterface->Lock(a, b, c);
 }
 
-HRESULT m_IDirect3DMaterial3::GetMaterial(LPD3DMATERIAL a)
+HRESULT m_IDirect3DVertexBuffer::Unlock()
 {
-	return ProxyInterface->GetMaterial(a);
+	return ProxyInterface->Unlock();
 }
 
-HRESULT m_IDirect3DMaterial3::GetHandle(LPDIRECT3DDEVICE3 a, LPD3DMATERIALHANDLE b)
+HRESULT m_IDirect3DVertexBuffer::ProcessVertices(DWORD a, DWORD b, DWORD c, LPDIRECT3DVERTEXBUFFER d, DWORD e, LPDIRECT3DDEVICE3 f, DWORD g)
 {
-	return ProxyInterface->GetHandle(a, b);
+	return ProxyInterface->ProcessVertices(a, b, c, (LPDIRECT3DVERTEXBUFFER7)d, e, (LPDIRECT3DDEVICE7)f, g);
+}
+
+HRESULT m_IDirect3DVertexBuffer::GetVertexBufferDesc(LPD3DVERTEXBUFFERDESC a)
+{
+	return ProxyInterface->GetVertexBufferDesc(a);
+}
+
+HRESULT m_IDirect3DVertexBuffer::Optimize(LPDIRECT3DDEVICE3 a, DWORD b)
+{
+	return ProxyInterface->Optimize((LPDIRECT3DDEVICE7)a, b);
 }

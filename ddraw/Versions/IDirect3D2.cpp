@@ -14,44 +14,49 @@
 *   3. This notice may not be removed or altered from any source distribution.
 */
 
-#include "ddraw.h"
+#include "..\ddraw.h"
 
-HRESULT m_IDirect3DTexture::QueryInterface(REFIID riid, LPVOID * ppvObj)
+HRESULT m_IDirect3D2::QueryInterface(REFIID riid, LPVOID * ppvObj)
 {
 	return ProxyInterface->QueryInterface(riid, ppvObj);
 }
 
-ULONG m_IDirect3DTexture::AddRef()
+ULONG m_IDirect3D2::AddRef()
 {
 	return ProxyInterface->AddRef();
 }
 
-ULONG m_IDirect3DTexture::Release()
+ULONG m_IDirect3D2::Release()
 {
 	return ProxyInterface->Release();
 }
 
-HRESULT m_IDirect3DTexture::Initialize(LPDIRECT3DDEVICE a, LPDIRECTDRAWSURFACE b)
+HRESULT m_IDirect3D2::EnumDevices(LPD3DENUMDEVICESCALLBACK a, LPVOID b)
 {
-	return ProxyInterface->Initialize(a, b);
+	return ProxyInterface->EnumDevices((LPD3DENUMDEVICESCALLBACK7)a, b);
 }
 
-HRESULT m_IDirect3DTexture::GetHandle(LPDIRECT3DDEVICE a, LPD3DTEXTUREHANDLE b)
+HRESULT m_IDirect3D2::CreateLight(LPDIRECT3DLIGHT * a, IUnknown * b)
 {
-	return ProxyInterface->GetHandle((LPDIRECT3DDEVICE2)a, b);
+	return ProxyInterface->CreateLight(a, b);
 }
 
-HRESULT m_IDirect3DTexture::PaletteChanged(DWORD a, DWORD b)
+HRESULT m_IDirect3D2::CreateMaterial(LPDIRECT3DMATERIAL2 * a, IUnknown * b)
 {
-	return ProxyInterface->PaletteChanged(a, b);
+	return ProxyInterface->CreateMaterial((LPDIRECT3DMATERIAL3*)a, b);
 }
 
-HRESULT m_IDirect3DTexture::Load(LPDIRECT3DTEXTURE a)
+HRESULT m_IDirect3D2::CreateViewport(LPDIRECT3DVIEWPORT2 * a, IUnknown * b)
 {
-	return ProxyInterface->Load((LPDIRECT3DTEXTURE2)a);
+	return ProxyInterface->CreateViewport((LPDIRECT3DVIEWPORT3*)a, b);
 }
 
-HRESULT m_IDirect3DTexture::Unload()
+HRESULT m_IDirect3D2::FindDevice(LPD3DFINDDEVICESEARCH a, LPD3DFINDDEVICERESULT b)
 {
-	return ProxyInterface->Unload();
+	return ProxyInterface->FindDevice(a, b);
+}
+
+HRESULT m_IDirect3D2::CreateDevice(REFCLSID a, LPDIRECTDRAWSURFACE b, LPDIRECT3DDEVICE2 * c)
+{
+	return ProxyInterface->CreateDevice(a, (LPDIRECTDRAWSURFACE7)b, (LPDIRECT3DDEVICE7*)c);
 }

@@ -14,49 +14,34 @@
 *   3. This notice may not be removed or altered from any source distribution.
 */
 
-#include "ddraw.h"
+#include "..\ddraw.h"
 
-HRESULT m_IDirect3D2::QueryInterface(REFIID riid, LPVOID * ppvObj)
+HRESULT m_IDirect3DMaterial3::QueryInterface(REFIID riid, LPVOID * ppvObj)
 {
 	return ProxyInterface->QueryInterface(riid, ppvObj);
 }
 
-ULONG m_IDirect3D2::AddRef()
+ULONG m_IDirect3DMaterial3::AddRef()
 {
 	return ProxyInterface->AddRef();
 }
 
-ULONG m_IDirect3D2::Release()
+ULONG m_IDirect3DMaterial3::Release()
 {
 	return ProxyInterface->Release();
 }
 
-HRESULT m_IDirect3D2::EnumDevices(LPD3DENUMDEVICESCALLBACK a, LPVOID b)
+HRESULT m_IDirect3DMaterial3::SetMaterial(LPD3DMATERIAL a)
 {
-	return ProxyInterface->EnumDevices((LPD3DENUMDEVICESCALLBACK7)a, b);
+	return ProxyInterface->SetMaterial(a);
 }
 
-HRESULT m_IDirect3D2::CreateLight(LPDIRECT3DLIGHT * a, IUnknown * b)
+HRESULT m_IDirect3DMaterial3::GetMaterial(LPD3DMATERIAL a)
 {
-	return ProxyInterface->CreateLight(a, b);
+	return ProxyInterface->GetMaterial(a);
 }
 
-HRESULT m_IDirect3D2::CreateMaterial(LPDIRECT3DMATERIAL2 * a, IUnknown * b)
+HRESULT m_IDirect3DMaterial3::GetHandle(LPDIRECT3DDEVICE3 a, LPD3DMATERIALHANDLE b)
 {
-	return ProxyInterface->CreateMaterial((LPDIRECT3DMATERIAL3*)a, b);
-}
-
-HRESULT m_IDirect3D2::CreateViewport(LPDIRECT3DVIEWPORT2 * a, IUnknown * b)
-{
-	return ProxyInterface->CreateViewport((LPDIRECT3DVIEWPORT3*)a, b);
-}
-
-HRESULT m_IDirect3D2::FindDevice(LPD3DFINDDEVICESEARCH a, LPD3DFINDDEVICERESULT b)
-{
-	return ProxyInterface->FindDevice(a, b);
-}
-
-HRESULT m_IDirect3D2::CreateDevice(REFCLSID a, LPDIRECTDRAWSURFACE b, LPDIRECT3DDEVICE2 * c)
-{
-	return ProxyInterface->CreateDevice(a, (LPDIRECTDRAWSURFACE7)b, (LPDIRECT3DDEVICE7*)c);
+	return ProxyInterface->GetHandle(a, b);
 }

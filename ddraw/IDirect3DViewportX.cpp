@@ -45,27 +45,30 @@ ULONG m_IDirect3DViewportX::AddRef()
 
 ULONG m_IDirect3DViewportX::Release()
 {
+	LONG ref;
+
 	if (ProxyDirectXVersion == 7)
 	{
-		LONG ref = InterlockedDecrement(&RefCount);
+		ref = InterlockedDecrement(&RefCount);
+	}
+	else
+	{
+		ref = ProxyInterface->Release();
+	}
 
-		if (ref == 0)
+	if (ref == 0)
+	{
+		if (WrapperInterface)
+		{
+			WrapperInterface->DeleteMe();
+		}
+		else
 		{
 			delete this;
-			return 0;
 		}
-
-		return ref;
 	}
 
-	ULONG x = ProxyInterface->Release();
-
-	if (x == 0)
-	{
-		WrapperInterface->DeleteMe();
-	}
-
-	return x;
+	return ref;
 }
 
 HRESULT m_IDirect3DViewportX::Initialize(LPDIRECT3D lpDirect3D)
@@ -89,7 +92,7 @@ HRESULT m_IDirect3DViewportX::GetViewport(LPD3DVIEWPORT lpData)
 	{
 		D3DVIEWPORT7 tmpViewport;
 
-		HRESULT hr = ((m_IDirect3DDeviceX*)WrapperInterface)->GetViewport(&tmpViewport);
+		HRESULT hr = D3DDeviceInterface->GetViewport(&tmpViewport);
 
 		ConvertViewport(*lpData, tmpViewport);
 
@@ -112,7 +115,7 @@ HRESULT m_IDirect3DViewportX::SetViewport(LPD3DVIEWPORT lpData)
 			Logging::Log() << __FUNCTION__ << " 'Scale homogeneous' Not Implimented";
 		}
 
-		return ((m_IDirect3DDeviceX*)WrapperInterface)->SetViewport(&tmpViewport);
+		return D3DDeviceInterface->SetViewport(&tmpViewport);
 	}
 
 	return ProxyInterface->SetViewport(lpData);
@@ -200,7 +203,7 @@ HRESULT m_IDirect3DViewportX::Clear(DWORD dwCount, LPD3DRECT lpRects, DWORD dwFl
 {
 	if (ProxyDirectXVersion == 7)
 	{
-		return ((m_IDirect3DDeviceX*)WrapperInterface)->Clear(dwCount, lpRects, dwFlags, 0, 0, 0);
+		return D3DDeviceInterface->Clear(dwCount, lpRects, dwFlags, 0, 0, 0);
 	}
 
 	return ProxyInterface->Clear(dwCount, lpRects, dwFlags);
@@ -267,7 +270,7 @@ HRESULT m_IDirect3DViewportX::GetViewport2(LPD3DVIEWPORT2 lpData)
 	{
 		D3DVIEWPORT7 tmpViewport;
 
-		HRESULT hr = ((m_IDirect3DDeviceX*)WrapperInterface)->GetViewport(&tmpViewport);
+		HRESULT hr = D3DDeviceInterface->GetViewport(&tmpViewport);
 
 		ConvertViewport(*lpData, tmpViewport);
 
@@ -290,7 +293,7 @@ HRESULT m_IDirect3DViewportX::SetViewport2(LPD3DVIEWPORT2 lpData)
 			Logging::Log() << __FUNCTION__ << " 'clip volume' Not Implimented";
 		}
 
-		return ((m_IDirect3DDeviceX*)WrapperInterface)->SetViewport(&tmpViewport);
+		return D3DDeviceInterface->SetViewport(&tmpViewport);
 	}
 
 	return ProxyInterface->SetViewport2(lpData);
@@ -334,7 +337,7 @@ HRESULT m_IDirect3DViewportX::Clear2(DWORD dwCount, LPD3DRECT lpRects, DWORD dwF
 {
 	if (ProxyDirectXVersion == 7)
 	{
-		return ((m_IDirect3DDeviceX*)WrapperInterface)->Clear(dwCount, lpRects, dwFlags, dwColor, dvZ, dwStencil);
+		return D3DDeviceInterface->Clear(dwCount, lpRects, dwFlags, dwColor, dvZ, dwStencil);
 	}
 
 	return ProxyInterface->Clear2(dwCount, lpRects, dwFlags, dwColor, dvZ, dwStencil);

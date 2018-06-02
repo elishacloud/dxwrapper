@@ -30,7 +30,7 @@ HRESULT m_IDirect3DTextureX::QueryInterface(REFIID riid, LPVOID * ppvObj)
 		}
 	}
 
-	return ProxyQueryInterface(ProxyInterface, riid, ppvObj, WrapperID, this);
+	return ProxyQueryInterface(ProxyInterface, riid, ppvObj, WrapperID, WrapperInterface);
 }
 
 ULONG m_IDirect3DTextureX::AddRef()
@@ -45,27 +45,30 @@ ULONG m_IDirect3DTextureX::AddRef()
 
 ULONG m_IDirect3DTextureX::Release()
 {
+	LONG ref;
+
 	if (ProxyDirectXVersion == 7)
 	{
-		LONG ref = InterlockedDecrement(&RefCount);
+		ref = InterlockedDecrement(&RefCount);
+	}
+	else
+	{
+		ref = ProxyInterface->Release();
+	}
 
-		if (ref == 0)
+	if (ref == 0)
+	{
+		if (WrapperInterface)
+		{
+			WrapperInterface->DeleteMe();
+		}
+		else
 		{
 			delete this;
-			return 0;
 		}
-
-		return ref;
 	}
 
-	ULONG x = ProxyInterface->Release();
-
-	if (x == 0)
-	{
-		WrapperInterface->DeleteMe();
-	}
-
-	return x;
+	return ref;
 }
 
 HRESULT m_IDirect3DTextureX::Initialize(LPDIRECT3DDEVICE lpDirect3DDevice, LPDIRECTDRAWSURFACE lplpDDSurface)

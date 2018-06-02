@@ -18,7 +18,7 @@
 
 HRESULT m_IDirect3DVertexBufferX::QueryInterface(REFIID riid, LPVOID * ppvObj)
 {
-	return ProxyQueryInterface(ProxyInterface, riid, ppvObj, WrapperID, this);
+	return ProxyQueryInterface(ProxyInterface, riid, ppvObj, WrapperID, WrapperInterface);
 }
 
 ULONG m_IDirect3DVertexBufferX::AddRef()
@@ -32,7 +32,14 @@ ULONG m_IDirect3DVertexBufferX::Release()
 
 	if (x == 0)
 	{
-		WrapperInterface->DeleteMe();
+		if (WrapperInterface)
+		{
+			WrapperInterface->DeleteMe();
+		}
+		else
+		{
+			delete this;
+		}
 	}
 
 	return x;

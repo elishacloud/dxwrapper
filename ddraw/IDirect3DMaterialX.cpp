@@ -45,27 +45,30 @@ ULONG m_IDirect3DMaterialX::AddRef()
 
 ULONG m_IDirect3DMaterialX::Release()
 {
+	LONG ref;
+
 	if (ProxyDirectXVersion == 7)
 	{
-		LONG ref = InterlockedDecrement(&RefCount);
+		ref = InterlockedDecrement(&RefCount);
+	}
+	else
+	{
+		ref = ProxyInterface->Release();
+	}
 
-		if (ref == 0)
+	if (ref == 0)
+	{
+		if (WrapperInterface)
+		{
+			WrapperInterface->DeleteMe();
+		}
+		else
 		{
 			delete this;
-			return 0;
 		}
-
-		return ref;
 	}
 
-	ULONG x = ProxyInterface->Release();
-
-	if (x == 0)
-	{
-		WrapperInterface->DeleteMe();
-	}
-
-	return x;
+	return ref;
 }
 
 HRESULT m_IDirect3DMaterialX::Initialize(LPDIRECT3D lplpD3D)
@@ -96,7 +99,7 @@ HRESULT m_IDirect3DMaterialX::SetMaterial(LPD3DMATERIAL lpMat)
 
 		ConvertMaterial(tmpMaterial, *lpMat);
 
-		return ((m_IDirect3DDeviceX*)WrapperInterface)->SetMaterial(&tmpMaterial);
+		return D3DDeviceInterface->SetMaterial(&tmpMaterial);
 	}
 
 	return ProxyInterface->SetMaterial(lpMat);
@@ -108,7 +111,7 @@ HRESULT m_IDirect3DMaterialX::GetMaterial(LPD3DMATERIAL lpMat)
 	{
 		D3DMATERIAL7 tmpMaterial;
 
-		HRESULT hr = ((m_IDirect3DDeviceX*)WrapperInterface)->GetMaterial(&tmpMaterial);
+		HRESULT hr = D3DDeviceInterface->GetMaterial(&tmpMaterial);
 
 		Logging::Log() << __FUNCTION__ << " D3DMATERIALHANDLE Not Implimented";
 		ConvertMaterial(tmpMaterial, *lpMat);
@@ -123,7 +126,7 @@ HRESULT m_IDirect3DMaterialX::GetHandle(LPDIRECT3DDEVICE3 lpDirect3DDevice, LPD3
 {
 	if (ProxyDirectXVersion == 7)
 	{
-		lpDirect3DDevice = (IDirect3DDevice3*)ProxyInterface;
+		lpDirect3DDevice = (LPDIRECT3DDEVICE3)D3DDeviceInterface->GetProxyInterface();
 
 		lpHandle = nullptr;
 

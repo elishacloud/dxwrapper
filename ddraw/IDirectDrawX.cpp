@@ -49,35 +49,35 @@ ULONG m_IDirectDrawX::AddRef()
 
 ULONG m_IDirectDrawX::Release()
 {
+	ULONG ref;
+
 	if (Config.Dd7to9)
 	{
-		LONG ref = InterlockedDecrement(&RefCount);
+		ref = InterlockedDecrement(&RefCount);
+	}
+	else
+	{
+		ref = ProxyInterface->Release();
+	}
 
-		if (ref == 0)
+	if (ref == 0)
+	{
+		if (Config.Dd7to9)
 		{
 			ReleaseD3d9();
-
-			if (WrapperInterface)
-			{
-				WrapperInterface->DeleteMe();
-			}
-			else
-			{
-				delete this;
-			}
 		}
 
-		return ref;
+		if (WrapperInterface)
+		{
+			WrapperInterface->DeleteMe();
+		}
+		else
+		{
+			delete this;
+		}
 	}
 
-	ULONG x = ProxyInterface->Release();
-
-	if (x == 0)
-	{
-		WrapperInterface->DeleteMe();
-	}
-
-	return x;
+	return ref;
 }
 
 void m_IDirectDrawX::ReleaseD3d9()

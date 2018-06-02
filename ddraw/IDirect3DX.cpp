@@ -32,7 +32,14 @@ ULONG m_IDirect3DX::Release()
 
 	if (x == 0)
 	{
-		WrapperInterface->DeleteMe();
+		if (WrapperInterface)
+		{
+			WrapperInterface->DeleteMe();
+		}
+		else
+		{
+			delete this;
+		}
 	}
 
 	return x;
@@ -87,7 +94,7 @@ HRESULT m_IDirect3DX::CreateMaterial(LPDIRECT3DMATERIAL3 * lplpDirect3DMaterial,
 	{
 		if (lplpDirect3DMaterial && lpCurrentD3DDevice)
 		{
-			*lplpDirect3DMaterial = new m_IDirect3DMaterialX((IDirect3DMaterial3*)lpCurrentD3DDevice->GetProxyInterface(), 7, (m_IDirect3DMaterial3*)lpCurrentD3DDevice);
+			*lplpDirect3DMaterial = new m_IDirect3DMaterialX(lpCurrentD3DDevice, 7);
 			return D3D_OK;
 		}
 		else if (!lplpDirect3DMaterial)
@@ -117,7 +124,7 @@ HRESULT m_IDirect3DX::CreateViewport(LPDIRECT3DVIEWPORT3 * lplpD3DViewport, LPUN
 	{
 		if (lplpD3DViewport && lpCurrentD3DDevice)
 		{
-			*lplpD3DViewport = new m_IDirect3DViewportX((IDirect3DViewport3*)lpCurrentD3DDevice->GetProxyInterface(), 7, (m_IDirect3DViewport3*)lpCurrentD3DDevice);
+			*lplpD3DViewport = new m_IDirect3DViewportX(lpCurrentD3DDevice, 7);
 			return D3D_OK;
 		}
 		else if (!lplpD3DViewport)

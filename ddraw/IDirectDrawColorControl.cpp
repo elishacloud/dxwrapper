@@ -45,26 +45,23 @@ ULONG m_IDirectDrawColorControl::AddRef()
 
 ULONG m_IDirectDrawColorControl::Release()
 {
+	ULONG ref;
+
 	if (!ProxyInterface)
 	{
-		LONG ref = InterlockedDecrement(&RefCount);
-
-		if (ref == 0)
-		{
-			delete this;
-		}
-
-		return ref;
+		ref = InterlockedDecrement(&RefCount);
+	}
+	else
+	{
+		ref = ProxyInterface->Release();
 	}
 
-	ULONG x = ProxyInterface->Release();
-
-	if (x == 0)
+	if (ref == 0)
 	{
 		delete this;
 	}
 
-	return x;
+	return ref;
 }
 
 HRESULT m_IDirectDrawColorControl::GetColorControls(LPDDCOLORCONTROL lpColorControl)

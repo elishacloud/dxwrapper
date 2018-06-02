@@ -14,34 +14,44 @@
 *   3. This notice may not be removed or altered from any source distribution.
 */
 
-#include "ddraw.h"
+#include "..\ddraw.h"
 
-HRESULT m_IDirect3DTexture2::QueryInterface(REFIID riid, LPVOID * ppvObj)
+HRESULT m_IDirect3DTexture::QueryInterface(REFIID riid, LPVOID * ppvObj)
 {
 	return ProxyInterface->QueryInterface(riid, ppvObj);
 }
 
-ULONG m_IDirect3DTexture2::AddRef()
+ULONG m_IDirect3DTexture::AddRef()
 {
 	return ProxyInterface->AddRef();
 }
 
-ULONG m_IDirect3DTexture2::Release()
+ULONG m_IDirect3DTexture::Release()
 {
 	return ProxyInterface->Release();
 }
 
-HRESULT m_IDirect3DTexture2::GetHandle(LPDIRECT3DDEVICE2 a, LPD3DTEXTUREHANDLE b)
+HRESULT m_IDirect3DTexture::Initialize(LPDIRECT3DDEVICE a, LPDIRECTDRAWSURFACE b)
 {
-	return ProxyInterface->GetHandle(a, b);
+	return ProxyInterface->Initialize(a, b);
 }
 
-HRESULT m_IDirect3DTexture2::PaletteChanged(DWORD a, DWORD b)
+HRESULT m_IDirect3DTexture::GetHandle(LPDIRECT3DDEVICE a, LPD3DTEXTUREHANDLE b)
+{
+	return ProxyInterface->GetHandle((LPDIRECT3DDEVICE2)a, b);
+}
+
+HRESULT m_IDirect3DTexture::PaletteChanged(DWORD a, DWORD b)
 {
 	return ProxyInterface->PaletteChanged(a, b);
 }
 
-HRESULT m_IDirect3DTexture2::Load(LPDIRECT3DTEXTURE2 a)
+HRESULT m_IDirect3DTexture::Load(LPDIRECT3DTEXTURE a)
 {
-	return ProxyInterface->Load(a);
+	return ProxyInterface->Load((LPDIRECT3DTEXTURE2)a);
+}
+
+HRESULT m_IDirect3DTexture::Unload()
+{
+	return ProxyInterface->Unload();
 }

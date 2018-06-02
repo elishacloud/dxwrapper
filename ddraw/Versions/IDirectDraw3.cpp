@@ -14,119 +14,129 @@
 *   3. This notice may not be removed or altered from any source distribution.
 */
 
-#include "ddraw.h"
+#include "..\ddraw.h"
 
-HRESULT m_IDirectDraw::QueryInterface(REFIID riid, LPVOID FAR * ppvObj)
+HRESULT m_IDirectDraw3::QueryInterface(REFIID riid, LPVOID FAR * ppvObj)
 {
 	return ProxyInterface->QueryInterface(riid, ppvObj);
 }
 
-ULONG m_IDirectDraw::AddRef()
+ULONG m_IDirectDraw3::AddRef()
 {
 	return ProxyInterface->AddRef();
 }
 
-ULONG m_IDirectDraw::Release()
+ULONG m_IDirectDraw3::Release()
 {
 	return ProxyInterface->Release();
 }
 
-HRESULT m_IDirectDraw::Compact()
+HRESULT m_IDirectDraw3::Compact()
 {
 	return ProxyInterface->Compact();
 }
 
-HRESULT m_IDirectDraw::CreateClipper(DWORD a, LPDIRECTDRAWCLIPPER FAR * b, IUnknown FAR * c)
+HRESULT m_IDirectDraw3::CreateClipper(DWORD a, LPDIRECTDRAWCLIPPER FAR * b, IUnknown FAR * c)
 {
 	return ProxyInterface->CreateClipper(a, b, c);
 }
 
-HRESULT m_IDirectDraw::CreatePalette(DWORD a, LPPALETTEENTRY b, LPDIRECTDRAWPALETTE FAR * c, IUnknown FAR * d)
+HRESULT m_IDirectDraw3::CreatePalette(DWORD a, LPPALETTEENTRY b, LPDIRECTDRAWPALETTE FAR * c, IUnknown FAR * d)
 {
 	return ProxyInterface->CreatePalette(a, b, c, d);
 }
 
-HRESULT m_IDirectDraw::CreateSurface(LPDDSURFACEDESC a, LPDIRECTDRAWSURFACE FAR * b, IUnknown FAR * c)
+HRESULT m_IDirectDraw3::CreateSurface(LPDDSURFACEDESC a, LPDIRECTDRAWSURFACE FAR * b, IUnknown FAR * c)
 {
 	return ProxyInterface->CreateSurface((LPDDSURFACEDESC2)a, (LPDIRECTDRAWSURFACE7*)b, c);
 }
 
-HRESULT m_IDirectDraw::DuplicateSurface(LPDIRECTDRAWSURFACE a, LPDIRECTDRAWSURFACE FAR * b)
+HRESULT m_IDirectDraw3::DuplicateSurface(LPDIRECTDRAWSURFACE a, LPDIRECTDRAWSURFACE FAR * b)
 {
 	return ProxyInterface->DuplicateSurface((LPDIRECTDRAWSURFACE7)a, (LPDIRECTDRAWSURFACE7*)b);
 }
 
-HRESULT m_IDirectDraw::EnumDisplayModes(DWORD a, LPDDSURFACEDESC b, LPVOID c, LPDDENUMMODESCALLBACK d)
+HRESULT m_IDirectDraw3::EnumDisplayModes(DWORD a, LPDDSURFACEDESC b, LPVOID c, LPDDENUMMODESCALLBACK d)
 {
 	return ProxyInterface->EnumDisplayModes(a, (LPDDSURFACEDESC2)b, c, (LPDDENUMMODESCALLBACK2)d);
 }
 
-HRESULT m_IDirectDraw::EnumSurfaces(DWORD a, LPDDSURFACEDESC b, LPVOID c, LPDDENUMSURFACESCALLBACK d)
+HRESULT m_IDirectDraw3::EnumSurfaces(DWORD a, LPDDSURFACEDESC b, LPVOID c, LPDDENUMSURFACESCALLBACK d)
 {
 	return ProxyInterface->EnumSurfaces(a, (LPDDSURFACEDESC2)b, c, (LPDDENUMSURFACESCALLBACK7)d);
 }
 
-HRESULT m_IDirectDraw::FlipToGDISurface()
+HRESULT m_IDirectDraw3::FlipToGDISurface()
 {
 	return ProxyInterface->FlipToGDISurface();
 }
 
-HRESULT m_IDirectDraw::GetCaps(LPDDCAPS a, LPDDCAPS b)
+HRESULT m_IDirectDraw3::GetCaps(LPDDCAPS a, LPDDCAPS b)
 {
 	return ProxyInterface->GetCaps(a, b);
 }
 
-HRESULT m_IDirectDraw::GetDisplayMode(LPDDSURFACEDESC a)
+HRESULT m_IDirectDraw3::GetDisplayMode(LPDDSURFACEDESC a)
 {
 	return ProxyInterface->GetDisplayMode((LPDDSURFACEDESC2)a);
 }
 
-HRESULT m_IDirectDraw::GetFourCCCodes(LPDWORD a, LPDWORD b)
+HRESULT m_IDirectDraw3::GetFourCCCodes(LPDWORD a, LPDWORD b)
 {
 	return ProxyInterface->GetFourCCCodes(a, b);
 }
 
-HRESULT m_IDirectDraw::GetGDISurface(LPDIRECTDRAWSURFACE FAR * a)
+HRESULT m_IDirectDraw3::GetGDISurface(LPDIRECTDRAWSURFACE FAR * a)
 {
 	return ProxyInterface->GetGDISurface((LPDIRECTDRAWSURFACE7*)a);
 }
 
-HRESULT m_IDirectDraw::GetMonitorFrequency(LPDWORD a)
+HRESULT m_IDirectDraw3::GetMonitorFrequency(LPDWORD a)
 {
 	return ProxyInterface->GetMonitorFrequency(a);
 }
 
-HRESULT m_IDirectDraw::GetScanLine(LPDWORD a)
+HRESULT m_IDirectDraw3::GetScanLine(LPDWORD a)
 {
 	return ProxyInterface->GetScanLine(a);
 }
 
-HRESULT m_IDirectDraw::GetVerticalBlankStatus(LPBOOL a)
+HRESULT m_IDirectDraw3::GetVerticalBlankStatus(LPBOOL a)
 {
 	return ProxyInterface->GetVerticalBlankStatus(a);
 }
 
-HRESULT m_IDirectDraw::Initialize(GUID FAR * a)
+HRESULT m_IDirectDraw3::Initialize(GUID FAR * a)
 {
 	return ProxyInterface->Initialize(a);
 }
 
-HRESULT m_IDirectDraw::RestoreDisplayMode()
+HRESULT m_IDirectDraw3::RestoreDisplayMode()
 {
 	return ProxyInterface->RestoreDisplayMode();
 }
 
-HRESULT m_IDirectDraw::SetCooperativeLevel(HWND a, DWORD b)
+HRESULT m_IDirectDraw3::SetCooperativeLevel(HWND a, DWORD b)
 {
 	return ProxyInterface->SetCooperativeLevel(a, b);
 }
 
-HRESULT m_IDirectDraw::SetDisplayMode(DWORD a, DWORD b, DWORD c)
+HRESULT m_IDirectDraw3::SetDisplayMode(DWORD a, DWORD b, DWORD c, DWORD d, DWORD e)
 {
-	return ProxyInterface->SetDisplayMode(a, b, c, 0, 0);
+	return ProxyInterface->SetDisplayMode(a, b, c, d, e);
 }
 
-HRESULT m_IDirectDraw::WaitForVerticalBlank(DWORD a, HANDLE b)
+HRESULT m_IDirectDraw3::WaitForVerticalBlank(DWORD a, HANDLE b)
 {
 	return ProxyInterface->WaitForVerticalBlank(a, b);
+}
+
+HRESULT m_IDirectDraw3::GetAvailableVidMem(LPDDSCAPS a, LPDWORD b, LPDWORD c)
+{
+	return ProxyInterface->GetAvailableVidMem((LPDDSCAPS2)a, b, c);
+}
+
+HRESULT m_IDirectDraw3::GetSurfaceFromDC(HDC a, IDirectDrawSurface * * b)
+{
+	return ProxyInterface->GetSurfaceFromDC(a, (LPDIRECTDRAWSURFACE7*)b);
 }

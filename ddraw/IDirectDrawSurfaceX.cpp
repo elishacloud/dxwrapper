@@ -58,33 +58,30 @@ ULONG m_IDirectDrawSurfaceX::AddRef()
 
 ULONG m_IDirectDrawSurfaceX::Release()
 {
+	ULONG ref;
+
 	if (Config.Dd7to9)
 	{
-		LONG ref = InterlockedDecrement(&RefCount);
-
-		if (ref == 0)
-		{
-			if (WrapperInterface)
-			{
-				WrapperInterface->DeleteMe();
-			}
-			else
-			{
-				delete this;
-			}
-		}
-
-		return ref;
+		ref = InterlockedDecrement(&RefCount);
 	}
-
-	ULONG x = ProxyInterface->Release();
-
-	if (x == 0)
+	else
 	{
-		WrapperInterface->DeleteMe();
+		ref = ProxyInterface->Release();
 	}
 
-	return x;
+	if (ref == 0)
+	{
+		if (WrapperInterface)
+		{
+			WrapperInterface->DeleteMe();
+		}
+		else
+		{
+			delete this;
+		}
+	}
+
+	return ref;
 }
 
 HRESULT m_IDirectDrawSurfaceX::AddAttachedSurface(LPDIRECTDRAWSURFACE7 lpDDSurface)

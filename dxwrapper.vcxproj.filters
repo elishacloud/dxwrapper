@@ -556,103 +556,103 @@
     <ClCompile Include="ddraw\IDirect3DTypes.cpp">
       <Filter>ddraw</Filter>
     </ClCompile>
-    <ClCompile Include="ddraw\IDirect3D.cpp">
-      <Filter>ddraw\Versions</Filter>
-    </ClCompile>
-    <ClCompile Include="ddraw\IDirect3D2.cpp">
-      <Filter>ddraw\Versions</Filter>
-    </ClCompile>
-    <ClCompile Include="ddraw\IDirect3D3.cpp">
-      <Filter>ddraw\Versions</Filter>
-    </ClCompile>
-    <ClCompile Include="ddraw\IDirect3D7.cpp">
-      <Filter>ddraw\Versions</Filter>
-    </ClCompile>
-    <ClCompile Include="ddraw\IDirectDrawSurface2.cpp">
-      <Filter>ddraw\Versions</Filter>
-    </ClCompile>
-    <ClCompile Include="ddraw\IDirectDrawSurface3.cpp">
-      <Filter>ddraw\Versions</Filter>
-    </ClCompile>
-    <ClCompile Include="ddraw\IDirectDrawSurface4.cpp">
-      <Filter>ddraw\Versions</Filter>
-    </ClCompile>
-    <ClCompile Include="ddraw\IDirectDrawSurface7.cpp">
-      <Filter>ddraw\Versions</Filter>
-    </ClCompile>
-    <ClCompile Include="ddraw\IDirectDrawSurface.cpp">
-      <Filter>ddraw\Versions</Filter>
-    </ClCompile>
-    <ClCompile Include="ddraw\IDirectDraw.cpp">
-      <Filter>ddraw\Versions</Filter>
-    </ClCompile>
-    <ClCompile Include="ddraw\IDirectDraw2.cpp">
-      <Filter>ddraw\Versions</Filter>
-    </ClCompile>
-    <ClCompile Include="ddraw\IDirectDraw3.cpp">
-      <Filter>ddraw\Versions</Filter>
-    </ClCompile>
-    <ClCompile Include="ddraw\IDirectDraw4.cpp">
-      <Filter>ddraw\Versions</Filter>
-    </ClCompile>
-    <ClCompile Include="ddraw\IDirectDraw7.cpp">
-      <Filter>ddraw\Versions</Filter>
-    </ClCompile>
     <ClCompile Include="ddraw\IDirect3DMaterialX.cpp">
       <Filter>ddraw</Filter>
-    </ClCompile>
-    <ClCompile Include="ddraw\IDirect3DMaterial.cpp">
-      <Filter>ddraw\Versions</Filter>
-    </ClCompile>
-    <ClCompile Include="ddraw\IDirect3DMaterial2.cpp">
-      <Filter>ddraw\Versions</Filter>
-    </ClCompile>
-    <ClCompile Include="ddraw\IDirect3DMaterial3.cpp">
-      <Filter>ddraw\Versions</Filter>
     </ClCompile>
     <ClCompile Include="ddraw\IDirect3DTextureX.cpp">
       <Filter>ddraw</Filter>
     </ClCompile>
-    <ClCompile Include="ddraw\IDirect3DTexture.cpp">
-      <Filter>ddraw\Versions</Filter>
-    </ClCompile>
-    <ClCompile Include="ddraw\IDirect3DTexture2.cpp">
-      <Filter>ddraw\Versions</Filter>
-    </ClCompile>
     <ClCompile Include="ddraw\IDirect3DVertexBufferX.cpp">
       <Filter>ddraw</Filter>
-    </ClCompile>
-    <ClCompile Include="ddraw\IDirect3DVertexBuffer.cpp">
-      <Filter>ddraw\Versions</Filter>
-    </ClCompile>
-    <ClCompile Include="ddraw\IDirect3DVertexBuffer7.cpp">
-      <Filter>ddraw\Versions</Filter>
     </ClCompile>
     <ClCompile Include="ddraw\IDirect3DViewportX.cpp">
       <Filter>ddraw</Filter>
     </ClCompile>
-    <ClCompile Include="ddraw\IDirect3DViewport.cpp">
-      <Filter>ddraw\Versions</Filter>
-    </ClCompile>
-    <ClCompile Include="ddraw\IDirect3DViewport2.cpp">
-      <Filter>ddraw\Versions</Filter>
-    </ClCompile>
-    <ClCompile Include="ddraw\IDirect3DViewport3.cpp">
-      <Filter>ddraw\Versions</Filter>
-    </ClCompile>
     <ClCompile Include="ddraw\IDirect3DDeviceX.cpp">
       <Filter>ddraw</Filter>
     </ClCompile>
-    <ClCompile Include="ddraw\IDirect3DDevice.cpp">
+    <ClCompile Include="ddraw\Versions\IDirect3D.cpp">
       <Filter>ddraw\Versions</Filter>
     </ClCompile>
-    <ClCompile Include="ddraw\IDirect3DDevice2.cpp">
+    <ClCompile Include="ddraw\Versions\IDirect3D2.cpp">
       <Filter>ddraw\Versions</Filter>
     </ClCompile>
-    <ClCompile Include="ddraw\IDirect3DDevice3.cpp">
+    <ClCompile Include="ddraw\Versions\IDirect3D3.cpp">
       <Filter>ddraw\Versions</Filter>
     </ClCompile>
-    <ClCompile Include="ddraw\IDirect3DDevice7.cpp">
+    <ClCompile Include="ddraw\Versions\IDirect3D7.cpp">
+      <Filter>ddraw\Versions</Filter>
+    </ClCompile>
+    <ClCompile Include="ddraw\Versions\IDirect3DDevice.cpp">
+      <Filter>ddraw\Versions</Filter>
+    </ClCompile>
+    <ClCompile Include="ddraw\Versions\IDirect3DDevice2.cpp">
+      <Filter>ddraw\Versions</Filter>
+    </ClCompile>
+    <ClCompile Include="ddraw\Versions\IDirect3DDevice3.cpp">
+      <Filter>ddraw\Versions</Filter>
+    </ClCompile>
+    <ClCompile Include="ddraw\Versions\IDirect3DDevice7.cpp">
+      <Filter>ddraw\Versions</Filter>
+    </ClCompile>
+    <ClCompile Include="ddraw\Versions\IDirect3DMaterial.cpp">
+      <Filter>ddraw\Versions</Filter>
+    </ClCompile>
+    <ClCompile Include="ddraw\Versions\IDirect3DMaterial2.cpp">
+      <Filter>ddraw\Versions</Filter>
+    </ClCompile>
+    <ClCompile Include="ddraw\Versions\IDirect3DMaterial3.cpp">
+      <Filter>ddraw\Versions</Filter>
+    </ClCompile>
+    <ClCompile Include="ddraw\Versions\IDirect3DTexture.cpp">
+      <Filter>ddraw\Versions</Filter>
+    </ClCompile>
+    <ClCompile Include="ddraw\Versions\IDirect3DTexture2.cpp">
+      <Filter>ddraw\Versions</Filter>
+    </ClCompile>
+    <ClCompile Include="ddraw\Versions\IDirect3DVertexBuffer.cpp">
+      <Filter>ddraw\Versions</Filter>
+    </ClCompile>
+    <ClCompile Include="ddraw\Versions\IDirect3DVertexBuffer7.cpp">
+      <Filter>ddraw\Versions</Filter>
+    </ClCompile>
+    <ClCompile Include="ddraw\Versions\IDirect3DViewport.cpp">
+      <Filter>ddraw\Versions</Filter>
+    </ClCompile>
+    <ClCompile Include="ddraw\Versions\IDirect3DViewport2.cpp">
+      <Filter>ddraw\Versions</Filter>
+    </ClCompile>
+    <ClCompile Include="ddraw\Versions\IDirect3DViewport3.cpp">
+      <Filter>ddraw\Versions</Filter>
+    </ClCompile>
+    <ClCompile Include="ddraw\Versions\IDirectDraw.cpp">
+      <Filter>ddraw\Versions</Filter>
+    </ClCompile>
+    <ClCompile Include="ddraw\Versions\IDirectDraw2.cpp">
+      <Filter>ddraw\Versions</Filter>
+    </ClCompile>
+    <ClCompile Include="ddraw\Versions\IDirectDraw3.cpp">
+      <Filter>ddraw\Versions</Filter>
+    </ClCompile>
+    <ClCompile Include="ddraw\Versions\IDirectDraw4.cpp">
+      <Filter>ddraw\Versions</Filter>
+    </ClCompile>
+    <ClCompile Include="ddraw\Versions\IDirectDraw7.cpp">
+      <Filter>ddraw\Versions</Filter>
+    </ClCompile>
+    <ClCompile Include="ddraw\Versions\IDirectDrawSurface.cpp">
+      <Filter>ddraw\Versions</Filter>
+    </ClCompile>
+    <ClCompile Include="ddraw\Versions\IDirectDrawSurface2.cpp">
+      <Filter>ddraw\Versions</Filter>
+    </ClCompile>
+    <ClCompile Include="ddraw\Versions\IDirectDrawSurface3.cpp">
+      <Filter>ddraw\Versions</Filter>
+    </ClCompile>
+    <ClCompile Include="ddraw\Versions\IDirectDrawSurface4.cpp">
+      <Filter>ddraw\Versions</Filter>
+    </ClCompile>
+    <ClCompile Include="ddraw\Versions\IDirectDrawSurface7.cpp">
       <Filter>ddraw\Versions</Filter>
     </ClCompile>
   </ItemGroup>
@@ -1340,103 +1340,103 @@
     <ClInclude Include="ddraw\IDirect3DTypes.h">
       <Filter>ddraw</Filter>
     </ClInclude>
-    <ClInclude Include="ddraw\IDirect3D.h">
-      <Filter>ddraw\Versions</Filter>
-    </ClInclude>
-    <ClInclude Include="ddraw\IDirect3D2.h">
-      <Filter>ddraw\Versions</Filter>
-    </ClInclude>
-    <ClInclude Include="ddraw\IDirect3D3.h">
-      <Filter>ddraw\Versions</Filter>
-    </ClInclude>
-    <ClInclude Include="ddraw\IDirect3D7.h">
-      <Filter>ddraw\Versions</Filter>
-    </ClInclude>
-    <ClInclude Include="ddraw\IDirectDrawSurface7.h">
-      <Filter>ddraw\Versions</Filter>
-    </ClInclude>
-    <ClInclude Include="ddraw\IDirectDrawSurface.h">
-      <Filter>ddraw\Versions</Filter>
-    </ClInclude>
-    <ClInclude Include="ddraw\IDirectDrawSurface2.h">
-      <Filter>ddraw\Versions</Filter>
-    </ClInclude>
-    <ClInclude Include="ddraw\IDirectDrawSurface3.h">
-      <Filter>ddraw\Versions</Filter>
-    </ClInclude>
-    <ClInclude Include="ddraw\IDirectDrawSurface4.h">
-      <Filter>ddraw\Versions</Filter>
-    </ClInclude>
-    <ClInclude Include="ddraw\IDirectDraw7.h">
-      <Filter>ddraw\Versions</Filter>
-    </ClInclude>
-    <ClInclude Include="ddraw\IDirectDraw.h">
-      <Filter>ddraw\Versions</Filter>
-    </ClInclude>
-    <ClInclude Include="ddraw\IDirectDraw2.h">
-      <Filter>ddraw\Versions</Filter>
-    </ClInclude>
-    <ClInclude Include="ddraw\IDirectDraw3.h">
-      <Filter>ddraw\Versions</Filter>
-    </ClInclude>
-    <ClInclude Include="ddraw\IDirectDraw4.h">
-      <Filter>ddraw\Versions</Filter>
-    </ClInclude>
     <ClInclude Include="ddraw\IDirect3DMaterialX.h">
       <Filter>ddraw</Filter>
-    </ClInclude>
-    <ClInclude Include="ddraw\IDirect3DMaterial.h">
-      <Filter>ddraw\Versions</Filter>
-    </ClInclude>
-    <ClInclude Include="ddraw\IDirect3DMaterial2.h">
-      <Filter>ddraw\Versions</Filter>
-    </ClInclude>
-    <ClInclude Include="ddraw\IDirect3DMaterial3.h">
-      <Filter>ddraw\Versions</Filter>
     </ClInclude>
     <ClInclude Include="ddraw\IDirect3DTextureX.h">
       <Filter>ddraw</Filter>
     </ClInclude>
-    <ClInclude Include="ddraw\IDirect3DTexture.h">
-      <Filter>ddraw\Versions</Filter>
-    </ClInclude>
-    <ClInclude Include="ddraw\IDirect3DTexture2.h">
-      <Filter>ddraw\Versions</Filter>
-    </ClInclude>
     <ClInclude Include="ddraw\IDirect3DVertexBufferX.h">
       <Filter>ddraw</Filter>
-    </ClInclude>
-    <ClInclude Include="ddraw\IDirect3DVertexBuffer.h">
-      <Filter>ddraw\Versions</Filter>
-    </ClInclude>
-    <ClInclude Include="ddraw\IDirect3DVertexBuffer7.h">
-      <Filter>ddraw\Versions</Filter>
     </ClInclude>
     <ClInclude Include="ddraw\IDirect3DViewportX.h">
       <Filter>ddraw</Filter>
     </ClInclude>
-    <ClInclude Include="ddraw\IDirect3DViewport.h">
-      <Filter>ddraw\Versions</Filter>
-    </ClInclude>
-    <ClInclude Include="ddraw\IDirect3DViewport2.h">
-      <Filter>ddraw\Versions</Filter>
-    </ClInclude>
-    <ClInclude Include="ddraw\IDirect3DViewport3.h">
-      <Filter>ddraw\Versions</Filter>
-    </ClInclude>
     <ClInclude Include="ddraw\IDirect3DDeviceX.h">
       <Filter>ddraw</Filter>
     </ClInclude>
-    <ClInclude Include="ddraw\IDirect3DDevice.h">
+    <ClInclude Include="ddraw\Versions\IDirect3D.h">
       <Filter>ddraw\Versions</Filter>
     </ClInclude>
-    <ClInclude Include="ddraw\IDirect3DDevice2.h">
+    <ClInclude Include="ddraw\Versions\IDirect3D2.h">
       <Filter>ddraw\Versions</Filter>
     </ClInclude>
-    <ClInclude Include="ddraw\IDirect3DDevice3.h">
+    <ClInclude Include="ddraw\Versions\IDirect3D3.h">
       <Filter>ddraw\Versions</Filter>
     </ClInclude>
-    <ClInclude Include="ddraw\IDirect3DDevice7.h">
+    <ClInclude Include="ddraw\Versions\IDirect3D7.h">
+      <Filter>ddraw\Versions</Filter>
+    </ClInclude>
+    <ClInclude Include="ddraw\Versions\IDirect3DDevice.h">
+      <Filter>ddraw\Versions</Filter>
+    </ClInclude>
+    <ClInclude Include="ddraw\Versions\IDirect3DDevice2.h">
+      <Filter>ddraw\Versions</Filter>
+    </ClInclude>
+    <ClInclude Include="ddraw\Versions\IDirect3DDevice3.h">
+      <Filter>ddraw\Versions</Filter>
+    </ClInclude>
+    <ClInclude Include="ddraw\Versions\IDirect3DDevice7.h">
+      <Filter>ddraw\Versions</Filter>
+    </ClInclude>
+    <ClInclude Include="ddraw\Versions\IDirect3DMaterial.h">
+      <Filter>ddraw\Versions</Filter>
+    </ClInclude>
+    <ClInclude Include="ddraw\Versions\IDirect3DMaterial2.h">
+      <Filter>ddraw\Versions</Filter>
+    </ClInclude>
+    <ClInclude Include="ddraw\Versions\IDirect3DMaterial3.h">
+      <Filter>ddraw\Versions</Filter>
+    </ClInclude>
+    <ClInclude Include="ddraw\Versions\IDirect3DTexture.h">
+      <Filter>ddraw\Versions</Filter>
+    </ClInclude>
+    <ClInclude Include="ddraw\Versions\IDirect3DTexture2.h">
+      <Filter>ddraw\Versions</Filter>
+    </ClInclude>
+    <ClInclude Include="ddraw\Versions\IDirect3DVertexBuffer.h">
+      <Filter>ddraw\Versions</Filter>
+    </ClInclude>
+    <ClInclude Include="ddraw\Versions\IDirect3DVertexBuffer7.h">
+      <Filter>ddraw\Versions</Filter>
+    </ClInclude>
+    <ClInclude Include="ddraw\Versions\IDirect3DViewport.h">
+      <Filter>ddraw\Versions</Filter>
+    </ClInclude>
+    <ClInclude Include="ddraw\Versions\IDirect3DViewport2.h">
+      <Filter>ddraw\Versions</Filter>
+    </ClInclude>
+    <ClInclude Include="ddraw\Versions\IDirect3DViewport3.h">
+      <Filter>ddraw\Versions</Filter>
+    </ClInclude>
+    <ClInclude Include="ddraw\Versions\IDirectDraw.h">
+      <Filter>ddraw\Versions</Filter>
+    </ClInclude>
+    <ClInclude Include="ddraw\Versions\IDirectDraw2.h">
+      <Filter>ddraw\Versions</Filter>
+    </ClInclude>
+    <ClInclude Include="ddraw\Versions\IDirectDraw3.h">
+      <Filter>ddraw\Versions</Filter>
+    </ClInclude>
+    <ClInclude Include="ddraw\Versions\IDirectDraw4.h">
+      <Filter>ddraw\Versions</Filter>
+    </ClInclude>
+    <ClInclude Include="ddraw\Versions\IDirectDraw7.h">
+      <Filter>ddraw\Versions</Filter>
+    </ClInclude>
+    <ClInclude Include="ddraw\Versions\IDirectDrawSurface.h">
+      <Filter>ddraw\Versions</Filter>
+    </ClInclude>
+    <ClInclude Include="ddraw\Versions\IDirectDrawSurface2.h">
+      <Filter>ddraw\Versions</Filter>
+    </ClInclude>
+    <ClInclude Include="ddraw\Versions\IDirectDrawSurface3.h">
+      <Filter>ddraw\Versions</Filter>
+    </ClInclude>
+    <ClInclude Include="ddraw\Versions\IDirectDrawSurface4.h">
+      <Filter>ddraw\Versions</Filter>
+    </ClInclude>
+    <ClInclude Include="ddraw\Versions\IDirectDrawSurface7.h">
       <Filter>ddraw\Versions</Filter>
     </ClInclude>
   </ItemGroup>

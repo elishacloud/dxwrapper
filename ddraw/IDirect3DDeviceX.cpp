@@ -32,7 +32,14 @@ ULONG m_IDirect3DDeviceX::Release()
 
 	if (x == 0)
 	{
-		WrapperInterface->DeleteMe();
+		if (WrapperInterface)
+		{
+			WrapperInterface->DeleteMe();
+		}
+		else
+		{
+			delete this;
+		}
 	}
 
 	return x;

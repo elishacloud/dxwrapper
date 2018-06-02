@@ -14,49 +14,44 @@
 *   3. This notice may not be removed or altered from any source distribution.
 */
 
-#include "ddraw.h"
+#include "..\ddraw.h"
 
-HRESULT m_IDirect3DVertexBuffer7::QueryInterface(REFIID riid, LPVOID * ppvObj)
+HRESULT m_IDirect3D7::QueryInterface(REFIID riid, LPVOID * ppvObj)
 {
 	return ProxyInterface->QueryInterface(riid, ppvObj);
 }
 
-ULONG m_IDirect3DVertexBuffer7::AddRef()
+ULONG m_IDirect3D7::AddRef()
 {
 	return ProxyInterface->AddRef();
 }
 
-ULONG m_IDirect3DVertexBuffer7::Release()
+ULONG m_IDirect3D7::Release()
 {
 	return ProxyInterface->Release();
 }
 
-HRESULT m_IDirect3DVertexBuffer7::Lock(DWORD a, LPVOID * b, LPDWORD c)
+HRESULT m_IDirect3D7::EnumDevices(LPD3DENUMDEVICESCALLBACK7 a, LPVOID b)
 {
-	return ProxyInterface->Lock(a, b, c);
+	return ProxyInterface->EnumDevices(a, b);
 }
 
-HRESULT m_IDirect3DVertexBuffer7::Unlock()
+HRESULT m_IDirect3D7::CreateDevice(REFCLSID a, LPDIRECTDRAWSURFACE7 b, LPDIRECT3DDEVICE7 * c)
 {
-	return ProxyInterface->Unlock();
+	return ProxyInterface->CreateDevice(a, b, c);
 }
 
-HRESULT m_IDirect3DVertexBuffer7::ProcessVertices(DWORD a, DWORD b, DWORD c, LPDIRECT3DVERTEXBUFFER7 d, DWORD e, LPDIRECT3DDEVICE7 f, DWORD g)
+HRESULT m_IDirect3D7::CreateVertexBuffer(LPD3DVERTEXBUFFERDESC a, LPDIRECT3DVERTEXBUFFER7 * b, DWORD c)
 {
-	return ProxyInterface->ProcessVertices(a, b, c, d, e, f, g);
+	return ProxyInterface->CreateVertexBuffer(a, b, c);
 }
 
-HRESULT m_IDirect3DVertexBuffer7::GetVertexBufferDesc(LPD3DVERTEXBUFFERDESC a)
+HRESULT m_IDirect3D7::EnumZBufferFormats(REFCLSID a, LPD3DENUMPIXELFORMATSCALLBACK b, LPVOID c)
 {
-	return ProxyInterface->GetVertexBufferDesc(a);
+	return ProxyInterface->EnumZBufferFormats(a, b, c);
 }
 
-HRESULT m_IDirect3DVertexBuffer7::Optimize(LPDIRECT3DDEVICE7 a, DWORD b)
+HRESULT m_IDirect3D7::EvictManagedTextures()
 {
-	return ProxyInterface->Optimize(a, b);
-}
-
-HRESULT m_IDirect3DVertexBuffer7::ProcessVerticesStrided(DWORD a, DWORD b, DWORD c, LPD3DDRAWPRIMITIVESTRIDEDDATA d, DWORD e, LPDIRECT3DDEVICE7 f, DWORD g)
-{
-	return ProxyInterface->ProcessVerticesStrided(a, b, c, d, e, f, g);
+	return ProxyInterface->EvictManagedTextures();
 }

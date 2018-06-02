@@ -14,44 +14,34 @@
 *   3. This notice may not be removed or altered from any source distribution.
 */
 
-#include "ddraw.h"
+#include "..\ddraw.h"
 
-HRESULT m_IDirect3D7::QueryInterface(REFIID riid, LPVOID * ppvObj)
+HRESULT m_IDirect3DTexture2::QueryInterface(REFIID riid, LPVOID * ppvObj)
 {
 	return ProxyInterface->QueryInterface(riid, ppvObj);
 }
 
-ULONG m_IDirect3D7::AddRef()
+ULONG m_IDirect3DTexture2::AddRef()
 {
 	return ProxyInterface->AddRef();
 }
 
-ULONG m_IDirect3D7::Release()
+ULONG m_IDirect3DTexture2::Release()
 {
 	return ProxyInterface->Release();
 }
 
-HRESULT m_IDirect3D7::EnumDevices(LPD3DENUMDEVICESCALLBACK7 a, LPVOID b)
+HRESULT m_IDirect3DTexture2::GetHandle(LPDIRECT3DDEVICE2 a, LPD3DTEXTUREHANDLE b)
 {
-	return ProxyInterface->EnumDevices(a, b);
+	return ProxyInterface->GetHandle(a, b);
 }
 
-HRESULT m_IDirect3D7::CreateDevice(REFCLSID a, LPDIRECTDRAWSURFACE7 b, LPDIRECT3DDEVICE7 * c)
+HRESULT m_IDirect3DTexture2::PaletteChanged(DWORD a, DWORD b)
 {
-	return ProxyInterface->CreateDevice(a, b, c);
+	return ProxyInterface->PaletteChanged(a, b);
 }
 
-HRESULT m_IDirect3D7::CreateVertexBuffer(LPD3DVERTEXBUFFERDESC a, LPDIRECT3DVERTEXBUFFER7 * b, DWORD c)
+HRESULT m_IDirect3DTexture2::Load(LPDIRECT3DTEXTURE2 a)
 {
-	return ProxyInterface->CreateVertexBuffer(a, b, c);
-}
-
-HRESULT m_IDirect3D7::EnumZBufferFormats(REFCLSID a, LPD3DENUMPIXELFORMATSCALLBACK b, LPVOID c)
-{
-	return ProxyInterface->EnumZBufferFormats(a, b, c);
-}
-
-HRESULT m_IDirect3D7::EvictManagedTextures()
-{
-	return ProxyInterface->EvictManagedTextures();
+	return ProxyInterface->Load(a);
 }

@@ -14,44 +14,49 @@
 *   3. This notice may not be removed or altered from any source distribution.
 */
 
-#include "ddraw.h"
+#include "..\ddraw.h"
 
-HRESULT m_IDirect3DVertexBuffer::QueryInterface(REFIID riid, LPVOID * ppvObj)
+HRESULT m_IDirect3D::QueryInterface(REFIID riid, LPVOID * ppvObj)
 {
 	return ProxyInterface->QueryInterface(riid, ppvObj);
 }
 
-ULONG m_IDirect3DVertexBuffer::AddRef()
+ULONG m_IDirect3D::AddRef()
 {
 	return ProxyInterface->AddRef();
 }
 
-ULONG m_IDirect3DVertexBuffer::Release()
+ULONG m_IDirect3D::Release()
 {
 	return ProxyInterface->Release();
 }
 
-HRESULT m_IDirect3DVertexBuffer::Lock(DWORD a, LPVOID * b, LPDWORD c)
+HRESULT m_IDirect3D::Initialize(REFCLSID a)
 {
-	return ProxyInterface->Lock(a, b, c);
+	return ProxyInterface->Initialize(a);
 }
 
-HRESULT m_IDirect3DVertexBuffer::Unlock()
+HRESULT m_IDirect3D::EnumDevices(LPD3DENUMDEVICESCALLBACK a, LPVOID b)
 {
-	return ProxyInterface->Unlock();
+	return ProxyInterface->EnumDevices((LPD3DENUMDEVICESCALLBACK7)a, b);
 }
 
-HRESULT m_IDirect3DVertexBuffer::ProcessVertices(DWORD a, DWORD b, DWORD c, LPDIRECT3DVERTEXBUFFER d, DWORD e, LPDIRECT3DDEVICE3 f, DWORD g)
+HRESULT m_IDirect3D::CreateLight(LPDIRECT3DLIGHT * a, IUnknown * b)
 {
-	return ProxyInterface->ProcessVertices(a, b, c, (LPDIRECT3DVERTEXBUFFER7)d, e, (LPDIRECT3DDEVICE7)f, g);
+	return ProxyInterface->CreateLight(a, b);
 }
 
-HRESULT m_IDirect3DVertexBuffer::GetVertexBufferDesc(LPD3DVERTEXBUFFERDESC a)
+HRESULT m_IDirect3D::CreateMaterial(LPDIRECT3DMATERIAL * a, IUnknown * b)
 {
-	return ProxyInterface->GetVertexBufferDesc(a);
+	return ProxyInterface->CreateMaterial((LPDIRECT3DMATERIAL3*)a, b);
 }
 
-HRESULT m_IDirect3DVertexBuffer::Optimize(LPDIRECT3DDEVICE3 a, DWORD b)
+HRESULT m_IDirect3D::CreateViewport(LPDIRECT3DVIEWPORT * a, IUnknown * b)
 {
-	return ProxyInterface->Optimize((LPDIRECT3DDEVICE7)a, b);
+	return ProxyInterface->CreateViewport((LPDIRECT3DVIEWPORT3*)a, b);
+}
+
+HRESULT m_IDirect3D::FindDevice(LPD3DFINDDEVICESEARCH a, LPD3DFINDDEVICERESULT b)
+{
+	return ProxyInterface->FindDevice(a, b);
 }
