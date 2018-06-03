@@ -194,6 +194,21 @@ namespace Compat
 		~LogStruct() { m_os << '}'; }
 	};
 
+	// Added ***
+	class LogStructNull
+	{
+	public:
+		LogStructNull(std::ostream& os) : m_os(os) { m_os << '{'; }
+		~LogStructNull() { m_os << '}'; }
+		template <typename T> LogStructNull& operator<<(const T& val) { m_os << val; return *this; }
+
+		operator std::ostream&() { return m_os; }
+
+	private:
+		std::ostream& m_os;
+	};
+	// End of Added ***
+
 	//********** Begin Edit *************
 #include "Logging\Logging.h"
 #ifdef DDRAWCOMPATLOG

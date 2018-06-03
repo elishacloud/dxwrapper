@@ -98,6 +98,9 @@ extern m_IDirect3DDeviceX *lpCurrentD3DDevice;
 #include "Versions\IDirect3DViewport.h"
 #include "Versions\IDirect3DViewport2.h"
 #include "Versions\IDirect3DViewport3.h"
+// Direct3D Helpers
+#include "IDirect3DTypes.h"
+#include "IDirect3DEnumCallback.h"
 // Direct3D Interfaces
 #include "IDirect3DX.h"
 #include "IDirect3DDeviceX.h"
@@ -107,9 +110,6 @@ extern m_IDirect3DDeviceX *lpCurrentD3DDevice;
 #include "IDirect3DTextureX.h"
 #include "IDirect3DVertexBufferX.h"
 #include "IDirect3DViewportX.h"
-// Direct3D Helpers
-#include "IDirect3DTypes.h"
-#include "IDirect3DEnumCallback.h"
 // DirectDraw Version Wrappers
 #include "Versions\IDirectDraw.h"
 #include "Versions\IDirectDraw2.h"
@@ -121,6 +121,9 @@ extern m_IDirect3DDeviceX *lpCurrentD3DDevice;
 #include "Versions\IDirectDrawSurface3.h"
 #include "Versions\IDirectDrawSurface4.h"
 #include "Versions\IDirectDrawSurface7.h"
+// DirectDraw Helpers
+#include "IDirectDrawEnumCallback.h"
+#include "IDirectDrawTypes.h"
 // DirectDraw Interfaces
 #include "IDirectDrawX.h"
 #include "IDirectDrawClipper.h"
@@ -129,6 +132,3 @@ extern m_IDirect3DDeviceX *lpCurrentD3DDevice;
 #include "IDirectDrawGammaControl.h"
 #include "IDirectDrawPalette.h"
 #include "IDirectDrawSurfaceX.h"
-// DirectDraw Helpers
-#include "IDirectDrawEnumCallback.h"
-#include "IDirectDrawTypes.h"

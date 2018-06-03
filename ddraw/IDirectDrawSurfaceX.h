@@ -17,13 +17,16 @@ private:
 	DDSURFACEDESC2 surfaceDesc2;
 	D3DLOCKED_RECT d3dlrect = { 0, nullptr };
 	RECT DestRect;
-	DWORD surfaceWidth = 0;
-	DWORD surfaceHeight = 0;
 	DDCOLORKEY colorKeys[4];		// Color keys(DDCKEY_DESTBLT, DDCKEY_DESTOVERLAY, DDCKEY_SRCBLT, DDCKEY_SRCOVERLAY)
 	LONG overlayX = 0;
 	LONG overlayY = 0;
 	DWORD BufferSize = 0;
 	BYTE *rawVideoBuf = nullptr;						// Virtual video buffer
+	bool WriteDirectlyToSurface = false;
+
+	// Application display mode
+	DWORD displayModeWidth = 0;
+	DWORD displayModeHeight = 0;
 
 	// Direct3D9 vars
 	LPDIRECT3DDEVICE9 *d3d9Device = nullptr;
@@ -47,7 +50,7 @@ public:
 		InitWrapper();
 	}
 	m_IDirectDrawSurfaceX(LPDIRECT3DDEVICE9 *lplpDevice, m_IDirectDrawX *Interface, DWORD Version, LPDDSURFACEDESC2 lpDDSurfaceDesc, DWORD Width, DWORD Height) :
-		d3d9Device(lplpDevice), ddrawParent(Interface), DirectXVersion(Version), surfaceWidth(Width), surfaceHeight(Height)
+		d3d9Device(lplpDevice), ddrawParent(Interface), DirectXVersion(Version), displayModeWidth(Width), displayModeHeight(Height)
 	{
 		ProxyInterface = nullptr;
 		WrapperInterface = nullptr;
@@ -60,9 +63,6 @@ public:
 			memset(&colorKeys[i], 0, sizeof(DDCOLORKEY));
 		}
 
-		// Alocate memory for video buffer
-		AlocateVideoBuffer();
-
 		// Copy surface description
 		memcpy(&surfaceDesc2, lpDDSurfaceDesc, sizeof(DDSURFACEDESC2));
 
@@ -71,6 +71,9 @@ public:
 			// Create Surface for d3d9
 			CreateD3d9Surface();
 		}
+
+		// Alocate memory for video buffer
+		AlocateVideoBuffer();
 	}
 	~m_IDirectDrawSurfaceX()
 	{
@@ -91,17 +94,20 @@ public:
 		// Free memory for internal structures in case there is an old one
 		FreeVideoBuffer();
 
+		// No need to create a buffer
+		if (WriteDirectlyToSurface)
+		{
+			return;
+		}
+
 		// Buffer size
-		BufferSize = surfaceWidth * surfaceHeight;
+		BufferSize = displayModeWidth * displayModeHeight;
 
 		// Allocate the raw video buffer
 		rawVideoBuf = new BYTE[BufferSize * 4];
 
 		// Clear raw memory
 		ZeroMemory(rawVideoBuf, BufferSize * 4 * sizeof(BYTE));
-
-		// Set surface video buffer to nullptr
-		d3dlrect.pBits = nullptr;
 	}
 
 	void InitWrapper()

@@ -209,7 +209,7 @@ HRESULT m_IDirectDrawX::CreateSurface(LPDDSURFACEDESC2 lpDDSurfaceDesc2, LPDIREC
 		if ((lpDDSurfaceDesc2->dwFlags & DDSD_REFRESHRATE) == 0)
 		{
 			lpDDSurfaceDesc2->dwFlags |= DDSD_REFRESHRATE;
-			lpDDSurfaceDesc2->dwRefreshRate = displayModerefreshRate;
+			lpDDSurfaceDesc2->dwRefreshRate = displayModeRefreshRate;
 		}
 		// Set PixelFormat
 		if ((lpDDSurfaceDesc2->dwFlags & DDSD_PIXELFORMAT) == 0)
@@ -238,21 +238,6 @@ HRESULT m_IDirectDrawX::CreateSurface(LPDDSURFACEDESC2 lpDDSurfaceDesc2, LPDIREC
 			// Set BitCount
 			lpDDSurfaceDesc2->ddpfPixelFormat.dwRGBBitCount = displayModeBPP;
 		}
-
-		// Set surface format
-		/*D3DFORMAT Format = GetDisplayFormat(lpDDSurfaceDesc2->ddpfPixelFormat);
-
-		// Create surface
-		IDirect3DSurface9 *pSurface = nullptr;
-		if ((lpDDSurfaceDesc2->ddsCaps.dwCaps & DDSCAPS_PRIMARYSURFACE) != 0)
-		{
-			HRESULT hr = d3d9Device->CreateRenderTarget(lpDDSurfaceDesc2->dwWidth, lpDDSurfaceDesc2->dwHeight, Format, D3DMULTISAMPLE_NONE, 0, TRUE, &pSurface, nullptr);
-			if (FAILED(hr))
-			{
-				Logging::Log() << __FUNCTION__ << " Failed to CreateRenderTarget " << hr;
-				return hr;
-			}
-		}*/
 
 		m_IDirectDrawSurfaceX *lpSurfaceX = new m_IDirectDrawSurfaceX(&d3d9Device, this, DirectXVersion, lpDDSurfaceDesc2, displayModeWidth, displayModeHeight);
 		*lplpDDSurface = lpSurfaceX;
@@ -530,11 +515,30 @@ HRESULT m_IDirectDrawX::GetDisplayMode(LPDDSURFACEDESC2 lpDDSurfaceDesc2)
 			return DDERR_INVALIDPARAMS;
 		}
 
+		// Set Surface Desc
+		lpDDSurfaceDesc2->dwFlags = DDSD_WIDTH | DDSD_HEIGHT | DDSD_REFRESHRATE | DDSD_PIXELFORMAT;
 		lpDDSurfaceDesc2->dwWidth = displayModeWidth;
 		lpDDSurfaceDesc2->dwHeight = displayModeHeight;
-		lpDDSurfaceDesc2->dwDepth = displayModeBPP;
-		lpDDSurfaceDesc2->dwRefreshRate = displayModerefreshRate;
-		lpDDSurfaceDesc2->dwFlags = DDSD_WIDTH | DDSD_HEIGHT | DDSD_DEPTH | DDSD_REFRESHRATE;
+		lpDDSurfaceDesc2->dwRefreshRate = displayModeRefreshRate;
+
+		// Set Pixel Format
+		lpDDSurfaceDesc2->ddpfPixelFormat.dwFlags = DDPF_RGB;
+		switch (displayModeBPP)
+		{
+		case 8:
+			lpDDSurfaceDesc2->ddpfPixelFormat.dwRBitMask = 0;
+			lpDDSurfaceDesc2->ddpfPixelFormat.dwGBitMask = 0;
+			lpDDSurfaceDesc2->ddpfPixelFormat.dwBBitMask = 0;
+			break;
+		case 16:
+			GetPixelDisplayFormat(D3DFMT_R5G6B5, lpDDSurfaceDesc2->ddpfPixelFormat);
+			break;
+		case 24:
+		case 32:
+			GetPixelDisplayFormat(D3DFMT_X8R8G8B8, lpDDSurfaceDesc2->ddpfPixelFormat);
+			break;
+		}
+		lpDDSurfaceDesc2->ddpfPixelFormat.dwRGBBitCount = displayModeBPP;
 
 		return DD_OK;
 	}
@@ -651,7 +655,7 @@ HRESULT m_IDirectDrawX::RestoreDisplayMode()
 		displayModeWidth = 0;
 		displayModeHeight = 0;
 		displayModeBPP = 0;
-		displayModerefreshRate = 0;
+		displayModeRefreshRate = 0;
 
 		return DD_OK;
 	}
@@ -757,7 +761,7 @@ HRESULT m_IDirectDrawX::SetDisplayMode(DWORD dwWidth, DWORD dwHeight, DWORD dwBP
 		displayModeWidth = dwWidth;
 		displayModeHeight = dwHeight;
 		displayModeBPP = dwBPP;
-		displayModerefreshRate = dwRefreshRate;
+		displayModeRefreshRate = dwRefreshRate;
 
 		if (SetDefaultDisplayMode || !displayWidth || !displayHeight)
 		{
@@ -1040,7 +1044,7 @@ bool m_IDirectDrawX::CreateD3DDevice()
 			return false;
 		}
 		if (d3ddispmode.Width == displayWidth && d3ddispmode.Height == displayHeight &&				// Check height and width
-			(d3ddispmode.RefreshRate == displayModerefreshRate || displayModerefreshRate == 0))		// Check refresh rate
+			(d3ddispmode.RefreshRate == displayModeRefreshRate || displayModeRefreshRate == 0))		// Check refresh rate
 		{
 			// Found a match
 			modeFound = true;
@@ -1163,16 +1167,7 @@ HRESULT m_IDirectDrawX::CheckBeginScene(m_IDirectDrawSurfaceX *pSurface)
 		return DDERR_SURFACELOST;
 	}
 
-	HRESULT hr;
-
-	hr = d3d9Device->Clear(0, nullptr, D3DCLEAR_TARGET, 0xFF000000, 1.0f, 0);
-	if (FAILED(hr))
-	{
-		Logging::Log() << __FUNCTION__ << " Failed to clear device";
-		return hr;
-	}
-
-	hr = d3d9Device->BeginScene();
+	HRESULT hr = d3d9Device->BeginScene();
 	if (FAILED(hr))
 	{
 		Logging::Log() << __FUNCTION__ << " Failed to begin scene";
@@ -1199,10 +1194,8 @@ HRESULT m_IDirectDrawX::CheckEndScene(m_IDirectDrawSurfaceX *pSurface)
 		return DDERR_SURFACELOST;
 	}
 
-	HRESULT hr;
-
 	// Draw primitive
-	hr = d3d9Device->DrawPrimitive(D3DPT_TRIANGLEFAN, 0, 2);
+	HRESULT hr = d3d9Device->DrawPrimitive(D3DPT_TRIANGLEFAN, 0, 2);
 	if (FAILED(hr))
 	{
 		Logging::Log() << __FUNCTION__ << " Failed to draw primitive";

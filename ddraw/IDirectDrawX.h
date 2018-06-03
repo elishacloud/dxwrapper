@@ -26,7 +26,7 @@ private:
 	DWORD displayModeWidth = 0;
 	DWORD displayModeHeight = 0;
 	DWORD displayModeBPP = 0;
-	DWORD displayModerefreshRate = 0;		// Refresh rate for fullscreen
+	DWORD displayModeRefreshRate = 0;		// Refresh rate for fullscreen
 
 	// Display resolution
 	DWORD displayWidth = 0;
@@ -97,6 +97,7 @@ public:
 	REFIID GetWrapperType() { return WrapperID; }
 	IDirectDraw7 *GetProxyInterface() { return ProxyInterface; }
 	m_IDirectDraw7 *GetWrapperInterface() { return WrapperInterface; }
+	LPDIRECT3D9 GetDirect3D() { return d3d9Object; }
 
 	/*** IUnknown methods ***/
 	STDMETHOD(QueryInterface) (THIS_ REFIID riid, LPVOID FAR * ppvObj);

@@ -228,16 +228,42 @@ std::ostream& operator<<(std::ostream& os, const DDCAPS& caps)
 		<< Compat::hex(caps.dwMaxHwCodecStretch);
 }
 
-std::ostream& operator<<(std::ostream& os, const DDSCAPS& caps)
+std::ostream& operator<<(std::ostream& os, const DDSCAPS& dwCaps)
 {
-	return Compat::LogStruct(os)
-		<< Compat::hex(caps.dwCaps);
+	return Compat::LogStructNull(os)
+		<< ((dwCaps.dwCaps & DDSCAPS_3DDEVICE) ? " DDSCAPS_3DDEVICE " : "")
+		<< ((dwCaps.dwCaps & DDSCAPS_ALLOCONLOAD) ? " DDSCAPS_ALLOCONLOAD " : "")
+		<< ((dwCaps.dwCaps & DDSCAPS_ALPHA) ? " DDSCAPS_ALPHA " : "")
+		<< ((dwCaps.dwCaps & DDSCAPS_BACKBUFFER) ? " DDSCAPS_BACKBUFFER " : "")
+		<< ((dwCaps.dwCaps & DDSCAPS_COMPLEX) ? " DDSCAPS_COMPLEX " : "")
+		<< ((dwCaps.dwCaps & DDSCAPS_FLIP) ? " DDSCAPS_FLIP " : "")
+		<< ((dwCaps.dwCaps & DDSCAPS_FRONTBUFFER) ? " DDSCAPS_FRONTBUFFER " : "")
+		<< ((dwCaps.dwCaps & DDSCAPS_HWCODEC) ? " DDSCAPS_HWCODEC " : "")
+		<< ((dwCaps.dwCaps & DDSCAPS_LIVEVIDEO) ? " DDSCAPS_LIVEVIDEO " : "")
+		<< ((dwCaps.dwCaps & DDSCAPS_LOCALVIDMEM) ? " DDSCAPS_LOCALVIDMEM " : "")
+		<< ((dwCaps.dwCaps & DDSCAPS_MIPMAP) ? " DDSCAPS_MIPMAP " : "")
+		<< ((dwCaps.dwCaps & DDSCAPS_MODEX) ? " DDSCAPS_MODEX " : "")
+		<< ((dwCaps.dwCaps & DDSCAPS_NONLOCALVIDMEM) ? " DDSCAPS_NONLOCALVIDMEM " : "")
+		<< ((dwCaps.dwCaps & DDSCAPS_OFFSCREENPLAIN) ? " DDSCAPS_OFFSCREENPLAIN " : "")
+		<< ((dwCaps.dwCaps & DDSCAPS_OPTIMIZED) ? " DDSCAPS_OPTIMIZED " : "")
+		<< ((dwCaps.dwCaps & DDSCAPS_OVERLAY) ? " DDSCAPS_OVERLAY " : "")
+		<< ((dwCaps.dwCaps & DDSCAPS_OWNDC) ? " DDSCAPS_OWNDC " : "")
+		<< ((dwCaps.dwCaps & DDSCAPS_PALETTE) ? " DDSCAPS_PALETTE " : "")
+		<< ((dwCaps.dwCaps & DDSCAPS_PRIMARYSURFACE) ? " DDSCAPS_PRIMARYSURFACE " : "")
+		<< ((dwCaps.dwCaps & DDSCAPS_STANDARDVGAMODE) ? " DDSCAPS_STANDARDVGAMODE " : "")
+		<< ((dwCaps.dwCaps & DDSCAPS_SYSTEMMEMORY) ? " DDSCAPS_SYSTEMMEMORY " : "")
+		<< ((dwCaps.dwCaps & DDSCAPS_TEXTURE) ? " DDSCAPS_TEXTURE " : "")
+		<< ((dwCaps.dwCaps & DDSCAPS_VIDEOMEMORY) ? " DDSCAPS_VIDEOMEMORY " : "")
+		<< ((dwCaps.dwCaps & DDSCAPS_VIDEOPORT) ? " DDSCAPS_VIDEOPORT " : "")
+		<< ((dwCaps.dwCaps & DDSCAPS_VISIBLE) ? " DDSCAPS_VISIBLE " : "")
+		<< ((dwCaps.dwCaps & DDSCAPS_WRITEONLY) ? " DDSCAPS_WRITEONLY " : "")
+		<< ((dwCaps.dwCaps & DDSCAPS_ZBUFFER) ? " DDSCAPS_ZBUFFER " : "");
 }
 
 std::ostream& operator<<(std::ostream& os, const DDSCAPS2& caps)
 {
 	return Compat::LogStruct(os)
-		<< Compat::hex(caps.dwCaps)
+		<< *(LPDDSCAPS)&caps
 		<< Compat::hex(caps.dwCaps2)
 		<< Compat::hex(caps.dwCaps3)
 		<< Compat::hex(caps.dwCaps4);

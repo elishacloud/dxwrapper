@@ -531,8 +531,6 @@ HRESULT m_IDirectDrawSurfaceX::GetSurfaceDesc(LPDDSURFACEDESC2 lpDDSurfaceDesc2)
 
 	if (Config.Dd7to9)
 	{
-		// Fill lpDDSurfaceDesc2 with this surface description
-
 		// Copy surfacedesc to lpDDSurfaceDesc2
 		memcpy(lpDDSurfaceDesc2, &surfaceDesc2, sizeof(DDSURFACEDESC2));
 
@@ -617,6 +615,7 @@ HRESULT m_IDirectDrawSurfaceX::Lock(LPRECT lpDestRect, LPDDSURFACEDESC2 lpDDSurf
 		// Currently always locks full rect
 		// ToDo: Fix this to only lock specified rect
 
+		// Save Lock Rect
 		if (lpDestRect)
 		{
 			memcpy(&DestRect, lpDestRect, sizeof(RECT));
@@ -625,8 +624,8 @@ HRESULT m_IDirectDrawSurfaceX::Lock(LPRECT lpDestRect, LPDDSURFACEDESC2 lpDDSurf
 		{
 			DestRect.top = 0;
 			DestRect.left = 0;
-			DestRect.right = surfaceWidth;
-			DestRect.bottom = surfaceHeight;
+			DestRect.right = displayModeWidth;
+			DestRect.bottom = displayModeHeight;
 		}
 
 		// ToDo: Update this to work with games that don't use primary surface
@@ -639,7 +638,6 @@ HRESULT m_IDirectDrawSurfaceX::Lock(LPRECT lpDestRect, LPDDSURFACEDESC2 lpDDSurf
 				hr = CreateD3d9Surface();
 				if (FAILED(hr))
 				{
-					d3dlrect.pBits = nullptr;
 					Logging::Log() << __FUNCTION__ << " could not recreate texture doesn't exist";
 				}
 			}
@@ -653,8 +651,11 @@ HRESULT m_IDirectDrawSurfaceX::Lock(LPRECT lpDestRect, LPDDSURFACEDESC2 lpDDSurf
 			// Lock rect
 			if (SUCCEEDED(hr))
 			{
+				// Convert flags to d3d9
+				DWORD LockFlags = dwFlags & (D3DLOCK_DISCARD | D3DLOCK_DONOTWAIT | D3DLOCK_NO_DIRTY_UPDATE | D3DLOCK_NOOVERWRITE | D3DLOCK_NOSYSLOCK | D3DLOCK_READONLY);
+
 				// Lock full dynamic texture
-				hr = surfaceTexture->LockRect(0, &d3dlrect, ((lpDestRect) ? &DestRect : nullptr), D3DLOCK_DISCARD);
+				hr = surfaceTexture->LockRect(0, &d3dlrect, ((lpDestRect) ? &DestRect : nullptr), LockFlags);
 				if (FAILED(hr))
 				{
 					d3dlrect.pBits = nullptr;
@@ -674,10 +675,21 @@ HRESULT m_IDirectDrawSurfaceX::Lock(LPRECT lpDestRect, LPDDSURFACEDESC2 lpDDSurf
 			memcpy(lpDDSurfaceDesc2, &surfaceDesc2, sizeof(DDSURFACEDESC2));
 
 			// Set video memory and pitch
-			lpDDSurfaceDesc2->lpSurface = (LPVOID)rawVideoBuf;
-			lpDDSurfaceDesc2->dwFlags |= DDSD_LPSURFACE;
-			lpDDSurfaceDesc2->lPitch = surfaceWidth * (surfaceDesc2.ddpfPixelFormat.dwRGBBitCount / 8);
-			lpDDSurfaceDesc2->dwFlags |= DDSD_PITCH;
+			lpDDSurfaceDesc2->dwFlags |= DDSD_LPSURFACE | DDSD_PITCH;
+			if (WriteDirectlyToSurface)
+			{
+				lpDDSurfaceDesc2->lpSurface = d3dlrect.pBits;
+				lpDDSurfaceDesc2->lPitch = d3dlrect.Pitch;
+			}
+			else
+			{
+				if (!rawVideoBuf)
+				{
+					AlocateVideoBuffer();
+				}
+				lpDDSurfaceDesc2->lpSurface = (LPVOID)rawVideoBuf;
+				lpDDSurfaceDesc2->lPitch = displayModeWidth * (GetBitCount(surfaceDesc2.ddpfPixelFormat) / 8);
+			}
 		}
 
 		/*sprintf_s(message, 2048, "Unsupported lpDestRect[%d,%d,%d,%d]", lpDestRect->left, lpDestRect->top, lpDestRect->right, lpDestRect->bottom);
@@ -857,6 +869,10 @@ HRESULT m_IDirectDrawSurfaceX::SetPalette(LPDIRECTDRAWPALETTE lpDDPalette)
 		// Set palette address
 		attachedPalette = (m_IDirectDrawPalette *)lpDDPalette;
 
+		// Don't write to surface when using palettes
+		WriteDirectlyToSurface = false;
+		AlocateVideoBuffer();
+
 		// When you call SetPalette to set a palette to a surface for the first time, 
 		// SetPalette increments the palette's reference count; subsequent calls to 
 		// SetPalette do not affect the palette's reference count.
@@ -881,27 +897,24 @@ HRESULT m_IDirectDrawSurfaceX::Unlock(LPRECT lpRect)
 {
 	if (Config.Dd7to9)
 	{
-		// ToDo: Update this to work with games that don't use primary surface
-		// Only use primary surface for now...
-		if (!d3dlrect.pBits || (surfaceDesc2.ddsCaps.dwCaps & DDSCAPS_PRIMARYSURFACE) == 0)
+		// Check for video memory
+		if (!d3dlrect.pBits)
 		{
 			return DD_OK;
 		}
 
-		// ToDo: Update this to work with games that use non-RGB formats
-		// Only support RGB for now...
-		if ((surfaceDesc2.ddpfPixelFormat.dwFlags & DDPF_RGB) == 0)
+		// Check for video buffer
+		if (!WriteDirectlyToSurface && !rawVideoBuf)
 		{
-			Logging::Log() << __FUNCTION__ << " Unsupported surface format: " << surfaceDesc2.ddpfPixelFormat.dwFlags;
-			return DD_OK;
+			AlocateVideoBuffer();
 		}
 
 		// Translate raw video memory to rgb buffer
 		UINT32 *surfaceBuffer = (UINT32*)d3dlrect.pBits;
 		DWORD BitCount = GetBitCount(surfaceDesc2.ddpfPixelFormat);
 
-		// From a palette
-		if (attachedPalette && attachedPalette->rgbPalette)
+		// Using a palette
+		if (attachedPalette && attachedPalette->rgbPalette && !WriteDirectlyToSurface)
 		{
 			// Translate palette to rgb video buffer
 			switch (BitCount)
@@ -926,8 +939,8 @@ HRESULT m_IDirectDrawSurfaceX::Unlock(LPRECT lpRect)
 			}
 		}
 
-		// From a surface
-		else
+		// Using a surface
+		else if (!WriteDirectlyToSurface)
 		{
 			// Get display format
 			D3DFORMAT Format = GetDisplayFormat(surfaceDesc2.ddpfPixelFormat);
@@ -952,7 +965,7 @@ HRESULT m_IDirectDrawSurfaceX::Unlock(LPRECT lpRect)
 						{
 							x = z + i;
 
-							// More accurate but twice as slow
+							// More accurate but greater than twice as slow
 							/*surfaceBuffer[x] = D3DCOLOR_XRGB(
 							((RawBuffer[x] & 0xF800) >> 11) * 255 / 31,				// Red
 							((RawBuffer[x] & 0x07E0) >> 5) * 255 / 63,				// Green
@@ -967,7 +980,7 @@ HRESULT m_IDirectDrawSurfaceX::Unlock(LPRECT lpRect)
 					break;
 				}
 				default:
-					Logging::Log() << __FUNCTION__ << " Unsupported format type: " << Format;
+					Logging::Log() << __FUNCTION__ << " Unsupported 16-bit format type: " << Format;
 					break;
 				}
 				break;
@@ -984,7 +997,7 @@ HRESULT m_IDirectDrawSurfaceX::Unlock(LPRECT lpRect)
 					const LONG x = DestRect.right - DestRect.left;
 					for (LONG y = DestRect.top; y < DestRect.bottom; y++)
 					{
-						memcpy((BYTE *)d3dlrect.pBits + (y * d3dlrect.Pitch), &rawVideoBuf[y * x], x * (BitCount / 8));
+						memcpy((BYTE *)d3dlrect.pBits + (y * d3dlrect.Pitch), &rawVideoBuf[y * x], x * sizeof(UINT32));
 					}
 					break;
 				}
@@ -998,19 +1011,6 @@ HRESULT m_IDirectDrawSurfaceX::Unlock(LPRECT lpRect)
 				break;
 			}
 		}
-
-
-		/*
-		A pointer to a RECT structure that was used to lock the surface in the corresponding
-		call to the IDirectDrawSurface7::Lock method. This parameter can be NULL only if the
-		entire surface was locked by passing NULL in the lpDestRect parameter of the corresponding
-		call to the IDirectDrawSurface7::Lock method.
-
-		Because you can call IDirectDrawSurface7::Lock multiple times for the same surface with
-		different destination rectangles, the pointer in lpRect links the calls to the
-		IDirectDrawSurface7::Lock and IDirectDrawSurface7::Unlock methods.
-		*/
-
 
 		HRESULT hr = DDERR_SURFACELOST;
 
@@ -1029,6 +1029,8 @@ HRESULT m_IDirectDrawSurfaceX::Unlock(LPRECT lpRect)
 			return hr;
 		}
 
+		d3dlrect.pBits = nullptr;
+
 		// Set texture
 		hr = (*d3d9Device)->SetTexture(0, surfaceTexture);
 		if (FAILED(hr))
@@ -1044,8 +1046,6 @@ HRESULT m_IDirectDrawSurfaceX::Unlock(LPRECT lpRect)
 			// Failed to presnt the surface, error reporting handled previously
 			return hr;
 		}
-
-		d3dlrect.pBits = nullptr;
 
 		// Success
 		return DD_OK;
@@ -1301,10 +1301,28 @@ HRESULT m_IDirectDrawSurfaceX::CreateD3d9Surface()
 		return DDERR_INVALIDOBJECT;
 	}
 
-	HRESULT hr;
+	// Get d3d9Object
+	IDirect3D9 *d3d9Object = ddrawParent->GetDirect3D();
+
+	// Get format
+	D3DFORMAT Format = GetDisplayFormat(surfaceDesc2.ddpfPixelFormat);
+
+	// Test format
+	HRESULT hr = d3d9Object->CheckDeviceFormat(D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, Format, D3DUSAGE_QUERY_FILTER, D3DRTYPE_TEXTURE, Format);
+	if (FAILED(hr) || attachedPalette)
+	{
+		WriteDirectlyToSurface = false;
+		Format = D3DFMT_X8R8G8B8;
+		AlocateVideoBuffer();
+	}
+	else
+	{
+		//Logging::Log() << __FUNCTION__ << " write directly to texture " << Format;
+		WriteDirectlyToSurface = true;
+	}
 
 	// Create managed dynamic texture to allow locking(debug as video size but change to display size)
-	hr = (*d3d9Device)->CreateTexture(surfaceWidth, surfaceHeight, 1, D3DUSAGE_DYNAMIC, D3DFMT_X8R8G8B8, D3DPOOL_DEFAULT, &surfaceTexture, nullptr);
+	hr = (*d3d9Device)->CreateTexture(displayModeWidth, displayModeHeight, 1, D3DUSAGE_DYNAMIC, Format, D3DPOOL_DEFAULT, &surfaceTexture, nullptr);
 	if (FAILED(hr))
 	{
 		Logging::Log() << __FUNCTION__ << " Unable to create surface texture";
@@ -1351,34 +1369,22 @@ HRESULT m_IDirectDrawSurfaceX::CreateD3d9Surface()
 		return hr;
 	}
 
-	IDirect3D9 *d3d9Object = nullptr;
-	hr = (*d3d9Device)->GetDirect3D(&d3d9Object);
+	// Query the device to see if it supports anything other than point filtering
+	hr = d3d9Object->CheckDeviceFormat(D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, Format, D3DUSAGE_QUERY_FILTER, D3DRTYPE_TEXTURE, Format);
+
+	// Check for DeviceFormat failure
 	if (FAILED(hr))
 	{
-		Logging::Log() << __FUNCTION__ << " Failed to get D3D object";
+		Logging::Log() << __FUNCTION__ << " Device doesn't support linear sampling";
 	}
 	else
 	{
-		// Query the device to see if it supports anything other than point filtering
-		hr = d3d9Object->CheckDeviceFormat(D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, D3DFMT_X8R8G8B8, D3DUSAGE_QUERY_FILTER, D3DRTYPE_TEXTURE, D3DFMT_X8R8G8B8);
-
-		// Done with d3d9 object, relese
-		d3d9Object->Release();
-		
-		// Check for DeviceFormat failure
+		// Set scale mode to linear
+		hr = (*d3d9Device)->SetSamplerState(0, D3DSAMP_MAGFILTER, D3DTEXF_LINEAR);
 		if (FAILED(hr))
 		{
-			Logging::Log() << __FUNCTION__ << " Device doesn't support linear sampling";
-		}
-		else
-		{
-			// Set scale mode to linear
-			hr = (*d3d9Device)->SetSamplerState(0, D3DSAMP_MAGFILTER, D3DTEXF_LINEAR);
-			if (FAILED(hr))
-			{
-				Logging::Log() << __FUNCTION__ << " Failed to set D3D device to LINEAR sampling";
-				return hr;
-			}
+			Logging::Log() << __FUNCTION__ << " Failed to set D3D device to LINEAR sampling";
+			return hr;
 		}
 	}
 
@@ -1402,7 +1408,7 @@ HRESULT m_IDirectDrawSurfaceX::CreateD3d9Surface()
 	vertices[0].v = 0.0f;
 
 	// currentWidth, 0
-	vertices[1].x = (float)surfaceWidth - 0.5f;
+	vertices[1].x = (float)displayModeWidth - 0.5f;
 	vertices[1].y = -0.5f;
 	vertices[1].z = 0.0f;
 	vertices[1].rhw = 1.0f;
@@ -1410,8 +1416,8 @@ HRESULT m_IDirectDrawSurfaceX::CreateD3d9Surface()
 	vertices[1].v = 0.0f;
 
 	// currentWidth, scaledHeight
-	vertices[2].x = (float)surfaceWidth - 0.5f;
-	vertices[2].y = (float)surfaceHeight - 0.5f;
+	vertices[2].x = (float)displayModeWidth - 0.5f;
+	vertices[2].y = (float)displayModeHeight - 0.5f;
 	vertices[2].z = 0.0f;
 	vertices[2].rhw = 1.0f;
 	vertices[2].u = 1.0f;
@@ -1419,7 +1425,7 @@ HRESULT m_IDirectDrawSurfaceX::CreateD3d9Surface()
 
 	// 0, currentHeight
 	vertices[3].x = -0.5f;
-	vertices[3].y = (float)surfaceHeight - 0.5f;
+	vertices[3].y = (float)displayModeHeight - 0.5f;
 	vertices[3].z = 0.0f;
 	vertices[3].rhw = 1.0f;
 	vertices[3].u = 0.0f;
