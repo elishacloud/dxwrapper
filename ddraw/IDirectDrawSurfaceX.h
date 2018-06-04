@@ -66,21 +66,10 @@ public:
 		// Copy surface description
 		memcpy(&surfaceDesc2, lpDDSurfaceDesc, sizeof(DDSURFACEDESC2));
 
-		if ((surfaceDesc2.ddsCaps.dwCaps & DDSCAPS_PRIMARYSURFACE) != 0)
-		{
-			// Create Surface for d3d9
-			CreateD3d9Surface();
-		}
-
-		// Alocate memory for video buffer
-		AlocateVideoBuffer();
+		// Create Surface for d3d9
+		CreateD3d9Surface();
 	}
 	~m_IDirectDrawSurfaceX()
-	{
-		FreeVideoBuffer();
-	}
-
-	void FreeVideoBuffer()
 	{
 		if (rawVideoBuf)
 		{
@@ -91,8 +80,8 @@ public:
 
 	void AlocateVideoBuffer()
 	{
-		// Free memory for internal structures in case there is an old one
-		FreeVideoBuffer();
+		// Store old temp buffer
+		BYTE *tempBuf = rawVideoBuf;
 
 		// No need to create a buffer
 		if (WriteDirectlyToSurface)
@@ -100,14 +89,21 @@ public:
 			return;
 		}
 
-		// Buffer size
-		BufferSize = displayModeWidth * displayModeHeight;
+		// Buffer size, always support 32bit
+		BufferSize = displayModeWidth * displayModeHeight * sizeof(INT32);
 
 		// Allocate the raw video buffer
-		rawVideoBuf = new BYTE[BufferSize * 4];
+		rawVideoBuf = new BYTE[BufferSize];
 
 		// Clear raw memory
-		ZeroMemory(rawVideoBuf, BufferSize * 4 * sizeof(BYTE));
+		ZeroMemory(rawVideoBuf, BufferSize * sizeof(BYTE));
+
+		// Free memory in case there was an old one setup
+		if (tempBuf)
+		{
+			delete tempBuf;
+			tempBuf = nullptr;
+		}
 	}
 
 	void InitWrapper()

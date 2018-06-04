@@ -221,6 +221,7 @@ DWORD GetBitCount(DDPIXELFORMAT ddpfPixelFormat)
 	Logging::Log() << __FUNCTION__ << " Failed to get BitCount from PixelFormat!";
 	return 0;
 }
+
 DWORD GetBitCount(D3DFORMAT Format)
 {
 	switch (Format)
@@ -263,10 +264,9 @@ D3DFORMAT GetDisplayFormat(DDPIXELFORMAT ddpfPixelFormat)
 			}
 			// Default 16-bit
 			return D3DFMT_R5G6B5;
-			break;
 		case 24:
-			// Default 24-bit
-			return D3DFMT_X8R8G8B8;
+			Logging::Log() << __FUNCTION__ << " 24-bit RGB not implimented";
+			return D3DFMT_UNKNOWN;
 		case 32:
 			if (ddpfPixelFormat.dwBBitMask == 0xFF)
 			{
@@ -281,11 +281,38 @@ D3DFORMAT GetDisplayFormat(DDPIXELFORMAT ddpfPixelFormat)
 			}
 			// Default 32-bit
 			return D3DFMT_X8R8G8B8;
-			break;
 		}
+
+		Logging::Log() << __FUNCTION__ << " Error, could not find RGB format for BitCount: " << BitCount;
+		return D3DFMT_UNKNOWN;
+	}
+	else if(ddpfPixelFormat.dwFlags & DDPF_YUV)
+	{
+		Logging::Log() << __FUNCTION__ << " YUV format not implimented";
+		return D3DFMT_UNKNOWN;
+	}
+	else if (ddpfPixelFormat.dwFlags & DDPF_ALPHA)
+	{
+		Logging::Log() << __FUNCTION__ << " Alpha format not implimented";
+		return D3DFMT_UNKNOWN;
+	}
+	else if (ddpfPixelFormat.dwFlags & DDPF_ZBUFFER)
+	{
+		Logging::Log() << __FUNCTION__ << " zBuffer format not implimented";
+		return D3DFMT_UNKNOWN;
+	}
+	else if (ddpfPixelFormat.dwFlags & DDPF_LUMINANCE)
+	{
+		Logging::Log() << __FUNCTION__ << " Luminance format not implimented";
+		return D3DFMT_UNKNOWN;
+	}
+	else if (ddpfPixelFormat.dwFlags & DDPF_BUMPDUDV)
+	{
+		Logging::Log() << __FUNCTION__ << " Bump DUVU format not implimented";
+		return D3DFMT_UNKNOWN;
 	}
 
-	Logging::Log() << __FUNCTION__ << " Error, PixelFormat not implimented: " << ddpfPixelFormat.dwFlags;
+	Logging::Log() << __FUNCTION__ << " Error, PixelFormat not implimented see flags: " << ddpfPixelFormat.dwFlags;
 	return D3DFMT_UNKNOWN;
 }
 

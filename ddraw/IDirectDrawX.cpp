@@ -239,7 +239,7 @@ HRESULT m_IDirectDrawX::CreateSurface(LPDDSURFACEDESC2 lpDDSurfaceDesc2, LPDIREC
 			lpDDSurfaceDesc2->ddpfPixelFormat.dwRGBBitCount = displayModeBPP;
 		}
 
-		m_IDirectDrawSurfaceX *lpSurfaceX = new m_IDirectDrawSurfaceX(&d3d9Device, this, DirectXVersion, lpDDSurfaceDesc2, displayModeWidth, displayModeHeight);
+		m_IDirectDrawSurfaceX *lpSurfaceX = new m_IDirectDrawSurfaceX(&d3d9Device, this, DirectXVersion, lpDDSurfaceDesc2, displayWidth, displayHeight);
 		*lplpDDSurface = lpSurfaceX;
 
 		// Store surface
@@ -775,7 +775,7 @@ HRESULT m_IDirectDrawX::SetDisplayMode(DWORD dwWidth, DWORD dwHeight, DWORD dwBP
 			AdjustWindow();
 		}
 
-		// Ignore color depth
+		// Ignore color depth (is color depth needed?)
 
 		// Create the requested d3d device for this display mode, report error on failure
 		if (!CreateD3DDevice())

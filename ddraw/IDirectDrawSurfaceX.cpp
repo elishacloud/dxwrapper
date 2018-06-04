@@ -612,9 +612,6 @@ HRESULT m_IDirectDrawSurfaceX::Lock(LPRECT lpDestRect, LPDDSURFACEDESC2 lpDDSurf
 
 	if (Config.Dd7to9)
 	{
-		// Currently always locks full rect
-		// ToDo: Fix this to only lock specified rect
-
 		// Save Lock Rect
 		if (lpDestRect)
 		{
@@ -624,48 +621,44 @@ HRESULT m_IDirectDrawSurfaceX::Lock(LPRECT lpDestRect, LPDDSURFACEDESC2 lpDDSurf
 		{
 			DestRect.top = 0;
 			DestRect.left = 0;
-			DestRect.right = displayModeWidth;
-			DestRect.bottom = displayModeHeight;
+			DestRect.right = surfaceDesc2.dwWidth;
+			DestRect.bottom = surfaceDesc2.dwHeight;
 		}
 
-		// ToDo: Update this to work with games that don't use primary surface
-		// Only use primary surface for now...
-		if ((surfaceDesc2.ddsCaps.dwCaps & DDSCAPS_PRIMARYSURFACE) != 0)
+		// Make sure surface texture exists, if not then create it
+		if (!surfaceTexture)
 		{
-			// Make sure surface texture exists
-			if (!surfaceTexture)
+			hr = CreateD3d9Surface();
+			if (FAILED(hr))
 			{
-				hr = CreateD3d9Surface();
-				if (FAILED(hr))
-				{
-					Logging::Log() << __FUNCTION__ << " could not recreate texture doesn't exist";
-				}
-			}
-
-			// Check for BeginScene
-			else
-			{
-				hr = ddrawParent->CheckBeginScene(this);
-			}
-
-			// Lock rect
-			if (SUCCEEDED(hr))
-			{
-				// Convert flags to d3d9
-				DWORD LockFlags = dwFlags & (D3DLOCK_DISCARD | D3DLOCK_DONOTWAIT | D3DLOCK_NO_DIRTY_UPDATE | D3DLOCK_NOOVERWRITE | D3DLOCK_NOSYSLOCK | D3DLOCK_READONLY);
-
-				// Lock full dynamic texture
-				hr = surfaceTexture->LockRect(0, &d3dlrect, ((lpDestRect) ? &DestRect : nullptr), LockFlags);
-				if (FAILED(hr))
-				{
-					d3dlrect.pBits = nullptr;
-					Logging::Log() << __FUNCTION__ << " Failed to lock texture memory";
-				}
+				Logging::Log() << __FUNCTION__ << " could not recreate texture";
 			}
 		}
+		// If texture exists then set hr to DD_OK
 		else
 		{
 			hr = DD_OK;
+		}
+
+		// If primary surface then BegineScene
+		if (SUCCEEDED(hr) && (surfaceDesc2.ddsCaps.dwCaps & DDSCAPS_PRIMARYSURFACE) && surfaceTexture)
+		{
+			hr = ddrawParent->CheckBeginScene(this);
+		}
+
+		// Lock rect
+		if (SUCCEEDED(hr) && surfaceTexture)
+		{
+			// Convert flags to d3d9
+			DWORD LockFlags = dwFlags & (D3DLOCK_DISCARD | D3DLOCK_DONOTWAIT | D3DLOCK_NO_DIRTY_UPDATE | D3DLOCK_NOOVERWRITE | D3DLOCK_NOSYSLOCK | D3DLOCK_READONLY);
+
+			// Lock full dynamic texture
+			hr = surfaceTexture->LockRect(0, &d3dlrect, ((lpDestRect) ? &DestRect : nullptr), LockFlags);
+			if (FAILED(hr))
+			{
+				d3dlrect.pBits = nullptr;
+				Logging::Log() << __FUNCTION__ << " Failed to lock texture memory";
+			}
 		}
 
 		// Set desc and video memory
@@ -676,7 +669,7 @@ HRESULT m_IDirectDrawSurfaceX::Lock(LPRECT lpDestRect, LPDDSURFACEDESC2 lpDDSurf
 
 			// Set video memory and pitch
 			lpDDSurfaceDesc2->dwFlags |= DDSD_LPSURFACE | DDSD_PITCH;
-			if (WriteDirectlyToSurface)
+			if (WriteDirectlyToSurface && d3dlrect.pBits)
 			{
 				lpDDSurfaceDesc2->lpSurface = d3dlrect.pBits;
 				lpDDSurfaceDesc2->lPitch = d3dlrect.Pitch;
@@ -688,7 +681,7 @@ HRESULT m_IDirectDrawSurfaceX::Lock(LPRECT lpDestRect, LPDDSURFACEDESC2 lpDDSurf
 					AlocateVideoBuffer();
 				}
 				lpDDSurfaceDesc2->lpSurface = (LPVOID)rawVideoBuf;
-				lpDDSurfaceDesc2->lPitch = displayModeWidth * (GetBitCount(surfaceDesc2.ddpfPixelFormat) / 8);
+				lpDDSurfaceDesc2->lPitch = surfaceDesc2.dwWidth * (GetBitCount(surfaceDesc2.ddpfPixelFormat) / 8);
 			}
 		}
 
@@ -897,23 +890,23 @@ HRESULT m_IDirectDrawSurfaceX::Unlock(LPRECT lpRect)
 {
 	if (Config.Dd7to9)
 	{
-		// Check for video memory
+		// If no video memory than nothing to do...
 		if (!d3dlrect.pBits)
 		{
 			return DD_OK;
 		}
 
-		// Check for video buffer
+		// Check for video buffer and create it if missing
 		if (!WriteDirectlyToSurface && !rawVideoBuf)
 		{
 			AlocateVideoBuffer();
 		}
 
-		// Translate raw video memory to rgb buffer
+		// Create raw video memory and rgb buffer varables
 		UINT32 *surfaceBuffer = (UINT32*)d3dlrect.pBits;
 		DWORD BitCount = GetBitCount(surfaceDesc2.ddpfPixelFormat);
 
-		// Using a palette
+		// Write to surface texture using a palette
 		if (attachedPalette && attachedPalette->rgbPalette && !WriteDirectlyToSurface)
 		{
 			// Translate palette to rgb video buffer
@@ -939,13 +932,13 @@ HRESULT m_IDirectDrawSurfaceX::Unlock(LPRECT lpRect)
 			}
 		}
 
-		// Using a surface
+		// Write to surface texture from the memory buffer
 		else if (!WriteDirectlyToSurface)
 		{
 			// Get display format
 			D3DFORMAT Format = GetDisplayFormat(surfaceDesc2.ddpfPixelFormat);
 
-			// Translate palette to rgb video buffer
+			// Translate system memory buffer to rgb video using specified format
 			switch (BitCount)
 			{
 			case 8:
@@ -993,7 +986,7 @@ HRESULT m_IDirectDrawSurfaceX::Unlock(LPRECT lpRect)
 				case D3DFMT_A8R8G8B8:
 				case D3DFMT_X8R8G8B8:
 				{
-					// Copy rgb video memory to texture memory by scanline observing pitch
+					// Copy raw rgb memory to texture by scanline observing pitch
 					const LONG x = DestRect.right - DestRect.left;
 					for (LONG y = DestRect.top; y < DestRect.bottom; y++)
 					{
@@ -1012,17 +1005,15 @@ HRESULT m_IDirectDrawSurfaceX::Unlock(LPRECT lpRect)
 			}
 		}
 
-		HRESULT hr = DDERR_SURFACELOST;
-
 		// Make sure surface texture exists
 		if (!surfaceTexture)
 		{
 			Logging::Log() << __FUNCTION__ << " texture does not exist";
-			return hr;
+			return DDERR_SURFACELOST;
 		}
 
 		// Unlock dynamic texture
-		hr = surfaceTexture->UnlockRect(0);
+		HRESULT hr = surfaceTexture->UnlockRect(0);
 		if (FAILED(hr))
 		{
 			Logging::Log() << __FUNCTION__ << " Failed to unlock texture memory";
@@ -1031,20 +1022,24 @@ HRESULT m_IDirectDrawSurfaceX::Unlock(LPRECT lpRect)
 
 		d3dlrect.pBits = nullptr;
 
-		// Set texture
-		hr = (*d3d9Device)->SetTexture(0, surfaceTexture);
-		if (FAILED(hr))
+		// If primary surface then EndScene
+		if (surfaceDesc2.ddsCaps.dwCaps & DDSCAPS_PRIMARYSURFACE)
 		{
-			Logging::Log() << __FUNCTION__ << " Failed to set texture";
-			return hr;
-		}
+			// Set texture
+			hr = (*d3d9Device)->SetTexture(0, surfaceTexture);
+			if (FAILED(hr))
+			{
+				Logging::Log() << __FUNCTION__ << " Failed to set texture";
+				return hr;
+			}
 
-		// Present the surface if needed
-		hr = ddrawParent->CheckEndScene(this);
-		if (FAILED(hr))
-		{
-			// Failed to presnt the surface, error reporting handled previously
-			return hr;
+			// Present the surface if needed
+			hr = ddrawParent->CheckEndScene(this);
+			if (FAILED(hr))
+			{
+				// Failed to presnt the surface, error reporting handled previously
+				return hr;
+			}
 		}
 
 		// Success
@@ -1304,6 +1299,73 @@ HRESULT m_IDirectDrawSurfaceX::CreateD3d9Surface()
 	// Get d3d9Object
 	IDirect3D9 *d3d9Object = ddrawParent->GetDirect3D();
 
+	// Get usage
+	DWORD Usage = D3DUSAGE_DYNAMIC;
+	if (surfaceDesc2.ddsCaps.dwCaps & DDSCAPS_MIPMAP)
+	{
+		Usage |= D3DUSAGE_AUTOGENMIPMAP;
+	}
+	if (surfaceDesc2.ddsCaps.dwCaps & DDSCAPS_WRITEONLY)
+	{
+		Usage |= D3DUSAGE_WRITEONLY;
+	}
+
+	// Get pool type
+	D3DPOOL Pool = D3DPOOL_DEFAULT;
+	if (surfaceDesc2.ddsCaps.dwCaps & DDSCAPS_SYSTEMMEMORY)
+	{
+		Pool = D3DPOOL_SYSTEMMEM;
+	}
+	else if ((surfaceDesc2.ddsCaps.dwCaps & (DDSCAPS_VIDEOMEMORY | DDSCAPS_NONLOCALVIDMEM)) || (surfaceDesc2.ddsCaps.dwCaps2 & (DDSCAPS2_TEXTUREMANAGE | DDSCAPS2_D3DTEXTUREMANAGE)))
+	{
+		Pool = D3DPOOL_MANAGED;
+	}
+	else if (surfaceDesc2.ddsCaps.dwCaps2 & DDSCAPS2_DONOTPERSIST)
+	{
+		Pool = D3DPOOL_SCRATCH;
+	}
+
+	// Get resource type
+	// DDSCAPS_BACKBUFFER
+	// DDSCAPS_FRONTBUFFER
+	// DDSCAPS_OFFSCREENPLAIN
+	// DDSCAPS_PRIMARYSURFACE
+	// DDSCAPS_TEXTURE
+	// DDSCAPS2_CUBEMAP
+
+	// Other flags
+	// DDSCAPS_ALPHA
+	// DDSCAPS_COMPLEX
+	// DDSCAPS_FLIP
+	// DDSCAPS_HWCODEC
+	// DDSCAPS_LIVEVIDEO
+	// DDSCAPS_MODEX
+	// DDSCAPS_OVERLAY
+	// DDSCAPS_PALETTE
+	// DDSCAPS_VIDEOPORT
+	// DDSCAPS_VISIBLE
+	// DDSCAPS_ZBUFFER
+	// DDSCAPS2_CUBEMAP_POSITIVEX
+	// DDSCAPS2_CUBEMAP_NEGATIVEX
+	// DDSCAPS2_CUBEMAP_POSITIVEY
+	// DDSCAPS2_CUBEMAP_NEGATIVEY
+	// DDSCAPS2_CUBEMAP_POSITIVEZ
+	// DDSCAPS2_CUBEMAP_NEGATIVEZ
+	// DDSCAPS2_CUBEMAP_ALLFACES
+	// DDSCAPS2_OPAQUE
+	// DDSCAPS2_STEREOSURFACELEFT
+
+	// Unused flags (can be safely ignored)
+	// DDSCAPS_3D
+	// DDSCAPS_3DDEVICE
+	// DDSCAPS_ALLOCONLOAD
+	// DDSCAPS_OPTIMIZED
+	// DDSCAPS_STANDARDVGAMODE
+	// DDSCAPS2_HINTANTIALIASING
+	// DDSCAPS2_HINTDYNAMIC = D3DUSAGE_DYNAMIC
+	// DDSCAPS2_HINTSTATIC
+	// DDSCAPS2_MIPMAPSUBLEVEL
+
 	// Get format
 	D3DFORMAT Format = GetDisplayFormat(surfaceDesc2.ddpfPixelFormat);
 
@@ -1322,11 +1384,16 @@ HRESULT m_IDirectDrawSurfaceX::CreateD3d9Surface()
 	}
 
 	// Create managed dynamic texture to allow locking(debug as video size but change to display size)
-	hr = (*d3d9Device)->CreateTexture(displayModeWidth, displayModeHeight, 1, D3DUSAGE_DYNAMIC, Format, D3DPOOL_DEFAULT, &surfaceTexture, nullptr);
+	hr = (*d3d9Device)->CreateTexture(surfaceDesc2.dwWidth, surfaceDesc2.dwHeight, 1, Usage, Format, Pool, &surfaceTexture, nullptr);
 	if (FAILED(hr))
 	{
 		Logging::Log() << __FUNCTION__ << " Unable to create surface texture";
 		return hr;
+	}
+
+	if ((surfaceDesc2.ddsCaps.dwCaps & DDSCAPS_PRIMARYSURFACE) == 0)
+	{
+		return DD_OK;
 	}
 
 	// Set vertex shader
