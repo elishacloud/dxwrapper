@@ -114,7 +114,7 @@ HRESULT m_IDirectDrawX::Compact()
 {
 	if (Config.Dd7to9)
 	{
-		Logging::Log() << __FUNCTION__ << " Not Implimented";
+		Logging::Log() << __FUNCTION__ << " Not Implemented";
 		return E_NOTIMPL;
 	}
 
@@ -242,9 +242,6 @@ HRESULT m_IDirectDrawX::CreateSurface(LPDDSURFACEDESC2 lpDDSurfaceDesc2, LPDIREC
 		m_IDirectDrawSurfaceX *lpSurfaceX = new m_IDirectDrawSurfaceX(&d3d9Device, this, DirectXVersion, lpDDSurfaceDesc2, displayWidth, displayHeight);
 		*lplpDDSurface = lpSurfaceX;
 
-		// Store surface
-		SurfaceVector.push_back(lpSurfaceX);
-
 		return DD_OK;
 	}
 
@@ -262,7 +259,7 @@ HRESULT m_IDirectDrawX::DuplicateSurface(LPDIRECTDRAWSURFACE7 lpDDSurface, LPDIR
 {
 	if (Config.Dd7to9)
 	{
-		Logging::Log() << __FUNCTION__ << " Not Implimented";
+		Logging::Log() << __FUNCTION__ << " Not Implemented";
 		return E_NOTIMPL;
 	}
 
@@ -419,7 +416,7 @@ HRESULT m_IDirectDrawX::EnumSurfaces(DWORD dwFlags, LPDDSURFACEDESC2 lpDDSD, LPV
 
 	if (Config.Dd7to9)
 	{
-		Logging::Log() << __FUNCTION__ << " Not Implimented";
+		Logging::Log() << __FUNCTION__ << " Not Implemented";
 		return E_NOTIMPL;
 	}
 
@@ -436,7 +433,7 @@ HRESULT m_IDirectDrawX::FlipToGDISurface()
 {
 	if (Config.Dd7to9)
 	{
-		Logging::Log() << __FUNCTION__ << " Not Implimented";
+		Logging::Log() << __FUNCTION__ << " Not Implemented";
 		return E_NOTIMPL;
 	}
 
@@ -550,7 +547,7 @@ HRESULT m_IDirectDrawX::GetFourCCCodes(LPDWORD lpNumCodes, LPDWORD lpCodes)
 {
 	if (Config.Dd7to9)
 	{
-		Logging::Log() << __FUNCTION__ << " Not Implimented";
+		Logging::Log() << __FUNCTION__ << " Not Implemented";
 		return E_NOTIMPL;
 	}
 
@@ -561,7 +558,7 @@ HRESULT m_IDirectDrawX::GetGDISurface(LPDIRECTDRAWSURFACE7 FAR * lplpGDIDDSSurfa
 {
 	if (Config.Dd7to9)
 	{
-		Logging::Log() << __FUNCTION__ << " Not Implimented";
+		Logging::Log() << __FUNCTION__ << " Not Implemented";
 		return E_NOTIMPL;
 	}
 
@@ -579,7 +576,7 @@ HRESULT m_IDirectDrawX::GetMonitorFrequency(LPDWORD lpdwFrequency)
 {
 	if (Config.Dd7to9)
 	{
-		Logging::Log() << __FUNCTION__ << " Not Implimented";
+		Logging::Log() << __FUNCTION__ << " Not Implemented";
 		return E_NOTIMPL;
 	}
 
@@ -590,7 +587,7 @@ HRESULT m_IDirectDrawX::GetScanLine(LPDWORD lpdwScanLine)
 {
 	if (Config.Dd7to9)
 	{
-		Logging::Log() << __FUNCTION__ << " Not Implimented";
+		Logging::Log() << __FUNCTION__ << " Not Implemented";
 		return E_NOTIMPL;
 	}
 
@@ -606,7 +603,7 @@ HRESULT m_IDirectDrawX::GetVerticalBlankStatus(LPBOOL lpbIsInVB)
 			return DDERR_INVALIDPARAMS;
 		}
 
-		Logging::Log() << __FUNCTION__ << " Not Implimented";
+		Logging::Log() << __FUNCTION__ << " Not Implemented";
 		return E_NOTIMPL;
 	}
 
@@ -617,7 +614,7 @@ HRESULT m_IDirectDrawX::Initialize(GUID FAR * lpGUID)
 {
 	if (Config.Dd7to9)
 	{
-		Logging::Log() << __FUNCTION__ << " Not Implimented";
+		Logging::Log() << __FUNCTION__ << " Not Implemented";
 		return E_NOTIMPL;
 	}
 
@@ -868,7 +865,7 @@ HRESULT m_IDirectDrawX::GetSurfaceFromDC(HDC hdc, LPDIRECTDRAWSURFACE7 * lpDDS)
 {
 	if (Config.Dd7to9)
 	{
-		Logging::Log() << __FUNCTION__ << " Not Implimented";
+		Logging::Log() << __FUNCTION__ << " Not Implemented";
 		return E_NOTIMPL;
 	}
 
@@ -886,7 +883,7 @@ HRESULT m_IDirectDrawX::RestoreAllSurfaces()
 {
 	if (Config.Dd7to9)
 	{
-		Logging::Log() << __FUNCTION__ << " Not Implimented";
+		Logging::Log() << __FUNCTION__ << " Not Implemented";
 		return E_NOTIMPL;
 	}
 
@@ -897,7 +894,7 @@ HRESULT m_IDirectDrawX::TestCooperativeLevel()
 {
 	if (Config.Dd7to9)
 	{
-		Logging::Log() << __FUNCTION__ << " Not Implimented";
+		Logging::Log() << __FUNCTION__ << " Not Implemented";
 		return E_NOTIMPL;
 	}
 
@@ -917,7 +914,7 @@ HRESULT m_IDirectDrawX::GetDeviceIdentifier(LPDDDEVICEIDENTIFIER2 lpdddi, DWORD 
 
 	if (Config.Dd7to9)
 	{
-		Logging::Log() << __FUNCTION__ << " Not Implimented";
+		Logging::Log() << __FUNCTION__ << " Not Implemented";
 		hr = E_NOTIMPL;
 	}
 	else
@@ -938,7 +935,7 @@ HRESULT m_IDirectDrawX::StartModeTest(LPSIZE lpModesToTest, DWORD dwNumEntries, 
 {
 	if (Config.Dd7to9)
 	{
-		Logging::Log() << __FUNCTION__ << " Not Implimented";
+		Logging::Log() << __FUNCTION__ << " Not Implemented";
 		return E_NOTIMPL;
 	}
 
@@ -949,7 +946,7 @@ HRESULT m_IDirectDrawX::EvaluateMode(DWORD dwFlags, DWORD * pSecondsUntilTimeout
 {
 	if (Config.Dd7to9)
 	{
-		Logging::Log() << __FUNCTION__ << " Not Implimented";
+		Logging::Log() << __FUNCTION__ << " Not Implemented";
 		return E_NOTIMPL;
 	}
 
@@ -1134,6 +1131,17 @@ void m_IDirectDrawX::ReleaseAllD9Surfaces()
 	}
 }
 
+void m_IDirectDrawX::AddSurfaceToVector(m_IDirectDrawSurfaceX* lpSurfaceX)
+{
+	if (!lpSurfaceX)
+	{
+		return;
+	}
+
+	// Store surface
+	SurfaceVector.push_back(lpSurfaceX);
+}
+
 void m_IDirectDrawX::RemoveSurfaceFromVector(m_IDirectDrawSurfaceX* lpSurfaceX)
 {
 	if (!lpSurfaceX)
@@ -1150,8 +1158,26 @@ void m_IDirectDrawX::RemoveSurfaceFromVector(m_IDirectDrawSurfaceX* lpSurfaceX)
 	}
 }
 
+bool m_IDirectDrawX::DoesSurfaceExist(m_IDirectDrawSurfaceX* lpSurfaceX)
+{
+	if (!lpSurfaceX)
+	{
+		return false;
+	}
+
+	auto it = std::find_if(SurfaceVector.begin(), SurfaceVector.end(),
+		[=](auto pSurface) -> bool { return pSurface == lpSurfaceX; });
+
+	if (it == std::end(SurfaceVector))
+	{
+		return false;
+	}
+
+	return true;
+}
+
 // Helper function to present the d3d surface
-HRESULT m_IDirectDrawX::CheckBeginScene(m_IDirectDrawSurfaceX *pSurface)
+HRESULT m_IDirectDrawX::BeginScene(m_IDirectDrawSurfaceX *pSurface)
 {
 	// Make sure the device exists
 	if (!d3d9Device)
@@ -1178,7 +1204,7 @@ HRESULT m_IDirectDrawX::CheckBeginScene(m_IDirectDrawSurfaceX *pSurface)
 }
 
 // Helper function to present the d3d surface
-HRESULT m_IDirectDrawX::CheckEndScene(m_IDirectDrawSurfaceX *pSurface)
+HRESULT m_IDirectDrawX::EndScene(m_IDirectDrawSurfaceX *pSurface)
 {
 	// Make sure the device exists
 	if (!d3d9Device)

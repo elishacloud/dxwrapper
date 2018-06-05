@@ -139,7 +139,9 @@ public:
 	bool CreateD3DDevice();
 	bool ReinitDevice();
 	void ReleaseAllD9Surfaces();
+	void AddSurfaceToVector(m_IDirectDrawSurfaceX* lpSurfaceX);
 	void RemoveSurfaceFromVector(m_IDirectDrawSurfaceX* lpSurfaceX);
-	HRESULT CheckBeginScene(m_IDirectDrawSurfaceX *pSurface);
-	HRESULT CheckEndScene(m_IDirectDrawSurfaceX *pSurface);
+	bool DoesSurfaceExist(m_IDirectDrawSurfaceX* lpSurfaceX);
+	HRESULT BeginScene(m_IDirectDrawSurfaceX *pSurface);
+	HRESULT EndScene(m_IDirectDrawSurfaceX *pSurface);
  };

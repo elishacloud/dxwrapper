@@ -71,11 +71,6 @@ ULONG m_IDirectDrawSurfaceX::Release()
 
 	if (ref == 0)
 	{
-		if (Config.Dd7to9)
-		{
-			ReleaseD3d9();
-		}
-
 		if (WrapperInterface)
 		{
 			WrapperInterface->DeleteMe();
@@ -87,16 +82,6 @@ ULONG m_IDirectDrawSurfaceX::Release()
 	}
 
 	return ref;
-}
-
-void m_IDirectDrawSurfaceX::ReleaseD3d9()
-{
-	if (ddrawParent)
-	{
-		ddrawParent->RemoveSurfaceFromVector(this);
-	}
-
-	ReleaseD9Surface();
 }
 
 void m_IDirectDrawSurfaceX::ReleaseD9Surface()
@@ -124,7 +109,7 @@ HRESULT m_IDirectDrawSurfaceX::AddAttachedSurface(LPDIRECTDRAWSURFACE7 lpDDSurfa
 {
 	if (Config.Dd7to9)
 	{
-		Logging::Log() << __FUNCTION__ << " Not Implimented";
+		Logging::Log() << __FUNCTION__ << " Not Implemented";
 		return E_NOTIMPL;
 	}
 
@@ -140,7 +125,7 @@ HRESULT m_IDirectDrawSurfaceX::AddOverlayDirtyRect(LPRECT lpRect)
 {
 	if (Config.Dd7to9)
 	{
-		Logging::Log() << __FUNCTION__ << " Not Implimented";
+		Logging::Log() << __FUNCTION__ << " Not Implemented";
 		return E_NOTIMPL;
 	}
 
@@ -151,8 +136,193 @@ HRESULT m_IDirectDrawSurfaceX::Blt(LPRECT lpDestRect, LPDIRECTDRAWSURFACE7 lpDDS
 {
 	if (Config.Dd7to9)
 	{
-		Logging::Log() << __FUNCTION__ << " Not Implimented";
-		return E_NOTIMPL;
+		// Check for fill flags
+		if (dwFlags & (DDBLT_COLORFILL | DDBLT_DEPTHFILL))
+		{
+			Logging::Log() << __FUNCTION__ << " Color and Depth Fill operations Not Implemented";
+			return DDERR_UNSUPPORTED;
+		}
+
+		// Check for color code flags
+		if (dwFlags & (DDBLT_KEYDESTOVERRIDE | DDBLT_KEYSRCOVERRIDE | DDBLT_KEYDEST | DDBLT_KEYSRC))
+		{
+			Logging::Log() << __FUNCTION__ << " Color Code Not Implemented";
+			return DDERR_UNSUPPORTED;
+		}
+
+		// Check for raster operations flags
+		if (dwFlags & (DDBLT_DDROPS | DDBLT_ROP))
+		{
+			Logging::Log() << __FUNCTION__ << " Raster operations Not Implemented";
+			return DDERR_NORASTEROPHW;
+		}
+
+		// Check for rotation flag
+		if (dwFlags & (DDBLT_ROTATIONANGLE))
+		{
+			Logging::Log() << __FUNCTION__ << " Rotation operations Not Implemented";
+			return DDERR_NOROTATIONHW;
+		}
+
+		// Check for ZBuffer flag
+		if (dwFlags & (DDBLT_ZBUFFER))
+		{
+			Logging::Log() << __FUNCTION__ << " ZBuffer Not Implemented";
+			return DDERR_NOZBUFFERHW;
+		}
+
+		// Check for invalid DDBLTFX structure
+		if ((dwFlags & (DDBLT_DDFX)) & !lpDDBltFx)
+		{
+			Logging::Log() << __FUNCTION__ << " No DDBLTFX structure found";
+			return DDERR_UNSUPPORTED;
+		}
+
+		// Check for FX flag
+		if (dwFlags & (DDBLT_DDFX))
+		{
+			Logging::Log() << __FUNCTION__ << " FX operations Not Implemented";
+			return DDERR_UNSUPPORTED;
+		}
+
+		// Unused flags (can be safely ignored?)
+		// DDBLT_ALPHA
+		// DDBLT_ASYNC
+		// DDBLT_DONOTWAIT
+		// DDBLT_WAIT
+
+		// Check for device
+		if (!d3d9Device || !*d3d9Device || !ddrawParent)
+		{
+			Logging::Log() << __FUNCTION__ << " D3d9 Device not setup.";
+			return DDERR_INVALIDOBJECT;
+		}
+
+		// Check if Source Surface exists
+		m_IDirectDrawSurfaceX *lpDDSrcSurfaceX = (m_IDirectDrawSurfaceX*)lpDDSrcSurface;
+		if (!lpDDSrcSurfaceX)
+		{
+			lpDDSrcSurfaceX = this;
+		}
+		else if (!ddrawParent->DoesSurfaceExist(lpDDSrcSurfaceX))
+		{
+			Logging::Log() << __FUNCTION__ << " Error, could not find source surface";
+			return DDERR_INVALIDPARAMS;
+		}
+
+		// Get source and dest Rect
+		RECT DestRect, SrcRect;
+		if (lpDestRect)
+		{
+			memcpy(&DestRect, lpDestRect, sizeof(RECT));
+		}
+		else
+		{
+			DestRect.top = 0;
+			DestRect.left = 0;
+			DestRect.right = surfaceDesc2.dwWidth;
+			DestRect.bottom = surfaceDesc2.dwHeight;
+		}
+		if (lpSrcRect)
+		{
+			memcpy(&SrcRect, lpSrcRect, sizeof(RECT));
+		}
+		else
+		{
+			// Assume the same size for both source and dest rects
+			SrcRect.top = 0;
+			SrcRect.left = 0;
+			SrcRect.right = surfaceDesc2.dwWidth;
+			SrcRect.bottom = surfaceDesc2.dwHeight;
+		}
+
+		// Check source and dest Rect
+		if (CheckSurfaceRect(&DestRect) || lpDDSrcSurfaceX->CheckSurfaceRect(&SrcRect))
+		{
+			Logging::Log() << __FUNCTION__ << " Error, invalid rect size";
+			return DDERR_INVALIDRECT;
+		}
+
+		// Verify that size of rects are equal
+		if (DestRect.right - DestRect.left != SrcRect.right - SrcRect.left ||
+			DestRect.bottom - DestRect.top != SrcRect.bottom - SrcRect.top)
+		{
+			Logging::Log() << __FUNCTION__ << " Error, stretching rects not Implemented";
+			return DDERR_NOSTRETCHHW;
+		}
+
+		// Get surface memory address and pitch
+		D3DLOCKED_RECT SrcLRect = { NULL };
+		D3DLOCKED_RECT DestLRect = { NULL };
+
+		// Get destination memory address
+		bool UnlockSrc = false, UnlockDest = false;
+		HRESULT hr = GetSurfaceAddress(&DestLRect, false);
+		if (hr == DDERR_LOCKEDSURFACES)
+		{
+			// Needed to lock surface to get address
+			UnlockDest = true;
+			hr = DD_OK;
+		}
+		else if (FAILED(hr))
+		{
+			Logging::Log() << __FUNCTION__ << " Error, could not get video memory address";
+			return DDERR_GENERIC;
+		}
+
+		// Get source memory address
+		if (lpDDSrcSurfaceX != this)
+		{
+			hr = lpDDSrcSurfaceX->GetSurfaceAddress(&SrcLRect, false);
+			if (hr == DDERR_LOCKEDSURFACES)
+			{
+				// Needed to lock surface to get address
+				UnlockSrc = true;
+				hr = DD_OK;
+			}
+			else if (FAILED(hr))
+			{
+				Logging::Log() << __FUNCTION__ << " Error, could not get video memory address";
+				hr = DDERR_GENERIC;
+			}
+		}
+		else
+		{
+			SrcLRect.pBits = DestLRect.pBits;
+			SrcLRect.Pitch = DestLRect.Pitch;
+		}
+
+		// Verify that pitch is the same
+		if (SUCCEEDED(hr) && DestLRect.Pitch != SrcLRect.Pitch)
+		{
+			Logging::Log() << __FUNCTION__ << " Error, Blt using different surface formats not Implemented";
+			hr = DDERR_SURFACEBUSY;
+		}
+
+		// Do basic Blt operation
+		if (SUCCEEDED(hr))
+		{
+			DWORD ByteSize = DestLRect.Pitch / surfaceDesc2.dwWidth;
+			for (LONG y = 0; y < DestRect.bottom - DestRect.top; y++)
+			{
+				memcpy((BYTE*)DestLRect.pBits + ((y + DestRect.top) * DestLRect.Pitch) + (DestRect.left * ByteSize),	// Destination video memory address
+					(BYTE*)SrcLRect.pBits + ((y + SrcRect.top) * SrcLRect.Pitch) + (SrcRect.left * ByteSize),			// Source video memory address
+					(DestRect.right - DestRect.left) * ByteSize);														// Size of bytes to write
+			}
+		}
+
+		// Unlock surfaces if needed
+		if (UnlockDest)
+		{
+			GetSurfaceAddress(&DestLRect, true);
+		}
+		if (UnlockSrc)
+		{
+			lpDDSrcSurfaceX->GetSurfaceAddress(&SrcLRect, true);
+		}
+
+		// Return
+		return DD_OK;
 	}
 
 	if (lpDDSrcSurface)
@@ -167,8 +337,23 @@ HRESULT m_IDirectDrawSurfaceX::BltBatch(LPDDBLTBATCH lpDDBltBatch, DWORD dwCount
 {
 	if (Config.Dd7to9)
 	{
-		Logging::Log() << __FUNCTION__ << " Not Implimented";
-		return E_NOTIMPL;
+		if (!lpDDBltBatch)
+		{
+			return DDERR_INVALIDPARAMS;
+		}
+
+		HRESULT hr;
+
+		for (DWORD x = 0; x < dwCount; x++)
+		{
+			hr = Blt(lpDDBltBatch[x].lprDest, (LPDIRECTDRAWSURFACE7)lpDDBltBatch[x].lpDDSSrc, lpDDBltBatch[x].lprSrc, lpDDBltBatch[x].dwFlags, lpDDBltBatch[x].lpDDBltFx);
+			if (FAILED(hr))
+			{
+				return hr;
+			}
+		}
+
+		return DD_OK;
 	}
 
 	if (lpDDBltBatch && lpDDBltBatch->lpDDSSrc)
@@ -183,8 +368,35 @@ HRESULT m_IDirectDrawSurfaceX::BltFast(DWORD dwX, DWORD dwY, LPDIRECTDRAWSURFACE
 {
 	if (Config.Dd7to9)
 	{
-		Logging::Log() << __FUNCTION__ << " Not Implimented";
-		return E_NOTIMPL;
+		if (!lpSrcRect)
+		{
+			Logging::Log() << __FUNCTION__ << " Error, no Source Rect";
+			return DDERR_INVALIDPARAMS;
+		}
+
+		// Convert BltFast flags into Blt flags
+		DWORD Flags = 0;
+		if ((dwFlags & DDBLTFAST_NOCOLORKEY) == 0)
+		{
+			if (dwFlags & DDBLTFAST_SRCCOLORKEY)
+			{
+				Flags |= DDBLT_KEYSRC;
+			}
+			else if (dwFlags & DDBLTFAST_DESTCOLORKEY)
+			{
+				Flags |= DDBLT_KEYDEST;
+			}
+		}
+		if (dwFlags & DDBLTFAST_WAIT)
+		{
+			Flags |= DDBLT_WAIT;
+		}
+
+		// Create DestRect
+		RECT DestRect = { (LONG)dwX, (LONG)dwY, lpSrcRect->right - lpSrcRect->left + (LONG)dwX , lpSrcRect->bottom - lpSrcRect->top + (LONG)dwY };
+
+		// Call Blt
+		return Blt(&DestRect, lpDDSrcSurface, lpSrcRect, Flags, nullptr);
 	}
 
 	if (lpDDSrcSurface)
@@ -199,7 +411,7 @@ HRESULT m_IDirectDrawSurfaceX::DeleteAttachedSurface(DWORD dwFlags, LPDIRECTDRAW
 {
 	if (Config.Dd7to9)
 	{
-		Logging::Log() << __FUNCTION__ << " Not Implimented";
+		Logging::Log() << __FUNCTION__ << " Not Implemented";
 		return E_NOTIMPL;
 	}
 
@@ -215,7 +427,7 @@ HRESULT m_IDirectDrawSurfaceX::EnumAttachedSurfaces(LPVOID lpContext, LPDDENUMSU
 {
 	if (Config.Dd7to9)
 	{
-		Logging::Log() << __FUNCTION__ << " Not Implimented";
+		Logging::Log() << __FUNCTION__ << " Not Implemented";
 		return E_NOTIMPL;
 	}
 
@@ -232,7 +444,7 @@ HRESULT m_IDirectDrawSurfaceX::EnumOverlayZOrders(DWORD dwFlags, LPVOID lpContex
 {
 	if (Config.Dd7to9)
 	{
-		Logging::Log() << __FUNCTION__ << " Not Implimented";
+		Logging::Log() << __FUNCTION__ << " Not Implemented";
 		return E_NOTIMPL;
 	}
 
@@ -249,7 +461,7 @@ HRESULT m_IDirectDrawSurfaceX::Flip(LPDIRECTDRAWSURFACE7 lpDDSurfaceTargetOverri
 {
 	if (Config.Dd7to9)
 	{
-		Logging::Log() << __FUNCTION__ << " Not Implimented";
+		Logging::Log() << __FUNCTION__ << " Not Implemented";
 		return E_NOTIMPL;
 	}
 
@@ -278,7 +490,7 @@ HRESULT m_IDirectDrawSurfaceX::GetAttachedSurface(LPDDSCAPS2 lpDDSCaps, LPDIRECT
 
 	if (Config.Dd7to9)
 	{
-		Logging::Log() << __FUNCTION__ << " Not fully implimented.";
+		Logging::Log() << __FUNCTION__ << " Not fully Implemented.";
 
 		*lplpDDAttachedSurface = this;
 		
@@ -301,7 +513,7 @@ HRESULT m_IDirectDrawSurfaceX::GetBltStatus(DWORD dwFlags)
 {
 	if (Config.Dd7to9)
 	{
-		Logging::Log() << __FUNCTION__ << " Not Implimented";
+		Logging::Log() << __FUNCTION__ << " Not Implemented";
 		return E_NOTIMPL;
 	}
 
@@ -351,7 +563,7 @@ HRESULT m_IDirectDrawSurfaceX::GetClipper(LPDIRECTDRAWCLIPPER FAR * lplpDDClippe
 {
 	if (Config.Dd7to9)
 	{
-		Logging::Log() << __FUNCTION__ << " Not Implimented";
+		Logging::Log() << __FUNCTION__ << " Not Implemented";
 		return E_NOTIMPL;
 	}
 
@@ -411,7 +623,9 @@ HRESULT m_IDirectDrawSurfaceX::GetDC(HDC FAR * lphDC)
 			HRESULT hr = (*d3d9Device)->GetBackBuffer(0, 0, D3DBACKBUFFER_TYPE_MONO, &pBackBuffer);
 			if (SUCCEEDED(hr))
 			{
-				return pBackBuffer->GetDC(lphDC);
+				hr = pBackBuffer->GetDC(lphDC);
+				pBackBuffer->Release();
+				return hr;
 			}
 			else
 			{
@@ -430,7 +644,7 @@ HRESULT m_IDirectDrawSurfaceX::GetFlipStatus(DWORD dwFlags)
 {
 	if (Config.Dd7to9)
 	{
-		Logging::Log() << __FUNCTION__ << " Not Implimented";
+		Logging::Log() << __FUNCTION__ << " Not Implemented";
 		return E_NOTIMPL;
 	}
 
@@ -562,7 +776,7 @@ HRESULT m_IDirectDrawSurfaceX::Initialize(LPDIRECTDRAW lpDD, LPDDSURFACEDESC2 lp
 
 	if (Config.Dd7to9)
 	{
-		Logging::Log() << __FUNCTION__ << " Not Implimented";
+		Logging::Log() << __FUNCTION__ << " Not Implemented";
 		return E_NOTIMPL;
 	}
 
@@ -615,14 +829,14 @@ HRESULT m_IDirectDrawSurfaceX::Lock(LPRECT lpDestRect, LPDDSURFACEDESC2 lpDDSurf
 		// Save Lock Rect
 		if (lpDestRect)
 		{
-			memcpy(&DestRect, lpDestRect, sizeof(RECT));
+			memcpy(&LockDestRect, lpDestRect, sizeof(RECT));
 		}
 		else
 		{
-			DestRect.top = 0;
-			DestRect.left = 0;
-			DestRect.right = surfaceDesc2.dwWidth;
-			DestRect.bottom = surfaceDesc2.dwHeight;
+			LockDestRect.top = 0;
+			LockDestRect.left = 0;
+			LockDestRect.right = surfaceDesc2.dwWidth;
+			LockDestRect.bottom = surfaceDesc2.dwHeight;
 		}
 
 		// Make sure surface texture exists, if not then create it
@@ -641,9 +855,9 @@ HRESULT m_IDirectDrawSurfaceX::Lock(LPRECT lpDestRect, LPDDSURFACEDESC2 lpDDSurf
 		}
 
 		// If primary surface then BegineScene
-		if (SUCCEEDED(hr) && (surfaceDesc2.ddsCaps.dwCaps & DDSCAPS_PRIMARYSURFACE) && surfaceTexture)
+		if (SUCCEEDED(hr) && (surfaceDesc2.ddsCaps.dwCaps & DDSCAPS_PRIMARYSURFACE) && ddrawParent && surfaceTexture)
 		{
-			hr = ddrawParent->CheckBeginScene(this);
+			hr = ddrawParent->BeginScene(this);
 		}
 
 		// Lock rect
@@ -653,7 +867,7 @@ HRESULT m_IDirectDrawSurfaceX::Lock(LPRECT lpDestRect, LPDDSURFACEDESC2 lpDDSurf
 			DWORD LockFlags = dwFlags & (D3DLOCK_DISCARD | D3DLOCK_DONOTWAIT | D3DLOCK_NO_DIRTY_UPDATE | D3DLOCK_NOOVERWRITE | D3DLOCK_NOSYSLOCK | D3DLOCK_READONLY);
 
 			// Lock full dynamic texture
-			hr = surfaceTexture->LockRect(0, &d3dlrect, ((lpDestRect) ? &DestRect : nullptr), LockFlags);
+			hr = surfaceTexture->LockRect(0, &d3dlrect, ((lpDestRect) ? &LockDestRect : nullptr), LockFlags);
 			if (FAILED(hr))
 			{
 				d3dlrect.pBits = nullptr;
@@ -749,7 +963,7 @@ HRESULT m_IDirectDrawSurfaceX::ReleaseDC(HDC hDC)
 {
 	if (Config.Dd7to9)
 	{
-		Logging::Log() << __FUNCTION__ << " Not Implimented";
+		Logging::Log() << __FUNCTION__ << " Not Implemented";
 		return E_NOTIMPL;
 	}
 
@@ -760,7 +974,7 @@ HRESULT m_IDirectDrawSurfaceX::Restore()
 {
 	if (Config.Dd7to9)
 	{
-		Logging::Log() << __FUNCTION__ << " Not Implimented";
+		Logging::Log() << __FUNCTION__ << " Not Implemented";
 		return E_NOTIMPL;
 	}
 
@@ -771,7 +985,7 @@ HRESULT m_IDirectDrawSurfaceX::SetClipper(LPDIRECTDRAWCLIPPER lpDDClipper)
 {
 	if (Config.Dd7to9)
 	{
-		Logging::Log() << __FUNCTION__ << " Not Implimented";
+		Logging::Log() << __FUNCTION__ << " Not Implemented";
 		return E_NOTIMPL;
 	}
 
@@ -915,10 +1129,10 @@ HRESULT m_IDirectDrawSurfaceX::Unlock(LPRECT lpRect)
 			case 8:
 			{
 				LONG x = 0, z = 0;
-				for (LONG j = DestRect.top; j < DestRect.bottom; j++)
+				for (LONG j = LockDestRect.top; j < LockDestRect.bottom; j++)
 				{
 					z = j * (d3dlrect.Pitch / 4);
-					for (LONG i = DestRect.left; i < DestRect.right; i++)
+					for (LONG i = LockDestRect.left; i < LockDestRect.right; i++)
 					{
 						x = z + i;
 						surfaceBuffer[x] = attachedPalette->rgbPalette[rawVideoBuf[x]];
@@ -951,10 +1165,10 @@ HRESULT m_IDirectDrawSurfaceX::Unlock(LPRECT lpRect)
 				{
 					LONG x = 0, z = 0;
 					WORD *RawBuffer = (WORD*)&rawVideoBuf[0];
-					for (LONG j = DestRect.top; j < DestRect.bottom; j++)
+					for (LONG j = LockDestRect.top; j < LockDestRect.bottom; j++)
 					{
 						z = j * (d3dlrect.Pitch / 4);
-						for (LONG i = DestRect.left; i < DestRect.right; i++)
+						for (LONG i = LockDestRect.left; i < LockDestRect.right; i++)
 						{
 							x = z + i;
 
@@ -978,7 +1192,7 @@ HRESULT m_IDirectDrawSurfaceX::Unlock(LPRECT lpRect)
 				}
 				break;
 			case 24:
-				Logging::Log() << __FUNCTION__ << " 24-bit surfaces not implimented!";
+				Logging::Log() << __FUNCTION__ << " 24-bit surfaces not Implemented!";
 				break;
 			case 32:
 				switch (Format)
@@ -987,8 +1201,8 @@ HRESULT m_IDirectDrawSurfaceX::Unlock(LPRECT lpRect)
 				case D3DFMT_X8R8G8B8:
 				{
 					// Copy raw rgb memory to texture by scanline observing pitch
-					const LONG x = DestRect.right - DestRect.left;
-					for (LONG y = DestRect.top; y < DestRect.bottom; y++)
+					const LONG x = LockDestRect.right - LockDestRect.left;
+					for (LONG y = LockDestRect.top; y < LockDestRect.bottom; y++)
 					{
 						memcpy((BYTE *)d3dlrect.pBits + (y * d3dlrect.Pitch), &rawVideoBuf[y * x], x * sizeof(UINT32));
 					}
@@ -1023,7 +1237,7 @@ HRESULT m_IDirectDrawSurfaceX::Unlock(LPRECT lpRect)
 		d3dlrect.pBits = nullptr;
 
 		// If primary surface then EndScene
-		if (surfaceDesc2.ddsCaps.dwCaps & DDSCAPS_PRIMARYSURFACE)
+		if ((surfaceDesc2.ddsCaps.dwCaps & DDSCAPS_PRIMARYSURFACE) && ddrawParent && surfaceTexture)
 		{
 			// Set texture
 			hr = (*d3d9Device)->SetTexture(0, surfaceTexture);
@@ -1034,7 +1248,7 @@ HRESULT m_IDirectDrawSurfaceX::Unlock(LPRECT lpRect)
 			}
 
 			// Present the surface if needed
-			hr = ddrawParent->CheckEndScene(this);
+			hr = ddrawParent->EndScene(this);
 			if (FAILED(hr))
 			{
 				// Failed to presnt the surface, error reporting handled previously
@@ -1053,7 +1267,7 @@ HRESULT m_IDirectDrawSurfaceX::UpdateOverlay(LPRECT lpSrcRect, LPDIRECTDRAWSURFA
 {
 	if (Config.Dd7to9)
 	{
-		Logging::Log() << __FUNCTION__ << " Not Implimented";
+		Logging::Log() << __FUNCTION__ << " Not Implemented";
 		return E_NOTIMPL;
 	}
 
@@ -1069,7 +1283,7 @@ HRESULT m_IDirectDrawSurfaceX::UpdateOverlayDisplay(DWORD dwFlags)
 {
 	if (Config.Dd7to9)
 	{
-		Logging::Log() << __FUNCTION__ << " Not Implimented";
+		Logging::Log() << __FUNCTION__ << " Not Implemented";
 		return E_NOTIMPL;
 	}
 
@@ -1080,7 +1294,7 @@ HRESULT m_IDirectDrawSurfaceX::UpdateOverlayZOrder(DWORD dwFlags, LPDIRECTDRAWSU
 {
 	if (Config.Dd7to9)
 	{
-		Logging::Log() << __FUNCTION__ << " Not Implimented";
+		Logging::Log() << __FUNCTION__ << " Not Implemented";
 		return E_NOTIMPL;
 	}
 
@@ -1143,7 +1357,7 @@ HRESULT m_IDirectDrawSurfaceX::PageLock(DWORD dwFlags)
 {
 	if (Config.Dd7to9)
 	{
-		Logging::Log() << __FUNCTION__ << " Not Implimented";
+		Logging::Log() << __FUNCTION__ << " Not Implemented";
 		return E_NOTIMPL;
 	}
 
@@ -1154,7 +1368,7 @@ HRESULT m_IDirectDrawSurfaceX::PageUnlock(DWORD dwFlags)
 {
 	if (Config.Dd7to9)
 	{
-		Logging::Log() << __FUNCTION__ << " Not Implimented";
+		Logging::Log() << __FUNCTION__ << " Not Implemented";
 		return E_NOTIMPL;
 	}
 
@@ -1178,7 +1392,7 @@ HRESULT m_IDirectDrawSurfaceX::SetSurfaceDesc(LPDDSURFACEDESC2 lpDDsd, DWORD dwF
 
 	if (Config.Dd7to9)
 	{
-		Logging::Log() << __FUNCTION__ << " Not Implimented";
+		Logging::Log() << __FUNCTION__ << " Not Implemented";
 		return E_NOTIMPL;
 	}
 
@@ -1189,7 +1403,7 @@ HRESULT m_IDirectDrawSurfaceX::SetPrivateData(REFGUID guidTag, LPVOID lpData, DW
 {
 	if (Config.Dd7to9)
 	{
-		Logging::Log() << __FUNCTION__ << " Not Implimented";
+		Logging::Log() << __FUNCTION__ << " Not Implemented";
 		return E_NOTIMPL;
 	}
 
@@ -1200,7 +1414,7 @@ HRESULT m_IDirectDrawSurfaceX::GetPrivateData(REFGUID guidTag, LPVOID lpBuffer, 
 {
 	if (Config.Dd7to9)
 	{
-		Logging::Log() << __FUNCTION__ << " Not Implimented";
+		Logging::Log() << __FUNCTION__ << " Not Implemented";
 		return E_NOTIMPL;
 	}
 
@@ -1211,7 +1425,7 @@ HRESULT m_IDirectDrawSurfaceX::FreePrivateData(REFGUID guidTag)
 {
 	if (Config.Dd7to9)
 	{
-		Logging::Log() << __FUNCTION__ << " Not Implimented";
+		Logging::Log() << __FUNCTION__ << " Not Implemented";
 		return E_NOTIMPL;
 	}
 
@@ -1222,7 +1436,7 @@ HRESULT m_IDirectDrawSurfaceX::GetUniquenessValue(LPDWORD lpValue)
 {
 	if (Config.Dd7to9)
 	{
-		Logging::Log() << __FUNCTION__ << " Not Implimented";
+		Logging::Log() << __FUNCTION__ << " Not Implemented";
 		return E_NOTIMPL;
 	}
 
@@ -1233,7 +1447,7 @@ HRESULT m_IDirectDrawSurfaceX::ChangeUniquenessValue()
 {
 	if (Config.Dd7to9)
 	{
-		Logging::Log() << __FUNCTION__ << " Not Implimented";
+		Logging::Log() << __FUNCTION__ << " Not Implemented";
 		return E_NOTIMPL;
 	}
 
@@ -1244,7 +1458,7 @@ HRESULT m_IDirectDrawSurfaceX::SetPriority(DWORD dwPriority)
 {
 	if (Config.Dd7to9)
 	{
-		Logging::Log() << __FUNCTION__ << " Not Implimented";
+		Logging::Log() << __FUNCTION__ << " Not Implemented";
 		return E_NOTIMPL;
 	}
 
@@ -1255,7 +1469,7 @@ HRESULT m_IDirectDrawSurfaceX::GetPriority(LPDWORD lpdwPriority)
 {
 	if (Config.Dd7to9)
 	{
-		Logging::Log() << __FUNCTION__ << " Not Implimented";
+		Logging::Log() << __FUNCTION__ << " Not Implemented";
 		return E_NOTIMPL;
 	}
 
@@ -1266,7 +1480,7 @@ HRESULT m_IDirectDrawSurfaceX::SetLOD(DWORD dwMaxLOD)
 {
 	if (Config.Dd7to9)
 	{
-		Logging::Log() << __FUNCTION__ << " Not Implimented";
+		Logging::Log() << __FUNCTION__ << " Not Implemented";
 		return E_NOTIMPL;
 	}
 
@@ -1277,7 +1491,7 @@ HRESULT m_IDirectDrawSurfaceX::GetLOD(LPDWORD lpdwMaxLOD)
 {
 	if (Config.Dd7to9)
 	{
-		Logging::Log() << __FUNCTION__ << " Not Implimented";
+		Logging::Log() << __FUNCTION__ << " Not Implemented";
 		return E_NOTIMPL;
 	}
 
@@ -1290,7 +1504,7 @@ HRESULT m_IDirectDrawSurfaceX::CreateD3d9Surface()
 	ReleaseD9Surface();
 
 	// Check for device
-	if (!d3d9Device || !*d3d9Device)
+	if (!d3d9Device || !*d3d9Device || !ddrawParent)
 	{
 		Logging::Log() << __FUNCTION__ << " D3d9 Device not setup.";
 		return DDERR_INVALIDOBJECT;
@@ -1355,7 +1569,7 @@ HRESULT m_IDirectDrawSurfaceX::CreateD3d9Surface()
 	// DDSCAPS2_OPAQUE
 	// DDSCAPS2_STEREOSURFACELEFT
 
-	// Unused flags (can be safely ignored)
+	// Unused flags (can be safely ignored?)
 	// DDSCAPS_3D
 	// DDSCAPS_3DDEVICE
 	// DDSCAPS_ALLOCONLOAD
@@ -1383,7 +1597,7 @@ HRESULT m_IDirectDrawSurfaceX::CreateD3d9Surface()
 		WriteDirectlyToSurface = true;
 	}
 
-	// Create managed dynamic texture to allow locking(debug as video size but change to display size)
+	// Create managed dynamic texture to allow locking (debug as video size but change to display size)
 	hr = (*d3d9Device)->CreateTexture(surfaceDesc2.dwWidth, surfaceDesc2.dwHeight, 1, Usage, Format, Pool, &surfaceTexture, nullptr);
 	if (FAILED(hr))
 	{
@@ -1475,7 +1689,7 @@ HRESULT m_IDirectDrawSurfaceX::CreateD3d9Surface()
 	vertices[0].v = 0.0f;
 
 	// currentWidth, 0
-	vertices[1].x = (float)displayModeWidth - 0.5f;
+	vertices[1].x = (float)displayWidth - 0.5f;
 	vertices[1].y = -0.5f;
 	vertices[1].z = 0.0f;
 	vertices[1].rhw = 1.0f;
@@ -1483,8 +1697,8 @@ HRESULT m_IDirectDrawSurfaceX::CreateD3d9Surface()
 	vertices[1].v = 0.0f;
 
 	// currentWidth, scaledHeight
-	vertices[2].x = (float)displayModeWidth - 0.5f;
-	vertices[2].y = (float)displayModeHeight - 0.5f;
+	vertices[2].x = (float)displayWidth - 0.5f;
+	vertices[2].y = (float)displayHeight - 0.5f;
 	vertices[2].z = 0.0f;
 	vertices[2].rhw = 1.0f;
 	vertices[2].u = 1.0f;
@@ -1492,7 +1706,7 @@ HRESULT m_IDirectDrawSurfaceX::CreateD3d9Surface()
 
 	// 0, currentHeight
 	vertices[3].x = -0.5f;
-	vertices[3].y = (float)displayModeHeight - 0.5f;
+	vertices[3].y = (float)displayHeight - 0.5f;
 	vertices[3].z = 0.0f;
 	vertices[3].rhw = 1.0f;
 	vertices[3].u = 0.0f;
@@ -1507,4 +1721,56 @@ HRESULT m_IDirectDrawSurfaceX::CreateD3d9Surface()
 	}
 
 	return hr;
+}
+
+bool m_IDirectDrawSurfaceX::CheckSurfaceRect(LPRECT lpRect)
+{
+	return (!lpRect || 
+		!(lpRect->left < lpRect->right || lpRect->top < lpRect->bottom) ||
+		lpRect->right > (LONG)surfaceDesc2.dwWidth || lpRect->bottom > (LONG)surfaceDesc2.dwHeight);
+}
+
+HRESULT m_IDirectDrawSurfaceX::GetSurfaceAddress(D3DLOCKED_RECT *lpd3dlrect, bool Cleanup)
+{
+	// Check if need to relock the rect
+	if (Cleanup)
+	{
+		if (surfaceTexture)
+		{
+			surfaceTexture->UnlockRect(0);
+		}
+		return DDERR_GENERIC;
+	}
+
+	// Get memory address and lock rect if need to
+	if (WriteDirectlyToSurface)
+	{
+		if (!surfaceTexture)
+		{
+			return DDERR_GENERIC;
+		}
+
+		if (!d3dlrect.pBits)
+		{
+			HRESULT hr = surfaceTexture->LockRect(0, lpd3dlrect, nullptr, 0);
+			if (SUCCEEDED(hr))
+			{
+				return DDERR_LOCKEDSURFACES;
+			}
+			return DDERR_GENERIC;
+		}
+		lpd3dlrect->pBits = d3dlrect.pBits;
+		lpd3dlrect->Pitch = d3dlrect.Pitch;
+		return DD_OK;
+	}
+	else
+	{
+		if (!rawVideoBuf)
+		{
+			return DDERR_GENERIC;
+		}
+		lpd3dlrect->pBits = rawVideoBuf;
+		lpd3dlrect->Pitch = surfaceDesc2.dwWidth * (GetBitCount(surfaceDesc2.ddpfPixelFormat) / 8);
+		return DD_OK;
+	}
 }

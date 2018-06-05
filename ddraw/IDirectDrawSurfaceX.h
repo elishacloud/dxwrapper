@@ -16,7 +16,7 @@ private:
 	m_IDirectDrawPalette *attachedPalette = nullptr;	// Associated palette
 	DDSURFACEDESC2 surfaceDesc2;
 	D3DLOCKED_RECT d3dlrect = { 0, nullptr };
-	RECT DestRect;
+	RECT LockDestRect;
 	DDCOLORKEY colorKeys[4];		// Color keys(DDCKEY_DESTBLT, DDCKEY_DESTOVERLAY, DDCKEY_SRCBLT, DDCKEY_SRCOVERLAY)
 	LONG overlayX = 0;
 	LONG overlayY = 0;
@@ -24,9 +24,9 @@ private:
 	BYTE *rawVideoBuf = nullptr;						// Virtual video buffer
 	bool WriteDirectlyToSurface = false;
 
-	// Application display mode
-	DWORD displayModeWidth = 0;
-	DWORD displayModeHeight = 0;
+	// Display resolution
+	DWORD displayWidth = 0;
+	DWORD displayHeight = 0;
 
 	// Direct3D9 vars
 	LPDIRECT3DDEVICE9 *d3d9Device = nullptr;
@@ -50,7 +50,7 @@ public:
 		InitWrapper();
 	}
 	m_IDirectDrawSurfaceX(LPDIRECT3DDEVICE9 *lplpDevice, m_IDirectDrawX *Interface, DWORD Version, LPDDSURFACEDESC2 lpDDSurfaceDesc, DWORD Width, DWORD Height) :
-		d3d9Device(lplpDevice), ddrawParent(Interface), DirectXVersion(Version), displayModeWidth(Width), displayModeHeight(Height)
+		d3d9Device(lplpDevice), ddrawParent(Interface), DirectXVersion(Version), displayWidth(Width), displayHeight(Height)
 	{
 		ProxyInterface = nullptr;
 		WrapperInterface = nullptr;
@@ -68,6 +68,12 @@ public:
 
 		// Create Surface for d3d9
 		CreateD3d9Surface();
+
+		// Store surface
+		if (d3d9Device && *d3d9Device && ddrawParent)
+		{
+			ddrawParent->AddSurfaceToVector(this);
+		}
 	}
 	~m_IDirectDrawSurfaceX()
 	{
@@ -75,6 +81,12 @@ public:
 		{
 			delete rawVideoBuf;
 			rawVideoBuf = nullptr;
+		}
+
+		if (d3d9Device && *d3d9Device && ddrawParent)
+		{
+			ddrawParent->RemoveSurfaceFromVector(this);
+			ReleaseD9Surface();
 		}
 	}
 
@@ -90,7 +102,7 @@ public:
 		}
 
 		// Buffer size, always support 32bit
-		BufferSize = displayModeWidth * displayModeHeight * sizeof(INT32);
+		BufferSize = surfaceDesc2.dwWidth * surfaceDesc2.dwHeight * sizeof(INT32);
 
 		// Allocate the raw video buffer
 		rawVideoBuf = new BYTE[BufferSize];
@@ -200,7 +212,8 @@ public:
 	STDMETHOD(SetLOD)(THIS_ DWORD);
 	STDMETHOD(GetLOD)(THIS_ LPDWORD);
 	// Helper functions
-	void ReleaseD3d9();
 	void ReleaseD9Surface();
 	HRESULT CreateD3d9Surface();
+	bool CheckSurfaceRect(LPRECT lpRect);
+	HRESULT GetSurfaceAddress(D3DLOCKED_RECT *lpd3dlrect, bool Cleanup);
 };

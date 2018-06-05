@@ -94,7 +94,7 @@ HRESULT m_IDirect3DMaterialX::SetMaterial(LPD3DMATERIAL lpMat)
 
 		if (lpMat->hTexture)
 		{
-			Logging::Log() << __FUNCTION__ << " D3DMATERIALHANDLE Not Implimented";
+			Logging::Log() << __FUNCTION__ << " D3DMATERIALHANDLE Not Implemented";
 		}
 
 		ConvertMaterial(tmpMaterial, *lpMat);
@@ -113,7 +113,7 @@ HRESULT m_IDirect3DMaterialX::GetMaterial(LPD3DMATERIAL lpMat)
 
 		HRESULT hr = D3DDeviceInterface->GetMaterial(&tmpMaterial);
 
-		Logging::Log() << __FUNCTION__ << " D3DMATERIALHANDLE Not Implimented";
+		Logging::Log() << __FUNCTION__ << " D3DMATERIALHANDLE Not Implemented";
 		ConvertMaterial(tmpMaterial, *lpMat);
 
 		return hr;
@@ -130,7 +130,7 @@ HRESULT m_IDirect3DMaterialX::GetHandle(LPDIRECT3DDEVICE3 lpDirect3DDevice, LPD3
 
 		lpHandle = nullptr;
 
-		Logging::Log() << __FUNCTION__ << " D3DMATERIALHANDLE Not Implimented";
+		Logging::Log() << __FUNCTION__ << " D3DMATERIALHANDLE Not Implemented";
 		return D3D_OK;
 	}
 
@@ -146,7 +146,7 @@ HRESULT m_IDirect3DMaterialX::Reserve()
 {
 	if (ProxyDirectXVersion != 1)
 	{
-		Logging::Log() << __FUNCTION__ << " Not Implimented";
+		Logging::Log() << __FUNCTION__ << " Not Implemented";
 		return E_NOTIMPL;
 	}
 
@@ -157,7 +157,7 @@ HRESULT m_IDirect3DMaterialX::Unreserve()
 {
 	if (ProxyDirectXVersion != 1)
 	{
-		Logging::Log() << __FUNCTION__ << " Not Implimented";
+		Logging::Log() << __FUNCTION__ << " Not Implemented";
 		return E_NOTIMPL;
 	}
 

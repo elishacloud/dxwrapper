@@ -112,7 +112,7 @@ HRESULT m_IDirect3DViewportX::SetViewport(LPD3DVIEWPORT lpData)
 
 		if (lpData->dwSize > 44 && (lpData->dvScaleX != 0 || lpData->dvScaleY != 0))
 		{
-			Logging::Log() << __FUNCTION__ << " 'Scale homogeneous' Not Implimented";
+			Logging::Log() << __FUNCTION__ << " 'Scale homogeneous' Not Implemented";
 		}
 
 		return D3DDeviceInterface->SetViewport(&tmpViewport);
@@ -125,7 +125,7 @@ HRESULT m_IDirect3DViewportX::TransformVertices(DWORD dwVertexCount, LPD3DTRANSF
 {
 	if (ProxyDirectXVersion == 7)
 	{
-		Logging::Log() << __FUNCTION__ << " Not Implimented";
+		Logging::Log() << __FUNCTION__ << " Not Implemented";
 		return E_NOTIMPL;
 	}
 
@@ -136,7 +136,7 @@ HRESULT m_IDirect3DViewportX::LightElements(DWORD dwElementCount, LPD3DLIGHTDATA
 {
 	if (ProxyDirectXVersion == 7)
 	{
-		Logging::Log() << __FUNCTION__ << " Not Implimented";
+		Logging::Log() << __FUNCTION__ << " Not Implemented";
 		return E_NOTIMPL;
 	}
 
@@ -147,7 +147,7 @@ HRESULT m_IDirect3DViewportX::SetBackground(D3DMATERIALHANDLE hMat)
 {
 	if (ProxyDirectXVersion == 7)
 	{
-		Logging::Log() << __FUNCTION__ << " Not Implimented";
+		Logging::Log() << __FUNCTION__ << " Not Implemented";
 		return E_NOTIMPL;
 	}
 
@@ -158,7 +158,7 @@ HRESULT m_IDirect3DViewportX::GetBackground(LPD3DMATERIALHANDLE lphMat, LPBOOL l
 {
 	if (ProxyDirectXVersion == 7)
 	{
-		Logging::Log() << __FUNCTION__ << " Not Implimented";
+		Logging::Log() << __FUNCTION__ << " Not Implemented";
 		return E_NOTIMPL;
 	}
 
@@ -169,7 +169,7 @@ HRESULT m_IDirect3DViewportX::SetBackgroundDepth(LPDIRECTDRAWSURFACE lpDDSurface
 {
 	if (ProxyDirectXVersion == 7)
 	{
-		Logging::Log() << __FUNCTION__ << " Not Implimented";
+		Logging::Log() << __FUNCTION__ << " Not Implemented";
 		return E_NOTIMPL;
 	}
 
@@ -185,7 +185,7 @@ HRESULT m_IDirect3DViewportX::GetBackgroundDepth(LPDIRECTDRAWSURFACE * lplpDDSur
 {
 	if (ProxyDirectXVersion == 7)
 	{
-		Logging::Log() << __FUNCTION__ << " Not Implimented";
+		Logging::Log() << __FUNCTION__ << " Not Implemented";
 		return E_NOTIMPL;
 	}
 
@@ -213,7 +213,7 @@ HRESULT m_IDirect3DViewportX::AddLight(LPDIRECT3DLIGHT lpDirect3DLight)
 {
 	if (ProxyDirectXVersion == 7)
 	{
-		Logging::Log() << __FUNCTION__ << " Not Implimented";
+		Logging::Log() << __FUNCTION__ << " Not Implemented";
 		return E_NOTIMPL;
 	}
 
@@ -229,7 +229,7 @@ HRESULT m_IDirect3DViewportX::DeleteLight(LPDIRECT3DLIGHT lpDirect3DLight)
 {
 	if (ProxyDirectXVersion == 7)
 	{
-		Logging::Log() << __FUNCTION__ << " Not Implimented";
+		Logging::Log() << __FUNCTION__ << " Not Implemented";
 		return E_NOTIMPL;
 	}
 
@@ -245,7 +245,7 @@ HRESULT m_IDirect3DViewportX::NextLight(LPDIRECT3DLIGHT lpDirect3DLight, LPDIREC
 {
 	if (ProxyDirectXVersion == 7)
 	{
-		Logging::Log() << __FUNCTION__ << " Not Implimented";
+		Logging::Log() << __FUNCTION__ << " Not Implemented";
 		return E_NOTIMPL;
 	}
 
@@ -290,7 +290,7 @@ HRESULT m_IDirect3DViewportX::SetViewport2(LPD3DVIEWPORT2 lpData)
 
 		if (lpData->dwSize > 44 && (lpData->dvClipX != 0 || lpData->dvClipY != 0))
 		{
-			Logging::Log() << __FUNCTION__ << " 'clip volume' Not Implimented";
+			Logging::Log() << __FUNCTION__ << " 'clip volume' Not Implemented";
 		}
 
 		return D3DDeviceInterface->SetViewport(&tmpViewport);
@@ -303,7 +303,7 @@ HRESULT m_IDirect3DViewportX::SetBackgroundDepth2(LPDIRECTDRAWSURFACE4 lpDDS)
 {
 	if (ProxyDirectXVersion == 7)
 	{
-		Logging::Log() << __FUNCTION__ << " Not Implimented";
+		Logging::Log() << __FUNCTION__ << " Not Implemented";
 		return E_NOTIMPL;
 	}
 
@@ -319,7 +319,7 @@ HRESULT m_IDirect3DViewportX::GetBackgroundDepth2(LPDIRECTDRAWSURFACE4 * lplpDDS
 {
 	if (ProxyDirectXVersion == 7)
 	{
-		Logging::Log() << __FUNCTION__ << " Not Implimented";
+		Logging::Log() << __FUNCTION__ << " Not Implemented";
 		return E_NOTIMPL;
 	}
 

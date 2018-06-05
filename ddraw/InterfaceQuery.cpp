@@ -91,7 +91,7 @@ HRESULT ProxyQueryInterface(LPVOID ProxyInterface, REFIID CalledID, LPVOID * ppv
 
 	if (Config.Dd7to9 || !ProxyInterface)
 	{
-		Logging::Log() << __FUNCTION__ << " Query Not Implimented for " << CalledID << " from " << WrapperID;
+		Logging::Log() << __FUNCTION__ << " Query Not Implemented for " << CalledID << " from " << WrapperID;
 
 		return E_NOINTERFACE;
 	}

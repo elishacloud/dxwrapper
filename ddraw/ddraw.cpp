@@ -39,7 +39,7 @@ void WINAPI dd_AcquireDDThreadLock()
 {
 	if (Config.Dd7to9)
 	{
-		Logging::Log() << __FUNCTION__ << " Not Implimented";
+		Logging::Log() << __FUNCTION__ << " Not Implemented";
 		return;
 	}
 
@@ -53,7 +53,7 @@ void WINAPI dd_AcquireDDThreadLock()
 #pragma warning(suppress: 4740)
 void __declspec(naked) dd_CompleteCreateSysmemSurface()
 {
-	Logging::LogFormat("CompleteCreateSysmemSurface Not Implimented");
+	Logging::LogFormat("CompleteCreateSysmemSurface Not Implemented");
 	_asm jmp CompleteCreateSysmemSurface_out;
 }
 
@@ -61,7 +61,7 @@ HRESULT WINAPI dd_D3DParseUnknownCommand(LPVOID lpCmd, LPVOID *lpRetCmd)
 {
 	if (Config.Dd7to9)
 	{
-		Logging::Log() << __FUNCTION__ << " Not Implimented";
+		Logging::Log() << __FUNCTION__ << " Not Implemented";
 		return E_NOTIMPL;
 	}
 
@@ -75,28 +75,28 @@ HRESULT WINAPI dd_D3DParseUnknownCommand(LPVOID lpCmd, LPVOID *lpRetCmd)
 #pragma warning(suppress: 4740)
 void __declspec(naked) dd_DDGetAttachedSurfaceLcl()
 {
-	Logging::LogFormat("DDGetAttachedSurfaceLcl Not Implimented");
+	Logging::LogFormat("DDGetAttachedSurfaceLcl Not Implemented");
 	_asm jmp DDGetAttachedSurfaceLcl_out;
 }
 
 #pragma warning(suppress: 4740)
 void __declspec(naked) dd_DDInternalLock()
 {
-	Logging::LogFormat("DDInternalLock Not Implimented");
+	Logging::LogFormat("DDInternalLock Not Implemented");
 	_asm jmp DDInternalLock_out;
 }
 
 #pragma warning(suppress: 4740)
 void __declspec(naked) dd_DDInternalUnlock()
 {
-	Logging::LogFormat("DDInternalUnlock Not Implimented");
+	Logging::LogFormat("DDInternalUnlock Not Implemented");
 	_asm jmp DDInternalUnlock_out;
 }
 
 #pragma warning(suppress: 4740)
 void __declspec(naked) dd_DSoundHelp()
 {
-	Logging::LogFormat("DSoundHelp Not Implimented");
+	Logging::LogFormat("DSoundHelp Not Implemented");
 	_asm jmp DSoundHelp_out;
 }
 
@@ -146,7 +146,7 @@ HRESULT WINAPI dd_DirectDrawCreateClipper(DWORD dwFlags, LPDIRECTDRAWCLIPPER *lp
 {
 	if (Config.Dd7to9)
 	{
-		Logging::Log() << __FUNCTION__ << " Not Implimented";
+		Logging::Log() << __FUNCTION__ << " Not Implemented";
 		return E_NOTIMPL;
 	}
 
@@ -248,7 +248,7 @@ HRESULT WINAPI dd_DirectDrawEnumerateA(LPDDENUMCALLBACKA lpCallback, LPVOID lpCo
 {
 	if (Config.Dd7to9)
 	{
-		Logging::Log() << __FUNCTION__ << " Not Implimented";
+		Logging::Log() << __FUNCTION__ << " Not Implemented";
 		return E_NOTIMPL;
 	}
 
@@ -263,7 +263,7 @@ HRESULT WINAPI dd_DirectDrawEnumerateExA(LPDDENUMCALLBACKEXA lpCallback, LPVOID 
 {
 	if (Config.Dd7to9)
 	{
-		Logging::Log() << __FUNCTION__ << " Not Implimented";
+		Logging::Log() << __FUNCTION__ << " Not Implemented";
 		return E_NOTIMPL;
 	}
 
@@ -278,7 +278,7 @@ HRESULT WINAPI dd_DirectDrawEnumerateExW(LPDDENUMCALLBACKEXW lpCallback, LPVOID 
 {
 	if (Config.Dd7to9)
 	{
-		Logging::Log() << __FUNCTION__ << " Not Implimented";
+		Logging::Log() << __FUNCTION__ << " Not Implemented";
 		return E_NOTIMPL;
 	}
 
@@ -293,7 +293,7 @@ HRESULT WINAPI dd_DirectDrawEnumerateW(LPDDENUMCALLBACKW lpCallback, LPVOID lpCo
 {
 	if (Config.Dd7to9)
 	{
-		Logging::Log() << __FUNCTION__ << " Not Implimented";
+		Logging::Log() << __FUNCTION__ << " Not Implemented";
 		return E_NOTIMPL;
 	}
 
@@ -308,7 +308,7 @@ HRESULT WINAPI dd_DllCanUnloadNow()
 {
 	if (Config.Dd7to9)
 	{
-		Logging::Log() << __FUNCTION__ << " Not Implimented";
+		Logging::Log() << __FUNCTION__ << " Not Implemented";
 		return E_NOTIMPL;
 	}
 
@@ -323,7 +323,7 @@ HRESULT WINAPI dd_DllGetClassObject(REFCLSID rclsid, REFIID riid, LPVOID *ppv)
 {
 	if (Config.Dd7to9)
 	{
-		Logging::Log() << __FUNCTION__ << " Not Implimented";
+		Logging::Log() << __FUNCTION__ << " Not Implemented";
 		return E_NOTIMPL;
 	}
 
@@ -345,14 +345,14 @@ HRESULT WINAPI dd_DllGetClassObject(REFCLSID rclsid, REFIID riid, LPVOID *ppv)
 #pragma warning(suppress: 4740)
 void __declspec(naked) dd_GetDDSurfaceLocal()
 {
-	Logging::LogFormat("GetDDSurfaceLocal Not Implimented");
+	Logging::LogFormat("GetDDSurfaceLocal Not Implemented");
 	_asm jmp GetDDSurfaceLocal_out;
 }
 
 #pragma warning(suppress: 4740)
 void __declspec(naked) dd_GetOLEThunkData()
 {
-	Logging::LogFormat("GetOLEThunkData Not Implimented");
+	Logging::LogFormat("GetOLEThunkData Not Implemented");
 	_asm jmp GetOLEThunkData_out;
 }
 
@@ -360,7 +360,7 @@ HRESULT WINAPI dd_GetSurfaceFromDC(HDC hdc, LPDIRECTDRAWSURFACE7 *lpDDS)
 {
 	if (Config.Dd7to9)
 	{
-		Logging::Log() << __FUNCTION__ << " Not Implimented";
+		Logging::Log() << __FUNCTION__ << " Not Implemented";
 		return E_NOTIMPL;
 	}
 
@@ -382,7 +382,7 @@ HRESULT WINAPI dd_GetSurfaceFromDC(HDC hdc, LPDIRECTDRAWSURFACE7 *lpDDS)
 #pragma warning(suppress: 4740)
 void __declspec(naked) dd_RegisterSpecialCase()
 {
-	Logging::LogFormat("RegisterSpecialCase Not Implimented");
+	Logging::LogFormat("RegisterSpecialCase Not Implemented");
 	_asm jmp RegisterSpecialCase_out;
 }
 
@@ -390,7 +390,7 @@ void WINAPI dd_ReleaseDDThreadLock()
 {
 	if (Config.Dd7to9)
 	{
-		Logging::Log() << __FUNCTION__ << " Not Implimented";
+		Logging::Log() << __FUNCTION__ << " Not Implemented";
 		return;
 	}
 
@@ -405,7 +405,7 @@ HRESULT WINAPI dd_SetAppCompatData(DWORD Type, DWORD Value)
 {
 	if (Config.Dd7to9)
 	{
-		Logging::Log() << __FUNCTION__ << " Not Implimented";
+		Logging::Log() << __FUNCTION__ << " Not Implemented";
 		return E_NOTIMPL;
 	}
 
