@@ -136,6 +136,13 @@ HRESULT m_IDirectDrawSurfaceX::Blt(LPRECT lpDestRect, LPDIRECTDRAWSURFACE7 lpDDS
 {
 	if (Config.Dd7to9)
 	{
+		// Check for required DDBLTFX structure
+		if (!lpDDBltFx && (dwFlags & (DDBLT_DDFX | DDBLT_COLORFILL | DDBLT_DEPTHFILL | DDBLT_DDROPS | DDBLT_KEYDESTOVERRIDE | DDBLT_KEYSRCOVERRIDE | DDBLT_ROP | DDBLT_ROTATIONANGLE)))
+		{
+			Logging::Log() << __FUNCTION__ << " DDBLTFX structure not found";
+			return DDERR_UNSUPPORTED;
+		}
+
 		// Check for fill flags
 		if (dwFlags & (DDBLT_COLORFILL | DDBLT_DEPTHFILL))
 		{
@@ -169,13 +176,6 @@ HRESULT m_IDirectDrawSurfaceX::Blt(LPRECT lpDestRect, LPDIRECTDRAWSURFACE7 lpDDS
 		{
 			Logging::Log() << __FUNCTION__ << " ZBuffer Not Implemented";
 			return DDERR_NOZBUFFERHW;
-		}
-
-		// Check for invalid DDBLTFX structure
-		if ((dwFlags & (DDBLT_DDFX)) & !lpDDBltFx)
-		{
-			Logging::Log() << __FUNCTION__ << " No DDBLTFX structure found";
-			return DDERR_UNSUPPORTED;
 		}
 
 		// Check for FX flag
