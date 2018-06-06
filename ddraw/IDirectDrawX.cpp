@@ -1114,7 +1114,7 @@ bool m_IDirectDrawX::ReinitDevice()
 	ReleaseAllD9Surfaces();
 
 	// Attempt to reset the device
-	if (d3d9Device->Reset(&presParams) != D3D_OK)
+	if (!d3d9Device->Reset(&presParams))
 	{
 		Logging::Log() << __FUNCTION__ << " Failed to reset Direct3D9 device";
 		return false;

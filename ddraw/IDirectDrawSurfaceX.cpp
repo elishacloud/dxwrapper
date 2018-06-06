@@ -143,46 +143,53 @@ HRESULT m_IDirectDrawSurfaceX::Blt(LPRECT lpDestRect, LPDIRECTDRAWSURFACE7 lpDDS
 			return DDERR_UNSUPPORTED;
 		}
 
-		// Check for fill flags
-		if (dwFlags & (DDBLT_COLORFILL | DDBLT_DEPTHFILL))
-		{
-			Logging::Log() << __FUNCTION__ << " Color and Depth Fill operations Not Implemented";
-			return DDERR_UNSUPPORTED;
-		}
-
-		// Check for color code flags
+		// Check for color key flags
 		if (dwFlags & (DDBLT_KEYDESTOVERRIDE | DDBLT_KEYSRCOVERRIDE | DDBLT_KEYDEST | DDBLT_KEYSRC))
 		{
-			Logging::Log() << __FUNCTION__ << " Color Code Not Implemented";
+			Logging::Log() << __FUNCTION__ << " Color Key Not Implemented";
 			return DDERR_UNSUPPORTED;
 		}
 
-		// Check for raster operations flags
-		if (dwFlags & (DDBLT_DDROPS | DDBLT_ROP))
+		// Check for DDROP flag
+		if (dwFlags & DDBLT_DDROPS)
+		{
+			Logging::Log() << __FUNCTION__ << " DDROP Not Implemented";
+			return DDERR_NODDROPSHW;
+		}
+
+		// Check for raster operations flag
+		if (dwFlags & DDBLT_ROP)
 		{
 			Logging::Log() << __FUNCTION__ << " Raster operations Not Implemented";
 			return DDERR_NORASTEROPHW;
 		}
 
-		// Check for rotation flag
-		if (dwFlags & (DDBLT_ROTATIONANGLE))
-		{
-			Logging::Log() << __FUNCTION__ << " Rotation operations Not Implemented";
-			return DDERR_NOROTATIONHW;
-		}
-
-		// Check for ZBuffer flag
-		if (dwFlags & (DDBLT_ZBUFFER))
+		// Check for ZBuffer flags
+		if ((dwFlags & (DDBLT_DEPTHFILL | DDBLT_ZBUFFER)) || ((dwFlags & DDBLT_DDFX) && (lpDDBltFx->dwDDFX & (DDBLTFX_ZBUFFERBASEDEST | DDBLTFX_ZBUFFERRANGE))))
 		{
 			Logging::Log() << __FUNCTION__ << " ZBuffer Not Implemented";
 			return DDERR_NOZBUFFERHW;
 		}
 
-		// Check for FX flag
-		if (dwFlags & (DDBLT_DDFX))
+		// Check for rotation flags
+		if ((dwFlags & DDBLT_ROTATIONANGLE) || ((dwFlags & DDBLT_DDFX) && (lpDDBltFx->dwDDFX & (DDBLTFX_ROTATE180 | DDBLTFX_ROTATE270 | DDBLTFX_ROTATE90))))
 		{
-			Logging::Log() << __FUNCTION__ << " FX operations Not Implemented";
-			return DDERR_UNSUPPORTED;
+			Logging::Log() << __FUNCTION__ << " Rotation operations Not Implemented";
+			return DDERR_NOROTATIONHW;
+		}
+
+		// Check for FX mirror flags
+		if ((dwFlags & DDBLT_DDFX) && (lpDDBltFx->dwDDFX & (DDBLTFX_MIRRORLEFTRIGHT | DDBLTFX_MIRRORUPDOWN)))
+		{
+			Logging::Log() << __FUNCTION__ << " Mirror operations Not Implemented";
+			return DDERR_NOMIRRORHW;
+		}
+
+		// Check for FX flag
+		if ((dwFlags & DDBLT_DDFX) && (lpDDBltFx->dwDDFX & DDBLTFX_ARITHSTRETCHY))
+		{
+			Logging::Log() << __FUNCTION__ << " Stretch operations Not Implemented";
+			return DDERR_NOSTRETCHHW;
 		}
 
 		// Unused flags (can be safely ignored?)
@@ -190,12 +197,13 @@ HRESULT m_IDirectDrawSurfaceX::Blt(LPRECT lpDestRect, LPDIRECTDRAWSURFACE7 lpDDS
 		// DDBLT_ASYNC
 		// DDBLT_DONOTWAIT
 		// DDBLT_WAIT
+		// DDBLTFX_NOTEARING
 
 		// Check for device
 		if (!d3d9Device || !*d3d9Device || !ddrawParent)
 		{
 			Logging::Log() << __FUNCTION__ << " D3d9 Device not setup.";
-			return DDERR_INVALIDOBJECT;
+			return DDERR_GENERIC;
 		}
 
 		// Check if Source Surface exists
@@ -247,17 +255,18 @@ HRESULT m_IDirectDrawSurfaceX::Blt(LPRECT lpDestRect, LPDIRECTDRAWSURFACE7 lpDDS
 		if (DestRect.right - DestRect.left != SrcRect.right - SrcRect.left ||
 			DestRect.bottom - DestRect.top != SrcRect.bottom - SrcRect.top)
 		{
-			Logging::Log() << __FUNCTION__ << " Error, stretching rects not Implemented";
-			return DDERR_NOSTRETCHHW;
+			Logging::Log() << __FUNCTION__ << " Error, source and destination rect sizes are different";
+			return DDERR_GENERIC;
 		}
 
 		// Get surface memory address and pitch
 		D3DLOCKED_RECT SrcLRect = { NULL };
 		D3DLOCKED_RECT DestLRect = { NULL };
 
-		// Get destination memory address
+		// Get destination surface texture memory address
+		// Lock surface texture if it is not alreay locked
 		bool UnlockSrc = false, UnlockDest = false;
-		HRESULT hr = GetSurfaceAddress(&DestLRect, false);
+		HRESULT hr = GetSurfaceBitsAddress(&DestLRect, false);
 		if (hr == DDERR_LOCKEDSURFACES)
 		{
 			// Needed to lock surface to get address
@@ -273,7 +282,7 @@ HRESULT m_IDirectDrawSurfaceX::Blt(LPRECT lpDestRect, LPDIRECTDRAWSURFACE7 lpDDS
 		// Get source memory address
 		if (lpDDSrcSurfaceX != this)
 		{
-			hr = lpDDSrcSurfaceX->GetSurfaceAddress(&SrcLRect, false);
+			hr = lpDDSrcSurfaceX->GetSurfaceBitsAddress(&SrcLRect, false);
 			if (hr == DDERR_LOCKEDSURFACES)
 			{
 				// Needed to lock surface to get address
@@ -302,27 +311,74 @@ HRESULT m_IDirectDrawSurfaceX::Blt(LPRECT lpDestRect, LPDIRECTDRAWSURFACE7 lpDDS
 		// Do basic Blt operation
 		if (SUCCEEDED(hr))
 		{
-			DWORD ByteSize = DestLRect.Pitch / surfaceDesc2.dwWidth;
-			for (LONG y = 0; y < DestRect.bottom - DestRect.top; y++)
+			// Do color fill
+			if (dwFlags & DDBLT_COLORFILL)
 			{
-				memcpy((BYTE*)DestLRect.pBits + ((y + DestRect.top) * DestLRect.Pitch) + (DestRect.left * ByteSize),	// Destination video memory address
-					(BYTE*)SrcLRect.pBits + ((y + SrcRect.top) * SrcLRect.Pitch) + (SrcRect.left * ByteSize),			// Source video memory address
-					(DestRect.right - DestRect.left) * ByteSize);														// Size of bytes to write
+				DWORD ByteCount = DestLRect.Pitch / surfaceDesc2.dwWidth;
+				DWORD FillColor = 0;
+				if (attachedPalette && attachedPalette->rgbPalette && !WriteDirectlyToSurface)
+				{
+					FillColor = attachedPalette->rgbPalette[rawVideoBuf[lpDDBltFx->dwFillColor]];
+				}
+				else if (ByteCount == 2)
+				{
+					FillColor = lpDDBltFx->dwFillColor + (lpDDBltFx->dwFillColor << 16);
+				}
+				else if (ByteCount == 4)
+				{
+					FillColor = lpDDBltFx->dwFillColor;
+				}
+				else
+				{
+					Logging::Log() << __FUNCTION__ << " Error, could not find correct fill color for ByteCount " << ByteCount;
+				}
+				for (LONG y = 0; y < DestRect.bottom - DestRect.top; y++)
+				{
+					DWORD StartLocation = ((y + DestRect.top) * surfaceDesc2.dwWidth) + DestRect.left;
+					DWORD NumToWrite = DestRect.right - DestRect.left;
+					if (ByteCount == 4)
+					{
+						memset((DWORD*)DestLRect.pBits + StartLocation,		// Destination video memory address
+							FillColor,										// Fill color
+							NumToWrite);									// Size of bytes to write
+					}
+					else
+					{
+						for (DWORD x = 0; x < NumToWrite; x++)
+						{
+							memcpy((BYTE*)DestLRect.pBits + (StartLocation * ByteCount),		// Destination video memory address
+								(BYTE*)&FillColor,												// Fill color
+								ByteCount);														// Size of bytes to write
+						}
+					}
+				}
+			}
+
+			// Do surface Blt
+			else
+			{
+				DWORD ByteCount = DestLRect.Pitch / surfaceDesc2.dwWidth;
+				for (LONG y = 0; y < DestRect.bottom - DestRect.top; y++)
+				{
+					memcpy((BYTE*)DestLRect.pBits + ((y + DestRect.top) * DestLRect.Pitch) + (DestRect.left * ByteCount),	// Destination video memory address
+						(BYTE*)SrcLRect.pBits + ((y + SrcRect.top) * SrcLRect.Pitch) + (SrcRect.left * ByteCount),			// Source video memory address
+						(DestRect.right - DestRect.left) * ByteCount);														// Size of bytes to write
+				}
 			}
 		}
 
 		// Unlock surfaces if needed
 		if (UnlockDest)
 		{
-			GetSurfaceAddress(&DestLRect, true);
+			GetSurfaceBitsAddress(nullptr, true);
 		}
 		if (UnlockSrc)
 		{
-			lpDDSrcSurfaceX->GetSurfaceAddress(&SrcLRect, true);
+			lpDDSrcSurfaceX->GetSurfaceBitsAddress(nullptr, true);
 		}
 
 		// Return
-		return DD_OK;
+		return hr;
 	}
 
 	if (lpDDSrcSurface)
@@ -617,24 +673,9 @@ HRESULT m_IDirectDrawSurfaceX::GetDC(HDC FAR * lphDC)
 {
 	if (Config.Dd7to9)
 	{
-		if (d3d9Device && *d3d9Device)
-		{
-			IDirect3DSurface9 *pBackBuffer;
-			HRESULT hr = (*d3d9Device)->GetBackBuffer(0, 0, D3DBACKBUFFER_TYPE_MONO, &pBackBuffer);
-			if (SUCCEEDED(hr))
-			{
-				hr = pBackBuffer->GetDC(lphDC);
-				pBackBuffer->Release();
-				return hr;
-			}
-			else
-			{
-				Logging::Log() << __FUNCTION__ << " Failed to get BackBuffer error = " << hr;
-			}
-		}
-
-		Logging::Log() << __FUNCTION__ << " Failed to get d3d9Device";
-		return DDERR_GENERIC;
+		//Logging::Log() << __FUNCTION__ << " Not Implemented";
+		lphDC = nullptr;
+		return DD_OK;
 	}
 
 	return ProxyInterface->GetDC(lphDC);
@@ -861,13 +902,13 @@ HRESULT m_IDirectDrawSurfaceX::Lock(LPRECT lpDestRect, LPDDSURFACEDESC2 lpDDSurf
 		}
 
 		// Lock rect
-		if (SUCCEEDED(hr) && surfaceTexture)
+		if (SUCCEEDED(hr))
 		{
 			// Convert flags to d3d9
 			DWORD LockFlags = dwFlags & (D3DLOCK_DISCARD | D3DLOCK_DONOTWAIT | D3DLOCK_NO_DIRTY_UPDATE | D3DLOCK_NOOVERWRITE | D3DLOCK_NOSYSLOCK | D3DLOCK_READONLY);
 
 			// Lock full dynamic texture
-			hr = surfaceTexture->LockRect(0, &d3dlrect, ((lpDestRect) ? &LockDestRect : nullptr), LockFlags);
+			hr = surfaceTexture->LockRect(0, &d3dlrect, lpDestRect, LockFlags);
 			if (FAILED(hr))
 			{
 				d3dlrect.pBits = nullptr;
@@ -898,51 +939,6 @@ HRESULT m_IDirectDrawSurfaceX::Lock(LPRECT lpDestRect, LPDDSURFACEDESC2 lpDDSurf
 				lpDDSurfaceDesc2->lPitch = surfaceDesc2.dwWidth * (GetBitCount(surfaceDesc2.ddpfPixelFormat) / 8);
 			}
 		}
-
-		/*sprintf_s(message, 2048, "Unsupported lpDestRect[%d,%d,%d,%d]", lpDestRect->left, lpDestRect->top, lpDestRect->right, lpDestRect->bottom);
-
-		if(!lpDestRect)
-		{
-			debugMessage(2, "IDirectDrawSurfaceWrapper::Lock", message);
-		}
-		else
-		{
-			debugMessage(0, "IDirectDrawSurfaceWrapper::Lock", message);
-			// Is error, unsupported
-			return DDERR_GENERIC;
-		}*/
-
-		/*
-		DDLOCK_DONOTWAIT
-		On IDirectDrawSurface7 interfaces, the default is DDLOCK_WAIT. If you want to override the default and use time when the accelerator is busy (as denoted by the DDERR_WASSTILLDRAWING return value), use DDLOCK_DONOTWAIT.
-
-		DDLOCK_EVENT
-		Not currently implemented.
-
-		DDLOCK_NOOVERWRITE
-		New for DirectX 7.0. Used only with Direct3D vertex-buffer locks. Indicates that no vertices that were referred to in a draw operation since the start of the frame (or the last lock without this flag) are modified during the lock. This can be useful when you want only to append data to the vertex buffer.
-
-		DDLOCK_NOSYSLOCK
-		Do not take the Win16Mutex (also known as Win16Lock). This flag is ignored when locking the primary surface.
-
-		DDLOCK_DISCARDCONTENTS
-		New for DirectX 7.0. Used only with Direct3D vertex-buffer locks. Indicates that no assumptions are made about the contents of the vertex buffer during this lock. This enables Direct3D or the driver to provide an alternative memory area as the vertex buffer. This is useful when you plan to clear the contents of the vertex buffer and fill in new data.
-
-		DDLOCK_OKTOSWAP
-		This flag is obsolete and was replaced by the DDLOCK_DISCARDCONTENTS flag.
-
-		DDLOCK_READONLY
-		Indicates that the surface being locked can only be read.
-
-		DDLOCK_SURFACEMEMORYPTR
-		Indicates that a valid memory pointer to the top of the specified rectangle should be returned. If no rectangle is specified, a pointer to the top of the surface is returned. This is the default.
-
-		DDLOCK_WAIT
-		If a lock cannot be obtained because a bit block transfer (bitblt) operation is in progress, Lock retries until a lock is obtained or another error occurs, such as DDERR_SURFACEBUSY.
-
-		DDLOCK_WRITEONLY
-		Indicates that the surface being locked is write-enabled.
-		*/
 	}
 	else
 	{
@@ -963,8 +959,8 @@ HRESULT m_IDirectDrawSurfaceX::ReleaseDC(HDC hDC)
 {
 	if (Config.Dd7to9)
 	{
-		Logging::Log() << __FUNCTION__ << " Not Implemented";
-		return E_NOTIMPL;
+		//Logging::Log() << __FUNCTION__ << " Not Implemented";
+		return DD_OK;
 	}
 
 	return ProxyInterface->ReleaseDC(hDC);
@@ -1514,7 +1510,11 @@ HRESULT m_IDirectDrawSurfaceX::CreateD3d9Surface()
 	IDirect3D9 *d3d9Object = ddrawParent->GetDirect3D();
 
 	// Get usage
-	DWORD Usage = D3DUSAGE_DYNAMIC;
+	DWORD Usage = 0;
+	if ((surfaceDesc2.ddsCaps.dwCaps2 & DDSCAPS2_HINTSTATIC) == 0 || (surfaceDesc2.ddsCaps.dwCaps2 & DDSCAPS2_HINTDYNAMIC))
+	{
+		Usage |= D3DUSAGE_DYNAMIC;
+	}
 	if (surfaceDesc2.ddsCaps.dwCaps & DDSCAPS_MIPMAP)
 	{
 		Usage |= D3DUSAGE_AUTOGENMIPMAP;
@@ -1530,7 +1530,8 @@ HRESULT m_IDirectDrawSurfaceX::CreateD3d9Surface()
 	{
 		Pool = D3DPOOL_SYSTEMMEM;
 	}
-	else if ((surfaceDesc2.ddsCaps.dwCaps & (DDSCAPS_VIDEOMEMORY | DDSCAPS_NONLOCALVIDMEM)) || (surfaceDesc2.ddsCaps.dwCaps2 & (DDSCAPS2_TEXTUREMANAGE | DDSCAPS2_D3DTEXTUREMANAGE)))
+	else if (((surfaceDesc2.ddsCaps.dwCaps & (DDSCAPS_VIDEOMEMORY | DDSCAPS_NONLOCALVIDMEM)) || (surfaceDesc2.ddsCaps.dwCaps2 & (DDSCAPS2_TEXTUREMANAGE | DDSCAPS2_D3DTEXTUREMANAGE))) &&
+		((Usage & D3DUSAGE_DYNAMIC) == 0))		// D3DPOOL_MANAGED cannot be used with D3DUSAGE_DYNAMIC
 	{
 		Pool = D3DPOOL_MANAGED;
 	}
@@ -1576,8 +1577,6 @@ HRESULT m_IDirectDrawSurfaceX::CreateD3d9Surface()
 	// DDSCAPS_OPTIMIZED
 	// DDSCAPS_STANDARDVGAMODE
 	// DDSCAPS2_HINTANTIALIASING
-	// DDSCAPS2_HINTDYNAMIC = D3DUSAGE_DYNAMIC
-	// DDSCAPS2_HINTSTATIC
 	// DDSCAPS2_MIPMAPSUBLEVEL
 
 	// Get format
@@ -1730,10 +1729,10 @@ bool m_IDirectDrawSurfaceX::CheckSurfaceRect(LPRECT lpRect)
 		lpRect->right > (LONG)surfaceDesc2.dwWidth || lpRect->bottom > (LONG)surfaceDesc2.dwHeight);
 }
 
-HRESULT m_IDirectDrawSurfaceX::GetSurfaceAddress(D3DLOCKED_RECT *lpd3dlrect, bool Cleanup)
+HRESULT m_IDirectDrawSurfaceX::GetSurfaceBitsAddress(D3DLOCKED_RECT *lpd3dlrect, bool UnlockRectFlag)
 {
 	// Check if need to relock the rect
-	if (Cleanup)
+	if (UnlockRectFlag)
 	{
 		if (surfaceTexture)
 		{

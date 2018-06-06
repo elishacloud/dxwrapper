@@ -215,5 +215,5 @@ public:
 	void ReleaseD9Surface();
 	HRESULT CreateD3d9Surface();
 	bool CheckSurfaceRect(LPRECT lpRect);
-	HRESULT GetSurfaceAddress(D3DLOCKED_RECT *lpd3dlrect, bool Cleanup);
+	HRESULT GetSurfaceBitsAddress(D3DLOCKED_RECT *lpd3dlrect, bool UnlockRectFlag);
 };
