@@ -320,11 +320,7 @@ HRESULT m_IDirectDrawSurfaceX::Blt(LPRECT lpDestRect, LPDIRECTDRAWSURFACE7 lpDDS
 				{
 					FillColor = attachedPalette->rgbPalette[rawVideoBuf[lpDDBltFx->dwFillColor]];
 				}
-				else if (ByteCount == 2)
-				{
-					FillColor = lpDDBltFx->dwFillColor + (lpDDBltFx->dwFillColor << 16);
-				}
-				else if (ByteCount == 4)
+				else if (ByteCount <= 4)
 				{
 					FillColor = lpDDBltFx->dwFillColor;
 				}
@@ -895,11 +891,8 @@ HRESULT m_IDirectDrawSurfaceX::Lock(LPRECT lpDestRect, LPDDSURFACEDESC2 lpDDSurf
 			hr = DD_OK;
 		}
 
-		// If primary surface then BegineScene
-		if (SUCCEEDED(hr) && (surfaceDesc2.ddsCaps.dwCaps & DDSCAPS_PRIMARYSURFACE) && ddrawParent && surfaceTexture)
-		{
-			hr = ddrawParent->BeginScene(this);
-		}
+		// Try BegineScene
+		hr = ddrawParent->BeginScene(this);
 
 		// Lock rect
 		if (SUCCEEDED(hr))
@@ -914,6 +907,7 @@ HRESULT m_IDirectDrawSurfaceX::Lock(LPRECT lpDestRect, LPDDSURFACEDESC2 lpDDSurf
 				d3dlrect.pBits = nullptr;
 				Logging::Log() << __FUNCTION__ << " Failed to lock texture memory";
 			}
+			IsLocked = true;
 		}
 
 		// Set desc and video memory
@@ -1229,27 +1223,15 @@ HRESULT m_IDirectDrawSurfaceX::Unlock(LPRECT lpRect)
 			Logging::Log() << __FUNCTION__ << " Failed to unlock texture memory";
 			return hr;
 		}
-
+		IsLocked = false;
 		d3dlrect.pBits = nullptr;
 
-		// If primary surface then EndScene
-		if ((surfaceDesc2.ddsCaps.dwCaps & DDSCAPS_PRIMARYSURFACE) && ddrawParent && surfaceTexture)
+		// Try EndScene
+		hr = ddrawParent->EndScene(this);
+		if (FAILED(hr))
 		{
-			// Set texture
-			hr = (*d3d9Device)->SetTexture(0, surfaceTexture);
-			if (FAILED(hr))
-			{
-				Logging::Log() << __FUNCTION__ << " Failed to set texture";
-				return hr;
-			}
-
-			// Present the surface if needed
-			hr = ddrawParent->EndScene(this);
-			if (FAILED(hr))
-			{
-				// Failed to presnt the surface, error reporting handled previously
-				return hr;
-			}
+			// Failed to present the surface, error reporting handled previously
+			return hr;
 		}
 
 		// Success
@@ -1584,19 +1566,20 @@ HRESULT m_IDirectDrawSurfaceX::CreateD3d9Surface()
 
 	// Test format
 	HRESULT hr = d3d9Object->CheckDeviceFormat(D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, Format, D3DUSAGE_QUERY_FILTER, D3DRTYPE_TEXTURE, Format);
+	// If test fails or there is a palette then write to memory buffer
 	if (FAILED(hr) || attachedPalette)
 	{
 		WriteDirectlyToSurface = false;
 		Format = D3DFMT_X8R8G8B8;
 		AlocateVideoBuffer();
 	}
+	// Write directly to surface texture
 	else
 	{
-		//Logging::Log() << __FUNCTION__ << " write directly to texture " << Format;
 		WriteDirectlyToSurface = true;
 	}
 
-	// Create managed dynamic texture to allow locking (debug as video size but change to display size)
+	// Create surface texture
 	hr = (*d3d9Device)->CreateTexture(surfaceDesc2.dwWidth, surfaceDesc2.dwHeight, 1, Usage, Format, Pool, &surfaceTexture, nullptr);
 	if (FAILED(hr))
 	{
@@ -1604,6 +1587,7 @@ HRESULT m_IDirectDrawSurfaceX::CreateD3d9Surface()
 		return hr;
 	}
 
+	// Only display texture if it is primary for now...
 	if ((surfaceDesc2.ddsCaps.dwCaps & DDSCAPS_PRIMARYSURFACE) == 0)
 	{
 		return DD_OK;
@@ -1649,23 +1633,11 @@ HRESULT m_IDirectDrawSurfaceX::CreateD3d9Surface()
 		return hr;
 	}
 
-	// Query the device to see if it supports anything other than point filtering
-	hr = d3d9Object->CheckDeviceFormat(D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, Format, D3DUSAGE_QUERY_FILTER, D3DRTYPE_TEXTURE, Format);
-
-	// Check for DeviceFormat failure
+	// Set scale mode to linear
+	hr = (*d3d9Device)->SetSamplerState(0, D3DSAMP_MAGFILTER, D3DTEXF_LINEAR);
 	if (FAILED(hr))
 	{
-		Logging::Log() << __FUNCTION__ << " Device doesn't support linear sampling";
-	}
-	else
-	{
-		// Set scale mode to linear
-		hr = (*d3d9Device)->SetSamplerState(0, D3DSAMP_MAGFILTER, D3DTEXF_LINEAR);
-		if (FAILED(hr))
-		{
-			Logging::Log() << __FUNCTION__ << " Failed to set D3D device to LINEAR sampling";
-			return hr;
-		}
+		Logging::Log() << __FUNCTION__ << " Failed to set D3D device to LINEAR sampling";
 	}
 
 	// Setup verticies (0,0,currentWidth,currentHeight)
@@ -1716,6 +1688,14 @@ HRESULT m_IDirectDrawSurfaceX::CreateD3d9Surface()
 	if (FAILED(hr))
 	{
 		Logging::Log() << __FUNCTION__ << " Unable to unlock vertex buffer";
+		return hr;
+	}
+
+	// Set texture
+	hr = (*d3d9Device)->SetTexture(0, surfaceTexture);
+	if (FAILED(hr))
+	{
+		Logging::Log() << __FUNCTION__ << " Failed to set texture";
 		return hr;
 	}
 

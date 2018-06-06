@@ -23,6 +23,7 @@ private:
 	DWORD BufferSize = 0;
 	BYTE *rawVideoBuf = nullptr;						// Virtual video buffer
 	bool WriteDirectlyToSurface = false;
+	bool IsLocked = false;
 
 	// Display resolution
 	DWORD displayWidth = 0;
@@ -155,6 +156,7 @@ public:
 	REFIID GetWrapperType() { return WrapperID; }
 	IDirectDrawSurface7 *GetProxyInterface() { return ProxyInterface; }
 	m_IDirectDrawSurface7 *GetWrapperInterface() { return WrapperInterface; }
+	bool IsSurfaceLocked() { return IsLocked; }
 
 	/*** IUnknown methods ***/
 	STDMETHOD(QueryInterface) (THIS_ REFIID riid, LPVOID FAR * ppvObj);

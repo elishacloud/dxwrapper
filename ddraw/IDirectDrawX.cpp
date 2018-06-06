@@ -1193,6 +1193,15 @@ HRESULT m_IDirectDrawX::BeginScene(m_IDirectDrawSurfaceX *pSurface)
 		return DDERR_SURFACELOST;
 	}
 
+	// Check if any surfaces are locked
+	for (m_IDirectDrawSurfaceX* it : SurfaceVector)
+	{
+		if (it->IsSurfaceLocked())
+		{
+			return DD_OK;
+		}
+	}
+
 	HRESULT hr = d3d9Device->BeginScene();
 	if (FAILED(hr))
 	{
@@ -1218,6 +1227,15 @@ HRESULT m_IDirectDrawX::EndScene(m_IDirectDrawSurfaceX *pSurface)
 	{
 		Logging::Log() << __FUNCTION__ << " called when texture doesn't exist";
 		return DDERR_SURFACELOST;
+	}
+
+	// Check if any surfaces are locked
+	for (m_IDirectDrawSurfaceX* it : SurfaceVector)
+	{
+		if (it->IsSurfaceLocked())
+		{
+			return DD_OK;
+		}
 	}
 
 	// Draw primitive
