@@ -216,6 +216,6 @@ public:
 	// Helper functions
 	void ReleaseD9Surface();
 	HRESULT CreateD3d9Surface();
-	bool CheckSurfaceRect(LPRECT lpRect);
+	bool CheckSurfaceRect(LPRECT lpInRect, LPRECT lpOutRect);
 	HRESULT GetSurfaceBitsAddress(D3DLOCKED_RECT *lpd3dlrect, bool UnlockRectFlag);
 };

@@ -143,6 +143,13 @@ HRESULT m_IDirectDrawSurfaceX::Blt(LPRECT lpDestRect, LPDIRECTDRAWSURFACE7 lpDDS
 			return DDERR_UNSUPPORTED;
 		}
 
+		// Check for device
+		if (!d3d9Device || !*d3d9Device || !ddrawParent)
+		{
+			Logging::Log() << __FUNCTION__ << " D3d9 Device not setup.";
+			return DDERR_GENERIC;
+		}
+
 		// Check for color key flags
 		if (dwFlags & (DDBLT_KEYDESTOVERRIDE | DDBLT_KEYSRCOVERRIDE | DDBLT_KEYDEST | DDBLT_KEYSRC))
 		{
@@ -199,13 +206,6 @@ HRESULT m_IDirectDrawSurfaceX::Blt(LPRECT lpDestRect, LPDIRECTDRAWSURFACE7 lpDDS
 		// DDBLT_WAIT
 		// DDBLTFX_NOTEARING
 
-		// Check for device
-		if (!d3d9Device || !*d3d9Device || !ddrawParent)
-		{
-			Logging::Log() << __FUNCTION__ << " D3d9 Device not setup.";
-			return DDERR_GENERIC;
-		}
-
 		// Check if Source Surface exists
 		m_IDirectDrawSurfaceX *lpDDSrcSurfaceX = (m_IDirectDrawSurfaceX*)lpDDSrcSurface;
 		if (!lpDDSrcSurfaceX)
@@ -218,55 +218,22 @@ HRESULT m_IDirectDrawSurfaceX::Blt(LPRECT lpDestRect, LPDIRECTDRAWSURFACE7 lpDDS
 			return DDERR_INVALIDPARAMS;
 		}
 
-		// Get source and dest Rect
+		// Check and copy source and dest Rect
 		RECT DestRect, SrcRect;
-		if (lpDestRect)
-		{
-			memcpy(&DestRect, lpDestRect, sizeof(RECT));
-		}
-		else
-		{
-			DestRect.top = 0;
-			DestRect.left = 0;
-			DestRect.right = surfaceDesc2.dwWidth;
-			DestRect.bottom = surfaceDesc2.dwHeight;
-		}
-		if (lpSrcRect)
-		{
-			memcpy(&SrcRect, lpSrcRect, sizeof(RECT));
-		}
-		else
-		{
-			// Assume the same size for both source and dest rects
-			SrcRect.top = 0;
-			SrcRect.left = 0;
-			SrcRect.right = surfaceDesc2.dwWidth;
-			SrcRect.bottom = surfaceDesc2.dwHeight;
-		}
-
-		// Check source and dest Rect
-		if (CheckSurfaceRect(&DestRect) || lpDDSrcSurfaceX->CheckSurfaceRect(&SrcRect))
+		if (!CheckSurfaceRect(lpDestRect, &DestRect) || !lpDDSrcSurfaceX->CheckSurfaceRect(lpSrcRect, &SrcRect))
 		{
 			Logging::Log() << __FUNCTION__ << " Error, invalid rect size";
 			return DDERR_INVALIDRECT;
 		}
 
-		// Verify that size of rects are equal
-		if (DestRect.right - DestRect.left != SrcRect.right - SrcRect.left ||
-			DestRect.bottom - DestRect.top != SrcRect.bottom - SrcRect.top)
-		{
-			Logging::Log() << __FUNCTION__ << " Error, source and destination rect sizes are different";
-			return DDERR_GENERIC;
-		}
-
 		// Get surface memory address and pitch
-		D3DLOCKED_RECT SrcLRect = { NULL };
-		D3DLOCKED_RECT DestLRect = { NULL };
+		D3DLOCKED_RECT SrcLockRect, DestLockRect;
 
 		// Get destination surface texture memory address
 		// Lock surface texture if it is not alreay locked
-		bool UnlockSrc = false, UnlockDest = false;
-		HRESULT hr = GetSurfaceBitsAddress(&DestLRect, false);
+		bool UnlockSrc = false;
+		bool UnlockDest = false;
+		HRESULT hr = GetSurfaceBitsAddress(&DestLockRect, false);
 		if (hr == DDERR_LOCKEDSURFACES)
 		{
 			// Needed to lock surface to get address
@@ -282,7 +249,7 @@ HRESULT m_IDirectDrawSurfaceX::Blt(LPRECT lpDestRect, LPDIRECTDRAWSURFACE7 lpDDS
 		// Get source memory address
 		if (lpDDSrcSurfaceX != this)
 		{
-			hr = lpDDSrcSurfaceX->GetSurfaceBitsAddress(&SrcLRect, false);
+			hr = lpDDSrcSurfaceX->GetSurfaceBitsAddress(&SrcLockRect, false);
 			if (hr == DDERR_LOCKEDSURFACES)
 			{
 				// Needed to lock surface to get address
@@ -297,12 +264,12 @@ HRESULT m_IDirectDrawSurfaceX::Blt(LPRECT lpDestRect, LPDIRECTDRAWSURFACE7 lpDDS
 		}
 		else
 		{
-			SrcLRect.pBits = DestLRect.pBits;
-			SrcLRect.Pitch = DestLRect.Pitch;
+			SrcLockRect.pBits = DestLockRect.pBits;
+			SrcLockRect.Pitch = DestLockRect.Pitch;
 		}
 
 		// Verify that pitch is the same
-		if (SUCCEEDED(hr) && DestLRect.Pitch != SrcLRect.Pitch)
+		if (SUCCEEDED(hr) && DestLockRect.Pitch != SrcLockRect.Pitch)
 		{
 			Logging::Log() << __FUNCTION__ << " Error, Blt using different surface formats not Implemented";
 			hr = DDERR_SURFACEBUSY;
@@ -311,10 +278,14 @@ HRESULT m_IDirectDrawSurfaceX::Blt(LPRECT lpDestRect, LPDIRECTDRAWSURFACE7 lpDDS
 		// Do basic Blt operation
 		if (SUCCEEDED(hr))
 		{
+			// Get width and height of blt
+			LONG BltWidth = min(DestRect.right - DestRect.left, SrcRect.right - SrcRect.left);
+			LONG BltHeight = min(DestRect.bottom - DestRect.top, SrcRect.bottom - SrcRect.top);
+
 			// Do color fill
 			if (dwFlags & DDBLT_COLORFILL)
 			{
-				DWORD ByteCount = DestLRect.Pitch / surfaceDesc2.dwWidth;
+				DWORD ByteCount = DestLockRect.Pitch / surfaceDesc2.dwWidth;
 				DWORD FillColor = 0;
 				if (attachedPalette && attachedPalette->rgbPalette && !WriteDirectlyToSurface)
 				{
@@ -328,21 +299,20 @@ HRESULT m_IDirectDrawSurfaceX::Blt(LPRECT lpDestRect, LPDIRECTDRAWSURFACE7 lpDDS
 				{
 					Logging::Log() << __FUNCTION__ << " Error, could not find correct fill color for ByteCount " << ByteCount;
 				}
-				for (LONG y = 0; y < DestRect.bottom - DestRect.top; y++)
+				for (LONG y = 0; y < BltHeight; y++)
 				{
 					DWORD StartLocation = ((y + DestRect.top) * surfaceDesc2.dwWidth) + DestRect.left;
-					DWORD NumToWrite = DestRect.right - DestRect.left;
 					if (ByteCount == 4)
 					{
-						memset((DWORD*)DestLRect.pBits + StartLocation,		// Destination video memory address
+						memset((DWORD*)DestLockRect.pBits + StartLocation,	// Destination video memory address
 							FillColor,										// Fill color
-							NumToWrite);									// Size of bytes to write
+							BltWidth);										// Size of bytes to write
 					}
 					else
 					{
-						for (DWORD x = 0; x < NumToWrite; x++)
+						for (LONG x = 0; x < BltWidth; x++)
 						{
-							memcpy((BYTE*)DestLRect.pBits + (StartLocation * ByteCount),		// Destination video memory address
+							memcpy((BYTE*)DestLockRect.pBits + (StartLocation * ByteCount),		// Destination video memory address
 								(BYTE*)&FillColor,												// Fill color
 								ByteCount);														// Size of bytes to write
 						}
@@ -353,12 +323,12 @@ HRESULT m_IDirectDrawSurfaceX::Blt(LPRECT lpDestRect, LPDIRECTDRAWSURFACE7 lpDDS
 			// Do surface Blt
 			else
 			{
-				DWORD ByteCount = DestLRect.Pitch / surfaceDesc2.dwWidth;
-				for (LONG y = 0; y < DestRect.bottom - DestRect.top; y++)
+				DWORD ByteCount = DestLockRect.Pitch / surfaceDesc2.dwWidth;
+				for (LONG y = 0; y < BltHeight; y++)
 				{
-					memcpy((BYTE*)DestLRect.pBits + ((y + DestRect.top) * DestLRect.Pitch) + (DestRect.left * ByteCount),	// Destination video memory address
-						(BYTE*)SrcLRect.pBits + ((y + SrcRect.top) * SrcLRect.Pitch) + (SrcRect.left * ByteCount),			// Source video memory address
-						(DestRect.right - DestRect.left) * ByteCount);														// Size of bytes to write
+					memcpy((BYTE*)DestLockRect.pBits + ((y + DestRect.top) * DestLockRect.Pitch) + (DestRect.left * ByteCount),	// Destination video memory address
+						(BYTE*)SrcLockRect.pBits + ((y + SrcRect.top) * SrcLockRect.Pitch) + (SrcRect.left * ByteCount),		// Source video memory address
+						BltWidth * ByteCount);																					// Size of bytes to write
 				}
 			}
 		}
@@ -1702,11 +1672,23 @@ HRESULT m_IDirectDrawSurfaceX::CreateD3d9Surface()
 	return hr;
 }
 
-bool m_IDirectDrawSurfaceX::CheckSurfaceRect(LPRECT lpRect)
+bool m_IDirectDrawSurfaceX::CheckSurfaceRect(LPRECT lpInRect, LPRECT lpOutRect)
 {
-	return (!lpRect || 
-		!(lpRect->left < lpRect->right || lpRect->top < lpRect->bottom) ||
-		lpRect->right > (LONG)surfaceDesc2.dwWidth || lpRect->bottom > (LONG)surfaceDesc2.dwHeight);
+	if (lpInRect)
+	{
+		memcpy(lpOutRect, lpInRect, sizeof(RECT));
+	}
+	else
+	{
+		lpOutRect->top = 0;
+		lpOutRect->left = 0;
+		lpOutRect->right = surfaceDesc2.dwWidth;
+		lpOutRect->bottom = surfaceDesc2.dwHeight;
+	}
+
+	return lpOutRect->left < lpOutRect->right && lpOutRect->top < lpOutRect->bottom &&
+		lpOutRect->left >= 0 && lpOutRect->top >= 0 &&
+		lpOutRect->right <= (LONG)surfaceDesc2.dwWidth && lpOutRect->bottom <= (LONG)surfaceDesc2.dwHeight;
 }
 
 HRESULT m_IDirectDrawSurfaceX::GetSurfaceBitsAddress(D3DLOCKED_RECT *lpd3dlrect, bool UnlockRectFlag)
