@@ -72,6 +72,7 @@ typedef void(WINAPI *ReleaseDDThreadLockProc)();
 typedef HRESULT(WINAPI *SetAppCompatDataProc)(DWORD, DWORD);
 typedef LPDIRECT3D9(WINAPI *PFN_Direct3DCreate9)(UINT SDKVersion);
 
+DWORD GetIIDVersion(REFIID CalledID);
 REFIID ConvertREFIID(REFIID riid);
 HRESULT ProxyQueryInterface(LPVOID ProxyInterface, REFIID CalledID, LPVOID * ppvObj, REFIID CallerID, LPVOID WrapperInterface);
 void genericQueryInterface(REFIID riid, LPVOID * ppvObj);

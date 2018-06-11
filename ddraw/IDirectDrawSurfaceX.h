@@ -133,12 +133,7 @@ public:
 		}
 		else
 		{
-			REFIID ProxyID = ConvertREFIID(WrapperID);
-			ProxyDirectXVersion = (ProxyID == IID_IDirectDrawSurface) ? 1 :
-				(ProxyID == IID_IDirectDrawSurface2) ? 2 :
-				(ProxyID == IID_IDirectDrawSurface3) ? 3 :
-				(ProxyID == IID_IDirectDrawSurface4) ? 4 :
-				(ProxyID == IID_IDirectDrawSurface7) ? 7 : 7;
+			ProxyDirectXVersion = GetIIDVersion(ConvertREFIID(WrapperID));
 		}
 
 		if (ProxyDirectXVersion > 3 && DirectXVersion < 4)

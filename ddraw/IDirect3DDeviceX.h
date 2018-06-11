@@ -18,11 +18,7 @@ public:
 			(DirectXVersion == 3) ? IID_IDirect3DDevice3 :
 			(DirectXVersion == 7) ? IID_IDirect3DDevice7 : IID_IDirect3DDevice7;
 
-		REFIID ProxyID = ConvertREFIID(WrapperID);
-		ProxyDirectXVersion = (ProxyID == IID_IDirect3DDevice) ? 1 :
-			(ProxyID == IID_IDirect3DDevice2) ? 2 :
-			(ProxyID == IID_IDirect3DDevice3) ? 3 :
-			(ProxyID == IID_IDirect3DDevice7) ? 7 : 7;
+		ProxyDirectXVersion = GetIIDVersion(ConvertREFIID(WrapperID));
 
 		if (ProxyDirectXVersion != DirectXVersion)
 		{

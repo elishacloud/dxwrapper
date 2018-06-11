@@ -17,6 +17,7 @@
 */
 
 #include "ddraw.h"
+#include "Utils\Utils.h"
 
 std::unordered_map<HWND, IDirectDraw7*> g_hookmap;
 
@@ -29,6 +30,12 @@ HRESULT m_IDirectDrawX::QueryInterface(REFIID riid, LPVOID FAR * ppvObj)
 			AddRef();
 
 			*ppvObj = this;
+
+			return S_OK;
+		}
+		if ((riid == IID_IDirect3D || riid == IID_IDirect3D2 || riid == IID_IDirect3D3 || riid == IID_IDirect3D7) && ppvObj)
+		{
+			*ppvObj = new m_IDirect3DX(&d3d9Device, this, GetIIDVersion(riid));
 
 			return S_OK;
 		}
@@ -239,8 +246,7 @@ HRESULT m_IDirectDrawX::CreateSurface(LPDDSURFACEDESC2 lpDDSurfaceDesc2, LPDIREC
 			lpDDSurfaceDesc2->ddpfPixelFormat.dwRGBBitCount = displayModeBPP;
 		}
 
-		m_IDirectDrawSurfaceX *lpSurfaceX = new m_IDirectDrawSurfaceX(&d3d9Device, this, DirectXVersion, lpDDSurfaceDesc2, displayWidth, displayHeight);
-		*lplpDDSurface = lpSurfaceX;
+		*lplpDDSurface = new m_IDirectDrawSurfaceX(&d3d9Device, this, DirectXVersion, lpDDSurfaceDesc2, displayWidth, displayHeight);
 
 		return DD_OK;
 	}
@@ -323,8 +329,8 @@ HRESULT m_IDirectDrawX::EnumDisplayModes(DWORD dwFlags, LPDDSURFACEDESC2 lpDDSur
 		D3DFORMAT Format;
 		D3DDISPLAYMODE d3ddispmode;
 
-		// Loop through all modes looking for the requested resolution
-		for (int x = 32; x > 7; x /= 2)
+		// Loop through each bit count
+		for (int x : {32, 16, 8})
 		{
 			// Set display bit count
 			if (DisplayAllModes || DisplayBitCount == 0)
@@ -350,6 +356,7 @@ HRESULT m_IDirectDrawX::EnumDisplayModes(DWORD dwFlags, LPDDSURFACEDESC2 lpDDSur
 			// Enumerate modes for format XRGB
 			UINT modeCount = d3d9Object->GetAdapterModeCount(D3DADAPTER_DEFAULT, Format);
 
+			// Loop through all modes
 			for (UINT i = 0; i < modeCount; i++)
 			{
 				// Get display modes
@@ -450,25 +457,11 @@ HRESULT m_IDirectDrawX::GetCaps(LPDDCAPS lpDDDriverCaps, LPDDCAPS lpDDHELCaps)
 
 	if (Config.Dd7to9)
 	{
-		ZeroMemory(&DriverCaps, sizeof(DDCAPS));
-		DriverCaps.dwSize = sizeof(DriverCaps);
-		DriverCaps.dwCaps = 0x85d277c1;
-		DriverCaps.dwCaps2 = 0xa06ab230;
-		DriverCaps.dwCKeyCaps = 0x2210;
-		DriverCaps.dwFXCaps = 0x3aad54e0;
-		DriverCaps.dwVidMemTotal = 0x8000000;		// Just hard code the memory size
-		DriverCaps.dwVidMemFree = 0x7e00000;		// Just hard code the memory size
-		DriverCaps.dwMaxVisibleOverlays = 0x1;
-		DriverCaps.dwNumFourCCCodes = 0x12;
-		DriverCaps.dwRops[6] = 4096;
-		DriverCaps.dwMinOverlayStretch = 0x1;
-		DriverCaps.dwMaxOverlayStretch = 0x4e20;
-		DriverCaps.ddsCaps.dwCaps = 809923324;
-		DriverCaps.ddsOldCaps.dwCaps = DriverCaps.ddsCaps.dwCaps;
+		D3DCAPS9 Caps9;
+		hr = d3d9Object->GetDeviceCaps(D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, &Caps9);
 
-		ConvertCaps(HELCaps, DriverCaps);
-
-		hr = DD_OK;
+		ConvertCaps(DriverCaps, Caps9);
+		ConvertCaps(HELCaps, Caps9);
 	}
 	else
 	{
@@ -685,8 +678,12 @@ HRESULT m_IDirectDrawX::SetCooperativeLevel(HWND hWnd, DWORD dwFlags)
 	{
 		if (!hWnd)
 		{
-			Logging::Log() << __FUNCTION__ << " Unimplemented for NULL window handle";
-			return DD_OK;
+			hWnd = GetTopWindow(Utils::Fullscreen::FindMainWindow(GetCurrentProcessId(), true));
+			if (!hWnd)
+			{
+				Logging::Log() << __FUNCTION__ << " Could not get window handle";
+				return DDERR_GENERIC;
+			}
 		}
 
 		// Set windowed mode
@@ -708,7 +705,7 @@ HRESULT m_IDirectDrawX::SetCooperativeLevel(HWND hWnd, DWORD dwFlags)
 
 		// Set ExclusiveMode
 		ExclusiveMode = false;
-		if ((dwFlags & DDSCL_EXCLUSIVE) && !isWindowed)
+		if (dwFlags & DDSCL_EXCLUSIVE)
 		{
 			ExclusiveMode = true;
 		}
@@ -903,9 +900,14 @@ HRESULT m_IDirectDrawX::TestCooperativeLevel()
 
 HRESULT m_IDirectDrawX::GetDeviceIdentifier(LPDDDEVICEIDENTIFIER2 lpdddi, DWORD dwFlags)
 {
+	if (!lpdddi)
+	{
+		return DDERR_INVALIDPARAMS;
+	}
+
 	LPDDDEVICEIDENTIFIER2 lpdddi_tmp = lpdddi;
 	DDDEVICEIDENTIFIER2 Id2 = {};
-	if (lpdddi && ProxyDirectXVersion == 7 && DirectXVersion < 7)
+	if (ProxyDirectXVersion > 4 && DirectXVersion < 7)
 	{
 		lpdddi = &Id2;
 	}
@@ -914,15 +916,22 @@ HRESULT m_IDirectDrawX::GetDeviceIdentifier(LPDDDEVICEIDENTIFIER2 lpdddi, DWORD 
 
 	if (Config.Dd7to9)
 	{
-		Logging::Log() << __FUNCTION__ << " Not Implemented";
-		hr = E_NOTIMPL;
+		D3DADAPTER_IDENTIFIER9 Identifier9;
+		hr = d3d9Object->GetAdapterIdentifier(D3DADAPTER_DEFAULT, D3DENUM_WHQL_LEVEL, &Identifier9);
+		if (FAILED(hr))
+		{
+			Logging::Log() << __FUNCTION__ << " Failed to get Adapter Identifier";
+			return false;
+		}
+
+		ConvertDeviceIdentifier(*lpdddi, Identifier9);
 	}
 	else
 	{
 		hr = ProxyInterface->GetDeviceIdentifier(lpdddi, dwFlags);
 	}
 
-	if (SUCCEEDED(hr) && lpdddi_tmp && ProxyDirectXVersion == 7 && DirectXVersion < 7)
+	if (SUCCEEDED(hr) && ProxyDirectXVersion > 4 && DirectXVersion < 7)
 	{
 		lpdddi = lpdddi_tmp;
 		ConvertDeviceIdentifier(*(LPDDDEVICEIDENTIFIER)lpdddi, Id2);

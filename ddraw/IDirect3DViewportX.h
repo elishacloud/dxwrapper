@@ -31,10 +31,7 @@ public:
 			(DirectXVersion == 2) ? IID_IDirect3DViewport2 :
 			(DirectXVersion == 3) ? IID_IDirect3DViewport3 : IID_IDirect3DViewport3;
 
-		REFIID ProxyID = ConvertREFIID(WrapperID);
-		ProxyDirectXVersion = (ProxyID == IID_IDirect3DViewport) ? 1 :
-			(ProxyID == IID_IDirect3DViewport2) ? 2 :
-			(ProxyID == IID_IDirect3DViewport3) ? 3 : 3;
+		ProxyDirectXVersion = GetIIDVersion(ConvertREFIID(WrapperID));
 
 		if (DirectXVersion == 7)
 		{

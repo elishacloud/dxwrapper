@@ -62,12 +62,7 @@ public:
 		}
 		else
 		{
-			REFIID ProxyID = ConvertREFIID(WrapperID);
-			ProxyDirectXVersion = (ProxyID == IID_IDirectDraw) ? 1 :
-				(ProxyID == IID_IDirectDraw2) ? 2 :
-				(ProxyID == IID_IDirectDraw3) ? 3 :
-				(ProxyID == IID_IDirectDraw4) ? 4 :
-				(ProxyID == IID_IDirectDraw7) ? 7 : 7;
+			ProxyDirectXVersion = GetIIDVersion(ConvertREFIID(WrapperID));
 		}
 
 		InterlockedExchangePointer((PVOID*)&CurrentDDInterface, ProxyInterface);

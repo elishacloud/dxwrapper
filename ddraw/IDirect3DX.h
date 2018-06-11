@@ -8,20 +8,38 @@ private:
 	DWORD DirectXVersion;
 	DWORD ProxyDirectXVersion;
 	IID WrapperID;
+	ULONG RefCount = 1;
+	m_IDirectDrawX *ddrawParent = nullptr;
+	LPDIRECT3DDEVICE9 *d3d9Device = nullptr;
 
 public:
 	m_IDirect3DX(IDirect3D7 *aOriginal, DWORD Version, m_IDirect3D7 *Interface) : ProxyInterface(aOriginal), DirectXVersion(Version), WrapperInterface(Interface)
+	{
+		InitWrapper();
+	}
+	m_IDirect3DX(LPDIRECT3DDEVICE9 *lplpDevice, m_IDirectDrawX *Interface, DWORD Version) : d3d9Device(lplpDevice), ddrawParent(Interface), DirectXVersion(Version)
+	{
+		ProxyInterface = nullptr;
+		WrapperInterface = nullptr;
+
+		InitWrapper();
+	}
+	void InitWrapper()
 	{
 		WrapperID = (DirectXVersion == 1) ? IID_IDirect3D :
 			(DirectXVersion == 2) ? IID_IDirect3D2 :
 			(DirectXVersion == 3) ? IID_IDirect3D3 :
 			(DirectXVersion == 7) ? IID_IDirect3D7 : IID_IDirect3D7;
 
-		REFIID ProxyID = ConvertREFIID(WrapperID);
-		ProxyDirectXVersion = (ProxyID == IID_IDirect3D) ? 1 :
-			(ProxyID == IID_IDirect3D2) ? 2 :
-			(ProxyID == IID_IDirect3D3) ? 3 :
-			(ProxyID == IID_IDirect3D7) ? 7 : 7;
+
+		if (Config.Dd7to9)
+		{
+			ProxyDirectXVersion = 9;
+		}
+		else
+		{
+			ProxyDirectXVersion = GetIIDVersion(ConvertREFIID(WrapperID));
+		}
 
 		if (ProxyDirectXVersion != DirectXVersion)
 		{
