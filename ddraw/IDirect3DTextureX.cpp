@@ -18,7 +18,7 @@
 
 HRESULT m_IDirect3DTextureX::QueryInterface(REFIID riid, LPVOID * ppvObj)
 {
-	if (ProxyDirectXVersion == 7)
+	if (ProxyDirectXVersion > 2)
 	{
 		if ((riid == IID_IDirect3DTexture || riid == IID_IDirect3DTexture2 || riid == IID_IUnknown) && ppvObj)
 		{
@@ -35,7 +35,7 @@ HRESULT m_IDirect3DTextureX::QueryInterface(REFIID riid, LPVOID * ppvObj)
 
 ULONG m_IDirect3DTextureX::AddRef()
 {
-	if (ProxyDirectXVersion == 7)
+	if (ProxyDirectXVersion > 2)
 	{
 		return InterlockedIncrement(&RefCount);
 	}
@@ -47,7 +47,7 @@ ULONG m_IDirect3DTextureX::Release()
 {
 	LONG ref;
 
-	if (ProxyDirectXVersion == 7)
+	if (ProxyDirectXVersion > 2)
 	{
 		ref = InterlockedDecrement(&RefCount);
 	}
@@ -92,9 +92,9 @@ HRESULT m_IDirect3DTextureX::Initialize(LPDIRECT3DDEVICE lpDirect3DDevice, LPDIR
 
 HRESULT m_IDirect3DTextureX::GetHandle(LPDIRECT3DDEVICE2 lpDirect3DDevice2, LPD3DTEXTUREHANDLE lpHandle)
 {
-	if (ProxyDirectXVersion == 7)
+	if (ProxyDirectXVersion > 2)
 	{
-		lpDirect3DDevice2 = (IDirect3DDevice2*)ProxyInterface;
+		lpDirect3DDevice2 = (IDirect3DDevice2*)D3DDeviceInterface;
 
 		lpHandle = nullptr;
 
@@ -112,7 +112,7 @@ HRESULT m_IDirect3DTextureX::GetHandle(LPDIRECT3DDEVICE2 lpDirect3DDevice2, LPD3
 
 HRESULT m_IDirect3DTextureX::PaletteChanged(DWORD dwStart, DWORD dwCount)
 {
-	if (ProxyDirectXVersion == 7)
+	if (ProxyDirectXVersion > 2)
 	{
 		Logging::Log() << __FUNCTION__ << " Not Implemented";
 		return E_NOTIMPL;
@@ -123,7 +123,7 @@ HRESULT m_IDirect3DTextureX::PaletteChanged(DWORD dwStart, DWORD dwCount)
 
 HRESULT m_IDirect3DTextureX::Load(LPDIRECT3DTEXTURE2 lpD3DTexture2)
 {
-	if (ProxyDirectXVersion == 7)
+	if (ProxyDirectXVersion > 2)
 	{
 		Logging::Log() << __FUNCTION__ << " Not Implemented";
 		return E_NOTIMPL;

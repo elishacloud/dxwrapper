@@ -33,13 +33,16 @@ HRESULT m_IDirectDrawSurfaceX::QueryInterface(REFIID riid, LPVOID FAR * ppvObj)
 	}
 	else
 	{
-		if (ProxyDirectXVersion == 7 && ppvObj && (riid == IID_IDirect3DTexture || riid == IID_IDirect3DTexture2))
+		if (ProxyDirectXVersion > 4 && ppvObj && (riid == IID_IDirect3DTexture || riid == IID_IDirect3DTexture2))
 		{
-			ProxyInterface->AddRef();
+			if (lpCurrentD3DDevice)
+			{
+				ProxyInterface->AddRef();
 
-			*ppvObj = new m_IDirect3DTextureX((IDirect3DTexture2*)ProxyInterface, 7, (m_IDirect3DTexture2*)this);
+				*ppvObj = new m_IDirect3DTextureX(lpCurrentD3DDevice, 7);
 
-			return S_OK;
+				return S_OK;
+			}
 		}
 	}
 
@@ -140,7 +143,7 @@ HRESULT m_IDirectDrawSurfaceX::Blt(LPRECT lpDestRect, LPDIRECTDRAWSURFACE7 lpDDS
 		if (!lpDDBltFx && (dwFlags & (DDBLT_DDFX | DDBLT_COLORFILL | DDBLT_DEPTHFILL | DDBLT_DDROPS | DDBLT_KEYDESTOVERRIDE | DDBLT_KEYSRCOVERRIDE | DDBLT_ROP | DDBLT_ROTATIONANGLE)))
 		{
 			Logging::Log() << __FUNCTION__ << " DDBLTFX structure not found";
-			return DDERR_UNSUPPORTED;
+			return DDERR_INVALIDPARAMS;
 		}
 
 		// Check for device
@@ -148,13 +151,6 @@ HRESULT m_IDirectDrawSurfaceX::Blt(LPRECT lpDestRect, LPDIRECTDRAWSURFACE7 lpDDS
 		{
 			Logging::Log() << __FUNCTION__ << " D3d9 Device not setup.";
 			return DDERR_GENERIC;
-		}
-
-		// Check for color key flags
-		if (dwFlags & (DDBLT_KEYDESTOVERRIDE | DDBLT_KEYSRCOVERRIDE | DDBLT_KEYDEST | DDBLT_KEYSRC))
-		{
-			Logging::Log() << __FUNCTION__ << " Color Key Not Implemented";
-			return DDERR_UNSUPPORTED;
 		}
 
 		// Check for DDROP flag
@@ -199,6 +195,13 @@ HRESULT m_IDirectDrawSurfaceX::Blt(LPRECT lpDestRect, LPDIRECTDRAWSURFACE7 lpDDS
 			return DDERR_NOSTRETCHHW;
 		}
 
+		// Check for color key flags
+		if (dwFlags & (DDBLT_KEYDESTOVERRIDE | DDBLT_KEYSRCOVERRIDE | DDBLT_KEYDEST | DDBLT_KEYSRC))
+		{
+			Logging::Log() << __FUNCTION__ << " Color Key Not Implemented";
+			return DDERR_UNSUPPORTED;
+		}
+
 		// Unused flags (can be safely ignored?)
 		// DDBLT_ALPHA
 		// DDBLT_ASYNC
@@ -220,59 +223,75 @@ HRESULT m_IDirectDrawSurfaceX::Blt(LPRECT lpDestRect, LPDIRECTDRAWSURFACE7 lpDDS
 
 		// Check and copy source and dest Rect
 		RECT DestRect, SrcRect;
-		if (!CheckSurfaceRect(lpDestRect, &DestRect) || !lpDDSrcSurfaceX->CheckSurfaceRect(lpSrcRect, &SrcRect))
+		if (!CheckSurfaceRect(&DestRect, lpDestRect) || !lpDDSrcSurfaceX->CheckSurfaceRect(&SrcRect, lpSrcRect))
 		{
 			Logging::Log() << __FUNCTION__ << " Error, invalid rect size";
 			return DDERR_INVALIDRECT;
 		}
 
-		// Get surface memory address and pitch
-		D3DLOCKED_RECT SrcLockRect, DestLockRect;
+		// Declare vars for surface information
+		bool UnlockDest = false, UnlockSrc = false;
+		D3DLOCKED_RECT DestLockRect, SrcLockRect;
+		D3DFORMAT DestFormat, SrcFormat;
+		DWORD DestBitCount, SrcBitCount;
 
-		// Get destination surface texture memory address
-		// Lock surface texture if it is not alreay locked
-		bool UnlockSrc = false;
-		bool UnlockDest = false;
-		HRESULT hr = GetSurfaceBitsAddress(&DestLockRect, false);
-		if (hr == DDERR_LOCKEDSURFACES)
+		// Check if dest surface is not locked then lock it
+		HRESULT hr = DD_OK;
+		if (NeedsLock())
 		{
-			// Needed to lock surface to get address
+			hr = SetLock();
+			if (FAILED(hr))
+			{
+				Logging::Log() << __FUNCTION__ << " Error, could not lock dest surface";
+				return DDERR_GENERIC;
+			}
 			UnlockDest = true;
-			hr = DD_OK;
-		}
-		else if (FAILED(hr))
-		{
-			Logging::Log() << __FUNCTION__ << " Error, could not get video memory address";
-			return DDERR_GENERIC;
 		}
 
-		// Get source memory address
-		if (lpDDSrcSurfaceX != this)
+		// Get dest surface information
+		hr = GetSurfaceInfo(&DestLockRect, &DestBitCount, &DestFormat);
+
+		// Check src surface
+		if (SUCCEEDED(hr) && lpDDSrcSurfaceX != this)
 		{
-			hr = lpDDSrcSurfaceX->GetSurfaceBitsAddress(&SrcLockRect, false);
-			if (hr == DDERR_LOCKEDSURFACES)
+			// Check if src surface is not locked then lock it
+			if (lpDDSrcSurfaceX->NeedsLock())
 			{
-				// Needed to lock surface to get address
-				UnlockSrc = true;
-				hr = DD_OK;
+				hr = lpDDSrcSurfaceX->SetLock();
+				if (FAILED(hr))
+				{
+					Logging::Log() << __FUNCTION__ << " Error, could not lock src surface";
+					hr = DDERR_GENERIC;
+				}
+				else
+				{
+					UnlockSrc = true;
+				}
 			}
-			else if (FAILED(hr))
-			{
-				Logging::Log() << __FUNCTION__ << " Error, could not get video memory address";
-				hr = DDERR_GENERIC;
-			}
+
+			// Get src surface information
+			hr = lpDDSrcSurfaceX->GetSurfaceInfo(&SrcLockRect, &SrcBitCount, &SrcFormat);
 		}
 		else
 		{
 			SrcLockRect.pBits = DestLockRect.pBits;
 			SrcLockRect.Pitch = DestLockRect.Pitch;
+			SrcBitCount = DestBitCount;
+			SrcFormat = DestFormat;
 		}
 
-		// Verify that pitch is the same
-		if (SUCCEEDED(hr) && DestLockRect.Pitch != SrcLockRect.Pitch)
+		// Verify that Format is the same
+		if (SUCCEEDED(hr) && SrcFormat != DestFormat)
 		{
 			Logging::Log() << __FUNCTION__ << " Error, Blt using different surface formats not Implemented";
-			hr = DDERR_SURFACEBUSY;
+			hr = DDERR_GENERIC;
+		}
+
+		// Verify that bit count is the same
+		if (SUCCEEDED(hr) && SrcBitCount != DestBitCount)
+		{
+			Logging::Log() << __FUNCTION__ << " Error, Blt using different bit count not Implemented";
+			hr = DDERR_GENERIC;
 		}
 
 		// Do basic Blt operation
@@ -336,11 +355,11 @@ HRESULT m_IDirectDrawSurfaceX::Blt(LPRECT lpDestRect, LPDIRECTDRAWSURFACE7 lpDDS
 		// Unlock surfaces if needed
 		if (UnlockDest)
 		{
-			GetSurfaceBitsAddress(nullptr, true);
+			SetUnLock();
 		}
 		if (UnlockSrc)
 		{
-			lpDDSrcSurfaceX->GetSurfaceBitsAddress(nullptr, true);
+			lpDDSrcSurfaceX->SetUnLock();
 		}
 
 		// Return
@@ -390,35 +409,31 @@ HRESULT m_IDirectDrawSurfaceX::BltFast(DWORD dwX, DWORD dwY, LPDIRECTDRAWSURFACE
 {
 	if (Config.Dd7to9)
 	{
-		if (!lpSrcRect)
-		{
-			Logging::Log() << __FUNCTION__ << " Error, no Source Rect";
-			return DDERR_INVALIDPARAMS;
-		}
-
 		// Convert BltFast flags into Blt flags
 		DWORD Flags = 0;
-		if ((dwFlags & DDBLTFAST_NOCOLORKEY) == 0)
+		if (dwFlags & DDBLTFAST_SRCCOLORKEY)
 		{
-			if (dwFlags & DDBLTFAST_SRCCOLORKEY)
-			{
-				Flags |= DDBLT_KEYSRC;
-			}
-			else if (dwFlags & DDBLTFAST_DESTCOLORKEY)
-			{
-				Flags |= DDBLT_KEYDEST;
-			}
+			Flags |= DDBLT_KEYSRC;
+		}
+		else if (dwFlags & DDBLTFAST_DESTCOLORKEY)
+		{
+			Flags |= DDBLT_KEYDEST;
 		}
 		if (dwFlags & DDBLTFAST_WAIT)
 		{
 			Flags |= DDBLT_WAIT;
 		}
 
+		// Get SrcRect
+		RECT SrcRect;
+		m_IDirectDrawSurfaceX *lpDDSrcSurfaceX = (!lpDDSrcSurfaceX) ? this : (m_IDirectDrawSurfaceX*)lpDDSrcSurface;
+		lpDDSrcSurfaceX->CheckSurfaceRect(&SrcRect, lpSrcRect);
+
 		// Create DestRect
-		RECT DestRect = { (LONG)dwX, (LONG)dwY, lpSrcRect->right - lpSrcRect->left + (LONG)dwX , lpSrcRect->bottom - lpSrcRect->top + (LONG)dwY };
+		RECT DestRect = { (LONG)dwX, (LONG)dwY, SrcRect.right - SrcRect.left + (LONG)dwX , SrcRect.bottom - SrcRect.top + (LONG)dwY };
 
 		// Call Blt
-		return Blt(&DestRect, lpDDSrcSurface, lpSrcRect, Flags, nullptr);
+		return Blt(&DestRect, lpDDSrcSurface, &SrcRect, Flags, nullptr);
 	}
 
 	if (lpDDSrcSurface)
@@ -870,7 +885,7 @@ HRESULT m_IDirectDrawSurfaceX::Lock(LPRECT lpDestRect, LPDDSURFACEDESC2 lpDDSurf
 			// Convert flags to d3d9
 			DWORD LockFlags = dwFlags & (D3DLOCK_DISCARD | D3DLOCK_DONOTWAIT | D3DLOCK_NO_DIRTY_UPDATE | D3DLOCK_NOOVERWRITE | D3DLOCK_NOSYSLOCK | D3DLOCK_READONLY);
 
-			// Lock full dynamic texture
+			// Lock texture
 			hr = surfaceTexture->LockRect(0, &d3dlrect, lpDestRect, LockFlags);
 			if (FAILED(hr))
 			{
@@ -1672,7 +1687,7 @@ HRESULT m_IDirectDrawSurfaceX::CreateD3d9Surface()
 	return hr;
 }
 
-bool m_IDirectDrawSurfaceX::CheckSurfaceRect(LPRECT lpInRect, LPRECT lpOutRect)
+bool m_IDirectDrawSurfaceX::CheckSurfaceRect(LPRECT lpOutRect, LPRECT lpInRect)
 {
 	if (lpInRect)
 	{
@@ -1691,47 +1706,71 @@ bool m_IDirectDrawSurfaceX::CheckSurfaceRect(LPRECT lpInRect, LPRECT lpOutRect)
 		lpOutRect->right <= (LONG)surfaceDesc2.dwWidth && lpOutRect->bottom <= (LONG)surfaceDesc2.dwHeight;
 }
 
-HRESULT m_IDirectDrawSurfaceX::GetSurfaceBitsAddress(D3DLOCKED_RECT *lpd3dlrect, bool UnlockRectFlag)
+HRESULT m_IDirectDrawSurfaceX::SetLock()
 {
-	// Check if need to relock the rect
-	if (UnlockRectFlag)
+	if (!surfaceTexture)
 	{
-		if (surfaceTexture)
-		{
-			surfaceTexture->UnlockRect(0);
-		}
 		return DDERR_GENERIC;
 	}
 
-	// Get memory address and lock rect if need to
-	if (WriteDirectlyToSurface)
+	// Lock texture
+	HRESULT hr = surfaceTexture->LockRect(0, &d3dlrect, nullptr, 0);
+	if (FAILED(hr))
 	{
-		if (!surfaceTexture)
-		{
-			return DDERR_GENERIC;
-		}
+		d3dlrect.pBits = nullptr;
+		Logging::Log() << __FUNCTION__ << " Failed to lock surface";
+		return DDERR_GENERIC;
+	}
+	IsLocked = true;
 
-		if (!d3dlrect.pBits)
-		{
-			HRESULT hr = surfaceTexture->LockRect(0, lpd3dlrect, nullptr, 0);
-			if (SUCCEEDED(hr))
-			{
-				return DDERR_LOCKEDSURFACES;
-			}
-			return DDERR_GENERIC;
-		}
-		lpd3dlrect->pBits = d3dlrect.pBits;
-		lpd3dlrect->Pitch = d3dlrect.Pitch;
-		return DD_OK;
-	}
-	else
+	return DD_OK;
+}
+
+HRESULT m_IDirectDrawSurfaceX::SetUnLock()
+{
+	if (!surfaceTexture)
 	{
-		if (!rawVideoBuf)
+		return DDERR_GENERIC;
+	}
+
+	// Lock texture
+	HRESULT hr = surfaceTexture->UnlockRect(0);
+	if (FAILED(hr))
+	{
+		Logging::Log() << __FUNCTION__ << " Failed to unlock surface";
+		return DDERR_GENERIC;
+	}
+	IsLocked = false;
+	d3dlrect.pBits = nullptr;
+
+	return DD_OK;
+}
+
+HRESULT m_IDirectDrawSurfaceX::GetSurfaceInfo(D3DLOCKED_RECT *pLockRect, DWORD *lpBitCount, D3DFORMAT *lpFormat)
+{
+	if (pLockRect)
+	{
+		if (NeedsLock())
 		{
 			return DDERR_GENERIC;
 		}
-		lpd3dlrect->pBits = rawVideoBuf;
-		lpd3dlrect->Pitch = surfaceDesc2.dwWidth * (GetBitCount(surfaceDesc2.ddpfPixelFormat) / 8);
-		return DD_OK;
+		if (IsLocked)
+		{
+			memcpy(pLockRect, &d3dlrect, sizeof(D3DLOCKED_RECT));
+		}
+		else
+		{
+			pLockRect->pBits = rawVideoBuf;
+			pLockRect->Pitch = surfaceDesc2.dwWidth * (GetBitCount(surfaceDesc2.ddpfPixelFormat) / 8);
+		}
 	}
+	if (lpBitCount)
+	{
+		*lpBitCount = GetBitCount(surfaceDesc2.ddpfPixelFormat);
+	}
+	if (lpFormat)
+	{
+		*lpFormat = GetDisplayFormat(surfaceDesc2.ddpfPixelFormat);
+	}
+	return DD_OK;
 }

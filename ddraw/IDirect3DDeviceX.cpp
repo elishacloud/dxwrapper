@@ -206,7 +206,7 @@ HRESULT m_IDirect3DDeviceX::EnumTextureFormats(LPD3DENUMTEXTUREFORMATSCALLBACK l
 
 HRESULT m_IDirect3DDeviceX::GetCaps(LPD3DDEVICEDESC lpD3DHWDevDesc, LPD3DDEVICEDESC lpD3DHELDevDesc)
 {
-	if (ProxyDirectXVersion == 7)
+	if (ProxyDirectXVersion > 3)
 	{
 		D3DDEVICEDESC7 D3DDevDesc;
 		HRESULT hr = GetCaps(&D3DDevDesc);
@@ -232,7 +232,7 @@ HRESULT m_IDirect3DDeviceX::GetCaps(LPD3DDEVICEDESC lpD3DHWDevDesc, LPD3DDEVICED
 
 HRESULT m_IDirect3DDeviceX::GetStats(LPD3DSTATS lpD3DStats)
 {
-	if (ProxyDirectXVersion == 7)
+	if (ProxyDirectXVersion > 3)
 	{
 		Logging::Log() << __FUNCTION__ << " Not Implemented";
 		return E_NOTIMPL;
@@ -243,7 +243,7 @@ HRESULT m_IDirect3DDeviceX::GetStats(LPD3DSTATS lpD3DStats)
 
 HRESULT m_IDirect3DDeviceX::AddViewport(LPDIRECT3DVIEWPORT3 lpDirect3DViewport)
 {
-	if (ProxyDirectXVersion == 7)
+	if (ProxyDirectXVersion > 3)
 	{
 		return D3D_OK;
 	}
@@ -258,7 +258,7 @@ HRESULT m_IDirect3DDeviceX::AddViewport(LPDIRECT3DVIEWPORT3 lpDirect3DViewport)
 
 HRESULT m_IDirect3DDeviceX::DeleteViewport(LPDIRECT3DVIEWPORT3 lpDirect3DViewport)
 {
-	if (ProxyDirectXVersion == 7)
+	if (ProxyDirectXVersion > 3)
 	{
 		return D3D_OK;
 	}
@@ -273,7 +273,7 @@ HRESULT m_IDirect3DDeviceX::DeleteViewport(LPDIRECT3DVIEWPORT3 lpDirect3DViewpor
 
 HRESULT m_IDirect3DDeviceX::NextViewport(LPDIRECT3DVIEWPORT3 lpDirect3DViewport, LPDIRECT3DVIEWPORT3 * lplpDirect3DViewport, DWORD dwFlags)
 {
-	if (ProxyDirectXVersion == 7)
+	if (ProxyDirectXVersion > 3)
 	{
 		Logging::Log() << __FUNCTION__ << " Not Implemented";
 		return E_NOTIMPL;
@@ -296,7 +296,7 @@ HRESULT m_IDirect3DDeviceX::NextViewport(LPDIRECT3DVIEWPORT3 lpDirect3DViewport,
 
 HRESULT m_IDirect3DDeviceX::SetCurrentViewport(LPDIRECT3DVIEWPORT3 lpd3dViewport)
 {
-	if (ProxyDirectXVersion == 7)
+	if (ProxyDirectXVersion > 3)
 	{
 		// ToDo: Validate Viewport address
 		lpCurrentViewport = (m_IDirect3DViewportX*)lpd3dViewport;
@@ -314,7 +314,7 @@ HRESULT m_IDirect3DDeviceX::SetCurrentViewport(LPDIRECT3DVIEWPORT3 lpd3dViewport
 
 HRESULT m_IDirect3DDeviceX::GetCurrentViewport(LPDIRECT3DVIEWPORT3 * lplpd3dViewport)
 {
-	if (ProxyDirectXVersion == 7)
+	if (ProxyDirectXVersion > 3)
 	{
 		if (lplpd3dViewport && lpCurrentViewport)
 		{
@@ -342,7 +342,7 @@ HRESULT m_IDirect3DDeviceX::GetCurrentViewport(LPDIRECT3DVIEWPORT3 * lplpd3dView
 
 HRESULT m_IDirect3DDeviceX::Begin(D3DPRIMITIVETYPE d3dpt, DWORD d3dvt, DWORD dwFlags)
 {
-	if (ProxyDirectXVersion == 7)
+	if (ProxyDirectXVersion > 3)
 	{
 		Logging::Log() << __FUNCTION__ << " Not Implemented";
 		return E_NOTIMPL;
@@ -353,7 +353,7 @@ HRESULT m_IDirect3DDeviceX::Begin(D3DPRIMITIVETYPE d3dpt, DWORD d3dvt, DWORD dwF
 
 HRESULT m_IDirect3DDeviceX::BeginIndexed(D3DPRIMITIVETYPE dptPrimitiveType, DWORD dvtVertexType, LPVOID lpvVertices, DWORD dwNumVertices, DWORD dwFlags)
 {
-	if (ProxyDirectXVersion == 7)
+	if (ProxyDirectXVersion > 3)
 	{
 		Logging::Log() << __FUNCTION__ << " Not Implemented";
 		return E_NOTIMPL;
@@ -364,7 +364,7 @@ HRESULT m_IDirect3DDeviceX::BeginIndexed(D3DPRIMITIVETYPE dptPrimitiveType, DWOR
 
 HRESULT m_IDirect3DDeviceX::Vertex(LPVOID lpVertexType)
 {
-	if (ProxyDirectXVersion == 7)
+	if (ProxyDirectXVersion > 3)
 	{
 		Logging::Log() << __FUNCTION__ << " Not Implemented";
 		return E_NOTIMPL;
@@ -375,7 +375,7 @@ HRESULT m_IDirect3DDeviceX::Vertex(LPVOID lpVertexType)
 
 HRESULT m_IDirect3DDeviceX::Index(WORD wVertexIndex)
 {
-	if (ProxyDirectXVersion == 7)
+	if (ProxyDirectXVersion > 3)
 	{
 		Logging::Log() << __FUNCTION__ << " Not Implemented";
 		return E_NOTIMPL;
@@ -386,7 +386,7 @@ HRESULT m_IDirect3DDeviceX::Index(WORD wVertexIndex)
 
 HRESULT m_IDirect3DDeviceX::End(DWORD dwFlags)
 {
-	if (ProxyDirectXVersion == 7)
+	if (ProxyDirectXVersion > 3)
 	{
 		Logging::Log() << __FUNCTION__ << " Not Implemented";
 		return E_NOTIMPL;
@@ -397,7 +397,7 @@ HRESULT m_IDirect3DDeviceX::End(DWORD dwFlags)
 
 HRESULT m_IDirect3DDeviceX::GetLightState(D3DLIGHTSTATETYPE dwLightStateType, LPDWORD lpdwLightState)
 {
-	if (ProxyDirectXVersion == 7)
+	if (ProxyDirectXVersion > 3)
 	{
 		Logging::Log() << __FUNCTION__ << " Not Implemented";
 		return E_NOTIMPL;
@@ -408,7 +408,7 @@ HRESULT m_IDirect3DDeviceX::GetLightState(D3DLIGHTSTATETYPE dwLightStateType, LP
 
 HRESULT m_IDirect3DDeviceX::SetLightState(D3DLIGHTSTATETYPE dwLightStateType, DWORD dwLightState)
 {
-	if (ProxyDirectXVersion == 7)
+	if (ProxyDirectXVersion > 3)
 	{
 		Logging::Log() << __FUNCTION__ << " Not Implemented";
 		return E_NOTIMPL;
@@ -419,7 +419,7 @@ HRESULT m_IDirect3DDeviceX::SetLightState(D3DLIGHTSTATETYPE dwLightStateType, DW
 
 HRESULT m_IDirect3DDeviceX::DrawIndexedPrimitiveVB(D3DPRIMITIVETYPE d3dptPrimitiveType, LPDIRECT3DVERTEXBUFFER lpd3dVertexBuffer, LPWORD lpwIndices, DWORD dwIndexCount, DWORD dwFlags)
 {
-	if (ProxyDirectXVersion == 7)
+	if (ProxyDirectXVersion > 3)
 	{
 		Logging::Log() << __FUNCTION__ << " Not Implemented";
 		return E_NOTIMPL;
@@ -435,7 +435,7 @@ HRESULT m_IDirect3DDeviceX::DrawIndexedPrimitiveVB(D3DPRIMITIVETYPE d3dptPrimiti
 
 HRESULT m_IDirect3DDeviceX::GetTexture(DWORD dwStage, LPDIRECT3DTEXTURE2 * lplpTexture)
 {
-	if (ProxyDirectXVersion == 7)
+	if (ProxyDirectXVersion > 3)
 	{
 		Logging::Log() << __FUNCTION__ << " Not Implemented";
 		return E_NOTIMPL;
@@ -453,7 +453,7 @@ HRESULT m_IDirect3DDeviceX::GetTexture(DWORD dwStage, LPDIRECT3DTEXTURE2 * lplpT
 
 HRESULT m_IDirect3DDeviceX::SetTexture(DWORD dwStage, LPDIRECT3DTEXTURE2 lpTexture)
 {
-	if (ProxyDirectXVersion == 7)
+	if (ProxyDirectXVersion > 3)
 	{
 		// ToDo: Validate Texture address
 		if (lpTexture)

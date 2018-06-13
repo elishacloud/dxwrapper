@@ -152,6 +152,7 @@ public:
 	IDirectDrawSurface7 *GetProxyInterface() { return ProxyInterface; }
 	m_IDirectDrawSurface7 *GetWrapperInterface() { return WrapperInterface; }
 	bool IsSurfaceLocked() { return IsLocked; }
+	bool NeedsLock() { return !IsLocked && WriteDirectlyToSurface; }
 
 	/*** IUnknown methods ***/
 	STDMETHOD(QueryInterface) (THIS_ REFIID riid, LPVOID FAR * ppvObj);
@@ -211,6 +212,8 @@ public:
 	// Helper functions
 	void ReleaseD9Surface();
 	HRESULT CreateD3d9Surface();
-	bool CheckSurfaceRect(LPRECT lpInRect, LPRECT lpOutRect);
-	HRESULT GetSurfaceBitsAddress(D3DLOCKED_RECT *lpd3dlrect, bool UnlockRectFlag);
+	bool CheckSurfaceRect(LPRECT lpOutRect, LPRECT lpInRect);
+	HRESULT SetLock();
+	HRESULT SetUnLock();
+	HRESULT GetSurfaceInfo(D3DLOCKED_RECT *pLockRect, DWORD *lpBitCount, D3DFORMAT *lpFormat);
 };

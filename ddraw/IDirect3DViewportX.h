@@ -5,11 +5,11 @@ class m_IDirect3DViewportX : public IDirect3DViewport3
 private:
 	IDirect3DViewport3 *ProxyInterface;
 	m_IDirect3DViewport3 *WrapperInterface;
-	m_IDirect3DDeviceX *D3DDeviceInterface;
 	DWORD DirectXVersion;
 	DWORD ProxyDirectXVersion;
 	IID WrapperID;
 	ULONG RefCount = 1;
+	m_IDirect3DDeviceX *D3DDeviceInterface;
 
 public:
 	m_IDirect3DViewportX(IDirect3DViewport3 *aOriginal, DWORD Version, m_IDirect3DViewport3 *Interface) : ProxyInterface(aOriginal), DirectXVersion(Version), WrapperInterface(Interface)

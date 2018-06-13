@@ -9,9 +9,23 @@ private:
 	DWORD ProxyDirectXVersion;
 	IID WrapperID;
 	ULONG RefCount = 1;
+	m_IDirect3DDeviceX *D3DDeviceInterface;
 
 public:
 	m_IDirect3DTextureX(IDirect3DTexture2 *aOriginal, DWORD Version, m_IDirect3DTexture2 *Interface) : ProxyInterface(aOriginal), DirectXVersion(Version), WrapperInterface(Interface)
+	{
+		InitWrapper();
+	}
+	m_IDirect3DTextureX(m_IDirect3DDeviceX *D3DDInterface, DWORD Version) : D3DDeviceInterface(D3DDInterface), DirectXVersion(Version)
+	{
+		ProxyInterface = nullptr;
+		WrapperInterface = nullptr;
+
+		InitWrapper();
+	}
+	~m_IDirect3DTextureX() {}
+
+	void InitWrapper()
 	{
 		WrapperID = (DirectXVersion == 1) ? IID_IDirect3DTexture :
 			(DirectXVersion == 2) ? IID_IDirect3DTexture2 : IID_IDirect3DTexture2;
@@ -29,7 +43,6 @@ public:
 			Logging::LogDebug() << "Convert Direct3DTexture v" << DirectXVersion << " to v" << ProxyDirectXVersion;
 		}
 	}
-	~m_IDirect3DTextureX() {}
 
 	DWORD GetDirectXVersion() { return DDWRAPPER_TYPEX; }
 	REFIID GetWrapperType() { return WrapperID; }

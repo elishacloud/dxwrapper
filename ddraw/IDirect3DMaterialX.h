@@ -5,11 +5,11 @@ class m_IDirect3DMaterialX : public IDirect3DMaterial3
 private:
 	IDirect3DMaterial3 *ProxyInterface;
 	m_IDirect3DMaterial3 *WrapperInterface;
-	m_IDirect3DDeviceX *D3DDeviceInterface;
 	DWORD DirectXVersion;
 	DWORD ProxyDirectXVersion;
 	IID WrapperID;
 	ULONG RefCount = 1;
+	m_IDirect3DDeviceX *D3DDeviceInterface;
 
 public:
 	m_IDirect3DMaterialX(IDirect3DMaterial3 *aOriginal, DWORD Version, m_IDirect3DMaterial3 *Interface) : ProxyInterface(aOriginal), DirectXVersion(Version), WrapperInterface(Interface)

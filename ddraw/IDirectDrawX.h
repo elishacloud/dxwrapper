@@ -8,14 +8,14 @@ private:
 	DWORD DirectXVersion;
 	DWORD ProxyDirectXVersion;
 	IID WrapperID;
+	ULONG RefCount = 1;
 	bool ConvertSurfaceDescTo2 = false;
-	
+
 	// Fix exclusive mode issue
 	HHOOK g_hook = nullptr;
 	HWND chWnd = nullptr;
 
 	// Convert to d3d9
-	ULONG RefCount = 1;
 	HWND MainhWnd = nullptr;
 	bool ExclusiveMode = false;
 	POINT lastPosition = {100, 100};		// Last window position

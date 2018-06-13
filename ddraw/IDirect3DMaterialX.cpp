@@ -18,7 +18,7 @@
 
 HRESULT m_IDirect3DMaterialX::QueryInterface(REFIID riid, LPVOID * ppvObj)
 {
-	if (ProxyDirectXVersion == 7)
+	if (ProxyDirectXVersion > 3)
 	{
 		if ((riid == IID_IDirect3DMaterial || riid == IID_IDirect3DMaterial2 || riid == IID_IDirect3DMaterial3 || riid == IID_IUnknown) && ppvObj)
 		{
@@ -35,7 +35,7 @@ HRESULT m_IDirect3DMaterialX::QueryInterface(REFIID riid, LPVOID * ppvObj)
 
 ULONG m_IDirect3DMaterialX::AddRef()
 {
-	if (ProxyDirectXVersion == 7)
+	if (ProxyDirectXVersion > 3)
 	{
 		return InterlockedIncrement(&RefCount);
 	}
@@ -47,7 +47,7 @@ ULONG m_IDirect3DMaterialX::Release()
 {
 	LONG ref;
 
-	if (ProxyDirectXVersion == 7)
+	if (ProxyDirectXVersion > 3)
 	{
 		ref = InterlockedDecrement(&RefCount);
 	}
@@ -88,7 +88,7 @@ HRESULT m_IDirect3DMaterialX::Initialize(LPDIRECT3D lplpD3D)
 
 HRESULT m_IDirect3DMaterialX::SetMaterial(LPD3DMATERIAL lpMat)
 {
-	if (ProxyDirectXVersion == 7)
+	if (ProxyDirectXVersion > 3)
 	{
 		D3DMATERIAL7 tmpMaterial;
 
@@ -107,7 +107,7 @@ HRESULT m_IDirect3DMaterialX::SetMaterial(LPD3DMATERIAL lpMat)
 
 HRESULT m_IDirect3DMaterialX::GetMaterial(LPD3DMATERIAL lpMat)
 {
-	if (ProxyDirectXVersion == 7)
+	if (ProxyDirectXVersion > 3)
 	{
 		D3DMATERIAL7 tmpMaterial;
 
@@ -124,9 +124,9 @@ HRESULT m_IDirect3DMaterialX::GetMaterial(LPD3DMATERIAL lpMat)
 
 HRESULT m_IDirect3DMaterialX::GetHandle(LPDIRECT3DDEVICE3 lpDirect3DDevice, LPD3DMATERIALHANDLE lpHandle)
 {
-	if (ProxyDirectXVersion == 7)
+	if (ProxyDirectXVersion > 3)
 	{
-		lpDirect3DDevice = (LPDIRECT3DDEVICE3)D3DDeviceInterface->GetProxyInterface();
+		lpDirect3DDevice = (LPDIRECT3DDEVICE3)D3DDeviceInterface;
 
 		lpHandle = nullptr;
 
