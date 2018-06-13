@@ -18,6 +18,10 @@
 
 #include "ddraw.h"
 
+/************************/
+/*** IUnknown methods ***/
+/************************/
+
 HRESULT m_IDirectDrawSurfaceX::QueryInterface(REFIID riid, LPVOID FAR * ppvObj)
 {
 	if (Config.Dd7to9)
@@ -87,26 +91,9 @@ ULONG m_IDirectDrawSurfaceX::Release()
 	return ref;
 }
 
-void m_IDirectDrawSurfaceX::ReleaseD9Surface()
-{
-	// Release d3d9 surface
-	DWORD x = 0;
-	if (surfaceTexture)
-	{
-		while (surfaceTexture->Release() != 0 && ++x < 100) {}
-		surfaceTexture = nullptr;
-	}
-
-	// Release d3d9 vertex buffer
-	if (vertexBuffer)
-	{
-		while (vertexBuffer->Release() != 0 && ++x < 100) {}
-		vertexBuffer = nullptr;
-	}
-
-	// Set surface video buffer to nullptr
-	d3dlrect.pBits = nullptr;
-}
+/**********************************/
+/*** IDirectDrawSurface methods ***/
+/**********************************/
 
 HRESULT m_IDirectDrawSurfaceX::AddAttachedSurface(LPDIRECTDRAWSURFACE7 lpDDSurface)
 {
@@ -426,7 +413,7 @@ HRESULT m_IDirectDrawSurfaceX::BltFast(DWORD dwX, DWORD dwY, LPDIRECTDRAWSURFACE
 
 		// Get SrcRect
 		RECT SrcRect;
-		m_IDirectDrawSurfaceX *lpDDSrcSurfaceX = (!lpDDSrcSurfaceX) ? this : (m_IDirectDrawSurfaceX*)lpDDSrcSurface;
+		m_IDirectDrawSurfaceX *lpDDSrcSurfaceX = (!lpDDSrcSurface) ? this : (m_IDirectDrawSurfaceX*)lpDDSrcSurface;
 		lpDDSrcSurfaceX->CheckSurfaceRect(&SrcRect, lpSrcRect);
 
 		// Create DestRect
@@ -861,16 +848,16 @@ HRESULT m_IDirectDrawSurfaceX::Lock(LPRECT lpDestRect, LPDDSURFACEDESC2 lpDDSurf
 			LockDestRect.bottom = surfaceDesc2.dwHeight;
 		}
 
-		// Make sure surface texture exists, if not then create it
+		// Make sure surface exists, if not then create it
 		if (!surfaceTexture)
 		{
 			hr = CreateD3d9Surface();
 			if (FAILED(hr))
 			{
-				Logging::Log() << __FUNCTION__ << " could not recreate texture";
+				Logging::Log() << __FUNCTION__ << " could not recreate surface";
 			}
 		}
-		// If texture exists then set hr to DD_OK
+		// If surface exists then set hr to DD_OK
 		else
 		{
 			hr = DD_OK;
@@ -885,12 +872,12 @@ HRESULT m_IDirectDrawSurfaceX::Lock(LPRECT lpDestRect, LPDDSURFACEDESC2 lpDDSurf
 			// Convert flags to d3d9
 			DWORD LockFlags = dwFlags & (D3DLOCK_DISCARD | D3DLOCK_DONOTWAIT | D3DLOCK_NO_DIRTY_UPDATE | D3DLOCK_NOOVERWRITE | D3DLOCK_NOSYSLOCK | D3DLOCK_READONLY);
 
-			// Lock texture
+			// Lock surface
 			hr = surfaceTexture->LockRect(0, &d3dlrect, lpDestRect, LockFlags);
 			if (FAILED(hr))
 			{
 				d3dlrect.pBits = nullptr;
-				Logging::Log() << __FUNCTION__ << " Failed to lock texture memory";
+				Logging::Log() << __FUNCTION__ << " Failed to lock surface memory";
 			}
 			IsLocked = true;
 		}
@@ -1095,7 +1082,7 @@ HRESULT m_IDirectDrawSurfaceX::Unlock(LPRECT lpRect)
 		UINT32 *surfaceBuffer = (UINT32*)d3dlrect.pBits;
 		DWORD BitCount = GetBitCount(surfaceDesc2.ddpfPixelFormat);
 
-		// Write to surface texture using a palette
+		// Write to surface using a palette
 		if (attachedPalette && attachedPalette->rgbPalette && !WriteDirectlyToSurface)
 		{
 			// Translate palette to rgb video buffer
@@ -1121,7 +1108,7 @@ HRESULT m_IDirectDrawSurfaceX::Unlock(LPRECT lpRect)
 			}
 		}
 
-		// Write to surface texture from the memory buffer
+		// Write to surface from the memory buffer
 		else if (!WriteDirectlyToSurface)
 		{
 			// Get display format
@@ -1175,7 +1162,7 @@ HRESULT m_IDirectDrawSurfaceX::Unlock(LPRECT lpRect)
 				case D3DFMT_A8R8G8B8:
 				case D3DFMT_X8R8G8B8:
 				{
-					// Copy raw rgb memory to texture by scanline observing pitch
+					// Copy raw rgb memory to surface by scanline observing pitch
 					const LONG x = LockDestRect.right - LockDestRect.left;
 					for (LONG y = LockDestRect.top; y < LockDestRect.bottom; y++)
 					{
@@ -1194,18 +1181,18 @@ HRESULT m_IDirectDrawSurfaceX::Unlock(LPRECT lpRect)
 			}
 		}
 
-		// Make sure surface texture exists
+		// Make sure surface exists
 		if (!surfaceTexture)
 		{
-			Logging::Log() << __FUNCTION__ << " texture does not exist";
+			Logging::Log() << __FUNCTION__ << " surface does not exist";
 			return DDERR_SURFACELOST;
 		}
 
-		// Unlock dynamic texture
+		// Unlock surface
 		HRESULT hr = surfaceTexture->UnlockRect(0);
 		if (FAILED(hr))
 		{
-			Logging::Log() << __FUNCTION__ << " Failed to unlock texture memory";
+			Logging::Log() << __FUNCTION__ << " Failed to unlock surface memory";
 			return hr;
 		}
 		IsLocked = false;
@@ -1268,6 +1255,10 @@ HRESULT m_IDirectDrawSurfaceX::UpdateOverlayZOrder(DWORD dwFlags, LPDIRECTDRAWSU
 
 	return ProxyInterface->UpdateOverlayZOrder(dwFlags, lpDDSReference);
 }
+
+/*********************************/
+/*** Added in the v2 interface ***/
+/*********************************/
 
 HRESULT m_IDirectDrawSurfaceX::GetDDInterface(LPVOID FAR * lplpDD)
 {
@@ -1338,6 +1329,10 @@ HRESULT m_IDirectDrawSurfaceX::PageUnlock(DWORD dwFlags)
 	return ProxyInterface->PageUnlock(dwFlags);
 }
 
+/*********************************/
+/*** Added in the v3 interface ***/
+/*********************************/
+
 HRESULT m_IDirectDrawSurfaceX::SetSurfaceDesc(LPDDSURFACEDESC2 lpDDsd, DWORD dwFlags)
 {
 	if (!lpDDsd)
@@ -1361,6 +1356,10 @@ HRESULT m_IDirectDrawSurfaceX::SetSurfaceDesc(LPDDSURFACEDESC2 lpDDsd, DWORD dwF
 
 	return ProxyInterface->SetSurfaceDesc(lpDDsd, dwFlags);
 }
+
+/*********************************/
+/*** Added in the v4 interface ***/
+/*********************************/
 
 HRESULT m_IDirectDrawSurfaceX::SetPrivateData(REFGUID guidTag, LPVOID lpData, DWORD cbSize, DWORD dwFlags)
 {
@@ -1417,6 +1416,10 @@ HRESULT m_IDirectDrawSurfaceX::ChangeUniquenessValue()
 	return ProxyInterface->ChangeUniquenessValue();
 }
 
+/***********************************/
+/*** Moved Texture7 methods here ***/
+/***********************************/
+
 HRESULT m_IDirectDrawSurfaceX::SetPriority(DWORD dwPriority)
 {
 	if (Config.Dd7to9)
@@ -1461,9 +1464,65 @@ HRESULT m_IDirectDrawSurfaceX::GetLOD(LPDWORD lpdwMaxLOD)
 	return ProxyInterface->GetLOD(lpdwMaxLOD);
 }
 
+/************************/
+/*** Helper functions ***/
+/************************/
+
+// Release surface and vertext buffer
+void m_IDirectDrawSurfaceX::ReleaseD9Surface()
+{
+	// Release d3d9 surface
+	DWORD x = 0;
+	if (surfaceTexture)
+	{
+		while (surfaceTexture->Release() != 0 && ++x < 100) {}
+		surfaceTexture = nullptr;
+	}
+
+	// Release d3d9 vertex buffer
+	if (vertexBuffer)
+	{
+		while (vertexBuffer->Release() != 0 && ++x < 100) {}
+		vertexBuffer = nullptr;
+	}
+
+	// Set surface video buffer to nullptr
+	d3dlrect.pBits = nullptr;
+}
+
+// Alocate buffer for surface if format is not supported by d3d9 to support backwards compatibility
+void m_IDirectDrawSurfaceX::AlocateVideoBuffer()
+{
+	// Store old temp buffer
+	BYTE *tempBuf = rawVideoBuf;
+
+	// No need to create a buffer
+	if (WriteDirectlyToSurface)
+	{
+		return;
+	}
+
+	// Buffer size, always support 32bit
+	BufferSize = surfaceDesc2.dwWidth * surfaceDesc2.dwHeight * sizeof(INT32);
+
+	// Allocate the raw video buffer
+	rawVideoBuf = new BYTE[BufferSize];
+
+	// Clear raw memory
+	ZeroMemory(rawVideoBuf, BufferSize * sizeof(BYTE));
+
+	// Free memory in case there was an old one setup
+	if (tempBuf)
+	{
+		delete tempBuf;
+		tempBuf = nullptr;
+	}
+}
+
+// Create surface
 HRESULT m_IDirectDrawSurfaceX::CreateD3d9Surface()
 {
-	// Release existing surface texture
+	// Release existing surface
 	ReleaseD9Surface();
 
 	// Check for device
@@ -1558,21 +1617,21 @@ HRESULT m_IDirectDrawSurfaceX::CreateD3d9Surface()
 		Format = D3DFMT_X8R8G8B8;
 		AlocateVideoBuffer();
 	}
-	// Write directly to surface texture
+	// Write directly to surface
 	else
 	{
 		WriteDirectlyToSurface = true;
 	}
 
-	// Create surface texture
+	// Create surface
 	hr = (*d3d9Device)->CreateTexture(surfaceDesc2.dwWidth, surfaceDesc2.dwHeight, 1, Usage, Format, Pool, &surfaceTexture, nullptr);
 	if (FAILED(hr))
 	{
-		Logging::Log() << __FUNCTION__ << " Unable to create surface texture";
+		Logging::Log() << __FUNCTION__ << " Unable to create surface";
 		return hr;
 	}
 
-	// Only display texture if it is primary for now...
+	// Only display surface if it is primary for now...
 	if ((surfaceDesc2.ddsCaps.dwCaps & DDSCAPS_PRIMARYSURFACE) == 0)
 	{
 		return DD_OK;
@@ -1687,6 +1746,7 @@ HRESULT m_IDirectDrawSurfaceX::CreateD3d9Surface()
 	return hr;
 }
 
+// Check surface reck dimensions and copy rect to new rect
 bool m_IDirectDrawSurfaceX::CheckSurfaceRect(LPRECT lpOutRect, LPRECT lpInRect)
 {
 	if (lpInRect)
@@ -1706,6 +1766,7 @@ bool m_IDirectDrawSurfaceX::CheckSurfaceRect(LPRECT lpOutRect, LPRECT lpInRect)
 		lpOutRect->right <= (LONG)surfaceDesc2.dwWidth && lpOutRect->bottom <= (LONG)surfaceDesc2.dwHeight;
 }
 
+// Lock the d3d9 surface
 HRESULT m_IDirectDrawSurfaceX::SetLock()
 {
 	if (!surfaceTexture)
@@ -1713,7 +1774,7 @@ HRESULT m_IDirectDrawSurfaceX::SetLock()
 		return DDERR_GENERIC;
 	}
 
-	// Lock texture
+	// Lock surface
 	HRESULT hr = surfaceTexture->LockRect(0, &d3dlrect, nullptr, 0);
 	if (FAILED(hr))
 	{
@@ -1726,6 +1787,7 @@ HRESULT m_IDirectDrawSurfaceX::SetLock()
 	return DD_OK;
 }
 
+// Unlock the d3d9 surface
 HRESULT m_IDirectDrawSurfaceX::SetUnLock()
 {
 	if (!surfaceTexture)
@@ -1733,12 +1795,12 @@ HRESULT m_IDirectDrawSurfaceX::SetUnLock()
 		return DDERR_GENERIC;
 	}
 
-	// Lock texture
+	// Lock surface
 	HRESULT hr = surfaceTexture->UnlockRect(0);
 	if (FAILED(hr))
 	{
 		Logging::Log() << __FUNCTION__ << " Failed to unlock surface";
-		return DDERR_GENERIC;
+		return hr;
 	}
 	IsLocked = false;
 	d3dlrect.pBits = nullptr;
@@ -1746,6 +1808,7 @@ HRESULT m_IDirectDrawSurfaceX::SetUnLock()
 	return DD_OK;
 }
 
+// Get LOCKED_RECT, BitCount and Foramt for the surface
 HRESULT m_IDirectDrawSurfaceX::GetSurfaceInfo(D3DLOCKED_RECT *pLockRect, DWORD *lpBitCount, D3DFORMAT *lpFormat)
 {
 	if (pLockRect)
@@ -1772,5 +1835,14 @@ HRESULT m_IDirectDrawSurfaceX::GetSurfaceInfo(D3DLOCKED_RECT *pLockRect, DWORD *
 	{
 		*lpFormat = GetDisplayFormat(surfaceDesc2.ddpfPixelFormat);
 	}
+	return DD_OK;
+}
+
+// Always get SurfaceDesc2 no matter what DirectXVersion is used
+HRESULT m_IDirectDrawSurfaceX::GetSurfaceDesc2(LPDDSURFACEDESC2 lpDDSurfaceDesc2)
+{
+	// Copy surfacedesc to lpDDSurfaceDesc2
+	memcpy(lpDDSurfaceDesc2, &surfaceDesc2, sizeof(DDSURFACEDESC2));
+
 	return DD_OK;
 }

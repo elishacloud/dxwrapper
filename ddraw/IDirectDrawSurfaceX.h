@@ -91,34 +91,6 @@ public:
 		}
 	}
 
-	void AlocateVideoBuffer()
-	{
-		// Store old temp buffer
-		BYTE *tempBuf = rawVideoBuf;
-
-		// No need to create a buffer
-		if (WriteDirectlyToSurface)
-		{
-			return;
-		}
-
-		// Buffer size, always support 32bit
-		BufferSize = surfaceDesc2.dwWidth * surfaceDesc2.dwHeight * sizeof(INT32);
-
-		// Allocate the raw video buffer
-		rawVideoBuf = new BYTE[BufferSize];
-
-		// Clear raw memory
-		ZeroMemory(rawVideoBuf, BufferSize * sizeof(BYTE));
-
-		// Free memory in case there was an old one setup
-		if (tempBuf)
-		{
-			delete tempBuf;
-			tempBuf = nullptr;
-		}
-	}
-
 	void InitWrapper()
 	{
 		WrapperID = (DirectXVersion == 1) ? IID_IDirectDrawSurface :
@@ -209,11 +181,13 @@ public:
 	STDMETHOD(GetPriority)(THIS_ LPDWORD);
 	STDMETHOD(SetLOD)(THIS_ DWORD);
 	STDMETHOD(GetLOD)(THIS_ LPDWORD);
-	// Helper functions
+	/*** Helper functions ***/
 	void ReleaseD9Surface();
+	void AlocateVideoBuffer();
 	HRESULT CreateD3d9Surface();
 	bool CheckSurfaceRect(LPRECT lpOutRect, LPRECT lpInRect);
 	HRESULT SetLock();
 	HRESULT SetUnLock();
 	HRESULT GetSurfaceInfo(D3DLOCKED_RECT *pLockRect, DWORD *lpBitCount, D3DFORMAT *lpFormat);
+	HRESULT GetSurfaceDesc2(LPDDSURFACEDESC2 lpDDSurfaceDesc2);
 };

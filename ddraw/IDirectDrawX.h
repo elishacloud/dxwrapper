@@ -128,12 +128,12 @@ public:
 	STDMETHOD(GetDeviceIdentifier)(THIS_ LPDDDEVICEIDENTIFIER2, DWORD);
 	STDMETHOD(StartModeTest)(THIS_ LPSIZE, DWORD, DWORD);
 	STDMETHOD(EvaluateMode)(THIS_ DWORD, DWORD *);
-	// Helper functions
+	/*** Helper functions ***/
 	void ReleaseD3d9();
+	void ReleaseAllD9Surfaces();
 	void AdjustWindow();
 	bool CreateD3DDevice();
 	bool ReinitDevice();
-	void ReleaseAllD9Surfaces();
 	void AddSurfaceToVector(m_IDirectDrawSurfaceX* lpSurfaceX);
 	void RemoveSurfaceFromVector(m_IDirectDrawSurfaceX* lpSurfaceX);
 	bool DoesSurfaceExist(m_IDirectDrawSurfaceX* lpSurfaceX);

@@ -21,6 +21,10 @@
 
 std::unordered_map<HWND, IDirectDraw7*> g_hookmap;
 
+/************************/
+/*** IUnknown methods ***/
+/************************/
+
 HRESULT m_IDirectDrawX::QueryInterface(REFIID riid, LPVOID FAR * ppvObj)
 {
 	if (Config.Dd7to9)
@@ -87,42 +91,15 @@ ULONG m_IDirectDrawX::Release()
 	return ref;
 }
 
-void m_IDirectDrawX::ReleaseD3d9()
-{
-	// Release existing surfaces
-	ReleaseAllD9Surfaces();
-
-	// Release existing d3d9device
-	if (d3d9Device)
-	{
-		DWORD x = 0;
-		while (d3d9Device->Release() != 0 && ++x < 100) {}
-
-		// Add error checking
-		// Logging::Log() << __FUNCTION__ << " Unable to release Direct3D9 device";
-
-		d3d9Device = nullptr;
-	}
-
-	// Release existing d3d9object
-	if (d3d9Object)
-	{
-		DWORD x = 0;
-		while (d3d9Object->Release() != 0 && ++x < 100) {}
-
-		// Add error checking
-		// Logging::Log() << __FUNCTION__ << " Unable to release Direct3D9 device";
-
-		d3d9Object = nullptr;
-	}
-}
+/***************************/
+/*** IDirectDraw methods ***/
+/***************************/
 
 HRESULT m_IDirectDrawX::Compact()
 {
 	if (Config.Dd7to9)
 	{
-		Logging::Log() << __FUNCTION__ << " Not Implemented";
-		return E_NOTIMPL;
+		return DD_OK;
 	}
 
 	return ProxyInterface->Compact();
@@ -265,8 +242,20 @@ HRESULT m_IDirectDrawX::DuplicateSurface(LPDIRECTDRAWSURFACE7 lpDDSurface, LPDIR
 {
 	if (Config.Dd7to9)
 	{
-		Logging::Log() << __FUNCTION__ << " Not Implemented";
-		return E_NOTIMPL;
+		m_IDirectDrawSurfaceX *lpDDSurfaceX = (m_IDirectDrawSurfaceX*)lpDDSurface;
+		if (DoesSurfaceExist(lpDDSurfaceX))
+		{
+			DDSURFACEDESC2 DDSurfaceDesc2;
+			lpDDSurfaceX->GetSurfaceDesc2(&DDSurfaceDesc2);
+			
+			*lplpDupDDSurface = new m_IDirectDrawSurfaceX(&d3d9Device, this, DirectXVersion, &DDSurfaceDesc2, displayWidth, displayHeight);
+
+			return DD_OK;
+		}
+		else
+		{
+			return DDERR_INVALIDPARAMS;
+		}
 	}
 
 	if (lpDDSurface)
@@ -607,8 +596,7 @@ HRESULT m_IDirectDrawX::Initialize(GUID FAR * lpGUID)
 {
 	if (Config.Dd7to9)
 	{
-		Logging::Log() << __FUNCTION__ << " Not Implemented";
-		return E_NOTIMPL;
+		return DD_OK;
 	}
 
 	return ProxyInterface->Initialize(lpGUID);
@@ -824,6 +812,10 @@ HRESULT m_IDirectDrawX::WaitForVerticalBlank(DWORD dwFlags, HANDLE hEvent)
 	return ProxyInterface->WaitForVerticalBlank(dwFlags, hEvent);
 }
 
+/*********************************/
+/*** Added in the v2 interface ***/
+/*********************************/
+
 HRESULT m_IDirectDrawX::GetAvailableVidMem(LPDDSCAPS2 lpDDSCaps, LPDWORD lpdwTotal, LPDWORD lpdwFree)
 {
 	// Game using old DirectX, Convert DDSCAPS to DDSCAPS2
@@ -857,6 +849,10 @@ HRESULT m_IDirectDrawX::GetAvailableVidMem(LPDDSCAPS2 lpDDSCaps, LPDWORD lpdwTot
 
 	return hr;
 }
+
+/*********************************/
+/*** Added in the V4 Interface ***/
+/*********************************/
 
 HRESULT m_IDirectDrawX::GetSurfaceFromDC(HDC hdc, LPDIRECTDRAWSURFACE7 * lpDDS)
 {
@@ -962,7 +958,51 @@ HRESULT m_IDirectDrawX::EvaluateMode(DWORD dwFlags, DWORD * pSecondsUntilTimeout
 	return ProxyInterface->EvaluateMode(dwFlags, pSecondsUntilTimeout);
 }
 
-// Helper function for adjusting the window position
+/************************/
+/*** Helper functions ***/
+/************************/
+
+// Release all d3d9 classes for Release()
+void m_IDirectDrawX::ReleaseD3d9()
+{
+	// Release existing surfaces
+	ReleaseAllD9Surfaces();
+
+	// Release existing d3d9device
+	if (d3d9Device)
+	{
+		DWORD x = 0;
+		while (d3d9Device->Release() != 0 && ++x < 100) {}
+
+		// Add error checking
+		// Logging::Log() << __FUNCTION__ << " Unable to release Direct3D9 device";
+
+		d3d9Device = nullptr;
+	}
+
+	// Release existing d3d9object
+	if (d3d9Object)
+	{
+		DWORD x = 0;
+		while (d3d9Object->Release() != 0 && ++x < 100) {}
+
+		// Add error checking
+		// Logging::Log() << __FUNCTION__ << " Unable to release Direct3D9 device";
+
+		d3d9Object = nullptr;
+	}
+}
+
+// Release all d3d9 surfaces
+void m_IDirectDrawX::ReleaseAllD9Surfaces()
+{
+	for (m_IDirectDrawSurfaceX *pSurface : SurfaceVector)
+	{
+		pSurface->ReleaseD9Surface();
+	}
+}
+
+// Adjusting the window position for SetDisplayMode()
 void m_IDirectDrawX::AdjustWindow()
 {
 	// If we don't yet have the window quit without action
@@ -995,7 +1035,7 @@ void m_IDirectDrawX::AdjustWindow()
 	}
 }
 
-// Helper function to create/recreate D3D device
+// Creates d3d9 device, destroying the old one if exists
 bool m_IDirectDrawX::CreateD3DDevice()
 {
 	// Release all existing surfaces
@@ -1116,7 +1156,7 @@ bool m_IDirectDrawX::CreateD3DDevice()
 	return true;
 }
 
-// Helper function to reinitialize device
+// Reinitialize d3d9 device
 bool m_IDirectDrawX::ReinitDevice()
 {
 	// Release existing surfaces
@@ -1132,14 +1172,7 @@ bool m_IDirectDrawX::ReinitDevice()
 	return true;
 }
 
-void m_IDirectDrawX::ReleaseAllD9Surfaces()
-{
-	for (m_IDirectDrawSurfaceX *pSurface : SurfaceVector)
-	{
-		pSurface->ReleaseD9Surface();
-	}
-}
-
+// Add surface wrapper to vector
 void m_IDirectDrawX::AddSurfaceToVector(m_IDirectDrawSurfaceX* lpSurfaceX)
 {
 	if (!lpSurfaceX)
@@ -1151,6 +1184,7 @@ void m_IDirectDrawX::AddSurfaceToVector(m_IDirectDrawSurfaceX* lpSurfaceX)
 	SurfaceVector.push_back(lpSurfaceX);
 }
 
+// Remove surface wrapper from vector
 void m_IDirectDrawX::RemoveSurfaceFromVector(m_IDirectDrawSurfaceX* lpSurfaceX)
 {
 	if (!lpSurfaceX)
@@ -1167,6 +1201,7 @@ void m_IDirectDrawX::RemoveSurfaceFromVector(m_IDirectDrawSurfaceX* lpSurfaceX)
 	}
 }
 
+// Check if surface wrapper exists
 bool m_IDirectDrawX::DoesSurfaceExist(m_IDirectDrawSurfaceX* lpSurfaceX)
 {
 	if (!lpSurfaceX)
@@ -1185,20 +1220,20 @@ bool m_IDirectDrawX::DoesSurfaceExist(m_IDirectDrawSurfaceX* lpSurfaceX)
 	return true;
 }
 
-// Helper function to present the d3d surface
+// Do d3d9 BeginScene if all surfaces are unlocked
 HRESULT m_IDirectDrawX::BeginScene(m_IDirectDrawSurfaceX *pSurface)
 {
 	// Make sure the device exists
 	if (!d3d9Device)
 	{
 		Logging::Log() << __FUNCTION__ << " called when d3d9device doesn't exist";
-		return DDERR_GENERIC;
+		return DDERR_INVALIDOBJECT;
 	}
 
-	// Make sure surface texture exists
+	// Make sure surface exists
 	if (!pSurface)
 	{
-		Logging::Log() << __FUNCTION__ << " called when texture doesn't exist";
+		Logging::Log() << __FUNCTION__ << " called when surface doesn't exist";
 		return DDERR_SURFACELOST;
 	}
 
@@ -1221,7 +1256,7 @@ HRESULT m_IDirectDrawX::BeginScene(m_IDirectDrawSurfaceX *pSurface)
 	return DD_OK;
 }
 
-// Helper function to present the d3d surface
+// Do d3d9 EndScene and Present if all surfaces are unlocked
 HRESULT m_IDirectDrawX::EndScene(m_IDirectDrawSurfaceX *pSurface)
 {
 	// Make sure the device exists
@@ -1231,10 +1266,10 @@ HRESULT m_IDirectDrawX::EndScene(m_IDirectDrawSurfaceX *pSurface)
 		return DDERR_INVALIDOBJECT;
 	}
 
-	// Make sure surface texture exists
+	// Make sure surface exists
 	if (!pSurface)
 	{
-		Logging::Log() << __FUNCTION__ << " called when texture doesn't exist";
+		Logging::Log() << __FUNCTION__ << " called when surface doesn't exist";
 		return DDERR_SURFACELOST;
 	}
 
