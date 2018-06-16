@@ -99,6 +99,7 @@ HRESULT m_IDirectDrawX::Compact()
 {
 	if (Config.Dd7to9)
 	{
+		// This method is not currently implemented.
 		return DD_OK;
 	}
 
@@ -247,6 +248,7 @@ HRESULT m_IDirectDrawX::DuplicateSurface(LPDIRECTDRAWSURFACE7 lpDDSurface, LPDIR
 		{
 			DDSURFACEDESC2 DDSurfaceDesc2;
 			lpDDSurfaceX->GetSurfaceDesc2(&DDSurfaceDesc2);
+			DDSurfaceDesc2.ddsCaps.dwCaps &= ~DDSCAPS_PRIMARYSURFACE;	// Remove Primary surface flag
 			
 			*lplpDupDDSurface = new m_IDirectDrawSurfaceX(&d3d9Device, this, DirectXVersion, &DDSurfaceDesc2, displayWidth, displayHeight);
 
@@ -558,8 +560,26 @@ HRESULT m_IDirectDrawX::GetMonitorFrequency(LPDWORD lpdwFrequency)
 {
 	if (Config.Dd7to9)
 	{
-		Logging::Log() << __FUNCTION__ << " Not Implemented";
-		return E_NOTIMPL;
+		if (!lpdwFrequency)
+		{
+			return DDERR_INVALIDPARAMS;
+		}
+
+		// Make sure the device exists
+		if (!d3d9Device)
+		{
+			Logging::Log() << __FUNCTION__ << " called when d3d9device doesn't exist";
+			return DDERR_INVALIDOBJECT;
+		}
+
+		D3DDISPLAYMODE Mode;
+		HRESULT hr = d3d9Device->GetDisplayMode(0, &Mode);
+		if (SUCCEEDED(hr))
+		{
+			*lpdwFrequency = Mode.RefreshRate;
+		}
+
+		return hr;
 	}
 
 	return ProxyInterface->GetMonitorFrequency(lpdwFrequency);
@@ -569,8 +589,26 @@ HRESULT m_IDirectDrawX::GetScanLine(LPDWORD lpdwScanLine)
 {
 	if (Config.Dd7to9)
 	{
-		Logging::Log() << __FUNCTION__ << " Not Implemented";
-		return E_NOTIMPL;
+		if (!lpdwScanLine)
+		{
+			return DDERR_INVALIDPARAMS;
+		}
+
+		// Make sure the device exists
+		if (!d3d9Device)
+		{
+			Logging::Log() << __FUNCTION__ << " called when d3d9device doesn't exist";
+			return DDERR_INVALIDOBJECT;
+		}
+
+		D3DRASTER_STATUS RasterStatus;
+		HRESULT hr = d3d9Device->GetRasterStatus(0, &RasterStatus);
+		if (SUCCEEDED(hr))
+		{
+			*lpdwScanLine = RasterStatus.ScanLine;
+		}
+
+		return hr;
 	}
 
 	return ProxyInterface->GetScanLine(lpdwScanLine);
@@ -585,8 +623,21 @@ HRESULT m_IDirectDrawX::GetVerticalBlankStatus(LPBOOL lpbIsInVB)
 			return DDERR_INVALIDPARAMS;
 		}
 
-		Logging::Log() << __FUNCTION__ << " Not Implemented";
-		return E_NOTIMPL;
+		// Make sure the device exists
+		if (!d3d9Device)
+		{
+			Logging::Log() << __FUNCTION__ << " called when d3d9device doesn't exist";
+			return DDERR_INVALIDOBJECT;
+		}
+
+		D3DRASTER_STATUS RasterStatus;
+		HRESULT hr = d3d9Device->GetRasterStatus(0, &RasterStatus);
+		if (SUCCEEDED(hr))
+		{
+			*lpbIsInVB = RasterStatus.InVBlank;
+		}
+
+		return hr;
 	}
 
 	return ProxyInterface->GetVerticalBlankStatus(lpbIsInVB);
@@ -596,6 +647,7 @@ HRESULT m_IDirectDrawX::Initialize(GUID FAR * lpGUID)
 {
 	if (Config.Dd7to9)
 	{
+		// Not needed
 		return DD_OK;
 	}
 
@@ -613,7 +665,7 @@ HRESULT m_IDirectDrawX::RestoreDisplayMode()
 		}
 
 		// No exclusive mode
-		if (ExclusiveMode)
+		if (!ExclusiveMode)
 		{
 			return DDERR_NOEXCLUSIVEMODE;
 		}
@@ -830,9 +882,15 @@ HRESULT m_IDirectDrawX::GetAvailableVidMem(LPDDSCAPS2 lpDDSCaps, LPDWORD lpdwTot
 
 	if (Config.Dd7to9)
 	{
-		// Hard code available memory for now...
-		*lpdwFree = 0x7e00000;
-		*lpdwTotal = 0x8000000;
+		// Make sure the device exists
+		if (!d3d9Device)
+		{
+			Logging::Log() << __FUNCTION__ << " called when d3d9device doesn't exist";
+			return DDERR_INVALIDOBJECT;
+		}
+
+		*lpdwFree = d3d9Device->GetAvailableTextureMem();
+		*lpdwTotal = *lpdwFree + 0x400;		// Just make this slightly larger than free
 		hr = DD_OK;
 	}
 	else
@@ -876,8 +934,16 @@ HRESULT m_IDirectDrawX::RestoreAllSurfaces()
 {
 	if (Config.Dd7to9)
 	{
-		Logging::Log() << __FUNCTION__ << " Not Implemented";
-		return E_NOTIMPL;
+		for (m_IDirectDrawSurfaceX* it : SurfaceVector)
+		{
+			HRESULT hr = it->Restore();
+			if (FAILED(hr))
+			{
+				return hr;
+			}
+		}
+
+		return DD_OK;
 	}
 
 	return ProxyInterface->RestoreAllSurfaces();
@@ -887,8 +953,14 @@ HRESULT m_IDirectDrawX::TestCooperativeLevel()
 {
 	if (Config.Dd7to9)
 	{
-		Logging::Log() << __FUNCTION__ << " Not Implemented";
-		return E_NOTIMPL;
+		// Make sure the device exists
+		if (!d3d9Device)
+		{
+			Logging::Log() << __FUNCTION__ << " called when d3d9device doesn't exist";
+			return DDERR_INVALIDOBJECT;
+		}
+
+		return d3d9Device->TestCooperativeLevel();
 	}
 
 	return ProxyInterface->TestCooperativeLevel();

@@ -641,9 +641,8 @@ HRESULT m_IDirectDrawSurfaceX::GetDC(HDC FAR * lphDC)
 {
 	if (Config.Dd7to9)
 	{
-		//Logging::Log() << __FUNCTION__ << " Not Implemented";
-		lphDC = nullptr;
-		return DD_OK;
+		Logging::Log() << __FUNCTION__ << " Not Implemented";
+		return E_NOTIMPL;
 	}
 
 	return ProxyInterface->GetDC(lphDC);
@@ -925,8 +924,8 @@ HRESULT m_IDirectDrawSurfaceX::ReleaseDC(HDC hDC)
 {
 	if (Config.Dd7to9)
 	{
-		//Logging::Log() << __FUNCTION__ << " Not Implemented";
-		return DD_OK;
+		Logging::Log() << __FUNCTION__ << " Not Implemented";
+		return E_NOTIMPL;
 	}
 
 	return ProxyInterface->ReleaseDC(hDC);
