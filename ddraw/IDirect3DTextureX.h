@@ -16,26 +16,25 @@ public:
 	{
 		InitWrapper();
 	}
-	m_IDirect3DTextureX(m_IDirect3DDeviceX *D3DDInterface, DWORD Version) : D3DDeviceInterface(D3DDInterface), DirectXVersion(Version)
+	m_IDirect3DTextureX(m_IDirect3DDeviceX *D3DDInterface, DWORD Version, IDirectDrawSurface7 *lpSurface) : D3DDeviceInterface(D3DDInterface), DirectXVersion(Version), ProxyInterface((IDirect3DTexture2*)lpSurface)
 	{
-		ProxyInterface = nullptr;
 		WrapperInterface = nullptr;
 
 		InitWrapper();
 	}
-	~m_IDirect3DTextureX() {}
-
 	void InitWrapper()
 	{
 		WrapperID = (DirectXVersion == 1) ? IID_IDirect3DTexture :
 			(DirectXVersion == 2) ? IID_IDirect3DTexture2 : IID_IDirect3DTexture2;
 
-		ProxyDirectXVersion = GetIIDVersion(ConvertREFIID(WrapperID));
-
 		if (DirectXVersion == 7)
 		{
 			DirectXVersion = 3;
 			ProxyDirectXVersion = 7;
+		}
+		else
+		{
+			ProxyDirectXVersion = GetIIDVersion(ConvertREFIID(WrapperID));
 		}
 
 		if (ProxyDirectXVersion != DirectXVersion)
@@ -43,6 +42,7 @@ public:
 			Logging::LogDebug() << "Convert Direct3DTexture v" << DirectXVersion << " to v" << ProxyDirectXVersion;
 		}
 	}
+	~m_IDirect3DTextureX() {}
 
 	DWORD GetDirectXVersion() { return DDWRAPPER_TYPEX; }
 	REFIID GetWrapperType() { return WrapperID; }

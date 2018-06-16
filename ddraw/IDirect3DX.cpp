@@ -257,8 +257,14 @@ HRESULT m_IDirect3DX::CreateDevice(REFCLSID rclsid, LPDIRECTDRAWSURFACE7 lpDDS, 
 {
 	if (Config.Dd7to9)
 	{
-		Logging::Log() << __FUNCTION__ << " Not Implemented";
-		return E_NOTIMPL;
+		if (!lplpD3DDevice)
+		{
+			return DDERR_INVALIDPARAMS;
+		}
+
+		*lplpD3DDevice = new m_IDirect3DDeviceX(d3d9Device, ddrawParent, DirectXVersion);
+
+		return DD_OK;
 	}
 
 	if (lpDDS)

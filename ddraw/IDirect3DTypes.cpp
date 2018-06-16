@@ -48,6 +48,48 @@ void ConvertMaterial(D3DMATERIAL7 &Material7, D3DMATERIAL &Material)
 	Material.dvPower = Material7.dvPower;
 }
 
+void ConvertViewport(D3DVIEWPORT &ViewPort, D3DVIEWPORT &ViewPort2)
+{
+	memcpy(&ViewPort, &ViewPort2, sizeof(D3DVIEWPORT));
+}
+
+void ConvertViewport(D3DVIEWPORT2 &ViewPort, D3DVIEWPORT2 &ViewPort2)
+{
+	memcpy(&ViewPort, &ViewPort2, sizeof(D3DVIEWPORT2));
+}
+
+void ConvertViewport(D3DVIEWPORT &ViewPort, D3DVIEWPORT2 &ViewPort2)
+{
+	ViewPort.dwSize = 5 * 8;
+	ViewPort.dwX = ViewPort2.dwX;
+	ViewPort.dwY = ViewPort2.dwY;
+	ViewPort.dwWidth = ViewPort2.dwWidth;
+	ViewPort.dwHeight = ViewPort2.dwHeight;
+	ViewPort.dvMinZ = ViewPort2.dvMinZ;
+	ViewPort.dvMaxZ = ViewPort2.dvMaxZ;
+	// Extra parameters
+	ViewPort.dvScaleX = 0;        /* Scale homogeneous to screen */
+	ViewPort.dvScaleY = 0;        /* Scale homogeneous to screen */
+	ViewPort.dvMaxX = 0;          /* Min/max homogeneous x coord */
+	ViewPort.dvMaxY = 0;          /* Min/max homogeneous y coord */
+}
+
+void ConvertViewport(D3DVIEWPORT2 &ViewPort2, D3DVIEWPORT &ViewPort)
+{
+	ViewPort2.dwSize = 5 * 8;
+	ViewPort2.dwX = ViewPort.dwX;
+	ViewPort2.dwY = ViewPort.dwY;
+	ViewPort2.dwWidth = ViewPort.dwWidth;
+	ViewPort2.dwHeight = ViewPort.dwHeight;
+	ViewPort2.dvMinZ = ViewPort.dvMinZ;
+	ViewPort2.dvMaxZ = ViewPort.dvMaxZ;
+	// Extra parameters
+	ViewPort2.dvClipX = 0;        /* Top left of clip volume */
+	ViewPort2.dvClipY = 0;
+	ViewPort2.dvClipWidth = 0;    /* Clip Volume Dimensions */
+	ViewPort2.dvClipHeight = 0;
+}
+
 void ConvertViewport(D3DVIEWPORT &ViewPort, D3DVIEWPORT7 &ViewPort7)
 {
 	ViewPort.dwSize = 5 * 8;
@@ -86,9 +128,8 @@ void ConvertViewport(D3DVIEWPORT7 &ViewPort7, D3DVIEWPORT &ViewPort)
 	ViewPort7.dwY = ViewPort.dwY;
 	ViewPort7.dwWidth = ViewPort.dwWidth;
 	ViewPort7.dwHeight = ViewPort.dwHeight;
-	// Extra parameters
-	ViewPort7.dvMinZ = 0;         /* Min/max of clip Volume */
-	ViewPort7.dvMaxZ = 1.0f;
+	ViewPort7.dvMinZ = ViewPort.dvMinZ;
+	ViewPort7.dvMaxZ = ViewPort.dvMaxZ;
 }
 
 void ConvertViewport(D3DVIEWPORT7 &ViewPort7, D3DVIEWPORT2 &ViewPort2)

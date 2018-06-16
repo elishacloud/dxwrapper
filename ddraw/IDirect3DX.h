@@ -31,7 +31,6 @@ public:
 			(DirectXVersion == 3) ? IID_IDirect3D3 :
 			(DirectXVersion == 7) ? IID_IDirect3D7 : IID_IDirect3D7;
 
-
 		if (Config.Dd7to9)
 		{
 			ProxyDirectXVersion = 9;

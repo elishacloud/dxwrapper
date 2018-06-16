@@ -43,7 +43,7 @@ HRESULT m_IDirectDrawSurfaceX::QueryInterface(REFIID riid, LPVOID FAR * ppvObj)
 			{
 				ProxyInterface->AddRef();
 
-				*ppvObj = new m_IDirect3DTextureX(lpCurrentD3DDevice, 7);
+				*ppvObj = new m_IDirect3DTextureX(lpCurrentD3DDevice, 7, ProxyInterface);
 
 				return S_OK;
 			}
@@ -486,7 +486,7 @@ HRESULT m_IDirectDrawSurfaceX::Flip(LPDIRECTDRAWSURFACE7 lpDDSurfaceTargetOverri
 	if (Config.Dd7to9)
 	{
 		Logging::Log() << __FUNCTION__ << " Not Implemented";
-		return E_NOTIMPL;
+		return DD_OK;
 	}
 
 	if (lpDDSurfaceTargetOverride)
@@ -641,8 +641,16 @@ HRESULT m_IDirectDrawSurfaceX::GetDC(HDC FAR * lphDC)
 {
 	if (Config.Dd7to9)
 	{
+		if (!lphDC)
+		{
+			return DDERR_INVALIDPARAMS;
+		}
+
 		Logging::Log() << __FUNCTION__ << " Not Implemented";
-		return E_NOTIMPL;
+
+		*lphDC = nullptr;
+
+		return DD_OK;
 	}
 
 	return ProxyInterface->GetDC(lphDC);
@@ -925,7 +933,7 @@ HRESULT m_IDirectDrawSurfaceX::ReleaseDC(HDC hDC)
 	if (Config.Dd7to9)
 	{
 		Logging::Log() << __FUNCTION__ << " Not Implemented";
-		return E_NOTIMPL;
+		return DD_OK;
 	}
 
 	return ProxyInterface->ReleaseDC(hDC);

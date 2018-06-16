@@ -23,20 +23,20 @@ public:
 
 		InitWrapper();
 	}
-	~m_IDirect3DMaterialX() {}
-
 	void InitWrapper()
 	{
 		WrapperID = (DirectXVersion == 1) ? IID_IDirect3DMaterial :
 			(DirectXVersion == 2) ? IID_IDirect3DMaterial2 :
 			(DirectXVersion == 3) ? IID_IDirect3DMaterial3 : IID_IDirect3DMaterial3;
 
-		ProxyDirectXVersion = GetIIDVersion(ConvertREFIID(WrapperID));
-
 		if (DirectXVersion == 7)
 		{
 			DirectXVersion = 3;
 			ProxyDirectXVersion = 7;
+		}
+		else
+		{
+			ProxyDirectXVersion = GetIIDVersion(ConvertREFIID(WrapperID));
 		}
 
 		if (ProxyDirectXVersion != DirectXVersion)
@@ -44,6 +44,7 @@ public:
 			Logging::LogDebug() << "Convert Direct3DMaterial v" << DirectXVersion << " to v" << ProxyDirectXVersion;
 		}
 	}
+	~m_IDirect3DMaterialX() {}
 
 	DWORD GetDirectXVersion() { return DDWRAPPER_TYPEX; }
 	REFIID GetWrapperType() { return WrapperID; }

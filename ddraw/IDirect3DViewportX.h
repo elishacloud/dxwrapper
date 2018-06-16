@@ -10,6 +10,10 @@ private:
 	IID WrapperID;
 	ULONG RefCount = 1;
 	m_IDirect3DDeviceX *D3DDeviceInterface;
+	D3DVIEWPORT ViewPort;
+	D3DVIEWPORT2 ViewPort2;
+	bool ViewPortSet = false;
+	bool ViewPort2Set = false;
 
 public:
 	m_IDirect3DViewportX(IDirect3DViewport3 *aOriginal, DWORD Version, m_IDirect3DViewport3 *Interface) : ProxyInterface(aOriginal), DirectXVersion(Version), WrapperInterface(Interface)
@@ -23,20 +27,20 @@ public:
 
 		InitWrapper();
 	}
-	~m_IDirect3DViewportX() {}
-
 	void InitWrapper()
 	{
 		WrapperID = (DirectXVersion == 1) ? IID_IDirect3DViewport :
 			(DirectXVersion == 2) ? IID_IDirect3DViewport2 :
 			(DirectXVersion == 3) ? IID_IDirect3DViewport3 : IID_IDirect3DViewport3;
 
-		ProxyDirectXVersion = GetIIDVersion(ConvertREFIID(WrapperID));
-
 		if (DirectXVersion == 7)
 		{
 			DirectXVersion = 3;
 			ProxyDirectXVersion = 7;
+		}
+		else
+		{
+			ProxyDirectXVersion = GetIIDVersion(ConvertREFIID(WrapperID));
 		}
 
 		if (ProxyDirectXVersion != DirectXVersion)
@@ -44,11 +48,13 @@ public:
 			Logging::LogDebug() << "Convert Direct3DViewport v" << DirectXVersion << " to v" << ProxyDirectXVersion;
 		}
 	}
+	~m_IDirect3DViewportX() {}
 
 	DWORD GetDirectXVersion() { return DDWRAPPER_TYPEX; }
 	REFIID GetWrapperType() { return WrapperID; }
 	IDirect3DViewport3 *GetProxyInterface() { return ProxyInterface; }
 	m_IDirect3DViewport3 *GetWrapperInterface() { return WrapperInterface; }
+	void SetDeviceInterface(m_IDirect3DDeviceX *lpDeviceInterface) { D3DDeviceInterface = lpDeviceInterface; }
 
 	/*** IUnknown methods ***/
 	STDMETHOD(QueryInterface)(THIS_ REFIID riid, LPVOID * ppvObj);

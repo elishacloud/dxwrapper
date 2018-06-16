@@ -90,13 +90,21 @@ HRESULT m_IDirect3DViewportX::GetViewport(LPD3DVIEWPORT lpData)
 {
 	if (ProxyDirectXVersion > 3)
 	{
-		D3DVIEWPORT7 tmpViewport;
+		if (ViewPortSet)
+		{
+			ConvertViewport(*lpData, ViewPort);
 
-		HRESULT hr = D3DDeviceInterface->GetViewport(&tmpViewport);
+			return D3D_OK;
+		}
 
-		ConvertViewport(*lpData, tmpViewport);
+		if (ViewPort2Set)
+		{
+			ConvertViewport(*lpData, ViewPort2);
 
-		return hr;
+			return D3D_OK;
+		}
+
+		return D3DERR_NOVIEWPORTS;
 	}
 
 	return ProxyInterface->GetViewport(lpData);
@@ -106,16 +114,20 @@ HRESULT m_IDirect3DViewportX::SetViewport(LPD3DVIEWPORT lpData)
 {
 	if (ProxyDirectXVersion > 3)
 	{
-		D3DVIEWPORT7 tmpViewport;
+		ViewPortSet = true;
 
-		ConvertViewport(tmpViewport, *lpData);
+		ConvertViewport(ViewPort, *lpData);
 
 		if (lpData->dwSize > 44 && (lpData->dvScaleX != 0 || lpData->dvScaleY != 0))
 		{
 			Logging::Log() << __FUNCTION__ << " 'Scale homogeneous' Not Implemented";
 		}
 
-		return D3DDeviceInterface->SetViewport(&tmpViewport);
+		D3DVIEWPORT7 ViewPort7;
+
+		ConvertViewport(ViewPort7, *lpData);		
+
+		return D3DDeviceInterface->SetViewport(&ViewPort7);
 	}
 
 	return ProxyInterface->SetViewport(lpData);
@@ -268,13 +280,21 @@ HRESULT m_IDirect3DViewportX::GetViewport2(LPD3DVIEWPORT2 lpData)
 {
 	if (ProxyDirectXVersion > 3)
 	{
-		D3DVIEWPORT7 tmpViewport;
+		if (ViewPort2Set)
+		{
+			ConvertViewport(*lpData, ViewPort2);
 
-		HRESULT hr = D3DDeviceInterface->GetViewport(&tmpViewport);
+			return D3D_OK;
+		}
 
-		ConvertViewport(*lpData, tmpViewport);
+		if (ViewPortSet)
+		{
+			ConvertViewport(*lpData, ViewPort);
 
-		return hr;
+			return D3D_OK;
+		}
+
+		return D3DERR_NOVIEWPORTS;
 	}
 
 	return ProxyInterface->GetViewport2(lpData);
@@ -284,16 +304,20 @@ HRESULT m_IDirect3DViewportX::SetViewport2(LPD3DVIEWPORT2 lpData)
 {
 	if (ProxyDirectXVersion > 3)
 	{
-		D3DVIEWPORT7 tmpViewport;
+		ViewPort2Set = true;
 
-		ConvertViewport(tmpViewport, *lpData);
+		ConvertViewport(ViewPort2, *lpData);
 
 		if (lpData->dwSize > 44 && (lpData->dvClipX != 0 || lpData->dvClipY != 0))
 		{
 			Logging::Log() << __FUNCTION__ << " 'clip volume' Not Implemented";
 		}
 
-		return D3DDeviceInterface->SetViewport(&tmpViewport);
+		D3DVIEWPORT7 ViewPort7;
+
+		ConvertViewport(ViewPort7, *lpData);
+
+		return D3DDeviceInterface->SetViewport(&ViewPort7);
 	}
 
 	return ProxyInterface->SetViewport2(lpData);
