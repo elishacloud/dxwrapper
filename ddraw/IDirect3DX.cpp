@@ -80,16 +80,16 @@ HRESULT m_IDirect3DX::Initialize(REFCLSID rclsid)
 	return ((IDirect3D*)ProxyInterface)->Initialize(rclsid);
 }
 
-HRESULT m_IDirect3DX::EnumDevices(LPD3DENUMDEVICESCALLBACK7 lpEnumDevicesCallback, LPVOID lpUserArg)
+HRESULT m_IDirect3DX::EnumDevices(LPD3DENUMDEVICESCALLBACK7 lpEnumDevicesCallback7, LPVOID lpUserArg)
 {
 	ENUMDEVICES CallbackContext;
 	if (ProxyDirectXVersion > 3 && DirectXVersion < 4)
 	{
 		CallbackContext.lpContext = lpUserArg;
-		CallbackContext.lpCallback = (LPD3DENUMDEVICESCALLBACK)lpEnumDevicesCallback;
+		CallbackContext.lpCallback = (LPD3DENUMDEVICESCALLBACK)lpEnumDevicesCallback7;
 
 		lpUserArg = &CallbackContext;
-		lpEnumDevicesCallback = m_IDirect3DEnumDevices::ConvertCallback;
+		lpEnumDevicesCallback7 = m_IDirect3DEnumDevices::ConvertCallback;
 	}
 
 	if (Config.Dd7to9)
@@ -138,7 +138,7 @@ HRESULT m_IDirect3DX::EnumDevices(LPD3DENUMDEVICESCALLBACK7 lpEnumDevicesCallbac
 						break;
 					}
 
-					if (lpEnumDevicesCallback(lpDescription, lpName, &DeviceDesc7, lpUserArg) != DDENUMRET_OK)
+					if (lpEnumDevicesCallback7(lpDescription, lpName, &DeviceDesc7, lpUserArg) != DDENUMRET_OK)
 					{
 						return D3D_OK;
 					}
@@ -149,7 +149,7 @@ HRESULT m_IDirect3DX::EnumDevices(LPD3DENUMDEVICESCALLBACK7 lpEnumDevicesCallbac
 		return D3D_OK;
 	}
 
-	return ProxyInterface->EnumDevices(lpEnumDevicesCallback, lpUserArg);
+	return ProxyInterface->EnumDevices(lpEnumDevicesCallback7, lpUserArg);
 }
 
 HRESULT m_IDirect3DX::CreateLight(LPDIRECT3DLIGHT * lplpDirect3DLight, LPUNKNOWN pUnkOuter)

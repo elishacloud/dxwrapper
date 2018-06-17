@@ -139,4 +139,6 @@ public:
 	bool DoesSurfaceExist(m_IDirectDrawSurfaceX* lpSurfaceX);
 	HRESULT BeginScene(m_IDirectDrawSurfaceX *pSurface);
 	HRESULT EndScene(m_IDirectDrawSurfaceX *pSurface);
+	HDC GetWindowDC();
+	int ReleaseWindowDC(HDC hDC);
  };

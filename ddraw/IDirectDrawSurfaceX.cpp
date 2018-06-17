@@ -447,17 +447,35 @@ HRESULT m_IDirectDrawSurfaceX::DeleteAttachedSurface(DWORD dwFlags, LPDIRECTDRAW
 	return ProxyInterface->DeleteAttachedSurface(dwFlags, lpDDSAttachedSurface);
 }
 
-HRESULT m_IDirectDrawSurfaceX::EnumAttachedSurfaces(LPVOID lpContext, LPDDENUMSURFACESCALLBACK7 lpEnumSurfacesCallback)
+HRESULT m_IDirectDrawSurfaceX::EnumAttachedSurfaces(LPVOID lpContext, LPDDENUMSURFACESCALLBACK7 lpEnumSurfacesCallback7)
 {
 	if (Config.Dd7to9)
 	{
-		Logging::Log() << __FUNCTION__ << " Not Implemented";
-		return E_NOTIMPL;
+		Logging::Log() << __FUNCTION__ << " Not fully Implemented.";
+
+		if (!lpEnumSurfacesCallback7)
+		{
+			return DDERR_INVALIDPARAMS;
+		}
+
+		// Game using old DirectX, Convert back to LPDDSURFACEDESC
+		if (ConvertSurfaceDescTo2)
+		{
+			DDSURFACEDESC Desc;
+			ConvertSurfaceDesc(Desc, surfaceDesc2);
+			lpEnumSurfacesCallback7(this, (LPDDSURFACEDESC2)&Desc, lpContext);
+		}
+		else
+		{
+			lpEnumSurfacesCallback7(this, &surfaceDesc2, lpContext);
+		}
+
+		return DD_OK;
 	}
 
 	ENUMSURFACE CallbackContext;
 	CallbackContext.lpContext = lpContext;
-	CallbackContext.lpCallback = lpEnumSurfacesCallback;
+	CallbackContext.lpCallback = lpEnumSurfacesCallback7;
 	CallbackContext.DirectXVersion = DirectXVersion;
 	CallbackContext.ConvertSurfaceDescTo2 = ConvertSurfaceDescTo2;
 
@@ -485,7 +503,7 @@ HRESULT m_IDirectDrawSurfaceX::Flip(LPDIRECTDRAWSURFACE7 lpDDSurfaceTargetOverri
 {
 	if (Config.Dd7to9)
 	{
-		Logging::Log() << __FUNCTION__ << " Not Implemented";
+		Logging::Log() << __FUNCTION__ << " Not fully Implemented.";
 		return DD_OK;
 	}
 
@@ -610,27 +628,28 @@ HRESULT m_IDirectDrawSurfaceX::GetColorKey(DWORD dwFlags, LPDDCOLORKEY lpDDColor
 
 	if (Config.Dd7to9)
 	{
-		if (dwFlags & DDCKEY_DESTBLT)
+		// Get color key index
+		int x = (dwFlags & DDCKEY_DESTBLT) ? 0 :
+			(dwFlags & DDCKEY_DESTOVERLAY) ? 1 :
+			(dwFlags & DDCKEY_SRCBLT) ? 2 :
+			(dwFlags & DDCKEY_SRCOVERLAY) ? 3 : -1;
+
+		// Check index
+		if (x == -1)
 		{
-			// A color key or color space to be used as a destination color key for bit block transfer(bitblt) operations.
-			memcpy(lpDDColorKey, &colorKeys[0], sizeof(DDCOLORKEY));
-		}
-		else if (dwFlags & DDCKEY_DESTOVERLAY)
-		{
-			// A color key or color space to be used as a destination color key for overlay operations.
-			memcpy(lpDDColorKey, &colorKeys[1], sizeof(DDCOLORKEY));
-		}
-		else if (dwFlags & DDCKEY_SRCBLT)
-		{
-			// A color key or color space to be used as a source color key for bitblt operations.
-			memcpy(lpDDColorKey, &colorKeys[2], sizeof(DDCOLORKEY));
-		}
-		if (dwFlags & DDCKEY_SRCOVERLAY)
-		{
-			// A color key or color space to be used as a source color key for overlay operations.
-			memcpy(lpDDColorKey, &colorKeys[3], sizeof(DDCOLORKEY));
+			return DDERR_INVALIDPARAMS;
 		}
 
+		// Check if color key is set
+		if (!ColorKeys[x].IsSet)
+		{
+			return DDERR_NOCOLORKEY;
+		}
+
+		// Copy color key
+		memcpy(lpDDColorKey, &ColorKeys[x].Key, sizeof(DDCOLORKEY));
+
+		// Return
 		return DD_OK;
 	}
 
@@ -641,14 +660,24 @@ HRESULT m_IDirectDrawSurfaceX::GetDC(HDC FAR * lphDC)
 {
 	if (Config.Dd7to9)
 	{
+		Logging::Log() << __FUNCTION__ << " Not fully Implemented.";
+
 		if (!lphDC)
 		{
 			return DDERR_INVALIDPARAMS;
 		}
 
-		Logging::Log() << __FUNCTION__ << " Not Implemented";
+		if (!ddrawParent)
+		{
+			return DDERR_INVALIDOBJECT;
+		}
 
-		*lphDC = nullptr;
+		*lphDC = ddrawParent->GetWindowDC();
+
+		if (!*lphDC)
+		{
+			return DDERR_GENERIC;
+		}
 
 		return DD_OK;
 	}
@@ -671,6 +700,8 @@ HRESULT m_IDirectDrawSurfaceX::GetOverlayPosition(LPLONG lplX, LPLONG lplY)
 {
 	if (Config.Dd7to9)
 	{
+		Logging::Log() << __FUNCTION__ << " Not fully Implemented.";
+
 		if (!lplX || !lplY)
 		{
 			return DDERR_INVALIDPARAMS;
@@ -792,8 +823,8 @@ HRESULT m_IDirectDrawSurfaceX::Initialize(LPDIRECTDRAW lpDD, LPDDSURFACEDESC2 lp
 
 	if (Config.Dd7to9)
 	{
-		Logging::Log() << __FUNCTION__ << " Not Implemented";
-		return E_NOTIMPL;
+		// Not needed
+		return DD_OK;
 	}
 
 	if (lpDD)
@@ -932,7 +963,18 @@ HRESULT m_IDirectDrawSurfaceX::ReleaseDC(HDC hDC)
 {
 	if (Config.Dd7to9)
 	{
-		Logging::Log() << __FUNCTION__ << " Not Implemented";
+		Logging::Log() << __FUNCTION__ << " Not fully Implemented.";
+
+		if (!ddrawParent)
+		{
+			return DDERR_INVALIDOBJECT;
+		}
+
+		if (ddrawParent->ReleaseWindowDC(hDC) == 0)
+		{
+			return DDERR_GENERIC;
+		}
+
 		return DD_OK;
 	}
 
@@ -975,29 +1017,31 @@ HRESULT m_IDirectDrawSurfaceX::SetColorKey(DWORD dwFlags, LPDDCOLORKEY lpDDColor
 
 	if (Config.Dd7to9)
 	{
-		/*
-		DDCKEY_COLORSPACE
-		The structure contains a color space. Not set if the structure contains a single color key.
-		*/
+		// Get color key index
+		int x = (dwFlags & DDCKEY_DESTBLT) ? 0 :
+			(dwFlags & DDCKEY_DESTOVERLAY) ? 1 :
+			(dwFlags & DDCKEY_SRCBLT) ? 2 :
+			(dwFlags & DDCKEY_SRCOVERLAY) ? 3 : -1;
 
-		//store color key information for the appropriate color key
-		if (dwFlags & DDCKEY_DESTBLT)
+		// Check index
+		if (x == -1)
 		{
-			memcpy(&colorKeys[0], lpDDColorKey, sizeof(DDCOLORKEY));
-		}
-		else if (dwFlags & DDCKEY_DESTOVERLAY)
-		{
-			memcpy(&colorKeys[1], lpDDColorKey, sizeof(DDCOLORKEY));
-		}
-		else if (dwFlags & DDCKEY_SRCBLT)
-		{
-			memcpy(&colorKeys[2], lpDDColorKey, sizeof(DDCOLORKEY));
-		}
-		if (dwFlags & DDCKEY_SRCOVERLAY)
-		{
-			memcpy(&colorKeys[3], lpDDColorKey, sizeof(DDCOLORKEY));
+			return DDERR_INVALIDPARAMS;
 		}
 
+		// Set color key
+		if (!lpDDColorKey)
+		{
+			ColorKeys[x].IsSet = false;
+		}
+		else
+		{
+			ColorKeys[x].IsSet = true;
+			ColorKeys[x].IdColorSpace = ((dwFlags & DDCKEY_COLORSPACE) != 0);
+			memcpy(&ColorKeys[x].Key, lpDDColorKey, sizeof(DDCOLORKEY));
+		}
+
+		// Return
 		return DD_OK;
 	}
 
@@ -1008,6 +1052,8 @@ HRESULT m_IDirectDrawSurfaceX::SetOverlayPosition(LONG lX, LONG lY)
 {
 	if (Config.Dd7to9)
 	{
+		Logging::Log() << __FUNCTION__ << " Not fully Implemented.";
+
 		// Store the new overlay position
 		overlayX = lX;
 		overlayY = lY;

@@ -17,7 +17,6 @@
 */
 
 #include "ddraw.h"
-#include "Utils\Utils.h"
 
 std::unordered_map<HWND, IDirectDraw7*> g_hookmap;
 
@@ -712,13 +711,66 @@ LRESULT CALLBACK CBTProc(int nCode, WPARAM wParam, LPARAM lParam)
 	return CallNextHookEx(nullptr, nCode, wParam, lParam);
 }
 
+struct handle_data
+{
+	DWORD process_id = 0;
+	HWND best_handle = nullptr;
+};
+
+// Enums all windows and returns the handle to the active window
+BOOL CALLBACK EnumProcWindowCallback(HWND hwnd, LPARAM lParam)
+{
+	// Get varables from call back
+	handle_data& data = *(handle_data*)lParam;
+
+	// Skip windows that are from a different process ID
+	DWORD process_id;
+	GetWindowThreadProcessId(hwnd, &process_id);
+	if (data.process_id != process_id)
+	{
+		return true;
+	}
+
+	// Skip compatibility class windows
+	char class_name[80] = { 0 };
+	GetClassName(hwnd, class_name, sizeof(class_name));
+	if (strcmp(class_name, "CompatWindowDesktopReplacement") == 0)			// Compatibility class windows
+	{
+		return true;
+	}
+
+	// Match found returning value
+	data.best_handle = hwnd;
+	return false;
+}
+
+// Finds the active window
+HWND FindProcWindow()
+{
+	// Set varables
+	handle_data data;
+	data.process_id = GetCurrentProcessId();
+	data.best_handle = nullptr;
+
+	// Gets all window layers and looks for a main window that is fullscreen
+	EnumWindows(EnumProcWindowCallback, (LPARAM)&data);
+
+	// Return the best handle
+	return data.best_handle;
+}
+
 HRESULT m_IDirectDrawX::SetCooperativeLevel(HWND hWnd, DWORD dwFlags)
 {
 	if (Config.Dd7to9)
 	{
 		if (!hWnd)
 		{
-			hWnd = GetTopWindow(Utils::Fullscreen::FindMainWindow(GetCurrentProcessId(), true));
+			hWnd = FindProcWindow();
+			HWND m_hWnd = GetTopWindow(hWnd);
+			if (m_hWnd)
+			{
+				hWnd = m_hWnd;
+			}
 			if (!hWnd)
 			{
 				Logging::Log() << __FUNCTION__ << " Could not get window handle";
@@ -1387,4 +1439,14 @@ HRESULT m_IDirectDrawX::EndScene(m_IDirectDrawSurfaceX *pSurface)
 	}
 
 	return DD_OK;
+}
+
+HDC m_IDirectDrawX::GetWindowDC()
+{
+	return GetDC(MainhWnd);
+}
+
+int m_IDirectDrawX::ReleaseWindowDC(HDC hDC)
+{
+	return ReleaseDC(MainhWnd, hDC);
 }

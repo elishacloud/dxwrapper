@@ -11,13 +11,21 @@ private:
 	ULONG RefCount = 1;
 	bool ConvertSurfaceDescTo2 = false;
 
+	// Color Key Structure
+	struct CKEYS
+	{
+		DDCOLORKEY Key = {0, 0};
+		bool IsSet = false;
+		bool IdColorSpace = false;
+	};
+
 	// Convert to d3d9
 	m_IDirectDrawX *ddrawParent = nullptr;
 	m_IDirectDrawPalette *attachedPalette = nullptr;	// Associated palette
 	DDSURFACEDESC2 surfaceDesc2;
 	D3DLOCKED_RECT d3dlrect = { 0, nullptr };
 	RECT LockDestRect;
-	DDCOLORKEY colorKeys[4];		// Color keys(DDCKEY_DESTBLT, DDCKEY_DESTOVERLAY, DDCKEY_SRCBLT, DDCKEY_SRCOVERLAY)
+	CKEYS ColorKeys[4];									// Color keys
 	LONG overlayX = 0;
 	LONG overlayY = 0;
 	DWORD BufferSize = 0;
@@ -57,12 +65,6 @@ public:
 		WrapperInterface = nullptr;
 
 		InitWrapper();
-
-		// Init color keys
-		for (int i = 0; i < 4; i++)
-		{
-			memset(&colorKeys[i], 0, sizeof(DDCOLORKEY));
-		}
 
 		// Copy surface description
 		memcpy(&surfaceDesc2, lpDDSurfaceDesc, sizeof(DDSURFACEDESC2));

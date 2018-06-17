@@ -38,7 +38,6 @@ namespace Utils
 		bool IsThreadRunning();
 		void StopThread();
 		void ResetScreen();
-		HWND FindMainWindow(DWORD, bool, bool = false);
 	}
 }
 
