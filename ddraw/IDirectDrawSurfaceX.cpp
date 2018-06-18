@@ -503,7 +503,111 @@ HRESULT m_IDirectDrawSurfaceX::Flip(LPDIRECTDRAWSURFACE7 lpDDSurfaceTargetOverri
 {
 	if (Config.Dd7to9)
 	{
-		Logging::Log() << __FUNCTION__ << " Not fully Implemented.";
+		if (!ddrawParent)
+		{
+			Logging::Log() << __FUNCTION__ << " Error no ddraw parent!";
+			return DDERR_INVALIDOBJECT;
+		}
+
+		// Unneeded flags (can be safely ignored?)
+		// Note: vsync handled by d3d9 PresentationInterval
+		// - DDFLIP_DONOTWAIT
+		// - DDFLIP_NOVSYNC
+		// - DDFLIP_WAIT
+
+		if ((dwFlags & (DDFLIP_INTERVAL2 | DDFLIP_INTERVAL3 | DDFLIP_INTERVAL4)) && (surfaceDesc2.ddsCaps.dwCaps2 & DDCAPS2_FLIPINTERVAL))
+		{
+			Logging::Log() << __FUNCTION__ << " Interval flipping not implemented";
+		}
+
+		// If SurfaceTargetOverride then use that surface
+		if (lpDDSurfaceTargetOverride)
+		{
+			m_IDirectDrawSurfaceX *lpTargetSurface = (m_IDirectDrawSurfaceX*)lpDDSurfaceTargetOverride;
+
+			if (!ddrawParent->DoesSurfaceExist(lpTargetSurface))
+			{
+				RemoveSurfaceFromMap(lpTargetSurface);
+				Logging::Log() << __FUNCTION__ << " Invalid SurfaceTarget";
+				return DDERR_INVALIDPARAMS;
+			}
+
+			if (!DoesSurfaceExist(lpTargetSurface) || lpTargetSurface == this)
+			{
+				Logging::Log() << __FUNCTION__ << " Invalid SurfaceTarget";
+				return DDERR_INVALIDPARAMS;
+			}
+
+			// Swap textures
+			LPDIRECT3DTEXTURE9 tmpAddr = surfaceTexture;
+			surfaceTexture = *lpTargetSurface->GetSurfaceTexture();
+			*lpTargetSurface->GetSurfaceTexture() = tmpAddr;
+
+			// Set new texture
+			HRESULT hr = (*d3d9Device)->SetTexture(0, surfaceTexture);
+			if (FAILED(hr))
+			{
+				Logging::Log() << __FUNCTION__ << " Failed to set texture";
+				return hr;
+			}
+
+			return DD_OK;
+		}
+
+		if ((dwFlags & DDFLIP_ODD) && (dwFlags & DDFLIP_EVEN))
+		{
+			return DDERR_INVALIDPARAMS;
+		}
+
+		if (dwFlags & DDFLIP_STEREO)
+		{
+			Logging::Log() << __FUNCTION__ << " Stereo flipping not implemented";
+			return E_NOTIMPL;
+		}
+
+		if (dwFlags & (DDFLIP_ODD | DDFLIP_EVEN))
+		{
+			Logging::Log() << __FUNCTION__ << " Even and odd flipping not implemented";
+			return E_NOTIMPL;
+		}
+
+		// Loop through each surface and swap them
+		bool FoundAttachedSurface = false;
+		for (auto it : AttachedSurfaceMap)
+		{
+			m_IDirectDrawSurfaceX *lpTargetSurface = (m_IDirectDrawSurfaceX*)it.second;
+
+			// Surface does not exist
+			if (!ddrawParent->DoesSurfaceExist(lpTargetSurface))
+			{
+				RemoveSurfaceFromMap(lpTargetSurface);
+			}
+			// Found surface
+			else
+			{
+				FoundAttachedSurface = true;
+
+				// Swap textures
+				LPDIRECT3DTEXTURE9 tmpAddr = surfaceTexture;
+				surfaceTexture = *lpTargetSurface->GetSurfaceTexture();
+				*lpTargetSurface->GetSurfaceTexture() = tmpAddr;
+			}
+		}
+
+		if (!FoundAttachedSurface)
+		{
+			Logging::Log() << __FUNCTION__ << " No attached surfaces found";
+			return DDERR_GENERIC;
+		}
+
+		// Set new texture
+		HRESULT hr = (*d3d9Device)->SetTexture(0, surfaceTexture);
+		if (FAILED(hr))
+		{
+			Logging::Log() << __FUNCTION__ << " Failed to set texture";
+			return hr;
+		}
+
 		return DD_OK;
 	}
 
@@ -532,11 +636,28 @@ HRESULT m_IDirectDrawSurfaceX::GetAttachedSurface(LPDDSCAPS2 lpDDSCaps, LPDIRECT
 
 	if (Config.Dd7to9)
 	{
-		Logging::Log() << __FUNCTION__ << " Not fully Implemented.";
+		if (!ddrawParent)
+		{
+			Logging::Log() << __FUNCTION__ << " Error no ddraw parent!";
+			return DDERR_INVALIDOBJECT;
+		}
 
-		*lplpDDAttachedSurface = this;
-		
-		AddRef();
+		/*ToDo: GetAttachedSurface fails if more than one surface is attached that matches the capabilities requested. 
+		In this case, the application must use the IDirectDrawSurface7::EnumAttachedSurfaces method to obtain the attached surfaces.*/
+
+		DDSURFACEDESC2 DDSurfaceDesc2;
+		memcpy(&DDSurfaceDesc2, &surfaceDesc2, sizeof(DDSURFACEDESC2));
+		if (lpDDSCaps)
+		{
+			memcpy(&DDSurfaceDesc2.ddsCaps, lpDDSCaps, sizeof(DDSCAPS2));
+		}
+		DDSurfaceDesc2.ddsCaps.dwCaps &= ~DDSCAPS_PRIMARYSURFACE;		// Remove Primary surface flag
+
+		m_IDirectDrawSurfaceX *attachedSurface = new m_IDirectDrawSurfaceX(d3d9Device, ddrawParent, DirectXVersion, &DDSurfaceDesc2, displayWidth, displayHeight);
+
+		*lplpDDAttachedSurface = attachedSurface;
+
+		AddSurfaceToMap(attachedSurface);
 
 		return DD_OK;
 	}
@@ -669,6 +790,7 @@ HRESULT m_IDirectDrawSurfaceX::GetDC(HDC FAR * lphDC)
 
 		if (!ddrawParent)
 		{
+			Logging::Log() << __FUNCTION__ << " Error no ddraw parent!";
 			return DDERR_INVALIDOBJECT;
 		}
 
@@ -901,6 +1023,12 @@ HRESULT m_IDirectDrawSurfaceX::Lock(LPRECT lpDestRect, LPDDSURFACEDESC2 lpDDSurf
 			hr = DD_OK;
 		}
 
+		if (!ddrawParent)
+		{
+			Logging::Log() << __FUNCTION__ << " Error no ddraw parent!";
+			return DDERR_INVALIDOBJECT;
+		}
+
 		// Try BegineScene
 		hr = ddrawParent->BeginScene(this);
 
@@ -967,6 +1095,7 @@ HRESULT m_IDirectDrawSurfaceX::ReleaseDC(HDC hDC)
 
 		if (!ddrawParent)
 		{
+			Logging::Log() << __FUNCTION__ << " Error no ddraw parent!";
 			return DDERR_INVALIDOBJECT;
 		}
 
@@ -1898,4 +2027,59 @@ HRESULT m_IDirectDrawSurfaceX::GetSurfaceDesc2(LPDDSURFACEDESC2 lpDDSurfaceDesc2
 	memcpy(lpDDSurfaceDesc2, &surfaceDesc2, sizeof(DDSURFACEDESC2));
 
 	return DD_OK;
+}
+
+// Add attached surface to map
+void m_IDirectDrawSurfaceX::AddSurfaceToMap(m_IDirectDrawSurfaceX* lpSurfaceX)
+{
+	if (!lpSurfaceX)
+	{
+		return;
+	}
+
+	// Get map Key
+	DWORD Key = 0;
+	if (AttachedSurfaceMap.size() != 0)
+	{
+		Key = AttachedSurfaceMap.end()->first + 1;
+	}
+
+	// Store surface
+	AttachedSurfaceMap[Key] = lpSurfaceX;
+}
+
+// Remove attached surface from map
+void m_IDirectDrawSurfaceX::RemoveSurfaceFromMap(m_IDirectDrawSurfaceX* lpSurfaceX)
+{
+	if (!lpSurfaceX)
+	{
+		return;
+	}
+
+	auto it = std::find_if(AttachedSurfaceMap.begin(), AttachedSurfaceMap.end(),
+		[=](auto Map) -> bool { return Map.second == lpSurfaceX; });
+
+	if (it != std::end(AttachedSurfaceMap))
+	{
+		AttachedSurfaceMap.erase(it);
+	}
+}
+
+// Check if attached surface exists
+bool m_IDirectDrawSurfaceX::DoesSurfaceExist(m_IDirectDrawSurfaceX* lpSurfaceX)
+{
+	if (!lpSurfaceX)
+	{
+		return false;
+	}
+
+	auto it = std::find_if(AttachedSurfaceMap.begin(), AttachedSurfaceMap.end(),
+		[=](auto Map) -> bool { return Map.second == lpSurfaceX; });
+
+	if (it == std::end(AttachedSurfaceMap))
+	{
+		return false;
+	}
+
+	return true;
 }

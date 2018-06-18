@@ -1,4 +1,5 @@
 #pragma once
+#include <map>
 
 class m_IDirectDrawSurfaceX : public IDirectDrawSurface7
 {
@@ -14,7 +15,7 @@ private:
 	// Color Key Structure
 	struct CKEYS
 	{
-		DDCOLORKEY Key = {0, 0};
+		DDCOLORKEY Key = { 0, 0 };
 		bool IsSet = false;
 		bool IdColorSpace = false;
 	};
@@ -25,7 +26,7 @@ private:
 	DDSURFACEDESC2 surfaceDesc2;
 	D3DLOCKED_RECT d3dlrect = { 0, nullptr };
 	RECT LockDestRect;
-	CKEYS ColorKeys[4];									// Color keys
+	CKEYS ColorKeys[4];		// Color keys(DDCKEY_DESTBLT, DDCKEY_DESTOVERLAY, DDCKEY_SRCBLT, DDCKEY_SRCOVERLAY)
 	LONG overlayX = 0;
 	LONG overlayY = 0;
 	DWORD BufferSize = 0;
@@ -41,6 +42,9 @@ private:
 	LPDIRECT3DDEVICE9 *d3d9Device = nullptr;
 	LPDIRECT3DTEXTURE9 surfaceTexture = nullptr;
 	LPDIRECT3DVERTEXBUFFER9 vertexBuffer = nullptr;
+
+	// Store a list of attached surfaces
+	std::map<DWORD, m_IDirectDrawSurfaceX*> AttachedSurfaceMap;
 
 	// Custom vertex
 	struct TLVERTEX
@@ -78,21 +82,6 @@ public:
 			ddrawParent->AddSurfaceToVector(this);
 		}
 	}
-	~m_IDirectDrawSurfaceX()
-	{
-		if (rawVideoBuf)
-		{
-			delete rawVideoBuf;
-			rawVideoBuf = nullptr;
-		}
-
-		if (d3d9Device && *d3d9Device && ddrawParent)
-		{
-			ddrawParent->RemoveSurfaceFromVector(this);
-			ReleaseD9Surface();
-		}
-	}
-
 	void InitWrapper()
 	{
 		WrapperID = (DirectXVersion == 1) ? IID_IDirectDrawSurface :
@@ -120,11 +109,26 @@ public:
 			Logging::LogDebug() << "Convert DirectDrawSurface v" << DirectXVersion << " to v" << ProxyDirectXVersion;
 		}
 	}
+	~m_IDirectDrawSurfaceX()
+	{
+		if (rawVideoBuf)
+		{
+			delete rawVideoBuf;
+			rawVideoBuf = nullptr;
+		}
+
+		if (d3d9Device && *d3d9Device && ddrawParent)
+		{
+			ddrawParent->RemoveSurfaceFromVector(this);
+			ReleaseD9Surface();
+		}
+	}
 
 	DWORD GetDirectXVersion() { return DDWRAPPER_TYPEX; }
 	REFIID GetWrapperType() { return WrapperID; }
 	IDirectDrawSurface7 *GetProxyInterface() { return ProxyInterface; }
 	m_IDirectDrawSurface7 *GetWrapperInterface() { return WrapperInterface; }
+	LPDIRECT3DTEXTURE9 *GetSurfaceTexture() { return &surfaceTexture; }
 	bool IsSurfaceLocked() { return IsLocked; }
 	bool NeedsLock() { return !IsLocked && WriteDirectlyToSurface; }
 
@@ -132,6 +136,7 @@ public:
 	STDMETHOD(QueryInterface) (THIS_ REFIID riid, LPVOID FAR * ppvObj);
 	STDMETHOD_(ULONG, AddRef) (THIS);
 	STDMETHOD_(ULONG, Release) (THIS);
+
 	/*** IDirectDrawSurface methods ***/
 	STDMETHOD(AddAttachedSurface)(THIS_ LPDIRECTDRAWSURFACE7);
 	STDMETHOD(AddOverlayDirtyRect)(THIS_ LPRECT);
@@ -166,23 +171,28 @@ public:
 	STDMETHOD(UpdateOverlay)(THIS_ LPRECT, LPDIRECTDRAWSURFACE7, LPRECT, DWORD, LPDDOVERLAYFX);
 	STDMETHOD(UpdateOverlayDisplay)(THIS_ DWORD);
 	STDMETHOD(UpdateOverlayZOrder)(THIS_ DWORD, LPDIRECTDRAWSURFACE7);
+
 	/*** Added in the v2 interface ***/
 	STDMETHOD(GetDDInterface)(THIS_ LPVOID FAR *);
 	STDMETHOD(PageLock)(THIS_ DWORD);
 	STDMETHOD(PageUnlock)(THIS_ DWORD);
+
 	/*** Added in the v3 interface ***/
 	STDMETHOD(SetSurfaceDesc)(THIS_ LPDDSURFACEDESC2, DWORD);
+
 	/*** Added in the v4 interface ***/
 	STDMETHOD(SetPrivateData)(THIS_ REFGUID, LPVOID, DWORD, DWORD);
 	STDMETHOD(GetPrivateData)(THIS_ REFGUID, LPVOID, LPDWORD);
 	STDMETHOD(FreePrivateData)(THIS_ REFGUID);
 	STDMETHOD(GetUniquenessValue)(THIS_ LPDWORD);
 	STDMETHOD(ChangeUniquenessValue)(THIS);
+
 	/*** Moved Texture7 methods here ***/
 	STDMETHOD(SetPriority)(THIS_ DWORD);
 	STDMETHOD(GetPriority)(THIS_ LPDWORD);
 	STDMETHOD(SetLOD)(THIS_ DWORD);
 	STDMETHOD(GetLOD)(THIS_ LPDWORD);
+
 	/*** Helper functions ***/
 	void ReleaseD9Surface();
 	void AlocateVideoBuffer();
@@ -192,4 +202,7 @@ public:
 	HRESULT SetUnLock();
 	HRESULT GetSurfaceInfo(D3DLOCKED_RECT *pLockRect, DWORD *lpBitCount, D3DFORMAT *lpFormat);
 	HRESULT GetSurfaceDesc2(LPDDSURFACEDESC2 lpDDSurfaceDesc2);
+	void AddSurfaceToMap(m_IDirectDrawSurfaceX* lpSurfaceX);
+	void RemoveSurfaceFromMap(m_IDirectDrawSurfaceX* lpSurfaceX);
+	bool DoesSurfaceExist(m_IDirectDrawSurfaceX* lpSurfaceX);
 };

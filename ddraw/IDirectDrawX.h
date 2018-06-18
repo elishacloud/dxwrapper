@@ -98,6 +98,7 @@ public:
 	STDMETHOD(QueryInterface) (THIS_ REFIID riid, LPVOID FAR * ppvObj);
 	STDMETHOD_(ULONG, AddRef) (THIS);
 	STDMETHOD_(ULONG, Release) (THIS);
+
 	/*** IDirectDraw methods ***/
 	STDMETHOD(Compact)(THIS);
 	STDMETHOD(CreateClipper)(THIS_ DWORD, LPDIRECTDRAWCLIPPER FAR*, IUnknown FAR *);
@@ -119,8 +120,10 @@ public:
 	STDMETHOD(SetCooperativeLevel)(THIS_ HWND, DWORD);
 	STDMETHOD(SetDisplayMode)(THIS_ DWORD, DWORD, DWORD, DWORD, DWORD);
 	STDMETHOD(WaitForVerticalBlank)(THIS_ DWORD, HANDLE);
+
 	/*** Added in the v2 interface ***/
 	STDMETHOD(GetAvailableVidMem)(THIS_ LPDDSCAPS2, LPDWORD, LPDWORD);
+
 	/*** Added in the V4 Interface ***/
 	STDMETHOD(GetSurfaceFromDC) (THIS_ HDC, LPDIRECTDRAWSURFACE7 *);
 	STDMETHOD(RestoreAllSurfaces)(THIS);
@@ -128,6 +131,7 @@ public:
 	STDMETHOD(GetDeviceIdentifier)(THIS_ LPDDDEVICEIDENTIFIER2, DWORD);
 	STDMETHOD(StartModeTest)(THIS_ LPSIZE, DWORD, DWORD);
 	STDMETHOD(EvaluateMode)(THIS_ DWORD, DWORD *);
+
 	/*** Helper functions ***/
 	void ReleaseD3d9();
 	void ReleaseAllD9Surfaces();
