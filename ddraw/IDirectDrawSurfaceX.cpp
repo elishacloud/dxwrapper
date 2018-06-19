@@ -349,6 +349,10 @@ HRESULT m_IDirectDrawSurfaceX::Blt(LPRECT lpDestRect, LPDIRECTDRAWSURFACE7 lpDDS
 			lpDDSrcSurfaceX->SetUnLock();
 		}
 
+		// If Blt to or from primary surface then prepare for EndScene
+		CallEndScene(false);
+		lpDDSrcSurfaceX->CallEndScene(false);
+
 		// Return
 		return hr;
 	}
@@ -548,10 +552,12 @@ HRESULT m_IDirectDrawSurfaceX::Flip(LPDIRECTDRAWSURFACE7 lpDDSurfaceTargetOverri
 			if (FAILED(hr))
 			{
 				Logging::Log() << __FUNCTION__ << " Failed to set texture";
-				return hr;
 			}
 
-			return DD_OK;
+			// Run EndScene after Flip
+			CallEndScene(true);
+
+			return hr;
 		}
 
 		if ((dwFlags & DDFLIP_ODD) && (dwFlags & DDFLIP_EVEN))
@@ -605,10 +611,12 @@ HRESULT m_IDirectDrawSurfaceX::Flip(LPDIRECTDRAWSURFACE7 lpDDSurfaceTargetOverri
 		if (FAILED(hr))
 		{
 			Logging::Log() << __FUNCTION__ << " Failed to set texture";
-			return hr;
 		}
 
-		return DD_OK;
+		// Run EndScene after Flip
+		CallEndScene(true);
+
+		return hr;
 	}
 
 	if (lpDDSurfaceTargetOverride)
@@ -658,6 +666,8 @@ HRESULT m_IDirectDrawSurfaceX::GetAttachedSurface(LPDDSCAPS2 lpDDSCaps, LPDIRECT
 		*lplpDDAttachedSurface = attachedSurface;
 
 		AddSurfaceToMap(attachedSurface);
+
+		ddrawParent->SetHasBackBuffer(true);
 
 		return DD_OK;
 	}
@@ -1029,8 +1039,8 @@ HRESULT m_IDirectDrawSurfaceX::Lock(LPRECT lpDestRect, LPDDSURFACEDESC2 lpDDSurf
 			return DDERR_INVALIDOBJECT;
 		}
 
-		// Try BegineScene
-		hr = ddrawParent->BeginScene(this);
+		// Try BeginScene (ignore results)
+		ddrawParent->BeginScene();
 
 		// Lock rect
 		if (SUCCEEDED(hr))
@@ -1380,16 +1390,11 @@ HRESULT m_IDirectDrawSurfaceX::Unlock(LPRECT lpRect)
 		IsLocked = false;
 		d3dlrect.pBits = nullptr;
 
-		// Try EndScene
-		hr = ddrawParent->EndScene(this);
-		if (FAILED(hr))
-		{
-			// Failed to present the surface, error reporting handled previously
-			return hr;
-		}
+		// Run EndScene (ignore results)
+		CallEndScene(true);
 
-		// Success
-		return DD_OK;
+		// Return
+		return hr;
 	}
 
 	return ProxyInterface->Unlock(lpRect);
@@ -1813,6 +1818,9 @@ HRESULT m_IDirectDrawSurfaceX::CreateD3d9Surface()
 		return hr;
 	}
 
+	// Reset Locked flag
+	IsLocked = false;
+
 	// Only display surface if it is primary for now...
 	if ((surfaceDesc2.ddsCaps.dwCaps & DDSCAPS_PRIMARYSURFACE) == 0)
 	{
@@ -2082,4 +2090,35 @@ bool m_IDirectDrawSurfaceX::DoesSurfaceExist(m_IDirectDrawSurfaceX* lpSurfaceX)
 	}
 
 	return true;
+}
+
+// Set flags and run EndScene
+HRESULT m_IDirectDrawSurfaceX::CallEndScene(bool EndSceneFlag)
+{
+	if (!ddrawParent)
+	{
+		Logging::Log() << __FUNCTION__ << " Error no ddraw parent!";
+		return DDERR_INVALIDOBJECT;
+	}
+
+	// Set ReadyToEndScene is this is primary surface
+	if (surfaceDesc2.ddsCaps.dwCaps & DDSCAPS_PRIMARYSURFACE)
+	{
+		ddrawParent->SetReadyToEndScene();
+
+		// If no attached surfaces then make sure to reset HasBackBuffer
+		if (AttachedSurfaceMap.size() == 0)
+		{
+			ddrawParent->SetHasBackBuffer(false);
+		}
+	}
+
+	// Run EndScene
+	if (EndSceneFlag)
+	{
+		return ddrawParent->EndScene();
+	}
+
+	// Return
+	return DD_OK;
 }

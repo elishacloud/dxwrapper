@@ -17,6 +17,9 @@ private:
 
 	// Convert to d3d9
 	HWND MainhWnd = nullptr;
+	bool HasBegunScene = false;
+	bool HasBackBuffer = false;
+	bool ReadyToEndScene = true;
 	bool ExclusiveMode = false;
 	POINT lastPosition = {100, 100};		// Last window position
 	bool SetDefaultDisplayMode = false;		// Set native resolution
@@ -93,6 +96,8 @@ public:
 	IDirectDraw7 *GetProxyInterface() { return ProxyInterface; }
 	m_IDirectDraw7 *GetWrapperInterface() { return WrapperInterface; }
 	LPDIRECT3D9 GetDirect3D() { return d3d9Object; }
+	void SetHasBackBuffer(bool Flag) { HasBackBuffer = Flag; }
+	void SetReadyToEndScene() { ReadyToEndScene = true; }
 
 	/*** IUnknown methods ***/
 	STDMETHOD(QueryInterface) (THIS_ REFIID riid, LPVOID FAR * ppvObj);
@@ -141,8 +146,8 @@ public:
 	void AddSurfaceToVector(m_IDirectDrawSurfaceX* lpSurfaceX);
 	void RemoveSurfaceFromVector(m_IDirectDrawSurfaceX* lpSurfaceX);
 	bool DoesSurfaceExist(m_IDirectDrawSurfaceX* lpSurfaceX);
-	HRESULT BeginScene(m_IDirectDrawSurfaceX *pSurface);
-	HRESULT EndScene(m_IDirectDrawSurfaceX *pSurface);
+	HRESULT BeginScene();
+	HRESULT EndScene();
 	HDC GetWindowDC();
 	int ReleaseWindowDC(HDC hDC);
  };

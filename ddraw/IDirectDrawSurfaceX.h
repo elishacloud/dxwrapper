@@ -80,6 +80,12 @@ public:
 		if (d3d9Device && *d3d9Device && ddrawParent)
 		{
 			ddrawParent->AddSurfaceToVector(this);
+
+			// Reset the BackBuffer flag
+			if (surfaceDesc2.ddsCaps.dwCaps & DDSCAPS_PRIMARYSURFACE)
+			{
+				ddrawParent->SetHasBackBuffer(false);
+			}
 		}
 	}
 	void InitWrapper()
@@ -120,6 +126,10 @@ public:
 		if (d3d9Device && *d3d9Device && ddrawParent)
 		{
 			ddrawParent->RemoveSurfaceFromVector(this);
+			if (surfaceDesc2.ddsCaps.dwCaps & DDSCAPS_PRIMARYSURFACE)
+			{
+				ddrawParent->SetHasBackBuffer(false);
+			}
 			ReleaseD9Surface();
 		}
 	}
@@ -205,4 +215,5 @@ public:
 	void AddSurfaceToMap(m_IDirectDrawSurfaceX* lpSurfaceX);
 	void RemoveSurfaceFromMap(m_IDirectDrawSurfaceX* lpSurfaceX);
 	bool DoesSurfaceExist(m_IDirectDrawSurfaceX* lpSurfaceX);
+	HRESULT CallEndScene(bool EndSceneFlag);
 };

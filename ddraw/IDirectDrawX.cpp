@@ -1276,6 +1276,9 @@ bool m_IDirectDrawX::CreateD3DDevice()
 		}
 	}
 
+	// Reset BeginScene
+	HasBegunScene = false;
+
 	// Success
 	return true;
 }
@@ -1345,20 +1348,18 @@ bool m_IDirectDrawX::DoesSurfaceExist(m_IDirectDrawSurfaceX* lpSurfaceX)
 }
 
 // Do d3d9 BeginScene if all surfaces are unlocked
-HRESULT m_IDirectDrawX::BeginScene(m_IDirectDrawSurfaceX *pSurface)
+HRESULT m_IDirectDrawX::BeginScene()
 {
+	if (HasBegunScene)
+	{
+		return DD_OK;
+	}
+
 	// Make sure the device exists
 	if (!d3d9Device)
 	{
 		Logging::Log() << __FUNCTION__ << " called when d3d9device doesn't exist";
 		return DDERR_INVALIDOBJECT;
-	}
-
-	// Make sure surface exists
-	if (!pSurface)
-	{
-		Logging::Log() << __FUNCTION__ << " called when surface doesn't exist";
-		return DDERR_SURFACELOST;
 	}
 
 	// Check if any surfaces are locked
@@ -1376,25 +1377,31 @@ HRESULT m_IDirectDrawX::BeginScene(m_IDirectDrawSurfaceX *pSurface)
 		Logging::Log() << __FUNCTION__ << " Failed to begin scene";
 		return hr;
 	}
+	HasBegunScene = true;
+
+	// If backbuffer than need to wait for Flip/Blt before ending the scene
+	if (HasBackBuffer)
+	{
+		ReadyToEndScene = false;
+	}
 
 	return DD_OK;
 }
 
 // Do d3d9 EndScene and Present if all surfaces are unlocked
-HRESULT m_IDirectDrawX::EndScene(m_IDirectDrawSurfaceX *pSurface)
+HRESULT m_IDirectDrawX::EndScene()
 {
+	// Check if surface Flip/Blt has occured 
+	if (!ReadyToEndScene || !HasBegunScene)
+	{
+		return DD_OK;
+	}
+
 	// Make sure the device exists
 	if (!d3d9Device)
 	{
 		Logging::Log() << __FUNCTION__ << " called when d3d9device doesn't exist";
 		return DDERR_INVALIDOBJECT;
-	}
-
-	// Make sure surface exists
-	if (!pSurface)
-	{
-		Logging::Log() << __FUNCTION__ << " called when surface doesn't exist";
-		return DDERR_SURFACELOST;
 	}
 
 	// Check if any surfaces are locked
@@ -1421,6 +1428,7 @@ HRESULT m_IDirectDrawX::EndScene(m_IDirectDrawSurfaceX *pSurface)
 		Logging::Log() << __FUNCTION__ << " Failed to end scene error " << hr;
 		return hr;
 	}
+	HasBegunScene = false;
 
 	// Present everthing!
 	hr = d3d9Device->Present(nullptr, nullptr, nullptr, nullptr);
