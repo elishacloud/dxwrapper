@@ -1350,6 +1350,10 @@ bool m_IDirectDrawX::DoesSurfaceExist(m_IDirectDrawSurfaceX* lpSurfaceX)
 // Do d3d9 BeginScene if all surfaces are unlocked
 HRESULT m_IDirectDrawX::BeginScene()
 {
+	// Run EndScene if needed
+	EndScene();
+
+	// Check if need to run BeginScene
 	if (HasBegunScene)
 	{
 		return DD_OK;

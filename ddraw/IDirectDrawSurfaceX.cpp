@@ -140,6 +140,12 @@ HRESULT m_IDirectDrawSurfaceX::Blt(LPRECT lpDestRect, LPDIRECTDRAWSURFACE7 lpDDS
 			return DDERR_GENERIC;
 		}
 
+		// Do color fill
+		if (dwFlags & DDBLT_COLORFILL)
+		{
+			return ColorFill(lpDestRect, lpDDBltFx->dwFillColor);
+		}
+
 		// Check for DDROP flag
 		if (dwFlags & DDBLT_DDROPS)
 		{
@@ -155,7 +161,14 @@ HRESULT m_IDirectDrawSurfaceX::Blt(LPRECT lpDestRect, LPDIRECTDRAWSURFACE7 lpDDS
 		}
 
 		// Check for ZBuffer flags
-		if ((dwFlags & (DDBLT_DEPTHFILL | DDBLT_ZBUFFER)) || ((dwFlags & DDBLT_DDFX) && (lpDDBltFx->dwDDFX & (DDBLTFX_ZBUFFERBASEDEST | DDBLTFX_ZBUFFERRANGE))))
+		if (dwFlags & DDBLT_DEPTHFILL)
+		{
+			Logging::Log() << __FUNCTION__ << " Depth Fill Not Implemented";
+			return DDERR_NOZBUFFERHW;
+		}
+
+		// Check for ZBuffer flags
+		if ((dwFlags & DDBLT_ZBUFFER) || ((dwFlags & DDBLT_DDFX) && (lpDDBltFx->dwDDFX & (DDBLTFX_ZBUFFERBASEDEST | DDBLTFX_ZBUFFERRANGE))))
 		{
 			Logging::Log() << __FUNCTION__ << " ZBuffer Not Implemented";
 			return DDERR_NOZBUFFERHW;
@@ -196,7 +209,7 @@ HRESULT m_IDirectDrawSurfaceX::Blt(LPRECT lpDestRect, LPDIRECTDRAWSURFACE7 lpDDS
 		// DDBLT_WAIT
 		// DDBLTFX_NOTEARING
 
-		// Check if Source Surface exists
+		// Check if source Surface exists
 		m_IDirectDrawSurfaceX *lpDDSrcSurfaceX = (m_IDirectDrawSurfaceX*)lpDDSrcSurface;
 		if (!lpDDSrcSurfaceX)
 		{
@@ -208,7 +221,7 @@ HRESULT m_IDirectDrawSurfaceX::Blt(LPRECT lpDestRect, LPDIRECTDRAWSURFACE7 lpDDS
 			return DDERR_INVALIDPARAMS;
 		}
 
-		// Check and copy source and dest Rect
+		// Check and copy destination and source rect
 		RECT DestRect, SrcRect;
 		if (!CheckSurfaceRect(&DestRect, lpDestRect) || !lpDDSrcSurfaceX->CheckSurfaceRect(&SrcRect, lpSrcRect))
 		{
@@ -216,17 +229,11 @@ HRESULT m_IDirectDrawSurfaceX::Blt(LPRECT lpDestRect, LPDIRECTDRAWSURFACE7 lpDDS
 			return DDERR_INVALIDRECT;
 		}
 
-		// Declare vars for surface information
-		bool UnlockDest = false, UnlockSrc = false;
-		D3DLOCKED_RECT DestLockRect, SrcLockRect;
-		D3DFORMAT DestFormat, SrcFormat;
-		DWORD DestBitCount, SrcBitCount;
-
-		// Check if dest surface is not locked then lock it
-		HRESULT hr = DD_OK;
+		// Check if destination surface is not locked then lock it
+		bool UnlockDest = false;
 		if (NeedsLock())
 		{
-			hr = SetLock();
+			HRESULT hr = SetLock(nullptr, 0);
 			if (FAILED(hr))
 			{
 				Logging::Log() << __FUNCTION__ << " Error, could not lock dest surface";
@@ -235,16 +242,22 @@ HRESULT m_IDirectDrawSurfaceX::Blt(LPRECT lpDestRect, LPDIRECTDRAWSURFACE7 lpDDS
 			UnlockDest = true;
 		}
 
-		// Get dest surface information
-		hr = GetSurfaceInfo(&DestLockRect, &DestBitCount, &DestFormat);
+		// Destination and source varables
+		D3DLOCKED_RECT DestLockRect, SrcLockRect;
+		D3DFORMAT DestFormat, SrcFormat;
+		DWORD DestBitCount, SrcBitCount;
 
-		// Check src surface
+		// Get destination surface information
+		HRESULT hr = GetSurfaceInfo(&DestLockRect, &DestBitCount, &DestFormat);
+
+		// Check source surface
+		bool UnlockSrc = false;
 		if (SUCCEEDED(hr) && lpDDSrcSurfaceX != this)
 		{
-			// Check if src surface is not locked then lock it
+			// Check if source surface is not locked then lock it
 			if (lpDDSrcSurfaceX->NeedsLock())
 			{
-				hr = lpDDSrcSurfaceX->SetLock();
+				hr = lpDDSrcSurfaceX->SetLock(nullptr, 0);
 				if (FAILED(hr))
 				{
 					Logging::Log() << __FUNCTION__ << " Error, could not lock src surface";
@@ -256,7 +269,7 @@ HRESULT m_IDirectDrawSurfaceX::Blt(LPRECT lpDestRect, LPDIRECTDRAWSURFACE7 lpDDS
 				}
 			}
 
-			// Get src surface information
+			// Get source surface information
 			hr = lpDDSrcSurfaceX->GetSurfaceInfo(&SrcLockRect, &SrcBitCount, &SrcFormat);
 		}
 		else
@@ -288,54 +301,13 @@ HRESULT m_IDirectDrawSurfaceX::Blt(LPRECT lpDestRect, LPDIRECTDRAWSURFACE7 lpDDS
 			LONG BltWidth = min(DestRect.right - DestRect.left, SrcRect.right - SrcRect.left);
 			LONG BltHeight = min(DestRect.bottom - DestRect.top, SrcRect.bottom - SrcRect.top);
 
-			// Do color fill
-			if (dwFlags & DDBLT_COLORFILL)
-			{
-				DWORD ByteCount = DestLockRect.Pitch / surfaceDesc2.dwWidth;
-				DWORD FillColor = 0;
-				if (attachedPalette && attachedPalette->rgbPalette && !WriteDirectlyToSurface)
-				{
-					FillColor = attachedPalette->rgbPalette[rawVideoBuf[lpDDBltFx->dwFillColor]];
-				}
-				else if (ByteCount <= 4)
-				{
-					FillColor = lpDDBltFx->dwFillColor;
-				}
-				else
-				{
-					Logging::Log() << __FUNCTION__ << " Error, could not find correct fill color for ByteCount " << ByteCount;
-				}
-				for (LONG y = 0; y < BltHeight; y++)
-				{
-					DWORD StartLocation = ((y + DestRect.top) * surfaceDesc2.dwWidth) + DestRect.left;
-					if (ByteCount == 4)
-					{
-						memset((DWORD*)DestLockRect.pBits + StartLocation,	// Destination video memory address
-							FillColor,										// Fill color
-							BltWidth);										// Size of bytes to write
-					}
-					else
-					{
-						for (LONG x = 0; x < BltWidth; x++)
-						{
-							memcpy((BYTE*)DestLockRect.pBits + (StartLocation * ByteCount),		// Destination video memory address
-								(BYTE*)&FillColor,												// Fill color
-								ByteCount);														// Size of bytes to write
-						}
-					}
-				}
-			}
-
 			// Do surface Blt
-			else
+			DWORD ByteCount = DestLockRect.Pitch / surfaceDesc2.dwWidth;
+			for (LONG y = 0; y < BltHeight; y++)
 			{
-				DWORD ByteCount = DestLockRect.Pitch / surfaceDesc2.dwWidth;
-				for (LONG y = 0; y < BltHeight; y++)
-				{
-					memcpy((BYTE*)DestLockRect.pBits + ((y + DestRect.top) * DestLockRect.Pitch) + (DestRect.left * ByteCount),	// Destination video memory address
-						(BYTE*)SrcLockRect.pBits + ((y + SrcRect.top) * SrcLockRect.Pitch) + (SrcRect.left * ByteCount),		// Source video memory address
-						BltWidth * ByteCount);																					// Size of bytes to write
-				}
+				memcpy((BYTE*)DestLockRect.pBits + ((y + DestRect.top) * DestLockRect.Pitch) + (DestRect.left * ByteCount),	// Destination video memory address
+					(BYTE*)SrcLockRect.pBits + ((y + SrcRect.top) * SrcLockRect.Pitch) + (SrcRect.left * ByteCount),		// Source video memory address
+					BltWidth * ByteCount);																					// Size of bytes to write
 			}
 		}
 
@@ -350,8 +322,8 @@ HRESULT m_IDirectDrawSurfaceX::Blt(LPRECT lpDestRect, LPDIRECTDRAWSURFACE7 lpDDS
 		}
 
 		// If Blt to or from primary surface then prepare for EndScene
-		CallEndScene(false);
-		lpDDSrcSurfaceX->CallEndScene(false);
+		PrepareEndScene();
+		lpDDSrcSurfaceX->PrepareEndScene();
 
 		// Return
 		return hr;
@@ -524,82 +496,73 @@ HRESULT m_IDirectDrawSurfaceX::Flip(LPDIRECTDRAWSURFACE7 lpDDSurfaceTargetOverri
 			Logging::Log() << __FUNCTION__ << " Interval flipping not implemented";
 		}
 
+		// Check if attached surface is found
+		bool FoundAttachedSurface = false;
+
 		// If SurfaceTargetOverride then use that surface
 		if (lpDDSurfaceTargetOverride)
 		{
 			m_IDirectDrawSurfaceX *lpTargetSurface = (m_IDirectDrawSurfaceX*)lpDDSurfaceTargetOverride;
 
-			if (!ddrawParent->DoesSurfaceExist(lpTargetSurface))
+			// Check if target surface exists
+			if (!DoesAttachedSurfaceExist(lpTargetSurface) || lpTargetSurface == this)
 			{
-				RemoveSurfaceFromMap(lpTargetSurface);
 				Logging::Log() << __FUNCTION__ << " Invalid SurfaceTarget";
 				return DDERR_INVALIDPARAMS;
 			}
 
-			if (!DoesSurfaceExist(lpTargetSurface) || lpTargetSurface == this)
-			{
-				Logging::Log() << __FUNCTION__ << " Invalid SurfaceTarget";
-				return DDERR_INVALIDPARAMS;
-			}
+			// Found surface
+			FoundAttachedSurface = true;
 
 			// Swap textures
 			LPDIRECT3DTEXTURE9 tmpAddr = surfaceTexture;
 			surfaceTexture = *lpTargetSurface->GetSurfaceTexture();
 			*lpTargetSurface->GetSurfaceTexture() = tmpAddr;
-
-			// Set new texture
-			HRESULT hr = (*d3d9Device)->SetTexture(0, surfaceTexture);
-			if (FAILED(hr))
+		}
+		// Execute flip for all attached surfaces
+		else
+		{
+			if ((dwFlags & DDFLIP_ODD) && (dwFlags & DDFLIP_EVEN))
 			{
-				Logging::Log() << __FUNCTION__ << " Failed to set texture";
+				return DDERR_INVALIDPARAMS;
 			}
 
-			// Run EndScene after Flip
-			CallEndScene(true);
-
-			return hr;
-		}
-
-		if ((dwFlags & DDFLIP_ODD) && (dwFlags & DDFLIP_EVEN))
-		{
-			return DDERR_INVALIDPARAMS;
-		}
-
-		if (dwFlags & DDFLIP_STEREO)
-		{
-			Logging::Log() << __FUNCTION__ << " Stereo flipping not implemented";
-			return E_NOTIMPL;
-		}
-
-		if (dwFlags & (DDFLIP_ODD | DDFLIP_EVEN))
-		{
-			Logging::Log() << __FUNCTION__ << " Even and odd flipping not implemented";
-			return E_NOTIMPL;
-		}
-
-		// Loop through each surface and swap them
-		bool FoundAttachedSurface = false;
-		for (auto it : AttachedSurfaceMap)
-		{
-			m_IDirectDrawSurfaceX *lpTargetSurface = (m_IDirectDrawSurfaceX*)it.second;
-
-			// Surface does not exist
-			if (!ddrawParent->DoesSurfaceExist(lpTargetSurface))
+			if (dwFlags & DDFLIP_STEREO)
 			{
-				RemoveSurfaceFromMap(lpTargetSurface);
+				Logging::Log() << __FUNCTION__ << " Stereo flipping not implemented";
+				return E_NOTIMPL;
 			}
-			// Found surface
-			else
-			{
-				FoundAttachedSurface = true;
 
-				// Swap textures
-				LPDIRECT3DTEXTURE9 tmpAddr = surfaceTexture;
-				surfaceTexture = *lpTargetSurface->GetSurfaceTexture();
-				*lpTargetSurface->GetSurfaceTexture() = tmpAddr;
+			if (dwFlags & (DDFLIP_ODD | DDFLIP_EVEN))
+			{
+				Logging::Log() << __FUNCTION__ << " Even and odd flipping not implemented";
+				return E_NOTIMPL;
+			}
+
+			// Loop through each surface and swap them
+			for (auto it : AttachedSurfaceMap)
+			{
+				m_IDirectDrawSurfaceX *lpTargetSurface = (m_IDirectDrawSurfaceX*)it.second;
+
+				// Surface does not exist
+				if (!ddrawParent->DoesSurfaceExist(lpTargetSurface))
+				{
+					RemoveAttachedSurfaceFromMap(lpTargetSurface);
+				}
+				// Found surface
+				else
+				{
+					FoundAttachedSurface = true;
+
+					// Swap textures
+					LPDIRECT3DTEXTURE9 tmpAddr = surfaceTexture;
+					surfaceTexture = *lpTargetSurface->GetSurfaceTexture();
+					*lpTargetSurface->GetSurfaceTexture() = tmpAddr;
+				}
 			}
 		}
 
+		// Return error if no attached surfaces found
 		if (!FoundAttachedSurface)
 		{
 			Logging::Log() << __FUNCTION__ << " No attached surfaces found";
@@ -613,8 +576,11 @@ HRESULT m_IDirectDrawSurfaceX::Flip(LPDIRECTDRAWSURFACE7 lpDDSurfaceTargetOverri
 			Logging::Log() << __FUNCTION__ << " Failed to set texture";
 		}
 
+		// Prepare EndScene
+		PrepareEndScene();
+
 		// Run EndScene after Flip
-		CallEndScene(true);
+		ddrawParent->EndScene();
 
 		return hr;
 	}
@@ -665,7 +631,7 @@ HRESULT m_IDirectDrawSurfaceX::GetAttachedSurface(LPDDSCAPS2 lpDDSCaps, LPDIRECT
 
 		*lplpDDAttachedSurface = attachedSurface;
 
-		AddSurfaceToMap(attachedSurface);
+		AddAttachedSurfaceToMap(attachedSurface);
 
 		ddrawParent->SetHasBackBuffer(true);
 
@@ -1049,13 +1015,7 @@ HRESULT m_IDirectDrawSurfaceX::Lock(LPRECT lpDestRect, LPDDSURFACEDESC2 lpDDSurf
 			DWORD LockFlags = dwFlags & (D3DLOCK_DISCARD | D3DLOCK_DONOTWAIT | D3DLOCK_NO_DIRTY_UPDATE | D3DLOCK_NOOVERWRITE | D3DLOCK_NOSYSLOCK | D3DLOCK_READONLY);
 
 			// Lock surface
-			hr = surfaceTexture->LockRect(0, &d3dlrect, lpDestRect, LockFlags);
-			if (FAILED(hr))
-			{
-				d3dlrect.pBits = nullptr;
-				Logging::Log() << __FUNCTION__ << " Failed to lock surface memory";
-			}
-			IsLocked = true;
+			hr = SetLock(lpDestRect, LockFlags);
 		}
 
 		// Set desc and video memory
@@ -1373,25 +1333,11 @@ HRESULT m_IDirectDrawSurfaceX::Unlock(LPRECT lpRect)
 			}
 		}
 
-		// Make sure surface exists
-		if (!surfaceTexture)
-		{
-			Logging::Log() << __FUNCTION__ << " surface does not exist";
-			return DDERR_SURFACELOST;
-		}
-
 		// Unlock surface
-		HRESULT hr = surfaceTexture->UnlockRect(0);
-		if (FAILED(hr))
-		{
-			Logging::Log() << __FUNCTION__ << " Failed to unlock surface memory";
-			return hr;
-		}
-		IsLocked = false;
-		d3dlrect.pBits = nullptr;
+		HRESULT hr = SetUnLock();
 
-		// Run EndScene (ignore results)
-		CallEndScene(true);
+		// Prepare EndScene (ignore results)
+		PrepareEndScene();
 
 		// Return
 		return hr;
@@ -1957,7 +1903,7 @@ bool m_IDirectDrawSurfaceX::CheckSurfaceRect(LPRECT lpOutRect, LPRECT lpInRect)
 }
 
 // Lock the d3d9 surface
-HRESULT m_IDirectDrawSurfaceX::SetLock()
+HRESULT m_IDirectDrawSurfaceX::SetLock(LPRECT lpDestRect, DWORD dwFlags)
 {
 	if (!surfaceTexture)
 	{
@@ -1965,7 +1911,7 @@ HRESULT m_IDirectDrawSurfaceX::SetLock()
 	}
 
 	// Lock surface
-	HRESULT hr = surfaceTexture->LockRect(0, &d3dlrect, nullptr, 0);
+	HRESULT hr = surfaceTexture->LockRect(0, &d3dlrect, lpDestRect, dwFlags);
 	if (FAILED(hr))
 	{
 		d3dlrect.pBits = nullptr;
@@ -1974,7 +1920,7 @@ HRESULT m_IDirectDrawSurfaceX::SetLock()
 	}
 	IsLocked = true;
 
-	return DD_OK;
+	return hr;
 }
 
 // Unlock the d3d9 surface
@@ -1995,7 +1941,7 @@ HRESULT m_IDirectDrawSurfaceX::SetUnLock()
 	IsLocked = false;
 	d3dlrect.pBits = nullptr;
 
-	return DD_OK;
+	return hr;
 }
 
 // Get LOCKED_RECT, BitCount and Foramt for the surface
@@ -2038,7 +1984,7 @@ HRESULT m_IDirectDrawSurfaceX::GetSurfaceDesc2(LPDDSURFACEDESC2 lpDDSurfaceDesc2
 }
 
 // Add attached surface to map
-void m_IDirectDrawSurfaceX::AddSurfaceToMap(m_IDirectDrawSurfaceX* lpSurfaceX)
+void m_IDirectDrawSurfaceX::AddAttachedSurfaceToMap(m_IDirectDrawSurfaceX* lpSurfaceX)
 {
 	if (!lpSurfaceX)
 	{
@@ -2057,7 +2003,7 @@ void m_IDirectDrawSurfaceX::AddSurfaceToMap(m_IDirectDrawSurfaceX* lpSurfaceX)
 }
 
 // Remove attached surface from map
-void m_IDirectDrawSurfaceX::RemoveSurfaceFromMap(m_IDirectDrawSurfaceX* lpSurfaceX)
+void m_IDirectDrawSurfaceX::RemoveAttachedSurfaceFromMap(m_IDirectDrawSurfaceX* lpSurfaceX)
 {
 	if (!lpSurfaceX)
 	{
@@ -2074,7 +2020,7 @@ void m_IDirectDrawSurfaceX::RemoveSurfaceFromMap(m_IDirectDrawSurfaceX* lpSurfac
 }
 
 // Check if attached surface exists
-bool m_IDirectDrawSurfaceX::DoesSurfaceExist(m_IDirectDrawSurfaceX* lpSurfaceX)
+bool m_IDirectDrawSurfaceX::DoesAttachedSurfaceExist(m_IDirectDrawSurfaceX* lpSurfaceX)
 {
 	if (!lpSurfaceX)
 	{
@@ -2089,11 +2035,106 @@ bool m_IDirectDrawSurfaceX::DoesSurfaceExist(m_IDirectDrawSurfaceX* lpSurfaceX)
 		return false;
 	}
 
+	if (!ddrawParent)
+	{
+		return false;
+	}
+
+	if (!ddrawParent->DoesSurfaceExist(lpSurfaceX))
+	{
+		RemoveAttachedSurfaceFromMap(lpSurfaceX);
+		return false;
+	}
+
 	return true;
 }
 
-// Set flags and run EndScene
-HRESULT m_IDirectDrawSurfaceX::CallEndScene(bool EndSceneFlag)
+HRESULT m_IDirectDrawSurfaceX::ColorFill(RECT *pRect, DWORD dwFillColor)
+{
+	// Check and copy rect
+	RECT DestRect;
+	if (!CheckSurfaceRect(&DestRect, pRect))
+	{
+		Logging::Log() << __FUNCTION__ << " Error, invalid rect size";
+		return DDERR_INVALIDRECT;
+	}
+
+	// Check if surface is not locked then lock it
+	bool UnlockDest = false;
+	if (NeedsLock())
+	{
+		HRESULT hr = SetLock(nullptr, 0);
+		if (FAILED(hr))
+		{
+			Logging::Log() << __FUNCTION__ << " Error, could not lock dest surface";
+			return DDERR_GENERIC;
+		}
+		UnlockDest = true;
+	}
+
+	// Get locked rect surface information
+	D3DLOCKED_RECT DestLockRect;
+	GetSurfaceInfo(&DestLockRect, nullptr, nullptr);
+
+	// Check pBits
+	if (!DestLockRect.pBits)
+	{
+		Logging::Log() << __FUNCTION__ << " Error, could not get pBits";
+		return DDERR_GENERIC;
+	}
+
+	// Get width and height of blt
+	LONG FillWidth = DestRect.right - DestRect.left;
+	LONG FillHeight = DestRect.bottom - DestRect.top;
+
+	// Get ByteCount and FillColor
+	DWORD ByteCount = DestLockRect.Pitch / surfaceDesc2.dwWidth;
+	DWORD FillColor = 0;
+	if (attachedPalette && attachedPalette->rgbPalette && !WriteDirectlyToSurface)
+	{
+		FillColor = attachedPalette->rgbPalette[rawVideoBuf[dwFillColor]];
+	}
+	else if (ByteCount <= 4)
+	{
+		FillColor = dwFillColor;
+	}
+	else
+	{
+		Logging::Log() << __FUNCTION__ << " Error, could not find correct fill color for ByteCount " << ByteCount;
+	}
+
+	// Fill rect
+	for (LONG y = 0; y < FillHeight; y++)
+	{
+		DWORD StartLocation = ((y + DestRect.top) * surfaceDesc2.dwWidth) + DestRect.left;
+		if (ByteCount == 4)
+		{
+			memset((DWORD*)DestLockRect.pBits + StartLocation,	// Video memory address
+				FillColor,										// Fill color
+				FillWidth);										// Size of bytes to write
+		}
+		else
+		{
+			for (LONG x = 0; x < FillWidth; x++)
+			{
+				memcpy((BYTE*)DestLockRect.pBits + (StartLocation * ByteCount),		// Video memory address
+					(BYTE*)&FillColor,												// Fill color
+					ByteCount);														// Size of bytes to write
+			}
+		}
+	}
+
+	// Unlock surfaces if needed
+	if (UnlockDest)
+	{
+		SetUnLock();
+	}
+
+	return DD_OK;
+}
+
+// Set flags to prepare for EndScene
+HRESULT m_IDirectDrawSurfaceX::PrepareEndScene()
 {
 	if (!ddrawParent)
 	{
@@ -2111,12 +2152,6 @@ HRESULT m_IDirectDrawSurfaceX::CallEndScene(bool EndSceneFlag)
 		{
 			ddrawParent->SetHasBackBuffer(false);
 		}
-	}
-
-	// Run EndScene
-	if (EndSceneFlag)
-	{
-		return ddrawParent->EndScene();
 	}
 
 	// Return

@@ -208,12 +208,13 @@ public:
 	void AlocateVideoBuffer();
 	HRESULT CreateD3d9Surface();
 	bool CheckSurfaceRect(LPRECT lpOutRect, LPRECT lpInRect);
-	HRESULT SetLock();
+	HRESULT SetLock(LPRECT lpDestRect, DWORD dwFlags);
 	HRESULT SetUnLock();
 	HRESULT GetSurfaceInfo(D3DLOCKED_RECT *pLockRect, DWORD *lpBitCount, D3DFORMAT *lpFormat);
 	HRESULT GetSurfaceDesc2(LPDDSURFACEDESC2 lpDDSurfaceDesc2);
-	void AddSurfaceToMap(m_IDirectDrawSurfaceX* lpSurfaceX);
-	void RemoveSurfaceFromMap(m_IDirectDrawSurfaceX* lpSurfaceX);
-	bool DoesSurfaceExist(m_IDirectDrawSurfaceX* lpSurfaceX);
-	HRESULT CallEndScene(bool EndSceneFlag);
+	void AddAttachedSurfaceToMap(m_IDirectDrawSurfaceX* lpSurfaceX);
+	void RemoveAttachedSurfaceFromMap(m_IDirectDrawSurfaceX* lpSurfaceX);
+	bool DoesAttachedSurfaceExist(m_IDirectDrawSurfaceX* lpSurfaceX);
+	HRESULT ColorFill(RECT *pRect, DWORD dwFillColor);
+	HRESULT PrepareEndScene();
 };
