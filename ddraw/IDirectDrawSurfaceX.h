@@ -216,5 +216,6 @@ public:
 	void RemoveAttachedSurfaceFromMap(m_IDirectDrawSurfaceX* lpSurfaceX);
 	bool DoesAttachedSurfaceExist(m_IDirectDrawSurfaceX* lpSurfaceX);
 	HRESULT ColorFill(RECT *pRect, DWORD dwFillColor);
+	HRESULT WritePaletteToSurface(m_IDirectDrawPalette *lpDDPalette, RECT *pRect, BYTE *lpVideoBuf, DWORD BitCount);
 	HRESULT PrepareEndScene();
 };
