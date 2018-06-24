@@ -25,8 +25,8 @@ private:
 	m_IDirectDrawPalette *attachedPalette = nullptr;	// Associated palette
 	DDSURFACEDESC2 surfaceDesc2;
 	D3DLOCKED_RECT d3dlrect = { 0, nullptr };
-	RECT LockDestRect;
-	CKEYS ColorKeys[4];		// Color keys(DDCKEY_DESTBLT, DDCKEY_DESTOVERLAY, DDCKEY_SRCBLT, DDCKEY_SRCOVERLAY)
+	RECT lkDestRect;
+	CKEYS ColorKeys[4];		// Color keys(0 = DDCKEY_DESTBLT, 1 = DDCKEY_DESTOVERLAY, 2 = DDCKEY_SRCBLT, 3 = DDCKEY_SRCOVERLAY)
 	LONG overlayX = 0;
 	LONG overlayY = 0;
 	DWORD BufferSize = 0;
@@ -207,7 +207,7 @@ public:
 	void ReleaseD9Surface();
 	void AlocateVideoBuffer();
 	HRESULT CreateD3d9Surface();
-	bool CheckSurfaceRect(LPRECT lpOutRect, LPRECT lpInRect);
+	bool FixRect(LPRECT lpOutRect, LPRECT lpInRect);
 	HRESULT SetLock(LPRECT lpDestRect, DWORD dwFlags);
 	HRESULT SetUnLock();
 	HRESULT GetSurfaceInfo(D3DLOCKED_RECT *pLockRect, DWORD *lpBitCount, D3DFORMAT *lpFormat);
@@ -217,5 +217,7 @@ public:
 	bool DoesAttachedSurfaceExist(m_IDirectDrawSurfaceX* lpSurfaceX);
 	HRESULT ColorFill(RECT *pRect, DWORD dwFillColor);
 	HRESULT WritePaletteToSurface(m_IDirectDrawPalette *lpDDPalette, RECT *pRect, BYTE *lpVideoBuf, DWORD BitCount);
+	HRESULT CopyRect(D3DLOCKED_RECT *pDestLockRect, RECT *pDestRect, DWORD DestBitCount, D3DFORMAT DestFormat, D3DLOCKED_RECT *pSrcLockRect, RECT *pSrcRect, DWORD SrcBitCount, D3DFORMAT SrcFormat);
+	HRESULT CopyRectColorKey(D3DLOCKED_RECT *pDestLockRect, RECT *pDestRect, DWORD DestBitCount, D3DFORMAT DestFormat, D3DLOCKED_RECT *pSrcLockRect, RECT *pSrcRect, DWORD SrcBitCount, D3DFORMAT SrcFormat, DDCOLORKEY ColorKey);
 	HRESULT PrepareEndScene();
 };
