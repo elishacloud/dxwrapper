@@ -18,6 +18,8 @@
 
 #include "ddraw.h"
 
+bool SceneReady = false;
+
 /************************/
 /*** IUnknown methods ***/
 /************************/
@@ -134,7 +136,7 @@ HRESULT m_IDirectDrawSurfaceX::Blt(LPRECT lpDestRect, LPDIRECTDRAWSURFACE7 lpDDS
 		}
 
 		// Check for device
-		if (!d3d9Device || !*d3d9Device || !ddrawParent)
+		if (!ddrawParent)
 		{
 			Logging::Log() << __FUNCTION__ << " D3d9 Device not setup.";
 			return DDERR_GENERIC;
@@ -333,10 +335,6 @@ HRESULT m_IDirectDrawSurfaceX::Blt(LPRECT lpDestRect, LPDIRECTDRAWSURFACE7 lpDDS
 			lpDDSrcSurfaceX->SetUnLock();
 		}
 
-		// If Blt to or from primary surface then prepare for EndScene
-		PrepareEndScene();
-		lpDDSrcSurfaceX->PrepareEndScene();
-
 		// Return
 		return hr;
 	}
@@ -452,18 +450,11 @@ HRESULT m_IDirectDrawSurfaceX::EnumAttachedSurfaces(LPVOID lpContext, LPDDENUMSU
 
 		for (auto it : AttachedSurfaceMap)
 		{
-			if (!ddrawParent->DoesSurfaceExist(it.second))
+			DDSURFACEDESC2 Desc2;
+			it.second->GetSurfaceDesc(&Desc2);
+			if (lpEnumSurfacesCallback7(it.second, &Desc2, lpContext) != DDENUMRET_OK)
 			{
-				RemoveAttachedSurfaceFromMap(it.second);
-			}
-			else
-			{
-				DDSURFACEDESC2 Desc2;
-				it.second->GetSurfaceDesc(&Desc2);
-				if (lpEnumSurfacesCallback7(it.second, &Desc2, lpContext) != DDENUMRET_OK)
-				{
-					return DD_OK;
-				}
+				return DD_OK;
 			}
 		}
 
@@ -500,10 +491,18 @@ HRESULT m_IDirectDrawSurfaceX::Flip(LPDIRECTDRAWSURFACE7 lpDDSurfaceTargetOverri
 {
 	if (Config.Dd7to9)
 	{
-		if (!ddrawParent)
+		// Check for device
+		if (!d3d9Device || !*d3d9Device || !ddrawParent)
 		{
-			Logging::Log() << __FUNCTION__ << " Error no ddraw parent!";
-			return DDERR_INVALIDOBJECT;
+			Logging::Log() << __FUNCTION__ << " D3d9 Device not setup.";
+			return DDERR_GENERIC;
+		}
+
+		// Flip only supported from primary surface
+		if (!IsPrimarySurface())
+		{
+			Logging::Log() << __FUNCTION__ << " Non-primary surface Flip not implimented";
+			return DDERR_GENERIC;
 		}
 
 		// Unneeded flags (can be safely ignored?)
@@ -565,21 +564,13 @@ HRESULT m_IDirectDrawSurfaceX::Flip(LPDIRECTDRAWSURFACE7 lpDDSurfaceTargetOverri
 			{
 				m_IDirectDrawSurfaceX *lpTargetSurface = (m_IDirectDrawSurfaceX*)it.second;
 
-				// Surface does not exist
-				if (!ddrawParent->DoesSurfaceExist(lpTargetSurface))
-				{
-					RemoveAttachedSurfaceFromMap(lpTargetSurface);
-				}
 				// Found surface
-				else
-				{
-					FoundAttachedSurface = true;
+				FoundAttachedSurface = true;
 
-					// Swap textures
-					LPDIRECT3DTEXTURE9 tmpAddr = surfaceTexture;
-					surfaceTexture = *lpTargetSurface->GetSurfaceTexture();
-					*lpTargetSurface->GetSurfaceTexture() = tmpAddr;
-				}
+				// Swap textures
+				LPDIRECT3DTEXTURE9 tmpAddr = surfaceTexture;
+				surfaceTexture = *lpTargetSurface->GetSurfaceTexture();
+				*lpTargetSurface->GetSurfaceTexture() = tmpAddr;
 			}
 		}
 
@@ -590,6 +581,9 @@ HRESULT m_IDirectDrawSurfaceX::Flip(LPDIRECTDRAWSURFACE7 lpDDSurfaceTargetOverri
 			return DDERR_GENERIC;
 		}
 
+		// Run BeginScene (ignore results)
+		ddrawParent->BeginScene();
+
 		// Set new texture
 		HRESULT hr = (*d3d9Device)->SetTexture(0, surfaceTexture);
 		if (FAILED(hr))
@@ -597,8 +591,8 @@ HRESULT m_IDirectDrawSurfaceX::Flip(LPDIRECTDRAWSURFACE7 lpDDSurfaceTargetOverri
 			Logging::Log() << __FUNCTION__ << " Failed to set texture";
 		}
 
-		// Prepare EndScene
-		PrepareEndScene();
+		// Run EndScene (ignore results)
+		ddrawParent->EndScene();
 
 		return hr;
 	}
@@ -628,10 +622,11 @@ HRESULT m_IDirectDrawSurfaceX::GetAttachedSurface(LPDDSCAPS2 lpDDSCaps, LPDIRECT
 
 	if (Config.Dd7to9)
 	{
-		if (!ddrawParent)
+		// Check for device
+		if (!d3d9Device || !*d3d9Device || !ddrawParent)
 		{
-			Logging::Log() << __FUNCTION__ << " Error no ddraw parent!";
-			return DDERR_INVALIDOBJECT;
+			Logging::Log() << __FUNCTION__ << " D3d9 Device not setup.";
+			return DDERR_GENERIC;
 		}
 
 		/*ToDo: GetAttachedSurface fails if more than one surface is attached that matches the capabilities requested. 
@@ -650,8 +645,6 @@ HRESULT m_IDirectDrawSurfaceX::GetAttachedSurface(LPDDSCAPS2 lpDDSCaps, LPDIRECT
 		*lplpDDAttachedSurface = attachedSurface;
 
 		AddAttachedSurfaceToMap(attachedSurface);
-
-		ddrawParent->SetHasBackBuffer(true);
 
 		return DD_OK;
 	}
@@ -1023,15 +1016,6 @@ HRESULT m_IDirectDrawSurfaceX::Lock(LPRECT lpDestRect, LPDDSURFACEDESC2 lpDDSurf
 			hr = DD_OK;
 		}
 
-		if (!ddrawParent)
-		{
-			Logging::Log() << __FUNCTION__ << " Error no ddraw parent!";
-			return DDERR_INVALIDOBJECT;
-		}
-
-		// Try BeginScene (ignore results)
-		ddrawParent->BeginScene();
-
 		// Lock rect
 		if (SUCCEEDED(hr))
 		{
@@ -1273,13 +1257,7 @@ HRESULT m_IDirectDrawSurfaceX::Unlock(LPRECT lpRect)
 		}
 
 		// Unlock surface
-		HRESULT hr = SetUnLock();
-
-		// Prepare EndScene (ignore results)
-		PrepareEndScene();
-
-		// Return
-		return hr;
+		return SetUnLock();
 	}
 
 	return ProxyInterface->Unlock(lpRect);
@@ -1686,7 +1664,13 @@ HRESULT m_IDirectDrawSurfaceX::CreateD3d9Surface()
 	if (FAILED(hr) || attachedPalette)
 	{
 		WriteDirectlyToSurface = false;
-		Format = D3DFMT_X8R8G8B8;
+		Format = D3DFMT_A8R8G8B8;
+		// Test format
+		hr = d3d9Object->CheckDeviceFormat(D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, Format, D3DUSAGE_QUERY_FILTER, D3DRTYPE_TEXTURE, Format);
+		if (FAILED(hr))
+		{
+			Format = D3DFMT_X8R8G8B8;
+		}
 		AlocateVideoBuffer();
 	}
 	// Write directly to surface
@@ -1707,7 +1691,7 @@ HRESULT m_IDirectDrawSurfaceX::CreateD3d9Surface()
 	IsLocked = false;
 
 	// Only display surface if it is primary for now...
-	if ((surfaceDesc2.ddsCaps.dwCaps & DDSCAPS_PRIMARYSURFACE) == 0)
+	if (!IsPrimarySurface())
 	{
 		return DD_OK;
 	}
@@ -1818,6 +1802,9 @@ HRESULT m_IDirectDrawSurfaceX::CreateD3d9Surface()
 		return hr;
 	}
 
+	// BeginScene
+	ddrawParent->BeginScene();
+
 	return hr;
 }
 
@@ -1872,10 +1859,13 @@ bool m_IDirectDrawSurfaceX::FixRect(LPRECT lpOutRect, LPRECT lpInRect)
 // Lock the d3d9 surface
 HRESULT m_IDirectDrawSurfaceX::SetLock(LPRECT lpDestRect, DWORD dwFlags)
 {
-	if (!surfaceTexture)
+	if (!surfaceTexture || !ddrawParent)
 	{
 		return DDERR_GENERIC;
 	}
+
+	// Run BeginScene (ignore results)
+	ddrawParent->BeginScene();
 
 	// Lock surface
 	HRESULT hr = surfaceTexture->LockRect(0, &d3dlrect, lpDestRect, dwFlags);
@@ -1893,7 +1883,7 @@ HRESULT m_IDirectDrawSurfaceX::SetLock(LPRECT lpDestRect, DWORD dwFlags)
 // Unlock the d3d9 surface
 HRESULT m_IDirectDrawSurfaceX::SetUnLock()
 {
-	if (!surfaceTexture)
+	if (!surfaceTexture || !ddrawParent)
 	{
 		return DDERR_GENERIC;
 	}
@@ -1908,10 +1898,16 @@ HRESULT m_IDirectDrawSurfaceX::SetUnLock()
 	IsLocked = false;
 	d3dlrect.pBits = nullptr;
 
+	// Keep running EndScene until it succeeds
+	if (IsPrimarySurface() || SceneReady)
+	{
+		SceneReady = FAILED(ddrawParent->EndScene());
+	}
+
 	return hr;
 }
 
-// Get LOCKED_RECT, BitCount and Foramt for the surface
+// Get LOCKED_RECT, BitCount and Format for the surface
 HRESULT m_IDirectDrawSurfaceX::GetSurfaceInfo(D3DLOCKED_RECT *pLockRect, DWORD *lpBitCount, D3DFORMAT *lpFormat)
 {
 	if (pLockRect)
@@ -2004,12 +2000,6 @@ bool m_IDirectDrawSurfaceX::DoesAttachedSurfaceExist(m_IDirectDrawSurfaceX* lpSu
 
 	if (!ddrawParent)
 	{
-		return false;
-	}
-
-	if (!ddrawParent->DoesSurfaceExist(lpSurfaceX))
-	{
-		RemoveAttachedSurfaceFromMap(lpSurfaceX);
 		return false;
 	}
 
@@ -2144,7 +2134,7 @@ HRESULT m_IDirectDrawSurfaceX::WritePaletteToSurface(m_IDirectDrawPalette *lpDDP
 			for (LONG i = DestRect.left; i < DestRect.right; i++)
 			{
 				LONG x = z + i;
-				surfaceBuffer[x] = lpDDPalette->rgbPalette[lpVideoBuf[x]];
+				surfaceBuffer[x] = lpDDPalette->rgbPalette[lpVideoBuf[x]] | 0xFF000000;
 			}
 		}
 		break;
@@ -2219,6 +2209,7 @@ HRESULT m_IDirectDrawSurfaceX::CopyRect(D3DLOCKED_RECT *pDestLockRect, RECT *pDe
 		// For destiantion format
 		switch (DestFormat)
 		{
+		case D3DFMT_A8R8G8B8:
 		case D3DFMT_X8R8G8B8:
 			// Translate source buffer to 32-bit rgb video using specified format
 			switch (SrcBitCount)
@@ -2229,6 +2220,27 @@ HRESULT m_IDirectDrawSurfaceX::CopyRect(D3DLOCKED_RECT *pDestLockRect, RECT *pDe
 			case 16: // 16-bit source surface with 32-bit destination surface
 				switch (SrcFormat)
 				{
+				case D3DFMT_A1R5G5B5:
+				case D3DFMT_X1R5G5B5:
+				{
+					WORD *RawBuffer = (WORD*)SrcBuffer;
+					for (LONG y = 0; y < RectHeight; y++)
+					{
+						DWORD StartDestLoc = ((y + pDestRect->top) * pDestLockRect->Pitch) + (pDestRect->left * 2);
+						DWORD StartSrcLoc = ((y + pSrcRect->top) * pSrcLockRect->Pitch) + (pSrcRect->left * 2);
+
+						for (LONG x = 0; x < RectWidth; x++)
+						{
+							LONG z = StartSrcLoc + x * 2;
+							DestBuffer[StartDestLoc + x * 2] = 
+								((RawBuffer[z] & 0x8000) << 9) * 255 +		// Alpha
+								((RawBuffer[z] & 0x7C00) << 9) +			// Red
+								((RawBuffer[z] & 0x03E0) << 6) +			// Green
+								((RawBuffer[z] & 0x001F) << 3);				// Blue
+						}
+					}
+					break;
+				}
 				case D3DFMT_R5G6B5:
 				{
 					WORD *RawBuffer = (WORD*)SrcBuffer;
@@ -2241,6 +2253,7 @@ HRESULT m_IDirectDrawSurfaceX::CopyRect(D3DLOCKED_RECT *pDestLockRect, RECT *pDe
 						{
 							LONG z = StartSrcLoc + x * 2;
 							DestBuffer[StartDestLoc + x * 2] =
+								(0xFF000000) +						// Alpha
 								((RawBuffer[z] & 0xF800) << 8) +	// Red
 								((RawBuffer[z] & 0x07E0) << 5) +	// Green
 								((RawBuffer[z] & 0x001F) << 3);		// Blue
@@ -2387,31 +2400,6 @@ HRESULT m_IDirectDrawSurfaceX::CopyRectColorKey(D3DLOCKED_RECT *pDestLockRect, R
 	default: // Unsupported surface bit count
 		Logging::Log() << __FUNCTION__ << " Not implemented bit count " << DestBitCount;
 		return DDERR_GENERIC;
-	}
-
-	// Return
-	return DD_OK;
-}
-
-// Set flags to prepare for EndScene
-HRESULT m_IDirectDrawSurfaceX::PrepareEndScene()
-{
-	if (!ddrawParent)
-	{
-		Logging::Log() << __FUNCTION__ << " Error no ddraw parent!";
-		return DDERR_INVALIDOBJECT;
-	}
-
-	// Set ReadyToEndScene is this is primary surface
-	if (surfaceDesc2.ddsCaps.dwCaps & DDSCAPS_PRIMARYSURFACE)
-	{
-		ddrawParent->SetReadyToEndScene();
-
-		// If no attached surfaces then make sure to reset HasBackBuffer
-		if (AttachedSurfaceMap.size() == 0)
-		{
-			ddrawParent->SetHasBackBuffer(false);
-		}
 	}
 
 	// Return

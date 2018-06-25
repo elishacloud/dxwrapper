@@ -80,12 +80,6 @@ public:
 		if (d3d9Device && *d3d9Device && ddrawParent)
 		{
 			ddrawParent->AddSurfaceToVector(this);
-
-			// Reset the BackBuffer flag
-			if (surfaceDesc2.ddsCaps.dwCaps & DDSCAPS_PRIMARYSURFACE)
-			{
-				ddrawParent->SetHasBackBuffer(false);
-			}
 		}
 	}
 	void InitWrapper()
@@ -126,10 +120,6 @@ public:
 		if (d3d9Device && *d3d9Device && ddrawParent)
 		{
 			ddrawParent->RemoveSurfaceFromVector(this);
-			if (surfaceDesc2.ddsCaps.dwCaps & DDSCAPS_PRIMARYSURFACE)
-			{
-				ddrawParent->SetHasBackBuffer(false);
-			}
 			ReleaseD9Surface();
 		}
 	}
@@ -140,6 +130,7 @@ public:
 	m_IDirectDrawSurface7 *GetWrapperInterface() { return WrapperInterface; }
 	LPDIRECT3DTEXTURE9 *GetSurfaceTexture() { return &surfaceTexture; }
 	bool IsSurfaceLocked() { return IsLocked; }
+	bool IsPrimarySurface() { return (surfaceDesc2.ddsCaps.dwCaps & DDSCAPS_PRIMARYSURFACE) != 0; }
 	bool NeedsLock() { return !IsLocked && WriteDirectlyToSurface; }
 
 	/*** IUnknown methods ***/
@@ -219,5 +210,4 @@ public:
 	HRESULT WritePaletteToSurface(m_IDirectDrawPalette *lpDDPalette, RECT *pRect, BYTE *lpVideoBuf, DWORD BitCount);
 	HRESULT CopyRect(D3DLOCKED_RECT *pDestLockRect, RECT *pDestRect, DWORD DestBitCount, D3DFORMAT DestFormat, D3DLOCKED_RECT *pSrcLockRect, RECT *pSrcRect, DWORD SrcBitCount, D3DFORMAT SrcFormat);
 	HRESULT CopyRectColorKey(D3DLOCKED_RECT *pDestLockRect, RECT *pDestRect, DWORD DestBitCount, D3DFORMAT DestFormat, D3DLOCKED_RECT *pSrcLockRect, RECT *pSrcRect, DWORD SrcBitCount, D3DFORMAT SrcFormat, DDCOLORKEY ColorKey);
-	HRESULT PrepareEndScene();
 };

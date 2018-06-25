@@ -17,9 +17,7 @@ private:
 
 	// Convert to d3d9
 	HWND MainhWnd = nullptr;
-	bool HasBegunScene = false;
-	bool HasBackBuffer = false;
-	bool ReadyToEndScene = true;
+	bool IsInScene = false;
 	bool ExclusiveMode = false;
 	POINT lastPosition = {100, 100};		// Last window position
 	bool SetDefaultDisplayMode = false;		// Set native resolution
@@ -96,8 +94,6 @@ public:
 	IDirectDraw7 *GetProxyInterface() { return ProxyInterface; }
 	m_IDirectDraw7 *GetWrapperInterface() { return WrapperInterface; }
 	LPDIRECT3D9 GetDirect3D() { return d3d9Object; }
-	void SetHasBackBuffer(bool Flag) { HasBackBuffer = Flag; }
-	void SetReadyToEndScene() { ReadyToEndScene = true; }
 
 	/*** IUnknown methods ***/
 	STDMETHOD(QueryInterface) (THIS_ REFIID riid, LPVOID FAR * ppvObj);

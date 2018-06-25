@@ -1277,7 +1277,7 @@ bool m_IDirectDrawX::CreateD3DDevice()
 	}
 
 	// Reset BeginScene
-	HasBegunScene = false;
+	IsInScene = false;
 
 	// Success
 	return true;
@@ -1325,6 +1325,12 @@ void m_IDirectDrawX::RemoveSurfaceFromVector(m_IDirectDrawSurfaceX* lpSurfaceX)
 	if (it != std::end(SurfaceVector))
 	{
 		SurfaceVector.erase(it);
+
+		// Remove attached surface from map
+		for (auto ip : SurfaceVector)
+		{
+			ip->RemoveAttachedSurfaceFromMap(lpSurfaceX);
+		}
 	}
 }
 
@@ -1350,13 +1356,10 @@ bool m_IDirectDrawX::DoesSurfaceExist(m_IDirectDrawSurfaceX* lpSurfaceX)
 // Do d3d9 BeginScene if all surfaces are unlocked
 HRESULT m_IDirectDrawX::BeginScene()
 {
-	// Run EndScene if needed
-	EndScene();
-
 	// Check if need to run BeginScene
-	if (HasBegunScene)
+	if (IsInScene)
 	{
-		return DD_OK;
+		return DDERR_GENERIC;
 	}
 
 	// Make sure the device exists
@@ -1371,7 +1374,7 @@ HRESULT m_IDirectDrawX::BeginScene()
 	{
 		if (it->IsSurfaceLocked())
 		{
-			return DD_OK;
+			return DDERR_LOCKEDSURFACES;
 		}
 	}
 
@@ -1381,13 +1384,7 @@ HRESULT m_IDirectDrawX::BeginScene()
 		Logging::Log() << __FUNCTION__ << " Failed to begin scene";
 		return hr;
 	}
-	HasBegunScene = true;
-
-	// If backbuffer than need to wait for Flip/Blt before ending the scene
-	if (HasBackBuffer)
-	{
-		ReadyToEndScene = false;
-	}
+	IsInScene = true;
 
 	return DD_OK;
 }
@@ -1396,9 +1393,9 @@ HRESULT m_IDirectDrawX::BeginScene()
 HRESULT m_IDirectDrawX::EndScene()
 {
 	// Check if surface Flip/Blt has occured 
-	if (!ReadyToEndScene || !HasBegunScene)
+	if (!IsInScene)
 	{
-		return DD_OK;
+		return DDERR_GENERIC;
 	}
 
 	// Make sure the device exists
@@ -1413,7 +1410,7 @@ HRESULT m_IDirectDrawX::EndScene()
 	{
 		if (it->IsSurfaceLocked())
 		{
-			return DD_OK;
+			return DDERR_LOCKEDSURFACES;
 		}
 	}
 
@@ -1432,7 +1429,7 @@ HRESULT m_IDirectDrawX::EndScene()
 		Logging::Log() << __FUNCTION__ << " Failed to end scene error " << hr;
 		return hr;
 	}
-	HasBegunScene = false;
+	IsInScene = false;
 
 	// Present everthing!
 	hr = d3d9Device->Present(nullptr, nullptr, nullptr, nullptr);
