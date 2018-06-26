@@ -74,10 +74,13 @@ public:
 		memcpy(&surfaceDesc2, lpDDSurfaceDesc, sizeof(DDSURFACEDESC2));
 
 		// Create Surface for d3d9
-		CreateD3d9Surface();
+		if (d3d9Device)
+		{
+			CreateD3d9Surface();
+		}
 
 		// Store surface
-		if (d3d9Device && *d3d9Device && ddrawParent)
+		if (ddrawParent)
 		{
 			ddrawParent->AddSurfaceToVector(this);
 		}
@@ -117,7 +120,7 @@ public:
 			rawVideoBuf = nullptr;
 		}
 
-		if (d3d9Device && *d3d9Device && ddrawParent)
+		if (ddrawParent)
 		{
 			ddrawParent->RemoveSurfaceFromVector(this);
 			ReleaseD9Surface();
@@ -198,6 +201,7 @@ public:
 	void ReleaseD9Surface();
 	void AlocateVideoBuffer();
 	HRESULT CreateD3d9Surface();
+	HRESULT UpdateSurfaceDesc2(LPDDSURFACEDESC2 lpDDSurfaceDesc2);
 	bool FixRect(LPRECT lpOutRect, LPRECT lpInRect);
 	HRESULT SetLock(LPRECT lpDestRect, DWORD dwFlags);
 	HRESULT SetUnLock();
@@ -210,4 +214,5 @@ public:
 	HRESULT WritePaletteToSurface(m_IDirectDrawPalette *lpDDPalette, RECT *pRect, BYTE *lpVideoBuf, DWORD BitCount);
 	HRESULT CopyRect(D3DLOCKED_RECT *pDestLockRect, RECT *pDestRect, DWORD DestBitCount, D3DFORMAT DestFormat, D3DLOCKED_RECT *pSrcLockRect, RECT *pSrcRect, DWORD SrcBitCount, D3DFORMAT SrcFormat);
 	HRESULT CopyRectColorKey(D3DLOCKED_RECT *pDestLockRect, RECT *pDestRect, DWORD DestBitCount, D3DFORMAT DestFormat, D3DLOCKED_RECT *pSrcLockRect, RECT *pSrcRect, DWORD SrcBitCount, D3DFORMAT SrcFormat, DDCOLORKEY ColorKey);
+	HRESULT StretchRect(D3DLOCKED_RECT *pDestLockRect, RECT *pDestRect, DWORD DestBitCount, D3DFORMAT DestFormat, D3DLOCKED_RECT *pSrcLockRect, RECT *pSrcRect, DWORD SrcBitCount, D3DFORMAT SrcFormat);
 };

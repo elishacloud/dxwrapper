@@ -292,8 +292,15 @@ HRESULT m_IDirectDrawSurfaceX::Blt(LPRECT lpDestRect, LPDIRECTDRAWSURFACE7 lpDDS
 		// Copy rect
 		if (SUCCEEDED(hr))
 		{
+			// Strect rect and color key
+			if (abs((DestRect.right - DestRect.left) - (SrcRect.right - SrcRect.left)) > 1 && abs((DestRect.bottom - DestRect.top) - (SrcRect.bottom - SrcRect.top)) > 1 &&
+				(dwFlags & (DDBLT_KEYDESTOVERRIDE | DDBLT_KEYSRCOVERRIDE | DDBLT_KEYDEST | DDBLT_KEYSRC)))
+			{
+				Logging::Log() << __FUNCTION__ << " stretch rect plus color key not imlpemented";
+				hr = DDERR_GENERIC;
+			}
 			// Check for color key flags
-			if (dwFlags & (DDBLT_KEYDESTOVERRIDE | DDBLT_KEYSRCOVERRIDE | DDBLT_KEYDEST | DDBLT_KEYSRC))
+			else if (dwFlags & (DDBLT_KEYDESTOVERRIDE | DDBLT_KEYSRCOVERRIDE | DDBLT_KEYDEST | DDBLT_KEYSRC))
 			{
 				// Check if color key is set
 				if (((dwFlags & DDBLT_KEYDEST) && !ColorKeys[0].IsSet) || ((dwFlags & DDBLT_KEYSRC) && !ColorKeys[2].IsSet))
@@ -315,6 +322,16 @@ HRESULT m_IDirectDrawSurfaceX::Blt(LPRECT lpDestRect, LPDIRECTDRAWSURFACE7 lpDDS
 					Logging::Log() << __FUNCTION__ << " failed to copy rect";
 				}
 			}
+			// Strect rect
+			else if (abs((DestRect.right - DestRect.left) - (SrcRect.right - SrcRect.left)) > 1 && abs((DestRect.bottom - DestRect.top) - (SrcRect.bottom - SrcRect.top)) > 1)
+			{
+				hr = StretchRect(&DestLockRect, &DestRect, DestBitCount, DestFormat, &SrcLockRect, &SrcRect, SrcBitCount, SrcFormat);
+				if (FAILED(hr))
+				{
+					Logging::Log() << __FUNCTION__ << " failed to strect rect";
+				}
+			}
+			// Normal copy rect
 			else
 			{
 				hr = CopyRect(&DestLockRect, &DestRect, DestBitCount, DestFormat, &SrcLockRect, &SrcRect, SrcBitCount, SrcFormat);
@@ -496,6 +513,17 @@ HRESULT m_IDirectDrawSurfaceX::Flip(LPDIRECTDRAWSURFACE7 lpDDSurfaceTargetOverri
 		{
 			Logging::Log() << __FUNCTION__ << " D3d9 Device not setup.";
 			return DDERR_GENERIC;
+		}
+
+		// Make sure surface exists, if not then create it
+		if (!surfaceTexture)
+		{
+			HRESULT hr = CreateD3d9Surface();
+			if (FAILED(hr))
+			{
+				Logging::Log() << __FUNCTION__ << " could not recreate surface";
+				return DDERR_SURFACELOST;
+			}
 		}
 
 		// Flip only supported from primary surface
@@ -869,11 +897,16 @@ HRESULT m_IDirectDrawSurfaceX::GetPixelFormat(LPDDPIXELFORMAT lpDDPixelFormat)
 
 	if (Config.Dd7to9)
 	{
-		// lpDDPixelFormat receives a detailed description of the current pixel and 
-		// color space format of this surface.
+		DDSURFACEDESC2 tmpSurfaceDesc2;
+
+		// Copy surfacedesc to lpDDSurfaceDesc2
+		memcpy(&tmpSurfaceDesc2, &surfaceDesc2, sizeof(DDSURFACEDESC2));
+
+		// Update surface description
+		UpdateSurfaceDesc2(&tmpSurfaceDesc2);
 
 		// Copy pixel format to lpDDPixelFormat
-		memcpy(lpDDPixelFormat, &surfaceDesc2.ddpfPixelFormat, sizeof(DDPIXELFORMAT));
+		memcpy(lpDDPixelFormat, &tmpSurfaceDesc2.ddpfPixelFormat, sizeof(DDPIXELFORMAT));
 
 		return DD_OK;
 	}
@@ -903,6 +936,9 @@ HRESULT m_IDirectDrawSurfaceX::GetSurfaceDesc(LPDDSURFACEDESC2 lpDDSurfaceDesc2)
 	{
 		// Copy surfacedesc to lpDDSurfaceDesc2
 		memcpy(lpDDSurfaceDesc2, &surfaceDesc2, sizeof(DDSURFACEDESC2));
+
+		// Update surface description
+		UpdateSurfaceDesc2(lpDDSurfaceDesc2);
 
 		hr = DD_OK;
 	}
@@ -1001,30 +1037,11 @@ HRESULT m_IDirectDrawSurfaceX::Lock(LPRECT lpDestRect, LPDDSURFACEDESC2 lpDDSurf
 			lkDestRect.bottom = surfaceDesc2.dwHeight;
 		}
 
-		// Make sure surface exists, if not then create it
-		if (!surfaceTexture)
-		{
-			hr = CreateD3d9Surface();
-			if (FAILED(hr))
-			{
-				Logging::Log() << __FUNCTION__ << " could not recreate surface";
-			}
-		}
-		// If surface exists then set hr to DD_OK
-		else
-		{
-			hr = DD_OK;
-		}
+		// Convert flags to d3d9
+		DWORD LockFlags = dwFlags & (D3DLOCK_DISCARD | D3DLOCK_DONOTWAIT | D3DLOCK_NO_DIRTY_UPDATE | D3DLOCK_NOOVERWRITE | D3DLOCK_NOSYSLOCK | D3DLOCK_READONLY);
 
-		// Lock rect
-		if (SUCCEEDED(hr))
-		{
-			// Convert flags to d3d9
-			DWORD LockFlags = dwFlags & (D3DLOCK_DISCARD | D3DLOCK_DONOTWAIT | D3DLOCK_NO_DIRTY_UPDATE | D3DLOCK_NOOVERWRITE | D3DLOCK_NOSYSLOCK | D3DLOCK_READONLY);
-
-			// Lock surface
-			hr = SetLock(lpDestRect, LockFlags);
-		}
+		// Lock surface
+		hr = SetLock(lpDestRect, LockFlags);
 
 		// Set desc and video memory
 		if (SUCCEEDED(hr))
@@ -1582,6 +1599,9 @@ HRESULT m_IDirectDrawSurfaceX::CreateD3d9Surface()
 		return DDERR_INVALIDOBJECT;
 	}
 
+	// Update surface description
+	UpdateSurfaceDesc2(&surfaceDesc2);
+	
 	// Get d3d9Object
 	IDirect3D9 *d3d9Object = ddrawParent->GetDirect3D();
 
@@ -1808,6 +1828,60 @@ HRESULT m_IDirectDrawSurfaceX::CreateD3d9Surface()
 	return hr;
 }
 
+// Update surface description
+HRESULT m_IDirectDrawSurfaceX::UpdateSurfaceDesc2(LPDDSURFACEDESC2 lpDDSurfaceDesc2)
+{
+	if (!ddrawParent)
+	{
+		Logging::Log() << __FUNCTION__ << " Error no ddraw parent!";
+		return DDERR_INVALIDOBJECT;
+	}
+
+	// Set Height and Width
+	if ((lpDDSurfaceDesc2->dwFlags & (DDSD_HEIGHT | DDSD_WIDTH)) != (DDSD_HEIGHT | DDSD_WIDTH))
+	{
+		lpDDSurfaceDesc2->dwFlags |= DDSD_HEIGHT | DDSD_WIDTH;
+		lpDDSurfaceDesc2->dwWidth = ddrawParent->GetDisplayModeWidth();
+		lpDDSurfaceDesc2->dwHeight = ddrawParent->GetDisplayModeHeight();
+	}
+	// Set Refresh Rate
+	if ((lpDDSurfaceDesc2->dwFlags & DDSD_REFRESHRATE) == 0)
+	{
+		lpDDSurfaceDesc2->dwFlags |= DDSD_REFRESHRATE;
+		lpDDSurfaceDesc2->dwRefreshRate = ddrawParent->GetDisplayModeRefreshRate();
+	}
+	// Set PixelFormat
+	if ((lpDDSurfaceDesc2->dwFlags & DDSD_PIXELFORMAT) == 0)
+	{
+		// Set PixelFormat flags
+		lpDDSurfaceDesc2->dwFlags |= DDSD_PIXELFORMAT;
+		lpDDSurfaceDesc2->ddpfPixelFormat.dwFlags = DDPF_RGB;
+
+		// Set BitMask
+		switch (ddrawParent->GetDisplayModeBPP())
+		{
+		case 8:
+			lpDDSurfaceDesc2->ddpfPixelFormat.dwRBitMask = 0;
+			lpDDSurfaceDesc2->ddpfPixelFormat.dwGBitMask = 0;
+			lpDDSurfaceDesc2->ddpfPixelFormat.dwBBitMask = 0;
+			break;
+		case 16:
+			GetPixelDisplayFormat(D3DFMT_R5G6B5, lpDDSurfaceDesc2->ddpfPixelFormat);
+			break;
+		case 24:
+		case 32:
+			GetPixelDisplayFormat(D3DFMT_X8R8G8B8, lpDDSurfaceDesc2->ddpfPixelFormat);
+			break;
+		}
+
+		// Set BitCount
+		lpDDSurfaceDesc2->ddpfPixelFormat.dwRGBBitCount = ddrawParent->GetDisplayModeBPP();
+	}
+
+	// Return
+	return DD_OK;
+}
+
 // Check surface reck dimensions and copy rect to new rect
 bool m_IDirectDrawSurfaceX::FixRect(LPRECT lpOutRect, LPRECT lpInRect)
 {
@@ -1859,9 +1933,20 @@ bool m_IDirectDrawSurfaceX::FixRect(LPRECT lpOutRect, LPRECT lpInRect)
 // Lock the d3d9 surface
 HRESULT m_IDirectDrawSurfaceX::SetLock(LPRECT lpDestRect, DWORD dwFlags)
 {
-	if (!surfaceTexture || !ddrawParent)
+	if (!ddrawParent)
 	{
 		return DDERR_GENERIC;
+	}
+
+	// Make sure surface exists, if not then create it
+	if (!surfaceTexture)
+	{
+		HRESULT hr = CreateD3d9Surface();
+		if (FAILED(hr))
+		{
+			Logging::Log() << __FUNCTION__ << " could not recreate surface";
+			return DDERR_SURFACELOST;
+		}
 	}
 
 	// Run BeginScene (ignore results)
@@ -1885,7 +1970,7 @@ HRESULT m_IDirectDrawSurfaceX::SetUnLock()
 {
 	if (!surfaceTexture || !ddrawParent)
 	{
-		return DDERR_GENERIC;
+		return DDERR_SURFACELOST;
 	}
 
 	// Lock surface
@@ -2338,61 +2423,96 @@ HRESULT m_IDirectDrawSurfaceX::CopyRectColorKey(D3DLOCKED_RECT *pDestLockRect, R
 	switch (DestBitCount)
 	{
 	case 8: // 8-bit surfaces
-	{
-		BYTE ColorKeyLow = ColorKey.dwColorSpaceLowValue & 0x000000FF;
-		BYTE ColorKeyHigh = ColorKey.dwColorSpaceHighValue & 0x000000FF;
-		for (LONG y = 0; y < RectHeight; y++)
-		{
-			DWORD StartDestLoc = ((y + pDestRect->top) * pDestLockRect->Pitch) + pDestRect->left;
-			DWORD StartSrcLoc = ((y + pSrcRect->top) * pSrcLockRect->Pitch) + pSrcRect->left;
-
-			for (LONG x = 0; x < RectWidth; x++)
-			{
-				BYTE *NewPixel = (BYTE*)pSrcLockRect->pBits + StartSrcLoc + x;
-				if (*NewPixel < ColorKeyLow || *NewPixel > ColorKeyHigh)
-				{
-					memcpy((BYTE*)pDestLockRect->pBits + StartDestLoc + x, NewPixel, 1);
-				}
-			}
-		}
-		break;
-	}
 	case 16: // 16-bit surfaces
-	{
-		WORD ColorKeyLow = ColorKey.dwColorSpaceLowValue & 0x0000FFFF;
-		WORD ColorKeyHigh = ColorKey.dwColorSpaceHighValue & 0x0000FFFF;
-		for (LONG y = 0; y < RectHeight; y++)
-		{
-			DWORD StartDestLoc = ((y + pDestRect->top) * pDestLockRect->Pitch) + (pDestRect->left * 2);
-			DWORD StartSrcLoc = ((y + pSrcRect->top) * pSrcLockRect->Pitch) + (pSrcRect->left * 2);
-
-			for (LONG x = 0; x < RectWidth; x++)
-			{
-				WORD *NewPixel = (WORD*)((BYTE*)pSrcLockRect->pBits + StartSrcLoc + x * 2);
-				if (*NewPixel < ColorKeyLow || *NewPixel > ColorKeyHigh)
-				{
-					memcpy((BYTE*)pDestLockRect->pBits + StartDestLoc + x * 2, NewPixel, 2);
-				}
-			}
-		}
-		break;
-	}
+	case 24: // 24-bit surfaces
 	case 32: // 32-bit surfaces
 	{
-		DWORD ColorKeyLow = ColorKey.dwColorSpaceLowValue;
-		DWORD ColorKeyHigh = ColorKey.dwColorSpaceHighValue;
+		DWORD ByteCount = DestBitCount / 8;
+		DWORD ByteMask = (DWORD)(pow(256, ByteCount)) - 1;
+		DWORD ColorKeyLow = ColorKey.dwColorSpaceLowValue & ByteMask;
+		DWORD ColorKeyHigh = ColorKey.dwColorSpaceHighValue & ByteMask;
+
 		for (LONG y = 0; y < RectHeight; y++)
 		{
-			DWORD StartDestLoc = ((y + pDestRect->top) * pDestLockRect->Pitch) + (pDestRect->left * 4);
-			DWORD StartSrcLoc = ((y + pSrcRect->top) * pSrcLockRect->Pitch) + (pSrcRect->left * 4);
+			DWORD StartDestLoc = ((y + pDestRect->top) * pDestLockRect->Pitch) + (pDestRect->left * ByteCount);
+			DWORD StartSrcLoc = ((y + pSrcRect->top) * pSrcLockRect->Pitch) + (pSrcRect->left * ByteCount);
 
 			for (LONG x = 0; x < RectWidth; x++)
 			{
-				DWORD *NewPixel = (DWORD*)((BYTE*)pSrcLockRect->pBits + StartSrcLoc + x * 4);
-				if (*NewPixel < ColorKeyLow || *NewPixel > ColorKeyHigh)
+				DWORD *NewPixel = (DWORD*)((BYTE*)pSrcLockRect->pBits + StartSrcLoc + x * ByteCount);
+				DWORD PixelColor = (ByteCount == 1) ? (BYTE)(*NewPixel) :
+					(ByteCount == 2) ? (WORD)(*NewPixel) :
+					(ByteCount == 3) ? (DWORD)(*NewPixel) & ByteMask :
+					(ByteCount == 4) ? (DWORD)(*NewPixel) : 0;
+
+				if (PixelColor < ColorKeyLow || PixelColor > ColorKeyHigh)
 				{
-					memcpy((BYTE*)pDestLockRect->pBits + StartDestLoc + x * 4, NewPixel, 4);
+					memcpy((BYTE*)pDestLockRect->pBits + StartDestLoc + x * ByteCount, NewPixel, ByteCount);
 				}
+			}
+		}
+		break;
+	}
+	default: // Unsupported surface bit count
+		Logging::Log() << __FUNCTION__ << " Not implemented bit count " << DestBitCount;
+		return DDERR_GENERIC;
+	}
+
+	// Return
+	return DD_OK;
+}
+
+// Stretch source rect to destination rect
+HRESULT m_IDirectDrawSurfaceX::StretchRect(D3DLOCKED_RECT *pDestLockRect, RECT *pDestRect, DWORD DestBitCount, D3DFORMAT DestFormat, D3DLOCKED_RECT *pSrcLockRect, RECT *pSrcRect, DWORD SrcBitCount, D3DFORMAT SrcFormat)
+{
+	// Check destination parameters
+	if (!pDestLockRect || !pDestLockRect->pBits || !pDestRect || !DestBitCount || DestFormat == D3DFMT_UNKNOWN)
+	{
+		Logging::Log() << __FUNCTION__ << " Invalid destination parameters";
+		return DDERR_INVALIDPARAMS;
+	}
+
+	// Check source parameters
+	if (!pSrcLockRect || !pSrcLockRect->pBits || !pSrcRect || !SrcBitCount || SrcFormat == D3DFMT_UNKNOWN)
+	{
+		Logging::Log() << __FUNCTION__ << " Invalid source parameters";
+		return DDERR_INVALIDPARAMS;
+	}
+
+	// Check if source and destination formats are the same
+	if (DestFormat != SrcFormat)
+	{
+		Logging::Log() << __FUNCTION__ << " Different source and destination formats not implemented";
+		return DDERR_GENERIC;
+	}
+
+	// Get width and height of rect
+	LONG DestRectWidth = pDestRect->right - pDestRect->left;
+	LONG DestRectHeight = pDestRect->bottom - pDestRect->top;
+	LONG SrcRectWidth = pSrcRect->right - pSrcRect->left;
+	LONG SrcRectHeight = pSrcRect->bottom - pSrcRect->top;
+
+	// Get ratio
+	float WidthRatio = (float)SrcRectWidth / (float)DestRectWidth;
+	float HeightRatio = (float)SrcRectHeight / (float)DestRectHeight;
+
+	// Copy memory using color key
+	switch (DestBitCount)
+	{
+	case 8: // 8-bit surfaces
+	case 16: // 16-bit surfaces
+	case 24: // 24-bit surfaces
+	case 32: // 32-bit surfaces
+	{
+		DWORD ByteCount = DestBitCount / 8;
+		for (LONG y = 0; y < DestRectHeight; y++)
+		{
+			DWORD StartDestLoc = ((y + pDestRect->top) * pDestLockRect->Pitch) + (pDestRect->left * ByteCount);
+			DWORD StartSrcLoc = ((((DWORD)((float)y * HeightRatio)) + pSrcRect->top) * pSrcLockRect->Pitch) + (pSrcRect->left * ByteCount);
+
+			for (LONG x = 0; x < DestRectWidth; x++)
+			{
+				memcpy((BYTE*)pDestLockRect->pBits + StartDestLoc + x * ByteCount, (BYTE*)((BYTE*)pSrcLockRect->pBits + StartSrcLoc + ((DWORD)((float)x * WidthRatio)) * ByteCount), ByteCount);
 			}
 		}
 		break;

@@ -94,6 +94,10 @@ public:
 	IDirectDraw7 *GetProxyInterface() { return ProxyInterface; }
 	m_IDirectDraw7 *GetWrapperInterface() { return WrapperInterface; }
 	LPDIRECT3D9 GetDirect3D() { return d3d9Object; }
+	DWORD GetDisplayModeWidth() { return displayModeWidth; }
+	DWORD GetDisplayModeHeight() { return displayModeHeight; }
+	DWORD GetDisplayModeRefreshRate() { return displayModeRefreshRate; }
+	DWORD GetDisplayModeBPP() { return displayModeBPP; }
 
 	/*** IUnknown methods ***/
 	STDMETHOD(QueryInterface) (THIS_ REFIID riid, LPVOID FAR * ppvObj);

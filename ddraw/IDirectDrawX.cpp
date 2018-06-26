@@ -181,48 +181,6 @@ HRESULT m_IDirectDrawX::CreateSurface(LPDDSURFACEDESC2 lpDDSurfaceDesc2, LPDIREC
 			return DDERR_INVALIDPARAMS;
 		}
 
-		// Set parameters before call
-		// Set Height and Width
-		if ((lpDDSurfaceDesc2->dwFlags & (DDSD_HEIGHT | DDSD_WIDTH)) != (DDSD_HEIGHT | DDSD_WIDTH))
-		{
-			lpDDSurfaceDesc2->dwFlags |= DDSD_HEIGHT | DDSD_WIDTH;
-			lpDDSurfaceDesc2->dwWidth = displayModeWidth;
-			lpDDSurfaceDesc2->dwHeight = displayModeHeight;
-		}
-		// Set Refresh Rate
-		if ((lpDDSurfaceDesc2->dwFlags & DDSD_REFRESHRATE) == 0)
-		{
-			lpDDSurfaceDesc2->dwFlags |= DDSD_REFRESHRATE;
-			lpDDSurfaceDesc2->dwRefreshRate = displayModeRefreshRate;
-		}
-		// Set PixelFormat
-		if ((lpDDSurfaceDesc2->dwFlags & DDSD_PIXELFORMAT) == 0)
-		{
-			// Set PixelFormat flags
-			lpDDSurfaceDesc2->dwFlags |= DDSD_PIXELFORMAT;
-			lpDDSurfaceDesc2->ddpfPixelFormat.dwFlags = DDPF_RGB;
-
-			// Set BitMask
-			switch (displayModeBPP)
-			{
-			case 8:
-				lpDDSurfaceDesc2->ddpfPixelFormat.dwRBitMask = 0;
-				lpDDSurfaceDesc2->ddpfPixelFormat.dwGBitMask = 0;
-				lpDDSurfaceDesc2->ddpfPixelFormat.dwBBitMask = 0;
-				break;
-			case 16:
-				GetPixelDisplayFormat(D3DFMT_R5G6B5, lpDDSurfaceDesc2->ddpfPixelFormat);
-				break;
-			case 24:
-			case 32:
-				GetPixelDisplayFormat(D3DFMT_X8R8G8B8, lpDDSurfaceDesc2->ddpfPixelFormat);
-				break;
-			}
-
-			// Set BitCount
-			lpDDSurfaceDesc2->ddpfPixelFormat.dwRGBBitCount = displayModeBPP;
-		}
-
 		*lplpDDSurface = new m_IDirectDrawSurfaceX(&d3d9Device, this, DirectXVersion, lpDDSurfaceDesc2, displayWidth, displayHeight);
 
 		return DD_OK;
