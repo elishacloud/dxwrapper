@@ -90,6 +90,21 @@ void *Hook::HotPatch(void *apiproc, const char *apiname, void *hookproc, bool fo
 		return orig_address;
 	}
 
+	// Check if API is just a pointer to another API
+	else if (!(memcmp("\x90\x90\x90\x90\x90\xFF\x25", patch_address, 7) && memcmp("\xCC\xCC\xCC\xCC\xCC\xFF\x25", patch_address, 7)))
+	{
+		// Get memory address to function
+		DWORD *patchAddr;
+		memcpy(&patchAddr, ((BYTE*)apiproc + 2), sizeof(DWORD));
+
+		// restore protection
+		VirtualProtect(patch_address, 12, dwPrevProtect, &dwPrevProtect);
+#ifdef _DEBUG
+		logf("HotPatch: api=%s addr=%p->%p hook=%p", apiname, apiproc, orig_address, hookproc);
+#endif
+
+		return HotPatch((void*)(*patchAddr), apiname, hookproc);
+	}
 	// API cannot be patched
 	else
 	{

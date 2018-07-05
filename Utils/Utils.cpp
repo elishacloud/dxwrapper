@@ -219,25 +219,27 @@ FARPROC WINAPI Utils::GetProcAddressHandler(HMODULE hModule, LPSTR lpProcName)
 // Update GetModuleFileNameA to fix module name
 DWORD WINAPI Utils::GetModuleFileNameAHandler(HMODULE hModule, LPSTR lpFilename, DWORD nSize)
 {
-	if (InterlockedCompareExchangePointer((PVOID*)&pGetModuleFileNameA, nullptr, nullptr))
+	GetModuleFileNameAProc org_GetModuleFileName = (GetModuleFileNameAProc)InterlockedCompareExchangePointer((PVOID*)&pGetModuleFileNameA, nullptr, nullptr);
+
+	if (org_GetModuleFileName)
 	{
-		if (hModule == hModule_dll && Config.RealWrapperMode == dtype.dxwrapper)
+		DWORD ret = org_GetModuleFileName(hModule, lpFilename, nSize);
+
+		if (lpFilename[0] != '\\' && lpFilename[1] != '\\' && lpFilename[2] != '\\' && lpFilename[3] != '\\')
 		{
-			hModule = nullptr;
-			DWORD lSize = ((GetModuleFileNameAProc)InterlockedCompareExchangePointer((PVOID*)&pGetModuleFileNameA, nullptr, nullptr))(hModule, lpFilename, nSize);
+			DWORD lSize = org_GetModuleFileName(nullptr, lpFilename, nSize);
 			char *pdest = strrchr(lpFilename, '\\');
 			if (pdest && lSize > 0 && nSize - lSize + strlen(dtypename[dtype.dxwrapper]) > 0)
 			{
 				strcpy_s(pdest + 1, nSize - lSize, dtypename[dtype.dxwrapper]);
-				return nSize - lSize + strlen(dtypename[dtype.dxwrapper]);
+				return strlen(lpFilename);
 			}
 			return lSize;
 		}
-		else
-		{
-			return ((GetModuleFileNameAProc)InterlockedCompareExchangePointer((PVOID*)&pGetModuleFileNameA, nullptr, nullptr))(hModule, lpFilename, nSize);
-		}
+
+		return ret;
 	}
+
 	SetLastError(5);
 	return 0;
 }
@@ -245,27 +247,29 @@ DWORD WINAPI Utils::GetModuleFileNameAHandler(HMODULE hModule, LPSTR lpFilename,
 // Update GetModuleFileNameW to fix module name
 DWORD WINAPI Utils::GetModuleFileNameWHandler(HMODULE hModule, LPWSTR lpFilename, DWORD nSize)
 {
-	if (InterlockedCompareExchangePointer((PVOID*)&pGetModuleFileNameW, nullptr, nullptr))
+	GetModuleFileNameWProc org_GetModuleFileName = (GetModuleFileNameWProc)InterlockedCompareExchangePointer((PVOID*)&pGetModuleFileNameW, nullptr, nullptr);
+
+	if (org_GetModuleFileName)
 	{
-		if (hModule == hModule_dll && Config.RealWrapperMode == dtype.dxwrapper)
+		DWORD ret = org_GetModuleFileName(hModule, lpFilename, nSize);
+
+		if (lpFilename[0] != '\\' && lpFilename[1] != '\\' && lpFilename[2] != '\\' && lpFilename[3] != '\\')
 		{
-			hModule = nullptr;
-			DWORD lSize = ((GetModuleFileNameWProc)InterlockedCompareExchangePointer((PVOID*)&pGetModuleFileNameW, nullptr, nullptr))(hModule, lpFilename, nSize);
+			DWORD lSize = org_GetModuleFileName(nullptr, lpFilename, nSize);
 			wchar_t *pdest = wcsrchr(lpFilename, '\\');
 			std::string str(dtypename[dtype.dxwrapper]);
 			std::wstring wrappername(str.begin(), str.end());
 			if (pdest && lSize > 0 && nSize - lSize + strlen(dtypename[dtype.dxwrapper]) > 0)
 			{
-				wcscpy_s(pdest + 1, nSize - lSize, &wrappername[0]);
-				return nSize - lSize + strlen(dtypename[dtype.dxwrapper]);
+				wcscpy_s(pdest + 1, nSize - lSize, wrappername.c_str());
+				return wcslen(lpFilename);
 			}
 			return lSize;
 		}
-		else
-		{
-			return ((GetModuleFileNameWProc)InterlockedCompareExchangePointer((PVOID*)&pGetModuleFileNameW, nullptr, nullptr))(hModule, lpFilename, nSize);
-		}
+
+		return ret;
 	}
+
 	SetLastError(5);
 	return 0;
 }

@@ -73,7 +73,7 @@ void Loadd3dx9()
 	}
 	else
 	{
-		Logging::Log() << "Failed to load dwmapi.dll!";
+		Logging::Log() << "Failed to load d3dx9_xx.dll!";
 	}
 }
 
