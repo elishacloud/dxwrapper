@@ -251,7 +251,7 @@ HRESULT m_IDirectDrawSurfaceX::Blt(LPRECT lpDestRect, LPDIRECTDRAWSURFACE7 lpDDS
 			UnlockDest = true;
 		}
 
-		// Destination and source varables
+		// Destination and source variables
 		D3DLOCKED_RECT DestLockRect, SrcLockRect;
 		D3DFORMAT DestFormat, SrcFormat;
 		DWORD DestBitCount, SrcBitCount;
@@ -2205,7 +2205,7 @@ HRESULT m_IDirectDrawSurfaceX::WritePaletteToSurface(m_IDirectDrawPalette *lpDDP
 		UnlockDest = true;
 	}
 
-	// Create raw video memory and rgb buffer varables
+	// Create raw video memory and rgb buffer variables
 	UINT32 *surfaceBuffer = (UINT32*)d3dlrect.pBits;
 
 	// Translate palette to rgb video buffer

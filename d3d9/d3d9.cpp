@@ -159,7 +159,15 @@ IDirect3D9 *WINAPI d9_Direct3DCreate9(UINT SDKVersion)
 	{
 		return nullptr;
 	}
-	return new m_IDirect3D9(((Direct3DCreate9Proc)Direct3DCreate9_out)(SDKVersion));
+
+	IDirect3D9 *pD3D9 = ((Direct3DCreate9Proc)Direct3DCreate9_out)(SDKVersion);
+
+	if (pD3D9)
+	{
+		return new m_IDirect3D9(pD3D9);
+	}
+
+	return nullptr;
 }
 
 HRESULT WINAPI d9_Direct3DCreate9Ex(UINT SDKVersion, IDirect3D9Ex **ppD3D)
@@ -171,7 +179,7 @@ HRESULT WINAPI d9_Direct3DCreate9Ex(UINT SDKVersion, IDirect3D9Ex **ppD3D)
 
 	HRESULT hr = ((Direct3DCreate9ExProc)Direct3DCreate9Ex_out)(SDKVersion, ppD3D);
 
-	if (SUCCEEDED(hr))
+	if (SUCCEEDED(hr) && ppD3D)
 	{
 		*ppD3D = new m_IDirect3D9Ex(*ppD3D);
 	}

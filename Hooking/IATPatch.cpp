@@ -235,7 +235,7 @@ bool Hook::UnIATPatchAll()
 	{
 		if (!UnhookIATPatch(IATPatchProcs.back().module, IATPatchProcs.back().ordinal, IATPatchProcs.back().dll.c_str(), IATPatchProcs.back().apiproc, IATPatchProcs.back().apiname.c_str(), IATPatchProcs.back().hookproc))
 		{
-			// Failed to retore address
+			// Failed to restore address
 			flag = false;
 			Logging::LogFormat("UnIATPatchAll: failed to restore address. procaddr: %p", IATPatchProcs.back().apiproc);
 		}

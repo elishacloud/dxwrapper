@@ -86,11 +86,11 @@ namespace Wrapper
 		FARPROC *val;
 	};
 
-	// Forward function decalration
+	// Forward function declaration
 	HRESULT __stdcall _jmpaddr();
 	HRESULT __stdcall _jmpaddrvoid();
 
-	// Varable decalration
+	// Variable declaration
 	constexpr FARPROC jmpaddr = (FARPROC)*_jmpaddr;
 	constexpr FARPROC jmpaddrvoid = (FARPROC)*_jmpaddrvoid;
 	std::vector<wrapper_map> jmpArray;

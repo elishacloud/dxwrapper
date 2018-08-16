@@ -31,7 +31,7 @@
 #define SHIM_WRAPPED_PROC(procName, unused) \
 	Wrapper::ShimProc(procName ## _var, procName ## _in, procName ## _out);
 
-// Declare varables
+// Declare variables
 HMODULE hModule_dll = nullptr;
 
 // Dll main function

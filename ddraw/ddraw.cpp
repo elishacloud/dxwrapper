@@ -51,10 +51,10 @@ void WINAPI dd_AcquireDDThreadLock()
 }
 
 #pragma warning(suppress: 4740)
-void __declspec(naked) dd_CompleteCreateSysmemSurface()
+void __declspec(naked) dd_CompleteCreateSystemSurface()
 {
-	Logging::LogFormat("CompleteCreateSysmemSurface Not Implemented");
-	_asm jmp CompleteCreateSysmemSurface_out;
+	Logging::LogFormat("CompleteCreateSystemSurface Not Implemented");
+	_asm jmp CompleteCreateSystemSurface_out;
 }
 
 HRESULT WINAPI dd_D3DParseUnknownCommand(LPVOID lpCmd, LPVOID *lpRetCmd)

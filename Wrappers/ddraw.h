@@ -2,7 +2,7 @@
 
 #define VISIT_PROCS_DDRAW(visit) \
 	visit(AcquireDDThreadLock, jmpaddrvoid) \
-	visit(CompleteCreateSysmemSurface, jmpaddr) \
+	visit(CompleteCreateSystemSurface, jmpaddr) \
 	visit(D3DParseUnknownCommand, jmpaddr) \
 	visit(DDGetAttachedSurfaceLcl, jmpaddr) \
 	visit(DDInternalLock, jmpaddr) \
@@ -25,7 +25,7 @@
 #undef VISIT_UNMODIFIED_DDRAW_PROCS
 #define VISIT_UNMODIFIED_DDRAW_PROCS(visit) \
 	visit(AcquireDDThreadLock) \
-	visit(CompleteCreateSysmemSurface) \
+	visit(CompleteCreateSystemSurface) \
 	visit(D3DParseUnknownCommand) \
 	visit(DDGetAttachedSurfaceLcl) \
 	visit(DDInternalLock) \

@@ -1807,7 +1807,7 @@ HRESULT STDMETHODCALLTYPE Direct3DDevice8::CreatePixelShader(const DWORD *pFunct
 		std::regex("(add)([_satxd248]*) (r[0-9][\\.wxyz]*), ((1-|)[crtv][0-9][\\.wxyz_abdis2]*), (-)(c[0-9][\\.wxyz]*)(_bx2|_bias|_x2|_d[zbwa]|)(?![_\\.wxyz])"),
 		"sub$2 $3, $4, $7$8 /* changed 'add' to 'sub' removed modifier $6 */");
 
-	// Create temporary varables for ps_1_4
+	// Create temporary variables for ps_1_4
 	std::string SourceCode14 = SourceCode;
 	int ArithmeticCount14 = ArithmeticCount;
 

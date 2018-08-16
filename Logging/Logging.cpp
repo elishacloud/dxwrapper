@@ -67,7 +67,7 @@ void Logging::LogProcessNameAndPID()
 // Get Windows Operating System version number from RtlGetVersion
 void Logging::GetOsVersion(RTL_OSVERSIONINFOEXW* pk_OsVer)
 {
-	// Initualize variables
+	// Initialize variables
 	pk_OsVer->dwOSVersionInfoSize = sizeof(RTL_OSVERSIONINFOEXW);
 	ZeroMemory(&(pk_OsVer->szCSDVersion), 128 * sizeof(WCHAR));
 	pk_OsVer->dwMajorVersion = 0;
@@ -96,7 +96,7 @@ void Logging::GetOsVersion(RTL_OSVERSIONINFOEXW* pk_OsVer)
 // Get Windows Operating System version number from the registry
 void Logging::GetVersionReg(OSVERSIONINFO *oOS_version)
 {
-	// Initualize variables
+	// Initialize variables
 	oOS_version->dwOSVersionInfoSize = sizeof(OSVERSIONINFO);
 	oOS_version->dwMajorVersion = 0;
 	oOS_version->dwMinorVersion = 0;
@@ -125,7 +125,7 @@ void Logging::GetVersionReg(OSVERSIONINFO *oOS_version)
 // Get Windows Operating System version number from kernel32.dll
 void Logging::GetVersionFile(OSVERSIONINFO *oOS_version)
 {
-	// Initualize variables
+	// Initialize variables
 	oOS_version->dwOSVersionInfoSize = sizeof(OSVERSIONINFO);
 	oOS_version->dwMajorVersion = 0;
 	oOS_version->dwMinorVersion = 0;

@@ -22,7 +22,7 @@ namespace Utils
 {
 	namespace WriteMemory
 	{
-		// Declare varables
+		// Declare variables
 		bool m_StopThreadFlag = false;
 		bool m_ThreadRunningFlag = false;
 		HANDLE m_hThread = nullptr;

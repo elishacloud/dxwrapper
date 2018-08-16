@@ -86,26 +86,25 @@ HRESULT m_IDirect3DSwapChain9::GetDisplayMode(THIS_ D3DDISPLAYMODE* pMode)
 
 HRESULT m_IDirect3DSwapChain9::GetDevice(THIS_ IDirect3DDevice9** ppDevice)
 {
-	if (ppDevice)
+	if (!ppDevice)
 	{
-		if (m_pDevice)
-		{
-			m_pDevice->AddRef();
-
-			*ppDevice = m_pDevice;
-
-			return D3D_OK;
-		}
-		else if (m_pDeviceEx)
-		{
-			m_pDeviceEx->AddRef();
-
-			*ppDevice = m_pDeviceEx;
-
-			return D3D_OK;
-		}
+		return D3DERR_INVALIDCALL;
 	}
-	return D3DERR_INVALIDCALL;
+
+	if (m_pDevice)
+	{
+		m_pDevice->AddRef();
+
+		*ppDevice = m_pDevice;
+	}
+	else if (m_pDeviceEx)
+	{
+		m_pDeviceEx->AddRef();
+
+		*ppDevice = m_pDeviceEx;
+	}
+
+	return D3D_OK;
 }
 
 HRESULT m_IDirect3DSwapChain9::GetPresentParameters(THIS_ D3DPRESENT_PARAMETERS* pPresentationParameters)

@@ -24,7 +24,7 @@ CONFIG Config;
 
 namespace Settings
 {
-	// Declare varables
+	// Declare variables
 	size_t AddressPointerCount = 0;				// Count of addresses to hot patch
 	size_t BytesToWriteCount = 0;				// Count of bytes to hot patch
 

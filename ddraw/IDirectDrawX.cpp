@@ -678,7 +678,7 @@ struct handle_data
 // Enums all windows and returns the handle to the active window
 BOOL CALLBACK EnumProcWindowCallback(HWND hwnd, LPARAM lParam)
 {
-	// Get varables from call back
+	// Get variables from call back
 	handle_data& data = *(handle_data*)lParam;
 
 	// Skip windows that are from a different process ID
@@ -705,7 +705,7 @@ BOOL CALLBACK EnumProcWindowCallback(HWND hwnd, LPARAM lParam)
 // Finds the active window
 HWND FindProcWindow()
 {
-	// Set varables
+	// Set variables
 	handle_data data;
 	data.process_id = GetCurrentProcessId();
 	data.best_handle = nullptr;

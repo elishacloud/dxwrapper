@@ -58,7 +58,7 @@ namespace Utils
 		std::string fullname;
 	};
 
-	// Declare varables
+	// Declare variables
 	FARPROC pGetProcAddress = nullptr;
 	FARPROC pGetModuleFileNameA = nullptr;
 	FARPROC pGetModuleFileNameW = nullptr;

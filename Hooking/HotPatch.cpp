@@ -100,7 +100,7 @@ void *Hook::HotPatch(void *apiproc, const char *apiname, void *hookproc, bool fo
 		// restore protection
 		VirtualProtect(patch_address, 12, dwPrevProtect, &dwPrevProtect);
 #ifdef _DEBUG
-		logf("HotPatch: api=%s addr=%p->%p hook=%p", apiname, apiproc, orig_address, hookproc);
+		Logging::LogFormat("HotPatch: api=%s addr=%p->%p hook=%p", apiname, apiproc, orig_address, hookproc);
 #endif
 
 		return HotPatch((void*)(*patchAddr), apiname, hookproc);

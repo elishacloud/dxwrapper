@@ -136,7 +136,7 @@ void Hook::UnhookAPI(HMODULE module, const char *dll, void *apiproc, const char 
 	UnhookIATPatch(module, 0, dll, apiproc, apiname, hookproc);
 }
 
-// Get pointer for funtion name from binary file
+// Get pointer for function name from binary file
 FARPROC Hook::GetProcAddress(HMODULE hModule, LPCSTR FunctionName)
 {
 	PIMAGE_DOS_HEADER pIDH;
@@ -210,7 +210,7 @@ bool Hook::UnhookAll()
 	return (UnHotPatchAll() && UnIATPatchAll());
 }
 
-// Get pointer for funtion name from binary file
+// Get pointer for function name from binary file
 HMODULE Hook::GetModuleHandle(char* ProcName)
 {
 	DWORD processID = GetCurrentProcessId();

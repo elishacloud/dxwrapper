@@ -118,7 +118,7 @@ namespace Utils
 			bool Menu = false;
 		};
 
-		// Declare varables
+		// Declare variables
 		bool m_StopThreadFlag = false;
 		bool m_ThreadRunningFlag = false;
 		HANDLE m_hThread = nullptr;
@@ -267,7 +267,7 @@ void Fullscreen::GetWindowSize(HWND& hwnd, screen_res& Res, RECT& rect)
 // Enums all windows and returns the handle to the active window
 BOOL CALLBACK Fullscreen::EnumWindowsCallback(HWND hwnd, LPARAM lParam)
 {
-	// Get varables from call back
+	// Get variables from call back
 	handle_data& data = *(handle_data*)lParam;
 
 	// Skip windows that are from a different process ID
@@ -364,7 +364,7 @@ BOOL CALLBACK Fullscreen::EnumWindowsCallback(HWND hwnd, LPARAM lParam)
 // Finds the active window
 HWND Fullscreen::FindMainWindow(DWORD process_id, bool AutoDetect, bool Debug)
 {
-	// Set varables
+	// Set variables
 	HWND WindowsHandle = nullptr;
 	handle_data data;
 	data.best_handle = nullptr;
@@ -408,7 +408,7 @@ HWND Fullscreen::FindMainWindow(DWORD process_id, bool AutoDetect, bool Debug)
 // Enums all windows and returns is there is a menu on the window
 BOOL CALLBACK Fullscreen::EnumMenuWindowsCallback(HWND hwnd, LPARAM lParam)
 {
-	// Get  varables from callback
+	// Get  variables from callback
 	menu_data& data = *(menu_data*)lParam;
 
 	// Skip windows that are from a different process ID

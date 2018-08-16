@@ -607,7 +607,7 @@ HRESULT m_IDirect3DDevice9::GetTexture(DWORD Stage, IDirect3DBaseTexture9 **ppTe
 {
 	HRESULT hr = ProxyInterface->GetTexture(Stage, ppTexture);
 
-	if (SUCCEEDED(hr) && (*ppTexture))
+	if (SUCCEEDED(hr) && ppTexture && *ppTexture)
 	{
 		switch ((*ppTexture)->GetType())
 		{

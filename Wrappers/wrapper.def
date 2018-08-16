@@ -425,7 +425,7 @@ WinWatchOpen
 ;LIBRARY "ddraw"
 ; ****
 AcquireDDThreadLock
-CompleteCreateSysmemSurface
+CompleteCreateSystemSurface
 D3DParseUnknownCommand
 DDGetAttachedSurfaceLcl
 DDInternalLock
