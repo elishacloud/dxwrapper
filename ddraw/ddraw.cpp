@@ -50,11 +50,19 @@ void WINAPI dd_AcquireDDThreadLock()
 	return ((AcquireDDThreadLockProc)AcquireDDThreadLock_out)();
 }
 
-#pragma warning(suppress: 4740)
-void __declspec(naked) dd_CompleteCreateSystemSurface()
+void WINAPI dd_CompleteCreateSystemSurface()
 {
-	Logging::LogFormat("CompleteCreateSystemSurface Not Implemented");
-	_asm jmp CompleteCreateSystemSurface_out;
+	if (Config.Dd7to9)
+	{
+		Logging::Log() << __FUNCTION__ << " Not Implemented";
+		return;
+	}
+
+	if (!Wrapper::ValidProcAddress(CompleteCreateSystemSurface_out))
+	{
+		return;
+	}
+	return ((CompleteCreateSystemSurfaceProc)CompleteCreateSystemSurface_out)();
 }
 
 HRESULT WINAPI dd_D3DParseUnknownCommand(LPVOID lpCmd, LPVOID *lpRetCmd)
@@ -72,32 +80,64 @@ HRESULT WINAPI dd_D3DParseUnknownCommand(LPVOID lpCmd, LPVOID *lpRetCmd)
 	return ((D3DParseUnknownCommandProc)D3DParseUnknownCommand_out)(lpCmd, lpRetCmd);
 }
 
-#pragma warning(suppress: 4740)
-void __declspec(naked) dd_DDGetAttachedSurfaceLcl()
+void WINAPI dd_DDGetAttachedSurfaceLcl()
 {
-	Logging::LogFormat("DDGetAttachedSurfaceLcl Not Implemented");
-	_asm jmp DDGetAttachedSurfaceLcl_out;
+	if (Config.Dd7to9)
+	{
+		Logging::Log() << __FUNCTION__ << " Not Implemented";
+		return;
+	}
+
+	if (!Wrapper::ValidProcAddress(DDGetAttachedSurfaceLcl_out))
+	{
+		return;
+	}
+	((DDGetAttachedSurfaceLclProc)DDGetAttachedSurfaceLcl_out)();
 }
 
-#pragma warning(suppress: 4740)
-void __declspec(naked) dd_DDInternalLock()
+void WINAPI dd_DDInternalLock()
 {
-	Logging::LogFormat("DDInternalLock Not Implemented");
-	_asm jmp DDInternalLock_out;
+	if (Config.Dd7to9)
+	{
+		Logging::Log() << __FUNCTION__ << " Not Implemented";
+		return;
+	}
+
+	if (!Wrapper::ValidProcAddress(DDInternalLock_out))
+	{
+		return;
+	}
+	((DDInternalLockProc)DDInternalLock_out)();
 }
 
-#pragma warning(suppress: 4740)
-void __declspec(naked) dd_DDInternalUnlock()
+void WINAPI dd_DDInternalUnlock()
 {
-	Logging::LogFormat("DDInternalUnlock Not Implemented");
-	_asm jmp DDInternalUnlock_out;
+	if (Config.Dd7to9)
+	{
+		Logging::Log() << __FUNCTION__ << " Not Implemented";
+		return;
+	}
+
+	if (!Wrapper::ValidProcAddress(DDInternalUnlock_out))
+	{
+		return;
+	}
+	((DDInternalUnlockProc)DDInternalUnlock_out)();
 }
 
-#pragma warning(suppress: 4740)
-void __declspec(naked) dd_DSoundHelp()
+void WINAPI dd_DSoundHelp()
 {
-	Logging::LogFormat("DSoundHelp Not Implemented");
-	_asm jmp DSoundHelp_out;
+	if (Config.Dd7to9)
+	{
+		Logging::Log() << __FUNCTION__ << " Not Implemented";
+		return;
+	}
+
+	if (!Wrapper::ValidProcAddress(DSoundHelp_out))
+	{
+		return;
+	}
+	((DSoundHelpProc)DSoundHelp_out)();
 }
 
 HRESULT WINAPI dd_DirectDrawCreate(GUID FAR *lpGUID, LPDIRECTDRAW FAR *lplpDD, IUnknown FAR *pUnkOuter)
@@ -342,18 +382,34 @@ HRESULT WINAPI dd_DllGetClassObject(REFCLSID rclsid, REFIID riid, LPVOID *ppv)
 	return hr;
 }
 
-#pragma warning(suppress: 4740)
-void __declspec(naked) dd_GetDDSurfaceLocal()
+void WINAPI dd_GetDDSurfaceLocal()
 {
-	Logging::LogFormat("GetDDSurfaceLocal Not Implemented");
-	_asm jmp GetDDSurfaceLocal_out;
+	if (Config.Dd7to9)
+	{
+		Logging::Log() << __FUNCTION__ << " Not Implemented";
+		return;
+	}
+
+	if (!Wrapper::ValidProcAddress(GetDDSurfaceLocal_out))
+	{
+		return;
+	}
+	((GetDDSurfaceLocalProc)GetDDSurfaceLocal_out)();
 }
 
-#pragma warning(suppress: 4740)
-void __declspec(naked) dd_GetOLEThunkData()
+HANDLE WINAPI dd_GetOLEThunkData(int i1)
 {
-	Logging::LogFormat("GetOLEThunkData Not Implemented");
-	_asm jmp GetOLEThunkData_out;
+	if (Config.Dd7to9)
+	{
+		Logging::Log() << __FUNCTION__ << " Not Implemented";
+		return nullptr;
+	}
+
+	if (!Wrapper::ValidProcAddress(GetOLEThunkData_out))
+	{
+		return nullptr;
+	}
+	return ((GetOLEThunkDataProc)GetOLEThunkData_out)(i1);
 }
 
 HRESULT WINAPI dd_GetSurfaceFromDC(HDC hdc, LPDIRECTDRAWSURFACE7 *lpDDS)
@@ -379,11 +435,19 @@ HRESULT WINAPI dd_GetSurfaceFromDC(HDC hdc, LPDIRECTDRAWSURFACE7 *lpDDS)
 	return hr;
 }
 
-#pragma warning(suppress: 4740)
-void __declspec(naked) dd_RegisterSpecialCase()
+void WINAPI dd_RegisterSpecialCase()
 {
-	Logging::LogFormat("RegisterSpecialCase Not Implemented");
-	_asm jmp RegisterSpecialCase_out;
+	if (Config.Dd7to9)
+	{
+		Logging::Log() << __FUNCTION__ << " Not Implemented";
+		return;
+	}
+
+	if (!Wrapper::ValidProcAddress(RegisterSpecialCase_out))
+	{
+		return;
+	}
+	((RegisterSpecialCaseProc)RegisterSpecialCase_out)();
 }
 
 void WINAPI dd_ReleaseDDThreadLock()

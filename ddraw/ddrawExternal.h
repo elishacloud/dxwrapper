@@ -3,12 +3,12 @@
 #include "Wrappers\wrapper.h"
 
 void WINAPI dd_AcquireDDThreadLock();
-void dd_CompleteCreateSystemSurface();
+void WINAPI dd_CompleteCreateSystemSurface();
 HRESULT WINAPI dd_D3DParseUnknownCommand(LPVOID lpCmd, LPVOID *lpRetCmd);
-void dd_DDGetAttachedSurfaceLcl();
-void dd_DDInternalLock();
-void dd_DDInternalUnlock();
-void dd_DSoundHelp();
+void WINAPI dd_DDGetAttachedSurfaceLcl();
+void WINAPI dd_DDInternalLock();
+void WINAPI dd_DDInternalUnlock();
+void WINAPI dd_DSoundHelp();
 HRESULT WINAPI dd_DirectDrawCreate(GUID FAR *lpGUID, LPDIRECTDRAW FAR *lplpDD, IUnknown FAR *pUnkOuter);
 HRESULT WINAPI dd_DirectDrawCreateClipper(DWORD dwFlags, LPDIRECTDRAWCLIPPER *lplpDDClipper, LPUNKNOWN pUnkOuter);
 HRESULT WINAPI dd_DirectDrawCreateEx(GUID FAR *lpGUID, LPVOID *lplpDD, REFIID riid, IUnknown FAR *pUnkOuter);
@@ -18,10 +18,10 @@ HRESULT WINAPI dd_DirectDrawEnumerateExW(LPDDENUMCALLBACKEXW lpCallback, LPVOID 
 HRESULT WINAPI dd_DirectDrawEnumerateW(LPDDENUMCALLBACKW lpCallback, LPVOID lpContext);
 HRESULT WINAPI dd_DllCanUnloadNow();
 HRESULT WINAPI dd_DllGetClassObject(REFCLSID rclsid, REFIID riid, LPVOID *ppv);
-void dd_GetDDSurfaceLocal();
-void dd_GetOLEThunkData();
+void WINAPI dd_GetDDSurfaceLocal();
+HANDLE WINAPI dd_GetOLEThunkData(int i1);
 HRESULT WINAPI dd_GetSurfaceFromDC(HDC hdc, LPDIRECTDRAWSURFACE7 *lpDDS);
-void dd_RegisterSpecialCase();
+void WINAPI dd_RegisterSpecialCase();
 void WINAPI dd_ReleaseDDThreadLock();
 HRESULT WINAPI dd_SetAppCompatData(DWORD Type, DWORD Value);
 

@@ -57,7 +57,12 @@ class m_IDirectDrawSurfaceX;
 #endif // DDRAWWRAPPER
 
 typedef void(WINAPI *AcquireDDThreadLockProc)();
+typedef void(WINAPI *CompleteCreateSystemSurfaceProc)();
 typedef HRESULT(WINAPI *D3DParseUnknownCommandProc)(LPVOID lpCmd, LPVOID *lpRetCmd);
+typedef void(WINAPI *DDGetAttachedSurfaceLclProc)();
+typedef void(WINAPI *DDInternalLockProc)();
+typedef void(WINAPI *DDInternalUnlockProc)();
+typedef void(WINAPI *DSoundHelpProc)();
 typedef HRESULT(WINAPI *DirectDrawCreateProc)(GUID FAR *lpGUID, LPDIRECTDRAW FAR *lplpDD, IUnknown FAR *pUnkOuter);
 typedef HRESULT(WINAPI *DirectDrawCreateClipperProc)(DWORD dwFlags, LPDIRECTDRAWCLIPPER *lplpDDClipper, LPUNKNOWN pUnkOuter);
 typedef HRESULT(WINAPI *DDrawEnumerateAProc)(LPDDENUMCALLBACKA lpCallback, LPVOID lpContext);
@@ -67,7 +72,10 @@ typedef HRESULT(WINAPI *DDrawEnumerateWProc)(LPDDENUMCALLBACKW lpCallback, LPVOI
 typedef HRESULT(WINAPI *DDrawCreateExProc)(GUID FAR *lpGUID, LPVOID *lplpDD, REFIID riid, IUnknown FAR *pUnkOuter);
 typedef HRESULT(WINAPI *DllCanUnloadNowProc)();
 typedef HRESULT(WINAPI *DllGetClassObjectProc)(REFCLSID rclsid, REFIID riid, LPVOID *ppv);
+typedef void(WINAPI *GetDDSurfaceLocalProc)();
+typedef HANDLE(WINAPI *GetOLEThunkDataProc)(int i1);
 typedef HRESULT(WINAPI *GetSurfaceFromDCProc)(HDC hdc, LPDIRECTDRAWSURFACE7 *lpDDS);
+typedef void(WINAPI *RegisterSpecialCaseProc)();
 typedef void(WINAPI *ReleaseDDThreadLockProc)();
 typedef HRESULT(WINAPI *SetAppCompatDataProc)(DWORD, DWORD);
 typedef LPDIRECT3D9(WINAPI *PFN_Direct3DCreate9)(UINT SDKVersion);
