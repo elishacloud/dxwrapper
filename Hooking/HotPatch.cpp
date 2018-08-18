@@ -69,7 +69,8 @@ void *Hook::HotPatch(void *apiproc, const char *apiname, void *hookproc, bool fo
 		// Backup memory
 		HOTPATCH tmpMemory;
 		tmpMemory.procaddr = patch_address;
-		ReadProcessMemory(GetCurrentProcess(), patch_address, tmpMemory.lpOrgBuffer, 12, nullptr);
+		HANDLE hProcess = GetCurrentProcess();
+		ReadProcessMemory(hProcess, patch_address, tmpMemory.lpOrgBuffer, 12, nullptr);
 
 		// Set HotPatch hook
 		*patch_address = 0xE9; // jmp (4-byte relative)
@@ -77,13 +78,17 @@ void *Hook::HotPatch(void *apiproc, const char *apiname, void *hookproc, bool fo
 		*((WORD *)apiproc) = 0xF9EB; // should be atomic write (jmp $-5)
 
 		// Get memory after update
-		ReadProcessMemory(GetCurrentProcess(), patch_address, tmpMemory.lpNewBuffer, 12, nullptr);
+		ReadProcessMemory(hProcess, patch_address, tmpMemory.lpNewBuffer, 12, nullptr);
 
 		// Save memory
 		HotPatchProcs.push_back(tmpMemory);
 
-		// restore protection
+		// Restore protection
 		VirtualProtect(patch_address, 12, dwPrevProtect, &dwPrevProtect);
+
+		// Flush instruction cache
+		FlushInstructionCache(hProcess, patch_address, 12);
+
 #ifdef _DEBUG
 		Logging::LogFormat("HotPatch: api=%s addr=%p->%p hook=%p", apiname, apiproc, orig_address, hookproc);
 #endif
@@ -97,7 +102,7 @@ void *Hook::HotPatch(void *apiproc, const char *apiname, void *hookproc, bool fo
 		DWORD *patchAddr;
 		memcpy(&patchAddr, ((BYTE*)apiproc + 2), sizeof(DWORD));
 
-		// restore protection
+		// Restore protection
 		VirtualProtect(patch_address, 12, dwPrevProtect, &dwPrevProtect);
 #ifdef _DEBUG
 		Logging::LogFormat("HotPatch: api=%s addr=%p->%p hook=%p", apiname, apiproc, orig_address, hookproc);
@@ -108,7 +113,7 @@ void *Hook::HotPatch(void *apiproc, const char *apiname, void *hookproc, bool fo
 	// API cannot be patched
 	else
 	{
-		VirtualProtect(patch_address, 12, dwPrevProtect, &dwPrevProtect); // restore protection
+		VirtualProtect(patch_address, 12, dwPrevProtect, &dwPrevProtect); // Restore protection
 
 		// check it wasn't patched already
 		if ((*patch_address == 0xE9) && (*(WORD *)apiproc == 0xF9EB))
@@ -143,6 +148,7 @@ bool Hook::UnHotPatchAll()
 {
 	bool flag = true;
 	BYTE lpBuffer[12];
+	HANDLE hProcess = GetCurrentProcess();
 	while (HotPatchProcs.size() != 0)
 	{
 		// VirtualProtect first to make sure patch_address is readable
@@ -150,7 +156,7 @@ bool Hook::UnHotPatchAll()
 		if (VirtualProtect(HotPatchProcs.back().procaddr, 12, PAGE_EXECUTE_WRITECOPY, &dwPrevProtect))
 		{
 			// Read memory
-			if (ReadProcessMemory(GetCurrentProcess(), HotPatchProcs.back().procaddr, lpBuffer, 12, nullptr))
+			if (ReadProcessMemory(hProcess, HotPatchProcs.back().procaddr, lpBuffer, 12, nullptr))
 			{
 				// Check if memory is as expected
 				if (!memcmp(lpBuffer, HotPatchProcs.back().lpNewBuffer, 12))
@@ -174,6 +180,9 @@ bool Hook::UnHotPatchAll()
 
 			// Restore protection
 			VirtualProtect(HotPatchProcs.back().procaddr, 12, dwPrevProtect, &dwPrevProtect);
+
+			// Flush instruction cache
+			FlushInstructionCache(hProcess, HotPatchProcs.back().procaddr, 12);
 		}
 		else
 		{
@@ -203,6 +212,7 @@ bool Hook::UnhookHotPatch(void *apiproc, const char *apiname, void *hookproc)
 
 	// Check if this address is stored in the vector and restore memory
 	BYTE lpBuffer[12];
+	HANDLE hProcess = GetCurrentProcess();
 	for (UINT x = 0; x < HotPatchProcs.size(); ++x)
 	{
 		// Check for address
@@ -212,7 +222,7 @@ bool Hook::UnhookHotPatch(void *apiproc, const char *apiname, void *hookproc)
 			if (VirtualProtect(HotPatchProcs[x].procaddr, 12, PAGE_EXECUTE_WRITECOPY, &dwPrevProtect))
 			{
 				// Read memory
-				if (ReadProcessMemory(GetCurrentProcess(), HotPatchProcs[x].procaddr, lpBuffer, 12, nullptr))
+				if (ReadProcessMemory(hProcess, HotPatchProcs[x].procaddr, lpBuffer, 12, nullptr))
 				{
 					// Check if memory is as expected
 					if (!memcmp(lpBuffer, HotPatchProcs[x].lpNewBuffer, 12))
@@ -231,6 +241,9 @@ bool Hook::UnhookHotPatch(void *apiproc, const char *apiname, void *hookproc)
 
 						// Restore protection
 						VirtualProtect(patch_address, 12, dwPrevProtect, &dwPrevProtect);
+
+						// Flush instruction cache
+						FlushInstructionCache(hProcess, patch_address, 12);
 
 						// Return
 						return true;
@@ -258,7 +271,12 @@ bool Hook::UnhookHotPatch(void *apiproc, const char *apiname, void *hookproc)
 		*((DWORD *)(patch_address + 1)) = 0x90909090; // 4 nops
 		*((WORD *)(patch_address + 5)) = 0x9090; // 2 nops
 
-		VirtualProtect(patch_address, 12, dwPrevProtect, &dwPrevProtect); // restore protection
+		// Restore protection
+		VirtualProtect(patch_address, 12, dwPrevProtect, &dwPrevProtect);
+
+		// Flush instruction cache
+		FlushInstructionCache(hProcess, patch_address, 12);
+
 #ifdef _DEBUG
 		Logging::LogFormat("UnhookHotPatch: api=%s addr=%p->%p hook=%p", apiname, apiproc, orig_address, hookproc);
 #endif
@@ -267,7 +285,7 @@ bool Hook::UnhookHotPatch(void *apiproc, const char *apiname, void *hookproc)
 
 	Logging::LogFormat("HotPatch: failed to unhook '%s' at addr=%p", apiname, apiproc);
 
-	VirtualProtect(patch_address, 12, dwPrevProtect, &dwPrevProtect); // restore protection
+	VirtualProtect(patch_address, 12, dwPrevProtect, &dwPrevProtect); // Restore protection
 #ifdef _DEBUG
 	Logging::LogFormat("UnhookHotPatch: api=%s addr=%p->%p hook=%p", apiname, apiproc, orig_address, hookproc);
 #endif

@@ -147,6 +147,7 @@ bool APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 	break;
 	case DLL_PROCESS_DETACH:
 
+#ifdef DEBUG
 		// Unload wrapped dll
 		if (proxy_dll)
 		{
@@ -162,6 +163,8 @@ bool APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 		{
 			FreeLibrary(wrapper_dll);
 		}
+#endif // DEBUG
+
 		break;
 	}
 

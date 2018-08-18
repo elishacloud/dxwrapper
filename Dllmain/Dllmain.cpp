@@ -34,6 +34,10 @@
 // Declare variables
 HMODULE hModule_dll = nullptr;
 
+// Screen settings
+HDC hDC;
+std::string lpRamp((3 * 256 * 2), '\0');
+
 // Dll main function
 bool APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 {
@@ -351,6 +355,14 @@ bool APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 			}
 		}
 
+		// Store screen settings
+		if (Config.ResetScreenRes)
+		{
+			// Reset screen settings
+			hDC = GetDC(nullptr);
+			GetDeviceGammaRamp(hDC, &lpRamp[0]);
+		}
+
 		// Load custom dlls
 		if (Config.LoadCustomDllPath.size() != 0)
 		{
@@ -400,7 +412,11 @@ bool APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 				// Reset screen back to original Windows settings to fix some display errors on exit
 				if (Config.ResetScreenRes)
 				{
-					Utils::Fullscreen::ResetScreen();
+					// Reset screen settings
+					Logging::Log() << "Reseting screen resolution";
+					SetDeviceGammaRamp(hDC, &lpRamp[0]);
+					ChangeDisplaySettingsEx(nullptr, nullptr, nullptr, CDS_RESET, nullptr);
+					ReleaseDC(nullptr, hDC);
 				}
 
 				// Terminate the current process
@@ -451,7 +467,11 @@ bool APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 		// Reset screen back to original Windows settings to fix some display errors on exit
 		if (Config.ResetScreenRes)
 		{
-			Utils::Fullscreen::ResetScreen();
+			// Reset screen settings
+			Logging::Log() << "Reseting screen resolution";
+			SetDeviceGammaRamp(hDC, &lpRamp[0]);
+			ChangeDisplaySettingsEx(nullptr, nullptr, nullptr, CDS_RESET, nullptr);
+			ReleaseDC(nullptr, hDC);
 		}
 
 		// Release Mutex

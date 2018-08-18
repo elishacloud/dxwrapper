@@ -64,6 +64,9 @@ void WriteMemory::WriteAllByteMemory()
 
 					// Store new variable
 					memcpy((byte*)&Config.MemoryInfo[x].Bytes[0], (byte*)&lpBuffer[0], Config.MemoryInfo[x].Bytes.size());
+
+					// Flush instruction cache
+					FlushInstructionCache(hProcess, AddressPointer, Config.MemoryInfo[x].Bytes.size());
 				}
 				else
 				{
