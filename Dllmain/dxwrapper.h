@@ -18,7 +18,7 @@
 #define APP_REVISION			21
 #define APP_COMPANYNAME			"Sadrate Presents"
 #define APP_DESCRPTION			"Wraps or hooks DirectX files to fix compatibility issues in older games. Also allows code to be executed from inside the application. Wraps the following files:  bcrypt.dll, cryptsp.dll, d2d1.dll, d3d8.dll, d3d9.dll, d3d10.dll, d3d10core.dll, d3d11.dll, d3d12.dll, d3dim.dll, d3dim700.dll, dciman32.dll, ddraw.dll, dinput.dll, dinput8.dll, dplayx.dll, dsound.dll, dxgi.dll, msacm32.dll, msvfw32.dll, vorbisfile.dll, winmm.dll and winmmbase.dll"
-#define APP_COPYRIGHT			"Copyright (C) 2017 Elisha Riedlinger"
+#define APP_COPYRIGHT			"Copyright (C) 2018 Elisha Riedlinger"
 #define APP_ORIGINALVERSION		"dxwrapper.dll"
 #define APP_INTERNALNAME		"DxWrapper"
 
