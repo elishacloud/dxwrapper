@@ -24,7 +24,11 @@ typedef HRESULT(WINAPI *PFN_D3DXLoadSurfaceFromSurface)(LPDIRECT3DSURFACE9 pDest
 PFN_D3DXAssembleShader D3DXAssembleShaderPtr = nullptr;
 PFN_D3DXDisassembleShader D3DXDisassembleShaderPtr = nullptr;
 PFN_D3DXLoadSurfaceFromSurface D3DXLoadSurfaceFromSurfacePtr = nullptr;
+
 HMODULE d3dx9Module = nullptr;
+FARPROC p_D3DXAssembleShader = nullptr;
+FARPROC p_D3DXDisassembleShader = nullptr;
+FARPROC p_D3DXLoadSurfaceFromSurface = nullptr;
 
 void Loadd3dx9()
 {
@@ -58,6 +62,9 @@ void Loadd3dx9()
 		D3DXAssembleShaderPtr = reinterpret_cast<PFN_D3DXAssembleShader>(GetProcAddress(d3dx9Module, "D3DXAssembleShader"));
 		D3DXDisassembleShaderPtr = reinterpret_cast<PFN_D3DXDisassembleShader>(GetProcAddress(d3dx9Module, "D3DXDisassembleShader"));
 		D3DXLoadSurfaceFromSurfacePtr = reinterpret_cast<PFN_D3DXLoadSurfaceFromSurface>(GetProcAddress(d3dx9Module, "D3DXLoadSurfaceFromSurface"));
+		p_D3DXAssembleShader = (FARPROC)D3DXAssembleShaderPtr;
+		p_D3DXDisassembleShader = (FARPROC)D3DXDisassembleShaderPtr;
+		p_D3DXLoadSurfaceFromSurface = (FARPROC)D3DXLoadSurfaceFromSurfacePtr;
 		if (!D3DXAssembleShaderPtr)
 		{
 			Logging::Log() << "Failed to get 'D3DXAssembleShader' ProcAddress of d3dx9_xx.dll!";

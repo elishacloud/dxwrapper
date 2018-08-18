@@ -104,17 +104,6 @@ cmd /c "@echo off &amp;&amp; cd /D ""$(ProjectDir)Dllmain\"" &amp;&amp; type Bui
     </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="D3d8to9\d3d8to9.cpp" />
-    <ClCompile Include="D3d8to9\d3d8to9_base.cpp" />
-    <ClCompile Include="D3d8to9\d3d8to9_device.cpp" />
-    <ClCompile Include="D3d8to9\d3d8to9_index_buffer.cpp" />
-    <ClCompile Include="D3d8to9\d3d8to9_surface.cpp" />
-    <ClCompile Include="D3d8to9\d3d8to9_swap_chain.cpp" />
-    <ClCompile Include="D3d8to9\d3d8to9_texture.cpp" />
-    <ClCompile Include="D3d8to9\d3d8to9_vertex_buffer.cpp" />
-    <ClCompile Include="D3d8to9\d3d8to9_volume.cpp" />
-    <ClCompile Include="D3d8to9\d3d8types.cpp" />
-    <ClCompile Include="D3d8to9\lookup_table.cpp" />
     <ClCompile Include="d3d9\d3d9.cpp" />
     <ClCompile Include="d3d9\IDirect3D9.cpp" />
     <ClCompile Include="d3d9\IDirect3D9Ex.cpp" />
@@ -288,6 +277,16 @@ cmd /c "@echo off &amp;&amp; cd /D ""$(ProjectDir)Dllmain\"" &amp;&amp; type Bui
     <ClCompile Include="DSoundCtrl\IDirectSoundClassFactoryEx.cpp" />
     <ClCompile Include="DSoundCtrl\IDirectSoundEx.cpp" />
     <ClCompile Include="DxWnd\v2_03_60_src\init.cpp" />
+    <ClCompile Include="External\d3d8to9\source\d3d8to9_base.cpp" />
+    <ClCompile Include="External\d3d8to9\source\d3d8to9_device.cpp" />
+    <ClCompile Include="External\d3d8to9\source\d3d8to9_index_buffer.cpp" />
+    <ClCompile Include="External\d3d8to9\source\d3d8to9_surface.cpp" />
+    <ClCompile Include="External\d3d8to9\source\d3d8to9_swap_chain.cpp" />
+    <ClCompile Include="External\d3d8to9\source\d3d8to9_texture.cpp" />
+    <ClCompile Include="External\d3d8to9\source\d3d8to9_vertex_buffer.cpp" />
+    <ClCompile Include="External\d3d8to9\source\d3d8to9_volume.cpp" />
+    <ClCompile Include="External\d3d8to9\source\d3d8types.cpp" />
+    <ClCompile Include="External\d3d8to9\source\lookup_table.cpp" />
     <ClCompile Include="Hooking\Hook.cpp" />
     <ClCompile Include="Hooking\HotPatch.cpp" />
     <ClCompile Include="Hooking\IATPatch.cpp" />
@@ -301,6 +300,7 @@ cmd /c "@echo off &amp;&amp; cd /D ""$(ProjectDir)Dllmain\"" &amp;&amp; type Bui
     <ClCompile Include="Utils\Fullscreen.cpp" />
     <ClCompile Include="Utils\Utils.cpp" />
     <ClCompile Include="Utils\WriteMemory.cpp" />
+    <ClCompile Include="Wrappers\d3d8to9.cpp" />
     <ClCompile Include="Wrappers\wrapper.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -310,11 +310,6 @@ cmd /c "@echo off &amp;&amp; cd /D ""$(ProjectDir)Dllmain\"" &amp;&amp; type Bui
     <None Include="Wrappers\wrapper.def" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="D3d8to9\d3d8to9External.h" />
-    <ClInclude Include="D3d8to9\d3d8to9.hpp" />
-    <ClInclude Include="D3d8to9\d3d8types.hpp" />
-    <ClInclude Include="D3d8to9\d3dx9.hpp" />
-    <ClInclude Include="D3d8to9\lookup_table.hpp" />
     <ClInclude Include="d3d9\AddressLookupTable.h" />
     <ClInclude Include="d3d9\d3d9.h" />
     <ClInclude Include="d3d9\d3d9External.h" />
@@ -533,6 +528,10 @@ cmd /c "@echo off &amp;&amp; cd /D ""$(ProjectDir)Dllmain\"" &amp;&amp; type Bui
     <ClInclude Include="DSoundCtrl\IDirectSoundEx.h" />
     <ClInclude Include="DxWnd\DxWndExternal.h" />
     <ClInclude Include="DxWnd\v2_03_60_src\dxwnd.h" />
+    <ClInclude Include="External\d3d8to9\source\d3d8to9.hpp" />
+    <ClInclude Include="External\d3d8to9\source\d3d8types.hpp" />
+    <ClInclude Include="External\d3d8to9\source\d3dx9.hpp" />
+    <ClInclude Include="External\d3d8to9\source\lookup_table.hpp" />
     <ClInclude Include="Hooking\Hook.h" />
     <ClInclude Include="Libraries\d3dx9.h" />
     <ClInclude Include="libraries\dwmapi.h" />
@@ -550,6 +549,7 @@ cmd /c "@echo off &amp;&amp; cd /D ""$(ProjectDir)Dllmain\"" &amp;&amp; type Bui
     <ClInclude Include="Wrappers\d3d11.h" />
     <ClInclude Include="Wrappers\d3d12.h" />
     <ClInclude Include="Wrappers\d3d8.h" />
+    <ClInclude Include="Wrappers\d3d8to9.h" />
     <ClInclude Include="Wrappers\d3d9.h" />
     <ClInclude Include="Wrappers\d3dim.h" />
     <ClInclude Include="Wrappers\d3dim700.h" />

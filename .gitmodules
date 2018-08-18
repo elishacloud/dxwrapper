@@ -1,3 +1,6 @@
 [submodule "External/MemoryModule"]
 	path = External/MemoryModule
 	url = https://github.com/fancycode/MemoryModule
+[submodule "External/d3d8to9"]
+	path = External/d3d8to9
+	url = https://github.com/crosire/d3d8to9

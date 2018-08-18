@@ -10,9 +10,6 @@
     <Filter Include="DxWnd">
       <UniqueIdentifier>{e266cd78-1c44-4ae4-83ae-9a0b7b6a3d53}</UniqueIdentifier>
     </Filter>
-    <Filter Include="D3d8to9">
-      <UniqueIdentifier>{949143ed-bc01-4b7e-bc10-16804fd83e7b}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Disasm">
       <UniqueIdentifier>{2768b966-6a71-4031-9b49-a1b7dec51afb}</UniqueIdentifier>
     </Filter>
@@ -59,6 +56,12 @@
     <Filter Include="ddraw\Versions">
       <UniqueIdentifier>{f484f6f8-618e-41ab-9fe4-6034ff843072}</UniqueIdentifier>
     </Filter>
+    <Filter Include="External">
+      <UniqueIdentifier>{ab08fa70-8ead-42f9-aaec-e1b6bfae77f3}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="External\d3d8to9">
+      <UniqueIdentifier>{d3ef980f-69d1-43d8-ab8e-00771a620729}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="DSoundCtrl\DSoundCtrl.cpp">
@@ -88,36 +91,6 @@
     <ClCompile Include="libraries\winmm.cpp">
       <Filter>Libraries</Filter>
     </ClCompile>
-    <ClCompile Include="D3d8to9\d3d8to9.cpp">
-      <Filter>D3d8to9</Filter>
-    </ClCompile>
-    <ClCompile Include="D3d8to9\d3d8to9_base.cpp">
-      <Filter>D3d8to9</Filter>
-    </ClCompile>
-    <ClCompile Include="D3d8to9\d3d8to9_device.cpp">
-      <Filter>D3d8to9</Filter>
-    </ClCompile>
-    <ClCompile Include="D3d8to9\d3d8to9_index_buffer.cpp">
-      <Filter>D3d8to9</Filter>
-    </ClCompile>
-    <ClCompile Include="D3d8to9\d3d8to9_surface.cpp">
-      <Filter>D3d8to9</Filter>
-    </ClCompile>
-    <ClCompile Include="D3d8to9\d3d8to9_swap_chain.cpp">
-      <Filter>D3d8to9</Filter>
-    </ClCompile>
-    <ClCompile Include="D3d8to9\d3d8to9_texture.cpp">
-      <Filter>D3d8to9</Filter>
-    </ClCompile>
-    <ClCompile Include="D3d8to9\d3d8to9_vertex_buffer.cpp">
-      <Filter>D3d8to9</Filter>
-    </ClCompile>
-    <ClCompile Include="D3d8to9\d3d8to9_volume.cpp">
-      <Filter>D3d8to9</Filter>
-    </ClCompile>
-    <ClCompile Include="D3d8to9\d3d8types.cpp">
-      <Filter>D3d8to9</Filter>
-    </ClCompile>
     <ClCompile Include="Disasm\cmdlist.c">
       <Filter>Disasm</Filter>
     </ClCompile>
@@ -135,9 +108,6 @@
     </ClCompile>
     <ClCompile Include="Libraries\d3dx9.cpp">
       <Filter>Libraries</Filter>
-    </ClCompile>
-    <ClCompile Include="D3d8to9\lookup_table.cpp">
-      <Filter>D3d8to9</Filter>
     </ClCompile>
     <ClCompile Include="Logging\Logging.cpp">
       <Filter>Logging</Filter>
@@ -655,6 +625,39 @@
     <ClCompile Include="ddraw\Versions\IDirectDrawSurface7.cpp">
       <Filter>ddraw\Versions</Filter>
     </ClCompile>
+    <ClCompile Include="External\d3d8to9\source\d3d8to9_base.cpp">
+      <Filter>External\d3d8to9</Filter>
+    </ClCompile>
+    <ClCompile Include="External\d3d8to9\source\d3d8to9_device.cpp">
+      <Filter>External\d3d8to9</Filter>
+    </ClCompile>
+    <ClCompile Include="External\d3d8to9\source\d3d8to9_index_buffer.cpp">
+      <Filter>External\d3d8to9</Filter>
+    </ClCompile>
+    <ClCompile Include="External\d3d8to9\source\d3d8to9_surface.cpp">
+      <Filter>External\d3d8to9</Filter>
+    </ClCompile>
+    <ClCompile Include="External\d3d8to9\source\d3d8to9_swap_chain.cpp">
+      <Filter>External\d3d8to9</Filter>
+    </ClCompile>
+    <ClCompile Include="External\d3d8to9\source\d3d8to9_texture.cpp">
+      <Filter>External\d3d8to9</Filter>
+    </ClCompile>
+    <ClCompile Include="External\d3d8to9\source\d3d8to9_vertex_buffer.cpp">
+      <Filter>External\d3d8to9</Filter>
+    </ClCompile>
+    <ClCompile Include="External\d3d8to9\source\d3d8to9_volume.cpp">
+      <Filter>External\d3d8to9</Filter>
+    </ClCompile>
+    <ClCompile Include="External\d3d8to9\source\d3d8types.cpp">
+      <Filter>External\d3d8to9</Filter>
+    </ClCompile>
+    <ClCompile Include="External\d3d8to9\source\lookup_table.cpp">
+      <Filter>External\d3d8to9</Filter>
+    </ClCompile>
+    <ClCompile Include="Wrappers\d3d8to9.cpp">
+      <Filter>Wrappers</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="Settings\AllSettings.ini">
@@ -707,12 +710,6 @@
     <ClInclude Include="libraries\winmm.h">
       <Filter>Libraries</Filter>
     </ClInclude>
-    <ClInclude Include="D3d8to9\d3d8to9.hpp">
-      <Filter>D3d8to9</Filter>
-    </ClInclude>
-    <ClInclude Include="D3d8to9\d3d8types.hpp">
-      <Filter>D3d8to9</Filter>
-    </ClInclude>
     <ClInclude Include="Disasm\disasm.h">
       <Filter>Disasm</Filter>
     </ClInclude>
@@ -731,9 +728,6 @@
     <ClInclude Include="Libraries\d3dx9.h">
       <Filter>Libraries</Filter>
     </ClInclude>
-    <ClInclude Include="D3d8to9\lookup_table.hpp">
-      <Filter>D3d8to9</Filter>
-    </ClInclude>
     <ClInclude Include="Logging\Logging.h">
       <Filter>Logging</Filter>
     </ClInclude>
@@ -743,14 +737,8 @@
     <ClInclude Include="Wrappers\wrapper.h">
       <Filter>Wrappers</Filter>
     </ClInclude>
-    <ClInclude Include="D3d8to9\d3d8to9External.h">
-      <Filter>D3d8to9</Filter>
-    </ClInclude>
     <ClInclude Include="Settings\ReadParse.h">
       <Filter>Settings</Filter>
-    </ClInclude>
-    <ClInclude Include="D3d8to9\d3dx9.hpp">
-      <Filter>D3d8to9</Filter>
     </ClInclude>
     <ClInclude Include="ddraw\ddraw.h">
       <Filter>ddraw</Filter>
@@ -1438,6 +1426,21 @@
     </ClInclude>
     <ClInclude Include="ddraw\Versions\IDirectDrawSurface7.h">
       <Filter>ddraw\Versions</Filter>
+    </ClInclude>
+    <ClInclude Include="External\d3d8to9\source\d3d8to9.hpp">
+      <Filter>External\d3d8to9</Filter>
+    </ClInclude>
+    <ClInclude Include="External\d3d8to9\source\d3d8types.hpp">
+      <Filter>External\d3d8to9</Filter>
+    </ClInclude>
+    <ClInclude Include="External\d3d8to9\source\d3dx9.hpp">
+      <Filter>External\d3d8to9</Filter>
+    </ClInclude>
+    <ClInclude Include="External\d3d8to9\source\lookup_table.hpp">
+      <Filter>External\d3d8to9</Filter>
+    </ClInclude>
+    <ClInclude Include="Wrappers\d3d8to9.h">
+      <Filter>Wrappers</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
