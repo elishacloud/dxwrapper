@@ -17,7 +17,7 @@
 #define WIN32_LEAN_AND_MEAN
 #include <fstream>
 #include "..\Settings\ReadParse.h"
-#include "..\MemoryModule\MemoryModule.h"
+#include "..\External\MemoryModule\MemoryModule.h"
 #include "..\Wrappers\wrapper.h"
 
 bool StubOnly = false;				// Don't load dxwrapper

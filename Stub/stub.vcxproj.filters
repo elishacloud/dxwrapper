@@ -1,0 +1,99 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClCompile Include="..\Settings\ReadParse.cpp" />
+    <ClCompile Include="stub.cpp" />
+    <ClCompile Include="..\Wrappers\wrapper.cpp">
+      <Filter>Wrappers</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="stub.h" />
+    <ClInclude Include="..\Wrappers\bcrypt.h">
+      <Filter>Wrappers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Wrappers\cryptsp.h">
+      <Filter>Wrappers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Wrappers\d2d1.h">
+      <Filter>Wrappers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Wrappers\d3d8.h">
+      <Filter>Wrappers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Wrappers\d3d9.h">
+      <Filter>Wrappers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Wrappers\d3d10.h">
+      <Filter>Wrappers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Wrappers\d3d10core.h">
+      <Filter>Wrappers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Wrappers\d3d11.h">
+      <Filter>Wrappers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Wrappers\d3d12.h">
+      <Filter>Wrappers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Wrappers\d3dim.h">
+      <Filter>Wrappers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Wrappers\d3dim700.h">
+      <Filter>Wrappers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Wrappers\dciman32.h">
+      <Filter>Wrappers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Wrappers\ddraw.h">
+      <Filter>Wrappers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Wrappers\dinput.h">
+      <Filter>Wrappers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Wrappers\dinput8.h">
+      <Filter>Wrappers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Wrappers\dplayx.h">
+      <Filter>Wrappers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Wrappers\dsound.h">
+      <Filter>Wrappers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Wrappers\dxgi.h">
+      <Filter>Wrappers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Wrappers\msacm32.h">
+      <Filter>Wrappers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Wrappers\msvfw32.h">
+      <Filter>Wrappers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Wrappers\shared.h">
+      <Filter>Wrappers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Wrappers\vorbisFile.h">
+      <Filter>Wrappers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Wrappers\winmm.h">
+      <Filter>Wrappers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Wrappers\wrapper.h">
+      <Filter>Wrappers</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="BuildNo.rc" />
+    <ResourceCompile Include="stub.rc" />
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="Wrappers">
+      <UniqueIdentifier>{08889ae3-1b0c-4d13-be6e-4e15b2123c6e}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\Wrappers\wrapper.def">
+      <Filter>Wrappers</Filter>
+    </None>
+  </ItemGroup>
+</Project>

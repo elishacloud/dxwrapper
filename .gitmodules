@@ -1,0 +1,3 @@
+[submodule "External/MemoryModule"]
+	path = External/MemoryModule
+	url = https://github.com/fancycode/MemoryModule
