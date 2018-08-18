@@ -41,6 +41,7 @@ typedef enum _PROCESS_DPI_AWARENESS {
 	PROCESS_SYSTEM_DPI_AWARE = 1,
 	PROCESS_PER_MONITOR_DPI_AWARE = 2
 } PROCESS_DPI_AWARENESS;
+typedef void(WINAPI *PFN_InitializeASI)(void);
 typedef HRESULT(WINAPI* SetProcessDpiAwarenessProc)(PROCESS_DPI_AWARENESS value);
 typedef FARPROC(WINAPI *GetProcAddressProc)(HMODULE, LPSTR);
 typedef DWORD(WINAPI *GetModuleFileNameAProc)(HMODULE, LPSTR, DWORD);
@@ -67,6 +68,7 @@ namespace Utils
 	PFN_SetUnhandledExceptionFilter pSetUnhandledExceptionFilter = reinterpret_cast<PFN_SetUnhandledExceptionFilter>(SetUnhandledExceptionFilter);
 
 	// Function declarations
+	void InitializeASI(HMODULE hModule);
 	void FindFiles(WIN32_FIND_DATA*);
 	LONG WINAPI myUnhandledExceptionFilter(LPEXCEPTION_POINTERS);
 	LPTOP_LEVEL_EXCEPTION_FILTER WINAPI extSetUnhandledExceptionFilter(LPTOP_LEVEL_EXCEPTION_FILTER);
@@ -456,6 +458,24 @@ void Utils::LoadCustomDll()
 	}
 }
 
+// Initialize ASI module
+void Utils::InitializeASI(HMODULE hModule)
+{
+	if (!hModule)
+	{
+		return;
+	}
+
+	PFN_InitializeASI p_InitializeASI = (PFN_InitializeASI)GetProcAddress(hModule, "InitializeASI");
+
+	if (!p_InitializeASI)
+	{
+		return;
+	}
+
+	p_InitializeASI();
+}
+
 // Find asi plugins to load
 void Utils::FindFiles(WIN32_FIND_DATA* fd)
 {
@@ -484,6 +504,7 @@ void Utils::FindFiles(WIN32_FIND_DATA* fd)
 					if (h)
 					{
 						AddHandleToVector(h, path);
+						InitializeASI(h);
 					}
 					else
 					{
