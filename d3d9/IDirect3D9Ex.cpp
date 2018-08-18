@@ -116,6 +116,11 @@ HRESULT m_IDirect3D9Ex::CreateDevice(UINT Adapter, D3DDEVTYPE DeviceType, HWND h
 {
 	HRESULT hr = D3DERR_INVALIDCALL;
 
+	if (!pPresentationParameters || !ppReturnedDeviceInterface)
+	{
+		return D3DERR_INVALIDCALL;
+	}
+
 	// Check for enabling VSync
 	UpdateVSyncParameter(pPresentationParameters);
 
@@ -198,6 +203,11 @@ HRESULT m_IDirect3D9Ex::GetAdapterDisplayModeEx(THIS_ UINT Adapter, D3DDISPLAYMO
 HRESULT m_IDirect3D9Ex::CreateDeviceEx(THIS_ UINT Adapter, D3DDEVTYPE DeviceType, HWND hFocusWindow, DWORD BehaviorFlags, D3DPRESENT_PARAMETERS* pPresentationParameters, D3DDISPLAYMODEEX* pFullscreenDisplayMode, IDirect3DDevice9Ex** ppReturnedDeviceInterface)
 {
 	HRESULT hr = D3DERR_INVALIDCALL;
+
+	if (!pPresentationParameters || !ppReturnedDeviceInterface)
+	{
+		return D3DERR_INVALIDCALL;
+	}
 
 	// Check for enabling VSync
 	UpdateVSyncParameter(pPresentationParameters);

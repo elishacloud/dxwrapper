@@ -116,6 +116,11 @@ HRESULT m_IDirect3D9::CreateDevice(UINT Adapter, D3DDEVTYPE DeviceType, HWND hFo
 {
 	HRESULT hr = D3DERR_INVALIDCALL;
 
+	if (!pPresentationParameters || !ppReturnedDeviceInterface)
+	{
+		return D3DERR_INVALIDCALL;
+	}
+
 	// Check for enabling VSync
 	UpdateVSyncParameter(pPresentationParameters);
 

@@ -137,7 +137,7 @@ HRESULT m_IDirect3DTexture9::GetSurfaceLevel(THIS_ UINT Level, IDirect3DSurface9
 {
 	HRESULT hr = ProxyInterface->GetSurfaceLevel(Level, ppSurfaceLevel);
 
-	if (SUCCEEDED(hr))
+	if (SUCCEEDED(hr) && ppSurfaceLevel)
 	{
 		if (m_pDevice)
 		{
