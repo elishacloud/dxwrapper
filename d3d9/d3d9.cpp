@@ -38,129 +38,170 @@ using namespace D3d9Wrapper;
 
 HRESULT WINAPI d9_Direct3DShaderValidatorCreate9()
 {
-	if (!Wrapper::ValidProcAddress(Direct3DShaderValidatorCreate9_out))
+	static Direct3DShaderValidatorCreate9Proc m_pDirect3DShaderValidatorCreate9 = (Wrapper::ValidProcAddress(Direct3DShaderValidatorCreate9_out)) ? (Direct3DShaderValidatorCreate9Proc)Direct3DShaderValidatorCreate9_out : nullptr;
+
+	if (!m_pDirect3DShaderValidatorCreate9)
 	{
-		return E_NOTIMPL;
+		return E_FAIL;
 	}
-	return ((Direct3DShaderValidatorCreate9Proc)Direct3DShaderValidatorCreate9_out)();
+
+	return m_pDirect3DShaderValidatorCreate9();
 }
 
 HRESULT WINAPI d9_PSGPError()
 {
-	if (!Wrapper::ValidProcAddress(PSGPError_out))
+	static PSGPErrorProc m_pPSGPError = (Wrapper::ValidProcAddress(PSGPError_out)) ? (PSGPErrorProc)PSGPError_out : nullptr;
+
+	if (!m_pPSGPError)
 	{
-		return E_NOTIMPL;
+		return E_FAIL;
 	}
-	return ((PSGPErrorProc)PSGPError_out)();
+
+	return m_pPSGPError();
 }
 
 HRESULT WINAPI d9_PSGPSampleTexture()
 {
-	if (!Wrapper::ValidProcAddress(PSGPSampleTexture_out))
+	static PSGPSampleTextureProc m_pPSGPSampleTexture = (Wrapper::ValidProcAddress(PSGPSampleTexture_out)) ? (PSGPSampleTextureProc)PSGPSampleTexture_out : nullptr;
+
+	if (!m_pPSGPSampleTexture)
 	{
-		return E_NOTIMPL;
+		return E_FAIL;
 	}
-	return ((PSGPSampleTextureProc)PSGPSampleTexture_out)();
+
+	return m_pPSGPSampleTexture();
 }
 
 int WINAPI d9_D3DPERF_BeginEvent(D3DCOLOR col, LPCWSTR wszName)
 {
-	if (!Wrapper::ValidProcAddress(D3DPERF_BeginEvent_out))
+	static D3DPERF_BeginEventProc m_pD3DPERF_BeginEvent = (Wrapper::ValidProcAddress(D3DPERF_BeginEvent_out)) ? (D3DPERF_BeginEventProc)D3DPERF_BeginEvent_out : nullptr;
+
+	if (!m_pD3DPERF_BeginEvent)
 	{
 		return NULL;
 	}
-	return ((D3DPERF_BeginEventProc)D3DPERF_BeginEvent_out)(col, wszName);
+
+	return m_pD3DPERF_BeginEvent(col, wszName);
 }
 
 int WINAPI d9_D3DPERF_EndEvent()
 {
-	if (!Wrapper::ValidProcAddress(D3DPERF_EndEvent_out))
+	static D3DPERF_EndEventProc m_pD3DPERF_EndEvent = (Wrapper::ValidProcAddress(D3DPERF_EndEvent_out)) ? (D3DPERF_EndEventProc)D3DPERF_EndEvent_out : nullptr;
+
+	if (!m_pD3DPERF_EndEvent)
 	{
 		return NULL;
 	}
-	return ((D3DPERF_EndEventProc)D3DPERF_EndEvent_out)();
+
+	return m_pD3DPERF_EndEvent();
 }
 
 DWORD WINAPI d9_D3DPERF_GetStatus()
 {
-	if (!Wrapper::ValidProcAddress(D3DPERF_GetStatus_out))
+	static D3DPERF_GetStatusProc m_pD3DPERF_GetStatus = (Wrapper::ValidProcAddress(D3DPERF_GetStatus_out)) ? (D3DPERF_GetStatusProc)D3DPERF_GetStatus_out : nullptr;
+
+	if (!m_pD3DPERF_GetStatus)
 	{
 		return NULL;
 	}
-	return ((D3DPERF_GetStatusProc)D3DPERF_GetStatus_out)();
+
+	return m_pD3DPERF_GetStatus();
 }
 
 BOOL WINAPI d9_D3DPERF_QueryRepeatFrame()
 {
-	if (!Wrapper::ValidProcAddress(D3DPERF_QueryRepeatFrame_out))
+	static D3DPERF_QueryRepeatFrameProc m_pD3DPERF_QueryRepeatFrame = (Wrapper::ValidProcAddress(D3DPERF_QueryRepeatFrame_out)) ? (D3DPERF_QueryRepeatFrameProc)D3DPERF_QueryRepeatFrame_out : nullptr;
+
+	if (!m_pD3DPERF_QueryRepeatFrame)
 	{
-		return false;
+		return FALSE;
 	}
-	return ((D3DPERF_QueryRepeatFrameProc)D3DPERF_QueryRepeatFrame_out)();
+
+	return m_pD3DPERF_QueryRepeatFrame();
 }
 
 void WINAPI d9_D3DPERF_SetMarker(D3DCOLOR col, LPCWSTR wszName)
 {
-	if (!Wrapper::ValidProcAddress(D3DPERF_SetMarker_out))
+	static D3DPERF_SetMarkerProc m_pD3DPERF_SetMarker = (Wrapper::ValidProcAddress(D3DPERF_SetMarker_out)) ? (D3DPERF_SetMarkerProc)D3DPERF_SetMarker_out : nullptr;
+
+	if (!m_pD3DPERF_SetMarker)
 	{
 		return;
 	}
-	return ((D3DPERF_SetMarkerProc)D3DPERF_SetMarker_out)(col, wszName);
+
+	return m_pD3DPERF_SetMarker(col, wszName);
 }
 
 void WINAPI d9_D3DPERF_SetOptions(DWORD dwOptions)
 {
-	if (!Wrapper::ValidProcAddress(D3DPERF_SetOptions_out))
+	static D3DPERF_SetOptionsProc m_pD3DPERF_SetOptions = (Wrapper::ValidProcAddress(D3DPERF_SetOptions_out)) ? (D3DPERF_SetOptionsProc)D3DPERF_SetOptions_out : nullptr;
+
+	if (!m_pD3DPERF_SetOptions)
 	{
 		return;
 	}
-	return ((D3DPERF_SetOptionsProc)D3DPERF_SetOptions_out)(dwOptions);
+
+	return m_pD3DPERF_SetOptions(dwOptions);
 }
 
 void WINAPI d9_D3DPERF_SetRegion(D3DCOLOR col, LPCWSTR wszName)
 {
-	if (!Wrapper::ValidProcAddress(D3DPERF_SetRegion_out))
+	static D3DPERF_SetRegionProc m_pD3DPERF_SetRegion = (Wrapper::ValidProcAddress(D3DPERF_SetRegion_out)) ? (D3DPERF_SetRegionProc)D3DPERF_SetRegion_out : nullptr;
+
+	if (!m_pD3DPERF_SetRegion)
 	{
 		return;
 	}
-	return ((D3DPERF_SetRegionProc)D3DPERF_SetRegion_out)(col, wszName);
+
+	return m_pD3DPERF_SetRegion(col, wszName);
 }
 
 HRESULT WINAPI d9_DebugSetLevel(DWORD dw1)
 {
-	if (!Wrapper::ValidProcAddress(DebugSetLevel_out))
+	static DebugSetLevelProc m_pDebugSetLevel = (Wrapper::ValidProcAddress(DebugSetLevel_out)) ? (DebugSetLevelProc)DebugSetLevel_out : nullptr;
+
+	if (!m_pDebugSetLevel)
 	{
-		return E_NOTIMPL;
+		return E_FAIL;
 	}
-	return ((DebugSetLevelProc)DebugSetLevel_out)(dw1);
+
+	return m_pDebugSetLevel(dw1);
 }
 
 void WINAPI d9_DebugSetMute()
 {
-	if (!Wrapper::ValidProcAddress(DebugSetMute_out))
+	static DebugSetMuteProc m_pDebugSetMute = (Wrapper::ValidProcAddress(DebugSetMute_out)) ? (DebugSetMuteProc)DebugSetMute_out : nullptr;
+
+	if (!m_pDebugSetMute)
 	{
 		return;
 	}
-	return ((DebugSetMuteProc)DebugSetMute_out)();
+
+	return m_pDebugSetMute();
 }
 
 void WINAPI d9_Direct3D9EnableMaximizedWindowedModeShim()
 {
-	if (!Wrapper::ValidProcAddress(Direct3D9EnableMaximizedWindowedModeShim_out))
+	static Direct3D9EnableMaximizedWindowedModeShimProc m_pDirect3D9EnableMaximizedWindowedModeShim = (Wrapper::ValidProcAddress(Direct3D9EnableMaximizedWindowedModeShim_out)) ? (Direct3D9EnableMaximizedWindowedModeShimProc)Direct3D9EnableMaximizedWindowedModeShim_out : nullptr;
+
+	if (!m_pDirect3D9EnableMaximizedWindowedModeShim)
 	{
 		return;
 	}
-	return ((Direct3D9EnableMaximizedWindowedModeShimProc)Direct3D9EnableMaximizedWindowedModeShim_out)();
+
+	return m_pDirect3D9EnableMaximizedWindowedModeShim();
 }
 
 IDirect3D9 *WINAPI d9_Direct3DCreate9(UINT SDKVersion)
 {
-	if (!Wrapper::ValidProcAddress(Direct3DCreate9_out))
+	static Direct3DCreate9Proc m_pDirect3DCreate9 = (Wrapper::ValidProcAddress(Direct3DCreate9_out)) ? (Direct3DCreate9Proc)Direct3DCreate9_out : nullptr;
+
+	if (!m_pDirect3DCreate9)
 	{
 		return nullptr;
 	}
 
-	IDirect3D9 *pD3D9 = ((Direct3DCreate9Proc)Direct3DCreate9_out)(SDKVersion);
+	IDirect3D9 *pD3D9 = m_pDirect3DCreate9(SDKVersion);
 
 	if (pD3D9)
 	{
@@ -172,12 +213,14 @@ IDirect3D9 *WINAPI d9_Direct3DCreate9(UINT SDKVersion)
 
 HRESULT WINAPI d9_Direct3DCreate9Ex(UINT SDKVersion, IDirect3D9Ex **ppD3D)
 {
-	if (!Wrapper::ValidProcAddress(Direct3DCreate9Ex_out))
+	static Direct3DCreate9ExProc m_pDirect3DCreate9Ex = (Wrapper::ValidProcAddress(Direct3DCreate9Ex_out)) ? (Direct3DCreate9ExProc)Direct3DCreate9Ex_out : nullptr;
+
+	if (!m_pDirect3DCreate9Ex)
 	{
-		return E_NOTIMPL;
+		return E_FAIL;
 	}
 
-	HRESULT hr = ((Direct3DCreate9ExProc)Direct3DCreate9Ex_out)(SDKVersion, ppD3D);
+	HRESULT hr = m_pDirect3DCreate9Ex(SDKVersion, ppD3D);
 
 	if (SUCCEEDED(hr) && ppD3D)
 	{

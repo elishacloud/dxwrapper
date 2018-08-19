@@ -183,7 +183,7 @@ HRESULT WINAPI ds_DirectSoundCreate(LPCGUID pcGuidDevice, LPDIRECTSOUND *ppDS, L
 
 	if (!Wrapper::ValidProcAddress(DirectSoundCreate_out))
 	{
-		return E_NOTIMPL;
+		return E_FAIL;
 	}
 
 	assert(((DirectSoundCreateProc)DirectSoundCreate_out));
@@ -223,7 +223,7 @@ BOOL WINAPI ds_DSDLLEnumCallbackA(LPGUID lpGuid, LPCSTR lpcstrDescription, LPCST
 
 	if (!Wrapper::ValidProcAddress((FARPROC)g_pAppDSEnumCallbackA))
 	{
-		return false;
+		return FALSE;
 	}
 
 	return g_pAppDSEnumCallbackA(lpGuid, lpcstrDescription, lpcstrModule, lpContext);
@@ -242,7 +242,7 @@ BOOL WINAPI ds_DSDLLEnumCallbackW(LPGUID lpGuid, LPCWSTR lpcstrDescription, LPCW
 
 	if (!Wrapper::ValidProcAddress((FARPROC)g_pAppDSEnumCallbackW))
 	{
-		return false;
+		return FALSE;
 	}
 
 	return g_pAppDSEnumCallbackW(lpGuid, lpcstrDescription, lpcstrModule, lpContext);
@@ -259,7 +259,7 @@ HRESULT WINAPI ds_DirectSoundEnumerateA(LPDSENUMCALLBACKA pDSEnumCallback, LPVOI
 
 	if (!Wrapper::ValidProcAddress(DirectSoundEnumerateA_out))
 	{
-		return E_NOTIMPL;
+		return E_FAIL;
 	}
 
 	g_pAppDSEnumCallbackA = pDSEnumCallback;
@@ -278,7 +278,7 @@ HRESULT WINAPI ds_DirectSoundEnumerateW(LPDSENUMCALLBACKW pDSEnumCallback, LPVOI
 
 	if (!Wrapper::ValidProcAddress(DirectSoundEnumerateW_out))
 	{
-		return E_NOTIMPL;
+		return E_FAIL;
 	}
 
 	g_pAppDSEnumCallbackW = pDSEnumCallback;
@@ -297,7 +297,7 @@ HRESULT WINAPI ds_DirectSoundCaptureCreate(LPCGUID pcGuidDevice, LPDIRECTSOUNDCA
 
 	if (!Wrapper::ValidProcAddress(DirectSoundCaptureCreate_out))
 	{
-		return E_NOTIMPL;
+		return E_FAIL;
 	}
 
 	return ((DirectSoundCaptureCreateProc)DirectSoundCaptureCreate_out)(pcGuidDevice, ppDSC, pUnkOuter);
@@ -314,7 +314,7 @@ HRESULT WINAPI ds_DirectSoundCaptureEnumerateA(LPDSENUMCALLBACKA pDSEnumCallback
 
 	if (!Wrapper::ValidProcAddress(DirectSoundCaptureEnumerateA_out))
 	{
-		return E_NOTIMPL;
+		return E_FAIL;
 	}
 
 	return ((DirectSoundCaptureEnumerateAProc)DirectSoundCaptureEnumerateA_out)(pDSEnumCallback, pContext);
@@ -331,7 +331,7 @@ HRESULT WINAPI ds_DirectSoundCaptureEnumerateW(LPDSENUMCALLBACKW pDSEnumCallback
 
 	if (!Wrapper::ValidProcAddress(DirectSoundCaptureEnumerateW_out))
 	{
-		return E_NOTIMPL;
+		return E_FAIL;
 	}
 
 	return ((DirectSoundCaptureEnumerateWProc)DirectSoundCaptureEnumerateW_out)(pDSEnumCallback, pContext);
@@ -353,7 +353,7 @@ HRESULT WINAPI ds_DirectSoundCreate8(LPCGUID pcGuidDevice, LPDIRECTSOUND8 *ppDS8
 
 	if (!Wrapper::ValidProcAddress(DirectSoundCreate8_out))
 	{
-		return E_NOTIMPL;
+		return E_FAIL;
 	}
 
 	assert(((DirectSoundCreate8Proc)DirectSoundCreate8_out));
@@ -384,7 +384,7 @@ HRESULT WINAPI ds_DirectSoundCaptureCreate8(LPCGUID pcGuidDevice, LPDIRECTSOUNDC
 
 	if (!Wrapper::ValidProcAddress(DirectSoundCaptureCreate8_out))
 	{
-		return E_NOTIMPL;
+		return E_FAIL;
 	}
 
 	return ((DirectSoundCaptureCreate8Proc)DirectSoundCaptureCreate8_out)(pcGuidDevice, ppDSC8, pUnkOuter);
@@ -404,7 +404,7 @@ HRESULT WINAPI ds_DirectSoundFullDuplexCreate(LPCGUID pcGuidCaptureDevice, LPCGU
 
 	if (!Wrapper::ValidProcAddress(DirectSoundFullDuplexCreate_out))
 	{
-		return E_NOTIMPL;
+		return E_FAIL;
 	}
 
 	return ((DirectSoundFullDuplexCreateProc)DirectSoundFullDuplexCreate_out)(pcGuidCaptureDevice, pcGuidRenderDevice,
@@ -424,7 +424,7 @@ HRESULT WINAPI ds_GetDeviceID(LPCGUID pGuidSrc, LPGUID pGuidDest)
 
 	if (!Wrapper::ValidProcAddress(GetDeviceID_out))
 	{
-		return E_NOTIMPL;
+		return E_FAIL;
 	}
 
 	return ((GetDeviceIDProc)GetDeviceID_out)(pGuidSrc, pGuidDest);
@@ -441,7 +441,7 @@ HRESULT WINAPI ds_DllCanUnloadNow()
 
 	if (!Wrapper::ValidProcAddress(DllCanUnloadNow_out))
 	{
-		return E_NOTIMPL;
+		return E_FAIL;
 	}
 
 	return ((DllCanUnloadNowProc)DllCanUnloadNow_out)();
@@ -451,7 +451,7 @@ HRESULT WINAPI ds_DllGetClassObject(IN REFCLSID rclsid, IN REFIID riid, OUT LPVO
 {
 	if (!Wrapper::ValidProcAddress(DllGetClassObject_out))
 	{
-		return E_NOTIMPL;
+		return E_FAIL;
 	}
 
 	*ppv = nullptr;
