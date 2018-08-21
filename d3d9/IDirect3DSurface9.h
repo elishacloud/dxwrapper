@@ -4,14 +4,9 @@ class m_IDirect3DSurface9 : public IDirect3DSurface9, public AddressLookupTableD
 {
 private:
 	LPDIRECT3DSURFACE9 ProxyInterface;
-	m_IDirect3DDevice9* m_pDevice = nullptr;
 	m_IDirect3DDevice9Ex* m_pDeviceEx = nullptr;
 
 public:
-	m_IDirect3DSurface9(LPDIRECT3DSURFACE9 pSurface9, m_IDirect3DDevice9* pDevice) : ProxyInterface(pSurface9), m_pDevice(pDevice)
-	{
-		pDevice->ProxyAddressLookupTable->SaveAddress(this, ProxyInterface);
-	}
 	m_IDirect3DSurface9(LPDIRECT3DSURFACE9 pSurface9, m_IDirect3DDevice9Ex* pDevice) : ProxyInterface(pSurface9), m_pDeviceEx(pDevice)
 	{
 		pDevice->ProxyAddressLookupTable->SaveAddress(this, ProxyInterface);

@@ -42,23 +42,14 @@ ULONG m_IDirect3DTexture9::Release(THIS)
 
 HRESULT m_IDirect3DTexture9::GetDevice(THIS_ IDirect3DDevice9** ppDevice)
 {
-	if (!ppDevice)
+	if (!ppDevice || !m_pDeviceEx)
 	{
 		return D3DERR_INVALIDCALL;
 	}
 
-	if (m_pDevice)
-	{
-		m_pDevice->AddRef();
+	m_pDeviceEx->AddRef();
 
-		*ppDevice = m_pDevice;
-	}
-	else if (m_pDeviceEx)
-	{
-		m_pDeviceEx->AddRef();
-
-		*ppDevice = m_pDeviceEx;
-	}
+	*ppDevice = m_pDeviceEx;
 
 	return D3D_OK;
 }
@@ -137,16 +128,9 @@ HRESULT m_IDirect3DTexture9::GetSurfaceLevel(THIS_ UINT Level, IDirect3DSurface9
 {
 	HRESULT hr = ProxyInterface->GetSurfaceLevel(Level, ppSurfaceLevel);
 
-	if (SUCCEEDED(hr) && ppSurfaceLevel)
+	if (SUCCEEDED(hr) && ppSurfaceLevel && m_pDeviceEx)
 	{
-		if (m_pDevice)
-		{
-			*ppSurfaceLevel = m_pDevice->ProxyAddressLookupTable->FindAddress<m_IDirect3DSurface9>(*ppSurfaceLevel);
-		}
-		else if (m_pDeviceEx)
-		{
-			*ppSurfaceLevel = m_pDeviceEx->ProxyAddressLookupTable->FindAddress<m_IDirect3DSurface9>(*ppSurfaceLevel);
-		}
+		*ppSurfaceLevel = m_pDeviceEx->ProxyAddressLookupTable->FindAddress<m_IDirect3DSurface9>(*ppSurfaceLevel);
 	}
 
 	return hr;

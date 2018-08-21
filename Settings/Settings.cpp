@@ -531,6 +531,13 @@ void CONFIG::Init()
 		}
 	}
 
+	// If both are enabled then use application default
+	if (EnableWindowMode && FullScreen)
+	{
+		EnableWindowMode = false;
+		FullScreen = false;
+	}
+
 	// Enable wrapper settings
 	if (Dd7to9)
 	{
@@ -541,7 +548,7 @@ void CONFIG::Init()
 	{
 		Logging::Log() << "Enabling ddraw wrapper";
 	}
-	if ((isD3d9WrapperEnabled = (AntiAliasing || CacheClipPlane || EnableVSync)) != 0)
+	if ((isD3d9WrapperEnabled = (AntiAliasing || CacheClipPlane || EnableVSync || EnableWindowMode)) != 0)
 	{
 		Logging::Log() << "Enabling d3d9 wrapper";
 	}

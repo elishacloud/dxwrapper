@@ -4,14 +4,9 @@ class m_IDirect3DVertexBuffer9 : public IDirect3DVertexBuffer9, public AddressLo
 {
 private:
 	LPDIRECT3DVERTEXBUFFER9 ProxyInterface;
-	m_IDirect3DDevice9* m_pDevice = nullptr;
 	m_IDirect3DDevice9Ex* m_pDeviceEx = nullptr;
 
 public:
-	m_IDirect3DVertexBuffer9(LPDIRECT3DVERTEXBUFFER9 pBuffer8, m_IDirect3DDevice9* pDevice) : ProxyInterface(pBuffer8), m_pDevice(pDevice)
-	{
-		pDevice->ProxyAddressLookupTable->SaveAddress(this, ProxyInterface);
-	}
 	m_IDirect3DVertexBuffer9(LPDIRECT3DVERTEXBUFFER9 pBuffer8, m_IDirect3DDevice9Ex* pDevice) : ProxyInterface(pBuffer8), m_pDeviceEx(pDevice)
 	{
 		pDevice->ProxyAddressLookupTable->SaveAddress(this, ProxyInterface);

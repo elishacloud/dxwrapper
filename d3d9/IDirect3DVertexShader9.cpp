@@ -42,23 +42,14 @@ ULONG m_IDirect3DVertexShader9::Release(THIS)
 
 HRESULT m_IDirect3DVertexShader9::GetDevice(THIS_ IDirect3DDevice9** ppDevice)
 {
-	if (!ppDevice)
+	if (!ppDevice || !m_pDeviceEx)
 	{
 		return D3DERR_INVALIDCALL;
 	}
 
-	if (m_pDevice)
-	{
-		m_pDevice->AddRef();
+	m_pDeviceEx->AddRef();
 
-		*ppDevice = m_pDevice;
-	}
-	else if (m_pDeviceEx)
-	{
-		m_pDeviceEx->AddRef();
-
-		*ppDevice = m_pDeviceEx;
-	}
+	*ppDevice = m_pDeviceEx;
 
 	return D3D_OK;
 }

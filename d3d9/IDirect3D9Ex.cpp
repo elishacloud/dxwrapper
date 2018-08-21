@@ -16,6 +16,9 @@
 
 #include "d3d9.h"
 
+HWND DeviceWindow = nullptr;
+UINT BufferWidth = 0, BufferHeight = 0;
+
 HRESULT m_IDirect3D9Ex::QueryInterface(REFIID riid, void** ppvObj)
 {
 	if ((riid == IID_IDirect3D9Ex || riid == IID_IDirect3D9 || riid == IID_IUnknown) && ppvObj)
@@ -99,11 +102,21 @@ HRESULT m_IDirect3D9Ex::CheckDeviceFormat(UINT Adapter, D3DDEVTYPE DeviceType, D
 
 HRESULT m_IDirect3D9Ex::CheckDeviceMultiSampleType(THIS_ UINT Adapter, D3DDEVTYPE DeviceType, D3DFORMAT SurfaceFormat, BOOL Windowed, D3DMULTISAMPLE_TYPE MultiSampleType, DWORD* pQualityLevels)
 {
+	if (Config.EnableWindowMode)
+	{
+		Windowed = true;
+	}
+
 	return ProxyInterface->CheckDeviceMultiSampleType(Adapter, DeviceType, SurfaceFormat, Windowed, MultiSampleType, pQualityLevels);
 }
 
 HRESULT m_IDirect3D9Ex::CheckDeviceType(UINT Adapter, D3DDEVTYPE CheckType, D3DFORMAT DisplayFormat, D3DFORMAT BackBufferFormat, BOOL Windowed)
 {
+	if (Config.EnableWindowMode)
+	{
+		Windowed = true;
+	}
+
 	return ProxyInterface->CheckDeviceType(Adapter, CheckType, DisplayFormat, BackBufferFormat, Windowed);
 }
 
@@ -121,8 +134,8 @@ HRESULT m_IDirect3D9Ex::CreateDevice(UINT Adapter, D3DDEVTYPE DeviceType, HWND h
 		return D3DERR_INVALIDCALL;
 	}
 
-	// Check for enabling VSync
-	UpdateVSyncParameter(pPresentationParameters);
+	// Update presentation parameters
+	UpdatePresentParameter(pPresentationParameters, hFocusWindow, true);
 
 	// Check for AntiAliasing
 	bool MultiSampleFlag = false;
@@ -174,11 +187,11 @@ HRESULT m_IDirect3D9Ex::CreateDevice(UINT Adapter, D3DDEVTYPE DeviceType, HWND h
 
 	if (SUCCEEDED(hr))
 	{
-		*ppReturnedDeviceInterface = new m_IDirect3DDevice9((LPDIRECT3DDEVICE9)*ppReturnedDeviceInterface, (m_IDirect3D9*)this);
+		*ppReturnedDeviceInterface = new m_IDirect3DDevice9Ex((LPDIRECT3DDEVICE9EX)*ppReturnedDeviceInterface, (m_IDirect3D9Ex*)this);
 		if (MultiSampleFlag)
 		{
-			((m_IDirect3DDevice9*)(*ppReturnedDeviceInterface))->SetMultiSampleType(pPresentationParameters->MultiSampleType);
-			((m_IDirect3DDevice9*)(*ppReturnedDeviceInterface))->SetMultiSampleQuality(pPresentationParameters->MultiSampleQuality);
+			((m_IDirect3DDevice9Ex*)(*ppReturnedDeviceInterface))->SetMultiSampleType(pPresentationParameters->MultiSampleType);
+			((m_IDirect3DDevice9Ex*)(*ppReturnedDeviceInterface))->SetMultiSampleQuality(pPresentationParameters->MultiSampleQuality);
 		}
 	}
 
@@ -209,8 +222,8 @@ HRESULT m_IDirect3D9Ex::CreateDeviceEx(THIS_ UINT Adapter, D3DDEVTYPE DeviceType
 		return D3DERR_INVALIDCALL;
 	}
 
-	// Check for enabling VSync
-	UpdateVSyncParameter(pPresentationParameters);
+	// Update presentation parameters
+	UpdatePresentParameter(pPresentationParameters, hFocusWindow, true);
 
 	// Check for AntiAliasing
 	bool MultiSampleFlag = false;
@@ -276,4 +289,90 @@ HRESULT m_IDirect3D9Ex::CreateDeviceEx(THIS_ UINT Adapter, D3DDEVTYPE DeviceType
 HRESULT m_IDirect3D9Ex::GetAdapterLUID(THIS_ UINT Adapter, LUID * pLUID)
 {
 	return ProxyInterface->GetAdapterLUID(Adapter, pLUID);
+}
+
+// Set Presentation Parameters
+void UpdatePresentParameter(D3DPRESENT_PARAMETERS* pPresentationParameters, HWND hFocusWindow, bool SetWindow)
+{
+	if (!pPresentationParameters)
+	{
+		return;
+	}
+
+	if (Config.EnableVSync && pPresentationParameters->PresentationInterval == D3DPRESENT_INTERVAL_IMMEDIATE)
+	{
+		pPresentationParameters->PresentationInterval = D3DPRESENT_INTERVAL_ONE;
+	}
+
+	// Set window size if window mode is enabled
+	if (Config.EnableWindowMode && pPresentationParameters &&
+		(pPresentationParameters->hDeviceWindow || DeviceWindow || hFocusWindow) &&
+		(pPresentationParameters->BackBufferWidth || BufferWidth) &&
+		(pPresentationParameters->BackBufferHeight || BufferHeight))
+	{
+		pPresentationParameters->Windowed = true;
+		pPresentationParameters->FullScreen_RefreshRateInHz = 0;
+		pPresentationParameters->PresentationInterval = 0;
+		if (SetWindow)
+		{
+			BufferWidth = (pPresentationParameters->BackBufferWidth) ? pPresentationParameters->BackBufferWidth : BufferWidth;
+			BufferHeight = (pPresentationParameters->BackBufferHeight) ? pPresentationParameters->BackBufferHeight : BufferHeight;
+			DeviceWindow = (pPresentationParameters->hDeviceWindow) ? pPresentationParameters->hDeviceWindow : 
+				(hFocusWindow) ? hFocusWindow : DeviceWindow;
+			AdjustWindow(DeviceWindow, BufferWidth, BufferHeight);
+		}
+	}
+}
+
+// Adjusting the window position for WindowMode
+void AdjustWindow(HWND MainhWnd, LONG displayWidth, LONG displayHeight)
+{
+	if (!MainhWnd || !displayWidth || !displayHeight)
+	{
+		return;
+	}
+
+	// Get screen width
+	LONG screenWidth = GetSystemMetrics(SM_CXSCREEN);
+	LONG screenHeight = GetSystemMetrics(SM_CYSCREEN);
+	// Update window border
+	if (Config.WindowModeBorder && screenHeight > displayHeight + 32)
+	{
+		LONG lStyle = GetWindowLong(MainhWnd, GWL_STYLE);
+		lStyle |= (WS_CAPTION | WS_THICKFRAME | WS_SYSMENU | WS_MINIMIZEBOX | WS_MAXIMIZEBOX);
+		SetWindowLong(MainhWnd, GWL_STYLE, lStyle);
+		LONG lExStyle = GetWindowLong(MainhWnd, GWL_EXSTYLE);
+		lExStyle |= (WS_EX_DLGMODALFRAME | WS_EX_CLIENTEDGE | WS_EX_STATICEDGE);
+		SetWindowLong(MainhWnd, GWL_EXSTYLE, lExStyle);
+	}
+	else
+	{
+		LONG lStyle = GetWindowLong(MainhWnd, GWL_STYLE);
+		lStyle &= ~(WS_CAPTION | WS_THICKFRAME | WS_MINIMIZE | WS_MAXIMIZE | WS_SYSMENU);
+		SetWindowLong(MainhWnd, GWL_STYLE, lStyle);
+		LONG lExStyle = GetWindowLong(MainhWnd, GWL_EXSTYLE);
+		lExStyle &= ~(WS_EX_DLGMODALFRAME | WS_EX_CLIENTEDGE | WS_EX_STATICEDGE);
+		SetWindowLong(MainhWnd, GWL_EXSTYLE, lExStyle);
+	}
+	// Set window border
+	SetWindowPos(MainhWnd, nullptr, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_FRAMECHANGED);
+	Sleep(0);
+	// Set window size
+	SetWindowPos(MainhWnd, nullptr, 0, 0, displayWidth, displayHeight, SWP_NOMOVE | SWP_NOZORDER);
+	Sleep(0);
+	// Adjust for window decoration to ensure client area matches display size
+	RECT tempRect;
+	GetClientRect(MainhWnd, &tempRect);
+	displayWidth = (displayWidth - tempRect.right) + displayWidth;
+	displayHeight = (displayHeight - tempRect.bottom) + displayHeight;
+	// Move window to center and adjust size
+	LONG xLoc = 0;
+	LONG yLoc = 0;
+	if (screenWidth >= displayWidth && screenHeight >= displayHeight)
+	{
+		xLoc = (screenWidth - displayWidth) / 2;
+		yLoc = (screenHeight - displayHeight) / 2;
+	}
+	SetWindowPos(MainhWnd, nullptr, xLoc, yLoc, displayWidth, displayHeight, SWP_NOZORDER);
+	Sleep(0);
 }

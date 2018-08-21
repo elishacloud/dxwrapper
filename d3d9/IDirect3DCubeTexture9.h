@@ -4,14 +4,9 @@ class m_IDirect3DCubeTexture9 : public IDirect3DCubeTexture9, public AddressLook
 {
 private:
 	LPDIRECT3DCUBETEXTURE9 ProxyInterface;
-	m_IDirect3DDevice9* m_pDevice = nullptr;
 	m_IDirect3DDevice9Ex* m_pDeviceEx = nullptr;
 
 public:
-	m_IDirect3DCubeTexture9(LPDIRECT3DCUBETEXTURE9 pTexture9, m_IDirect3DDevice9* pDevice) : ProxyInterface(pTexture9), m_pDevice(pDevice)
-	{
-		pDevice->ProxyAddressLookupTable->SaveAddress(this, ProxyInterface);
-	}
 	m_IDirect3DCubeTexture9(LPDIRECT3DCUBETEXTURE9 pTexture9, m_IDirect3DDevice9Ex* pDevice) : ProxyInterface(pTexture9), m_pDeviceEx(pDevice)
 	{
 		pDevice->ProxyAddressLookupTable->SaveAddress(this, ProxyInterface);

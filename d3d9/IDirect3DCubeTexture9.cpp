@@ -47,18 +47,9 @@ HRESULT m_IDirect3DCubeTexture9::GetDevice(THIS_ IDirect3DDevice9** ppDevice)
 		return D3DERR_INVALIDCALL;
 	}
 
-	if (m_pDevice)
-	{
-		m_pDevice->AddRef();
+	m_pDeviceEx->AddRef();
 
-		*ppDevice = m_pDevice;
-	}
-	else if (m_pDeviceEx)
-	{
-		m_pDeviceEx->AddRef();
-
-		*ppDevice = m_pDeviceEx;
-	}
+	*ppDevice = m_pDeviceEx;
 
 	return D3D_OK;
 }
@@ -137,16 +128,9 @@ HRESULT m_IDirect3DCubeTexture9::GetCubeMapSurface(THIS_ D3DCUBEMAP_FACES FaceTy
 {
 	HRESULT hr = ProxyInterface->GetCubeMapSurface(FaceType, Level, ppCubeMapSurface);
 
-	if (SUCCEEDED(hr) && ppCubeMapSurface)
+	if (SUCCEEDED(hr) && ppCubeMapSurface && m_pDeviceEx)
 	{
-		if (m_pDevice)
-		{
-			*ppCubeMapSurface = m_pDevice->ProxyAddressLookupTable->FindAddress<m_IDirect3DSurface9>(*ppCubeMapSurface);
-		}
-		else if (m_pDeviceEx)
-		{
-			*ppCubeMapSurface = m_pDeviceEx->ProxyAddressLookupTable->FindAddress<m_IDirect3DSurface9>(*ppCubeMapSurface);
-		}
+		*ppCubeMapSurface = m_pDeviceEx->ProxyAddressLookupTable->FindAddress<m_IDirect3DSurface9>(*ppCubeMapSurface);
 	}
 
 	return hr;

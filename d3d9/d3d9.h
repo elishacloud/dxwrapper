@@ -23,11 +23,13 @@ typedef void(WINAPI *Direct3D9EnableMaximizedWindowedModeShimProc)();
 typedef IDirect3D9 *(WINAPI *Direct3DCreate9Proc)(UINT);
 typedef HRESULT(WINAPI *Direct3DCreate9ExProc)(UINT, IDirect3D9Ex **);
 
-void UpdateVSyncParameter(D3DPRESENT_PARAMETERS* params);
+void UpdatePresentParameter(D3DPRESENT_PARAMETERS* pPresentationParameters, HWND hFocusWindow, bool SetWindow);
+void AdjustWindow(HWND MainhWnd, LONG displayWidth, LONG displayHeight);
 
-#include "IDirect3D9.h"
+extern HWND DeviceWindow;
+extern UINT BufferWidth, BufferHeight;
+
 #include "IDirect3D9Ex.h"
-#include "IDirect3DDevice9.h"
 #include "IDirect3DDevice9Ex.h"
 #include "IDirect3DCubeTexture9.h"
 #include "IDirect3DIndexBuffer9.h"

@@ -22,6 +22,7 @@
 	visit(ConvertToDirectDraw7) \
 	visit(ConvertToDirect3D7) \
 	visit(EnableVSync) \
+	visit(EnableWindowMode) \
 	visit(ExcludeProcess) \
 	visit(Force16bitColor) \
 	visit(Force32bitColor) \
@@ -63,6 +64,7 @@
 	visit(WaitForProcess) \
 	visit(WaitForWindowChanges) \
 	visit(WindowSleepTime) \
+	visit(WindowModeBorder) \
 	visit(WrapperMode)
 
 #define VISIT_APPCOMPATDATA_SETTINGS(visit) \
@@ -150,6 +152,7 @@ struct CONFIG
 	bool CacheClipPlaneNotSet;			// If the CacheClipPlane option exists in the config file
 	bool ConvertToDirectDraw7;			// Converts DirectDraw 1-6 to DirectDraw 7
 	bool ConvertToDirect3D7;			// Converts Direct3D 1-6 to Direct3D 7
+	bool EnableWindowMode;				// Enables WndMode for d3d9 wrapper
 	bool EnableVSync;					// Enables VSync for d3d9 wrapper
 	bool FullScreen;					// Sets the main window to fullscreen
 	bool ForceTermination;				// Terminates application when main window closes
@@ -162,6 +165,7 @@ struct CONFIG
 	bool SendAltEnter;					// Sends an Alt+Enter message to the wind to tell it to go into fullscreen
 	bool WaitForProcess;				// Waits for process to end before continuing
 	bool WaitForWindowChanges;			// Waits for window handle to stabilize before setting fullsreen
+	bool WindowModeBorder;				// Enables the window border when EnableWindowMode is set
 	DWORD LoopSleepTime;				// Time to sleep between each window handle check loop
 	DWORD ResetMemoryAfter;				// Undo hot patch after this amount of time
 	DWORD WindowSleepTime;				// Time to wait (sleep) for window handle and screen updates to finish

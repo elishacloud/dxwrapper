@@ -26,14 +26,6 @@ namespace D3d9Wrapper
 	FARPROC DebugSetMute_out = (FARPROC)*(ShardProcs::DebugSetMute);
 }
 
-void UpdateVSyncParameter(D3DPRESENT_PARAMETERS* params)
-{
-	if (Config.EnableVSync && params && params->PresentationInterval == D3DPRESENT_INTERVAL_IMMEDIATE)
-	{
-		params->PresentationInterval = D3DPRESENT_INTERVAL_ONE;
-	}
-}
-
 using namespace D3d9Wrapper;
 
 HRESULT WINAPI d9_Direct3DShaderValidatorCreate9()
@@ -205,7 +197,7 @@ IDirect3D9 *WINAPI d9_Direct3DCreate9(UINT SDKVersion)
 
 	if (pD3D9)
 	{
-		return new m_IDirect3D9(pD3D9);
+		return new m_IDirect3D9Ex((IDirect3D9Ex*)pD3D9);
 	}
 
 	return nullptr;

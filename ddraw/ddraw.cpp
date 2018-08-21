@@ -271,7 +271,7 @@ HRESULT WINAPI dd_DirectDrawCreateEx(GUID FAR *lpGUID, LPVOID *lplpDD, REFIID ri
 			if (d3d9Object == nullptr)
 			{
 				Logging::Log() << __FUNCTION__ << " Failed to create Direct3D9 object";
-				// Error creation directdraw
+				// Error creating directdraw
 				return DDERR_GENERIC;
 			}
 
