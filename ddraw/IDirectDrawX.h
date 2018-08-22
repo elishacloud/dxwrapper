@@ -140,7 +140,6 @@ public:
 	/*** Helper functions ***/
 	void ReleaseD3d9();
 	void ReleaseAllD9Surfaces();
-	void AdjustWindow();
 	bool CreateD3DDevice();
 	bool ReinitDevice();
 	void AddSurfaceToVector(m_IDirectDrawSurfaceX* lpSurfaceX);

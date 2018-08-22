@@ -615,27 +615,11 @@ HRESULT m_IDirectDrawX::RestoreDisplayMode()
 {
 	if (Config.Dd7to9)
 	{
-		// Do nothing for windows mode
-		if (isWindowed)
-		{
-			return DD_OK;
-		}
-
 		// No exclusive mode
 		if (!ExclusiveMode)
 		{
 			return DDERR_NOEXCLUSIVEMODE;
 		}
-
-		// Reset screen settings
-		std::string lpRamp((3 * 256 * 2), '\0');
-		HDC hDC = GetDC(nullptr);
-		GetDeviceGammaRamp(hDC, &lpRamp[0]);
-		Sleep(0);
-		SetDeviceGammaRamp(hDC, &lpRamp[0]);
-		ReleaseDC(nullptr, hDC);
-		Sleep(0);
-		ChangeDisplaySettings(nullptr, 0);
 
 		// Set mode
 		ExclusiveMode = false;
@@ -811,12 +795,6 @@ HRESULT m_IDirectDrawX::SetDisplayMode(DWORD dwWidth, DWORD dwHeight, DWORD dwBP
 		{
 			displayWidth = dwWidth;
 			displayHeight = dwHeight;
-		}
-
-		if ((displayWidth != dwWidth || displayHeight != dwHeight) || isWindowed)
-		{
-			// Adjust the display window to match the current display mode
-			AdjustWindow();
 		}
 
 		// Ignore color depth (is color depth needed?)
@@ -1081,39 +1059,6 @@ void m_IDirectDrawX::ReleaseAllD9Surfaces()
 	for (m_IDirectDrawSurfaceX *pSurface : SurfaceVector)
 	{
 		pSurface->ReleaseD9Surface();
-	}
-}
-
-// Adjusting the window position for SetDisplayMode()
-void m_IDirectDrawX::AdjustWindow()
-{
-	// If we don't yet have the window quit without action
-	if (!MainhWnd)
-	{
-		return;
-	}
-
-	// window mode
-	if (isWindowed)
-	{
-		// Window with border/caption
-		SetWindowLong(MainhWnd, GWL_STYLE, WS_VISIBLE | WS_CAPTION);
-		// Set window size
-		SetWindowPos(MainhWnd, nullptr, 0, 0, displayWidth, displayHeight, SWP_NOMOVE | SWP_NOZORDER);
-		// Adjust for window decoration to ensure client area matches display size
-		RECT tempRect;
-		GetClientRect(MainhWnd, &tempRect);
-		tempRect.right = (displayWidth - tempRect.right) + displayWidth;
-		tempRect.bottom = (displayHeight - tempRect.bottom) + displayHeight;
-		// Move window to last position and adjust size
-		SetWindowPos(MainhWnd, nullptr, lastPosition.x, lastPosition.y, tempRect.right, tempRect.bottom, SWP_NOZORDER);
-	}
-	else
-	{
-		// Window borderless and fullscreen size
-		SetWindowLong(MainhWnd, GWL_STYLE, WS_VISIBLE);
-		// Set full size
-		SetWindowPos(MainhWnd, nullptr, 0, 0, displayWidth, displayHeight, SWP_NOZORDER);
 	}
 }
 

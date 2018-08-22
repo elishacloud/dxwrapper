@@ -298,7 +298,7 @@ bool APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 			// Redirect DdrawWrapper -> D3d9Wrapper
 			if (Config.Dd7to9)
 			{
-				//DdrawWrapper::Direct3DCreate9 = Direct3DCreate9_in;
+				DdrawWrapper::Direct3DCreate9 = Direct3DCreate9_in;
 			}
 		}
 

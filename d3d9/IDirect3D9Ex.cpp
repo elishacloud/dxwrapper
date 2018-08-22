@@ -305,14 +305,13 @@ void UpdatePresentParameter(D3DPRESENT_PARAMETERS* pPresentationParameters, HWND
 	}
 
 	// Set window size if window mode is enabled
-	if (Config.EnableWindowMode && pPresentationParameters &&
+	if (Config.EnableWindowMode &&
 		(pPresentationParameters->hDeviceWindow || DeviceWindow || hFocusWindow) &&
 		(pPresentationParameters->BackBufferWidth || BufferWidth) &&
 		(pPresentationParameters->BackBufferHeight || BufferHeight))
 	{
 		pPresentationParameters->Windowed = true;
 		pPresentationParameters->FullScreen_RefreshRateInHz = 0;
-		pPresentationParameters->PresentationInterval = 0;
 		if (SetWindow)
 		{
 			BufferWidth = (pPresentationParameters->BackBufferWidth) ? pPresentationParameters->BackBufferWidth : BufferWidth;
@@ -329,17 +328,19 @@ void AdjustWindow(HWND MainhWnd, LONG displayWidth, LONG displayHeight)
 {
 	if (!MainhWnd || !displayWidth || !displayHeight)
 	{
+		Logging::Log() << __FUNCTION__ << " Error: could not set window size, nullptr.";
 		return;
 	}
 
 	// Get screen width
 	LONG screenWidth = GetSystemMetrics(SM_CXSCREEN);
 	LONG screenHeight = GetSystemMetrics(SM_CYSCREEN);
+
 	// Update window border
 	if (Config.WindowModeBorder && screenHeight > displayHeight + 32)
 	{
 		LONG lStyle = GetWindowLong(MainhWnd, GWL_STYLE);
-		lStyle |= (WS_CAPTION | WS_THICKFRAME | WS_SYSMENU | WS_MINIMIZEBOX | WS_MAXIMIZEBOX);
+		lStyle |= (WS_VISIBLE | WS_CAPTION | WS_THICKFRAME | WS_SYSMENU | WS_MINIMIZEBOX | WS_MAXIMIZEBOX);
 		SetWindowLong(MainhWnd, GWL_STYLE, lStyle);
 		LONG lExStyle = GetWindowLong(MainhWnd, GWL_EXSTYLE);
 		lExStyle |= (WS_EX_DLGMODALFRAME | WS_EX_CLIENTEDGE | WS_EX_STATICEDGE);
@@ -347,7 +348,7 @@ void AdjustWindow(HWND MainhWnd, LONG displayWidth, LONG displayHeight)
 	}
 	else
 	{
-		LONG lStyle = GetWindowLong(MainhWnd, GWL_STYLE);
+		LONG lStyle = GetWindowLong(MainhWnd, GWL_STYLE) | WS_VISIBLE;
 		lStyle &= ~(WS_CAPTION | WS_THICKFRAME | WS_MINIMIZE | WS_MAXIMIZE | WS_SYSMENU);
 		SetWindowLong(MainhWnd, GWL_STYLE, lStyle);
 		LONG lExStyle = GetWindowLong(MainhWnd, GWL_EXSTYLE);
@@ -357,14 +358,24 @@ void AdjustWindow(HWND MainhWnd, LONG displayWidth, LONG displayHeight)
 	// Set window border
 	SetWindowPos(MainhWnd, nullptr, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_FRAMECHANGED);
 	Sleep(0);
+
+	// Check window size and only move window position if the new size is different
+	RECT tempRect;
+	GetClientRect(MainhWnd, &tempRect);
+	if ((displayWidth - tempRect.right) == displayWidth && (displayHeight - tempRect.bottom) == displayHeight)
+	{
+		return;
+	}
+
 	// Set window size
 	SetWindowPos(MainhWnd, nullptr, 0, 0, displayWidth, displayHeight, SWP_NOMOVE | SWP_NOZORDER);
 	Sleep(0);
+
 	// Adjust for window decoration to ensure client area matches display size
-	RECT tempRect;
 	GetClientRect(MainhWnd, &tempRect);
 	displayWidth = (displayWidth - tempRect.right) + displayWidth;
 	displayHeight = (displayHeight - tempRect.bottom) + displayHeight;
+
 	// Move window to center and adjust size
 	LONG xLoc = 0;
 	LONG yLoc = 0;
