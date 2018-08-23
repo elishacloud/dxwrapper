@@ -180,7 +180,7 @@ bool APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 			if (Config.RealWrapperMode != dtype.ddraw)
 			{
 				// Load ddraw procs
-				HMODULE dll = ddraw::Load(nullptr);
+				HMODULE dll = ddraw::Load(Config.WrapperName.c_str());
 				if (dll)
 				{
 					Utils::AddHandleToVector(dll, dtypename[dtype.ddraw]);
@@ -242,7 +242,7 @@ bool APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 			else
 			{
 				// Load d3d8 procs
-				HMODULE dll = d3d8::Load(nullptr);
+				HMODULE dll = d3d8::Load(Config.WrapperName.c_str());
 				if (dll)
 				{
 					Utils::AddHandleToVector(dll, dtypename[dtype.d3d8]);
@@ -276,7 +276,7 @@ bool APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 			else
 			{
 				// Load d3d9 procs
-				HMODULE dll = d3d9::Load(nullptr);
+				HMODULE dll = d3d9::Load(Config.WrapperName.c_str());
 				if (dll)
 				{
 					Utils::AddHandleToVector(dll, dtypename[dtype.d3d9]);
@@ -319,7 +319,7 @@ bool APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 			else
 			{
 				// Load dsound procs
-				HMODULE dll = dsound::Load(nullptr);
+				HMODULE dll = dsound::Load(Config.WrapperName.c_str());
 				if (dll)
 				{
 					Utils::AddHandleToVector(dll, dtypename[dtype.dsound]);

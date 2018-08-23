@@ -545,7 +545,7 @@ void CONFIG::Init()
 	{
 		Logging::Log() << "Enabling d3d9 wrapper";
 	}
-	if ((D3d8to9 = (D3d8to9 || AntiAliasing || EnableVSync)) != 0)
+	if ((D3d8to9 = (D3d8to9 || AntiAliasing || EnableVSync || EnableWindowMode)) != 0)
 	{
 		Logging::Log() << "Enabling d3d8to9 wrapper";
 	}
