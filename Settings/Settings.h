@@ -37,6 +37,7 @@
 	visit(ForceVoiceManagement) \
 	visit(ForceWindowResize) \
 	visit(FullScreen) \
+	visit(FullscreenWindowMode) \
 	visit(HandleExceptions) \
 	visit(IgnoreWindowName) \
 	visit(IncludeProcess) \
@@ -155,21 +156,22 @@ struct CONFIG
 	bool EnableWindowMode;				// Enables WndMode for d3d9 wrapper
 	bool EnableVSync;					// Enables VSync for d3d9 wrapper
 	bool FullScreen;					// Sets the main window to fullscreen
+	bool FullscreenWindowMode;			// Enables fullscreen windowed mode, requires EnableWindowMode
 	bool ForceTermination;				// Terminates application when main window closes
-	bool ForceWindowResize;				// Forces main window to fullscreen
+	bool ForceWindowResize;				// Forces main window to fullscreen, requires FullScreen
 	bool HandleExceptions;				// Handles unhandled exceptions in the application
 	bool LoadPlugins;					// Loads ASI plugins
 	bool LoadFromScriptsOnly;			// Loads ASI plugins from 'scripts' and 'plugins' folder only
 	bool ProcessExcluded;				// Reset the screen resolution on close
 	bool ResetScreenRes;				// Reset the screen resolution on close
-	bool SendAltEnter;					// Sends an Alt+Enter message to the wind to tell it to go into fullscreen
-	bool WaitForProcess;				// Waits for process to end before continuing
-	bool WaitForWindowChanges;			// Waits for window handle to stabilize before setting fullsreen
-	bool WindowModeBorder;				// Enables the window border when EnableWindowMode is set
-	DWORD LoopSleepTime;				// Time to sleep between each window handle check loop
+	bool SendAltEnter;					// Sends an Alt+Enter message to the wind to tell it to go into fullscreen, requires FullScreen
+	bool WaitForProcess;				// Waits for process to end before continuing, requires FullScreen
+	bool WaitForWindowChanges;			// Waits for window handle to stabilize before setting fullsreen, requires FullScreen
+	bool WindowModeBorder;				// Enables the window border when EnableWindowMode is set, requires EnableWindowMode
+	DWORD LoopSleepTime;				// Time to sleep between each window handle check loop, requires FullScreen
 	DWORD ResetMemoryAfter;				// Undo hot patch after this amount of time
-	DWORD WindowSleepTime;				// Time to wait (sleep) for window handle and screen updates to finish
-	DWORD SetFullScreenLayer;			// The layer to be selected for fullscreen
+	DWORD WindowSleepTime;				// Time to wait (sleep) for window handle and screen updates to finish, requires FullScreen
+	DWORD SetFullScreenLayer;			// The layer to be selected for fullscreen, requires FullScreen
 	DWORD AntiAliasing;					// Enable AntiAliasing for d3d9 CreateDevice
 	DWORD RealWrapperMode;				// Internal wrapper mode
 	MEMORYINFO VerifyMemoryInfo;		// Memory used for verification before hot patching

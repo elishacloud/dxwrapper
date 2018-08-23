@@ -318,6 +318,18 @@ void UpdatePresentParameter(D3DPRESENT_PARAMETERS* pPresentationParameters, HWND
 			BufferHeight = (pPresentationParameters->BackBufferHeight) ? pPresentationParameters->BackBufferHeight : BufferHeight;
 			DeviceWindow = (pPresentationParameters->hDeviceWindow) ? pPresentationParameters->hDeviceWindow : 
 				(hFocusWindow) ? hFocusWindow : DeviceWindow;
+			if (Config.FullscreenWindowMode)
+			{
+				DEVMODE newSettings;
+				ZeroMemory(&newSettings, sizeof(newSettings));
+				if (EnumDisplaySettings(nullptr, ENUM_CURRENT_SETTINGS, &newSettings) != 0)
+				{
+					newSettings.dmPelsWidth = BufferWidth;
+					newSettings.dmPelsHeight = BufferHeight;
+					newSettings.dmFields = DM_PELSWIDTH | DM_PELSHEIGHT;
+					ChangeDisplaySettings(&newSettings, CDS_FULLSCREEN);
+				}
+			}
 			AdjustWindow(DeviceWindow, BufferWidth, BufferHeight);
 		}
 	}

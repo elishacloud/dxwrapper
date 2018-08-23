@@ -53,9 +53,9 @@
 		{ \
 			char path[MAX_PATH]; \
 			HMODULE dll = nullptr; \
-			if (strName && _strcmpi(strName, Name) != 0) \
+			if (!strName || _strcmpi(strName, Name) != 0) \
 			{ \
-				dll = LoadLibraryA(strName); \
+				dll = LoadLibraryA(Name); \
 			} \
 			if (!dll) \
 			{ \

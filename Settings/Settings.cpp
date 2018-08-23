@@ -531,13 +531,6 @@ void CONFIG::Init()
 		}
 	}
 
-	// If both are enabled then use application default
-	if (EnableWindowMode && FullScreen)
-	{
-		EnableWindowMode = false;
-		FullScreen = false;
-	}
-
 	// Enable wrapper settings
 	if (Dd7to9)
 	{
