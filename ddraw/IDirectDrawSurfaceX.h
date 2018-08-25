@@ -198,15 +198,15 @@ public:
 	STDMETHOD(GetLOD)(THIS_ LPDWORD);
 
 	/*** Helper functions ***/
-	void ReleaseD9Surface();
 	void AlocateVideoBuffer();
 	HRESULT CreateD3d9Surface();
-	HRESULT UpdateSurfaceDesc2(LPDDSURFACEDESC2 lpDDSurfaceDesc2);
+	void ReleaseD9Surface();
 	bool FixRect(LPRECT lpOutRect, LPRECT lpInRect);
 	HRESULT SetLock(LPRECT lpDestRect, DWORD dwFlags);
 	HRESULT SetUnLock();
 	HRESULT GetSurfaceInfo(D3DLOCKED_RECT *pLockRect, DWORD *lpBitCount, D3DFORMAT *lpFormat);
 	HRESULT GetSurfaceDesc2(LPDDSURFACEDESC2 lpDDSurfaceDesc2);
+	HRESULT UpdateSurfaceDesc2(LPDDSURFACEDESC2 lpDDSurfaceDesc2);
 	void AddAttachedSurfaceToMap(m_IDirectDrawSurfaceX* lpSurfaceX);
 	void RemoveAttachedSurfaceFromMap(m_IDirectDrawSurfaceX* lpSurfaceX);
 	bool DoesAttachedSurfaceExist(m_IDirectDrawSurfaceX* lpSurfaceX);

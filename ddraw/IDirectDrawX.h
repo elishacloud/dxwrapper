@@ -19,8 +19,6 @@ private:
 	HWND MainhWnd = nullptr;
 	bool IsInScene = false;
 	bool ExclusiveMode = false;
-	POINT lastPosition = {100, 100};		// Last window position
-	bool SetDefaultDisplayMode = false;		// Set native resolution
 	bool isWindowed = false;				// Window mode enabled
 
 	// Application display mode
@@ -30,6 +28,7 @@ private:
 	DWORD displayModeRefreshRate = 0;		// Refresh rate for fullscreen
 
 	// Display resolution
+	bool SetDefaultDisplayMode = false;		// Set native resolution
 	DWORD displayWidth = 0;
 	DWORD displayHeight = 0;
 
@@ -56,7 +55,7 @@ public:
 
 			ProxyDirectXVersion = 9;
 
-			if ((!displayWidth || !displayHeight) && !isWindowed)
+			if (!displayWidth || !displayHeight)
 			{
 				SetDefaultDisplayMode = true;
 			}
@@ -139,10 +138,11 @@ public:
 	STDMETHOD(EvaluateMode)(THIS_ DWORD, DWORD *);
 
 	/*** Helper functions ***/
-	void ReleaseD3d9();
-	void ReleaseAllD9Surfaces();
 	HRESULT CreateD3DDevice();
 	HRESULT ReinitDevice();
+	void ReleaseAllD9Surfaces();
+	void ReleaseD3d9Device();
+	void ReleaseD3d9();
 	void AddSurfaceToVector(m_IDirectDrawSurfaceX* lpSurfaceX);
 	void RemoveSurfaceFromVector(m_IDirectDrawSurfaceX* lpSurfaceX);
 	bool DoesSurfaceExist(m_IDirectDrawSurfaceX* lpSurfaceX);
