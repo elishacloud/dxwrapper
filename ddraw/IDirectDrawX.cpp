@@ -446,6 +446,7 @@ HRESULT m_IDirectDrawX::GetDisplayMode(LPDDSURFACEDESC2 lpDDSurfaceDesc2)
 	}
 
 	// Game using old DirectX, Convert to LPDDSURFACEDESC2
+	LPDDSURFACEDESC2 lpDDSurfaceDesc_tmp = lpDDSurfaceDesc2;
 	DDSURFACEDESC2 Desc2;
 	if (ConvertSurfaceDescTo2)
 	{
@@ -453,13 +454,10 @@ HRESULT m_IDirectDrawX::GetDisplayMode(LPDDSURFACEDESC2 lpDDSurfaceDesc2)
 		lpDDSurfaceDesc2 = &Desc2;
 	}
 
+	HRESULT hr = DD_OK;
+
 	if (Config.Dd7to9)
 	{
-		if (lpDDSurfaceDesc2->dwSize != sizeof(*lpDDSurfaceDesc2))
-		{
-			return DDERR_INVALIDPARAMS;
-		}
-
 		// Set Surface Desc
 		lpDDSurfaceDesc2->dwFlags = DDSD_WIDTH | DDSD_HEIGHT | DDSD_REFRESHRATE | DDSD_PIXELFORMAT;
 		DWORD displayModeBits = displayModeBPP;
@@ -481,6 +479,7 @@ HRESULT m_IDirectDrawX::GetDisplayMode(LPDDSURFACEDESC2 lpDDSurfaceDesc2)
 
 		// Set Pixel Format
 		lpDDSurfaceDesc2->ddpfPixelFormat.dwFlags = DDPF_RGB;
+		lpDDSurfaceDesc2->ddpfPixelFormat.dwRGBBitCount = displayModeBits;
 		switch (displayModeBits)
 		{
 		case 8:
@@ -496,15 +495,23 @@ HRESULT m_IDirectDrawX::GetDisplayMode(LPDDSURFACEDESC2 lpDDSurfaceDesc2)
 			GetPixelDisplayFormat(D3DFMT_X8R8G8B8, lpDDSurfaceDesc2->ddpfPixelFormat);
 			break;
 		default:
-			Logging::Log() << __FUNCTION__ << " " << displayModeBPP << "-bit display mode not supported ";
-			return E_NOTIMPL;
+			Logging::Log() << __FUNCTION__ << " Not implemented bit count " << displayModeBits;
+			hr = E_NOTIMPL;
 		}
-		lpDDSurfaceDesc2->ddpfPixelFormat.dwRGBBitCount = displayModeBPP;
-
-		return DD_OK;
+	}
+	else
+	{
+		hr = ProxyInterface->GetDisplayMode(lpDDSurfaceDesc2);
 	}
 
-	return ProxyInterface->GetDisplayMode(lpDDSurfaceDesc2);
+	// Convert back to LPDDSURFACEDESC
+	if (SUCCEEDED(hr) && ConvertSurfaceDescTo2)
+	{
+		lpDDSurfaceDesc2 = lpDDSurfaceDesc_tmp;
+		ConvertSurfaceDesc(*(LPDDSURFACEDESC)lpDDSurfaceDesc2, Desc2);
+	}
+
+	return hr;
 }
 
 HRESULT m_IDirectDrawX::GetFourCCCodes(LPDWORD lpNumCodes, LPDWORD lpCodes)

@@ -454,6 +454,8 @@ HRESULT m_IDirectDrawSurfaceX::EnumAttachedSurfaces(LPVOID lpContext, LPDDENUMSU
 {
 	if (Config.Dd7to9)
 	{
+		Logging::Log() << __FUNCTION__ << " Not fully Implemented.";
+
 		if (!lpEnumSurfacesCallback7)
 		{
 			return DDERR_INVALIDPARAMS;
@@ -518,8 +520,7 @@ HRESULT m_IDirectDrawSurfaceX::Flip(LPDIRECTDRAWSURFACE7 lpDDSurfaceTargetOverri
 		// Make sure surface exists, if not then create it
 		if (!surfaceTexture)
 		{
-			HRESULT hr = CreateD3d9Surface();
-			if (FAILED(hr))
+			if (FAILED(CreateD3d9Surface()))
 			{
 				Logging::Log() << __FUNCTION__ << " could not recreate surface";
 				return DDERR_SURFACELOST;
@@ -650,6 +651,8 @@ HRESULT m_IDirectDrawSurfaceX::GetAttachedSurface(LPDDSCAPS2 lpDDSCaps, LPDIRECT
 
 	if (Config.Dd7to9)
 	{
+		Logging::Log() << __FUNCTION__ << " Not fully Implemented.";
+
 		// Check for device
 		if (!d3d9Device || !*d3d9Device || !ddrawParent)
 		{
@@ -714,13 +717,11 @@ HRESULT m_IDirectDrawSurfaceX::GetCaps(LPDDSCAPS2 lpDDSCaps)
 		lpDDSCaps = &Caps2;
 	}
 
-	HRESULT hr;
+	HRESULT hr = DD_OK;
 
 	if (Config.Dd7to9)
 	{
 		ConvertCaps(*lpDDSCaps, surfaceDesc2.ddsCaps);
-
-		hr = DD_OK;
 	}
 	else
 	{
@@ -897,16 +898,14 @@ HRESULT m_IDirectDrawSurfaceX::GetPixelFormat(LPDDPIXELFORMAT lpDDPixelFormat)
 
 	if (Config.Dd7to9)
 	{
-		DDSURFACEDESC2 tmpSurfaceDesc2;
-
-		// Copy surfacedesc to lpDDSurfaceDesc2
-		memcpy(&tmpSurfaceDesc2, &surfaceDesc2, sizeof(DDSURFACEDESC2));
+		DDSURFACEDESC2 Desc2;
+		Desc2.dwSize = sizeof(DDSURFACEDESC2);
 
 		// Update surface description
-		UpdateSurfaceDesc2(&tmpSurfaceDesc2);
+		GetSurfaceDesc2(&Desc2);
 
 		// Copy pixel format to lpDDPixelFormat
-		memcpy(lpDDPixelFormat, &tmpSurfaceDesc2.ddpfPixelFormat, sizeof(DDPIXELFORMAT));
+		memcpy(lpDDPixelFormat, &Desc2.ddpfPixelFormat, sizeof(DDPIXELFORMAT));
 
 		return DD_OK;
 	}
@@ -934,13 +933,8 @@ HRESULT m_IDirectDrawSurfaceX::GetSurfaceDesc(LPDDSURFACEDESC2 lpDDSurfaceDesc2)
 
 	if (Config.Dd7to9)
 	{
-		// Copy surfacedesc to lpDDSurfaceDesc2
-		memcpy(lpDDSurfaceDesc2, &surfaceDesc2, sizeof(DDSURFACEDESC2));
-
 		// Update surface description
-		UpdateSurfaceDesc2(lpDDSurfaceDesc2);
-
-		hr = DD_OK;
+		hr = GetSurfaceDesc2(lpDDSurfaceDesc2);
 	}
 	else
 	{
@@ -959,17 +953,17 @@ HRESULT m_IDirectDrawSurfaceX::GetSurfaceDesc(LPDDSURFACEDESC2 lpDDSurfaceDesc2)
 
 HRESULT m_IDirectDrawSurfaceX::Initialize(LPDIRECTDRAW lpDD, LPDDSURFACEDESC2 lpDDSurfaceDesc2)
 {
+	if (Config.Dd7to9)
+	{
+		// Not needed
+		return DD_OK;
+	}
+
 	DDSURFACEDESC2 Desc2;
 	if (lpDDSurfaceDesc2 && ConvertSurfaceDescTo2)
 	{
 		ConvertSurfaceDesc(Desc2, *(LPDDSURFACEDESC)lpDDSurfaceDesc2);
 		lpDDSurfaceDesc2 = &Desc2;
-	}
-
-	if (Config.Dd7to9)
-	{
-		// Not needed
-		return DD_OK;
 	}
 
 	if (lpDD)
@@ -1246,6 +1240,7 @@ HRESULT m_IDirectDrawSurfaceX::Unlock(LPRECT lpRect)
 		// If no video memory than nothing to do...
 		if (!d3dlrect.pBits)
 		{
+			Logging::Log() << __FUNCTION__ << " No video memory!";
 			return DD_OK;
 		}
 
@@ -1578,7 +1573,7 @@ HRESULT m_IDirectDrawSurfaceX::CreateD3d9Surface()
 	}
 
 	// Update surface description
-	UpdateSurfaceDesc2(&surfaceDesc2);
+	GetSurfaceDesc2(&surfaceDesc2);
 	
 	// Get d3d9Object
 	IDirect3D9 *d3d9Object = ddrawParent->GetDirect3D();
@@ -1656,16 +1651,13 @@ HRESULT m_IDirectDrawSurfaceX::CreateD3d9Surface()
 	// Get format
 	D3DFORMAT Format = GetDisplayFormat(surfaceDesc2.ddpfPixelFormat);
 
-	// Test format
-	HRESULT hr = d3d9Object->CheckDeviceFormat(D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, Format, D3DUSAGE_QUERY_FILTER, D3DRTYPE_TEXTURE, Format);
 	// If test fails or there is a palette then write to memory buffer
-	if (FAILED(hr) || attachedPalette)
+	if (FAILED(d3d9Object->CheckDeviceFormat(D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, Format, D3DUSAGE_QUERY_FILTER, D3DRTYPE_TEXTURE, Format)) || attachedPalette)
 	{
 		WriteDirectlyToSurface = false;
 		Format = D3DFMT_A8R8G8B8;
 		// Test format
-		hr = d3d9Object->CheckDeviceFormat(D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, Format, D3DUSAGE_QUERY_FILTER, D3DRTYPE_TEXTURE, Format);
-		if (FAILED(hr))
+		if (FAILED(d3d9Object->CheckDeviceFormat(D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, Format, D3DUSAGE_QUERY_FILTER, D3DRTYPE_TEXTURE, Format)))
 		{
 			Format = D3DFMT_X8R8G8B8;
 		}
@@ -1678,11 +1670,10 @@ HRESULT m_IDirectDrawSurfaceX::CreateD3d9Surface()
 	}
 
 	// Create surface
-	hr = (*d3d9Device)->CreateTexture(surfaceDesc2.dwWidth, surfaceDesc2.dwHeight, 1, Usage, Format, Pool, &surfaceTexture, nullptr);
-	if (FAILED(hr))
+	if (FAILED((*d3d9Device)->CreateTexture(surfaceDesc2.dwWidth, surfaceDesc2.dwHeight, 1, Usage, Format, Pool, &surfaceTexture, nullptr)))
 	{
 		Logging::Log() << __FUNCTION__ << " Unable to create surface";
-		return hr;
+		return DDERR_GENERIC;
 	}
 
 	// Reset Locked flag
@@ -1695,60 +1686,54 @@ HRESULT m_IDirectDrawSurfaceX::CreateD3d9Surface()
 	}
 
 	// Set vertex shader
-	hr = (*d3d9Device)->SetVertexShader(nullptr);
-	if (FAILED(hr))
+	if (FAILED((*d3d9Device)->SetVertexShader(nullptr)))
 	{
 		Logging::Log() << __FUNCTION__ << " Unable to set vertex shader";
-		return hr;
+		return DDERR_GENERIC;
 	}
 
 	// Set fv format
-	hr = (*d3d9Device)->SetFVF(D3DFVF_XYZRHW | D3DFVF_TEX1);
-	if (FAILED(hr))
+	if (FAILED((*d3d9Device)->SetFVF(D3DFVF_XYZRHW | D3DFVF_TEX1)))
 	{
 		Logging::Log() << __FUNCTION__ << " Unable to set the current vertex stream format";
-		return hr;
+		return DDERR_GENERIC;
 	}
 
 	// Create vertex buffer
-	hr = (*d3d9Device)->CreateVertexBuffer(sizeof(TLVERTEX) * 4, D3DUSAGE_DYNAMIC, (D3DFVF_XYZRHW | D3DFVF_TEX1), D3DPOOL_DEFAULT, &vertexBuffer, nullptr);
-	if (FAILED(hr))
+	if (FAILED((*d3d9Device)->CreateVertexBuffer(sizeof(TLVERTEX) * 4, D3DUSAGE_DYNAMIC, (D3DFVF_XYZRHW | D3DFVF_TEX1), D3DPOOL_DEFAULT, &vertexBuffer, nullptr)))
 	{
 		Logging::Log() << __FUNCTION__ << " Unable to create vertex buffer";
-		return hr;
+		return DDERR_GENERIC;
 	}
 
 	// Set stream source
-	hr = (*d3d9Device)->SetStreamSource(0, vertexBuffer, 0, sizeof(TLVERTEX));
-	if (FAILED(hr))
+	if (FAILED((*d3d9Device)->SetStreamSource(0, vertexBuffer, 0, sizeof(TLVERTEX))))
 	{
 		Logging::Log() << __FUNCTION__ << " Unable to set vertex buffer stream source";
-		return hr;
+		return DDERR_GENERIC;
 	}
 
 	// Set render states(no lighting)
-	hr = (*d3d9Device)->SetRenderState(D3DRS_LIGHTING, FALSE);
-	if (FAILED(hr))
+	if (FAILED((*d3d9Device)->SetRenderState(D3DRS_LIGHTING, FALSE)))
 	{
 		Logging::Log() << __FUNCTION__ << " Unable to set device render state(no lighting)";
-		return hr;
+		return DDERR_GENERIC;
 	}
 
 	// Set scale mode to linear
-	hr = (*d3d9Device)->SetSamplerState(0, D3DSAMP_MAGFILTER, D3DTEXF_LINEAR);
-	if (FAILED(hr))
+	if (FAILED((*d3d9Device)->SetSamplerState(0, D3DSAMP_MAGFILTER, D3DTEXF_LINEAR)))
 	{
 		Logging::Log() << __FUNCTION__ << " Failed to set D3D device to LINEAR sampling";
 	}
 
 	// Setup verticies (0,0,currentWidth,currentHeight)
 	TLVERTEX* vertices;
+
 	// Lock vertex buffer
-	hr = vertexBuffer->Lock(0, 0, (void**)&vertices, 0);
-	if (FAILED(hr))
+	if (FAILED(vertexBuffer->Lock(0, 0, (void**)&vertices, 0)))
 	{
 		Logging::Log() << __FUNCTION__ << " Unable to lock vertex buffer";
-		return hr;
+		return DDERR_GENERIC;
 	}
 
 	// Set vertex points
@@ -1785,25 +1770,23 @@ HRESULT m_IDirectDrawSurfaceX::CreateD3d9Surface()
 	vertices[3].v = 1.0f;
 
 	// Unlcok vertex buffer
-	hr = vertexBuffer->Unlock();
-	if (FAILED(hr))
+	if (FAILED(vertexBuffer->Unlock()))
 	{
 		Logging::Log() << __FUNCTION__ << " Unable to unlock vertex buffer";
-		return hr;
+		return DDERR_GENERIC;
 	}
 
 	// Set texture
-	hr = (*d3d9Device)->SetTexture(0, surfaceTexture);
-	if (FAILED(hr))
+	if (FAILED((*d3d9Device)->SetTexture(0, surfaceTexture)))
 	{
 		Logging::Log() << __FUNCTION__ << " Failed to set texture";
-		return hr;
+		return DDERR_GENERIC;
 	}
 
 	// BeginScene
 	ddrawParent->BeginScene();
 
-	return hr;
+	return DD_OK;
 }
 
 // Release surface and vertext buffer
@@ -1908,8 +1891,7 @@ HRESULT m_IDirectDrawSurfaceX::SetLock(LPRECT lpDestRect, DWORD dwFlags)
 	// Make sure surface exists, if not then create it
 	if (!surfaceTexture)
 	{
-		HRESULT hr = CreateD3d9Surface();
-		if (FAILED(hr))
+		if (FAILED(CreateD3d9Surface()))
 		{
 			Logging::Log() << __FUNCTION__ << " could not recreate surface";
 			return DDERR_SURFACELOST;
@@ -1920,16 +1902,18 @@ HRESULT m_IDirectDrawSurfaceX::SetLock(LPRECT lpDestRect, DWORD dwFlags)
 	ddrawParent->BeginScene();
 
 	// Lock surface
-	HRESULT hr = surfaceTexture->LockRect(0, &d3dlrect, lpDestRect, dwFlags);
-	if (FAILED(hr))
+	if (FAILED(surfaceTexture->LockRect(0, &d3dlrect, lpDestRect, dwFlags)))
 	{
 		d3dlrect.pBits = nullptr;
 		Logging::Log() << __FUNCTION__ << " Failed to lock surface";
 		return DDERR_GENERIC;
 	}
+
+	// Set lock flag
 	IsLocked = true;
 
-	return hr;
+	// Success
+	return DD_OK;
 }
 
 // Unlock the d3d9 surface
@@ -1941,11 +1925,10 @@ HRESULT m_IDirectDrawSurfaceX::SetUnLock()
 	}
 
 	// Lock surface
-	HRESULT hr = surfaceTexture->UnlockRect(0);
-	if (FAILED(hr))
+	if (FAILED(surfaceTexture->UnlockRect(0)))
 	{
 		Logging::Log() << __FUNCTION__ << " Failed to unlock surface";
-		return hr;
+		return DDERR_GENERIC;
 	}
 	IsLocked = false;
 	d3dlrect.pBits = nullptr;
@@ -1956,7 +1939,7 @@ HRESULT m_IDirectDrawSurfaceX::SetUnLock()
 		SceneReady = FAILED(ddrawParent->EndScene());
 	}
 
-	return hr;
+	return DD_OK;
 }
 
 // Get LOCKED_RECT, BitCount and Format for the surface
@@ -1989,22 +1972,19 @@ HRESULT m_IDirectDrawSurfaceX::GetSurfaceInfo(D3DLOCKED_RECT *pLockRect, DWORD *
 	return DD_OK;
 }
 
-// Always get SurfaceDesc2 no matter what DirectXVersion is used
+// Always get SurfaceDesc2 and update it no matter what DirectXVersion is used
 HRESULT m_IDirectDrawSurfaceX::GetSurfaceDesc2(LPDDSURFACEDESC2 lpDDSurfaceDesc2)
-{
-	// Copy surfacedesc to lpDDSurfaceDesc2
-	memcpy(lpDDSurfaceDesc2, &surfaceDesc2, sizeof(DDSURFACEDESC2));
-
-	return DD_OK;
-}
-
-// Update surface description
-HRESULT m_IDirectDrawSurfaceX::UpdateSurfaceDesc2(LPDDSURFACEDESC2 lpDDSurfaceDesc2)
 {
 	if (!ddrawParent)
 	{
 		Logging::Log() << __FUNCTION__ << " Error no ddraw parent!";
 		return DDERR_INVALIDOBJECT;
+	}
+
+	// Copy surfacedesc to lpDDSurfaceDesc2
+	if (lpDDSurfaceDesc2 != &surfaceDesc2)
+	{
+		memcpy(lpDDSurfaceDesc2, &surfaceDesc2, sizeof(DDSURFACEDESC2));
 	}
 
 	// Set Height and Width
@@ -2027,8 +2007,11 @@ HRESULT m_IDirectDrawSurfaceX::UpdateSurfaceDesc2(LPDDSURFACEDESC2 lpDDSurfaceDe
 		lpDDSurfaceDesc2->dwFlags |= DDSD_PIXELFORMAT;
 		lpDDSurfaceDesc2->ddpfPixelFormat.dwFlags = DDPF_RGB;
 
+		// Set BitCount
+		lpDDSurfaceDesc2->ddpfPixelFormat.dwRGBBitCount = ddrawParent->GetDisplayModeBPP();
+
 		// Set BitMask
-		switch (ddrawParent->GetDisplayModeBPP())
+		switch (lpDDSurfaceDesc2->ddpfPixelFormat.dwRGBBitCount)
 		{
 		case 8:
 			lpDDSurfaceDesc2->ddpfPixelFormat.dwRBitMask = 0;
@@ -2042,10 +2025,10 @@ HRESULT m_IDirectDrawSurfaceX::UpdateSurfaceDesc2(LPDDSURFACEDESC2 lpDDSurfaceDe
 		case 32:
 			GetPixelDisplayFormat(D3DFMT_X8R8G8B8, lpDDSurfaceDesc2->ddpfPixelFormat);
 			break;
+		default:
+			Logging::Log() << __FUNCTION__ << " Not implemented bit count " << lpDDSurfaceDesc2->ddpfPixelFormat.dwRGBBitCount;
+			return E_NOTIMPL;
 		}
-
-		// Set BitCount
-		lpDDSurfaceDesc2->ddpfPixelFormat.dwRGBBitCount = ddrawParent->GetDisplayModeBPP();
 	}
 
 	// Return
@@ -2217,8 +2200,7 @@ HRESULT m_IDirectDrawSurfaceX::WritePaletteToSurface(m_IDirectDrawPalette *lpDDP
 	bool UnlockDest = false;
 	if (!IsSurfaceLocked())
 	{
-		HRESULT hr = SetLock(nullptr, 0);
-		if (FAILED(hr))
+		if (FAILED(SetLock(nullptr, 0)))
 		{
 			Logging::Log() << __FUNCTION__ << " Error, could not lock dest surface";
 			return DDERR_GENERIC;
