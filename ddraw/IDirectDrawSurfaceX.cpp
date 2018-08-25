@@ -809,7 +809,7 @@ HRESULT m_IDirectDrawSurfaceX::GetDC(HDC FAR * lphDC)
 			return DDERR_INVALIDOBJECT;
 		}
 
-		*lphDC = ddrawParent->GetWindowDC();
+		*lphDC = ::GetDC(ddrawParent->GetHwnd());
 
 		if (!*lphDC)
 		{
@@ -1094,7 +1094,7 @@ HRESULT m_IDirectDrawSurfaceX::ReleaseDC(HDC hDC)
 			return DDERR_INVALIDOBJECT;
 		}
 
-		if (ddrawParent->ReleaseWindowDC(hDC) == 0)
+		if (::ReleaseDC(ddrawParent->GetHwnd(), hDC) == 0)
 		{
 			return DDERR_GENERIC;
 		}

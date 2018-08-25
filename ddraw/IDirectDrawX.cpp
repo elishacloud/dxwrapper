@@ -309,7 +309,7 @@ HRESULT m_IDirectDrawX::EnumDisplayModes(DWORD dwFlags, LPDDSURFACEDESC2 lpDDSur
 			{
 				// Get display modes
 				ZeroMemory(&d3ddispmode, sizeof(D3DDISPLAYMODE));
-				if (d3d9Object->EnumAdapterModes(D3DADAPTER_DEFAULT, Format, i, &d3ddispmode) != D3D_OK)
+				if (FAILED(d3d9Object->EnumAdapterModes(D3DADAPTER_DEFAULT, Format, i, &d3ddispmode)))
 				{
 					Logging::Log() << __FUNCTION__ << " EnumAdapterModes failed";
 					return false;
@@ -800,7 +800,7 @@ HRESULT m_IDirectDrawX::SetDisplayMode(DWORD dwWidth, DWORD dwHeight, DWORD dwBP
 		// Ignore color depth (is color depth needed?)
 
 		// Create the requested d3d device for this display mode, report error on failure
-		if (!CreateD3DDevice())
+		if (FAILED(CreateD3DDevice()))
 		{
 			Logging::Log() << __FUNCTION__ << " Error creating Direct3D9 Device";
 			return DDERR_GENERIC;
@@ -1063,7 +1063,7 @@ void m_IDirectDrawX::ReleaseAllD9Surfaces()
 }
 
 // Creates d3d9 device, destroying the old one if exists
-bool m_IDirectDrawX::CreateD3DDevice()
+HRESULT m_IDirectDrawX::CreateD3DDevice()
 {
 	// Release all existing surfaces
 	ReleaseAllD9Surfaces();
@@ -1074,7 +1074,7 @@ bool m_IDirectDrawX::CreateD3DDevice()
 		if (d3d9Device->Release() != 0)
 		{
 			Logging::Log() << __FUNCTION__ << " Unable to release Direct3D9 device";
-			return false;
+			return DDERR_GENERIC;
 		}
 		d3d9Device = nullptr;
 	}
@@ -1082,10 +1082,10 @@ bool m_IDirectDrawX::CreateD3DDevice()
 	// Check device caps to make sure it supports dynamic textures
 	D3DCAPS9 d3dcaps;
 	ZeroMemory(&d3dcaps, sizeof(D3DCAPS9));
-	if (d3d9Object->GetDeviceCaps(D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, &d3dcaps) != D3D_OK)
+	if (FAILED(d3d9Object->GetDeviceCaps(D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, &d3dcaps)))
 	{
 		Logging::Log() << __FUNCTION__ << " Unable to retrieve device-specific information about the device";
-		return false;
+		return DDERR_GENERIC;
 	}
 
 	// Is dynamic textures flag set?
@@ -1093,7 +1093,7 @@ bool m_IDirectDrawX::CreateD3DDevice()
 	{
 		// No dynamic textures
 		Logging::Log() << __FUNCTION__ << " Device does not support dynamic textures";
-		return false;
+		return DDERR_GENERIC;
 	}
 
 	// Set display window
@@ -1111,10 +1111,10 @@ bool m_IDirectDrawX::CreateD3DDevice()
 	{
 		// Get display modes here
 		ZeroMemory(&d3ddispmode, sizeof(D3DDISPLAYMODE));
-		if (d3d9Object->EnumAdapterModes(D3DADAPTER_DEFAULT, D3DFMT_X8R8G8B8, i, &d3ddispmode) != D3D_OK)
+		if (FAILED(d3d9Object->EnumAdapterModes(D3DADAPTER_DEFAULT, D3DFMT_X8R8G8B8, i, &d3ddispmode)))
 		{
 			Logging::Log() << __FUNCTION__ << " EnumAdapterModes failed";
-			return false;
+			return DDERR_GENERIC;
 		}
 		if (d3ddispmode.Width == displayWidth && d3ddispmode.Height == displayHeight &&				// Check height and width
 			(d3ddispmode.RefreshRate == displayModeRefreshRate || displayModeRefreshRate == 0))		// Check refresh rate
@@ -1143,7 +1143,7 @@ bool m_IDirectDrawX::CreateD3DDevice()
 		if (!modeFound)
 		{
 			Logging::Log() << __FUNCTION__ << " Failed to find compatible fullscreen display mode";
-			return false;
+			return DDERR_GENERIC;
 		}
 		// Fullscreen
 		presParams.Windowed = FALSE;
@@ -1164,18 +1164,18 @@ bool m_IDirectDrawX::CreateD3DDevice()
 	// create d3d device with hardware vertex processing if it's available
 	if (d3dcaps.VertexProcessingCaps != 0)
 	{
-		if (d3d9Object->CreateDevice(D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, MainhWnd, D3DCREATE_HARDWARE_VERTEXPROCESSING, &presParams, &d3d9Device) != D3D_OK)
+		if (FAILED(d3d9Object->CreateDevice(D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, MainhWnd, D3DCREATE_HARDWARE_VERTEXPROCESSING, &presParams, &d3d9Device)))
 		{
 			Logging::Log() << __FUNCTION__ << " Failed to create Direct3D9 device";
-			return false;
+			return DDERR_GENERIC;
 		}
 	}
 	else
 	{
-		if (d3d9Object->CreateDevice(D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, MainhWnd, D3DCREATE_SOFTWARE_VERTEXPROCESSING, &presParams, &d3d9Device) != D3D_OK)
+		if (FAILED(d3d9Object->CreateDevice(D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, MainhWnd, D3DCREATE_SOFTWARE_VERTEXPROCESSING, &presParams, &d3d9Device)))
 		{
 			Logging::Log() << __FUNCTION__ << " Failed to create Direct3D9 device";
-			return false;
+			return DDERR_GENERIC;
 		}
 	}
 
@@ -1183,23 +1183,23 @@ bool m_IDirectDrawX::CreateD3DDevice()
 	IsInScene = false;
 
 	// Success
-	return true;
+	return DD_OK;
 }
 
 // Reinitialize d3d9 device
-bool m_IDirectDrawX::ReinitDevice()
+HRESULT m_IDirectDrawX::ReinitDevice()
 {
 	// Release existing surfaces
 	ReleaseAllD9Surfaces();
 
 	// Attempt to reset the device
-	if (!d3d9Device->Reset(&presParams))
+	if (FAILED(d3d9Device->Reset(&presParams)))
 	{
 		Logging::Log() << __FUNCTION__ << " Failed to reset Direct3D9 device";
-		return false;
+		return DDERR_GENERIC;
 	}
 
-	return true;
+	return DD_OK;
 }
 
 // Add surface wrapper to vector
@@ -1329,7 +1329,7 @@ HRESULT m_IDirectDrawX::EndScene()
 	hr = d3d9Device->EndScene();
 	if (FAILED(hr))
 	{
-		Logging::Log() << __FUNCTION__ << " Failed to end scene error " << hr;
+		Logging::Log() << __FUNCTION__ << " Failed to end scene error ";
 		return hr;
 	}
 	IsInScene = false;
@@ -1351,14 +1351,4 @@ HRESULT m_IDirectDrawX::EndScene()
 	}
 
 	return DD_OK;
-}
-
-HDC m_IDirectDrawX::GetWindowDC()
-{
-	return GetDC(MainhWnd);
-}
-
-int m_IDirectDrawX::ReleaseWindowDC(HDC hDC)
-{
-	return ReleaseDC(MainhWnd, hDC);
 }

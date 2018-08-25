@@ -98,6 +98,7 @@ public:
 	DWORD GetDisplayModeHeight() { return displayModeHeight; }
 	DWORD GetDisplayModeRefreshRate() { return displayModeRefreshRate; }
 	DWORD GetDisplayModeBPP() { return displayModeBPP; }
+	HWND GetHwnd() { return MainhWnd; }
 
 	/*** IUnknown methods ***/
 	STDMETHOD(QueryInterface) (THIS_ REFIID riid, LPVOID FAR * ppvObj);
@@ -140,13 +141,11 @@ public:
 	/*** Helper functions ***/
 	void ReleaseD3d9();
 	void ReleaseAllD9Surfaces();
-	bool CreateD3DDevice();
-	bool ReinitDevice();
+	HRESULT CreateD3DDevice();
+	HRESULT ReinitDevice();
 	void AddSurfaceToVector(m_IDirectDrawSurfaceX* lpSurfaceX);
 	void RemoveSurfaceFromVector(m_IDirectDrawSurfaceX* lpSurfaceX);
 	bool DoesSurfaceExist(m_IDirectDrawSurfaceX* lpSurfaceX);
 	HRESULT BeginScene();
 	HRESULT EndScene();
-	HDC GetWindowDC();
-	int ReleaseWindowDC(HDC hDC);
  };
