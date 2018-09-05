@@ -2,8 +2,8 @@
 
 struct ENUMDEVICES
 {
-	LPVOID lpContext;
-	LPD3DENUMDEVICESCALLBACK lpCallback;
+	LPVOID lpContext = nullptr;
+	LPD3DENUMDEVICESCALLBACK lpCallback = nullptr;
 };
 
 class m_IDirect3DEnumDevices

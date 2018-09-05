@@ -108,13 +108,53 @@ public:
 	STDMETHOD(Compact)(THIS);
 	STDMETHOD(CreateClipper)(THIS_ DWORD, LPDIRECTDRAWCLIPPER FAR*, IUnknown FAR *);
 	STDMETHOD(CreatePalette)(THIS_ DWORD, LPPALETTEENTRY, LPDIRECTDRAWPALETTE FAR*, IUnknown FAR *);
-	STDMETHOD(CreateSurface)(THIS_  LPDDSURFACEDESC2, LPDIRECTDRAWSURFACE7 FAR *, IUnknown FAR *);
+	STDMETHOD(CreateSurface)(THIS_ LPDDSURFACEDESC2 lpDDSurfaceDesc2, LPDIRECTDRAWSURFACE7 FAR * lplpDDSurface, IUnknown FAR * pUnkOuter)
+	{
+		if (DirectXVersion < 4)
+		{
+			return CreateSurface((LPDDSURFACEDESC)lpDDSurfaceDesc2, lplpDDSurface, pUnkOuter);
+		}
+
+		return CreateSurface2(lpDDSurfaceDesc2, lplpDDSurface, pUnkOuter);
+	}
+	HRESULT CreateSurface(LPDDSURFACEDESC, LPDIRECTDRAWSURFACE7 FAR *, IUnknown FAR *);
+	HRESULT CreateSurface2(LPDDSURFACEDESC2, LPDIRECTDRAWSURFACE7 FAR *, IUnknown FAR *);
 	STDMETHOD(DuplicateSurface)(THIS_ LPDIRECTDRAWSURFACE7, LPDIRECTDRAWSURFACE7 FAR *);
-	STDMETHOD(EnumDisplayModes)(THIS_ DWORD, LPDDSURFACEDESC2, LPVOID, LPDDENUMMODESCALLBACK2);
-	STDMETHOD(EnumSurfaces)(THIS_ DWORD, LPDDSURFACEDESC2, LPVOID, LPDDENUMSURFACESCALLBACK7);
+	STDMETHOD(EnumDisplayModes)(THIS_ DWORD dwFlags, LPDDSURFACEDESC2 lpDDSurfaceDesc2, LPVOID lpContext, LPDDENUMMODESCALLBACK2 lpEnumModesCallback2)
+	{
+		if (DirectXVersion < 4)
+		{
+			return EnumDisplayModes(dwFlags, (LPDDSURFACEDESC)lpDDSurfaceDesc2, lpContext, (LPDDENUMMODESCALLBACK)lpEnumModesCallback2);
+		}
+
+		return EnumDisplayModes2(dwFlags, lpDDSurfaceDesc2, lpContext, lpEnumModesCallback2);
+	}
+	HRESULT EnumDisplayModes(DWORD, LPDDSURFACEDESC, LPVOID, LPDDENUMMODESCALLBACK);
+	HRESULT EnumDisplayModes2(DWORD, LPDDSURFACEDESC2, LPVOID, LPDDENUMMODESCALLBACK2);
+	STDMETHOD(EnumSurfaces)(THIS_ DWORD dwFlags, LPDDSURFACEDESC2 lpDDSurfaceDesc2, LPVOID lpContext, LPDDENUMSURFACESCALLBACK7 lpEnumSurfacesCallback7)
+	{
+		if (DirectXVersion < 4)
+		{
+			return EnumSurfaces(dwFlags, (LPDDSURFACEDESC)lpDDSurfaceDesc2, lpContext, (LPDDENUMSURFACESCALLBACK)lpEnumSurfacesCallback7);
+		}
+
+		return EnumSurfaces2(dwFlags, lpDDSurfaceDesc2, lpContext, lpEnumSurfacesCallback7);
+	}
+	HRESULT EnumSurfaces(DWORD, LPDDSURFACEDESC, LPVOID, LPDDENUMSURFACESCALLBACK);
+	HRESULT EnumSurfaces2(DWORD, LPDDSURFACEDESC2, LPVOID, LPDDENUMSURFACESCALLBACK7);
 	STDMETHOD(FlipToGDISurface)(THIS);
 	STDMETHOD(GetCaps)(THIS_ LPDDCAPS, LPDDCAPS);
-	STDMETHOD(GetDisplayMode)(THIS_ LPDDSURFACEDESC2);
+	STDMETHOD(GetDisplayMode)(THIS_ LPDDSURFACEDESC2 lpDDSurfaceDesc2)
+	{
+		if (DirectXVersion < 4)
+		{
+			return GetDisplayMode((LPDDSURFACEDESC)lpDDSurfaceDesc2);
+		}
+
+		return GetDisplayMode2(lpDDSurfaceDesc2);
+	}
+	HRESULT GetDisplayMode(LPDDSURFACEDESC);
+	HRESULT GetDisplayMode2(LPDDSURFACEDESC2);
 	STDMETHOD(GetFourCCCodes)(THIS_ LPDWORD, LPDWORD);
 	STDMETHOD(GetGDISurface)(THIS_ LPDIRECTDRAWSURFACE7 FAR *);
 	STDMETHOD(GetMonitorFrequency)(THIS_ LPDWORD);
@@ -127,13 +167,33 @@ public:
 	STDMETHOD(WaitForVerticalBlank)(THIS_ DWORD, HANDLE);
 
 	/*** Added in the v2 interface ***/
-	STDMETHOD(GetAvailableVidMem)(THIS_ LPDDSCAPS2, LPDWORD, LPDWORD);
+	STDMETHOD(GetAvailableVidMem)(THIS_ LPDDSCAPS2 lpDDSCaps2, LPDWORD lpdwTotal, LPDWORD lpdwFree)
+	{
+		if (DirectXVersion < 4)
+		{
+			return GetAvailableVidMem((LPDDSCAPS)lpDDSCaps2, lpdwTotal, lpdwFree);
+		}
+
+		return GetAvailableVidMem2(lpDDSCaps2, lpdwTotal, lpdwFree);
+	}
+	HRESULT GetAvailableVidMem(LPDDSCAPS, LPDWORD, LPDWORD);
+	HRESULT GetAvailableVidMem2(LPDDSCAPS2, LPDWORD, LPDWORD);
 
 	/*** Added in the V4 Interface ***/
 	STDMETHOD(GetSurfaceFromDC) (THIS_ HDC, LPDIRECTDRAWSURFACE7 *);
 	STDMETHOD(RestoreAllSurfaces)(THIS);
 	STDMETHOD(TestCooperativeLevel)(THIS);
-	STDMETHOD(GetDeviceIdentifier)(THIS_ LPDDDEVICEIDENTIFIER2, DWORD);
+	STDMETHOD(GetDeviceIdentifier)(THIS_ LPDDDEVICEIDENTIFIER2 lpdddi2, DWORD dwFlags)
+	{
+		if (DirectXVersion < 7)
+		{
+			return GetDeviceIdentifier((LPDDDEVICEIDENTIFIER)lpdddi2, dwFlags);
+		}
+
+		return GetDeviceIdentifier2(lpdddi2, dwFlags);
+	}
+	HRESULT GetDeviceIdentifier(LPDDDEVICEIDENTIFIER, DWORD);
+	HRESULT GetDeviceIdentifier2(LPDDDEVICEIDENTIFIER2, DWORD);
 	STDMETHOD(StartModeTest)(THIS_ LPSIZE, DWORD, DWORD);
 	STDMETHOD(EvaluateMode)(THIS_ DWORD, DWORD *);
 

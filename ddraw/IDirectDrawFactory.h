@@ -3,23 +3,12 @@
 class m_IDirectDrawFactory : public IDirectDrawFactory, public AddressLookupTableDdrawObject
 {
 private:
-	IDirectDrawFactory *ProxyInterface;
 	REFIID WrapperID = IID_IDirectDrawFactory;
+	ULONG RefCount = 1;
 
 public:
-	m_IDirectDrawFactory(IDirectDrawFactory *aOriginal) : ProxyInterface(aOriginal)
-	{
-		ProxyAddressLookupTable.SaveAddress(this, ProxyInterface);
-	}
-	~m_IDirectDrawFactory()
-	{
-		ProxyAddressLookupTable.DeleteAddress(this);
-	}
-
-	DWORD GetDirectXVersion() { return 1; }
-	REFIID GetWrapperType() { return WrapperID; }
-	IDirectDrawFactory *GetProxyInterface() { return ProxyInterface; }
-	m_IDirectDrawFactory *GetWrapperInterface() { return this; }
+	m_IDirectDrawFactory() { }
+	~m_IDirectDrawFactory() { }
 
 	/*** IUnknown methods ***/
 	STDMETHOD(QueryInterface) (THIS_ REFIID riid, LPVOID FAR * ppvObj);

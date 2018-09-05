@@ -20,9 +20,9 @@
 /*** IUnknown methods ***/
 /************************/
 
-HRESULT m_IDirectDrawFactory::QueryInterface(REFIID riid, LPVOID FAR * ppvObj)
+HRESULT m_IClassFactory::QueryInterface(REFIID riid, LPVOID FAR * ppvObj)
 {
-	if ((riid == IID_IDirectDrawFactory || riid == IID_IUnknown) && ppvObj)
+	if ((riid == IID_IClassFactory || riid == IID_IUnknown) && ppvObj)
 	{
 		AddRef();
 
@@ -34,12 +34,12 @@ HRESULT m_IDirectDrawFactory::QueryInterface(REFIID riid, LPVOID FAR * ppvObj)
 	return ProxyQueryInterface(nullptr, riid, ppvObj, WrapperID, nullptr);
 }
 
-ULONG m_IDirectDrawFactory::AddRef()
+ULONG m_IClassFactory::AddRef()
 {
 	return InterlockedIncrement(&RefCount);
 }
 
-ULONG m_IDirectDrawFactory::Release()
+ULONG m_IClassFactory::Release()
 {
 	ULONG ref = InterlockedDecrement(&RefCount);
 
@@ -51,35 +51,26 @@ ULONG m_IDirectDrawFactory::Release()
 	return ref;
 }
 
-/**********************************/
-/*** IDirectDrawFactory methods ***/
-/**********************************/
+/*****************************/
+/*** IClassFactory methods ***/
+/*****************************/
 
-HRESULT m_IDirectDrawFactory::CreateDirectDraw(GUID * pGUID, HWND hWnd, DWORD dwCoopLevelFlags, DWORD dwReserved, IUnknown * pUnkOuter, IDirectDraw * * ppDirectDraw)
+HRESULT m_IClassFactory::CreateInstance(IUnknown *pUnkOuter, REFIID riid, void **ppvObject)
 {
-	UNREFERENCED_PARAMETER(dwReserved);
-
-	HRESULT hr = dd_DirectDrawCreate(pGUID, ppDirectDraw, pUnkOuter);
-
-	if (SUCCEEDED(hr) && ppDirectDraw)
+	if (riid == IID_IDirectDraw)
 	{
-		hr = (*ppDirectDraw)->SetCooperativeLevel(hWnd, dwCoopLevelFlags);
-		if (FAILED(hr))
-		{
-			(*ppDirectDraw)->Release();
-			*ppDirectDraw = nullptr;
-		}
+		return dd_DirectDrawCreate(nullptr, (LPDIRECTDRAW*)ppvObject, pUnkOuter);
 	}
-
-	return hr;
+	else
+	{
+		return dd_DirectDrawCreateEx(nullptr, ppvObject, riid, pUnkOuter);
+	}
 }
 
-HRESULT m_IDirectDrawFactory::DirectDrawEnumerateA(LPDDENUMCALLBACKA lpCallback, LPVOID lpContext)
+HRESULT m_IClassFactory::LockServer(BOOL fLock)
 {
-	return dd_DirectDrawEnumerateA(lpCallback, lpContext);
-}
+	UNREFERENCED_PARAMETER(fLock);
 
-HRESULT m_IDirectDrawFactory::DirectDrawEnumerateW(LPDDENUMCALLBACKW lpCallback, LPVOID lpContext)
-{
-	return dd_DirectDrawEnumerateW(lpCallback, lpContext);
+	Logging::Log() << __FUNCTION__ << " Not Implemented";
+	return E_NOTIMPL;
 }

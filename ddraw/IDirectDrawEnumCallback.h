@@ -2,8 +2,8 @@
 
 struct ENUMDISPLAYMODES
 {
-	LPVOID lpContext;
-	LPDDENUMMODESCALLBACK lpCallback;
+	LPVOID lpContext = nullptr;
+	LPDDENUMMODESCALLBACK lpCallback = nullptr;
 };
 
 class m_IDirectDrawEnumDisplayModes
@@ -17,8 +17,9 @@ public:
 
 struct ENUMSURFACE
 {
-	LPVOID lpContext;
-	LPDDENUMSURFACESCALLBACK7 lpCallback;
+	LPVOID lpContext = nullptr;
+	LPDDENUMSURFACESCALLBACK lpCallback = nullptr;
+	LPDDENUMSURFACESCALLBACK7 lpCallback7 = nullptr;
 	DWORD DirectXVersion;
 	bool ConvertSurfaceDescTo2;
 };
@@ -29,5 +30,6 @@ public:
 	m_IDirectDrawEnumSurface() {}
 	~m_IDirectDrawEnumSurface() {}
 
-	static HRESULT CALLBACK ConvertCallback(LPDIRECTDRAWSURFACE7 lpDDSurface, LPDDSURFACEDESC2 lpDDSurfaceDesc2, LPVOID lpContext);
+	static HRESULT CALLBACK ConvertCallback(LPDIRECTDRAWSURFACE lpDDSurface, LPDDSURFACEDESC lpDDSurfaceDesc, LPVOID lpContext);
+	static HRESULT CALLBACK ConvertCallback2(LPDIRECTDRAWSURFACE7 lpDDSurface, LPDDSURFACEDESC2 lpDDSurfaceDesc2, LPVOID lpContext);
 };

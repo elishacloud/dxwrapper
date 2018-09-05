@@ -63,12 +63,12 @@ HRESULT m_IDirectDrawSurface2::DeleteAttachedSurface(DWORD a, LPDIRECTDRAWSURFAC
 
 HRESULT m_IDirectDrawSurface2::EnumAttachedSurfaces(LPVOID a, LPDDENUMSURFACESCALLBACK b)
 {
-	return ProxyInterface->EnumAttachedSurfaces(a, (LPDDENUMSURFACESCALLBACK7)b);
+	return ProxyInterface->EnumAttachedSurfaces(a, b);
 }
 
 HRESULT m_IDirectDrawSurface2::EnumOverlayZOrders(DWORD a, LPVOID b, LPDDENUMSURFACESCALLBACK c)
 {
-	return ProxyInterface->EnumOverlayZOrders(a, b, (LPDDENUMSURFACESCALLBACK7)c);
+	return ProxyInterface->EnumOverlayZOrders(a, b, c);
 }
 
 HRESULT m_IDirectDrawSurface2::Flip(LPDIRECTDRAWSURFACE2 a, DWORD b)
@@ -78,7 +78,7 @@ HRESULT m_IDirectDrawSurface2::Flip(LPDIRECTDRAWSURFACE2 a, DWORD b)
 
 HRESULT m_IDirectDrawSurface2::GetAttachedSurface(LPDDSCAPS a, LPDIRECTDRAWSURFACE2 FAR * b)
 {
-	return ProxyInterface->GetAttachedSurface((LPDDSCAPS2)a, (LPDIRECTDRAWSURFACE7*)b);
+	return ProxyInterface->GetAttachedSurface(a, (LPDIRECTDRAWSURFACE7*)b);
 }
 
 HRESULT m_IDirectDrawSurface2::GetBltStatus(DWORD a)
@@ -88,7 +88,7 @@ HRESULT m_IDirectDrawSurface2::GetBltStatus(DWORD a)
 
 HRESULT m_IDirectDrawSurface2::GetCaps(LPDDSCAPS a)
 {
-	return ProxyInterface->GetCaps((LPDDSCAPS2)a);
+	return ProxyInterface->GetCaps(a);
 }
 
 HRESULT m_IDirectDrawSurface2::GetClipper(LPDIRECTDRAWCLIPPER FAR * a)
@@ -128,12 +128,12 @@ HRESULT m_IDirectDrawSurface2::GetPixelFormat(LPDDPIXELFORMAT a)
 
 HRESULT m_IDirectDrawSurface2::GetSurfaceDesc(LPDDSURFACEDESC a)
 {
-	return ProxyInterface->GetSurfaceDesc((LPDDSURFACEDESC2)a);
+	return ProxyInterface->GetSurfaceDesc(a);
 }
 
 HRESULT m_IDirectDrawSurface2::Initialize(LPDIRECTDRAW a, LPDDSURFACEDESC b)
 {
-	return ProxyInterface->Initialize(a, (LPDDSURFACEDESC2)b);
+	return ProxyInterface->Initialize(a, b);
 }
 
 HRESULT m_IDirectDrawSurface2::IsLost()
@@ -143,7 +143,7 @@ HRESULT m_IDirectDrawSurface2::IsLost()
 
 HRESULT m_IDirectDrawSurface2::Lock(LPRECT a, LPDDSURFACEDESC b, DWORD c, HANDLE d)
 {
-	return ProxyInterface->Lock(a, (LPDDSURFACEDESC2)b, c, d);
+	return ProxyInterface->Lock(a, b, c, d);
 }
 
 HRESULT m_IDirectDrawSurface2::ReleaseDC(HDC a)

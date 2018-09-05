@@ -18,7 +18,19 @@
 
 HRESULT CALLBACK m_IDirect3DEnumDevices::ConvertCallback(LPSTR lpDeviceDescription, LPSTR lpDeviceName, LPD3DDEVICEDESC7 lpDeviceDesc, LPVOID lpContext)
 {
+	if (!lpContext || !lpDeviceDesc)
+	{
+		Logging::Log() << __FUNCTION__ << " Error: invaid context!";
+		return DDENUMRET_CANCEL;
+	}
+
 	ENUMDEVICES *lpCallbackContext = (ENUMDEVICES*)lpContext;
+
+	if (!lpCallbackContext->lpCallback)
+	{
+		Logging::Log() << __FUNCTION__ << " Error: invaid callback!";
+		return DDENUMRET_CANCEL;
+	}
 
 	D3DDEVICEDESC D3DHWDevDesc, D3DHELDevDesc;
 	ConvertDeviceDesc(D3DHWDevDesc, *lpDeviceDesc);

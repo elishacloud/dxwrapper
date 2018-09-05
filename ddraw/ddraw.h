@@ -80,14 +80,20 @@ typedef void(WINAPI *ReleaseDDThreadLockProc)();
 typedef HRESULT(WINAPI *SetAppCompatDataProc)(DWORD, DWORD);
 typedef LPDIRECT3D9(WINAPI *PFN_Direct3DCreate9)(UINT SDKVersion);
 
+HRESULT WINAPI dd_DirectDrawCreate(GUID FAR *lpGUID, LPDIRECTDRAW FAR *lplpDD, IUnknown FAR *pUnkOuter);
+HRESULT WINAPI dd_DirectDrawCreateEx(GUID FAR *lpGUID, LPVOID *lplpDD, REFIID riid, IUnknown FAR *pUnkOuter);
+HRESULT WINAPI dd_DirectDrawEnumerateA(LPDDENUMCALLBACKA lpCallback, LPVOID lpContext);
+HRESULT WINAPI dd_DirectDrawEnumerateW(LPDDENUMCALLBACKW lpCallback, LPVOID lpContext);
 DWORD GetIIDVersion(REFIID CalledID);
 REFIID ConvertREFIID(REFIID riid);
 HRESULT ProxyQueryInterface(LPVOID ProxyInterface, REFIID CalledID, LPVOID * ppvObj, REFIID CallerID, LPVOID WrapperInterface);
-void genericQueryInterface(REFIID riid, LPVOID * ppvObj);
+HRESULT genericQueryInterface(REFIID riid, LPVOID * ppvObj);
 extern AddressLookupTableDdraw<void> ProxyAddressLookupTable;
 extern IDirectDraw7 *CurrentDDInterface;
 extern m_IDirect3DDeviceX *lpCurrentD3DDevice;
 
+// IClassFactory Wrapper
+#include "IClassFactory.h"
 // Direct3D Version Wrappers
 #include "Versions\IDirect3D.h"
 #include "Versions\IDirect3D2.h"

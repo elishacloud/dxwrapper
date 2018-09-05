@@ -37,13 +37,13 @@ using namespace DdrawWrapper;
 
 void WINAPI dd_AcquireDDThreadLock()
 {
-	static AcquireDDThreadLockProc m_pAcquireDDThreadLock = (Wrapper::ValidProcAddress(AcquireDDThreadLock_out)) ? (AcquireDDThreadLockProc)AcquireDDThreadLock_out : nullptr;
-
 	if (Config.Dd7to9)
 	{
 		Logging::Log() << __FUNCTION__ << " Not Implemented";
 		return;
 	}
+
+	static AcquireDDThreadLockProc m_pAcquireDDThreadLock = (Wrapper::ValidProcAddress(AcquireDDThreadLock_out)) ? (AcquireDDThreadLockProc)AcquireDDThreadLock_out : nullptr;
 
 	if (!m_pAcquireDDThreadLock)
 	{
@@ -55,13 +55,13 @@ void WINAPI dd_AcquireDDThreadLock()
 
 void WINAPI dd_CompleteCreateSystemSurface()
 {
-	static CompleteCreateSystemSurfaceProc m_pCompleteCreateSystemSurface = (Wrapper::ValidProcAddress(CompleteCreateSystemSurface_out)) ? (CompleteCreateSystemSurfaceProc)CompleteCreateSystemSurface_out : nullptr;
-
 	if (Config.Dd7to9)
 	{
 		Logging::Log() << __FUNCTION__ << " Not Implemented";
 		return;
 	}
+
+	static CompleteCreateSystemSurfaceProc m_pCompleteCreateSystemSurface = (Wrapper::ValidProcAddress(CompleteCreateSystemSurface_out)) ? (CompleteCreateSystemSurfaceProc)CompleteCreateSystemSurface_out : nullptr;
 
 	if (!m_pCompleteCreateSystemSurface)
 	{
@@ -73,13 +73,13 @@ void WINAPI dd_CompleteCreateSystemSurface()
 
 HRESULT WINAPI dd_D3DParseUnknownCommand(LPVOID lpCmd, LPVOID *lpRetCmd)
 {
-	static D3DParseUnknownCommandProc m_pD3DParseUnknownCommand = (Wrapper::ValidProcAddress(D3DParseUnknownCommand_out)) ? (D3DParseUnknownCommandProc)D3DParseUnknownCommand_out : nullptr;
-
 	if (Config.Dd7to9)
 	{
 		Logging::Log() << __FUNCTION__ << " Not Implemented";
 		return E_NOTIMPL;
 	}
+
+	static D3DParseUnknownCommandProc m_pD3DParseUnknownCommand = (Wrapper::ValidProcAddress(D3DParseUnknownCommand_out)) ? (D3DParseUnknownCommandProc)D3DParseUnknownCommand_out : nullptr;
 
 	if (!m_pD3DParseUnknownCommand)
 	{
@@ -91,13 +91,13 @@ HRESULT WINAPI dd_D3DParseUnknownCommand(LPVOID lpCmd, LPVOID *lpRetCmd)
 
 void WINAPI dd_DDGetAttachedSurfaceLcl()
 {
-	static DDGetAttachedSurfaceLclProc m_pDDGetAttachedSurfaceLcl = (Wrapper::ValidProcAddress(DDGetAttachedSurfaceLcl_out)) ? (DDGetAttachedSurfaceLclProc)DDGetAttachedSurfaceLcl_out : nullptr;
-
 	if (Config.Dd7to9)
 	{
 		Logging::Log() << __FUNCTION__ << " Not Implemented";
 		return;
 	}
+
+	static DDGetAttachedSurfaceLclProc m_pDDGetAttachedSurfaceLcl = (Wrapper::ValidProcAddress(DDGetAttachedSurfaceLcl_out)) ? (DDGetAttachedSurfaceLclProc)DDGetAttachedSurfaceLcl_out : nullptr;
 
 	if (!m_pDDGetAttachedSurfaceLcl)
 	{
@@ -109,13 +109,13 @@ void WINAPI dd_DDGetAttachedSurfaceLcl()
 
 void WINAPI dd_DDInternalLock()
 {
-	static DDInternalLockProc m_pDDInternalLock = (Wrapper::ValidProcAddress(DDInternalLock_out)) ? (DDInternalLockProc)DDInternalLock_out : nullptr;
-
 	if (Config.Dd7to9)
 	{
 		Logging::Log() << __FUNCTION__ << " Not Implemented";
 		return;
 	}
+
+	static DDInternalLockProc m_pDDInternalLock = (Wrapper::ValidProcAddress(DDInternalLock_out)) ? (DDInternalLockProc)DDInternalLock_out : nullptr;
 
 	if (!m_pDDInternalLock)
 	{
@@ -127,13 +127,13 @@ void WINAPI dd_DDInternalLock()
 
 void WINAPI dd_DDInternalUnlock()
 {
-	static DDInternalUnlockProc m_pDDInternalUnlock = (Wrapper::ValidProcAddress(DDInternalUnlock_out)) ? (DDInternalUnlockProc)DDInternalUnlock_out : nullptr;
-
 	if (Config.Dd7to9)
 	{
 		Logging::Log() << __FUNCTION__ << " Not Implemented";
 		return;
 	}
+
+	static DDInternalUnlockProc m_pDDInternalUnlock = (Wrapper::ValidProcAddress(DDInternalUnlock_out)) ? (DDInternalUnlockProc)DDInternalUnlock_out : nullptr;
 
 	if (!m_pDDInternalUnlock)
 	{
@@ -145,13 +145,13 @@ void WINAPI dd_DDInternalUnlock()
 
 void WINAPI dd_DSoundHelp()
 {
-	static DSoundHelpProc m_pDSoundHelp = (Wrapper::ValidProcAddress(DSoundHelp_out)) ? (DSoundHelpProc)DSoundHelp_out : nullptr;
-
 	if (Config.Dd7to9)
 	{
 		Logging::Log() << __FUNCTION__ << " Not Implemented";
 		return;
 	}
+
+	static DSoundHelpProc m_pDSoundHelp = (Wrapper::ValidProcAddress(DSoundHelp_out)) ? (DSoundHelpProc)DSoundHelp_out : nullptr;
 
 	if (!m_pDSoundHelp)
 	{
@@ -163,16 +163,16 @@ void WINAPI dd_DSoundHelp()
 
 HRESULT WINAPI dd_DirectDrawCreate(GUID FAR *lpGUID, LPDIRECTDRAW FAR *lplpDD, IUnknown FAR *pUnkOuter)
 {
+	if (Config.Dd7to9 || (Config.ConvertToDirect3D7 && Config.ConvertToDirectDraw7))
+	{
+		return dd_DirectDrawCreateEx(lpGUID, (LPVOID*)lplpDD, IID_IDirectDraw, pUnkOuter);
+	}
+
 	static DirectDrawCreateProc m_pDirectDrawCreate = (Wrapper::ValidProcAddress(DirectDrawCreate_out)) ? (DirectDrawCreateProc)DirectDrawCreate_out : nullptr;
 
 	if (!m_pDirectDrawCreate)
 	{
 		return E_FAIL;
-	}
-
-	if (Config.ConvertToDirect3D7 && Config.ConvertToDirectDraw7)
-	{
-		return dd_DirectDrawCreateEx(lpGUID, (LPVOID*)lplpDD, IID_IDirectDraw, pUnkOuter);
 	}
 
 	HRESULT hr = m_pDirectDrawCreate(lpGUID, lplpDD, pUnkOuter);
@@ -207,13 +207,13 @@ HRESULT WINAPI dd_DirectDrawCreate(GUID FAR *lpGUID, LPDIRECTDRAW FAR *lplpDD, I
 
 HRESULT WINAPI dd_DirectDrawCreateClipper(DWORD dwFlags, LPDIRECTDRAWCLIPPER *lplpDDClipper, LPUNKNOWN pUnkOuter)
 {
-	static DirectDrawCreateClipperProc m_pDirectDrawCreateClipper = (Wrapper::ValidProcAddress(DirectDrawCreateClipper_out)) ? (DirectDrawCreateClipperProc)DirectDrawCreateClipper_out : nullptr;
-
 	if (Config.Dd7to9)
 	{
 		Logging::Log() << __FUNCTION__ << " Not Implemented";
 		return E_NOTIMPL;
 	}
+
+	static DirectDrawCreateClipperProc m_pDirectDrawCreateClipper = (Wrapper::ValidProcAddress(DirectDrawCreateClipper_out)) ? (DirectDrawCreateClipperProc)DirectDrawCreateClipper_out : nullptr;
 
 	if (!m_pDirectDrawCreateClipper)
 	{
@@ -232,6 +232,67 @@ HRESULT WINAPI dd_DirectDrawCreateClipper(DWORD dwFlags, LPDIRECTDRAWCLIPPER *lp
 
 HRESULT WINAPI dd_DirectDrawCreateEx(GUID FAR *lpGUID, LPVOID *lplpDD, REFIID riid, IUnknown FAR *pUnkOuter)
 {
+	if (riid != IID_IDirectDraw &&
+		riid != IID_IDirectDraw2 &&
+		riid != IID_IDirectDraw3 &&
+		riid != IID_IDirectDraw4 &&
+		riid != IID_IDirectDraw7)
+	{
+		Logging::Log() << __FUNCTION__ << " Error: invalid IID " << riid;
+		return DDERR_INVALIDPARAMS;
+	}
+
+	if (Config.Dd7to9)
+	{
+		// Declare Direct3DCreate9
+		static PFN_Direct3DCreate9 Direct3DCreate9 = reinterpret_cast<PFN_Direct3DCreate9>(DdrawWrapper::Direct3DCreate9);
+
+		if (!Direct3DCreate9)
+		{
+			Logging::Log() << "Failed to get 'Direct3DCreate9' ProcAddress of d3d9.dll!";
+			return DDERR_GENERIC;
+		}
+
+		// Create Direct3D9 device
+		LPDIRECT3D9 d3d9Object = Direct3DCreate9(D3D_SDK_VERSION);
+
+		if (d3d9Object == nullptr)
+		{
+			Logging::Log() << __FUNCTION__ << " Failed to create Direct3D9 object";
+			// Error creating Direct3D9
+			return DDERR_GENERIC;
+		}
+
+		if (riid == IID_IDirectDraw)
+		{
+			m_IDirectDraw *lpDD = new m_IDirectDraw((IDirectDraw *)d3d9Object);
+			*lplpDD = lpDD;
+		}
+		else if (riid == IID_IDirectDraw2)
+		{
+			m_IDirectDraw2 *lpDD = new m_IDirectDraw2((IDirectDraw2 *)d3d9Object);
+			*lplpDD = lpDD;
+		}
+		else if (riid == IID_IDirectDraw3)
+		{
+			m_IDirectDraw3 *lpDD = new m_IDirectDraw3((IDirectDraw3 *)d3d9Object);
+			*lplpDD = lpDD;
+		}
+		else if (riid == IID_IDirectDraw4)
+		{
+			m_IDirectDraw4 *lpDD = new m_IDirectDraw4((IDirectDraw4 *)d3d9Object);
+			*lplpDD = lpDD;
+		}
+		else
+		{
+			m_IDirectDraw7 *lpDD = new m_IDirectDraw7((IDirectDraw7 *)d3d9Object);
+			*lplpDD = lpDD;
+		}
+
+		// Success
+		return DD_OK;
+	}
+
 	static DirectDrawCreateExProc m_pDirectDrawCreateEx = (Wrapper::ValidProcAddress(DirectDrawCreateEx_out)) ? (DirectDrawCreateExProc)DirectDrawCreateEx_out : nullptr;
 
 	if (!m_pDirectDrawCreateEx)
@@ -239,72 +300,10 @@ HRESULT WINAPI dd_DirectDrawCreateEx(GUID FAR *lpGUID, LPVOID *lplpDD, REFIID ri
 		return E_FAIL;
 	}
 
-	if (riid != CLSID_DirectDraw &&
-		riid != IID_IDirectDraw &&
-		riid != IID_IDirectDraw2 &&
-		riid != IID_IDirectDraw3 &&
-		riid != IID_IDirectDraw4 &&
-		riid != IID_IDirectDraw7 &&
-		riid != CLSID_DirectDraw7)
-	{
-		return DDERR_INVALIDPARAMS;
-	}
-
 	HRESULT hr = m_pDirectDrawCreateEx(lpGUID, lplpDD, IID_IDirectDraw7, pUnkOuter);
 
 	if (SUCCEEDED(hr))
 	{
-		if (Config.Dd7to9)
-		{
-			// Declare Direct3DCreate9
-			static PFN_Direct3DCreate9 Direct3DCreate9 = reinterpret_cast<PFN_Direct3DCreate9>(DdrawWrapper::Direct3DCreate9);
-
-			if (!Direct3DCreate9)
-			{
-				Logging::Log() << "Failed to get 'Direct3DCreate9' ProcAddress of d3d9.dll!";
-				return DDERR_GENERIC;
-			}
-
-			// Create Direct3D9 device
-			LPDIRECT3D9 d3d9Object = Direct3DCreate9(D3D_SDK_VERSION);
-
-			if (d3d9Object == nullptr)
-			{
-				Logging::Log() << __FUNCTION__ << " Failed to create Direct3D9 object";
-				// Error creating directdraw
-				return DDERR_GENERIC;
-			}
-
-			if (riid == IID_IDirectDraw || riid == CLSID_DirectDraw)
-			{
-				m_IDirectDraw *lpDD = new m_IDirectDraw((IDirectDraw *)d3d9Object);
-				*lplpDD = lpDD;
-			}
-			else if (riid == IID_IDirectDraw2)
-			{
-				m_IDirectDraw2 *lpDD = new m_IDirectDraw2((IDirectDraw2 *)d3d9Object);
-				*lplpDD = lpDD;
-			}
-			else if	(riid == IID_IDirectDraw3)
-			{
-				m_IDirectDraw3 *lpDD = new m_IDirectDraw3((IDirectDraw3 *)d3d9Object);
-				*lplpDD = lpDD;
-			}
-			else if	(riid == IID_IDirectDraw4)
-			{
-				m_IDirectDraw4 *lpDD = new m_IDirectDraw4((IDirectDraw4 *)d3d9Object);
-				*lplpDD = lpDD;
-			}
-			else
-			{
-				m_IDirectDraw7 *lpDD = new m_IDirectDraw7((IDirectDraw7 *)d3d9Object);
-				*lplpDD = lpDD;
-			}
-
-			// Success
-			return DD_OK;
-		}
-
 		genericQueryInterface(riid, lplpDD);
 	}
 
@@ -313,13 +312,13 @@ HRESULT WINAPI dd_DirectDrawCreateEx(GUID FAR *lpGUID, LPVOID *lplpDD, REFIID ri
 
 HRESULT WINAPI dd_DirectDrawEnumerateA(LPDDENUMCALLBACKA lpCallback, LPVOID lpContext)
 {
-	static DirectDrawEnumerateAProc m_pDirectDrawEnumerateA = (Wrapper::ValidProcAddress(DirectDrawEnumerateA_out)) ? (DirectDrawEnumerateAProc)DirectDrawEnumerateA_out : nullptr;
-
 	if (Config.Dd7to9)
 	{
 		Logging::Log() << __FUNCTION__ << " Not Implemented";
 		return E_NOTIMPL;
 	}
+
+	static DirectDrawEnumerateAProc m_pDirectDrawEnumerateA = (Wrapper::ValidProcAddress(DirectDrawEnumerateA_out)) ? (DirectDrawEnumerateAProc)DirectDrawEnumerateA_out : nullptr;
 
 	if (!m_pDirectDrawEnumerateA)
 	{
@@ -331,13 +330,13 @@ HRESULT WINAPI dd_DirectDrawEnumerateA(LPDDENUMCALLBACKA lpCallback, LPVOID lpCo
 
 HRESULT WINAPI dd_DirectDrawEnumerateExA(LPDDENUMCALLBACKEXA lpCallback, LPVOID lpContext, DWORD dwFlags)
 {
-	static DirectDrawEnumerateExAProc m_pDirectDrawEnumerateExA = (Wrapper::ValidProcAddress(DirectDrawEnumerateExA_out)) ? (DirectDrawEnumerateExAProc)DirectDrawEnumerateExA_out : nullptr;
-
 	if (Config.Dd7to9)
 	{
 		Logging::Log() << __FUNCTION__ << " Not Implemented";
 		return E_NOTIMPL;
 	}
+
+	static DirectDrawEnumerateExAProc m_pDirectDrawEnumerateExA = (Wrapper::ValidProcAddress(DirectDrawEnumerateExA_out)) ? (DirectDrawEnumerateExAProc)DirectDrawEnumerateExA_out : nullptr;
 
 	if (!m_pDirectDrawEnumerateExA)
 	{
@@ -349,13 +348,13 @@ HRESULT WINAPI dd_DirectDrawEnumerateExA(LPDDENUMCALLBACKEXA lpCallback, LPVOID 
 
 HRESULT WINAPI dd_DirectDrawEnumerateExW(LPDDENUMCALLBACKEXW lpCallback, LPVOID lpContext, DWORD dwFlags)
 {
-	static DirectDrawEnumerateExWProc m_pDirectDrawEnumerateExW = (Wrapper::ValidProcAddress(DirectDrawEnumerateExW_out)) ? (DirectDrawEnumerateExWProc)DirectDrawEnumerateExW_out : nullptr;
-
 	if (Config.Dd7to9)
 	{
 		Logging::Log() << __FUNCTION__ << " Not Implemented";
 		return E_NOTIMPL;
 	}
+
+	static DirectDrawEnumerateExWProc m_pDirectDrawEnumerateExW = (Wrapper::ValidProcAddress(DirectDrawEnumerateExW_out)) ? (DirectDrawEnumerateExWProc)DirectDrawEnumerateExW_out : nullptr;
 
 	if (!m_pDirectDrawEnumerateExW)
 	{
@@ -367,13 +366,13 @@ HRESULT WINAPI dd_DirectDrawEnumerateExW(LPDDENUMCALLBACKEXW lpCallback, LPVOID 
 
 HRESULT WINAPI dd_DirectDrawEnumerateW(LPDDENUMCALLBACKW lpCallback, LPVOID lpContext)
 {
-	static DirectDrawEnumerateWProc m_pDirectDrawEnumerateW = (Wrapper::ValidProcAddress(DirectDrawEnumerateW_out)) ? (DirectDrawEnumerateWProc)DirectDrawEnumerateW_out : nullptr;
-
 	if (Config.Dd7to9)
 	{
 		Logging::Log() << __FUNCTION__ << " Not Implemented";
 		return E_NOTIMPL;
 	}
+
+	static DirectDrawEnumerateWProc m_pDirectDrawEnumerateW = (Wrapper::ValidProcAddress(DirectDrawEnumerateW_out)) ? (DirectDrawEnumerateWProc)DirectDrawEnumerateW_out : nullptr;
 
 	if (!m_pDirectDrawEnumerateW)
 	{
@@ -385,13 +384,13 @@ HRESULT WINAPI dd_DirectDrawEnumerateW(LPDDENUMCALLBACKW lpCallback, LPVOID lpCo
 
 HRESULT WINAPI dd_DllCanUnloadNow()
 {
-	static DllCanUnloadNowProc m_pDllCanUnloadNow = (Wrapper::ValidProcAddress(DllCanUnloadNow_out)) ? (DllCanUnloadNowProc)DllCanUnloadNow_out : nullptr;
-
 	if (Config.Dd7to9)
 	{
 		Logging::Log() << __FUNCTION__ << " Not Implemented";
 		return E_NOTIMPL;
 	}
+
+	static DllCanUnloadNowProc m_pDllCanUnloadNow = (Wrapper::ValidProcAddress(DllCanUnloadNow_out)) ? (DllCanUnloadNowProc)DllCanUnloadNow_out : nullptr;
 
 	if (!m_pDllCanUnloadNow)
 	{
@@ -403,13 +402,26 @@ HRESULT WINAPI dd_DllCanUnloadNow()
 
 HRESULT WINAPI dd_DllGetClassObject(REFCLSID rclsid, REFIID riid, LPVOID *ppv)
 {
-	static DllGetClassObjectProc m_pDllGetClassObject = (Wrapper::ValidProcAddress(DllGetClassObject_out)) ? (DllGetClassObjectProc)DllGetClassObject_out : nullptr;
-
-	if (Config.Dd7to9)
+	if (!ppv)
 	{
-		Logging::Log() << __FUNCTION__ << " Not Implemented";
-		return E_NOTIMPL;
+		return DDERR_INVALIDPARAMS;
 	}
+
+	// For Config.Dd7to9 as well as the normal wrapper
+	if (riid == IID_IClassFactory)
+	{
+		*ppv = new m_IClassFactory;
+		return DD_OK;
+	}
+	if (riid == IID_IDirectDrawFactory)
+	{
+		*ppv = new m_IDirectDrawFactory;
+		return DD_OK;
+	}
+
+	Logging::Log() << __FUNCTION__ << " Not Implemented for IID " << riid;
+
+	static DllGetClassObjectProc m_pDllGetClassObject = (Wrapper::ValidProcAddress(DllGetClassObject_out)) ? (DllGetClassObjectProc)DllGetClassObject_out : nullptr;
 
 	if (!m_pDllGetClassObject)
 	{
@@ -428,13 +440,13 @@ HRESULT WINAPI dd_DllGetClassObject(REFCLSID rclsid, REFIID riid, LPVOID *ppv)
 
 void WINAPI dd_GetDDSurfaceLocal()
 {
-	static GetDDSurfaceLocalProc m_pGetDDSurfaceLocal = (Wrapper::ValidProcAddress(GetDDSurfaceLocal_out)) ? (GetDDSurfaceLocalProc)GetDDSurfaceLocal_out : nullptr;
-
 	if (Config.Dd7to9)
 	{
 		Logging::Log() << __FUNCTION__ << " Not Implemented";
 		return;
 	}
+
+	static GetDDSurfaceLocalProc m_pGetDDSurfaceLocal = (Wrapper::ValidProcAddress(GetDDSurfaceLocal_out)) ? (GetDDSurfaceLocalProc)GetDDSurfaceLocal_out : nullptr;
 
 	if (!m_pGetDDSurfaceLocal)
 	{
@@ -446,13 +458,13 @@ void WINAPI dd_GetDDSurfaceLocal()
 
 HANDLE WINAPI dd_GetOLEThunkData(int i1)
 {
-	static GetOLEThunkDataProc m_pGetOLEThunkData = (Wrapper::ValidProcAddress(GetOLEThunkData_out)) ? (GetOLEThunkDataProc)GetOLEThunkData_out : nullptr;
-
 	if (Config.Dd7to9)
 	{
 		Logging::Log() << __FUNCTION__ << " Not Implemented";
 		return nullptr;
 	}
+
+	static GetOLEThunkDataProc m_pGetOLEThunkData = (Wrapper::ValidProcAddress(GetOLEThunkData_out)) ? (GetOLEThunkDataProc)GetOLEThunkData_out : nullptr;
 
 	if (!m_pGetOLEThunkData)
 	{
@@ -464,13 +476,13 @@ HANDLE WINAPI dd_GetOLEThunkData(int i1)
 
 HRESULT WINAPI dd_GetSurfaceFromDC(HDC hdc, LPDIRECTDRAWSURFACE7 *lpDDS)
 {
-	static GetSurfaceFromDCProc m_pGetSurfaceFromDC = (Wrapper::ValidProcAddress(GetSurfaceFromDC_out)) ? (GetSurfaceFromDCProc)GetSurfaceFromDC_out : nullptr;
-
 	if (Config.Dd7to9)
 	{
 		Logging::Log() << __FUNCTION__ << " Not Implemented";
 		return E_NOTIMPL;
 	}
+
+	static GetSurfaceFromDCProc m_pGetSurfaceFromDC = (Wrapper::ValidProcAddress(GetSurfaceFromDC_out)) ? (GetSurfaceFromDCProc)GetSurfaceFromDC_out : nullptr;
 
 	if (!m_pGetSurfaceFromDC)
 	{
@@ -489,13 +501,13 @@ HRESULT WINAPI dd_GetSurfaceFromDC(HDC hdc, LPDIRECTDRAWSURFACE7 *lpDDS)
 
 void WINAPI dd_RegisterSpecialCase()
 {
-	static RegisterSpecialCaseProc m_pRegisterSpecialCase = (Wrapper::ValidProcAddress(RegisterSpecialCase_out)) ? (RegisterSpecialCaseProc)RegisterSpecialCase_out : nullptr;
-
 	if (Config.Dd7to9)
 	{
 		Logging::Log() << __FUNCTION__ << " Not Implemented";
 		return;
 	}
+
+	static RegisterSpecialCaseProc m_pRegisterSpecialCase = (Wrapper::ValidProcAddress(RegisterSpecialCase_out)) ? (RegisterSpecialCaseProc)RegisterSpecialCase_out : nullptr;
 
 	if (!m_pRegisterSpecialCase)
 	{
@@ -507,13 +519,13 @@ void WINAPI dd_RegisterSpecialCase()
 
 void WINAPI dd_ReleaseDDThreadLock()
 {
-	static ReleaseDDThreadLockProc m_pReleaseDDThreadLock = (Wrapper::ValidProcAddress(ReleaseDDThreadLock_out)) ? (ReleaseDDThreadLockProc)ReleaseDDThreadLock_out : nullptr;
-
 	if (Config.Dd7to9)
 	{
 		Logging::Log() << __FUNCTION__ << " Not Implemented";
 		return;
 	}
+
+	static ReleaseDDThreadLockProc m_pReleaseDDThreadLock = (Wrapper::ValidProcAddress(ReleaseDDThreadLock_out)) ? (ReleaseDDThreadLockProc)ReleaseDDThreadLock_out : nullptr;
 
 	if (!m_pReleaseDDThreadLock)
 	{
@@ -525,13 +537,13 @@ void WINAPI dd_ReleaseDDThreadLock()
 
 HRESULT WINAPI dd_SetAppCompatData(DWORD Type, DWORD Value)
 {
-	static SetAppCompatDataProc m_pSetAppCompatData = (Wrapper::ValidProcAddress(SetAppCompatData_out)) ? (SetAppCompatDataProc)SetAppCompatData_out : nullptr;
-
 	if (Config.Dd7to9)
 	{
 		Logging::Log() << __FUNCTION__ << " Not Implemented";
 		return E_NOTIMPL;
 	}
+
+	static SetAppCompatDataProc m_pSetAppCompatData = (Wrapper::ValidProcAddress(SetAppCompatData_out)) ? (SetAppCompatDataProc)SetAppCompatData_out : nullptr;
 
 	if (!m_pSetAppCompatData)
 	{

@@ -66,13 +66,13 @@ ULONG m_IDirectDrawColorControl::Release()
 
 HRESULT m_IDirectDrawColorControl::GetColorControls(LPDDCOLORCONTROL lpColorControl)
 {
+	if (!lpColorControl)
+	{
+		return DDERR_INVALIDPARAMS;
+	}
+
 	if (!ProxyInterface)
 	{
-		if (!lpColorControl)
-		{
-			return DDERR_INVALIDPARAMS;
-		}
-
 		ConvertColorControl(*lpColorControl, ColorControl);
 
 		return DD_OK;
@@ -83,13 +83,13 @@ HRESULT m_IDirectDrawColorControl::GetColorControls(LPDDCOLORCONTROL lpColorCont
 
 HRESULT m_IDirectDrawColorControl::SetColorControls(LPDDCOLORCONTROL lpColorControl)
 {
+	if (!lpColorControl)
+	{
+		return DDERR_INVALIDPARAMS;
+	}
+
 	if (!ProxyInterface)
 	{
-		if (!lpColorControl)
-		{
-			return DDERR_INVALIDPARAMS;
-		}
-
 		ConvertColorControl(ColorControl, *lpColorControl);
 
 		return DD_OK;

@@ -162,25 +162,43 @@ HRESULT m_IDirectDrawX::CreatePalette(DWORD dwFlags, LPPALETTEENTRY lpDDColorArr
 	return hr;
 }
 
-HRESULT m_IDirectDrawX::CreateSurface(LPDDSURFACEDESC2 lpDDSurfaceDesc2, LPDIRECTDRAWSURFACE7 FAR * lplpDDSurface, IUnknown FAR * pUnkOuter)
+HRESULT m_IDirectDrawX::CreateSurface(LPDDSURFACEDESC lpDDSurfaceDesc, LPDIRECTDRAWSURFACE7 FAR * lplpDDSurface, IUnknown FAR * pUnkOuter)
 {
-	if (!lplpDDSurface || !lpDDSurfaceDesc2)
+	if (!lplpDDSurface || !lpDDSurfaceDesc)
 	{
 		return DDERR_INVALIDPARAMS;
 	}
 
 	// Game using old DirectX, Convert to LPDDSURFACEDESC2
-	DDSURFACEDESC2 Desc2;
 	if (ConvertSurfaceDescTo2)
 	{
-		ConvertSurfaceDesc(Desc2, *(LPDDSURFACEDESC)lpDDSurfaceDesc2);
-		lpDDSurfaceDesc2 = &Desc2;
+		DDSURFACEDESC2 Desc2;
+		ConvertSurfaceDesc(Desc2, *lpDDSurfaceDesc);
 
 		// BackBufferCount must be at least 1
-		if ((lpDDSurfaceDesc2->dwFlags & DDSD_BACKBUFFERCOUNT) != 0 && lpDDSurfaceDesc2->dwBackBufferCount == 0)
+		if ((lpDDSurfaceDesc->dwFlags & DDSD_BACKBUFFERCOUNT) != 0 && lpDDSurfaceDesc->dwBackBufferCount == 0)
 		{
-			lpDDSurfaceDesc2->dwBackBufferCount = 1;
+			lpDDSurfaceDesc->dwBackBufferCount = 1;
 		}
+
+		return CreateSurface2(&Desc2, lplpDDSurface, pUnkOuter);
+	}
+
+	HRESULT hr = ((IDirectDraw3*)ProxyInterface)->CreateSurface(lpDDSurfaceDesc, (LPDIRECTDRAWSURFACE*)lplpDDSurface, pUnkOuter);
+
+	if (SUCCEEDED(hr))
+	{
+		*lplpDDSurface = ProxyAddressLookupTable.FindAddress<m_IDirectDrawSurface7>(*lplpDDSurface, DirectXVersion);
+	}
+
+	return hr;
+}
+
+HRESULT m_IDirectDrawX::CreateSurface2(LPDDSURFACEDESC2 lpDDSurfaceDesc2, LPDIRECTDRAWSURFACE7 FAR * lplpDDSurface, IUnknown FAR * pUnkOuter)
+{
+	if (!lplpDDSurface || !lpDDSurfaceDesc2)
+	{
+		return DDERR_INVALIDPARAMS;
 	}
 
 	if (Config.Dd7to9)
@@ -239,26 +257,25 @@ HRESULT m_IDirectDrawX::DuplicateSurface(LPDIRECTDRAWSURFACE7 lpDDSurface, LPDIR
 	return hr;
 }
 
-HRESULT m_IDirectDrawX::EnumDisplayModes(DWORD dwFlags, LPDDSURFACEDESC2 lpDDSurfaceDesc2, LPVOID lpContext, LPDDENUMMODESCALLBACK2 lpEnumModesCallback)
+HRESULT m_IDirectDrawX::EnumDisplayModes(DWORD dwFlags, LPDDSURFACEDESC lpDDSurfaceDesc, LPVOID lpContext, LPDDENUMMODESCALLBACK lpEnumModesCallback)
 {
 	// Game using old DirectX, Convert to LPDDSURFACEDESC2
-	DDSURFACEDESC2 Desc2;
-	ENUMDISPLAYMODES CallbackContext;
 	if (ConvertSurfaceDescTo2)
 	{
-		if (lpDDSurfaceDesc2)
+		DDSURFACEDESC2 Desc2;
+		if (lpDDSurfaceDesc)
 		{
-			ConvertSurfaceDesc(Desc2, *(LPDDSURFACEDESC)lpDDSurfaceDesc2);
+			ConvertSurfaceDesc(Desc2, *lpDDSurfaceDesc);
 		}
 
-		CallbackContext.lpContext = lpContext;
-		CallbackContext.lpCallback = (LPDDENUMMODESCALLBACK)lpEnumModesCallback;
-
-		lpDDSurfaceDesc2 = (lpDDSurfaceDesc2) ? &Desc2 : nullptr;
-		lpContext = &CallbackContext;
-		lpEnumModesCallback = m_IDirectDrawEnumDisplayModes::ConvertCallback;
+		return EnumDisplayModes2(dwFlags, (lpDDSurfaceDesc) ? &Desc2 : nullptr, lpContext, (LPDDENUMMODESCALLBACK2)lpEnumModesCallback);
 	}
 
+	return ((IDirectDraw3*)ProxyInterface)->EnumDisplayModes(dwFlags, lpDDSurfaceDesc, lpContext, lpEnumModesCallback);
+}
+
+HRESULT m_IDirectDrawX::EnumDisplayModes2(DWORD dwFlags, LPDDSURFACEDESC2 lpDDSurfaceDesc2, LPVOID lpContext, LPDDENUMMODESCALLBACK2 lpEnumModesCallback2)
+{
 	if (Config.Dd7to9)
 	{
 		// Save refresh rate
@@ -276,9 +293,22 @@ HRESULT m_IDirectDrawX::EnumDisplayModes(DWORD dwFlags, LPDDSURFACEDESC2 lpDDSur
 			DisplayBitCount = GetBitCount(lpDDSurfaceDesc2->ddpfPixelFormat);
 		}
 
+		// Setup callback
+		LPDDENUMMODESCALLBACK2 p_EnumModesCallback2 = lpEnumModesCallback2;
+		LPVOID p_Context = lpContext;
+		ENUMDISPLAYMODES CallbackContext;
+
+		// Game using old DirectX, Convert to LPDDSURFACEDESC2
+		if (ConvertSurfaceDescTo2)
+		{
+			p_Context = &CallbackContext;
+			CallbackContext.lpContext = lpContext;
+			CallbackContext.lpCallback = (LPDDENUMMODESCALLBACK)lpEnumModesCallback2;
+			p_EnumModesCallback2 = m_IDirectDrawEnumDisplayModes::ConvertCallback;
+		}
+
 		// Setup surface desc
-		lpDDSurfaceDesc2 = &Desc2;
-		ZeroMemory(lpDDSurfaceDesc2, sizeof(LPDDSURFACEDESC2));
+		DDSURFACEDESC2 Desc2 = { NULL };
 
 		// Setup display mode and format
 		D3DFORMAT Format;
@@ -316,37 +346,38 @@ HRESULT m_IDirectDrawX::EnumDisplayModes(DWORD dwFlags, LPDDSURFACEDESC2 lpDDSur
 			{
 				// Get display modes
 				ZeroMemory(&d3ddispmode, sizeof(D3DDISPLAYMODE));
-				if (FAILED(d3d9Object->EnumAdapterModes(D3DADAPTER_DEFAULT, Format, i, &d3ddispmode)))
+				HRESULT hr = d3d9Object->EnumAdapterModes(D3DADAPTER_DEFAULT, Format, i, &d3ddispmode);
+				if (FAILED(hr))
 				{
 					Logging::Log() << __FUNCTION__ << " EnumAdapterModes failed";
-					return false;
+					return hr;
 				}
 
 				// Check refresh mode
 				if (EnumRefreshModes == 0 || d3ddispmode.RefreshRate == EnumRefreshModes)
 				{
 					// Set surface desc options
-					lpDDSurfaceDesc2->dwSize = sizeof(LPDDSURFACEDESC2);
-					lpDDSurfaceDesc2->dwFlags = DDSD_WIDTH | DDSD_HEIGHT | DDSD_REFRESHRATE | DDSD_PITCH | DDSD_PIXELFORMAT;
-					lpDDSurfaceDesc2->dwWidth = d3ddispmode.Width;
-					lpDDSurfaceDesc2->dwHeight = d3ddispmode.Height;
-					lpDDSurfaceDesc2->dwRefreshRate = d3ddispmode.RefreshRate;
+					Desc2.dwSize = sizeof(DDSURFACEDESC2);
+					Desc2.dwFlags = DDSD_WIDTH | DDSD_HEIGHT | DDSD_REFRESHRATE | DDSD_PITCH | DDSD_PIXELFORMAT;
+					Desc2.dwWidth = d3ddispmode.Width;
+					Desc2.dwHeight = d3ddispmode.Height;
+					Desc2.dwRefreshRate = d3ddispmode.RefreshRate;
 
 					// Set adapter pixel format
-					lpDDSurfaceDesc2->ddpfPixelFormat.dwSize = sizeof(DDPIXELFORMAT);
-					GetPixelDisplayFormat(Format, lpDDSurfaceDesc2->ddpfPixelFormat);
+					Desc2.ddpfPixelFormat.dwSize = sizeof(DDPIXELFORMAT);
+					GetPixelDisplayFormat(Format, Desc2.ddpfPixelFormat);
 
 					// Special handling for 8-bit mode
 					if (DisplayBitCount == 8)
 					{
-						lpDDSurfaceDesc2->ddpfPixelFormat.dwRGBBitCount = DisplayBitCount;
-						lpDDSurfaceDesc2->ddpfPixelFormat.dwRBitMask = 0;
-						lpDDSurfaceDesc2->ddpfPixelFormat.dwGBitMask = 0;
-						lpDDSurfaceDesc2->ddpfPixelFormat.dwBBitMask = 0;
+						Desc2.ddpfPixelFormat.dwRGBBitCount = DisplayBitCount;
+						Desc2.ddpfPixelFormat.dwRBitMask = 0;
+						Desc2.ddpfPixelFormat.dwGBitMask = 0;
+						Desc2.ddpfPixelFormat.dwBBitMask = 0;
 					}
-					lpDDSurfaceDesc2->lPitch = (lpDDSurfaceDesc2->ddpfPixelFormat.dwRGBBitCount / 8) * lpDDSurfaceDesc2->dwWidth;
+					Desc2.lPitch = (Desc2.ddpfPixelFormat.dwRGBBitCount / 8) * Desc2.dwWidth;
 
-					if (lpEnumModesCallback(lpDDSurfaceDesc2, lpContext) != DDENUMRET_OK)
+					if (p_EnumModesCallback2(&Desc2, p_Context) != DDENUMRET_OK)
 					{
 						return DD_OK;
 					}
@@ -363,19 +394,44 @@ HRESULT m_IDirectDrawX::EnumDisplayModes(DWORD dwFlags, LPDDSURFACEDESC2 lpDDSur
 		return DD_OK;
 	}
 
-	return ProxyInterface->EnumDisplayModes(dwFlags, lpDDSurfaceDesc2, lpContext, lpEnumModesCallback);
-}
-
-HRESULT m_IDirectDrawX::EnumSurfaces(DWORD dwFlags, LPDDSURFACEDESC2 lpDDSD, LPVOID lpContext, LPDDENUMSURFACESCALLBACK7 lpEnumSurfacesCallback)
-{
 	// Game using old DirectX, Convert to LPDDSURFACEDESC2
-	DDSURFACEDESC2 Desc2;
-	if (lpDDSD && ConvertSurfaceDescTo2)
+	if (ConvertSurfaceDescTo2)
 	{
-		ConvertSurfaceDesc(Desc2, *(LPDDSURFACEDESC)lpDDSD);
-		lpDDSD = &Desc2;
+		ENUMDISPLAYMODES CallbackContext;
+		CallbackContext.lpContext = lpContext;
+		CallbackContext.lpCallback = (LPDDENUMMODESCALLBACK)lpEnumModesCallback2;
+
+		return ProxyInterface->EnumDisplayModes(dwFlags, lpDDSurfaceDesc2, &CallbackContext, m_IDirectDrawEnumDisplayModes::ConvertCallback);
 	}
 
+	return ProxyInterface->EnumDisplayModes(dwFlags, lpDDSurfaceDesc2, lpContext, lpEnumModesCallback2);
+}
+
+HRESULT m_IDirectDrawX::EnumSurfaces(DWORD dwFlags, LPDDSURFACEDESC lpDDSurfaceDesc, LPVOID lpContext, LPDDENUMSURFACESCALLBACK lpEnumSurfacesCallback)
+{
+	// Game using old DirectX, Convert to LPDDSURFACEDESC2
+	if (ConvertSurfaceDescTo2)
+	{
+		DDSURFACEDESC2 Desc2;
+		if (lpDDSurfaceDesc)
+		{
+			ConvertSurfaceDesc(Desc2, *lpDDSurfaceDesc);
+		}
+
+		return EnumSurfaces2(dwFlags, (lpDDSurfaceDesc) ? &Desc2 : nullptr, lpContext, (LPDDENUMSURFACESCALLBACK7)lpEnumSurfacesCallback);
+	}
+
+	ENUMSURFACE CallbackContext;
+	CallbackContext.lpContext = lpContext;
+	CallbackContext.lpCallback = lpEnumSurfacesCallback;
+	CallbackContext.DirectXVersion = DirectXVersion;
+	CallbackContext.ConvertSurfaceDescTo2 = ConvertSurfaceDescTo2;
+
+	return ((IDirectDraw3*)ProxyInterface)->EnumSurfaces(dwFlags, lpDDSurfaceDesc, &CallbackContext, m_IDirectDrawEnumSurface::ConvertCallback);
+}
+
+HRESULT m_IDirectDrawX::EnumSurfaces2(DWORD dwFlags, LPDDSURFACEDESC2 lpDDSurfaceDesc2, LPVOID lpContext, LPDDENUMSURFACESCALLBACK7 lpEnumSurfacesCallback7)
+{
 	if (Config.Dd7to9)
 	{
 		Logging::Log() << __FUNCTION__ << " Not Implemented";
@@ -384,11 +440,11 @@ HRESULT m_IDirectDrawX::EnumSurfaces(DWORD dwFlags, LPDDSURFACEDESC2 lpDDSD, LPV
 
 	ENUMSURFACE CallbackContext;
 	CallbackContext.lpContext = lpContext;
-	CallbackContext.lpCallback = (LPDDENUMSURFACESCALLBACK7)lpEnumSurfacesCallback;
+	CallbackContext.lpCallback7 = lpEnumSurfacesCallback7;
 	CallbackContext.DirectXVersion = DirectXVersion;
 	CallbackContext.ConvertSurfaceDescTo2 = ConvertSurfaceDescTo2;
 
-	return ProxyInterface->EnumSurfaces(dwFlags, lpDDSD, &CallbackContext, m_IDirectDrawEnumSurface::ConvertCallback);
+	return ProxyInterface->EnumSurfaces(dwFlags, lpDDSurfaceDesc2, &CallbackContext, m_IDirectDrawEnumSurface::ConvertCallback2);
 }
 
 HRESULT m_IDirectDrawX::FlipToGDISurface()
@@ -438,23 +494,39 @@ HRESULT m_IDirectDrawX::GetCaps(LPDDCAPS lpDDDriverCaps, LPDDCAPS lpDDHELCaps)
 	return hr;
 }
 
-HRESULT m_IDirectDrawX::GetDisplayMode(LPDDSURFACEDESC2 lpDDSurfaceDesc2)
+HRESULT m_IDirectDrawX::GetDisplayMode(LPDDSURFACEDESC lpDDSurfaceDesc)
 {
-	if (!lpDDSurfaceDesc2)
+	if (!lpDDSurfaceDesc)
 	{
 		return DDERR_INVALIDPARAMS;
 	}
 
 	// Game using old DirectX, Convert to LPDDSURFACEDESC2
-	LPDDSURFACEDESC2 lpDDSurfaceDesc_tmp = lpDDSurfaceDesc2;
-	DDSURFACEDESC2 Desc2;
 	if (ConvertSurfaceDescTo2)
 	{
-		ConvertSurfaceDesc(Desc2, *(LPDDSURFACEDESC)lpDDSurfaceDesc2);
-		lpDDSurfaceDesc2 = &Desc2;
+		DDSURFACEDESC2 Desc2;
+		ConvertSurfaceDesc(Desc2, *lpDDSurfaceDesc);
+
+		HRESULT hr = GetDisplayMode2(&Desc2);
+
+		// Convert back to LPDDSURFACEDESC
+		if (SUCCEEDED(hr))
+		{
+			ConvertSurfaceDesc(*lpDDSurfaceDesc, Desc2);
+		}
+
+		return hr;
 	}
 
-	HRESULT hr = DD_OK;
+	return ((IDirectDraw3*)ProxyInterface)->GetDisplayMode(lpDDSurfaceDesc);
+}
+
+HRESULT m_IDirectDrawX::GetDisplayMode2(LPDDSURFACEDESC2 lpDDSurfaceDesc2)
+{
+	if (!lpDDSurfaceDesc2)
+	{
+		return DDERR_INVALIDPARAMS;
+	}
 
 	if (Config.Dd7to9)
 	{
@@ -496,22 +568,13 @@ HRESULT m_IDirectDrawX::GetDisplayMode(LPDDSURFACEDESC2 lpDDSurfaceDesc2)
 			break;
 		default:
 			Logging::Log() << __FUNCTION__ << " Not implemented bit count " << displayModeBits;
-			hr = E_NOTIMPL;
+			return E_NOTIMPL;
 		}
-	}
-	else
-	{
-		hr = ProxyInterface->GetDisplayMode(lpDDSurfaceDesc2);
+
+		return DD_OK;
 	}
 
-	// Convert back to LPDDSURFACEDESC
-	if (SUCCEEDED(hr) && ConvertSurfaceDescTo2)
-	{
-		lpDDSurfaceDesc2 = lpDDSurfaceDesc_tmp;
-		ConvertSurfaceDesc(*(LPDDSURFACEDESC)lpDDSurfaceDesc2, Desc2);
-	}
-
-	return hr;
+	return ProxyInterface->GetDisplayMode(lpDDSurfaceDesc2);
 }
 
 HRESULT m_IDirectDrawX::GetFourCCCodes(LPDWORD lpNumCodes, LPDWORD lpCodes)
@@ -832,16 +895,25 @@ HRESULT m_IDirectDrawX::WaitForVerticalBlank(DWORD dwFlags, HANDLE hEvent)
 /*** Added in the v2 interface ***/
 /*********************************/
 
-HRESULT m_IDirectDrawX::GetAvailableVidMem(LPDDSCAPS2 lpDDSCaps, LPDWORD lpdwTotal, LPDWORD lpdwFree)
+HRESULT m_IDirectDrawX::GetAvailableVidMem(LPDDSCAPS lpDDSCaps, LPDWORD lpdwTotal, LPDWORD lpdwFree)
 {
 	// Game using old DirectX, Convert DDSCAPS to DDSCAPS2
-	DDSCAPS2 Caps2;
-	if (lpDDSCaps && ConvertSurfaceDescTo2)
+	if (ConvertSurfaceDescTo2)
 	{
-		ConvertCaps(Caps2, *(LPDDSCAPS)lpDDSCaps);
-		lpDDSCaps = &Caps2;
+		DDSCAPS2 Caps2;
+		if (lpDDSCaps)
+		{
+			ConvertCaps(Caps2, *lpDDSCaps);
+		}
+
+		return GetAvailableVidMem2((lpDDSCaps) ? &Caps2 : nullptr, lpdwTotal, lpdwFree);
 	}
 
+	return ((IDirectDraw3*)ProxyInterface)->GetAvailableVidMem(lpDDSCaps, lpdwTotal, lpdwFree);
+}
+
+HRESULT m_IDirectDrawX::GetAvailableVidMem2(LPDDSCAPS2 lpDDSCaps2, LPDWORD lpdwTotal, LPDWORD lpdwFree)
+{
 	HRESULT hr = DD_OK;
 
 	if (Config.Dd7to9)
@@ -858,7 +930,7 @@ HRESULT m_IDirectDrawX::GetAvailableVidMem(LPDDSCAPS2 lpDDSCaps, LPDWORD lpdwTot
 	}
 	else
 	{
-		hr = ProxyInterface->GetAvailableVidMem(lpDDSCaps, lpdwTotal, lpdwFree);
+		hr = ProxyInterface->GetAvailableVidMem(lpDDSCaps2, lpdwTotal, lpdwFree);
 	}
 
 	// Set available memory, some games have issues if this is set to high
@@ -929,47 +1001,54 @@ HRESULT m_IDirectDrawX::TestCooperativeLevel()
 	return ProxyInterface->TestCooperativeLevel();
 }
 
-HRESULT m_IDirectDrawX::GetDeviceIdentifier(LPDDDEVICEIDENTIFIER2 lpdddi, DWORD dwFlags)
+HRESULT m_IDirectDrawX::GetDeviceIdentifier(LPDDDEVICEIDENTIFIER lpdddi, DWORD dwFlags)
 {
 	if (!lpdddi)
 	{
 		return DDERR_INVALIDPARAMS;
 	}
 
-	LPDDDEVICEIDENTIFIER2 lpdddi_tmp = lpdddi;
-	DDDEVICEIDENTIFIER2 Id2 = {};
 	if (ProxyDirectXVersion > 4 && DirectXVersion < 7)
 	{
-		lpdddi = &Id2;
+		DDDEVICEIDENTIFIER2 Id2;
+
+		HRESULT hr = GetDeviceIdentifier2(&Id2, dwFlags);
+
+		if (SUCCEEDED(hr))
+		{
+			ConvertDeviceIdentifier(*lpdddi, Id2);
+		}
+
+		return hr;
 	}
 
-	HRESULT hr;
+	return ((IDirectDraw4*)ProxyInterface)->GetDeviceIdentifier(lpdddi, dwFlags);
+}
+
+HRESULT m_IDirectDrawX::GetDeviceIdentifier2(LPDDDEVICEIDENTIFIER2 lpdddi2, DWORD dwFlags)
+{
+	if (!lpdddi2)
+	{
+		return DDERR_INVALIDPARAMS;
+	}
 
 	if (Config.Dd7to9)
 	{
 		D3DADAPTER_IDENTIFIER9 Identifier9;
-		hr = d3d9Object->GetAdapterIdentifier(D3DADAPTER_DEFAULT, D3DENUM_WHQL_LEVEL, &Identifier9);
+		HRESULT hr = d3d9Object->GetAdapterIdentifier(D3DADAPTER_DEFAULT, D3DENUM_WHQL_LEVEL, &Identifier9);
 
 		if (FAILED(hr))
 		{
 			Logging::Log() << __FUNCTION__ << " Failed to get Adapter Identifier";
-			return false;
+			return hr;
 		}
 
-		ConvertDeviceIdentifier(*lpdddi, Identifier9);
-	}
-	else
-	{
-		hr = ProxyInterface->GetDeviceIdentifier(lpdddi, dwFlags);
+		ConvertDeviceIdentifier(*lpdddi2, Identifier9);
+
+		return DD_OK;
 	}
 
-	if (SUCCEEDED(hr) && ProxyDirectXVersion > 4 && DirectXVersion < 7)
-	{
-		lpdddi = lpdddi_tmp;
-		ConvertDeviceIdentifier(*(LPDDDEVICEIDENTIFIER)lpdddi, Id2);
-	}
-
-	return hr;
+	return ProxyInterface->GetDeviceIdentifier(lpdddi2, dwFlags);
 }
 
 HRESULT m_IDirectDrawX::StartModeTest(LPSIZE lpModesToTest, DWORD dwNumEntries, DWORD dwFlags)

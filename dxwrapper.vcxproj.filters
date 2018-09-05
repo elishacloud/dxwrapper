@@ -652,6 +652,9 @@
     <ClCompile Include="Wrappers\d3d8to9.cpp">
       <Filter>Wrappers</Filter>
     </ClCompile>
+    <ClCompile Include="ddraw\IClassFactory.cpp">
+      <Filter>ddraw</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="Settings\AllSettings.ini">
@@ -1429,6 +1432,9 @@
     </ClInclude>
     <ClInclude Include="Wrappers\d3d8to9.h">
       <Filter>Wrappers</Filter>
+    </ClInclude>
+    <ClInclude Include="ddraw\IClassFactory.h">
+      <Filter>ddraw</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

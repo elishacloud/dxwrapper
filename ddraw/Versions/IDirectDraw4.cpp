@@ -153,5 +153,5 @@ HRESULT m_IDirectDraw4::TestCooperativeLevel()
 
 HRESULT m_IDirectDraw4::GetDeviceIdentifier(LPDDDEVICEIDENTIFIER a, DWORD b)
 {
-	return ProxyInterface->GetDeviceIdentifier((LPDDDEVICEIDENTIFIER2)a, b);
+	return ProxyInterface->GetDeviceIdentifier(a, b);
 }

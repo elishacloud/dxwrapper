@@ -333,6 +333,7 @@ std::ostream& operator<<(std::ostream& os, REFIID riid)
 	}
 
 	CHECK_REFIID(IID, IUnknown);
+	CHECK_REFIID(IID, IClassFactory);
 	// ddraw
 	CHECK_REFIID(CLSID, DirectDraw);
 	CHECK_REFIID(CLSID, DirectDraw7);

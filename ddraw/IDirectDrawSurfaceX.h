@@ -148,12 +148,52 @@ public:
 	STDMETHOD(BltBatch)(THIS_ LPDDBLTBATCH, DWORD, DWORD);
 	STDMETHOD(BltFast)(THIS_ DWORD, DWORD, LPDIRECTDRAWSURFACE7, LPRECT, DWORD);
 	STDMETHOD(DeleteAttachedSurface)(THIS_ DWORD, LPDIRECTDRAWSURFACE7);
-	STDMETHOD(EnumAttachedSurfaces)(THIS_ LPVOID, LPDDENUMSURFACESCALLBACK7);
-	STDMETHOD(EnumOverlayZOrders)(THIS_ DWORD, LPVOID, LPDDENUMSURFACESCALLBACK7);
+	STDMETHOD(EnumAttachedSurfaces)(THIS_ LPVOID lpContext, LPDDENUMSURFACESCALLBACK7 lpEnumSurfacesCallback7)
+	{
+		if (DirectXVersion < 4)
+		{
+			return EnumAttachedSurfaces(lpContext, (LPDDENUMSURFACESCALLBACK)lpEnumSurfacesCallback7);
+		}
+
+		return EnumAttachedSurfaces2(lpContext, lpEnumSurfacesCallback7);
+	}
+	HRESULT EnumAttachedSurfaces(LPVOID, LPDDENUMSURFACESCALLBACK);
+	HRESULT EnumAttachedSurfaces2(LPVOID, LPDDENUMSURFACESCALLBACK7);
+	STDMETHOD(EnumOverlayZOrders)(THIS_ DWORD dwFlags, LPVOID lpContext, LPDDENUMSURFACESCALLBACK7 lpfnCallback7)
+	{
+		if (DirectXVersion < 4)
+		{
+			return EnumOverlayZOrders(dwFlags, lpContext, (LPDDENUMSURFACESCALLBACK)lpfnCallback7);
+		}
+
+		return EnumOverlayZOrders2(dwFlags, lpContext, lpfnCallback7);
+	}
+	HRESULT EnumOverlayZOrders(DWORD, LPVOID, LPDDENUMSURFACESCALLBACK);
+	HRESULT EnumOverlayZOrders2(DWORD, LPVOID, LPDDENUMSURFACESCALLBACK7);
 	STDMETHOD(Flip)(THIS_ LPDIRECTDRAWSURFACE7, DWORD);
-	STDMETHOD(GetAttachedSurface)(THIS_ LPDDSCAPS2, LPDIRECTDRAWSURFACE7 FAR *);
+	STDMETHOD(GetAttachedSurface)(THIS_ LPDDSCAPS2 lpDDSCaps2, LPDIRECTDRAWSURFACE7 FAR * lplpDDAttachedSurface)
+	{
+		if (DirectXVersion < 4)
+		{
+			return GetAttachedSurface((LPDDSCAPS)lpDDSCaps2, lplpDDAttachedSurface);
+		}
+
+		return GetAttachedSurface2(lpDDSCaps2, lplpDDAttachedSurface);
+	}
+	HRESULT GetAttachedSurface(LPDDSCAPS, LPDIRECTDRAWSURFACE7 FAR *);
+	HRESULT GetAttachedSurface2(LPDDSCAPS2, LPDIRECTDRAWSURFACE7 FAR *);
 	STDMETHOD(GetBltStatus)(THIS_ DWORD);
-	STDMETHOD(GetCaps)(THIS_ LPDDSCAPS2);
+	STDMETHOD(GetCaps)(THIS_ LPDDSCAPS2 lpDDSCaps2)
+	{
+		if (DirectXVersion < 4)
+		{
+			return GetCaps((LPDDSCAPS)lpDDSCaps2);
+		}
+
+		return GetCaps2(lpDDSCaps2);
+	}
+	HRESULT m_IDirectDrawSurfaceX::GetCaps(LPDDSCAPS);
+	HRESULT m_IDirectDrawSurfaceX::GetCaps2(LPDDSCAPS2);
 	STDMETHOD(GetClipper)(THIS_ LPDIRECTDRAWCLIPPER FAR*);
 	STDMETHOD(GetColorKey)(THIS_ DWORD, LPDDCOLORKEY);
 	STDMETHOD(GetDC)(THIS_ HDC FAR *);
@@ -161,10 +201,40 @@ public:
 	STDMETHOD(GetOverlayPosition)(THIS_ LPLONG, LPLONG);
 	STDMETHOD(GetPalette)(THIS_ LPDIRECTDRAWPALETTE FAR*);
 	STDMETHOD(GetPixelFormat)(THIS_ LPDDPIXELFORMAT);
-	STDMETHOD(GetSurfaceDesc)(THIS_ LPDDSURFACEDESC2);
-	STDMETHOD(Initialize)(THIS_ LPDIRECTDRAW, LPDDSURFACEDESC2);
+	STDMETHOD(GetSurfaceDesc)(THIS_ LPDDSURFACEDESC2 lpDDSurfaceDesc2)
+	{
+		if (DirectXVersion < 4)
+		{
+			return GetSurfaceDesc((LPDDSURFACEDESC)lpDDSurfaceDesc2);
+		}
+
+		return GetSurfaceDesc2(lpDDSurfaceDesc2);
+	}
+	HRESULT GetSurfaceDesc(LPDDSURFACEDESC);
+	HRESULT GetSurfaceDesc2(LPDDSURFACEDESC2);
+	STDMETHOD(Initialize)(THIS_ LPDIRECTDRAW lpDD, LPDDSURFACEDESC2 lpDDSurfaceDesc2)
+	{
+		if (DirectXVersion < 4)
+		{
+			return Initialize(lpDD, (LPDDSURFACEDESC)lpDDSurfaceDesc2);
+		}
+
+		return Initialize2(lpDD, lpDDSurfaceDesc2);
+	}
+	HRESULT Initialize(LPDIRECTDRAW lpDD, LPDDSURFACEDESC lpDDSurfaceDesc);
+	HRESULT Initialize2(LPDIRECTDRAW lpDD, LPDDSURFACEDESC2 lpDDSurfaceDesc2);
 	STDMETHOD(IsLost)(THIS);
-	STDMETHOD(Lock)(THIS_ LPRECT, LPDDSURFACEDESC2, DWORD, HANDLE);
+	STDMETHOD(Lock)(THIS_ LPRECT lpDestRect, LPDDSURFACEDESC2 lpDDSurfaceDesc2, DWORD dwFlags, HANDLE hEvent)
+	{
+		if (DirectXVersion < 4)
+		{
+			return Lock(lpDestRect, (LPDDSURFACEDESC)lpDDSurfaceDesc2, dwFlags, hEvent);
+		}
+
+		return Lock2(lpDestRect, lpDDSurfaceDesc2, dwFlags, hEvent);
+	}
+	HRESULT Lock(LPRECT, LPDDSURFACEDESC, DWORD, HANDLE);
+	HRESULT Lock2(LPRECT, LPDDSURFACEDESC2, DWORD, HANDLE);
 	STDMETHOD(ReleaseDC)(THIS_ HDC);
 	STDMETHOD(Restore)(THIS);
 	STDMETHOD(SetClipper)(THIS_ LPDIRECTDRAWCLIPPER);
@@ -182,7 +252,17 @@ public:
 	STDMETHOD(PageUnlock)(THIS_ DWORD);
 
 	/*** Added in the v3 interface ***/
-	STDMETHOD(SetSurfaceDesc)(THIS_ LPDDSURFACEDESC2, DWORD);
+	STDMETHOD(SetSurfaceDesc)(THIS_ LPDDSURFACEDESC2 lpDDSurfaceDesc2, DWORD dwFlags)
+	{
+		if (DirectXVersion < 4)
+		{
+			return SetSurfaceDesc((LPDDSURFACEDESC)lpDDSurfaceDesc2, dwFlags);
+		}
+
+		return SetSurfaceDesc2(lpDDSurfaceDesc2, dwFlags);
+	}
+	HRESULT SetSurfaceDesc(LPDDSURFACEDESC, DWORD);
+	HRESULT SetSurfaceDesc2(LPDDSURFACEDESC2, DWORD);
 
 	/*** Added in the v4 interface ***/
 	STDMETHOD(SetPrivateData)(THIS_ REFGUID, LPVOID, DWORD, DWORD);
@@ -205,7 +285,6 @@ public:
 	HRESULT SetLock(LPRECT lpDestRect, DWORD dwFlags);
 	HRESULT SetUnLock();
 	HRESULT GetSurfaceInfo(D3DLOCKED_RECT *pLockRect, DWORD *lpBitCount, D3DFORMAT *lpFormat);
-	HRESULT GetSurfaceDesc2(LPDDSURFACEDESC2 lpDDSurfaceDesc2);
 	void AddAttachedSurfaceToMap(m_IDirectDrawSurfaceX* lpSurfaceX);
 	void RemoveAttachedSurfaceFromMap(m_IDirectDrawSurfaceX* lpSurfaceX);
 	bool DoesAttachedSurfaceExist(m_IDirectDrawSurfaceX* lpSurfaceX);

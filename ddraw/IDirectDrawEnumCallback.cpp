@@ -18,7 +18,19 @@
 
 HRESULT CALLBACK m_IDirectDrawEnumDisplayModes::ConvertCallback(LPDDSURFACEDESC2 lpDDSurfaceDesc2, LPVOID lpContext)
 {
+	if (!lpContext || !lpDDSurfaceDesc2)
+	{
+		Logging::Log() << __FUNCTION__ << " Error: invaid context!";
+		return DDENUMRET_CANCEL;
+	}
+
 	ENUMDISPLAYMODES *lpCallbackContext = (ENUMDISPLAYMODES*)lpContext;
+
+	if (!lpCallbackContext->lpCallback)
+	{
+		Logging::Log() << __FUNCTION__ << " Error: invaid callback!";
+		return DDENUMRET_CANCEL;
+	}
 
 	DDSURFACEDESC Desc;
 	ConvertSurfaceDesc(Desc, *lpDDSurfaceDesc2);
@@ -26,9 +38,45 @@ HRESULT CALLBACK m_IDirectDrawEnumDisplayModes::ConvertCallback(LPDDSURFACEDESC2
 	return lpCallbackContext->lpCallback(&Desc, lpCallbackContext->lpContext);
 }
 
-HRESULT CALLBACK m_IDirectDrawEnumSurface::ConvertCallback(LPDIRECTDRAWSURFACE7 lpDDSurface, LPDDSURFACEDESC2 lpDDSurfaceDesc2, LPVOID lpContext)
+HRESULT CALLBACK m_IDirectDrawEnumSurface::ConvertCallback(LPDIRECTDRAWSURFACE lpDDSurface, LPDDSURFACEDESC lpDDSurfaceDesc, LPVOID lpContext)
 {
+	if (!lpContext)
+	{
+		Logging::Log() << __FUNCTION__ << " Error: invaid context!";
+		return DDENUMRET_CANCEL;
+	}
+
 	ENUMSURFACE *lpCallbackContext = (ENUMSURFACE*)lpContext;
+
+	if (!lpCallbackContext->lpCallback)
+	{
+		Logging::Log() << __FUNCTION__ << " Error: invaid callback!";
+		return DDENUMRET_CANCEL;
+	}
+
+	if (lpDDSurface)
+	{
+		lpDDSurface = (LPDIRECTDRAWSURFACE)ProxyAddressLookupTable.FindAddress<m_IDirectDrawSurface7>(lpDDSurface, lpCallbackContext->DirectXVersion);
+	}
+
+	return lpCallbackContext->lpCallback(lpDDSurface, lpDDSurfaceDesc, lpCallbackContext->lpContext);
+}
+
+HRESULT CALLBACK m_IDirectDrawEnumSurface::ConvertCallback2(LPDIRECTDRAWSURFACE7 lpDDSurface, LPDDSURFACEDESC2 lpDDSurfaceDesc2, LPVOID lpContext)
+{
+	if (!lpContext)
+	{
+		Logging::Log() << __FUNCTION__ << " Error: invaid context!";
+		return DDENUMRET_CANCEL;
+	}
+
+	ENUMSURFACE *lpCallbackContext = (ENUMSURFACE*)lpContext;
+
+	if (!lpCallbackContext->lpCallback7)
+	{
+		Logging::Log() << __FUNCTION__ << " Error: invaid callback!";
+		return DDENUMRET_CANCEL;
+	}
 
 	if (lpDDSurface)
 	{
@@ -36,12 +84,13 @@ HRESULT CALLBACK m_IDirectDrawEnumSurface::ConvertCallback(LPDIRECTDRAWSURFACE7 
 	}
 
 	// Game using old DirectX, Convert back to LPDDSURFACEDESC
-	DDSURFACEDESC Desc;
 	if (lpDDSurfaceDesc2 && lpCallbackContext->ConvertSurfaceDescTo2)
 	{
-		ConvertSurfaceDesc(Desc, *(LPDDSURFACEDESC2)lpDDSurfaceDesc2);
-		lpDDSurfaceDesc2 = (LPDDSURFACEDESC2)&Desc;
+		DDSURFACEDESC Desc;
+		ConvertSurfaceDesc(Desc, *lpDDSurfaceDesc2);
+
+		return ((LPDDENUMSURFACESCALLBACK)lpCallbackContext->lpCallback7)((LPDIRECTDRAWSURFACE)lpDDSurface, &Desc, lpCallbackContext->lpContext);
 	}
 
-	return lpCallbackContext->lpCallback(lpDDSurface, lpDDSurfaceDesc2, lpCallbackContext->lpContext);
+	return lpCallbackContext->lpCallback7(lpDDSurface, lpDDSurfaceDesc2, lpCallbackContext->lpContext);
 }

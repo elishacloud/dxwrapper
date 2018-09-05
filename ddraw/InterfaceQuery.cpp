@@ -16,19 +16,8 @@
 
 #include "ddraw.h"
 
-REFIID GetIID(REFIID CalledID)
+DWORD GetIIDVersion(REFIID riid)
 {
-	return (CalledID == CLSID_DirectDraw) ? IID_IDirectDraw :
-		(CalledID == CLSID_DirectDraw7) ? IID_IDirectDraw7 :
-		(CalledID == CLSID_DirectDrawClipper) ? IID_IDirectDrawClipper :
-		(CalledID == CLSID_DirectDrawFactory) ? IID_IDirectDrawFactory :
-		CalledID;
-}
-
-DWORD GetIIDVersion(REFIID CalledID)
-{
-	REFIID riid = GetIID(CalledID);
-
 	return (riid == IID_IDirectDraw || riid == IID_IDirectDrawSurface || riid == IID_IDirect3D || riid == IID_IDirect3DDevice ||
 		riid == IID_IDirect3DMaterial || riid == IID_IDirect3DTexture || riid == IID_IDirect3DVertexBuffer || riid == IID_IDirect3DViewport) ? 1 :
 		(riid == IID_IDirectDraw2 || riid == IID_IDirectDrawSurface2 || riid == IID_IDirect3D2 || riid == IID_IDirect3DDevice2 ||
@@ -40,10 +29,8 @@ DWORD GetIIDVersion(REFIID CalledID)
 			riid == IID_IDirect3DVertexBuffer7) ? 7 : 7;
 }
 
-REFIID ConvertREFIID(REFIID CalledID)
+REFIID ConvertREFIID(REFIID riid)
 {
-	REFIID riid = GetIID(CalledID);
-
 	if (Config.ConvertToDirectDraw7)
 	{
 		if (riid == IID_IDirectDraw ||
@@ -98,15 +85,13 @@ REFIID ConvertREFIID(REFIID CalledID)
 	return riid;
 }
 
-HRESULT ProxyQueryInterface(LPVOID ProxyInterface, REFIID CalledID, LPVOID * ppvObj, REFIID WrapperID, LPVOID WrapperInterface)
+HRESULT ProxyQueryInterface(LPVOID ProxyInterface, REFIID riid, LPVOID * ppvObj, REFIID WrapperID, LPVOID WrapperInterface)
 {
-	Logging::LogDebug() << "Query for " << CalledID << " from " << WrapperID;
-
-	REFIID riid = GetIID(CalledID);
+	Logging::LogDebug() << "Query for " << riid << " from " << WrapperID;
 
 	if (Config.Dd7to9 || !ProxyInterface)
 	{
-		Logging::Log() << __FUNCTION__ << " Query Not Implemented for " << CalledID << " from " << WrapperID;
+		Logging::Log() << __FUNCTION__ << " Query Not Implemented for " << riid << " from " << WrapperID;
 
 		return E_NOINTERFACE;
 	}
@@ -117,7 +102,17 @@ HRESULT ProxyQueryInterface(LPVOID ProxyInterface, REFIID CalledID, LPVOID * ppv
 
 		*ppvObj = WrapperInterface;
 
-		return S_OK;
+		return DD_OK;
+	}
+	if (riid == IID_IClassFactory)
+	{
+		*ppvObj = new m_IClassFactory;
+		return DD_OK;
+	}
+	if (riid == IID_IDirectDrawFactory)
+	{
+		*ppvObj = new m_IDirectDrawFactory;
+		return DD_OK;
 	}
 
 	HRESULT hr = ((IUnknown*)ProxyInterface)->QueryInterface(ConvertREFIID(riid), ppvObj);
@@ -141,14 +136,13 @@ HRESULT ProxyQueryInterface(LPVOID ProxyInterface, REFIID CalledID, LPVOID * ppv
 	return hr;
 }
 
-void genericQueryInterface(REFIID CalledID, LPVOID * ppvObj)
+HRESULT genericQueryInterface(REFIID riid, LPVOID * ppvObj)
 {
-	REFIID riid = GetIID(CalledID);
-
 #define QUERYINTERFACE(x) \
 	if (riid == IID_ ## x) \
 		{ \
 			*ppvObj = ProxyAddressLookupTable.FindAddress<m_ ## x>(*ppvObj); \
+			return DD_OK; \
 		}
 
 	QUERYINTERFACE(IDirect3D);
@@ -178,7 +172,6 @@ void genericQueryInterface(REFIID CalledID, LPVOID * ppvObj)
 	QUERYINTERFACE(IDirectDraw7);
 	QUERYINTERFACE(IDirectDrawClipper);
 	QUERYINTERFACE(IDirectDrawColorControl);
-	QUERYINTERFACE(IDirectDrawFactory);
 	QUERYINTERFACE(IDirectDrawGammaControl);
 	QUERYINTERFACE(IDirectDrawPalette);
 	QUERYINTERFACE(IDirectDrawSurface);
@@ -186,4 +179,6 @@ void genericQueryInterface(REFIID CalledID, LPVOID * ppvObj)
 	QUERYINTERFACE(IDirectDrawSurface3);
 	QUERYINTERFACE(IDirectDrawSurface4);
 	QUERYINTERFACE(IDirectDrawSurface7);
+
+	return DDERR_INVALIDPARAMS;
 }
