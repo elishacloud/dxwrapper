@@ -32,7 +32,6 @@ ipch/*
 *.lastbuildstate
 *.ipsh
 *.idb
-*.pdb
 *.db
 .opendb
 RC*

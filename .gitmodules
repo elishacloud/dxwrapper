@@ -4,3 +4,6 @@
 [submodule "External/d3d8to9"]
 	path = External/d3d8to9
 	url = https://github.com/crosire/d3d8to9
+[submodule "External/detours"]
+	path = External/detours
+	url = https://github.com/microsoft/detours
