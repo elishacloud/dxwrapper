@@ -53,7 +53,7 @@ void WINAPI dd_AcquireDDThreadLock()
 	return m_pAcquireDDThreadLock();
 }
 
-void WINAPI dd_CompleteCreateSystemSurface()
+void WINAPI dd_CompleteCreateSysmemSurface()
 {
 	if (Config.Dd7to9)
 	{
@@ -61,14 +61,14 @@ void WINAPI dd_CompleteCreateSystemSurface()
 		return;
 	}
 
-	static CompleteCreateSystemSurfaceProc m_pCompleteCreateSystemSurface = (Wrapper::ValidProcAddress(CompleteCreateSystemSurface_out)) ? (CompleteCreateSystemSurfaceProc)CompleteCreateSystemSurface_out : nullptr;
+	static CompleteCreateSysmemSurfaceProc m_pCompleteCreateSysmemSurface = (Wrapper::ValidProcAddress(CompleteCreateSysmemSurface_out)) ? (CompleteCreateSysmemSurfaceProc)CompleteCreateSysmemSurface_out : nullptr;
 
-	if (!m_pCompleteCreateSystemSurface)
+	if (!m_pCompleteCreateSysmemSurface)
 	{
 		return;
 	}
 
-	return m_pCompleteCreateSystemSurface();
+	return m_pCompleteCreateSysmemSurface();
 }
 
 HRESULT WINAPI dd_D3DParseUnknownCommand(LPVOID lpCmd, LPVOID *lpRetCmd)

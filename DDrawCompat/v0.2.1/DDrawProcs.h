@@ -6,7 +6,7 @@
 
 #define VISIT_UNMODIFIED_DDRAW_PROCS(visit) \
 	visit(AcquireDDThreadLock) \
-	visit(CompleteCreateSystemSurface) \
+	visit(CompleteCreateSysmemSurface) \
 	visit(D3DParseUnknownCommand) \
 	visit(DDGetAttachedSurfaceLcl) \
 	visit(DDInternalLock) \

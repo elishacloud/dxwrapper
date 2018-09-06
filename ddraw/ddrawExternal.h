@@ -3,7 +3,7 @@
 #include "Wrappers\wrapper.h"
 
 void WINAPI dd_AcquireDDThreadLock();
-void WINAPI dd_CompleteCreateSystemSurface();
+void WINAPI dd_CompleteCreateSysmemSurface();
 HRESULT WINAPI dd_D3DParseUnknownCommand(LPVOID lpCmd, LPVOID *lpRetCmd);
 void WINAPI dd_DDGetAttachedSurfaceLcl();
 void WINAPI dd_DDInternalLock();
