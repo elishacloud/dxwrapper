@@ -18,6 +18,8 @@
 
 HRESULT m_IDirectDrawColorControl::QueryInterface(REFIID riid, LPVOID FAR * ppvObj)
 {
+	Logging::LogDebug() << __FUNCTION__;
+
 	if (!ProxyInterface)
 	{
 		if ((riid == IID_IDirectDrawColorControl || riid == IID_IUnknown) && ppvObj)
@@ -35,6 +37,8 @@ HRESULT m_IDirectDrawColorControl::QueryInterface(REFIID riid, LPVOID FAR * ppvO
 
 ULONG m_IDirectDrawColorControl::AddRef()
 {
+	Logging::LogDebug() << __FUNCTION__;
+
 	if (!ProxyInterface)
 	{
 		return InterlockedIncrement(&RefCount);
@@ -45,6 +49,8 @@ ULONG m_IDirectDrawColorControl::AddRef()
 
 ULONG m_IDirectDrawColorControl::Release()
 {
+	Logging::LogDebug() << __FUNCTION__;
+
 	ULONG ref;
 
 	if (!ProxyInterface)
@@ -66,6 +72,8 @@ ULONG m_IDirectDrawColorControl::Release()
 
 HRESULT m_IDirectDrawColorControl::GetColorControls(LPDDCOLORCONTROL lpColorControl)
 {
+	Logging::LogDebug() << __FUNCTION__;
+
 	if (!lpColorControl)
 	{
 		return DDERR_INVALIDPARAMS;
@@ -83,6 +91,8 @@ HRESULT m_IDirectDrawColorControl::GetColorControls(LPDDCOLORCONTROL lpColorCont
 
 HRESULT m_IDirectDrawColorControl::SetColorControls(LPDDCOLORCONTROL lpColorControl)
 {
+	Logging::LogDebug() << __FUNCTION__;
+
 	if (!lpColorControl)
 	{
 		return DDERR_INVALIDPARAMS;

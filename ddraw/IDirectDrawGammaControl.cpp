@@ -18,16 +18,22 @@
 
 HRESULT m_IDirectDrawGammaControl::QueryInterface(REFIID riid, LPVOID FAR * ppvObj)
 {
+	Logging::LogDebug() << __FUNCTION__;
+
 	return ProxyQueryInterface(ProxyInterface, riid, ppvObj, WrapperID, this);
 }
 
 ULONG m_IDirectDrawGammaControl::AddRef()
 {
+	Logging::LogDebug() << __FUNCTION__;
+
 	return ProxyInterface->AddRef();
 }
 
 ULONG m_IDirectDrawGammaControl::Release()
 {
+	Logging::LogDebug() << __FUNCTION__;
+
 	ULONG x = ProxyInterface->Release();
 
 	if (x == 0)
@@ -40,10 +46,14 @@ ULONG m_IDirectDrawGammaControl::Release()
 
 HRESULT m_IDirectDrawGammaControl::GetGammaRamp(DWORD dwFlags, LPDDGAMMARAMP lpRampData)
 {
+	Logging::LogDebug() << __FUNCTION__;
+
 	return ProxyInterface->GetGammaRamp(dwFlags, lpRampData);
 }
 
 HRESULT m_IDirectDrawGammaControl::SetGammaRamp(DWORD dwFlags, LPDDGAMMARAMP lpRampData)
 {
+	Logging::LogDebug() << __FUNCTION__;
+
 	return ProxyInterface->SetGammaRamp(dwFlags, lpRampData);
 }

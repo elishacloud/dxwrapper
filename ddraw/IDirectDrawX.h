@@ -65,7 +65,7 @@ public:
 			ProxyDirectXVersion = GetIIDVersion(ConvertREFIID(WrapperID));
 		}
 
-		InterlockedExchangePointer((PVOID*)&CurrentDDInterface, ProxyInterface);
+		InterlockedExchangePointer((PVOID*)&CurrentDDInterface, this);
 
 		if (ProxyDirectXVersion > 3 && DirectXVersion < 4)
 		{
@@ -75,6 +75,10 @@ public:
 		if (ProxyDirectXVersion != DirectXVersion)
 		{
 			Logging::LogDebug() << "Convert DirectDraw v" << DirectXVersion << " to v" << ProxyDirectXVersion;
+		}
+		else
+		{
+			Logging::LogDebug() << "Create " << __FUNCTION__ << " v" << DirectXVersion;
 		}
 	}
 	~m_IDirectDrawX()
@@ -92,11 +96,8 @@ public:
 	REFIID GetWrapperType() { return WrapperID; }
 	IDirectDraw7 *GetProxyInterface() { return ProxyInterface; }
 	m_IDirectDraw7 *GetWrapperInterface() { return WrapperInterface; }
-	LPDIRECT3D9 GetDirect3D() { return d3d9Object; }
-	DWORD GetDisplayModeWidth() { return displayModeWidth; }
-	DWORD GetDisplayModeHeight() { return displayModeHeight; }
-	DWORD GetDisplayModeRefreshRate() { return displayModeRefreshRate; }
-	DWORD GetDisplayModeBPP() { return displayModeBPP; }
+	LPDIRECT3D9 GetDirect3DObject() { return d3d9Object; }
+	LPDIRECT3DDEVICE9 *GetDirect3DDevice() { return &d3d9Device; }
 	HWND GetHwnd() { return MainhWnd; }
 
 	/*** IUnknown methods ***/

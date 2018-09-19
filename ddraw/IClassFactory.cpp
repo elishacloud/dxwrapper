@@ -22,26 +22,49 @@
 
 HRESULT m_IClassFactory::QueryInterface(REFIID riid, LPVOID FAR * ppvObj)
 {
-	if ((riid == IID_IClassFactory || riid == IID_IUnknown) && ppvObj)
+	Logging::LogDebug() << __FUNCTION__;
+
+	if (!ProxyInterface)
 	{
-		AddRef();
+		if ((riid == IID_IClassFactory || riid == IID_IUnknown) && ppvObj)
+		{
+			AddRef();
 
-		*ppvObj = this;
+			*ppvObj = this;
 
-		return S_OK;
+			return S_OK;
+		}
 	}
 
-	return ProxyQueryInterface(nullptr, riid, ppvObj, WrapperID, nullptr);
+	return ProxyQueryInterface(ProxyInterface, riid, ppvObj, WrapperID, this);
 }
 
 ULONG m_IClassFactory::AddRef()
 {
-	return InterlockedIncrement(&RefCount);
+	Logging::LogDebug() << __FUNCTION__;
+
+	if (!ProxyInterface)
+	{
+		return InterlockedIncrement(&RefCount);
+	}
+
+	return ProxyInterface->AddRef();
 }
 
 ULONG m_IClassFactory::Release()
 {
-	ULONG ref = InterlockedDecrement(&RefCount);
+	Logging::LogDebug() << __FUNCTION__;
+
+	ULONG ref;
+
+	if (!ProxyInterface)
+	{
+		ref = InterlockedDecrement(&RefCount);
+	}
+	else
+	{
+		ref = ProxyInterface->Release();
+	}
 
 	if (ref == 0)
 	{
@@ -57,20 +80,72 @@ ULONG m_IClassFactory::Release()
 
 HRESULT m_IClassFactory::CreateInstance(IUnknown *pUnkOuter, REFIID riid, void **ppvObject)
 {
-	if (riid == IID_IDirectDraw)
+	Logging::LogDebug() << __FUNCTION__;
+
+	if (!ProxyInterface)
 	{
-		return dd_DirectDrawCreate(nullptr, (LPDIRECTDRAW*)ppvObject, pUnkOuter);
+		if (riid == IID_IDirectDraw ||
+			riid == IID_IDirectDraw2 ||
+			riid == IID_IDirectDraw3 ||
+			riid == IID_IDirectDraw4 ||
+			riid == IID_IDirectDraw7)
+		{
+			if (Config.Dd7to9 || (Config.ConvertToDirect3D7 && Config.ConvertToDirectDraw7) || ClassID == CLSID_DirectDraw7)
+			{
+				return dd_DirectDrawCreateEx(nullptr, ppvObject, riid, pUnkOuter);
+			}
+
+			HRESULT hr = dd_DirectDrawCreate(nullptr, (LPDIRECTDRAW*)ppvObject, pUnkOuter);
+
+			if (FAILED(hr))
+			{
+				*ppvObject = nullptr;
+				return E_FAIL;
+			}
+
+			// Convert to new DirectDraw version
+			if (ConvertREFIID(riid) != IID_IDirectDraw)
+			{
+				LPDIRECTDRAW lpDD = (LPDIRECTDRAW)*ppvObject;
+
+				hr = lpDD->QueryInterface(riid, (LPVOID*)ppvObject);
+
+				lpDD->Release();
+
+				if (FAILED(hr))
+				{
+					*ppvObject = nullptr;
+					return E_FAIL;
+				}
+			}
+
+			return DD_OK;
+		}
+
+		Logging::Log() << __FUNCTION__ << " Not Implemented for IID " << riid;
+		*ppvObject = nullptr;
+		return E_FAIL;
 	}
-	else
+
+	HRESULT hr = ProxyInterface->CreateInstance(pUnkOuter, ConvertREFIID(riid), ppvObject);
+
+	if (SUCCEEDED(hr))
 	{
-		return dd_DirectDrawCreateEx(nullptr, ppvObject, riid, pUnkOuter);
+		hr = genericQueryInterface(riid, ppvObject);
 	}
+
+	return hr;
 }
 
 HRESULT m_IClassFactory::LockServer(BOOL fLock)
 {
-	UNREFERENCED_PARAMETER(fLock);
+	Logging::LogDebug() << __FUNCTION__;
 
-	Logging::Log() << __FUNCTION__ << " Not Implemented";
-	return E_NOTIMPL;
+	if (!ProxyInterface)
+	{
+		Logging::Log() << __FUNCTION__ << " Not Implemented";
+		return E_NOTIMPL;
+	}
+
+	return ProxyInterface->LockServer(fLock);
 }

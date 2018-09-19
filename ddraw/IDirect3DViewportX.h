@@ -47,6 +47,10 @@ public:
 		{
 			Logging::LogDebug() << "Convert Direct3DViewport v" << DirectXVersion << " to v" << ProxyDirectXVersion;
 		}
+		else
+		{
+			Logging::LogDebug() << "Create " << __FUNCTION__ << " v" << DirectXVersion;
+		}
 	}
 	~m_IDirect3DViewportX() {}
 

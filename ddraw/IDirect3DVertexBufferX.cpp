@@ -18,16 +18,22 @@
 
 HRESULT m_IDirect3DVertexBufferX::QueryInterface(REFIID riid, LPVOID * ppvObj)
 {
+	Logging::LogDebug() << __FUNCTION__;
+
 	return ProxyQueryInterface(ProxyInterface, riid, ppvObj, WrapperID, WrapperInterface);
 }
 
 ULONG m_IDirect3DVertexBufferX::AddRef()
 {
+	Logging::LogDebug() << __FUNCTION__;
+
 	return ProxyInterface->AddRef();
 }
 
 ULONG m_IDirect3DVertexBufferX::Release()
 {
+	Logging::LogDebug() << __FUNCTION__;
+
 	ULONG x = ProxyInterface->Release();
 
 	if (x == 0)
@@ -47,16 +53,22 @@ ULONG m_IDirect3DVertexBufferX::Release()
 
 HRESULT m_IDirect3DVertexBufferX::Lock(DWORD dwFlags, LPVOID * lplpData, LPDWORD lpdwSize)
 {
+	Logging::LogDebug() << __FUNCTION__;
+
 	return ProxyInterface->Lock(dwFlags, lplpData, lpdwSize);
 }
 
 HRESULT m_IDirect3DVertexBufferX::Unlock()
 {
+	Logging::LogDebug() << __FUNCTION__;
+
 	return ProxyInterface->Unlock();
 }
 
 HRESULT m_IDirect3DVertexBufferX::ProcessVertices(DWORD dwVertexOp, DWORD dwDestIndex, DWORD dwCount, LPDIRECT3DVERTEXBUFFER7 lpSrcBuffer, DWORD dwSrcIndex, LPDIRECT3DDEVICE7 lpD3DDevice, DWORD dwFlags)
 {
+	Logging::LogDebug() << __FUNCTION__;
+
 	if (lpSrcBuffer)
 	{
 		lpSrcBuffer = static_cast<m_IDirect3DVertexBuffer7 *>(lpSrcBuffer)->GetProxyInterface();
@@ -71,11 +83,15 @@ HRESULT m_IDirect3DVertexBufferX::ProcessVertices(DWORD dwVertexOp, DWORD dwDest
 
 HRESULT m_IDirect3DVertexBufferX::GetVertexBufferDesc(LPD3DVERTEXBUFFERDESC lpVBDesc)
 {
+	Logging::LogDebug() << __FUNCTION__;
+
 	return ProxyInterface->GetVertexBufferDesc(lpVBDesc);
 }
 
 HRESULT m_IDirect3DVertexBufferX::Optimize(LPDIRECT3DDEVICE7 lpD3DDevice, DWORD dwFlags)
 {
+	Logging::LogDebug() << __FUNCTION__;
+
 	if (lpD3DDevice)
 	{
 		lpD3DDevice = static_cast<m_IDirect3DDevice7 *>(lpD3DDevice)->GetProxyInterface();
@@ -86,6 +102,8 @@ HRESULT m_IDirect3DVertexBufferX::Optimize(LPDIRECT3DDEVICE7 lpD3DDevice, DWORD 
 
 HRESULT m_IDirect3DVertexBufferX::ProcessVerticesStrided(DWORD dwVertexOp, DWORD dwDestIndex, DWORD dwCount, LPD3DDRAWPRIMITIVESTRIDEDDATA lpVertexArray, DWORD dwSrcIndex, LPDIRECT3DDEVICE7 lpD3DDevice, DWORD dwFlags)
 {
+	Logging::LogDebug() << __FUNCTION__;
+
 	if (lpD3DDevice)
 	{
 		lpD3DDevice = static_cast<m_IDirect3DDevice7 *>(lpD3DDevice)->GetProxyInterface();

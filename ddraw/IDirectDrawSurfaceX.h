@@ -33,6 +33,7 @@ private:
 	BYTE *rawVideoBuf = nullptr;						// Virtual video buffer
 	bool WriteDirectlyToSurface = false;
 	bool IsLocked = false;
+	bool PaletteFirstRun = true;
 
 	// Display resolution
 	DWORD displayWidth = 0;
@@ -45,6 +46,7 @@ private:
 
 	// Store a list of attached surfaces
 	std::map<DWORD, m_IDirectDrawSurfaceX*> AttachedSurfaceMap;
+	DWORD MapKey = 0;
 
 	// Custom vertex
 	struct TLVERTEX
@@ -110,6 +112,10 @@ public:
 		if (ProxyDirectXVersion != DirectXVersion)
 		{
 			Logging::LogDebug() << "Convert DirectDrawSurface v" << DirectXVersion << " to v" << ProxyDirectXVersion;
+		}
+		else
+		{
+			Logging::LogDebug() << "Create " << __FUNCTION__ << " v" << DirectXVersion;
 		}
 	}
 	~m_IDirectDrawSurfaceX()

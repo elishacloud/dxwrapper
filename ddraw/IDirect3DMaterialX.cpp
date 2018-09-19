@@ -18,6 +18,8 @@
 
 HRESULT m_IDirect3DMaterialX::QueryInterface(REFIID riid, LPVOID * ppvObj)
 {
+	Logging::LogDebug() << __FUNCTION__;
+
 	if (ProxyDirectXVersion > 3)
 	{
 		if ((riid == IID_IDirect3DMaterial || riid == IID_IDirect3DMaterial2 || riid == IID_IDirect3DMaterial3 || riid == IID_IUnknown) && ppvObj)
@@ -35,6 +37,8 @@ HRESULT m_IDirect3DMaterialX::QueryInterface(REFIID riid, LPVOID * ppvObj)
 
 ULONG m_IDirect3DMaterialX::AddRef()
 {
+	Logging::LogDebug() << __FUNCTION__;
+
 	if (ProxyDirectXVersion > 3)
 	{
 		return InterlockedIncrement(&RefCount);
@@ -45,6 +49,8 @@ ULONG m_IDirect3DMaterialX::AddRef()
 
 ULONG m_IDirect3DMaterialX::Release()
 {
+	Logging::LogDebug() << __FUNCTION__;
+
 	LONG ref;
 
 	if (ProxyDirectXVersion > 3)
@@ -73,6 +79,8 @@ ULONG m_IDirect3DMaterialX::Release()
 
 HRESULT m_IDirect3DMaterialX::Initialize(LPDIRECT3D lplpD3D)
 {
+	Logging::LogDebug() << __FUNCTION__;
+
 	if (ProxyDirectXVersion != 1)
 	{
 		return D3D_OK;
@@ -88,6 +96,8 @@ HRESULT m_IDirect3DMaterialX::Initialize(LPDIRECT3D lplpD3D)
 
 HRESULT m_IDirect3DMaterialX::SetMaterial(LPD3DMATERIAL lpMat)
 {
+	Logging::LogDebug() << __FUNCTION__;
+
 	if (ProxyDirectXVersion > 3)
 	{
 		D3DMATERIAL7 tmpMaterial;
@@ -107,6 +117,8 @@ HRESULT m_IDirect3DMaterialX::SetMaterial(LPD3DMATERIAL lpMat)
 
 HRESULT m_IDirect3DMaterialX::GetMaterial(LPD3DMATERIAL lpMat)
 {
+	Logging::LogDebug() << __FUNCTION__;
+
 	if (ProxyDirectXVersion > 3)
 	{
 		D3DMATERIAL7 tmpMaterial;
@@ -124,6 +136,8 @@ HRESULT m_IDirect3DMaterialX::GetMaterial(LPD3DMATERIAL lpMat)
 
 HRESULT m_IDirect3DMaterialX::GetHandle(LPDIRECT3DDEVICE3 lpDirect3DDevice, LPD3DMATERIALHANDLE lpHandle)
 {
+	Logging::LogDebug() << __FUNCTION__;
+
 	if (ProxyDirectXVersion > 3)
 	{
 		lpDirect3DDevice = (LPDIRECT3DDEVICE3)D3DDeviceInterface;
@@ -144,6 +158,8 @@ HRESULT m_IDirect3DMaterialX::GetHandle(LPDIRECT3DDEVICE3 lpDirect3DDevice, LPD3
 
 HRESULT m_IDirect3DMaterialX::Reserve()
 {
+	Logging::LogDebug() << __FUNCTION__;
+
 	if (ProxyDirectXVersion != 1)
 	{
 		Logging::Log() << __FUNCTION__ << " Not Implemented";
@@ -155,6 +171,8 @@ HRESULT m_IDirect3DMaterialX::Reserve()
 
 HRESULT m_IDirect3DMaterialX::Unreserve()
 {
+	Logging::LogDebug() << __FUNCTION__;
+
 	if (ProxyDirectXVersion != 1)
 	{
 		Logging::Log() << __FUNCTION__ << " Not Implemented";

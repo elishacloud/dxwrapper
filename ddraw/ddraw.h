@@ -89,7 +89,7 @@ REFIID ConvertREFIID(REFIID riid);
 HRESULT ProxyQueryInterface(LPVOID ProxyInterface, REFIID CalledID, LPVOID * ppvObj, REFIID CallerID, LPVOID WrapperInterface);
 HRESULT genericQueryInterface(REFIID riid, LPVOID * ppvObj);
 extern AddressLookupTableDdraw<void> ProxyAddressLookupTable;
-extern IDirectDraw7 *CurrentDDInterface;
+extern m_IDirectDrawX *CurrentDDInterface;
 extern m_IDirect3DDeviceX *lpCurrentD3DDevice;
 
 // IClassFactory Wrapper

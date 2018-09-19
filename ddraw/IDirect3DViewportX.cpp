@@ -18,6 +18,8 @@
 
 HRESULT m_IDirect3DViewportX::QueryInterface(REFIID riid, LPVOID * ppvObj)
 {
+	Logging::LogDebug() << __FUNCTION__;
+
 	if (ProxyDirectXVersion > 3)
 	{
 		if ((riid == IID_IDirect3DViewport || riid == IID_IDirect3DViewport2 || riid == IID_IDirect3DViewport3 || riid == IID_IUnknown) && ppvObj)
@@ -35,6 +37,8 @@ HRESULT m_IDirect3DViewportX::QueryInterface(REFIID riid, LPVOID * ppvObj)
 
 ULONG m_IDirect3DViewportX::AddRef()
 {
+	Logging::LogDebug() << __FUNCTION__;
+
 	if (ProxyDirectXVersion > 3)
 	{
 		return InterlockedIncrement(&RefCount);
@@ -45,6 +49,8 @@ ULONG m_IDirect3DViewportX::AddRef()
 
 ULONG m_IDirect3DViewportX::Release()
 {
+	Logging::LogDebug() << __FUNCTION__;
+
 	LONG ref;
 
 	if (ProxyDirectXVersion > 3)
@@ -73,6 +79,8 @@ ULONG m_IDirect3DViewportX::Release()
 
 HRESULT m_IDirect3DViewportX::Initialize(LPDIRECT3D lpDirect3D)
 {
+	Logging::LogDebug() << __FUNCTION__;
+
 	if (ProxyDirectXVersion > 3)
 	{
 		return D3D_OK;
@@ -88,6 +96,8 @@ HRESULT m_IDirect3DViewportX::Initialize(LPDIRECT3D lpDirect3D)
 
 HRESULT m_IDirect3DViewportX::GetViewport(LPD3DVIEWPORT lpData)
 {
+	Logging::LogDebug() << __FUNCTION__;
+
 	if (ProxyDirectXVersion > 3)
 	{
 		if (ViewPortSet)
@@ -112,6 +122,8 @@ HRESULT m_IDirect3DViewportX::GetViewport(LPD3DVIEWPORT lpData)
 
 HRESULT m_IDirect3DViewportX::SetViewport(LPD3DVIEWPORT lpData)
 {
+	Logging::LogDebug() << __FUNCTION__;
+
 	if (ProxyDirectXVersion > 3)
 	{
 		ViewPortSet = true;
@@ -135,6 +147,8 @@ HRESULT m_IDirect3DViewportX::SetViewport(LPD3DVIEWPORT lpData)
 
 HRESULT m_IDirect3DViewportX::TransformVertices(DWORD dwVertexCount, LPD3DTRANSFORMDATA lpData, DWORD dwFlags, LPDWORD lpOffscreen)
 {
+	Logging::LogDebug() << __FUNCTION__;
+
 	if (ProxyDirectXVersion > 3)
 	{
 		Logging::Log() << __FUNCTION__ << " Not Implemented";
@@ -146,6 +160,8 @@ HRESULT m_IDirect3DViewportX::TransformVertices(DWORD dwVertexCount, LPD3DTRANSF
 
 HRESULT m_IDirect3DViewportX::LightElements(DWORD dwElementCount, LPD3DLIGHTDATA lpData)
 {
+	Logging::LogDebug() << __FUNCTION__;
+
 	if (ProxyDirectXVersion > 3)
 	{
 		Logging::Log() << __FUNCTION__ << " Not Implemented";
@@ -157,6 +173,8 @@ HRESULT m_IDirect3DViewportX::LightElements(DWORD dwElementCount, LPD3DLIGHTDATA
 
 HRESULT m_IDirect3DViewportX::SetBackground(D3DMATERIALHANDLE hMat)
 {
+	Logging::LogDebug() << __FUNCTION__;
+
 	if (ProxyDirectXVersion > 3)
 	{
 		Logging::Log() << __FUNCTION__ << " Not Implemented";
@@ -168,6 +186,8 @@ HRESULT m_IDirect3DViewportX::SetBackground(D3DMATERIALHANDLE hMat)
 
 HRESULT m_IDirect3DViewportX::GetBackground(LPD3DMATERIALHANDLE lphMat, LPBOOL lpValid)
 {
+	Logging::LogDebug() << __FUNCTION__;
+
 	if (ProxyDirectXVersion > 3)
 	{
 		Logging::Log() << __FUNCTION__ << " Not Implemented";
@@ -179,6 +199,8 @@ HRESULT m_IDirect3DViewportX::GetBackground(LPD3DMATERIALHANDLE lphMat, LPBOOL l
 
 HRESULT m_IDirect3DViewportX::SetBackgroundDepth(LPDIRECTDRAWSURFACE lpDDSurface)
 {
+	Logging::LogDebug() << __FUNCTION__;
+
 	if (ProxyDirectXVersion > 3)
 	{
 		Logging::Log() << __FUNCTION__ << " Not Implemented";
@@ -195,6 +217,8 @@ HRESULT m_IDirect3DViewportX::SetBackgroundDepth(LPDIRECTDRAWSURFACE lpDDSurface
 
 HRESULT m_IDirect3DViewportX::GetBackgroundDepth(LPDIRECTDRAWSURFACE * lplpDDSurface, LPBOOL lpValid)
 {
+	Logging::LogDebug() << __FUNCTION__;
+
 	if (ProxyDirectXVersion > 3)
 	{
 		Logging::Log() << __FUNCTION__ << " Not Implemented";
@@ -213,6 +237,8 @@ HRESULT m_IDirect3DViewportX::GetBackgroundDepth(LPDIRECTDRAWSURFACE * lplpDDSur
 
 HRESULT m_IDirect3DViewportX::Clear(DWORD dwCount, LPD3DRECT lpRects, DWORD dwFlags)
 {
+	Logging::LogDebug() << __FUNCTION__;
+
 	if (ProxyDirectXVersion > 3)
 	{
 		return D3DDeviceInterface->Clear(dwCount, lpRects, dwFlags, 0, 0, 0);
@@ -223,6 +249,8 @@ HRESULT m_IDirect3DViewportX::Clear(DWORD dwCount, LPD3DRECT lpRects, DWORD dwFl
 
 HRESULT m_IDirect3DViewportX::AddLight(LPDIRECT3DLIGHT lpDirect3DLight)
 {
+	Logging::LogDebug() << __FUNCTION__;
+
 	if (ProxyDirectXVersion > 3)
 	{
 		Logging::Log() << __FUNCTION__ << " Not Implemented";
@@ -239,6 +267,8 @@ HRESULT m_IDirect3DViewportX::AddLight(LPDIRECT3DLIGHT lpDirect3DLight)
 
 HRESULT m_IDirect3DViewportX::DeleteLight(LPDIRECT3DLIGHT lpDirect3DLight)
 {
+	Logging::LogDebug() << __FUNCTION__;
+
 	if (ProxyDirectXVersion > 3)
 	{
 		Logging::Log() << __FUNCTION__ << " Not Implemented";
@@ -255,6 +285,8 @@ HRESULT m_IDirect3DViewportX::DeleteLight(LPDIRECT3DLIGHT lpDirect3DLight)
 
 HRESULT m_IDirect3DViewportX::NextLight(LPDIRECT3DLIGHT lpDirect3DLight, LPDIRECT3DLIGHT * lplpDirect3DLight, DWORD dwFlags)
 {
+	Logging::LogDebug() << __FUNCTION__;
+
 	if (ProxyDirectXVersion > 3)
 	{
 		Logging::Log() << __FUNCTION__ << " Not Implemented";
@@ -278,6 +310,8 @@ HRESULT m_IDirect3DViewportX::NextLight(LPDIRECT3DLIGHT lpDirect3DLight, LPDIREC
 
 HRESULT m_IDirect3DViewportX::GetViewport2(LPD3DVIEWPORT2 lpData)
 {
+	Logging::LogDebug() << __FUNCTION__;
+
 	if (ProxyDirectXVersion > 3)
 	{
 		if (ViewPort2Set)
@@ -302,6 +336,8 @@ HRESULT m_IDirect3DViewportX::GetViewport2(LPD3DVIEWPORT2 lpData)
 
 HRESULT m_IDirect3DViewportX::SetViewport2(LPD3DVIEWPORT2 lpData)
 {
+	Logging::LogDebug() << __FUNCTION__;
+
 	if (ProxyDirectXVersion > 3)
 	{
 		ViewPort2Set = true;
@@ -325,6 +361,8 @@ HRESULT m_IDirect3DViewportX::SetViewport2(LPD3DVIEWPORT2 lpData)
 
 HRESULT m_IDirect3DViewportX::SetBackgroundDepth2(LPDIRECTDRAWSURFACE4 lpDDS)
 {
+	Logging::LogDebug() << __FUNCTION__;
+
 	if (ProxyDirectXVersion > 3)
 	{
 		Logging::Log() << __FUNCTION__ << " Not Implemented";
@@ -341,6 +379,8 @@ HRESULT m_IDirect3DViewportX::SetBackgroundDepth2(LPDIRECTDRAWSURFACE4 lpDDS)
 
 HRESULT m_IDirect3DViewportX::GetBackgroundDepth2(LPDIRECTDRAWSURFACE4 * lplpDDS, LPBOOL lpValid)
 {
+	Logging::LogDebug() << __FUNCTION__;
+
 	if (ProxyDirectXVersion > 3)
 	{
 		Logging::Log() << __FUNCTION__ << " Not Implemented";
@@ -359,6 +399,8 @@ HRESULT m_IDirect3DViewportX::GetBackgroundDepth2(LPDIRECTDRAWSURFACE4 * lplpDDS
 
 HRESULT m_IDirect3DViewportX::Clear2(DWORD dwCount, LPD3DRECT lpRects, DWORD dwFlags, D3DCOLOR dwColor, D3DVALUE dvZ, DWORD dwStencil)
 {
+	Logging::LogDebug() << __FUNCTION__;
+
 	if (ProxyDirectXVersion > 3)
 	{
 		return D3DDeviceInterface->Clear(dwCount, lpRects, dwFlags, dwColor, dvZ, dwStencil);

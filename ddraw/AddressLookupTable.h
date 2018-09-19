@@ -150,7 +150,7 @@ public:
 	}
 
 	template <typename T>
-	T *FindAddress(void *Proxy)
+	T * FindAddress(void *Proxy)
 	{
 		if (Proxy == nullptr)
 		{

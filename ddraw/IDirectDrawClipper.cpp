@@ -20,6 +20,8 @@
 
 HRESULT m_IDirectDrawClipper::QueryInterface(REFIID riid, LPVOID FAR * ppvObj)
 {
+	Logging::LogDebug() << __FUNCTION__;
+
 	if (!ProxyInterface)
 	{
 		if ((riid == IID_IDirectDrawClipper || riid == IID_IUnknown) && ppvObj)
@@ -37,6 +39,8 @@ HRESULT m_IDirectDrawClipper::QueryInterface(REFIID riid, LPVOID FAR * ppvObj)
 
 ULONG m_IDirectDrawClipper::AddRef()
 {
+	Logging::LogDebug() << __FUNCTION__;
+
 	if (!ProxyInterface)
 	{
 		return InterlockedIncrement(&RefCount);
@@ -47,6 +51,8 @@ ULONG m_IDirectDrawClipper::AddRef()
 
 ULONG m_IDirectDrawClipper::Release()
 {
+	Logging::LogDebug() << __FUNCTION__;
+
 	ULONG ref;
 
 	if (!ProxyInterface)
@@ -68,6 +74,8 @@ ULONG m_IDirectDrawClipper::Release()
 
 HRESULT m_IDirectDrawClipper::GetClipList(LPRECT lpRect, LPRGNDATA lpClipList, LPDWORD lpdwSize)
 {
+	Logging::LogDebug() << __FUNCTION__;
+
 	if (!ProxyInterface)
 	{
 		Logging::Log() << __FUNCTION__ << " Not Implemented";
@@ -79,6 +87,8 @@ HRESULT m_IDirectDrawClipper::GetClipList(LPRECT lpRect, LPRGNDATA lpClipList, L
 
 HRESULT m_IDirectDrawClipper::GetHWnd(HWND FAR * lphWnd)
 {
+	Logging::LogDebug() << __FUNCTION__;
+
 	if (!lphWnd)
 	{
 		return DDERR_INVALIDPARAMS;
@@ -101,6 +111,8 @@ HRESULT m_IDirectDrawClipper::GetHWnd(HWND FAR * lphWnd)
 
 HRESULT m_IDirectDrawClipper::Initialize(LPDIRECTDRAW lpDD, DWORD dwFlags)
 {
+	Logging::LogDebug() << __FUNCTION__;
+
 	if (!ProxyInterface)
 	{
 		return DD_OK;
@@ -116,6 +128,8 @@ HRESULT m_IDirectDrawClipper::Initialize(LPDIRECTDRAW lpDD, DWORD dwFlags)
 
 HRESULT m_IDirectDrawClipper::IsClipListChanged(BOOL FAR * lpbChanged)
 {
+	Logging::LogDebug() << __FUNCTION__;
+
 	if (!lpbChanged)
 	{
 		return DDERR_INVALIDPARAMS;
@@ -135,6 +149,8 @@ HRESULT m_IDirectDrawClipper::IsClipListChanged(BOOL FAR * lpbChanged)
 
 HRESULT m_IDirectDrawClipper::SetClipList(LPRGNDATA lpClipList, DWORD dwFlags)
 {
+	Logging::LogDebug() << __FUNCTION__;
+
 	if (!ProxyInterface)
 	{
 		Logging::Log() << __FUNCTION__ << " Not Implemented";
@@ -163,6 +179,8 @@ HRESULT m_IDirectDrawClipper::SetClipList(LPRGNDATA lpClipList, DWORD dwFlags)
 
 HRESULT m_IDirectDrawClipper::SetHWnd(DWORD dwFlags, HWND hWnd)
 {
+	Logging::LogDebug() << __FUNCTION__;
+
 	if (!ProxyInterface)
 	{
 		cliphWnd = hWnd;

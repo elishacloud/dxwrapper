@@ -18,14 +18,37 @@
 
 HRESULT m_IDirect3DX::QueryInterface(REFIID riid, LPVOID * ppvObj)
 {
+	Logging::LogDebug() << __FUNCTION__;
+
 	if (Config.Dd7to9)
 	{
 		if ((riid == IID_IDirect3D || riid == IID_IDirect3D2 || riid == IID_IDirect3D3 || riid == IID_IDirect3D7 || riid == IID_IUnknown) && ppvObj)
 		{
-			AddRef();
+			if (riid == WrapperID || riid == IID_IUnknown)
+			{
+				AddRef();
+				*ppvObj = this;
+				return S_OK;
+			}
 
-			*ppvObj = this;
+			if (riid == IID_IDirect3D)
+			{
+				*ppvObj = new m_IDirect3D((IDirect3D *)ddrawParent);
+			}
+			else if (riid == IID_IDirect3D2)
+			{
+				*ppvObj = new m_IDirect3D2((IDirect3D2 *)ddrawParent);
+			}
+			else if (riid == IID_IDirect3D3)
+			{
+				*ppvObj = new m_IDirect3D3((IDirect3D3 *)ddrawParent);
+			}
+			else
+			{
+				*ppvObj = new m_IDirect3D7((IDirect3D7 *)ddrawParent);
+			}
 
+			// Success
 			return S_OK;
 		}
 	}
@@ -34,6 +57,8 @@ HRESULT m_IDirect3DX::QueryInterface(REFIID riid, LPVOID * ppvObj)
 
 ULONG m_IDirect3DX::AddRef()
 {
+	Logging::LogDebug() << __FUNCTION__;
+
 	if (Config.Dd7to9)
 	{
 		return InterlockedIncrement(&RefCount);
@@ -44,6 +69,8 @@ ULONG m_IDirect3DX::AddRef()
 
 ULONG m_IDirect3DX::Release()
 {
+	Logging::LogDebug() << __FUNCTION__;
+
 	ULONG ref;
 
 	if (Config.Dd7to9)
@@ -57,6 +84,7 @@ ULONG m_IDirect3DX::Release()
 
 	if (ref == 0)
 	{
+		// ToDo: Release all m_IDirect3DDeviceX devices when using Dd7to9.
 		if (WrapperInterface)
 		{
 			WrapperInterface->DeleteMe();
@@ -72,6 +100,8 @@ ULONG m_IDirect3DX::Release()
 
 HRESULT m_IDirect3DX::Initialize(REFCLSID rclsid)
 {
+	Logging::LogDebug() << __FUNCTION__;
+
 	if (ProxyDirectXVersion != 1)
 	{
 		return D3D_OK;
@@ -80,17 +110,25 @@ HRESULT m_IDirect3DX::Initialize(REFCLSID rclsid)
 	return ((IDirect3D*)ProxyInterface)->Initialize(rclsid);
 }
 
-HRESULT m_IDirect3DX::EnumDevices(LPD3DENUMDEVICESCALLBACK7 lpEnumDevicesCallback7, LPVOID lpUserArg)
+HRESULT m_IDirect3DX::EnumDevices(LPD3DENUMDEVICESCALLBACK lpEnumDevicesCallback, LPVOID lpUserArg)
 {
-	ENUMDEVICES CallbackContext;
+	Logging::LogDebug() << __FUNCTION__;
+
 	if (ProxyDirectXVersion > 3 && DirectXVersion < 4)
 	{
+		ENUMDEVICES CallbackContext;
 		CallbackContext.lpContext = lpUserArg;
-		CallbackContext.lpCallback = (LPD3DENUMDEVICESCALLBACK)lpEnumDevicesCallback7;
+		CallbackContext.lpCallback = lpEnumDevicesCallback;
 
-		lpUserArg = &CallbackContext;
-		lpEnumDevicesCallback7 = m_IDirect3DEnumDevices::ConvertCallback;
+		EnumDevices7(m_IDirect3DEnumDevices::ConvertCallback, &CallbackContext);
 	}
+
+	return ProxyInterface->EnumDevices((LPD3DENUMDEVICESCALLBACK7)lpEnumDevicesCallback, lpUserArg);
+}
+
+HRESULT m_IDirect3DX::EnumDevices7(LPD3DENUMDEVICESCALLBACK7 lpEnumDevicesCallback7, LPVOID lpUserArg)
+{
+	Logging::LogDebug() << __FUNCTION__;
 
 	if (Config.Dd7to9)
 	{
@@ -102,7 +140,7 @@ HRESULT m_IDirect3DX::EnumDevices(LPD3DENUMDEVICESCALLBACK7 lpEnumDevicesCallbac
 		}
 
 		// Get d3d9Object
-		IDirect3D9 *d3d9Object = ddrawParent->GetDirect3D();
+		IDirect3D9 *d3d9Object = ddrawParent->GetDirect3DObject();
 		UINT AdapterCount = d3d9Object->GetAdapterCount();
 
 		// Loop through all adapters
@@ -154,6 +192,8 @@ HRESULT m_IDirect3DX::EnumDevices(LPD3DENUMDEVICESCALLBACK7 lpEnumDevicesCallbac
 
 HRESULT m_IDirect3DX::CreateLight(LPDIRECT3DLIGHT * lplpDirect3DLight, LPUNKNOWN pUnkOuter)
 {
+	Logging::LogDebug() << __FUNCTION__;
+
 	if (ProxyDirectXVersion > 3)
 	{
 		Logging::Log() << __FUNCTION__ << " Not Implemented";
@@ -172,6 +212,8 @@ HRESULT m_IDirect3DX::CreateLight(LPDIRECT3DLIGHT * lplpDirect3DLight, LPUNKNOWN
 
 HRESULT m_IDirect3DX::CreateMaterial(LPDIRECT3DMATERIAL3 * lplpDirect3DMaterial, LPUNKNOWN pUnkOuter)
 {
+	Logging::LogDebug() << __FUNCTION__;
+
 	if (Config.Dd7to9)
 	{
 		Logging::Log() << __FUNCTION__ << " Not Implemented";
@@ -208,6 +250,8 @@ HRESULT m_IDirect3DX::CreateMaterial(LPDIRECT3DMATERIAL3 * lplpDirect3DMaterial,
 
 HRESULT m_IDirect3DX::CreateViewport(LPDIRECT3DVIEWPORT3 * lplpD3DViewport, LPUNKNOWN pUnkOuter)
 {
+	Logging::LogDebug() << __FUNCTION__;
+
 	if (Config.Dd7to9)
 	{
 		Logging::Log() << __FUNCTION__ << " Not Implemented";
@@ -244,6 +288,8 @@ HRESULT m_IDirect3DX::CreateViewport(LPDIRECT3DVIEWPORT3 * lplpD3DViewport, LPUN
 
 HRESULT m_IDirect3DX::FindDevice(LPD3DFINDDEVICESEARCH lpD3DFDS, LPD3DFINDDEVICERESULT lpD3DFDR)
 {
+	Logging::LogDebug() << __FUNCTION__;
+
 	if (ProxyDirectXVersion > 3)
 	{
 		Logging::Log() << __FUNCTION__ << " Not Implemented";
@@ -255,6 +301,8 @@ HRESULT m_IDirect3DX::FindDevice(LPD3DFINDDEVICESEARCH lpD3DFDS, LPD3DFINDDEVICE
 
 HRESULT m_IDirect3DX::CreateDevice(REFCLSID rclsid, LPDIRECTDRAWSURFACE7 lpDDS, LPDIRECT3DDEVICE7 * lplpD3DDevice)
 {
+	Logging::LogDebug() << __FUNCTION__;
+
 	if (Config.Dd7to9)
 	{
 		if (!lplpD3DDevice)
@@ -262,7 +310,22 @@ HRESULT m_IDirect3DX::CreateDevice(REFCLSID rclsid, LPDIRECTDRAWSURFACE7 lpDDS, 
 			return DDERR_INVALIDPARAMS;
 		}
 
-		*lplpD3DDevice = new m_IDirect3DDeviceX(d3d9Device, ddrawParent, DirectXVersion);
+		if (DirectXVersion == 1)
+		{
+			*lplpD3DDevice = (LPDIRECT3DDEVICE7)new m_IDirect3DDevice((m_IDirect3DDevice *)ddrawParent);
+		}
+		else if (DirectXVersion == 2)
+		{
+			*lplpD3DDevice = (LPDIRECT3DDEVICE7)new m_IDirect3DDevice2((m_IDirect3DDevice2 *)ddrawParent);
+		}
+		else if (DirectXVersion == 3)
+		{
+			*lplpD3DDevice = (LPDIRECT3DDEVICE7)new m_IDirect3DDevice3((m_IDirect3DDevice3 *)ddrawParent);
+		}
+		else
+		{
+			*lplpD3DDevice = new m_IDirect3DDevice7((m_IDirect3DDevice7 *)ddrawParent);
+		}
 
 		return DD_OK;
 	}
@@ -293,6 +356,8 @@ HRESULT m_IDirect3DX::CreateDevice(REFCLSID rclsid, LPDIRECTDRAWSURFACE7 lpDDS, 
 
 HRESULT m_IDirect3DX::CreateVertexBuffer(LPD3DVERTEXBUFFERDESC lpVBDesc, LPDIRECT3DVERTEXBUFFER7 * lplpD3DVertexBuffer, DWORD dwFlags)
 {
+	Logging::LogDebug() << __FUNCTION__;
+
 	if (Config.Dd7to9)
 	{
 		Logging::Log() << __FUNCTION__ << " Not Implemented";
@@ -320,6 +385,8 @@ HRESULT m_IDirect3DX::CreateVertexBuffer(LPD3DVERTEXBUFFERDESC lpVBDesc, LPDIREC
 
 HRESULT m_IDirect3DX::EnumZBufferFormats(REFCLSID riidDevice, LPD3DENUMPIXELFORMATSCALLBACK lpEnumCallback, LPVOID lpContext)
 {
+	Logging::LogDebug() << __FUNCTION__;
+
 	if (Config.Dd7to9)
 	{
 		Logging::Log() << __FUNCTION__ << " Not Implemented";
@@ -336,6 +403,8 @@ HRESULT m_IDirect3DX::EnumZBufferFormats(REFCLSID riidDevice, LPD3DENUMPIXELFORM
 
 HRESULT m_IDirect3DX::EvictManagedTextures()
 {
+	Logging::LogDebug() << __FUNCTION__;
+
 	if (Config.Dd7to9)
 	{
 		Logging::Log() << __FUNCTION__ << " Not Implemented";

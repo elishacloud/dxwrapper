@@ -537,7 +537,7 @@ void CONFIG::Init()
 		ConvertToDirectDraw7 = true;
 		ConvertToDirect3D7 = true;
 	}
-	if ((isDdrawWrapperEnabled = (ConvertToDirectDraw7 || ConvertToDirect3D7)) != 0)
+	if ((isDdrawWrapperEnabled = (EnableDdrawWrapper || ConvertToDirectDraw7 || ConvertToDirect3D7)) != 0)
 	{
 		Logging::Log() << "Enabling ddraw wrapper";
 	}

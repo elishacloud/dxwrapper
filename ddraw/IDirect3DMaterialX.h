@@ -43,6 +43,10 @@ public:
 		{
 			Logging::LogDebug() << "Convert Direct3DMaterial v" << DirectXVersion << " to v" << ProxyDirectXVersion;
 		}
+		else
+		{
+			Logging::LogDebug() << "Create " << __FUNCTION__ << " v" << DirectXVersion;
+		}
 	}
 	~m_IDirect3DMaterialX() {}
 

@@ -89,14 +89,35 @@ HRESULT ProxyQueryInterface(LPVOID ProxyInterface, REFIID riid, LPVOID * ppvObj,
 {
 	Logging::LogDebug() << "Query for " << riid << " from " << WrapperID;
 
+	if (!ppvObj)
+	{
+		return E_FAIL;
+	}
+
 	if (Config.Dd7to9 || !ProxyInterface)
 	{
-		Logging::Log() << __FUNCTION__ << " Query Not Implemented for " << riid << " from " << WrapperID;
+		if (riid == IID_IClassFactory)
+		{
+			*ppvObj = new m_IClassFactory(nullptr);
+			return DD_OK;
+		}
+		if (riid == IID_IDirectDrawFactory)
+		{
+			*ppvObj = new m_IDirectDrawFactory(nullptr);
+			return DD_OK;
+		}
+		if (riid == IID_IDirectDrawColorControl)
+		{
+			*ppvObj = new m_IDirectDrawColorControl(nullptr);
+			return DD_OK;
+		}
 
+		Logging::Log() << __FUNCTION__ << " Query Not Implemented for " << riid << " from " << WrapperID;
+		*ppvObj = nullptr;
 		return E_NOINTERFACE;
 	}
 
-	if ((riid == WrapperID || riid == IID_IUnknown) && ppvObj)
+	if (riid == WrapperID || riid == IID_IUnknown)
 	{
 		((IUnknown*)ProxyInterface)->AddRef();
 
@@ -104,32 +125,15 @@ HRESULT ProxyQueryInterface(LPVOID ProxyInterface, REFIID riid, LPVOID * ppvObj,
 
 		return DD_OK;
 	}
-	if (riid == IID_IClassFactory)
-	{
-		*ppvObj = new m_IClassFactory;
-		return DD_OK;
-	}
-	if (riid == IID_IDirectDrawFactory)
-	{
-		*ppvObj = new m_IDirectDrawFactory;
-		return DD_OK;
-	}
 
 	HRESULT hr = ((IUnknown*)ProxyInterface)->QueryInterface(ConvertREFIID(riid), ppvObj);
 
 	if (SUCCEEDED(hr))
 	{
-		genericQueryInterface(riid, ppvObj);
+		hr = genericQueryInterface(riid, ppvObj);
 	}
 	else
 	{
-		if (riid == IID_IDirectDrawColorControl)
-		{
-			*ppvObj = new m_IDirectDrawColorControl(nullptr);
-
-			return DD_OK;
-		}
-
 		Logging::LogDebug() << "Query failed for " << riid << " Error " << hr;
 	}
 
@@ -138,6 +142,11 @@ HRESULT ProxyQueryInterface(LPVOID ProxyInterface, REFIID riid, LPVOID * ppvObj,
 
 HRESULT genericQueryInterface(REFIID riid, LPVOID * ppvObj)
 {
+	if (!ppvObj)
+	{
+		return E_FAIL;
+	}
+
 #define QUERYINTERFACE(x) \
 	if (riid == IID_ ## x) \
 		{ \
@@ -145,6 +154,8 @@ HRESULT genericQueryInterface(REFIID riid, LPVOID * ppvObj)
 			return DD_OK; \
 		}
 
+	QUERYINTERFACE(IClassFactory);
+	QUERYINTERFACE(IDirectDrawFactory);
 	QUERYINTERFACE(IDirect3D);
 	QUERYINTERFACE(IDirect3D2);
 	QUERYINTERFACE(IDirect3D3);
@@ -180,5 +191,6 @@ HRESULT genericQueryInterface(REFIID riid, LPVOID * ppvObj)
 	QUERYINTERFACE(IDirectDrawSurface4);
 	QUERYINTERFACE(IDirectDrawSurface7);
 
-	return DDERR_INVALIDPARAMS;
+	*ppvObj = nullptr;
+	return E_NOINTERFACE;
 }

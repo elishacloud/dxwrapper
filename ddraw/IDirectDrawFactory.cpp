@@ -22,26 +22,49 @@
 
 HRESULT m_IDirectDrawFactory::QueryInterface(REFIID riid, LPVOID FAR * ppvObj)
 {
-	if ((riid == IID_IDirectDrawFactory || riid == IID_IUnknown) && ppvObj)
+	Logging::LogDebug() << __FUNCTION__;
+
+	if (!ProxyInterface)
 	{
-		AddRef();
+		if ((riid == IID_IDirectDrawFactory || riid == IID_IUnknown) && ppvObj)
+		{
+			AddRef();
 
-		*ppvObj = this;
+			*ppvObj = this;
 
-		return S_OK;
+			return S_OK;
+		}
 	}
 
-	return ProxyQueryInterface(nullptr, riid, ppvObj, WrapperID, nullptr);
+	return ProxyQueryInterface(ProxyInterface, riid, ppvObj, WrapperID, this);
 }
 
 ULONG m_IDirectDrawFactory::AddRef()
 {
-	return InterlockedIncrement(&RefCount);
+	Logging::LogDebug() << __FUNCTION__;
+
+	if (!ProxyInterface)
+	{
+		return InterlockedIncrement(&RefCount);
+	}
+
+	return ProxyInterface->AddRef();
 }
 
 ULONG m_IDirectDrawFactory::Release()
 {
-	ULONG ref = InterlockedDecrement(&RefCount);
+	Logging::LogDebug() << __FUNCTION__;
+
+	ULONG ref;
+
+	if (!ProxyInterface)
+	{
+		ref = InterlockedDecrement(&RefCount);
+	}
+	else
+	{
+		ref = ProxyInterface->Release();
+	}
 
 	if (ref == 0)
 	{
@@ -57,18 +80,30 @@ ULONG m_IDirectDrawFactory::Release()
 
 HRESULT m_IDirectDrawFactory::CreateDirectDraw(GUID * pGUID, HWND hWnd, DWORD dwCoopLevelFlags, DWORD dwReserved, IUnknown * pUnkOuter, IDirectDraw * * ppDirectDraw)
 {
-	UNREFERENCED_PARAMETER(dwReserved);
+	Logging::LogDebug() << __FUNCTION__;
 
-	HRESULT hr = dd_DirectDrawCreate(pGUID, ppDirectDraw, pUnkOuter);
-
-	if (SUCCEEDED(hr) && ppDirectDraw)
+	if (!ProxyInterface)
 	{
-		hr = (*ppDirectDraw)->SetCooperativeLevel(hWnd, dwCoopLevelFlags);
-		if (FAILED(hr))
+		HRESULT hr = dd_DirectDrawCreate(pGUID, ppDirectDraw, pUnkOuter);
+
+		if (SUCCEEDED(hr) && ppDirectDraw)
 		{
-			(*ppDirectDraw)->Release();
-			*ppDirectDraw = nullptr;
+			hr = (*ppDirectDraw)->SetCooperativeLevel(hWnd, dwCoopLevelFlags);
+			if (FAILED(hr))
+			{
+				(*ppDirectDraw)->Release();
+				*ppDirectDraw = nullptr;
+			}
 		}
+
+		return hr;
+	}
+
+	HRESULT hr = ProxyInterface->CreateDirectDraw(pGUID, hWnd, dwCoopLevelFlags, dwReserved, pUnkOuter, ppDirectDraw);
+
+	if (SUCCEEDED(hr))
+	{
+		*ppDirectDraw = ProxyAddressLookupTable.FindAddress<m_IDirectDraw>(*ppDirectDraw);
 	}
 
 	return hr;
@@ -76,10 +111,24 @@ HRESULT m_IDirectDrawFactory::CreateDirectDraw(GUID * pGUID, HWND hWnd, DWORD dw
 
 HRESULT m_IDirectDrawFactory::DirectDrawEnumerateA(LPDDENUMCALLBACKA lpCallback, LPVOID lpContext)
 {
-	return dd_DirectDrawEnumerateA(lpCallback, lpContext);
+	Logging::LogDebug() << __FUNCTION__;
+
+	if (!ProxyInterface)
+	{
+		return dd_DirectDrawEnumerateA(lpCallback, lpContext);
+	}
+
+	return ProxyInterface->DirectDrawEnumerateA(lpCallback, lpContext);
 }
 
 HRESULT m_IDirectDrawFactory::DirectDrawEnumerateW(LPDDENUMCALLBACKW lpCallback, LPVOID lpContext)
 {
-	return dd_DirectDrawEnumerateW(lpCallback, lpContext);
+	Logging::LogDebug() << __FUNCTION__;
+
+	if (!ProxyInterface)
+	{
+		return dd_DirectDrawEnumerateW(lpCallback, lpContext);
+	}
+
+	return ProxyInterface->DirectDrawEnumerateW(lpCallback, lpContext);
 }

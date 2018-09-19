@@ -23,6 +23,8 @@ public:
 		ColorControl.lGamma = 1;
 		ColorControl.lColorEnable = 1;
 		ColorControl.dwReserved1 = 0;
+
+		Logging::LogDebug() << "Create " << __FUNCTION__;
 	}
 	~m_IDirectDrawColorControl()
 	{

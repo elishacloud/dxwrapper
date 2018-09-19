@@ -10,6 +10,8 @@ public:
 	m_IDirect3DLight(IDirect3DLight *aOriginal) : ProxyInterface(aOriginal)
 	{
 		ProxyAddressLookupTable.SaveAddress(this, ProxyInterface);
+
+		Logging::LogDebug() << "Create " << __FUNCTION__;
 	}
 	~m_IDirect3DLight()
 	{

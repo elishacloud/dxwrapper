@@ -18,6 +18,8 @@
 
 HRESULT m_IDirect3DTextureX::QueryInterface(REFIID riid, LPVOID * ppvObj)
 {
+	Logging::LogDebug() << __FUNCTION__;
+
 	if (ProxyDirectXVersion > 3)
 	{
 		if ((riid == IID_IDirect3DTexture || riid == IID_IDirect3DTexture2 || riid == IID_IUnknown) && ppvObj)
@@ -35,6 +37,8 @@ HRESULT m_IDirect3DTextureX::QueryInterface(REFIID riid, LPVOID * ppvObj)
 
 ULONG m_IDirect3DTextureX::AddRef()
 {
+	Logging::LogDebug() << __FUNCTION__;
+
 	if (ProxyDirectXVersion > 3)
 	{
 		return InterlockedIncrement(&RefCount);
@@ -45,6 +49,8 @@ ULONG m_IDirect3DTextureX::AddRef()
 
 ULONG m_IDirect3DTextureX::Release()
 {
+	Logging::LogDebug() << __FUNCTION__;
+
 	LONG ref;
 
 	if (ProxyDirectXVersion > 3)
@@ -73,6 +79,8 @@ ULONG m_IDirect3DTextureX::Release()
 
 HRESULT m_IDirect3DTextureX::Initialize(LPDIRECT3DDEVICE lpDirect3DDevice, LPDIRECTDRAWSURFACE lplpDDSurface)
 {
+	Logging::LogDebug() << __FUNCTION__;
+
 	if (ProxyDirectXVersion != 1)
 	{
 		return D3D_OK;
@@ -92,6 +100,8 @@ HRESULT m_IDirect3DTextureX::Initialize(LPDIRECT3DDEVICE lpDirect3DDevice, LPDIR
 
 HRESULT m_IDirect3DTextureX::GetHandle(LPDIRECT3DDEVICE2 lpDirect3DDevice2, LPD3DTEXTUREHANDLE lpHandle)
 {
+	Logging::LogDebug() << __FUNCTION__;
+
 	if (ProxyDirectXVersion > 3)
 	{
 		lpDirect3DDevice2 = (IDirect3DDevice2*)D3DDeviceInterface;
@@ -112,6 +122,8 @@ HRESULT m_IDirect3DTextureX::GetHandle(LPDIRECT3DDEVICE2 lpDirect3DDevice2, LPD3
 
 HRESULT m_IDirect3DTextureX::PaletteChanged(DWORD dwStart, DWORD dwCount)
 {
+	Logging::LogDebug() << __FUNCTION__;
+
 	if (ProxyDirectXVersion > 3)
 	{
 		Logging::Log() << __FUNCTION__ << " Not Implemented";
@@ -123,6 +135,8 @@ HRESULT m_IDirect3DTextureX::PaletteChanged(DWORD dwStart, DWORD dwCount)
 
 HRESULT m_IDirect3DTextureX::Load(LPDIRECT3DTEXTURE2 lpD3DTexture2)
 {
+	Logging::LogDebug() << __FUNCTION__;
+
 	if (ProxyDirectXVersion > 3)
 	{
 		Logging::Log() << __FUNCTION__ << " Not Implemented";
@@ -139,6 +153,8 @@ HRESULT m_IDirect3DTextureX::Load(LPDIRECT3DTEXTURE2 lpD3DTexture2)
 
 HRESULT m_IDirect3DTextureX::Unload()
 {
+	Logging::LogDebug() << __FUNCTION__;
+
 	if (ProxyDirectXVersion != 1)
 	{
 		Logging::Log() << __FUNCTION__ << " Not Implemented";

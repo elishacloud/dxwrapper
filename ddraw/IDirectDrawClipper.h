@@ -15,6 +15,8 @@ public:
 		{
 			ProxyAddressLookupTable.SaveAddress(this, ProxyInterface);
 		}
+
+		Logging::LogDebug() << "Create " << __FUNCTION__;
 	}
 	~m_IDirectDrawClipper()
 	{

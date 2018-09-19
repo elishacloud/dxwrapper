@@ -17,6 +17,8 @@ public:
 		{
 			ProxyAddressLookupTable.SaveAddress(this, ProxyInterface);
 		}
+
+		Logging::LogDebug() << "Create " << __FUNCTION__;
 	}
 	m_IDirectDrawPalette(DWORD dwFlags, LPPALETTEENTRY lpDDColorArray)
 	{
@@ -50,7 +52,10 @@ public:
 		rawPalette = new PALETTEENTRY[entryCount];
 
 		// Copy inital palette into raw palette
-		memcpy(rawPalette, lpDDColorArray, sizeof(PALETTEENTRY) * entryCount);
+		if (lpDDColorArray)
+		{
+			memcpy(rawPalette, lpDDColorArray, sizeof(PALETTEENTRY) * entryCount);
+		}
 
 		// Check flags for alpha
 		if (dwFlags & DDPCAPS_ALPHA)

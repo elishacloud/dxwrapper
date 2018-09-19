@@ -18,16 +18,22 @@
 
 HRESULT m_IDirect3DLight::QueryInterface(REFIID riid, LPVOID * ppvObj)
 {
+	Logging::LogDebug() << __FUNCTION__;
+
 	return ProxyQueryInterface(ProxyInterface, riid, ppvObj, WrapperID, this);
 }
 
 ULONG m_IDirect3DLight::AddRef()
 {
+	Logging::LogDebug() << __FUNCTION__;
+
 	return ProxyInterface->AddRef();
 }
 
 ULONG m_IDirect3DLight::Release()
 {
+	Logging::LogDebug() << __FUNCTION__;
+
 	ULONG x = ProxyInterface->Release();
 
 	if (x == 0)
@@ -40,6 +46,8 @@ ULONG m_IDirect3DLight::Release()
 
 HRESULT m_IDirect3DLight::Initialize(LPDIRECT3D lpDirect3D)
 {
+	Logging::LogDebug() << __FUNCTION__;
+
 	if (lpDirect3D)
 	{
 		lpDirect3D = static_cast<m_IDirect3D *>(lpDirect3D)->GetProxyInterface();
@@ -50,10 +58,14 @@ HRESULT m_IDirect3DLight::Initialize(LPDIRECT3D lpDirect3D)
 
 HRESULT m_IDirect3DLight::SetLight(LPD3DLIGHT lpLight)
 {
+	Logging::LogDebug() << __FUNCTION__;
+
 	return ProxyInterface->SetLight(lpLight);
 }
 
 HRESULT m_IDirect3DLight::GetLight(LPD3DLIGHT lpLight)
 {
+	Logging::LogDebug() << __FUNCTION__;
+
 	return ProxyInterface->GetLight(lpLight);
 }
