@@ -15,6 +15,6 @@ extern FARPROC p_D3DXLoadSurfaceFromSurface;
 
 namespace D3d8to9
 {
-	constexpr FARPROC Direct3DCreate8 = (FARPROC)*_Direct3DCreate8;
+	const FARPROC Direct3DCreate8 = (FARPROC)*_Direct3DCreate8;
 	extern FARPROC Direct3DCreate9;
 }

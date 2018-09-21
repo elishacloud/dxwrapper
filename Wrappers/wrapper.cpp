@@ -91,8 +91,8 @@ namespace Wrapper
 	HRESULT __stdcall _jmpaddrvoid();
 
 	// Variable declaration
-	constexpr FARPROC jmpaddr = (FARPROC)*_jmpaddr;
-	constexpr FARPROC jmpaddrvoid = (FARPROC)*_jmpaddrvoid;
+	const FARPROC jmpaddr = (FARPROC)*_jmpaddr;
+	const FARPROC jmpaddrvoid = (FARPROC)*_jmpaddrvoid;
 	std::vector<wrapper_map> jmpArray;
 }
 

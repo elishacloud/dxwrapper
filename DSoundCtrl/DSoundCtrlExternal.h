@@ -23,7 +23,7 @@ HRESULT WINAPI ds_DllGetClassObject(IN REFCLSID rclsid, IN REFIID riid, OUT LPVO
 HRESULT WINAPI ds_DllCanUnloadNow();
 
 #define DECLARE_IN_WRAPPED_PROC(procName, unused) \
-	constexpr FARPROC procName ## _in = (FARPROC)*ds_ ## procName;
+	const FARPROC procName ## _in = (FARPROC)*ds_ ## procName;
 
 #define EXPORT_OUT_WRAPPED_PROC(procName, unused) \
 	extern FARPROC procName ## _out;
@@ -31,8 +31,8 @@ HRESULT WINAPI ds_DllCanUnloadNow();
 namespace DSoundCtrl
 {
 	VISIT_PROCS_DSOUND(DECLARE_IN_WRAPPED_PROC);
-	constexpr FARPROC DllGetClassObject_in = (FARPROC)*ds_DllGetClassObject;
-	constexpr FARPROC DllCanUnloadNow_in = (FARPROC)*ds_DllCanUnloadNow;
+	const FARPROC DllGetClassObject_in = (FARPROC)*ds_DllGetClassObject;
+	const FARPROC DllCanUnloadNow_in = (FARPROC)*ds_DllCanUnloadNow;
 
 	VISIT_PROCS_DSOUND(EXPORT_OUT_WRAPPED_PROC);
 	extern FARPROC DllGetClassObject_out;

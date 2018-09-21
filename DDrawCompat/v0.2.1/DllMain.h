@@ -20,7 +20,7 @@ namespace Compat21
 #undef EXTERN_PROC_STUB
 
 #define INITUALIZE_WRAPPED_PROC(procName) \
-	constexpr FARPROC procName ## _proc = (FARPROC)*DC21_ ## procName;
+	const FARPROC procName ## _proc = (FARPROC)*DC21_ ## procName;
 
 	VISIT_ALL_DDRAW_PROCS(INITUALIZE_WRAPPED_PROC);
 

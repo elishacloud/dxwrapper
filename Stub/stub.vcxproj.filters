@@ -6,6 +6,7 @@
     <ClCompile Include="..\Wrappers\wrapper.cpp">
       <Filter>Wrappers</Filter>
     </ClCompile>
+    <ClCompile Include="..\External\MemoryModule\MemoryModule.c" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="stub.h" />

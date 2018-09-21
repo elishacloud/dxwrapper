@@ -99,7 +99,7 @@ DxWrapper uses code from several other projects. So to give credit where credit 
  - [diablo-ddrawwrapper](https://github.com/strangebytes/diablo-ddrawwrapper): Includes some code for converting ddraw to Direct3D.
 
 ### Development
-DxWrapper is written mostly in C++ using Microsoft Visual Studio Community 2015.
+DxWrapper is written mostly in C++ using Microsoft Visual Studio Community 2017.
 
 Compilation depends on [Detours Express 3.0](http://research.microsoft.com/en-us/projects/detours/). The include and library paths may need to be changed depending on where Detours is installed.
 

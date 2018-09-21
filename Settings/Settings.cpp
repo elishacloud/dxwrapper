@@ -476,8 +476,10 @@ void CONFIG::Init()
 	else
 	{
 		WrapperName.assign(p_wName);
-		std::transform(WrapperName.begin(), WrapperName.end(), WrapperName.begin(), ::tolower);
-		std::transform(WrapperMode.begin(), WrapperMode.end(), WrapperMode.begin(), ::tolower);
+		std::transform(WrapperName.begin(), WrapperName.end(), WrapperName.begin(),
+			[](char c) {return static_cast<char>(::tolower(c)); });
+		std::transform(WrapperMode.begin(), WrapperMode.end(), WrapperMode.begin(),
+			[](char c) {return static_cast<char>(::tolower(c)); });
 		RealWrapperMode = GetWrapperMode((WrapperMode.size()) ? &WrapperMode : &WrapperName);
 	}
 

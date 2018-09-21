@@ -26,7 +26,7 @@ void WINAPI dd_ReleaseDDThreadLock();
 HRESULT WINAPI dd_SetAppCompatData(DWORD Type, DWORD Value);
 
 #define DECLARE_IN_WRAPPED_PROC(procName, unused) \
-	constexpr FARPROC procName ## _in = (FARPROC)*dd_ ## procName;
+	const FARPROC procName ## _in = (FARPROC)*dd_ ## procName;
 
 #define EXPORT_OUT_WRAPPED_PROC(procName, unused) \
 	extern FARPROC procName ## _out;
@@ -34,8 +34,8 @@ HRESULT WINAPI dd_SetAppCompatData(DWORD Type, DWORD Value);
 namespace DdrawWrapper
 {
 	VISIT_PROCS_DDRAW(DECLARE_IN_WRAPPED_PROC);
-	constexpr FARPROC DllCanUnloadNow_in = (FARPROC)*dd_DllCanUnloadNow;
-	constexpr FARPROC DllGetClassObject_in = (FARPROC)*dd_DllGetClassObject;
+	const FARPROC DllCanUnloadNow_in = (FARPROC)*dd_DllCanUnloadNow;
+	const FARPROC DllGetClassObject_in = (FARPROC)*dd_DllGetClassObject;
 
 	VISIT_PROCS_DDRAW(EXPORT_OUT_WRAPPED_PROC);
 	extern FARPROC DllCanUnloadNow_out;

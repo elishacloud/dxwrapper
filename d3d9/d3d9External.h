@@ -23,7 +23,7 @@ IDirect3D9 *WINAPI d9_Direct3DCreate9(UINT SDKVersion);
 HRESULT WINAPI d9_Direct3DCreate9Ex(UINT SDKVersion, IDirect3D9Ex **ppD3D);
 
 #define DECLARE_IN_WRAPPED_PROC(procName, unused) \
-	constexpr FARPROC procName ## _in = (FARPROC)*d9_ ## procName;
+	const FARPROC procName ## _in = (FARPROC)*d9_ ## procName;
 
 #define EXPORT_OUT_WRAPPED_PROC(procName, unused) \
 	extern FARPROC procName ## _out;
@@ -31,7 +31,7 @@ HRESULT WINAPI d9_Direct3DCreate9Ex(UINT SDKVersion, IDirect3D9Ex **ppD3D);
 namespace D3d9Wrapper
 {
 	VISIT_PROCS_D3D9(DECLARE_IN_WRAPPED_PROC);
-	constexpr FARPROC DebugSetMute_in = (FARPROC)*d9_DebugSetMute;
+	const FARPROC DebugSetMute_in = (FARPROC)*d9_DebugSetMute;
 
 	VISIT_PROCS_D3D9(EXPORT_OUT_WRAPPED_PROC);
 	extern FARPROC DebugSetMute_out;

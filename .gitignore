@@ -18,7 +18,10 @@
 *.pch
 
 # Other Visual Studio files
+.vs/*
+RC*
 ipch/*
+*.ipch
 *.user
 *.suo
 *.aps
@@ -34,6 +37,5 @@ ipch/*
 *.idb
 *.db
 .opendb
-RC*
 *.opendb
 *.TMP
