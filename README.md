@@ -101,8 +101,6 @@ DxWrapper uses code from several other projects. So to give credit where credit 
 ### Development
 DxWrapper is written mostly in C++ using Microsoft Visual Studio Community 2017.
 
-Compilation depends on [Detours Express 3.0](http://research.microsoft.com/en-us/projects/detours/). The include and library paths may need to be changed depending on where Detours is installed.
-
-The project uses the Windows 10 SDK and WDK. The exact version required can be seen in the project properties in Visual Studio.
+The project requires both the Windows 10 SDK and WDK. The exact version required can be seen in the project properties in Visual Studio.
 
 Thanks for stopping by!
