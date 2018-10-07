@@ -133,10 +133,10 @@ bool APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 		else
 		{
 			// Load real dll and attach wrappers
-			HMODULE dll = Wrapper::CreateWrapper((Config.RealDllPath.size()) ? Config.RealDllPath.c_str() : nullptr, (Config.WrapperMode.size()) ? Config.WrapperMode.c_str() : Config.WrapperName.c_str());
+			HMODULE dll = Wrapper::CreateWrapper((Config.RealDllPath.size()) ? Config.RealDllPath.c_str() : nullptr, (Config.WrapperMode.size()) ? Config.WrapperMode.c_str() : nullptr, Config.WrapperName.c_str());
 			if (dll)
 			{
-				Utils::AddHandleToVector(dll, (Config.RealDllPath.size()) ? Config.RealDllPath.c_str() : Config.WrapperName.c_str());
+				Utils::AddHandleToVector(dll, Config.WrapperName.c_str());
 
 				// Hook GetProcAddress to handle wrapped functions that are missing or not available in the OS
 				dll = LoadLibrary("kernel32.dll");
@@ -180,7 +180,7 @@ bool APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 			if (Config.RealWrapperMode != dtype.ddraw)
 			{
 				// Load ddraw procs
-				HMODULE dll = ddraw::Load(Config.WrapperName.c_str());
+				HMODULE dll = ddraw::Load(nullptr, Config.WrapperName.c_str());
 				if (dll)
 				{
 					Utils::AddHandleToVector(dll, dtypename[dtype.ddraw]);
@@ -207,6 +207,7 @@ bool APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 			//  Add DdrawWrapper to the chain
 			if (Config.isDdrawWrapperEnabled)
 			{
+				Logging::Log() << "Enabling ddraw wrapper";
 				using namespace ddraw;
 				using namespace DdrawWrapper;
 				VISIT_PROCS_DDRAW(SHIM_WRAPPED_PROC);
@@ -232,6 +233,8 @@ bool APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 		// Start D3d8to9 module
 		if (Config.D3d8to9)
 		{
+			Logging::Log() << "Enabling d3d8to9 wrapper";
+
 			// If wrapper mode is d3d8 update wrapper
 			if (Config.RealWrapperMode == dtype.d3d8)
 			{
@@ -242,7 +245,7 @@ bool APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 			else
 			{
 				// Load d3d8 procs
-				HMODULE dll = d3d8::Load(Config.WrapperName.c_str());
+				HMODULE dll = d3d8::Load(nullptr, Config.WrapperName.c_str());
 				if (dll)
 				{
 					Utils::AddHandleToVector(dll, dtypename[dtype.d3d8]);
@@ -263,6 +266,8 @@ bool APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 		// Start d3d9.dll module
 		if (Config.isD3d9WrapperEnabled)
 		{
+			Logging::Log() << "Enabling d3d9 wrapper";
+
 			using namespace d3d9;
 			using namespace D3d9Wrapper;
 
@@ -276,7 +281,7 @@ bool APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 			else
 			{
 				// Load d3d9 procs
-				HMODULE dll = d3d9::Load(Config.WrapperName.c_str());
+				HMODULE dll = d3d9::Load(nullptr, Config.WrapperName.c_str());
 				if (dll)
 				{
 					Utils::AddHandleToVector(dll, dtypename[dtype.d3d9]);
@@ -319,7 +324,7 @@ bool APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 			else
 			{
 				// Load dsound procs
-				HMODULE dll = dsound::Load(Config.WrapperName.c_str());
+				HMODULE dll = dsound::Load(nullptr, Config.WrapperName.c_str());
 				if (dll)
 				{
 					Utils::AddHandleToVector(dll, dtypename[dtype.dsound]);
@@ -380,6 +385,9 @@ bool APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 		{
 			Utils::Fullscreen::StartThread();
 		}
+
+		// Loaded
+		Logging::Log() << "DxWrapper loaded!";
 
 		// Resetting thread priority
 		SetThreadPriority(hCurrentThread, dwPriorityClass);

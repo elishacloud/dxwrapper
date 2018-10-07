@@ -19,6 +19,7 @@
 #include <vector>
 #include <algorithm>
 #include <fstream>
+#include "Logging\Logging.h"
 
 #define ADD_FARPROC_MEMBER(procName, unused) \
 	FARPROC procName ## _var = jmpaddr;
@@ -49,16 +50,28 @@
 		char *Name = #className ## "." ## #Extension; \
 		VISIT_PROCS(ADD_FARPROC_MEMBER); \
 		VISIT_PROCS(CREATE_PROC_STUB); \
-		HMODULE Load(const char *strName) \
+		HMODULE Load(const char *ProxyDll, const char *MyDllName) \
 		{ \
 			char path[MAX_PATH]; \
+			const char *DllName = (MyDllName) ? MyDllName : Name; \
 			HMODULE dll = nullptr; \
-			if (strName && _strcmpi(strName, Name) != 0) \
+			if (ProxyDll && _strcmpi(ProxyDll, DllName) != 0) \
 			{ \
+				Logging::Log() << "Loading '" << ProxyDll << "' as real dll..."; \
+				dll = LoadLibraryA(ProxyDll); \
+				if (!dll) \
+				{ \
+					Logging::Log() << "Error: Failed to load '" << ProxyDll << "'!"; \
+				} \
+			} \
+			if (!dll && _strcmpi(Name, DllName) != 0) \
+			{ \
+				Logging::Log() << "Loading '" << Name << "'..."; \
 				dll = LoadLibraryA(Name); \
 			} \
 			if (!dll) \
 			{ \
+				Logging::Log() << "Loading '" << Name << "' from System32..."; \
 				GetSystemDirectoryA(path, MAX_PATH); \
 				strcat_s(path, MAX_PATH, "\\"); \
 				strcat_s(path, MAX_PATH, Name); \
@@ -68,6 +81,10 @@
 			{ \
 				VISIT_PROCS(LOAD_ORIGINAL_PROC); \
 				ShardProcs::Load(dll); \
+			} \
+			else \
+			{ \
+				Logging::Log() << "Error: Failed to load wrapper for '" << Name << "'!"; \
 			} \
 			return dll; \
 		} \
@@ -94,6 +111,7 @@ namespace Wrapper
 	const FARPROC jmpaddr = (FARPROC)*_jmpaddr;
 	const FARPROC jmpaddrvoid = (FARPROC)*_jmpaddrvoid;
 	std::vector<wrapper_map> jmpArray;
+	const char *GetWrapperName(const char *WrapperMode);
 }
 
 #include "wrapper.h"
@@ -141,29 +159,20 @@ void Wrapper::ShimProc(FARPROC &var, FARPROC in, FARPROC &out)
 	}
 }
 
-#define ADD_PROC_TO_ARRAY(dllName) \
-	dllName::AddToArray();
-
-#define CHECK_FOR_WRAPPER(dllName) \
-	{ using namespace dllName; if (_strcmpi(WrapperMode, Name) == 0) { dll = Load(ProxyDll); return dll; }}
-
-HMODULE Wrapper::CreateWrapper(const char *ProxyDll, const char *WrapperMode)
+const char *Wrapper::GetWrapperName(const char *WrapperMode)
 {
-	// Declare vars
-	HMODULE dll = nullptr;
-
-	// Add all procs to array
-	VISIT_DLLS(ADD_PROC_TO_ARRAY);
-	ShardProcs::AddToArray();
-
 	// Check dll name and load correct wrapper
-	VISIT_DLLS(CHECK_FOR_WRAPPER);
+#define CHECK_WRAPPER(dllName) \
+	{ using namespace dllName; if (_strcmpi(WrapperMode, Name) == 0) { return WrapperMode; }}
 
-	// Special for winmm.dll because sometimes it is changed to win32 or winnm or some other name
+	VISIT_DLLS(CHECK_WRAPPER);
+
+	// Special handling for winmm.dll because sometimes it is changed to win32 or winnm or some other name
 	if (strlen(WrapperMode) > 8)
 	{
 		using namespace winmm;
-		if (tolower(WrapperMode[0]) == Name[0] &&
+		if (WrapperMode &&
+			tolower(WrapperMode[0]) == Name[0] &&
 			tolower(WrapperMode[1]) == Name[1] &&
 			tolower(WrapperMode[2]) == Name[2] &&
 			tolower(WrapperMode[5]) == Name[5] &&
@@ -171,14 +180,49 @@ HMODULE Wrapper::CreateWrapper(const char *ProxyDll, const char *WrapperMode)
 			tolower(WrapperMode[7]) == Name[7] &&
 			tolower(WrapperMode[8]) == Name[8])
 		{
-			Name = "winmm.dll";
-			dll = Load(ProxyDll);
-			return dll;
+			return "winmm.dll";
 		}
 	}
-	// Special for winmmbase.dll because it is sharing procs from winmm
-	{ using namespace winmm; if (_strcmpi(WrapperMode, "winmmbase.dll") == 0) { Name = "winmmbase.dll";  dll = Load(ProxyDll); return dll; }}
 
-	// Exit and return handle
-	return dll;
+	// Special handling for winmmbase.dll because it is sharing procs from winmm
+	{ using namespace winmm; if (_strcmpi(WrapperMode, "winmmbase.dll") == 0) { return "winmmbase.dll"; }}
+
+	return nullptr;
+}
+
+bool Wrapper::CheckWrapperName(const char *WrapperMode)
+{
+	return (WrapperMode && GetWrapperName(WrapperMode));
+}
+
+HMODULE Wrapper::CreateWrapper(const char *ProxyDll, const char *WrapperMode, const char *MyDllName)
+{
+	// Add all procs to array
+#define ADD_PROC_TO_ARRAY(dllName) \
+	dllName::AddToArray();
+
+	VISIT_DLLS(ADD_PROC_TO_ARRAY);
+	ShardProcs::AddToArray();
+
+	// Get wrapper name
+	const char *WrapperName = GetWrapperName((CheckWrapperName(WrapperMode)) ? WrapperMode : MyDllName);
+
+	if (!WrapperName)
+	{
+		Logging::Log() << "Warning. Wrapper mode not found!";
+		return nullptr;
+	}
+
+	Logging::Log() << "Wrapping '" << WrapperName << "'...";
+
+	// Check dll name and load correct wrapper
+#define CHECK_FOR_WRAPPER(dllName) \
+	{ using namespace dllName; if (_strcmpi(WrapperName, Name) == 0) { return Load(ProxyDll, MyDllName); }}
+
+	VISIT_DLLS(CHECK_FOR_WRAPPER);
+
+	// Special handling for winmmbase.dll because it is sharing procs from winmm
+	{ using namespace winmm; if (_strcmpi(WrapperName, "winmmbase.dll") == 0) { Name = "winmmbase.dll"; return Load(ProxyDll, MyDllName); }}
+
+	return nullptr;
 }

@@ -82,6 +82,9 @@
     <ClInclude Include="..\Wrappers\wrapper.h">
       <Filter>Wrappers</Filter>
     </ClInclude>
+    <ClInclude Include="Logging\Logging.h">
+      <Filter>Logging</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="BuildNo.rc" />
@@ -90,6 +93,9 @@
   <ItemGroup>
     <Filter Include="Wrappers">
       <UniqueIdentifier>{08889ae3-1b0c-4d13-be6e-4e15b2123c6e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Logging">
+      <UniqueIdentifier>{45e2f2d8-f49d-43e6-8fa0-10e67d6c4c44}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>

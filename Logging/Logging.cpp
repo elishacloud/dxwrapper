@@ -47,7 +47,6 @@ void Logging::LogFormat(char * fmt, ...)
 
 	// Log formated text
 	Log() << output.c_str();
-	return;
 }
 
 // Logs the process name and PID

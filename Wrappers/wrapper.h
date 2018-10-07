@@ -4,7 +4,8 @@ namespace Wrapper
 {
 	bool ValidProcAddress(FARPROC ProcAddress);
 	void ShimProc(FARPROC &var, FARPROC in, FARPROC &out);
-	HMODULE CreateWrapper(const char *ProxyDll, const char *WrapperMode);
+	bool CheckWrapperName(const char *WrapperMode);
+	HMODULE CreateWrapper(const char *ProxyDll, const char *WrapperMode, const char *MyDllName);
 }
 
 // Shared procs
@@ -73,22 +74,22 @@ namespace ddraw
 {
 	VISIT_PROCS_DDRAW(DECLARE_FORWARD_FUNCTIONS);
 	VISIT_PROCS_DDRAW(DECLARE_PROC_VARABLES);
-	HMODULE Load(const char *strName);
+	HMODULE Load(const char *ProxyDll, const char *MyDllName);
 }
 namespace d3d8
 {
 	VISIT_PROCS_D3D8(DECLARE_PROC_VARABLES);
-	HMODULE Load(const char *strName);
+	HMODULE Load(const char *ProxyDll, const char *MyDllName);
 }
 namespace d3d9
 {
 	VISIT_PROCS_D3D9(DECLARE_FORWARD_FUNCTIONS);
 	VISIT_PROCS_D3D9(DECLARE_PROC_VARABLES);
-	HMODULE Load(const char *strName);
+	HMODULE Load(const char *ProxyDll, const char *MyDllName);
 }
 namespace dsound
 {
 	VISIT_PROCS_DSOUND(DECLARE_FORWARD_FUNCTIONS);
 	VISIT_PROCS_DSOUND(DECLARE_PROC_VARABLES);
-	HMODULE Load(const char *strName);
+	HMODULE Load(const char *ProxyDll, const char *MyDllName);
 }

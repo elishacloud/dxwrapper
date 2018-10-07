@@ -18,6 +18,7 @@
 #include <algorithm>
 #include "Settings.h"
 #include "Dllmain\Dllmain.h"
+#include "Wrappers\wrapper.h"
 #include "Logging\Logging.h"
 
 CONFIG Config;
@@ -399,7 +400,7 @@ void CONFIG::Init()
 
 	// Get module handle
 	HMODULE hModule = NULL;
-	GetModuleHandleEx(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT, (LPCTSTR)Settings::GetWrapperMode, &hModule);
+	GetModuleHandleEx(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT, (LPCTSTR)Settings::ClearConfigSettings, &hModule);
 
 	// Get module name
 	char wrappername[MAX_PATH] = { 0 };
@@ -467,20 +468,38 @@ void CONFIG::Init()
 		Logging::Log() << "Could not load config file using defaults";
 	}
 
-	// Get module name and set RealWrapperMode
+	// Set module name
 	if (_strcmpi(p_wName, p_pName) == 0)
 	{
 		WrapperName.assign("dxwrapper.dll");
-		RealWrapperMode = dtype.dxwrapper;
 	}
 	else
 	{
 		WrapperName.assign(p_wName);
 		std::transform(WrapperName.begin(), WrapperName.end(), WrapperName.begin(),
 			[](char c) {return static_cast<char>(::tolower(c)); });
+	}
+
+	// Check wrapper mode
+	if (WrapperMode.size())
+	{
 		std::transform(WrapperMode.begin(), WrapperMode.end(), WrapperMode.begin(),
 			[](char c) {return static_cast<char>(::tolower(c)); });
-		RealWrapperMode = GetWrapperMode((WrapperMode.size()) ? &WrapperMode : &WrapperName);
+		if (!Wrapper::CheckWrapperName(WrapperMode.c_str()))
+		{
+			Logging::Log() << "Error: Wrapper mode setting incorrect!";
+			WrapperName.clear();
+		}
+	}
+
+	// Set RealWrapperMode
+	if (!WrapperMode.size() && !Wrapper::CheckWrapperName(WrapperName.c_str()))
+	{
+		RealWrapperMode = dtype.dxwrapper;
+	}
+	else
+	{
+		RealWrapperMode = GetWrapperMode((GetWrapperMode(&WrapperMode) != (UINT)-1) ? &WrapperMode : &WrapperName);
 	}
 
 	// Check if process should be excluded or not included
@@ -539,23 +558,15 @@ void CONFIG::Init()
 		ConvertToDirectDraw7 = true;
 		ConvertToDirect3D7 = true;
 	}
-	if ((isDdrawWrapperEnabled = (EnableDdrawWrapper || ConvertToDirectDraw7 || ConvertToDirect3D7)) != 0)
-	{
-		Logging::Log() << "Enabling ddraw wrapper";
-	}
-	if ((isD3d9WrapperEnabled = (AntiAliasing || CacheClipPlane || EnableVSync || EnableWindowMode)) != 0)
-	{
-		Logging::Log() << "Enabling d3d9 wrapper";
-	}
-	if ((D3d8to9 = (D3d8to9 || AntiAliasing || EnableVSync || EnableWindowMode)) != 0)
-	{
-		Logging::Log() << "Enabling d3d8to9 wrapper";
-	}
+
+	isDdrawWrapperEnabled = (EnableDdrawWrapper || ConvertToDirectDraw7 || ConvertToDirect3D7);
+	isD3d9WrapperEnabled = (AntiAliasing || CacheClipPlane || EnableVSync || EnableWindowMode);
+	D3d8to9 = (D3d8to9 || AntiAliasing || EnableVSync || EnableWindowMode);
+	DDrawCompat = (DDrawCompat || DDrawCompat20 || DDrawCompat21 || DDrawCompatExperimental);
+
+	// Enable clip plane caching by default
 	if (CacheClipPlaneNotSet)
 	{
 		CacheClipPlane = true;
 	}
-
-	// Enable DDrawCompat settings
-	DDrawCompat = (DDrawCompat || DDrawCompat20 || DDrawCompat21 || DDrawCompatExperimental);
 }
