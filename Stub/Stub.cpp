@@ -15,13 +15,11 @@
 */
 
 #define WIN32_LEAN_AND_MEAN
+#include <windows.h>
 #include <fstream>
 #include "..\Settings\ReadParse.h"
-#include "..\External\MemoryModule\MemoryModule.h"
 #include "..\Wrappers\wrapper.h"
 
-bool StubOnly = false;				// Don't load dxwrapper
-bool LoadFromMemory = false;		// Use MemoryModule to load dxwrapper
 std::string RealDllPath;			// Manually set Dll to wrap
 std::string WrapperMode;			// Name of dxwrapper
 
@@ -38,18 +36,6 @@ bool IsValueEnabled(char* name)
 // Set config from string (file)
 void __stdcall ParseCallback(char* name, char* value)
 {
-	if (!_strcmpi(name, "StubOnly"))
-	{
-		StubOnly = IsValueEnabled(value);
-		return;
-	}
-
-	if (!_strcmpi(name, "LoadFromMemory"))
-	{
-		LoadFromMemory = IsValueEnabled(value);
-		return;
-	}
-
 	if (!_strcmpi(name, "RealDllPath"))
 	{
 		RealDllPath.assign(value);
@@ -68,7 +54,6 @@ bool APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 {
 	UNREFERENCED_PARAMETER(lpReserved);
 
-	static HMEMORYMODULE m_wrapper_dll = nullptr;
 	static HMODULE wrapper_dll = nullptr;
 	static HMODULE proxy_dll = nullptr;
 
@@ -95,54 +80,6 @@ bool APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 
 		// Start wrapper
 		proxy_dll = Wrapper::CreateWrapper((RealDllPath.size()) ? RealDllPath.c_str() : nullptr, (WrapperMode.size()) ? WrapperMode.c_str() : nullptr, WrapperName.c_str());
-
-		// Don't load DxWrapper
-		if (StubOnly)
-		{
-			return true;
-		}
-
-		// Open file and get size
-		char path[MAX_PATH];
-		std::ifstream myfile;
-
-		// Get config file path
-		GetModuleFileNameA(hModule, path, sizeof(path));
-		strcpy_s(strrchr(path, '\\'), MAX_PATH - strlen(path), "\\dxwrapper.dll");
-
-		// Use MemoryModule to load dxwrapper
-		if (LoadFromMemory)
-		{
-			// Get config file name for log
-			myfile.open(path, std::ios::binary | std::ios::in | std::ios::ate);
-			DWORD size = (DWORD)myfile.tellg();
-
-			// If size is greater than 0
-			if (size && myfile.is_open())
-			{
-				// Read file
-				myfile.seekg(0, std::ios::beg);
-				std::string memblock(size, '\0');
-				myfile.read(&memblock[0], size);
-
-				// Load library into memory
-				m_wrapper_dll = MemoryLoadLibrary(&memblock[0], size);
-			}
-
-			// Close the file
-			myfile.close();
-		}
-		// Load dxwrapper normally
-		else
-		{
-			wrapper_dll = LoadLibrary(path);
-		}
-
-		// Check if DxWrapper is loaded
-		if (!m_wrapper_dll && !wrapper_dll)
-		{
-			MessageBoxA(nullptr, "Could not find DxWrapper.dll functions will be disabled!", "DxWrapper Stub", MB_ICONWARNING | MB_TOPMOST | MB_SETFOREGROUND);
-		}
 	}
 	break;
 	case DLL_PROCESS_DETACH:
