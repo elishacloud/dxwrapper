@@ -19,6 +19,9 @@
 #include <fstream>
 #include "..\Settings\ReadParse.h"
 #include "..\Wrappers\wrapper.h"
+#include "Logging\Logging.h"
+
+std::ofstream Logging::Log::LOG("stub.log");
 
 std::string RealDllPath;			// Manually set Dll to wrap
 std::string WrapperMode;			// Name of dxwrapper
