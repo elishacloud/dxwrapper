@@ -125,13 +125,15 @@ bool APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 		}
 
 		// Hooking system dll
-		FARPROC procAddr = nullptr;
+		FARPROC loc_procAddr = nullptr;
+		FARPROC sys_procAddr = nullptr;
 
 #define HOOK_PROC(procName) \
-		procAddr = Hook::GetProcAddress(loc_dll, #procName); \
-		if (procAddr) \
+		loc_procAddr = Hook::GetProcAddress(loc_dll, #procName); \
+		sys_procAddr = Hook::GetProcAddress(sys_dll, #procName); \
+		if (loc_procAddr && sys_procAddr) \
 		{ \
-			Hook::HotPatch(Hook::GetProcAddress(sys_dll, #procName), #procName, procAddr, true); \
+			Hook::HotPatch(sys_procAddr, #procName, loc_procAddr, true); \
 		}
 
 		VISIT_PROCS_HOOKED_DLL(HOOK_PROC);
