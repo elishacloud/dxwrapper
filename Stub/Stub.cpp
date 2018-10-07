@@ -20,11 +20,25 @@
 #include "..\Settings\ReadParse.h"
 #include "..\Wrappers\wrapper.h"
 #include "Logging\Logging.h"
+#include "..\Hooking\Hook.h"
 
 std::ofstream Logging::Log::LOG("stub.log");
 
 std::string RealDllPath;			// Manually set Dll to wrap
 std::string WrapperMode;			// Name of dxwrapper
+
+const char *HookedDllName = "quartz.dll";
+
+#define VISIT_PROCS_HOOKED_DLL(visit) \
+	visit(AMGetErrorTextA) \
+	visit(AMGetErrorTextW) \
+	visit(AmpFactorToDB) \
+	visit(DBToAmpFactor) \
+	visit(DllCanUnloadNow) \
+	visit(DllGetClassObject) \
+	visit(DllRegisterServer) \
+	visit(DllUnregisterServer) \
+	visit(GetProxyDllInfo)
 
 // Set booloean value from string (file)
 bool IsValueEnabled(char* name)
@@ -83,6 +97,44 @@ bool APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 
 		// Start wrapper
 		proxy_dll = Wrapper::CreateWrapper((RealDllPath.size()) ? RealDllPath.c_str() : nullptr, (WrapperMode.size()) ? WrapperMode.c_str() : nullptr, WrapperName.c_str());
+
+		// Load system dll
+		Logging::Log() << "Loading '" << HookedDllName << "' from System32...";
+		char path[MAX_PATH];
+		GetSystemDirectoryA(path, MAX_PATH);
+		strcat_s(path, MAX_PATH, "\\");
+		strcat_s(path, MAX_PATH, HookedDllName);
+		HMODULE sys_dll = LoadLibraryA(path);
+		if (!sys_dll)
+		{
+			Logging::Log() << "Error: Failed to load dll from System32...";
+			return true;
+		}
+
+		// Load local dll
+		Logging::Log() << "Loading local '" << HookedDllName << "'...";
+		GetModuleFileNameA(hModule, path, MAX_PATH);
+		strcpy_s(strrchr(path, '\\'), MAX_PATH - strlen(path), "\\");
+		strcat_s(path, MAX_PATH, HookedDllName);
+		Logging::Log() << "Loading dll from: " << path << "";
+		HMODULE loc_dll = LoadLibraryA(path);
+		if (!loc_dll)
+		{
+			Logging::Log() << "Error: Failed to load dll locally...";
+			return true;
+		}
+
+		// Hooking system dll
+		FARPROC procAddr = nullptr;
+
+#define HOOK_PROC(procName) \
+		procAddr = Hook::GetProcAddress(loc_dll, #procName); \
+		if (procAddr) \
+		{ \
+			Hook::HotPatch(Hook::GetProcAddress(sys_dll, #procName), #procName, procAddr, true); \
+		}
+
+		VISIT_PROCS_HOOKED_DLL(HOOK_PROC);
 	}
 	break;
 	case DLL_PROCESS_DETACH:

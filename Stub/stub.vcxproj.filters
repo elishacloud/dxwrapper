@@ -6,7 +6,15 @@
     <ClCompile Include="..\Wrappers\wrapper.cpp">
       <Filter>Wrappers</Filter>
     </ClCompile>
-    <ClCompile Include="..\External\MemoryModule\MemoryModule.c" />
+    <ClCompile Include="..\Hooking\Hook.cpp">
+      <Filter>Hooking</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Hooking\HotPatch.cpp">
+      <Filter>Hooking</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Hooking\IATPatch.cpp">
+      <Filter>Hooking</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="stub.h" />
@@ -85,6 +93,9 @@
     <ClInclude Include="Logging\Logging.h">
       <Filter>Logging</Filter>
     </ClInclude>
+    <ClInclude Include="..\Hooking\Hook.h">
+      <Filter>Hooking</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="BuildNo.rc" />
@@ -96,6 +107,9 @@
     </Filter>
     <Filter Include="Logging">
       <UniqueIdentifier>{45e2f2d8-f49d-43e6-8fa0-10e67d6c4c44}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Hooking">
+      <UniqueIdentifier>{5114cd5d-904b-4e8a-ae6f-08c062d7cde9}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
