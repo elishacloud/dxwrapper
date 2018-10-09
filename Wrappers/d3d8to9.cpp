@@ -33,10 +33,6 @@ PFN_D3DXAssembleShader D3DXAssembleShader = nullptr;
 PFN_D3DXDisassembleShader D3DXDisassembleShader = nullptr;
 PFN_D3DXLoadSurfaceFromSurface D3DXLoadSurfaceFromSurface = nullptr;
 
-#ifndef D3D8TO9NOLOG
-std::ofstream LOG;
-#endif
-
 void WINAPI d8_Direct3D8EnableMaximizedWindowedModeShim()
 {
 	return;

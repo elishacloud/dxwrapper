@@ -99,6 +99,47 @@ DEFINE_GUID(IID_IDirect3DAuthenticatedChannel9, 0xff24beee, 0xda21, 0x4beb, 0x98
 DEFINE_GUID(IID_IDirect3DCryptoSession9, 0xfa0ab799, 0x7a9c, 0x48ca, 0x8c, 0x5b, 0x23, 0x7e, 0x71, 0xa5, 0x44, 0x34);
 #endif
 
+//********** Begin Edit *************
+char * InitLog();
+
+std::ofstream LOG(InitLog());
+
+// Get wrapper file name
+char * InitLog()
+{
+	static char wrappername[MAX_PATH];
+
+	// Get module name
+	HMODULE hModule = NULL;
+	GetModuleHandleEx(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT, (LPCTSTR)InitLog, &hModule);
+	GetModuleFileName(hModule, wrappername, MAX_PATH);
+
+	// Get process name
+	char processname[MAX_PATH];
+	GetModuleFileName(nullptr, processname, MAX_PATH);
+
+	// Check if module name is the same as process name
+	if (_strcmpi(strrchr(wrappername, '\\') + 1, strrchr(processname, '\\') + 1) == 0)
+	{
+		strcpy_s(strrchr(wrappername, '\\') + 1, MAX_PATH - strlen(wrappername), "dxwrapper.dll");
+	}
+
+	// Remove extension and add dash (-)
+	strcpy_s(strrchr(wrappername, '.'), MAX_PATH - strlen(wrappername), "-");
+
+	// Add process name
+	strcat_s(wrappername, MAX_PATH, strrchr(processname, '\\') + 1);
+
+	// Change extension to .log
+	strcpy_s(strrchr(wrappername, '.'), MAX_PATH - strlen(wrappername), ".log");
+
+	// Set lower case
+	for (int z = 0; z < MAX_PATH && wrappername[z] != '\0'; z++) { wrappername[z] = (char)tolower(wrappername[z]); }
+
+	return wrappername;
+}
+//********** End Edit ***************
+
 namespace
 {
 	template <typename DevMode>
@@ -447,17 +488,16 @@ namespace Compat
 		char time[100];
 		sprintf_s(time, "%02hu:%02hu:%02hu.%03hu ", st.wHour, st.wMinute, st.wSecond, st.wMilliseconds);
 
-		s_logFile << GetCurrentThreadId() << " " << time;
+		LOG << GetCurrentThreadId() << " " << time;
 	}
 
 	Log::~Log()
 	{
-		s_logFile << std::endl;
+		LOG << std::endl;
 	}
 
 	//********** Begin Edit *************
-	//std::ofstream Log::s_logFile("ddraw.log");
-	std::ofstream Log::s_logFile(Log::Init());
+	//std::ofstream Log::LOG("ddraw.log");
 	//********** End Edit ***************
 	DWORD Log::s_outParamDepth = 0;
 	bool Log::s_isLeaveLog = false;

@@ -22,6 +22,8 @@
 		isAlreadyLogged##__LINE__ = true; \
 	}
 
+extern std::ofstream LOG;
+
 std::ostream& operator<<(std::ostream& os, const char* str);
 std::ostream& operator<<(std::ostream& os, const unsigned char* data);
 std::ostream& operator<<(std::ostream& os, const WCHAR* wstr);
@@ -85,7 +87,7 @@ namespace Compat
 		template <typename T>
 		Log& operator<<(const T& t)
 		{
-			s_logFile << t;
+			LOG << t;
 			return *this;
 		}
 
@@ -95,9 +97,9 @@ namespace Compat
 		template <typename... Params>
 		Log(const char* prefix, const char* funcName, Params... params) : Log()
 		{
-			s_logFile << prefix << ' ' << funcName << '(';
+			LOG << prefix << ' ' << funcName << '(';
 			toList(params...);
-			s_logFile << ')';
+			LOG << ')';
 		}
 
 	private:
@@ -111,56 +113,18 @@ namespace Compat
 		template <typename Param>
 		void toList(Param param)
 		{
-			s_logFile << param;
+			LOG << param;
 		}
 
 		template <typename Param, typename... Params>
 		void toList(Param firstParam, Params... remainingParams)
 		{
-			s_logFile << firstParam << ", ";
+			LOG << firstParam << ", ";
 			toList(remainingParams...);
 		}
 
-		static std::ofstream s_logFile;
 		static DWORD s_outParamDepth;
 		static bool s_isLeaveLog;
-
-		//********** Begin Edit *************
-		// Get wrapper file name
-		static char * Init()
-		{
-			static char wrappername[MAX_PATH];
-
-			// Get module name
-			HMODULE hModule = NULL;
-			GetModuleHandleEx(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT, (LPCTSTR)Init, &hModule);
-			GetModuleFileName(hModule, wrappername, MAX_PATH);
-
-			// Get process name
-			char processname[MAX_PATH];
-			GetModuleFileName(nullptr, processname, MAX_PATH);
-
-			// Check if module name is the same as process name
-			if (_strcmpi(strrchr(wrappername, '\\') + 1, strrchr(processname, '\\') + 1) == 0)
-			{
-				strcpy_s(strrchr(wrappername, '\\') + 1, MAX_PATH - strlen(wrappername), "dxwrapper.dll");
-			}
-
-			// Remove extension and add dash (-)
-			strcpy_s(strrchr(wrappername, '.'), MAX_PATH - strlen(wrappername), "-");
-
-			// Add process name
-			strcat_s(wrappername, MAX_PATH, strrchr(processname, '\\') + 1);
-
-			// Change extension to .log
-			strcpy_s(strrchr(wrappername, '.'), MAX_PATH - strlen(wrappername), ".log");
-
-			// Set lower case
-			for (int z = 0; z < MAX_PATH && wrappername[z] != '\0'; z++) { wrappername[z] = (char)tolower(wrappername[z]); }
-
-			return wrappername;
-		}
-		//********** End Edit ***************
 	};
 
 	class LogParams;
