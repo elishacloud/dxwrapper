@@ -56,6 +56,7 @@ class m_IDirectDrawSurfaceX;
 #define LogDebug Log
 #endif // DDRAWWRAPPER
 
+// ddraw proc typedefs
 typedef void(WINAPI *AcquireDDThreadLockProc)();
 typedef void(WINAPI *CompleteCreateSysmemSurfaceProc)();
 typedef HRESULT(WINAPI *D3DParseUnknownCommandProc)(LPVOID lpCmd, LPVOID *lpRetCmd);
@@ -80,10 +81,31 @@ typedef void(WINAPI *ReleaseDDThreadLockProc)();
 typedef HRESULT(WINAPI *SetAppCompatDataProc)(DWORD, DWORD);
 typedef LPDIRECT3D9(WINAPI *PFN_Direct3DCreate9)(UINT SDKVersion);
 
+// ddraw proc forward declaration
+void WINAPI dd_AcquireDDThreadLock();
+void WINAPI dd_CompleteCreateSysmemSurface();
+HRESULT WINAPI dd_D3DParseUnknownCommand(LPVOID lpCmd, LPVOID *lpRetCmd);
+void WINAPI dd_DDGetAttachedSurfaceLcl();
+void WINAPI dd_DDInternalLock();
+void WINAPI dd_DDInternalUnlock();
+void WINAPI dd_DSoundHelp();
 HRESULT WINAPI dd_DirectDrawCreate(GUID FAR *lpGUID, LPDIRECTDRAW FAR *lplpDD, IUnknown FAR *pUnkOuter);
+HRESULT WINAPI dd_DirectDrawCreateClipper(DWORD dwFlags, LPDIRECTDRAWCLIPPER *lplpDDClipper, LPUNKNOWN pUnkOuter);
 HRESULT WINAPI dd_DirectDrawCreateEx(GUID FAR *lpGUID, LPVOID *lplpDD, REFIID riid, IUnknown FAR *pUnkOuter);
 HRESULT WINAPI dd_DirectDrawEnumerateA(LPDDENUMCALLBACKA lpCallback, LPVOID lpContext);
+HRESULT WINAPI dd_DirectDrawEnumerateExA(LPDDENUMCALLBACKEXA lpCallback, LPVOID lpContext, DWORD dwFlags);
+HRESULT WINAPI dd_DirectDrawEnumerateExW(LPDDENUMCALLBACKEXW lpCallback, LPVOID lpContext, DWORD dwFlags);
 HRESULT WINAPI dd_DirectDrawEnumerateW(LPDDENUMCALLBACKW lpCallback, LPVOID lpContext);
+HRESULT WINAPI dd_DllCanUnloadNow();
+HRESULT WINAPI dd_DllGetClassObject(REFCLSID rclsid, REFIID riid, LPVOID *ppv);
+void WINAPI dd_GetDDSurfaceLocal();
+HANDLE WINAPI dd_GetOLEThunkData(int i1);
+HRESULT WINAPI dd_GetSurfaceFromDC(HDC hdc, LPDIRECTDRAWSURFACE7 *lpDDS);
+void WINAPI dd_RegisterSpecialCase();
+void WINAPI dd_ReleaseDDThreadLock();
+HRESULT WINAPI dd_SetAppCompatData(DWORD Type, DWORD Value);
+
+// Function and variable forward declarations
 DWORD GetIIDVersion(REFIID CalledID);
 REFIID ConvertREFIID(REFIID riid);
 HRESULT ProxyQueryInterface(LPVOID ProxyInterface, REFIID CalledID, LPVOID * ppvObj, REFIID CallerID, LPVOID WrapperInterface);

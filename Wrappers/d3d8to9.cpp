@@ -12,6 +12,9 @@
 *   2. Altered source versions must  be plainly  marked as such, and  must not be  misrepresented  as
 *      being the original software.
 *   3. This notice may not be removed or altered from any source distribution.
+*
+* Created from source code found in Wine
+* https://github.com/alexhenrie/wine/tree/master/dlls/d3d8
 */
 
 #include "d3d8to9.h"
@@ -34,7 +37,67 @@ PFN_D3DXLoadSurfaceFromSurface D3DXLoadSurfaceFromSurface = nullptr;
 std::ofstream LOG;
 #endif
 
-extern "C" Direct3D8 *WINAPI _Direct3DCreate8(UINT SDKVersion)
+void WINAPI d8_Direct3D8EnableMaximizedWindowedModeShim()
+{
+	return;
+}
+
+HRESULT WINAPI d8_ValidatePixelShader(DWORD* pixelshader, DWORD* reserved1, BOOL flag, DWORD* toto)
+{
+	UNREFERENCED_PARAMETER(flag);
+	UNREFERENCED_PARAMETER(toto);
+	if (!pixelshader)
+	{
+		return E_FAIL;
+	}
+	if (reserved1)
+	{
+		return E_FAIL;
+	}
+	switch (*pixelshader)
+	{
+	case 0xFFFF0100:
+	case 0xFFFF0101:
+	case 0xFFFF0102:
+	case 0xFFFF0103:
+	case 0xFFFF0104:
+		return S_OK;
+		break;
+	default:
+		return E_FAIL;
+	}
+}
+
+HRESULT WINAPI d8_ValidateVertexShader(DWORD* vertexshader, DWORD* reserved1, DWORD* reserved2, BOOL flag, DWORD* toto)
+{
+	UNREFERENCED_PARAMETER(flag);
+	UNREFERENCED_PARAMETER(toto);
+
+	if (!vertexshader)
+	{
+		return E_FAIL;
+	}
+	if (reserved1 || reserved2)
+	{
+		return E_FAIL;
+	}
+	switch (*vertexshader)
+	{
+	case 0xFFFE0100:
+	case 0xFFFE0101:
+		return S_OK;
+		break;
+	default:
+		return E_FAIL;
+	}
+}
+
+void WINAPI d8_DebugSetMute()
+{
+	return;
+}
+
+Direct3D8 *WINAPI d8_Direct3DCreate8(UINT SDKVersion)
 {
 	Logging::Log() << "Enabling D3d8to9 function (" << SDKVersion << ")";
 

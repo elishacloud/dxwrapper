@@ -130,6 +130,25 @@ bool APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 				InterlockedExchangePointer((PVOID*)&Utils::pGetModuleFileNameW, Hook::HookAPI(dll, "kernel32.dll", Hook::GetProcAddress(dll, "GetModuleFileNameW"), "GetModuleFileNameW", Utils::GetModuleFileNameWHandler));
 			}
 		}
+		else if (Config.Dd7to9 && Config.RealWrapperMode == dtype.ddraw)
+		{
+			// Initualize ddraw wrapper procs
+#define SET_DDRAW_WRAPPED_PROC(procName, unused) \
+	ddraw::procName ## _var = (FARPROC)*dd_ ## procName;
+
+			VISIT_PROCS_DDRAW(SET_DDRAW_WRAPPED_PROC);
+			ShardProcs::DllCanUnloadNow_var = (FARPROC)*dd_DllCanUnloadNow;
+			ShardProcs::DllGetClassObject_var = (FARPROC)*dd_DllGetClassObject;
+		}
+		else if (Config.D3d8to9 && Config.RealWrapperMode == dtype.d3d8)
+		{
+			// Initualize d3d8 wrapper procs
+#define SET_D3D8_WRAPPED_PROC(procName, unused) \
+	d3d8::procName ## _var = (FARPROC)*d8_ ## procName;
+
+			VISIT_PROCS_D3D8(SET_D3D8_WRAPPED_PROC);
+			ShardProcs::DebugSetMute_var = (FARPROC)*d8_DebugSetMute;
+		}
 		else
 		{
 			// Load real dll and attach wrappers
