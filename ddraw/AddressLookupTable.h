@@ -9,6 +9,19 @@ template <typename D>
 class AddressLookupTableDdraw
 {
 public:
+	explicit AddressLookupTableDdraw() {}
+	~AddressLookupTableDdraw()
+	{
+		ConstructorFlag = true;
+		for (const auto& cache : g_map)
+		{
+			for (const auto& entry : cache)
+			{
+				entry.second->DeleteMe();
+			}
+		}
+	}
+
 	template <typename T>
 	struct AddressCacheIndex { static constexpr UINT CacheIndex = 0; };
 	template <>
@@ -115,19 +128,6 @@ public:
 		using Type4 = m_IDirectDrawSurface4;
 		using Type7 = m_IDirectDrawSurface7;
 	};
-
-	explicit AddressLookupTableDdraw() {}
-	~AddressLookupTableDdraw()
-	{
-		ConstructorFlag = true;
-		for (const auto& cache : g_map)
-		{
-			for (const auto& entry : cache)
-			{
-				entry.second->DeleteMe();
-			}
-		}
-	}
 
 	template <typename T>
 	T *FindAddress(void *Proxy, DWORD Version)
