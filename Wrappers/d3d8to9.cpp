@@ -42,6 +42,7 @@ HRESULT WINAPI d8_ValidatePixelShader(DWORD* pixelshader, DWORD* reserved1, BOOL
 {
 	UNREFERENCED_PARAMETER(flag);
 	UNREFERENCED_PARAMETER(toto);
+
 	if (!pixelshader)
 	{
 		return E_FAIL;

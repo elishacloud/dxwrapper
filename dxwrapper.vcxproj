@@ -41,13 +41,13 @@
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <OutDir>$(SolutionDir)bin\$(Configuration)\</OutDir>
-    <IntDir>$(SolutionDir)bin\Intermediate\$(Configuration)\dxwrapper\</IntDir>
+    <IntDir>$(SolutionDir)bin\Intermediate\$(Configuration)\$(ProjectName)\</IntDir>
     <IncludePath>$(ProjectDir);libraries;DDrawCompat\Experimental;External\detours\src;DirectX81SDK\include;$(IncludePath)</IncludePath>
     <LibraryPath>detours\lib;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <OutDir>$(SolutionDir)bin\$(Configuration)\</OutDir>
-    <IntDir>$(SolutionDir)bin\Intermediate\$(Configuration)\dxwrapper\</IntDir>
+    <IntDir>$(SolutionDir)bin\Intermediate\$(Configuration)\$(ProjectName)\</IntDir>
     <IncludePath>$(ProjectDir);libraries;DDrawCompat\Experimental;External\detours\src;DirectX81SDK\include;$(IncludePath)</IncludePath>
     <LibraryPath>detours\lib;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
