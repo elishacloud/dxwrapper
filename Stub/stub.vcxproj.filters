@@ -1,12 +1,16 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
-    <ClCompile Include="..\Settings\ReadParse.cpp" />
     <ClCompile Include="stub.cpp" />
     <ClCompile Include="..\Wrappers\wrapper.cpp">
       <Filter>Wrappers</Filter>
     </ClCompile>
-    <ClCompile Include="..\External\MemoryModule\MemoryModule.c" />
+    <ClCompile Include="..\External\MemoryModule\MemoryModule.c">
+      <Filter>External\MemoryModule</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Settings\ReadParse.cpp">
+      <Filter>Settings</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="stub.h" />
@@ -97,11 +101,22 @@
     <Filter Include="Logging">
       <UniqueIdentifier>{45e2f2d8-f49d-43e6-8fa0-10e67d6c4c44}</UniqueIdentifier>
     </Filter>
+    <Filter Include="External">
+      <UniqueIdentifier>{ac9b3a4e-42c7-4885-a6b9-bc59b4f0f2ca}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="External\MemoryModule">
+      <UniqueIdentifier>{2f7a46f1-6e85-4522-818d-a3f736e9f0fa}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Settings">
+      <UniqueIdentifier>{103ef3c8-ace8-4021-a1c2-130a38edf466}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <None Include="..\Wrappers\wrapper.def">
       <Filter>Wrappers</Filter>
     </None>
-    <None Include="..\Settings\Stub.ini" />
+    <None Include="..\Settings\Stub.ini">
+      <Filter>Settings</Filter>
+    </None>
   </ItemGroup>
 </Project>
