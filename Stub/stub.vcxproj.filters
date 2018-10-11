@@ -102,5 +102,6 @@
     <None Include="..\Wrappers\wrapper.def">
       <Filter>Wrappers</Filter>
     </None>
+    <None Include="..\Settings\Stub.ini" />
   </ItemGroup>
 </Project>

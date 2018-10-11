@@ -304,7 +304,6 @@ cmd /c "@echo off &amp;&amp; cd /D ""$(ProjectDir)Dllmain\"" &amp;&amp; type Bui
   <ItemGroup>
     <None Include="Settings\AllSettings.ini" />
     <None Include="Settings\Settings.ini" />
-    <None Include="Settings\Stub.ini" />
     <None Include="Wrappers\wrapper.def" />
   </ItemGroup>
   <ItemGroup>

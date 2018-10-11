@@ -134,6 +134,7 @@ copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\Stub\winmmbase.dll" &
     <ClCompile Include="stub.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="..\Settings\Stub.ini" />
     <None Include="..\Wrappers\wrapper.def" />
   </ItemGroup>
   <ItemGroup>
