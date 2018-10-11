@@ -17,7 +17,7 @@
 #include "Settings\Settings.h"
 #include "dxwrapper.h"
 #include "Wrappers\wrapper.h"
-#include "Wrappers\d3d8to9.h"
+#include "d3d8\d3d8to9.h"
 #include "Hooking\Hook.h"
 #include "DDrawCompat\DDrawCompatExternal.h"
 #include "DxWnd\DxWndExternal.h"
