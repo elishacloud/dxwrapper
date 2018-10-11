@@ -896,7 +896,7 @@ HRESULT m_IDirectDrawX::SetCooperativeLevel(HWND hWnd, DWORD dwFlags)
 
 	// Release previouse Exclusive flag
 	// Hook window message to get notified when the window is about to exit to remove the exclusive flag
-	if ((dwFlags & DDSCL_EXCLUSIVE) && hWnd && hWnd != chWnd)
+	if ((dwFlags & DDSCL_EXCLUSIVE) && IsWindow(hWnd) && hWnd != chWnd)
 	{
 		if (IsWindow(chWnd))
 		{
@@ -920,6 +920,14 @@ HRESULT m_IDirectDrawX::SetCooperativeLevel(HWND hWnd, DWORD dwFlags)
 		}
 
 		chWnd = hWnd;
+	}
+
+	// Set fullscreen mode
+	if (IsWindow(hWnd) && (dwFlags & DDSCL_FULLSCREEN))
+	{
+		// Remove window border
+		SetWindowLong(hWnd, GWL_STYLE, GetWindowLong(hWnd, GWL_STYLE) & ~WS_CAPTION);
+		SetWindowPos(hWnd, nullptr, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_FRAMECHANGED);
 	}
 
 	return ProxyInterface->SetCooperativeLevel(hWnd, dwFlags);

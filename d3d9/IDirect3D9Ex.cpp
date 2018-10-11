@@ -305,7 +305,7 @@ void UpdatePresentParameter(D3DPRESENT_PARAMETERS* pPresentationParameters, HWND
 	}
 
 	// Set window size if window mode is enabled
-	if (Config.EnableWindowMode && (pPresentationParameters->hDeviceWindow || DeviceWindow || hFocusWindow))
+	if (Config.EnableWindowMode && (IsWindow(pPresentationParameters->hDeviceWindow) || IsWindow(DeviceWindow) || IsWindow(hFocusWindow)))
 	{
 		pPresentationParameters->Windowed = true;
 		pPresentationParameters->FullScreen_RefreshRateInHz = 0;
@@ -313,8 +313,8 @@ void UpdatePresentParameter(D3DPRESENT_PARAMETERS* pPresentationParameters, HWND
 		{
 			BufferWidth = (pPresentationParameters->BackBufferWidth) ? pPresentationParameters->BackBufferWidth : BufferWidth;
 			BufferHeight = (pPresentationParameters->BackBufferHeight) ? pPresentationParameters->BackBufferHeight : BufferHeight;
-			DeviceWindow = (pPresentationParameters->hDeviceWindow) ? pPresentationParameters->hDeviceWindow : 
-				(hFocusWindow) ? hFocusWindow : DeviceWindow;
+			DeviceWindow = (IsWindow(pPresentationParameters->hDeviceWindow)) ? pPresentationParameters->hDeviceWindow :
+				(IsWindow(hFocusWindow)) ? hFocusWindow : DeviceWindow;
 			if (!BufferWidth || !BufferHeight)
 			{
 				RECT tempRect;
@@ -342,7 +342,7 @@ void UpdatePresentParameter(D3DPRESENT_PARAMETERS* pPresentationParameters, HWND
 // Adjusting the window position for WindowMode
 void AdjustWindow(HWND MainhWnd, LONG displayWidth, LONG displayHeight)
 {
-	if (!MainhWnd || !displayWidth || !displayHeight)
+	if (!IsWindow(MainhWnd) || !displayWidth || !displayHeight)
 	{
 		Logging::Log() << __FUNCTION__ << " Error: could not set window size, nullptr.";
 		return;
@@ -354,7 +354,11 @@ void AdjustWindow(HWND MainhWnd, LONG displayWidth, LONG displayHeight)
 
 	// Get window border
 	LONG lStyle = GetWindowLong(MainhWnd, GWL_STYLE) | WS_VISIBLE;
-	if (Config.WindowModeBorder && screenHeight > displayHeight + 32)
+	if (screenWidth == displayWidth && screenHeight == displayHeight)
+	{
+		lStyle &= ~WS_CAPTION;
+	}
+	else if (Config.WindowModeBorder && screenHeight > displayHeight + GetSystemMetrics(SM_CYCAPTION) + GetSystemMetrics(SM_CYFIXEDFRAME))
 	{
 		lStyle |= WS_OVERLAPPEDWINDOW;
 	}
