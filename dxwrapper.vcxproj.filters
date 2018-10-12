@@ -32,9 +32,6 @@
     <Filter Include="Logging">
       <UniqueIdentifier>{83902b61-6ee7-42ec-9601-3e16804fcd18}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Hooking">
-      <UniqueIdentifier>{dd986a8a-7ff1-403f-8a75-794ded77510d}</UniqueIdentifier>
-    </Filter>
     <Filter Include="ddraw">
       <UniqueIdentifier>{bfe7d7d5-d3af-4ef3-a6a1-3e3fc5e8ce4a}</UniqueIdentifier>
     </Filter>
@@ -67,6 +64,9 @@
     </Filter>
     <Filter Include="External\Logging">
       <UniqueIdentifier>{5d8772ca-8723-4ffd-a0b5-75b9f545420f}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="External\Hooking">
+      <UniqueIdentifier>{5175dc21-9768-4e44-8840-288b7a3c143c}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -117,15 +117,6 @@
     </ClCompile>
     <ClCompile Include="Logging\Logging.cpp">
       <Filter>Logging</Filter>
-    </ClCompile>
-    <ClCompile Include="Hooking\HotPatch.cpp">
-      <Filter>Hooking</Filter>
-    </ClCompile>
-    <ClCompile Include="Hooking\IATPatch.cpp">
-      <Filter>Hooking</Filter>
-    </ClCompile>
-    <ClCompile Include="Hooking\Hook.cpp">
-      <Filter>Hooking</Filter>
     </ClCompile>
     <ClCompile Include="Utils\WriteMemory.cpp">
       <Filter>Utils</Filter>
@@ -661,6 +652,15 @@
     <ClCompile Include="External\Logging\Logging.cpp">
       <Filter>External\Logging</Filter>
     </ClCompile>
+    <ClCompile Include="External\Hooking\Hook.cpp">
+      <Filter>External\Hooking</Filter>
+    </ClCompile>
+    <ClCompile Include="External\Hooking\HotPatch.cpp">
+      <Filter>External\Hooking</Filter>
+    </ClCompile>
+    <ClCompile Include="External\Hooking\IATPatch.cpp">
+      <Filter>External\Hooking</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="Settings\AllSettings.ini">
@@ -730,9 +730,6 @@
     </ClInclude>
     <ClInclude Include="Logging\Logging.h">
       <Filter>Logging</Filter>
-    </ClInclude>
-    <ClInclude Include="Hooking\Hook.h">
-      <Filter>Hooking</Filter>
     </ClInclude>
     <ClInclude Include="Wrappers\wrapper.h">
       <Filter>Wrappers</Filter>
@@ -1432,6 +1429,9 @@
     </ClInclude>
     <ClInclude Include="External\Logging\Logging.h">
       <Filter>External\Logging</Filter>
+    </ClInclude>
+    <ClInclude Include="External\Hooking\Hook.h">
+      <Filter>External\Hooking</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

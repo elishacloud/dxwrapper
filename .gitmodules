@@ -10,3 +10,6 @@
 [submodule "External/Logging"]
 	path = External/Logging
 	url = https://github.com/elishacloud/Logging
+[submodule "External/Hooking"]
+	path = External/Hooking
+	url = https://github.com/elishacloud/Hooking

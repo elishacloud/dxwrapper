@@ -30,7 +30,7 @@ extern "C"
 {
 #include "Disasm\disasm.h"
 }
-#include "Hooking\Hook.h"
+#include "External\Hooking\Hook.h"
 #include "Utils.h"
 #include "Logging\Logging.h"
 
