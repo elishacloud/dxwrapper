@@ -53,21 +53,18 @@ DxWrapper can wrap the following dlls:
  - d3d8.dll
  - d3d9.dll
  - d3d10.dll
- - d3d10core.dll
  - d3d11.dll
  - d3d12.dll
- - d3dim.dll
- - d3dim700.dll
  - dciman32.dll
  - ddraw.dll
  - dinput.dll
  - dinput8.dll
  - dplayx.dll
  - dsound.dll
- - dxgi.dll
  - msacm32.dll
  - msvfw32.dll
- - vorbisfile.dll
+ - version.dll
+ - wininet.dll
  - winmm.dll
  - winmmbase.dll
 

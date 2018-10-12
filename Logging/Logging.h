@@ -1,25 +1,14 @@
 #pragma once
 
-//#undef D3D8TO9NOLOG
-//#define DDRAWCOMPATLOG
-//#define DDRAWWRAPPER
-//#define FULLSCREENLOG
-//#define SETTINGSLOG
+#define CINTERFACE
 
-#ifndef DDRAWLOG_H
-#include "DDrawCompat\DDrawLog.h"
-#endif
+#include <ddraw.h>
+#include "External\Logging\Logging.h"
 
-namespace Compat
-{
-}
-
-namespace Logging
-{
-	using namespace Compat;
-	void LogFormat(char * fmt, ...);
-	void LogOSVersion();
-	void LogProcessNameAndPID();
-	void LogComputerManufacturer();
-	void LogVideoCard();
-}
+std::ostream& operator<<(std::ostream& os, const DDCAPS& caps);
+std::ostream& operator<<(std::ostream& os, const DDSCAPS& caps);
+std::ostream& operator<<(std::ostream& os, const DDSCAPS2& caps);
+std::ostream& operator<<(std::ostream& os, const DDPIXELFORMAT& pf);
+std::ostream& operator<<(std::ostream& os, const DDSURFACEDESC& sd);
+std::ostream& operator<<(std::ostream& os, const DDSURFACEDESC2& sd);
+std::ostream& operator<<(std::ostream& os, REFIID riid);

@@ -18,21 +18,18 @@ namespace Wrapper
 	visit(d3d8) \
 	visit(d3d9) \
 	visit(d3d10) \
-	visit(d3d10core) \
 	visit(d3d11) \
 	visit(d3d12) \
-	visit(d3dim) \
-	visit(d3dim700) \
 	visit(dciman32) \
 	visit(ddraw) \
 	visit(dinput) \
 	visit(dinput8) \
 	visit(dplayx) \
 	visit(dsound) \
-	visit(dxgi) \
 	visit(msacm32) \
 	visit(msvfw32) \
-	visit(vorbisfile) \
+	visit(version) \
+	visit(wininet) \
 	visit(winmm)
 
 // Wrappers
@@ -42,21 +39,18 @@ namespace Wrapper
 #include "d3d8.h"
 #include "d3d9.h"
 #include "d3d10.h"
-#include "d3d10core.h"
 #include "d3d11.h"
 #include "d3d12.h"
-#include "d3dim.h"
-#include "d3dim700.h"
 #include "dciman32.h"
 #include "ddraw.h"
 #include "dinput.h"
 #include "dinput8.h"
 #include "dplayx.h"
 #include "dsound.h"
-#include "dxgi.h"
 #include "msacm32.h"
 #include "msvfw32.h"
-#include "vorbisfile.h"
+#include "version.h"
+#include "wininet.h"
 #include "winmm.h"
 
 #define DECLARE_FORWARD_FUNCTIONS(procName, unused) \

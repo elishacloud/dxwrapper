@@ -65,6 +65,9 @@
     <Filter Include="d3d8">
       <UniqueIdentifier>{1ea8e20b-045b-45d7-96b9-ea311a4be3d5}</UniqueIdentifier>
     </Filter>
+    <Filter Include="External\Logging">
+      <UniqueIdentifier>{5d8772ca-8723-4ffd-a0b5-75b9f545420f}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="DSoundCtrl\DSoundCtrl.cpp">
@@ -210,9 +213,6 @@
     </ClCompile>
     <ClCompile Include="d3d9\IDirect3DVolumeTexture9.cpp">
       <Filter>d3d9</Filter>
-    </ClCompile>
-    <ClCompile Include="DDrawCompat\DDrawLog.cpp">
-      <Filter>DDrawCompat</Filter>
     </ClCompile>
     <ClCompile Include="DxWnd\v2_03_60_src\init.cpp">
       <Filter>DxWnd\v2_03_60_src</Filter>
@@ -658,6 +658,9 @@
     <ClCompile Include="d3d8\d3d8to9.cpp">
       <Filter>d3d8</Filter>
     </ClCompile>
+    <ClCompile Include="External\Logging\Logging.cpp">
+      <Filter>External\Logging</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="Settings\AllSettings.ini">
@@ -833,19 +836,10 @@
     <ClInclude Include="Wrappers\d3d10.h">
       <Filter>Wrappers</Filter>
     </ClInclude>
-    <ClInclude Include="Wrappers\d3d10core.h">
-      <Filter>Wrappers</Filter>
-    </ClInclude>
     <ClInclude Include="Wrappers\d3d11.h">
       <Filter>Wrappers</Filter>
     </ClInclude>
     <ClInclude Include="Wrappers\d3d12.h">
-      <Filter>Wrappers</Filter>
-    </ClInclude>
-    <ClInclude Include="Wrappers\d3dim.h">
-      <Filter>Wrappers</Filter>
-    </ClInclude>
-    <ClInclude Include="Wrappers\d3dim700.h">
       <Filter>Wrappers</Filter>
     </ClInclude>
     <ClInclude Include="Wrappers\dciman32.h">
@@ -866,9 +860,6 @@
     <ClInclude Include="Wrappers\dsound.h">
       <Filter>Wrappers</Filter>
     </ClInclude>
-    <ClInclude Include="Wrappers\dxgi.h">
-      <Filter>Wrappers</Filter>
-    </ClInclude>
     <ClInclude Include="Wrappers\msacm32.h">
       <Filter>Wrappers</Filter>
     </ClInclude>
@@ -876,9 +867,6 @@
       <Filter>Wrappers</Filter>
     </ClInclude>
     <ClInclude Include="Wrappers\shared.h">
-      <Filter>Wrappers</Filter>
-    </ClInclude>
-    <ClInclude Include="Wrappers\vorbisFile.h">
       <Filter>Wrappers</Filter>
     </ClInclude>
     <ClInclude Include="Wrappers\winmm.h">
@@ -1435,6 +1423,15 @@
     </ClInclude>
     <ClInclude Include="d3d8\d3d8to9.h">
       <Filter>d3d8</Filter>
+    </ClInclude>
+    <ClInclude Include="Wrappers\version.h">
+      <Filter>Wrappers</Filter>
+    </ClInclude>
+    <ClInclude Include="Wrappers\wininet.h">
+      <Filter>Wrappers</Filter>
+    </ClInclude>
+    <ClInclude Include="External\Logging\Logging.h">
+      <Filter>External\Logging</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

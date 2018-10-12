@@ -7,3 +7,6 @@
 [submodule "External/detours"]
 	path = External/detours
 	url = https://github.com/microsoft/detours
+[submodule "External/Logging"]
+	path = External/Logging
+	url = https://github.com/elishacloud/Logging

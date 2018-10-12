@@ -52,10 +52,6 @@ class m_IDirectDrawSurfaceX;
 
 #define DDWRAPPER_TYPEX 0x80
 
-#ifdef DDRAWWRAPPER
-#define LogDebug Log
-#endif // DDRAWWRAPPER
-
 // ddraw proc typedefs
 typedef void(WINAPI *AcquireDDThreadLockProc)();
 typedef void(WINAPI *CompleteCreateSysmemSurfaceProc)();

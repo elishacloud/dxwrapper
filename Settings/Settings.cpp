@@ -122,7 +122,7 @@ void Settings::SetValue(char* name, char* value, MEMORYINFO* MemoryInfo)
 			charTemp[3] = value[(x * 2) + 1];
 			MemoryInfo->Bytes[x - 1] = (byte)strtoul(charTemp, &charEnd, 16);
 		}
-#ifdef SETTINGSLOG
+#ifdef _DEBUG
 		std::string buffer((size + 2) * 2, '\0');
 		for (size_t j = 0; j < size; j++)
 		{
@@ -147,7 +147,7 @@ void Settings::SetValue(char* name, char* value, void** setting)
 	{
 		*setting = (void*)strtoul(value, nullptr, 16);
 	}
-#ifdef SETTINGSLOG
+#ifdef _DEBUG
 	Logging::Log() << name << " set to '" << *setting << "'";
 #else
 	UNREFERENCED_PARAMETER(name);
@@ -165,7 +165,7 @@ void Settings::SetValue(char* name, char* value, std::vector<std::string>* setti
 	{
 		setting->push_back(newString);
 	}
-#ifdef SETTINGSLOG
+#ifdef _DEBUG
 	Logging::Log() << name << " set to '" << setting->back().c_str() << "'";
 #else
 	UNREFERENCED_PARAMETER(name);
@@ -178,7 +178,7 @@ void Settings::SetValue(char* name, char* value, std::string* setting)
 	setting->assign(value);
 	// Trim whitespaces
 	*setting = std::regex_replace(*setting, std::regex("(^\\s*(.*\\S)\\s*$)|(^\\s*$)"), "$2");
-#ifdef SETTINGSLOG
+#ifdef _DEBUG
 	Logging::Log() << name << " set to '" << setting->c_str() << "'";
 #else
 	UNREFERENCED_PARAMETER(name);
@@ -192,7 +192,7 @@ void Settings::SetValue(char* name, char* value, DWORD* setting)
 	if (*setting != NewValue)
 	{
 		*setting = NewValue;
-#ifdef SETTINGSLOG
+#ifdef _DEBUG
 		Logging::Log() << name << " set to '" << *setting << "'";
 #else
 		UNREFERENCED_PARAMETER(name);
@@ -207,7 +207,7 @@ void Settings::SetValue(char* name, char* value, bool* setting)
 	if (*setting != NewValue)
 	{
 		*setting = NewValue;
-#ifdef SETTINGSLOG
+#ifdef _DEBUG
 		char* NewValueText = "false";
 		if (*setting) NewValueText = "true";
 		Logging::Log() << name << " set to '" << NewValueText << "'";

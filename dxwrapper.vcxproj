@@ -121,7 +121,6 @@ cmd /c "@echo off &amp;&amp; cd /D ""$(ProjectDir)Dllmain\"" &amp;&amp; type Bui
     <ClCompile Include="d3d9\IDirect3DVolume9.cpp" />
     <ClCompile Include="d3d9\IDirect3DVolumeTexture9.cpp" />
     <ClCompile Include="DDrawCompat\DDrawCompatExternal.cpp" />
-    <ClCompile Include="DDrawCompat\DDrawLog.cpp" />
     <ClCompile Include="DDrawCompat\Experimental\Common\Hook.cpp" />
     <ClCompile Include="DDrawCompat\Experimental\Common\Time.cpp" />
     <ClCompile Include="DDrawCompat\Experimental\D3dDdi\AdapterCallbacks.cpp" />
@@ -286,6 +285,7 @@ cmd /c "@echo off &amp;&amp; cd /D ""$(ProjectDir)Dllmain\"" &amp;&amp; type Bui
     <ClCompile Include="External\d3d8to9\source\d3d8to9_volume.cpp" />
     <ClCompile Include="External\d3d8to9\source\d3d8types.cpp" />
     <ClCompile Include="External\d3d8to9\source\lookup_table.cpp" />
+    <ClCompile Include="External\Logging\Logging.cpp" />
     <ClCompile Include="Hooking\Hook.cpp" />
     <ClCompile Include="Hooking\HotPatch.cpp" />
     <ClCompile Include="Hooking\IATPatch.cpp" />
@@ -529,6 +529,7 @@ cmd /c "@echo off &amp;&amp; cd /D ""$(ProjectDir)Dllmain\"" &amp;&amp; type Bui
     <ClInclude Include="External\d3d8to9\source\d3d8types.hpp" />
     <ClInclude Include="External\d3d8to9\source\d3dx9.hpp" />
     <ClInclude Include="External\d3d8to9\source\lookup_table.hpp" />
+    <ClInclude Include="External\Logging\Logging.h" />
     <ClInclude Include="Hooking\Hook.h" />
     <ClInclude Include="Libraries\d3dx9.h" />
     <ClInclude Include="libraries\dwmapi.h" />
@@ -542,24 +543,21 @@ cmd /c "@echo off &amp;&amp; cd /D ""$(ProjectDir)Dllmain\"" &amp;&amp; type Bui
     <ClInclude Include="Wrappers\cryptsp.h" />
     <ClInclude Include="Wrappers\d2d1.h" />
     <ClInclude Include="Wrappers\d3d10.h" />
-    <ClInclude Include="Wrappers\d3d10core.h" />
     <ClInclude Include="Wrappers\d3d11.h" />
     <ClInclude Include="Wrappers\d3d12.h" />
     <ClInclude Include="Wrappers\d3d8.h" />
     <ClInclude Include="Wrappers\d3d9.h" />
-    <ClInclude Include="Wrappers\d3dim.h" />
-    <ClInclude Include="Wrappers\d3dim700.h" />
     <ClInclude Include="Wrappers\dciman32.h" />
     <ClInclude Include="Wrappers\ddraw.h" />
     <ClInclude Include="Wrappers\dinput.h" />
     <ClInclude Include="Wrappers\dinput8.h" />
     <ClInclude Include="Wrappers\dplayx.h" />
     <ClInclude Include="Wrappers\dsound.h" />
-    <ClInclude Include="Wrappers\dxgi.h" />
     <ClInclude Include="Wrappers\msacm32.h" />
     <ClInclude Include="Wrappers\msvfw32.h" />
     <ClInclude Include="Wrappers\shared.h" />
-    <ClInclude Include="Wrappers\vorbisFile.h" />
+    <ClInclude Include="Wrappers\version.h" />
+    <ClInclude Include="Wrappers\wininet.h" />
     <ClInclude Include="Wrappers\winmm.h" />
     <ClInclude Include="Wrappers\wrapper.h" />
   </ItemGroup>

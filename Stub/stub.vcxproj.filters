@@ -32,19 +32,10 @@
     <ClInclude Include="..\Wrappers\d3d10.h">
       <Filter>Wrappers</Filter>
     </ClInclude>
-    <ClInclude Include="..\Wrappers\d3d10core.h">
-      <Filter>Wrappers</Filter>
-    </ClInclude>
     <ClInclude Include="..\Wrappers\d3d11.h">
       <Filter>Wrappers</Filter>
     </ClInclude>
     <ClInclude Include="..\Wrappers\d3d12.h">
-      <Filter>Wrappers</Filter>
-    </ClInclude>
-    <ClInclude Include="..\Wrappers\d3dim.h">
-      <Filter>Wrappers</Filter>
-    </ClInclude>
-    <ClInclude Include="..\Wrappers\d3dim700.h">
       <Filter>Wrappers</Filter>
     </ClInclude>
     <ClInclude Include="..\Wrappers\dciman32.h">
@@ -65,9 +56,6 @@
     <ClInclude Include="..\Wrappers\dsound.h">
       <Filter>Wrappers</Filter>
     </ClInclude>
-    <ClInclude Include="..\Wrappers\dxgi.h">
-      <Filter>Wrappers</Filter>
-    </ClInclude>
     <ClInclude Include="..\Wrappers\msacm32.h">
       <Filter>Wrappers</Filter>
     </ClInclude>
@@ -75,9 +63,6 @@
       <Filter>Wrappers</Filter>
     </ClInclude>
     <ClInclude Include="..\Wrappers\shared.h">
-      <Filter>Wrappers</Filter>
-    </ClInclude>
-    <ClInclude Include="..\Wrappers\vorbisFile.h">
       <Filter>Wrappers</Filter>
     </ClInclude>
     <ClInclude Include="..\Wrappers\winmm.h">
@@ -88,6 +73,12 @@
     </ClInclude>
     <ClInclude Include="Logging\Logging.h">
       <Filter>Logging</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Wrappers\version.h">
+      <Filter>Wrappers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Wrappers\wininet.h">
+      <Filter>Wrappers</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

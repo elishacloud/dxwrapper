@@ -27,14 +27,6 @@
 #define _TO_STRING(x) _TO_STRING_(x)
 #define APP_VERSION _TO_STRING(APP_MAJOR) "." _TO_STRING(APP_MINOR) "." _TO_STRING(APP_BUILDNUMBER) "." _TO_STRING(APP_REVISION)
 
-//Verify defintions exist in DDrawLog.h
-#ifndef APP_DDRAWNAME
-#include "Missing APP_DDRAWNAME definition in DDrawLog.h file"
-#endif
-#ifndef APP_DDRAWVERSION
-#include "Missing APP_DDRAWVERSION definition in DDrawLog.h file"
-#endif
-
 //Verify defintions exist in dxwnd.h
 #ifndef APP_DXWNDNAME
 #include "Missing APP_DXWNDNAME definition in dxwnd.h file"
