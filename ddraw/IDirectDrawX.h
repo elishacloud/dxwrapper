@@ -94,6 +94,9 @@ public:
 
 	DWORD GetDirectXVersion() { return DDWRAPPER_TYPEX; }
 	REFIID GetWrapperType() { return WrapperID; }
+	IDirectDraw *GetProxyInterfaceV1() { return (IDirectDraw *)ProxyInterface; }
+	IDirectDraw3 *GetProxyInterfaceV3() { return (IDirectDraw3 *)ProxyInterface; }
+	IDirectDraw4 *GetProxyInterfaceV4() { return (IDirectDraw4 *)ProxyInterface; }
 	IDirectDraw7 *GetProxyInterface() { return ProxyInterface; }
 	m_IDirectDraw7 *GetWrapperInterface() { return WrapperInterface; }
 	LPDIRECT3D9 GetDirect3DObject() { return d3d9Object; }

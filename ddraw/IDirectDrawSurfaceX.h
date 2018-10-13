@@ -135,6 +135,7 @@ public:
 
 	DWORD GetDirectXVersion() { return DDWRAPPER_TYPEX; }
 	REFIID GetWrapperType() { return WrapperID; }
+	IDirectDrawSurface3 *GetProxyInterfaceV3() { return (IDirectDrawSurface3 *)ProxyInterface; }
 	IDirectDrawSurface7 *GetProxyInterface() { return ProxyInterface; }
 	m_IDirectDrawSurface7 *GetWrapperInterface() { return WrapperInterface; }
 	LPDIRECT3DTEXTURE9 *GetSurfaceTexture() { return &surfaceTexture; }

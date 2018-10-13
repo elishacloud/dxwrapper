@@ -483,7 +483,7 @@ HRESULT m_IDirectDrawSurfaceX::EnumAttachedSurfaces(LPVOID lpContext, LPDDENUMSU
 	CallbackContext.DirectXVersion = DirectXVersion;
 	CallbackContext.ConvertSurfaceDescTo2 = ConvertSurfaceDescTo2;
 
-	return ((IDirectDrawSurface3*)ProxyInterface)->EnumAttachedSurfaces(&CallbackContext, m_IDirectDrawEnumSurface::ConvertCallback);
+	return GetProxyInterfaceV3()->EnumAttachedSurfaces(&CallbackContext, m_IDirectDrawEnumSurface::ConvertCallback);
 }
 
 HRESULT m_IDirectDrawSurfaceX::EnumAttachedSurfaces2(LPVOID lpContext, LPDDENUMSURFACESCALLBACK7 lpEnumSurfacesCallback7)
@@ -542,7 +542,7 @@ HRESULT m_IDirectDrawSurfaceX::EnumOverlayZOrders(DWORD dwFlags, LPVOID lpContex
 	CallbackContext.DirectXVersion = DirectXVersion;
 	CallbackContext.ConvertSurfaceDescTo2 = ConvertSurfaceDescTo2;
 
-	return ((IDirectDrawSurface3*)ProxyInterface)->EnumOverlayZOrders(dwFlags, &CallbackContext, m_IDirectDrawEnumSurface::ConvertCallback);
+	return GetProxyInterfaceV3()->EnumOverlayZOrders(dwFlags, &CallbackContext, m_IDirectDrawEnumSurface::ConvertCallback);
 }
 
 HRESULT m_IDirectDrawSurfaceX::EnumOverlayZOrders2(DWORD dwFlags, LPVOID lpContext, LPDDENUMSURFACESCALLBACK7 lpfnCallback7)
@@ -712,7 +712,7 @@ HRESULT m_IDirectDrawSurfaceX::GetAttachedSurface(LPDDSCAPS lpDDSCaps, LPDIRECTD
 		return GetAttachedSurface2((lpDDSCaps) ? &Caps2 : nullptr, lplpDDAttachedSurface);
 	}
 
-	HRESULT hr = ((IDirectDrawSurface3*)ProxyInterface)->GetAttachedSurface(lpDDSCaps, (LPDIRECTDRAWSURFACE3*)lplpDDAttachedSurface);
+	HRESULT hr = GetProxyInterfaceV3()->GetAttachedSurface(lpDDSCaps, (LPDIRECTDRAWSURFACE3*)lplpDDAttachedSurface);
 
 	if (SUCCEEDED(hr))
 	{
@@ -810,7 +810,7 @@ HRESULT m_IDirectDrawSurfaceX::GetCaps(LPDDSCAPS lpDDSCaps)
 		return hr;
 	}
 
-	return ((IDirectDrawSurface3*)ProxyInterface)->GetCaps(lpDDSCaps);
+	return GetProxyInterfaceV3()->GetCaps(lpDDSCaps);
 }
 
 HRESULT m_IDirectDrawSurfaceX::GetCaps2(LPDDSCAPS2 lpDDSCaps2)
@@ -837,8 +837,9 @@ HRESULT m_IDirectDrawSurfaceX::GetClipper(LPDIRECTDRAWCLIPPER FAR * lplpDDClippe
 
 	if (Config.Dd7to9)
 	{
-		Logging::Log() << __FUNCTION__ << " Not Implemented";
-		return E_NOTIMPL;
+		Logging::Log() << __FUNCTION__ << " Not fully Implemented";
+		*lplpDDClipper = new m_IDirectDrawClipper(nullptr);
+		return DD_OK;
 	}
 
 	HRESULT hr = ProxyInterface->GetClipper(lplpDDClipper);
@@ -1047,7 +1048,7 @@ HRESULT m_IDirectDrawSurfaceX::GetSurfaceDesc(LPDDSURFACEDESC lpDDSurfaceDesc)
 		return hr;
 	}
 
-	return ((IDirectDrawSurface3*)ProxyInterface)->GetSurfaceDesc(lpDDSurfaceDesc);
+	return GetProxyInterfaceV3()->GetSurfaceDesc(lpDDSurfaceDesc);
 }
 
 HRESULT m_IDirectDrawSurfaceX::GetSurfaceDesc2(LPDDSURFACEDESC2 lpDDSurfaceDesc2)
@@ -1157,7 +1158,7 @@ HRESULT m_IDirectDrawSurfaceX::Initialize(LPDIRECTDRAW lpDD, LPDDSURFACEDESC lpD
 		lpDD = static_cast<m_IDirectDraw *>(lpDD)->GetProxyInterface();
 	}
 
-	return ((IDirectDrawSurface3*)ProxyInterface)->Initialize(lpDD, lpDDSurfaceDesc);
+	return GetProxyInterfaceV3()->Initialize(lpDD, lpDDSurfaceDesc);
 }
 
 HRESULT m_IDirectDrawSurfaceX::Initialize2(LPDIRECTDRAW lpDD, LPDDSURFACEDESC2 lpDDSurfaceDesc2)
@@ -1223,7 +1224,7 @@ HRESULT m_IDirectDrawSurfaceX::Lock(LPRECT lpDestRect, LPDDSURFACEDESC lpDDSurfa
 		return hr;
 	}
 
-	return ((IDirectDrawSurface3*)ProxyInterface)->Lock(lpDestRect, lpDDSurfaceDesc, dwFlags, hEvent);
+	return GetProxyInterfaceV3()->Lock(lpDestRect, lpDDSurfaceDesc, dwFlags, hEvent);
 }
 
 HRESULT m_IDirectDrawSurfaceX::Lock2(LPRECT lpDestRect, LPDDSURFACEDESC2 lpDDSurfaceDesc2, DWORD dwFlags, HANDLE hEvent)
@@ -1653,7 +1654,7 @@ HRESULT m_IDirectDrawSurfaceX::SetSurfaceDesc(LPDDSURFACEDESC lpDDSurfaceDesc, D
 		return SetSurfaceDesc2(&Desc2, dwFlags);
 	}
 
-	return ((IDirectDrawSurface3*)ProxyInterface)->SetSurfaceDesc(lpDDSurfaceDesc, dwFlags);
+	return GetProxyInterfaceV3()->SetSurfaceDesc(lpDDSurfaceDesc, dwFlags);
 }
 
 HRESULT m_IDirectDrawSurfaceX::SetSurfaceDesc2(LPDDSURFACEDESC2 lpDDSurfaceDesc2, DWORD dwFlags)

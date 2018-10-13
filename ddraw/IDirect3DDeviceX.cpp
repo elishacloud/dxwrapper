@@ -111,7 +111,7 @@ HRESULT m_IDirect3DDeviceX::Initialize(LPDIRECT3D lpd3d, LPGUID lpGUID, LPD3DDEV
 		lpd3d = static_cast<m_IDirect3D *>(lpd3d)->GetProxyInterface();
 	}
 
-	return ((IDirect3DDevice*)ProxyInterface)->Initialize(lpd3d, lpGUID, lpd3ddvdesc);
+	return GetProxyInterfaceV1()->Initialize(lpd3d, lpGUID, lpd3ddvdesc);
 }
 
 HRESULT m_IDirect3DDeviceX::CreateExecuteBuffer(LPD3DEXECUTEBUFFERDESC lpDesc, LPDIRECT3DEXECUTEBUFFER * lplpDirect3DExecuteBuffer, IUnknown * pUnkOuter)
@@ -124,7 +124,7 @@ HRESULT m_IDirect3DDeviceX::CreateExecuteBuffer(LPD3DEXECUTEBUFFERDESC lpDesc, L
 		return E_NOTIMPL;
 	}
 
-	HRESULT hr = ((IDirect3DDevice*)ProxyInterface)->CreateExecuteBuffer(lpDesc, lplpDirect3DExecuteBuffer, pUnkOuter);
+	HRESULT hr = GetProxyInterfaceV1()->CreateExecuteBuffer(lpDesc, lplpDirect3DExecuteBuffer, pUnkOuter);
 
 	if (SUCCEEDED(hr) && lplpDirect3DExecuteBuffer)
 	{
@@ -153,7 +153,7 @@ HRESULT m_IDirect3DDeviceX::Execute(LPDIRECT3DEXECUTEBUFFER lpDirect3DExecuteBuf
 		lpDirect3DViewport = static_cast<m_IDirect3DViewport *>(lpDirect3DViewport)->GetProxyInterface();
 	}
 
-	return ((IDirect3DDevice*)ProxyInterface)->Execute(lpDirect3DExecuteBuffer, lpDirect3DViewport, dwFlags);
+	return GetProxyInterfaceV1()->Execute(lpDirect3DExecuteBuffer, lpDirect3DViewport, dwFlags);
 }
 
 HRESULT m_IDirect3DDeviceX::Pick(LPDIRECT3DEXECUTEBUFFER lpDirect3DExecuteBuffer, LPDIRECT3DVIEWPORT lpDirect3DViewport, DWORD dwFlags, LPD3DRECT lpRect)
@@ -175,7 +175,7 @@ HRESULT m_IDirect3DDeviceX::Pick(LPDIRECT3DEXECUTEBUFFER lpDirect3DExecuteBuffer
 		lpDirect3DViewport = static_cast<m_IDirect3DViewport *>(lpDirect3DViewport)->GetProxyInterface();
 	}
 
-	return ((IDirect3DDevice*)ProxyInterface)->Pick(lpDirect3DExecuteBuffer, lpDirect3DViewport, dwFlags, lpRect);
+	return GetProxyInterfaceV1()->Pick(lpDirect3DExecuteBuffer, lpDirect3DViewport, dwFlags, lpRect);
 }
 
 HRESULT m_IDirect3DDeviceX::GetPickRecords(LPDWORD lpCount, LPD3DPICKRECORD lpD3DPickRec)
@@ -188,7 +188,7 @@ HRESULT m_IDirect3DDeviceX::GetPickRecords(LPDWORD lpCount, LPD3DPICKRECORD lpD3
 		return E_NOTIMPL;
 	}
 
-	return ((IDirect3DDevice*)ProxyInterface)->GetPickRecords(lpCount, lpD3DPickRec);
+	return GetProxyInterfaceV1()->GetPickRecords(lpCount, lpD3DPickRec);
 }
 
 HRESULT m_IDirect3DDeviceX::CreateMatrix(LPD3DMATRIXHANDLE lpD3DMatHandle)
@@ -201,7 +201,7 @@ HRESULT m_IDirect3DDeviceX::CreateMatrix(LPD3DMATRIXHANDLE lpD3DMatHandle)
 		return E_NOTIMPL;
 	}
 
-	return ((IDirect3DDevice*)ProxyInterface)->CreateMatrix(lpD3DMatHandle);
+	return GetProxyInterfaceV1()->CreateMatrix(lpD3DMatHandle);
 }
 
 HRESULT m_IDirect3DDeviceX::SetMatrix(D3DMATRIXHANDLE d3dMatHandle, const LPD3DMATRIX lpD3DMatrix)
@@ -214,7 +214,7 @@ HRESULT m_IDirect3DDeviceX::SetMatrix(D3DMATRIXHANDLE d3dMatHandle, const LPD3DM
 		return E_NOTIMPL;
 	}
 
-	return ((IDirect3DDevice*)ProxyInterface)->SetMatrix(d3dMatHandle, lpD3DMatrix);
+	return GetProxyInterfaceV1()->SetMatrix(d3dMatHandle, lpD3DMatrix);
 }
 
 HRESULT m_IDirect3DDeviceX::GetMatrix(D3DMATRIXHANDLE lpD3DMatHandle, LPD3DMATRIX lpD3DMatrix)
@@ -227,7 +227,7 @@ HRESULT m_IDirect3DDeviceX::GetMatrix(D3DMATRIXHANDLE lpD3DMatHandle, LPD3DMATRI
 		return E_NOTIMPL;
 	}
 
-	return ((IDirect3DDevice*)ProxyInterface)->GetMatrix(lpD3DMatHandle, lpD3DMatrix);
+	return GetProxyInterfaceV1()->GetMatrix(lpD3DMatHandle, lpD3DMatrix);
 }
 
 HRESULT m_IDirect3DDeviceX::DeleteMatrix(D3DMATRIXHANDLE d3dMatHandle)
@@ -240,7 +240,7 @@ HRESULT m_IDirect3DDeviceX::DeleteMatrix(D3DMATRIXHANDLE d3dMatHandle)
 		return E_NOTIMPL;
 	}
 
-	return ((IDirect3DDevice*)ProxyInterface)->DeleteMatrix(d3dMatHandle);
+	return GetProxyInterfaceV1()->DeleteMatrix(d3dMatHandle);
 }
 
 HRESULT m_IDirect3DDeviceX::SwapTextureHandles(LPDIRECT3DTEXTURE2 lpD3DTex1, LPDIRECT3DTEXTURE2 lpD3DTex2)
@@ -262,7 +262,7 @@ HRESULT m_IDirect3DDeviceX::SwapTextureHandles(LPDIRECT3DTEXTURE2 lpD3DTex1, LPD
 		lpD3DTex2 = static_cast<m_IDirect3DTexture2 *>(lpD3DTex2)->GetProxyInterface();
 	}
 
-	return ((IDirect3DDevice2*)ProxyInterface)->SwapTextureHandles(lpD3DTex1, lpD3DTex2);
+	return GetProxyInterfaceV2()->SwapTextureHandles(lpD3DTex1, lpD3DTex2);
 }
 
 HRESULT m_IDirect3DDeviceX::EnumTextureFormats(LPD3DENUMTEXTUREFORMATSCALLBACK lpd3dEnumTextureProc, LPVOID lpArg)
@@ -275,7 +275,7 @@ HRESULT m_IDirect3DDeviceX::EnumTextureFormats(LPD3DENUMTEXTUREFORMATSCALLBACK l
 		return E_NOTIMPL;
 	}
 
-	return ((IDirect3DDevice2*)ProxyInterface)->EnumTextureFormats(lpd3dEnumTextureProc, lpArg);
+	return GetProxyInterfaceV2()->EnumTextureFormats(lpd3dEnumTextureProc, lpArg);
 }
 
 HRESULT m_IDirect3DDeviceX::GetCaps(LPD3DDEVICEDESC lpD3DHWDevDesc, LPD3DDEVICEDESC lpD3DHELDevDesc)
@@ -303,7 +303,7 @@ HRESULT m_IDirect3DDeviceX::GetCaps(LPD3DDEVICEDESC lpD3DHWDevDesc, LPD3DDEVICED
 		return hr;
 	}
 
-	return ((IDirect3DDevice3*)ProxyInterface)->GetCaps(lpD3DHWDevDesc, lpD3DHELDevDesc);
+	return GetProxyInterfaceV3()->GetCaps(lpD3DHWDevDesc, lpD3DHELDevDesc);
 }
 
 HRESULT m_IDirect3DDeviceX::GetStats(LPD3DSTATS lpD3DStats)
@@ -316,7 +316,7 @@ HRESULT m_IDirect3DDeviceX::GetStats(LPD3DSTATS lpD3DStats)
 		return E_NOTIMPL;
 	}
 
-	return ((IDirect3DDevice3*)ProxyInterface)->GetStats(lpD3DStats);
+	return GetProxyInterfaceV3()->GetStats(lpD3DStats);
 }
 
 HRESULT m_IDirect3DDeviceX::AddViewport(LPDIRECT3DVIEWPORT3 lpDirect3DViewport)
@@ -353,7 +353,7 @@ HRESULT m_IDirect3DDeviceX::AddViewport(LPDIRECT3DVIEWPORT3 lpDirect3DViewport)
 		lpDirect3DViewport = static_cast<m_IDirect3DViewport3 *>(lpDirect3DViewport)->GetProxyInterface();
 	}
 
-	return ((IDirect3DDevice3*)ProxyInterface)->AddViewport(lpDirect3DViewport);
+	return GetProxyInterfaceV3()->AddViewport(lpDirect3DViewport);
 }
 
 HRESULT m_IDirect3DDeviceX::DeleteViewport(LPDIRECT3DVIEWPORT3 lpDirect3DViewport)
@@ -371,7 +371,7 @@ HRESULT m_IDirect3DDeviceX::DeleteViewport(LPDIRECT3DVIEWPORT3 lpDirect3DViewpor
 		lpDirect3DViewport = static_cast<m_IDirect3DViewport3 *>(lpDirect3DViewport)->GetProxyInterface();
 	}
 
-	return ((IDirect3DDevice3*)ProxyInterface)->DeleteViewport(lpDirect3DViewport);
+	return GetProxyInterfaceV3()->DeleteViewport(lpDirect3DViewport);
 }
 
 HRESULT m_IDirect3DDeviceX::NextViewport(LPDIRECT3DVIEWPORT3 lpDirect3DViewport, LPDIRECT3DVIEWPORT3 * lplpDirect3DViewport, DWORD dwFlags)
@@ -389,7 +389,7 @@ HRESULT m_IDirect3DDeviceX::NextViewport(LPDIRECT3DVIEWPORT3 lpDirect3DViewport,
 		lpDirect3DViewport = static_cast<m_IDirect3DViewport3 *>(lpDirect3DViewport)->GetProxyInterface();
 	}
 
-	HRESULT hr = ((IDirect3DDevice3*)ProxyInterface)->NextViewport(lpDirect3DViewport, lplpDirect3DViewport, dwFlags);
+	HRESULT hr = GetProxyInterfaceV3()->NextViewport(lpDirect3DViewport, lplpDirect3DViewport, dwFlags);
 
 	if (SUCCEEDED(hr) && lplpDirect3DViewport)
 	{
@@ -416,7 +416,7 @@ HRESULT m_IDirect3DDeviceX::SetCurrentViewport(LPDIRECT3DVIEWPORT3 lpd3dViewport
 		lpd3dViewport = static_cast<m_IDirect3DViewport3 *>(lpd3dViewport)->GetProxyInterface();
 	}
 
-	return ((IDirect3DDevice3*)ProxyInterface)->SetCurrentViewport(lpd3dViewport);
+	return GetProxyInterfaceV3()->SetCurrentViewport(lpd3dViewport);
 }
 
 HRESULT m_IDirect3DDeviceX::GetCurrentViewport(LPDIRECT3DVIEWPORT3 * lplpd3dViewport)
@@ -439,7 +439,7 @@ HRESULT m_IDirect3DDeviceX::GetCurrentViewport(LPDIRECT3DVIEWPORT3 * lplpd3dView
 		return DDERR_INVALIDPARAMS;
 	}
 
-	HRESULT hr = ((IDirect3DDevice3*)ProxyInterface)->GetCurrentViewport(lplpd3dViewport);
+	HRESULT hr = GetProxyInterfaceV3()->GetCurrentViewport(lplpd3dViewport);
 
 	if (SUCCEEDED(hr) && lplpd3dViewport)
 	{
@@ -459,7 +459,7 @@ HRESULT m_IDirect3DDeviceX::Begin(D3DPRIMITIVETYPE d3dpt, DWORD d3dvt, DWORD dwF
 		return E_NOTIMPL;
 	}
 
-	return ((IDirect3DDevice3*)ProxyInterface)->Begin(d3dpt, d3dvt, dwFlags);
+	return GetProxyInterfaceV3()->Begin(d3dpt, d3dvt, dwFlags);
 }
 
 HRESULT m_IDirect3DDeviceX::BeginIndexed(D3DPRIMITIVETYPE dptPrimitiveType, DWORD dvtVertexType, LPVOID lpvVertices, DWORD dwNumVertices, DWORD dwFlags)
@@ -472,7 +472,7 @@ HRESULT m_IDirect3DDeviceX::BeginIndexed(D3DPRIMITIVETYPE dptPrimitiveType, DWOR
 		return E_NOTIMPL;
 	}
 
-	return ((IDirect3DDevice3*)ProxyInterface)->BeginIndexed(dptPrimitiveType, dvtVertexType, lpvVertices, dwNumVertices, dwFlags);
+	return GetProxyInterfaceV3()->BeginIndexed(dptPrimitiveType, dvtVertexType, lpvVertices, dwNumVertices, dwFlags);
 }
 
 HRESULT m_IDirect3DDeviceX::Vertex(LPVOID lpVertexType)
@@ -485,7 +485,7 @@ HRESULT m_IDirect3DDeviceX::Vertex(LPVOID lpVertexType)
 		return E_NOTIMPL;
 	}
 
-	return ((IDirect3DDevice3*)ProxyInterface)->Vertex(lpVertexType);
+	return GetProxyInterfaceV3()->Vertex(lpVertexType);
 }
 
 HRESULT m_IDirect3DDeviceX::Index(WORD wVertexIndex)
@@ -498,7 +498,7 @@ HRESULT m_IDirect3DDeviceX::Index(WORD wVertexIndex)
 		return E_NOTIMPL;
 	}
 
-	return ((IDirect3DDevice3*)ProxyInterface)->Index(wVertexIndex);
+	return GetProxyInterfaceV3()->Index(wVertexIndex);
 }
 
 HRESULT m_IDirect3DDeviceX::End(DWORD dwFlags)
@@ -511,7 +511,7 @@ HRESULT m_IDirect3DDeviceX::End(DWORD dwFlags)
 		return E_NOTIMPL;
 	}
 
-	return ((IDirect3DDevice3*)ProxyInterface)->End(dwFlags);
+	return GetProxyInterfaceV3()->End(dwFlags);
 }
 
 HRESULT m_IDirect3DDeviceX::GetLightState(D3DLIGHTSTATETYPE dwLightStateType, LPDWORD lpdwLightState)
@@ -524,7 +524,7 @@ HRESULT m_IDirect3DDeviceX::GetLightState(D3DLIGHTSTATETYPE dwLightStateType, LP
 		return E_NOTIMPL;
 	}
 
-	return ((IDirect3DDevice3*)ProxyInterface)->GetLightState(dwLightStateType, lpdwLightState);
+	return GetProxyInterfaceV3()->GetLightState(dwLightStateType, lpdwLightState);
 }
 
 HRESULT m_IDirect3DDeviceX::SetLightState(D3DLIGHTSTATETYPE dwLightStateType, DWORD dwLightState)
@@ -537,7 +537,7 @@ HRESULT m_IDirect3DDeviceX::SetLightState(D3DLIGHTSTATETYPE dwLightStateType, DW
 		return E_NOTIMPL;
 	}
 
-	return ((IDirect3DDevice3*)ProxyInterface)->SetLightState(dwLightStateType, dwLightState);
+	return GetProxyInterfaceV3()->SetLightState(dwLightStateType, dwLightState);
 }
 
 HRESULT m_IDirect3DDeviceX::DrawIndexedPrimitiveVB(D3DPRIMITIVETYPE d3dptPrimitiveType, LPDIRECT3DVERTEXBUFFER lpd3dVertexBuffer, LPWORD lpwIndices, DWORD dwIndexCount, DWORD dwFlags)
@@ -555,7 +555,7 @@ HRESULT m_IDirect3DDeviceX::DrawIndexedPrimitiveVB(D3DPRIMITIVETYPE d3dptPrimiti
 		lpd3dVertexBuffer = static_cast<m_IDirect3DVertexBuffer *>(lpd3dVertexBuffer)->GetProxyInterface();
 	}
 
-	return ((IDirect3DDevice3*)ProxyInterface)->DrawIndexedPrimitiveVB(d3dptPrimitiveType, lpd3dVertexBuffer, lpwIndices, dwIndexCount, dwFlags);
+	return GetProxyInterfaceV3()->DrawIndexedPrimitiveVB(d3dptPrimitiveType, lpd3dVertexBuffer, lpwIndices, dwIndexCount, dwFlags);
 }
 
 HRESULT m_IDirect3DDeviceX::GetTexture(DWORD dwStage, LPDIRECT3DTEXTURE2 * lplpTexture)
@@ -568,7 +568,7 @@ HRESULT m_IDirect3DDeviceX::GetTexture(DWORD dwStage, LPDIRECT3DTEXTURE2 * lplpT
 		return E_NOTIMPL;
 	}
 
-	HRESULT hr = ((IDirect3DDevice3*)ProxyInterface)->GetTexture(dwStage, lplpTexture);
+	HRESULT hr = GetProxyInterfaceV3()->GetTexture(dwStage, lplpTexture);
 
 	if (SUCCEEDED(hr) && lplpTexture)
 	{
@@ -598,7 +598,7 @@ HRESULT m_IDirect3DDeviceX::SetTexture(DWORD dwStage, LPDIRECT3DTEXTURE2 lpTextu
 		lpTexture = static_cast<m_IDirect3DTexture2 *>(lpTexture)->GetProxyInterface();
 	}
 
-	return ((IDirect3DDevice3*)ProxyInterface)->SetTexture(dwStage, lpTexture);
+	return GetProxyInterfaceV3()->SetTexture(dwStage, lpTexture);
 }
 
 HRESULT m_IDirect3DDeviceX::GetCaps(LPD3DDEVICEDESC7 lpD3DDevDesc)

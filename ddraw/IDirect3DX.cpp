@@ -107,7 +107,7 @@ HRESULT m_IDirect3DX::Initialize(REFCLSID rclsid)
 		return D3D_OK;
 	}
 
-	return ((IDirect3D*)ProxyInterface)->Initialize(rclsid);
+	return GetProxyInterfaceV1()->Initialize(rclsid);
 }
 
 HRESULT m_IDirect3DX::EnumDevices(LPD3DENUMDEVICESCALLBACK lpEnumDevicesCallback, LPVOID lpUserArg)
@@ -120,7 +120,7 @@ HRESULT m_IDirect3DX::EnumDevices(LPD3DENUMDEVICESCALLBACK lpEnumDevicesCallback
 		CallbackContext.lpContext = lpUserArg;
 		CallbackContext.lpCallback = lpEnumDevicesCallback;
 
-		EnumDevices7(m_IDirect3DEnumDevices::ConvertCallback, &CallbackContext);
+		return EnumDevices7(m_IDirect3DEnumDevices::ConvertCallback, &CallbackContext);
 	}
 
 	return ProxyInterface->EnumDevices((LPD3DENUMDEVICESCALLBACK7)lpEnumDevicesCallback, lpUserArg);
@@ -200,7 +200,7 @@ HRESULT m_IDirect3DX::CreateLight(LPDIRECT3DLIGHT * lplpDirect3DLight, LPUNKNOWN
 		return E_NOTIMPL;
 	}
 
-	HRESULT hr = ((IDirect3D3*)ProxyInterface)->CreateLight(lplpDirect3DLight, pUnkOuter);
+	HRESULT hr = GetProxyInterfaceV3()->CreateLight(lplpDirect3DLight, pUnkOuter);
 
 	if (SUCCEEDED(hr) && lplpDirect3DLight)
 	{
@@ -238,7 +238,7 @@ HRESULT m_IDirect3DX::CreateMaterial(LPDIRECT3DMATERIAL3 * lplpDirect3DMaterial,
 		}
 	}
 
-	HRESULT hr = ((IDirect3D3*)ProxyInterface)->CreateMaterial(lplpDirect3DMaterial, pUnkOuter);
+	HRESULT hr = GetProxyInterfaceV3()->CreateMaterial(lplpDirect3DMaterial, pUnkOuter);
 
 	if (SUCCEEDED(hr) && lplpDirect3DMaterial)
 	{
@@ -276,7 +276,7 @@ HRESULT m_IDirect3DX::CreateViewport(LPDIRECT3DVIEWPORT3 * lplpD3DViewport, LPUN
 		}
 	}
 
-	HRESULT hr = ((IDirect3D3*)ProxyInterface)->CreateViewport(lplpD3DViewport, pUnkOuter);
+	HRESULT hr = GetProxyInterfaceV3()->CreateViewport(lplpD3DViewport, pUnkOuter);
 
 	if (SUCCEEDED(hr) && lplpD3DViewport)
 	{
@@ -296,7 +296,7 @@ HRESULT m_IDirect3DX::FindDevice(LPD3DFINDDEVICESEARCH lpD3DFDS, LPD3DFINDDEVICE
 		return E_NOTIMPL;
 	}
 
-	return ((IDirect3D3*)ProxyInterface)->FindDevice(lpD3DFDS, lpD3DFDR);
+	return GetProxyInterfaceV3()->FindDevice(lpD3DFDS, lpD3DFDR);
 }
 
 HRESULT m_IDirect3DX::CreateDevice(REFCLSID rclsid, LPDIRECTDRAWSURFACE7 lpDDS, LPDIRECT3DDEVICE7 * lplpD3DDevice)
@@ -339,7 +339,7 @@ HRESULT m_IDirect3DX::CreateDevice(REFCLSID rclsid, LPDIRECTDRAWSURFACE7 lpDDS, 
 
 	if (ProxyDirectXVersion == 3)
 	{
-		hr = ((IDirect3D3*)ProxyInterface)->CreateDevice(rclsid, (LPDIRECTDRAWSURFACE4)lpDDS, (LPDIRECT3DDEVICE3*)lplpD3DDevice, nullptr);
+		hr = GetProxyInterfaceV3()->CreateDevice(rclsid, (LPDIRECTDRAWSURFACE4)lpDDS, (LPDIRECT3DDEVICE3*)lplpD3DDevice, nullptr);
 	}
 	else
 	{
@@ -368,7 +368,7 @@ HRESULT m_IDirect3DX::CreateVertexBuffer(LPD3DVERTEXBUFFERDESC lpVBDesc, LPDIREC
 
 	if (ProxyDirectXVersion == 3)
 	{
-		hr = ((IDirect3D3*)ProxyInterface)->CreateVertexBuffer(lpVBDesc, (LPDIRECT3DVERTEXBUFFER*)lplpD3DVertexBuffer, dwFlags, nullptr);
+		hr = GetProxyInterfaceV3()->CreateVertexBuffer(lpVBDesc, (LPDIRECT3DVERTEXBUFFER*)lplpD3DVertexBuffer, dwFlags, nullptr);
 	}
 	else
 	{
@@ -395,7 +395,7 @@ HRESULT m_IDirect3DX::EnumZBufferFormats(REFCLSID riidDevice, LPD3DENUMPIXELFORM
 
 	if (ProxyDirectXVersion == 3)
 	{
-		return ((IDirect3D3*)ProxyInterface)->EnumZBufferFormats(riidDevice, lpEnumCallback, lpContext);
+		return GetProxyInterfaceV3()->EnumZBufferFormats(riidDevice, lpEnumCallback, lpContext);
 	}
 
 	return ProxyInterface->EnumZBufferFormats(riidDevice, lpEnumCallback, lpContext);

@@ -95,7 +95,7 @@ HRESULT m_IDirect3DTextureX::Initialize(LPDIRECT3DDEVICE lpDirect3DDevice, LPDIR
 		lplpDDSurface = static_cast<m_IDirectDrawSurface *>(lplpDDSurface)->GetProxyInterface();
 	}
 
-	return ((IDirect3DTexture*)ProxyInterface)->Initialize(lpDirect3DDevice, lplpDDSurface);
+	return GetProxyInterfaceV1()->Initialize(lpDirect3DDevice, lplpDDSurface);
 }
 
 HRESULT m_IDirect3DTextureX::GetHandle(LPDIRECT3DDEVICE2 lpDirect3DDevice2, LPD3DTEXTUREHANDLE lpHandle)
@@ -161,5 +161,5 @@ HRESULT m_IDirect3DTextureX::Unload()
 		return E_NOTIMPL;
 	}
 
-	return ((IDirect3DTexture*)ProxyInterface)->Unload();
+	return GetProxyInterfaceV1()->Unload();
 }

@@ -242,7 +242,7 @@ HRESULT m_IDirectDrawX::CreateSurface(LPDDSURFACEDESC lpDDSurfaceDesc, LPDIRECTD
 		return CreateSurface2(&Desc2, lplpDDSurface, pUnkOuter);
 	}
 
-	HRESULT hr = ((IDirectDraw3*)ProxyInterface)->CreateSurface(lpDDSurfaceDesc, (LPDIRECTDRAWSURFACE*)lplpDDSurface, pUnkOuter);
+	HRESULT hr = GetProxyInterfaceV3()->CreateSurface(lpDDSurfaceDesc, (LPDIRECTDRAWSURFACE*)lplpDDSurface, pUnkOuter);
 
 	if (SUCCEEDED(hr))
 	{
@@ -268,13 +268,12 @@ HRESULT m_IDirectDrawX::CreateSurface2(LPDDSURFACEDESC2 lpDDSurfaceDesc2, LPDIRE
 			return DDERR_INVALIDPARAMS;
 		}
 
-		// Create the requested d3d device for this display mode, report error on failure
+		// Create the requested d3d device for this display mode
 		if (!d3d9Device && isWindowed)
 		{
 			if (FAILED(CreateD3DDevice()))
 			{
-				Logging::Log() << __FUNCTION__ << " Error creating Direct3D9 Device";
-				return DDERR_GENERIC;
+				Logging::LogDebug() << __FUNCTION__ << " Error creating Direct3D9 Device";
 			}
 		}
 
@@ -345,7 +344,7 @@ HRESULT m_IDirectDrawX::EnumDisplayModes(DWORD dwFlags, LPDDSURFACEDESC lpDDSurf
 		return EnumDisplayModes2(dwFlags, (lpDDSurfaceDesc) ? &Desc2 : nullptr, lpContext, (LPDDENUMMODESCALLBACK2)lpEnumModesCallback);
 	}
 
-	return ((IDirectDraw3*)ProxyInterface)->EnumDisplayModes(dwFlags, lpDDSurfaceDesc, lpContext, lpEnumModesCallback);
+	return GetProxyInterfaceV3()->EnumDisplayModes(dwFlags, lpDDSurfaceDesc, lpContext, lpEnumModesCallback);
 }
 
 HRESULT m_IDirectDrawX::EnumDisplayModes2(DWORD dwFlags, LPDDSURFACEDESC2 lpDDSurfaceDesc2, LPVOID lpContext, LPDDENUMMODESCALLBACK2 lpEnumModesCallback2)
@@ -505,7 +504,7 @@ HRESULT m_IDirectDrawX::EnumSurfaces(DWORD dwFlags, LPDDSURFACEDESC lpDDSurfaceD
 	CallbackContext.DirectXVersion = DirectXVersion;
 	CallbackContext.ConvertSurfaceDescTo2 = ConvertSurfaceDescTo2;
 
-	return ((IDirectDraw3*)ProxyInterface)->EnumSurfaces(dwFlags, lpDDSurfaceDesc, &CallbackContext, m_IDirectDrawEnumSurface::ConvertCallback);
+	return GetProxyInterfaceV3()->EnumSurfaces(dwFlags, lpDDSurfaceDesc, &CallbackContext, m_IDirectDrawEnumSurface::ConvertCallback);
 }
 
 HRESULT m_IDirectDrawX::EnumSurfaces2(DWORD dwFlags, LPDDSURFACEDESC2 lpDDSurfaceDesc2, LPVOID lpContext, LPDDENUMSURFACESCALLBACK7 lpEnumSurfacesCallback7)
@@ -604,7 +603,7 @@ HRESULT m_IDirectDrawX::GetDisplayMode(LPDDSURFACEDESC lpDDSurfaceDesc)
 		return hr;
 	}
 
-	return ((IDirectDraw3*)ProxyInterface)->GetDisplayMode(lpDDSurfaceDesc);
+	return GetProxyInterfaceV3()->GetDisplayMode(lpDDSurfaceDesc);
 }
 
 HRESULT m_IDirectDrawX::GetDisplayMode2(LPDDSURFACEDESC2 lpDDSurfaceDesc2)
@@ -973,7 +972,7 @@ HRESULT m_IDirectDrawX::SetDisplayMode(DWORD dwWidth, DWORD dwHeight, DWORD dwBP
 
 	if (ProxyDirectXVersion == 1)
 	{
-		return ((IDirectDraw*)ProxyInterface)->SetDisplayMode(dwWidth, dwHeight, dwBPP);
+		return GetProxyInterfaceV1()->SetDisplayMode(dwWidth, dwHeight, dwBPP);
 	}
 
 	return ProxyInterface->SetDisplayMode(dwWidth, dwHeight, dwBPP, dwRefreshRate, dwFlags);
@@ -1027,7 +1026,7 @@ HRESULT m_IDirectDrawX::GetAvailableVidMem(LPDDSCAPS lpDDSCaps, LPDWORD lpdwTota
 		return GetAvailableVidMem2((lpDDSCaps) ? &Caps2 : nullptr, lpdwTotal, lpdwFree);
 	}
 
-	return ((IDirectDraw3*)ProxyInterface)->GetAvailableVidMem(lpDDSCaps, lpdwTotal, lpdwFree);
+	return GetProxyInterfaceV3()->GetAvailableVidMem(lpDDSCaps, lpdwTotal, lpdwFree);
 }
 
 HRESULT m_IDirectDrawX::GetAvailableVidMem2(LPDDSCAPS2 lpDDSCaps2, LPDWORD lpdwTotal, LPDWORD lpdwFree)
@@ -1150,7 +1149,7 @@ HRESULT m_IDirectDrawX::GetDeviceIdentifier(LPDDDEVICEIDENTIFIER lpdddi, DWORD d
 		return hr;
 	}
 
-	return ((IDirectDraw4*)ProxyInterface)->GetDeviceIdentifier(lpdddi, dwFlags);
+	return GetProxyInterfaceV4()->GetDeviceIdentifier(lpdddi, dwFlags);
 }
 
 HRESULT m_IDirectDrawX::GetDeviceIdentifier2(LPDDDEVICEIDENTIFIER2 lpdddi2, DWORD dwFlags)

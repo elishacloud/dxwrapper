@@ -59,6 +59,9 @@ public:
 
 	DWORD GetDirectXVersion() { return DDWRAPPER_TYPEX; }
 	REFIID GetWrapperType() { return WrapperID; }
+	IDirect3DDevice *GetProxyInterfaceV1() { return (IDirect3DDevice *)ProxyInterface; }
+	IDirect3DDevice2 *GetProxyInterfaceV2() { return (IDirect3DDevice2 *)ProxyInterface; }
+	IDirect3DDevice3 *GetProxyInterfaceV3() { return (IDirect3DDevice3 *)ProxyInterface; }
 	IDirect3DDevice7 *GetProxyInterface() { return ProxyInterface; }
 	m_IDirect3DDevice7 *GetWrapperInterface() { return WrapperInterface; }
 

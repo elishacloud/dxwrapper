@@ -46,6 +46,8 @@ public:
 
 	DWORD GetDirectXVersion() { return DDWRAPPER_TYPEX; }
 	REFIID GetWrapperType() { return WrapperID; }
+	IDirect3D *GetProxyInterfaceV1() { return (IDirect3D *)ProxyInterface; }
+	IDirect3D3 *GetProxyInterfaceV3() { return (IDirect3D3 *)ProxyInterface; }
 	IDirect3D7 *GetProxyInterface() { return ProxyInterface; }
 	m_IDirect3D7 *GetWrapperInterface() { return WrapperInterface; }
 
