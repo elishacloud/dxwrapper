@@ -2,6 +2,7 @@
 
 #define WIN32_LEAN_AND_MEAN
 #include <Windows.h>
+#include "Wrappers\d3d8.h"
 
 class __declspec(uuid("1DD9E8DA-1C77-4D40-B0CF-98FEFDFF9512")) Direct3D8;
 
@@ -17,8 +18,15 @@ extern FARPROC p_D3DXAssembleShader;
 extern FARPROC p_D3DXDisassembleShader;
 extern FARPROC p_D3DXLoadSurfaceFromSurface;
 
-namespace D3d8to9
+#define DECLARE_IN_WRAPPED_PROC(procName, unused) \
+	const FARPROC procName ## _in = (FARPROC)*d8_ ## procName;
+
+namespace D3d8Wrapper
 {
-	const FARPROC Direct3DCreate8 = (FARPROC)*d8_Direct3DCreate8;
+	VISIT_PROCS_D3D8(DECLARE_IN_WRAPPED_PROC);
+	const FARPROC DebugSetMute_in = (FARPROC)*d8_DebugSetMute;
+
 	extern FARPROC Direct3DCreate9;
 }
+
+#undef DECLARE_IN_WRAPPED_PROC

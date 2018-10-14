@@ -40,17 +40,17 @@ LPDSENUMCALLBACKW	g_pAppDSEnumCallbackW;
 
 const char* g_cszClassName = "ExportFunction";
 
-#define INITUALIZE_WRAPPED_PROC(procName, unused) \
-	FARPROC procName ## _out = (FARPROC)*(dsound::procName);
+#define INITIALIZE_WRAPPED_PROC(procName, unused) \
+	FARPROC procName ## _out = nullptr;
 
-namespace DSoundCtrl
+namespace DsoundWrapper
 {
-	VISIT_PROCS_DSOUND(INITUALIZE_WRAPPED_PROC);
-	FARPROC DllGetClassObject_out = (FARPROC)*(ShardProcs::DllGetClassObject);
-	FARPROC DllCanUnloadNow_out = (FARPROC)*(ShardProcs::DllCanUnloadNow);
+	VISIT_PROCS_DSOUND(INITIALIZE_WRAPPED_PROC);
+	FARPROC DllGetClassObject_out = nullptr;
+	FARPROC DllCanUnloadNow_out = nullptr;
 }
 
-using namespace DSoundCtrl;
+using namespace DsoundWrapper;
 
 void LogMessage(const char* szClassName, void* pInstance, char* szMessage)
 {

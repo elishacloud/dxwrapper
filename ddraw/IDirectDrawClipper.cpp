@@ -98,7 +98,7 @@ HRESULT m_IDirectDrawClipper::GetHWnd(HWND FAR * lphWnd)
 	{
 		if (!cliphWnd)
 		{
-			return DDERR_INVALIDOBJECT;
+			return DDERR_GENERIC;
 		}
 
 		*lphWnd = cliphWnd;

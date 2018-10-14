@@ -80,21 +80,22 @@ This software is provided 'as-is', without any express or implied warranty. In n
 ### Credits
 DxWrapper uses code from several other projects. So to give credit where credit is due, below is a list of locations that source code was taken from:
 
+ - [AppCompatData](http://www.mojolabs.nz/posts.php?topic=99477): Used comments from blitzbasic.com to build the feature to configure the DirectDraw AppCompatData settings.
  - [Aqrit's ddwrapper](http://bitpatch.com/ddwrapper.html): Includes code to read the ini config file.
- - [SilentPatchFarCry](https://github.com/CookiePLMonster/SilentPatchFarCry): Includes code from SilentPatchFarCry to cache the clip plane in Direct3D 9.
  - [d3d8to9](https://github.com/crosire/d3d8to9): Includes the full Direct3D 8 to Direct3D 9 code.
+ - [D3DParseUnknownCommand](https://doxygen.reactos.org/d3/d02/dll_2directx_2ddraw_2main_8c.html#af9a1eb1ced046770ad6f79838cc8517d): Includes code for DirectDraw D3DParseUnknownCommand from source code found in ReactOS.
  - [DDrawCompat](https://github.com/narzoul/DDrawCompat/): Includes the full DDrawCompat v0.2.0b, v0.2.1 and Experimental version.
+ - [diablo-ddrawwrapper](https://github.com/strangebytes/diablo-ddrawwrapper): Includes some code for converting ddraw to Direct3D.
  - [DSoundCtrl](https://github.com/nRaecheR/DirectSoundControl): Includes the full DirectSoundControl code.
  - [DxWnd](https://sourceforge.net/projects/dxwnd/): Includes code from DxWnd for API hooking, DxWnd proxy loading (init.cpp) and exception handling.
- - [WineD3D d3d8.dll](https://github.com/alexhenrie/wine/tree/master/dlls/d3d8): Includes functions ValidatePixelShader and ValidateVertexShader.
+ - [GetComputerManufacturer](http://www.rohitab.com/discuss/topic/35915-win32-api-to-get-system-information/): Includes code from rohitab.com to get the computer vendor and model.
+ - [GetFileVersionInfo ](https://stackoverflow.com/a/940743): Includes code from stackoverflow.com for getting the version of a PE file.
+ - [GetFunctionAddress](http://www.rohitab.com/discuss/topic/40594-parsing-pe-export-table/): Includes code from rohitab.com to parse the PE export table.
  - [MemoryModule](https://github.com/fancycode/MemoryModule): Includes code for loading libraries from memory.
  - [OllyDbg](http://www.ollydbg.de/): Includes the full cmdlist.c and disasm.c (disasm.dll) code used for exception handling.
- - [GetFunctionAddress](http://www.rohitab.com/discuss/topic/40594-parsing-pe-export-table/): Includes code from rohitab.com to parse the PE export table.
- - [GetComputerManufacturer](http://www.rohitab.com/discuss/topic/35915-win32-api-to-get-system-information/): Includes code from rohitab.com to get the computer vendor and model.
- - [AppCompatData](http://www.mojolabs.nz/posts.php?topic=99477): Used comments from blitzbasic.com to build the feature to configure the DirectDraw AppCompatData settings.
- - [GetFileVersionInfo ](https://stackoverflow.com/a/940743): Includes code from stackoverflow.com for getting the version of a PE file.
+ - [SilentPatchFarCry](https://github.com/CookiePLMonster/SilentPatchFarCry): Includes code from SilentPatchFarCry to cache the clip plane in Direct3D 9.
  - [Ultimate ASI Loader](https://github.com/ThirteenAG/Ultimate-ASI-Loader): Includes code for loading ASI plugins.
- - [diablo-ddrawwrapper](https://github.com/strangebytes/diablo-ddrawwrapper): Includes some code for converting ddraw to Direct3D.
+ - [WineD3D d3d8.dll](https://github.com/alexhenrie/wine/tree/master/dlls/d3d8): Includes functions ValidatePixelShader and ValidateVertexShader.
 
 ### Development
 DxWrapper is written mostly in C++ using Microsoft Visual Studio Community 2017.

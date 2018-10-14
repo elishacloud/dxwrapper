@@ -23,6 +23,7 @@ private:
 	// Convert to d3d9
 	m_IDirectDrawX *ddrawParent = nullptr;
 	m_IDirectDrawPalette *attachedPalette = nullptr;	// Associated palette
+	m_IDirectDrawClipper *attachedClipper = nullptr;	// Associated clipper
 	DDSURFACEDESC2 surfaceDesc2;
 	D3DLOCKED_RECT d3dlrect = { 0, nullptr };
 	RECT lkDestRect;
@@ -31,9 +32,11 @@ private:
 	LONG overlayY = 0;
 	DWORD BufferSize = 0;
 	BYTE *rawVideoBuf = nullptr;						// Virtual video buffer
+	DWORD UniquenessValue = 0;
 	bool WriteDirectlyToSurface = false;
 	bool IsLocked = false;
 	bool PaletteFirstRun = true;
+	bool ClipperFirstRun = true;
 
 	// Display resolution
 	DWORD displayWidth = 0;
@@ -286,11 +289,12 @@ public:
 
 	/*** Helper functions ***/
 	void AlocateVideoBuffer();
+	bool CheckD3d9Surface();
 	HRESULT CreateD3d9Surface();
 	void ReleaseD9Surface();
 	bool FixRect(LPRECT lpOutRect, LPRECT lpInRect);
-	HRESULT SetLock(LPRECT lpDestRect, DWORD dwFlags);
-	HRESULT SetUnLock();
+	HRESULT SetLock(LPRECT lpDestRect, DWORD dwFlags, bool SkipBeginSceneFlag = false);
+	HRESULT SetUnLock(bool SkipEndSceneFlag = false);
 	HRESULT GetSurfaceInfo(D3DLOCKED_RECT *pLockRect, DWORD *lpBitCount, D3DFORMAT *lpFormat);
 	void AddAttachedSurfaceToMap(m_IDirectDrawSurfaceX* lpSurfaceX);
 	void RemoveAttachedSurfaceFromMap(m_IDirectDrawSurfaceX* lpSurfaceX);

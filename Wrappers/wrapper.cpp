@@ -21,8 +21,8 @@
 #include <fstream>
 #include "Logging\Logging.h"
 
-#define ADD_FARPROC_MEMBER(procName, unused) \
-	FARPROC procName ## _var = jmpaddr;
+#define ADD_FARPROC_MEMBER(procName, prodAddr) \
+	FARPROC procName ## _var = prodAddr;
 
 #define CREATE_PROC_STUB(procName, unused) \
 	extern "C" __declspec(naked) void __stdcall procName() \
@@ -31,11 +31,13 @@
 		__asm jmp procName ## _var \
 	}
 
-#define	LOAD_ORIGINAL_PROC(procName, prodAddr) \
-	procName ## _var = GetProcAddress(dll, #procName); \
-	if (procName ## _var == nullptr) \
+#define	LOAD_ORIGINAL_PROC(procName, unused) \
 	{ \
-		procName ## _var =  prodAddr; \
+		FARPROC prodAddr = GetProcAddress(dll, #procName); \
+		if (prodAddr) \
+		{ \
+			procName ## _var = prodAddr; \
+		} \
 	}
 
 #define	STORE_ORIGINAL_PROC(procName, prodAddr) \
@@ -152,7 +154,7 @@ bool Wrapper::ValidProcAddress(FARPROC ProcAddress)
 
 void Wrapper::ShimProc(FARPROC &var, FARPROC in, FARPROC &out)
 {
-	if (ValidProcAddress(var))
+	if (ValidProcAddress(var) && var != in)
 	{
 		out = var;
 		var = in;

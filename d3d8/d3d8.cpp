@@ -13,18 +13,19 @@
 *      being the original software.
 *   3. This notice may not be removed or altered from any source distribution.
 *
-* Created from source code found in Wine
+* ValidatePixelShader and ValidateVertexShader created from source code found in Wine
 * https://github.com/alexhenrie/wine/tree/master/dlls/d3d8
 */
 
-#include "d3d8to9.h"
+#include "d3d8External.h"
 #include "External\d3d8to9\source\d3d8to9.hpp"
 #include "External\d3d8to9\source\d3dx9.hpp"
+#include "Settings\Settings.h"
 #include "Logging\Logging.h"
 
 typedef LPDIRECT3D9(WINAPI *PFN_Direct3DCreate9)(UINT SDKVersion);
 
-namespace D3d8to9
+namespace D3d8Wrapper
 {
 	FARPROC Direct3DCreate9;
 }
@@ -96,10 +97,15 @@ void WINAPI d8_DebugSetMute()
 
 Direct3D8 *WINAPI d8_Direct3DCreate8(UINT SDKVersion)
 {
+	if (!Config.D3d8to9)
+	{
+		return nullptr;
+	}
+
 	Logging::Log() << "Enabling D3d8to9 function (" << SDKVersion << ")";
 
 	// Declare Direct3DCreate9
-	static PFN_Direct3DCreate9 Direct3DCreate9 = reinterpret_cast<PFN_Direct3DCreate9>(D3d8to9::Direct3DCreate9);
+	static PFN_Direct3DCreate9 Direct3DCreate9 = reinterpret_cast<PFN_Direct3DCreate9>(D3d8Wrapper::Direct3DCreate9);
 	if (!Direct3DCreate9)
 	{
 		Logging::Log() << "Failed to get 'Direct3DCreate9' ProcAddress of d3d9.dll!";

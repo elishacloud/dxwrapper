@@ -377,7 +377,6 @@ void Settings::SetDefaultConfigSettings()
 	// Set defaults
 	Config.DisableHighDPIScaling = true;
 	Config.DxWnd = true;
-	Config.HandleExceptions = true;
 	Config.ResetScreenRes = true;
 
 	// Set other default values

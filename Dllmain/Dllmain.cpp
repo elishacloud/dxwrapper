@@ -17,19 +17,22 @@
 #include "Settings\Settings.h"
 #include "dxwrapper.h"
 #include "Wrappers\wrapper.h"
-#include "d3d8\d3d8to9.h"
 #include "External\Hooking\Hook.h"
 #include "DDrawCompat\DDrawCompatExternal.h"
 #include "DxWnd\DxWndExternal.h"
-#include "DSoundCtrl\DSoundCtrlExternal.h"
 #include "Utils\Utils.h"
 #include "Logging\Logging.h"
 // Wrappers last
-#include "d3d9\d3d9External.h"
 #include "ddraw\ddrawExternal.h"
+#include "d3d8\d3d8External.h"
+#include "d3d9\d3d9External.h"
+#include "DSoundCtrl\DSoundCtrlExternal.h"
 
 #define SHIM_WRAPPED_PROC(procName, unused) \
 	Wrapper::ShimProc(procName ## _var, procName ## _in, procName ## _out);
+
+#define SET_WRAPPED_PROC(procName, unused) \
+	procName ## _var = procName ## _in;
 
 // Declare variables
 HMODULE hModule_dll = nullptr;
@@ -118,6 +121,45 @@ bool APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 			}
 		}
 
+		// Initialize ddraw wrapper procs
+		if (Config.RealWrapperMode == dtype.ddraw || Config.DDrawCompat)
+		{
+			using namespace ddraw;
+			using namespace DdrawWrapper;
+
+			VISIT_PROCS_DDRAW(SET_WRAPPED_PROC);
+			ShardProcs::DllCanUnloadNow_var = DllCanUnloadNow_in;
+			ShardProcs::DllGetClassObject_var = DllGetClassObject_in;
+		}
+		// Initialize d3d8 wrapper procs
+		if (Config.RealWrapperMode == dtype.d3d8)
+		{
+			using namespace d3d8;
+			using namespace D3d8Wrapper;
+
+			VISIT_PROCS_D3D8(SET_WRAPPED_PROC);
+			ShardProcs::DebugSetMute_var = DebugSetMute_in;
+		}
+		// Initialize d3d9 wrapper procs
+		else if (Config.RealWrapperMode == dtype.d3d9)
+		{
+			using namespace d3d9;
+			using namespace D3d9Wrapper;
+
+			VISIT_PROCS_D3D9(SET_WRAPPED_PROC);
+			ShardProcs::DebugSetMute_var = DebugSetMute_in;
+		}
+		// Initialize dsound wrapper procs
+		else if (Config.RealWrapperMode == dtype.dsound)
+		{
+			using namespace dsound;
+			using namespace DsoundWrapper;
+
+			VISIT_PROCS_DSOUND(SET_WRAPPED_PROC);
+			ShardProcs::DllCanUnloadNow_var = DllCanUnloadNow_in;
+			ShardProcs::DllGetClassObject_var = DllGetClassObject_in;
+		}
+
 		// Attach real dll
 		if (Config.RealWrapperMode == dtype.dxwrapper)
 		{
@@ -130,26 +172,7 @@ bool APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 				InterlockedExchangePointer((PVOID*)&Utils::pGetModuleFileNameW, Hook::HookAPI(dll, "kernel32.dll", Hook::GetProcAddress(dll, "GetModuleFileNameW"), "GetModuleFileNameW", Utils::GetModuleFileNameWHandler));
 			}
 		}
-		else if (Config.Dd7to9 && Config.RealWrapperMode == dtype.ddraw)
-		{
-			// Initualize ddraw wrapper procs
-#define SET_DDRAW_WRAPPED_PROC(procName, unused) \
-	ddraw::procName ## _var = (FARPROC)*dd_ ## procName;
-
-			VISIT_PROCS_DDRAW(SET_DDRAW_WRAPPED_PROC);
-			ShardProcs::DllCanUnloadNow_var = (FARPROC)*dd_DllCanUnloadNow;
-			ShardProcs::DllGetClassObject_var = (FARPROC)*dd_DllGetClassObject;
-		}
-		else if (Config.D3d8to9 && Config.RealWrapperMode == dtype.d3d8)
-		{
-			// Initualize d3d8 wrapper procs
-#define SET_D3D8_WRAPPED_PROC(procName, unused) \
-	d3d8::procName ## _var = (FARPROC)*d8_ ## procName;
-
-			VISIT_PROCS_D3D8(SET_D3D8_WRAPPED_PROC);
-			ShardProcs::DebugSetMute_var = (FARPROC)*d8_DebugSetMute;
-		}
-		else
+		else if (!(Config.Dd7to9 && Config.RealWrapperMode == dtype.ddraw) && !(Config.D3d8to9 && Config.RealWrapperMode == dtype.d3d8))
 		{
 			// Load real dll and attach wrappers
 			HMODULE dll = Wrapper::CreateWrapper((Config.RealDllPath.size()) ? Config.RealDllPath.c_str() : nullptr, (Config.WrapperMode.size()) ? Config.WrapperMode.c_str() : nullptr, Config.WrapperName.c_str());
@@ -210,6 +233,30 @@ bool APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 				ddraw::DirectDrawCreate_var = (FARPROC)Hook::HookAPI(dll, dtypename[dtype.ddraw], Hook::GetProcAddress(dll, "DirectDrawCreate"), "DirectDrawCreate", (FARPROC)*(ddraw::DirectDrawCreate));
 				ddraw::DirectDrawCreateEx_var = (FARPROC)Hook::HookAPI(dll, dtypename[dtype.ddraw], Hook::GetProcAddress(dll, "DirectDrawCreateEx"), "DirectDrawCreateEx", (FARPROC)*(ddraw::DirectDrawCreateEx));
 				ShardProcs::DllGetClassObject_var = (FARPROC)Hook::HookAPI(dll, dtypename[dtype.ddraw], Hook::GetProcAddress(dll, "DllGetClassObject"), "DllGetClassObject", (FARPROC)*(ShardProcs::DllGetClassObject));
+
+				// Hook additional procs when Dd7to9 is enabled
+				if (Config.Dd7to9)
+				{
+#define HOOK_WRAPPED_PROC(nameSpace, procName) \
+					{ \
+						FARPROC prodAddr = (FARPROC)Hook::HotPatch(Hook::GetProcAddress(dll, #procName), #procName, (FARPROC)*(nameSpace::procName), true); \
+						if (prodAddr) \
+						{ \
+							nameSpace::procName ## _var = prodAddr; \
+						} \
+					}
+
+#define VISIT_HOOKED_DDRAW_PROCS(visit) \
+					visit(ddraw, D3DParseUnknownCommand) \
+					visit(ddraw, DirectDrawCreateClipper) \
+					visit(ddraw, DirectDrawEnumerateA) \
+					visit(ddraw, DirectDrawEnumerateExA) \
+					visit(ddraw, DirectDrawEnumerateExW) \
+					visit(ddraw, DirectDrawEnumerateW) \
+					visit(ddraw, GetSurfaceFromDC)
+
+					VISIT_HOOKED_DDRAW_PROCS(HOOK_WRAPPED_PROC);
+				}
 			}
 
 			//  Add DDrawCompat to the chain
@@ -254,14 +301,8 @@ bool APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 		{
 			Logging::Log() << "Enabling d3d8to9 wrapper";
 
-			// If wrapper mode is d3d8 update wrapper
-			if (Config.RealWrapperMode == dtype.d3d8)
-			{
-				// Update dxwrapper.dll -> D3d8to9
-				d3d8::Direct3DCreate8_var = D3d8to9::Direct3DCreate8;
-			}
 			// Hook d3d8 APIs for D3d8to9
-			else
+			if (Config.RealWrapperMode != dtype.d3d8)
 			{
 				// Load d3d8 procs
 				HMODULE dll = d3d8::Load(nullptr, Config.WrapperName.c_str());
@@ -270,16 +311,16 @@ bool APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 					Utils::AddHandleToVector(dll, dtypename[dtype.d3d8]);
 				}
 
-				// Hook d3d8.dll -> D3d8to9	
+				// Hook d3d8.dll -> D3d8to9
 				Logging::Log() << "Hooking d3d8.dll APIs...";
-				Hook::HookAPI(dll, dtypename[dtype.d3d8], Hook::GetProcAddress(dll, "Direct3DCreate8"), "Direct3DCreate8", D3d8to9::Direct3DCreate8);
+				Hook::HookAPI(dll, dtypename[dtype.d3d8], Hook::GetProcAddress(dll, "Direct3DCreate8"), "Direct3DCreate8", D3d8Wrapper::Direct3DCreate8_in);
 			}
 
 			// Load d3d9 functions
 			HMODULE dll = LoadLibrary(dtypename[dtype.d3d9]);
 			d3d8::Direct3D8EnableMaximizedWindowedModeShim_var = Utils::GetProcAddress(dll, "Direct3D9EnableMaximizedWindowedModeShim", d3d8::Direct3D8EnableMaximizedWindowedModeShim_var);
 			ShardProcs::DebugSetMute_var = Utils::GetProcAddress(dll, "DebugSetMute", ShardProcs::DebugSetMute_var);
-			D3d8to9::Direct3DCreate9 = Utils::GetProcAddress(dll, "Direct3DCreate9", D3d8to9::Direct3DCreate9);
+			D3d8Wrapper::Direct3DCreate9 = Utils::GetProcAddress(dll, "Direct3DCreate9", D3d8Wrapper::Direct3DCreate9);
 		}
 
 		// Start d3d9.dll module
@@ -290,14 +331,8 @@ bool APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 			using namespace d3d9;
 			using namespace D3d9Wrapper;
 
-			// If wrapper mode is d3d9 update wrapper
-			if (Config.RealWrapperMode == dtype.d3d9)
-			{
-				VISIT_PROCS_D3D9(SHIM_WRAPPED_PROC);
-				Wrapper::ShimProc(ShardProcs::DebugSetMute_var, DebugSetMute_in, DebugSetMute_out);
-			}
 			// Hook d3d9 APIs
-			else
+			if (Config.RealWrapperMode != dtype.d3d9)
 			{
 				// Load d3d9 procs
 				HMODULE dll = d3d9::Load(nullptr, Config.WrapperName.c_str());
@@ -308,15 +343,15 @@ bool APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 
 				// Hook d3d9.dll -> D3d9Wrapper
 				Logging::Log() << "Hooking d3d9.dll APIs...";
-				Direct3DCreate9_out = (FARPROC)Hook::HookAPI(dll, dtypename[dtype.d3d9], Hook::GetProcAddress(dll, "Direct3DCreate9"), "Direct3DCreate9", Direct3DCreate9_in);
-				Direct3DCreate9Ex_out = (FARPROC)Hook::HookAPI(dll, dtypename[dtype.d3d9], Hook::GetProcAddress(dll, "Direct3DCreate9Ex"), "Direct3DCreate9Ex", Direct3DCreate9Ex_in);
+				Direct3DCreate9_var = (FARPROC)Hook::HookAPI(dll, dtypename[dtype.d3d9], Hook::GetProcAddress(dll, "Direct3DCreate9"), "Direct3DCreate9", Direct3DCreate9_in);
+				Direct3DCreate9Ex_var = (FARPROC)Hook::HookAPI(dll, dtypename[dtype.d3d9], Hook::GetProcAddress(dll, "Direct3DCreate9Ex"), "Direct3DCreate9Ex", Direct3DCreate9Ex_in);
 			}
 
 			// Redirect d3d8to9 -> D3d9Wrapper
 			if (Config.D3d8to9)
 			{
 				d3d8::Direct3D8EnableMaximizedWindowedModeShim_var = d3d9::Direct3D9EnableMaximizedWindowedModeShim_var;
-				D3d8to9::Direct3DCreate9 = Direct3DCreate9_in;
+				D3d8Wrapper::Direct3DCreate9 = Direct3DCreate9_in;
 			}
 
 			// Redirect DdrawWrapper -> D3d9Wrapper
@@ -324,23 +359,20 @@ bool APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 			{
 				DdrawWrapper::Direct3DCreate9 = Direct3DCreate9_in;
 			}
+
+			// Prepare wrapper
+			VISIT_PROCS_D3D9(SHIM_WRAPPED_PROC);
+			Wrapper::ShimProc(ShardProcs::DebugSetMute_var, DebugSetMute_in, DebugSetMute_out);
 		}
 
 		// Start DSoundCtrl module
 		if (Config.DSoundCtrl)
 		{
 			using namespace dsound;
-			using namespace DSoundCtrl;
+			using namespace DsoundWrapper;
 
-			// If wrapper mode is dsound update wrapper
-			if (Config.RealWrapperMode == dtype.dsound)
-			{
-				VISIT_PROCS_DSOUND(SHIM_WRAPPED_PROC);
-				Wrapper::ShimProc(ShardProcs::DllGetClassObject_var, DllGetClassObject_in, DllGetClassObject_out);
-				Wrapper::ShimProc(ShardProcs::DllCanUnloadNow_var, DllCanUnloadNow_in, DllCanUnloadNow_out);
-			}
 			// Hook dsound APIs for DSoundCtrl
-			else
+			if (Config.RealWrapperMode != dtype.dsound)
 			{
 				// Load dsound procs
 				HMODULE dll = dsound::Load(nullptr, Config.WrapperName.c_str());
@@ -357,6 +389,11 @@ bool APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 				DirectSoundEnumerateW_var = (FARPROC)Hook::HookAPI(dll, dtypename[dtype.dsound], Hook::GetProcAddress(dll, "DirectSoundEnumerateW"), "DirectSoundEnumerateW", DirectSoundEnumerateW_in);
 				ShardProcs::DllGetClassObject_var = (FARPROC)Hook::HookAPI(dll, dtypename[dtype.dsound], Hook::GetProcAddress(dll, "DllGetClassObject"), "DllGetClassObject", DllGetClassObject_in);
 			}
+
+			// Prepare wrapper
+			VISIT_PROCS_DSOUND(SHIM_WRAPPED_PROC);
+			Wrapper::ShimProc(ShardProcs::DllGetClassObject_var, DllGetClassObject_in, DllGetClassObject_out);
+			Wrapper::ShimProc(ShardProcs::DllCanUnloadNow_var, DllCanUnloadNow_in, DllCanUnloadNow_out);
 
 			// Start DSoundCtrl
 			DllMain_DSoundCtrl(hModule_dll, DLL_PROCESS_ATTACH, nullptr);

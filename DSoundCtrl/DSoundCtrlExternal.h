@@ -28,7 +28,7 @@ HRESULT WINAPI ds_DllCanUnloadNow();
 #define EXPORT_OUT_WRAPPED_PROC(procName, unused) \
 	extern FARPROC procName ## _out;
 
-namespace DSoundCtrl
+namespace DsoundWrapper
 {
 	VISIT_PROCS_DSOUND(DECLARE_IN_WRAPPED_PROC);
 	const FARPROC DllGetClassObject_in = (FARPROC)*ds_DllGetClassObject;

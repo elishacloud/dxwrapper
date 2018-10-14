@@ -12,9 +12,13 @@
 *   2. Altered source versions must  be plainly  marked as such, and  must not be  misrepresented  as
 *      being the original software.
 *   3. This notice may not be removed or altered from any source distribution.
+*
+* D3DParseUnknownCommand created from source code found in ReactOS
+* https://doxygen.reactos.org/d3/d02/dll_2directx_2ddraw_2main_8c.html#af9a1eb1ced046770ad6f79838cc8517d
 */
 
 #include "ddraw.h"
+#include "d3dhal.h"
 #include "ddrawExternal.h"
 #include "Dllmain\Dllmain.h"
 
@@ -22,14 +26,16 @@ AddressLookupTableDdraw<void> ProxyAddressLookupTable = AddressLookupTableDdraw<
 m_IDirect3DDeviceX *lpCurrentD3DDevice = nullptr;
 m_IDirectDrawX *CurrentDDInterface = nullptr;
 
-#define INITUALIZE_WRAPPED_PROC(procName, unused) \
-	FARPROC procName ## _out = (FARPROC)*(ddraw::procName);
+CRITICAL_SECTION ddcs;
+
+#define INITIALIZE_WRAPPED_PROC(procName, unused) \
+	FARPROC procName ## _out = nullptr;
 
 namespace DdrawWrapper
 {
-	VISIT_PROCS_DDRAW(INITUALIZE_WRAPPED_PROC);
-	FARPROC DllCanUnloadNow_out = (FARPROC)*(ShardProcs::DllCanUnloadNow);
-	FARPROC DllGetClassObject_out = (FARPROC)*(ShardProcs::DllGetClassObject);
+	VISIT_PROCS_DDRAW(INITIALIZE_WRAPPED_PROC);
+	FARPROC DllCanUnloadNow_out = nullptr;
+	FARPROC DllGetClassObject_out = nullptr;
 	FARPROC Direct3DCreate9;
 }
 
@@ -41,7 +47,7 @@ void WINAPI dd_AcquireDDThreadLock()
 
 	if (Config.Dd7to9)
 	{
-		Logging::Log() << __FUNCTION__ << " Not Implemented";
+		EnterCriticalSection(&ddcs);
 		return;
 	}
 
@@ -81,8 +87,44 @@ HRESULT WINAPI dd_D3DParseUnknownCommand(LPVOID lpCmd, LPVOID *lpRetCmd)
 
 	if (Config.Dd7to9)
 	{
-		Logging::Log() << __FUNCTION__ << " Not Implemented";
-		return E_NOTIMPL;
+		if (!lpCmd || !lpRetCmd)
+		{
+			return E_FAIL;
+		}
+
+		LPD3DHAL_DP2COMMAND dp2command = (LPD3DHAL_DP2COMMAND)lpCmd;
+
+		switch (dp2command->bCommand)
+		{
+			/* check for valid command, only 3 commands are valid */
+		case D3DDP2OP_VIEWPORTINFO:
+			*lpRetCmd = (LPVOID)((DWORD)lpCmd + (dp2command->wStateCount * sizeof(D3DHAL_DP2VIEWPORTINFO)) + sizeof(D3DHAL_DP2COMMAND));
+			break;
+
+		case D3DDP2OP_WINFO:
+			*lpRetCmd = (LPVOID)((DWORD)lpCmd + (dp2command->wStateCount * sizeof(D3DHAL_DP2WINFO)) + sizeof(D3DHAL_DP2COMMAND));
+			break;
+
+		case 0x0d: /* Undocumented in MSDN */
+			*lpRetCmd = (LPVOID)((DWORD)lpCmd + (dp2command->wStateCount * dp2command->bReserved) + sizeof(D3DHAL_DP2COMMAND));
+			break;
+
+			/* set the error code */
+		default:
+			if ((dp2command->bCommand <= D3DDP2OP_INDEXEDTRIANGLELIST) || // dp2command->bCommand  <= with 0 to 3
+				(dp2command->bCommand == D3DDP2OP_RENDERSTATE) ||  // dp2command->bCommand  == with 8
+				(dp2command->bCommand >= D3DDP2OP_LINELIST))  // dp2command->bCommand  >= with 15 to 255
+			{
+				/* set error code for command 0 to 3, 8 and 15 to 255 */
+				return DDERR_INVALIDPARAMS;
+			}
+			else
+			{   /* set error code for 4 - 7, 9 - 12, 14  */
+				return D3DERR_COMMAND_UNPARSED;
+			}
+		}
+
+		return DD_OK;
 	}
 
 	static D3DParseUnknownCommandProc m_pD3DParseUnknownCommand = (Wrapper::ValidProcAddress(D3DParseUnknownCommand_out)) ? (D3DParseUnknownCommandProc)D3DParseUnknownCommand_out : nullptr;
@@ -551,7 +593,7 @@ void WINAPI dd_ReleaseDDThreadLock()
 
 	if (Config.Dd7to9)
 	{
-		Logging::Log() << __FUNCTION__ << " Not Implemented";
+		LeaveCriticalSection(&ddcs);
 		return;
 	}
 

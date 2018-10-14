@@ -452,7 +452,7 @@ HRESULT m_IDirectDrawX::EnumDisplayModes2(DWORD dwFlags, LPDDSURFACEDESC2 lpDDSu
 					}
 					Desc2.lPitch = (Desc2.ddpfPixelFormat.dwRGBBitCount / 8) * Desc2.dwWidth;
 
-					if (p_EnumModesCallback2(&Desc2, p_Context) != DDENUMRET_OK)
+					if (p_EnumModesCallback2(&Desc2, p_Context) == DDENUMRET_CANCEL)
 					{
 						return DD_OK;
 					}
@@ -712,7 +712,7 @@ HRESULT m_IDirectDrawX::GetMonitorFrequency(LPDWORD lpdwFrequency)
 		if (!d3d9Device)
 		{
 			Logging::Log() << __FUNCTION__ << " called when d3d9device doesn't exist";
-			return DDERR_INVALIDOBJECT;
+			return DDERR_GENERIC;
 		}
 
 		D3DDISPLAYMODE Mode;
@@ -745,7 +745,7 @@ HRESULT m_IDirectDrawX::GetScanLine(LPDWORD lpdwScanLine)
 		if (!d3d9Device)
 		{
 			Logging::Log() << __FUNCTION__ << " called when d3d9device doesn't exist";
-			return DDERR_INVALIDOBJECT;
+			return DDERR_GENERIC;
 		}
 
 		D3DRASTER_STATUS RasterStatus;
@@ -778,7 +778,7 @@ HRESULT m_IDirectDrawX::GetVerticalBlankStatus(LPBOOL lpbIsInVB)
 		if (!d3d9Device)
 		{
 			Logging::Log() << __FUNCTION__ << " called when d3d9device doesn't exist";
-			return DDERR_INVALIDOBJECT;
+			return DDERR_GENERIC;
 		}
 
 		D3DRASTER_STATUS RasterStatus;
@@ -921,14 +921,6 @@ HRESULT m_IDirectDrawX::SetCooperativeLevel(HWND hWnd, DWORD dwFlags)
 		chWnd = hWnd;
 	}
 
-	// Set fullscreen mode
-	if (IsWindow(hWnd) && (dwFlags & DDSCL_FULLSCREEN))
-	{
-		// Remove window border
-		SetWindowLong(hWnd, GWL_STYLE, GetWindowLong(hWnd, GWL_STYLE) & ~WS_CAPTION);
-		SetWindowPos(hWnd, nullptr, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_FRAMECHANGED);
-	}
-
 	return ProxyInterface->SetCooperativeLevel(hWnd, dwFlags);
 }
 
@@ -1041,7 +1033,7 @@ HRESULT m_IDirectDrawX::GetAvailableVidMem2(LPDDSCAPS2 lpDDSCaps2, LPDWORD lpdwT
 		if (!d3d9Device)
 		{
 			Logging::Log() << __FUNCTION__ << " called when d3d9device doesn't exist";
-			return DDERR_INVALIDOBJECT;
+			return DDERR_GENERIC;
 		}
 
 		*lpdwFree = d3d9Device->GetAvailableTextureMem();
@@ -1117,7 +1109,7 @@ HRESULT m_IDirectDrawX::TestCooperativeLevel()
 		if (!d3d9Device)
 		{
 			Logging::Log() << __FUNCTION__ << " called when d3d9device doesn't exist";
-			return DDERR_INVALIDOBJECT;
+			return DDERR_GENERIC;
 		}
 
 		return d3d9Device->TestCooperativeLevel();
@@ -1505,7 +1497,7 @@ HRESULT m_IDirectDrawX::BeginScene()
 	if (!d3d9Device)
 	{
 		Logging::Log() << __FUNCTION__ << " called when d3d9device doesn't exist";
-		return DDERR_INVALIDOBJECT;
+		return DDERR_GENERIC;
 	}
 
 	// Check if any surfaces are locked
@@ -1526,6 +1518,8 @@ HRESULT m_IDirectDrawX::BeginScene()
 
 	IsInScene = true;
 
+	Logging::LogDebug() << __FUNCTION__;
+
 	return DD_OK;
 }
 
@@ -1542,7 +1536,7 @@ HRESULT m_IDirectDrawX::EndScene()
 	if (!d3d9Device)
 	{
 		Logging::Log() << __FUNCTION__ << " called when d3d9device doesn't exist";
-		return DDERR_INVALIDOBJECT;
+		return DDERR_GENERIC;
 	}
 
 	// Check if any surfaces are locked
@@ -1570,6 +1564,8 @@ HRESULT m_IDirectDrawX::EndScene()
 
 	IsInScene = false;
 
+	Logging::LogDebug() << __FUNCTION__;
+
 	// Present everthing
 	HRESULT hr = d3d9Device->Present(nullptr, nullptr, nullptr, nullptr);
 
@@ -1584,6 +1580,9 @@ HRESULT m_IDirectDrawX::EndScene()
 		Logging::Log() << __FUNCTION__ << " Failed to present scene";
 		return DDERR_GENERIC;
 	}
+
+	// BeginScene after EndScene is done
+	BeginScene();
 
 	return DD_OK;
 }

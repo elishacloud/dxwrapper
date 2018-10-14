@@ -6,7 +6,7 @@
 #include "v0.2.0b\DllMain.h"
 #include "v0.2.1\DllMain.h"
 
-#define INITUALIZE_WRAPPED_PROC(procName) \
+#define INITIALIZE_WRAPPED_PROC(procName) \
 	FARPROC procName ## _in = nullptr; \
 	FARPROC procName ## _out = nullptr;
 
@@ -29,7 +29,7 @@
 
 namespace DDrawCompat
 {
-	VISIT_ALL_DDRAW_PROCS(INITUALIZE_WRAPPED_PROC);
+	VISIT_ALL_DDRAW_PROCS(INITIALIZE_WRAPPED_PROC);
 
 	void Prepare()
 	{

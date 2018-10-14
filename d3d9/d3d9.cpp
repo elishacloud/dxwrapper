@@ -17,13 +17,13 @@
 #include "d3d9.h"
 #include "d3d9External.h"
 
-#define INITUALIZE_WRAPPED_PROC(procName, unused) \
-	FARPROC procName ## _out = (FARPROC)*(d3d9::procName);
+#define INITIALIZE_WRAPPED_PROC(procName, unused) \
+	FARPROC procName ## _out = nullptr;
 
 namespace D3d9Wrapper
 {
-	VISIT_PROCS_D3D9(INITUALIZE_WRAPPED_PROC);
-	FARPROC DebugSetMute_out = (FARPROC)*(ShardProcs::DebugSetMute);
+	VISIT_PROCS_D3D9(INITIALIZE_WRAPPED_PROC);
+	FARPROC DebugSetMute_out = nullptr;
 }
 
 using namespace D3d9Wrapper;

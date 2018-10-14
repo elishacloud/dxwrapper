@@ -2,12 +2,12 @@
 
 #define VISIT_PROCS_DDRAW(visit) \
 	visit(AcquireDDThreadLock, jmpaddrvoid) \
-	visit(CompleteCreateSysmemSurface, jmpaddr) \
+	visit(CompleteCreateSysmemSurface, jmpaddrvoid) \
 	visit(D3DParseUnknownCommand, jmpaddr) \
-	visit(DDGetAttachedSurfaceLcl, jmpaddr) \
-	visit(DDInternalLock, jmpaddr) \
-	visit(DDInternalUnlock, jmpaddr) \
-	visit(DSoundHelp, jmpaddr) \
+	visit(DDGetAttachedSurfaceLcl, jmpaddrvoid) \
+	visit(DDInternalLock, jmpaddrvoid) \
+	visit(DDInternalUnlock, jmpaddrvoid) \
+	visit(DSoundHelp, jmpaddrvoid) \
 	visit(DirectDrawCreate, jmpaddr) \
 	visit(DirectDrawCreateClipper, jmpaddr) \
 	visit(DirectDrawCreateEx, jmpaddr) \
@@ -15,10 +15,10 @@
 	visit(DirectDrawEnumerateExA, jmpaddr) \
 	visit(DirectDrawEnumerateExW, jmpaddr) \
 	visit(DirectDrawEnumerateW, jmpaddr) \
-	visit(GetDDSurfaceLocal, jmpaddr) \
+	visit(GetDDSurfaceLocal, jmpaddrvoid) \
 	visit(GetOLEThunkData, jmpaddr) \
 	visit(GetSurfaceFromDC, jmpaddr) \
-	visit(RegisterSpecialCase, jmpaddr) \
+	visit(RegisterSpecialCase, jmpaddrvoid) \
 	visit(ReleaseDDThreadLock, jmpaddrvoid) \
 	visit(SetAppCompatData, jmpaddr)
 

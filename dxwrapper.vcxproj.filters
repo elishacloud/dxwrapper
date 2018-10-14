@@ -646,9 +646,6 @@
     <ClCompile Include="ddraw\IClassFactory.cpp">
       <Filter>ddraw</Filter>
     </ClCompile>
-    <ClCompile Include="d3d8\d3d8to9.cpp">
-      <Filter>d3d8</Filter>
-    </ClCompile>
     <ClCompile Include="External\Logging\Logging.cpp">
       <Filter>External\Logging</Filter>
     </ClCompile>
@@ -660,6 +657,9 @@
     </ClCompile>
     <ClCompile Include="External\Hooking\IATPatch.cpp">
       <Filter>External\Hooking</Filter>
+    </ClCompile>
+    <ClCompile Include="d3d8\d3d8.cpp">
+      <Filter>d3d8</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -1418,9 +1418,6 @@
     <ClInclude Include="ddraw\IClassFactory.h">
       <Filter>ddraw</Filter>
     </ClInclude>
-    <ClInclude Include="d3d8\d3d8to9.h">
-      <Filter>d3d8</Filter>
-    </ClInclude>
     <ClInclude Include="Wrappers\version.h">
       <Filter>Wrappers</Filter>
     </ClInclude>
@@ -1432,6 +1429,9 @@
     </ClInclude>
     <ClInclude Include="External\Hooking\Hook.h">
       <Filter>External\Hooking</Filter>
+    </ClInclude>
+    <ClInclude Include="d3d8\d3d8External.h">
+      <Filter>d3d8</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

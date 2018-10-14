@@ -109,8 +109,33 @@ HRESULT m_IDirectDrawSurfaceX::AddAttachedSurface(LPDIRECTDRAWSURFACE7 lpDDSurfa
 
 	if (Config.Dd7to9)
 	{
-		Logging::Log() << __FUNCTION__ << " Not Implemented";
-		return E_NOTIMPL;
+		if (lpDDSurface)
+		{
+			// Check for device
+			if (!ddrawParent)
+			{
+				Logging::Log() << __FUNCTION__ << " Error no ddraw parent!";
+				return DDERR_GENERIC;
+			}
+
+			m_IDirectDrawSurfaceX *lpAttachedSurface = (m_IDirectDrawSurfaceX*)lpDDSurface;
+
+			if (!ddrawParent->DoesSurfaceExist(lpAttachedSurface))
+			{
+				return DDERR_INVALIDPARAMS;
+			}
+
+			if (DoesAttachedSurfaceExist(lpAttachedSurface))
+			{
+				return DDERR_SURFACEALREADYATTACHED;
+			}
+
+			AddAttachedSurfaceToMap(lpAttachedSurface);
+
+			return DD_OK;
+		}
+
+		return DDERR_INVALIDPARAMS;
 	}
 
 	if (lpDDSurface)
@@ -150,7 +175,7 @@ HRESULT m_IDirectDrawSurfaceX::Blt(LPRECT lpDestRect, LPDIRECTDRAWSURFACE7 lpDDS
 		// Check for device
 		if (!ddrawParent)
 		{
-			Logging::Log() << __FUNCTION__ << " D3d9 Device not setup.";
+			Logging::Log() << __FUNCTION__ << " Error no ddraw parent!";
 			return DDERR_GENERIC;
 		}
 
@@ -250,11 +275,14 @@ HRESULT m_IDirectDrawSurfaceX::Blt(LPRECT lpDestRect, LPDIRECTDRAWSURFACE7 lpDDS
 			return DDERR_INVALIDRECT;
 		}
 
+		// Check if the scene needs to be presented
+		bool SkipScene = (DestRect.bottom - DestRect.top < 2 || DestRect.right - DestRect.left < 2 || SrcRect.bottom - SrcRect.top < 2 || SrcRect.right - SrcRect.left < 2);
+
 		// Check if destination surface is not locked then lock it
 		bool UnlockDest = false;
 		if (!IsSurfaceLocked())
 		{
-			HRESULT hr = SetLock(nullptr, 0);
+			HRESULT hr = SetLock(nullptr, 0, SkipScene);
 			if (FAILED(hr))
 			{
 				Logging::Log() << __FUNCTION__ << " Error, could not lock dest surface";
@@ -278,7 +306,7 @@ HRESULT m_IDirectDrawSurfaceX::Blt(LPRECT lpDestRect, LPDIRECTDRAWSURFACE7 lpDDS
 			// Check if source surface is not locked then lock it
 			if (!lpDDSrcSurfaceX->IsSurfaceLocked())
 			{
-				hr = lpDDSrcSurfaceX->SetLock(nullptr, 0);
+				hr = lpDDSrcSurfaceX->SetLock(nullptr, 0, SkipScene);
 				if (FAILED(hr))
 				{
 					Logging::Log() << __FUNCTION__ << " Error, could not lock src surface";
@@ -357,11 +385,11 @@ HRESULT m_IDirectDrawSurfaceX::Blt(LPRECT lpDestRect, LPDIRECTDRAWSURFACE7 lpDDS
 		// Unlock surfaces if needed
 		if (UnlockDest)
 		{
-			SetUnLock();
+			SetUnLock(SkipScene);
 		}
 		if (UnlockSrc)
 		{
-			lpDDSrcSurfaceX->SetUnLock();
+			lpDDSrcSurfaceX->SetUnLock(SkipScene);
 		}
 
 		// Return
@@ -456,8 +484,29 @@ HRESULT m_IDirectDrawSurfaceX::DeleteAttachedSurface(DWORD dwFlags, LPDIRECTDRAW
 
 	if (Config.Dd7to9)
 	{
-		Logging::Log() << __FUNCTION__ << " Not Implemented";
-		return E_NOTIMPL;
+		// dwFlags: Reserved. Must be zero.
+		if (dwFlags != 0)
+		{
+			return DDERR_INVALIDPARAMS;
+		}
+
+		if (lpDDSAttachedSurface)
+		{
+			m_IDirectDrawSurfaceX *lpAttachedSurface = (m_IDirectDrawSurfaceX*)lpDDSAttachedSurface;
+
+			if (DoesAttachedSurfaceExist(lpAttachedSurface))
+			{
+				RemoveAttachedSurfaceFromMap(lpAttachedSurface);
+
+				return DD_OK;
+			}
+			else
+			{
+				return DDERR_SURFACENOTATTACHED;
+			}
+		}
+
+		return DDERR_INVALIDPARAMS;
 	}
 
 	if (lpDDSAttachedSurface)
@@ -492,24 +541,16 @@ HRESULT m_IDirectDrawSurfaceX::EnumAttachedSurfaces2(LPVOID lpContext, LPDDENUMS
 
 	if (Config.Dd7to9)
 	{
-		Logging::Log() << __FUNCTION__ << " Not fully Implemented.";
-
 		if (!lpEnumSurfacesCallback7)
 		{
 			return DDERR_INVALIDPARAMS;
-		}
-
-		if (!ddrawParent)
-		{
-			Logging::Log() << __FUNCTION__ << " Error no ddraw parent!";
-			return DDERR_INVALIDOBJECT;
 		}
 
 		for (auto it : AttachedSurfaceMap)
 		{
 			DDSURFACEDESC2 Desc2;
 			it.second->GetSurfaceDesc(&Desc2);
-			if (lpEnumSurfacesCallback7(it.second, &Desc2, lpContext) != DDENUMRET_OK)
+			if (lpEnumSurfacesCallback7(it.second, &Desc2, lpContext) == DDENUMRET_CANCEL)
 			{
 				return DD_OK;
 			}
@@ -578,13 +619,10 @@ HRESULT m_IDirectDrawSurfaceX::Flip(LPDIRECTDRAWSURFACE7 lpDDSurfaceTargetOverri
 		}
 
 		// Make sure surface exists, if not then create it
-		if (!surfaceTexture)
+		if (!CheckD3d9Surface())
 		{
-			if (FAILED(CreateD3d9Surface()))
-			{
-				Logging::Log() << __FUNCTION__ << " could not recreate surface";
-				return DDERR_SURFACELOST;
-			}
+			Logging::Log() << __FUNCTION__ << " Error surface does not exist!";
+			return DDERR_GENERIC;
 		}
 
 		// Flip only supported from primary surface
@@ -778,7 +816,27 @@ HRESULT m_IDirectDrawSurfaceX::GetBltStatus(DWORD dwFlags)
 
 	if (Config.Dd7to9)
 	{
-		Logging::Log() << __FUNCTION__ << " Not Implemented";
+		Logging::Log() << __FUNCTION__ << " Not fully Implemented.";
+
+		// Inquires whether a blit involving this surface can occur immediately, and returns DD_OK if the blit can be completed.
+		if (dwFlags & DDGBS_CANBLT)
+		{
+			if (!IsSurfaceLocked() && !NeedsLock())
+			{
+				return DDERR_WASSTILLDRAWING;
+			}
+			return DD_OK;
+		}
+		// Inquires whether the blit is done, and returns DD_OK if the last blit on this surface has completed.
+		else if (dwFlags & DDGBS_ISBLTDONE)
+		{
+			if (!IsSurfaceLocked() && !NeedsLock())
+			{
+				return DDERR_WASSTILLDRAWING;
+			}
+			return DD_OK;
+		}
+
 		return E_NOTIMPL;
 	}
 
@@ -904,10 +962,11 @@ HRESULT m_IDirectDrawSurfaceX::GetDC(HDC FAR * lphDC)
 			return DDERR_INVALIDPARAMS;
 		}
 
+		// Check for device
 		if (!ddrawParent)
 		{
 			Logging::Log() << __FUNCTION__ << " Error no ddraw parent!";
-			return DDERR_INVALIDOBJECT;
+			return DDERR_GENERIC;
 		}
 
 		*lphDC = ::GetDC(ddrawParent->GetHwnd());
@@ -929,8 +988,20 @@ HRESULT m_IDirectDrawSurfaceX::GetFlipStatus(DWORD dwFlags)
 
 	if (Config.Dd7to9)
 	{
-		Logging::Log() << __FUNCTION__ << " Not Implemented";
-		return E_NOTIMPL;
+		Logging::Log() << __FUNCTION__ << " Not fully Implemented.";
+
+		// Queries whether the surface can flip now. The method returns DD_OK if the flip can be completed.
+		if (dwFlags & DDGFS_CANFLIP)
+		{
+			return DD_OK;
+		}
+		// Queries whether the flip is done. The method returns DD_OK if the last flip on this surface has completed.
+		else if (dwFlags & DDGFS_ISFLIPDONE)
+		{
+			return DD_OK;
+		}
+
+		return DDERR_INVALIDPARAMS;
 	}
 
 	return ProxyInterface->GetFlipStatus(dwFlags);
@@ -1062,10 +1133,11 @@ HRESULT m_IDirectDrawSurfaceX::GetSurfaceDesc2(LPDDSURFACEDESC2 lpDDSurfaceDesc2
 
 	if (Config.Dd7to9)
 	{
+		// Check for device
 		if (!ddrawParent)
 		{
 			Logging::Log() << __FUNCTION__ << " Error no ddraw parent!";
-			return DDERR_INVALIDOBJECT;
+			return DDERR_GENERIC;
 		}
 
 		// Copy surfacedesc to lpDDSurfaceDesc2
@@ -1304,7 +1376,7 @@ HRESULT m_IDirectDrawSurfaceX::ReleaseDC(HDC hDC)
 		if (!ddrawParent)
 		{
 			Logging::Log() << __FUNCTION__ << " Error no ddraw parent!";
-			return DDERR_INVALIDOBJECT;
+			return DDERR_GENERIC;
 		}
 
 		if (::ReleaseDC(ddrawParent->GetHwnd(), hDC) == 0)
@@ -1324,8 +1396,9 @@ HRESULT m_IDirectDrawSurfaceX::Restore()
 
 	if (Config.Dd7to9)
 	{
-		Logging::Log() << __FUNCTION__ << " Not Implemented";
-		return E_NOTIMPL;
+		// This method restores a surface that has been lost. The restore occurs when the surface memory associated with the DirectDrawSurface object has been freed.
+		// No need to restore d3d9 surface
+		return DD_OK;
 	}
 
 	return ProxyInterface->Restore();
@@ -1337,8 +1410,37 @@ HRESULT m_IDirectDrawSurfaceX::SetClipper(LPDIRECTDRAWCLIPPER lpDDClipper)
 
 	if (Config.Dd7to9)
 	{
-		Logging::Log() << __FUNCTION__ << " Not Implemented";
-		return E_NOTIMPL;
+		// If lpDDClipper is nullptr then detach the current clipper if it exists
+		if (!lpDDClipper)
+		{
+			if (attachedClipper)
+			{
+				// Decrement ref count
+				attachedClipper->Release();
+
+				// Detach
+				attachedClipper = nullptr;
+			}
+
+			// Reset FirstRun
+			ClipperFirstRun = true;
+
+			return DD_OK;
+		}
+
+		// Set clipper address
+		attachedClipper = (m_IDirectDrawClipper *)lpDDClipper;
+
+		// When you call SetClipper to set a clipper to a surface for the first time, 
+		// SetClipper increments the clipper's reference count; subsequent calls to 
+		// SetClipper do not affect the clipper's reference count.
+		if (ClipperFirstRun)
+		{
+			attachedClipper->AddRef();
+			ClipperFirstRun = false;
+		}
+
+		return DD_OK;
 	}
 
 	if (lpDDClipper)
@@ -1568,10 +1670,11 @@ HRESULT m_IDirectDrawSurfaceX::GetDDInterface(LPVOID FAR * lplpDD)
 
 	if (Config.Dd7to9)
 	{
+		// Check for device
 		if (!ddrawParent)
 		{
 			Logging::Log() << __FUNCTION__ << " Error no ddraw parent!";
-			return DDERR_INVALIDOBJECT;
+			return DDERR_GENERIC;
 		}
 
 		// Set lplpDD to directdraw object that created this surface
@@ -1612,8 +1715,9 @@ HRESULT m_IDirectDrawSurfaceX::PageLock(DWORD dwFlags)
 
 	if (Config.Dd7to9)
 	{
-		Logging::Log() << __FUNCTION__ << " Not Implemented";
-		return E_NOTIMPL;
+		// Prevents a system-memory surface from being paged out while a bit block transfer (bitblt) operation that uses direct memory access (DMA) transfers to or from system memory is in progress.
+		// Not needed for d3d9 surfaces
+		return DD_OK;
 	}
 
 	return ProxyInterface->PageLock(dwFlags);
@@ -1625,8 +1729,9 @@ HRESULT m_IDirectDrawSurfaceX::PageUnlock(DWORD dwFlags)
 
 	if (Config.Dd7to9)
 	{
-		Logging::Log() << __FUNCTION__ << " Not Implemented";
-		return E_NOTIMPL;
+		// Unlocks a system-memory surface, which then allows it to be paged out.
+		// Not needed for d3d9 surfaces
+		return DD_OK;
 	}
 
 	return ProxyInterface->PageUnlock(dwFlags);
@@ -1685,8 +1790,14 @@ HRESULT m_IDirectDrawSurfaceX::SetPrivateData(REFGUID guidTag, LPVOID lpData, DW
 
 	if (Config.Dd7to9)
 	{
-		Logging::Log() << __FUNCTION__ << " Not Implemented";
-		return E_NOTIMPL;
+		// Make sure surface exists, if not then create it
+		if (!CheckD3d9Surface())
+		{
+			Logging::Log() << __FUNCTION__ << " Error surface does not exist!";
+			return DDERR_GENERIC;
+		}
+
+		return surfaceTexture->SetPrivateData(guidTag, lpData, cbSize, dwFlags);
 	}
 
 	return ProxyInterface->SetPrivateData(guidTag, lpData, cbSize, dwFlags);
@@ -1698,8 +1809,14 @@ HRESULT m_IDirectDrawSurfaceX::GetPrivateData(REFGUID guidTag, LPVOID lpBuffer, 
 
 	if (Config.Dd7to9)
 	{
-		Logging::Log() << __FUNCTION__ << " Not Implemented";
-		return E_NOTIMPL;
+		// Make sure surface exists, if not then create it
+		if (!CheckD3d9Surface())
+		{
+			Logging::Log() << __FUNCTION__ << " Error surface does not exist!";
+			return DDERR_GENERIC;
+		}
+
+		return surfaceTexture->GetPrivateData(guidTag, lpBuffer, lpcbBufferSize);
 	}
 
 	return ProxyInterface->GetPrivateData(guidTag, lpBuffer, lpcbBufferSize);
@@ -1711,8 +1828,14 @@ HRESULT m_IDirectDrawSurfaceX::FreePrivateData(REFGUID guidTag)
 
 	if (Config.Dd7to9)
 	{
-		Logging::Log() << __FUNCTION__ << " Not Implemented";
-		return E_NOTIMPL;
+		// Make sure surface exists, if not then create it
+		if (!CheckD3d9Surface())
+		{
+			Logging::Log() << __FUNCTION__ << " Error surface does not exist!";
+			return DDERR_GENERIC;
+		}
+
+		return surfaceTexture->FreePrivateData(guidTag);
 	}
 
 	return ProxyInterface->FreePrivateData(guidTag);
@@ -1724,8 +1847,14 @@ HRESULT m_IDirectDrawSurfaceX::GetUniquenessValue(LPDWORD lpValue)
 
 	if (Config.Dd7to9)
 	{
-		Logging::Log() << __FUNCTION__ << " Not Implemented";
-		return E_NOTIMPL;
+		if (!lpValue)
+		{
+			return DDERR_INVALIDPARAMS;
+		}
+
+		// The only defined uniqueness value is 0.
+		*lpValue = UniquenessValue;
+		return DD_OK;
 	}
 
 	return ProxyInterface->GetUniquenessValue(lpValue);
@@ -1737,8 +1866,9 @@ HRESULT m_IDirectDrawSurfaceX::ChangeUniquenessValue()
 
 	if (Config.Dd7to9)
 	{
-		Logging::Log() << __FUNCTION__ << " Not Implemented";
-		return E_NOTIMPL;
+		// Manually updates the uniqueness value for this surface.
+		UniquenessValue = (DWORD)this + UniquenessValue + 1;
+		return DD_OK;
 	}
 
 	return ProxyInterface->ChangeUniquenessValue();
@@ -1754,8 +1884,14 @@ HRESULT m_IDirectDrawSurfaceX::SetPriority(DWORD dwPriority)
 
 	if (Config.Dd7to9)
 	{
-		Logging::Log() << __FUNCTION__ << " Not Implemented";
-		return E_NOTIMPL;
+		// Make sure surface exists, if not then create it
+		if (!CheckD3d9Surface())
+		{
+			Logging::Log() << __FUNCTION__ << " Error surface does not exist!";
+			return DDERR_GENERIC;
+		}
+
+		return surfaceTexture->SetPriority(dwPriority);
 	}
 
 	return ProxyInterface->SetPriority(dwPriority);
@@ -1767,8 +1903,21 @@ HRESULT m_IDirectDrawSurfaceX::GetPriority(LPDWORD lpdwPriority)
 
 	if (Config.Dd7to9)
 	{
-		Logging::Log() << __FUNCTION__ << " Not Implemented";
-		return E_NOTIMPL;
+		// Make sure surface exists, if not then create it
+		if (!CheckD3d9Surface())
+		{
+			Logging::Log() << __FUNCTION__ << " Error surface does not exist!";
+			return DDERR_GENERIC;
+		}
+
+		if (!lpdwPriority)
+		{
+			return DDERR_INVALIDPARAMS;
+		}
+
+		*lpdwPriority = surfaceTexture->GetPriority();
+
+		return DD_OK;
 	}
 
 	return ProxyInterface->GetPriority(lpdwPriority);
@@ -1780,8 +1929,14 @@ HRESULT m_IDirectDrawSurfaceX::SetLOD(DWORD dwMaxLOD)
 
 	if (Config.Dd7to9)
 	{
-		Logging::Log() << __FUNCTION__ << " Not Implemented";
-		return E_NOTIMPL;
+		// Make sure surface exists, if not then create it
+		if (!CheckD3d9Surface())
+		{
+			Logging::Log() << __FUNCTION__ << " Error surface does not exist!";
+			return DDERR_GENERIC;
+		}
+
+		return surfaceTexture->SetLOD(dwMaxLOD);
 	}
 
 	return ProxyInterface->SetLOD(dwMaxLOD);
@@ -1793,8 +1948,21 @@ HRESULT m_IDirectDrawSurfaceX::GetLOD(LPDWORD lpdwMaxLOD)
 
 	if (Config.Dd7to9)
 	{
-		Logging::Log() << __FUNCTION__ << " Not Implemented";
-		return E_NOTIMPL;
+		// Make sure surface exists, if not then create it
+		if (!CheckD3d9Surface())
+		{
+			Logging::Log() << __FUNCTION__ << " Error surface does not exist!";
+			return DDERR_GENERIC;
+		}
+
+		if (!lpdwMaxLOD)
+		{
+			return DDERR_INVALIDPARAMS;
+		}
+
+		*lpdwMaxLOD = surfaceTexture->GetLOD();
+
+		return DD_OK;
 	}
 
 	return ProxyInterface->GetLOD(lpdwMaxLOD);
@@ -1833,6 +2001,19 @@ void m_IDirectDrawSurfaceX::AlocateVideoBuffer()
 	}
 }
 
+bool m_IDirectDrawSurfaceX::CheckD3d9Surface()
+{
+	// Make sure surface exists, if not then create it
+	if (!surfaceTexture)
+	{
+		if (FAILED(CreateD3d9Surface()))
+		{
+			return false;
+		}
+	}
+	return true;
+}
+
 // Create surface
 HRESULT m_IDirectDrawSurfaceX::CreateD3d9Surface()
 {
@@ -1843,7 +2024,7 @@ HRESULT m_IDirectDrawSurfaceX::CreateD3d9Surface()
 	if (!d3d9Device || !*d3d9Device || !ddrawParent)
 	{
 		Logging::Log() << __FUNCTION__ << " D3d9 Device not setup.";
-		return DDERR_INVALIDOBJECT;
+		return DDERR_GENERIC;
 	}
 
 	// Update surface description
@@ -2168,25 +2349,27 @@ bool m_IDirectDrawSurfaceX::FixRect(LPRECT lpOutRect, LPRECT lpInRect)
 }
 
 // Lock the d3d9 surface
-HRESULT m_IDirectDrawSurfaceX::SetLock(LPRECT lpDestRect, DWORD dwFlags)
+HRESULT m_IDirectDrawSurfaceX::SetLock(LPRECT lpDestRect, DWORD dwFlags, bool SkipBeginScene)
 {
+	// Check for device
 	if (!ddrawParent)
 	{
+		Logging::Log() << __FUNCTION__ << " Error no ddraw parent!";
 		return DDERR_GENERIC;
 	}
 
 	// Make sure surface exists, if not then create it
-	if (!surfaceTexture)
+	if (!CheckD3d9Surface())
 	{
-		if (FAILED(CreateD3d9Surface()))
-		{
-			Logging::Log() << __FUNCTION__ << " could not recreate surface";
-			return DDERR_SURFACELOST;
-		}
+		Logging::Log() << __FUNCTION__ << " Error surface does not exist!";
+		return DDERR_GENERIC;
 	}
 
 	// Run BeginScene (ignore results)
-	ddrawParent->BeginScene();
+	if (!SkipBeginScene)
+	{
+		ddrawParent->BeginScene();
+	}
 
 	// Lock surface
 	if (FAILED(surfaceTexture->LockRect(0, &d3dlrect, lpDestRect, dwFlags)))
@@ -2204,11 +2387,20 @@ HRESULT m_IDirectDrawSurfaceX::SetLock(LPRECT lpDestRect, DWORD dwFlags)
 }
 
 // Unlock the d3d9 surface
-HRESULT m_IDirectDrawSurfaceX::SetUnLock()
+HRESULT m_IDirectDrawSurfaceX::SetUnLock(bool SkipEndSceneFlag)
 {
-	if (!surfaceTexture || !ddrawParent)
+	// Make sure surface exists, if not then create it
+	if (!CheckD3d9Surface())
 	{
-		return DDERR_SURFACELOST;
+		Logging::Log() << __FUNCTION__ << " Error surface does not exist!";
+		return DDERR_GENERIC;
+	}
+
+	// Check for device
+	if (!ddrawParent)
+	{
+		Logging::Log() << __FUNCTION__ << " Error no ddraw parent!";
+		return DDERR_GENERIC;
 	}
 
 	// Lock surface
@@ -2221,7 +2413,7 @@ HRESULT m_IDirectDrawSurfaceX::SetUnLock()
 	d3dlrect.pBits = nullptr;
 
 	// Keep running EndScene until it succeeds
-	if (IsPrimarySurface() || SceneReady)
+	if (!SkipEndSceneFlag && (IsPrimarySurface() || SceneReady))
 	{
 		SceneReady = FAILED(ddrawParent->EndScene());
 	}
@@ -2322,11 +2514,14 @@ HRESULT m_IDirectDrawSurfaceX::ColorFill(RECT *pRect, DWORD dwFillColor)
 		return DDERR_INVALIDRECT;
 	}
 
+	// Check if the scene needs to be presented
+	bool SkipScene = (DestRect.bottom - DestRect.top < 2 || DestRect.right - DestRect.left < 2);
+
 	// Check if surface is not locked then lock it
 	bool UnlockDest = false;
 	if (!IsSurfaceLocked())
 	{
-		HRESULT hr = SetLock(nullptr, 0);
+		HRESULT hr = SetLock(nullptr, 0, SkipScene);
 		if (FAILED(hr))
 		{
 			Logging::Log() << __FUNCTION__ << " Error, could not lock dest surface";
@@ -2390,7 +2585,7 @@ HRESULT m_IDirectDrawSurfaceX::ColorFill(RECT *pRect, DWORD dwFillColor)
 	// Unlock surfaces if needed
 	if (UnlockDest)
 	{
-		SetUnLock();
+		SetUnLock(SkipScene);
 	}
 
 	return DD_OK;

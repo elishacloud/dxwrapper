@@ -135,8 +135,8 @@ HRESULT m_IDirect3DX::EnumDevices7(LPD3DENUMDEVICESCALLBACK7 lpEnumDevicesCallba
 		// Check for device
 		if (!ddrawParent)
 		{
-			Logging::Log() << __FUNCTION__ << " Error, ddraw closed!";
-			return DDERR_INVALIDOBJECT;
+			Logging::Log() << __FUNCTION__ << " Error no ddraw parent!";
+			return DDERR_GENERIC;
 		}
 
 		// Get d3d9Object
@@ -176,7 +176,7 @@ HRESULT m_IDirect3DX::EnumDevices7(LPD3DENUMDEVICESCALLBACK7 lpEnumDevicesCallba
 						break;
 					}
 
-					if (lpEnumDevicesCallback7(lpDescription, lpName, &DeviceDesc7, lpUserArg) != DDENUMRET_OK)
+					if (lpEnumDevicesCallback7(lpDescription, lpName, &DeviceDesc7, lpUserArg) == DDENUMRET_CANCEL)
 					{
 						return D3D_OK;
 					}
