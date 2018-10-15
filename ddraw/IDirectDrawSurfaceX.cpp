@@ -247,24 +247,10 @@ HRESULT m_IDirectDrawSurfaceX::Blt(LPRECT lpDestRect, LPDIRECTDRAWSURFACE7 lpDDS
 			return DDERR_INVALIDPARAMS;
 		}
 
-		// Check if source Surface is ready for Blt
-		else if (!lpDDSrcSurfaceX->IsSurfaceLocked() && !lpDDSrcSurfaceX->NeedsLock())
-		{
-			Logging::Log() << __FUNCTION__ << " Error, Blting from a surface before it has been written to.";
-			return DDERR_GENERIC;
-		}
-
 		// Do color fill
 		if (dwFlags & DDBLT_COLORFILL)
 		{
 			return ColorFill(lpDestRect, lpDDBltFx->dwFillColor);
-		}
-
-		// Check if destination Surface is ready for Blt
-		if (!IsSurfaceLocked() && !NeedsLock())
-		{
-			Logging::Log() << __FUNCTION__ << " Error, Blting to a surface before it has been written to.";
-			return DDERR_GENERIC;
 		}
 
 		// Check and copy destination and source rect
@@ -280,7 +266,7 @@ HRESULT m_IDirectDrawSurfaceX::Blt(LPRECT lpDestRect, LPDIRECTDRAWSURFACE7 lpDDS
 
 		// Check if destination surface is not locked then lock it
 		bool UnlockDest = false;
-		if (!IsSurfaceLocked())
+		if (NeedsLock())
 		{
 			HRESULT hr = SetLock(nullptr, 0, SkipScene);
 			if (FAILED(hr))
@@ -304,7 +290,7 @@ HRESULT m_IDirectDrawSurfaceX::Blt(LPRECT lpDestRect, LPDIRECTDRAWSURFACE7 lpDDS
 		if (SUCCEEDED(hr) && lpDDSrcSurfaceX != this)
 		{
 			// Check if source surface is not locked then lock it
-			if (!lpDDSrcSurfaceX->IsSurfaceLocked())
+			if (lpDDSrcSurfaceX->NeedsLock())
 			{
 				hr = lpDDSrcSurfaceX->SetLock(nullptr, 0, SkipScene);
 				if (FAILED(hr))
@@ -343,7 +329,7 @@ HRESULT m_IDirectDrawSurfaceX::Blt(LPRECT lpDestRect, LPDIRECTDRAWSURFACE7 lpDDS
 			else if (dwFlags & (DDBLT_KEYDESTOVERRIDE | DDBLT_KEYSRCOVERRIDE | DDBLT_KEYDEST | DDBLT_KEYSRC))
 			{
 				// Check if color key is set
-				if (((dwFlags & DDBLT_KEYDEST) && !ColorKeys[0].IsSet) || ((dwFlags & DDBLT_KEYSRC) && !ColorKeys[2].IsSet))
+				if (((dwFlags & DDBLT_KEYDEST) && !ColorKeys[0].IsSet) || ((dwFlags & DDBLT_KEYSRC) && !lpDDSrcSurfaceX->ColorKeys[2].IsSet))
 				{
 					Logging::Log() << __FUNCTION__ << " Error color key not set";
 				}
@@ -353,7 +339,7 @@ HRESULT m_IDirectDrawSurfaceX::Blt(LPRECT lpDestRect, LPDIRECTDRAWSURFACE7 lpDDS
 				ColorKey = (dwFlags & DDBLT_KEYDESTOVERRIDE) ? lpDDBltFx->ddckDestColorkey :
 					(dwFlags & DDBLT_KEYSRCOVERRIDE) ? lpDDBltFx->ddckSrcColorkey :
 					(dwFlags & DDBLT_KEYDEST) ? ColorKeys[0].Key :
-					(dwFlags & DDBLT_KEYSRC) ? ColorKeys[2].Key : ColorKey;
+					(dwFlags & DDBLT_KEYSRC) ? lpDDSrcSurfaceX->ColorKeys[2].Key : ColorKey;
 
 				// copy rect using color key
 				hr = CopyRectColorKey(&DestLockRect, &DestRect, DestBitCount, DestFormat, &SrcLockRect, &SrcRect, SrcBitCount, SrcFormat, ColorKey);
@@ -2428,9 +2414,15 @@ HRESULT m_IDirectDrawSurfaceX::GetSurfaceInfo(D3DLOCKED_RECT *pLockRect, DWORD *
 	{
 		if (NeedsLock())
 		{
+			Logging::Log() << __FUNCTION__ << " Error, surface needs to be locked!";
 			return DDERR_GENERIC;
 		}
-		if (IsLocked)
+		if (attachedPalette)
+		{
+			pLockRect->pBits = rawVideoBuf;
+			pLockRect->Pitch = surfaceDesc2.dwWidth;
+		}
+		else if (IsLocked)
 		{
 			memcpy(pLockRect, &d3dlrect, sizeof(D3DLOCKED_RECT));
 		}
@@ -2442,11 +2434,25 @@ HRESULT m_IDirectDrawSurfaceX::GetSurfaceInfo(D3DLOCKED_RECT *pLockRect, DWORD *
 	}
 	if (lpBitCount)
 	{
-		*lpBitCount = GetBitCount(surfaceDesc2.ddpfPixelFormat);
+		if (attachedPalette)
+		{
+			*lpBitCount = 8;
+		}
+		else
+		{
+			*lpBitCount = GetBitCount(surfaceDesc2.ddpfPixelFormat);
+		}
 	}
 	if (lpFormat)
 	{
-		*lpFormat = GetDisplayFormat(surfaceDesc2.ddpfPixelFormat);
+		if (attachedPalette)
+		{
+			*lpFormat = D3DFMT_P8;
+		}
+		else
+		{
+			*lpFormat = GetDisplayFormat(surfaceDesc2.ddpfPixelFormat);
+		}
 	}
 	return DD_OK;
 }
