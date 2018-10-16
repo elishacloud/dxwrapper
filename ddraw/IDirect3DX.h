@@ -11,6 +11,10 @@ private:
 	ULONG RefCount = 1;
 	m_IDirectDrawX *ddrawParent = nullptr;
 
+	// For EnumDevices
+	bool ConvertEnumCallback = false;
+	LPD3DENUMDEVICESCALLBACK lpConvertEnumDevicesCallback = nullptr;
+
 public:
 	m_IDirect3DX(IDirect3D7 *aOriginal, DWORD Version, m_IDirect3D7 *Interface) : ProxyInterface(aOriginal), DirectXVersion(Version), WrapperInterface(Interface)
 	{

@@ -114,6 +114,19 @@ HRESULT m_IDirect3DX::EnumDevices(LPD3DENUMDEVICESCALLBACK lpEnumDevicesCallback
 {
 	Logging::LogDebug() << __FUNCTION__;
 
+	if (Config.Dd7to9)
+	{
+		lpConvertEnumDevicesCallback = lpEnumDevicesCallback;
+		ConvertEnumCallback = true;
+
+		HRESULT hr = EnumDevices7((LPD3DENUMDEVICESCALLBACK7)lpEnumDevicesCallback, lpUserArg);
+
+		ConvertEnumCallback = false;
+		lpConvertEnumDevicesCallback = nullptr;
+
+		return hr;
+	}
+
 	if (ProxyDirectXVersion > 3 && DirectXVersion < 4)
 	{
 		ENUMDEVICES CallbackContext;
@@ -143,42 +156,105 @@ HRESULT m_IDirect3DX::EnumDevices7(LPD3DENUMDEVICESCALLBACK7 lpEnumDevicesCallba
 		IDirect3D9 *d3d9Object = ddrawParent->GetDirect3DObject();
 		UINT AdapterCount = d3d9Object->GetAdapterCount();
 
+		// Conversion callback
+		bool ConverCallback = false;
+		LPD3DENUMDEVICESCALLBACK lpEnumDevicesCallback = nullptr;
+
+		// Checking conversion
+		if (ConvertEnumCallback)
+		{
+			if ((LPVOID)lpEnumDevicesCallback7 != (LPVOID)lpConvertEnumDevicesCallback)
+			{
+				Logging::Log() << __FUNCTION__ << " Error getting conversion callback address!";
+				return DDERR_GENERIC;
+			}
+
+			ConverCallback = true;
+			lpEnumDevicesCallback = (LPD3DENUMDEVICESCALLBACK)lpEnumDevicesCallback7;
+		}
+
 		// Loop through all adapters
 		for (UINT i = 0; i < AdapterCount; i++)
 		{
-			for (D3DDEVTYPE Type : {D3DDEVTYPE_REF, D3DDEVTYPE_HAL, (D3DDEVTYPE)(D3DDEVTYPE_HAL + 0x10)})
+			for (D3DDEVTYPE Type : {D3DDEVTYPE_SW, D3DDEVTYPE_HAL, (D3DDEVTYPE)(D3DDEVTYPE_HAL + 0x10)})
 			{
 				// Get Device Caps
 				D3DCAPS9 Caps9;
-				HRESULT hr = d3d9Object->GetDeviceCaps(i, (D3DDEVTYPE)((DWORD)D3DDEVTYPE_HAL & 0xF), &Caps9);
+				HRESULT hr = d3d9Object->GetDeviceCaps(i, (D3DDEVTYPE)((DWORD)Type & ~0x10), &Caps9);
 
 				if (SUCCEEDED(hr))
 				{
 					// Convert device desc
 					D3DDEVICEDESC7 DeviceDesc7;
+					Caps9.DeviceType = Type;
 					ConvertDeviceDesc(DeviceDesc7, Caps9);
 
 					LPSTR lpDescription, lpName;
 					switch ((DWORD)Type)
 					{
-					case D3DDEVTYPE_REF:
+					case D3DDEVTYPE_SW:
 						lpDescription = "Microsoft Direct3D RGB Software Emulation";
 						lpName = "RGB Emulation";
+						if (ConverCallback)
+						{
+							GUID deviceGUID = DeviceDesc7.deviceGUID;
+							D3DDEVICEDESC D3DHWDevDesc, D3DHELDevDesc;
+
+							// Get Device Caps D3DDEVTYPE_SW
+							ConvertDeviceDesc(D3DHWDevDesc, DeviceDesc7);
+
+							// Get Device Caps D3DDEVTYPE_HAL
+							if (FAILED(d3d9Object->GetDeviceCaps(i, D3DDEVTYPE_HAL, &Caps9)))
+							{
+								Caps9.DeviceType = D3DDEVTYPE_HAL;
+								ConvertDeviceDesc(DeviceDesc7, Caps9);
+								ConvertDeviceDesc(D3DHELDevDesc, DeviceDesc7);
+
+								if (lpEnumDevicesCallback(&deviceGUID, lpDescription, lpName, &D3DHWDevDesc, &D3DHELDevDesc, lpUserArg) == DDENUMRET_CANCEL)
+								{
+									return D3D_OK;
+								}
+							}
+						}
 						break;
 					case D3DDEVTYPE_HAL:
 						lpDescription = "Microsoft Direct3D Hardware acceleration through Direct3D HAL";
 						lpName = "Direct3D HAL";
+						if (ConverCallback)
+						{
+							GUID deviceGUID = DeviceDesc7.deviceGUID;
+							D3DDEVICEDESC D3DHWDevDesc, D3DHELDevDesc;
+
+							// Get Device Caps D3DDEVTYPE_HAL
+							ConvertDeviceDesc(D3DHELDevDesc, DeviceDesc7);
+
+							// Get Device Caps D3DDEVTYPE_SW
+							if (FAILED(d3d9Object->GetDeviceCaps(i, D3DDEVTYPE_SW, &Caps9)))
+							{
+								Caps9.DeviceType = D3DDEVTYPE_SW;
+								ConvertDeviceDesc(DeviceDesc7, Caps9);
+								ConvertDeviceDesc(D3DHWDevDesc, DeviceDesc7);
+
+								if (lpEnumDevicesCallback(&deviceGUID, lpDescription, lpName, &D3DHWDevDesc, &D3DHELDevDesc, lpUserArg) == DDENUMRET_CANCEL)
+								{
+									return D3D_OK;
+								}
+							}
+						}
 						break;
 					default:
-					case D3DDEVTYPE_HAL + 0x10 :
+					case D3DDEVTYPE_HAL + 0x10:
 						lpDescription = "Microsoft Direct3D Hardware Transform and Lighting acceleration capable device";
 						lpName = "Direct3D T&L HAL";
 						break;
 					}
 
-					if (lpEnumDevicesCallback7(lpDescription, lpName, &DeviceDesc7, lpUserArg) == DDENUMRET_CANCEL)
+					if (!ConverCallback)
 					{
-						return D3D_OK;
+						if (lpEnumDevicesCallback7(lpDescription, lpName, &DeviceDesc7, lpUserArg) == DDENUMRET_CANCEL)
+						{
+							return D3D_OK;
+						}
 					}
 				}
 			}

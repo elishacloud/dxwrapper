@@ -547,15 +547,22 @@ HRESULT m_IDirectDrawX::GetCaps(LPDDCAPS lpDDDriverCaps, LPDDCAPS lpDDHELCaps)
 	DriverCaps.dwSize = sizeof(DriverCaps);
 	HELCaps.dwSize = sizeof(HELCaps);
 
-	HRESULT hr;
+	HRESULT hr = DDERR_INVALIDPARAMS;
 
 	if (Config.Dd7to9)
 	{
 		D3DCAPS9 Caps9;
-		hr = d3d9Object->GetDeviceCaps(D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, &Caps9);
+		if (lpDDDriverCaps)
+		{
+			hr = d3d9Object->GetDeviceCaps(D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, &Caps9);
+			ConvertCaps(DriverCaps, Caps9);
+		}
 
-		ConvertCaps(DriverCaps, Caps9);
-		ConvertCaps(HELCaps, Caps9);
+		if (lpDDHELCaps)
+		{
+			hr = d3d9Object->GetDeviceCaps(D3DADAPTER_DEFAULT, D3DDEVTYPE_SW, &Caps9);
+			ConvertCaps(HELCaps, Caps9);
+		}
 	}
 	else
 	{
