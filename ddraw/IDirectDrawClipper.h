@@ -6,6 +6,7 @@ private:
 	IDirectDrawClipper *ProxyInterface;
 	REFIID WrapperID = IID_IDirectDrawClipper;
 	ULONG RefCount = 1;
+	DWORD clipperCaps = 0;						// Clipper flags
 	HWND cliphWnd = nullptr;
 
 public:
@@ -17,6 +18,10 @@ public:
 		}
 
 		Logging::LogDebug() << "Create " << __FUNCTION__;
+	}
+	m_IDirectDrawClipper(DWORD dwFlags) : clipperCaps(dwFlags)
+	{
+		ProxyInterface = nullptr;
 	}
 	~m_IDirectDrawClipper()
 	{

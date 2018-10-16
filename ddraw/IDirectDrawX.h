@@ -102,6 +102,7 @@ public:
 	LPDIRECT3D9 GetDirect3DObject() { return d3d9Object; }
 	LPDIRECT3DDEVICE9 *GetDirect3DDevice() { return &d3d9Device; }
 	HWND GetHwnd() { return MainhWnd; }
+	bool IsExclusiveMode() { return ExclusiveMode; }
 
 	/*** IUnknown methods ***/
 	STDMETHOD(QueryInterface) (THIS_ REFIID riid, LPVOID FAR * ppvObj);

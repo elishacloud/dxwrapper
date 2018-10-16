@@ -266,8 +266,14 @@ HRESULT WINAPI dd_DirectDrawCreateClipper(DWORD dwFlags, LPDIRECTDRAWCLIPPER *lp
 
 	if (Config.Dd7to9)
 	{
-		Logging::Log() << __FUNCTION__ << " Not Implemented";
-		return E_NOTIMPL;
+		if (!lplpDDClipper)
+		{
+			return DDERR_INVALIDPARAMS;
+		}
+
+		*lplpDDClipper = new m_IDirectDrawClipper(dwFlags);
+
+		return DD_OK;
 	}
 
 	static DirectDrawCreateClipperProc m_pDirectDrawCreateClipper = (Wrapper::ValidProcAddress(DirectDrawCreateClipper_out)) ? (DirectDrawCreateClipperProc)DirectDrawCreateClipper_out : nullptr;

@@ -177,7 +177,7 @@ HRESULT m_IDirectDrawX::CreateClipper(DWORD dwFlags, LPDIRECTDRAWCLIPPER FAR * l
 			return DDERR_INVALIDPARAMS;
 		}
 
-		*lplpDDClipper = new m_IDirectDrawClipper(nullptr);
+		*lplpDDClipper = new m_IDirectDrawClipper(dwFlags);
 
 		return DD_OK;
 	}

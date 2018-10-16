@@ -881,8 +881,16 @@ HRESULT m_IDirectDrawSurfaceX::GetClipper(LPDIRECTDRAWCLIPPER FAR * lplpDDClippe
 
 	if (Config.Dd7to9)
 	{
-		Logging::Log() << __FUNCTION__ << " Not fully Implemented";
-		*lplpDDClipper = new m_IDirectDrawClipper(nullptr);
+		// No clipper attached
+		if (!attachedClipper)
+		{
+			return DDERR_NOCLIPPERATTACHED;
+		}
+
+		// Return attached clipper
+		*lplpDDClipper = (LPDIRECTDRAWCLIPPER)attachedClipper;
+
+		// Success
 		return DD_OK;
 	}
 
@@ -1033,7 +1041,18 @@ HRESULT m_IDirectDrawSurfaceX::GetPalette(LPDIRECTDRAWPALETTE FAR * lplpDDPalett
 			return DDERR_NOPALETTEATTACHED;
 		}
 
+		// Check for device
+		if (!ddrawParent)
+		{
+			Logging::Log() << __FUNCTION__ << " Error no ddraw parent!";
+			return DDERR_GENERIC;
+		}
+
 		// Check exclusive mode
+		if (!ddrawParent->IsExclusiveMode())
+		{
+			return DDERR_NOEXCLUSIVEMODE;
+		}
 
 		// Return attached palette
 		*lplpDDPalette = (LPDIRECTDRAWPALETTE)attachedPalette;

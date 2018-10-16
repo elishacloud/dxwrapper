@@ -20,12 +20,9 @@ public:
 
 		Logging::LogDebug() << "Create " << __FUNCTION__;
 	}
-	m_IDirectDrawPalette(DWORD dwFlags, LPPALETTEENTRY lpDDColorArray)
+	m_IDirectDrawPalette(DWORD dwFlags, LPPALETTEENTRY lpDDColorArray) : paletteCaps(dwFlags)
 	{
 		ProxyInterface = nullptr;
-
-		// Save palette caps
-		paletteCaps = dwFlags;
 
 		// Default to 256 entries
 		entryCount = 256;
