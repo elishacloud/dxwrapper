@@ -314,7 +314,7 @@ HRESULT WINAPI dd_DirectDrawCreateEx(GUID FAR *lpGUID, LPVOID *lplpDD, REFIID ri
 
 		if (!Direct3DCreate9)
 		{
-			Logging::Log() << "Failed to get 'Direct3DCreate9' ProcAddress of d3d9.dll!";
+			Logging::Log() << __FUNCTION__ << "Failed to get 'Direct3DCreate9' ProcAddress of d3d9.dll!";
 			return DDERR_GENERIC;
 		}
 
@@ -322,7 +322,7 @@ HRESULT WINAPI dd_DirectDrawCreateEx(GUID FAR *lpGUID, LPVOID *lplpDD, REFIID ri
 		LPDIRECT3D9 d3d9Object = Direct3DCreate9(D3D_SDK_VERSION);
 
 		// Error creating Direct3D9
-		if (d3d9Object == nullptr)
+		if (!d3d9Object)
 		{
 			Logging::Log() << __FUNCTION__ << " Failed to create Direct3D9 object";
 			return DDERR_GENERIC;
@@ -370,14 +370,163 @@ HRESULT WINAPI dd_DirectDrawCreateEx(GUID FAR *lpGUID, LPVOID *lplpDD, REFIID ri
 	return hr;
 }
 
+struct ENUMMONITORS
+{
+	LPSTR lpName;
+	HMONITOR hm;
+};
+
+BOOL CALLBACK DispayEnumeratorProc(HMONITOR hMonitor, HDC hdcMonitor, LPRECT lprcMonitor, LPARAM dwData)
+{
+	UNREFERENCED_PARAMETER(hdcMonitor);
+	UNREFERENCED_PARAMETER(lprcMonitor);
+
+	ENUMMONITORS *lpMonitors = (ENUMMONITORS *)dwData;
+	if (!dwData || !lpMonitors->lpName)
+	{
+		return DDENUMRET_CANCEL;
+	}
+
+	MONITORINFOEX monitorInfo;
+	ZeroMemory(&monitorInfo, sizeof(monitorInfo));
+	monitorInfo.cbSize = sizeof(monitorInfo);
+
+	if (!GetMonitorInfo(hMonitor, &monitorInfo))
+	{
+		return DDENUMRET_OK;
+	}
+
+	if (strcmp(monitorInfo.szDevice, lpMonitors->lpName) == 0)
+	{
+		lpMonitors->hm = hMonitor;
+		return DDENUMRET_CANCEL;
+	}
+
+	return DDENUMRET_OK;
+}
+
+enum DirectDrawEnumerateTypes
+{
+	DDET_ENUMCALLBACKA,
+	DDET_ENUMCALLBACKEXA,
+	DDET_ENUMCALLBACKEXW,
+	DDET_ENUMCALLBACKW,
+};
+
+HRESULT DirectDrawEnumerateHandler(LPVOID lpCallback, LPVOID lpContext, DWORD dwFlags, DirectDrawEnumerateTypes DDETType)
+{
+	UNREFERENCED_PARAMETER(dwFlags);
+
+	// Declare Direct3DCreate9
+	static PFN_Direct3DCreate9 Direct3DCreate9 = reinterpret_cast<PFN_Direct3DCreate9>(DdrawWrapper::Direct3DCreate9);
+
+	if (!Direct3DCreate9)
+	{
+		Logging::Log() << __FUNCTION__ << "Failed to get 'Direct3DCreate9' ProcAddress of d3d9.dll!";
+		return DDERR_GENERIC;
+	}
+
+	// Create Direct3D9 device
+	LPDIRECT3D9 d3d9Object = Direct3DCreate9(D3D_SDK_VERSION);
+
+	// Error creating Direct3D9
+	if (!d3d9Object)
+	{
+		Logging::Log() << __FUNCTION__ << " Failed to create Direct3D9 object";
+		return DDERR_GENERIC;
+	}
+
+	D3DADAPTER_IDENTIFIER9 Identifier = { NULL };
+	int AdapterCount = (int)d3d9Object->GetAdapterCount();
+	GUID* lpGUID;
+	LPSTR lpDesc, lpName;
+	wchar_t lpwName[32] = { '\0' };
+	wchar_t lpwDesc[128] = { '\0' };
+	HMONITOR hm = nullptr;
+	for (int x = -1; x < AdapterCount; x++)
+	{
+		if (x == -1)
+		{
+			lpGUID = nullptr;
+			lpDesc = "Primary Display Driver";
+			lpName = "display";
+			hm = nullptr;
+		}
+		else
+		{
+			if (FAILED(d3d9Object->GetAdapterIdentifier(x, 0, &Identifier)))
+			{
+				d3d9Object->Release();
+				return DDERR_GENERIC;
+			}
+			lpGUID = &Identifier.DeviceIdentifier;
+			lpDesc = Identifier.Description;
+			lpName = Identifier.DeviceName;
+
+			if (DDETType == DDET_ENUMCALLBACKEXA || DDETType == DDET_ENUMCALLBACKEXW)
+			{
+				ENUMMONITORS Monitors;
+				Monitors.lpName = lpName;
+				Monitors.hm = nullptr;
+				EnumDisplayMonitors(nullptr, nullptr, DispayEnumeratorProc, (LPARAM)&Monitors);
+				hm = Monitors.hm;
+			}
+		}
+
+		if (DDETType == DDET_ENUMCALLBACKEXW || DDETType == DDET_ENUMCALLBACKW)
+		{
+			size_t nReturn;
+			mbstowcs_s(&nReturn, lpwName, lpName, 32);
+			mbstowcs_s(&nReturn, lpwDesc, lpDesc, 128);
+		}
+
+		switch (DDETType)
+		{
+		case DDET_ENUMCALLBACKA:
+			if (LPDDENUMCALLBACKA(lpCallback)(lpGUID, lpDesc, lpName, lpContext) == DDENUMRET_CANCEL)
+			{
+				d3d9Object->Release();
+				return D3D_OK;
+			}
+			break;
+		case DDET_ENUMCALLBACKEXA:
+			if (LPDDENUMCALLBACKEXA(lpCallback)(lpGUID, lpDesc, lpName, lpContext, hm) == DDENUMRET_CANCEL)
+			{
+				d3d9Object->Release();
+				return D3D_OK;
+			}
+			break;
+		case DDET_ENUMCALLBACKEXW:
+			if (LPDDENUMCALLBACKEXW(lpCallback)(lpGUID, lpwDesc, lpwName, lpContext, hm) == DDENUMRET_CANCEL)
+			{
+				d3d9Object->Release();
+				return D3D_OK;
+			}
+			break;
+		case DDET_ENUMCALLBACKW:
+			if (LPDDENUMCALLBACKW(lpCallback)(lpGUID, lpwDesc, lpwName, lpContext) == DDENUMRET_CANCEL)
+			{
+				d3d9Object->Release();
+				return D3D_OK;
+			}
+			break;
+		default:
+			d3d9Object->Release();
+			return DDERR_GENERIC;
+		}
+	}
+
+	d3d9Object->Release();
+	return DD_OK;
+}
+
 HRESULT WINAPI dd_DirectDrawEnumerateA(LPDDENUMCALLBACKA lpCallback, LPVOID lpContext)
 {
 	Logging::LogDebug() << __FUNCTION__;
 
 	if (Config.Dd7to9)
 	{
-		Logging::Log() << __FUNCTION__ << " Not Implemented";
-		return E_NOTIMPL;
+		return DirectDrawEnumerateHandler(lpCallback, lpContext, 0, DDET_ENUMCALLBACKA);
 	}
 
 	static DirectDrawEnumerateAProc m_pDirectDrawEnumerateA = (Wrapper::ValidProcAddress(DirectDrawEnumerateA_out)) ? (DirectDrawEnumerateAProc)DirectDrawEnumerateA_out : nullptr;
@@ -396,8 +545,7 @@ HRESULT WINAPI dd_DirectDrawEnumerateExA(LPDDENUMCALLBACKEXA lpCallback, LPVOID 
 
 	if (Config.Dd7to9)
 	{
-		Logging::Log() << __FUNCTION__ << " Not Implemented";
-		return E_NOTIMPL;
+		return DirectDrawEnumerateHandler(lpCallback, lpContext, dwFlags, DDET_ENUMCALLBACKEXA);
 	}
 
 	static DirectDrawEnumerateExAProc m_pDirectDrawEnumerateExA = (Wrapper::ValidProcAddress(DirectDrawEnumerateExA_out)) ? (DirectDrawEnumerateExAProc)DirectDrawEnumerateExA_out : nullptr;
@@ -416,8 +564,7 @@ HRESULT WINAPI dd_DirectDrawEnumerateExW(LPDDENUMCALLBACKEXW lpCallback, LPVOID 
 
 	if (Config.Dd7to9)
 	{
-		Logging::Log() << __FUNCTION__ << " Not Implemented";
-		return E_NOTIMPL;
+		return DirectDrawEnumerateHandler(lpCallback, lpContext, dwFlags, DDET_ENUMCALLBACKEXW);
 	}
 
 	static DirectDrawEnumerateExWProc m_pDirectDrawEnumerateExW = (Wrapper::ValidProcAddress(DirectDrawEnumerateExW_out)) ? (DirectDrawEnumerateExWProc)DirectDrawEnumerateExW_out : nullptr;
@@ -436,8 +583,7 @@ HRESULT WINAPI dd_DirectDrawEnumerateW(LPDDENUMCALLBACKW lpCallback, LPVOID lpCo
 
 	if (Config.Dd7to9)
 	{
-		Logging::Log() << __FUNCTION__ << " Not Implemented";
-		return E_NOTIMPL;
+		return DirectDrawEnumerateHandler(lpCallback, lpContext, 0, DDET_ENUMCALLBACKW);
 	}
 
 	static DirectDrawEnumerateWProc m_pDirectDrawEnumerateW = (Wrapper::ValidProcAddress(DirectDrawEnumerateW_out)) ? (DirectDrawEnumerateWProc)DirectDrawEnumerateW_out : nullptr;
