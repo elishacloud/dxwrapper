@@ -591,6 +591,24 @@ HRESULT m_IDirectDrawSurfaceX::EnumOverlayZOrders2(DWORD dwFlags, LPVOID lpConte
 	return ProxyInterface->EnumOverlayZOrders(dwFlags, &CallbackContext, m_IDirectDrawEnumSurface::ConvertCallback2);
 }
 
+void m_IDirectDrawSurfaceX::SwapSurface(m_IDirectDrawSurfaceX *lpTargetSurface1, m_IDirectDrawSurfaceX *lpTargetSurface2)
+{
+	// Swap textures
+	SwapAddresses((LPVOID*)lpTargetSurface1->GetSurfaceTexture(), (LPVOID*)lpTargetSurface2->GetSurfaceTexture());
+
+	// Swap Palletes
+	if (*lpTargetSurface1->GetPallete() && *lpTargetSurface2->GetPallete())
+	{
+		SwapAddresses((LPVOID*)lpTargetSurface1->GetPallete(), (LPVOID*)lpTargetSurface2->GetPallete());
+	}
+
+	// Swap Video Memory
+	if (*lpTargetSurface1->GetRawVideoMemory() && *lpTargetSurface2->GetRawVideoMemory())
+	{
+		SwapAddresses((LPVOID*)lpTargetSurface1->GetRawVideoMemory(), (LPVOID*)lpTargetSurface2->GetRawVideoMemory());
+	}
+}
+
 HRESULT m_IDirectDrawSurfaceX::Flip(LPDIRECTDRAWSURFACE7 lpDDSurfaceTargetOverride, DWORD dwFlags)
 {
 	Logging::LogDebug() << __FUNCTION__;
@@ -647,11 +665,10 @@ HRESULT m_IDirectDrawSurfaceX::Flip(LPDIRECTDRAWSURFACE7 lpDDSurfaceTargetOverri
 			// Found surface
 			FoundAttachedSurface = true;
 
-			// Swap textures
-			LPDIRECT3DTEXTURE9 tmpAddr = surfaceTexture;
-			surfaceTexture = *lpTargetSurface->GetSurfaceTexture();
-			*lpTargetSurface->GetSurfaceTexture() = tmpAddr;
+			// Swap surface
+			SwapSurface(this, lpTargetSurface);
 		}
+
 		// Execute flip for all attached surfaces
 		else
 		{
@@ -680,10 +697,8 @@ HRESULT m_IDirectDrawSurfaceX::Flip(LPDIRECTDRAWSURFACE7 lpDDSurfaceTargetOverri
 				// Found surface
 				FoundAttachedSurface = true;
 
-				// Swap textures
-				LPDIRECT3DTEXTURE9 tmpAddr = surfaceTexture;
-				surfaceTexture = *lpTargetSurface->GetSurfaceTexture();
-				*lpTargetSurface->GetSurfaceTexture() = tmpAddr;
+				// Swap surface
+				SwapSurface(this, lpTargetSurface);
 			}
 		}
 
@@ -702,6 +717,22 @@ HRESULT m_IDirectDrawSurfaceX::Flip(LPDIRECTDRAWSURFACE7 lpDDSurfaceTargetOverri
 		if (FAILED(hr))
 		{
 			Logging::Log() << __FUNCTION__ << " Failed to set texture";
+		}
+
+		// Write video memory to texture and EndScene
+		if (!WriteDirectlyToSurface)
+		{
+			// Lock surface to prepare for writing
+			if (!IsLocked)
+			{
+				SetLock(nullptr, 0, true);
+			}
+
+			// Write to surface and unlock
+			if (IsLocked)
+			{
+				SetUnLock(true);
+			}
 		}
 
 		// Run EndScene (ignore results)
@@ -1353,14 +1384,26 @@ HRESULT m_IDirectDrawSurfaceX::Lock2(LPRECT lpDestRect, LPDDSURFACEDESC2 lpDDSur
 				lpDDSurfaceDesc2->lpSurface = d3dlrect.pBits;
 				lpDDSurfaceDesc2->lPitch = d3dlrect.Pitch;
 			}
-			else
+			else if (!WriteDirectlyToSurface)
 			{
 				if (!rawVideoBuf)
 				{
 					AlocateVideoBuffer();
 				}
-				lpDDSurfaceDesc2->lpSurface = (LPVOID)rawVideoBuf;
-				lpDDSurfaceDesc2->lPitch = surfaceDesc2.dwWidth * (GetBitCount(surfaceDesc2.ddpfPixelFormat) / 8);
+				if (attachedPalette)
+				{
+					lpDDSurfaceDesc2->lpSurface = (LPVOID)rawVideoBuf;
+					lpDDSurfaceDesc2->lPitch = surfaceDesc2.dwWidth;
+				}
+				else
+				{
+					lpDDSurfaceDesc2->lpSurface = (LPVOID)rawVideoBuf;
+					lpDDSurfaceDesc2->lPitch = surfaceDesc2.dwWidth * (GetBitCount(surfaceDesc2.ddpfPixelFormat) / 8);
+				}
+			}
+			else
+			{
+				hr = DDERR_GENERIC;
 			}
 		}
 
@@ -1578,30 +1621,6 @@ HRESULT m_IDirectDrawSurfaceX::Unlock(LPRECT lpRect)
 		{
 			Logging::Log() << __FUNCTION__ << " No video memory!";
 			return DD_OK;
-		}
-
-		// Check for video buffer and create it if missing
-		if (!WriteDirectlyToSurface && !rawVideoBuf)
-		{
-			AlocateVideoBuffer();
-		}
-
-		// Write to surface using a palette
-		if (attachedPalette)
-		{
-			WritePaletteToSurface(attachedPalette, &lkDestRect, rawVideoBuf, GetBitCount(surfaceDesc2.ddpfPixelFormat));
-		}
-
-		// Write to surface from the memory buffer
-		else if (!WriteDirectlyToSurface)
-		{
-			DWORD SrcBitCount = GetBitCount(surfaceDesc2.ddpfPixelFormat);
-			D3DLOCKED_RECT SrcLockRect = { (INT)(surfaceDesc2.dwWidth * SrcBitCount / 8), rawVideoBuf };
-			HRESULT hr = CopyRect(&d3dlrect, &lkDestRect, 32, D3DFMT_X8R8G8B8, &SrcLockRect, &lkDestRect, SrcBitCount, GetDisplayFormat(surfaceDesc2.ddpfPixelFormat));
-			if (FAILED(hr))
-			{
-				Logging::Log() << __FUNCTION__ << " failed to copy rect";
-			}
 		}
 
 		// Unlock surface
@@ -2268,11 +2287,11 @@ void m_IDirectDrawSurfaceX::ReleaseD9Surface()
 	// Release d3d9 surface
 	if (surfaceTexture)
 	{
-		DWORD x = 0, z = 100;
-		while (z != 0 && ++x < 100)
+		DWORD x = 0, z = 0;
+		do
 		{
 			z = surfaceTexture->Release();
-		}
+		} while (z != 0 && ++x < 100);
 
 		// Add error checking
 		if (z != 0)
@@ -2286,11 +2305,11 @@ void m_IDirectDrawSurfaceX::ReleaseD9Surface()
 	// Release d3d9 vertex buffer
 	if (vertexBuffer)
 	{
-		DWORD x = 0, z = 100;
-		while (z != 0 && ++x < 100)
+		DWORD x = 0, z = 0;
+		do
 		{
 			z = vertexBuffer->Release();
-		}
+		} while (z != 0 && ++x < 100);
 
 		// Add error checking
 		if (z != 0)
@@ -2408,6 +2427,12 @@ HRESULT m_IDirectDrawSurfaceX::SetUnLock(bool SkipEndSceneFlag)
 		return DDERR_GENERIC;
 	}
 
+	// Write video data to surface
+	if (!SkipEndSceneFlag && (IsPrimarySurface() || SceneReady))
+	{
+		WriteVideoDataToSurface();
+	}
+
 	// Lock surface
 	if (FAILED(surfaceTexture->UnlockRect(0)))
 	{
@@ -2436,7 +2461,7 @@ HRESULT m_IDirectDrawSurfaceX::GetSurfaceInfo(D3DLOCKED_RECT *pLockRect, DWORD *
 			Logging::Log() << __FUNCTION__ << " Error, surface needs to be locked!";
 			return DDERR_GENERIC;
 		}
-		if (attachedPalette)
+		if (!WriteDirectlyToSurface)
 		{
 			pLockRect->pBits = rawVideoBuf;
 			pLockRect->Pitch = surfaceDesc2.dwWidth;
@@ -2963,5 +2988,44 @@ HRESULT m_IDirectDrawSurfaceX::StretchRect(D3DLOCKED_RECT *pDestLockRect, RECT *
 	}
 
 	// Return
+	return DD_OK;
+}
+
+HRESULT m_IDirectDrawSurfaceX::WriteVideoDataToSurface()
+{
+	// Check locked state
+	if (!IsLocked)
+	{
+		return DDERR_GENERIC;
+	}
+
+	// Check for video buffer and create it if missing
+	if (!rawVideoBuf)
+	{
+		return DDERR_GENERIC;
+	}
+
+	// Write to surface using a palette
+	if (attachedPalette)
+	{
+		if (FAILED(WritePaletteToSurface(attachedPalette, &lkDestRect, rawVideoBuf, GetBitCount(surfaceDesc2.ddpfPixelFormat))))
+		{
+			return DDERR_GENERIC;
+		}
+	}
+
+	// Write to surface from the memory buffer
+	else if (!WriteDirectlyToSurface)
+	{
+		DWORD SrcBitCount = GetBitCount(surfaceDesc2.ddpfPixelFormat);
+		D3DLOCKED_RECT SrcLockRect = { (INT)(surfaceDesc2.dwWidth * SrcBitCount / 8), rawVideoBuf };
+		if (FAILED(CopyRect(&d3dlrect, &lkDestRect, 32, D3DFMT_X8R8G8B8, &SrcLockRect, &lkDestRect, SrcBitCount, GetDisplayFormat(surfaceDesc2.ddpfPixelFormat))))
+		{
+			Logging::Log() << __FUNCTION__ << " failed to copy rect";
+			return DDERR_GENERIC;
+		}
+	}
+
+	// return
 	return DD_OK;
 }

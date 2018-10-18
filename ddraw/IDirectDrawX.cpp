@@ -1362,11 +1362,11 @@ void m_IDirectDrawX::ReleaseD3d9Device()
 {
 	if (d3d9Device)
 	{
-		DWORD x = 0, z = 100;
-		while (z != 0 && ++x < 100)
+		DWORD x = 0, z = 0;
+		do
 		{
 			z = d3d9Device->Release();
-		}
+		} while (z != 0 && ++x < 100);
 
 		// Add error checking
 		if (z != 0)
