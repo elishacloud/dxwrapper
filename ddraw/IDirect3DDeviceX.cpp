@@ -363,7 +363,7 @@ HRESULT m_IDirect3DDeviceX::DeleteViewport(LPDIRECT3DVIEWPORT3 lpDirect3DViewpor
 	if (ProxyDirectXVersion > 3)
 	{
 		Logging::Log() << __FUNCTION__ << " Not Implemented";
-		return D3D_OK;
+		return E_NOTIMPL;
 	}
 
 	if (lpDirect3DViewport)
@@ -406,6 +406,7 @@ HRESULT m_IDirect3DDeviceX::SetCurrentViewport(LPDIRECT3DVIEWPORT3 lpd3dViewport
 	if (ProxyDirectXVersion > 3)
 	{
 		// ToDo: Validate Viewport address
+		// ToDo: Increment Viewport ref count
 		lpCurrentViewport = (m_IDirect3DViewportX*)lpd3dViewport;
 
 		return D3D_OK;
@@ -608,7 +609,7 @@ HRESULT m_IDirect3DDeviceX::GetCaps(LPD3DDEVICEDESC7 lpD3DDevDesc)
 	if (Config.Dd7to9)
 	{
 		Logging::Log() << __FUNCTION__ << " Not Implemented";
-		return DD_OK;
+		return E_NOTIMPL;
 	}
 
 	return ProxyInterface->GetCaps(lpD3DDevDesc);
@@ -621,7 +622,7 @@ HRESULT m_IDirect3DDeviceX::EnumTextureFormats(LPD3DENUMPIXELFORMATSCALLBACK lpd
 	if (Config.Dd7to9)
 	{
 		Logging::Log() << __FUNCTION__ << " Not Implemented";
-		return DD_OK;
+		return E_NOTIMPL;
 	}
 
 	return ProxyInterface->EnumTextureFormats(lpd3dEnumPixelProc, lpArg);
@@ -634,7 +635,7 @@ HRESULT m_IDirect3DDeviceX::BeginScene()
 	if (Config.Dd7to9)
 	{
 		Logging::Log() << __FUNCTION__ << " Not Implemented";
-		return DD_OK;
+		return E_NOTIMPL;
 	}
 
 	return ProxyInterface->BeginScene();
@@ -647,7 +648,7 @@ HRESULT m_IDirect3DDeviceX::EndScene()
 	if (Config.Dd7to9)
 	{
 		Logging::Log() << __FUNCTION__ << " Not Implemented";
-		return DD_OK;
+		return E_NOTIMPL;
 	}
 
 	return ProxyInterface->EndScene();
@@ -659,8 +660,9 @@ HRESULT m_IDirect3DDeviceX::GetDirect3D(LPDIRECT3D7 * lplpD3D)
 
 	if (Config.Dd7to9)
 	{
+		// Increment Direct3D ref count
 		Logging::Log() << __FUNCTION__ << " Not Implemented";
-		return DD_OK;
+		return E_NOTIMPL;
 	}
 
 	HRESULT hr = ProxyInterface->GetDirect3D(lplpD3D);
@@ -680,7 +682,7 @@ HRESULT m_IDirect3DDeviceX::SetRenderTarget(LPDIRECTDRAWSURFACE7 lpNewRenderTarg
 	if (Config.Dd7to9)
 	{
 		Logging::Log() << __FUNCTION__ << " Not Implemented";
-		return DD_OK;
+		return E_NOTIMPL;
 	}
 
 	if (lpNewRenderTarget)
@@ -698,7 +700,7 @@ HRESULT m_IDirect3DDeviceX::GetRenderTarget(LPDIRECTDRAWSURFACE7 * lplpRenderTar
 	if (Config.Dd7to9)
 	{
 		Logging::Log() << __FUNCTION__ << " Not Implemented";
-		return DD_OK;
+		return E_NOTIMPL;
 	}
 
 	HRESULT hr = ProxyInterface->GetRenderTarget(lplpRenderTarget);
@@ -718,7 +720,7 @@ HRESULT m_IDirect3DDeviceX::Clear(DWORD dwCount, LPD3DRECT lpRects, DWORD dwFlag
 	if (Config.Dd7to9)
 	{
 		Logging::Log() << __FUNCTION__ << " Not Implemented";
-		return DD_OK;
+		return E_NOTIMPL;
 	}
 
 	return ProxyInterface->Clear(dwCount, lpRects, dwFlags, dwColor, dvZ, dwStencil);
@@ -731,7 +733,7 @@ HRESULT m_IDirect3DDeviceX::SetTransform(D3DTRANSFORMSTATETYPE dtstTransformStat
 	if (Config.Dd7to9)
 	{
 		Logging::Log() << __FUNCTION__ << " Not Implemented";
-		return DD_OK;
+		return E_NOTIMPL;
 	}
 
 	return ProxyInterface->SetTransform(dtstTransformStateType, lpD3DMatrix);
@@ -744,7 +746,7 @@ HRESULT m_IDirect3DDeviceX::GetTransform(D3DTRANSFORMSTATETYPE dtstTransformStat
 	if (Config.Dd7to9)
 	{
 		Logging::Log() << __FUNCTION__ << " Not Implemented";
-		return DD_OK;
+		return E_NOTIMPL;
 	}
 
 	return ProxyInterface->GetTransform(dtstTransformStateType, lpD3DMatrix);
@@ -757,7 +759,7 @@ HRESULT m_IDirect3DDeviceX::SetViewport(LPD3DVIEWPORT7 lpViewport)
 	if (Config.Dd7to9)
 	{
 		Logging::Log() << __FUNCTION__ << " Not Implemented";
-		return DD_OK;
+		return E_NOTIMPL;
 	}
 
 	return ProxyInterface->SetViewport(lpViewport);
@@ -770,7 +772,7 @@ HRESULT m_IDirect3DDeviceX::MultiplyTransform(D3DTRANSFORMSTATETYPE dtstTransfor
 	if (Config.Dd7to9)
 	{
 		Logging::Log() << __FUNCTION__ << " Not Implemented";
-		return DD_OK;
+		return E_NOTIMPL;
 	}
 
 	return ProxyInterface->MultiplyTransform(dtstTransformStateType, lpD3DMatrix);
@@ -783,7 +785,7 @@ HRESULT m_IDirect3DDeviceX::GetViewport(LPD3DVIEWPORT7 lpViewport)
 	if (Config.Dd7to9)
 	{
 		Logging::Log() << __FUNCTION__ << " Not Implemented";
-		return DD_OK;
+		return E_NOTIMPL;
 	}
 
 	return ProxyInterface->GetViewport(lpViewport);
@@ -796,7 +798,7 @@ HRESULT m_IDirect3DDeviceX::SetMaterial(LPD3DMATERIAL7 lpMaterial)
 	if (Config.Dd7to9)
 	{
 		Logging::Log() << __FUNCTION__ << " Not Implemented";
-		return DD_OK;
+		return E_NOTIMPL;
 	}
 
 	return ProxyInterface->SetMaterial(lpMaterial);
@@ -809,7 +811,7 @@ HRESULT m_IDirect3DDeviceX::GetMaterial(LPD3DMATERIAL7 lpMaterial)
 	if (Config.Dd7to9)
 	{
 		Logging::Log() << __FUNCTION__ << " Not Implemented";
-		return DD_OK;
+		return E_NOTIMPL;
 	}
 
 	return ProxyInterface->GetMaterial(lpMaterial);
@@ -822,7 +824,7 @@ HRESULT m_IDirect3DDeviceX::SetLight(DWORD dwLightIndex, LPD3DLIGHT7 lpLight)
 	if (Config.Dd7to9)
 	{
 		Logging::Log() << __FUNCTION__ << " Not Implemented";
-		return DD_OK;
+		return E_NOTIMPL;
 	}
 
 	return ProxyInterface->SetLight(dwLightIndex, lpLight);
@@ -835,7 +837,7 @@ HRESULT m_IDirect3DDeviceX::GetLight(DWORD dwLightIndex, LPD3DLIGHT7 lpLight)
 	if (Config.Dd7to9)
 	{
 		Logging::Log() << __FUNCTION__ << " Not Implemented";
-		return DD_OK;
+		return E_NOTIMPL;
 	}
 
 	return ProxyInterface->GetLight(dwLightIndex, lpLight);
@@ -848,7 +850,7 @@ HRESULT m_IDirect3DDeviceX::SetRenderState(D3DRENDERSTATETYPE dwRendStateType, D
 	if (Config.Dd7to9)
 	{
 		Logging::Log() << __FUNCTION__ << " Not Implemented";
-		return DD_OK;
+		return E_NOTIMPL;
 	}
 
 	return ProxyInterface->SetRenderState(dwRendStateType, dwRenderState);
@@ -861,7 +863,7 @@ HRESULT m_IDirect3DDeviceX::GetRenderState(D3DRENDERSTATETYPE dwRenderStateType,
 	if (Config.Dd7to9)
 	{
 		Logging::Log() << __FUNCTION__ << " Not Implemented";
-		return DD_OK;
+		return E_NOTIMPL;
 	}
 
 	return ProxyInterface->GetRenderState(dwRenderStateType, lpdwRenderState);
@@ -874,7 +876,7 @@ HRESULT m_IDirect3DDeviceX::BeginStateBlock()
 	if (Config.Dd7to9)
 	{
 		Logging::Log() << __FUNCTION__ << " Not Implemented";
-		return DD_OK;
+		return E_NOTIMPL;
 	}
 
 	return ProxyInterface->BeginStateBlock();
@@ -887,7 +889,7 @@ HRESULT m_IDirect3DDeviceX::EndStateBlock(LPDWORD lpdwBlockHandle)
 	if (Config.Dd7to9)
 	{
 		Logging::Log() << __FUNCTION__ << " Not Implemented";
-		return DD_OK;
+		return E_NOTIMPL;
 	}
 
 	return ProxyInterface->EndStateBlock(lpdwBlockHandle);
@@ -900,7 +902,7 @@ HRESULT m_IDirect3DDeviceX::PreLoad(LPDIRECTDRAWSURFACE7 lpddsTexture)
 	if (Config.Dd7to9)
 	{
 		Logging::Log() << __FUNCTION__ << " Not Implemented";
-		return DD_OK;
+		return E_NOTIMPL;
 	}
 
 	if (lpddsTexture)
@@ -918,7 +920,7 @@ HRESULT m_IDirect3DDeviceX::DrawPrimitive(D3DPRIMITIVETYPE dptPrimitiveType, DWO
 	if (Config.Dd7to9)
 	{
 		Logging::Log() << __FUNCTION__ << " Not Implemented";
-		return DD_OK;
+		return E_NOTIMPL;
 	}
 
 	return ProxyInterface->DrawPrimitive(dptPrimitiveType, dwVertexTypeDesc, lpVertices, dwVertexCount, dwFlags);
@@ -931,7 +933,7 @@ HRESULT m_IDirect3DDeviceX::DrawIndexedPrimitive(D3DPRIMITIVETYPE d3dptPrimitive
 	if (Config.Dd7to9)
 	{
 		Logging::Log() << __FUNCTION__ << " Not Implemented";
-		return DD_OK;
+		return E_NOTIMPL;
 	}
 
 	return ProxyInterface->DrawIndexedPrimitive(d3dptPrimitiveType, dwVertexTypeDesc, lpvVertices, dwVertexCount, lpwIndices, dwIndexCount, dwFlags);
@@ -944,7 +946,7 @@ HRESULT m_IDirect3DDeviceX::SetClipStatus(LPD3DCLIPSTATUS lpD3DClipStatus)
 	if (Config.Dd7to9)
 	{
 		Logging::Log() << __FUNCTION__ << " Not Implemented";
-		return DD_OK;
+		return E_NOTIMPL;
 	}
 
 	return ProxyInterface->SetClipStatus(lpD3DClipStatus);
@@ -957,7 +959,7 @@ HRESULT m_IDirect3DDeviceX::GetClipStatus(LPD3DCLIPSTATUS lpD3DClipStatus)
 	if (Config.Dd7to9)
 	{
 		Logging::Log() << __FUNCTION__ << " Not Implemented";
-		return DD_OK;
+		return E_NOTIMPL;
 	}
 
 	return ProxyInterface->GetClipStatus(lpD3DClipStatus);
@@ -970,7 +972,7 @@ HRESULT m_IDirect3DDeviceX::DrawPrimitiveStrided(D3DPRIMITIVETYPE dptPrimitiveTy
 	if (Config.Dd7to9)
 	{
 		Logging::Log() << __FUNCTION__ << " Not Implemented";
-		return DD_OK;
+		return E_NOTIMPL;
 	}
 
 	return ProxyInterface->DrawPrimitiveStrided(dptPrimitiveType, dwVertexTypeDesc, lpVertexArray, dwVertexCount, dwFlags);
@@ -983,7 +985,7 @@ HRESULT m_IDirect3DDeviceX::DrawIndexedPrimitiveStrided(D3DPRIMITIVETYPE d3dptPr
 	if (Config.Dd7to9)
 	{
 		Logging::Log() << __FUNCTION__ << " Not Implemented";
-		return DD_OK;
+		return E_NOTIMPL;
 	}
 
 	return ProxyInterface->DrawIndexedPrimitiveStrided(d3dptPrimitiveType, dwVertexTypeDesc, lpVertexArray, dwVertexCount, lpwIndices, dwIndexCount, dwFlags);
@@ -996,7 +998,7 @@ HRESULT m_IDirect3DDeviceX::DrawPrimitiveVB(D3DPRIMITIVETYPE d3dptPrimitiveType,
 	if (Config.Dd7to9)
 	{
 		Logging::Log() << __FUNCTION__ << " Not Implemented";
-		return DD_OK;
+		return E_NOTIMPL;
 	}
 
 	if (lpd3dVertexBuffer)
@@ -1014,7 +1016,7 @@ HRESULT m_IDirect3DDeviceX::DrawIndexedPrimitiveVB(D3DPRIMITIVETYPE d3dptPrimiti
 	if (Config.Dd7to9)
 	{
 		Logging::Log() << __FUNCTION__ << " Not Implemented";
-		return DD_OK;
+		return E_NOTIMPL;
 	}
 
 	if (lpd3dVertexBuffer)
@@ -1032,7 +1034,7 @@ HRESULT m_IDirect3DDeviceX::ComputeSphereVisibility(LPD3DVECTOR lpCenters, LPD3D
 	if (Config.Dd7to9)
 	{
 		Logging::Log() << __FUNCTION__ << " Not Implemented";
-		return DD_OK;
+		return E_NOTIMPL;
 	}
 
 	return ProxyInterface->ComputeSphereVisibility(lpCenters, lpRadii, dwNumSpheres, dwFlags, lpdwReturnValues);
@@ -1045,7 +1047,7 @@ HRESULT m_IDirect3DDeviceX::GetTexture(DWORD dwStage, LPDIRECTDRAWSURFACE7 * lpl
 	if (Config.Dd7to9)
 	{
 		Logging::Log() << __FUNCTION__ << " Not Implemented";
-		return DD_OK;
+		return E_NOTIMPL;
 	}
 
 	HRESULT hr = ProxyInterface->GetTexture(dwStage, lplpTexture);
@@ -1065,7 +1067,7 @@ HRESULT m_IDirect3DDeviceX::SetTexture(DWORD dwStage, LPDIRECTDRAWSURFACE7 lpTex
 	if (Config.Dd7to9)
 	{
 		Logging::Log() << __FUNCTION__ << " Not Implemented";
-		return DD_OK;
+		return E_NOTIMPL;
 	}
 
 	if (lpTexture)
@@ -1083,7 +1085,7 @@ HRESULT m_IDirect3DDeviceX::GetTextureStageState(DWORD dwStage, D3DTEXTURESTAGES
 	if (Config.Dd7to9)
 	{
 		Logging::Log() << __FUNCTION__ << " Not Implemented";
-		return DD_OK;
+		return E_NOTIMPL;
 	}
 
 	return ProxyInterface->GetTextureStageState(dwStage, dwState, lpdwValue);
@@ -1096,7 +1098,7 @@ HRESULT m_IDirect3DDeviceX::SetTextureStageState(DWORD dwStage, D3DTEXTURESTAGES
 	if (Config.Dd7to9)
 	{
 		Logging::Log() << __FUNCTION__ << " Not Implemented";
-		return DD_OK;
+		return E_NOTIMPL;
 	}
 
 	return ProxyInterface->SetTextureStageState(dwStage, dwState, dwValue);
@@ -1109,7 +1111,7 @@ HRESULT m_IDirect3DDeviceX::ValidateDevice(LPDWORD lpdwPasses)
 	if (Config.Dd7to9)
 	{
 		Logging::Log() << __FUNCTION__ << " Not Implemented";
-		return DD_OK;
+		return E_NOTIMPL;
 	}
 
 	return ProxyInterface->ValidateDevice(lpdwPasses);
@@ -1122,7 +1124,7 @@ HRESULT m_IDirect3DDeviceX::ApplyStateBlock(DWORD dwBlockHandle)
 	if (Config.Dd7to9)
 	{
 		Logging::Log() << __FUNCTION__ << " Not Implemented";
-		return DD_OK;
+		return E_NOTIMPL;
 	}
 
 	return ProxyInterface->ApplyStateBlock(dwBlockHandle);
@@ -1135,7 +1137,7 @@ HRESULT m_IDirect3DDeviceX::CaptureStateBlock(DWORD dwBlockHandle)
 	if (Config.Dd7to9)
 	{
 		Logging::Log() << __FUNCTION__ << " Not Implemented";
-		return DD_OK;
+		return E_NOTIMPL;
 	}
 
 	return ProxyInterface->CaptureStateBlock(dwBlockHandle);
@@ -1148,7 +1150,7 @@ HRESULT m_IDirect3DDeviceX::DeleteStateBlock(DWORD dwBlockHandle)
 	if (Config.Dd7to9)
 	{
 		Logging::Log() << __FUNCTION__ << " Not Implemented";
-		return DD_OK;
+		return E_NOTIMPL;
 	}
 
 	return ProxyInterface->DeleteStateBlock(dwBlockHandle);
@@ -1161,7 +1163,7 @@ HRESULT m_IDirect3DDeviceX::CreateStateBlock(D3DSTATEBLOCKTYPE d3dsbtype, LPDWOR
 	if (Config.Dd7to9)
 	{
 		Logging::Log() << __FUNCTION__ << " Not Implemented";
-		return DD_OK;
+		return E_NOTIMPL;
 	}
 
 	return ProxyInterface->CreateStateBlock(d3dsbtype, lpdwBlockHandle);
@@ -1174,7 +1176,7 @@ HRESULT m_IDirect3DDeviceX::Load(LPDIRECTDRAWSURFACE7 lpDestTex, LPPOINT lpDestP
 	if (Config.Dd7to9)
 	{
 		Logging::Log() << __FUNCTION__ << " Not Implemented";
-		return DD_OK;
+		return E_NOTIMPL;
 	}
 
 	if (lpDestTex)
@@ -1196,7 +1198,7 @@ HRESULT m_IDirect3DDeviceX::LightEnable(DWORD dwLightIndex, BOOL bEnable)
 	if (Config.Dd7to9)
 	{
 		Logging::Log() << __FUNCTION__ << " Not Implemented";
-		return DD_OK;
+		return E_NOTIMPL;
 	}
 
 	return ProxyInterface->LightEnable(dwLightIndex, bEnable);
@@ -1209,7 +1211,7 @@ HRESULT m_IDirect3DDeviceX::GetLightEnable(DWORD dwLightIndex, BOOL * pbEnable)
 	if (Config.Dd7to9)
 	{
 		Logging::Log() << __FUNCTION__ << " Not Implemented";
-		return DD_OK;
+		return E_NOTIMPL;
 	}
 
 	return ProxyInterface->GetLightEnable(dwLightIndex, pbEnable);
@@ -1222,7 +1224,7 @@ HRESULT m_IDirect3DDeviceX::SetClipPlane(DWORD dwIndex, D3DVALUE * pPlaneEquatio
 	if (Config.Dd7to9)
 	{
 		Logging::Log() << __FUNCTION__ << " Not Implemented";
-		return DD_OK;
+		return E_NOTIMPL;
 	}
 
 	return ProxyInterface->SetClipPlane(dwIndex, pPlaneEquation);
@@ -1235,7 +1237,7 @@ HRESULT m_IDirect3DDeviceX::GetClipPlane(DWORD dwIndex, D3DVALUE * pPlaneEquatio
 	if (Config.Dd7to9)
 	{
 		Logging::Log() << __FUNCTION__ << " Not Implemented";
-		return DD_OK;
+		return E_NOTIMPL;
 	}
 
 	return ProxyInterface->GetClipPlane(dwIndex, pPlaneEquation);
@@ -1248,7 +1250,7 @@ HRESULT m_IDirect3DDeviceX::GetInfo(DWORD dwDevInfoID, LPVOID pDevInfoStruct, DW
 	if (Config.Dd7to9)
 	{
 		Logging::Log() << __FUNCTION__ << " Not Implemented";
-		return DD_OK;
+		return E_NOTIMPL;
 	}
 
 	return ProxyInterface->GetInfo(dwDevInfoID, pDevInfoStruct, dwSize);

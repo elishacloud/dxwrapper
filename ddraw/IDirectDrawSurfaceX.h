@@ -129,10 +129,16 @@ public:
 			rawVideoBuf = nullptr;
 		}
 
-		if (ddrawParent)
+		if (Config.Dd7to9)
 		{
-			ddrawParent->RemoveSurfaceFromVector(this);
-			ReleaseD9Surface();
+			dd_AcquireDDThreadLock();
+
+			if (ddrawParent)
+			{
+				ddrawParent->RemoveSurfaceFromVector(this);
+			}
+
+			dd_ReleaseDDThreadLock();
 		}
 	}
 
@@ -147,10 +153,12 @@ public:
 	bool IsSurfaceLocked() { return IsLocked; }
 	bool IsPrimarySurface() { return (surfaceDesc2.ddsCaps.dwCaps & DDSCAPS_PRIMARYSURFACE) != 0; }
 	bool NeedsLock() { return !IsLocked && WriteDirectlyToSurface; }
+	void ClearDdraw() { ddrawParent = nullptr; }
 
-	void SwapAddresses(LPVOID *Address1, LPVOID *Address2)
+	template <typename T>
+	void SwapAddresses(T *Address1, T *Address2)
 	{
-		LPVOID tmpAddr = *Address1;
+		T tmpAddr = *Address1;
 		*Address1 = *Address2;
 		*Address2 = tmpAddr;
 	}

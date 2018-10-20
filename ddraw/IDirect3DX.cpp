@@ -176,7 +176,7 @@ HRESULT m_IDirect3DX::EnumDevices7(LPD3DENUMDEVICESCALLBACK7 lpEnumDevicesCallba
 		// Loop through all adapters
 		for (UINT i = 0; i < AdapterCount; i++)
 		{
-			for (D3DDEVTYPE Type : {D3DDEVTYPE_SW, D3DDEVTYPE_HAL, (D3DDEVTYPE)(D3DDEVTYPE_HAL + 0x10)})
+			for (D3DDEVTYPE Type : {D3DDEVTYPE_REF, D3DDEVTYPE_HAL, (D3DDEVTYPE)(D3DDEVTYPE_HAL + 0x10)})
 			{
 				// Get Device Caps
 				D3DCAPS9 Caps9;
@@ -192,7 +192,7 @@ HRESULT m_IDirect3DX::EnumDevices7(LPD3DENUMDEVICESCALLBACK7 lpEnumDevicesCallba
 					LPSTR lpDescription, lpName;
 					switch ((DWORD)Type)
 					{
-					case D3DDEVTYPE_SW:
+					case D3DDEVTYPE_REF:
 						lpDescription = "Microsoft Direct3D RGB Software Emulation";
 						lpName = "RGB Emulation";
 						if (ConverCallback)
@@ -200,11 +200,11 @@ HRESULT m_IDirect3DX::EnumDevices7(LPD3DENUMDEVICESCALLBACK7 lpEnumDevicesCallba
 							GUID deviceGUID = DeviceDesc7.deviceGUID;
 							D3DDEVICEDESC D3DHWDevDesc, D3DHELDevDesc;
 
-							// Get Device Caps D3DDEVTYPE_SW
+							// Get Device Caps D3DDEVTYPE_REF
 							ConvertDeviceDesc(D3DHWDevDesc, DeviceDesc7);
 
 							// Get Device Caps D3DDEVTYPE_HAL
-							if (FAILED(d3d9Object->GetDeviceCaps(i, D3DDEVTYPE_HAL, &Caps9)))
+							if (SUCCEEDED(d3d9Object->GetDeviceCaps(i, D3DDEVTYPE_HAL, &Caps9)))
 							{
 								Caps9.DeviceType = D3DDEVTYPE_HAL;
 								ConvertDeviceDesc(DeviceDesc7, Caps9);
@@ -228,10 +228,10 @@ HRESULT m_IDirect3DX::EnumDevices7(LPD3DENUMDEVICESCALLBACK7 lpEnumDevicesCallba
 							// Get Device Caps D3DDEVTYPE_HAL
 							ConvertDeviceDesc(D3DHELDevDesc, DeviceDesc7);
 
-							// Get Device Caps D3DDEVTYPE_SW
-							if (FAILED(d3d9Object->GetDeviceCaps(i, D3DDEVTYPE_SW, &Caps9)))
+							// Get Device Caps D3DDEVTYPE_REF
+							if (SUCCEEDED(d3d9Object->GetDeviceCaps(i, D3DDEVTYPE_REF, &Caps9)))
 							{
-								Caps9.DeviceType = D3DDEVTYPE_SW;
+								Caps9.DeviceType = D3DDEVTYPE_REF;
 								ConvertDeviceDesc(DeviceDesc7, Caps9);
 								ConvertDeviceDesc(D3DHWDevDesc, DeviceDesc7);
 
@@ -256,6 +256,10 @@ HRESULT m_IDirect3DX::EnumDevices7(LPD3DENUMDEVICESCALLBACK7 lpEnumDevicesCallba
 							return D3D_OK;
 						}
 					}
+				}
+				else
+				{
+					Logging::Log() << __FUNCTION__ << " Error failed to GetCaps!";
 				}
 			}
 		}

@@ -252,7 +252,7 @@ void ConvertDeviceDesc(D3DDEVICEDESC7 &Desc7, D3DCAPS9 &Caps9)
 	memcpy(&Desc7.dpcTriCaps, &Desc7.dpcLineCaps, sizeof(D3DPRIMCAPS));
 
 	// Specific settings
-	if (Caps9.DeviceType == D3DDEVTYPE_SW)
+	if (Caps9.DeviceType == D3DDEVTYPE_REF)
 	{
 		Desc7.deviceGUID = IID_IDirect3DRGBDevice;
 		Desc7.dpcLineCaps.dwStippleWidth = 4;

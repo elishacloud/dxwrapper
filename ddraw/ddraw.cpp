@@ -41,13 +41,30 @@ namespace DdrawWrapper
 
 using namespace DdrawWrapper;
 
+bool IsInitialized = false;
+
+void InitDDraw()
+{
+	InitializeCriticalSection(&ddcs);
+	IsInitialized = true;
+}
+
+void ExitDDraw()
+{
+	IsInitialized = false;
+	DeleteCriticalSection(&ddcs);
+}
+
 void WINAPI dd_AcquireDDThreadLock()
 {
 	Logging::LogDebug() << __FUNCTION__;
 
 	if (Config.Dd7to9)
 	{
-		EnterCriticalSection(&ddcs);
+		if (IsInitialized)
+		{
+			EnterCriticalSection(&ddcs);
+		}
 		return;
 	}
 
@@ -745,7 +762,10 @@ void WINAPI dd_ReleaseDDThreadLock()
 
 	if (Config.Dd7to9)
 	{
-		LeaveCriticalSection(&ddcs);
+		if (IsInitialized)
+		{
+			LeaveCriticalSection(&ddcs);
+		}
 		return;
 	}
 

@@ -90,6 +90,11 @@ public:
 		{
 			UnhookWindowsHookEx(g_hook);
 		}
+
+		if (SurfaceVector.size() != 0)
+		{
+			ReleaseAllD9Surfaces(true);
+		}
 	}
 
 	DWORD GetDirectXVersion() { return DDWRAPPER_TYPEX; }
@@ -205,7 +210,7 @@ public:
 	/*** Helper functions ***/
 	HRESULT CreateD3DDevice();
 	HRESULT ReinitDevice();
-	void ReleaseAllD9Surfaces();
+	void ReleaseAllD9Surfaces(bool ClearDDraw = false);
 	void ReleaseD3d9Device();
 	void ReleaseD3d9();
 	void AddSurfaceToVector(m_IDirectDrawSurfaceX* lpSurfaceX);

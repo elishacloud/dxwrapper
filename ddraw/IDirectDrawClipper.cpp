@@ -79,7 +79,7 @@ HRESULT m_IDirectDrawClipper::GetClipList(LPRECT lpRect, LPRGNDATA lpClipList, L
 	if (!ProxyInterface)
 	{
 		Logging::Log() << __FUNCTION__ << " Not Implemented";
-		return DDERR_GENERIC;
+		return E_NOTIMPL;
 	}
 
 	return ProxyInterface->GetClipList(lpRect, lpClipList, lpdwSize);
@@ -141,7 +141,7 @@ HRESULT m_IDirectDrawClipper::IsClipListChanged(BOOL FAR * lpbChanged)
 
 		// lpbChanged is TRUE if the clip list has changed, and FALSE otherwise.
 
-		return DDERR_GENERIC;
+		return E_NOTIMPL;
 	}
 
 	return ProxyInterface->IsClipListChanged(lpbChanged);
@@ -171,7 +171,7 @@ HRESULT m_IDirectDrawClipper::SetClipList(LPRGNDATA lpClipList, DWORD dwFlags)
 			// Set clip list to lpClipList
 		}
 
-		return DDERR_GENERIC;
+		return E_NOTIMPL;
 	}
 
 	return ProxyInterface->SetClipList(lpClipList, dwFlags);

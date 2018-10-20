@@ -293,6 +293,7 @@ bool APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 				// Load d3d9 functions
 				HMODULE dll = LoadLibrary(dtypename[dtype.d3d9]);
 				DdrawWrapper::Direct3DCreate9 = Utils::GetProcAddress(dll, "Direct3DCreate9", DdrawWrapper::Direct3DCreate9);
+				InitDDraw();
 			}
 		}
 
@@ -514,6 +515,12 @@ bool APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 		if (Config.DSoundCtrl)
 		{
 			DllMain_DSoundCtrl(nullptr, DLL_PROCESS_DETACH, nullptr);
+		}
+
+		// Unload DdrawWrapper
+		if (Config.D3d8to9)
+		{
+			ExitDDraw();
 		}
 
 		// Unhook all APIs

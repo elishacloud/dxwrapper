@@ -86,6 +86,11 @@ ULONG m_IDirectDrawSurfaceX::Release()
 
 	if (ref == 0)
 	{
+		if (Config.Dd7to9)
+		{
+			ReleaseD9Surface();
+		}
+
 		if (WrapperInterface)
 		{
 			WrapperInterface->DeleteMe();
@@ -594,18 +599,18 @@ HRESULT m_IDirectDrawSurfaceX::EnumOverlayZOrders2(DWORD dwFlags, LPVOID lpConte
 void m_IDirectDrawSurfaceX::SwapSurface(m_IDirectDrawSurfaceX *lpTargetSurface1, m_IDirectDrawSurfaceX *lpTargetSurface2)
 {
 	// Swap textures
-	SwapAddresses((LPVOID*)lpTargetSurface1->GetSurfaceTexture(), (LPVOID*)lpTargetSurface2->GetSurfaceTexture());
+	SwapAddresses(lpTargetSurface1->GetSurfaceTexture(), lpTargetSurface2->GetSurfaceTexture());
 
 	// Swap Palletes
 	if (*lpTargetSurface1->GetPallete() && *lpTargetSurface2->GetPallete())
 	{
-		SwapAddresses((LPVOID*)lpTargetSurface1->GetPallete(), (LPVOID*)lpTargetSurface2->GetPallete());
+		SwapAddresses(lpTargetSurface1->GetPallete(), lpTargetSurface2->GetPallete());
 	}
 
 	// Swap Video Memory
 	if (*lpTargetSurface1->GetRawVideoMemory() && *lpTargetSurface2->GetRawVideoMemory())
 	{
-		SwapAddresses((LPVOID*)lpTargetSurface1->GetRawVideoMemory(), (LPVOID*)lpTargetSurface2->GetRawVideoMemory());
+		SwapAddresses(lpTargetSurface1->GetRawVideoMemory(), lpTargetSurface2->GetRawVideoMemory());
 	}
 }
 
@@ -633,7 +638,7 @@ HRESULT m_IDirectDrawSurfaceX::Flip(LPDIRECTDRAWSURFACE7 lpDDSurfaceTargetOverri
 		if (!IsPrimarySurface())
 		{
 			Logging::Log() << __FUNCTION__ << " Non-primary surface Flip not implimented";
-			return DDERR_GENERIC;
+			return E_NOTIMPL;
 		}
 
 		// Unneeded flags (can be safely ignored?)
@@ -680,7 +685,7 @@ HRESULT m_IDirectDrawSurfaceX::Flip(LPDIRECTDRAWSURFACE7 lpDDSurfaceTargetOverri
 			if (dwFlags & DDFLIP_STEREO)
 			{
 				Logging::Log() << __FUNCTION__ << " Stereo flipping not implemented";
-				return E_NOTIMPL;
+				return DDERR_NOSTEREOHARDWARE;
 			}
 
 			if (dwFlags & (DDFLIP_ODD | DDFLIP_EVEN))
@@ -1701,6 +1706,9 @@ HRESULT m_IDirectDrawSurfaceX::GetDDInterface(LPVOID FAR * lplpDD)
 			return DDERR_GENERIC;
 		}
 
+		// AddRef to ddraw
+		ddrawParent->AddRef();
+
 		// Set lplpDD to directdraw object that created this surface
 		*lplpDD = ddrawParent;
 
@@ -2287,6 +2295,12 @@ void m_IDirectDrawSurfaceX::ReleaseD9Surface()
 	// Release d3d9 surface
 	if (surfaceTexture)
 	{
+		// Unlock surface
+		if (IsLocked)
+		{
+			surfaceTexture->UnlockRect(0);
+		}
+
 		DWORD x = 0, z = 0;
 		do
 		{
@@ -2322,6 +2336,9 @@ void m_IDirectDrawSurfaceX::ReleaseD9Surface()
 
 	// Set surface video buffer to nullptr
 	d3dlrect.pBits = nullptr;
+
+	// Set unlock
+	IsLocked = false;
 }
 
 // Check surface reck dimensions and copy rect to new rect
@@ -2877,7 +2894,7 @@ HRESULT m_IDirectDrawSurfaceX::CopyRectColorKey(D3DLOCKED_RECT *pDestLockRect, R
 	if (DestFormat != SrcFormat)
 	{
 		Logging::Log() << __FUNCTION__ << " Different source and destination formats not implemented";
-		return DDERR_GENERIC;
+		return E_NOTIMPL;
 	}
 
 	// Get width and height of rect
@@ -2920,7 +2937,7 @@ HRESULT m_IDirectDrawSurfaceX::CopyRectColorKey(D3DLOCKED_RECT *pDestLockRect, R
 	}
 	default: // Unsupported surface bit count
 		Logging::Log() << __FUNCTION__ << " Not implemented bit count " << DestBitCount;
-		return DDERR_GENERIC;
+		return E_NOTIMPL;
 	}
 
 	// Return
@@ -2948,7 +2965,7 @@ HRESULT m_IDirectDrawSurfaceX::StretchRect(D3DLOCKED_RECT *pDestLockRect, RECT *
 	if (DestFormat != SrcFormat)
 	{
 		Logging::Log() << __FUNCTION__ << " Different source and destination formats not implemented";
-		return DDERR_GENERIC;
+		return E_NOTIMPL;
 	}
 
 	// Get width and height of rect
@@ -2984,7 +3001,7 @@ HRESULT m_IDirectDrawSurfaceX::StretchRect(D3DLOCKED_RECT *pDestLockRect, RECT *
 	}
 	default: // Unsupported surface bit count
 		Logging::Log() << __FUNCTION__ << " Not implemented bit count " << DestBitCount;
-		return DDERR_GENERIC;
+		return E_NOTIMPL;
 	}
 
 	// Return

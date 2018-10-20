@@ -25,6 +25,9 @@ void WINAPI dd_RegisterSpecialCase();
 void WINAPI dd_ReleaseDDThreadLock();
 HRESULT WINAPI dd_SetAppCompatData(DWORD Type, DWORD Value);
 
+void InitDDraw();
+void ExitDDraw();
+
 #define DECLARE_IN_WRAPPED_PROC(procName, unused) \
 	const FARPROC procName ## _in = (FARPROC)*dd_ ## procName;
 

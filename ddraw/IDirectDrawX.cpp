@@ -132,7 +132,6 @@ ULONG m_IDirectDrawX::Release()
 	{
 		if (Config.Dd7to9)
 		{
-			// ToDo: Release all m_Direct3DX objects.
 			ReleaseD3d9();
 		}
 
@@ -554,7 +553,7 @@ HRESULT m_IDirectDrawX::GetCaps(LPDDCAPS lpDDDriverCaps, LPDDCAPS lpDDHELCaps)
 		D3DCAPS9 Caps9;
 		if (lpDDDriverCaps)
 		{
-			hr = d3d9Object->GetDeviceCaps(D3DADAPTER_DEFAULT, D3DDEVTYPE_SW, &Caps9);
+			hr = d3d9Object->GetDeviceCaps(D3DADAPTER_DEFAULT, D3DDEVTYPE_REF, &Caps9);
 			ConvertCaps(DriverCaps, Caps9);
 		}
 
@@ -579,6 +578,10 @@ HRESULT m_IDirectDrawX::GetCaps(LPDDCAPS lpDDDriverCaps, LPDDCAPS lpDDHELCaps)
 		{
 			ConvertCaps(*lpDDHELCaps, HELCaps);
 		}
+	}
+	else
+	{
+		Logging::Log() << __FUNCTION__ << " Error failed to GetCaps!";
 	}
 
 	return hr;
@@ -1349,19 +1352,38 @@ HRESULT m_IDirectDrawX::ReinitDevice()
 }
 
 // Release all d3d9 surfaces
-void m_IDirectDrawX::ReleaseAllD9Surfaces()
+void m_IDirectDrawX::ReleaseAllD9Surfaces(bool ClearDDraw)
 {
+	dd_AcquireDDThreadLock();
+
 	for (m_IDirectDrawSurfaceX *pSurface : SurfaceVector)
 	{
+		if (ClearDDraw)
+		{
+			pSurface->ClearDdraw();
+		}
 		pSurface->ReleaseD9Surface();
 	}
+	if (ClearDDraw)
+	{
+		SurfaceVector.clear();
+	}
+
+	dd_ReleaseDDThreadLock();
 }
 
 // Release all d3d9 classes for Release()
 void m_IDirectDrawX::ReleaseD3d9Device()
 {
+	// Release device
 	if (d3d9Device)
 	{
+		// EndEcene
+		if (IsInScene)
+		{
+			d3d9Device->EndScene();
+		}
+
 		DWORD x = 0, z = 0;
 		do
 		{
@@ -1376,13 +1398,18 @@ void m_IDirectDrawX::ReleaseD3d9Device()
 
 		d3d9Device = nullptr;
 	}
+
+	// Set is not in scene
+	IsInScene = false;
 }
 
 // Release all d3d9 classes for Release()
 void m_IDirectDrawX::ReleaseD3d9()
 {
+	// ToDo: Release all m_Direct3DX objects.
+
 	// Release existing surfaces
-	ReleaseAllD9Surfaces();
+	ReleaseAllD9Surfaces(true);
 
 	// Release existing d3d9device
 	ReleaseD3d9Device();
