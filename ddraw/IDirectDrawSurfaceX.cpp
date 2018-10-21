@@ -177,13 +177,6 @@ HRESULT m_IDirectDrawSurfaceX::Blt(LPRECT lpDestRect, LPDIRECTDRAWSURFACE7 lpDDS
 			return DDERR_INVALIDPARAMS;
 		}
 
-		// Check for device
-		if (!ddrawParent)
-		{
-			Logging::Log() << __FUNCTION__ << " Error no ddraw parent!";
-			return DDERR_GENERIC;
-		}
-
 		// Check for DDROP flag
 		if (dwFlags & DDBLT_DDROPS)
 		{
@@ -239,6 +232,20 @@ HRESULT m_IDirectDrawSurfaceX::Blt(LPRECT lpDestRect, LPDIRECTDRAWSURFACE7 lpDDS
 		// DDBLT_DONOTWAIT
 		// DDBLT_WAIT
 		// DDBLTFX_NOTEARING
+
+		// Check for device
+		if (!ddrawParent)
+		{
+			Logging::Log() << __FUNCTION__ << " Error no ddraw parent!";
+			return DDERR_GENERIC;
+		}
+
+		// Make sure surface exists, if not then create it
+		if (!CheckD3d9Surface())
+		{
+			Logging::Log() << __FUNCTION__ << " Error surface does not exist!";
+			return DDERR_GENERIC;
+		}
 
 		// Check if source Surface exists
 		m_IDirectDrawSurfaceX *lpDDSrcSurfaceX = (m_IDirectDrawSurfaceX*)lpDDSrcSurface;
@@ -2344,6 +2351,13 @@ void m_IDirectDrawSurfaceX::ReleaseD9Surface()
 // Check surface reck dimensions and copy rect to new rect
 bool m_IDirectDrawSurfaceX::FixRect(LPRECT lpOutRect, LPRECT lpInRect)
 {
+	// Make sure surface exists, if not then create it
+	if (!CheckD3d9Surface())
+	{
+		Logging::Log() << __FUNCTION__ << " Error surface does not exist!";
+		return false;
+	}
+
 	if (lpInRect)
 	{
 		memcpy(lpOutRect, lpInRect, sizeof(RECT));
@@ -2393,9 +2407,9 @@ bool m_IDirectDrawSurfaceX::FixRect(LPRECT lpOutRect, LPRECT lpInRect)
 HRESULT m_IDirectDrawSurfaceX::SetLock(LPRECT lpDestRect, DWORD dwFlags, bool SkipBeginScene)
 {
 	// Check for device
-	if (!ddrawParent)
+	if (!d3d9Device || !*d3d9Device || !ddrawParent)
 	{
-		Logging::Log() << __FUNCTION__ << " Error no ddraw parent!";
+		Logging::Log() << __FUNCTION__ << " D3d9 Device not setup.";
 		return DDERR_GENERIC;
 	}
 
@@ -2430,17 +2444,17 @@ HRESULT m_IDirectDrawSurfaceX::SetLock(LPRECT lpDestRect, DWORD dwFlags, bool Sk
 // Unlock the d3d9 surface
 HRESULT m_IDirectDrawSurfaceX::SetUnLock(bool SkipEndSceneFlag)
 {
-	// Make sure surface exists, if not then create it
-	if (!CheckD3d9Surface())
-	{
-		Logging::Log() << __FUNCTION__ << " Error surface does not exist!";
-		return DDERR_GENERIC;
-	}
-
 	// Check for device
 	if (!ddrawParent)
 	{
 		Logging::Log() << __FUNCTION__ << " Error no ddraw parent!";
+		return DDERR_GENERIC;
+	}
+
+	// Make sure surface exists, if not then create it
+	if (!CheckD3d9Surface())
+	{
+		Logging::Log() << __FUNCTION__ << " Error surface does not exist!";
 		return DDERR_GENERIC;
 	}
 
@@ -2471,6 +2485,13 @@ HRESULT m_IDirectDrawSurfaceX::SetUnLock(bool SkipEndSceneFlag)
 // Get LOCKED_RECT, BitCount and Format for the surface
 HRESULT m_IDirectDrawSurfaceX::GetSurfaceInfo(D3DLOCKED_RECT *pLockRect, DWORD *lpBitCount, D3DFORMAT *lpFormat)
 {
+	// Make sure surface exists, if not then create it
+	if (!CheckD3d9Surface())
+	{
+		Logging::Log() << __FUNCTION__ << " Error surface does not exist!";
+		return DDERR_GENERIC;
+	}
+
 	if (pLockRect)
 	{
 		if (NeedsLock())

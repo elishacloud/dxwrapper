@@ -267,15 +267,6 @@ HRESULT m_IDirectDrawX::CreateSurface2(LPDDSURFACEDESC2 lpDDSurfaceDesc2, LPDIRE
 			return DDERR_INVALIDPARAMS;
 		}
 
-		// Create the requested d3d device for this display mode
-		if (!d3d9Device && isWindowed)
-		{
-			if (FAILED(CreateD3DDevice()))
-			{
-				Logging::LogDebug() << __FUNCTION__ << " Error creating Direct3D9 Device";
-			}
-		}
-
 		*lplpDDSurface = new m_IDirectDrawSurfaceX(&d3d9Device, this, DirectXVersion, lpDDSurfaceDesc2, displayWidth, displayHeight);
 
 		return DD_OK;

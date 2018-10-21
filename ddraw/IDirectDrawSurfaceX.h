@@ -73,16 +73,10 @@ public:
 		ProxyInterface = nullptr;
 		WrapperInterface = nullptr;
 
-		InitWrapper();
-
 		// Copy surface description
 		memcpy(&surfaceDesc2, lpDDSurfaceDesc, sizeof(DDSURFACEDESC2));
 
-		// Create Surface for d3d9
-		if (d3d9Device)
-		{
-			CreateD3d9Surface();
-		}
+		InitWrapper();
 
 		// Store surface
 		if (ddrawParent)

@@ -287,12 +287,9 @@ bool APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 				Config.DDrawCompat = DDrawCompat::Start(hModule_dll, DLL_PROCESS_ATTACH);
 			}
 
-			// Redirect DdrawWrapper -> d3d9
+			// Start Dd7to9
 			if (Config.Dd7to9)
 			{
-				// Load d3d9 functions
-				HMODULE dll = LoadLibrary(dtypename[dtype.d3d9]);
-				DdrawWrapper::Direct3DCreate9 = Utils::GetProcAddress(dll, "Direct3DCreate9", DdrawWrapper::Direct3DCreate9);
 				InitDDraw();
 			}
 		}
@@ -316,16 +313,10 @@ bool APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 				Logging::Log() << "Hooking d3d8.dll APIs...";
 				Hook::HookAPI(dll, dtypename[dtype.d3d8], Hook::GetProcAddress(dll, "Direct3DCreate8"), "Direct3DCreate8", D3d8Wrapper::Direct3DCreate8_in);
 			}
-
-			// Load d3d9 functions
-			HMODULE dll = LoadLibrary(dtypename[dtype.d3d9]);
-			d3d8::Direct3D8EnableMaximizedWindowedModeShim_var = Utils::GetProcAddress(dll, "Direct3D9EnableMaximizedWindowedModeShim", d3d8::Direct3D8EnableMaximizedWindowedModeShim_var);
-			ShardProcs::DebugSetMute_var = Utils::GetProcAddress(dll, "DebugSetMute", ShardProcs::DebugSetMute_var);
-			D3d8Wrapper::Direct3DCreate9 = Utils::GetProcAddress(dll, "Direct3DCreate9", D3d8Wrapper::Direct3DCreate9);
 		}
 
 		// Start d3d9.dll module
-		if (Config.isD3d9WrapperEnabled)
+		if (Config.isD3d9WrapperEnabled || Config.D3d8to9 || Config.Dd7to9)
 		{
 			Logging::Log() << "Enabling d3d9 wrapper";
 
@@ -343,9 +334,12 @@ bool APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 				}
 
 				// Hook d3d9.dll -> D3d9Wrapper
-				Logging::Log() << "Hooking d3d9.dll APIs...";
-				Direct3DCreate9_var = (FARPROC)Hook::HookAPI(dll, dtypename[dtype.d3d9], Hook::GetProcAddress(dll, "Direct3DCreate9"), "Direct3DCreate9", Direct3DCreate9_in);
-				Direct3DCreate9Ex_var = (FARPROC)Hook::HookAPI(dll, dtypename[dtype.d3d9], Hook::GetProcAddress(dll, "Direct3DCreate9Ex"), "Direct3DCreate9Ex", Direct3DCreate9Ex_in);
+				if (Config.isD3d9WrapperEnabled)
+				{
+					Logging::Log() << "Hooking d3d9.dll APIs...";
+					Direct3DCreate9_var = (FARPROC)Hook::HookAPI(dll, dtypename[dtype.d3d9], Hook::GetProcAddress(dll, "Direct3DCreate9"), "Direct3DCreate9", Direct3DCreate9_in);
+					Direct3DCreate9Ex_var = (FARPROC)Hook::HookAPI(dll, dtypename[dtype.d3d9], Hook::GetProcAddress(dll, "Direct3DCreate9Ex"), "Direct3DCreate9Ex", Direct3DCreate9Ex_in);
+				}
 			}
 
 			// Redirect d3d8to9 -> D3d9Wrapper

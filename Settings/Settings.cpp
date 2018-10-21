@@ -560,8 +560,7 @@ void CONFIG::Init()
 
 	DDrawCompat = (DDrawCompat || DDrawCompat20 || DDrawCompat21 || DDrawCompatExperimental);
 	isDdrawWrapperEnabled = (EnableDdrawWrapper || ConvertToDirectDraw7 || ConvertToDirect3D7);
-	D3d8to9 = (D3d8to9 || AntiAliasing || EnableVSync || EnableWindowMode);
-	isD3d9WrapperEnabled = (isDdrawWrapperEnabled || AntiAliasing || CacheClipPlane || EnableVSync || EnableWindowMode);
+	isD3d9WrapperEnabled = (AntiAliasing || CacheClipPlane || EnableVSync || EnableWindowMode);
 
 	// Enable clip plane caching by default
 	if (CacheClipPlaneNotSet)
