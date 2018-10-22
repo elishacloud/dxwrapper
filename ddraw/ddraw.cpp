@@ -345,26 +345,11 @@ HRESULT WINAPI dd_DirectDrawCreateEx(GUID FAR *lpGUID, LPVOID *lplpDD, REFIID ri
 			return DDERR_GENERIC;
 		}
 
-		if (riid == IID_IDirectDraw)
-		{
-			*lplpDD = ProxyAddressLookupTable.FindAddress<m_IDirectDraw>(d3d9Object);
-		}
-		else if (riid == IID_IDirectDraw2)
-		{
-			*lplpDD = ProxyAddressLookupTable.FindAddress<m_IDirectDraw2>(d3d9Object);
-		}
-		else if (riid == IID_IDirectDraw3)
-		{
-			*lplpDD = ProxyAddressLookupTable.FindAddress<m_IDirectDraw3>(d3d9Object);
-		}
-		else if (riid == IID_IDirectDraw4)
-		{
-			*lplpDD = ProxyAddressLookupTable.FindAddress<m_IDirectDraw4>(d3d9Object);
-		}
-		else
-		{
-			*lplpDD = ProxyAddressLookupTable.FindAddress<m_IDirectDraw7>(d3d9Object);
-		}
+		DWORD DxVersion = GetIIDVersion(riid);
+
+		m_IDirectDrawX *p_IDirectDrawX = new m_IDirectDrawX((IDirectDraw7*)d3d9Object, DxVersion, nullptr);
+
+		*lplpDD = p_IDirectDrawX->GetWrapperInterfaceX(DxVersion);
 
 		// Success
 		return DD_OK;

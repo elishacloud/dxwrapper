@@ -18,7 +18,7 @@
 
 HRESULT m_IDirectDraw4::QueryInterface(REFIID riid, LPVOID FAR * ppvObj)
 {
-	return ProxyInterface->QueryInterface(riid, ppvObj);
+	return ProxyInterface->QueryInterface(riid, ppvObj, DirectXVersion);
 }
 
 ULONG m_IDirectDraw4::AddRef()
@@ -48,22 +48,22 @@ HRESULT m_IDirectDraw4::CreatePalette(DWORD a, LPPALETTEENTRY b, LPDIRECTDRAWPAL
 
 HRESULT m_IDirectDraw4::CreateSurface(LPDDSURFACEDESC2 a, LPDIRECTDRAWSURFACE4 FAR * b, IUnknown FAR * c)
 {
-	return ProxyInterface->CreateSurface(a, (LPDIRECTDRAWSURFACE7*)b, c);
+	return ProxyInterface->CreateSurface2(a, (LPDIRECTDRAWSURFACE7*)b, c, DirectXVersion);
 }
 
 HRESULT m_IDirectDraw4::DuplicateSurface(LPDIRECTDRAWSURFACE4 a, LPDIRECTDRAWSURFACE4 FAR * b)
 {
-	return ProxyInterface->DuplicateSurface((LPDIRECTDRAWSURFACE7)a, (LPDIRECTDRAWSURFACE7*)b);
+	return ProxyInterface->DuplicateSurface((LPDIRECTDRAWSURFACE7)a, (LPDIRECTDRAWSURFACE7*)b, DirectXVersion);
 }
 
 HRESULT m_IDirectDraw4::EnumDisplayModes(DWORD a, LPDDSURFACEDESC2 b, LPVOID c, LPDDENUMMODESCALLBACK2 d)
 {
-	return ProxyInterface->EnumDisplayModes(a, b, c, d);
+	return ProxyInterface->EnumDisplayModes2(a, b, c, d);
 }
 
 HRESULT m_IDirectDraw4::EnumSurfaces(DWORD a, LPDDSURFACEDESC2 b, LPVOID c, LPDDENUMSURFACESCALLBACK2 d)
 {
-	return ProxyInterface->EnumSurfaces(a, b, c, (LPDDENUMSURFACESCALLBACK7)d);
+	return ProxyInterface->EnumSurfaces2(a, b, c, (LPDDENUMSURFACESCALLBACK7)d, DirectXVersion);
 }
 
 HRESULT m_IDirectDraw4::FlipToGDISurface()
@@ -78,7 +78,7 @@ HRESULT m_IDirectDraw4::GetCaps(LPDDCAPS a, LPDDCAPS b)
 
 HRESULT m_IDirectDraw4::GetDisplayMode(LPDDSURFACEDESC2 a)
 {
-	return ProxyInterface->GetDisplayMode(a);
+	return ProxyInterface->GetDisplayMode2(a);
 }
 
 HRESULT m_IDirectDraw4::GetFourCCCodes(LPDWORD a, LPDWORD b)
@@ -88,7 +88,7 @@ HRESULT m_IDirectDraw4::GetFourCCCodes(LPDWORD a, LPDWORD b)
 
 HRESULT m_IDirectDraw4::GetGDISurface(LPDIRECTDRAWSURFACE4 FAR * a)
 {
-	return ProxyInterface->GetGDISurface((LPDIRECTDRAWSURFACE7*)a);
+	return ProxyInterface->GetGDISurface((LPDIRECTDRAWSURFACE7*)a, DirectXVersion);
 }
 
 HRESULT m_IDirectDraw4::GetMonitorFrequency(LPDWORD a)
@@ -133,12 +133,12 @@ HRESULT m_IDirectDraw4::WaitForVerticalBlank(DWORD a, HANDLE b)
 
 HRESULT m_IDirectDraw4::GetAvailableVidMem(LPDDSCAPS2 a, LPDWORD b, LPDWORD c)
 {
-	return ProxyInterface->GetAvailableVidMem(a, b, c);
+	return ProxyInterface->GetAvailableVidMem2(a, b, c);
 }
 
 HRESULT m_IDirectDraw4::GetSurfaceFromDC(HDC a, LPDIRECTDRAWSURFACE4 * b)
 {
-	return ProxyInterface->GetSurfaceFromDC(a, (LPDIRECTDRAWSURFACE7*)b);
+	return ProxyInterface->GetSurfaceFromDC(a, (LPDIRECTDRAWSURFACE7*)b, DirectXVersion);
 }
 
 HRESULT m_IDirectDraw4::RestoreAllSurfaces()

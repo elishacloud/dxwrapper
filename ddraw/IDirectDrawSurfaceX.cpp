@@ -1717,7 +1717,7 @@ HRESULT m_IDirectDrawSurfaceX::GetDDInterface(LPVOID FAR * lplpDD)
 		ddrawParent->AddRef();
 
 		// Set lplpDD to directdraw object that created this surface
-		*lplpDD = ddrawParent;
+		*lplpDD = ddrawParent->GetWrapperInterfaceX(DirectXVersion);
 
 		return DD_OK;
 	}

@@ -18,7 +18,7 @@
 
 HRESULT m_IDirectDraw::QueryInterface(REFIID riid, LPVOID FAR * ppvObj)
 {
-	return ProxyInterface->QueryInterface(riid, ppvObj);
+	return ProxyInterface->QueryInterface(riid, ppvObj, DirectXVersion);
 }
 
 ULONG m_IDirectDraw::AddRef()
@@ -48,12 +48,12 @@ HRESULT m_IDirectDraw::CreatePalette(DWORD a, LPPALETTEENTRY b, LPDIRECTDRAWPALE
 
 HRESULT m_IDirectDraw::CreateSurface(LPDDSURFACEDESC a, LPDIRECTDRAWSURFACE FAR * b, IUnknown FAR * c)
 {
-	return ProxyInterface->CreateSurface(a, (LPDIRECTDRAWSURFACE7*)b, c);
+	return ProxyInterface->CreateSurface(a, (LPDIRECTDRAWSURFACE7*)b, c, DirectXVersion);
 }
 
 HRESULT m_IDirectDraw::DuplicateSurface(LPDIRECTDRAWSURFACE a, LPDIRECTDRAWSURFACE FAR * b)
 {
-	return ProxyInterface->DuplicateSurface((LPDIRECTDRAWSURFACE7)a, (LPDIRECTDRAWSURFACE7*)b);
+	return ProxyInterface->DuplicateSurface((LPDIRECTDRAWSURFACE7)a, (LPDIRECTDRAWSURFACE7*)b, DirectXVersion);
 }
 
 HRESULT m_IDirectDraw::EnumDisplayModes(DWORD a, LPDDSURFACEDESC b, LPVOID c, LPDDENUMMODESCALLBACK d)
@@ -63,7 +63,7 @@ HRESULT m_IDirectDraw::EnumDisplayModes(DWORD a, LPDDSURFACEDESC b, LPVOID c, LP
 
 HRESULT m_IDirectDraw::EnumSurfaces(DWORD a, LPDDSURFACEDESC b, LPVOID c, LPDDENUMSURFACESCALLBACK d)
 {
-	return ProxyInterface->EnumSurfaces(a, b, c, d);
+	return ProxyInterface->EnumSurfaces(a, b, c, d, DirectXVersion);
 }
 
 HRESULT m_IDirectDraw::FlipToGDISurface()
@@ -88,7 +88,7 @@ HRESULT m_IDirectDraw::GetFourCCCodes(LPDWORD a, LPDWORD b)
 
 HRESULT m_IDirectDraw::GetGDISurface(LPDIRECTDRAWSURFACE FAR * a)
 {
-	return ProxyInterface->GetGDISurface((LPDIRECTDRAWSURFACE7*)a);
+	return ProxyInterface->GetGDISurface((LPDIRECTDRAWSURFACE7*)a, DirectXVersion);
 }
 
 HRESULT m_IDirectDraw::GetMonitorFrequency(LPDWORD a)

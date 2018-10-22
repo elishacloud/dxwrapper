@@ -3,25 +3,32 @@
 class m_IDirectDraw2 : public IDirectDraw2, public AddressLookupTableDdrawObject
 {
 private:
-	std::unique_ptr<m_IDirectDrawX> ProxyInterface;
+	std::unique_ptr<m_IDirectDrawX> UniqueProxyInterface;
+	m_IDirectDrawX *ProxyInterface;
 	IDirectDraw2 *RealInterface;
 	REFIID WrapperID = IID_IDirectDraw2;
+	const DWORD DirectXVersion = 2;
 
 public:
 	m_IDirectDraw2(IDirectDraw2 *aOriginal) : RealInterface(aOriginal)
 	{
-		ProxyInterface = std::make_unique<m_IDirectDrawX>((IDirectDraw7*)RealInterface, 2, (m_IDirectDraw7*)this);
+		UniqueProxyInterface = std::make_unique<m_IDirectDrawX>((IDirectDraw7*)RealInterface, DirectXVersion, (m_IDirectDraw7*)this);
+		ProxyInterface = UniqueProxyInterface.get();
 		ProxyAddressLookupTable.SaveAddress(this, RealInterface);
+	}
+	m_IDirectDraw2(m_IDirectDrawX *aOriginal) : ProxyInterface(aOriginal)
+	{
+		RealInterface = nullptr;
 	}
 	~m_IDirectDraw2()
 	{
 		ProxyAddressLookupTable.DeleteAddress(this);
 	}
 
-	DWORD GetDirectXVersion() { return 2; }
+	DWORD GetDirectXVersion() { return DirectXVersion; }
 	REFIID GetWrapperType() { return WrapperID; }
 	IDirectDraw2 *GetProxyInterface() { return RealInterface; }
-	m_IDirectDrawX *GetWrapperInterface() { return ProxyInterface.get(); }
+	m_IDirectDrawX *GetWrapperInterface() { return ProxyInterface; }
 
 	/*** IUnknown methods ***/
 	STDMETHOD(QueryInterface) (THIS_ REFIID riid, LPVOID FAR * ppvObj);

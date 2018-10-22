@@ -385,29 +385,8 @@ HRESULT m_IDirect3DX::CreateDevice(REFCLSID rclsid, LPDIRECTDRAWSURFACE7 lpDDS, 
 
 	if (Config.Dd7to9)
 	{
-		if (!lplpD3DDevice)
-		{
-			return DDERR_INVALIDPARAMS;
-		}
-
-		if (DirectXVersion == 1)
-		{
-			*lplpD3DDevice = (LPDIRECT3DDEVICE7)new m_IDirect3DDevice((m_IDirect3DDevice *)ddrawParent);
-		}
-		else if (DirectXVersion == 2)
-		{
-			*lplpD3DDevice = (LPDIRECT3DDEVICE7)new m_IDirect3DDevice2((m_IDirect3DDevice2 *)ddrawParent);
-		}
-		else if (DirectXVersion == 3)
-		{
-			*lplpD3DDevice = (LPDIRECT3DDEVICE7)new m_IDirect3DDevice3((m_IDirect3DDevice3 *)ddrawParent);
-		}
-		else
-		{
-			*lplpD3DDevice = new m_IDirect3DDevice7((m_IDirect3DDevice7 *)ddrawParent);
-		}
-
-		return DD_OK;
+		Logging::Log() << __FUNCTION__ << " Not Implemented";
+		return E_NOTIMPL;
 	}
 
 	if (lpDDS)
@@ -453,7 +432,7 @@ HRESULT m_IDirect3DX::CreateVertexBuffer(LPD3DVERTEXBUFFERDESC lpVBDesc, LPDIREC
 	else
 	{
 		hr = ProxyInterface->CreateVertexBuffer(lpVBDesc, lplpD3DVertexBuffer, dwFlags);
-	}	
+	}
 
 	if (SUCCEEDED(hr) && lplpD3DVertexBuffer)
 	{
