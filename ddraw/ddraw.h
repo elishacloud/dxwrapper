@@ -92,7 +92,7 @@ void AddRef(void *lpvObj);
 HRESULT ProxyQueryInterface(LPVOID ProxyInterface, REFIID CalledID, LPVOID * ppvObj, REFIID CallerID, LPVOID WrapperInterface);
 void genericQueryInterface(REFIID riid, LPVOID * ppvObj);
 extern AddressLookupTableDdraw<void> ProxyAddressLookupTable;
-extern m_IDirectDrawX *CurrentDDInterface;
+extern m_IDirectDrawX *lpCurrentDDInterface;
 extern m_IDirect3DDeviceX *lpCurrentD3DDevice;
 
 // IClassFactory Wrapper

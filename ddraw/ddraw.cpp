@@ -24,7 +24,7 @@
 
 AddressLookupTableDdraw<void> ProxyAddressLookupTable = AddressLookupTableDdraw<void>();
 m_IDirect3DDeviceX *lpCurrentD3DDevice = nullptr;
-m_IDirectDrawX *CurrentDDInterface = nullptr;
+m_IDirectDrawX *lpCurrentDDInterface = nullptr;
 
 CRITICAL_SECTION ddcs;
 
@@ -36,7 +36,7 @@ namespace DdrawWrapper
 	VISIT_PROCS_DDRAW(INITIALIZE_WRAPPED_PROC);
 	FARPROC DllCanUnloadNow_out = nullptr;
 	FARPROC DllGetClassObject_out = nullptr;
-	FARPROC Direct3DCreate9;
+	FARPROC Direct3DCreate9 = nullptr;
 }
 
 using namespace DdrawWrapper;

@@ -51,24 +51,23 @@ HRESULT m_IDirectDrawX::QueryInterface(REFIID riid, LPVOID FAR * ppvObj, DWORD D
 		}
 		if ((riid == IID_IDirect3D || riid == IID_IDirect3D2 || riid == IID_IDirect3D3 || riid == IID_IDirect3D7) && ppvObj)
 		{
-			if (riid == IID_IDirect3D)
+			DWORD DxVersion = GetIIDVersion(riid);
+
+			if (D3DInterface)
 			{
-				*ppvObj = new m_IDirect3D((IDirect3D *)this);
-			}
-			else if (riid == IID_IDirect3D2)
-			{
-				*ppvObj = new m_IDirect3D2((IDirect3D2 *)this);
-			}
-			else if (riid == IID_IDirect3D3)
-			{
-				*ppvObj = new m_IDirect3D3((IDirect3D3 *)this);
+				*ppvObj = D3DInterface->GetWrapperInterfaceX(DxVersion);
+
+				::AddRef(*ppvObj);
 			}
 			else
 			{
-				*ppvObj = new m_IDirect3D7((IDirect3D7 *)this);
+				m_IDirect3DX *p_IDirect3DX = new m_IDirect3DX((IDirect3D7*)this, DxVersion, nullptr);
+
+				*ppvObj = p_IDirect3DX->GetWrapperInterfaceX(DxVersion);
+
+				D3DInterface = p_IDirect3DX;
 			}
 
-			// Success
 			return S_OK;
 		}
 	}
@@ -1411,7 +1410,7 @@ LRESULT CALLBACK CBTProc(int nCode, WPARAM wParam, LPARAM lParam)
 	if (nCode == HCBT_DESTROYWND)
 	{
 		HWND hWnd = (HWND)wParam;
-		m_IDirectDrawX *Interface = (m_IDirectDrawX*)InterlockedExchangePointer((PVOID*)&CurrentDDInterface, nullptr);
+		m_IDirectDrawX *Interface = (m_IDirectDrawX*)InterlockedExchangePointer((PVOID*)&lpCurrentDDInterface, nullptr);
 		if (Interface && Interface == g_hookmap[hWnd])
 		{
 			Interface->SetCooperativeLevel(hWnd, DDSCL_NORMAL);

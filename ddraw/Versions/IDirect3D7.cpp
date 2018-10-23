@@ -18,7 +18,7 @@
 
 HRESULT m_IDirect3D7::QueryInterface(REFIID riid, LPVOID * ppvObj)
 {
-	return ProxyInterface->QueryInterface(riid, ppvObj);
+	return ProxyInterface->QueryInterface(riid, ppvObj, DirectXVersion);
 }
 
 ULONG m_IDirect3D7::AddRef()
@@ -33,17 +33,17 @@ ULONG m_IDirect3D7::Release()
 
 HRESULT m_IDirect3D7::EnumDevices(LPD3DENUMDEVICESCALLBACK7 a, LPVOID b)
 {
-	return ProxyInterface->EnumDevices(a, b);
+	return ProxyInterface->EnumDevices7(a, b);
 }
 
 HRESULT m_IDirect3D7::CreateDevice(REFCLSID a, LPDIRECTDRAWSURFACE7 b, LPDIRECT3DDEVICE7 * c)
 {
-	return ProxyInterface->CreateDevice(a, b, c);
+	return ProxyInterface->CreateDevice(a, b, c, DirectXVersion);
 }
 
 HRESULT m_IDirect3D7::CreateVertexBuffer(LPD3DVERTEXBUFFERDESC a, LPDIRECT3DVERTEXBUFFER7 * b, DWORD c)
 {
-	return ProxyInterface->CreateVertexBuffer(a, b, c);
+	return ProxyInterface->CreateVertexBuffer(a, b, c, DirectXVersion);
 }
 
 HRESULT m_IDirect3D7::EnumZBufferFormats(REFCLSID a, LPD3DENUMPIXELFORMATSCALLBACK b, LPVOID c)

@@ -18,7 +18,7 @@
 
 HRESULT m_IDirect3D2::QueryInterface(REFIID riid, LPVOID * ppvObj)
 {
-	return ProxyInterface->QueryInterface(riid, ppvObj);
+	return ProxyInterface->QueryInterface(riid, ppvObj, DirectXVersion);
 }
 
 ULONG m_IDirect3D2::AddRef()
@@ -33,7 +33,7 @@ ULONG m_IDirect3D2::Release()
 
 HRESULT m_IDirect3D2::EnumDevices(LPD3DENUMDEVICESCALLBACK a, LPVOID b)
 {
-	return ProxyInterface->EnumDevices((LPD3DENUMDEVICESCALLBACK7)a, b);
+	return ProxyInterface->EnumDevices(a, b);
 }
 
 HRESULT m_IDirect3D2::CreateLight(LPDIRECT3DLIGHT * a, IUnknown * b)
@@ -43,12 +43,12 @@ HRESULT m_IDirect3D2::CreateLight(LPDIRECT3DLIGHT * a, IUnknown * b)
 
 HRESULT m_IDirect3D2::CreateMaterial(LPDIRECT3DMATERIAL2 * a, IUnknown * b)
 {
-	return ProxyInterface->CreateMaterial((LPDIRECT3DMATERIAL3*)a, b);
+	return ProxyInterface->CreateMaterial((LPDIRECT3DMATERIAL3*)a, b, DirectXVersion);
 }
 
 HRESULT m_IDirect3D2::CreateViewport(LPDIRECT3DVIEWPORT2 * a, IUnknown * b)
 {
-	return ProxyInterface->CreateViewport((LPDIRECT3DVIEWPORT3*)a, b);
+	return ProxyInterface->CreateViewport((LPDIRECT3DVIEWPORT3*)a, b, DirectXVersion);
 }
 
 HRESULT m_IDirect3D2::FindDevice(LPD3DFINDDEVICESEARCH a, LPD3DFINDDEVICERESULT b)
@@ -58,5 +58,5 @@ HRESULT m_IDirect3D2::FindDevice(LPD3DFINDDEVICESEARCH a, LPD3DFINDDEVICERESULT 
 
 HRESULT m_IDirect3D2::CreateDevice(REFCLSID a, LPDIRECTDRAWSURFACE b, LPDIRECT3DDEVICE2 * c)
 {
-	return ProxyInterface->CreateDevice(a, (LPDIRECTDRAWSURFACE7)b, (LPDIRECT3DDEVICE7*)c);
+	return ProxyInterface->CreateDevice(a, (LPDIRECTDRAWSURFACE7)b, (LPDIRECT3DDEVICE7*)c, DirectXVersion);
 }

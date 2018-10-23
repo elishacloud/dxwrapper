@@ -3,25 +3,32 @@
 class m_IDirect3D : public IDirect3D, public AddressLookupTableDdrawObject
 {
 private:
-	std::unique_ptr<m_IDirect3DX> ProxyInterface;
+	std::unique_ptr<m_IDirect3DX> UniqueProxyInterface;
+	m_IDirect3DX *ProxyInterface;
 	IDirect3D *RealInterface;
 	REFIID WrapperID = IID_IDirect3D;
+	const DWORD DirectXVersion = 1;
 
 public:
 	m_IDirect3D(IDirect3D *aOriginal) : RealInterface(aOriginal)
 	{
-		ProxyInterface = std::make_unique<m_IDirect3DX>((IDirect3D7*)RealInterface, 1, (m_IDirect3D7*)this);
+		UniqueProxyInterface = std::make_unique<m_IDirect3DX>((IDirect3D7*)RealInterface, DirectXVersion, (m_IDirect3D7*)this);
+		ProxyInterface = UniqueProxyInterface.get();
 		ProxyAddressLookupTable.SaveAddress(this, RealInterface);
+	}
+	m_IDirect3D(m_IDirect3DX *aOriginal) : ProxyInterface(aOriginal)
+	{
+		RealInterface = nullptr;
 	}
 	~m_IDirect3D()
 	{
 		ProxyAddressLookupTable.DeleteAddress(this);
 	}
 
-	DWORD GetDirectXVersion() { return 1; }
+	DWORD GetDirectXVersion() { return DirectXVersion; }
 	REFIID GetWrapperType() { return WrapperID; }
 	IDirect3D *GetProxyInterface() { return RealInterface; }
-	m_IDirect3DX *GetWrapperInterface() { return ProxyInterface.get(); }
+	m_IDirect3DX *GetWrapperInterface() { return ProxyInterface; }
 
 	/*** IUnknown methods ***/
 	STDMETHOD(QueryInterface)(THIS_ REFIID riid, LPVOID * ppvObj);

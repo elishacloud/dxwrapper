@@ -44,6 +44,9 @@ private:
 	// Store a list of surfaces
 	std::vector<m_IDirectDrawSurfaceX*> SurfaceVector;
 
+	// Store d3d interface
+	m_IDirect3DX *D3DInterface = nullptr;
+
 public:
 	m_IDirectDrawX(IDirectDraw7 *aOriginal, DWORD DirectXVersion, m_IDirectDraw7 *Interface) : ProxyInterface(aOriginal), WrapperInterface(Interface)
 	{
@@ -63,7 +66,7 @@ public:
 			ProxyDirectXVersion = GetIIDVersion(ConvertREFIID(GetWrapperType(DirectXVersion)));
 		}
 
-		InterlockedExchangePointer((PVOID*)&CurrentDDInterface, this);
+		InterlockedExchangePointer((PVOID*)&lpCurrentDDInterface, this);
 
 		if (ProxyDirectXVersion != DirectXVersion)
 		{
@@ -77,7 +80,7 @@ public:
 	~m_IDirectDrawX()
 	{
 		PVOID MyNull = nullptr;
-		InterlockedExchangePointer((PVOID*)&CurrentDDInterface, MyNull);
+		InterlockedExchangePointer((PVOID*)&lpCurrentDDInterface, MyNull);
 
 		if (g_hook)
 		{
@@ -113,6 +116,7 @@ public:
 	LPDIRECT3DDEVICE9 *GetDirect3DDevice() { return &d3d9Device; }
 	HWND GetHwnd() { return MainhWnd; }
 	bool IsExclusiveMode() { return ExclusiveMode; }
+	void ClearD3DInterface() { D3DInterface = nullptr; }
 
 	/*** IUnknown methods ***/
 	HRESULT QueryInterface(REFIID riid, LPVOID FAR * ppvObj, DWORD DirectXVersion);

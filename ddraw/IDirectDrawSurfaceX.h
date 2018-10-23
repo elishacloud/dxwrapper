@@ -44,7 +44,7 @@ private:
 	LPDIRECT3DTEXTURE9 surfaceTexture = nullptr;
 	LPDIRECT3DVERTEXBUFFER9 vertexBuffer = nullptr;
 
-	// Store ddraw version wrappers
+	// Store ddraw surface version wrappers
 	std::unique_ptr<m_IDirectDrawSurface> UniqueProxyInterface = nullptr;
 	std::unique_ptr<m_IDirectDrawSurface2> UniqueProxyInterface2 = nullptr;
 	std::unique_ptr<m_IDirectDrawSurface3> UniqueProxyInterface3 = nullptr;
