@@ -138,15 +138,7 @@ HRESULT m_IDirect3DX::EnumDevices(LPD3DENUMDEVICESCALLBACK lpEnumDevicesCallback
 
 	if (Config.Dd7to9)
 	{
-		lpConvertEnumDevicesCallback = lpEnumDevicesCallback;
-		ConvertEnumCallback = true;
-
-		HRESULT hr = EnumDevices7((LPD3DENUMDEVICESCALLBACK7)lpEnumDevicesCallback, lpUserArg);
-
-		ConvertEnumCallback = false;
-		lpConvertEnumDevicesCallback = nullptr;
-
-		return hr;
+		return EnumDevices7((LPD3DENUMDEVICESCALLBACK7)lpEnumDevicesCallback, lpUserArg, true);
 	}
 
 	if (ProxyDirectXVersion > 3)
@@ -161,7 +153,7 @@ HRESULT m_IDirect3DX::EnumDevices(LPD3DENUMDEVICESCALLBACK lpEnumDevicesCallback
 	return ProxyInterface->EnumDevices((LPD3DENUMDEVICESCALLBACK7)lpEnumDevicesCallback, lpUserArg);
 }
 
-HRESULT m_IDirect3DX::EnumDevices7(LPD3DENUMDEVICESCALLBACK7 lpEnumDevicesCallback7, LPVOID lpUserArg)
+HRESULT m_IDirect3DX::EnumDevices7(LPD3DENUMDEVICESCALLBACK7 lpEnumDevicesCallback7, LPVOID lpUserArg, bool ConvertCallback)
 {
 	Logging::LogDebug() << __FUNCTION__;
 
@@ -179,21 +171,7 @@ HRESULT m_IDirect3DX::EnumDevices7(LPD3DENUMDEVICESCALLBACK7 lpEnumDevicesCallba
 		UINT AdapterCount = d3d9Object->GetAdapterCount();
 
 		// Conversion callback
-		bool ConverCallback = false;
-		LPD3DENUMDEVICESCALLBACK lpEnumDevicesCallback = nullptr;
-
-		// Checking conversion
-		if (ConvertEnumCallback)
-		{
-			if ((LPVOID)lpEnumDevicesCallback7 != (LPVOID)lpConvertEnumDevicesCallback)
-			{
-				Logging::Log() << __FUNCTION__ << " Error getting conversion callback address!";
-				return DDERR_GENERIC;
-			}
-
-			ConverCallback = true;
-			lpEnumDevicesCallback = (LPD3DENUMDEVICESCALLBACK)lpEnumDevicesCallback7;
-		}
+		LPD3DENUMDEVICESCALLBACK lpEnumDevicesCallback = (LPD3DENUMDEVICESCALLBACK)lpEnumDevicesCallback7;
 
 		// Loop through all adapters
 		for (UINT i = 0; i < AdapterCount; i++)
@@ -217,7 +195,7 @@ HRESULT m_IDirect3DX::EnumDevices7(LPD3DENUMDEVICESCALLBACK7 lpEnumDevicesCallba
 					case D3DDEVTYPE_REF:
 						lpDescription = "Microsoft Direct3D RGB Software Emulation";
 						lpName = "RGB Emulation";
-						if (ConverCallback)
+						if (ConvertCallback)
 						{
 							GUID deviceGUID = DeviceDesc7.deviceGUID;
 							D3DDEVICEDESC D3DHWDevDesc, D3DHELDevDesc;
@@ -242,7 +220,7 @@ HRESULT m_IDirect3DX::EnumDevices7(LPD3DENUMDEVICESCALLBACK7 lpEnumDevicesCallba
 					case D3DDEVTYPE_HAL:
 						lpDescription = "Microsoft Direct3D Hardware acceleration through Direct3D HAL";
 						lpName = "Direct3D HAL";
-						if (ConverCallback)
+						if (ConvertCallback)
 						{
 							GUID deviceGUID = DeviceDesc7.deviceGUID;
 							D3DDEVICEDESC D3DHWDevDesc, D3DHELDevDesc;
@@ -271,7 +249,7 @@ HRESULT m_IDirect3DX::EnumDevices7(LPD3DENUMDEVICESCALLBACK7 lpEnumDevicesCallba
 						break;
 					}
 
-					if (!ConverCallback)
+					if (!ConvertCallback)
 					{
 						if (lpEnumDevicesCallback7(lpDescription, lpName, &DeviceDesc7, lpUserArg) == DDENUMRET_CANCEL)
 						{

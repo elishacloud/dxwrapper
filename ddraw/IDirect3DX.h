@@ -9,10 +9,6 @@ private:
 	ULONG RefCount = 1;
 	m_IDirectDrawX *ddrawParent = nullptr;
 
-	// For EnumDevices
-	bool ConvertEnumCallback = false;
-	LPD3DENUMDEVICESCALLBACK lpConvertEnumDevicesCallback = nullptr;
-
 	// Store d3d version wrappers
 	std::unique_ptr<m_IDirect3D> UniqueProxyInterface = nullptr;
 	std::unique_ptr<m_IDirect3D2> UniqueProxyInterface2 = nullptr;
@@ -76,7 +72,7 @@ public:
 	/*** IDirect3D methods ***/
 	STDMETHOD(Initialize)(THIS_ REFCLSID);
 	HRESULT EnumDevices(LPD3DENUMDEVICESCALLBACK, LPVOID);
-	HRESULT EnumDevices7(LPD3DENUMDEVICESCALLBACK7, LPVOID);
+	HRESULT EnumDevices7(LPD3DENUMDEVICESCALLBACK7, LPVOID, bool = false);
 	STDMETHOD(CreateLight)(THIS_ LPDIRECT3DLIGHT*, LPUNKNOWN);
 	STDMETHOD(CreateMaterial)(THIS_ LPDIRECT3DMATERIAL3*, LPUNKNOWN, DWORD);
 	STDMETHOD(CreateViewport)(THIS_ LPDIRECT3DVIEWPORT3*, LPUNKNOWN, DWORD);
