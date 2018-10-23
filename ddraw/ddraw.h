@@ -88,8 +88,9 @@ HRESULT WINAPI dd_DirectDrawEnumerateW(LPDDENUMCALLBACKW lpCallback, LPVOID lpCo
 // Function and variable forward declarations
 DWORD GetIIDVersion(REFIID CalledID);
 REFIID ConvertREFIID(REFIID riid);
+void AddRef(void *lpvObj);
 HRESULT ProxyQueryInterface(LPVOID ProxyInterface, REFIID CalledID, LPVOID * ppvObj, REFIID CallerID, LPVOID WrapperInterface);
-HRESULT genericQueryInterface(REFIID riid, LPVOID * ppvObj);
+void genericQueryInterface(REFIID riid, LPVOID * ppvObj);
 extern AddressLookupTableDdraw<void> ProxyAddressLookupTable;
 extern m_IDirectDrawX *CurrentDDInterface;
 extern m_IDirect3DDeviceX *lpCurrentD3DDevice;

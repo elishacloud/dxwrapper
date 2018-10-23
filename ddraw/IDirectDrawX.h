@@ -1,6 +1,6 @@
 #pragma once
 
-class m_IDirectDrawX
+class m_IDirectDrawX : public IUnknown
 {
 private:
 	IDirectDraw7 *ProxyInterface;
@@ -34,7 +34,7 @@ private:
 	LPDIRECT3DDEVICE9 d3d9Device = nullptr;
 	D3DPRESENT_PARAMETERS presParams;
 
-	// Store ddraw wrappers
+	// Store ddraw version wrappers
 	std::unique_ptr<m_IDirectDraw> UniqueProxyInterface = nullptr;
 	std::unique_ptr<m_IDirectDraw2> UniqueProxyInterface2 = nullptr;
 	std::unique_ptr<m_IDirectDraw3> UniqueProxyInterface3 = nullptr;
@@ -101,7 +101,7 @@ public:
 			(DirectXVersion == 2) ? IID_IDirectDraw2 :
 			(DirectXVersion == 3) ? IID_IDirectDraw3 :
 			(DirectXVersion == 4) ? IID_IDirectDraw4 :
-			(DirectXVersion == 7) ? IID_IDirectDraw7 : IID_IDirectDraw7;
+			(DirectXVersion == 7) ? IID_IDirectDraw7 : IID_IUnknown;
 	}
 	IDirectDraw *GetProxyInterfaceV1() { return (IDirectDraw *)ProxyInterface; }
 	IDirectDraw3 *GetProxyInterfaceV3() { return (IDirectDraw3 *)ProxyInterface; }
@@ -115,7 +115,8 @@ public:
 	bool IsExclusiveMode() { return ExclusiveMode; }
 
 	/*** IUnknown methods ***/
-	STDMETHOD(QueryInterface) (THIS_ REFIID riid, LPVOID FAR * ppvObj, DWORD DirectXVersion);
+	HRESULT QueryInterface(REFIID riid, LPVOID FAR * ppvObj, DWORD DirectXVersion);
+	STDMETHOD(QueryInterface) (THIS_ REFIID, LPVOID FAR *) { return E_NOINTERFACE; }
 	STDMETHOD_(ULONG, AddRef) (THIS);
 	STDMETHOD_(ULONG, Release) (THIS);
 

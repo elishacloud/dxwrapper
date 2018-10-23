@@ -131,7 +131,7 @@ HRESULT m_IClassFactory::CreateInstance(IUnknown *pUnkOuter, REFIID riid, void *
 
 	if (SUCCEEDED(hr))
 	{
-		hr = genericQueryInterface(riid, ppvObject);
+		genericQueryInterface(riid, ppvObject);
 	}
 
 	return hr;

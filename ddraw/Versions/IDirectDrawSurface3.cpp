@@ -18,7 +18,7 @@
 
 HRESULT m_IDirectDrawSurface3::QueryInterface(REFIID riid, LPVOID FAR * ppvObj)
 {
-	return ProxyInterface->QueryInterface(riid, ppvObj);
+	return ProxyInterface->QueryInterface(riid, ppvObj, DirectXVersion);
 }
 
 ULONG m_IDirectDrawSurface3::AddRef()
@@ -63,12 +63,12 @@ HRESULT m_IDirectDrawSurface3::DeleteAttachedSurface(DWORD a, LPDIRECTDRAWSURFAC
 
 HRESULT m_IDirectDrawSurface3::EnumAttachedSurfaces(LPVOID a, LPDDENUMSURFACESCALLBACK b)
 {
-	return ProxyInterface->EnumAttachedSurfaces(a, b);
+	return ProxyInterface->EnumAttachedSurfaces(a, b, DirectXVersion);
 }
 
 HRESULT m_IDirectDrawSurface3::EnumOverlayZOrders(DWORD a, LPVOID b, LPDDENUMSURFACESCALLBACK c)
 {
-	return ProxyInterface->EnumOverlayZOrders(a, b, c);
+	return ProxyInterface->EnumOverlayZOrders(a, b, c, DirectXVersion);
 }
 
 HRESULT m_IDirectDrawSurface3::Flip(LPDIRECTDRAWSURFACE3 a, DWORD b)
@@ -78,7 +78,7 @@ HRESULT m_IDirectDrawSurface3::Flip(LPDIRECTDRAWSURFACE3 a, DWORD b)
 
 HRESULT m_IDirectDrawSurface3::GetAttachedSurface(LPDDSCAPS a, LPDIRECTDRAWSURFACE3 FAR * b)
 {
-	return ProxyInterface->GetAttachedSurface(a, (LPDIRECTDRAWSURFACE7*)b);
+	return ProxyInterface->GetAttachedSurface(a, (LPDIRECTDRAWSURFACE7*)b, DirectXVersion);
 }
 
 HRESULT m_IDirectDrawSurface3::GetBltStatus(DWORD a)
@@ -198,7 +198,7 @@ HRESULT m_IDirectDrawSurface3::UpdateOverlayZOrder(DWORD a, LPDIRECTDRAWSURFACE3
 
 HRESULT m_IDirectDrawSurface3::GetDDInterface(LPVOID FAR * a)
 {
-	return ProxyInterface->GetDDInterface(a);
+	return ProxyInterface->GetDDInterface(a, DirectXVersion);
 }
 
 HRESULT m_IDirectDrawSurface3::PageLock(DWORD a)

@@ -24,7 +24,7 @@ bool SceneReady = false;
 /*** IUnknown methods ***/
 /************************/
 
-HRESULT m_IDirectDrawSurfaceX::QueryInterface(REFIID riid, LPVOID FAR * ppvObj)
+HRESULT m_IDirectDrawSurfaceX::QueryInterface(REFIID riid, LPVOID FAR * ppvObj, DWORD DirectXVersion)
 {
 	Logging::LogDebug() << __FUNCTION__;
 
@@ -32,9 +32,11 @@ HRESULT m_IDirectDrawSurfaceX::QueryInterface(REFIID riid, LPVOID FAR * ppvObj)
 	{
 		if ((riid == IID_IDirectDrawSurface || riid == IID_IDirectDrawSurface2 || riid == IID_IDirectDrawSurface3 || riid == IID_IDirectDrawSurface4 || riid == IID_IDirectDrawSurface7 || riid == IID_IUnknown) && ppvObj)
 		{
-			AddRef();
+			DWORD DxVersion = (riid == IID_IUnknown) ? DirectXVersion : GetIIDVersion(riid);
 
-			*ppvObj = this;
+			*ppvObj = GetWrapperInterfaceX(DxVersion);
+
+			::AddRef(*ppvObj);
 
 			return S_OK;
 		}
@@ -45,8 +47,6 @@ HRESULT m_IDirectDrawSurfaceX::QueryInterface(REFIID riid, LPVOID FAR * ppvObj)
 		{
 			if (lpCurrentD3DDevice)
 			{
-				ProxyInterface->AddRef();
-
 				*ppvObj = new m_IDirect3DTextureX(lpCurrentD3DDevice, 7, ProxyInterface);
 
 				return S_OK;
@@ -54,7 +54,47 @@ HRESULT m_IDirectDrawSurfaceX::QueryInterface(REFIID riid, LPVOID FAR * ppvObj)
 		}
 	}
 
-	return ProxyQueryInterface(ProxyInterface, riid, ppvObj, WrapperID, WrapperInterface);
+	return ProxyQueryInterface(ProxyInterface, riid, ppvObj, GetWrapperType(DirectXVersion), WrapperInterface);
+}
+
+void *m_IDirectDrawSurfaceX::GetWrapperInterfaceX(DWORD DirectXVersion)
+{
+	switch (DirectXVersion)
+	{
+	case 1:
+		if (!UniqueProxyInterface.get())
+		{
+			UniqueProxyInterface = std::make_unique<m_IDirectDrawSurface>(this);
+		}
+		return UniqueProxyInterface.get();
+	case 2:
+		if (!UniqueProxyInterface2.get())
+		{
+			UniqueProxyInterface2 = std::make_unique<m_IDirectDrawSurface2>(this);
+		}
+		return UniqueProxyInterface2.get();
+	case 3:
+		if (!UniqueProxyInterface3.get())
+		{
+			UniqueProxyInterface3 = std::make_unique<m_IDirectDrawSurface3>(this);
+		}
+		return UniqueProxyInterface3.get();
+	case 4:
+		if (!UniqueProxyInterface4.get())
+		{
+			UniqueProxyInterface4 = std::make_unique<m_IDirectDrawSurface4>(this);
+		}
+		return UniqueProxyInterface4.get();
+	case 7:
+		if (!UniqueProxyInterface7.get())
+		{
+			UniqueProxyInterface7 = std::make_unique<m_IDirectDrawSurface7>(this);
+		}
+		return UniqueProxyInterface7.get();
+	default:
+		Logging::Log() << __FUNCTION__ << " Error, wrapper interface version not found: " << DirectXVersion;
+		return nullptr;
+	}
 }
 
 ULONG m_IDirectDrawSurfaceX::AddRef()
@@ -123,7 +163,7 @@ HRESULT m_IDirectDrawSurfaceX::AddAttachedSurface(LPDIRECTDRAWSURFACE7 lpDDSurfa
 				return DDERR_GENERIC;
 			}
 
-			m_IDirectDrawSurfaceX *lpAttachedSurface = (m_IDirectDrawSurfaceX*)lpDDSurface;
+			m_IDirectDrawSurfaceX *lpAttachedSurface = ((m_IDirectDrawSurface*)lpDDSurface)->GetWrapperInterface();
 
 			if (!ddrawParent->DoesSurfaceExist(lpAttachedSurface))
 			{
@@ -253,7 +293,11 @@ HRESULT m_IDirectDrawSurfaceX::Blt(LPRECT lpDestRect, LPDIRECTDRAWSURFACE7 lpDDS
 		{
 			lpDDSrcSurfaceX = this;
 		}
-		else if (!ddrawParent->DoesSurfaceExist(lpDDSrcSurfaceX))
+		else
+		{
+			lpDDSrcSurfaceX = ((m_IDirectDrawSurface*)lpDDSrcSurfaceX)->GetWrapperInterface();
+		}
+		if (!ddrawParent->DoesSurfaceExist(lpDDSrcSurfaceX))
 		{
 			Logging::Log() << __FUNCTION__ << " Error, could not find source surface";
 			return DDERR_INVALIDPARAMS;
@@ -458,7 +502,7 @@ HRESULT m_IDirectDrawSurfaceX::BltFast(DWORD dwX, DWORD dwY, LPDIRECTDRAWSURFACE
 
 		// Get SrcRect
 		RECT SrcRect;
-		m_IDirectDrawSurfaceX *lpDDSrcSurfaceX = (!lpDDSrcSurface) ? this : (m_IDirectDrawSurfaceX*)lpDDSrcSurface;
+		m_IDirectDrawSurfaceX *lpDDSrcSurfaceX = (!lpDDSrcSurface) ? this : ((m_IDirectDrawSurface*)lpDDSrcSurface)->GetWrapperInterface();
 		lpDDSrcSurfaceX->FixRect(&SrcRect, lpSrcRect);
 
 		// Create DestRect
@@ -490,7 +534,7 @@ HRESULT m_IDirectDrawSurfaceX::DeleteAttachedSurface(DWORD dwFlags, LPDIRECTDRAW
 
 		if (lpDDSAttachedSurface)
 		{
-			m_IDirectDrawSurfaceX *lpAttachedSurface = (m_IDirectDrawSurfaceX*)lpDDSAttachedSurface;
+			m_IDirectDrawSurfaceX *lpAttachedSurface = ((m_IDirectDrawSurface*)lpDDSAttachedSurface)->GetWrapperInterface();
 
 			if (DoesAttachedSurfaceExist(lpAttachedSurface))
 			{
@@ -515,25 +559,24 @@ HRESULT m_IDirectDrawSurfaceX::DeleteAttachedSurface(DWORD dwFlags, LPDIRECTDRAW
 	return ProxyInterface->DeleteAttachedSurface(dwFlags, lpDDSAttachedSurface);
 }
 
-HRESULT m_IDirectDrawSurfaceX::EnumAttachedSurfaces(LPVOID lpContext, LPDDENUMSURFACESCALLBACK lpEnumSurfacesCallback)
+HRESULT m_IDirectDrawSurfaceX::EnumAttachedSurfaces(LPVOID lpContext, LPDDENUMSURFACESCALLBACK lpEnumSurfacesCallback, DWORD DirectXVersion)
 {
 	Logging::LogDebug() << __FUNCTION__;
 
-	if (ConvertSurfaceDescTo2)
+	if (ProxyDirectXVersion > 3)
 	{
-		return EnumAttachedSurfaces2(lpContext, (LPDDENUMSURFACESCALLBACK7)lpEnumSurfacesCallback);
+		return EnumAttachedSurfaces2(lpContext, (LPDDENUMSURFACESCALLBACK7)lpEnumSurfacesCallback, DirectXVersion);
 	}
 
 	ENUMSURFACE CallbackContext;
 	CallbackContext.lpContext = lpContext;
 	CallbackContext.lpCallback = lpEnumSurfacesCallback;
 	CallbackContext.DirectXVersion = DirectXVersion;
-	CallbackContext.ConvertSurfaceDescTo2 = ConvertSurfaceDescTo2;
 
 	return GetProxyInterfaceV3()->EnumAttachedSurfaces(&CallbackContext, m_IDirectDrawEnumSurface::ConvertCallback);
 }
 
-HRESULT m_IDirectDrawSurfaceX::EnumAttachedSurfaces2(LPVOID lpContext, LPDDENUMSURFACESCALLBACK7 lpEnumSurfacesCallback7)
+HRESULT m_IDirectDrawSurfaceX::EnumAttachedSurfaces2(LPVOID lpContext, LPDDENUMSURFACESCALLBACK7 lpEnumSurfacesCallback7, DWORD DirectXVersion)
 {
 	Logging::LogDebug() << __FUNCTION__;
 
@@ -547,8 +590,8 @@ HRESULT m_IDirectDrawSurfaceX::EnumAttachedSurfaces2(LPVOID lpContext, LPDDENUMS
 		for (auto it : AttachedSurfaceMap)
 		{
 			DDSURFACEDESC2 Desc2;
-			it.second->GetSurfaceDesc(&Desc2);
-			if (lpEnumSurfacesCallback7(it.second, &Desc2, lpContext) == DDENUMRET_CANCEL)
+			it.second->GetSurfaceDesc2(&Desc2);
+			if (lpEnumSurfacesCallback7((LPDIRECTDRAWSURFACE7)it.second->GetWrapperInterfaceX(DirectXVersion), &Desc2, lpContext) == DDENUMRET_CANCEL)
 			{
 				return DD_OK;
 			}
@@ -561,30 +604,29 @@ HRESULT m_IDirectDrawSurfaceX::EnumAttachedSurfaces2(LPVOID lpContext, LPDDENUMS
 	CallbackContext.lpContext = lpContext;
 	CallbackContext.lpCallback7 = lpEnumSurfacesCallback7;
 	CallbackContext.DirectXVersion = DirectXVersion;
-	CallbackContext.ConvertSurfaceDescTo2 = ConvertSurfaceDescTo2;
+	CallbackContext.ConvertSurfaceDescTo2 = (ProxyDirectXVersion > 3 && DirectXVersion < 4);
 
 	return ProxyInterface->EnumAttachedSurfaces(&CallbackContext, m_IDirectDrawEnumSurface::ConvertCallback2);
 }
 
-HRESULT m_IDirectDrawSurfaceX::EnumOverlayZOrders(DWORD dwFlags, LPVOID lpContext, LPDDENUMSURFACESCALLBACK lpfnCallback)
+HRESULT m_IDirectDrawSurfaceX::EnumOverlayZOrders(DWORD dwFlags, LPVOID lpContext, LPDDENUMSURFACESCALLBACK lpfnCallback, DWORD DirectXVersion)
 {
 	Logging::LogDebug() << __FUNCTION__;
 
-	if (ConvertSurfaceDescTo2)
+	if (ProxyDirectXVersion > 3)
 	{
-		return EnumOverlayZOrders2(dwFlags, lpContext, (LPDDENUMSURFACESCALLBACK7)lpfnCallback);
+		return EnumOverlayZOrders2(dwFlags, lpContext, (LPDDENUMSURFACESCALLBACK7)lpfnCallback, DirectXVersion);
 	}
 
 	ENUMSURFACE CallbackContext;
 	CallbackContext.lpContext = lpContext;
 	CallbackContext.lpCallback = lpfnCallback;
 	CallbackContext.DirectXVersion = DirectXVersion;
-	CallbackContext.ConvertSurfaceDescTo2 = ConvertSurfaceDescTo2;
 
 	return GetProxyInterfaceV3()->EnumOverlayZOrders(dwFlags, &CallbackContext, m_IDirectDrawEnumSurface::ConvertCallback);
 }
 
-HRESULT m_IDirectDrawSurfaceX::EnumOverlayZOrders2(DWORD dwFlags, LPVOID lpContext, LPDDENUMSURFACESCALLBACK7 lpfnCallback7)
+HRESULT m_IDirectDrawSurfaceX::EnumOverlayZOrders2(DWORD dwFlags, LPVOID lpContext, LPDDENUMSURFACESCALLBACK7 lpfnCallback7, DWORD DirectXVersion)
 {
 	Logging::LogDebug() << __FUNCTION__;
 
@@ -598,7 +640,7 @@ HRESULT m_IDirectDrawSurfaceX::EnumOverlayZOrders2(DWORD dwFlags, LPVOID lpConte
 	CallbackContext.lpContext = lpContext;
 	CallbackContext.lpCallback7 = lpfnCallback7;
 	CallbackContext.DirectXVersion = DirectXVersion;
-	CallbackContext.ConvertSurfaceDescTo2 = ConvertSurfaceDescTo2;
+	CallbackContext.ConvertSurfaceDescTo2 = (ProxyDirectXVersion > 3 && DirectXVersion < 4);
 
 	return ProxyInterface->EnumOverlayZOrders(dwFlags, &CallbackContext, m_IDirectDrawEnumSurface::ConvertCallback2);
 }
@@ -665,7 +707,7 @@ HRESULT m_IDirectDrawSurfaceX::Flip(LPDIRECTDRAWSURFACE7 lpDDSurfaceTargetOverri
 		// If SurfaceTargetOverride then use that surface
 		if (lpDDSurfaceTargetOverride)
 		{
-			m_IDirectDrawSurfaceX *lpTargetSurface = (m_IDirectDrawSurfaceX*)lpDDSurfaceTargetOverride;
+			m_IDirectDrawSurfaceX *lpTargetSurface = ((m_IDirectDrawSurface*)lpDDSurfaceTargetOverride)->GetWrapperInterface();
 
 			// Check if target surface exists
 			if (!DoesAttachedSurfaceExist(lpTargetSurface) || lpTargetSurface == this)
@@ -761,7 +803,7 @@ HRESULT m_IDirectDrawSurfaceX::Flip(LPDIRECTDRAWSURFACE7 lpDDSurfaceTargetOverri
 	return ProxyInterface->Flip(lpDDSurfaceTargetOverride, dwFlags);
 }
 
-HRESULT m_IDirectDrawSurfaceX::GetAttachedSurface(LPDDSCAPS lpDDSCaps, LPDIRECTDRAWSURFACE7 FAR * lplpDDAttachedSurface)
+HRESULT m_IDirectDrawSurfaceX::GetAttachedSurface(LPDDSCAPS lpDDSCaps, LPDIRECTDRAWSURFACE7 FAR * lplpDDAttachedSurface, DWORD DirectXVersion)
 {
 	Logging::LogDebug() << __FUNCTION__;
 
@@ -771,12 +813,12 @@ HRESULT m_IDirectDrawSurfaceX::GetAttachedSurface(LPDDSCAPS lpDDSCaps, LPDIRECTD
 	}
 
 	// Game using old DirectX, Convert DDSCAPS to DDSCAPS2
-	if (ConvertSurfaceDescTo2)
+	if (ProxyDirectXVersion > 3)
 	{
 		DDSCAPS2 Caps2;
 		ConvertCaps(Caps2, *lpDDSCaps);
 
-		return GetAttachedSurface2((lpDDSCaps) ? &Caps2 : nullptr, lplpDDAttachedSurface);
+		return GetAttachedSurface2((lpDDSCaps) ? &Caps2 : nullptr, lplpDDAttachedSurface, DirectXVersion);
 	}
 
 	HRESULT hr = GetProxyInterfaceV3()->GetAttachedSurface(lpDDSCaps, (LPDIRECTDRAWSURFACE3*)lplpDDAttachedSurface);
@@ -789,7 +831,7 @@ HRESULT m_IDirectDrawSurfaceX::GetAttachedSurface(LPDDSCAPS lpDDSCaps, LPDIRECTD
 	return hr;
 }
 
-HRESULT m_IDirectDrawSurfaceX::GetAttachedSurface2(LPDDSCAPS2 lpDDSCaps2, LPDIRECTDRAWSURFACE7 FAR * lplpDDAttachedSurface)
+HRESULT m_IDirectDrawSurfaceX::GetAttachedSurface2(LPDDSCAPS2 lpDDSCaps2, LPDIRECTDRAWSURFACE7 FAR * lplpDDAttachedSurface, DWORD DirectXVersion)
 {
 	Logging::LogDebug() << __FUNCTION__;
 
@@ -822,7 +864,7 @@ HRESULT m_IDirectDrawSurfaceX::GetAttachedSurface2(LPDDSCAPS2 lpDDSCaps2, LPDIRE
 
 		m_IDirectDrawSurfaceX *attachedSurface = new m_IDirectDrawSurfaceX(d3d9Device, ddrawParent, DirectXVersion, &DDSurfaceDesc2, displayWidth, displayHeight);
 
-		*lplpDDAttachedSurface = attachedSurface;
+		*lplpDDAttachedSurface = (LPDIRECTDRAWSURFACE7)attachedSurface->GetWrapperInterfaceX(DirectXVersion);
 
 		AddAttachedSurfaceToMap(attachedSurface);
 
@@ -852,7 +894,7 @@ HRESULT m_IDirectDrawSurfaceX::GetBltStatus(DWORD dwFlags)
 		{
 			if (!IsSurfaceLocked() && !NeedsLock())
 			{
-				return DDERR_WASSTILLDRAWING;
+				//return DDERR_WASSTILLDRAWING;
 			}
 			return DD_OK;
 		}
@@ -861,7 +903,7 @@ HRESULT m_IDirectDrawSurfaceX::GetBltStatus(DWORD dwFlags)
 		{
 			if (!IsSurfaceLocked() && !NeedsLock())
 			{
-				return DDERR_WASSTILLDRAWING;
+				//return DDERR_WASSTILLDRAWING;
 			}
 			return DD_OK;
 		}
@@ -882,7 +924,7 @@ HRESULT m_IDirectDrawSurfaceX::GetCaps(LPDDSCAPS lpDDSCaps)
 	}
 
 	// Game using old DirectX, Convert DDSCAPS to DDSCAPS2
-	if (ConvertSurfaceDescTo2)
+	if (ProxyDirectXVersion > 3)
 	{
 		DDSCAPS2 Caps2;
 
@@ -1150,7 +1192,7 @@ HRESULT m_IDirectDrawSurfaceX::GetSurfaceDesc(LPDDSURFACEDESC lpDDSurfaceDesc)
 	}
 
 	// Game using old DirectX, Convert to LPDDSURFACEDESC2
-	if (ConvertSurfaceDescTo2)
+	if (ProxyDirectXVersion > 3)
 	{
 		DDSURFACEDESC2 Desc2;
 
@@ -1265,7 +1307,7 @@ HRESULT m_IDirectDrawSurfaceX::Initialize(LPDIRECTDRAW lpDD, LPDDSURFACEDESC lpD
 {
 	Logging::LogDebug() << __FUNCTION__;
 
-	if (ConvertSurfaceDescTo2)
+	if (ProxyDirectXVersion > 3)
 	{
 		DDSURFACEDESC2 Desc2;
 		ConvertSurfaceDesc(Desc2, *lpDDSurfaceDesc);
@@ -1328,7 +1370,7 @@ HRESULT m_IDirectDrawSurfaceX::Lock(LPRECT lpDestRect, LPDDSURFACEDESC lpDDSurfa
 	}
 
 	// Game using old DirectX, Convert to LPDDSURFACEDESC2
-	if (ConvertSurfaceDescTo2)
+	if (ProxyDirectXVersion > 3)
 	{
 		DDSURFACEDESC2 Desc2;
 		ConvertSurfaceDesc(Desc2, *lpDDSurfaceDesc);
@@ -1542,7 +1584,7 @@ HRESULT m_IDirectDrawSurfaceX::SetColorKey(DWORD dwFlags, LPDDCOLORKEY lpDDColor
 		else
 		{
 			ColorKeys[x].IsSet = true;
-			ColorKeys[x].IdColorSpace = ((dwFlags & DDCKEY_COLORSPACE) != 0);
+			ColorKeys[x].IsColorSpace = ((dwFlags & DDCKEY_COLORSPACE) != 0);
 			memcpy(&ColorKeys[x].Key, lpDDColorKey, sizeof(DDCOLORKEY));
 		}
 
@@ -1695,7 +1737,7 @@ HRESULT m_IDirectDrawSurfaceX::UpdateOverlayZOrder(DWORD dwFlags, LPDIRECTDRAWSU
 /*** Added in the v2 interface ***/
 /*********************************/
 
-HRESULT m_IDirectDrawSurfaceX::GetDDInterface(LPVOID FAR * lplpDD)
+HRESULT m_IDirectDrawSurfaceX::GetDDInterface(LPVOID FAR * lplpDD, DWORD DirectXVersion)
 {
 	Logging::LogDebug() << __FUNCTION__;
 
@@ -1713,11 +1755,9 @@ HRESULT m_IDirectDrawSurfaceX::GetDDInterface(LPVOID FAR * lplpDD)
 			return DDERR_GENERIC;
 		}
 
-		// AddRef to ddraw
-		ddrawParent->AddRef();
-
-		// Set lplpDD to directdraw object that created this surface
 		*lplpDD = ddrawParent->GetWrapperInterfaceX(DirectXVersion);
+
+		::AddRef(*lplpDD);
 
 		return DD_OK;
 	}
@@ -1729,13 +1769,13 @@ HRESULT m_IDirectDrawSurfaceX::GetDDInterface(LPVOID FAR * lplpDD)
 		// Calling the GetDDInterface method from any surface created under DirectDrawEx will return a pointer to the 
 		// IUnknown interface instead of a pointer to an IDirectDraw interface. Applications must use the
 		// IUnknown::QueryInterface method to retrieve the IDirectDraw, IDirectDraw2, or IDirectDraw3 interfaces.
-		IID tmpID = (ProxyDirectXVersion == 1) ? IID_IDirectDraw :
-			(ProxyDirectXVersion == 2) ? IID_IDirectDraw2 :
-			(ProxyDirectXVersion == 3) ? IID_IDirectDraw3 :
-			(ProxyDirectXVersion == 4) ? IID_IDirectDraw4 :
-			(ProxyDirectXVersion == 7) ? IID_IDirectDraw7 : IID_IDirectDraw7;
+		IID tmpID = (DirectXVersion == 1) ? IID_IDirectDraw :
+			(DirectXVersion == 2) ? IID_IDirectDraw2 :
+			(DirectXVersion == 3) ? IID_IDirectDraw3 :
+			(DirectXVersion == 4) ? IID_IDirectDraw4 :
+			(DirectXVersion == 7) ? IID_IDirectDraw7 : IID_IDirectDraw7;
 
-		LPDIRECTDRAW7 lpDD = (LPDIRECTDRAW7)*lplpDD;
+		IUnknown *lpDD = (IUnknown*)*lplpDD;
 
 		hr = lpDD->QueryInterface(tmpID, lplpDD);
 		if (SUCCEEDED(hr))
@@ -1790,7 +1830,7 @@ HRESULT m_IDirectDrawSurfaceX::SetSurfaceDesc(LPDDSURFACEDESC lpDDSurfaceDesc, D
 	}
 
 	// Game using old DirectX, Convert to LPDDSURFACEDESC2
-	if (ConvertSurfaceDescTo2)
+	if (ProxyDirectXVersion > 3)
 	{
 		DDSURFACEDESC2 Desc2;
 		ConvertSurfaceDesc(Desc2, *lpDDSurfaceDesc);

@@ -43,9 +43,9 @@ HRESULT m_IDirectDrawX::QueryInterface(REFIID riid, LPVOID FAR * ppvObj, DWORD D
 		{
 			DWORD DxVersion = (riid == IID_IUnknown) ? DirectXVersion : GetIIDVersion(riid);
 
-			AddRef();
-
 			*ppvObj = GetWrapperInterfaceX(DxVersion);
+
+			::AddRef(*ppvObj);
 
 			return S_OK;
 		}
@@ -111,6 +111,7 @@ void *m_IDirectDrawX::GetWrapperInterfaceX(DWORD DirectXVersion)
 		}
 		return UniqueProxyInterface7.get();
 	default:
+		Logging::Log() << __FUNCTION__ << " Error, wrapper interface version not found: " << DirectXVersion;
 		return nullptr;
 	}
 }
@@ -281,7 +282,9 @@ HRESULT m_IDirectDrawX::CreateSurface2(LPDDSURFACEDESC2 lpDDSurfaceDesc2, LPDIRE
 			return DDERR_INVALIDPARAMS;
 		}
 
-		*lplpDDSurface = new m_IDirectDrawSurfaceX(&d3d9Device, this, DirectXVersion, lpDDSurfaceDesc2, displayWidth, displayHeight);
+		m_IDirectDrawSurfaceX *p_IDirectDrawSurfaceX = new m_IDirectDrawSurfaceX(&d3d9Device, this, DirectXVersion, lpDDSurfaceDesc2, displayWidth, displayHeight);
+
+		*lplpDDSurface = (LPDIRECTDRAWSURFACE7)p_IDirectDrawSurfaceX->GetWrapperInterfaceX(DirectXVersion);
 
 		return DD_OK;
 	}
@@ -312,7 +315,9 @@ HRESULT m_IDirectDrawX::DuplicateSurface(LPDIRECTDRAWSURFACE7 lpDDSurface, LPDIR
 		lpDDSurfaceX->GetSurfaceDesc2(&DDSurfaceDesc2);
 		DDSurfaceDesc2.ddsCaps.dwCaps &= ~DDSCAPS_PRIMARYSURFACE;		// Remove Primary surface flag
 
-		*lplpDupDDSurface = new m_IDirectDrawSurfaceX(&d3d9Device, this, DirectXVersion, &DDSurfaceDesc2, displayWidth, displayHeight);
+		m_IDirectDrawSurfaceX *p_IDirectDrawSurfaceX = new m_IDirectDrawSurfaceX(&d3d9Device, this, DirectXVersion, &DDSurfaceDesc2, displayWidth, displayHeight);
+
+		*lplpDupDDSurface = (LPDIRECTDRAWSURFACE7)p_IDirectDrawSurfaceX->GetWrapperInterfaceX(DirectXVersion);
 
 		return DD_OK;
 	}

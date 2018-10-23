@@ -18,7 +18,7 @@
 
 HRESULT m_IDirectDrawSurface::QueryInterface(REFIID riid, LPVOID FAR * ppvObj)
 {
-	return ProxyInterface->QueryInterface(riid, ppvObj);
+	return ProxyInterface->QueryInterface(riid, ppvObj, DirectXVersion);
 }
 
 ULONG m_IDirectDrawSurface::AddRef()
@@ -63,12 +63,12 @@ HRESULT m_IDirectDrawSurface::DeleteAttachedSurface(DWORD a, LPDIRECTDRAWSURFACE
 
 HRESULT m_IDirectDrawSurface::EnumAttachedSurfaces(LPVOID a, LPDDENUMSURFACESCALLBACK b)
 {
-	return ProxyInterface->EnumAttachedSurfaces(a, b);
+	return ProxyInterface->EnumAttachedSurfaces(a, b, DirectXVersion);
 }
 
 HRESULT m_IDirectDrawSurface::EnumOverlayZOrders(DWORD a, LPVOID b, LPDDENUMSURFACESCALLBACK c)
 {
-	return ProxyInterface->EnumOverlayZOrders(a, b, c);
+	return ProxyInterface->EnumOverlayZOrders(a, b, c, DirectXVersion);
 }
 
 HRESULT m_IDirectDrawSurface::Flip(LPDIRECTDRAWSURFACE a, DWORD b)
@@ -78,7 +78,7 @@ HRESULT m_IDirectDrawSurface::Flip(LPDIRECTDRAWSURFACE a, DWORD b)
 
 HRESULT m_IDirectDrawSurface::GetAttachedSurface(LPDDSCAPS a, LPDIRECTDRAWSURFACE FAR * b)
 {
-	return ProxyInterface->GetAttachedSurface(a, (LPDIRECTDRAWSURFACE7*)b);
+	return ProxyInterface->GetAttachedSurface(a, (LPDIRECTDRAWSURFACE7*)b, DirectXVersion);
 }
 
 HRESULT m_IDirectDrawSurface::GetBltStatus(DWORD a)

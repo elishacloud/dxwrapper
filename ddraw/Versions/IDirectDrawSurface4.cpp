@@ -18,7 +18,7 @@
 
 HRESULT m_IDirectDrawSurface4::QueryInterface(REFIID riid, LPVOID FAR * ppvObj)
 {
-	return ProxyInterface->QueryInterface(riid, ppvObj);
+	return ProxyInterface->QueryInterface(riid, ppvObj, DirectXVersion);
 }
 
 ULONG m_IDirectDrawSurface4::AddRef()
@@ -63,12 +63,12 @@ HRESULT m_IDirectDrawSurface4::DeleteAttachedSurface(DWORD a, LPDIRECTDRAWSURFAC
 
 HRESULT m_IDirectDrawSurface4::EnumAttachedSurfaces(LPVOID a, LPDDENUMSURFACESCALLBACK2 b)
 {
-	return ProxyInterface->EnumAttachedSurfaces(a, (LPDDENUMSURFACESCALLBACK7)b);
+	return ProxyInterface->EnumAttachedSurfaces2(a, (LPDDENUMSURFACESCALLBACK7)b, DirectXVersion);
 }
 
 HRESULT m_IDirectDrawSurface4::EnumOverlayZOrders(DWORD a, LPVOID b, LPDDENUMSURFACESCALLBACK2 c)
 {
-	return ProxyInterface->EnumOverlayZOrders(a, b, (LPDDENUMSURFACESCALLBACK7)c);
+	return ProxyInterface->EnumOverlayZOrders2(a, b, (LPDDENUMSURFACESCALLBACK7)c, DirectXVersion);
 }
 
 HRESULT m_IDirectDrawSurface4::Flip(LPDIRECTDRAWSURFACE4 a, DWORD b)
@@ -78,7 +78,7 @@ HRESULT m_IDirectDrawSurface4::Flip(LPDIRECTDRAWSURFACE4 a, DWORD b)
 
 HRESULT m_IDirectDrawSurface4::GetAttachedSurface(LPDDSCAPS2 a, LPDIRECTDRAWSURFACE4 FAR * b)
 {
-	return ProxyInterface->GetAttachedSurface(a, (LPDIRECTDRAWSURFACE7*)b);
+	return ProxyInterface->GetAttachedSurface2(a, (LPDIRECTDRAWSURFACE7*)b, DirectXVersion);
 }
 
 HRESULT m_IDirectDrawSurface4::GetBltStatus(DWORD a)
@@ -88,7 +88,7 @@ HRESULT m_IDirectDrawSurface4::GetBltStatus(DWORD a)
 
 HRESULT m_IDirectDrawSurface4::GetCaps(LPDDSCAPS2 a)
 {
-	return ProxyInterface->GetCaps(a);
+	return ProxyInterface->GetCaps2(a);
 }
 
 HRESULT m_IDirectDrawSurface4::GetClipper(LPDIRECTDRAWCLIPPER FAR * a)
@@ -128,12 +128,12 @@ HRESULT m_IDirectDrawSurface4::GetPixelFormat(LPDDPIXELFORMAT a)
 
 HRESULT m_IDirectDrawSurface4::GetSurfaceDesc(LPDDSURFACEDESC2 a)
 {
-	return ProxyInterface->GetSurfaceDesc(a);
+	return ProxyInterface->GetSurfaceDesc2(a);
 }
 
 HRESULT m_IDirectDrawSurface4::Initialize(LPDIRECTDRAW a, LPDDSURFACEDESC2 b)
 {
-	return ProxyInterface->Initialize(a, b);
+	return ProxyInterface->Initialize2(a, b);
 }
 
 HRESULT m_IDirectDrawSurface4::IsLost()
@@ -143,7 +143,7 @@ HRESULT m_IDirectDrawSurface4::IsLost()
 
 HRESULT m_IDirectDrawSurface4::Lock(LPRECT a, LPDDSURFACEDESC2 b, DWORD c, HANDLE d)
 {
-	return ProxyInterface->Lock(a, b, c, d);
+	return ProxyInterface->Lock2(a, b, c, d);
 }
 
 HRESULT m_IDirectDrawSurface4::ReleaseDC(HDC a)
@@ -198,7 +198,7 @@ HRESULT m_IDirectDrawSurface4::UpdateOverlayZOrder(DWORD a, LPDIRECTDRAWSURFACE4
 
 HRESULT m_IDirectDrawSurface4::GetDDInterface(LPVOID FAR * a)
 {
-	return ProxyInterface->GetDDInterface(a);
+	return ProxyInterface->GetDDInterface(a, DirectXVersion);
 }
 
 HRESULT m_IDirectDrawSurface4::PageLock(DWORD a)
@@ -213,7 +213,7 @@ HRESULT m_IDirectDrawSurface4::PageUnlock(DWORD a)
 
 HRESULT m_IDirectDrawSurface4::SetSurfaceDesc(LPDDSURFACEDESC2 a, DWORD b)
 {
-	return ProxyInterface->SetSurfaceDesc(a, b);
+	return ProxyInterface->SetSurfaceDesc2(a, b);
 }
 
 HRESULT m_IDirectDrawSurface4::SetPrivateData(REFGUID a, LPVOID b, DWORD c, DWORD d)

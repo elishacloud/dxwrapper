@@ -252,7 +252,7 @@ HRESULT WINAPI dd_DirectDrawCreate(GUID FAR *lpGUID, LPDIRECTDRAW FAR *lplpDD, I
 
 	HRESULT hr = m_pDirectDrawCreate(lpGUID, lplpDD, pUnkOuter);
 
-	if (SUCCEEDED(hr))
+	if (SUCCEEDED(hr) && lplpDD && *lplpDD)
 	{
 		// Convert to new DirectDraw version
 		if (ConvertREFIID(IID_IDirectDraw) != IID_IDirectDraw)
@@ -263,7 +263,7 @@ HRESULT WINAPI dd_DirectDrawCreate(GUID FAR *lpGUID, LPDIRECTDRAW FAR *lplpDD, I
 
 			if (SUCCEEDED(hr))
 			{
-				hr = genericQueryInterface(IID_IDirectDraw, (LPVOID*)lplpDD);
+				genericQueryInterface(IID_IDirectDraw, (LPVOID*)lplpDD);
 
 				lpDD->Release();
 			}
@@ -366,7 +366,7 @@ HRESULT WINAPI dd_DirectDrawCreateEx(GUID FAR *lpGUID, LPVOID *lplpDD, REFIID ri
 
 	if (SUCCEEDED(hr))
 	{
-		hr = genericQueryInterface(riid, lplpDD);
+		genericQueryInterface(riid, lplpDD);
 	}
 
 	return hr;
@@ -641,11 +641,11 @@ HRESULT WINAPI dd_DllGetClassObject(REFCLSID rclsid, REFIID riid, LPVOID *ppv)
 
 	HRESULT hr = m_pDllGetClassObject(rclsid, ConvertREFIID(riid), ppv);
 
-	if (SUCCEEDED(hr))
+	if (SUCCEEDED(hr) && ppv)
 	{
-		hr = genericQueryInterface(riid, ppv);
+		genericQueryInterface(riid, ppv);
 
-		if (SUCCEEDED(hr) && riid == IID_IClassFactory && ppv)
+		if (riid == IID_IClassFactory && *ppv)
 		{
 			((m_IClassFactory*)(*ppv))->SetCLSID(rclsid);
 		}

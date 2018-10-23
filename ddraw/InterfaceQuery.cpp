@@ -26,44 +26,33 @@ DWORD GetIIDVersion(REFIID riid)
 			riid == IID_IDirect3DMaterial3 || riid == IID_IDirect3DViewport3) ? 3 :
 		(riid == IID_IDirectDraw4 || riid == IID_IDirectDrawSurface4) ? 4 :
 		(riid == IID_IDirectDraw7 || riid == IID_IDirectDrawSurface7 || riid == IID_IDirect3D7 || riid == IID_IDirect3DDevice7 ||
-			riid == IID_IDirect3DVertexBuffer7) ? 7 : 7;
+			riid == IID_IDirect3DVertexBuffer7) ? 7 : 0;
 }
 
 REFIID ConvertREFIID(REFIID riid)
 {
 	if (Config.ConvertToDirectDraw7)
 	{
-		if (riid == IID_IDirectDraw ||
-			riid == IID_IDirectDraw2 ||
-			riid == IID_IDirectDraw3 ||
-			riid == IID_IDirectDraw4)
+		if (riid == IID_IDirectDraw || riid == IID_IDirectDraw2 || riid == IID_IDirectDraw3 || riid == IID_IDirectDraw4)
 		{
 			return IID_IDirectDraw7;
 		}
-		else if (riid == IID_IDirectDrawSurface ||
-			riid == IID_IDirectDrawSurface2 ||
-			riid == IID_IDirectDrawSurface3 ||
-			riid == IID_IDirectDrawSurface4)
+		else if (riid == IID_IDirectDrawSurface || riid == IID_IDirectDrawSurface2 || riid == IID_IDirectDrawSurface3 || riid == IID_IDirectDrawSurface4)
 		{
 			return IID_IDirectDrawSurface7;
 		}
 	}
 	if (Config.ConvertToDirect3D7)
 	{
-		if (riid == IID_IDirect3D ||
-			riid == IID_IDirect3D2 ||
-			riid == IID_IDirect3D3)
+		if (riid == IID_IDirect3D || riid == IID_IDirect3D2 || riid == IID_IDirect3D3)
 		{
 			return IID_IDirect3D7;
 		}
-		else if (riid == IID_IDirect3DDevice ||
-			riid == IID_IDirect3DDevice2 ||
-			riid == IID_IDirect3DDevice3)
+		else if (riid == IID_IDirect3DDevice || riid == IID_IDirect3DDevice2 || riid == IID_IDirect3DDevice3)
 		{
 			return IID_IDirect3DDevice7;
 		}
-		else if (riid == IID_IDirect3DMaterial ||
-			riid == IID_IDirect3DMaterial2)
+		else if (riid == IID_IDirect3DMaterial || riid == IID_IDirect3DMaterial2)
 		{
 			return IID_IDirect3DMaterial3;
 		}
@@ -71,8 +60,7 @@ REFIID ConvertREFIID(REFIID riid)
 		{
 			return IID_IDirect3DTexture2;
 		}
-		else if (riid == IID_IDirect3DViewport ||
-			riid == IID_IDirect3DViewport2)
+		else if (riid == IID_IDirect3DViewport || riid == IID_IDirect3DViewport2)
 		{
 			return IID_IDirect3DViewport3;
 		}
@@ -83,6 +71,11 @@ REFIID ConvertREFIID(REFIID riid)
 	}
 
 	return riid;
+}
+
+void AddRef(void *lpvObj)
+{
+	((IUnknown*)lpvObj)->AddRef();
 }
 
 HRESULT ProxyQueryInterface(LPVOID ProxyInterface, REFIID riid, LPVOID * ppvObj, REFIID WrapperID, LPVOID WrapperInterface)
@@ -99,17 +92,17 @@ HRESULT ProxyQueryInterface(LPVOID ProxyInterface, REFIID riid, LPVOID * ppvObj,
 		if (riid == IID_IClassFactory)
 		{
 			*ppvObj = new m_IClassFactory(nullptr);
-			return DD_OK;
+			return S_OK;
 		}
 		if (riid == IID_IDirectDrawFactory)
 		{
 			*ppvObj = new m_IDirectDrawFactory(nullptr);
-			return DD_OK;
+			return S_OK;
 		}
 		if (riid == IID_IDirectDrawColorControl)
 		{
 			*ppvObj = new m_IDirectDrawColorControl(nullptr);
-			return DD_OK;
+			return S_OK;
 		}
 
 		Logging::Log() << __FUNCTION__ << " Query Not Implemented for " << riid << " from " << WrapperID;
@@ -119,18 +112,18 @@ HRESULT ProxyQueryInterface(LPVOID ProxyInterface, REFIID riid, LPVOID * ppvObj,
 
 	if (riid == WrapperID || riid == IID_IUnknown)
 	{
-		((IUnknown*)ProxyInterface)->AddRef();
-
 		*ppvObj = WrapperInterface;
 
-		return DD_OK;
+		AddRef(*ppvObj);
+
+		return S_OK;
 	}
 
 	HRESULT hr = ((IUnknown*)ProxyInterface)->QueryInterface(ConvertREFIID(riid), ppvObj);
 
 	if (SUCCEEDED(hr))
 	{
-		hr = genericQueryInterface(riid, ppvObj);
+		genericQueryInterface(riid, ppvObj);
 	}
 	else
 	{
@@ -140,18 +133,17 @@ HRESULT ProxyQueryInterface(LPVOID ProxyInterface, REFIID riid, LPVOID * ppvObj,
 	return hr;
 }
 
-HRESULT genericQueryInterface(REFIID riid, LPVOID * ppvObj)
+void genericQueryInterface(REFIID riid, LPVOID * ppvObj)
 {
-	if (!ppvObj)
+	if (!ppvObj || !*ppvObj)
 	{
-		return E_FAIL;
+		return;
 	}
 
 #define QUERYINTERFACE(x) \
 	if (riid == IID_ ## x) \
 		{ \
 			*ppvObj = ProxyAddressLookupTable.FindAddress<m_ ## x>(*ppvObj); \
-			return DD_OK; \
 		}
 
 	QUERYINTERFACE(IClassFactory);
@@ -190,7 +182,4 @@ HRESULT genericQueryInterface(REFIID riid, LPVOID * ppvObj)
 	QUERYINTERFACE(IDirectDrawSurface3);
 	QUERYINTERFACE(IDirectDrawSurface4);
 	QUERYINTERFACE(IDirectDrawSurface7);
-
-	*ppvObj = nullptr;
-	return E_NOINTERFACE;
 }
