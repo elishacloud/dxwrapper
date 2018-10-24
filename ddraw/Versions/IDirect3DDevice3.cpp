@@ -18,7 +18,7 @@
 
 HRESULT m_IDirect3DDevice3::QueryInterface(REFIID riid, LPVOID * ppvObj)
 {
-	return ProxyInterface->QueryInterface(riid, ppvObj);
+	return ProxyInterface->QueryInterface(riid, ppvObj, DirectXVersion);
 }
 
 ULONG m_IDirect3DDevice3::AddRef()
@@ -53,7 +53,7 @@ HRESULT m_IDirect3DDevice3::DeleteViewport(LPDIRECT3DVIEWPORT3 a)
 
 HRESULT m_IDirect3DDevice3::NextViewport(LPDIRECT3DVIEWPORT3 a, LPDIRECT3DVIEWPORT3 * b, DWORD c)
 {
-	return ProxyInterface->NextViewport(a, b, c);
+	return ProxyInterface->NextViewport(a, b, c, DirectXVersion);
 }
 
 HRESULT m_IDirect3DDevice3::EnumTextureFormats(LPD3DENUMPIXELFORMATSCALLBACK a, LPVOID b)
@@ -73,7 +73,7 @@ HRESULT m_IDirect3DDevice3::EndScene()
 
 HRESULT m_IDirect3DDevice3::GetDirect3D(LPDIRECT3D3 * a)
 {
-	return ProxyInterface->GetDirect3D((LPDIRECT3D7*)a);
+	return ProxyInterface->GetDirect3D((LPDIRECT3D7*)a, DirectXVersion);
 }
 
 HRESULT m_IDirect3DDevice3::SetCurrentViewport(LPDIRECT3DVIEWPORT3 a)
@@ -83,7 +83,7 @@ HRESULT m_IDirect3DDevice3::SetCurrentViewport(LPDIRECT3DVIEWPORT3 a)
 
 HRESULT m_IDirect3DDevice3::GetCurrentViewport(LPDIRECT3DVIEWPORT3 * a)
 {
-	return ProxyInterface->GetCurrentViewport(a);
+	return ProxyInterface->GetCurrentViewport(a, DirectXVersion);
 }
 
 HRESULT m_IDirect3DDevice3::SetRenderTarget(LPDIRECTDRAWSURFACE4 a, DWORD b)
@@ -93,7 +93,7 @@ HRESULT m_IDirect3DDevice3::SetRenderTarget(LPDIRECTDRAWSURFACE4 a, DWORD b)
 
 HRESULT m_IDirect3DDevice3::GetRenderTarget(LPDIRECTDRAWSURFACE4 * a)
 {
-	return ProxyInterface->GetRenderTarget((LPDIRECTDRAWSURFACE7*)a);
+	return ProxyInterface->GetRenderTarget((LPDIRECTDRAWSURFACE7*)a, DirectXVersion);
 }
 
 HRESULT m_IDirect3DDevice3::Begin(D3DPRIMITIVETYPE a, DWORD b, DWORD c)
@@ -203,7 +203,7 @@ HRESULT m_IDirect3DDevice3::ComputeSphereVisibility(LPD3DVECTOR a, LPD3DVALUE b,
 
 HRESULT m_IDirect3DDevice3::GetTexture(DWORD a, LPDIRECT3DTEXTURE2 * b)
 {
-	return ProxyInterface->GetTexture(a, b);
+	return ProxyInterface->GetTexture(a, b, DirectXVersion);
 }
 
 HRESULT m_IDirect3DDevice3::SetTexture(DWORD a, LPDIRECT3DTEXTURE2 b)

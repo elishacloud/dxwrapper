@@ -18,7 +18,7 @@
 
 HRESULT m_IDirect3DDevice::QueryInterface(REFIID riid, LPVOID * ppvObj)
 {
-	return ProxyInterface->QueryInterface(riid, ppvObj);
+	return ProxyInterface->QueryInterface(riid, ppvObj, DirectXVersion);
 }
 
 ULONG m_IDirect3DDevice::AddRef()
@@ -73,7 +73,7 @@ HRESULT m_IDirect3DDevice::DeleteViewport(LPDIRECT3DVIEWPORT a)
 
 HRESULT m_IDirect3DDevice::NextViewport(LPDIRECT3DVIEWPORT a, LPDIRECT3DVIEWPORT * b, DWORD c)
 {
-	return ProxyInterface->NextViewport((LPDIRECT3DVIEWPORT3)a, (LPDIRECT3DVIEWPORT3*)b, c);
+	return ProxyInterface->NextViewport((LPDIRECT3DVIEWPORT3)a, (LPDIRECT3DVIEWPORT3*)b, c, DirectXVersion);
 }
 
 HRESULT m_IDirect3DDevice::Pick(LPDIRECT3DEXECUTEBUFFER a, LPDIRECT3DVIEWPORT b, DWORD c, LPD3DRECT d)
@@ -123,5 +123,5 @@ HRESULT m_IDirect3DDevice::EndScene()
 
 HRESULT m_IDirect3DDevice::GetDirect3D(LPDIRECT3D * a)
 {
-	return ProxyInterface->GetDirect3D((LPDIRECT3D7*)a);
+	return ProxyInterface->GetDirect3D((LPDIRECT3D7*)a, DirectXVersion);
 }

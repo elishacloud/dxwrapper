@@ -1,25 +1,24 @@
 #pragma once
 
-class m_IDirect3DDeviceX : public IDirect3DDevice7
+class m_IDirect3DDeviceX : public IUnknown
 {
 private:
 	IDirect3DDevice7 *ProxyInterface;
 	m_IDirect3DDevice7 *WrapperInterface;
-	DWORD DirectXVersion;
 	DWORD ProxyDirectXVersion;
-	IID WrapperID;
 	ULONG RefCount = 1;
 	m_IDirect3DViewportX *lpCurrentViewport = nullptr;
 	m_IDirectDrawX *ddrawParent = nullptr;
 
-public:
-	m_IDirect3DDeviceX(IDirect3DDevice7 *aOriginal, DWORD Version, m_IDirect3DDevice7 *Interface) : ProxyInterface(aOriginal), DirectXVersion(Version), WrapperInterface(Interface)
-	{
-		WrapperID = (DirectXVersion == 1) ? IID_IDirect3DDevice :
-			(DirectXVersion == 2) ? IID_IDirect3DDevice2 :
-			(DirectXVersion == 3) ? IID_IDirect3DDevice3 :
-			(DirectXVersion == 7) ? IID_IDirect3DDevice7 : IID_IDirect3DDevice7;
+	// Store d3d device version wrappers
+	std::unique_ptr<m_IDirect3DDevice> UniqueProxyInterface = nullptr;
+	std::unique_ptr<m_IDirect3DDevice2> UniqueProxyInterface2 = nullptr;
+	std::unique_ptr<m_IDirect3DDevice3> UniqueProxyInterface3 = nullptr;
+	std::unique_ptr<m_IDirect3DDevice7> UniqueProxyInterface7 = nullptr;
 
+public:
+	m_IDirect3DDeviceX(IDirect3DDevice7 *aOriginal, DWORD DirectXVersion, m_IDirect3DDevice7 *Interface) : ProxyInterface(aOriginal), WrapperInterface(Interface)
+	{
 		if (Config.Dd7to9)
 		{
 			ddrawParent = (m_IDirectDrawX *)ProxyInterface;
@@ -31,7 +30,7 @@ public:
 		}
 		else
 		{
-			ProxyDirectXVersion = GetIIDVersion(ConvertREFIID(WrapperID));
+			ProxyDirectXVersion = GetIIDVersion(ConvertREFIID(GetWrapperType(DirectXVersion)));
 		}
 
 		if (ProxyDirectXVersion == 7)
@@ -58,15 +57,23 @@ public:
 	}
 
 	DWORD GetDirectXVersion() { return DDWRAPPER_TYPEX; }
-	REFIID GetWrapperType() { return WrapperID; }
+	REFIID GetWrapperType(DWORD DirectXVersion)
+	{
+		return (DirectXVersion == 1) ? IID_IDirect3DDevice :
+			(DirectXVersion == 2) ? IID_IDirect3DDevice2 :
+			(DirectXVersion == 3) ? IID_IDirect3DDevice3 :
+			(DirectXVersion == 7) ? IID_IDirect3DDevice7 : IID_IUnknown;
+	}
 	IDirect3DDevice *GetProxyInterfaceV1() { return (IDirect3DDevice *)ProxyInterface; }
 	IDirect3DDevice2 *GetProxyInterfaceV2() { return (IDirect3DDevice2 *)ProxyInterface; }
 	IDirect3DDevice3 *GetProxyInterfaceV3() { return (IDirect3DDevice3 *)ProxyInterface; }
 	IDirect3DDevice7 *GetProxyInterface() { return ProxyInterface; }
 	m_IDirect3DDevice7 *GetWrapperInterface() { return WrapperInterface; }
+	void *GetWrapperInterfaceX(DWORD DirectXVersion);
 
 	/*** IUnknown methods ***/
-	STDMETHOD(QueryInterface)(THIS_ REFIID riid, LPVOID * ppvObj);
+	HRESULT QueryInterface(REFIID riid, LPVOID FAR * ppvObj, DWORD DirectXVersion);
+	STDMETHOD(QueryInterface) (THIS_ REFIID, LPVOID FAR *) { return E_NOINTERFACE; }
 	STDMETHOD_(ULONG, AddRef)(THIS);
 	STDMETHOD_(ULONG, Release)(THIS);
 
@@ -90,9 +97,9 @@ public:
 	STDMETHOD(GetStats)(THIS_ LPD3DSTATS);
 	STDMETHOD(AddViewport)(THIS_ LPDIRECT3DVIEWPORT3);
 	STDMETHOD(DeleteViewport)(THIS_ LPDIRECT3DVIEWPORT3);
-	STDMETHOD(NextViewport)(THIS_ LPDIRECT3DVIEWPORT3, LPDIRECT3DVIEWPORT3*, DWORD);
+	STDMETHOD(NextViewport)(THIS_ LPDIRECT3DVIEWPORT3, LPDIRECT3DVIEWPORT3*, DWORD, DWORD);
 	STDMETHOD(SetCurrentViewport)(THIS_ LPDIRECT3DVIEWPORT3);
-	STDMETHOD(GetCurrentViewport)(THIS_ LPDIRECT3DVIEWPORT3 *);
+	STDMETHOD(GetCurrentViewport)(THIS_ LPDIRECT3DVIEWPORT3 *, DWORD);
 	STDMETHOD(Begin)(THIS_ D3DPRIMITIVETYPE, DWORD, DWORD);
 	STDMETHOD(BeginIndexed)(THIS_ D3DPRIMITIVETYPE, DWORD, LPVOID, DWORD, DWORD);
 	STDMETHOD(Vertex)(THIS_ LPVOID);
@@ -101,7 +108,7 @@ public:
 	STDMETHOD(GetLightState)(THIS_ D3DLIGHTSTATETYPE, LPDWORD);
 	STDMETHOD(SetLightState)(THIS_ D3DLIGHTSTATETYPE, DWORD);
 	STDMETHOD(DrawIndexedPrimitiveVB)(THIS_ D3DPRIMITIVETYPE, LPDIRECT3DVERTEXBUFFER, LPWORD, DWORD, DWORD);
-	STDMETHOD(GetTexture)(THIS_ DWORD, LPDIRECT3DTEXTURE2 *);
+	STDMETHOD(GetTexture)(THIS_ DWORD, LPDIRECT3DTEXTURE2 *, DWORD);
 	STDMETHOD(SetTexture)(THIS_ DWORD, LPDIRECT3DTEXTURE2);
 
 	/*** IDirect3DDevice7 methods ***/
@@ -109,9 +116,9 @@ public:
 	STDMETHOD(EnumTextureFormats)(THIS_ LPD3DENUMPIXELFORMATSCALLBACK, LPVOID);
 	STDMETHOD(BeginScene)(THIS);
 	STDMETHOD(EndScene)(THIS);
-	STDMETHOD(GetDirect3D)(THIS_ LPDIRECT3D7*);
+	STDMETHOD(GetDirect3D)(THIS_ LPDIRECT3D7*, DWORD);
 	STDMETHOD(SetRenderTarget)(THIS_ LPDIRECTDRAWSURFACE7, DWORD);
-	STDMETHOD(GetRenderTarget)(THIS_ LPDIRECTDRAWSURFACE7 *);
+	STDMETHOD(GetRenderTarget)(THIS_ LPDIRECTDRAWSURFACE7 *, DWORD);
 	STDMETHOD(Clear)(THIS_ DWORD, LPD3DRECT, DWORD, D3DCOLOR, D3DVALUE, DWORD);
 	STDMETHOD(SetTransform)(THIS_ D3DTRANSFORMSTATETYPE, LPD3DMATRIX);
 	STDMETHOD(GetTransform)(THIS_ D3DTRANSFORMSTATETYPE, LPD3DMATRIX);
@@ -136,7 +143,7 @@ public:
 	STDMETHOD(DrawPrimitiveVB)(THIS_ D3DPRIMITIVETYPE, LPDIRECT3DVERTEXBUFFER7, DWORD, DWORD, DWORD);
 	STDMETHOD(DrawIndexedPrimitiveVB)(THIS_ D3DPRIMITIVETYPE, LPDIRECT3DVERTEXBUFFER7, DWORD, DWORD, LPWORD, DWORD, DWORD);
 	STDMETHOD(ComputeSphereVisibility)(THIS_ LPD3DVECTOR, LPD3DVALUE, DWORD, DWORD, LPDWORD);
-	STDMETHOD(GetTexture)(THIS_ DWORD, LPDIRECTDRAWSURFACE7 *);
+	STDMETHOD(GetTexture)(THIS_ DWORD, LPDIRECTDRAWSURFACE7 *, DWORD);
 	STDMETHOD(SetTexture)(THIS_ DWORD, LPDIRECTDRAWSURFACE7);
 	STDMETHOD(GetTextureStageState)(THIS_ DWORD, D3DTEXTURESTAGESTATETYPE, LPDWORD);
 	STDMETHOD(SetTextureStageState)(THIS_ DWORD, D3DTEXTURESTAGESTATETYPE, DWORD);

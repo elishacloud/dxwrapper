@@ -18,7 +18,7 @@
 
 HRESULT m_IDirect3DDevice7::QueryInterface(REFIID riid, LPVOID * ppvObj)
 {
-	return ProxyInterface->QueryInterface(riid, ppvObj);
+	return ProxyInterface->QueryInterface(riid, ppvObj, DirectXVersion);
 }
 
 ULONG m_IDirect3DDevice7::AddRef()
@@ -53,7 +53,7 @@ HRESULT m_IDirect3DDevice7::EndScene()
 
 HRESULT m_IDirect3DDevice7::GetDirect3D(LPDIRECT3D7 * a)
 {
-	return ProxyInterface->GetDirect3D(a);
+	return ProxyInterface->GetDirect3D(a, DirectXVersion);
 }
 
 HRESULT m_IDirect3DDevice7::SetRenderTarget(LPDIRECTDRAWSURFACE7 a, DWORD b)
@@ -63,7 +63,7 @@ HRESULT m_IDirect3DDevice7::SetRenderTarget(LPDIRECTDRAWSURFACE7 a, DWORD b)
 
 HRESULT m_IDirect3DDevice7::GetRenderTarget(LPDIRECTDRAWSURFACE7 * a)
 {
-	return ProxyInterface->GetRenderTarget(a);
+	return ProxyInterface->GetRenderTarget(a, DirectXVersion);
 }
 
 HRESULT m_IDirect3DDevice7::Clear(DWORD a, LPD3DRECT b, DWORD c, D3DCOLOR d, D3DVALUE e, DWORD f)
@@ -188,7 +188,7 @@ HRESULT m_IDirect3DDevice7::ComputeSphereVisibility(LPD3DVECTOR a, LPD3DVALUE b,
 
 HRESULT m_IDirect3DDevice7::GetTexture(DWORD a, LPDIRECTDRAWSURFACE7 * b)
 {
-	return ProxyInterface->GetTexture(a, b);
+	return ProxyInterface->GetTexture(a, b, DirectXVersion);
 }
 
 HRESULT m_IDirect3DDevice7::SetTexture(DWORD a, LPDIRECTDRAWSURFACE7 b)

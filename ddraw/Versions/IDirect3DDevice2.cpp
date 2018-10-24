@@ -18,7 +18,7 @@
 
 HRESULT m_IDirect3DDevice2::QueryInterface(REFIID riid, LPVOID * ppvObj)
 {
-	return ProxyInterface->QueryInterface(riid, ppvObj);
+	return ProxyInterface->QueryInterface(riid, ppvObj, DirectXVersion);
 }
 
 ULONG m_IDirect3DDevice2::AddRef()
@@ -58,7 +58,7 @@ HRESULT m_IDirect3DDevice2::DeleteViewport(LPDIRECT3DVIEWPORT2 a)
 
 HRESULT m_IDirect3DDevice2::NextViewport(LPDIRECT3DVIEWPORT2 a, LPDIRECT3DVIEWPORT2 * b, DWORD c)
 {
-	return ProxyInterface->NextViewport((LPDIRECT3DVIEWPORT3)a, (LPDIRECT3DVIEWPORT3*)b, c);
+	return ProxyInterface->NextViewport((LPDIRECT3DVIEWPORT3)a, (LPDIRECT3DVIEWPORT3*)b, c, DirectXVersion);
 }
 
 HRESULT m_IDirect3DDevice2::EnumTextureFormats(LPD3DENUMTEXTUREFORMATSCALLBACK a, LPVOID b)
@@ -78,7 +78,7 @@ HRESULT m_IDirect3DDevice2::EndScene()
 
 HRESULT m_IDirect3DDevice2::GetDirect3D(LPDIRECT3D2 * a)
 {
-	return ProxyInterface->GetDirect3D((LPDIRECT3D7*)a);
+	return ProxyInterface->GetDirect3D((LPDIRECT3D7*)a, DirectXVersion);
 }
 
 HRESULT m_IDirect3DDevice2::SetCurrentViewport(LPDIRECT3DVIEWPORT2 a)
@@ -88,7 +88,7 @@ HRESULT m_IDirect3DDevice2::SetCurrentViewport(LPDIRECT3DVIEWPORT2 a)
 
 HRESULT m_IDirect3DDevice2::GetCurrentViewport(LPDIRECT3DVIEWPORT2 * a)
 {
-	return ProxyInterface->GetCurrentViewport((LPDIRECT3DVIEWPORT3*)a);
+	return ProxyInterface->GetCurrentViewport((LPDIRECT3DVIEWPORT3*)a, DirectXVersion);
 }
 
 HRESULT m_IDirect3DDevice2::SetRenderTarget(LPDIRECTDRAWSURFACE a, DWORD b)
@@ -98,7 +98,7 @@ HRESULT m_IDirect3DDevice2::SetRenderTarget(LPDIRECTDRAWSURFACE a, DWORD b)
 
 HRESULT m_IDirect3DDevice2::GetRenderTarget(LPDIRECTDRAWSURFACE * a)
 {
-	return ProxyInterface->GetRenderTarget((LPDIRECTDRAWSURFACE7*)a);
+	return ProxyInterface->GetRenderTarget((LPDIRECTDRAWSURFACE7*)a, DirectXVersion);
 }
 
 HRESULT m_IDirect3DDevice2::Begin(D3DPRIMITIVETYPE a, D3DVERTEXTYPE b, DWORD c)
