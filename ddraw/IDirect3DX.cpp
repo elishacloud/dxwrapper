@@ -342,7 +342,7 @@ HRESULT m_IDirect3DX::CreateViewport(LPDIRECT3DVIEWPORT3 * lplpD3DViewport, LPUN
 	{
 		if (lplpD3DViewport && lpCurrentD3DDevice)
 		{
-			*lplpD3DViewport = new m_IDirect3DViewportX(lpCurrentD3DDevice, 7);
+			*lplpD3DViewport = (LPDIRECT3DVIEWPORT3)new m_IDirect3DViewportX(lpCurrentD3DDevice, 7);
 			return D3D_OK;
 		}
 		else if (!lplpD3DViewport)

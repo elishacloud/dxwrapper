@@ -16,7 +16,7 @@
 
 #include "ddraw.h"
 
-HRESULT m_IDirect3DViewportX::QueryInterface(REFIID riid, LPVOID * ppvObj)
+HRESULT m_IDirect3DViewportX::QueryInterface(REFIID riid, LPVOID * ppvObj, DWORD DirectXVersion)
 {
 	Logging::LogDebug() << __FUNCTION__;
 
@@ -32,7 +32,35 @@ HRESULT m_IDirect3DViewportX::QueryInterface(REFIID riid, LPVOID * ppvObj)
 		}
 	}
 
-	return ProxyQueryInterface(ProxyInterface, riid, ppvObj, WrapperID, WrapperInterface);
+	return ProxyQueryInterface(ProxyInterface, riid, ppvObj, GetWrapperType(DirectXVersion), WrapperInterface);
+}
+
+void *m_IDirect3DViewportX::GetWrapperInterfaceX(DWORD DirectXVersion)
+{
+	switch (DirectXVersion)
+	{
+	case 1:
+		if (!UniqueProxyInterface.get())
+		{
+			UniqueProxyInterface = std::make_unique<m_IDirect3DViewport>(this);
+		}
+		return UniqueProxyInterface.get();
+	case 2:
+		if (!UniqueProxyInterface2.get())
+		{
+			UniqueProxyInterface2 = std::make_unique<m_IDirect3DViewport2>(this);
+		}
+		return UniqueProxyInterface2.get();
+	case 3:
+		if (!UniqueProxyInterface3.get())
+		{
+			UniqueProxyInterface3 = std::make_unique<m_IDirect3DViewport3>(this);
+		}
+		return UniqueProxyInterface3.get();
+	default:
+		Logging::Log() << __FUNCTION__ << " Error, wrapper interface version not found: " << DirectXVersion;
+		return nullptr;
+	}
 }
 
 ULONG m_IDirect3DViewportX::AddRef()

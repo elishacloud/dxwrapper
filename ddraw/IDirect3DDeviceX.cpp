@@ -444,7 +444,7 @@ HRESULT m_IDirect3DDeviceX::GetCurrentViewport(LPDIRECT3DVIEWPORT3 * lplpd3dView
 		if (lplpd3dViewport && lpCurrentViewport)
 		{
 			// ToDo: Validate current Viewport address
-			*lplpd3dViewport = lpCurrentViewport;
+			*lplpd3dViewport = (LPDIRECT3DVIEWPORT3)lpCurrentViewport;
 			return D3D_OK;
 		}
 		else if (!lpCurrentViewport)
