@@ -5,17 +5,16 @@ class m_IDirect3DVertexBufferX : public IDirect3DVertexBuffer7
 private:
 	IDirect3DVertexBuffer7 *ProxyInterface;
 	m_IDirect3DVertexBuffer7 *WrapperInterface;
-	DWORD DirectXVersion;
 	DWORD ProxyDirectXVersion;
-	IID WrapperID;
+
+	// Store ddraw version wrappers
+	std::unique_ptr<m_IDirect3DVertexBuffer> UniqueProxyInterface = nullptr;
+	std::unique_ptr<m_IDirect3DVertexBuffer7> UniqueProxyInterface7 = nullptr;
 
 public:
-	m_IDirect3DVertexBufferX(IDirect3DVertexBuffer7 *aOriginal, DWORD Version, m_IDirect3DVertexBuffer7 *Interface) : ProxyInterface(aOriginal), DirectXVersion(Version), WrapperInterface(Interface)
+	m_IDirect3DVertexBufferX(IDirect3DVertexBuffer7 *aOriginal, DWORD DirectXVersion, m_IDirect3DVertexBuffer7 *Interface) : ProxyInterface(aOriginal), WrapperInterface(Interface)
 	{
-		WrapperID = (DirectXVersion == 1) ? IID_IDirect3DVertexBuffer :
-			(DirectXVersion == 7) ? IID_IDirect3DVertexBuffer7 : IID_IDirect3DVertexBuffer7;
-
-		ProxyDirectXVersion = GetIIDVersion(ConvertREFIID(WrapperID));
+		ProxyDirectXVersion = GetIIDVersion(ConvertREFIID(GetWrapperType(DirectXVersion)));
 
 		if (ProxyDirectXVersion != DirectXVersion)
 		{
@@ -29,12 +28,18 @@ public:
 	~m_IDirect3DVertexBufferX() {}
 
 	DWORD GetDirectXVersion() { return DDWRAPPER_TYPEX; }
-	REFIID GetWrapperType() { return WrapperID; }
+	REFIID GetWrapperType(DWORD DirectXVersion)
+	{
+		return (DirectXVersion == 1) ? IID_IDirect3DVertexBuffer :
+			(DirectXVersion == 7) ? IID_IDirect3DVertexBuffer7 : IID_IUnknown;
+	}
 	IDirect3DVertexBuffer7 *GetProxyInterface() { return ProxyInterface; }
 	m_IDirect3DVertexBuffer7 *GetWrapperInterface() { return WrapperInterface; }
+	void *GetWrapperInterfaceX(DWORD DirectXVersion);
 
 	/*** IUnknown methods ***/
-	STDMETHOD(QueryInterface)(THIS_ REFIID riid, LPVOID * ppvObj);
+	HRESULT QueryInterface(REFIID riid, LPVOID FAR * ppvObj, DWORD DirectXVersion);
+	STDMETHOD(QueryInterface) (THIS_ REFIID, LPVOID FAR *) { return E_NOINTERFACE; }
 	STDMETHOD_(ULONG, AddRef)(THIS);
 	STDMETHOD_(ULONG, Release)(THIS);
 
