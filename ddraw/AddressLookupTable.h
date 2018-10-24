@@ -152,7 +152,7 @@ public:
 	template <typename T>
 	T * FindAddress(void *Proxy)
 	{
-		if (Proxy == nullptr)
+		if (!Proxy)
 		{
 			return nullptr;
 		}
@@ -169,10 +169,32 @@ public:
 	}
 
 	template <typename T>
+	bool IsValidAddress(T *Wrapper)
+	{
+		if (!Wrapper)
+		{
+			return false;
+		}
+
+		for (UINT CacheIndex = 0 ; CacheIndex < MaxIndex; CacheIndex++)
+		{
+			auto it = std::find_if(g_map[CacheIndex].begin(), g_map[CacheIndex].end(),
+				[=](auto Map) -> bool { return Map.second == Wrapper; });
+
+			if (it != std::end(g_map[CacheIndex]))
+			{
+				return true;
+			}
+		}
+
+		return false;
+	}
+
+	template <typename T>
 	void SaveAddress(T *Wrapper, void *Proxy)
 	{
 		constexpr UINT CacheIndex = AddressCacheIndex<T>::CacheIndex;
-		if (Wrapper != nullptr && Proxy != nullptr)
+		if (Wrapper && Proxy)
 		{
 			g_map[CacheIndex][Proxy] = Wrapper;
 		}
@@ -181,22 +203,24 @@ public:
 	template <typename T>
 	void DeleteAddress(T *Wrapper)
 	{
-		if (Wrapper != nullptr && !ConstructorFlag)
+		if (!Wrapper || ConstructorFlag)
 		{
-			constexpr UINT CacheIndex = AddressCacheIndex<T>::CacheIndex;
-			auto it = std::find_if(g_map[CacheIndex].begin(), g_map[CacheIndex].end(),
-				[=](auto Map) -> bool { return Map.second == Wrapper; });
+			return;
+		}
 
-			if (it != std::end(g_map[CacheIndex]))
-			{
-				it = g_map[CacheIndex].erase(it);
-			}
+		constexpr UINT CacheIndex = AddressCacheIndex<T>::CacheIndex;
+		auto it = std::find_if(g_map[CacheIndex].begin(), g_map[CacheIndex].end(),
+			[=](auto Map) -> bool { return Map.second == Wrapper; });
+
+		if (it != std::end(g_map[CacheIndex]))
+		{
+			it = g_map[CacheIndex].erase(it);
 		}
 	}
 
 private:
 	bool ConstructorFlag = false;
-	D * unused = nullptr;
+	D *unused = nullptr;
 	std::unordered_map<void*, class AddressLookupTableDdrawObject*> g_map[MaxIndex];
 };
 

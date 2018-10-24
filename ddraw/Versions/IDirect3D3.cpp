@@ -60,14 +60,14 @@ HRESULT m_IDirect3D3::CreateDevice(REFCLSID a, LPDIRECTDRAWSURFACE4 b, LPDIRECT3
 {
 	UNREFERENCED_PARAMETER(d);
 
-	return ProxyInterface->CreateDevice(a, (LPDIRECTDRAWSURFACE7)b, (LPDIRECT3DDEVICE7*)c, DirectXVersion);
+	return ProxyInterface->CreateDevice(a, (LPDIRECTDRAWSURFACE7)b, (LPDIRECT3DDEVICE7*)c, d, DirectXVersion);
 }
 
 HRESULT m_IDirect3D3::CreateVertexBuffer(LPD3DVERTEXBUFFERDESC a, LPDIRECT3DVERTEXBUFFER * b, DWORD c, LPUNKNOWN d)
 {
 	UNREFERENCED_PARAMETER(d);
 
-	return ProxyInterface->CreateVertexBuffer(a, (LPDIRECT3DVERTEXBUFFER7*)b, c, DirectXVersion);
+	return ProxyInterface->CreateVertexBuffer(a, (LPDIRECT3DVERTEXBUFFER7*)b, c, d, DirectXVersion);
 }
 
 HRESULT m_IDirect3D3::EnumZBufferFormats(REFCLSID a, LPD3DENUMPIXELFORMATSCALLBACK b, LPVOID c)

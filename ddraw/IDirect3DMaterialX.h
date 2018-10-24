@@ -7,6 +7,8 @@ private:
 	m_IDirect3DMaterial3 *WrapperInterface;
 	DWORD ProxyDirectXVersion;
 	ULONG RefCount = 1;
+
+	// Convert Material
 	m_IDirect3DDeviceX *D3DDeviceInterface;
 
 	// Store d3d material version wrappers

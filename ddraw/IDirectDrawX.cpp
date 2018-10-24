@@ -27,7 +27,7 @@ struct handle_data
 LRESULT CALLBACK CBTProc(int nCode, WPARAM wParam, LPARAM lParam);
 BOOL CALLBACK EnumProcWindowCallback(HWND hwnd, LPARAM lParam);
 
-std::unordered_map<HWND, m_IDirectDrawX*> g_hookmap;
+std::unordered_map<HWND, m_IDirectDraw7*> g_hookmap;
 
 /************************/
 /*** IUnknown methods ***/
@@ -891,35 +891,55 @@ HRESULT m_IDirectDrawX::SetCooperativeLevel(HWND hWnd, DWORD dwFlags)
 		return DD_OK;
 	}
 
+	HRESULT hr = ProxyInterface->SetCooperativeLevel(hWnd, dwFlags);
+
 	// Release previouse Exclusive flag
 	// Hook window message to get notified when the window is about to exit to remove the exclusive flag
-	if ((dwFlags & DDSCL_EXCLUSIVE) && IsWindow(hWnd) && hWnd != chWnd)
+	if (SUCCEEDED(hr) && (dwFlags & DDSCL_EXCLUSIVE) && IsWindow(hWnd) && hWnd != chWnd)
 	{
-		if (IsWindow(chWnd))
-		{
-			ProxyInterface->SetCooperativeLevel(chWnd, DDSCL_NORMAL);
-		}
-		else
-		{
-			if (g_hook)
-			{
-				UnhookWindowsHookEx(g_hook);
-				g_hook = nullptr;
-			}
+		dd_AcquireDDThreadLock();
 
-			g_hookmap[hWnd] = this;
-			g_hook = SetWindowsHookEx(WH_CBT, CBTProc, nullptr, GetWindowThreadProcessId(hWnd, nullptr));
+		g_hookmap.clear();
+
+		if (g_hook)
+		{
+			UnhookWindowsHookEx(g_hook);
+			g_hook = nullptr;
 		}
 
-		if (chWnd)
-		{
-			g_hookmap.erase(chWnd);
-		}
+		g_hookmap[hWnd] = WrapperInterface;
+		g_hook = SetWindowsHookEx(WH_CBT, CBTProc, nullptr, GetWindowThreadProcessId(hWnd, nullptr));
 
 		chWnd = hWnd;
+
+		dd_ReleaseDDThreadLock();
 	}
 
-	return ProxyInterface->SetCooperativeLevel(hWnd, dwFlags);
+	// Remove hWnd ExclusiveMode
+	if (SUCCEEDED(hr) && (dwFlags & DDSCL_NORMAL) && hWnd == chWnd)
+	{
+		dd_AcquireDDThreadLock();
+
+		g_hookmap.clear();
+
+		dd_ReleaseDDThreadLock();
+	}
+
+	// Remove window border on fullscreen windows 
+	// Fixes a bug in ddraw in Windows 8 and 10 where the window border is visible in fullscreen mode
+	if (SUCCEEDED(hr) && (dwFlags & DDSCL_FULLSCREEN) && IsWindow(hWnd))
+	{
+		LONG lStyle = GetWindowLong(hWnd, GWL_STYLE);
+		if (lStyle & WS_CAPTION)
+		{
+			Logging::LogDebug() << __FUNCTION__ << " Removing window WS_CAPTION!";
+
+			SetWindowLong(hWnd, GWL_STYLE, lStyle & ~WS_CAPTION);
+			SetWindowPos(hWnd, NULL, 0, 0, 0, 0, SWP_NOACTIVATE | SWP_DEFERERASE | SWP_NOSENDCHANGING | SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_NOOWNERZORDER | SWP_NOREDRAW | SWP_FRAMECHANGED);
+		}
+	}
+
+	return hr;
 }
 
 HRESULT m_IDirectDrawX::SetDisplayMode(DWORD dwWidth, DWORD dwHeight, DWORD dwBPP, DWORD dwRefreshRate, DWORD dwFlags)
@@ -1043,7 +1063,7 @@ HRESULT m_IDirectDrawX::GetAvailableVidMem2(LPDDSCAPS2 lpDDSCaps2, LPDWORD lpdwT
 	}
 
 	// Set available memory, some games have issues if this is set to high
-	if (Config.ConvertToDirectDraw7 && lpdwTotal && lpdwFree && *lpdwTotal > 0x8000000)
+	if (lpdwTotal && lpdwFree && *lpdwTotal > 0x8000000)
 	{
 		*lpdwFree = 0x8000000 - (*lpdwTotal - *lpdwFree);
 		*lpdwTotal = 0x8000000;
@@ -1409,13 +1429,22 @@ LRESULT CALLBACK CBTProc(int nCode, WPARAM wParam, LPARAM lParam)
 
 	if (nCode == HCBT_DESTROYWND)
 	{
+		Logging::LogDebug() << __FUNCTION__;
+
+		dd_AcquireDDThreadLock();
+
 		HWND hWnd = (HWND)wParam;
-		m_IDirectDrawX *Interface = (m_IDirectDrawX*)InterlockedExchangePointer((PVOID*)&lpCurrentDDInterface, nullptr);
-		if (Interface && Interface == g_hookmap[hWnd])
+		if (ProxyAddressLookupTable.IsValidAddress(g_hookmap[hWnd]))
 		{
-			Interface->SetCooperativeLevel(hWnd, DDSCL_NORMAL);
+			g_hookmap[hWnd]->SetCooperativeLevel(hWnd, DDSCL_NORMAL);
+			g_hookmap.clear();
 		}
-		g_hookmap.erase(hWnd);
+		else
+		{
+			g_hookmap.erase(hWnd);
+		}
+
+		dd_ReleaseDDThreadLock();
 	}
 
 	return CallNextHookEx(nullptr, nCode, wParam, lParam);

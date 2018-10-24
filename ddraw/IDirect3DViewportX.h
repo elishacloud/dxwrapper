@@ -8,6 +8,7 @@ private:
 	DWORD ProxyDirectXVersion;
 	ULONG RefCount = 1;
 
+	// Convert Viewport
 	m_IDirect3DDeviceX *D3DDeviceInterface;
 	D3DVIEWPORT ViewPort;
 	D3DVIEWPORT2 ViewPort2;

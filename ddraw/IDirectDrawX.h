@@ -66,8 +66,6 @@ public:
 			ProxyDirectXVersion = GetIIDVersion(ConvertREFIID(GetWrapperType(DirectXVersion)));
 		}
 
-		InterlockedExchangePointer((PVOID*)&lpCurrentDDInterface, this);
-
 		if (ProxyDirectXVersion != DirectXVersion)
 		{
 			Logging::LogDebug() << "Convert DirectDraw v" << DirectXVersion << " to v" << ProxyDirectXVersion;
@@ -79,9 +77,6 @@ public:
 	}
 	~m_IDirectDrawX()
 	{
-		PVOID MyNull = nullptr;
-		InterlockedExchangePointer((PVOID*)&lpCurrentDDInterface, MyNull);
-
 		if (g_hook)
 		{
 			UnhookWindowsHookEx(g_hook);

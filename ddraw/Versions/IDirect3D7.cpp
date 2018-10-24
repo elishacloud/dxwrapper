@@ -38,12 +38,12 @@ HRESULT m_IDirect3D7::EnumDevices(LPD3DENUMDEVICESCALLBACK7 a, LPVOID b)
 
 HRESULT m_IDirect3D7::CreateDevice(REFCLSID a, LPDIRECTDRAWSURFACE7 b, LPDIRECT3DDEVICE7 * c)
 {
-	return ProxyInterface->CreateDevice(a, b, c, DirectXVersion);
+	return ProxyInterface->CreateDevice(a, b, c, nullptr, DirectXVersion);
 }
 
 HRESULT m_IDirect3D7::CreateVertexBuffer(LPD3DVERTEXBUFFERDESC a, LPDIRECT3DVERTEXBUFFER7 * b, DWORD c)
 {
-	return ProxyInterface->CreateVertexBuffer(a, b, c, DirectXVersion);
+	return ProxyInterface->CreateVertexBuffer(a, b, c, nullptr, DirectXVersion);
 }
 
 HRESULT m_IDirect3D7::EnumZBufferFormats(REFCLSID a, LPD3DENUMPIXELFORMATSCALLBACK b, LPVOID c)

@@ -159,7 +159,7 @@ void ConvertCaps(DDSCAPS2 &Caps2, DDSCAPS &Caps)
 bool ConvertCaps(DDCAPS_DX7 &Caps, DDCAPS_DX7 &Caps7)
 {
 	// Set available memory, some games have issues if this is set to high
-	if (Config.ConvertToDirectDraw7 && Caps7.dwVidMemTotal > 0x8000000)
+	if (Caps7.dwVidMemTotal > 0x8000000)
 	{
 		Caps7.dwVidMemFree = 0x8000000 - (Caps7.dwVidMemTotal - Caps7.dwVidMemFree);
 		Caps7.dwVidMemTotal = 0x8000000;

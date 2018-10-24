@@ -20,7 +20,7 @@ public:
 	template <typename T>
 	T *FindAddress(void *Proxy)
 	{
-		if (Proxy == nullptr)
+		if (!Proxy)
 		{
 			return nullptr;
 		}
@@ -38,7 +38,7 @@ public:
 	template <typename T>
 	void SaveAddress(T *Wrapper, void *Proxy)
 	{
-		if (Wrapper != nullptr && Proxy != nullptr)
+		if (Wrapper && Proxy)
 		{
 			g_map[Proxy] = Wrapper;
 		}
@@ -47,15 +47,17 @@ public:
 	template <typename T>
 	void DeleteAddress(T *Wrapper)
 	{
-		if (Wrapper != nullptr && !ConstructorFlag)
+		if (!Wrapper || ConstructorFlag)
 		{
-			auto it = std::find_if(g_map.begin(), g_map.end(),
-				[=](auto Map) -> bool { return Map.second == Wrapper; });
+			return;
+		}
 
-			if (it != std::end(g_map))
-			{
-				it = g_map.erase(it);
-			}
+		auto it = std::find_if(g_map.begin(), g_map.end(),
+			[=](auto Map) -> bool { return Map.second == Wrapper; });
+
+		if (it != std::end(g_map))
+		{
+			it = g_map.erase(it);
 		}
 	}
 

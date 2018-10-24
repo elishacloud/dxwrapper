@@ -365,10 +365,10 @@ void AdjustWindow(HWND MainhWnd, LONG displayWidth, LONG displayHeight)
 
 	// Set window border
 	SetWindowLong(MainhWnd, GWL_STYLE, lStyle);
-	SetWindowPos(MainhWnd, nullptr, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_FRAMECHANGED);
+	SetWindowPos(MainhWnd, NULL, 0, 0, 0, 0, SWP_NOACTIVATE | SWP_DEFERERASE | SWP_NOSENDCHANGING | SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_NOOWNERZORDER | SWP_NOREDRAW | SWP_FRAMECHANGED);
 
 	// Set window size
-	SetWindowPos(MainhWnd, nullptr, 0, 0, displayWidth, displayHeight, SWP_NOMOVE | SWP_NOZORDER);
+	SetWindowPos(MainhWnd, NULL, 0, 0, displayWidth, displayHeight, SWP_NOACTIVATE | SWP_DEFERERASE | SWP_NOSENDCHANGING | SWP_NOMOVE | SWP_NOZORDER | SWP_NOOWNERZORDER);
 
 	// Adjust for window decoration to ensure client area matches display size
 	RECT tempRect;
@@ -384,5 +384,5 @@ void AdjustWindow(HWND MainhWnd, LONG displayWidth, LONG displayHeight)
 		xLoc = (screenWidth - newDisplayWidth) / 2;
 		yLoc = (screenHeight - newDisplayHeight) / 2;
 	}
-	SetWindowPos(MainhWnd, nullptr, xLoc, yLoc, newDisplayWidth, newDisplayHeight, SWP_NOZORDER);
+	SetWindowPos(MainhWnd, NULL, xLoc, yLoc, newDisplayWidth, newDisplayHeight, SWP_NOACTIVATE | SWP_DEFERERASE | SWP_NOSENDCHANGING | SWP_NOZORDER | SWP_NOOWNERZORDER);
 }

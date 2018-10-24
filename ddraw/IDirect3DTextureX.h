@@ -7,6 +7,8 @@ private:
 	m_IDirect3DTexture2 *WrapperInterface;
 	DWORD ProxyDirectXVersion;
 	ULONG RefCount = 1;
+
+	// Convert Texture
 	m_IDirect3DDeviceX *D3DDeviceInterface;
 
 	// Store d3d texture version wrappers

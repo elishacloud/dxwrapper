@@ -7,6 +7,8 @@ private:
 	m_IDirect3DDevice7 *WrapperInterface;
 	DWORD ProxyDirectXVersion;
 	ULONG RefCount = 1;
+
+	// Convert Device
 	m_IDirect3DViewportX *lpCurrentViewport = nullptr;
 	m_IDirectDrawX *ddrawParent = nullptr;
 

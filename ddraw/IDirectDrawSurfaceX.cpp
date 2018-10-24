@@ -41,7 +41,7 @@ HRESULT m_IDirectDrawSurfaceX::QueryInterface(REFIID riid, LPVOID FAR * ppvObj, 
 			return S_OK;
 		}
 	}
-	else
+	else if (Config.ConvertToDirect3D7)
 	{
 		if (ProxyDirectXVersion > 4 && ppvObj && (riid == IID_IDirect3DTexture || riid == IID_IDirect3DTexture2))
 		{

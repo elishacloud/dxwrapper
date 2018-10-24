@@ -24,7 +24,6 @@
 
 AddressLookupTableDdraw<void> ProxyAddressLookupTable = AddressLookupTableDdraw<void>();
 m_IDirect3DDeviceX *lpCurrentD3DDevice = nullptr;
-m_IDirectDrawX *lpCurrentDDInterface = nullptr;
 
 CRITICAL_SECTION ddcs;
 
