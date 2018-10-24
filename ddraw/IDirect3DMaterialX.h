@@ -1,34 +1,33 @@
 #pragma once
 
-class m_IDirect3DMaterialX : public IDirect3DMaterial3
+class m_IDirect3DMaterialX : public IUnknown
 {
 private:
 	IDirect3DMaterial3 *ProxyInterface;
 	m_IDirect3DMaterial3 *WrapperInterface;
-	DWORD DirectXVersion;
 	DWORD ProxyDirectXVersion;
-	IID WrapperID;
 	ULONG RefCount = 1;
 	m_IDirect3DDeviceX *D3DDeviceInterface;
 
+	// Store d3d material version wrappers
+	std::unique_ptr<m_IDirect3DMaterial> UniqueProxyInterface = nullptr;
+	std::unique_ptr<m_IDirect3DMaterial2> UniqueProxyInterface2 = nullptr;
+	std::unique_ptr<m_IDirect3DMaterial3> UniqueProxyInterface3 = nullptr;
+
 public:
-	m_IDirect3DMaterialX(IDirect3DMaterial3 *aOriginal, DWORD Version, m_IDirect3DMaterial3 *Interface) : ProxyInterface(aOriginal), DirectXVersion(Version), WrapperInterface(Interface)
+	m_IDirect3DMaterialX(IDirect3DMaterial3 *aOriginal, DWORD DirectXVersion, m_IDirect3DMaterial3 *Interface) : ProxyInterface(aOriginal), WrapperInterface(Interface)
 	{
-		InitWrapper();
+		InitWrapper(DirectXVersion);
 	}
-	m_IDirect3DMaterialX(m_IDirect3DDeviceX *D3DDInterface, DWORD Version) : D3DDeviceInterface(D3DDInterface), DirectXVersion(Version)
+	m_IDirect3DMaterialX(m_IDirect3DDeviceX *D3DDInterface, DWORD DirectXVersion) : D3DDeviceInterface(D3DDInterface)
 	{
 		ProxyInterface = nullptr;
 		WrapperInterface = nullptr;
 
-		InitWrapper();
+		InitWrapper(DirectXVersion);
 	}
-	void InitWrapper()
+	void InitWrapper(DWORD DirectXVersion)
 	{
-		WrapperID = (DirectXVersion == 1) ? IID_IDirect3DMaterial :
-			(DirectXVersion == 2) ? IID_IDirect3DMaterial2 :
-			(DirectXVersion == 3) ? IID_IDirect3DMaterial3 : IID_IDirect3DMaterial3;
-
 		if (DirectXVersion == 7)
 		{
 			DirectXVersion = 3;
@@ -36,7 +35,7 @@ public:
 		}
 		else
 		{
-			ProxyDirectXVersion = GetIIDVersion(ConvertREFIID(WrapperID));
+			ProxyDirectXVersion = GetIIDVersion(ConvertREFIID(GetWrapperType(DirectXVersion)));
 		}
 
 		if (ProxyDirectXVersion != DirectXVersion)
@@ -51,12 +50,19 @@ public:
 	~m_IDirect3DMaterialX() {}
 
 	DWORD GetDirectXVersion() { return DDWRAPPER_TYPEX; }
-	REFIID GetWrapperType() { return WrapperID; }
+	REFIID GetWrapperType(DWORD DirectXVersion)
+	{
+		return (DirectXVersion == 1) ? IID_IDirect3DMaterial :
+			(DirectXVersion == 2) ? IID_IDirect3DMaterial2 :
+			(DirectXVersion == 3) ? IID_IDirect3DMaterial3 : IID_IUnknown;
+	}
 	IDirect3DMaterial3 *GetProxyInterface() { return ProxyInterface; }
 	m_IDirect3DMaterial3 *GetWrapperInterface() { return WrapperInterface; }
+	void *GetWrapperInterfaceX(DWORD DirectXVersion);
 
 	/*** IUnknown methods ***/
-	STDMETHOD(QueryInterface)(THIS_ REFIID riid, LPVOID * ppvObj);
+	HRESULT QueryInterface(REFIID riid, LPVOID FAR * ppvObj, DWORD DirectXVersion);
+	STDMETHOD(QueryInterface) (THIS_ REFIID, LPVOID FAR *) { return E_NOINTERFACE; }
 	STDMETHOD_(ULONG, AddRef)(THIS);
 	STDMETHOD_(ULONG, Release)(THIS);
 

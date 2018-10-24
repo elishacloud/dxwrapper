@@ -304,7 +304,7 @@ HRESULT m_IDirect3DX::CreateMaterial(LPDIRECT3DMATERIAL3 * lplpDirect3DMaterial,
 	{
 		if (lplpDirect3DMaterial && lpCurrentD3DDevice)
 		{
-			*lplpDirect3DMaterial = new m_IDirect3DMaterialX(lpCurrentD3DDevice, 7);
+			*lplpDirect3DMaterial = (LPDIRECT3DMATERIAL3)new m_IDirect3DMaterialX(lpCurrentD3DDevice, 7);
 			return D3D_OK;
 		}
 		else if (!lplpDirect3DMaterial)

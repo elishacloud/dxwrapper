@@ -3,25 +3,32 @@
 class m_IDirect3DMaterial : public IDirect3DMaterial, public AddressLookupTableDdrawObject
 {
 private:
-	std::unique_ptr<m_IDirect3DMaterialX> ProxyInterface;
+	std::unique_ptr<m_IDirect3DMaterialX> UniqueProxyInterface;
+	m_IDirect3DMaterialX *ProxyInterface;
 	IDirect3DMaterial *RealInterface;
 	REFIID WrapperID = IID_IDirect3DMaterial;
+	const DWORD DirectXVersion = 1;
 
 public:
 	m_IDirect3DMaterial(IDirect3DMaterial *aOriginal) : RealInterface(aOriginal)
 	{
-		ProxyInterface = std::make_unique<m_IDirect3DMaterialX>((IDirect3DMaterial3*)RealInterface, 1, (m_IDirect3DMaterial3*)this);
+		UniqueProxyInterface = std::make_unique<m_IDirect3DMaterialX>((IDirect3DMaterial3*)RealInterface, DirectXVersion, (m_IDirect3DMaterial3*)this);
+		ProxyInterface = UniqueProxyInterface.get();
 		ProxyAddressLookupTable.SaveAddress(this, RealInterface);
+	}
+	m_IDirect3DMaterial(m_IDirect3DMaterialX *aOriginal) : ProxyInterface(aOriginal)
+	{
+		RealInterface = nullptr;
 	}
 	~m_IDirect3DMaterial()
 	{
 		ProxyAddressLookupTable.DeleteAddress(this);
 	}
 
-	DWORD GetDirectXVersion() { return 1; }
+	DWORD GetDirectXVersion() { return DirectXVersion; }
 	REFIID GetWrapperType() { return WrapperID; }
 	IDirect3DMaterial *GetProxyInterface() { return RealInterface; }
-	m_IDirect3DMaterialX *GetWrapperInterface() { return ProxyInterface.get(); }
+	m_IDirect3DMaterialX *GetWrapperInterface() { return ProxyInterface; }
 
 	/*** IUnknown methods ***/
 	STDMETHOD(QueryInterface)(THIS_ REFIID riid, LPVOID * ppvObj);

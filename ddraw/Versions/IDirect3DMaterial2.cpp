@@ -18,7 +18,7 @@
 
 HRESULT m_IDirect3DMaterial2::QueryInterface(REFIID riid, LPVOID * ppvObj)
 {
-	return ProxyInterface->QueryInterface(riid, ppvObj);
+	return ProxyInterface->QueryInterface(riid, ppvObj, DirectXVersion);
 }
 
 ULONG m_IDirect3DMaterial2::AddRef()
