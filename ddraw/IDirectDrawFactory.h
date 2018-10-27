@@ -3,7 +3,7 @@
 class m_IDirectDrawFactory : public IDirectDrawFactory, public AddressLookupTableDdrawObject
 {
 private:
-	IDirectDrawFactory *ProxyInterface;
+	IDirectDrawFactory *ProxyInterface = nullptr;
 	REFIID WrapperID = IID_IDirectDrawFactory;
 	ULONG RefCount = 1;
 

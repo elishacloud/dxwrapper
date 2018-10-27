@@ -3,7 +3,7 @@
 class m_IDirectDrawPalette : public IDirectDrawPalette, public AddressLookupTableDdrawObject
 {
 private:
-	IDirectDrawPalette *ProxyInterface;
+	IDirectDrawPalette *ProxyInterface = nullptr;
 	REFIID WrapperID = IID_IDirectDrawPalette;
 	ULONG RefCount = 1;
 	DWORD paletteCaps = 0;						// Palette flags
@@ -13,17 +13,12 @@ private:
 public:
 	m_IDirectDrawPalette(IDirectDrawPalette *aOriginal) : ProxyInterface(aOriginal)
 	{
-		if (ProxyInterface)
-		{
-			ProxyAddressLookupTable.SaveAddress(this, ProxyInterface);
-		}
+		ProxyAddressLookupTable.SaveAddress(this, ProxyInterface);
 
 		Logging::LogDebug() << "Create " << __FUNCTION__;
 	}
 	m_IDirectDrawPalette(DWORD dwFlags, LPPALETTEENTRY lpDDColorArray) : paletteCaps(dwFlags)
 	{
-		ProxyInterface = nullptr;
-
 		// Default to 256 entries
 		entryCount = 256;
 
@@ -82,6 +77,8 @@ public:
 				rgbPalette[i] = D3DCOLOR_XRGB(rawPalette[i].peRed, rawPalette[i].peGreen, rawPalette[i].peBlue);
 			}
 		}
+
+		Logging::LogDebug() << "Create " << __FUNCTION__;
 	}
 	~m_IDirectDrawPalette()
 	{
@@ -97,9 +94,6 @@ public:
 		}
 	}
 
-	UINT32 *rgbPalette = nullptr;				// Rgb translated palette
-	LPPALETTEENTRY rawPalette = nullptr;		// Raw palette data
-
 	DWORD GetDirectXVersion() { return 1; }
 	REFIID GetWrapperType() { return WrapperID; }
 	IDirectDrawPalette *GetProxyInterface() { return ProxyInterface; }
@@ -109,9 +103,14 @@ public:
 	STDMETHOD(QueryInterface) (THIS_ REFIID riid, LPVOID FAR * ppvObj);
 	STDMETHOD_(ULONG, AddRef) (THIS);
 	STDMETHOD_(ULONG, Release) (THIS);
+
 	/*** IDirectDrawPalette methods ***/
 	STDMETHOD(GetCaps)(THIS_ LPDWORD);
 	STDMETHOD(GetEntries)(THIS_ DWORD, DWORD, DWORD, LPPALETTEENTRY);
 	STDMETHOD(Initialize)(THIS_ LPDIRECTDRAW, DWORD, LPPALETTEENTRY);
 	STDMETHOD(SetEntries)(THIS_ DWORD, DWORD, DWORD, LPPALETTEENTRY);
+
+	// Public varables
+	UINT32 *rgbPalette = nullptr;				// Rgb translated palette
+	LPPALETTEENTRY rawPalette = nullptr;		// Raw palette data
 };

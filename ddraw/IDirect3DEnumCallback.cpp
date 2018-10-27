@@ -33,6 +33,8 @@ HRESULT CALLBACK m_IDirect3DEnumDevices::ConvertCallback(LPSTR lpDeviceDescripti
 	}
 
 	D3DDEVICEDESC D3DHWDevDesc, D3DHELDevDesc;
+	D3DHWDevDesc.dwSize = sizeof(D3DDEVICEDESC);
+	D3DHELDevDesc.dwSize = sizeof(D3DDEVICEDESC);
 	ConvertDeviceDesc(D3DHWDevDesc, *lpDeviceDesc);
 	ConvertDeviceDesc(D3DHELDevDesc, *lpDeviceDesc);
 

@@ -193,7 +193,7 @@ HRESULT m_IDirect3DDevice3::DrawPrimitiveVB(D3DPRIMITIVETYPE a, LPDIRECT3DVERTEX
 
 HRESULT m_IDirect3DDevice3::DrawIndexedPrimitiveVB(D3DPRIMITIVETYPE a, LPDIRECT3DVERTEXBUFFER b, LPWORD c, DWORD d, DWORD e)
 {
-	return ProxyInterface->DrawIndexedPrimitiveVB(a, b, c, d, e);
+	return ProxyInterface->DrawIndexedPrimitiveVB(a, (LPDIRECT3DVERTEXBUFFER7)b, 0, 0, c, d, e);
 }
 
 HRESULT m_IDirect3DDevice3::ComputeSphereVisibility(LPD3DVECTOR a, LPD3DVALUE b, DWORD c, DWORD d, LPDWORD e)

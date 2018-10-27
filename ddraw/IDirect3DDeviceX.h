@@ -3,8 +3,8 @@
 class m_IDirect3DDeviceX : public IUnknown
 {
 private:
-	IDirect3DDevice7 *ProxyInterface;
-	m_IDirect3DDevice7 *WrapperInterface;
+	IDirect3DDevice7 *ProxyInterface = nullptr;
+	m_IDirect3DDevice7 *WrapperInterface = nullptr;
 	DWORD ProxyDirectXVersion;
 	ULONG RefCount = 1;
 
@@ -21,19 +21,7 @@ private:
 public:
 	m_IDirect3DDeviceX(IDirect3DDevice7 *aOriginal, DWORD DirectXVersion, m_IDirect3DDevice7 *Interface) : ProxyInterface(aOriginal), WrapperInterface(Interface)
 	{
-		if (Config.Dd7to9)
-		{
-			ddrawParent = (m_IDirectDrawX *)ProxyInterface;
-
-			ProxyInterface = nullptr;
-			WrapperInterface = nullptr;
-
-			ProxyDirectXVersion = 9;
-		}
-		else
-		{
-			ProxyDirectXVersion = GetIIDVersion(ConvertREFIID(GetWrapperType(DirectXVersion)));
-		}
+		ProxyDirectXVersion = GetIIDVersion(ConvertREFIID(GetWrapperType(DirectXVersion)));
 
 		if (ProxyDirectXVersion == 7)
 		{
@@ -49,6 +37,12 @@ public:
 			Logging::LogDebug() << "Create " << __FUNCTION__ << " v" << DirectXVersion;
 		}
 	}
+	m_IDirect3DDeviceX(m_IDirectDrawX *aOriginal, DWORD DirectXVersion) : ddrawParent(aOriginal)
+	{
+		ProxyDirectXVersion = 9;
+
+		Logging::LogDebug() << "Convert Direct3DDevice v" << DirectXVersion << " to v" << ProxyDirectXVersion;
+	}
 	~m_IDirect3DDeviceX()
 	{
 		// ToDo: check if any Viewport is using this D3DDevice
@@ -59,19 +53,9 @@ public:
 	}
 
 	DWORD GetDirectXVersion() { return DDWRAPPER_TYPEX; }
-	REFIID GetWrapperType(DWORD DirectXVersion)
-	{
-		return (DirectXVersion == 1) ? IID_IDirect3DDevice :
-			(DirectXVersion == 2) ? IID_IDirect3DDevice2 :
-			(DirectXVersion == 3) ? IID_IDirect3DDevice3 :
-			(DirectXVersion == 7) ? IID_IDirect3DDevice7 : IID_IUnknown;
-	}
-	IDirect3DDevice *GetProxyInterfaceV1() { return (IDirect3DDevice *)ProxyInterface; }
-	IDirect3DDevice2 *GetProxyInterfaceV2() { return (IDirect3DDevice2 *)ProxyInterface; }
-	IDirect3DDevice3 *GetProxyInterfaceV3() { return (IDirect3DDevice3 *)ProxyInterface; }
+	REFIID GetWrapperType() { return IID_IUnknown; }
 	IDirect3DDevice7 *GetProxyInterface() { return ProxyInterface; }
 	m_IDirect3DDevice7 *GetWrapperInterface() { return WrapperInterface; }
-	void *GetWrapperInterfaceX(DWORD DirectXVersion);
 
 	/*** IUnknown methods ***/
 	HRESULT QueryInterface(REFIID riid, LPVOID FAR * ppvObj, DWORD DirectXVersion);
@@ -109,7 +93,6 @@ public:
 	STDMETHOD(End)(THIS_ DWORD);
 	STDMETHOD(GetLightState)(THIS_ D3DLIGHTSTATETYPE, LPDWORD);
 	STDMETHOD(SetLightState)(THIS_ D3DLIGHTSTATETYPE, DWORD);
-	STDMETHOD(DrawIndexedPrimitiveVB)(THIS_ D3DPRIMITIVETYPE, LPDIRECT3DVERTEXBUFFER, LPWORD, DWORD, DWORD);
 	STDMETHOD(GetTexture)(THIS_ DWORD, LPDIRECT3DTEXTURE2 *, DWORD);
 	STDMETHOD(SetTexture)(THIS_ DWORD, LPDIRECT3DTEXTURE2);
 
@@ -160,4 +143,18 @@ public:
 	STDMETHOD(SetClipPlane)(THIS_ DWORD, D3DVALUE*);
 	STDMETHOD(GetClipPlane)(THIS_ DWORD, D3DVALUE*);
 	STDMETHOD(GetInfo)(THIS_ DWORD, LPVOID, DWORD);
+
+	// Helper functions
+	REFIID GetWrapperType(DWORD DirectXVersion)
+	{
+		return (DirectXVersion == 1) ? IID_IDirect3DDevice :
+			(DirectXVersion == 2) ? IID_IDirect3DDevice2 :
+			(DirectXVersion == 3) ? IID_IDirect3DDevice3 :
+			(DirectXVersion == 7) ? IID_IDirect3DDevice7 : IID_IUnknown;
+	}
+	IDirect3DDevice *GetProxyInterfaceV1() { return (IDirect3DDevice *)ProxyInterface; }
+	IDirect3DDevice2 *GetProxyInterfaceV2() { return (IDirect3DDevice2 *)ProxyInterface; }
+	IDirect3DDevice3 *GetProxyInterfaceV3() { return (IDirect3DDevice3 *)ProxyInterface; }
+	IDirect3DDevice7 *GetProxyInterfaceV7() { return ProxyInterface; }
+	void *GetWrapperInterfaceX(DWORD DirectXVersion);
 };

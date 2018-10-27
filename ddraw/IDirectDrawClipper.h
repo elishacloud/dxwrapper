@@ -3,7 +3,7 @@
 class m_IDirectDrawClipper : public IDirectDrawClipper, public AddressLookupTableDdrawObject
 {
 private:
-	IDirectDrawClipper *ProxyInterface;
+	IDirectDrawClipper *ProxyInterface = nullptr;
 	REFIID WrapperID = IID_IDirectDrawClipper;
 	ULONG RefCount = 1;
 	DWORD clipperCaps = 0;						// Clipper flags
@@ -12,16 +12,13 @@ private:
 public:
 	m_IDirectDrawClipper(IDirectDrawClipper *aOriginal) : ProxyInterface(aOriginal)
 	{
-		if (ProxyInterface)
-		{
-			ProxyAddressLookupTable.SaveAddress(this, ProxyInterface);
-		}
+		ProxyAddressLookupTable.SaveAddress(this, ProxyInterface);
 
 		Logging::LogDebug() << "Create " << __FUNCTION__;
 	}
 	m_IDirectDrawClipper(DWORD dwFlags) : clipperCaps(dwFlags)
 	{
-		ProxyInterface = nullptr;
+		Logging::LogDebug() << "Create " << __FUNCTION__;
 	}
 	~m_IDirectDrawClipper()
 	{
@@ -37,6 +34,7 @@ public:
 	STDMETHOD(QueryInterface) (THIS_ REFIID riid, LPVOID FAR * ppvObj);
 	STDMETHOD_(ULONG, AddRef) (THIS) ;
 	STDMETHOD_(ULONG, Release) (THIS);
+
 	/*** IDirectDrawClipper methods ***/
 	STDMETHOD(GetClipList)(THIS_ LPRECT, LPRGNDATA, LPDWORD);
 	STDMETHOD(GetHWnd)(THIS_ HWND FAR *);

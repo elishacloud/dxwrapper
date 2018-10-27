@@ -3,8 +3,8 @@
 class m_IDirect3DX : public IUnknown
 {
 private:
-	IDirect3D7 *ProxyInterface;
-	m_IDirect3D7 *WrapperInterface;
+	IDirect3D7 *ProxyInterface = nullptr;
+	m_IDirect3D7 *WrapperInterface = nullptr;
 	DWORD ProxyDirectXVersion;
 	ULONG RefCount = 1;
 	m_IDirectDrawX *ddrawParent = nullptr;
@@ -18,19 +18,7 @@ private:
 public:
 	m_IDirect3DX(IDirect3D7 *aOriginal, DWORD DirectXVersion, m_IDirect3D7 *Interface) : ProxyInterface(aOriginal), WrapperInterface(Interface)
 	{
-		if (Config.Dd7to9)
-		{
-			ddrawParent = (m_IDirectDrawX *)aOriginal;
-
-			ProxyInterface = nullptr;
-			WrapperInterface = nullptr;
-
-			ProxyDirectXVersion = 9;
-		}
-		else
-		{
-			ProxyDirectXVersion = GetIIDVersion(ConvertREFIID(GetWrapperType(DirectXVersion)));
-		}
+		ProxyDirectXVersion = GetIIDVersion(ConvertREFIID(GetWrapperType(DirectXVersion)));
 
 		if (ProxyDirectXVersion != DirectXVersion)
 		{
@@ -41,6 +29,12 @@ public:
 			Logging::LogDebug() << "Create " << __FUNCTION__ << " v" << DirectXVersion;
 		}
 	}
+	m_IDirect3DX(m_IDirectDrawX *aOriginal, DWORD DirectXVersion) : ddrawParent(aOriginal)
+	{
+		ProxyDirectXVersion = 9;
+
+		Logging::LogDebug() << "Convert Direct3DDevice v" << DirectXVersion << " to v" << ProxyDirectXVersion;
+	}
 	~m_IDirect3DX()
 	{
 		if (Config.Dd7to9)
@@ -50,18 +44,9 @@ public:
 	}
 
 	DWORD GetDirectXVersion() { return DDWRAPPER_TYPEX; }
-	REFIID GetWrapperType(DWORD DirectXVersion)
-	{
-		return (DirectXVersion == 1) ? IID_IDirect3D :
-			(DirectXVersion == 2) ? IID_IDirect3D2 :
-			(DirectXVersion == 3) ? IID_IDirect3D3 :
-			(DirectXVersion == 7) ? IID_IDirect3D7 : IID_IDirect3D7;
-	}
-	IDirect3D *GetProxyInterfaceV1() { return (IDirect3D *)ProxyInterface; }
-	IDirect3D3 *GetProxyInterfaceV3() { return (IDirect3D3 *)ProxyInterface; }
+	REFIID GetWrapperType() { return IID_IUnknown; }
 	IDirect3D7 *GetProxyInterface() { return ProxyInterface; }
 	m_IDirect3D7 *GetWrapperInterface() { return WrapperInterface; }
-	void *GetWrapperInterfaceX(DWORD DirectXVersion);
 
 	/*** IUnknown methods ***/
 	HRESULT QueryInterface(REFIID riid, LPVOID FAR * ppvObj, DWORD DirectXVersion);
@@ -83,5 +68,18 @@ public:
 	STDMETHOD(EvictManagedTextures)(THIS);
 
 	// Helper functions
+	REFIID GetWrapperType(DWORD DirectXVersion)
+	{
+		return (DirectXVersion == 1) ? IID_IDirect3D :
+			(DirectXVersion == 2) ? IID_IDirect3D2 :
+			(DirectXVersion == 3) ? IID_IDirect3D3 :
+			(DirectXVersion == 7) ? IID_IDirect3D7 : IID_IDirect3D7;
+	}
+	IDirect3D *GetProxyInterfaceV1() { return (IDirect3D *)ProxyInterface; }
+	IDirect3D2 *GetProxyInterfaceV2() { return (IDirect3D2 *)ProxyInterface; }
+	IDirect3D3 *GetProxyInterfaceV3() { return (IDirect3D3 *)ProxyInterface; }
+	IDirect3D7 *GetProxyInterfaceV7() { return ProxyInterface; }
+	void *GetWrapperInterfaceX(DWORD DirectXVersion);
+	void ClearDdraw() { ddrawParent = nullptr; }
 	void ReleaseD3DInterface();
 };

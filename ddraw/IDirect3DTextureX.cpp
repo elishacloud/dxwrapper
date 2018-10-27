@@ -124,53 +124,64 @@ HRESULT m_IDirect3DTextureX::GetHandle(LPDIRECT3DDEVICE2 lpDirect3DDevice2, LPD3
 {
 	Logging::LogDebug() << __FUNCTION__;
 
-	if (ProxyDirectXVersion > 3)
-	{
-		lpDirect3DDevice2 = (IDirect3DDevice2*)D3DDeviceInterface;
-
-		lpHandle = nullptr;
-
-		Logging::Log() << __FUNCTION__ << " LPD3DTEXTUREHANDLE Not Implemented";
-		return D3D_OK;
-	}
-
 	if (lpDirect3DDevice2)
 	{
 		lpDirect3DDevice2 = static_cast<m_IDirect3DDevice2 *>(lpDirect3DDevice2)->GetProxyInterface();
 	}
 
-	return ProxyInterface->GetHandle(lpDirect3DDevice2, lpHandle);
+	switch (ProxyDirectXVersion)
+	{
+	case 1:
+		return GetProxyInterfaceV1()->GetHandle((LPDIRECT3DDEVICE)lpDirect3DDevice2, lpHandle);
+	case 2:
+		return GetProxyInterfaceV2()->GetHandle(lpDirect3DDevice2, lpHandle);
+	case 7:
+		Logging::Log() << __FUNCTION__ << " Not Implemented";
+		return E_NOTIMPL;
+	default:
+		return DDERR_GENERIC;
+	}
 }
 
 HRESULT m_IDirect3DTextureX::PaletteChanged(DWORD dwStart, DWORD dwCount)
 {
 	Logging::LogDebug() << __FUNCTION__;
 
-	if (ProxyDirectXVersion > 3)
+	switch (ProxyDirectXVersion)
 	{
+	case 1:
+		return GetProxyInterfaceV1()->PaletteChanged(dwStart, dwCount);
+	case 2:
+		return GetProxyInterfaceV2()->PaletteChanged(dwStart, dwCount);
+	case 7:
 		Logging::Log() << __FUNCTION__ << " Not Implemented";
 		return E_NOTIMPL;
+	default:
+		return DDERR_GENERIC;
 	}
-
-	return ProxyInterface->PaletteChanged(dwStart, dwCount);
 }
 
 HRESULT m_IDirect3DTextureX::Load(LPDIRECT3DTEXTURE2 lpD3DTexture2)
 {
 	Logging::LogDebug() << __FUNCTION__;
 
-	if (ProxyDirectXVersion > 3)
-	{
-		Logging::Log() << __FUNCTION__ << " Not Implemented";
-		return E_NOTIMPL;
-	}
-
 	if (lpD3DTexture2)
 	{
 		lpD3DTexture2 = static_cast<m_IDirect3DTexture2 *>(lpD3DTexture2)->GetProxyInterface();
 	}
 
-	return ProxyInterface->Load(lpD3DTexture2);
+	switch (ProxyDirectXVersion)
+	{
+	case 1:
+		return GetProxyInterfaceV1()->Load((LPDIRECT3DTEXTURE)lpD3DTexture2);
+	case 2:
+		return GetProxyInterfaceV2()->Load(lpD3DTexture2);
+	case 7:
+		Logging::Log() << __FUNCTION__ << " Not Implemented";
+		return E_NOTIMPL;
+	default:
+		return DDERR_GENERIC;
+	}
 }
 
 HRESULT m_IDirect3DTextureX::Unload()

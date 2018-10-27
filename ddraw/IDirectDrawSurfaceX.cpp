@@ -590,6 +590,8 @@ HRESULT m_IDirectDrawSurfaceX::EnumAttachedSurfaces2(LPVOID lpContext, LPDDENUMS
 		for (auto it : AttachedSurfaceMap)
 		{
 			DDSURFACEDESC2 Desc2;
+			Desc2.dwSize = sizeof(DDSURFACEDESC2);
+			Desc2.ddpfPixelFormat.dwSize = sizeof(DDPIXELFORMAT);
 			it.second->GetSurfaceDesc2(&Desc2);
 			if (lpEnumSurfacesCallback7((LPDIRECTDRAWSURFACE7)it.second->GetWrapperInterfaceX(DirectXVersion), &Desc2, lpContext) == DDENUMRET_CANCEL)
 			{
@@ -854,15 +856,17 @@ HRESULT m_IDirectDrawSurfaceX::GetAttachedSurface2(LPDDSCAPS2 lpDDSCaps2, LPDIRE
 		/*ToDo: GetAttachedSurface fails if more than one surface is attached that matches the capabilities requested. 
 		In this case, the application must use the IDirectDrawSurface7::EnumAttachedSurfaces method to obtain the attached surfaces.*/
 
-		DDSURFACEDESC2 DDSurfaceDesc2;
-		memcpy(&DDSurfaceDesc2, &surfaceDesc2, sizeof(DDSURFACEDESC2));
+		DDSURFACEDESC2 Desc2;
+		Desc2.dwSize = sizeof(DDSURFACEDESC2);
+		Desc2.ddpfPixelFormat.dwSize = sizeof(DDPIXELFORMAT);
+		ConvertSurfaceDesc(Desc2, surfaceDesc2);
 		if (lpDDSCaps2)
 		{
-			memcpy(&DDSurfaceDesc2.ddsCaps, lpDDSCaps2, sizeof(DDSCAPS2));
+			ConvertCaps(Desc2.ddsCaps, *lpDDSCaps2);
 		}
-		DDSurfaceDesc2.ddsCaps.dwCaps &= ~DDSCAPS_PRIMARYSURFACE;		// Remove Primary surface flag
+		Desc2.ddsCaps.dwCaps &= ~DDSCAPS_PRIMARYSURFACE;		// Remove Primary surface flag
 
-		m_IDirectDrawSurfaceX *attachedSurface = new m_IDirectDrawSurfaceX(d3d9Device, ddrawParent, DirectXVersion, &DDSurfaceDesc2, displayWidth, displayHeight);
+		m_IDirectDrawSurfaceX *attachedSurface = new m_IDirectDrawSurfaceX(d3d9Device, ddrawParent, DirectXVersion, &Desc2, displayWidth, displayHeight);
 
 		*lplpDDAttachedSurface = (LPDIRECTDRAWSURFACE7)attachedSurface->GetWrapperInterfaceX(DirectXVersion);
 
@@ -1169,12 +1173,13 @@ HRESULT m_IDirectDrawSurfaceX::GetPixelFormat(LPDDPIXELFORMAT lpDDPixelFormat)
 	{
 		DDSURFACEDESC2 Desc2;
 		Desc2.dwSize = sizeof(DDSURFACEDESC2);
+		Desc2.ddpfPixelFormat.dwSize = sizeof(DDPIXELFORMAT);
 
 		// Update surface description
 		GetSurfaceDesc2(&Desc2);
 
 		// Copy pixel format to lpDDPixelFormat
-		memcpy(lpDDPixelFormat, &Desc2.ddpfPixelFormat, sizeof(DDPIXELFORMAT));
+		ConvertPixelFormat(*lpDDPixelFormat, Desc2.ddpfPixelFormat);
 
 		return DD_OK;
 	}
@@ -1195,8 +1200,8 @@ HRESULT m_IDirectDrawSurfaceX::GetSurfaceDesc(LPDDSURFACEDESC lpDDSurfaceDesc)
 	if (ProxyDirectXVersion > 3)
 	{
 		DDSURFACEDESC2 Desc2;
-
-		ConvertSurfaceDesc(Desc2, *lpDDSurfaceDesc);
+		Desc2.dwSize = sizeof(DDSURFACEDESC2);
+		Desc2.ddpfPixelFormat.dwSize = sizeof(DDPIXELFORMAT);
 
 		HRESULT hr = GetSurfaceDesc2(&Desc2);
 
@@ -1233,11 +1238,13 @@ HRESULT m_IDirectDrawSurfaceX::GetSurfaceDesc2(LPDDSURFACEDESC2 lpDDSurfaceDesc2
 		// Copy surfacedesc to lpDDSurfaceDesc2
 		if (lpDDSurfaceDesc2 != &surfaceDesc2)
 		{
-			memcpy(lpDDSurfaceDesc2, &surfaceDesc2, sizeof(DDSURFACEDESC2));
+			ConvertSurfaceDesc(*lpDDSurfaceDesc2, surfaceDesc2);
 		}
 
 		// Surface description
 		DDSURFACEDESC2 Desc2 = { NULL };
+		Desc2.dwSize = sizeof(DDSURFACEDESC2);
+		Desc2.ddpfPixelFormat.dwSize = sizeof(DDPIXELFORMAT);
 
 		// Set Height and Width
 		if ((lpDDSurfaceDesc2->dwFlags & (DDSD_HEIGHT | DDSD_WIDTH)) != (DDSD_HEIGHT | DDSD_WIDTH))
@@ -1310,6 +1317,8 @@ HRESULT m_IDirectDrawSurfaceX::Initialize(LPDIRECTDRAW lpDD, LPDDSURFACEDESC lpD
 	if (ProxyDirectXVersion > 3)
 	{
 		DDSURFACEDESC2 Desc2;
+		Desc2.dwSize = sizeof(DDSURFACEDESC2);
+		Desc2.ddpfPixelFormat.dwSize = sizeof(DDPIXELFORMAT);
 		ConvertSurfaceDesc(Desc2, *lpDDSurfaceDesc);
 
 		return Initialize2(lpDD, (lpDDSurfaceDesc) ? &Desc2 : nullptr);
@@ -1373,6 +1382,8 @@ HRESULT m_IDirectDrawSurfaceX::Lock(LPRECT lpDestRect, LPDDSURFACEDESC lpDDSurfa
 	if (ProxyDirectXVersion > 3)
 	{
 		DDSURFACEDESC2 Desc2;
+		Desc2.dwSize = sizeof(DDSURFACEDESC2);
+		Desc2.ddpfPixelFormat.dwSize = sizeof(DDPIXELFORMAT);
 		ConvertSurfaceDesc(Desc2, *lpDDSurfaceDesc);
 
 		HRESULT hr = Lock2(lpDestRect, &Desc2, dwFlags, hEvent);
@@ -1429,7 +1440,7 @@ HRESULT m_IDirectDrawSurfaceX::Lock2(LPRECT lpDestRect, LPDDSURFACEDESC2 lpDDSur
 		if (SUCCEEDED(hr))
 		{
 			// Copy desc to passed in desc
-			memcpy(lpDDSurfaceDesc2, &surfaceDesc2, sizeof(DDSURFACEDESC2));
+			ConvertSurfaceDesc(*lpDDSurfaceDesc2, surfaceDesc2);
 
 			// Set video memory and pitch
 			lpDDSurfaceDesc2->dwFlags |= DDSD_LPSURFACE | DDSD_PITCH;
@@ -1833,6 +1844,8 @@ HRESULT m_IDirectDrawSurfaceX::SetSurfaceDesc(LPDDSURFACEDESC lpDDSurfaceDesc, D
 	if (ProxyDirectXVersion > 3)
 	{
 		DDSURFACEDESC2 Desc2;
+		Desc2.dwSize = sizeof(DDSURFACEDESC2);
+		Desc2.ddpfPixelFormat.dwSize = sizeof(DDPIXELFORMAT);
 		ConvertSurfaceDesc(Desc2, *lpDDSurfaceDesc);
 
 		return SetSurfaceDesc2(&Desc2, dwFlags);

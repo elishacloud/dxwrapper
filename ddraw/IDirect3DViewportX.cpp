@@ -128,6 +128,11 @@ HRESULT m_IDirect3DViewportX::GetViewport(LPD3DVIEWPORT lpData)
 
 	if (ProxyDirectXVersion > 3)
 	{
+		if (!lpData)
+		{
+			return DDERR_INVALIDPARAMS;
+		}
+
 		if (ViewPortSet)
 		{
 			ConvertViewport(*lpData, ViewPort);
@@ -154,8 +159,14 @@ HRESULT m_IDirect3DViewportX::SetViewport(LPD3DVIEWPORT lpData)
 
 	if (ProxyDirectXVersion > 3)
 	{
+		if (!lpData)
+		{
+			return DDERR_INVALIDPARAMS;
+		}
+
 		ViewPortSet = true;
 
+		ViewPort.dwSize = sizeof(D3DVIEWPORT);
 		ConvertViewport(ViewPort, *lpData);
 
 		if (lpData->dwSize > 44 && (lpData->dvScaleX != 0 || lpData->dvScaleY != 0))
@@ -342,6 +353,11 @@ HRESULT m_IDirect3DViewportX::GetViewport2(LPD3DVIEWPORT2 lpData)
 
 	if (ProxyDirectXVersion > 3)
 	{
+		if (!lpData)
+		{
+			return DDERR_INVALIDPARAMS;
+		}
+
 		if (ViewPort2Set)
 		{
 			ConvertViewport(*lpData, ViewPort2);
@@ -368,8 +384,14 @@ HRESULT m_IDirect3DViewportX::SetViewport2(LPD3DVIEWPORT2 lpData)
 
 	if (ProxyDirectXVersion > 3)
 	{
+		if (!lpData)
+		{
+			return DDERR_INVALIDPARAMS;
+		}
+
 		ViewPort2Set = true;
 
+		ViewPort2.dwSize = sizeof(D3DVIEWPORT2);
 		ConvertViewport(ViewPort2, *lpData);
 
 		if (lpData->dwSize > 44 && (lpData->dvClipX != 0 || lpData->dvClipY != 0))

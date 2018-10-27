@@ -33,6 +33,8 @@ HRESULT CALLBACK m_IDirectDrawEnumDisplayModes::ConvertCallback(LPDDSURFACEDESC2
 	}
 
 	DDSURFACEDESC Desc;
+	Desc.dwSize = sizeof(DDSURFACEDESC);
+	Desc.ddpfPixelFormat.dwSize = sizeof(DDPIXELFORMAT);
 	ConvertSurfaceDesc(Desc, *lpDDSurfaceDesc2);
 
 	return lpCallbackContext->lpCallback(&Desc, lpCallbackContext->lpContext);
@@ -87,6 +89,8 @@ HRESULT CALLBACK m_IDirectDrawEnumSurface::ConvertCallback2(LPDIRECTDRAWSURFACE7
 	if (lpDDSurfaceDesc2 && lpCallbackContext->ConvertSurfaceDescTo2)
 	{
 		DDSURFACEDESC Desc;
+		Desc.dwSize = sizeof(DDSURFACEDESC);
+		Desc.ddpfPixelFormat.dwSize = sizeof(DDPIXELFORMAT);
 		ConvertSurfaceDesc(Desc, *lpDDSurfaceDesc2);
 
 		return ((LPDDENUMSURFACESCALLBACK)lpCallbackContext->lpCallback7)((LPDIRECTDRAWSURFACE)lpDDSurface, &Desc, lpCallbackContext->lpContext);

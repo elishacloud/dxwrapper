@@ -18,92 +18,124 @@
 
 void ConvertColorControl(DDCOLORCONTROL &ColorControl, DDCOLORCONTROL &ColorControl2)
 {
-	ColorControl.dwSize = ColorControl2.dwSize;
-	ColorControl.dwFlags = ColorControl2.dwFlags;
-	ColorControl.lBrightness = ColorControl2.lBrightness;
-	ColorControl.lContrast = ColorControl2.lContrast;
-	ColorControl.lHue = ColorControl2.lHue;
-	ColorControl.lSaturation = ColorControl2.lSaturation;
-	ColorControl.lSharpness = ColorControl2.lSharpness;
-	ColorControl.lGamma = ColorControl2.lGamma;
-	ColorControl.lColorEnable = ColorControl2.lColorEnable;
-	ColorControl.dwReserved1 = ColorControl2.dwReserved1;
+	DWORD dwSize = (ColorControl.dwSize > sizeof(DDCOLORCONTROL)) ? sizeof(DDCOLORCONTROL) : ColorControl.dwSize;
+	ZeroMemory(&ColorControl, dwSize);
+	CopyMemory(&ColorControl, &ColorControl2, (dwSize > ColorControl2.dwSize) ? ColorControl2.dwSize : dwSize);
+	ColorControl.dwSize = dwSize;
 }
 
 void ConvertSurfaceDesc(DDSURFACEDESC &Desc, DDSURFACEDESC &Desc2)
 {
-	CopyMemory(&Desc, &Desc2, sizeof(DDSURFACEDESC));
+	DWORD dwSize = (Desc.dwSize > sizeof(DDSURFACEDESC)) ? sizeof(DDSURFACEDESC) : Desc.dwSize;
+	DWORD ddpfPixelFormat_dwSize = (dwSize > 88) ? Desc.ddpfPixelFormat.dwSize : 0;
+	ZeroMemory(&Desc, dwSize);
+	CopyMemory(&Desc, &Desc2, (dwSize > Desc2.dwSize) ? Desc2.dwSize : dwSize);
+	Desc.dwSize = dwSize;
+	if (ddpfPixelFormat_dwSize)
+	{
+		Desc.ddpfPixelFormat.dwSize = ddpfPixelFormat_dwSize;
+	}
 }
 
 void ConvertSurfaceDesc(DDSURFACEDESC2 &Desc, DDSURFACEDESC2 &Desc2)
 {
-	CopyMemory(&Desc, &Desc2, sizeof(DDSURFACEDESC2));
+	DWORD dwSize = (Desc.dwSize > sizeof(DDSURFACEDESC2)) ? sizeof(DDSURFACEDESC2) : Desc.dwSize;
+	DWORD ddpfPixelFormat_dwSize = (dwSize > 96) ? Desc.ddpfPixelFormat.dwSize : 0;
+	ZeroMemory(&Desc, dwSize);
+	CopyMemory(&Desc, &Desc2, (dwSize > Desc2.dwSize) ? Desc2.dwSize : dwSize);
+	Desc.dwSize = dwSize;
+	if (ddpfPixelFormat_dwSize)
+	{
+		Desc.ddpfPixelFormat.dwSize = ddpfPixelFormat_dwSize;
+	}
 }
 
 void ConvertSurfaceDesc(DDSURFACEDESC &Desc, DDSURFACEDESC2 &Desc2)
 {
-	Desc.dwSize = sizeof(DDSURFACEDESC);
-	Desc.dwFlags = Desc2.dwFlags & ~(DDSD_TEXTURESTAGE | DDSD_ZBUFFERBITDEPTH);		// Remove unsupported flags
-	Desc.dwHeight = Desc2.dwHeight;
-	Desc.dwWidth = Desc2.dwWidth;
-	Desc.lPitch = Desc2.lPitch;
-	Desc.dwLinearSize = Desc2.dwLinearSize;
-	Desc.dwBackBufferCount = Desc2.dwBackBufferCount;
-	Desc.dwMipMapCount = Desc2.dwMipMapCount;
-	Desc.dwRefreshRate = Desc2.dwRefreshRate;
-	Desc.dwAlphaBitDepth = Desc2.dwAlphaBitDepth;
-	Desc.dwReserved = Desc2.dwReserved;
-	Desc.lpSurface = Desc2.lpSurface;
-	Desc.ddckCKDestOverlay.dwColorSpaceHighValue = Desc2.ddckCKDestOverlay.dwColorSpaceHighValue;
-	Desc.ddckCKDestOverlay.dwColorSpaceLowValue = Desc2.ddckCKDestOverlay.dwColorSpaceLowValue;
-	Desc.ddckCKDestBlt.dwColorSpaceHighValue = Desc2.ddckCKDestBlt.dwColorSpaceHighValue;
-	Desc.ddckCKDestBlt.dwColorSpaceLowValue = Desc2.ddckCKDestBlt.dwColorSpaceLowValue;
-	Desc.ddckCKSrcOverlay.dwColorSpaceHighValue = Desc2.ddckCKSrcOverlay.dwColorSpaceHighValue;
-	Desc.ddckCKSrcOverlay.dwColorSpaceLowValue = Desc2.ddckCKSrcOverlay.dwColorSpaceLowValue;
-	Desc.ddckCKSrcBlt.dwColorSpaceHighValue = Desc2.ddckCKSrcBlt.dwColorSpaceHighValue;
-	Desc.ddckCKSrcBlt.dwColorSpaceLowValue = Desc2.ddckCKSrcBlt.dwColorSpaceLowValue;
-	ConvertPixelFormat(Desc.ddpfPixelFormat, Desc2.ddpfPixelFormat);
-	ConvertCaps(Desc.ddsCaps, Desc2.ddsCaps);
+	// Prepare varables
+	DWORD dwSize = (Desc.dwSize > sizeof(DDSURFACEDESC)) ? sizeof(DDSURFACEDESC) : Desc.dwSize;
+	ZeroMemory(&Desc, dwSize);
+	DDSURFACEDESC tmpDesc = { NULL };
+	DDSURFACEDESC2 tmpDesc2 = { NULL };
+	CopyMemory(&tmpDesc2, &Desc2, (sizeof(DDSURFACEDESC2) > Desc2.dwSize) ? Desc2.dwSize : sizeof(DDSURFACEDESC2));
+	// Convert varables
+	tmpDesc.dwSize = dwSize;
+	tmpDesc.dwFlags = tmpDesc2.dwFlags & ~(DDSD_TEXTURESTAGE | DDSD_ZBUFFERBITDEPTH);		// Remove unsupported flags
+	tmpDesc.dwHeight = tmpDesc2.dwHeight;
+	tmpDesc.dwWidth = tmpDesc2.dwWidth;
+	tmpDesc.lPitch = tmpDesc2.lPitch;
+	tmpDesc.dwLinearSize = tmpDesc2.dwLinearSize;
+	tmpDesc.dwBackBufferCount = tmpDesc2.dwBackBufferCount;
+	tmpDesc.dwMipMapCount = tmpDesc2.dwMipMapCount;
+	tmpDesc.dwRefreshRate = tmpDesc2.dwRefreshRate;
+	tmpDesc.dwAlphaBitDepth = tmpDesc2.dwAlphaBitDepth;
+	tmpDesc.dwReserved = tmpDesc2.dwReserved;
+	tmpDesc.lpSurface = tmpDesc2.lpSurface;
+	tmpDesc.ddckCKDestOverlay.dwColorSpaceLowValue = tmpDesc2.ddckCKDestOverlay.dwColorSpaceLowValue;
+	tmpDesc.ddckCKDestOverlay.dwColorSpaceHighValue = tmpDesc2.ddckCKDestOverlay.dwColorSpaceHighValue;
+	tmpDesc.ddckCKDestBlt.dwColorSpaceLowValue = tmpDesc2.ddckCKDestBlt.dwColorSpaceLowValue;
+	tmpDesc.ddckCKDestBlt.dwColorSpaceHighValue = tmpDesc2.ddckCKDestBlt.dwColorSpaceHighValue;
+	tmpDesc.ddckCKSrcOverlay.dwColorSpaceLowValue = tmpDesc2.ddckCKSrcOverlay.dwColorSpaceLowValue;
+	tmpDesc.ddckCKSrcOverlay.dwColorSpaceHighValue = tmpDesc2.ddckCKSrcOverlay.dwColorSpaceHighValue;
+	tmpDesc.ddckCKSrcBlt.dwColorSpaceLowValue = tmpDesc2.ddckCKSrcBlt.dwColorSpaceLowValue;
+	tmpDesc.ddckCKSrcBlt.dwColorSpaceHighValue = tmpDesc2.ddckCKSrcBlt.dwColorSpaceHighValue;
+	tmpDesc.ddpfPixelFormat.dwSize = sizeof(DDPIXELFORMAT);
+	ConvertPixelFormat(tmpDesc.ddpfPixelFormat, tmpDesc2.ddpfPixelFormat);
+	ConvertCaps(tmpDesc.ddsCaps, tmpDesc2.ddsCaps);
 	// Extra parameters
-	Desc.dwZBufferBitDepth = 0;				// depth of Z buffer requested
+	//tmpDesc.dwZBufferBitDepth = 0;				// depth of Z buffer requested
+	// Copy to variable
+	CopyMemory(&Desc, &tmpDesc, dwSize);
 }
 
 void ConvertSurfaceDesc(DDSURFACEDESC2 &Desc2, DDSURFACEDESC &Desc)
 {
-	Desc2.dwSize = sizeof(DDSURFACEDESC2);
-	Desc2.dwFlags = Desc.dwFlags & ~(DDSD_TEXTURESTAGE | DDSD_ZBUFFERBITDEPTH);		// Remove unsupported flags
-	Desc2.dwHeight = Desc.dwHeight;
-	Desc2.dwWidth = Desc.dwWidth;
-	Desc2.lPitch = Desc.lPitch;
-	Desc2.dwLinearSize = Desc.dwLinearSize;
-	Desc2.dwBackBufferCount = Desc.dwBackBufferCount;
-	Desc2.dwMipMapCount = Desc.dwMipMapCount;
-	Desc2.dwRefreshRate = Desc.dwRefreshRate;
-	Desc2.dwAlphaBitDepth = Desc.dwAlphaBitDepth;
-	Desc2.dwReserved = Desc.dwReserved;
-	Desc2.lpSurface = Desc.lpSurface;
-	Desc2.ddckCKDestOverlay.dwColorSpaceHighValue = Desc.ddckCKDestOverlay.dwColorSpaceHighValue;
-	Desc2.ddckCKDestOverlay.dwColorSpaceLowValue = Desc.ddckCKDestOverlay.dwColorSpaceLowValue;
-	Desc2.ddckCKDestBlt.dwColorSpaceHighValue = Desc.ddckCKDestBlt.dwColorSpaceHighValue;
-	Desc2.ddckCKDestBlt.dwColorSpaceLowValue = Desc.ddckCKDestBlt.dwColorSpaceLowValue;
-	Desc2.ddckCKSrcOverlay.dwColorSpaceHighValue = Desc.ddckCKSrcOverlay.dwColorSpaceHighValue;
-	Desc2.ddckCKSrcOverlay.dwColorSpaceLowValue = Desc.ddckCKSrcOverlay.dwColorSpaceLowValue;
-	Desc2.ddckCKSrcBlt.dwColorSpaceHighValue = Desc.ddckCKSrcBlt.dwColorSpaceHighValue;
-	Desc2.ddckCKSrcBlt.dwColorSpaceLowValue = Desc.ddckCKSrcBlt.dwColorSpaceLowValue;
-	ConvertPixelFormat(Desc2.ddpfPixelFormat, Desc.ddpfPixelFormat);
-	ConvertCaps(Desc2.ddsCaps, Desc.ddsCaps);
+	// Prepare varables
+	DWORD dwSize = (Desc2.dwSize > sizeof(DDSURFACEDESC2)) ? sizeof(DDSURFACEDESC2) : Desc2.dwSize;
+	ZeroMemory(&Desc2, dwSize);
+	DDSURFACEDESC2 tmpDesc2 = { NULL };
+	DDSURFACEDESC tmpDesc = { NULL };
+	CopyMemory(&tmpDesc, &Desc, (sizeof(DDSURFACEDESC) > Desc.dwSize) ? Desc.dwSize : sizeof(DDSURFACEDESC));
+	// Convert varables
+	tmpDesc2.dwSize = dwSize;
+	tmpDesc2.dwFlags = tmpDesc.dwFlags & ~(DDSD_TEXTURESTAGE | DDSD_ZBUFFERBITDEPTH);		// Remove unsupported flags
+	tmpDesc2.dwHeight = tmpDesc.dwHeight;
+	tmpDesc2.dwWidth = tmpDesc.dwWidth;
+	tmpDesc2.lPitch = tmpDesc.lPitch;
+	tmpDesc2.dwLinearSize = tmpDesc.dwLinearSize;
+	tmpDesc2.dwBackBufferCount = tmpDesc.dwBackBufferCount;
+	tmpDesc2.dwMipMapCount = tmpDesc.dwMipMapCount;
+	tmpDesc2.dwRefreshRate = tmpDesc.dwRefreshRate;
+	tmpDesc2.dwAlphaBitDepth = tmpDesc.dwAlphaBitDepth;
+	tmpDesc2.dwReserved = tmpDesc.dwReserved;
+	tmpDesc2.lpSurface = tmpDesc.lpSurface;
+	tmpDesc2.ddckCKDestOverlay.dwColorSpaceLowValue = tmpDesc.ddckCKDestOverlay.dwColorSpaceLowValue;
+	tmpDesc2.ddckCKDestOverlay.dwColorSpaceHighValue = tmpDesc.ddckCKDestOverlay.dwColorSpaceHighValue;
+	tmpDesc2.ddckCKDestBlt.dwColorSpaceLowValue = tmpDesc.ddckCKDestBlt.dwColorSpaceLowValue;
+	tmpDesc2.ddckCKDestBlt.dwColorSpaceHighValue = tmpDesc.ddckCKDestBlt.dwColorSpaceHighValue;
+	tmpDesc2.ddckCKSrcOverlay.dwColorSpaceLowValue = tmpDesc.ddckCKSrcOverlay.dwColorSpaceLowValue;
+	tmpDesc2.ddckCKSrcOverlay.dwColorSpaceHighValue = tmpDesc.ddckCKSrcOverlay.dwColorSpaceHighValue;
+	tmpDesc2.ddckCKSrcBlt.dwColorSpaceLowValue = tmpDesc.ddckCKSrcBlt.dwColorSpaceLowValue;
+	tmpDesc2.ddckCKSrcBlt.dwColorSpaceHighValue = tmpDesc.ddckCKSrcBlt.dwColorSpaceHighValue;
+	tmpDesc2.ddpfPixelFormat.dwSize = sizeof(DDPIXELFORMAT);
+	ConvertPixelFormat(tmpDesc2.ddpfPixelFormat, tmpDesc.ddpfPixelFormat);
+	ConvertCaps(tmpDesc2.ddsCaps, tmpDesc.ddsCaps);
 	// Extra parameters
-	Desc2.dwDepth = 0;						// The depth, in pixels, of the surface if it is a volume texture.
-	Desc2.dwSrcVBHandle = 0;				// Not used
-	Desc2.dwEmptyFaceColor = 0;				// Physical color for empty cubemap faces
-	Desc2.dwFVF = 0;						// Vertex format description of vertex buffers
-	Desc2.dwTextureStage = 0;				// Stage identifier that is used to bind a texture to a specific stage
+	//tmpDesc2.dwDepth = 0;					// The depth, in pixels, of the surface if it is a volume texture.
+	//tmpDesc2.dwSrcVBHandle = 0;			// Not used
+	//tmpDesc2.dwEmptyFaceColor = 0;		// Physical color for empty cubemap faces
+	//tmpDesc2.dwFVF = 0;					// Vertex format description of vertex buffers
+	//tmpDesc2.dwTextureStage = 0;			// Stage identifier that is used to bind a texture to a specific stage
+	// Copy to variable
+	CopyMemory(&Desc2, &tmpDesc2, dwSize);
 }
 
 void ConvertPixelFormat(DDPIXELFORMAT &Format, DDPIXELFORMAT &Format2)
 {
-	CopyMemory(&Format, &Format2, sizeof(DDPIXELFORMAT));
-	Format.dwSize = sizeof(DDPIXELFORMAT);
+	DWORD dwSize = (Format.dwSize > sizeof(DDPIXELFORMAT)) ? sizeof(DDPIXELFORMAT) : Format.dwSize;
+	ZeroMemory(&Format, dwSize);
+	CopyMemory(&Format, &Format2, (dwSize > Format2.dwSize) ? Format2.dwSize : dwSize);
+	Format.dwSize = dwSize;
 }
 
 void ConvertDeviceIdentifier(DDDEVICEIDENTIFIER2 &DeviceID, DDDEVICEIDENTIFIER2 &DeviceID2)
@@ -120,7 +152,7 @@ void ConvertDeviceIdentifier(DDDEVICEIDENTIFIER2 &DeviceID2, DDDEVICEIDENTIFIER 
 {
 	CopyMemory(&DeviceID2, &DeviceID, sizeof(DDDEVICEIDENTIFIER));
 	// Extra parameters
-	DeviceID2.dwWHQLLevel;
+	DeviceID2.dwWHQLLevel = 0;
 }
 
 void ConvertDeviceIdentifier(DDDEVICEIDENTIFIER2 &DeviceID2, D3DADAPTER_IDENTIFIER9 &Identifier9)
@@ -156,83 +188,55 @@ void ConvertCaps(DDSCAPS2 &Caps2, DDSCAPS &Caps)
 	Caps2.dwVolumeDepth = 0;		// Not used
 }
 
-bool ConvertCaps(DDCAPS_DX7 &Caps, DDCAPS_DX7 &Caps7)
+void ConvertCaps(DDCAPS_DX7 &Caps, DDCAPS_DX7 &Caps7)
 {
-	// Set available memory, some games have issues if this is set to high
-	if (Caps7.dwVidMemTotal > 0x8000000)
-	{
-		Caps7.dwVidMemFree = 0x8000000 - (Caps7.dwVidMemTotal - Caps7.dwVidMemFree);
-		Caps7.dwVidMemTotal = 0x8000000;
-	}
-
 	// Convert caps
-	switch (Caps.dwSize)
+	DWORD dwSize = (Caps.dwSize > sizeof(DDCAPS_DX7)) ? sizeof(DDCAPS_DX7) : Caps.dwSize;
+	ZeroMemory(&Caps, dwSize);
+	CopyMemory(&Caps, &Caps7, (dwSize > Caps7.dwSize) ? Caps7.dwSize : dwSize);
+	Caps.dwSize = dwSize;
+
+	// Set available memory, some games have issues if this is set to high
+	if (Caps.dwVidMemTotal > 0x8000000)
 	{
-	case sizeof(DDCAPS_DX1) :
-		ConvertCaps(*(DDCAPS_DX1*)&Caps, Caps7);
-		return true;
-	case sizeof(DDCAPS_DX3) :
-		ConvertCaps(*(DDCAPS_DX3*)&Caps, Caps7);
-		return true;
-	case sizeof(DDCAPS_DX5) :
-		ConvertCaps(*(DDCAPS_DX5*)&Caps, Caps7);
-		return true;
-	case sizeof(DDCAPS_DX7) :
-		CopyMemory(&Caps, &Caps7, sizeof(DDCAPS_DX7));
-		Caps.dwSize = sizeof(DDCAPS_DX7);
-		return true;
-	default:
-		return false;
+		Caps.dwVidMemFree = (Caps.dwVidMemFree < 0x8000000) ? Caps.dwVidMemFree : 0x7e00000;
+		Caps.dwVidMemTotal = 0x8000000;
 	}
-}
-
-void ConvertCaps(DDCAPS_DX1 &Caps1, DDCAPS_DX7 &Caps7)
-{
-	CopyMemory(&Caps1, &Caps7, sizeof(DDCAPS_DX1));
-	Caps1.dwSize = sizeof(DDCAPS_DX1);
-}
-
-void ConvertCaps(DDCAPS_DX3 &Caps3, DDCAPS_DX7 &Caps7)
-{
-	CopyMemory(&Caps3, &Caps7, sizeof(DDCAPS_DX3));
-	Caps3.dwSize = sizeof(DDCAPS_DX3);
-}
-
-void ConvertCaps(DDCAPS_DX5 &Caps5, DDCAPS_DX7 &Caps7)
-{
-	CopyMemory(&Caps5, &Caps7, sizeof(DDCAPS_DX5));
-	Caps5.dwSize = sizeof(DDCAPS_DX5);
 }
 
 void ConvertCaps(DDCAPS &Caps7, D3DCAPS9 &Caps9)
 {
-	ZeroMemory(&Caps7, sizeof(DDCAPS));
-	Caps7.dwSize = sizeof(DDCAPS);
+	DWORD dwSize = (Caps7.dwSize > sizeof(DDCAPS)) ? sizeof(DDCAPS) : Caps7.dwSize;
+	DDCAPS tmpCaps7 = { NULL };
+	tmpCaps7.dwSize = dwSize;
 
 	// General settings
-	Caps7.dwVidMemTotal = 0x8000000;		// Just hard code the memory size
-	Caps7.dwVidMemFree = 0x7e00000;			// Just hard code the memory size
-	Caps7.dwMaxVisibleOverlays = 0x1;
-	Caps7.dwNumFourCCCodes = 0x12;
-	Caps7.dwRops[6] = 4096;
-	Caps7.dwMinOverlayStretch = 0x1;
-	Caps7.dwMaxOverlayStretch = 0x4e20;
+	tmpCaps7.dwVidMemTotal = 0x8000000;			// Just hard code the memory size
+	tmpCaps7.dwVidMemFree = 0x7e00000;			// Just hard code the memory size
+	tmpCaps7.dwMaxVisibleOverlays = 0x1;
+	tmpCaps7.dwNumFourCCCodes = 0x12;
+	tmpCaps7.dwRops[6] = 4096;
+	tmpCaps7.dwMinOverlayStretch = 0x1;
+	tmpCaps7.dwMaxOverlayStretch = 0x4e20;
 
 	// Caps
-	Caps7.dwCaps = (Caps9.Caps & (D3DCAPS_OVERLAY | D3DCAPS_READ_SCANLINE)) |
+	tmpCaps7.dwCaps = (Caps9.Caps & (D3DCAPS_OVERLAY | D3DCAPS_READ_SCANLINE)) |
 		(DDCAPS_3D | DDCAPS_BLT | DDCAPS_BLTQUEUE | DDCAPS_BLTFOURCC | DDCAPS_BLTSTRETCH | DDCAPS_GDI | DDCAPS_OVERLAYCANTCLIP | DDCAPS_OVERLAYFOURCC |
 			DDCAPS_OVERLAYSTRETCH | DDCAPS_ZBLTS | DDCAPS_COLORKEY | DDCAPS_ALPHA | DDCAPS_COLORKEYHWASSIST | DDCAPS_BLTCOLORFILL | DDCAPS_BLTDEPTHFILL);
-	Caps7.dwCaps2 = (Caps9.Caps2 & (D3DCAPS2_FULLSCREENGAMMA | D3DCAPS2_CANCALIBRATEGAMMA | D3DCAPS2_CANMANAGERESOURCE | D3DCAPS2_DYNAMICTEXTURES | D3DCAPS2_CANAUTOGENMIPMAP)) |
+	tmpCaps7.dwCaps2 = (Caps9.Caps2 & (D3DCAPS2_FULLSCREENGAMMA | D3DCAPS2_CANCALIBRATEGAMMA | D3DCAPS2_CANMANAGERESOURCE | D3DCAPS2_DYNAMICTEXTURES | D3DCAPS2_CANAUTOGENMIPMAP)) |
 		(DDCAPS2_CANBOBINTERLEAVED | DDCAPS2_CANBOBNONINTERLEAVED | DDCAPS2_NONLOCALVIDMEM | DDCAPS2_WIDESURFACES | DDCAPS2_CANFLIPODDEVEN | DDCAPS2_COPYFOURCC |
 			DDCAPS2_CANRENDERWINDOWED | DDCAPS2_FLIPINTERVAL | DDCAPS2_FLIPNOVSYNC);
-	Caps7.dwCKeyCaps = (DDCKEYCAPS_DESTOVERLAY | DDCKEYCAPS_SRCBLT | DDCKEYCAPS_SRCOVERLAY);
-	Caps7.dwFXCaps = (DDFXCAPS_BLTARITHSTRETCHY | DDFXCAPS_BLTMIRRORLEFTRIGHT | DDFXCAPS_BLTMIRRORUPDOWN | DDFXCAPS_BLTSHRINKX | DDFXCAPS_BLTSHRINKY | DDFXCAPS_BLTSTRETCHX |
+	tmpCaps7.dwCKeyCaps = (DDCKEYCAPS_DESTOVERLAY | DDCKEYCAPS_SRCBLT | DDCKEYCAPS_SRCOVERLAY);
+	tmpCaps7.dwFXCaps = (DDFXCAPS_BLTARITHSTRETCHY | DDFXCAPS_BLTMIRRORLEFTRIGHT | DDFXCAPS_BLTMIRRORUPDOWN | DDFXCAPS_BLTSHRINKX | DDFXCAPS_BLTSHRINKY | DDFXCAPS_BLTSTRETCHX |
 					   DDFXCAPS_BLTSTRETCHY | DDFXCAPS_OVERLAYARITHSTRETCHY | DDFXCAPS_OVERLAYSHRINKX | DDFXCAPS_OVERLAYSHRINKY | DDFXCAPS_OVERLAYSTRETCHX | DDFXCAPS_OVERLAYSTRETCHY |
 					   DDFXCAPS_OVERLAYMIRRORLEFTRIGHT | DDFXCAPS_OVERLAYMIRRORUPDOWN | DDFXCAPS_OVERLAYDEINTERLACE);
-	Caps7.ddsCaps.dwCaps = (DDSCAPS_BACKBUFFER | DDSCAPS_COMPLEX | DDSCAPS_FLIP | DDSCAPS_FRONTBUFFER | DDSCAPS_OFFSCREENPLAIN | DDSCAPS_OVERLAY | DDSCAPS_PALETTE |
+	tmpCaps7.ddsCaps.dwCaps = (DDSCAPS_BACKBUFFER | DDSCAPS_COMPLEX | DDSCAPS_FLIP | DDSCAPS_FRONTBUFFER | DDSCAPS_OFFSCREENPLAIN | DDSCAPS_OVERLAY | DDSCAPS_PALETTE |
 		DDSCAPS_PRIMARYSURFACE | DDSCAPS_TEXTURE | DDSCAPS_3DDEVICE | DDSCAPS_VIDEOMEMORY | DDSCAPS_ZBUFFER | DDSCAPS_OWNDC | DDSCAPS_MIPMAP | DDSCAPS_LOCALVIDMEM | 
 		DDSCAPS_NONLOCALVIDMEM);
-	Caps7.ddsOldCaps.dwCaps = Caps7.ddsCaps.dwCaps;
+	ConvertCaps(tmpCaps7.ddsOldCaps, tmpCaps7.ddsCaps);
+	tmpCaps7.ddsOldCaps.dwCaps = tmpCaps7.ddsCaps.dwCaps;
+	// Copy to variable
+	CopyMemory(&Caps7, &tmpCaps7, dwSize);
 }
 
 DWORD GetBitCount(DDPIXELFORMAT ddpfPixelFormat)
@@ -362,44 +366,51 @@ D3DFORMAT GetDisplayFormat(DDPIXELFORMAT ddpfPixelFormat)
 
 void GetPixelDisplayFormat(D3DFORMAT Format, DDPIXELFORMAT &ddpfPixelFormat)
 {
+	DWORD dwSize = (ddpfPixelFormat.dwSize > sizeof(DDPIXELFORMAT)) ? sizeof(DDPIXELFORMAT) : ddpfPixelFormat.dwSize;
+	DDPIXELFORMAT tmpPixelFormat = { NULL };
+	CopyMemory(&tmpPixelFormat, &ddpfPixelFormat, dwSize);
+	tmpPixelFormat.dwSize = dwSize;
+
 	// Supported RGB formats
 	if (Format == D3DFMT_R5G6B5 || Format == D3DFMT_X1R5G5B5 || Format == D3DFMT_A1R5G5B5 || Format == D3DFMT_X8R8G8B8 || Format == D3DFMT_A8R8G8B8 || Format == D3DFMT_A2R10G10B10)
 	{
-		ddpfPixelFormat.dwFlags = DDPF_RGB;
-		ddpfPixelFormat.dwRGBBitCount = GetBitCount(Format);
+		tmpPixelFormat.dwFlags = DDPF_RGB;
+		tmpPixelFormat.dwRGBBitCount = GetBitCount(Format);
 
 		// Set BitCount and BitMask
 		switch (Format)
 		{
 		case D3DFMT_R5G6B5:
-			ddpfPixelFormat.dwRBitMask = 0xF800;
-			ddpfPixelFormat.dwGBitMask = 0x7E0;
-			ddpfPixelFormat.dwBBitMask = 0x1F;
+			tmpPixelFormat.dwRBitMask = 0xF800;
+			tmpPixelFormat.dwGBitMask = 0x7E0;
+			tmpPixelFormat.dwBBitMask = 0x1F;
 			break;
 		case D3DFMT_A1R5G5B5:
-			ddpfPixelFormat.dwFlags |= DDPF_ALPHAPIXELS;
-			ddpfPixelFormat.dwRGBAlphaBitMask = 0x8000;
+			tmpPixelFormat.dwFlags |= DDPF_ALPHAPIXELS;
+			tmpPixelFormat.dwRGBAlphaBitMask = 0x8000;
 		case D3DFMT_X1R5G5B5:
-			ddpfPixelFormat.dwRBitMask = 0x7C00;
-			ddpfPixelFormat.dwGBitMask = 0x3E0;
-			ddpfPixelFormat.dwBBitMask = 0x1F;
+			tmpPixelFormat.dwRBitMask = 0x7C00;
+			tmpPixelFormat.dwGBitMask = 0x3E0;
+			tmpPixelFormat.dwBBitMask = 0x1F;
 			break;
 		case D3DFMT_A8R8G8B8:
-			ddpfPixelFormat.dwFlags |= DDPF_ALPHAPIXELS;
-			ddpfPixelFormat.dwRGBAlphaBitMask = 0xFF000000;
+			tmpPixelFormat.dwFlags |= DDPF_ALPHAPIXELS;
+			tmpPixelFormat.dwRGBAlphaBitMask = 0xFF000000;
 		case D3DFMT_X8R8G8B8:
-			ddpfPixelFormat.dwRBitMask = 0xFF0000;
-			ddpfPixelFormat.dwGBitMask = 0xFF00;
-			ddpfPixelFormat.dwBBitMask = 0xFF;
+			tmpPixelFormat.dwRBitMask = 0xFF0000;
+			tmpPixelFormat.dwGBitMask = 0xFF00;
+			tmpPixelFormat.dwBBitMask = 0xFF;
 			break;
 		case D3DFMT_A2R10G10B10:
-			ddpfPixelFormat.dwFlags |= DDPF_ALPHAPIXELS;
-			ddpfPixelFormat.dwRGBAlphaBitMask = 0xC0000000;
-			ddpfPixelFormat.dwRBitMask = 0x3FF00000;
-			ddpfPixelFormat.dwGBitMask = 0xFFC00;
-			ddpfPixelFormat.dwBBitMask = 0x3FF;
+			tmpPixelFormat.dwFlags |= DDPF_ALPHAPIXELS;
+			tmpPixelFormat.dwRGBAlphaBitMask = 0xC0000000;
+			tmpPixelFormat.dwRBitMask = 0x3FF00000;
+			tmpPixelFormat.dwGBitMask = 0xFFC00;
+			tmpPixelFormat.dwBBitMask = 0x3FF;
 			break;
 		}
+		// Copy to variable
+		CopyMemory(&ddpfPixelFormat, &tmpPixelFormat, dwSize);
 		return;
 	}
 

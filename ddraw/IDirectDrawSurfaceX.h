@@ -4,8 +4,8 @@
 class m_IDirectDrawSurfaceX : public IUnknown
 {
 private:
-	IDirectDrawSurface7 *ProxyInterface;
-	m_IDirectDrawSurface7 *WrapperInterface;
+	IDirectDrawSurface7 *ProxyInterface = nullptr;
+	m_IDirectDrawSurface7 *WrapperInterface = nullptr;
 	DWORD ProxyDirectXVersion;
 	ULONG RefCount = 1;
 
@@ -69,35 +69,7 @@ private:
 public:
 	m_IDirectDrawSurfaceX(IDirectDrawSurface7 *pOriginal, DWORD DirectXVersion, m_IDirectDrawSurface7 *Interface) : ProxyInterface(pOriginal), WrapperInterface(Interface)
 	{
-		InitWrapper(DirectXVersion);
-	}
-	m_IDirectDrawSurfaceX(LPDIRECT3DDEVICE9 *lplpDevice, m_IDirectDrawX *Interface, DWORD DirectXVersion, LPDDSURFACEDESC2 lpDDSurfaceDesc, DWORD Width, DWORD Height) :
-		d3d9Device(lplpDevice), ddrawParent(Interface), displayWidth(Width), displayHeight(Height)
-	{
-		ProxyInterface = nullptr;
-		WrapperInterface = nullptr;
-
-		// Copy surface description
-		memcpy(&surfaceDesc2, lpDDSurfaceDesc, sizeof(DDSURFACEDESC2));
-
-		InitWrapper(DirectXVersion);
-
-		// Store surface
-		if (ddrawParent)
-		{
-			ddrawParent->AddSurfaceToVector(this);
-		}
-	}
-	void InitWrapper(DWORD DirectXVersion)
-	{
-		if (Config.Dd7to9)
-		{
-			ProxyDirectXVersion = 9;
-		}
-		else
-		{
-			ProxyDirectXVersion = GetIIDVersion(ConvertREFIID(GetWrapperType(DirectXVersion)));
-		}
+		ProxyDirectXVersion = GetIIDVersion(ConvertREFIID(GetWrapperType(DirectXVersion)));
 
 		if (ProxyDirectXVersion != DirectXVersion)
 		{
@@ -106,6 +78,24 @@ public:
 		else
 		{
 			Logging::LogDebug() << "Create " << __FUNCTION__ << " v" << DirectXVersion;
+		}
+	}
+	m_IDirectDrawSurfaceX(LPDIRECT3DDEVICE9 *lplpDevice, m_IDirectDrawX *Interface, DWORD DirectXVersion, LPDDSURFACEDESC2 lpDDSurfaceDesc2, DWORD Width, DWORD Height) :
+		d3d9Device(lplpDevice), ddrawParent(Interface), displayWidth(Width), displayHeight(Height)
+	{
+		ProxyDirectXVersion = 9;
+
+		// Copy surface description
+		surfaceDesc2.dwSize = sizeof(DDSURFACEDESC2);
+		surfaceDesc2.ddpfPixelFormat.dwSize = sizeof(DDPIXELFORMAT);
+		ConvertSurfaceDesc(surfaceDesc2, *lpDDSurfaceDesc2);
+
+		Logging::LogDebug() << "Convert DirectDrawSurface v" << DirectXVersion << " to v" << ProxyDirectXVersion;
+
+		// Store surface
+		if (ddrawParent)
+		{
+			ddrawParent->AddSurfaceToVector(this);
 		}
 	}
 	~m_IDirectDrawSurfaceX()
@@ -118,45 +108,26 @@ public:
 
 		if (Config.Dd7to9)
 		{
-			dd_AcquireDDThreadLock();
+			while (ThreadSyncFlag)
+			{
+				Sleep(0);
+			}
+
+			ThreadSyncFlag = true;
 
 			if (ddrawParent)
 			{
 				ddrawParent->RemoveSurfaceFromVector(this);
 			}
 
-			dd_ReleaseDDThreadLock();
+			ThreadSyncFlag = false;
 		}
 	}
 
 	DWORD GetDirectXVersion() { return DDWRAPPER_TYPEX; }
-	REFIID GetWrapperType(DWORD DirectXVersion)
-	{
-		return (DirectXVersion == 1) ? IID_IDirectDrawSurface :
-			(DirectXVersion == 2) ? IID_IDirectDrawSurface2 :
-			(DirectXVersion == 3) ? IID_IDirectDrawSurface3 :
-			(DirectXVersion == 4) ? IID_IDirectDrawSurface4 :
-			(DirectXVersion == 7) ? IID_IDirectDrawSurface7 : IID_IUnknown;
-	}
-	IDirectDrawSurface3 *GetProxyInterfaceV3() { return (IDirectDrawSurface3 *)ProxyInterface; }
+	REFIID GetWrapperType() { return IID_IUnknown; }
 	IDirectDrawSurface7 *GetProxyInterface() { return ProxyInterface; }
 	m_IDirectDrawSurface7 *GetWrapperInterface() { return WrapperInterface; }
-	void *GetWrapperInterfaceX(DWORD DirectXVersion);
-	LPDIRECT3DTEXTURE9 *GetSurfaceTexture() { return &surfaceTexture; }
-	m_IDirectDrawPalette **GetPallete() { return &attachedPalette; }
-	BYTE **GetRawVideoMemory() { return &rawVideoBuf; }
-	bool IsSurfaceLocked() { return IsLocked; }
-	bool IsPrimarySurface() { return (surfaceDesc2.ddsCaps.dwCaps & DDSCAPS_PRIMARYSURFACE) != 0; }
-	bool NeedsLock() { return !IsLocked && WriteDirectlyToSurface; }
-	void ClearDdraw() { ddrawParent = nullptr; }
-
-	template <typename T>
-	void SwapAddresses(T *Address1, T *Address2)
-	{
-		T tmpAddr = *Address1;
-		*Address1 = *Address2;
-		*Address2 = tmpAddr;
-	}
 
 	/*** IUnknown methods ***/
 	HRESULT QueryInterface(REFIID riid, LPVOID FAR * ppvObj, DWORD DirectXVersion);
@@ -229,6 +200,34 @@ public:
 	STDMETHOD(GetLOD)(THIS_ LPDWORD);
 
 	/*** Helper functions ***/
+	REFIID GetWrapperType(DWORD DirectXVersion)
+	{
+		return (DirectXVersion == 1) ? IID_IDirectDrawSurface :
+			(DirectXVersion == 2) ? IID_IDirectDrawSurface2 :
+			(DirectXVersion == 3) ? IID_IDirectDrawSurface3 :
+			(DirectXVersion == 4) ? IID_IDirectDrawSurface4 :
+			(DirectXVersion == 7) ? IID_IDirectDrawSurface7 : IID_IUnknown;
+	}
+	IDirectDrawSurface *GetProxyInterfaceV1() { return (IDirectDrawSurface *)ProxyInterface; }
+	IDirectDrawSurface2 *GetProxyInterfaceV2() { return (IDirectDrawSurface2 *)ProxyInterface; }
+	IDirectDrawSurface3 *GetProxyInterfaceV3() { return (IDirectDrawSurface3 *)ProxyInterface; }
+	IDirectDrawSurface4 *GetProxyInterfaceV4() { return (IDirectDrawSurface4 *)ProxyInterface; }
+	IDirectDrawSurface7 *GetProxyInterfaceV7() { return ProxyInterface; }
+	void *GetWrapperInterfaceX(DWORD DirectXVersion);
+	LPDIRECT3DTEXTURE9 *GetSurfaceTexture() { return &surfaceTexture; }
+	m_IDirectDrawPalette **GetPallete() { return &attachedPalette; }
+	BYTE **GetRawVideoMemory() { return &rawVideoBuf; }
+	bool IsSurfaceLocked() { return IsLocked; }
+	bool IsPrimarySurface() { return (surfaceDesc2.ddsCaps.dwCaps & DDSCAPS_PRIMARYSURFACE) != 0; }
+	bool NeedsLock() { return !IsLocked && WriteDirectlyToSurface; }
+	void ClearDdraw() { ddrawParent = nullptr; }
+	template <typename T>
+	void SwapAddresses(T *Address1, T *Address2)
+	{
+		T tmpAddr = *Address1;
+		*Address1 = *Address2;
+		*Address2 = tmpAddr;
+	}
 	void AlocateVideoBuffer();
 	bool CheckD3d9Surface();
 	HRESULT CreateD3d9Surface();

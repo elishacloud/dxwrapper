@@ -3,7 +3,7 @@
 class m_IDirectDrawColorControl : public IDirectDrawColorControl, public AddressLookupTableDdrawObject
 {
 private:
-	IDirectDrawColorControl *ProxyInterface;
+	IDirectDrawColorControl *ProxyInterface = nullptr;
 	REFIID WrapperID = IID_IDirectDrawColorControl;
 	ULONG RefCount = 1;
 	DDCOLORCONTROL ColorControl;
@@ -26,6 +26,10 @@ public:
 
 		Logging::LogDebug() << "Create " << __FUNCTION__;
 	}
+	m_IDirectDrawColorControl()
+	{
+		Logging::LogDebug() << "Create " << __FUNCTION__;
+	}
 	~m_IDirectDrawColorControl()
 	{
 		ProxyAddressLookupTable.DeleteAddress(this);
@@ -40,6 +44,7 @@ public:
 	STDMETHOD(QueryInterface) (THIS_ REFIID riid, LPVOID FAR * ppvObj);
 	STDMETHOD_(ULONG, AddRef) (THIS) ;
 	STDMETHOD_(ULONG, Release) (THIS);
+
 	/*** IDirectDrawColorControl methods ***/
 	STDMETHOD(GetColorControls)(THIS_ LPDDCOLORCONTROL);
 	STDMETHOD(SetColorControls)(THIS_ LPDDCOLORCONTROL);

@@ -3,14 +3,21 @@
 class m_IDirect3DExecuteBuffer : public IDirect3DExecuteBuffer, public AddressLookupTableDdrawObject
 {
 private:
-	IDirect3DExecuteBuffer *ProxyInterface;
+	IDirect3DExecuteBuffer *ProxyInterface = nullptr;
 	REFIID WrapperID = IID_IDirect3DExecuteBuffer;
+
+	// Convert Material
+	m_IDirect3DDeviceX *D3DDeviceInterface;
 
 public:
 	m_IDirect3DExecuteBuffer(IDirect3DExecuteBuffer *aOriginal) : ProxyInterface(aOriginal)
 	{
 		ProxyAddressLookupTable.SaveAddress(this, ProxyInterface);
 
+		Logging::LogDebug() << "Create " << __FUNCTION__;
+	}
+	m_IDirect3DExecuteBuffer(m_IDirect3DDeviceX *D3DDInterface) : D3DDeviceInterface(D3DDInterface)
+	{
 		Logging::LogDebug() << "Create " << __FUNCTION__;
 	}
 	~m_IDirect3DExecuteBuffer()

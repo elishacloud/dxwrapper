@@ -84,11 +84,11 @@ HRESULT m_IClassFactory::CreateInstance(IUnknown *pUnkOuter, REFIID riid, void *
 
 	if (!ProxyInterface)
 	{
-		if (riid == IID_IDirectDraw ||
+		if ((riid == IID_IDirectDraw ||
 			riid == IID_IDirectDraw2 ||
 			riid == IID_IDirectDraw3 ||
 			riid == IID_IDirectDraw4 ||
-			riid == IID_IDirectDraw7)
+			riid == IID_IDirectDraw7) && ppvObject)
 		{
 			if (Config.Dd7to9 || (Config.ConvertToDirect3D7 && Config.ConvertToDirectDraw7) || ClassID == CLSID_DirectDraw7)
 			{
@@ -123,7 +123,6 @@ HRESULT m_IClassFactory::CreateInstance(IUnknown *pUnkOuter, REFIID riid, void *
 		}
 
 		Logging::Log() << __FUNCTION__ << " Not Implemented for IID " << riid;
-		*ppvObject = nullptr;
 		return E_FAIL;
 	}
 

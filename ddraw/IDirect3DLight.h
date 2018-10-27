@@ -3,14 +3,21 @@
 class m_IDirect3DLight : public IDirect3DLight, public AddressLookupTableDdrawObject
 {
 private:
-	IDirect3DLight *ProxyInterface;
+	IDirect3DLight *ProxyInterface = nullptr;
 	REFIID WrapperID = IID_IDirect3DLight;
+
+	// Convert Material
+	m_IDirect3DDeviceX *D3DDeviceInterface;
 
 public:
 	m_IDirect3DLight(IDirect3DLight *aOriginal) : ProxyInterface(aOriginal)
 	{
 		ProxyAddressLookupTable.SaveAddress(this, ProxyInterface);
 
+		Logging::LogDebug() << "Create " << __FUNCTION__;
+	}
+	m_IDirect3DLight(m_IDirect3DDeviceX *D3DDInterface) : D3DDeviceInterface(D3DDInterface)
+	{
 		Logging::LogDebug() << "Create " << __FUNCTION__;
 	}
 	~m_IDirect3DLight()

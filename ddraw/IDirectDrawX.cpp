@@ -53,6 +53,13 @@ HRESULT m_IDirectDrawX::QueryInterface(REFIID riid, LPVOID FAR * ppvObj, DWORD D
 		{
 			DWORD DxVersion = GetIIDVersion(riid);
 
+			while (ThreadSyncFlag)
+			{
+				Sleep(0);
+			}
+
+			ThreadSyncFlag = true;
+
 			if (D3DInterface)
 			{
 				*ppvObj = D3DInterface->GetWrapperInterfaceX(DxVersion);
@@ -61,12 +68,14 @@ HRESULT m_IDirectDrawX::QueryInterface(REFIID riid, LPVOID FAR * ppvObj, DWORD D
 			}
 			else
 			{
-				m_IDirect3DX *p_IDirect3DX = new m_IDirect3DX((IDirect3D7*)this, DxVersion, nullptr);
+				m_IDirect3DX *p_IDirect3DX = new m_IDirect3DX(this, DxVersion);
 
 				*ppvObj = p_IDirect3DX->GetWrapperInterfaceX(DxVersion);
 
 				D3DInterface = p_IDirect3DX;
 			}
+
+			ThreadSyncFlag = false;
 
 			return S_OK;
 		}
@@ -244,13 +253,9 @@ HRESULT m_IDirectDrawX::CreateSurface(LPDDSURFACEDESC lpDDSurfaceDesc, LPDIRECTD
 	if (ProxyDirectXVersion > 3)
 	{
 		DDSURFACEDESC2 Desc2;
+		Desc2.dwSize = sizeof(DDSURFACEDESC2);
+		Desc2.ddpfPixelFormat.dwSize = sizeof(DDPIXELFORMAT);
 		ConvertSurfaceDesc(Desc2, *lpDDSurfaceDesc);
-
-		// BackBufferCount must be at least 1
-		if ((lpDDSurfaceDesc->dwFlags & DDSD_BACKBUFFERCOUNT) != 0 && lpDDSurfaceDesc->dwBackBufferCount == 0)
-		{
-			lpDDSurfaceDesc->dwBackBufferCount = 1;
-		}
 
 		return CreateSurface2(&Desc2, lplpDDSurface, pUnkOuter, DirectXVersion);
 	}
@@ -288,6 +293,15 @@ HRESULT m_IDirectDrawX::CreateSurface2(LPDDSURFACEDESC2 lpDDSurfaceDesc2, LPDIRE
 		return DD_OK;
 	}
 
+	// BackBufferCount must be at least 1
+	if (ProxyDirectXVersion != DirectXVersion)
+	{
+		if ((lpDDSurfaceDesc2->dwFlags & DDSD_BACKBUFFERCOUNT) != 0 && lpDDSurfaceDesc2->dwBackBufferCount == 0)
+		{
+			lpDDSurfaceDesc2->dwBackBufferCount = 1;
+		}
+	}
+
 	HRESULT hr = ProxyInterface->CreateSurface(lpDDSurfaceDesc2, lplpDDSurface, pUnkOuter);
 
 	if (SUCCEEDED(hr))
@@ -310,11 +324,13 @@ HRESULT m_IDirectDrawX::DuplicateSurface(LPDIRECTDRAWSURFACE7 lpDDSurface, LPDIR
 			return DDERR_INVALIDPARAMS;
 		}
 
-		DDSURFACEDESC2 DDSurfaceDesc2;
-		lpDDSurfaceX->GetSurfaceDesc2(&DDSurfaceDesc2);
-		DDSurfaceDesc2.ddsCaps.dwCaps &= ~DDSCAPS_PRIMARYSURFACE;		// Remove Primary surface flag
+		DDSURFACEDESC2 Desc2;
+		Desc2.dwSize = sizeof(DDSURFACEDESC2);
+		Desc2.ddpfPixelFormat.dwSize = sizeof(DDPIXELFORMAT);
+		lpDDSurfaceX->GetSurfaceDesc2(&Desc2);
+		Desc2.ddsCaps.dwCaps &= ~DDSCAPS_PRIMARYSURFACE;		// Remove Primary surface flag
 
-		m_IDirectDrawSurfaceX *p_IDirectDrawSurfaceX = new m_IDirectDrawSurfaceX(&d3d9Device, this, DirectXVersion, &DDSurfaceDesc2, displayWidth, displayHeight);
+		m_IDirectDrawSurfaceX *p_IDirectDrawSurfaceX = new m_IDirectDrawSurfaceX(&d3d9Device, this, DirectXVersion, &Desc2, displayWidth, displayHeight);
 
 		*lplpDupDDSurface = (LPDIRECTDRAWSURFACE7)p_IDirectDrawSurfaceX->GetWrapperInterfaceX(DirectXVersion);
 
@@ -344,6 +360,8 @@ HRESULT m_IDirectDrawX::EnumDisplayModes(DWORD dwFlags, LPDDSURFACEDESC lpDDSurf
 	if (ProxyDirectXVersion > 3)
 	{
 		DDSURFACEDESC2 Desc2;
+		Desc2.dwSize = sizeof(DDSURFACEDESC2);
+		Desc2.ddpfPixelFormat.dwSize = sizeof(DDPIXELFORMAT);
 		if (lpDDSurfaceDesc)
 		{
 			ConvertSurfaceDesc(Desc2, *lpDDSurfaceDesc);
@@ -382,6 +400,8 @@ HRESULT m_IDirectDrawX::EnumDisplayModes2(DWORD dwFlags, LPDDSURFACEDESC2 lpDDSu
 
 		// Setup surface desc
 		DDSURFACEDESC2 Desc2 = { NULL };
+		Desc2.dwSize = sizeof(DDSURFACEDESC2);
+		Desc2.ddpfPixelFormat.dwSize = sizeof(DDPIXELFORMAT);
 
 		// Setup display mode and format
 		D3DFORMAT Format;
@@ -478,6 +498,8 @@ HRESULT m_IDirectDrawX::EnumSurfaces(DWORD dwFlags, LPDDSURFACEDESC lpDDSurfaceD
 	if (ProxyDirectXVersion > 3)
 	{
 		DDSURFACEDESC2 Desc2;
+		Desc2.dwSize = sizeof(DDSURFACEDESC2);
+		Desc2.ddpfPixelFormat.dwSize = sizeof(DDPIXELFORMAT);
 		if (lpDDSurfaceDesc)
 		{
 			ConvertSurfaceDesc(Desc2, *lpDDSurfaceDesc);
@@ -531,8 +553,8 @@ HRESULT m_IDirectDrawX::GetCaps(LPDDCAPS lpDDDriverCaps, LPDDCAPS lpDDHELCaps)
 	Logging::LogDebug() << __FUNCTION__;
 
 	DDCAPS DriverCaps, HELCaps;
-	DriverCaps.dwSize = sizeof(DriverCaps);
-	HELCaps.dwSize = sizeof(HELCaps);
+	DriverCaps.dwSize = sizeof(DDCAPS);
+	HELCaps.dwSize = sizeof(DDCAPS);
 
 	HRESULT hr = DDERR_INVALIDPARAMS;
 
@@ -588,6 +610,8 @@ HRESULT m_IDirectDrawX::GetDisplayMode(LPDDSURFACEDESC lpDDSurfaceDesc)
 	if (ProxyDirectXVersion > 3)
 	{
 		DDSURFACEDESC2 Desc2;
+		Desc2.dwSize = sizeof(DDSURFACEDESC2);
+		Desc2.ddpfPixelFormat.dwSize = sizeof(DDPIXELFORMAT);
 		ConvertSurfaceDesc(Desc2, *lpDDSurfaceDesc);
 
 		HRESULT hr = GetDisplayMode2(&Desc2);
@@ -804,6 +828,14 @@ HRESULT m_IDirectDrawX::Initialize(GUID FAR * lpGUID)
 		return DD_OK;
 	}
 
+	if (Config.ConvertToDirectDraw7)
+	{
+		ProxyInterface->Initialize(lpGUID);
+
+		// Just return OK
+		return DD_OK;
+	}
+
 	return ProxyInterface->Initialize(lpGUID);
 }
 
@@ -897,8 +929,6 @@ HRESULT m_IDirectDrawX::SetCooperativeLevel(HWND hWnd, DWORD dwFlags)
 	// Hook window message to get notified when the window is about to exit to remove the exclusive flag
 	if (SUCCEEDED(hr) && (dwFlags & DDSCL_EXCLUSIVE) && IsWindow(hWnd) && hWnd != chWnd)
 	{
-		dd_AcquireDDThreadLock();
-
 		g_hookmap.clear();
 
 		if (g_hook)
@@ -911,18 +941,12 @@ HRESULT m_IDirectDrawX::SetCooperativeLevel(HWND hWnd, DWORD dwFlags)
 		g_hook = SetWindowsHookEx(WH_CBT, CBTProc, nullptr, GetWindowThreadProcessId(hWnd, nullptr));
 
 		chWnd = hWnd;
-
-		dd_ReleaseDDThreadLock();
 	}
 
 	// Remove hWnd ExclusiveMode
 	if (SUCCEEDED(hr) && (dwFlags & DDSCL_NORMAL) && hWnd == chWnd)
 	{
-		dd_AcquireDDThreadLock();
-
 		g_hookmap.clear();
-
-		dd_ReleaseDDThreadLock();
 	}
 
 	// Remove window border on fullscreen windows 
@@ -1050,12 +1074,27 @@ HRESULT m_IDirectDrawX::GetAvailableVidMem2(LPDDSCAPS2 lpDDSCaps2, LPDWORD lpdwT
 		// Make sure the device exists
 		if (!d3d9Device)
 		{
-			Logging::Log() << __FUNCTION__ << " called when d3d9device doesn't exist";
-			return DDERR_GENERIC;
+			// Just hard code the memory size if d3d9device doesn't exist
+			if (lpdwFree)
+			{
+				*lpdwFree = 0x7e00000;
+			}
+			if (lpdwTotal)
+			{
+				*lpdwTotal = 0x8000000;
+			}
 		}
-
-		*lpdwFree = d3d9Device->GetAvailableTextureMem();
-		*lpdwTotal = *lpdwFree + 0x400;		// Just make this slightly larger than free
+		else
+		{
+			if (lpdwFree)
+			{
+				*lpdwFree = d3d9Device->GetAvailableTextureMem();
+			}
+			if (lpdwTotal)
+			{
+				*lpdwTotal = d3d9Device->GetAvailableTextureMem() + 0x400;		// Just make this slightly larger than free
+			}
+		}
 	}
 	else
 	{
@@ -1063,9 +1102,12 @@ HRESULT m_IDirectDrawX::GetAvailableVidMem2(LPDDSCAPS2 lpDDSCaps2, LPDWORD lpdwT
 	}
 
 	// Set available memory, some games have issues if this is set to high
-	if (lpdwTotal && lpdwFree && *lpdwTotal > 0x8000000)
+	if (lpdwFree && *lpdwFree > 0x8000000)
 	{
-		*lpdwFree = 0x8000000 - (*lpdwTotal - *lpdwFree);
+		*lpdwFree = 0x7e00000;
+	}
+	if (lpdwTotal && *lpdwTotal > 0x8000000)
+	{
 		*lpdwTotal = 0x8000000;
 	}
 
@@ -1362,6 +1404,13 @@ HRESULT m_IDirectDrawX::ReinitDevice()
 // Release all d3d9 surfaces
 void m_IDirectDrawX::ReleaseAllD9Surfaces(bool ClearDDraw)
 {
+	while (ThreadSyncFlag)
+	{
+		Sleep(0);
+	}
+
+	ThreadSyncFlag = true;
+
 	for (m_IDirectDrawSurfaceX *pSurface : SurfaceVector)
 	{
 		if (ClearDDraw)
@@ -1374,6 +1423,8 @@ void m_IDirectDrawX::ReleaseAllD9Surfaces(bool ClearDDraw)
 	{
 		SurfaceVector.clear();
 	}
+
+	ThreadSyncFlag = false;
 }
 
 // Release all d3d9 classes for Release()
@@ -1431,20 +1482,21 @@ LRESULT CALLBACK CBTProc(int nCode, WPARAM wParam, LPARAM lParam)
 	{
 		Logging::LogDebug() << __FUNCTION__;
 
-		dd_AcquireDDThreadLock();
-
 		HWND hWnd = (HWND)wParam;
-		if (ProxyAddressLookupTable.IsValidAddress(g_hookmap[hWnd]))
+		auto it = g_hookmap.find(hWnd);
+		if (it != std::end(g_hookmap))
 		{
-			g_hookmap[hWnd]->SetCooperativeLevel(hWnd, DDSCL_NORMAL);
-			g_hookmap.clear();
+			m_IDirectDraw7* lpDDraw = it->second;
+			if (lpDDraw && ProxyAddressLookupTable.IsValidAddress(lpDDraw))
+			{
+				g_hookmap.clear();
+				lpDDraw->SetCooperativeLevel(hWnd, DDSCL_NORMAL);
+			}
+			else
+			{
+				g_hookmap.erase(hWnd);
+			}
 		}
-		else
-		{
-			g_hookmap.erase(hWnd);
-		}
-
-		dd_ReleaseDDThreadLock();
 	}
 
 	return CallNextHookEx(nullptr, nCode, wParam, lParam);

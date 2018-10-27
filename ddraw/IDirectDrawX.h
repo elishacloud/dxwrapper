@@ -3,8 +3,8 @@
 class m_IDirectDrawX : public IUnknown
 {
 private:
-	IDirectDraw7 *ProxyInterface;
-	m_IDirectDraw7 *WrapperInterface;
+	IDirectDraw7 *ProxyInterface = nullptr;
+	m_IDirectDraw7 *WrapperInterface = nullptr;
 	DWORD ProxyDirectXVersion;
 	ULONG RefCount = 1;
 
@@ -50,21 +50,7 @@ private:
 public:
 	m_IDirectDrawX(IDirectDraw7 *aOriginal, DWORD DirectXVersion, m_IDirectDraw7 *Interface) : ProxyInterface(aOriginal), WrapperInterface(Interface)
 	{
-		if (Config.Dd7to9)
-		{
-			d3d9Object = (LPDIRECT3D9)ProxyInterface;
-
-			ProxyDirectXVersion = 9;
-
-			if (!displayWidth || !displayHeight)
-			{
-				SetDefaultDisplayMode = true;
-			}
-		}
-		else
-		{
-			ProxyDirectXVersion = GetIIDVersion(ConvertREFIID(GetWrapperType(DirectXVersion)));
-		}
+		ProxyDirectXVersion = GetIIDVersion(ConvertREFIID(GetWrapperType(DirectXVersion)));
 
 		if (ProxyDirectXVersion != DirectXVersion)
 		{
@@ -75,6 +61,17 @@ public:
 			Logging::LogDebug() << "Create " << __FUNCTION__ << " v" << DirectXVersion;
 		}
 	}
+	m_IDirectDrawX(IDirect3D9 *aOriginal, DWORD DirectXVersion) : d3d9Object(aOriginal)
+	{
+		ProxyDirectXVersion = 9;
+
+		if (!displayWidth || !displayHeight)
+		{
+			SetDefaultDisplayMode = true;
+		}
+
+		Logging::LogDebug() << "Convert DirectDraw v" << DirectXVersion << " to v" << ProxyDirectXVersion;
+	}
 	~m_IDirectDrawX()
 	{
 		if (g_hook)
@@ -82,36 +79,33 @@ public:
 			UnhookWindowsHookEx(g_hook);
 		}
 
-		if (SurfaceVector.size() != 0)
+		if (Config.Dd7to9)
 		{
-			dd_AcquireDDThreadLock();
+			if (SurfaceVector.size() != 0)
+			{
+				ReleaseAllD9Surfaces(true);
+			}
 
-			ReleaseAllD9Surfaces(true);
+			while (ThreadSyncFlag)
+			{
+				Sleep(0);
+			}
 
-			dd_ReleaseDDThreadLock();
+			ThreadSyncFlag = true;
+
+			if (D3DInterface)
+			{
+				D3DInterface->ClearDdraw();
+			}
+
+			ThreadSyncFlag = false;
 		}
 	}
 
 	DWORD GetDirectXVersion() { return DDWRAPPER_TYPEX; }
-	REFIID GetWrapperType(DWORD DirectXVersion)
-	{
-		return (DirectXVersion == 1) ? IID_IDirectDraw :
-			(DirectXVersion == 2) ? IID_IDirectDraw2 :
-			(DirectXVersion == 3) ? IID_IDirectDraw3 :
-			(DirectXVersion == 4) ? IID_IDirectDraw4 :
-			(DirectXVersion == 7) ? IID_IDirectDraw7 : IID_IUnknown;
-	}
-	IDirectDraw *GetProxyInterfaceV1() { return (IDirectDraw *)ProxyInterface; }
-	IDirectDraw3 *GetProxyInterfaceV3() { return (IDirectDraw3 *)ProxyInterface; }
-	IDirectDraw4 *GetProxyInterfaceV4() { return (IDirectDraw4 *)ProxyInterface; }
+	REFIID GetWrapperType() { return IID_IUnknown; }
 	IDirectDraw7 *GetProxyInterface() { return ProxyInterface; }
 	m_IDirectDraw7 *GetWrapperInterface() { return WrapperInterface; }
-	void *GetWrapperInterfaceX(DWORD DirectXVersion);
-	LPDIRECT3D9 GetDirect3DObject() { return d3d9Object; }
-	LPDIRECT3DDEVICE9 *GetDirect3DDevice() { return &d3d9Device; }
-	HWND GetHwnd() { return MainhWnd; }
-	bool IsExclusiveMode() { return ExclusiveMode; }
-	void ClearD3DInterface() { D3DInterface = nullptr; }
 
 	/*** IUnknown methods ***/
 	HRESULT QueryInterface(REFIID riid, LPVOID FAR * ppvObj, DWORD DirectXVersion);
@@ -159,6 +153,25 @@ public:
 	STDMETHOD(EvaluateMode)(THIS_ DWORD, DWORD *);
 
 	/*** Helper functions ***/
+	REFIID GetWrapperType(DWORD DirectXVersion)
+	{
+		return (DirectXVersion == 1) ? IID_IDirectDraw :
+			(DirectXVersion == 2) ? IID_IDirectDraw2 :
+			(DirectXVersion == 3) ? IID_IDirectDraw3 :
+			(DirectXVersion == 4) ? IID_IDirectDraw4 :
+			(DirectXVersion == 7) ? IID_IDirectDraw7 : IID_IUnknown;
+	}
+	IDirectDraw *GetProxyInterfaceV1() { return (IDirectDraw *)ProxyInterface; }
+	IDirectDraw2 *GetProxyInterfaceV2() { return (IDirectDraw2 *)ProxyInterface; }
+	IDirectDraw3 *GetProxyInterfaceV3() { return (IDirectDraw3 *)ProxyInterface; }
+	IDirectDraw4 *GetProxyInterfaceV4() { return (IDirectDraw4 *)ProxyInterface; }
+	IDirectDraw7 *GetProxyInterfaceV7() { return ProxyInterface; }
+	void *GetWrapperInterfaceX(DWORD DirectXVersion);
+	LPDIRECT3D9 GetDirect3DObject() { return d3d9Object; }
+	LPDIRECT3DDEVICE9 *GetDirect3DDevice() { return &d3d9Device; }
+	HWND GetHwnd() { return MainhWnd; }
+	bool IsExclusiveMode() { return ExclusiveMode; }
+	void ClearD3DInterface() { D3DInterface = nullptr; }
 	HRESULT CreateD3DDevice();
 	HRESULT ReinitDevice();
 	void ReleaseAllD9Surfaces(bool ClearDDraw = false);

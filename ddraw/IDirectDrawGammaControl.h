@@ -3,7 +3,7 @@
 class m_IDirectDrawGammaControl : public IDirectDrawGammaControl, public AddressLookupTableDdrawObject
 {
 private:
-	IDirectDrawGammaControl *ProxyInterface;
+	IDirectDrawGammaControl *ProxyInterface = nullptr;
 	REFIID WrapperID = IID_IDirectDrawGammaControl;
 
 public:
@@ -11,6 +11,10 @@ public:
 	{
 		ProxyAddressLookupTable.SaveAddress(this, ProxyInterface);
 
+		Logging::LogDebug() << "Create " << __FUNCTION__;
+	}
+	m_IDirectDrawGammaControl()
+	{
 		Logging::LogDebug() << "Create " << __FUNCTION__;
 	}
 	~m_IDirectDrawGammaControl()
@@ -25,8 +29,9 @@ public:
 
 	/*** IUnknown methods ***/
 	STDMETHOD(QueryInterface) (THIS_ REFIID riid, LPVOID FAR * ppvObj);
-	STDMETHOD_(ULONG, AddRef) (THIS) ;
+	STDMETHOD_(ULONG, AddRef) (THIS);
 	STDMETHOD_(ULONG, Release) (THIS);
+
 	/*** IDirectDrawGammaControl methods ***/
 	STDMETHOD(GetGammaRamp)(THIS_ DWORD, LPDDGAMMARAMP);
 	STDMETHOD(SetGammaRamp)(THIS_ DWORD, LPDDGAMMARAMP);

@@ -13,10 +13,7 @@ void ConvertDeviceIdentifier(DDDEVICEIDENTIFIER2 &DeviceID, D3DADAPTER_IDENTIFIE
 void ConvertCaps(DDSCAPS2 &Caps, DDSCAPS2 &Caps2);
 void ConvertCaps(DDSCAPS &Caps, DDSCAPS2 &Caps2);
 void ConvertCaps(DDSCAPS2 &Caps2, DDSCAPS &Caps);
-bool ConvertCaps(DDCAPS_DX7 &Caps, DDCAPS_DX7 &Caps7);
-void ConvertCaps(DDCAPS_DX1 &Caps1, DDCAPS_DX7 &Caps7);
-void ConvertCaps(DDCAPS_DX3 &Caps3, DDCAPS_DX7 &Caps7);
-void ConvertCaps(DDCAPS_DX5 &Caps5, DDCAPS_DX7 &Caps7);
+void ConvertCaps(DDCAPS_DX7 &Caps, DDCAPS_DX7 &Caps7);
 void ConvertCaps(DDCAPS &Caps7, D3DCAPS9 &Caps9);
 DWORD GetBitCount(DDPIXELFORMAT ddpfPixelFormat);
 DWORD GetBitCount(D3DFORMAT Format);

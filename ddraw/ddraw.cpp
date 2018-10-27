@@ -24,6 +24,7 @@
 
 AddressLookupTableDdraw<void> ProxyAddressLookupTable = AddressLookupTableDdraw<void>();
 m_IDirect3DDeviceX *lpCurrentD3DDevice = nullptr;
+bool ThreadSyncFlag = false;
 
 CRITICAL_SECTION ddcs;
 
@@ -346,7 +347,7 @@ HRESULT WINAPI dd_DirectDrawCreateEx(GUID FAR *lpGUID, LPVOID *lplpDD, REFIID ri
 
 		DWORD DxVersion = GetIIDVersion(riid);
 
-		m_IDirectDrawX *p_IDirectDrawX = new m_IDirectDrawX((IDirectDraw7*)d3d9Object, DxVersion, nullptr);
+		m_IDirectDrawX *p_IDirectDrawX = new m_IDirectDrawX(d3d9Object, DxVersion);
 
 		*lplpDD = p_IDirectDrawX->GetWrapperInterfaceX(DxVersion);
 
