@@ -23,7 +23,7 @@ public:
 	}
 
 	template <typename T>
-	struct AddressCacheIndex { static constexpr UINT CacheIndex = 0; };
+	struct AddressCacheIndex { static constexpr UINT CacheIndex = 1; };
 	template <>
 	struct AddressCacheIndex<m_IDirect3D> { static constexpr UINT CacheIndex = 1; };
 	template <>
@@ -146,6 +146,15 @@ public:
 			return (T*)FindAddress<AddressCacheIndex<T>::Type7>(Proxy);
 		default:
 			return nullptr;
+		}
+	}
+
+	template <typename T>
+	void ClearAllAddresses()
+	{
+		for (UINT CacheIndex = 0; CacheIndex < MaxIndex; CacheIndex++)
+		{
+			g_map[CacheIndex].clear();
 		}
 	}
 

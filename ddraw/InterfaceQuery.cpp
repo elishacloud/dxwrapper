@@ -19,7 +19,9 @@
 DWORD GetIIDVersion(REFIID riid)
 {
 	return (riid == IID_IDirectDraw || riid == IID_IDirectDrawSurface || riid == IID_IDirect3D || riid == IID_IDirect3DDevice ||
-		riid == IID_IDirect3DMaterial || riid == IID_IDirect3DTexture || riid == IID_IDirect3DVertexBuffer || riid == IID_IDirect3DViewport) ? 1 :
+		riid == IID_IDirect3DMaterial || riid == IID_IDirect3DTexture || riid == IID_IDirect3DVertexBuffer || riid == IID_IDirect3DViewport ||
+		riid == IID_IDirectDrawClipper || riid == IID_IDirectDrawColorControl || riid == IID_IDirectDrawGammaControl ||
+		riid == IID_IDirectDrawPalette || riid == IID_IDirectDrawFactory || riid == IID_IDirect3DLight || riid == IID_IDirect3DExecuteBuffer) ? 1 :
 		(riid == IID_IDirectDraw2 || riid == IID_IDirectDrawSurface2 || riid == IID_IDirect3D2 || riid == IID_IDirect3DDevice2 ||
 			riid == IID_IDirect3DMaterial2 || riid == IID_IDirect3DTexture2 || riid == IID_IDirect3DViewport2) ? 2 :
 		(riid == IID_IDirectDraw3 || riid == IID_IDirectDrawSurface3 || riid == IID_IDirect3D3 || riid == IID_IDirect3DDevice3 ||
@@ -133,7 +135,7 @@ HRESULT ProxyQueryInterface(LPVOID ProxyInterface, REFIID riid, LPVOID * ppvObj,
 	return hr;
 }
 
-void genericQueryInterface(REFIID riid, LPVOID * ppvObj)
+void genericQueryInterface(REFIID riid, LPVOID *ppvObj)
 {
 	if (!ppvObj || !*ppvObj)
 	{

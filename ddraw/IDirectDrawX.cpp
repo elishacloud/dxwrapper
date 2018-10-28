@@ -1486,16 +1486,12 @@ LRESULT CALLBACK CBTProc(int nCode, WPARAM wParam, LPARAM lParam)
 		auto it = g_hookmap.find(hWnd);
 		if (it != std::end(g_hookmap))
 		{
-			m_IDirectDraw7* lpDDraw = it->second;
+			m_IDirectDraw7 *lpDDraw = it->second;
 			if (lpDDraw && ProxyAddressLookupTable.IsValidAddress(lpDDraw))
 			{
-				g_hookmap.clear();
 				lpDDraw->SetCooperativeLevel(hWnd, DDSCL_NORMAL);
 			}
-			else
-			{
-				g_hookmap.erase(hWnd);
-			}
+			g_hookmap.clear();
 		}
 	}
 
