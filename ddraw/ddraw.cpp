@@ -254,8 +254,6 @@ HRESULT WINAPI dd_DirectDrawCreate(GUID FAR *lpGUID, LPDIRECTDRAW FAR *lplpDD, I
 
 	if (SUCCEEDED(hr) && lplpDD && *lplpDD)
 	{
-		ProxyAddressLookupTable.ClearAllAddresses<m_IDirectDraw>();
-
 		// Convert to new DirectDraw version
 		if (ConvertREFIID(IID_IDirectDraw) != IID_IDirectDraw)
 		{
@@ -368,7 +366,6 @@ HRESULT WINAPI dd_DirectDrawCreateEx(GUID FAR *lpGUID, LPVOID *lplpDD, REFIID ri
 
 	if (SUCCEEDED(hr) && lplpDD && *lplpDD)
 	{
-		ProxyAddressLookupTable.ClearAllAddresses<m_IDirectDraw7>();
 		genericQueryInterface(riid, lplpDD);
 	}
 
