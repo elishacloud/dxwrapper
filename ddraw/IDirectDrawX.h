@@ -29,6 +29,12 @@ private:
 	DWORD displayWidth = 0;
 	DWORD displayHeight = 0;
 
+	// High resolution counter
+	bool FrequencyFlag = false;
+	LARGE_INTEGER clockFrequency, clickTime, lastTime = { 0, 0 };
+	DWORD FrameCounter = 0;
+	DWORD monitorRefreshRate = 0;
+
 	// Direct3D9 Objects
 	LPDIRECT3D9 d3d9Object = nullptr;
 	LPDIRECT3DDEVICE9 d3d9Device = nullptr;
@@ -77,6 +83,11 @@ public:
 		if (g_hook)
 		{
 			UnhookWindowsHookEx(g_hook);
+		}
+
+		if (Config.Exiting)
+		{
+			return;
 		}
 
 		if (Config.Dd7to9)

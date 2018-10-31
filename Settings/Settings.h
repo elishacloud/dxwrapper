@@ -8,6 +8,7 @@
 
 #define VISIT_CONFIG_SETTINGS(visit) \
 	visit(AntiAliasing) \
+	visit(AutoFrameSkip) \
 	visit(Dd7to9) \
 	visit(D3d8to9) \
 	visit(DDrawCompat) \
@@ -134,6 +135,8 @@ static const APPCOMPATDATATYPE AppCompatDataType;
 struct CONFIG
 {
 	void Init();						// Initialize the config setting
+	bool Exiting = false;				// Dxwrapper is being unloaded
+	bool AutoFrameSkip;					// Automatically skips frames to reduce input lag
 	bool Force16bitColor;				// Forces DirectX to use 16bit color
 	bool Force32bitColor;				// Forces DirectX to use 32bit color
 	bool SingleProcAffinity;			// Sets the CPU affinity for this process and thread

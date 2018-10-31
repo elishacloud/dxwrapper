@@ -486,6 +486,7 @@ bool APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 		break;
 	case DLL_PROCESS_DETACH:
 		// Run all clean up functions
+		Config.Exiting = true;
 		Logging::Log() << "Quiting DxWrapper";
 
 		// Stop threads

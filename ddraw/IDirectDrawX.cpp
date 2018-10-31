@@ -857,6 +857,7 @@ HRESULT m_IDirectDrawX::RestoreDisplayMode()
 		displayModeHeight = 0;
 		displayModeBPP = 0;
 		displayModeRefreshRate = 0;
+		monitorRefreshRate = 0;
 
 		return DD_OK;
 	}
@@ -982,6 +983,35 @@ HRESULT m_IDirectDrawX::SetDisplayMode(DWORD dwWidth, DWORD dwHeight, DWORD dwBP
 		{
 			displayWidth = dwWidth;
 			displayHeight = dwHeight;
+		}
+
+		// Get refresh rate of monitor
+		if (Config.AutoFrameSkip)
+		{
+			if (displayModeRefreshRate)
+			{
+				monitorRefreshRate = displayModeRefreshRate;
+			}
+			else
+			{
+				MONITORINFOEX mi;
+				mi.cbSize = sizeof(MONITORINFOEX);
+				bool DeviceNameFlag = GetMonitorInfoA(MonitorFromWindow(MainhWnd, MONITOR_DEFAULTTONEAREST), &mi);
+				if (!DeviceNameFlag)
+				{
+					Logging::Log() << __FUNCTION__ << " Failed to get MonitorInfo!";
+				}
+				DEVMODEA DevMode;
+				if (EnumDisplaySettingsA((DeviceNameFlag) ? mi.szDevice : nullptr, ENUM_CURRENT_SETTINGS, &DevMode))
+				{
+					monitorRefreshRate = DevMode.dmDisplayFrequency;
+				}
+				else
+				{
+					monitorRefreshRate = 0;
+					Logging::Log() << __FUNCTION__ << " Failed to get Display Frequency!";
+				}
+			}
 		}
 
 		// Create the requested d3d device for this display mode, report error on failure
@@ -1334,7 +1364,7 @@ HRESULT m_IDirectDrawX::CreateD3DDevice()
 				Logging::Log() << __FUNCTION__ << " EnumAdapterModes failed";
 				return DDERR_GENERIC;
 			}
-			if (d3ddispmode.Width == BackBufferWidth && d3ddispmode.Height == BackBufferHeight &&				// Check height and width
+			if (d3ddispmode.Width == BackBufferWidth && d3ddispmode.Height == BackBufferHeight &&		// Check height and width
 				(d3ddispmode.RefreshRate == displayModeRefreshRate || displayModeRefreshRate == 0))		// Check refresh rate
 			{
 				// Found a match
@@ -1478,7 +1508,7 @@ LRESULT CALLBACK CBTProc(int nCode, WPARAM wParam, LPARAM lParam)
 {
 	UNREFERENCED_PARAMETER(lParam);
 
-	if (nCode == HCBT_DESTROYWND)
+	if (nCode == HCBT_DESTROYWND && !Config.Exiting)
 	{
 		Logging::LogDebug() << __FUNCTION__;
 
@@ -1582,7 +1612,7 @@ bool m_IDirectDrawX::DoesSurfaceExist(m_IDirectDrawSurfaceX* lpSurfaceX)
 // Do d3d9 BeginScene if all surfaces are unlocked
 HRESULT m_IDirectDrawX::BeginScene()
 {
-	// Check if need to run BeginScene
+	// Check if we can run BeginScene
 	if (IsInScene)
 	{
 		return DDERR_GENERIC;
@@ -1621,7 +1651,7 @@ HRESULT m_IDirectDrawX::BeginScene()
 // Do d3d9 EndScene and Present if all surfaces are unlocked
 HRESULT m_IDirectDrawX::EndScene()
 {
-	// Check if surface Flip/Blt has occured 
+	// Check if BeginScene has finished
 	if (!IsInScene)
 	{
 		return DDERR_GENERIC;
@@ -1650,6 +1680,47 @@ HRESULT m_IDirectDrawX::EndScene()
 		return DDERR_GENERIC;
 	}
 
+	// Skip frame if time lapse is too small
+	if (Config.AutoFrameSkip)
+	{
+		if (!FrequencyFlag || (lastTime.LowPart & 0xff) == 0)
+		{
+			if (QueryPerformanceFrequency(&clockFrequency))
+			{
+				FrequencyFlag = true;
+			}
+		}
+		if (FrequencyFlag)
+		{
+			FrameCounter++;
+
+			bool CounterFlag = QueryPerformanceCounter(&clickTime);
+			float deltaMS = ((clickTime.QuadPart - lastTime.QuadPart) * 1000.0f) / clockFrequency.QuadPart;
+
+			D3DRASTER_STATUS RasterStatus;
+			bool RasterFlag = SUCCEEDED(d3d9Device->GetRasterStatus(0, &RasterStatus));
+
+			DWORD RefreshRate = (!monitorRefreshRate) ? 60 : monitorRefreshRate;
+			DWORD Height = (displayHeight) ? displayHeight : GetSystemMetrics(SM_CYSCREEN);
+
+			float MultiplierRatio = 0.4f + 0.4f - (0.4f / (FrameCounter + 1));
+
+			// Check if frame should be skipped
+			if (!((RasterFlag && !RasterStatus.InVBlank && RasterStatus.ScanLine > Height * MultiplierRatio) ||
+				(CounterFlag && deltaMS > (1000.0f / RefreshRate) * MultiplierRatio) ||
+				(!RasterFlag && !CounterFlag)))
+			{
+				Logging::LogDebug() << __FUNCTION__ << " Skipping frame " << deltaMS << "ms ScanLine is " << RasterStatus.ScanLine;
+				return DD_OK;
+			}
+			Logging::LogDebug() << __FUNCTION__ << " Drawing frame " << deltaMS << "ms ScanLine is " << RasterStatus.ScanLine;
+
+			// Reset variables when displaying the frame
+			lastTime.QuadPart = clickTime.QuadPart;
+			FrameCounter = 0;
+		}
+	}
+
 	// End scene
 	if (FAILED(d3d9Device->EndScene()))
 	{
@@ -1674,6 +1745,15 @@ HRESULT m_IDirectDrawX::EndScene()
 	{
 		Logging::Log() << __FUNCTION__ << " Failed to present scene";
 		return DDERR_GENERIC;
+	}
+
+	// Store new click time after frame draw is complete
+	if (Config.AutoFrameSkip)
+	{
+		if (QueryPerformanceCounter(&clickTime))
+		{
+			lastTime.QuadPart = clickTime.QuadPart;
+		}
 	}
 
 	// BeginScene after EndScene is done

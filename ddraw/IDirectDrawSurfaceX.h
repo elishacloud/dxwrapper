@@ -106,6 +106,11 @@ public:
 			rawVideoBuf = nullptr;
 		}
 
+		if (Config.Exiting)
+		{
+			return;
+		}
+
 		if (Config.Dd7to9)
 		{
 			while (ThreadSyncFlag)

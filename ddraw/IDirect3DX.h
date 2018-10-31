@@ -37,6 +37,11 @@ public:
 	}
 	~m_IDirect3DX()
 	{
+		if (Config.Exiting)
+		{
+			return;
+		}
+
 		if (Config.Dd7to9)
 		{
 			ReleaseD3DInterface();
