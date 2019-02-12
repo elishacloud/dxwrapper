@@ -1002,6 +1002,8 @@ HRESULT m_IDirectDrawX::SetDisplayMode(DWORD dwWidth, DWORD dwHeight, DWORD dwBP
 					Logging::Log() << __FUNCTION__ << " Failed to get MonitorInfo!";
 				}
 				DEVMODEA DevMode;
+				ZeroMemory(&DevMode, sizeof(DEVMODEA));
+				DevMode.dmSize = sizeof(DEVMODEA);
 				if (EnumDisplaySettingsA((DeviceNameFlag) ? mi.szDevice : nullptr, ENUM_CURRENT_SETTINGS, &DevMode))
 				{
 					monitorRefreshRate = DevMode.dmDisplayFrequency;

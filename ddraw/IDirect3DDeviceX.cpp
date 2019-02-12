@@ -468,10 +468,13 @@ HRESULT m_IDirect3DDeviceX::NextViewport(LPDIRECT3DVIEWPORT3 lpDirect3DViewport,
 	{
 	case 1:
 		hr = GetProxyInterfaceV1()->NextViewport(lpDirect3DViewport, (LPDIRECT3DVIEWPORT*)lplpDirect3DViewport, dwFlags);
+		break;
 	case 2:
 		hr = GetProxyInterfaceV2()->NextViewport(lpDirect3DViewport, (LPDIRECT3DVIEWPORT2*)lplpDirect3DViewport, dwFlags);
+		break;
 	case 3:
 		hr = GetProxyInterfaceV3()->NextViewport(lpDirect3DViewport, lplpDirect3DViewport, dwFlags);
+		break;
 	}
 
 	if (SUCCEEDED(hr) && lplpDirect3DViewport)
@@ -550,8 +553,10 @@ HRESULT m_IDirect3DDeviceX::GetCurrentViewport(LPDIRECT3DVIEWPORT3 * lplpd3dView
 	{
 	case 2:
 		hr = GetProxyInterfaceV2()->GetCurrentViewport((LPDIRECT3DVIEWPORT2*)lplpd3dViewport);
+		break;
 	case 3:
 		hr = GetProxyInterfaceV3()->GetCurrentViewport(lplpd3dViewport);
+		break;
 	}
 
 	if (SUCCEEDED(hr) && lplpd3dViewport)
@@ -868,12 +873,16 @@ HRESULT m_IDirect3DDeviceX::GetDirect3D(LPDIRECT3D7 * lplpD3D, DWORD DirectXVers
 	{
 	case 1:
 		hr = GetProxyInterfaceV1()->GetDirect3D((LPDIRECT3D*)lplpD3D);
+		break;
 	case 2:
 		hr = GetProxyInterfaceV2()->GetDirect3D((LPDIRECT3D2*)lplpD3D);
+		break;
 	case 3:
 		hr = GetProxyInterfaceV3()->GetDirect3D((LPDIRECT3D3*)lplpD3D);
+		break;
 	case 7:
 		hr = GetProxyInterfaceV7()->GetDirect3D(lplpD3D);
+		break;
 	}
 
 	if (SUCCEEDED(hr) && lplpD3D)
@@ -929,10 +938,13 @@ HRESULT m_IDirect3DDeviceX::GetRenderTarget(LPDIRECTDRAWSURFACE7 * lplpRenderTar
 	{
 	case 2:
 		hr = GetProxyInterfaceV2()->GetRenderTarget((LPDIRECTDRAWSURFACE*)lplpRenderTarget);
+		break;
 	case 3:
 		hr = GetProxyInterfaceV3()->GetRenderTarget((LPDIRECTDRAWSURFACE4*)lplpRenderTarget);
+		break;
 	case 7:
 		hr = GetProxyInterfaceV7()->GetRenderTarget(lplpRenderTarget);
+		break;
 	}
 
 	if (SUCCEEDED(hr) && lplpRenderTarget)

@@ -3,6 +3,23 @@
 #define INITGUID
 
 #include <d3d9.h>
+
+class m_IDirect3D9Ex;
+class m_IDirect3DDevice9Ex;
+class m_IDirect3DCubeTexture9;
+class m_IDirect3DIndexBuffer9;
+class m_IDirect3DPixelShader9;
+class m_IDirect3DQuery9;
+class m_IDirect3DStateBlock9;
+class m_IDirect3DSurface9;
+class m_IDirect3DSwapChain9;
+class m_IDirect3DTexture9;
+class m_IDirect3DVertexBuffer9;
+class m_IDirect3DVertexDeclaration9;
+class m_IDirect3DVertexShader9;
+class m_IDirect3DVolume9;
+class m_IDirect3DVolumeTexture9;
+
 #include "AddressLookupTable.h"
 #include "Settings\Settings.h"
 #include "Logging\Logging.h"

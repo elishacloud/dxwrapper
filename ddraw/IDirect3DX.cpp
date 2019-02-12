@@ -341,6 +341,7 @@ HRESULT m_IDirect3DX::CreateMaterial(LPDIRECT3DMATERIAL3 * lplpDirect3DMaterial,
 			Logging::Log() << __FUNCTION__ << " No current IDirect3DDevice";
 			return D3DERR_INVALID_DEVICE;
 		}
+		break;
 	case 9:
 		Logging::Log() << __FUNCTION__ << " Not Implemented";
 		return E_NOTIMPL;
@@ -388,6 +389,7 @@ HRESULT m_IDirect3DX::CreateViewport(LPDIRECT3DVIEWPORT3 * lplpD3DViewport, LPUN
 			Logging::Log() << __FUNCTION__ << " No current IDirect3DDevice";
 			return D3DERR_INVALID_DEVICE;
 		}
+		break;
 	case 9:
 		Logging::Log() << __FUNCTION__ << " Not Implemented";
 		return E_NOTIMPL;
