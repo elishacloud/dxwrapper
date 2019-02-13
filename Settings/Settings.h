@@ -17,6 +17,7 @@
 	visit(DDrawCompatExperimental) \
 	visit(DDrawCompatDisableGDIHook) \
 	visit(DisableHighDPIScaling) \
+	visit(DisableLogging) \
 	visit(DSoundCtrl) \
 	visit(DxWnd) \
 	visit(CacheClipPlane) \
@@ -151,6 +152,7 @@ struct CONFIG
 	bool DDrawCompatExperimental;		// Enables DDrawCompat Experimental version
 	bool DDrawCompatDisableGDIHook;		// Disables DDrawCompat GDI hooks
 	bool DisableHighDPIScaling;			// Disables display scaling on high DPI settings
+	bool DisableLogging;				// Disables the logging file
 	bool DSoundCtrl;					// Enables DirectSoundControl https://github.com/nRaecheR/DirectSoundControl
 	bool DxWnd;							// Enables DxWnd https://sourceforge.net/projects/dxwnd/
 	bool CacheClipPlane;				// Caches the ClipPlane for Direct3D9 to fix an issue in d3d9 on Windows 8 and newer

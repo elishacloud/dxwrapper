@@ -16,13 +16,16 @@
 
 #include "Logging.h"
 
-char *InitLog();
-
-std::ofstream LOG(InitLog());
+std::ofstream LOG;
 
 // Get wrapper file name
-char *InitLog()
+void Logging::InitLog()
 {
+	if (!EnableLogging)
+	{
+		return;
+	}
+
 	static char wrappername[MAX_PATH];
 
 	// Get module name
@@ -52,7 +55,7 @@ char *InitLog()
 	// Set lower case
 	for (int z = 0; z < MAX_PATH && wrappername[z] != '\0'; z++) { wrappername[z] = (char)tolower(wrappername[z]); }
 
-	return wrappername;
+	Open(wrappername);
 }
 
 std::ostream& operator<<(std::ostream& os, const DDCAPS& caps)

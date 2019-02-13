@@ -63,15 +63,17 @@ bool APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 		dwPriorityClass = (GetLastError() == THREAD_PRIORITY_ERROR_RETURN) ? THREAD_PRIORITY_NORMAL : dwPriorityClass;
 		SetThreadPriority(hCurrentThread, THREAD_PRIORITY_HIGHEST);
 
+		// Initialize config
+		Config.Init();
+
 		// Init logs
+		Logging::EnableLogging = !Config.DisableLogging;
+		Logging::InitLog();
 		Logging::Log() << "Starting DxWrapper v" << APP_VERSION;
 		Logging::LogComputerManufacturer();
 		Logging::LogVideoCard();
 		Logging::LogOSVersion();
 		Logging::LogProcessNameAndPID();
-
-		// Initialize config
-		Config.Init();
 
 		// Create Mutex to ensure only one copy of DxWrapper is running
 		char MutexName[MAX_PATH] = { 0 };
