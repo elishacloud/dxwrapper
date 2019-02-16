@@ -16,6 +16,12 @@
 
 #include "ddraw.h"
 
+bool GetD3DPath = true;
+char D3DImPath[MAX_PATH] = { '\0' };
+char D3DIm700Path[MAX_PATH] = { '\0' };
+HMODULE hD3DIm = nullptr;
+HMODULE hD3DIm700 = nullptr;
+
 HRESULT m_IDirect3DX::QueryInterface(REFIID riid, LPVOID * ppvObj, DWORD DirectXVersion)
 {
 	Logging::LogDebug() << __FUNCTION__;

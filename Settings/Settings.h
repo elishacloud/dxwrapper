@@ -16,6 +16,7 @@
 	visit(DDrawCompat21) \
 	visit(DDrawCompatExperimental) \
 	visit(DDrawCompatDisableGDIHook) \
+	visit(DDrawResolutionHack) \
 	visit(DisableHighDPIScaling) \
 	visit(DisableLogging) \
 	visit(DSoundCtrl) \
@@ -151,6 +152,7 @@ struct CONFIG
 	bool DDrawCompat21;					// Enables DDrawCompat v0.2.1
 	bool DDrawCompatExperimental;		// Enables DDrawCompat Experimental version
 	bool DDrawCompatDisableGDIHook;		// Disables DDrawCompat GDI hooks
+	bool DDrawResolutionHack;			// Removes the artificial resolution limit from Direct3D7 and below https://github.com/UCyborg/LegacyD3DResolutionHack
 	bool DisableHighDPIScaling;			// Disables display scaling on high DPI settings
 	bool DisableLogging;				// Disables the logging file
 	bool DSoundCtrl;					// Enables DirectSoundControl https://github.com/nRaecheR/DirectSoundControl

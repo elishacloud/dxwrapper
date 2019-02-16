@@ -25,6 +25,7 @@ namespace Utils
 	void LoadCustomDll();
 	void LoadPlugins();
 	void UnloadAllDlls();
+	void DDrawResolutionHack(HMODULE hD3DIm);
 
 	namespace WriteMemory
 	{

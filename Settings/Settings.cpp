@@ -378,6 +378,7 @@ void Settings::SetDefaultConfigSettings()
 	Config.DisableHighDPIScaling = true;
 	Config.DxWnd = true;
 	Config.ResetScreenRes = true;
+	Config.DDrawResolutionHack = true;
 
 	// Set other default values
 	Config.LoopSleepTime = 120;

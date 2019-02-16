@@ -1,5 +1,13 @@
 #pragma once
 
+#include "Utils\Utils.h"
+
+extern bool GetD3DPath;
+extern char D3DImPath[MAX_PATH];
+extern char D3DIm700Path[MAX_PATH];
+extern HMODULE hD3DIm;
+extern HMODULE hD3DIm700;
+
 class m_IDirect3DX : public IUnknown
 {
 private:
@@ -27,6 +35,38 @@ public:
 		else
 		{
 			Logging::LogDebug() << "Create " << __FUNCTION__ << " v" << DirectXVersion;
+		}
+
+		if (Config.DDrawResolutionHack)
+		{
+			if (GetD3DPath)
+			{
+				GetD3DPath = false;
+				GetSystemDirectory(D3DImPath, MAX_PATH);
+				strcpy_s(D3DIm700Path, MAX_PATH, D3DImPath);
+				strcat_s(D3DImPath, MAX_PATH, "\\d3dim.dll");
+				strcat_s(D3DIm700Path, MAX_PATH, "\\d3dim700.dll");
+			}
+
+			if (!hD3DIm)
+			{
+				hD3DIm = GetModuleHandle(D3DImPath);
+				if (hD3DIm)
+				{
+					Logging::LogDebug() << __FUNCTION__ << " Found loaded dll: 'd3dim.dll'";
+					Utils::DDrawResolutionHack(hD3DIm);
+				}
+			}
+
+			if (!hD3DIm700)
+			{
+				hD3DIm700 = GetModuleHandle(D3DIm700Path);
+				if (hD3DIm700)
+				{
+					Logging::LogDebug() << __FUNCTION__ << " Found loaded dll: 'd3dim700.dll'";
+					Utils::DDrawResolutionHack(hD3DIm700);
+				}
+			}
 		}
 	}
 	m_IDirect3DX(m_IDirectDrawX *aOriginal, DWORD DirectXVersion) : ddrawParent(aOriginal)
