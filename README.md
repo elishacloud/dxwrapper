@@ -11,7 +11,7 @@ DxWrapper has many features including:
  - Conversion of DirectDraw 1-6 to DirectDraw 7
  - Conversion of Direct3D 1-6 to Direct3D 7
  - Conversion of Direct3D 8 (d3d8.dll) to Direct3D 9 (d3d9.dll) using [d3d8to9](https://github.com/crosire/d3d8to9)
- - Includes [LegacyD3DResolutionHack](https://github.com/UCyborg/LegacyD3DResolutionHack) to remove the artificial resolution limit from Direct3D 7 and below.
+ - Includes [LegacyD3DResolutionHack](https://github.com/UCyborg/LegacyD3DResolutionHack) to remove the artificial resolution limit from Direct3D 1-7, which allows DirectDraw games to play at 4K resolution
  - Tweaking of Microsoft DirectSound function calls using [DSoundCtrl](http://www.bockholdt.com/dsc/)
  - ASI loader to load custom libraries with the file extension .asi into game processes using [Ultimate ASI Loader](https://github.com/ThirteenAG/Ultimate-ASI-Loader)
  - Supports being loaded as an ASI plug-in
