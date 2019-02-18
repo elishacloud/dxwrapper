@@ -13,3 +13,6 @@
 [submodule "External/Hooking"]
 	path = External/Hooking
 	url = https://github.com/elishacloud/Hooking
+[submodule "External/dinputto8"]
+	path = External/dinputto8
+	url = https://github.com/elishacloud/dinputto8

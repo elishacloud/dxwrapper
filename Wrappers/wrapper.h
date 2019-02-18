@@ -70,6 +70,11 @@ namespace ddraw
 	VISIT_PROCS_DDRAW(DECLARE_PROC_VARABLES);
 	HMODULE Load(const char *ProxyDll, const char *MyDllName);
 }
+namespace dinput
+{
+	VISIT_PROCS_DINPUT(DECLARE_PROC_VARABLES);
+	HMODULE Load(const char *ProxyDll, const char *MyDllName);
+}
 namespace d3d8
 {
 	VISIT_PROCS_D3D8(DECLARE_PROC_VARABLES);

@@ -11,6 +11,7 @@
 	visit(AutoFrameSkip) \
 	visit(Dd7to9) \
 	visit(D3d8to9) \
+	visit(Dinputto8) \
 	visit(DDrawCompat) \
 	visit(DDrawCompat20) \
 	visit(DDrawCompat21) \
@@ -101,7 +102,8 @@ struct DLLTYPE
 	const DWORD d3d8 = 2;
 	const DWORD d3d9 = 3;
 	const DWORD dsound = 4;
-	const DWORD winmm = 5;
+	const DWORD dinput = 5;
+	const DWORD winmm = 6;
 };
 static const DLLTYPE dtype;
 
@@ -112,7 +114,8 @@ static constexpr char* dtypename[] = {
 	"d3d8.dll",		// 2
 	"d3d9.dll",		// 3
 	"dsound.dll",	// 4
-	"winmm.dll",	// 5
+	"dinput.dll",	// 5
+	"winmm.dll",	// 6
 };
 static constexpr int dtypeArraySize = (sizeof(dtypename) / sizeof(*dtypename));
 
@@ -147,6 +150,7 @@ struct CONFIG
 	bool isD3d9WrapperEnabled;			// Specifies if D3d9Wrapper needs to be enabled
 	bool Dd7to9;						// Converts DirectDraw/Direct3D (ddraw.dll) to Direct3D9 (d3d9.dll)
 	bool D3d8to9;						// Converts Direct3D8 (d3d8.dll) to Direct3D9 (d3d9.dll) https://github.com/crosire/d3d8to9
+	bool Dinputto8;						// Converts DirectInput (dinput.dll) to DirectInput8 (dinput8.dll)
 	bool DDrawCompat;					// Enables the default DDrawCompat functions https://github.com/narzoul/DDrawCompat/
 	bool DDrawCompat20;					// Enables DDrawCompat v0.2.0b
 	bool DDrawCompat21;					// Enables DDrawCompat v0.2.1

@@ -4,7 +4,7 @@
 #include <Windows.h>
 #include "Wrappers\d3d8.h"
 
-class __declspec(uuid("1DD9E8DA-1C77-4D40-B0CF-98FEFDFF9512")) Direct3D8;
+class Direct3D8;
 
 void WINAPI d8_Direct3D8EnableMaximizedWindowedModeShim();
 HRESULT WINAPI d8_ValidatePixelShader(DWORD* pixelshader, DWORD* reserved1, BOOL flag, DWORD* toto);
