@@ -529,8 +529,43 @@ HRESULT m_IDirect3DX::EnumZBufferFormats(REFCLSID riidDevice, LPD3DENUMPIXELFORM
 	case 7:
 		return GetProxyInterfaceV7()->EnumZBufferFormats(riidDevice, lpEnumCallback, lpContext);
 	case 9:
-		Logging::Log() << __FUNCTION__ << " Not Implemented";
-		return E_NOTIMPL;
+		if (riidDevice == IID_IDirect3DRGBDevice)
+		{
+			DDPIXELFORMAT PixelFormat = { NULL };
+			PixelFormat.dwSize = sizeof(DDPIXELFORMAT);
+
+			for (DWORD Num : {0, 2})
+			{
+				GetBufferFormat(PixelFormat, Num);
+
+				if (lpEnumCallback(&PixelFormat, lpContext) == DDENUMRET_CANCEL)
+				{
+					return D3D_OK;
+				}
+			}
+			return D3D_OK;
+		}
+		else if (riidDevice == IID_IDirect3DHALDevice)
+		{
+			DDPIXELFORMAT PixelFormat = { NULL };
+			PixelFormat.dwSize = sizeof(DDPIXELFORMAT);
+
+			for (DWORD Num = 0; Num < 6; Num++)
+			{
+				GetBufferFormat(PixelFormat, Num);
+
+				if (lpEnumCallback(&PixelFormat, lpContext) == DDENUMRET_CANCEL)
+				{
+					return D3D_OK;
+				}
+			}
+			return D3D_OK;
+		}
+		else
+		{
+			Logging::Log() << __FUNCTION__ << " Not Implemented " << riidDevice;
+			return DDERR_NOZBUFFERHW;
+		}
 	}
 }
 
