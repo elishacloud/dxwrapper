@@ -18,72 +18,70 @@
 
 void ConvertColorControl(DDCOLORCONTROL &ColorControl, DDCOLORCONTROL &ColorControl2)
 {
-	DWORD dwSize = (ColorControl.dwSize > sizeof(DDCOLORCONTROL)) ? sizeof(DDCOLORCONTROL) : ColorControl.dwSize;
+	DWORD dwSize = min(sizeof(DDCOLORCONTROL), ColorControl.dwSize);
 	ZeroMemory(&ColorControl, dwSize);
-	CopyMemory(&ColorControl, &ColorControl2, (dwSize > ColorControl2.dwSize) ? ColorControl2.dwSize : dwSize);
+	CopyMemory(&ColorControl, &ColorControl2, min(dwSize, ColorControl2.dwSize));
 	ColorControl.dwSize = dwSize;
 }
 
 void ConvertSurfaceDesc(DDSURFACEDESC &Desc, DDSURFACEDESC &Desc2)
 {
-	DWORD dwSize = (Desc.dwSize > sizeof(DDSURFACEDESC)) ? sizeof(DDSURFACEDESC) : Desc.dwSize;
-	DWORD ddpfPixelFormat_dwSize = (dwSize > 88) ? Desc.ddpfPixelFormat.dwSize : 0;
+	DWORD dwSize = min(sizeof(DDSURFACEDESC), Desc.dwSize);
 	ZeroMemory(&Desc, dwSize);
-	CopyMemory(&Desc, &Desc2, (dwSize > Desc2.dwSize) ? Desc2.dwSize : dwSize);
+	CopyMemory(&Desc, &Desc2, min(dwSize, Desc2.dwSize));
 	Desc.dwSize = dwSize;
-	if (ddpfPixelFormat_dwSize)
-	{
-		Desc.ddpfPixelFormat.dwSize = ddpfPixelFormat_dwSize;
-	}
 }
 
 void ConvertSurfaceDesc(DDSURFACEDESC2 &Desc, DDSURFACEDESC2 &Desc2)
 {
-	DWORD dwSize = (Desc.dwSize > sizeof(DDSURFACEDESC2)) ? sizeof(DDSURFACEDESC2) : Desc.dwSize;
-	DWORD ddpfPixelFormat_dwSize = (dwSize > 96) ? Desc.ddpfPixelFormat.dwSize : 0;
+	DWORD dwSize = min(sizeof(DDSURFACEDESC2), Desc.dwSize);
 	ZeroMemory(&Desc, dwSize);
-	CopyMemory(&Desc, &Desc2, (dwSize > Desc2.dwSize) ? Desc2.dwSize : dwSize);
+	CopyMemory(&Desc, &Desc2, min(dwSize, Desc2.dwSize));
 	Desc.dwSize = dwSize;
-	if (ddpfPixelFormat_dwSize)
-	{
-		Desc.ddpfPixelFormat.dwSize = ddpfPixelFormat_dwSize;
-	}
 }
 
 void ConvertSurfaceDesc(DDSURFACEDESC &Desc, DDSURFACEDESC2 &Desc2)
 {
 	// Prepare varables
-	DWORD dwSize = (Desc.dwSize > sizeof(DDSURFACEDESC)) ? sizeof(DDSURFACEDESC) : Desc.dwSize;
+	DWORD dwSize = min(sizeof(DDSURFACEDESC), Desc.dwSize);
 	ZeroMemory(&Desc, dwSize);
 	DDSURFACEDESC tmpDesc = { NULL };
 	DDSURFACEDESC2 tmpDesc2 = { NULL };
-	CopyMemory(&tmpDesc2, &Desc2, (sizeof(DDSURFACEDESC2) > Desc2.dwSize) ? Desc2.dwSize : sizeof(DDSURFACEDESC2));
+	CopyMemory(&tmpDesc2, &Desc2, min(sizeof(DDSURFACEDESC2), Desc2.dwSize));
 	// Convert varables
 	tmpDesc.dwSize = dwSize;
-	tmpDesc.dwFlags = tmpDesc2.dwFlags & ~(DDSD_TEXTURESTAGE | DDSD_ZBUFFERBITDEPTH);		// Remove unsupported flags
+	tmpDesc.dwFlags = tmpDesc2.dwFlags & ~(DDSD_ZBUFFERBITDEPTH | DDSD_TEXTURESTAGE | DDSD_FVF | DDSD_SRCVBHANDLE | DDSD_DEPTH);		// Remove unsupported flags
 	tmpDesc.dwHeight = tmpDesc2.dwHeight;
 	tmpDesc.dwWidth = tmpDesc2.dwWidth;
-	tmpDesc.lPitch = tmpDesc2.lPitch;
 	tmpDesc.dwLinearSize = tmpDesc2.dwLinearSize;
-	tmpDesc.dwBackBufferCount = tmpDesc2.dwBackBufferCount;
-	tmpDesc.dwMipMapCount = tmpDesc2.dwMipMapCount;
-	tmpDesc.dwRefreshRate = tmpDesc2.dwRefreshRate;
+	if (tmpDesc2.dwFlags & DDSD_BACKBUFFERCOUNT)
+	{
+		tmpDesc.dwBackBufferCount = tmpDesc2.dwBackBufferCount;
+	}
+	if (tmpDesc2.dwFlags & (DDSD_REFRESHRATE | DDSD_MIPMAPCOUNT))
+	{
+		tmpDesc.dwRefreshRate = tmpDesc2.dwRefreshRate;
+	}
 	tmpDesc.dwAlphaBitDepth = tmpDesc2.dwAlphaBitDepth;
 	tmpDesc.dwReserved = tmpDesc2.dwReserved;
 	tmpDesc.lpSurface = tmpDesc2.lpSurface;
-	tmpDesc.ddckCKDestOverlay.dwColorSpaceLowValue = tmpDesc2.ddckCKDestOverlay.dwColorSpaceLowValue;
-	tmpDesc.ddckCKDestOverlay.dwColorSpaceHighValue = tmpDesc2.ddckCKDestOverlay.dwColorSpaceHighValue;
+	if (tmpDesc2.dwFlags & DDSD_CKSRCOVERLAY)
+	{
+		tmpDesc.ddckCKDestOverlay.dwColorSpaceLowValue = tmpDesc2.ddckCKDestOverlay.dwColorSpaceLowValue;
+		tmpDesc.ddckCKDestOverlay.dwColorSpaceHighValue = tmpDesc2.ddckCKDestOverlay.dwColorSpaceHighValue;
+	}
 	tmpDesc.ddckCKDestBlt.dwColorSpaceLowValue = tmpDesc2.ddckCKDestBlt.dwColorSpaceLowValue;
 	tmpDesc.ddckCKDestBlt.dwColorSpaceHighValue = tmpDesc2.ddckCKDestBlt.dwColorSpaceHighValue;
 	tmpDesc.ddckCKSrcOverlay.dwColorSpaceLowValue = tmpDesc2.ddckCKSrcOverlay.dwColorSpaceLowValue;
 	tmpDesc.ddckCKSrcOverlay.dwColorSpaceHighValue = tmpDesc2.ddckCKSrcOverlay.dwColorSpaceHighValue;
 	tmpDesc.ddckCKSrcBlt.dwColorSpaceLowValue = tmpDesc2.ddckCKSrcBlt.dwColorSpaceLowValue;
 	tmpDesc.ddckCKSrcBlt.dwColorSpaceHighValue = tmpDesc2.ddckCKSrcBlt.dwColorSpaceHighValue;
-	tmpDesc.ddpfPixelFormat.dwSize = sizeof(DDPIXELFORMAT);
-	ConvertPixelFormat(tmpDesc.ddpfPixelFormat, tmpDesc2.ddpfPixelFormat);
+	if (tmpDesc2.dwFlags & DDSD_PIXELFORMAT)
+	{
+		tmpDesc.ddpfPixelFormat.dwSize = sizeof(DDPIXELFORMAT);
+		ConvertPixelFormat(tmpDesc.ddpfPixelFormat, tmpDesc2.ddpfPixelFormat);
+	}
 	ConvertCaps(tmpDesc.ddsCaps, tmpDesc2.ddsCaps);
-	// Extra parameters
-	//tmpDesc.dwZBufferBitDepth = 0;				// depth of Z buffer requested
 	// Copy to variable
 	CopyMemory(&Desc, &tmpDesc, dwSize);
 }
@@ -91,21 +89,22 @@ void ConvertSurfaceDesc(DDSURFACEDESC &Desc, DDSURFACEDESC2 &Desc2)
 void ConvertSurfaceDesc(DDSURFACEDESC2 &Desc2, DDSURFACEDESC &Desc)
 {
 	// Prepare varables
-	DWORD dwSize = (Desc2.dwSize > sizeof(DDSURFACEDESC2)) ? sizeof(DDSURFACEDESC2) : Desc2.dwSize;
+	DWORD dwSize = min(sizeof(DDSURFACEDESC2), Desc2.dwSize);
 	ZeroMemory(&Desc2, dwSize);
 	DDSURFACEDESC2 tmpDesc2 = { NULL };
 	DDSURFACEDESC tmpDesc = { NULL };
-	CopyMemory(&tmpDesc, &Desc, (sizeof(DDSURFACEDESC) > Desc.dwSize) ? Desc.dwSize : sizeof(DDSURFACEDESC));
+	CopyMemory(&tmpDesc, &Desc, min(sizeof(DDSURFACEDESC), Desc.dwSize));
 	// Convert varables
 	tmpDesc2.dwSize = dwSize;
-	tmpDesc2.dwFlags = tmpDesc.dwFlags & ~(DDSD_TEXTURESTAGE | DDSD_ZBUFFERBITDEPTH);		// Remove unsupported flags
+	tmpDesc2.dwFlags = tmpDesc.dwFlags & ~(DDSD_ZBUFFERBITDEPTH | DDSD_TEXTURESTAGE | DDSD_FVF | DDSD_SRCVBHANDLE | DDSD_DEPTH);		// Remove unsupported flags
 	tmpDesc2.dwHeight = tmpDesc.dwHeight;
 	tmpDesc2.dwWidth = tmpDesc.dwWidth;
-	tmpDesc2.lPitch = tmpDesc.lPitch;
 	tmpDesc2.dwLinearSize = tmpDesc.dwLinearSize;
 	tmpDesc2.dwBackBufferCount = tmpDesc.dwBackBufferCount;
-	tmpDesc2.dwMipMapCount = tmpDesc.dwMipMapCount;
-	tmpDesc2.dwRefreshRate = tmpDesc.dwRefreshRate;
+	if (tmpDesc.dwFlags & (DDSD_REFRESHRATE | DDSD_MIPMAPCOUNT))
+	{
+		tmpDesc2.dwRefreshRate = tmpDesc.dwRefreshRate;
+	}
 	tmpDesc2.dwAlphaBitDepth = tmpDesc.dwAlphaBitDepth;
 	tmpDesc2.dwReserved = tmpDesc.dwReserved;
 	tmpDesc2.lpSurface = tmpDesc.lpSurface;
@@ -121,20 +120,16 @@ void ConvertSurfaceDesc(DDSURFACEDESC2 &Desc2, DDSURFACEDESC &Desc)
 	ConvertPixelFormat(tmpDesc2.ddpfPixelFormat, tmpDesc.ddpfPixelFormat);
 	ConvertCaps(tmpDesc2.ddsCaps, tmpDesc.ddsCaps);
 	// Extra parameters
-	//tmpDesc2.dwDepth = 0;					// The depth, in pixels, of the surface if it is a volume texture.
-	//tmpDesc2.dwSrcVBHandle = 0;			// Not used
-	//tmpDesc2.dwEmptyFaceColor = 0;		// Physical color for empty cubemap faces
-	//tmpDesc2.dwFVF = 0;					// Vertex format description of vertex buffers
-	//tmpDesc2.dwTextureStage = 0;			// Stage identifier that is used to bind a texture to a specific stage
+	tmpDesc2.dwTextureStage = 0;			// Stage identifier that is used to bind a texture to a specific stage
 	// Copy to variable
 	CopyMemory(&Desc2, &tmpDesc2, dwSize);
 }
 
 void ConvertPixelFormat(DDPIXELFORMAT &Format, DDPIXELFORMAT &Format2)
 {
-	DWORD dwSize = (Format.dwSize > sizeof(DDPIXELFORMAT)) ? sizeof(DDPIXELFORMAT) : Format.dwSize;
+	DWORD dwSize = min(sizeof(DDPIXELFORMAT), Format.dwSize);
 	ZeroMemory(&Format, dwSize);
-	CopyMemory(&Format, &Format2, (dwSize > Format2.dwSize) ? Format2.dwSize : dwSize);
+	CopyMemory(&Format, &Format2, min(dwSize, Format2.dwSize));
 	Format.dwSize = dwSize;
 }
 
@@ -160,7 +155,8 @@ void ConvertDeviceIdentifier(DDDEVICEIDENTIFIER2 &DeviceID2, D3DADAPTER_IDENTIFI
 	memcpy(DeviceID2.szDriver, Identifier9.Driver, MAX_DDDEVICEID_STRING);
 	memcpy(DeviceID2.szDescription, Identifier9.Description, MAX_DDDEVICEID_STRING);
 	DeviceID2.guidDeviceIdentifier = Identifier9.DeviceIdentifier;
-	memcpy(&DeviceID2.liDriverVersion, &Identifier9.DriverVersion, sizeof(LARGE_INTEGER));
+	DeviceID2.liDriverVersion.LowPart = Identifier9.DriverVersion.LowPart;
+	DeviceID2.liDriverVersion.HighPart = Identifier9.DriverVersion.HighPart;
 	DeviceID2.dwDeviceId = Identifier9.DeviceId;
 	DeviceID2.dwRevision = Identifier9.Revision;
 	DeviceID2.dwSubSysId = Identifier9.SubSysId;
@@ -170,7 +166,10 @@ void ConvertDeviceIdentifier(DDDEVICEIDENTIFIER2 &DeviceID2, D3DADAPTER_IDENTIFI
 
 void ConvertCaps(DDSCAPS2 &Caps, DDSCAPS2 &Caps2)
 {
-	CopyMemory(&Caps, &Caps2, sizeof(DDSCAPS2));
+	Caps.dwCaps = Caps2.dwCaps;
+	Caps.dwCaps2 = Caps2.dwCaps2;
+	Caps.dwCaps3 = Caps2.dwCaps3;
+	Caps.dwCaps4 = Caps2.dwCaps4;
 }
 
 void ConvertCaps(DDSCAPS &Caps, DDSCAPS2 &Caps2)
@@ -185,15 +184,14 @@ void ConvertCaps(DDSCAPS2 &Caps2, DDSCAPS &Caps)
 	Caps2.dwCaps2 = 0;				// Additional surface capabilities
 	Caps2.dwCaps3 = 0;				// Not used
 	Caps2.dwCaps4 = 0;				// Not used
-	Caps2.dwVolumeDepth = 0;		// Not used
 }
 
-void ConvertCaps(DDCAPS_DX7 &Caps, DDCAPS_DX7 &Caps7)
+void ConvertCaps(DDCAPS &Caps, DDCAPS &Caps7)
 {
 	// Convert caps
-	DWORD dwSize = (Caps.dwSize > sizeof(DDCAPS_DX7)) ? sizeof(DDCAPS_DX7) : Caps.dwSize;
+	DWORD dwSize = min(sizeof(DDCAPS), Caps.dwSize);
 	ZeroMemory(&Caps, dwSize);
-	CopyMemory(&Caps, &Caps7, (dwSize > Caps7.dwSize) ? Caps7.dwSize : dwSize);
+	CopyMemory(&Caps, &Caps7, min(dwSize, Caps7.dwSize));
 	Caps.dwSize = dwSize;
 
 	// Set available memory, some games have issues if this is set to high
@@ -206,9 +204,8 @@ void ConvertCaps(DDCAPS_DX7 &Caps, DDCAPS_DX7 &Caps7)
 
 void ConvertCaps(DDCAPS &Caps7, D3DCAPS9 &Caps9)
 {
-	DWORD dwSize = (Caps7.dwSize > sizeof(DDCAPS)) ? sizeof(DDCAPS) : Caps7.dwSize;
 	DDCAPS tmpCaps7 = { NULL };
-	tmpCaps7.dwSize = dwSize;
+	tmpCaps7.dwSize = min(sizeof(DDCAPS), Caps7.dwSize);
 
 	// General settings
 	tmpCaps7.dwVidMemTotal = 0x8000000;			// Just hard code the memory size
@@ -228,15 +225,16 @@ void ConvertCaps(DDCAPS &Caps7, D3DCAPS9 &Caps9)
 			DDCAPS2_CANRENDERWINDOWED | DDCAPS2_FLIPINTERVAL | DDCAPS2_FLIPNOVSYNC);
 	tmpCaps7.dwCKeyCaps = (DDCKEYCAPS_DESTOVERLAY | DDCKEYCAPS_SRCBLT | DDCKEYCAPS_SRCOVERLAY);
 	tmpCaps7.dwFXCaps = (DDFXCAPS_BLTARITHSTRETCHY | DDFXCAPS_BLTMIRRORLEFTRIGHT | DDFXCAPS_BLTMIRRORUPDOWN | DDFXCAPS_BLTSHRINKX | DDFXCAPS_BLTSHRINKY | DDFXCAPS_BLTSTRETCHX |
-					   DDFXCAPS_BLTSTRETCHY | DDFXCAPS_OVERLAYARITHSTRETCHY | DDFXCAPS_OVERLAYSHRINKX | DDFXCAPS_OVERLAYSHRINKY | DDFXCAPS_OVERLAYSTRETCHX | DDFXCAPS_OVERLAYSTRETCHY |
-					   DDFXCAPS_OVERLAYMIRRORLEFTRIGHT | DDFXCAPS_OVERLAYMIRRORUPDOWN | DDFXCAPS_OVERLAYDEINTERLACE);
+		DDFXCAPS_BLTSTRETCHY | DDFXCAPS_OVERLAYARITHSTRETCHY | DDFXCAPS_OVERLAYSHRINKX | DDFXCAPS_OVERLAYSHRINKY | DDFXCAPS_OVERLAYSTRETCHX | DDFXCAPS_OVERLAYSTRETCHY |
+		DDFXCAPS_OVERLAYMIRRORLEFTRIGHT | DDFXCAPS_OVERLAYMIRRORUPDOWN | DDFXCAPS_OVERLAYDEINTERLACE);
 	tmpCaps7.ddsCaps.dwCaps = (DDSCAPS_BACKBUFFER | DDSCAPS_COMPLEX | DDSCAPS_FLIP | DDSCAPS_FRONTBUFFER | DDSCAPS_OFFSCREENPLAIN | DDSCAPS_OVERLAY | DDSCAPS_PALETTE |
-		DDSCAPS_PRIMARYSURFACE | DDSCAPS_TEXTURE | DDSCAPS_3DDEVICE | DDSCAPS_VIDEOMEMORY | DDSCAPS_ZBUFFER | DDSCAPS_OWNDC | DDSCAPS_MIPMAP | DDSCAPS_LOCALVIDMEM | 
+		DDSCAPS_PRIMARYSURFACE | DDSCAPS_TEXTURE | DDSCAPS_3DDEVICE | DDSCAPS_VIDEOMEMORY | DDSCAPS_ZBUFFER | DDSCAPS_OWNDC | DDSCAPS_MIPMAP | DDSCAPS_LOCALVIDMEM |
 		DDSCAPS_NONLOCALVIDMEM);
 	ConvertCaps(tmpCaps7.ddsOldCaps, tmpCaps7.ddsCaps);
 	tmpCaps7.ddsOldCaps.dwCaps = tmpCaps7.ddsCaps.dwCaps;
+
 	// Copy to variable
-	CopyMemory(&Caps7, &tmpCaps7, dwSize);
+	CopyMemory(&Caps7, &tmpCaps7, tmpCaps7.dwSize);
 }
 
 DWORD GetBitCount(DDPIXELFORMAT ddpfPixelFormat)
@@ -334,7 +332,7 @@ D3DFORMAT GetDisplayFormat(DDPIXELFORMAT ddpfPixelFormat)
 		Logging::Log() << __FUNCTION__ << " Error, could not find RGB format for BitCount: " << BitCount;
 		return D3DFMT_UNKNOWN;
 	}
-	else if(ddpfPixelFormat.dwFlags & DDPF_YUV)
+	else if (ddpfPixelFormat.dwFlags & DDPF_YUV)
 	{
 		Logging::Log() << __FUNCTION__ << " YUV format not Implemented";
 		return D3DFMT_UNKNOWN;
@@ -366,7 +364,7 @@ D3DFORMAT GetDisplayFormat(DDPIXELFORMAT ddpfPixelFormat)
 
 void GetPixelDisplayFormat(D3DFORMAT Format, DDPIXELFORMAT &ddpfPixelFormat)
 {
-	DWORD dwSize = (ddpfPixelFormat.dwSize > sizeof(DDPIXELFORMAT)) ? sizeof(DDPIXELFORMAT) : ddpfPixelFormat.dwSize;
+	DWORD dwSize = min(sizeof(DDPIXELFORMAT), ddpfPixelFormat.dwSize);
 	DDPIXELFORMAT tmpPixelFormat = { NULL };
 	CopyMemory(&tmpPixelFormat, &ddpfPixelFormat, dwSize);
 	tmpPixelFormat.dwSize = dwSize;
@@ -409,6 +407,7 @@ void GetPixelDisplayFormat(D3DFORMAT Format, DDPIXELFORMAT &ddpfPixelFormat)
 			tmpPixelFormat.dwBBitMask = 0x3FF;
 			break;
 		}
+
 		// Copy to variable
 		CopyMemory(&ddpfPixelFormat, &tmpPixelFormat, dwSize);
 		return;

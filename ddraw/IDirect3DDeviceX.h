@@ -45,13 +45,8 @@ public:
 	}
 	~m_IDirect3DDeviceX()
 	{
-		if (Config.Exiting)
-		{
-			return;
-		}
-
 		// ToDo: check if any Viewport is using this D3DDevice
-		if (lpCurrentD3DDevice == this)
+		if (lpCurrentD3DDevice == this && !Config.Exiting)
 		{
 			lpCurrentD3DDevice = nullptr;
 		}

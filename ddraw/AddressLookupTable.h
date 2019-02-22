@@ -14,11 +14,6 @@ public:
 	{
 		ConstructorFlag = true;
 
-		if (Config.Exiting)
-		{
-			return;
-		}
-
 		for (const auto& cache : g_map)
 		{
 			for (const auto& entry : cache)

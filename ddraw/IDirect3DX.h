@@ -77,12 +77,7 @@ public:
 	}
 	~m_IDirect3DX()
 	{
-		if (Config.Exiting)
-		{
-			return;
-		}
-
-		if (Config.Dd7to9)
+		if (Config.Dd7to9 && !Config.Exiting)
 		{
 			ReleaseD3DInterface();
 		}

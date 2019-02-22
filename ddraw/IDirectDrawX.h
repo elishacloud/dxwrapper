@@ -85,12 +85,7 @@ public:
 			UnhookWindowsHookEx(g_hook);
 		}
 
-		if (Config.Exiting)
-		{
-			return;
-		}
-
-		if (Config.Dd7to9)
+		if (Config.Dd7to9 && !Config.Exiting)
 		{
 			if (SurfaceVector.size() != 0)
 			{
