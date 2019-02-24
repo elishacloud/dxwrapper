@@ -383,11 +383,21 @@ HRESULT m_IDirectDrawX::EnumDisplayModes2(DWORD dwFlags, LPDDSURFACEDESC2 lpDDSu
 
 	if (Config.Dd7to9)
 	{
-		// Save refresh rate
-		DWORD EnumRefreshModes = 0;
+		// Save width, height and refresh rate
+		DWORD EnumRefreshRate = 0;
 		if (lpDDSurfaceDesc2 && (dwFlags & DDEDM_REFRESHRATES) != 0)
 		{
-			EnumRefreshModes = lpDDSurfaceDesc2->dwRefreshRate > 0;
+			EnumRefreshRate = lpDDSurfaceDesc2->dwRefreshRate;
+		}
+		DWORD EnumWidth = 0;
+		if (lpDDSurfaceDesc2)
+		{
+			EnumWidth = lpDDSurfaceDesc2->dwWidth;
+		}
+		DWORD EnumHeight = 0;
+		if (lpDDSurfaceDesc2)
+		{
+			EnumHeight = lpDDSurfaceDesc2->dwHeight;
 		}
 
 		// Get display modes to enum
@@ -447,7 +457,9 @@ HRESULT m_IDirectDrawX::EnumDisplayModes2(DWORD dwFlags, LPDDSURFACEDESC2 lpDDSu
 				}
 
 				// Check refresh mode
-				if (EnumRefreshModes == 0 || d3ddispmode.RefreshRate == EnumRefreshModes)
+				if ((!EnumWidth || d3ddispmode.Width == EnumWidth) &&
+					(!EnumHeight || d3ddispmode.Height == EnumHeight) &&
+					(!EnumRefreshRate || d3ddispmode.RefreshRate == EnumRefreshRate))
 				{
 					// Set surface desc options
 					Desc2.dwSize = sizeof(DDSURFACEDESC2);

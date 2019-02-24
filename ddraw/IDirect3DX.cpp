@@ -529,7 +529,7 @@ HRESULT m_IDirect3DX::EnumZBufferFormats(REFCLSID riidDevice, LPD3DENUMPIXELFORM
 	case 7:
 		return GetProxyInterfaceV7()->EnumZBufferFormats(riidDevice, lpEnumCallback, lpContext);
 	case 9:
-		if (riidDevice == IID_IDirect3DRGBDevice)
+		if (riidDevice == IID_IDirect3DRGBDevice || riidDevice == IID_IDirect3DRampDevice)
 		{
 			DDPIXELFORMAT PixelFormat = { NULL };
 			PixelFormat.dwSize = sizeof(DDPIXELFORMAT);
@@ -545,7 +545,7 @@ HRESULT m_IDirect3DX::EnumZBufferFormats(REFCLSID riidDevice, LPD3DENUMPIXELFORM
 			}
 			return D3D_OK;
 		}
-		else if (riidDevice == IID_IDirect3DHALDevice)
+		else if (riidDevice == IID_IDirect3DHALDevice || riidDevice == IID_IDirect3DNullDevice)
 		{
 			DDPIXELFORMAT PixelFormat = { NULL };
 			PixelFormat.dwSize = sizeof(DDPIXELFORMAT);
@@ -559,6 +559,10 @@ HRESULT m_IDirect3DX::EnumZBufferFormats(REFCLSID riidDevice, LPD3DENUMPIXELFORM
 					return D3D_OK;
 				}
 			}
+			return D3D_OK;
+		}
+		else if (riidDevice == IID_IDirect3DMMXDevice || riidDevice == IID_IDirect3DRefDevice || riidDevice == IID_IDirect3DTnLHalDevice)
+		{
 			return D3D_OK;
 		}
 		else

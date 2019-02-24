@@ -157,6 +157,7 @@ struct CONFIG
 	bool DDrawCompatExperimental;		// Enables DDrawCompat Experimental version
 	bool DDrawCompatDisableGDIHook;		// Disables DDrawCompat GDI hooks
 	bool DDrawResolutionHack;			// Removes the artificial resolution limit from Direct3D7 and below https://github.com/UCyborg/LegacyD3DResolutionHack
+	bool DDrawResolutionHackNotSet;		// If the DDrawResolutionHack option exists in the config file
 	bool DisableHighDPIScaling;			// Disables display scaling on high DPI settings
 	bool DisableLogging;				// Disables the logging file
 	bool DSoundCtrl;					// Enables DirectSoundControl https://github.com/nRaecheR/DirectSoundControl

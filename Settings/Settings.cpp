@@ -221,13 +221,17 @@ void Settings::SetValue(char* name, char* value, bool* setting)
 void __stdcall Settings::ParseCallback(char* name, char* value)
 {
 	// Check for the existance of certian values
-	if (!_strcmpi(name, "DisableMaxWindowedMode"))
-	{
-		Config.DisableMaxWindowedModeNotSet = false;
-	}
 	if (!_strcmpi(name, "CacheClipPlane"))
 	{
 		Config.CacheClipPlaneNotSet = false;
+	}
+	if (!_strcmpi(name, "DisableMaxWindowedMode"))
+	{
+		Config.DDrawResolutionHackNotSet = false;
+	}
+	if (!_strcmpi(name, "DDrawResolutionHack"))
+	{
+		Config.DisableMaxWindowedModeNotSet = false;
 	}
 	if (!_strcmpi(name, "SingleProcAffinity"))
 	{
@@ -335,8 +339,9 @@ void Settings::ClearConfigSettings()
 	VISIT_APPCOMPATDATA_SETTINGS(CLEAR_APPCOMPATDATA_VALUE);
 
 	// Default to 'true' until we know it is set
-	Config.DisableMaxWindowedModeNotSet = true;
 	Config.CacheClipPlaneNotSet = true;
+	Config.DDrawResolutionHackNotSet = true;
+	Config.DisableMaxWindowedModeNotSet = true;
 	Config.SingleProcAffinityNotSet = true;
 }
 
@@ -378,7 +383,6 @@ void Settings::SetDefaultConfigSettings()
 	Config.DisableHighDPIScaling = true;
 	Config.DxWnd = true;
 	Config.ResetScreenRes = true;
-	Config.DDrawResolutionHack = true;
 
 	// Set other default values
 	Config.LoopSleepTime = 120;
@@ -560,12 +564,18 @@ void CONFIG::Init()
 	}
 
 	DDrawCompat = (DDrawCompat || DDrawCompat20 || DDrawCompat21 || DDrawCompatExperimental);
-	isDdrawWrapperEnabled = (EnableDdrawWrapper || ConvertToDirectDraw7 || ConvertToDirect3D7);
+	isDdrawWrapperEnabled = (EnableDdrawWrapper || ConvertToDirectDraw7 || ConvertToDirect3D7 || DDrawResolutionHack);
 	isD3d9WrapperEnabled = (AntiAliasing || CacheClipPlane || EnableVSync || EnableWindowMode);
 
 	// Enable clip plane caching by default
 	if (CacheClipPlaneNotSet)
 	{
 		CacheClipPlane = true;
+	}
+
+	// Enable ddraw resolution hack by default
+	if (DDrawResolutionHackNotSet)
+	{
+		DDrawResolutionHack = true;
 	}
 }

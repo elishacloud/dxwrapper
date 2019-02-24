@@ -27,17 +27,28 @@ void ConvertColorControl(DDCOLORCONTROL &ColorControl, DDCOLORCONTROL &ColorCont
 void ConvertSurfaceDesc(DDSURFACEDESC &Desc, DDSURFACEDESC &Desc2)
 {
 	DWORD dwSize = min(sizeof(DDSURFACEDESC), Desc.dwSize);
+	DWORD ddpfPixelFormat_dwSize = (dwSize > 88) ? Desc.ddpfPixelFormat.dwSize : 0;
 	ZeroMemory(&Desc, dwSize);
 	CopyMemory(&Desc, &Desc2, min(dwSize, Desc2.dwSize));
 	Desc.dwSize = dwSize;
+	if (ddpfPixelFormat_dwSize)
+	{
+		Desc.ddpfPixelFormat.dwSize = ddpfPixelFormat_dwSize;
+	}
 }
 
 void ConvertSurfaceDesc(DDSURFACEDESC2 &Desc, DDSURFACEDESC2 &Desc2)
 {
 	DWORD dwSize = min(sizeof(DDSURFACEDESC2), Desc.dwSize);
+	DWORD ddpfPixelFormat_dwSize = (dwSize > 96) ? Desc.ddpfPixelFormat.dwSize : 0;
 	ZeroMemory(&Desc, dwSize);
 	CopyMemory(&Desc, &Desc2, min(dwSize, Desc2.dwSize));
 	Desc.dwSize = dwSize;
+	Desc.dwSize = dwSize;
+	if (ddpfPixelFormat_dwSize)
+	{
+		Desc.ddpfPixelFormat.dwSize = ddpfPixelFormat_dwSize;
+	}
 }
 
 void ConvertSurfaceDesc(DDSURFACEDESC &Desc, DDSURFACEDESC2 &Desc2)
