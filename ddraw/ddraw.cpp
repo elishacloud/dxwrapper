@@ -335,6 +335,8 @@ HRESULT WINAPI dd_DirectDrawCreateEx(GUID FAR *lpGUID, LPVOID *lplpDD, REFIID ri
 			return DDERR_GENERIC;
 		}
 
+		Logging::Log() << "Redirecting 'DirectDrawCreate' " << riid << " to --> 'Direct3DCreate9'";
+
 		// Create Direct3D9 device
 		LPDIRECT3D9 d3d9Object = Direct3DCreate9(D3D_SDK_VERSION);
 

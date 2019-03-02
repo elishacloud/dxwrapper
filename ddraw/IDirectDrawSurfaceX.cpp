@@ -844,7 +844,8 @@ HRESULT m_IDirectDrawSurfaceX::GetAttachedSurface2(LPDDSCAPS2 lpDDSCaps2, LPDIRE
 
 	if (Config.Dd7to9)
 	{
-		Logging::Log() << __FUNCTION__ << " Not fully Implemented.";
+		static bool LogOnce = true;
+		Logging::Log(&LogOnce) << __FUNCTION__ << " Not fully Implemented.";
 
 		// Check for device
 		if (!d3d9Device || !*d3d9Device || !ddrawParent)
@@ -891,7 +892,8 @@ HRESULT m_IDirectDrawSurfaceX::GetBltStatus(DWORD dwFlags)
 
 	if (Config.Dd7to9)
 	{
-		Logging::Log() << __FUNCTION__ << " Not fully Implemented.";
+		static bool LogOnce = true;
+		Logging::Log(&LogOnce) << __FUNCTION__ << " Not fully Implemented.";
 
 		// Inquires whether a blit involving this surface can occur immediately, and returns DD_OK if the blit can be completed.
 		if (dwFlags & DDGBS_CANBLT)
@@ -1038,7 +1040,8 @@ HRESULT m_IDirectDrawSurfaceX::GetDC(HDC FAR * lphDC)
 
 	if (Config.Dd7to9)
 	{
-		Logging::Log() << __FUNCTION__ << " Not fully Implemented.";
+		static bool LogOnce = true;
+		Logging::Log(&LogOnce) << __FUNCTION__ << " Not fully Implemented.";
 
 		if (!lphDC)
 		{
@@ -1071,7 +1074,8 @@ HRESULT m_IDirectDrawSurfaceX::GetFlipStatus(DWORD dwFlags)
 
 	if (Config.Dd7to9)
 	{
-		Logging::Log() << __FUNCTION__ << " Not fully Implemented.";
+		static bool LogOnce = true;
+		Logging::Log(&LogOnce) << __FUNCTION__ << " Not fully Implemented.";
 
 		// Queries whether the surface can flip now. The method returns DD_OK if the flip can be completed.
 		if (dwFlags & DDGFS_CANFLIP)
@@ -1096,7 +1100,8 @@ HRESULT m_IDirectDrawSurfaceX::GetOverlayPosition(LPLONG lplX, LPLONG lplY)
 
 	if (Config.Dd7to9)
 	{
-		Logging::Log() << __FUNCTION__ << " Not fully Implemented.";
+		static bool LogOnce = true;
+		Logging::Log(&LogOnce) << __FUNCTION__ << " Not fully Implemented.";
 
 		if (!lplX || !lplY)
 		{
@@ -1414,7 +1419,8 @@ HRESULT m_IDirectDrawSurfaceX::Lock2(LPRECT lpDestRect, LPDDSURFACEDESC2 lpDDSur
 		// Check if locked
 		if (IsLocked && d3dlrect.pBits)
 		{
-			Logging::Log() << __FUNCTION__ << " Locking surface twice not fully implemented";
+			static bool LogOnce = true;
+			Logging::Log(&LogOnce) << __FUNCTION__ << " Locking surface twice not fully implemented";
 		}
 
 		// Save Lock Rect
@@ -1484,7 +1490,8 @@ HRESULT m_IDirectDrawSurfaceX::ReleaseDC(HDC hDC)
 
 	if (Config.Dd7to9)
 	{
-		Logging::Log() << __FUNCTION__ << " Not fully Implemented.";
+		static bool LogOnce = true;
+		Logging::Log(&LogOnce) << __FUNCTION__ << " Not fully Implemented.";
 
 		if (!ddrawParent)
 		{
@@ -1612,7 +1619,8 @@ HRESULT m_IDirectDrawSurfaceX::SetOverlayPosition(LONG lX, LONG lY)
 
 	if (Config.Dd7to9)
 	{
-		Logging::Log() << __FUNCTION__ << " Not fully Implemented.";
+		static bool LogOnce = true;
+		Logging::Log(&LogOnce) << __FUNCTION__ << " Not fully Implemented.";
 
 		// Store the new overlay position
 		overlayX = lX;
