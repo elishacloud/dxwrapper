@@ -396,8 +396,6 @@ HRESULT m_IDirect3DDeviceX::AddViewport(LPDIRECT3DVIEWPORT3 lpDirect3DViewport)
 			hr = SetViewport(&Viewport7);
 		}
 
-		((m_IDirect3DViewportX*)lpDirect3DViewport)->SetDeviceInterface(this);
-
 		return D3D_OK;
 	}
 

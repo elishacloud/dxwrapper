@@ -52,6 +52,7 @@ private:
 
 	// Store d3d interface
 	m_IDirect3DX *D3DInterface = nullptr;
+	m_IDirect3DDeviceX *D3DDeviceInterface = nullptr;
 
 public:
 	m_IDirectDrawX(IDirectDraw7 *aOriginal, DWORD DirectXVersion, m_IDirectDraw7 *Interface) : ProxyInterface(aOriginal), WrapperInterface(Interface)
@@ -177,8 +178,11 @@ public:
 	LPDIRECT3DDEVICE9 *GetDirect3DDevice() { return &d3d9Device; }
 	HWND GetHwnd() { return MainhWnd; }
 	bool IsExclusiveMode() { return ExclusiveMode; }
-	void ClearD3DInterface() { D3DInterface = nullptr; }
-	HRESULT CreateD3DDevice();
+	m_IDirect3DDeviceX **GetCurrentD3DDevice() { return &D3DDeviceInterface; }
+	void SetD3DDevice(m_IDirect3DDeviceX *D3DDevice) { D3DDeviceInterface = D3DDevice; }
+	void ClearD3DDevice() { D3DDeviceInterface = nullptr; }
+	void ClearD3D() { D3DInterface = nullptr; }
+	HRESULT CreateD3D9Device();
 	HRESULT ReinitDevice();
 	void ReleaseAllD9Surfaces(bool ClearDDraw = false);
 	void ReleaseD3d9Device();

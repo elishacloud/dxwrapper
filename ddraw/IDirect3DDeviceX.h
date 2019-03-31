@@ -1,5 +1,7 @@
 #pragma once
 
+#include "IDirectDrawX.h"
+
 class m_IDirect3DDeviceX : public IUnknown
 {
 private:
@@ -23,11 +25,6 @@ public:
 	{
 		ProxyDirectXVersion = GetIIDVersion(ConvertREFIID(GetWrapperType(DirectXVersion)));
 
-		if (ProxyDirectXVersion == 7)
-		{
-			lpCurrentD3DDevice = this;
-		}
-
 		if (ProxyDirectXVersion != DirectXVersion)
 		{
 			Logging::LogDebug() << "Convert Direct3DDevice v" << DirectXVersion << " to v" << ProxyDirectXVersion;
@@ -35,6 +32,12 @@ public:
 		else
 		{
 			Logging::LogDebug() << "Create " << __FUNCTION__ << " v" << DirectXVersion;
+		}
+
+		// Store D3DDevice
+		if (ddrawParent)
+		{
+			ddrawParent->SetD3DDevice(this);
 		}
 	}
 	m_IDirect3DDeviceX(m_IDirectDrawX *aOriginal, DWORD DirectXVersion) : ddrawParent(aOriginal)
@@ -45,10 +48,10 @@ public:
 	}
 	~m_IDirect3DDeviceX()
 	{
-		// ToDo: check if any Viewport is using this D3DDevice
-		if (lpCurrentD3DDevice == this && !Config.Exiting)
+		// Clear D3DDevice
+		if (ddrawParent)
 		{
-			lpCurrentD3DDevice = nullptr;
+			ddrawParent->ClearD3DDevice();
 		}
 	}
 

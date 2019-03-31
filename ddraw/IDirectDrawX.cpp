@@ -1029,7 +1029,7 @@ HRESULT m_IDirectDrawX::SetDisplayMode(DWORD dwWidth, DWORD dwHeight, DWORD dwBP
 		}
 
 		// Create the requested d3d device for this display mode, report error on failure
-		if (FAILED(CreateD3DDevice()))
+		if (FAILED(CreateD3D9Device()))
 		{
 			Logging::Log() << __FUNCTION__ << " Error creating Direct3D9 Device";
 			return DDERR_GENERIC;
@@ -1307,7 +1307,7 @@ HRESULT m_IDirectDrawX::EvaluateMode(DWORD dwFlags, DWORD * pSecondsUntilTimeout
 /************************/
 
 // Creates d3d9 device, destroying the old one if exists
-HRESULT m_IDirectDrawX::CreateD3DDevice()
+HRESULT m_IDirectDrawX::CreateD3D9Device()
 {
 	// Release all existing surfaces
 	ReleaseAllD9Surfaces();

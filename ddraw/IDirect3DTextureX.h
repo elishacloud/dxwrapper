@@ -9,7 +9,7 @@ private:
 	ULONG RefCount = 1;
 
 	// Convert Texture
-	m_IDirect3DDeviceX *D3DDeviceInterface;
+	m_IDirect3DDeviceX **D3DDeviceInterface = nullptr;
 
 	// Store d3d texture version wrappers
 	std::unique_ptr<m_IDirect3DTexture> UniqueProxyInterface = nullptr;
@@ -22,7 +22,7 @@ public:
 
 		Logging::LogDebug() << "Create " << __FUNCTION__ << " v" << DirectXVersion;
 	}
-	m_IDirect3DTextureX(m_IDirect3DDeviceX *D3DDInterface, DWORD DirectXVersion, IDirectDrawSurface7 *lpSurface) : D3DDeviceInterface(D3DDInterface), ProxyInterface((IDirect3DTexture2*)lpSurface)
+	m_IDirect3DTextureX(m_IDirect3DDeviceX **D3DDInterface, DWORD DirectXVersion, IDirectDrawSurface7 *lpSurface) : D3DDeviceInterface(D3DDInterface), ProxyInterface((IDirect3DTexture2*)lpSurface)
 	{
 		if (DirectXVersion == 7)
 		{

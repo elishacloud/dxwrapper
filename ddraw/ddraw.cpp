@@ -23,7 +23,6 @@
 #include "Dllmain\Dllmain.h"
 
 AddressLookupTableDdraw<void> ProxyAddressLookupTable = AddressLookupTableDdraw<void>();
-m_IDirect3DDeviceX *lpCurrentD3DDevice = nullptr;
 bool ThreadSyncFlag = false;
 
 CRITICAL_SECTION ddcs;

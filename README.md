@@ -69,6 +69,10 @@ DxWrapper can wrap the following dlls:
  - winmm.dll
  - winmmbase.dll
 
+### Donations
+
+All my work here is free and can be freely used.  For more details on how you can use this module see the [license](#license) section below.  However, if you would like to donate then check out my [donations page](https://PayPal.me/elishacloud).  All donations are for work already completed!  Please don't donate for future work or to try and increase my development speed.  Thanks!
+
 ### License
 Copyright (C) 2019 Elisha Riedlinger
 

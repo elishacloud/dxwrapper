@@ -9,7 +9,7 @@ private:
 	ULONG RefCount = 1;
 
 	// Convert Viewport
-	m_IDirect3DDeviceX *D3DDeviceInterface;
+	m_IDirect3DDeviceX **D3DDeviceInterface;
 	D3DVIEWPORT ViewPort;
 	D3DVIEWPORT2 ViewPort2;
 	bool ViewPortSet = false;
@@ -27,7 +27,7 @@ public:
 
 		Logging::LogDebug() << "Create " << __FUNCTION__ << " v" << DirectXVersion;
 	}
-	m_IDirect3DViewportX(m_IDirect3DDeviceX *D3DDInterface, DWORD DirectXVersion) : D3DDeviceInterface(D3DDInterface)
+	m_IDirect3DViewportX(m_IDirect3DDeviceX **D3DDInterface, DWORD DirectXVersion) : D3DDeviceInterface(D3DDInterface)
 	{
 		if (DirectXVersion == 7)
 		{
@@ -80,6 +80,5 @@ public:
 	IDirect3DViewport *GetProxyInterfaceV1() { return (IDirect3DViewport *)ProxyInterface; }
 	IDirect3DViewport2 *GetProxyInterfaceV2() { return (IDirect3DViewport2 *)ProxyInterface; }
 	IDirect3DViewport3 *GetProxyInterfaceV3() { return ProxyInterface; }
-	void SetDeviceInterface(m_IDirect3DDeviceX *lpDeviceInterface) { D3DDeviceInterface = lpDeviceInterface; }
 	void *GetWrapperInterfaceX(DWORD DirectXVersion);
 };

@@ -333,19 +333,21 @@ HRESULT m_IDirect3DX::CreateMaterial(LPDIRECT3DMATERIAL3 * lplpDirect3DMaterial,
 		hr = GetProxyInterfaceV3()->CreateMaterial(lplpDirect3DMaterial, pUnkOuter);
 		break;
 	case 7:
-		if (lplpDirect3DMaterial && lpCurrentD3DDevice)
-		{
-			*lplpDirect3DMaterial = (LPDIRECT3DMATERIAL3)new m_IDirect3DMaterialX(lpCurrentD3DDevice, 7);
-			return D3D_OK;
-		}
-		else if (!lplpDirect3DMaterial)
+		if (!lplpDirect3DMaterial)
 		{
 			return DDERR_INVALIDPARAMS;
 		}
-		else if (!lpCurrentD3DDevice)
+		else
 		{
-			Logging::Log() << __FUNCTION__ << " No current IDirect3DDevice";
-			return D3DERR_INVALID_DEVICE;
+			// Check for device
+			if (!ddrawParent)
+			{
+				Logging::Log() << __FUNCTION__ << " Error no ddraw parent!";
+				return DDERR_GENERIC;
+			}
+
+			*lplpDirect3DMaterial = (LPDIRECT3DMATERIAL3)new m_IDirect3DMaterialX(ddrawParent->GetCurrentD3DDevice(), 7);
+			return D3D_OK;
 		}
 		break;
 	case 9:
@@ -381,19 +383,21 @@ HRESULT m_IDirect3DX::CreateViewport(LPDIRECT3DVIEWPORT3 * lplpD3DViewport, LPUN
 		hr = GetProxyInterfaceV3()->CreateViewport(lplpD3DViewport, pUnkOuter);
 		break;
 	case 7:
-		if (lplpD3DViewport && lpCurrentD3DDevice)
-		{
-			*lplpD3DViewport = (LPDIRECT3DVIEWPORT3)new m_IDirect3DViewportX(lpCurrentD3DDevice, 7);
-			return D3D_OK;
-		}
-		else if (!lplpD3DViewport)
+		if (!lplpD3DViewport)
 		{
 			return DDERR_INVALIDPARAMS;
 		}
-		else if (!lpCurrentD3DDevice)
+		else
 		{
-			Logging::Log() << __FUNCTION__ << " No current IDirect3DDevice";
-			return D3DERR_INVALID_DEVICE;
+			// Check for device
+			if (!ddrawParent)
+			{
+				Logging::Log() << __FUNCTION__ << " Error no ddraw parent!";
+				return DDERR_GENERIC;
+			}
+
+			*lplpD3DViewport = (LPDIRECT3DVIEWPORT3)new m_IDirect3DViewportX(ddrawParent->GetCurrentD3DDevice(), 7);
+			return D3D_OK;
 		}
 		break;
 	case 9:
@@ -604,7 +608,7 @@ void m_IDirect3DX::ReleaseD3DInterface()
 
 	if (ddrawParent)
 	{
-		ddrawParent->ClearD3DInterface();
+		ddrawParent->ClearD3D();
 	}
 
 	ThreadSyncFlag = false;

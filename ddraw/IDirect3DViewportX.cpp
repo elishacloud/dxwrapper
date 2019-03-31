@@ -164,6 +164,12 @@ HRESULT m_IDirect3DViewportX::SetViewport(LPD3DVIEWPORT lpData)
 			return DDERR_INVALIDPARAMS;
 		}
 
+		if (!D3DDeviceInterface || !*D3DDeviceInterface)
+		{
+			Logging::Log() << __FUNCTION__ << " Error no D3DirectDevice interface!";
+			return DDERR_GENERIC;
+		}
+
 		ViewPortSet = true;
 
 		ViewPort.dwSize = sizeof(D3DVIEWPORT);
@@ -178,7 +184,7 @@ HRESULT m_IDirect3DViewportX::SetViewport(LPD3DVIEWPORT lpData)
 
 		ConvertViewport(ViewPort7, *lpData);		
 
-		return D3DDeviceInterface->SetViewport(&ViewPort7);
+		return (*D3DDeviceInterface)->SetViewport(&ViewPort7);
 	}
 
 	return ProxyInterface->SetViewport(lpData);
@@ -280,7 +286,13 @@ HRESULT m_IDirect3DViewportX::Clear(DWORD dwCount, LPD3DRECT lpRects, DWORD dwFl
 
 	if (ProxyDirectXVersion > 3)
 	{
-		return D3DDeviceInterface->Clear(dwCount, lpRects, dwFlags, 0, 0, 0);
+		if (!D3DDeviceInterface || !*D3DDeviceInterface)
+		{
+			Logging::Log() << __FUNCTION__ << " Error no D3DirectDevice interface!";
+			return DDERR_GENERIC;
+		}
+
+		return (*D3DDeviceInterface)->Clear(dwCount, lpRects, dwFlags, 0, 0, 0);
 	}
 
 	return ProxyInterface->Clear(dwCount, lpRects, dwFlags);
@@ -389,6 +401,12 @@ HRESULT m_IDirect3DViewportX::SetViewport2(LPD3DVIEWPORT2 lpData)
 			return DDERR_INVALIDPARAMS;
 		}
 
+		if (!D3DDeviceInterface || !*D3DDeviceInterface)
+		{
+			Logging::Log() << __FUNCTION__ << " Error no D3DirectDevice interface!";
+			return DDERR_GENERIC;
+		}
+
 		ViewPort2Set = true;
 
 		ViewPort2.dwSize = sizeof(D3DVIEWPORT2);
@@ -403,7 +421,7 @@ HRESULT m_IDirect3DViewportX::SetViewport2(LPD3DVIEWPORT2 lpData)
 
 		ConvertViewport(ViewPort7, *lpData);
 
-		return D3DDeviceInterface->SetViewport(&ViewPort7);
+		return (*D3DDeviceInterface)->SetViewport(&ViewPort7);
 	}
 
 	return ProxyInterface->SetViewport2(lpData);
@@ -453,7 +471,13 @@ HRESULT m_IDirect3DViewportX::Clear2(DWORD dwCount, LPD3DRECT lpRects, DWORD dwF
 
 	if (ProxyDirectXVersion > 3)
 	{
-		return D3DDeviceInterface->Clear(dwCount, lpRects, dwFlags, dwColor, dvZ, dwStencil);
+		if (!D3DDeviceInterface || !*D3DDeviceInterface)
+		{
+			Logging::Log() << __FUNCTION__ << " Error no D3DirectDevice interface!";
+			return DDERR_GENERIC;
+		}
+
+		return (*D3DDeviceInterface)->Clear(dwCount, lpRects, dwFlags, dwColor, dvZ, dwStencil);
 	}
 
 	return ProxyInterface->Clear2(dwCount, lpRects, dwFlags, dwColor, dvZ, dwStencil);

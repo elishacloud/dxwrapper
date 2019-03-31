@@ -9,7 +9,7 @@ private:
 	ULONG RefCount = 1;
 
 	// Convert Material
-	m_IDirect3DDeviceX *D3DDeviceInterface;
+	m_IDirect3DDeviceX **D3DDeviceInterface;
 
 	// Store d3d material version wrappers
 	std::unique_ptr<m_IDirect3DMaterial> UniqueProxyInterface = nullptr;
@@ -23,7 +23,7 @@ public:
 
 		Logging::LogDebug() << "Create " << __FUNCTION__ << " v" << DirectXVersion;
 	}
-	m_IDirect3DMaterialX(m_IDirect3DDeviceX *D3DDInterface, DWORD DirectXVersion) : D3DDeviceInterface(D3DDInterface)
+	m_IDirect3DMaterialX(m_IDirect3DDeviceX **D3DDInterface, DWORD DirectXVersion) : D3DDeviceInterface(D3DDInterface)
 	{
 		if (DirectXVersion == 7)
 		{

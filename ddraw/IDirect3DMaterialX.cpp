@@ -147,9 +147,15 @@ HRESULT m_IDirect3DMaterialX::SetMaterial(LPD3DMATERIAL lpMat)
 			Logging::Log() << __FUNCTION__ << " D3DMATERIALHANDLE Not Implemented";
 		}
 
+		if (!D3DDeviceInterface || !*D3DDeviceInterface)
+		{
+			Logging::Log() << __FUNCTION__ << " Error no D3DirectDevice interface!";
+			return DDERR_GENERIC;
+		}
+
 		ConvertMaterial(tmpMaterial, *lpMat);
 
-		return D3DDeviceInterface->SetMaterial(&tmpMaterial);
+		return (*D3DDeviceInterface)->SetMaterial(&tmpMaterial);
 	default:
 		return DDERR_GENERIC;
 	}
@@ -174,9 +180,15 @@ HRESULT m_IDirect3DMaterialX::GetMaterial(LPD3DMATERIAL lpMat)
 			return DDERR_INVALIDPARAMS;
 		}
 
+		if (!D3DDeviceInterface || !*D3DDeviceInterface)
+		{
+			Logging::Log() << __FUNCTION__ << " Error no D3DirectDevice interface!";
+			return DDERR_GENERIC;
+		}
+
 		D3DMATERIAL7 tmpMaterial;
 
-		HRESULT hr = D3DDeviceInterface->GetMaterial(&tmpMaterial);
+		HRESULT hr = (*D3DDeviceInterface)->GetMaterial(&tmpMaterial);
 
 		Logging::Log() << __FUNCTION__ << " D3DMATERIALHANDLE Not Implemented";
 		ConvertMaterial(tmpMaterial, *lpMat);

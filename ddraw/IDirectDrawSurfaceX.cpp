@@ -28,29 +28,34 @@ HRESULT m_IDirectDrawSurfaceX::QueryInterface(REFIID riid, LPVOID FAR * ppvObj, 
 {
 	Logging::LogDebug() << __FUNCTION__;
 
-	if (Config.Dd7to9)
+	if (Config.ConvertToDirect3D7)
 	{
-		if ((riid == IID_IDirectDrawSurface || riid == IID_IDirectDrawSurface2 || riid == IID_IDirectDrawSurface3 || riid == IID_IDirectDrawSurface4 || riid == IID_IDirectDrawSurface7 || riid == IID_IUnknown) && ppvObj)
+		if (Config.Dd7to9)
 		{
-			DWORD DxVersion = (riid == IID_IUnknown) ? DirectXVersion : GetIIDVersion(riid);
-
-			*ppvObj = GetWrapperInterfaceX(DxVersion);
-
-			::AddRef(*ppvObj);
-
-			return S_OK;
-		}
-	}
-	else if (Config.ConvertToDirect3D7)
-	{
-		if (ProxyDirectXVersion > 4 && ppvObj && (riid == IID_IDirect3DTexture || riid == IID_IDirect3DTexture2))
-		{
-			if (lpCurrentD3DDevice)
+			if ((riid == IID_IDirectDrawSurface || riid == IID_IDirectDrawSurface2 || riid == IID_IDirectDrawSurface3 || riid == IID_IDirectDrawSurface4 || riid == IID_IDirectDrawSurface7 || riid == IID_IUnknown) && ppvObj)
 			{
-				*ppvObj = new m_IDirect3DTextureX(lpCurrentD3DDevice, 7, ProxyInterface);
+				DWORD DxVersion = (riid == IID_IUnknown) ? DirectXVersion : GetIIDVersion(riid);
+
+				*ppvObj = GetWrapperInterfaceX(DxVersion);
+
+				::AddRef(*ppvObj);
 
 				return S_OK;
 			}
+		}
+
+		if (ProxyDirectXVersion > 4 && ppvObj && (riid == IID_IDirect3DTexture || riid == IID_IDirect3DTexture2))
+		{
+			// Check for device
+			if (!ddrawParent)
+			{
+				Logging::Log() << __FUNCTION__ << " Error no ddraw parent!";
+				return DDERR_GENERIC;
+			}
+
+			*ppvObj = new m_IDirect3DTextureX(ddrawParent->GetCurrentD3DDevice(), 7, ProxyInterface);
+
+			return S_OK;
 		}
 	}
 
