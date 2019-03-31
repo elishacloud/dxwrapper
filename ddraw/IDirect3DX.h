@@ -2,12 +2,6 @@
 
 #include "Utils\Utils.h"
 
-extern bool GetD3DPath;
-extern char D3DImPath[MAX_PATH];
-extern char D3DIm700Path[MAX_PATH];
-extern HMODULE hD3DIm;
-extern HMODULE hD3DIm700;
-
 class m_IDirect3DX : public IUnknown
 {
 private:
@@ -37,39 +31,9 @@ public:
 			Logging::LogDebug() << "Create " << __FUNCTION__ << " v" << DirectXVersion;
 		}
 
-		if (Config.DDrawResolutionHack)
-		{
-			if (GetD3DPath)
-			{
-				GetD3DPath = false;
-				GetSystemDirectory(D3DImPath, MAX_PATH);
-				strcpy_s(D3DIm700Path, MAX_PATH, D3DImPath);
-				strcat_s(D3DImPath, MAX_PATH, "\\d3dim.dll");
-				strcat_s(D3DIm700Path, MAX_PATH, "\\d3dim700.dll");
-			}
-
-			if (!hD3DIm)
-			{
-				hD3DIm = GetModuleHandle(D3DImPath);
-				if (hD3DIm)
-				{
-					Logging::LogDebug() << __FUNCTION__ << " Found loaded dll: 'd3dim.dll'";
-					Utils::DDrawResolutionHack(hD3DIm);
-				}
-			}
-
-			if (!hD3DIm700)
-			{
-				hD3DIm700 = GetModuleHandle(D3DIm700Path);
-				if (hD3DIm700)
-				{
-					Logging::LogDebug() << __FUNCTION__ << " Found loaded dll: 'd3dim700.dll'";
-					Utils::DDrawResolutionHack(hD3DIm700);
-				}
-			}
-		}
+		ResolutionHack();
 	}
-	m_IDirect3DX(m_IDirectDrawX *aOriginal, DWORD DirectXVersion) : ddrawParent(aOriginal)
+	m_IDirect3DX(m_IDirectDrawX *lpDdraw, DWORD DirectXVersion) : ddrawParent(lpDdraw)
 	{
 		ProxyDirectXVersion = 9;
 
@@ -87,6 +51,7 @@ public:
 	REFIID GetWrapperType() { return IID_IUnknown; }
 	IDirect3D7 *GetProxyInterface() { return ProxyInterface; }
 	m_IDirect3D7 *GetWrapperInterface() { return WrapperInterface; }
+	void SetDdrawParent(m_IDirectDrawX *ddraw) { ddrawParent = ddraw; }
 
 	/*** IUnknown methods ***/
 	HRESULT QueryInterface(REFIID riid, LPVOID FAR * ppvObj, DWORD DirectXVersion);
@@ -108,6 +73,7 @@ public:
 	STDMETHOD(EvictManagedTextures)(THIS);
 
 	// Helper functions
+	void ResolutionHack();
 	REFIID GetWrapperType(DWORD DirectXVersion)
 	{
 		return (DirectXVersion == 1) ? IID_IDirect3D :

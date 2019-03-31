@@ -2136,7 +2136,7 @@ HRESULT m_IDirectDrawSurfaceX::CreateD3d9Surface()
 	GetSurfaceDesc2(&surfaceDesc2);
 	
 	// Get d3d9Object
-	IDirect3D9 *d3d9Object = ddrawParent->GetDirect3DObject();
+	IDirect3D9 *d3d9Object = ddrawParent->GetDirect3D9Object();
 
 	// Get usage
 	DWORD Usage = 0;

@@ -179,7 +179,7 @@ HRESULT m_IDirect3DX::EnumDevices7(LPD3DENUMDEVICESCALLBACK7 lpEnumDevicesCallba
 		}
 
 		// Get d3d9Object
-		IDirect3D9 *d3d9Object = ddrawParent->GetDirect3DObject();
+		IDirect3D9 *d3d9Object = ddrawParent->GetDirect3D9Object();
 		UINT AdapterCount = d3d9Object->GetAdapterCount();
 
 		// Conversion callback
@@ -482,6 +482,16 @@ HRESULT m_IDirect3DX::CreateDevice(REFCLSID rclsid, LPDIRECTDRAWSURFACE7 lpDDS, 
 	if (SUCCEEDED(hr) && lplpD3DDevice)
 	{
 		*lplpD3DDevice = ProxyAddressLookupTable.FindAddress<m_IDirect3DDevice7>(*lplpD3DDevice, DirectXVersion);
+
+		if (Config.ConvertToDirectDraw7 && ddrawParent && *lplpD3DDevice)
+		{
+			m_IDirect3DDeviceX *lpD3DDeviceX = ((m_IDirect3DDevice7*)*lplpD3DDevice)->GetWrapperInterface();
+
+			if (lpD3DDeviceX)
+			{
+				lpD3DDeviceX->SetDdrawParent(ddrawParent);
+			}
+		}
 	}
 
 	return hr;
@@ -612,4 +622,39 @@ void m_IDirect3DX::ReleaseD3DInterface()
 	}
 
 	ThreadSyncFlag = false;
+}
+
+void m_IDirect3DX::ResolutionHack()
+{
+	if (Config.DDrawResolutionHack)
+	{
+		if (GetD3DPath)
+		{
+			GetD3DPath = false;
+			GetSystemDirectory(D3DImPath, MAX_PATH);
+			strcpy_s(D3DIm700Path, MAX_PATH, D3DImPath);
+			strcat_s(D3DImPath, MAX_PATH, "\\d3dim.dll");
+			strcat_s(D3DIm700Path, MAX_PATH, "\\d3dim700.dll");
+		}
+
+		if (!hD3DIm)
+		{
+			hD3DIm = GetModuleHandle(D3DImPath);
+			if (hD3DIm)
+			{
+				Logging::Log() << __FUNCTION__ << " Found loaded dll: 'd3dim.dll'";
+				Utils::DDrawResolutionHack(hD3DIm);
+			}
+		}
+
+		if (!hD3DIm700)
+		{
+			hD3DIm700 = GetModuleHandle(D3DIm700Path);
+			if (hD3DIm700)
+			{
+				Logging::Log() << __FUNCTION__ << " Found loaded dll: 'd3dim700.dll'";
+				Utils::DDrawResolutionHack(hD3DIm700);
+			}
+		}
+	}
 }

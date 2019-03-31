@@ -174,8 +174,8 @@ public:
 	IDirectDraw4 *GetProxyInterfaceV4() { return (IDirectDraw4 *)ProxyInterface; }
 	IDirectDraw7 *GetProxyInterfaceV7() { return ProxyInterface; }
 	void *GetWrapperInterfaceX(DWORD DirectXVersion);
-	LPDIRECT3D9 GetDirect3DObject() { return d3d9Object; }
-	LPDIRECT3DDEVICE9 *GetDirect3DDevice() { return &d3d9Device; }
+	LPDIRECT3D9 GetDirect3D9Object() { return d3d9Object; }
+	LPDIRECT3DDEVICE9 *GetDirect3D9Device() { return &d3d9Device; }
 	HWND GetHwnd() { return MainhWnd; }
 	bool IsExclusiveMode() { return ExclusiveMode; }
 	m_IDirect3DDeviceX **GetCurrentD3DDevice() { return &D3DDeviceInterface; }

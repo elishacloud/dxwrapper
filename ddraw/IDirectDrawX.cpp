@@ -81,7 +81,22 @@ HRESULT m_IDirectDrawX::QueryInterface(REFIID riid, LPVOID FAR * ppvObj, DWORD D
 		}
 	}
 
-	return ProxyQueryInterface(ProxyInterface, riid, ppvObj, GetWrapperType(DirectXVersion), WrapperInterface);
+	HRESULT hr = ProxyQueryInterface(ProxyInterface, riid, ppvObj, GetWrapperType(DirectXVersion), WrapperInterface);
+
+	if (Config.ConvertToDirect3D7)
+	{
+		if ((riid == IID_IDirect3D || riid == IID_IDirect3D2 || riid == IID_IDirect3D3 || riid == IID_IDirect3D7) && ppvObj && *ppvObj)
+		{
+			m_IDirect3DX *lpD3DirectX = ((m_IDirect3D7*)*ppvObj)->GetWrapperInterface();
+
+			if (lpD3DirectX)
+			{
+				lpD3DirectX->SetDdrawParent(this);
+			}
+		}
+	}
+
+	return hr;
 }
 
 void *m_IDirectDrawX::GetWrapperInterfaceX(DWORD DirectXVersion)
@@ -307,6 +322,16 @@ HRESULT m_IDirectDrawX::CreateSurface2(LPDDSURFACEDESC2 lpDDSurfaceDesc2, LPDIRE
 	if (SUCCEEDED(hr))
 	{
 		*lplpDDSurface = ProxyAddressLookupTable.FindAddress<m_IDirectDrawSurface7>(*lplpDDSurface, DirectXVersion);
+
+		if (Config.ConvertToDirectDraw7 && *lplpDDSurface)
+		{
+			m_IDirectDrawSurfaceX *lpDDSurfaceX = ((m_IDirectDrawSurface7*)*lplpDDSurface)->GetWrapperInterface();
+
+			if (lpDDSurfaceX)
+			{
+				lpDDSurfaceX->SetDdrawParent(this);
+			}
+		}
 	}
 
 	return hr;

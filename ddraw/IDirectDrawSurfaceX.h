@@ -129,6 +129,7 @@ public:
 	REFIID GetWrapperType() { return IID_IUnknown; }
 	IDirectDrawSurface7 *GetProxyInterface() { return ProxyInterface; }
 	m_IDirectDrawSurface7 *GetWrapperInterface() { return WrapperInterface; }
+	void SetDdrawParent(m_IDirectDrawX *ddraw) { ddrawParent = ddraw; }
 
 	/*** IUnknown methods ***/
 	HRESULT QueryInterface(REFIID riid, LPVOID FAR * ppvObj, DWORD DirectXVersion);

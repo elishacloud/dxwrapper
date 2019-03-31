@@ -33,14 +33,8 @@ public:
 		{
 			Logging::LogDebug() << "Create " << __FUNCTION__ << " v" << DirectXVersion;
 		}
-
-		// Store D3DDevice
-		if (ddrawParent)
-		{
-			ddrawParent->SetD3DDevice(this);
-		}
 	}
-	m_IDirect3DDeviceX(m_IDirectDrawX *aOriginal, DWORD DirectXVersion) : ddrawParent(aOriginal)
+	m_IDirect3DDeviceX(m_IDirectDrawX *lpDdraw, DWORD DirectXVersion) : ddrawParent(lpDdraw)
 	{
 		ProxyDirectXVersion = 9;
 
@@ -59,6 +53,16 @@ public:
 	REFIID GetWrapperType() { return IID_IUnknown; }
 	IDirect3DDevice7 *GetProxyInterface() { return ProxyInterface; }
 	m_IDirect3DDevice7 *GetWrapperInterface() { return WrapperInterface; }
+	void SetDdrawParent(m_IDirectDrawX *ddraw)
+	{
+		ddrawParent = ddraw;
+
+		// Store D3DDevice
+		if (ddrawParent)
+		{
+			ddrawParent->SetD3DDevice(this);
+		}
+	}
 
 	/*** IUnknown methods ***/
 	HRESULT QueryInterface(REFIID riid, LPVOID FAR * ppvObj, DWORD DirectXVersion);
