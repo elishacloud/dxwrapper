@@ -409,20 +409,20 @@ HRESULT m_IDirectDrawX::EnumDisplayModes2(DWORD dwFlags, LPDDSURFACEDESC2 lpDDSu
 	if (Config.Dd7to9)
 	{
 		// Save width, height and refresh rate
-		DWORD EnumRefreshRate = 0;
-		if (lpDDSurfaceDesc2 && (dwFlags & DDEDM_REFRESHRATES) != 0)
-		{
-			EnumRefreshRate = lpDDSurfaceDesc2->dwRefreshRate;
-		}
 		DWORD EnumWidth = 0;
+		DWORD EnumHeight = 0;
+		DWORD EnumRefreshRate = 0;
 		if (lpDDSurfaceDesc2)
 		{
 			EnumWidth = lpDDSurfaceDesc2->dwWidth;
-		}
-		DWORD EnumHeight = 0;
-		if (lpDDSurfaceDesc2)
-		{
 			EnumHeight = lpDDSurfaceDesc2->dwHeight;
+			EnumRefreshRate = lpDDSurfaceDesc2->dwRefreshRate;
+		}
+		if ((dwFlags & DDEDM_REFRESHRATES) == 0 && !EnumRefreshRate)
+		{
+			HDC hdc = GetDC(nullptr);
+			EnumRefreshRate = GetDeviceCaps(hdc, VREFRESH);
+			ReleaseDC(nullptr, hdc);
 		}
 
 		// Get display modes to enum
@@ -491,7 +491,7 @@ HRESULT m_IDirectDrawX::EnumDisplayModes2(DWORD dwFlags, LPDDSURFACEDESC2 lpDDSu
 					Desc2.dwFlags = DDSD_WIDTH | DDSD_HEIGHT | DDSD_REFRESHRATE | DDSD_PITCH | DDSD_PIXELFORMAT;
 					Desc2.dwWidth = d3ddispmode.Width;
 					Desc2.dwHeight = d3ddispmode.Height;
-					Desc2.dwRefreshRate = d3ddispmode.RefreshRate;
+					Desc2.dwRefreshRate = ((dwFlags & DDEDM_REFRESHRATES) == 0) ? 0 : d3ddispmode.RefreshRate;
 
 					// Set adapter pixel format
 					Desc2.ddpfPixelFormat.dwSize = sizeof(DDPIXELFORMAT);
