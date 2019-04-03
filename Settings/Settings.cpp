@@ -525,7 +525,8 @@ void CONFIG::Init()
 	}
 
 	// Verify DSoundCtrl options
-	if (DSoundCtrl)
+	isDsoundWrapperEnabled = (EnableDsoundWrapper || DSoundCtrl);
+	if (isDsoundWrapperEnabled)
 	{
 		if (ForceSoftwareMixing && ForceHardwareMixing)
 		{

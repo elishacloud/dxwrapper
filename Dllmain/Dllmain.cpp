@@ -27,7 +27,7 @@
 #include "dinput\dinputExternal.h"
 #include "d3d8\d3d8External.h"
 #include "d3d9\d3d9External.h"
-#include "DSoundCtrl\DSoundCtrlExternal.h"
+#include "dsound\dsoundExternal.h"
 
 #define SHIM_WRAPPED_PROC(procName, unused) \
 	Wrapper::ShimProc(procName ## _var, procName ## _in, procName ## _out);
@@ -402,13 +402,13 @@ bool APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 			Wrapper::ShimProc(ShardProcs::DebugSetMute_var, DebugSetMute_in, DebugSetMute_out);
 		}
 
-		// Start DSoundCtrl module
-		if (Config.DSoundCtrl)
+		// Start dsound.dll module
+		if (Config.isDsoundWrapperEnabled)
 		{
 			using namespace dsound;
 			using namespace DsoundWrapper;
 
-			// Hook dsound APIs for DSoundCtrl
+			// Hook dsound APIs for DsoundWrapper
 			if (Config.RealWrapperMode != dtype.dsound)
 			{
 				// Load dsound procs
@@ -418,7 +418,7 @@ bool APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 					Utils::AddHandleToVector(dll, dtypename[dtype.dsound]);
 				}
 
-				// Hook dsound.dll -> DSoundCtrl
+				// Hook dsound.dll -> DsoundWrapper
 				Logging::Log() << "Hooking dsound.dll APIs...";
 				DirectSoundCreate_var = (FARPROC)Hook::HookAPI(dll, dtypename[dtype.dsound], Hook::GetProcAddress(dll, "DirectSoundCreate"), "DirectSoundCreate", DirectSoundCreate_in);
 				DirectSoundCreate8_var = (FARPROC)Hook::HookAPI(dll, dtypename[dtype.dsound], Hook::GetProcAddress(dll, "DirectSoundCreate8"), "DirectSoundCreate8", DirectSoundCreate8_in);
@@ -431,9 +431,6 @@ bool APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 			VISIT_PROCS_DSOUND(SHIM_WRAPPED_PROC);
 			Wrapper::ShimProc(ShardProcs::DllGetClassObject_var, DllGetClassObject_in, DllGetClassObject_out);
 			Wrapper::ShimProc(ShardProcs::DllCanUnloadNow_var, DllCanUnloadNow_in, DllCanUnloadNow_out);
-
-			// Start DSoundCtrl
-			DllMain_DSoundCtrl(hModule_dll, DLL_PROCESS_ATTACH, nullptr);
 		}
 
 		// Start DxWnd module
@@ -546,12 +543,6 @@ bool APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 		if (Config.DDrawCompat)
 		{
 			DDrawCompat::Start(nullptr, DLL_PROCESS_DETACH);
-		}
-
-		// Unload DSoundCtrl
-		if (Config.DSoundCtrl)
-		{
-			DllMain_DSoundCtrl(nullptr, DLL_PROCESS_DETACH, nullptr);
 		}
 
 		// Unload DdrawWrapper

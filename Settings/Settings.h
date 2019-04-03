@@ -26,6 +26,7 @@
 	visit(ConvertToDirectDraw7) \
 	visit(ConvertToDirect3D7) \
 	visit(EnableDdrawWrapper) \
+	visit(EnableDsoundWrapper) \
 	visit(EnableVSync) \
 	visit(EnableWindowMode) \
 	visit(ExcludeProcess) \
@@ -148,6 +149,7 @@ struct CONFIG
 	bool SingleProcAffinityNotSet;		// If the SingleProcAffinity option exists in the config file
 	bool isDdrawWrapperEnabled;			// Specifies if DdrawWrapper needs to be enabled
 	bool isD3d9WrapperEnabled;			// Specifies if D3d9Wrapper needs to be enabled
+	bool isDsoundWrapperEnabled;		// Specifies if DsoundWrapper needs to be enabled
 	bool Dd7to9;						// Converts DirectDraw/Direct3D (ddraw.dll) to Direct3D9 (d3d9.dll)
 	bool D3d8to9;						// Converts Direct3D8 (d3d8.dll) to Direct3D9 (d3d9.dll) https://github.com/crosire/d3d8to9
 	bool Dinputto8;						// Converts DirectInput (dinput.dll) to DirectInput8 (dinput8.dll)
@@ -167,6 +169,7 @@ struct CONFIG
 	bool ConvertToDirectDraw7;			// Converts DirectDraw 1-6 to DirectDraw 7
 	bool ConvertToDirect3D7;			// Converts Direct3D 1-6 to Direct3D 7
 	bool EnableDdrawWrapper;			// Enables the ddraw wrapper
+	bool EnableDsoundWrapper;			// Enables the dsound wrapper
 	bool EnableWindowMode;				// Enables WndMode for d3d9 wrapper
 	bool EnableVSync;					// Enables VSync for d3d9 wrapper
 	bool FullScreen;					// Sets the main window to fullscreen

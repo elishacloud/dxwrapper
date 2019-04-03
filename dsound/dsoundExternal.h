@@ -1,9 +1,9 @@
 #pragma once
 
-#include "DSoundCtrl\dsound.h"
+#include <mmeapi.h>
+#include <dsound.h>
 #include "Wrappers\wrapper.h"
 
-BOOL APIENTRY DllMain_DSoundCtrl(HMODULE, DWORD, LPVOID);
 HRESULT WINAPI ds_DirectSoundCreate(LPCGUID pcGuidDevice, LPDIRECTSOUND *ppDS, LPUNKNOWN pUnkOuter);
 HRESULT WINAPI ds_DirectSoundCreate8(LPCGUID pcGuidDevice, LPDIRECTSOUND8 *ppDS8, LPUNKNOWN pUnkOuter);
 HRESULT WINAPI ds_GetDeviceID(LPCGUID pGuidSrc, LPGUID pGuidDest);

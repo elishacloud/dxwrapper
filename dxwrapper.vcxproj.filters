@@ -1,9 +1,6 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
-    <Filter Include="DSoundCtrl">
-      <UniqueIdentifier>{f07d4373-1b9a-4464-a239-c9bae002d95b}</UniqueIdentifier>
-    </Filter>
     <Filter Include="DDrawCompat">
       <UniqueIdentifier>{bf6f3d22-aab2-413e-af84-ee52035f125f}</UniqueIdentifier>
     </Filter>
@@ -77,26 +74,11 @@
     <Filter Include="dinput">
       <UniqueIdentifier>{31efb075-cbdb-42f5-a17d-ac0dcb0dcba5}</UniqueIdentifier>
     </Filter>
+    <Filter Include="dsound">
+      <UniqueIdentifier>{5fdc656e-e8a0-43c4-a346-04c58b1e77cb}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="DSoundCtrl\DSoundCtrl.cpp">
-      <Filter>DSoundCtrl</Filter>
-    </ClCompile>
-    <ClCompile Include="DSoundCtrl\IDirectSound3DBufferEx.cpp">
-      <Filter>DSoundCtrl</Filter>
-    </ClCompile>
-    <ClCompile Include="DSoundCtrl\IDirectSound3DListenerEx.cpp">
-      <Filter>DSoundCtrl</Filter>
-    </ClCompile>
-    <ClCompile Include="DSoundCtrl\IDirectSoundBufferEx.cpp">
-      <Filter>DSoundCtrl</Filter>
-    </ClCompile>
-    <ClCompile Include="DSoundCtrl\IDirectSoundClassFactoryEx.cpp">
-      <Filter>DSoundCtrl</Filter>
-    </ClCompile>
-    <ClCompile Include="DSoundCtrl\IDirectSoundEx.cpp">
-      <Filter>DSoundCtrl</Filter>
-    </ClCompile>
     <ClCompile Include="libraries\dwmapi.cpp">
       <Filter>Libraries</Filter>
     </ClCompile>
@@ -727,6 +709,72 @@
     <ClCompile Include="dinput\dinput.cpp">
       <Filter>dinput</Filter>
     </ClCompile>
+    <ClCompile Include="dsound\dsound.cpp">
+      <Filter>dsound</Filter>
+    </ClCompile>
+    <ClCompile Include="dsound\IDirectSound3DBuffer8.cpp">
+      <Filter>dsound</Filter>
+    </ClCompile>
+    <ClCompile Include="dsound\IDirectSound3DListener8.cpp">
+      <Filter>dsound</Filter>
+    </ClCompile>
+    <ClCompile Include="dsound\IDirectSound8.cpp">
+      <Filter>dsound</Filter>
+    </ClCompile>
+    <ClCompile Include="dsound\IDirectSoundBuffer8.cpp">
+      <Filter>dsound</Filter>
+    </ClCompile>
+    <ClCompile Include="dsound\IDirectSoundCapture8.cpp">
+      <Filter>dsound</Filter>
+    </ClCompile>
+    <ClCompile Include="dsound\IDirectSoundCaptureBuffer8.cpp">
+      <Filter>dsound</Filter>
+    </ClCompile>
+    <ClCompile Include="dsound\IDirectSoundCaptureFXAec8.cpp">
+      <Filter>dsound</Filter>
+    </ClCompile>
+    <ClCompile Include="dsound\IDirectSoundCaptureFXNoiseSuppress8.cpp">
+      <Filter>dsound</Filter>
+    </ClCompile>
+    <ClCompile Include="dsound\IDirectSoundFullDuplex8.cpp">
+      <Filter>dsound</Filter>
+    </ClCompile>
+    <ClCompile Include="dsound\IDirectSoundFXChorus8.cpp">
+      <Filter>dsound</Filter>
+    </ClCompile>
+    <ClCompile Include="dsound\IDirectSoundFXCompressor8.cpp">
+      <Filter>dsound</Filter>
+    </ClCompile>
+    <ClCompile Include="dsound\IDirectSoundFXDistortion8.cpp">
+      <Filter>dsound</Filter>
+    </ClCompile>
+    <ClCompile Include="dsound\IDirectSoundFXEcho8.cpp">
+      <Filter>dsound</Filter>
+    </ClCompile>
+    <ClCompile Include="dsound\IDirectSoundFXFlanger8.cpp">
+      <Filter>dsound</Filter>
+    </ClCompile>
+    <ClCompile Include="dsound\IDirectSoundFXGargle8.cpp">
+      <Filter>dsound</Filter>
+    </ClCompile>
+    <ClCompile Include="dsound\IDirectSoundFXI3DL2Reverb8.cpp">
+      <Filter>dsound</Filter>
+    </ClCompile>
+    <ClCompile Include="dsound\IDirectSoundFXParamEq8.cpp">
+      <Filter>dsound</Filter>
+    </ClCompile>
+    <ClCompile Include="dsound\IDirectSoundFXWavesReverb8.cpp">
+      <Filter>dsound</Filter>
+    </ClCompile>
+    <ClCompile Include="dsound\IDirectSoundNotify8.cpp">
+      <Filter>dsound</Filter>
+    </ClCompile>
+    <ClCompile Include="dsound\IKsPropertySet.cpp">
+      <Filter>dsound</Filter>
+    </ClCompile>
+    <ClCompile Include="dsound\InterfaceQuery.cpp">
+      <Filter>dsound</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="Settings\AllSettings.ini">
@@ -740,33 +788,6 @@
     </None>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="DSoundCtrl\dsound.h">
-      <Filter>DSoundCtrl</Filter>
-    </ClInclude>
-    <ClInclude Include="DSoundCtrl\DSoundCtrl.h">
-      <Filter>DSoundCtrl</Filter>
-    </ClInclude>
-    <ClInclude Include="DSoundCtrl\DSoundTypes.h">
-      <Filter>DSoundCtrl</Filter>
-    </ClInclude>
-    <ClInclude Include="DSoundCtrl\IDirectSound3DBufferEx.h">
-      <Filter>DSoundCtrl</Filter>
-    </ClInclude>
-    <ClInclude Include="DSoundCtrl\IDirectSound3DListenerEx.h">
-      <Filter>DSoundCtrl</Filter>
-    </ClInclude>
-    <ClInclude Include="DSoundCtrl\IDirectSoundBufferEx.h">
-      <Filter>DSoundCtrl</Filter>
-    </ClInclude>
-    <ClInclude Include="DSoundCtrl\IDirectSoundClassFactoryEx.h">
-      <Filter>DSoundCtrl</Filter>
-    </ClInclude>
-    <ClInclude Include="DSoundCtrl\IDirectSoundEx.h">
-      <Filter>DSoundCtrl</Filter>
-    </ClInclude>
-    <ClInclude Include="DSoundCtrl\DSoundCtrlExternal.h">
-      <Filter>DSoundCtrl</Filter>
-    </ClInclude>
     <ClInclude Include="libraries\dwmapi.h">
       <Filter>Libraries</Filter>
     </ClInclude>
@@ -1558,6 +1579,75 @@
     </ClInclude>
     <ClInclude Include="dinput\dinputExternal.h">
       <Filter>dinput</Filter>
+    </ClInclude>
+    <ClInclude Include="dsound\AddressLookupTable.h">
+      <Filter>dsound</Filter>
+    </ClInclude>
+    <ClInclude Include="dsound\dsound.h">
+      <Filter>dsound</Filter>
+    </ClInclude>
+    <ClInclude Include="dsound\IDirectSound3DBuffer8.h">
+      <Filter>dsound</Filter>
+    </ClInclude>
+    <ClInclude Include="dsound\IDirectSound3DListener8.h">
+      <Filter>dsound</Filter>
+    </ClInclude>
+    <ClInclude Include="dsound\IDirectSound8.h">
+      <Filter>dsound</Filter>
+    </ClInclude>
+    <ClInclude Include="dsound\IDirectSoundBuffer8.h">
+      <Filter>dsound</Filter>
+    </ClInclude>
+    <ClInclude Include="dsound\IDirectSoundCapture8.h">
+      <Filter>dsound</Filter>
+    </ClInclude>
+    <ClInclude Include="dsound\IDirectSoundCaptureBuffer8.h">
+      <Filter>dsound</Filter>
+    </ClInclude>
+    <ClInclude Include="dsound\IDirectSoundCaptureFXAec8.h">
+      <Filter>dsound</Filter>
+    </ClInclude>
+    <ClInclude Include="dsound\IDirectSoundCaptureFXNoiseSuppress8.h">
+      <Filter>dsound</Filter>
+    </ClInclude>
+    <ClInclude Include="dsound\IDirectSoundFullDuplex8.h">
+      <Filter>dsound</Filter>
+    </ClInclude>
+    <ClInclude Include="dsound\IDirectSoundFXChorus8.h">
+      <Filter>dsound</Filter>
+    </ClInclude>
+    <ClInclude Include="dsound\IDirectSoundFXCompressor8.h">
+      <Filter>dsound</Filter>
+    </ClInclude>
+    <ClInclude Include="dsound\IDirectSoundFXDistortion8.h">
+      <Filter>dsound</Filter>
+    </ClInclude>
+    <ClInclude Include="dsound\IDirectSoundFXEcho8.h">
+      <Filter>dsound</Filter>
+    </ClInclude>
+    <ClInclude Include="dsound\IDirectSoundFXFlanger8.h">
+      <Filter>dsound</Filter>
+    </ClInclude>
+    <ClInclude Include="dsound\IDirectSoundFXGargle8.h">
+      <Filter>dsound</Filter>
+    </ClInclude>
+    <ClInclude Include="dsound\IDirectSoundFXI3DL2Reverb8.h">
+      <Filter>dsound</Filter>
+    </ClInclude>
+    <ClInclude Include="dsound\IDirectSoundFXParamEq8.h">
+      <Filter>dsound</Filter>
+    </ClInclude>
+    <ClInclude Include="dsound\IDirectSoundFXWavesReverb8.h">
+      <Filter>dsound</Filter>
+    </ClInclude>
+    <ClInclude Include="dsound\IDirectSoundNotify8.h">
+      <Filter>dsound</Filter>
+    </ClInclude>
+    <ClInclude Include="dsound\IKsPropertySet.h">
+      <Filter>dsound</Filter>
+    </ClInclude>
+    <ClInclude Include="dsound\dsoundExternal.h">
+      <Filter>dsound</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
