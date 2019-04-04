@@ -422,8 +422,14 @@ bool APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 				Logging::Log() << "Hooking dsound.dll APIs...";
 				DirectSoundCreate_var = (FARPROC)Hook::HookAPI(dll, dtypename[dtype.dsound], Hook::GetProcAddress(dll, "DirectSoundCreate"), "DirectSoundCreate", DirectSoundCreate_in);
 				DirectSoundCreate8_var = (FARPROC)Hook::HookAPI(dll, dtypename[dtype.dsound], Hook::GetProcAddress(dll, "DirectSoundCreate8"), "DirectSoundCreate8", DirectSoundCreate8_in);
+				GetDeviceID_var = (FARPROC)Hook::HookAPI(dll, dtypename[dtype.dsound], Hook::GetProcAddress(dll, "GetDeviceID"), "GetDeviceID", GetDeviceID_in);
 				DirectSoundEnumerateA_var = (FARPROC)Hook::HookAPI(dll, dtypename[dtype.dsound], Hook::GetProcAddress(dll, "DirectSoundEnumerateA"), "DirectSoundEnumerateA", DirectSoundEnumerateA_in);
 				DirectSoundEnumerateW_var = (FARPROC)Hook::HookAPI(dll, dtypename[dtype.dsound], Hook::GetProcAddress(dll, "DirectSoundEnumerateW"), "DirectSoundEnumerateW", DirectSoundEnumerateW_in);
+				DirectSoundCaptureEnumerateA_var = (FARPROC)Hook::HookAPI(dll, dtypename[dtype.dsound], Hook::GetProcAddress(dll, "DirectSoundCaptureEnumerateA"), "DirectSoundCaptureEnumerateA", DirectSoundCaptureEnumerateA_in);
+				DirectSoundCaptureEnumerateW_var = (FARPROC)Hook::HookAPI(dll, dtypename[dtype.dsound], Hook::GetProcAddress(dll, "DirectSoundCaptureEnumerateW"), "DirectSoundCaptureEnumerateW", DirectSoundCaptureEnumerateW_in);
+				DirectSoundCaptureCreate_var = (FARPROC)Hook::HookAPI(dll, dtypename[dtype.dsound], Hook::GetProcAddress(dll, "DirectSoundCaptureCreate"), "DirectSoundCaptureCreate", DirectSoundCaptureCreate_in);
+				DirectSoundCaptureCreate8_var = (FARPROC)Hook::HookAPI(dll, dtypename[dtype.dsound], Hook::GetProcAddress(dll, "DirectSoundCaptureCreate8"), "DirectSoundCaptureCreate8", DirectSoundCaptureCreate8_in);
+				DirectSoundFullDuplexCreate_var = (FARPROC)Hook::HookAPI(dll, dtypename[dtype.dsound], Hook::GetProcAddress(dll, "DirectSoundFullDuplexCreate"), "DirectSoundFullDuplexCreate", DirectSoundFullDuplexCreate_in);
 				ShardProcs::DllGetClassObject_var = (FARPROC)Hook::HookAPI(dll, dtypename[dtype.dsound], Hook::GetProcAddress(dll, "DllGetClassObject"), "DllGetClassObject", DllGetClassObject_in);
 			}
 
