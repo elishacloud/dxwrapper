@@ -93,19 +93,12 @@ public:
 				ReleaseAllD9Surfaces(true);
 			}
 
-			while (ThreadSyncFlag)
-			{
-				Sleep(0);
-			}
-
-			ThreadSyncFlag = true;
-
+			SetCriticalSection();
 			if (D3DInterface)
 			{
 				D3DInterface->ClearDdraw();
 			}
-
-			ThreadSyncFlag = false;
+			ReleaseCriticalSection();
 		}
 	}
 
@@ -182,6 +175,7 @@ public:
 	void SetD3DDevice(m_IDirect3DDeviceX *D3DDevice) { D3DDeviceInterface = D3DDevice; }
 	void ClearD3DDevice() { D3DDeviceInterface = nullptr; }
 	void ClearD3D() { D3DInterface = nullptr; }
+	DWORD GetRefreshRate();
 	HRESULT CreateD3D9Device();
 	HRESULT ReinitDevice();
 	void ReleaseAllD9Surfaces(bool ClearDDraw = false);

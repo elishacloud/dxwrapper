@@ -53,13 +53,7 @@ HRESULT m_IDirectDrawX::QueryInterface(REFIID riid, LPVOID FAR * ppvObj, DWORD D
 		{
 			DWORD DxVersion = GetIIDVersion(riid);
 
-			while (ThreadSyncFlag)
-			{
-				Sleep(0);
-			}
-
-			ThreadSyncFlag = true;
-
+			SetCriticalSection();
 			if (D3DInterface)
 			{
 				*ppvObj = D3DInterface->GetWrapperInterfaceX(DxVersion);
@@ -74,8 +68,7 @@ HRESULT m_IDirectDrawX::QueryInterface(REFIID riid, LPVOID FAR * ppvObj, DWORD D
 
 				D3DInterface = p_IDirect3DX;
 			}
-
-			ThreadSyncFlag = false;
+			ReleaseCriticalSection();
 
 			return S_OK;
 		}
@@ -420,9 +413,7 @@ HRESULT m_IDirectDrawX::EnumDisplayModes2(DWORD dwFlags, LPDDSURFACEDESC2 lpDDSu
 		}
 		if ((dwFlags & DDEDM_REFRESHRATES) == 0 && !EnumRefreshRate)
 		{
-			HDC hdc = GetDC(nullptr);
-			EnumRefreshRate = GetDeviceCaps(hdc, VREFRESH);
-			ReleaseDC(nullptr, hdc);
+			EnumRefreshRate = GetRefreshRate();
 		}
 
 		// Get display modes to enum
@@ -432,53 +423,43 @@ HRESULT m_IDirectDrawX::EnumDisplayModes2(DWORD dwFlags, LPDDSURFACEDESC2 lpDDSu
 		{
 			DisplayBitCount = GetBitCount(lpDDSurfaceDesc2->ddpfPixelFormat);
 		}
+		DisplayAllModes = (DisplayAllModes || !DisplayBitCount);
 
 		// Setup surface desc
 		DDSURFACEDESC2 Desc2 = { NULL };
 		Desc2.dwSize = sizeof(DDSURFACEDESC2);
 		Desc2.ddpfPixelFormat.dwSize = sizeof(DDPIXELFORMAT);
 
-		// Setup display mode and format
-		D3DFORMAT Format;
+		// Setup display mode
 		D3DDISPLAYMODE d3ddispmode;
 
-		// Loop through each bit count
-		for (int x : {32, 16, 8})
+		// Enumerate modes for format XRGB
+		UINT modeCount = d3d9Object->GetAdapterModeCount(D3DADAPTER_DEFAULT, D3DFMT_X8R8G8B8);
+
+		// Loop through all modes
+		for (UINT i = 0; i < modeCount; i++)
 		{
-			// Set display bit count
-			if (DisplayAllModes || DisplayBitCount == 0)
+			// Get display modes
+			ZeroMemory(&d3ddispmode, sizeof(D3DDISPLAYMODE));
+			HRESULT hr = d3d9Object->EnumAdapterModes(D3DADAPTER_DEFAULT, D3DFMT_X8R8G8B8, i, &d3ddispmode);
+			if (FAILED(hr))
 			{
-				DisplayBitCount = x;
-			}
-
-			// Set static adapter format
-			switch (DisplayBitCount)
-			{
-			case 8:
-				Format = D3DFMT_X8R8G8B8;
-				break;
-			case 16:
-				Format = D3DFMT_R5G6B5;
-				break;
-			case 32:
-			default:
-				Format = D3DFMT_X8R8G8B8;
+				Logging::Log() << __FUNCTION__ << " EnumAdapterModes failed";
 				break;
 			}
 
-			// Enumerate modes for format XRGB
-			UINT modeCount = d3d9Object->GetAdapterModeCount(D3DADAPTER_DEFAULT, Format);
-
-			// Loop through all modes
-			for (UINT i = 0; i < modeCount; i++)
+			// Loop through each bit count
+			int x = 0;
+			for (int bpMode : {8, 16, 32})
 			{
-				// Get display modes
-				ZeroMemory(&d3ddispmode, sizeof(D3DDISPLAYMODE));
-				HRESULT hr = d3d9Object->EnumAdapterModes(D3DADAPTER_DEFAULT, Format, i, &d3ddispmode);
-				if (FAILED(hr))
+				// Set display bit count
+				if (DisplayAllModes)
 				{
-					Logging::Log() << __FUNCTION__ << " EnumAdapterModes failed";
-					return hr;
+					DisplayBitCount = bpMode;
+				}
+				else if (++x != 1)
+				{
+					break;
 				}
 
 				// Check refresh mode
@@ -488,14 +469,17 @@ HRESULT m_IDirectDrawX::EnumDisplayModes2(DWORD dwFlags, LPDDSURFACEDESC2 lpDDSu
 				{
 					// Set surface desc options
 					Desc2.dwSize = sizeof(DDSURFACEDESC2);
-					Desc2.dwFlags = DDSD_WIDTH | DDSD_HEIGHT | DDSD_REFRESHRATE | DDSD_PITCH | DDSD_PIXELFORMAT;
+					Desc2.dwFlags = DDSD_WIDTH | DDSD_HEIGHT | DDSD_PITCH | DDSD_PIXELFORMAT;
 					Desc2.dwWidth = d3ddispmode.Width;
 					Desc2.dwHeight = d3ddispmode.Height;
-					Desc2.dwRefreshRate = ((dwFlags & DDEDM_REFRESHRATES) == 0) ? 0 : d3ddispmode.RefreshRate;
+					if (dwFlags & DDEDM_REFRESHRATES)
+					{
+						Desc2.dwFlags |= DDSD_REFRESHRATE;
+						Desc2.dwRefreshRate = d3ddispmode.RefreshRate;
+					}
 
 					// Set adapter pixel format
 					Desc2.ddpfPixelFormat.dwSize = sizeof(DDPIXELFORMAT);
-					GetPixelDisplayFormat(Format, Desc2.ddpfPixelFormat);
 
 					// Special handling for 8-bit mode
 					if (DisplayBitCount == 8)
@@ -504,6 +488,14 @@ HRESULT m_IDirectDrawX::EnumDisplayModes2(DWORD dwFlags, LPDDSURFACEDESC2 lpDDSu
 						Desc2.ddpfPixelFormat.dwRBitMask = 0;
 						Desc2.ddpfPixelFormat.dwGBitMask = 0;
 						Desc2.ddpfPixelFormat.dwBBitMask = 0;
+					}
+					else if (DisplayBitCount == 16)
+					{
+						GetPixelDisplayFormat(D3DFMT_R5G6B5, Desc2.ddpfPixelFormat);
+					}
+					else if (DisplayBitCount == 32)
+					{
+						GetPixelDisplayFormat(D3DFMT_X8R8G8B8, Desc2.ddpfPixelFormat);
 					}
 					Desc2.lPitch = (Desc2.ddpfPixelFormat.dwRGBBitCount / 8) * Desc2.dwWidth;
 
@@ -690,7 +682,7 @@ HRESULT m_IDirectDrawX::GetDisplayMode2(LPDDSURFACEDESC2 lpDDSurfaceDesc2)
 			HDC hdc = GetDC(nullptr);
 			lpDDSurfaceDesc2->dwWidth = GetSystemMetrics(SM_CXSCREEN);
 			lpDDSurfaceDesc2->dwHeight = GetSystemMetrics(SM_CYSCREEN);
-			lpDDSurfaceDesc2->dwRefreshRate = GetDeviceCaps(hdc, VREFRESH);
+			lpDDSurfaceDesc2->dwRefreshRate = GetRefreshRate();
 			displayModeBits = GetDeviceCaps(hdc, BITSPIXEL);
 			ReleaseDC(nullptr, hdc);
 		}
@@ -1025,32 +1017,7 @@ HRESULT m_IDirectDrawX::SetDisplayMode(DWORD dwWidth, DWORD dwHeight, DWORD dwBP
 		// Get refresh rate of monitor
 		if (Config.AutoFrameSkip)
 		{
-			if (displayModeRefreshRate)
-			{
-				monitorRefreshRate = displayModeRefreshRate;
-			}
-			else
-			{
-				MONITORINFOEX mi;
-				mi.cbSize = sizeof(MONITORINFOEX);
-				bool DeviceNameFlag = GetMonitorInfoA(MonitorFromWindow(MainhWnd, MONITOR_DEFAULTTONEAREST), &mi);
-				if (!DeviceNameFlag)
-				{
-					Logging::Log() << __FUNCTION__ << " Failed to get MonitorInfo!";
-				}
-				DEVMODEA DevMode;
-				ZeroMemory(&DevMode, sizeof(DEVMODEA));
-				DevMode.dmSize = sizeof(DEVMODEA);
-				if (EnumDisplaySettingsA((DeviceNameFlag) ? mi.szDevice : nullptr, ENUM_CURRENT_SETTINGS, &DevMode))
-				{
-					monitorRefreshRate = DevMode.dmDisplayFrequency;
-				}
-				else
-				{
-					monitorRefreshRate = 0;
-					Logging::Log() << __FUNCTION__ << " Failed to get Display Frequency!";
-				}
-			}
+			monitorRefreshRate = (displayModeRefreshRate) ? displayModeRefreshRate : GetRefreshRate();
 		}
 
 		// Create the requested d3d device for this display mode, report error on failure
@@ -1331,6 +1298,33 @@ HRESULT m_IDirectDrawX::EvaluateMode(DWORD dwFlags, DWORD * pSecondsUntilTimeout
 /*** Helper functions ***/
 /************************/
 
+DWORD m_IDirectDrawX::GetRefreshRate()
+{
+	if (IsWindow(MainhWnd))
+	{
+		MONITORINFOEX mi;
+		mi.cbSize = sizeof(MONITORINFOEX);
+		bool DeviceNameFlag = GetMonitorInfoA(MonitorFromWindow(MainhWnd, MONITOR_DEFAULTTONEAREST), &mi);
+		if (!DeviceNameFlag)
+		{
+			Logging::Log() << __FUNCTION__ << " Failed to get MonitorInfo!";
+		}
+		DEVMODEA DevMode;
+		ZeroMemory(&DevMode, sizeof(DEVMODEA));
+		DevMode.dmSize = sizeof(DEVMODEA);
+		if (EnumDisplaySettingsA((DeviceNameFlag) ? mi.szDevice : nullptr, ENUM_CURRENT_SETTINGS, &DevMode))
+		{
+			return DevMode.dmDisplayFrequency;
+		}
+	}
+
+	HDC hdc = GetDC(nullptr);
+	DWORD RefreshRate = GetDeviceCaps(hdc, VREFRESH);
+	ReleaseDC(nullptr, hdc);
+
+	return RefreshRate;
+}
+
 // Creates d3d9 device, destroying the old one if exists
 HRESULT m_IDirectDrawX::CreateD3D9Device()
 {
@@ -1473,13 +1467,7 @@ HRESULT m_IDirectDrawX::ReinitDevice()
 // Release all d3d9 surfaces
 void m_IDirectDrawX::ReleaseAllD9Surfaces(bool ClearDDraw)
 {
-	while (ThreadSyncFlag)
-	{
-		Sleep(0);
-	}
-
-	ThreadSyncFlag = true;
-
+	SetCriticalSection();
 	for (m_IDirectDrawSurfaceX *pSurface : SurfaceVector)
 	{
 		if (ClearDDraw)
@@ -1492,8 +1480,7 @@ void m_IDirectDrawX::ReleaseAllD9Surfaces(bool ClearDDraw)
 	{
 		SurfaceVector.clear();
 	}
-
-	ThreadSyncFlag = false;
+	ReleaseCriticalSection();
 }
 
 // Release all d3d9 classes for Release()

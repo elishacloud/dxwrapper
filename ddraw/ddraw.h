@@ -86,11 +86,12 @@ HRESULT WINAPI dd_DirectDrawEnumerateW(LPDDENUMCALLBACKW lpCallback, LPVOID lpCo
 // Function and variable forward declarations
 DWORD GetIIDVersion(REFIID CalledID);
 REFIID ConvertREFIID(REFIID riid);
+void SetCriticalSection();
+void ReleaseCriticalSection();
 void AddRef(void *lpvObj);
 HRESULT ProxyQueryInterface(LPVOID ProxyInterface, REFIID CalledID, LPVOID * ppvObj, REFIID CallerID, LPVOID WrapperInterface);
 void genericQueryInterface(REFIID riid, LPVOID *ppvObj);
 extern AddressLookupTableDdraw<void> ProxyAddressLookupTable;
-extern bool ThreadSyncFlag;
 
 // IClassFactory Wrapper
 #include "IClassFactory.h"

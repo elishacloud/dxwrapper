@@ -609,19 +609,12 @@ HRESULT m_IDirect3DX::EvictManagedTextures()
 
 void m_IDirect3DX::ReleaseD3DInterface()
 {
-	while (ThreadSyncFlag)
-	{
-		Sleep(0);
-	}
-
-	ThreadSyncFlag = true;
-
+	SetCriticalSection();
 	if (ddrawParent)
 	{
 		ddrawParent->ClearD3D();
 	}
-
-	ThreadSyncFlag = false;
+	ReleaseCriticalSection();
 }
 
 void m_IDirect3DX::ResolutionHack()

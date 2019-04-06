@@ -326,13 +326,13 @@ bool APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 
 				// Hook dinput.dll APIs
 				Logging::Log() << "Hooking dinput.dll APIs...";
-				Hook::HookAPI(dll, dtypename[dtype.dinput], Hook::GetProcAddress(dll, "DirectInputCreateA"), "DirectInputCreateA", (FARPROC)*(DinputWrapper::DirectInputCreateA_in));
-				Hook::HookAPI(dll, dtypename[dtype.dinput], Hook::GetProcAddress(dll, "DirectInputCreateW"), "DirectInputCreateW", (FARPROC)*(DinputWrapper::DirectInputCreateW_in));
-				Hook::HookAPI(dll, dtypename[dtype.dinput], Hook::GetProcAddress(dll, "DirectInputCreateEx"), "DirectInputCreateEx", (FARPROC)*(DinputWrapper::DirectInputCreateEx_in));
-				Hook::HookAPI(dll, dtypename[dtype.dinput], Hook::GetProcAddress(dll, "DllCanUnloadNow"), "DllCanUnloadNow", (FARPROC)*(DinputWrapper::DllCanUnloadNow_in));
-				Hook::HookAPI(dll, dtypename[dtype.dinput], Hook::GetProcAddress(dll, "DllGetClassObject"), "DllGetClassObject", (FARPROC)*(DinputWrapper::DllGetClassObject_in));
-				Hook::HookAPI(dll, dtypename[dtype.dinput], Hook::GetProcAddress(dll, "DllRegisterServer"), "DllRegisterServer", (FARPROC)*(DinputWrapper::DllRegisterServer_in));
-				Hook::HookAPI(dll, dtypename[dtype.dinput], Hook::GetProcAddress(dll, "DllUnregisterServer"), "DllUnregisterServer", (FARPROC)*(DinputWrapper::DllUnregisterServer_in));
+				Hook::HotPatch(Hook::GetProcAddress(dll, "DirectInputCreateA"), "DirectInputCreateA", (FARPROC)*(DinputWrapper::DirectInputCreateA_in), true);
+				Hook::HotPatch(Hook::GetProcAddress(dll, "DirectInputCreateW"), "DirectInputCreateW", (FARPROC)*(DinputWrapper::DirectInputCreateW_in), true);
+				Hook::HotPatch(Hook::GetProcAddress(dll, "DirectInputCreateEx"), "DirectInputCreateEx", (FARPROC)*(DinputWrapper::DirectInputCreateEx_in), true);
+				Hook::HotPatch(Hook::GetProcAddress(dll, "DllCanUnloadNow"), "DllCanUnloadNow", (FARPROC)*(DinputWrapper::DllCanUnloadNow_in), true);
+				Hook::HotPatch(Hook::GetProcAddress(dll, "DllGetClassObject"), "DllGetClassObject", (FARPROC)*(DinputWrapper::DllGetClassObject_in), true);
+				Hook::HotPatch(Hook::GetProcAddress(dll, "DllRegisterServer"), "DllRegisterServer", (FARPROC)*(DinputWrapper::DllRegisterServer_in), true);
+				Hook::HotPatch(Hook::GetProcAddress(dll, "DllUnregisterServer"), "DllUnregisterServer", (FARPROC)*(DinputWrapper::DllUnregisterServer_in), true);
 			}
 		}
 

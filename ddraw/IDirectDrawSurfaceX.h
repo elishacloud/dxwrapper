@@ -109,19 +109,12 @@ public:
 
 		if (Config.Dd7to9 && !Config.Exiting)
 		{
-			while (ThreadSyncFlag)
-			{
-				Sleep(0);
-			}
-
-			ThreadSyncFlag = true;
-
+			SetCriticalSection();
 			if (ddrawParent)
 			{
 				ddrawParent->RemoveSurfaceFromVector(this);
 			}
-
-			ThreadSyncFlag = false;
+			ReleaseCriticalSection();
 		}
 	}
 

@@ -784,3 +784,18 @@ HRESULT WINAPI dd_SetAppCompatData(DWORD Type, DWORD Value)
 
 	return m_pSetAppCompatData(Type, Value);
 }
+
+void SetCriticalSection()
+{
+	while (ThreadSyncFlag)
+	{
+		Sleep(0);
+	}
+
+	ThreadSyncFlag = true;
+}
+
+void ReleaseCriticalSection()
+{
+	ThreadSyncFlag = false;
+}
