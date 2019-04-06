@@ -14,70 +14,49 @@
 *   3. This notice may not be removed or altered from any source distribution.
 */
 
-#include "dinput8\dinput8External.h"
-#include "External\dinputto8\resource.h"
-#include "External\dinputto8\dinputto8.h"
+#define WIN32_LEAN_AND_MEAN
+#include <Windows.h>
+#include "dinput8.h"
+#include "dinput8External.h"
+
+AddressLookupTableDinput8<void> ProxyAddressLookupTableDinput8 = AddressLookupTableDinput8<void>();
 
 #define INITIALIZE_WRAPPED_PROC(procName, unused) \
 	FARPROC procName ## _out = nullptr;
 
-namespace DinputWrapper
+namespace Dinput8Wrapper
 {
-	FARPROC DirectInput8Create_out = nullptr;
-	FARPROC DllCanUnloadNow_out = nullptr;
+	VISIT_PROCS_DINPUT8(INITIALIZE_WRAPPED_PROC);
 	FARPROC DllGetClassObject_out = nullptr;
+	FARPROC DllCanUnloadNow_out = nullptr;
 	FARPROC DllRegisterServer_out = nullptr;
 	FARPROC DllUnregisterServer_out = nullptr;
 }
 
-using namespace DinputWrapper;
+using namespace Dinput8Wrapper;
 
-DWORD diVersion = 0;
-
-AddressLookupTableDinput<void> ProxyAddressLookupTable = AddressLookupTableDinput<void>();
-
-HRESULT WINAPI di_DirectInputCreateEx(HINSTANCE hinst, DWORD dwVersion, REFIID riid, LPVOID * lplpDD, LPUNKNOWN punkOuter);
-
-HRESULT WINAPI di_DirectInputCreateA(HINSTANCE hinst, DWORD dwVersion, LPDIRECTINPUTA* lplpDirectInput, LPUNKNOWN punkOuter)
-{
-	return di_DirectInputCreateEx(hinst, dwVersion, IID_IDirectInputA, (LPVOID*)lplpDirectInput, punkOuter);
-}
-
-HRESULT WINAPI di_DirectInputCreateW(HINSTANCE hinst, DWORD dwVersion, LPDIRECTINPUTW* lplpDirectInput, LPUNKNOWN punkOuter)
-{
-	return di_DirectInputCreateEx(hinst, dwVersion, IID_IDirectInputW, (LPVOID*)lplpDirectInput, punkOuter);
-}
-
-HRESULT WINAPI di_DirectInputCreateEx(HINSTANCE hinst, DWORD dwVersion, REFIID riid, LPVOID * lplpDD, LPUNKNOWN punkOuter)
+HRESULT WINAPI di8_DirectInput8Create(HINSTANCE hinst, DWORD dwVersion, REFIID riidltf, LPVOID * ppvOut, LPUNKNOWN punkOuter)
 {
 	static DirectInput8CreateProc m_pDirectInput8Create = (Wrapper::ValidProcAddress(DirectInput8Create_out)) ? (DirectInput8CreateProc)DirectInput8Create_out : nullptr;
 
-	if (!m_pDirectInput8Create || !lplpDD)
+	if (!m_pDirectInput8Create)
 	{
 		return E_FAIL;
 	}
 
-	static bool RunOnce = true;
-	if (RunOnce)
-	{
-		Logging::Log() << "Starting dinputto8 v" << APP_VERSION;
-		RunOnce = false;
-	}
+	Logging::Log() << "Redirecting 'DirectInput8Create' ...";
 
-	Logging::Log() << "Redirecting 'DirectInputCreate' " << riid << " version " << Logging::hex(dwVersion) << " to --> 'DirectInput8Create'";
-
-	HRESULT hr = m_pDirectInput8Create(hinst, 0x0800, (GetStringType(riid) == DEFAULT_CHARSET) ? IID_IDirectInput8W : IID_IDirectInput8A, lplpDD, punkOuter);
+	HRESULT hr = m_pDirectInput8Create(hinst, dwVersion, riidltf, ppvOut, punkOuter);
 
 	if (SUCCEEDED(hr))
 	{
-		diVersion = dwVersion;
-		genericQueryInterface(riid, lplpDD);
+		dinput8QueryInterface(riidltf, ppvOut);
 	}
 
 	return hr;
 }
 
-HRESULT WINAPI di_DllCanUnloadNow()
+HRESULT WINAPI di8_DllCanUnloadNow()
 {
 	static DllCanUnloadNowProc m_pDllCanUnloadNow = (Wrapper::ValidProcAddress(DllCanUnloadNow_out)) ? (DllCanUnloadNowProc)DllCanUnloadNow_out : nullptr;
 
@@ -89,28 +68,26 @@ HRESULT WINAPI di_DllCanUnloadNow()
 	return m_pDllCanUnloadNow();
 }
 
-HRESULT WINAPI di_DllGetClassObject(IN REFCLSID rclsid, IN REFIID riid, OUT LPVOID FAR* ppv)
+HRESULT WINAPI di8_DllGetClassObject(IN REFCLSID rclsid, IN REFIID riid, OUT LPVOID FAR* ppv)
 {
 	static DllGetClassObjectProc m_pDllGetClassObject = (Wrapper::ValidProcAddress(DllGetClassObject_out)) ? (DllGetClassObjectProc)DllGetClassObject_out : nullptr;
 
-	if (!m_pDllGetClassObject || !ppv)
+	if (!m_pDllGetClassObject)
 	{
 		return E_FAIL;
 	}
 
-	DWORD StringType = GetStringType(riid);
-
-	HRESULT hr = m_pDllGetClassObject(rclsid, (StringType == ANSI_CHARSET) ? IID_IDirectInput8A : (StringType == DEFAULT_CHARSET) ? IID_IDirectInput8W : riid, ppv);
+	HRESULT hr = m_pDllGetClassObject(rclsid, riid, ppv);
 
 	if (SUCCEEDED(hr))
 	{
-		genericQueryInterface(riid, ppv);
+		dinput8QueryInterface(riid, ppv);
 	}
 
 	return hr;
 }
 
-HRESULT WINAPI di_DllRegisterServer()
+HRESULT WINAPI di8_DllRegisterServer()
 {
 	static DllRegisterServerProc m_pDllRegisterServer = (Wrapper::ValidProcAddress(DllRegisterServer_out)) ? (DllRegisterServerProc)DllRegisterServer_out : nullptr;
 
@@ -122,7 +99,7 @@ HRESULT WINAPI di_DllRegisterServer()
 	return m_pDllRegisterServer();
 }
 
-HRESULT WINAPI di_DllUnregisterServer()
+HRESULT WINAPI di8_DllUnregisterServer()
 {
 	static DllUnregisterServerProc m_pDllUnregisterServer = (Wrapper::ValidProcAddress(DllUnregisterServer_out)) ? (DllUnregisterServerProc)DllUnregisterServer_out : nullptr;
 
@@ -132,4 +109,16 @@ HRESULT WINAPI di_DllUnregisterServer()
 	}
 
 	return m_pDllUnregisterServer();
+}
+
+LPCDIDATAFORMAT WINAPI di8_GetdfDIJoystick()
+{
+	static GetdfDIJoystickProc m_pGetdfDIJoystick = (Wrapper::ValidProcAddress(GetdfDIJoystick_out)) ? (GetdfDIJoystickProc)GetdfDIJoystick_out : nullptr;
+
+	if (!m_pGetdfDIJoystick)
+	{
+		return nullptr;
+	}
+
+	return m_pGetdfDIJoystick();
 }

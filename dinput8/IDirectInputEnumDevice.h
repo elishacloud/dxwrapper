@@ -1,0 +1,23 @@
+#pragma once
+
+struct ENUMDEVICEA
+{
+	LPVOID pvRef;
+	LPDIENUMDEVICESBYSEMANTICSCBA lpCallback;
+};
+
+struct ENUMDEVICEW
+{
+	LPVOID pvRef;
+	LPDIENUMDEVICESBYSEMANTICSCBW lpCallback;
+};
+
+class m_IDirectInputEnumDevice
+{
+public:
+	m_IDirectInputEnumDevice() {}
+	~m_IDirectInputEnumDevice() {}
+
+	static BOOL CALLBACK EnumDeviceCallbackA(LPCDIDEVICEINSTANCEA, LPDIRECTINPUTDEVICE8A, DWORD, DWORD, LPVOID);
+	static BOOL CALLBACK EnumDeviceCallbackW(LPCDIDEVICEINSTANCEW, LPDIRECTINPUTDEVICE8W, DWORD, DWORD, LPVOID);
+};

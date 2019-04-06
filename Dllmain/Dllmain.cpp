@@ -25,6 +25,7 @@
 // Wrappers last
 #include "ddraw\ddrawExternal.h"
 #include "dinput\dinputExternal.h"
+#include "dinput8\dinput8External.h"
 #include "d3d8\d3d8External.h"
 #include "d3d9\d3d9External.h"
 #include "dsound\dsoundExternal.h"
@@ -141,6 +142,18 @@ bool APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 			using namespace DinputWrapper;
 
 			VISIT_PROCS_DINPUT(SET_WRAPPED_PROC);
+			ShardProcs::DllCanUnloadNow_var = DllCanUnloadNow_in;
+			ShardProcs::DllGetClassObject_var = DllGetClassObject_in;
+			ShardProcs::DllRegisterServer_var = DllRegisterServer_in;
+			ShardProcs::DllUnregisterServer_var = DllUnregisterServer_in;
+		}
+		// Initialize dinput8 wrapper procs
+		if (Config.RealWrapperMode == dtype.dinput8)
+		{
+			using namespace dinput8;
+			using namespace Dinput8Wrapper;
+
+			VISIT_PROCS_DINPUT8(SET_WRAPPED_PROC);
 			ShardProcs::DllCanUnloadNow_var = DllCanUnloadNow_in;
 			ShardProcs::DllGetClassObject_var = DllGetClassObject_in;
 			ShardProcs::DllRegisterServer_var = DllRegisterServer_in;
@@ -334,6 +347,55 @@ bool APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 				Hook::HotPatch(Hook::GetProcAddress(dll, "DllRegisterServer"), "DllRegisterServer", (FARPROC)*(DinputWrapper::DllRegisterServer_in), true);
 				Hook::HotPatch(Hook::GetProcAddress(dll, "DllUnregisterServer"), "DllUnregisterServer", (FARPROC)*(DinputWrapper::DllUnregisterServer_in), true);
 			}
+		}
+
+		// Start dinput8.dll module
+		if (Config.EnableDinput8Wrapper || Config.Dinputto8)
+		{
+			Logging::Log() << "Enabling dinput8 wrapper";
+
+			using namespace dinput8;
+			using namespace Dinput8Wrapper;
+
+			// Check wrapper mode
+			if (Config.RealWrapperMode != dtype.dinput8)
+			{
+				// Load dinput8 procs
+				HMODULE dll = dinput8::Load(nullptr, Config.WrapperName.c_str());
+				if (dll)
+				{
+					Utils::AddHandleToVector(dll, dtypename[dtype.dinput8]);
+				}
+
+				// Hook dinput8.dll APIs
+				if (Config.EnableDinput8Wrapper)
+				{
+					Logging::Log() << "Hooking dinput8.dll APIs...";
+					DirectInput8Create_var = (FARPROC)Hook::HookAPI(dll, dtypename[dtype.dinput8], Hook::GetProcAddress(dll, "DirectInput8Create"), "DirectInput8Create", (FARPROC)*(Dinput8Wrapper::DirectInput8Create_in));
+					GetdfDIJoystick_var = (FARPROC)Hook::HookAPI(dll, dtypename[dtype.dinput8], Hook::GetProcAddress(dll, "GetdfDIJoystick"), "GetdfDIJoystick", (FARPROC)*(Dinput8Wrapper::GetdfDIJoystick_in));
+					ShardProcs::DllCanUnloadNow_var = (FARPROC)Hook::HookAPI(dll, dtypename[dtype.dinput8], Hook::GetProcAddress(dll, "DllCanUnloadNow"), "DllCanUnloadNow", (FARPROC)*(Dinput8Wrapper::DllCanUnloadNow_in));
+					ShardProcs::DllGetClassObject_var = (FARPROC)Hook::HookAPI(dll, dtypename[dtype.dinput8], Hook::GetProcAddress(dll, "DllGetClassObject"), "DllGetClassObject", (FARPROC)*(Dinput8Wrapper::DllGetClassObject_in));
+					ShardProcs::DllRegisterServer_var = (FARPROC)Hook::HookAPI(dll, dtypename[dtype.dinput8], Hook::GetProcAddress(dll, "DllRegisterServer"), "DllRegisterServer", (FARPROC)*(Dinput8Wrapper::DllRegisterServer_in));
+					ShardProcs::DllUnregisterServer_var = (FARPROC)Hook::HookAPI(dll, dtypename[dtype.dinput8], Hook::GetProcAddress(dll, "DllUnregisterServer"), "DllUnregisterServer", (FARPROC)*(Dinput8Wrapper::DllUnregisterServer_in));
+				}
+			}
+
+			// dinputto8 -> dinput8.dll
+			if (Config.Dinputto8)
+			{
+				DinputWrapper::DirectInput8Create_out = Dinput8Wrapper::DirectInput8Create_in;
+				DinputWrapper::DllCanUnloadNow_out = Dinput8Wrapper::DllCanUnloadNow_in;
+				DinputWrapper::DllGetClassObject_out = Dinput8Wrapper::DllGetClassObject_in;
+				DinputWrapper::DllRegisterServer_out = Dinput8Wrapper::DllRegisterServer_in;
+				DinputWrapper::DllUnregisterServer_out = Dinput8Wrapper::DllUnregisterServer_in;
+			}
+
+			// Prepare wrapper
+			VISIT_PROCS_DINPUT8(SHIM_WRAPPED_PROC);
+			Wrapper::ShimProc(ShardProcs::DllCanUnloadNow_var, DllCanUnloadNow_in, DllCanUnloadNow_out);
+			Wrapper::ShimProc(ShardProcs::DllGetClassObject_var, DllGetClassObject_in, DllGetClassObject_out);
+			Wrapper::ShimProc(ShardProcs::DllRegisterServer_var, DllRegisterServer_in, DllRegisterServer_out);
+			Wrapper::ShimProc(ShardProcs::DllUnregisterServer_var, DllUnregisterServer_in, DllUnregisterServer_out);
 		}
 
 		// Start D3d8to9 module

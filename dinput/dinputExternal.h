@@ -29,7 +29,7 @@ namespace DinputWrapper
 	const FARPROC DllRegisterServer_in = (FARPROC)*di_DllRegisterServer;
 	const FARPROC DllUnregisterServer_in = (FARPROC)*di_DllUnregisterServer;
 
-	VISIT_PROCS_DINPUT(EXPORT_OUT_WRAPPED_PROC);
+	extern FARPROC DirectInput8Create_out;
 	extern FARPROC DllCanUnloadNow_out;
 	extern FARPROC DllGetClassObject_out;
 	extern FARPROC DllRegisterServer_out;

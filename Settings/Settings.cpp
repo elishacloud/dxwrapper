@@ -558,6 +558,8 @@ void CONFIG::Init()
 	}
 
 	// Enable wrapper settings
+	EnableDinput8Wrapper = false;
+
 	if (Dd7to9)
 	{
 		ConvertToDirectDraw7 = true;

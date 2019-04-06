@@ -104,7 +104,8 @@ struct DLLTYPE
 	const DWORD d3d9 = 3;
 	const DWORD dsound = 4;
 	const DWORD dinput = 5;
-	const DWORD winmm = 6;
+	const DWORD dinput8 = 6;
+	const DWORD winmm = 7;
 };
 static const DLLTYPE dtype;
 
@@ -116,7 +117,8 @@ static constexpr char* dtypename[] = {
 	"d3d9.dll",		// 3
 	"dsound.dll",	// 4
 	"dinput.dll",	// 5
-	"winmm.dll",	// 6
+	"dinput8.dll",	// 6
+	"winmm.dll",	// 7
 };
 static constexpr int dtypeArraySize = (sizeof(dtypename) / sizeof(*dtypename));
 
@@ -169,6 +171,7 @@ struct CONFIG
 	bool ConvertToDirectDraw7;			// Converts DirectDraw 1-6 to DirectDraw 7
 	bool ConvertToDirect3D7;			// Converts Direct3D 1-6 to Direct3D 7
 	bool EnableDdrawWrapper;			// Enables the ddraw wrapper
+	bool EnableDinput8Wrapper;			// Enables the dinput8 wrapper
 	bool EnableDsoundWrapper;			// Enables the dsound wrapper
 	bool EnableWindowMode;				// Enables WndMode for d3d9 wrapper
 	bool EnableVSync;					// Enables VSync for d3d9 wrapper
