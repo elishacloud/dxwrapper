@@ -128,6 +128,10 @@ void ConvertSurfaceDesc(DDSURFACEDESC2 &Desc2, DDSURFACEDESC &Desc)
 	tmpDesc2.ddckCKSrcBlt.dwColorSpaceLowValue = tmpDesc.ddckCKSrcBlt.dwColorSpaceLowValue;
 	tmpDesc2.ddckCKSrcBlt.dwColorSpaceHighValue = tmpDesc.ddckCKSrcBlt.dwColorSpaceHighValue;
 	tmpDesc2.ddpfPixelFormat.dwSize = sizeof(DDPIXELFORMAT);
+	if (tmpDesc.dwSize == sizeof(DDSURFACEDESC) && tmpDesc.dwFlags & DDSD_PIXELFORMAT && !tmpDesc.ddpfPixelFormat.dwSize)
+	{
+		tmpDesc.ddpfPixelFormat.dwSize = sizeof(DDPIXELFORMAT);
+	}
 	ConvertPixelFormat(tmpDesc2.ddpfPixelFormat, tmpDesc.ddpfPixelFormat);
 	ConvertCaps(tmpDesc2.ddsCaps, tmpDesc.ddsCaps);
 	// Extra parameters
