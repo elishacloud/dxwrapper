@@ -14,5 +14,5 @@
 	visit(D3D12SerializeVersionedRootSignature, jmpaddr)
 
 #ifdef PROC_CLASS
-PROC_CLASS(d3d12, dll, VISIT_PROCS_D3D12)
+PROC_CLASS(d3d12, dll, VISIT_PROCS_D3D12, VISIT_PROCS_BLANK)
 #endif

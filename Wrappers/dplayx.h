@@ -9,5 +9,5 @@
 	visit(DirectPlayLobbyCreateW, jmpaddr)
 
 #ifdef PROC_CLASS
-PROC_CLASS(dplayx, dll, VISIT_PROCS_DPLAYX)
+PROC_CLASS(dplayx, dll, VISIT_PROCS_DPLAYX, VISIT_PROCS_BLANK)
 #endif

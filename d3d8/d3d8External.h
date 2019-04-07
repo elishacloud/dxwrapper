@@ -24,9 +24,11 @@ extern FARPROC p_D3DXLoadSurfaceFromSurface;
 namespace D3d8Wrapper
 {
 	VISIT_PROCS_D3D8(DECLARE_IN_WRAPPED_PROC);
-	const FARPROC DebugSetMute_in = (FARPROC)*d8_DebugSetMute;
+	VISIT_PROCS_D3D8_SHARED(DECLARE_IN_WRAPPED_PROC);
 
-	extern FARPROC Direct3DCreate9;
+	extern FARPROC Direct3DCreate9_out;
+	extern FARPROC Direct3D8EnableMaximizedWindowedModeShim_out;
+	extern FARPROC DebugSetMute_out;
 }
 
 #undef DECLARE_IN_WRAPPED_PROC

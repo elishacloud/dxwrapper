@@ -20,5 +20,5 @@
 	visit(VerQueryValueW, jmpaddr)
 
 #ifdef PROC_CLASS
-PROC_CLASS(version, dll, VISIT_PROCS_VERSION)
+PROC_CLASS(version, dll, VISIT_PROCS_VERSION, VISIT_PROCS_BLANK)
 #endif

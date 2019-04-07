@@ -16,6 +16,12 @@
 	visit(Direct3DCreate9, jmpaddr) \
 	visit(Direct3DCreate9Ex, jmpaddr)
 
+#define VISIT_PROCS_D3D9_SHARED(visit) \
+	visit(DebugSetMute, jmpaddrvoid)
+
+#define VISIT_SHARED_D3D9_PROCS(visit) \
+	visit(DebugSetMute, DebugSetMute_d3d9, jmpaddrvoid)
+
 #ifdef PROC_CLASS
-PROC_CLASS(d3d9, dll, VISIT_PROCS_D3D9)
+PROC_CLASS(d3d9, dll, VISIT_PROCS_D3D9, VISIT_SHARED_D3D9_PROCS)
 #endif

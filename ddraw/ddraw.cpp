@@ -33,9 +33,8 @@ CRITICAL_SECTION ddcs;
 namespace DdrawWrapper
 {
 	VISIT_PROCS_DDRAW(INITIALIZE_WRAPPED_PROC);
-	FARPROC DllCanUnloadNow_out = nullptr;
-	FARPROC DllGetClassObject_out = nullptr;
-	FARPROC Direct3DCreate9 = nullptr;
+	VISIT_PROCS_DDRAW_SHARED(INITIALIZE_WRAPPED_PROC);
+	FARPROC Direct3DCreate9_out = nullptr;
 }
 
 using namespace DdrawWrapper;
@@ -326,7 +325,7 @@ HRESULT WINAPI dd_DirectDrawCreateEx(GUID FAR *lpGUID, LPVOID *lplpDD, REFIID ri
 	if (Config.Dd7to9)
 	{
 		// Declare Direct3DCreate9
-		static PFN_Direct3DCreate9 Direct3DCreate9 = reinterpret_cast<PFN_Direct3DCreate9>(DdrawWrapper::Direct3DCreate9);
+		static PFN_Direct3DCreate9 Direct3DCreate9 = reinterpret_cast<PFN_Direct3DCreate9>(DdrawWrapper::Direct3DCreate9_out);
 
 		if (!Direct3DCreate9)
 		{
@@ -421,7 +420,7 @@ HRESULT DirectDrawEnumerateHandler(LPVOID lpCallback, LPVOID lpContext, DWORD dw
 	UNREFERENCED_PARAMETER(dwFlags);
 
 	// Declare Direct3DCreate9
-	static PFN_Direct3DCreate9 Direct3DCreate9 = reinterpret_cast<PFN_Direct3DCreate9>(DdrawWrapper::Direct3DCreate9);
+	static PFN_Direct3DCreate9 Direct3DCreate9 = reinterpret_cast<PFN_Direct3DCreate9>(DdrawWrapper::Direct3DCreate9_out);
 
 	if (!Direct3DCreate9)
 	{

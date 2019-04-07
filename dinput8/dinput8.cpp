@@ -27,10 +27,7 @@ AddressLookupTableDinput8<void> ProxyAddressLookupTableDinput8 = AddressLookupTa
 namespace Dinput8Wrapper
 {
 	VISIT_PROCS_DINPUT8(INITIALIZE_WRAPPED_PROC);
-	FARPROC DllGetClassObject_out = nullptr;
-	FARPROC DllCanUnloadNow_out = nullptr;
-	FARPROC DllRegisterServer_out = nullptr;
-	FARPROC DllUnregisterServer_out = nullptr;
+	VISIT_PROCS_DINPUT8_SHARED(INITIALIZE_WRAPPED_PROC);
 }
 
 using namespace Dinput8Wrapper;

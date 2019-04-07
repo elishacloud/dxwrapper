@@ -37,13 +37,11 @@ void ExitDDraw();
 namespace DdrawWrapper
 {
 	VISIT_PROCS_DDRAW(DECLARE_IN_WRAPPED_PROC);
-	const FARPROC DllCanUnloadNow_in = (FARPROC)*dd_DllCanUnloadNow;
-	const FARPROC DllGetClassObject_in = (FARPROC)*dd_DllGetClassObject;
+	VISIT_PROCS_DDRAW_SHARED(DECLARE_IN_WRAPPED_PROC);
 
 	VISIT_PROCS_DDRAW(EXPORT_OUT_WRAPPED_PROC);
-	extern FARPROC DllCanUnloadNow_out;
-	extern FARPROC DllGetClassObject_out;
-	extern FARPROC Direct3DCreate9;
+	VISIT_PROCS_DDRAW_SHARED(EXPORT_OUT_WRAPPED_PROC);
+	extern FARPROC Direct3DCreate9_out;
 }
 
 #undef DECLARE_IN_WRAPPED_PROC

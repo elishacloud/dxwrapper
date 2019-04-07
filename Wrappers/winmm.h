@@ -202,5 +202,5 @@
 	visit(winmmbaseSetWOWHandle, jmpaddr)
 
 #ifdef PROC_CLASS
-PROC_CLASS(winmm, dll, VISIT_PROCS_WINMM)
+PROC_CLASS(winmm, dll, VISIT_PROCS_WINMM, VISIT_PROCS_BLANK)
 #endif

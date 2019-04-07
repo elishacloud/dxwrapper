@@ -24,16 +24,10 @@ HRESULT WINAPI di_DllUnregisterServer();
 namespace DinputWrapper
 {
 	VISIT_PROCS_DINPUT(DECLARE_IN_WRAPPED_PROC);
-	const FARPROC DllCanUnloadNow_in = (FARPROC)*di_DllCanUnloadNow;
-	const FARPROC DllGetClassObject_in = (FARPROC)*di_DllGetClassObject;
-	const FARPROC DllRegisterServer_in = (FARPROC)*di_DllRegisterServer;
-	const FARPROC DllUnregisterServer_in = (FARPROC)*di_DllUnregisterServer;
+	VISIT_PROCS_DINPUT_SHARED(DECLARE_IN_WRAPPED_PROC);
 
 	extern FARPROC DirectInput8Create_out;
-	extern FARPROC DllCanUnloadNow_out;
-	extern FARPROC DllGetClassObject_out;
-	extern FARPROC DllRegisterServer_out;
-	extern FARPROC DllUnregisterServer_out;
+	VISIT_PROCS_DINPUT_SHARED(EXPORT_OUT_WRAPPED_PROC);
 }
 
 #undef DECLARE_IN_WRAPPED_PROC

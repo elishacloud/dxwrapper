@@ -29,12 +29,10 @@ HRESULT WINAPI ds_DllCanUnloadNow();
 namespace DsoundWrapper
 {
 	VISIT_PROCS_DSOUND(DECLARE_IN_WRAPPED_PROC);
-	const FARPROC DllGetClassObject_in = (FARPROC)*ds_DllGetClassObject;
-	const FARPROC DllCanUnloadNow_in = (FARPROC)*ds_DllCanUnloadNow;
+	VISIT_PROCS_DSOUND_SHARED(DECLARE_IN_WRAPPED_PROC);
 
 	VISIT_PROCS_DSOUND(EXPORT_OUT_WRAPPED_PROC);
-	extern FARPROC DllGetClassObject_out;
-	extern FARPROC DllCanUnloadNow_out;
+	VISIT_PROCS_DSOUND_SHARED(EXPORT_OUT_WRAPPED_PROC);
 }
 
 #undef DECLARE_IN_WRAPPED_PROC

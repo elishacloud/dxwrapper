@@ -33,5 +33,5 @@
 	visit(D3D10StateBlockMaskUnion, jmpaddr)
 
 #ifdef PROC_CLASS
-PROC_CLASS(d3d10, dll, VISIT_PROCS_D3D10)
+PROC_CLASS(d3d10, dll, VISIT_PROCS_D3D10, VISIT_PROCS_BLANK)
 #endif

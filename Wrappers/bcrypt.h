@@ -61,5 +61,5 @@
 	visit(BCryptVerifySignature, jmpaddr)
 
 #ifdef PROC_CLASS
-PROC_CLASS(bcrypt, dll, VISIT_PROCS_BCRYPT)
+PROC_CLASS(bcrypt, dll, VISIT_PROCS_BCRYPT, VISIT_PROCS_BLANK)
 #endif

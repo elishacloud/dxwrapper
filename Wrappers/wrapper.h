@@ -53,47 +53,52 @@ namespace Wrapper
 #include "wininet.h"
 #include "winmm.h"
 
-#define DECLARE_FORWARD_FUNCTIONS(procName, unused) \
-	extern "C" void __stdcall procName();
-
 #define DECLARE_PROC_VARABLES(procName, unused) \
+	extern FARPROC procName ## _funct; \
 	extern FARPROC procName ## _var;
 
-namespace ShardProcs
-{
-	VISIT_PROCS_SHAREDPROCS(DECLARE_FORWARD_FUNCTIONS);
-	VISIT_PROCS_SHAREDPROCS(DECLARE_PROC_VARABLES);
-}
+#define	DECLARE_PROC_VARABLES_SHARED(procName, procName_shared, unused) \
+	extern FARPROC procName ## _funct; \
+	extern FARPROC procName ## _var;
+
 namespace ddraw
 {
-	VISIT_PROCS_DDRAW(DECLARE_FORWARD_FUNCTIONS);
 	VISIT_PROCS_DDRAW(DECLARE_PROC_VARABLES);
+	VISIT_SHARED_DDRAW_PROCS(DECLARE_PROC_VARABLES_SHARED);
 	HMODULE Load(const char *ProxyDll, const char *MyDllName);
 }
 namespace dinput
 {
 	VISIT_PROCS_DINPUT(DECLARE_PROC_VARABLES);
+	VISIT_SHARED_DINPUT_PROCS(DECLARE_PROC_VARABLES_SHARED);
 	HMODULE Load(const char *ProxyDll, const char *MyDllName);
 }
 namespace dinput8
 {
 	VISIT_PROCS_DINPUT8(DECLARE_PROC_VARABLES);
+	VISIT_SHARED_DINPUT8_PROCS(DECLARE_PROC_VARABLES_SHARED);
 	HMODULE Load(const char *ProxyDll, const char *MyDllName);
 }
 namespace d3d8
 {
 	VISIT_PROCS_D3D8(DECLARE_PROC_VARABLES);
+	VISIT_SHARED_D3D8_PROCS(DECLARE_PROC_VARABLES_SHARED);
 	HMODULE Load(const char *ProxyDll, const char *MyDllName);
 }
 namespace d3d9
 {
-	VISIT_PROCS_D3D9(DECLARE_FORWARD_FUNCTIONS);
 	VISIT_PROCS_D3D9(DECLARE_PROC_VARABLES);
+	VISIT_SHARED_D3D9_PROCS(DECLARE_PROC_VARABLES_SHARED);
 	HMODULE Load(const char *ProxyDll, const char *MyDllName);
 }
 namespace dsound
 {
-	VISIT_PROCS_DSOUND(DECLARE_FORWARD_FUNCTIONS);
 	VISIT_PROCS_DSOUND(DECLARE_PROC_VARABLES);
+	VISIT_SHARED_DSOUND_PROCS(DECLARE_PROC_VARABLES_SHARED);
 	HMODULE Load(const char *ProxyDll, const char *MyDllName);
+}
+namespace ShardProcs
+{
+	VISIT_PROCS_SHAREDPROCS(DECLARE_PROC_VARABLES);
+	void Load(HMODULE dll);
 }

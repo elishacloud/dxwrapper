@@ -22,16 +22,10 @@ LPCDIDATAFORMAT WINAPI di8_GetdfDIJoystick();
 namespace Dinput8Wrapper
 {
 	VISIT_PROCS_DINPUT8(DECLARE_IN_WRAPPED_PROC);
-	const FARPROC DllGetClassObject_in = (FARPROC)*di8_DllGetClassObject;
-	const FARPROC DllCanUnloadNow_in = (FARPROC)*di8_DllCanUnloadNow;
-	const FARPROC DllRegisterServer_in = (FARPROC)*di8_DllRegisterServer;
-	const FARPROC DllUnregisterServer_in = (FARPROC)*di8_DllUnregisterServer;
+	VISIT_PROCS_DINPUT8_SHARED(DECLARE_IN_WRAPPED_PROC);
 
 	VISIT_PROCS_DINPUT8(EXPORT_OUT_WRAPPED_PROC);
-	extern FARPROC DllGetClassObject_out;
-	extern FARPROC DllCanUnloadNow_out;
-	extern FARPROC DllRegisterServer_out;
-	extern FARPROC DllUnregisterServer_out;
+	VISIT_PROCS_DINPUT8_SHARED(EXPORT_OUT_WRAPPED_PROC);
 }
 
 #undef DECLARE_IN_WRAPPED_PROC

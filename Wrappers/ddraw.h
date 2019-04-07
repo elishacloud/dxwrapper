@@ -50,6 +50,14 @@
 	visit(DirectDrawCreateEx) \
 	visit(DllGetClassObject)
 
+#define VISIT_PROCS_DDRAW_SHARED(visit) \
+	visit(DllCanUnloadNow, jmpaddr) \
+	visit(DllGetClassObject, jmpaddr)
+
+#define VISIT_SHARED_DDRAW_PROCS(visit) \
+	visit(DllCanUnloadNow, DllCanUnloadNow_ddraw, jmpaddr) \
+	visit(DllGetClassObject, DllGetClassObject_ddraw, jmpaddr)
+
 #undef VISIT_ALL_DDRAW_PROCS
 #define VISIT_ALL_DDRAW_PROCS(visit) \
 	VISIT_UNMODIFIED_DDRAW_PROCS(visit) \
@@ -68,5 +76,5 @@
 	VISIT_ALL_DDRAW_PROCS(visit)
 
 #ifdef PROC_CLASS
-PROC_CLASS(ddraw, dll, VISIT_PROCS_DDRAW)
+PROC_CLASS(ddraw, dll, VISIT_PROCS_DDRAW, VISIT_SHARED_DDRAW_PROCS)
 #endif

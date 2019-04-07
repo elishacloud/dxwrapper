@@ -18,5 +18,5 @@
 	visit(D3DPerformance_SetMarker, jmpaddr)
 
 #ifdef PROC_CLASS
-PROC_CLASS(d3d11, dll, VISIT_PROCS_D3D11)
+PROC_CLASS(d3d11, dll, VISIT_PROCS_D3D11, VISIT_PROCS_BLANK)
 #endif

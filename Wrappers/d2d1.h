@@ -18,5 +18,5 @@
 	visit(D2DTkCreateAlgorithmFactory, jmpaddr)
 
 #ifdef PROC_CLASS
-PROC_CLASS(d2d1, dll, VISIT_PROCS_D2D1)
+PROC_CLASS(d2d1, dll, VISIT_PROCS_D2D1, VISIT_PROCS_BLANK)
 #endif

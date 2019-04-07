@@ -297,5 +297,5 @@
 	visit(_GetFileExtensionFromUrl, jmpaddr)
 
 #ifdef PROC_CLASS
-PROC_CLASS(wininet, dll, VISIT_PROCS_WININET)
+PROC_CLASS(wininet, dll, VISIT_PROCS_WININET, VISIT_PROCS_BLANK)
 #endif

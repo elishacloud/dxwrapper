@@ -18,25 +18,39 @@
 */
 
 #include "d3d8External.h"
+#include "d3d9\d3d9External.h"
 #include "External\d3d8to9\source\d3d8to9.hpp"
 #include "External\d3d8to9\source\d3dx9.hpp"
 #include "Settings\Settings.h"
 #include "Logging\Logging.h"
 
 typedef LPDIRECT3D9(WINAPI *PFN_Direct3DCreate9)(UINT SDKVersion);
+typedef void(WINAPI *DebugSetMuteProc)();
+typedef void(WINAPI *Direct3D8EnableMaximizedWindowedModeShimProc)();
 
 namespace D3d8Wrapper
 {
-	FARPROC Direct3DCreate9;
+	FARPROC Direct3DCreate9_out = nullptr;
+	FARPROC Direct3D8EnableMaximizedWindowedModeShim_out = nullptr;
+	FARPROC DebugSetMute_out = nullptr;
 }
 
 PFN_D3DXAssembleShader D3DXAssembleShader = nullptr;
 PFN_D3DXDisassembleShader D3DXDisassembleShader = nullptr;
 PFN_D3DXLoadSurfaceFromSurface D3DXLoadSurfaceFromSurface = nullptr;
 
+using namespace D3d8Wrapper;
+
 void WINAPI d8_Direct3D8EnableMaximizedWindowedModeShim()
 {
-	return;
+	static Direct3D8EnableMaximizedWindowedModeShimProc m_pDirect3D8EnableMaximizedWindowedModeShim = (Wrapper::ValidProcAddress(Direct3D8EnableMaximizedWindowedModeShim_out)) ? (Direct3D8EnableMaximizedWindowedModeShimProc)Direct3D8EnableMaximizedWindowedModeShim_out : nullptr;
+
+	if (!m_pDirect3D8EnableMaximizedWindowedModeShim)
+	{
+		return;
+	}
+
+	return m_pDirect3D8EnableMaximizedWindowedModeShim();
 }
 
 HRESULT WINAPI d8_ValidatePixelShader(DWORD* pixelshader, DWORD* reserved1, BOOL flag, DWORD* toto)
@@ -92,7 +106,14 @@ HRESULT WINAPI d8_ValidateVertexShader(DWORD* vertexshader, DWORD* reserved1, DW
 
 void WINAPI d8_DebugSetMute()
 {
-	return;
+	static DebugSetMuteProc m_pDebugSetMute = (Wrapper::ValidProcAddress(DebugSetMute_out)) ? (DebugSetMuteProc)DebugSetMute_out : nullptr;
+
+	if (!m_pDebugSetMute)
+	{
+		return;
+	}
+
+	return m_pDebugSetMute();
 }
 
 Direct3D8 *WINAPI d8_Direct3DCreate8(UINT SDKVersion)
@@ -105,7 +126,7 @@ Direct3D8 *WINAPI d8_Direct3DCreate8(UINT SDKVersion)
 	Logging::Log() << "Enabling D3d8to9 function (" << SDKVersion << ")";
 
 	// Declare Direct3DCreate9
-	static PFN_Direct3DCreate9 Direct3DCreate9 = reinterpret_cast<PFN_Direct3DCreate9>(D3d8Wrapper::Direct3DCreate9);
+	static PFN_Direct3DCreate9 Direct3DCreate9 = reinterpret_cast<PFN_Direct3DCreate9>(Direct3DCreate9_out);
 	if (!Direct3DCreate9)
 	{
 		Logging::Log() << "Failed to get 'Direct3DCreate9' ProcAddress of d3d9.dll!";

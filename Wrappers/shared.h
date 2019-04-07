@@ -63,12 +63,14 @@
 #ifdef PROC_CLASS
 namespace ShardProcs
 {
-#define CREATE_PROC_STUB_CONFLICT(procName, unused) \
+#define CREATE_PROC_STUB_CONFLICT(procName, prodAddr) \
+	FARPROC procName ## _var = prodAddr; \
 	extern "C" __declspec(naked) void __stdcall CF_ ## procName() \
 	{ \
 		__asm mov edi, edi \
 		__asm jmp procName ## _var \
-	}
+	} \
+	FARPROC procName ## _funct = (FARPROC)*CF_ ## procName;
 
 #define	STORE_ORIGINAL_PROC_CONFLICT(procName, prodAddr) \
 	tmpMap.Proc = (FARPROC)*(CF_ ## procName); \
@@ -76,7 +78,6 @@ namespace ShardProcs
 	jmpArray.push_back(tmpMap);
 
 	using namespace Wrapper;
-	VISIT_PROCS_SHAREDPROCS(ADD_FARPROC_MEMBER);
 	VISIT_SHAREDPROCS(CREATE_PROC_STUB);
 	VISIT_SHAREDPROCS_CONFLICT(CREATE_PROC_STUB_CONFLICT);
 	void Load(HMODULE dll)

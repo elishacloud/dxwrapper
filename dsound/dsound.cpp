@@ -25,8 +25,7 @@ AddressLookupTableDsound<void> ProxyAddressLookupTableDsound = AddressLookupTabl
 namespace DsoundWrapper
 {
 	VISIT_PROCS_DSOUND(INITIALIZE_WRAPPED_PROC);
-	FARPROC DllGetClassObject_out = nullptr;
-	FARPROC DllCanUnloadNow_out = nullptr;
+	VISIT_PROCS_DSOUND_SHARED(INITIALIZE_WRAPPED_PROC);
 }
 
 using namespace DsoundWrapper;

@@ -21,15 +21,25 @@
 #include <fstream>
 #include "Logging\Logging.h"
 
-#define ADD_FARPROC_MEMBER(procName, prodAddr) \
-	FARPROC procName ## _var = prodAddr;
+#define VISIT_PROCS_BLANK(visit)
 
-#define CREATE_PROC_STUB(procName, unused) \
+#define CREATE_PROC_STUB(procName, prodAddr) \
+	FARPROC procName ## _var = prodAddr; \
 	extern "C" __declspec(naked) void __stdcall procName() \
 	{ \
 		__asm mov edi, edi \
 		__asm jmp procName ## _var \
-	}
+	} \
+	FARPROC procName ## _funct = (FARPROC)*procName;
+
+#define CREATE_PROC_STUB_SHARED(procName, procName_shared, prodAddr) \
+	FARPROC procName ## _var = prodAddr; \
+	extern "C" __declspec(naked) void __stdcall procName_shared() \
+	{ \
+		__asm mov edi, edi \
+		__asm jmp procName ## _var \
+	} \
+	FARPROC procName ## _funct = (FARPROC)*procName_shared;
 
 #define	LOAD_ORIGINAL_PROC(procName, unused) \
 	{ \
@@ -40,18 +50,24 @@
 		} \
 	}
 
-#define	STORE_ORIGINAL_PROC(procName, prodAddr) \
-	tmpMap.Proc = (FARPROC)*(procName); \
+#define	LOAD_ORIGINAL_PROC_SHARED(procName, unused, unused_2) \
+	LOAD_ORIGINAL_PROC(procName, unused)
+
+#define	STORE_ORIGINAL_PROC(procName, unused) \
+	tmpMap.Proc = procName ## _funct; \
 	tmpMap.val = &(procName ## _var); \
 	jmpArray.push_back(tmpMap);
 
-#define PROC_CLASS(className, Extension, VISIT_PROCS) \
+#define	STORE_ORIGINAL_PROC_SHARED(procName, unused, unused_2) \
+	STORE_ORIGINAL_PROC(procName, unused)
+
+#define PROC_CLASS(className, Extension, VISIT_PROCS, VISIT_PROCS_SHARED) \
 	namespace className \
 	{ \
 		using namespace Wrapper; \
 		char *Name = #className ## "." ## #Extension; \
-		VISIT_PROCS(ADD_FARPROC_MEMBER); \
 		VISIT_PROCS(CREATE_PROC_STUB); \
+		VISIT_PROCS_SHARED(CREATE_PROC_STUB_SHARED); \
 		HMODULE Load(const char *ProxyDll, const char *MyDllName) \
 		{ \
 			char path[MAX_PATH]; \
@@ -82,7 +98,7 @@
 			if (dll) \
 			{ \
 				VISIT_PROCS(LOAD_ORIGINAL_PROC); \
-				ShardProcs::Load(dll); \
+				VISIT_PROCS_SHARED(LOAD_ORIGINAL_PROC_SHARED); \
 			} \
 			else \
 			{ \
@@ -94,6 +110,7 @@
 		{ \
 			wrapper_map tmpMap; \
 			VISIT_PROCS(STORE_ORIGINAL_PROC); \
+			VISIT_PROCS_SHARED(STORE_ORIGINAL_PROC_SHARED); \
 		} \
 	}
 
@@ -114,6 +131,7 @@ namespace Wrapper
 	const FARPROC jmpaddrvoid = (FARPROC)*_jmpaddrvoid;
 	std::vector<wrapper_map> jmpArray;
 	const char *GetWrapperName(const char *WrapperMode);
+	HMODULE GetWrapperType(const char *ProxyDll, const char *WrapperMode, const char *MyDllName);
 }
 
 #include "wrapper.h"
@@ -198,6 +216,18 @@ bool Wrapper::CheckWrapperName(const char *WrapperMode)
 }
 
 HMODULE Wrapper::CreateWrapper(const char *ProxyDll, const char *WrapperMode, const char *MyDllName)
+{
+	HMODULE dll = GetWrapperType(ProxyDll, WrapperMode, MyDllName);
+
+	if (dll)
+	{
+		ShardProcs::Load(dll);
+	}
+
+	return dll;
+}
+
+HMODULE Wrapper::GetWrapperType(const char *ProxyDll, const char *WrapperMode, const char *MyDllName)
 {
 	// Add all procs to array
 #define ADD_PROC_TO_ARRAY(dllName) \

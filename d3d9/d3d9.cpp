@@ -23,7 +23,7 @@
 namespace D3d9Wrapper
 {
 	VISIT_PROCS_D3D9(INITIALIZE_WRAPPED_PROC);
-	FARPROC DebugSetMute_out = nullptr;
+	VISIT_PROCS_D3D9_SHARED(INITIALIZE_WRAPPED_PROC);
 }
 
 using namespace D3d9Wrapper;

@@ -47,5 +47,5 @@ visit(acmStreamSize, jmpaddr) \
 visit(acmStreamUnprepareHeader, jmpaddr)
 
 #ifdef PROC_CLASS
-PROC_CLASS(msacm32, dll, VISIT_PROCS_MSACM32)
+PROC_CLASS(msacm32, dll, VISIT_PROCS_MSACM32, VISIT_PROCS_BLANK)
 #endif
