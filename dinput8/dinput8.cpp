@@ -18,6 +18,7 @@
 #include <Windows.h>
 #include "dinput8.h"
 #include "dinput8External.h"
+#include "IClassFactory\IClassFactory.h"
 
 AddressLookupTableDinput8<void> ProxyAddressLookupTableDinput8 = AddressLookupTableDinput8<void>();
 
@@ -47,7 +48,7 @@ HRESULT WINAPI di8_DirectInput8Create(HINSTANCE hinst, DWORD dwVersion, REFIID r
 
 	if (SUCCEEDED(hr))
 	{
-		dinput8QueryInterface(riidltf, ppvOut);
+		genericQueryInterface(riidltf, ppvOut);
 	}
 
 	return hr;
@@ -78,7 +79,16 @@ HRESULT WINAPI di8_DllGetClassObject(IN REFCLSID rclsid, IN REFIID riid, OUT LPV
 
 	if (SUCCEEDED(hr))
 	{
-		dinput8QueryInterface(riid, ppv);
+		if (riid == IID_IClassFactory)
+		{
+			*ppv = new m_IClassFactory((IClassFactory*)*ppv, genericQueryInterface);
+
+			((m_IClassFactory*)(*ppv))->SetCLSID(rclsid);
+
+			return S_OK;
+		}
+
+		genericQueryInterface(riid, ppv);
 	}
 
 	return hr;

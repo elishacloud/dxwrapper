@@ -216,7 +216,6 @@ cmd /c "@echo off &amp;&amp; cd /D ""$(ProjectDir)Dllmain\"" &amp;&amp; type Bui
     <ClCompile Include="DDrawCompat\v0.2.1\Time.cpp" />
     <ClCompile Include="DDrawCompat\v0.2.1\UnmodifiedDDrawProcs.cpp" />
     <ClCompile Include="ddraw\ddraw.cpp" />
-    <ClCompile Include="ddraw\IClassFactory.cpp" />
     <ClCompile Include="ddraw\IDirect3DDeviceX.cpp" />
     <ClCompile Include="ddraw\IDirect3DEnumCallback.cpp" />
     <ClCompile Include="ddraw\IDirect3DMaterialX.cpp" />
@@ -334,6 +333,7 @@ cmd /c "@echo off &amp;&amp; cd /D ""$(ProjectDir)Dllmain\"" &amp;&amp; type Bui
     <ClCompile Include="External\Hooking\HotPatch.cpp" />
     <ClCompile Include="External\Hooking\IATPatch.cpp" />
     <ClCompile Include="External\Logging\Logging.cpp" />
+    <ClCompile Include="IClassFactory\IClassFactory.cpp" />
     <ClCompile Include="Libraries\d3dx9.cpp" />
     <ClCompile Include="libraries\dwmapi.cpp" />
     <ClCompile Include="libraries\uxtheme.cpp" />
@@ -508,7 +508,6 @@ cmd /c "@echo off &amp;&amp; cd /D ""$(ProjectDir)Dllmain\"" &amp;&amp; type Bui
     <ClInclude Include="ddraw\AddressLookupTable.h" />
     <ClInclude Include="ddraw\ddraw.h" />
     <ClInclude Include="ddraw\ddrawExternal.h" />
-    <ClInclude Include="ddraw\IClassFactory.h" />
     <ClInclude Include="ddraw\IDirect3DDeviceX.h" />
     <ClInclude Include="ddraw\IDirect3DEnumCallback.h" />
     <ClInclude Include="ddraw\IDirect3DMaterialX.h" />
@@ -619,6 +618,7 @@ cmd /c "@echo off &amp;&amp; cd /D ""$(ProjectDir)Dllmain\"" &amp;&amp; type Bui
     <ClInclude Include="External\dinputto8\Versions\IDirectInputW.h" />
     <ClInclude Include="External\Hooking\Hook.h" />
     <ClInclude Include="External\Logging\Logging.h" />
+    <ClInclude Include="IClassFactory\IClassFactory.h" />
     <ClInclude Include="Libraries\d3dx9.h" />
     <ClInclude Include="libraries\dwmapi.h" />
     <ClInclude Include="libraries\uxtheme.h" />

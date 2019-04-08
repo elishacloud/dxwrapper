@@ -16,7 +16,7 @@
 
 #include "dsound.h"
 
-void DsoundQueryInterface(REFIID riid, LPVOID * ppvObj)
+void WINAPI DsoundWrapper::genericQueryInterface(REFIID riid, LPVOID * ppvObj)
 {
 	if (!ppvObj || !*ppvObj)
 	{

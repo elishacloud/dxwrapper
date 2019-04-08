@@ -31,7 +31,7 @@ HRESULT m_IDirectSoundCaptureBuffer8::QueryInterface(REFIID riid, LPVOID * ppvOb
 
 	if (SUCCEEDED(hr))
 	{
-		DsoundQueryInterface(riid, ppvObj);
+		genericQueryInterface(riid, ppvObj);
 	}
 
 	return hr;
@@ -112,7 +112,7 @@ HRESULT m_IDirectSoundCaptureBuffer8::GetObjectInPath(REFGUID rguidObject, DWORD
 
 	if (SUCCEEDED(hr))
 	{
-		DsoundQueryInterface(rguidInterface, ppObject);
+		genericQueryInterface(rguidInterface, ppObject);
 	}
 
 	return hr;

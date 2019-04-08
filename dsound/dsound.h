@@ -40,8 +40,14 @@ typedef HRESULT(WINAPI *DirectSoundFullDuplexCreateProc)(LPCGUID, LPCGUID, LPCDS
 typedef HRESULT(WINAPI *DirectSoundCreate8Proc)(LPCGUID, LPDIRECTSOUND8*, LPUNKNOWN);
 typedef HRESULT(WINAPI *DirectSoundCaptureCreate8Proc)(LPCGUID, LPDIRECTSOUNDCAPTURE8*, LPUNKNOWN);
 
-void DsoundQueryInterface(REFIID riid, LPVOID * ppvObj);
+namespace DsoundWrapper
+{
+	void WINAPI genericQueryInterface(REFIID riid, LPVOID * ppvObj);
+}
+
 extern AddressLookupTableDsound<void> ProxyAddressLookupTableDsound;
+
+using namespace DsoundWrapper;
 
 #include "IDirectSound8.h"
 #include "IDirectSound3DBuffer8.h"

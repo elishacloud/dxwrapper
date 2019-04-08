@@ -21,8 +21,14 @@ typedef HRESULT(WINAPI *DllRegisterServerProc)();
 typedef HRESULT(WINAPI *DllUnregisterServerProc)();
 typedef	LPCDIDATAFORMAT(WINAPI *GetdfDIJoystickProc)();
 
-void dinput8QueryInterface(REFIID CalledID, LPVOID * ppvObj);
+namespace Dinput8Wrapper
+{
+	void WINAPI genericQueryInterface(REFIID CalledID, LPVOID * ppvObj);
+}
+
 extern AddressLookupTableDinput8<void> ProxyAddressLookupTableDinput8;
+
+using namespace Dinput8Wrapper;
 
 #include "IDirectInput8A.h"
 #include "IDirectInput8W.h"

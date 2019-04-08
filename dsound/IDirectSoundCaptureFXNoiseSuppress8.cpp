@@ -31,7 +31,7 @@ HRESULT m_IDirectSoundCaptureFXNoiseSuppress8::QueryInterface(REFIID riid, LPVOI
 
 	if (SUCCEEDED(hr))
 	{
-		DsoundQueryInterface(riid, ppvObj);
+		genericQueryInterface(riid, ppvObj);
 	}
 
 	return hr;

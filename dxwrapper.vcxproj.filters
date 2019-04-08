@@ -80,6 +80,9 @@
     <Filter Include="dinput8">
       <UniqueIdentifier>{e3daf364-ede8-460d-aac0-8e7016c2f18e}</UniqueIdentifier>
     </Filter>
+    <Filter Include="IClassFactory">
+      <UniqueIdentifier>{5bdf9ac3-800a-4a16-9c5d-d2f3c097b237}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="libraries\dwmapi.cpp">
@@ -637,9 +640,6 @@
     <ClCompile Include="External\d3d8to9\source\lookup_table.cpp">
       <Filter>External\d3d8to9</Filter>
     </ClCompile>
-    <ClCompile Include="ddraw\IClassFactory.cpp">
-      <Filter>ddraw</Filter>
-    </ClCompile>
     <ClCompile Include="External\Logging\Logging.cpp">
       <Filter>External\Logging</Filter>
     </ClCompile>
@@ -807,6 +807,9 @@
     </ClCompile>
     <ClCompile Include="dinput8\dinput8External.h">
       <Filter>dinput8</Filter>
+    </ClCompile>
+    <ClCompile Include="IClassFactory\IClassFactory.cpp">
+      <Filter>IClassFactory</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -1535,9 +1538,6 @@
     <ClInclude Include="External\d3d8to9\source\lookup_table.hpp">
       <Filter>External\d3d8to9</Filter>
     </ClInclude>
-    <ClInclude Include="ddraw\IClassFactory.h">
-      <Filter>ddraw</Filter>
-    </ClInclude>
     <ClInclude Include="Wrappers\version.h">
       <Filter>Wrappers</Filter>
     </ClInclude>
@@ -1708,6 +1708,9 @@
     </ClInclude>
     <ClInclude Include="dinput8\IDirectInputEnumEffect.h">
       <Filter>dinput8</Filter>
+    </ClInclude>
+    <ClInclude Include="IClassFactory\IClassFactory.h">
+      <Filter>IClassFactory</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

@@ -31,7 +31,7 @@ HRESULT m_IDirectInputDevice8A::QueryInterface(REFIID riid, LPVOID * ppvObj)
 
 	if (SUCCEEDED(hr))
 	{
-		dinput8QueryInterface(riid, ppvObj);
+		genericQueryInterface(riid, ppvObj);
 	}
 
 	return hr;

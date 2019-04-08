@@ -31,7 +31,7 @@ HRESULT m_IDirectSoundFXI3DL2Reverb8::QueryInterface(REFIID riid, LPVOID * ppvOb
 
 	if (SUCCEEDED(hr))
 	{
-		DsoundQueryInterface(riid, ppvObj);
+		genericQueryInterface(riid, ppvObj);
 	}
 
 	return hr;

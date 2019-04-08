@@ -26,8 +26,6 @@ public:
 	template <typename T>
 	struct AddressCacheIndex { static constexpr UINT CacheIndex = 0; };
 	template <>
-	struct AddressCacheIndex<IClassFactory> { static constexpr UINT CacheIndex = 1; };
-	template <>
 	struct AddressCacheIndex<IDirect3DExecuteBuffer> { static constexpr UINT CacheIndex = 2; };
 	template <>
 	struct AddressCacheIndex<IDirect3DLight> { static constexpr UINT CacheIndex = 3; };

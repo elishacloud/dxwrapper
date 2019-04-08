@@ -31,7 +31,7 @@ HRESULT m_IKsPropertySet::QueryInterface(REFIID riid, LPVOID * ppvObj)
 
 	if (SUCCEEDED(hr))
 	{
-		DsoundQueryInterface(riid, ppvObj);
+		genericQueryInterface(riid, ppvObj);
 	}
 
 	return hr;

@@ -31,7 +31,7 @@ HRESULT m_IDirectSound3DBuffer8::QueryInterface(REFIID riid, LPVOID * ppvObj)
 
 	if (SUCCEEDED(hr))
 	{
-		DsoundQueryInterface(riid, ppvObj);
+		genericQueryInterface(riid, ppvObj);
 	}
 
 	return hr;

@@ -21,11 +21,14 @@
 #include "d3dhal.h"
 #include "ddrawExternal.h"
 #include "Dllmain\Dllmain.h"
+#include "IClassFactory\IClassFactory.h"
 
 AddressLookupTableDdraw<void> ProxyAddressLookupTable = AddressLookupTableDdraw<void>();
-bool ThreadSyncFlag = false;
 
 CRITICAL_SECTION ddcs;
+bool ThreadSyncFlag = false;
+
+bool IsInitialized = false;
 
 #define INITIALIZE_WRAPPED_PROC(procName, unused) \
 	FARPROC procName ## _out = nullptr;
@@ -38,8 +41,6 @@ namespace DdrawWrapper
 }
 
 using namespace DdrawWrapper;
-
-bool IsInitialized = false;
 
 void InitDDraw()
 {
@@ -325,7 +326,7 @@ HRESULT WINAPI dd_DirectDrawCreateEx(GUID FAR *lpGUID, LPVOID *lplpDD, REFIID ri
 	if (Config.Dd7to9)
 	{
 		// Declare Direct3DCreate9
-		static PFN_Direct3DCreate9 Direct3DCreate9 = reinterpret_cast<PFN_Direct3DCreate9>(DdrawWrapper::Direct3DCreate9_out);
+		static PFN_Direct3DCreate9 Direct3DCreate9 = reinterpret_cast<PFN_Direct3DCreate9>(Direct3DCreate9_out);
 
 		if (!Direct3DCreate9)
 		{
@@ -420,7 +421,7 @@ HRESULT DirectDrawEnumerateHandler(LPVOID lpCallback, LPVOID lpContext, DWORD dw
 	UNREFERENCED_PARAMETER(dwFlags);
 
 	// Declare Direct3DCreate9
-	static PFN_Direct3DCreate9 Direct3DCreate9 = reinterpret_cast<PFN_Direct3DCreate9>(DdrawWrapper::Direct3DCreate9_out);
+	static PFN_Direct3DCreate9 Direct3DCreate9 = reinterpret_cast<PFN_Direct3DCreate9>(Direct3DCreate9_out);
 
 	if (!Direct3DCreate9)
 	{
@@ -643,12 +644,16 @@ HRESULT WINAPI dd_DllGetClassObject(REFCLSID rclsid, REFIID riid, LPVOID *ppv)
 
 	if (SUCCEEDED(hr) && ppv)
 	{
-		genericQueryInterface(riid, ppv);
-
-		if (riid == IID_IClassFactory && *ppv)
+		if (riid == IID_IClassFactory)
 		{
+			*ppv = new m_IClassFactory((IClassFactory*)*ppv, genericQueryInterface);
+
 			((m_IClassFactory*)(*ppv))->SetCLSID(rclsid);
+
+			return S_OK;
 		}
+
+		genericQueryInterface(riid, ppv);
 	}
 
 	return hr;
@@ -784,7 +789,7 @@ HRESULT WINAPI dd_SetAppCompatData(DWORD Type, DWORD Value)
 	return m_pSetAppCompatData(Type, Value);
 }
 
-void SetCriticalSection()
+void DdrawWrapper::SetCriticalSection()
 {
 	while (ThreadSyncFlag)
 	{
@@ -794,7 +799,7 @@ void SetCriticalSection()
 	ThreadSyncFlag = true;
 }
 
-void ReleaseCriticalSection()
+void DdrawWrapper::ReleaseCriticalSection()
 {
 	ThreadSyncFlag = false;
 }

@@ -14,7 +14,8 @@
 *   3. This notice may not be removed or altered from any source distribution.
 */
 
-#include "ddraw.h"
+#include "IClassFactory.h"
+#include "ddraw\ddraw.h"
 
 /************************/
 /*** IUnknown methods ***/
@@ -24,19 +25,47 @@ HRESULT m_IClassFactory::QueryInterface(REFIID riid, LPVOID FAR * ppvObj)
 {
 	Logging::LogDebug() << __FUNCTION__;
 
-	if (!ProxyInterface)
+	if (!ppvObj)
 	{
-		if ((riid == IID_IClassFactory || riid == IID_IUnknown) && ppvObj)
-		{
-			AddRef();
-
-			*ppvObj = this;
-
-			return S_OK;
-		}
+		return E_FAIL;
 	}
 
-	return ProxyQueryInterface(ProxyInterface, riid, ppvObj, WrapperID, this);
+	if ((riid == IID_IClassFactory || riid == IID_IUnknown) && ppvObj)
+	{
+		AddRef();
+
+		*ppvObj = this;
+
+		return S_OK;
+	}
+
+	Logging::LogDebug() << "Query for " << riid << " from " << WrapperID;
+
+	if (!ProxyInterface)
+	{
+		if (riid == IID_IDirectDrawFactory)
+		{
+			*ppvObj = new m_IDirectDrawFactory(nullptr);
+			return S_OK;
+		}
+
+		Logging::Log() << __FUNCTION__ << " Query Not Implemented for " << riid << " from " << WrapperID;
+		*ppvObj = nullptr;
+		return E_NOINTERFACE;
+	}
+
+	HRESULT hr = ProxyInterface->QueryInterface(DdrawWrapper::ConvertREFIID(riid), ppvObj);
+
+	if (SUCCEEDED(hr))
+	{
+		IQueryInterface(riid, ppvObj);
+	}
+	else
+	{
+		Logging::LogDebug() << "Query failed for " << riid << " Error " << hr;
+	}
+
+	return hr;
 }
 
 ULONG m_IClassFactory::AddRef()
@@ -104,7 +133,7 @@ HRESULT m_IClassFactory::CreateInstance(IUnknown *pUnkOuter, REFIID riid, void *
 			}
 
 			// Convert to new DirectDraw version
-			if (ConvertREFIID(riid) != IID_IDirectDraw)
+			if (DdrawWrapper::ConvertREFIID(riid) != IID_IDirectDraw)
 			{
 				LPDIRECTDRAW lpDD = (LPDIRECTDRAW)*ppvObject;
 
@@ -126,11 +155,11 @@ HRESULT m_IClassFactory::CreateInstance(IUnknown *pUnkOuter, REFIID riid, void *
 		return E_FAIL;
 	}
 
-	HRESULT hr = ProxyInterface->CreateInstance(pUnkOuter, ConvertREFIID(riid), ppvObject);
+	HRESULT hr = ProxyInterface->CreateInstance(pUnkOuter, DdrawWrapper::ConvertREFIID(riid), ppvObject);
 
 	if (SUCCEEDED(hr))
 	{
-		genericQueryInterface(riid, ppvObject);
+		IQueryInterface(riid, ppvObject);
 	}
 
 	return hr;

@@ -84,17 +84,21 @@ HRESULT WINAPI dd_DirectDrawEnumerateA(LPDDENUMCALLBACKA lpCallback, LPVOID lpCo
 HRESULT WINAPI dd_DirectDrawEnumerateW(LPDDENUMCALLBACKW lpCallback, LPVOID lpContext);
 
 // Function and variable forward declarations
-DWORD GetIIDVersion(REFIID CalledID);
-REFIID ConvertREFIID(REFIID riid);
-void SetCriticalSection();
-void ReleaseCriticalSection();
-void AddRef(void *lpvObj);
-HRESULT ProxyQueryInterface(LPVOID ProxyInterface, REFIID CalledID, LPVOID * ppvObj, REFIID CallerID, LPVOID WrapperInterface);
-void genericQueryInterface(REFIID riid, LPVOID *ppvObj);
+namespace DdrawWrapper
+{
+	DWORD GetIIDVersion(REFIID CalledID);
+	REFIID ConvertREFIID(REFIID riid);
+	void SetCriticalSection();
+	void ReleaseCriticalSection();
+	void AddRef(void *lpvObj);
+	HRESULT ProxyQueryInterface(LPVOID ProxyInterface, REFIID CalledID, LPVOID * ppvObj, REFIID CallerID, LPVOID WrapperInterface);
+	void WINAPI genericQueryInterface(REFIID riid, LPVOID *ppvObj);
+}
+
 extern AddressLookupTableDdraw<void> ProxyAddressLookupTable;
 
-// IClassFactory Wrapper
-#include "IClassFactory.h"
+using namespace DdrawWrapper;
+
 // Direct3D Version Wrappers
 #include "Versions\IDirect3D.h"
 #include "Versions\IDirect3D2.h"

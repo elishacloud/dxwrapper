@@ -15,8 +15,9 @@
 */
 
 #include "ddraw.h"
+#include "IClassFactory\IClassFactory.h"
 
-DWORD GetIIDVersion(REFIID riid)
+DWORD DdrawWrapper::GetIIDVersion(REFIID riid)
 {
 	return (riid == IID_IDirectDraw || riid == IID_IDirectDrawSurface || riid == IID_IDirect3D || riid == IID_IDirect3DDevice ||
 		riid == IID_IDirect3DMaterial || riid == IID_IDirect3DTexture || riid == IID_IDirect3DVertexBuffer || riid == IID_IDirect3DViewport ||
@@ -31,7 +32,7 @@ DWORD GetIIDVersion(REFIID riid)
 			riid == IID_IDirect3DVertexBuffer7) ? 7 : 0;
 }
 
-REFIID ConvertREFIID(REFIID riid)
+REFIID DdrawWrapper::ConvertREFIID(REFIID riid)
 {
 	if (Config.ConvertToDirectDraw7)
 	{
@@ -75,12 +76,12 @@ REFIID ConvertREFIID(REFIID riid)
 	return riid;
 }
 
-void AddRef(void *lpvObj)
+void DdrawWrapper::AddRef(void *lpvObj)
 {
 	((IUnknown*)lpvObj)->AddRef();
 }
 
-HRESULT ProxyQueryInterface(LPVOID ProxyInterface, REFIID riid, LPVOID * ppvObj, REFIID WrapperID, LPVOID WrapperInterface)
+HRESULT DdrawWrapper::ProxyQueryInterface(LPVOID ProxyInterface, REFIID riid, LPVOID * ppvObj, REFIID WrapperID, LPVOID WrapperInterface)
 {
 	Logging::LogDebug() << "Query for " << riid << " from " << WrapperID;
 
@@ -89,11 +90,20 @@ HRESULT ProxyQueryInterface(LPVOID ProxyInterface, REFIID riid, LPVOID * ppvObj,
 		return E_FAIL;
 	}
 
+	if (riid == WrapperID || riid == IID_IUnknown)
+	{
+		*ppvObj = WrapperInterface;
+
+		AddRef(*ppvObj);
+
+		return S_OK;
+	}
+
 	if (Config.Dd7to9 || !ProxyInterface)
 	{
 		if (riid == IID_IClassFactory)
 		{
-			*ppvObj = new m_IClassFactory(nullptr);
+			*ppvObj = new m_IClassFactory(nullptr, nullptr);
 			return S_OK;
 		}
 		if (riid == IID_IDirectDrawFactory)
@@ -112,16 +122,7 @@ HRESULT ProxyQueryInterface(LPVOID ProxyInterface, REFIID riid, LPVOID * ppvObj,
 		return E_NOINTERFACE;
 	}
 
-	if (riid == WrapperID || riid == IID_IUnknown)
-	{
-		*ppvObj = WrapperInterface;
-
-		AddRef(*ppvObj);
-
-		return S_OK;
-	}
-
-	HRESULT hr = ((IUnknown*)ProxyInterface)->QueryInterface(ConvertREFIID(riid), ppvObj);
+	HRESULT hr = ((IUnknown*)ProxyInterface)->QueryInterface(DdrawWrapper::ConvertREFIID(riid), ppvObj);
 
 	if (SUCCEEDED(hr))
 	{
@@ -135,7 +136,7 @@ HRESULT ProxyQueryInterface(LPVOID ProxyInterface, REFIID riid, LPVOID * ppvObj,
 	return hr;
 }
 
-void genericQueryInterface(REFIID riid, LPVOID *ppvObj)
+void WINAPI DdrawWrapper::genericQueryInterface(REFIID riid, LPVOID *ppvObj)
 {
 	if (!ppvObj || !*ppvObj)
 	{
@@ -148,7 +149,6 @@ void genericQueryInterface(REFIID riid, LPVOID *ppvObj)
 			*ppvObj = ProxyAddressLookupTable.FindAddress<m_ ## x>(*ppvObj); \
 		}
 
-	QUERYINTERFACE(IClassFactory);
 	QUERYINTERFACE(IDirectDrawFactory);
 	QUERYINTERFACE(IDirect3D);
 	QUERYINTERFACE(IDirect3D2);
@@ -184,4 +184,9 @@ void genericQueryInterface(REFIID riid, LPVOID *ppvObj)
 	QUERYINTERFACE(IDirectDrawSurface3);
 	QUERYINTERFACE(IDirectDrawSurface4);
 	QUERYINTERFACE(IDirectDrawSurface7);
+
+	if (riid == IID_IClassFactory)
+	{
+		*ppvObj = new m_IClassFactory((IClassFactory*)*ppvObj, genericQueryInterface);
+	}
 }

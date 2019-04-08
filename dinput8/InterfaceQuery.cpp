@@ -16,7 +16,7 @@
 
 #include "dinput8.h"
 
-void dinput8QueryInterface(REFIID riid, LPVOID * ppvObj)
+void WINAPI Dinput8Wrapper::genericQueryInterface(REFIID riid, LPVOID * ppvObj)
 {
 	if (!ppvObj || !*ppvObj)
 	{

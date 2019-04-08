@@ -17,6 +17,7 @@
 #include "dinput8\dinput8External.h"
 #include "External\dinputto8\resource.h"
 #include "External\dinputto8\dinputto8.h"
+#include "IClassFactory\IClassFactory.h"
 
 #define INITIALIZE_WRAPPED_PROC(procName, unused) \
 	FARPROC procName ## _out = nullptr;
@@ -101,6 +102,15 @@ HRESULT WINAPI di_DllGetClassObject(IN REFCLSID rclsid, IN REFIID riid, OUT LPVO
 
 	if (SUCCEEDED(hr))
 	{
+		if (riid == IID_IClassFactory)
+		{
+			*ppv = new m_IClassFactory((IClassFactory*)*ppv, genericQueryInterface);
+
+			((m_IClassFactory*)(*ppv))->SetCLSID(rclsid);
+
+			return S_OK;
+		}
+
 		genericQueryInterface(riid, ppv);
 	}
 

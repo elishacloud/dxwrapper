@@ -16,6 +16,7 @@
 
 #include "dsound.h"
 #include "dsoundExternal.h"
+#include "IClassFactory\IClassFactory.h"
 
 AddressLookupTableDsound<void> ProxyAddressLookupTableDsound = AddressLookupTableDsound<void>();
 
@@ -100,7 +101,16 @@ HRESULT WINAPI ds_DllGetClassObject(IN REFCLSID rclsid, IN REFIID riid, OUT LPVO
 
 	if (SUCCEEDED(hr))
 	{
-		DsoundQueryInterface(riid, ppv);
+		if (riid == IID_IClassFactory)
+		{
+			*ppv = new m_IClassFactory((IClassFactory*)*ppv, genericQueryInterface);
+
+			((m_IClassFactory*)(*ppv))->SetCLSID(rclsid);
+
+			return S_OK;
+		}
+
+		genericQueryInterface(riid, ppv);
 	}
 
 	return hr;
