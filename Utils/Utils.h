@@ -26,6 +26,8 @@ namespace Utils
 	void LoadPlugins();
 	void UnloadAllDlls();
 	void DDrawResolutionHack(HMODULE hD3DIm);
+	void GetScreenSettings();
+	void ResetScreenSettings();
 
 	namespace WriteMemory
 	{

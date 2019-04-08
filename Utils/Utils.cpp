@@ -62,6 +62,19 @@ namespace Utils
 		std::string fullname;
 	};
 
+	// FontSmoothing
+	struct SystemSettings
+	{
+		BOOL isEnabled = FALSE;
+		UINT type = 0;
+		UINT contrast = 0;
+		UINT orientation = 0;
+	} fontSystemSettings;
+
+	// Screen settings
+	HDC hDC;
+	std::string lpRamp((3 * 256 * 2), '\0');
+
 	// Declare variables
 	FARPROC pGetProcAddress = nullptr;
 	FARPROC pGetModuleFileNameA = nullptr;
@@ -625,5 +638,45 @@ void Utils::DDrawResolutionHack(HMODULE hD3DIm)
 		VirtualProtect((LPVOID)dwPatchBase, 4, PAGE_EXECUTE_READWRITE, &dwOldProtect);
 		*(DWORD *)dwPatchBase = (DWORD)-1;
 		VirtualProtect((LPVOID)dwPatchBase, 4, dwOldProtect, &dwOldProtect);
+	}
+}
+
+void Utils::GetScreenSettings()
+{
+	// Store screen settings
+	hDC = GetDC(nullptr);
+	GetDeviceGammaRamp(hDC, &lpRamp[0]);
+
+	// Store font settings
+	SystemParametersInfo(SPI_GETFONTSMOOTHING, 0, &fontSystemSettings.isEnabled, 0);
+	SystemParametersInfo(SPI_GETFONTSMOOTHINGTYPE, 0, &fontSystemSettings.type, 0);
+	SystemParametersInfo(SPI_GETFONTSMOOTHINGCONTRAST, 0, &fontSystemSettings.contrast, 0);
+	SystemParametersInfo(SPI_GETFONTSMOOTHINGORIENTATION, 0, &fontSystemSettings.orientation, 0);
+}
+
+void Utils::ResetScreenSettings()
+{
+	// Reset screen settings
+	Logging::Log() << "Reseting screen resolution";
+	SetDeviceGammaRamp(hDC, &lpRamp[0]);
+	ChangeDisplaySettingsEx(nullptr, nullptr, nullptr, CDS_RESET, nullptr);
+	ReleaseDC(nullptr, hDC);
+
+	// Reset font settings
+	if (fontSystemSettings.isEnabled)
+	{
+		Logging::Log() << "Reseting font smoothing";
+		SystemParametersInfo(SPI_SETFONTSMOOTHING, fontSystemSettings.isEnabled, nullptr, 0);
+		SystemParametersInfo(SPI_SETFONTSMOOTHINGTYPE, 0,
+			reinterpret_cast<void*>(fontSystemSettings.type), 0);
+		SystemParametersInfo(SPI_SETFONTSMOOTHINGCONTRAST, 0,
+			reinterpret_cast<void*>(fontSystemSettings.contrast), 0);
+		SystemParametersInfo(SPI_SETFONTSMOOTHINGORIENTATION, 0,
+			reinterpret_cast<void*>(fontSystemSettings.orientation), 0);
+
+		const char* regKey = "FontSmoothing";
+		SendMessageTimeout(HWND_BROADCAST, WM_SETTINGCHANGE, SPI_SETFONTSMOOTHING,
+			reinterpret_cast<LPARAM>(regKey), SMTO_BLOCK, 100, nullptr);
+		RedrawWindow(nullptr, nullptr, nullptr, RDW_INVALIDATE | RDW_ERASE | RDW_ALLCHILDREN);
 	}
 }
