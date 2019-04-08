@@ -249,6 +249,8 @@ HRESULT WINAPI dd_DirectDrawCreate(GUID FAR *lpGUID, LPDIRECTDRAW FAR *lplpDD, I
 		return E_FAIL;
 	}
 
+	Logging::Log() << "Redirecting 'DirectDrawCreate' ...";
+
 	HRESULT hr = m_pDirectDrawCreate(lpGUID, lplpDD, pUnkOuter);
 
 	if (SUCCEEDED(hr) && lplpDD && *lplpDD)
@@ -362,6 +364,8 @@ HRESULT WINAPI dd_DirectDrawCreateEx(GUID FAR *lpGUID, LPVOID *lplpDD, REFIID ri
 	{
 		return E_FAIL;
 	}
+
+	Logging::Log() << "Redirecting 'DirectDrawCreateEx' ...";
 
 	HRESULT hr = m_pDirectDrawCreateEx(lpGUID, lplpDD, IID_IDirectDraw7, pUnkOuter);
 

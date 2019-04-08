@@ -51,9 +51,9 @@ namespace Win32
 			SystemParametersInfo(SPI_SETFONTSMOOTHINGORIENTATION, 0,
 				reinterpret_cast<void*>(settings.orientation), 0);
 
-			const char* regKey = "FontSmoothing";
+			/*const char* regKey = "FontSmoothing";
 			SendMessageTimeout(HWND_BROADCAST, WM_SETTINGCHANGE, SPI_SETFONTSMOOTHING,
-				reinterpret_cast<LPARAM>(regKey), SMTO_BLOCK, 100, nullptr);
+				reinterpret_cast<LPARAM>(regKey), SMTO_BLOCK, 100, nullptr);*/
 			RedrawWindow(nullptr, nullptr, nullptr, RDW_INVALIDATE | RDW_ERASE | RDW_ALLCHILDREN);
 		}
 	}

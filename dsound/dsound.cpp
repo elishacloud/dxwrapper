@@ -211,6 +211,8 @@ HRESULT WINAPI ds_DirectSoundCreate8(LPCGUID pcGuidDevice, LPDIRECTSOUND8 *ppDS8
 		return E_FAIL;
 	}
 
+	Logging::Log() << "Redirecting 'DirectSoundCreate8' ...";
+
 	HRESULT hr = m_pDirectSoundCreate8(pcGuidDevice, ppDS8, pUnkOuter);
 
 	if (SUCCEEDED(hr) && ppDS8)
