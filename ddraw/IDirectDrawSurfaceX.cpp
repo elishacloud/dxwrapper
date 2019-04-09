@@ -3133,3 +3133,13 @@ HRESULT m_IDirectDrawSurfaceX::WriteVideoDataToSurface()
 	// return
 	return DD_OK;
 }
+
+void m_IDirectDrawSurfaceX::ReleaseSurface()
+{
+	SetCriticalSection();
+	if (ddrawParent)
+	{
+		ddrawParent->RemoveSurfaceFromVector(this);
+	}
+	ReleaseCriticalSection();
+}

@@ -42,10 +42,9 @@ public:
 	}
 	~m_IDirect3DDeviceX()
 	{
-		// Clear D3DDevice
-		if (ddrawParent)
+		if (Config.Dd7to9 && !Config.Exiting)
 		{
-			ddrawParent->ClearD3DDevice();
+			ReleaseD3DDevice();
 		}
 	}
 
@@ -164,4 +163,6 @@ public:
 	IDirect3DDevice3 *GetProxyInterfaceV3() { return (IDirect3DDevice3 *)ProxyInterface; }
 	IDirect3DDevice7 *GetProxyInterfaceV7() { return ProxyInterface; }
 	void *GetWrapperInterfaceX(DWORD DirectXVersion);
+	void ClearDdraw() { ddrawParent = nullptr; }
+	void ReleaseD3DDevice();
 };

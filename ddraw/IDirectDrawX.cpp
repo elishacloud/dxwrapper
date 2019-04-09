@@ -1464,6 +1464,20 @@ HRESULT m_IDirectDrawX::ReinitDevice()
 	return DD_OK;
 }
 
+void m_IDirectDrawX::ReleaseD3DInterfaces()
+{
+	SetCriticalSection();
+	if (D3DInterface)
+	{
+		D3DInterface->ClearDdraw();
+	}
+	if (D3DDeviceInterface)
+	{
+		D3DDeviceInterface->ClearDdraw();
+	}
+	ReleaseCriticalSection();
+}
+
 // Release all d3d9 surfaces
 void m_IDirectDrawX::ReleaseAllD9Surfaces(bool ClearDDraw)
 {

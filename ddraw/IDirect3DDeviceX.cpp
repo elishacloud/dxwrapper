@@ -1674,3 +1674,13 @@ HRESULT m_IDirect3DDeviceX::GetInfo(DWORD dwDevInfoID, LPVOID pDevInfoStruct, DW
 
 	return GetProxyInterfaceV7()->GetInfo(dwDevInfoID, pDevInfoStruct, dwSize);
 }
+
+void m_IDirect3DDeviceX::ReleaseD3DDevice()
+{
+	SetCriticalSection();
+	if (ddrawParent)
+	{
+		ddrawParent->ClearD3DDevice();
+	}
+	ReleaseCriticalSection();
+}

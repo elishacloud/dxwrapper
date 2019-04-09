@@ -88,17 +88,13 @@ public:
 
 		if (Config.Dd7to9 && !Config.Exiting)
 		{
-			if (SurfaceVector.size() != 0)
+			if (SurfaceVector.size())
 			{
 				ReleaseAllD9Surfaces(true);
 			}
-
-			SetCriticalSection();
-			if (D3DInterface)
-			{
-				D3DInterface->ClearDdraw();
-			}
-			ReleaseCriticalSection();
+			ReleaseD3DInterfaces();
+			D3DInterface = nullptr;
+			D3DDeviceInterface = nullptr;
 		}
 	}
 
@@ -178,6 +174,7 @@ public:
 	DWORD GetRefreshRate();
 	HRESULT CreateD3D9Device();
 	HRESULT ReinitDevice();
+	void ReleaseD3DInterfaces();
 	void ReleaseAllD9Surfaces(bool ClearDDraw = false);
 	void ReleaseD3d9Device();
 	void ReleaseD3d9();

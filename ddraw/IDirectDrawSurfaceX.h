@@ -109,12 +109,6 @@ public:
 
 		if (Config.Dd7to9 && !Config.Exiting)
 		{
-			SetCriticalSection();
-			if (ddrawParent)
-			{
-				ddrawParent->RemoveSurfaceFromVector(this);
-			}
-			ReleaseCriticalSection();
 		}
 	}
 
@@ -241,4 +235,5 @@ public:
 	HRESULT StretchRect(D3DLOCKED_RECT *pDestLockRect, RECT *pDestRect, DWORD DestBitCount, D3DFORMAT DestFormat, D3DLOCKED_RECT *pSrcLockRect, RECT *pSrcRect, DWORD SrcBitCount, D3DFORMAT SrcFormat);
 	HRESULT WriteVideoDataToSurface();
 	void SwapSurface(m_IDirectDrawSurfaceX *lpTargetSurface1, m_IDirectDrawSurfaceX *lpTargetSurface2);
+	void ReleaseSurface();
 };
