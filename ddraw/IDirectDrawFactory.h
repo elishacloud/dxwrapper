@@ -1,6 +1,6 @@
 #pragma once
 
-class m_IDirectDrawFactory : public IDirectDrawFactory, public AddressLookupTableDdrawObject
+class m_IDirectDrawFactory : public IDirectDrawFactory
 {
 private:
 	IDirectDrawFactory *ProxyInterface = nullptr;
@@ -10,17 +10,9 @@ private:
 public:
 	m_IDirectDrawFactory(IDirectDrawFactory *aOriginal) : ProxyInterface(aOriginal)
 	{
-		if (ProxyInterface)
-		{
-			ProxyAddressLookupTable.SaveAddress(this, ProxyInterface);
-		}
-
 		Logging::LogDebug() << "Create " << __FUNCTION__;
 	}
-	~m_IDirectDrawFactory()
-	{
-		ProxyAddressLookupTable.DeleteAddress(this);
-	}
+	~m_IDirectDrawFactory() {}
 
 	/*** IUnknown methods ***/
 	STDMETHOD(QueryInterface) (THIS_ REFIID riid, LPVOID FAR * ppvObj);

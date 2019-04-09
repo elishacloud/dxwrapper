@@ -149,7 +149,6 @@ void WINAPI DdrawWrapper::genericQueryInterface(REFIID riid, LPVOID *ppvObj)
 			*ppvObj = ProxyAddressLookupTable.FindAddress<m_ ## x>(*ppvObj); \
 		}
 
-	QUERYINTERFACE(IDirectDrawFactory);
 	QUERYINTERFACE(IDirect3D);
 	QUERYINTERFACE(IDirect3D2);
 	QUERYINTERFACE(IDirect3D3);
@@ -188,5 +187,9 @@ void WINAPI DdrawWrapper::genericQueryInterface(REFIID riid, LPVOID *ppvObj)
 	if (riid == IID_IClassFactory)
 	{
 		*ppvObj = new m_IClassFactory((IClassFactory*)*ppvObj, genericQueryInterface);
+	}
+	if (riid == IID_IDirectDrawFactory)
+	{
+		*ppvObj = new m_IDirectDrawFactory((IDirectDrawFactory*)*ppvObj);
 	}
 }

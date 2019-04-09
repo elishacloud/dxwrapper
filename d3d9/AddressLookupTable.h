@@ -3,7 +3,7 @@
 #include <unordered_map>
 #include <algorithm>
 
-constexpr UINT MaxIndex = 17;
+constexpr UINT MaxIndex = 16;
 
 template <typename D>
 class AddressLookupTableD3d9
@@ -26,37 +26,35 @@ public:
 	template <typename T>
 	struct AddressCacheIndex { static constexpr UINT CacheIndex = 0; };
 	template <>
-	struct AddressCacheIndex<IClassFactory> { static constexpr UINT CacheIndex = 1; };
+	struct AddressCacheIndex<m_IDirect3D9Ex> { static constexpr UINT CacheIndex = 1; };
 	template <>
-	struct AddressCacheIndex<m_IDirect3D9Ex> { static constexpr UINT CacheIndex = 2; };
+	struct AddressCacheIndex<m_IDirect3DDevice9Ex> { static constexpr UINT CacheIndex = 2; };
 	template <>
-	struct AddressCacheIndex<m_IDirect3DDevice9Ex> { static constexpr UINT CacheIndex = 3; };
+	struct AddressCacheIndex<m_IDirect3DCubeTexture9> { static constexpr UINT CacheIndex = 3; };
 	template <>
-	struct AddressCacheIndex<m_IDirect3DCubeTexture9> { static constexpr UINT CacheIndex = 4; };
+	struct AddressCacheIndex<m_IDirect3DIndexBuffer9> { static constexpr UINT CacheIndex = 4; };
 	template <>
-	struct AddressCacheIndex<m_IDirect3DIndexBuffer9> { static constexpr UINT CacheIndex = 5; };
+	struct AddressCacheIndex<m_IDirect3DPixelShader9> { static constexpr UINT CacheIndex = 5; };
 	template <>
-	struct AddressCacheIndex<m_IDirect3DPixelShader9> { static constexpr UINT CacheIndex = 6; };
+	struct AddressCacheIndex<m_IDirect3DQuery9> { static constexpr UINT CacheIndex = 6; };
 	template <>
-	struct AddressCacheIndex<m_IDirect3DQuery9> { static constexpr UINT CacheIndex = 7; };
+	struct AddressCacheIndex<m_IDirect3DStateBlock9> { static constexpr UINT CacheIndex = 7; };
 	template <>
-	struct AddressCacheIndex<m_IDirect3DStateBlock9> { static constexpr UINT CacheIndex = 8; };
+	struct AddressCacheIndex<m_IDirect3DSurface9> { static constexpr UINT CacheIndex = 8; };
 	template <>
-	struct AddressCacheIndex<m_IDirect3DSurface9> { static constexpr UINT CacheIndex = 9; };
+	struct AddressCacheIndex<m_IDirect3DSwapChain9> { static constexpr UINT CacheIndex = 9; };
 	template <>
-	struct AddressCacheIndex<m_IDirect3DSwapChain9> { static constexpr UINT CacheIndex = 10; };
+	struct AddressCacheIndex<m_IDirect3DTexture9> { static constexpr UINT CacheIndex = 10; };
 	template <>
-	struct AddressCacheIndex<m_IDirect3DTexture9> { static constexpr UINT CacheIndex = 11; };
+	struct AddressCacheIndex<m_IDirect3DVertexBuffer9> { static constexpr UINT CacheIndex = 11; };
 	template <>
-	struct AddressCacheIndex<m_IDirect3DVertexBuffer9> { static constexpr UINT CacheIndex = 12; };
+	struct AddressCacheIndex<m_IDirect3DVertexDeclaration9> { static constexpr UINT CacheIndex = 12; };
 	template <>
-	struct AddressCacheIndex<m_IDirect3DVertexDeclaration9> { static constexpr UINT CacheIndex = 13; };
+	struct AddressCacheIndex<m_IDirect3DVertexShader9> { static constexpr UINT CacheIndex = 13; };
 	template <>
-	struct AddressCacheIndex<m_IDirect3DVertexShader9> { static constexpr UINT CacheIndex = 14; };
+	struct AddressCacheIndex<m_IDirect3DVolume9> { static constexpr UINT CacheIndex = 14; };
 	template <>
-	struct AddressCacheIndex<m_IDirect3DVolume9> { static constexpr UINT CacheIndex = 15; };
-	template <>
-	struct AddressCacheIndex<m_IDirect3DVolumeTexture9> { static constexpr UINT CacheIndex = 16; };
+	struct AddressCacheIndex<m_IDirect3DVolumeTexture9> { static constexpr UINT CacheIndex = 15; };
 
 	template <typename T>
 	T *FindAddress(void *Proxy)
