@@ -20,12 +20,29 @@ HRESULT m_IDirect3DLight::QueryInterface(REFIID riid, LPVOID * ppvObj)
 {
 	Logging::LogDebug() << __FUNCTION__;
 
+	if (!ProxyInterface)
+	{
+		if ((riid == IID_IDirect3DLight || riid == IID_IUnknown) && ppvObj)
+		{
+			AddRef();
+
+			*ppvObj = this;
+
+			return S_OK;
+		}
+	}
+
 	return ProxyQueryInterface(ProxyInterface, riid, ppvObj, WrapperID, this);
 }
 
 ULONG m_IDirect3DLight::AddRef()
 {
 	Logging::LogDebug() << __FUNCTION__;
+
+	if (!ProxyInterface)
+	{
+		return InterlockedIncrement(&RefCount);
+	}
 
 	return ProxyInterface->AddRef();
 }
@@ -34,19 +51,34 @@ ULONG m_IDirect3DLight::Release()
 {
 	Logging::LogDebug() << __FUNCTION__;
 
-	ULONG x = ProxyInterface->Release();
+	LONG ref;
 
-	if (x == 0)
+	if (!ProxyInterface)
+	{
+		ref = InterlockedDecrement(&RefCount);
+	}
+	else
+	{
+		ref = ProxyInterface->Release();
+	}
+
+	if (ref == 0)
 	{
 		delete this;
 	}
 
-	return x;
+	return ref;
 }
 
 HRESULT m_IDirect3DLight::Initialize(LPDIRECT3D lpDirect3D)
 {
 	Logging::LogDebug() << __FUNCTION__;
+
+	if (!ProxyInterface)
+	{
+		Logging::Log() << __FUNCTION__ << " Not Implemented";
+		return E_NOTIMPL;
+	}
 
 	if (lpDirect3D)
 	{
@@ -60,12 +92,24 @@ HRESULT m_IDirect3DLight::SetLight(LPD3DLIGHT lpLight)
 {
 	Logging::LogDebug() << __FUNCTION__;
 
+	if (!ProxyInterface)
+	{
+		Logging::Log() << __FUNCTION__ << " Not Implemented";
+		return E_NOTIMPL;
+	}
+
 	return ProxyInterface->SetLight(lpLight);
 }
 
 HRESULT m_IDirect3DLight::GetLight(LPD3DLIGHT lpLight)
 {
 	Logging::LogDebug() << __FUNCTION__;
+
+	if (!ProxyInterface)
+	{
+		Logging::Log() << __FUNCTION__ << " Not Implemented";
+		return E_NOTIMPL;
+	}
 
 	return ProxyInterface->GetLight(lpLight);
 }

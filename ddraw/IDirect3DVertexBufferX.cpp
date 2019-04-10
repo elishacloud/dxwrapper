@@ -20,6 +20,18 @@ HRESULT m_IDirect3DVertexBufferX::QueryInterface(REFIID riid, LPVOID * ppvObj, D
 {
 	Logging::LogDebug() << __FUNCTION__;
 
+	if (ProxyDirectXVersion == 9)
+	{
+		if ((riid == IID_IDirect3DVertexBuffer || riid == IID_IDirect3DVertexBuffer7 || riid == IID_IUnknown) && ppvObj)
+		{
+			AddRef();
+
+			*ppvObj = this;
+
+			return S_OK;
+		}
+	}
+
 	return ProxyQueryInterface(ProxyInterface, riid, ppvObj, GetWrapperType(DirectXVersion), WrapperInterface);
 }
 
@@ -49,6 +61,11 @@ ULONG m_IDirect3DVertexBufferX::AddRef()
 {
 	Logging::LogDebug() << __FUNCTION__;
 
+	if (ProxyDirectXVersion == 9)
+	{
+		return InterlockedIncrement(&RefCount);
+	}
+
 	return ProxyInterface->AddRef();
 }
 
@@ -56,9 +73,18 @@ ULONG m_IDirect3DVertexBufferX::Release()
 {
 	Logging::LogDebug() << __FUNCTION__;
 
-	ULONG x = ProxyInterface->Release();
+	LONG ref;
 
-	if (x == 0)
+	if (ProxyDirectXVersion == 9)
+	{
+		ref = InterlockedDecrement(&RefCount);
+	}
+	else
+	{
+		ref = ProxyInterface->Release();
+	}
+
+	if (ref == 0)
 	{
 		if (WrapperInterface)
 		{
@@ -70,12 +96,18 @@ ULONG m_IDirect3DVertexBufferX::Release()
 		}
 	}
 
-	return x;
+	return ref;
 }
 
 HRESULT m_IDirect3DVertexBufferX::Lock(DWORD dwFlags, LPVOID * lplpData, LPDWORD lpdwSize)
 {
 	Logging::LogDebug() << __FUNCTION__;
+
+	if (ProxyDirectXVersion == 9)
+	{
+		Logging::Log() << __FUNCTION__ << " Not Implemented";
+		return E_NOTIMPL;
+	}
 
 	return ProxyInterface->Lock(dwFlags, lplpData, lpdwSize);
 }
@@ -84,12 +116,24 @@ HRESULT m_IDirect3DVertexBufferX::Unlock()
 {
 	Logging::LogDebug() << __FUNCTION__;
 
+	if (ProxyDirectXVersion == 9)
+	{
+		Logging::Log() << __FUNCTION__ << " Not Implemented";
+		return E_NOTIMPL;
+	}
+
 	return ProxyInterface->Unlock();
 }
 
 HRESULT m_IDirect3DVertexBufferX::ProcessVertices(DWORD dwVertexOp, DWORD dwDestIndex, DWORD dwCount, LPDIRECT3DVERTEXBUFFER7 lpSrcBuffer, DWORD dwSrcIndex, LPDIRECT3DDEVICE7 lpD3DDevice, DWORD dwFlags)
 {
 	Logging::LogDebug() << __FUNCTION__;
+
+	if (ProxyDirectXVersion == 9)
+	{
+		Logging::Log() << __FUNCTION__ << " Not Implemented";
+		return E_NOTIMPL;
+	}
 
 	if (lpSrcBuffer)
 	{
@@ -107,12 +151,24 @@ HRESULT m_IDirect3DVertexBufferX::GetVertexBufferDesc(LPD3DVERTEXBUFFERDESC lpVB
 {
 	Logging::LogDebug() << __FUNCTION__;
 
+	if (ProxyDirectXVersion == 9)
+	{
+		Logging::Log() << __FUNCTION__ << " Not Implemented";
+		return E_NOTIMPL;
+	}
+
 	return ProxyInterface->GetVertexBufferDesc(lpVBDesc);
 }
 
 HRESULT m_IDirect3DVertexBufferX::Optimize(LPDIRECT3DDEVICE7 lpD3DDevice, DWORD dwFlags)
 {
 	Logging::LogDebug() << __FUNCTION__;
+
+	if (ProxyDirectXVersion == 9)
+	{
+		Logging::Log() << __FUNCTION__ << " Not Implemented";
+		return E_NOTIMPL;
+	}
 
 	if (lpD3DDevice)
 	{
@@ -131,5 +187,16 @@ HRESULT m_IDirect3DVertexBufferX::ProcessVerticesStrided(DWORD dwVertexOp, DWORD
 		lpD3DDevice = static_cast<m_IDirect3DDevice7 *>(lpD3DDevice)->GetProxyInterface();
 	}
 
-	return ProxyInterface->ProcessVerticesStrided(dwVertexOp, dwDestIndex, dwCount, lpVertexArray, dwSrcIndex, lpD3DDevice, dwFlags);
+	switch (ProxyDirectXVersion)
+	{
+	case 1:
+		return DDERR_GENERIC;
+	case 7:
+		return ProxyInterface->ProcessVerticesStrided(dwVertexOp, dwDestIndex, dwCount, lpVertexArray, dwSrcIndex, lpD3DDevice, dwFlags);
+	case 9:
+		Logging::Log() << __FUNCTION__ << " Not Implemented";
+		return E_NOTIMPL;
+	default:
+		return DDERR_GENERIC;
+	}
 }

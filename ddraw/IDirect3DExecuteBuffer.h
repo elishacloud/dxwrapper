@@ -5,9 +5,10 @@ class m_IDirect3DExecuteBuffer : public IDirect3DExecuteBuffer, public AddressLo
 private:
 	IDirect3DExecuteBuffer *ProxyInterface = nullptr;
 	REFIID WrapperID = IID_IDirect3DExecuteBuffer;
+	ULONG RefCount = 1;
 
 	// Convert Material
-	m_IDirect3DDeviceX *D3DDeviceInterface;
+	m_IDirect3DDeviceX **D3DDeviceInterface = nullptr;
 
 public:
 	m_IDirect3DExecuteBuffer(IDirect3DExecuteBuffer *aOriginal) : ProxyInterface(aOriginal)
@@ -16,7 +17,7 @@ public:
 
 		Logging::LogDebug() << "Create " << __FUNCTION__;
 	}
-	m_IDirect3DExecuteBuffer(m_IDirect3DDeviceX *D3DDInterface) : D3DDeviceInterface(D3DDInterface)
+	m_IDirect3DExecuteBuffer(m_IDirect3DDeviceX **D3DDInterface) : D3DDeviceInterface(D3DDInterface)
 	{
 		Logging::LogDebug() << "Create " << __FUNCTION__;
 	}

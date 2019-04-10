@@ -136,6 +136,7 @@ HRESULT m_IDirect3DTextureX::GetHandle(LPDIRECT3DDEVICE2 lpDirect3DDevice2, LPD3
 	case 2:
 		return GetProxyInterfaceV2()->GetHandle(lpDirect3DDevice2, lpHandle);
 	case 7:
+	case 9:
 		Logging::Log() << __FUNCTION__ << " Not Implemented";
 		return E_NOTIMPL;
 	default:
@@ -154,6 +155,7 @@ HRESULT m_IDirect3DTextureX::PaletteChanged(DWORD dwStart, DWORD dwCount)
 	case 2:
 		return GetProxyInterfaceV2()->PaletteChanged(dwStart, dwCount);
 	case 7:
+	case 9:
 		Logging::Log() << __FUNCTION__ << " Not Implemented";
 		return E_NOTIMPL;
 	default:
@@ -177,6 +179,7 @@ HRESULT m_IDirect3DTextureX::Load(LPDIRECT3DTEXTURE2 lpD3DTexture2)
 	case 2:
 		return GetProxyInterfaceV2()->Load(lpD3DTexture2);
 	case 7:
+	case 9:
 		Logging::Log() << __FUNCTION__ << " Not Implemented";
 		return E_NOTIMPL;
 	default:

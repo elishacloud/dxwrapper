@@ -195,6 +195,9 @@ HRESULT m_IDirect3DMaterialX::GetMaterial(LPD3DMATERIAL lpMat)
 
 		return hr;
 	}
+	case 9:
+		Logging::Log() << __FUNCTION__ << " Not Implemented";
+		return E_NOTIMPL;
 	default:
 		return DDERR_GENERIC;
 	}
@@ -218,6 +221,7 @@ HRESULT m_IDirect3DMaterialX::GetHandle(LPDIRECT3DDEVICE3 lpDirect3DDevice, LPD3
 	case 3:
 		return GetProxyInterfaceV3()->GetHandle(lpDirect3DDevice, lpHandle);
 	case 7:
+	case 9:
 		Logging::Log() << __FUNCTION__ << " Not Implemented";
 		return E_NOTIMPL;
 	default:

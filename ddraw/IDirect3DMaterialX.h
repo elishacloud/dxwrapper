@@ -9,7 +9,7 @@ private:
 	ULONG RefCount = 1;
 
 	// Convert Material
-	m_IDirect3DDeviceX **D3DDeviceInterface;
+	m_IDirect3DDeviceX **D3DDeviceInterface = nullptr;
 
 	// Store d3d material version wrappers
 	std::unique_ptr<m_IDirect3DMaterial> UniqueProxyInterface = nullptr;

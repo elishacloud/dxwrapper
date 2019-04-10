@@ -5,6 +5,7 @@ class m_IDirectDrawGammaControl : public IDirectDrawGammaControl, public Address
 private:
 	IDirectDrawGammaControl *ProxyInterface = nullptr;
 	REFIID WrapperID = IID_IDirectDrawGammaControl;
+	ULONG RefCount = 1;
 
 public:
 	m_IDirectDrawGammaControl(IDirectDrawGammaControl *aOriginal) : ProxyInterface(aOriginal)

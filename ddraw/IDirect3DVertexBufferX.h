@@ -6,9 +6,10 @@ private:
 	IDirect3DVertexBuffer7 *ProxyInterface = nullptr;
 	m_IDirect3DVertexBuffer7 *WrapperInterface = nullptr;
 	DWORD ProxyDirectXVersion;
+	ULONG RefCount = 1;
 
 	// Convert Material
-	m_IDirect3DDeviceX *D3DDeviceInterface;
+	m_IDirect3DDeviceX **D3DDeviceInterface = nullptr;
 
 	// Store ddraw version wrappers
 	std::unique_ptr<m_IDirect3DVertexBuffer> UniqueProxyInterface = nullptr;
@@ -28,7 +29,7 @@ public:
 			Logging::LogDebug() << "Create " << __FUNCTION__ << " v" << DirectXVersion;
 		}
 	}
-	m_IDirect3DVertexBufferX(m_IDirect3DDeviceX *D3DDInterface, DWORD DirectXVersion) : D3DDeviceInterface(D3DDInterface)
+	m_IDirect3DVertexBufferX(m_IDirect3DDeviceX **D3DDInterface, DWORD DirectXVersion) : D3DDeviceInterface(D3DDInterface)
 	{
 		ProxyDirectXVersion = 9;
 

@@ -5,9 +5,10 @@ class m_IDirect3DLight : public IDirect3DLight, public AddressLookupTableDdrawOb
 private:
 	IDirect3DLight *ProxyInterface = nullptr;
 	REFIID WrapperID = IID_IDirect3DLight;
+	ULONG RefCount = 1;
 
 	// Convert Material
-	m_IDirect3DDeviceX *D3DDeviceInterface;
+	m_IDirect3DDeviceX **D3DDeviceInterface = nullptr;
 
 public:
 	m_IDirect3DLight(IDirect3DLight *aOriginal) : ProxyInterface(aOriginal)
@@ -16,7 +17,7 @@ public:
 
 		Logging::LogDebug() << "Create " << __FUNCTION__;
 	}
-	m_IDirect3DLight(m_IDirect3DDeviceX *D3DDInterface) : D3DDeviceInterface(D3DDInterface)
+	m_IDirect3DLight(m_IDirect3DDeviceX **D3DDInterface) : D3DDeviceInterface(D3DDInterface)
 	{
 		Logging::LogDebug() << "Create " << __FUNCTION__;
 	}

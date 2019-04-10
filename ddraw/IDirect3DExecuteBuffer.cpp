@@ -20,12 +20,29 @@ HRESULT m_IDirect3DExecuteBuffer::QueryInterface(REFIID riid, LPVOID * ppvObj)
 {
 	Logging::LogDebug() << __FUNCTION__;
 
+	if (!ProxyInterface)
+	{
+		if ((riid == IID_IDirect3DExecuteBuffer || riid == IID_IUnknown) && ppvObj)
+		{
+			AddRef();
+
+			*ppvObj = this;
+
+			return S_OK;
+		}
+	}
+
 	return ProxyQueryInterface(ProxyInterface, riid, ppvObj, WrapperID, this);
 }
 
 ULONG m_IDirect3DExecuteBuffer::AddRef()
 {
 	Logging::LogDebug() << __FUNCTION__;
+
+	if (!ProxyInterface)
+	{
+		return InterlockedIncrement(&RefCount);
+	}
 
 	return ProxyInterface->AddRef();
 }
@@ -34,19 +51,34 @@ ULONG m_IDirect3DExecuteBuffer::Release()
 {
 	Logging::LogDebug() << __FUNCTION__;
 
-	ULONG x = ProxyInterface->Release();
+	LONG ref;
 
-	if (x == 0)
+	if (!ProxyInterface)
+	{
+		ref = InterlockedDecrement(&RefCount);
+	}
+	else
+	{
+		ref = ProxyInterface->Release();
+	}
+
+	if (ref == 0)
 	{
 		delete this;
 	}
 
-	return x;
+	return ref;
 }
 
 HRESULT m_IDirect3DExecuteBuffer::Initialize(LPDIRECT3DDEVICE lpDirect3DDevice, LPD3DEXECUTEBUFFERDESC lpDesc)
 {
 	Logging::LogDebug() << __FUNCTION__;
+
+	if (!ProxyInterface)
+	{
+		Logging::Log() << __FUNCTION__ << " Not Implemented";
+		return E_NOTIMPL;
+	}
 
 	if (lpDirect3DDevice)
 	{
@@ -60,12 +92,24 @@ HRESULT m_IDirect3DExecuteBuffer::Lock(LPD3DEXECUTEBUFFERDESC lpDesc)
 {
 	Logging::LogDebug() << __FUNCTION__;
 
+	if (!ProxyInterface)
+	{
+		Logging::Log() << __FUNCTION__ << " Not Implemented";
+		return E_NOTIMPL;
+	}
+
 	return ProxyInterface->Lock(lpDesc);
 }
 
 HRESULT m_IDirect3DExecuteBuffer::Unlock()
 {
 	Logging::LogDebug() << __FUNCTION__;
+
+	if (!ProxyInterface)
+	{
+		Logging::Log() << __FUNCTION__ << " Not Implemented";
+		return E_NOTIMPL;
+	}
 
 	return ProxyInterface->Unlock();
 }
@@ -74,12 +118,24 @@ HRESULT m_IDirect3DExecuteBuffer::SetExecuteData(LPD3DEXECUTEDATA lpData)
 {
 	Logging::LogDebug() << __FUNCTION__;
 
+	if (!ProxyInterface)
+	{
+		Logging::Log() << __FUNCTION__ << " Not Implemented";
+		return E_NOTIMPL;
+	}
+
 	return ProxyInterface->SetExecuteData(lpData);
 }
 
 HRESULT m_IDirect3DExecuteBuffer::GetExecuteData(LPD3DEXECUTEDATA lpData)
 {
 	Logging::LogDebug() << __FUNCTION__;
+
+	if (!ProxyInterface)
+	{
+		Logging::Log() << __FUNCTION__ << " Not Implemented";
+		return E_NOTIMPL;
+	}
 
 	return ProxyInterface->GetExecuteData(lpData);
 }
@@ -88,12 +144,24 @@ HRESULT m_IDirect3DExecuteBuffer::Validate(LPDWORD lpdwOffset, LPD3DVALIDATECALL
 {
 	Logging::LogDebug() << __FUNCTION__;
 
+	if (!ProxyInterface)
+	{
+		Logging::Log() << __FUNCTION__ << " Not Implemented";
+		return E_NOTIMPL;
+	}
+
 	return ProxyInterface->Validate(lpdwOffset, lpFunc, lpUserArg, dwReserved);
 }
 
 HRESULT m_IDirect3DExecuteBuffer::Optimize(DWORD dwDummy)
 {
 	Logging::LogDebug() << __FUNCTION__;
+
+	if (!ProxyInterface)
+	{
+		Logging::Log() << __FUNCTION__ << " Not Implemented";
+		return E_NOTIMPL;
+	}
 
 	return ProxyInterface->Optimize(dwDummy);
 }

@@ -9,7 +9,7 @@ private:
 	ULONG RefCount = 1;
 
 	// Convert Viewport
-	m_IDirect3DDeviceX **D3DDeviceInterface;
+	m_IDirect3DDeviceX **D3DDeviceInterface = nullptr;
 	D3DVIEWPORT ViewPort;
 	D3DVIEWPORT2 ViewPort2;
 	bool ViewPortSet = false;
