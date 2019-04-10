@@ -45,7 +45,7 @@ void WriteMemory::WriteAllByteMemory()
 
 	for (UINT x = 0; x < Config.MemoryInfo.size(); x++)
 	{
-		if (Config.MemoryInfo[x].AddressPointer != nullptr && Config.MemoryInfo[x].Bytes.size() != 0)
+		if (Config.MemoryInfo[x].AddressPointer && Config.MemoryInfo[x].Bytes.size())
 		{
 			// Get current memory
 			std::string lpBuffer(Config.MemoryInfo[x].Bytes.size(), '\0');
@@ -85,7 +85,7 @@ void WriteMemory::WriteAllByteMemory()
 bool WriteMemory::CheckVerificationMemory()
 {
 	// Check Verification details
-	if (Config.VerifyMemoryInfo.Bytes.size() == 0 || Config.VerifyMemoryInfo.AddressPointer == nullptr)
+	if (!Config.VerifyMemoryInfo.Bytes.size() || !Config.VerifyMemoryInfo.AddressPointer)
 	{
 		return false;
 	}

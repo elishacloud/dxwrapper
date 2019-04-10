@@ -102,8 +102,7 @@ bool Settings::IsValueEnabled(char* name)
 void Settings::SetValue(char* name, char* value, MEMORYINFO* MemoryInfo)
 {
 	// Declare vars
-	char charTemp[] = { '0', 'x', '0' , '0' };
-	char *charEnd = &charTemp[3];
+	char charTemp[] = { '0', 'x', '0' , '0', '\0' };
 	DWORD len = strlen(value);
 
 	// Check for valid bytes
@@ -120,7 +119,7 @@ void Settings::SetValue(char* name, char* value, MEMORYINFO* MemoryInfo)
 		{
 			charTemp[2] = value[x * 2];
 			charTemp[3] = value[(x * 2) + 1];
-			MemoryInfo->Bytes[x - 1] = (byte)strtoul(charTemp, &charEnd, 16);
+			MemoryInfo->Bytes[x - 1] = (byte)strtoul(charTemp, nullptr, 16);
 		}
 #ifdef _DEBUG
 		std::string buffer((size + 2) * 2, '\0');
