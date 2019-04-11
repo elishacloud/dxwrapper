@@ -49,13 +49,7 @@
 	}
 
 #define HOOK_FORCE_WRAPPED_PROC(procName, unused) \
-	{ \
-		FARPROC prodAddr = (FARPROC)Hook::HotPatch(Hook::GetProcAddress(dll, #procName), #procName, procName ## _funct, true); \
-		if (prodAddr) \
-		{ \
-			procName ## _var = prodAddr; \
-		} \
-	}
+	Hook::HotPatch(Hook::GetProcAddress(dll, #procName), #procName, procName ## _funct, true);
 
 // Declare variables
 HMODULE hModule_dll = nullptr;
@@ -209,14 +203,7 @@ bool APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 			{
 				using namespace ddraw;
 				using namespace DdrawWrapper;
-
 				VISIT_PROCS_DDRAW_SHARED(SET_WRAPPED_PROC_SHARED);
-
-				if (Config.Dd7to9)
-				{
-					VISIT_PROCS_DDRAW(SET_WRAPPED_PROC);
-					VISIT_PROCS_DDRAW_SHARED(SET_WRAPPED_PROC);
-				}
 			}
 			else
 			{
@@ -246,6 +233,17 @@ bool APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 				}
 			}
 
+			// Start Dd7to9
+			if (Config.Dd7to9)
+			{
+				InitDDraw();
+				using namespace ddraw;
+				using namespace DdrawWrapper;
+				VISIT_PROCS_DDRAW(SET_WRAPPED_PROC);
+				VISIT_PROCS_DDRAW_SHARED(SET_WRAPPED_PROC);
+				Config.DDrawCompat = false;
+			}
+
 			// Add DDrawCompat to the chain
 			if (Config.DDrawCompat)
 			{
@@ -271,12 +269,6 @@ bool APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 			if (Config.DDrawCompat)
 			{
 				Config.DDrawCompat = DDrawCompat::Start(hModule_dll, DLL_PROCESS_ATTACH);
-			}
-
-			// Start Dd7to9
-			if (Config.Dd7to9)
-			{
-				InitDDraw();
 			}
 		}
 
