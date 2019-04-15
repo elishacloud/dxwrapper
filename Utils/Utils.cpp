@@ -72,8 +72,8 @@ namespace Utils
 	} fontSystemSettings;
 
 	// Screen settings
-	HDC hDC;
-	std::string lpRamp((3 * 256 * 2), '\0');
+	HDC hDC = nullptr;
+	WORD lpRamp[3 * 256] = { NULL };
 
 	// Declare variables
 	FARPROC pGetProcAddress = nullptr;
@@ -644,8 +644,8 @@ void Utils::DDrawResolutionHack(HMODULE hD3DIm)
 void Utils::GetScreenSettings()
 {
 	// Store screen settings
-	hDC = GetDC(nullptr);
-	GetDeviceGammaRamp(hDC, &lpRamp[0]);
+	//hDC = GetDC(nullptr);
+	//GetDeviceGammaRamp(hDC, lpRamp);
 
 	// Store font settings
 	SystemParametersInfo(SPI_GETFONTSMOOTHING, 0, &fontSystemSettings.isEnabled, 0);
@@ -658,9 +658,12 @@ void Utils::ResetScreenSettings()
 {
 	// Reset screen settings
 	Logging::Log() << "Reseting screen resolution";
-	SetDeviceGammaRamp(hDC, &lpRamp[0]);
+	if (hDC)
+	{
+		SetDeviceGammaRamp(hDC, lpRamp);
+		ReleaseDC(nullptr, hDC);
+	}
 	ChangeDisplaySettingsEx(nullptr, nullptr, nullptr, CDS_RESET, nullptr);
-	ReleaseDC(nullptr, hDC);
 
 	// Reset font settings
 	if (fontSystemSettings.isEnabled)
