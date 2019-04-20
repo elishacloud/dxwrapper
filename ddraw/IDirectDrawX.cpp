@@ -17,6 +17,7 @@
 */
 
 #include "ddraw.h"
+#include "Utils\Utils.h"
 
 struct handle_data
 {
@@ -413,7 +414,7 @@ HRESULT m_IDirectDrawX::EnumDisplayModes2(DWORD dwFlags, LPDDSURFACEDESC2 lpDDSu
 		}
 		if ((dwFlags & DDEDM_REFRESHRATES) == 0 && !EnumRefreshRate)
 		{
-			EnumRefreshRate = GetRefreshRate();
+			EnumRefreshRate = Utils::GetRefreshRate(MainhWnd);
 		}
 
 		// Get display modes to enum
@@ -682,7 +683,7 @@ HRESULT m_IDirectDrawX::GetDisplayMode2(LPDDSURFACEDESC2 lpDDSurfaceDesc2)
 			HDC hdc = GetDC(nullptr);
 			lpDDSurfaceDesc2->dwWidth = GetSystemMetrics(SM_CXSCREEN);
 			lpDDSurfaceDesc2->dwHeight = GetSystemMetrics(SM_CYSCREEN);
-			lpDDSurfaceDesc2->dwRefreshRate = GetRefreshRate();
+			lpDDSurfaceDesc2->dwRefreshRate = Utils::GetRefreshRate(MainhWnd);
 			displayModeBits = GetDeviceCaps(hdc, BITSPIXEL);
 			ReleaseDC(nullptr, hdc);
 		}
@@ -886,7 +887,6 @@ HRESULT m_IDirectDrawX::RestoreDisplayMode()
 		displayModeHeight = 0;
 		displayModeBPP = 0;
 		displayModeRefreshRate = 0;
-		monitorRefreshRate = 0;
 
 		return DD_OK;
 	}
@@ -974,9 +974,10 @@ HRESULT m_IDirectDrawX::SetCooperativeLevel(HWND hWnd, DWORD dwFlags)
 	}
 
 	// Remove hWnd ExclusiveMode
-	if (SUCCEEDED(hr) && (dwFlags & DDSCL_NORMAL) && hWnd == chWnd)
+	if (SUCCEEDED(hr) && (dwFlags & DDSCL_NORMAL) && IsWindow(hWnd) && hWnd == chWnd)
 	{
 		g_hookmap.clear();
+		chWnd = nullptr;
 	}
 
 	// Remove window border on fullscreen windows 
@@ -1012,12 +1013,6 @@ HRESULT m_IDirectDrawX::SetDisplayMode(DWORD dwWidth, DWORD dwHeight, DWORD dwBP
 		{
 			displayWidth = dwWidth;
 			displayHeight = dwHeight;
-		}
-
-		// Get refresh rate of monitor
-		if (Config.AutoFrameSkip)
-		{
-			monitorRefreshRate = (displayModeRefreshRate) ? displayModeRefreshRate : GetRefreshRate();
 		}
 
 		// Create the requested d3d device for this display mode, report error on failure
@@ -1297,33 +1292,6 @@ HRESULT m_IDirectDrawX::EvaluateMode(DWORD dwFlags, DWORD * pSecondsUntilTimeout
 /************************/
 /*** Helper functions ***/
 /************************/
-
-DWORD m_IDirectDrawX::GetRefreshRate()
-{
-	if (IsWindow(MainhWnd))
-	{
-		MONITORINFOEX mi;
-		mi.cbSize = sizeof(MONITORINFOEX);
-		bool DeviceNameFlag = GetMonitorInfoA(MonitorFromWindow(MainhWnd, MONITOR_DEFAULTTONEAREST), &mi);
-		if (!DeviceNameFlag)
-		{
-			Logging::Log() << __FUNCTION__ << " Failed to get MonitorInfo!";
-		}
-		DEVMODEA DevMode;
-		ZeroMemory(&DevMode, sizeof(DEVMODEA));
-		DevMode.dmSize = sizeof(DEVMODEA);
-		if (EnumDisplaySettingsA((DeviceNameFlag) ? mi.szDevice : nullptr, ENUM_CURRENT_SETTINGS, &DevMode))
-		{
-			return DevMode.dmDisplayFrequency;
-		}
-	}
-
-	HDC hdc = GetDC(nullptr);
-	DWORD RefreshRate = GetDeviceCaps(hdc, VREFRESH);
-	ReleaseDC(nullptr, hdc);
-
-	return RefreshRate;
-}
 
 // Creates d3d9 device, destroying the old one if exists
 HRESULT m_IDirectDrawX::CreateD3D9Device()
@@ -1720,47 +1688,6 @@ HRESULT m_IDirectDrawX::EndScene()
 		return DDERR_GENERIC;
 	}
 
-	// Skip frame if time lapse is too small
-	if (Config.AutoFrameSkip)
-	{
-		if (!FrequencyFlag || (lastTime.LowPart & 0xff) == 0)
-		{
-			if (QueryPerformanceFrequency(&clockFrequency))
-			{
-				FrequencyFlag = true;
-			}
-		}
-		if (FrequencyFlag)
-		{
-			FrameCounter++;
-
-			bool CounterFlag = QueryPerformanceCounter(&clickTime);
-			float deltaMS = ((clickTime.QuadPart - lastTime.QuadPart) * 1000.0f) / clockFrequency.QuadPart;
-
-			D3DRASTER_STATUS RasterStatus;
-			bool RasterFlag = SUCCEEDED(d3d9Device->GetRasterStatus(0, &RasterStatus));
-
-			DWORD RefreshRate = (!monitorRefreshRate) ? 60 : monitorRefreshRate;
-			DWORD Height = (displayHeight) ? displayHeight : GetSystemMetrics(SM_CYSCREEN);
-
-			float MultiplierRatio = 0.4f + 0.4f - (0.4f / (FrameCounter + 1));
-
-			// Check if frame should be skipped
-			if (!((RasterFlag && !RasterStatus.InVBlank && RasterStatus.ScanLine > Height * MultiplierRatio) ||
-				(CounterFlag && deltaMS > (1000.0f / RefreshRate) * MultiplierRatio) ||
-				(!RasterFlag && !CounterFlag)))
-			{
-				Logging::LogDebug() << __FUNCTION__ << " Skipping frame " << deltaMS << "ms ScanLine is " << RasterStatus.ScanLine;
-				return DD_OK;
-			}
-			Logging::LogDebug() << __FUNCTION__ << " Drawing frame " << deltaMS << "ms ScanLine is " << RasterStatus.ScanLine;
-
-			// Reset variables when displaying the frame
-			lastTime.QuadPart = clickTime.QuadPart;
-			FrameCounter = 0;
-		}
-	}
-
 	// End scene
 	if (FAILED(d3d9Device->EndScene()))
 	{
@@ -1785,15 +1712,6 @@ HRESULT m_IDirectDrawX::EndScene()
 	{
 		Logging::Log() << __FUNCTION__ << " Failed to present scene";
 		return DDERR_GENERIC;
-	}
-
-	// Store new click time after frame draw is complete
-	if (Config.AutoFrameSkip)
-	{
-		if (QueryPerformanceCounter(&clickTime))
-		{
-			lastTime.QuadPart = clickTime.QuadPart;
-		}
 	}
 
 	// BeginScene after EndScene is done

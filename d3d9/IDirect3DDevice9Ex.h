@@ -11,6 +11,15 @@ private:
 	static constexpr size_t MAX_CLIP_PLANES = 6;
 	float m_storedClipPlanes[MAX_CLIP_PLANES][4];
 	IDirect3DSurface9 *pCurrentRenderTarget = nullptr;
+	bool IsInScene = false;
+	DWORD displayHeight = 0;
+	HWND MainhWnd = nullptr;
+
+	// High resolution counter
+	bool FrequencyFlag = false;
+	LARGE_INTEGER clockFrequency, clickTime, lastTime = { 0, 0 };
+	DWORD FrameCounter = 0;
+	DWORD monitorRefreshRate = 0;
 
 public:
 	m_IDirect3DDevice9Ex(LPDIRECT3DDEVICE9EX pDevice, m_IDirect3D9Ex* pD3D) : ProxyInterface(pDevice), m_pD3DEx(pD3D)
@@ -22,8 +31,6 @@ public:
 		delete ProxyAddressLookupTable;
 	}
 
-	virtual void SetMultiSampleType(D3DMULTISAMPLE_TYPE MultiSampleType) { DeviceMultiSampleType = MultiSampleType; }
-	virtual void SetMultiSampleQuality(DWORD MultiSampleQuality) { DeviceMultiSampleQuality = MultiSampleQuality; }
 	LPDIRECT3DDEVICE9EX GetProxyInterface() { return ProxyInterface; }
 	AddressLookupTableD3d9<m_IDirect3DDevice9Ex> *ProxyAddressLookupTable;
 
@@ -167,4 +174,7 @@ public:
 	STDMETHOD(CreateDepthStencilSurfaceEx)(THIS_ UINT Width, UINT Height, D3DFORMAT Format, D3DMULTISAMPLE_TYPE MultiSample, DWORD MultisampleQuality, BOOL Discard, IDirect3DSurface9** ppSurface, HANDLE* pSharedHandle, DWORD Usage);
 	STDMETHOD(ResetEx)(THIS_ D3DPRESENT_PARAMETERS* pPresentationParameters, D3DDISPLAYMODEEX *pFullscreenDisplayMode);
 	STDMETHOD(GetDisplayModeEx)(THIS_ UINT iSwapChain, D3DDISPLAYMODEEX* pMode, D3DDISPLAYROTATION* pRotation);
+
+	// Helper functions
+	void SetDefaults(D3DPRESENT_PARAMETERS *pPresentationParameters, HWND hWnd, bool MultiSampleFlag);
 };

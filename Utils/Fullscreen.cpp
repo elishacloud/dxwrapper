@@ -153,6 +153,51 @@ using namespace Utils;
 // Screen/monitor functions below
 //*********************************************************************************
 
+DWORD Utils::GetRefreshRate(HWND hWnd)
+{
+	if (IsWindow(hWnd))
+	{
+		MONITORINFOEX mi;
+		mi.cbSize = sizeof(MONITORINFOEX);
+		bool DeviceNameFlag = GetMonitorInfoA(MonitorFromWindow(hWnd, MONITOR_DEFAULTTONEAREST), &mi);
+		if (!DeviceNameFlag)
+		{
+			Logging::Log() << __FUNCTION__ << " Failed to get MonitorInfo!";
+		}
+		DEVMODEA DevMode;
+		ZeroMemory(&DevMode, sizeof(DEVMODEA));
+		DevMode.dmSize = sizeof(DEVMODEA);
+		if (EnumDisplaySettingsA((DeviceNameFlag) ? mi.szDevice : nullptr, ENUM_CURRENT_SETTINGS, &DevMode))
+		{
+			return DevMode.dmDisplayFrequency;
+		}
+	}
+
+	HDC hdc = GetDC(nullptr);
+	DWORD RefreshRate = GetDeviceCaps(hdc, VREFRESH);
+	ReleaseDC(nullptr, hdc);
+
+	return RefreshRate;
+}
+
+DWORD Utils::GetWindowHeight(HWND hWnd)
+{
+	if (IsWindow(hWnd))
+	{
+		RECT rect = { NULL };
+		GetWindowRect(hWnd, &rect);
+		DWORD Height = abs(rect.right - rect.left);
+		if (GetWindowLong(hWnd, GWL_STYLE) & WS_CAPTION)
+		{
+			DWORD FrameSize = GetSystemMetrics(SM_CXPADDEDBORDER) + GetSystemMetrics(SM_CXSIZEFRAME);
+			Height = (Height > FrameSize) ? Height - FrameSize : Height;
+		}
+		return Height;
+	}
+
+	return GetSystemMetrics(SM_CYSCREEN);
+}
+
 // Gets the screen size from a wnd handle
 void Fullscreen::GetScreenSize(HWND& hwnd, screen_res& Res, MONITORINFO& mi)
 {

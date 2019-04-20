@@ -28,6 +28,8 @@ namespace Utils
 	void DDrawResolutionHack(HMODULE hD3DIm);
 	void GetScreenSettings();
 	void ResetScreenSettings();
+	DWORD GetRefreshRate(HWND hWnd);
+	DWORD GetWindowHeight(HWND hWnd);
 
 	namespace WriteMemory
 	{
