@@ -25,11 +25,7 @@ public:
 	}
 	m_IDirect3DMaterialX(m_IDirect3DDeviceX **D3DDInterface, DWORD DirectXVersion) : D3DDeviceInterface(D3DDInterface)
 	{
-		if (DirectXVersion == 7)
-		{
-			DirectXVersion = 3;
-			ProxyDirectXVersion = 7;
-		}
+		ProxyDirectXVersion = (!Config.Dd7to9) ? 7 : 9;
 
 		Logging::LogDebug() << "Convert Direct3DMaterial v" << DirectXVersion << " to v" << ProxyDirectXVersion;
 	}

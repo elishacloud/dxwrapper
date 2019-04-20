@@ -301,8 +301,23 @@ HRESULT m_IDirect3DX::CreateLight(LPDIRECT3DLIGHT * lplpDirect3DLight, LPUNKNOWN
 		break;
 	case 7:
 	case 9:
-		Logging::Log() << __FUNCTION__ << " Not Implemented";
-		return E_NOTIMPL;
+		if (!lplpDirect3DLight)
+		{
+			return DDERR_INVALIDPARAMS;
+		}
+		else
+		{
+			// Check for device
+			if (!ddrawParent)
+			{
+				Logging::Log() << __FUNCTION__ << " Error no ddraw parent!";
+				return DDERR_GENERIC;
+			}
+
+			*lplpDirect3DLight = (LPDIRECT3DLIGHT)new m_IDirect3DLight(ddrawParent->GetCurrentD3DDevice());
+			return D3D_OK;
+		}
+		break;
 	default:
 		return DDERR_GENERIC;
 	}
@@ -333,6 +348,7 @@ HRESULT m_IDirect3DX::CreateMaterial(LPDIRECT3DMATERIAL3 * lplpDirect3DMaterial,
 		hr = GetProxyInterfaceV3()->CreateMaterial(lplpDirect3DMaterial, pUnkOuter);
 		break;
 	case 7:
+	case 9:
 		if (!lplpDirect3DMaterial)
 		{
 			return DDERR_INVALIDPARAMS;
@@ -346,13 +362,10 @@ HRESULT m_IDirect3DX::CreateMaterial(LPDIRECT3DMATERIAL3 * lplpDirect3DMaterial,
 				return DDERR_GENERIC;
 			}
 
-			*lplpDirect3DMaterial = (LPDIRECT3DMATERIAL3)new m_IDirect3DMaterialX(ddrawParent->GetCurrentD3DDevice(), 7);
+			*lplpDirect3DMaterial = (LPDIRECT3DMATERIAL3)new m_IDirect3DMaterialX(ddrawParent->GetCurrentD3DDevice(), DirectXVersion);
 			return D3D_OK;
 		}
 		break;
-	case 9:
-		Logging::Log() << __FUNCTION__ << " Not Implemented";
-		return E_NOTIMPL;
 	default:
 		return DDERR_GENERIC;
 	}
@@ -383,6 +396,7 @@ HRESULT m_IDirect3DX::CreateViewport(LPDIRECT3DVIEWPORT3 * lplpD3DViewport, LPUN
 		hr = GetProxyInterfaceV3()->CreateViewport(lplpD3DViewport, pUnkOuter);
 		break;
 	case 7:
+	case 9:
 		if (!lplpD3DViewport)
 		{
 			return DDERR_INVALIDPARAMS;
@@ -396,13 +410,10 @@ HRESULT m_IDirect3DX::CreateViewport(LPDIRECT3DVIEWPORT3 * lplpD3DViewport, LPUN
 				return DDERR_GENERIC;
 			}
 
-			*lplpD3DViewport = (LPDIRECT3DVIEWPORT3)new m_IDirect3DViewportX(ddrawParent->GetCurrentD3DDevice(), 7);
+			*lplpD3DViewport = (LPDIRECT3DVIEWPORT3)new m_IDirect3DViewportX(ddrawParent->GetCurrentD3DDevice(), DirectXVersion);
 			return D3D_OK;
 		}
 		break;
-	case 9:
-		Logging::Log() << __FUNCTION__ << " Not Implemented";
-		return E_NOTIMPL;
 	default:
 		return DDERR_GENERIC;
 	}
@@ -516,8 +527,22 @@ HRESULT m_IDirect3DX::CreateVertexBuffer(LPD3DVERTEXBUFFERDESC lpVBDesc, LPDIREC
 		hr = GetProxyInterfaceV7()->CreateVertexBuffer(lpVBDesc, lplpD3DVertexBuffer, dwFlags);
 		break;
 	case 9:
-		Logging::Log() << __FUNCTION__ << " Not Implemented";
-		return E_NOTIMPL;
+		if (!lplpD3DVertexBuffer || dwFlags)
+		{
+			return DDERR_INVALIDPARAMS;
+		}
+		else
+		{
+			// Check for device
+			if (!ddrawParent)
+			{
+				Logging::Log() << __FUNCTION__ << " Error no ddraw parent!";
+				return DDERR_GENERIC;
+			}
+
+			*lplpD3DVertexBuffer = (LPDIRECT3DVERTEXBUFFER7)new m_IDirect3DVertexBufferX(ddrawParent->GetCurrentD3DDevice(), lpVBDesc, DirectXVersion);
+			return D3D_OK;
+		}
 	}
 
 	if (SUCCEEDED(hr) && lplpD3DVertexBuffer)

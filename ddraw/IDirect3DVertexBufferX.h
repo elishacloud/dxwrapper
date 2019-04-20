@@ -10,6 +10,7 @@ private:
 
 	// Convert Material
 	m_IDirect3DDeviceX **D3DDeviceInterface = nullptr;
+	D3DVERTEXBUFFERDESC VBDesc = { NULL};
 
 	// Store ddraw version wrappers
 	std::unique_ptr<m_IDirect3DVertexBuffer> UniqueProxyInterface = nullptr;
@@ -29,11 +30,19 @@ public:
 			Logging::LogDebug() << "Create " << __FUNCTION__ << " v" << DirectXVersion;
 		}
 	}
-	m_IDirect3DVertexBufferX(m_IDirect3DDeviceX **D3DDInterface, DWORD DirectXVersion) : D3DDeviceInterface(D3DDInterface)
+	m_IDirect3DVertexBufferX(m_IDirect3DDeviceX **D3DDInterface, LPD3DVERTEXBUFFERDESC lpVBDesc, DWORD DirectXVersion) : D3DDeviceInterface(D3DDInterface)
 	{
 		ProxyDirectXVersion = 9;
 
-		Logging::LogDebug() << "Convert Direct3DMaterial v" << DirectXVersion << " to v" << ProxyDirectXVersion;
+		if (lpVBDesc && lpVBDesc->dwSize)
+		{
+			VBDesc.dwSize = sizeof(D3DVERTEXBUFFERDESC);
+			VBDesc.dwCaps = lpVBDesc->dwCaps;
+			VBDesc.dwFVF = lpVBDesc->dwFVF;
+			VBDesc.dwNumVertices = lpVBDesc->dwNumVertices;
+		}
+
+		Logging::LogDebug() << "Convert Direct3DVertexBuffer v" << DirectXVersion << " to v" << ProxyDirectXVersion;
 	}
 	~m_IDirect3DVertexBufferX() {}
 

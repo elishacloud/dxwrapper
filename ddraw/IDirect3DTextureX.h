@@ -24,13 +24,9 @@ public:
 	}
 	m_IDirect3DTextureX(m_IDirect3DDeviceX **D3DDInterface, DWORD DirectXVersion, IDirectDrawSurface7 *lpSurface) : D3DDeviceInterface(D3DDInterface), ProxyInterface((IDirect3DTexture2*)lpSurface)
 	{
-		if (DirectXVersion == 7)
-		{
-			DirectXVersion = 3;
-			ProxyDirectXVersion = 7;
-		}
+		ProxyDirectXVersion = (!Config.Dd7to9) ? 7 : 9;
 
-		Logging::LogDebug() << "Convert Direct3DMaterial v" << DirectXVersion << " to v" << ProxyDirectXVersion;
+		Logging::LogDebug() << "Convert Direct3DTexture v" << DirectXVersion << " to v" << ProxyDirectXVersion;
 	}
 	~m_IDirect3DTextureX() {}
 
