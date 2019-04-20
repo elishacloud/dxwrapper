@@ -15,7 +15,6 @@
 */
 
 #include "Settings\Settings.h"
-#include "dxwrapper.h"
 #include "Wrappers\wrapper.h"
 #include "External\Hooking\Hook.h"
 #include "DDrawCompat\DDrawCompatExternal.h"
@@ -29,6 +28,7 @@
 #include "d3d8\d3d8External.h"
 #include "d3d9\d3d9External.h"
 #include "dsound\dsoundExternal.h"
+#include "dxwrapper.h"
 
 #define SHIM_WRAPPED_PROC(procName, unused) \
 	Wrapper::ShimProc(procName ## _var, procName ## _in, procName ## _out);

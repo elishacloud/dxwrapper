@@ -2,9 +2,6 @@
 // Microsoft Visual C++ generated include file.
 // Used by dxwrapper.rc
 
-#ifndef DDRAWLOG_H
-#include "Logging\Logging.h"
-#endif
 #ifndef DXWND_H
 #include "DxWnd\v2_03_60_src\dxwnd.h"
 #endif
@@ -17,7 +14,7 @@
 #define APP_BUILDNUMBER			BUILD_NUMBER
 #define APP_REVISION			21
 #define APP_COMPANYNAME			"Sadrate Presents"
-#define APP_DESCRPTION			"Wraps or hooks DirectX files to fix compatibility issues in older games. Also allows code to be executed from inside the application. Wraps the following files:  bcrypt.dll, cryptsp.dll, d2d1.dll, d3d8.dll, d3d9.dll, d3d10.dll, d3d11.dll, d3d12.dll, dciman32.dll, ddraw.dll, dinput.dll, dinput8.dll, dplayx.dll, dsound.dll, msacm32.dll, msvfw32.dll, version.dll, wininet.dll, winmm.dll and winmmbase.dll"
+#define APP_DESCRPTION			"Wraps or hooks DirectX files to fix compatibility issues in older games. Also allows code to be executed from inside the application."
 #define APP_COPYRIGHT			"Copyright (C) 2019 Elisha Riedlinger"
 #define APP_ORIGINALVERSION		"dxwrapper.dll"
 #define APP_INTERNALNAME		"DxWrapper"
