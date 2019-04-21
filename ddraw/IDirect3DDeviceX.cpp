@@ -321,6 +321,7 @@ HRESULT m_IDirect3DDeviceX::GetCaps(LPD3DDEVICEDESC lpD3DHWDevDesc, LPD3DDEVICED
 	case 3:
 		return GetProxyInterfaceV3()->GetCaps(lpD3DHWDevDesc, lpD3DHELDevDesc);
 	case 7:
+	case 9:
 	{
 		D3DDEVICEDESC7 D3DDevDesc;
 		HRESULT hr = GetCaps(&D3DDevDesc);
@@ -340,9 +341,6 @@ HRESULT m_IDirect3DDeviceX::GetCaps(LPD3DDEVICEDESC lpD3DHWDevDesc, LPD3DDEVICED
 
 		return hr;
 	}
-	case 9:
-		Logging::Log() << __FUNCTION__ << " Not Implemented";
-		return E_NOTIMPL;
 	default:
 		return DDERR_GENERIC;
 	}
@@ -370,13 +368,7 @@ HRESULT m_IDirect3DDeviceX::AddViewport(LPDIRECT3DVIEWPORT3 lpDirect3DViewport)
 {
 	Logging::LogDebug() << __FUNCTION__;
 
-	if (Config.Dd7to9)
-	{
-		Logging::Log() << __FUNCTION__ << " Not Implemented";
-		return E_NOTIMPL;
-	}
-
-	if (ProxyDirectXVersion == 7)
+	if (Config.Dd7to9 || ProxyDirectXVersion == 7)
 	{
 		if (!lpDirect3DViewport)
 		{
@@ -385,6 +377,7 @@ HRESULT m_IDirect3DDeviceX::AddViewport(LPDIRECT3DVIEWPORT3 lpDirect3DViewport)
 
 		D3DVIEWPORT Viewport;
 
+		// ToDo: Validate Viewport address
 		HRESULT hr = lpDirect3DViewport->GetViewport(&Viewport);
 
 		if (SUCCEEDED(hr))
@@ -487,13 +480,7 @@ HRESULT m_IDirect3DDeviceX::SetCurrentViewport(LPDIRECT3DVIEWPORT3 lpd3dViewport
 {
 	Logging::LogDebug() << __FUNCTION__;
 
-	if (Config.Dd7to9)
-	{
-		Logging::Log() << __FUNCTION__ << " Not Implemented";
-		return E_NOTIMPL;
-	}
-
-	if (ProxyDirectXVersion == 7)
+	if (Config.Dd7to9 || ProxyDirectXVersion == 7)
 	{
 		// ToDo: Validate Viewport address
 		// ToDo: Increment Viewport ref count
@@ -523,13 +510,7 @@ HRESULT m_IDirect3DDeviceX::GetCurrentViewport(LPDIRECT3DVIEWPORT3 * lplpd3dView
 {
 	Logging::LogDebug() << __FUNCTION__;
 
-	if (Config.Dd7to9)
-	{
-		Logging::Log() << __FUNCTION__ << " Not Implemented";
-		return E_NOTIMPL;
-	}
-
-	if (ProxyDirectXVersion == 7)
+	if (Config.Dd7to9 || ProxyDirectXVersion == 7)
 	{
 		if (lplpd3dViewport && lpCurrentViewport)
 		{

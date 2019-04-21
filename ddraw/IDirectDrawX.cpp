@@ -77,7 +77,7 @@ HRESULT m_IDirectDrawX::QueryInterface(REFIID riid, LPVOID FAR * ppvObj, DWORD D
 
 	HRESULT hr = ProxyQueryInterface(ProxyInterface, riid, ppvObj, GetWrapperType(DirectXVersion), WrapperInterface);
 
-	if (Config.ConvertToDirect3D7)
+	if (SUCCEEDED(hr) && Config.ConvertToDirect3D7)
 	{
 		if ((riid == IID_IDirect3D || riid == IID_IDirect3D2 || riid == IID_IDirect3D3 || riid == IID_IDirect3D7) && ppvObj && *ppvObj)
 		{
