@@ -34,6 +34,7 @@ public:
 	STDMETHOD(QueryInterface) (THIS_ REFIID riid, LPVOID FAR * ppvObj);
 	STDMETHOD_(ULONG, AddRef) (THIS);
 	STDMETHOD_(ULONG, Release) (THIS);
+
 	/*** IDirectDrawSurface methods ***/
 	STDMETHOD(AddAttachedSurface)(THIS_ LPDIRECTDRAWSURFACE);
 	STDMETHOD(AddOverlayDirtyRect)(THIS_ LPRECT);

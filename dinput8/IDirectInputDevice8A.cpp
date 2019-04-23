@@ -44,14 +44,14 @@ ULONG m_IDirectInputDevice8A::AddRef()
 
 ULONG m_IDirectInputDevice8A::Release()
 {
-	ULONG x = ProxyInterface->Release();
+	ULONG ref = ProxyInterface->Release();
 
-	if (x == 0)
+	if (ref == 0)
 	{
 		delete this;
 	}
 
-	return x;
+	return ref;
 }
 
 HRESULT m_IDirectInputDevice8A::GetCapabilities(LPDIDEVCAPS lpDIDevCaps)

@@ -40,14 +40,14 @@ ULONG m_IDirect3D9Ex::AddRef()
 
 ULONG m_IDirect3D9Ex::Release()
 {
-	ULONG count = ProxyInterface->Release();
+	ULONG ref = ProxyInterface->Release();
 
-	if (count == 0)
+	if (ref == 0)
 	{
 		delete this;
 	}
 
-	return count;
+	return ref;
 }
 
 HRESULT m_IDirect3D9Ex::EnumAdapterModes(THIS_ UINT Adapter, D3DFORMAT Format, UINT Mode, D3DDISPLAYMODE* pMode)

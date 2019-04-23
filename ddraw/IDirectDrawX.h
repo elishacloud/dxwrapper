@@ -139,6 +139,8 @@ public:
 	STDMETHOD(TestCooperativeLevel)(THIS);
 	HRESULT GetDeviceIdentifier(LPDDDEVICEIDENTIFIER, DWORD);
 	HRESULT GetDeviceIdentifier2(LPDDDEVICEIDENTIFIER2, DWORD);
+
+	/*** Added in the V7 Interface ***/
 	STDMETHOD(StartModeTest)(THIS_ LPSIZE, DWORD, DWORD);
 	STDMETHOD(EvaluateMode)(THIS_ DWORD, DWORD *);
 

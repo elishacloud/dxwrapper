@@ -44,14 +44,14 @@ ULONG m_IDirectInputEffect8::AddRef()
 
 ULONG m_IDirectInputEffect8::Release()
 {
-	ULONG x = ProxyInterface->Release();
+	ULONG ref = ProxyInterface->Release();
 
-	if (x == 0)
+	if (ref == 0)
 	{
 		delete this;
 	}
 
-	return x;
+	return ref;
 }
 
 HRESULT m_IDirectInputEffect8::Initialize(HINSTANCE hinst, DWORD dwVersion, REFGUID rguid)

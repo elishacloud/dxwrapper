@@ -62,6 +62,7 @@
     <Link>
       <AdditionalDependencies>dxguid.lib;detours.lib;msimg32.lib;oleacc.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <ModuleDefinitionFile>Wrappers\wrapper.def</ModuleDefinitionFile>
+      <OptimizeReferences>true</OptimizeReferences>
     </Link>
     <PostBuildEvent>
       <Command>IF NOT EXIST "$(TargetDir)Build" mkdir "$(TargetDir)Build" &gt;nul

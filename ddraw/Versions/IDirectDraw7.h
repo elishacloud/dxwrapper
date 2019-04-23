@@ -34,6 +34,7 @@ public:
 	STDMETHOD(QueryInterface) (THIS_ REFIID riid, LPVOID FAR * ppvObj);
 	STDMETHOD_(ULONG, AddRef) (THIS);
 	STDMETHOD_(ULONG, Release) (THIS);
+
 	/*** IDirectDraw methods ***/
 	STDMETHOD(Compact)(THIS);
 	STDMETHOD(CreateClipper)(THIS_ DWORD, LPDIRECTDRAWCLIPPER FAR*, IUnknown FAR *);
@@ -62,6 +63,7 @@ public:
 	STDMETHOD(RestoreAllSurfaces)(THIS);
 	STDMETHOD(TestCooperativeLevel)(THIS);
 	STDMETHOD(GetDeviceIdentifier)(THIS_ LPDDDEVICEIDENTIFIER2, DWORD);
+	/*** Added in the V7 Interface ***/
 	STDMETHOD(StartModeTest)(THIS_ LPSIZE, DWORD, DWORD);
 	STDMETHOD(EvaluateMode)(THIS_ DWORD, DWORD *);
 };
