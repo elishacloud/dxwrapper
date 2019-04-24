@@ -74,10 +74,16 @@ HRESULT m_IDirectDrawGammaControl::GetGammaRamp(DWORD dwFlags, LPDDGAMMARAMP lpR
 {
 	Logging::LogDebug() << __FUNCTION__;
 
+	if (dwFlags || !lpRampData)
+	{
+		return DDERR_INVALIDPARAMS;
+	}
+
 	if (!ProxyInterface)
 	{
-		Logging::Log() << __FUNCTION__ << " Not Implemented";
-		return E_NOTIMPL;
+		ConvertGammaRamp(*lpRampData, RampData);
+
+		return DD_OK;
 	}
 
 	return ProxyInterface->GetGammaRamp(dwFlags, lpRampData);
@@ -87,10 +93,16 @@ HRESULT m_IDirectDrawGammaControl::SetGammaRamp(DWORD dwFlags, LPDDGAMMARAMP lpR
 {
 	Logging::LogDebug() << __FUNCTION__;
 
+	if (!(dwFlags || dwFlags == DDSGR_CALIBRATE) || !lpRampData)
+	{
+		return DDERR_INVALIDPARAMS;
+	}
+
 	if (!ProxyInterface)
 	{
-		Logging::Log() << __FUNCTION__ << " Not Implemented";
-		return E_NOTIMPL;
+		ConvertGammaRamp(RampData, *lpRampData);
+
+		return DD_OK;
 	}
 
 	return ProxyInterface->SetGammaRamp(dwFlags, lpRampData);

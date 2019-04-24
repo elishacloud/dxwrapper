@@ -64,7 +64,7 @@ HRESULT WINAPI di_DirectInputCreateEx(HINSTANCE hinst, DWORD dwVersion, REFIID r
 
 	Logging::Log() << "Redirecting 'DirectInputCreate' " << riid << " version " << Logging::hex(dwVersion) << " to --> 'DirectInput8Create'";
 
-	HRESULT hr = m_pDirectInput8Create(hinst, 0x0800, (GetStringType(riid) == DEFAULT_CHARSET) ? IID_IDirectInput8W : IID_IDirectInput8A, lplpDD, punkOuter);
+	HRESULT hr = m_pDirectInput8Create(hinst, 0x0800, dinputto8::ConvertREFIID(riid), lplpDD, punkOuter);
 
 	if (SUCCEEDED(hr))
 	{
@@ -96,9 +96,7 @@ HRESULT WINAPI di_DllGetClassObject(IN REFCLSID rclsid, IN REFIID riid, OUT LPVO
 		return E_FAIL;
 	}
 
-	DWORD StringType = GetStringType(riid);
-
-	HRESULT hr = m_pDllGetClassObject(rclsid, (StringType == ANSI_CHARSET) ? IID_IDirectInput8A : (StringType == DEFAULT_CHARSET) ? IID_IDirectInput8W : riid, ppv);
+	HRESULT hr = m_pDllGetClassObject(dinputto8::ConvertCLSID(rclsid), dinputto8::ConvertREFIID(riid), ppv);
 
 	if (SUCCEEDED(hr))
 	{

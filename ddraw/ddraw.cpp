@@ -634,7 +634,14 @@ HRESULT WINAPI dd_DllGetClassObject(REFCLSID rclsid, REFIID riid, LPVOID *ppv)
 
 	if (Config.Dd7to9)
 	{
-		return ProxyQueryInterface(nullptr, riid, ppv, rclsid, nullptr);
+		HRESULT hr = ProxyQueryInterface(nullptr, riid, ppv, rclsid, nullptr);
+
+		if (SUCCEEDED(hr) && riid == IID_IClassFactory && ppv && *ppv)
+		{
+			((m_IClassFactory*)(*ppv))->SetCLSID(rclsid);
+		}
+
+		return hr;
 	}
 
 	static DllGetClassObjectProc m_pDllGetClassObject = (Wrapper::ValidProcAddress(DllGetClassObject_out)) ? (DllGetClassObjectProc)DllGetClassObject_out : nullptr;
@@ -644,7 +651,7 @@ HRESULT WINAPI dd_DllGetClassObject(REFCLSID rclsid, REFIID riid, LPVOID *ppv)
 		return E_INVALIDARG;
 	}
 
-	HRESULT hr = m_pDllGetClassObject(rclsid, ConvertREFIID(riid), ppv);
+	HRESULT hr = m_pDllGetClassObject(ConvertCLSID(rclsid), ConvertREFIID(riid), ppv);
 
 	if (SUCCEEDED(hr) && ppv)
 	{

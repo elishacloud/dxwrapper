@@ -24,6 +24,11 @@ void ConvertColorControl(DDCOLORCONTROL &ColorControl, DDCOLORCONTROL &ColorCont
 	ColorControl.dwSize = dwSize;
 }
 
+void ConvertGammaRamp(DDGAMMARAMP &RampData, DDGAMMARAMP &RampData2)
+{
+	CopyMemory(&RampData, &RampData2, sizeof(DDGAMMARAMP));
+}
+
 void ConvertSurfaceDesc(DDSURFACEDESC &Desc, DDSURFACEDESC &Desc2)
 {
 	DWORD dwSize = min(sizeof(DDSURFACEDESC), Desc.dwSize);

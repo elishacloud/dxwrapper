@@ -32,6 +32,16 @@ DWORD DdrawWrapper::GetIIDVersion(REFIID riid)
 			riid == IID_IDirect3DVertexBuffer7) ? 7 : 0;
 }
 
+REFCLSID DdrawWrapper::ConvertCLSID(REFCLSID rclsid)
+{
+	if (Config.ConvertToDirectDraw7 && rclsid == CLSID_DirectDraw)
+	{
+		return CLSID_DirectDraw7;
+	}
+
+	return rclsid;
+}
+
 REFIID DdrawWrapper::ConvertREFIID(REFIID riid)
 {
 	if (Config.ConvertToDirectDraw7)
@@ -101,24 +111,20 @@ HRESULT DdrawWrapper::ProxyQueryInterface(LPVOID ProxyInterface, REFIID riid, LP
 
 	if (Config.Dd7to9 || !ProxyInterface)
 	{
-		if (riid == IID_IClassFactory)
+		if (ppvObj)
 		{
-			*ppvObj = new m_IClassFactory(nullptr, nullptr);
-			return S_OK;
-		}
-		if (riid == IID_IDirectDrawFactory)
-		{
-			*ppvObj = new m_IDirectDrawFactory(nullptr);
-			return S_OK;
-		}
-		if (riid == IID_IDirectDrawColorControl)
-		{
-			*ppvObj = new m_IDirectDrawColorControl(nullptr);
-			return S_OK;
+			*ppvObj = nullptr;
+
+			genericQueryInterface(riid, ppvObj);
+
+			if (*ppvObj)
+			{
+				return S_OK;
+			}
 		}
 
 		Logging::Log() << __FUNCTION__ << " Query Not Implemented for " << riid << " from " << WrapperID;
-		*ppvObj = nullptr;
+
 		return E_NOINTERFACE;
 	}
 
@@ -130,6 +136,18 @@ HRESULT DdrawWrapper::ProxyQueryInterface(LPVOID ProxyInterface, REFIID riid, LP
 	}
 	else
 	{
+		if (ppvObj)
+		{
+			*ppvObj = nullptr;
+
+			genericQueryInterface(riid, ppvObj);
+
+			if (*ppvObj)
+			{
+				return S_OK;
+			}
+		}
+
 		Logging::LogDebug() << "Query failed for " << riid << " Error " << hr;
 	}
 
@@ -138,8 +156,49 @@ HRESULT DdrawWrapper::ProxyQueryInterface(LPVOID ProxyInterface, REFIID riid, LP
 
 void WINAPI DdrawWrapper::genericQueryInterface(REFIID riid, LPVOID *ppvObj)
 {
-	if (!ppvObj || !*ppvObj)
+	if (!ppvObj)
 	{
+		return;
+	}
+
+	if (!*ppvObj)
+	{
+		if (riid == IID_IClassFactory)
+		{
+			*ppvObj = new m_IClassFactory(nullptr, genericQueryInterface);
+			return;
+		}
+		if (riid == IID_IDirectDrawFactory)
+		{
+			*ppvObj = new m_IDirectDrawFactory(nullptr);
+			return;
+		}
+		if (riid == IID_IDirectDrawColorControl)
+		{
+			*ppvObj = new m_IDirectDrawColorControl(nullptr);
+			return;
+		}
+		if (riid == IID_IDirectDrawGammaControl)
+		{
+			*ppvObj = new m_IDirectDrawGammaControl(nullptr);
+			return;
+		}
+		if (riid == IID_IDirectDrawClipper)
+		{
+			*ppvObj = new m_IDirectDrawClipper(nullptr);
+			return;
+		}
+		if (Config.Dd7to9 &&
+			(riid == IID_IDirectDraw ||
+			riid == IID_IDirectDraw2 ||
+			riid == IID_IDirectDraw3 ||
+			riid == IID_IDirectDraw4 ||
+			riid == IID_IDirectDraw7))
+		{
+			dd_DirectDrawCreateEx(nullptr, ppvObj, riid, nullptr);
+			return;
+		}
+
 		return;
 	}
 

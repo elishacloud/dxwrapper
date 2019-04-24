@@ -6,6 +6,7 @@ private:
 	IDirectDrawGammaControl *ProxyInterface = nullptr;
 	REFIID WrapperID = IID_IDirectDrawGammaControl;
 	ULONG RefCount = 1;
+	DDGAMMARAMP RampData = { NULL };
 
 public:
 	m_IDirectDrawGammaControl(IDirectDrawGammaControl *aOriginal) : ProxyInterface(aOriginal)

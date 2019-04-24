@@ -15,7 +15,28 @@
 */
 
 #include "IClassFactory.h"
-#include "ddraw\ddraw.h"
+
+namespace DdrawWrapper
+{
+	REFIID ConvertREFIID(REFIID riid);
+}
+
+namespace dinputto8
+{
+	REFIID ConvertREFIID(REFIID riid);
+}
+
+REFIID ConvertAllREFIID(REFIID riid)
+{
+	if (Config.Dinputto8)
+	{
+		return DdrawWrapper::ConvertREFIID(dinputto8::ConvertREFIID(riid));
+	}
+	else
+	{
+		return DdrawWrapper::ConvertREFIID(riid);
+	}
+}
 
 /************************/
 /*** IUnknown methods ***/
@@ -43,18 +64,24 @@ HRESULT m_IClassFactory::QueryInterface(REFIID riid, LPVOID FAR * ppvObj)
 
 	if (!ProxyInterface)
 	{
-		if (riid == IID_IDirectDrawFactory)
+		if (ppvObj)
 		{
-			*ppvObj = new m_IDirectDrawFactory(nullptr);
-			return S_OK;
+			*ppvObj = nullptr;
+
+			IQueryInterface(riid, ppvObj);
+
+			if (*ppvObj)
+			{
+				return S_OK;
+			}
 		}
 
 		Logging::Log() << __FUNCTION__ << " Query Not Implemented for " << riid << " from " << WrapperID;
-		*ppvObj = nullptr;
+
 		return E_NOINTERFACE;
 	}
 
-	HRESULT hr = ProxyInterface->QueryInterface(DdrawWrapper::ConvertREFIID(riid), ppvObj);
+	HRESULT hr = ProxyInterface->QueryInterface(ConvertAllREFIID(riid), ppvObj);
 
 	if (SUCCEEDED(hr))
 	{
@@ -62,6 +89,18 @@ HRESULT m_IClassFactory::QueryInterface(REFIID riid, LPVOID FAR * ppvObj)
 	}
 	else
 	{
+		if (ppvObj)
+		{
+			*ppvObj = nullptr;
+
+			IQueryInterface(riid, ppvObj);
+
+			if (*ppvObj)
+			{
+				return S_OK;
+			}
+		}
+
 		Logging::LogDebug() << "Query failed for " << riid << " Error " << hr;
 	}
 
@@ -109,57 +148,48 @@ ULONG m_IClassFactory::Release()
 
 HRESULT m_IClassFactory::CreateInstance(IUnknown *pUnkOuter, REFIID riid, void **ppvObject)
 {
-	Logging::LogDebug() << __FUNCTION__;
+	Logging::LogDebug() << __FUNCTION__ << " " << ClassID << " --> " << riid;
 
 	if (!ProxyInterface)
 	{
-		if ((riid == IID_IDirectDraw ||
-			riid == IID_IDirectDraw2 ||
-			riid == IID_IDirectDraw3 ||
-			riid == IID_IDirectDraw4 ||
-			riid == IID_IDirectDraw7) && ppvObject)
+		if (ppvObject)
 		{
-			if (Config.Dd7to9 || (Config.ConvertToDirect3D7 && Config.ConvertToDirectDraw7) || ClassID == CLSID_DirectDraw7)
+			*ppvObject = nullptr;
+
+			IQueryInterface(riid, ppvObject);
+
+			if (*ppvObject)
 			{
-				return dd_DirectDrawCreateEx(nullptr, ppvObject, riid, pUnkOuter);
+				return S_OK;
 			}
-
-			HRESULT hr = dd_DirectDrawCreate(nullptr, (LPDIRECTDRAW*)ppvObject, pUnkOuter);
-
-			if (FAILED(hr))
-			{
-				*ppvObject = nullptr;
-				return E_FAIL;
-			}
-
-			// Convert to new DirectDraw version
-			if (DdrawWrapper::ConvertREFIID(riid) != IID_IDirectDraw)
-			{
-				LPDIRECTDRAW lpDD = (LPDIRECTDRAW)*ppvObject;
-
-				hr = lpDD->QueryInterface(riid, (LPVOID*)ppvObject);
-
-				lpDD->Release();
-
-				if (FAILED(hr))
-				{
-					*ppvObject = nullptr;
-					return E_FAIL;
-				}
-			}
-
-			return DD_OK;
 		}
 
 		Logging::Log() << __FUNCTION__ << " Not Implemented for IID " << riid;
+
 		return E_FAIL;
 	}
 
-	HRESULT hr = ProxyInterface->CreateInstance(pUnkOuter, DdrawWrapper::ConvertREFIID(riid), ppvObject);
+	HRESULT hr = ProxyInterface->CreateInstance(pUnkOuter, ConvertAllREFIID(riid), ppvObject);
 
 	if (SUCCEEDED(hr))
 	{
 		IQueryInterface(riid, ppvObject);
+	}
+	else
+	{
+		if (ppvObject)
+		{
+			*ppvObject = nullptr;
+
+			IQueryInterface(riid, ppvObject);
+
+			if (*ppvObject)
+			{
+				return S_OK;
+			}
+		}
+
+		Logging::LogDebug() << "Query failed for " << riid << " Error " << hr;
 	}
 
 	return hr;
