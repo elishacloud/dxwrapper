@@ -24,7 +24,7 @@ HRESULT m_IDirectSoundCaptureFXNoiseSuppress8::QueryInterface(REFIID riid, LPVOI
 
 		*ppvObj = this;
 
-		return S_OK;
+		return DS_OK;
 	}
 
 	HRESULT hr = ProxyInterface->QueryInterface(riid, ppvObj);

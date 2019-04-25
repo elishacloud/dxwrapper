@@ -24,7 +24,7 @@ HRESULT m_IDirectInputDevice8A::QueryInterface(REFIID riid, LPVOID * ppvObj)
 
 		*ppvObj = this;
 
-		return S_OK;
+		return DI_OK;
 	}
 
 	HRESULT hr = ProxyInterface->QueryInterface(riid, ppvObj);
@@ -163,6 +163,11 @@ HRESULT m_IDirectInputDevice8A::SendForceFeedbackCommand(DWORD dwFlags)
 
 HRESULT m_IDirectInputDevice8A::EnumCreatedEffectObjects(LPDIENUMCREATEDEFFECTOBJECTSCALLBACK lpCallback, LPVOID pvRef, DWORD fl)
 {
+	if (!lpCallback)
+	{
+		return DIERR_INVALIDPARAM;
+	}
+
 	ENUMEFFECT CallbackContext;
 	CallbackContext.pvRef = pvRef;
 	CallbackContext.lpCallback = lpCallback;

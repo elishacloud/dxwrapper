@@ -32,7 +32,7 @@ HRESULT m_IDirectDrawFactory::QueryInterface(REFIID riid, LPVOID FAR * ppvObj)
 
 			*ppvObj = this;
 
-			return S_OK;
+			return DD_OK;
 		}
 	}
 
@@ -101,7 +101,7 @@ HRESULT m_IDirectDrawFactory::CreateDirectDraw(GUID * pGUID, HWND hWnd, DWORD dw
 
 	HRESULT hr = ProxyInterface->CreateDirectDraw(pGUID, hWnd, dwCoopLevelFlags, dwReserved, pUnkOuter, ppDirectDraw);
 
-	if (SUCCEEDED(hr))
+	if (SUCCEEDED(hr) && ppDirectDraw)
 	{
 		*ppDirectDraw = ProxyAddressLookupTable.FindAddress<m_IDirectDraw>(*ppDirectDraw);
 	}

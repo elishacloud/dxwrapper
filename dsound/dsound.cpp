@@ -37,7 +37,7 @@ HRESULT WINAPI ds_DirectSoundCreate(LPCGUID pcGuidDevice, LPDIRECTSOUND *ppDS, L
 
 	if (!m_pDirectSoundCreate)
 	{
-		return E_FAIL;
+		return DSERR_GENERIC;
 	}
 
 	Logging::Log() << "Redirecting 'DirectSoundCreate' ...";
@@ -58,7 +58,7 @@ HRESULT WINAPI ds_DirectSoundEnumerateA(LPDSENUMCALLBACKA pDSEnumCallback, LPVOI
 
 	if (!m_pDirectSoundEnumerateA)
 	{
-		return E_FAIL;
+		return DSERR_GENERIC;
 	}
 
 	return m_pDirectSoundEnumerateA(pDSEnumCallback, pContext);
@@ -70,7 +70,7 @@ HRESULT WINAPI ds_DirectSoundEnumerateW(LPDSENUMCALLBACKW pDSEnumCallback, LPVOI
 
 	if (!m_pDirectSoundEnumerateW)
 	{
-		return E_FAIL;
+		return DSERR_GENERIC;
 	}
 
 	return m_pDirectSoundEnumerateW(pDSEnumCallback, pContext);
@@ -82,7 +82,7 @@ HRESULT WINAPI ds_DllCanUnloadNow()
 
 	if (!m_pDllCanUnloadNow)
 	{
-		return E_FAIL;
+		return DSERR_GENERIC;
 	}
 
 	return m_pDllCanUnloadNow();
@@ -94,12 +94,12 @@ HRESULT WINAPI ds_DllGetClassObject(IN REFCLSID rclsid, IN REFIID riid, OUT LPVO
 
 	if (!m_pDllGetClassObject)
 	{
-		return E_FAIL;
+		return DSERR_GENERIC;
 	}
 
 	HRESULT hr = m_pDllGetClassObject(rclsid, riid, ppv);
 
-	if (SUCCEEDED(hr))
+	if (SUCCEEDED(hr) && ppv)
 	{
 		if (riid == IID_IClassFactory)
 		{
@@ -107,7 +107,7 @@ HRESULT WINAPI ds_DllGetClassObject(IN REFCLSID rclsid, IN REFIID riid, OUT LPVO
 
 			((m_IClassFactory*)(*ppv))->SetCLSID(rclsid);
 
-			return S_OK;
+			return DS_OK;
 		}
 
 		genericQueryInterface(riid, ppv);
@@ -122,7 +122,7 @@ HRESULT WINAPI ds_DirectSoundCaptureCreate(LPCGUID pcGuidDevice, LPDIRECTSOUNDCA
 
 	if (!m_pDirectSoundCaptureCreate)
 	{
-		return E_FAIL;
+		return DSERR_GENERIC;
 	}
 
 	HRESULT hr = m_pDirectSoundCaptureCreate(pcGuidDevice, ppDSC, pUnkOuter);
@@ -141,7 +141,7 @@ HRESULT WINAPI ds_DirectSoundCaptureEnumerateA(LPDSENUMCALLBACKA pDSEnumCallback
 
 	if (!m_pDirectSoundCaptureEnumerateA)
 	{
-		return E_FAIL;
+		return DSERR_GENERIC;
 	}
 
 	return m_pDirectSoundCaptureEnumerateA(pDSEnumCallback, pContext);
@@ -153,7 +153,7 @@ HRESULT WINAPI ds_DirectSoundCaptureEnumerateW(LPDSENUMCALLBACKW pDSEnumCallback
 
 	if (!m_pDirectSoundCaptureEnumerateW)
 	{
-		return E_FAIL;
+		return DSERR_GENERIC;
 	}
 
 	return m_pDirectSoundCaptureEnumerateW(pDSEnumCallback, pContext);
@@ -165,7 +165,7 @@ HRESULT WINAPI ds_GetDeviceID(LPCGUID pGuidSrc, LPGUID pGuidDest)
 
 	if (!m_pGetDeviceID)
 	{
-		return E_FAIL;
+		return DSERR_GENERIC;
 	}
 
 	return m_pGetDeviceID(pGuidSrc, pGuidDest);
@@ -178,7 +178,7 @@ HRESULT WINAPI ds_DirectSoundFullDuplexCreate(LPCGUID pcGuidCaptureDevice, LPCGU
 
 	if (!m_pDirectSoundFullDuplexCreate)
 	{
-		return E_FAIL;
+		return DSERR_GENERIC;
 	}
 
 	HRESULT hr = m_pDirectSoundFullDuplexCreate(pcGuidCaptureDevice, pcGuidRenderDevice, pcDSCBufferDesc, pcDSBufferDesc, hWnd, dwLevel, ppDSFD, ppDSCBuffer8, ppDSBuffer8, pUnkOuter);
@@ -208,7 +208,7 @@ HRESULT WINAPI ds_DirectSoundCreate8(LPCGUID pcGuidDevice, LPDIRECTSOUND8 *ppDS8
 
 	if (!m_pDirectSoundCreate8)
 	{
-		return E_FAIL;
+		return DSERR_GENERIC;
 	}
 
 	Logging::Log() << "Redirecting 'DirectSoundCreate8' ...";
@@ -229,7 +229,7 @@ HRESULT WINAPI ds_DirectSoundCaptureCreate8(LPCGUID pcGuidDevice, LPDIRECTSOUNDC
 
 	if (!m_pDirectSoundCaptureCreate8)
 	{
-		return E_FAIL;
+		return DSERR_GENERIC;
 	}
 
 	HRESULT hr = m_pDirectSoundCaptureCreate8(pcGuidDevice, ppDSC8, pUnkOuter);

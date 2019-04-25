@@ -60,11 +60,11 @@ HRESULT WINAPI d8_ValidatePixelShader(DWORD* pixelshader, DWORD* reserved1, BOOL
 
 	if (!pixelshader)
 	{
-		return E_FAIL;
+		return E_INVALIDARG;
 	}
 	if (reserved1)
 	{
-		return E_FAIL;
+		return E_INVALIDARG;
 	}
 	switch (*pixelshader)
 	{
@@ -87,11 +87,11 @@ HRESULT WINAPI d8_ValidateVertexShader(DWORD* vertexshader, DWORD* reserved1, DW
 
 	if (!vertexshader)
 	{
-		return E_FAIL;
+		return E_INVALIDARG;
 	}
 	if (reserved1 || reserved2)
 	{
-		return E_FAIL;
+		return E_INVALIDARG;
 	}
 	switch (*vertexshader)
 	{
@@ -135,7 +135,7 @@ Direct3D8 *WINAPI d8_Direct3DCreate8(UINT SDKVersion)
 
 	IDirect3D9 *const d3d = Direct3DCreate9(D3D_SDK_VERSION);
 
-	if (d3d == nullptr)
+	if (!d3d)
 	{
 		return nullptr;
 	}

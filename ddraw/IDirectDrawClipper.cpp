@@ -30,7 +30,7 @@ HRESULT m_IDirectDrawClipper::QueryInterface(REFIID riid, LPVOID FAR * ppvObj)
 
 			*ppvObj = this;
 
-			return S_OK;
+			return DD_OK;
 		}
 	}
 
@@ -79,7 +79,7 @@ HRESULT m_IDirectDrawClipper::GetClipList(LPRECT lpRect, LPRGNDATA lpClipList, L
 	if (!ProxyInterface)
 	{
 		Logging::Log() << __FUNCTION__ << " Not Implemented";
-		return E_NOTIMPL;
+		return DDERR_UNSUPPORTED;
 	}
 
 	return ProxyInterface->GetClipList(lpRect, lpClipList, lpdwSize);
@@ -89,13 +89,13 @@ HRESULT m_IDirectDrawClipper::GetHWnd(HWND FAR * lphWnd)
 {
 	Logging::LogDebug() << __FUNCTION__;
 
-	if (!lphWnd)
-	{
-		return DDERR_INVALIDPARAMS;
-	}
-
 	if (!ProxyInterface)
 	{
+		if (!lphWnd)
+		{
+			return DDERR_INVALIDPARAMS;
+		}
+
 		if (!cliphWnd)
 		{
 			return DDERR_GENERIC;
@@ -130,18 +130,18 @@ HRESULT m_IDirectDrawClipper::IsClipListChanged(BOOL FAR * lpbChanged)
 {
 	Logging::LogDebug() << __FUNCTION__;
 
-	if (!lpbChanged)
-	{
-		return DDERR_INVALIDPARAMS;
-	}
-
 	if (!ProxyInterface)
 	{
+		if (!lpbChanged)
+		{
+			return DDERR_INVALIDPARAMS;
+		}
+
 		Logging::Log() << __FUNCTION__ << " Not Implemented";
 
 		// lpbChanged is TRUE if the clip list has changed, and FALSE otherwise.
 
-		return E_NOTIMPL;
+		return DDERR_UNSUPPORTED;
 	}
 
 	return ProxyInterface->IsClipListChanged(lpbChanged);
@@ -171,7 +171,7 @@ HRESULT m_IDirectDrawClipper::SetClipList(LPRGNDATA lpClipList, DWORD dwFlags)
 			// Set clip list to lpClipList
 		}
 
-		return E_NOTIMPL;
+		return DDERR_UNSUPPORTED;
 	}
 
 	return ProxyInterface->SetClipList(lpClipList, dwFlags);

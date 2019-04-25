@@ -28,7 +28,7 @@ HRESULT m_IDirect3DMaterialX::QueryInterface(REFIID riid, LPVOID * ppvObj, DWORD
 
 			*ppvObj = this;
 
-			return S_OK;
+			return D3D_OK;
 		}
 	}
 
@@ -135,6 +135,7 @@ HRESULT m_IDirect3DMaterialX::SetMaterial(LPD3DMATERIAL lpMat)
 	case 3:
 		return GetProxyInterfaceV3()->SetMaterial(lpMat);
 	case 7:
+	{
 		if (!lpMat)
 		{
 			return DDERR_INVALIDPARAMS;
@@ -156,6 +157,7 @@ HRESULT m_IDirect3DMaterialX::SetMaterial(LPD3DMATERIAL lpMat)
 		ConvertMaterial(tmpMaterial, *lpMat);
 
 		return (*D3DDeviceInterface)->SetMaterial(&tmpMaterial);
+	}
 	default:
 		return DDERR_GENERIC;
 	}
@@ -197,7 +199,7 @@ HRESULT m_IDirect3DMaterialX::GetMaterial(LPD3DMATERIAL lpMat)
 	}
 	case 9:
 		Logging::Log() << __FUNCTION__ << " Not Implemented";
-		return E_NOTIMPL;
+		return DDERR_UNSUPPORTED;
 	default:
 		return DDERR_GENERIC;
 	}
@@ -223,7 +225,7 @@ HRESULT m_IDirect3DMaterialX::GetHandle(LPDIRECT3DDEVICE3 lpDirect3DDevice, LPD3
 	case 7:
 	case 9:
 		Logging::Log() << __FUNCTION__ << " Not Implemented";
-		return E_NOTIMPL;
+		return DDERR_UNSUPPORTED;
 	default:
 		return DDERR_GENERIC;
 	}
@@ -236,7 +238,7 @@ HRESULT m_IDirect3DMaterialX::Reserve()
 	if (ProxyDirectXVersion != 1)
 	{
 		Logging::Log() << __FUNCTION__ << " Not Implemented";
-		return E_NOTIMPL;
+		return DDERR_UNSUPPORTED;
 	}
 
 	return GetProxyInterfaceV1()->Reserve();
@@ -249,7 +251,7 @@ HRESULT m_IDirect3DMaterialX::Unreserve()
 	if (ProxyDirectXVersion != 1)
 	{
 		Logging::Log() << __FUNCTION__ << " Not Implemented";
-		return E_NOTIMPL;
+		return DDERR_UNSUPPORTED;
 	}
 
 	return GetProxyInterfaceV1()->Unreserve();

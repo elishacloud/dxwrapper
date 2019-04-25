@@ -105,7 +105,7 @@ HRESULT WINAPI dd_D3DParseUnknownCommand(LPVOID lpCmd, LPVOID *lpRetCmd)
 	{
 		if (!lpCmd || !lpRetCmd)
 		{
-			return E_FAIL;
+			return DDERR_INVALIDPARAMS;
 		}
 
 		LPD3DHAL_DP2COMMAND dp2command = (LPD3DHAL_DP2COMMAND)lpCmd;
@@ -147,7 +147,7 @@ HRESULT WINAPI dd_D3DParseUnknownCommand(LPVOID lpCmd, LPVOID *lpRetCmd)
 
 	if (!m_pD3DParseUnknownCommand)
 	{
-		return E_FAIL;
+		return DDERR_GENERIC;
 	}
 
 	return m_pD3DParseUnknownCommand(lpCmd, lpRetCmd);
@@ -246,7 +246,7 @@ HRESULT WINAPI dd_DirectDrawCreate(GUID FAR *lpGUID, LPDIRECTDRAW FAR *lplpDD, I
 
 	if (!m_pDirectDrawCreate)
 	{
-		return E_FAIL;
+		return DDERR_GENERIC;
 	}
 
 	Logging::Log() << "Redirecting 'DirectDrawCreate' ...";
@@ -298,7 +298,7 @@ HRESULT WINAPI dd_DirectDrawCreateClipper(DWORD dwFlags, LPDIRECTDRAWCLIPPER *lp
 
 	if (!m_pDirectDrawCreateClipper)
 	{
-		return E_FAIL;
+		return DDERR_GENERIC;
 	}
 
 	HRESULT hr = m_pDirectDrawCreateClipper(dwFlags, lplpDDClipper, pUnkOuter);
@@ -327,6 +327,11 @@ HRESULT WINAPI dd_DirectDrawCreateEx(GUID FAR *lpGUID, LPVOID *lplpDD, REFIID ri
 
 	if (Config.Dd7to9)
 	{
+		if (!lplpDD)
+		{
+			return DDERR_INVALIDPARAMS;
+		}
+
 		// Declare Direct3DCreate9
 		static PFN_Direct3DCreate9 Direct3DCreate9 = reinterpret_cast<PFN_Direct3DCreate9>(Direct3DCreate9_out);
 
@@ -362,7 +367,7 @@ HRESULT WINAPI dd_DirectDrawCreateEx(GUID FAR *lpGUID, LPVOID *lplpDD, REFIID ri
 
 	if (!m_pDirectDrawCreateEx)
 	{
-		return E_FAIL;
+		return DDERR_GENERIC;
 	}
 
 	Logging::Log() << "Redirecting 'DirectDrawCreateEx' ...";
@@ -423,6 +428,11 @@ enum DirectDrawEnumerateTypes
 HRESULT DirectDrawEnumerateHandler(LPVOID lpCallback, LPVOID lpContext, DWORD dwFlags, DirectDrawEnumerateTypes DDETType)
 {
 	UNREFERENCED_PARAMETER(dwFlags);
+
+	if (!lpCallback)
+	{
+		return DDERR_INVALIDPARAMS;
+	}
 
 	// Declare Direct3DCreate9
 	static PFN_Direct3DCreate9 Direct3DCreate9 = reinterpret_cast<PFN_Direct3DCreate9>(Direct3DCreate9_out);
@@ -493,28 +503,28 @@ HRESULT DirectDrawEnumerateHandler(LPVOID lpCallback, LPVOID lpContext, DWORD dw
 			if (LPDDENUMCALLBACKA(lpCallback)(lpGUID, lpDesc, lpName, lpContext) == DDENUMRET_CANCEL)
 			{
 				d3d9Object->Release();
-				return D3D_OK;
+				return DD_OK;
 			}
 			break;
 		case DDET_ENUMCALLBACKEXA:
 			if (LPDDENUMCALLBACKEXA(lpCallback)(lpGUID, lpDesc, lpName, lpContext, hm) == DDENUMRET_CANCEL)
 			{
 				d3d9Object->Release();
-				return D3D_OK;
+				return DD_OK;
 			}
 			break;
 		case DDET_ENUMCALLBACKEXW:
 			if (LPDDENUMCALLBACKEXW(lpCallback)(lpGUID, lpwDesc, lpwName, lpContext, hm) == DDENUMRET_CANCEL)
 			{
 				d3d9Object->Release();
-				return D3D_OK;
+				return DD_OK;
 			}
 			break;
 		case DDET_ENUMCALLBACKW:
 			if (LPDDENUMCALLBACKW(lpCallback)(lpGUID, lpwDesc, lpwName, lpContext) == DDENUMRET_CANCEL)
 			{
 				d3d9Object->Release();
-				return D3D_OK;
+				return DD_OK;
 			}
 			break;
 		default:
@@ -540,7 +550,7 @@ HRESULT WINAPI dd_DirectDrawEnumerateA(LPDDENUMCALLBACKA lpCallback, LPVOID lpCo
 
 	if (!m_pDirectDrawEnumerateA)
 	{
-		return E_FAIL;
+		return DDERR_GENERIC;
 	}
 
 	return m_pDirectDrawEnumerateA(lpCallback, lpContext);
@@ -559,7 +569,7 @@ HRESULT WINAPI dd_DirectDrawEnumerateExA(LPDDENUMCALLBACKEXA lpCallback, LPVOID 
 
 	if (!m_pDirectDrawEnumerateExA)
 	{
-		return E_FAIL;
+		return DDERR_GENERIC;
 	}
 
 	return m_pDirectDrawEnumerateExA(lpCallback, lpContext, dwFlags);
@@ -578,7 +588,7 @@ HRESULT WINAPI dd_DirectDrawEnumerateExW(LPDDENUMCALLBACKEXW lpCallback, LPVOID 
 
 	if (!m_pDirectDrawEnumerateExW)
 	{
-		return E_FAIL;
+		return DDERR_GENERIC;
 	}
 
 	return m_pDirectDrawEnumerateExW(lpCallback, lpContext, dwFlags);
@@ -597,7 +607,7 @@ HRESULT WINAPI dd_DirectDrawEnumerateW(LPDDENUMCALLBACKW lpCallback, LPVOID lpCo
 
 	if (!m_pDirectDrawEnumerateW)
 	{
-		return E_FAIL;
+		return DDERR_GENERIC;
 	}
 
 	return m_pDirectDrawEnumerateW(lpCallback, lpContext);
@@ -610,14 +620,14 @@ HRESULT WINAPI dd_DllCanUnloadNow()
 	if (Config.Dd7to9)
 	{
 		Logging::Log() << __FUNCTION__ << " Not Implemented";
-		return E_NOTIMPL;
+		return DDERR_UNSUPPORTED;
 	}
 
 	static DllCanUnloadNowProc m_pDllCanUnloadNow = (Wrapper::ValidProcAddress(DllCanUnloadNow_out)) ? (DllCanUnloadNowProc)DllCanUnloadNow_out : nullptr;
 
 	if (!m_pDllCanUnloadNow)
 	{
-		return E_FAIL;
+		return DDERR_GENERIC;
 	}
 
 	return m_pDllCanUnloadNow();
@@ -627,13 +637,13 @@ HRESULT WINAPI dd_DllGetClassObject(REFCLSID rclsid, REFIID riid, LPVOID *ppv)
 {
 	Logging::LogDebug() << __FUNCTION__;
 
-	if (!ppv)
-	{
-		return E_INVALIDARG;
-	}
-
 	if (Config.Dd7to9)
 	{
+		if (!ppv)
+		{
+			return DDERR_INVALIDPARAMS;
+		}
+
 		HRESULT hr = ProxyQueryInterface(nullptr, riid, ppv, rclsid, nullptr);
 
 		if (SUCCEEDED(hr) && riid == IID_IClassFactory && ppv && *ppv)
@@ -648,7 +658,7 @@ HRESULT WINAPI dd_DllGetClassObject(REFCLSID rclsid, REFIID riid, LPVOID *ppv)
 
 	if (!m_pDllGetClassObject)
 	{
-		return E_INVALIDARG;
+		return DDERR_GENERIC;
 	}
 
 	HRESULT hr = m_pDllGetClassObject(ConvertCLSID(rclsid), ConvertREFIID(riid), ppv);
@@ -661,7 +671,7 @@ HRESULT WINAPI dd_DllGetClassObject(REFCLSID rclsid, REFIID riid, LPVOID *ppv)
 
 			((m_IClassFactory*)(*ppv))->SetCLSID(rclsid);
 
-			return S_OK;
+			return DD_OK;
 		}
 
 		genericQueryInterface(riid, ppv);
@@ -717,19 +727,19 @@ HRESULT WINAPI dd_GetSurfaceFromDC(HDC hdc, LPDIRECTDRAWSURFACE7 *lpDDS)
 	if (Config.Dd7to9)
 	{
 		Logging::Log() << __FUNCTION__ << " Not Implemented";
-		return E_NOTIMPL;
+		return DDERR_UNSUPPORTED;
 	}
 
 	static GetSurfaceFromDCProc m_pGetSurfaceFromDC = (Wrapper::ValidProcAddress(GetSurfaceFromDC_out)) ? (GetSurfaceFromDCProc)GetSurfaceFromDC_out : nullptr;
 
 	if (!m_pGetSurfaceFromDC)
 	{
-		return E_FAIL;
+		return DDERR_GENERIC;
 	}
 
 	HRESULT hr = m_pGetSurfaceFromDC(hdc, lpDDS);
 
-	if (SUCCEEDED(hr))
+	if (SUCCEEDED(hr) && !lpDDS)
 	{
 		*lpDDS = ProxyAddressLookupTable.FindAddress<m_IDirectDrawSurface7>(*lpDDS);
 	}
@@ -787,14 +797,14 @@ HRESULT WINAPI dd_SetAppCompatData(DWORD Type, DWORD Value)
 	if (Config.Dd7to9)
 	{
 		Logging::Log() << __FUNCTION__ << " Not Implemented";
-		return E_NOTIMPL;
+		return DDERR_UNSUPPORTED;
 	}
 
 	static SetAppCompatDataProc m_pSetAppCompatData = (Wrapper::ValidProcAddress(SetAppCompatData_out)) ? (SetAppCompatDataProc)SetAppCompatData_out : nullptr;
 
 	if (!m_pSetAppCompatData)
 	{
-		return E_FAIL;
+		return DDERR_GENERIC;
 	}
 
 	return m_pSetAppCompatData(Type, Value);

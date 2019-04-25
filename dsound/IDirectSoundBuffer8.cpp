@@ -24,7 +24,7 @@ HRESULT m_IDirectSoundBuffer8::QueryInterface(REFIID riid, LPVOID * ppvObj)
 
 		*ppvObj = this;
 
-		return S_OK;
+		return DS_OK;
 	}
 
 	HRESULT hr = ProxyInterface->QueryInterface(riid, ppvObj);
@@ -148,12 +148,16 @@ HRESULT m_IDirectSoundBuffer8::SetFormat(LPCWAVEFORMATEX pcfxFormat)
 	{
 		WAVEFORMATEX fxFormat;
 		fxFormat.wFormatTag = WAVE_FORMAT_PCM;
-		fxFormat.cbSize = 0;
 		fxFormat.nChannels = (WORD)Config.PrimaryBufferChannels;
 		fxFormat.wBitsPerSample = (WORD)Config.PrimaryBufferBits;
 		fxFormat.nSamplesPerSec = Config.PrimaryBufferSamples;
 		fxFormat.nBlockAlign = (fxFormat.nChannels * fxFormat.wBitsPerSample) / 8;
 		fxFormat.nAvgBytesPerSec = fxFormat.nBlockAlign * fxFormat.nSamplesPerSec;
+		fxFormat.cbSize = 0;
+		if (pcfxFormat && pcfxFormat->cbSize)
+		{
+			// ToDo: append data to fxFormat from pcfxFormat based on cbSize
+		}
 
 		return ProxyInterface->SetFormat(&fxFormat);
 	}

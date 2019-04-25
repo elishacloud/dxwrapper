@@ -433,7 +433,7 @@ HRESULT m_IDirect3DDevice9Ex::GetDeviceCaps(D3DCAPS9 *pCaps)
 
 HRESULT m_IDirect3DDevice9Ex::GetDirect3D(IDirect3D9 **ppD3D9)
 {
-	if (!ppD3D9)
+	if (!ppD3D9 || !m_pD3DEx)
 	{
 		return D3DERR_INVALIDCALL;
 	}
@@ -842,6 +842,7 @@ void m_IDirect3DDevice9Ex::ApplyClipPlanes()
 		index++;
 	}
 }
+
 HRESULT m_IDirect3DDevice9Ex::Clear(DWORD Count, CONST D3DRECT *pRects, DWORD Flags, D3DCOLOR Color, float Z, DWORD Stencil)
 {
 	return ProxyInterface->Clear(Count, pRects, Flags, Color, Z, Stencil);
@@ -1321,7 +1322,7 @@ HRESULT m_IDirect3DDevice9Ex::GetFrontBufferData(THIS_ UINT iSwapChain, IDirect3
 	{
 		// Get surface desc
 		D3DSURFACE_DESC Desc;
-		if (FAILED(pDestSurface->GetDesc(&Desc)))
+		if (!pDestSurface || FAILED(pDestSurface->GetDesc(&Desc)))
 		{
 			return D3DERR_INVALIDCALL;
 		}

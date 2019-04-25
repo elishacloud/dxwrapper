@@ -28,7 +28,7 @@ HRESULT m_IDirect3DTextureX::QueryInterface(REFIID riid, LPVOID * ppvObj, DWORD 
 
 			*ppvObj = this;
 
-			return S_OK;
+			return D3D_OK;
 		}
 	}
 
@@ -138,7 +138,7 @@ HRESULT m_IDirect3DTextureX::GetHandle(LPDIRECT3DDEVICE2 lpDirect3DDevice2, LPD3
 	case 7:
 	case 9:
 		Logging::Log() << __FUNCTION__ << " Not Implemented";
-		return E_NOTIMPL;
+		return DDERR_UNSUPPORTED;
 	default:
 		return DDERR_GENERIC;
 	}
@@ -157,7 +157,7 @@ HRESULT m_IDirect3DTextureX::PaletteChanged(DWORD dwStart, DWORD dwCount)
 	case 7:
 	case 9:
 		Logging::Log() << __FUNCTION__ << " Not Implemented";
-		return E_NOTIMPL;
+		return DDERR_UNSUPPORTED;
 	default:
 		return DDERR_GENERIC;
 	}
@@ -181,7 +181,7 @@ HRESULT m_IDirect3DTextureX::Load(LPDIRECT3DTEXTURE2 lpD3DTexture2)
 	case 7:
 	case 9:
 		Logging::Log() << __FUNCTION__ << " Not Implemented";
-		return E_NOTIMPL;
+		return DDERR_UNSUPPORTED;
 	default:
 		return DDERR_GENERIC;
 	}
@@ -194,7 +194,7 @@ HRESULT m_IDirect3DTextureX::Unload()
 	if (ProxyDirectXVersion != 1)
 	{
 		Logging::Log() << __FUNCTION__ << " Not Implemented";
-		return E_NOTIMPL;
+		return DDERR_UNSUPPORTED;
 	}
 
 	return GetProxyInterfaceV1()->Unload();

@@ -28,7 +28,7 @@ HRESULT m_IDirect3DExecuteBuffer::QueryInterface(REFIID riid, LPVOID * ppvObj)
 
 			*ppvObj = this;
 
-			return S_OK;
+			return D3D_OK;
 		}
 	}
 
@@ -77,7 +77,7 @@ HRESULT m_IDirect3DExecuteBuffer::Initialize(LPDIRECT3DDEVICE lpDirect3DDevice, 
 	if (!ProxyInterface)
 	{
 		Logging::Log() << __FUNCTION__ << " Not Implemented";
-		return E_NOTIMPL;
+		return DDERR_UNSUPPORTED;
 	}
 
 	if (lpDirect3DDevice)
@@ -95,7 +95,7 @@ HRESULT m_IDirect3DExecuteBuffer::Lock(LPD3DEXECUTEBUFFERDESC lpDesc)
 	if (!ProxyInterface)
 	{
 		Logging::Log() << __FUNCTION__ << " Not Implemented";
-		return E_NOTIMPL;
+		return DDERR_UNSUPPORTED;
 	}
 
 	return ProxyInterface->Lock(lpDesc);
@@ -108,7 +108,7 @@ HRESULT m_IDirect3DExecuteBuffer::Unlock()
 	if (!ProxyInterface)
 	{
 		Logging::Log() << __FUNCTION__ << " Not Implemented";
-		return E_NOTIMPL;
+		return DDERR_UNSUPPORTED;
 	}
 
 	return ProxyInterface->Unlock();
@@ -121,7 +121,7 @@ HRESULT m_IDirect3DExecuteBuffer::SetExecuteData(LPD3DEXECUTEDATA lpData)
 	if (!ProxyInterface)
 	{
 		Logging::Log() << __FUNCTION__ << " Not Implemented";
-		return E_NOTIMPL;
+		return DDERR_UNSUPPORTED;
 	}
 
 	return ProxyInterface->SetExecuteData(lpData);
@@ -134,7 +134,7 @@ HRESULT m_IDirect3DExecuteBuffer::GetExecuteData(LPD3DEXECUTEDATA lpData)
 	if (!ProxyInterface)
 	{
 		Logging::Log() << __FUNCTION__ << " Not Implemented";
-		return E_NOTIMPL;
+		return DDERR_UNSUPPORTED;
 	}
 
 	return ProxyInterface->GetExecuteData(lpData);
@@ -147,7 +147,7 @@ HRESULT m_IDirect3DExecuteBuffer::Validate(LPDWORD lpdwOffset, LPD3DVALIDATECALL
 	if (!ProxyInterface)
 	{
 		Logging::Log() << __FUNCTION__ << " Not Implemented";
-		return E_NOTIMPL;
+		return DDERR_UNSUPPORTED;
 	}
 
 	return ProxyInterface->Validate(lpdwOffset, lpFunc, lpUserArg, dwReserved);
@@ -160,7 +160,7 @@ HRESULT m_IDirect3DExecuteBuffer::Optimize(DWORD dwDummy)
 	if (!ProxyInterface)
 	{
 		Logging::Log() << __FUNCTION__ << " Not Implemented";
-		return E_NOTIMPL;
+		return DDERR_UNSUPPORTED;
 	}
 
 	return ProxyInterface->Optimize(dwDummy);

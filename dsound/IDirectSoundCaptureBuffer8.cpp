@@ -24,7 +24,7 @@ HRESULT m_IDirectSoundCaptureBuffer8::QueryInterface(REFIID riid, LPVOID * ppvOb
 
 		*ppvObj = this;
 
-		return S_OK;
+		return DS_OK;
 	}
 
 	HRESULT hr = ProxyInterface->QueryInterface(riid, ppvObj);

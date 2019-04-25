@@ -24,7 +24,7 @@ HRESULT m_IDirectInput8W::QueryInterface(REFIID riid, LPVOID * ppvObj)
 
 		*ppvObj = this;
 
-		return S_OK;
+		return DI_OK;
 	}
 
 	HRESULT hr = ProxyInterface->QueryInterface(riid, ppvObj);
@@ -93,6 +93,11 @@ HRESULT m_IDirectInput8W::FindDevice(REFGUID rguidClass, LPCWSTR ptszName, LPGUI
 
 HRESULT m_IDirectInput8W::EnumDevicesBySemantics(LPCWSTR ptszUserName, LPDIACTIONFORMATW lpdiActionFormat, LPDIENUMDEVICESBYSEMANTICSCBW lpCallback, LPVOID pvRef, DWORD dwFlags)
 {
+	if (!lpCallback)
+	{
+		return DIERR_INVALIDPARAM;
+	}
+
 	ENUMDEVICEW CallbackContext;
 	CallbackContext.pvRef = pvRef;
 	CallbackContext.lpCallback = lpCallback;

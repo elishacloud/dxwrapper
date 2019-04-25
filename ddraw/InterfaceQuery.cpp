@@ -97,7 +97,7 @@ HRESULT DdrawWrapper::ProxyQueryInterface(LPVOID ProxyInterface, REFIID riid, LP
 
 	if (!ppvObj)
 	{
-		return E_FAIL;
+		return DDERR_GENERIC;
 	}
 
 	if (riid == WrapperID || riid == IID_IUnknown)
@@ -106,7 +106,7 @@ HRESULT DdrawWrapper::ProxyQueryInterface(LPVOID ProxyInterface, REFIID riid, LP
 
 		AddRef(*ppvObj);
 
-		return S_OK;
+		return DD_OK;
 	}
 
 	if (Config.Dd7to9 || !ProxyInterface)
@@ -119,7 +119,7 @@ HRESULT DdrawWrapper::ProxyQueryInterface(LPVOID ProxyInterface, REFIID riid, LP
 
 			if (*ppvObj)
 			{
-				return S_OK;
+				return DD_OK;
 			}
 		}
 
@@ -144,7 +144,7 @@ HRESULT DdrawWrapper::ProxyQueryInterface(LPVOID ProxyInterface, REFIID riid, LP
 
 			if (*ppvObj)
 			{
-				return S_OK;
+				return DD_OK;
 			}
 		}
 

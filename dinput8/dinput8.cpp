@@ -39,14 +39,14 @@ HRESULT WINAPI di8_DirectInput8Create(HINSTANCE hinst, DWORD dwVersion, REFIID r
 
 	if (!m_pDirectInput8Create)
 	{
-		return E_FAIL;
+		return DIERR_GENERIC;
 	}
 
 	Logging::Log() << "Redirecting 'DirectInput8Create' ...";
 
 	HRESULT hr = m_pDirectInput8Create(hinst, dwVersion, riidltf, ppvOut, punkOuter);
 
-	if (SUCCEEDED(hr))
+	if (SUCCEEDED(hr) && ppvOut)
 	{
 		genericQueryInterface(riidltf, ppvOut);
 	}
@@ -60,7 +60,7 @@ HRESULT WINAPI di8_DllCanUnloadNow()
 
 	if (!m_pDllCanUnloadNow)
 	{
-		return E_FAIL;
+		return DIERR_GENERIC;
 	}
 
 	return m_pDllCanUnloadNow();
@@ -72,12 +72,12 @@ HRESULT WINAPI di8_DllGetClassObject(IN REFCLSID rclsid, IN REFIID riid, OUT LPV
 
 	if (!m_pDllGetClassObject)
 	{
-		return E_FAIL;
+		return DIERR_GENERIC;
 	}
 
 	HRESULT hr = m_pDllGetClassObject(rclsid, riid, ppv);
 
-	if (SUCCEEDED(hr))
+	if (SUCCEEDED(hr) && ppv)
 	{
 		if (riid == IID_IClassFactory)
 		{
@@ -85,7 +85,7 @@ HRESULT WINAPI di8_DllGetClassObject(IN REFCLSID rclsid, IN REFIID riid, OUT LPV
 
 			((m_IClassFactory*)(*ppv))->SetCLSID(rclsid);
 
-			return S_OK;
+			return DI_OK;
 		}
 
 		genericQueryInterface(riid, ppv);
@@ -100,7 +100,7 @@ HRESULT WINAPI di8_DllRegisterServer()
 
 	if (!m_pDllRegisterServer)
 	{
-		return E_FAIL;
+		return DIERR_GENERIC;
 	}
 
 	return m_pDllRegisterServer();
@@ -112,7 +112,7 @@ HRESULT WINAPI di8_DllUnregisterServer()
 
 	if (!m_pDllUnregisterServer)
 	{
-		return E_FAIL;
+		return DIERR_GENERIC;
 	}
 
 	return m_pDllUnregisterServer();

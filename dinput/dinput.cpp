@@ -50,9 +50,9 @@ HRESULT WINAPI di_DirectInputCreateEx(HINSTANCE hinst, DWORD dwVersion, REFIID r
 {
 	static DirectInput8CreateProc m_pDirectInput8Create = (Wrapper::ValidProcAddress(DirectInput8Create_out)) ? (DirectInput8CreateProc)DirectInput8Create_out : nullptr;
 
-	if (!m_pDirectInput8Create || !lplpDD)
+	if (!m_pDirectInput8Create)
 	{
-		return E_FAIL;
+		return DIERR_GENERIC;
 	}
 
 	static bool RunOnce = true;
@@ -66,7 +66,7 @@ HRESULT WINAPI di_DirectInputCreateEx(HINSTANCE hinst, DWORD dwVersion, REFIID r
 
 	HRESULT hr = m_pDirectInput8Create(hinst, 0x0800, dinputto8::ConvertREFIID(riid), lplpDD, punkOuter);
 
-	if (SUCCEEDED(hr))
+	if (SUCCEEDED(hr) && lplpDD)
 	{
 		diVersion = dwVersion;
 		genericQueryInterface(riid, lplpDD);
@@ -81,7 +81,7 @@ HRESULT WINAPI di_DllCanUnloadNow()
 
 	if (!m_pDllCanUnloadNow)
 	{
-		return E_FAIL;
+		return DIERR_GENERIC;
 	}
 
 	return m_pDllCanUnloadNow();
@@ -91,14 +91,14 @@ HRESULT WINAPI di_DllGetClassObject(IN REFCLSID rclsid, IN REFIID riid, OUT LPVO
 {
 	static DllGetClassObjectProc m_pDllGetClassObject = (Wrapper::ValidProcAddress(DllGetClassObject_out)) ? (DllGetClassObjectProc)DllGetClassObject_out : nullptr;
 
-	if (!m_pDllGetClassObject || !ppv)
+	if (!m_pDllGetClassObject)
 	{
-		return E_FAIL;
+		return DIERR_GENERIC;
 	}
 
 	HRESULT hr = m_pDllGetClassObject(dinputto8::ConvertCLSID(rclsid), dinputto8::ConvertREFIID(riid), ppv);
 
-	if (SUCCEEDED(hr))
+	if (SUCCEEDED(hr) && ppv)
 	{
 		if (riid == IID_IClassFactory)
 		{
@@ -106,7 +106,7 @@ HRESULT WINAPI di_DllGetClassObject(IN REFCLSID rclsid, IN REFIID riid, OUT LPVO
 
 			((m_IClassFactory*)(*ppv))->SetCLSID(rclsid);
 
-			return S_OK;
+			return DI_OK;
 		}
 
 		genericQueryInterface(riid, ppv);
@@ -121,7 +121,7 @@ HRESULT WINAPI di_DllRegisterServer()
 
 	if (!m_pDllRegisterServer)
 	{
-		return E_FAIL;
+		return DIERR_GENERIC;
 	}
 
 	return m_pDllRegisterServer();
@@ -133,7 +133,7 @@ HRESULT WINAPI di_DllUnregisterServer()
 
 	if (!m_pDllUnregisterServer)
 	{
-		return E_FAIL;
+		return DIERR_GENERIC;
 	}
 
 	return m_pDllUnregisterServer();

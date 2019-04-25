@@ -28,35 +28,29 @@ HRESULT m_IDirectDrawSurfaceX::QueryInterface(REFIID riid, LPVOID FAR * ppvObj, 
 {
 	Logging::LogDebug() << __FUNCTION__;
 
-	if (Config.ConvertToDirect3D7)
+	if (Config.Dd7to9 && (riid == IID_IDirectDrawSurface || riid == IID_IDirectDrawSurface2 || riid == IID_IDirectDrawSurface3 || riid == IID_IDirectDrawSurface4 || riid == IID_IDirectDrawSurface7 || riid == IID_IUnknown) && ppvObj)
 	{
-		if (Config.Dd7to9)
+		DWORD DxVersion = (riid == IID_IUnknown) ? DirectXVersion : GetIIDVersion(riid);
+
+		*ppvObj = GetWrapperInterfaceX(DxVersion);
+
+		::AddRef(*ppvObj);
+
+		return DD_OK;
+	}
+
+	if (Config.ConvertToDirect3D7 && (riid == IID_IDirect3DTexture || riid == IID_IDirect3DTexture2) && ppvObj)
+	{
+		// Check for device
+		if (!ddrawParent)
 		{
-			if ((riid == IID_IDirectDrawSurface || riid == IID_IDirectDrawSurface2 || riid == IID_IDirectDrawSurface3 || riid == IID_IDirectDrawSurface4 || riid == IID_IDirectDrawSurface7 || riid == IID_IUnknown) && ppvObj)
-			{
-				DWORD DxVersion = (riid == IID_IUnknown) ? DirectXVersion : GetIIDVersion(riid);
-
-				*ppvObj = GetWrapperInterfaceX(DxVersion);
-
-				::AddRef(*ppvObj);
-
-				return S_OK;
-			}
+			Logging::Log() << __FUNCTION__ << " Error no ddraw parent!";
+			return DDERR_GENERIC;
 		}
 
-		if (ProxyDirectXVersion > 4 && ppvObj && (riid == IID_IDirect3DTexture || riid == IID_IDirect3DTexture2))
-		{
-			// Check for device
-			if (!ddrawParent)
-			{
-				Logging::Log() << __FUNCTION__ << " Error no ddraw parent!";
-				return DDERR_GENERIC;
-			}
+		*ppvObj = new m_IDirect3DTextureX(ddrawParent->GetCurrentD3DDevice(), 7, ProxyInterface);
 
-			*ppvObj = new m_IDirect3DTextureX(ddrawParent->GetCurrentD3DDevice(), 7, ProxyInterface);
-
-			return S_OK;
-		}
+		return DD_OK;
 	}
 
 	return ProxyQueryInterface(ProxyInterface, riid, ppvObj, GetWrapperType(DirectXVersion), WrapperInterface);
@@ -159,33 +153,33 @@ HRESULT m_IDirectDrawSurfaceX::AddAttachedSurface(LPDIRECTDRAWSURFACE7 lpDDSurfa
 
 	if (Config.Dd7to9)
 	{
-		if (lpDDSurface)
+		if (!lpDDSurface)
 		{
-			// Check for device
-			if (!ddrawParent)
-			{
-				Logging::Log() << __FUNCTION__ << " Error no ddraw parent!";
-				return DDERR_GENERIC;
-			}
-
-			m_IDirectDrawSurfaceX *lpAttachedSurface = ((m_IDirectDrawSurface*)lpDDSurface)->GetWrapperInterface();
-
-			if (!ddrawParent->DoesSurfaceExist(lpAttachedSurface))
-			{
-				return DDERR_INVALIDPARAMS;
-			}
-
-			if (DoesAttachedSurfaceExist(lpAttachedSurface))
-			{
-				return DDERR_SURFACEALREADYATTACHED;
-			}
-
-			AddAttachedSurfaceToMap(lpAttachedSurface);
-
-			return DD_OK;
+			return DDERR_INVALIDPARAMS;
 		}
 
-		return DDERR_INVALIDPARAMS;
+		// Check for device
+		if (!ddrawParent)
+		{
+			Logging::Log() << __FUNCTION__ << " Error no ddraw parent!";
+			return DDERR_GENERIC;
+		}
+
+		m_IDirectDrawSurfaceX *lpAttachedSurface = ((m_IDirectDrawSurface*)lpDDSurface)->GetWrapperInterface();
+
+		if (!ddrawParent->DoesSurfaceExist(lpAttachedSurface))
+		{
+			return DDERR_INVALIDPARAMS;
+		}
+
+		if (DoesAttachedSurfaceExist(lpAttachedSurface))
+		{
+			return DDERR_SURFACEALREADYATTACHED;
+		}
+
+		AddAttachedSurfaceToMap(lpAttachedSurface);
+
+		return DD_OK;
 	}
 
 	if (lpDDSurface)
@@ -203,7 +197,7 @@ HRESULT m_IDirectDrawSurfaceX::AddOverlayDirtyRect(LPRECT lpRect)
 	if (Config.Dd7to9)
 	{
 		Logging::Log() << __FUNCTION__ << " Not Implemented";
-		return E_NOTIMPL;
+		return DDERR_UNSUPPORTED;
 	}
 
 	return ProxyInterface->AddOverlayDirtyRect(lpRect);
@@ -532,28 +526,23 @@ HRESULT m_IDirectDrawSurfaceX::DeleteAttachedSurface(DWORD dwFlags, LPDIRECTDRAW
 	if (Config.Dd7to9)
 	{
 		// dwFlags: Reserved. Must be zero.
-		if (dwFlags != 0)
+		if (!lpDDSAttachedSurface || dwFlags)
 		{
 			return DDERR_INVALIDPARAMS;
 		}
 
-		if (lpDDSAttachedSurface)
+		m_IDirectDrawSurfaceX *lpAttachedSurface = ((m_IDirectDrawSurface*)lpDDSAttachedSurface)->GetWrapperInterface();
+
+		if (DoesAttachedSurfaceExist(lpAttachedSurface))
 		{
-			m_IDirectDrawSurfaceX *lpAttachedSurface = ((m_IDirectDrawSurface*)lpDDSAttachedSurface)->GetWrapperInterface();
+			RemoveAttachedSurfaceFromMap(lpAttachedSurface);
 
-			if (DoesAttachedSurfaceExist(lpAttachedSurface))
-			{
-				RemoveAttachedSurfaceFromMap(lpAttachedSurface);
-
-				return DD_OK;
-			}
-			else
-			{
-				return DDERR_SURFACENOTATTACHED;
-			}
+			return DD_OK;
 		}
-
-		return DDERR_INVALIDPARAMS;
+		else
+		{
+			return DDERR_SURFACENOTATTACHED;
+		}
 	}
 
 	if (lpDDSAttachedSurface)
@@ -567,6 +556,11 @@ HRESULT m_IDirectDrawSurfaceX::DeleteAttachedSurface(DWORD dwFlags, LPDIRECTDRAW
 HRESULT m_IDirectDrawSurfaceX::EnumAttachedSurfaces(LPVOID lpContext, LPDDENUMSURFACESCALLBACK lpEnumSurfacesCallback, DWORD DirectXVersion)
 {
 	Logging::LogDebug() << __FUNCTION__;
+
+	if (!lpEnumSurfacesCallback)
+	{
+		return DDERR_INVALIDPARAMS;
+	}
 
 	if (ProxyDirectXVersion > 3)
 	{
@@ -585,13 +579,13 @@ HRESULT m_IDirectDrawSurfaceX::EnumAttachedSurfaces2(LPVOID lpContext, LPDDENUMS
 {
 	Logging::LogDebug() << __FUNCTION__;
 
+	if (!lpEnumSurfacesCallback7)
+	{
+		return DDERR_INVALIDPARAMS;
+	}
+
 	if (Config.Dd7to9)
 	{
-		if (!lpEnumSurfacesCallback7)
-		{
-			return DDERR_INVALIDPARAMS;
-		}
-
 		for (auto it : AttachedSurfaceMap)
 		{
 			DDSURFACEDESC2 Desc2;
@@ -620,6 +614,11 @@ HRESULT m_IDirectDrawSurfaceX::EnumOverlayZOrders(DWORD dwFlags, LPVOID lpContex
 {
 	Logging::LogDebug() << __FUNCTION__;
 
+	if (!lpfnCallback)
+	{
+		return DDERR_INVALIDPARAMS;
+	}
+
 	if (ProxyDirectXVersion > 3)
 	{
 		return EnumOverlayZOrders2(dwFlags, lpContext, (LPDDENUMSURFACESCALLBACK7)lpfnCallback, DirectXVersion);
@@ -637,10 +636,15 @@ HRESULT m_IDirectDrawSurfaceX::EnumOverlayZOrders2(DWORD dwFlags, LPVOID lpConte
 {
 	Logging::LogDebug() << __FUNCTION__;
 
+	if (!lpfnCallback7)
+	{
+		return DDERR_INVALIDPARAMS;
+	}
+
 	if (Config.Dd7to9)
 	{
 		Logging::Log() << __FUNCTION__ << " Not Implemented";
-		return E_NOTIMPL;
+		return DDERR_UNSUPPORTED;
 	}
 
 	ENUMSURFACE CallbackContext;
@@ -654,6 +658,11 @@ HRESULT m_IDirectDrawSurfaceX::EnumOverlayZOrders2(DWORD dwFlags, LPVOID lpConte
 
 void m_IDirectDrawSurfaceX::SwapSurface(m_IDirectDrawSurfaceX *lpTargetSurface1, m_IDirectDrawSurfaceX *lpTargetSurface2)
 {
+	if (!lpTargetSurface1 || !lpTargetSurface2)
+	{
+		return;
+	}
+
 	// Swap textures
 	SwapAddresses(lpTargetSurface1->GetSurfaceTexture(), lpTargetSurface2->GetSurfaceTexture());
 
@@ -694,7 +703,7 @@ HRESULT m_IDirectDrawSurfaceX::Flip(LPDIRECTDRAWSURFACE7 lpDDSurfaceTargetOverri
 		if (!IsPrimarySurface())
 		{
 			Logging::Log() << __FUNCTION__ << " Non-primary surface Flip not implimented";
-			return E_NOTIMPL;
+			return DDERR_UNSUPPORTED;
 		}
 
 		// Unneeded flags (can be safely ignored?)
@@ -747,7 +756,7 @@ HRESULT m_IDirectDrawSurfaceX::Flip(LPDIRECTDRAWSURFACE7 lpDDSurfaceTargetOverri
 			if (dwFlags & (DDFLIP_ODD | DDFLIP_EVEN))
 			{
 				Logging::Log() << __FUNCTION__ << " Even and odd flipping not implemented";
-				return E_NOTIMPL;
+				return DDERR_UNSUPPORTED;
 			}
 
 			// Loop through each surface and swap them
@@ -814,14 +823,14 @@ HRESULT m_IDirectDrawSurfaceX::GetAttachedSurface(LPDDSCAPS lpDDSCaps, LPDIRECTD
 {
 	Logging::LogDebug() << __FUNCTION__;
 
-	if (!lplpDDAttachedSurface)
-	{
-		return DDERR_INVALIDPARAMS;
-	}
-
 	// Game using old DirectX, Convert DDSCAPS to DDSCAPS2
 	if (ProxyDirectXVersion > 3)
 	{
+		if (!lplpDDAttachedSurface)
+		{
+			return DDERR_INVALIDPARAMS;
+		}
+
 		DDSCAPS2 Caps2;
 		ConvertCaps(Caps2, *lpDDSCaps);
 
@@ -830,7 +839,7 @@ HRESULT m_IDirectDrawSurfaceX::GetAttachedSurface(LPDDSCAPS lpDDSCaps, LPDIRECTD
 
 	HRESULT hr = GetProxyInterfaceV3()->GetAttachedSurface(lpDDSCaps, (LPDIRECTDRAWSURFACE3*)lplpDDAttachedSurface);
 
-	if (SUCCEEDED(hr))
+	if (SUCCEEDED(hr) && lplpDDAttachedSurface)
 	{
 		*lplpDDAttachedSurface = ProxyAddressLookupTable.FindAddress<m_IDirectDrawSurface7>(*lplpDDAttachedSurface, DirectXVersion);
 	}
@@ -842,13 +851,13 @@ HRESULT m_IDirectDrawSurfaceX::GetAttachedSurface2(LPDDSCAPS2 lpDDSCaps2, LPDIRE
 {
 	Logging::LogDebug() << __FUNCTION__;
 
-	if (!lplpDDAttachedSurface)
-	{
-		return DDERR_INVALIDPARAMS;
-	}
-
 	if (Config.Dd7to9)
 	{
+		if (!lplpDDAttachedSurface)
+		{
+			return DDERR_INVALIDPARAMS;
+		}
+
 		static bool LogOnce = true;
 		Logging::Log(&LogOnce) << __FUNCTION__ << " Not fully Implemented.";
 
@@ -883,7 +892,7 @@ HRESULT m_IDirectDrawSurfaceX::GetAttachedSurface2(LPDDSCAPS2 lpDDSCaps2, LPDIRE
 
 	HRESULT hr = ProxyInterface->GetAttachedSurface(lpDDSCaps2, lplpDDAttachedSurface);
 
-	if (SUCCEEDED(hr))
+	if (SUCCEEDED(hr) && lplpDDAttachedSurface)
 	{
 		*lplpDDAttachedSurface = ProxyAddressLookupTable.FindAddress<m_IDirectDrawSurface7>(*lplpDDAttachedSurface, DirectXVersion);
 	}
@@ -919,7 +928,7 @@ HRESULT m_IDirectDrawSurfaceX::GetBltStatus(DWORD dwFlags)
 			return DD_OK;
 		}
 
-		return E_NOTIMPL;
+		return DDERR_UNSUPPORTED;
 	}
 
 	return ProxyInterface->GetBltStatus(dwFlags);
@@ -929,14 +938,14 @@ HRESULT m_IDirectDrawSurfaceX::GetCaps(LPDDSCAPS lpDDSCaps)
 {
 	Logging::LogDebug() << __FUNCTION__;
 
-	if (!lpDDSCaps)
-	{
-		return DDERR_INVALIDPARAMS;
-	}
-
 	// Game using old DirectX, Convert DDSCAPS to DDSCAPS2
 	if (ProxyDirectXVersion > 3)
 	{
+		if (!lpDDSCaps)
+		{
+			return DDERR_INVALIDPARAMS;
+		}
+
 		DDSCAPS2 Caps2;
 
 		HRESULT hr = GetCaps2(&Caps2);
@@ -957,14 +966,15 @@ HRESULT m_IDirectDrawSurfaceX::GetCaps2(LPDDSCAPS2 lpDDSCaps2)
 {
 	Logging::LogDebug() << __FUNCTION__;
 
-	if (!lpDDSCaps2)
-	{
-		return DDERR_INVALIDPARAMS;
-	}
-
 	if (Config.Dd7to9)
 	{
+		if (!lpDDSCaps2)
+		{
+			return DDERR_INVALIDPARAMS;
+		}
+
 		ConvertCaps(*lpDDSCaps2, surfaceDesc2.ddsCaps);
+
 		return DD_OK;
 	}
 
@@ -1004,11 +1014,6 @@ HRESULT m_IDirectDrawSurfaceX::GetColorKey(DWORD dwFlags, LPDDCOLORKEY lpDDColor
 {
 	Logging::LogDebug() << __FUNCTION__;
 
-	if (!lpDDColorKey)
-	{
-		return DDERR_INVALIDPARAMS;
-	}
-
 	if (Config.Dd7to9)
 	{
 		// Get color key index
@@ -1018,7 +1023,7 @@ HRESULT m_IDirectDrawSurfaceX::GetColorKey(DWORD dwFlags, LPDDCOLORKEY lpDDColor
 			(dwFlags & DDCKEY_SRCOVERLAY) ? 3 : -1;
 
 		// Check index
-		if (x == -1)
+		if (!lpDDColorKey || x == -1)
 		{
 			return DDERR_INVALIDPARAMS;
 		}
@@ -1127,13 +1132,13 @@ HRESULT m_IDirectDrawSurfaceX::GetPalette(LPDIRECTDRAWPALETTE FAR * lplpDDPalett
 {
 	Logging::LogDebug() << __FUNCTION__;
 
-	if (!lplpDDPalette)
-	{
-		return DDERR_INVALIDPARAMS;
-	}
-
 	if (Config.Dd7to9)
 	{
+		if (!lplpDDPalette)
+		{
+			return DDERR_INVALIDPARAMS;
+		}
+
 		// No palette attached
 		if (!attachedPalette)
 		{
@@ -1174,13 +1179,13 @@ HRESULT m_IDirectDrawSurfaceX::GetPixelFormat(LPDDPIXELFORMAT lpDDPixelFormat)
 {
 	Logging::LogDebug() << __FUNCTION__;
 
-	if (!lpDDPixelFormat)
-	{
-		return DDERR_INVALIDPARAMS;
-	}
-
 	if (Config.Dd7to9)
 	{
+		if (!lpDDPixelFormat)
+		{
+			return DDERR_INVALIDPARAMS;
+		}
+
 		DDSURFACEDESC2 Desc2;
 		Desc2.dwSize = sizeof(DDSURFACEDESC2);
 		Desc2.ddpfPixelFormat.dwSize = sizeof(DDPIXELFORMAT);
@@ -1201,14 +1206,14 @@ HRESULT m_IDirectDrawSurfaceX::GetSurfaceDesc(LPDDSURFACEDESC lpDDSurfaceDesc)
 {
 	Logging::LogDebug() << __FUNCTION__;
 
-	if (!lpDDSurfaceDesc)
-	{
-		return DDERR_INVALIDPARAMS;
-	}
-
 	// Game using old DirectX, Convert to LPDDSURFACEDESC2
 	if (ProxyDirectXVersion > 3)
 	{
+		if (!lpDDSurfaceDesc)
+		{
+			return DDERR_INVALIDPARAMS;
+		}
+
 		DDSURFACEDESC2 Desc2;
 		Desc2.dwSize = sizeof(DDSURFACEDESC2);
 		Desc2.ddpfPixelFormat.dwSize = sizeof(DDPIXELFORMAT);
@@ -1231,13 +1236,13 @@ HRESULT m_IDirectDrawSurfaceX::GetSurfaceDesc2(LPDDSURFACEDESC2 lpDDSurfaceDesc2
 {
 	Logging::LogDebug() << __FUNCTION__;
 
-	if (!lpDDSurfaceDesc2)
-	{
-		return DDERR_INVALIDPARAMS;
-	}
-
 	if (Config.Dd7to9)
 	{
+		if (!lpDDSurfaceDesc2)
+		{
+			return DDERR_INVALIDPARAMS;
+		}
+
 		// Check for device
 		if (!ddrawParent)
 		{
@@ -1309,7 +1314,7 @@ HRESULT m_IDirectDrawSurfaceX::GetSurfaceDesc2(LPDDSURFACEDESC2 lpDDSurfaceDesc2
 				break;
 			default:
 				Logging::Log() << __FUNCTION__ << " Not implemented bit count " << lpDDSurfaceDesc2->ddpfPixelFormat.dwRGBBitCount;
-				return E_NOTIMPL;
+				return DDERR_UNSUPPORTED;
 			}
 		}
 
@@ -1329,7 +1334,10 @@ HRESULT m_IDirectDrawSurfaceX::Initialize(LPDIRECTDRAW lpDD, LPDDSURFACEDESC lpD
 		DDSURFACEDESC2 Desc2;
 		Desc2.dwSize = sizeof(DDSURFACEDESC2);
 		Desc2.ddpfPixelFormat.dwSize = sizeof(DDPIXELFORMAT);
-		ConvertSurfaceDesc(Desc2, *lpDDSurfaceDesc);
+		if (lpDDSurfaceDesc)
+		{
+			ConvertSurfaceDesc(Desc2, *lpDDSurfaceDesc);
+		}
 
 		return Initialize2(lpDD, (lpDDSurfaceDesc) ? &Desc2 : nullptr);
 	}
@@ -1383,23 +1391,21 @@ HRESULT m_IDirectDrawSurfaceX::Lock(LPRECT lpDestRect, LPDDSURFACEDESC lpDDSurfa
 {
 	Logging::LogDebug() << __FUNCTION__;
 
-	if (!lpDDSurfaceDesc)
-	{
-		return DDERR_INVALIDPARAMS;
-	}
-
 	// Game using old DirectX, Convert to LPDDSURFACEDESC2
 	if (ProxyDirectXVersion > 3)
 	{
-		DDSURFACEDESC2 Desc2;
+		DDSURFACEDESC2 Desc2 = { NULL };
 		Desc2.dwSize = sizeof(DDSURFACEDESC2);
 		Desc2.ddpfPixelFormat.dwSize = sizeof(DDPIXELFORMAT);
-		ConvertSurfaceDesc(Desc2, *lpDDSurfaceDesc);
+		if (lpDDSurfaceDesc)
+		{
+			ConvertSurfaceDesc(Desc2, *lpDDSurfaceDesc);
+		}
 
 		HRESULT hr = Lock2(lpDestRect, &Desc2, dwFlags, hEvent);
 
 		// Convert back to LPDDSURFACEDESC
-		if (SUCCEEDED(hr))
+		if (SUCCEEDED(hr) && lpDDSurfaceDesc)
 		{
 			ConvertSurfaceDesc(*lpDDSurfaceDesc, Desc2);
 		}
@@ -1414,13 +1420,13 @@ HRESULT m_IDirectDrawSurfaceX::Lock2(LPRECT lpDestRect, LPDDSURFACEDESC2 lpDDSur
 {
 	Logging::LogDebug() << __FUNCTION__;
 
-	if (!lpDDSurfaceDesc2)
-	{
-		return DDERR_INVALIDPARAMS;
-	}
-
 	if (Config.Dd7to9)
 	{
+		if (!lpDDSurfaceDesc2)
+		{
+			return DDERR_INVALIDPARAMS;
+		}
+
 		// Check if locked
 		if (IsLocked && d3dlrect.pBits)
 		{
@@ -1479,6 +1485,8 @@ HRESULT m_IDirectDrawSurfaceX::Lock2(LPRECT lpDestRect, LPDDSURFACEDESC2 lpDDSur
 			}
 			else
 			{
+				static bool LogOnce = true;
+				Logging::Log(&LogOnce) << __FUNCTION__ << " Failed to write to surface!";
 				hr = DDERR_GENERIC;
 			}
 		}
@@ -1580,13 +1588,13 @@ HRESULT m_IDirectDrawSurfaceX::SetColorKey(DWORD dwFlags, LPDDCOLORKEY lpDDColor
 {
 	Logging::LogDebug() << __FUNCTION__;
 
-	if (!lpDDColorKey)
-	{
-		return DDERR_INVALIDPARAMS;
-	}
-
 	if (Config.Dd7to9)
 	{
+		if (!lpDDColorKey)
+		{
+			return DDERR_INVALIDPARAMS;
+		}
+
 		// Get color key index
 		int x = (dwFlags & DDCKEY_DESTBLT) ? 0 :
 			(dwFlags & DDCKEY_DESTOVERLAY) ? 1 :
@@ -1715,7 +1723,7 @@ HRESULT m_IDirectDrawSurfaceX::UpdateOverlay(LPRECT lpSrcRect, LPDIRECTDRAWSURFA
 	if (Config.Dd7to9)
 	{
 		Logging::Log() << __FUNCTION__ << " Not Implemented";
-		return E_NOTIMPL;
+		return DDERR_UNSUPPORTED;
 	}
 
 	if (lpDDDestSurface)
@@ -1733,7 +1741,7 @@ HRESULT m_IDirectDrawSurfaceX::UpdateOverlayDisplay(DWORD dwFlags)
 	if (Config.Dd7to9)
 	{
 		Logging::Log() << __FUNCTION__ << " Not Implemented";
-		return E_NOTIMPL;
+		return DDERR_UNSUPPORTED;
 	}
 
 	return ProxyInterface->UpdateOverlayDisplay(dwFlags);
@@ -1746,7 +1754,7 @@ HRESULT m_IDirectDrawSurfaceX::UpdateOverlayZOrder(DWORD dwFlags, LPDIRECTDRAWSU
 	if (Config.Dd7to9)
 	{
 		Logging::Log() << __FUNCTION__ << " Not Implemented";
-		return E_NOTIMPL;
+		return DDERR_UNSUPPORTED;
 	}
 
 	if (lpDDSReference)
@@ -1765,13 +1773,13 @@ HRESULT m_IDirectDrawSurfaceX::GetDDInterface(LPVOID FAR * lplpDD, DWORD DirectX
 {
 	Logging::LogDebug() << __FUNCTION__;
 
-	if (!lplpDD)
-	{
-		return DDERR_INVALIDPARAMS;
-	}
-
 	if (Config.Dd7to9)
 	{
+		if (!lplpDD)
+		{
+			return DDERR_INVALIDPARAMS;
+		}
+
 		// Check for device
 		if (!ddrawParent)
 		{
@@ -1788,7 +1796,7 @@ HRESULT m_IDirectDrawSurfaceX::GetDDInterface(LPVOID FAR * lplpDD, DWORD DirectX
 
 	HRESULT hr = ProxyInterface->GetDDInterface(lplpDD);
 
-	if (SUCCEEDED(hr))
+	if (SUCCEEDED(hr) && lplpDD)
 	{
 		// Calling the GetDDInterface method from any surface created under DirectDrawEx will return a pointer to the 
 		// IUnknown interface instead of a pointer to an IDirectDraw interface. Applications must use the
@@ -1848,14 +1856,14 @@ HRESULT m_IDirectDrawSurfaceX::SetSurfaceDesc(LPDDSURFACEDESC lpDDSurfaceDesc, D
 {
 	Logging::LogDebug() << __FUNCTION__;
 
-	if (!lpDDSurfaceDesc)
-	{
-		return DDERR_INVALIDPARAMS;
-	}
-
 	// Game using old DirectX, Convert to LPDDSURFACEDESC2
 	if (ProxyDirectXVersion > 3)
 	{
+		if (!lpDDSurfaceDesc)
+		{
+			return DDERR_INVALIDPARAMS;
+		}
+
 		DDSURFACEDESC2 Desc2;
 		Desc2.dwSize = sizeof(DDSURFACEDESC2);
 		Desc2.ddpfPixelFormat.dwSize = sizeof(DDPIXELFORMAT);
@@ -1871,15 +1879,15 @@ HRESULT m_IDirectDrawSurfaceX::SetSurfaceDesc2(LPDDSURFACEDESC2 lpDDSurfaceDesc2
 {
 	Logging::LogDebug() << __FUNCTION__;
 
-	if (!lpDDSurfaceDesc2)
-	{
-		return DDERR_INVALIDPARAMS;
-	}
-
 	if (Config.Dd7to9)
 	{
+		if (!lpDDSurfaceDesc2)
+		{
+			return DDERR_INVALIDPARAMS;
+		}
+
 		Logging::Log() << __FUNCTION__ << " Not Implemented";
-		return E_NOTIMPL;
+		return DDERR_UNSUPPORTED;
 	}
 
 	return ProxyInterface->SetSurfaceDesc(lpDDSurfaceDesc2, dwFlags);
@@ -2008,16 +2016,16 @@ HRESULT m_IDirectDrawSurfaceX::GetPriority(LPDWORD lpdwPriority)
 
 	if (Config.Dd7to9)
 	{
+		if (!lpdwPriority)
+		{
+			return DDERR_INVALIDPARAMS;
+		}
+
 		// Make sure surface exists, if not then create it
 		if (!CheckD3d9Surface())
 		{
 			Logging::Log() << __FUNCTION__ << " Error surface does not exist!";
 			return DDERR_GENERIC;
-		}
-
-		if (!lpdwPriority)
-		{
-			return DDERR_INVALIDPARAMS;
 		}
 
 		*lpdwPriority = surfaceTexture->GetPriority();
@@ -2053,16 +2061,16 @@ HRESULT m_IDirectDrawSurfaceX::GetLOD(LPDWORD lpdwMaxLOD)
 
 	if (Config.Dd7to9)
 	{
+		if (!lpdwMaxLOD)
+		{
+			return DDERR_INVALIDPARAMS;
+		}
+
 		// Make sure surface exists, if not then create it
 		if (!CheckD3d9Surface())
 		{
 			Logging::Log() << __FUNCTION__ << " Error surface does not exist!";
 			return DDERR_GENERIC;
-		}
-
-		if (!lpdwMaxLOD)
-		{
-			return DDERR_INVALIDPARAMS;
 		}
 
 		*lpdwMaxLOD = surfaceTexture->GetLOD();
@@ -2417,6 +2425,11 @@ void m_IDirectDrawSurfaceX::ReleaseD9Surface()
 // Check surface reck dimensions and copy rect to new rect
 bool m_IDirectDrawSurfaceX::FixRect(LPRECT lpOutRect, LPRECT lpInRect)
 {
+	if (!lpOutRect)
+	{
+		return false;
+	}
+
 	// Make sure surface exists, if not then create it
 	if (!CheckD3d9Surface())
 	{
@@ -2981,7 +2994,7 @@ HRESULT m_IDirectDrawSurfaceX::CopyRectColorKey(D3DLOCKED_RECT *pDestLockRect, R
 	if (DestFormat != SrcFormat)
 	{
 		Logging::Log() << __FUNCTION__ << " Different source and destination formats not implemented";
-		return E_NOTIMPL;
+		return DDERR_UNSUPPORTED;
 	}
 
 	// Get width and height of rect
@@ -3024,7 +3037,7 @@ HRESULT m_IDirectDrawSurfaceX::CopyRectColorKey(D3DLOCKED_RECT *pDestLockRect, R
 	}
 	default: // Unsupported surface bit count
 		Logging::Log() << __FUNCTION__ << " Not implemented bit count " << DestBitCount;
-		return E_NOTIMPL;
+		return DDERR_UNSUPPORTED;
 	}
 
 	// Return
@@ -3052,7 +3065,7 @@ HRESULT m_IDirectDrawSurfaceX::StretchRect(D3DLOCKED_RECT *pDestLockRect, RECT *
 	if (DestFormat != SrcFormat)
 	{
 		Logging::Log() << __FUNCTION__ << " Different source and destination formats not implemented";
-		return E_NOTIMPL;
+		return DDERR_UNSUPPORTED;
 	}
 
 	// Get width and height of rect
@@ -3088,7 +3101,7 @@ HRESULT m_IDirectDrawSurfaceX::StretchRect(D3DLOCKED_RECT *pDestLockRect, RECT *
 	}
 	default: // Unsupported surface bit count
 		Logging::Log() << __FUNCTION__ << " Not implemented bit count " << DestBitCount;
-		return E_NOTIMPL;
+		return DDERR_UNSUPPORTED;
 	}
 
 	// Return

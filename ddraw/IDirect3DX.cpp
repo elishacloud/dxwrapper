@@ -36,7 +36,7 @@ HRESULT m_IDirect3DX::QueryInterface(REFIID riid, LPVOID * ppvObj, DWORD DirectX
 
 			::AddRef(*ppvObj);
 
-			return S_OK;
+			return D3D_OK;
 		}
 	}
 	return ProxyQueryInterface(ProxyInterface, riid, ppvObj, GetWrapperType(DirectXVersion), WrapperInterface);
@@ -152,6 +152,11 @@ HRESULT m_IDirect3DX::EnumDevices(LPD3DENUMDEVICESCALLBACK lpEnumDevicesCallback
 		return GetProxyInterfaceV3()->EnumDevices(lpEnumDevicesCallback, lpUserArg);
 	case 7:
 	{
+		if (!lpEnumDevicesCallback)
+		{
+			return DDERR_INVALIDPARAMS;
+		}
+
 		ENUMDEVICES CallbackContext;
 		CallbackContext.lpContext = lpUserArg;
 		CallbackContext.lpCallback = lpEnumDevicesCallback;
@@ -171,6 +176,11 @@ HRESULT m_IDirect3DX::EnumDevices7(LPD3DENUMDEVICESCALLBACK7 lpEnumDevicesCallba
 
 	if (Config.Dd7to9)
 	{
+		if (!lpEnumDevicesCallback7)
+		{
+			return DDERR_INVALIDPARAMS;
+		}
+
 		// Check for device
 		if (!ddrawParent)
 		{
@@ -301,23 +311,22 @@ HRESULT m_IDirect3DX::CreateLight(LPDIRECT3DLIGHT * lplpDirect3DLight, LPUNKNOWN
 		break;
 	case 7:
 	case 9:
+	{
 		if (!lplpDirect3DLight)
 		{
 			return DDERR_INVALIDPARAMS;
 		}
-		else
-		{
-			// Check for device
-			if (!ddrawParent)
-			{
-				Logging::Log() << __FUNCTION__ << " Error no ddraw parent!";
-				return DDERR_GENERIC;
-			}
 
-			*lplpDirect3DLight = (LPDIRECT3DLIGHT)new m_IDirect3DLight(ddrawParent->GetCurrentD3DDevice());
-			return D3D_OK;
+		// Check for device
+		if (!ddrawParent)
+		{
+			Logging::Log() << __FUNCTION__ << " Error no ddraw parent!";
+			return DDERR_GENERIC;
 		}
-		break;
+
+		*lplpDirect3DLight = (LPDIRECT3DLIGHT)new m_IDirect3DLight(ddrawParent->GetCurrentD3DDevice());
+		return D3D_OK;
+	}
 	default:
 		return DDERR_GENERIC;
 	}
@@ -349,23 +358,22 @@ HRESULT m_IDirect3DX::CreateMaterial(LPDIRECT3DMATERIAL3 * lplpDirect3DMaterial,
 		break;
 	case 7:
 	case 9:
+	{
 		if (!lplpDirect3DMaterial)
 		{
 			return DDERR_INVALIDPARAMS;
 		}
-		else
-		{
-			// Check for device
-			if (!ddrawParent)
-			{
-				Logging::Log() << __FUNCTION__ << " Error no ddraw parent!";
-				return DDERR_GENERIC;
-			}
 
-			*lplpDirect3DMaterial = (LPDIRECT3DMATERIAL3)new m_IDirect3DMaterialX(ddrawParent->GetCurrentD3DDevice(), DirectXVersion);
-			return D3D_OK;
+		// Check for device
+		if (!ddrawParent)
+		{
+			Logging::Log() << __FUNCTION__ << " Error no ddraw parent!";
+			return DDERR_GENERIC;
 		}
-		break;
+
+		*lplpDirect3DMaterial = (LPDIRECT3DMATERIAL3)new m_IDirect3DMaterialX(ddrawParent->GetCurrentD3DDevice(), DirectXVersion);
+		return D3D_OK;
+	}
 	default:
 		return DDERR_GENERIC;
 	}
@@ -397,23 +405,22 @@ HRESULT m_IDirect3DX::CreateViewport(LPDIRECT3DVIEWPORT3 * lplpD3DViewport, LPUN
 		break;
 	case 7:
 	case 9:
+	{
 		if (!lplpD3DViewport)
 		{
 			return DDERR_INVALIDPARAMS;
 		}
-		else
-		{
-			// Check for device
-			if (!ddrawParent)
-			{
-				Logging::Log() << __FUNCTION__ << " Error no ddraw parent!";
-				return DDERR_GENERIC;
-			}
 
-			*lplpD3DViewport = (LPDIRECT3DVIEWPORT3)new m_IDirect3DViewportX(ddrawParent->GetCurrentD3DDevice(), DirectXVersion);
-			return D3D_OK;
+		// Check for device
+		if (!ddrawParent)
+		{
+			Logging::Log() << __FUNCTION__ << " Error no ddraw parent!";
+			return DDERR_GENERIC;
 		}
-		break;
+
+		*lplpD3DViewport = (LPDIRECT3DVIEWPORT3)new m_IDirect3DViewportX(ddrawParent->GetCurrentD3DDevice(), DirectXVersion);
+		return D3D_OK;
+	}
 	default:
 		return DDERR_GENERIC;
 	}
@@ -441,7 +448,7 @@ HRESULT m_IDirect3DX::FindDevice(LPD3DFINDDEVICESEARCH lpD3DFDS, LPD3DFINDDEVICE
 	case 7:
 	case 9:
 		Logging::Log() << __FUNCTION__ << " Not Implemented";
-		return E_NOTIMPL;
+		return DDERR_UNSUPPORTED;
 	default:
 		return DDERR_GENERIC;
 	}
@@ -453,6 +460,11 @@ HRESULT m_IDirect3DX::CreateDevice(REFCLSID rclsid, LPDIRECTDRAWSURFACE7 lpDDS, 
 
 	if (Config.Dd7to9)
 	{
+		if (!lplpD3DDevice)
+		{
+			return DDERR_INVALIDPARAMS;
+		}
+
 		// Check for device
 		if (!ddrawParent)
 		{
@@ -464,7 +476,7 @@ HRESULT m_IDirect3DX::CreateDevice(REFCLSID rclsid, LPDIRECTDRAWSURFACE7 lpDDS, 
 
 		*lplpD3DDevice = (LPDIRECT3DDEVICE7)p_IDirect3DDeviceX->GetWrapperInterfaceX(DirectXVersion);
 
-		return S_OK;
+		return D3D_OK;
 	}
 
 	if (lpDDS)
@@ -494,7 +506,7 @@ HRESULT m_IDirect3DX::CreateDevice(REFCLSID rclsid, LPDIRECTDRAWSURFACE7 lpDDS, 
 	{
 		*lplpD3DDevice = ProxyAddressLookupTable.FindAddress<m_IDirect3DDevice7>(*lplpD3DDevice, DirectXVersion);
 
-		if (Config.ConvertToDirectDraw7 && ddrawParent && *lplpD3DDevice)
+		if (Config.ConvertToDirect3D7 && ddrawParent && *lplpD3DDevice)
 		{
 			m_IDirect3DDeviceX *lpD3DDeviceX = ((m_IDirect3DDevice7*)*lplpD3DDevice)->GetWrapperInterface();
 
@@ -527,22 +539,22 @@ HRESULT m_IDirect3DX::CreateVertexBuffer(LPD3DVERTEXBUFFERDESC lpVBDesc, LPDIREC
 		hr = GetProxyInterfaceV7()->CreateVertexBuffer(lpVBDesc, lplpD3DVertexBuffer, dwFlags);
 		break;
 	case 9:
+	{
 		if (!lplpD3DVertexBuffer || dwFlags)
 		{
 			return DDERR_INVALIDPARAMS;
 		}
-		else
-		{
-			// Check for device
-			if (!ddrawParent)
-			{
-				Logging::Log() << __FUNCTION__ << " Error no ddraw parent!";
-				return DDERR_GENERIC;
-			}
 
-			*lplpD3DVertexBuffer = (LPDIRECT3DVERTEXBUFFER7)new m_IDirect3DVertexBufferX(ddrawParent->GetCurrentD3DDevice(), lpVBDesc, DirectXVersion);
-			return D3D_OK;
+		// Check for device
+		if (!ddrawParent)
+		{
+			Logging::Log() << __FUNCTION__ << " Error no ddraw parent!";
+			return DDERR_GENERIC;
 		}
+
+		*lplpD3DVertexBuffer = (LPDIRECT3DVERTEXBUFFER7)new m_IDirect3DVertexBufferX(ddrawParent->GetCurrentD3DDevice(), lpVBDesc, DirectXVersion);
+		return D3D_OK;
+	}
 	}
 
 	if (SUCCEEDED(hr) && lplpD3DVertexBuffer)
@@ -568,6 +580,11 @@ HRESULT m_IDirect3DX::EnumZBufferFormats(REFCLSID riidDevice, LPD3DENUMPIXELFORM
 	case 7:
 		return GetProxyInterfaceV7()->EnumZBufferFormats(riidDevice, lpEnumCallback, lpContext);
 	case 9:
+		if (!lpEnumCallback)
+		{
+			return DDERR_INVALIDPARAMS;
+		}
+
 		if (riidDevice == IID_IDirect3DRGBDevice || riidDevice == IID_IDirect3DRampDevice)
 		{
 			DDPIXELFORMAT PixelFormat = { NULL };
@@ -628,7 +645,7 @@ HRESULT m_IDirect3DX::EvictManagedTextures()
 		return GetProxyInterfaceV7()->EvictManagedTextures();
 	case 9:
 		Logging::Log() << __FUNCTION__ << " Not Implemented";
-		return E_NOTIMPL;
+		return DDERR_UNSUPPORTED;
 	}
 }
 

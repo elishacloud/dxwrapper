@@ -28,7 +28,7 @@ HRESULT m_IDirectDrawColorControl::QueryInterface(REFIID riid, LPVOID FAR * ppvO
 
 			*ppvObj = this;
 
-			return S_OK;
+			return DD_OK;
 		}
 	}
 
@@ -74,13 +74,13 @@ HRESULT m_IDirectDrawColorControl::GetColorControls(LPDDCOLORCONTROL lpColorCont
 {
 	Logging::LogDebug() << __FUNCTION__;
 
-	if (!lpColorControl)
-	{
-		return DDERR_INVALIDPARAMS;
-	}
-
 	if (!ProxyInterface)
 	{
+		if (!lpColorControl)
+		{
+			return DDERR_INVALIDPARAMS;
+		}
+
 		ConvertColorControl(*lpColorControl, ColorControl);
 
 		return DD_OK;
@@ -93,13 +93,13 @@ HRESULT m_IDirectDrawColorControl::SetColorControls(LPDDCOLORCONTROL lpColorCont
 {
 	Logging::LogDebug() << __FUNCTION__;
 
-	if (!lpColorControl)
-	{
-		return DDERR_INVALIDPARAMS;
-	}
-
 	if (!ProxyInterface)
 	{
+		if (!lpColorControl)
+		{
+			return DDERR_INVALIDPARAMS;
+		}
+
 		ConvertColorControl(ColorControl, *lpColorControl);
 
 		return DD_OK;

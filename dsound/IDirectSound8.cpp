@@ -24,7 +24,7 @@ HRESULT m_IDirectSound8::QueryInterface(REFIID riid, LPVOID * ppvObj)
 
 		*ppvObj = this;
 
-		return S_OK;
+		return DS_OK;
 	}
 
 	HRESULT hr = ProxyInterface->QueryInterface(riid, ppvObj);
@@ -196,7 +196,7 @@ HRESULT m_IDirectSound8::GetSpeakerConfig(LPDWORD pdwSpeakerConfig)
 	{
 		*pdwSpeakerConfig = Config.SpeakerConfig;
 
-		return S_OK;
+		return DS_OK;
 	}
 
 	return ProxyInterface->GetSpeakerConfig(pdwSpeakerConfig);
@@ -206,7 +206,7 @@ HRESULT m_IDirectSound8::SetSpeakerConfig(DWORD dwSpeakerConfig)
 {
 	if (Config.PreventSpeakerSetup)
 	{
-		return S_OK;
+		return DS_OK;
 	}
 
 	return ProxyInterface->SetSpeakerConfig(dwSpeakerConfig);
@@ -226,7 +226,7 @@ HRESULT  m_IDirectSound8::VerifyCertification(LPDWORD pdwCertified)
 	{
 		*pdwCertified = DS_CERTIFIED;
 
-		return S_OK;
+		return DS_OK;
 	}
 
 	return hr;

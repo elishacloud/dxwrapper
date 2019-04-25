@@ -28,7 +28,7 @@ HRESULT m_IDirectDrawGammaControl::QueryInterface(REFIID riid, LPVOID FAR * ppvO
 
 			*ppvObj = this;
 
-			return S_OK;
+			return DD_OK;
 		}
 	}
 
@@ -74,13 +74,13 @@ HRESULT m_IDirectDrawGammaControl::GetGammaRamp(DWORD dwFlags, LPDDGAMMARAMP lpR
 {
 	Logging::LogDebug() << __FUNCTION__;
 
-	if (dwFlags || !lpRampData)
-	{
-		return DDERR_INVALIDPARAMS;
-	}
-
 	if (!ProxyInterface)
 	{
+		if (dwFlags || !lpRampData)
+		{
+			return DDERR_INVALIDPARAMS;
+		}
+
 		ConvertGammaRamp(*lpRampData, RampData);
 
 		return DD_OK;
@@ -93,13 +93,13 @@ HRESULT m_IDirectDrawGammaControl::SetGammaRamp(DWORD dwFlags, LPDDGAMMARAMP lpR
 {
 	Logging::LogDebug() << __FUNCTION__;
 
-	if (!(dwFlags || dwFlags == DDSGR_CALIBRATE) || !lpRampData)
-	{
-		return DDERR_INVALIDPARAMS;
-	}
-
 	if (!ProxyInterface)
 	{
+		if (!(dwFlags || dwFlags == DDSGR_CALIBRATE) || !lpRampData)
+		{
+			return DDERR_INVALIDPARAMS;
+		}
+
 		ConvertGammaRamp(RampData, *lpRampData);
 
 		return DD_OK;

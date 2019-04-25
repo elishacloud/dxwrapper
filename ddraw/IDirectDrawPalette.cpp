@@ -30,7 +30,7 @@ HRESULT m_IDirectDrawPalette::QueryInterface(REFIID riid, LPVOID FAR * ppvObj)
 
 			*ppvObj = this;
 
-			return S_OK;
+			return DD_OK;
 		}
 	}
 
@@ -76,13 +76,13 @@ HRESULT m_IDirectDrawPalette::GetCaps(LPDWORD lpdwCaps)
 {
 	Logging::LogDebug() << __FUNCTION__;
 
-	if (!lpdwCaps)
-	{
-		return DDERR_INVALIDPARAMS;
-	}
-
 	if (!ProxyInterface)
 	{
+		if (!lpdwCaps)
+		{
+			return DDERR_INVALIDPARAMS;
+		}
+
 		// set return data to current palette caps
 		*lpdwCaps = paletteCaps;
 

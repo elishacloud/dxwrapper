@@ -28,7 +28,7 @@ HRESULT m_IDirect3DLight::QueryInterface(REFIID riid, LPVOID * ppvObj)
 
 			*ppvObj = this;
 
-			return S_OK;
+			return D3D_OK;
 		}
 	}
 
@@ -77,7 +77,7 @@ HRESULT m_IDirect3DLight::Initialize(LPDIRECT3D lpDirect3D)
 	if (!ProxyInterface)
 	{
 		Logging::Log() << __FUNCTION__ << " Not Implemented";
-		return E_NOTIMPL;
+		return DDERR_UNSUPPORTED;
 	}
 
 	if (lpDirect3D)
@@ -95,7 +95,7 @@ HRESULT m_IDirect3DLight::SetLight(LPD3DLIGHT lpLight)
 	if (!ProxyInterface)
 	{
 		Logging::Log() << __FUNCTION__ << " Not Implemented";
-		return E_NOTIMPL;
+		return DDERR_UNSUPPORTED;
 	}
 
 	return ProxyInterface->SetLight(lpLight);
@@ -108,7 +108,7 @@ HRESULT m_IDirect3DLight::GetLight(LPD3DLIGHT lpLight)
 	if (!ProxyInterface)
 	{
 		Logging::Log() << __FUNCTION__ << " Not Implemented";
-		return E_NOTIMPL;
+		return DDERR_UNSUPPORTED;
 	}
 
 	return ProxyInterface->GetLight(lpLight);
