@@ -315,20 +315,20 @@ HRESULT WINAPI dd_DirectDrawCreateEx(GUID FAR *lpGUID, LPVOID *lplpDD, REFIID ri
 {
 	Logging::LogDebug() << __FUNCTION__;
 
-	if (riid != IID_IDirectDraw &&
-		riid != IID_IDirectDraw2 &&
-		riid != IID_IDirectDraw3 &&
-		riid != IID_IDirectDraw4 &&
-		riid != IID_IDirectDraw7)
-	{
-		Logging::Log() << __FUNCTION__ << " Error: invalid IID " << riid;
-		return DDERR_INVALIDPARAMS;
-	}
-
 	if (Config.Dd7to9)
 	{
 		if (!lplpDD)
 		{
+			return DDERR_INVALIDPARAMS;
+		}
+
+		if (riid != IID_IDirectDraw &&
+			riid != IID_IDirectDraw2 &&
+			riid != IID_IDirectDraw3 &&
+			riid != IID_IDirectDraw4 &&
+			riid != IID_IDirectDraw7)
+		{
+			Logging::Log() << __FUNCTION__ << " Error: invalid IID " << riid;
 			return DDERR_INVALIDPARAMS;
 		}
 
@@ -374,7 +374,7 @@ HRESULT WINAPI dd_DirectDrawCreateEx(GUID FAR *lpGUID, LPVOID *lplpDD, REFIID ri
 
 	HRESULT hr = m_pDirectDrawCreateEx(lpGUID, lplpDD, IID_IDirectDraw7, pUnkOuter);
 
-	if (SUCCEEDED(hr) && lplpDD && *lplpDD)
+	if (SUCCEEDED(hr))
 	{
 		genericQueryInterface(riid, lplpDD);
 	}
@@ -661,7 +661,7 @@ HRESULT WINAPI dd_DllGetClassObject(REFCLSID rclsid, REFIID riid, LPVOID *ppv)
 		return DDERR_GENERIC;
 	}
 
-	HRESULT hr = m_pDllGetClassObject(ConvertCLSID(rclsid), ConvertREFIID(riid), ppv);
+	HRESULT hr = m_pDllGetClassObject(ConvertREFCLSID(rclsid), ConvertREFIID(riid), ppv);
 
 	if (SUCCEEDED(hr) && ppv)
 	{
@@ -739,7 +739,7 @@ HRESULT WINAPI dd_GetSurfaceFromDC(HDC hdc, LPDIRECTDRAWSURFACE7 *lpDDS)
 
 	HRESULT hr = m_pGetSurfaceFromDC(hdc, lpDDS);
 
-	if (SUCCEEDED(hr) && !lpDDS)
+	if (SUCCEEDED(hr) && lpDDS)
 	{
 		*lpDDS = ProxyAddressLookupTable.FindAddress<m_IDirectDrawSurface7>(*lpDDS);
 	}

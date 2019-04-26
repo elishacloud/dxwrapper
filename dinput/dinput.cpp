@@ -55,12 +55,7 @@ HRESULT WINAPI di_DirectInputCreateEx(HINSTANCE hinst, DWORD dwVersion, REFIID r
 		return DIERR_GENERIC;
 	}
 
-	static bool RunOnce = true;
-	if (RunOnce)
-	{
-		Logging::Log() << "Starting dinputto8 v" << APP_VERSION;
-		RunOnce = false;
-	}
+	LOG_ONCE("Starting dinputto8 v" << APP_VERSION);
 
 	Logging::Log() << "Redirecting 'DirectInputCreate' " << riid << " version " << Logging::hex(dwVersion) << " to --> 'DirectInput8Create'";
 
@@ -96,7 +91,7 @@ HRESULT WINAPI di_DllGetClassObject(IN REFCLSID rclsid, IN REFIID riid, OUT LPVO
 		return DIERR_GENERIC;
 	}
 
-	HRESULT hr = m_pDllGetClassObject(dinputto8::ConvertCLSID(rclsid), dinputto8::ConvertREFIID(riid), ppv);
+	HRESULT hr = m_pDllGetClassObject(dinputto8::ConvertREFCLSID(rclsid), dinputto8::ConvertREFIID(riid), ppv);
 
 	if (SUCCEEDED(hr) && ppv)
 	{

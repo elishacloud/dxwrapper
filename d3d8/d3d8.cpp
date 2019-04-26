@@ -23,6 +23,11 @@
 #include "External\d3d8to9\source\d3dx9.hpp"
 #include "Settings\Settings.h"
 #include "Logging\Logging.h"
+#include "BuildNo.rc"
+
+#define STRINGIFY(x) #x
+#define TOSTRING(x) STRINGIFY(x)
+#define APP_VERSION TOSTRING(FILEVERSION)
 
 typedef LPDIRECT3D9(WINAPI *PFN_Direct3DCreate9)(UINT SDKVersion);
 typedef void(WINAPI *DebugSetMuteProc)();
@@ -123,7 +128,9 @@ Direct3D8 *WINAPI d8_Direct3DCreate8(UINT SDKVersion)
 		return nullptr;
 	}
 
-	Logging::Log() << "Enabling D3d8to9 function (" << SDKVersion << ")";
+	LOG_ONCE("Starting D3d8to9 v" << APP_VERSION);
+
+	Logging::Log() << "Redirecting 'Direct3DCreate8' to --> 'Direct3DCreate9' (" << SDKVersion << ")";
 
 	// Declare Direct3DCreate9
 	static PFN_Direct3DCreate9 Direct3DCreate9 = reinterpret_cast<PFN_Direct3DCreate9>(Direct3DCreate9_out);

@@ -96,11 +96,19 @@ copy /Y "$(ProjectDir)Resources\dxwnd.dll" "$(TargetDir)Build\" &gt;nul
 copy /Y "$(ProjectDir)Resources\dxwnd.exe" "$(TargetDir)Build\" &gt;nul</Command>
     </PostBuildEvent>
     <PreBuildEvent>
-      <Command>cmd /c "@echo off &amp;&amp; cd /D ""$(ProjectDir)Dllmain\"" &amp;&amp; if not exist BuildNo.rc echo #define BUILD_NUMBER 0 &gt;BuildNo.rc"
-cmd /c "@echo off &amp;&amp; cd /D ""$(ProjectDir)Dllmain\"" &amp;&amp; FOR /F "tokens=3" %%i IN (BuildNo.rc) DO set /a var=%%i+1 &gt;Build.txt"
-cmd /c "@echo off &amp;&amp; cd /D ""$(ProjectDir)Dllmain\"" &amp;&amp; FOR /F %%i IN (Build.txt) DO echo #define BUILD_NUMBER %%i &gt;BuildNo.rc"
-cmd /c "@echo off &amp;&amp; cd /D ""$(ProjectDir)Dllmain\"" &amp;&amp; del Build.txt"
-cmd /c "@echo off &amp;&amp; cd /D ""$(ProjectDir)Dllmain\"" &amp;&amp; type BuildNo.rc"</Command>
+      <Command>cmd /q /c "cd /D ""$(ProjectDir)Dllmain\"" &amp;&amp; if not exist BuildNo.rc echo #define BUILD_NUMBER 0 &gt;BuildNo.rc"
+cmd /q /c "cd /D ""$(ProjectDir)Dllmain\"" &amp;&amp; FOR /F "tokens=3" %%i IN (BuildNo.rc) DO set /a var=%%i+1 &gt;Build.txt"
+cmd /q /c "cd /D ""$(ProjectDir)Dllmain\"" &amp;&amp; FOR /F %%i IN (Build.txt) DO echo #define BUILD_NUMBER %%i &gt;BuildNo.rc"
+cmd /q /c "cd /D ""$(ProjectDir)Dllmain\"" &amp;&amp; del Build.txt"
+cmd /q /c "cd /D ""$(ProjectDir)Dllmain\"" &amp;&amp; type BuildNo.rc"
+cmd /q /c "cd /D ""$(ProjectDir)d3d8\"" &amp;&amp; del BuildNo.rc &gt; nul 2&gt;&amp;1"
+cmd /q /c "cd /D ""$(ProjectDir)d3d8\"" &amp;&amp; echo echo^|set /p="#define " ^&gt; BuildNo.rc &gt; build.bat"
+cmd /q /c "cd /D ""$(ProjectDir)d3d8\"" &amp;&amp; echo type "$(ProjectDir)External\d3d8to9\res\d3d8to9.rc" ^| find "FILEVERSION" ^&gt;^&gt; BuildNo.rc &gt;&gt; build.bat"
+cmd /q /c "cd /D ""$(ProjectDir)d3d8\"" &amp;&amp; echo set /p build=^&lt;BuildNo.rc &gt;&gt; build.bat"
+cmd /q /c "cd /D ""$(ProjectDir)d3d8\"" &amp;&amp; echo set modified=%%build:,=.%% &gt;&gt; build.bat"
+cmd /q /c "cd /D ""$(ProjectDir)d3d8\"" &amp;&amp; echo echo %%modified%% ^&gt; BuildNo.rc &gt;&gt; build.bat"
+cmd /q /c "cd /D ""$(ProjectDir)d3d8\"" &amp;&amp; call build.bat"
+cmd /q /c "cd /D ""$(ProjectDir)d3d8\"" &amp;&amp; del build.bat"</Command>
     </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>

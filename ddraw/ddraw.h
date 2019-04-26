@@ -87,7 +87,7 @@ HRESULT WINAPI dd_DirectDrawEnumerateW(LPDDENUMCALLBACKW lpCallback, LPVOID lpCo
 namespace DdrawWrapper
 {
 	DWORD GetIIDVersion(REFIID CalledID);
-	REFCLSID ConvertCLSID(REFCLSID rclsid);
+	REFCLSID ConvertREFCLSID(REFCLSID rclsid);
 	REFIID ConvertREFIID(REFIID riid);
 	void SetCriticalSection();
 	void ReleaseCriticalSection();

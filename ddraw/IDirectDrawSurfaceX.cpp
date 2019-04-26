@@ -858,8 +858,7 @@ HRESULT m_IDirectDrawSurfaceX::GetAttachedSurface2(LPDDSCAPS2 lpDDSCaps2, LPDIRE
 			return DDERR_INVALIDPARAMS;
 		}
 
-		static bool LogOnce = true;
-		Logging::Log(&LogOnce) << __FUNCTION__ << " Not fully Implemented.";
+		LOG_LIMIT(1, __FUNCTION__<< " Not fully Implemented.");
 
 		// Check for device
 		if (!d3d9Device || !*d3d9Device || !ddrawParent)
@@ -906,8 +905,7 @@ HRESULT m_IDirectDrawSurfaceX::GetBltStatus(DWORD dwFlags)
 
 	if (Config.Dd7to9)
 	{
-		static bool LogOnce = true;
-		Logging::Log(&LogOnce) << __FUNCTION__ << " Not fully Implemented.";
+		LOG_LIMIT(1, __FUNCTION__ << " Not fully Implemented.");
 
 		// Inquires whether a blit involving this surface can occur immediately, and returns DD_OK if the blit can be completed.
 		if (dwFlags & DDGBS_CANBLT)
@@ -1050,8 +1048,7 @@ HRESULT m_IDirectDrawSurfaceX::GetDC(HDC FAR * lphDC)
 
 	if (Config.Dd7to9)
 	{
-		static bool LogOnce = true;
-		Logging::Log(&LogOnce) << __FUNCTION__ << " Not fully Implemented.";
+		LOG_LIMIT(1, __FUNCTION__ << " Not fully Implemented.");
 
 		if (!lphDC)
 		{
@@ -1084,8 +1081,7 @@ HRESULT m_IDirectDrawSurfaceX::GetFlipStatus(DWORD dwFlags)
 
 	if (Config.Dd7to9)
 	{
-		static bool LogOnce = true;
-		Logging::Log(&LogOnce) << __FUNCTION__ << " Not fully Implemented.";
+		LOG_LIMIT(1, __FUNCTION__ << " Not fully Implemented.");
 
 		// Queries whether the surface can flip now. The method returns DD_OK if the flip can be completed.
 		if (dwFlags & DDGFS_CANFLIP)
@@ -1110,8 +1106,7 @@ HRESULT m_IDirectDrawSurfaceX::GetOverlayPosition(LPLONG lplX, LPLONG lplY)
 
 	if (Config.Dd7to9)
 	{
-		static bool LogOnce = true;
-		Logging::Log(&LogOnce) << __FUNCTION__ << " Not fully Implemented.";
+		LOG_LIMIT(1, __FUNCTION__ << " Not fully Implemented.");
 
 		if (!lplX || !lplY)
 		{
@@ -1422,16 +1417,10 @@ HRESULT m_IDirectDrawSurfaceX::Lock2(LPRECT lpDestRect, LPDDSURFACEDESC2 lpDDSur
 
 	if (Config.Dd7to9)
 	{
-		if (!lpDDSurfaceDesc2)
-		{
-			return DDERR_INVALIDPARAMS;
-		}
-
 		// Check if locked
 		if (IsLocked && d3dlrect.pBits)
 		{
-			static bool LogOnce = true;
-			Logging::Log(&LogOnce) << __FUNCTION__ << " Locking surface twice not fully implemented";
+			LOG_LIMIT(1, __FUNCTION__ << " Locking surface twice not fully implemented");
 		}
 
 		// Save Lock Rect
@@ -1456,15 +1445,18 @@ HRESULT m_IDirectDrawSurfaceX::Lock2(LPRECT lpDestRect, LPDDSURFACEDESC2 lpDDSur
 		// Set desc and video memory
 		if (SUCCEEDED(hr))
 		{
-			// Copy desc to passed in desc
-			ConvertSurfaceDesc(*lpDDSurfaceDesc2, surfaceDesc2);
+			// Copy surfaceDesc into passed into local varable
+			DDSURFACEDESC2 Desc2;
+			Desc2.dwSize = sizeof(DDSURFACEDESC2);
+			Desc2.ddpfPixelFormat.dwSize = sizeof(DDPIXELFORMAT);
+			ConvertSurfaceDesc(Desc2, surfaceDesc2);
 
 			// Set video memory and pitch
-			lpDDSurfaceDesc2->dwFlags |= DDSD_LPSURFACE | DDSD_PITCH;
+			Desc2.dwFlags |= DDSD_LPSURFACE | DDSD_PITCH;
 			if (WriteDirectlyToSurface && d3dlrect.pBits)
 			{
-				lpDDSurfaceDesc2->lpSurface = d3dlrect.pBits;
-				lpDDSurfaceDesc2->lPitch = d3dlrect.Pitch;
+				Desc2.lpSurface = d3dlrect.pBits;
+				Desc2.lPitch = d3dlrect.Pitch;
 			}
 			else if (!WriteDirectlyToSurface)
 			{
@@ -1474,20 +1466,24 @@ HRESULT m_IDirectDrawSurfaceX::Lock2(LPRECT lpDestRect, LPDDSURFACEDESC2 lpDDSur
 				}
 				if (attachedPalette)
 				{
-					lpDDSurfaceDesc2->lpSurface = (LPVOID)rawVideoBuf;
-					lpDDSurfaceDesc2->lPitch = surfaceDesc2.dwWidth;
+					Desc2.lpSurface = (LPVOID)rawVideoBuf;
+					Desc2.lPitch = surfaceDesc2.dwWidth;
 				}
 				else
 				{
-					lpDDSurfaceDesc2->lpSurface = (LPVOID)rawVideoBuf;
-					lpDDSurfaceDesc2->lPitch = surfaceDesc2.dwWidth * (GetBitCount(surfaceDesc2.ddpfPixelFormat) / 8);
+					Desc2.lpSurface = (LPVOID)rawVideoBuf;
+					Desc2.lPitch = surfaceDesc2.dwWidth * (GetBitCount(surfaceDesc2.ddpfPixelFormat) / 8);
 				}
 			}
 			else
 			{
-				static bool LogOnce = true;
-				Logging::Log(&LogOnce) << __FUNCTION__ << " Failed to write to surface!";
+				LOG_LIMIT(1, __FUNCTION__ << " Failed to write to surface!");
 				hr = DDERR_GENERIC;
+			}
+
+			if (lpDDSurfaceDesc2)
+			{
+				ConvertSurfaceDesc(*lpDDSurfaceDesc2, Desc2);
 			}
 		}
 
@@ -1503,8 +1499,7 @@ HRESULT m_IDirectDrawSurfaceX::ReleaseDC(HDC hDC)
 
 	if (Config.Dd7to9)
 	{
-		static bool LogOnce = true;
-		Logging::Log(&LogOnce) << __FUNCTION__ << " Not fully Implemented.";
+		LOG_LIMIT(1, __FUNCTION__ << " Not fully Implemented.");
 
 		if (!ddrawParent)
 		{
@@ -1632,8 +1627,7 @@ HRESULT m_IDirectDrawSurfaceX::SetOverlayPosition(LONG lX, LONG lY)
 
 	if (Config.Dd7to9)
 	{
-		static bool LogOnce = true;
-		Logging::Log(&LogOnce) << __FUNCTION__ << " Not fully Implemented.";
+		LOG_LIMIT(1, __FUNCTION__ << " Not fully Implemented.");
 
 		// Store the new overlay position
 		overlayX = lX;

@@ -32,7 +32,7 @@ DWORD DdrawWrapper::GetIIDVersion(REFIID riid)
 			riid == IID_IDirect3DVertexBuffer7) ? 7 : 0;
 }
 
-REFCLSID DdrawWrapper::ConvertCLSID(REFCLSID rclsid)
+REFCLSID DdrawWrapper::ConvertREFCLSID(REFCLSID rclsid)
 {
 	if (Config.ConvertToDirectDraw7 && rclsid == CLSID_DirectDraw)
 	{
@@ -128,7 +128,7 @@ HRESULT DdrawWrapper::ProxyQueryInterface(LPVOID ProxyInterface, REFIID riid, LP
 		return E_NOINTERFACE;
 	}
 
-	HRESULT hr = ((IUnknown*)ProxyInterface)->QueryInterface(DdrawWrapper::ConvertREFIID(riid), ppvObj);
+	HRESULT hr = ((IUnknown*)ProxyInterface)->QueryInterface(ConvertREFIID(riid), ppvObj);
 
 	if (SUCCEEDED(hr))
 	{
