@@ -89,7 +89,7 @@ DxWrapper uses code from several other projects. So to give credit where credit 
  - [Aqrit's ddwrapper](http://bitpatch.com/ddwrapper.html): Includes code to read the ini config file.
  - [d3d8to9](https://github.com/crosire/d3d8to9): Includes the full Direct3D 8 to Direct3D 9 code.
  - [D3DParseUnknownCommand](https://doxygen.reactos.org/d3/d02/dll_2directx_2ddraw_2main_8c.html#af9a1eb1ced046770ad6f79838cc8517d): Includes code for DirectDraw D3DParseUnknownCommand from source code found in ReactOS.
- - [GetPPID](https://gist.github.com/mattn/253013/d47b90159cf8ffa4d92448614b748aa1d235ebe4): - Includes Code taken from [mattn](https://gist.github.com/mattn) GitHub project to get the parent process PID.
+ - [GetPPID](https://gist.github.com/mattn/253013/d47b90159cf8ffa4d92448614b748aa1d235ebe4): Includes Code taken from [mattn](https://gist.github.com/mattn) GitHub project to get the parent process PID.
  - [DDrawCompat](https://github.com/narzoul/DDrawCompat/): Includes the full DDrawCompat v0.2.0b, v0.2.1 and Experimental version.
  - [diablo-ddrawwrapper](https://github.com/strangebytes/diablo-ddrawwrapper): Includes some code for converting ddraw to Direct3D.
  - [DSoundCtrl](https://github.com/nRaecheR/DirectSoundControl): Includes the full DirectSoundControl code.
