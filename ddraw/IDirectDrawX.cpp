@@ -918,7 +918,13 @@ HRESULT m_IDirectDrawX::RestoreDisplayMode()
 		}
 
 		// Set mode
+		IsInScene = false;
 		ExclusiveMode = false;
+		AllowModeX = false;
+		MultiThreaded = false;
+		FUPPreserve = false;
+		NoWindowChanges = false;
+		isWindowed = false;
 		displayModeWidth = 0;
 		displayModeHeight = 0;
 		displayModeBPP = 0;
@@ -950,12 +956,17 @@ HRESULT m_IDirectDrawX::SetCooperativeLevel(HWND hWnd, DWORD dwFlags)
 			return DDERR_INVALIDPARAMS;
 		}
 
-		// Set ExclusiveMode
-		ExclusiveMode = false;
-		if (dwFlags & DDSCL_EXCLUSIVE)
+		if ((dwFlags & DDSCL_NORMAL) && (dwFlags & DDSCL_ALLOWMODEX))
 		{
-			ExclusiveMode = true;
+			return DDERR_INVALIDPARAMS;
 		}
+
+		// Set device flags
+		ExclusiveMode = (dwFlags & DDSCL_EXCLUSIVE);
+		AllowModeX = (dwFlags & DDSCL_ALLOWMODEX);
+		MultiThreaded = (dwFlags & DDSCL_MULTITHREADED);
+		FUPPreserve = (dwFlags & (DDSCL_FPUPRESERVE | DDSCL_FPUSETUP));
+		NoWindowChanges = (dwFlags & DDSCL_NOWINDOWCHANGES);
 
 		// Set display window
 		if (!hWnd)
@@ -1178,6 +1189,7 @@ HRESULT m_IDirectDrawX::GetAvailableVidMem2(LPDDSCAPS2 lpDDSCaps2, LPDWORD lpdwT
 			if (FAILED(d3d9Object->CreateDevice(D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, MainhWnd, D3DCREATE_SOFTWARE_VERTEXPROCESSING, &presParams, &d3d9Device)))
 			{
 				// Just hard code the memory size if cannot get d3d9device
+				Logging::LogDebug() << __FUNCTION__ << " Error: failed to create d3d9 device to get video memory!";
 				TotalMemory = MaxVidMemory;
 			}
 			else
@@ -1267,8 +1279,12 @@ HRESULT m_IDirectDrawX::TestCooperativeLevel()
 		// Make sure the device exists
 		if (!d3d9Device)
 		{
-			Logging::Log() << __FUNCTION__ << " called when d3d9device doesn't exist";
-			return DDERR_GENERIC;
+			if (ExclusiveMode)
+			{
+				return DDERR_EXCLUSIVEMODEALREADYSET;
+			}
+
+			return DD_OK;
 		}
 
 		return d3d9Device->TestCooperativeLevel();
@@ -1465,9 +1481,15 @@ HRESULT m_IDirectDrawX::CreateD3D9Device()
 	}
 
 	Logging::LogDebug() << __FUNCTION__ << " D3d9 Device size: " << presParams.BackBufferWidth << "x" << presParams.BackBufferHeight;
-	// D3DCREATE_NOWINDOWCHANGES possible for alt+tab and mouse leaving window
-	// create d3d device with hardware vertex processing if it's available
-	if (FAILED(d3d9Object->CreateDevice(D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, MainhWnd, (d3dcaps.VertexProcessingCaps) ? D3DCREATE_HARDWARE_VERTEXPROCESSING : D3DCREATE_SOFTWARE_VERTEXPROCESSING, &presParams, &d3d9Device)))
+
+	// Set behavior flags
+	DWORD BehaviorFlags = ((d3dcaps.VertexProcessingCaps) ? D3DCREATE_HARDWARE_VERTEXPROCESSING : D3DCREATE_SOFTWARE_VERTEXPROCESSING) |
+		((MultiThreaded) ? D3DCREATE_MULTITHREADED : 0) |
+		((FUPPreserve) ? D3DCREATE_FPU_PRESERVE : 0) |
+		((NoWindowChanges) ? D3DCREATE_NOWINDOWCHANGES : 0);
+
+	// Create d3d9 Device
+	if (FAILED(d3d9Object->CreateDevice(D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, MainhWnd, BehaviorFlags, &presParams, &d3d9Device)))
 	{
 		Logging::Log() << __FUNCTION__ << " Failed to create Direct3D9 device";
 		return DDERR_GENERIC;

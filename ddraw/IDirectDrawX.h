@@ -19,6 +19,10 @@ private:
 	HWND MainhWnd = nullptr;
 	bool IsInScene = false;
 	bool ExclusiveMode = false;
+	bool AllowModeX = false;
+	bool MultiThreaded = false;
+	bool FUPPreserve = false;
+	bool NoWindowChanges = false;
 	bool isWindowed = false;				// Window mode enabled
 
 	// Application display mode
@@ -28,7 +32,7 @@ private:
 	DWORD displayModeRefreshRate = 0;		// Refresh rate for fullscreen
 
 	// Display resolution
-	bool SetDefaultDisplayMode = false;		// Set native resolution
+	bool SetDefaultDisplayMode = true;		// Set native resolution
 	DWORD displayWidth = 0;
 	DWORD displayHeight = 0;
 
