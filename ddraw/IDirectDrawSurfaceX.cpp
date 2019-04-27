@@ -2218,12 +2218,7 @@ HRESULT m_IDirectDrawSurfaceX::CreateD3d9Surface()
 	{
 		Logging::LogDebug() << __FUNCTION__ << " D3d9 Surface and memory.";
 		WriteDirectlyToSurface = false;
-		Format = D3DFMT_A8R8G8B8;
-		// Test format
-		if (FAILED(d3d9Object->CheckDeviceFormat(D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, Format, D3DUSAGE_QUERY_FILTER, D3DRTYPE_TEXTURE, Format)))
-		{
-			Format = D3DFMT_X8R8G8B8;
-		}
+		Format = D3DFMT_X8R8G8B8;
 		AlocateVideoBuffer();
 	}
 	// Write directly to surface

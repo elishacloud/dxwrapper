@@ -51,19 +51,39 @@ ULONG m_IDirect3DDevice9Ex::Release()
 
 HRESULT m_IDirect3DDevice9Ex::Reset(D3DPRESENT_PARAMETERS *pPresentationParameters)
 {
+	HRESULT hr = D3DERR_INVALIDCALL;
+
 	if (pPresentationParameters)
 	{
 		// Update presentation parameters
 		UpdatePresentParameter(pPresentationParameters, nullptr, true);
 
+		// Test for Multisample
 		if (DeviceMultiSampleType != D3DMULTISAMPLE_NONE)
 		{
-			pPresentationParameters->MultiSampleType = DeviceMultiSampleType;
-			pPresentationParameters->MultiSampleQuality = DeviceMultiSampleQuality;
+			D3DPRESENT_PARAMETERS d3dpp;
+			CopyMemory(&d3dpp, pPresentationParameters, sizeof(D3DPRESENT_PARAMETERS));
+			d3dpp.BackBufferCount = (d3dpp.BackBufferCount) ? d3dpp.BackBufferCount : 1;
+
+			// Update Present Parameter for Multisample
+			UpdatePresentParameterForMultisample(&d3dpp, DeviceMultiSampleType, DeviceMultiSampleQuality);
+
+			// Reset device
+			hr = ProxyInterface->Reset(&d3dpp);
+
+			// If failed
+			if (FAILED(hr))
+			{
+				DeviceMultiSampleType = D3DMULTISAMPLE_NONE;
+				DeviceMultiSampleQuality = 0;
+			}
 		}
 	}
 
-	HRESULT hr =  ProxyInterface->Reset(pPresentationParameters);
+	if (FAILED(hr))
+	{
+		hr = ProxyInterface->Reset(pPresentationParameters);
+	}
 
 	if (SUCCEEDED(hr))
 	{
@@ -151,6 +171,8 @@ BOOL m_IDirect3DDevice9Ex::ShowCursor(BOOL bShow)
 
 HRESULT m_IDirect3DDevice9Ex::CreateAdditionalSwapChain(D3DPRESENT_PARAMETERS *pPresentationParameters, IDirect3DSwapChain9 **ppSwapChain)
 {
+	HRESULT hr = D3DERR_INVALIDCALL;
+
 	if (pPresentationParameters)
 	{
 		// Update presentation parameters
@@ -158,12 +180,22 @@ HRESULT m_IDirect3DDevice9Ex::CreateAdditionalSwapChain(D3DPRESENT_PARAMETERS *p
 
 		if (DeviceMultiSampleType != D3DMULTISAMPLE_NONE)
 		{
-			pPresentationParameters->MultiSampleType = DeviceMultiSampleType;
-			pPresentationParameters->MultiSampleQuality = DeviceMultiSampleQuality;
+			D3DPRESENT_PARAMETERS d3dpp;
+			CopyMemory(&d3dpp, pPresentationParameters, sizeof(D3DPRESENT_PARAMETERS));
+			d3dpp.BackBufferCount = (d3dpp.BackBufferCount) ? d3dpp.BackBufferCount : 1;
+
+			// Update Present Parameter for Multisample
+			UpdatePresentParameterForMultisample(&d3dpp, DeviceMultiSampleType, DeviceMultiSampleQuality);
+
+			// Create CwapChain
+			hr = ProxyInterface->CreateAdditionalSwapChain(&d3dpp, ppSwapChain);
 		}
 	}
 
-	HRESULT hr = ProxyInterface->CreateAdditionalSwapChain(pPresentationParameters, ppSwapChain);
+	if (FAILED(hr))
+	{
+		hr = ProxyInterface->CreateAdditionalSwapChain(pPresentationParameters, ppSwapChain);
+	}
 
 	if (SUCCEEDED(hr) && ppSwapChain)
 	{
@@ -1616,19 +1648,39 @@ HRESULT m_IDirect3DDevice9Ex::CreateDepthStencilSurfaceEx(THIS_ UINT Width, UINT
 
 HRESULT m_IDirect3DDevice9Ex::ResetEx(THIS_ D3DPRESENT_PARAMETERS* pPresentationParameters, D3DDISPLAYMODEEX *pFullscreenDisplayMode)
 {
+	HRESULT hr = D3DERR_INVALIDCALL;
+
 	if (pPresentationParameters)
 	{
 		// Update presentation parameters
 		UpdatePresentParameter(pPresentationParameters, nullptr, true);
 
+		// Test for Multisample
 		if (DeviceMultiSampleType != D3DMULTISAMPLE_NONE)
 		{
-			pPresentationParameters->MultiSampleType = DeviceMultiSampleType;
-			pPresentationParameters->MultiSampleQuality = DeviceMultiSampleQuality;
+			D3DPRESENT_PARAMETERS d3dpp;
+			CopyMemory(&d3dpp, pPresentationParameters, sizeof(D3DPRESENT_PARAMETERS));
+			d3dpp.BackBufferCount = (d3dpp.BackBufferCount) ? d3dpp.BackBufferCount : 1;
+
+			// Update Present Parameter for Multisample
+			UpdatePresentParameterForMultisample(&d3dpp, DeviceMultiSampleType, DeviceMultiSampleQuality);
+
+			// Reset device
+			hr = ProxyInterface->ResetEx(&d3dpp, pFullscreenDisplayMode);
+
+			// If failed
+			if (FAILED(hr))
+			{
+				DeviceMultiSampleType = D3DMULTISAMPLE_NONE;
+				DeviceMultiSampleQuality = 0;
+			}
 		}
 	}
 
-	HRESULT hr = ProxyInterface->ResetEx(pPresentationParameters, pFullscreenDisplayMode);
+	if (FAILED(hr))
+	{
+		hr = ProxyInterface->ResetEx(pPresentationParameters, pFullscreenDisplayMode);
+	}
 
 	if (SUCCEEDED(hr))
 	{

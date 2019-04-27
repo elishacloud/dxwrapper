@@ -1173,10 +1173,6 @@ HRESULT m_IDirectDrawX::GetAvailableVidMem2(LPDDSCAPS2 lpDDSCaps2, LPDWORD lpdwT
 			presParams.BackBufferHeight = 480;
 			// Swap discard
 			presParams.SwapEffect = D3DSWAPEFFECT_DISCARD;
-			// Unknown format
-			presParams.BackBufferFormat = D3DFMT_UNKNOWN;
-			// Interval level
-			presParams.PresentationInterval = D3DPRESENT_INTERVAL_IMMEDIATE;
 
 			// Create d3d device
 			if (FAILED(d3d9Object->CreateDevice(D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, MainhWnd, D3DCREATE_SOFTWARE_VERTEXPROCESSING, &presParams, &d3d9Device)))
@@ -1393,7 +1389,17 @@ HRESULT m_IDirectDrawX::CreateD3D9Device()
 
 	// Set display window
 	ZeroMemory(&presParams, sizeof(presParams));
-	presParams.hDeviceWindow = MainhWnd;
+
+	// Discard swap
+	presParams.SwapEffect = D3DSWAPEFFECT_DISCARD;
+	// Backbuffer
+	presParams.BackBufferCount = 1;
+	// Auto stencel
+	presParams.EnableAutoDepthStencil = true;
+	// Auto stencel format
+	presParams.AutoDepthStencilFormat = D3DFMT_D24S8;
+	// Interval level
+	presParams.PresentationInterval = D3DPRESENT_INTERVAL_IMMEDIATE;
 
 	// Set parameters for the current display mode
 	if (isWindowed)
@@ -1403,12 +1409,6 @@ HRESULT m_IDirectDrawX::CreateD3D9Device()
 		// width/height
 		presParams.BackBufferWidth = displayWidth;
 		presParams.BackBufferHeight = displayHeight;
-		// Swap discard
-		presParams.SwapEffect = D3DSWAPEFFECT_DISCARD;
-		// Unknown format
-		presParams.BackBufferFormat = D3DFMT_UNKNOWN;
-		// Interval level
-		presParams.PresentationInterval = D3DPRESENT_INTERVAL_IMMEDIATE;
 	}
 	else
 	{
@@ -1458,14 +1458,10 @@ HRESULT m_IDirectDrawX::CreateD3D9Device()
 		// width/height
 		presParams.BackBufferWidth = set_d3ddispmode.Width;
 		presParams.BackBufferHeight = set_d3ddispmode.Height;
-		// Discard swap
-		presParams.SwapEffect = D3DSWAPEFFECT_DISCARD;
-		// Display mode fullscreen format
-		presParams.BackBufferFormat = set_d3ddispmode.Format;
+		// Backbuffer
+		presParams.BackBufferFormat = D3DFMT_X8R8G8B8;
 		// Display mode refresh
-		presParams.FullScreen_RefreshRateInHz = set_d3ddispmode.RefreshRate;
-		// Interval level
-		presParams.PresentationInterval = D3DPRESENT_INTERVAL_IMMEDIATE;
+		presParams.FullScreen_RefreshRateInHz = (displayModeRefreshRate) ? set_d3ddispmode.RefreshRate : 0;
 	}
 
 	Logging::LogDebug() << __FUNCTION__ << " D3d9 Device size: " << presParams.BackBufferWidth << "x" << presParams.BackBufferHeight;

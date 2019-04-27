@@ -143,22 +143,21 @@ HRESULT m_IDirect3D9Ex::CreateDevice(UINT Adapter, D3DDEVTYPE DeviceType, HWND h
 	{
 		DWORD QualityLevels = 0;
 		D3DPRESENT_PARAMETERS d3dpp;
-		CopyMemory(&d3dpp, pPresentationParameters, sizeof(d3dpp));
+		CopyMemory(&d3dpp, pPresentationParameters, sizeof(D3DPRESENT_PARAMETERS));
+		d3dpp.BackBufferCount = (d3dpp.BackBufferCount) ? d3dpp.BackBufferCount : 1;
 
 		// Check AntiAliasing quality
 		for (int x = min(16, Config.AntiAliasing); x > 0; x--)
 		{
 			if (ProxyInterface->CheckDeviceMultiSampleType(Adapter,
-				DeviceType, d3dpp.BackBufferFormat, d3dpp.Windowed,
-				(D3DMULTISAMPLE_TYPE)x, &QualityLevels) == S_OK &&
+				DeviceType, (d3dpp.BackBufferFormat) ? d3dpp.BackBufferFormat : D3DFMT_X8R8G8B8, d3dpp.Windowed,
+				(D3DMULTISAMPLE_TYPE)x, &QualityLevels) == S_OK ||
 				ProxyInterface->CheckDeviceMultiSampleType(Adapter,
 					DeviceType, d3dpp.AutoDepthStencilFormat, d3dpp.Windowed,
 					(D3DMULTISAMPLE_TYPE)x, &QualityLevels) == S_OK)
 			{
-				d3dpp.Flags &= ~D3DPRESENTFLAG_LOCKABLE_BACKBUFFER;
-				d3dpp.SwapEffect = D3DSWAPEFFECT_DISCARD;
-				d3dpp.MultiSampleType = (D3DMULTISAMPLE_TYPE)x;
-				d3dpp.MultiSampleQuality = (QualityLevels > 0) ? QualityLevels - 1 : 0;
+				// Update Present Parameter for Multisample
+				UpdatePresentParameterForMultisample(&d3dpp, (D3DMULTISAMPLE_TYPE)x, (QualityLevels > 0) ? QualityLevels - 1 : 0);
 
 				// Create Device
 				hr = ProxyInterface->CreateDevice(Adapter, DeviceType, hFocusWindow, BehaviorFlags, &d3dpp, ppReturnedDeviceInterface);
@@ -228,22 +227,21 @@ HRESULT m_IDirect3D9Ex::CreateDeviceEx(THIS_ UINT Adapter, D3DDEVTYPE DeviceType
 	{
 		DWORD QualityLevels = 0;
 		D3DPRESENT_PARAMETERS d3dpp;
-		CopyMemory(&d3dpp, pPresentationParameters, sizeof(d3dpp));
+		CopyMemory(&d3dpp, pPresentationParameters, sizeof(D3DPRESENT_PARAMETERS));
+		d3dpp.BackBufferCount = (d3dpp.BackBufferCount) ? d3dpp.BackBufferCount : 1;
 
 		// Check AntiAliasing quality
 		for (int x = min(16, Config.AntiAliasing); x > 0; x--)
 		{
 			if (ProxyInterface->CheckDeviceMultiSampleType(Adapter,
-				DeviceType, d3dpp.BackBufferFormat, d3dpp.Windowed,
-				(D3DMULTISAMPLE_TYPE)x, &QualityLevels) == S_OK &&
+				DeviceType, (d3dpp.BackBufferFormat) ? d3dpp.BackBufferFormat : D3DFMT_X8R8G8B8, d3dpp.Windowed,
+				(D3DMULTISAMPLE_TYPE)x, &QualityLevels) == S_OK ||
 				ProxyInterface->CheckDeviceMultiSampleType(Adapter,
 					DeviceType, d3dpp.AutoDepthStencilFormat, d3dpp.Windowed,
 					(D3DMULTISAMPLE_TYPE)x, &QualityLevels) == S_OK)
 			{
-				d3dpp.Flags &= ~D3DPRESENTFLAG_LOCKABLE_BACKBUFFER;
-				d3dpp.SwapEffect = D3DSWAPEFFECT_DISCARD;
-				d3dpp.MultiSampleType = (D3DMULTISAMPLE_TYPE)x;
-				d3dpp.MultiSampleQuality = (QualityLevels > 0) ? QualityLevels - 1 : 0;
+				// Update Present Parameter for Multisample
+				UpdatePresentParameterForMultisample(&d3dpp, (D3DMULTISAMPLE_TYPE)x, (QualityLevels > 0) ? QualityLevels - 1 : 0);
 
 				// Create Device
 				hr = ProxyInterface->CreateDeviceEx(Adapter, DeviceType, hFocusWindow, BehaviorFlags, &d3dpp, pFullscreenDisplayMode, ppReturnedDeviceInterface);
@@ -330,6 +328,27 @@ void UpdatePresentParameter(D3DPRESENT_PARAMETERS* pPresentationParameters, HWND
 			}
 			AdjustWindow(DeviceWindow, BufferWidth, BufferHeight);
 		}
+	}
+}
+
+// Set Presentation Parameters
+void UpdatePresentParameterForMultisample(D3DPRESENT_PARAMETERS* pPresentationParameters, D3DMULTISAMPLE_TYPE MultiSampleType, DWORD MultiSampleQuality)
+{
+	if (!pPresentationParameters)
+	{
+		return;
+	}
+
+	pPresentationParameters->MultiSampleType = MultiSampleType;
+	pPresentationParameters->MultiSampleQuality = MultiSampleQuality;
+
+	pPresentationParameters->Flags &= ~D3DPRESENTFLAG_LOCKABLE_BACKBUFFER;
+	pPresentationParameters->SwapEffect = D3DSWAPEFFECT_DISCARD;
+
+	if (!pPresentationParameters->EnableAutoDepthStencil)
+	{
+		pPresentationParameters->EnableAutoDepthStencil = true;
+		pPresentationParameters->AutoDepthStencilFormat = D3DFMT_D24S8;
 	}
 }
 
