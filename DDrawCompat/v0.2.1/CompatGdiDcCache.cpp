@@ -163,7 +163,7 @@ namespace Compat21
 				if (usedCacheSize > g_maxUsedCacheSize)
 				{
 					g_maxUsedCacheSize = usedCacheSize;
-					Logging::Log() << "GDI used DC cache size: " << g_maxUsedCacheSize;
+					Compat::Log() << "GDI used DC cache size: " << g_maxUsedCacheSize;
 				}
 			}
 

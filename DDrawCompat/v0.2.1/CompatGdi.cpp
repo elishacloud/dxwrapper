@@ -186,7 +186,7 @@ namespace Compat21
 				g_ddUnlockEndEvent = CreateEvent(nullptr, FALSE, FALSE, nullptr);
 				if (!g_ddUnlockBeginEvent || !g_ddUnlockEndEvent)
 				{
-					Logging::Log() << "Failed to create the unlock events for GDI";
+					Compat::Log() << "Failed to create the unlock events for GDI";
 					return;
 				}
 

@@ -32,7 +32,7 @@ namespace Compat20
 
 		bool compatBlt(IDirectDrawSurface7* dest)
 		{
-			Logging::LogEnter("RealPrimarySurface::compatBlt", dest);
+			Compat::LogEnter("RealPrimarySurface::compatBlt", dest);
 
 			bool result = false;
 			const auto& origVtable = CompatDirectDrawSurface<IDirectDrawSurface7>::s_origVtable;
@@ -70,7 +70,7 @@ namespace Compat20
 					dest, nullptr, CompatPrimarySurface::surface, nullptr, DDBLT_WAIT, nullptr));
 			}
 
-			Logging::LogLeave("RealPrimarySurface::compatBlt", dest);
+			Compat::LogLeave("RealPrimarySurface::compatBlt", dest);
 			return result;
 		}
 
@@ -113,7 +113,7 @@ namespace Compat20
 
 		void onRelease()
 		{
-			Logging::LogEnter("RealPrimarySurface::onRelease");
+			Compat::LogEnter("RealPrimarySurface::onRelease");
 
 			g_frontBuffer = nullptr;
 			g_backBuffer = nullptr;
@@ -126,7 +126,7 @@ namespace Compat20
 
 			ZeroMemory(&RealPrimarySurface::s_surfaceDesc, sizeof(RealPrimarySurface::s_surfaceDesc));
 
-			Logging::LogLeave("RealPrimarySurface::onRelease");
+			Compat::LogLeave("RealPrimarySurface::onRelease");
 		}
 
 		void updateNow()
@@ -210,7 +210,7 @@ namespace Compat20
 
 		if (FAILED(result))
 		{
-			Logging::Log() << "Failed to create the real primary surface";
+			Compat::Log() << "Failed to create the real primary surface";
 			return result;
 		}
 
@@ -224,7 +224,7 @@ namespace Compat20
 		result = createPaletteConverterSurface(dd);
 		if (FAILED(result))
 		{
-			Logging::Log() << "Failed to create palette converter surface";
+			Compat::Log() << "Failed to create palette converter surface";
 			g_frontBuffer->lpVtbl->Release(g_frontBuffer);
 			g_frontBuffer = nullptr;
 			return result;

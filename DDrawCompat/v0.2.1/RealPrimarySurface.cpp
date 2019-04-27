@@ -41,7 +41,7 @@ namespace Compat21
 
 		bool compatBlt(IDirectDrawSurface7* dest)
 		{
-			Logging::LogEnter("RealPrimarySurface::compatBlt", dest);
+			Compat::LogEnter("RealPrimarySurface::compatBlt", dest);
 
 			if (g_disableUpdateCount > 0)
 			{
@@ -92,7 +92,7 @@ namespace Compat21
 				SetRectEmpty(&g_updateRect);
 			}
 
-			Logging::LogLeave("RealPrimarySurface::compatBlt", dest);
+			Compat::LogLeave("RealPrimarySurface::compatBlt", dest);
 			return result;
 		}
 
@@ -111,7 +111,7 @@ namespace Compat21
 
 		void onRelease()
 		{
-			Logging::LogEnter("RealPrimarySurface::onRelease");
+			Compat::LogEnter("RealPrimarySurface::onRelease");
 
 			ResetEvent(g_updateEvent);
 			timeEndPeriod(1);
@@ -126,7 +126,7 @@ namespace Compat21
 
 			ZeroMemory(&RealPrimarySurface::s_surfaceDesc, sizeof(RealPrimarySurface::s_surfaceDesc));
 
-			Logging::LogLeave("RealPrimarySurface::onRelease");
+			Compat::LogLeave("RealPrimarySurface::onRelease");
 		}
 
 		void updateNow(long long qpcNow)
@@ -202,7 +202,7 @@ namespace Compat21
 
 		if (FAILED(result))
 		{
-			Logging::Log() << "Failed to create the real primary surface";
+			Compat::Log() << "Failed to create the real primary surface";
 			return result;
 		}
 
@@ -344,7 +344,7 @@ namespace Compat21
 		if (WAIT_OBJECT_0 != WaitForSingleObject(g_updateThread, 1000))
 		{
 			TerminateThread(g_updateThread, 0);
-			Logging::Log() << "The update thread was terminated forcefully";
+			Compat::Log() << "The update thread was terminated forcefully";
 		}
 		ResetEvent(g_updateEvent);
 		g_stopUpdateThread = false;

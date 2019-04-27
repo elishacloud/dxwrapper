@@ -131,14 +131,14 @@ namespace Compat20
 			FARPROC procAddr = getProcAddress(GetModuleHandle(moduleName), funcName);
 			if (!procAddr)
 			{
-				Logging::Log() << "Failed to load the address of a GDI function: " << funcName;
+				Compat::Log() << "Failed to load the address of a GDI function: " << funcName;
 				return;
 			}
 
 			origFuncPtr = procAddr;
 			if (NO_ERROR != DetourAttach(&origFuncPtr, newFuncPtr))
 			{
-				Logging::Log() << "Failed to hook a GDI function: " << funcName;
+				Compat::Log() << "Failed to hook a GDI function: " << funcName;
 				return;
 			}
 		}

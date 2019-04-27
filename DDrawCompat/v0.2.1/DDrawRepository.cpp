@@ -33,14 +33,14 @@ namespace Compat21
 				reinterpret_cast<void**>(&dd), IID_IDirectDraw7, nullptr);
 			if (FAILED(result))
 			{
-				Logging::Log() << "Failed to create a DirectDraw object in the repository: " << result;
+				Compat::Log() << "Failed to create a DirectDraw object in the repository: " << result;
 				return nullptr;
 			}
 
 			result = dd->lpVtbl->SetCooperativeLevel(dd, nullptr, DDSCL_NORMAL);
 			if (FAILED(result))
 			{
-				Logging::Log() << "Failed to set the cooperative level in the repository: " << result;
+				Compat::Log() << "Failed to set the cooperative level in the repository: " << result;
 				dd->lpVtbl->Release(dd);
 				return nullptr;
 			}

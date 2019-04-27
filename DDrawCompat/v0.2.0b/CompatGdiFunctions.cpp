@@ -65,7 +65,7 @@ namespace Compat20
 			}
 
 #ifdef _DEBUG
-			Logging::LogEnter(CompatGdi::g_funcNames[origFunc], params...);
+			Compat::LogEnter(CompatGdi::g_funcNames[origFunc], params...);
 #endif
 
 			Result result = CompatGdi::getOrigFuncPtr<OrigFuncPtr, origFunc>()(replaceDc(params)...);
@@ -73,7 +73,7 @@ namespace Compat20
 			CompatGdi::endGdiRendering();
 
 #ifdef _DEBUG
-			Logging::LogLeave(CompatGdi::g_funcNames[origFunc], params...) << result;
+			Compat::LogLeave(CompatGdi::g_funcNames[origFunc], params...) << result;
 #endif
 
 			return result;

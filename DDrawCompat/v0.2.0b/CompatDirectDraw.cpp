@@ -122,7 +122,7 @@ namespace Compat20
 				if (FAILED(CompatDirectDraw<TDirectDraw>::s_origVtable.EnumDisplayModes(
 					This, 0, &desc, &pf, &enumDisplayModesCallback)) || 0 == pf.dwSize)
 				{
-					Logging::Log() << "Failed to find the requested display mode: " <<
+					Compat::Log() << "Failed to find the requested display mode: " <<
 						dwWidth << "x" << dwHeight << "x" << dwBPP;
 					return DDERR_INVALIDMODE;
 				}
@@ -143,7 +143,7 @@ namespace Compat20
 		}
 		else
 		{
-			Logging::Log() << "Failed to set the display mode to " << dwWidth << "x" << dwHeight << "x32";
+			Compat::Log() << "Failed to set the display mode to " << dwWidth << "x" << dwHeight << "x32";
 		}
 
 		return result;

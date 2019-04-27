@@ -10,7 +10,7 @@ namespace Compat20
 	{
 		void onRelease()
 		{
-			Logging::LogEnter("CompatPrimarySurface::onRelease");
+			Compat::LogEnter("CompatPrimarySurface::onRelease");
 
 			CompatPrimarySurface::surface = nullptr;
 			CompatPrimarySurface::palette = nullptr;
@@ -26,7 +26,7 @@ namespace Compat20
 
 			RealPrimarySurface::release();
 
-			Logging::LogLeave("CompatPrimarySurface::onRelease");
+			Compat::LogLeave("CompatPrimarySurface::onRelease");
 		}
 	}
 

@@ -66,7 +66,7 @@ namespace Compat21
 		Result WINAPI compatGdiDcFunc(Params... params)
 		{
 #ifdef _DEBUG
-			Logging::LogEnter(g_funcNames[origFunc], params...);
+			Compat::LogEnter(g_funcNames[origFunc], params...);
 #endif
 
 			if (!hasDisplayDcArg(params...) || !CompatGdi::beginGdiRendering())
@@ -76,17 +76,17 @@ namespace Compat21
 #ifdef _DEBUG
 				if (!hasDisplayDcArg(params...))
 				{
-					Logging::Log() << "Skipping redirection since there is no display DC argument";
+					Compat::Log() << "Skipping redirection since there is no display DC argument";
 				}
 				else if (!CompatGdi::isEmulationEnabled())
 				{
-					Logging::Log() << "Skipping redirection since GDI emulation is disabled";
+					Compat::Log() << "Skipping redirection since GDI emulation is disabled";
 				}
 				else
 				{
-					Logging::Log() << "Skipping redirection since the primary surface could not be locked";
+					Compat::Log() << "Skipping redirection since the primary surface could not be locked";
 				}
-				Logging::LogLeave(g_funcNames[origFunc], params...) << result;
+				Compat::LogLeave(g_funcNames[origFunc], params...) << result;
 #endif
 
 				return result;
@@ -97,7 +97,7 @@ namespace Compat21
 			CompatGdi::endGdiRendering();
 
 #ifdef _DEBUG
-			Logging::LogLeave(g_funcNames[origFunc], params...) << result;
+			Compat::LogLeave(g_funcNames[origFunc], params...) << result;
 #endif
 
 			return result;

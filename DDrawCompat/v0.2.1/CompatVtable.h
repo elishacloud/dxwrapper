@@ -92,13 +92,13 @@ namespace Compat21
 			{
 				Compat::origProcs.AcquireDDThreadLock();
 #ifdef _DEBUG
-				Logging::LogEnter(s_funcNames[getKey<MemberDataPtr, ptr>()].c_str(), This, params...);
+				Compat::LogEnter(s_funcNames[getKey<MemberDataPtr, ptr>()].c_str(), This, params...);
 #endif
 
 				Result result = (s_compatVtable.*ptr)(This, params...);
 
 #ifdef _DEBUG
-				Logging::LogLeave(s_funcNames[getKey<MemberDataPtr, ptr>()].c_str(), This, params...) << result;
+				Compat::LogLeave(s_funcNames[getKey<MemberDataPtr, ptr>()].c_str(), This, params...) << result;
 #endif
 				Compat::origProcs.ReleaseDDThreadLock();
 				return result;

@@ -89,14 +89,14 @@ namespace Compat21
 			HBITMAP dib = createDibSection(bits);
 			if (!dib)
 			{
-				Logging::Log() << "Failed to create the palette converter DIB section";
+				Compat::Log() << "Failed to create the palette converter DIB section";
 				return false;
 			}
 
 			IDirectDrawSurface7* surface = createSurface(bits);
 			if (!surface)
 			{
-				Logging::Log() << "Failed to create the palette converter surface";
+				Compat::Log() << "Failed to create the palette converter surface";
 				DeleteObject(dib);
 				return false;
 			}
@@ -104,7 +104,7 @@ namespace Compat21
 			HDC dc = CALL_ORIG_FUNC(CreateCompatibleDC)(nullptr);
 			if (!dc)
 			{
-				Logging::Log() << "Failed to create the palette converter DC";
+				Compat::Log() << "Failed to create the palette converter DC";
 				CompatDirectDrawSurface<IDirectDrawSurface7>::s_origVtable.Release(surface);
 				DeleteObject(dib);
 				return false;

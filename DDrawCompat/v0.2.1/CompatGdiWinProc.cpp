@@ -31,7 +31,7 @@ namespace Compat21
 		LRESULT CALLBACK callWndRetProc(int nCode, WPARAM wParam, LPARAM lParam)
 		{
 			auto ret = reinterpret_cast<CWPRETSTRUCT*>(lParam);
-			Logging::LogEnter("callWndRetProc", nCode, wParam, ret);
+			Compat::LogEnter("callWndRetProc", nCode, wParam, ret);
 
 			if (HC_ACTION == nCode)
 			{
@@ -68,7 +68,7 @@ namespace Compat21
 			}
 
 			LRESULT result = CallNextHookEx(nullptr, nCode, wParam, lParam);
-			Logging::LogLeave("callWndRetProc", nCode, wParam, ret) << result;
+			Compat::LogLeave("callWndRetProc", nCode, wParam, ret) << result;
 			return result;
 		}
 

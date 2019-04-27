@@ -28,13 +28,13 @@ namespace Compat20
 			CALL_ORIG_DDRAW(DirectDrawCreateEx, nullptr, reinterpret_cast<LPVOID*>(&dd), IID_IDirectDraw7, nullptr);
 			if (!dd)
 			{
-				Logging::Log() << "Failed to create a DirectDraw interface for GDI";
+				Compat::Log() << "Failed to create a DirectDraw interface for GDI";
 				return nullptr;
 			}
 
 			if (FAILED(CompatDirectDraw<IDirectDraw7>::s_origVtable.SetCooperativeLevel(dd, nullptr, DDSCL_NORMAL)))
 			{
-				Logging::Log() << "Failed to set the cooperative level on the DirectDraw interface for GDI";
+				Compat::Log() << "Failed to set the cooperative level on the DirectDraw interface for GDI";
 				dd->lpVtbl->Release(dd);
 				return nullptr;
 			}

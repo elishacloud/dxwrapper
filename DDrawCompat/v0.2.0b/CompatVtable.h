@@ -131,7 +131,7 @@ namespace Compat20
 			{
 				Compat::origProcs.AcquireDDThreadLock();
 #ifdef _DEBUG
-				Logging::LogEnter(s_funcNames[getKey<MemberDataPtr, ptr>()].c_str(), This, params...);
+				Compat::LogEnter(s_funcNames[getKey<MemberDataPtr, ptr>()].c_str(), This, params...);
 #endif
 
 				Result result;
@@ -147,7 +147,7 @@ namespace Compat20
 				}
 
 #ifdef _DEBUG
-				Logging::LogLeave(s_funcNames[getKey<MemberDataPtr, ptr>()].c_str(), This, params...) << result;
+				Compat::LogLeave(s_funcNames[getKey<MemberDataPtr, ptr>()].c_str(), This, params...) << result;
 #endif
 				Compat::origProcs.ReleaseDDThreadLock();
 				return result;

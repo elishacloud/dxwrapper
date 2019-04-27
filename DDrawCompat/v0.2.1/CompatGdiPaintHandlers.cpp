@@ -51,7 +51,7 @@ namespace Compat21
 			WNDPROC origWndProc,
 			const char* origWndProcName)
 		{
-			Logging::LogEnter(origWndProcName, hwnd, msg, wParam, lParam);
+			Compat::LogEnter(origWndProcName, hwnd, msg, wParam, lParam);
 			LRESULT result = 0;
 
 			switch (msg)
@@ -74,7 +74,7 @@ namespace Compat21
 				break;
 			}
 
-			Logging::LogLeave(origWndProcName, hwnd, msg, wParam, lParam) << result;
+			Compat::LogLeave(origWndProcName, hwnd, msg, wParam, lParam) << result;
 			return result;
 		}
 
@@ -122,7 +122,7 @@ namespace Compat21
 
 		LRESULT WINAPI menuWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 		{
-			Logging::LogEnter("menuWndProc", hwnd, msg, wParam, lParam);
+			Compat::LogEnter("menuWndProc", hwnd, msg, wParam, lParam);
 			LRESULT result = 0;
 
 			switch (msg)
@@ -144,7 +144,7 @@ namespace Compat21
 				break;
 			}
 
-			Logging::LogLeave("menuWndProc", hwnd, msg, wParam, lParam) << result;
+			Compat::LogLeave("menuWndProc", hwnd, msg, wParam, lParam) << result;
 			return result;
 		}
 
@@ -291,7 +291,7 @@ namespace Compat21
 
 		LRESULT WINAPI scrollBarWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 		{
-			Logging::LogEnter("scrollBarWndProc", hwnd, msg, wParam, lParam);
+			Compat::LogEnter("scrollBarWndProc", hwnd, msg, wParam, lParam);
 			LRESULT result = 0;
 
 			switch (msg)
@@ -313,7 +313,7 @@ namespace Compat21
 				break;
 			}
 
-			Logging::LogLeave("scrollBarWndProc", hwnd, msg, wParam, lParam) << result;
+			Compat::LogLeave("scrollBarWndProc", hwnd, msg, wParam, lParam) << result;
 			return result;
 		}
 	}

@@ -233,7 +233,7 @@ namespace Compat21
 			&dd, &compatDesc, &compatSurface, nullptr);
 		if (FAILED(result))
 		{
-			Logging::Log() << "Failed to create the compat primary surface!";
+			Compat::Log() << "Failed to create the compat primary surface!";
 			RealPrimarySurface::release();
 			return result;
 		}

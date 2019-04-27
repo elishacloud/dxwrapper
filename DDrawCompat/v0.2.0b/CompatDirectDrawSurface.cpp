@@ -36,7 +36,7 @@ namespace Compat20
 			if (!dd ||
 				FAILED(CompatDirectDraw<IDirectDraw7>::s_origVtable.SetCooperativeLevel(dd, nullptr, DDSCL_NORMAL)))
 			{
-				Logging::Log() << "Failed to create a helper DirectDraw object for mirroring";
+				Compat::Log() << "Failed to create a helper DirectDraw object for mirroring";
 			}
 			return dd;
 		}
@@ -344,7 +344,7 @@ namespace Compat20
 			&dd, &compatDesc, &compatSurface, nullptr);
 		if (FAILED(result))
 		{
-			Logging::Log() << "Failed to create the compat primary surface!";
+			Compat::Log() << "Failed to create the compat primary surface!";
 			RealPrimarySurface::release();
 			return result;
 		}
@@ -652,7 +652,7 @@ namespace Compat20
 	template <typename TSurface>
 	void CompatDirectDrawSurface<TSurface>::initCompatPrimarySurface()
 	{
-		Logging::LogEnter("CompatDirectDrawSurface::initCompatPrimarySurface");
+		Compat::LogEnter("CompatDirectDrawSurface::initCompatPrimarySurface");
 
 		IUnknown& unk = reinterpret_cast<IUnknown&>(*s_compatPrimarySurface);
 		CompatDirectDrawSurface<IDirectDrawSurface>::initPrimarySurfacePtr(IID_IDirectDrawSurface, unk);
@@ -672,7 +672,7 @@ namespace Compat20
 			CompatPrimarySurface::surface->lpVtbl->Release(CompatPrimarySurface::surface);
 		}
 
-		Logging::LogLeave("CompatDirectDrawSurface::initCompatPrimarySurface");
+		Compat::LogLeave("CompatDirectDrawSurface::initCompatPrimarySurface");
 	}
 
 	template <typename TSurface>

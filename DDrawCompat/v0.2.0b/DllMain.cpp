@@ -70,7 +70,7 @@ namespace Compat20
 			}
 			else
 			{
-				Logging::Log() << "Failed to create a DirectDraw surface for hooking: " << result;
+				Compat::Log() << "Failed to create a DirectDraw surface for hooking: " << result;
 			}
 		}
 
@@ -87,7 +87,7 @@ namespace Compat20
 			}
 			else
 			{
-				Logging::Log() << "Failed to create a DirectDraw palette for hooking: " << result;
+				Compat::Log() << "Failed to create a DirectDraw palette for hooking: " << result;
 			}
 		}
 
@@ -96,7 +96,7 @@ namespace Compat20
 			static bool isAlreadyInstalled = false;
 			if (!isAlreadyInstalled)
 			{
-				Logging::Log() << "Installing DirectDraw hooks";
+				Compat::Log() << "Installing DirectDraw hooks";
 				IDirectDraw* dd = nullptr;
 				HRESULT result = CALL_ORIG_DDRAW(DirectDrawCreate, nullptr, &dd, nullptr);
 				if (SUCCEEDED(result))
@@ -110,7 +110,7 @@ namespace Compat20
 					//********** Begin Edit *************
 					if (!Config.DDrawCompatDisableGDIHook)
 					{
-						Logging::Log() << "Installing GDI hooks";
+						Compat::Log() << "Installing GDI hooks";
 						CompatGdi::installHooks();
 					}
 					//********** End Edit ***************
@@ -119,9 +119,9 @@ namespace Compat20
 				}
 				else
 				{
-					Logging::Log() << "Failed to create a DirectDraw object for hooking" << result;
+					Compat::Log() << "Failed to create a DirectDraw object for hooking" << result;
 				}
-				Logging::Log() << "Finished installing hooks";
+				Compat::Log() << "Finished installing hooks";
 				isAlreadyInstalled = true;
 			}
 		}
@@ -133,7 +133,7 @@ namespace Compat20
 			module = LoadLibrary(systemDllPath.c_str());
 			if (!module)
 			{
-				Logging::Log() << "Failed to load system " << dllName << " from " << systemDllPath;
+				Compat::Log() << "Failed to load system " << dllName << " from " << systemDllPath;
 				return false;
 			}
 
@@ -163,7 +163,7 @@ namespace Compat20
 		{
 			char currentDllPath[MAX_PATH] = {};
 			GetModuleFileName(hinstDLL, currentDllPath, MAX_PATH);
-			Logging::Log() << "Loading DDrawCompat from " << currentDllPath;
+			Compat::Log() << "Loading DDrawCompat from " << currentDllPath;
 
 			char systemDirectory[MAX_PATH] = {};
 			GetSystemDirectory(systemDirectory, MAX_PATH);
@@ -171,7 +171,7 @@ namespace Compat20
 			std::string systemDDrawDllPath = std::string(systemDirectory) + "\\ddraw.dll";
 			if (0 == _stricmp(currentDllPath, systemDDrawDllPath.c_str()))
 			{
-				Logging::Log() << "DDrawCompat cannot be installed as the system ddraw.dll";
+				Compat::Log() << "DDrawCompat cannot be installed as the system ddraw.dll";
 				return false;
 			}
 
@@ -201,7 +201,7 @@ namespace Compat20
 			}
 			//********** End Edit ***************
 
-			Logging::Log() << "DDrawCompat v0.2.0b loaded successfully";
+			Compat::Log() << "DDrawCompat v0.2.0b loaded successfully";
 		}
 		else if (fdwReason == DLL_PROCESS_DETACH)
 		{
@@ -217,11 +217,11 @@ namespace Compat20
 		LPDIRECTDRAW* lplpDD,
 		IUnknown* pUnkOuter)
 	{
-		Logging::LogEnter(__func__, lpGUID, lplpDD, pUnkOuter);
+		Compat::LogEnter(__func__, lpGUID, lplpDD, pUnkOuter);
 		installHooks();
 		suppressEmulatedDirectDraw(lpGUID);
 		HRESULT result = CALL_ORIG_DDRAW(DirectDrawCreate, lpGUID, lplpDD, pUnkOuter);
-		Logging::LogLeave(__func__, lpGUID, lplpDD, pUnkOuter) << result;
+		Compat::LogLeave(__func__, lpGUID, lplpDD, pUnkOuter) << result;
 		return result;
 	}
 
@@ -231,11 +231,11 @@ namespace Compat20
 		REFIID iid,
 		IUnknown* pUnkOuter)
 	{
-		Logging::LogEnter(__func__, lpGUID, lplpDD, iid, pUnkOuter);
+		Compat::LogEnter(__func__, lpGUID, lplpDD, iid, pUnkOuter);
 		installHooks();
 		suppressEmulatedDirectDraw(lpGUID);
 		HRESULT result = CALL_ORIG_DDRAW(DirectDrawCreateEx, lpGUID, lplpDD, iid, pUnkOuter);
-		Logging::LogLeave(__func__, lpGUID, lplpDD, iid, pUnkOuter) << result;
+		Compat::LogLeave(__func__, lpGUID, lplpDD, iid, pUnkOuter) << result;
 		return result;
 	}
 
@@ -245,10 +245,10 @@ namespace Compat20
 		REFIID   riid,
 		LPVOID   *ppv)
 	{
-		Logging::LogEnter(__func__, rclsid, riid, ppv);
+		Compat::LogEnter(__func__, rclsid, riid, ppv);
 		installHooks();
 		HRESULT result = CALL_ORIG_DDRAW(DllGetClassObject, rclsid, riid, ppv);
-		Logging::LogLeave(__func__, rclsid, riid, ppv) << result;
+		Compat::LogLeave(__func__, rclsid, riid, ppv) << result;
 		return result;
 	}
 	//********** End Edit ***************
@@ -259,9 +259,9 @@ namespace Compat20
 		IDirectInput** lplpDirectInput,
 		LPUNKNOWN punkOuter)
 	{
-		Logging::LogEnter(__func__, hinst, dwVersion, lplpDirectInput, punkOuter);
+		Compat::LogEnter(__func__, hinst, dwVersion, lplpDirectInput, punkOuter);
 		HRESULT result = CALL_ORIG_DDRAW(DirectInputCreateA, hinst, dwVersion, lplpDirectInput, punkOuter);
-		Logging::LogLeave(__func__, hinst, dwVersion, lplpDirectInput, punkOuter) << result;
+		Compat::LogLeave(__func__, hinst, dwVersion, lplpDirectInput, punkOuter) << result;
 		return result;
 	}*/
 }

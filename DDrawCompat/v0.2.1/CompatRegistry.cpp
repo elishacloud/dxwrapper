@@ -43,7 +43,7 @@ namespace Compat21
 		LSTATUS WINAPI regGetValueW(HKEY hkey, LPCWSTR lpSubKey, LPCWSTR lpValue,
 			DWORD dwFlags, LPDWORD pdwType, PVOID pvData, LPDWORD pcbData)
 		{
-			Logging::LogEnter("regGetValueW", hkey, lpSubKey, lpValue, dwFlags, pdwType, pvData, pcbData);
+			Compat::LogEnter("regGetValueW", hkey, lpSubKey, lpValue, dwFlags, pdwType, pvData, pcbData);
 			LSTATUS result = ERROR_SUCCESS;
 
 			const auto it = hkey && lpSubKey && lpValue && (dwFlags & RRF_RT_REG_DWORD)
@@ -83,7 +83,7 @@ namespace Compat21
 				result = CALL_ORIG_FUNC(RegGetValueW)(hkey, lpSubKey, lpValue, dwFlags, pdwType, pvData, pcbData);
 			}
 
-			Logging::LogLeave("regGetValueW", hkey, lpSubKey, lpValue, dwFlags, pdwType, pvData, pcbData) << result;
+			Compat::LogLeave("regGetValueW", hkey, lpSubKey, lpValue, dwFlags, pdwType, pvData, pcbData) << result;
 			return result;
 		}
 	}

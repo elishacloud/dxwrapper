@@ -11,20 +11,20 @@ namespace Compat21
 		BOOL WINAPI scrollWindow(HWND hWnd, int XAmount, int YAmount,
 			const RECT* lpRect, const RECT* lpClipRect)
 		{
-			Logging::LogEnter("scrollWindow", hWnd, XAmount, YAmount, lpRect, lpClipRect);
+			Compat::LogEnter("scrollWindow", hWnd, XAmount, YAmount, lpRect, lpClipRect);
 			BOOL result = CALL_ORIG_FUNC(ScrollWindow)(hWnd, XAmount, YAmount, lpRect, lpClipRect);
 			if (result)
 			{
 				CompatGdiScrollFunctions::updateScrolledWindow(hWnd);
 			}
-			Logging::LogLeave("scrollWindow", hWnd, XAmount, YAmount, lpRect, lpClipRect) << result;
+			Compat::LogLeave("scrollWindow", hWnd, XAmount, YAmount, lpRect, lpClipRect) << result;
 			return result;
 		}
 
 		int WINAPI scrollWindowEx(HWND hWnd, int dx, int dy, const RECT* prcScroll, const RECT* prcClip,
 			HRGN hrgnUpdate, LPRECT prcUpdate, UINT flags)
 		{
-			Logging::LogEnter("scrollWindowEx",
+			Compat::LogEnter("scrollWindowEx",
 				hWnd, dx, dy, prcScroll, prcClip, hrgnUpdate, prcUpdate, flags);
 
 			if (flags & SW_SMOOTHSCROLL)
@@ -39,7 +39,7 @@ namespace Compat21
 				CompatGdiScrollFunctions::updateScrolledWindow(hWnd);
 			}
 
-			Logging::LogLeave("scrollWindowEx",
+			Compat::LogLeave("scrollWindowEx",
 				hWnd, dx, dy, prcScroll, prcClip, hrgnUpdate, prcUpdate, flags) << result;
 			return result;
 		}

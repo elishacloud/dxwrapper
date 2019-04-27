@@ -21,7 +21,7 @@ namespace Compat21
 		LRESULT CALLBACK callWndProc(int nCode, WPARAM wParam, LPARAM lParam)
 		{
 			auto ret = reinterpret_cast<CWPSTRUCT*>(lParam);
-			Logging::LogEnter("callWndProc", nCode, wParam, ret);
+			Compat::LogEnter("callWndProc", nCode, wParam, ret);
 
 			if (HC_ACTION == nCode && WM_ACTIVATEAPP == ret->message)
 			{
@@ -30,13 +30,13 @@ namespace Compat21
 			}
 
 			LRESULT result = CallNextHookEx(nullptr, nCode, wParam, lParam);
-			Logging::LogLeave("callWndProc", nCode, wParam, ret) << result;
+			Compat::LogLeave("callWndProc", nCode, wParam, ret) << result;
 			return result;
 		}
 
 		void handleActivateApp(bool isActivated)
 		{
-			Logging::LogEnter("handleActivateApp", isActivated);
+			Compat::LogEnter("handleActivateApp", isActivated);
 
 			static bool isActive = true;
 			if (isActivated != isActive && RealPrimarySurface::isFullScreen())
@@ -76,7 +76,7 @@ namespace Compat21
 			}
 
 			isActive = isActivated;
-			Logging::LogLeave("handleActivateApp", isActivated);
+			Compat::LogLeave("handleActivateApp", isActivated);
 		}
 	}
 

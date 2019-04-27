@@ -24,7 +24,7 @@ namespace Compat21
 
 		void onRelease()
 		{
-			Logging::LogEnter("CompatPrimarySurface::onRelease");
+			Compat::LogEnter("CompatPrimarySurface::onRelease");
 
 			g_primarySurfacePtrs.clear();
 			CompatPrimarySurface::surface = nullptr;
@@ -36,7 +36,7 @@ namespace Compat21
 
 			RealPrimarySurface::release();
 
-			Logging::LogLeave("CompatPrimarySurface::onRelease");
+			Compat::LogLeave("CompatPrimarySurface::onRelease");
 		}
 	}
 
