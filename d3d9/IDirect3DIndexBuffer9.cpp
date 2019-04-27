@@ -42,7 +42,7 @@ ULONG m_IDirect3DIndexBuffer9::Release(THIS)
 
 HRESULT m_IDirect3DIndexBuffer9::GetDevice(THIS_ IDirect3DDevice9** ppDevice)
 {
-	if (!ppDevice || !m_pDeviceEx)
+	if (!ppDevice)
 	{
 		return D3DERR_INVALIDCALL;
 	}

@@ -59,7 +59,7 @@ HRESULT m_IDirect3DSwapChain9::GetBackBuffer(THIS_ UINT BackBuffer, D3DBACKBUFFE
 {
 	HRESULT hr = ProxyInterface->GetBackBuffer(BackBuffer, Type, ppBackBuffer);
 
-	if (SUCCEEDED(hr) && ppBackBuffer && m_pDeviceEx)
+	if (SUCCEEDED(hr) && ppBackBuffer)
 	{
 		*ppBackBuffer = m_pDeviceEx->ProxyAddressLookupTable->FindAddress<m_IDirect3DSurface9>(*ppBackBuffer);
 	}
@@ -79,7 +79,7 @@ HRESULT m_IDirect3DSwapChain9::GetDisplayMode(THIS_ D3DDISPLAYMODE* pMode)
 
 HRESULT m_IDirect3DSwapChain9::GetDevice(THIS_ IDirect3DDevice9** ppDevice)
 {
-	if (!ppDevice || !m_pDeviceEx)
+	if (!ppDevice)
 	{
 		return D3DERR_INVALIDCALL;
 	}

@@ -42,7 +42,7 @@ ULONG m_IDirect3DCubeTexture9::Release(THIS)
 
 HRESULT m_IDirect3DCubeTexture9::GetDevice(THIS_ IDirect3DDevice9** ppDevice)
 {
-	if (!ppDevice || !m_pDeviceEx)
+	if (!ppDevice)
 	{
 		return D3DERR_INVALIDCALL;
 	}
@@ -128,7 +128,7 @@ HRESULT m_IDirect3DCubeTexture9::GetCubeMapSurface(THIS_ D3DCUBEMAP_FACES FaceTy
 {
 	HRESULT hr = ProxyInterface->GetCubeMapSurface(FaceType, Level, ppCubeMapSurface);
 
-	if (SUCCEEDED(hr) && ppCubeMapSurface && m_pDeviceEx)
+	if (SUCCEEDED(hr) && ppCubeMapSurface)
 	{
 		*ppCubeMapSurface = m_pDeviceEx->ProxyAddressLookupTable->FindAddress<m_IDirect3DSurface9>(*ppCubeMapSurface);
 	}

@@ -46,11 +46,6 @@ HRESULT m_IClassFactory::QueryInterface(REFIID riid, LPVOID FAR * ppvObj)
 {
 	Logging::LogDebug() << __FUNCTION__;
 
-	if (!ppvObj)
-	{
-		return E_FAIL;
-	}
-
 	if ((riid == IID_IClassFactory || riid == IID_IUnknown) && ppvObj)
 	{
 		AddRef();

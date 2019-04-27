@@ -42,7 +42,7 @@ ULONG m_IDirect3DVolumeTexture9::Release(THIS)
 
 HRESULT m_IDirect3DVolumeTexture9::GetDevice(THIS_ IDirect3DDevice9** ppDevice)
 {
-	if (!ppDevice || !m_pDeviceEx)
+	if (!ppDevice)
 	{
 		return D3DERR_INVALIDCALL;
 	}
@@ -128,7 +128,7 @@ HRESULT m_IDirect3DVolumeTexture9::GetVolumeLevel(THIS_ UINT Level, IDirect3DVol
 {
 	HRESULT hr = ProxyInterface->GetVolumeLevel(Level, ppVolumeLevel);
 
-	if (SUCCEEDED(hr) && ppVolumeLevel && m_pDeviceEx)
+	if (SUCCEEDED(hr) && ppVolumeLevel)
 	{
 		*ppVolumeLevel = m_pDeviceEx->ProxyAddressLookupTable->FindAddress<m_IDirect3DVolume9>(*ppVolumeLevel);
 	}

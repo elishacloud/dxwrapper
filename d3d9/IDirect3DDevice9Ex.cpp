@@ -433,7 +433,7 @@ HRESULT m_IDirect3DDevice9Ex::GetDeviceCaps(D3DCAPS9 *pCaps)
 
 HRESULT m_IDirect3DDevice9Ex::GetDirect3D(IDirect3D9 **ppD3D9)
 {
-	if (!ppD3D9 || !m_pD3DEx)
+	if (!ppD3D9)
 	{
 		return D3DERR_INVALIDCALL;
 	}

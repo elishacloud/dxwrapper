@@ -42,7 +42,7 @@ ULONG m_IDirect3DTexture9::Release(THIS)
 
 HRESULT m_IDirect3DTexture9::GetDevice(THIS_ IDirect3DDevice9** ppDevice)
 {
-	if (!ppDevice || !m_pDeviceEx)
+	if (!ppDevice)
 	{
 		return D3DERR_INVALIDCALL;
 	}
@@ -128,7 +128,7 @@ HRESULT m_IDirect3DTexture9::GetSurfaceLevel(THIS_ UINT Level, IDirect3DSurface9
 {
 	HRESULT hr = ProxyInterface->GetSurfaceLevel(Level, ppSurfaceLevel);
 
-	if (SUCCEEDED(hr) && ppSurfaceLevel && m_pDeviceEx)
+	if (SUCCEEDED(hr) && ppSurfaceLevel)
 	{
 		*ppSurfaceLevel = m_pDeviceEx->ProxyAddressLookupTable->FindAddress<m_IDirect3DSurface9>(*ppSurfaceLevel);
 	}
