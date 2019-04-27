@@ -213,23 +213,19 @@ void ConvertCaps(DDCAPS &Caps, DDCAPS &Caps7)
 	ZeroMemory(&Caps, dwSize);
 	CopyMemory(&Caps, &Caps7, min(dwSize, Caps7.dwSize));
 	Caps.dwSize = dwSize;
-
-	// Set available memory, some games have issues if this is set to high
-	if (Caps.dwVidMemTotal > 0x8000000)
+	if (dwSize > 0x40)
 	{
-		Caps.dwVidMemFree = (Caps.dwVidMemFree < 0x8000000) ? Caps.dwVidMemFree : 0x7e00000;
-		Caps.dwVidMemTotal = 0x8000000;
+		SetVidMemory(&Caps.dwVidMemTotal, &Caps.dwVidMemFree);
 	}
 }
 
 void ConvertCaps(DDCAPS &Caps7, D3DCAPS9 &Caps9)
 {
+	// Note: dwVidMemTotal and dwVidMemFree are not part of D3DCAPS9 and need to be set separately
 	DDCAPS tmpCaps7 = { NULL };
 	tmpCaps7.dwSize = min(sizeof(DDCAPS), Caps7.dwSize);
 
 	// General settings
-	tmpCaps7.dwVidMemTotal = 0x8000000;			// Just hard code the memory size
-	tmpCaps7.dwVidMemFree = 0x7e00000;			// Just hard code the memory size
 	tmpCaps7.dwMaxVisibleOverlays = 0x1;
 	tmpCaps7.dwNumFourCCCodes = 0x12;
 	tmpCaps7.dwRops[6] = 4096;

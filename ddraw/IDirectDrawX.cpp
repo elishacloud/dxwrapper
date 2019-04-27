@@ -19,6 +19,8 @@
 #include "ddraw.h"
 #include "Utils\Utils.h"
 
+constexpr DWORD MaxVidMemory = 0x8000000;
+
 struct handle_data
 {
 	DWORD process_id = 0;
@@ -606,21 +608,35 @@ HRESULT m_IDirectDrawX::GetCaps(LPDDCAPS lpDDDriverCaps, LPDDCAPS lpDDHELCaps)
 	DriverCaps.dwSize = sizeof(DDCAPS);
 	HELCaps.dwSize = sizeof(DDCAPS);
 
-	HRESULT hr = DDERR_INVALIDPARAMS;
+	HRESULT hr = DDERR_GENERIC;
 
 	if (Config.Dd7to9)
 	{
+		if (!lpDDDriverCaps && !lpDDHELCaps)
+		{
+			return DDERR_INVALIDPARAMS;
+		}
+
+		// Get video memory
+		DWORD dwVidTotal = 0;
+		DWORD dwVidFree = 0;
+		GetAvailableVidMem2(nullptr, &dwVidTotal, &dwVidFree);
+
+		// Get caps
 		D3DCAPS9 Caps9;
 		if (lpDDDriverCaps)
 		{
 			hr = d3d9Object->GetDeviceCaps(D3DADAPTER_DEFAULT, D3DDEVTYPE_REF, &Caps9);
 			ConvertCaps(DriverCaps, Caps9);
+			DriverCaps.dwVidMemTotal = dwVidTotal;
+			DriverCaps.dwVidMemFree = dwVidFree;
 		}
-
 		if (lpDDHELCaps)
 		{
 			hr = d3d9Object->GetDeviceCaps(D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, &Caps9);
 			ConvertCaps(HELCaps, Caps9);
+			HELCaps.dwVidMemTotal = dwVidTotal;
+			HELCaps.dwVidMemFree = dwVidFree;
 		}
 	}
 	else
@@ -1095,6 +1111,20 @@ HRESULT m_IDirectDrawX::WaitForVerticalBlank(DWORD dwFlags, HANDLE hEvent)
 /*** Added in the v2 interface ***/
 /*********************************/
 
+void SetVidMemory(LPDWORD lpdwTotal, LPDWORD lpdwFree)
+{
+	// Set available memory, some games have issues if this is set to high
+	if (lpdwTotal && *lpdwTotal > MaxVidMemory)
+	{
+		*lpdwTotal = MaxVidMemory;
+	}
+	DWORD TotalVidMem = (lpdwTotal) ? *lpdwTotal : (lpdwFree) ? *lpdwFree : MaxVidMemory;
+	if (lpdwFree && *lpdwFree > TotalVidMem)
+	{
+		*lpdwFree = (TotalVidMem > 0x100000) ? TotalVidMem - 0x100000 : TotalVidMem;
+	}
+}
+
 HRESULT m_IDirectDrawX::GetAvailableVidMem(LPDDSCAPS lpDDSCaps, LPDWORD lpdwTotal, LPDWORD lpdwFree)
 {
 	Logging::LogDebug() << __FUNCTION__;
@@ -1111,7 +1141,12 @@ HRESULT m_IDirectDrawX::GetAvailableVidMem(LPDDSCAPS lpDDSCaps, LPDWORD lpdwTota
 		return GetAvailableVidMem2((lpDDSCaps) ? &Caps2 : nullptr, lpdwTotal, lpdwFree);
 	}
 
-	return GetProxyInterfaceV3()->GetAvailableVidMem(lpDDSCaps, lpdwTotal, lpdwFree);
+	HRESULT hr = GetProxyInterfaceV3()->GetAvailableVidMem(lpDDSCaps, lpdwTotal, lpdwFree);
+
+	// Set available memory
+	SetVidMemory(lpdwTotal, lpdwFree);
+
+	return hr;
 }
 
 HRESULT m_IDirectDrawX::GetAvailableVidMem2(LPDDSCAPS2 lpDDSCaps2, LPDWORD lpdwTotal, LPDWORD lpdwFree)
@@ -1122,29 +1157,53 @@ HRESULT m_IDirectDrawX::GetAvailableVidMem2(LPDDSCAPS2 lpDDSCaps2, LPDWORD lpdwT
 
 	if (Config.Dd7to9)
 	{
+		DWORD TotalMemory = 0;
+
 		// Make sure the device exists
 		if (!d3d9Device)
 		{
-			// Just hard code the memory size if d3d9device doesn't exist
-			if (lpdwFree)
+			// Set parameters for the current display mode
+			ZeroMemory(&presParams, sizeof(presParams));
+			presParams.hDeviceWindow = (IsWindow(chWnd)) ? chWnd : MainhWnd;
+
+			// Window mode
+			presParams.Windowed = TRUE;
+			// width/height
+			presParams.BackBufferWidth = 640;
+			presParams.BackBufferHeight = 480;
+			// Swap discard
+			presParams.SwapEffect = D3DSWAPEFFECT_DISCARD;
+			// Unknown format
+			presParams.BackBufferFormat = D3DFMT_UNKNOWN;
+			// Interval level
+			presParams.PresentationInterval = D3DPRESENT_INTERVAL_IMMEDIATE;
+
+			// Create d3d device
+			if (FAILED(d3d9Object->CreateDevice(D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, MainhWnd, D3DCREATE_SOFTWARE_VERTEXPROCESSING, &presParams, &d3d9Device)))
 			{
-				*lpdwFree = 0x7e00000;
+				// Just hard code the memory size if cannot get d3d9device
+				TotalMemory = MaxVidMemory;
 			}
-			if (lpdwTotal)
+			else
 			{
-				*lpdwTotal = 0x8000000;
+				TotalMemory = d3d9Device->GetAvailableTextureMem();
+
+				d3d9Device->Release();
+				d3d9Device = nullptr;
 			}
 		}
 		else
 		{
-			if (lpdwFree)
-			{
-				*lpdwFree = d3d9Device->GetAvailableTextureMem();
-			}
-			if (lpdwTotal)
-			{
-				*lpdwTotal = d3d9Device->GetAvailableTextureMem() + 0x400;		// Just make this slightly larger than free
-			}
+			TotalMemory = d3d9Device->GetAvailableTextureMem();
+		}
+
+		if (lpdwTotal)
+		{
+			*lpdwTotal = TotalMemory;
+		}
+		if (lpdwFree)
+		{
+			*lpdwFree = (TotalMemory > 0x100000) ? TotalMemory - 0x100000 : TotalMemory;
 		}
 	}
 	else
@@ -1152,15 +1211,8 @@ HRESULT m_IDirectDrawX::GetAvailableVidMem2(LPDDSCAPS2 lpDDSCaps2, LPDWORD lpdwT
 		hr = ProxyInterface->GetAvailableVidMem(lpDDSCaps2, lpdwTotal, lpdwFree);
 	}
 
-	// Set available memory, some games have issues if this is set to high
-	if (lpdwFree && *lpdwFree > 0x8000000)
-	{
-		*lpdwFree = 0x7e00000;
-	}
-	if (lpdwTotal && *lpdwTotal > 0x8000000)
-	{
-		*lpdwTotal = 0x8000000;
-	}
+	// Set available memory
+	SetVidMemory(lpdwTotal, lpdwFree);
 
 	return hr;
 }

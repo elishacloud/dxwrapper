@@ -1,5 +1,8 @@
 #pragma once
 
+// Handle video memory
+void SetVidMemory(LPDWORD lpdwTotal, LPDWORD lpdwFree);
+
 class m_IDirectDrawX : public IUnknown
 {
 private:
