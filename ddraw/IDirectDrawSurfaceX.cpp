@@ -2128,7 +2128,20 @@ HRESULT m_IDirectDrawSurfaceX::CreateD3d9Surface()
 	ReleaseD9Surface();
 
 	// Check for device
-	if (!d3d9Device || !*d3d9Device || !ddrawParent)
+	if (!ddrawParent)
+	{
+		Logging::Log() << __FUNCTION__ << " Error no ddraw parent!";
+		return DDERR_GENERIC;
+	}
+
+	// Check for device, if not then create it
+	if (!d3d9Device || !*d3d9Device)
+	{
+		ddrawParent->CreateD3D9Device();
+	}
+
+	// Check for device
+	if (!d3d9Device || !*d3d9Device)
 	{
 		Logging::Log() << __FUNCTION__ << " D3d9 Device not setup.";
 		return DDERR_GENERIC;

@@ -95,7 +95,10 @@ namespace DdrawWrapper
 	HRESULT ProxyQueryInterface(LPVOID ProxyInterface, REFIID CalledID, LPVOID * ppvObj, REFIID CallerID, LPVOID WrapperInterface);
 	void WINAPI genericQueryInterface(REFIID riid, LPVOID *ppvObj);
 }
+// Handle video memory
+void SetVidMemory(LPDWORD lpdwTotal, LPDWORD lpdwFree);
 
+extern m_IDirectDrawX *pDDrawDevice;
 extern AddressLookupTableDdraw<void> ProxyAddressLookupTable;
 
 using namespace DdrawWrapper;

@@ -1566,18 +1566,8 @@ void m_IDirectDrawX::ReleaseD3d9Device()
 		{
 			d3d9Device->EndScene();
 		}
-
-		DWORD x = 0, z = 0;
-		do
-		{
-			z = d3d9Device->Release();
-		} while (z != 0 && ++x < 100);
-
-		// Add error checking
-		if (z != 0)
-		{
-			Logging::Log() << __FUNCTION__ << " Unable to release Direct3D9 device";
-		}
+		
+		d3d9Device->Release();
 
 		d3d9Device = nullptr;
 	}

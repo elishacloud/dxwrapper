@@ -1,7 +1,5 @@
 #pragma once
 
-#include "Utils\Utils.h"
-
 class m_IDirect3DX : public IUnknown
 {
 private:

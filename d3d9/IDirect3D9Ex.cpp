@@ -16,6 +16,7 @@
 
 #include "d3d9.h"
 
+m_IDirect3DDevice9Ex *pD3DDeviceInterface = nullptr;
 HWND DeviceWindow = nullptr;
 UINT BufferWidth = 0, BufferHeight = 0;
 
@@ -127,12 +128,29 @@ HRESULT m_IDirect3D9Ex::CheckDeviceFormatConversion(THIS_ UINT Adapter, D3DDEVTY
 
 HRESULT m_IDirect3D9Ex::CreateDevice(UINT Adapter, D3DDEVTYPE DeviceType, HWND hFocusWindow, DWORD BehaviorFlags, D3DPRESENT_PARAMETERS *pPresentationParameters, IDirect3DDevice9 **ppReturnedDeviceInterface)
 {
-	HRESULT hr = D3DERR_INVALIDCALL;
-
 	if (!pPresentationParameters || !ppReturnedDeviceInterface)
 	{
 		return D3DERR_INVALIDCALL;
 	}
+
+	if (Config.Dd7to9 || Config.D3d8to9)
+	{
+		PVOID NullValue = nullptr;
+		IDirect3DDevice9 *pReturnedDevice = (IDirect3DDevice9*)InterlockedCompareExchangePointer((PVOID*)&pD3DDeviceInterface, NullValue, NullValue);
+
+		if (pReturnedDevice)
+		{
+			*ppReturnedDeviceInterface = pReturnedDevice;
+
+			pReturnedDevice->AddRef();
+
+			pReturnedDevice->Reset(pPresentationParameters);
+
+			return D3D_OK;
+		}
+	}
+
+	HRESULT hr = D3DERR_INVALIDCALL;
 
 	// Update presentation parameters
 	UpdatePresentParameter(pPresentationParameters, hFocusWindow, true);
@@ -186,9 +204,13 @@ HRESULT m_IDirect3D9Ex::CreateDevice(UINT Adapter, D3DDEVTYPE DeviceType, HWND h
 
 	if (SUCCEEDED(hr))
 	{
-		*ppReturnedDeviceInterface = new m_IDirect3DDevice9Ex((LPDIRECT3DDEVICE9EX)*ppReturnedDeviceInterface, (m_IDirect3D9Ex*)this);
+		m_IDirect3DDevice9Ex *pReturnedDevice = new m_IDirect3DDevice9Ex((LPDIRECT3DDEVICE9EX)*ppReturnedDeviceInterface, (m_IDirect3D9Ex*)this);
 
-		((m_IDirect3DDevice9Ex*)(*ppReturnedDeviceInterface))->SetDefaults(pPresentationParameters, hFocusWindow, MultiSampleFlag);
+		*ppReturnedDeviceInterface = pReturnedDevice;
+
+		pReturnedDevice->SetDefaults(pPresentationParameters, hFocusWindow, MultiSampleFlag);
+
+		InterlockedExchangePointer((PVOID*)&pD3DDeviceInterface, pReturnedDevice);
 	}
 
 	return hr;
@@ -211,12 +233,12 @@ HRESULT m_IDirect3D9Ex::GetAdapterDisplayModeEx(THIS_ UINT Adapter, D3DDISPLAYMO
 
 HRESULT m_IDirect3D9Ex::CreateDeviceEx(THIS_ UINT Adapter, D3DDEVTYPE DeviceType, HWND hFocusWindow, DWORD BehaviorFlags, D3DPRESENT_PARAMETERS* pPresentationParameters, D3DDISPLAYMODEEX* pFullscreenDisplayMode, IDirect3DDevice9Ex** ppReturnedDeviceInterface)
 {
-	HRESULT hr = D3DERR_INVALIDCALL;
-
 	if (!pPresentationParameters || !ppReturnedDeviceInterface)
 	{
 		return D3DERR_INVALIDCALL;
 	}
+
+	HRESULT hr = D3DERR_INVALIDCALL;
 
 	// Update presentation parameters
 	UpdatePresentParameter(pPresentationParameters, hFocusWindow, true);
@@ -270,9 +292,11 @@ HRESULT m_IDirect3D9Ex::CreateDeviceEx(THIS_ UINT Adapter, D3DDEVTYPE DeviceType
 
 	if (SUCCEEDED(hr))
 	{
-		*ppReturnedDeviceInterface = new m_IDirect3DDevice9Ex(*ppReturnedDeviceInterface, this);
+		m_IDirect3DDevice9Ex *pReturnedDevice = new m_IDirect3DDevice9Ex(*ppReturnedDeviceInterface, this);
 
-		((m_IDirect3DDevice9Ex*)(*ppReturnedDeviceInterface))->SetDefaults(pPresentationParameters, hFocusWindow, MultiSampleFlag);
+		*ppReturnedDeviceInterface = pReturnedDevice;
+
+		pReturnedDevice->SetDefaults(pPresentationParameters, hFocusWindow, MultiSampleFlag);
 	}
 
 	return hr;

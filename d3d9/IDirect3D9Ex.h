@@ -9,6 +9,9 @@ public:
 	m_IDirect3D9Ex(LPDIRECT3D9EX pDirect3D) : ProxyInterface(pDirect3D) { }
 	~m_IDirect3D9Ex()
 	{
+		PVOID NullValue = nullptr;
+		InterlockedCompareExchangePointer((PVOID*)&pD3DInterface, NullValue, this);
+
 		DeviceWindow = nullptr;
 		BufferWidth = 0;
 		BufferHeight = 0;

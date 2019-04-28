@@ -25,6 +25,7 @@
 
 AddressLookupTableDdraw<void> ProxyAddressLookupTable = AddressLookupTableDdraw<void>();
 
+m_IDirectDrawX *pDDrawDevice = nullptr;
 CRITICAL_SECTION ddcs;
 bool ThreadSyncFlag = false;
 
@@ -332,6 +333,23 @@ HRESULT WINAPI dd_DirectDrawCreateEx(GUID FAR *lpGUID, LPVOID *lplpDD, REFIID ri
 			return DDERR_INVALIDPARAMS;
 		}
 
+		DWORD DxVersion = GetIIDVersion(riid);
+
+		if (lplpDD)
+		{
+			PVOID NullValue = nullptr;
+			m_IDirectDrawX *pReturnedDevice = (m_IDirectDrawX*)InterlockedCompareExchangePointer((PVOID*)&pDDrawDevice, NullValue, NullValue);
+
+			if (pReturnedDevice)
+			{
+				pReturnedDevice->AddRef();
+
+				*lplpDD = pReturnedDevice->GetWrapperInterfaceX(DxVersion);
+
+				return DD_OK;
+			}
+		}
+
 		// Declare Direct3DCreate9
 		static PFN_Direct3DCreate9 Direct3DCreate9 = reinterpret_cast<PFN_Direct3DCreate9>(Direct3DCreate9_out);
 
@@ -353,9 +371,13 @@ HRESULT WINAPI dd_DirectDrawCreateEx(GUID FAR *lpGUID, LPVOID *lplpDD, REFIID ri
 			return DDERR_GENERIC;
 		}
 
-		DWORD DxVersion = GetIIDVersion(riid);
-
 		m_IDirectDrawX *p_IDirectDrawX = new m_IDirectDrawX(d3d9Object, DxVersion);
+
+		if (p_IDirectDrawX)
+		{
+			m_IDirectDrawX *pReturnedDevice = p_IDirectDrawX;
+			InterlockedExchangePointer((PVOID*)&pDDrawDevice, pReturnedDevice);
+		}
 
 		*lplpDD = p_IDirectDrawX->GetWrapperInterfaceX(DxVersion);
 

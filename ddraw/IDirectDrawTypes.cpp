@@ -373,6 +373,11 @@ D3DFORMAT GetDisplayFormat(DDPIXELFORMAT ddpfPixelFormat)
 		Logging::Log() << __FUNCTION__ << " Bump DUVU format not Implemented";
 		return D3DFMT_UNKNOWN;
 	}
+	else if (ddpfPixelFormat.dwFlags & DDPF_FOURCC)
+	{
+		Logging::Log() << __FUNCTION__ << " FourCC format not Implemented";
+		return D3DFMT_UNKNOWN;
+	}
 
 	Logging::Log() << __FUNCTION__ << " Error, PixelFormat not Implemented see flags: " << ddpfPixelFormat.dwFlags;
 	return D3DFMT_UNKNOWN;

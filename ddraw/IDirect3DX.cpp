@@ -15,6 +15,7 @@
 */
 
 #include "ddraw.h"
+#include "Utils\Utils.h"
 
 bool GetD3DPath = true;
 char D3DImPath[MAX_PATH] = { '\0' };

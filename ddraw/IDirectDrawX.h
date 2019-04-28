@@ -1,8 +1,5 @@
 #pragma once
 
-// Handle video memory
-void SetVidMemory(LPDWORD lpdwTotal, LPDWORD lpdwFree);
-
 class m_IDirectDrawX : public IUnknown
 {
 private:
@@ -82,6 +79,9 @@ public:
 	}
 	~m_IDirectDrawX()
 	{
+		PVOID NullValue = nullptr;
+		InterlockedCompareExchangePointer((PVOID*)&pDDrawDevice, NullValue, this);
+
 		if (g_hook)
 		{
 			UnhookWindowsHookEx(g_hook);
