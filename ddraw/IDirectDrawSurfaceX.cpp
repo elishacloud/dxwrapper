@@ -125,11 +125,6 @@ ULONG m_IDirectDrawSurfaceX::Release()
 
 	if (ref == 0)
 	{
-		if (Config.Dd7to9)
-		{
-			ReleaseD9Surface();
-		}
-
 		if (WrapperInterface)
 		{
 			WrapperInterface->DeleteMe();

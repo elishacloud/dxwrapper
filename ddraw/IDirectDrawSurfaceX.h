@@ -109,6 +109,8 @@ public:
 
 		if (Config.Dd7to9 && !Config.Exiting)
 		{
+			ReleaseSurface();
+			ReleaseD9Surface();
 		}
 	}
 

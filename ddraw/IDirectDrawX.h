@@ -89,10 +89,7 @@ public:
 
 		if (Config.Dd7to9 && !Config.Exiting)
 		{
-			if (SurfaceVector.size())
-			{
-				ReleaseAllD9Surfaces(true);
-			}
+			ReleaseD3d9();
 			ReleaseD3DInterfaces();
 			D3DInterface = nullptr;
 			D3DDeviceInterface = nullptr;

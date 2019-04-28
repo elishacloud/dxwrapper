@@ -164,11 +164,6 @@ ULONG m_IDirectDrawX::Release()
 
 	if (ref == 0)
 	{
-		if (Config.Dd7to9)
-		{
-			ReleaseD3d9();
-		}
-
 		if (WrapperInterface)
 		{
 			WrapperInterface->DeleteMe();
