@@ -1475,9 +1475,9 @@ HRESULT m_IDirectDrawX::CreateD3D9Device()
 		presParams.BackBufferWidth = set_d3ddispmode.Width;
 		presParams.BackBufferHeight = set_d3ddispmode.Height;
 		// Backbuffer
-		presParams.BackBufferFormat = D3DFMT_X8R8G8B8;
+		presParams.BackBufferFormat = set_d3ddispmode.Format;
 		// Display mode refresh
-		presParams.FullScreen_RefreshRateInHz = (displayModeRefreshRate) ? set_d3ddispmode.RefreshRate : 0;
+		presParams.FullScreen_RefreshRateInHz = set_d3ddispmode.RefreshRate;
 	}
 
 	Logging::LogDebug() << __FUNCTION__ << " D3d9 Device size: " << presParams.BackBufferWidth << "x" << presParams.BackBufferHeight;
