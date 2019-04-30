@@ -423,16 +423,21 @@ std::ostream& operator<<(std::ostream& os, REFIID riid)
 	CHECK_REFIID(IID, IDirectInputDevice8W);
 	CHECK_REFIID(IID, IDirectInputEffect);
 
-	return Logging::LogStruct(os)
-		<< Logging::hex(riid.Data1)
-		<< Logging::hex(riid.Data2)
-		<< Logging::hex(riid.Data3)
-		<< Logging::hex((UINT)riid.Data4[0])
-		<< Logging::hex((UINT)riid.Data4[1])
-		<< Logging::hex((UINT)riid.Data4[2])
-		<< Logging::hex((UINT)riid.Data4[3])
-		<< Logging::hex((UINT)riid.Data4[4])
-		<< Logging::hex((UINT)riid.Data4[5])
-		<< Logging::hex((UINT)riid.Data4[6])
-		<< Logging::hex((UINT)riid.Data4[7]);
+	UINT x = 0;
+	char buffer[(sizeof(IID) * 2) + 5] = { '\0' };
+	for (size_t j : {3, 2, 1, 0, 0xFF, 5, 4, 0xFF, 7, 6, 0xFF, 8, 9, 0xFF, 10, 11, 12, 13, 14, 15})
+	{
+		if (j == 0xFF)
+		{
+			buffer[x] = '-';
+		}
+		else
+		{
+			sprintf_s(buffer + x, 3, "%02X", ((byte*)&riid)[j]);
+			x++;
+		}
+		x++;
+	}
+
+	return Logging::LogStruct(os) << buffer;
 }
