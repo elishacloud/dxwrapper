@@ -47,7 +47,7 @@ void AdjustWindow(HWND MainhWnd, LONG displayWidth, LONG displayHeight);
 extern m_IDirect3D9Ex *pD3DInterface;
 extern m_IDirect3DDevice9Ex *pD3DDeviceInterface;
 extern HWND DeviceWindow;
-extern UINT BufferWidth, BufferHeight;
+extern LONG BufferWidth, BufferHeight;
 
 #include "IDirect3D9Ex.h"
 #include "IDirect3DDevice9Ex.h"

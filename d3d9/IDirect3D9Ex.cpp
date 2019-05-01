@@ -18,7 +18,7 @@
 
 m_IDirect3DDevice9Ex *pD3DDeviceInterface = nullptr;
 HWND DeviceWindow = nullptr;
-UINT BufferWidth = 0, BufferHeight = 0;
+LONG BufferWidth = 0, BufferHeight = 0;
 
 HRESULT m_IDirect3D9Ex::QueryInterface(REFIID riid, void** ppvObj)
 {

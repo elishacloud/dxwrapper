@@ -1197,6 +1197,7 @@ HRESULT m_IDirect3DDevice9Ex::CopyRects(THIS_ IDirect3DSurface9 *pSourceSurface,
 		if (SourceDesc.Pool == D3DPOOL_MANAGED || DestinationDesc.Pool != D3DPOOL_DEFAULT)
 		{
 			hr = D3DXLoadSurfaceFromSurface(pDestinationSurface, nullptr, &DestinationRect, pSourceSurface, nullptr, &SourceRect, D3DX_FILTER_NONE, 0);
+			hr = (FAILED(hr)) ? D3DERR_INVALIDCALL : hr;
 		}
 		else if (SourceDesc.Pool == D3DPOOL_DEFAULT)
 		{
@@ -1369,20 +1370,21 @@ HRESULT m_IDirect3DDevice9Ex::GetFrontBufferData(THIS_ UINT iSwapChain, IDirect3
 		}
 
 		// Get FrontBuffer data to new surface
-		if (FAILED(ProxyInterface->GetFrontBufferData(iSwapChain, pSrcSurface)))
+		HRESULT hr = ProxyInterface->GetFrontBufferData(iSwapChain, pSrcSurface);
+		if (FAILED(hr))
 		{
 			pSrcSurface->Release();
-			return D3DERR_INVALIDCALL;
+			return hr;
 		}
 
 		// Get location of client window
-		RECT RectSrc = { NULL };
+		RECT RectSrc;
 		if (FAILED(GetWindowRect(DeviceWindow, &RectSrc)))
 		{
 			pSrcSurface->Release();
 			return D3DERR_INVALIDCALL;
 		}
-		RECT rcClient = { NULL };
+		RECT rcClient;
 		if (FAILED(GetClientRect(DeviceWindow, &rcClient)))
 		{
 			pSrcSurface->Release();
@@ -1396,31 +1398,29 @@ HRESULT m_IDirect3DDevice9Ex::GetFrontBufferData(THIS_ UINT iSwapChain, IDirect3
 		RectSrc.bottom = min(RectSrc.top + rcClient.bottom, ScreenHeight);
 
 		// Copy data to DestSurface
-		if ((LONG)BufferWidth == rcClient.right && (LONG)BufferHeight == rcClient.bottom)
+		hr = D3DERR_INVALIDCALL;
+		if (BufferWidth == rcClient.right && BufferHeight == rcClient.bottom)
 		{
-			POINT PointDest = { 0, 0 };
-			if (FAILED(CopyRects(pSrcSurface, &RectSrc, 1, pDestSurface, &PointDest)))
-			{
-				pSrcSurface->Release();
-				return D3DERR_INVALIDCALL;
-			}
+			const POINT PointDest = { 0, 0 };
+			hr = CopyRects(pSrcSurface, &RectSrc, 1, pDestSurface, &PointDest);
 		}
-		else
+
+		// Try using StretchRect
+		if (FAILED(hr))
 		{
-			RECT RectDest = { 0, 0, (LONG)min(BufferWidth, (UINT)ScreenWidth), (LONG)min(BufferHeight, (UINT)ScreenHeight) };
-			if (FAILED(ProxyInterface->StretchRect(pSrcSurface, &RectSrc, pDestSurface, &RectDest, D3DTEXF_NONE)))
+			const RECT RectDest = { 0, 0, min(BufferWidth, ScreenWidth), min(BufferHeight, ScreenHeight) };
+			hr = ProxyInterface->StretchRect(pSrcSurface, &RectSrc, pDestSurface, &RectDest, D3DTEXF_NONE);
+
+			// Try using fake StretchRect
+			if (FAILED(hr))
 			{
-				if (FAILED(StretchRectFake(pSrcSurface, &RectSrc, pDestSurface, &RectDest, D3DTEXF_NONE)))
-				{
-					pSrcSurface->Release();
-					return D3DERR_INVALIDCALL;
-				}
+				hr = StretchRectFake(pSrcSurface, &RectSrc, pDestSurface, &RectDest, D3DTEXF_NONE);
 			}
 		}
 
 		// Release surface
 		pSrcSurface->Release();
-		return D3D_OK;
+		return hr;
 	}
 
 	return ProxyInterface->GetFrontBufferData(iSwapChain, pDestSurface);
