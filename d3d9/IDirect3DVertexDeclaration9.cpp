@@ -18,6 +18,8 @@
 
 HRESULT m_IDirect3DVertexDeclaration9::QueryInterface(THIS_ REFIID riid, void** ppvObj)
 {
+	Logging::LogDebug() << __FUNCTION__;
+
 	if ((riid == IID_IDirect3DVertexDeclaration9 || riid == IID_IUnknown) && ppvObj)
 	{
 		AddRef();
@@ -32,16 +34,22 @@ HRESULT m_IDirect3DVertexDeclaration9::QueryInterface(THIS_ REFIID riid, void** 
 
 ULONG m_IDirect3DVertexDeclaration9::AddRef(THIS)
 {
+	Logging::LogDebug() << __FUNCTION__;
+
 	return ProxyInterface->AddRef();
 }
 
 ULONG m_IDirect3DVertexDeclaration9::Release(THIS)
 {
+	Logging::LogDebug() << __FUNCTION__;
+
 	return ProxyInterface->Release();
 }
 
 HRESULT m_IDirect3DVertexDeclaration9::GetDevice(THIS_ IDirect3DDevice9** ppDevice)
 {
+	Logging::LogDebug() << __FUNCTION__;
+
 	if (!ppDevice)
 	{
 		return D3DERR_INVALIDCALL;
@@ -56,5 +64,7 @@ HRESULT m_IDirect3DVertexDeclaration9::GetDevice(THIS_ IDirect3DDevice9** ppDevi
 
 HRESULT m_IDirect3DVertexDeclaration9::GetDeclaration(THIS_ D3DVERTEXELEMENT9* pElement, UINT* pNumElements)
 {
+	Logging::LogDebug() << __FUNCTION__;
+
 	return ProxyInterface->GetDeclaration(pElement, pNumElements);
 }

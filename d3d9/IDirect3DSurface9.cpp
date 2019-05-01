@@ -18,6 +18,8 @@
 
 HRESULT m_IDirect3DSurface9::QueryInterface(THIS_ REFIID riid, void** ppvObj)
 {
+	Logging::LogDebug() << __FUNCTION__;
+
 	if ((riid == IID_IDirect3DSurface9 || riid == IID_IUnknown || riid == IID_IDirect3DResource9) && ppvObj)
 	{
 		AddRef();
@@ -32,16 +34,22 @@ HRESULT m_IDirect3DSurface9::QueryInterface(THIS_ REFIID riid, void** ppvObj)
 
 ULONG m_IDirect3DSurface9::AddRef(THIS)
 {
+	Logging::LogDebug() << __FUNCTION__;
+
 	return ProxyInterface->AddRef();
 }
 
 ULONG m_IDirect3DSurface9::Release(THIS)
 {
+	Logging::LogDebug() << __FUNCTION__;
+
 	return ProxyInterface->Release();
 }
 
 HRESULT m_IDirect3DSurface9::GetDevice(THIS_ IDirect3DDevice9** ppDevice)
 {
+	Logging::LogDebug() << __FUNCTION__;
+
 	if (!ppDevice)
 	{
 		return D3DERR_INVALIDCALL;
@@ -56,65 +64,91 @@ HRESULT m_IDirect3DSurface9::GetDevice(THIS_ IDirect3DDevice9** ppDevice)
 
 HRESULT m_IDirect3DSurface9::SetPrivateData(THIS_ REFGUID refguid, CONST void* pData, DWORD SizeOfData, DWORD Flags)
 {
+	Logging::LogDebug() << __FUNCTION__;
+
 	return ProxyInterface->SetPrivateData(refguid, pData, SizeOfData, Flags);
 }
 
 HRESULT m_IDirect3DSurface9::GetPrivateData(THIS_ REFGUID refguid, void* pData, DWORD* pSizeOfData)
 {
+	Logging::LogDebug() << __FUNCTION__;
+
 	return ProxyInterface->GetPrivateData(refguid, pData, pSizeOfData);
 }
 
 HRESULT m_IDirect3DSurface9::FreePrivateData(THIS_ REFGUID refguid)
 {
+	Logging::LogDebug() << __FUNCTION__;
+
 	return ProxyInterface->FreePrivateData(refguid);
 }
 
 DWORD m_IDirect3DSurface9::SetPriority(THIS_ DWORD PriorityNew)
 {
+	Logging::LogDebug() << __FUNCTION__;
+
 	return SetPriority(PriorityNew);
 }
 
 DWORD m_IDirect3DSurface9::GetPriority(THIS)
 {
+	Logging::LogDebug() << __FUNCTION__;
+
 	return GetPriority();
 }
 
 void m_IDirect3DSurface9::PreLoad(THIS)
 {
+	Logging::LogDebug() << __FUNCTION__;
+
 	return PreLoad();
 }
 
 D3DRESOURCETYPE m_IDirect3DSurface9::GetType(THIS)
 {
+	Logging::LogDebug() << __FUNCTION__;
+
 	return GetType();
 }
 
 HRESULT m_IDirect3DSurface9::GetContainer(THIS_ REFIID riid, void** ppContainer)
 {
+	Logging::LogDebug() << __FUNCTION__;
+
 	return ProxyInterface->GetContainer(riid, ppContainer);
 }
 
 HRESULT m_IDirect3DSurface9::GetDesc(THIS_ D3DSURFACE_DESC *pDesc)
 {
+	Logging::LogDebug() << __FUNCTION__;
+
 	return ProxyInterface->GetDesc(pDesc);
 }
 
 HRESULT m_IDirect3DSurface9::LockRect(THIS_ D3DLOCKED_RECT* pLockedRect, CONST RECT* pRect, DWORD Flags)
 {
+	Logging::LogDebug() << __FUNCTION__;
+
 	return ProxyInterface->LockRect(pLockedRect, pRect, Flags);
 }
 
 HRESULT m_IDirect3DSurface9::UnlockRect(THIS)
 {
+	Logging::LogDebug() << __FUNCTION__;
+
 	return ProxyInterface->UnlockRect();
 }
 
 HRESULT m_IDirect3DSurface9::GetDC(THIS_ HDC *phdc)
 {
+	Logging::LogDebug() << __FUNCTION__;
+
 	return GetDC(phdc);
 }
 
 HRESULT m_IDirect3DSurface9::ReleaseDC(THIS_ HDC hdc)
 {
+	Logging::LogDebug() << __FUNCTION__;
+
 	return ReleaseDC(hdc);
 }

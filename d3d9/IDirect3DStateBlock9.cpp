@@ -18,6 +18,8 @@
 
 HRESULT m_IDirect3DStateBlock9::QueryInterface(THIS_ REFIID riid, void** ppvObj)
 {
+	Logging::LogDebug() << __FUNCTION__;
+
 	if ((riid == IID_IDirect3DStateBlock9 || riid == IID_IUnknown) && ppvObj)
 	{
 		AddRef();
@@ -32,16 +34,22 @@ HRESULT m_IDirect3DStateBlock9::QueryInterface(THIS_ REFIID riid, void** ppvObj)
 
 ULONG m_IDirect3DStateBlock9::AddRef(THIS)
 {
+	Logging::LogDebug() << __FUNCTION__;
+
 	return ProxyInterface->AddRef();
 }
 
 ULONG m_IDirect3DStateBlock9::Release(THIS)
 {
+	Logging::LogDebug() << __FUNCTION__;
+
 	return ProxyInterface->Release();
 }
 
 HRESULT m_IDirect3DStateBlock9::GetDevice(THIS_ IDirect3DDevice9** ppDevice)
 {
+	Logging::LogDebug() << __FUNCTION__;
+
 	if (!ppDevice)
 	{
 		return D3DERR_INVALIDCALL;
@@ -56,10 +64,14 @@ HRESULT m_IDirect3DStateBlock9::GetDevice(THIS_ IDirect3DDevice9** ppDevice)
 
 HRESULT m_IDirect3DStateBlock9::Capture(THIS)
 {
+	Logging::LogDebug() << __FUNCTION__;
+
 	return ProxyInterface->Capture();
 }
 
 HRESULT m_IDirect3DStateBlock9::Apply(THIS)
 {
+	Logging::LogDebug() << __FUNCTION__;
+
 	return ProxyInterface->Apply();
 }

@@ -195,6 +195,8 @@ IDirect3D9 *WINAPI d9_Direct3DCreate9(UINT SDKVersion)
 		return nullptr;
 	}
 
+	Logging::Log() << "Redirecting 'Direct3DCreate9' ...";
+
 	if (Config.Dd7to9 || Config.D3d8to9)
 	{
 		PVOID NullValue = nullptr;
@@ -234,6 +236,8 @@ HRESULT WINAPI d9_Direct3DCreate9Ex(UINT SDKVersion, IDirect3D9Ex **ppD3D)
 	{
 		return E_FAIL;
 	}
+
+	Logging::Log() << "Redirecting 'Direct3DCreate9Ex' ...";
 
 	HRESULT hr = m_pDirect3DCreate9Ex(SDKVersion, ppD3D);
 

@@ -20,6 +20,13 @@ DirectSoundCaptureCreate8		@12
 
 
 ; ****
+;Forces Nvidia and AMD high performance graphics
+; ****
+NvOptimusEnablement                  DATA
+AmdPowerXpressRequestHighPerformance DATA
+
+
+; ****
 ;LIBRARY "bcrypt"
 ; ****
 BCryptAddContextFunction 

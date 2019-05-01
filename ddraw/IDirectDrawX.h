@@ -8,6 +8,8 @@ private:
 	DWORD ProxyDirectXVersion;
 	ULONG RefCount = 1;
 
+	static const DWORD MaxVidMemory = 0x8000000;
+
 	// Fix exclusive mode issue
 	HHOOK g_hook = nullptr;
 	HWND chWnd = nullptr;
@@ -165,6 +167,7 @@ public:
 	void *GetWrapperInterfaceX(DWORD DirectXVersion);
 	LPDIRECT3D9 GetDirect3D9Object() { return d3d9Object; }
 	LPDIRECT3DDEVICE9 *GetDirect3D9Device() { return &d3d9Device; }
+	static void SetVidMemory(LPDWORD lpdwTotal, LPDWORD lpdwFree);
 	HWND GetHwnd() { return MainhWnd; }
 	bool IsExclusiveMode() { return ExclusiveMode; }
 	m_IDirect3DDeviceX **GetCurrentD3DDevice() { return &D3DDeviceInterface; }

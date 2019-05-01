@@ -19,8 +19,6 @@
 #include "ddraw.h"
 #include "Utils\Utils.h"
 
-constexpr DWORD MaxVidMemory = 0x8000000;
-
 struct handle_data
 {
 	DWORD process_id = 0;
@@ -1117,7 +1115,7 @@ HRESULT m_IDirectDrawX::WaitForVerticalBlank(DWORD dwFlags, HANDLE hEvent)
 /*** Added in the v2 interface ***/
 /*********************************/
 
-void SetVidMemory(LPDWORD lpdwTotal, LPDWORD lpdwFree)
+void m_IDirectDrawX::SetVidMemory(LPDWORD lpdwTotal, LPDWORD lpdwFree)
 {
 	// Set available memory, some games have issues if this is set to high
 	if (lpdwTotal && *lpdwTotal > MaxVidMemory)

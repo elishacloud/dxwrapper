@@ -18,6 +18,8 @@
 
 HRESULT m_IDirect3DIndexBuffer9::QueryInterface(THIS_ REFIID riid, void** ppvObj)
 {
+	Logging::LogDebug() << __FUNCTION__;
+
 	if ((riid == IID_IDirect3DIndexBuffer9 || riid == IID_IUnknown || riid == IID_IDirect3DResource9) && ppvObj)
 	{
 		AddRef();
@@ -32,16 +34,22 @@ HRESULT m_IDirect3DIndexBuffer9::QueryInterface(THIS_ REFIID riid, void** ppvObj
 
 ULONG m_IDirect3DIndexBuffer9::AddRef(THIS)
 {
+	Logging::LogDebug() << __FUNCTION__;
+
 	return ProxyInterface->AddRef();
 }
 
 ULONG m_IDirect3DIndexBuffer9::Release(THIS)
 {
+	Logging::LogDebug() << __FUNCTION__;
+
 	return ProxyInterface->Release();
 }
 
 HRESULT m_IDirect3DIndexBuffer9::GetDevice(THIS_ IDirect3DDevice9** ppDevice)
 {
+	Logging::LogDebug() << __FUNCTION__;
+
 	if (!ppDevice)
 	{
 		return D3DERR_INVALIDCALL;
@@ -56,50 +64,70 @@ HRESULT m_IDirect3DIndexBuffer9::GetDevice(THIS_ IDirect3DDevice9** ppDevice)
 
 HRESULT m_IDirect3DIndexBuffer9::SetPrivateData(THIS_ REFGUID refguid, CONST void* pData, DWORD SizeOfData, DWORD Flags)
 {
+	Logging::LogDebug() << __FUNCTION__;
+
 	return ProxyInterface->SetPrivateData(refguid, pData, SizeOfData, Flags);
 }
 
 HRESULT m_IDirect3DIndexBuffer9::GetPrivateData(THIS_ REFGUID refguid, void* pData, DWORD* pSizeOfData)
 {
+	Logging::LogDebug() << __FUNCTION__;
+
 	return ProxyInterface->GetPrivateData(refguid, pData, pSizeOfData);
 }
 
 HRESULT m_IDirect3DIndexBuffer9::FreePrivateData(THIS_ REFGUID refguid)
 {
+	Logging::LogDebug() << __FUNCTION__;
+
 	return ProxyInterface->FreePrivateData(refguid);
 }
 
 DWORD m_IDirect3DIndexBuffer9::SetPriority(THIS_ DWORD PriorityNew)
 {
+	Logging::LogDebug() << __FUNCTION__;
+
 	return ProxyInterface->SetPriority(PriorityNew);
 }
 
 DWORD m_IDirect3DIndexBuffer9::GetPriority(THIS)
 {
+	Logging::LogDebug() << __FUNCTION__;
+
 	return ProxyInterface->GetPriority();
 }
 
 void m_IDirect3DIndexBuffer9::PreLoad(THIS)
 {
+	Logging::LogDebug() << __FUNCTION__;
+
 	return ProxyInterface->PreLoad();
 }
 
 D3DRESOURCETYPE m_IDirect3DIndexBuffer9::GetType(THIS)
 {
+	Logging::LogDebug() << __FUNCTION__;
+
 	return ProxyInterface->GetType();
 }
 
 HRESULT m_IDirect3DIndexBuffer9::Lock(THIS_ UINT OffsetToLock, UINT SizeToLock, void** ppbData, DWORD Flags)
 {
+	Logging::LogDebug() << __FUNCTION__;
+
 	return ProxyInterface->Lock(OffsetToLock, SizeToLock, ppbData, Flags);
 }
 
 HRESULT m_IDirect3DIndexBuffer9::Unlock(THIS)
 {
+	Logging::LogDebug() << __FUNCTION__;
+
 	return ProxyInterface->Unlock();
 }
 
 HRESULT m_IDirect3DIndexBuffer9::GetDesc(THIS_ D3DINDEXBUFFER_DESC *pDesc)
 {
+	Logging::LogDebug() << __FUNCTION__;
+
 	return ProxyInterface->GetDesc(pDesc);
 }

@@ -215,7 +215,7 @@ void ConvertCaps(DDCAPS &Caps, DDCAPS &Caps7)
 	Caps.dwSize = dwSize;
 	if (dwSize > 0x40)
 	{
-		SetVidMemory(&Caps.dwVidMemTotal, &Caps.dwVidMemFree);
+		m_IDirectDrawX::SetVidMemory(&Caps.dwVidMemTotal, &Caps.dwVidMemFree);
 	}
 }
 
