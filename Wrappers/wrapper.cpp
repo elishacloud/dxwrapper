@@ -21,6 +21,10 @@
 #include <fstream>
 #include "Logging\Logging.h"
 
+// Forces Nvidia and AMD high performance graphics
+extern "C" { _declspec(dllexport) DWORD NvOptimusEnablement = 0x00000001; }
+extern "C" { _declspec(dllexport) DWORD AmdPowerXpressRequestHighPerformance = 0x00000001; }
+
 #define VISIT_PROCS_BLANK(visit)
 
 #define CREATE_PROC_STUB(procName, prodAddr) \

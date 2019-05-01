@@ -30,10 +30,6 @@
 #include "dsound\dsoundExternal.h"
 #include "dxwrapper.h"
 
-// Forces Nvidia and AMD high performance graphics
-extern "C" { _declspec(dllexport) DWORD NvOptimusEnablement = 0x00000001; }
-extern "C" { _declspec(dllexport) DWORD AmdPowerXpressRequestHighPerformance = 0x00000001; }
-
 #define SHIM_WRAPPED_PROC(procName, unused) \
 	Wrapper::ShimProc(procName ## _var, procName ## _in, procName ## _out);
 
