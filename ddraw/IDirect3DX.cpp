@@ -434,6 +434,31 @@ HRESULT m_IDirect3DX::CreateViewport(LPDIRECT3DVIEWPORT3 * lplpD3DViewport, LPUN
 	return hr;
 }
 
+struct ENUMSTRUCT
+{
+	bool Found = false;
+	GUID guid;
+	D3DDEVICEDESC7 DeviceDesc7;
+};
+
+HRESULT CALLBACK D3DEnumDevicesCallback7(LPSTR lpDeviceDescription, LPSTR lpDeviceName, LPD3DDEVICEDESC7 lpDeviceDesc7, LPVOID lpContext)
+{
+	UNREFERENCED_PARAMETER(lpDeviceDescription);
+	UNREFERENCED_PARAMETER(lpDeviceName);
+
+	ENUMSTRUCT *lpEnumStruct = (ENUMSTRUCT*)lpContext;
+
+	if (lpDeviceDesc7 && lpContext && lpDeviceDesc7->deviceGUID == lpEnumStruct->guid)
+	{
+		lpEnumStruct->Found = true;
+		memcpy(&lpEnumStruct->DeviceDesc7, lpDeviceDesc7, sizeof(D3DDEVICEDESC7));
+
+		return DDENUMRET_CANCEL;
+	}
+
+	return DDENUMRET_OK;
+}
+
 HRESULT m_IDirect3DX::FindDevice(LPD3DFINDDEVICESEARCH lpD3DFDS, LPD3DFINDDEVICERESULT lpD3DFDR)
 {
 	Logging::LogDebug() << __FUNCTION__;
@@ -448,8 +473,25 @@ HRESULT m_IDirect3DX::FindDevice(LPD3DFINDDEVICESEARCH lpD3DFDS, LPD3DFINDDEVICE
 		return GetProxyInterfaceV3()->FindDevice(lpD3DFDS, lpD3DFDR);
 	case 7:
 	case 9:
-		Logging::Log() << __FUNCTION__ << " Not Implemented";
-		return DDERR_UNSUPPORTED;
+	{
+		ENUMSTRUCT EnumStruct;
+		EnumStruct.guid = lpD3DFDS->guid;
+
+		EnumDevices7(D3DEnumDevicesCallback7, &EnumStruct, false);
+
+		if (EnumStruct.Found)
+		{
+			lpD3DFDR->guid = EnumStruct.DeviceDesc7.deviceGUID;
+			lpD3DFDR->ddHwDesc.dwSize = (lpD3DFDR->dwSize - sizeof(DWORD) - sizeof(GUID)) / 2;
+			ConvertDeviceDesc(lpD3DFDR->ddHwDesc, EnumStruct.DeviceDesc7);
+			lpD3DFDR->ddSwDesc.dwSize = (lpD3DFDR->dwSize - sizeof(DWORD) - sizeof(GUID)) / 2;
+			ConvertDeviceDescSoft(lpD3DFDR->ddSwDesc);
+
+			return D3D_OK;
+		}
+
+		return DDERR_NOTFOUND;
+	}
 	default:
 		return DDERR_GENERIC;
 	}
