@@ -183,6 +183,7 @@ public:
 	void AddSurfaceToVector(m_IDirectDrawSurfaceX* lpSurfaceX);
 	void RemoveSurfaceFromVector(m_IDirectDrawSurfaceX* lpSurfaceX);
 	bool DoesSurfaceExist(m_IDirectDrawSurfaceX* lpSurfaceX);
+	void EvictManagedTextures();
 	HRESULT BeginScene();
 	HRESULT EndScene();
  };

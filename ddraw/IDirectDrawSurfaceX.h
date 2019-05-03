@@ -208,9 +208,10 @@ public:
 	LPDIRECT3DTEXTURE9 *GetSurfaceTexture() { return &surfaceTexture; }
 	m_IDirectDrawPalette **GetPallete() { return &attachedPalette; }
 	BYTE **GetRawVideoMemory() { return &rawVideoBuf; }
-	bool IsSurfaceLocked() { return IsLocked; }
 	bool IsPrimarySurface() { return (surfaceDesc2.ddsCaps.dwCaps & DDSCAPS_PRIMARYSURFACE) != 0; }
+	bool IsSurfaceLocked() { return IsLocked; }
 	bool NeedsLock() { return !IsLocked && WriteDirectlyToSurface; }
+	bool IsSurfaceManaged() { return (surfaceDesc2.ddsCaps.dwCaps2 & (DDSCAPS2_TEXTUREMANAGE | DDSCAPS2_D3DTEXTUREMANAGE)); }
 	void ClearDdraw() { ddrawParent = nullptr; }
 	template <typename T>
 	void SwapAddresses(T *Address1, T *Address2)

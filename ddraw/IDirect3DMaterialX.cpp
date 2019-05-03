@@ -135,6 +135,7 @@ HRESULT m_IDirect3DMaterialX::SetMaterial(LPD3DMATERIAL lpMat)
 	case 3:
 		return GetProxyInterfaceV3()->SetMaterial(lpMat);
 	case 7:
+	case 9:
 	{
 		if (!lpMat)
 		{
@@ -176,6 +177,7 @@ HRESULT m_IDirect3DMaterialX::GetMaterial(LPD3DMATERIAL lpMat)
 	case 3:
 		return GetProxyInterfaceV3()->GetMaterial(lpMat);
 	case 7:
+	case 9:
 	{
 		if (!lpMat)
 		{
@@ -197,9 +199,6 @@ HRESULT m_IDirect3DMaterialX::GetMaterial(LPD3DMATERIAL lpMat)
 
 		return hr;
 	}
-	case 9:
-		Logging::Log() << __FUNCTION__ << " Not Implemented";
-		return DDERR_UNSUPPORTED;
 	default:
 		return DDERR_GENERIC;
 	}

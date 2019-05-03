@@ -1664,9 +1664,9 @@ void m_IDirectDrawX::RemoveSurfaceFromVector(m_IDirectDrawSurfaceX* lpSurfaceX)
 		SurfaceVector.erase(it);
 
 		// Remove attached surface from map
-		for (auto ip : SurfaceVector)
+		for (m_IDirectDrawSurfaceX *pSurface : SurfaceVector)
 		{
-			ip->RemoveAttachedSurfaceFromMap(lpSurfaceX);
+			pSurface->RemoveAttachedSurfaceFromMap(lpSurfaceX);
 		}
 	}
 }
@@ -1688,6 +1688,19 @@ bool m_IDirectDrawX::DoesSurfaceExist(m_IDirectDrawSurfaceX* lpSurfaceX)
 	}
 
 	return true;
+}
+
+// This method removes any texture surfaces created with the DDSCAPS2_TEXTUREMANAGE or DDSCAPS2_D3DTEXTUREMANAGE flags
+void m_IDirectDrawX::EvictManagedTextures()
+{
+	// Check if any surfaces are locked
+	for (m_IDirectDrawSurfaceX *pSurface : SurfaceVector)
+	{
+		if (pSurface->IsSurfaceManaged())
+		{
+			pSurface->ReleaseD9Surface();
+		}
+	}
 }
 
 // Do d3d9 BeginScene if all surfaces are unlocked

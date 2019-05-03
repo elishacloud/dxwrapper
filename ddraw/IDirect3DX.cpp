@@ -687,8 +687,16 @@ HRESULT m_IDirect3DX::EvictManagedTextures()
 	case 7:
 		return GetProxyInterfaceV7()->EvictManagedTextures();
 	case 9:
-		Logging::Log() << __FUNCTION__ << " Not Implemented";
-		return DDERR_UNSUPPORTED;
+		// Check for device
+		if (!ddrawParent)
+		{
+			Logging::Log() << __FUNCTION__ << " Error no ddraw parent!";
+			return DDERR_GENERIC;
+		}
+
+		// Evict managed texture surfaces
+		ddrawParent->EvictManagedTextures();
+		return D3D_OK;
 	}
 }
 
