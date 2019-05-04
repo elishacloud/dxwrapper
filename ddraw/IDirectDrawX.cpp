@@ -390,13 +390,13 @@ HRESULT m_IDirectDrawX::EnumDisplayModes(DWORD dwFlags, LPDDSURFACEDESC lpDDSurf
 		CallbackContext.lpContext = lpContext;
 		CallbackContext.lpCallback = lpEnumModesCallback;
 
-		return EnumDisplayModes2(dwFlags, (lpDDSurfaceDesc) ? &Desc2 : nullptr, &CallbackContext, m_IDirectDrawEnumDisplayModes::ConvertCallback);
+		return EnumDisplayModes2(dwFlags, (lpDDSurfaceDesc) ? &Desc2 : nullptr, &CallbackContext, m_IDirectDrawEnumDisplayModes::ConvertCallback, true);
 	}
 
 	return GetProxyInterfaceV3()->EnumDisplayModes(dwFlags, lpDDSurfaceDesc, lpContext, lpEnumModesCallback);
 }
 
-HRESULT m_IDirectDrawX::EnumDisplayModes2(DWORD dwFlags, LPDDSURFACEDESC2 lpDDSurfaceDesc2, LPVOID lpContext, LPDDENUMMODESCALLBACK2 lpEnumModesCallback2)
+HRESULT m_IDirectDrawX::EnumDisplayModes2(DWORD dwFlags, LPDDSURFACEDESC2 lpDDSurfaceDesc2, LPVOID lpContext, LPDDENUMMODESCALLBACK2 lpEnumModesCallback2, bool LimitModes)
 {
 	Logging::LogDebug() << __FUNCTION__;
 
@@ -443,6 +443,7 @@ HRESULT m_IDirectDrawX::EnumDisplayModes2(DWORD dwFlags, LPDDSURFACEDESC2 lpDDSu
 		UINT modeCount = d3d9Object->GetAdapterModeCount(D3DADAPTER_DEFAULT, D3DFMT_X8R8G8B8);
 
 		// Loop through all modes
+		int Loop = 0;
 		for (UINT i = 0; i < modeCount; i++)
 		{
 			// Get display modes
@@ -473,6 +474,12 @@ HRESULT m_IDirectDrawX::EnumDisplayModes2(DWORD dwFlags, LPDDSURFACEDESC2 lpDDSu
 					(!EnumHeight || d3ddispmode.Height == EnumHeight) &&
 					(!EnumRefreshRate || d3ddispmode.RefreshRate == EnumRefreshRate))
 				{
+					// Only return 34 display modes
+					if (LimitModes && ++Loop > 34)
+					{
+						break;
+					}
+
 					// Set surface desc options
 					Desc2.dwSize = sizeof(DDSURFACEDESC2);
 					Desc2.dwFlags = DDSD_WIDTH | DDSD_HEIGHT | DDSD_PITCH | DDSD_PIXELFORMAT;
@@ -1581,7 +1588,10 @@ void m_IDirectDrawX::ReleaseD3d9()
 	ReleaseD3d9Device();
 
 	// Release existing d3d9object
-	d3d9Object->Release();
+	if (d3d9Object)
+	{
+		d3d9Object->Release();
+	}
 }
 
 // Fixes a bug in ddraw in Windows 8 and 10 where the exclusive flag remains even after the window (hWnd) closes

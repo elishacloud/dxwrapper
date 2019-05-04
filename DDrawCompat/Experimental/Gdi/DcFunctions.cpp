@@ -85,15 +85,15 @@ namespace
 #ifdef _DEBUG
 			if (!hasDisplayDcArg(params...))
 			{
-				Compat::Log() << "Skipping redirection since there is no display DC argument";
+				Compat::LogDebug() << "Skipping redirection since there is no display DC argument";
 			}
 			else if (!Gdi::isEmulationEnabled())
 			{
-				Compat::Log() << "Skipping redirection since GDI emulation is disabled";
+				Compat::LogDebug() << "Skipping redirection since GDI emulation is disabled";
 			}
 			else
 			{
-				Compat::Log() << "Skipping redirection since the primary surface could not be locked";
+				Compat::LogDebug() << "Skipping redirection since the primary surface could not be locked";
 			}
 			Compat::LogLeave(g_funcNames[origFunc], params...) << result;
 #endif
