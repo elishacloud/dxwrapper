@@ -22,13 +22,40 @@ HRESULT m_IDirect3DDevice9Ex::QueryInterface(REFIID riid, void** ppvObj)
 {
 	Logging::LogDebug() << __FUNCTION__;
 
-	if ((riid == IID_IDirect3DDevice9Ex || riid == IID_IDirect3DDevice9 || riid == IID_IUnknown) && ppvObj)
+	if (riid == IID_IUnknown && ppvObj)
 	{
 		AddRef();
 
 		*ppvObj = this;
 
-		return S_OK;
+		return D3D_OK;
+	}
+	else if ((riid == IID_IDirect3DDevice9 || riid == IID_IDirect3DDevice9Ex) && ppvObj)
+	{
+		HRESULT hr = ProxyInterface->QueryInterface(riid, ppvObj);
+
+		if (SUCCEEDED(hr) && *ppvObj != ProxyInterface)
+		{
+			m_IDirect3DDevice9Ex *pReturnedDevice = new m_IDirect3DDevice9Ex((LPDIRECT3DDEVICE9EX)*ppvObj, m_pD3DEx);
+
+			*ppvObj = pReturnedDevice;
+
+			D3DPRESENT_PARAMETERS PresentationParameters = { NULL };
+
+			PresentationParameters.BackBufferHeight = displayHeight;
+			PresentationParameters.FullScreen_RefreshRateInHz = monitorRefreshRate;
+			PresentationParameters.hDeviceWindow = MainhWnd;
+			PresentationParameters.MultiSampleType = DeviceMultiSampleType;
+			PresentationParameters.MultiSampleQuality = DeviceMultiSampleQuality;
+
+			pReturnedDevice->SetDefaults(&PresentationParameters, MainhWnd, DeviceMultiSampleType != D3DMULTISAMPLE_NONE);
+		}
+		else if (SUCCEEDED(hr))
+		{
+			*ppvObj = this;
+		}
+
+		return hr;
 	}
 
 	return ProxyInterface->QueryInterface(riid, ppvObj);

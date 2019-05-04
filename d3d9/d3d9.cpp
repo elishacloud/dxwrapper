@@ -36,7 +36,7 @@ HRESULT WINAPI d9_Direct3DShaderValidatorCreate9()
 
 	if (!m_pDirect3DShaderValidatorCreate9)
 	{
-		return E_FAIL;
+		return DDERR_GENERIC;
 	}
 
 	return m_pDirect3DShaderValidatorCreate9();
@@ -48,7 +48,7 @@ HRESULT WINAPI d9_PSGPError()
 
 	if (!m_pPSGPError)
 	{
-		return E_FAIL;
+		return DDERR_GENERIC;
 	}
 
 	return m_pPSGPError();
@@ -60,7 +60,7 @@ HRESULT WINAPI d9_PSGPSampleTexture()
 
 	if (!m_pPSGPSampleTexture)
 	{
-		return E_FAIL;
+		return DDERR_GENERIC;
 	}
 
 	return m_pPSGPSampleTexture();
@@ -156,7 +156,7 @@ HRESULT WINAPI d9_DebugSetLevel(DWORD dw1)
 
 	if (!m_pDebugSetLevel)
 	{
-		return E_FAIL;
+		return DDERR_GENERIC;
 	}
 
 	return m_pDebugSetLevel(dw1);
@@ -234,7 +234,7 @@ HRESULT WINAPI d9_Direct3DCreate9Ex(UINT SDKVersion, IDirect3D9Ex **ppD3D)
 
 	if (!m_pDirect3DCreate9Ex)
 	{
-		return E_FAIL;
+		return DDERR_GENERIC;
 	}
 
 	Logging::Log() << "Redirecting 'Direct3DCreate9Ex' ...";

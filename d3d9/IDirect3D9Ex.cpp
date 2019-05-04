@@ -24,13 +24,28 @@ HRESULT m_IDirect3D9Ex::QueryInterface(REFIID riid, void** ppvObj)
 {
 	Logging::LogDebug() << __FUNCTION__;
 
-	if ((riid == IID_IDirect3D9Ex || riid == IID_IDirect3D9 || riid == IID_IUnknown) && ppvObj)
+	if (riid == IID_IUnknown && ppvObj)
 	{
 		AddRef();
 
 		*ppvObj = this;
 
-		return S_OK;
+		return D3D_OK;
+	}
+	else if ((riid == IID_IDirect3D9 || riid == IID_IDirect3D9Ex) && ppvObj)
+	{
+		HRESULT hr = ProxyInterface->QueryInterface(riid, ppvObj);
+
+		if (SUCCEEDED(hr) && *ppvObj != ProxyInterface)
+		{
+			*ppvObj = new m_IDirect3D9Ex((LPDIRECT3D9EX)*ppvObj);
+		}
+		else if (SUCCEEDED(hr))
+		{
+			*ppvObj = this;
+		}
+
+		return hr;
 	}
 
 	return ProxyInterface->QueryInterface(riid, ppvObj);
@@ -203,10 +218,10 @@ HRESULT m_IDirect3D9Ex::CreateDevice(UINT Adapter, D3DDEVTYPE DeviceType, HWND h
 		{
 			if (ProxyInterface->CheckDeviceMultiSampleType(Adapter,
 				DeviceType, (d3dpp.BackBufferFormat) ? d3dpp.BackBufferFormat : D3DFMT_X8R8G8B8, d3dpp.Windowed,
-				(D3DMULTISAMPLE_TYPE)x, &QualityLevels) == S_OK ||
+				(D3DMULTISAMPLE_TYPE)x, &QualityLevels) == D3D_OK ||
 				ProxyInterface->CheckDeviceMultiSampleType(Adapter,
 					DeviceType, d3dpp.AutoDepthStencilFormat, d3dpp.Windowed,
-					(D3DMULTISAMPLE_TYPE)x, &QualityLevels) == S_OK)
+					(D3DMULTISAMPLE_TYPE)x, &QualityLevels) == D3D_OK)
 			{
 				// Update Present Parameter for Multisample
 				UpdatePresentParameterForMultisample(&d3dpp, (D3DMULTISAMPLE_TYPE)x, (QualityLevels > 0) ? QualityLevels - 1 : 0);
@@ -299,10 +314,10 @@ HRESULT m_IDirect3D9Ex::CreateDeviceEx(THIS_ UINT Adapter, D3DDEVTYPE DeviceType
 		{
 			if (ProxyInterface->CheckDeviceMultiSampleType(Adapter,
 				DeviceType, (d3dpp.BackBufferFormat) ? d3dpp.BackBufferFormat : D3DFMT_X8R8G8B8, d3dpp.Windowed,
-				(D3DMULTISAMPLE_TYPE)x, &QualityLevels) == S_OK ||
+				(D3DMULTISAMPLE_TYPE)x, &QualityLevels) == D3D_OK ||
 				ProxyInterface->CheckDeviceMultiSampleType(Adapter,
 					DeviceType, d3dpp.AutoDepthStencilFormat, d3dpp.Windowed,
-					(D3DMULTISAMPLE_TYPE)x, &QualityLevels) == S_OK)
+					(D3DMULTISAMPLE_TYPE)x, &QualityLevels) == D3D_OK)
 			{
 				// Update Present Parameter for Multisample
 				UpdatePresentParameterForMultisample(&d3dpp, (D3DMULTISAMPLE_TYPE)x, (QualityLevels > 0) ? QualityLevels - 1 : 0);

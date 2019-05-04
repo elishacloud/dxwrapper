@@ -26,7 +26,7 @@ HRESULT m_IDirect3DVolumeTexture9::QueryInterface(THIS_ REFIID riid, void** ppvO
 
 		*ppvObj = this;
 
-		return S_OK;
+		return D3D_OK;
 	}
 
 	return ProxyInterface->QueryInterface(riid, ppvObj);
