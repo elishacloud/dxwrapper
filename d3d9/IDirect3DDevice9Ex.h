@@ -7,6 +7,7 @@ private:
 	m_IDirect3D9Ex* m_pD3DEx;
 	D3DMULTISAMPLE_TYPE DeviceMultiSampleType = D3DMULTISAMPLE_NONE;
 	DWORD DeviceMultiSampleQuality = 0;
+	bool isClipPlaneSet = false;
 	DWORD m_clipPlaneRenderState = 0;
 	static constexpr size_t MAX_CLIP_PLANES = 6;
 	float m_storedClipPlanes[MAX_CLIP_PLANES][4];

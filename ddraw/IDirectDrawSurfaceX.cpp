@@ -267,6 +267,19 @@ HRESULT m_IDirectDrawSurfaceX::Blt(LPRECT lpDestRect, LPDIRECTDRAWSURFACE7 lpDDS
 		// DDBLT_WAIT
 		// DDBLTFX_NOTEARING
 
+		// Do color fill
+		if (dwFlags & DDBLT_COLORFILL)
+		{
+			HRESULT hr = ColorFill(lpDestRect, lpDDBltFx->dwFillColor);
+
+			if (IsPrimarySurface())
+			{
+				Present();
+			}
+
+			return hr;
+		}
+
 		// Check for device
 		if (!ddrawParent)
 		{
@@ -290,35 +303,33 @@ HRESULT m_IDirectDrawSurfaceX::Blt(LPRECT lpDestRect, LPDIRECTDRAWSURFACE7 lpDDS
 		else
 		{
 			lpDDSrcSurfaceX = ((m_IDirectDrawSurface*)lpDDSrcSurfaceX)->GetWrapperInterface();
-		}
-		if (!ddrawParent->DoesSurfaceExist(lpDDSrcSurfaceX))
-		{
-			Logging::Log() << __FUNCTION__ << " Error, could not find source surface";
-			return DDERR_INVALIDPARAMS;
+
+			if (!ddrawParent->DoesSurfaceExist(lpDDSrcSurfaceX))
+			{
+				Logging::Log() << __FUNCTION__ << " Error, could not find source surface";
+				return DDERR_INVALIDPARAMS;
+			}
 		}
 
-		// Do color fill
-		if (dwFlags & DDBLT_COLORFILL)
-		{
-			return ColorFill(lpDestRect, lpDDBltFx->dwFillColor);
-		}
-
-		// Check and copy destination and source rect
+		// Check and copy source and destination rect
 		RECT DestRect, SrcRect;
-		if (!FixRect(&DestRect, lpDestRect) || !lpDDSrcSurfaceX->FixRect(&SrcRect, lpSrcRect))
+		if (!lpDDSrcSurfaceX->UpdateRect(&SrcRect, lpSrcRect) || !UpdateRect(&DestRect, lpDestRect))
 		{
 			Logging::Log() << __FUNCTION__ << " Error, invalid rect size";
 			return DDERR_INVALIDRECT;
 		}
 
+		// Check if the rect should be stretched
+		bool isStretchRect = (abs((DestRect.right - DestRect.left) - (SrcRect.right - SrcRect.left)) > 1 || abs((DestRect.bottom - DestRect.top) - (SrcRect.bottom - SrcRect.top)) > 1);
+
 		// Check if the scene needs to be presented
-		bool SkipScene = (DestRect.bottom - DestRect.top < 2 || DestRect.right - DestRect.left < 2 || SrcRect.bottom - SrcRect.top < 2 || SrcRect.right - SrcRect.left < 2);
+		bool isSkipScene = (DestRect.bottom - DestRect.top < 2 || DestRect.right - DestRect.left < 2 || SrcRect.bottom - SrcRect.top < 2 || SrcRect.right - SrcRect.left < 2);
 
 		// Check if destination surface is not locked then lock it
 		bool UnlockDest = false;
 		if (NeedsLock())
 		{
-			HRESULT hr = SetLock(nullptr, 0, SkipScene);
+			HRESULT hr = SetLock(nullptr, 0, isSkipScene);
 			if (FAILED(hr))
 			{
 				Logging::Log() << __FUNCTION__ << " Error, could not lock dest surface";
@@ -342,7 +353,7 @@ HRESULT m_IDirectDrawSurfaceX::Blt(LPRECT lpDestRect, LPDIRECTDRAWSURFACE7 lpDDS
 			// Check if source surface is not locked then lock it
 			if (lpDDSrcSurfaceX->NeedsLock())
 			{
-				hr = lpDDSrcSurfaceX->SetLock(nullptr, 0, SkipScene);
+				hr = lpDDSrcSurfaceX->SetLock(nullptr, 0, isSkipScene);
 				if (FAILED(hr))
 				{
 					Logging::Log() << __FUNCTION__ << " Error, could not lock src surface";
@@ -369,8 +380,7 @@ HRESULT m_IDirectDrawSurfaceX::Blt(LPRECT lpDestRect, LPDIRECTDRAWSURFACE7 lpDDS
 		if (SUCCEEDED(hr))
 		{
 			// Strect rect and color key
-			if (abs((DestRect.right - DestRect.left) - (SrcRect.right - SrcRect.left)) > 1 && abs((DestRect.bottom - DestRect.top) - (SrcRect.bottom - SrcRect.top)) > 1 &&
-				(dwFlags & (DDBLT_KEYDESTOVERRIDE | DDBLT_KEYSRCOVERRIDE | DDBLT_KEYDEST | DDBLT_KEYSRC)))
+			if (isStretchRect && (dwFlags & (DDBLT_KEYDESTOVERRIDE | DDBLT_KEYSRCOVERRIDE | DDBLT_KEYDEST | DDBLT_KEYSRC)))
 			{
 				Logging::Log() << __FUNCTION__ << " stretch rect plus color key not imlpemented";
 				hr = DDERR_GENERIC;
@@ -399,7 +409,7 @@ HRESULT m_IDirectDrawSurfaceX::Blt(LPRECT lpDestRect, LPDIRECTDRAWSURFACE7 lpDDS
 				}
 			}
 			// Strect rect
-			else if (abs((DestRect.right - DestRect.left) - (SrcRect.right - SrcRect.left)) > 1 && abs((DestRect.bottom - DestRect.top) - (SrcRect.bottom - SrcRect.top)) > 1)
+			else if (isStretchRect)
 			{
 				hr = StretchRect(&DestLockRect, &DestRect, DestBitCount, DestFormat, &SrcLockRect, &SrcRect, SrcBitCount, SrcFormat);
 				if (FAILED(hr))
@@ -421,11 +431,15 @@ HRESULT m_IDirectDrawSurfaceX::Blt(LPRECT lpDestRect, LPDIRECTDRAWSURFACE7 lpDDS
 		// Unlock surfaces if needed
 		if (UnlockDest)
 		{
-			SetUnLock(SkipScene);
+			SetUnLock(isSkipScene);
 		}
 		if (UnlockSrc)
 		{
-			lpDDSrcSurfaceX->SetUnLock(SkipScene);
+			lpDDSrcSurfaceX->SetUnLock(isSkipScene);
+		}
+		if (!UnlockDest && !isSkipScene && (IsPrimarySurface() || lpDDSrcSurfaceX->IsPrimarySurface()))
+		{
+			Present();
 		}
 
 		// Return
@@ -497,7 +511,7 @@ HRESULT m_IDirectDrawSurfaceX::BltFast(DWORD dwX, DWORD dwY, LPDIRECTDRAWSURFACE
 		// Get SrcRect
 		RECT SrcRect;
 		m_IDirectDrawSurfaceX *lpDDSrcSurfaceX = (!lpDDSrcSurface) ? this : ((m_IDirectDrawSurface*)lpDDSrcSurface)->GetWrapperInterface();
-		lpDDSrcSurfaceX->FixRect(&SrcRect, lpSrcRect);
+		lpDDSrcSurfaceX->UpdateRect(&SrcRect, lpSrcRect);
 
 		// Create DestRect
 		RECT DestRect = { (LONG)dwX, (LONG)dwY, SrcRect.right - SrcRect.left + (LONG)dwX , SrcRect.bottom - SrcRect.top + (LONG)dwY };
@@ -774,9 +788,6 @@ HRESULT m_IDirectDrawSurfaceX::Flip(LPDIRECTDRAWSURFACE7 lpDDSurfaceTargetOverri
 			return DDERR_GENERIC;
 		}
 
-		// Run BeginScene (ignore results)
-		ddrawParent->BeginScene();
-
 		// Set new texture
 		HRESULT hr = (*d3d9Device)->SetTexture(0, surfaceTexture);
 		if (FAILED(hr))
@@ -784,24 +795,8 @@ HRESULT m_IDirectDrawSurfaceX::Flip(LPDIRECTDRAWSURFACE7 lpDDSurfaceTargetOverri
 			Logging::Log() << __FUNCTION__ << " Failed to set texture";
 		}
 
-		// Write video memory to texture and EndScene
-		if (!WriteDirectlyToSurface)
-		{
-			// Lock surface to prepare for writing
-			if (!IsLocked)
-			{
-				SetLock(nullptr, 0, true);
-			}
-
-			// Write to surface and unlock
-			if (IsLocked)
-			{
-				SetUnLock(true);
-			}
-		}
-
-		// Run EndScene (ignore results)
-		ddrawParent->EndScene();
+		// Present to screen
+		Present();
 
 		return hr;
 	}
@@ -2236,9 +2231,9 @@ HRESULT m_IDirectDrawSurfaceX::CreateD3d9Surface()
 		WriteDirectlyToSurface = true;
 	}
 
-	Logging::LogDebug() << __FUNCTION__ << " D3d9 Surface size: " << surfaceDesc2.dwWidth << "x" << surfaceDesc2.dwHeight;
+	Logging::LogDebug() << __FUNCTION__ << " D3d9 Surface size: " << surfaceDesc2.dwWidth << "x" << surfaceDesc2.dwHeight << " Usage: " << Usage << " Format: " << Format << " Pool: " << Pool;
 	// Create surface
-	if (FAILED((*d3d9Device)->CreateTexture(surfaceDesc2.dwWidth, surfaceDesc2.dwHeight, 1, Usage, Format, Pool, &surfaceTexture, nullptr)))
+	if (FAILED((*d3d9Device)->CreateTexture(surfaceDesc2.dwWidth, surfaceDesc2.dwHeight, 0, Usage, Format, Pool, &surfaceTexture, nullptr)))
 	{
 		Logging::Log() << __FUNCTION__ << " Unable to create surface";
 		return DDERR_GENERIC;
@@ -2420,7 +2415,7 @@ void m_IDirectDrawSurfaceX::ReleaseD9Surface()
 }
 
 // Check surface reck dimensions and copy rect to new rect
-bool m_IDirectDrawSurfaceX::FixRect(LPRECT lpOutRect, LPRECT lpInRect)
+bool m_IDirectDrawSurfaceX::UpdateRect(LPRECT lpOutRect, LPRECT lpInRect)
 {
 	if (!lpOutRect)
 	{
@@ -2558,6 +2553,38 @@ HRESULT m_IDirectDrawSurfaceX::SetUnLock(bool SkipEndSceneFlag)
 	return DD_OK;
 }
 
+void m_IDirectDrawSurfaceX::Present()
+{
+	// Check for device
+	if (!ddrawParent)
+	{
+		Logging::Log() << __FUNCTION__ << " Error no ddraw parent!";
+		return;
+	}
+
+	// Run BeginScene (ignore results)
+	ddrawParent->BeginScene();
+
+	// Write video memory to texture and EndScene
+	if (!WriteDirectlyToSurface)
+	{
+		// Lock surface to prepare for writing
+		if (!IsLocked)
+		{
+			SetLock(nullptr, 0, true);
+		}
+
+		// Write to surface and unlock
+		if (IsLocked)
+		{
+			SetUnLock(true);
+		}
+	}
+
+	// Run EndScene (ignore results)
+	ddrawParent->EndScene();
+}
+
 // Get LOCKED_RECT, BitCount and Format for the surface
 HRESULT m_IDirectDrawSurfaceX::GetSurfaceInfo(D3DLOCKED_RECT *pLockRect, DWORD *lpBitCount, D3DFORMAT *lpFormat)
 {
@@ -2672,7 +2699,7 @@ HRESULT m_IDirectDrawSurfaceX::ColorFill(RECT *pRect, DWORD dwFillColor)
 {
 	// Check and copy rect
 	RECT DestRect;
-	if (!FixRect(&DestRect, pRect))
+	if (!UpdateRect(&DestRect, pRect))
 	{
 		Logging::Log() << __FUNCTION__ << " Error, invalid rect size";
 		return DDERR_INVALIDRECT;
@@ -2766,7 +2793,7 @@ HRESULT m_IDirectDrawSurfaceX::WritePaletteToSurface(m_IDirectDrawPalette *lpDDP
 
 	// Check and copy rect
 	RECT DestRect;
-	if (!FixRect(&DestRect, pRect))
+	if (!UpdateRect(&DestRect, pRect))
 	{
 		Logging::Log() << __FUNCTION__ << " Error, invalid rect size";
 		return DDERR_INVALIDRECT;
@@ -2849,12 +2876,15 @@ HRESULT m_IDirectDrawSurfaceX::CopyRect(D3DLOCKED_RECT *pDestLockRect, RECT *pDe
 			return DDERR_GENERIC;
 		}
 
-		// Copy memory
-		for (LONG y = 0; y < RectHeight; y++)
+		unsigned char *src = (unsigned char *)((BYTE*)pSrcLockRect->pBits + (pSrcRect->top * pSrcLockRect->Pitch) + (pSrcRect->left * ByteCount));
+		unsigned char *dst = (unsigned char *)((BYTE*)pDestLockRect->pBits + (pDestRect->top * pDestLockRect->Pitch) + (pDestRect->left * ByteCount));
+
+		for (int i = 0; i < RectHeight; i++)
 		{
-			memcpy((BYTE*)pDestLockRect->pBits + ((y + pDestRect->top) * pDestLockRect->Pitch) + (pDestRect->left * ByteCount),	// Destination video memory address
-				(BYTE*)pSrcLockRect->pBits + ((y + pSrcRect->top) * pSrcLockRect->Pitch) + (pSrcRect->left * ByteCount),		// Source video memory address
-				RectWidth * ByteCount);																							// Size of bytes to write
+			memcpy(dst, src, pSrcLockRect->Pitch);
+
+			src += pSrcLockRect->Pitch;
+			dst += pDestLockRect->Pitch;
 		}
 
 		// Return
@@ -2879,8 +2909,25 @@ HRESULT m_IDirectDrawSurfaceX::CopyRect(D3DLOCKED_RECT *pDestLockRect, RECT *pDe
 			switch (SrcBitCount)
 			{
 			case 8: // 8-bit source surface with 32-bit destination surface
-				Logging::Log() << __FUNCTION__ << " No support for non-palette 8-bit source surfaces!";
+			{
+				BYTE *RawBuffer = (BYTE*)SrcBuffer;
+
+				LONG StartSrcLoc = (pSrcRect->top * pSrcLockRect->Pitch) + (pSrcRect->left * 2);
+				LONG StartDestLoc = (pDestRect->top * pDestLockRect->Pitch) + (pDestRect->left * 2);
+
+				LONG wPitch = RectWidth * 2;
+				for (LONG y = 0; y < RectHeight; y++)
+				{
+					for (LONG x = 0; x < wPitch; x += 2)
+					{
+						DestBuffer[StartDestLoc + x] = rgbPalette[RawBuffer[StartSrcLoc + x]];
+					}
+
+					StartSrcLoc += pSrcLockRect->Pitch;
+					StartDestLoc += pDestLockRect->Pitch;
+				}
 				break;
+			}
 			case 16: // 16-bit source surface with 32-bit destination surface
 				switch (SrcFormat)
 				{
@@ -2888,40 +2935,50 @@ HRESULT m_IDirectDrawSurfaceX::CopyRect(D3DLOCKED_RECT *pDestLockRect, RECT *pDe
 				case D3DFMT_X1R5G5B5:
 				{
 					WORD *RawBuffer = (WORD*)SrcBuffer;
+
+					LONG StartDestLoc = (pDestRect->top * pDestLockRect->Pitch) + (pDestRect->left * 2);
+					LONG StartSrcLoc = (pSrcRect->top * pSrcLockRect->Pitch) + (pSrcRect->left * 2);
+
+					LONG wPitch = RectWidth * 2;
 					for (LONG y = 0; y < RectHeight; y++)
 					{
-						DWORD StartDestLoc = ((y + pDestRect->top) * pDestLockRect->Pitch) + (pDestRect->left * 2);
-						DWORD StartSrcLoc = ((y + pSrcRect->top) * pSrcLockRect->Pitch) + (pSrcRect->left * 2);
-
-						for (LONG x = 0; x < RectWidth; x++)
+						for (LONG x = 0; x < wPitch; x += 2)
 						{
-							LONG z = StartSrcLoc + x * 2;
-							DestBuffer[StartDestLoc + x * 2] = 
+							LONG z = StartSrcLoc + x;
+							DestBuffer[StartDestLoc + x] = 
 								((RawBuffer[z] & 0x8000) << 9) * 255 +		// Alpha
 								((RawBuffer[z] & 0x7C00) << 9) +			// Red
 								((RawBuffer[z] & 0x03E0) << 6) +			// Green
 								((RawBuffer[z] & 0x001F) << 3);				// Blue
 						}
+
+						StartSrcLoc += pSrcLockRect->Pitch;
+						StartDestLoc += pDestLockRect->Pitch;
 					}
 					break;
 				}
 				case D3DFMT_R5G6B5:
 				{
 					WORD *RawBuffer = (WORD*)SrcBuffer;
+
+					LONG StartDestLoc = (pDestRect->top * pDestLockRect->Pitch) + (pDestRect->left * 2);
+					LONG StartSrcLoc = (pSrcRect->top * pSrcLockRect->Pitch) + (pSrcRect->left * 2);
+
+					LONG wPitch = RectWidth * 2;
 					for (LONG y = 0; y < RectHeight; y++)
 					{
-						DWORD StartDestLoc = ((y + pDestRect->top) * pDestLockRect->Pitch) + (pDestRect->left * 2);
-						DWORD StartSrcLoc = ((y + pSrcRect->top) * pSrcLockRect->Pitch) + (pSrcRect->left * 2);
-
-						for (LONG x = 0; x < RectWidth; x++)
+						for (LONG x = 0; x < wPitch; x += 2)
 						{
-							LONG z = StartSrcLoc + x * 2;
-							DestBuffer[StartDestLoc + x * 2] =
+							LONG z = StartSrcLoc + x;
+							DestBuffer[StartDestLoc + x] =
 								(0xFF000000) +						// Alpha
 								((RawBuffer[z] & 0xF800) << 8) +	// Red
 								((RawBuffer[z] & 0x07E0) << 5) +	// Green
 								((RawBuffer[z] & 0x001F) << 3);		// Blue
 						}
+
+						StartSrcLoc += pSrcLockRect->Pitch;
+						StartDestLoc += pDestLockRect->Pitch;
 					}
 					break;
 				}
@@ -2936,12 +2993,15 @@ HRESULT m_IDirectDrawSurfaceX::CopyRect(D3DLOCKED_RECT *pDestLockRect, RECT *pDe
 				case D3DFMT_A8R8G8B8:
 				case D3DFMT_X8R8G8B8:
 				{
-					// Copy memory
-					for (LONG y = 0; y < RectHeight; y++)
+					unsigned char *src = (unsigned char *)((BYTE*)pSrcLockRect->pBits + (pSrcRect->top * pSrcLockRect->Pitch) + (pSrcRect->left * 4));
+					unsigned char *dst = (unsigned char *)((BYTE*)pDestLockRect->pBits + (pDestRect->top * pDestLockRect->Pitch) + (pDestRect->left * 4));
+
+					for (LONG i = 0; i < RectHeight; i++)
 					{
-						memcpy((BYTE*)pDestLockRect->pBits + ((y + pDestRect->top) * pDestLockRect->Pitch) + (pDestRect->left * 4),	// Destination video memory address
-							(BYTE*)pSrcLockRect->pBits + ((y + pSrcRect->top) * pSrcLockRect->Pitch) + (pSrcRect->left * 4),		// Source video memory address
-							RectWidth * 4);																							// Size of bytes to write
+						memcpy(dst, src, pSrcLockRect->Pitch);
+
+						src += pSrcLockRect->Pitch;
+						dst += pDestLockRect->Pitch;
 					}
 					break;
 				}

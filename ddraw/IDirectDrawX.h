@@ -8,7 +8,7 @@ private:
 	DWORD ProxyDirectXVersion;
 	ULONG RefCount = 1;
 
-	static const DWORD MaxVidMemory = 0x8000000;
+	static constexpr DWORD MaxVidMemory = 0x8000000;
 
 	// Fix exclusive mode issue
 	HHOOK g_hook = nullptr;

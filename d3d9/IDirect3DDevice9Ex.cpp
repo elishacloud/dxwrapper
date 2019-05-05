@@ -760,7 +760,7 @@ HRESULT m_IDirect3DDevice9Ex::DrawIndexedPrimitive(THIS_ D3DPRIMITIVETYPE Type, 
 	Logging::LogDebug() << __FUNCTION__;
 
 	// CacheClipPlane
-	if (Config.CacheClipPlane)
+	if (Config.CacheClipPlane && isClipPlaneSet)
 	{
 		ApplyClipPlanes();
 	}
@@ -773,7 +773,7 @@ HRESULT m_IDirect3DDevice9Ex::DrawIndexedPrimitiveUP(D3DPRIMITIVETYPE PrimitiveT
 	Logging::LogDebug() << __FUNCTION__;
 
 	// CacheClipPlane
-	if (Config.CacheClipPlane)
+	if (Config.CacheClipPlane && isClipPlaneSet)
 	{
 		ApplyClipPlanes();
 	}
@@ -786,7 +786,7 @@ HRESULT m_IDirect3DDevice9Ex::DrawPrimitive(D3DPRIMITIVETYPE PrimitiveType, UINT
 	Logging::LogDebug() << __FUNCTION__;
 
 	// CacheClipPlane
-	if (Config.CacheClipPlane)
+	if (Config.CacheClipPlane && isClipPlaneSet)
 	{
 		ApplyClipPlanes();
 	}
@@ -799,7 +799,7 @@ HRESULT m_IDirect3DDevice9Ex::DrawPrimitiveUP(D3DPRIMITIVETYPE PrimitiveType, UI
 	Logging::LogDebug() << __FUNCTION__;
 
 	// CacheClipPlane
-	if (Config.CacheClipPlane)
+	if (Config.CacheClipPlane && isClipPlaneSet)
 	{
 		ApplyClipPlanes();
 	}
@@ -1027,6 +1027,8 @@ HRESULT m_IDirect3DDevice9Ex::SetClipPlane(DWORD Index, CONST float *pPlane)
 		{
 			return D3DERR_INVALIDCALL;
 		}
+
+		isClipPlaneSet = true;
 
 		memcpy(m_storedClipPlanes[Index], pPlane, sizeof(m_storedClipPlanes[0]));
 

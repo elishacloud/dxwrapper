@@ -288,6 +288,9 @@ DWORD GetBitCount(D3DFORMAT Format)
 {
 	switch (Format)
 	{
+	case D3DFMT_P8:
+	case D3DFMT_L8:
+		return 8;
 	case D3DFMT_R5G6B5:
 	case D3DFMT_X1R5G5B5:
 	case D3DFMT_A1R5G5B5:

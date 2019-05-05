@@ -995,6 +995,7 @@ HRESULT m_IDirectDrawX::SetCooperativeLevel(HWND hWnd, DWORD dwFlags)
 			// Return the best handle
 			hWnd = data.best_handle;
 		}
+
 		MainhWnd = hWnd;
 
 		return DD_OK;
