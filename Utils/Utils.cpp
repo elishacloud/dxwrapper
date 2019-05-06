@@ -39,17 +39,19 @@ extern "C"
 
 #undef LoadLibrary
 
-typedef enum _PROCESS_DPI_AWARENESS {
+typedef enum PROCESS_DPI_AWARENESS {
 	PROCESS_DPI_UNAWARE = 0,
 	PROCESS_SYSTEM_DPI_AWARE = 1,
 	PROCESS_PER_MONITOR_DPI_AWARE = 2
 } PROCESS_DPI_AWARENESS;
 typedef void(WINAPI *PFN_InitializeASI)(void);
-typedef HRESULT(WINAPI* SetProcessDpiAwarenessProc)(PROCESS_DPI_AWARENESS value);
+typedef HRESULT(WINAPI *SetProcessDpiAwarenessProc)(PROCESS_DPI_AWARENESS value);
+typedef BOOL(WINAPI *SetProcessDPIAwareProc)();
+typedef BOOL(WINAPI *SetProcessDpiAwarenessContextProc)(DPI_AWARENESS_CONTEXT value);
 typedef FARPROC(WINAPI *GetProcAddressProc)(HMODULE, LPSTR);
 typedef DWORD(WINAPI *GetModuleFileNameAProc)(HMODULE, LPSTR, DWORD);
 typedef DWORD(WINAPI *GetModuleFileNameWProc)(HMODULE, LPWSTR, DWORD);
-typedef HRESULT(__stdcall *SetAppCompatDataFunc)(DWORD, DWORD);
+typedef HRESULT(WINAPI *SetAppCompatDataFunc)(DWORD, DWORD);
 typedef LPTOP_LEVEL_EXCEPTION_FILTER(WINAPI *PFN_SetUnhandledExceptionFilter)(LPTOP_LEVEL_EXCEPTION_FILTER);
 
 namespace Utils
@@ -137,18 +139,42 @@ void Utils::SetProcessAffinity()
 void Utils::DisableHighDPIScaling()
 {
 	Logging::Log() << "Disabling High DPI Scaling...";
-	HMODULE module = LoadLibrary("Shcore.dll");
 
-	if (module)
+	BOOL setDpiAware = FALSE;
+	HMODULE hUser32 = LoadLibrary("user32.dll");
+	HMODULE hShcore = LoadLibrary("shcore.dll");
+	if (hUser32 && !setDpiAware)
 	{
-		SetProcessDpiAwarenessProc pSetProcessDpiAwareness = (SetProcessDpiAwarenessProc)GetProcAddress(module, "SetProcessDpiAwareness");
-		if (pSetProcessDpiAwareness)
+		SetProcessDpiAwarenessContextProc setProcessDpiAwarenessContext = (SetProcessDpiAwarenessContextProc)GetProcAddress(hUser32, "SetProcessDpiAwarenessContext");
+
+		if (setProcessDpiAwarenessContext)
 		{
-			pSetProcessDpiAwareness(PROCESS_PER_MONITOR_DPI_AWARE);
-			return;
+			setDpiAware |= setProcessDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE);
 		}
 	}
-	Logging::Log() << "Failed to disable High DPI Scaling!";
+	if (hShcore && !setDpiAware)
+	{
+		SetProcessDpiAwarenessProc setProcessDpiAwareness = (SetProcessDpiAwarenessProc)GetProcAddress(hShcore, "SetProcessDpiAwareness");
+
+		if (setProcessDpiAwareness)
+		{
+			setDpiAware |= SUCCEEDED(setProcessDpiAwareness(PROCESS_PER_MONITOR_DPI_AWARE));
+		}
+	}
+	if (hUser32 && !setDpiAware)
+	{
+		SetProcessDPIAwareProc setProcessDPIAware = (SetProcessDPIAwareProc)GetProcAddress(hUser32, "SetProcessDPIAware");
+
+		if (setProcessDPIAware)
+		{
+			setDpiAware |= setProcessDPIAware();
+		}
+	}
+
+	if (!setDpiAware)
+	{
+		Logging::Log() << "Failed to disable High DPI Scaling!";
+	}
 }
 
 // Sets Application Compatibility Toolkit options for DXPrimaryEmulation using SetAppCompatData API

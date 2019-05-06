@@ -270,14 +270,7 @@ HRESULT m_IDirectDrawSurfaceX::Blt(LPRECT lpDestRect, LPDIRECTDRAWSURFACE7 lpDDS
 		// Do color fill
 		if (dwFlags & DDBLT_COLORFILL)
 		{
-			HRESULT hr = ColorFill(lpDestRect, lpDDBltFx->dwFillColor);
-
-			if (IsPrimarySurface())
-			{
-				Present();
-			}
-
-			return hr;
+			return ColorFill(lpDestRect, lpDDBltFx->dwFillColor);
 		}
 
 		// Check for device
@@ -311,23 +304,35 @@ HRESULT m_IDirectDrawSurfaceX::Blt(LPRECT lpDestRect, LPDIRECTDRAWSURFACE7 lpDDS
 			}
 		}
 
-		// Check and copy source and destination rect
-		RECT DestRect, SrcRect;
+		RECT SrcRect = { 0, 0, (LONG)lpDDSrcSurfaceX->GetWidth(), (LONG)lpDDSrcSurfaceX->GetHeight() };
+		RECT DestRect = { 0, 0, (LONG)GetWidth(), (LONG)GetHeight() };
+
+		if (lpSrcRect)
+		{
+			memcpy(&SrcRect, lpSrcRect, sizeof(RECT));
+		}
+
+		if (lpDestRect)
+		{
+			memcpy(&DestRect, lpDestRect, sizeof(RECT));
+		}
+
+		// Check if the rect should be stretched before clipping
+		bool isStretchRect = (abs((DestRect.right - DestRect.left) - (SrcRect.right - SrcRect.left)) > 1 || abs((DestRect.bottom - DestRect.top) - (SrcRect.bottom - SrcRect.top)) > 1);
+
+		// Check and copy source and destination rect and do clipping
 		if (!lpDDSrcSurfaceX->UpdateRect(&SrcRect, lpSrcRect) || !UpdateRect(&DestRect, lpDestRect))
 		{
 			Logging::Log() << __FUNCTION__ << " Error, invalid rect size";
 			return DDERR_INVALIDRECT;
 		}
 
-		// Check if the rect should be stretched
-		bool isStretchRect = (abs((DestRect.right - DestRect.left) - (SrcRect.right - SrcRect.left)) > 1 || abs((DestRect.bottom - DestRect.top) - (SrcRect.bottom - SrcRect.top)) > 1);
-
 		// Check if the scene needs to be presented
 		bool isSkipScene = (DestRect.bottom - DestRect.top < 2 || DestRect.right - DestRect.left < 2 || SrcRect.bottom - SrcRect.top < 2 || SrcRect.right - SrcRect.left < 2);
 
 		// Check if destination surface is not locked then lock it
 		bool UnlockDest = false;
-		if (NeedsLock())
+		if (!IsSurfaceLocked())
 		{
 			HRESULT hr = SetLock(nullptr, 0, isSkipScene);
 			if (FAILED(hr))
@@ -351,7 +356,7 @@ HRESULT m_IDirectDrawSurfaceX::Blt(LPRECT lpDestRect, LPDIRECTDRAWSURFACE7 lpDDS
 		if (SUCCEEDED(hr) && lpDDSrcSurfaceX != this)
 		{
 			// Check if source surface is not locked then lock it
-			if (lpDDSrcSurfaceX->NeedsLock())
+			if (!lpDDSrcSurfaceX->IsSurfaceLocked())
 			{
 				hr = lpDDSrcSurfaceX->SetLock(nullptr, 0, isSkipScene);
 				if (FAILED(hr))
@@ -436,10 +441,6 @@ HRESULT m_IDirectDrawSurfaceX::Blt(LPRECT lpDestRect, LPDIRECTDRAWSURFACE7 lpDDS
 		if (UnlockSrc)
 		{
 			lpDDSrcSurfaceX->SetUnLock(isSkipScene);
-		}
-		if (!UnlockDest && !isSkipScene && (IsPrimarySurface() || lpDDSrcSurfaceX->IsPrimarySurface()))
-		{
-			Present();
 		}
 
 		// Return
@@ -667,7 +668,7 @@ HRESULT m_IDirectDrawSurfaceX::EnumOverlayZOrders2(DWORD dwFlags, LPVOID lpConte
 
 void m_IDirectDrawSurfaceX::SwapSurface(m_IDirectDrawSurfaceX *lpTargetSurface1, m_IDirectDrawSurfaceX *lpTargetSurface2)
 {
-	if (!lpTargetSurface1 || !lpTargetSurface2)
+	if (!lpTargetSurface1 || !lpTargetSurface2 || lpTargetSurface1 == lpTargetSurface2)
 	{
 		return;
 	}
@@ -675,17 +676,8 @@ void m_IDirectDrawSurfaceX::SwapSurface(m_IDirectDrawSurfaceX *lpTargetSurface1,
 	// Swap textures
 	SwapAddresses(lpTargetSurface1->GetSurfaceTexture(), lpTargetSurface2->GetSurfaceTexture());
 
-	// Swap Palletes
-	if (*lpTargetSurface1->GetPallete() && *lpTargetSurface2->GetPallete())
-	{
-		SwapAddresses(lpTargetSurface1->GetPallete(), lpTargetSurface2->GetPallete());
-	}
-
-	// Swap Video Memory
-	if (*lpTargetSurface1->GetRawVideoMemory() && *lpTargetSurface2->GetRawVideoMemory())
-	{
-		SwapAddresses(lpTargetSurface1->GetRawVideoMemory(), lpTargetSurface2->GetRawVideoMemory());
-	}
+	// Copy memory back to backbuffer to keep it in-sync
+	lpTargetSurface2->Blt(nullptr, (LPDIRECTDRAWSURFACE7)lpTargetSurface1->GetWrapperInterfaceX(1), nullptr, 0, nullptr);
 }
 
 HRESULT m_IDirectDrawSurfaceX::Flip(LPDIRECTDRAWSURFACE7 lpDDSurfaceTargetOverride, DWORD dwFlags)
@@ -711,8 +703,8 @@ HRESULT m_IDirectDrawSurfaceX::Flip(LPDIRECTDRAWSURFACE7 lpDDSurfaceTargetOverri
 		// Flip only supported from primary surface
 		if (!IsPrimarySurface())
 		{
-			Logging::Log() << __FUNCTION__ << " Non-primary surface Flip not implimented";
-			return DDERR_UNSUPPORTED;
+			Logging::Log() << __FUNCTION__ << " Attempting to Flip non-primary surface";
+			return DDERR_GENERIC;
 		}
 
 		// Unneeded flags (can be safely ignored?)
@@ -789,14 +781,11 @@ HRESULT m_IDirectDrawSurfaceX::Flip(LPDIRECTDRAWSURFACE7 lpDDSurfaceTargetOverri
 		}
 
 		// Set new texture
-		HRESULT hr = (*d3d9Device)->SetTexture(0, surfaceTexture);
+		HRESULT hr = (*d3d9Device)->SetTexture(0, (paletteTexture) ? paletteTexture : surfaceTexture);
 		if (FAILED(hr))
 		{
 			Logging::Log() << __FUNCTION__ << " Failed to set texture";
 		}
-
-		// Present to screen
-		Present();
 
 		return hr;
 	}
@@ -900,7 +889,7 @@ HRESULT m_IDirectDrawSurfaceX::GetBltStatus(DWORD dwFlags)
 		// Inquires whether a blit involving this surface can occur immediately, and returns DD_OK if the blit can be completed.
 		if (dwFlags & DDGBS_CANBLT)
 		{
-			if (!IsSurfaceLocked() && !NeedsLock())
+			if (!IsSurfaceLocked())
 			{
 				//return DDERR_WASSTILLDRAWING;
 			}
@@ -909,7 +898,7 @@ HRESULT m_IDirectDrawSurfaceX::GetBltStatus(DWORD dwFlags)
 		// Inquires whether the blit is done, and returns DD_OK if the last blit on this surface has completed.
 		else if (dwFlags & DDGBS_ISBLTDONE)
 		{
-			if (!IsSurfaceLocked() && !NeedsLock())
+			if (!IsSurfaceLocked())
 			{
 				//return DDERR_WASSTILLDRAWING;
 			}
@@ -1408,7 +1397,7 @@ HRESULT m_IDirectDrawSurfaceX::Lock2(LPRECT lpDestRect, LPDDSURFACEDESC2 lpDDSur
 	if (Config.Dd7to9)
 	{
 		// Check if locked
-		if (IsLocked && d3dlrect.pBits)
+		if (IsSurfaceLocked() && d3dlrect.pBits)
 		{
 			LOG_LIMIT(1, __FUNCTION__ << " Locking surface twice not fully implemented");
 		}
@@ -1427,10 +1416,10 @@ HRESULT m_IDirectDrawSurfaceX::Lock2(LPRECT lpDestRect, LPDDSURFACEDESC2 lpDDSur
 		}
 
 		// Convert flags to d3d9
-		DWORD LockFlags = dwFlags & (D3DLOCK_DISCARD | D3DLOCK_DONOTWAIT | D3DLOCK_NO_DIRTY_UPDATE | D3DLOCK_NOOVERWRITE | D3DLOCK_NOSYSLOCK | D3DLOCK_READONLY);
+		DWORD Flags = dwFlags & (D3DLOCK_READONLY | (IsPrimarySurface() ? DDLOCK_NOSYSLOCK : 0) | D3DLOCK_DISCARD);
 
 		// Lock surface
-		HRESULT hr = SetLock(lpDestRect, LockFlags);
+		HRESULT hr = SetLock(lpDestRect, Flags);
 
 		// Set desc and video memory
 		if (SUCCEEDED(hr))
@@ -1443,27 +1432,10 @@ HRESULT m_IDirectDrawSurfaceX::Lock2(LPRECT lpDestRect, LPDDSURFACEDESC2 lpDDSur
 
 			// Set video memory and pitch
 			Desc2.dwFlags |= DDSD_LPSURFACE | DDSD_PITCH;
-			if (WriteDirectlyToSurface && d3dlrect.pBits)
+			if (d3dlrect.pBits)
 			{
 				Desc2.lpSurface = d3dlrect.pBits;
 				Desc2.lPitch = d3dlrect.Pitch;
-			}
-			else if (!WriteDirectlyToSurface)
-			{
-				if (!rawVideoBuf)
-				{
-					AlocateVideoBuffer();
-				}
-				if (attachedPalette)
-				{
-					Desc2.lpSurface = (LPVOID)rawVideoBuf;
-					Desc2.lPitch = surfaceDesc2.dwWidth;
-				}
-				else
-				{
-					Desc2.lpSurface = (LPVOID)rawVideoBuf;
-					Desc2.lPitch = surfaceDesc2.dwWidth * (GetBitCount(surfaceDesc2.ddpfPixelFormat) / 8);
-				}
 			}
 			else
 			{
@@ -1657,8 +1629,10 @@ HRESULT m_IDirectDrawSurfaceX::SetPalette(LPDIRECTDRAWPALETTE lpDDPalette)
 		attachedPalette = (m_IDirectDrawPalette *)lpDDPalette;
 
 		// Don't write to surface when using palettes
-		WriteDirectlyToSurface = false;
-		AlocateVideoBuffer();
+		if (!paletteTexture)
+		{
+			CreateD3d9Surface();
+		}
 
 		// When you call SetPalette to set a palette to a surface for the first time, 
 		// SetPalette increments the palette's reference count; subsequent calls to 
@@ -2069,39 +2043,10 @@ HRESULT m_IDirectDrawSurfaceX::GetLOD(LPDWORD lpdwMaxLOD)
 /*** Helper functions ***/
 /************************/
 
-// Alocate buffer for surface if format is not supported by d3d9 to support backwards compatibility
-void m_IDirectDrawSurfaceX::AlocateVideoBuffer()
-{
-	// Store old temp buffer
-	BYTE *tempBuf = rawVideoBuf;
-
-	// No need to create a buffer
-	if (WriteDirectlyToSurface)
-	{
-		return;
-	}
-
-	// Buffer size, always support 32bit
-	BufferSize = surfaceDesc2.dwWidth * surfaceDesc2.dwHeight * sizeof(INT32);
-
-	// Allocate the raw video buffer
-	rawVideoBuf = new BYTE[BufferSize];
-
-	// Clear raw memory
-	ZeroMemory(rawVideoBuf, BufferSize * sizeof(BYTE));
-
-	// Free memory in case there was an old one setup
-	if (tempBuf)
-	{
-		delete tempBuf;
-		tempBuf = nullptr;
-	}
-}
-
 bool m_IDirectDrawSurfaceX::CheckD3d9Surface()
 {
 	// Make sure surface exists, if not then create it
-	if (!surfaceTexture)
+	if (!surfaceTexture || (attachedPalette && !paletteTexture))
 	{
 		if (FAILED(CreateD3d9Surface()))
 		{
@@ -2114,6 +2059,13 @@ bool m_IDirectDrawSurfaceX::CheckD3d9Surface()
 // Create surface
 HRESULT m_IDirectDrawSurfaceX::CreateD3d9Surface()
 {
+	// Don't recreate surface while it is locked
+	if (surfaceTexture && IsSurfaceLocked())
+	{
+		Logging::Log() << __FUNCTION__ << " Error: surface is locked!";
+		return DDERR_GENERIC;
+	}
+
 	// Release existing surface
 	ReleaseD9Surface();
 
@@ -2139,9 +2091,6 @@ HRESULT m_IDirectDrawSurfaceX::CreateD3d9Surface()
 
 	// Update surface description
 	GetSurfaceDesc2(&surfaceDesc2);
-	
-	// Get d3d9Object
-	IDirect3D9 *d3d9Object = ddrawParent->GetDirect3D9Object();
 
 	// Get usage
 	DWORD Usage = 0;
@@ -2216,27 +2165,23 @@ HRESULT m_IDirectDrawSurfaceX::CreateD3d9Surface()
 	// Get format
 	D3DFORMAT Format = GetDisplayFormat(surfaceDesc2.ddpfPixelFormat);
 
-	// If test fails or there is a palette then write to memory buffer
-	if (FAILED(d3d9Object->CheckDeviceFormat(D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, Format, D3DUSAGE_QUERY_FILTER, D3DRTYPE_TEXTURE, Format)) || attachedPalette)
-	{
-		Logging::LogDebug() << __FUNCTION__ << " D3d9 Surface and memory.";
-		WriteDirectlyToSurface = false;
-		Format = D3DFMT_X8R8G8B8;
-		AlocateVideoBuffer();
-	}
-	// Write directly to surface
-	else
-	{
-		Logging::LogDebug() << __FUNCTION__ << " D3d9 Surface direct: " << Format;
-		WriteDirectlyToSurface = true;
-	}
-
 	Logging::LogDebug() << __FUNCTION__ << " D3d9 Surface size: " << surfaceDesc2.dwWidth << "x" << surfaceDesc2.dwHeight << " Usage: " << Usage << " Format: " << Format << " Pool: " << Pool;
+
 	// Create surface
 	if (FAILED((*d3d9Device)->CreateTexture(surfaceDesc2.dwWidth, surfaceDesc2.dwHeight, 0, Usage, Format, Pool, &surfaceTexture, nullptr)))
 	{
-		Logging::Log() << __FUNCTION__ << " Unable to create surface";
+		Logging::Log() << __FUNCTION__ << " Error: Unable to create surface";
 		return DDERR_GENERIC;
+	}
+
+	if (attachedPalette)
+	{
+		// Create palette surface
+		if (FAILED((*d3d9Device)->CreateTexture(surfaceDesc2.dwWidth, surfaceDesc2.dwHeight, 0, Usage, D3DFMT_X8R8G8B8, Pool, &paletteTexture, nullptr)))
+		{
+			Logging::Log() << __FUNCTION__ << " Error: Unable to create palette surface";
+			return DDERR_GENERIC;
+		}
 	}
 
 	// Reset Locked flag
@@ -2350,62 +2295,58 @@ HRESULT m_IDirectDrawSurfaceX::CreateD3d9Surface()
 	}
 
 	// Set texture
-	if (FAILED((*d3d9Device)->SetTexture(0, surfaceTexture)))
+	if (FAILED((*d3d9Device)->SetTexture(0, (paletteTexture) ? paletteTexture : surfaceTexture)))
 	{
 		Logging::Log() << __FUNCTION__ << " Failed to set texture";
 		return DDERR_GENERIC;
 	}
 
-	// BeginScene
-	ddrawParent->BeginScene();
-
 	return DD_OK;
+}
+
+template <typename T>
+void m_IDirectDrawSurfaceX::ReleaseD9Interface(T *ppInterface)
+{
+	if (ppInterface && *ppInterface)
+	{
+		DWORD x = 0, z = 0;
+		do
+		{
+			z = (*ppInterface)->Release();
+		} while (z != 0 && ++x < 100);
+
+		// Add error checking
+		if (z != 0)
+		{
+			Logging::Log() << __FUNCTION__ << " Unable to release Direct3D9 interface";
+		}
+
+		(*ppInterface) = nullptr;
+	}
 }
 
 // Release surface and vertext buffer
 void m_IDirectDrawSurfaceX::ReleaseD9Surface()
 {
 	// Release d3d9 surface
+	Logging::LogDebug() << __FUNCTION__ << " Releasing Direct3D9 texture surface";
 	if (surfaceTexture)
 	{
-		// Unlock surface
-		if (IsLocked)
-		{
-			surfaceTexture->UnlockRect(0);
-		}
-
-		DWORD x = 0, z = 0;
-		do
-		{
-			z = surfaceTexture->Release();
-		} while (z != 0 && ++x < 100);
-
-		// Add error checking
-		if (z != 0)
-		{
-			Logging::Log() << __FUNCTION__ << " Unable to release Direct3D9 surface";
-		}
-
-		surfaceTexture = nullptr;
+		surfaceTexture->UnlockRect(0);
 	}
+	ReleaseD9Interface(&surfaceTexture);
+
+	// Release d3d9 palette surface
+	Logging::LogDebug() << __FUNCTION__ << " Releasing Direct3D9 palette texture surface";
+	if (paletteTexture)
+	{
+		paletteTexture->UnlockRect(0);
+	}
+	ReleaseD9Interface(&paletteTexture);
 
 	// Release d3d9 vertex buffer
-	if (vertexBuffer)
-	{
-		DWORD x = 0, z = 0;
-		do
-		{
-			z = vertexBuffer->Release();
-		} while (z != 0 && ++x < 100);
-
-		// Add error checking
-		if (z != 0)
-		{
-			Logging::Log() << __FUNCTION__ << " Unable to release Direct3D9 vertext buffer";
-		}
-
-		vertexBuffer = nullptr;
-	}
+	Logging::LogDebug() << __FUNCTION__ << " Releasing Direct3D9 vertext buffer";
+	ReleaseD9Interface(&vertexBuffer);
 
 	// Set surface video buffer to nullptr
 	d3dlrect.pBits = nullptr;
@@ -2475,7 +2416,7 @@ bool m_IDirectDrawSurfaceX::UpdateRect(LPRECT lpOutRect, LPRECT lpInRect)
 }
 
 // Lock the d3d9 surface
-HRESULT m_IDirectDrawSurfaceX::SetLock(LPRECT lpDestRect, DWORD dwFlags, bool SkipBeginScene)
+HRESULT m_IDirectDrawSurfaceX::SetLock(LPRECT lpDestRect, DWORD dwFlags, bool isSkipScene)
 {
 	// Check for device
 	if (!d3d9Device || !*d3d9Device || !ddrawParent)
@@ -2492,7 +2433,7 @@ HRESULT m_IDirectDrawSurfaceX::SetLock(LPRECT lpDestRect, DWORD dwFlags, bool Sk
 	}
 
 	// Run BeginScene (ignore results)
-	if (!SkipBeginScene)
+	if (!isSkipScene)
 	{
 		ddrawParent->BeginScene();
 	}
@@ -2513,7 +2454,7 @@ HRESULT m_IDirectDrawSurfaceX::SetLock(LPRECT lpDestRect, DWORD dwFlags, bool Sk
 }
 
 // Unlock the d3d9 surface
-HRESULT m_IDirectDrawSurfaceX::SetUnLock(bool SkipEndSceneFlag)
+HRESULT m_IDirectDrawSurfaceX::SetUnLock(bool isSkipScene)
 {
 	// Check for device
 	if (!ddrawParent)
@@ -2529,10 +2470,13 @@ HRESULT m_IDirectDrawSurfaceX::SetUnLock(bool SkipEndSceneFlag)
 		return DDERR_GENERIC;
 	}
 
-	// Write video data to surface
-	if (!SkipEndSceneFlag && (IsPrimarySurface() || SceneReady))
+	// Write to palette surface using a palette
+	if (!isSkipScene && (IsPrimarySurface() || SceneReady) && attachedPalette)
 	{
-		WriteVideoDataToSurface();
+		if (FAILED(WritePaletteToSurface(attachedPalette, &lkDestRect, GetBitCount(surfaceDesc2.ddpfPixelFormat))))
+		{
+			Logging::Log() << __FUNCTION__ << " Failed to write palette data to surface!";
+		}
 	}
 
 	// Lock surface
@@ -2545,44 +2489,12 @@ HRESULT m_IDirectDrawSurfaceX::SetUnLock(bool SkipEndSceneFlag)
 	d3dlrect.pBits = nullptr;
 
 	// Keep running EndScene until it succeeds
-	if (!SkipEndSceneFlag && (IsPrimarySurface() || SceneReady))
+	if (!isSkipScene && (IsPrimarySurface() || SceneReady))
 	{
 		SceneReady = FAILED(ddrawParent->EndScene());
 	}
 
 	return DD_OK;
-}
-
-void m_IDirectDrawSurfaceX::Present()
-{
-	// Check for device
-	if (!ddrawParent)
-	{
-		Logging::Log() << __FUNCTION__ << " Error no ddraw parent!";
-		return;
-	}
-
-	// Run BeginScene (ignore results)
-	ddrawParent->BeginScene();
-
-	// Write video memory to texture and EndScene
-	if (!WriteDirectlyToSurface)
-	{
-		// Lock surface to prepare for writing
-		if (!IsLocked)
-		{
-			SetLock(nullptr, 0, true);
-		}
-
-		// Write to surface and unlock
-		if (IsLocked)
-		{
-			SetUnLock(true);
-		}
-	}
-
-	// Run EndScene (ignore results)
-	ddrawParent->EndScene();
 }
 
 // Get LOCKED_RECT, BitCount and Format for the surface
@@ -2597,24 +2509,14 @@ HRESULT m_IDirectDrawSurfaceX::GetSurfaceInfo(D3DLOCKED_RECT *pLockRect, DWORD *
 
 	if (pLockRect)
 	{
-		if (NeedsLock())
-		{
-			Logging::Log() << __FUNCTION__ << " Error, surface needs to be locked!";
-			return DDERR_GENERIC;
-		}
-		if (!WriteDirectlyToSurface)
-		{
-			pLockRect->pBits = rawVideoBuf;
-			pLockRect->Pitch = surfaceDesc2.dwWidth;
-		}
-		else if (IsLocked)
+		if (IsSurfaceLocked())
 		{
 			memcpy(pLockRect, &d3dlrect, sizeof(D3DLOCKED_RECT));
 		}
 		else
 		{
-			pLockRect->pBits = rawVideoBuf;
-			pLockRect->Pitch = surfaceDesc2.dwWidth * (GetBitCount(surfaceDesc2.ddpfPixelFormat) / 8);
+			Logging::Log() << __FUNCTION__ << " Error, surface needs to be locked!";
+			return DDERR_GENERIC;
 		}
 	}
 	if (lpBitCount)
@@ -2632,7 +2534,7 @@ HRESULT m_IDirectDrawSurfaceX::GetSurfaceInfo(D3DLOCKED_RECT *pLockRect, DWORD *
 	{
 		if (attachedPalette)
 		{
-			*lpFormat = D3DFMT_P8;
+			*lpFormat = D3DFMT_L8;
 		}
 		else
 		{
@@ -2708,70 +2610,77 @@ HRESULT m_IDirectDrawSurfaceX::ColorFill(RECT *pRect, DWORD dwFillColor)
 	// Check if the scene needs to be presented
 	bool SkipScene = (DestRect.bottom - DestRect.top < 2 || DestRect.right - DestRect.left < 2);
 
-	// Check if surface is not locked then lock it
+	HRESULT hr = DD_OK;
 	bool UnlockDest = false;
-	if (!IsSurfaceLocked())
-	{
-		HRESULT hr = SetLock(nullptr, 0, SkipScene);
-		if (FAILED(hr))
+	do {
+		// Check if surface is not locked then lock it
+		if (!IsSurfaceLocked())
 		{
-			Logging::Log() << __FUNCTION__ << " Error, could not lock dest surface";
-			return DDERR_GENERIC;
+			if (FAILED(SetLock(nullptr, 0, SkipScene)))
+			{
+				Logging::Log() << __FUNCTION__ << " Error, could not lock dest surface";
+				hr = DDERR_GENERIC;
+				break;
+			}
+			UnlockDest = true;
 		}
-		UnlockDest = true;
-	}
 
-	// Get locked rect surface information
-	D3DLOCKED_RECT DestLockRect;
-	GetSurfaceInfo(&DestLockRect, nullptr, nullptr);
+		// Get locked rect surface information
+		D3DLOCKED_RECT DestLockRect;
+		GetSurfaceInfo(&DestLockRect, nullptr, nullptr);
 
-	// Check pBits
-	if (!DestLockRect.pBits)
-	{
-		Logging::Log() << __FUNCTION__ << " Error, could not get pBits";
-		return DDERR_GENERIC;
-	}
-
-	// Get width and height of rect
-	LONG FillWidth = DestRect.right - DestRect.left;
-	LONG FillHeight = DestRect.bottom - DestRect.top;
-
-	// Get ByteCount and FillColor
-	DWORD ByteCount = DestLockRect.Pitch / surfaceDesc2.dwWidth;
-	DWORD FillColor = 0;
-	if (attachedPalette && attachedPalette->rgbPalette && !WriteDirectlyToSurface)
-	{
-		FillColor = attachedPalette->rgbPalette[rawVideoBuf[dwFillColor]];
-	}
-	else if (ByteCount <= 4)
-	{
-		FillColor = dwFillColor;
-	}
-	else
-	{
-		Logging::Log() << __FUNCTION__ << " Error, could not find correct fill color for ByteCount " << ByteCount;
-	}
-
-	// Fill rect
-	for (LONG y = 0; y < FillHeight; y++)
-	{
-		DWORD StartLocation = ((y + DestRect.top) * surfaceDesc2.dwWidth) + DestRect.left;
-		if (ByteCount == 4)
+		// Check pBits
+		if (!DestLockRect.pBits)
 		{
-			memset((DWORD*)DestLockRect.pBits + StartLocation,	// Video memory address
-				FillColor,										// Fill color
-				FillWidth);										// Size of bytes to write
+			Logging::Log() << __FUNCTION__ << " Error, could not get pBits";
+			hr = DDERR_GENERIC;
+			break;
+		}
+
+		// Get width and height of rect
+		LONG FillWidth = DestRect.right - DestRect.left;
+		LONG FillHeight = DestRect.bottom - DestRect.top;
+
+		// Get ByteCount and FillColor
+		DWORD ByteCount = DestLockRect.Pitch / surfaceDesc2.dwWidth;
+		DWORD FillColor = 0;
+		if (attachedPalette && attachedPalette->rgbPalette)
+		{
+			// ToDo: Need to fix this!!
+			//FillColor = attachedPalette->rgbPalette[rawVideoBuf[dwFillColor]];
+			Logging::Log() << __FUNCTION__ << " Error: not implemented for palettes!";
+		}
+		else if (ByteCount <= 4)
+		{
+			FillColor = dwFillColor;
 		}
 		else
 		{
-			for (LONG x = 0; x < FillWidth; x++)
+			Logging::Log() << __FUNCTION__ << " Error: could not find correct fill color for ByteCount " << ByteCount;
+		}
+
+		// Fill rect
+		for (LONG y = 0; y < FillHeight; y++)
+		{
+			DWORD StartLocation = ((y + DestRect.top) * surfaceDesc2.dwWidth) + DestRect.left;
+			if (ByteCount == 4)
 			{
-				memcpy((BYTE*)DestLockRect.pBits + ((StartLocation + x) * ByteCount),	// Video memory address
-					(BYTE*)&FillColor,													// Fill color
-					ByteCount);															// Size of bytes to write
+				memset((DWORD*)DestLockRect.pBits + StartLocation,	// Video memory address
+					FillColor,										// Fill color
+					FillWidth);										// Size of bytes to write
+			}
+			else
+			{
+				for (LONG x = 0; x < FillWidth; x++)
+				{
+					memcpy((BYTE*)DestLockRect.pBits + ((StartLocation + x) * ByteCount),	// Video memory address
+						(BYTE*)&FillColor,													// Fill color
+						ByteCount);															// Size of bytes to write
+				}
 			}
 		}
-	}
+
+	} while (false);
 
 	// Unlock surfaces if needed
 	if (UnlockDest)
@@ -2783,62 +2692,87 @@ HRESULT m_IDirectDrawSurfaceX::ColorFill(RECT *pRect, DWORD dwFillColor)
 }
 
 // Write palette video data to surface
-HRESULT m_IDirectDrawSurfaceX::WritePaletteToSurface(m_IDirectDrawPalette *lpDDPalette, RECT *pRect, BYTE *lpVideoBuf, DWORD BitCount)
+HRESULT m_IDirectDrawSurfaceX::WritePaletteToSurface(m_IDirectDrawPalette *lpDDPalette, RECT *pRect, DWORD BitCount)
 {
-	if (!lpDDPalette || !lpDDPalette->rgbPalette || !lpVideoBuf)
+	if (!paletteTexture)
+	{
+		Logging::Log() << __FUNCTION__ << " Error: Palette texture not created!";
+		return DDERR_INVALIDPARAMS;
+	}
+
+	if (!lpDDPalette || !lpDDPalette->rgbPalette)
 	{
 		Logging::Log() << __FUNCTION__ << " Error invaled parameters!";
 		return DDERR_INVALIDPARAMS;
 	}
 
-	// Check and copy rect
-	RECT DestRect;
-	if (!UpdateRect(&DestRect, pRect))
-	{
-		Logging::Log() << __FUNCTION__ << " Error, invalid rect size";
-		return DDERR_INVALIDRECT;
-	}
-
-	// Check if surface is not locked then lock it
+	HRESULT hr = DD_OK;
 	bool UnlockDest = false;
-	if (!IsSurfaceLocked())
-	{
-		if (FAILED(SetLock(nullptr, 0)))
+	do {
+		// Check and copy rect
+		RECT DestRect;
+		if (!UpdateRect(&DestRect, pRect))
 		{
-			Logging::Log() << __FUNCTION__ << " Error, could not lock dest surface";
-			return DDERR_GENERIC;
+			Logging::Log() << __FUNCTION__ << " Error, invalid rect size";
+			hr = DDERR_INVALIDRECT;
+			break;
 		}
-		UnlockDest = true;
-	}
 
-	// Create raw video memory and rgb buffer variables
-	UINT32 *surfaceBuffer = (UINT32*)d3dlrect.pBits;
-
-	// Translate palette to rgb video buffer
-	switch (BitCount)
-	{
-	case 8:
-	{
-		for (LONG j = DestRect.top; j < DestRect.bottom; j++)
+		// Check if surface is not locked then lock it
+		if (!IsSurfaceLocked())
 		{
-			LONG z = j * (d3dlrect.Pitch / 4);
-			for (LONG i = DestRect.left; i < DestRect.right; i++)
+			if (FAILED(SetLock(nullptr, 0, true)) || !d3dlrect.pBits)
 			{
-				LONG x = z + i;
-				surfaceBuffer[x] = lpDDPalette->rgbPalette[lpVideoBuf[x]] | 0xFF000000;
+				Logging::Log() << __FUNCTION__ << " Error, could not lock source surface";
+				hr = DDERR_GENERIC;
+				break;
 			}
+			UnlockDest = true;
 		}
-		break;
-	}
-	default:
-		Logging::Log() << __FUNCTION__ << " No support for palette on " << BitCount << "-bit surfaces!";
-		break;
-	}
+
+		// Lock palette surface to write RGB data from the palette
+		D3DLOCKED_RECT LockedRect = { NULL };
+		if (FAILED(paletteTexture->LockRect(0, &LockedRect, nullptr, 0)) || !LockedRect.pBits)
+		{
+			Logging::Log() << __FUNCTION__ << " Error: could not lock palatte video data!";
+			hr = DDERR_INVALIDPARAMS;
+			break;
+		}
+
+		// Create raw video memory and rgb buffer variables
+		UINT32 *surfaceBuffer = (UINT32*)LockedRect.pBits;
+		BYTE *videoBuffer = (BYTE*)d3dlrect.pBits;
+
+		// Translate palette to rgb video buffer
+		switch (BitCount)
+		{
+		case 8:
+		{
+			for (DWORD j = DestRect.top; j < (DWORD)DestRect.bottom; j++)
+			{
+				DWORD z = j * (LockedRect.Pitch / 4);
+				for (DWORD i = DestRect.left; i < (DWORD)DestRect.right; i++)
+				{
+					DWORD x = z + i;
+					surfaceBuffer[x] = lpDDPalette->rgbPalette[videoBuffer[x]] | 0xFF000000;
+				}
+			}
+			break;
+		}
+		default:
+			Logging::Log() << __FUNCTION__ << " No support for palette on " << BitCount << "-bit surfaces!";
+			break;
+		}
+
+	} while (false);
+
+	// Unlock palette display texture
+	paletteTexture->UnlockRect(0);
 
 	// Unlock surfaces if needed
 	if (UnlockDest)
 	{
-		SetUnLock();
+		SetUnLock(true);
 	}
 
 	return DD_OK;
@@ -2876,15 +2810,12 @@ HRESULT m_IDirectDrawSurfaceX::CopyRect(D3DLOCKED_RECT *pDestLockRect, RECT *pDe
 			return DDERR_GENERIC;
 		}
 
-		unsigned char *src = (unsigned char *)((BYTE*)pSrcLockRect->pBits + (pSrcRect->top * pSrcLockRect->Pitch) + (pSrcRect->left * ByteCount));
-		unsigned char *dst = (unsigned char *)((BYTE*)pDestLockRect->pBits + (pDestRect->top * pDestLockRect->Pitch) + (pDestRect->left * ByteCount));
-
-		for (int i = 0; i < RectHeight; i++)
+		// Copy memory
+		for (LONG y = 0; y < RectHeight; y++)
 		{
-			memcpy(dst, src, pSrcLockRect->Pitch);
-
-			src += pSrcLockRect->Pitch;
-			dst += pDestLockRect->Pitch;
+			memcpy((BYTE*)pDestLockRect->pBits + ((y + pDestRect->top) * pDestLockRect->Pitch) + (pDestRect->left * ByteCount),	// Destination video memory address
+				(BYTE*)pSrcLockRect->pBits + ((y + pSrcRect->top) * pSrcLockRect->Pitch) + (pSrcRect->left * ByteCount),		// Source video memory address
+				RectWidth * ByteCount);																							// Size of bytes to write
 		}
 
 		// Return
@@ -2909,25 +2840,8 @@ HRESULT m_IDirectDrawSurfaceX::CopyRect(D3DLOCKED_RECT *pDestLockRect, RECT *pDe
 			switch (SrcBitCount)
 			{
 			case 8: // 8-bit source surface with 32-bit destination surface
-			{
-				BYTE *RawBuffer = (BYTE*)SrcBuffer;
-
-				LONG StartSrcLoc = (pSrcRect->top * pSrcLockRect->Pitch) + (pSrcRect->left * 2);
-				LONG StartDestLoc = (pDestRect->top * pDestLockRect->Pitch) + (pDestRect->left * 2);
-
-				LONG wPitch = RectWidth * 2;
-				for (LONG y = 0; y < RectHeight; y++)
-				{
-					for (LONG x = 0; x < wPitch; x += 2)
-					{
-						DestBuffer[StartDestLoc + x] = rgbPalette[RawBuffer[StartSrcLoc + x]];
-					}
-
-					StartSrcLoc += pSrcLockRect->Pitch;
-					StartDestLoc += pDestLockRect->Pitch;
-				}
+				Logging::Log() << __FUNCTION__ << " No support for non-palette 8-bit source surfaces!";
 				break;
-			}
 			case 16: // 16-bit source surface with 32-bit destination surface
 				switch (SrcFormat)
 				{
@@ -2935,50 +2849,40 @@ HRESULT m_IDirectDrawSurfaceX::CopyRect(D3DLOCKED_RECT *pDestLockRect, RECT *pDe
 				case D3DFMT_X1R5G5B5:
 				{
 					WORD *RawBuffer = (WORD*)SrcBuffer;
-
-					LONG StartDestLoc = (pDestRect->top * pDestLockRect->Pitch) + (pDestRect->left * 2);
-					LONG StartSrcLoc = (pSrcRect->top * pSrcLockRect->Pitch) + (pSrcRect->left * 2);
-
-					LONG wPitch = RectWidth * 2;
 					for (LONG y = 0; y < RectHeight; y++)
 					{
-						for (LONG x = 0; x < wPitch; x += 2)
+						DWORD StartDestLoc = ((y + pDestRect->top) * pDestLockRect->Pitch) + (pDestRect->left * 2);
+						DWORD StartSrcLoc = ((y + pSrcRect->top) * pSrcLockRect->Pitch) + (pSrcRect->left * 2);
+
+						for (LONG x = 0; x < RectWidth; x++)
 						{
-							LONG z = StartSrcLoc + x;
-							DestBuffer[StartDestLoc + x] = 
+							LONG z = StartSrcLoc + x * 2;
+							DestBuffer[StartDestLoc + x * 2] =
 								((RawBuffer[z] & 0x8000) << 9) * 255 +		// Alpha
 								((RawBuffer[z] & 0x7C00) << 9) +			// Red
 								((RawBuffer[z] & 0x03E0) << 6) +			// Green
 								((RawBuffer[z] & 0x001F) << 3);				// Blue
 						}
-
-						StartSrcLoc += pSrcLockRect->Pitch;
-						StartDestLoc += pDestLockRect->Pitch;
 					}
 					break;
 				}
 				case D3DFMT_R5G6B5:
 				{
 					WORD *RawBuffer = (WORD*)SrcBuffer;
-
-					LONG StartDestLoc = (pDestRect->top * pDestLockRect->Pitch) + (pDestRect->left * 2);
-					LONG StartSrcLoc = (pSrcRect->top * pSrcLockRect->Pitch) + (pSrcRect->left * 2);
-
-					LONG wPitch = RectWidth * 2;
 					for (LONG y = 0; y < RectHeight; y++)
 					{
-						for (LONG x = 0; x < wPitch; x += 2)
+						DWORD StartDestLoc = ((y + pDestRect->top) * pDestLockRect->Pitch) + (pDestRect->left * 2);
+						DWORD StartSrcLoc = ((y + pSrcRect->top) * pSrcLockRect->Pitch) + (pSrcRect->left * 2);
+
+						for (LONG x = 0; x < RectWidth; x++)
 						{
-							LONG z = StartSrcLoc + x;
-							DestBuffer[StartDestLoc + x] =
+							LONG z = StartSrcLoc + x * 2;
+							DestBuffer[StartDestLoc + x * 2] =
 								(0xFF000000) +						// Alpha
 								((RawBuffer[z] & 0xF800) << 8) +	// Red
 								((RawBuffer[z] & 0x07E0) << 5) +	// Green
 								((RawBuffer[z] & 0x001F) << 3);		// Blue
 						}
-
-						StartSrcLoc += pSrcLockRect->Pitch;
-						StartDestLoc += pDestLockRect->Pitch;
 					}
 					break;
 				}
@@ -2993,15 +2897,12 @@ HRESULT m_IDirectDrawSurfaceX::CopyRect(D3DLOCKED_RECT *pDestLockRect, RECT *pDe
 				case D3DFMT_A8R8G8B8:
 				case D3DFMT_X8R8G8B8:
 				{
-					unsigned char *src = (unsigned char *)((BYTE*)pSrcLockRect->pBits + (pSrcRect->top * pSrcLockRect->Pitch) + (pSrcRect->left * 4));
-					unsigned char *dst = (unsigned char *)((BYTE*)pDestLockRect->pBits + (pDestRect->top * pDestLockRect->Pitch) + (pDestRect->left * 4));
-
-					for (LONG i = 0; i < RectHeight; i++)
+					// Copy memory
+					for (LONG y = 0; y < RectHeight; y++)
 					{
-						memcpy(dst, src, pSrcLockRect->Pitch);
-
-						src += pSrcLockRect->Pitch;
-						dst += pDestLockRect->Pitch;
+						memcpy((BYTE*)pDestLockRect->pBits + ((y + pDestRect->top) * pDestLockRect->Pitch) + (pDestRect->left * 4),	// Destination video memory address
+							(BYTE*)pSrcLockRect->pBits + ((y + pSrcRect->top) * pSrcLockRect->Pitch) + (pSrcRect->left * 4),		// Source video memory address
+							RectWidth * 4);																							// Size of bytes to write
 					}
 					break;
 				}
@@ -3162,45 +3063,6 @@ HRESULT m_IDirectDrawSurfaceX::StretchRect(D3DLOCKED_RECT *pDestLockRect, RECT *
 	}
 
 	// Return
-	return DD_OK;
-}
-
-HRESULT m_IDirectDrawSurfaceX::WriteVideoDataToSurface()
-{
-	// Check locked state
-	if (!IsLocked)
-	{
-		return DDERR_GENERIC;
-	}
-
-	// Check for video buffer and create it if missing
-	if (!rawVideoBuf)
-	{
-		return DDERR_GENERIC;
-	}
-
-	// Write to surface using a palette
-	if (attachedPalette)
-	{
-		if (FAILED(WritePaletteToSurface(attachedPalette, &lkDestRect, rawVideoBuf, GetBitCount(surfaceDesc2.ddpfPixelFormat))))
-		{
-			return DDERR_GENERIC;
-		}
-	}
-
-	// Write to surface from the memory buffer
-	else if (!WriteDirectlyToSurface)
-	{
-		DWORD SrcBitCount = GetBitCount(surfaceDesc2.ddpfPixelFormat);
-		D3DLOCKED_RECT SrcLockRect = { (INT)(surfaceDesc2.dwWidth * SrcBitCount / 8), rawVideoBuf };
-		if (FAILED(CopyRect(&d3dlrect, &lkDestRect, 32, D3DFMT_X8R8G8B8, &SrcLockRect, &lkDestRect, SrcBitCount, GetDisplayFormat(surfaceDesc2.ddpfPixelFormat))))
-		{
-			Logging::Log() << __FUNCTION__ << " failed to copy rect";
-			return DDERR_GENERIC;
-		}
-	}
-
-	// return
 	return DD_OK;
 }
 

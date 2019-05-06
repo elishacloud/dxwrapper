@@ -72,10 +72,7 @@ public:
 	{
 		ProxyDirectXVersion = 9;
 
-		if (!displayWidth || !displayHeight)
-		{
-			SetDefaultDisplayMode = true;
-		}
+		SetDefaultDisplayMode = (!displayWidth || !displayHeight);
 
 		Logging::LogDebug() << "Convert DirectDraw v" << DirectXVersion << " to v" << ProxyDirectXVersion;
 	}

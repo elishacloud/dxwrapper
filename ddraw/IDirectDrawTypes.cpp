@@ -314,7 +314,7 @@ D3DFORMAT GetDisplayFormat(DDPIXELFORMAT ddpfPixelFormat)
 		{
 		case 8:
 			// Default 8-bit
-			return D3DFMT_P8;
+			return D3DFMT_L8;
 		case 16:
 			if (ddpfPixelFormat.dwGBitMask == 0x3E0)
 			{

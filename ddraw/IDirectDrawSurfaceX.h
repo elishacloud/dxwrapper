@@ -25,25 +25,23 @@ private:
 	DDSURFACEDESC2 surfaceDesc2;
 	D3DLOCKED_RECT d3dlrect = { 0, nullptr };
 	RECT lkDestRect;
-	CKEYS ColorKeys[4];		// Color keys(0 = DDCKEY_DESTBLT, 1 = DDCKEY_DESTOVERLAY, 2 = DDCKEY_SRCBLT, 3 = DDCKEY_SRCOVERLAY)
+	CKEYS ColorKeys[4];		// Color keys (0 = DDCKEY_DESTBLT, 1 = DDCKEY_DESTOVERLAY, 2 = DDCKEY_SRCBLT, 3 = DDCKEY_SRCOVERLAY)
 	LONG overlayX = 0;
 	LONG overlayY = 0;
-	DWORD BufferSize = 0;
-	BYTE *rawVideoBuf = nullptr;						// Virtual video buffer
 	DWORD UniquenessValue = 0;
-	bool WriteDirectlyToSurface = false;
 	bool IsLocked = false;
 	bool PaletteFirstRun = true;
 	bool ClipperFirstRun = true;
 
 	// Display resolution
-	DWORD displayWidth = 0;
-	DWORD displayHeight = 0;
+	DWORD displayWidth = 0;			// Width used to override the default application set width
+	DWORD displayHeight = 0;		// Height used to override the default application set height
 
 	// Direct3D9 vars
-	LPDIRECT3DDEVICE9 *d3d9Device = nullptr;
-	LPDIRECT3DTEXTURE9 surfaceTexture = nullptr;
-	LPDIRECT3DVERTEXBUFFER9 vertexBuffer = nullptr;
+	LPDIRECT3DDEVICE9 *d3d9Device = nullptr;			// Direct3D9 Device
+	LPDIRECT3DTEXTURE9 surfaceTexture = nullptr;		// Main surface texture used for locks, Blts and Flips
+	LPDIRECT3DTEXTURE9 paletteTexture = nullptr;		// Extra surface texture used for display when palettes are enabled
+	LPDIRECT3DVERTEXBUFFER9 vertexBuffer = nullptr;		// Vertex buffer used to stretch the texture accross the screen
 
 	// Store ddraw surface version wrappers
 	std::unique_ptr<m_IDirectDrawSurface> UniqueProxyInterface = nullptr;
@@ -119,12 +117,6 @@ public:
 	}
 	~m_IDirectDrawSurfaceX()
 	{
-		if (rawVideoBuf)
-		{
-			delete rawVideoBuf;
-			rawVideoBuf = nullptr;
-		}
-
 		if (Config.Dd7to9 && !Config.Exiting)
 		{
 			ReleaseSurface();
@@ -225,11 +217,11 @@ public:
 	void *GetWrapperInterfaceX(DWORD DirectXVersion);
 	LPDIRECT3DTEXTURE9 *GetSurfaceTexture() { return &surfaceTexture; }
 	m_IDirectDrawPalette **GetPallete() { return &attachedPalette; }
-	BYTE **GetRawVideoMemory() { return &rawVideoBuf; }
 	bool IsPrimarySurface() { return (surfaceDesc2.ddsCaps.dwCaps & DDSCAPS_PRIMARYSURFACE) != 0; }
 	bool IsSurfaceLocked() { return IsLocked; }
-	bool NeedsLock() { return !IsLocked && WriteDirectlyToSurface; }
 	bool IsSurfaceManaged() { return (surfaceDesc2.ddsCaps.dwCaps2 & (DDSCAPS2_TEXTUREMANAGE | DDSCAPS2_D3DTEXTUREMANAGE)); }
+	DWORD GetWidth() { return surfaceDesc2.dwWidth; }
+	DWORD GetHeight() { return surfaceDesc2.dwHeight; }
 	void ClearDdraw() { ddrawParent = nullptr; }
 	template <typename T>
 	void SwapAddresses(T *Address1, T *Address2)
@@ -238,24 +230,23 @@ public:
 		*Address1 = *Address2;
 		*Address2 = tmpAddr;
 	}
-	void AlocateVideoBuffer();
 	bool CheckD3d9Surface();
 	HRESULT CreateD3d9Surface();
+	template <typename T>
+	void ReleaseD9Interface(T *ppInterface);
 	void ReleaseD9Surface();
 	bool UpdateRect(LPRECT lpOutRect, LPRECT lpInRect);
-	HRESULT SetLock(LPRECT lpDestRect, DWORD dwFlags, bool SkipBeginSceneFlag = false);
-	HRESULT SetUnLock(bool SkipEndSceneFlag = false);
-	void Present();
+	HRESULT SetLock(LPRECT lpDestRect, DWORD dwFlags, bool isSkipScene = false);
+	HRESULT SetUnLock(bool isSkipScene = false);
 	HRESULT GetSurfaceInfo(D3DLOCKED_RECT *pLockRect, DWORD *lpBitCount, D3DFORMAT *lpFormat);
 	void AddAttachedSurfaceToMap(m_IDirectDrawSurfaceX* lpSurfaceX);
 	void RemoveAttachedSurfaceFromMap(m_IDirectDrawSurfaceX* lpSurfaceX);
 	bool DoesAttachedSurfaceExist(m_IDirectDrawSurfaceX* lpSurfaceX);
 	HRESULT ColorFill(RECT *pRect, DWORD dwFillColor);
-	HRESULT WritePaletteToSurface(m_IDirectDrawPalette *lpDDPalette, RECT *pRect, BYTE *lpVideoBuf, DWORD BitCount);
+	HRESULT WritePaletteToSurface(m_IDirectDrawPalette *lpDDPalette, RECT *pRect, DWORD BitCount);
 	HRESULT CopyRect(D3DLOCKED_RECT *pDestLockRect, RECT *pDestRect, DWORD DestBitCount, D3DFORMAT DestFormat, D3DLOCKED_RECT *pSrcLockRect, RECT *pSrcRect, DWORD SrcBitCount, D3DFORMAT SrcFormat);
 	HRESULT CopyRectColorKey(D3DLOCKED_RECT *pDestLockRect, RECT *pDestRect, DWORD DestBitCount, D3DFORMAT DestFormat, D3DLOCKED_RECT *pSrcLockRect, RECT *pSrcRect, DWORD SrcBitCount, D3DFORMAT SrcFormat, DDCOLORKEY ColorKey);
 	HRESULT StretchRect(D3DLOCKED_RECT *pDestLockRect, RECT *pDestRect, DWORD DestBitCount, D3DFORMAT DestFormat, D3DLOCKED_RECT *pSrcLockRect, RECT *pSrcRect, DWORD SrcBitCount, D3DFORMAT SrcFormat);
-	HRESULT WriteVideoDataToSurface();
 	void SwapSurface(m_IDirectDrawSurfaceX *lpTargetSurface1, m_IDirectDrawSurfaceX *lpTargetSurface2);
 	void ReleaseSurface();
 };
