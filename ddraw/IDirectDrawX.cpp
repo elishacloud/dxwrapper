@@ -1506,6 +1506,8 @@ HRESULT m_IDirectDrawX::CreateD3D9Device()
 // Reinitialize d3d9 device
 HRESULT m_IDirectDrawX::ReinitDevice()
 {
+	Logging::LogDebug() << __FUNCTION__;
+
 	// Release existing surfaces
 	ReleaseAllD9Surfaces();
 
