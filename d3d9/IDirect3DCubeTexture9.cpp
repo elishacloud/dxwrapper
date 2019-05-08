@@ -136,21 +136,21 @@ HRESULT m_IDirect3DCubeTexture9::SetAutoGenFilterType(THIS_ D3DTEXTUREFILTERTYPE
 {
 	Logging::LogDebug() << __FUNCTION__;
 
-	return SetAutoGenFilterType(FilterType);
+	return ProxyInterface->SetAutoGenFilterType(FilterType);
 }
 
 D3DTEXTUREFILTERTYPE m_IDirect3DCubeTexture9::GetAutoGenFilterType(THIS)
 {
 	Logging::LogDebug() << __FUNCTION__;
 
-	return GetAutoGenFilterType();
+	return ProxyInterface->GetAutoGenFilterType();
 }
 
 void m_IDirect3DCubeTexture9::GenerateMipSubLevels(THIS)
 {
 	Logging::LogDebug() << __FUNCTION__;
 
-	return GenerateMipSubLevels();
+	return ProxyInterface->GenerateMipSubLevels();
 }
 
 HRESULT m_IDirect3DCubeTexture9::GetLevelDesc(THIS_ UINT Level, D3DSURFACE_DESC *pDesc)

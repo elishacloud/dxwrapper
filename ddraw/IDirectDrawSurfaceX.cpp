@@ -677,8 +677,11 @@ void m_IDirectDrawSurfaceX::SwapSurface(m_IDirectDrawSurfaceX *lpTargetSurface1,
 		return;
 	}
 
-	// Swap textures
+	// Swap surface textures
 	SwapAddresses(lpTargetSurface1->GetSurfaceTexture(), lpTargetSurface2->GetSurfaceTexture());
+
+	// Swap surface interface
+	SwapAddresses(lpTargetSurface1->GetSurfaceInterface(), lpTargetSurface2->GetSurfaceInterface());
 }
 
 HRESULT m_IDirectDrawSurfaceX::Flip(LPDIRECTDRAWSURFACE7 lpDDSurfaceTargetOverride, DWORD dwFlags)
@@ -1035,8 +1038,6 @@ HRESULT m_IDirectDrawSurfaceX::GetDC(HDC FAR * lphDC)
 
 	if (Config.Dd7to9)
 	{
-		LOG_LIMIT(1, __FUNCTION__ << " Not fully Implemented.");
-
 		if (!lphDC)
 		{
 			return DDERR_INVALIDPARAMS;
@@ -1049,14 +1050,13 @@ HRESULT m_IDirectDrawSurfaceX::GetDC(HDC FAR * lphDC)
 			return DDERR_GENERIC;
 		}
 
-		*lphDC = ::GetDC(ddrawParent->GetHwnd());
-
-		if (!*lphDC)
+		if (!surfaceInterface)
 		{
+			Logging::Log() << __FUNCTION__ << " Error no surface interface!";
 			return DDERR_GENERIC;
 		}
 
-		return DD_OK;
+		return surfaceInterface->GetDC(lphDC);
 	}
 
 	return ProxyInterface->GetDC(lphDC);
@@ -1473,20 +1473,20 @@ HRESULT m_IDirectDrawSurfaceX::ReleaseDC(HDC hDC)
 
 	if (Config.Dd7to9)
 	{
-		LOG_LIMIT(1, __FUNCTION__ << " Not fully Implemented.");
-
 		if (!ddrawParent)
 		{
 			Logging::Log() << __FUNCTION__ << " Error no ddraw parent!";
 			return DDERR_GENERIC;
 		}
 
-		if (::ReleaseDC(ddrawParent->GetHwnd(), hDC) == 0)
+
+		if (!surfaceInterface)
 		{
+			Logging::Log() << __FUNCTION__ << " Error no surface interface!";
 			return DDERR_GENERIC;
 		}
 
-		return DD_OK;
+		return surfaceInterface->ReleaseDC(hDC);
 	}
 
 	return ProxyInterface->ReleaseDC(hDC);
@@ -2196,6 +2196,13 @@ HRESULT m_IDirectDrawSurfaceX::CreateD3d9Surface()
 		}
 	}
 
+	// Get Surface Interface
+	if (FAILED(surfaceTexture->GetSurfaceLevel(0, &surfaceInterface)))
+	{
+		Logging::Log() << __FUNCTION__ << " Error: Unable to create surface interface";
+		return DDERR_GENERIC;
+	}
+
 	// Reset Locked flag
 	IsLocked = false;
 
@@ -2340,7 +2347,13 @@ void m_IDirectDrawSurfaceX::ReleaseD9Interface(T *ppInterface)
 // Release surface and vertext buffer
 void m_IDirectDrawSurfaceX::ReleaseD9Surface()
 {
-	// Release d3d9 surface
+	// Release surface interface
+	if (surfaceTexture)
+	{
+		surfaceInterface->Release();
+	}
+
+	// Release d3d9 surface texture
 	Logging::LogDebug() << __FUNCTION__ << " Releasing Direct3D9 texture surface";
 	if (surfaceTexture)
 	{
@@ -2348,7 +2361,7 @@ void m_IDirectDrawSurfaceX::ReleaseD9Surface()
 	}
 	ReleaseD9Interface(&surfaceTexture);
 
-	// Release d3d9 palette surface
+	// Release d3d9 palette surface texture
 	Logging::LogDebug() << __FUNCTION__ << " Releasing Direct3D9 palette texture surface";
 	if (paletteTexture)
 	{

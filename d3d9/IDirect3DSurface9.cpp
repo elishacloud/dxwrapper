@@ -87,28 +87,28 @@ DWORD m_IDirect3DSurface9::SetPriority(THIS_ DWORD PriorityNew)
 {
 	Logging::LogDebug() << __FUNCTION__;
 
-	return SetPriority(PriorityNew);
+	return ProxyInterface->SetPriority(PriorityNew);
 }
 
 DWORD m_IDirect3DSurface9::GetPriority(THIS)
 {
 	Logging::LogDebug() << __FUNCTION__;
 
-	return GetPriority();
+	return ProxyInterface->GetPriority();
 }
 
 void m_IDirect3DSurface9::PreLoad(THIS)
 {
 	Logging::LogDebug() << __FUNCTION__;
 
-	return PreLoad();
+	return ProxyInterface->PreLoad();
 }
 
 D3DRESOURCETYPE m_IDirect3DSurface9::GetType(THIS)
 {
 	Logging::LogDebug() << __FUNCTION__;
 
-	return GetType();
+	return ProxyInterface->GetType();
 }
 
 HRESULT m_IDirect3DSurface9::GetContainer(THIS_ REFIID riid, void** ppContainer)
@@ -143,12 +143,12 @@ HRESULT m_IDirect3DSurface9::GetDC(THIS_ HDC *phdc)
 {
 	Logging::LogDebug() << __FUNCTION__;
 
-	return GetDC(phdc);
+	return ProxyInterface->GetDC(phdc);
 }
 
 HRESULT m_IDirect3DSurface9::ReleaseDC(THIS_ HDC hdc)
 {
 	Logging::LogDebug() << __FUNCTION__;
 
-	return ReleaseDC(hdc);
+	return ProxyInterface->ReleaseDC(hdc);
 }

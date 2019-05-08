@@ -39,6 +39,7 @@ private:
 
 	// Direct3D9 vars
 	LPDIRECT3DDEVICE9 *d3d9Device = nullptr;			// Direct3D9 Device
+	LPDIRECT3DSURFACE9 surfaceInterface = nullptr;		// Main surface texture used for locks, Blts and Flips
 	LPDIRECT3DTEXTURE9 surfaceTexture = nullptr;		// Main surface texture used for locks, Blts and Flips
 	LPDIRECT3DTEXTURE9 paletteTexture = nullptr;		// Extra surface texture used for display when palettes are enabled
 	LPDIRECT3DVERTEXBUFFER9 vertexBuffer = nullptr;		// Vertex buffer used to stretch the texture accross the screen
@@ -216,6 +217,7 @@ public:
 	IDirectDrawSurface7 *GetProxyInterfaceV7() { return ProxyInterface; }
 	void *GetWrapperInterfaceX(DWORD DirectXVersion);
 	LPDIRECT3DTEXTURE9 *GetSurfaceTexture() { return &surfaceTexture; }
+	LPDIRECT3DSURFACE9 *GetSurfaceInterface() { return &surfaceInterface; }
 	m_IDirectDrawPalette **GetPallete() { return &attachedPalette; }
 	bool IsPrimarySurface() { return (surfaceDesc2.ddsCaps.dwCaps & DDSCAPS_PRIMARYSURFACE) != 0; }
 	bool IsSurfaceLocked() { return IsLocked; }

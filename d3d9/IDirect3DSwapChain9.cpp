@@ -83,14 +83,14 @@ HRESULT m_IDirect3DSwapChain9::GetRasterStatus(THIS_ D3DRASTER_STATUS* pRasterSt
 {
 	Logging::LogDebug() << __FUNCTION__;
 
-	return GetRasterStatus(pRasterStatus);
+	return ProxyInterface->GetRasterStatus(pRasterStatus);
 }
 
 HRESULT m_IDirect3DSwapChain9::GetDisplayMode(THIS_ D3DDISPLAYMODE* pMode)
 {
 	Logging::LogDebug() << __FUNCTION__;
 
-	return GetDisplayMode(pMode);
+	return ProxyInterface->GetDisplayMode(pMode);
 }
 
 HRESULT m_IDirect3DSwapChain9::GetDevice(THIS_ IDirect3DDevice9** ppDevice)
@@ -113,5 +113,5 @@ HRESULT m_IDirect3DSwapChain9::GetPresentParameters(THIS_ D3DPRESENT_PARAMETERS*
 {
 	Logging::LogDebug() << __FUNCTION__;
 
-	return GetPresentParameters(pPresentationParameters);
+	return ProxyInterface->GetPresentParameters(pPresentationParameters);
 }
