@@ -34,6 +34,7 @@ private:
 	bool SetDefaultDisplayMode = true;		// Set native resolution
 	DWORD displayWidth = 0;
 	DWORD displayHeight = 0;
+	DWORD displayRefreshRate = 0;		// Refresh rate for fullscreen
 
 	// Direct3D9 Objects
 	LPDIRECT3D9 d3d9Object = nullptr;
@@ -71,6 +72,18 @@ public:
 	m_IDirectDrawX(IDirect3D9 *aOriginal, DWORD DirectXVersion) : d3d9Object(aOriginal)
 	{
 		ProxyDirectXVersion = 9;
+
+		if (Config.DdrawUseNativeResolution)
+		{
+			displayWidth = GetSystemMetrics(SM_CXSCREEN);
+			displayHeight = GetSystemMetrics(SM_CYSCREEN);
+		}
+		else
+		{
+			displayWidth = Config.DdrawOverrideWidth;
+			displayHeight = Config.DdrawOverrideHeight;
+			displayRefreshRate = Config.DdrawOverrideRefreshRate;
+		}
 
 		SetDefaultDisplayMode = (!displayWidth || !displayHeight);
 

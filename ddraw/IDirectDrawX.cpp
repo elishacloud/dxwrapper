@@ -1423,7 +1423,7 @@ HRESULT m_IDirectDrawX::CreateD3D9Device()
 	{
 		// Window mode
 		presParams.Windowed = TRUE;
-		// width/height
+		// Width/height
 		presParams.BackBufferWidth = displayWidth;
 		presParams.BackBufferHeight = displayHeight;
 	}
@@ -1431,6 +1431,11 @@ HRESULT m_IDirectDrawX::CreateD3D9Device()
 	{
 		// Enumerate modes for format XRGB
 		UINT modeCount = d3d9Object->GetAdapterModeCount(D3DADAPTER_DEFAULT, D3DFMT_X8R8G8B8);
+
+		if (Config.DdrawUseNativeResolution && !displayRefreshRate)
+		{
+			displayRefreshRate = Utils::GetRefreshRate(MainhWnd);
+		}
 
 		// Get width and height
 		DWORD BackBufferWidth = displayWidth;
@@ -1440,6 +1445,7 @@ HRESULT m_IDirectDrawX::CreateD3D9Device()
 			BackBufferWidth = GetSystemMetrics(SM_CXSCREEN);
 			BackBufferHeight = GetSystemMetrics(SM_CYSCREEN);
 		}
+		DWORD BackBufferRefreshRate = (displayRefreshRate) ? displayRefreshRate : displayRefreshRate;
 
 		// Loop through all modes looking for our requested resolution
 		D3DDISPLAYMODE d3ddispmode;
@@ -1455,7 +1461,7 @@ HRESULT m_IDirectDrawX::CreateD3D9Device()
 				return DDERR_GENERIC;
 			}
 			if (d3ddispmode.Width == BackBufferWidth && d3ddispmode.Height == BackBufferHeight &&		// Check height and width
-				(d3ddispmode.RefreshRate == displayModeRefreshRate || displayModeRefreshRate == 0))		// Check refresh rate
+				(d3ddispmode.RefreshRate == BackBufferRefreshRate || BackBufferRefreshRate == 0))		// Check refresh rate
 			{
 				// Found a match
 				modeFound = true;
@@ -1472,7 +1478,7 @@ HRESULT m_IDirectDrawX::CreateD3D9Device()
 
 		// Fullscreen
 		presParams.Windowed = FALSE;
-		// width/height
+		// Width/height
 		presParams.BackBufferWidth = set_d3ddispmode.Width;
 		presParams.BackBufferHeight = set_d3ddispmode.Height;
 		// Backbuffer

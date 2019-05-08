@@ -17,6 +17,10 @@
 	visit(DDrawCompat21) \
 	visit(DDrawCompatExperimental) \
 	visit(DDrawCompatDisableGDIHook) \
+	visit(DdrawUseNativeResolution) \
+	visit(DdrawOverrideWidth) \
+	visit(DdrawOverrideHeight) \
+	visit(DdrawOverrideRefreshRate) \
 	visit(DDrawResolutionHack) \
 	visit(DisableHighDPIScaling) \
 	visit(DisableLogging) \
@@ -162,6 +166,10 @@ struct CONFIG
 	bool DDrawCompatDisableGDIHook;		// Disables DDrawCompat GDI hooks
 	bool DDrawResolutionHack;			// Removes the artificial resolution limit from Direct3D7 and below https://github.com/UCyborg/LegacyD3DResolutionHack
 	bool DDrawResolutionHackNotSet;		// If the DDrawResolutionHack option exists in the config file
+	bool DdrawUseNativeResolution;		// Uses the current screen resolution for Dd7to9
+	DWORD DdrawOverrideWidth;			// Force Direct3d9 to use this width when using Dd7to9
+	DWORD DdrawOverrideHeight;			// Force Direct3d9 to use this height when using Dd7to9
+	DWORD DdrawOverrideRefreshRate;		// Force Direct3d9 to use this refresh rate when using Dd7to9
 	bool DisableHighDPIScaling;			// Disables display scaling on high DPI settings
 	bool DisableLogging;				// Disables the logging file
 	bool DSoundCtrl;					// Enables DirectSoundControl https://github.com/nRaecheR/DirectSoundControl
