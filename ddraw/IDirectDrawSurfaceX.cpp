@@ -441,10 +441,10 @@ HRESULT m_IDirectDrawSurfaceX::Blt(LPRECT lpDestRect, LPDIRECTDRAWSURFACE7 lpDDS
 			lpDDSrcSurfaceX->SetUnLock(true);
 		}
 
-		// EndScene
-		if (IsPrimarySurface() && !isSkipScene)
+		// Present surface
+		if (!isSkipScene)
 		{
-			ddrawParent->EndScene();
+			PresentSurface();
 		}
 
 		// Return
@@ -791,12 +791,8 @@ HRESULT m_IDirectDrawSurfaceX::Flip(LPDIRECTDRAWSURFACE7 lpDDSurfaceTargetOverri
 			Logging::Log() << __FUNCTION__ << " Failed to set texture";
 		}
 
-		if (attachedPalette)
-		{
-			WritePaletteToSurface();
-		}
-
-		ddrawParent->EndScene();
+		// Present surface
+		PresentSurface();
 
 		return hr;
 	}
@@ -1056,7 +1052,14 @@ HRESULT m_IDirectDrawSurfaceX::GetDC(HDC FAR * lphDC)
 			return DDERR_GENERIC;
 		}
 
-		return surfaceInterface->GetDC(lphDC);
+		HRESULT hr = surfaceInterface->GetDC(lphDC);
+
+		if (SUCCEEDED(hr))
+		{
+			IsInDC = true;
+		}
+
+		return hr;
 	}
 
 	return ProxyInterface->GetDC(lphDC);
@@ -1486,7 +1489,14 @@ HRESULT m_IDirectDrawSurfaceX::ReleaseDC(HDC hDC)
 			return DDERR_GENERIC;
 		}
 
-		return surfaceInterface->ReleaseDC(hDC);
+		HRESULT hr = surfaceInterface->ReleaseDC(hDC);
+
+		if (SUCCEEDED(hr))
+		{
+			IsInDC = false;
+		}
+
+		return hr;
 	}
 
 	return ProxyInterface->ReleaseDC(hDC);
@@ -2495,15 +2505,6 @@ HRESULT m_IDirectDrawSurfaceX::SetUnLock(bool isSkipScene)
 		return DDERR_GENERIC;
 	}
 
-	// Write to palette surface using a palette
-	if (IsPrimarySurface() && !isSkipScene && attachedPalette)
-	{
-		if (FAILED(WritePaletteToSurface()))
-		{
-			Logging::Log() << __FUNCTION__ << " Failed to write palette data to surface!";
-		}
-	}
-
 	// Lock surface
 	if (FAILED(surfaceTexture->UnlockRect(0)))
 	{
@@ -2513,10 +2514,10 @@ HRESULT m_IDirectDrawSurfaceX::SetUnLock(bool isSkipScene)
 	IsLocked = false;
 	d3dlrect.pBits = nullptr;
 
-	// Keep running EndScene until it succeeds
-	if (IsPrimarySurface() && !isSkipScene)
+	// Present surface
+	if (!isSkipScene)
 	{
-		ddrawParent->EndScene();
+		PresentSurface();
 	}
 
 	return DD_OK;
@@ -2715,10 +2716,10 @@ HRESULT m_IDirectDrawSurfaceX::ColorFill(RECT *pRect, DWORD dwFillColor)
 		SetUnLock(true);
 	}
 
-	// EndScene
-	if (IsPrimarySurface() && !isSkipScene)
+	// Present surface
+	if (!isSkipScene)
 	{
-		ddrawParent->EndScene();
+		PresentSurface();
 	}
 
 	return DD_OK;
@@ -3108,6 +3109,28 @@ HRESULT m_IDirectDrawSurfaceX::StretchRect(D3DLOCKED_RECT *pDestLockRect, RECT *
 
 	// Return
 	return DD_OK;
+}
+
+void m_IDirectDrawSurfaceX::PresentSurface()
+{
+	// Check for device
+	if (!ddrawParent)
+	{
+		Logging::Log() << __FUNCTION__ << " Error no ddraw parent!";
+		return;
+	}
+
+	// Write texture from palette
+	if (IsPrimarySurface() && attachedPalette && !IsLocked && !IsInDC)
+	{
+		WritePaletteToSurface();
+	}
+
+	// EndScene
+	if (IsPrimarySurface() && !IsLocked && !IsInDC)
+	{
+		ddrawParent->EndScene();
+	}
 }
 
 void m_IDirectDrawSurfaceX::ReleaseSurface()

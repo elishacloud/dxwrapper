@@ -30,6 +30,7 @@ private:
 	LONG overlayY = 0;
 	DWORD UniquenessValue = 0;
 	bool IsLocked = false;
+	bool IsInDC = false;
 	bool PaletteFirstRun = true;
 	bool ClipperFirstRun = true;
 
@@ -250,5 +251,6 @@ public:
 	HRESULT CopyRectColorKey(D3DLOCKED_RECT *pDestLockRect, RECT *pDestRect, DWORD DestBitCount, D3DFORMAT DestFormat, D3DLOCKED_RECT *pSrcLockRect, RECT *pSrcRect, DWORD SrcBitCount, D3DFORMAT SrcFormat, DDCOLORKEY ColorKey);
 	HRESULT StretchRect(D3DLOCKED_RECT *pDestLockRect, RECT *pDestRect, DWORD DestBitCount, D3DFORMAT DestFormat, D3DLOCKED_RECT *pSrcLockRect, RECT *pSrcRect, DWORD SrcBitCount, D3DFORMAT SrcFormat);
 	void SwapSurface(m_IDirectDrawSurfaceX *lpTargetSurface1, m_IDirectDrawSurfaceX *lpTargetSurface2);
+	void PresentSurface();
 	void ReleaseSurface();
 };
