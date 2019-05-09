@@ -1632,6 +1632,12 @@ HRESULT m_IDirectDrawSurfaceX::SetPalette(LPDIRECTDRAWPALETTE lpDDPalette)
 		// If lpDDPalette is nullptr then detach the current palette if it exists
 		if (!lpDDPalette)
 		{
+			// Check for device, if not then create it
+			if (!d3d9Device || !*d3d9Device)
+			{
+				ddrawParent->CreateD3D9Device();
+			}
+
 			if (attachedPalette)
 			{
 				// Decrement ref count
@@ -1639,6 +1645,19 @@ HRESULT m_IDirectDrawSurfaceX::SetPalette(LPDIRECTDRAWPALETTE lpDDPalette)
 
 				// Detach
 				attachedPalette = nullptr;
+
+				// Release palette
+				if (paletteTexture)
+				{
+					ReleaseD9Interface(&paletteTexture);
+				}
+
+				// Set texture
+				if (!surfaceTexture || FAILED((*d3d9Device)->SetTexture(0, surfaceTexture)))
+				{
+					Logging::Log() << __FUNCTION__ << " Failed to set texture";
+					return DDERR_GENERIC;
+				}
 			}
 
 			// Reset FirstRun
@@ -2334,7 +2353,7 @@ HRESULT m_IDirectDrawSurfaceX::CreateD3d9Surface()
 }
 
 template <typename T>
-void m_IDirectDrawSurfaceX::ReleaseD9Interface(T *ppInterface)
+void m_IDirectDrawSurfaceX::ReleaseD9Interface(T **ppInterface)
 {
 	if (ppInterface && *ppInterface)
 	{
@@ -2841,7 +2860,9 @@ HRESULT m_IDirectDrawSurfaceX::CopyRect(D3DLOCKED_RECT *pDestLockRect, RECT *pDe
 	LONG RectHeight = min(pDestRect->bottom - pDestRect->top, pSrcRect->bottom - pSrcRect->top);
 
 	// Check if source and destination formats are the same
-	if (DestFormat == SrcFormat)
+	if (SrcFormat == DestFormat ||
+		((SrcFormat == D3DFMT_A1R5G5B5 || SrcFormat == D3DFMT_X1R5G5B5) && (DestFormat == D3DFMT_A1R5G5B5 || DestFormat == D3DFMT_X1R5G5B5)) ||
+		((SrcFormat == D3DFMT_A8R8G8B8 || SrcFormat == D3DFMT_X8R8G8B8) && (DestFormat == D3DFMT_A8R8G8B8 || DestFormat == D3DFMT_X8R8G8B8)))
 	{
 		// Get byte count
 		DWORD ByteCount = DestBitCount / 8;
@@ -2863,108 +2884,92 @@ HRESULT m_IDirectDrawSurfaceX::CopyRect(D3DLOCKED_RECT *pDestLockRect, RECT *pDe
 		return DD_OK;
 	}
 
-	// Set raw video memory, BitCount and display format
-	BYTE *SrcBuffer = (BYTE*)pSrcLockRect->pBits;
-
-	// For destination bit count
-	switch (DestBitCount)
+	// For destiantion format
+	switch (DestFormat)
 	{
-	case 32: // 32-bit destination surface
+	case D3DFMT_A8R8G8B8:
+	case D3DFMT_X8R8G8B8:
 	{
+		// Translate source buffer to 32-bit rgb video using specified format
 		UINT32 *DestBuffer = (UINT32*)pDestLockRect->pBits;
-		// For destiantion format
-		switch (DestFormat)
+
+		switch (SrcFormat)
 		{
-		case D3DFMT_A8R8G8B8:
-		case D3DFMT_X8R8G8B8:
-			// Translate source buffer to 32-bit rgb video using specified format
-			switch (SrcBitCount)
+		case D3DFMT_A1R5G5B5:
+		case D3DFMT_X1R5G5B5:
+		{
+			WORD *SrcBuffer = (WORD*)pSrcLockRect->pBits;
+			for (LONG y = 0; y < RectHeight; y++)
 			{
-			case 8: // 8-bit source surface with 32-bit destination surface
-				Logging::Log() << __FUNCTION__ << " No support for non-palette 8-bit source surfaces!";
-				break;
-			case 16: // 16-bit source surface with 32-bit destination surface
-				switch (SrcFormat)
-				{
-				case D3DFMT_A1R5G5B5:
-				case D3DFMT_X1R5G5B5:
-				{
-					WORD *RawBuffer = (WORD*)SrcBuffer;
-					for (LONG y = 0; y < RectHeight; y++)
-					{
-						DWORD StartDestLoc = ((y + pDestRect->top) * pDestLockRect->Pitch) + (pDestRect->left * 2);
-						DWORD StartSrcLoc = ((y + pSrcRect->top) * pSrcLockRect->Pitch) + (pSrcRect->left * 2);
+				DWORD StartDestLoc = ((y + pDestRect->top) * pDestLockRect->Pitch) + (pDestRect->left * 2);
+				DWORD StartSrcLoc = ((y + pSrcRect->top) * pSrcLockRect->Pitch) + (pSrcRect->left * 2);
 
-						for (LONG x = 0; x < RectWidth; x++)
-						{
-							LONG z = StartSrcLoc + x * 2;
-							DestBuffer[StartDestLoc + x * 2] =
-								((RawBuffer[z] & 0x8000) << 9) * 255 +		// Alpha
-								((RawBuffer[z] & 0x7C00) << 9) +			// Red
-								((RawBuffer[z] & 0x03E0) << 6) +			// Green
-								((RawBuffer[z] & 0x001F) << 3);				// Blue
-						}
-					}
-					break;
-				}
-				case D3DFMT_R5G6B5:
+				for (LONG x = 0; x < RectWidth; x++)
 				{
-					WORD *RawBuffer = (WORD*)SrcBuffer;
-					for (LONG y = 0; y < RectHeight; y++)
-					{
-						DWORD StartDestLoc = ((y + pDestRect->top) * pDestLockRect->Pitch) + (pDestRect->left * 2);
-						DWORD StartSrcLoc = ((y + pSrcRect->top) * pSrcLockRect->Pitch) + (pSrcRect->left * 2);
-
-						for (LONG x = 0; x < RectWidth; x++)
-						{
-							LONG z = StartSrcLoc + x * 2;
-							DestBuffer[StartDestLoc + x * 2] =
-								(0xFF000000) +						// Alpha
-								((RawBuffer[z] & 0xF800) << 8) +	// Red
-								((RawBuffer[z] & 0x07E0) << 5) +	// Green
-								((RawBuffer[z] & 0x001F) << 3);		// Blue
-						}
-					}
-					break;
+					LONG z = StartSrcLoc + x * 2;
+					DestBuffer[StartDestLoc + x * 2] =
+						((SrcBuffer[z] & 0x8000) << 9) * 255 +		// Alpha
+						((SrcBuffer[z] & 0x7C00) << 9) +			// Red
+						((SrcBuffer[z] & 0x03E0) << 6) +			// Green
+						((SrcBuffer[z] & 0x001F) << 3);				// Blue
 				}
-				default:
-					Logging::Log() << __FUNCTION__ << " Unsupported 16-bit source format type: " << SrcFormat;
-					break;
-				}
-				break;
-			case 32: // 32-bit source surface with 32-bit destination surface
-				switch (SrcFormat)
-				{
-				case D3DFMT_A8R8G8B8:
-				case D3DFMT_X8R8G8B8:
-				{
-					// Copy memory
-					for (LONG y = 0; y < RectHeight; y++)
-					{
-						memcpy((BYTE*)pDestLockRect->pBits + ((y + pDestRect->top) * pDestLockRect->Pitch) + (pDestRect->left * 4),	// Destination video memory address
-							(BYTE*)pSrcLockRect->pBits + ((y + pSrcRect->top) * pSrcLockRect->Pitch) + (pSrcRect->left * 4),		// Source video memory address
-							RectWidth * 4);																							// Size of bytes to write
-					}
-					break;
-				}
-				default: // Unsupported source surface with 32-bit destination surface
-					Logging::Log() << __FUNCTION__ << " Unsupported 32-bit source format type: " << SrcFormat;
-					break;
-				}
-				break;
-			default:
-				Logging::Log() << __FUNCTION__ << " Unsupported source bit count: " << SrcBitCount;
-				break;
 			}
 			break;
-		default:
-			Logging::Log() << __FUNCTION__ << " Unsupported destination surface format: " << DestFormat;
+		}
+		case D3DFMT_R5G6B5:
+		{
+			WORD *SrcBuffer = (WORD*)pSrcLockRect->pBits;
+			for (LONG y = 0; y < RectHeight; y++)
+			{
+				DWORD StartDestLoc = ((y + pDestRect->top) * pDestLockRect->Pitch) + (pDestRect->left * 2);
+				DWORD StartSrcLoc = ((y + pSrcRect->top) * pSrcLockRect->Pitch) + (pSrcRect->left * 2);
+
+				for (LONG x = 0; x < RectWidth; x++)
+				{
+					LONG z = StartSrcLoc + x * 2;
+					DestBuffer[StartDestLoc + x * 2] =
+						(0xFF000000) +						// Alpha
+						((SrcBuffer[z] & 0xF800) << 8) +	// Red
+						((SrcBuffer[z] & 0x07E0) << 5) +	// Green
+						((SrcBuffer[z] & 0x001F) << 3);		// Blue
+				}
+			}
+			break;
+		}
+		case D3DFMT_L8:
+		case D3DFMT_P8:
+		{
+			LONG DestPitch = pDestLockRect->Pitch / 4;
+
+			DestBuffer = (UINT32*)pDestLockRect->pBits + (DestPitch * pDestRect->top) + pDestRect->left;
+			BYTE *SrcBuffer = (BYTE*)pSrcLockRect->pBits + (pSrcLockRect->Pitch * pSrcRect->top) + pSrcRect->left;
+
+			for (LONG j = pDestRect->top; j < pDestRect->bottom; j++)
+			{
+				for (LONG i = pDestRect->left; i < pDestRect->right; i++)
+				{
+					DestBuffer[i] = rgbPalette[SrcBuffer[i]];
+				}
+				DestBuffer += DestPitch;
+				SrcBuffer += pSrcLockRect->Pitch;
+			}
+			break;
+		}
+		case D3DFMT_A2R10G10B10:
+		default: // Unsupported source surface with 32-bit destination surface
+			Logging::Log() << __FUNCTION__ << " Unsupported source format type: " << SrcFormat;
 			break;
 		}
 		break;
 	}
+	case D3DFMT_A2R10G10B10:
+	case D3DFMT_A1R5G5B5:
+	case D3DFMT_X1R5G5B5:
+	case D3DFMT_R5G6B5:
+	case D3DFMT_L8:
+	case D3DFMT_P8:
 	default:
-		Logging::Log() << __FUNCTION__ << " Unsupported destination bit count: " << DestBitCount;
+		Logging::Log() << __FUNCTION__ << " Unsupported destination format type: " << DestFormat;
 		break;
 	}
 

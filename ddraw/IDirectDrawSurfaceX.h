@@ -236,7 +236,7 @@ public:
 	bool CheckD3d9Surface();
 	HRESULT CreateD3d9Surface();
 	template <typename T>
-	void ReleaseD9Interface(T *ppInterface);
+	void ReleaseD9Interface(T **ppInterface);
 	void ReleaseD9Surface();
 	bool UpdateRect(LPRECT lpOutRect, LPRECT lpInRect);
 	HRESULT SetLock(LPRECT lpDestRect, DWORD dwFlags, bool isSkipScene = false);
