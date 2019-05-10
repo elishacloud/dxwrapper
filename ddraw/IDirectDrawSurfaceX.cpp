@@ -196,7 +196,7 @@ HRESULT m_IDirectDrawSurfaceX::AddOverlayDirtyRect(LPRECT lpRect)
 	return ProxyInterface->AddOverlayDirtyRect(lpRect);
 }
 
-HRESULT m_IDirectDrawSurfaceX::Blt(LPRECT lpDestRect, LPDIRECTDRAWSURFACE7 lpDDSrcSurface, LPRECT lpSrcRect, DWORD dwFlags, LPDDBLTFX lpDDBltFx)
+HRESULT m_IDirectDrawSurfaceX::Blt(LPRECT lpDestRect, LPDIRECTDRAWSURFACE7 lpDDSrcSurface, LPRECT lpSrcRect, DWORD dwFlags, LPDDBLTFX lpDDBltFx, bool isSkipScene)
 {
 	Logging::LogDebug() << __FUNCTION__;
 
@@ -251,11 +251,10 @@ HRESULT m_IDirectDrawSurfaceX::Blt(LPRECT lpDestRect, LPDIRECTDRAWSURFACE7 lpDDS
 			return DDERR_NOMIRRORHW;
 		}
 
-		// Check for FX flag
+		// Check for FX arithmetic stretching flag
 		if ((dwFlags & DDBLT_DDFX) && (lpDDBltFx->dwDDFX & DDBLTFX_ARITHSTRETCHY))
 		{
-			Logging::Log() << __FUNCTION__ << " Stretch operations Not Implemented";
-			return DDERR_NOSTRETCHHW;
+			Logging::Log() << __FUNCTION__ << " Arithmetic stretching operations Not Implemented";
 		}
 
 		// Unused flags (can be safely ignored?)
@@ -265,132 +264,144 @@ HRESULT m_IDirectDrawSurfaceX::Blt(LPRECT lpDestRect, LPDIRECTDRAWSURFACE7 lpDDS
 		// DDBLT_WAIT
 		// DDBLTFX_NOTEARING
 
-		// Do color fill
-		if (dwFlags & DDBLT_COLORFILL)
-		{
-			return ColorFill(lpDestRect, lpDDBltFx->dwFillColor);
-		}
-
-		// Check for device
-		if (!ddrawParent)
-		{
-			Logging::Log() << __FUNCTION__ << " Error no ddraw parent!";
-			return DDERR_GENERIC;
-		}
-
-		// Make sure surface exists, if not then create it
-		if (!CheckD3d9Surface())
-		{
-			Logging::Log() << __FUNCTION__ << " Error surface does not exist!";
-			return DDERR_GENERIC;
-		}
-
-		// Check if source Surface exists
-		m_IDirectDrawSurfaceX *lpDDSrcSurfaceX = (m_IDirectDrawSurfaceX*)lpDDSrcSurface;
-		if (!lpDDSrcSurfaceX)
-		{
-			lpDDSrcSurfaceX = this;
-		}
-		else
-		{
-			lpDDSrcSurfaceX = ((m_IDirectDrawSurface*)lpDDSrcSurfaceX)->GetWrapperInterface();
-
-			if (!ddrawParent->DoesSurfaceExist(lpDDSrcSurfaceX))
-			{
-				Logging::Log() << __FUNCTION__ << " Error, could not find source surface";
-				return DDERR_INVALIDPARAMS;
-			}
-		}
-
-		RECT SrcRect = { 0, 0, (LONG)lpDDSrcSurfaceX->GetWidth(), (LONG)lpDDSrcSurfaceX->GetHeight() };
-		RECT DestRect = { 0, 0, (LONG)GetWidth(), (LONG)GetHeight() };
-
-		if (lpSrcRect)
-		{
-			memcpy(&SrcRect, lpSrcRect, sizeof(RECT));
-		}
-
-		if (lpDestRect)
-		{
-			memcpy(&DestRect, lpDestRect, sizeof(RECT));
-		}
-
-		// Check if the rect should be stretched before clipping
-		bool isStretchRect = (abs((DestRect.right - DestRect.left) - (SrcRect.right - SrcRect.left)) > 1 || abs((DestRect.bottom - DestRect.top) - (SrcRect.bottom - SrcRect.top)) > 1);
-
 		// Check if the scene needs to be presented
-		bool isSkipScene = (DestRect.bottom - DestRect.top < 2 || DestRect.right - DestRect.left < 2 || SrcRect.bottom - SrcRect.top < 2 || SrcRect.right - SrcRect.left < 2);
+		isSkipScene = isSkipScene || ((lpDestRect) ? (abs(lpDestRect->bottom - lpDestRect->top) < 2 || abs(lpDestRect->right - lpDestRect->left) < 2) : false);
 
-		// Check and copy source and destination rect and do clipping
-		if (!lpDDSrcSurfaceX->UpdateRect(&SrcRect, lpSrcRect) || !UpdateRect(&DestRect, lpDestRect))
-		{
-			Logging::Log() << __FUNCTION__ << " Error, invalid rect size";
-			return DDERR_INVALIDRECT;
-		}
+		HRESULT hr = DD_OK;
+		m_IDirectDrawSurfaceX *lpDDSrcSurfaceX = nullptr;
+		bool UnlockSrc = false, UnlockDest = false;
+		do {
 
-		// Check if destination surface is not locked then lock it
-		bool UnlockDest = false;
-		if (!IsSurfaceLocked())
-		{
-			HRESULT hr = SetLock(nullptr, 0, true);
-			if (FAILED(hr))
+			// Do color fill
+			if (dwFlags & DDBLT_COLORFILL)
 			{
-				Logging::Log() << __FUNCTION__ << " Error, could not lock dest surface";
-				return DDERR_GENERIC;
+				hr = ColorFill(lpDestRect, lpDDBltFx->dwFillColor);
+				break;
 			}
-			UnlockDest = true;
-		}
 
-		// Destination and source variables
-		D3DLOCKED_RECT DestLockRect, SrcLockRect;
-		D3DFORMAT DestFormat, SrcFormat;
-		DWORD DestBitCount, SrcBitCount;
-
-		// Get destination surface information
-		HRESULT hr = GetSurfaceInfo(&DestLockRect, &DestBitCount, &DestFormat);
-
-		// Check source surface
-		bool UnlockSrc = false;
-		if (SUCCEEDED(hr) && lpDDSrcSurfaceX != this)
-		{
-			// Check if source surface is not locked then lock it
-			if (!lpDDSrcSurfaceX->IsSurfaceLocked())
+			// Check for device
+			if (!ddrawParent)
 			{
-				hr = lpDDSrcSurfaceX->SetLock(nullptr, 0, true);
-				if (FAILED(hr))
+				Logging::Log() << __FUNCTION__ << " Error no ddraw parent!";
+				hr = DDERR_GENERIC;
+				break;
+			}
+
+			// Make sure surface exists, if not then create it
+			if (!CheckD3d9Surface())
+			{
+				Logging::Log() << __FUNCTION__ << " Error surface does not exist!";
+				hr = DDERR_GENERIC;
+				break;
+			}
+
+			// Check if source Surface exists
+			lpDDSrcSurfaceX = (m_IDirectDrawSurfaceX*)lpDDSrcSurface;
+			if (!lpDDSrcSurfaceX)
+			{
+				lpDDSrcSurfaceX = this;
+			}
+			else
+			{
+				lpDDSrcSurfaceX = ((m_IDirectDrawSurface*)lpDDSrcSurfaceX)->GetWrapperInterface();
+
+				if (!ddrawParent->DoesSurfaceExist(lpDDSrcSurfaceX))
 				{
-					Logging::Log() << __FUNCTION__ << " Error, could not lock src surface";
-					hr = DDERR_GENERIC;
+					Logging::Log() << __FUNCTION__ << " Error, could not find source surface";
+					hr = DDERR_INVALIDPARAMS;
+					break;
 				}
-				else
+			}
+
+			RECT SrcRect = { 0, 0, (LONG)lpDDSrcSurfaceX->GetWidth(), (LONG)lpDDSrcSurfaceX->GetHeight() };
+			RECT DestRect = { 0, 0, (LONG)GetWidth(), (LONG)GetHeight() };
+
+			if (lpSrcRect)
+			{
+				memcpy(&SrcRect, lpSrcRect, sizeof(RECT));
+			}
+
+			if (lpDestRect)
+			{
+				memcpy(&DestRect, lpDestRect, sizeof(RECT));
+			}
+
+			// Check if the rect should be stretched before clipping
+			bool isStretchRect = (abs((DestRect.right - DestRect.left) - (SrcRect.right - SrcRect.left)) > 1 || abs((DestRect.bottom - DestRect.top) - (SrcRect.bottom - SrcRect.top)) > 1);
+
+			// Check and copy source and destination rect and do clipping
+			if (!lpDDSrcSurfaceX->UpdateRect(&SrcRect, lpSrcRect) || !UpdateRect(&DestRect, lpDestRect))
+			{
+				Logging::Log() << __FUNCTION__ << " Error, invalid rect size";
+				hr = DDERR_INVALIDRECT;
+				break;
+			}
+
+			// Check if destination surface is not locked then lock it
+			if (!IsSurfaceLocked())
+			{
+				if (FAILED(SetLock(nullptr, 0, true)))
 				{
+					Logging::Log() << __FUNCTION__ << " Error, could not lock dest surface";
+					hr = DDERR_GENERIC;
+					break;
+				}
+				UnlockDest = true;
+			}
+
+			// Destination and source variables
+			D3DLOCKED_RECT DestLockRect, SrcLockRect;
+			D3DFORMAT DestFormat, SrcFormat;
+			DWORD DestBitCount, SrcBitCount;
+
+			// Get destination surface information
+			if (FAILED(GetSurfaceInfo(&DestLockRect, &DestBitCount, &DestFormat)))
+			{
+				hr = DDERR_GENERIC;
+				break;
+			}
+
+			// Check source surface
+			if (lpDDSrcSurfaceX != this)
+			{
+				// Check if source surface is not locked then lock it
+				if (!lpDDSrcSurfaceX->IsSurfaceLocked())
+				{
+					if (FAILED(lpDDSrcSurfaceX->SetLock(nullptr, 0, true)))
+					{
+						Logging::Log() << __FUNCTION__ << " Error, could not lock src surface";
+						hr = DDERR_GENERIC;
+						break;
+					}
 					UnlockSrc = true;
 				}
+
+				// Get source surface information
+				if (FAILED(lpDDSrcSurfaceX->GetSurfaceInfo(&SrcLockRect, &SrcBitCount, &SrcFormat)))
+				{
+					hr = DDERR_GENERIC;
+					break;
+				}
+			}
+			else
+			{
+				SrcLockRect.pBits = DestLockRect.pBits;
+				SrcLockRect.Pitch = DestLockRect.Pitch;
+				SrcBitCount = DestBitCount;
+				SrcFormat = DestFormat;
 			}
 
-			// Get source surface information
-			hr = lpDDSrcSurfaceX->GetSurfaceInfo(&SrcLockRect, &SrcBitCount, &SrcFormat);
-		}
-		else
-		{
-			SrcLockRect.pBits = DestLockRect.pBits;
-			SrcLockRect.Pitch = DestLockRect.Pitch;
-			SrcBitCount = DestBitCount;
-			SrcFormat = DestFormat;
-		}
+			// Do color key
+			if (dwFlags & (DDBLT_KEYDESTOVERRIDE | DDBLT_KEYSRCOVERRIDE | DDBLT_KEYDEST | DDBLT_KEYSRC))
+			{
+				// Strect rect and color key
+				if (isStretchRect)
+				{
+					Logging::Log() << __FUNCTION__ << " stretch rect plus color key not imlpemented";
+					hr = DDERR_GENERIC;
+					break;
+				}
 
-		// Copy rect
-		if (SUCCEEDED(hr))
-		{
-			// Strect rect and color key
-			if (isStretchRect && (dwFlags & (DDBLT_KEYDESTOVERRIDE | DDBLT_KEYSRCOVERRIDE | DDBLT_KEYDEST | DDBLT_KEYSRC)))
-			{
-				Logging::Log() << __FUNCTION__ << " stretch rect plus color key not imlpemented";
-				hr = DDERR_GENERIC;
-			}
-			// Check for color key flags
-			else if (dwFlags & (DDBLT_KEYDESTOVERRIDE | DDBLT_KEYSRCOVERRIDE | DDBLT_KEYDEST | DDBLT_KEYSRC))
-			{
 				// Check if color key is set
 				if (((dwFlags & DDBLT_KEYDEST) && !ColorKeys[0].IsSet) || ((dwFlags & DDBLT_KEYSRC) && !lpDDSrcSurfaceX->ColorKeys[2].IsSet))
 				{
@@ -404,45 +415,35 @@ HRESULT m_IDirectDrawSurfaceX::Blt(LPRECT lpDestRect, LPDIRECTDRAWSURFACE7 lpDDS
 					(dwFlags & DDBLT_KEYDEST) ? ColorKeys[0].Key :
 					(dwFlags & DDBLT_KEYSRC) ? lpDDSrcSurfaceX->ColorKeys[2].Key : ColorKey;
 
-				// copy rect using color key
+				// Copy rect using color key
 				hr = CopyRectColorKey(&DestLockRect, &DestRect, DestBitCount, DestFormat, &SrcLockRect, &SrcRect, SrcBitCount, SrcFormat, ColorKey);
-				if (FAILED(hr))
-				{
-					Logging::Log() << __FUNCTION__ << " failed to copy rect";
-				}
+				break;
 			}
-			// Strect rect
-			else if (isStretchRect)
+
+			// Do strect rect
+			if (isStretchRect)
 			{
 				hr = StretchRect(&DestLockRect, &DestRect, DestBitCount, DestFormat, &SrcLockRect, &SrcRect, SrcBitCount, SrcFormat);
-				if (FAILED(hr))
-				{
-					Logging::Log() << __FUNCTION__ << " failed to strect rect";
-				}
+				break;
 			}
-			// Normal copy rect
-			else
-			{
-				hr = CopyRect(&DestLockRect, &DestRect, DestBitCount, DestFormat, &SrcLockRect, &SrcRect, SrcBitCount, SrcFormat);
-				if (FAILED(hr))
-				{
-					Logging::Log() << __FUNCTION__ << " failed to copy rect";
-				}
-			}
-		}
+
+			// Do normal copy rect
+			hr = CopyRect(&DestLockRect, &DestRect, DestBitCount, DestFormat, &SrcLockRect, &SrcRect, SrcBitCount, SrcFormat);
+
+		} while (false);
 
 		// Unlock surfaces if needed
 		if (UnlockDest)
 		{
 			SetUnLock(true);
 		}
-		if (UnlockSrc)
+		if (UnlockSrc && lpDDSrcSurfaceX)
 		{
 			lpDDSrcSurfaceX->SetUnLock(true);
 		}
 
 		// Present surface
-		if (!isSkipScene)
+		if (SUCCEEDED(hr) && !isSkipScene)
 		{
 			PresentSurface();
 		}
@@ -474,7 +475,7 @@ HRESULT m_IDirectDrawSurfaceX::BltBatch(LPDDBLTBATCH lpDDBltBatch, DWORD dwCount
 
 		for (DWORD x = 0; x < dwCount; x++)
 		{
-			hr = Blt(lpDDBltBatch[x].lprDest, (LPDIRECTDRAWSURFACE7)lpDDBltBatch[x].lpDDSSrc, lpDDBltBatch[x].lprSrc, lpDDBltBatch[x].dwFlags, lpDDBltBatch[x].lpDDBltFx);
+			hr = Blt(lpDDBltBatch[x].lprDest, (LPDIRECTDRAWSURFACE7)lpDDBltBatch[x].lpDDSSrc, lpDDBltBatch[x].lprSrc, lpDDBltBatch[x].dwFlags, lpDDBltBatch[x].lpDDBltFx, (x != dwCount - 1));
 			if (FAILED(hr))
 			{
 				return hr;
@@ -792,7 +793,10 @@ HRESULT m_IDirectDrawSurfaceX::Flip(LPDIRECTDRAWSURFACE7 lpDDSurfaceTargetOverri
 		}
 
 		// Present surface
-		PresentSurface();
+		if (SUCCEEDED(hr))
+		{
+			PresentSurface();
+		}
 
 		return hr;
 	}
@@ -1645,25 +1649,25 @@ HRESULT m_IDirectDrawSurfaceX::SetPalette(LPDIRECTDRAWPALETTE lpDDPalette)
 
 				// Detach
 				attachedPalette = nullptr;
+			}
 
-				// Release palette
-				if (paletteTexture)
-				{
-					ReleaseD9Interface(&paletteTexture);
-				}
+			// Release palette
+			if (paletteTexture)
+			{
+				ReleaseD9Interface(&paletteTexture);
+			}
 
-				// Set texture
-				if (!surfaceTexture || FAILED((*d3d9Device)->SetTexture(0, surfaceTexture)))
-				{
-					Logging::Log() << __FUNCTION__ << " Failed to set texture";
-					return DDERR_GENERIC;
-				}
+			// Set texture
+			HRESULT hr = DD_OK;
+			if (!surfaceTexture || FAILED((*d3d9Device)->SetTexture(0, surfaceTexture)))
+			{
+				hr = CreateD3d9Surface();
 			}
 
 			// Reset FirstRun
 			PaletteFirstRun = true;
 
-			return DD_OK;
+			return hr;
 		}
 
 		// Set palette address
@@ -2654,9 +2658,6 @@ HRESULT m_IDirectDrawSurfaceX::ColorFill(RECT *pRect, DWORD dwFillColor)
 		return DDERR_INVALIDRECT;
 	}
 
-	// Check if the scene needs to be presented
-	bool isSkipScene = (DestRect.bottom - DestRect.top < 2 || DestRect.right - DestRect.left < 2);
-
 	HRESULT hr = DD_OK;
 	bool UnlockDest = false;
 	do {
@@ -2733,12 +2734,6 @@ HRESULT m_IDirectDrawSurfaceX::ColorFill(RECT *pRect, DWORD dwFillColor)
 	if (UnlockDest)
 	{
 		SetUnLock(true);
-	}
-
-	// Present surface
-	if (!isSkipScene)
-	{
-		PresentSurface();
 	}
 
 	return DD_OK;

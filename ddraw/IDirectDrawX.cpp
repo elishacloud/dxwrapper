@@ -1514,6 +1514,10 @@ HRESULT m_IDirectDrawX::ReinitDevice()
 {
 	Logging::LogDebug() << __FUNCTION__;
 
+	do {
+		Sleep(100);
+	} while (d3d9Device->TestCooperativeLevel() == D3DERR_DEVICELOST);
+
 	// Release existing surfaces
 	ReleaseAllD9Surfaces();
 
