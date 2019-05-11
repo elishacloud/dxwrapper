@@ -58,7 +58,14 @@ HRESULT m_IDirect3DDevice9Ex::QueryInterface(REFIID riid, void** ppvObj)
 		return hr;
 	}
 
-	return ProxyInterface->QueryInterface(riid, ppvObj);
+	HRESULT hr = ProxyInterface->QueryInterface(riid, ppvObj);
+
+	if (SUCCEEDED(hr))
+	{
+		D3d9Wrapper::genericQueryInterface(riid, ppvObj, this);
+	}
+
+	return hr;
 }
 
 ULONG m_IDirect3DDevice9Ex::AddRef()
@@ -1455,8 +1462,19 @@ HRESULT m_IDirect3DDevice9Ex::CopyRects(THIS_ IDirect3DSurface9 *pSourceSurface,
 
 		if (SourceDesc.Pool == D3DPOOL_MANAGED || DestinationDesc.Pool != D3DPOOL_DEFAULT)
 		{
-			hr = D3DXLoadSurfaceFromSurface(pDestinationSurface, nullptr, &DestinationRect, pSourceSurface, nullptr, &SourceRect, D3DX_FILTER_NONE, 0);
-			hr = (FAILED(hr)) ? D3DERR_INVALIDCALL : hr;
+			hr = D3DERR_INVALIDCALL;
+			if (SUCCEEDED(D3DXLoadSurfaceFromSurface(pDestinationSurface, nullptr, &DestinationRect, pSourceSurface, nullptr, &SourceRect, D3DX_FILTER_NONE, 0)))
+			{
+				// Explicitly call AddDirtyRect on the surface
+				void *pContainer = nullptr;
+				if (SUCCEEDED(pDestinationSurface->GetContainer(IID_IDirect3DTexture9, &pContainer)) && pContainer)
+				{
+					IDirect3DTexture9 *pTexture = (IDirect3DTexture9*)pContainer;
+					pTexture->AddDirtyRect(&DestinationRect);
+					pTexture->Release();
+				}
+				hr = D3D_OK;
+			}
 		}
 		else if (SourceDesc.Pool == D3DPOOL_DEFAULT)
 		{

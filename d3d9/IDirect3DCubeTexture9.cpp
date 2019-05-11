@@ -29,7 +29,14 @@ HRESULT m_IDirect3DCubeTexture9::QueryInterface(THIS_ REFIID riid, void** ppvObj
 		return D3D_OK;
 	}
 
-	return ProxyInterface->QueryInterface(riid, ppvObj);
+	HRESULT hr = ProxyInterface->QueryInterface(riid, ppvObj);
+
+	if (SUCCEEDED(hr))
+	{
+		D3d9Wrapper::genericQueryInterface(riid, ppvObj, m_pDeviceEx);
+	}
+
+	return hr;
 }
 
 ULONG m_IDirect3DCubeTexture9::AddRef(THIS)

@@ -128,6 +128,7 @@ cmd /q /c "cd /D ""$(ProjectDir)d3d8\"" &amp;&amp; del build.bat"</Command>
     <ClCompile Include="d3d9\IDirect3DVertexShader9.cpp" />
     <ClCompile Include="d3d9\IDirect3DVolume9.cpp" />
     <ClCompile Include="d3d9\IDirect3DVolumeTexture9.cpp" />
+    <ClCompile Include="d3d9\InterfaceQuery.cpp" />
     <ClCompile Include="DDrawCompat\DDrawCompatExternal.cpp" />
     <ClCompile Include="DDrawCompat\Experimental\Common\Hook.cpp" />
     <ClCompile Include="DDrawCompat\Experimental\Common\Time.cpp" />

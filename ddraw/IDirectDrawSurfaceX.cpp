@@ -196,7 +196,7 @@ HRESULT m_IDirectDrawSurfaceX::AddOverlayDirtyRect(LPRECT lpRect)
 	return ProxyInterface->AddOverlayDirtyRect(lpRect);
 }
 
-HRESULT m_IDirectDrawSurfaceX::Blt(LPRECT lpDestRect, LPDIRECTDRAWSURFACE7 lpDDSrcSurface, LPRECT lpSrcRect, DWORD dwFlags, LPDDBLTFX lpDDBltFx, bool isSkipScene)
+HRESULT m_IDirectDrawSurfaceX::Blt(LPRECT lpDestRect, LPDIRECTDRAWSURFACE7 lpDDSrcSurface, LPRECT lpSrcRect, DWORD dwFlags, LPDDBLTFX lpDDBltFx, BOOL isSkipScene)
 {
 	Logging::LogDebug() << __FUNCTION__;
 
@@ -265,7 +265,7 @@ HRESULT m_IDirectDrawSurfaceX::Blt(LPRECT lpDestRect, LPDIRECTDRAWSURFACE7 lpDDS
 		// DDBLTFX_NOTEARING
 
 		// Check if the scene needs to be presented
-		isSkipScene = isSkipScene || ((lpDestRect) ? (abs(lpDestRect->bottom - lpDestRect->top) < 2 || abs(lpDestRect->right - lpDestRect->left) < 2) : false);
+		isSkipScene |= ((lpDestRect) ? (abs(lpDestRect->bottom - lpDestRect->top) < 2 || abs(lpDestRect->right - lpDestRect->left) < 2) : FALSE);
 
 		HRESULT hr = DD_OK;
 		m_IDirectDrawSurfaceX *lpDDSrcSurfaceX = nullptr;
@@ -330,7 +330,7 @@ HRESULT m_IDirectDrawSurfaceX::Blt(LPRECT lpDestRect, LPDIRECTDRAWSURFACE7 lpDDS
 			bool isStretchRect = (abs((DestRect.right - DestRect.left) - (SrcRect.right - SrcRect.left)) > 1 || abs((DestRect.bottom - DestRect.top) - (SrcRect.bottom - SrcRect.top)) > 1);
 
 			// Check and copy source and destination rect and do clipping
-			if (!lpDDSrcSurfaceX->UpdateRect(&SrcRect, lpSrcRect) || !UpdateRect(&DestRect, lpDestRect))
+			if (!lpDDSrcSurfaceX->CheckCoordinates(&SrcRect, lpSrcRect) || !CheckCoordinates(&DestRect, lpDestRect))
 			{
 				Logging::Log() << __FUNCTION__ << " Error, invalid rect size";
 				hr = DDERR_INVALIDRECT;
@@ -432,6 +432,12 @@ HRESULT m_IDirectDrawSurfaceX::Blt(LPRECT lpDestRect, LPDIRECTDRAWSURFACE7 lpDDS
 
 		} while (false);
 
+		// Set dirty flag
+		if (SUCCEEDED(hr))
+		{
+			dirtyFlag = true;
+		}
+
 		// Unlock surfaces if needed
 		if (UnlockDest)
 		{
@@ -517,7 +523,7 @@ HRESULT m_IDirectDrawSurfaceX::BltFast(DWORD dwX, DWORD dwY, LPDIRECTDRAWSURFACE
 		// Get SrcRect
 		RECT SrcRect;
 		m_IDirectDrawSurfaceX *lpDDSrcSurfaceX = (!lpDDSrcSurface) ? this : ((m_IDirectDrawSurface*)lpDDSrcSurface)->GetWrapperInterface();
-		lpDDSrcSurfaceX->UpdateRect(&SrcRect, lpSrcRect);
+		lpDDSrcSurfaceX->CheckCoordinates(&SrcRect, lpSrcRect);
 
 		// Create DestRect
 		RECT DestRect = { (LONG)dwX, (LONG)dwY, SrcRect.right - SrcRect.left + (LONG)dwX , SrcRect.bottom - SrcRect.top + (LONG)dwY };
@@ -2414,7 +2420,7 @@ void m_IDirectDrawSurfaceX::ReleaseD9Surface()
 }
 
 // Check surface reck dimensions and copy rect to new rect
-bool m_IDirectDrawSurfaceX::UpdateRect(LPRECT lpOutRect, LPRECT lpInRect)
+bool m_IDirectDrawSurfaceX::CheckCoordinates(LPRECT lpOutRect, LPRECT lpInRect)
 {
 	if (!lpOutRect)
 	{
@@ -2474,7 +2480,7 @@ bool m_IDirectDrawSurfaceX::UpdateRect(LPRECT lpOutRect, LPRECT lpInRect)
 }
 
 // Lock the d3d9 surface
-HRESULT m_IDirectDrawSurfaceX::SetLock(LPRECT lpDestRect, DWORD dwFlags, bool isSkipScene)
+HRESULT m_IDirectDrawSurfaceX::SetLock(LPRECT lpDestRect, DWORD dwFlags, BOOL isSkipScene)
 {
 	// Check for device
 	if (!d3d9Device || !*d3d9Device || !ddrawParent)
@@ -2490,10 +2496,22 @@ HRESULT m_IDirectDrawSurfaceX::SetLock(LPRECT lpDestRect, DWORD dwFlags, bool is
 		return DDERR_GENERIC;
 	}
 
+	// Check if the scene needs to be presented
+	isSkipScene |= ((lpDestRect) ? (abs(lpDestRect->bottom - lpDestRect->top) < 2 || abs(lpDestRect->right - lpDestRect->left) < 2) : FALSE);
+
 	// Run BeginScene (ignore results)
 	if (!isSkipScene)
 	{
 		ddrawParent->BeginScene();
+	}
+
+	// Run EndScene before locking if dirty flag is set
+	if (dirtyFlag && !isSkipScene)
+	{
+		if (SUCCEEDED(PresentSurface()))
+		{
+			EndSceneLock = true;
+		}
 	}
 
 	// Lock surface
@@ -2504,6 +2522,9 @@ HRESULT m_IDirectDrawSurfaceX::SetLock(LPRECT lpDestRect, DWORD dwFlags, bool is
 		return DDERR_GENERIC;
 	}
 
+	// Set dirty flag
+	dirtyFlag = true;
+
 	// Set lock flag
 	IsLocked = true;
 
@@ -2512,7 +2533,7 @@ HRESULT m_IDirectDrawSurfaceX::SetLock(LPRECT lpDestRect, DWORD dwFlags, bool is
 }
 
 // Unlock the d3d9 surface
-HRESULT m_IDirectDrawSurfaceX::SetUnLock(bool isSkipScene)
+HRESULT m_IDirectDrawSurfaceX::SetUnLock(BOOL isSkipScene)
 {
 	// Check for device
 	if (!ddrawParent)
@@ -2538,10 +2559,13 @@ HRESULT m_IDirectDrawSurfaceX::SetUnLock(bool isSkipScene)
 	d3dlrect.pBits = nullptr;
 
 	// Present surface
-	if (!isSkipScene)
+	if (!isSkipScene && !EndSceneLock)
 	{
 		PresentSurface();
 	}
+
+	// Reset endscene lock
+	EndSceneLock = false;
 
 	return DD_OK;
 }
@@ -2652,7 +2676,7 @@ HRESULT m_IDirectDrawSurfaceX::ColorFill(RECT *pRect, DWORD dwFillColor)
 
 	// Check and copy rect
 	RECT DestRect;
-	if (!UpdateRect(&DestRect, pRect))
+	if (!CheckCoordinates(&DestRect, pRect))
 	{
 		Logging::Log() << __FUNCTION__ << " Error, invalid rect size";
 		return DDERR_INVALIDRECT;
@@ -2761,7 +2785,7 @@ HRESULT m_IDirectDrawSurfaceX::WritePaletteToSurface()
 	do {
 		// Check and copy rect
 		RECT DestRect;
-		if (!UpdateRect(&DestRect, &lkDestRect))
+		if (!CheckCoordinates(&DestRect, &lkDestRect))
 		{
 			Logging::Log() << __FUNCTION__ << " Error, invalid rect size";
 			hr = DDERR_INVALIDRECT;
@@ -3111,13 +3135,13 @@ HRESULT m_IDirectDrawSurfaceX::StretchRect(D3DLOCKED_RECT *pDestLockRect, RECT *
 	return DD_OK;
 }
 
-void m_IDirectDrawSurfaceX::PresentSurface()
+HRESULT m_IDirectDrawSurfaceX::PresentSurface()
 {
 	// Check for device
 	if (!ddrawParent)
 	{
 		Logging::Log() << __FUNCTION__ << " Error no ddraw parent!";
-		return;
+		return DDERR_GENERIC;
 	}
 
 	// Write texture from palette
@@ -3127,10 +3151,17 @@ void m_IDirectDrawSurfaceX::PresentSurface()
 	}
 
 	// EndScene
+	HRESULT hr = DDERR_GENERIC;
 	if (IsPrimarySurface() && !IsLocked && !IsInDC)
 	{
-		ddrawParent->EndScene();
+		if (SUCCEEDED(ddrawParent->EndScene()))
+		{
+			dirtyFlag = false;
+			hr = DD_OK;
+		}
 	}
+
+	return hr;
 }
 
 void m_IDirectDrawSurfaceX::ReleaseSurface()

@@ -202,6 +202,9 @@
     <ClCompile Include="d3d9\IDirect3DVolumeTexture9.cpp">
       <Filter>d3d9</Filter>
     </ClCompile>
+    <ClCompile Include="d3d9\InterfaceQuery.cpp">
+      <Filter>d3d9</Filter>
+    </ClCompile>
     <ClCompile Include="DxWnd\v2_03_60_src\init.cpp">
       <Filter>DxWnd\v2_03_60_src</Filter>
     </ClCompile>

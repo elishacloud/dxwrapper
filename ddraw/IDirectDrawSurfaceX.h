@@ -29,6 +29,8 @@ private:
 	LONG overlayX = 0;
 	LONG overlayY = 0;
 	DWORD UniquenessValue = 0;
+	bool dirtyFlag = false;
+	bool EndSceneLock = false;
 	bool IsLocked = false;
 	bool IsInDC = false;
 	bool PaletteFirstRun = true;
@@ -141,7 +143,7 @@ public:
 	/*** IDirectDrawSurface methods ***/
 	STDMETHOD(AddAttachedSurface)(THIS_ LPDIRECTDRAWSURFACE7);
 	STDMETHOD(AddOverlayDirtyRect)(THIS_ LPRECT);
-	HRESULT Blt(LPRECT, LPDIRECTDRAWSURFACE7, LPRECT, DWORD, LPDDBLTFX, bool isSkipScene = false);
+	HRESULT Blt(LPRECT, LPDIRECTDRAWSURFACE7, LPRECT, DWORD, LPDDBLTFX, BOOL isSkipScene = false);
 	STDMETHOD(BltBatch)(THIS_ LPDDBLTBATCH, DWORD, DWORD);
 	STDMETHOD(BltFast)(THIS_ DWORD, DWORD, LPDIRECTDRAWSURFACE7, LPRECT, DWORD);
 	STDMETHOD(DeleteAttachedSurface)(THIS_ DWORD, LPDIRECTDRAWSURFACE7);
@@ -238,9 +240,9 @@ public:
 	template <typename T>
 	void ReleaseD9Interface(T **ppInterface);
 	void ReleaseD9Surface();
-	bool UpdateRect(LPRECT lpOutRect, LPRECT lpInRect);
-	HRESULT SetLock(LPRECT lpDestRect, DWORD dwFlags, bool isSkipScene = false);
-	HRESULT SetUnLock(bool isSkipScene = false);
+	bool CheckCoordinates(LPRECT lpOutRect, LPRECT lpInRect);
+	HRESULT SetLock(LPRECT lpDestRect, DWORD dwFlags, BOOL isSkipScene = false);
+	HRESULT SetUnLock(BOOL isSkipScene = false);
 	HRESULT GetSurfaceInfo(D3DLOCKED_RECT *pLockRect, DWORD *lpBitCount, D3DFORMAT *lpFormat);
 	void AddAttachedSurfaceToMap(m_IDirectDrawSurfaceX* lpSurfaceX);
 	void RemoveAttachedSurfaceFromMap(m_IDirectDrawSurfaceX* lpSurfaceX);
@@ -251,6 +253,6 @@ public:
 	HRESULT CopyRectColorKey(D3DLOCKED_RECT *pDestLockRect, RECT *pDestRect, DWORD DestBitCount, D3DFORMAT DestFormat, D3DLOCKED_RECT *pSrcLockRect, RECT *pSrcRect, DWORD SrcBitCount, D3DFORMAT SrcFormat, DDCOLORKEY ColorKey);
 	HRESULT StretchRect(D3DLOCKED_RECT *pDestLockRect, RECT *pDestRect, DWORD DestBitCount, D3DFORMAT DestFormat, D3DLOCKED_RECT *pSrcLockRect, RECT *pSrcRect, DWORD SrcBitCount, D3DFORMAT SrcFormat);
 	void SwapSurface(m_IDirectDrawSurfaceX *lpTargetSurface1, m_IDirectDrawSurfaceX *lpTargetSurface2);
-	void PresentSurface();
+	HRESULT PresentSurface();
 	void ReleaseSurface();
 };

@@ -44,6 +44,11 @@ void UpdatePresentParameter(D3DPRESENT_PARAMETERS* pPresentationParameters, HWND
 void UpdatePresentParameterForMultisample(D3DPRESENT_PARAMETERS* pPresentationParameters, D3DMULTISAMPLE_TYPE MultiSampleType, DWORD MultiSampleQuality);
 void AdjustWindow(HWND MainhWnd, LONG displayWidth, LONG displayHeight);
 
+namespace D3d9Wrapper
+{
+	void WINAPI genericQueryInterface(REFIID riid, LPVOID *ppvObj, m_IDirect3DDevice9Ex* m_pDeviceEx);
+}
+
 extern m_IDirect3D9Ex *pD3DInterface;
 extern m_IDirect3DDevice9Ex *pD3DDeviceInterface;
 extern HWND DeviceWindow;

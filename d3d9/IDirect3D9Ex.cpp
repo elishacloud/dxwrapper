@@ -48,7 +48,14 @@ HRESULT m_IDirect3D9Ex::QueryInterface(REFIID riid, void** ppvObj)
 		return hr;
 	}
 
-	return ProxyInterface->QueryInterface(riid, ppvObj);
+	HRESULT hr = ProxyInterface->QueryInterface(riid, ppvObj);
+
+	if (SUCCEEDED(hr))
+	{
+		D3d9Wrapper::genericQueryInterface(riid, ppvObj, pD3DDeviceInterface);
+	}
+
+	return hr;
 }
 
 ULONG m_IDirect3D9Ex::AddRef()
@@ -354,6 +361,8 @@ HRESULT m_IDirect3D9Ex::CreateDeviceEx(THIS_ UINT Adapter, D3DDEVTYPE DeviceType
 		*ppReturnedDeviceInterface = pReturnedDevice;
 
 		pReturnedDevice->SetDefaults(pPresentationParameters, hFocusWindow, MultiSampleFlag);
+
+		InterlockedExchangePointer((PVOID*)&pD3DDeviceInterface, pReturnedDevice);
 	}
 
 	return hr;
