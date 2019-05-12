@@ -12,15 +12,7 @@ private:
 	static constexpr size_t MAX_CLIP_PLANES = 6;
 	float m_storedClipPlanes[MAX_CLIP_PLANES][4];
 	IDirect3DSurface9 *pCurrentRenderTarget = nullptr;
-	bool IsInScene = false;
-	DWORD displayHeight = 0;
 	HWND MainhWnd = nullptr;
-
-	// High resolution counter
-	bool FrequencyFlag = false;
-	LARGE_INTEGER clockFrequency, clickTime, lastTime = { 0, 0 };
-	DWORD FrameCounter = 0;
-	DWORD monitorRefreshRate = 0;
 
 public:
 	m_IDirect3DDevice9Ex(LPDIRECT3DDEVICE9EX pDevice, m_IDirect3D9Ex* pD3D) : ProxyInterface(pDevice), m_pD3DEx(pD3D)
@@ -31,6 +23,7 @@ public:
 	{
 		PVOID NullValue = nullptr;
 		InterlockedCompareExchangePointer((PVOID*)&pD3DDeviceInterface, NullValue, this);
+		InterlockedCompareExchangePointer((PVOID*)&pD3DDeviceInterfaceEx, NullValue, this);
 
 		delete ProxyAddressLookupTable;
 	}

@@ -17,6 +17,7 @@
 #include "d3d9.h"
 
 m_IDirect3DDevice9Ex *pD3DDeviceInterface = nullptr;
+m_IDirect3DDevice9Ex *pD3DDeviceInterfaceEx = nullptr;
 HWND DeviceWindow = nullptr;
 LONG BufferWidth = 0, BufferHeight = 0;
 
@@ -52,7 +53,7 @@ HRESULT m_IDirect3D9Ex::QueryInterface(REFIID riid, void** ppvObj)
 
 	if (SUCCEEDED(hr))
 	{
-		D3d9Wrapper::genericQueryInterface(riid, ppvObj, pD3DDeviceInterface);
+		D3d9Wrapper::genericQueryInterface(riid, ppvObj, (pD3DDeviceInterface) ? pD3DDeviceInterface : pD3DDeviceInterfaceEx);
 	}
 
 	return hr;
@@ -362,7 +363,7 @@ HRESULT m_IDirect3D9Ex::CreateDeviceEx(THIS_ UINT Adapter, D3DDEVTYPE DeviceType
 
 		pReturnedDevice->SetDefaults(pPresentationParameters, hFocusWindow, MultiSampleFlag);
 
-		InterlockedExchangePointer((PVOID*)&pD3DDeviceInterface, pReturnedDevice);
+		InterlockedExchangePointer((PVOID*)&pD3DDeviceInterfaceEx, pReturnedDevice);
 	}
 
 	return hr;

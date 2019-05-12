@@ -1729,6 +1729,8 @@ void m_IDirectDrawX::EvictManagedTextures()
 // Do d3d9 BeginScene if all surfaces are unlocked
 HRESULT m_IDirectDrawX::BeginScene()
 {
+	Logging::LogDebug() << __FUNCTION__;
+
 	// Check if we can run BeginScene
 	if (IsInScene)
 	{
@@ -1760,14 +1762,14 @@ HRESULT m_IDirectDrawX::BeginScene()
 
 	IsInScene = true;
 
-	Logging::LogDebug() << __FUNCTION__;
-
 	return DD_OK;
 }
 
 // Do d3d9 EndScene and Present if all surfaces are unlocked
 HRESULT m_IDirectDrawX::EndScene()
 {
+	Logging::LogDebug() << __FUNCTION__;
+
 	// Check if BeginScene has finished
 	if (!IsInScene)
 	{
@@ -1790,6 +1792,40 @@ HRESULT m_IDirectDrawX::EndScene()
 		}
 	}
 
+	// Skip frame if time lapse is too small
+	if (Config.AutoFrameSkip)
+	{
+		if (!FrequencyFlag || (lastTime.LowPart & 0xff) == 0)
+		{
+			if (QueryPerformanceFrequency(&clockFrequency))
+			{
+				FrequencyFlag = true;
+			}
+		}
+		if (FrequencyFlag)
+		{
+			FrameCounter++;
+
+			bool CounterFlag = QueryPerformanceCounter(&clickTime);
+			float deltaMS = ((clickTime.QuadPart - lastTime.QuadPart) * 1000.0f) / clockFrequency.QuadPart;
+
+			D3DRASTER_STATUS RasterStatus;
+			bool RasterFlag = SUCCEEDED(d3d9Device->GetRasterStatus(0, &RasterStatus));
+
+			float MultiplierRatio = 0.4f + 0.4f - (0.4f / (FrameCounter + 1));
+
+			// Check if frame should be skipped
+			if (!((RasterFlag && !RasterStatus.InVBlank && RasterStatus.ScanLine > displayHeight * MultiplierRatio) ||
+				(CounterFlag && deltaMS > (1000.0f / monitorRefreshRate) * MultiplierRatio) ||
+				(!RasterFlag && !CounterFlag)))
+			{
+				Logging::LogDebug() << __FUNCTION__ << " Skipping frame " << deltaMS << "ms ScanLine is " << RasterStatus.ScanLine;
+				return D3D_OK;
+			}
+			Logging::LogDebug() << __FUNCTION__ << " Drawing frame " << deltaMS << "ms ScanLine is " << RasterStatus.ScanLine;
+		}
+	}
+
 	// Draw primitive
 	if (FAILED(d3d9Device->DrawPrimitive(D3DPT_TRIANGLEFAN, 0, 2)))
 	{
@@ -1806,8 +1842,6 @@ HRESULT m_IDirectDrawX::EndScene()
 
 	IsInScene = false;
 
-	Logging::LogDebug() << __FUNCTION__;
-
 	// Present everthing
 	HRESULT hr = d3d9Device->Present(nullptr, nullptr, nullptr, nullptr);
 
@@ -1815,12 +1849,22 @@ HRESULT m_IDirectDrawX::EndScene()
 	if (hr == D3DERR_DEVICELOST)
 	{
 		// Attempt to reinit device
-		return ReinitDevice();
+		hr = ReinitDevice();
 	}
 	else if (FAILED(hr))
 	{
 		Logging::Log() << __FUNCTION__ << " Failed to present scene";
 		return DDERR_GENERIC;
+	}
+
+	// Store new click time after frame draw is complete
+	if (Config.AutoFrameSkip)
+	{
+		if (QueryPerformanceCounter(&clickTime))
+		{
+			lastTime.QuadPart = clickTime.QuadPart;
+			FrameCounter = 0;
+		}
 	}
 
 	// BeginScene after EndScene is done

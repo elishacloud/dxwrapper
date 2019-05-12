@@ -24,6 +24,12 @@ private:
 	bool NoWindowChanges = false;
 	bool isWindowed = false;				// Window mode enabled
 
+	// High resolution counter
+	bool FrequencyFlag = false;
+	LARGE_INTEGER clockFrequency, clickTime, lastTime = { 0, 0 };
+	DWORD FrameCounter = 0;
+	DWORD monitorRefreshRate = 0;
+
 	// Application display mode
 	DWORD displayModeWidth = 0;
 	DWORD displayModeHeight = 0;

@@ -28,9 +28,10 @@ void WINAPI D3d9Wrapper::genericQueryInterface(REFIID riid, LPVOID *ppvObj, m_ID
 		IDirect3D9 *pD3D9 = nullptr;
 		if (SUCCEEDED(m_pDeviceEx->GetDirect3D(&pD3D9)) && pD3D9)
 		{
-			if (SUCCEEDED(pD3D9->QueryInterface(riid, ppvObj)) && *ppvObj)
+			IDirect3D9 *pD3D9wrapper = nullptr;
+			if (SUCCEEDED(pD3D9->QueryInterface(riid, (LPVOID*)&pD3D9wrapper)) && pD3D9wrapper)
 			{
-				((IUnknown*)(*ppvObj))->Release();
+				pD3D9wrapper->Release();
 			}
 			pD3D9->Release();
 			return;
@@ -39,9 +40,10 @@ void WINAPI D3d9Wrapper::genericQueryInterface(REFIID riid, LPVOID *ppvObj, m_ID
 
 	if (riid == IID_IDirect3DDevice9 || riid == IID_IDirect3DDevice9Ex)
 	{
-		if (SUCCEEDED(m_pDeviceEx->QueryInterface(riid, ppvObj)) && *ppvObj)
+		IDirect3DDevice9 *pD3DDevice9 = nullptr;
+		if (SUCCEEDED(m_pDeviceEx->QueryInterface(riid, (LPVOID*)&pD3DDevice9)) && pD3DDevice9)
 		{
-			((IUnknown*)(*ppvObj))->Release();
+			pD3DDevice9->Release();
 		}
 		return;
 	}

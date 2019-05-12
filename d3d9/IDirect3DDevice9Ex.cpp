@@ -42,8 +42,6 @@ HRESULT m_IDirect3DDevice9Ex::QueryInterface(REFIID riid, void** ppvObj)
 
 			D3DPRESENT_PARAMETERS PresentationParameters = { NULL };
 
-			PresentationParameters.BackBufferHeight = displayHeight;
-			PresentationParameters.FullScreen_RefreshRateInHz = monitorRefreshRate;
 			PresentationParameters.hDeviceWindow = MainhWnd;
 			PresentationParameters.MultiSampleType = DeviceMultiSampleType;
 			PresentationParameters.MultiSampleQuality = DeviceMultiSampleQuality;
@@ -139,56 +137,7 @@ HRESULT m_IDirect3DDevice9Ex::EndScene()
 {
 	Logging::LogDebug() << __FUNCTION__;
 
-	// Skip frame if time lapse is too small
-	if (Config.AutoFrameSkip)
-	{
-		// Check if we can run EndScene
-		if (!IsInScene)
-		{
-			return D3D_OK;
-		}
-
-		if (!FrequencyFlag || (lastTime.LowPart & 0xff) == 0)
-		{
-			if (QueryPerformanceFrequency(&clockFrequency))
-			{
-				FrequencyFlag = true;
-			}
-		}
-		if (FrequencyFlag)
-		{
-			FrameCounter++;
-
-			bool CounterFlag = QueryPerformanceCounter(&clickTime);
-			float deltaMS = ((clickTime.QuadPart - lastTime.QuadPart) * 1000.0f) / clockFrequency.QuadPart;
-
-			D3DRASTER_STATUS RasterStatus;
-			bool RasterFlag = SUCCEEDED(GetRasterStatus(0, &RasterStatus));
-
-			float MultiplierRatio = 0.4f + 0.4f - (0.4f / (FrameCounter + 1));
-
-			// Check if frame should be skipped
-			if (!((RasterFlag && !RasterStatus.InVBlank && RasterStatus.ScanLine > displayHeight * MultiplierRatio) ||
-				(CounterFlag && deltaMS > (1000.0f / monitorRefreshRate) * MultiplierRatio) ||
-				(!RasterFlag && !CounterFlag)))
-			{
-				Logging::LogDebug() << __FUNCTION__ << " Skipping frame " << deltaMS << "ms ScanLine is " << RasterStatus.ScanLine;
-				return D3D_OK;
-			}
-			Logging::LogDebug() << __FUNCTION__ << " Drawing frame " << deltaMS << "ms ScanLine is " << RasterStatus.ScanLine;
-
-			// Reset variables when displaying the frame
-			lastTime.QuadPart = clickTime.QuadPart;
-			FrameCounter = 0;
-		}
-	}
-
 	HRESULT hr = ProxyInterface->EndScene();
-
-	if (SUCCEEDED(hr))
-	{
-		IsInScene = false;
-	}
 
 	return hr;
 }
@@ -742,24 +691,7 @@ HRESULT m_IDirect3DDevice9Ex::Present(CONST RECT *pSourceRect, CONST RECT *pDest
 {
 	Logging::LogDebug() << __FUNCTION__;
 
-	// Check if we can Present
-	if (Config.AutoFrameSkip && IsInScene)
-	{
-		return D3D_OK;
-	}
-
-	HRESULT hr = ProxyInterface->Present(pSourceRect, pDestRect, hDestWindowOverride, pDirtyRegion);
-
-	// Store new click time after frame draw is complete
-	if (Config.AutoFrameSkip && SUCCEEDED(hr))
-	{
-		if (QueryPerformanceCounter(&clickTime))
-		{
-			lastTime.QuadPart = clickTime.QuadPart;
-		}
-	}
-
-	return hr;
+	return ProxyInterface->Present(pSourceRect, pDestRect, hDestWindowOverride, pDirtyRegion);
 }
 
 HRESULT m_IDirect3DDevice9Ex::DrawIndexedPrimitive(THIS_ D3DPRIMITIVETYPE Type, INT BaseVertexIndex, UINT MinVertexIndex, UINT NumVertices, UINT startIndex, UINT primCount)
@@ -818,20 +750,7 @@ HRESULT m_IDirect3DDevice9Ex::BeginScene()
 {
 	Logging::LogDebug() << __FUNCTION__;
 
-	// Check if we can run BeginScene
-	if (Config.AutoFrameSkip && IsInScene)
-	{
-		return D3D_OK;
-	}
-
-	HRESULT hr = ProxyInterface->BeginScene();
-
-	if (SUCCEEDED(hr))
-	{
-		IsInScene = true;
-	}
-
-	return hr;
+	return ProxyInterface->BeginScene();
 }
 
 HRESULT m_IDirect3DDevice9Ex::GetStreamSource(THIS_ UINT StreamNumber, IDirect3DVertexBuffer9** ppStreamData, UINT* OffsetInBytes, UINT* pStride)
@@ -1802,24 +1721,7 @@ HRESULT m_IDirect3DDevice9Ex::PresentEx(THIS_ CONST RECT* pSourceRect, CONST REC
 {
 	Logging::LogDebug() << __FUNCTION__;
 
-	// Check if we can Present
-	if (Config.AutoFrameSkip && IsInScene)
-	{
-		return D3D_OK;
-	}
-
-	HRESULT hr = ProxyInterface->PresentEx(pSourceRect, pDestRect, hDestWindowOverride, pDirtyRegion, dwFlags);
-
-	// Store new click time after frame draw is complete
-	if (Config.AutoFrameSkip && SUCCEEDED(hr))
-	{
-		if (QueryPerformanceCounter(&clickTime))
-		{
-			lastTime.QuadPart = clickTime.QuadPart;
-		}
-	}
-
-	return hr;
+	return ProxyInterface->PresentEx(pSourceRect, pDestRect, hDestWindowOverride, pDirtyRegion, dwFlags);
 }
 
 HRESULT m_IDirect3DDevice9Ex::GetGPUThreadPriority(THIS_ INT* pPriority)
@@ -2018,12 +1920,8 @@ HRESULT m_IDirect3DDevice9Ex::GetDisplayModeEx(THIS_ UINT iSwapChain, D3DDISPLAY
 
 void m_IDirect3DDevice9Ex::SetDefaults(D3DPRESENT_PARAMETERS *pPresentationParameters, HWND hWnd, bool MultiSampleFlag)
 {
-	IsInScene = false;
-
 	if (pPresentationParameters)
 	{
-		displayHeight = (pPresentationParameters->BackBufferHeight) ? pPresentationParameters->BackBufferHeight : Utils::GetWindowHeight(MainhWnd);
-		monitorRefreshRate = (pPresentationParameters->FullScreen_RefreshRateInHz) ? pPresentationParameters->FullScreen_RefreshRateInHz : Utils::GetRefreshRate(MainhWnd);
 		MainhWnd = (IsWindow(hWnd)) ? hWnd : (IsWindow(pPresentationParameters->hDeviceWindow)) ? pPresentationParameters->hDeviceWindow : nullptr;
 
 		if (MultiSampleFlag)
@@ -2034,8 +1932,6 @@ void m_IDirect3DDevice9Ex::SetDefaults(D3DPRESENT_PARAMETERS *pPresentationParam
 	}
 	else
 	{
-		displayHeight = (displayHeight) ? displayHeight : Utils::GetWindowHeight(MainhWnd);
-		monitorRefreshRate = (monitorRefreshRate) ? monitorRefreshRate : Utils::GetRefreshRate(MainhWnd);
 		MainhWnd = (IsWindow(hWnd)) ? hWnd : (IsWindow(MainhWnd)) ? MainhWnd : nullptr;
 	}
 
