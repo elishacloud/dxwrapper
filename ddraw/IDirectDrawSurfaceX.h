@@ -247,12 +247,12 @@ public:
 	void AddAttachedSurfaceToMap(m_IDirectDrawSurfaceX* lpSurfaceX);
 	void RemoveAttachedSurfaceFromMap(m_IDirectDrawSurfaceX* lpSurfaceX);
 	bool DoesAttachedSurfaceExist(m_IDirectDrawSurfaceX* lpSurfaceX);
-	HRESULT ColorFill(RECT *pRect, DWORD dwFillColor);
 	HRESULT WritePaletteToSurface();
-	HRESULT CopyRect(D3DLOCKED_RECT *pDestLockRect, RECT *pDestRect, DWORD DestBitCount, D3DFORMAT DestFormat, D3DLOCKED_RECT *pSrcLockRect, RECT *pSrcRect, DWORD SrcBitCount, D3DFORMAT SrcFormat);
-	HRESULT CopyRectColorKey(D3DLOCKED_RECT *pDestLockRect, RECT *pDestRect, DWORD DestBitCount, D3DFORMAT DestFormat, D3DLOCKED_RECT *pSrcLockRect, RECT *pSrcRect, DWORD SrcBitCount, D3DFORMAT SrcFormat, DDCOLORKEY ColorKey);
-	HRESULT StretchRect(D3DLOCKED_RECT *pDestLockRect, RECT *pDestRect, DWORD DestBitCount, D3DFORMAT DestFormat, D3DLOCKED_RECT *pSrcLockRect, RECT *pSrcRect, DWORD SrcBitCount, D3DFORMAT SrcFormat);
-	void SwapSurface(m_IDirectDrawSurfaceX *lpTargetSurface1, m_IDirectDrawSurfaceX *lpTargetSurface2);
+	HRESULT ColorFill(RECT* pRect, D3DCOLOR dwFillColor);
+	HRESULT UpdateSurface(m_IDirectDrawSurfaceX* pSourceSurface, RECT* pSourceRect, POINT* pDestPoint);
+	HRESULT UpdateSurfaceColorKey(m_IDirectDrawSurfaceX* pSourceSurface, RECT* pSourceRect, POINT* pDestPoint, DDCOLORKEY ColorKey);
+	HRESULT StretchRect(m_IDirectDrawSurfaceX* pSourceSurface, RECT* pSourceRect, RECT* pDestRect, D3DTEXTUREFILTERTYPE Filter);
+	void SwapSurface(m_IDirectDrawSurfaceX* lpTargetSurface1, m_IDirectDrawSurfaceX* lpTargetSurface2);
 	HRESULT PresentSurface();
 	void ReleaseSurface();
 };
