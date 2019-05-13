@@ -2714,7 +2714,7 @@ HRESULT m_IDirectDrawSurfaceX::WritePaletteToSurface()
 		{
 			if (FAILED(SetLock(&DestRect, 0, true)) || !d3dlrect.pBits)
 			{
-				Logging::Log() << __FUNCTION__ << " Error, could not lock source surface";
+				Logging::Log() << __FUNCTION__ << " Error, could not lock surface";
 				hr = DDERR_GENERIC;
 				break;
 			}
@@ -2804,21 +2804,9 @@ HRESULT m_IDirectDrawSurfaceX::UpdateSurface(m_IDirectDrawSurfaceX* pSourceSurfa
 			(pDestPoint) ? SrcRect.bottom - SrcRect.top + pDestPoint->y : (LONG)GetHeight() };
 		if (!CheckCoordinates(&DestRect, &tmpRect))
 		{
-			Logging::Log() << __FUNCTION__ << " Error, invalid source rect size";
+			Logging::Log() << __FUNCTION__ << " Error, invalid destination rect size";
 			hr = DDERR_INVALIDRECT;
 			break;
-		}
-
-		// Check if destination surface is not locked then lock it
-		if (!IsSurfaceLocked())
-		{
-			if (FAILED(SetLock(nullptr, 0, true)))
-			{
-				Logging::Log() << __FUNCTION__ << " Error, could not lock dest surface";
-				hr = DDERR_GENERIC;
-				break;
-			}
-			UnlockDest = true;
 		}
 
 		// Check if source surface is not locked then lock it
@@ -2833,33 +2821,42 @@ HRESULT m_IDirectDrawSurfaceX::UpdateSurface(m_IDirectDrawSurfaceX* pSourceSurfa
 			UnlockSrc = true;
 		}
 
+		// Check if destination surface is not locked then lock it
+		if (!IsSurfaceLocked())
+		{
+			if (FAILED(SetLock(nullptr, 0, true)))
+			{
+				Logging::Log() << __FUNCTION__ << " Error, could not lock destination surface";
+				hr = DDERR_GENERIC;
+				break;
+			}
+			UnlockDest = true;
+		}
+
 		D3DLOCKED_RECT SrcLockRect, DestLockRect;
 		DWORD SrcBitCount, DestBitCount;
 		D3DFORMAT SrcFormat, DestFormat;
 
-		// Get destination surface information
-		if (FAILED(GetSurfaceInfo(&DestLockRect, &DestBitCount, &DestFormat)))
+		// Get surface information
+		if (FAILED(pSourceSurface->GetSurfaceInfo(&SrcLockRect, &SrcBitCount, &SrcFormat)) || FAILED(GetSurfaceInfo(&DestLockRect, &DestBitCount, &DestFormat)))
 		{
 			hr = DDERR_GENERIC;
 			break;
 		}
 
-		// Check source surface
-		if (pSourceSurface != this)
+		// Check if source and destination memory addresses are overlapping
+		if (this == pSourceSurface &&
+			DestRect.top <= SrcRect.bottom && SrcRect.bottom <= DestRect.bottom &&
+			!((DestRect.left < SrcRect.left && DestRect.right < SrcRect.left) ||
+			(DestRect.left > SrcRect.right && DestRect.right > SrcRect.right)))
 		{
-			// Get source surface information
-			if (FAILED(pSourceSurface->GetSurfaceInfo(&SrcLockRect, &SrcBitCount, &SrcFormat)))
+			size_t size = SrcLockRect.Pitch * GetHeight();
+			if (size > surfaceArray.size())
 			{
-				hr = DDERR_GENERIC;
-				break;
+				surfaceArray.resize(size);
 			}
-		}
-		else
-		{
-			SrcLockRect.pBits = DestLockRect.pBits;
-			SrcLockRect.Pitch = DestLockRect.Pitch;
-			SrcBitCount = DestBitCount;
-			SrcFormat = DestFormat;
+			memcpy((BYTE*)&surfaceArray[0] + (SrcLockRect.Pitch * SrcRect.top), (BYTE*)SrcLockRect.pBits + (SrcLockRect.Pitch * SrcRect.top), SrcLockRect.Pitch * (SrcRect.bottom - SrcRect.top));
+			SrcLockRect.pBits = &surfaceArray[0];
 		}
 
 		// Get width and height of rect
@@ -3032,21 +3029,9 @@ HRESULT m_IDirectDrawSurfaceX::UpdateSurfaceColorKey(m_IDirectDrawSurfaceX* pSou
 			(pDestPoint) ? SrcRect.bottom - SrcRect.top + pDestPoint->y : (LONG)GetHeight() };
 		if (!CheckCoordinates(&DestRect, &tmpRect))
 		{
-			Logging::Log() << __FUNCTION__ << " Error, invalid dest rect size";
+			Logging::Log() << __FUNCTION__ << " Error, invalid destination rect size";
 			hr = DDERR_INVALIDRECT;
 			break;
-		}
-
-		// Check if destination surface is not locked then lock it
-		if (!IsSurfaceLocked())
-		{
-			if (FAILED(SetLock(nullptr, 0, true)))
-			{
-				Logging::Log() << __FUNCTION__ << " Error, could not lock dest surface";
-				hr = DDERR_GENERIC;
-				break;
-			}
-			UnlockDest = true;
 		}
 
 		// Check if source surface is not locked then lock it
@@ -3061,33 +3046,42 @@ HRESULT m_IDirectDrawSurfaceX::UpdateSurfaceColorKey(m_IDirectDrawSurfaceX* pSou
 			UnlockSrc = true;
 		}
 
+		// Check if destination surface is not locked then lock it
+		if (!IsSurfaceLocked())
+		{
+			if (FAILED(SetLock(nullptr, 0, true)))
+			{
+				Logging::Log() << __FUNCTION__ << " Error, could not lock destination surface";
+				hr = DDERR_GENERIC;
+				break;
+			}
+			UnlockDest = true;
+		}
+
 		D3DLOCKED_RECT SrcLockRect, DestLockRect;
 		DWORD SrcBitCount, DestBitCount;
 		D3DFORMAT SrcFormat, DestFormat;
 
-		// Get destination surface information
-		if (FAILED(GetSurfaceInfo(&DestLockRect, &DestBitCount, &DestFormat)))
+		// Get surface information
+		if (FAILED(pSourceSurface->GetSurfaceInfo(&SrcLockRect, &SrcBitCount, &SrcFormat)) || FAILED(GetSurfaceInfo(&DestLockRect, &DestBitCount, &DestFormat)))
 		{
 			hr = DDERR_GENERIC;
 			break;
 		}
 
-		// Check source surface
-		if (pSourceSurface != this)
+		// Check if source and destination memory addresses are overlapping
+		if (this == pSourceSurface &&
+			DestRect.top <= SrcRect.bottom && SrcRect.bottom <= DestRect.bottom &&
+			!((DestRect.left < SrcRect.left && DestRect.right < SrcRect.left) ||
+			(DestRect.left > SrcRect.right && DestRect.right > SrcRect.right)))
 		{
-			// Get source surface information
-			if (FAILED(pSourceSurface->GetSurfaceInfo(&SrcLockRect, &SrcBitCount, &SrcFormat)))
+			size_t size = SrcLockRect.Pitch * GetHeight();
+			if (size > surfaceArray.size())
 			{
-				hr = DDERR_GENERIC;
-				break;
+				surfaceArray.resize(size);
 			}
-		}
-		else
-		{
-			SrcLockRect.pBits = DestLockRect.pBits;
-			SrcLockRect.Pitch = DestLockRect.Pitch;
-			SrcBitCount = DestBitCount;
-			SrcFormat = DestFormat;
+			memcpy((BYTE*)&surfaceArray[0] + (SrcLockRect.Pitch * SrcRect.top), (BYTE*)SrcLockRect.pBits + (SrcLockRect.Pitch * SrcRect.top), SrcLockRect.Pitch * (SrcRect.bottom - SrcRect.top));
+			SrcLockRect.pBits = &surfaceArray[0];
 		}
 
 		// Get width and height of rect
@@ -3167,25 +3161,13 @@ HRESULT m_IDirectDrawSurfaceX::StretchRect(m_IDirectDrawSurfaceX* pSourceSurface
 	HRESULT hr = DD_OK;
 	bool UnlockSrc = false, UnlockDest = false;
 	do {
-		// Check and copy source rect and do clipping
+		// Check and copy rect and do clipping
 		RECT SrcRect, DestRect;
 		if (!pSourceSurface->CheckCoordinates(&SrcRect, pSourceRect) || !CheckCoordinates(&DestRect, pDestRect))
 		{
 			Logging::Log() << __FUNCTION__ << " Error, invalid rect size";
 			hr = DDERR_INVALIDRECT;
 			break;
-		}
-
-		// Check if destination surface is not locked then lock it
-		if (!IsSurfaceLocked())
-		{
-			if (FAILED(SetLock(nullptr, 0, true)))
-			{
-				Logging::Log() << __FUNCTION__ << " Error, could not lock dest surface";
-				hr = DDERR_GENERIC;
-				break;
-			}
-			UnlockDest = true;
 		}
 
 		// Check if source surface is not locked then lock it
@@ -3200,33 +3182,42 @@ HRESULT m_IDirectDrawSurfaceX::StretchRect(m_IDirectDrawSurfaceX* pSourceSurface
 			UnlockSrc = true;
 		}
 
+		// Check if destination surface is not locked then lock it
+		if (!IsSurfaceLocked())
+		{
+			if (FAILED(SetLock(nullptr, 0, true)))
+			{
+				Logging::Log() << __FUNCTION__ << " Error, could not lock destination surface";
+				hr = DDERR_GENERIC;
+				break;
+			}
+			UnlockDest = true;
+		}
+
 		D3DLOCKED_RECT SrcLockRect, DestLockRect;
 		DWORD SrcBitCount, DestBitCount;
 		D3DFORMAT SrcFormat, DestFormat;
 
-		// Get destination surface information
-		if (FAILED(GetSurfaceInfo(&DestLockRect, &DestBitCount, &DestFormat)))
+		// Get surface information
+		if (FAILED(pSourceSurface->GetSurfaceInfo(&SrcLockRect, &SrcBitCount, &SrcFormat)) || FAILED(GetSurfaceInfo(&DestLockRect, &DestBitCount, &DestFormat)))
 		{
 			hr = DDERR_GENERIC;
 			break;
 		}
 
-		// Check source surface
-		if (pSourceSurface != this)
+		// Check if source and destination memory addresses are overlapping
+		if (this == pSourceSurface &&
+			DestRect.top <= SrcRect.bottom && SrcRect.bottom <= DestRect.bottom &&
+			!((DestRect.left < SrcRect.left && DestRect.right < SrcRect.left) ||
+			(DestRect.left > SrcRect.right && DestRect.right > SrcRect.right)))
 		{
-			// Get source surface information
-			if (FAILED(pSourceSurface->GetSurfaceInfo(&SrcLockRect, &SrcBitCount, &SrcFormat)))
+			size_t size = SrcLockRect.Pitch * GetHeight();
+			if (size > surfaceArray.size())
 			{
-				hr = DDERR_GENERIC;
-				break;
+				surfaceArray.resize(size);
 			}
-		}
-		else
-		{
-			SrcLockRect.pBits = DestLockRect.pBits;
-			SrcLockRect.Pitch = DestLockRect.Pitch;
-			SrcBitCount = DestBitCount;
-			SrcFormat = DestFormat;
+			memcpy((BYTE*)&surfaceArray[0] + (SrcLockRect.Pitch * SrcRect.top), (BYTE*)SrcLockRect.pBits + (SrcLockRect.Pitch * SrcRect.top), SrcLockRect.Pitch * (SrcRect.bottom - SrcRect.top));
+			SrcLockRect.pBits = &surfaceArray[0];
 		}
 
 		// Get width and height of rect

@@ -48,7 +48,7 @@ void WriteMemory::WriteAllByteMemory()
 		if (Config.MemoryInfo[x].AddressPointer && Config.MemoryInfo[x].Bytes.size())
 		{
 			// Get current memory
-			std::string lpBuffer(Config.MemoryInfo[x].Bytes.size(), '\0');
+			std::vector<byte> lpBuffer(Config.MemoryInfo[x].Bytes.size(), '\0');
 			void* AddressPointer = Config.MemoryInfo[x].AddressPointer;
 			if (ReadProcessMemory(hProcess, AddressPointer, (byte*)&lpBuffer[0], Config.MemoryInfo[x].Bytes.size(), nullptr))
 			{

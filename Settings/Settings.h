@@ -97,7 +97,7 @@ typedef unsigned char byte;
 struct MEMORYINFO						// Used for hot patching memory
 {
 	void* AddressPointer = nullptr;		// Hot patch address
-	std::string Bytes;					// Hot patch bytes
+	std::vector<byte> Bytes;			// Hot patch bytes
 };
 
 struct DLLTYPE
