@@ -290,7 +290,48 @@ HRESULT m_IDirectDrawX::CreateSurface2(LPDDSURFACEDESC2 lpDDSurfaceDesc2, LPDIRE
 			return DDERR_INVALIDPARAMS;
 		}
 
-		m_IDirectDrawSurfaceX *p_IDirectDrawSurfaceX = new m_IDirectDrawSurfaceX(&d3d9Device, this, DirectXVersion, lpDDSurfaceDesc2, displayWidth, displayHeight);
+		DDSURFACEDESC2 Desc2;
+		Desc2.dwSize = sizeof(DDSURFACEDESC2);
+		Desc2.ddpfPixelFormat.dwSize = sizeof(DDPIXELFORMAT);
+		ConvertSurfaceDesc(Desc2, *lpDDSurfaceDesc2);
+
+		if (displayModeBPP && (Desc2.ddsCaps.dwCaps & DDSCAPS_PRIMARYSURFACE) && (!Desc2.dwWidth || !Desc2.dwHeight))
+		{
+			// Set width and height
+			Desc2.dwFlags |= DDSD_WIDTH | DDSD_HEIGHT;
+			Desc2.dwWidth = displayModeWidth;
+			Desc2.dwHeight = displayModeHeight;
+
+			// Set refresh
+			if (displayModeRefreshRate)
+			{
+				Desc2.dwFlags |= DDSD_REFRESHRATE;
+				Desc2.dwRefreshRate = displayModeRefreshRate;
+			}
+
+			// Set Pixel Format
+			Desc2.dwFlags |= DDSD_PIXELFORMAT;
+			Desc2.ddpfPixelFormat.dwFlags = DDPF_RGB;
+			Desc2.ddpfPixelFormat.dwRGBBitCount = displayModeBPP;
+			switch (displayModeBPP)
+			{
+			case 8:
+				Desc2.ddpfPixelFormat.dwRBitMask = 0;
+				Desc2.ddpfPixelFormat.dwGBitMask = 0;
+				Desc2.ddpfPixelFormat.dwBBitMask = 0;
+				break;
+			case 16:
+				GetPixelDisplayFormat(D3DFMT_R5G6B5, Desc2.ddpfPixelFormat);
+				break;
+			case 32:
+				GetPixelDisplayFormat(D3DFMT_X8R8G8B8, Desc2.ddpfPixelFormat);
+				break;
+			default:
+				Logging::Log() << __FUNCTION__ << " Not implemented bit count " << displayModeBPP;
+			}
+		}
+
+		m_IDirectDrawSurfaceX *p_IDirectDrawSurfaceX = new m_IDirectDrawSurfaceX(&d3d9Device, this, DirectXVersion, &Desc2, displayWidth, displayHeight);
 
 		*lplpDDSurface = (LPDIRECTDRAWSURFACE7)p_IDirectDrawSurfaceX->GetWrapperInterfaceX(DirectXVersion);
 
@@ -495,20 +536,20 @@ HRESULT m_IDirectDrawX::EnumDisplayModes2(DWORD dwFlags, LPDDSURFACEDESC2 lpDDSu
 					Desc2.ddpfPixelFormat.dwSize = sizeof(DDPIXELFORMAT);
 
 					// Special handling for 8-bit mode
-					if (DisplayBitCount == 8)
+					switch (DisplayBitCount)
 					{
+					case 8:
 						Desc2.ddpfPixelFormat.dwRGBBitCount = DisplayBitCount;
 						Desc2.ddpfPixelFormat.dwRBitMask = 0;
 						Desc2.ddpfPixelFormat.dwGBitMask = 0;
 						Desc2.ddpfPixelFormat.dwBBitMask = 0;
-					}
-					else if (DisplayBitCount == 16)
-					{
+						break;
+					case 16:
 						GetPixelDisplayFormat(D3DFMT_R5G6B5, Desc2.ddpfPixelFormat);
-					}
-					else if (DisplayBitCount == 32)
-					{
+						break;
+					case 32:
 						GetPixelDisplayFormat(D3DFMT_X8R8G8B8, Desc2.ddpfPixelFormat);
+						break;
 					}
 					Desc2.lPitch = (Desc2.ddpfPixelFormat.dwRGBBitCount / 8) * Desc2.dwWidth;
 
@@ -737,7 +778,6 @@ HRESULT m_IDirectDrawX::GetDisplayMode2(LPDDSURFACEDESC2 lpDDSurfaceDesc2)
 		case 16:
 			GetPixelDisplayFormat(D3DFMT_R5G6B5, lpDDSurfaceDesc2->ddpfPixelFormat);
 			break;
-		case 24:
 		case 32:
 			GetPixelDisplayFormat(D3DFMT_X8R8G8B8, lpDDSurfaceDesc2->ddpfPixelFormat);
 			break;

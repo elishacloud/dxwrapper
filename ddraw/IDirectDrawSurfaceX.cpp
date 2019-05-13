@@ -1220,7 +1220,6 @@ HRESULT m_IDirectDrawSurfaceX::GetSurfaceDesc2(LPDDSURFACEDESC2 lpDDSurfaceDesc2
 			case 16:
 				GetPixelDisplayFormat(D3DFMT_R5G6B5, lpDDSurfaceDesc2->ddpfPixelFormat);
 				break;
-			case 24:
 			case 32:
 				GetPixelDisplayFormat(D3DFMT_X8R8G8B8, lpDDSurfaceDesc2->ddpfPixelFormat);
 				break;
@@ -1559,6 +1558,13 @@ HRESULT m_IDirectDrawSurfaceX::SetPalette(LPDIRECTDRAWPALETTE lpDDPalette)
 		// If lpDDPalette is nullptr then detach the current palette if it exists
 		if (!lpDDPalette)
 		{
+			// Check for device
+			if (!ddrawParent)
+			{
+				Logging::Log() << __FUNCTION__ << " Error no ddraw parent!";
+				return DDERR_GENERIC;
+			}
+
 			// Check for device, if not then create it
 			if (!d3d9Device || !*d3d9Device)
 			{
