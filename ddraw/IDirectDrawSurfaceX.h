@@ -24,7 +24,6 @@ private:
 	m_IDirectDrawClipper *attachedClipper = nullptr;	// Associated clipper
 	DDSURFACEDESC2 surfaceDesc2;
 	D3DLOCKED_RECT d3dlrect = { 0, nullptr };
-	RECT lkDestRect;
 	std::vector<byte> surfaceArray;
 	CKEYS ColorKeys[4];		// Color keys (0 = DDCKEY_DESTBLT, 1 = DDCKEY_DESTOVERLAY, 2 = DDCKEY_SRCBLT, 3 = DDCKEY_SRCOVERLAY)
 	LONG overlayX = 0;

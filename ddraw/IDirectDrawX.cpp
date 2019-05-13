@@ -765,6 +765,16 @@ HRESULT m_IDirectDrawX::GetDisplayMode2(LPDDSURFACEDESC2 lpDDSurfaceDesc2)
 			ReleaseDC(nullptr, hdc);
 		}
 
+		// Force color mode
+		if (Config.Force16bitColor)
+		{
+			displayModeBits = 16;
+		}
+		if (Config.Force32bitColor)
+		{
+			displayModeBits = 32;
+		}
+
 		// Set Pixel Format
 		lpDDSurfaceDesc2->ddpfPixelFormat.dwFlags = DDPF_RGB;
 		lpDDSurfaceDesc2->ddpfPixelFormat.dwRGBBitCount = displayModeBits;

@@ -1339,19 +1339,6 @@ HRESULT m_IDirectDrawSurfaceX::Lock2(LPRECT lpDestRect, LPDDSURFACEDESC2 lpDDSur
 			LOG_LIMIT(1, __FUNCTION__ << " Locking surface twice not fully implemented");
 		}
 
-		// Save Lock Rect
-		if (lpDestRect)
-		{
-			memcpy(&lkDestRect, lpDestRect, sizeof(RECT));
-		}
-		else
-		{
-			lkDestRect.top = 0;
-			lkDestRect.left = 0;
-			lkDestRect.right = surfaceDesc2.dwWidth;
-			lkDestRect.bottom = surfaceDesc2.dwHeight;
-		}
-
 		// Convert flags to d3d9
 		DWORD Flags = dwFlags & (D3DLOCK_READONLY | (!IsPrimarySurface() ? DDLOCK_NOSYSLOCK : 0) | D3DLOCK_DISCARD);
 
@@ -2641,11 +2628,9 @@ HRESULT m_IDirectDrawSurfaceX::ColorFill(RECT* pRect, D3DCOLOR dwFillColor)
 		DWORD FillColor = 0;
 		if (attachedPalette && attachedPalette->rgbPalette)
 		{
-			// ToDo: Need to fix this!!
-			//FillColor = attachedPalette->rgbPalette[rawVideoBuf[dwFillColor]];
-			Logging::Log() << __FUNCTION__ << " Error: not implemented for palettes!";
+			FillColor = dwFillColor & 0xFF;
 		}
-		else if (ByteCount <= 4)
+		else if (ByteCount && ByteCount <= 4)
 		{
 			FillColor = dwFillColor;
 		}
@@ -2706,19 +2691,10 @@ HRESULT m_IDirectDrawSurfaceX::WritePaletteToSurface()
 	HRESULT hr = DD_OK;
 	bool UnlockDest = false;
 	do {
-		// Check and copy rect
-		RECT DestRect;
-		if (!CheckCoordinates(&DestRect, &lkDestRect))
-		{
-			Logging::Log() << __FUNCTION__ << " Error, invalid rect size";
-			hr = DDERR_INVALIDRECT;
-			break;
-		}
-
 		// Check if surface is not locked then lock it
 		if (!IsSurfaceLocked())
 		{
-			if (FAILED(SetLock(&DestRect, 0, true)) || !d3dlrect.pBits)
+			if (FAILED(SetLock(nullptr, 0, true)) || !d3dlrect.pBits)
 			{
 				Logging::Log() << __FUNCTION__ << " Error, could not lock surface";
 				hr = DDERR_GENERIC;
@@ -2729,7 +2705,7 @@ HRESULT m_IDirectDrawSurfaceX::WritePaletteToSurface()
 
 		// Lock palette surface to write RGB data from the palette
 		D3DLOCKED_RECT LockedRect = { NULL };
-		if (FAILED(paletteTexture->LockRect(0, &LockedRect, &DestRect, 0)) || !LockedRect.pBits)
+		if (FAILED(paletteTexture->LockRect(0, &LockedRect, nullptr, 0)) || !LockedRect.pBits)
 		{
 			Logging::Log() << __FUNCTION__ << " Error: could not lock palatte video data!";
 			hr = DDERR_INVALIDPARAMS;
@@ -2748,9 +2724,9 @@ HRESULT m_IDirectDrawSurfaceX::WritePaletteToSurface()
 		case 8:
 		{
 			LONG surfacePitch = LockedRect.Pitch / 4;
-			for (LONG j = DestRect.top; j < DestRect.bottom; j++)
+			for (LONG j = 0; j < (LONG)GetHeight(); j++)
 			{
-				for (LONG i = DestRect.left; i < DestRect.right; i++)
+				for (LONG i = 0; i < (LONG)GetWidth(); i++)
 				{
 					surfaceBuffer[i] = attachedPalette->rgbPalette[videoBuffer[i]];
 				}
