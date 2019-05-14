@@ -1537,7 +1537,7 @@ HRESULT m_IDirectDrawX::CreateD3D9Device()
 		presParams.FullScreen_RefreshRateInHz = set_d3ddispmode.RefreshRate;
 	}
 
-	Logging::LogDebug() << __FUNCTION__ << " D3d9 Device size: " << presParams.BackBufferWidth << "x" << presParams.BackBufferHeight;
+	Logging::LogDebug() << __FUNCTION__ << " D3d9 Device size: " << presParams.BackBufferWidth << "x" << presParams.BackBufferHeight << " " << presParams.FullScreen_RefreshRateInHz;
 
 	// Set behavior flags
 	DWORD BehaviorFlags = ((d3dcaps.VertexProcessingCaps) ? D3DCREATE_HARDWARE_VERTEXPROCESSING : D3DCREATE_SOFTWARE_VERTEXPROCESSING) |

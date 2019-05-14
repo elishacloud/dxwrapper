@@ -23,7 +23,6 @@ public:
 	{
 		PVOID NullValue = nullptr;
 		InterlockedCompareExchangePointer((PVOID*)&pD3DDeviceInterface, NullValue, this);
-		InterlockedCompareExchangePointer((PVOID*)&pD3DDeviceInterfaceEx, NullValue, this);
 
 		delete ProxyAddressLookupTable;
 	}

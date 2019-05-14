@@ -29,6 +29,7 @@ private:
 	LONG overlayX = 0;
 	LONG overlayY = 0;
 	DWORD UniquenessValue = 0;
+	HDC surfacehDC = nullptr;
 	bool dirtyFlag = false;
 	bool EndSceneLock = false;
 	bool IsLocked = false;
@@ -221,7 +222,7 @@ public:
 	void *GetWrapperInterfaceX(DWORD DirectXVersion);
 	LPDIRECT3DTEXTURE9 *GetSurfaceTexture() { return &surfaceTexture; }
 	LPDIRECT3DSURFACE9 *GetSurfaceInterface() { return &surfaceInterface; }
-	m_IDirectDrawPalette **GetPallete() { return &attachedPalette; }
+	m_IDirectDrawPalette **GetPalette() { return &attachedPalette; }
 	bool IsPrimarySurface() { return (surfaceDesc2.ddsCaps.dwCaps & DDSCAPS_PRIMARYSURFACE) != 0; }
 	bool IsSurfaceLocked() { return IsLocked; }
 	bool IsSurfaceManaged() { return (surfaceDesc2.ddsCaps.dwCaps2 & (DDSCAPS2_TEXTUREMANAGE | DDSCAPS2_D3DTEXTUREMANAGE)); }
