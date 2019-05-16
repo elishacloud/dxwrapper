@@ -189,11 +189,11 @@ HRESULT m_IDirect3D9Ex::CreateDevice(UINT Adapter, D3DDEVTYPE DeviceType, HWND h
 
 		if (pReturnedDevice)
 		{
-			*ppReturnedDeviceInterface = pReturnedDevice;
-
 			pReturnedDevice->AddRef();
 
 			pReturnedDevice->Reset(pPresentationParameters);
+
+			*ppReturnedDeviceInterface = pReturnedDevice;
 
 			return D3D_OK;
 		}

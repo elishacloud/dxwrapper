@@ -18,6 +18,9 @@
 
 #include "ddraw.h"
 
+// Used to allow presenting non-primary surfaces in case the primary surface present fails
+bool SceneReady = false;
+
 /************************/
 /*** IUnknown methods ***/
 /************************/
@@ -3252,9 +3255,10 @@ HRESULT m_IDirectDrawSurfaceX::PresentSurface()
 
 	// EndScene
 	HRESULT hr = DDERR_GENERIC;
-	if (IsPrimarySurface() && !IsLocked && !IsInDC)
+	if ((IsPrimarySurface() || SceneReady) && !IsLocked && !IsInDC)
 	{
-		if (SUCCEEDED(ddrawParent->EndScene()))
+		SceneReady = FAILED(ddrawParent->EndScene());
+		if (!SceneReady)
 		{
 			dirtyFlag = false;
 			hr = DD_OK;

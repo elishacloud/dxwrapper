@@ -1539,6 +1539,12 @@ HRESULT m_IDirectDrawX::CreateD3D9Device()
 
 	Logging::LogDebug() << __FUNCTION__ << " D3d9 Device size: " << presParams.BackBufferWidth << "x" << presParams.BackBufferHeight << " " << presParams.FullScreen_RefreshRateInHz;
 
+	// Store display frequency for AutoFrameSkip
+	if (Config.AutoFrameSkip)
+	{
+		monitorRefreshRate = (presParams.FullScreen_RefreshRateInHz) ? presParams.FullScreen_RefreshRateInHz : Utils::GetRefreshRate(MainhWnd);
+	}
+
 	// Set behavior flags
 	DWORD BehaviorFlags = ((d3dcaps.VertexProcessingCaps) ? D3DCREATE_HARDWARE_VERTEXPROCESSING : D3DCREATE_SOFTWARE_VERTEXPROCESSING) |
 		((MultiThreaded) ? D3DCREATE_MULTITHREADED : 0) |
@@ -1842,10 +1848,17 @@ HRESULT m_IDirectDrawX::EndScene()
 		}
 	}
 
+	// Draw primitive
+	if (FAILED(d3d9Device->DrawPrimitive(D3DPT_TRIANGLEFAN, 0, 2)))
+	{
+		Logging::Log() << __FUNCTION__ << " Failed to draw primitive";
+		return DDERR_GENERIC;
+	}
+
 	// Skip frame if time lapse is too small
 	if (Config.AutoFrameSkip)
 	{
-		if (!FrequencyFlag || (lastTime.LowPart & 0xff) == 0)
+		if (!FrequencyFlag || (lastPresentTime.LowPart & 0xff) == 0)
 		{
 			if (QueryPerformanceFrequency(&clockFrequency))
 			{
@@ -1856,31 +1869,25 @@ HRESULT m_IDirectDrawX::EndScene()
 		{
 			FrameCounter++;
 
+			// Get screen frequency timer
+			float MaxScreenTimer = (1000.0f / monitorRefreshRate);
+
+			// Get time since last successful endscene
 			bool CounterFlag = QueryPerformanceCounter(&clickTime);
-			float deltaMS = ((clickTime.QuadPart - lastTime.QuadPart) * 1000.0f) / clockFrequency.QuadPart;
+			float deltaPresentMS = ((clickTime.QuadPart - lastPresentTime.QuadPart) * 1000.0f) / clockFrequency.QuadPart;
 
-			D3DRASTER_STATUS RasterStatus;
-			bool RasterFlag = SUCCEEDED(d3d9Device->GetRasterStatus(0, &RasterStatus));
+			// Get time since last skipped frame
+			float deltaFrameMS = (lastFrameTime) ? ((clickTime.QuadPart - lastFrameTime) * 1000.0f) / clockFrequency.QuadPart : deltaPresentMS;
+			lastFrameTime = clickTime.QuadPart;
 
-			float MultiplierRatio = 0.4f + 0.4f - (0.4f / (FrameCounter + 1));
-
-			// Check if frame should be skipped
-			if (!((RasterFlag && !RasterStatus.InVBlank && RasterStatus.ScanLine > displayHeight * MultiplierRatio) ||
-				(CounterFlag && deltaMS > (1000.0f / monitorRefreshRate) * MultiplierRatio) ||
-				(!RasterFlag && !CounterFlag)))
+			// Use last frame time and average frame time to guess if next frame will be less than the screen frequency timer
+			if (CounterFlag && (deltaPresentMS + (deltaFrameMS * 1.1f) < MaxScreenTimer) && (deltaPresentMS + ((deltaPresentMS / FrameCounter) * 1.1f) < MaxScreenTimer))
 			{
-				Logging::LogDebug() << __FUNCTION__ << " Skipping frame " << deltaMS << "ms ScanLine is " << RasterStatus.ScanLine;
+				Logging::LogDebug() << __func__ << " Skipping frame " << deltaPresentMS << "ms screen frequancy " << MaxScreenTimer;
 				return D3D_OK;
 			}
-			Logging::LogDebug() << __FUNCTION__ << " Drawing frame " << deltaMS << "ms ScanLine is " << RasterStatus.ScanLine;
+			Logging::LogDebug() << __func__ << " Drawing frame " << deltaPresentMS << "ms screen frequancy " << MaxScreenTimer;
 		}
-	}
-
-	// Draw primitive
-	if (FAILED(d3d9Device->DrawPrimitive(D3DPT_TRIANGLEFAN, 0, 2)))
-	{
-		Logging::Log() << __FUNCTION__ << " Failed to draw primitive";
-		return DDERR_GENERIC;
 	}
 
 	// End scene
@@ -1912,7 +1919,8 @@ HRESULT m_IDirectDrawX::EndScene()
 	{
 		if (QueryPerformanceCounter(&clickTime))
 		{
-			lastTime.QuadPart = clickTime.QuadPart;
+			lastPresentTime.QuadPart = clickTime.QuadPart;
+			lastFrameTime = 0;
 			FrameCounter = 0;
 		}
 	}

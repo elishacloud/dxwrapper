@@ -26,7 +26,8 @@ private:
 
 	// High resolution counter
 	bool FrequencyFlag = false;
-	LARGE_INTEGER clockFrequency, clickTime, lastTime = { 0, 0 };
+	LARGE_INTEGER clockFrequency, clickTime, lastPresentTime = { 0, 0 };
+	LONGLONG lastFrameTime = 0;
 	DWORD FrameCounter = 0;
 	DWORD monitorRefreshRate = 0;
 
@@ -40,7 +41,7 @@ private:
 	bool SetDefaultDisplayMode = true;		// Set native resolution
 	DWORD displayWidth = 0;
 	DWORD displayHeight = 0;
-	DWORD displayRefreshRate = 0;		// Refresh rate for fullscreen
+	DWORD displayRefreshRate = 0;			// Refresh rate for fullscreen
 
 	// Direct3D9 Objects
 	LPDIRECT3D9 d3d9Object = nullptr;
