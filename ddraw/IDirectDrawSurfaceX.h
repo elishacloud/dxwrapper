@@ -18,14 +18,13 @@ private:
 		bool IsColorSpace = false;
 	};
 
-	// Convert to d3d9
+	// Convert to Direct3D9
 	m_IDirectDrawX *ddrawParent = nullptr;
 	m_IDirectDrawPalette *attachedPalette = nullptr;	// Associated palette
 	m_IDirectDrawClipper *attachedClipper = nullptr;	// Associated clipper
-	DDSURFACEDESC2 surfaceDesc2;
-	D3DLOCKED_RECT d3dlrect = { 0, nullptr };
-	std::vector<byte> surfaceArray;
-	CKEYS ColorKeys[4];		// Color keys (0 = DDCKEY_DESTBLT, 1 = DDCKEY_DESTOVERLAY, 2 = DDCKEY_SRCBLT, 3 = DDCKEY_SRCOVERLAY)
+	DDSURFACEDESC2 surfaceDesc2;						// Surface description for this surface
+	std::vector<byte> surfaceArray;						// Memory used for coping from one surface to the same surface
+	CKEYS ColorKeys[4];									// Color keys (0 = DDCKEY_DESTBLT, 1 = DDCKEY_DESTOVERLAY, 2 = DDCKEY_SRCBLT, 3 = DDCKEY_SRCOVERLAY)
 	LONG overlayX = 0;
 	LONG overlayY = 0;
 	DWORD UniquenessValue = 0;
@@ -39,8 +38,8 @@ private:
 	bool ClipperFirstRun = true;
 
 	// Display resolution
-	DWORD displayWidth = 0;			// Width used to override the default application set width
-	DWORD displayHeight = 0;		// Height used to override the default application set height
+	DWORD displayWidth = 0;								// Width used to override the default application set width
+	DWORD displayHeight = 0;							// Height used to override the default application set height
 
 	// Direct3D9 vars
 	LPDIRECT3DDEVICE9 *d3d9Device = nullptr;			// Direct3D9 Device
@@ -126,7 +125,7 @@ public:
 	{
 		if (Config.Dd7to9 && !Config.Exiting)
 		{
-			ReleaseSurface();
+			ReleaseInterface();
 			ReleaseD9Surface();
 		}
 	}
@@ -135,7 +134,6 @@ public:
 	REFIID GetWrapperType() { return IID_IUnknown; }
 	IDirectDrawSurface7 *GetProxyInterface() { return ProxyInterface; }
 	m_IDirectDrawSurface7 *GetWrapperInterface() { return WrapperInterface; }
-	void SetDdrawParent(m_IDirectDrawX *ddraw) { ddrawParent = ddraw; }
 
 	/*** IUnknown methods ***/
 	HRESULT QueryInterface(REFIID riid, LPVOID FAR * ppvObj, DWORD DirectXVersion);
@@ -207,7 +205,7 @@ public:
 	STDMETHOD(SetLOD)(THIS_ DWORD);
 	STDMETHOD(GetLOD)(THIS_ LPDWORD);
 
-	/*** Helper functions ***/
+	// Wrapper interface functions
 	REFIID GetWrapperType(DWORD DirectXVersion)
 	{
 		return (DirectXVersion == 1) ? IID_IDirectDrawSurface :
@@ -222,15 +220,33 @@ public:
 	IDirectDrawSurface4 *GetProxyInterfaceV4() { return (IDirectDrawSurface4 *)ProxyInterface; }
 	IDirectDrawSurface7 *GetProxyInterfaceV7() { return ProxyInterface; }
 	void *GetWrapperInterfaceX(DWORD DirectXVersion);
+
+	// Functions handling the ddraw parent interface
+	void ClearDdraw() { ddrawParent = nullptr; }
+	void SetDdrawParent(m_IDirectDrawX *ddraw) { ddrawParent = ddraw; }
+
+	// Direct3D9 interfaces
 	LPDIRECT3DTEXTURE9 *GetSurfaceTexture() { return &surfaceTexture; }
 	LPDIRECT3DSURFACE9 *GetSurfaceInterface() { return &surfaceInterface; }
-	m_IDirectDrawPalette **GetPalette() { return &attachedPalette; }
+
+	// Surface information functions
 	bool IsPrimarySurface() { return (surfaceDesc2.ddsCaps.dwCaps & DDSCAPS_PRIMARYSURFACE) != 0; }
 	bool IsSurfaceLocked() { return IsLocked; }
 	bool IsSurfaceManaged() { return (surfaceDesc2.ddsCaps.dwCaps2 & (DDSCAPS2_TEXTUREMANAGE | DDSCAPS2_D3DTEXTUREMANAGE)); }
 	DWORD GetWidth() { return surfaceDesc2.dwWidth; }
 	DWORD GetHeight() { return surfaceDesc2.dwHeight; }
-	void ClearDdraw() { ddrawParent = nullptr; }
+	DWORD GetSurfaceBitCount() { return (attachedPalette) ? 8 : GetBitCount(surfaceDesc2.ddpfPixelFormat); }
+	D3DFORMAT GetSurfaceFormat() { return (attachedPalette) ? D3DFMT_L8 : GetDisplayFormat(surfaceDesc2.ddpfPixelFormat); }
+
+	// Direct3D9 interface functions
+	bool CheckD3d9Surface();
+	HRESULT CreateD3d9Surface();
+	template <typename T>
+	void ReleaseD9Interface(T **ppInterface);
+	void ReleaseD9Surface();
+	HRESULT PresentSurface();
+
+	// Swap surface addresses for Flip
 	template <typename T>
 	void SwapAddresses(T *Address1, T *Address2)
 	{
@@ -238,24 +254,24 @@ public:
 		*Address1 = *Address2;
 		*Address2 = tmpAddr;
 	}
-	bool CheckD3d9Surface();
-	HRESULT CreateD3d9Surface();
-	template <typename T>
-	void ReleaseD9Interface(T **ppInterface);
-	void ReleaseD9Surface();
+	void SwapSurface(m_IDirectDrawSurfaceX* lpTargetSurface1, m_IDirectDrawSurfaceX* lpTargetSurface2);
+
+	// Locking rect coordinates
 	bool CheckCoordinates(LPRECT lpOutRect, LPRECT lpInRect);
-	HRESULT SetLock(LPRECT lpDestRect, DWORD dwFlags, BOOL isSkipScene = false);
+	HRESULT SetLock(D3DLOCKED_RECT* pLockedRect, LPRECT lpDestRect, DWORD dwFlags, BOOL isSkipScene = false);
 	HRESULT SetUnLock(BOOL isSkipScene = false);
-	HRESULT GetSurfaceInfo(D3DLOCKED_RECT *pLockRect, DWORD *lpBitCount, D3DFORMAT *lpFormat);
+
+	// Attached surfaces
 	void AddAttachedSurfaceToMap(m_IDirectDrawSurfaceX* lpSurfaceX);
 	void RemoveAttachedSurfaceFromMap(m_IDirectDrawSurfaceX* lpSurfaceX);
 	bool DoesAttachedSurfaceExist(m_IDirectDrawSurfaceX* lpSurfaceX);
-	HRESULT WritePaletteToSurface();
+
+	// Copying surface textures
 	HRESULT ColorFill(RECT* pRect, D3DCOLOR dwFillColor);
 	HRESULT UpdateSurface(m_IDirectDrawSurfaceX* pSourceSurface, RECT* pSourceRect, POINT* pDestPoint);
 	HRESULT UpdateSurfaceColorKey(m_IDirectDrawSurfaceX* pSourceSurface, RECT* pSourceRect, POINT* pDestPoint, DDCOLORKEY ColorKey);
 	HRESULT StretchRect(m_IDirectDrawSurfaceX* pSourceSurface, RECT* pSourceRect, RECT* pDestRect, D3DTEXTUREFILTERTYPE Filter);
-	void SwapSurface(m_IDirectDrawSurfaceX* lpTargetSurface1, m_IDirectDrawSurfaceX* lpTargetSurface2);
-	HRESULT PresentSurface();
-	void ReleaseSurface();
+
+	// Release interface
+	void ReleaseInterface();
 };

@@ -41,7 +41,7 @@ public:
 	{
 		if (Config.Dd7to9 && !Config.Exiting)
 		{
-			ReleaseD3DInterface();
+			ReleaseInterface();
 		}
 	}
 
@@ -49,7 +49,6 @@ public:
 	REFIID GetWrapperType() { return IID_IUnknown; }
 	IDirect3D7 *GetProxyInterface() { return ProxyInterface; }
 	m_IDirect3D7 *GetWrapperInterface() { return WrapperInterface; }
-	void SetDdrawParent(m_IDirectDrawX *ddraw) { ddrawParent = ddraw; }
 
 	/*** IUnknown methods ***/
 	HRESULT QueryInterface(REFIID riid, LPVOID FAR * ppvObj, DWORD DirectXVersion);
@@ -70,8 +69,7 @@ public:
 	STDMETHOD(EnumZBufferFormats)(THIS_ REFCLSID, LPD3DENUMPIXELFORMATSCALLBACK, LPVOID);
 	STDMETHOD(EvictManagedTextures)(THIS);
 
-	// Helper functions
-	void ResolutionHack();
+	// Wrapper interface functions
 	REFIID GetWrapperType(DWORD DirectXVersion)
 	{
 		return (DirectXVersion == 1) ? IID_IDirect3D :
@@ -84,6 +82,14 @@ public:
 	IDirect3D3 *GetProxyInterfaceV3() { return (IDirect3D3 *)ProxyInterface; }
 	IDirect3D7 *GetProxyInterfaceV7() { return ProxyInterface; }
 	void *GetWrapperInterfaceX(DWORD DirectXVersion);
+
+	// Functions handling the ddraw parent interface
+	void SetDdrawParent(m_IDirectDrawX *ddraw) { ddrawParent = ddraw; }
 	void ClearDdraw() { ddrawParent = nullptr; }
-	void ReleaseD3DInterface();
+
+	// Resolution hack
+	void ResolutionHack();
+
+	// Release interface
+	void ReleaseInterface();
 };

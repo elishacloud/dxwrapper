@@ -44,7 +44,7 @@ public:
 	{
 		if (Config.Dd7to9 && !Config.Exiting)
 		{
-			ReleaseD3DDevice();
+			ReleaseInterface();
 		}
 	}
 
@@ -52,16 +52,6 @@ public:
 	REFIID GetWrapperType() { return IID_IUnknown; }
 	IDirect3DDevice7 *GetProxyInterface() { return ProxyInterface; }
 	m_IDirect3DDevice7 *GetWrapperInterface() { return WrapperInterface; }
-	void SetDdrawParent(m_IDirectDrawX *ddraw)
-	{
-		ddrawParent = ddraw;
-
-		// Store D3DDevice
-		if (ddrawParent)
-		{
-			ddrawParent->SetD3DDevice(this);
-		}
-	}
 
 	/*** IUnknown methods ***/
 	HRESULT QueryInterface(REFIID riid, LPVOID FAR * ppvObj, DWORD DirectXVersion);
@@ -144,7 +134,7 @@ public:
 	STDMETHOD(GetClipPlane)(THIS_ DWORD, D3DVALUE*);
 	STDMETHOD(GetInfo)(THIS_ DWORD, LPVOID, DWORD);
 
-	// Helper functions
+	// Wrapper interface functions
 	REFIID GetWrapperType(DWORD DirectXVersion)
 	{
 		return (DirectXVersion == 1) ? IID_IDirect3DDevice :
@@ -157,6 +147,20 @@ public:
 	IDirect3DDevice3 *GetProxyInterfaceV3() { return (IDirect3DDevice3 *)ProxyInterface; }
 	IDirect3DDevice7 *GetProxyInterfaceV7() { return ProxyInterface; }
 	void *GetWrapperInterfaceX(DWORD DirectXVersion);
+
+	// Functions handling the ddraw parent interface
 	void ClearDdraw() { ddrawParent = nullptr; }
-	void ReleaseD3DDevice();
+	void SetDdrawParent(m_IDirectDrawX *ddraw)
+	{
+		ddrawParent = ddraw;
+
+		// Store D3DDevice
+		if (ddrawParent)
+		{
+			ddrawParent->SetD3DDevice(this);
+		}
+	}
+
+	// Release interface
+	void ReleaseInterface();
 };

@@ -67,7 +67,7 @@ public:
 	/*** IDirect3DVertexBuffer7 methods ***/
 	STDMETHOD(ProcessVerticesStrided)(THIS_ DWORD, DWORD, DWORD, LPD3DDRAWPRIMITIVESTRIDEDDATA, DWORD, LPDIRECT3DDEVICE7, DWORD);
 
-	// Helper functions
+	// Wrapper interface functions
 	REFIID GetWrapperType(DWORD DirectXVersion)
 	{
 		return (DirectXVersion == 1) ? IID_IDirect3DVertexBuffer :

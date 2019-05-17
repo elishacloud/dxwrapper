@@ -700,16 +700,6 @@ HRESULT m_IDirect3DX::EvictManagedTextures()
 	}
 }
 
-void m_IDirect3DX::ReleaseD3DInterface()
-{
-	SetCriticalSection();
-	if (ddrawParent)
-	{
-		ddrawParent->ClearD3D();
-	}
-	ReleaseCriticalSection();
-}
-
 void m_IDirect3DX::ResolutionHack()
 {
 	if (Config.DDrawResolutionHack)
@@ -743,4 +733,14 @@ void m_IDirect3DX::ResolutionHack()
 			}
 		}
 	}
+}
+
+void m_IDirect3DX::ReleaseInterface()
+{
+	SetCriticalSection();
+	if (ddrawParent)
+	{
+		ddrawParent->ClearD3D();
+	}
+	ReleaseCriticalSection();
 }

@@ -70,7 +70,7 @@ public:
 	STDMETHOD(GetBackgroundDepth2)(THIS_ LPDIRECTDRAWSURFACE4*, LPBOOL);
 	STDMETHOD(Clear2)(THIS_ DWORD, LPD3DRECT, DWORD, D3DCOLOR, D3DVALUE, DWORD);
 
-	// Helper functions
+	// Wrapper interface functions
 	REFIID GetWrapperType(DWORD DirectXVersion)
 	{
 		return (DirectXVersion == 1) ? IID_IDirect3DViewport :

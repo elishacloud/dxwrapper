@@ -1,5 +1,7 @@
 #pragma once
 
+constexpr DWORD MaxVidMemory = 0x8000000;
+
 class m_IDirectDrawX : public IUnknown
 {
 private:
@@ -8,13 +10,11 @@ private:
 	DWORD ProxyDirectXVersion;
 	ULONG RefCount = 1;
 
-	static constexpr DWORD MaxVidMemory = 0x8000000;
-
 	// Fix exclusive mode issue
 	HHOOK g_hook = nullptr;
 	HWND chWnd = nullptr;
 
-	// Convert to d3d9
+	// Convert to Direct3D9
 	HWND MainhWnd = nullptr;
 	bool IsInScene = false;
 	bool ExclusiveMode = false;
@@ -108,8 +108,8 @@ public:
 
 		if (Config.Dd7to9 && !Config.Exiting)
 		{
-			ReleaseD3d9();
-			ReleaseD3DInterfaces();
+			ReleaseInterface();
+			ReleaseAllD3d9();
 			D3DInterface = nullptr;
 			D3DDeviceInterface = nullptr;
 		}
@@ -167,7 +167,7 @@ public:
 	STDMETHOD(StartModeTest)(THIS_ LPSIZE, DWORD, DWORD);
 	STDMETHOD(EvaluateMode)(THIS_ DWORD, DWORD *);
 
-	/*** Helper functions ***/
+	// Wrapper interface functions
 	REFIID GetWrapperType(DWORD DirectXVersion)
 	{
 		return (DirectXVersion == 1) ? IID_IDirectDraw :
@@ -182,25 +182,39 @@ public:
 	IDirectDraw4 *GetProxyInterfaceV4() { return (IDirectDraw4 *)ProxyInterface; }
 	IDirectDraw7 *GetProxyInterfaceV7() { return ProxyInterface; }
 	void *GetWrapperInterfaceX(DWORD DirectXVersion);
+
+	// Direct3D9 interfaces
 	LPDIRECT3D9 GetDirect3D9Object() { return d3d9Object; }
 	LPDIRECT3DDEVICE9 *GetDirect3D9Device() { return &d3d9Device; }
-	static void SetVidMemory(LPDWORD lpdwTotal, LPDWORD lpdwFree);
-	HWND GetHwnd() { return MainhWnd; }
-	bool IsExclusiveMode() { return ExclusiveMode; }
 	m_IDirect3DDeviceX **GetCurrentD3DDevice() { return &D3DDeviceInterface; }
 	void SetD3DDevice(m_IDirect3DDeviceX *D3DDevice) { D3DDeviceInterface = D3DDevice; }
 	void ClearD3DDevice() { D3DDeviceInterface = nullptr; }
 	void ClearD3D() { D3DInterface = nullptr; }
+
+	// Device information functions
+	HWND GetHwnd() { return MainhWnd; }
+	bool IsExclusiveMode() { return ExclusiveMode; }
+
+	// Direct3D9 interface functions
 	HRESULT CreateD3D9Device();
 	HRESULT ReinitDevice();
-	void ReleaseD3DInterfaces();
 	void ReleaseAllD9Surfaces(bool ClearDDraw = false);
 	void ReleaseD3d9Device();
-	void ReleaseD3d9();
+	void ReleaseAllD3d9();
+
+	// Surface vector functions
 	void AddSurfaceToVector(m_IDirectDrawSurfaceX* lpSurfaceX);
 	void RemoveSurfaceFromVector(m_IDirectDrawSurfaceX* lpSurfaceX);
 	bool DoesSurfaceExist(m_IDirectDrawSurfaceX* lpSurfaceX);
 	void EvictManagedTextures();
+
+	// Video memory size
+	static void SetVidMemory(LPDWORD lpdwTotal, LPDWORD lpdwFree);
+
+	// Begin & end scene
 	HRESULT BeginScene();
 	HRESULT EndScene();
+
+	// Release interface
+	void ReleaseInterface();
  };

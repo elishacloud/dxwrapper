@@ -50,7 +50,7 @@ public:
 	STDMETHOD(Reserve)(THIS);
 	STDMETHOD(Unreserve)(THIS);
 
-	// Helper functions
+	// Wrapper interface functions
 	REFIID GetWrapperType(DWORD DirectXVersion)
 	{
 		return (DirectXVersion == 1) ? IID_IDirect3DMaterial :

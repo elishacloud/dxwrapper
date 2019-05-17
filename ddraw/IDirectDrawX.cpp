@@ -1173,20 +1173,6 @@ HRESULT m_IDirectDrawX::WaitForVerticalBlank(DWORD dwFlags, HANDLE hEvent)
 /*** Added in the v2 interface ***/
 /*********************************/
 
-void m_IDirectDrawX::SetVidMemory(LPDWORD lpdwTotal, LPDWORD lpdwFree)
-{
-	// Set available memory, some games have issues if this is set to high
-	if (lpdwTotal && *lpdwTotal > MaxVidMemory)
-	{
-		*lpdwTotal = MaxVidMemory;
-	}
-	DWORD TotalVidMem = (lpdwTotal) ? *lpdwTotal : (lpdwFree) ? *lpdwFree : MaxVidMemory;
-	if (lpdwFree && *lpdwFree > TotalVidMem)
-	{
-		*lpdwFree = (TotalVidMem > 0x100000) ? TotalVidMem - 0x100000 : TotalVidMem;
-	}
-}
-
 HRESULT m_IDirectDrawX::GetAvailableVidMem(LPDDSCAPS lpDDSCaps, LPDWORD lpdwTotal, LPDWORD lpdwFree)
 {
 	Logging::LogDebug() << __FUNCTION__;
@@ -1591,20 +1577,6 @@ HRESULT m_IDirectDrawX::ReinitDevice()
 	return DD_OK;
 }
 
-void m_IDirectDrawX::ReleaseD3DInterfaces()
-{
-	SetCriticalSection();
-	if (D3DInterface)
-	{
-		D3DInterface->ClearDdraw();
-	}
-	if (D3DDeviceInterface)
-	{
-		D3DDeviceInterface->ClearDdraw();
-	}
-	ReleaseCriticalSection();
-}
-
 // Release all d3d9 surfaces
 void m_IDirectDrawX::ReleaseAllD9Surfaces(bool ClearDDraw)
 {
@@ -1646,7 +1618,7 @@ void m_IDirectDrawX::ReleaseD3d9Device()
 }
 
 // Release all d3d9 classes for Release()
-void m_IDirectDrawX::ReleaseD3d9()
+void m_IDirectDrawX::ReleaseAllD3d9()
 {
 	// ToDo: Release all m_Direct3DX objects.
 
@@ -1779,6 +1751,20 @@ void m_IDirectDrawX::EvictManagedTextures()
 		{
 			pSurface->ReleaseD9Surface();
 		}
+	}
+}
+
+void m_IDirectDrawX::SetVidMemory(LPDWORD lpdwTotal, LPDWORD lpdwFree)
+{
+	// Set available memory, some games have issues if this is set to high
+	if (lpdwTotal && *lpdwTotal > MaxVidMemory)
+	{
+		*lpdwTotal = MaxVidMemory;
+	}
+	DWORD TotalVidMem = (lpdwTotal) ? *lpdwTotal : (lpdwFree) ? *lpdwFree : MaxVidMemory;
+	if (lpdwFree && *lpdwFree > TotalVidMem)
+	{
+		*lpdwFree = (TotalVidMem > 0x100000) ? TotalVidMem - 0x100000 : TotalVidMem;
 	}
 }
 
@@ -1929,4 +1915,18 @@ HRESULT m_IDirectDrawX::EndScene()
 	BeginScene();
 
 	return DD_OK;
+}
+
+void m_IDirectDrawX::ReleaseInterface()
+{
+	SetCriticalSection();
+	if (D3DInterface)
+	{
+		D3DInterface->ClearDdraw();
+	}
+	if (D3DDeviceInterface)
+	{
+		D3DDeviceInterface->ClearDdraw();
+	}
+	ReleaseCriticalSection();
 }
