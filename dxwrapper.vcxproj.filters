@@ -1715,6 +1715,9 @@
     <ClInclude Include="IClassFactory\IClassFactory.h">
       <Filter>IClassFactory</Filter>
     </ClInclude>
+    <ClInclude Include="ddraw\d3d9ShaderPalette.h">
+      <Filter>ddraw</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="Dllmain\BuildNo.rc">

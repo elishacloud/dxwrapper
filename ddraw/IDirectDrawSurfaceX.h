@@ -34,6 +34,7 @@ private:
 	bool EndSceneLock = false;
 	bool IsLocked = false;
 	bool IsInDC = false;
+	bool NewPalette = false;
 	bool PaletteFirstRun = true;
 	bool ClipperFirstRun = true;
 
@@ -43,9 +44,10 @@ private:
 
 	// Direct3D9 vars
 	LPDIRECT3DDEVICE9 *d3d9Device = nullptr;			// Direct3D9 Device
-	LPDIRECT3DSURFACE9 surfaceInterface = nullptr;		// Main surface texture used for locks, Blts and Flips
+	LPDIRECT3DSURFACE9 surfaceInterface = nullptr;		// Main surface used for GetDC and ReleaseDC
 	LPDIRECT3DTEXTURE9 surfaceTexture = nullptr;		// Main surface texture used for locks, Blts and Flips
-	LPDIRECT3DTEXTURE9 paletteTexture = nullptr;		// Extra surface texture used for display when palettes are enabled
+	LPDIRECT3DTEXTURE9 paletteTexture = nullptr;		// Extra surface texture used for storing palette entries for the pixel shader
+	LPDIRECT3DPIXELSHADER9 pixelShader = nullptr;		// Used with palette surfaces to display proper palette data on the surface texture
 	LPDIRECT3DVERTEXBUFFER9 vertexBuffer = nullptr;		// Vertex buffer used to stretch the texture accross the screen
 
 	// Store ddraw surface version wrappers

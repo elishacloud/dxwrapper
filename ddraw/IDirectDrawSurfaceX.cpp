@@ -17,6 +17,7 @@
 */
 
 #include "ddraw.h"
+#include "d3d9ShaderPalette.h"
 
 // Used to allow presenting non-primary surfaces in case the primary surface present fails
 bool SceneReady = false;
@@ -711,20 +712,10 @@ HRESULT m_IDirectDrawSurfaceX::Flip(LPDIRECTDRAWSURFACE7 lpDDSurfaceTargetOverri
 			return DDERR_GENERIC;
 		}
 
-		// Set new texture
-		HRESULT hr = (*d3d9Device)->SetTexture(0, (paletteTexture) ? paletteTexture : surfaceTexture);
-		if (FAILED(hr))
-		{
-			Logging::Log() << __FUNCTION__ << " Failed to set texture";
-		}
-
 		// Present surface
-		if (SUCCEEDED(hr))
-		{
-			PresentSurface();
-		}
+		PresentSurface();
 
-		return hr;
+		return DD_OK;
 	}
 
 	if (lpDDSurfaceTargetOverride)
@@ -1574,33 +1565,26 @@ HRESULT m_IDirectDrawSurfaceX::SetPalette(LPDIRECTDRAWPALETTE lpDDPalette)
 				attachedPalette = nullptr;
 			}
 
-			// Release palette
+			// Release palette texture
 			if (paletteTexture)
 			{
 				ReleaseD9Interface(&paletteTexture);
 			}
 
-			// Set texture
-			HRESULT hr = DD_OK;
-			if (!surfaceTexture || FAILED((*d3d9Device)->SetTexture(0, surfaceTexture)))
+			// Release pixel shader
+			if (pixelShader)
 			{
-				hr = CreateD3d9Surface();
+				ReleaseD9Interface(&pixelShader);
 			}
 
 			// Reset FirstRun
 			PaletteFirstRun = true;
 
-			return hr;
+			return DD_OK;
 		}
 
 		// Set palette address
 		attachedPalette = (m_IDirectDrawPalette *)lpDDPalette;
-
-		// Don't write to surface when using palettes
-		if (!paletteTexture)
-		{
-			CreateD3d9Surface();
-		}
 
 		// When you call SetPalette to set a palette to a surface for the first time, 
 		// SetPalette increments the palette's reference count; subsequent calls to 
@@ -1610,6 +1594,15 @@ HRESULT m_IDirectDrawSurfaceX::SetPalette(LPDIRECTDRAWPALETTE lpDDPalette)
 			attachedPalette->AddRef();
 			PaletteFirstRun = false;
 		}
+
+		// Don't write to surface when using palettes
+		if (!paletteTexture)
+		{
+			CreateD3d9Surface();
+		}
+
+		// Set new palette flag
+		NewPalette = true;
 
 		return DD_OK;
 	}
@@ -2145,7 +2138,8 @@ HRESULT m_IDirectDrawSurfaceX::CreateD3d9Surface()
 	if (attachedPalette)
 	{
 		// Create palette surface
-		if (FAILED((*d3d9Device)->CreateTexture(surfaceDesc2.dwWidth, surfaceDesc2.dwHeight, 1, Usage, D3DFMT_A8R8G8B8, Pool, &paletteTexture, nullptr)))
+		if (FAILED((*d3d9Device)->CreateTexture(256, 256, 1, 0, D3DFMT_X8R8G8B8, D3DPOOL_MANAGED, &paletteTexture, nullptr)) ||
+			FAILED((*d3d9Device)->CreatePixelShader((DWORD*)PalettePixelShaderSrc, &pixelShader)))
 		{
 			Logging::Log() << __FUNCTION__ << " Error: Unable to create palette surface";
 			return DDERR_GENERIC;
@@ -2269,13 +2263,6 @@ HRESULT m_IDirectDrawSurfaceX::CreateD3d9Surface()
 		return DDERR_GENERIC;
 	}
 
-	// Set texture
-	if (FAILED((*d3d9Device)->SetTexture(0, (paletteTexture) ? paletteTexture : surfaceTexture)))
-	{
-		Logging::Log() << __FUNCTION__ << " Failed to set texture";
-		return DDERR_GENERIC;
-	}
-
 	return DD_OK;
 }
 
@@ -2327,6 +2314,10 @@ void m_IDirectDrawSurfaceX::ReleaseD9Surface()
 		paletteTexture->UnlockRect(0);
 	}
 	ReleaseD9Interface(&paletteTexture);
+
+	// Release d3d9 pixel shader
+	Logging::LogDebug() << __FUNCTION__ << " Releasing Direct3D9 pixel shader";
+	ReleaseD9Interface(&pixelShader);
 
 	// Release d3d9 vertex buffer
 	Logging::LogDebug() << __FUNCTION__ << " Releasing Direct3D9 vertext buffer";
@@ -2676,6 +2667,14 @@ HRESULT m_IDirectDrawSurfaceX::WritePaletteToSurface()
 {
 	Logging::LogDebug() << __FUNCTION__;
 
+	// Check for device
+	if (!d3d9Device || !*d3d9Device || !ddrawParent)
+	{
+		Logging::Log() << __FUNCTION__ << " D3d9 Device not setup.";
+		return DDERR_GENERIC;
+	}
+
+	// Make sure surface exists, if not then create it
 	if (!CheckD3d9Surface())
 	{
 		Logging::Log() << __FUNCTION__ << " Error surface does not exist!";
@@ -2688,64 +2687,20 @@ HRESULT m_IDirectDrawSurfaceX::WritePaletteToSurface()
 		return DDERR_INVALIDPARAMS;
 	}
 
-	HRESULT hr = DD_OK;
-	bool UnlockDest = false;
-	do {
-		// Check if surface is not locked then lock it
-		if (FAILED(SetLock(nullptr, D3DLOCK_READONLY, true)) || !d3dlrect.pBits)
-		{
-			Logging::Log() << __FUNCTION__ << " Error, could not lock surface";
-			hr = DDERR_GENERIC;
-			break;
-		}
-		UnlockDest = true;
+	D3DLOCKED_RECT LockRect;
+	RECT Rect = { 0,0,256,1 };
 
-		// Lock palette surface to write RGB data from the palette
-		D3DLOCKED_RECT LockedRect;
-		if (FAILED(paletteTexture->LockRect(0, &LockedRect, nullptr, 0)) || !LockedRect.pBits)
-		{
-			Logging::Log() << __FUNCTION__ << " Error: could not lock palatte video data!";
-			hr = DDERR_INVALIDPARAMS;
-			break;
-		}
-
-		// Check bit count
-		DWORD BitCount = GetBitCount(surfaceDesc2.ddpfPixelFormat);
-		if (BitCount != 8)
-		{
-			Logging::Log() << __FUNCTION__ << " No support for palette on " << BitCount << "-bit surfaces!";
-			hr = DDERR_GENERIC;
-			break;
-		}
-
-		// Create raw video memory and rgb buffer variables
-		UINT32 *surfaceBuffer = (UINT32*)LockedRect.pBits;
-		BYTE *videoBuffer = (BYTE*)d3dlrect.pBits;
-		LONG surfacePitch = LockedRect.Pitch / 4;
-
-		// Translate palette to rgb video buffer
-		for (LONG y = 0; y < (LONG)GetHeight(); y++)
-		{
-			for (LONG x = 0; x < (LONG)GetWidth(); x++)
-			{
-				surfaceBuffer[x] = attachedPalette->rgbPalette[videoBuffer[x]];
-			}
-			surfaceBuffer += surfacePitch;
-			videoBuffer += d3dlrect.Pitch;
-		}
-
-	} while (false);
-
-	// Unlock palette display texture
-	paletteTexture->UnlockRect(0);
-
-	// Unlock surfaces if needed
-	if (UnlockDest)
+	if (FAILED(paletteTexture->LockRect(0, &LockRect, &Rect, 0)))
 	{
-		SetUnLock(true);
+		Logging::Log() << __FUNCTION__ << " Error: failed to lock palette texture!";
+		return DDERR_GENERIC;
 	}
 
-	return hr;
+	memcpy(LockRect.pBits, attachedPalette->rgbPalette, 256 * sizeof(int));
+
+	paletteTexture->UnlockRect(0);
+
+	return DD_OK;
 }
 
 // Copy surface rect
@@ -3241,16 +3196,53 @@ HRESULT m_IDirectDrawSurfaceX::StretchRect(m_IDirectDrawSurfaceX* pSourceSurface
 HRESULT m_IDirectDrawSurfaceX::PresentSurface()
 {
 	// Check for device
-	if (!ddrawParent)
+	if (!d3d9Device || !*d3d9Device || !ddrawParent)
 	{
-		Logging::Log() << __FUNCTION__ << " Error no ddraw parent!";
+		Logging::Log() << __FUNCTION__ << " D3d9 Device not setup.";
 		return DDERR_GENERIC;
 	}
 
-	// Write texture from palette
-	if (IsPrimarySurface() && attachedPalette && !IsLocked && !IsInDC)
+	if (IsPrimarySurface() && !IsLocked && !IsInDC)
 	{
-		WritePaletteToSurface();
+		// If new palette data then write it to texture
+		if (paletteTexture && attachedPalette && (NewPalette || attachedPalette->NewPaletteData))
+		{
+			if (SUCCEEDED(WritePaletteToSurface()))
+			{
+				NewPalette = false;
+				attachedPalette->NewPaletteData = false;
+			}
+		}
+
+		// Set texture
+		if (surfaceTexture)
+		{
+			if (FAILED((*d3d9Device)->SetTexture(0, surfaceTexture)))
+			{
+				Logging::Log() << __FUNCTION__ << " Failed to set texture";
+				return DDERR_GENERIC;
+			}
+		}
+
+		// Set palette texture
+		if (paletteTexture)
+		{
+			if (FAILED((*d3d9Device)->SetTexture(1, paletteTexture)))
+			{
+				Logging::Log() << __FUNCTION__ << " Error: failed to lock palette texture!";
+				return DDERR_GENERIC;
+			}
+		}
+
+		// Set pixel shader
+		if (pixelShader)
+		{
+			if (FAILED((*d3d9Device)->SetPixelShader(pixelShader)))
+			{
+				Logging::Log() << __FUNCTION__ << " Failed to set pixel shader";
+				return DDERR_GENERIC;
+			}
+		}
 	}
 
 	// EndScene

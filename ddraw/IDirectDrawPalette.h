@@ -111,6 +111,7 @@ public:
 	STDMETHOD(SetEntries)(THIS_ DWORD, DWORD, DWORD, LPPALETTEENTRY);
 
 	// Public varables
+	bool NewPaletteData = false;				// Flag to see if there is new palette data
 	UINT32 *rgbPalette = nullptr;				// Rgb translated palette
 	LPPALETTEENTRY rawPalette = nullptr;		// Raw palette data
 };

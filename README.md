@@ -100,6 +100,7 @@ DxWrapper uses code from several other projects. So to give credit where credit 
  - [LegacyD3DResolutionHack](https://github.com/UCyborg/LegacyD3DResolutionHack): Includes code from LegacyD3DResolutionHack to removes the artificial resolution limit from Direct3D 7 and below.
  - [MemoryModule](https://github.com/fancycode/MemoryModule): Includes code for loading libraries from memory.
  - [OllyDbg](http://www.ollydbg.de/): Includes the full cmdlist.c and disasm.c (disasm.dll) code used for exception handling.
+ - [PixelShaderPalette](https://github.com/CnCNet/cnc-ddraw): Includes the PixelShader used to view DirectDraw palette surfaces properly.
  - [SilentPatchFarCry](https://github.com/CookiePLMonster/SilentPatchFarCry): Includes code from SilentPatchFarCry to cache the clip plane in Direct3D 9.
  - [Ultimate ASI Loader](https://github.com/ThirteenAG/Ultimate-ASI-Loader): Includes code for loading ASI plugins.
  - [WineD3D d3d8.dll](https://github.com/alexhenrie/wine/tree/master/dlls/d3d8): Includes functions ValidatePixelShader and ValidateVertexShader.
