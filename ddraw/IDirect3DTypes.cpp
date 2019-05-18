@@ -376,7 +376,7 @@ void GetBufferFormat(DDPIXELFORMAT &ddpfPixelFormat, DWORD Num)
 {
 	if (ddpfPixelFormat.dwSize != sizeof(DDPIXELFORMAT))
 	{
-		Logging::Log() << __FUNCTION__ << " Error with DDPIXELFORMAT dwSize! " << ddpfPixelFormat.dwSize;
+		LOG_LIMIT(100, __FUNCTION__ << " Error with DDPIXELFORMAT dwSize! " << ddpfPixelFormat.dwSize);
 		return;
 	}
 

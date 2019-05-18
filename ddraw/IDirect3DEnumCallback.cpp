@@ -20,7 +20,7 @@ HRESULT CALLBACK m_IDirect3DEnumDevices::ConvertCallback(LPSTR lpDeviceDescripti
 {
 	if (!lpContext || !lpDeviceDesc)
 	{
-		Logging::Log() << __FUNCTION__ << " Error: invaid context!";
+		LOG_LIMIT(100, __FUNCTION__ << " Error: invaid context!");
 		return DDENUMRET_CANCEL;
 	}
 
@@ -28,7 +28,7 @@ HRESULT CALLBACK m_IDirect3DEnumDevices::ConvertCallback(LPSTR lpDeviceDescripti
 
 	if (!lpCallbackContext->lpCallback)
 	{
-		Logging::Log() << __FUNCTION__ << " Error: invaid callback!";
+		LOG_LIMIT(100, __FUNCTION__ << " Error: invaid callback!");
 		return DDENUMRET_CANCEL;
 	}
 

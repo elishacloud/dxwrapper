@@ -15,7 +15,7 @@ public:
 	{
 		ProxyAddressLookupTable.SaveAddress(this, ProxyInterface);
 
-		Logging::LogDebug() << "Create " << __FUNCTION__;
+		LOG_LIMIT(3, "Create " << __FUNCTION__);
 	}
 	m_IDirectDrawPalette(DWORD dwFlags, LPPALETTEENTRY lpDDColorArray) : paletteCaps(dwFlags)
 	{
@@ -60,7 +60,7 @@ public:
 		}
 
 		// Allocate rgb palette
-		rgbPalette = new UINT32[entryCount];
+		rgbPalette = new DWORD[entryCount];
 
 		// For all entries
 		for (UINT i = 0; i < entryCount; i++)
@@ -112,6 +112,6 @@ public:
 
 	// Public varables
 	bool NewPaletteData = false;				// Flag to see if there is new palette data
-	UINT32 *rgbPalette = nullptr;				// Rgb translated palette
+	DWORD *rgbPalette = nullptr;				// Rgb translated palette
 	LPPALETTEENTRY rawPalette = nullptr;		// Raw palette data
 };

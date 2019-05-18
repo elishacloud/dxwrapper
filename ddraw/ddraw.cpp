@@ -57,7 +57,7 @@ void ExitDDraw()
 
 void WINAPI dd_AcquireDDThreadLock()
 {
-	Logging::LogDebug() << __FUNCTION__;
+	LOG_LIMIT(1, __FUNCTION__);
 
 	if (Config.Dd7to9)
 	{
@@ -80,11 +80,11 @@ void WINAPI dd_AcquireDDThreadLock()
 
 void WINAPI dd_CompleteCreateSysmemSurface()
 {
-	Logging::LogDebug() << __FUNCTION__;
+	LOG_LIMIT(1, __FUNCTION__);
 
 	if (Config.Dd7to9)
 	{
-		Logging::Log() << __FUNCTION__ << " Not Implemented";
+		LOG_LIMIT(1, __FUNCTION__ << " Not Implemented");
 		return;
 	}
 
@@ -100,7 +100,7 @@ void WINAPI dd_CompleteCreateSysmemSurface()
 
 HRESULT WINAPI dd_D3DParseUnknownCommand(LPVOID lpCmd, LPVOID *lpRetCmd)
 {
-	Logging::LogDebug() << __FUNCTION__;
+	LOG_LIMIT(1, __FUNCTION__);
 
 	if (Config.Dd7to9)
 	{
@@ -156,11 +156,11 @@ HRESULT WINAPI dd_D3DParseUnknownCommand(LPVOID lpCmd, LPVOID *lpRetCmd)
 
 void WINAPI dd_DDGetAttachedSurfaceLcl()
 {
-	Logging::LogDebug() << __FUNCTION__;
+	LOG_LIMIT(1, __FUNCTION__);
 
 	if (Config.Dd7to9)
 	{
-		Logging::Log() << __FUNCTION__ << " Not Implemented";
+		LOG_LIMIT(1, __FUNCTION__ << " Not Implemented");
 		return;
 	}
 
@@ -176,11 +176,11 @@ void WINAPI dd_DDGetAttachedSurfaceLcl()
 
 void WINAPI dd_DDInternalLock()
 {
-	Logging::LogDebug() << __FUNCTION__;
+	LOG_LIMIT(1, __FUNCTION__);
 
 	if (Config.Dd7to9)
 	{
-		Logging::Log() << __FUNCTION__ << " Not Implemented";
+		LOG_LIMIT(1, __FUNCTION__ << " Not Implemented");
 		return;
 	}
 
@@ -196,11 +196,11 @@ void WINAPI dd_DDInternalLock()
 
 void WINAPI dd_DDInternalUnlock()
 {
-	Logging::LogDebug() << __FUNCTION__;
+	LOG_LIMIT(1, __FUNCTION__);
 
 	if (Config.Dd7to9)
 	{
-		Logging::Log() << __FUNCTION__ << " Not Implemented";
+		LOG_LIMIT(1, __FUNCTION__ << " Not Implemented");
 		return;
 	}
 
@@ -216,11 +216,11 @@ void WINAPI dd_DDInternalUnlock()
 
 void WINAPI dd_DSoundHelp()
 {
-	Logging::LogDebug() << __FUNCTION__;
+	LOG_LIMIT(1, __FUNCTION__);
 
 	if (Config.Dd7to9)
 	{
-		Logging::Log() << __FUNCTION__ << " Not Implemented";
+		LOG_LIMIT(1, __FUNCTION__ << " Not Implemented");
 		return;
 	}
 
@@ -236,7 +236,7 @@ void WINAPI dd_DSoundHelp()
 
 HRESULT WINAPI dd_DirectDrawCreate(GUID FAR *lpGUID, LPDIRECTDRAW FAR *lplpDD, IUnknown FAR *pUnkOuter)
 {
-	Logging::LogDebug() << __FUNCTION__;
+	LOG_LIMIT(1, __FUNCTION__);
 
 	if (Config.Dd7to9 || (Config.ConvertToDirect3D7 && Config.ConvertToDirectDraw7))
 	{
@@ -250,7 +250,7 @@ HRESULT WINAPI dd_DirectDrawCreate(GUID FAR *lpGUID, LPDIRECTDRAW FAR *lplpDD, I
 		return DDERR_GENERIC;
 	}
 
-	Logging::Log() << "Redirecting 'DirectDrawCreate' ...";
+	LOG_LIMIT(3, "Redirecting 'DirectDrawCreate' ...");
 
 	HRESULT hr = m_pDirectDrawCreate(lpGUID, lplpDD, pUnkOuter);
 
@@ -281,7 +281,7 @@ HRESULT WINAPI dd_DirectDrawCreate(GUID FAR *lpGUID, LPDIRECTDRAW FAR *lplpDD, I
 
 HRESULT WINAPI dd_DirectDrawCreateClipper(DWORD dwFlags, LPDIRECTDRAWCLIPPER *lplpDDClipper, LPUNKNOWN pUnkOuter)
 {
-	Logging::LogDebug() << __FUNCTION__;
+	LOG_LIMIT(1, __FUNCTION__);
 
 	if (Config.Dd7to9)
 	{
@@ -314,7 +314,7 @@ HRESULT WINAPI dd_DirectDrawCreateClipper(DWORD dwFlags, LPDIRECTDRAWCLIPPER *lp
 
 HRESULT WINAPI dd_DirectDrawCreateEx(GUID FAR *lpGUID, LPVOID *lplpDD, REFIID riid, IUnknown FAR *pUnkOuter)
 {
-	Logging::LogDebug() << __FUNCTION__;
+	LOG_LIMIT(1, __FUNCTION__);
 
 	if (Config.Dd7to9)
 	{
@@ -329,7 +329,7 @@ HRESULT WINAPI dd_DirectDrawCreateEx(GUID FAR *lpGUID, LPVOID *lplpDD, REFIID ri
 			riid != IID_IDirectDraw4 &&
 			riid != IID_IDirectDraw7)
 		{
-			Logging::Log() << __FUNCTION__ << " Error: invalid IID " << riid;
+			LOG_LIMIT(100, __FUNCTION__ << " Error: invalid IID " << riid);
 			return DDERR_INVALIDPARAMS;
 		}
 
@@ -355,11 +355,11 @@ HRESULT WINAPI dd_DirectDrawCreateEx(GUID FAR *lpGUID, LPVOID *lplpDD, REFIID ri
 
 		if (!Direct3DCreate9)
 		{
-			Logging::Log() << __FUNCTION__ << "Failed to get 'Direct3DCreate9' ProcAddress of d3d9.dll!";
+			LOG_LIMIT(100, __FUNCTION__ << "Failed to get 'Direct3DCreate9' ProcAddress of d3d9.dll!");
 			return DDERR_GENERIC;
 		}
 
-		Logging::Log() << "Redirecting 'DirectDrawCreate' " << riid << " to --> 'Direct3DCreate9'";
+		LOG_LIMIT(3, "Redirecting 'DirectDrawCreate' " << riid << " to --> 'Direct3DCreate9'");
 
 		// Create Direct3D9 device
 		LPDIRECT3D9 d3d9Object = Direct3DCreate9(D3D_SDK_VERSION);
@@ -367,7 +367,7 @@ HRESULT WINAPI dd_DirectDrawCreateEx(GUID FAR *lpGUID, LPVOID *lplpDD, REFIID ri
 		// Error creating Direct3D9
 		if (!d3d9Object)
 		{
-			Logging::Log() << __FUNCTION__ << " Failed to create Direct3D9 object";
+			LOG_LIMIT(100, __FUNCTION__ << " Failed to create Direct3D9 object");
 			return DDERR_GENERIC;
 		}
 
@@ -392,7 +392,7 @@ HRESULT WINAPI dd_DirectDrawCreateEx(GUID FAR *lpGUID, LPVOID *lplpDD, REFIID ri
 		return DDERR_GENERIC;
 	}
 
-	Logging::Log() << "Redirecting 'DirectDrawCreateEx' ...";
+	LOG_LIMIT(3, "Redirecting 'DirectDrawCreateEx' ...");
 
 	HRESULT hr = m_pDirectDrawCreateEx(lpGUID, lplpDD, IID_IDirectDraw7, pUnkOuter);
 
@@ -461,7 +461,7 @@ HRESULT DirectDrawEnumerateHandler(LPVOID lpCallback, LPVOID lpContext, DWORD dw
 
 	if (!Direct3DCreate9)
 	{
-		Logging::Log() << __FUNCTION__ << "Failed to get 'Direct3DCreate9' ProcAddress of d3d9.dll!";
+		LOG_LIMIT(100, __FUNCTION__ << "Failed to get 'Direct3DCreate9' ProcAddress of d3d9.dll!");
 		return DDERR_GENERIC;
 	}
 
@@ -471,7 +471,7 @@ HRESULT DirectDrawEnumerateHandler(LPVOID lpCallback, LPVOID lpContext, DWORD dw
 	// Error creating Direct3D9
 	if (!d3d9Object)
 	{
-		Logging::Log() << __FUNCTION__ << " Failed to create Direct3D9 object";
+		LOG_LIMIT(100, __FUNCTION__ << " Failed to create Direct3D9 object");
 		return DDERR_GENERIC;
 	}
 
@@ -561,7 +561,7 @@ HRESULT DirectDrawEnumerateHandler(LPVOID lpCallback, LPVOID lpContext, DWORD dw
 
 HRESULT WINAPI dd_DirectDrawEnumerateA(LPDDENUMCALLBACKA lpCallback, LPVOID lpContext)
 {
-	Logging::LogDebug() << __FUNCTION__;
+	LOG_LIMIT(1, __FUNCTION__);
 
 	if (Config.Dd7to9)
 	{
@@ -580,7 +580,7 @@ HRESULT WINAPI dd_DirectDrawEnumerateA(LPDDENUMCALLBACKA lpCallback, LPVOID lpCo
 
 HRESULT WINAPI dd_DirectDrawEnumerateExA(LPDDENUMCALLBACKEXA lpCallback, LPVOID lpContext, DWORD dwFlags)
 {
-	Logging::LogDebug() << __FUNCTION__;
+	LOG_LIMIT(1, __FUNCTION__);
 
 	if (Config.Dd7to9)
 	{
@@ -599,7 +599,7 @@ HRESULT WINAPI dd_DirectDrawEnumerateExA(LPDDENUMCALLBACKEXA lpCallback, LPVOID 
 
 HRESULT WINAPI dd_DirectDrawEnumerateExW(LPDDENUMCALLBACKEXW lpCallback, LPVOID lpContext, DWORD dwFlags)
 {
-	Logging::LogDebug() << __FUNCTION__;
+	LOG_LIMIT(1, __FUNCTION__);
 
 	if (Config.Dd7to9)
 	{
@@ -618,7 +618,7 @@ HRESULT WINAPI dd_DirectDrawEnumerateExW(LPDDENUMCALLBACKEXW lpCallback, LPVOID 
 
 HRESULT WINAPI dd_DirectDrawEnumerateW(LPDDENUMCALLBACKW lpCallback, LPVOID lpContext)
 {
-	Logging::LogDebug() << __FUNCTION__;
+	LOG_LIMIT(1, __FUNCTION__);
 
 	if (Config.Dd7to9)
 	{
@@ -637,11 +637,11 @@ HRESULT WINAPI dd_DirectDrawEnumerateW(LPDDENUMCALLBACKW lpCallback, LPVOID lpCo
 
 HRESULT WINAPI dd_DllCanUnloadNow()
 {
-	Logging::LogDebug() << __FUNCTION__;
+	LOG_LIMIT(1, __FUNCTION__);
 
 	if (Config.Dd7to9)
 	{
-		Logging::Log() << __FUNCTION__ << " Not Implemented";
+		LOG_LIMIT(1, __FUNCTION__ << " Not Implemented");
 		return DDERR_UNSUPPORTED;
 	}
 
@@ -657,7 +657,7 @@ HRESULT WINAPI dd_DllCanUnloadNow()
 
 HRESULT WINAPI dd_DllGetClassObject(REFCLSID rclsid, REFIID riid, LPVOID *ppv)
 {
-	Logging::LogDebug() << __FUNCTION__;
+	LOG_LIMIT(1, __FUNCTION__);
 
 	if (Config.Dd7to9)
 	{
@@ -704,11 +704,11 @@ HRESULT WINAPI dd_DllGetClassObject(REFCLSID rclsid, REFIID riid, LPVOID *ppv)
 
 void WINAPI dd_GetDDSurfaceLocal()
 {
-	Logging::LogDebug() << __FUNCTION__;
+	LOG_LIMIT(1, __FUNCTION__);
 
 	if (Config.Dd7to9)
 	{
-		Logging::Log() << __FUNCTION__ << " Not Implemented";
+		LOG_LIMIT(1, __FUNCTION__ << " Not Implemented");
 		return;
 	}
 
@@ -724,11 +724,11 @@ void WINAPI dd_GetDDSurfaceLocal()
 
 HANDLE WINAPI dd_GetOLEThunkData(int i1)
 {
-	Logging::LogDebug() << __FUNCTION__;
+	LOG_LIMIT(1, __FUNCTION__);
 
 	if (Config.Dd7to9)
 	{
-		Logging::Log() << __FUNCTION__ << " Not Implemented";
+		LOG_LIMIT(1, __FUNCTION__ << " Not Implemented");
 		return nullptr;
 	}
 
@@ -744,11 +744,11 @@ HANDLE WINAPI dd_GetOLEThunkData(int i1)
 
 HRESULT WINAPI dd_GetSurfaceFromDC(HDC hdc, LPDIRECTDRAWSURFACE7 *lpDDS)
 {
-	Logging::LogDebug() << __FUNCTION__;
+	LOG_LIMIT(1, __FUNCTION__);
 
 	if (Config.Dd7to9)
 	{
-		Logging::Log() << __FUNCTION__ << " Not Implemented";
+		LOG_LIMIT(1, __FUNCTION__ << " Not Implemented");
 		return DDERR_UNSUPPORTED;
 	}
 
@@ -771,11 +771,11 @@ HRESULT WINAPI dd_GetSurfaceFromDC(HDC hdc, LPDIRECTDRAWSURFACE7 *lpDDS)
 
 void WINAPI dd_RegisterSpecialCase()
 {
-	Logging::LogDebug() << __FUNCTION__;
+	LOG_LIMIT(1, __FUNCTION__);
 
 	if (Config.Dd7to9)
 	{
-		Logging::Log() << __FUNCTION__ << " Not Implemented";
+		LOG_LIMIT(1, __FUNCTION__ << " Not Implemented");
 		return;
 	}
 
@@ -791,7 +791,7 @@ void WINAPI dd_RegisterSpecialCase()
 
 void WINAPI dd_ReleaseDDThreadLock()
 {
-	Logging::LogDebug() << __FUNCTION__;
+	LOG_LIMIT(1, __FUNCTION__);
 
 	if (Config.Dd7to9)
 	{
@@ -814,11 +814,11 @@ void WINAPI dd_ReleaseDDThreadLock()
 
 HRESULT WINAPI dd_SetAppCompatData(DWORD Type, DWORD Value)
 {
-	Logging::LogDebug() << __FUNCTION__;
+	LOG_LIMIT(1, __FUNCTION__);
 
 	if (Config.Dd7to9)
 	{
-		Logging::Log() << __FUNCTION__ << " Not Implemented";
+		LOG_LIMIT(1, __FUNCTION__ << " Not Implemented");
 		return DDERR_UNSUPPORTED;
 	}
 

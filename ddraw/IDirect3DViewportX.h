@@ -25,13 +25,13 @@ public:
 	{
 		ProxyDirectXVersion = GetIIDVersion(ConvertREFIID(GetWrapperType(DirectXVersion)));
 
-		Logging::LogDebug() << "Create " << __FUNCTION__ << " v" << DirectXVersion;
+		LOG_LIMIT(3, "Create " << __FUNCTION__ << " v" << DirectXVersion);
 	}
 	m_IDirect3DViewportX(m_IDirect3DDeviceX **D3DDInterface, DWORD DirectXVersion) : D3DDeviceInterface(D3DDInterface)
 	{
 		ProxyDirectXVersion = (!Config.Dd7to9) ? 7 : 9;
 
-		Logging::LogDebug() << "Convert Direct3DViewport v" << DirectXVersion << " to v" << ProxyDirectXVersion;
+		LOG_LIMIT(3, "Convert Direct3DViewport v" << DirectXVersion << " to v" << ProxyDirectXVersion);
 	}
 	~m_IDirect3DViewportX() {}
 

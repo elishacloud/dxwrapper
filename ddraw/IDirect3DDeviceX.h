@@ -27,18 +27,18 @@ public:
 
 		if (ProxyDirectXVersion != DirectXVersion)
 		{
-			Logging::LogDebug() << "Convert Direct3DDevice v" << DirectXVersion << " to v" << ProxyDirectXVersion;
+			LOG_LIMIT(3, "Convert Direct3DDevice v" << DirectXVersion << " to v" << ProxyDirectXVersion);
 		}
 		else
 		{
-			Logging::LogDebug() << "Create " << __FUNCTION__ << " v" << DirectXVersion;
+			LOG_LIMIT(3, "Create " << __FUNCTION__ << " v" << DirectXVersion);
 		}
 	}
 	m_IDirect3DDeviceX(m_IDirectDrawX *lpDdraw, DWORD DirectXVersion) : ddrawParent(lpDdraw)
 	{
 		ProxyDirectXVersion = 9;
 
-		Logging::LogDebug() << "Convert Direct3DDevice v" << DirectXVersion << " to v" << ProxyDirectXVersion;
+		LOG_LIMIT(3, "Convert Direct3DDevice v" << DirectXVersion << " to v" << ProxyDirectXVersion);
 	}
 	~m_IDirect3DDeviceX()
 	{

@@ -76,7 +76,7 @@ HRESULT m_IDirect3DLight::Initialize(LPDIRECT3D lpDirect3D)
 
 	if (!ProxyInterface)
 	{
-		Logging::Log() << __FUNCTION__ << " Not Implemented";
+		LOG_LIMIT(100, __FUNCTION__ << " Not Implemented");
 		return DDERR_UNSUPPORTED;
 	}
 
@@ -94,7 +94,7 @@ HRESULT m_IDirect3DLight::SetLight(LPD3DLIGHT lpLight)
 
 	if (!ProxyInterface)
 	{
-		Logging::Log() << __FUNCTION__ << " Not Implemented";
+		LOG_LIMIT(100, __FUNCTION__ << " Not Implemented");
 		return DDERR_UNSUPPORTED;
 	}
 
@@ -107,7 +107,7 @@ HRESULT m_IDirect3DLight::GetLight(LPD3DLIGHT lpLight)
 
 	if (!ProxyInterface)
 	{
-		Logging::Log() << __FUNCTION__ << " Not Implemented";
+		LOG_LIMIT(100, __FUNCTION__ << " Not Implemented");
 		return DDERR_UNSUPPORTED;
 	}
 

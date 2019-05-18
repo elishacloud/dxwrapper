@@ -234,14 +234,14 @@ HRESULT m_IDirect3D9Ex::CreateDevice(UINT Adapter, D3DDEVTYPE DeviceType, HWND h
 				{
 					MultiSampleFlag = true;
 					(*ppReturnedDeviceInterface)->SetRenderState(D3DRS_MULTISAMPLEANTIALIAS, TRUE);
-					Logging::Log() << "Setting MultiSample " << d3dpp.MultiSampleType << " Quality " << d3dpp.MultiSampleQuality;
+					LOG_LIMIT(3, "Setting MultiSample " << d3dpp.MultiSampleType << " Quality " << d3dpp.MultiSampleQuality);
 				}
 				break;
 			}
 		}
 		if (FAILED(hr))
 		{
-			Logging::Log() << "Could not enable AntiAliasing!";
+			LOG_LIMIT(100, __FUNCTION__ << " Failed to enable AntiAliasing!");
 		}
 	}
 
@@ -330,14 +330,14 @@ HRESULT m_IDirect3D9Ex::CreateDeviceEx(THIS_ UINT Adapter, D3DDEVTYPE DeviceType
 				{
 					MultiSampleFlag = true;
 					(*ppReturnedDeviceInterface)->SetRenderState(D3DRS_MULTISAMPLEANTIALIAS, TRUE);
-					Logging::Log() << "Setting MultiSample " << d3dpp.MultiSampleType << " Quality " << d3dpp.MultiSampleQuality;
+					LOG_LIMIT(3, "Setting MultiSample " << d3dpp.MultiSampleType << " Quality " << d3dpp.MultiSampleQuality);
 				}
 				break;
 			}
 		}
 		if (FAILED(hr))
 		{
-			Logging::Log() << "Could not enable AntiAliasing!";
+			LOG_LIMIT(100, __FUNCTION__ << " Failed to enable AntiAliasing!");
 		}
 	}
 
@@ -440,7 +440,7 @@ void AdjustWindow(HWND MainhWnd, LONG displayWidth, LONG displayHeight)
 {
 	if (!IsWindow(MainhWnd) || !displayWidth || !displayHeight)
 	{
-		Logging::Log() << __FUNCTION__ << " Error: could not set window size, nullptr.";
+		LOG_LIMIT(100, __FUNCTION__ << " Error: could not set window size, nullptr.");
 		return;
 	}
 

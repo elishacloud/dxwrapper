@@ -123,7 +123,7 @@ HRESULT DdrawWrapper::ProxyQueryInterface(LPVOID ProxyInterface, REFIID riid, LP
 			}
 		}
 
-		Logging::Log() << __FUNCTION__ << " Query Not Implemented for " << riid << " from " << WrapperID;
+		LOG_LIMIT(100, __FUNCTION__ << " Query Not Implemented for " << riid << " from " << WrapperID);
 
 		return E_NOINTERFACE;
 	}
@@ -148,7 +148,7 @@ HRESULT DdrawWrapper::ProxyQueryInterface(LPVOID ProxyInterface, REFIID riid, LP
 			}
 		}
 
-		Logging::LogDebug() << "Query failed for " << riid << " Error " << hr;
+		LOG_LIMIT(100, __FUNCTION__ << "Query failed for " << riid << " Error " << hr);
 	}
 
 	return hr;

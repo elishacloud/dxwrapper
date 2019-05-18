@@ -48,6 +48,8 @@ using namespace D3d8Wrapper;
 
 void WINAPI d8_Direct3D8EnableMaximizedWindowedModeShim()
 {
+	LOG_LIMIT(1, __FUNCTION__);
+
 	static Direct3D8EnableMaximizedWindowedModeShimProc m_pDirect3D8EnableMaximizedWindowedModeShim = (Wrapper::ValidProcAddress(Direct3D8EnableMaximizedWindowedModeShim_out)) ? (Direct3D8EnableMaximizedWindowedModeShimProc)Direct3D8EnableMaximizedWindowedModeShim_out : nullptr;
 
 	if (!m_pDirect3D8EnableMaximizedWindowedModeShim)
@@ -62,6 +64,8 @@ HRESULT WINAPI d8_ValidatePixelShader(DWORD* pixelshader, DWORD* reserved1, BOOL
 {
 	UNREFERENCED_PARAMETER(flag);
 	UNREFERENCED_PARAMETER(toto);
+
+	LOG_LIMIT(1, __FUNCTION__);
 
 	if (!pixelshader)
 	{
@@ -90,6 +94,8 @@ HRESULT WINAPI d8_ValidateVertexShader(DWORD* vertexshader, DWORD* reserved1, DW
 	UNREFERENCED_PARAMETER(flag);
 	UNREFERENCED_PARAMETER(toto);
 
+	LOG_LIMIT(1, __FUNCTION__);
+
 	if (!vertexshader)
 	{
 		return D3DERR_INVALIDCALL;
@@ -111,6 +117,8 @@ HRESULT WINAPI d8_ValidateVertexShader(DWORD* vertexshader, DWORD* reserved1, DW
 
 void WINAPI d8_DebugSetMute()
 {
+	LOG_LIMIT(1, __FUNCTION__);
+
 	static DebugSetMuteProc m_pDebugSetMute = (Wrapper::ValidProcAddress(DebugSetMute_out)) ? (DebugSetMuteProc)DebugSetMute_out : nullptr;
 
 	if (!m_pDebugSetMute)
@@ -130,13 +138,13 @@ Direct3D8 *WINAPI d8_Direct3DCreate8(UINT SDKVersion)
 
 	LOG_ONCE("Starting D3d8to9 v" << APP_VERSION);
 
-	Logging::Log() << "Redirecting 'Direct3DCreate8' to --> 'Direct3DCreate9' (" << SDKVersion << ")";
+	LOG_LIMIT(3, "Redirecting 'Direct3DCreate8' to --> 'Direct3DCreate9' (" << SDKVersion << ")");
 
 	// Declare Direct3DCreate9
 	static PFN_Direct3DCreate9 Direct3DCreate9 = reinterpret_cast<PFN_Direct3DCreate9>(Direct3DCreate9_out);
 	if (!Direct3DCreate9)
 	{
-		Logging::Log() << "Failed to get 'Direct3DCreate9' ProcAddress of d3d9.dll!";
+		LOG_LIMIT(100, "Failed to get 'Direct3DCreate9' ProcAddress of d3d9.dll!");
 		return nullptr;
 	}
 

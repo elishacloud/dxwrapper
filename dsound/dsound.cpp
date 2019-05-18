@@ -40,7 +40,7 @@ HRESULT WINAPI ds_DirectSoundCreate(LPCGUID pcGuidDevice, LPDIRECTSOUND *ppDS, L
 		return DSERR_GENERIC;
 	}
 
-	Logging::Log() << "Redirecting 'DirectSoundCreate' ...";
+	LOG_LIMIT(3, "Redirecting 'DirectSoundCreate' ...");
 
 	HRESULT hr = m_pDirectSoundCreate(pcGuidDevice, ppDS, pUnkOuter);
 
@@ -54,6 +54,8 @@ HRESULT WINAPI ds_DirectSoundCreate(LPCGUID pcGuidDevice, LPDIRECTSOUND *ppDS, L
 
 HRESULT WINAPI ds_DirectSoundEnumerateA(LPDSENUMCALLBACKA pDSEnumCallback, LPVOID pContext)
 {
+	LOG_LIMIT(1, __FUNCTION__);
+
 	static DirectSoundEnumerateAProc m_pDirectSoundEnumerateA = (Wrapper::ValidProcAddress(DirectSoundEnumerateA_out)) ? (DirectSoundEnumerateAProc)DirectSoundEnumerateA_out : nullptr;
 
 	if (!m_pDirectSoundEnumerateA)
@@ -66,6 +68,8 @@ HRESULT WINAPI ds_DirectSoundEnumerateA(LPDSENUMCALLBACKA pDSEnumCallback, LPVOI
 
 HRESULT WINAPI ds_DirectSoundEnumerateW(LPDSENUMCALLBACKW pDSEnumCallback, LPVOID pContext)
 {
+	LOG_LIMIT(1, __FUNCTION__);
+
 	static DirectSoundEnumerateWProc m_pDirectSoundEnumerateW = (Wrapper::ValidProcAddress(DirectSoundEnumerateW_out)) ? (DirectSoundEnumerateWProc)DirectSoundEnumerateW_out : nullptr;
 
 	if (!m_pDirectSoundEnumerateW)
@@ -78,6 +82,8 @@ HRESULT WINAPI ds_DirectSoundEnumerateW(LPDSENUMCALLBACKW pDSEnumCallback, LPVOI
 
 HRESULT WINAPI ds_DllCanUnloadNow()
 {
+	LOG_LIMIT(1, __FUNCTION__);
+
 	static DllCanUnloadNowProc m_pDllCanUnloadNow = (Wrapper::ValidProcAddress(DllCanUnloadNow_out)) ? (DllCanUnloadNowProc)DllCanUnloadNow_out : nullptr;
 
 	if (!m_pDllCanUnloadNow)
@@ -90,6 +96,8 @@ HRESULT WINAPI ds_DllCanUnloadNow()
 
 HRESULT WINAPI ds_DllGetClassObject(IN REFCLSID rclsid, IN REFIID riid, OUT LPVOID FAR* ppv)
 {
+	LOG_LIMIT(1, __FUNCTION__);
+
 	static DllGetClassObjectProc m_pDllGetClassObject = (Wrapper::ValidProcAddress(DllGetClassObject_out)) ? (DllGetClassObjectProc)DllGetClassObject_out : nullptr;
 
 	if (!m_pDllGetClassObject)
@@ -118,6 +126,8 @@ HRESULT WINAPI ds_DllGetClassObject(IN REFCLSID rclsid, IN REFIID riid, OUT LPVO
 
 HRESULT WINAPI ds_DirectSoundCaptureCreate(LPCGUID pcGuidDevice, LPDIRECTSOUNDCAPTURE *ppDSC, LPUNKNOWN pUnkOuter)
 {
+	LOG_LIMIT(1, __FUNCTION__);
+
 	static DirectSoundCaptureCreateProc m_pDirectSoundCaptureCreate = (Wrapper::ValidProcAddress(DirectSoundCaptureCreate_out)) ? (DirectSoundCaptureCreateProc)DirectSoundCaptureCreate_out : nullptr;
 
 	if (!m_pDirectSoundCaptureCreate)
@@ -137,6 +147,8 @@ HRESULT WINAPI ds_DirectSoundCaptureCreate(LPCGUID pcGuidDevice, LPDIRECTSOUNDCA
 
 HRESULT WINAPI ds_DirectSoundCaptureEnumerateA(LPDSENUMCALLBACKA pDSEnumCallback, LPVOID pContext)
 {
+	LOG_LIMIT(1, __FUNCTION__);
+
 	static DirectSoundCaptureEnumerateAProc m_pDirectSoundCaptureEnumerateA = (Wrapper::ValidProcAddress(DirectSoundCaptureEnumerateA_out)) ? (DirectSoundCaptureEnumerateAProc)DirectSoundCaptureEnumerateA_out : nullptr;
 
 	if (!m_pDirectSoundCaptureEnumerateA)
@@ -149,6 +161,8 @@ HRESULT WINAPI ds_DirectSoundCaptureEnumerateA(LPDSENUMCALLBACKA pDSEnumCallback
 
 HRESULT WINAPI ds_DirectSoundCaptureEnumerateW(LPDSENUMCALLBACKW pDSEnumCallback, LPVOID pContext)
 {
+	LOG_LIMIT(1, __FUNCTION__);
+
 	static DirectSoundCaptureEnumerateWProc m_pDirectSoundCaptureEnumerateW = (Wrapper::ValidProcAddress(DirectSoundCaptureEnumerateW_out)) ? (DirectSoundCaptureEnumerateWProc)DirectSoundCaptureEnumerateW_out : nullptr;
 
 	if (!m_pDirectSoundCaptureEnumerateW)
@@ -161,6 +175,8 @@ HRESULT WINAPI ds_DirectSoundCaptureEnumerateW(LPDSENUMCALLBACKW pDSEnumCallback
 
 HRESULT WINAPI ds_GetDeviceID(LPCGUID pGuidSrc, LPGUID pGuidDest)
 {
+	LOG_LIMIT(1, __FUNCTION__);
+
 	static GetDeviceIDProc m_pGetDeviceID = (Wrapper::ValidProcAddress(GetDeviceID_out)) ? (GetDeviceIDProc)GetDeviceID_out : nullptr;
 
 	if (!m_pGetDeviceID)
@@ -174,6 +190,8 @@ HRESULT WINAPI ds_GetDeviceID(LPCGUID pGuidSrc, LPGUID pGuidDest)
 HRESULT WINAPI ds_DirectSoundFullDuplexCreate(LPCGUID pcGuidCaptureDevice, LPCGUID pcGuidRenderDevice, LPCDSCBUFFERDESC pcDSCBufferDesc, LPCDSBUFFERDESC pcDSBufferDesc, HWND hWnd,
 	DWORD dwLevel, LPDIRECTSOUNDFULLDUPLEX* ppDSFD, LPDIRECTSOUNDCAPTUREBUFFER8 *ppDSCBuffer8, LPDIRECTSOUNDBUFFER8 *ppDSBuffer8, LPUNKNOWN pUnkOuter)
 {
+	LOG_LIMIT(1, __FUNCTION__);
+
 	static DirectSoundFullDuplexCreateProc m_pDirectSoundFullDuplexCreate = (Wrapper::ValidProcAddress(DirectSoundFullDuplexCreate_out)) ? (DirectSoundFullDuplexCreateProc)DirectSoundFullDuplexCreate_out : nullptr;
 
 	if (!m_pDirectSoundFullDuplexCreate)
@@ -211,7 +229,7 @@ HRESULT WINAPI ds_DirectSoundCreate8(LPCGUID pcGuidDevice, LPDIRECTSOUND8 *ppDS8
 		return DSERR_GENERIC;
 	}
 
-	Logging::Log() << "Redirecting 'DirectSoundCreate8' ...";
+	LOG_LIMIT(3, "Redirecting 'DirectSoundCreate8' ...");
 
 	HRESULT hr = m_pDirectSoundCreate8(pcGuidDevice, ppDS8, pUnkOuter);
 
@@ -225,6 +243,8 @@ HRESULT WINAPI ds_DirectSoundCreate8(LPCGUID pcGuidDevice, LPDIRECTSOUND8 *ppDS8
 
 HRESULT WINAPI ds_DirectSoundCaptureCreate8(LPCGUID pcGuidDevice, LPDIRECTSOUNDCAPTURE8 *ppDSC8, LPUNKNOWN pUnkOuter)
 {
+	LOG_LIMIT(1, __FUNCTION__);
+
 	static DirectSoundCaptureCreate8Proc m_pDirectSoundCaptureCreate8 = (Wrapper::ValidProcAddress(DirectSoundCaptureCreate8_out)) ? (DirectSoundCaptureCreate8Proc)DirectSoundCaptureCreate8_out : nullptr;
 
 	if (!m_pDirectSoundCaptureCreate8)

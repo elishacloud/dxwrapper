@@ -78,7 +78,7 @@ HRESULT m_IDirectDrawClipper::GetClipList(LPRECT lpRect, LPRGNDATA lpClipList, L
 
 	if (!ProxyInterface)
 	{
-		Logging::Log() << __FUNCTION__ << " Not Implemented";
+		LOG_LIMIT(100, __FUNCTION__ << " Not Implemented");
 		return DDERR_UNSUPPORTED;
 	}
 
@@ -137,7 +137,7 @@ HRESULT m_IDirectDrawClipper::IsClipListChanged(BOOL FAR * lpbChanged)
 			return DDERR_INVALIDPARAMS;
 		}
 
-		Logging::Log() << __FUNCTION__ << " Not Implemented";
+		LOG_LIMIT(100, __FUNCTION__ << " Not Implemented");
 
 		// lpbChanged is TRUE if the clip list has changed, and FALSE otherwise.
 
@@ -153,7 +153,7 @@ HRESULT m_IDirectDrawClipper::SetClipList(LPRGNDATA lpClipList, DWORD dwFlags)
 
 	if (!ProxyInterface)
 	{
-		Logging::Log() << __FUNCTION__ << " Not Implemented";
+		LOG_LIMIT(100, __FUNCTION__ << " Not Implemented");
 
 		// You cannot set the clip list if a window handle is already associated with the DirectDrawClipper object.
 		if (cliphWnd)

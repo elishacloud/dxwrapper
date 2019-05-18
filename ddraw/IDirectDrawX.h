@@ -69,11 +69,11 @@ public:
 
 		if (ProxyDirectXVersion != DirectXVersion)
 		{
-			Logging::LogDebug() << "Convert DirectDraw v" << DirectXVersion << " to v" << ProxyDirectXVersion;
+			LOG_LIMIT(3, "Convert DirectDraw v" << DirectXVersion << " to v" << ProxyDirectXVersion);
 		}
 		else
 		{
-			Logging::LogDebug() << "Create " << __FUNCTION__ << " v" << DirectXVersion;
+			LOG_LIMIT(3, "Create " << __FUNCTION__ << " v" << DirectXVersion);
 		}
 	}
 	m_IDirectDrawX(IDirect3D9 *aOriginal, DWORD DirectXVersion) : d3d9Object(aOriginal)
@@ -94,7 +94,7 @@ public:
 
 		SetDefaultDisplayMode = (!displayWidth || !displayHeight);
 
-		Logging::LogDebug() << "Convert DirectDraw v" << DirectXVersion << " to v" << ProxyDirectXVersion;
+		LOG_LIMIT(3, "Convert DirectDraw v" << DirectXVersion << " to v" << ProxyDirectXVersion);
 	}
 	~m_IDirectDrawX()
 	{
@@ -196,6 +196,7 @@ public:
 	bool IsExclusiveMode() { return ExclusiveMode; }
 
 	// Direct3D9 interface functions
+	HRESULT CheckInterface(char *FunctionName, bool CheckD3DDevice);
 	HRESULT CreateD3D9Device();
 	HRESULT ReinitDevice();
 	void ReleaseAllD9Surfaces(bool ClearDDraw = false);

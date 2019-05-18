@@ -814,6 +814,9 @@
     <ClCompile Include="IClassFactory\IClassFactory.cpp">
       <Filter>IClassFactory</Filter>
     </ClCompile>
+    <ClCompile Include="External\d3d8to9\source\interface_query.cpp">
+      <Filter>External\d3d8to9</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="Settings\AllSettings.ini">

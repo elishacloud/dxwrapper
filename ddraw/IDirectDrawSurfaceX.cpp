@@ -43,10 +43,9 @@ HRESULT m_IDirectDrawSurfaceX::QueryInterface(REFIID riid, LPVOID FAR * ppvObj, 
 
 	if (Config.ConvertToDirect3D7 && (riid == IID_IDirect3DTexture || riid == IID_IDirect3DTexture2) && ppvObj)
 	{
-		// Check for device
-		if (!ddrawParent)
+		// Check for device interface
+		if (FAILED(CheckInterface(__FUNCTION__, false, false)))
 		{
-			Logging::Log() << __FUNCTION__ << " Error no ddraw parent!";
 			return DDERR_GENERIC;
 		}
 
@@ -93,7 +92,7 @@ void *m_IDirectDrawSurfaceX::GetWrapperInterfaceX(DWORD DirectXVersion)
 		}
 		return UniqueProxyInterface7.get();
 	default:
-		Logging::Log() << __FUNCTION__ << " Error, wrapper interface version not found: " << DirectXVersion;
+		LOG_LIMIT(100, __FUNCTION__ << " Error: wrapper interface version not found: " << DirectXVersion);
 		return nullptr;
 	}
 }
@@ -155,10 +154,9 @@ HRESULT m_IDirectDrawSurfaceX::AddAttachedSurface(LPDIRECTDRAWSURFACE7 lpDDSurfa
 			return DDERR_INVALIDPARAMS;
 		}
 
-		// Check for device
-		if (!ddrawParent)
+		// Check for device interface
+		if (FAILED(CheckInterface(__FUNCTION__, false, false)))
 		{
-			Logging::Log() << __FUNCTION__ << " Error no ddraw parent!";
 			return DDERR_GENERIC;
 		}
 
@@ -193,7 +191,7 @@ HRESULT m_IDirectDrawSurfaceX::AddOverlayDirtyRect(LPRECT lpRect)
 
 	if (Config.Dd7to9)
 	{
-		Logging::Log() << __FUNCTION__ << " Not Implemented";
+		LOG_LIMIT(100, __FUNCTION__ << " Not Implemented");
 		return DDERR_UNSUPPORTED;
 	}
 
@@ -209,49 +207,49 @@ HRESULT m_IDirectDrawSurfaceX::Blt(LPRECT lpDestRect, LPDIRECTDRAWSURFACE7 lpDDS
 		// Check for required DDBLTFX structure
 		if (!lpDDBltFx && (dwFlags & (DDBLT_DDFX | DDBLT_COLORFILL | DDBLT_DEPTHFILL | DDBLT_DDROPS | DDBLT_KEYDESTOVERRIDE | DDBLT_KEYSRCOVERRIDE | DDBLT_ROP | DDBLT_ROTATIONANGLE)))
 		{
-			Logging::Log() << __FUNCTION__ << " DDBLTFX structure not found";
+			LOG_LIMIT(100, __FUNCTION__ << " DDBLTFX structure not found");
 			return DDERR_INVALIDPARAMS;
 		}
 
 		// Check for DDROP flag
 		if (dwFlags & DDBLT_DDROPS)
 		{
-			Logging::Log() << __FUNCTION__ << " DDROP Not Implemented";
+			LOG_LIMIT(100, __FUNCTION__ << " DDROP Not Implemented");
 			return DDERR_NODDROPSHW;
 		}
 
 		// Check for raster operations flag
 		if (dwFlags & DDBLT_ROP)
 		{
-			Logging::Log() << __FUNCTION__ << " Raster operations Not Implemented";
+			LOG_LIMIT(100, __FUNCTION__ << " Raster operations Not Implemented");
 			return DDERR_NORASTEROPHW;
 		}
 
 		// Check for ZBuffer flags
 		if (dwFlags & DDBLT_DEPTHFILL)
 		{
-			Logging::Log() << __FUNCTION__ << " Depth Fill Not Implemented";
+			LOG_LIMIT(100, __FUNCTION__ << " Depth Fill Not Implemented");
 			return DDERR_NOZBUFFERHW;
 		}
 
 		// Check for ZBuffer flags
 		if ((dwFlags & DDBLT_ZBUFFER) || ((dwFlags & DDBLT_DDFX) && (lpDDBltFx->dwDDFX & (DDBLTFX_ZBUFFERBASEDEST | DDBLTFX_ZBUFFERRANGE))))
 		{
-			Logging::Log() << __FUNCTION__ << " ZBuffer Not Implemented";
+			LOG_LIMIT(100, __FUNCTION__ << " ZBuffer Not Implemented");
 			return DDERR_NOZBUFFERHW;
 		}
 
 		// Check for rotation flags
 		if ((dwFlags & DDBLT_ROTATIONANGLE) || ((dwFlags & DDBLT_DDFX) && (lpDDBltFx->dwDDFX & (DDBLTFX_ROTATE180 | DDBLTFX_ROTATE270 | DDBLTFX_ROTATE90))))
 		{
-			Logging::Log() << __FUNCTION__ << " Rotation operations Not Implemented";
+			LOG_LIMIT(100, __FUNCTION__ << " Rotation operations Not Implemented");
 			return DDERR_NOROTATIONHW;
 		}
 
 		// Check for FX mirror flags
 		if ((dwFlags & DDBLT_DDFX) && (lpDDBltFx->dwDDFX & (DDBLTFX_MIRRORLEFTRIGHT | DDBLTFX_MIRRORUPDOWN)))
 		{
-			Logging::Log() << __FUNCTION__ << " Mirror operations Not Implemented";
+			LOG_LIMIT(100, __FUNCTION__ << " Mirror operations Not Implemented");
 			return DDERR_NOMIRRORHW;
 		}
 
@@ -286,17 +284,16 @@ HRESULT m_IDirectDrawSurfaceX::Blt(LPRECT lpDestRect, LPDIRECTDRAWSURFACE7 lpDDS
 			{
 				lpDDSrcSurfaceX = ((m_IDirectDrawSurface*)lpDDSrcSurfaceX)->GetWrapperInterface();
 
-				if (!ddrawParent)
+				// Check for device interface
+				if (FAILED(CheckInterface(__FUNCTION__, false, false)))
 				{
-					Logging::Log() << __FUNCTION__ << " Error no ddraw parent!";
-					hr = DDERR_GENERIC;
-					break;
+					return DDERR_GENERIC;
 				}
 
 				// Check if source Surface exists
 				if (!ddrawParent->DoesSurfaceExist(lpDDSrcSurfaceX))
 				{
-					Logging::Log() << __FUNCTION__ << " Error, could not find source surface";
+					LOG_LIMIT(100, __FUNCTION__ << " Error: could not find source surface");
 					hr = DDERR_INVALIDPARAMS;
 					break;
 				}
@@ -328,7 +325,7 @@ HRESULT m_IDirectDrawSurfaceX::Blt(LPRECT lpDestRect, LPDIRECTDRAWSURFACE7 lpDDS
 				// Strect rect and color key
 				if (isStretchRect)
 				{
-					Logging::Log() << __FUNCTION__ << " stretch rect plus color key not implemented";
+					LOG_LIMIT(100, __FUNCTION__ << " stretch rect plus color key not implemented");
 					hr = DDERR_GENERIC;
 					break;
 				}
@@ -336,7 +333,7 @@ HRESULT m_IDirectDrawSurfaceX::Blt(LPRECT lpDestRect, LPDIRECTDRAWSURFACE7 lpDDS
 				// Check if color key is set
 				if (((dwFlags & DDBLT_KEYDEST) && !ColorKeys[0].IsSet) || ((dwFlags & DDBLT_KEYSRC) && !lpDDSrcSurfaceX->ColorKeys[2].IsSet))
 				{
-					Logging::Log() << __FUNCTION__ << " Error color key not set";
+					LOG_LIMIT(100, __FUNCTION__ << " Error: color key not set");
 				}
 
 				// Get color key
@@ -585,7 +582,7 @@ HRESULT m_IDirectDrawSurfaceX::EnumOverlayZOrders2(DWORD dwFlags, LPVOID lpConte
 
 	if (Config.Dd7to9)
 	{
-		Logging::Log() << __FUNCTION__ << " Not Implemented";
+		LOG_LIMIT(100, __FUNCTION__ << " Not Implemented");
 		return DDERR_UNSUPPORTED;
 	}
 
@@ -604,24 +601,16 @@ HRESULT m_IDirectDrawSurfaceX::Flip(LPDIRECTDRAWSURFACE7 lpDDSurfaceTargetOverri
 
 	if (Config.Dd7to9)
 	{
-		// Check for device
-		if (!d3d9Device || !*d3d9Device || !ddrawParent)
+		// Check for device interface
+		if (FAILED(CheckInterface(__FUNCTION__, true, true)))
 		{
-			Logging::Log() << __FUNCTION__ << " D3d9 Device not setup.";
-			return DDERR_GENERIC;
-		}
-
-		// Make sure surface exists, if not then create it
-		if (!CheckD3d9Surface())
-		{
-			Logging::Log() << __FUNCTION__ << " Error surface does not exist!";
 			return DDERR_GENERIC;
 		}
 
 		// Flip only supported from primary surface
 		if (!IsPrimarySurface())
 		{
-			Logging::Log() << __FUNCTION__ << " Attempting to Flip non-primary surface";
+			LOG_LIMIT(100, __FUNCTION__ << " Attempting to Flip non-primary surface");
 			return DDERR_GENERIC;
 		}
 
@@ -633,7 +622,7 @@ HRESULT m_IDirectDrawSurfaceX::Flip(LPDIRECTDRAWSURFACE7 lpDDSurfaceTargetOverri
 
 		if ((dwFlags & (DDFLIP_INTERVAL2 | DDFLIP_INTERVAL3 | DDFLIP_INTERVAL4)) && (surfaceDesc2.ddsCaps.dwCaps2 & DDCAPS2_FLIPINTERVAL))
 		{
-			Logging::Log() << __FUNCTION__ << " Interval flipping not implemented";
+			LOG_LIMIT(100, __FUNCTION__ << " Interval flipping not implemented");
 		}
 
 		// Check if attached surface is found
@@ -647,8 +636,14 @@ HRESULT m_IDirectDrawSurfaceX::Flip(LPDIRECTDRAWSURFACE7 lpDDSurfaceTargetOverri
 			// Check if target surface exists
 			if (!DoesAttachedSurfaceExist(lpTargetSurface) || lpTargetSurface == this)
 			{
-				Logging::Log() << __FUNCTION__ << " Invalid SurfaceTarget";
+				LOG_LIMIT(100, __FUNCTION__ << " Invalid SurfaceTarget");
 				return DDERR_INVALIDPARAMS;
+			}
+
+			// Check for device interface
+			if (FAILED(lpTargetSurface->CheckInterface(__FUNCTION__, true, true)))
+			{
+				return DDERR_GENERIC;
 			}
 
 			// Found surface
@@ -668,14 +663,25 @@ HRESULT m_IDirectDrawSurfaceX::Flip(LPDIRECTDRAWSURFACE7 lpDDSurfaceTargetOverri
 
 			if (dwFlags & DDFLIP_STEREO)
 			{
-				Logging::Log() << __FUNCTION__ << " Stereo flipping not implemented";
+				LOG_LIMIT(100, __FUNCTION__ << " Stereo flipping not implemented");
 				return DDERR_NOSTEREOHARDWARE;
 			}
 
 			if (dwFlags & (DDFLIP_ODD | DDFLIP_EVEN))
 			{
-				Logging::Log() << __FUNCTION__ << " Even and odd flipping not implemented";
+				LOG_LIMIT(100, __FUNCTION__ << " Even and odd flipping not implemented");
 				return DDERR_UNSUPPORTED;
+			}
+
+			// Loop through each surface and check the device interface
+			for (auto it : AttachedSurfaceMap)
+			{
+				m_IDirectDrawSurfaceX *lpTargetSurface = (m_IDirectDrawSurfaceX*)it.second;
+
+				if (FAILED(lpTargetSurface->CheckInterface(__FUNCTION__, true, true)))
+				{
+					return DDERR_GENERIC;
+				}
 			}
 
 			// Loop through each surface and swap them
@@ -691,10 +697,10 @@ HRESULT m_IDirectDrawSurfaceX::Flip(LPDIRECTDRAWSURFACE7 lpDDSurfaceTargetOverri
 			}
 		}
 
-		// Return error if no attached surfaces found
+		// Return Error: if no attached surfaces found
 		if (!FoundAttachedSurface)
 		{
-			Logging::Log() << __FUNCTION__ << " No attached surfaces found";
+			LOG_LIMIT(100, __FUNCTION__ << " No attached surfaces found");
 			return DDERR_GENERIC;
 		}
 
@@ -751,12 +757,9 @@ HRESULT m_IDirectDrawSurfaceX::GetAttachedSurface2(LPDDSCAPS2 lpDDSCaps2, LPDIRE
 			return DDERR_INVALIDPARAMS;
 		}
 
-		LOG_LIMIT(1, __FUNCTION__<< " Not fully Implemented.");
-
-		// Check for device
-		if (!d3d9Device || !*d3d9Device || !ddrawParent)
+		// Check for device interface
+		if (FAILED(CheckInterface(__FUNCTION__, true, false)))
 		{
-			Logging::Log() << __FUNCTION__ << " D3d9 Device not setup.";
 			return DDERR_GENERIC;
 		}
 
@@ -946,17 +949,9 @@ HRESULT m_IDirectDrawSurfaceX::GetDC(HDC FAR * lphDC)
 			return DDERR_INVALIDPARAMS;
 		}
 
-		// Check for device
-		if (!ddrawParent)
+		// Check for device interface
+		if (FAILED(CheckInterface(__FUNCTION__, true, true)))
 		{
-			Logging::Log() << __FUNCTION__ << " Error no ddraw parent!";
-			return DDERR_GENERIC;
-		}
-
-		// Make sure surface exists, if not then create it
-		if (!CheckD3d9Surface())
-		{
-			Logging::Log() << __FUNCTION__ << " Error surface does not exist!";
 			return DDERR_GENERIC;
 		}
 
@@ -1039,10 +1034,9 @@ HRESULT m_IDirectDrawSurfaceX::GetPalette(LPDIRECTDRAWPALETTE FAR * lplpDDPalett
 			return DDERR_NOPALETTEATTACHED;
 		}
 
-		// Check for device
-		if (!ddrawParent)
+		// Check for device interface
+		if (FAILED(CheckInterface(__FUNCTION__, false, false)))
 		{
-			Logging::Log() << __FUNCTION__ << " Error no ddraw parent!";
 			return DDERR_GENERIC;
 		}
 
@@ -1137,10 +1131,9 @@ HRESULT m_IDirectDrawSurfaceX::GetSurfaceDesc2(LPDDSURFACEDESC2 lpDDSurfaceDesc2
 			return DDERR_INVALIDPARAMS;
 		}
 
-		// Check for device
-		if (!ddrawParent)
+		// Check for device interface
+		if (FAILED(CheckInterface(__FUNCTION__, false, false)))
 		{
-			Logging::Log() << __FUNCTION__ << " Error no ddraw parent!";
 			return DDERR_GENERIC;
 		}
 
@@ -1206,7 +1199,7 @@ HRESULT m_IDirectDrawSurfaceX::GetSurfaceDesc2(LPDDSURFACEDESC2 lpDDSurfaceDesc2
 				GetPixelDisplayFormat(D3DFMT_X8R8G8B8, lpDDSurfaceDesc2->ddpfPixelFormat);
 				break;
 			default:
-				Logging::Log() << __FUNCTION__ << " Not implemented bit count " << lpDDSurfaceDesc2->ddpfPixelFormat.dwRGBBitCount;
+				LOG_LIMIT(100, __FUNCTION__ << " Not implemented bit count " << lpDDSurfaceDesc2->ddpfPixelFormat.dwRGBBitCount);
 				return DDERR_UNSUPPORTED;
 			}
 		}
@@ -1347,7 +1340,7 @@ HRESULT m_IDirectDrawSurfaceX::Lock2(LPRECT lpDestRect, LPDDSURFACEDESC2 lpDDSur
 			}
 			else
 			{
-				LOG_LIMIT(1, __FUNCTION__ << " Failed to write to texture surface!");
+				LOG_LIMIT(100, __FUNCTION__ << " Failed to write to texture surface!");
 				hr = DDERR_GENERIC;
 			}
 
@@ -1358,7 +1351,7 @@ HRESULT m_IDirectDrawSurfaceX::Lock2(LPRECT lpDestRect, LPDDSURFACEDESC2 lpDDSur
 		}
 		else
 		{
-			LOG_LIMIT(1, __FUNCTION__ << " Failed to lock texture surface!");
+			LOG_LIMIT(100, __FUNCTION__ << " Failed to lock texture surface!");
 		}
 
 		return hr;
@@ -1373,17 +1366,9 @@ HRESULT m_IDirectDrawSurfaceX::ReleaseDC(HDC hDC)
 
 	if (Config.Dd7to9)
 	{
-		// Check for device
-		if (!ddrawParent)
+		// Check for device interface
+		if (FAILED(CheckInterface(__FUNCTION__, true, true)))
 		{
-			Logging::Log() << __FUNCTION__ << " Error no ddraw parent!";
-			return DDERR_GENERIC;
-		}
-
-		// Make sure surface exists, if not then create it
-		if (!CheckD3d9Surface())
-		{
-			Logging::Log() << __FUNCTION__ << " Error surface does not exist!";
 			return DDERR_GENERIC;
 		}
 
@@ -1531,17 +1516,10 @@ HRESULT m_IDirectDrawSurfaceX::SetPalette(LPDIRECTDRAWPALETTE lpDDPalette)
 		// If lpDDPalette is nullptr then detach the current palette if it exists
 		if (!lpDDPalette)
 		{
-			// Check for device
-			if (!ddrawParent)
+			// Check for device interface
+			if (FAILED(CheckInterface(__FUNCTION__, true, false)))
 			{
-				Logging::Log() << __FUNCTION__ << " Error no ddraw parent!";
 				return DDERR_GENERIC;
-			}
-
-			// Check for device, if not then create it
-			if (!d3d9Device || !*d3d9Device)
-			{
-				ddrawParent->CreateD3D9Device();
 			}
 
 			if (attachedPalette)
@@ -1622,7 +1600,7 @@ HRESULT m_IDirectDrawSurfaceX::UpdateOverlay(LPRECT lpSrcRect, LPDIRECTDRAWSURFA
 
 	if (Config.Dd7to9)
 	{
-		Logging::Log() << __FUNCTION__ << " Not Implemented";
+		LOG_LIMIT(100, __FUNCTION__ << " Not Implemented");
 		return DDERR_UNSUPPORTED;
 	}
 
@@ -1640,7 +1618,7 @@ HRESULT m_IDirectDrawSurfaceX::UpdateOverlayDisplay(DWORD dwFlags)
 
 	if (Config.Dd7to9)
 	{
-		Logging::Log() << __FUNCTION__ << " Not Implemented";
+		LOG_LIMIT(100, __FUNCTION__ << " Not Implemented");
 		return DDERR_UNSUPPORTED;
 	}
 
@@ -1653,7 +1631,7 @@ HRESULT m_IDirectDrawSurfaceX::UpdateOverlayZOrder(DWORD dwFlags, LPDIRECTDRAWSU
 
 	if (Config.Dd7to9)
 	{
-		Logging::Log() << __FUNCTION__ << " Not Implemented";
+		LOG_LIMIT(100, __FUNCTION__ << " Not Implemented");
 		return DDERR_UNSUPPORTED;
 	}
 
@@ -1680,10 +1658,9 @@ HRESULT m_IDirectDrawSurfaceX::GetDDInterface(LPVOID FAR * lplpDD, DWORD DirectX
 			return DDERR_INVALIDPARAMS;
 		}
 
-		// Check for device
-		if (!ddrawParent)
+		// Check for device interface
+		if (FAILED(CheckInterface(__FUNCTION__, false, false)))
 		{
-			Logging::Log() << __FUNCTION__ << " Error no ddraw parent!";
 			return DDERR_GENERIC;
 		}
 
@@ -1786,7 +1763,7 @@ HRESULT m_IDirectDrawSurfaceX::SetSurfaceDesc2(LPDDSURFACEDESC2 lpDDSurfaceDesc2
 			return DDERR_INVALIDPARAMS;
 		}
 
-		Logging::Log() << __FUNCTION__ << " Not Implemented";
+		LOG_LIMIT(100, __FUNCTION__ << " Not Implemented");
 		return DDERR_UNSUPPORTED;
 	}
 
@@ -1803,10 +1780,9 @@ HRESULT m_IDirectDrawSurfaceX::SetPrivateData(REFGUID guidTag, LPVOID lpData, DW
 
 	if (Config.Dd7to9)
 	{
-		// Make sure surface exists, if not then create it
-		if (!CheckD3d9Surface())
+		// Check for device interface
+		if (FAILED(CheckInterface(__FUNCTION__, true, true)))
 		{
-			Logging::Log() << __FUNCTION__ << " Error surface does not exist!";
 			return DDERR_GENERIC;
 		}
 
@@ -1822,10 +1798,9 @@ HRESULT m_IDirectDrawSurfaceX::GetPrivateData(REFGUID guidTag, LPVOID lpBuffer, 
 
 	if (Config.Dd7to9)
 	{
-		// Make sure surface exists, if not then create it
-		if (!CheckD3d9Surface())
+		// Check for device interface
+		if (FAILED(CheckInterface(__FUNCTION__, true, true)))
 		{
-			Logging::Log() << __FUNCTION__ << " Error surface does not exist!";
 			return DDERR_GENERIC;
 		}
 
@@ -1841,10 +1816,9 @@ HRESULT m_IDirectDrawSurfaceX::FreePrivateData(REFGUID guidTag)
 
 	if (Config.Dd7to9)
 	{
-		// Make sure surface exists, if not then create it
-		if (!CheckD3d9Surface())
+		// Check for device interface
+		if (FAILED(CheckInterface(__FUNCTION__, true, true)))
 		{
-			Logging::Log() << __FUNCTION__ << " Error surface does not exist!";
 			return DDERR_GENERIC;
 		}
 
@@ -1897,10 +1871,9 @@ HRESULT m_IDirectDrawSurfaceX::SetPriority(DWORD dwPriority)
 
 	if (Config.Dd7to9)
 	{
-		// Make sure surface exists, if not then create it
-		if (!CheckD3d9Surface())
+		// Check for device interface
+		if (FAILED(CheckInterface(__FUNCTION__, true, true)))
 		{
-			Logging::Log() << __FUNCTION__ << " Error surface does not exist!";
 			return DDERR_GENERIC;
 		}
 
@@ -1921,10 +1894,9 @@ HRESULT m_IDirectDrawSurfaceX::GetPriority(LPDWORD lpdwPriority)
 			return DDERR_INVALIDPARAMS;
 		}
 
-		// Make sure surface exists, if not then create it
-		if (!CheckD3d9Surface())
+		// Check for device interface
+		if (FAILED(CheckInterface(__FUNCTION__, true, true)))
 		{
-			Logging::Log() << __FUNCTION__ << " Error surface does not exist!";
 			return DDERR_GENERIC;
 		}
 
@@ -1942,10 +1914,9 @@ HRESULT m_IDirectDrawSurfaceX::SetLOD(DWORD dwMaxLOD)
 
 	if (Config.Dd7to9)
 	{
-		// Make sure surface exists, if not then create it
-		if (!CheckD3d9Surface())
+		// Check for device interface
+		if (FAILED(CheckInterface(__FUNCTION__, true, true)))
 		{
-			Logging::Log() << __FUNCTION__ << " Error surface does not exist!";
 			return DDERR_GENERIC;
 		}
 
@@ -1966,10 +1937,9 @@ HRESULT m_IDirectDrawSurfaceX::GetLOD(LPDWORD lpdwMaxLOD)
 			return DDERR_INVALIDPARAMS;
 		}
 
-		// Make sure surface exists, if not then create it
-		if (!CheckD3d9Surface())
+		// Check for device interface
+		if (FAILED(CheckInterface(__FUNCTION__, true, true)))
 		{
-			Logging::Log() << __FUNCTION__ << " Error surface does not exist!";
 			return DDERR_GENERIC;
 		}
 
@@ -1985,17 +1955,54 @@ HRESULT m_IDirectDrawSurfaceX::GetLOD(LPDWORD lpdwMaxLOD)
 /*** Helper functions ***/
 /************************/
 
-bool m_IDirectDrawSurfaceX::CheckD3d9Surface()
+HRESULT m_IDirectDrawSurfaceX::CheckInterface(char *FunctionName, bool CheckD3DDevice, bool CheckD3DSurface)
 {
-	// Make sure surface exists, if not then create it
-	if (!surfaceTexture || !surfaceInterface || (attachedPalette && !paletteTexture))
+	SetCriticalSection();
+
+	// Check for device
+	HRESULT hr = DD_OK;
+	if (!ddrawParent)
 	{
-		if (FAILED(CreateD3d9Surface()))
+		LOG_LIMIT(100, FunctionName << " Error: no ddraw parent!");
+		hr = DDERR_GENERIC;
+	}
+
+	ReleaseCriticalSection();
+
+	if (FAILED(hr))
+	{
+		return hr;
+	}
+
+	// Check for device, if not then create it
+	if (CheckD3DDevice)
+	{
+		if (!d3d9Device || !*d3d9Device)
 		{
-			return false;
+			ddrawParent->CreateD3D9Device();
+
+			if (!d3d9Device || !*d3d9Device)
+			{
+				LOG_LIMIT(100, FunctionName << " Error: d3d9 device not setup!");
+				return DDERR_GENERIC;
+			}
 		}
 	}
-	return true;
+
+	// Make sure surface exists, if not then create it
+	if (CheckD3DSurface)
+	{
+		if (!surfaceTexture || !surfaceInterface || (attachedPalette && (!paletteTexture || !pixelShader)))
+		{
+			if (FAILED(CreateD3d9Surface()))
+			{
+				LOG_LIMIT(100, FunctionName << " Error: d3d9 surface texture not setup!");
+				return DDERR_GENERIC;
+			}
+		}
+	}
+
+	return DD_OK;
 }
 
 // Create surface
@@ -2004,30 +2011,16 @@ HRESULT m_IDirectDrawSurfaceX::CreateD3d9Surface()
 	// Don't recreate surface while it is locked
 	if (surfaceTexture && IsSurfaceLocked())
 	{
-		Logging::Log() << __FUNCTION__ << " Error: surface is locked!";
+		LOG_LIMIT(100, __FUNCTION__ << " Error: surface is locked!");
 		return DDERR_GENERIC;
 	}
 
 	// Release existing surface
 	ReleaseD9Surface();
 
-	// Check for device
-	if (!ddrawParent)
+	// Check for device interface
+	if (FAILED(CheckInterface(__FUNCTION__, true, false)))
 	{
-		Logging::Log() << __FUNCTION__ << " Error no ddraw parent!";
-		return DDERR_GENERIC;
-	}
-
-	// Check for device, if not then create it
-	if (!d3d9Device || !*d3d9Device)
-	{
-		ddrawParent->CreateD3D9Device();
-	}
-
-	// Check for device
-	if (!d3d9Device || !*d3d9Device)
-	{
-		Logging::Log() << __FUNCTION__ << " D3d9 Device not setup.";
 		return DDERR_GENERIC;
 	}
 
@@ -2112,7 +2105,7 @@ HRESULT m_IDirectDrawSurfaceX::CreateD3d9Surface()
 	// Create surface
 	if (FAILED((*d3d9Device)->CreateTexture(surfaceDesc2.dwWidth, surfaceDesc2.dwHeight, 1, Usage, Format, Pool, &surfaceTexture, nullptr)))
 	{
-		Logging::Log() << __FUNCTION__ << " Error: Unable to create surface";
+		LOG_LIMIT(100, __FUNCTION__ << " Failed to create surface");
 		return DDERR_GENERIC;
 	}
 
@@ -2122,7 +2115,7 @@ HRESULT m_IDirectDrawSurfaceX::CreateD3d9Surface()
 		if (FAILED((*d3d9Device)->CreateTexture(256, 256, 1, 0, D3DFMT_X8R8G8B8, D3DPOOL_MANAGED, &paletteTexture, nullptr)) ||
 			FAILED((*d3d9Device)->CreatePixelShader((DWORD*)PalettePixelShaderSrc, &pixelShader)))
 		{
-			Logging::Log() << __FUNCTION__ << " Error: Unable to create palette surface";
+			LOG_LIMIT(100, __FUNCTION__ << " Failed to create palette surface");
 			return DDERR_GENERIC;
 		}
 	}
@@ -2130,7 +2123,7 @@ HRESULT m_IDirectDrawSurfaceX::CreateD3d9Surface()
 	// Get Surface Interface
 	if (FAILED(surfaceTexture->GetSurfaceLevel(0, &surfaceInterface)))
 	{
-		Logging::Log() << __FUNCTION__ << " Error: Unable to create surface interface";
+		LOG_LIMIT(100, __FUNCTION__ << " Failed to create surface interface");
 		return DDERR_GENERIC;
 	}
 
@@ -2146,42 +2139,42 @@ HRESULT m_IDirectDrawSurfaceX::CreateD3d9Surface()
 	// Set vertex shader
 	if (FAILED((*d3d9Device)->SetVertexShader(nullptr)))
 	{
-		Logging::Log() << __FUNCTION__ << " Unable to set vertex shader";
+		LOG_LIMIT(100, __FUNCTION__ << " Failed to set vertex shader");
 		return DDERR_GENERIC;
 	}
 
 	// Set fv format
 	if (FAILED((*d3d9Device)->SetFVF(D3DFVF_XYZRHW | D3DFVF_TEX1)))
 	{
-		Logging::Log() << __FUNCTION__ << " Unable to set the current vertex stream format";
+		LOG_LIMIT(100, __FUNCTION__ << " Failed to set the current vertex stream format");
 		return DDERR_GENERIC;
 	}
 
 	// Create vertex buffer
 	if (FAILED((*d3d9Device)->CreateVertexBuffer(sizeof(TLVERTEX) * 4, D3DUSAGE_DYNAMIC, (D3DFVF_XYZRHW | D3DFVF_TEX1), D3DPOOL_DEFAULT, &vertexBuffer, nullptr)))
 	{
-		Logging::Log() << __FUNCTION__ << " Unable to create vertex buffer";
+		LOG_LIMIT(100, __FUNCTION__ << " Failed to create vertex buffer");
 		return DDERR_GENERIC;
 	}
 
 	// Set stream source
 	if (FAILED((*d3d9Device)->SetStreamSource(0, vertexBuffer, 0, sizeof(TLVERTEX))))
 	{
-		Logging::Log() << __FUNCTION__ << " Unable to set vertex buffer stream source";
+		LOG_LIMIT(100, __FUNCTION__ << " Failed to set vertex buffer stream source");
 		return DDERR_GENERIC;
 	}
 
 	// Set render states(no lighting)
 	if (FAILED((*d3d9Device)->SetRenderState(D3DRS_LIGHTING, FALSE)))
 	{
-		Logging::Log() << __FUNCTION__ << " Unable to set device render state(no lighting)";
+		LOG_LIMIT(100, __FUNCTION__ << " Failed to set device render state(no lighting)");
 		return DDERR_GENERIC;
 	}
 
 	// Set scale mode to linear
 	if (FAILED((*d3d9Device)->SetSamplerState(0, D3DSAMP_MAGFILTER, D3DTEXF_LINEAR)))
 	{
-		Logging::Log() << __FUNCTION__ << " Failed to set D3D device to LINEAR sampling";
+		LOG_LIMIT(100, __FUNCTION__ << " Failed to set D3D device to LINEAR sampling");
 	}
 
 	// Setup verticies (0,0,currentWidth,currentHeight)
@@ -2190,7 +2183,7 @@ HRESULT m_IDirectDrawSurfaceX::CreateD3d9Surface()
 	// Lock vertex buffer
 	if (FAILED(vertexBuffer->Lock(0, 0, (void**)&vertices, 0)))
 	{
-		Logging::Log() << __FUNCTION__ << " Unable to lock vertex buffer";
+		LOG_LIMIT(100, __FUNCTION__ << " Failed to lock vertex buffer");
 		return DDERR_GENERIC;
 	}
 
@@ -2240,7 +2233,7 @@ HRESULT m_IDirectDrawSurfaceX::CreateD3d9Surface()
 	// Unlcok vertex buffer
 	if (FAILED(vertexBuffer->Unlock()))
 	{
-		Logging::Log() << __FUNCTION__ << " Unable to unlock vertex buffer";
+		LOG_LIMIT(100, __FUNCTION__ << " Failed to unlock vertex buffer");
 		return DDERR_GENERIC;
 	}
 
@@ -2258,10 +2251,10 @@ void m_IDirectDrawSurfaceX::ReleaseD9Interface(T **ppInterface)
 			z = (*ppInterface)->Release();
 		} while (z != 0 && ++x < 100);
 
-		// Add error checking
+		// Add Error: checking
 		if (z != 0)
 		{
-			Logging::Log() << __FUNCTION__ << " Unable to release Direct3D9 interface";
+			LOG_LIMIT(100, __FUNCTION__ << " Failed to release Direct3D9 interface");
 		}
 
 		(*ppInterface) = nullptr;
@@ -2311,10 +2304,9 @@ void m_IDirectDrawSurfaceX::ReleaseD9Surface()
 // Present surface
 HRESULT m_IDirectDrawSurfaceX::PresentSurface()
 {
-	// Check for device
-	if (!d3d9Device || !*d3d9Device || !ddrawParent)
+	// Check for device interface
+	if (FAILED(CheckInterface(__FUNCTION__, true, true)))
 	{
-		Logging::Log() << __FUNCTION__ << " D3d9 Device not setup.";
 		return DDERR_GENERIC;
 	}
 
@@ -2329,7 +2321,7 @@ HRESULT m_IDirectDrawSurfaceX::PresentSurface()
 
 				if (FAILED(paletteTexture->LockRect(0, &LockRect, &Rect, 0)))
 				{
-					Logging::Log() << __FUNCTION__ << " Error: failed to lock palette texture!";
+					LOG_LIMIT(100, __FUNCTION__ << " Failed to lock palette texture!");
 					break;
 				}
 
@@ -2348,7 +2340,7 @@ HRESULT m_IDirectDrawSurfaceX::PresentSurface()
 		{
 			if (FAILED((*d3d9Device)->SetTexture(0, surfaceTexture)))
 			{
-				Logging::Log() << __FUNCTION__ << " Failed to set texture";
+				LOG_LIMIT(100, __FUNCTION__ << " Failed to set texture");
 				return DDERR_GENERIC;
 			}
 		}
@@ -2358,7 +2350,7 @@ HRESULT m_IDirectDrawSurfaceX::PresentSurface()
 		{
 			if (FAILED((*d3d9Device)->SetTexture(1, paletteTexture)))
 			{
-				Logging::Log() << __FUNCTION__ << " Error: failed to lock palette texture!";
+				LOG_LIMIT(100, __FUNCTION__ << " Failed to lock palette texture!");
 				return DDERR_GENERIC;
 			}
 		}
@@ -2368,7 +2360,7 @@ HRESULT m_IDirectDrawSurfaceX::PresentSurface()
 		{
 			if (FAILED((*d3d9Device)->SetPixelShader(pixelShader)))
 			{
-				Logging::Log() << __FUNCTION__ << " Failed to set pixel shader";
+				LOG_LIMIT(100, __FUNCTION__ << " Failed to set pixel shader");
 				return DDERR_GENERIC;
 			}
 		}
@@ -2412,10 +2404,9 @@ bool m_IDirectDrawSurfaceX::CheckCoordinates(LPRECT lpOutRect, LPRECT lpInRect)
 		return false;
 	}
 
-	// Make sure surface exists, if not then create it
-	if (!CheckD3d9Surface())
+	// Check for device interface
+	if (FAILED(CheckInterface(__FUNCTION__, true, true)))
 	{
-		Logging::Log() << __FUNCTION__ << " Error surface does not exist!";
 		return false;
 	}
 
@@ -2467,17 +2458,9 @@ bool m_IDirectDrawSurfaceX::CheckCoordinates(LPRECT lpOutRect, LPRECT lpInRect)
 // Lock the d3d9 surface
 HRESULT m_IDirectDrawSurfaceX::SetLock(D3DLOCKED_RECT* pLockedRect, LPRECT lpDestRect, DWORD dwFlags, BOOL isSkipScene)
 {
-	// Check for device
-	if (!d3d9Device || !*d3d9Device || !ddrawParent)
+	// Check for device interface
+	if (FAILED(CheckInterface(__FUNCTION__, true, true)))
 	{
-		Logging::Log() << __FUNCTION__ << " D3d9 Device not setup.";
-		return DDERR_GENERIC;
-	}
-
-	// Make sure surface exists, if not then create it
-	if (!CheckD3d9Surface())
-	{
-		Logging::Log() << __FUNCTION__ << " Error surface does not exist!";
 		return DDERR_GENERIC;
 	}
 
@@ -2502,7 +2485,7 @@ HRESULT m_IDirectDrawSurfaceX::SetLock(D3DLOCKED_RECT* pLockedRect, LPRECT lpDes
 	// Lock surface
 	if (FAILED(surfaceTexture->LockRect(0, pLockedRect, lpDestRect, dwFlags)))
 	{
-		Logging::Log() << __FUNCTION__ << " Failed to lock surface";
+		LOG_LIMIT(100, __FUNCTION__ << " Failed to lock surface");
 		return DDERR_GENERIC;
 	}
 
@@ -2519,24 +2502,16 @@ HRESULT m_IDirectDrawSurfaceX::SetLock(D3DLOCKED_RECT* pLockedRect, LPRECT lpDes
 // Unlock the d3d9 surface
 HRESULT m_IDirectDrawSurfaceX::SetUnLock(BOOL isSkipScene)
 {
-	// Check for device
-	if (!ddrawParent)
+	// Check for device interface
+	if (FAILED(CheckInterface(__FUNCTION__, true, true)))
 	{
-		Logging::Log() << __FUNCTION__ << " Error no ddraw parent!";
-		return DDERR_GENERIC;
-	}
-
-	// Make sure surface exists, if not then create it
-	if (!CheckD3d9Surface())
-	{
-		Logging::Log() << __FUNCTION__ << " Error surface does not exist!";
 		return DDERR_GENERIC;
 	}
 
 	// Lock surface
 	if (FAILED(surfaceTexture->UnlockRect(0)))
 	{
-		Logging::Log() << __FUNCTION__ << " Failed to unlock surface";
+		LOG_LIMIT(100, __FUNCTION__ << " Failed to unlock surface");
 		return DDERR_GENERIC;
 	}
 	IsLocked = false;
@@ -2610,6 +2585,12 @@ HRESULT m_IDirectDrawSurfaceX::ColorFill(RECT* pRect, D3DCOLOR dwFillColor)
 {
 	Logging::LogDebug() << __FUNCTION__;
 
+	// Check for device interface
+	if (FAILED(CheckInterface(__FUNCTION__, true, true)))
+	{
+		return DDERR_GENERIC;
+	}
+
 	HRESULT hr = DD_OK;
 	bool UnlockDest = false;
 	do {
@@ -2625,7 +2606,7 @@ HRESULT m_IDirectDrawSurfaceX::ColorFill(RECT* pRect, D3DCOLOR dwFillColor)
 		D3DLOCKED_RECT DestLockRect;
 		if (FAILED(SetLock(&DestLockRect, &DestRect, 0, true)))
 		{
-			Logging::Log() << __FUNCTION__ << " Error, could not lock dest surface " << DestRect;
+			LOG_LIMIT(100, __FUNCTION__ << " Error: could not lock dest surface " << DestRect);
 			hr = DDERR_GENERIC;
 			break;
 		}
@@ -2635,7 +2616,7 @@ HRESULT m_IDirectDrawSurfaceX::ColorFill(RECT* pRect, D3DCOLOR dwFillColor)
 		DWORD ByteCount = DestLockRect.Pitch / surfaceDesc2.dwWidth;
 		if (!ByteCount || ByteCount > 4)
 		{
-			Logging::Log() << __FUNCTION__ << " Error: could not find correct fill color for ByteCount " << ByteCount;
+			LOG_LIMIT(100, __FUNCTION__ << " Error: could not find correct fill color for ByteCount " << ByteCount);
 			hr = DDERR_GENERIC;
 			break;
 		}
@@ -2687,8 +2668,14 @@ HRESULT m_IDirectDrawSurfaceX::UpdateSurface(m_IDirectDrawSurfaceX* pSourceSurfa
 	// Check parameters
 	if (!pSourceSurface)
 	{
-		Logging::Log() << __FUNCTION__ << " Invalid parameters!";
+		LOG_LIMIT(100, __FUNCTION__ << " Invalid parameters!");
 		return DDERR_INVALIDPARAMS;
+	}
+
+	// Check for device interface
+	if (FAILED(CheckInterface(__FUNCTION__, true, true)) || FAILED(pSourceSurface->CheckInterface(__FUNCTION__, true, true)))
+	{
+		return DDERR_GENERIC;
 	}
 
 	HRESULT hr = DD_OK;
@@ -2696,6 +2683,9 @@ HRESULT m_IDirectDrawSurfaceX::UpdateSurface(m_IDirectDrawSurfaceX* pSourceSurfa
 	do {
 		RECT SrcRect, DestRect;
 		D3DLOCKED_RECT SrcLockRect, DestLockRect;
+		DWORD DestBitCount = GetSurfaceBitCount();
+		D3DFORMAT SrcFormat = pSourceSurface->GetSurfaceFormat();
+		D3DFORMAT DestFormat = GetSurfaceFormat();
 
 		// Check and copy source rect and do clipping
 		if (!pSourceSurface->CheckCoordinates(&SrcRect, pSourceRect))
@@ -2719,7 +2709,7 @@ HRESULT m_IDirectDrawSurfaceX::UpdateSurface(m_IDirectDrawSurfaceX* pSourceSurfa
 		// Check if source surface is not locked then lock it
 		if (FAILED(pSourceSurface->SetLock(&SrcLockRect, &SrcRect, D3DLOCK_READONLY, true)))
 		{
-			Logging::Log() << __FUNCTION__ << " Error, could not lock source surface " << SrcRect;
+			LOG_LIMIT(100, __FUNCTION__ << " Error: could not lock source surface " << SrcRect);
 			hr = DDERR_GENERIC;
 			break;
 		}
@@ -2742,22 +2732,17 @@ HRESULT m_IDirectDrawSurfaceX::UpdateSurface(m_IDirectDrawSurfaceX* pSourceSurfa
 		// Check if destination surface is not locked then lock it
 		if (FAILED(SetLock(&DestLockRect, &DestRect, 0, true)))
 		{
-			Logging::Log() << __FUNCTION__ << " Error, could not lock destination surface " << DestRect;
+			LOG_LIMIT(100, __FUNCTION__ << " Error: could not lock destination surface " << DestRect);
 			hr = DDERR_GENERIC;
 			break;
 		}
 		UnlockDest = true;
 
-		// Get varables
-		DWORD DestBitCount = GetSurfaceBitCount();
-		D3DFORMAT SrcFormat = pSourceSurface->GetSurfaceFormat();
-		D3DFORMAT DestFormat = GetSurfaceFormat();
-
 		// Get byte count
 		DWORD ByteCount = DestBitCount / 8;
 		if (!ByteCount || ByteCount * 8 != DestBitCount || ByteCount > 4)
 		{
-			Logging::Log() << __FUNCTION__ << " Not implemented bit count " << DestBitCount;
+			LOG_LIMIT(100, __FUNCTION__ << " Not implemented bit count " << DestBitCount);
 			hr = DDERR_GENERIC;
 			break;
 		}
@@ -2842,12 +2827,14 @@ HRESULT m_IDirectDrawSurfaceX::UpdateSurface(m_IDirectDrawSurfaceX* pSourceSurfa
 			case D3DFMT_L8:
 			case D3DFMT_P8:
 			{
+				const DWORD *memPalette = (pSourceSurface->attachedPalette && pSourceSurface->attachedPalette->rgbPalette) ? pSourceSurface->attachedPalette->rgbPalette : rgbPalette;
+
 				BYTE *SrcBuffer = (BYTE*)SrcLockRect.pBits;
 				for (LONG y = 0; y < RectHeight; y++)
 				{
 					for (LONG x = 0; x < RectWidth; x++)
 					{
-						DestBuffer[x] = rgbPalette[SrcBuffer[x]];
+						DestBuffer[x] = memPalette[SrcBuffer[x]];
 					}
 					SrcBuffer += SrcLockRect.Pitch;
 					DestBuffer += DestPitch;
@@ -2856,7 +2843,7 @@ HRESULT m_IDirectDrawSurfaceX::UpdateSurface(m_IDirectDrawSurfaceX* pSourceSurfa
 			}
 			case D3DFMT_A2R10G10B10:
 			default: // Unsupported source surface with 32-bit destination surface
-				Logging::Log() << __FUNCTION__ << " Unsupported source format type: " << SrcFormat;
+				LOG_LIMIT(100, __FUNCTION__ << " Unsupported source format type: " << SrcFormat);
 				hr = DDERR_GENERIC;
 				break;
 			}
@@ -2869,7 +2856,7 @@ HRESULT m_IDirectDrawSurfaceX::UpdateSurface(m_IDirectDrawSurfaceX* pSourceSurfa
 		case D3DFMT_L8:
 		case D3DFMT_P8:
 		default:
-			Logging::Log() << __FUNCTION__ << " Unsupported destination format type: " << DestFormat;
+			LOG_LIMIT(100, __FUNCTION__ << " Unsupported destination format type: " << DestFormat);
 			hr = DDERR_GENERIC;
 			break;
 		}
@@ -2898,8 +2885,14 @@ HRESULT m_IDirectDrawSurfaceX::UpdateSurfaceColorKey(m_IDirectDrawSurfaceX* pSou
 	// Check parameters
 	if (!pSourceSurface)
 	{
-		Logging::Log() << __FUNCTION__ << " Invalid parameters!";
+		LOG_LIMIT(100, __FUNCTION__ << " Invalid parameters!");
 		return DDERR_INVALIDPARAMS;
+	}
+
+	// Check for device interface
+	if (FAILED(CheckInterface(__FUNCTION__, true, true)) || FAILED(pSourceSurface->CheckInterface(__FUNCTION__, true, true)))
+	{
+		return DDERR_GENERIC;
 	}
 
 	HRESULT hr = DD_OK;
@@ -2907,6 +2900,9 @@ HRESULT m_IDirectDrawSurfaceX::UpdateSurfaceColorKey(m_IDirectDrawSurfaceX* pSou
 	do {
 		RECT SrcRect, DestRect;
 		D3DLOCKED_RECT SrcLockRect, DestLockRect;
+		DWORD DestBitCount = GetSurfaceBitCount();
+		D3DFORMAT SrcFormat = pSourceSurface->GetSurfaceFormat();
+		D3DFORMAT DestFormat = GetSurfaceFormat();
 
 		// Check and copy source rect and do clipping
 		if (!pSourceSurface->CheckCoordinates(&SrcRect, pSourceRect))
@@ -2930,7 +2926,7 @@ HRESULT m_IDirectDrawSurfaceX::UpdateSurfaceColorKey(m_IDirectDrawSurfaceX* pSou
 		// Check if source surface is not locked then lock it
 		if (FAILED(pSourceSurface->SetLock(&SrcLockRect, &SrcRect, D3DLOCK_READONLY, true)))
 		{
-			Logging::Log() << __FUNCTION__ << " Error, could not lock source surface " << SrcRect;
+			LOG_LIMIT(100, __FUNCTION__ << " Error: could not lock source surface " << SrcRect);
 			hr = DDERR_GENERIC;
 			break;
 		}
@@ -2953,20 +2949,16 @@ HRESULT m_IDirectDrawSurfaceX::UpdateSurfaceColorKey(m_IDirectDrawSurfaceX* pSou
 		// Check if destination surface is not locked then lock it
 		if (FAILED(SetLock(&DestLockRect, &DestRect, 0, true)))
 		{
-			Logging::Log() << __FUNCTION__ << " Error, could not lock destination surface " << DestRect;
+			LOG_LIMIT(100, __FUNCTION__ << " Error: could not lock destination surface " << DestRect);
 			hr = DDERR_GENERIC;
 			break;
 		}
 		UnlockDest = true;
 
-		// Get varables
-		DWORD DestBitCount = GetSurfaceBitCount();
-		D3DFORMAT SrcFormat = pSourceSurface->GetSurfaceFormat();
-		D3DFORMAT DestFormat = GetSurfaceFormat();
-
+		// Check source and destination format
 		if (SrcFormat != DestFormat)
 		{
-			Logging::Log() << __FUNCTION__ << " Error, copying color key for different source and destination formats not supported";
+			LOG_LIMIT(100, __FUNCTION__ << " Error: copying color key for different source and destination formats not supported");
 			hr = DDERR_GENERIC;
 			break;
 		}
@@ -2975,7 +2967,7 @@ HRESULT m_IDirectDrawSurfaceX::UpdateSurfaceColorKey(m_IDirectDrawSurfaceX* pSou
 		DWORD ByteCount = DestBitCount / 8;
 		if (!ByteCount || ByteCount * 8 != DestBitCount || ByteCount > 4)
 		{
-			Logging::Log() << __FUNCTION__ << " Not implemented bit count " << DestBitCount;
+			LOG_LIMIT(100, __FUNCTION__ << " Not implemented bit count " << DestBitCount);
 			hr = DDERR_GENERIC;
 			break;
 		}
@@ -3039,8 +3031,14 @@ HRESULT m_IDirectDrawSurfaceX::StretchRect(m_IDirectDrawSurfaceX* pSourceSurface
 	// Check parameters
 	if (!pSourceSurface)
 	{
-		Logging::Log() << __FUNCTION__ << " Invalid parameters!";
+		LOG_LIMIT(100, __FUNCTION__ << " Invalid parameters!");
 		return DDERR_INVALIDPARAMS;
+	}
+
+	// Check for device interface
+	if (FAILED(CheckInterface(__FUNCTION__, true, true)) || FAILED(pSourceSurface->CheckInterface(__FUNCTION__, true, true)))
+	{
+		return DDERR_GENERIC;
 	}
 
 	HRESULT hr = DD_OK;
@@ -3048,6 +3046,9 @@ HRESULT m_IDirectDrawSurfaceX::StretchRect(m_IDirectDrawSurfaceX* pSourceSurface
 	do {
 		RECT SrcRect, DestRect;
 		D3DLOCKED_RECT SrcLockRect, DestLockRect;
+		DWORD DestBitCount = GetSurfaceBitCount();
+		D3DFORMAT SrcFormat = pSourceSurface->GetSurfaceFormat();
+		D3DFORMAT DestFormat = GetSurfaceFormat();
 
 		// Check and copy rect and do clipping
 		if (!pSourceSurface->CheckCoordinates(&SrcRect, pSourceRect) || !CheckCoordinates(&DestRect, pDestRect))
@@ -3059,7 +3060,7 @@ HRESULT m_IDirectDrawSurfaceX::StretchRect(m_IDirectDrawSurfaceX* pSourceSurface
 		// Check if source surface is not locked then lock it
 		if (FAILED(pSourceSurface->SetLock(&SrcLockRect, &SrcRect, D3DLOCK_READONLY, true)))
 		{
-			Logging::Log() << __FUNCTION__ << " Error, could not lock source surface " << SrcRect;
+			LOG_LIMIT(100, __FUNCTION__ << " Error: could not lock source surface " << SrcRect);
 			hr = DDERR_GENERIC;
 			break;
 		}
@@ -3082,20 +3083,16 @@ HRESULT m_IDirectDrawSurfaceX::StretchRect(m_IDirectDrawSurfaceX* pSourceSurface
 		// Check if destination surface is not locked then lock it
 		if (FAILED(SetLock(&DestLockRect, &DestRect, 0, true)))
 		{
-			Logging::Log() << __FUNCTION__ << " Error, could not lock destination surface " << DestRect;
+			LOG_LIMIT(100, __FUNCTION__ << " Error: could not lock destination surface " << DestRect);
 			hr = DDERR_GENERIC;
 			break;
 		}
 		UnlockDest = true;
 
-		// Get varables
-		DWORD DestBitCount = GetSurfaceBitCount();
-		D3DFORMAT SrcFormat = pSourceSurface->GetSurfaceFormat();
-		D3DFORMAT DestFormat = GetSurfaceFormat();
-
+		// Check source and destination format
 		if (SrcFormat != DestFormat)
 		{
-			Logging::Log() << __FUNCTION__ << " Error, stretch rect for different source and destination formats not supported";
+			LOG_LIMIT(100, __FUNCTION__ << " Error: stretch rect for different source and destination formats not supported");
 			hr = DDERR_GENERIC;
 			break;
 		}
@@ -3104,7 +3101,7 @@ HRESULT m_IDirectDrawSurfaceX::StretchRect(m_IDirectDrawSurfaceX* pSourceSurface
 		DWORD ByteCount = DestBitCount / 8;
 		if (!ByteCount || ByteCount * 8 != DestBitCount || ByteCount > 4)
 		{
-			Logging::Log() << __FUNCTION__ << " Not implemented bit count " << DestBitCount;
+			LOG_LIMIT(100, __FUNCTION__ << " Not implemented bit count " << DestBitCount);
 			hr = DDERR_GENERIC;
 			break;
 		}

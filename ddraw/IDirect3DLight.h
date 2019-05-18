@@ -15,11 +15,11 @@ public:
 	{
 		ProxyAddressLookupTable.SaveAddress(this, ProxyInterface);
 
-		Logging::LogDebug() << "Create " << __FUNCTION__;
+		LOG_LIMIT(3, "Create " << __FUNCTION__);
 	}
 	m_IDirect3DLight(m_IDirect3DDeviceX **D3DDInterface) : D3DDeviceInterface(D3DDInterface)
 	{
-		Logging::LogDebug() << "Create " << __FUNCTION__;
+		LOG_LIMIT(3, "Create " << __FUNCTION__);
 	}
 	~m_IDirect3DLight()
 	{

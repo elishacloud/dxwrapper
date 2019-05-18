@@ -58,7 +58,7 @@ void *m_IDirect3DMaterialX::GetWrapperInterfaceX(DWORD DirectXVersion)
 		}
 		return UniqueProxyInterface3.get();
 	default:
-		Logging::Log() << __FUNCTION__ << " Error, wrapper interface version not found: " << DirectXVersion;
+		LOG_LIMIT(100, __FUNCTION__ << " Error, wrapper interface version not found: " << DirectXVersion);
 		return nullptr;
 	}
 }
@@ -146,12 +146,12 @@ HRESULT m_IDirect3DMaterialX::SetMaterial(LPD3DMATERIAL lpMat)
 
 		if (lpMat->hTexture)
 		{
-			Logging::Log() << __FUNCTION__ << " D3DMATERIALHANDLE Not Implemented";
+			LOG_LIMIT(100, __FUNCTION__ << " D3DMATERIALHANDLE Not Implemented");
 		}
 
 		if (!D3DDeviceInterface || !*D3DDeviceInterface)
 		{
-			Logging::Log() << __FUNCTION__ << " Error no D3DirectDevice interface!";
+			LOG_LIMIT(100, __FUNCTION__ << " Error no D3DirectDevice interface!");
 			return DDERR_GENERIC;
 		}
 
@@ -186,7 +186,7 @@ HRESULT m_IDirect3DMaterialX::GetMaterial(LPD3DMATERIAL lpMat)
 
 		if (!D3DDeviceInterface || !*D3DDeviceInterface)
 		{
-			Logging::Log() << __FUNCTION__ << " Error no D3DirectDevice interface!";
+			LOG_LIMIT(100, __FUNCTION__ << " Error no D3DirectDevice interface!");
 			return DDERR_GENERIC;
 		}
 
@@ -194,7 +194,7 @@ HRESULT m_IDirect3DMaterialX::GetMaterial(LPD3DMATERIAL lpMat)
 
 		HRESULT hr = (*D3DDeviceInterface)->GetMaterial(&tmpMaterial);
 
-		Logging::Log() << __FUNCTION__ << " D3DMATERIALHANDLE Not Implemented";
+		LOG_LIMIT(100, __FUNCTION__ << " D3DMATERIALHANDLE Not Implemented");
 		ConvertMaterial(tmpMaterial, *lpMat);
 
 		return hr;
@@ -223,7 +223,7 @@ HRESULT m_IDirect3DMaterialX::GetHandle(LPDIRECT3DDEVICE3 lpDirect3DDevice, LPD3
 		return GetProxyInterfaceV3()->GetHandle(lpDirect3DDevice, lpHandle);
 	case 7:
 	case 9:
-		Logging::Log() << __FUNCTION__ << " Not Implemented";
+		LOG_LIMIT(100, __FUNCTION__ << " Not Implemented");
 		return DDERR_UNSUPPORTED;
 	default:
 		return DDERR_GENERIC;
@@ -236,7 +236,7 @@ HRESULT m_IDirect3DMaterialX::Reserve()
 
 	if (ProxyDirectXVersion != 1)
 	{
-		Logging::Log() << __FUNCTION__ << " Not Implemented";
+		LOG_LIMIT(100, __FUNCTION__ << " Not Implemented");
 		return DDERR_UNSUPPORTED;
 	}
 
@@ -249,7 +249,7 @@ HRESULT m_IDirect3DMaterialX::Unreserve()
 
 	if (ProxyDirectXVersion != 1)
 	{
-		Logging::Log() << __FUNCTION__ << " Not Implemented";
+		LOG_LIMIT(100, __FUNCTION__ << " Not Implemented");
 		return DDERR_UNSUPPORTED;
 	}
 

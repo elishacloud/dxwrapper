@@ -38,11 +38,15 @@ HRESULT WINAPI di_DirectInputCreateEx(HINSTANCE hinst, DWORD dwVersion, REFIID r
 
 HRESULT WINAPI di_DirectInputCreateA(HINSTANCE hinst, DWORD dwVersion, LPDIRECTINPUTA* lplpDirectInput, LPUNKNOWN punkOuter)
 {
+	LOG_LIMIT(1, __FUNCTION__);
+
 	return di_DirectInputCreateEx(hinst, dwVersion, IID_IDirectInputA, (LPVOID*)lplpDirectInput, punkOuter);
 }
 
 HRESULT WINAPI di_DirectInputCreateW(HINSTANCE hinst, DWORD dwVersion, LPDIRECTINPUTW* lplpDirectInput, LPUNKNOWN punkOuter)
 {
+	LOG_LIMIT(1, __FUNCTION__);
+
 	return di_DirectInputCreateEx(hinst, dwVersion, IID_IDirectInputW, (LPVOID*)lplpDirectInput, punkOuter);
 }
 
@@ -57,7 +61,7 @@ HRESULT WINAPI di_DirectInputCreateEx(HINSTANCE hinst, DWORD dwVersion, REFIID r
 
 	LOG_ONCE("Starting dinputto8 v" << APP_VERSION);
 
-	Logging::Log() << "Redirecting 'DirectInputCreate' " << riid << " version " << Logging::hex(dwVersion) << " to --> 'DirectInput8Create'";
+	LOG_LIMIT(3, "Redirecting 'DirectInputCreate' " << riid << " version " << Logging::hex(dwVersion) << " to --> 'DirectInput8Create'");
 
 	HRESULT hr = m_pDirectInput8Create(hinst, 0x0800, dinputto8::ConvertREFIID(riid), lplpDD, punkOuter);
 
@@ -72,6 +76,8 @@ HRESULT WINAPI di_DirectInputCreateEx(HINSTANCE hinst, DWORD dwVersion, REFIID r
 
 HRESULT WINAPI di_DllCanUnloadNow()
 {
+	LOG_LIMIT(1, __FUNCTION__);
+
 	static DllCanUnloadNowProc m_pDllCanUnloadNow = (Wrapper::ValidProcAddress(DllCanUnloadNow_out)) ? (DllCanUnloadNowProc)DllCanUnloadNow_out : nullptr;
 
 	if (!m_pDllCanUnloadNow)
@@ -84,6 +90,8 @@ HRESULT WINAPI di_DllCanUnloadNow()
 
 HRESULT WINAPI di_DllGetClassObject(IN REFCLSID rclsid, IN REFIID riid, OUT LPVOID FAR* ppv)
 {
+	LOG_LIMIT(1, __FUNCTION__);
+
 	static DllGetClassObjectProc m_pDllGetClassObject = (Wrapper::ValidProcAddress(DllGetClassObject_out)) ? (DllGetClassObjectProc)DllGetClassObject_out : nullptr;
 
 	if (!m_pDllGetClassObject)
@@ -112,6 +120,8 @@ HRESULT WINAPI di_DllGetClassObject(IN REFCLSID rclsid, IN REFIID riid, OUT LPVO
 
 HRESULT WINAPI di_DllRegisterServer()
 {
+	LOG_LIMIT(1, __FUNCTION__);
+
 	static DllRegisterServerProc m_pDllRegisterServer = (Wrapper::ValidProcAddress(DllRegisterServer_out)) ? (DllRegisterServerProc)DllRegisterServer_out : nullptr;
 
 	if (!m_pDllRegisterServer)
@@ -124,6 +134,8 @@ HRESULT WINAPI di_DllRegisterServer()
 
 HRESULT WINAPI di_DllUnregisterServer()
 {
+	LOG_LIMIT(1, __FUNCTION__);
+
 	static DllUnregisterServerProc m_pDllUnregisterServer = (Wrapper::ValidProcAddress(DllUnregisterServer_out)) ? (DllUnregisterServerProc)DllUnregisterServer_out : nullptr;
 
 	if (!m_pDllUnregisterServer)

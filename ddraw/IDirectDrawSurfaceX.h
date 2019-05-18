@@ -96,11 +96,11 @@ public:
 
 		if (ProxyDirectXVersion != DirectXVersion)
 		{
-			Logging::LogDebug() << "Convert DirectDrawSurface v" << DirectXVersion << " to v" << ProxyDirectXVersion;
+			LOG_LIMIT(3, "Convert DirectDrawSurface v" << DirectXVersion << " to v" << ProxyDirectXVersion);
 		}
 		else
 		{
-			Logging::LogDebug() << "Create " << __FUNCTION__ << " v" << DirectXVersion;
+			LOG_LIMIT(3, "Create " << __FUNCTION__ << " v" << DirectXVersion);
 		}
 	}
 	m_IDirectDrawSurfaceX(LPDIRECT3DDEVICE9 *lplpDevice, m_IDirectDrawX *Interface, DWORD DirectXVersion, LPDDSURFACEDESC2 lpDDSurfaceDesc2, DWORD Width, DWORD Height) :
@@ -113,7 +113,7 @@ public:
 		surfaceDesc2.ddpfPixelFormat.dwSize = sizeof(DDPIXELFORMAT);
 		ConvertSurfaceDesc(surfaceDesc2, *lpDDSurfaceDesc2);
 
-		Logging::LogDebug() << "Convert DirectDrawSurface v" << DirectXVersion << " to v" << ProxyDirectXVersion;
+		LOG_LIMIT(3, "Convert DirectDrawSurface v" << DirectXVersion << " to v" << ProxyDirectXVersion);
 
 		// Store surface
 		if (ddrawParent)
@@ -239,7 +239,7 @@ public:
 	D3DFORMAT GetSurfaceFormat() { return (attachedPalette) ? D3DFMT_L8 : GetDisplayFormat(surfaceDesc2.ddpfPixelFormat); }
 
 	// Direct3D9 interface functions
-	bool CheckD3d9Surface();
+	HRESULT CheckInterface(char *FunctionName, bool CheckD3DDevice, bool CheckD3DSurface);
 	HRESULT CreateD3d9Surface();
 	template <typename T>
 	void ReleaseD9Interface(T **ppInterface);

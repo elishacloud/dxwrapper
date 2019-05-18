@@ -32,6 +32,8 @@ using namespace D3d9Wrapper;
 
 HRESULT WINAPI d9_Direct3DShaderValidatorCreate9()
 {
+	LOG_LIMIT(1, __FUNCTION__);
+
 	static Direct3DShaderValidatorCreate9Proc m_pDirect3DShaderValidatorCreate9 = (Wrapper::ValidProcAddress(Direct3DShaderValidatorCreate9_out)) ? (Direct3DShaderValidatorCreate9Proc)Direct3DShaderValidatorCreate9_out : nullptr;
 
 	if (!m_pDirect3DShaderValidatorCreate9)
@@ -44,6 +46,8 @@ HRESULT WINAPI d9_Direct3DShaderValidatorCreate9()
 
 HRESULT WINAPI d9_PSGPError()
 {
+	LOG_LIMIT(1, __FUNCTION__);
+
 	static PSGPErrorProc m_pPSGPError = (Wrapper::ValidProcAddress(PSGPError_out)) ? (PSGPErrorProc)PSGPError_out : nullptr;
 
 	if (!m_pPSGPError)
@@ -56,6 +60,8 @@ HRESULT WINAPI d9_PSGPError()
 
 HRESULT WINAPI d9_PSGPSampleTexture()
 {
+	LOG_LIMIT(1, __FUNCTION__);
+
 	static PSGPSampleTextureProc m_pPSGPSampleTexture = (Wrapper::ValidProcAddress(PSGPSampleTexture_out)) ? (PSGPSampleTextureProc)PSGPSampleTexture_out : nullptr;
 
 	if (!m_pPSGPSampleTexture)
@@ -68,6 +74,8 @@ HRESULT WINAPI d9_PSGPSampleTexture()
 
 int WINAPI d9_D3DPERF_BeginEvent(D3DCOLOR col, LPCWSTR wszName)
 {
+	LOG_LIMIT(1, __FUNCTION__);
+
 	static D3DPERF_BeginEventProc m_pD3DPERF_BeginEvent = (Wrapper::ValidProcAddress(D3DPERF_BeginEvent_out)) ? (D3DPERF_BeginEventProc)D3DPERF_BeginEvent_out : nullptr;
 
 	if (!m_pD3DPERF_BeginEvent)
@@ -80,6 +88,8 @@ int WINAPI d9_D3DPERF_BeginEvent(D3DCOLOR col, LPCWSTR wszName)
 
 int WINAPI d9_D3DPERF_EndEvent()
 {
+	LOG_LIMIT(1, __FUNCTION__);
+
 	static D3DPERF_EndEventProc m_pD3DPERF_EndEvent = (Wrapper::ValidProcAddress(D3DPERF_EndEvent_out)) ? (D3DPERF_EndEventProc)D3DPERF_EndEvent_out : nullptr;
 
 	if (!m_pD3DPERF_EndEvent)
@@ -92,6 +102,8 @@ int WINAPI d9_D3DPERF_EndEvent()
 
 DWORD WINAPI d9_D3DPERF_GetStatus()
 {
+	LOG_LIMIT(1, __FUNCTION__);
+
 	static D3DPERF_GetStatusProc m_pD3DPERF_GetStatus = (Wrapper::ValidProcAddress(D3DPERF_GetStatus_out)) ? (D3DPERF_GetStatusProc)D3DPERF_GetStatus_out : nullptr;
 
 	if (!m_pD3DPERF_GetStatus)
@@ -104,6 +116,8 @@ DWORD WINAPI d9_D3DPERF_GetStatus()
 
 BOOL WINAPI d9_D3DPERF_QueryRepeatFrame()
 {
+	LOG_LIMIT(1, __FUNCTION__);
+
 	static D3DPERF_QueryRepeatFrameProc m_pD3DPERF_QueryRepeatFrame = (Wrapper::ValidProcAddress(D3DPERF_QueryRepeatFrame_out)) ? (D3DPERF_QueryRepeatFrameProc)D3DPERF_QueryRepeatFrame_out : nullptr;
 
 	if (!m_pD3DPERF_QueryRepeatFrame)
@@ -116,6 +130,8 @@ BOOL WINAPI d9_D3DPERF_QueryRepeatFrame()
 
 void WINAPI d9_D3DPERF_SetMarker(D3DCOLOR col, LPCWSTR wszName)
 {
+	LOG_LIMIT(1, __FUNCTION__);
+
 	static D3DPERF_SetMarkerProc m_pD3DPERF_SetMarker = (Wrapper::ValidProcAddress(D3DPERF_SetMarker_out)) ? (D3DPERF_SetMarkerProc)D3DPERF_SetMarker_out : nullptr;
 
 	if (!m_pD3DPERF_SetMarker)
@@ -128,6 +144,8 @@ void WINAPI d9_D3DPERF_SetMarker(D3DCOLOR col, LPCWSTR wszName)
 
 void WINAPI d9_D3DPERF_SetOptions(DWORD dwOptions)
 {
+	LOG_LIMIT(1, __FUNCTION__);
+
 	static D3DPERF_SetOptionsProc m_pD3DPERF_SetOptions = (Wrapper::ValidProcAddress(D3DPERF_SetOptions_out)) ? (D3DPERF_SetOptionsProc)D3DPERF_SetOptions_out : nullptr;
 
 	if (!m_pD3DPERF_SetOptions)
@@ -140,6 +158,8 @@ void WINAPI d9_D3DPERF_SetOptions(DWORD dwOptions)
 
 void WINAPI d9_D3DPERF_SetRegion(D3DCOLOR col, LPCWSTR wszName)
 {
+	LOG_LIMIT(1, __FUNCTION__);
+
 	static D3DPERF_SetRegionProc m_pD3DPERF_SetRegion = (Wrapper::ValidProcAddress(D3DPERF_SetRegion_out)) ? (D3DPERF_SetRegionProc)D3DPERF_SetRegion_out : nullptr;
 
 	if (!m_pD3DPERF_SetRegion)
@@ -152,6 +172,8 @@ void WINAPI d9_D3DPERF_SetRegion(D3DCOLOR col, LPCWSTR wszName)
 
 HRESULT WINAPI d9_DebugSetLevel(DWORD dw1)
 {
+	LOG_LIMIT(1, __FUNCTION__);
+
 	static DebugSetLevelProc m_pDebugSetLevel = (Wrapper::ValidProcAddress(DebugSetLevel_out)) ? (DebugSetLevelProc)DebugSetLevel_out : nullptr;
 
 	if (!m_pDebugSetLevel)
@@ -164,6 +186,8 @@ HRESULT WINAPI d9_DebugSetLevel(DWORD dw1)
 
 void WINAPI d9_DebugSetMute()
 {
+	LOG_LIMIT(1, __FUNCTION__);
+
 	static DebugSetMuteProc m_pDebugSetMute = (Wrapper::ValidProcAddress(DebugSetMute_out)) ? (DebugSetMuteProc)DebugSetMute_out : nullptr;
 
 	if (!m_pDebugSetMute)
@@ -176,6 +200,8 @@ void WINAPI d9_DebugSetMute()
 
 void WINAPI d9_Direct3D9EnableMaximizedWindowedModeShim()
 {
+	LOG_LIMIT(1, __FUNCTION__);
+
 	static Direct3D9EnableMaximizedWindowedModeShimProc m_pDirect3D9EnableMaximizedWindowedModeShim = (Wrapper::ValidProcAddress(Direct3D9EnableMaximizedWindowedModeShim_out)) ? (Direct3D9EnableMaximizedWindowedModeShimProc)Direct3D9EnableMaximizedWindowedModeShim_out : nullptr;
 
 	if (!m_pDirect3D9EnableMaximizedWindowedModeShim)
@@ -195,7 +221,7 @@ IDirect3D9 *WINAPI d9_Direct3DCreate9(UINT SDKVersion)
 		return nullptr;
 	}
 
-	Logging::Log() << "Redirecting 'Direct3DCreate9' ...";
+	LOG_LIMIT(3, "Redirecting 'Direct3DCreate9' ...");
 
 	if (Config.Dd7to9 || Config.D3d8to9)
 	{
@@ -237,7 +263,7 @@ HRESULT WINAPI d9_Direct3DCreate9Ex(UINT SDKVersion, IDirect3D9Ex **ppD3D)
 		return DDERR_GENERIC;
 	}
 
-	Logging::Log() << "Redirecting 'Direct3DCreate9Ex' ...";
+	LOG_LIMIT(3, "Redirecting 'Direct3DCreate9Ex' ...");
 
 	HRESULT hr = m_pDirect3DCreate9Ex(SDKVersion, ppD3D);
 

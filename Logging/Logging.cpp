@@ -14,6 +14,8 @@
 *   3. This notice may not be removed or altered from any source distribution.
 */
 
+#define INITGUID
+
 #include "Logging.h"
 
 std::ofstream LOG;
@@ -301,6 +303,8 @@ DEFINE_GUID(IID_IDirectInputDevice8A, 0x54D41080, 0xDC15, 0x4833, 0xA4, 0x1B, 0x
 DEFINE_GUID(IID_IDirectInputDevice8W, 0x54D41081, 0xDC15, 0x4833, 0xA4, 0x1B, 0x74, 0x8F, 0x73, 0xA3, 0x81, 0x79);
 DEFINE_GUID(IID_IDirectInputEffect, 0xE7E1F7C0, 0x88D2, 0x11D0, 0x9A, 0xD0, 0x00, 0xA0, 0xC9, 0xA0, 0x6E, 0x35);
 #endif
+DEFINE_GUID(IID_IMediaStream, 0xb502d1bd, 0x9a57, 0x11d0, 0x8f, 0xde, 0x00, 0xc0, 0x4f, 0xd9, 0x18, 0x9d);
+DEFINE_GUID(IID_IAMMediaStream, 0xbebe595d, 0x9a6f, 0x11d0, 0x8f, 0xde, 0x00, 0xc0, 0x4f, 0xd9, 0x18, 0x9d);
 
 std::ostream& operator<<(std::ostream& os, REFIID riid)
 {
@@ -422,6 +426,9 @@ std::ostream& operator<<(std::ostream& os, REFIID riid)
 	CHECK_REFIID(IID, IDirectInputDevice8A);
 	CHECK_REFIID(IID, IDirectInputDevice8W);
 	CHECK_REFIID(IID, IDirectInputEffect);
+	// direct show
+	CHECK_REFIID(IID, IMediaStream);
+	CHECK_REFIID(IID, IAMMediaStream);
 
 	UINT x = 0;
 	char buffer[(sizeof(IID) * 2) + 5] = { '\0' };

@@ -123,7 +123,7 @@ HRESULT m_IDirectSound8::GetCaps(LPDSCAPS pDSCaps)
 				(Config.Num2DBuffers >= pDSCaps->dwMaxHwMixingStaticBuffers - pDSCaps->dwFreeHwMixingStaticBuffers) ||
 				(Config.Num2DBuffers >= pDSCaps->dwFreeHwMixingStreamingBuffers - pDSCaps->dwMaxHwMixingStreamingBuffers))
 			{
-				Logging::Log() << __FUNCTION__ << " Error: Incorrect DSCaps data for 2D Buffers.";
+				LOG_LIMIT(100, __FUNCTION__ << " Error: Incorrect DSCaps data for 2D Buffers.");
 			}
 
 			pDSCaps->dwFreeHwMixingAllBuffers = Config.Num2DBuffers - (pDSCaps->dwMaxHwMixingAllBuffers - pDSCaps->dwFreeHwMixingAllBuffers);
@@ -143,7 +143,7 @@ HRESULT m_IDirectSound8::GetCaps(LPDSCAPS pDSCaps)
 				(Config.Num3DBuffers >= pDSCaps->dwMaxHw3DStaticBuffers - pDSCaps->dwFreeHw3DStaticBuffers) ||
 				(Config.Num3DBuffers >= pDSCaps->dwFreeHw3DStreamingBuffers - pDSCaps->dwMaxHw3DStreamingBuffers))
 			{
-				Logging::Log() << __FUNCTION__ << " Error: Incorrect DSCaps data for 3D Buffers.";
+				LOG_LIMIT(100, __FUNCTION__ << " Error: Incorrect DSCaps data for 3D Buffers.");
 			}
 
 			pDSCaps->dwFreeHw3DAllBuffers = Config.Num3DBuffers - (pDSCaps->dwMaxHw3DAllBuffers - pDSCaps->dwFreeHw3DAllBuffers);

@@ -20,7 +20,7 @@ HRESULT CALLBACK m_IDirectDrawEnumDisplayModes::ConvertCallback(LPDDSURFACEDESC2
 {
 	if (!lpContext || !lpDDSurfaceDesc2)
 	{
-		Logging::Log() << __FUNCTION__ << " Error: invaid context!";
+		LOG_LIMIT(100, __FUNCTION__ << " Error: invaid context!");
 		return DDENUMRET_CANCEL;
 	}
 
@@ -28,7 +28,7 @@ HRESULT CALLBACK m_IDirectDrawEnumDisplayModes::ConvertCallback(LPDDSURFACEDESC2
 
 	if (!lpCallbackContext->lpCallback)
 	{
-		Logging::Log() << __FUNCTION__ << " Error: invaid callback!";
+		LOG_LIMIT(100, __FUNCTION__ << " Error: invaid callback!");
 		return DDENUMRET_CANCEL;
 	}
 
@@ -44,7 +44,7 @@ HRESULT CALLBACK m_IDirectDrawEnumSurface::ConvertCallback(LPDIRECTDRAWSURFACE l
 {
 	if (!lpContext)
 	{
-		Logging::Log() << __FUNCTION__ << " Error: invaid context!";
+		LOG_LIMIT(100, __FUNCTION__ << " Error: invaid context!");
 		return DDENUMRET_CANCEL;
 	}
 
@@ -52,7 +52,7 @@ HRESULT CALLBACK m_IDirectDrawEnumSurface::ConvertCallback(LPDIRECTDRAWSURFACE l
 
 	if (!lpCallbackContext->lpCallback)
 	{
-		Logging::Log() << __FUNCTION__ << " Error: invaid callback!";
+		LOG_LIMIT(100, __FUNCTION__ << " Error: invaid callback!");
 		return DDENUMRET_CANCEL;
 	}
 
@@ -68,7 +68,7 @@ HRESULT CALLBACK m_IDirectDrawEnumSurface::ConvertCallback2(LPDIRECTDRAWSURFACE7
 {
 	if (!lpContext)
 	{
-		Logging::Log() << __FUNCTION__ << " Error: invaid context!";
+		LOG_LIMIT(100, __FUNCTION__ << " Error: invaid context!");
 		return DDENUMRET_CANCEL;
 	}
 
@@ -76,7 +76,7 @@ HRESULT CALLBACK m_IDirectDrawEnumSurface::ConvertCallback2(LPDIRECTDRAWSURFACE7
 
 	if (!lpCallbackContext->lpCallback7)
 	{
-		Logging::Log() << __FUNCTION__ << " Error: invaid callback!";
+		LOG_LIMIT(100, __FUNCTION__ << " Error: invaid callback!");
 		return DDENUMRET_CANCEL;
 	}
 

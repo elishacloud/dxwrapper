@@ -319,6 +319,7 @@ cmd /q /c "cd /D ""$(ProjectDir)d3d8\"" &amp;&amp; del build.bat"</Command>
     <ClCompile Include="External\d3d8to9\source\d3d8to9_vertex_buffer.cpp" />
     <ClCompile Include="External\d3d8to9\source\d3d8to9_volume.cpp" />
     <ClCompile Include="External\d3d8to9\source\d3d8types.cpp" />
+    <ClCompile Include="External\d3d8to9\source\interface_query.cpp" />
     <ClCompile Include="External\d3d8to9\source\lookup_table.cpp" />
     <ClCompile Include="External\dinputto8\IDirectInputDeviceX.cpp" />
     <ClCompile Include="External\dinputto8\IDirectInputEffect.cpp" />

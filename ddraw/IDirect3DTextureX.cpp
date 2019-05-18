@@ -52,7 +52,7 @@ void *m_IDirect3DTextureX::GetWrapperInterfaceX(DWORD DirectXVersion)
 		}
 		return UniqueProxyInterface2.get();
 	default:
-		Logging::Log() << __FUNCTION__ << " Error, wrapper interface version not found: " << DirectXVersion;
+		LOG_LIMIT(100, __FUNCTION__ << " Error, wrapper interface version not found: " << DirectXVersion);
 		return nullptr;
 	}
 }
@@ -137,7 +137,7 @@ HRESULT m_IDirect3DTextureX::GetHandle(LPDIRECT3DDEVICE2 lpDirect3DDevice2, LPD3
 		return GetProxyInterfaceV2()->GetHandle(lpDirect3DDevice2, lpHandle);
 	case 7:
 	case 9:
-		Logging::Log() << __FUNCTION__ << " Not Implemented";
+		LOG_LIMIT(100, __FUNCTION__ << " Not Implemented");
 		return DDERR_UNSUPPORTED;
 	default:
 		return DDERR_GENERIC;
@@ -156,7 +156,7 @@ HRESULT m_IDirect3DTextureX::PaletteChanged(DWORD dwStart, DWORD dwCount)
 		return GetProxyInterfaceV2()->PaletteChanged(dwStart, dwCount);
 	case 7:
 	case 9:
-		Logging::Log() << __FUNCTION__ << " Not Implemented";
+		LOG_LIMIT(100, __FUNCTION__ << " Not Implemented");
 		return DDERR_UNSUPPORTED;
 	default:
 		return DDERR_GENERIC;
@@ -180,7 +180,7 @@ HRESULT m_IDirect3DTextureX::Load(LPDIRECT3DTEXTURE2 lpD3DTexture2)
 		return GetProxyInterfaceV2()->Load(lpD3DTexture2);
 	case 7:
 	case 9:
-		Logging::Log() << __FUNCTION__ << " Not Implemented";
+		LOG_LIMIT(100, __FUNCTION__ << " Not Implemented");
 		return DDERR_UNSUPPORTED;
 	default:
 		return DDERR_GENERIC;
@@ -193,7 +193,7 @@ HRESULT m_IDirect3DTextureX::Unload()
 
 	if (ProxyDirectXVersion != 1)
 	{
-		Logging::Log() << __FUNCTION__ << " Not Implemented";
+		LOG_LIMIT(100, __FUNCTION__ << " Not Implemented");
 		return DDERR_UNSUPPORTED;
 	}
 

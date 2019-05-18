@@ -280,7 +280,7 @@ DWORD GetBitCount(DDPIXELFORMAT ddpfPixelFormat)
 		return ddpfPixelFormat.dwBumpBitCount;
 	}
 
-	Logging::Log() << __FUNCTION__ << " Failed to get BitCount from PixelFormat!";
+	LOG_LIMIT(100, __FUNCTION__ << " Failed to get BitCount from PixelFormat!");
 	return 0;
 }
 
@@ -301,7 +301,7 @@ DWORD GetBitCount(D3DFORMAT Format)
 		return 32;
 	}
 
-	Logging::Log() << __FUNCTION__ << " Display format not Implemented: " << Format;
+	LOG_LIMIT(100, __FUNCTION__ << " Display format not Implemented: " << Format);
 	return 0;
 }
 
@@ -330,7 +330,7 @@ D3DFORMAT GetDisplayFormat(DDPIXELFORMAT ddpfPixelFormat)
 			// Default 16-bit
 			return D3DFMT_R5G6B5;
 		case 24:
-			Logging::Log() << __FUNCTION__ << " 24-bit RGB not Implemented";
+			LOG_LIMIT(100, __FUNCTION__ << " 24-bit RGB not Implemented");
 			return D3DFMT_UNKNOWN;
 		case 32:
 			if (ddpfPixelFormat.dwBBitMask == 0xFF)
@@ -348,41 +348,41 @@ D3DFORMAT GetDisplayFormat(DDPIXELFORMAT ddpfPixelFormat)
 			return D3DFMT_X8R8G8B8;
 		}
 
-		Logging::Log() << __FUNCTION__ << " Error, could not find RGB format for BitCount: " << BitCount;
+		LOG_LIMIT(100, __FUNCTION__ << " Error, could not find RGB format for BitCount: " << BitCount);
 		return D3DFMT_UNKNOWN;
 	}
 	else if (ddpfPixelFormat.dwFlags & DDPF_YUV)
 	{
-		Logging::Log() << __FUNCTION__ << " YUV format not Implemented";
+		LOG_LIMIT(100, __FUNCTION__ << " YUV format not Implemented");
 		return D3DFMT_UNKNOWN;
 	}
 	else if (ddpfPixelFormat.dwFlags & DDPF_ALPHA)
 	{
-		Logging::Log() << __FUNCTION__ << " Alpha format not Implemented";
+		LOG_LIMIT(100, __FUNCTION__ << " Alpha format not Implemented");
 		return D3DFMT_UNKNOWN;
 	}
 	else if (ddpfPixelFormat.dwFlags & DDPF_ZBUFFER)
 	{
-		Logging::Log() << __FUNCTION__ << " zBuffer format not Implemented";
+		LOG_LIMIT(100, __FUNCTION__ << " zBuffer format not Implemented");
 		return D3DFMT_UNKNOWN;
 	}
 	else if (ddpfPixelFormat.dwFlags & DDPF_LUMINANCE)
 	{
-		Logging::Log() << __FUNCTION__ << " Luminance format not Implemented";
+		LOG_LIMIT(100, __FUNCTION__ << " Luminance format not Implemented");
 		return D3DFMT_UNKNOWN;
 	}
 	else if (ddpfPixelFormat.dwFlags & DDPF_BUMPDUDV)
 	{
-		Logging::Log() << __FUNCTION__ << " Bump DUVU format not Implemented";
+		LOG_LIMIT(100, __FUNCTION__ << " Bump DUVU format not Implemented");
 		return D3DFMT_UNKNOWN;
 	}
 	else if (ddpfPixelFormat.dwFlags & DDPF_FOURCC)
 	{
-		Logging::Log() << __FUNCTION__ << " FourCC format not Implemented";
+		LOG_LIMIT(100, __FUNCTION__ << " FourCC format not Implemented");
 		return D3DFMT_UNKNOWN;
 	}
 
-	Logging::Log() << __FUNCTION__ << " Error, PixelFormat not Implemented see flags: " << ddpfPixelFormat.dwFlags;
+	LOG_LIMIT(100, __FUNCTION__ << " Error, PixelFormat not Implemented see flags: " << ddpfPixelFormat.dwFlags);
 	return D3DFMT_UNKNOWN;
 }
 
@@ -437,6 +437,6 @@ void GetPixelDisplayFormat(D3DFORMAT Format, DDPIXELFORMAT &ddpfPixelFormat)
 		return;
 	}
 
-	Logging::Log() << __FUNCTION__ << " Display format not Implemented: " << Format;
+	LOG_LIMIT(100, __FUNCTION__ << " Display format not Implemented: " << Format);
 	return;
 }

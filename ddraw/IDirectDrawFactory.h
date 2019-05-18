@@ -10,7 +10,7 @@ private:
 public:
 	m_IDirectDrawFactory(IDirectDrawFactory *aOriginal) : ProxyInterface(aOriginal)
 	{
-		Logging::LogDebug() << "Create " << __FUNCTION__;
+		LOG_LIMIT(3, "Create " << __FUNCTION__);
 	}
 	~m_IDirectDrawFactory() {}
 

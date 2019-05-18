@@ -14,11 +14,11 @@ public:
 	{
 		ProxyAddressLookupTable.SaveAddress(this, ProxyInterface);
 
-		Logging::LogDebug() << "Create " << __FUNCTION__;
+		LOG_LIMIT(3, "Create " << __FUNCTION__);
 	}
 	m_IDirectDrawClipper(DWORD dwFlags) : clipperCaps(dwFlags)
 	{
-		Logging::LogDebug() << "Create " << __FUNCTION__;
+		LOG_LIMIT(3, "Create " << __FUNCTION__);
 	}
 	~m_IDirectDrawClipper()
 	{

@@ -24,11 +24,11 @@ public:
 		ColorControl.lColorEnable = 1;
 		ColorControl.dwReserved1 = 0;
 
-		Logging::LogDebug() << "Create " << __FUNCTION__;
+		LOG_LIMIT(3, "Create " << __FUNCTION__);
 	}
 	m_IDirectDrawColorControl()
 	{
-		Logging::LogDebug() << "Create " << __FUNCTION__;
+		LOG_LIMIT(3, "Create " << __FUNCTION__);
 	}
 	~m_IDirectDrawColorControl()
 	{

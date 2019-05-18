@@ -42,7 +42,7 @@ HRESULT WINAPI di8_DirectInput8Create(HINSTANCE hinst, DWORD dwVersion, REFIID r
 		return DIERR_GENERIC;
 	}
 
-	Logging::Log() << "Redirecting 'DirectInput8Create' ...";
+	LOG_LIMIT(3, "Redirecting 'DirectInput8Create' ...");
 
 	HRESULT hr = m_pDirectInput8Create(hinst, dwVersion, riidltf, ppvOut, punkOuter);
 
@@ -56,6 +56,8 @@ HRESULT WINAPI di8_DirectInput8Create(HINSTANCE hinst, DWORD dwVersion, REFIID r
 
 HRESULT WINAPI di8_DllCanUnloadNow()
 {
+	LOG_LIMIT(1, __FUNCTION__);
+
 	static DllCanUnloadNowProc m_pDllCanUnloadNow = (Wrapper::ValidProcAddress(DllCanUnloadNow_out)) ? (DllCanUnloadNowProc)DllCanUnloadNow_out : nullptr;
 
 	if (!m_pDllCanUnloadNow)
@@ -68,6 +70,8 @@ HRESULT WINAPI di8_DllCanUnloadNow()
 
 HRESULT WINAPI di8_DllGetClassObject(IN REFCLSID rclsid, IN REFIID riid, OUT LPVOID FAR* ppv)
 {
+	LOG_LIMIT(1, __FUNCTION__);
+
 	static DllGetClassObjectProc m_pDllGetClassObject = (Wrapper::ValidProcAddress(DllGetClassObject_out)) ? (DllGetClassObjectProc)DllGetClassObject_out : nullptr;
 
 	if (!m_pDllGetClassObject)
@@ -96,6 +100,8 @@ HRESULT WINAPI di8_DllGetClassObject(IN REFCLSID rclsid, IN REFIID riid, OUT LPV
 
 HRESULT WINAPI di8_DllRegisterServer()
 {
+	LOG_LIMIT(1, __FUNCTION__);
+
 	static DllRegisterServerProc m_pDllRegisterServer = (Wrapper::ValidProcAddress(DllRegisterServer_out)) ? (DllRegisterServerProc)DllRegisterServer_out : nullptr;
 
 	if (!m_pDllRegisterServer)
@@ -108,6 +114,8 @@ HRESULT WINAPI di8_DllRegisterServer()
 
 HRESULT WINAPI di8_DllUnregisterServer()
 {
+	LOG_LIMIT(1, __FUNCTION__);
+
 	static DllUnregisterServerProc m_pDllUnregisterServer = (Wrapper::ValidProcAddress(DllUnregisterServer_out)) ? (DllUnregisterServerProc)DllUnregisterServer_out : nullptr;
 
 	if (!m_pDllUnregisterServer)
@@ -120,6 +128,8 @@ HRESULT WINAPI di8_DllUnregisterServer()
 
 LPCDIDATAFORMAT WINAPI di8_GetdfDIJoystick()
 {
+	LOG_LIMIT(1, __FUNCTION__);
+
 	static GetdfDIJoystickProc m_pGetdfDIJoystick = (Wrapper::ValidProcAddress(GetdfDIJoystick_out)) ? (GetdfDIJoystickProc)GetdfDIJoystick_out : nullptr;
 
 	if (!m_pGetdfDIJoystick)
