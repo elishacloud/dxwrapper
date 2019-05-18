@@ -2109,7 +2109,7 @@ HRESULT m_IDirectDrawSurfaceX::CreateD3d9Surface()
 		return DDERR_GENERIC;
 	}
 
-	if (attachedPalette)
+	if (attachedPalette || Format == D3DFMT_L8 || Format == D3DFMT_P8)
 	{
 		// Create palette surface
 		if (FAILED((*d3d9Device)->CreateTexture(256, 256, 1, 0, D3DFMT_X8R8G8B8, D3DPOOL_MANAGED, &paletteTexture, nullptr)) ||
@@ -2118,6 +2118,7 @@ HRESULT m_IDirectDrawSurfaceX::CreateD3d9Surface()
 			LOG_LIMIT(100, __FUNCTION__ << " Failed to create palette surface");
 			return DDERR_GENERIC;
 		}
+		NewPalette = true;
 	}
 
 	// Get Surface Interface
@@ -2312,12 +2313,17 @@ HRESULT m_IDirectDrawSurfaceX::PresentSurface()
 
 	if (IsPrimarySurface() && !IsLocked && !IsInDC)
 	{
+		D3DFORMAT Format = GetDisplayFormat(surfaceDesc2.ddpfPixelFormat);
+
 		// If new palette data then write it to texture
-		if (paletteTexture && attachedPalette && attachedPalette->rgbPalette && (NewPalette || attachedPalette->NewPaletteData))
+		if (paletteTexture &&
+			(Format == D3DFMT_L8 || Format == D3DFMT_P8 || (attachedPalette && attachedPalette->rgbPalette)) &&
+			(NewPalette || (attachedPalette && attachedPalette->NewPaletteData)))
 		{
 			do {
 				D3DLOCKED_RECT LockRect;
 				RECT Rect = { 0,0,256,1 };
+				const DWORD *memPalette = (attachedPalette && attachedPalette->rgbPalette) ? attachedPalette->rgbPalette : rgbPalette;
 
 				if (FAILED(paletteTexture->LockRect(0, &LockRect, &Rect, 0)))
 				{
@@ -2325,12 +2331,15 @@ HRESULT m_IDirectDrawSurfaceX::PresentSurface()
 					break;
 				}
 
-				memcpy(LockRect.pBits, attachedPalette->rgbPalette, 256 * sizeof(int));
+				memcpy(LockRect.pBits, memPalette, 256 * sizeof(int));
 
 				paletteTexture->UnlockRect(0);
 
 				NewPalette = false;
-				attachedPalette->NewPaletteData = false;
+				if (attachedPalette)
+				{
+					attachedPalette->NewPaletteData = false;
+				}
 
 			} while (false);
 		}
