@@ -2322,7 +2322,7 @@ HRESULT m_IDirectDrawSurfaceX::PresentSurface()
 		{
 			do {
 				D3DLOCKED_RECT LockRect;
-				RECT Rect = { 0,0,256,1 };
+				RECT Rect = { 0, 0, 256, 1 };
 				const DWORD *memPalette = (attachedPalette && attachedPalette->rgbPalette) ? attachedPalette->rgbPalette : rgbPalette;
 
 				if (FAILED(paletteTexture->LockRect(0, &LockRect, &Rect, 0)))
