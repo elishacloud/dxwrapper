@@ -125,6 +125,9 @@ copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\Stub\winmmbase.dll" &
     <ClCompile Include="..\External\MemoryModule\MemoryModule.c" />
     <ClCompile Include="..\Settings\ReadParse.cpp" />
     <ClCompile Include="..\Wrappers\wrapper.cpp" />
+    <ClCompile Include="d3d8.cpp" />
+    <ClCompile Include="ddraw.cpp" />
+    <ClCompile Include="dinput.cpp" />
     <ClCompile Include="stub.cpp" />
   </ItemGroup>
   <ItemGroup>

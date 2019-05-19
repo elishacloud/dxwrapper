@@ -134,7 +134,6 @@ namespace Wrapper
 	const FARPROC jmpaddr = (FARPROC)*_jmpaddr;
 	const FARPROC jmpaddrvoid = (FARPROC)*_jmpaddrvoid;
 	std::vector<wrapper_map> jmpArray;
-	const char *GetWrapperName(const char *WrapperMode);
 	HMODULE GetWrapperType(const char *ProxyDll, const char *WrapperMode, const char *MyDllName);
 }
 
@@ -187,7 +186,7 @@ const char *Wrapper::GetWrapperName(const char *WrapperMode)
 {
 	// Check dll name and load correct wrapper
 #define CHECK_WRAPPER(dllName) \
-	{ using namespace dllName; if (_strcmpi(WrapperMode, Name) == 0) { return WrapperMode; }}
+	{ using namespace dllName; if (_strcmpi(WrapperMode, Name) == 0) { return Name; }}
 
 	VISIT_DLLS(CHECK_WRAPPER);
 

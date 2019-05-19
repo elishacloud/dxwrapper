@@ -11,6 +11,9 @@
     <ClCompile Include="..\Settings\ReadParse.cpp">
       <Filter>Settings</Filter>
     </ClCompile>
+    <ClCompile Include="ddraw.cpp" />
+    <ClCompile Include="d3d8.cpp" />
+    <ClCompile Include="dinput.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="stub.h" />

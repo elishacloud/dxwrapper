@@ -186,7 +186,6 @@ bool APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 		{
 			Utils::DisableHighDPIScaling();
 		}
-		Utils::SetAppCompat();
 		if (Config.SingleProcAffinity)
 		{
 			Utils::SetProcessAffinity();
@@ -484,6 +483,9 @@ bool APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 				Config.DxWnd = false;
 			}
 		}
+
+		// Run app compat settings
+		Utils::SetAppCompat();
 
 		// Load custom dlls
 		if (Config.LoadCustomDllPath.size() != 0)

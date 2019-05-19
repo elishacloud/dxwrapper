@@ -16,6 +16,7 @@
 
 #define WIN32_LEAN_AND_MEAN
 #include <fstream>
+#include "stub.h"
 #include "..\Settings\ReadParse.h"
 #include "..\External\MemoryModule\MemoryModule.h"
 #include "..\Wrappers\wrapper.h"
@@ -93,8 +94,27 @@ bool APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 			free(szCfg);
 		}
 
+		// Get wrapper mode
+		const char *RealWrapperMode = Wrapper::GetWrapperName((WrapperMode.size()) ? WrapperMode.c_str() : WrapperName.c_str());
+		
+		// Load custom wrapper
+		if (_strcmpi(RealWrapperMode, "ddraw.dll") == 0)
+		{
+			StartDdraw();
+		}
+		else if (_strcmpi(RealWrapperMode, "d3d8.dll") == 0)
+		{
+			StartD3d8();
+		}
+		else if (_strcmpi(RealWrapperMode, "dinput.dll") == 0)
+		{
+			StartDinput();
+		}
 		// Start wrapper
-		proxy_dll = Wrapper::CreateWrapper((RealDllPath.size()) ? RealDllPath.c_str() : nullptr, (WrapperMode.size()) ? WrapperMode.c_str() : nullptr, WrapperName.c_str());
+		else
+		{
+			proxy_dll = Wrapper::CreateWrapper((RealDllPath.size()) ? RealDllPath.c_str() : nullptr, (WrapperMode.size()) ? WrapperMode.c_str() : nullptr, WrapperName.c_str());
+		}
 
 		// Don't load DxWrapper
 		if (StubOnly)
@@ -110,8 +130,14 @@ bool APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 		GetModuleFileNameA(hModule, path, sizeof(path));
 		strcpy_s(strrchr(path, '\\'), MAX_PATH - strlen(path), "\\dxwrapper.dll");
 
+		// Check if the dll is already loaded
+		wrapper_dll = GetModuleHandle(path);
+		if (wrapper_dll)
+		{
+			// Already loaded
+		}
 		// Use MemoryModule to load dxwrapper
-		if (LoadFromMemory)
+		else if (LoadFromMemory)
 		{
 			// Get config file name for log
 			myfile.open(path, std::ios::binary | std::ios::in | std::ios::ate);

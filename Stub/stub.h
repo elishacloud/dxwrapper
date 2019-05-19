@@ -21,6 +21,10 @@
 #define _TO_STRING(x) _TO_STRING_(x)
 #define APP_VERSION _TO_STRING(APP_MAJOR) "." _TO_STRING(APP_MINOR) "." _TO_STRING(APP_BUILDNUMBER) "." _TO_STRING(APP_REVISION)
 
+// Forward declaration
+void StartDdraw();
+void StartD3d8();
+void StartDinput();
 
 // Next default values for new objects
 // 

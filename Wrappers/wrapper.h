@@ -4,6 +4,7 @@ namespace Wrapper
 {
 	bool ValidProcAddress(FARPROC ProcAddress);
 	void ShimProc(FARPROC &var, FARPROC in, FARPROC &out);
+	const char *GetWrapperName(const char *WrapperMode);
 	bool CheckWrapperName(const char *WrapperMode);
 	HMODULE CreateWrapper(const char *ProxyDll, const char *WrapperMode, const char *MyDllName);
 }
