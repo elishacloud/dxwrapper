@@ -226,6 +226,7 @@ void ConvertCaps(DDCAPS &Caps7, D3DCAPS9 &Caps9)
 	tmpCaps7.dwSize = min(sizeof(DDCAPS), Caps7.dwSize);
 
 	// General settings
+	tmpCaps7.dwPalCaps = DDPCAPS_8BIT | DDPCAPS_ALLOW256;
 	tmpCaps7.dwMaxVisibleOverlays = 0x1;
 	tmpCaps7.dwNumFourCCCodes = 0x12;
 	tmpCaps7.dwRops[6] = 4096;
@@ -247,7 +248,6 @@ void ConvertCaps(DDCAPS &Caps7, D3DCAPS9 &Caps9)
 		DDSCAPS_PRIMARYSURFACE | DDSCAPS_TEXTURE | DDSCAPS_3DDEVICE | DDSCAPS_VIDEOMEMORY | DDSCAPS_ZBUFFER | DDSCAPS_OWNDC | DDSCAPS_MIPMAP | DDSCAPS_LOCALVIDMEM |
 		DDSCAPS_NONLOCALVIDMEM);
 	ConvertCaps(tmpCaps7.ddsOldCaps, tmpCaps7.ddsCaps);
-	tmpCaps7.ddsOldCaps.dwCaps = tmpCaps7.ddsCaps.dwCaps;
 
 	// Copy to variable
 	CopyMemory(&Caps7, &tmpCaps7, tmpCaps7.dwSize);
@@ -314,7 +314,12 @@ D3DFORMAT GetDisplayFormat(DDPIXELFORMAT ddpfPixelFormat)
 		{
 		case 8:
 			// Default 8-bit
-			return D3DFMT_L8;
+			if (ddpfPixelFormat.dwFlags & DDPF_LUMINANCE)
+			{
+				return D3DFMT_L8;
+			}
+			// Default 16-bit
+			return D3DFMT_P8;
 		case 16:
 			if (ddpfPixelFormat.dwGBitMask == 0x3E0)
 			{
@@ -393,50 +398,50 @@ void GetPixelDisplayFormat(D3DFORMAT Format, DDPIXELFORMAT &ddpfPixelFormat)
 	CopyMemory(&tmpPixelFormat, &ddpfPixelFormat, dwSize);
 	tmpPixelFormat.dwSize = dwSize;
 
-	// Supported RGB formats
-	if (Format == D3DFMT_R5G6B5 || Format == D3DFMT_X1R5G5B5 || Format == D3DFMT_A1R5G5B5 || Format == D3DFMT_X8R8G8B8 || Format == D3DFMT_A8R8G8B8 || Format == D3DFMT_A2R10G10B10)
+	tmpPixelFormat.dwFlags = DDPF_RGB;
+	tmpPixelFormat.dwRGBBitCount = GetBitCount(Format);
+
+	// Set BitCount and BitMask
+	switch (Format)
 	{
-		tmpPixelFormat.dwFlags = DDPF_RGB;
-		tmpPixelFormat.dwRGBBitCount = GetBitCount(Format);
-
-		// Set BitCount and BitMask
-		switch (Format)
-		{
-		case D3DFMT_R5G6B5:
-			tmpPixelFormat.dwRBitMask = 0xF800;
-			tmpPixelFormat.dwGBitMask = 0x7E0;
-			tmpPixelFormat.dwBBitMask = 0x1F;
-			break;
-		case D3DFMT_A1R5G5B5:
-			tmpPixelFormat.dwFlags |= DDPF_ALPHAPIXELS;
-			tmpPixelFormat.dwRGBAlphaBitMask = 0x8000;
-		case D3DFMT_X1R5G5B5:
-			tmpPixelFormat.dwRBitMask = 0x7C00;
-			tmpPixelFormat.dwGBitMask = 0x3E0;
-			tmpPixelFormat.dwBBitMask = 0x1F;
-			break;
-		case D3DFMT_A8R8G8B8:
-			tmpPixelFormat.dwFlags |= DDPF_ALPHAPIXELS;
-			tmpPixelFormat.dwRGBAlphaBitMask = 0xFF000000;
-		case D3DFMT_X8R8G8B8:
-			tmpPixelFormat.dwRBitMask = 0xFF0000;
-			tmpPixelFormat.dwGBitMask = 0xFF00;
-			tmpPixelFormat.dwBBitMask = 0xFF;
-			break;
-		case D3DFMT_A2R10G10B10:
-			tmpPixelFormat.dwFlags |= DDPF_ALPHAPIXELS;
-			tmpPixelFormat.dwRGBAlphaBitMask = 0xC0000000;
-			tmpPixelFormat.dwRBitMask = 0x3FF00000;
-			tmpPixelFormat.dwGBitMask = 0xFFC00;
-			tmpPixelFormat.dwBBitMask = 0x3FF;
-			break;
-		}
-
-		// Copy to variable
-		CopyMemory(&ddpfPixelFormat, &tmpPixelFormat, dwSize);
+	case D3DFMT_P8:
+		tmpPixelFormat.dwFlags |= DDPF_PALETTEINDEXED8;
+		tmpPixelFormat.dwRBitMask = 0xe0;
+		tmpPixelFormat.dwGBitMask = 0x18;
+		tmpPixelFormat.dwBBitMask = 0x7;
+	case D3DFMT_R5G6B5:
+		tmpPixelFormat.dwRBitMask = 0xF800;
+		tmpPixelFormat.dwGBitMask = 0x7E0;
+		tmpPixelFormat.dwBBitMask = 0x1F;
+		break;
+	case D3DFMT_A1R5G5B5:
+		tmpPixelFormat.dwFlags |= DDPF_ALPHAPIXELS;
+		tmpPixelFormat.dwRGBAlphaBitMask = 0x8000;
+	case D3DFMT_X1R5G5B5:
+		tmpPixelFormat.dwRBitMask = 0x7C00;
+		tmpPixelFormat.dwGBitMask = 0x3E0;
+		tmpPixelFormat.dwBBitMask = 0x1F;
+		break;
+	case D3DFMT_A8R8G8B8:
+		tmpPixelFormat.dwFlags |= DDPF_ALPHAPIXELS;
+		tmpPixelFormat.dwRGBAlphaBitMask = 0xFF000000;
+	case D3DFMT_X8R8G8B8:
+		tmpPixelFormat.dwRBitMask = 0xFF0000;
+		tmpPixelFormat.dwGBitMask = 0xFF00;
+		tmpPixelFormat.dwBBitMask = 0xFF;
+		break;
+	case D3DFMT_A2R10G10B10:
+		tmpPixelFormat.dwFlags |= DDPF_ALPHAPIXELS;
+		tmpPixelFormat.dwRGBAlphaBitMask = 0xC0000000;
+		tmpPixelFormat.dwRBitMask = 0x3FF00000;
+		tmpPixelFormat.dwGBitMask = 0xFFC00;
+		tmpPixelFormat.dwBBitMask = 0x3FF;
+		break;
+	default:
+		LOG_LIMIT(100, __FUNCTION__ << " Display format not Implemented: " << Format);
 		return;
 	}
 
-	LOG_LIMIT(100, __FUNCTION__ << " Display format not Implemented: " << Format);
-	return;
+	// Copy to variable
+	CopyMemory(&ddpfPixelFormat, &tmpPixelFormat, dwSize);
 }

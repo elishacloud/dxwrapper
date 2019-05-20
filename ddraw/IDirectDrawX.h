@@ -1,5 +1,7 @@
 #pragma once
 
+#include "IDirectDrawPalette.h"
+
 constexpr DWORD MaxVidMemory = 0x8000000;
 
 class m_IDirectDrawX : public IUnknown
@@ -57,6 +59,9 @@ private:
 
 	// Store a list of surfaces
 	std::vector<m_IDirectDrawSurfaceX*> SurfaceVector;
+
+	// Store a list of palettes
+	std::vector<m_IDirectDrawPalette*> PaletteVector;
 
 	// Store d3d interface
 	m_IDirect3DX *D3DInterface = nullptr;
@@ -186,10 +191,10 @@ public:
 	// Direct3D9 interfaces
 	LPDIRECT3D9 GetDirect3D9Object() { return d3d9Object; }
 	LPDIRECT3DDEVICE9 *GetDirect3D9Device() { return &d3d9Device; }
-	m_IDirect3DDeviceX **GetCurrentD3DDevice() { return &D3DDeviceInterface; }
-	void SetD3DDevice(m_IDirect3DDeviceX *D3DDevice) { D3DDeviceInterface = D3DDevice; }
-	void ClearD3DDevice() { D3DDeviceInterface = nullptr; }
 	void ClearD3D() { D3DInterface = nullptr; }
+	void ClearD3DDevice() { D3DDeviceInterface = nullptr; }
+	void SetD3DDevice(m_IDirect3DDeviceX *D3DDevice) { D3DDeviceInterface = D3DDevice; }
+	m_IDirect3DDeviceX **GetCurrentD3DDevice() { return &D3DDeviceInterface; }
 
 	// Device information functions
 	HWND GetHwnd() { return MainhWnd; }
@@ -199,6 +204,7 @@ public:
 	HRESULT CheckInterface(char *FunctionName, bool CheckD3DDevice);
 	HRESULT CreateD3D9Device();
 	HRESULT ReinitDevice();
+	void ReleaseAllD9Palettes();
 	void ReleaseAllD9Surfaces(bool ClearDDraw = false);
 	void ReleaseD3d9Device();
 	void ReleaseAllD3d9();
@@ -208,6 +214,11 @@ public:
 	void RemoveSurfaceFromVector(m_IDirectDrawSurfaceX* lpSurfaceX);
 	bool DoesSurfaceExist(m_IDirectDrawSurfaceX* lpSurfaceX);
 	void EvictManagedTextures();
+	void PresentPrimarySurface();
+
+	// Palette vector functions
+	void AddPaletteToVector(m_IDirectDrawPalette* lpPalette);
+	void RemovePaletteFromVector(m_IDirectDrawPalette* lpPalette);
 
 	// Video memory size
 	static void SetVidMemory(LPDWORD lpdwTotal, LPDWORD lpdwFree);

@@ -43,6 +43,8 @@ typedef HRESULT(WINAPI *SetAppCompatDataProc)(DWORD, DWORD);
 
 namespace DdrawWrapper
 {
+	char dllname[MAX_PATH];
+
 #define INITIALIZE_WRAPPED_PROC(procName, unused) \
 	procName ## Proc m_p ## procName = nullptr;
 
@@ -61,10 +63,7 @@ void InitDdraw()
 	if (RunOnce)
 	{
 		// Load dll
-		char path[MAX_PATH];
-		GetSystemDirectoryA(path, MAX_PATH);
-		strcat_s(path, "\\ddraw.dll");
-		HMODULE ddrawdll = LoadLibraryA(path);
+		HMODULE ddrawdll = LoadLibraryA(dllname);
 
 		// Get function addresses
 #define INITIALIZE_WRAPPED_PROC(procName, unused) \
@@ -343,8 +342,18 @@ HRESULT WINAPI dd_SetAppCompatData(DWORD Type, DWORD Value)
 	return m_pSetAppCompatData(Type, Value);
 }
 
-void StartDdraw()
+void StartDdraw(const char *name)
 {
+	if (name)
+	{
+		strcpy_s(dllname, MAX_PATH, name);
+	}
+	else
+	{
+		GetSystemDirectoryA(dllname, MAX_PATH);
+		strcat_s(dllname, "\\ddraw.dll");
+	}
+
 #define INITIALIZE_WRAPPED_PROC(procName, unused) \
 	ddraw::procName ## _var = (FARPROC)*dd_ ## procName;
 

@@ -226,7 +226,9 @@ HRESULT m_IDirectDrawX::CreatePalette(DWORD dwFlags, LPPALETTEENTRY lpDDColorArr
 			return DDERR_INVALIDPARAMS;
 		}
 
-		*lplpDDPalette = new m_IDirectDrawPalette(dwFlags, lpDDColorArray);
+		*lplpDDPalette = new m_IDirectDrawPalette(this, dwFlags, lpDDColorArray);
+
+		AddPaletteToVector((m_IDirectDrawPalette*)*lplpDDPalette);
 
 		return DD_OK;
 	}
@@ -313,9 +315,7 @@ HRESULT m_IDirectDrawX::CreateSurface2(LPDDSURFACEDESC2 lpDDSurfaceDesc2, LPDIRE
 			switch (displayModeBPP)
 			{
 			case 8:
-				Desc2.ddpfPixelFormat.dwRBitMask = 0;
-				Desc2.ddpfPixelFormat.dwGBitMask = 0;
-				Desc2.ddpfPixelFormat.dwBBitMask = 0;
+				GetPixelDisplayFormat(D3DFMT_P8, Desc2.ddpfPixelFormat);
 				break;
 			case 16:
 				GetPixelDisplayFormat(D3DFMT_R5G6B5, Desc2.ddpfPixelFormat);
@@ -468,7 +468,7 @@ HRESULT m_IDirectDrawX::EnumDisplayModes2(DWORD dwFlags, LPDDSURFACEDESC2 lpDDSu
 
 		// Get display modes to enum
 		bool DisplayAllModes = (!lpDDSurfaceDesc2);
-		DWORD DisplayBitCount = displayModeBPP;
+		DWORD DisplayBitCount = (displayModeBPP) ? displayModeBPP : (Config.Force32bitColor) ? 32 : (Config.Force16bitColor) ? 16 : 0;
 		if (!DisplayAllModes && lpDDSurfaceDesc2 && (lpDDSurfaceDesc2->dwFlags & DDSD_PIXELFORMAT) != 0)
 		{
 			DisplayBitCount = GetBitCount(lpDDSurfaceDesc2->ddpfPixelFormat);
@@ -526,14 +526,10 @@ HRESULT m_IDirectDrawX::EnumDisplayModes2(DWORD dwFlags, LPDDSURFACEDESC2 lpDDSu
 
 					// Set surface desc options
 					Desc2.dwSize = sizeof(DDSURFACEDESC2);
-					Desc2.dwFlags = DDSD_WIDTH | DDSD_HEIGHT | DDSD_PITCH | DDSD_PIXELFORMAT;
+					Desc2.dwFlags = DDSD_WIDTH | DDSD_HEIGHT | DDSD_REFRESHRATE | DDSD_PITCH | DDSD_PIXELFORMAT;
 					Desc2.dwWidth = d3ddispmode.Width;
 					Desc2.dwHeight = d3ddispmode.Height;
-					if (dwFlags & DDEDM_REFRESHRATES)
-					{
-						Desc2.dwFlags |= DDSD_REFRESHRATE;
-						Desc2.dwRefreshRate = d3ddispmode.RefreshRate;
-					}
+					Desc2.dwRefreshRate = d3ddispmode.RefreshRate;
 
 					// Set adapter pixel format
 					Desc2.ddpfPixelFormat.dwSize = sizeof(DDPIXELFORMAT);
@@ -542,10 +538,7 @@ HRESULT m_IDirectDrawX::EnumDisplayModes2(DWORD dwFlags, LPDDSURFACEDESC2 lpDDSu
 					switch (DisplayBitCount)
 					{
 					case 8:
-						Desc2.ddpfPixelFormat.dwRGBBitCount = DisplayBitCount;
-						Desc2.ddpfPixelFormat.dwRBitMask = 0;
-						Desc2.ddpfPixelFormat.dwGBitMask = 0;
-						Desc2.ddpfPixelFormat.dwBBitMask = 0;
+						GetPixelDisplayFormat(D3DFMT_P8, Desc2.ddpfPixelFormat);
 						break;
 					case 16:
 						GetPixelDisplayFormat(D3DFMT_R5G6B5, Desc2.ddpfPixelFormat);
@@ -668,8 +661,8 @@ HRESULT m_IDirectDrawX::GetCaps(LPDDCAPS lpDDDriverCaps, LPDDCAPS lpDDHELCaps)
 		}
 
 		// Get video memory
-		DWORD dwVidTotal = 0;
-		DWORD dwVidFree = 0;
+		DWORD dwVidTotal = MaxVidMemory;
+		DWORD dwVidFree = MaxVidMemory - 0x100000;
 		GetAvailableVidMem2(nullptr, &dwVidTotal, &dwVidFree);
 
 		// Get caps
@@ -790,9 +783,7 @@ HRESULT m_IDirectDrawX::GetDisplayMode2(LPDDSURFACEDESC2 lpDDSurfaceDesc2)
 		switch (displayModeBits)
 		{
 		case 8:
-			lpDDSurfaceDesc2->ddpfPixelFormat.dwRBitMask = 0;
-			lpDDSurfaceDesc2->ddpfPixelFormat.dwGBitMask = 0;
-			lpDDSurfaceDesc2->ddpfPixelFormat.dwBBitMask = 0;
+			GetPixelDisplayFormat(D3DFMT_P8, lpDDSurfaceDesc2->ddpfPixelFormat);
 			break;
 		case 16:
 			GetPixelDisplayFormat(D3DFMT_R5G6B5, lpDDSurfaceDesc2->ddpfPixelFormat);
@@ -1342,17 +1333,21 @@ HRESULT m_IDirectDrawX::TestCooperativeLevel()
 
 	if (Config.Dd7to9)
 	{
-		if (ExclusiveMode)
+		if (!d3d9Device)
 		{
-			return DDERR_EXCLUSIVEMODEALREADYSET;
+			if (ExclusiveMode)
+			{
+				return DDERR_EXCLUSIVEMODEALREADYSET;
+			}
+
+			// ToDo: impement the following return codes
+			//
+			// DDERR_NOEXCLUSIVEMODE - Operation requires the application to have exclusive mode but the application does not have exclusive mode.
+			// DDERR_WRONGMODE - This surface can not be restored because it was created in a different mode.
+			return DD_OK;
 		}
 
-		// ToDo: impement the following return codes
-		//
-		// DDERR_NOEXCLUSIVEMODE - Operation requires the application to have exclusive mode but the application does not have exclusive mode.
-		// DDERR_WRONGMODE - This surface can not be restored because it was created in a different mode.
-
-		return DD_OK;
+		return d3d9Device->TestCooperativeLevel();
 	}
 
 	return ProxyInterface->TestCooperativeLevel();
@@ -1450,21 +1445,11 @@ HRESULT m_IDirectDrawX::EvaluateMode(DWORD dwFlags, DWORD * pSecondsUntilTimeout
 
 HRESULT m_IDirectDrawX::CheckInterface(char *FunctionName, bool CheckD3DDevice)
 {
-	SetCriticalSection();
-
 	// Check for device
-	HRESULT hr = DD_OK;
 	if (!d3d9Object)
 	{
 		LOG_LIMIT(100, FunctionName << " Error: no d3d9 object!");
-		hr = DDERR_GENERIC;
-	}
-
-	ReleaseCriticalSection();
-
-	if (FAILED(hr))
-	{
-		return hr;
+		return DDERR_GENERIC;
 	}
 
 	// Check for device, if not then create it
@@ -1639,13 +1624,9 @@ HRESULT m_IDirectDrawX::ReinitDevice()
 		return DDERR_GENERIC;
 	}
 
-	SetCriticalSection();
-
 	do {
 		Sleep(100);
 	} while (d3d9Device->TestCooperativeLevel() == D3DERR_DEVICELOST);
-
-	ReleaseCriticalSection();
 
 	// Release existing surfaces
 	ReleaseAllD9Surfaces();
@@ -1662,6 +1643,18 @@ HRESULT m_IDirectDrawX::ReinitDevice()
 
 	// Success
 	return DD_OK;
+}
+
+// Release all d3d9 Palettes
+void m_IDirectDrawX::ReleaseAllD9Palettes()
+{
+	SetCriticalSection();
+	for (m_IDirectDrawPalette *pPalette : PaletteVector)
+	{
+			pPalette->ClearDdraw();
+	}
+	PaletteVector.clear();
+	ReleaseCriticalSection();
 }
 
 // Release all d3d9 surfaces
@@ -1708,6 +1701,9 @@ void m_IDirectDrawX::ReleaseD3d9Device()
 void m_IDirectDrawX::ReleaseAllD3d9()
 {
 	// ToDo: Release all m_Direct3DX objects.
+
+	// Release all palettes
+	ReleaseAllD9Palettes();
 
 	// Release existing surfaces
 	ReleaseAllD9Surfaces(true);
@@ -1786,6 +1782,48 @@ void m_IDirectDrawX::EvictManagedTextures()
 		{
 			pSurface->ReleaseD9Surface();
 		}
+	}
+}
+
+void m_IDirectDrawX::PresentPrimarySurface()
+{
+	// Check for primary surface
+	for (m_IDirectDrawSurfaceX *pSurface : SurfaceVector)
+	{
+		if (pSurface->IsPrimarySurface())
+		{
+			pSurface->PresentSurface();
+			return;
+		}
+	}
+}
+
+// Add palette wrapper to vector
+void m_IDirectDrawX::AddPaletteToVector(m_IDirectDrawPalette* lpPalette)
+{
+	if (!lpPalette)
+	{
+		return;
+	}
+
+	// Store palette
+	PaletteVector.push_back(lpPalette);
+}
+
+// Remove palette wrapper from vector
+void m_IDirectDrawX::RemovePaletteFromVector(m_IDirectDrawPalette* lpPalette)
+{
+	if (!lpPalette)
+	{
+		return;
+	}
+
+	auto it = std::find_if(PaletteVector.begin(), PaletteVector.end(),
+		[=](auto pPalette) -> bool { return pPalette == lpPalette; });
+
+	if (it != std::end(PaletteVector))
+	{
+		PaletteVector.erase(it);
 	}
 }
 

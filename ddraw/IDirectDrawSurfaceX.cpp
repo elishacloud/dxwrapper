@@ -1185,23 +1185,7 @@ HRESULT m_IDirectDrawSurfaceX::GetSurfaceDesc2(LPDDSURFACEDESC2 lpDDSurfaceDesc2
 			lpDDSurfaceDesc2->ddpfPixelFormat.dwRGBBitCount = Desc2.ddpfPixelFormat.dwRGBBitCount;
 
 			// Set BitMask
-			switch (lpDDSurfaceDesc2->ddpfPixelFormat.dwRGBBitCount)
-			{
-			case 8:
-				lpDDSurfaceDesc2->ddpfPixelFormat.dwRBitMask = 0;
-				lpDDSurfaceDesc2->ddpfPixelFormat.dwGBitMask = 0;
-				lpDDSurfaceDesc2->ddpfPixelFormat.dwBBitMask = 0;
-				break;
-			case 16:
-				GetPixelDisplayFormat(D3DFMT_R5G6B5, lpDDSurfaceDesc2->ddpfPixelFormat);
-				break;
-			case 32:
-				GetPixelDisplayFormat(D3DFMT_X8R8G8B8, lpDDSurfaceDesc2->ddpfPixelFormat);
-				break;
-			default:
-				LOG_LIMIT(100, __FUNCTION__ << " Not implemented bit count " << lpDDSurfaceDesc2->ddpfPixelFormat.dwRGBBitCount);
-				return DDERR_UNSUPPORTED;
-			}
+			GetPixelDisplayFormat(GetDisplayFormat(Desc2.ddpfPixelFormat), lpDDSurfaceDesc2->ddpfPixelFormat);
 		}
 
 		// Return
@@ -1588,7 +1572,7 @@ HRESULT m_IDirectDrawSurfaceX::Unlock(LPRECT lpRect)
 	if (Config.Dd7to9)
 	{
 		// Unlock surface
-		return SetUnLock();
+		return SetUnlock();
 	}
 
 	return ProxyInterface->Unlock(lpRect);
@@ -1957,21 +1941,11 @@ HRESULT m_IDirectDrawSurfaceX::GetLOD(LPDWORD lpdwMaxLOD)
 
 HRESULT m_IDirectDrawSurfaceX::CheckInterface(char *FunctionName, bool CheckD3DDevice, bool CheckD3DSurface)
 {
-	SetCriticalSection();
-
 	// Check for device
-	HRESULT hr = DD_OK;
 	if (!ddrawParent)
 	{
 		LOG_LIMIT(100, FunctionName << " Error: no ddraw parent!");
-		hr = DDERR_GENERIC;
-	}
-
-	ReleaseCriticalSection();
-
-	if (FAILED(hr))
-	{
-		return hr;
+		return DDERR_GENERIC;
 	}
 
 	// Check for device, if not then create it
@@ -2099,6 +2073,7 @@ HRESULT m_IDirectDrawSurfaceX::CreateD3d9Surface()
 
 	// Get format
 	D3DFORMAT Format = GetDisplayFormat(surfaceDesc2.ddpfPixelFormat);
+	Format = (Format == D3DFMT_P8) ? D3DFMT_L8 : Format;
 
 	Logging::LogDebug() << __FUNCTION__ << " D3d9 Surface size: " << surfaceDesc2.dwWidth << "x" << surfaceDesc2.dwHeight << " Usage: " << Usage << " Format: " << Format << " Pool: " << Pool;
 
@@ -2509,7 +2484,7 @@ HRESULT m_IDirectDrawSurfaceX::SetLock(D3DLOCKED_RECT* pLockedRect, LPRECT lpDes
 }
 
 // Unlock the d3d9 surface
-HRESULT m_IDirectDrawSurfaceX::SetUnLock(BOOL isSkipScene)
+HRESULT m_IDirectDrawSurfaceX::SetUnlock(BOOL isSkipScene)
 {
 	// Check for device interface
 	if (FAILED(CheckInterface(__FUNCTION__, true, true)))
@@ -2621,7 +2596,7 @@ HRESULT m_IDirectDrawSurfaceX::ColorFill(RECT* pRect, D3DCOLOR dwFillColor)
 		}
 		UnlockDest = true;
 
-		// Get ByteCount and FillColor
+		// Get byte count
 		DWORD ByteCount = DestLockRect.Pitch / surfaceDesc2.dwWidth;
 		if (!ByteCount || ByteCount > 4)
 		{
@@ -2663,7 +2638,7 @@ HRESULT m_IDirectDrawSurfaceX::ColorFill(RECT* pRect, D3DCOLOR dwFillColor)
 	// Unlock surfaces if needed
 	if (UnlockDest)
 	{
-		SetUnLock(true);
+		SetUnlock(true);
 	}
 
 	return hr;
@@ -2734,7 +2709,7 @@ HRESULT m_IDirectDrawSurfaceX::UpdateSurface(m_IDirectDrawSurfaceX* pSourceSurfa
 			}
 			memcpy(&surfaceArray[0], SrcLockRect.pBits, SrcLockRect.Pitch * (SrcRect.bottom - SrcRect.top));
 			SrcLockRect.pBits = &surfaceArray[0];
-			SetUnLock(true);
+			SetUnlock(true);
 			UnlockSrc = false;
 		}
 
@@ -2760,114 +2735,26 @@ HRESULT m_IDirectDrawSurfaceX::UpdateSurface(m_IDirectDrawSurfaceX* pSourceSurfa
 		LONG RectWidth = min(DestRect.right - DestRect.left, SrcRect.right - SrcRect.left);
 		LONG RectHeight = min(DestRect.bottom - DestRect.top, SrcRect.bottom - SrcRect.top);
 
-		// Check if source and destination formats are the same
-		if (SrcFormat == DestFormat ||
+		// Check source and destination format
+		if (!(SrcFormat == DestFormat ||
 			((SrcFormat == D3DFMT_A1R5G5B5 || SrcFormat == D3DFMT_X1R5G5B5) && (DestFormat == D3DFMT_A1R5G5B5 || DestFormat == D3DFMT_X1R5G5B5)) ||
-			((SrcFormat == D3DFMT_A8R8G8B8 || SrcFormat == D3DFMT_X8R8G8B8) && (DestFormat == D3DFMT_A8R8G8B8 || DestFormat == D3DFMT_X8R8G8B8)))
+			((SrcFormat == D3DFMT_A8R8G8B8 || SrcFormat == D3DFMT_X8R8G8B8) && (DestFormat == D3DFMT_A8R8G8B8 || DestFormat == D3DFMT_X8R8G8B8))))
 		{
-			// Create buffer variables
-			BYTE *SrcBuffer = (BYTE*)SrcLockRect.pBits;
-			BYTE *DestBuffer = (BYTE*)DestLockRect.pBits;
-
-			// Copy memory
-			for (LONG y = 0; y < RectHeight; y++)
-			{
-				memcpy(DestBuffer, SrcBuffer, RectWidth * ByteCount);
-				SrcBuffer += SrcLockRect.Pitch;
-				DestBuffer += DestLockRect.Pitch;
-			}
-
-			// Return
-			hr = DD_OK;
-			break;
-		}
-
-		// For destiantion format
-		switch (DestFormat)
-		{
-		case D3DFMT_A8R8G8B8:
-		case D3DFMT_X8R8G8B8:
-		{
-			// Translate source buffer to 32-bit rgb video using specified format
-			UINT32 *DestBuffer = (UINT32*)DestLockRect.pBits;
-			LONG DestPitch = DestLockRect.Pitch / 4;
-
-			switch (SrcFormat)
-			{
-			case D3DFMT_A1R5G5B5:
-			case D3DFMT_X1R5G5B5:
-			{
-				WORD *SrcBuffer = (WORD*)SrcLockRect.pBits;
-				LONG SrcPitch = SrcLockRect.Pitch / 2;
-				for (LONG y = 0; y < RectHeight; y++)
-				{
-					for (LONG x = 0; x < RectWidth; x++)
-					{
-						DestBuffer[x] =
-							((SrcBuffer[x] & 0x8000) << 9) * 255 +		// Alpha
-							((SrcBuffer[x] & 0x7C00) << 9) +			// Red
-							((SrcBuffer[x] & 0x03E0) << 6) +			// Green
-							((SrcBuffer[x] & 0x001F) << 3);				// Blue
-					}
-					SrcBuffer += SrcPitch;
-					DestBuffer += DestPitch;
-				}
-				break;
-			}
-			case D3DFMT_R5G6B5:
-			{
-				WORD *SrcBuffer = (WORD*)SrcLockRect.pBits;
-				LONG SrcPitch = SrcLockRect.Pitch / 2;
-				for (LONG y = 0; y < RectHeight; y++)
-				{
-					for (LONG x = 0; x < RectWidth; x++)
-					{
-						DestBuffer[x] =
-							(0xFF000000) +						// Alpha
-							((SrcBuffer[x] & 0xF800) << 8) +	// Red
-							((SrcBuffer[x] & 0x07E0) << 5) +	// Green
-							((SrcBuffer[x] & 0x001F) << 3);		// Blue
-					}
-					SrcBuffer += SrcPitch;
-					DestBuffer += DestPitch;
-				}
-				break;
-			}
-			case D3DFMT_L8:
-			case D3DFMT_P8:
-			{
-				const DWORD *memPalette = (pSourceSurface->attachedPalette && pSourceSurface->attachedPalette->rgbPalette) ? pSourceSurface->attachedPalette->rgbPalette : rgbPalette;
-
-				BYTE *SrcBuffer = (BYTE*)SrcLockRect.pBits;
-				for (LONG y = 0; y < RectHeight; y++)
-				{
-					for (LONG x = 0; x < RectWidth; x++)
-					{
-						DestBuffer[x] = memPalette[SrcBuffer[x]];
-					}
-					SrcBuffer += SrcLockRect.Pitch;
-					DestBuffer += DestPitch;
-				}
-				break;
-			}
-			case D3DFMT_A2R10G10B10:
-			default: // Unsupported source surface with 32-bit destination surface
-				LOG_LIMIT(100, __FUNCTION__ << " Unsupported source format type: " << SrcFormat);
-				hr = DDERR_GENERIC;
-				break;
-			}
-			break;
-		}
-		case D3DFMT_A2R10G10B10:
-		case D3DFMT_A1R5G5B5:
-		case D3DFMT_X1R5G5B5:
-		case D3DFMT_R5G6B5:
-		case D3DFMT_L8:
-		case D3DFMT_P8:
-		default:
-			LOG_LIMIT(100, __FUNCTION__ << " Unsupported destination format type: " << DestFormat);
+			LOG_LIMIT(100, __FUNCTION__ << " Error: not supported for different source and destination formats! " << SrcFormat << "-->" << DestFormat);
 			hr = DDERR_GENERIC;
 			break;
+		}
+
+		// Create buffer variables
+		BYTE *SrcBuffer = (BYTE*)SrcLockRect.pBits;
+		BYTE *DestBuffer = (BYTE*)DestLockRect.pBits;
+
+		// Copy memory
+		for (LONG y = 0; y < RectHeight; y++)
+		{
+			memcpy(DestBuffer, SrcBuffer, RectWidth * ByteCount);
+			SrcBuffer += SrcLockRect.Pitch;
+			DestBuffer += DestLockRect.Pitch;
 		}
 
 	} while (false);
@@ -2875,11 +2762,11 @@ HRESULT m_IDirectDrawSurfaceX::UpdateSurface(m_IDirectDrawSurfaceX* pSourceSurfa
 	// Unlock surfaces if needed
 	if (UnlockDest)
 	{
-		SetUnLock(true);
+		SetUnlock(true);
 	}
 	if (UnlockSrc)
 	{
-		pSourceSurface->SetUnLock(true);
+		pSourceSurface->SetUnlock(true);
 	}
 
 	// Return
@@ -2951,7 +2838,7 @@ HRESULT m_IDirectDrawSurfaceX::UpdateSurfaceColorKey(m_IDirectDrawSurfaceX* pSou
 			}
 			memcpy(&surfaceArray[0], SrcLockRect.pBits, SrcLockRect.Pitch * (SrcRect.bottom - SrcRect.top));
 			SrcLockRect.pBits = &surfaceArray[0];
-			SetUnLock(true);
+			SetUnlock(true);
 			UnlockSrc = false;
 		}
 
@@ -2965,9 +2852,11 @@ HRESULT m_IDirectDrawSurfaceX::UpdateSurfaceColorKey(m_IDirectDrawSurfaceX* pSou
 		UnlockDest = true;
 
 		// Check source and destination format
-		if (SrcFormat != DestFormat)
+		if (!(SrcFormat == DestFormat ||
+			((SrcFormat == D3DFMT_A1R5G5B5 || SrcFormat == D3DFMT_X1R5G5B5) && (DestFormat == D3DFMT_A1R5G5B5 || DestFormat == D3DFMT_X1R5G5B5)) ||
+			((SrcFormat == D3DFMT_A8R8G8B8 || SrcFormat == D3DFMT_X8R8G8B8) && (DestFormat == D3DFMT_A8R8G8B8 || DestFormat == D3DFMT_X8R8G8B8))))
 		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error: copying color key for different source and destination formats not supported");
+			LOG_LIMIT(100, __FUNCTION__ << " Error: not supported for different source and destination formats! " << SrcFormat << "-->" << DestFormat);
 			hr = DDERR_GENERIC;
 			break;
 		}
@@ -3019,11 +2908,11 @@ HRESULT m_IDirectDrawSurfaceX::UpdateSurfaceColorKey(m_IDirectDrawSurfaceX* pSou
 	// Unlock surfaces if needed
 	if (UnlockDest)
 	{
-		SetUnLock(true);
+		SetUnlock(true);
 	}
 	if (UnlockSrc)
 	{
-		pSourceSurface->SetUnLock(true);
+		pSourceSurface->SetUnlock(true);
 	}
 
 	// Return
@@ -3085,7 +2974,7 @@ HRESULT m_IDirectDrawSurfaceX::StretchRect(m_IDirectDrawSurfaceX* pSourceSurface
 			}
 			memcpy(&surfaceArray[0], SrcLockRect.pBits, SrcLockRect.Pitch * (SrcRect.bottom - SrcRect.top));
 			SrcLockRect.pBits = &surfaceArray[0];
-			SetUnLock(true);
+			SetUnlock(true);
 			UnlockSrc = false;
 		}
 
@@ -3099,9 +2988,11 @@ HRESULT m_IDirectDrawSurfaceX::StretchRect(m_IDirectDrawSurfaceX* pSourceSurface
 		UnlockDest = true;
 
 		// Check source and destination format
-		if (SrcFormat != DestFormat)
+		if (!(SrcFormat == DestFormat ||
+			((SrcFormat == D3DFMT_A1R5G5B5 || SrcFormat == D3DFMT_X1R5G5B5) && (DestFormat == D3DFMT_A1R5G5B5 || DestFormat == D3DFMT_X1R5G5B5)) ||
+			((SrcFormat == D3DFMT_A8R8G8B8 || SrcFormat == D3DFMT_X8R8G8B8) && (DestFormat == D3DFMT_A8R8G8B8 || DestFormat == D3DFMT_X8R8G8B8))))
 		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error: stretch rect for different source and destination formats not supported");
+			LOG_LIMIT(100, __FUNCTION__ << " Error: not supported for different source and destination formats! " << SrcFormat << "-->" << DestFormat);
 			hr = DDERR_GENERIC;
 			break;
 		}
@@ -3145,11 +3036,11 @@ HRESULT m_IDirectDrawSurfaceX::StretchRect(m_IDirectDrawSurfaceX* pSourceSurface
 	// Unlock surfaces if needed
 	if (UnlockDest)
 	{
-		SetUnLock(true);
+		SetUnlock(true);
 	}
 	if (UnlockSrc)
 	{
-		pSourceSurface->SetUnLock(true);
+		pSourceSurface->SetUnlock(true);
 	}
 
 	// Return

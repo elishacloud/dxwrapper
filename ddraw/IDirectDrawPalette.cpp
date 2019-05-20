@@ -169,8 +169,24 @@ HRESULT m_IDirectDrawPalette::SetEntries(DWORD dwFlags, DWORD dwStartingEntry, D
 		// Note that there is new palette data
 		NewPaletteData = true;
 
+		// Present new palette
+		if (ddrawParent)
+		{
+			ddrawParent->PresentPrimarySurface();
+		}
+
 		return DD_OK;
 	}
 
 	return ProxyInterface->SetEntries(dwFlags, dwStartingEntry, dwCount, lpEntries);
+}
+
+void m_IDirectDrawPalette::ReleaseInterface()
+{
+	SetCriticalSection();
+	if (ddrawParent)
+	{
+		ddrawParent->RemovePaletteFromVector(this);
+	}
+	ReleaseCriticalSection();
 }

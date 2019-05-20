@@ -30,6 +30,8 @@ typedef HRESULT(WINAPI *DllUnregisterServerProc)();
 
 namespace DinputWrapper
 {
+	char dllname[MAX_PATH];
+
 #define INITIALIZE_WRAPPED_PROC(procName, unused) \
 	procName ## Proc m_p ## procName = nullptr;
 
@@ -48,10 +50,7 @@ void InitDinput()
 	if (RunOnce)
 	{
 		// Load dll
-		char path[MAX_PATH];
-		GetSystemDirectoryA(path, MAX_PATH);
-		strcat_s(path, "\\dinput.dll");
-		HMODULE dinputdll = LoadLibraryA(path);
+		HMODULE dinputdll = LoadLibraryA(dllname);
 
 		// Get function addresses
 #define INITIALIZE_WRAPPED_PROC(procName, unused) \
@@ -150,8 +149,18 @@ HRESULT WINAPI di_DllUnregisterServer()
 	return m_pDllUnregisterServer();
 }
 
-void StartDinput()
+void StartDinput(const char *name)
 {
+	if (name)
+	{
+		strcpy_s(dllname, MAX_PATH, name);
+	}
+	else
+	{
+		GetSystemDirectoryA(dllname, MAX_PATH);
+		strcat_s(dllname, "\\dinput.dll");
+	}
+
 #define INITIALIZE_WRAPPED_PROC(procName, unused) \
 	dinput::procName ## _var = (FARPROC)*di_ ## procName;
 

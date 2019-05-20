@@ -6,6 +6,9 @@ private:
 	IDirectDrawPalette *ProxyInterface = nullptr;
 	REFIID WrapperID = IID_IDirectDrawPalette;
 	ULONG RefCount = 1;
+
+	// Convert to Direct3D9
+	m_IDirectDrawX *ddrawParent = nullptr;
 	DWORD paletteCaps = 0;						// Palette flags
 	UINT entryCount = 0;						// Number of palette entries
 	bool hasAlpha = false;						// Raw palette has alpha data
@@ -17,7 +20,7 @@ public:
 
 		LOG_LIMIT(3, "Create " << __FUNCTION__);
 	}
-	m_IDirectDrawPalette(DWORD dwFlags, LPPALETTEENTRY lpDDColorArray) : paletteCaps(dwFlags)
+	m_IDirectDrawPalette(m_IDirectDrawX *Interface, DWORD dwFlags, LPPALETTEENTRY lpDDColorArray) : ddrawParent(Interface), paletteCaps(dwFlags)
 	{
 		// Default to 256 entries
 		entryCount = 256;
@@ -92,6 +95,10 @@ public:
 		{
 			delete rgbPalette;
 		}
+		if (Config.Dd7to9 && !Config.Exiting)
+		{
+			ReleaseInterface();
+		}
 	}
 
 	DWORD GetDirectXVersion() { return 1; }
@@ -109,6 +116,13 @@ public:
 	STDMETHOD(GetEntries)(THIS_ DWORD, DWORD, DWORD, LPPALETTEENTRY);
 	STDMETHOD(Initialize)(THIS_ LPDIRECTDRAW, DWORD, LPPALETTEENTRY);
 	STDMETHOD(SetEntries)(THIS_ DWORD, DWORD, DWORD, LPPALETTEENTRY);
+
+	// Functions handling the ddraw parent interface
+	void SetDdrawParent(m_IDirectDrawX *ddraw) { ddrawParent = ddraw; }
+	void ClearDdraw() { ddrawParent = nullptr; }
+
+	// Release interface
+	void ReleaseInterface();
 
 	// Public varables
 	bool NewPaletteData = false;				// Flag to see if there is new palette data

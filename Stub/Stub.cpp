@@ -100,15 +100,15 @@ bool APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 		// Load custom wrapper
 		if (_strcmpi(RealWrapperMode, "ddraw.dll") == 0)
 		{
-			StartDdraw();
+			StartDdraw((RealDllPath.size()) ? RealDllPath.c_str() : nullptr);
 		}
 		else if (_strcmpi(RealWrapperMode, "d3d8.dll") == 0)
 		{
-			StartD3d8();
+			StartD3d8((RealDllPath.size()) ? RealDllPath.c_str() : nullptr);
 		}
 		else if (_strcmpi(RealWrapperMode, "dinput.dll") == 0)
 		{
-			StartDinput();
+			StartDinput((RealDllPath.size()) ? RealDllPath.c_str() : nullptr);
 		}
 		// Start wrapper
 		else

@@ -26,6 +26,8 @@ typedef LPVOID(WINAPI *Direct3DCreate8Proc)(UINT SDKVersion);
 
 namespace D3d8Wrapper
 {
+	char dllname[MAX_PATH];
+
 #define INITIALIZE_WRAPPED_PROC(procName, unused) \
 	procName ## Proc m_p ## procName = nullptr;
 
@@ -44,10 +46,7 @@ void InitD3d8()
 	if (RunOnce)
 	{
 		// Load dll
-		char path[MAX_PATH];
-		GetSystemDirectoryA(path, MAX_PATH);
-		strcat_s(path, "\\d3d8.dll");
-		HMODULE d3d8dll = LoadLibraryA(path);
+		HMODULE d3d8dll = LoadLibraryA(dllname);
 
 		// Get function addresses
 #define INITIALIZE_WRAPPED_PROC(procName, unused) \
@@ -123,8 +122,18 @@ LPVOID WINAPI d8_Direct3DCreate8(UINT SDKVersion)
 	return m_pDirect3DCreate8(SDKVersion);
 }
 
-void StartD3d8()
+void StartD3d8(const char *name)
 {
+	if (name)
+	{
+		strcpy_s(dllname, MAX_PATH, name);
+	}
+	else
+	{
+		GetSystemDirectoryA(dllname, MAX_PATH);
+		strcat_s(dllname, "\\d3d8.dll");
+	}
+
 #define INITIALIZE_WRAPPED_PROC(procName, unused) \
 	d3d8::procName ## _var = (FARPROC)*d8_ ## procName;
 

@@ -22,9 +22,9 @@
 #define APP_VERSION _TO_STRING(APP_MAJOR) "." _TO_STRING(APP_MINOR) "." _TO_STRING(APP_BUILDNUMBER) "." _TO_STRING(APP_REVISION)
 
 // Forward declaration
-void StartDdraw();
-void StartD3d8();
-void StartDinput();
+void StartDdraw(const char *name);
+void StartD3d8(const char *name);
+void StartDinput(const char *name);
 
 // Next default values for new objects
 // 

@@ -60,10 +60,11 @@ void Logging::InitLog()
 	Open(wrappername);
 }
 
-std::ostream& operator<<(std::ostream& os, const DDCAPS& caps)
+std::ostream& operator<<(std::ostream& os, const DDCAPS& cp)
 {
+	DDCAPS caps = { NULL };
+	memcpy(&caps, &cp, min(sizeof(DDCAPS), cp.dwSize));
 	return Logging::LogStruct(os)
-		<< caps.dwSize
 		<< Logging::hex(caps.dwCaps)
 		<< Logging::hex(caps.dwCaps2)
 		<< Logging::hex(caps.dwCKeyCaps)
@@ -71,23 +72,23 @@ std::ostream& operator<<(std::ostream& os, const DDCAPS& caps)
 		<< Logging::hex(caps.dwFXAlphaCaps)
 		<< Logging::hex(caps.dwPalCaps)
 		<< Logging::hex(caps.dwSVCaps)
-		<< Logging::hex(caps.dwAlphaBltConstBitDepths)
-		<< Logging::hex(caps.dwAlphaBltPixelBitDepths)
-		<< Logging::hex(caps.dwAlphaBltSurfaceBitDepths)
-		<< Logging::hex(caps.dwAlphaOverlayConstBitDepths)
-		<< Logging::hex(caps.dwAlphaOverlayPixelBitDepths)
-		<< Logging::hex(caps.dwAlphaOverlaySurfaceBitDepths)
-		<< Logging::hex(caps.dwZBufferBitDepths)
-		<< Logging::hex(caps.dwVidMemTotal)
-		<< Logging::hex(caps.dwVidMemFree)
-		<< Logging::hex(caps.dwMaxVisibleOverlays)
-		<< Logging::hex(caps.dwCurrVisibleOverlays)
-		<< Logging::hex(caps.dwNumFourCCCodes)
-		<< Logging::hex(caps.dwAlignBoundarySrc)
-		<< Logging::hex(caps.dwAlignSizeSrc)
-		<< Logging::hex(caps.dwAlignBoundaryDest)
-		<< Logging::hex(caps.dwAlignSizeDest)
-		<< Logging::hex(caps.dwAlignStrideAlign)
+		<< caps.dwAlphaBltConstBitDepths
+		<< caps.dwAlphaBltPixelBitDepths
+		<< caps.dwAlphaBltSurfaceBitDepths
+		<< caps.dwAlphaOverlayConstBitDepths
+		<< caps.dwAlphaOverlayPixelBitDepths
+		<< caps.dwAlphaOverlaySurfaceBitDepths
+		<< caps.dwZBufferBitDepths
+		<< caps.dwVidMemTotal
+		<< caps.dwVidMemFree
+		<< caps.dwMaxVisibleOverlays
+		<< caps.dwCurrVisibleOverlays
+		<< caps.dwNumFourCCCodes
+		<< caps.dwAlignBoundarySrc
+		<< caps.dwAlignSizeSrc
+		<< caps.dwAlignBoundaryDest
+		<< caps.dwAlignSizeDest
+		<< caps.dwAlignStrideAlign
 		<< "{" << caps.dwRops[0]
 		<< caps.dwRops[1]
 		<< caps.dwRops[2]
@@ -97,13 +98,64 @@ std::ostream& operator<<(std::ostream& os, const DDCAPS& caps)
 		<< caps.dwRops[6]
 		<< caps.dwRops[7] << "}"
 		<< caps.ddsOldCaps
-		<< caps.ddsCaps
-		<< Logging::hex(caps.dwMinOverlayStretch)
-		<< Logging::hex(caps.dwMaxOverlayStretch)
-		<< Logging::hex(caps.dwMinLiveVideoStretch)
-		<< Logging::hex(caps.dwMaxLiveVideoStretch)
-		<< Logging::hex(caps.dwMinHwCodecStretch)
-		<< Logging::hex(caps.dwMaxHwCodecStretch);
+		<< caps.dwMinOverlayStretch
+		<< caps.dwMaxOverlayStretch
+		<< caps.dwMinLiveVideoStretch
+		<< caps.dwMaxLiveVideoStretch
+		<< caps.dwMinHwCodecStretch
+		<< caps.dwMaxHwCodecStretch
+		<< caps.dwReserved1
+		<< caps.dwReserved2
+		<< caps.dwReserved3
+		<< Logging::hex(caps.dwSVBCaps)
+		<< Logging::hex(caps.dwSVBCKeyCaps)
+		<< Logging::hex(caps.dwSVBFXCaps)
+		<< "{" << caps.dwSVBRops[0]
+		<< caps.dwSVBRops[1]
+		<< caps.dwSVBRops[2]
+		<< caps.dwSVBRops[3]
+		<< caps.dwSVBRops[4]
+		<< caps.dwSVBRops[5]
+		<< caps.dwSVBRops[6]
+		<< caps.dwSVBRops[7] << "}"
+		<< Logging::hex(caps.dwVSBCaps)
+		<< Logging::hex(caps.dwVSBCKeyCaps)
+		<< Logging::hex(caps.dwVSBFXCaps)
+		<< "{" << caps.dwVSBRops[0]
+		<< caps.dwVSBRops[1]
+		<< caps.dwVSBRops[2]
+		<< caps.dwVSBRops[3]
+		<< caps.dwVSBRops[4]
+		<< caps.dwVSBRops[5]
+		<< caps.dwVSBRops[6]
+		<< caps.dwVSBRops[7] << "}"
+		<< Logging::hex(caps.dwSSBCaps)
+		<< Logging::hex(caps.dwSSBCKeyCaps)
+		<< Logging::hex(caps.dwSSBFXCaps)
+		<< "{" << caps.dwSSBRops[0]
+		<< caps.dwSSBRops[1]
+		<< caps.dwSSBRops[2]
+		<< caps.dwSSBRops[3]
+		<< caps.dwSSBRops[4]
+		<< caps.dwSSBRops[5]
+		<< caps.dwSSBRops[6]
+		<< caps.dwSSBRops[7] << "}"
+		<< caps.dwMaxVideoPorts
+		<< caps.dwCurrVideoPorts
+		<< Logging::hex(caps.dwSVBCaps2)
+		<< Logging::hex(caps.dwNLVBCaps)
+		<< Logging::hex(caps.dwNLVBCaps2)
+		<< Logging::hex(caps.dwNLVBCKeyCaps)
+		<< Logging::hex(caps.dwNLVBFXCaps)
+		<< "{" << caps.dwNLVBRops[0]
+		<< caps.dwNLVBRops[1]
+		<< caps.dwNLVBRops[2]
+		<< caps.dwNLVBRops[3]
+		<< caps.dwNLVBRops[4]
+		<< caps.dwNLVBRops[5]
+		<< caps.dwNLVBRops[6]
+		<< caps.dwNLVBRops[7] << "}"
+		<< caps.ddsCaps;
 }
 
 std::ostream& operator<<(std::ostream& os, const DDSCAPS& dwCaps)
@@ -161,9 +213,22 @@ std::ostream& operator<<(std::ostream& os, const DDPIXELFORMAT& pf)
 
 std::ostream& operator<<(std::ostream& os, const DDSURFACEDESC& sd)
 {
-	DDSURFACEDESC2 sd2 = {};
-	memcpy(&sd2, &sd, sizeof(sd));
-	return os << sd2;
+	return Logging::LogStruct(os)
+		<< Logging::hex(sd.dwFlags)
+		<< sd.dwWidth
+		<< sd.dwHeight
+		<< sd.lPitch
+		<< sd.dwBackBufferCount
+		<< sd.dwMipMapCount
+		<< sd.dwAlphaBitDepth
+		<< sd.dwReserved
+		<< sd.lpSurface
+		<< sd.ddckCKDestOverlay
+		<< sd.ddckCKDestBlt
+		<< sd.ddckCKSrcOverlay
+		<< sd.ddckCKSrcBlt
+		<< sd.ddpfPixelFormat
+		<< sd.ddsCaps;
 }
 
 std::ostream& operator<<(std::ostream& os, const DDSURFACEDESC2& sd)
@@ -178,7 +243,16 @@ std::ostream& operator<<(std::ostream& os, const DDSURFACEDESC2& sd)
 		<< sd.dwAlphaBitDepth
 		<< sd.dwReserved
 		<< sd.lpSurface
+		<< sd.ddckCKDestOverlay.dwColorSpaceLowValue
+		<< sd.ddckCKDestOverlay.dwColorSpaceHighValue
+		<< sd.ddckCKDestBlt.dwColorSpaceLowValue
+		<< sd.ddckCKDestBlt.dwColorSpaceHighValue
+		<< sd.ddckCKSrcOverlay.dwColorSpaceLowValue
+		<< sd.ddckCKSrcOverlay.dwColorSpaceHighValue
+		<< sd.ddckCKSrcBlt.dwColorSpaceLowValue
+		<< sd.ddckCKSrcBlt.dwColorSpaceHighValue
 		<< sd.ddpfPixelFormat
+		<< sd.dwFVF
 		<< sd.ddsCaps
 		<< sd.dwTextureStage;
 }

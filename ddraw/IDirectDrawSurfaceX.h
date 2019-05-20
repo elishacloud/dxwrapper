@@ -235,8 +235,8 @@ public:
 	bool IsSurfaceManaged() { return (surfaceDesc2.ddsCaps.dwCaps2 & (DDSCAPS2_TEXTUREMANAGE | DDSCAPS2_D3DTEXTUREMANAGE)); }
 	DWORD GetWidth() { return surfaceDesc2.dwWidth; }
 	DWORD GetHeight() { return surfaceDesc2.dwHeight; }
-	DWORD GetSurfaceBitCount() { return (attachedPalette) ? 8 : GetBitCount(surfaceDesc2.ddpfPixelFormat); }
-	D3DFORMAT GetSurfaceFormat() { return (attachedPalette) ? D3DFMT_L8 : GetDisplayFormat(surfaceDesc2.ddpfPixelFormat); }
+	DWORD GetSurfaceBitCount() { return GetBitCount(surfaceDesc2.ddpfPixelFormat); }
+	D3DFORMAT GetSurfaceFormat() { return GetDisplayFormat(surfaceDesc2.ddpfPixelFormat); }
 
 	// Direct3D9 interface functions
 	HRESULT CheckInterface(char *FunctionName, bool CheckD3DDevice, bool CheckD3DSurface);
@@ -259,7 +259,7 @@ public:
 	// Locking rect coordinates
 	bool CheckCoordinates(LPRECT lpOutRect, LPRECT lpInRect);
 	HRESULT SetLock(D3DLOCKED_RECT* pLockedRect, LPRECT lpDestRect, DWORD dwFlags, BOOL isSkipScene = false);
-	HRESULT SetUnLock(BOOL isSkipScene = false);
+	HRESULT SetUnlock(BOOL isSkipScene = false);
 
 	// Attached surfaces
 	void AddAttachedSurfaceToMap(m_IDirectDrawSurfaceX* lpSurfaceX);
