@@ -269,8 +269,9 @@ public:
 	// Copying surface textures
 	HRESULT ColorFill(RECT* pRect, D3DCOLOR dwFillColor);
 	HRESULT UpdateSurface(m_IDirectDrawSurfaceX* pSourceSurface, RECT* pSourceRect, POINT* pDestPoint);
-	HRESULT UpdateSurfaceColorKey(m_IDirectDrawSurfaceX* pSourceSurface, RECT* pSourceRect, POINT* pDestPoint, DDCOLORKEY ColorKey);
 	HRESULT StretchRect(m_IDirectDrawSurfaceX* pSourceSurface, RECT* pSourceRect, RECT* pDestRect, D3DTEXTUREFILTERTYPE Filter);
+	HRESULT UpdateSurfaceColorKey(m_IDirectDrawSurfaceX* pSourceSurface, RECT* pSourceRect, POINT* pDestPoint, DDCOLORKEY ColorKey, bool DoColorKey = true);
+	HRESULT StretchRectColorKey(m_IDirectDrawSurfaceX* pSourceSurface, RECT* pSourceRect, RECT* pDestRect, D3DTEXTUREFILTERTYPE Filter, DDCOLORKEY ColorKey, bool DoColorKey = true);
 
 	// Release interface
 	void ReleaseInterface();

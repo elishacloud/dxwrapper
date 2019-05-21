@@ -322,14 +322,6 @@ HRESULT m_IDirectDrawSurfaceX::Blt(LPRECT lpDestRect, LPDIRECTDRAWSURFACE7 lpDDS
 			// Do color key
 			if (dwFlags & (DDBLT_KEYDESTOVERRIDE | DDBLT_KEYSRCOVERRIDE | DDBLT_KEYDEST | DDBLT_KEYSRC))
 			{
-				// Strect rect and color key
-				if (isStretchRect)
-				{
-					LOG_LIMIT(100, __FUNCTION__ << " stretch rect plus color key not implemented");
-					hr = DDERR_GENERIC;
-					break;
-				}
-
 				// Check if color key is set
 				if (((dwFlags & DDBLT_KEYDEST) && !ColorKeys[0].IsSet) || ((dwFlags & DDBLT_KEYSRC) && !lpDDSrcSurfaceX->ColorKeys[2].IsSet))
 				{
@@ -343,9 +335,18 @@ HRESULT m_IDirectDrawSurfaceX::Blt(LPRECT lpDestRect, LPDIRECTDRAWSURFACE7 lpDDS
 					(dwFlags & DDBLT_KEYDEST) ? ColorKeys[0].Key :
 					(dwFlags & DDBLT_KEYSRC) ? lpDDSrcSurfaceX->ColorKeys[2].Key : ColorKey;
 
-				// Copy rect using color key
-				hr = UpdateSurfaceColorKey(lpDDSrcSurfaceX, &SrcRect, &DestPoint, ColorKey);
-				break;
+				// Do strect rect using color key
+				if (isStretchRect)
+				{
+					hr = StretchRectColorKey(lpDDSrcSurfaceX, &SrcRect, &DestRect, D3DTEXF_NONE, ColorKey);
+					break;
+				}
+				// Do normal copy rect using color key
+				else
+				{
+					hr = UpdateSurfaceColorKey(lpDDSrcSurfaceX, &SrcRect, &DestPoint, ColorKey);
+					break;
+				}
 			}
 
 			// Do strect rect
@@ -354,9 +355,12 @@ HRESULT m_IDirectDrawSurfaceX::Blt(LPRECT lpDestRect, LPDIRECTDRAWSURFACE7 lpDDS
 				hr = StretchRect(lpDDSrcSurfaceX, &SrcRect, &DestRect, D3DTEXF_NONE);
 				break;
 			}
-
-			// Do normal copy rect
-			hr = UpdateSurface(lpDDSrcSurfaceX, &SrcRect, &DestPoint);
+			else
+			{
+				// Do normal copy rect
+				hr = UpdateSurface(lpDDSrcSurfaceX, &SrcRect, &DestPoint);
+				break;
+			}
 
 		} while (false);
 
@@ -1515,18 +1519,6 @@ HRESULT m_IDirectDrawSurfaceX::SetPalette(LPDIRECTDRAWPALETTE lpDDPalette)
 				attachedPalette = nullptr;
 			}
 
-			// Release palette texture
-			if (paletteTexture)
-			{
-				ReleaseD9Interface(&paletteTexture);
-			}
-
-			// Release pixel shader
-			if (pixelShader)
-			{
-				ReleaseD9Interface(&pixelShader);
-			}
-
 			// Reset FirstRun
 			PaletteFirstRun = true;
 
@@ -1543,12 +1535,6 @@ HRESULT m_IDirectDrawSurfaceX::SetPalette(LPDIRECTDRAWPALETTE lpDDPalette)
 		{
 			attachedPalette->AddRef();
 			PaletteFirstRun = false;
-		}
-
-		// Don't write to surface when using palettes
-		if (!paletteTexture)
-		{
-			CreateD3d9Surface();
 		}
 
 		// Set new palette flag
@@ -1966,7 +1952,7 @@ HRESULT m_IDirectDrawSurfaceX::CheckInterface(char *FunctionName, bool CheckD3DD
 	// Make sure surface exists, if not then create it
 	if (CheckD3DSurface)
 	{
-		if (!surfaceTexture || !surfaceInterface || (attachedPalette && (!paletteTexture || !pixelShader)))
+		if (!surfaceTexture || !surfaceInterface || (GetSurfaceFormat() == D3DFMT_P8 && (!paletteTexture || !pixelShader)))
 		{
 			if (FAILED(CreateD3d9Surface()))
 			{
@@ -2073,18 +2059,17 @@ HRESULT m_IDirectDrawSurfaceX::CreateD3d9Surface()
 
 	// Get format
 	D3DFORMAT Format = GetDisplayFormat(surfaceDesc2.ddpfPixelFormat);
-	Format = (Format == D3DFMT_P8) ? D3DFMT_L8 : Format;
 
 	Logging::LogDebug() << __FUNCTION__ << " D3d9 Surface size: " << surfaceDesc2.dwWidth << "x" << surfaceDesc2.dwHeight << " Usage: " << Usage << " Format: " << Format << " Pool: " << Pool;
 
 	// Create surface
-	if (FAILED((*d3d9Device)->CreateTexture(surfaceDesc2.dwWidth, surfaceDesc2.dwHeight, 1, Usage, Format, Pool, &surfaceTexture, nullptr)))
+	if (FAILED((*d3d9Device)->CreateTexture(surfaceDesc2.dwWidth, surfaceDesc2.dwHeight, 1, Usage, (Format == D3DFMT_P8) ? D3DFMT_L8 : Format, Pool, &surfaceTexture, nullptr)))
 	{
 		LOG_LIMIT(100, __FUNCTION__ << " Failed to create surface");
 		return DDERR_GENERIC;
 	}
 
-	if (attachedPalette || Format == D3DFMT_L8 || Format == D3DFMT_P8)
+	if (Format == D3DFMT_P8)
 	{
 		// Create palette surface
 		if (FAILED((*d3d9Device)->CreateTexture(256, 256, 1, 0, D3DFMT_X8R8G8B8, D3DPOOL_MANAGED, &paletteTexture, nullptr)) ||
@@ -2288,11 +2273,8 @@ HRESULT m_IDirectDrawSurfaceX::PresentSurface()
 
 	if (IsPrimarySurface() && !IsLocked && !IsInDC)
 	{
-		D3DFORMAT Format = GetDisplayFormat(surfaceDesc2.ddpfPixelFormat);
-
 		// If new palette data then write it to texture
-		if (paletteTexture &&
-			(Format == D3DFMT_L8 || Format == D3DFMT_P8 || (attachedPalette && attachedPalette->rgbPalette)) &&
+		if ((paletteTexture && GetSurfaceFormat() == D3DFMT_P8) &&
 			(NewPalette || (attachedPalette && attachedPalette->NewPaletteData)))
 		{
 			do {
@@ -2647,134 +2629,18 @@ HRESULT m_IDirectDrawSurfaceX::ColorFill(RECT* pRect, D3DCOLOR dwFillColor)
 // Copy surface rect
 HRESULT m_IDirectDrawSurfaceX::UpdateSurface(m_IDirectDrawSurfaceX* pSourceSurface, RECT* pSourceRect, POINT* pDestPoint)
 {
-	Logging::LogDebug() << __FUNCTION__;
-
-	// Check parameters
-	if (!pSourceSurface)
-	{
-		LOG_LIMIT(100, __FUNCTION__ << " Invalid parameters!");
-		return DDERR_INVALIDPARAMS;
-	}
-
-	// Check for device interface
-	if (FAILED(CheckInterface(__FUNCTION__, true, true)) || FAILED(pSourceSurface->CheckInterface(__FUNCTION__, true, true)))
-	{
-		return DDERR_GENERIC;
-	}
-
-	HRESULT hr = DD_OK;
-	bool UnlockSrc = false, UnlockDest = false;
-	do {
-		RECT SrcRect, DestRect;
-		D3DLOCKED_RECT SrcLockRect, DestLockRect;
-		DWORD DestBitCount = GetSurfaceBitCount();
-		D3DFORMAT SrcFormat = pSourceSurface->GetSurfaceFormat();
-		D3DFORMAT DestFormat = GetSurfaceFormat();
-
-		// Check and copy source rect and do clipping
-		if (!pSourceSurface->CheckCoordinates(&SrcRect, pSourceRect))
-		{
-			hr = DDERR_INVALIDRECT;
-			break;
-		}
-
-		// Check and copy destination rect and do clipping
-		RECT tmpRect = {
-			(pDestPoint) ? pDestPoint->x : 0,
-			(pDestPoint) ? pDestPoint->y : 0,
-			(pDestPoint) ? SrcRect.right - SrcRect.left + pDestPoint->x : (LONG)GetWidth(),
-			(pDestPoint) ? SrcRect.bottom - SrcRect.top + pDestPoint->y : (LONG)GetHeight() };
-		if (!CheckCoordinates(&DestRect, &tmpRect))
-		{
-			hr = DDERR_INVALIDRECT;
-			break;
-		}
-
-		// Check if source surface is not locked then lock it
-		if (FAILED(pSourceSurface->SetLock(&SrcLockRect, &SrcRect, D3DLOCK_READONLY, true)))
-		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error: could not lock source surface " << SrcRect);
-			hr = DDERR_GENERIC;
-			break;
-		}
-		UnlockSrc = true;
-
-		// Check if source and destination memory addresses are overlapping
-		if (this == pSourceSurface)
-		{
-			size_t size = SrcLockRect.Pitch * GetHeight();
-			if (size > surfaceArray.size())
-			{
-				surfaceArray.resize(size);
-			}
-			memcpy(&surfaceArray[0], SrcLockRect.pBits, SrcLockRect.Pitch * (SrcRect.bottom - SrcRect.top));
-			SrcLockRect.pBits = &surfaceArray[0];
-			SetUnlock(true);
-			UnlockSrc = false;
-		}
-
-		// Check if destination surface is not locked then lock it
-		if (FAILED(SetLock(&DestLockRect, &DestRect, 0, true)))
-		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error: could not lock destination surface " << DestRect);
-			hr = DDERR_GENERIC;
-			break;
-		}
-		UnlockDest = true;
-
-		// Get byte count
-		DWORD ByteCount = DestBitCount / 8;
-		if (!ByteCount || ByteCount * 8 != DestBitCount || ByteCount > 4)
-		{
-			LOG_LIMIT(100, __FUNCTION__ << " Not implemented bit count " << DestBitCount);
-			hr = DDERR_GENERIC;
-			break;
-		}
-
-		// Get width and height of rect
-		LONG RectWidth = min(DestRect.right - DestRect.left, SrcRect.right - SrcRect.left);
-		LONG RectHeight = min(DestRect.bottom - DestRect.top, SrcRect.bottom - SrcRect.top);
-
-		// Check source and destination format
-		if (!(SrcFormat == DestFormat ||
-			((SrcFormat == D3DFMT_A1R5G5B5 || SrcFormat == D3DFMT_X1R5G5B5) && (DestFormat == D3DFMT_A1R5G5B5 || DestFormat == D3DFMT_X1R5G5B5)) ||
-			((SrcFormat == D3DFMT_A8R8G8B8 || SrcFormat == D3DFMT_X8R8G8B8) && (DestFormat == D3DFMT_A8R8G8B8 || DestFormat == D3DFMT_X8R8G8B8))))
-		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error: not supported for different source and destination formats! " << SrcFormat << "-->" << DestFormat);
-			hr = DDERR_GENERIC;
-			break;
-		}
-
-		// Create buffer variables
-		BYTE *SrcBuffer = (BYTE*)SrcLockRect.pBits;
-		BYTE *DestBuffer = (BYTE*)DestLockRect.pBits;
-
-		// Copy memory
-		for (LONG y = 0; y < RectHeight; y++)
-		{
-			memcpy(DestBuffer, SrcBuffer, RectWidth * ByteCount);
-			SrcBuffer += SrcLockRect.Pitch;
-			DestBuffer += DestLockRect.Pitch;
-		}
-
-	} while (false);
-
-	// Unlock surfaces if needed
-	if (UnlockDest)
-	{
-		SetUnlock(true);
-	}
-	if (UnlockSrc)
-	{
-		pSourceSurface->SetUnlock(true);
-	}
-
-	// Return
-	return hr;
+	return UpdateSurfaceColorKey(pSourceSurface, pSourceRect, pDestPoint, ColorKeys[0].Key, false);
 }
 
+// Stretch source rect to destination rect
+HRESULT m_IDirectDrawSurfaceX::StretchRect(m_IDirectDrawSurfaceX* pSourceSurface, RECT* pSourceRect, RECT* pDestRect, D3DTEXTUREFILTERTYPE Filter)
+{
+	return StretchRectColorKey(pSourceSurface, pSourceRect, pDestRect, Filter, ColorKeys[0].Key, false);
+}
+
+
 // Copy rect with color key
-HRESULT m_IDirectDrawSurfaceX::UpdateSurfaceColorKey(m_IDirectDrawSurfaceX* pSourceSurface, RECT* pSourceRect, POINT* pDestPoint, DDCOLORKEY ColorKey)
+HRESULT m_IDirectDrawSurfaceX::UpdateSurfaceColorKey(m_IDirectDrawSurfaceX* pSourceSurface, RECT* pSourceRect, POINT* pDestPoint, DDCOLORKEY ColorKey, bool DoColorKey)
 {
 	Logging::LogDebug() << __FUNCTION__;
 
@@ -2883,21 +2749,28 @@ HRESULT m_IDirectDrawSurfaceX::UpdateSurfaceColorKey(m_IDirectDrawSurfaceX* pSou
 		BYTE *SrcBuffer = (BYTE*)SrcLockRect.pBits;
 		BYTE *DestBuffer = (BYTE*)DestLockRect.pBits;
 
-		// Copy memory using color key
+		// Copy memory
 		for (LONG y = 0; y < RectHeight; y++)
 		{
-			for (LONG x = 0; x < RectWidth; x++)
+			if (DoColorKey)
 			{
-				DWORD *NewPixel = (DWORD*)(SrcBuffer + (x * ByteCount));
-				DWORD PixelColor = (ByteCount == 1) ? (BYTE)(*NewPixel) :
-					(ByteCount == 2) ? (WORD)(*NewPixel) :
-					(ByteCount == 3) ? (DWORD)(*NewPixel) & ByteMask :
-					(ByteCount == 4) ? (DWORD)(*NewPixel) : 0;
-
-				if (PixelColor < ColorKeyLow || PixelColor > ColorKeyHigh)
+				for (LONG x = 0; x < RectWidth; x++)
 				{
-					memcpy(DestBuffer + (x * ByteCount), NewPixel, ByteCount);
+					DWORD *NewPixel = (DWORD*)(SrcBuffer + (x * ByteCount));
+					DWORD PixelColor = (ByteCount == 1) ? (BYTE)(*NewPixel) :
+						(ByteCount == 2) ? (WORD)(*NewPixel) :
+						(ByteCount == 3) ? (DWORD)(*NewPixel) & ByteMask :
+						(ByteCount == 4) ? (DWORD)(*NewPixel) : 0;
+
+					if (!DoColorKey || PixelColor < ColorKeyLow || PixelColor > ColorKeyHigh)
+					{
+						memcpy(DestBuffer + (x * ByteCount), NewPixel, ByteCount);
+					}
 				}
+			}
+			else
+			{
+				memcpy(DestBuffer, SrcBuffer, RectWidth * ByteCount);
 			}
 			SrcBuffer += SrcLockRect.Pitch;
 			DestBuffer += DestLockRect.Pitch;
@@ -2919,8 +2792,8 @@ HRESULT m_IDirectDrawSurfaceX::UpdateSurfaceColorKey(m_IDirectDrawSurfaceX* pSou
 	return hr;
 }
 
-// Stretch source rect to destination rect
-HRESULT m_IDirectDrawSurfaceX::StretchRect(m_IDirectDrawSurfaceX* pSourceSurface, RECT* pSourceRect, RECT* pDestRect, D3DTEXTUREFILTERTYPE Filter)
+// Stretch source rect with color key
+HRESULT m_IDirectDrawSurfaceX::StretchRectColorKey(m_IDirectDrawSurfaceX* pSourceSurface, RECT* pSourceRect, RECT* pDestRect, D3DTEXTUREFILTERTYPE Filter, DDCOLORKEY ColorKey, bool DoColorKey)
 {
 	UNREFERENCED_PARAMETER(Filter);
 
@@ -3016,6 +2889,11 @@ HRESULT m_IDirectDrawSurfaceX::StretchRect(m_IDirectDrawSurfaceX* pSourceSurface
 		float WidthRatio = (float)SrcRectWidth / (float)DestRectWidth;
 		float HeightRatio = (float)SrcRectHeight / (float)DestRectHeight;
 
+		// Set color varables
+		DWORD ByteMask = (DWORD)(pow(256, ByteCount)) - 1;
+		DWORD ColorKeyLow = ColorKey.dwColorSpaceLowValue & ByteMask;
+		DWORD ColorKeyHigh = ColorKey.dwColorSpaceHighValue & ByteMask;
+
 		// Create buffer variables
 		BYTE *SrcBuffer = (BYTE*)SrcLockRect.pBits;
 		BYTE *DestBuffer = (BYTE*)DestLockRect.pBits;
@@ -3025,7 +2903,23 @@ HRESULT m_IDirectDrawSurfaceX::StretchRect(m_IDirectDrawSurfaceX* pSourceSurface
 		{
 			for (LONG x = 0; x < DestRectWidth; x++)
 			{
-				memcpy(DestBuffer + (x * ByteCount), SrcBuffer + (DWORD)((float)x * WidthRatio) * ByteCount, ByteCount);
+				if (DoColorKey)
+				{
+					DWORD *NewPixel = (DWORD*)(SrcBuffer + (DWORD)((float)x * WidthRatio) * ByteCount);
+					DWORD PixelColor = (ByteCount == 1) ? (BYTE)(*NewPixel) :
+						(ByteCount == 2) ? (WORD)(*NewPixel) :
+						(ByteCount == 3) ? (DWORD)(*NewPixel) & ByteMask :
+						(ByteCount == 4) ? (DWORD)(*NewPixel) : 0;
+
+					if (PixelColor < ColorKeyLow || PixelColor > ColorKeyHigh)
+					{
+						memcpy(DestBuffer + (x * ByteCount), NewPixel, ByteCount);
+					}
+				}
+				else
+				{
+					memcpy(DestBuffer + (x * ByteCount), SrcBuffer + (DWORD)((float)x * WidthRatio) * ByteCount, ByteCount);
+				}
 			}
 			SrcBuffer = (BYTE*)SrcLockRect.pBits + (DWORD)((float)y * HeightRatio) * SrcLockRect.Pitch;
 			DestBuffer += DestLockRect.Pitch;

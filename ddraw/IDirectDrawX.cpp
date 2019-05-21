@@ -631,7 +631,7 @@ HRESULT m_IDirectDrawX::FlipToGDISurface()
 	if (Config.Dd7to9)
 	{
 		LOG_LIMIT(100, __FUNCTION__ << " Not Implemented");
-		return DDERR_UNSUPPORTED;
+		return DD_OK;
 	}
 
 	return ProxyInterface->FlipToGDISurface();
@@ -1537,6 +1537,13 @@ HRESULT m_IDirectDrawX::CreateD3D9Device()
 		// Enumerate modes for format XRGB
 		UINT modeCount = d3d9Object->GetAdapterModeCount(D3DADAPTER_DEFAULT, D3DFMT_X8R8G8B8);
 
+		// Check for ModeX resolutions
+		if ((BackBufferWidth == 320 && BackBufferHeight == 200) ||
+			(BackBufferWidth == 640 && BackBufferHeight == 400))
+		{
+			BackBufferHeight += BackBufferHeight / 5;
+		}
+
 		// Get refresh rate
 		if (Config.DdrawUseNativeResolution && !displayRefreshRate)
 		{
@@ -1591,7 +1598,7 @@ HRESULT m_IDirectDrawX::CreateD3D9Device()
 	}
 
 	// Set behavior flags
-	DWORD BehaviorFlags = ((d3dcaps.VertexProcessingCaps) ? D3DCREATE_HARDWARE_VERTEXPROCESSING : D3DCREATE_SOFTWARE_VERTEXPROCESSING) |
+	DWORD BehaviorFlags = ((d3dcaps.VertexProcessingCaps) ? D3DCREATE_HARDWARE_VERTEXPROCESSING : D3DCREATE_SOFTWARE_VERTEXPROCESSING) | D3DCREATE_MULTITHREADED |
 		((MultiThreaded) ? D3DCREATE_MULTITHREADED : 0) |
 		((FUPPreserve) ? D3DCREATE_FPU_PRESERVE : 0) |
 		((NoWindowChanges) ? D3DCREATE_NOWINDOWCHANGES : 0);
@@ -1624,10 +1631,13 @@ HRESULT m_IDirectDrawX::ReinitDevice()
 		return DDERR_GENERIC;
 	}
 
-	do {
-		Sleep(100);
-	} while (d3d9Device->TestCooperativeLevel() == D3DERR_DEVICELOST);
+	// Check if device is ready to be restored
+	if (d3d9Device->TestCooperativeLevel() == D3DERR_DEVICELOST)
+	{
+		return DDERR_GENERIC;
+	}
 
+	// ToDo: store surface data before removing
 	// Release existing surfaces
 	ReleaseAllD9Surfaces();
 
@@ -1640,6 +1650,8 @@ HRESULT m_IDirectDrawX::ReinitDevice()
 
 	// Reset BeginScene
 	IsInScene = false;
+
+	// ToDo: create surface and reset surface data
 
 	// Success
 	return DD_OK;
