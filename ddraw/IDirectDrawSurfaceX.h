@@ -126,7 +126,7 @@ public:
 		if (Config.Dd7to9 && !Config.Exiting)
 		{
 			ReleaseInterface();
-			ReleaseD9Surface();
+			ReleaseD9Surface(false);
 		}
 	}
 
@@ -243,8 +243,8 @@ public:
 	HRESULT CreateD3d9Surface();
 	template <typename T>
 	void ReleaseD9Interface(T **ppInterface);
-	void ReleaseD9Surface();
-	HRESULT PresentSurface();
+	void ReleaseD9Surface(bool BackupData = true);
+	HRESULT PresentSurface(BOOL isSkipScene = false);
 
 	// Swap surface addresses for Flip
 	template <typename T>

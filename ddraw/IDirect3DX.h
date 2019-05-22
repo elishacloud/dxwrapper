@@ -35,7 +35,7 @@ public:
 	{
 		ProxyDirectXVersion = 9;
 
-		LOG_LIMIT(3, "Convert Direct3DDevice v" << DirectXVersion << " to v" << ProxyDirectXVersion);
+		LOG_LIMIT(3, "Convert Direct3D v" << DirectXVersion << " to v" << ProxyDirectXVersion);
 	}
 	~m_IDirect3DX()
 	{

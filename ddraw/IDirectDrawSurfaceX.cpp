@@ -30,15 +30,52 @@ HRESULT m_IDirectDrawSurfaceX::QueryInterface(REFIID riid, LPVOID FAR * ppvObj, 
 {
 	Logging::LogDebug() << __FUNCTION__;
 
-	if (Config.Dd7to9 && (riid == IID_IDirectDrawSurface || riid == IID_IDirectDrawSurface2 || riid == IID_IDirectDrawSurface3 || riid == IID_IDirectDrawSurface4 || riid == IID_IDirectDrawSurface7 || riid == IID_IUnknown) && ppvObj)
+	if (Config.Dd7to9)
 	{
-		DWORD DxVersion = (riid == IID_IUnknown) ? DirectXVersion : GetIIDVersion(riid);
+		if ((riid == IID_IDirectDrawSurface || riid == IID_IDirectDrawSurface2 || riid == IID_IDirectDrawSurface3 || riid == IID_IDirectDrawSurface4 || riid == IID_IDirectDrawSurface7 || riid == IID_IUnknown) && ppvObj)
+		{
+			DWORD DxVersion = (riid == IID_IUnknown) ? DirectXVersion : GetIIDVersion(riid);
 
-		*ppvObj = GetWrapperInterfaceX(DxVersion);
+			*ppvObj = GetWrapperInterfaceX(DxVersion);
 
-		::AddRef(*ppvObj);
+			::AddRef(*ppvObj);
 
-		return DD_OK;
+			return DD_OK;
+		}
+		if ((riid == IID_IDirect3DHALDevice || riid == IID_IDirect3DRGBDevice || riid == IID_IDirect3DRampDevice || riid == IID_IDirect3DNullDevice) && ppvObj)
+		{
+			// Check for device interface
+			if (FAILED(CheckInterface(__FUNCTION__, false, false)))
+			{
+				return DDERR_GENERIC;
+			}
+
+			m_IDirect3DDeviceX *D3DDeviceX = *ddrawParent->GetCurrentD3DDevice();
+
+			if (D3DDeviceX)
+			{
+				*ppvObj = D3DDeviceX->GetWrapperInterfaceX(DirectXVersion);
+
+				::AddRef(*ppvObj);
+
+				return DD_OK;
+			}
+
+			m_IDirect3DX *D3DX = *ddrawParent->GetCurrentD3D();
+
+			if (D3DX)
+			{
+				D3DX->CreateDevice(riid, (LPDIRECTDRAWSURFACE7)this, (LPDIRECT3DDEVICE7*)&D3DDeviceX, nullptr, DirectXVersion);
+
+				*ppvObj = D3DDeviceX;
+
+				return DD_OK;
+			}
+
+			LOG_LIMIT(100, __FUNCTION__ << " Query failed for " << riid << " from " << GetWrapperType(DirectXVersion));
+
+			return E_NOINTERFACE;
+		}
 	}
 
 	if (Config.ConvertToDirect3D7 && (riid == IID_IDirect3DTexture || riid == IID_IDirect3DTexture2) && ppvObj)
@@ -301,7 +338,7 @@ HRESULT m_IDirectDrawSurfaceX::Blt(LPRECT lpDestRect, LPDIRECTDRAWSURFACE7 lpDDS
 
 			// Get source and dest rect
 			RECT SrcRect = { 0, 0, (LONG)lpDDSrcSurfaceX->GetWidth(), (LONG)lpDDSrcSurfaceX->GetHeight() };
-			RECT DestRect = { 0, 0, (LONG)GetWidth(), (LONG)GetHeight() };
+			RECT DestRect = { 0, 0, (LONG)surfaceDesc2.dwWidth, (LONG)surfaceDesc2.dwHeight };
 
 			if (lpSrcRect)
 			{
@@ -364,16 +401,18 @@ HRESULT m_IDirectDrawSurfaceX::Blt(LPRECT lpDestRect, LPDIRECTDRAWSURFACE7 lpDDS
 
 		} while (false);
 
-		// Set dirty flag
+		// If successful
 		if (SUCCEEDED(hr))
 		{
+			// Set dirty flag
 			dirtyFlag = true;
-		}
 
-		// Present surface
-		if (SUCCEEDED(hr) && !isSkipScene)
-		{
-			PresentSurface();
+			// Present surface
+			if (lpDDSrcSurfaceX && lpDDSrcSurfaceX != this)
+			{
+				lpDDSrcSurfaceX->PresentSurface(isSkipScene);
+			}
+			PresentSurface(isSkipScene);
 		}
 
 		// Return
@@ -810,7 +849,7 @@ HRESULT m_IDirectDrawSurfaceX::GetBltStatus(DWORD dwFlags)
 		// Inquires whether a blit involving this surface can occur immediately, and returns DD_OK if the blit can be completed.
 		if (dwFlags & DDGBS_CANBLT)
 		{
-			if (!IsSurfaceLocked())
+			if (!IsLocked)
 			{
 				//return DDERR_WASSTILLDRAWING;
 			}
@@ -819,7 +858,7 @@ HRESULT m_IDirectDrawSurfaceX::GetBltStatus(DWORD dwFlags)
 		// Inquires whether the blit is done, and returns DD_OK if the last blit on this surface has completed.
 		else if (dwFlags & DDGBS_ISBLTDONE)
 		{
-			if (!IsSurfaceLocked())
+			if (!IsLocked)
 			{
 				//return DDERR_WASSTILLDRAWING;
 			}
@@ -1297,7 +1336,7 @@ HRESULT m_IDirectDrawSurfaceX::Lock2(LPRECT lpDestRect, LPDDSURFACEDESC2 lpDDSur
 	if (Config.Dd7to9)
 	{
 		// Check if locked
-		if (IsSurfaceLocked())
+		if (IsLocked)
 		{
 			LOG_LIMIT(1, __FUNCTION__ << " Locking surface twice not fully implemented");
 		}
@@ -1969,7 +2008,7 @@ HRESULT m_IDirectDrawSurfaceX::CheckInterface(char *FunctionName, bool CheckD3DD
 HRESULT m_IDirectDrawSurfaceX::CreateD3d9Surface()
 {
 	// Don't recreate surface while it is locked
-	if (surfaceTexture && IsSurfaceLocked())
+	if (surfaceTexture && IsLocked)
 	{
 		LOG_LIMIT(100, __FUNCTION__ << " Error: surface is locked!");
 		return DDERR_GENERIC;
@@ -2058,7 +2097,7 @@ HRESULT m_IDirectDrawSurfaceX::CreateD3d9Surface()
 	// DDSCAPS2_MIPMAPSUBLEVEL
 
 	// Get format
-	D3DFORMAT Format = GetDisplayFormat(surfaceDesc2.ddpfPixelFormat);
+	D3DFORMAT Format = GetSurfaceFormat();
 
 	Logging::LogDebug() << __FUNCTION__ << " D3d9 Surface size: " << surfaceDesc2.dwWidth << "x" << surfaceDesc2.dwHeight << " Usage: " << Usage << " Format: " << Format << " Pool: " << Pool;
 
@@ -2086,6 +2125,32 @@ HRESULT m_IDirectDrawSurfaceX::CreateD3d9Surface()
 	{
 		LOG_LIMIT(100, __FUNCTION__ << " Failed to create surface interface");
 		return DDERR_GENERIC;
+	}
+
+	// Reset d3d9 surface texture data
+	Logging::LogDebug() << __FUNCTION__ << " Resetting Direct3D9 texture surface data";
+	if (surfaceTexture)
+	{
+		do {
+			D3DLOCKED_RECT LockRect;
+			if (FAILED(surfaceTexture->LockRect(0, &LockRect, nullptr, 0)))
+			{
+				LOG_LIMIT(100, __FUNCTION__ << " Failed to lock texture surface!");
+				break;
+			}
+
+			size_t size = surfaceDesc2.dwHeight * LockRect.Pitch;
+
+			if (size == surfaceArray.size())
+			{
+				memcpy(LockRect.pBits, &surfaceArray[0], size);
+			}
+
+			surfaceTexture->UnlockRect(0);
+
+			// ToDo: reset other surface data, like PrivateData, Priority and LOD
+
+		} while (false);
 	}
 
 	// Reset Locked flag
@@ -2223,8 +2288,36 @@ void m_IDirectDrawSurfaceX::ReleaseD9Interface(T **ppInterface)
 }
 
 // Release surface and vertext buffer
-void m_IDirectDrawSurfaceX::ReleaseD9Surface()
+void m_IDirectDrawSurfaceX::ReleaseD9Surface(bool BackupData)
 {
+	// Store d3d9 surface texture
+	Logging::LogDebug() << __FUNCTION__ << " Storing Direct3D9 texture surface data";
+	if (surfaceTexture && BackupData)
+	{
+		do {
+			D3DLOCKED_RECT LockRect;
+			if (FAILED(surfaceTexture->LockRect(0, &LockRect, nullptr, 0)))
+			{
+				LOG_LIMIT(100, __FUNCTION__ << " Failed to lock texture surface!");
+				break;
+			}
+
+			size_t size = surfaceDesc2.dwHeight * LockRect.Pitch;
+
+			if (size != surfaceArray.size())
+			{
+				surfaceArray.resize(size);
+			}
+
+			memcpy(&surfaceArray[0], LockRect.pBits, size);
+
+			surfaceTexture->UnlockRect(0);
+
+			// ToDo: store other surface data, like PrivateData, Priority and LOD
+
+		} while (false);
+	}
+
 	// Release surface interface
 	Logging::LogDebug() << __FUNCTION__ << " Releasing Direct3D9 surface interface";
 	if (surfaceInterface)
@@ -2263,7 +2356,7 @@ void m_IDirectDrawSurfaceX::ReleaseD9Surface()
 }
 
 // Present surface
-HRESULT m_IDirectDrawSurfaceX::PresentSurface()
+HRESULT m_IDirectDrawSurfaceX::PresentSurface(BOOL isSkipScene)
 {
 	// Check for device interface
 	if (FAILED(CheckInterface(__FUNCTION__, true, true)))
@@ -2271,80 +2364,101 @@ HRESULT m_IDirectDrawSurfaceX::PresentSurface()
 		return DDERR_GENERIC;
 	}
 
-	if (IsPrimarySurface() && !IsLocked && !IsInDC)
+	// Check if is not primary surface or if scene should be skipped
+	if (isSkipScene && !SceneReady)
 	{
-		// If new palette data then write it to texture
-		if ((paletteTexture && GetSurfaceFormat() == D3DFMT_P8) &&
-			(NewPalette || (attachedPalette && attachedPalette->NewPaletteData)))
-		{
-			do {
-				D3DLOCKED_RECT LockRect;
-				RECT Rect = { 0, 0, 256, 1 };
-				const DWORD *memPalette = (attachedPalette && attachedPalette->rgbPalette) ? attachedPalette->rgbPalette : rgbPalette;
+		return DDERR_GENERIC;
+	}
+	else if (!IsPrimarySurface() && SceneReady)
+	{
+		ddrawParent->PresentPrimarySurface();
+		return DDERR_GENERIC;
+	}
+	else if (!IsPrimarySurface())
+	{
+		return DDERR_GENERIC;
+	}
 
-				if (FAILED(paletteTexture->LockRect(0, &LockRect, &Rect, 0)))
-				{
-					LOG_LIMIT(100, __FUNCTION__ << " Failed to lock palette texture!");
-					break;
-				}
+	// Set scene ready
+	SceneReady = true;
 
-				memcpy(LockRect.pBits, memPalette, 256 * sizeof(int));
+	// Check if surface is locked or DC is open
+	if (IsLocked || IsInDC)
+	{
+		return DDERR_SURFACEBUSY;
+	}
 
-				paletteTexture->UnlockRect(0);
+	// If new palette data then write it to texture
+	if ((paletteTexture && GetSurfaceFormat() == D3DFMT_P8) &&
+		(NewPalette || (attachedPalette && attachedPalette->NewPaletteData)))
+	{
+		do {
+			D3DLOCKED_RECT LockRect;
+			RECT Rect = { 0, 0, 256, 1 };
+			const DWORD *memPalette = (attachedPalette && attachedPalette->rgbPalette) ? attachedPalette->rgbPalette : rgbPalette;
 
-				NewPalette = false;
-				if (attachedPalette)
-				{
-					attachedPalette->NewPaletteData = false;
-				}
-
-			} while (false);
-		}
-
-		// Set texture
-		if (surfaceTexture)
-		{
-			if (FAILED((*d3d9Device)->SetTexture(0, surfaceTexture)))
-			{
-				LOG_LIMIT(100, __FUNCTION__ << " Failed to set texture");
-				return DDERR_GENERIC;
-			}
-		}
-
-		// Set palette texture
-		if (paletteTexture)
-		{
-			if (FAILED((*d3d9Device)->SetTexture(1, paletteTexture)))
+			if (FAILED(paletteTexture->LockRect(0, &LockRect, &Rect, 0)))
 			{
 				LOG_LIMIT(100, __FUNCTION__ << " Failed to lock palette texture!");
-				return DDERR_GENERIC;
+				break;
 			}
-		}
 
-		// Set pixel shader
-		if (pixelShader)
-		{
-			if (FAILED((*d3d9Device)->SetPixelShader(pixelShader)))
+			memcpy(LockRect.pBits, memPalette, 256 * sizeof(int));
+
+			paletteTexture->UnlockRect(0);
+
+			NewPalette = false;
+			if (attachedPalette)
 			{
-				LOG_LIMIT(100, __FUNCTION__ << " Failed to set pixel shader");
-				return DDERR_GENERIC;
+				attachedPalette->NewPaletteData = false;
 			}
+
+		} while (false);
+	}
+
+	// Set texture
+	if (surfaceTexture)
+	{
+		if (FAILED((*d3d9Device)->SetTexture(0, surfaceTexture)))
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Failed to set texture");
+			return DDERR_GENERIC;
+		}
+	}
+
+	// Set palette texture
+	if (paletteTexture)
+	{
+		if (FAILED((*d3d9Device)->SetTexture(1, paletteTexture)))
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Failed to lock palette texture!");
+			return DDERR_GENERIC;
+		}
+	}
+
+	// Set pixel shader
+	if (pixelShader)
+	{
+		if (FAILED((*d3d9Device)->SetPixelShader(pixelShader)))
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Failed to set pixel shader");
+			return DDERR_GENERIC;
 		}
 	}
 
 	// EndScene
-	HRESULT hr = DDERR_GENERIC;
-	if ((IsPrimarySurface() || SceneReady) && !IsLocked && !IsInDC)
+	if (FAILED(ddrawParent->EndScene()))
 	{
-		SceneReady = FAILED(ddrawParent->EndScene());
-		if (!SceneReady)
-		{
-			dirtyFlag = false;
-			hr = DD_OK;
-		}
+		return DDERR_GENERIC;
 	}
 
-	return hr;
+	// Reset dirty flag
+	dirtyFlag = false;
+
+	// Reset scene ready
+	SceneReady = false;
+
+	return DD_OK;
 }
 
 // Swap surface addresses for Flip
@@ -2434,15 +2548,12 @@ HRESULT m_IDirectDrawSurfaceX::SetLock(D3DLOCKED_RECT* pLockedRect, LPRECT lpDes
 	isSkipScene |= ((lpDestRect) ? (abs(lpDestRect->bottom - lpDestRect->top) < 2 || abs(lpDestRect->right - lpDestRect->left) < 2) : FALSE);
 
 	// Run BeginScene (ignore results)
-	if (!isSkipScene)
-	{
-		ddrawParent->BeginScene();
-	}
+	ddrawParent->BeginScene();
 
 	// Run EndScene before locking if dirty flag is set
-	if (dirtyFlag && !isSkipScene)
+	if (dirtyFlag)
 	{
-		if (SUCCEEDED(PresentSurface()))
+		if (SUCCEEDED(PresentSurface(isSkipScene)))
 		{
 			EndSceneLock = true;
 		}
@@ -2483,9 +2594,9 @@ HRESULT m_IDirectDrawSurfaceX::SetUnlock(BOOL isSkipScene)
 	IsLocked = false;
 
 	// Present surface
-	if (!isSkipScene && !EndSceneLock)
+	if (!EndSceneLock)
 	{
-		PresentSurface();
+		PresentSurface(isSkipScene);
 	}
 
 	// Reset endscene lock
@@ -2677,8 +2788,8 @@ HRESULT m_IDirectDrawSurfaceX::UpdateSurfaceColorKey(m_IDirectDrawSurfaceX* pSou
 		RECT tmpRect = {
 			(pDestPoint) ? pDestPoint->x : 0,
 			(pDestPoint) ? pDestPoint->y : 0,
-			(pDestPoint) ? SrcRect.right - SrcRect.left + pDestPoint->x : (LONG)GetWidth(),
-			(pDestPoint) ? SrcRect.bottom - SrcRect.top + pDestPoint->y : (LONG)GetHeight() };
+			(pDestPoint) ? SrcRect.right - SrcRect.left + pDestPoint->x : (LONG)surfaceDesc2.dwWidth,
+			(pDestPoint) ? SrcRect.bottom - SrcRect.top + pDestPoint->y : (LONG)surfaceDesc2.dwHeight };
 		if (!CheckCoordinates(&DestRect, &tmpRect))
 		{
 			hr = DDERR_INVALIDRECT;
@@ -2697,7 +2808,7 @@ HRESULT m_IDirectDrawSurfaceX::UpdateSurfaceColorKey(m_IDirectDrawSurfaceX* pSou
 		// Check if source and destination memory addresses are overlapping
 		if (this == pSourceSurface)
 		{
-			size_t size = SrcLockRect.Pitch * GetHeight();
+			size_t size = surfaceDesc2.dwHeight * SrcLockRect.Pitch;
 			if (size > surfaceArray.size())
 			{
 				surfaceArray.resize(size);
@@ -2762,7 +2873,7 @@ HRESULT m_IDirectDrawSurfaceX::UpdateSurfaceColorKey(m_IDirectDrawSurfaceX* pSou
 						(ByteCount == 3) ? (DWORD)(*NewPixel) & ByteMask :
 						(ByteCount == 4) ? (DWORD)(*NewPixel) : 0;
 
-					if (!DoColorKey || PixelColor < ColorKeyLow || PixelColor > ColorKeyHigh)
+					if (PixelColor < ColorKeyLow || PixelColor > ColorKeyHigh)
 					{
 						memcpy(DestBuffer + (x * ByteCount), NewPixel, ByteCount);
 					}
@@ -2840,7 +2951,7 @@ HRESULT m_IDirectDrawSurfaceX::StretchRectColorKey(m_IDirectDrawSurfaceX* pSourc
 		// Check if source and destination memory addresses are overlapping
 		if (this == pSourceSurface)
 		{
-			size_t size = SrcLockRect.Pitch * GetHeight();
+			size_t size = surfaceDesc2.dwHeight * SrcLockRect.Pitch;
 			if (size > surfaceArray.size())
 			{
 				surfaceArray.resize(size);

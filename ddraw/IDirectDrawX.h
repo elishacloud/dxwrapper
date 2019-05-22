@@ -192,6 +192,7 @@ public:
 	LPDIRECT3D9 GetDirect3D9Object() { return d3d9Object; }
 	LPDIRECT3DDEVICE9 *GetDirect3D9Device() { return &d3d9Device; }
 	void ClearD3D() { D3DInterface = nullptr; }
+	m_IDirect3DX **GetCurrentD3D() { return &D3DInterface; }
 	void ClearD3DDevice() { D3DDeviceInterface = nullptr; }
 	void SetD3DDevice(m_IDirect3DDeviceX *D3DDevice) { D3DDeviceInterface = D3DDevice; }
 	m_IDirect3DDeviceX **GetCurrentD3DDevice() { return &D3DDeviceInterface; }

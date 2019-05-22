@@ -1637,7 +1637,6 @@ HRESULT m_IDirectDrawX::ReinitDevice()
 		return DDERR_GENERIC;
 	}
 
-	// ToDo: store surface data before removing
 	// Release existing surfaces
 	ReleaseAllD9Surfaces();
 
@@ -1650,8 +1649,6 @@ HRESULT m_IDirectDrawX::ReinitDevice()
 
 	// Reset BeginScene
 	IsInScene = false;
-
-	// ToDo: create surface and reset surface data
 
 	// Success
 	return DD_OK;
