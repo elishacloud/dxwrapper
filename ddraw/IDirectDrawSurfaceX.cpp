@@ -201,11 +201,13 @@ HRESULT m_IDirectDrawSurfaceX::AddAttachedSurface(LPDIRECTDRAWSURFACE7 lpDDSurfa
 
 		if (!ddrawParent->DoesSurfaceExist(lpAttachedSurface))
 		{
-			return DDERR_INVALIDPARAMS;
+			LOG_LIMIT(100, __FUNCTION__ << " Error: could not find source surface");
+			return DDERR_INVALIDOBJECT;
 		}
 
 		if (DoesAttachedSurfaceExist(lpAttachedSurface))
 		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: attached surface already exists");
 			return DDERR_SURFACEALREADYATTACHED;
 		}
 
@@ -331,8 +333,7 @@ HRESULT m_IDirectDrawSurfaceX::Blt(LPRECT lpDestRect, LPDIRECTDRAWSURFACE7 lpDDS
 				if (!ddrawParent->DoesSurfaceExist(lpDDSrcSurfaceX))
 				{
 					LOG_LIMIT(100, __FUNCTION__ << " Error: could not find source surface");
-					hr = DDERR_INVALIDPARAMS;
-					break;
+					return DD_OK;		// Return OK to allow some games to continue to work
 				}
 			}
 
@@ -408,10 +409,6 @@ HRESULT m_IDirectDrawSurfaceX::Blt(LPRECT lpDestRect, LPDIRECTDRAWSURFACE7 lpDDS
 			dirtyFlag = true;
 
 			// Present surface
-			if (lpDDSrcSurfaceX && lpDDSrcSurfaceX != this)
-			{
-				lpDDSrcSurfaceX->PresentSurface(isSkipScene);
-			}
 			PresentSurface(isSkipScene);
 		}
 
@@ -484,6 +481,14 @@ HRESULT m_IDirectDrawSurfaceX::BltFast(DWORD dwX, DWORD dwY, LPDIRECTDRAWSURFACE
 		// Get SrcRect
 		RECT SrcRect;
 		m_IDirectDrawSurfaceX *lpDDSrcSurfaceX = (!lpDDSrcSurface) ? this : ((m_IDirectDrawSurface*)lpDDSrcSurface)->GetWrapperInterface();
+
+		// Check if source Surface exists
+		if (!ddrawParent->DoesSurfaceExist(lpDDSrcSurfaceX))
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: could not find source surface");
+			return DD_OK;		// Return OK to allow some games to continue to work
+		}
+
 		lpDDSrcSurfaceX->CheckCoordinates(&SrcRect, lpSrcRect);
 
 		// Create DestRect
@@ -515,16 +520,17 @@ HRESULT m_IDirectDrawSurfaceX::DeleteAttachedSurface(DWORD dwFlags, LPDIRECTDRAW
 
 		m_IDirectDrawSurfaceX *lpAttachedSurface = ((m_IDirectDrawSurface*)lpDDSAttachedSurface)->GetWrapperInterface();
 
-		if (DoesAttachedSurfaceExist(lpAttachedSurface))
+		if (!DoesAttachedSurfaceExist(lpAttachedSurface))
 		{
-			RemoveAttachedSurfaceFromMap(lpAttachedSurface);
-
-			return DD_OK;
-		}
-		else
-		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: could not find attached surface");
 			return DDERR_SURFACENOTATTACHED;
 		}
+
+		RemoveAttachedSurfaceFromMap(lpAttachedSurface);
+
+		lpAttachedSurface->Release();
+
+		return DD_OK;
 	}
 
 	if (lpDDSAttachedSurface)
@@ -657,6 +663,13 @@ HRESULT m_IDirectDrawSurfaceX::Flip(LPDIRECTDRAWSURFACE7 lpDDSurfaceTargetOverri
 			return DDERR_GENERIC;
 		}
 
+		// Check if surface is locked or has an open DC
+		if (IsLocked || IsInDC)
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Surface is busy!");
+			return DDERR_SURFACEBUSY;
+		}
+
 		// Unneeded flags (can be safely ignored?)
 		// Note: vsync handled by d3d9 PresentationInterval
 		// - DDFLIP_DONOTWAIT
@@ -680,13 +693,20 @@ HRESULT m_IDirectDrawSurfaceX::Flip(LPDIRECTDRAWSURFACE7 lpDDSurfaceTargetOverri
 			if (!DoesAttachedSurfaceExist(lpTargetSurface) || lpTargetSurface == this)
 			{
 				LOG_LIMIT(100, __FUNCTION__ << " Invalid SurfaceTarget");
-				return DDERR_INVALIDPARAMS;
+				return DDERR_INVALIDOBJECT;
 			}
 
 			// Check for device interface
 			if (FAILED(lpTargetSurface->CheckInterface(__FUNCTION__, true, true)))
 			{
 				return DDERR_GENERIC;
+			}
+
+			// Check if surface is locked or has an open DC
+			if (lpTargetSurface->IsSurfaceLocked() || lpTargetSurface->IsSurfaceInDC())
+			{
+				LOG_LIMIT(100, __FUNCTION__ << " Surface is busy!");
+				return DDERR_SURFACEBUSY;
 			}
 
 			// Found surface
@@ -716,7 +736,7 @@ HRESULT m_IDirectDrawSurfaceX::Flip(LPDIRECTDRAWSURFACE7 lpDDSurfaceTargetOverri
 				return DDERR_UNSUPPORTED;
 			}
 
-			// Loop through each surface and check the device interface
+			// Loop through each surface and check the device interface or if surface is locked or has an open DC
 			for (auto it : AttachedSurfaceMap)
 			{
 				m_IDirectDrawSurfaceX *lpTargetSurface = (m_IDirectDrawSurfaceX*)it.second;
@@ -724,6 +744,12 @@ HRESULT m_IDirectDrawSurfaceX::Flip(LPDIRECTDRAWSURFACE7 lpDDSurfaceTargetOverri
 				if (FAILED(lpTargetSurface->CheckInterface(__FUNCTION__, true, true)))
 				{
 					return DDERR_GENERIC;
+				}
+
+				if (lpTargetSurface->IsSurfaceLocked() || lpTargetSurface->IsSurfaceInDC())
+				{
+					LOG_LIMIT(100, __FUNCTION__ << " Surface is busy!");
+					return DDERR_SURFACEBUSY;
 				}
 			}
 
@@ -795,7 +821,7 @@ HRESULT m_IDirectDrawSurfaceX::GetAttachedSurface2(LPDDSCAPS2 lpDDSCaps2, LPDIRE
 
 	if (Config.Dd7to9)
 	{
-		if (!lplpDDAttachedSurface)
+		if (!lplpDDAttachedSurface || !lpDDSCaps2)
 		{
 			return DDERR_INVALIDPARAMS;
 		}
@@ -806,26 +832,67 @@ HRESULT m_IDirectDrawSurfaceX::GetAttachedSurface2(LPDDSCAPS2 lpDDSCaps2, LPDIRE
 			return DDERR_GENERIC;
 		}
 
-		/*ToDo: GetAttachedSurface fails if more than one surface is attached that matches the capabilities requested. 
-		In this case, the application must use the IDirectDrawSurface7::EnumAttachedSurfaces method to obtain the attached surfaces.*/
-
-		DDSURFACEDESC2 Desc2;
-		Desc2.dwSize = sizeof(DDSURFACEDESC2);
-		Desc2.ddpfPixelFormat.dwSize = sizeof(DDPIXELFORMAT);
-		ConvertSurfaceDesc(Desc2, surfaceDesc2);
-		if (lpDDSCaps2)
+		// Check for primary surface
+		if (lpDDSCaps2->dwCaps & DDSCAPS_PRIMARYSURFACE)
 		{
-			ConvertCaps(Desc2.ddsCaps, *lpDDSCaps2);
+			*lplpDDAttachedSurface = (LPDIRECTDRAWSURFACE7)this->GetWrapperInterfaceX(DirectXVersion);
+
+			::AddRef(*lplpDDAttachedSurface);
+
+			return DD_OK;
 		}
-		Desc2.ddsCaps.dwCaps &= ~DDSCAPS_PRIMARYSURFACE;		// Remove Primary surface flag
 
-		m_IDirectDrawSurfaceX *attachedSurface = new m_IDirectDrawSurfaceX(d3d9Device, ddrawParent, DirectXVersion, &Desc2, displayWidth, displayHeight);
+		// Check for backbuffer surface
+		if (lpDDSCaps2->dwCaps & DDSCAPS_BACKBUFFER)
+		{
+			m_IDirectDrawSurfaceX *lpFoundSurface = nullptr;
 
-		*lplpDDAttachedSurface = (LPDIRECTDRAWSURFACE7)attachedSurface->GetWrapperInterfaceX(DirectXVersion);
+			// Check if backbuffer already exists
+			for (auto it : AttachedSurfaceMap)
+			{
+				m_IDirectDrawSurfaceX *lpSurface = (m_IDirectDrawSurfaceX*)it.second;
 
-		AddAttachedSurfaceToMap(attachedSurface);
+				if (lpSurface->GetSurfaceCaps().dwCaps == lpDDSCaps2->dwCaps)
+				{
+					if (lpFoundSurface)
+					{
+						LOG_LIMIT(100, __FUNCTION__ << " Error: more than one surface is attached that matches the capabilities requested.");
+						return DDERR_GENERIC;
+					}
 
-		return DD_OK;
+					lpFoundSurface = lpSurface;
+				}
+			}
+
+			// Return found surface
+			if (lpFoundSurface)
+			{
+				*lplpDDAttachedSurface = (LPDIRECTDRAWSURFACE7)lpFoundSurface->GetWrapperInterfaceX(DirectXVersion);
+
+				::AddRef(*lplpDDAttachedSurface);
+
+				return DD_OK;
+			}
+
+			// Create backbuffer surface if none exists
+			DDSURFACEDESC2 Desc2;
+			Desc2.dwSize = sizeof(DDSURFACEDESC2);
+			Desc2.ddpfPixelFormat.dwSize = sizeof(DDPIXELFORMAT);
+			ConvertSurfaceDesc(Desc2, surfaceDesc2);
+			ConvertCaps(Desc2.ddsCaps, *lpDDSCaps2);
+
+			m_IDirectDrawSurfaceX *attachedSurface = new m_IDirectDrawSurfaceX(d3d9Device, ddrawParent, DirectXVersion, &Desc2, displayWidth, displayHeight);
+
+			AddAttachedSurfaceToMap(attachedSurface);
+
+			*lplpDDAttachedSurface = (LPDIRECTDRAWSURFACE7)attachedSurface->GetWrapperInterfaceX(DirectXVersion);
+
+			return DD_OK;
+		}
+
+		Logging::Log() << __FUNCTION__ << " Error: attached surface capabilities not found.  Flags " << lpDDSCaps2;
+
+		return DDERR_NOTFOUND;
 	}
 
 	HRESULT hr = ProxyInterface->GetAttachedSurface(lpDDSCaps2, lplpDDAttachedSurface);
@@ -1405,6 +1472,9 @@ HRESULT m_IDirectDrawSurfaceX::ReleaseDC(HDC hDC)
 		{
 			surfacehDC = nullptr;
 			IsInDC = false;
+
+			// Present surface
+			PresentSurface();
 		}
 
 		return hr;
@@ -1772,8 +1842,22 @@ HRESULT m_IDirectDrawSurfaceX::SetSurfaceDesc2(LPDDSURFACEDESC2 lpDDSurfaceDesc2
 			return DDERR_INVALIDPARAMS;
 		}
 
-		LOG_LIMIT(100, __FUNCTION__ << " Not Implemented");
-		return DDERR_UNSUPPORTED;
+		// Check flags
+		DWORD SurfaceFlags = lpDDSurfaceDesc2->dwFlags;
+		if (SurfaceFlags & DDSD_LPSURFACE)
+		{
+			LOG_LIMIT(1, __FUNCTION__ << " lpSurface not fully Implemented.");
+
+			SurfaceFlags &= ~DDSD_LPSURFACE;
+			surfaceDesc2.dwFlags |= DDSD_LPSURFACE;
+			surfaceDesc2.lpSurface = lpDDSurfaceDesc2->lpSurface;
+		}
+		if (SurfaceFlags)
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: flags not implemented " << SurfaceFlags);
+			return DDERR_UNSUPPORTED;
+		}
+		return DD_OK;
 	}
 
 	return ProxyInterface->SetSurfaceDesc(lpDDSurfaceDesc2, dwFlags);
@@ -2026,9 +2110,25 @@ HRESULT m_IDirectDrawSurfaceX::CreateD3d9Surface()
 	// Update surface description
 	GetSurfaceDesc2(&surfaceDesc2);
 
+	// Get pool type
+	D3DPOOL Pool = D3DPOOL_DEFAULT;
+	if (surfaceDesc2.ddsCaps.dwCaps & DDSCAPS_SYSTEMMEMORY)
+	{
+		Pool = D3DPOOL_SYSTEMMEM;
+	}
+	else if (surfaceDesc2.ddsCaps.dwCaps2 & (DDSCAPS2_TEXTUREMANAGE | DDSCAPS2_D3DTEXTUREMANAGE))
+	{
+		Pool = D3DPOOL_MANAGED;
+	}
+	else if (surfaceDesc2.ddsCaps.dwCaps2 & DDSCAPS2_DONOTPERSIST)
+	{
+		Pool = D3DPOOL_SCRATCH;
+	}
+
 	// Get usage
 	DWORD Usage = 0;
-	if ((surfaceDesc2.ddsCaps.dwCaps2 & DDSCAPS2_HINTSTATIC) == 0 || (surfaceDesc2.ddsCaps.dwCaps2 & DDSCAPS2_HINTDYNAMIC))
+	if (((surfaceDesc2.ddsCaps.dwCaps2 & DDSCAPS2_HINTSTATIC) == 0 || (surfaceDesc2.ddsCaps.dwCaps2 & DDSCAPS2_HINTDYNAMIC)) &&
+		Pool != D3DPOOL_MANAGED)	// D3DPOOL_MANAGED cannot be used with D3DUSAGE_DYNAMIC
 	{
 		Usage |= D3DUSAGE_DYNAMIC;
 	}
@@ -2039,22 +2139,6 @@ HRESULT m_IDirectDrawSurfaceX::CreateD3d9Surface()
 	if (surfaceDesc2.ddsCaps.dwCaps & DDSCAPS_WRITEONLY)
 	{
 		Usage |= D3DUSAGE_WRITEONLY;
-	}
-
-	// Get pool type
-	D3DPOOL Pool = D3DPOOL_DEFAULT;
-	if (surfaceDesc2.ddsCaps.dwCaps & DDSCAPS_SYSTEMMEMORY)
-	{
-		Pool = D3DPOOL_SYSTEMMEM;
-	}
-	else if (((surfaceDesc2.ddsCaps.dwCaps & (DDSCAPS_VIDEOMEMORY | DDSCAPS_NONLOCALVIDMEM)) || (surfaceDesc2.ddsCaps.dwCaps2 & (DDSCAPS2_TEXTUREMANAGE | DDSCAPS2_D3DTEXTUREMANAGE))) &&
-		((Usage & D3DUSAGE_DYNAMIC) == 0))		// D3DPOOL_MANAGED cannot be used with D3DUSAGE_DYNAMIC
-	{
-		Pool = D3DPOOL_MANAGED;
-	}
-	else if (surfaceDesc2.ddsCaps.dwCaps2 & DDSCAPS2_DONOTPERSIST)
-	{
-		Pool = D3DPOOL_SCRATCH;
 	}
 
 	// Get resource type
@@ -2104,7 +2188,7 @@ HRESULT m_IDirectDrawSurfaceX::CreateD3d9Surface()
 	// Create surface
 	if (FAILED((*d3d9Device)->CreateTexture(surfaceDesc2.dwWidth, surfaceDesc2.dwHeight, 1, Usage, (Format == D3DFMT_P8) ? D3DFMT_L8 : Format, Pool, &surfaceTexture, nullptr)))
 	{
-		LOG_LIMIT(100, __FUNCTION__ << " Failed to create surface");
+		LOG_LIMIT(100, __FUNCTION__ << " Failed to create surface size: " << surfaceDesc2.dwWidth << "x" << surfaceDesc2.dwHeight << " Usage: " << Usage << " Format: " << Format << " Pool: " << Pool);
 		return DDERR_GENERIC;
 	}
 
@@ -2365,26 +2449,32 @@ HRESULT m_IDirectDrawSurfaceX::PresentSurface(BOOL isSkipScene)
 	}
 
 	// Check if is not primary surface or if scene should be skipped
-	if (isSkipScene && !SceneReady)
+	if (!IsPrimarySurface() && SceneReady)
 	{
-		return DDERR_GENERIC;
-	}
-	else if (!IsPrimarySurface() && SceneReady)
-	{
-		ddrawParent->PresentPrimarySurface();
+		m_IDirectDrawSurfaceX *lpDDSrcSurfaceX = ddrawParent->GetPrimarySurface();
+		if (lpDDSrcSurfaceX)
+		{
+			lpDDSrcSurfaceX->PresentSurface(isSkipScene);
+		}
 		return DDERR_GENERIC;
 	}
 	else if (!IsPrimarySurface())
 	{
 		return DDERR_GENERIC;
 	}
+	else if (isSkipScene && !SceneReady)
+	{
+		Logging::LogDebug() << __FUNCTION__ << " Skipping scene!";
+		return DDERR_GENERIC;
+	}
 
 	// Set scene ready
 	SceneReady = true;
 
-	// Check if surface is locked or DC is open
+	// Check if surface is locked or has an open DC
 	if (IsLocked || IsInDC)
 	{
+		Logging::LogDebug() << __FUNCTION__ << " Surface is busy!";
 		return DDERR_SURFACEBUSY;
 	}
 
@@ -2684,7 +2774,7 @@ HRESULT m_IDirectDrawSurfaceX::ColorFill(RECT* pRect, D3DCOLOR dwFillColor)
 		if (FAILED(SetLock(&DestLockRect, &DestRect, 0, true)))
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Error: could not lock dest surface " << DestRect);
-			hr = DDERR_GENERIC;
+			hr = (IsLocked) ? DDERR_SURFACEBUSY : DDERR_GENERIC;
 			break;
 		}
 		UnlockDest = true;
@@ -2800,7 +2890,7 @@ HRESULT m_IDirectDrawSurfaceX::UpdateSurfaceColorKey(m_IDirectDrawSurfaceX* pSou
 		if (FAILED(pSourceSurface->SetLock(&SrcLockRect, &SrcRect, D3DLOCK_READONLY, true)))
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Error: could not lock source surface " << SrcRect);
-			hr = DDERR_GENERIC;
+			hr = (pSourceSurface->IsSurfaceLocked()) ? DDERR_SURFACEBUSY : DDERR_GENERIC;
 			break;
 		}
 		UnlockSrc = true;
@@ -2823,7 +2913,7 @@ HRESULT m_IDirectDrawSurfaceX::UpdateSurfaceColorKey(m_IDirectDrawSurfaceX* pSou
 		if (FAILED(SetLock(&DestLockRect, &DestRect, 0, true)))
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Error: could not lock destination surface " << DestRect);
-			hr = DDERR_GENERIC;
+			hr = (IsLocked) ? DDERR_SURFACEBUSY : DDERR_GENERIC;
 			break;
 		}
 		UnlockDest = true;
@@ -2943,7 +3033,7 @@ HRESULT m_IDirectDrawSurfaceX::StretchRectColorKey(m_IDirectDrawSurfaceX* pSourc
 		if (FAILED(pSourceSurface->SetLock(&SrcLockRect, &SrcRect, D3DLOCK_READONLY, true)))
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Error: could not lock source surface " << SrcRect);
-			hr = DDERR_GENERIC;
+			hr = (pSourceSurface->IsSurfaceLocked()) ? DDERR_SURFACEBUSY : DDERR_GENERIC;
 			break;
 		}
 		UnlockSrc = true;
@@ -2966,7 +3056,7 @@ HRESULT m_IDirectDrawSurfaceX::StretchRectColorKey(m_IDirectDrawSurfaceX* pSourc
 		if (FAILED(SetLock(&DestLockRect, &DestRect, 0, true)))
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Error: could not lock destination surface " << DestRect);
-			hr = DDERR_GENERIC;
+			hr = (IsLocked) ? DDERR_SURFACEBUSY : DDERR_GENERIC;
 			break;
 		}
 		UnlockDest = true;

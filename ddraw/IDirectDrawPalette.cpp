@@ -172,7 +172,11 @@ HRESULT m_IDirectDrawPalette::SetEntries(DWORD dwFlags, DWORD dwStartingEntry, D
 		// Present new palette
 		if (ddrawParent)
 		{
-			ddrawParent->PresentPrimarySurface();
+			m_IDirectDrawSurfaceX *lpDDSrcSurfaceX = ddrawParent->GetPrimarySurface();
+			if (lpDDSrcSurfaceX)
+			{
+				lpDDSrcSurfaceX->PresentSurface();
+			}
 		}
 
 		return DD_OK;

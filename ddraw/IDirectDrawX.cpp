@@ -284,9 +284,11 @@ HRESULT m_IDirectDrawX::CreateSurface2(LPDDSURFACEDESC2 lpDDSurfaceDesc2, LPDIRE
 			return DDERR_INVALIDPARAMS;
 		}
 
-		if ((lpDDSurfaceDesc2->dwFlags & DDSD_CAPS) == 0)
+		// Check for existing primary surface
+		if ((lpDDSurfaceDesc2->ddsCaps.dwCaps & DDSCAPS_PRIMARYSURFACE) && GetPrimarySurface())
 		{
-			return DDERR_INVALIDPARAMS;
+			LOG_LIMIT(100, __FUNCTION__ << " Error: primary surface already exists!");
+			return DDERR_PRIMARYSURFACEALREADYEXISTS;
 		}
 
 		DDSURFACEDESC2 Desc2;
@@ -319,6 +321,9 @@ HRESULT m_IDirectDrawX::CreateSurface2(LPDDSURFACEDESC2 lpDDSurfaceDesc2, LPDIRE
 				break;
 			case 16:
 				GetPixelDisplayFormat(D3DFMT_R5G6B5, Desc2.ddpfPixelFormat);
+				break;
+			case 24:
+				GetPixelDisplayFormat(D3DFMT_R8G8B8, Desc2.ddpfPixelFormat);
 				break;
 			case 32:
 				GetPixelDisplayFormat(D3DFMT_X8R8G8B8, Desc2.ddpfPixelFormat);
@@ -469,7 +474,7 @@ HRESULT m_IDirectDrawX::EnumDisplayModes2(DWORD dwFlags, LPDDSURFACEDESC2 lpDDSu
 		// Get display modes to enum
 		bool DisplayAllModes = (!lpDDSurfaceDesc2);
 		DWORD DisplayBitCount = (displayModeBPP) ? displayModeBPP : (Config.Force32bitColor) ? 32 : (Config.Force16bitColor) ? 16 : 0;
-		if (!DisplayAllModes && lpDDSurfaceDesc2 && (lpDDSurfaceDesc2->dwFlags & DDSD_PIXELFORMAT) != 0)
+		if (lpDDSurfaceDesc2 && (lpDDSurfaceDesc2->dwFlags & DDSD_PIXELFORMAT) != 0)
 		{
 			DisplayBitCount = GetBitCount(lpDDSurfaceDesc2->ddpfPixelFormat);
 		}
@@ -500,15 +505,14 @@ HRESULT m_IDirectDrawX::EnumDisplayModes2(DWORD dwFlags, LPDDSURFACEDESC2 lpDDSu
 			}
 
 			// Loop through each bit count
-			int x = 0;
-			for (int bpMode : {8, 16, 32})
+			for (DWORD bpMode : {8, 16, 24, 32})
 			{
 				// Set display bit count
 				if (DisplayAllModes)
 				{
 					DisplayBitCount = bpMode;
 				}
-				else if (++x != 1)
+				else if (DisplayBitCount != bpMode)
 				{
 					break;
 				}
@@ -526,15 +530,13 @@ HRESULT m_IDirectDrawX::EnumDisplayModes2(DWORD dwFlags, LPDDSURFACEDESC2 lpDDSu
 
 					// Set surface desc options
 					Desc2.dwSize = sizeof(DDSURFACEDESC2);
-					Desc2.dwFlags = DDSD_WIDTH | DDSD_HEIGHT | DDSD_REFRESHRATE | DDSD_PITCH | DDSD_PIXELFORMAT;
+					Desc2.dwFlags = DDSD_WIDTH | DDSD_HEIGHT | DDSD_REFRESHRATE | DDSD_PIXELFORMAT;
 					Desc2.dwWidth = d3ddispmode.Width;
 					Desc2.dwHeight = d3ddispmode.Height;
 					Desc2.dwRefreshRate = d3ddispmode.RefreshRate;
 
 					// Set adapter pixel format
 					Desc2.ddpfPixelFormat.dwSize = sizeof(DDPIXELFORMAT);
-
-					// Special handling for 8-bit mode
 					switch (DisplayBitCount)
 					{
 					case 8:
@@ -543,11 +545,13 @@ HRESULT m_IDirectDrawX::EnumDisplayModes2(DWORD dwFlags, LPDDSURFACEDESC2 lpDDSu
 					case 16:
 						GetPixelDisplayFormat(D3DFMT_R5G6B5, Desc2.ddpfPixelFormat);
 						break;
+					case 24:
+						GetPixelDisplayFormat(D3DFMT_R8G8B8, Desc2.ddpfPixelFormat);
+						break;
 					case 32:
 						GetPixelDisplayFormat(D3DFMT_X8R8G8B8, Desc2.ddpfPixelFormat);
 						break;
 					}
-					Desc2.lPitch = (Desc2.ddpfPixelFormat.dwRGBBitCount / 8) * Desc2.dwWidth;
 
 					if (lpEnumModesCallback2(&Desc2, lpContext) == DDENUMRET_CANCEL)
 					{
@@ -745,7 +749,8 @@ HRESULT m_IDirectDrawX::GetDisplayMode2(LPDDSURFACEDESC2 lpDDSurfaceDesc2)
 	{
 		if (!lpDDSurfaceDesc2)
 		{
-			return DDERR_INVALIDPARAMS;
+			// Just return OK
+			return DD_OK;
 		}
 
 		// Set Surface Desc
@@ -787,6 +792,9 @@ HRESULT m_IDirectDrawX::GetDisplayMode2(LPDDSURFACEDESC2 lpDDSurfaceDesc2)
 			break;
 		case 16:
 			GetPixelDisplayFormat(D3DFMT_R5G6B5, lpDDSurfaceDesc2->ddpfPixelFormat);
+			break;
+		case 24:
+			GetPixelDisplayFormat(D3DFMT_R8G8B8, lpDDSurfaceDesc2->ddpfPixelFormat);
 			break;
 		case 32:
 			GetPixelDisplayFormat(D3DFMT_X8R8G8B8, lpDDSurfaceDesc2->ddpfPixelFormat);
@@ -1781,6 +1789,20 @@ bool m_IDirectDrawX::DoesSurfaceExist(m_IDirectDrawSurfaceX* lpSurfaceX)
 	return true;
 }
 
+// Get the primary surface
+m_IDirectDrawSurfaceX *m_IDirectDrawX::GetPrimarySurface()
+{
+	// Check for primary surface
+	for (m_IDirectDrawSurfaceX *pSurface : SurfaceVector)
+	{
+		if (pSurface->IsPrimarySurface())
+		{
+			return pSurface;
+		}
+	}
+	return nullptr;
+}
+
 // This method removes any texture surfaces created with the DDSCAPS2_TEXTUREMANAGE or DDSCAPS2_D3DTEXTUREMANAGE flags
 void m_IDirectDrawX::EvictManagedTextures()
 {
@@ -1790,19 +1812,6 @@ void m_IDirectDrawX::EvictManagedTextures()
 		if (pSurface->IsSurfaceManaged())
 		{
 			pSurface->ReleaseD9Surface();
-		}
-	}
-}
-
-void m_IDirectDrawX::PresentPrimarySurface()
-{
-	// Check for primary surface
-	for (m_IDirectDrawSurfaceX *pSurface : SurfaceVector)
-	{
-		if (pSurface->IsPrimarySurface())
-		{
-			pSurface->PresentSurface();
-			return;
 		}
 	}
 }
@@ -1903,15 +1912,6 @@ HRESULT m_IDirectDrawX::EndScene()
 	if (FAILED(CheckInterface(__FUNCTION__, true)))
 	{
 		return DDERR_GENERIC;
-	}
-
-	// Check if any surfaces are locked
-	for (m_IDirectDrawSurfaceX* it : SurfaceVector)
-	{
-		if (it->IsSurfaceLocked())
-		{
-			return DDERR_LOCKEDSURFACES;
-		}
 	}
 
 	// Draw primitive

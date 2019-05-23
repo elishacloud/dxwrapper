@@ -132,7 +132,7 @@ namespace CompatExperimental
 			const BOOL disablePriorityBoost = TRUE;
 			SetProcessPriorityBoost(GetCurrentProcess(), disablePriorityBoost);
 			//********** Begin Edit *************
-			if (Config.SingleProcAffinityNotSet) SetProcessAffinityMask(GetCurrentProcess(), 1);
+			if (!Config.DDrawCompatNoProcAffinity) SetProcessAffinityMask(GetCurrentProcess(), 1);
 			//********** End Edit ***************
 			timeBeginPeriod(1);
 			SetThemeAppProperties(0);

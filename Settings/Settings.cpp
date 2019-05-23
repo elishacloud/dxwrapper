@@ -232,10 +232,6 @@ void __stdcall Settings::ParseCallback(char* name, char* value)
 	{
 		Config.DisableMaxWindowedModeNotSet = false;
 	}
-	if (!_strcmpi(name, "SingleProcAffinity"))
-	{
-		Config.SingleProcAffinityNotSet = false;
-	}
 
 	// Set Value of normal config settings
 	VISIT_CONFIG_SETTINGS(SET_VALUE);
@@ -341,7 +337,6 @@ void Settings::ClearConfigSettings()
 	Config.CacheClipPlaneNotSet = true;
 	Config.DDrawResolutionHackNotSet = true;
 	Config.DisableMaxWindowedModeNotSet = true;
-	Config.SingleProcAffinityNotSet = true;
 }
 
 // Get wrapper mode based on dll name

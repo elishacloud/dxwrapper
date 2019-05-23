@@ -214,8 +214,8 @@ public:
 	void AddSurfaceToVector(m_IDirectDrawSurfaceX* lpSurfaceX);
 	void RemoveSurfaceFromVector(m_IDirectDrawSurfaceX* lpSurfaceX);
 	bool DoesSurfaceExist(m_IDirectDrawSurfaceX* lpSurfaceX);
+	m_IDirectDrawSurfaceX *GetPrimarySurface();
 	void EvictManagedTextures();
-	void PresentPrimarySurface();
 
 	// Palette vector functions
 	void AddPaletteToVector(m_IDirectDrawPalette* lpPalette);

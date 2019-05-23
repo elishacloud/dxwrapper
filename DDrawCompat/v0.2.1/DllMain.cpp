@@ -195,7 +195,7 @@ namespace Compat21
 			Compat::origProcs.DirectInputCreateA = GetProcAddress(g_origDInputModule, "DirectInputCreateA");
 
 			//********** Begin Edit *************
-			if (Config.SingleProcAffinityNotSet) SetProcessAffinityMask(GetCurrentProcess(), 1);
+			if (!Config.DDrawCompatNoProcAffinity) SetProcessAffinityMask(GetCurrentProcess(), 1);
 			//********** End Edit ***************
 			SetThemeAppProperties(0);
 			Time::init();

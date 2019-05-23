@@ -232,9 +232,11 @@ public:
 	// Surface information functions
 	bool IsPrimarySurface() { return (surfaceDesc2.ddsCaps.dwCaps & DDSCAPS_PRIMARYSURFACE) != 0; }
 	bool IsSurfaceLocked() { return IsLocked; }
+	bool IsSurfaceInDC() { return IsInDC; }
 	bool IsSurfaceManaged() { return (surfaceDesc2.ddsCaps.dwCaps2 & (DDSCAPS2_TEXTUREMANAGE | DDSCAPS2_D3DTEXTUREMANAGE)); }
 	DWORD GetWidth() { return surfaceDesc2.dwWidth; }
 	DWORD GetHeight() { return surfaceDesc2.dwHeight; }
+	DDSCAPS2 GetSurfaceCaps() { return surfaceDesc2.ddsCaps; }
 	DWORD GetSurfaceBitCount() { return GetBitCount(surfaceDesc2.ddpfPixelFormat); }
 	D3DFORMAT GetSurfaceFormat() { return GetDisplayFormat(surfaceDesc2.ddpfPixelFormat); }
 

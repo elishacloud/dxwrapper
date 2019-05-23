@@ -17,6 +17,7 @@
 	visit(DDrawCompat21) \
 	visit(DDrawCompatExperimental) \
 	visit(DDrawCompatDisableGDIHook) \
+	visit(DDrawCompatNoProcAffinity) \
 	visit(DdrawUseNativeResolution) \
 	visit(DdrawOverrideWidth) \
 	visit(DdrawOverrideHeight) \
@@ -152,7 +153,6 @@ struct CONFIG
 	bool Force16bitColor;				// Forces DirectX to use 16bit color
 	bool Force32bitColor;				// Forces DirectX to use 32bit color
 	bool SingleProcAffinity;			// Sets the CPU affinity for this process and thread
-	bool SingleProcAffinityNotSet;		// If the SingleProcAffinity option exists in the config file
 	bool isDdrawWrapperEnabled;			// Specifies if DdrawWrapper needs to be enabled
 	bool isD3d9WrapperEnabled;			// Specifies if D3d9Wrapper needs to be enabled
 	bool isDsoundWrapperEnabled;		// Specifies if DsoundWrapper needs to be enabled
@@ -164,6 +164,7 @@ struct CONFIG
 	bool DDrawCompat21;					// Enables DDrawCompat v0.2.1
 	bool DDrawCompatExperimental;		// Enables DDrawCompat Experimental version
 	bool DDrawCompatDisableGDIHook;		// Disables DDrawCompat GDI hooks
+	bool DDrawCompatNoProcAffinity;		// Disables DDrawCompat single processor affinity
 	bool DDrawResolutionHack;			// Removes the artificial resolution limit from Direct3D7 and below https://github.com/UCyborg/LegacyD3DResolutionHack
 	bool DDrawResolutionHackNotSet;		// If the DDrawResolutionHack option exists in the config file
 	bool DdrawUseNativeResolution;		// Uses the current screen resolution for Dd7to9

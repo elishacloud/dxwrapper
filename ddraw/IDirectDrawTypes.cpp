@@ -295,6 +295,8 @@ DWORD GetBitCount(D3DFORMAT Format)
 	case D3DFMT_X1R5G5B5:
 	case D3DFMT_A1R5G5B5:
 		return 16;
+	case D3DFMT_R8G8B8:
+		return 24;
 	case D3DFMT_X8R8G8B8:
 	case D3DFMT_A8R8G8B8:
 	case D3DFMT_A2R10G10B10:
@@ -335,8 +337,8 @@ D3DFORMAT GetDisplayFormat(DDPIXELFORMAT ddpfPixelFormat)
 			// Default 16-bit
 			return D3DFMT_R5G6B5;
 		case 24:
-			LOG_LIMIT(100, __FUNCTION__ << " 24-bit RGB not Implemented");
-			return D3DFMT_UNKNOWN;
+			// Default 24-bit
+			return D3DFMT_R8G8B8;
 		case 32:
 			if (ddpfPixelFormat.dwBBitMask == 0xFF)
 			{
@@ -425,6 +427,7 @@ void GetPixelDisplayFormat(D3DFORMAT Format, DDPIXELFORMAT &ddpfPixelFormat)
 	case D3DFMT_A8R8G8B8:
 		tmpPixelFormat.dwFlags |= DDPF_ALPHAPIXELS;
 		tmpPixelFormat.dwRGBAlphaBitMask = 0xFF000000;
+	case D3DFMT_R8G8B8:
 	case D3DFMT_X8R8G8B8:
 		tmpPixelFormat.dwRBitMask = 0xFF0000;
 		tmpPixelFormat.dwGBitMask = 0xFF00;
