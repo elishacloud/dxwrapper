@@ -257,6 +257,7 @@ public:
 		*Address2 = tmpAddr;
 	}
 	void SwapSurface(m_IDirectDrawSurfaceX* lpTargetSurface1, m_IDirectDrawSurfaceX* lpTargetSurface2);
+	HRESULT FlipBackBuffer();
 
 	// Locking rect coordinates
 	bool CheckCoordinates(LPRECT lpOutRect, LPRECT lpInRect);

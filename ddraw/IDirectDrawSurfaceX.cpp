@@ -664,6 +664,60 @@ HRESULT m_IDirectDrawSurfaceX::EnumOverlayZOrders2(DWORD dwFlags, LPVOID lpConte
 	return ProxyInterface->EnumOverlayZOrders(dwFlags, &CallbackContext, m_IDirectDrawEnumSurface::ConvertCallback2);
 }
 
+HRESULT m_IDirectDrawSurfaceX::FlipBackBuffer()
+{
+	DWORD dwCaps = 0;
+	m_IDirectDrawSurfaceX *lpTargetSurface = nullptr;
+
+	// Loop through each surface and swap them
+	for (auto it : AttachedSurfaceMap)
+	{
+		dwCaps = it.second->GetSurfaceCaps().dwCaps;
+		if (!(dwCaps & DDSCAPS_ZBUFFER))
+		{
+			lpTargetSurface = it.second;
+
+			break;
+		}
+	}
+
+	// Check if backbuffer was found
+	if (!lpTargetSurface)
+	{
+		return DDERR_GENERIC;
+	}
+
+	// Check surface interface
+	if (FAILED(lpTargetSurface->CheckInterface(__FUNCTION__, true, true)))
+	{
+		return DDERR_GENERIC;
+	}
+
+	// Check if surface is busy
+	if (lpTargetSurface->IsSurfaceLocked() || lpTargetSurface->IsSurfaceInDC())
+	{
+		LOG_LIMIT(100, __FUNCTION__ << " Surface is busy!");
+		return DDERR_SURFACEBUSY;
+	}
+
+	// Stop flipping when frontbuffer is found
+	if (dwCaps & DDSCAPS_FRONTBUFFER)
+	{
+		return DD_OK;
+	}
+
+	// Swap surface
+	SwapSurface(this, lpTargetSurface);
+
+	// Flip next surface
+	if (FAILED(lpTargetSurface->FlipBackBuffer()))
+	{
+		return DDERR_GENERIC;
+	}
+
+	return DD_OK;
+}
+
 HRESULT m_IDirectDrawSurfaceX::Flip(LPDIRECTDRAWSURFACE7 lpDDSurfaceTargetOverride, DWORD dwFlags)
 {
 	Logging::LogDebug() << __FUNCTION__;
@@ -701,14 +755,6 @@ HRESULT m_IDirectDrawSurfaceX::Flip(LPDIRECTDRAWSURFACE7 lpDDSurfaceTargetOverri
 			LOG_LIMIT(1, __FUNCTION__ << " Interval flipping not fully implemented");
 		}
 
-		if (surfaceDesc2.dwBackBufferCount > 1)
-		{
-			LOG_LIMIT(1, __FUNCTION__ << " Flipping with more than one backbuffer not implemented!");
-		}
-
-		// Check if attached surface is found
-		bool FoundAttachedSurface = false;
-
 		// If SurfaceTargetOverride then use that surface
 		if (lpDDSurfaceTargetOverride)
 		{
@@ -734,9 +780,6 @@ HRESULT m_IDirectDrawSurfaceX::Flip(LPDIRECTDRAWSURFACE7 lpDDSurfaceTargetOverri
 				return DDERR_SURFACEBUSY;
 			}
 
-			// Found surface
-			FoundAttachedSurface = true;
-
 			// Swap surface
 			SwapSurface(this, lpTargetSurface);
 		}
@@ -761,41 +804,12 @@ HRESULT m_IDirectDrawSurfaceX::Flip(LPDIRECTDRAWSURFACE7 lpDDSurfaceTargetOverri
 				return DDERR_UNSUPPORTED;
 			}
 
-			// Loop through each surface and check the device interface or if surface is locked or has an open DC
-			for (auto it : AttachedSurfaceMap)
+			// Flip surface
+			HRESULT hr = FlipBackBuffer();
+			if (FAILED(hr))
 			{
-				m_IDirectDrawSurfaceX *lpTargetSurface = it.second;
-
-				if (FAILED(lpTargetSurface->CheckInterface(__FUNCTION__, true, true)))
-				{
-					return DDERR_GENERIC;
-				}
-
-				if (lpTargetSurface->IsSurfaceLocked() || lpTargetSurface->IsSurfaceInDC())
-				{
-					LOG_LIMIT(100, __FUNCTION__ << " Surface is busy!");
-					return DDERR_SURFACEBUSY;
-				}
+				return hr;
 			}
-
-			// Loop through each surface and swap them
-			for (auto it : AttachedSurfaceMap)
-			{
-				m_IDirectDrawSurfaceX *lpTargetSurface = it.second;
-
-				// Found surface
-				FoundAttachedSurface = true;
-
-				// Swap surface
-				SwapSurface(this, lpTargetSurface);
-			}
-		}
-
-		// Return Error: if no attached surfaces found
-		if (!FoundAttachedSurface)
-		{
-			LOG_LIMIT(100, __FUNCTION__ << " No attached surfaces found");
-			return DDERR_GENERIC;
 		}
 
 		// Present surface
