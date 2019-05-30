@@ -226,9 +226,11 @@ HRESULT m_IDirectDrawX::CreatePalette(DWORD dwFlags, LPPALETTEENTRY lpDDColorArr
 			return DDERR_INVALIDPARAMS;
 		}
 
-		*lplpDDPalette = new m_IDirectDrawPalette(this, dwFlags, lpDDColorArray);
+		m_IDirectDrawPalette *PaletteX = new m_IDirectDrawPalette(this, dwFlags, lpDDColorArray);
 
-		AddPaletteToVector((m_IDirectDrawPalette*)*lplpDDPalette);
+		AddPaletteToVector(PaletteX);
+
+		*lplpDDPalette = PaletteX;
 
 		return DD_OK;
 	}
@@ -295,6 +297,20 @@ HRESULT m_IDirectDrawX::CreateSurface2(LPDDSURFACEDESC2 lpDDSurfaceDesc2, LPDIRE
 		Desc2.dwSize = sizeof(DDSURFACEDESC2);
 		Desc2.ddpfPixelFormat.dwSize = sizeof(DDPIXELFORMAT);
 		ConvertSurfaceDesc(Desc2, *lpDDSurfaceDesc2);
+		Desc2.dwReserved = 0;
+
+		if (lpDDSurfaceDesc2->dwFlags & DDSD_BACKBUFFERCOUNT)
+		{
+			Desc2.ddsCaps.dwCaps |= DDSCAPS_FRONTBUFFER;
+			if (!Desc2.dwBackBufferCount)
+			{
+				Desc2.dwBackBufferCount = 1;
+			}
+		}
+		else
+		{
+			Desc2.dwBackBufferCount = 0;
+		}
 
 		if (displayModeBPP && (Desc2.ddsCaps.dwCaps & DDSCAPS_PRIMARYSURFACE) && (!Desc2.dwWidth || !Desc2.dwHeight))
 		{
@@ -312,9 +328,7 @@ HRESULT m_IDirectDrawX::CreateSurface2(LPDDSURFACEDESC2 lpDDSurfaceDesc2, LPDIRE
 
 			// Set Pixel Format
 			Desc2.dwFlags |= DDSD_PIXELFORMAT;
-			Desc2.ddpfPixelFormat.dwFlags = DDPF_RGB;
-			Desc2.ddpfPixelFormat.dwRGBBitCount = displayModeBPP;
-			switch (displayModeBPP)
+			switch ((PaletteVector.size()) ? 8 : displayModeBPP)
 			{
 			case 8:
 				GetPixelDisplayFormat(D3DFMT_P8, Desc2.ddpfPixelFormat);
@@ -343,7 +357,7 @@ HRESULT m_IDirectDrawX::CreateSurface2(LPDDSURFACEDESC2 lpDDSurfaceDesc2, LPDIRE
 	// BackBufferCount must be at least 1
 	if (ProxyDirectXVersion != DirectXVersion && lpDDSurfaceDesc2)
 	{
-		if ((lpDDSurfaceDesc2->dwFlags & DDSD_BACKBUFFERCOUNT) != 0 && lpDDSurfaceDesc2->dwBackBufferCount == 0)
+		if ((lpDDSurfaceDesc2->dwFlags & DDSD_BACKBUFFERCOUNT) && lpDDSurfaceDesc2->dwBackBufferCount == 0)
 		{
 			lpDDSurfaceDesc2->dwBackBufferCount = 1;
 		}
@@ -466,7 +480,7 @@ HRESULT m_IDirectDrawX::EnumDisplayModes2(DWORD dwFlags, LPDDSURFACEDESC2 lpDDSu
 			EnumHeight = lpDDSurfaceDesc2->dwHeight;
 			EnumRefreshRate = lpDDSurfaceDesc2->dwRefreshRate;
 		}
-		if ((dwFlags & DDEDM_REFRESHRATES) == 0 && !EnumRefreshRate)
+		if (!(dwFlags & DDEDM_REFRESHRATES) && !EnumRefreshRate)
 		{
 			EnumRefreshRate = Utils::GetRefreshRate(MainhWnd);
 		}
@@ -474,7 +488,7 @@ HRESULT m_IDirectDrawX::EnumDisplayModes2(DWORD dwFlags, LPDDSURFACEDESC2 lpDDSu
 		// Get display modes to enum
 		bool DisplayAllModes = (!lpDDSurfaceDesc2);
 		DWORD DisplayBitCount = (displayModeBPP) ? displayModeBPP : (Config.Force32bitColor) ? 32 : (Config.Force16bitColor) ? 16 : 0;
-		if (lpDDSurfaceDesc2 && (lpDDSurfaceDesc2->dwFlags & DDSD_PIXELFORMAT) != 0)
+		if (lpDDSurfaceDesc2 && (lpDDSurfaceDesc2->dwFlags & DDSD_PIXELFORMAT))
 		{
 			DisplayBitCount = GetBitCount(lpDDSurfaceDesc2->ddpfPixelFormat);
 		}
@@ -530,7 +544,7 @@ HRESULT m_IDirectDrawX::EnumDisplayModes2(DWORD dwFlags, LPDDSURFACEDESC2 lpDDSu
 
 					// Set surface desc options
 					Desc2.dwSize = sizeof(DDSURFACEDESC2);
-					Desc2.dwFlags = DDSD_WIDTH | DDSD_HEIGHT | DDSD_REFRESHRATE | DDSD_PIXELFORMAT;
+					Desc2.dwFlags = DDSD_WIDTH | DDSD_HEIGHT | DDSD_REFRESHRATE | DDSD_PITCH | DDSD_PIXELFORMAT;
 					Desc2.dwWidth = d3ddispmode.Width;
 					Desc2.dwHeight = d3ddispmode.Height;
 					Desc2.dwRefreshRate = d3ddispmode.RefreshRate;
@@ -552,6 +566,7 @@ HRESULT m_IDirectDrawX::EnumDisplayModes2(DWORD dwFlags, LPDDSURFACEDESC2 lpDDSu
 						GetPixelDisplayFormat(D3DFMT_X8R8G8B8, Desc2.ddpfPixelFormat);
 						break;
 					}
+					Desc2.lPitch = (Desc2.ddpfPixelFormat.dwRGBBitCount / 8) * Desc2.dwHeight;
 
 					if (lpEnumModesCallback2(&Desc2, lpContext) == DDENUMRET_CANCEL)
 					{
@@ -773,18 +788,9 @@ HRESULT m_IDirectDrawX::GetDisplayMode2(LPDDSURFACEDESC2 lpDDSurfaceDesc2)
 		}
 
 		// Force color mode
-		if (Config.Force16bitColor)
-		{
-			displayModeBits = 16;
-		}
-		if (Config.Force32bitColor)
-		{
-			displayModeBits = 32;
-		}
+		displayModeBits = (Config.Force32bitColor) ? 32 : (Config.Force16bitColor) ? 16 : displayModeBits;
 
 		// Set Pixel Format
-		lpDDSurfaceDesc2->ddpfPixelFormat.dwFlags = DDPF_RGB;
-		lpDDSurfaceDesc2->ddpfPixelFormat.dwRGBBitCount = displayModeBits;
 		switch (displayModeBits)
 		{
 		case 8:
@@ -1049,6 +1055,11 @@ HRESULT m_IDirectDrawX::SetCooperativeLevel(HWND hWnd, DWORD dwFlags)
 
 	if (Config.Dd7to9)
 	{
+		if ((dwFlags & DDSCL_NORMAL) && (dwFlags & (DDSCL_ALLOWMODEX | DDSCL_FULLSCREEN)))
+		{
+			return DDERR_INVALIDPARAMS;
+		}
+
 		// Set windowed mode
 		if ((dwFlags & DDSCL_NORMAL) || Config.EnableWindowMode)
 		{
@@ -1057,15 +1068,6 @@ HRESULT m_IDirectDrawX::SetCooperativeLevel(HWND hWnd, DWORD dwFlags)
 		else if (dwFlags & DDSCL_FULLSCREEN)
 		{
 			isWindowed = false;
-		}
-		else
-		{
-			return DDERR_INVALIDPARAMS;
-		}
-
-		if ((dwFlags & DDSCL_NORMAL) && (dwFlags & DDSCL_ALLOWMODEX))
-		{
-			return DDERR_INVALIDPARAMS;
 		}
 
 		// Set device flags
@@ -1161,7 +1163,7 @@ HRESULT m_IDirectDrawX::SetDisplayMode(DWORD dwWidth, DWORD dwHeight, DWORD dwBP
 		// Set display mode to dwWidth x dwHeight with dwBPP color depth
 		displayModeWidth = dwWidth;
 		displayModeHeight = dwHeight;
-		displayModeBPP = dwBPP;
+		displayModeBPP = (Config.Force32bitColor) ? 32 : (Config.Force16bitColor) ? 16 : dwBPP;
 		displayModeRefreshRate = dwRefreshRate;
 
 		if (SetDefaultDisplayMode || !displayWidth || !displayHeight)
@@ -1181,14 +1183,7 @@ HRESULT m_IDirectDrawX::SetDisplayMode(DWORD dwWidth, DWORD dwHeight, DWORD dwBP
 	}
 
 	// Force color mode
-	if (Config.Force16bitColor)
-	{
-		dwBPP = 16;
-	}
-	if (Config.Force32bitColor)
-	{
-		dwBPP = 32;
-	}
+	dwBPP = (Config.Force32bitColor) ? 32 : (Config.Force16bitColor) ? 16 : dwBPP;
 
 	if (ProxyDirectXVersion == 1)
 	{
@@ -1501,7 +1496,7 @@ HRESULT m_IDirectDrawX::CreateD3D9Device()
 	}
 
 	// Is dynamic textures flag set?
-	if ((d3dcaps.Caps2 & D3DCAPS2_DYNAMICTEXTURES) == 0)
+	if (!(d3dcaps.Caps2 & D3DCAPS2_DYNAMICTEXTURES))
 	{
 		// No dynamic textures
 		LOG_LIMIT(100, __FUNCTION__ << " Device does not support dynamic textures");
@@ -1573,7 +1568,7 @@ HRESULT m_IDirectDrawX::CreateD3D9Device()
 				return DDERR_GENERIC;
 			}
 			if (d3ddispmode.Width == BackBufferWidth && d3ddispmode.Height == BackBufferHeight &&		// Check height and width
-				(d3ddispmode.RefreshRate == BackBufferRefreshRate || BackBufferRefreshRate == 0))		// Check refresh rate
+				(d3ddispmode.RefreshRate == BackBufferRefreshRate || !BackBufferRefreshRate))			// Check refresh rate
 			{
 				// Found a match
 				modeFound = true;
@@ -1684,11 +1679,7 @@ void m_IDirectDrawX::ReleaseAllD9Surfaces(bool ClearDDraw)
 		{
 			pSurface->ClearDdraw();
 		}
-		pSurface->ReleaseD9Surface();
-	}
-	if (ClearDDraw)
-	{
-		SurfaceVector.clear();
+		pSurface->ReleaseD9Surface(!ClearDDraw);
 	}
 	ReleaseCriticalSection();
 }
@@ -1704,7 +1695,7 @@ void m_IDirectDrawX::ReleaseD3d9Device()
 		{
 			d3d9Device->EndScene();
 		}
-		
+
 		d3d9Device->Release();
 
 		d3d9Device = nullptr;
@@ -1732,6 +1723,8 @@ void m_IDirectDrawX::ReleaseAllD3d9()
 	if (d3d9Object)
 	{
 		d3d9Object->Release();
+
+		d3d9Object = nullptr;
 	}
 }
 
@@ -1924,7 +1917,7 @@ HRESULT m_IDirectDrawX::EndScene()
 	// Skip frame if time lapse is too small
 	if (Config.AutoFrameSkip)
 	{
-		if (!FrequencyFlag || (lastPresentTime.LowPart & 0xff) == 0)
+		if (!FrequencyFlag || !(lastPresentTime.LowPart & 0xff))
 		{
 			if (QueryPerformanceFrequency(&clockFrequency))
 			{

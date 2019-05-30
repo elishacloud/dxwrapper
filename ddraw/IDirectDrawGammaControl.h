@@ -13,14 +13,16 @@ public:
 	{
 		ProxyAddressLookupTable.SaveAddress(this, ProxyInterface);
 
-		LOG_LIMIT(3, "Create " << __FUNCTION__);
+		LOG_LIMIT(3, "Creating device " << __FUNCTION__ << "(" << this << ")");
 	}
 	m_IDirectDrawGammaControl()
 	{
-		LOG_LIMIT(3, "Create " << __FUNCTION__);
+		LOG_LIMIT(3, "Creating device " << __FUNCTION__ << "(" << this << ")");
 	}
 	~m_IDirectDrawGammaControl()
 	{
+		LOG_LIMIT(3, __FUNCTION__ << "(" << this << ")" << " deleting device!");
+
 		ProxyAddressLookupTable.DeleteAddress(this);
 	}
 

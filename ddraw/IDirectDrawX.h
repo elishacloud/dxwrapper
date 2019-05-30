@@ -74,11 +74,11 @@ public:
 
 		if (ProxyDirectXVersion != DirectXVersion)
 		{
-			LOG_LIMIT(3, "Convert DirectDraw v" << DirectXVersion << " to v" << ProxyDirectXVersion);
+			LOG_LIMIT(3, "Creating device " << __FUNCTION__ << "(" << this << ")" << " converting device from v" << DirectXVersion << " to v" << ProxyDirectXVersion);
 		}
 		else
 		{
-			LOG_LIMIT(3, "Create " << __FUNCTION__ << " v" << DirectXVersion);
+			LOG_LIMIT(3, "Creating device " << __FUNCTION__ << "(" << this << ") v" << DirectXVersion);
 		}
 	}
 	m_IDirectDrawX(IDirect3D9 *aOriginal, DWORD DirectXVersion) : d3d9Object(aOriginal)
@@ -99,10 +99,12 @@ public:
 
 		SetDefaultDisplayMode = (!displayWidth || !displayHeight);
 
-		LOG_LIMIT(3, "Convert DirectDraw v" << DirectXVersion << " to v" << ProxyDirectXVersion);
+		LOG_LIMIT(3, "Creating device " << __FUNCTION__ << "(" << this << ")" << " converting device from v" << DirectXVersion << " to v" << ProxyDirectXVersion);
 	}
 	~m_IDirectDrawX()
 	{
+		LOG_LIMIT(3, __FUNCTION__ << "(" << this << ")" << " deleting device!");
+
 		PVOID NullValue = nullptr;
 		InterlockedCompareExchangePointer((PVOID*)&pDDrawDevice, NullValue, this);
 

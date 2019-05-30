@@ -205,13 +205,27 @@ HRESULT m_IDirectDrawSurfaceX::AddAttachedSurface(LPDIRECTDRAWSURFACE7 lpDDSurfa
 			return DDERR_INVALIDOBJECT;
 		}
 
+		if (lpAttachedSurface == this)
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: cannot attach self");
+			return DDERR_CANNOTATTACHSURFACE;
+		}
+
 		if (DoesAttachedSurfaceExist(lpAttachedSurface))
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Error: attached surface already exists");
 			return DDERR_SURFACEALREADYATTACHED;
 		}
 
+		if (!(lpAttachedSurface->GetSurfaceCaps().dwCaps & DDSCAPS_ZBUFFER))
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: only z-buffer surfaces can be attached with this method");
+			return DDERR_CANNOTATTACHSURFACE;
+		}
+
 		AddAttachedSurfaceToMap(lpAttachedSurface);
+
+		lpAttachedSurface->AddRef();
 
 		return DD_OK;
 	}
@@ -526,6 +540,12 @@ HRESULT m_IDirectDrawSurfaceX::DeleteAttachedSurface(DWORD dwFlags, LPDIRECTDRAW
 			return DDERR_SURFACENOTATTACHED;
 		}
 
+		if (!(lpAttachedSurface->GetSurfaceCaps().dwCaps & DDSCAPS_ZBUFFER))
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: only surfaces added with AddAttachedSurface can be deleted with this method");
+			return DDERR_CANNOTATTACHSURFACE;
+		}
+
 		RemoveAttachedSurfaceFromMap(lpAttachedSurface);
 
 		lpAttachedSurface->Release();
@@ -656,10 +676,10 @@ HRESULT m_IDirectDrawSurfaceX::Flip(LPDIRECTDRAWSURFACE7 lpDDSurfaceTargetOverri
 			return DDERR_GENERIC;
 		}
 
-		// Flip only supported from primary surface
-		if (!IsPrimarySurface())
+		// Flip can be called only for a surface that has the DDSCAPS_FLIP and DDSCAPS_FRONTBUFFER capabilities
+		if ((surfaceDesc2.ddsCaps.dwCaps & (DDSCAPS_FLIP | DDSCAPS_FRONTBUFFER)) != (DDSCAPS_FLIP | DDSCAPS_FRONTBUFFER))
 		{
-			LOG_LIMIT(100, __FUNCTION__ << " Attempting to Flip non-primary surface");
+			LOG_LIMIT(100, __FUNCTION__ << " Error: This surface cannot be flipped");
 			return DDERR_GENERIC;
 		}
 
@@ -678,7 +698,12 @@ HRESULT m_IDirectDrawSurfaceX::Flip(LPDIRECTDRAWSURFACE7 lpDDSurfaceTargetOverri
 
 		if ((dwFlags & (DDFLIP_INTERVAL2 | DDFLIP_INTERVAL3 | DDFLIP_INTERVAL4)) && (surfaceDesc2.ddsCaps.dwCaps2 & DDCAPS2_FLIPINTERVAL))
 		{
-			LOG_LIMIT(100, __FUNCTION__ << " Interval flipping not implemented");
+			LOG_LIMIT(1, __FUNCTION__ << " Interval flipping not fully implemented");
+		}
+
+		if (surfaceDesc2.dwBackBufferCount > 1)
+		{
+			LOG_LIMIT(1, __FUNCTION__ << " Flipping with more than one backbuffer not implemented!");
 		}
 
 		// Check if attached surface is found
@@ -739,7 +764,7 @@ HRESULT m_IDirectDrawSurfaceX::Flip(LPDIRECTDRAWSURFACE7 lpDDSurfaceTargetOverri
 			// Loop through each surface and check the device interface or if surface is locked or has an open DC
 			for (auto it : AttachedSurfaceMap)
 			{
-				m_IDirectDrawSurfaceX *lpTargetSurface = (m_IDirectDrawSurfaceX*)it.second;
+				m_IDirectDrawSurfaceX *lpTargetSurface = it.second;
 
 				if (FAILED(lpTargetSurface->CheckInterface(__FUNCTION__, true, true)))
 				{
@@ -756,7 +781,7 @@ HRESULT m_IDirectDrawSurfaceX::Flip(LPDIRECTDRAWSURFACE7 lpDDSurfaceTargetOverri
 			// Loop through each surface and swap them
 			for (auto it : AttachedSurfaceMap)
 			{
-				m_IDirectDrawSurfaceX *lpTargetSurface = (m_IDirectDrawSurfaceX*)it.second;
+				m_IDirectDrawSurfaceX *lpTargetSurface = it.second;
 
 				// Found surface
 				FoundAttachedSurface = true;
@@ -832,67 +857,40 @@ HRESULT m_IDirectDrawSurfaceX::GetAttachedSurface2(LPDDSCAPS2 lpDDSCaps2, LPDIRE
 			return DDERR_GENERIC;
 		}
 
-		// Check for primary surface
-		if (lpDDSCaps2->dwCaps & DDSCAPS_PRIMARYSURFACE)
+		m_IDirectDrawSurfaceX *lpFoundSurface = nullptr;
+
+		// Check if attached surface exists
+		for (auto it : AttachedSurfaceMap)
 		{
-			*lplpDDAttachedSurface = (LPDIRECTDRAWSURFACE7)this->GetWrapperInterfaceX(DirectXVersion);
+			m_IDirectDrawSurfaceX *lpSurface = it.second;
 
-			::AddRef(*lplpDDAttachedSurface);
-
-			return DD_OK;
-		}
-
-		// Check for backbuffer surface
-		if (lpDDSCaps2->dwCaps & DDSCAPS_BACKBUFFER)
-		{
-			m_IDirectDrawSurfaceX *lpFoundSurface = nullptr;
-
-			// Check if backbuffer already exists
-			for (auto it : AttachedSurfaceMap)
+			if ((lpSurface->GetSurfaceCaps().dwCaps & lpDDSCaps2->dwCaps) == lpDDSCaps2->dwCaps)
 			{
-				m_IDirectDrawSurfaceX *lpSurface = (m_IDirectDrawSurfaceX*)it.second;
-
-				if (lpSurface->GetSurfaceCaps().dwCaps == lpDDSCaps2->dwCaps)
+				if (lpFoundSurface)
 				{
-					if (lpFoundSurface)
-					{
-						LOG_LIMIT(100, __FUNCTION__ << " Error: more than one surface is attached that matches the capabilities requested.");
-						return DDERR_GENERIC;
-					}
-
-					lpFoundSurface = lpSurface;
+					LOG_LIMIT(100, __FUNCTION__ << " Error: more than one surface is attached that matches the capabilities requested.");
+					return DDERR_GENERIC;
 				}
+
+				lpFoundSurface = lpSurface;
 			}
-
-			// Return found surface
-			if (lpFoundSurface)
-			{
-				*lplpDDAttachedSurface = (LPDIRECTDRAWSURFACE7)lpFoundSurface->GetWrapperInterfaceX(DirectXVersion);
-
-				::AddRef(*lplpDDAttachedSurface);
-
-				return DD_OK;
-			}
-
-			// Create backbuffer surface if none exists
-			DDSURFACEDESC2 Desc2;
-			Desc2.dwSize = sizeof(DDSURFACEDESC2);
-			Desc2.ddpfPixelFormat.dwSize = sizeof(DDPIXELFORMAT);
-			ConvertSurfaceDesc(Desc2, surfaceDesc2);
-			ConvertCaps(Desc2.ddsCaps, *lpDDSCaps2);
-
-			m_IDirectDrawSurfaceX *attachedSurface = new m_IDirectDrawSurfaceX(d3d9Device, ddrawParent, DirectXVersion, &Desc2, displayWidth, displayHeight);
-
-			AddAttachedSurfaceToMap(attachedSurface);
-
-			*lplpDDAttachedSurface = (LPDIRECTDRAWSURFACE7)attachedSurface->GetWrapperInterfaceX(DirectXVersion);
-
-			return DD_OK;
 		}
 
-		Logging::Log() << __FUNCTION__ << " Error: attached surface capabilities not found.  Flags " << lpDDSCaps2;
+		// No attached surface found
+		if (!lpFoundSurface)
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: failed to find attached surface that matches the capabilities requested: " << *lpDDSCaps2);
 
-		return DDERR_NOTFOUND;
+			return DDERR_NOTFOUND;
+		}
+
+		m_IDirectDrawSurfaceX *lpAttachedSurface = (m_IDirectDrawSurfaceX *)lpFoundSurface->GetWrapperInterfaceX(DirectXVersion);
+
+		lpAttachedSurface->AddRef();
+
+		*lplpDDAttachedSurface = (LPDIRECTDRAWSURFACE7)lpAttachedSurface;
+
+		return DD_OK;
 	}
 
 	HRESULT hr = ProxyInterface->GetAttachedSurface(lpDDSCaps2, lplpDDAttachedSurface);
@@ -1021,10 +1019,10 @@ HRESULT m_IDirectDrawSurfaceX::GetColorKey(DWORD dwFlags, LPDDCOLORKEY lpDDColor
 	if (Config.Dd7to9)
 	{
 		// Get color key index
-		int x = (dwFlags & DDCKEY_DESTBLT) ? 0 :
-			(dwFlags & DDCKEY_DESTOVERLAY) ? 1 :
-			(dwFlags & DDCKEY_SRCBLT) ? 2 :
-			(dwFlags & DDCKEY_SRCOVERLAY) ? 3 : -1;
+		int x = (dwFlags == DDCKEY_DESTBLT) ? 0 :
+			(dwFlags == DDCKEY_DESTOVERLAY) ? 1 :
+			(dwFlags == DDCKEY_SRCBLT) ? 2 :
+			(dwFlags == DDCKEY_SRCOVERLAY) ? 3 : -1;
 
 		// Check index
 		if (!lpDDColorKey || x == -1)
@@ -1032,17 +1030,19 @@ HRESULT m_IDirectDrawSurfaceX::GetColorKey(DWORD dwFlags, LPDDCOLORKEY lpDDColor
 			return DDERR_INVALIDPARAMS;
 		}
 
+		HRESULT hr = DD_OK;
+
 		// Check if color key is set
 		if (!ColorKeys[x].IsSet)
 		{
-			return DDERR_NOCOLORKEY;
+			hr = DDERR_NOCOLORKEY;
 		}
 
 		// Copy color key
 		memcpy(lpDDColorKey, &ColorKeys[x].Key, sizeof(DDCOLORKEY));
 
 		// Return
-		return DD_OK;
+		return hr;
 	}
 
 	return ProxyInterface->GetColorKey(dwFlags, lpDDColorKey);
@@ -1270,32 +1270,33 @@ HRESULT m_IDirectDrawSurfaceX::GetSurfaceDesc2(LPDDSURFACEDESC2 lpDDSurfaceDesc2
 			lpDDSurfaceDesc2->dwHeight = Desc2.dwHeight;
 		}
 		// Set Refresh Rate
-		if ((lpDDSurfaceDesc2->dwFlags & DDSD_REFRESHRATE) == 0)
+		if (!(lpDDSurfaceDesc2->dwFlags & DDSD_REFRESHRATE))
 		{
-			if ((Desc2.dwFlags & DDSD_REFRESHRATE) == 0)
+			if (!(Desc2.dwFlags & DDSD_REFRESHRATE))
 			{
 				ddrawParent->GetDisplayMode2(&Desc2);
 			}
-			lpDDSurfaceDesc2->dwFlags |= DDSD_REFRESHRATE;
-			lpDDSurfaceDesc2->dwRefreshRate = Desc2.dwRefreshRate;
+			if (Desc2.dwRefreshRate)
+			{
+				lpDDSurfaceDesc2->dwFlags |= DDSD_REFRESHRATE;
+				lpDDSurfaceDesc2->dwRefreshRate = Desc2.dwRefreshRate;
+			}
 		}
 		// Set PixelFormat
-		if ((lpDDSurfaceDesc2->dwFlags & DDSD_PIXELFORMAT) == 0)
+		if (!(lpDDSurfaceDesc2->dwFlags & DDSD_PIXELFORMAT))
 		{
-			if ((Desc2.dwFlags & DDSD_PIXELFORMAT) == 0)
+			if (!(Desc2.dwFlags & DDSD_PIXELFORMAT))
 			{
 				ddrawParent->GetDisplayMode2(&Desc2);
 			}
-
-			// Set PixelFormat flags
 			lpDDSurfaceDesc2->dwFlags |= DDSD_PIXELFORMAT;
-			lpDDSurfaceDesc2->ddpfPixelFormat.dwFlags = DDPF_RGB;
-
-			// Set BitCount
-			lpDDSurfaceDesc2->ddpfPixelFormat.dwRGBBitCount = Desc2.ddpfPixelFormat.dwRGBBitCount;
-
-			// Set BitMask
 			GetPixelDisplayFormat(GetDisplayFormat(Desc2.ddpfPixelFormat), lpDDSurfaceDesc2->ddpfPixelFormat);
+		}
+		// Set lPitch
+		if (!(lpDDSurfaceDesc2->dwFlags & DDSD_PITCH))
+		{
+			lpDDSurfaceDesc2->dwFlags |= DDSD_PITCH;
+			lpDDSurfaceDesc2->lPitch = lpDDSurfaceDesc2->dwHeight * GetBitCount(lpDDSurfaceDesc2->ddpfPixelFormat) / 8;
 		}
 
 		// Return
@@ -1550,16 +1551,11 @@ HRESULT m_IDirectDrawSurfaceX::SetColorKey(DWORD dwFlags, LPDDCOLORKEY lpDDColor
 
 	if (Config.Dd7to9)
 	{
-		if (!lpDDColorKey)
-		{
-			return DDERR_INVALIDPARAMS;
-		}
-
 		// Get color key index
-		int x = (dwFlags & DDCKEY_DESTBLT) ? 0 :
-			(dwFlags & DDCKEY_DESTOVERLAY) ? 1 :
-			(dwFlags & DDCKEY_SRCBLT) ? 2 :
-			(dwFlags & DDCKEY_SRCOVERLAY) ? 3 : -1;
+		int x = (dwFlags == DDCKEY_DESTBLT) ? 0 :
+			(dwFlags == DDCKEY_DESTOVERLAY) ? 1 :
+			(dwFlags == DDCKEY_SRCBLT) ? 2 :
+			(dwFlags == DDCKEY_SRCOVERLAY) ? 3 : -1;
 
 		// Check index
 		if (x == -1)
@@ -1571,6 +1567,8 @@ HRESULT m_IDirectDrawSurfaceX::SetColorKey(DWORD dwFlags, LPDDCOLORKEY lpDDColor
 		if (!lpDDColorKey)
 		{
 			ColorKeys[x].IsSet = false;
+			ColorKeys[x].Key.dwColorSpaceHighValue = 0;
+			ColorKeys[x].Key.dwColorSpaceLowValue = 0;
 		}
 		else
 		{
@@ -2127,7 +2125,7 @@ HRESULT m_IDirectDrawSurfaceX::CreateD3d9Surface()
 
 	// Get usage
 	DWORD Usage = 0;
-	if (((surfaceDesc2.ddsCaps.dwCaps2 & DDSCAPS2_HINTSTATIC) == 0 || (surfaceDesc2.ddsCaps.dwCaps2 & DDSCAPS2_HINTDYNAMIC)) &&
+	if ((!(surfaceDesc2.ddsCaps.dwCaps2 & DDSCAPS2_HINTSTATIC) || (surfaceDesc2.ddsCaps.dwCaps2 & DDSCAPS2_HINTDYNAMIC)) &&
 		Pool != D3DPOOL_MANAGED)	// D3DPOOL_MANAGED cannot be used with D3DUSAGE_DYNAMIC
 	{
 		Usage |= D3DUSAGE_DYNAMIC;
@@ -2656,6 +2654,10 @@ HRESULT m_IDirectDrawSurfaceX::SetLock(D3DLOCKED_RECT* pLockedRect, LPRECT lpDes
 		return DDERR_GENERIC;
 	}
 
+	// Set pitch
+	surfaceDesc2.dwFlags |= DDSD_PITCH;
+	surfaceDesc2.lPitch = pLockedRect->Pitch;
+
 	// Set dirty flag
 	dirtyFlag = true;
 
@@ -2693,6 +2695,70 @@ HRESULT m_IDirectDrawSurfaceX::SetUnlock(BOOL isSkipScene)
 	EndSceneLock = false;
 
 	return DD_OK;
+}
+
+// Update surface description and create backbuffers
+void m_IDirectDrawSurfaceX::InitSurfaceDesc(LPDDSURFACEDESC2 lpDDSurfaceDesc2, DWORD DirectXVersion)
+{
+	if (!lpDDSurfaceDesc2)
+	{
+		return;
+	}
+
+	// Copy surface description
+	surfaceDesc2.dwSize = sizeof(DDSURFACEDESC2);
+	surfaceDesc2.ddpfPixelFormat.dwSize = sizeof(DDPIXELFORMAT);
+	ConvertSurfaceDesc(surfaceDesc2, *lpDDSurfaceDesc2);
+	surfaceDesc2.dwFlags |= DDSD_CAPS;
+	if (surfaceDesc2.ddsCaps.dwCaps & DDSCAPS_PRIMARYSURFACE)
+	{
+		surfaceDesc2.ddsCaps.dwCaps |= DDSCAPS_VISIBLE;
+	}
+	if (!(surfaceDesc2.ddsCaps.dwCaps & DDSCAPS_SYSTEMMEMORY) && !(surfaceDesc2.ddsCaps.dwCaps2 & DDSCAPS2_DONOTPERSIST))
+	{
+		surfaceDesc2.ddsCaps.dwCaps |= DDSCAPS_LOCALVIDMEM | DDSCAPS_VIDEOMEMORY;
+		surfaceDesc2.ddsCaps.dwCaps &= ~DDSCAPS_NONLOCALVIDMEM;
+	}
+
+	// Create backbuffers
+	if (surfaceDesc2.dwBackBufferCount)
+	{
+		DDSURFACEDESC2 Desc2;
+		Desc2.dwSize = sizeof(DDSURFACEDESC2);
+		Desc2.ddpfPixelFormat.dwSize = sizeof(DDPIXELFORMAT);
+		ConvertSurfaceDesc(Desc2, surfaceDesc2);
+		Desc2.dwBackBufferCount--;
+		if (Desc2.ddsCaps.dwCaps & DDSCAPS_FRONTBUFFER)
+		{
+			Desc2.ddsCaps.dwCaps &= ~(DDSCAPS_VISIBLE | DDSCAPS_PRIMARYSURFACE | DDSCAPS_FRONTBUFFER);
+			Desc2.ddsCaps.dwCaps |= DDSCAPS_BACKBUFFER;
+			Desc2.dwReserved = (DWORD)this;
+		}
+		else if (Desc2.ddsCaps.dwCaps & DDSCAPS_BACKBUFFER)
+		{
+			Desc2.ddsCaps.dwCaps &= ~DDSCAPS_BACKBUFFER;
+		}
+
+		m_IDirectDrawSurfaceX *attachedSurface = new m_IDirectDrawSurfaceX(d3d9Device, ddrawParent, DirectXVersion, &Desc2, displayWidth, displayHeight);
+
+		AddAttachedSurfaceToMap(attachedSurface);
+	}
+	else if (surfaceDesc2.dwReserved)
+	{
+		m_IDirectDrawSurfaceX *attachedSurface = (m_IDirectDrawSurfaceX *)surfaceDesc2.dwReserved;
+
+		// Check if source Surface exists and add to surface map
+		if (ddrawParent->DoesSurfaceExist(attachedSurface))
+		{
+			AddAttachedSurfaceToMap(attachedSurface);
+		}
+	}
+	if (!(surfaceDesc2.ddsCaps.dwCaps & DDSCAPS_FRONTBUFFER))
+	{
+		surfaceDesc2.dwFlags &= ~DDSD_BACKBUFFERCOUNT;
+		surfaceDesc2.dwBackBufferCount = 0;
+	}
+	surfaceDesc2.dwReserved = 0;
 }
 
 // Add attached surface to map

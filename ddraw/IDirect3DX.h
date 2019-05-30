@@ -22,11 +22,11 @@ public:
 
 		if (ProxyDirectXVersion != DirectXVersion)
 		{
-			LOG_LIMIT(3, "Convert Direct3D v" << DirectXVersion << " to v" << ProxyDirectXVersion);
+			LOG_LIMIT(3, "Creating device " << __FUNCTION__ << "(" << this << ")" << " converting device from v" << DirectXVersion << " to v" << ProxyDirectXVersion);
 		}
 		else
 		{
-			LOG_LIMIT(3, "Create " << __FUNCTION__ << " v" << DirectXVersion);
+			LOG_LIMIT(3, "Creating device " << __FUNCTION__ << "(" << this << ") v" << DirectXVersion);
 		}
 
 		ResolutionHack();
@@ -35,10 +35,12 @@ public:
 	{
 		ProxyDirectXVersion = 9;
 
-		LOG_LIMIT(3, "Convert Direct3D v" << DirectXVersion << " to v" << ProxyDirectXVersion);
+		LOG_LIMIT(3, "Creating device " << __FUNCTION__ << "(" << this << ")" << " converting device from v" << DirectXVersion << " to v" << ProxyDirectXVersion);
 	}
 	~m_IDirect3DX()
 	{
+		LOG_LIMIT(3, __FUNCTION__ << "(" << this << ")" << " deleting device!");
+
 		if (Config.Dd7to9 && !Config.Exiting)
 		{
 			ReleaseInterface();

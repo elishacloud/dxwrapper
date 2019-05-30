@@ -22,7 +22,7 @@ private:
 	m_IDirectDrawX *ddrawParent = nullptr;
 	m_IDirectDrawPalette *attachedPalette = nullptr;	// Associated palette
 	m_IDirectDrawClipper *attachedClipper = nullptr;	// Associated clipper
-	DDSURFACEDESC2 surfaceDesc2;						// Surface description for this surface
+	DDSURFACEDESC2 surfaceDesc2 = { NULL };				// Surface description for this surface
 	std::vector<byte> surfaceArray;						// Memory used for coping from one surface to the same surface
 	CKEYS ColorKeys[4];									// Color keys (0 = DDCKEY_DESTBLT, 1 = DDCKEY_DESTOVERLAY, 2 = DDCKEY_SRCBLT, 3 = DDCKEY_SRCOVERLAY)
 	LONG overlayX = 0;
@@ -96,11 +96,11 @@ public:
 
 		if (ProxyDirectXVersion != DirectXVersion)
 		{
-			LOG_LIMIT(3, "Convert DirectDrawSurface v" << DirectXVersion << " to v" << ProxyDirectXVersion);
+			LOG_LIMIT(3, "Creating device " << __FUNCTION__ << "(" << this << ")" << " converting device from v" << DirectXVersion << " to v" << ProxyDirectXVersion);
 		}
 		else
 		{
-			LOG_LIMIT(3, "Create " << __FUNCTION__ << " v" << DirectXVersion);
+			LOG_LIMIT(3, "Creating device " << __FUNCTION__ << "(" << this << ") v" << DirectXVersion);
 		}
 	}
 	m_IDirectDrawSurfaceX(LPDIRECT3DDEVICE9 *lplpDevice, m_IDirectDrawX *Interface, DWORD DirectXVersion, LPDDSURFACEDESC2 lpDDSurfaceDesc2, DWORD Width, DWORD Height) :
@@ -108,21 +108,21 @@ public:
 	{
 		ProxyDirectXVersion = 9;
 
-		// Copy surface description
-		surfaceDesc2.dwSize = sizeof(DDSURFACEDESC2);
-		surfaceDesc2.ddpfPixelFormat.dwSize = sizeof(DDPIXELFORMAT);
-		ConvertSurfaceDesc(surfaceDesc2, *lpDDSurfaceDesc2);
-
-		LOG_LIMIT(3, "Convert DirectDrawSurface v" << DirectXVersion << " to v" << ProxyDirectXVersion);
-
 		// Store surface
 		if (ddrawParent)
 		{
 			ddrawParent->AddSurfaceToVector(this);
 		}
+
+		// Update surface description and create backbuffers
+		InitSurfaceDesc(lpDDSurfaceDesc2, DirectXVersion);
+
+		LOG_LIMIT(3, "Creating device " << __FUNCTION__ << "(" << this << ")" << " converting device from v" << DirectXVersion << " to v" << ProxyDirectXVersion);
 	}
 	~m_IDirectDrawSurfaceX()
 	{
+		LOG_LIMIT(3, __FUNCTION__ << "(" << this << ")" << " deleting device!");
+
 		if (Config.Dd7to9 && !Config.Exiting)
 		{
 			ReleaseInterface();
@@ -264,6 +264,7 @@ public:
 	HRESULT SetUnlock(BOOL isSkipScene = false);
 
 	// Attached surfaces
+	void InitSurfaceDesc(LPDDSURFACEDESC2 lpDDSurfaceDesc2, DWORD DirectXVersion);
 	void AddAttachedSurfaceToMap(m_IDirectDrawSurfaceX* lpSurfaceX);
 	void RemoveAttachedSurfaceFromMap(m_IDirectDrawSurfaceX* lpSurfaceX);
 	bool DoesAttachedSurfaceExist(m_IDirectDrawSurfaceX* lpSurfaceX);

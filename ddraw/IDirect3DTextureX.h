@@ -20,15 +20,25 @@ public:
 	{
 		ProxyDirectXVersion = GetIIDVersion(ConvertREFIID(GetWrapperType(DirectXVersion)));
 
-		LOG_LIMIT(3, "Create " << __FUNCTION__ << " v" << DirectXVersion);
+		if (ProxyDirectXVersion != DirectXVersion)
+		{
+			LOG_LIMIT(3, "Creating device " << __FUNCTION__ << "(" << this << ")" << " converting device from v" << DirectXVersion << " to v" << ProxyDirectXVersion);
+		}
+		else
+		{
+			LOG_LIMIT(3, "Creating device " << __FUNCTION__ << "(" << this << ") v" << DirectXVersion);
+		}
 	}
 	m_IDirect3DTextureX(m_IDirect3DDeviceX **D3DDInterface, DWORD DirectXVersion, IDirectDrawSurface7 *lpSurface) : D3DDeviceInterface(D3DDInterface), ProxyInterface((IDirect3DTexture2*)lpSurface)
 	{
 		ProxyDirectXVersion = (!Config.Dd7to9) ? 7 : 9;
 
-		LOG_LIMIT(3, "Convert Direct3DTexture v" << DirectXVersion << " to v" << ProxyDirectXVersion);
+		LOG_LIMIT(3, "Creating device " << __FUNCTION__ << "(" << this << ")" << " converting device from v" << DirectXVersion << " to v" << ProxyDirectXVersion);
 	}
-	~m_IDirect3DTextureX() {}
+	~m_IDirect3DTextureX()
+	{
+		LOG_LIMIT(3, __FUNCTION__ << "(" << this << ")" << " deleting device!");
+	}
 
 	DWORD GetDirectXVersion() { return DDWRAPPER_TYPEX; }
 	REFIID GetWrapperType() { return IID_IUnknown; }

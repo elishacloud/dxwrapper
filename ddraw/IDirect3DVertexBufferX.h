@@ -23,11 +23,11 @@ public:
 
 		if (ProxyDirectXVersion != DirectXVersion)
 		{
-			LOG_LIMIT(3, "Convert Direct3DVertexBuffer v" << DirectXVersion << " to v" << ProxyDirectXVersion);
+			LOG_LIMIT(3, "Creating device " << __FUNCTION__ << "(" << this << ")" << " converting device from v" << DirectXVersion << " to v" << ProxyDirectXVersion);
 		}
 		else
 		{
-			LOG_LIMIT(3, "Create " << __FUNCTION__ << " v" << DirectXVersion);
+			LOG_LIMIT(3, "Creating device " << __FUNCTION__ << "(" << this << ") v" << DirectXVersion);
 		}
 	}
 	m_IDirect3DVertexBufferX(m_IDirect3DDeviceX **D3DDInterface, LPD3DVERTEXBUFFERDESC lpVBDesc, DWORD DirectXVersion) : D3DDeviceInterface(D3DDInterface)
@@ -42,9 +42,12 @@ public:
 			VBDesc.dwNumVertices = lpVBDesc->dwNumVertices;
 		}
 
-		LOG_LIMIT(3, "Convert Direct3DVertexBuffer v" << DirectXVersion << " to v" << ProxyDirectXVersion);
+		LOG_LIMIT(3, "Creating device " << __FUNCTION__ << "(" << this << ")" << " converting device from v" << DirectXVersion << " to v" << ProxyDirectXVersion);
 	}
-	~m_IDirect3DVertexBufferX() {}
+	~m_IDirect3DVertexBufferX()
+	{
+		LOG_LIMIT(3, __FUNCTION__ << "(" << this << ")" << " deleting device!");
+	}
 
 	DWORD GetDirectXVersion() { return DDWRAPPER_TYPEX; }
 	REFIID GetWrapperType() { return IID_IUnknown; }

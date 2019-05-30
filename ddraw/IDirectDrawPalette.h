@@ -18,7 +18,7 @@ public:
 	{
 		ProxyAddressLookupTable.SaveAddress(this, ProxyInterface);
 
-		LOG_LIMIT(3, "Create " << __FUNCTION__);
+		LOG_LIMIT(3, "Creating device " << __FUNCTION__ << "(" << this << ")");
 	}
 	m_IDirectDrawPalette(m_IDirectDrawX *Interface, DWORD dwFlags, LPPALETTEENTRY lpDDColorArray) : ddrawParent(Interface), paletteCaps(dwFlags)
 	{
@@ -81,10 +81,12 @@ public:
 			}
 		}
 
-		Logging::LogDebug() << "Create " << __FUNCTION__;
+		LOG_LIMIT(3, "Creating device " << __FUNCTION__ << "(" << this << ")");
 	}
 	~m_IDirectDrawPalette()
 	{
+		LOG_LIMIT(3, __FUNCTION__ << "(" << this << ")" << " deleting device!");
+
 		ProxyAddressLookupTable.DeleteAddress(this);
 
 		if (rawPalette)

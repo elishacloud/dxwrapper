@@ -402,15 +402,17 @@ void GetPixelDisplayFormat(D3DFORMAT Format, DDPIXELFORMAT &ddpfPixelFormat)
 
 	tmpPixelFormat.dwFlags = DDPF_RGB;
 	tmpPixelFormat.dwRGBBitCount = GetBitCount(Format);
+	tmpPixelFormat.dwRGBAlphaBitMask = 0x0;
 
 	// Set BitCount and BitMask
 	switch (Format)
 	{
 	case D3DFMT_P8:
 		tmpPixelFormat.dwFlags |= DDPF_PALETTEINDEXED8;
-		tmpPixelFormat.dwRBitMask = 0xe0;
-		tmpPixelFormat.dwGBitMask = 0x18;
-		tmpPixelFormat.dwBBitMask = 0x7;
+		tmpPixelFormat.dwRBitMask = 0x0;
+		tmpPixelFormat.dwGBitMask = 0x0;
+		tmpPixelFormat.dwBBitMask = 0x0;
+		break;
 	case D3DFMT_R5G6B5:
 		tmpPixelFormat.dwRBitMask = 0xF800;
 		tmpPixelFormat.dwGBitMask = 0x7E0;

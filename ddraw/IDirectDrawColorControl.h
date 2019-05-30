@@ -24,14 +24,16 @@ public:
 		ColorControl.lColorEnable = 1;
 		ColorControl.dwReserved1 = 0;
 
-		LOG_LIMIT(3, "Create " << __FUNCTION__);
+		LOG_LIMIT(3, "Creating device " << __FUNCTION__ << "(" << this << ")");
 	}
 	m_IDirectDrawColorControl()
 	{
-		LOG_LIMIT(3, "Create " << __FUNCTION__);
+		LOG_LIMIT(3, "Creating device " << __FUNCTION__ << "(" << this << ")");
 	}
 	~m_IDirectDrawColorControl()
 	{
+		LOG_LIMIT(3, __FUNCTION__ << "(" << this << ")" << " deleting device!");
+
 		ProxyAddressLookupTable.DeleteAddress(this);
 	}
 
