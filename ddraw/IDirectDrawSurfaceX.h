@@ -33,6 +33,8 @@ private:
 	bool EndSceneLock = false;
 	bool IsLocked = false;
 	bool IsInDC = false;
+	bool IsInBlt = false;
+	bool IsInFlip = false;
 	bool NewPalette = false;
 	bool PaletteFirstRun = true;
 	bool ClipperFirstRun = true;
@@ -269,6 +271,7 @@ public:
 	void AddAttachedSurfaceToMap(m_IDirectDrawSurfaceX* lpSurfaceX);
 	void RemoveAttachedSurfaceFromMap(m_IDirectDrawSurfaceX* lpSurfaceX);
 	bool DoesAttachedSurfaceExist(m_IDirectDrawSurfaceX* lpSurfaceX);
+	bool DoesBackBufferExist(m_IDirectDrawSurfaceX* lpSurfaceX);
 
 	// Copying surface textures
 	HRESULT ColorFill(RECT* pRect, D3DCOLOR dwFillColor);

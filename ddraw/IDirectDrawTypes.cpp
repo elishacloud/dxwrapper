@@ -280,7 +280,7 @@ DWORD GetBitCount(DDPIXELFORMAT ddpfPixelFormat)
 		return ddpfPixelFormat.dwBumpBitCount;
 	}
 
-	LOG_LIMIT(100, __FUNCTION__ << " Failed to get BitCount from PixelFormat!");
+	LOG_LIMIT(100, __FUNCTION__ << " Error: failed to get BitCount from PixelFormat!");
 	return 0;
 }
 
@@ -355,7 +355,7 @@ D3DFORMAT GetDisplayFormat(DDPIXELFORMAT ddpfPixelFormat)
 			return D3DFMT_X8R8G8B8;
 		}
 
-		LOG_LIMIT(100, __FUNCTION__ << " Error, could not find RGB format for BitCount: " << BitCount);
+		LOG_LIMIT(100, __FUNCTION__ << " Error: could not find RGB format for BitCount: " << BitCount);
 		return D3DFMT_UNKNOWN;
 	}
 	else if (ddpfPixelFormat.dwFlags & DDPF_YUV)
@@ -389,7 +389,7 @@ D3DFORMAT GetDisplayFormat(DDPIXELFORMAT ddpfPixelFormat)
 		return D3DFMT_UNKNOWN;
 	}
 
-	LOG_LIMIT(100, __FUNCTION__ << " Error, PixelFormat not Implemented see flags: " << ddpfPixelFormat.dwFlags);
+	LOG_LIMIT(100, __FUNCTION__ << " PixelFormat not implemented see flags: " << ddpfPixelFormat.dwFlags);
 	return D3DFMT_UNKNOWN;
 }
 

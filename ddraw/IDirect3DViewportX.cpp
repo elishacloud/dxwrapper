@@ -58,7 +58,7 @@ void *m_IDirect3DViewportX::GetWrapperInterfaceX(DWORD DirectXVersion)
 		}
 		return UniqueProxyInterface3.get();
 	default:
-		LOG_LIMIT(100, __FUNCTION__ << " Error, wrapper interface version not found: " << DirectXVersion);
+		LOG_LIMIT(100, __FUNCTION__ << " Error: wrapper interface version not found: " << DirectXVersion);
 		return nullptr;
 	}
 }
@@ -166,7 +166,7 @@ HRESULT m_IDirect3DViewportX::SetViewport(LPD3DVIEWPORT lpData)
 
 		if (!D3DDeviceInterface || !*D3DDeviceInterface)
 		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error no D3DirectDevice interface!");
+			LOG_LIMIT(100, __FUNCTION__ << " Error: no D3DirectDevice interface!");
 			return DDERR_GENERIC;
 		}
 
@@ -288,7 +288,7 @@ HRESULT m_IDirect3DViewportX::Clear(DWORD dwCount, LPD3DRECT lpRects, DWORD dwFl
 	{
 		if (!D3DDeviceInterface || !*D3DDeviceInterface)
 		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error no D3DirectDevice interface!");
+			LOG_LIMIT(100, __FUNCTION__ << " Error: no D3DirectDevice interface!");
 			return DDERR_GENERIC;
 		}
 
@@ -403,7 +403,7 @@ HRESULT m_IDirect3DViewportX::SetViewport2(LPD3DVIEWPORT2 lpData)
 
 		if (!D3DDeviceInterface || !*D3DDeviceInterface)
 		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error no D3DirectDevice interface!");
+			LOG_LIMIT(100, __FUNCTION__ << " Error: no D3DirectDevice interface!");
 			return DDERR_GENERIC;
 		}
 
@@ -473,7 +473,7 @@ HRESULT m_IDirect3DViewportX::Clear2(DWORD dwCount, LPD3DRECT lpRects, DWORD dwF
 	{
 		if (!D3DDeviceInterface || !*D3DDeviceInterface)
 		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error no D3DirectDevice interface!");
+			LOG_LIMIT(100, __FUNCTION__ << " Error: no D3DirectDevice interface!");
 			return DDERR_GENERIC;
 		}
 

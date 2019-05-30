@@ -48,7 +48,7 @@ void *m_IDirect3DX::GetWrapperInterfaceX(DWORD DirectXVersion)
 	// Check for device
 	if (!ddrawParent)
 	{
-		LOG_LIMIT(100, __FUNCTION__ << " Error no ddraw parent!");
+		LOG_LIMIT(100, __FUNCTION__ << " Error: no ddraw parent!");
 		return nullptr;
 	}
 
@@ -79,7 +79,7 @@ void *m_IDirect3DX::GetWrapperInterfaceX(DWORD DirectXVersion)
 		}
 		return UniqueProxyInterface7.get();
 	default:
-		LOG_LIMIT(100, __FUNCTION__ << " Error, wrapper interface version not found: " << DirectXVersion);
+		LOG_LIMIT(100, __FUNCTION__ << " Error: wrapper interface version not found: " << DirectXVersion);
 		return nullptr;
 	}
 }
@@ -185,7 +185,7 @@ HRESULT m_IDirect3DX::EnumDevices7(LPD3DENUMDEVICESCALLBACK7 lpEnumDevicesCallba
 		// Check for device
 		if (!ddrawParent)
 		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error no ddraw parent!");
+			LOG_LIMIT(100, __FUNCTION__ << " Error: no ddraw parent!");
 			return DDERR_GENERIC;
 		}
 
@@ -282,7 +282,7 @@ HRESULT m_IDirect3DX::EnumDevices7(LPD3DENUMDEVICESCALLBACK7 lpEnumDevicesCallba
 				}
 				else
 				{
-					LOG_LIMIT(100, __FUNCTION__ << " Error failed to GetCaps!");
+					LOG_LIMIT(100, __FUNCTION__ << " Error: failed to GetCaps!");
 				}
 			}
 		}
@@ -321,7 +321,7 @@ HRESULT m_IDirect3DX::CreateLight(LPDIRECT3DLIGHT * lplpDirect3DLight, LPUNKNOWN
 		// Check for device
 		if (!ddrawParent)
 		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error no ddraw parent!");
+			LOG_LIMIT(100, __FUNCTION__ << " Error: no ddraw parent!");
 			return DDERR_GENERIC;
 		}
 
@@ -368,7 +368,7 @@ HRESULT m_IDirect3DX::CreateMaterial(LPDIRECT3DMATERIAL3 * lplpDirect3DMaterial,
 		// Check for device
 		if (!ddrawParent)
 		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error no ddraw parent!");
+			LOG_LIMIT(100, __FUNCTION__ << " Error: no ddraw parent!");
 			return DDERR_GENERIC;
 		}
 
@@ -415,7 +415,7 @@ HRESULT m_IDirect3DX::CreateViewport(LPDIRECT3DVIEWPORT3 * lplpD3DViewport, LPUN
 		// Check for device
 		if (!ddrawParent)
 		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error no ddraw parent!");
+			LOG_LIMIT(100, __FUNCTION__ << " Error: no ddraw parent!");
 			return DDERR_GENERIC;
 		}
 
@@ -511,7 +511,7 @@ HRESULT m_IDirect3DX::CreateDevice(REFCLSID rclsid, LPDIRECTDRAWSURFACE7 lpDDS, 
 		// Check for device
 		if (!ddrawParent)
 		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error no ddraw parent!");
+			LOG_LIMIT(100, __FUNCTION__ << " Error: no ddraw parent!");
 			return DDERR_GENERIC;
 		}
 
@@ -591,7 +591,7 @@ HRESULT m_IDirect3DX::CreateVertexBuffer(LPD3DVERTEXBUFFERDESC lpVBDesc, LPDIREC
 		// Check for device
 		if (!ddrawParent)
 		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error no ddraw parent!");
+			LOG_LIMIT(100, __FUNCTION__ << " Error: no ddraw parent!");
 			return DDERR_GENERIC;
 		}
 
@@ -690,7 +690,7 @@ HRESULT m_IDirect3DX::EvictManagedTextures()
 		// Check for device
 		if (!ddrawParent)
 		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error no ddraw parent!");
+			LOG_LIMIT(100, __FUNCTION__ << " Error: no ddraw parent!");
 			return DDERR_GENERIC;
 		}
 

@@ -514,7 +514,7 @@ HRESULT m_IDirectDrawX::EnumDisplayModes2(DWORD dwFlags, LPDDSURFACEDESC2 lpDDSu
 			HRESULT hr = d3d9Object->EnumAdapterModes(D3DADAPTER_DEFAULT, D3DFMT_X8R8G8B8, i, &d3ddispmode);
 			if (FAILED(hr))
 			{
-				LOG_LIMIT(100, __FUNCTION__ << " EnumAdapterModes failed");
+				LOG_LIMIT(100, __FUNCTION__ << " Error: EnumAdapterModes failed");
 				break;
 			}
 
@@ -719,7 +719,7 @@ HRESULT m_IDirectDrawX::GetCaps(LPDDCAPS lpDDDriverCaps, LPDDCAPS lpDDHELCaps)
 	}
 	else
 	{
-		LOG_LIMIT(100, __FUNCTION__ << " Failed to GetCaps!");
+		LOG_LIMIT(100, __FUNCTION__ << " Error: failed to GetCaps!");
 	}
 
 	return hr;
@@ -869,7 +869,7 @@ HRESULT m_IDirectDrawX::GetMonitorFrequency(LPDWORD lpdwFrequency)
 		D3DDISPLAYMODE Mode;
 		if (FAILED(d3d9Device->GetDisplayMode(0, &Mode)))
 		{
-			LOG_LIMIT(100, __FUNCTION__ << " Failed to get display mode!");
+			LOG_LIMIT(100, __FUNCTION__ << " Error: failed to get display mode!");
 			return DDERR_GENERIC;
 		}
 
@@ -901,7 +901,7 @@ HRESULT m_IDirectDrawX::GetScanLine(LPDWORD lpdwScanLine)
 		D3DRASTER_STATUS RasterStatus;
 		if (FAILED(d3d9Device->GetRasterStatus(0, &RasterStatus)))
 		{
-			LOG_LIMIT(100, __FUNCTION__ << " Failed to get raster status!");
+			LOG_LIMIT(100, __FUNCTION__ << " Error: failed to get raster status!");
 			return DDERR_GENERIC;
 		}
 
@@ -933,7 +933,7 @@ HRESULT m_IDirectDrawX::GetVerticalBlankStatus(LPBOOL lpbIsInVB)
 		D3DRASTER_STATUS RasterStatus;
 		if (FAILED(d3d9Device->GetRasterStatus(0, &RasterStatus)))
 		{
-			LOG_LIMIT(100, __FUNCTION__ << " Failed to get raster status!");
+			LOG_LIMIT(100, __FUNCTION__ << " Error: failed to get raster status!");
 			return DDERR_GENERIC;
 		}
 
@@ -1098,7 +1098,7 @@ HRESULT m_IDirectDrawX::SetCooperativeLevel(HWND hWnd, DWORD dwFlags)
 			// Cannot find window handle
 			if (!data.best_handle)
 			{
-				LOG_LIMIT(100, __FUNCTION__ << " Could not get window handle");
+				LOG_LIMIT(100, __FUNCTION__ << " Error: could not get window handle");
 			}
 
 			// Return the best handle
@@ -1206,7 +1206,7 @@ HRESULT m_IDirectDrawX::WaitForVerticalBlank(DWORD dwFlags, HANDLE hEvent)
 		else if (dwFlags & DDWAITVB_BLOCKBEGINEVENT)
 		{
 			// Triggers an event when the vertical blank begins. This value is not currently supported.
-			LOG_LIMIT(100, __FUNCTION__ << " DDWAITVB_BLOCKBEGINEVENT not supported!");
+			LOG_LIMIT(100, __FUNCTION__ << " DDWAITVB_BLOCKBEGINEVENT not implemented!");
 			return DDERR_UNSUPPORTED;
 		}
 		else if (dwFlags & DDWAITVB_BLOCKEND)
@@ -1404,7 +1404,7 @@ HRESULT m_IDirectDrawX::GetDeviceIdentifier2(LPDDDEVICEIDENTIFIER2 lpdddi2, DWOR
 
 		if (FAILED(hr))
 		{
-			LOG_LIMIT(100, __FUNCTION__ << " Failed to get Adapter Identifier");
+			LOG_LIMIT(100, __FUNCTION__ << " Error: failed to get Adapter Identifier");
 			return hr;
 		}
 
@@ -1491,7 +1491,7 @@ HRESULT m_IDirectDrawX::CreateD3D9Device()
 	ZeroMemory(&d3dcaps, sizeof(D3DCAPS9));
 	if (FAILED(d3d9Object->GetDeviceCaps(D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, &d3dcaps)))
 	{
-		LOG_LIMIT(100, __FUNCTION__ << " Failed to retrieve device-specific information about the device");
+		LOG_LIMIT(100, __FUNCTION__ << " Error: failed to retrieve device-specific information about the device");
 		return DDERR_GENERIC;
 	}
 
@@ -1499,7 +1499,7 @@ HRESULT m_IDirectDrawX::CreateD3D9Device()
 	if (!(d3dcaps.Caps2 & D3DCAPS2_DYNAMICTEXTURES))
 	{
 		// No dynamic textures
-		LOG_LIMIT(100, __FUNCTION__ << " Device does not support dynamic textures");
+		LOG_LIMIT(100, __FUNCTION__ << " Error: device does not support dynamic textures");
 		return DDERR_GENERIC;
 	}
 
@@ -1564,7 +1564,7 @@ HRESULT m_IDirectDrawX::CreateD3D9Device()
 			ZeroMemory(&d3ddispmode, sizeof(D3DDISPLAYMODE));
 			if (FAILED(d3d9Object->EnumAdapterModes(D3DADAPTER_DEFAULT, D3DFMT_X8R8G8B8, i, &d3ddispmode)))
 			{
-				LOG_LIMIT(100, __FUNCTION__ << " EnumAdapterModes failed");
+				LOG_LIMIT(100, __FUNCTION__ << " Error: EnumAdapterModes failed");
 				return DDERR_GENERIC;
 			}
 			if (d3ddispmode.Width == BackBufferWidth && d3ddispmode.Height == BackBufferHeight &&		// Check height and width
@@ -1579,7 +1579,7 @@ HRESULT m_IDirectDrawX::CreateD3D9Device()
 		// No mode found
 		if (!modeFound)
 		{
-			LOG_LIMIT(100, __FUNCTION__ << " Failed to find compatible fullscreen display mode " << BackBufferWidth << "x" << BackBufferHeight);
+			LOG_LIMIT(100, __FUNCTION__ << " Error: failed to find compatible fullscreen display mode " << BackBufferWidth << "x" << BackBufferHeight);
 			return DDERR_GENERIC;
 		}
 
@@ -1612,7 +1612,7 @@ HRESULT m_IDirectDrawX::CreateD3D9Device()
 	// Create d3d9 Device
 	if (FAILED(d3d9Object->CreateDevice(D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, MainhWnd, BehaviorFlags, &presParams, &d3d9Device)))
 	{
-		LOG_LIMIT(100, __FUNCTION__ << " Failed to create Direct3D9 device");
+		LOG_LIMIT(100, __FUNCTION__ << " Error: failed to create Direct3D9 device");
 		return DDERR_GENERIC;
 	}
 
@@ -1646,7 +1646,7 @@ HRESULT m_IDirectDrawX::ReinitDevice()
 	// Attempt to reset the device
 	if (FAILED(d3d9Device->Reset(&presParams)))
 	{
-		LOG_LIMIT(100, __FUNCTION__ << " Failed to reset Direct3D9 device");
+		LOG_LIMIT(100, __FUNCTION__ << " Error: failed to reset Direct3D9 device");
 		return DDERR_GENERIC;
 	}
 
@@ -1754,12 +1754,12 @@ void m_IDirectDrawX::RemoveSurfaceFromVector(m_IDirectDrawSurfaceX* lpSurfaceX)
 	if (it != std::end(SurfaceVector))
 	{
 		SurfaceVector.erase(it);
+	}
 
-		// Remove attached surface from map
-		for (m_IDirectDrawSurfaceX *pSurface : SurfaceVector)
-		{
-			pSurface->RemoveAttachedSurfaceFromMap(lpSurfaceX);
-		}
+	// Remove attached surface from map
+	for (m_IDirectDrawSurfaceX *pSurface : SurfaceVector)
+	{
+		pSurface->RemoveAttachedSurfaceFromMap(lpSurfaceX);
 	}
 }
 
@@ -1881,7 +1881,7 @@ HRESULT m_IDirectDrawX::BeginScene()
 	// Begin scene
 	if (FAILED(d3d9Device->BeginScene()))
 	{
-		LOG_LIMIT(100, __FUNCTION__ << " Failed to begin scene");
+		LOG_LIMIT(100, __FUNCTION__ << " Error: failed to begin scene");
 		return DDERR_GENERIC;
 	}
 
@@ -1910,7 +1910,7 @@ HRESULT m_IDirectDrawX::EndScene()
 	// Draw primitive
 	if (FAILED(d3d9Device->DrawPrimitive(D3DPT_TRIANGLEFAN, 0, 2)))
 	{
-		LOG_LIMIT(100, __FUNCTION__ << " Failed to draw primitive");
+		LOG_LIMIT(100, __FUNCTION__ << " Error: failed to draw primitive");
 		return DDERR_GENERIC;
 	}
 
@@ -1952,7 +1952,7 @@ HRESULT m_IDirectDrawX::EndScene()
 	// End scene
 	if (FAILED(d3d9Device->EndScene()))
 	{
-		LOG_LIMIT(100, __FUNCTION__ << " Failed to end scene");
+		LOG_LIMIT(100, __FUNCTION__ << " Error: failed to end scene");
 		return DDERR_GENERIC;
 	}
 
@@ -1969,7 +1969,7 @@ HRESULT m_IDirectDrawX::EndScene()
 	}
 	else if (FAILED(hr))
 	{
-		LOG_LIMIT(100, __FUNCTION__ << " Failed to present scene");
+		LOG_LIMIT(100, __FUNCTION__ << " Error: failed to present scene");
 		return DDERR_GENERIC;
 	}
 

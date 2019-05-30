@@ -84,7 +84,7 @@ void WINAPI dd_CompleteCreateSysmemSurface()
 
 	if (Config.Dd7to9)
 	{
-		LOG_LIMIT(1, __FUNCTION__ << " Not Implemented");
+		LOG_LIMIT(100, __FUNCTION__ << " Not Implemented");
 		return;
 	}
 
@@ -160,7 +160,7 @@ void WINAPI dd_DDGetAttachedSurfaceLcl()
 
 	if (Config.Dd7to9)
 	{
-		LOG_LIMIT(1, __FUNCTION__ << " Not Implemented");
+		LOG_LIMIT(100, __FUNCTION__ << " Not Implemented");
 		return;
 	}
 
@@ -180,7 +180,7 @@ void WINAPI dd_DDInternalLock()
 
 	if (Config.Dd7to9)
 	{
-		LOG_LIMIT(1, __FUNCTION__ << " Not Implemented");
+		LOG_LIMIT(100, __FUNCTION__ << " Not Implemented");
 		return;
 	}
 
@@ -200,7 +200,7 @@ void WINAPI dd_DDInternalUnlock()
 
 	if (Config.Dd7to9)
 	{
-		LOG_LIMIT(1, __FUNCTION__ << " Not Implemented");
+		LOG_LIMIT(100, __FUNCTION__ << " Not Implemented");
 		return;
 	}
 
@@ -220,7 +220,7 @@ void WINAPI dd_DSoundHelp()
 
 	if (Config.Dd7to9)
 	{
-		LOG_LIMIT(1, __FUNCTION__ << " Not Implemented");
+		LOG_LIMIT(100, __FUNCTION__ << " Not Implemented");
 		return;
 	}
 
@@ -355,7 +355,7 @@ HRESULT WINAPI dd_DirectDrawCreateEx(GUID FAR *lpGUID, LPVOID *lplpDD, REFIID ri
 
 		if (!Direct3DCreate9)
 		{
-			LOG_LIMIT(100, __FUNCTION__ << "Failed to get 'Direct3DCreate9' ProcAddress of d3d9.dll!");
+			LOG_LIMIT(100, __FUNCTION__ << " Error: failed to get 'Direct3DCreate9' ProcAddress of d3d9.dll!");
 			return DDERR_GENERIC;
 		}
 
@@ -367,7 +367,7 @@ HRESULT WINAPI dd_DirectDrawCreateEx(GUID FAR *lpGUID, LPVOID *lplpDD, REFIID ri
 		// Error creating Direct3D9
 		if (!d3d9Object)
 		{
-			LOG_LIMIT(100, __FUNCTION__ << " Failed to create Direct3D9 object");
+			LOG_LIMIT(100, __FUNCTION__ << " Error: failed to create Direct3D9 object");
 			return DDERR_GENERIC;
 		}
 
@@ -461,7 +461,7 @@ HRESULT DirectDrawEnumerateHandler(LPVOID lpCallback, LPVOID lpContext, DWORD dw
 
 	if (!Direct3DCreate9)
 	{
-		LOG_LIMIT(100, __FUNCTION__ << "Failed to get 'Direct3DCreate9' ProcAddress of d3d9.dll!");
+		LOG_LIMIT(100, __FUNCTION__ << " Error: failed to get 'Direct3DCreate9' ProcAddress of d3d9.dll!");
 		return DDERR_GENERIC;
 	}
 
@@ -471,7 +471,7 @@ HRESULT DirectDrawEnumerateHandler(LPVOID lpCallback, LPVOID lpContext, DWORD dw
 	// Error creating Direct3D9
 	if (!d3d9Object)
 	{
-		LOG_LIMIT(100, __FUNCTION__ << " Failed to create Direct3D9 object");
+		LOG_LIMIT(100, __FUNCTION__ << " Error: failed to create Direct3D9 object");
 		return DDERR_GENERIC;
 	}
 
@@ -641,7 +641,7 @@ HRESULT WINAPI dd_DllCanUnloadNow()
 
 	if (Config.Dd7to9)
 	{
-		LOG_LIMIT(1, __FUNCTION__ << " Not Implemented");
+		LOG_LIMIT(100, __FUNCTION__ << " Not Implemented");
 		return DDERR_UNSUPPORTED;
 	}
 
@@ -708,7 +708,7 @@ void WINAPI dd_GetDDSurfaceLocal()
 
 	if (Config.Dd7to9)
 	{
-		LOG_LIMIT(1, __FUNCTION__ << " Not Implemented");
+		LOG_LIMIT(100, __FUNCTION__ << " Not Implemented");
 		return;
 	}
 
@@ -728,7 +728,7 @@ HANDLE WINAPI dd_GetOLEThunkData(int i1)
 
 	if (Config.Dd7to9)
 	{
-		LOG_LIMIT(1, __FUNCTION__ << " Not Implemented");
+		LOG_LIMIT(100, __FUNCTION__ << " Not Implemented");
 		return nullptr;
 	}
 
@@ -748,7 +748,7 @@ HRESULT WINAPI dd_GetSurfaceFromDC(HDC hdc, LPDIRECTDRAWSURFACE7 *lpDDS)
 
 	if (Config.Dd7to9)
 	{
-		LOG_LIMIT(1, __FUNCTION__ << " Not Implemented");
+		LOG_LIMIT(100, __FUNCTION__ << " Not Implemented");
 		return DDERR_UNSUPPORTED;
 	}
 
@@ -775,7 +775,7 @@ void WINAPI dd_RegisterSpecialCase()
 
 	if (Config.Dd7to9)
 	{
-		LOG_LIMIT(1, __FUNCTION__ << " Not Implemented");
+		LOG_LIMIT(100, __FUNCTION__ << " Not Implemented");
 		return;
 	}
 
@@ -818,7 +818,7 @@ HRESULT WINAPI dd_SetAppCompatData(DWORD Type, DWORD Value)
 
 	if (Config.Dd7to9)
 	{
-		LOG_LIMIT(1, __FUNCTION__ << " Not Implemented");
+		LOG_LIMIT(100, __FUNCTION__ << " Not Implemented");
 		return DDERR_UNSUPPORTED;
 	}
 

@@ -52,7 +52,7 @@ void *m_IDirect3DTextureX::GetWrapperInterfaceX(DWORD DirectXVersion)
 		}
 		return UniqueProxyInterface2.get();
 	default:
-		LOG_LIMIT(100, __FUNCTION__ << " Error, wrapper interface version not found: " << DirectXVersion);
+		LOG_LIMIT(100, __FUNCTION__ << " Error: wrapper interface version not found: " << DirectXVersion);
 		return nullptr;
 	}
 }

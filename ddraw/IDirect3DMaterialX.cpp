@@ -58,7 +58,7 @@ void *m_IDirect3DMaterialX::GetWrapperInterfaceX(DWORD DirectXVersion)
 		}
 		return UniqueProxyInterface3.get();
 	default:
-		LOG_LIMIT(100, __FUNCTION__ << " Error, wrapper interface version not found: " << DirectXVersion);
+		LOG_LIMIT(100, __FUNCTION__ << " Error: wrapper interface version not found: " << DirectXVersion);
 		return nullptr;
 	}
 }
@@ -151,7 +151,7 @@ HRESULT m_IDirect3DMaterialX::SetMaterial(LPD3DMATERIAL lpMat)
 
 		if (!D3DDeviceInterface || !*D3DDeviceInterface)
 		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error no D3DirectDevice interface!");
+			LOG_LIMIT(100, __FUNCTION__ << " Error: no D3DirectDevice interface!");
 			return DDERR_GENERIC;
 		}
 
@@ -186,7 +186,7 @@ HRESULT m_IDirect3DMaterialX::GetMaterial(LPD3DMATERIAL lpMat)
 
 		if (!D3DDeviceInterface || !*D3DDeviceInterface)
 		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error no D3DirectDevice interface!");
+			LOG_LIMIT(100, __FUNCTION__ << " Error: no D3DirectDevice interface!");
 			return DDERR_GENERIC;
 		}
 

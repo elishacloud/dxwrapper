@@ -199,16 +199,16 @@ HRESULT m_IDirectDrawSurfaceX::AddAttachedSurface(LPDIRECTDRAWSURFACE7 lpDDSurfa
 
 		m_IDirectDrawSurfaceX *lpAttachedSurface = ((m_IDirectDrawSurface*)lpDDSurface)->GetWrapperInterface();
 
-		if (!ddrawParent->DoesSurfaceExist(lpAttachedSurface))
-		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error: could not find source surface");
-			return DDERR_INVALIDOBJECT;
-		}
-
 		if (lpAttachedSurface == this)
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Error: cannot attach self");
 			return DDERR_CANNOTATTACHSURFACE;
+		}
+
+		if (!ddrawParent->DoesSurfaceExist(lpAttachedSurface))
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: invalid surface!");
+			return DDERR_INVALIDPARAMS;
 		}
 
 		if (DoesAttachedSurfaceExist(lpAttachedSurface))
@@ -260,7 +260,7 @@ HRESULT m_IDirectDrawSurfaceX::Blt(LPRECT lpDestRect, LPDIRECTDRAWSURFACE7 lpDDS
 		// Check for required DDBLTFX structure
 		if (!lpDDBltFx && (dwFlags & (DDBLT_DDFX | DDBLT_COLORFILL | DDBLT_DEPTHFILL | DDBLT_DDROPS | DDBLT_KEYDESTOVERRIDE | DDBLT_KEYSRCOVERRIDE | DDBLT_ROP | DDBLT_ROTATIONANGLE)))
 		{
-			LOG_LIMIT(100, __FUNCTION__ << " DDBLTFX structure not found");
+			LOG_LIMIT(100, __FUNCTION__ << " Error: DDBLTFX structure not found");
 			return DDERR_INVALIDPARAMS;
 		}
 
@@ -316,6 +316,7 @@ HRESULT m_IDirectDrawSurfaceX::Blt(LPRECT lpDestRect, LPDIRECTDRAWSURFACE7 lpDDS
 		HRESULT hr = DD_OK;
 		m_IDirectDrawSurfaceX *lpDDSrcSurfaceX = nullptr;
 		do {
+			IsInBlt = true;
 
 			// Check if the scene needs to be presented
 			isSkipScene |= ((lpDestRect) ? (abs(lpDestRect->bottom - lpDestRect->top) < 2 || abs(lpDestRect->right - lpDestRect->left) < 2) : FALSE);
@@ -340,14 +341,16 @@ HRESULT m_IDirectDrawSurfaceX::Blt(LPRECT lpDestRect, LPDIRECTDRAWSURFACE7 lpDDS
 				// Check for device interface
 				if (FAILED(CheckInterface(__FUNCTION__, false, false)))
 				{
-					return DDERR_GENERIC;
+					hr = DDERR_GENERIC;
+					break;
 				}
 
 				// Check if source Surface exists
 				if (!ddrawParent->DoesSurfaceExist(lpDDSrcSurfaceX))
 				{
 					LOG_LIMIT(100, __FUNCTION__ << " Error: could not find source surface");
-					return DD_OK;		// Return OK to allow some games to continue to work
+					hr = DD_OK;		// Return OK to allow some games to continue to work
+					break;
 				}
 			}
 
@@ -425,6 +428,8 @@ HRESULT m_IDirectDrawSurfaceX::Blt(LPRECT lpDestRect, LPDIRECTDRAWSURFACE7 lpDDS
 			// Present surface
 			PresentSurface(isSkipScene);
 		}
+
+		IsInBlt = false;
 
 		// Return
 		return hr;
@@ -669,7 +674,7 @@ HRESULT m_IDirectDrawSurfaceX::FlipBackBuffer()
 	DWORD dwCaps = 0;
 	m_IDirectDrawSurfaceX *lpTargetSurface = nullptr;
 
-	// Loop through each surface and swap them
+	// Loop through each surface
 	for (auto it : AttachedSurfaceMap)
 	{
 		dwCaps = it.second->GetSurfaceCaps().dwCaps;
@@ -696,7 +701,7 @@ HRESULT m_IDirectDrawSurfaceX::FlipBackBuffer()
 	// Check if surface is busy
 	if (lpTargetSurface->IsSurfaceLocked() || lpTargetSurface->IsSurfaceInDC())
 	{
-		LOG_LIMIT(100, __FUNCTION__ << " Surface is busy!");
+		LOG_LIMIT(100, __FUNCTION__ << " Error: surface is busy!");
 		return DDERR_SURFACEBUSY;
 	}
 
@@ -710,12 +715,7 @@ HRESULT m_IDirectDrawSurfaceX::FlipBackBuffer()
 	SwapSurface(this, lpTargetSurface);
 
 	// Flip next surface
-	if (FAILED(lpTargetSurface->FlipBackBuffer()))
-	{
-		return DDERR_GENERIC;
-	}
-
-	return DD_OK;
+	return lpTargetSurface->FlipBackBuffer();
 }
 
 HRESULT m_IDirectDrawSurfaceX::Flip(LPDIRECTDRAWSURFACE7 lpDDSurfaceTargetOverride, DWORD dwFlags)
@@ -740,7 +740,7 @@ HRESULT m_IDirectDrawSurfaceX::Flip(LPDIRECTDRAWSURFACE7 lpDDSurfaceTargetOverri
 		// Check if surface is locked or has an open DC
 		if (IsLocked || IsInDC)
 		{
-			LOG_LIMIT(100, __FUNCTION__ << " Surface is busy!");
+			LOG_LIMIT(100, __FUNCTION__ << " Error: surface is busy!");
 			return DDERR_SURFACEBUSY;
 		}
 
@@ -752,70 +752,84 @@ HRESULT m_IDirectDrawSurfaceX::Flip(LPDIRECTDRAWSURFACE7 lpDDSurfaceTargetOverri
 
 		if ((dwFlags & (DDFLIP_INTERVAL2 | DDFLIP_INTERVAL3 | DDFLIP_INTERVAL4)) && (surfaceDesc2.ddsCaps.dwCaps2 & DDCAPS2_FLIPINTERVAL))
 		{
-			LOG_LIMIT(1, __FUNCTION__ << " Interval flipping not fully implemented");
+			LOG_LIMIT(100, __FUNCTION__ << " Interval flipping not fully implemented");
 		}
 
-		// If SurfaceTargetOverride then use that surface
-		if (lpDDSurfaceTargetOverride)
-		{
-			m_IDirectDrawSurfaceX *lpTargetSurface = ((m_IDirectDrawSurface*)lpDDSurfaceTargetOverride)->GetWrapperInterface();
+		HRESULT hr = DD_OK;
+		do {
+			IsInFlip = true;
 
-			// Check if target surface exists
-			if (!DoesAttachedSurfaceExist(lpTargetSurface) || lpTargetSurface == this)
+			// If SurfaceTargetOverride then use that surface
+			if (lpDDSurfaceTargetOverride)
 			{
-				LOG_LIMIT(100, __FUNCTION__ << " Invalid SurfaceTarget");
-				return DDERR_INVALIDOBJECT;
+				m_IDirectDrawSurfaceX *lpTargetSurface = ((m_IDirectDrawSurface*)lpDDSurfaceTargetOverride)->GetWrapperInterface();
+
+				// Check if target surface exists
+				if (!DoesBackBufferExist(lpTargetSurface) || lpTargetSurface == this)
+				{
+					LOG_LIMIT(100, __FUNCTION__ << " Error: invalid surface!");
+					hr = DDERR_INVALIDPARAMS;
+					break;
+				}
+
+				// Check for device interface
+				if (FAILED(lpTargetSurface->CheckInterface(__FUNCTION__, true, true)))
+				{
+					hr = DDERR_GENERIC;
+					break;
+				}
+
+				// Check if surface is locked or has an open DC
+				if (lpTargetSurface->IsSurfaceLocked() || lpTargetSurface->IsSurfaceInDC())
+				{
+					LOG_LIMIT(100, __FUNCTION__ << " Error: surface is busy!");
+					hr = DDERR_SURFACEBUSY;
+					break;
+				}
+
+				// Swap surface
+				SwapSurface(this, lpTargetSurface);
 			}
 
-			// Check for device interface
-			if (FAILED(lpTargetSurface->CheckInterface(__FUNCTION__, true, true)))
+			// Execute flip for all attached surfaces
+			else
 			{
-				return DDERR_GENERIC;
+				if ((dwFlags & (DDFLIP_EVEN | DDFLIP_ODD)) == (DDFLIP_EVEN | DDFLIP_ODD))
+				{
+					LOG_LIMIT(100, __FUNCTION__ << " Error: invalid flags!");
+					hr = DDERR_INVALIDPARAMS;
+					break;
+				}
+
+				if (dwFlags & DDFLIP_STEREO)
+				{
+					LOG_LIMIT(100, __FUNCTION__ << " Stereo flipping not implemented");
+					hr = DDERR_NOSTEREOHARDWARE;
+					break;
+				}
+
+				if (dwFlags & (DDFLIP_ODD | DDFLIP_EVEN))
+				{
+					LOG_LIMIT(100, __FUNCTION__ << " Even and odd flipping not implemented");
+					hr = DDERR_UNSUPPORTED;
+					break;
+				}
+
+				// Flip surface
+				hr = FlipBackBuffer();
 			}
 
-			// Check if surface is locked or has an open DC
-			if (lpTargetSurface->IsSurfaceLocked() || lpTargetSurface->IsSurfaceInDC())
-			{
-				LOG_LIMIT(100, __FUNCTION__ << " Surface is busy!");
-				return DDERR_SURFACEBUSY;
-			}
-
-			// Swap surface
-			SwapSurface(this, lpTargetSurface);
-		}
-
-		// Execute flip for all attached surfaces
-		else
-		{
-			if ((dwFlags & DDFLIP_ODD) && (dwFlags & DDFLIP_EVEN))
-			{
-				return DDERR_INVALIDPARAMS;
-			}
-
-			if (dwFlags & DDFLIP_STEREO)
-			{
-				LOG_LIMIT(100, __FUNCTION__ << " Stereo flipping not implemented");
-				return DDERR_NOSTEREOHARDWARE;
-			}
-
-			if (dwFlags & (DDFLIP_ODD | DDFLIP_EVEN))
-			{
-				LOG_LIMIT(100, __FUNCTION__ << " Even and odd flipping not implemented");
-				return DDERR_UNSUPPORTED;
-			}
-
-			// Flip surface
-			HRESULT hr = FlipBackBuffer();
-			if (FAILED(hr))
-			{
-				return hr;
-			}
-		}
+		} while (false);
 
 		// Present surface
-		PresentSurface();
+		if (SUCCEEDED(hr))
+		{
+			PresentSurface();
+		}
 
-		return DD_OK;
+		IsInFlip = false;
+
+		return hr;
 	}
 
 	if (lpDDSurfaceTargetOverride)
@@ -923,28 +937,26 @@ HRESULT m_IDirectDrawSurfaceX::GetBltStatus(DWORD dwFlags)
 
 	if (Config.Dd7to9)
 	{
-		LOG_LIMIT(1, __FUNCTION__ << " Not fully Implemented.");
-
 		// Inquires whether a blit involving this surface can occur immediately, and returns DD_OK if the blit can be completed.
-		if (dwFlags & DDGBS_CANBLT)
+		if (dwFlags == DDGBS_CANBLT)
 		{
-			if (!IsLocked)
+			if (IsInBlt || IsLocked)
 			{
-				//return DDERR_WASSTILLDRAWING;
+				return DDERR_WASSTILLDRAWING;
 			}
 			return DD_OK;
 		}
 		// Inquires whether the blit is done, and returns DD_OK if the last blit on this surface has completed.
-		else if (dwFlags & DDGBS_ISBLTDONE)
+		else if (dwFlags == DDGBS_ISBLTDONE)
 		{
-			if (!IsLocked)
+			if (IsInBlt)
 			{
-				//return DDERR_WASSTILLDRAWING;
+				return DDERR_WASSTILLDRAWING;
 			}
 			return DD_OK;
 		}
 
-		return DDERR_UNSUPPORTED;
+		return DDERR_INVALIDPARAMS;
 	}
 
 	return ProxyInterface->GetBltStatus(dwFlags);
@@ -1099,16 +1111,34 @@ HRESULT m_IDirectDrawSurfaceX::GetFlipStatus(DWORD dwFlags)
 
 	if (Config.Dd7to9)
 	{
-		LOG_LIMIT(1, __FUNCTION__ << " Not fully Implemented.");
+		// Get backbuffer
+		m_IDirectDrawSurfaceX *lpBackBuffer = this;
+		for (auto it : AttachedSurfaceMap)
+		{
+			if (!(it.second->GetSurfaceCaps().dwCaps & DDSCAPS_BACKBUFFER))
+			{
+				lpBackBuffer = it.second;
+
+				break;
+			}
+		}
 
 		// Queries whether the surface can flip now. The method returns DD_OK if the flip can be completed.
-		if (dwFlags & DDGFS_CANFLIP)
+		if ((dwFlags == DDGFS_CANFLIP))
 		{
+			if (IsInFlip || IsLocked || IsInDC || lpBackBuffer->IsSurfaceLocked() || lpBackBuffer->IsSurfaceInDC())
+			{
+				return DDERR_WASSTILLDRAWING;
+			}
 			return DD_OK;
 		}
 		// Queries whether the flip is done. The method returns DD_OK if the last flip on this surface has completed.
-		else if (dwFlags & DDGFS_ISFLIPDONE)
+		else if (dwFlags == DDGFS_ISFLIPDONE)
 		{
+			if (IsInFlip)
+			{
+				return DDERR_WASSTILLDRAWING;
+			}
 			return DD_OK;
 		}
 
@@ -1124,7 +1154,7 @@ HRESULT m_IDirectDrawSurfaceX::GetOverlayPosition(LPLONG lplX, LPLONG lplY)
 
 	if (Config.Dd7to9)
 	{
-		LOG_LIMIT(1, __FUNCTION__ << " Not fully Implemented.");
+		LOG_LIMIT(100, __FUNCTION__ << " Not fully Implemented.");
 
 		if (!lplX || !lplY)
 		{
@@ -1420,7 +1450,7 @@ HRESULT m_IDirectDrawSurfaceX::Lock2(LPRECT lpDestRect, LPDDSURFACEDESC2 lpDDSur
 		// Check if locked
 		if (IsLocked)
 		{
-			LOG_LIMIT(1, __FUNCTION__ << " Locking surface twice not fully implemented");
+			LOG_LIMIT(100, __FUNCTION__ << " Locking surface twice not fully implemented");
 		}
 
 		D3DLOCKED_RECT LockedRect;
@@ -1449,7 +1479,7 @@ HRESULT m_IDirectDrawSurfaceX::Lock2(LPRECT lpDestRect, LPDDSURFACEDESC2 lpDDSur
 			}
 			else
 			{
-				LOG_LIMIT(100, __FUNCTION__ << " Failed to write to texture surface!");
+				LOG_LIMIT(100, __FUNCTION__ << " Error: failed to write to texture surface!");
 				hr = DDERR_GENERIC;
 			}
 
@@ -1460,7 +1490,7 @@ HRESULT m_IDirectDrawSurfaceX::Lock2(LPRECT lpDestRect, LPDDSURFACEDESC2 lpDDSur
 		}
 		else
 		{
-			LOG_LIMIT(100, __FUNCTION__ << " Failed to lock texture surface!");
+			LOG_LIMIT(100, __FUNCTION__ << " Error: failed to lock texture surface!");
 		}
 
 		return hr;
@@ -1604,7 +1634,7 @@ HRESULT m_IDirectDrawSurfaceX::SetOverlayPosition(LONG lX, LONG lY)
 
 	if (Config.Dd7to9)
 	{
-		LOG_LIMIT(1, __FUNCTION__ << " Not fully Implemented.");
+		LOG_LIMIT(100, __FUNCTION__ << " Not fully Implemented.");
 
 		// Store the new overlay position
 		overlayX = lX;
@@ -1858,7 +1888,7 @@ HRESULT m_IDirectDrawSurfaceX::SetSurfaceDesc2(LPDDSURFACEDESC2 lpDDSurfaceDesc2
 		DWORD SurfaceFlags = lpDDSurfaceDesc2->dwFlags;
 		if (SurfaceFlags & DDSD_LPSURFACE)
 		{
-			LOG_LIMIT(1, __FUNCTION__ << " lpSurface not fully Implemented.");
+			LOG_LIMIT(100, __FUNCTION__ << " lpSurface not fully Implemented.");
 
 			SurfaceFlags &= ~DDSD_LPSURFACE;
 			surfaceDesc2.dwFlags |= DDSD_LPSURFACE;
@@ -2200,7 +2230,7 @@ HRESULT m_IDirectDrawSurfaceX::CreateD3d9Surface()
 	// Create surface
 	if (FAILED((*d3d9Device)->CreateTexture(surfaceDesc2.dwWidth, surfaceDesc2.dwHeight, 1, Usage, (Format == D3DFMT_P8) ? D3DFMT_L8 : Format, Pool, &surfaceTexture, nullptr)))
 	{
-		LOG_LIMIT(100, __FUNCTION__ << " Failed to create surface size: " << surfaceDesc2.dwWidth << "x" << surfaceDesc2.dwHeight << " Usage: " << Usage << " Format: " << Format << " Pool: " << Pool);
+		LOG_LIMIT(100, __FUNCTION__ << " Error: failed to create surface size: " << surfaceDesc2.dwWidth << "x" << surfaceDesc2.dwHeight << " Usage: " << Usage << " Format: " << Format << " Pool: " << Pool);
 		return DDERR_GENERIC;
 	}
 
@@ -2210,7 +2240,7 @@ HRESULT m_IDirectDrawSurfaceX::CreateD3d9Surface()
 		if (FAILED((*d3d9Device)->CreateTexture(256, 256, 1, 0, D3DFMT_X8R8G8B8, D3DPOOL_MANAGED, &paletteTexture, nullptr)) ||
 			FAILED((*d3d9Device)->CreatePixelShader((DWORD*)PalettePixelShaderSrc, &pixelShader)))
 		{
-			LOG_LIMIT(100, __FUNCTION__ << " Failed to create palette surface");
+			LOG_LIMIT(100, __FUNCTION__ << " Error: failed to create palette surface");
 			return DDERR_GENERIC;
 		}
 		NewPalette = true;
@@ -2219,7 +2249,7 @@ HRESULT m_IDirectDrawSurfaceX::CreateD3d9Surface()
 	// Get Surface Interface
 	if (FAILED(surfaceTexture->GetSurfaceLevel(0, &surfaceInterface)))
 	{
-		LOG_LIMIT(100, __FUNCTION__ << " Failed to create surface interface");
+		LOG_LIMIT(100, __FUNCTION__ << " Error: failed to create surface interface");
 		return DDERR_GENERIC;
 	}
 
@@ -2231,7 +2261,7 @@ HRESULT m_IDirectDrawSurfaceX::CreateD3d9Surface()
 			D3DLOCKED_RECT LockRect;
 			if (FAILED(surfaceTexture->LockRect(0, &LockRect, nullptr, 0)))
 			{
-				LOG_LIMIT(100, __FUNCTION__ << " Failed to lock texture surface!");
+				LOG_LIMIT(100, __FUNCTION__ << " Error: failed to lock texture surface!");
 				break;
 			}
 
@@ -2261,42 +2291,42 @@ HRESULT m_IDirectDrawSurfaceX::CreateD3d9Surface()
 	// Set vertex shader
 	if (FAILED((*d3d9Device)->SetVertexShader(nullptr)))
 	{
-		LOG_LIMIT(100, __FUNCTION__ << " Failed to set vertex shader");
+		LOG_LIMIT(100, __FUNCTION__ << " Error: failed to set vertex shader");
 		return DDERR_GENERIC;
 	}
 
 	// Set fv format
 	if (FAILED((*d3d9Device)->SetFVF(D3DFVF_XYZRHW | D3DFVF_TEX1)))
 	{
-		LOG_LIMIT(100, __FUNCTION__ << " Failed to set the current vertex stream format");
+		LOG_LIMIT(100, __FUNCTION__ << " Error: failed to set the current vertex stream format");
 		return DDERR_GENERIC;
 	}
 
 	// Create vertex buffer
 	if (FAILED((*d3d9Device)->CreateVertexBuffer(sizeof(TLVERTEX) * 4, D3DUSAGE_DYNAMIC, (D3DFVF_XYZRHW | D3DFVF_TEX1), D3DPOOL_DEFAULT, &vertexBuffer, nullptr)))
 	{
-		LOG_LIMIT(100, __FUNCTION__ << " Failed to create vertex buffer");
+		LOG_LIMIT(100, __FUNCTION__ << " Error: failed to create vertex buffer");
 		return DDERR_GENERIC;
 	}
 
 	// Set stream source
 	if (FAILED((*d3d9Device)->SetStreamSource(0, vertexBuffer, 0, sizeof(TLVERTEX))))
 	{
-		LOG_LIMIT(100, __FUNCTION__ << " Failed to set vertex buffer stream source");
+		LOG_LIMIT(100, __FUNCTION__ << " Error: failed to set vertex buffer stream source");
 		return DDERR_GENERIC;
 	}
 
 	// Set render states(no lighting)
 	if (FAILED((*d3d9Device)->SetRenderState(D3DRS_LIGHTING, FALSE)))
 	{
-		LOG_LIMIT(100, __FUNCTION__ << " Failed to set device render state(no lighting)");
+		LOG_LIMIT(100, __FUNCTION__ << " Error: failed to set device render state(no lighting)");
 		return DDERR_GENERIC;
 	}
 
 	// Set scale mode to linear
 	if (FAILED((*d3d9Device)->SetSamplerState(0, D3DSAMP_MAGFILTER, D3DTEXF_LINEAR)))
 	{
-		LOG_LIMIT(100, __FUNCTION__ << " Failed to set D3D device to LINEAR sampling");
+		LOG_LIMIT(100, __FUNCTION__ << " Error: failed to set D3D device to LINEAR sampling");
 	}
 
 	// Setup verticies (0,0,currentWidth,currentHeight)
@@ -2305,7 +2335,7 @@ HRESULT m_IDirectDrawSurfaceX::CreateD3d9Surface()
 	// Lock vertex buffer
 	if (FAILED(vertexBuffer->Lock(0, 0, (void**)&vertices, 0)))
 	{
-		LOG_LIMIT(100, __FUNCTION__ << " Failed to lock vertex buffer");
+		LOG_LIMIT(100, __FUNCTION__ << " Error: failed to lock vertex buffer");
 		return DDERR_GENERIC;
 	}
 
@@ -2355,7 +2385,7 @@ HRESULT m_IDirectDrawSurfaceX::CreateD3d9Surface()
 	// Unlcok vertex buffer
 	if (FAILED(vertexBuffer->Unlock()))
 	{
-		LOG_LIMIT(100, __FUNCTION__ << " Failed to unlock vertex buffer");
+		LOG_LIMIT(100, __FUNCTION__ << " Error: failed to unlock vertex buffer");
 		return DDERR_GENERIC;
 	}
 
@@ -2376,7 +2406,7 @@ void m_IDirectDrawSurfaceX::ReleaseD9Interface(T **ppInterface)
 		// Add Error: checking
 		if (z != 0)
 		{
-			LOG_LIMIT(100, __FUNCTION__ << " Failed to release Direct3D9 interface");
+			LOG_LIMIT(100, __FUNCTION__ << " Error: failed to release Direct3D9 interface");
 		}
 
 		(*ppInterface) = nullptr;
@@ -2394,7 +2424,7 @@ void m_IDirectDrawSurfaceX::ReleaseD9Surface(bool BackupData)
 			D3DLOCKED_RECT LockRect;
 			if (FAILED(surfaceTexture->LockRect(0, &LockRect, nullptr, 0)))
 			{
-				LOG_LIMIT(100, __FUNCTION__ << " Failed to lock texture surface!");
+				LOG_LIMIT(100, __FUNCTION__ << " Error: failed to lock texture surface!");
 				break;
 			}
 
@@ -2501,7 +2531,7 @@ HRESULT m_IDirectDrawSurfaceX::PresentSurface(BOOL isSkipScene)
 
 			if (FAILED(paletteTexture->LockRect(0, &LockRect, &Rect, 0)))
 			{
-				LOG_LIMIT(100, __FUNCTION__ << " Failed to lock palette texture!");
+				LOG_LIMIT(100, __FUNCTION__ << " Error: failed to lock palette texture!");
 				break;
 			}
 
@@ -2523,7 +2553,7 @@ HRESULT m_IDirectDrawSurfaceX::PresentSurface(BOOL isSkipScene)
 	{
 		if (FAILED((*d3d9Device)->SetTexture(0, surfaceTexture)))
 		{
-			LOG_LIMIT(100, __FUNCTION__ << " Failed to set texture");
+			LOG_LIMIT(100, __FUNCTION__ << " Error: failed to set texture");
 			return DDERR_GENERIC;
 		}
 	}
@@ -2533,7 +2563,7 @@ HRESULT m_IDirectDrawSurfaceX::PresentSurface(BOOL isSkipScene)
 	{
 		if (FAILED((*d3d9Device)->SetTexture(1, paletteTexture)))
 		{
-			LOG_LIMIT(100, __FUNCTION__ << " Failed to lock palette texture!");
+			LOG_LIMIT(100, __FUNCTION__ << " Error: failed to lock palette texture!");
 			return DDERR_GENERIC;
 		}
 	}
@@ -2543,7 +2573,7 @@ HRESULT m_IDirectDrawSurfaceX::PresentSurface(BOOL isSkipScene)
 	{
 		if (FAILED((*d3d9Device)->SetPixelShader(pixelShader)))
 		{
-			LOG_LIMIT(100, __FUNCTION__ << " Failed to set pixel shader");
+			LOG_LIMIT(100, __FUNCTION__ << " Error: failed to set pixel shader");
 			return DDERR_GENERIC;
 		}
 	}
@@ -2664,7 +2694,7 @@ HRESULT m_IDirectDrawSurfaceX::SetLock(D3DLOCKED_RECT* pLockedRect, LPRECT lpDes
 	// Lock surface
 	if (FAILED(surfaceTexture->LockRect(0, pLockedRect, lpDestRect, dwFlags)))
 	{
-		LOG_LIMIT(100, __FUNCTION__ << " Failed to lock surface");
+		LOG_LIMIT(100, __FUNCTION__ << " Error: failed to lock surface");
 		return DDERR_GENERIC;
 	}
 
@@ -2694,7 +2724,7 @@ HRESULT m_IDirectDrawSurfaceX::SetUnlock(BOOL isSkipScene)
 	// Lock surface
 	if (FAILED(surfaceTexture->UnlockRect(0)))
 	{
-		LOG_LIMIT(100, __FUNCTION__ << " Failed to unlock surface");
+		LOG_LIMIT(100, __FUNCTION__ << " Error: failed to unlock surface");
 		return DDERR_GENERIC;
 	}
 	IsLocked = false;
@@ -2826,6 +2856,45 @@ bool m_IDirectDrawSurfaceX::DoesAttachedSurfaceExist(m_IDirectDrawSurfaceX* lpSu
 	}
 
 	return true;
+}
+
+// Check if backbuffer surface exists
+bool m_IDirectDrawSurfaceX::DoesBackBufferExist(m_IDirectDrawSurfaceX* lpSurfaceX)
+{
+	if (!lpSurfaceX)
+	{
+		return false;
+	}
+
+	DWORD dwCaps = 0;
+	m_IDirectDrawSurfaceX *lpTargetSurface = nullptr;
+
+	// Loop through each surface
+	for (auto it : AttachedSurfaceMap)
+	{
+		dwCaps = it.second->GetSurfaceCaps().dwCaps;
+		if (!(dwCaps & DDSCAPS_ZBUFFER))
+		{
+			lpTargetSurface = it.second;
+
+			break;
+		}
+	}
+
+	// Check if attached surface was not found
+	if (!lpTargetSurface || (dwCaps & DDSCAPS_FRONTBUFFER))
+	{
+		return false;
+	}
+
+	// Check if attached surface was found
+	if (lpTargetSurface == lpSurfaceX)
+	{
+		return true;
+	}
+
+	// Check next surface
+	return lpTargetSurface->DoesBackBufferExist(lpSurfaceX);
 }
 
 HRESULT m_IDirectDrawSurfaceX::ColorFill(RECT* pRect, D3DCOLOR dwFillColor)
@@ -3083,7 +3152,7 @@ HRESULT m_IDirectDrawSurfaceX::StretchRectColorKey(m_IDirectDrawSurfaceX* pSourc
 	// Check parameters
 	if (!pSourceSurface)
 	{
-		LOG_LIMIT(100, __FUNCTION__ << " Invalid parameters!");
+		LOG_LIMIT(100, __FUNCTION__ << " Error: invalid parameters!");
 		return DDERR_INVALIDPARAMS;
 	}
 
