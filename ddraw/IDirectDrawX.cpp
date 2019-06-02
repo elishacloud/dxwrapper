@@ -1199,6 +1199,8 @@ HRESULT m_IDirectDrawX::WaitForVerticalBlank(DWORD dwFlags, HANDLE hEvent)
 
 	if (Config.Dd7to9)
 	{
+		LOG_LIMIT(100, __FUNCTION__ << " Not fully implemented!");
+
 		if (dwFlags & DDWAITVB_BLOCKBEGIN)
 		{
 			// Return when vertical blank begins
@@ -1206,7 +1208,6 @@ HRESULT m_IDirectDrawX::WaitForVerticalBlank(DWORD dwFlags, HANDLE hEvent)
 		else if (dwFlags & DDWAITVB_BLOCKBEGINEVENT)
 		{
 			// Triggers an event when the vertical blank begins. This value is not currently supported.
-			LOG_LIMIT(100, __FUNCTION__ << " DDWAITVB_BLOCKBEGINEVENT not implemented!");
 			return DDERR_UNSUPPORTED;
 		}
 		else if (dwFlags & DDWAITVB_BLOCKEND)
@@ -1884,7 +1885,6 @@ HRESULT m_IDirectDrawX::BeginScene()
 		LOG_LIMIT(100, __FUNCTION__ << " Error: failed to begin scene");
 		return DDERR_GENERIC;
 	}
-
 	IsInScene = true;
 
 	return DD_OK;
@@ -1894,6 +1894,9 @@ HRESULT m_IDirectDrawX::BeginScene()
 HRESULT m_IDirectDrawX::EndScene()
 {
 	Logging::LogDebug() << __FUNCTION__;
+
+	// Run BeginScene (ignore results)
+	BeginScene();
 
 	// Check if BeginScene has finished
 	if (!IsInScene)
@@ -1955,7 +1958,6 @@ HRESULT m_IDirectDrawX::EndScene()
 		LOG_LIMIT(100, __FUNCTION__ << " Error: failed to end scene");
 		return DDERR_GENERIC;
 	}
-
 	IsInScene = false;
 
 	// Present everthing

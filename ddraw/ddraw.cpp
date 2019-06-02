@@ -834,9 +834,11 @@ HRESULT WINAPI dd_SetAppCompatData(DWORD Type, DWORD Value)
 
 void DdrawWrapper::SetCriticalSection()
 {
-	while (ThreadSyncFlag)
+	if (ThreadSyncFlag)
 	{
-		Sleep(0);
+		do {
+			Sleep(0);
+		} while (ThreadSyncFlag);
 	}
 
 	ThreadSyncFlag = true;

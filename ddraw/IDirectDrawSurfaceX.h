@@ -32,6 +32,7 @@ private:
 	bool dirtyFlag = false;
 	bool EndSceneLock = false;
 	bool IsLocked = false;
+	DWORD LockThreadID = 0;
 	bool IsInDC = false;
 	bool IsInBlt = false;
 	bool IsInFlip = false;
@@ -263,6 +264,7 @@ public:
 
 	// Locking rect coordinates
 	bool CheckCoordinates(LPRECT lpOutRect, LPRECT lpInRect);
+	bool WaitForLockState();
 	HRESULT SetLock(D3DLOCKED_RECT* pLockedRect, LPRECT lpDestRect, DWORD dwFlags, BOOL isSkipScene = false);
 	HRESULT SetUnlock(BOOL isSkipScene = false);
 
@@ -275,10 +277,7 @@ public:
 
 	// Copying surface textures
 	HRESULT ColorFill(RECT* pRect, D3DCOLOR dwFillColor);
-	HRESULT UpdateSurface(m_IDirectDrawSurfaceX* pSourceSurface, RECT* pSourceRect, POINT* pDestPoint);
-	HRESULT StretchRect(m_IDirectDrawSurfaceX* pSourceSurface, RECT* pSourceRect, RECT* pDestRect, D3DTEXTUREFILTERTYPE Filter);
-	HRESULT UpdateSurfaceColorKey(m_IDirectDrawSurfaceX* pSourceSurface, RECT* pSourceRect, POINT* pDestPoint, DDCOLORKEY ColorKey, bool DoColorKey = true);
-	HRESULT StretchRectColorKey(m_IDirectDrawSurfaceX* pSourceSurface, RECT* pSourceRect, RECT* pDestRect, D3DTEXTUREFILTERTYPE Filter, DDCOLORKEY ColorKey, bool DoColorKey = true);
+	HRESULT CopySurface(m_IDirectDrawSurfaceX* pSourceSurface, RECT* pSourceRect, RECT* pDestRect, D3DTEXTUREFILTERTYPE Filter, DDCOLORKEY ColorKey, DWORD dwFlags);
 
 	// Release interface
 	void ReleaseInterface();
