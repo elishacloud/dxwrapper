@@ -19,4 +19,4 @@ void ConvertCaps(DDCAPS &Caps7, D3DCAPS9 &Caps9);
 DWORD GetBitCount(DDPIXELFORMAT ddpfPixelFormat);
 DWORD GetBitCount(D3DFORMAT Format);
 D3DFORMAT GetDisplayFormat(DDPIXELFORMAT ddpfPixelFormat);
-void GetPixelDisplayFormat(D3DFORMAT Format, DDPIXELFORMAT &lpPixelFormat);
+void SetPixelDisplayFormat(D3DFORMAT Format, DDPIXELFORMAT &lpPixelFormat);

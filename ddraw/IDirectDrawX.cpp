@@ -331,16 +331,16 @@ HRESULT m_IDirectDrawX::CreateSurface2(LPDDSURFACEDESC2 lpDDSurfaceDesc2, LPDIRE
 			switch ((PaletteVector.size()) ? 8 : displayModeBPP)
 			{
 			case 8:
-				GetPixelDisplayFormat(D3DFMT_P8, Desc2.ddpfPixelFormat);
+				SetPixelDisplayFormat(D3DFMT_P8, Desc2.ddpfPixelFormat);
 				break;
 			case 16:
-				GetPixelDisplayFormat(D3DFMT_R5G6B5, Desc2.ddpfPixelFormat);
+				SetPixelDisplayFormat(D3DFMT_R5G6B5, Desc2.ddpfPixelFormat);
 				break;
 			case 24:
-				GetPixelDisplayFormat(D3DFMT_R8G8B8, Desc2.ddpfPixelFormat);
+				SetPixelDisplayFormat(D3DFMT_R8G8B8, Desc2.ddpfPixelFormat);
 				break;
 			case 32:
-				GetPixelDisplayFormat(D3DFMT_X8R8G8B8, Desc2.ddpfPixelFormat);
+				SetPixelDisplayFormat(D3DFMT_X8R8G8B8, Desc2.ddpfPixelFormat);
 				break;
 			default:
 				LOG_LIMIT(100, __FUNCTION__ << " Not implemented bit count " << displayModeBPP);
@@ -554,16 +554,16 @@ HRESULT m_IDirectDrawX::EnumDisplayModes2(DWORD dwFlags, LPDDSURFACEDESC2 lpDDSu
 					switch (DisplayBitCount)
 					{
 					case 8:
-						GetPixelDisplayFormat(D3DFMT_P8, Desc2.ddpfPixelFormat);
+						SetPixelDisplayFormat(D3DFMT_P8, Desc2.ddpfPixelFormat);
 						break;
 					case 16:
-						GetPixelDisplayFormat(D3DFMT_R5G6B5, Desc2.ddpfPixelFormat);
+						SetPixelDisplayFormat(D3DFMT_R5G6B5, Desc2.ddpfPixelFormat);
 						break;
 					case 24:
-						GetPixelDisplayFormat(D3DFMT_R8G8B8, Desc2.ddpfPixelFormat);
+						SetPixelDisplayFormat(D3DFMT_R8G8B8, Desc2.ddpfPixelFormat);
 						break;
 					case 32:
-						GetPixelDisplayFormat(D3DFMT_X8R8G8B8, Desc2.ddpfPixelFormat);
+						SetPixelDisplayFormat(D3DFMT_X8R8G8B8, Desc2.ddpfPixelFormat);
 						break;
 					}
 					Desc2.lPitch = (Desc2.ddpfPixelFormat.dwRGBBitCount / 8) * Desc2.dwHeight;
@@ -794,16 +794,16 @@ HRESULT m_IDirectDrawX::GetDisplayMode2(LPDDSURFACEDESC2 lpDDSurfaceDesc2)
 		switch (displayModeBits)
 		{
 		case 8:
-			GetPixelDisplayFormat(D3DFMT_P8, lpDDSurfaceDesc2->ddpfPixelFormat);
+			SetPixelDisplayFormat(D3DFMT_P8, lpDDSurfaceDesc2->ddpfPixelFormat);
 			break;
 		case 16:
-			GetPixelDisplayFormat(D3DFMT_R5G6B5, lpDDSurfaceDesc2->ddpfPixelFormat);
+			SetPixelDisplayFormat(D3DFMT_R5G6B5, lpDDSurfaceDesc2->ddpfPixelFormat);
 			break;
 		case 24:
-			GetPixelDisplayFormat(D3DFMT_R8G8B8, lpDDSurfaceDesc2->ddpfPixelFormat);
+			SetPixelDisplayFormat(D3DFMT_R8G8B8, lpDDSurfaceDesc2->ddpfPixelFormat);
 			break;
 		case 32:
-			GetPixelDisplayFormat(D3DFMT_X8R8G8B8, lpDDSurfaceDesc2->ddpfPixelFormat);
+			SetPixelDisplayFormat(D3DFMT_X8R8G8B8, lpDDSurfaceDesc2->ddpfPixelFormat);
 			break;
 		default:
 			LOG_LIMIT(100, __FUNCTION__ << " Not implemented bit count " << displayModeBits);

@@ -1308,7 +1308,7 @@ HRESULT m_IDirectDrawSurfaceX::GetSurfaceDesc2(LPDDSURFACEDESC2 lpDDSurfaceDesc2
 				ddrawParent->GetDisplayMode2(&Desc2);
 			}
 			lpDDSurfaceDesc2->dwFlags |= DDSD_PIXELFORMAT;
-			GetPixelDisplayFormat(GetDisplayFormat(Desc2.ddpfPixelFormat), lpDDSurfaceDesc2->ddpfPixelFormat);
+			SetPixelDisplayFormat(GetDisplayFormat(Desc2.ddpfPixelFormat), lpDDSurfaceDesc2->ddpfPixelFormat);
 		}
 		// Set lPitch
 		if (!(lpDDSurfaceDesc2->dwFlags & DDSD_PITCH))
