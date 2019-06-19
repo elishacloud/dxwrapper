@@ -130,8 +130,20 @@ void Utils::Shell(const char* fileName)
 // Sets the proccess to single core affinity
 void Utils::SetProcessAffinity()
 {
+	DWORD_PTR ProcessAffinityMask, SystemAffinityMask;
 	HANDLE hCurrentProcess = GetCurrentProcess();
-	SetProcessAffinityMask(hCurrentProcess, 1);
+	if (GetProcessAffinityMask(hCurrentProcess, &ProcessAffinityMask, &SystemAffinityMask))
+	{
+		DWORD_PTR AffinityMask = 1;
+		while (AffinityMask && (AffinityMask & ProcessAffinityMask) == 0)
+		{
+			AffinityMask <<= 1;
+		}
+		if (AffinityMask)
+		{
+			SetProcessAffinityMask(hCurrentProcess, ((AffinityMask << (Config.SingleProcAffinity - 1)) & ProcessAffinityMask) ? (AffinityMask << (Config.SingleProcAffinity - 1)) : AffinityMask);
+		}
+	}
 	CloseHandle(hCurrentProcess);
 }
 

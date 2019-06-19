@@ -28,6 +28,8 @@ namespace Settings
 	// Declare variables
 	size_t AddressPointerCount = 0;				// Count of addresses to hot patch
 	size_t BytesToWriteCount = 0;				// Count of bytes to hot patch
+	bool Force16bitColor;						// Forces DirectX to use 16bit color
+	bool Force32bitColor;						// Forces DirectX to use 32bit color
 
 	// Function declarations
 	bool IsValueEnabled(char*);
@@ -45,6 +47,17 @@ namespace Settings
 	void SetDefaultConfigSettings();
 	UINT GetWrapperMode(std::string *name);
 }
+
+#define VISIT_LOCAL_SETTINGS(visit) \
+	visit(Force16bitColor) \
+	visit(Force32bitColor)
+
+#define SET_LOCAL_VALUE(functionName) \
+	if (!_strcmpi(name, #functionName)) \
+	{ \
+		SetValue(name, value, &functionName); \
+		return; \
+	}
 
 #define SET_VALUE(functionName) \
 	if (!_strcmpi(name, #functionName)) \
@@ -95,6 +108,7 @@ bool Settings::IsValueEnabled(char* name)
 		_strcmpi("on", name) == 0 ||
 		_strcmpi("yes", name) == 0 ||
 		_strcmpi("true", name) == 0 ||
+		_strcmpi("enable", name) == 0 ||
 		_strcmpi("enabled", name) == 0);
 }
 
@@ -190,7 +204,7 @@ void Settings::SetValue(char* name, char* value, DWORD* setting)
 	DWORD NewValue = atoi(value);
 	if (*setting != NewValue)
 	{
-		*setting = NewValue;
+		*setting = (NewValue) ? NewValue : IsValueEnabled(value);
 #ifdef _DEBUG
 		Logging::Log() << name << " set to '" << *setting << "'";
 #else
@@ -232,6 +246,9 @@ void __stdcall Settings::ParseCallback(char* name, char* value)
 	{
 		Config.DisableMaxWindowedModeNotSet = false;
 	}
+
+	// Set Value of local settings
+	VISIT_LOCAL_SETTINGS(SET_LOCAL_VALUE);
 
 	// Set Value of normal config settings
 	VISIT_CONFIG_SETTINGS(SET_VALUE);
@@ -551,6 +568,12 @@ void CONFIG::Init()
 		}
 	}
 
+	// Check anti-aliasing value
+	if (AntiAliasing == 1)
+	{
+		AntiAliasing = 16;
+	}
+
 	// Enable wrapper settings
 	EnableDinput8Wrapper = false;
 
@@ -571,9 +594,40 @@ void CONFIG::Init()
 		CacheClipPlane = true;
 	}
 
+	// Set ddraw color bit mode
+	DdrawOverrideBitMode = (DdrawOverrideBitMode) ? DdrawOverrideBitMode : (Force32bitColor) ? 32 : (Force16bitColor) ? 16 : 0;
+	switch (DdrawOverrideBitMode)
+	{
+	case 1:
+	case 8:
+		DdrawOverrideBitMode = 8;
+		break;
+	case 2:
+	case 16:
+		DdrawOverrideBitMode = 16;
+		break;
+	case 3:
+	case 24:
+		DdrawOverrideBitMode = 24;
+		break;
+	case 4:
+	case 32:
+		DdrawOverrideBitMode = 32;
+		break;
+	default:
+		DdrawOverrideBitMode = 0;
+		break;
+	}
+
 	// Enable ddraw resolution hack by default
 	if (DDrawResolutionHackNotSet)
 	{
 		DDrawResolutionHack = true;
+	}
+
+	// Disable DDrawCompat process affinity if dxwrapper's SingleProcAffinity is enabled
+	if (SingleProcAffinity)
+	{
+		DDrawCompatNoProcAffinity = true;
 	}
 }

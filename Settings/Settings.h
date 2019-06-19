@@ -19,6 +19,7 @@
 	visit(DDrawCompatDisableGDIHook) \
 	visit(DDrawCompatNoProcAffinity) \
 	visit(DdrawUseNativeResolution) \
+	visit(DdrawOverrideBitMode) \
 	visit(DdrawOverrideWidth) \
 	visit(DdrawOverrideHeight) \
 	visit(DdrawOverrideRefreshRate) \
@@ -35,8 +36,6 @@
 	visit(EnableVSync) \
 	visit(EnableWindowMode) \
 	visit(ExcludeProcess) \
-	visit(Force16bitColor) \
-	visit(Force32bitColor) \
 	visit(ForceExclusiveMode) \
 	visit(ForceHardwareMixing) \
 	visit(ForceHQ3DSoftMixing) \
@@ -150,9 +149,6 @@ struct CONFIG
 	void Init();						// Initialize the config setting
 	bool Exiting = false;				// Dxwrapper is being unloaded
 	bool AutoFrameSkip;					// Automatically skips frames to reduce input lag
-	bool Force16bitColor;				// Forces DirectX to use 16bit color
-	bool Force32bitColor;				// Forces DirectX to use 32bit color
-	bool SingleProcAffinity;			// Sets the CPU affinity for this process and thread
 	bool isDdrawWrapperEnabled;			// Specifies if DdrawWrapper needs to be enabled
 	bool isD3d9WrapperEnabled;			// Specifies if D3d9Wrapper needs to be enabled
 	bool isDsoundWrapperEnabled;		// Specifies if DsoundWrapper needs to be enabled
@@ -168,6 +164,7 @@ struct CONFIG
 	bool DDrawResolutionHack;			// Removes the artificial resolution limit from Direct3D7 and below https://github.com/UCyborg/LegacyD3DResolutionHack
 	bool DDrawResolutionHackNotSet;		// If the DDrawResolutionHack option exists in the config file
 	bool DdrawUseNativeResolution;		// Uses the current screen resolution for Dd7to9
+	DWORD DdrawOverrideBitMode;			// Forces DirectX to use specified bit mode: 8, 16, 24, 32
 	DWORD DdrawOverrideWidth;			// Force Direct3d9 to use this width when using Dd7to9
 	DWORD DdrawOverrideHeight;			// Force Direct3d9 to use this height when using Dd7to9
 	DWORD DdrawOverrideRefreshRate;		// Force Direct3d9 to use this refresh rate when using Dd7to9
@@ -191,7 +188,7 @@ struct CONFIG
 	bool HandleExceptions;				// Handles unhandled exceptions in the application
 	bool LoadPlugins;					// Loads ASI plugins
 	bool LoadFromScriptsOnly;			// Loads ASI plugins from 'scripts' and 'plugins' folder only
-	bool ProcessExcluded;				// Reset the screen resolution on close
+	bool ProcessExcluded;				// Set if this process is excluded from dxwrapper functions
 	bool ResetScreenRes;				// Reset the screen resolution on close
 	bool SendAltEnter;					// Sends an Alt+Enter message to the wind to tell it to go into fullscreen, requires FullScreen
 	bool WaitForProcess;				// Waits for process to end before continuing, requires FullScreen
@@ -200,6 +197,7 @@ struct CONFIG
 	DWORD LoopSleepTime;				// Time to sleep between each window handle check loop, requires FullScreen
 	DWORD ResetMemoryAfter;				// Undo hot patch after this amount of time
 	DWORD WindowSleepTime;				// Time to wait (sleep) for window handle and screen updates to finish, requires FullScreen
+	DWORD SingleProcAffinity;			// Sets the CPU affinity for this process
 	DWORD SetFullScreenLayer;			// The layer to be selected for fullscreen, requires FullScreen
 	DWORD AntiAliasing;					// Enable AntiAliasing for d3d9 CreateDevice
 	DWORD RealWrapperMode;				// Internal wrapper mode

@@ -487,7 +487,7 @@ HRESULT m_IDirectDrawX::EnumDisplayModes2(DWORD dwFlags, LPDDSURFACEDESC2 lpDDSu
 
 		// Get display modes to enum
 		bool DisplayAllModes = (!lpDDSurfaceDesc2);
-		DWORD DisplayBitCount = (displayModeBPP) ? displayModeBPP : (Config.Force32bitColor) ? 32 : (Config.Force16bitColor) ? 16 : 0;
+		DWORD DisplayBitCount = (displayModeBPP) ? displayModeBPP : (Config.DdrawOverrideBitMode) ? Config.DdrawOverrideBitMode : 0;
 		if (lpDDSurfaceDesc2 && (lpDDSurfaceDesc2->dwFlags & DDSD_PIXELFORMAT))
 		{
 			DisplayBitCount = GetBitCount(lpDDSurfaceDesc2->ddpfPixelFormat);
@@ -788,7 +788,7 @@ HRESULT m_IDirectDrawX::GetDisplayMode2(LPDDSURFACEDESC2 lpDDSurfaceDesc2)
 		}
 
 		// Force color mode
-		displayModeBits = (Config.Force32bitColor) ? 32 : (Config.Force16bitColor) ? 16 : displayModeBits;
+		displayModeBits = (Config.DdrawOverrideBitMode) ? Config.DdrawOverrideBitMode : displayModeBits;
 
 		// Set Pixel Format
 		switch (displayModeBits)
@@ -1163,7 +1163,7 @@ HRESULT m_IDirectDrawX::SetDisplayMode(DWORD dwWidth, DWORD dwHeight, DWORD dwBP
 		// Set display mode to dwWidth x dwHeight with dwBPP color depth
 		displayModeWidth = dwWidth;
 		displayModeHeight = dwHeight;
-		displayModeBPP = (Config.Force32bitColor) ? 32 : (Config.Force16bitColor) ? 16 : dwBPP;
+		displayModeBPP = (Config.DdrawOverrideBitMode) ? Config.DdrawOverrideBitMode : dwBPP;
 		displayModeRefreshRate = dwRefreshRate;
 
 		if (SetDefaultDisplayMode || !displayWidth || !displayHeight)
@@ -1183,7 +1183,7 @@ HRESULT m_IDirectDrawX::SetDisplayMode(DWORD dwWidth, DWORD dwHeight, DWORD dwBP
 	}
 
 	// Force color mode
-	dwBPP = (Config.Force32bitColor) ? 32 : (Config.Force16bitColor) ? 16 : dwBPP;
+	dwBPP = (Config.DdrawOverrideBitMode) ? Config.DdrawOverrideBitMode : dwBPP;
 
 	if (ProxyDirectXVersion == 1)
 	{

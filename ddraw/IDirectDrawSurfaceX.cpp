@@ -3090,7 +3090,7 @@ HRESULT m_IDirectDrawSurfaceX::CopySurface(m_IDirectDrawSurfaceX* pSourceSurface
 
 		// Get byte count
 		DWORD ByteCount = DestBitCount / 8;
-		if (!ByteCount || ByteCount * 8 != DestBitCount || ByteCount > 4)
+		if (!ByteCount || ByteCount > 4)
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Not implemented bit count " << DestBitCount);
 			hr = DDERR_GENERIC;
