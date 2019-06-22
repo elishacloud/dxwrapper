@@ -30,6 +30,7 @@ namespace Utils
 	void ResetScreenSettings();
 	DWORD GetRefreshRate(HWND hWnd);
 	DWORD GetWindowHeight(HWND hWnd);
+	void DisableGameUX();
 
 	namespace WriteMemory
 	{
@@ -45,5 +46,8 @@ namespace Utils
 		void ResetScreen();
 	}
 }
+
+bool stristr(LPCSTR strCheck, LPCSTR str, size_t size);
+bool wcsistr(LPCWSTR strCheck, LPCWSTR str, size_t size);
 
 #define LoadLibrary Utils::LoadLibrary

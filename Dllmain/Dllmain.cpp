@@ -190,6 +190,10 @@ bool APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 		{
 			Utils::SetProcessAffinity();
 		}
+		if (Config.DisableGameUX)
+		{
+			Utils::DisableGameUX();
+		}
 		if (Config.HandleExceptions)
 		{
 			Utils::HookExceptionHandler();

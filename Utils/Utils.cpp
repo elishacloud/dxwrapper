@@ -53,6 +53,10 @@ typedef DWORD(WINAPI *GetModuleFileNameAProc)(HMODULE, LPSTR, DWORD);
 typedef DWORD(WINAPI *GetModuleFileNameWProc)(HMODULE, LPWSTR, DWORD);
 typedef HRESULT(WINAPI *SetAppCompatDataFunc)(DWORD, DWORD);
 typedef LPTOP_LEVEL_EXCEPTION_FILTER(WINAPI *PFN_SetUnhandledExceptionFilter)(LPTOP_LEVEL_EXCEPTION_FILTER);
+typedef BOOL(WINAPI *CreateProcessAFunc)(LPCSTR lpApplicationName, LPSTR lpCommandLine, LPSECURITY_ATTRIBUTES lpProcessAttributes, LPSECURITY_ATTRIBUTES lpThreadAttributes, BOOL bInheritHandles, DWORD dwCreationFlags,
+	LPVOID lpEnvironment, LPCSTR lpCurrentDirectory, LPSTARTUPINFOA lpStartupInfo, LPPROCESS_INFORMATION lpProcessInformation);
+typedef BOOL(WINAPI *CreateProcessWFunc)(LPCWSTR lpApplicationName, LPWSTR lpCommandLine, LPSECURITY_ATTRIBUTES lpProcessAttributes, LPSECURITY_ATTRIBUTES lpThreadAttributes, BOOL bInheritHandles, DWORD dwCreationFlags,
+	LPVOID lpEnvironment, LPCWSTR lpCurrentDirectory, LPSTARTUPINFOW lpStartupInfo, LPPROCESS_INFORMATION lpProcessInformation);
 
 namespace Utils
 {
@@ -81,6 +85,8 @@ namespace Utils
 	FARPROC pGetProcAddress = nullptr;
 	FARPROC pGetModuleFileNameA = nullptr;
 	FARPROC pGetModuleFileNameW = nullptr;
+	FARPROC p_CreateProcessA = nullptr;
+	FARPROC p_CreateProcessW = nullptr;
 	std::vector<type_dll> custom_dll;		// Used for custom dll's and asi plugins
 	LPTOP_LEVEL_EXCEPTION_FILTER pOriginalSetUnhandledExceptionFilter = SetUnhandledExceptionFilter((LPTOP_LEVEL_EXCEPTION_FILTER)EXCEPTION_CONTINUE_EXECUTION);
 	PFN_SetUnhandledExceptionFilter pSetUnhandledExceptionFilter = reinterpret_cast<PFN_SetUnhandledExceptionFilter>(SetUnhandledExceptionFilter);
@@ -720,4 +726,94 @@ void Utils::ResetScreenSettings()
 			reinterpret_cast<LPARAM>(regKey), SMTO_BLOCK, 100, nullptr);*/
 		RedrawWindow(nullptr, nullptr, nullptr, RDW_INVALIDATE | RDW_ERASE | RDW_ALLCHILDREN);
 	}
+}
+
+BOOL WINAPI CreateProcessAHandler(LPCSTR lpApplicationName, LPSTR lpCommandLine, LPSECURITY_ATTRIBUTES lpProcessAttributes, LPSECURITY_ATTRIBUTES lpThreadAttributes, BOOL bInheritHandles, DWORD dwCreationFlags,
+	LPVOID lpEnvironment, LPCSTR lpCurrentDirectory, LPSTARTUPINFOA lpStartupInfo, LPPROCESS_INFORMATION lpProcessInformation)
+{
+	static CreateProcessAFunc org_CreateProcess = (CreateProcessAFunc)InterlockedCompareExchangePointer((PVOID*)&Utils::p_CreateProcessA, nullptr, nullptr);
+
+	if (!org_CreateProcess)
+	{
+		Logging::Log() << __FUNCTION__ << " Error: invalid proc address!";
+
+		if (lpProcessInformation)
+		{
+			lpProcessInformation->dwProcessId = 0;
+			lpProcessInformation->dwThreadId = 0;
+			lpProcessInformation->hProcess = nullptr;
+			lpProcessInformation->hThread = nullptr;
+		}
+		SetLastError(ERROR_ACCESS_DENIED);
+		return FALSE;
+	}
+
+	if (stristr(lpCommandLine, "gameux.dll,GameUXShim", MAX_PATH))
+	{
+		Logging::Log() << __FUNCTION__ << " " << lpCommandLine;
+
+		char CommandLine[MAX_PATH] = { '\0' };
+
+		for (int x = 0; x < MAX_PATH && lpCommandLine && lpCommandLine[x] != ',' && lpCommandLine[x] != '\0'; x++)
+		{
+			CommandLine[x] = lpCommandLine[x];
+		}
+
+		return org_CreateProcess(lpApplicationName, CommandLine, lpProcessAttributes, lpThreadAttributes, bInheritHandles, dwCreationFlags,
+			lpEnvironment, lpCurrentDirectory, lpStartupInfo, lpProcessInformation);
+	}
+
+	return org_CreateProcess(lpApplicationName, lpCommandLine, lpProcessAttributes, lpThreadAttributes, bInheritHandles, dwCreationFlags,
+		lpEnvironment, lpCurrentDirectory, lpStartupInfo, lpProcessInformation);
+}
+
+BOOL WINAPI CreateProcessWHandler(LPCWSTR lpApplicationName, LPWSTR lpCommandLine, LPSECURITY_ATTRIBUTES lpProcessAttributes, LPSECURITY_ATTRIBUTES lpThreadAttributes, BOOL bInheritHandles, DWORD dwCreationFlags,
+	LPVOID lpEnvironment, LPCWSTR lpCurrentDirectory, LPSTARTUPINFOW lpStartupInfo, LPPROCESS_INFORMATION lpProcessInformation)
+{
+	static CreateProcessWFunc org_CreateProcess = (CreateProcessWFunc)InterlockedCompareExchangePointer((PVOID*)&Utils::p_CreateProcessW, nullptr, nullptr);
+
+	if (!org_CreateProcess)
+	{
+		Logging::Log() << __FUNCTION__ << " Error: invalid proc address!";
+
+		if (lpProcessInformation)
+		{
+			lpProcessInformation->dwProcessId = 0;
+			lpProcessInformation->dwThreadId = 0;
+			lpProcessInformation->hProcess = nullptr;
+			lpProcessInformation->hThread = nullptr;
+		}
+		SetLastError(ERROR_ACCESS_DENIED);
+		return FALSE;
+	}
+
+	if (wcsistr(lpCommandLine, L"gameux.dll,GameUXShim", MAX_PATH))
+	{
+		Logging::Log() << __FUNCTION__ << " " << lpCommandLine;
+
+		wchar_t CommandLine[MAX_PATH] = { '\0' };
+
+		for (int x = 0; x < MAX_PATH && lpCommandLine && lpCommandLine[x] != ',' && lpCommandLine[x] != '\0'; x++)
+		{
+			CommandLine[x] = lpCommandLine[x];
+		}
+
+		return org_CreateProcess(lpApplicationName, CommandLine, lpProcessAttributes, lpThreadAttributes, bInheritHandles, dwCreationFlags,
+			lpEnvironment, lpCurrentDirectory, lpStartupInfo, lpProcessInformation);
+	}
+
+	return org_CreateProcess(lpApplicationName, lpCommandLine, lpProcessAttributes, lpThreadAttributes, bInheritHandles, dwCreationFlags,
+		lpEnvironment, lpCurrentDirectory, lpStartupInfo, lpProcessInformation);
+}
+
+void Utils::DisableGameUX()
+{
+	// Logging
+	Logging::Log() << "Disabling Microsoft Game Explorer...";
+
+	// Hook CreateProcess APIs
+	Logging::Log() << "Hooking 'CreateProcess' API...";
+	HMODULE h_kernel32 = GetModuleHandle("kernel32");
+	InterlockedExchangePointer((PVOID*)&p_CreateProcessA, Hook::HotPatch(Hook::GetProcAddress(h_kernel32, "CreateProcessA"), "CreateProcessA", *CreateProcessAHandler));
+	InterlockedExchangePointer((PVOID*)&p_CreateProcessW, Hook::HotPatch(Hook::GetProcAddress(h_kernel32, "CreateProcessW"), "CreateProcessW", *CreateProcessWHandler));
 }

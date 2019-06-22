@@ -817,6 +817,9 @@
     <ClCompile Include="External\d3d8to9\source\interface_query.cpp">
       <Filter>External\d3d8to9</Filter>
     </ClCompile>
+    <ClCompile Include="Utils\MyStrings.cpp">
+      <Filter>Utils</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="Settings\AllSettings.ini">

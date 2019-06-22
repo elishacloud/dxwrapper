@@ -352,6 +352,7 @@ cmd /q /c "cd /D ""$(ProjectDir)d3d8\"" &amp;&amp; del build.bat"</Command>
     <ClCompile Include="Settings\ReadParse.cpp" />
     <ClCompile Include="Settings\Settings.cpp" />
     <ClCompile Include="Utils\Fullscreen.cpp" />
+    <ClCompile Include="Utils\MyStrings.cpp" />
     <ClCompile Include="Utils\Utils.cpp" />
     <ClCompile Include="Utils\WriteMemory.cpp" />
     <ClCompile Include="Wrappers\wrapper.cpp" />
