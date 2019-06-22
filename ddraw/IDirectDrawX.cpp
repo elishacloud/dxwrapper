@@ -328,7 +328,7 @@ HRESULT m_IDirectDrawX::CreateSurface2(LPDDSURFACEDESC2 lpDDSurfaceDesc2, LPDIRE
 
 			// Set Pixel Format
 			Desc2.dwFlags |= DDSD_PIXELFORMAT;
-			switch ((PaletteVector.size()) ? 8 : displayModeBPP)
+			switch (displayModeBPP)
 			{
 			case 8:
 				SetPixelDisplayFormat(D3DFMT_P8, Desc2.ddpfPixelFormat);

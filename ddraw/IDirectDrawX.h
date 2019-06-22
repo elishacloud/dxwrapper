@@ -24,7 +24,7 @@ private:
 	bool MultiThreaded = false;
 	bool FUPPreserve = false;
 	bool NoWindowChanges = false;
-	bool isWindowed = false;				// Window mode enabled
+	bool isWindowed = true;				// Window mode enabled
 
 	// High resolution counter
 	bool FrequencyFlag = false;

@@ -1038,6 +1038,12 @@ HRESULT m_IDirectDrawSurfaceX::GetColorKey(DWORD dwFlags, LPDDCOLORKEY lpDDColor
 			hr = DDERR_NOCOLORKEY;
 		}
 
+		// ToDo: Check if overlay exists
+		if (dwFlags == DDCKEY_SRCOVERLAY)
+		{
+			hr = DDERR_INVALIDPARAMS;
+		}
+
 		// Copy color key
 		memcpy(lpDDColorKey, &ColorKeys[x].Key, sizeof(DDCOLORKEY));
 
@@ -1314,7 +1320,7 @@ HRESULT m_IDirectDrawSurfaceX::GetSurfaceDesc2(LPDDSURFACEDESC2 lpDDSurfaceDesc2
 		if (!(lpDDSurfaceDesc2->dwFlags & DDSD_PITCH))
 		{
 			lpDDSurfaceDesc2->dwFlags |= DDSD_PITCH;
-			lpDDSurfaceDesc2->lPitch = lpDDSurfaceDesc2->dwHeight * GetBitCount(lpDDSurfaceDesc2->ddpfPixelFormat) / 8;
+			lpDDSurfaceDesc2->lPitch = lpDDSurfaceDesc2->dwWidth * (GetBitCount(lpDDSurfaceDesc2->ddpfPixelFormat) / 8);
 		}
 
 		// Return
@@ -1572,10 +1578,11 @@ HRESULT m_IDirectDrawSurfaceX::SetColorKey(DWORD dwFlags, LPDDCOLORKEY lpDDColor
 	if (Config.Dd7to9)
 	{
 		// Get color key index
-		int x = (dwFlags == DDCKEY_DESTBLT) ? 0 :
-			(dwFlags == DDCKEY_DESTOVERLAY) ? 1 :
-			(dwFlags == DDCKEY_SRCBLT) ? 2 :
-			(dwFlags == DDCKEY_SRCOVERLAY) ? 3 : -1;
+		DWORD Flag = (dwFlags & ~DDCKEY_COLORSPACE);
+		int x = (Flag == DDCKEY_DESTBLT) ? 0 :
+			(Flag == DDCKEY_DESTOVERLAY) ? 1 :
+			(Flag == DDCKEY_SRCBLT) ? 2 :
+			(Flag == DDCKEY_SRCOVERLAY) ? 3 : -1;
 
 		// Check index
 		if (x == -1)
@@ -1594,7 +1601,15 @@ HRESULT m_IDirectDrawSurfaceX::SetColorKey(DWORD dwFlags, LPDDCOLORKEY lpDDColor
 		{
 			ColorKeys[x].IsSet = true;
 			ColorKeys[x].IsColorSpace = ((dwFlags & DDCKEY_COLORSPACE) != 0);
-			memcpy(&ColorKeys[x].Key, lpDDColorKey, sizeof(DDCOLORKEY));
+			if (ColorKeys[x].IsColorSpace)
+			{
+				memcpy(&ColorKeys[x].Key, lpDDColorKey, sizeof(DDCOLORKEY));
+			}
+			else  // You must add the flag DDCKEY_COLORSPACE, otherwise DirectDraw will collapse the range to one value
+			{
+				ColorKeys[x].Key.dwColorSpaceHighValue = *(DWORD*)lpDDColorKey;
+				ColorKeys[x].Key.dwColorSpaceLowValue = *(DWORD*)lpDDColorKey;
+			}
 		}
 
 		// Return
@@ -2204,7 +2219,7 @@ HRESULT m_IDirectDrawSurfaceX::CreateD3d9Surface()
 	Logging::LogDebug() << __FUNCTION__ << " D3d9 Surface size: " << surfaceDesc2.dwWidth << "x" << surfaceDesc2.dwHeight << " Usage: " << Usage << " Format: " << Format << " Pool: " << Pool;
 
 	// Create surface
-	if (FAILED((*d3d9Device)->CreateTexture(surfaceDesc2.dwWidth, surfaceDesc2.dwHeight, 1, Usage, (Format == D3DFMT_P8) ? D3DFMT_L8 : Format, Pool, &surfaceTexture, nullptr)))
+	if (FAILED((*d3d9Device)->CreateTexture(surfaceDesc2.dwWidth, surfaceDesc2.dwHeight, 1, Usage, (Format == D3DFMT_P8) ? D3DFMT_L8 : (Format == D3DFMT_R8G8B8) ? D3DFMT_X8R8G8B8 : Format, Pool, &surfaceTexture, nullptr)))
 	{
 		LOG_LIMIT(100, __FUNCTION__ << " Error: failed to create surface size: " << surfaceDesc2.dwWidth << "x" << surfaceDesc2.dwHeight << " Usage: " << Usage << " Format: " << Format << " Pool: " << Pool);
 		return DDERR_GENERIC;
