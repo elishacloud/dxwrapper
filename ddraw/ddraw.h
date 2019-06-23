@@ -96,7 +96,6 @@ namespace DdrawWrapper
 	void WINAPI genericQueryInterface(REFIID riid, LPVOID *ppvObj);
 }
 
-extern m_IDirectDrawX *pDDrawDevice;
 extern AddressLookupTableDdraw<void> ProxyAddressLookupTable;
 
 using namespace DdrawWrapper;

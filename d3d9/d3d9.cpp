@@ -17,7 +17,7 @@
 #include "d3d9.h"
 #include "d3d9External.h"
 
-m_IDirect3D9Ex *pD3DInterface = nullptr;
+m_IDirect3D9Ex *pD3D9Interface = nullptr;
 
 #define INITIALIZE_WRAPPED_PROC(procName, unused) \
 	FARPROC procName ## _out = nullptr;
@@ -223,19 +223,18 @@ IDirect3D9 *WINAPI d9_Direct3DCreate9(UINT SDKVersion)
 
 	LOG_LIMIT(3, "Redirecting 'Direct3DCreate9' ...");
 
-	if (Config.Dd7to9 || Config.D3d8to9)
+	// Check if d3d9 object already exists
+	PVOID NullValue = nullptr;
+	IDirect3D9 *pReturnedDevice = (IDirect3D9*)InterlockedCompareExchangePointer((PVOID*)&pD3D9Interface, NullValue, NullValue);
+
+	if (pReturnedDevice)
 	{
-		PVOID NullValue = nullptr;
-		IDirect3D9 *pReturnedDevice = (IDirect3D9*)InterlockedCompareExchangePointer((PVOID*)&pD3DInterface, NullValue, NullValue);
+		pReturnedDevice->AddRef();
 
-		if (pReturnedDevice)
-		{
-			pReturnedDevice->AddRef();
-
-			return pReturnedDevice;
-		}
+		return pReturnedDevice;
 	}
 
+	// Create new d3d9 object
 	IDirect3D9 *pD3D9 = m_pDirect3DCreate9(SDKVersion);
 
 	if (pD3D9)
@@ -244,8 +243,8 @@ IDirect3D9 *WINAPI d9_Direct3DCreate9(UINT SDKVersion)
 
 		if (m_pD3D9)
 		{
-			IDirect3D9 *pReturnedDevice = m_pD3D9;
-			InterlockedExchangePointer((PVOID*)&pD3DInterface, pReturnedDevice);
+			pReturnedDevice = m_pD3D9;
+			InterlockedExchangePointer((PVOID*)&pD3D9Interface, pReturnedDevice);
 		}
 
 		return m_pD3D9;

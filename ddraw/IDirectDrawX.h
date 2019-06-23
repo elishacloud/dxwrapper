@@ -105,9 +105,6 @@ public:
 	{
 		LOG_LIMIT(3, __FUNCTION__ << "(" << this << ")" << " deleting device!");
 
-		PVOID NullValue = nullptr;
-		InterlockedCompareExchangePointer((PVOID*)&pDDrawDevice, NullValue, this);
-
 		if (g_hook)
 		{
 			UnhookWindowsHookEx(g_hook);

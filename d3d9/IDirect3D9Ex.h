@@ -10,7 +10,7 @@ public:
 	~m_IDirect3D9Ex()
 	{
 		PVOID NullValue = nullptr;
-		InterlockedCompareExchangePointer((PVOID*)&pD3DInterface, NullValue, this);
+		InterlockedCompareExchangePointer((PVOID*)&pD3D9Interface, NullValue, this);
 
 		DeviceWindow = nullptr;
 		BufferWidth = 0;

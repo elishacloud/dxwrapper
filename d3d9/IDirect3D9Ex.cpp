@@ -16,7 +16,7 @@
 
 #include "d3d9.h"
 
-m_IDirect3DDevice9Ex *pD3DDeviceInterface = nullptr;
+m_IDirect3DDevice9Ex *pD3D9DeviceInterface = nullptr;
 HWND DeviceWindow = nullptr;
 LONG BufferWidth = 0, BufferHeight = 0;
 
@@ -182,23 +182,22 @@ HRESULT m_IDirect3D9Ex::CreateDevice(UINT Adapter, D3DDEVTYPE DeviceType, HWND h
 		return D3DERR_INVALIDCALL;
 	}
 
-	if (Config.Dd7to9 || Config.D3d8to9)
+	// Check if d3d9 device already exists
+	PVOID NullValue = nullptr;
+	m_IDirect3DDevice9Ex *pReturnedDevice = (m_IDirect3DDevice9Ex*)InterlockedCompareExchangePointer((PVOID*)&pD3D9DeviceInterface, NullValue, NullValue);
+
+	if (pReturnedDevice)
 	{
-		PVOID NullValue = nullptr;
-		IDirect3DDevice9 *pReturnedDevice = (IDirect3DDevice9*)InterlockedCompareExchangePointer((PVOID*)&pD3DDeviceInterface, NullValue, NullValue);
+		pReturnedDevice->AddRef();
 
-		if (pReturnedDevice)
-		{
-			pReturnedDevice->AddRef();
+		pReturnedDevice->Reset(pPresentationParameters);
 
-			pReturnedDevice->Reset(pPresentationParameters);
+		*ppReturnedDeviceInterface = pReturnedDevice;
 
-			*ppReturnedDeviceInterface = pReturnedDevice;
-
-			return D3D_OK;
-		}
+		return D3D_OK;
 	}
 
+	// Create new d3d9 device
 	HRESULT hr = D3DERR_INVALIDCALL;
 
 	// Update presentation parameters
@@ -253,13 +252,13 @@ HRESULT m_IDirect3D9Ex::CreateDevice(UINT Adapter, D3DDEVTYPE DeviceType, HWND h
 
 	if (SUCCEEDED(hr))
 	{
-		m_IDirect3DDevice9Ex *pReturnedDevice = new m_IDirect3DDevice9Ex((LPDIRECT3DDEVICE9EX)*ppReturnedDeviceInterface, (m_IDirect3D9Ex*)this);
+		pReturnedDevice = new m_IDirect3DDevice9Ex((LPDIRECT3DDEVICE9EX)*ppReturnedDeviceInterface, (m_IDirect3D9Ex*)this);
 
 		*ppReturnedDeviceInterface = pReturnedDevice;
 
 		pReturnedDevice->SetDefaults(pPresentationParameters, hFocusWindow, MultiSampleFlag);
 
-		InterlockedExchangePointer((PVOID*)&pD3DDeviceInterface, pReturnedDevice);
+		InterlockedExchangePointer((PVOID*)&pD3D9DeviceInterface, pReturnedDevice);
 	}
 
 	return hr;
