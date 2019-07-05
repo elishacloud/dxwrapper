@@ -3078,7 +3078,17 @@ HRESULT m_IDirectDrawSurfaceX::CopySurface(m_IDirectDrawSurfaceX* pSourceSurface
 			{
 				surfaceArray.resize(size);
 			}
-			memcpy(&surfaceArray[0], SrcLockRect.pBits, SrcLockRect.Pitch * (SrcRect.bottom - SrcRect.top));
+			BYTE *SrcBuffer = (BYTE*)SrcLockRect.pBits;
+			BYTE *DestBuffer = (BYTE*)&surfaceArray[0];
+			LONG SrcRectWidth = SrcRect.right - SrcRect.left;
+			LONG SrcRectHeight = SrcRect.bottom - SrcRect.top;
+			DWORD ByteCount = SrcLockRect.Pitch / surfaceDesc2.dwWidth;
+			for (LONG y = 0; y < SrcRectHeight; y++)
+			{
+				memcpy(DestBuffer, SrcBuffer, SrcRectWidth * ByteCount);
+				SrcBuffer += SrcLockRect.Pitch;
+				DestBuffer += SrcLockRect.Pitch;
+			}
 			SrcLockRect.pBits = &surfaceArray[0];
 			SetUnlock(true);
 			UnlockSrc = false;
