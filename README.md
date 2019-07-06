@@ -10,10 +10,14 @@ DxWrapper has many features including:
  - Proxy for [DxWnd](https://sourceforge.net/projects/dxwnd/)
  - Conversion of DirectDraw 1-6 to DirectDraw 7
  - Conversion of Direct3D 1-6 to Direct3D 7
+ - Conversion of DirectDraw 1-7 (ddraw.dll) to Direct3D 9 (d3d9.dll) using [Dd7to9](https://github.com/elishacloud/dxwrapper/wiki/DirectDraw-to-Direct3D9-Conversion)
  - Conversion of Direct3D 8 (d3d8.dll) to Direct3D 9 (d3d9.dll) using [d3d8to9](https://github.com/crosire/d3d8to9)
  - Conversion of DirectInput 1-7 (dinput.dll) to DirectInput 8 (dinput8.dll) using [dinputto8](https://github.com/elishacloud/dinputto8)
  - Includes [LegacyD3DResolutionHack](https://github.com/UCyborg/LegacyD3DResolutionHack) to remove the artificial resolution limit from Direct3D 1-7, which allows DirectDraw games to play at 4K resolution
  - Tweaking of Microsoft DirectSound function calls using [DSoundCtrl](http://www.bockholdt.com/dsc/)
+ - Can cause Direct3D 8 and Direct3D 9 games to run in windowed mode
+ - Can disable Microsoft Game Explorer (GameUX) to prevent rundll32.exe high CPU
+ - Can disable High DPI scaling in Windows
  - ASI loader to load custom libraries with the file extension .asi into game processes using [Ultimate ASI Loader](https://github.com/ThirteenAG/Ultimate-ASI-Loader)
  - Supports being loaded as an ASI plug-in
  - Adding AntiAliasing support into DirectX 8 or 9 games even if the game does not support it (Windows 10 only)
@@ -45,6 +49,10 @@ Delete the DxWrapper .dll and .ini files from the game's directory. You can also
 ### Configuration
 
 To configure DxWrapper, edit the .ini file and enable the settings wanted.  See the [Configuration wiki](https://github.com/elishacloud/dxwrapper/wiki/Configuration) for more details.
+
+Sample configuration file: [dxwrapper.ini](https://github.com/elishacloud/dxwrapper/blob/master/Settings/Settings.ini).
+
+List of all configuration options: [allsettings.ini](https://github.com/elishacloud/dxwrapper/blob/master/Settings/AllSettings.ini)
 
 ### Supported DLLs
 
