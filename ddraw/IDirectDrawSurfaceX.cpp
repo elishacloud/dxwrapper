@@ -265,14 +265,14 @@ HRESULT m_IDirectDrawSurfaceX::Blt(LPRECT lpDestRect, LPDIRECTDRAWSURFACE7 lpDDS
 			return DDERR_INVALIDPARAMS;
 		}
 
-		// Check for raster operations flag
-		if (dwFlags & (DDBLT_ROP | DDBLT_DDROPS))
+		// Check for non-Win32 raster operations flag
+		if (dwFlags & DDBLT_DDROPS)
 		{
-			LOG_LIMIT(100, __FUNCTION__ << " Raster operations Not Implemented");
-			return DDERR_NORASTEROPHW;
+			LOG_LIMIT(100, __FUNCTION__ << " Non-Win32 raster operations Not Implemented ");
+			return DDERR_NODDROPSHW;
 		}
 
-		// Check for ZBuffer flags
+		// Check for depth fill flag
 		if (dwFlags & DDBLT_DEPTHFILL)
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Depth Fill Not Implemented");
@@ -289,7 +289,7 @@ HRESULT m_IDirectDrawSurfaceX::Blt(LPRECT lpDestRect, LPDIRECTDRAWSURFACE7 lpDDS
 		// Check for rotation flags
 		if (((dwFlags & DDBLT_DDFX) && (lpDDBltFx->dwDDFX & DDBLTFX_ROTATE180)))
 		{
-			// 180 degree rotate is the same as rotating both left to right and up and down
+			// 180 degree rotate is the same as rotating both left to right and up to down
 			dwFlags |= DDBLTFX_MIRRORLEFTRIGHT | DDBLTFX_MIRRORUPDOWN;
 		}
 		else if ((dwFlags & DDBLT_ROTATIONANGLE) || ((dwFlags & DDBLT_DDFX) && (lpDDBltFx->dwDDFX & (DDBLTFX_ROTATE90 | DDBLTFX_ROTATE270))))
@@ -320,6 +320,31 @@ HRESULT m_IDirectDrawSurfaceX::Blt(LPRECT lpDestRect, LPDIRECTDRAWSURFACE7 lpDDS
 				break;
 			}
 
+			// Do supported raster operations
+			if (dwFlags & DDBLT_ROP)
+			{
+				if (lpDDBltFx->dwROP == SRCCOPY)
+				{
+					// Do nothing
+				}
+				else if (lpDDBltFx->dwROP == BLACKNESS)
+				{
+					hr = ColorFill(lpDestRect, 0x00000000);
+					break;
+				}
+				else if (lpDDBltFx->dwROP == WHITENESS)
+				{
+					hr = ColorFill(lpDestRect, 0xFFFFFFFF);
+					break;
+				}
+				else
+				{
+					LOG_LIMIT(100, __FUNCTION__ << " Raster operation Not Implemented " << lpDDBltFx->dwROP);
+					hr = DDERR_NORASTEROPHW;
+					break;
+				}
+			}
+
 			// Get source surface
 			lpDDSrcSurfaceX = (m_IDirectDrawSurfaceX*)lpDDSrcSurface;
 			if (!lpDDSrcSurfaceX)
@@ -330,15 +355,8 @@ HRESULT m_IDirectDrawSurfaceX::Blt(LPRECT lpDestRect, LPDIRECTDRAWSURFACE7 lpDDS
 			{
 				lpDDSrcSurfaceX = ((m_IDirectDrawSurface*)lpDDSrcSurfaceX)->GetWrapperInterface();
 
-				// Check for device interface
-				if (FAILED(CheckInterface(__FUNCTION__, false, false)))
-				{
-					hr = DDERR_GENERIC;
-					break;
-				}
-
 				// Check if source Surface exists
-				if (!ddrawParent->DoesSurfaceExist(lpDDSrcSurfaceX))
+				if (!ddrawParent || !ddrawParent->DoesSurfaceExist(lpDDSrcSurfaceX))
 				{
 					LOG_LIMIT(100, __FUNCTION__ << " Error: could not find source surface");
 					hr = DD_OK;		// Return OK to allow some games to continue to work
@@ -346,47 +364,21 @@ HRESULT m_IDirectDrawSurfaceX::Blt(LPRECT lpDestRect, LPDIRECTDRAWSURFACE7 lpDDS
 				}
 			}
 
-			// Get source and dest rect
-			RECT SrcRect = { 0, 0, (LONG)lpDDSrcSurfaceX->GetWidth(), (LONG)lpDDSrcSurfaceX->GetHeight() };
-			RECT DestRect = { 0, 0, (LONG)surfaceDesc2.dwWidth, (LONG)surfaceDesc2.dwHeight };
-
-			if (lpSrcRect)
-			{
-				memcpy(&SrcRect, lpSrcRect, sizeof(RECT));
-			}
-
-			if (lpDestRect)
-			{
-				memcpy(&DestRect, lpDestRect, sizeof(RECT));
-			}
-
-			// Check if the rect should be stretched before clipping
-			bool IsStretchRect = ((dwFlags & DDBLT_DDFX) && (lpDDBltFx->dwDDFX & DDBLTFX_ARITHSTRETCHY)) ||
-				(abs((DestRect.right - DestRect.left) - (SrcRect.right - SrcRect.left)) > 1 || abs((DestRect.bottom - DestRect.top) - (SrcRect.bottom - SrcRect.top)) > 1);
-
 			// Get surface copy flags
-			DWORD Flags = dwFlags & (DDBLT_KEYDESTOVERRIDE | DDBLT_KEYSRCOVERRIDE | DDBLT_KEYDEST | DDBLT_KEYSRC) |		// Color key flags
-				((lpDDBltFx) ? lpDDBltFx->dwDDFX & (DDBLTFX_MIRRORLEFTRIGHT | DDBLTFX_MIRRORUPDOWN) : 0) |				// Mirror flags
-				((IsStretchRect) ? DDBLTFX_ARITHSTRETCHY : 0);
+			DWORD Flags = ((dwFlags & (DDBLT_KEYDESTOVERRIDE | DDBLT_KEYSRCOVERRIDE | DDBLT_KEYDEST | DDBLT_KEYSRC)) ? DDBLT_KEYDEST : 0) |		// Color key flags
+				((lpDDBltFx && (dwFlags & DDBLT_DDFX)) ? (lpDDBltFx->dwDDFX & (DDBLTFX_MIRRORLEFTRIGHT | DDBLTFX_MIRRORUPDOWN)) : 0);			// Mirror flags
 
-			// Color key
-			DDCOLORKEY ColorKey = { 0, 0 };
-
-			// Set color key
-			if (dwFlags & (DDBLT_KEYDESTOVERRIDE | DDBLT_KEYSRCOVERRIDE | DDBLT_KEYDEST | DDBLT_KEYSRC))
+			// Check if color key is set
+			if (((dwFlags & DDBLT_KEYDEST) && !ColorKeys[0].IsSet) || ((dwFlags & DDBLT_KEYSRC) && !lpDDSrcSurfaceX->ColorKeys[2].IsSet))
 			{
-				// Check if color key is set
-				if (((dwFlags & DDBLT_KEYDEST) && !ColorKeys[0].IsSet) || ((dwFlags & DDBLT_KEYSRC) && !lpDDSrcSurfaceX->ColorKeys[2].IsSet))
-				{
-					LOG_LIMIT(100, __FUNCTION__ << " Error: color key not set");
-				}
-
-				// Get color key
-				ColorKey = (dwFlags & DDBLT_KEYDESTOVERRIDE) ? lpDDBltFx->ddckDestColorkey :
-					(dwFlags & DDBLT_KEYSRCOVERRIDE) ? lpDDBltFx->ddckSrcColorkey :
-					(dwFlags & DDBLT_KEYDEST) ? ColorKeys[0].Key :
-					(dwFlags & DDBLT_KEYSRC) ? lpDDSrcSurfaceX->ColorKeys[2].Key : ColorKey;
+				LOG_LIMIT(100, __FUNCTION__ << " Error: color key not set");
 			}
+
+			// Get color key
+			DDCOLORKEY ColorKey = (dwFlags & DDBLT_KEYDESTOVERRIDE) ? lpDDBltFx->ddckDestColorkey :
+				(dwFlags & DDBLT_KEYSRCOVERRIDE) ? lpDDBltFx->ddckSrcColorkey :
+				(dwFlags & DDBLT_KEYDEST) ? ColorKeys[0].Key :
+				(dwFlags & DDBLT_KEYSRC) ? lpDDSrcSurfaceX->ColorKeys[2].Key : ColorKeys[0].Key;
 
 			hr = CopySurface(lpDDSrcSurfaceX, lpSrcRect, lpDestRect, D3DTEXF_NONE, ColorKey, Flags);
 
@@ -2628,8 +2620,8 @@ bool m_IDirectDrawSurfaceX::CheckCoordinates(LPRECT lpOutRect, LPRECT lpInRect)
 		return false;
 	}
 
-	// Check for device interface
-	if (FAILED(CheckInterface(__FUNCTION__, true, true)))
+	// Check device coordinates
+	if (!surfaceDesc2.dwWidth || !surfaceDesc2.dwHeight)
 	{
 		return false;
 	}
@@ -3048,11 +3040,27 @@ HRESULT m_IDirectDrawSurfaceX::CopySurface(m_IDirectDrawSurfaceX* pSourceSurface
 	HRESULT hr = DD_OK;
 	bool UnlockSrc = false, UnlockDest = false;
 	do {
-		RECT SrcRect, DestRect;
 		D3DLOCKED_RECT SrcLockRect, DestLockRect;
 		DWORD DestBitCount = GetSurfaceBitCount();
 		D3DFORMAT SrcFormat = pSourceSurface->GetSurfaceFormat();
 		D3DFORMAT DestFormat = GetSurfaceFormat();
+
+		// Get source and dest rect
+		RECT SrcRect = { 0, 0, (LONG)pSourceSurface->GetWidth(), (LONG)pSourceSurface->GetHeight() };
+		RECT DestRect = { 0, 0, (LONG)surfaceDesc2.dwWidth, (LONG)surfaceDesc2.dwHeight };
+
+		if (pSourceRect)
+		{
+			memcpy(&SrcRect, pSourceRect, sizeof(RECT));
+		}
+
+		if (pDestRect)
+		{
+			memcpy(&DestRect, pDestRect, sizeof(RECT));
+		}
+
+		// Check if the rect should be stretched before clipping
+		bool IsStretchRect = (abs((DestRect.right - DestRect.left) - (SrcRect.right - SrcRect.left)) > 1 || abs((DestRect.bottom - DestRect.top) - (SrcRect.bottom - SrcRect.top)) > 1);
 
 		// Check and copy rect and do clipping
 		if (!pSourceSurface->CheckCoordinates(&SrcRect, pSourceRect) || !CheckCoordinates(&DestRect, pDestRect))
@@ -3123,8 +3131,7 @@ HRESULT m_IDirectDrawSurfaceX::CopySurface(m_IDirectDrawSurfaceX* pSourceSurface
 		}
 
 		// Get copy flags
-		bool IsStretchRect = ((dwFlags &  DDBLTFX_ARITHSTRETCHY) != 0);
-		bool IsColorKey = ((dwFlags & (DDBLT_KEYDESTOVERRIDE | DDBLT_KEYSRCOVERRIDE | DDBLT_KEYDEST | DDBLT_KEYSRC)) != 0);
+		bool IsColorKey = ((dwFlags & DDBLT_KEYDEST) != 0);
 		bool IsMirrorLeftRight = ((dwFlags & DDBLTFX_MIRRORLEFTRIGHT) != 0);
 		bool IsMirrorUpDown = ((dwFlags & DDBLTFX_MIRRORUPDOWN) != 0);
 
@@ -3171,7 +3178,7 @@ HRESULT m_IDirectDrawSurfaceX::CopySurface(m_IDirectDrawSurfaceX* pSourceSurface
 		float HeightRatio = (float)SrcRectHeight / (float)DestRectHeight;
 
 		// Set color varables
-		DWORD ByteMask = (DWORD)(pow(256, ByteCount)) - 1;
+		DWORD ByteMask = (ByteCount == 1) ? 0x000000FF : (ByteCount == 2) ? 0x0000FFFF : (ByteCount == 3) ? 0x00FFFFFF : 0xFFFFFFFF;
 		DWORD ColorKeyLow = ColorKey.dwColorSpaceLowValue & ByteMask;
 		DWORD ColorKeyHigh = ColorKey.dwColorSpaceHighValue & ByteMask;
 
