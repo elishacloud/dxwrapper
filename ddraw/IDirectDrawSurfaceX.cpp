@@ -2354,8 +2354,9 @@ HRESULT m_IDirectDrawSurfaceX::CreateD3d9Surface()
 	// DDSCAPS2_MIPMAPSUBLEVEL
 
 	// Get texture data
+	surfaceFormat = GetDisplayFormat(surfaceDesc2.ddpfPixelFormat);
+	surfaceBitCount = GetBitCount(surfaceFormat);
 	DWORD Usage = (surfaceDesc2.ddsCaps.dwCaps & DDSCAPS_WRITEONLY) ? D3DUSAGE_WRITEONLY : 0;
-	surfaceFormat = GetSurfaceFormat();
 	D3DFORMAT Format = (surfaceFormat == D3DFMT_P8) ? D3DFMT_L8 : (surfaceFormat == D3DFMT_R8G8B8) ? D3DFMT_X8R8G8B8 : surfaceFormat;
 
 	// Create surface
@@ -3122,7 +3123,23 @@ HRESULT m_IDirectDrawSurfaceX::ColorFill(RECT* pRect, D3DCOLOR dwFillColor)
 		// Set memory address
 		BYTE *surfaceBuffer = (BYTE*)DestLockRect.pBits;
 
-		// Fill rect
+		// Fill temporary memory
+		if (ByteCount != 4)
+		{
+			size_t size = FillWidth * ByteCount;
+			if (size > surfaceArray.size())
+			{
+				surfaceArray.resize(size);
+			}
+			for (LONG x = 0; x < FillWidth; x++)
+			{
+				memcpy(&surfaceArray[0] + (x * ByteCount),		// Video memory address
+					&dwFillColor,								// Fill color
+					ByteCount);									// Size of bytes to write
+			}
+		}
+
+		// Fill surface rect
 		for (LONG y = 0; y < FillHeight; y++)
 		{
 			if (ByteCount == 4)
@@ -3133,12 +3150,9 @@ HRESULT m_IDirectDrawSurfaceX::ColorFill(RECT* pRect, D3DCOLOR dwFillColor)
 			}
 			else
 			{
-				for (LONG x = 0; x < FillWidth; x++)
-				{
-					memcpy(surfaceBuffer + (x * ByteCount),		// Video memory address
-						&dwFillColor,							// Fill color
-						ByteCount);								// Size of bytes to write
-				}
+				memcpy(surfaceBuffer,							// Video memory address
+					&surfaceArray[0],							// Fill color array
+					FillWidth * ByteCount);						// Size of bytes to write
 			}
 			surfaceBuffer += DestLockRect.Pitch;
 		}
@@ -3182,6 +3196,26 @@ HRESULT m_IDirectDrawSurfaceX::CopySurface(m_IDirectDrawSurfaceX* pSourceSurface
 		D3DFORMAT SrcFormat = pSourceSurface->GetSurfaceFormat();
 		D3DFORMAT DestFormat = GetSurfaceFormat();
 
+		// Get byte count
+		DWORD ByteCount = DestBitCount / 8;
+		if (!ByteCount || ByteCount > 4)
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: wrong bit count " << DestBitCount);
+			hr = DDERR_GENERIC;
+			break;
+		}
+
+		// Check source and destination format
+		if (!(SrcFormat == DestFormat ||
+			((SrcFormat == D3DFMT_A1R5G5B5 || SrcFormat == D3DFMT_X1R5G5B5) && (DestFormat == D3DFMT_A1R5G5B5 || DestFormat == D3DFMT_X1R5G5B5)) ||
+			((SrcFormat == D3DFMT_A8R8G8B8 || SrcFormat == D3DFMT_X8R8G8B8) && (DestFormat == D3DFMT_A8R8G8B8 || DestFormat == D3DFMT_X8R8G8B8)) ||
+			((SrcFormat == D3DFMT_A8B8G8R8 || SrcFormat == D3DFMT_X8B8G8R8) && (DestFormat == D3DFMT_A8B8G8R8 || DestFormat == D3DFMT_X8B8G8R8))))
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: not supported for different source and destination formats! " << SrcFormat << "-->" << DestFormat);
+			hr = DDERR_GENERIC;
+			break;
+		}
+
 		// Get source and dest rect
 		RECT SrcRect = { 0, 0, (LONG)pSourceSurface->GetWidth(), (LONG)pSourceSurface->GetHeight() };
 		RECT DestRect = { 0, 0, (LONG)surfaceDesc2.dwWidth, (LONG)surfaceDesc2.dwHeight };
@@ -3196,14 +3230,31 @@ HRESULT m_IDirectDrawSurfaceX::CopySurface(m_IDirectDrawSurfaceX* pSourceSurface
 			memcpy(&DestRect, pDestRect, sizeof(RECT));
 		}
 
-		// Check if the rect should be stretched before clipping
+		// Get copy flags
 		bool IsStretchRect = (abs((DestRect.right - DestRect.left) - (SrcRect.right - SrcRect.left)) > 1 || abs((DestRect.bottom - DestRect.top) - (SrcRect.bottom - SrcRect.top)) > 1);
+		bool IsColorKey = ((dwFlags & DDBLT_KEYDEST) != 0);
+		bool IsMirrorLeftRight = ((dwFlags & DDBLTFX_MIRRORLEFTRIGHT) != 0);
+		bool IsMirrorUpDown = ((dwFlags & DDBLTFX_MIRRORUPDOWN) != 0);
 
 		// Check and copy rect and do clipping
 		if (!pSourceSurface->CheckCoordinates(&SrcRect, pSourceRect) || !CheckCoordinates(&DestRect, pDestRect))
 		{
 			hr = DDERR_INVALIDRECT;
 			break;
+		}
+
+		// Get width and height of rect
+		LONG SrcRectWidth = SrcRect.right - SrcRect.left;
+		LONG SrcRectHeight = SrcRect.bottom - SrcRect.top;
+		LONG DestRectWidth = DestRect.right - DestRect.left;
+		LONG DestRectHeight = DestRect.bottom - DestRect.top;
+
+		if (!IsStretchRect)
+		{
+			SrcRectWidth = min(SrcRectWidth, DestRectWidth);
+			SrcRectHeight = min(SrcRectHeight, DestRectHeight);
+			DestRectWidth = min(SrcRectWidth, DestRectWidth);
+			DestRectHeight = min(SrcRectHeight, DestRectHeight);
 		}
 
 		// Check if source surface is not locked then lock it
@@ -3225,9 +3276,6 @@ HRESULT m_IDirectDrawSurfaceX::CopySurface(m_IDirectDrawSurfaceX* pSourceSurface
 			}
 			BYTE *SrcBuffer = (BYTE*)SrcLockRect.pBits;
 			BYTE *DestBuffer = (BYTE*)&surfaceArray[0];
-			LONG SrcRectWidth = SrcRect.right - SrcRect.left;
-			LONG SrcRectHeight = SrcRect.bottom - SrcRect.top;
-			DWORD ByteCount = SrcLockRect.Pitch / surfaceDesc2.dwWidth;
 			for (LONG y = 0; y < SrcRectHeight; y++)
 			{
 				memcpy(DestBuffer, SrcBuffer, SrcRectWidth * ByteCount);
@@ -3248,47 +3296,9 @@ HRESULT m_IDirectDrawSurfaceX::CopySurface(m_IDirectDrawSurfaceX* pSourceSurface
 		}
 		UnlockDest = true;
 
-		// Check source and destination format
-		if (!(SrcFormat == DestFormat ||
-			((SrcFormat == D3DFMT_A1R5G5B5 || SrcFormat == D3DFMT_X1R5G5B5) && (DestFormat == D3DFMT_A1R5G5B5 || DestFormat == D3DFMT_X1R5G5B5)) ||
-			((SrcFormat == D3DFMT_A8R8G8B8 || SrcFormat == D3DFMT_X8R8G8B8) && (DestFormat == D3DFMT_A8R8G8B8 || DestFormat == D3DFMT_X8R8G8B8))))
-		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error: not supported for different source and destination formats! " << SrcFormat << "-->" << DestFormat);
-			hr = DDERR_GENERIC;
-			break;
-		}
-
-		// Get byte count
-		DWORD ByteCount = DestBitCount / 8;
-		if (!ByteCount || ByteCount > 4)
-		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error: wrong bit count " << DestBitCount);
-			hr = DDERR_GENERIC;
-			break;
-		}
-
-		// Get copy flags
-		bool IsColorKey = ((dwFlags & DDBLT_KEYDEST) != 0);
-		bool IsMirrorLeftRight = ((dwFlags & DDBLTFX_MIRRORLEFTRIGHT) != 0);
-		bool IsMirrorUpDown = ((dwFlags & DDBLTFX_MIRRORUPDOWN) != 0);
-
 		// Create buffer variables
 		BYTE *SrcBuffer = (BYTE*)SrcLockRect.pBits;
 		BYTE *DestBuffer = (BYTE*)DestLockRect.pBits;
-
-		// Get width and height of rect
-		LONG SrcRectWidth = SrcRect.right - SrcRect.left;
-		LONG SrcRectHeight = SrcRect.bottom - SrcRect.top;
-		LONG DestRectWidth = DestRect.right - DestRect.left;
-		LONG DestRectHeight = DestRect.bottom - DestRect.top;
-
-		if (!IsStretchRect)
-		{
-			SrcRectWidth = min(SrcRectWidth, DestRectWidth);
-			SrcRectHeight = min(SrcRectHeight, DestRectHeight);
-			DestRectWidth = min(SrcRectWidth, DestRectWidth);
-			DestRectHeight = min(SrcRectHeight, DestRectHeight);
-		}
 
 		// For mirror copy up/down
 		LONG DestPitch = DestLockRect.Pitch;

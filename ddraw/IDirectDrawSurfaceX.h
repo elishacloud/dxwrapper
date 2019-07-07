@@ -23,7 +23,8 @@ private:
 	m_IDirectDrawPalette *attachedPalette = nullptr;	// Associated palette
 	m_IDirectDrawClipper *attachedClipper = nullptr;	// Associated clipper
 	DDSURFACEDESC2 surfaceDesc2 = { NULL };				// Surface description for this surface
-	D3DFORMAT surfaceFormat = D3DFMT_UNKNOWN;			// Surface format for this surface
+	D3DFORMAT surfaceFormat = D3DFMT_UNKNOWN;			// Format for this surface
+	DWORD surfaceBitCount = 0;							// Bit count for this surface
 	std::vector<byte> surfaceArray;						// Memory used for coping from one surface to the same surface
 	CKEYS ColorKeys[4];									// Color keys (0 = DDCKEY_DESTBLT, 1 = DDCKEY_DESTOVERLAY, 2 = DDCKEY_SRCBLT, 3 = DDCKEY_SRCOVERLAY)
 	LONG overlayX = 0;
@@ -236,12 +237,12 @@ public:
 	bool IsPrimarySurface() { return (surfaceDesc2.ddsCaps.dwCaps & DDSCAPS_PRIMARYSURFACE) != 0; }
 	bool IsSurfaceLocked() { return IsLocked; }
 	bool IsSurfaceInDC() { return IsInDC; }
-	bool IsSurfaceManaged() { return (surfaceDesc2.ddsCaps.dwCaps2 & (DDSCAPS2_TEXTUREMANAGE | DDSCAPS2_D3DTEXTUREMANAGE)); }
+	bool IsSurfaceManaged() { return (surfaceDesc2.ddsCaps.dwCaps2 & (DDSCAPS2_TEXTUREMANAGE | DDSCAPS2_D3DTEXTUREMANAGE)) != 0; }
 	DWORD GetWidth() { return surfaceDesc2.dwWidth; }
 	DWORD GetHeight() { return surfaceDesc2.dwHeight; }
 	DDSCAPS2 GetSurfaceCaps() { return surfaceDesc2.ddsCaps; }
-	DWORD GetSurfaceBitCount() { return GetBitCount(surfaceDesc2.ddpfPixelFormat); }
-	D3DFORMAT GetSurfaceFormat() { return GetDisplayFormat(surfaceDesc2.ddpfPixelFormat); }
+	DWORD GetSurfaceBitCount() { return surfaceBitCount; }
+	D3DFORMAT GetSurfaceFormat() { return surfaceFormat; }
 
 	// Direct3D9 interface functions
 	HRESULT CheckInterface(char *FunctionName, bool CheckD3DDevice, bool CheckD3DSurface);
