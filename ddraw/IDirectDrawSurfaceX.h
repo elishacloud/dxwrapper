@@ -23,6 +23,7 @@ private:
 	m_IDirectDrawPalette *attachedPalette = nullptr;	// Associated palette
 	m_IDirectDrawClipper *attachedClipper = nullptr;	// Associated clipper
 	DDSURFACEDESC2 surfaceDesc2 = { NULL };				// Surface description for this surface
+	D3DFORMAT surfaceFormat = D3DFMT_UNKNOWN;			// Surface format for this surface
 	std::vector<byte> surfaceArray;						// Memory used for coping from one surface to the same surface
 	CKEYS ColorKeys[4];									// Color keys (0 = DDCKEY_DESTBLT, 1 = DDCKEY_DESTOVERLAY, 2 = DDCKEY_SRCBLT, 3 = DDCKEY_SRCOVERLAY)
 	LONG overlayX = 0;
@@ -46,7 +47,7 @@ private:
 
 	// Direct3D9 vars
 	LPDIRECT3DDEVICE9 *d3d9Device = nullptr;			// Direct3D9 Device
-	LPDIRECT3DSURFACE9 surfaceInterface = nullptr;		// Main surface used for GetDC and ReleaseDC
+	LPDIRECT3DSURFACE9 offscreenSurface = nullptr;		// Extra surface used for GetDC when unsupported format is detected
 	LPDIRECT3DTEXTURE9 surfaceTexture = nullptr;		// Main surface texture used for locks, Blts and Flips
 	LPDIRECT3DTEXTURE9 paletteTexture = nullptr;		// Extra surface texture used for storing palette entries for the pixel shader
 	LPDIRECT3DPIXELSHADER9 pixelShader = nullptr;		// Used with palette surfaces to display proper palette data on the surface texture
@@ -230,7 +231,6 @@ public:
 
 	// Direct3D9 interfaces
 	LPDIRECT3DTEXTURE9 *GetSurfaceTexture() { return &surfaceTexture; }
-	LPDIRECT3DSURFACE9 *GetSurfaceInterface() { return &surfaceInterface; }
 
 	// Surface information functions
 	bool IsPrimarySurface() { return (surfaceDesc2.ddsCaps.dwCaps & DDSCAPS_PRIMARYSURFACE) != 0; }
