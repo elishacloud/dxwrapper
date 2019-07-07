@@ -1060,14 +1060,24 @@ HRESULT m_IDirectDrawX::SetCooperativeLevel(HWND hWnd, DWORD dwFlags)
 			return DDERR_INVALIDPARAMS;
 		}
 
+		bool ChangeMode = false;
+
 		// Set windowed mode
 		if ((dwFlags & DDSCL_NORMAL) || Config.EnableWindowMode)
 		{
-			isWindowed = true;
+			if (!isWindowed)
+			{
+				ChangeMode = true;
+				isWindowed = true;
+			}
 		}
 		else if (dwFlags & DDSCL_FULLSCREEN)
 		{
-			isWindowed = false;
+			if (isWindowed)
+			{
+				ChangeMode = true;
+				isWindowed = false;
+			}
 		}
 
 		// Set device flags
@@ -1106,6 +1116,13 @@ HRESULT m_IDirectDrawX::SetCooperativeLevel(HWND hWnd, DWORD dwFlags)
 		}
 
 		MainhWnd = hWnd;
+
+		// Update the d3d9 device to use new windowed mode
+		if (ChangeMode && d3d9Device && FAILED(CreateD3D9Device()))
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: creating Direct3D9 Device");
+			return DDERR_GENERIC;
+		}
 
 		return DD_OK;
 	}
