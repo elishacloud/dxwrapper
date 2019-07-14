@@ -2449,7 +2449,7 @@ HRESULT m_IDirectDrawSurfaceX::CreateD3d9Surface()
 	}
 
 	// Set scale mode to linear
-	if (FAILED((*d3d9Device)->SetSamplerState(0, D3DSAMP_MAGFILTER, D3DTEXF_LINEAR)))
+	if (FAILED((*d3d9Device)->SetSamplerState(0, D3DSAMP_MAGFILTER, (surfaceFormat == D3DFMT_P8) ? D3DTEXF_POINT : D3DTEXF_LINEAR)))
 	{
 		LOG_LIMIT(100, __FUNCTION__ << " Error: failed to set D3D device to LINEAR sampling");
 	}
@@ -2473,41 +2473,60 @@ HRESULT m_IDirectDrawSurfaceX::CreateD3d9Surface()
 		BackBufferHeight = GetSystemMetrics(SM_CYSCREEN);
 	}
 
+	// Calculate width and height with original aspect ratio
+	DWORD xpad = 0;
+	DWORD ypad = 0;
+	if (Config.DdrawMaintainAspectRatio)
+	{
+		if (surfaceDesc2.dwWidth * displayHeight < surfaceDesc2.dwHeight * displayWidth)
+		{
+			// 4:3 displayed on 16:9
+			BackBufferWidth = displayHeight * surfaceDesc2.dwWidth / surfaceDesc2.dwHeight;
+		}
+		else
+		{
+			// 16:9 displayed on 4:3
+			BackBufferHeight = displayWidth * surfaceDesc2.dwHeight / surfaceDesc2.dwWidth;
+		}
+		xpad = (displayWidth - BackBufferWidth) / 2;
+		ypad = (displayHeight - BackBufferHeight) / 2;
+	}
+
 	Logging::LogDebug() << __FUNCTION__ << " D3d9 Vertex size: " << BackBufferWidth << "x" << BackBufferHeight;
 	// Set vertex points
 	// 0, 0
-	vertices[0].x = -0.5f;
-	vertices[0].y = -0.5f;
+	vertices[0].x = -0.5f + xpad;
+	vertices[0].y = -0.5f + ypad;
 	vertices[0].z = 0.0f;
 	vertices[0].rhw = 1.0f;
 	vertices[0].u = 0.0f;
 	vertices[0].v = 0.0f;
 
-	// currentWidth, 0
-	vertices[1].x = (float)BackBufferWidth - 0.5f;
-	vertices[1].y = -0.5f;
+	// scaledWidth, 0
+	vertices[1].x = -0.5f + xpad + BackBufferWidth;
+	vertices[1].y = vertices[0].y;
 	vertices[1].z = 0.0f;
 	vertices[1].rhw = 1.0f;
 	vertices[1].u = 1.0f;
 	vertices[1].v = 0.0f;
 
-	// currentWidth, scaledHeight
-	vertices[2].x = (float)BackBufferWidth - 0.5f;
-	vertices[2].y = (float)BackBufferHeight - 0.5f;
+	// scaledWidth, scaledHeight
+	vertices[2].x = vertices[1].x;
+	vertices[2].y = -0.5f + ypad + BackBufferHeight;
 	vertices[2].z = 0.0f;
 	vertices[2].rhw = 1.0f;
 	vertices[2].u = 1.0f;
 	vertices[2].v = 1.0f;
 
-	// 0, currentHeight
-	vertices[3].x = -0.5f;
-	vertices[3].y = (float)BackBufferHeight - 0.5f;
+	// 0, scaledHeight
+	vertices[3].x = vertices[0].x;
+	vertices[3].y = vertices[2].y;
 	vertices[3].z = 0.0f;
 	vertices[3].rhw = 1.0f;
 	vertices[3].u = 0.0f;
 	vertices[3].v = 1.0f;
 
-	// Unlcok vertex buffer
+	// Unlock vertex buffer
 	if (FAILED(vertexBuffer->Unlock()))
 	{
 		LOG_LIMIT(100, __FUNCTION__ << " Error: failed to unlock vertex buffer");

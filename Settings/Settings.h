@@ -18,6 +18,7 @@
 	visit(DDrawCompatExperimental) \
 	visit(DDrawCompatDisableGDIHook) \
 	visit(DDrawCompatNoProcAffinity) \
+	visit(DdrawMaintainAspectRatio) \
 	visit(DdrawUseNativeResolution) \
 	visit(DdrawOverrideBitMode) \
 	visit(DdrawOverrideWidth) \
@@ -164,6 +165,7 @@ struct CONFIG
 	bool DDrawCompatNoProcAffinity;		// Disables DDrawCompat single processor affinity
 	bool DDrawResolutionHack;			// Removes the artificial resolution limit from Direct3D7 and below https://github.com/UCyborg/LegacyD3DResolutionHack
 	bool DDrawResolutionHackNotSet;		// If the DDrawResolutionHack option exists in the config file
+	bool DdrawMaintainAspectRatio;		// Keeps the current DirectDraw aspect ratio when overriding the game's resolution
 	bool DdrawUseNativeResolution;		// Uses the current screen resolution for Dd7to9
 	DWORD DdrawOverrideBitMode;			// Forces DirectX to use specified bit mode: 8, 16, 24, 32
 	DWORD DdrawOverrideWidth;			// Force Direct3d9 to use this width when using Dd7to9
