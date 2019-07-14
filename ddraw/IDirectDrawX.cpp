@@ -299,7 +299,7 @@ HRESULT m_IDirectDrawX::CreateSurface2(LPDDSURFACEDESC2 lpDDSurfaceDesc2, LPDIRE
 		ConvertSurfaceDesc(Desc2, *lpDDSurfaceDesc2);
 		Desc2.dwReserved = 0;
 
-		if (lpDDSurfaceDesc2->dwFlags & DDSD_BACKBUFFERCOUNT)
+		if ((lpDDSurfaceDesc2->dwFlags & DDSD_BACKBUFFERCOUNT) || (lpDDSurfaceDesc2->ddsCaps.dwCaps & DDSCAPS_FLIP))
 		{
 			Desc2.ddsCaps.dwCaps |= DDSCAPS_FRONTBUFFER;
 			if (!Desc2.dwBackBufferCount)
@@ -357,7 +357,7 @@ HRESULT m_IDirectDrawX::CreateSurface2(LPDDSURFACEDESC2 lpDDSurfaceDesc2, LPDIRE
 	// BackBufferCount must be at least 1
 	if (ProxyDirectXVersion != DirectXVersion && lpDDSurfaceDesc2)
 	{
-		if ((lpDDSurfaceDesc2->dwFlags & DDSD_BACKBUFFERCOUNT) && lpDDSurfaceDesc2->dwBackBufferCount == 0)
+		if (((lpDDSurfaceDesc2->dwFlags & DDSD_BACKBUFFERCOUNT) || (lpDDSurfaceDesc2->ddsCaps.dwCaps & DDSCAPS_FLIP)) && lpDDSurfaceDesc2->dwBackBufferCount == 0)
 		{
 			lpDDSurfaceDesc2->dwBackBufferCount = 1;
 		}

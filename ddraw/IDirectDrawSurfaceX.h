@@ -62,7 +62,13 @@ private:
 	std::unique_ptr<m_IDirectDrawSurface7> UniqueProxyInterface7 = nullptr;
 
 	// Store a list of attached surfaces
-	std::map<DWORD, m_IDirectDrawSurfaceX*> AttachedSurfaceMap;
+	std::unique_ptr<m_IDirectDrawSurfaceX> BackBufferInterface;
+	struct ATTACHEDMAP
+	{
+		m_IDirectDrawSurfaceX* pSurface = nullptr;
+		bool isAttachedSurfaceAdded = false;
+	};
+	std::map<DWORD, ATTACHEDMAP> AttachedSurfaceMap;
 	DWORD MapKey = 0;
 
 	// Custom vertex
@@ -271,10 +277,11 @@ public:
 
 	// Attached surfaces
 	void InitSurfaceDesc(LPDDSURFACEDESC2 lpDDSurfaceDesc2, DWORD DirectXVersion);
-	void AddAttachedSurfaceToMap(m_IDirectDrawSurfaceX* lpSurfaceX);
+	void AddAttachedSurfaceToMap(m_IDirectDrawSurfaceX* lpSurfaceX, bool MarkAttached = false);
 	void RemoveAttachedSurfaceFromMap(m_IDirectDrawSurfaceX* lpSurfaceX);
 	bool DoesAttachedSurfaceExist(m_IDirectDrawSurfaceX* lpSurfaceX);
-	bool DoesBackBufferExist(m_IDirectDrawSurfaceX* lpSurfaceX);
+	bool WasAttachedSurfaceAdded(m_IDirectDrawSurfaceX* lpSurfaceX);
+	bool DoesFlipBackBufferExist(m_IDirectDrawSurfaceX* lpSurfaceX);
 
 	// Copying surface textures
 	HRESULT ColorFill(RECT* pRect, D3DCOLOR dwFillColor);

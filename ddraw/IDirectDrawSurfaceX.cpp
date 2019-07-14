@@ -218,13 +218,16 @@ HRESULT m_IDirectDrawSurfaceX::AddAttachedSurface(LPDIRECTDRAWSURFACE7 lpDDSurfa
 			return DDERR_SURFACEALREADYATTACHED;
 		}
 
-		if (!(lpAttachedSurface->GetSurfaceCaps().dwCaps & DDSCAPS_ZBUFFER))
+		DWORD AttachedSurfaceCaps = lpAttachedSurface->GetSurfaceCaps().dwCaps;
+		if (!(((AttachedSurfaceCaps & DDSCAPS_BACKBUFFER) && (surfaceDesc2.ddsCaps.dwCaps & DDSCAPS_FRONTBUFFER)) ||
+			((AttachedSurfaceCaps & DDSCAPS_FRONTBUFFER) && (surfaceDesc2.ddsCaps.dwCaps & DDSCAPS_BACKBUFFER)) ||
+			((AttachedSurfaceCaps & DDSCAPS_MIPMAP) && (surfaceDesc2.ddsCaps.dwCaps & DDSCAPS_MIPMAP))))
 		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error: only z-buffer surfaces can be attached with this method");
+			LOG_LIMIT(100, __FUNCTION__ << " Error: cannot attach surface with this method. dwCaps: " << lpAttachedSurface->GetSurfaceCaps().dwCaps);
 			return DDERR_CANNOTATTACHSURFACE;
 		}
 
-		AddAttachedSurfaceToMap(lpAttachedSurface);
+		AddAttachedSurfaceToMap(lpAttachedSurface, true);
 
 		lpAttachedSurface->AddRef();
 
@@ -467,7 +470,7 @@ HRESULT m_IDirectDrawSurfaceX::BltFast(DWORD dwX, DWORD dwY, LPDIRECTDRAWSURFACE
 		m_IDirectDrawSurfaceX *lpDDSrcSurfaceX = (!lpDDSrcSurface) ? this : ((m_IDirectDrawSurface*)lpDDSrcSurface)->GetWrapperInterface();
 
 		// Check if source Surface exists
-		if (!ddrawParent->DoesSurfaceExist(lpDDSrcSurfaceX))
+		if (!ddrawParent || !ddrawParent->DoesSurfaceExist(lpDDSrcSurfaceX))
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Error: could not find source surface");
 			return DD_OK;		// Return OK to allow some games to continue to work
@@ -510,10 +513,10 @@ HRESULT m_IDirectDrawSurfaceX::DeleteAttachedSurface(DWORD dwFlags, LPDIRECTDRAW
 			return DDERR_SURFACENOTATTACHED;
 		}
 
-		if (!(lpAttachedSurface->GetSurfaceCaps().dwCaps & DDSCAPS_ZBUFFER))
+		if (!WasAttachedSurfaceAdded(lpAttachedSurface))
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Error: only surfaces added with AddAttachedSurface can be deleted with this method");
-			return DDERR_CANNOTATTACHSURFACE;
+			return DDERR_CANNOTDETACHSURFACE;
 		}
 
 		RemoveAttachedSurfaceFromMap(lpAttachedSurface);
@@ -569,8 +572,8 @@ HRESULT m_IDirectDrawSurfaceX::EnumAttachedSurfaces2(LPVOID lpContext, LPDDENUMS
 			DDSURFACEDESC2 Desc2;
 			Desc2.dwSize = sizeof(DDSURFACEDESC2);
 			Desc2.ddpfPixelFormat.dwSize = sizeof(DDPIXELFORMAT);
-			it.second->GetSurfaceDesc2(&Desc2);
-			if (lpEnumSurfacesCallback7((LPDIRECTDRAWSURFACE7)it.second->GetWrapperInterfaceX(DirectXVersion), &Desc2, lpContext) == DDENUMRET_CANCEL)
+			it.second.pSurface->GetSurfaceDesc2(&Desc2);
+			if (lpEnumSurfacesCallback7((LPDIRECTDRAWSURFACE7)it.second.pSurface->GetWrapperInterfaceX(DirectXVersion), &Desc2, lpContext) == DDENUMRET_CANCEL)
 			{
 				return DD_OK;
 			}
@@ -642,10 +645,10 @@ HRESULT m_IDirectDrawSurfaceX::FlipBackBuffer()
 	// Loop through each surface
 	for (auto it : AttachedSurfaceMap)
 	{
-		dwCaps = it.second->GetSurfaceCaps().dwCaps;
-		if (!(dwCaps & DDSCAPS_ZBUFFER))
+		dwCaps = it.second.pSurface->GetSurfaceCaps().dwCaps;
+		if (dwCaps & DDSCAPS_FLIP)
 		{
-			lpTargetSurface = it.second;
+			lpTargetSurface = it.second.pSurface;
 
 			break;
 		}
@@ -730,7 +733,7 @@ HRESULT m_IDirectDrawSurfaceX::Flip(LPDIRECTDRAWSURFACE7 lpDDSurfaceTargetOverri
 				m_IDirectDrawSurfaceX *lpTargetSurface = ((m_IDirectDrawSurface*)lpDDSurfaceTargetOverride)->GetWrapperInterface();
 
 				// Check if target surface exists
-				if (!DoesBackBufferExist(lpTargetSurface) || lpTargetSurface == this)
+				if (!DoesFlipBackBufferExist(lpTargetSurface) || lpTargetSurface == this)
 				{
 					LOG_LIMIT(100, __FUNCTION__ << " Error: invalid surface!");
 					hr = DDERR_INVALIDPARAMS;
@@ -856,7 +859,7 @@ HRESULT m_IDirectDrawSurfaceX::GetAttachedSurface2(LPDDSCAPS2 lpDDSCaps2, LPDIRE
 		// Check if attached surface exists
 		for (auto it : AttachedSurfaceMap)
 		{
-			m_IDirectDrawSurfaceX *lpSurface = it.second;
+			m_IDirectDrawSurfaceX *lpSurface = it.second.pSurface;
 
 			if ((lpSurface->GetSurfaceCaps().dwCaps & lpDDSCaps2->dwCaps) == lpDDSCaps2->dwCaps)
 			{
@@ -1184,9 +1187,9 @@ HRESULT m_IDirectDrawSurfaceX::GetFlipStatus(DWORD dwFlags)
 		m_IDirectDrawSurfaceX *lpBackBuffer = this;
 		for (auto it : AttachedSurfaceMap)
 		{
-			if (!(it.second->GetSurfaceCaps().dwCaps & DDSCAPS_BACKBUFFER))
+			if (!(it.second.pSurface->GetSurfaceCaps().dwCaps & DDSCAPS_BACKBUFFER))
 			{
-				lpBackBuffer = it.second;
+				lpBackBuffer = it.second.pSurface;
 
 				break;
 			}
@@ -2981,9 +2984,23 @@ void m_IDirectDrawSurfaceX::InitSurfaceDesc(LPDDSURFACEDESC2 lpDDSurfaceDesc2, D
 			Desc2.ddsCaps.dwCaps &= ~DDSCAPS_BACKBUFFER;
 		}
 
-		m_IDirectDrawSurfaceX *attachedSurface = new m_IDirectDrawSurfaceX(d3d9Device, ddrawParent, DirectXVersion, &Desc2, displayWidth, displayHeight);
+		// Create complex surfaces
+		if (Desc2.ddsCaps.dwCaps & DDSCAPS_COMPLEX)
+		{
+			BackBufferInterface = std::make_unique<m_IDirectDrawSurfaceX>(d3d9Device, ddrawParent, DirectXVersion, &Desc2, displayWidth, displayHeight);
 
-		AddAttachedSurfaceToMap(attachedSurface);
+			m_IDirectDrawSurfaceX *attachedSurface = BackBufferInterface.get();
+
+			AddAttachedSurfaceToMap(attachedSurface);
+
+			attachedSurface->AddRef();
+		}
+		else
+		{
+			m_IDirectDrawSurfaceX *attachedSurface = new m_IDirectDrawSurfaceX(d3d9Device, ddrawParent, DirectXVersion, &Desc2, displayWidth, displayHeight);
+
+			AddAttachedSurfaceToMap(attachedSurface);
+		}
 	}
 	else if (surfaceDesc2.dwReserved)
 	{
@@ -3004,7 +3021,7 @@ void m_IDirectDrawSurfaceX::InitSurfaceDesc(LPDDSURFACEDESC2 lpDDSurfaceDesc2, D
 }
 
 // Add attached surface to map
-void m_IDirectDrawSurfaceX::AddAttachedSurfaceToMap(m_IDirectDrawSurfaceX* lpSurfaceX)
+void m_IDirectDrawSurfaceX::AddAttachedSurfaceToMap(m_IDirectDrawSurfaceX* lpSurfaceX, bool MarkAttached)
 {
 	if (!lpSurfaceX)
 	{
@@ -3012,7 +3029,11 @@ void m_IDirectDrawSurfaceX::AddAttachedSurfaceToMap(m_IDirectDrawSurfaceX* lpSur
 	}
 
 	// Store surface
-	AttachedSurfaceMap[++MapKey] = lpSurfaceX;
+	AttachedSurfaceMap[++MapKey].pSurface = lpSurfaceX;
+	if (MarkAttached)
+	{
+		AttachedSurfaceMap[MapKey].isAttachedSurfaceAdded = true;
+	}
 }
 
 // Remove attached surface from map
@@ -3024,7 +3045,7 @@ void m_IDirectDrawSurfaceX::RemoveAttachedSurfaceFromMap(m_IDirectDrawSurfaceX* 
 	}
 
 	auto it = std::find_if(AttachedSurfaceMap.begin(), AttachedSurfaceMap.end(),
-		[=](auto Map) -> bool { return Map.second == lpSurfaceX; });
+		[=](auto Map) -> bool { return Map.second.pSurface == lpSurfaceX; });
 
 	if (it != std::end(AttachedSurfaceMap))
 	{
@@ -3041,14 +3062,27 @@ bool m_IDirectDrawSurfaceX::DoesAttachedSurfaceExist(m_IDirectDrawSurfaceX* lpSu
 	}
 
 	auto it = std::find_if(AttachedSurfaceMap.begin(), AttachedSurfaceMap.end(),
-		[=](auto Map) -> bool { return Map.second == lpSurfaceX; });
+		[=](auto Map) -> bool { return Map.second.pSurface == lpSurfaceX; });
 
 	if (it == std::end(AttachedSurfaceMap))
 	{
 		return false;
 	}
 
-	if (!ddrawParent)
+	return true;
+}
+
+bool m_IDirectDrawSurfaceX::WasAttachedSurfaceAdded(m_IDirectDrawSurfaceX* lpSurfaceX)
+{
+	if (!lpSurfaceX)
+	{
+		return false;
+	}
+
+	auto it = std::find_if(AttachedSurfaceMap.begin(), AttachedSurfaceMap.end(),
+		[=](auto Map) -> bool { return (Map.second.pSurface == lpSurfaceX) && Map.second.isAttachedSurfaceAdded; });
+
+	if (it == std::end(AttachedSurfaceMap))
 	{
 		return false;
 	}
@@ -3057,7 +3091,7 @@ bool m_IDirectDrawSurfaceX::DoesAttachedSurfaceExist(m_IDirectDrawSurfaceX* lpSu
 }
 
 // Check if backbuffer surface exists
-bool m_IDirectDrawSurfaceX::DoesBackBufferExist(m_IDirectDrawSurfaceX* lpSurfaceX)
+bool m_IDirectDrawSurfaceX::DoesFlipBackBufferExist(m_IDirectDrawSurfaceX* lpSurfaceX)
 {
 	if (!lpSurfaceX)
 	{
@@ -3070,10 +3104,10 @@ bool m_IDirectDrawSurfaceX::DoesBackBufferExist(m_IDirectDrawSurfaceX* lpSurface
 	// Loop through each surface
 	for (auto it : AttachedSurfaceMap)
 	{
-		dwCaps = it.second->GetSurfaceCaps().dwCaps;
-		if (!(dwCaps & DDSCAPS_ZBUFFER))
+		dwCaps = it.second.pSurface->GetSurfaceCaps().dwCaps;
+		if (dwCaps & DDSCAPS_FLIP)
 		{
-			lpTargetSurface = it.second;
+			lpTargetSurface = it.second.pSurface;
 
 			break;
 		}
@@ -3092,7 +3126,7 @@ bool m_IDirectDrawSurfaceX::DoesBackBufferExist(m_IDirectDrawSurfaceX* lpSurface
 	}
 
 	// Check next surface
-	return lpTargetSurface->DoesBackBufferExist(lpSurfaceX);
+	return lpTargetSurface->DoesFlipBackBufferExist(lpSurfaceX);
 }
 
 HRESULT m_IDirectDrawSurfaceX::ColorFill(RECT* pRect, D3DCOLOR dwFillColor)
