@@ -297,6 +297,7 @@ HRESULT m_IDirectDrawX::CreateSurface2(LPDDSURFACEDESC2 lpDDSurfaceDesc2, LPDIRE
 		Desc2.dwSize = sizeof(DDSURFACEDESC2);
 		Desc2.ddpfPixelFormat.dwSize = sizeof(DDPIXELFORMAT);
 		ConvertSurfaceDesc(Desc2, *lpDDSurfaceDesc2);
+		Desc2.ddsCaps.dwCaps4 = 0x01;	// Indicates surface was created using CreateSurface()
 		Desc2.dwReserved = 0;
 
 		if ((lpDDSurfaceDesc2->dwFlags & DDSD_BACKBUFFERCOUNT) || (lpDDSurfaceDesc2->ddsCaps.dwCaps & DDSCAPS_FLIP))

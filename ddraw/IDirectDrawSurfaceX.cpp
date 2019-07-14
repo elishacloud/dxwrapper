@@ -162,7 +162,12 @@ ULONG m_IDirectDrawSurfaceX::Release()
 		ref = ProxyInterface->Release();
 	}
 
-	if (ref == 0)
+	// A complex structure can be destroyed only by destroying the root
+	if (ref == 0 && ((surfaceDesc2.ddsCaps.dwCaps & DDSCAPS_COMPLEX) && !ComplexRoot))
+	{
+		InterlockedIncrement(&RefCount);
+	}
+	else if (ref == 0)
 	{
 		if (WrapperInterface)
 		{
@@ -2954,6 +2959,8 @@ void m_IDirectDrawSurfaceX::InitSurfaceDesc(LPDDSURFACEDESC2 lpDDSurfaceDesc2, D
 	surfaceDesc2.dwSize = sizeof(DDSURFACEDESC2);
 	surfaceDesc2.ddpfPixelFormat.dwSize = sizeof(DDPIXELFORMAT);
 	ConvertSurfaceDesc(surfaceDesc2, *lpDDSurfaceDesc2);
+
+	// Update dds caps flags
 	surfaceDesc2.dwFlags |= DDSD_CAPS;
 	if (surfaceDesc2.ddsCaps.dwCaps & DDSCAPS_PRIMARYSURFACE)
 	{
@@ -2972,6 +2979,7 @@ void m_IDirectDrawSurfaceX::InitSurfaceDesc(LPDDSURFACEDESC2 lpDDSurfaceDesc2, D
 		Desc2.dwSize = sizeof(DDSURFACEDESC2);
 		Desc2.ddpfPixelFormat.dwSize = sizeof(DDPIXELFORMAT);
 		ConvertSurfaceDesc(Desc2, surfaceDesc2);
+		Desc2.ddsCaps.dwCaps4 = 0x00;	// Clear surface creation flag
 		Desc2.dwBackBufferCount--;
 		if (Desc2.ddsCaps.dwCaps & DDSCAPS_FRONTBUFFER)
 		{
@@ -2987,6 +2995,11 @@ void m_IDirectDrawSurfaceX::InitSurfaceDesc(LPDDSURFACEDESC2 lpDDSurfaceDesc2, D
 		// Create complex surfaces
 		if (Desc2.ddsCaps.dwCaps & DDSCAPS_COMPLEX)
 		{
+			if (surfaceDesc2.ddsCaps.dwCaps4)
+			{
+				ComplexRoot = true;
+			}
+
 			BackBufferInterface = std::make_unique<m_IDirectDrawSurfaceX>(d3d9Device, ddrawParent, DirectXVersion, &Desc2, displayWidth, displayHeight);
 
 			m_IDirectDrawSurfaceX *attachedSurface = BackBufferInterface.get();
@@ -3002,6 +3015,8 @@ void m_IDirectDrawSurfaceX::InitSurfaceDesc(LPDDSURFACEDESC2 lpDDSurfaceDesc2, D
 			AddAttachedSurfaceToMap(attachedSurface);
 		}
 	}
+
+	// Add first surface as attached surface to the last surface in a surface chain
 	else if (surfaceDesc2.dwReserved)
 	{
 		m_IDirectDrawSurfaceX *attachedSurface = (m_IDirectDrawSurfaceX *)surfaceDesc2.dwReserved;
@@ -3012,11 +3027,20 @@ void m_IDirectDrawSurfaceX::InitSurfaceDesc(LPDDSURFACEDESC2 lpDDSurfaceDesc2, D
 			AddAttachedSurfaceToMap(attachedSurface);
 		}
 	}
+
+	// Clear comlpex flag if not part of a complex structure
+	else
+	{
+		surfaceDesc2.dwFlags &= ~DDSCAPS_COMPLEX;
+	}
+
+	// Clear flags used in creating a surface structure
 	if (!(surfaceDesc2.ddsCaps.dwCaps & DDSCAPS_FRONTBUFFER))
 	{
 		surfaceDesc2.dwFlags &= ~DDSD_BACKBUFFERCOUNT;
 		surfaceDesc2.dwBackBufferCount = 0;
 	}
+	surfaceDesc2.ddsCaps.dwCaps4 = 0x00;
 	surfaceDesc2.dwReserved = 0;
 }
 

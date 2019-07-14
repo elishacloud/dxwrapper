@@ -31,6 +31,7 @@ private:
 	LONG overlayY = 0;
 	DWORD UniquenessValue = 0;
 	HDC surfacehDC = nullptr;
+	bool ComplexRoot = false;
 	bool dirtyFlag = false;
 	bool EndSceneLock = false;
 	bool IsLocked = false;
