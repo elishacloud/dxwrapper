@@ -50,6 +50,7 @@ LARGE_INTEGER clockFrequency, clickTime, lastPresentTime = { 0, 0 };
 LONGLONG lastFrameTime = 0;
 DWORD FrameCounter = 0;
 DWORD monitorRefreshRate = 0;
+DWORD monitorHeight = 0;
 
 // Direct3D9 Objects
 LPDIRECT3D9 d3d9Object = nullptr;
@@ -1266,23 +1267,38 @@ HRESULT m_IDirectDrawX::WaitForVerticalBlank(DWORD dwFlags, HANDLE hEvent)
 
 	if (Config.Dd7to9)
 	{
-		LOG_LIMIT(100, __FUNCTION__ << " Not fully implemented!");
-
-		if (dwFlags & DDWAITVB_BLOCKBEGIN)
+		// Check flags
+		switch (dwFlags)
 		{
+		case DDWAITVB_BLOCKBEGIN:
 			// Return when vertical blank begins
-		}
-		else if (dwFlags & DDWAITVB_BLOCKBEGINEVENT)
-		{
-			// Triggers an event when the vertical blank begins. This value is not currently supported.
+		case DDWAITVB_BLOCKEND:
+			// Return when the vertical blank interval ends and the display begins
+			break;
+		case DDWAITVB_BLOCKBEGINEVENT:
+			// Triggers an event when the vertical blank begins. This value is not supported.
 			return DDERR_UNSUPPORTED;
-		}
-		else if (dwFlags & DDWAITVB_BLOCKEND)
-		{
-			// Return when the vertical-blank interval ends and the display begins.
+		default:
+			return DDERR_INVALIDPARAMS;
 		}
 
-		// Vblank supported by vsync so just immediately return
+		// Check for device interface
+		if (FAILED(CheckInterface(__FUNCTION__, true)))
+		{
+			return DDERR_GENERIC;
+		}
+
+		// Do some simple wait
+		D3DRASTER_STATUS RasterStatus;
+		if (SUCCEEDED(d3d9Device->GetRasterStatus(0, &RasterStatus)) && monitorHeight && monitorRefreshRate)
+		{
+			float percentageLeft = 1.0f - (float)RasterStatus.ScanLine / (float)monitorHeight;
+			float blinkTime = trunc(1000.0f / monitorRefreshRate);
+			DWORD WaitTime = min(100, (DWORD)trunc(blinkTime * percentageLeft) + ((dwFlags == DDWAITVB_BLOCKBEGIN) ? 0 : 2));
+			Sleep(WaitTime);
+		}
+
+		// Vertical blank supported by vsync so just return
 		return DD_OK;
 	}
 
@@ -1560,6 +1576,11 @@ void m_IDirectDrawX::SetDdrawDefaults()
 	displayRefreshRate = (Config.DdrawOverrideRefreshRate) ? Config.DdrawOverrideRefreshRate : 0;
 
 	SetDefaultDisplayMode = (!displayWidth || !displayHeight);
+
+	// Other settings
+	monitorRefreshRate = 0;
+	monitorHeight = 0;
+	FrequencyFlag = QueryPerformanceFrequency(&clockFrequency);
 }
 
 HWND m_IDirectDrawX::GetHwnd()
@@ -1720,12 +1741,6 @@ HRESULT m_IDirectDrawX::CreateD3D9Device()
 		presParams.FullScreen_RefreshRateInHz = set_d3ddispmode.RefreshRate;
 	}
 
-	// Store display frequency for AutoFrameSkip
-	if (Config.AutoFrameSkip)
-	{
-		monitorRefreshRate = (presParams.FullScreen_RefreshRateInHz) ? presParams.FullScreen_RefreshRateInHz : Utils::GetRefreshRate(MainhWnd);
-	}
-
 	// Set behavior flags
 	DWORD BehaviorFlags = ((d3dcaps.VertexProcessingCaps) ? D3DCREATE_HARDWARE_VERTEXPROCESSING : D3DCREATE_SOFTWARE_VERTEXPROCESSING) | D3DCREATE_MULTITHREADED |
 		((MultiThreaded) ? D3DCREATE_MULTITHREADED : 0) |
@@ -1741,6 +1756,10 @@ HRESULT m_IDirectDrawX::CreateD3D9Device()
 		LOG_LIMIT(100, __FUNCTION__ << " Error: failed to create Direct3D9 device");
 		return DDERR_GENERIC;
 	}
+
+	// Store display frequency
+	monitorRefreshRate = (presParams.FullScreen_RefreshRateInHz) ? presParams.FullScreen_RefreshRateInHz : Utils::GetRefreshRate(MainhWnd);
+	monitorHeight = GetSystemMetrics(SM_CYSCREEN);
 
 	// Reset BeginScene
 	IsInScene = false;
@@ -2023,13 +2042,6 @@ HRESULT m_IDirectDrawX::EndScene()
 	// Skip frame if time lapse is too small
 	if (Config.AutoFrameSkip)
 	{
-		if (!FrequencyFlag || !(lastPresentTime.LowPart & 0xff))
-		{
-			if (QueryPerformanceFrequency(&clockFrequency))
-			{
-				FrequencyFlag = true;
-			}
-		}
 		if (FrequencyFlag)
 		{
 			FrameCounter++;
@@ -2045,7 +2057,7 @@ HRESULT m_IDirectDrawX::EndScene()
 			float deltaFrameMS = (lastFrameTime) ? ((clickTime.QuadPart - lastFrameTime) * 1000.0f) / clockFrequency.QuadPart : deltaPresentMS;
 			lastFrameTime = clickTime.QuadPart;
 
-			// Use last frame time and average frame time to guess if next frame will be less than the screen frequency timer
+			// Use last frame time and average frame time to decide if next frame will be less than the screen frequency timer
 			if (CounterFlag && (deltaPresentMS + (deltaFrameMS * 1.1f) < MaxScreenTimer) && (deltaPresentMS + ((deltaPresentMS / FrameCounter) * 1.1f) < MaxScreenTimer))
 			{
 				Logging::LogDebug() << __func__ << " Skipping frame " << deltaPresentMS << "ms screen frequancy " << MaxScreenTimer;
