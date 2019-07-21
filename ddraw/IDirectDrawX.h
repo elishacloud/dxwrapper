@@ -16,40 +16,6 @@ private:
 	HHOOK g_hook = nullptr;
 	HWND chWnd = nullptr;
 
-	// Convert to Direct3D9
-	HWND MainhWnd = nullptr;
-	bool IsInScene = false;
-	bool ExclusiveMode = false;
-	bool AllowModeX = false;
-	bool MultiThreaded = false;
-	bool FUPPreserve = false;
-	bool NoWindowChanges = false;
-	bool isWindowed = true;				// Window mode enabled
-
-	// High resolution counter
-	bool FrequencyFlag = false;
-	LARGE_INTEGER clockFrequency, clickTime, lastPresentTime = { 0, 0 };
-	LONGLONG lastFrameTime = 0;
-	DWORD FrameCounter = 0;
-	DWORD monitorRefreshRate = 0;
-
-	// Application display mode
-	DWORD displayModeWidth = 0;
-	DWORD displayModeHeight = 0;
-	DWORD displayModeBPP = 0;
-	DWORD displayModeRefreshRate = 0;		// Refresh rate for fullscreen
-
-	// Display resolution
-	bool SetDefaultDisplayMode = true;		// Set native resolution
-	DWORD displayWidth = 0;
-	DWORD displayHeight = 0;
-	DWORD displayRefreshRate = 0;			// Refresh rate for fullscreen
-
-	// Direct3D9 Objects
-	LPDIRECT3D9 d3d9Object = nullptr;
-	LPDIRECT3DDEVICE9 d3d9Device = nullptr;
-	D3DPRESENT_PARAMETERS presParams;
-
 	// Store ddraw version wrappers
 	std::unique_ptr<m_IDirectDraw> UniqueProxyInterface = nullptr;
 	std::unique_ptr<m_IDirectDraw2> UniqueProxyInterface2 = nullptr;
@@ -81,32 +47,17 @@ public:
 			LOG_LIMIT(3, "Creating device " << __FUNCTION__ << "(" << this << ") v" << DirectXVersion);
 		}
 	}
-	m_IDirectDrawX(IDirect3D9 *aOriginal, DWORD DirectXVersion) : d3d9Object(aOriginal)
+	m_IDirectDrawX(IDirect3D9 *aOriginal, DWORD DirectXVersion)
 	{
 		ProxyDirectXVersion = 9;
 
-		if (Config.DdrawUseNativeResolution)
-		{
-			displayWidth = GetSystemMetrics(SM_CXSCREEN);
-			displayHeight = GetSystemMetrics(SM_CYSCREEN);
-		}
-		else
-		{
-			displayWidth = Config.DdrawOverrideWidth;
-			displayHeight = Config.DdrawOverrideHeight;
-			displayRefreshRate = Config.DdrawOverrideRefreshRate;
-		}
-
-		SetDefaultDisplayMode = (!displayWidth || !displayHeight);
+		InitDdraw(aOriginal);
 
 		LOG_LIMIT(3, "Creating device " << __FUNCTION__ << "(" << this << ")" << " converting device from v" << DirectXVersion << " to v" << ProxyDirectXVersion);
 	}
 	~m_IDirectDrawX()
 	{
 		LOG_LIMIT(3, __FUNCTION__ << "(" << this << ")" << " deleting device!");
-
-		PVOID NullValue = nullptr;
-		InterlockedCompareExchangePointer((PVOID*)&pDDrawDevice, NullValue, this);
 
 		if (g_hook)
 		{
@@ -115,10 +66,7 @@ public:
 
 		if (Config.Dd7to9 && !Config.Exiting)
 		{
-			ReleaseInterface();
-			ReleaseAllD3d9();
-			D3DInterface = nullptr;
-			D3DDeviceInterface = nullptr;
+			ReleaseDdraw();
 		}
 	}
 
@@ -191,8 +139,8 @@ public:
 	void *GetWrapperInterfaceX(DWORD DirectXVersion);
 
 	// Direct3D9 interfaces
-	LPDIRECT3D9 GetDirect3D9Object() { return d3d9Object; }
-	LPDIRECT3DDEVICE9 *GetDirect3D9Device() { return &d3d9Device; }
+	LPDIRECT3D9 GetDirect3D9Object();
+	LPDIRECT3DDEVICE9 *GetDirect3D9Device();
 	void ClearD3D() { D3DInterface = nullptr; }
 	m_IDirect3DX **GetCurrentD3D() { return &D3DInterface; }
 	void ClearD3DDevice() { D3DDeviceInterface = nullptr; }
@@ -200,8 +148,10 @@ public:
 	m_IDirect3DDeviceX **GetCurrentD3DDevice() { return &D3DDeviceInterface; }
 
 	// Device information functions
-	HWND GetHwnd() { return MainhWnd; }
-	bool IsExclusiveMode() { return ExclusiveMode; }
+	void InitDdraw(LPDIRECT3D9 pObject);
+	void SetDdrawDefaults();
+	HWND GetHwnd();
+	bool IsExclusiveMode();
 
 	// Direct3D9 interface functions
 	HRESULT CheckInterface(char *FunctionName, bool CheckD3DDevice);
@@ -210,7 +160,6 @@ public:
 	void ReleaseAllD9Palettes();
 	void ReleaseAllD9Surfaces(bool ClearDDraw = false);
 	void ReleaseD3d9Device();
-	void ReleaseAllD3d9();
 
 	// Surface vector functions
 	void AddSurfaceToVector(m_IDirectDrawSurfaceX* lpSurfaceX);
@@ -231,5 +180,5 @@ public:
 	HRESULT EndScene();
 
 	// Release interface
-	void ReleaseInterface();
+	void ReleaseDdraw();
  };

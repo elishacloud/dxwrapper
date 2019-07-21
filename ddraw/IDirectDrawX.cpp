@@ -19,6 +19,43 @@
 #include "ddraw.h"
 #include "Utils\Utils.h"
 
+// ddraw interface counter
+DWORD ddrawRefCount = 0;
+
+// Convert to Direct3D9
+HWND MainhWnd;
+bool IsInScene;
+bool ExclusiveMode;
+bool AllowModeX;
+bool MultiThreaded;
+bool FUPPreserve;
+bool NoWindowChanges;
+bool isWindowed;					// Window mode enabled
+
+// Application display mode
+DWORD displayModeWidth;
+DWORD displayModeHeight;
+DWORD displayModeBPP;
+DWORD displayModeRefreshRate;		// Refresh rate for fullscreen
+
+// Display resolution
+bool SetDefaultDisplayMode;			// Set native resolution
+DWORD displayWidth;
+DWORD displayHeight;
+DWORD displayRefreshRate;			// Refresh rate for fullscreen
+
+// High resolution counter
+bool FrequencyFlag = false;
+LARGE_INTEGER clockFrequency, clickTime, lastPresentTime = { 0, 0 };
+LONGLONG lastFrameTime = 0;
+DWORD FrameCounter = 0;
+DWORD monitorRefreshRate = 0;
+
+// Direct3D9 Objects
+LPDIRECT3D9 d3d9Object = nullptr;
+LPDIRECT3DDEVICE9 d3d9Device = nullptr;
+D3DPRESENT_PARAMETERS presParams;
+
 struct handle_data
 {
 	DWORD process_id = 0;
@@ -1089,7 +1126,8 @@ HRESULT m_IDirectDrawX::SetCooperativeLevel(HWND hWnd, DWORD dwFlags)
 		NoWindowChanges = (dwFlags & DDSCL_NOWINDOWCHANGES);
 
 		// Set display window
-		if (!hWnd)
+		HWND t_hWnd = hWnd;
+		if (!t_hWnd)
 		{
 			// Set variables
 			handle_data data;
@@ -1113,13 +1151,13 @@ HRESULT m_IDirectDrawX::SetCooperativeLevel(HWND hWnd, DWORD dwFlags)
 			}
 
 			// Return the best handle
-			hWnd = data.best_handle;
+			t_hWnd = data.best_handle;
 		}
 
-		MainhWnd = hWnd;
+		MainhWnd = t_hWnd;
 
 		// Update the d3d9 device to use new windowed mode
-		if (ChangeMode && d3d9Device && FAILED(CreateD3D9Device()))
+		if (ChangeMode && hWnd && d3d9Device && FAILED(CreateD3D9Device()))
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Error: creating Direct3D9 Device");
 			return DDERR_GENERIC;
@@ -1178,11 +1216,22 @@ HRESULT m_IDirectDrawX::SetDisplayMode(DWORD dwWidth, DWORD dwHeight, DWORD dwBP
 
 	if (Config.Dd7to9)
 	{
+		bool ChangeMode = false;
+
 		// Set display mode to dwWidth x dwHeight with dwBPP color depth
-		displayModeWidth = dwWidth;
-		displayModeHeight = dwHeight;
-		displayModeBPP = (Config.DdrawOverrideBitMode) ? Config.DdrawOverrideBitMode : dwBPP;
-		displayModeRefreshRate = dwRefreshRate;
+		DWORD NewWidth = dwWidth;
+		DWORD NewHeight = dwHeight;
+		DWORD NewBPP = (Config.DdrawOverrideBitMode) ? Config.DdrawOverrideBitMode : dwBPP;
+		DWORD NewRefreshRate = dwRefreshRate;
+
+		if (displayModeWidth != NewWidth || displayModeHeight != NewHeight || displayModeBPP != NewBPP || displayModeRefreshRate != NewRefreshRate)
+		{
+			ChangeMode = true;
+			displayModeWidth = NewWidth;
+			displayModeHeight = NewHeight;
+			displayModeBPP = NewBPP;
+			displayModeRefreshRate = NewRefreshRate;
+		}
 
 		if (SetDefaultDisplayMode || !displayWidth || !displayHeight)
 		{
@@ -1190,8 +1239,8 @@ HRESULT m_IDirectDrawX::SetDisplayMode(DWORD dwWidth, DWORD dwHeight, DWORD dwBP
 			displayHeight = dwHeight;
 		}
 
-		// Create the requested d3d device for this display mode, report Error: on failure
-		if (FAILED(CreateD3D9Device()))
+		// Update the d3d9 device to use new display mode
+		if (ChangeMode && d3d9Device && FAILED(CreateD3D9Device()))
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Error: creating Direct3D9 Device");
 			return DDERR_GENERIC;
@@ -1465,6 +1514,64 @@ HRESULT m_IDirectDrawX::EvaluateMode(DWORD dwFlags, DWORD * pSecondsUntilTimeout
 /*** Helper functions ***/
 /************************/
 
+LPDIRECT3D9 m_IDirectDrawX::GetDirect3D9Object()
+{
+	return d3d9Object;
+}
+
+LPDIRECT3DDEVICE9 *m_IDirectDrawX::GetDirect3D9Device()
+{
+	return &d3d9Device;
+}
+
+void m_IDirectDrawX::InitDdraw(LPDIRECT3D9 pObject)
+{
+	DWORD ref = InterlockedIncrement(&ddrawRefCount);
+
+	if (ref == 1)
+	{
+		d3d9Object = pObject;
+
+		SetDdrawDefaults();
+	}
+}
+
+void m_IDirectDrawX::SetDdrawDefaults()
+{
+	// Convert to Direct3D9
+	MainhWnd = nullptr;
+	IsInScene = false;
+	ExclusiveMode = false;
+	AllowModeX = false;
+	MultiThreaded = false;
+	FUPPreserve = false;
+	NoWindowChanges = false;
+	isWindowed = true;
+
+	// Application display mode
+	displayModeWidth = 0;
+	displayModeHeight = 0;
+	displayModeBPP = 0;
+	displayModeRefreshRate = 0;
+
+	// Display resolution
+	displayWidth = (Config.DdrawUseNativeResolution) ? GetSystemMetrics(SM_CXSCREEN) : (Config.DdrawOverrideWidth) ? Config.DdrawOverrideWidth : 0;
+	displayHeight = (Config.DdrawUseNativeResolution) ? GetSystemMetrics(SM_CYSCREEN) : (Config.DdrawOverrideHeight) ? Config.DdrawOverrideHeight : 0;
+	displayRefreshRate = (Config.DdrawOverrideRefreshRate) ? Config.DdrawOverrideRefreshRate : 0;
+
+	SetDefaultDisplayMode = (!displayWidth || !displayHeight);
+}
+
+HWND m_IDirectDrawX::GetHwnd()
+{
+	return MainhWnd;
+}
+
+bool m_IDirectDrawX::IsExclusiveMode()
+{
+	return ExclusiveMode;
+}
+
 HRESULT m_IDirectDrawX::CheckInterface(char *FunctionName, bool CheckD3DDevice)
 {
 	// Check for device
@@ -1715,36 +1822,14 @@ void m_IDirectDrawX::ReleaseD3d9Device()
 			d3d9Device->EndScene();
 		}
 
-		d3d9Device->Release();
-
-		d3d9Device = nullptr;
+		if (d3d9Device->Release() == 0)
+		{
+			d3d9Device = nullptr;
+		}
 	}
 
 	// Set is not in scene
 	IsInScene = false;
-}
-
-// Release all d3d9 classes for Release()
-void m_IDirectDrawX::ReleaseAllD3d9()
-{
-	// ToDo: Release all m_Direct3DX objects.
-
-	// Release all palettes
-	ReleaseAllD9Palettes();
-
-	// Release existing surfaces
-	ReleaseAllD9Surfaces(true);
-
-	// Release existing d3d9device
-	ReleaseD3d9Device();
-
-	// Release existing d3d9object
-	if (d3d9Object)
-	{
-		d3d9Object->Release();
-
-		d3d9Object = nullptr;
-	}
 }
 
 // Add surface wrapper to vector
@@ -2010,8 +2095,11 @@ HRESULT m_IDirectDrawX::EndScene()
 	return DD_OK;
 }
 
-void m_IDirectDrawX::ReleaseInterface()
+void m_IDirectDrawX::ReleaseDdraw()
 {
+	InterlockedDecrement(&ddrawRefCount);
+
+	// Direct3D interfaces
 	SetCriticalSection();
 	if (D3DInterface)
 	{
@@ -2021,5 +2109,25 @@ void m_IDirectDrawX::ReleaseInterface()
 	{
 		D3DDeviceInterface->ClearDdraw();
 	}
+	D3DInterface = nullptr;
+	D3DDeviceInterface = nullptr;
 	ReleaseCriticalSection();
+
+	// Release d3d9 palettes
+	ReleaseAllD9Palettes();
+
+	// Release d3d9 surfaces
+	ReleaseAllD9Surfaces(true);
+
+	// Release shared d3d9device
+	ReleaseD3d9Device();
+
+	// Release shared d3d9object
+	if (d3d9Object)
+	{
+		if (d3d9Object->Release() == 0)
+		{
+			d3d9Object = nullptr;
+		}
+	}
 }
