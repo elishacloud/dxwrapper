@@ -151,7 +151,6 @@ public:
 	void *GetWrapperInterfaceX(DWORD DirectXVersion);
 
 	// Functions handling the ddraw parent interface
-	void ClearDdraw() { ddrawParent = nullptr; }
 	void SetDdrawParent(m_IDirectDrawX *ddraw)
 	{
 		ddrawParent = ddraw;

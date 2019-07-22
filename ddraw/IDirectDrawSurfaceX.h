@@ -234,7 +234,6 @@ public:
 	void *GetWrapperInterfaceX(DWORD DirectXVersion);
 
 	// Functions handling the ddraw parent interface
-	void ClearDdraw() { ddrawParent = nullptr; }
 	void SetDdrawParent(m_IDirectDrawX *ddraw) { ddrawParent = ddraw; }
 
 	// Direct3D9 interfaces
@@ -245,6 +244,7 @@ public:
 	bool IsSurfaceLocked() { return IsLocked; }
 	bool IsSurfaceInDC() { return IsInDC; }
 	bool IsSurfaceManaged() { return (surfaceDesc2.ddsCaps.dwCaps2 & (DDSCAPS2_TEXTUREMANAGE | DDSCAPS2_D3DTEXTUREMANAGE)) != 0; }
+	bool CanSurfaceBeDeleted() { return (ComplexRoot || (surfaceDesc2.ddsCaps.dwCaps & DDSCAPS_COMPLEX) == 0); }
 	DWORD GetWidth() { return surfaceDesc2.dwWidth; }
 	DWORD GetHeight() { return surfaceDesc2.dwHeight; }
 	DDSCAPS2 GetSurfaceCaps() { return surfaceDesc2.ddsCaps; }

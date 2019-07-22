@@ -254,7 +254,6 @@ public:
 
 private:
 	bool ConstructorFlag = false;
-	D *unused = nullptr;
 	std::unordered_map<void*, class AddressLookupTableDdrawObject*> g_map[MaxIndex];
 };
 

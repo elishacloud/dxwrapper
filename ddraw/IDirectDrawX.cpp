@@ -1583,6 +1583,53 @@ void m_IDirectDrawX::SetDdrawDefaults()
 	FrequencyFlag = QueryPerformanceFrequency(&clockFrequency);
 }
 
+void m_IDirectDrawX::ReleaseDdraw()
+{
+	InterlockedDecrement(&ddrawRefCount);
+
+	// Release Direct3DDevice interfaces
+	if (D3DDeviceInterface)
+	{
+		while (D3DDeviceInterface->Release() != 0) {}
+		D3DDeviceInterface = nullptr;
+	}
+
+	// Release Direct3D interfaces
+	if (D3DInterface)
+	{
+		while (D3DInterface->Release() != 0) {}
+		D3DInterface = nullptr;
+	}
+
+	// Release surfaces
+	for (m_IDirectDrawSurfaceX *pSurface : SurfaceVector)
+	{
+		while (pSurface->CanSurfaceBeDeleted() && pSurface->Release() != 0) {}
+	}
+	SurfaceVector.clear();
+
+	// Release palettes
+	for (m_IDirectDrawPalette *pPalette : PaletteVector)
+	{
+		while (pPalette->Release() != 0) {}
+	}
+	PaletteVector.clear();
+
+	// ToDo: Release ColorControl and GammaControl
+
+	// Release shared d3d9device
+	ReleaseD3d9Device();
+
+	// Release shared d3d9object
+	if (d3d9Object)
+	{
+		if (d3d9Object->Release() == 0)
+		{
+			d3d9Object = nullptr;
+		}
+	}
+}
+
 HWND m_IDirectDrawX::GetHwnd()
 {
 	return MainhWnd;
@@ -1802,29 +1849,13 @@ HRESULT m_IDirectDrawX::ReinitDevice()
 	return DD_OK;
 }
 
-// Release all d3d9 Palettes
-void m_IDirectDrawX::ReleaseAllD9Palettes()
-{
-	SetCriticalSection();
-	for (m_IDirectDrawPalette *pPalette : PaletteVector)
-	{
-			pPalette->ClearDdraw();
-	}
-	PaletteVector.clear();
-	ReleaseCriticalSection();
-}
-
 // Release all d3d9 surfaces
-void m_IDirectDrawX::ReleaseAllD9Surfaces(bool ClearDDraw)
+void m_IDirectDrawX::ReleaseAllD9Surfaces()
 {
 	SetCriticalSection();
 	for (m_IDirectDrawSurfaceX *pSurface : SurfaceVector)
 	{
-		if (ClearDDraw)
-		{
-			pSurface->ClearDdraw();
-		}
-		pSurface->ReleaseD9Surface(!ClearDDraw);
+		pSurface->ReleaseD9Surface();
 	}
 	ReleaseCriticalSection();
 }
@@ -2105,41 +2136,4 @@ HRESULT m_IDirectDrawX::EndScene()
 	BeginScene();
 
 	return DD_OK;
-}
-
-void m_IDirectDrawX::ReleaseDdraw()
-{
-	InterlockedDecrement(&ddrawRefCount);
-
-	// Direct3D interfaces
-	SetCriticalSection();
-	if (D3DInterface)
-	{
-		D3DInterface->ClearDdraw();
-	}
-	if (D3DDeviceInterface)
-	{
-		D3DDeviceInterface->ClearDdraw();
-	}
-	D3DInterface = nullptr;
-	D3DDeviceInterface = nullptr;
-	ReleaseCriticalSection();
-
-	// Release d3d9 palettes
-	ReleaseAllD9Palettes();
-
-	// Release d3d9 surfaces
-	ReleaseAllD9Surfaces(true);
-
-	// Release shared d3d9device
-	ReleaseD3d9Device();
-
-	// Release shared d3d9object
-	if (d3d9Object)
-	{
-		if (d3d9Object->Release() == 0)
-		{
-			d3d9Object = nullptr;
-		}
-	}
 }

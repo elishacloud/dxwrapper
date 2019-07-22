@@ -87,7 +87,6 @@ public:
 
 	// Functions handling the ddraw parent interface
 	void SetDdrawParent(m_IDirectDrawX *ddraw) { ddrawParent = ddraw; }
-	void ClearDdraw() { ddrawParent = nullptr; }
 
 	// Resolution hack
 	void ResolutionHack();

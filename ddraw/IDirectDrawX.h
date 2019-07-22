@@ -150,6 +150,7 @@ public:
 	// Device information functions
 	void InitDdraw(LPDIRECT3D9 pObject);
 	void SetDdrawDefaults();
+	void ReleaseDdraw();
 	HWND GetHwnd();
 	bool IsExclusiveMode();
 
@@ -157,8 +158,7 @@ public:
 	HRESULT CheckInterface(char *FunctionName, bool CheckD3DDevice);
 	HRESULT CreateD3D9Device();
 	HRESULT ReinitDevice();
-	void ReleaseAllD9Palettes();
-	void ReleaseAllD9Surfaces(bool ClearDDraw = false);
+	void ReleaseAllD9Surfaces();
 	void ReleaseD3d9Device();
 
 	// Surface vector functions
@@ -178,7 +178,4 @@ public:
 	// Begin & end scene
 	HRESULT BeginScene();
 	HRESULT EndScene();
-
-	// Release interface
-	void ReleaseDdraw();
  };

@@ -163,7 +163,7 @@ ULONG m_IDirectDrawSurfaceX::Release()
 	}
 
 	// A complex structure can be destroyed only by destroying the root
-	if (ref == 0 && ((surfaceDesc2.ddsCaps.dwCaps & DDSCAPS_COMPLEX) && !ComplexRoot))
+	if (ref == 0 && !CanSurfaceBeDeleted())
 	{
 		InterlockedIncrement(&RefCount);
 	}
