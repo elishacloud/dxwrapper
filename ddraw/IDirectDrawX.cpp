@@ -486,13 +486,13 @@ HRESULT m_IDirectDrawX::EnumDisplayModes(DWORD dwFlags, LPDDSURFACEDESC lpDDSurf
 		CallbackContext.lpContext = lpContext;
 		CallbackContext.lpCallback = lpEnumModesCallback;
 
-		return EnumDisplayModes2(dwFlags, (lpDDSurfaceDesc) ? &Desc2 : nullptr, &CallbackContext, m_IDirectDrawEnumDisplayModes::ConvertCallback, true);
+		return EnumDisplayModes2(dwFlags, (lpDDSurfaceDesc) ? &Desc2 : nullptr, &CallbackContext, m_IDirectDrawEnumDisplayModes::ConvertCallback);
 	}
 
 	return GetProxyInterfaceV3()->EnumDisplayModes(dwFlags, lpDDSurfaceDesc, lpContext, lpEnumModesCallback);
 }
 
-HRESULT m_IDirectDrawX::EnumDisplayModes2(DWORD dwFlags, LPDDSURFACEDESC2 lpDDSurfaceDesc2, LPVOID lpContext, LPDDENUMMODESCALLBACK2 lpEnumModesCallback2, bool LimitModes)
+HRESULT m_IDirectDrawX::EnumDisplayModes2(DWORD dwFlags, LPDDSURFACEDESC2 lpDDSurfaceDesc2, LPVOID lpContext, LPDDENUMMODESCALLBACK2 lpEnumModesCallback2)
 {
 	Logging::LogDebug() << __FUNCTION__;
 
@@ -515,9 +515,9 @@ HRESULT m_IDirectDrawX::EnumDisplayModes2(DWORD dwFlags, LPDDSURFACEDESC2 lpDDSu
 		DWORD EnumRefreshRate = 0;
 		if (lpDDSurfaceDesc2)
 		{
-			EnumWidth = lpDDSurfaceDesc2->dwWidth;
-			EnumHeight = lpDDSurfaceDesc2->dwHeight;
-			EnumRefreshRate = lpDDSurfaceDesc2->dwRefreshRate;
+			EnumWidth = (lpDDSurfaceDesc2->dwFlags & DDSD_WIDTH) ? lpDDSurfaceDesc2->dwWidth : 0;
+			EnumHeight = (lpDDSurfaceDesc2->dwFlags & DDSD_HEIGHT) ? lpDDSurfaceDesc2->dwHeight : 0;
+			EnumRefreshRate = (lpDDSurfaceDesc2->dwFlags & DDSD_REFRESHRATE) ? lpDDSurfaceDesc2->dwRefreshRate : 0;
 		}
 		if (!(dwFlags & DDEDM_REFRESHRATES) && !EnumRefreshRate)
 		{
@@ -525,13 +525,12 @@ HRESULT m_IDirectDrawX::EnumDisplayModes2(DWORD dwFlags, LPDDSURFACEDESC2 lpDDSu
 		}
 
 		// Get display modes to enum
-		bool DisplayAllModes = (!lpDDSurfaceDesc2);
-		DWORD DisplayBitCount = (displayModeBPP) ? displayModeBPP : (Config.DdrawOverrideBitMode) ? Config.DdrawOverrideBitMode : 0;
+		DWORD DisplayBitCount = (displayModeBPP) ? displayModeBPP : 0;
 		if (lpDDSurfaceDesc2 && (lpDDSurfaceDesc2->dwFlags & DDSD_PIXELFORMAT))
 		{
 			DisplayBitCount = GetBitCount(lpDDSurfaceDesc2->ddpfPixelFormat);
 		}
-		DisplayAllModes = (DisplayAllModes || !DisplayBitCount);
+		bool DisplayAllModes = (DisplayBitCount != 8 && DisplayBitCount != 16 && DisplayBitCount != 24 && DisplayBitCount != 32);
 
 		// Setup surface desc
 		DDSURFACEDESC2 Desc2 = { NULL };
@@ -545,13 +544,11 @@ HRESULT m_IDirectDrawX::EnumDisplayModes2(DWORD dwFlags, LPDDSURFACEDESC2 lpDDSu
 		UINT modeCount = d3d9Object->GetAdapterModeCount(D3DADAPTER_DEFAULT, D3DFMT_X8R8G8B8);
 
 		// Loop through all modes
-		int Loop = 0;
 		for (UINT i = 0; i < modeCount; i++)
 		{
 			// Get display modes
 			ZeroMemory(&d3ddispmode, sizeof(D3DDISPLAYMODE));
-			HRESULT hr = d3d9Object->EnumAdapterModes(D3DADAPTER_DEFAULT, D3DFMT_X8R8G8B8, i, &d3ddispmode);
-			if (FAILED(hr))
+			if (FAILED(d3d9Object->EnumAdapterModes(D3DADAPTER_DEFAULT, D3DFMT_X8R8G8B8, i, &d3ddispmode)))
 			{
 				LOG_LIMIT(100, __FUNCTION__ << " Error: EnumAdapterModes failed");
 				break;
@@ -565,22 +562,12 @@ HRESULT m_IDirectDrawX::EnumDisplayModes2(DWORD dwFlags, LPDDSURFACEDESC2 lpDDSu
 				{
 					DisplayBitCount = bpMode;
 				}
-				else if (DisplayBitCount != bpMode)
-				{
-					break;
-				}
 
 				// Check refresh mode
 				if ((!EnumWidth || d3ddispmode.Width == EnumWidth) &&
 					(!EnumHeight || d3ddispmode.Height == EnumHeight) &&
 					(!EnumRefreshRate || d3ddispmode.RefreshRate == EnumRefreshRate))
 				{
-					// Only return 34 display modes
-					if (LimitModes && ++Loop > 34)
-					{
-						break;
-					}
-
 					// Set surface desc options
 					Desc2.dwSize = sizeof(DDSURFACEDESC2);
 					Desc2.dwFlags = DDSD_WIDTH | DDSD_HEIGHT | DDSD_REFRESHRATE | DDSD_PITCH | DDSD_PIXELFORMAT;
@@ -612,12 +599,12 @@ HRESULT m_IDirectDrawX::EnumDisplayModes2(DWORD dwFlags, LPDDSURFACEDESC2 lpDDSu
 						return DD_OK;
 					}
 				}
-			}
 
-			// Exit if not displaying all modes
-			if (!DisplayAllModes)
-			{
-				return DD_OK;
+				// Break if not displaying all modes
+				if (!DisplayAllModes)
+				{
+					break;
+				}
 			}
 		}
 
