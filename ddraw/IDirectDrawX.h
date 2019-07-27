@@ -51,9 +51,9 @@ public:
 	{
 		ProxyDirectXVersion = 9;
 
-		InitDdraw(aOriginal);
-
 		LOG_LIMIT(3, "Creating device " << __FUNCTION__ << "(" << this << ")" << " converting device from v" << DirectXVersion << " to v" << ProxyDirectXVersion);
+
+		InitDdraw(aOriginal);
 	}
 	~m_IDirectDrawX()
 	{

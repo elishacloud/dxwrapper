@@ -13,9 +13,9 @@ private:
 public:
 	m_IDirect3DLight(IDirect3DLight *aOriginal) : ProxyInterface(aOriginal)
 	{
-		ProxyAddressLookupTable.SaveAddress(this, ProxyInterface);
-
 		LOG_LIMIT(3, "Creating device " << __FUNCTION__ << "(" << this << ")");
+
+		ProxyAddressLookupTable.SaveAddress(this, ProxyInterface);
 	}
 	m_IDirect3DLight(m_IDirect3DDeviceX **D3DDInterface) : D3DDeviceInterface(D3DDInterface)
 	{

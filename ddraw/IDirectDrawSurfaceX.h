@@ -25,6 +25,7 @@ private:
 	DDSURFACEDESC2 surfaceDesc2 = { NULL };				// Surface description for this surface
 	D3DFORMAT surfaceFormat = D3DFMT_UNKNOWN;			// Format for this surface
 	DWORD surfaceBitCount = 0;							// Bit count for this surface
+	CRITICAL_SECTION ddscs;								// Critical section for surfaceArray
 	std::vector<byte> surfaceArray;						// Memory used for coping from one surface to the same surface
 	CKEYS ColorKeys[4];									// Color keys (0 = DDCKEY_DESTBLT, 1 = DDCKEY_DESTOVERLAY, 2 = DDCKEY_SRCBLT, 3 = DDCKEY_SRCOVERLAY)
 	LONG overlayX = 0;
@@ -120,16 +121,19 @@ public:
 	{
 		ProxyDirectXVersion = 9;
 
+		LOG_LIMIT(3, "Creating device " << __FUNCTION__ << "(" << this << ")" << " converting device from v" << DirectXVersion << " to v" << ProxyDirectXVersion);
+
 		// Store surface
 		if (ddrawParent)
 		{
 			ddrawParent->AddSurfaceToVector(this);
 		}
 
+		// Initialize Critical Section for surface array
+		InitializeCriticalSection(&ddscs);
+
 		// Update surface description and create backbuffers
 		InitSurfaceDesc(lpDDSurfaceDesc2, DirectXVersion);
-
-		LOG_LIMIT(3, "Creating device " << __FUNCTION__ << "(" << this << ")" << " converting device from v" << DirectXVersion << " to v" << ProxyDirectXVersion);
 	}
 	~m_IDirectDrawSurfaceX()
 	{
@@ -139,6 +143,9 @@ public:
 		{
 			ReleaseInterface();
 			ReleaseD9Surface(false);
+
+			// Delete Critical Section for surface array
+			DeleteCriticalSection(&ddscs);
 		}
 	}
 

@@ -26,9 +26,13 @@
 AddressLookupTableDdraw<void> ProxyAddressLookupTable = AddressLookupTableDdraw<void>();
 
 CRITICAL_SECTION ddcs;
-bool ThreadSyncFlag = false;
-
 bool IsInitialized = false;
+
+struct ENUMMONITORS
+{
+	LPSTR lpName;
+	HMONITOR hm;
+};
 
 #define INITIALIZE_WRAPPED_PROC(procName, unused) \
 	FARPROC procName ## _out = nullptr;
@@ -110,9 +114,9 @@ HRESULT WINAPI dd_D3DParseUnknownCommand(LPVOID lpCmd, LPVOID *lpRetCmd)
 
 		LPD3DHAL_DP2COMMAND dp2command = (LPD3DHAL_DP2COMMAND)lpCmd;
 
+		/* check for valid command, only 3 commands are valid */
 		switch (dp2command->bCommand)
 		{
-			/* check for valid command, only 3 commands are valid */
 		case D3DDP2OP_VIEWPORTINFO:
 			*lpRetCmd = (LPVOID)((DWORD)lpCmd + (dp2command->wStateCount * sizeof(D3DHAL_DP2VIEWPORTINFO)) + sizeof(D3DHAL_DP2COMMAND));
 			break;
@@ -125,8 +129,7 @@ HRESULT WINAPI dd_D3DParseUnknownCommand(LPVOID lpCmd, LPVOID *lpRetCmd)
 			*lpRetCmd = (LPVOID)((DWORD)lpCmd + (dp2command->wStateCount * dp2command->bReserved) + sizeof(D3DHAL_DP2COMMAND));
 			break;
 
-			/* set the error code */
-		default:
+		default:   /* set the error code */
 			if ((dp2command->bCommand <= D3DDP2OP_INDEXEDTRIANGLELIST) || // dp2command->bCommand  <= with 0 to 3
 				(dp2command->bCommand == D3DDP2OP_RENDERSTATE) ||  // dp2command->bCommand  == with 8
 				(dp2command->bCommand >= D3DDP2OP_LINELIST))  // dp2command->bCommand  >= with 15 to 255
@@ -135,7 +138,8 @@ HRESULT WINAPI dd_D3DParseUnknownCommand(LPVOID lpCmd, LPVOID *lpRetCmd)
 				return DDERR_INVALIDPARAMS;
 			}
 			else
-			{   /* set error code for 4 - 7, 9 - 12, 14  */
+			{
+				/* set error code for 4 - 7, 9 - 12, 14  */
 				return D3DERR_COMMAND_UNPARSED;
 			}
 		}
@@ -382,12 +386,6 @@ HRESULT WINAPI dd_DirectDrawCreateEx(GUID FAR *lpGUID, LPVOID *lplpDD, REFIID ri
 	return hr;
 }
 
-struct ENUMMONITORS
-{
-	LPSTR lpName;
-	HMONITOR hm;
-};
-
 BOOL CALLBACK DispayEnumeratorProc(HMONITOR hMonitor, HDC hdcMonitor, LPRECT lprcMonitor, LPARAM dwData)
 {
 	UNREFERENCED_PARAMETER(hdcMonitor);
@@ -416,14 +414,6 @@ BOOL CALLBACK DispayEnumeratorProc(HMONITOR hMonitor, HDC hdcMonitor, LPRECT lpr
 
 	return DDENUMRET_OK;
 }
-
-enum DirectDrawEnumerateTypes
-{
-	DDET_ENUMCALLBACKA,
-	DDET_ENUMCALLBACKEXA,
-	DDET_ENUMCALLBACKEXW,
-	DDET_ENUMCALLBACKW,
-};
 
 HRESULT DirectDrawEnumerateHandler(LPVOID lpCallback, LPVOID lpContext, DWORD dwFlags, DirectDrawEnumerateTypes DDETType)
 {
@@ -460,6 +450,7 @@ HRESULT DirectDrawEnumerateHandler(LPVOID lpCallback, LPVOID lpContext, DWORD dw
 	wchar_t lpwName[32] = { '\0' };
 	wchar_t lpwDesc[128] = { '\0' };
 	HMONITOR hm = nullptr;
+	HRESULT hr = DD_OK;
 	for (int x = -1; x < AdapterCount; x++)
 	{
 		if (x == -1)
@@ -472,9 +463,9 @@ HRESULT DirectDrawEnumerateHandler(LPVOID lpCallback, LPVOID lpContext, DWORD dw
 		else
 		{
 			if (FAILED(d3d9Object->GetAdapterIdentifier(x, 0, &Identifier)))
-			{
-				d3d9Object->Release();
-				return DDERR_GENERIC;
+			{				
+				hr = DDERR_GENERIC;
+				break;
 			}
 			lpGUID = &Identifier.DeviceIdentifier;
 			lpDesc = Identifier.Description;
@@ -497,44 +488,34 @@ HRESULT DirectDrawEnumerateHandler(LPVOID lpCallback, LPVOID lpContext, DWORD dw
 			mbstowcs_s(&nReturn, lpwDesc, lpDesc, 128);
 		}
 
+		HRESULT hr_Callback = DDENUMRET_OK;
 		switch (DDETType)
 		{
 		case DDET_ENUMCALLBACKA:
-			if (LPDDENUMCALLBACKA(lpCallback)(lpGUID, lpDesc, lpName, lpContext) == DDENUMRET_CANCEL)
-			{
-				d3d9Object->Release();
-				return DD_OK;
-			}
+			hr_Callback = LPDDENUMCALLBACKA(lpCallback)(lpGUID, lpDesc, lpName, lpContext);
 			break;
 		case DDET_ENUMCALLBACKEXA:
-			if (LPDDENUMCALLBACKEXA(lpCallback)(lpGUID, lpDesc, lpName, lpContext, hm) == DDENUMRET_CANCEL)
-			{
-				d3d9Object->Release();
-				return DD_OK;
-			}
+			hr_Callback = LPDDENUMCALLBACKEXA(lpCallback)(lpGUID, lpDesc, lpName, lpContext, hm);
 			break;
 		case DDET_ENUMCALLBACKEXW:
-			if (LPDDENUMCALLBACKEXW(lpCallback)(lpGUID, lpwDesc, lpwName, lpContext, hm) == DDENUMRET_CANCEL)
-			{
-				d3d9Object->Release();
-				return DD_OK;
-			}
+			hr_Callback = LPDDENUMCALLBACKEXW(lpCallback)(lpGUID, lpwDesc, lpwName, lpContext, hm);
 			break;
 		case DDET_ENUMCALLBACKW:
-			if (LPDDENUMCALLBACKW(lpCallback)(lpGUID, lpwDesc, lpwName, lpContext) == DDENUMRET_CANCEL)
-			{
-				d3d9Object->Release();
-				return DD_OK;
-			}
+			hr_Callback = LPDDENUMCALLBACKW(lpCallback)(lpGUID, lpwDesc, lpwName, lpContext);
 			break;
 		default:
-			d3d9Object->Release();
-			return DDERR_GENERIC;
+			hr_Callback = DDENUMRET_CANCEL;
+			hr = DDERR_GENERIC;
+		}
+
+		if (hr_Callback == DDENUMRET_CANCEL)
+		{
+			break;
 		}
 	}
 
 	d3d9Object->Release();
-	return DD_OK;
+	return hr;
 }
 
 HRESULT WINAPI dd_DirectDrawEnumerateA(LPDDENUMCALLBACKA lpCallback, LPVOID lpContext)
@@ -812,17 +793,16 @@ HRESULT WINAPI dd_SetAppCompatData(DWORD Type, DWORD Value)
 
 void DdrawWrapper::SetCriticalSection()
 {
-	if (ThreadSyncFlag)
+	if (IsInitialized)
 	{
-		do {
-			Sleep(0);
-		} while (ThreadSyncFlag);
+		EnterCriticalSection(&ddcs);
 	}
-
-	ThreadSyncFlag = true;
 }
 
 void DdrawWrapper::ReleaseCriticalSection()
 {
-	ThreadSyncFlag = false;
+	if (IsInitialized)
+	{
+		LeaveCriticalSection(&ddcs);
+	}
 }

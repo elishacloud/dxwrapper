@@ -11,6 +11,8 @@ private:
 public:
 	m_IDirectDrawColorControl(IDirectDrawColorControl *aOriginal) : ProxyInterface(aOriginal)
 	{
+		LOG_LIMIT(3, "Creating device " << __FUNCTION__ << "(" << this << ")");
+
 		ProxyAddressLookupTable.SaveAddress(this, ProxyInterface);
 
 		ColorControl.dwSize = sizeof(DDCOLORCONTROL);
@@ -23,8 +25,6 @@ public:
 		ColorControl.lGamma = 1;
 		ColorControl.lColorEnable = 1;
 		ColorControl.dwReserved1 = 0;
-
-		LOG_LIMIT(3, "Creating device " << __FUNCTION__ << "(" << this << ")");
 	}
 	m_IDirectDrawColorControl()
 	{

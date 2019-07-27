@@ -34,6 +34,8 @@ public:
 	{
 		ProxyDirectXVersion = 9;
 
+		LOG_LIMIT(3, "Creating device " << __FUNCTION__ << "(" << this << ")" << " converting device from v" << DirectXVersion << " to v" << ProxyDirectXVersion);
+
 		if (lpVBDesc && lpVBDesc->dwSize)
 		{
 			VBDesc.dwSize = sizeof(D3DVERTEXBUFFERDESC);
@@ -41,8 +43,6 @@ public:
 			VBDesc.dwFVF = lpVBDesc->dwFVF;
 			VBDesc.dwNumVertices = lpVBDesc->dwNumVertices;
 		}
-
-		LOG_LIMIT(3, "Creating device " << __FUNCTION__ << "(" << this << ")" << " converting device from v" << DirectXVersion << " to v" << ProxyDirectXVersion);
 	}
 	~m_IDirect3DVertexBufferX()
 	{

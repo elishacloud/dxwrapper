@@ -544,6 +544,7 @@ HRESULT m_IDirectDrawX::EnumDisplayModes2(DWORD dwFlags, LPDDSURFACEDESC2 lpDDSu
 		UINT modeCount = d3d9Object->GetAdapterModeCount(D3DADAPTER_DEFAULT, D3DFMT_X8R8G8B8);
 
 		// Loop through all modes
+		DWORD Loop = 0;
 		for (UINT i = 0; i < modeCount; i++)
 		{
 			// Get display modes
@@ -568,6 +569,11 @@ HRESULT m_IDirectDrawX::EnumDisplayModes2(DWORD dwFlags, LPDDSURFACEDESC2 lpDDSu
 					(!EnumHeight || d3ddispmode.Height == EnumHeight) &&
 					(!EnumRefreshRate || d3ddispmode.RefreshRate == EnumRefreshRate))
 				{
+					if (++Loop > Config.DdrawLimitDisplayModeCount && Config.DdrawLimitDisplayModeCount)
+					{
+						return DD_OK;
+					}
+
 					// Set surface desc options
 					Desc2.dwSize = sizeof(DDSURFACEDESC2);
 					Desc2.dwFlags = DDSD_WIDTH | DDSD_HEIGHT | DDSD_REFRESHRATE | DDSD_PITCH | DDSD_PIXELFORMAT;
@@ -1277,9 +1283,11 @@ HRESULT m_IDirectDrawX::WaitForVerticalBlank(DWORD dwFlags, HANDLE hEvent)
 
 		// Do some simple wait
 		D3DRASTER_STATUS RasterStatus;
-		if (SUCCEEDED(d3d9Device->GetRasterStatus(0, &RasterStatus)) && monitorHeight && monitorRefreshRate)
+		if (SUCCEEDED(d3d9Device->GetRasterStatus(0, &RasterStatus)) && 
+			(!RasterStatus.InVBlank || dwFlags != DDWAITVB_BLOCKBEGIN) &&
+			monitorHeight && monitorRefreshRate)
 		{
-			float percentageLeft = 1.0f - (float)RasterStatus.ScanLine / (float)monitorHeight;
+			float percentageLeft = 1.0f - (float)((RasterStatus.InVBlank) ? monitorHeight : RasterStatus.ScanLine) / (float)monitorHeight;
 			float blinkTime = trunc(1000.0f / monitorRefreshRate);
 			DWORD WaitTime = min(100, (DWORD)trunc(blinkTime * percentageLeft) + ((dwFlags == DDWAITVB_BLOCKBEGIN) ? 0 : 2));
 			Sleep(WaitTime);

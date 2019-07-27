@@ -98,6 +98,14 @@ namespace DdrawWrapper
 
 extern AddressLookupTableDdraw<void> ProxyAddressLookupTable;
 
+enum DirectDrawEnumerateTypes
+{
+	DDET_ENUMCALLBACKA,
+	DDET_ENUMCALLBACKEXA,
+	DDET_ENUMCALLBACKEXW,
+	DDET_ENUMCALLBACKW,
+};
+
 using namespace DdrawWrapper;
 
 // Direct3D Version Wrappers

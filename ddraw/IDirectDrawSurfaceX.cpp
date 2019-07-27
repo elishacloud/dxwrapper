@@ -314,6 +314,12 @@ HRESULT m_IDirectDrawSurfaceX::Blt(LPRECT lpDestRect, LPDIRECTDRAWSURFACE7 lpDDS
 		// DDBLT_WAIT
 		// DDBLTFX_NOTEARING
 
+		// Use WaitForVerticalBlank for wait timer
+		if ((dwFlags & DDBLT_DDFX) && (lpDDBltFx->dwDDFX & DDBLTFX_NOTEARING))
+		{
+			ddrawParent->WaitForVerticalBlank(DDWAITVB_BLOCKBEGIN, nullptr);
+		}
+
 		HRESULT hr = DD_OK;
 		m_IDirectDrawSurfaceX *lpDDSrcSurfaceX = nullptr;
 		do {
@@ -721,12 +727,17 @@ HRESULT m_IDirectDrawSurfaceX::Flip(LPDIRECTDRAWSURFACE7 lpDDSurfaceTargetOverri
 		// Unneeded flags (can be safely ignored?)
 		// Note: vsync handled by d3d9 PresentationInterval
 		// - DDFLIP_DONOTWAIT
-		// - DDFLIP_NOVSYNC
 		// - DDFLIP_WAIT
 
 		if ((dwFlags & (DDFLIP_INTERVAL2 | DDFLIP_INTERVAL3 | DDFLIP_INTERVAL4)) && (surfaceDesc2.ddsCaps.dwCaps2 & DDCAPS2_FLIPINTERVAL))
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Interval flipping not fully implemented");
+		}
+
+		// Use WaitForVerticalBlank for wait timer
+		if ((dwFlags & DDFLIP_NOVSYNC) == 0)
+		{
+			ddrawParent->WaitForVerticalBlank(DDWAITVB_BLOCKBEGIN, nullptr);
 		}
 
 		HRESULT hr = DD_OK;
@@ -2401,10 +2412,14 @@ HRESULT m_IDirectDrawSurfaceX::CreateD3d9Surface()
 
 			size_t size = surfaceDesc2.dwHeight * LockRect.Pitch;
 
+			EnterCriticalSection(&ddscs);
+
 			if (size == surfaceArray.size())
 			{
 				memcpy(LockRect.pBits, &surfaceArray[0], size);
 			}
+
+			LeaveCriticalSection(&ddscs);
 
 			surfaceTexture->UnlockRect(0);
 
@@ -2585,12 +2600,16 @@ void m_IDirectDrawSurfaceX::ReleaseD9Surface(bool BackupData)
 
 			size_t size = surfaceDesc2.dwHeight * LockRect.Pitch;
 
+			EnterCriticalSection(&ddscs);
+
 			if (size != surfaceArray.size())
 			{
 				surfaceArray.resize(size);
 			}
 
 			memcpy(&surfaceArray[0], LockRect.pBits, size);
+
+			LeaveCriticalSection(&ddscs);
 
 			surfaceTexture->UnlockRect(0);
 
@@ -3201,6 +3220,8 @@ HRESULT m_IDirectDrawSurfaceX::ColorFill(RECT* pRect, D3DCOLOR dwFillColor)
 		// Set memory address
 		BYTE *surfaceBuffer = (BYTE*)DestLockRect.pBits;
 
+		EnterCriticalSection(&ddscs);
+
 		// Fill temporary memory
 		if (ByteCount != 4)
 		{
@@ -3235,6 +3256,8 @@ HRESULT m_IDirectDrawSurfaceX::ColorFill(RECT* pRect, D3DCOLOR dwFillColor)
 			surfaceBuffer += DestLockRect.Pitch;
 		}
 
+		LeaveCriticalSection(&ddscs);
+
 	} while (false);
 
 	// Unlock surfaces if needed
@@ -3268,6 +3291,7 @@ HRESULT m_IDirectDrawSurfaceX::CopySurface(m_IDirectDrawSurfaceX* pSourceSurface
 
 	HRESULT hr = DD_OK;
 	bool UnlockSrc = false, UnlockDest = false;
+	bool IsCriticalSectionSet = false;
 	do {
 		D3DLOCKED_RECT SrcLockRect, DestLockRect;
 		DWORD DestBitCount = GetSurfaceBitCount();
@@ -3347,6 +3371,9 @@ HRESULT m_IDirectDrawSurfaceX::CopySurface(m_IDirectDrawSurfaceX* pSourceSurface
 		// Check if source and destination memory addresses are overlapping
 		if (this == pSourceSurface)
 		{
+			IsCriticalSectionSet = true;
+			EnterCriticalSection(&ddscs);
+
 			size_t size = surfaceDesc2.dwHeight * SrcLockRect.Pitch;
 			if (size > surfaceArray.size())
 			{
@@ -3426,6 +3453,12 @@ HRESULT m_IDirectDrawSurfaceX::CopySurface(m_IDirectDrawSurfaceX* pSourceSurface
 		}
 
 	} while (false);
+
+	// Leave Critical Section if needed
+	if (IsCriticalSectionSet)
+	{
+		LeaveCriticalSection(&ddscs);
+	}
 
 	// Unlock surfaces if needed
 	if (UnlockDest)
