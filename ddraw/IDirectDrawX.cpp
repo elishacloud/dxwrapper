@@ -1582,35 +1582,36 @@ void m_IDirectDrawX::ReleaseDdraw()
 {
 	InterlockedDecrement(&ddrawRefCount);
 
+	SetCriticalSection();
+
 	// Release Direct3DDevice interfaces
 	if (D3DDeviceInterface)
 	{
-		while (D3DDeviceInterface->Release() != 0) {}
+		D3DDeviceInterface->ClearDdraw();
 		D3DDeviceInterface = nullptr;
 	}
 
 	// Release Direct3D interfaces
 	if (D3DInterface)
 	{
-		while (D3DInterface->Release() != 0) {}
+		D3DInterface->ClearDdraw();
 		D3DInterface = nullptr;
 	}
 
 	// Release surfaces
 	for (m_IDirectDrawSurfaceX *pSurface : SurfaceVector)
 	{
-		while (pSurface->CanSurfaceBeDeleted() && pSurface->Release() != 0) {}
+		pSurface->ReleaseD9Surface();
+		pSurface->ClearDdraw();
 	}
 	SurfaceVector.clear();
 
 	// Release palettes
 	for (m_IDirectDrawPalette *pPalette : PaletteVector)
 	{
-		while (pPalette->Release() != 0) {}
+		pPalette->ClearDdraw();
 	}
 	PaletteVector.clear();
-
-	// ToDo: Release ColorControl and GammaControl
 
 	// Release shared d3d9device
 	ReleaseD3d9Device();
@@ -1623,6 +1624,8 @@ void m_IDirectDrawX::ReleaseDdraw()
 			d3d9Object = nullptr;
 		}
 	}
+
+	ReleaseCriticalSection();
 }
 
 HWND m_IDirectDrawX::GetHwnd()
@@ -1880,7 +1883,7 @@ void m_IDirectDrawX::ReleaseD3d9Device()
 // Add surface wrapper to vector
 void m_IDirectDrawX::AddSurfaceToVector(m_IDirectDrawSurfaceX* lpSurfaceX)
 {
-	if (!lpSurfaceX)
+	if (!lpSurfaceX || DoesSurfaceExist(lpSurfaceX))
 	{
 		return;
 	}
@@ -1961,7 +1964,7 @@ void m_IDirectDrawX::EvictManagedTextures()
 // Add palette wrapper to vector
 void m_IDirectDrawX::AddPaletteToVector(m_IDirectDrawPalette* lpPalette)
 {
-	if (!lpPalette)
+	if (!lpPalette || DoesPaletteExist(lpPalette))
 	{
 		return;
 	}
@@ -1985,6 +1988,25 @@ void m_IDirectDrawX::RemovePaletteFromVector(m_IDirectDrawPalette* lpPalette)
 	{
 		PaletteVector.erase(it);
 	}
+}
+
+// Check if palette wrapper exists
+bool m_IDirectDrawX::DoesPaletteExist(m_IDirectDrawPalette* lpPalette)
+{
+	if (!lpPalette)
+	{
+		return false;
+	}
+
+	auto it = std::find_if(PaletteVector.begin(), PaletteVector.end(),
+		[=](auto pSurface) -> bool { return pSurface == lpPalette; });
+
+	if (it == std::end(PaletteVector))
+	{
+		return false;
+	}
+
+	return true;
 }
 
 void m_IDirectDrawX::SetVidMemory(LPDWORD lpdwTotal, LPDWORD lpdwFree)

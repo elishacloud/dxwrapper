@@ -171,6 +171,7 @@ public:
 	// Palette vector functions
 	void AddPaletteToVector(m_IDirectDrawPalette* lpPalette);
 	void RemovePaletteFromVector(m_IDirectDrawPalette* lpPalette);
+	bool DoesPaletteExist(m_IDirectDrawPalette* lpPalette);
 
 	// Video memory size
 	static void SetVidMemory(LPDWORD lpdwTotal, LPDWORD lpdwFree);

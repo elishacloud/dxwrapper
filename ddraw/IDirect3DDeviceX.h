@@ -161,6 +161,7 @@ public:
 			ddrawParent->SetD3DDevice(this);
 		}
 	}
+	void ClearDdraw() { ddrawParent = nullptr; }
 
 	// Release interface
 	void ReleaseInterface();
