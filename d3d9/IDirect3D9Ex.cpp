@@ -15,37 +15,28 @@
 */
 
 #include "d3d9.h"
+#include "ddraw\ddrawExternal.h"
 
 m_IDirect3DDevice9Ex *pD3D9DeviceInterface = nullptr;
 HWND DeviceWindow = nullptr;
 LONG BufferWidth = 0, BufferHeight = 0;
 
+// For AntiAliasing
+bool DeviceMultiSampleFlag = false;
+D3DMULTISAMPLE_TYPE DeviceMultiSampleType = D3DMULTISAMPLE_NONE;
+DWORD DeviceMultiSampleQuality = 0;
+
 HRESULT m_IDirect3D9Ex::QueryInterface(REFIID riid, void** ppvObj)
 {
 	Logging::LogDebug() << __FUNCTION__;
 
-	if (riid == IID_IUnknown && ppvObj)
+	if ((riid == IID_IUnknown || riid == WrapperID) && ppvObj)
 	{
 		AddRef();
 
 		*ppvObj = this;
 
 		return D3D_OK;
-	}
-	else if ((riid == IID_IDirect3D9 || riid == IID_IDirect3D9Ex) && ppvObj)
-	{
-		HRESULT hr = ProxyInterface->QueryInterface(riid, ppvObj);
-
-		if (SUCCEEDED(hr) && *ppvObj != ProxyInterface)
-		{
-			*ppvObj = new m_IDirect3D9Ex((LPDIRECT3D9EX)*ppvObj);
-		}
-		else if (SUCCEEDED(hr))
-		{
-			*ppvObj = this;
-		}
-
-		return hr;
 	}
 
 	return ProxyInterface->QueryInterface(riid, ppvObj);
@@ -182,45 +173,53 @@ HRESULT m_IDirect3D9Ex::CreateDevice(UINT Adapter, D3DDEVTYPE DeviceType, HWND h
 		return D3DERR_INVALIDCALL;
 	}
 
-	// Check if d3d9 device already exists
-	PVOID NullValue = nullptr;
-	m_IDirect3DDevice9Ex *pReturnedDevice = (m_IDirect3DDevice9Ex*)InterlockedCompareExchangePointer((PVOID*)&pD3D9DeviceInterface, NullValue, NullValue);
-
-	if (pReturnedDevice)
-	{
-		pReturnedDevice->AddRef();
-
-		pReturnedDevice->Reset(pPresentationParameters);
-
-		*ppReturnedDeviceInterface = pReturnedDevice;
-
-		return D3D_OK;
-	}
-
 	// Create new d3d9 device
 	HRESULT hr = D3DERR_INVALIDCALL;
 
-	// Update presentation parameters
-	UpdatePresentParameter(pPresentationParameters, hFocusWindow, true);
+	// Setup presentation parameters
+	D3DPRESENT_PARAMETERS d3dpp;
+	CopyMemory(&d3dpp, pPresentationParameters, sizeof(D3DPRESENT_PARAMETERS));
+	UpdatePresentParameter(&d3dpp, hFocusWindow, true);
+
+	// Check if d3d9 device already exists
+	if (ShareD3d9DeviceFlag)
+	{
+		PVOID NullValue = nullptr;
+		m_IDirect3DDevice9Ex *pReturnedDevice = (m_IDirect3DDevice9Ex*)InterlockedCompareExchangePointer((PVOID*)&pD3D9DeviceInterface, NullValue, NullValue);
+
+		if (pReturnedDevice)
+		{
+			pReturnedDevice->AddRef();
+
+			// Set new window handle
+			if (!IsWindow(d3dpp.hDeviceWindow) && IsWindow(hFocusWindow))
+			{
+				d3dpp.hDeviceWindow = hFocusWindow;
+			}
+
+			hr = pReturnedDevice->Reset(&d3dpp);
+
+			*ppReturnedDeviceInterface = pReturnedDevice;
+
+			return hr;
+		}
+	}
 
 	// Check for AntiAliasing
 	bool MultiSampleFlag = false;
 	if (Config.AntiAliasing != 0)
 	{
 		DWORD QualityLevels = 0;
-		D3DPRESENT_PARAMETERS d3dpp;
-		CopyMemory(&d3dpp, pPresentationParameters, sizeof(D3DPRESENT_PARAMETERS));
-		d3dpp.BackBufferCount = (d3dpp.BackBufferCount) ? d3dpp.BackBufferCount : 1;
 
 		// Check AntiAliasing quality
 		for (int x = min(16, Config.AntiAliasing); x > 0; x--)
 		{
-			if (ProxyInterface->CheckDeviceMultiSampleType(Adapter,
-				DeviceType, (d3dpp.BackBufferFormat) ? d3dpp.BackBufferFormat : D3DFMT_X8R8G8B8, d3dpp.Windowed,
-				(D3DMULTISAMPLE_TYPE)x, &QualityLevels) == D3D_OK ||
-				ProxyInterface->CheckDeviceMultiSampleType(Adapter,
+			if (SUCCEEDED(ProxyInterface->CheckDeviceMultiSampleType(Adapter,
+				DeviceType, (d3dpp.BackBufferFormat) ? d3dpp.BackBufferFormat : D3DFMT_A8R8G8B8, d3dpp.Windowed,
+				(D3DMULTISAMPLE_TYPE)x, &QualityLevels)) ||
+				SUCCEEDED(ProxyInterface->CheckDeviceMultiSampleType(Adapter,
 					DeviceType, d3dpp.AutoDepthStencilFormat, d3dpp.Windowed,
-					(D3DMULTISAMPLE_TYPE)x, &QualityLevels) == D3D_OK)
+					(D3DMULTISAMPLE_TYPE)x, &QualityLevels)))
 			{
 				// Update Present Parameter for Multisample
 				UpdatePresentParameterForMultisample(&d3dpp, (D3DMULTISAMPLE_TYPE)x, (QualityLevels > 0) ? QualityLevels - 1 : 0);
@@ -234,8 +233,8 @@ HRESULT m_IDirect3D9Ex::CreateDevice(UINT Adapter, D3DDEVTYPE DeviceType, HWND h
 					MultiSampleFlag = true;
 					(*ppReturnedDeviceInterface)->SetRenderState(D3DRS_MULTISAMPLEANTIALIAS, TRUE);
 					LOG_LIMIT(3, "Setting MultiSample " << d3dpp.MultiSampleType << " Quality " << d3dpp.MultiSampleQuality);
+					break;
 				}
-				break;
 			}
 		}
 		if (FAILED(hr))
@@ -247,18 +246,19 @@ HRESULT m_IDirect3D9Ex::CreateDevice(UINT Adapter, D3DDEVTYPE DeviceType, HWND h
 	// Create Device
 	if (FAILED(hr))
 	{
-		hr = ProxyInterface->CreateDevice(Adapter, DeviceType, hFocusWindow, BehaviorFlags, pPresentationParameters, ppReturnedDeviceInterface);
+		// Update presentation parameters
+		CopyMemory(&d3dpp, pPresentationParameters, sizeof(D3DPRESENT_PARAMETERS));
+		UpdatePresentParameter(&d3dpp, hFocusWindow, false);
+
+		// Create Device
+		hr = ProxyInterface->CreateDevice(Adapter, DeviceType, hFocusWindow, BehaviorFlags, &d3dpp, ppReturnedDeviceInterface);
 	}
 
 	if (SUCCEEDED(hr))
 	{
-		pReturnedDevice = new m_IDirect3DDevice9Ex((LPDIRECT3DDEVICE9EX)*ppReturnedDeviceInterface, (m_IDirect3D9Ex*)this);
+		*ppReturnedDeviceInterface = new m_IDirect3DDevice9Ex((LPDIRECT3DDEVICE9EX)*ppReturnedDeviceInterface, this, IID_IDirect3DDevice9, d3dpp.MultiSampleType, d3dpp.MultiSampleQuality, MultiSampleFlag);
 
-		*ppReturnedDeviceInterface = pReturnedDevice;
-
-		pReturnedDevice->SetDefaults(pPresentationParameters, hFocusWindow, MultiSampleFlag);
-
-		InterlockedExchangePointer((PVOID*)&pD3D9DeviceInterface, pReturnedDevice);
+		InterlockedExchangePointer((PVOID*)&pD3D9DeviceInterface, *ppReturnedDeviceInterface);
 	}
 
 	return hr;
@@ -294,29 +294,29 @@ HRESULT m_IDirect3D9Ex::CreateDeviceEx(THIS_ UINT Adapter, D3DDEVTYPE DeviceType
 		return D3DERR_INVALIDCALL;
 	}
 
+	// Create new d3d9 device
 	HRESULT hr = D3DERR_INVALIDCALL;
 
-	// Update presentation parameters
-	UpdatePresentParameter(pPresentationParameters, hFocusWindow, true);
+	// Setup presentation parameters
+	D3DPRESENT_PARAMETERS d3dpp;
+	CopyMemory(&d3dpp, pPresentationParameters, sizeof(D3DPRESENT_PARAMETERS));
+	UpdatePresentParameter(&d3dpp, hFocusWindow, true);
 
 	// Check for AntiAliasing
 	bool MultiSampleFlag = false;
 	if (Config.AntiAliasing != 0)
 	{
 		DWORD QualityLevels = 0;
-		D3DPRESENT_PARAMETERS d3dpp;
-		CopyMemory(&d3dpp, pPresentationParameters, sizeof(D3DPRESENT_PARAMETERS));
-		d3dpp.BackBufferCount = (d3dpp.BackBufferCount) ? d3dpp.BackBufferCount : 1;
 
 		// Check AntiAliasing quality
 		for (int x = min(16, Config.AntiAliasing); x > 0; x--)
 		{
-			if (ProxyInterface->CheckDeviceMultiSampleType(Adapter,
-				DeviceType, (d3dpp.BackBufferFormat) ? d3dpp.BackBufferFormat : D3DFMT_X8R8G8B8, d3dpp.Windowed,
-				(D3DMULTISAMPLE_TYPE)x, &QualityLevels) == D3D_OK ||
-				ProxyInterface->CheckDeviceMultiSampleType(Adapter,
+			if (SUCCEEDED(ProxyInterface->CheckDeviceMultiSampleType(Adapter,
+				DeviceType, (d3dpp.BackBufferFormat) ? d3dpp.BackBufferFormat : D3DFMT_A8R8G8B8, d3dpp.Windowed,
+				(D3DMULTISAMPLE_TYPE)x, &QualityLevels)) ||
+				SUCCEEDED(ProxyInterface->CheckDeviceMultiSampleType(Adapter,
 					DeviceType, d3dpp.AutoDepthStencilFormat, d3dpp.Windowed,
-					(D3DMULTISAMPLE_TYPE)x, &QualityLevels) == D3D_OK)
+					(D3DMULTISAMPLE_TYPE)x, &QualityLevels)))
 			{
 				// Update Present Parameter for Multisample
 				UpdatePresentParameterForMultisample(&d3dpp, (D3DMULTISAMPLE_TYPE)x, (QualityLevels > 0) ? QualityLevels - 1 : 0);
@@ -330,8 +330,8 @@ HRESULT m_IDirect3D9Ex::CreateDeviceEx(THIS_ UINT Adapter, D3DDEVTYPE DeviceType
 					MultiSampleFlag = true;
 					(*ppReturnedDeviceInterface)->SetRenderState(D3DRS_MULTISAMPLEANTIALIAS, TRUE);
 					LOG_LIMIT(3, "Setting MultiSample " << d3dpp.MultiSampleType << " Quality " << d3dpp.MultiSampleQuality);
+					break;
 				}
-				break;
 			}
 		}
 		if (FAILED(hr))
@@ -343,16 +343,17 @@ HRESULT m_IDirect3D9Ex::CreateDeviceEx(THIS_ UINT Adapter, D3DDEVTYPE DeviceType
 	// Create Device
 	if (FAILED(hr))
 	{
-		hr = ProxyInterface->CreateDeviceEx(Adapter, DeviceType, hFocusWindow, BehaviorFlags, pPresentationParameters, pFullscreenDisplayMode, ppReturnedDeviceInterface);
+		// Update presentation parameters
+		CopyMemory(&d3dpp, pPresentationParameters, sizeof(D3DPRESENT_PARAMETERS));
+		UpdatePresentParameter(&d3dpp, hFocusWindow, false);
+
+		// Create Device
+		hr = ProxyInterface->CreateDeviceEx(Adapter, DeviceType, hFocusWindow, BehaviorFlags, &d3dpp, pFullscreenDisplayMode, ppReturnedDeviceInterface);
 	}
 
 	if (SUCCEEDED(hr))
 	{
-		m_IDirect3DDevice9Ex *pReturnedDevice = new m_IDirect3DDevice9Ex(*ppReturnedDeviceInterface, this);
-
-		*ppReturnedDeviceInterface = pReturnedDevice;
-
-		pReturnedDevice->SetDefaults(pPresentationParameters, hFocusWindow, MultiSampleFlag);
+		*ppReturnedDeviceInterface = new m_IDirect3DDevice9Ex(*ppReturnedDeviceInterface, this, IID_IDirect3DDevice9Ex, d3dpp.MultiSampleType, d3dpp.MultiSampleQuality, MultiSampleFlag);
 	}
 
 	return hr;
@@ -385,6 +386,9 @@ void UpdatePresentParameter(D3DPRESENT_PARAMETERS* pPresentationParameters, HWND
 		pPresentationParameters->FullScreen_RefreshRateInHz = 0;
 		if (SetWindow)
 		{
+			LONG LastBufferWidth = BufferWidth;
+			LONG LastBufferHeight = BufferHeight;
+			HWND LastDeviceWindow = DeviceWindow;
 			BufferWidth = (pPresentationParameters->BackBufferWidth) ? pPresentationParameters->BackBufferWidth : BufferWidth;
 			BufferHeight = (pPresentationParameters->BackBufferHeight) ? pPresentationParameters->BackBufferHeight : BufferHeight;
 			DeviceWindow = (IsWindow(pPresentationParameters->hDeviceWindow)) ? pPresentationParameters->hDeviceWindow :
@@ -408,7 +412,10 @@ void UpdatePresentParameter(D3DPRESENT_PARAMETERS* pPresentationParameters, HWND
 					ChangeDisplaySettings(&newSettings, CDS_FULLSCREEN);
 				}
 			}
-			AdjustWindow(DeviceWindow, BufferWidth, BufferHeight);
+			if (LastBufferWidth != BufferWidth || LastBufferHeight != BufferHeight || LastDeviceWindow != DeviceWindow)
+			{
+				AdjustWindow(DeviceWindow, BufferWidth, BufferHeight);
+			}
 		}
 	}
 }
@@ -432,6 +439,8 @@ void UpdatePresentParameterForMultisample(D3DPRESENT_PARAMETERS* pPresentationPa
 		pPresentationParameters->EnableAutoDepthStencil = true;
 		pPresentationParameters->AutoDepthStencilFormat = D3DFMT_D24S8;
 	}
+
+	pPresentationParameters->BackBufferCount = (pPresentationParameters->BackBufferCount) ? pPresentationParameters->BackBufferCount : 1;
 }
 
 // Adjusting the window position for WindowMode
@@ -460,10 +469,10 @@ void AdjustWindow(HWND MainhWnd, LONG displayWidth, LONG displayHeight)
 
 	// Set window border
 	SetWindowLong(MainhWnd, GWL_STYLE, lStyle);
-	SetWindowPos(MainhWnd, NULL, 0, 0, 0, 0, SWP_NOACTIVATE | SWP_DEFERERASE | SWP_NOSENDCHANGING | SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_NOOWNERZORDER | SWP_NOREDRAW | SWP_FRAMECHANGED);
+	SetWindowPos(MainhWnd, HWND_TOP, 0, 0, 0, 0, SWP_NOACTIVATE | SWP_DEFERERASE | SWP_NOSENDCHANGING | SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_NOOWNERZORDER | SWP_NOREDRAW | SWP_FRAMECHANGED);
 
 	// Set window size
-	SetWindowPos(MainhWnd, NULL, 0, 0, displayWidth, displayHeight, SWP_NOACTIVATE | SWP_DEFERERASE | SWP_NOSENDCHANGING | SWP_NOMOVE | SWP_NOZORDER | SWP_NOOWNERZORDER);
+	SetWindowPos(MainhWnd, HWND_TOP, 0, 0, displayWidth, displayHeight, SWP_NOACTIVATE | SWP_DEFERERASE | SWP_NOSENDCHANGING | SWP_NOMOVE | SWP_NOZORDER | SWP_NOOWNERZORDER | SWP_NOREDRAW);
 
 	// Adjust for window decoration to ensure client area matches display size
 	RECT tempRect;
@@ -479,5 +488,5 @@ void AdjustWindow(HWND MainhWnd, LONG displayWidth, LONG displayHeight)
 		xLoc = (screenWidth - newDisplayWidth) / 2;
 		yLoc = (screenHeight - newDisplayHeight) / 2;
 	}
-	SetWindowPos(MainhWnd, NULL, xLoc, yLoc, newDisplayWidth, newDisplayHeight, SWP_NOACTIVATE | SWP_DEFERERASE | SWP_NOSENDCHANGING | SWP_NOZORDER | SWP_NOOWNERZORDER);
+	SetWindowPos(MainhWnd, HWND_TOP, xLoc, yLoc, newDisplayWidth, newDisplayHeight, SWP_NOACTIVATE | SWP_DEFERERASE | SWP_NOSENDCHANGING | SWP_NOZORDER | SWP_NOOWNERZORDER | SWP_NOREDRAW);
 }

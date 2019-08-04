@@ -14,6 +14,9 @@
 *   3. This notice may not be removed or altered from any source distribution.
 */
 
+#define WIN32_LEAN_AND_MEAN
+#include <Windows.h>
+#include <Shlwapi.h>
 #include "Settings\Settings.h"
 #include "Wrappers\wrapper.h"
 #include "External\Hooking\Hook.h"
@@ -140,13 +143,19 @@ bool APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 		// Attach real dll
 		if (Config.RealWrapperMode == dtype.dxwrapper)
 		{
+			char path[MAX_PATH] = { 0 };
+			GetModuleFileName(hModule, path, MAX_PATH);
+
 			// Hook GetModuleFileName to fix module name in modules loaded from memory
-			HMODULE dll = LoadLibrary("kernel32.dll");
-			if (dll)
+			if (!PathFileExists(path))
 			{
-				Logging::Log() << "Hooking 'GetModuleFileName' API...";
-				InterlockedExchangePointer((PVOID*)&Utils::pGetModuleFileNameA, Hook::HookAPI(dll, "kernel32.dll", Hook::GetProcAddress(dll, "GetModuleFileNameA"), "GetModuleFileNameA", Utils::GetModuleFileNameAHandler));
-				InterlockedExchangePointer((PVOID*)&Utils::pGetModuleFileNameW, Hook::HookAPI(dll, "kernel32.dll", Hook::GetProcAddress(dll, "GetModuleFileNameW"), "GetModuleFileNameW", Utils::GetModuleFileNameWHandler));
+				HMODULE dll = LoadLibrary("kernel32.dll");
+				if (dll)
+				{
+					Logging::Log() << "Hooking 'GetModuleFileName' API...";
+					InterlockedExchangePointer((PVOID*)&Utils::pGetModuleFileNameA, Hook::HookAPI(dll, "kernel32.dll", Hook::GetProcAddress(dll, "GetModuleFileNameA"), "GetModuleFileNameA", Utils::GetModuleFileNameAHandler));
+					InterlockedExchangePointer((PVOID*)&Utils::pGetModuleFileNameW, Hook::HookAPI(dll, "kernel32.dll", Hook::GetProcAddress(dll, "GetModuleFileNameW"), "GetModuleFileNameW", Utils::GetModuleFileNameWHandler));
+				}
 			}
 		}
 		else if (!(Config.Dd7to9 && Config.RealWrapperMode == dtype.ddraw) && !(Config.D3d8to9 && Config.RealWrapperMode == dtype.d3d8) && !(Config.Dinputto8 && Config.RealWrapperMode == dtype.dinput))

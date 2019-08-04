@@ -2473,7 +2473,7 @@ HRESULT m_IDirectDrawSurfaceX::CreateD3d9Surface()
 	}
 
 	// Set scale mode to linear
-	if (FAILED((*d3d9Device)->SetSamplerState(0, D3DSAMP_MAGFILTER, (surfaceFormat == D3DFMT_P8) ? D3DTEXF_POINT : D3DTEXF_LINEAR)))
+	if (FAILED((*d3d9Device)->SetSamplerState(0, D3DSAMP_MAGFILTER, D3DTEXF_POINT)))
 	{
 		LOG_LIMIT(100, __FUNCTION__ << " Error: failed to set D3D device to LINEAR sampling");
 	}

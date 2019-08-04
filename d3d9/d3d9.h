@@ -54,6 +54,11 @@ extern m_IDirect3DDevice9Ex *pD3D9DeviceInterface;
 extern HWND DeviceWindow;
 extern LONG BufferWidth, BufferHeight;
 
+// For AntiAliasing
+extern bool DeviceMultiSampleFlag;
+extern D3DMULTISAMPLE_TYPE DeviceMultiSampleType;
+extern DWORD DeviceMultiSampleQuality;
+
 #include "IDirect3D9Ex.h"
 #include "IDirect3DDevice9Ex.h"
 #include "IDirect3DCubeTexture9.h"

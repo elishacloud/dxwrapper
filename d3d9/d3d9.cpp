@@ -16,6 +16,7 @@
 
 #include "d3d9.h"
 #include "d3d9External.h"
+#include "ddraw\ddrawExternal.h"
 
 m_IDirect3D9Ex *pD3D9Interface = nullptr;
 
@@ -239,12 +240,11 @@ IDirect3D9 *WINAPI d9_Direct3DCreate9(UINT SDKVersion)
 
 	if (pD3D9)
 	{
-		IDirect3D9 *m_pD3D9 = new m_IDirect3D9Ex((IDirect3D9Ex*)pD3D9);
+		IDirect3D9 *m_pD3D9 = new m_IDirect3D9Ex((IDirect3D9Ex*)pD3D9, IID_IDirect3D9);
 
 		if (m_pD3D9)
 		{
-			pReturnedDevice = m_pD3D9;
-			InterlockedExchangePointer((PVOID*)&pD3D9Interface, pReturnedDevice);
+			InterlockedExchangePointer((PVOID*)&pD3D9Interface, m_pD3D9);
 		}
 
 		return m_pD3D9;
@@ -268,7 +268,7 @@ HRESULT WINAPI d9_Direct3DCreate9Ex(UINT SDKVersion, IDirect3D9Ex **ppD3D)
 
 	if (SUCCEEDED(hr) && ppD3D)
 	{
-		*ppD3D = new m_IDirect3D9Ex(*ppD3D);
+		*ppD3D = new m_IDirect3D9Ex(*ppD3D, IID_IDirect3D9Ex);
 	}
 
 	return hr;

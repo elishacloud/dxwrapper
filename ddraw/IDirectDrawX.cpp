@@ -21,6 +21,7 @@
 
 // ddraw interface counter
 DWORD ddrawRefCount = 0;
+bool ShareD3d9DeviceFlag = false;
 
 // Convert to Direct3D9
 HWND MainhWnd;
@@ -1197,7 +1198,7 @@ HRESULT m_IDirectDrawX::SetCooperativeLevel(HWND hWnd, DWORD dwFlags)
 			Logging::LogDebug() << __FUNCTION__ << " Removing window WS_CAPTION!";
 
 			SetWindowLong(hWnd, GWL_STYLE, lStyle & ~WS_CAPTION);
-			SetWindowPos(hWnd, NULL, 0, 0, 0, 0, SWP_NOACTIVATE | SWP_DEFERERASE | SWP_NOSENDCHANGING | SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_NOOWNERZORDER | SWP_NOREDRAW | SWP_FRAMECHANGED);
+			SetWindowPos(hWnd, HWND_TOP, 0, 0, 0, 0, SWP_NOACTIVATE | SWP_DEFERERASE | SWP_NOSENDCHANGING | SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_NOOWNERZORDER | SWP_NOREDRAW | SWP_FRAMECHANGED);
 		}
 	}
 
@@ -1539,6 +1540,8 @@ void m_IDirectDrawX::InitDdraw(LPDIRECT3D9 pObject)
 {
 	DWORD ref = InterlockedIncrement(&ddrawRefCount);
 
+	ShareD3d9DeviceFlag = true;
+
 	if (ref == 1)
 	{
 		d3d9Object = pObject;
@@ -1580,7 +1583,12 @@ void m_IDirectDrawX::SetDdrawDefaults()
 
 void m_IDirectDrawX::ReleaseDdraw()
 {
-	InterlockedDecrement(&ddrawRefCount);
+	DWORD ref = InterlockedDecrement(&ddrawRefCount);
+
+	if (ref == 0)
+	{
+		ShareD3d9DeviceFlag = false;
+	}
 
 	SetCriticalSection();
 

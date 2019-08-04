@@ -5,17 +5,29 @@ class m_IDirect3DDevice9Ex : public IDirect3DDevice9Ex
 private:
 	LPDIRECT3DDEVICE9EX ProxyInterface;
 	m_IDirect3D9Ex* m_pD3DEx;
-	D3DMULTISAMPLE_TYPE DeviceMultiSampleType = D3DMULTISAMPLE_NONE;
-	DWORD DeviceMultiSampleQuality = 0;
+	GUID WrapperID = IID_IUnknown;
+
+	// For CacheClipPlane
 	bool isClipPlaneSet = false;
 	DWORD m_clipPlaneRenderState = 0;
 	static constexpr size_t MAX_CLIP_PLANES = 6;
 	float m_storedClipPlanes[MAX_CLIP_PLANES][4];
-	IDirect3DSurface9 *pCurrentRenderTarget = nullptr;
-	HWND MainhWnd = nullptr;
 
 public:
 	m_IDirect3DDevice9Ex(LPDIRECT3DDEVICE9EX pDevice, m_IDirect3D9Ex* pD3D) : ProxyInterface(pDevice), m_pD3DEx(pD3D)
+	{
+		InitDirect3DDevice();
+	}
+	m_IDirect3DDevice9Ex(LPDIRECT3DDEVICE9EX pDevice, m_IDirect3D9Ex* pD3D, GUID DeviceID, D3DMULTISAMPLE_TYPE MultiSampleType, DWORD MultiSampleQuality, bool MultiSampleFlag) :
+		ProxyInterface(pDevice), m_pD3DEx(pD3D), WrapperID(DeviceID)
+	{
+		InitDirect3DDevice();
+
+		DeviceMultiSampleFlag = MultiSampleFlag;
+		DeviceMultiSampleType = MultiSampleType;
+		DeviceMultiSampleQuality = MultiSampleQuality;
+	}
+	void InitDirect3DDevice()
 	{
 		ProxyAddressLookupTable = new AddressLookupTableD3d9<m_IDirect3DDevice9Ex>(this);
 	}
@@ -172,7 +184,4 @@ public:
 	STDMETHOD(CreateDepthStencilSurfaceEx)(THIS_ UINT Width, UINT Height, D3DFORMAT Format, D3DMULTISAMPLE_TYPE MultiSample, DWORD MultisampleQuality, BOOL Discard, IDirect3DSurface9** ppSurface, HANDLE* pSharedHandle, DWORD Usage);
 	STDMETHOD(ResetEx)(THIS_ D3DPRESENT_PARAMETERS* pPresentationParameters, D3DDISPLAYMODEEX *pFullscreenDisplayMode);
 	STDMETHOD(GetDisplayModeEx)(THIS_ UINT iSwapChain, D3DDISPLAYMODEEX* pMode, D3DDISPLAYROTATION* pRotation);
-
-	// Helper functions
-	void SetDefaults(D3DPRESENT_PARAMETERS *pPresentationParameters, HWND hWnd, bool MultiSampleFlag);
 };

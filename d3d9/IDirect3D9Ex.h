@@ -4,9 +4,10 @@ class m_IDirect3D9Ex : public IDirect3D9Ex
 {
 private:
 	LPDIRECT3D9EX ProxyInterface;
+	GUID WrapperID = IID_IUnknown;
 
 public:
-	m_IDirect3D9Ex(LPDIRECT3D9EX pDirect3D) : ProxyInterface(pDirect3D) { }
+	m_IDirect3D9Ex(LPDIRECT3D9EX pDirect3D, GUID DeviceID) : ProxyInterface(pDirect3D), WrapperID(DeviceID) { }
 	~m_IDirect3D9Ex()
 	{
 		PVOID NullValue = nullptr;
