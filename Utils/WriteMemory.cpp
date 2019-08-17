@@ -29,8 +29,7 @@ namespace Utils
 		DWORD m_dwThreadID = 0;
 
 		// Function declarations
-		void WriteAllByteMemory();
-		bool CheckVerificationMemory();
+		bool WriteAllByteMemory();
 		DWORD WINAPI StartThreadFunc(LPVOID);
 		bool IsThreadRunning();
 	}
@@ -38,69 +37,99 @@ namespace Utils
 
 using namespace Utils;
 
-// Writes all bytes in Config to memory
-void WriteMemory::WriteAllByteMemory()
+// Checks the value of two data segments
+bool WriteMemory::CheckMemoryAddress(void *dataAddr, void *dataBytes, size_t dataSize)
 {
-	HANDLE hProcess = GetCurrentProcess();
-
-	for (UINT x = 0; x < Config.MemoryInfo.size(); x++)
+	if (!dataAddr || !dataBytes || !dataSize)
 	{
-		if (Config.MemoryInfo[x].AddressPointer && Config.MemoryInfo[x].Bytes.size())
-		{
-			// Get current memory
-			std::vector<byte> lpBuffer(Config.MemoryInfo[x].Bytes.size(), '\0');
-			void* AddressPointer = Config.MemoryInfo[x].AddressPointer;
-			if (ReadProcessMemory(hProcess, AddressPointer, (byte*)&lpBuffer[0], Config.MemoryInfo[x].Bytes.size(), nullptr))
-			{
-				// Make memory writeable
-				DWORD oldProtect;
-				if (VirtualProtect(AddressPointer, Config.MemoryInfo[x].Bytes.size(), PAGE_EXECUTE_READWRITE, &oldProtect))
-				{
-					// Write to memory
-					memcpy(AddressPointer, (byte*)&Config.MemoryInfo[x].Bytes[0], Config.MemoryInfo[x].Bytes.size());
-
-					// Restore protection
-					VirtualProtect(AddressPointer, Config.MemoryInfo[x].Bytes.size(), oldProtect, &oldProtect);
-
-					// Store new variable
-					memcpy((byte*)&Config.MemoryInfo[x].Bytes[0], (byte*)&lpBuffer[0], Config.MemoryInfo[x].Bytes.size());
-
-					// Flush instruction cache
-					FlushInstructionCache(hProcess, AddressPointer, Config.MemoryInfo[x].Bytes.size());
-				}
-				else
-				{
-					Logging::Log() << "Access Denied at memory address: 0x" << Config.MemoryInfo[x].AddressPointer;
-				}
-			}
-			else
-			{
-				Logging::Log() << "Failed to read memory at address: 0x" << Config.MemoryInfo[x].AddressPointer;
-			}
-		}
-	}
-}
-
-// Verify process bytes before writing memory
-bool WriteMemory::CheckVerificationMemory()
-{
-	// Check Verification details
-	if (!Config.VerifyMemoryInfo.Bytes.size() || !Config.VerifyMemoryInfo.AddressPointer)
-	{
+		Logging::LogDebug() << __FUNCTION__ << " Error: invalid memory data";
 		return false;
 	}
 
-	// Check current memory
-	for (UINT x = 0; x < Config.VerifyMemoryInfo.Bytes.size(); x++)
+	// VirtualProtect first to make sure patch_address is readable
+	DWORD dwPrevProtect;
+	if (!VirtualProtect(dataAddr, dataSize, PAGE_READONLY, &dwPrevProtect))
 	{
-		if (*((byte*)((DWORD)Config.VerifyMemoryInfo.AddressPointer + x)) != (byte)Config.VerifyMemoryInfo.Bytes[x])
-		{
-			// Check failed
-			return false;
-		}
+		Logging::LogDebug() << __FUNCTION__ << " Error: could not read memory address";
+		return false;
 	}
 
-	// All checks pass return true
+	bool flag = (memcmp(dataAddr, dataBytes, dataSize) == 0);
+
+	// Restore protection
+	VirtualProtect(dataAddr, dataSize, dwPrevProtect, &dwPrevProtect);
+
+	// Return results
+	return flag;
+}
+
+// Update memory
+bool WriteMemory::UpdateMemoryAddress(void *dataAddr, void *dataBytes, size_t dataSize)
+{
+	if (!dataAddr || !dataBytes || !dataSize)
+	{
+		Logging::Log() << __FUNCTION__ << " Error: invalid memory data";
+		return false;
+	}
+
+	// VirtualProtect first to make sure patch_address is readable
+	DWORD dwPrevProtect;
+	if (!VirtualProtect(dataAddr, dataSize, PAGE_READWRITE, &dwPrevProtect))
+	{
+		Logging::Log() << __FUNCTION__ << " Error: could not write to memory address";
+		return false;
+	}
+
+	// Update memory
+	memcpy(dataAddr, dataBytes, dataSize);
+
+	// Restore protection
+	VirtualProtect(dataAddr, dataSize, dwPrevProtect, &dwPrevProtect);
+
+	// Flush cache
+	FlushInstructionCache(GetCurrentProcess(), dataAddr, dataSize);
+
+	// Return
+	return true;
+}
+
+// Writes all bytes in Config to memory
+bool WriteMemory::WriteAllByteMemory()
+{
+	for (UINT x = 0; x < Config.MemoryInfo.size(); x++)
+	{
+		std::vector<byte> tmpArray;
+		if (Config.MemoryInfo[x].AddressPointer && Config.MemoryInfo[x].Bytes.size())
+		{
+			// Backup memory
+			if (Config.ResetMemoryAfter > 0)
+			{
+				tmpArray.resize(Config.MemoryInfo[x].Bytes.size(), '\0');
+				if (!UpdateMemoryAddress(&tmpArray[0], Config.MemoryInfo[x].AddressPointer, Config.MemoryInfo[x].Bytes.size()))
+				{
+					Logging::Log() << __FUNCTION__ << " Failed to backup memory...";
+					return false;
+				}
+			}
+
+			// Write bytes to memory
+			if (!UpdateMemoryAddress(Config.MemoryInfo[x].AddressPointer, &Config.MemoryInfo[x].Bytes[0], Config.MemoryInfo[x].Bytes.size()))
+			{
+				Logging::Log() << __FUNCTION__ << " Failed to write bytes to memory...";
+				return false;
+			}
+
+			// Prepare new memory to be written
+			if (Config.ResetMemoryAfter > 0)
+			{
+				if (!UpdateMemoryAddress(&Config.MemoryInfo[x].Bytes[0], &tmpArray[0], Config.MemoryInfo[x].Bytes.size()))
+				{
+					Logging::Log() << __FUNCTION__ << " Failed to prepare new memory bytes...";
+					return false;
+				}
+			}
+		}
+	}
 	return true;
 }
 
@@ -124,10 +153,14 @@ DWORD WINAPI WriteMemory::StartThreadFunc(LPVOID pvParam)
 	};
 
 	// Logging
-	Logging::Log() << "Undoing memory write...";
+	Logging::Log() << __FUNCTION__ << " Undoing memory write...";
 
 	// Undo the memory write
-	WriteAllByteMemory();
+	if (!WriteAllByteMemory())
+	{
+		// Logging
+		Logging::Log() << __FUNCTION__ << " Failed to undo memory write!";
+	}
 
 	// Reset thread flag before exiting
 	m_ThreadRunningFlag = false;
@@ -145,13 +178,17 @@ DWORD WINAPI WriteMemory::StartThreadFunc(LPVOID pvParam)
 // Main sub for writing to the memory of the application
 void WriteMemory::WriteMemory()
 {
-	if (CheckVerificationMemory())
+	if (CheckMemoryAddress(Config.VerifyMemoryInfo.AddressPointer, &Config.VerifyMemoryInfo.Bytes[0], Config.VerifyMemoryInfo.Bytes.size()))
 	{
 		// Logging
-		Logging::Log() << "Writing bytes to memory...";
+		Logging::Log() << __FUNCTION__ << " Writing bytes to memory...";
 
-		// Writing bytes to memory
-		WriteAllByteMemory();
+		// Write bytes to memory
+		if (!WriteAllByteMemory())
+		{
+			Logging::Log() << __FUNCTION__ << " Failed to write bytes to memory...";
+			return;
+		}
 
 		// Starting thread to undo memory write after ResetMemoryAfter time
 		if (Config.ResetMemoryAfter > 0)
@@ -163,7 +200,7 @@ void WriteMemory::WriteMemory()
 	{
 		if (Config.VerifyMemoryInfo.AddressPointer != nullptr)
 		{
-			Logging::Log() << "Failed verification for memory write!";
+			Logging::Log() << __FUNCTION__ << " Failed verification for memory write!";
 		}
 	}
 }
@@ -183,12 +220,12 @@ void WriteMemory::StopThread()
 	// Wait for thread to exit
 	if (IsThreadRunning())
 	{
-		Logging::Log() << "Stopping WriteMemory thread...";
+		Logging::Log() << __FUNCTION__ << " Stopping thread...";
 
 		// Wait for thread to exit
 		WaitForSingleObject(InterlockedCompareExchangePointer(&m_hThread, nullptr, nullptr), INFINITE);
 
 		// Thread stopped
-		Logging::Log() << "WriteMemory thread stopped";
+		Logging::Log() << __FUNCTION__ << " thread stopped";
 	}
 }

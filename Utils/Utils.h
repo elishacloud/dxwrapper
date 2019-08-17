@@ -34,6 +34,8 @@ namespace Utils
 
 	namespace WriteMemory
 	{
+		bool CheckMemoryAddress(void *dataAddr, void *dataBytes, size_t dataSize);
+		bool UpdateMemoryAddress(void *dataAddr, void *dataBytes, size_t dataSize);
 		void WriteMemory();
 		void StopThread();
 	}

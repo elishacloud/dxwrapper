@@ -189,8 +189,6 @@ HRESULT m_IDirect3D9Ex::CreateDevice(UINT Adapter, D3DDEVTYPE DeviceType, HWND h
 
 		if (pReturnedDevice)
 		{
-			pReturnedDevice->AddRef();
-
 			// Set new window handle
 			if (!IsWindow(d3dpp.hDeviceWindow) && IsWindow(hFocusWindow))
 			{
@@ -199,12 +197,16 @@ HRESULT m_IDirect3D9Ex::CreateDevice(UINT Adapter, D3DDEVTYPE DeviceType, HWND h
 
 			hr = pReturnedDevice->Reset(&d3dpp);
 
-			if (FAILED(hr))
+			if (SUCCEEDED(hr))
+			{
+				pReturnedDevice->AddRef();
+
+				*ppReturnedDeviceInterface = pReturnedDevice;
+			}
+			else
 			{
 				LOG_LIMIT(100, __FUNCTION__ << " Error: failed to reset shared device!");
 			}
-
-			*ppReturnedDeviceInterface = pReturnedDevice;
 
 			return hr;
 		}
