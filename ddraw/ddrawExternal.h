@@ -28,6 +28,8 @@ HRESULT WINAPI dd_SetAppCompatData(DWORD Type, DWORD Value);
 void InitDDraw();
 void ExitDDraw();
 
+void ReleaseAllDirectDrawD9Surfaces();
+
 extern bool ShareD3d9DeviceFlag;
 
 #define DECLARE_IN_WRAPPED_PROC(procName, unused) \

@@ -2,8 +2,6 @@
 
 #include "IDirectDrawPalette.h"
 
-constexpr DWORD MaxVidMemory = 0x8000000;
-
 class m_IDirectDrawX : public IUnknown
 {
 private:
@@ -158,7 +156,7 @@ public:
 	HRESULT CheckInterface(char *FunctionName, bool CheckD3DDevice);
 	HRESULT CreateD3D9Device();
 	HRESULT ReinitDevice();
-	void ReleaseAllD9Surfaces();
+	void ReleaseAllD9Surfaces(bool CriticalSection = true);
 	void ReleaseD3d9Device();
 
 	// Surface vector functions
@@ -174,7 +172,7 @@ public:
 	bool DoesPaletteExist(m_IDirectDrawPalette* lpPalette);
 
 	// Video memory size
-	static void SetVidMemory(LPDWORD lpdwTotal, LPDWORD lpdwFree);
+	static void AdjustVidMemory(LPDWORD lpdwTotal, LPDWORD lpdwFree);
 
 	// Begin & end scene
 	HRESULT BeginScene();

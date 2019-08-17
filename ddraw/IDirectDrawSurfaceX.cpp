@@ -1488,14 +1488,24 @@ HRESULT m_IDirectDrawSurfaceX::IsLost()
 
 	if (Config.Dd7to9)
 	{
-		// You can use this method to determine when you need to reallocate surface memory. 
-		// When a DirectDrawSurface object loses its surface memory, most methods return 
-		// DDERR_SURFACELOST and perform no other action.
+		// Check for device interface
+		if (FAILED(CheckInterface(__FUNCTION__, true, false)))
+		{
+			return DDERR_GENERIC;
+		}
 
-		// Check if surface is lost or not, if not return OK
-
-		// Surface never lost
-		return DD_OK;
+		// Check device
+		switch ((*d3d9Device)->TestCooperativeLevel())
+		{
+		case D3DERR_DEVICELOST:
+		case D3DERR_DEVICENOTRESET:
+			return DDERR_SURFACELOST;
+		case D3DERR_DRIVERINTERNALERROR:
+		case D3DERR_INVALIDCALL:
+			return DDERR_GENERIC;
+		default:
+			return DD_OK;
+		}
 	}
 
 	return ProxyInterface->IsLost();
@@ -1701,8 +1711,12 @@ HRESULT m_IDirectDrawSurfaceX::Restore()
 
 	if (Config.Dd7to9)
 	{
-		// This method restores a surface that has been lost. The restore occurs when the surface memory associated with the DirectDrawSurface object has been freed.
-		// No need to restore d3d9 surface
+		// Check for device interface
+		if (FAILED(CheckInterface(__FUNCTION__, true, true)))
+		{
+			return DDERR_GENERIC;
+		}
+
 		return DD_OK;
 	}
 
@@ -2373,14 +2387,46 @@ HRESULT m_IDirectDrawSurfaceX::CreateD3d9Surface()
 	// DDSCAPS2_HINTANTIALIASING
 	// DDSCAPS2_MIPMAPSUBLEVEL
 
+	// Get pool type
+	D3DPOOL Pool = D3DPOOL_DEFAULT;
+	if (surfaceDesc2.ddsCaps.dwCaps & DDSCAPS_SYSTEMMEMORY)
+	{
+		Pool = D3DPOOL_SYSTEMMEM;
+	}
+	else if (surfaceDesc2.ddsCaps.dwCaps2 & (DDSCAPS2_TEXTUREMANAGE | DDSCAPS2_D3DTEXTUREMANAGE))
+	{
+		Pool = D3DPOOL_MANAGED;
+	}
+	else if (surfaceDesc2.ddsCaps.dwCaps2 & DDSCAPS2_DONOTPERSIST)
+	{
+		Pool = D3DPOOL_SCRATCH;
+	}
+
+	// Get usage
+	DWORD Usage = 0;
+	if ((!(surfaceDesc2.ddsCaps.dwCaps2 & DDSCAPS2_HINTSTATIC) || (surfaceDesc2.ddsCaps.dwCaps2 & DDSCAPS2_HINTDYNAMIC)) &&
+		Pool != D3DPOOL_MANAGED)	// D3DPOOL_MANAGED cannot be used with D3DUSAGE_DYNAMIC
+	{
+		Usage |= D3DUSAGE_DYNAMIC;
+	}
+	if (surfaceDesc2.ddsCaps.dwCaps & DDSCAPS_MIPMAP)
+	{
+		Usage |= D3DUSAGE_AUTOGENMIPMAP;
+	}
+	if (surfaceDesc2.ddsCaps.dwCaps & DDSCAPS_WRITEONLY)
+	{
+		Usage |= D3DUSAGE_WRITEONLY;
+	}
+
 	// Get texture data
 	surfaceFormat = GetDisplayFormat(surfaceDesc2.ddpfPixelFormat);
 	surfaceBitCount = GetBitCount(surfaceFormat);
-	DWORD Usage = (surfaceDesc2.ddsCaps.dwCaps & DDSCAPS_WRITEONLY) ? D3DUSAGE_WRITEONLY : 0;
 	D3DFORMAT Format = (surfaceFormat == D3DFMT_P8) ? D3DFMT_L8 : (surfaceFormat == D3DFMT_R8G8B8) ? D3DFMT_X8R8G8B8 : surfaceFormat;
 
+	Logging::LogDebug() << __FUNCTION__ << " D3d9 Surface size: " << surfaceDesc2.dwWidth << "x" << surfaceDesc2.dwHeight << " Usage: " << Usage << " Format: " << Format << " Pool: " << Pool;
+
 	// Create surface
-	if (FAILED((*d3d9Device)->CreateTexture(surfaceDesc2.dwWidth, surfaceDesc2.dwHeight, 1, Usage, Format, D3DPOOL_MANAGED, &surfaceTexture, nullptr)))
+	if (FAILED((*d3d9Device)->CreateTexture(surfaceDesc2.dwWidth, surfaceDesc2.dwHeight, 1, Usage, Format, Pool, &surfaceTexture, nullptr)))
 	{
 		LOG_LIMIT(100, __FUNCTION__ << " Error: failed to create surface size: " << surfaceDesc2.dwWidth << "x" << surfaceDesc2.dwHeight << " Format: " << surfaceFormat);
 		return DDERR_GENERIC;

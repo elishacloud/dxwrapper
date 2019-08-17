@@ -23,6 +23,9 @@
 DWORD ddrawRefCount = 0;
 bool ShareD3d9DeviceFlag = false;
 
+// Store a list of ddraw devices
+std::vector<m_IDirectDrawX*> DDrawVector;
+
 // Convert to Direct3D9
 HWND MainhWnd;
 bool IsInScene;
@@ -57,6 +60,8 @@ DWORD monitorHeight = 0;
 LPDIRECT3D9 d3d9Object = nullptr;
 LPDIRECT3DDEVICE9 d3d9Device = nullptr;
 D3DPRESENT_PARAMETERS presParams;
+
+constexpr DWORD MaxVidMemory = 0x8000000;
 
 struct handle_data
 {
@@ -1324,7 +1329,7 @@ HRESULT m_IDirectDrawX::GetAvailableVidMem(LPDDSCAPS lpDDSCaps, LPDWORD lpdwTota
 	HRESULT hr = GetProxyInterfaceV3()->GetAvailableVidMem(lpDDSCaps, lpdwTotal, lpdwFree);
 
 	// Set available memory
-	SetVidMemory(lpdwTotal, lpdwFree);
+	AdjustVidMemory(lpdwTotal, lpdwFree);
 
 	return hr;
 }
@@ -1359,8 +1364,8 @@ HRESULT m_IDirectDrawX::GetAvailableVidMem2(LPDDSCAPS2 lpDDSCaps2, LPDWORD lpdwT
 		hr = ProxyInterface->GetAvailableVidMem(lpDDSCaps2, lpdwTotal, lpdwFree);
 	}
 
-	// Set available memory
-	SetVidMemory(lpdwTotal, lpdwFree);
+	// Ajdust available memory
+	AdjustVidMemory(lpdwTotal, lpdwFree);
 
 	return hr;
 }
@@ -1418,19 +1423,21 @@ HRESULT m_IDirectDrawX::TestCooperativeLevel()
 	{
 		if (!d3d9Device)
 		{
-			if (ExclusiveMode)
-			{
-				return DDERR_EXCLUSIVEMODEALREADYSET;
-			}
-
-			// ToDo: impement the following return codes
-			//
-			// DDERR_NOEXCLUSIVEMODE - Operation requires the application to have exclusive mode but the application does not have exclusive mode.
-			// DDERR_WRONGMODE - This surface can not be restored because it was created in a different mode.
+			// Just return OK until device is setup
 			return DD_OK;
 		}
 
-		return d3d9Device->TestCooperativeLevel();
+		switch (d3d9Device->TestCooperativeLevel())
+		{
+		case D3DERR_DEVICELOST:
+		case D3DERR_DEVICENOTRESET:
+			return DDERR_NOEXCLUSIVEMODE;
+		case D3DERR_DRIVERINTERNALERROR:
+		case D3DERR_INVALIDCALL:
+			return DDERR_WRONGMODE;
+		default:
+			return DD_OK;
+		}
 	}
 
 	return ProxyInterface->TestCooperativeLevel();
@@ -1540,7 +1547,11 @@ void m_IDirectDrawX::InitDdraw(LPDIRECT3D9 pObject)
 {
 	DWORD ref = InterlockedIncrement(&ddrawRefCount);
 
+	SetCriticalSection();
+
 	ShareD3d9DeviceFlag = true;
+
+	DDrawVector.push_back(this);
 
 	if (ref == 1)
 	{
@@ -1548,6 +1559,8 @@ void m_IDirectDrawX::InitDdraw(LPDIRECT3D9 pObject)
 
 		SetDdrawDefaults();
 	}
+
+	ReleaseCriticalSection();
 }
 
 void m_IDirectDrawX::SetDdrawDefaults()
@@ -1585,12 +1598,22 @@ void m_IDirectDrawX::ReleaseDdraw()
 {
 	DWORD ref = InterlockedDecrement(&ddrawRefCount);
 
+	SetCriticalSection();
+
+	// Set shared flag
 	if (ref == 0)
 	{
 		ShareD3d9DeviceFlag = false;
 	}
 
-	SetCriticalSection();
+	// Remove ddraw device from vector
+	auto it = std::find_if(DDrawVector.begin(), DDrawVector.end(),
+		[=](auto pDDraw) -> bool { return pDDraw == this; });
+
+	if (it != std::end(DDrawVector))
+	{
+		DDrawVector.erase(it);
+	}
 
 	// Release Direct3DDevice interfaces
 	if (D3DDeviceInterface)
@@ -1633,6 +1656,17 @@ void m_IDirectDrawX::ReleaseDdraw()
 		}
 	}
 
+	ReleaseCriticalSection();
+}
+
+// Release all surfaces from all ddraw devices
+void ReleaseAllDirectDrawD9Surfaces()
+{
+	SetCriticalSection();
+	for (m_IDirectDrawX *pDDraw : DDrawVector)
+	{
+		pDDraw->ReleaseAllD9Surfaces(false);
+	}
 	ReleaseCriticalSection();
 }
 
@@ -1833,13 +1867,10 @@ HRESULT m_IDirectDrawX::ReinitDevice()
 	}
 
 	// Check if device is ready to be restored
-	if (d3d9Device->TestCooperativeLevel() == D3DERR_DEVICELOST)
+	if (d3d9Device->TestCooperativeLevel() != D3DERR_DEVICENOTRESET)
 	{
-		return DDERR_GENERIC;
+		return DD_OK;
 	}
-
-	// Release existing surfaces
-	ReleaseAllD9Surfaces();
 
 	// Attempt to reset the device
 	if (FAILED(d3d9Device->Reset(&presParams)))
@@ -1856,14 +1887,22 @@ HRESULT m_IDirectDrawX::ReinitDevice()
 }
 
 // Release all d3d9 surfaces
-void m_IDirectDrawX::ReleaseAllD9Surfaces()
+void m_IDirectDrawX::ReleaseAllD9Surfaces(bool CriticalSection)
 {
-	SetCriticalSection();
+	if (CriticalSection)
+	{
+		SetCriticalSection();
+	}
+
 	for (m_IDirectDrawSurfaceX *pSurface : SurfaceVector)
 	{
 		pSurface->ReleaseD9Surface();
 	}
-	ReleaseCriticalSection();
+
+	if (CriticalSection)
+	{
+		ReleaseCriticalSection();
+	}
 }
 
 // Release all d3d9 classes for Release()
@@ -2017,9 +2056,9 @@ bool m_IDirectDrawX::DoesPaletteExist(m_IDirectDrawPalette* lpPalette)
 	return true;
 }
 
-void m_IDirectDrawX::SetVidMemory(LPDWORD lpdwTotal, LPDWORD lpdwFree)
+// Adjusts available memory, some games have issues if this is set to high
+void m_IDirectDrawX::AdjustVidMemory(LPDWORD lpdwTotal, LPDWORD lpdwFree)
 {
-	// Set available memory, some games have issues if this is set to high
 	if (lpdwTotal && *lpdwTotal > MaxVidMemory)
 	{
 		*lpdwTotal = MaxVidMemory;
