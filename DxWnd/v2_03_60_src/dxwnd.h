@@ -1,5 +1,5 @@
+#include <ddraw.h>
 //********** Begin Edit *************
-//#include <ddraw.h>
 //#include "dxwcore.hpp"
 //********** End Edit ***************
 

@@ -1,5 +1,7 @@
 #pragma once
 
+#include <ddraw.h>
+
 void ConvertColorControl(DDCOLORCONTROL &ColorControl, DDCOLORCONTROL &ColorControl2);
 void ConvertGammaRamp(DDGAMMARAMP &RampData, DDGAMMARAMP &RampData2);
 void ConvertSurfaceDesc(DDSURFACEDESC &Desc, DDSURFACEDESC &Desc2);

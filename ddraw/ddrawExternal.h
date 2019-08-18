@@ -1,5 +1,6 @@
 #pragma once
 
+#include <ddraw.h>
 #include "Wrappers\wrapper.h"
 
 void WINAPI dd_AcquireDDThreadLock();

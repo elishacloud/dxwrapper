@@ -1,5 +1,8 @@
 #pragma once
 
+#define CINTERFACE
+
+#include <ddraw.h>
 // Debug mode: disable DDrawCompat debug logs
 #ifdef _DEBUG
 #define LogDebug LogNothing

@@ -16,6 +16,8 @@
 
 #define INITGUID
 
+#include <ddraw.h>
+#include <d3d9types.h>
 #include "Logging.h"
 
 std::ofstream LOG;
@@ -255,6 +257,25 @@ std::ostream& operator<<(std::ostream& os, const DDSURFACEDESC2& sd)
 		<< sd.dwFVF
 		<< sd.ddsCaps
 		<< sd.dwTextureStage;
+}
+
+std::ostream& operator<<(std::ostream& os, const D3DPRESENT_PARAMETERS& pp)
+{
+	return Logging::LogStruct(os)
+		<< pp.BackBufferWidth
+		<< pp.BackBufferHeight
+		<< pp.BackBufferFormat
+		<< pp.BackBufferCount
+		<< pp.MultiSampleType
+		<< pp.MultiSampleQuality
+		<< pp.SwapEffect
+		<< pp.hDeviceWindow
+		<< pp.Windowed
+		<< pp.EnableAutoDepthStencil
+		<< pp.AutoDepthStencilFormat
+		<< Logging::hex(pp.Flags)
+		<< pp.FullScreen_RefreshRateInHz
+		<< Logging::hex(pp.PresentationInterval);
 }
 
 #ifndef __unknwnbase_h__

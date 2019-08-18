@@ -85,7 +85,7 @@ HRESULT WINAPI d8_ValidatePixelShader(DWORD* pixelshader, DWORD* reserved1, BOOL
 		return D3D_OK;
 		break;
 	default:
-		return DDERR_GENERIC;
+		return D3DERR_INVALIDCALL;
 	}
 }
 
@@ -111,7 +111,7 @@ HRESULT WINAPI d8_ValidateVertexShader(DWORD* vertexshader, DWORD* reserved1, DW
 		return D3D_OK;
 		break;
 	default:
-		return DDERR_GENERIC;
+		return D3DERR_INVALIDCALL;
 	}
 }
 

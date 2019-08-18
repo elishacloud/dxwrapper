@@ -866,7 +866,7 @@ HRESULT m_IDirectDrawSurfaceX::GetAttachedSurface2(LPDDSCAPS2 lpDDSCaps2, LPDIRE
 		}
 
 		// Check for device interface
-		if (FAILED(CheckInterface(__FUNCTION__, true, false)))
+		if (FAILED(CheckInterface(__FUNCTION__, false, false)))
 		{
 			return DDERR_GENERIC;
 		}
