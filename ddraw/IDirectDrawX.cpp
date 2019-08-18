@@ -1240,7 +1240,7 @@ HRESULT m_IDirectDrawX::SetDisplayMode(DWORD dwWidth, DWORD dwHeight, DWORD dwBP
 		}
 
 		// Update the d3d9 device to use new display mode
-		if (ChangeMode && d3d9Device && FAILED(CreateD3D9Device()))
+		if ((ChangeMode || !d3d9Device) && FAILED(CreateD3D9Device()))
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Error: creating Direct3D9 Device");
 			return DDERR_GENERIC;
@@ -1834,7 +1834,7 @@ HRESULT m_IDirectDrawX::CreateD3D9Device()
 		((FUPPreserve) ? D3DCREATE_FPU_PRESERVE : 0) |
 		((NoWindowChanges) ? D3DCREATE_NOWINDOWCHANGES : 0);
 
-	Logging::LogDebug() << __FUNCTION__ << " wnd: " << MainhWnd << " D3d9 Device size: " << presParams << " flags: " << BehaviorFlags;
+	Logging::Log() << __FUNCTION__ << " wnd: " << MainhWnd << " D3d9 Device size: " << presParams << " flags: " << BehaviorFlags;
 
 	// Create d3d9 Device
 	if (FAILED(d3d9Object->CreateDevice(D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, MainhWnd, BehaviorFlags, &presParams, &d3d9Device)))

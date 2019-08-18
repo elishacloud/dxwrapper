@@ -1489,7 +1489,7 @@ HRESULT m_IDirectDrawSurfaceX::IsLost()
 	if (Config.Dd7to9)
 	{
 		// Check for device interface
-		if (FAILED(CheckInterface(__FUNCTION__, true, false)))
+		if (FAILED(CheckInterface(__FUNCTION__, true, true)))
 		{
 			return DDERR_GENERIC;
 		}

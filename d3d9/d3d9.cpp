@@ -240,14 +240,11 @@ IDirect3D9 *WINAPI d9_Direct3DCreate9(UINT SDKVersion)
 
 	if (pD3D9)
 	{
-		IDirect3D9 *m_pD3D9 = new m_IDirect3D9Ex((IDirect3D9Ex*)pD3D9, IID_IDirect3D9);
+		pReturnedDevice = new m_IDirect3D9Ex((IDirect3D9Ex*)pD3D9, IID_IDirect3D9);
 
-		if (m_pD3D9)
-		{
-			InterlockedExchangePointer((PVOID*)&pD3D9Interface, m_pD3D9);
-		}
+		InterlockedExchangePointer((PVOID*)&pD3D9Interface, pReturnedDevice);
 
-		return m_pD3D9;
+		return pReturnedDevice;
 	}
 
 	return nullptr;
