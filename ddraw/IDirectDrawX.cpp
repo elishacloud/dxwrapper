@@ -27,16 +27,19 @@ bool ShareD3d9DeviceFlag = false;
 std::vector<m_IDirectDrawX*> DDrawVector;
 
 // Convert to Direct3D9
-HWND MainhWnd;
 bool IsInScene;
-bool ExclusiveMode;
 bool AllowModeX;
 bool MultiThreaded;
 bool FUPPreserve;
 bool NoWindowChanges;
 bool isWindowed;					// Window mode enabled
 
+// Exclusive mode
+bool ExclusiveMode;
+HWND ExclusiveHwnd;
+
 // Application display mode
+HWND displayHwnd;
 DWORD displayModeWidth;
 DWORD displayModeHeight;
 DWORD displayModeBPP;
@@ -527,7 +530,7 @@ HRESULT m_IDirectDrawX::EnumDisplayModes2(DWORD dwFlags, LPDDSURFACEDESC2 lpDDSu
 		}
 		if (!(dwFlags & DDEDM_REFRESHRATES) && !EnumRefreshRate)
 		{
-			EnumRefreshRate = Utils::GetRefreshRate(MainhWnd);
+			EnumRefreshRate = Utils::GetRefreshRate(displayHwnd);
 		}
 
 		// Get display modes to enum
@@ -820,7 +823,7 @@ HRESULT m_IDirectDrawX::GetDisplayMode2(LPDDSURFACEDESC2 lpDDSurfaceDesc2)
 			HDC hdc = GetDC(nullptr);
 			lpDDSurfaceDesc2->dwWidth = GetSystemMetrics(SM_CXSCREEN);
 			lpDDSurfaceDesc2->dwHeight = GetSystemMetrics(SM_CYSCREEN);
-			lpDDSurfaceDesc2->dwRefreshRate = Utils::GetRefreshRate(MainhWnd);
+			lpDDSurfaceDesc2->dwRefreshRate = Utils::GetRefreshRate(displayHwnd);
 			displayModeBits = GetDeviceCaps(hdc, BITSPIXEL);
 			ReleaseDC(nullptr, hdc);
 		}
@@ -1019,11 +1022,13 @@ HRESULT m_IDirectDrawX::RestoreDisplayMode()
 		// Set mode
 		IsInScene = false;
 		ExclusiveMode = false;
+		ExclusiveHwnd = nullptr;
 		AllowModeX = false;
 		MultiThreaded = false;
 		FUPPreserve = false;
 		NoWindowChanges = false;
 		isWindowed = false;
+		displayHwnd = nullptr;
 		displayModeWidth = 0;
 		displayModeHeight = 0;
 		displayModeBPP = 0;
@@ -1093,7 +1098,11 @@ HRESULT m_IDirectDrawX::SetCooperativeLevel(HWND hWnd, DWORD dwFlags)
 
 	if (Config.Dd7to9)
 	{
-		if ((dwFlags & DDSCL_NORMAL) && (dwFlags & (DDSCL_ALLOWMODEX | DDSCL_FULLSCREEN)))
+		// Check for valid parameters
+		if (((dwFlags & DDSCL_NORMAL) && (dwFlags & (DDSCL_ALLOWMODEX | DDSCL_EXCLUSIVE | DDSCL_FULLSCREEN))) ||						// Both Normal and Exclusive mode flags cannot be set
+			((dwFlags & (DDSCL_EXCLUSIVE | DDSCL_FULLSCREEN)) != (DDSCL_EXCLUSIVE | DDSCL_FULLSCREEN) && !(dwFlags & DDSCL_NORMAL)) ||	// Both Exclusive and Fullscreen flags must be set together
+			((dwFlags & DDSCL_ALLOWMODEX) && !(dwFlags & DDSCL_EXCLUSIVE)) ||															// If AllowModeX is set then Exclusive mode must be set
+			(((dwFlags & DDSCL_EXCLUSIVE) || (hWnd && hWnd != ExclusiveHwnd)) && !IsWindow(hWnd)))										// When using Exclusive mode the hwnd must be valid
 		{
 			return DDERR_INVALIDPARAMS;
 		}
@@ -1101,8 +1110,14 @@ HRESULT m_IDirectDrawX::SetCooperativeLevel(HWND hWnd, DWORD dwFlags)
 		bool ChangeMode = false;
 
 		// Set windowed mode
-		if ((dwFlags & DDSCL_NORMAL) || Config.EnableWindowMode)
+		if (dwFlags & DDSCL_NORMAL)
 		{
+			// Check for exclusive mode
+			if (ExclusiveMode && hWnd && ExclusiveHwnd == hWnd)
+			{
+				ExclusiveMode = false;
+				ExclusiveHwnd = nullptr;
+			}
 			if (!isWindowed)
 			{
 				ChangeMode = true;
@@ -1111,15 +1126,20 @@ HRESULT m_IDirectDrawX::SetCooperativeLevel(HWND hWnd, DWORD dwFlags)
 		}
 		else if (dwFlags & DDSCL_FULLSCREEN)
 		{
+			if (ExclusiveMode && ExclusiveHwnd != hWnd && IsWindow(ExclusiveHwnd))
+			{
+				return DDERR_EXCLUSIVEMODEALREADYSET;
+			}
 			if (isWindowed)
 			{
 				ChangeMode = true;
 				isWindowed = false;
 			}
+			ExclusiveMode = true;
+			ExclusiveHwnd = hWnd;
 		}
 
 		// Set device flags
-		ExclusiveMode = (dwFlags & DDSCL_EXCLUSIVE);
 		AllowModeX = (dwFlags & DDSCL_ALLOWMODEX);
 		MultiThreaded = (dwFlags & DDSCL_MULTITHREADED);
 		FUPPreserve = (dwFlags & (DDSCL_FPUPRESERVE | DDSCL_FPUSETUP));
@@ -1154,7 +1174,7 @@ HRESULT m_IDirectDrawX::SetCooperativeLevel(HWND hWnd, DWORD dwFlags)
 			t_hWnd = data.best_handle;
 		}
 
-		MainhWnd = t_hWnd;
+		displayHwnd = t_hWnd;
 
 		// Update the d3d9 device to use new windowed mode
 		if (ChangeMode && hWnd && d3d9Device && FAILED(CreateD3D9Device()))
@@ -1566,16 +1586,19 @@ void m_IDirectDrawX::InitDdraw(LPDIRECT3D9 pObject)
 void m_IDirectDrawX::SetDdrawDefaults()
 {
 	// Convert to Direct3D9
-	MainhWnd = nullptr;
 	IsInScene = false;
-	ExclusiveMode = false;
 	AllowModeX = false;
 	MultiThreaded = false;
 	FUPPreserve = false;
 	NoWindowChanges = false;
 	isWindowed = true;
 
+	// Exclusive mode
+	ExclusiveMode = false;
+	ExclusiveHwnd = nullptr;
+
 	// Application display mode
+	displayHwnd = nullptr;
 	displayModeWidth = 0;
 	displayModeHeight = 0;
 	displayModeBPP = 0;
@@ -1592,6 +1615,7 @@ void m_IDirectDrawX::SetDdrawDefaults()
 	monitorRefreshRate = 0;
 	monitorHeight = 0;
 	FrequencyFlag = QueryPerformanceFrequency(&clockFrequency);
+	ZeroMemory(&presParams, sizeof(presParams));
 }
 
 void m_IDirectDrawX::ReleaseDdraw()
@@ -1645,7 +1669,10 @@ void m_IDirectDrawX::ReleaseDdraw()
 	PaletteVector.clear();
 
 	// Release shared d3d9device
-	ReleaseD3d9Device();
+	if (ref == 0)
+	{
+		ReleaseD3d9Device();
+	}
 
 	// Release shared d3d9object
 	if (d3d9Object)
@@ -1672,7 +1699,7 @@ void ReleaseAllDirectDrawD9Surfaces()
 
 HWND m_IDirectDrawX::GetHwnd()
 {
-	return MainhWnd;
+	return displayHwnd;
 }
 
 bool m_IDirectDrawX::IsExclusiveMode()
@@ -1761,7 +1788,7 @@ HRESULT m_IDirectDrawX::CreateD3D9Device()
 	presParams.PresentationInterval = D3DPRESENT_INTERVAL_IMMEDIATE;
 
 	// Set parameters for the current display mode
-	if (isWindowed || !MainhWnd)
+	if (isWindowed || !displayHwnd)
 	{
 		// Window mode
 		presParams.Windowed = TRUE;
@@ -1784,9 +1811,9 @@ HRESULT m_IDirectDrawX::CreateD3D9Device()
 		// Get refresh rate
 		if (Config.DdrawUseNativeResolution && !displayRefreshRate)
 		{
-			displayRefreshRate = Utils::GetRefreshRate(MainhWnd);
+			displayRefreshRate = Utils::GetRefreshRate(displayHwnd);
 		}
-		DWORD BackBufferRefreshRate = (displayRefreshRate) ? displayRefreshRate : Utils::GetRefreshRate(MainhWnd);
+		DWORD BackBufferRefreshRate = (displayRefreshRate) ? displayRefreshRate : Utils::GetRefreshRate(displayHwnd);
 
 		// Loop through all modes looking for our requested resolution
 		D3DDISPLAYMODE d3ddispmode;
@@ -1834,10 +1861,9 @@ HRESULT m_IDirectDrawX::CreateD3D9Device()
 		((FUPPreserve) ? D3DCREATE_FPU_PRESERVE : 0) |
 		((NoWindowChanges) ? D3DCREATE_NOWINDOWCHANGES : 0);
 
-	Logging::Log() << __FUNCTION__ << " wnd: " << MainhWnd << " D3d9 Device size: " << presParams << " flags: " << BehaviorFlags;
+	Logging::LogDebug() << __FUNCTION__ << " wnd: " << displayHwnd << " D3d9 Device size: " << presParams << " flags: " << BehaviorFlags;
 
-	// Create d3d9 Device
-	if (FAILED(d3d9Object->CreateDevice(D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, MainhWnd, BehaviorFlags, &presParams, &d3d9Device)))
+	if (FAILED(d3d9Object->CreateDevice(D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, displayHwnd, BehaviorFlags, &presParams, &d3d9Device)))
 	{
 		LOG_LIMIT(100, __FUNCTION__ << " Error: failed to create Direct3D9 device! " << presParams.BackBufferWidth << "x" << presParams.BackBufferHeight << " refresh: " << presParams.FullScreen_RefreshRateInHz <<
 			" format: " << presParams.BackBufferFormat);
@@ -1845,7 +1871,7 @@ HRESULT m_IDirectDrawX::CreateD3D9Device()
 	}
 
 	// Store display frequency
-	monitorRefreshRate = (presParams.FullScreen_RefreshRateInHz) ? presParams.FullScreen_RefreshRateInHz : Utils::GetRefreshRate(MainhWnd);
+	monitorRefreshRate = (presParams.FullScreen_RefreshRateInHz) ? presParams.FullScreen_RefreshRateInHz : Utils::GetRefreshRate(displayHwnd);
 	monitorHeight = GetSystemMetrics(SM_CYSCREEN);
 
 	// Reset BeginScene
