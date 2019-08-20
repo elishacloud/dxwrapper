@@ -43,7 +43,7 @@ HWND displayHwnd;
 DWORD displayModeWidth;
 DWORD displayModeHeight;
 DWORD displayModeBPP;
-DWORD displayModeRefreshRate;		// Refresh rate for fullscreen
+DWORD displayModeRefreshRate;
 
 // Display resolution
 bool SetDefaultDisplayMode;			// Set native resolution
@@ -1239,12 +1239,14 @@ HRESULT m_IDirectDrawX::SetDisplayMode(DWORD dwWidth, DWORD dwHeight, DWORD dwBP
 			displayModeHeight = NewHeight;
 			displayModeBPP = NewBPP;
 			displayModeRefreshRate = NewRefreshRate;
-		}
 
-		if (SetDefaultDisplayMode || !displayWidth || !displayHeight)
-		{
-			displayWidth = dwWidth;
-			displayHeight = dwHeight;
+			// Display resolution
+			if (SetDefaultDisplayMode)
+			{
+				displayWidth = (Config.DdrawUseNativeResolution) ? displayWidth : (Config.DdrawOverrideWidth) ? Config.DdrawOverrideWidth : displayModeWidth;
+				displayHeight = (Config.DdrawUseNativeResolution) ? displayHeight : (Config.DdrawOverrideHeight) ? Config.DdrawOverrideHeight : displayModeHeight;
+				displayRefreshRate = (Config.DdrawOverrideRefreshRate) ? Config.DdrawOverrideRefreshRate : NewRefreshRate;
+			}
 		}
 
 		// Update the d3d9 device to use new display mode
@@ -1597,7 +1599,7 @@ void m_IDirectDrawX::SetDdrawDefaults()
 	displayHeight = (Config.DdrawUseNativeResolution) ? GetSystemMetrics(SM_CYSCREEN) : (Config.DdrawOverrideHeight) ? Config.DdrawOverrideHeight : 0;
 	displayRefreshRate = (Config.DdrawOverrideRefreshRate) ? Config.DdrawOverrideRefreshRate : 0;
 
-	SetDefaultDisplayMode = (!displayWidth || !displayHeight);
+	SetDefaultDisplayMode = (!displayWidth || !displayHeight || !displayRefreshRate);
 
 	// Other settings
 	monitorRefreshRate = 0;
@@ -1797,10 +1799,6 @@ HRESULT m_IDirectDrawX::CreateD3D9Device()
 		}
 
 		// Get refresh rate
-		if (Config.DdrawUseNativeResolution && !displayRefreshRate)
-		{
-			displayRefreshRate = Utils::GetRefreshRate(displayHwnd);
-		}
 		DWORD BackBufferRefreshRate = (displayRefreshRate) ? displayRefreshRate : Utils::GetRefreshRate(displayHwnd);
 
 		// Loop through all modes looking for our requested resolution
