@@ -44,6 +44,7 @@ DWORD displayModeWidth;
 DWORD displayModeHeight;
 DWORD displayModeBPP;
 DWORD displayModeRefreshRate;
+bool ResetDisplayMode;
 
 // Display resolution
 bool SetDefaultDisplayMode;			// Set native resolution
@@ -696,6 +697,8 @@ HRESULT m_IDirectDrawX::FlipToGDISurface()
 			return DDERR_GENERIC;
 		}
 
+		ResetDisplayMode = true;
+
 		return DD_OK;
 	}
 
@@ -1232,7 +1235,7 @@ HRESULT m_IDirectDrawX::SetDisplayMode(DWORD dwWidth, DWORD dwHeight, DWORD dwBP
 		DWORD NewBPP = (Config.DdrawOverrideBitMode) ? Config.DdrawOverrideBitMode : dwBPP;
 		DWORD NewRefreshRate = dwRefreshRate;
 
-		if (displayModeWidth != NewWidth || displayModeHeight != NewHeight || displayModeBPP != NewBPP || displayModeRefreshRate != NewRefreshRate)
+		if (ResetDisplayMode || displayModeWidth != NewWidth || displayModeHeight != NewHeight || displayModeBPP != NewBPP || displayModeRefreshRate != NewRefreshRate)
 		{
 			ChangeMode = true;
 			displayModeWidth = NewWidth;
@@ -1243,9 +1246,9 @@ HRESULT m_IDirectDrawX::SetDisplayMode(DWORD dwWidth, DWORD dwHeight, DWORD dwBP
 			// Display resolution
 			if (SetDefaultDisplayMode)
 			{
-				displayWidth = (Config.DdrawUseNativeResolution) ? displayWidth : (Config.DdrawOverrideWidth) ? Config.DdrawOverrideWidth : displayModeWidth;
-				displayHeight = (Config.DdrawUseNativeResolution) ? displayHeight : (Config.DdrawOverrideHeight) ? Config.DdrawOverrideHeight : displayModeHeight;
-				displayRefreshRate = (Config.DdrawOverrideRefreshRate) ? Config.DdrawOverrideRefreshRate : NewRefreshRate;
+				displayWidth = (Config.DdrawUseNativeResolution || Config.DdrawOverrideWidth) ? displayWidth : displayModeWidth;
+				displayHeight = (Config.DdrawUseNativeResolution || Config.DdrawOverrideHeight) ? displayHeight : displayModeHeight;
+				displayRefreshRate = (Config.DdrawOverrideRefreshRate) ? displayRefreshRate : displayModeRefreshRate;
 			}
 		}
 
@@ -1255,6 +1258,8 @@ HRESULT m_IDirectDrawX::SetDisplayMode(DWORD dwWidth, DWORD dwHeight, DWORD dwBP
 			LOG_LIMIT(100, __FUNCTION__ << " Error: creating Direct3D9 Device");
 			return DDERR_GENERIC;
 		}
+
+		ResetDisplayMode = false;
 
 		return DD_OK;
 	}
@@ -1593,6 +1598,7 @@ void m_IDirectDrawX::SetDdrawDefaults()
 	displayModeHeight = 0;
 	displayModeBPP = 0;
 	displayModeRefreshRate = 0;
+	ResetDisplayMode = false;
 
 	// Display resolution
 	displayWidth = (Config.DdrawUseNativeResolution) ? GetSystemMetrics(SM_CXSCREEN) : (Config.DdrawOverrideWidth) ? Config.DdrawOverrideWidth : 0;
