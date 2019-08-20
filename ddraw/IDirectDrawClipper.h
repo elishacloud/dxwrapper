@@ -8,6 +8,9 @@ private:
 	ULONG RefCount = 1;
 	DWORD clipperCaps = 0;						// Clipper flags
 	HWND cliphWnd = nullptr;
+	RGNDATA ClipList;
+	bool IsClipListSet = false;
+	bool IsClipListChangedFlag = false;
 
 public:
 	m_IDirectDrawClipper(IDirectDrawClipper *aOriginal) : ProxyInterface(aOriginal)

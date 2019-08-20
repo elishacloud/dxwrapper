@@ -78,8 +78,39 @@ HRESULT m_IDirectDrawClipper::GetClipList(LPRECT lpRect, LPRGNDATA lpClipList, L
 
 	if (!ProxyInterface)
 	{
-		LOG_LIMIT(100, __FUNCTION__ << " Not Implemented");
-		return DDERR_UNSUPPORTED;
+		// When lpClipList is NULL, the variable at lpdwSize receives the required size of the buffer, in bytes.
+		if (!lpClipList)
+		{
+			if (lpdwSize)
+			{
+				*lpdwSize = sizeof(RGNDATA);
+				return DD_OK;
+			}
+			return DDERR_INVALIDPARAMS;
+		}
+		if (IsClipListSet)
+		{
+			// ToDo: add support for lpRect
+			// A pointer to a RECT structure that GetClipList uses to clip the clip list. Set this parameter to NULL to retrieve the entire clip list.
+
+			// ToDo: fix sizeof(RGNDATA) to be the atual size of the data
+			if (lpdwSize && *lpdwSize <= sizeof(RGNDATA))
+			{
+				IsClipListChangedFlag = false;				// Just set this to false for now
+				memcpy(lpClipList, &ClipList, *lpdwSize);
+				return DD_OK;
+			}
+			else if (lpdwSize && *lpdwSize >= sizeof(RGNDATA))
+			{
+				return DDERR_REGIONTOOSMALL;
+			}
+		}
+		else
+		{
+			return DDERR_NOCLIPLIST;
+		}
+
+		return DDERR_GENERIC;
 	}
 
 	return ProxyInterface->GetClipList(lpRect, lpClipList, lpdwSize);
@@ -137,11 +168,18 @@ HRESULT m_IDirectDrawClipper::IsClipListChanged(BOOL FAR * lpbChanged)
 			return DDERR_INVALIDPARAMS;
 		}
 
-		LOG_LIMIT(100, __FUNCTION__ << " Not Implemented");
-
+		// ToDo: Fix this to get real status of ClipList
 		// lpbChanged is TRUE if the clip list has changed, and FALSE otherwise.
+		if (IsClipListChangedFlag)
+		{
+			*lpbChanged = TRUE;
+		}
+		else
+		{
+			*lpbChanged = FALSE;
+		}
 
-		return DDERR_UNSUPPORTED;
+		return DD_OK;
 	}
 
 	return ProxyInterface->IsClipListChanged(lpbChanged);
@@ -153,8 +191,6 @@ HRESULT m_IDirectDrawClipper::SetClipList(LPRGNDATA lpClipList, DWORD dwFlags)
 
 	if (!ProxyInterface)
 	{
-		LOG_LIMIT(100, __FUNCTION__ << " Not Implemented");
-
 		// You cannot set the clip list if a window handle is already associated with the DirectDrawClipper object.
 		if (cliphWnd)
 		{
@@ -165,13 +201,18 @@ HRESULT m_IDirectDrawClipper::SetClipList(LPRGNDATA lpClipList, DWORD dwFlags)
 		if (!lpClipList)
 		{
 			// Delete associated clip list if it exists
+			IsClipListSet = false;
 		}
 		else
 		{
 			// Set clip list to lpClipList
+			IsClipListSet = true;
+			IsClipListChangedFlag = true;
+			// ToDo: Fix this to get correct size of ClipList
+			memcpy(&ClipList, lpClipList, sizeof(RGNDATA));
 		}
 
-		return DDERR_UNSUPPORTED;
+		return DD_OK;
 	}
 
 	return ProxyInterface->SetClipList(lpClipList, dwFlags);

@@ -690,7 +690,12 @@ HRESULT m_IDirectDrawX::FlipToGDISurface()
 
 	if (Config.Dd7to9)
 	{
-		LOG_LIMIT(100, __FUNCTION__ << " Not Implemented");
+		if (d3d9Device && FAILED(CreateD3D9Device()))
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: creating Direct3D9 Device");
+			return DDERR_GENERIC;
+		}
+
 		return DD_OK;
 	}
 
@@ -1107,8 +1112,6 @@ HRESULT m_IDirectDrawX::SetCooperativeLevel(HWND hWnd, DWORD dwFlags)
 			return DDERR_INVALIDPARAMS;
 		}
 
-		bool ChangeMode = false;
-
 		// Set windowed mode
 		if (dwFlags & DDSCL_NORMAL)
 		{
@@ -1118,11 +1121,7 @@ HRESULT m_IDirectDrawX::SetCooperativeLevel(HWND hWnd, DWORD dwFlags)
 				ExclusiveMode = false;
 				ExclusiveHwnd = nullptr;
 			}
-			if (!isWindowed)
-			{
-				ChangeMode = true;
 				isWindowed = true;
-			}
 		}
 		else if (dwFlags & DDSCL_FULLSCREEN)
 		{
@@ -1130,11 +1129,7 @@ HRESULT m_IDirectDrawX::SetCooperativeLevel(HWND hWnd, DWORD dwFlags)
 			{
 				return DDERR_EXCLUSIVEMODEALREADYSET;
 			}
-			if (isWindowed)
-			{
-				ChangeMode = true;
-				isWindowed = false;
-			}
+			isWindowed = false;
 			ExclusiveMode = true;
 			ExclusiveHwnd = hWnd;
 		}
@@ -1175,13 +1170,6 @@ HRESULT m_IDirectDrawX::SetCooperativeLevel(HWND hWnd, DWORD dwFlags)
 		}
 
 		displayHwnd = t_hWnd;
-
-		// Update the d3d9 device to use new windowed mode
-		if (ChangeMode && hWnd && d3d9Device && FAILED(CreateD3D9Device()))
-		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error: creating Direct3D9 Device");
-			return DDERR_GENERIC;
-		}
 
 		return DD_OK;
 	}
