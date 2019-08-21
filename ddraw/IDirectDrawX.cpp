@@ -1144,7 +1144,7 @@ HRESULT m_IDirectDrawX::SetCooperativeLevel(HWND hWnd, DWORD dwFlags)
 		NoWindowChanges = (dwFlags & DDSCL_NOWINDOWCHANGES);
 
 		// Set display window
-		HWND t_hWnd = hWnd;
+		HWND t_hWnd = (IsWindow(ExclusiveHwnd)) ? ExclusiveHwnd : (IsWindow(hWnd)) ? hWnd : nullptr;
 		if (!t_hWnd)
 		{
 			// Set variables
