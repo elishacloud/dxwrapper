@@ -110,7 +110,7 @@ HRESULT m_IDirect3DDevice9Ex::Reset(D3DPRESENT_PARAMETERS *pPresentationParamete
 
 			if (SUCCEEDED(hr))
 			{
-				LOG_LIMIT(3, "Disabling AntiAliasing...");
+				LOG_LIMIT(3, __FUNCTION__ << " Disabling AntiAliasing...");
 				DeviceMultiSampleFlag = false;
 				DeviceMultiSampleType = D3DMULTISAMPLE_NONE;
 				DeviceMultiSampleQuality = 0;
@@ -165,13 +165,39 @@ HRESULT m_IDirect3DDevice9Ex::CreateAdditionalSwapChain(D3DPRESENT_PARAMETERS *p
 		return D3DERR_INVALIDCALL;
 	}
 
+	HRESULT hr = D3DERR_INVALIDCALL;
+
 	// Setup presentation parameters
 	D3DPRESENT_PARAMETERS d3dpp;
 	CopyMemory(&d3dpp, pPresentationParameters, sizeof(D3DPRESENT_PARAMETERS));
 	UpdatePresentParameter(&d3dpp, nullptr, false);
 
-	// Create CwapChain
-	HRESULT hr = ProxyInterface->CreateAdditionalSwapChain(&d3dpp, ppSwapChain);
+	// Test for Multisample
+	if (DeviceMultiSampleFlag)
+	{
+		// Update Present Parameter for Multisample
+		UpdatePresentParameterForMultisample(&d3dpp, DeviceMultiSampleType, DeviceMultiSampleQuality);
+
+		// Create CwapChain
+		hr = ProxyInterface->CreateAdditionalSwapChain(&d3dpp, ppSwapChain);
+	}
+	
+	if (FAILED(hr))
+	{
+		CopyMemory(&d3dpp, pPresentationParameters, sizeof(D3DPRESENT_PARAMETERS));
+		UpdatePresentParameter(&d3dpp, nullptr, false);
+
+		// Create CwapChain
+		hr = ProxyInterface->CreateAdditionalSwapChain(&d3dpp, ppSwapChain);
+
+		if (SUCCEEDED(hr))
+		{
+			LOG_LIMIT(3, __FUNCTION__ <<" Disabling AntiAliasing...");
+			DeviceMultiSampleFlag = false;
+			DeviceMultiSampleType = D3DMULTISAMPLE_NONE;
+			DeviceMultiSampleQuality = 0;
+		}
+	}
 
 	if (SUCCEEDED(hr) && ppSwapChain)
 	{
@@ -1844,7 +1870,7 @@ HRESULT m_IDirect3DDevice9Ex::ResetEx(THIS_ D3DPRESENT_PARAMETERS* pPresentation
 
 			if (SUCCEEDED(hr))
 			{
-				LOG_LIMIT(3, "Disabling AntiAliasing...");
+				LOG_LIMIT(3, __FUNCTION__ << " Disabling AntiAliasing...");
 				DeviceMultiSampleFlag = false;
 				DeviceMultiSampleType = D3DMULTISAMPLE_NONE;
 				DeviceMultiSampleQuality = 0;
