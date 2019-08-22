@@ -1028,7 +1028,6 @@ HRESULT m_IDirectDrawX::RestoreDisplayMode()
 		}
 
 		// Set mode
-		IsInScene = false;
 		ExclusiveMode = false;
 		ExclusiveHwnd = nullptr;
 		AllowModeX = false;
@@ -2117,8 +2116,12 @@ HRESULT m_IDirectDrawX::BeginScene()
 	// Begin scene
 	if (FAILED(d3d9Device->BeginScene()))
 	{
-		LOG_LIMIT(100, __FUNCTION__ << " Error: failed to begin scene");
-		return DDERR_GENERIC;
+		d3d9Device->EndScene();
+		if (FAILED(d3d9Device->BeginScene()))
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: failed to begin scene");
+			return DDERR_GENERIC;
+		}
 	}
 	IsInScene = true;
 
@@ -2183,8 +2186,12 @@ HRESULT m_IDirectDrawX::EndScene()
 	// End scene
 	if (FAILED(d3d9Device->EndScene()))
 	{
-		LOG_LIMIT(100, __FUNCTION__ << " Error: failed to end scene");
-		return DDERR_GENERIC;
+		d3d9Device->BeginScene();
+		if (FAILED(d3d9Device->EndScene()))
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: failed to end scene");
+			return DDERR_GENERIC;
+		}
 	}
 	IsInScene = false;
 
