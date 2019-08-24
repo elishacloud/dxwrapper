@@ -27,6 +27,7 @@ private:
 	DWORD surfaceBitCount = 0;							// Bit count for this surface
 	CRITICAL_SECTION ddscs;								// Critical section for surfaceArray
 	std::vector<byte> surfaceArray;						// Memory used for coping from one surface to the same surface
+	std::vector<byte> emulatedSurface;					// Memory used for an emulated surface
 	CKEYS ColorKeys[4];									// Color keys (0 = DDCKEY_DESTBLT, 1 = DDCKEY_DESTOVERLAY, 2 = DDCKEY_SRCBLT, 3 = DDCKEY_SRCOVERLAY)
 	LONG overlayX = 0;
 	LONG overlayY = 0;
@@ -298,6 +299,8 @@ public:
 	// Copying surface textures
 	HRESULT ColorFill(RECT* pRect, D3DCOLOR dwFillColor);
 	HRESULT CopySurface(m_IDirectDrawSurfaceX* pSourceSurface, RECT* pSourceRect, RECT* pDestRect, D3DTEXTUREFILTERTYPE Filter, DDCOLORKEY ColorKey, DWORD dwFlags);
+	template <class T>
+	HRESULT CopyEmulatedSurface(T pSurface, bool FromSurfaceToEmulation);
 
 	// Release interface
 	void ReleaseInterface();

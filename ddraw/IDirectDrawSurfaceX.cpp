@@ -1098,82 +1098,92 @@ HRESULT m_IDirectDrawSurfaceX::GetDC(HDC FAR * lphDC)
 		}
 
 		HRESULT hr = DD_OK;
-		bool UnlockSurface = false, UnlockTexture = false;
 
-		do {
-			D3DLOCKED_RECT SrcLockRect, DestLockRect;
-
-			// Check if source surface is not locked then lock it
-			if (FAILED(surfaceTexture->LockRect(0, &SrcLockRect, nullptr, D3DLOCK_READONLY)))
-			{
-				LOG_LIMIT(100, __FUNCTION__ << " Error: could not lock source surface");
-				hr = DDERR_GENERIC;
-				break;
-			}
-			UnlockTexture = true;
-
-			// Check if destination surface is not locked then lock it
-			if (FAILED(offscreenSurface->LockRect(&DestLockRect, nullptr, 0)))
-			{
-				LOG_LIMIT(100, __FUNCTION__ << " Error: could not lock destination surface");
-				hr = DDERR_GENERIC;
-				break;
-			}
-			UnlockSurface = true;
-
-			// Get byte count
-			DWORD SrcByteCount = SrcLockRect.Pitch / surfaceDesc2.dwWidth;
-			DWORD DestByteCount = DestLockRect.Pitch / surfaceDesc2.dwWidth;
-			if (!SrcByteCount || SrcByteCount > 4 || !DestByteCount || DestByteCount > 4)
-			{
-				LOG_LIMIT(100, __FUNCTION__ << " Error: wrong bit count " << SrcByteCount << "-->" << DestByteCount);
-				hr = DDERR_GENERIC;
-				break;
-			}
-
-			// Create buffer variables
-			BYTE *SrcBuffer = (BYTE*)SrcLockRect.pBits;
-			BYTE *DestBuffer = (BYTE*)DestLockRect.pBits;
-
-			// Copy data
-			if (SrcByteCount == DestByteCount)
-			{
-				for (DWORD x = 0; x < surfaceDesc2.dwHeight; x++)
-				{
-					memcpy(DestBuffer, SrcBuffer, DestLockRect.Pitch);
-					SrcBuffer += SrcLockRect.Pitch;
-					DestBuffer += DestLockRect.Pitch;
-				}
-			}
-			else if (SrcByteCount == 1 && DestByteCount == 4)
-			{
-				for (DWORD x = 0; x < surfaceDesc2.dwHeight; x++)
-				{
-					for (DWORD y = 0; y < surfaceDesc2.dwWidth; y++)
-					{
-						((DWORD*)DestBuffer)[y] = SrcBuffer[y];
-					}
-					SrcBuffer += SrcLockRect.Pitch;
-					DestBuffer += DestLockRect.Pitch;
-				}
-			}
-			else
-			{
-				LOG_LIMIT(100, __FUNCTION__ << " Error: Could not copy to offscreen surface");
-				hr = DDERR_GENERIC;
-				break;
-			}
-
-		} while (false);
-
-		// Unlock texure surfaces
-		if (UnlockTexture)
+		// Copy data from emulated surface to offscreen surface
+		if (emulatedSurface.size())
 		{
-			surfaceTexture->UnlockRect(0);
+			hr = CopyEmulatedSurface(offscreenSurface, false);
 		}
-		if (UnlockSurface)
+
+		// Copy data from texture surface to offscreen surface
+		else
 		{
-			offscreenSurface->UnlockRect();
+			bool UnlockSurface = false, UnlockTexture = false;
+			do {
+				D3DLOCKED_RECT SrcLockRect, DestLockRect;
+
+				// Check if source surface is not locked then lock it
+				if (FAILED(surfaceTexture->LockRect(0, &SrcLockRect, nullptr, D3DLOCK_READONLY)))
+				{
+					LOG_LIMIT(100, __FUNCTION__ << " Error: could not lock source surface");
+					hr = DDERR_GENERIC;
+					break;
+				}
+				UnlockTexture = true;
+
+				// Check if destination surface is not locked then lock it
+				if (FAILED(offscreenSurface->LockRect(&DestLockRect, nullptr, 0)))
+				{
+					LOG_LIMIT(100, __FUNCTION__ << " Error: could not lock destination surface");
+					hr = DDERR_GENERIC;
+					break;
+				}
+				UnlockSurface = true;
+
+				// Get byte count
+				DWORD SrcByteCount = SrcLockRect.Pitch / surfaceDesc2.dwWidth;
+				DWORD DestByteCount = DestLockRect.Pitch / surfaceDesc2.dwWidth;
+				if (!SrcByteCount || SrcByteCount > 4 || !DestByteCount || DestByteCount > 4)
+				{
+					LOG_LIMIT(100, __FUNCTION__ << " Error: wrong bit count " << SrcByteCount << "-->" << DestByteCount);
+					hr = DDERR_GENERIC;
+					break;
+				}
+
+				// Create buffer variables
+				BYTE *SrcBuffer = (BYTE*)SrcLockRect.pBits;
+				BYTE *DestBuffer = (BYTE*)DestLockRect.pBits;
+
+				// Copy data
+				if (SrcByteCount == DestByteCount)
+				{
+					for (DWORD x = 0; x < surfaceDesc2.dwHeight; x++)
+					{
+						memcpy(DestBuffer, SrcBuffer, DestLockRect.Pitch);
+						SrcBuffer += SrcLockRect.Pitch;
+						DestBuffer += DestLockRect.Pitch;
+					}
+				}
+				else if (SrcByteCount == 1 && DestByteCount == 4)
+				{
+					for (DWORD x = 0; x < surfaceDesc2.dwHeight; x++)
+					{
+						for (DWORD y = 0; y < surfaceDesc2.dwWidth; y++)
+						{
+							((DWORD*)DestBuffer)[y] = SrcBuffer[y];
+						}
+						SrcBuffer += SrcLockRect.Pitch;
+						DestBuffer += DestLockRect.Pitch;
+					}
+				}
+				else
+				{
+					LOG_LIMIT(100, __FUNCTION__ << " Error: Could not copy to offscreen surface");
+					hr = DDERR_GENERIC;
+					break;
+				}
+
+			} while (false);
+
+			// Unlock texure surfaces
+			if (UnlockTexture)
+			{
+				surfaceTexture->UnlockRect(0);
+			}
+			if (UnlockSurface)
+			{
+				offscreenSurface->UnlockRect();
+			}
 		}
 
 		// GetDC from surface
@@ -1549,7 +1559,7 @@ HRESULT m_IDirectDrawSurfaceX::Lock2(LPRECT lpDestRect, LPDDSURFACEDESC2 lpDDSur
 		D3DLOCKED_RECT LockedRect;
 
 		// Convert flags to d3d9
-		DWORD Flags = dwFlags & (D3DLOCK_READONLY | (!IsPrimarySurface() ? DDLOCK_NOSYSLOCK : 0) | D3DLOCK_DISCARD);
+		DWORD Flags = dwFlags & (D3DLOCK_READONLY | (!IsPrimarySurface() ? DDLOCK_NOSYSLOCK : 0) | ((!lpDestRect) ? D3DLOCK_DISCARD : 0));
 
 		// Update rect
 		RECT DestRect;
@@ -1619,80 +1629,90 @@ HRESULT m_IDirectDrawSurfaceX::ReleaseDC(HDC hDC)
 			surfacehDC = nullptr;
 			IsInDC = false;
 
-			bool UnlockSurface = false, UnlockTexture = false;
-
-			do {
-				D3DLOCKED_RECT SrcLockRect, DestLockRect;
-
-				// Check if source surface is not locked then lock it
-				if (FAILED(offscreenSurface->LockRect(&SrcLockRect, nullptr, D3DLOCK_READONLY)))
-				{
-					LOG_LIMIT(100, __FUNCTION__ << " Error: could not lock source surface");
-					break;
-				}
-				UnlockSurface = true;
-
-				// Check if destination surface is not locked then lock it
-				if (FAILED(surfaceTexture->LockRect(0, &DestLockRect, nullptr, 0)))
-				{
-					LOG_LIMIT(100, __FUNCTION__ << " Error: could not lock destination surface");
-					break;
-				}
-				UnlockTexture = true;
-
-				// Get byte count
-				DWORD SrcByteCount = SrcLockRect.Pitch / surfaceDesc2.dwWidth;
-				DWORD DestByteCount = DestLockRect.Pitch / surfaceDesc2.dwWidth;
-				if (!SrcByteCount || SrcByteCount > 4 || !DestByteCount || DestByteCount > 4)
-				{
-					LOG_LIMIT(100, __FUNCTION__ << " Error: wrong bit count " << SrcByteCount << "-->" << DestByteCount);
-					hr = DDERR_GENERIC;
-					break;
-				}
-
-				// Create buffer variables
-				BYTE *SrcBuffer = (BYTE*)SrcLockRect.pBits;
-				BYTE *DestBuffer = (BYTE*)DestLockRect.pBits;
-
-				// Copy data
-				if (SrcByteCount == DestByteCount)
-				{
-					for (DWORD x = 0; x < surfaceDesc2.dwHeight; x++)
-					{
-						memcpy(DestBuffer, SrcBuffer, DestLockRect.Pitch);
-						SrcBuffer += SrcLockRect.Pitch;
-						DestBuffer += DestLockRect.Pitch;
-					}
-				}
-				else if (SrcByteCount == 4 && DestByteCount == 1)
-				{
-					for (DWORD x = 0; x < surfaceDesc2.dwHeight; x++)
-					{
-						for (DWORD y = 0; y < surfaceDesc2.dwWidth; y++)
-						{
-							DestBuffer[y] = (BYTE)(((DWORD*)SrcBuffer)[y]);		// ToDo: Fix this to show the correct color
-						}
-						SrcBuffer += SrcLockRect.Pitch;
-						DestBuffer += DestLockRect.Pitch;
-					}
-				}
-				else
-				{
-					LOG_LIMIT(100, __FUNCTION__ << " Error: Could not copy from offscreen surface");
-					hr = DDERR_GENERIC;
-					break;
-				}
-
-			} while (false);
-
-			// Unlock texure surfaces
-			if (UnlockTexture)
+			// Copy data from offscreen surface to emulated surface
+			if (emulatedSurface.size())
 			{
-				surfaceTexture->UnlockRect(0);
+				hr = CopyEmulatedSurface(offscreenSurface, true);
 			}
-			if (UnlockSurface)
+
+			// Copy data from offscreen surface to texture surface
+			else
 			{
-				offscreenSurface->UnlockRect();
+				bool UnlockSurface = false, UnlockTexture = false;
+
+				do {
+					D3DLOCKED_RECT SrcLockRect, DestLockRect;
+
+					// Check if source surface is not locked then lock it
+					if (FAILED(offscreenSurface->LockRect(&SrcLockRect, nullptr, D3DLOCK_READONLY)))
+					{
+						LOG_LIMIT(100, __FUNCTION__ << " Error: could not lock source surface");
+						break;
+					}
+					UnlockSurface = true;
+
+					// Check if destination surface is not locked then lock it
+					if (FAILED(surfaceTexture->LockRect(0, &DestLockRect, nullptr, 0)))
+					{
+						LOG_LIMIT(100, __FUNCTION__ << " Error: could not lock destination surface");
+						break;
+					}
+					UnlockTexture = true;
+
+					// Get byte count
+					DWORD SrcByteCount = SrcLockRect.Pitch / surfaceDesc2.dwWidth;
+					DWORD DestByteCount = DestLockRect.Pitch / surfaceDesc2.dwWidth;
+					if (!SrcByteCount || SrcByteCount > 4 || !DestByteCount || DestByteCount > 4)
+					{
+						LOG_LIMIT(100, __FUNCTION__ << " Error: wrong bit count " << SrcByteCount << "-->" << DestByteCount);
+						hr = DDERR_GENERIC;
+						break;
+					}
+
+					// Create buffer variables
+					BYTE *SrcBuffer = (BYTE*)SrcLockRect.pBits;
+					BYTE *DestBuffer = (BYTE*)DestLockRect.pBits;
+
+					// Copy data
+					if (SrcByteCount == DestByteCount)
+					{
+						for (DWORD x = 0; x < surfaceDesc2.dwHeight; x++)
+						{
+							memcpy(DestBuffer, SrcBuffer, DestLockRect.Pitch);
+							SrcBuffer += SrcLockRect.Pitch;
+							DestBuffer += DestLockRect.Pitch;
+						}
+					}
+					else if (SrcByteCount == 4 && DestByteCount == 1)
+					{
+						for (DWORD x = 0; x < surfaceDesc2.dwHeight; x++)
+						{
+							for (DWORD y = 0; y < surfaceDesc2.dwWidth; y++)
+							{
+								DestBuffer[y] = (BYTE)(((DWORD*)SrcBuffer)[y]);		// ToDo: Fix this to show the correct color
+							}
+							SrcBuffer += SrcLockRect.Pitch;
+							DestBuffer += DestLockRect.Pitch;
+						}
+					}
+					else
+					{
+						LOG_LIMIT(100, __FUNCTION__ << " Error: Could not copy from offscreen surface");
+						hr = DDERR_GENERIC;
+						break;
+					}
+
+				} while (false);
+
+				// Unlock texure surfaces
+				if (UnlockTexture)
+				{
+					surfaceTexture->UnlockRect(0);
+				}
+				if (UnlockSurface)
+				{
+					offscreenSurface->UnlockRect();
+				}
 			}
 
 			// Present surface
@@ -2349,6 +2369,13 @@ HRESULT m_IDirectDrawSurfaceX::CreateD3d9Surface()
 
 	Logging::LogDebug() << __FUNCTION__ << " D3d9 Surface size: " << surfaceDesc2.dwWidth << "x" << surfaceDesc2.dwHeight << " Format: " << Format;
 
+	// Create emulate surface
+	if (surfaceFormat == D3DFMT_R8G8B8)
+	{
+		DWORD ByteSize = GetBitCount(surfaceFormat) / 8;
+		emulatedSurface.resize(surfaceDesc2.dwWidth * surfaceDesc2.dwHeight * ByteSize, '\0');
+	}
+
 	// Create surface
 	if (FAILED((*d3d9Device)->CreateTexture(surfaceDesc2.dwWidth, surfaceDesc2.dwHeight, 0, 0, Format, D3DPOOL_SYSTEMMEM, &surfaceTexture, nullptr)))
 	{
@@ -2378,30 +2405,43 @@ HRESULT m_IDirectDrawSurfaceX::CreateD3d9Surface()
 		NewPalette = true;
 	}
 
-	// Reset d3d9 surface texture data
+	// Reset emulated surface data
 	Logging::LogDebug() << __FUNCTION__ << " Resetting Direct3D9 texture surface data";
+	if (emulatedSurface.size() && surfaceArray.size() == emulatedSurface.size())
+	{
+		EnterCriticalSection(&ddscs);
+
+		memcpy(&emulatedSurface[0], &surfaceArray[0], emulatedSurface.size());
+
+		LeaveCriticalSection(&ddscs);
+	}
+
+	// Reset d3d9 surface texture data
 	if (surfaceTexture && surfaceArray.size())
 	{
 		do {
-			D3DLOCKED_RECT LockRect;
-			if (FAILED(surfaceTexture->LockRect(0, &LockRect, nullptr, 0)))
+			if (!emulatedSurface.size())
 			{
-				LOG_LIMIT(100, __FUNCTION__ << " Error: failed to lock texture surface!");
-				break;
+				D3DLOCKED_RECT LockRect;
+				if (FAILED(surfaceTexture->LockRect(0, &LockRect, nullptr, 0)))
+				{
+					LOG_LIMIT(100, __FUNCTION__ << " Error: failed to lock texture surface!");
+					break;
+				}
+
+				size_t size = surfaceDesc2.dwHeight * LockRect.Pitch;
+
+				EnterCriticalSection(&ddscs);
+
+				if (size == surfaceArray.size())
+				{
+					memcpy(LockRect.pBits, &surfaceArray[0], size);
+				}
+
+				LeaveCriticalSection(&ddscs);
+
+				surfaceTexture->UnlockRect(0);
 			}
-
-			size_t size = surfaceDesc2.dwHeight * LockRect.Pitch;
-
-			EnterCriticalSection(&ddscs);
-
-			if (size == surfaceArray.size())
-			{
-				memcpy(LockRect.pBits, &surfaceArray[0], size);
-			}
-
-			LeaveCriticalSection(&ddscs);
-
-			surfaceTexture->UnlockRect(0);
 
 			// ToDo: reset other surface data, like PrivateData, Priority and LOD
 
@@ -2569,29 +2609,32 @@ void m_IDirectDrawSurfaceX::ReleaseD9Surface(bool BackupData)
 	{
 		Logging::LogDebug() << __FUNCTION__ << " Storing Direct3D9 texture surface data";
 		do {
-			surfaceTexture->UnlockRect(0);
-
-			D3DLOCKED_RECT LockRect;
-			if (FAILED(surfaceTexture->LockRect(0, &LockRect, nullptr, 0)))
+			if (!emulatedSurface.size())
 			{
-				LOG_LIMIT(100, __FUNCTION__ << " Error: failed to lock texture surface!");
-				break;
+				surfaceTexture->UnlockRect(0);
+
+				D3DLOCKED_RECT LockRect;
+				if (FAILED(surfaceTexture->LockRect(0, &LockRect, nullptr, 0)))
+				{
+					LOG_LIMIT(100, __FUNCTION__ << " Error: failed to lock texture surface!");
+					break;
+				}
+
+				size_t size = surfaceDesc2.dwHeight * LockRect.Pitch;
+
+				EnterCriticalSection(&ddscs);
+
+				if (size != surfaceArray.size())
+				{
+					surfaceArray.resize(size);
+				}
+
+				memcpy(&surfaceArray[0], LockRect.pBits, size);
+
+				LeaveCriticalSection(&ddscs);
+
+				surfaceTexture->UnlockRect(0);
 			}
-
-			size_t size = surfaceDesc2.dwHeight * LockRect.Pitch;
-
-			EnterCriticalSection(&ddscs);
-
-			if (size != surfaceArray.size())
-			{
-				surfaceArray.resize(size);
-			}
-
-			memcpy(&surfaceArray[0], LockRect.pBits, size);
-
-			LeaveCriticalSection(&ddscs);
-
-			surfaceTexture->UnlockRect(0);
 
 			// ToDo: store other surface data, like PrivateData, Priority and LOD
 
@@ -2604,6 +2647,23 @@ void m_IDirectDrawSurfaceX::ReleaseD9Surface(bool BackupData)
 		Logging::LogDebug() << __FUNCTION__ << " Releasing Direct3D9 texture surface";
 		surfaceTexture->UnlockRect(0);
 		ReleaseD9Interface(&surfaceTexture);
+	}
+
+	// Store emulated surface data
+	if (emulatedSurface.size() && BackupData)
+	{
+		EnterCriticalSection(&ddscs);
+
+		if (emulatedSurface.size() != surfaceArray.size())
+		{
+			surfaceArray.resize(emulatedSurface.size());
+		}
+
+		memcpy(&surfaceArray[0], &emulatedSurface[0], emulatedSurface.size());
+
+		emulatedSurface.clear();
+
+		LeaveCriticalSection(&ddscs);
 	}
 
 	// Release d3d9 display surface texture
@@ -2721,6 +2781,12 @@ HRESULT m_IDirectDrawSurfaceX::PresentSurface(BOOL isSkipScene)
 				}
 
 			} while (false);
+		}
+
+		// Copy emulated data to real texture
+		if (emulatedSurface.size())
+		{
+			CopyEmulatedSurface(surfaceTexture, false);
 		}
 
 		// Set texture
@@ -2918,22 +2984,40 @@ HRESULT m_IDirectDrawSurfaceX::SetLock(D3DLOCKED_RECT* pLockedRect, LPRECT lpDes
 		}
 	}
 
-	// Lock surface
-	HRESULT hr = surfaceTexture->LockRect(0, pLockedRect, lpDestRect, dwFlags);
-	if (FAILED(hr))
+	// Emulated surface
+	if (emulatedSurface.size())
 	{
-		// If failed then wait for other threads, unlock and try again
-		WaitForLockState();
-		surfaceTexture->UnlockRect(0);
-		hr = surfaceTexture->LockRect(0, pLockedRect, lpDestRect, dwFlags);
+		switch (surfaceFormat)
+		{
+		case D3DFMT_R8G8B8:
+			pLockedRect->pBits = &emulatedSurface[0];
+			pLockedRect->Pitch = surfaceDesc2.dwWidth * 3;
+			break;
+		default:
+			LOG_LIMIT(100, __FUNCTION__ << " Error: unknown emulated surface");
+			return DDERR_GENERIC;
+		}
+	}
 
-		// If lock fails
+	// Lock surface
+	else
+	{
+		HRESULT hr = surfaceTexture->LockRect(0, pLockedRect, lpDestRect, dwFlags);
 		if (FAILED(hr))
 		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error: failed to lock surface");
-			return (hr == D3DERR_INVALIDCALL) ? DDERR_GENERIC :
-				(hr == D3DERR_WASSTILLDRAWING) ? DDERR_WASSTILLDRAWING :
-				DDERR_SURFACELOST;
+			// If failed then wait for other threads, unlock and try again
+			WaitForLockState();
+			surfaceTexture->UnlockRect(0);
+			hr = surfaceTexture->LockRect(0, pLockedRect, lpDestRect, dwFlags);
+
+			// If lock fails
+			if (FAILED(hr))
+			{
+				LOG_LIMIT(100, __FUNCTION__ << " Error: failed to lock surface");
+				return (hr == D3DERR_INVALIDCALL) ? DDERR_GENERIC :
+					(hr == D3DERR_WASSTILLDRAWING) ? DDERR_WASSTILLDRAWING :
+					DDERR_SURFACELOST;
+			}
 		}
 	}
 
@@ -2961,14 +3045,23 @@ HRESULT m_IDirectDrawSurfaceX::SetUnlock(BOOL isSkipScene)
 		return DDERR_GENERIC;
 	}
 
-	// Lock surface
-	HRESULT hr = surfaceTexture->UnlockRect(0);
-	if (FAILED(hr))
+	// Emulated surface
+	if (emulatedSurface.size())
 	{
-		LOG_LIMIT(100, __FUNCTION__ << " Error: failed to unlock surface");
-		return (hr == D3DERR_INVALIDCALL) ? DDERR_GENERIC :
-			(hr == D3DERR_WASSTILLDRAWING) ? DDERR_WASSTILLDRAWING :
-			DDERR_SURFACELOST;
+		// Do nothing on emulated surface
+	}
+
+	// Lock surface
+	else
+	{
+		HRESULT hr = surfaceTexture->UnlockRect(0);
+		if (FAILED(hr))
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: failed to unlock surface");
+			return (hr == D3DERR_INVALIDCALL) ? DDERR_GENERIC :
+				(hr == D3DERR_WASSTILLDRAWING) ? DDERR_WASSTILLDRAWING :
+				DDERR_SURFACELOST;
+		}
 	}
 	IsLocked = false;
 
@@ -3497,6 +3590,93 @@ HRESULT m_IDirectDrawSurfaceX::CopySurface(m_IDirectDrawSurfaceX* pSourceSurface
 	}
 
 	// Return
+	return hr;
+}
+
+HRESULT LockRect(LPDIRECT3DTEXTURE9 pSurface, D3DLOCKED_RECT* pLockedRect, CONST RECT* pRect, DWORD Flags)
+{
+	return pSurface->LockRect(0, pLockedRect, pRect, Flags);
+}
+
+HRESULT LockRect(LPDIRECT3DSURFACE9 pSurface, D3DLOCKED_RECT* pLockedRect, CONST RECT* pRect, DWORD Flags)
+{
+	return pSurface->LockRect(pLockedRect, pRect, Flags);
+}
+
+HRESULT UnLockRect(LPDIRECT3DTEXTURE9 pSurface)
+{
+	return pSurface->UnlockRect(0);
+}
+
+HRESULT UnLockRect(LPDIRECT3DSURFACE9 pSurface)
+{
+	return pSurface->UnlockRect();
+}
+
+// Copy from emulated surface
+template <class T>
+HRESULT m_IDirectDrawSurfaceX::CopyEmulatedSurface(T pSurface, bool FromSurfaceToEmulation)
+{
+	HRESULT hr = D3D_OK;
+
+	switch (surfaceFormat)
+	{
+	case D3DFMT_R8G8B8:
+		do {
+			D3DLOCKED_RECT EmulatedLockRect, SurfaceLockRect;
+
+			// Source rect
+			EmulatedLockRect.pBits = &emulatedSurface[0];
+			EmulatedLockRect.Pitch = surfaceDesc2.dwWidth * 3;
+
+			// Check if destination surface is not locked then lock it
+			if (FAILED(LockRect(pSurface, &SurfaceLockRect, nullptr, (FromSurfaceToEmulation) ? D3DLOCK_READONLY : 0)))
+			{
+				LOG_LIMIT(100, __FUNCTION__ << " Error: could not lock surface texture!");
+				hr = DDERR_GENERIC;
+				break;
+			}
+
+			// Create buffer variables
+			BYTE *EmulatedBuffer = (BYTE*)EmulatedLockRect.pBits;
+			DWORD *SurfaceBuffer = (DWORD*)SurfaceLockRect.pBits;
+
+			// Copy data
+			if (FromSurfaceToEmulation)
+			{
+				for (DWORD x = 0; x < surfaceDesc2.dwHeight; x++)
+				{
+					for (DWORD y = 0; y < surfaceDesc2.dwWidth; y++)
+					{
+						memcpy(EmulatedBuffer, SurfaceBuffer, 3);
+						EmulatedBuffer += 3;
+						SurfaceBuffer++;
+					}
+				}
+			}
+			else
+			{
+				for (DWORD x = 0; x < surfaceDesc2.dwHeight; x++)
+				{
+					for (DWORD y = 0; y < surfaceDesc2.dwWidth; y++)
+					{
+						memcpy(SurfaceBuffer, EmulatedBuffer, 3);
+						EmulatedBuffer += 3;
+						SurfaceBuffer++;
+					}
+				}
+			}
+
+			// Unlock surface texture
+			UnLockRect(pSurface);
+
+		} while (false);
+		break;
+	default:
+		LOG_LIMIT(100, __FUNCTION__ << " Error: unknown emulated surface");
+		hr = DDERR_GENERIC;
+	}
+
 	return hr;
 }
 
