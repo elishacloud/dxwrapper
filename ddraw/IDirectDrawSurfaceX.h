@@ -43,6 +43,7 @@ private:
 	bool NewPalette = false;
 	bool PaletteFirstRun = true;
 	bool ClipperFirstRun = true;
+	DWORD RestoreSurfaceFlags = 0;
 
 	// Display resolution
 	DWORD displayWidth = 0;								// Width used to override the default application set width
@@ -50,8 +51,9 @@ private:
 
 	// Direct3D9 vars
 	LPDIRECT3DDEVICE9 *d3d9Device = nullptr;			// Direct3D9 Device
-	LPDIRECT3DSURFACE9 offscreenSurface = nullptr;		// Extra surface used for GetDC when unsupported format is detected
 	LPDIRECT3DTEXTURE9 surfaceTexture = nullptr;		// Main surface texture used for locks, Blts and Flips
+	LPDIRECT3DTEXTURE9 displayTexture = nullptr;		// Surface texture used for displaying image
+	LPDIRECT3DSURFACE9 offscreenSurface = nullptr;		// Extra surface used for GetDC when unsupported format is detected
 	LPDIRECT3DTEXTURE9 paletteTexture = nullptr;		// Extra surface texture used for storing palette entries for the pixel shader
 	LPDIRECT3DPIXELSHADER9 pixelShader = nullptr;		// Used with palette surfaces to display proper palette data on the surface texture
 	LPDIRECT3DVERTEXBUFFER9 vertexBuffer = nullptr;		// Vertex buffer used to stretch the texture accross the screen
@@ -266,6 +268,7 @@ public:
 	void ReleaseD9Interface(T **ppInterface);
 	void ReleaseD9Surface(bool BackupData = true);
 	HRESULT PresentSurface(BOOL isSkipScene = false);
+	void RestoreSurfaceDisplay();
 
 	// Swap surface addresses for Flip
 	template <typename T>

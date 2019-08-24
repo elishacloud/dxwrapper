@@ -2342,100 +2342,34 @@ HRESULT m_IDirectDrawSurfaceX::CreateD3d9Surface()
 	// Update surface description
 	GetSurfaceDesc2(&surfaceDesc2);
 
-	// Get resource type
-	// DDSCAPS_BACKBUFFER
-	// DDSCAPS_FRONTBUFFER
-	// DDSCAPS_OFFSCREENPLAIN
-	// DDSCAPS_PRIMARYSURFACE
-	// DDSCAPS_TEXTURE
-	// DDSCAPS_MIPMAP
-	// DDSCAPS2_CUBEMAP
-
-	// Resource pool
-	// DDSCAPS_SYSTEMMEMORY
-	// DDSCAPS2_TEXTUREMANAGE
-	// DDSCAPS2_D3DTEXTUREMANAGE
-	// DDSCAPS2_DONOTPERSIST
-
-	// Resource usage
-	// DDSCAPS2_HINTSTATIC
-	// DDSCAPS2_HINTDYNAMIC
-
-	// Other flags
-	// DDSCAPS_HWCODEC
-	// DDSCAPS_LIVEVIDEO
-	// DDSCAPS_MODEX
-	// DDSCAPS_OVERLAY
-	// DDSCAPS_VIDEOPORT
-	// DDSCAPS_ZBUFFER
-	// DDSCAPS2_CUBEMAP_POSITIVEX
-	// DDSCAPS2_CUBEMAP_NEGATIVEX
-	// DDSCAPS2_CUBEMAP_POSITIVEY
-	// DDSCAPS2_CUBEMAP_NEGATIVEY
-	// DDSCAPS2_CUBEMAP_POSITIVEZ
-	// DDSCAPS2_CUBEMAP_NEGATIVEZ
-	// DDSCAPS2_CUBEMAP_ALLFACES
-	// DDSCAPS2_OPAQUE
-	// DDSCAPS2_STEREOSURFACELEFT
-
-	// Unused flags (can be safely ignored?)
-	// DDSCAPS_3D
-	// DDSCAPS_3DDEVICE
-	// DDSCAPS_ALLOCONLOAD
-	// DDSCAPS_OPTIMIZED
-	// DDSCAPS_STANDARDVGAMODE
-	// DDSCAPS2_HINTANTIALIASING
-	// DDSCAPS2_MIPMAPSUBLEVEL
-
-	// Get pool type
-	D3DPOOL Pool = D3DPOOL_DEFAULT;
-	if (surfaceDesc2.ddsCaps.dwCaps & DDSCAPS_SYSTEMMEMORY)
-	{
-		Pool = D3DPOOL_SYSTEMMEM;
-	}
-	else if (surfaceDesc2.ddsCaps.dwCaps2 & (DDSCAPS2_TEXTUREMANAGE | DDSCAPS2_D3DTEXTUREMANAGE))
-	{
-		Pool = D3DPOOL_MANAGED;
-	}
-	else if (surfaceDesc2.ddsCaps.dwCaps2 & DDSCAPS2_DONOTPERSIST)
-	{
-		Pool = D3DPOOL_SCRATCH;
-	}
-
-	// Get usage
-	DWORD Usage = 0;
-	if ((!(surfaceDesc2.ddsCaps.dwCaps2 & DDSCAPS2_HINTSTATIC) || (surfaceDesc2.ddsCaps.dwCaps2 & DDSCAPS2_HINTDYNAMIC)) &&
-		Pool != D3DPOOL_MANAGED)	// D3DPOOL_MANAGED cannot be used with D3DUSAGE_DYNAMIC
-	{
-		Usage |= D3DUSAGE_DYNAMIC;
-	}
-	if (surfaceDesc2.ddsCaps.dwCaps & DDSCAPS_MIPMAP)
-	{
-		Usage |= D3DUSAGE_AUTOGENMIPMAP;
-	}
-	if (surfaceDesc2.ddsCaps.dwCaps & DDSCAPS_WRITEONLY)
-	{
-		Usage |= D3DUSAGE_WRITEONLY;
-	}
-
 	// Get texture data
 	surfaceFormat = GetDisplayFormat(surfaceDesc2.ddpfPixelFormat);
 	surfaceBitCount = GetBitCount(surfaceFormat);
 	D3DFORMAT Format = (surfaceFormat == D3DFMT_P8) ? D3DFMT_L8 : (surfaceFormat == D3DFMT_R8G8B8) ? D3DFMT_X8R8G8B8 : surfaceFormat;
 
-	Logging::LogDebug() << __FUNCTION__ << " D3d9 Surface size: " << surfaceDesc2.dwWidth << "x" << surfaceDesc2.dwHeight << " Usage: " << Usage << " Format: " << Format << " Pool: " << Pool;
+	Logging::LogDebug() << __FUNCTION__ << " D3d9 Surface size: " << surfaceDesc2.dwWidth << "x" << surfaceDesc2.dwHeight << " Format: " << Format;
 
 	// Create surface
-	if (FAILED((*d3d9Device)->CreateTexture(surfaceDesc2.dwWidth, surfaceDesc2.dwHeight, 1, Usage, Format, Pool, &surfaceTexture, nullptr)))
+	if (FAILED((*d3d9Device)->CreateTexture(surfaceDesc2.dwWidth, surfaceDesc2.dwHeight, 0, 0, Format, D3DPOOL_SYSTEMMEM, &surfaceTexture, nullptr)))
 	{
 		LOG_LIMIT(100, __FUNCTION__ << " Error: failed to create surface size: " << surfaceDesc2.dwWidth << "x" << surfaceDesc2.dwHeight << " Format: " << surfaceFormat);
 		return DDERR_GENERIC;
 	}
 
+	// Create display texture
+	if (IsPrimarySurface())
+	{
+		if (FAILED((*d3d9Device)->CreateTexture(surfaceDesc2.dwWidth, surfaceDesc2.dwHeight, 0, 0, Format, D3DPOOL_DEFAULT, &displayTexture, nullptr)))
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: failed to create display surface size: " << surfaceDesc2.dwWidth << "x" << surfaceDesc2.dwHeight << " Format: " << surfaceFormat);
+			return DDERR_GENERIC;
+		}
+	}
+
 	if (surfaceFormat == D3DFMT_P8)
 	{
 		// Create palette surface
-		if (FAILED((*d3d9Device)->CreateTexture(256, 256, 1, 0, D3DFMT_X8R8G8B8, D3DPOOL_MANAGED, &paletteTexture, nullptr)) ||
+		if (FAILED((*d3d9Device)->CreateTexture(256, 256, 0, 0, D3DFMT_X8R8G8B8, D3DPOOL_MANAGED, &paletteTexture, nullptr)) ||
 			FAILED((*d3d9Device)->CreatePixelShader((DWORD*)PalettePixelShaderSrc, &pixelShader)))
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Error: failed to create palette surface");
@@ -2446,7 +2380,7 @@ HRESULT m_IDirectDrawSurfaceX::CreateD3d9Surface()
 
 	// Reset d3d9 surface texture data
 	Logging::LogDebug() << __FUNCTION__ << " Resetting Direct3D9 texture surface data";
-	if (surfaceTexture)
+	if (surfaceTexture && surfaceArray.size())
 	{
 		do {
 			D3DLOCKED_RECT LockRect;
@@ -2672,11 +2606,22 @@ void m_IDirectDrawSurfaceX::ReleaseD9Surface(bool BackupData)
 		ReleaseD9Interface(&surfaceTexture);
 	}
 
+	// Release d3d9 display surface texture
+	if (displayTexture)
+	{
+		Logging::LogDebug() << __FUNCTION__ << " Releasing Direct3D9 display texture surface";
+		ReleaseD9Interface(&displayTexture);
+	}
+
 	// Release d3d9 offscreen surface
 	if (offscreenSurface)
 	{
 		Logging::LogDebug() << __FUNCTION__ << " Releasing Direct3D9 offscreen surface";
 		offscreenSurface->UnlockRect();
+		if (surfacehDC)
+		{
+			offscreenSurface->ReleaseDC(surfacehDC);
+		}
 		ReleaseD9Interface(&offscreenSurface);
 	}
 
@@ -2702,7 +2647,8 @@ void m_IDirectDrawSurfaceX::ReleaseD9Surface(bool BackupData)
 		ReleaseD9Interface(&vertexBuffer);
 	}
 
-	// Set unlock
+	// Set flags
+	IsInDC = false;
 	IsLocked = false;
 }
 
@@ -2778,7 +2724,22 @@ HRESULT m_IDirectDrawSurfaceX::PresentSurface(BOOL isSkipScene)
 		}
 
 		// Set texture
-		if (surfaceTexture)
+		if (displayTexture)
+		{
+			if (FAILED((*d3d9Device)->UpdateTexture(surfaceTexture, displayTexture)))
+			{
+				LOG_LIMIT(100, __FUNCTION__ << " Error: failed to update texture");
+				hr = DDERR_GENERIC;
+				break;
+			}
+			if (FAILED((*d3d9Device)->SetTexture(0, displayTexture)))
+			{
+				LOG_LIMIT(100, __FUNCTION__ << " Error: failed to set texture");
+				hr = DDERR_GENERIC;
+				break;
+			}
+		}
+		else if (surfaceTexture)
 		{
 			if (FAILED((*d3d9Device)->SetTexture(0, surfaceTexture)))
 			{
@@ -2829,6 +2790,16 @@ HRESULT m_IDirectDrawSurfaceX::PresentSurface(BOOL isSkipScene)
 	IsPresentRunning = false;
 
 	return hr;
+}
+
+// Reset primary surface display settings
+void m_IDirectDrawSurfaceX::RestoreSurfaceDisplay()
+{
+	// Reset surface desc
+	if (RestoreSurfaceFlags)
+	{
+		surfaceDesc2.dwFlags &= ~(RestoreSurfaceFlags);
+	}
 }
 
 // Swap surface addresses for Flip
@@ -3021,6 +2992,12 @@ void m_IDirectDrawSurfaceX::InitSurfaceDesc(LPDDSURFACEDESC2 lpDDSurfaceDesc2, D
 		return;
 	}
 
+	// Backup missing display surface description flags from primary surface
+	if (surfaceDesc2.ddsCaps.dwCaps4 & DDSCAPS4_PRIMARYSURFACE)
+	{
+		RestoreSurfaceFlags = ((DDSD_WIDTH | DDSD_HEIGHT | DDSD_REFRESHRATE | DDSD_PIXELFORMAT) & ~surfaceDesc2.dwFlags);
+	}
+
 	// Copy surface description
 	surfaceDesc2.dwSize = sizeof(DDSURFACEDESC2);
 	surfaceDesc2.ddpfPixelFormat.dwSize = sizeof(DDPIXELFORMAT);
@@ -3045,7 +3022,7 @@ void m_IDirectDrawSurfaceX::InitSurfaceDesc(LPDDSURFACEDESC2 lpDDSurfaceDesc2, D
 		Desc2.dwSize = sizeof(DDSURFACEDESC2);
 		Desc2.ddpfPixelFormat.dwSize = sizeof(DDPIXELFORMAT);
 		ConvertSurfaceDesc(Desc2, surfaceDesc2);
-		Desc2.ddsCaps.dwCaps4 = 0x00;	// Clear surface creation flag
+		Desc2.ddsCaps.dwCaps4 &= ~(DDSCAPS4_CREATESURFACE);	// Clear surface creation flag
 		Desc2.dwBackBufferCount--;
 		if (Desc2.ddsCaps.dwCaps & DDSCAPS_FRONTBUFFER)
 		{
@@ -3061,7 +3038,7 @@ void m_IDirectDrawSurfaceX::InitSurfaceDesc(LPDDSURFACEDESC2 lpDDSurfaceDesc2, D
 		// Create complex surfaces
 		if (Desc2.ddsCaps.dwCaps & DDSCAPS_COMPLEX)
 		{
-			if (surfaceDesc2.ddsCaps.dwCaps4)
+			if (surfaceDesc2.ddsCaps.dwCaps4 & DDSCAPS4_CREATESURFACE)
 			{
 				ComplexRoot = true;
 			}
@@ -3108,6 +3085,9 @@ void m_IDirectDrawSurfaceX::InitSurfaceDesc(LPDDSURFACEDESC2 lpDDSurfaceDesc2, D
 	}
 	surfaceDesc2.ddsCaps.dwCaps4 = 0x00;
 	surfaceDesc2.dwReserved = 0;
+
+	// Update surface description
+	GetSurfaceDesc2(&surfaceDesc2);
 }
 
 // Add attached surface to map

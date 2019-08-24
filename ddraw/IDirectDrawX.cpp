@@ -27,6 +27,7 @@ bool ShareD3d9DeviceFlag = false;
 std::vector<m_IDirectDrawX*> DDrawVector;
 
 // Convert to Direct3D9
+HWND MainhWnd;
 bool IsInScene;
 bool AllowModeX;
 bool MultiThreaded;
@@ -39,12 +40,11 @@ bool ExclusiveMode;
 HWND ExclusiveHwnd;
 
 // Application display mode
-HWND displayHwnd;
+bool ResetDisplayMode;
 DWORD displayModeWidth;
 DWORD displayModeHeight;
 DWORD displayModeBPP;
 DWORD displayModeRefreshRate;
-bool ResetDisplayMode;
 
 // Display resolution
 bool SetDefaultDisplayMode;			// Set native resolution
@@ -341,16 +341,29 @@ HRESULT m_IDirectDrawX::CreateSurface2(LPDDSURFACEDESC2 lpDDSurfaceDesc2, LPDIRE
 			return DDERR_PRIMARYSURFACEALREADYEXISTS;
 		}
 
+		// Check for invalid surface flip flags
+		if ((lpDDSurfaceDesc2->ddsCaps.dwCaps & DDSCAPS_FLIP) &&
+			(!(lpDDSurfaceDesc2->dwFlags & DDSD_BACKBUFFERCOUNT) || !(lpDDSurfaceDesc2->ddsCaps.dwCaps & DDSCAPS_COMPLEX)))
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: invalid flip surface flags!");
+			return DDERR_INVALIDPARAMS;
+		}
+
 		DDSURFACEDESC2 Desc2;
 		Desc2.dwSize = sizeof(DDSURFACEDESC2);
 		Desc2.ddpfPixelFormat.dwSize = sizeof(DDPIXELFORMAT);
 		ConvertSurfaceDesc(Desc2, *lpDDSurfaceDesc2);
-		Desc2.ddsCaps.dwCaps4 = 0x01;	// Indicates surface was created using CreateSurface()
+		Desc2.ddsCaps.dwCaps4 = DDSCAPS4_CREATESURFACE |											// Indicates surface was created using CreateSurface()
+			((Desc2.ddsCaps.dwCaps & DDSCAPS_PRIMARYSURFACE) ? DDSCAPS4_PRIMARYSURFACE : NULL);		// Indicates surface is a primary surface or a backbuffer of a primary surface
 		Desc2.dwReserved = 0;
 
-		if ((lpDDSurfaceDesc2->dwFlags & DDSD_BACKBUFFERCOUNT) || (lpDDSurfaceDesc2->ddsCaps.dwCaps & DDSCAPS_FLIP))
+		if (Desc2.ddsCaps.dwCaps & DDSCAPS_FLIP)
 		{
 			Desc2.ddsCaps.dwCaps |= DDSCAPS_FRONTBUFFER;
+		}
+
+		if (Desc2.dwFlags & DDSD_BACKBUFFERCOUNT)
+		{
 			if (!Desc2.dwBackBufferCount)
 			{
 				Desc2.dwBackBufferCount = 1;
@@ -359,41 +372,6 @@ HRESULT m_IDirectDrawX::CreateSurface2(LPDDSURFACEDESC2 lpDDSurfaceDesc2, LPDIRE
 		else
 		{
 			Desc2.dwBackBufferCount = 0;
-		}
-
-		if (displayModeBPP && (Desc2.ddsCaps.dwCaps & DDSCAPS_PRIMARYSURFACE) && (!Desc2.dwWidth || !Desc2.dwHeight))
-		{
-			// Set width and height
-			Desc2.dwFlags |= DDSD_WIDTH | DDSD_HEIGHT;
-			Desc2.dwWidth = displayModeWidth;
-			Desc2.dwHeight = displayModeHeight;
-
-			// Set refresh
-			if (displayModeRefreshRate)
-			{
-				Desc2.dwFlags |= DDSD_REFRESHRATE;
-				Desc2.dwRefreshRate = displayModeRefreshRate;
-			}
-
-			// Set Pixel Format
-			Desc2.dwFlags |= DDSD_PIXELFORMAT;
-			switch (displayModeBPP)
-			{
-			case 8:
-				SetPixelDisplayFormat(D3DFMT_P8, Desc2.ddpfPixelFormat);
-				break;
-			case 16:
-				SetPixelDisplayFormat(D3DFMT_R5G6B5, Desc2.ddpfPixelFormat);
-				break;
-			case 24:
-				SetPixelDisplayFormat(D3DFMT_R8G8B8, Desc2.ddpfPixelFormat);
-				break;
-			case 32:
-				SetPixelDisplayFormat(D3DFMT_X8R8G8B8, Desc2.ddpfPixelFormat);
-				break;
-			default:
-				LOG_LIMIT(100, __FUNCTION__ << " Not implemented bit count " << displayModeBPP);
-			}
 		}
 
 		m_IDirectDrawSurfaceX *p_IDirectDrawSurfaceX = new m_IDirectDrawSurfaceX(&d3d9Device, this, DirectXVersion, &Desc2, displayWidth, displayHeight);
@@ -406,9 +384,16 @@ HRESULT m_IDirectDrawX::CreateSurface2(LPDDSURFACEDESC2 lpDDSurfaceDesc2, LPDIRE
 	// BackBufferCount must be at least 1
 	if (ProxyDirectXVersion != DirectXVersion && lpDDSurfaceDesc2)
 	{
-		if (((lpDDSurfaceDesc2->dwFlags & DDSD_BACKBUFFERCOUNT) || (lpDDSurfaceDesc2->ddsCaps.dwCaps & DDSCAPS_FLIP)) && lpDDSurfaceDesc2->dwBackBufferCount == 0)
+		if (lpDDSurfaceDesc2->dwFlags & DDSD_BACKBUFFERCOUNT)
 		{
-			lpDDSurfaceDesc2->dwBackBufferCount = 1;
+			if (!lpDDSurfaceDesc2->dwBackBufferCount)
+			{
+				lpDDSurfaceDesc2->dwBackBufferCount = 1;
+			}
+		}
+		else
+		{
+			lpDDSurfaceDesc2->dwBackBufferCount = 0;
 		}
 	}
 
@@ -531,7 +516,7 @@ HRESULT m_IDirectDrawX::EnumDisplayModes2(DWORD dwFlags, LPDDSURFACEDESC2 lpDDSu
 		}
 		if (!(dwFlags & DDEDM_REFRESHRATES) && !EnumRefreshRate)
 		{
-			EnumRefreshRate = Utils::GetRefreshRate(displayHwnd);
+			EnumRefreshRate = Utils::GetRefreshRate(MainhWnd);
 		}
 
 		// Get display modes to enum
@@ -831,7 +816,7 @@ HRESULT m_IDirectDrawX::GetDisplayMode2(LPDDSURFACEDESC2 lpDDSurfaceDesc2)
 			HDC hdc = GetDC(nullptr);
 			lpDDSurfaceDesc2->dwWidth = GetSystemMetrics(SM_CXSCREEN);
 			lpDDSurfaceDesc2->dwHeight = GetSystemMetrics(SM_CYSCREEN);
-			lpDDSurfaceDesc2->dwRefreshRate = Utils::GetRefreshRate(displayHwnd);
+			lpDDSurfaceDesc2->dwRefreshRate = Utils::GetRefreshRate(MainhWnd);
 			displayModeBits = GetDeviceCaps(hdc, BITSPIXEL);
 			ReleaseDC(nullptr, hdc);
 		}
@@ -1015,31 +1000,30 @@ HRESULT m_IDirectDrawX::Initialize(GUID FAR * lpGUID)
 	return ProxyInterface->Initialize(lpGUID);
 }
 
+// Resets the mode of the display device hardware for the primary surface to what it was before the IDirectDraw7::SetDisplayMode method was called.
 HRESULT m_IDirectDrawX::RestoreDisplayMode()
 {
 	Logging::LogDebug() << __FUNCTION__;
 
 	if (Config.Dd7to9)
 	{
-		// No exclusive mode
+		// Exclusive-level access is required to use this method.
 		if (!ExclusiveMode)
 		{
 			return DDERR_NOEXCLUSIVEMODE;
 		}
 
-		// Set mode
-		ExclusiveMode = false;
-		ExclusiveHwnd = nullptr;
-		AllowModeX = false;
-		MultiThreaded = false;
-		FUPPreserve = false;
-		NoWindowChanges = false;
-		isWindowed = false;
-		displayHwnd = nullptr;
+		// Reset mode
 		displayModeWidth = 0;
 		displayModeHeight = 0;
 		displayModeBPP = 0;
 		displayModeRefreshRate = 0;
+
+		// Reset primary surface display settings
+		for (m_IDirectDrawSurfaceX *pSurface : SurfaceVector)
+		{
+			pSurface->RestoreSurfaceDisplay();
+		}
 
 		return DD_OK;
 	}
@@ -1171,7 +1155,7 @@ HRESULT m_IDirectDrawX::SetCooperativeLevel(HWND hWnd, DWORD dwFlags)
 			t_hWnd = data.best_handle;
 		}
 
-		displayHwnd = t_hWnd;
+		MainhWnd = t_hWnd;
 
 		return DD_OK;
 	}
@@ -1592,7 +1576,7 @@ void m_IDirectDrawX::SetDdrawDefaults()
 	ExclusiveHwnd = nullptr;
 
 	// Application display mode
-	displayHwnd = nullptr;
+	MainhWnd = nullptr;
 	displayModeWidth = 0;
 	displayModeHeight = 0;
 	displayModeBPP = 0;
@@ -1694,7 +1678,7 @@ void ReleaseAllDirectDrawD9Surfaces()
 
 HWND m_IDirectDrawX::GetHwnd()
 {
-	return displayHwnd;
+	return MainhWnd;
 }
 
 bool m_IDirectDrawX::IsExclusiveMode()
@@ -1783,7 +1767,7 @@ HRESULT m_IDirectDrawX::CreateD3D9Device()
 	presParams.PresentationInterval = D3DPRESENT_INTERVAL_IMMEDIATE;
 
 	// Set parameters for the current display mode
-	if (isWindowed || !displayHwnd)
+	if (isWindowed || !MainhWnd)
 	{
 		// Window mode
 		presParams.Windowed = TRUE;
@@ -1804,7 +1788,7 @@ HRESULT m_IDirectDrawX::CreateD3D9Device()
 		}
 
 		// Get refresh rate
-		DWORD BackBufferRefreshRate = (displayRefreshRate) ? displayRefreshRate : Utils::GetRefreshRate(displayHwnd);
+		DWORD BackBufferRefreshRate = (displayRefreshRate) ? displayRefreshRate : Utils::GetRefreshRate(MainhWnd);
 
 		// Loop through all modes looking for our requested resolution
 		D3DDISPLAYMODE d3ddispmode;
@@ -1852,9 +1836,10 @@ HRESULT m_IDirectDrawX::CreateD3D9Device()
 		((FUPPreserve) ? D3DCREATE_FPU_PRESERVE : 0) |
 		((NoWindowChanges) ? D3DCREATE_NOWINDOWCHANGES : 0);
 
-	Logging::LogDebug() << __FUNCTION__ << " wnd: " << displayHwnd << " D3d9 Device size: " << presParams << " flags: " << BehaviorFlags;
+	Logging::LogDebug() << __FUNCTION__ << " wnd: " << MainhWnd << " D3d9 Device size: " << presParams << " flags: " << BehaviorFlags;
 
-	if (FAILED(d3d9Object->CreateDevice(D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, displayHwnd, BehaviorFlags, &presParams, &d3d9Device)))
+	// Create d3d9 Device
+	if (FAILED(d3d9Object->CreateDevice(D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, MainhWnd, BehaviorFlags, &presParams, &d3d9Device)))
 	{
 		LOG_LIMIT(100, __FUNCTION__ << " Error: failed to create Direct3D9 device! " << presParams.BackBufferWidth << "x" << presParams.BackBufferHeight << " refresh: " << presParams.FullScreen_RefreshRateInHz <<
 			" format: " << presParams.BackBufferFormat);
@@ -1862,7 +1847,7 @@ HRESULT m_IDirectDrawX::CreateD3D9Device()
 	}
 
 	// Store display frequency
-	monitorRefreshRate = (presParams.FullScreen_RefreshRateInHz) ? presParams.FullScreen_RefreshRateInHz : Utils::GetRefreshRate(displayHwnd);
+	monitorRefreshRate = (presParams.FullScreen_RefreshRateInHz) ? presParams.FullScreen_RefreshRateInHz : Utils::GetRefreshRate(MainhWnd);
 	monitorHeight = GetSystemMetrics(SM_CYSCREEN);
 
 	// Reset BeginScene
@@ -1934,10 +1919,8 @@ void m_IDirectDrawX::ReleaseD3d9Device()
 			d3d9Device->EndScene();
 		}
 
-		if (d3d9Device->Release() == 0)
-		{
-			d3d9Device = nullptr;
-		}
+		d3d9Device->Release();
+		d3d9Device = nullptr;
 	}
 
 	// Set is not in scene

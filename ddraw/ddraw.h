@@ -51,6 +51,11 @@ class m_IDirectDrawSurfaceX;
 
 #define DDWRAPPER_TYPEX 0x80
 
+// Indicates surface was created using CreateSurface()
+#define DDSCAPS4_CREATESURFACE  0x0001
+// Indicates surface is a primary surface or a backbuffer of a primary surface
+#define DDSCAPS4_PRIMARYSURFACE 0x0200
+
 // ddraw proc typedefs
 typedef void(WINAPI *AcquireDDThreadLockProc)();
 typedef void(WINAPI *CompleteCreateSysmemSurfaceProc)();
