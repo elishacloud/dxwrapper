@@ -338,28 +338,9 @@ HRESULT WINAPI dd_DirectDrawCreateEx(GUID FAR *lpGUID, LPVOID *lplpDD, REFIID ri
 
 		DWORD DxVersion = GetIIDVersion(riid);
 
-		// Declare Direct3DCreate9
-		static PFN_Direct3DCreate9 Direct3DCreate9 = reinterpret_cast<PFN_Direct3DCreate9>(Direct3DCreate9_out);
-
-		if (!Direct3DCreate9)
-		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error: failed to get 'Direct3DCreate9' ProcAddress of d3d9.dll!");
-			return DDERR_GENERIC;
-		}
-
 		LOG_LIMIT(3, "Redirecting 'DirectDrawCreate' " << riid << " to --> 'Direct3DCreate9'");
 
-		// Create Direct3D9 device
-		LPDIRECT3D9 d3d9Object = Direct3DCreate9(D3D_SDK_VERSION);
-
-		// Error creating Direct3D9
-		if (!d3d9Object)
-		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error: failed to create Direct3D9 object");
-			return DDERR_GENERIC;
-		}
-
-		m_IDirectDrawX *p_IDirectDrawX = new m_IDirectDrawX(d3d9Object, DxVersion);
+		m_IDirectDrawX *p_IDirectDrawX = new m_IDirectDrawX(DxVersion);
 
 		*lplpDD = p_IDirectDrawX->GetWrapperInterfaceX(DxVersion);
 

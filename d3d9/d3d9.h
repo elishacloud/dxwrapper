@@ -49,8 +49,6 @@ namespace D3d9Wrapper
 	void WINAPI genericQueryInterface(REFIID riid, LPVOID *ppvObj, m_IDirect3DDevice9Ex* m_pDeviceEx);
 }
 
-extern m_IDirect3D9Ex *pD3D9Interface;
-extern m_IDirect3DDevice9Ex *pD3D9DeviceInterface;
 extern HWND DeviceWindow;
 extern LONG BufferWidth, BufferHeight;
 

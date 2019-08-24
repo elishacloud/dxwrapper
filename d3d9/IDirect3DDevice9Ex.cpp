@@ -16,7 +16,6 @@
 
 #include "d3d9.h"
 #include "d3dx9.h"
-#include "ddraw\ddrawExternal.h"
 #include "Utils\Utils.h"
 
 HRESULT m_IDirect3DDevice9Ex::QueryInterface(REFIID riid, void** ppvObj)
@@ -70,12 +69,6 @@ HRESULT m_IDirect3DDevice9Ex::Reset(D3DPRESENT_PARAMETERS *pPresentationParamete
 	if (!pPresentationParameters)
 	{
 		return D3DERR_INVALIDCALL;
-	}
-
-	// Release d3d9 objects opened by ddraw devices
-	if (ShareD3d9DeviceFlag)
-	{
-		ReleaseAllDirectDrawD9Surfaces();
 	}
 
 	// Setup presentation parameters

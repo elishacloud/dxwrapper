@@ -17,11 +17,11 @@
 */
 
 #include "ddraw.h"
+#include "ddrawExternal.h"
 #include "Utils\Utils.h"
 
 // ddraw interface counter
 DWORD ddrawRefCount = 0;
-bool ShareD3d9DeviceFlag = false;
 
 // Store a list of ddraw devices
 std::vector<m_IDirectDrawX*> DDrawVector;
@@ -1541,20 +1541,19 @@ LPDIRECT3DDEVICE9 *m_IDirectDrawX::GetDirect3D9Device()
 	return &d3d9Device;
 }
 
-void m_IDirectDrawX::InitDdraw(LPDIRECT3D9 pObject)
+void m_IDirectDrawX::InitDdrawSettings()
 {
 	DWORD ref = InterlockedIncrement(&ddrawRefCount);
 
 	SetCriticalSection();
 
-	ShareD3d9DeviceFlag = true;
+	// Check interface to create d3d9 object
+	CheckInterface(__FUNCTION__, false);
 
 	DDrawVector.push_back(this);
 
 	if (ref == 1)
 	{
-		d3d9Object = pObject;
-
 		SetDdrawDefaults();
 	}
 
@@ -1603,12 +1602,6 @@ void m_IDirectDrawX::ReleaseDdraw()
 
 	SetCriticalSection();
 
-	// Set shared flag
-	if (ref == 0)
-	{
-		ShareD3d9DeviceFlag = false;
-	}
-
 	// Remove ddraw device from vector
 	auto it = std::find_if(DDrawVector.begin(), DDrawVector.end(),
 		[=](auto pDDraw) -> bool { return pDDraw == this; });
@@ -1654,12 +1647,10 @@ void m_IDirectDrawX::ReleaseDdraw()
 	}
 
 	// Release shared d3d9object
-	if (d3d9Object)
+	if (ref == 0)
 	{
-		if (d3d9Object->Release() == 0)
-		{
-			d3d9Object = nullptr;
-		}
+		d3d9Object->Release();
+		d3d9Object = nullptr;
 	}
 
 	ReleaseCriticalSection();
@@ -1691,8 +1682,23 @@ HRESULT m_IDirectDrawX::CheckInterface(char *FunctionName, bool CheckD3DDevice)
 	// Check for device
 	if (!d3d9Object)
 	{
-		LOG_LIMIT(100, FunctionName << " Error: no d3d9 object!");
-		return DDERR_GENERIC;
+		// Declare Direct3DCreate9
+		static PFN_Direct3DCreate9 Direct3DCreate9 = reinterpret_cast<PFN_Direct3DCreate9>(Direct3DCreate9_out);
+
+		if (!Direct3DCreate9)
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: failed to get 'Direct3DCreate9' ProcAddress of d3d9.dll!");
+			return DDERR_GENERIC;
+		}
+
+		d3d9Object = Direct3DCreate9(D3D_SDK_VERSION);
+
+		// Error creating Direct3D9
+		if (!d3d9Object)
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: d3d9 object not setup!");
+			return DDERR_GENERIC;
+		}
 	}
 
 	// Check for device, if not then create it
@@ -1873,6 +1879,9 @@ HRESULT m_IDirectDrawX::ReinitDevice()
 	{
 		return DD_OK;
 	}
+
+	// Release surfaces to prepare for reset
+	ReleaseAllD9Surfaces(true);
 
 	// Attempt to reset the device
 	if (FAILED(d3d9Device->Reset(&presParams)))

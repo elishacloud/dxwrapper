@@ -15,9 +15,7 @@
 */
 
 #include "d3d9.h"
-#include "ddraw\ddrawExternal.h"
 
-m_IDirect3DDevice9Ex *pD3D9DeviceInterface = nullptr;
 HWND DeviceWindow = nullptr;
 LONG BufferWidth = 0, BufferHeight = 0;
 
@@ -181,37 +179,6 @@ HRESULT m_IDirect3D9Ex::CreateDevice(UINT Adapter, D3DDEVTYPE DeviceType, HWND h
 	CopyMemory(&d3dpp, pPresentationParameters, sizeof(D3DPRESENT_PARAMETERS));
 	UpdatePresentParameter(&d3dpp, hFocusWindow, true);
 
-	// Check if d3d9 device already exists
-	if (ShareD3d9DeviceFlag)
-	{
-		PVOID NullValue = nullptr;
-		m_IDirect3DDevice9Ex *pReturnedDevice = (m_IDirect3DDevice9Ex*)InterlockedCompareExchangePointer((PVOID*)&pD3D9DeviceInterface, NullValue, NullValue);
-
-		if (pReturnedDevice)
-		{
-			// Set new window handle
-			if (!IsWindow(d3dpp.hDeviceWindow) && IsWindow(hFocusWindow))
-			{
-				d3dpp.hDeviceWindow = hFocusWindow;
-			}
-
-			hr = pReturnedDevice->Reset(&d3dpp);
-
-			if (SUCCEEDED(hr))
-			{
-				pReturnedDevice->AddRef();
-
-				*ppReturnedDeviceInterface = pReturnedDevice;
-			}
-			else
-			{
-				LOG_LIMIT(100, __FUNCTION__ << " Error: failed to reset shared device!");
-			}
-
-			return hr;
-		}
-	}
-
 	// Check for AntiAliasing
 	bool MultiSampleFlag = false;
 	if (Config.AntiAliasing != 0)
@@ -264,8 +231,6 @@ HRESULT m_IDirect3D9Ex::CreateDevice(UINT Adapter, D3DDEVTYPE DeviceType, HWND h
 	if (SUCCEEDED(hr))
 	{
 		*ppReturnedDeviceInterface = new m_IDirect3DDevice9Ex((LPDIRECT3DDEVICE9EX)*ppReturnedDeviceInterface, this, IID_IDirect3DDevice9, d3dpp.MultiSampleType, d3dpp.MultiSampleQuality, MultiSampleFlag);
-
-		InterlockedExchangePointer((PVOID*)&pD3D9DeviceInterface, *ppReturnedDeviceInterface);
 	}
 
 	return hr;

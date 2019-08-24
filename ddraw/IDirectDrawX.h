@@ -45,13 +45,13 @@ public:
 			LOG_LIMIT(3, "Creating device " << __FUNCTION__ << "(" << this << ") v" << DirectXVersion);
 		}
 	}
-	m_IDirectDrawX(IDirect3D9 *aOriginal, DWORD DirectXVersion)
+	m_IDirectDrawX(DWORD DirectXVersion)
 	{
 		ProxyDirectXVersion = 9;
 
 		LOG_LIMIT(3, "Creating device " << __FUNCTION__ << "(" << this << ")" << " converting device from v" << DirectXVersion << " to v" << ProxyDirectXVersion);
 
-		InitDdraw(aOriginal);
+		InitDdrawSettings();
 	}
 	~m_IDirectDrawX()
 	{
@@ -146,7 +146,7 @@ public:
 	m_IDirect3DDeviceX **GetCurrentD3DDevice() { return &D3DDeviceInterface; }
 
 	// Device information functions
-	void InitDdraw(LPDIRECT3D9 pObject);
+	void InitDdrawSettings();
 	void SetDdrawDefaults();
 	void ReleaseDdraw();
 	HWND GetHwnd();
