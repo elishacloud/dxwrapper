@@ -21,6 +21,9 @@ private:
 	std::unique_ptr<m_IDirectDraw4> UniqueProxyInterface4 = nullptr;
 	std::unique_ptr<m_IDirectDraw7> UniqueProxyInterface7 = nullptr;
 
+	// Store primary surface
+	m_IDirectDrawSurfaceX *PrimarySurface = nullptr;
+
 	// Store a list of surfaces
 	std::vector<m_IDirectDrawSurfaceX*> SurfaceVector;
 
@@ -150,6 +153,7 @@ public:
 	void SetDdrawDefaults();
 	void ReleaseDdraw();
 	HWND GetHwnd();
+	HDC GetDC();
 	bool IsExclusiveMode();
 
 	// Direct3D9 interface functions
@@ -163,7 +167,7 @@ public:
 	void AddSurfaceToVector(m_IDirectDrawSurfaceX* lpSurfaceX);
 	void RemoveSurfaceFromVector(m_IDirectDrawSurfaceX* lpSurfaceX);
 	bool DoesSurfaceExist(m_IDirectDrawSurfaceX* lpSurfaceX);
-	m_IDirectDrawSurfaceX *GetPrimarySurface();
+	m_IDirectDrawSurfaceX *GetPrimarySurface() { return PrimarySurface; }
 	void EvictManagedTextures();
 
 	// Palette vector functions

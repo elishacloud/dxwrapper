@@ -96,6 +96,7 @@ DxWrapper uses code from several other projects. So to give credit where credit 
 
  - [AppCompatData](http://www.mojolabs.nz/posts.php?topic=99477): Used comments from blitzbasic.com to build the feature to configure the DirectDraw AppCompatData settings.
  - [Aqrit's ddwrapper](http://bitpatch.com/ddwrapper.html): Includes code to read the ini config file.
+ - [cnc-ddraw](https://github.com/CnCNet/cnc-ddraw): Includes code to create emulated surface device context.
  - [d3d8to9](https://github.com/crosire/d3d8to9): Includes the full Direct3D 8 to Direct3D 9 code.
  - [D3DParseUnknownCommand](https://doxygen.reactos.org/d3/d02/dll_2directx_2ddraw_2main_8c.html#af9a1eb1ced046770ad6f79838cc8517d): Includes code for DirectDraw D3DParseUnknownCommand from source code found in ReactOS.
  - [GetPPID](https://gist.github.com/mattn/253013/d47b90159cf8ffa4d92448614b748aa1d235ebe4): Includes Code taken from [mattn](https://gist.github.com/mattn) GitHub project to get the parent process PID.

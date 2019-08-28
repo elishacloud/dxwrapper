@@ -27,12 +27,14 @@ private:
 	DWORD surfaceBitCount = 0;							// Bit count for this surface
 	CRITICAL_SECTION ddscs;								// Critical section for surfaceArray
 	std::vector<byte> surfaceArray;						// Memory used for coping from one surface to the same surface
-	std::vector<byte> emulatedSurface;					// Memory used for an emulated surface
 	CKEYS ColorKeys[4];									// Color keys (0 = DDCKEY_DESTBLT, 1 = DDCKEY_DESTOVERLAY, 2 = DDCKEY_SRCBLT, 3 = DDCKEY_SRCOVERLAY)
 	LONG overlayX = 0;
 	LONG overlayY = 0;
+	DWORD Priority = 0;
+	DWORD MaxLOD = 0;
 	DWORD UniquenessValue = 0;
-	HDC surfacehDC = nullptr;
+	bool IsSurfaceEmulated = false;
+	bool DCRequiresEmulation = false;
 	bool ComplexRoot = false;
 	bool dirtyFlag = false;
 	bool EndSceneLock = false;
@@ -41,10 +43,27 @@ private:
 	bool IsInDC = false;
 	bool IsInBlt = false;
 	bool IsInFlip = false;
-	bool NewPalette = false;
+	DWORD PaletteUSN = (DWORD)this;		// The USN thats used to see if the palette data was updated
+	DWORD LastPaletteUSN = 0;			// The USN that was used last time the palette was updated
 	bool PaletteFirstRun = true;
 	bool ClipperFirstRun = true;
 	DWORD RestoreSurfaceFlags = 0;
+	bool DoCopyRect = false;
+	RECT LastRect = { 0, 0, 0, 0 };
+
+	// Emulated surface
+	struct EMUSURFACE
+	{
+		HDC surfaceDC = nullptr;
+		DWORD surfaceSize = 0;
+		void *surfacepBits = nullptr;
+		DWORD surfacePitch = 0;
+		HBITMAP bitmap = nullptr;
+		BYTE bmiMemory[(sizeof(BITMAPINFOHEADER) + sizeof(RGBQUAD) * 256)];
+		PBITMAPINFO bmi = (PBITMAPINFO)bmiMemory;
+		HGDIOBJ OldDCObject = nullptr;
+	};
+	EMUSURFACE *emu = nullptr;
 
 	// Display resolution
 	DWORD displayWidth = 0;								// Width used to override the default application set width
@@ -53,8 +72,8 @@ private:
 	// Direct3D9 vars
 	LPDIRECT3DDEVICE9 *d3d9Device = nullptr;			// Direct3D9 Device
 	LPDIRECT3DTEXTURE9 surfaceTexture = nullptr;		// Main surface texture used for locks, Blts and Flips
+	LPDIRECT3DSURFACE9 contextSurface = nullptr;		// Main surface texture used for locks, Blts and Flips
 	LPDIRECT3DTEXTURE9 displayTexture = nullptr;		// Surface texture used for displaying image
-	LPDIRECT3DSURFACE9 offscreenSurface = nullptr;		// Extra surface used for GetDC when unsupported format is detected
 	LPDIRECT3DTEXTURE9 paletteTexture = nullptr;		// Extra surface texture used for storing palette entries for the pixel shader
 	LPDIRECT3DPIXELSHADER9 pixelShader = nullptr;		// Used with palette surfaces to display proper palette data on the surface texture
 	LPDIRECT3DVERTEXBUFFER9 vertexBuffer = nullptr;		// Vertex buffer used to stretch the texture accross the screen
@@ -86,24 +105,6 @@ private:
 		float u;
 		float v;
 	};
-
-	static constexpr DWORD rgbPalette[] =
-	{	0x000000, 0x0000a8, 0x00a800, 0x00a8a8, 0xa80000, 0xa800a8, 0xa85400, 0xa8a8a8, 0x545454, 0x5454fc, 0x54fc54, 0x54fcfc, 0xfc5454, 0xfc54fc, 0xfcfc54, 0xfcfcfc,
-		0x000000, 0x141414, 0x202020, 0x2c2c2c, 0x383838, 0x444444, 0x505050, 0x606060, 0x707070, 0x808080, 0x909090, 0xa0a0a0, 0xb4b4b4, 0xc8c8c8, 0xe0e0e0, 0xfcfcfc,
-		0x0000fc, 0x4000fc, 0x7c00fc, 0xbc00fc, 0xfc00fc, 0xfc00bc, 0xfc007c, 0xfc0040, 0xfc0000, 0xfc4000, 0xfc7c00, 0xfcbc00, 0xfcfc00, 0xbcfc00, 0x7cfc00, 0x40fc00,
-		0x00fc00, 0x00fc40, 0x00fc7c, 0x00fcbc, 0x00fcfc, 0x00bcfc, 0x007cfc, 0x0040fc, 0x7c7cfc, 0x9c7cfc, 0xbc7cfc, 0xdc7cfc, 0xfc7cfc, 0xfc7cdc, 0xfc7cbc, 0xfc7c9c,
-		0xfc7c7c, 0xfc9c7c, 0xfcbc7c, 0xfcdc7c, 0xfcfc7c, 0xdcfc7c, 0xbcfc7c, 0x9cfc7c, 0x7cfc7c, 0x7cfc9c, 0x7cfcbc, 0x7cfcdc, 0x7cfcfc, 0x7cdcfc, 0x7cbcfc, 0x7c9cfc,
-		0xb4b4fc, 0xc4b4fc, 0xd8b4fc, 0xe8b4fc, 0xfcb4fc, 0xfcb4e8, 0xfcb4d8, 0xfcb4c4, 0xfcb4b4, 0xfcc4b4, 0xfcd8b4, 0xfce8b4, 0xfcfcb4, 0xe8fcb4, 0xd8fcb4, 0xc4fcb4,
-		0xb4fcb4, 0xb4fcc4, 0xb4fcd8, 0xb4fce8, 0xb4fcfc, 0xb4e8fc, 0xb4d8fc, 0xb4c4fc, 0x000070, 0x1c0070, 0x380070, 0x540070, 0x700070, 0x700054, 0x700038, 0x70001c,
-		0x700000, 0x701c00, 0x703800, 0x705400, 0x707000, 0x547000, 0x387000, 0x1c7000, 0x007000, 0x00701c, 0x007038, 0x007054, 0x007070, 0x005470, 0x003870, 0x001c70,
-		0x383870, 0x443870, 0x543870, 0x603870, 0x703870, 0x703860, 0x703854, 0x703844, 0x703838, 0x704438, 0x705438, 0x706038, 0x707038, 0x607038, 0x547038, 0x447038,
-		0x387038, 0x387044, 0x387054, 0x387060, 0x387070, 0x386070, 0x385470, 0x384470, 0x505070, 0x585070, 0x605070, 0x685070, 0x705070, 0x705068, 0x705060, 0x705058,
-		0x705050, 0x705850, 0x706050, 0x706850, 0x707050, 0x687050, 0x607050, 0x587050, 0x507050, 0x507058, 0x507060, 0x507068, 0x507070, 0x506870, 0x506070, 0x505870,
-		0x000040, 0x100040, 0x200040, 0x300040, 0x400040, 0x400030, 0x400020, 0x400010, 0x400000, 0x401000, 0x402000, 0x403000, 0x404000, 0x304000, 0x204000, 0x104000,
-		0x004000, 0x004010, 0x004020, 0x004030, 0x004040, 0x003040, 0x002040, 0x001040, 0x202040, 0x282040, 0x302040, 0x382040, 0x402040, 0x402038, 0x402030, 0x402028,
-		0x402020, 0x402820, 0x403020, 0x403820, 0x404020, 0x384020, 0x304020, 0x284020, 0x204020, 0x204028, 0x204030, 0x204038, 0x204040, 0x203840, 0x203040, 0x202840,
-		0x2c2c40, 0x302c40, 0x342c40, 0x3c2c40, 0x402c40, 0x402c3c, 0x402c34, 0x402c30, 0x402c2c, 0x40302c, 0x40342c, 0x403c2c, 0x40402c, 0x3c402c, 0x34402c, 0x30402c,
-		0x2c402c, 0x2c4030, 0x2c4034, 0x2c403c, 0x2c4040, 0x2c3c40, 0x2c3440, 0x2c3040, 0x000000, 0x000000, 0x000000, 0x000000, 0x000000, 0x000000, 0x000000, 0x000000 };
 
 public:
 	m_IDirectDrawSurfaceX(IDirectDrawSurface7 *pOriginal, DWORD DirectXVersion, m_IDirectDrawSurface7 *Interface) : ProxyInterface(pOriginal), WrapperInterface(Interface)
@@ -137,6 +138,9 @@ public:
 
 		// Update surface description and create backbuffers
 		InitSurfaceDesc(lpDDSurfaceDesc2, DirectXVersion);
+
+		// Emulated surface
+		emu = new EMUSURFACE;
 	}
 	~m_IDirectDrawSurfaceX()
 	{
@@ -146,6 +150,12 @@ public:
 		{
 			ReleaseInterface();
 			ReleaseD9Surface(false);
+
+			// Delete emulated surface
+			if (emu)
+			{
+				delete emu;
+			}
 
 			// Delete Critical Section for surface array
 			DeleteCriticalSection(&ddscs);
@@ -248,7 +258,9 @@ public:
 	void ClearDdraw() { ddrawParent = nullptr; }
 
 	// Direct3D9 interfaces
+	EMUSURFACE **GetEmulatedSurface() { return &emu; }
 	LPDIRECT3DTEXTURE9 *GetSurfaceTexture() { return &surfaceTexture; }
+	LPDIRECT3DSURFACE9 *GetContextSurface() { return &contextSurface; }
 
 	// Surface information functions
 	bool IsPrimarySurface() { return (surfaceDesc2.ddsCaps.dwCaps & DDSCAPS_PRIMARYSURFACE) != 0; }
@@ -265,6 +277,7 @@ public:
 	// Direct3D9 interface functions
 	HRESULT CheckInterface(char *FunctionName, bool CheckD3DDevice, bool CheckD3DSurface);
 	HRESULT CreateD3d9Surface();
+	HRESULT CreateDCSurface();
 	template <typename T>
 	void ReleaseD9Interface(T **ppInterface);
 	void ReleaseD9Surface(bool BackupData = true);
@@ -287,6 +300,7 @@ public:
 	bool WaitForLockState();
 	HRESULT SetLock(D3DLOCKED_RECT* pLockedRect, LPRECT lpDestRect, DWORD dwFlags, BOOL isSkipScene = false);
 	HRESULT SetUnlock(BOOL isSkipScene = false);
+	HRESULT LockEmulatedSurface(D3DLOCKED_RECT* pLockedRect, LPRECT lpDestRect);
 
 	// Attached surfaces
 	void InitSurfaceDesc(LPDDSURFACEDESC2 lpDDSurfaceDesc2, DWORD DirectXVersion);
@@ -299,8 +313,12 @@ public:
 	// Copying surface textures
 	HRESULT ColorFill(RECT* pRect, D3DCOLOR dwFillColor);
 	HRESULT CopySurface(m_IDirectDrawSurfaceX* pSourceSurface, RECT* pSourceRect, RECT* pDestRect, D3DTEXTUREFILTERTYPE Filter, DDCOLORKEY ColorKey, DWORD dwFlags);
-	template <class T>
-	HRESULT CopyEmulatedSurface(T pSurface, bool FromSurfaceToEmulation);
+	HRESULT CopyEmulatedSurface(LPRECT lpDestRect, bool CopyToRealSurfaceTexture);
+
+	// For palettes
+	m_IDirectDrawPalette *GetAttachedPalette() { return attachedPalette; }
+	void UpdatePaletteData();
+	DWORD GetPaletteUSN() { return PaletteUSN; }
 
 	// Release interface
 	void ReleaseInterface();

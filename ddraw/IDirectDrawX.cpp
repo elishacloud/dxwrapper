@@ -28,6 +28,7 @@ std::vector<m_IDirectDrawX*> DDrawVector;
 
 // Convert to Direct3D9
 HWND MainhWnd;
+HDC MainhDC;
 bool IsInScene;
 bool AllowModeX;
 bool MultiThreaded;
@@ -377,6 +378,11 @@ HRESULT m_IDirectDrawX::CreateSurface2(LPDDSURFACEDESC2 lpDDSurfaceDesc2, LPDIRE
 		m_IDirectDrawSurfaceX *p_IDirectDrawSurfaceX = new m_IDirectDrawSurfaceX(&d3d9Device, this, DirectXVersion, &Desc2, displayWidth, displayHeight);
 
 		*lplpDDSurface = (LPDIRECTDRAWSURFACE7)p_IDirectDrawSurfaceX->GetWrapperInterfaceX(DirectXVersion);
+
+		if (Desc2.ddsCaps.dwCaps & DDSCAPS_PRIMARYSURFACE)
+		{
+			PrimarySurface = p_IDirectDrawSurfaceX;
+		}
 
 		return DD_OK;
 	}
@@ -813,7 +819,7 @@ HRESULT m_IDirectDrawX::GetDisplayMode2(LPDDSURFACEDESC2 lpDDSurfaceDesc2)
 		}
 		else
 		{
-			HDC hdc = GetDC(nullptr);
+			HDC hdc = ::GetDC(nullptr);
 			lpDDSurfaceDesc2->dwWidth = GetSystemMetrics(SM_CXSCREEN);
 			lpDDSurfaceDesc2->dwHeight = GetSystemMetrics(SM_CYSCREEN);
 			lpDDSurfaceDesc2->dwRefreshRate = Utils::GetRefreshRate(MainhWnd);
@@ -1121,10 +1127,10 @@ HRESULT m_IDirectDrawX::SetCooperativeLevel(HWND hWnd, DWORD dwFlags)
 		}
 
 		// Set device flags
-		AllowModeX = (dwFlags & DDSCL_ALLOWMODEX);
-		MultiThreaded = (dwFlags & DDSCL_MULTITHREADED);
-		FUPPreserve = (dwFlags & (DDSCL_FPUPRESERVE | DDSCL_FPUSETUP));
-		NoWindowChanges = (dwFlags & DDSCL_NOWINDOWCHANGES);
+		AllowModeX = ((dwFlags & DDSCL_ALLOWMODEX) != 0);
+		MultiThreaded = ((dwFlags & DDSCL_MULTITHREADED) != 0);
+		FUPPreserve = ((dwFlags & (DDSCL_FPUPRESERVE | DDSCL_FPUSETUP)) != 0);
+		NoWindowChanges = ((dwFlags & DDSCL_NOWINDOWCHANGES) != 0);
 
 		// Set display window
 		HWND t_hWnd = (IsWindow(ExclusiveHwnd)) ? ExclusiveHwnd : (IsWindow(hWnd)) ? hWnd : nullptr;
@@ -1155,7 +1161,18 @@ HRESULT m_IDirectDrawX::SetCooperativeLevel(HWND hWnd, DWORD dwFlags)
 			t_hWnd = data.best_handle;
 		}
 
+		if (MainhWnd && MainhDC && (MainhWnd != t_hWnd))
+		{
+			ReleaseDC(MainhWnd, MainhDC);
+			MainhDC = nullptr;
+		}
+
 		MainhWnd = t_hWnd;
+
+		if (MainhWnd && !MainhDC)
+		{
+			MainhDC = ::GetDC(MainhWnd);
+		}
 
 		return DD_OK;
 	}
@@ -1425,14 +1442,18 @@ HRESULT m_IDirectDrawX::TestCooperativeLevel()
 			return DD_OK;
 		}
 
+		if (!ExclusiveMode)
+		{
+			return DDERR_NOEXCLUSIVEMODE;
+		}
+
 		switch (d3d9Device->TestCooperativeLevel())
 		{
-		case D3DERR_DEVICELOST:
-		case D3DERR_DEVICENOTRESET:
-			return DDERR_NOEXCLUSIVEMODE;
 		case D3DERR_DRIVERINTERNALERROR:
 		case D3DERR_INVALIDCALL:
 			return DDERR_WRONGMODE;
+		case D3DERR_DEVICELOST:
+		case D3DERR_DEVICENOTRESET:
 		default:
 			return DD_OK;
 		}
@@ -1575,7 +1596,12 @@ void m_IDirectDrawX::SetDdrawDefaults()
 	ExclusiveHwnd = nullptr;
 
 	// Application display mode
+	if (MainhWnd && MainhDC)
+	{
+		ReleaseDC(MainhWnd, MainhDC);
+	}
 	MainhWnd = nullptr;
+	MainhDC = nullptr;
 	displayModeWidth = 0;
 	displayModeHeight = 0;
 	displayModeBPP = 0;
@@ -1653,6 +1679,13 @@ void m_IDirectDrawX::ReleaseDdraw()
 		d3d9Object = nullptr;
 	}
 
+	// Release DC
+	if (MainhWnd && MainhDC)
+	{
+		ReleaseDC(MainhWnd, MainhDC);
+		MainhDC = nullptr;
+	}
+
 	ReleaseCriticalSection();
 }
 
@@ -1670,6 +1703,11 @@ void ReleaseAllDirectDrawD9Surfaces()
 HWND m_IDirectDrawX::GetHwnd()
 {
 	return MainhWnd;
+}
+
+HDC m_IDirectDrawX::GetDC()
+{
+	return MainhDC;
 }
 
 bool m_IDirectDrawX::IsExclusiveMode()
@@ -1962,6 +2000,12 @@ void m_IDirectDrawX::RemoveSurfaceFromVector(m_IDirectDrawSurfaceX* lpSurfaceX)
 	if (it != std::end(SurfaceVector))
 	{
 		SurfaceVector.erase(it);
+
+		// Clear primary surface
+		if (lpSurfaceX == PrimarySurface)
+		{
+			PrimarySurface = nullptr;
+		}
 	}
 
 	// Remove attached surface from map
@@ -1988,20 +2032,6 @@ bool m_IDirectDrawX::DoesSurfaceExist(m_IDirectDrawSurfaceX* lpSurfaceX)
 	}
 
 	return true;
-}
-
-// Get the primary surface
-m_IDirectDrawSurfaceX *m_IDirectDrawX::GetPrimarySurface()
-{
-	// Check for primary surface
-	for (m_IDirectDrawSurfaceX *pSurface : SurfaceVector)
-	{
-		if (pSurface->IsPrimarySurface())
-		{
-			return pSurface;
-		}
-	}
-	return nullptr;
 }
 
 // This method removes any texture surfaces created with the DDSCAPS2_TEXTUREMANAGE or DDSCAPS2_D3DTEXTUREMANAGE flags

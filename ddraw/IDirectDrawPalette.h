@@ -127,7 +127,7 @@ public:
 	void ReleaseInterface();
 
 	// Public varables
-	bool NewPaletteData = false;				// Flag to see if there is new palette data
+	DWORD PaletteUSN = (DWORD)this;				// The USN that's used to see if the palette data was updated
 	DWORD *rgbPalette = nullptr;				// Rgb translated palette
 	LPPALETTEENTRY rawPalette = nullptr;		// Raw palette data
 };

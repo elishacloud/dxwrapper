@@ -167,7 +167,7 @@ HRESULT m_IDirectDrawPalette::SetEntries(DWORD dwFlags, DWORD dwStartingEntry, D
 		}
 
 		// Note that there is new palette data
-		NewPaletteData = true;
+		PaletteUSN++;
 
 		// Present new palette
 		if (ddrawParent)
