@@ -525,7 +525,7 @@ void Fullscreen::SetFullScreen(HWND& hwnd, const MONITORINFO& mi)
 		mi.rcMonitor.left, mi.rcMonitor.top,
 		mi.rcMonitor.right - mi.rcMonitor.left,
 		mi.rcMonitor.bottom - mi.rcMonitor.top,
-		SWP_NOOWNERZORDER | SWP_FRAMECHANGED);
+		SWP_ASYNCWINDOWPOS | SWP_NOSENDCHANGING | SWP_FRAMECHANGED);
 
 	// Set window to forground
 	SetForegroundWindow(hwnd);
@@ -815,12 +815,12 @@ void Fullscreen::MainFunc()
 				if (Config.ForceWindowResize || !IsWindowTooSmall(WindowSize))
 				{
 					// Update screen when change detected
-					SetWindowPos(CurrentLoop.hwnd, HWND_TOP, 0, 0, 0, 0, SWP_NOOWNERZORDER | SWP_FRAMECHANGED | SWP_NOSIZE);
+					SetWindowPos(CurrentLoop.hwnd, HWND_TOP, 0, 0, 0, 0, SWP_ASYNCWINDOWPOS | SWP_NOSENDCHANGING | SWP_FRAMECHANGED | SWP_NOSIZE);
 
 					// Change resolution if not fullscreen and ignore certian windows
-					if (IsNotFullScreenFlag &&																									// Check if it is already fullscreen
+					if (IsNotFullScreenFlag &&																								// Check if it is already fullscreen
 						!(Config.IgnoreWindowName.size() != 0 && Settings::IfStringExistsInList(class_name, Config.IgnoreWindowName)) &&	// Ignore certian windows
-						IsWindow(CurrentLoop.hwnd))																								// Check window handle
+						IsWindow(CurrentLoop.hwnd))																							// Check window handle
 					{
 						// Get the best screen resolution
 						screen_res SizeTemp;
