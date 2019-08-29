@@ -20,7 +20,7 @@
 
 HRESULT m_IDirectDrawPalette::QueryInterface(REFIID riid, LPVOID FAR * ppvObj)
 {
-	Logging::LogDebug() << __FUNCTION__;
+	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
 	if (!ProxyInterface)
 	{
@@ -39,7 +39,7 @@ HRESULT m_IDirectDrawPalette::QueryInterface(REFIID riid, LPVOID FAR * ppvObj)
 
 ULONG m_IDirectDrawPalette::AddRef()
 {
-	Logging::LogDebug() << __FUNCTION__;
+	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
 	if (!ProxyInterface)
 	{
@@ -51,7 +51,7 @@ ULONG m_IDirectDrawPalette::AddRef()
 
 ULONG m_IDirectDrawPalette::Release()
 {
-	Logging::LogDebug() << __FUNCTION__;
+	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
 	ULONG ref;
 
@@ -74,7 +74,7 @@ ULONG m_IDirectDrawPalette::Release()
 
 HRESULT m_IDirectDrawPalette::GetCaps(LPDWORD lpdwCaps)
 {
-	Logging::LogDebug() << __FUNCTION__;
+	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
 	if (!ProxyInterface)
 	{
@@ -94,7 +94,7 @@ HRESULT m_IDirectDrawPalette::GetCaps(LPDWORD lpdwCaps)
 
 HRESULT m_IDirectDrawPalette::GetEntries(DWORD dwFlags, DWORD dwBase, DWORD dwNumEntries, LPPALETTEENTRY lpEntries)
 {
-	Logging::LogDebug() << __FUNCTION__;
+	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
 	if (!ProxyInterface)
 	{
@@ -120,7 +120,7 @@ HRESULT m_IDirectDrawPalette::GetEntries(DWORD dwFlags, DWORD dwBase, DWORD dwNu
 
 HRESULT m_IDirectDrawPalette::Initialize(LPDIRECTDRAW lpDD, DWORD dwFlags, LPPALETTEENTRY lpDDColorTable)
 {
-	Logging::LogDebug() << __FUNCTION__;
+	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
 	if (!ProxyInterface)
 	{
@@ -137,7 +137,7 @@ HRESULT m_IDirectDrawPalette::Initialize(LPDIRECTDRAW lpDD, DWORD dwFlags, LPPAL
 
 HRESULT m_IDirectDrawPalette::SetEntries(DWORD dwFlags, DWORD dwStartingEntry, DWORD dwCount, LPPALETTEENTRY lpEntries)
 {
-	Logging::LogDebug() << __FUNCTION__;
+	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
 	if (!ProxyInterface)
 	{

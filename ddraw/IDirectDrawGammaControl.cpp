@@ -18,7 +18,7 @@
 
 HRESULT m_IDirectDrawGammaControl::QueryInterface(REFIID riid, LPVOID FAR * ppvObj)
 {
-	Logging::LogDebug() << __FUNCTION__;
+	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
 	if (!ProxyInterface)
 	{
@@ -37,7 +37,7 @@ HRESULT m_IDirectDrawGammaControl::QueryInterface(REFIID riid, LPVOID FAR * ppvO
 
 ULONG m_IDirectDrawGammaControl::AddRef()
 {
-	Logging::LogDebug() << __FUNCTION__;
+	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
 	if (!ProxyInterface)
 	{
@@ -49,7 +49,7 @@ ULONG m_IDirectDrawGammaControl::AddRef()
 
 ULONG m_IDirectDrawGammaControl::Release()
 {
-	Logging::LogDebug() << __FUNCTION__;
+	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
 	ULONG ref;
 
@@ -72,7 +72,7 @@ ULONG m_IDirectDrawGammaControl::Release()
 
 HRESULT m_IDirectDrawGammaControl::GetGammaRamp(DWORD dwFlags, LPDDGAMMARAMP lpRampData)
 {
-	Logging::LogDebug() << __FUNCTION__;
+	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
 	if (!ProxyInterface)
 	{
@@ -91,7 +91,7 @@ HRESULT m_IDirectDrawGammaControl::GetGammaRamp(DWORD dwFlags, LPDDGAMMARAMP lpR
 
 HRESULT m_IDirectDrawGammaControl::SetGammaRamp(DWORD dwFlags, LPDDGAMMARAMP lpRampData)
 {
-	Logging::LogDebug() << __FUNCTION__;
+	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
 	if (!ProxyInterface)
 	{

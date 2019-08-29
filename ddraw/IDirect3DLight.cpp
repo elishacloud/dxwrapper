@@ -18,7 +18,7 @@
 
 HRESULT m_IDirect3DLight::QueryInterface(REFIID riid, LPVOID * ppvObj)
 {
-	Logging::LogDebug() << __FUNCTION__;
+	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
 	if (!ProxyInterface)
 	{
@@ -37,7 +37,7 @@ HRESULT m_IDirect3DLight::QueryInterface(REFIID riid, LPVOID * ppvObj)
 
 ULONG m_IDirect3DLight::AddRef()
 {
-	Logging::LogDebug() << __FUNCTION__;
+	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
 	if (!ProxyInterface)
 	{
@@ -49,7 +49,7 @@ ULONG m_IDirect3DLight::AddRef()
 
 ULONG m_IDirect3DLight::Release()
 {
-	Logging::LogDebug() << __FUNCTION__;
+	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
 	LONG ref;
 
@@ -72,7 +72,7 @@ ULONG m_IDirect3DLight::Release()
 
 HRESULT m_IDirect3DLight::Initialize(LPDIRECT3D lpDirect3D)
 {
-	Logging::LogDebug() << __FUNCTION__;
+	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
 	if (!ProxyInterface)
 	{
@@ -90,7 +90,7 @@ HRESULT m_IDirect3DLight::Initialize(LPDIRECT3D lpDirect3D)
 
 HRESULT m_IDirect3DLight::SetLight(LPD3DLIGHT lpLight)
 {
-	Logging::LogDebug() << __FUNCTION__;
+	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
 	if (!ProxyInterface)
 	{
@@ -103,7 +103,7 @@ HRESULT m_IDirect3DLight::SetLight(LPD3DLIGHT lpLight)
 
 HRESULT m_IDirect3DLight::GetLight(LPD3DLIGHT lpLight)
 {
-	Logging::LogDebug() << __FUNCTION__;
+	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
 	if (!ProxyInterface)
 	{

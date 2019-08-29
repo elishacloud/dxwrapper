@@ -18,6 +18,8 @@
 
 HRESULT m_IDirectInput8A::QueryInterface(REFIID riid, LPVOID * ppvObj)
 {
+	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
+
 	if ((riid == IID_IDirectInput8A || riid == IID_IUnknown) && ppvObj)
 	{
 		AddRef();
@@ -39,11 +41,15 @@ HRESULT m_IDirectInput8A::QueryInterface(REFIID riid, LPVOID * ppvObj)
 
 ULONG m_IDirectInput8A::AddRef()
 {
+	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
+
 	return ProxyInterface->AddRef();
 }
 
 ULONG m_IDirectInput8A::Release()
 {
+	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
+
 	ULONG ref = ProxyInterface->Release();
 
 	if (ref == 0)
@@ -56,6 +62,8 @@ ULONG m_IDirectInput8A::Release()
 
 HRESULT m_IDirectInput8A::CreateDevice(REFGUID rguid, LPDIRECTINPUTDEVICE8A *lplpDirectInputDevice, LPUNKNOWN pUnkOuter)
 {
+	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
+
 	HRESULT hr = ProxyInterface->CreateDevice(rguid, lplpDirectInputDevice, pUnkOuter);
 
 	if (SUCCEEDED(hr) && lplpDirectInputDevice)
@@ -68,31 +76,43 @@ HRESULT m_IDirectInput8A::CreateDevice(REFGUID rguid, LPDIRECTINPUTDEVICE8A *lpl
 
 HRESULT m_IDirectInput8A::EnumDevices(DWORD dwDevType, LPDIENUMDEVICESCALLBACKA lpCallback, LPVOID pvRef, DWORD dwFlags)
 {
+	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
+
 	return ProxyInterface->EnumDevices(dwDevType, lpCallback, pvRef, dwFlags);
 }
 
 HRESULT m_IDirectInput8A::GetDeviceStatus(REFGUID rguidInstance)
 {
+	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
+
 	return ProxyInterface->GetDeviceStatus(rguidInstance);
 }
 
 HRESULT m_IDirectInput8A::RunControlPanel(HWND hwndOwner, DWORD dwFlags)
 {
+	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
+
 	return ProxyInterface->RunControlPanel(hwndOwner, dwFlags);
 }
 
 HRESULT m_IDirectInput8A::Initialize(HINSTANCE hinst, DWORD dwVersion)
 {
+	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
+
 	return ProxyInterface->Initialize(hinst, dwVersion);
 }
 
 HRESULT m_IDirectInput8A::FindDevice(REFGUID rguidClass, LPCSTR ptszName, LPGUID pguidInstance)
 {
+	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
+
 	return ProxyInterface->FindDevice(rguidClass, ptszName, pguidInstance);
 }
 
 HRESULT m_IDirectInput8A::EnumDevicesBySemantics(LPCSTR ptszUserName, LPDIACTIONFORMATA lpdiActionFormat, LPDIENUMDEVICESBYSEMANTICSCBA lpCallback, LPVOID pvRef, DWORD dwFlags)
 {
+	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
+
 	if (!lpCallback)
 	{
 		return DIERR_INVALIDPARAM;
@@ -107,5 +127,7 @@ HRESULT m_IDirectInput8A::EnumDevicesBySemantics(LPCSTR ptszUserName, LPDIACTION
 
 HRESULT m_IDirectInput8A::ConfigureDevices(LPDICONFIGUREDEVICESCALLBACK lpdiCallback, LPDICONFIGUREDEVICESPARAMSA lpdiCDParams, DWORD dwFlags, LPVOID pvRefData)
 {
+	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
+
 	return ProxyInterface->ConfigureDevices(lpdiCallback, lpdiCDParams, dwFlags, pvRefData);
 }

@@ -9,9 +9,14 @@ private:
 public:
 	m_IDirect3DStateBlock9(LPDIRECT3DSTATEBLOCK9 pBlock9, m_IDirect3DDevice9Ex* pDevice) : ProxyInterface(pBlock9), m_pDeviceEx(pDevice)
 	{
+		LOG_LIMIT(3, "Creating device " << __FUNCTION__ << "(" << this << ")");
+
 		pDevice->ProxyAddressLookupTable->SaveAddress(this, ProxyInterface);
 	}
-	~m_IDirect3DStateBlock9() {}
+	~m_IDirect3DStateBlock9()
+	{
+		LOG_LIMIT(3, __FUNCTION__ << "(" << this << ")" << " deleting device!");
+	}
 
 	LPDIRECT3DSTATEBLOCK9 GetProxyInterface() { return ProxyInterface; }
 

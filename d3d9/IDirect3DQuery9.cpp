@@ -18,7 +18,7 @@
 
 HRESULT m_IDirect3DQuery9::QueryInterface(THIS_ REFIID riid, void** ppvObj)
 {
-	Logging::LogDebug() << __FUNCTION__;
+	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
 	if ((riid == IID_IDirect3DQuery9 || riid == IID_IUnknown) && ppvObj)
 	{
@@ -41,21 +41,21 @@ HRESULT m_IDirect3DQuery9::QueryInterface(THIS_ REFIID riid, void** ppvObj)
 
 ULONG m_IDirect3DQuery9::AddRef(THIS)
 {
-	Logging::LogDebug() << __FUNCTION__;
+	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
 	return ProxyInterface->AddRef();
 }
 
 ULONG m_IDirect3DQuery9::Release(THIS)
 {
-	Logging::LogDebug() << __FUNCTION__;
+	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
 	return ProxyInterface->Release();
 }
 
 HRESULT m_IDirect3DQuery9::GetDevice(THIS_ IDirect3DDevice9** ppDevice)
 {
-	Logging::LogDebug() << __FUNCTION__;
+	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
 	if (!ppDevice)
 	{
@@ -71,28 +71,28 @@ HRESULT m_IDirect3DQuery9::GetDevice(THIS_ IDirect3DDevice9** ppDevice)
 
 D3DQUERYTYPE m_IDirect3DQuery9::GetType(THIS)
 {
-	Logging::LogDebug() << __FUNCTION__;
+	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
 	return ProxyInterface->GetType();
 }
 
 DWORD m_IDirect3DQuery9::GetDataSize(THIS)
 {
-	Logging::LogDebug() << __FUNCTION__;
+	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
 	return ProxyInterface->GetDataSize();
 }
 
 HRESULT m_IDirect3DQuery9::Issue(THIS_ DWORD dwIssueFlags)
 {
-	Logging::LogDebug() << __FUNCTION__;
+	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
 	return ProxyInterface->Issue(dwIssueFlags);
 }
 
 HRESULT m_IDirect3DQuery9::GetData(THIS_ void* pData, DWORD dwSize, DWORD dwGetDataFlags)
 {
-	Logging::LogDebug() << __FUNCTION__;
+	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
 	return ProxyInterface->GetData(pData, dwSize, dwGetDataFlags);
 }

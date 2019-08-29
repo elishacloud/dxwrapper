@@ -18,7 +18,7 @@
 
 HRESULT m_IDirect3DMaterialX::QueryInterface(REFIID riid, LPVOID * ppvObj, DWORD DirectXVersion)
 {
-	Logging::LogDebug() << __FUNCTION__;
+	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
 	if (ProxyDirectXVersion > 3)
 	{
@@ -65,7 +65,7 @@ void *m_IDirect3DMaterialX::GetWrapperInterfaceX(DWORD DirectXVersion)
 
 ULONG m_IDirect3DMaterialX::AddRef()
 {
-	Logging::LogDebug() << __FUNCTION__;
+	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
 	if (ProxyDirectXVersion > 3)
 	{
@@ -77,7 +77,7 @@ ULONG m_IDirect3DMaterialX::AddRef()
 
 ULONG m_IDirect3DMaterialX::Release()
 {
-	Logging::LogDebug() << __FUNCTION__;
+	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
 	LONG ref;
 
@@ -107,7 +107,7 @@ ULONG m_IDirect3DMaterialX::Release()
 
 HRESULT m_IDirect3DMaterialX::Initialize(LPDIRECT3D lplpD3D)
 {
-	Logging::LogDebug() << __FUNCTION__;
+	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
 	if (ProxyDirectXVersion != 1)
 	{
@@ -124,7 +124,7 @@ HRESULT m_IDirect3DMaterialX::Initialize(LPDIRECT3D lplpD3D)
 
 HRESULT m_IDirect3DMaterialX::SetMaterial(LPD3DMATERIAL lpMat)
 {
-	Logging::LogDebug() << __FUNCTION__;
+	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
 	switch (ProxyDirectXVersion)
 	{
@@ -166,7 +166,7 @@ HRESULT m_IDirect3DMaterialX::SetMaterial(LPD3DMATERIAL lpMat)
 
 HRESULT m_IDirect3DMaterialX::GetMaterial(LPD3DMATERIAL lpMat)
 {
-	Logging::LogDebug() << __FUNCTION__;
+	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
 	switch (ProxyDirectXVersion)
 	{
@@ -206,7 +206,7 @@ HRESULT m_IDirect3DMaterialX::GetMaterial(LPD3DMATERIAL lpMat)
 
 HRESULT m_IDirect3DMaterialX::GetHandle(LPDIRECT3DDEVICE3 lpDirect3DDevice, LPD3DMATERIALHANDLE lpHandle)
 {
-	Logging::LogDebug() << __FUNCTION__;
+	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
 	if (lpDirect3DDevice)
 	{
@@ -232,7 +232,7 @@ HRESULT m_IDirect3DMaterialX::GetHandle(LPDIRECT3DDEVICE3 lpDirect3DDevice, LPD3
 
 HRESULT m_IDirect3DMaterialX::Reserve()
 {
-	Logging::LogDebug() << __FUNCTION__;
+	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
 	if (ProxyDirectXVersion != 1)
 	{
@@ -245,7 +245,7 @@ HRESULT m_IDirect3DMaterialX::Reserve()
 
 HRESULT m_IDirect3DMaterialX::Unreserve()
 {
-	Logging::LogDebug() << __FUNCTION__;
+	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
 	if (ProxyDirectXVersion != 1)
 	{

@@ -9,9 +9,14 @@ private:
 public:
 	m_IDirect3DVertexBuffer9(LPDIRECT3DVERTEXBUFFER9 pBuffer8, m_IDirect3DDevice9Ex* pDevice) : ProxyInterface(pBuffer8), m_pDeviceEx(pDevice)
 	{
+		LOG_LIMIT(3, "Creating device " << __FUNCTION__ << "(" << this << ")");
+
 		pDevice->ProxyAddressLookupTable->SaveAddress(this, ProxyInterface);
 	}
-	~m_IDirect3DVertexBuffer9() {}
+	~m_IDirect3DVertexBuffer9()
+	{
+		LOG_LIMIT(3, __FUNCTION__ << "(" << this << ")" << " deleting device!");
+	}
 
 	LPDIRECT3DVERTEXBUFFER9 GetProxyInterface() { return ProxyInterface; }
 

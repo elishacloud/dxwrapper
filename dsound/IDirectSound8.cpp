@@ -18,6 +18,8 @@
 
 HRESULT m_IDirectSound8::QueryInterface(REFIID riid, LPVOID * ppvObj)
 {
+	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
+
 	if ((riid == IID_IDirectSound || riid == IID_IDirectSound8 || riid == IID_IUnknown) && ppvObj)
 	{
 		AddRef();
@@ -39,11 +41,15 @@ HRESULT m_IDirectSound8::QueryInterface(REFIID riid, LPVOID * ppvObj)
 
 ULONG m_IDirectSound8::AddRef()
 {
+	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
+
 	return ProxyInterface->AddRef();
 }
 
 ULONG m_IDirectSound8::Release()
 {
+	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
+
 	ULONG x = ProxyInterface->Release();
 
 	if (x == 0)
@@ -57,6 +63,8 @@ ULONG m_IDirectSound8::Release()
 // IDirectSound methods
 HRESULT m_IDirectSound8::CreateSoundBuffer(LPCDSBUFFERDESC pcDSBufferDesc, LPDIRECTSOUNDBUFFER *ppDSBuffer, LPUNKNOWN pUnkOuter)
 {
+	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
+
 	if (pcDSBufferDesc)
 	{
 		DSBUFFERDESC dsdesc = *pcDSBufferDesc;
@@ -113,6 +121,8 @@ HRESULT m_IDirectSound8::CreateSoundBuffer(LPCDSBUFFERDESC pcDSBufferDesc, LPDIR
 
 HRESULT m_IDirectSound8::GetCaps(LPDSCAPS pDSCaps)
 {
+	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
+
 	HRESULT hr = ProxyInterface->GetCaps(pDSCaps);
 
 	if (Config.Num2DBuffers && pDSCaps)
@@ -160,6 +170,8 @@ HRESULT m_IDirectSound8::GetCaps(LPDSCAPS pDSCaps)
 
 HRESULT m_IDirectSound8::DuplicateSoundBuffer(LPDIRECTSOUNDBUFFER pDSBufferOriginal, LPDIRECTSOUNDBUFFER *ppDSBufferDuplicate)
 {
+	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
+
 	if (pDSBufferOriginal)
 	{
 		pDSBufferOriginal = static_cast<m_IDirectSoundBuffer8 *>(pDSBufferOriginal)->GetProxyInterface();
@@ -177,6 +189,8 @@ HRESULT m_IDirectSound8::DuplicateSoundBuffer(LPDIRECTSOUNDBUFFER pDSBufferOrigi
 
 HRESULT m_IDirectSound8::SetCooperativeLevel(HWND hwnd, DWORD dwLevel)
 {
+	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
+
 	if (Config.ForceExclusiveMode && dwLevel == DSSCL_NORMAL)
 	{
 		dwLevel = DSSCL_EXCLUSIVE;
@@ -187,11 +201,15 @@ HRESULT m_IDirectSound8::SetCooperativeLevel(HWND hwnd, DWORD dwLevel)
 
 HRESULT m_IDirectSound8::Compact()
 {
+	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
+
 	return ProxyInterface->Compact();
 }
 
 HRESULT m_IDirectSound8::GetSpeakerConfig(LPDWORD pdwSpeakerConfig)
 {
+	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
+
 	if (Config.ForceSpeakerConfig && pdwSpeakerConfig)
 	{
 		*pdwSpeakerConfig = Config.SpeakerConfig;
@@ -204,6 +222,8 @@ HRESULT m_IDirectSound8::GetSpeakerConfig(LPDWORD pdwSpeakerConfig)
 
 HRESULT m_IDirectSound8::SetSpeakerConfig(DWORD dwSpeakerConfig)
 {
+	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
+
 	if (Config.PreventSpeakerSetup)
 	{
 		return DS_OK;
@@ -214,12 +234,16 @@ HRESULT m_IDirectSound8::SetSpeakerConfig(DWORD dwSpeakerConfig)
 
 HRESULT m_IDirectSound8::Initialize(LPCGUID pcGuidDevice)
 {
+	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
+
 	return ProxyInterface->Initialize(pcGuidDevice);
 }
 
 // IDirectSound8 methods
 HRESULT  m_IDirectSound8::VerifyCertification(LPDWORD pdwCertified)
 {
+	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
+
 	HRESULT hr = ProxyInterface->VerifyCertification(pdwCertified);
 
 	if (Config.ForceCertification && pdwCertified)

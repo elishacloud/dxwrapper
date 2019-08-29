@@ -18,7 +18,7 @@
 
 HRESULT m_IDirect3DStateBlock9::QueryInterface(THIS_ REFIID riid, void** ppvObj)
 {
-	Logging::LogDebug() << __FUNCTION__;
+	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
 	if ((riid == IID_IDirect3DStateBlock9 || riid == IID_IUnknown) && ppvObj)
 	{
@@ -41,21 +41,21 @@ HRESULT m_IDirect3DStateBlock9::QueryInterface(THIS_ REFIID riid, void** ppvObj)
 
 ULONG m_IDirect3DStateBlock9::AddRef(THIS)
 {
-	Logging::LogDebug() << __FUNCTION__;
+	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
 	return ProxyInterface->AddRef();
 }
 
 ULONG m_IDirect3DStateBlock9::Release(THIS)
 {
-	Logging::LogDebug() << __FUNCTION__;
+	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
 	return ProxyInterface->Release();
 }
 
 HRESULT m_IDirect3DStateBlock9::GetDevice(THIS_ IDirect3DDevice9** ppDevice)
 {
-	Logging::LogDebug() << __FUNCTION__;
+	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
 	if (!ppDevice)
 	{
@@ -71,14 +71,14 @@ HRESULT m_IDirect3DStateBlock9::GetDevice(THIS_ IDirect3DDevice9** ppDevice)
 
 HRESULT m_IDirect3DStateBlock9::Capture(THIS)
 {
-	Logging::LogDebug() << __FUNCTION__;
+	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
 	return ProxyInterface->Capture();
 }
 
 HRESULT m_IDirect3DStateBlock9::Apply(THIS)
 {
-	Logging::LogDebug() << __FUNCTION__;
+	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
 	return ProxyInterface->Apply();
 }

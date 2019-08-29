@@ -7,9 +7,14 @@ private:
 	GUID WrapperID = IID_IUnknown;
 
 public:
-	m_IDirect3D9Ex(LPDIRECT3D9EX pDirect3D, GUID DeviceID) : ProxyInterface(pDirect3D), WrapperID(DeviceID) { }
+	m_IDirect3D9Ex(LPDIRECT3D9EX pDirect3D, GUID DeviceID) : ProxyInterface(pDirect3D), WrapperID(DeviceID)
+	{
+		LOG_LIMIT(3, "Creating device " << __FUNCTION__ << "(" << this << ")");
+	}
 	~m_IDirect3D9Ex()
 	{
+		LOG_LIMIT(3, __FUNCTION__ << "(" << this << ")" << " deleting device!");
+
 		DeviceWindow = nullptr;
 		BufferWidth = 0;
 		BufferHeight = 0;

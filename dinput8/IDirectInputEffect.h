@@ -8,10 +8,14 @@ private:
 public:
 	m_IDirectInputEffect8(IDirectInputEffect *aOriginal) : ProxyInterface(aOriginal)
 	{
+		LOG_LIMIT(3, "Creating device " << __FUNCTION__ << "(" << this << ")");
+
 		ProxyAddressLookupTableDinput8.SaveAddress(this, ProxyInterface);
 	}
 	~m_IDirectInputEffect8()
 	{
+		LOG_LIMIT(3, __FUNCTION__ << "(" << this << ")" << " deleting device!");
+
 		ProxyAddressLookupTableDinput8.DeleteAddress(this);
 	}
 

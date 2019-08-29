@@ -8,10 +8,14 @@ private:
 public:
 	m_IDirectSoundFXI3DL2Reverb8(LPDIRECTSOUNDFXI3DL2REVERB8 pSound8) : ProxyInterface(pSound8)
 	{
+		LOG_LIMIT(3, "Creating device " << __FUNCTION__ << "(" << this << ")");
+
 		ProxyAddressLookupTableDsound.SaveAddress(this, ProxyInterface);
 	}
 	~m_IDirectSoundFXI3DL2Reverb8()
 	{
+		LOG_LIMIT(3, __FUNCTION__ << "(" << this << ")" << " deleting device!");
+
 		ProxyAddressLookupTableDsound.DeleteAddress(this);
 	}
 

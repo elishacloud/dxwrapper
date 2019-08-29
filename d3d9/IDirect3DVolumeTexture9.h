@@ -9,9 +9,14 @@ private:
 public:
 	m_IDirect3DVolumeTexture9(LPDIRECT3DVOLUMETEXTURE9 pTexture8, m_IDirect3DDevice9Ex* pDevice) : ProxyInterface(pTexture8), m_pDeviceEx(pDevice)
 	{
+		LOG_LIMIT(3, "Creating device " << __FUNCTION__ << "(" << this << ")");
+
 		pDevice->ProxyAddressLookupTable->SaveAddress(this, ProxyInterface);
 	}
-	~m_IDirect3DVolumeTexture9() {}
+	~m_IDirect3DVolumeTexture9()
+	{
+		LOG_LIMIT(3, __FUNCTION__ << "(" << this << ")" << " deleting device!");
+	}
 
 	LPDIRECT3DVOLUMETEXTURE9 GetProxyInterface() { return ProxyInterface; }
 

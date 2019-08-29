@@ -29,10 +29,14 @@ public:
 	}
 	void InitDirect3DDevice()
 	{
+		LOG_LIMIT(3, "Creating device " << __FUNCTION__ << "(" << this << ")");
+
 		ProxyAddressLookupTable = new AddressLookupTableD3d9<m_IDirect3DDevice9Ex>(this);
 	}
 	~m_IDirect3DDevice9Ex()
 	{
+		LOG_LIMIT(3, __FUNCTION__ << "(" << this << ")" << " deleting device!");
+
 		delete ProxyAddressLookupTable;
 	}
 

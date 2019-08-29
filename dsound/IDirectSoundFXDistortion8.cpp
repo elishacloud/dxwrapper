@@ -18,6 +18,8 @@
 
 HRESULT m_IDirectSoundFXDistortion8::QueryInterface(REFIID riid, LPVOID * ppvObj)
 {
+	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
+
 	if ((riid == IID_IDirectSoundFXDistortion || riid == IID_IDirectSoundFXDistortion8 || riid == IID_IUnknown) && ppvObj)
 	{
 		AddRef();
@@ -39,11 +41,15 @@ HRESULT m_IDirectSoundFXDistortion8::QueryInterface(REFIID riid, LPVOID * ppvObj
 
 ULONG m_IDirectSoundFXDistortion8::AddRef()
 {
+	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
+
 	return ProxyInterface->AddRef();
 }
 
 ULONG m_IDirectSoundFXDistortion8::Release()
 {
+	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
+
 	ULONG x = ProxyInterface->Release();
 
 	if (x == 0)
@@ -57,10 +63,14 @@ ULONG m_IDirectSoundFXDistortion8::Release()
 // IDirectSoundFXDistortion methods
 HRESULT m_IDirectSoundFXDistortion8::SetAllParameters(LPCDSFXDistortion pcDsFxDistortion)
 {
+	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
+
 	return ProxyInterface->SetAllParameters(pcDsFxDistortion);
 }
 
 HRESULT m_IDirectSoundFXDistortion8::GetAllParameters(LPDSFXDistortion pDsFxDistortion)
 {
+	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
+
 	return ProxyInterface->GetAllParameters(pDsFxDistortion);
 }

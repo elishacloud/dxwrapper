@@ -18,6 +18,8 @@
 
 HRESULT m_IDirectSoundFXCompressor8::QueryInterface(REFIID riid, LPVOID * ppvObj)
 {
+	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
+
 	if ((riid == IID_IDirectSoundFXCompressor || riid == IID_IDirectSoundFXCompressor8 || riid == IID_IUnknown) && ppvObj)
 	{
 		AddRef();
@@ -39,11 +41,15 @@ HRESULT m_IDirectSoundFXCompressor8::QueryInterface(REFIID riid, LPVOID * ppvObj
 
 ULONG m_IDirectSoundFXCompressor8::AddRef()
 {
+	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
+
 	return ProxyInterface->AddRef();
 }
 
 ULONG m_IDirectSoundFXCompressor8::Release()
 {
+	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
+
 	ULONG x = ProxyInterface->Release();
 
 	if (x == 0)
@@ -57,10 +63,14 @@ ULONG m_IDirectSoundFXCompressor8::Release()
 // IDirectSoundFXCompressor methods
 HRESULT m_IDirectSoundFXCompressor8::SetAllParameters(LPCDSFXCompressor pcDsFxCompressor)
 {
+	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
+
 	return ProxyInterface->SetAllParameters(pcDsFxCompressor);
 }
 
 HRESULT m_IDirectSoundFXCompressor8::GetAllParameters(LPDSFXCompressor pDsFxCompressor)
 {
+	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
+
 	return ProxyInterface->GetAllParameters(pDsFxCompressor);
 }

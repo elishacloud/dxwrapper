@@ -18,6 +18,8 @@
 
 HRESULT m_IDirectSound3DListener8::QueryInterface(REFIID riid, LPVOID * ppvObj)
 {
+	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
+
 	if ((riid == IID_IDirectSound3DListener || riid == IID_IDirectSound3DListener8 || riid == IID_IUnknown) && ppvObj)
 	{
 		AddRef();
@@ -39,11 +41,15 @@ HRESULT m_IDirectSound3DListener8::QueryInterface(REFIID riid, LPVOID * ppvObj)
 
 ULONG m_IDirectSound3DListener8::AddRef()
 {
+	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
+
 	return ProxyInterface->AddRef();
 }
 
 ULONG m_IDirectSound3DListener8::Release()
 {
+	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
+
 	ULONG x = ProxyInterface->Release();
 
 	if (x == 0)
@@ -57,75 +63,105 @@ ULONG m_IDirectSound3DListener8::Release()
 // IDirectSound3DListener methods
 HRESULT m_IDirectSound3DListener8::GetAllParameters(LPDS3DLISTENER pListener)
 {
+	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
+
 	return ProxyInterface->GetAllParameters(pListener);
 }
 
 HRESULT m_IDirectSound3DListener8::GetDistanceFactor(D3DVALUE* pflDistanceFactor)
 {
+	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
+
 	return ProxyInterface->GetDistanceFactor(pflDistanceFactor);
 }
 
 HRESULT m_IDirectSound3DListener8::GetDopplerFactor(D3DVALUE* pflDopplerFactor)
 {
+	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
+
 	return ProxyInterface->GetDopplerFactor(pflDopplerFactor);
 }
 
 HRESULT m_IDirectSound3DListener8::GetOrientation(D3DVECTOR* pvOrientFront, D3DVECTOR* pvOrientTop)
 {
+	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
+
 	return ProxyInterface->GetOrientation(pvOrientFront, pvOrientTop);
 }
 
 HRESULT m_IDirectSound3DListener8::GetPosition(D3DVECTOR* pvPosition)
 {
+	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
+
 	return ProxyInterface->GetPosition(pvPosition);
 }
 
 HRESULT m_IDirectSound3DListener8::GetRolloffFactor(D3DVALUE* pflRolloffFactor)
 {
+	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
+
 	return ProxyInterface->GetRolloffFactor(pflRolloffFactor);
 }
 
 HRESULT m_IDirectSound3DListener8::GetVelocity(D3DVECTOR* pvVelocity)
 {
+	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
+
 	return ProxyInterface->GetVelocity(pvVelocity);
 }
 
 HRESULT m_IDirectSound3DListener8::SetAllParameters(LPCDS3DLISTENER pcListener, DWORD dwApply)
 {
+	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
+
 	return ProxyInterface->SetAllParameters(pcListener, dwApply);
 }
 
 HRESULT m_IDirectSound3DListener8::SetDistanceFactor(D3DVALUE flDistanceFactor, DWORD dwApply)
 {
+	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
+
 	return ProxyInterface->SetDistanceFactor(flDistanceFactor, dwApply);
 }
 
 HRESULT m_IDirectSound3DListener8::SetDopplerFactor(D3DVALUE flDopplerFactor, DWORD dwApply)
 {
+	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
+
 	return ProxyInterface->SetDopplerFactor(flDopplerFactor, dwApply);
 }
 
 HRESULT m_IDirectSound3DListener8::SetOrientation(D3DVALUE xFront, D3DVALUE yFront, D3DVALUE zFront, D3DVALUE xTop, D3DVALUE yTop, D3DVALUE zTop, DWORD dwApply)
 {
+	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
+
 	return ProxyInterface->SetOrientation(xFront, yFront, zFront, xTop, yTop, zTop, dwApply);
 }
 
 HRESULT m_IDirectSound3DListener8::SetPosition(D3DVALUE x, D3DVALUE y, D3DVALUE z, DWORD dwApply)
 {
+	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
+
 	return ProxyInterface->SetPosition(x, y, z, dwApply);
 }
 
 HRESULT m_IDirectSound3DListener8::SetRolloffFactor(D3DVALUE flRolloffFactor, DWORD dwApply)
 {
+	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
+
 	return ProxyInterface->SetRolloffFactor(flRolloffFactor, dwApply);
 }
 
 HRESULT m_IDirectSound3DListener8::SetVelocity(D3DVALUE x, D3DVALUE y, D3DVALUE z, DWORD dwApply)
 {
+	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
+
 	return ProxyInterface->SetVelocity(x, y, z, dwApply);
 }
 
 HRESULT m_IDirectSound3DListener8::CommitDeferredSettings()
 {
+	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
+
 	return ProxyInterface->CommitDeferredSettings();
 }

@@ -159,7 +159,7 @@ DWORD Utils::GetRefreshRate(HWND hWnd)
 	{
 		MONITORINFOEX mi;
 		mi.cbSize = sizeof(MONITORINFOEX);
-		bool DeviceNameFlag = GetMonitorInfoA(MonitorFromWindow(hWnd, MONITOR_DEFAULTTONEAREST), &mi);
+		bool DeviceNameFlag = (GetMonitorInfoA(MonitorFromWindow(hWnd, MONITOR_DEFAULTTONEAREST), &mi) != 0);
 		if (!DeviceNameFlag)
 		{
 			Logging::Log() << __FUNCTION__ << " Failed to get MonitorInfo!";

@@ -18,6 +18,8 @@
 
 HRESULT m_IDirectInputDevice8W::QueryInterface(REFIID riid, LPVOID* ppvObj)
 {
+	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
+
 	if ((riid == IID_IDirectInputDevice8W || riid == IID_IUnknown) && ppvObj)
 	{
 		AddRef();
@@ -39,11 +41,15 @@ HRESULT m_IDirectInputDevice8W::QueryInterface(REFIID riid, LPVOID* ppvObj)
 
 ULONG m_IDirectInputDevice8W::AddRef()
 {
+	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
+
 	return ProxyInterface->AddRef();
 }
 
 ULONG m_IDirectInputDevice8W::Release()
 {
+	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
+
 	ULONG ref = ProxyInterface->Release();
 
 	if (ref == 0)
@@ -56,81 +62,113 @@ ULONG m_IDirectInputDevice8W::Release()
 
 HRESULT m_IDirectInputDevice8W::GetCapabilities(LPDIDEVCAPS lpDIDevCaps)
 {
+	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
+
 	return ProxyInterface->GetCapabilities(lpDIDevCaps);
 }
 
 HRESULT m_IDirectInputDevice8W::EnumObjects(LPDIENUMDEVICEOBJECTSCALLBACKW lpCallback, LPVOID pvRef, DWORD dwFlags)
 {
+	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
+
 	return ProxyInterface->EnumObjects(lpCallback, pvRef, dwFlags);
 }
 
 HRESULT m_IDirectInputDevice8W::GetProperty(REFGUID rguidProp, LPDIPROPHEADER pdiph)
 {
+	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
+
 	return ProxyInterface->GetProperty(rguidProp, pdiph);
 }
 
 HRESULT m_IDirectInputDevice8W::SetProperty(REFGUID rguidProp, LPCDIPROPHEADER pdiph)
 {
+	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
+
 	return ProxyInterface->SetProperty(rguidProp, pdiph);
 }
 
 HRESULT m_IDirectInputDevice8W::Acquire()
 {
+	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
+
 	return ProxyInterface->Acquire();
 }
 
 HRESULT m_IDirectInputDevice8W::Unacquire()
 {
+	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
+
 	return ProxyInterface->Unacquire();
 }
 
 HRESULT m_IDirectInputDevice8W::GetDeviceState(DWORD cbData, LPVOID lpvData)
 {
+	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
+
 	return ProxyInterface->GetDeviceState(cbData, lpvData);
 }
 
 HRESULT m_IDirectInputDevice8W::GetDeviceData(DWORD cbObjectData, LPDIDEVICEOBJECTDATA rgdod, LPDWORD pdwInOut, DWORD dwFlags)
 {
+	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
+
 	return ProxyInterface->GetDeviceData(cbObjectData, rgdod, pdwInOut, dwFlags);
 }
 
 HRESULT m_IDirectInputDevice8W::SetDataFormat(LPCDIDATAFORMAT lpdf)
 {
+	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
+
 	return ProxyInterface->SetDataFormat(lpdf);
 }
 
 HRESULT m_IDirectInputDevice8W::SetEventNotification(HANDLE hEvent)
 {
+	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
+
 	return ProxyInterface->SetEventNotification(hEvent);
 }
 
 HRESULT m_IDirectInputDevice8W::SetCooperativeLevel(HWND hwnd, DWORD dwFlags)
 {
+	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
+
 	return ProxyInterface->SetCooperativeLevel(hwnd, dwFlags);
 }
 
 HRESULT m_IDirectInputDevice8W::GetObjectInfo(LPDIDEVICEOBJECTINSTANCEW pdidoi, DWORD dwObj, DWORD dwHow)
 {
+	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
+
 	return ProxyInterface->GetObjectInfo(pdidoi, dwObj, dwHow);
 }
 
 HRESULT m_IDirectInputDevice8W::GetDeviceInfo(LPDIDEVICEINSTANCEW pdidi)
 {
+	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
+
 	return ProxyInterface->GetDeviceInfo(pdidi);
 }
 
 HRESULT m_IDirectInputDevice8W::RunControlPanel(HWND hwndOwner, DWORD dwFlags)
 {
+	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
+
 	return ProxyInterface->RunControlPanel(hwndOwner, dwFlags);
 }
 
 HRESULT m_IDirectInputDevice8W::Initialize(HINSTANCE hinst, DWORD dwVersion, REFGUID rguid)
 {
+	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
+
 	return ProxyInterface->Initialize(hinst, dwVersion, rguid);
 }
 
 HRESULT m_IDirectInputDevice8W::CreateEffect(REFGUID rguid, LPCDIEFFECT lpeff, LPDIRECTINPUTEFFECT * ppdeff, LPUNKNOWN punkOuter)
 {
+	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
+
 	HRESULT hr = ProxyInterface->CreateEffect(rguid, lpeff, ppdeff, punkOuter);
 
 	if (SUCCEEDED(hr) && ppdeff)
@@ -143,26 +181,36 @@ HRESULT m_IDirectInputDevice8W::CreateEffect(REFGUID rguid, LPCDIEFFECT lpeff, L
 
 HRESULT m_IDirectInputDevice8W::EnumEffects(LPDIENUMEFFECTSCALLBACKW lpCallback, LPVOID pvRef, DWORD dwEffType)
 {
+	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
+
 	return ProxyInterface->EnumEffects(lpCallback, pvRef, dwEffType);
 }
 
 HRESULT m_IDirectInputDevice8W::GetEffectInfo(LPDIEFFECTINFOW pdei, REFGUID rguid)
 {
+	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
+
 	return ProxyInterface->GetEffectInfo(pdei, rguid);
 }
 
 HRESULT m_IDirectInputDevice8W::GetForceFeedbackState(LPDWORD pdwOut)
 {
+	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
+
 	return ProxyInterface->GetForceFeedbackState(pdwOut);
 }
 
 HRESULT m_IDirectInputDevice8W::SendForceFeedbackCommand(DWORD dwFlags)
 {
+	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
+
 	return ProxyInterface->SendForceFeedbackCommand(dwFlags);
 }
 
 HRESULT m_IDirectInputDevice8W::EnumCreatedEffectObjects(LPDIENUMCREATEDEFFECTOBJECTSCALLBACK lpCallback, LPVOID pvRef, DWORD fl)
 {
+	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
+
 	if (!lpCallback)
 	{
 		return DIERR_INVALIDPARAM;
@@ -177,40 +225,56 @@ HRESULT m_IDirectInputDevice8W::EnumCreatedEffectObjects(LPDIENUMCREATEDEFFECTOB
 
 HRESULT m_IDirectInputDevice8W::Escape(LPDIEFFESCAPE pesc)
 {
+	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
+
 	return ProxyInterface->Escape(pesc);
 }
 
 HRESULT m_IDirectInputDevice8W::Poll()
 {
+	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
+
 	return ProxyInterface->Poll();
 }
 
 HRESULT m_IDirectInputDevice8W::SendDeviceData(DWORD cbObjectData, LPCDIDEVICEOBJECTDATA rgdod, LPDWORD pdwInOut, DWORD fl)
 {
+	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
+
 	return ProxyInterface->SendDeviceData(cbObjectData, rgdod, pdwInOut, fl);
 }
 
 HRESULT m_IDirectInputDevice8W::EnumEffectsInFile(LPCWSTR lpszFileName, LPDIENUMEFFECTSINFILECALLBACK pec, LPVOID pvRef, DWORD dwFlags)
 {
+	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
+
 	return ProxyInterface->EnumEffectsInFile(lpszFileName, pec, pvRef, dwFlags);
 }
 
 HRESULT m_IDirectInputDevice8W::WriteEffectToFile(LPCWSTR lpszFileName, DWORD dwEntries, LPDIFILEEFFECT rgDiFileEft, DWORD dwFlags)
 {
+	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
+
 	return ProxyInterface->WriteEffectToFile(lpszFileName, dwEntries, rgDiFileEft, dwFlags);
 }
 
 HRESULT m_IDirectInputDevice8W::BuildActionMap(LPDIACTIONFORMATW lpdiaf, LPCWSTR lpszUserName, DWORD dwFlags)
 {
+	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
+
 	return ProxyInterface->BuildActionMap(lpdiaf, lpszUserName, dwFlags);
 }
 
 HRESULT m_IDirectInputDevice8W::SetActionMap(LPDIACTIONFORMATW lpdiActionFormat, LPCWSTR lptszUserName, DWORD dwFlags)
 {
+	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
+
 	return ProxyInterface->SetActionMap(lpdiActionFormat, lptszUserName, dwFlags);
 }
 
 HRESULT m_IDirectInputDevice8W::GetImageInfo(LPDIDEVICEIMAGEINFOHEADERW lpdiDevImageInfoHeader)
 {
+	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
+
 	return ProxyInterface->GetImageInfo(lpdiDevImageInfoHeader);
 }

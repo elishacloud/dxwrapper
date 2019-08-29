@@ -18,6 +18,8 @@
 
 HRESULT m_IDirectSoundCaptureBuffer8::QueryInterface(REFIID riid, LPVOID * ppvObj)
 {
+	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
+
 	if ((riid == IID_IDirectSoundCaptureBuffer || riid == IID_IDirectSoundCaptureBuffer8 || riid == IID_IUnknown) && ppvObj)
 	{
 		AddRef();
@@ -39,11 +41,15 @@ HRESULT m_IDirectSoundCaptureBuffer8::QueryInterface(REFIID riid, LPVOID * ppvOb
 
 ULONG m_IDirectSoundCaptureBuffer8::AddRef()
 {
+	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
+
 	return ProxyInterface->AddRef();
 }
 
 ULONG m_IDirectSoundCaptureBuffer8::Release()
 {
+	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
+
 	ULONG x = ProxyInterface->Release();
 
 	if (x == 0)
@@ -57,26 +63,36 @@ ULONG m_IDirectSoundCaptureBuffer8::Release()
 // IDirectSoundCaptureBuffer methods
 HRESULT m_IDirectSoundCaptureBuffer8::GetCaps(LPDSCBCAPS pDSCBCaps)
 {
+	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
+
 	return ProxyInterface->GetCaps(pDSCBCaps);
 }
 
 HRESULT m_IDirectSoundCaptureBuffer8::GetCurrentPosition(LPDWORD pdwCapturePosition, LPDWORD pdwReadPosition)
 {
+	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
+
 	return ProxyInterface->GetCurrentPosition(pdwCapturePosition, pdwReadPosition);
 }
 
 HRESULT m_IDirectSoundCaptureBuffer8::GetFormat(LPWAVEFORMATEX pwfxFormat, DWORD dwSizeAllocated, LPDWORD pdwSizeWritten)
 {
+	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
+
 	return ProxyInterface->GetFormat(pwfxFormat, dwSizeAllocated, pdwSizeWritten);
 }
 
 HRESULT m_IDirectSoundCaptureBuffer8::GetStatus(LPDWORD pdwStatus)
 {
+	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
+
 	return ProxyInterface->GetStatus(pdwStatus);
 }
 
 HRESULT m_IDirectSoundCaptureBuffer8::Initialize(LPDIRECTSOUNDCAPTURE pDirectSoundCapture, LPCDSCBUFFERDESC pcDSCBufferDesc)
 {
+	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
+
 	if (pDirectSoundCapture)
 	{
 		pDirectSoundCapture = static_cast<m_IDirectSoundCapture8 *>(pDirectSoundCapture)->GetProxyInterface();
@@ -87,27 +103,37 @@ HRESULT m_IDirectSoundCaptureBuffer8::Initialize(LPDIRECTSOUNDCAPTURE pDirectSou
 
 HRESULT m_IDirectSoundCaptureBuffer8::Lock(DWORD dwOffset, DWORD dwBytes, LPVOID *ppvAudioPtr1, LPDWORD pdwAudioBytes1, LPVOID *ppvAudioPtr2, LPDWORD pdwAudioBytes2, DWORD dwFlags)
 {
+	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
+
 	return ProxyInterface->Lock(dwOffset, dwBytes, ppvAudioPtr1, pdwAudioBytes1, ppvAudioPtr2, pdwAudioBytes2, dwFlags);
 }
 
 HRESULT m_IDirectSoundCaptureBuffer8::Start(DWORD dwFlags)
 {
+	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
+
 	return ProxyInterface->Start(dwFlags);
 }
 
 HRESULT m_IDirectSoundCaptureBuffer8::Stop()
 {
+	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
+
 	return ProxyInterface->Stop();
 }
 
 HRESULT m_IDirectSoundCaptureBuffer8::Unlock(LPVOID pvAudioPtr1, DWORD dwAudioBytes1, LPVOID pvAudioPtr2, DWORD dwAudioBytes2)
 {
+	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
+
 	return ProxyInterface->Unlock(pvAudioPtr1, dwAudioBytes1, pvAudioPtr2, dwAudioBytes2);
 }
 
 // IDirectSoundCaptureBuffer8 methods
 HRESULT m_IDirectSoundCaptureBuffer8::GetObjectInPath(REFGUID rguidObject, DWORD dwIndex, REFGUID rguidInterface, LPVOID *ppObject)
 {
+	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
+
 	HRESULT hr = ProxyInterface->GetObjectInPath(rguidObject, dwIndex, rguidInterface, ppObject);
 
 	if (SUCCEEDED(hr))
@@ -120,5 +146,7 @@ HRESULT m_IDirectSoundCaptureBuffer8::GetObjectInPath(REFGUID rguidObject, DWORD
 
 HRESULT m_IDirectSoundCaptureBuffer8::GetFXStatus(DWORD dwEffectsCount, LPDWORD pdwFXStatus)
 {
+	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
+
 	return ProxyInterface->GetFXStatus(dwEffectsCount, pdwFXStatus);
 }

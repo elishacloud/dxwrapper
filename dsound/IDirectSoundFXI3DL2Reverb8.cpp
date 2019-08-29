@@ -18,6 +18,8 @@
 
 HRESULT m_IDirectSoundFXI3DL2Reverb8::QueryInterface(REFIID riid, LPVOID * ppvObj)
 {
+	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
+
 	if ((riid == IID_IDirectSoundFXI3DL2Reverb || riid == IID_IDirectSoundFXI3DL2Reverb8 || riid == IID_IUnknown) && ppvObj)
 	{
 		AddRef();
@@ -39,11 +41,15 @@ HRESULT m_IDirectSoundFXI3DL2Reverb8::QueryInterface(REFIID riid, LPVOID * ppvOb
 
 ULONG m_IDirectSoundFXI3DL2Reverb8::AddRef()
 {
+	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
+
 	return ProxyInterface->AddRef();
 }
 
 ULONG m_IDirectSoundFXI3DL2Reverb8::Release()
 {
+	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
+
 	ULONG x = ProxyInterface->Release();
 
 	if (x == 0)
@@ -57,30 +63,42 @@ ULONG m_IDirectSoundFXI3DL2Reverb8::Release()
 // IDirectSoundFXI3DL2Reverb methods
 HRESULT m_IDirectSoundFXI3DL2Reverb8::SetAllParameters(LPCDSFXI3DL2Reverb pcDsFxI3DL2Reverb)
 {
+	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
+
 	return ProxyInterface->SetAllParameters(pcDsFxI3DL2Reverb);
 }
 
 HRESULT m_IDirectSoundFXI3DL2Reverb8::GetAllParameters(LPDSFXI3DL2Reverb pDsFxI3DL2Reverb)
 {
+	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
+
 	return ProxyInterface->GetAllParameters(pDsFxI3DL2Reverb);
 }
 
 HRESULT m_IDirectSoundFXI3DL2Reverb8::SetPreset(DWORD dwPreset)
 {
+	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
+
 	return ProxyInterface->SetPreset(dwPreset);
 }
 
 HRESULT m_IDirectSoundFXI3DL2Reverb8::GetPreset(LPDWORD pdwPreset)
 {
+	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
+
 	return ProxyInterface->GetPreset(pdwPreset);
 }
 
 HRESULT m_IDirectSoundFXI3DL2Reverb8::SetQuality(LONG lQuality)
 {
+	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
+
 	return ProxyInterface->SetQuality(lQuality);
 }
 
 HRESULT m_IDirectSoundFXI3DL2Reverb8::GetQuality(LONG *plQuality)
 {
+	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
+
 	return ProxyInterface->GetQuality(plQuality);
 }
