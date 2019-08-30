@@ -99,13 +99,14 @@ HRESULT m_IDirectDrawPalette::GetEntries(DWORD dwFlags, DWORD dwBase, DWORD dwNu
 	if (!ProxyInterface)
 	{
 		// lpEntries cannot be null and dwFlags must be 0
-		if (!lpEntries || !rawPalette || dwBase > entryCount)
+		if (!lpEntries || !rawPalette || dwBase > entryCount || dwFlags != 0)
 		{
 			return DDERR_INVALIDPARAMS;
 		}
+		dwNumEntries = min(dwNumEntries, entryCount - dwBase);
 
 		// Copy raw palette entries to lpEntries(size dwNumEntries) starting at dwBase
-		memcpy(lpEntries, &(rawPalette[dwBase]), sizeof(PALETTEENTRY) * min(dwNumEntries, entryCount - dwBase));
+		memcpy(lpEntries, &(rawPalette[dwBase]), sizeof(PALETTEENTRY) * dwNumEntries);
 
 		// dwNumEntries is the number of palette entries that can fit in the array that lpEntries 
 		// specifies. The colors of the palette entries are returned in sequence, from the value
@@ -142,27 +143,34 @@ HRESULT m_IDirectDrawPalette::SetEntries(DWORD dwFlags, DWORD dwStartingEntry, D
 	if (!ProxyInterface)
 	{
 		// lpEntries cannot be null and dwFlags must be 0
-		if (!lpEntries || !rawPalette || !rgbPalette || dwStartingEntry > entryCount)
+		if (!lpEntries || !rawPalette || !rgbPalette || dwStartingEntry > entryCount || dwFlags != 0)
 		{
 			return DDERR_INVALIDPARAMS;
 		}
+		dwCount = min(dwCount, entryCount - dwStartingEntry);
 
 		// Copy raw palette entries from dwStartingEntry and of count dwCount
-		memcpy(&(rawPalette[dwStartingEntry]), lpEntries, sizeof(PALETTEENTRY) * min(dwCount, entryCount - dwStartingEntry));
+		memcpy(&(rawPalette[dwStartingEntry]), lpEntries, sizeof(PALETTEENTRY) * dwCount);
 
 		// Translate new raw pallete entries to RGB(make sure not to go off the end of the memory)
-		for (UINT i = dwStartingEntry; i < min(dwStartingEntry + dwCount, entryCount - dwStartingEntry); i++)
+		for (UINT i = dwStartingEntry; i < dwStartingEntry + dwCount; i++)
 		{
 			// Translate the raw palette to ARGB
 			if (hasAlpha)
 			{
 				// Include peFlags as 8bit alpha
-				rgbPalette[i] = D3DCOLOR_ARGB(rawPalette[i].peFlags, rawPalette[i].peRed, rawPalette[i].peGreen, rawPalette[i].peBlue);
+				rgbPalette[i].pe.blue = rawPalette[i].peBlue;
+				rgbPalette[i].pe.green = rawPalette[i].peGreen;
+				rgbPalette[i].pe.red = rawPalette[i].peRed;
+				rgbPalette[i].pe.alpha = rawPalette[i].peFlags;
 			}
 			else
 			{
 				// Alpha is always 255
-				rgbPalette[i] = D3DCOLOR_XRGB(rawPalette[i].peRed, rawPalette[i].peGreen, rawPalette[i].peBlue);
+				rgbPalette[i].pe.blue = rawPalette[i].peBlue;
+				rgbPalette[i].pe.green = rawPalette[i].peGreen;
+				rgbPalette[i].pe.red = rawPalette[i].peRed;
+				rgbPalette[i].pe.alpha = 0xFF;
 			}
 		}
 

@@ -1051,7 +1051,8 @@ HRESULT m_IDirectDrawSurfaceX::GetColorKey(DWORD dwFlags, LPDDCOLORKEY lpDDColor
 		}
 
 		// Copy color key
-		memcpy(lpDDColorKey, &ColorKeys[x].Key, sizeof(DDCOLORKEY));
+		lpDDColorKey->dwColorSpaceHighValue = ColorKeys[x].Key.dwColorSpaceHighValue;
+		lpDDColorKey->dwColorSpaceLowValue = ColorKeys[x].Key.dwColorSpaceLowValue;
 
 		// Return
 		return DD_OK;
@@ -1676,7 +1677,8 @@ HRESULT m_IDirectDrawSurfaceX::SetColorKey(DWORD dwFlags, LPDDCOLORKEY lpDDColor
 			ColorKeys[x].IsColorSpace = ((dwFlags & DDCKEY_COLORSPACE) != 0);
 			if (ColorKeys[x].IsColorSpace)
 			{
-				memcpy(&ColorKeys[x].Key, lpDDColorKey, sizeof(DDCOLORKEY));
+				ColorKeys[x].Key.dwColorSpaceHighValue = lpDDColorKey->dwColorSpaceHighValue;
+				ColorKeys[x].Key.dwColorSpaceLowValue = lpDDColorKey->dwColorSpaceLowValue;
 			}
 			// You must add the flag DDCKEY_COLORSPACE, otherwise DirectDraw will collapse the range to one value
 			else
@@ -2809,12 +2811,15 @@ bool m_IDirectDrawSurfaceX::CheckCoordinates(LPRECT lpOutRect, LPRECT lpInRect)
 
 	if (lpInRect)
 	{
-		memcpy(lpOutRect, lpInRect, sizeof(RECT));
+		lpOutRect->left = lpInRect->left;
+		lpOutRect->top = lpInRect->top;
+		lpOutRect->right = lpInRect->right;
+		lpOutRect->bottom = lpInRect->bottom;
 	}
 	else
 	{
-		lpOutRect->top = 0;
 		lpOutRect->left = 0;
+		lpOutRect->top = 0;
 		lpOutRect->right = surfaceDesc2.dwWidth;
 		lpOutRect->bottom = surfaceDesc2.dwHeight;
 	}
@@ -3271,11 +3276,9 @@ HRESULT m_IDirectDrawSurfaceX::ColorFill(RECT* pRect, D3DCOLOR dwFillColor)
 		LONG FillHeight = DestRect.bottom - DestRect.top;
 
 		// Set memory address
-		BYTE *surfaceBuffer = (BYTE*)DestLockRect.pBits;
+		BYTE *DestBuffer = (BYTE*)DestLockRect.pBits;
 
-		EnterCriticalSection(&ddscs);
-
-		// Fill temporary memory
+		// Fill 8-bit, 16-bit and 24-bit surfaces
 		if (ByteCount != 4)
 		{
 			size_t size = FillWidth * ByteCount;
@@ -3283,33 +3286,41 @@ HRESULT m_IDirectDrawSurfaceX::ColorFill(RECT* pRect, D3DCOLOR dwFillColor)
 			{
 				surfaceArray.resize(size);
 			}
+			// Fill first line memory
+			BYTE *SrcBuffer = (BYTE*)&dwFillColor;
 			for (LONG x = 0; x < FillWidth; x++)
 			{
-				memcpy(&surfaceArray[0] + (x * ByteCount),		// Video memory address
-					&dwFillColor,								// Fill color
-					ByteCount);									// Size of bytes to write
+				for (DWORD y = 0; y < ByteCount; y++)
+				{
+					*DestBuffer = SrcBuffer[y];
+					DestBuffer++;
+				}
+			}
+			// Fill rest of surface rect using the first line
+			SrcBuffer = (BYTE*)DestLockRect.pBits;
+			DestBuffer = (BYTE*)DestLockRect.pBits + DestLockRect.Pitch;
+			for (LONG y = 1; y < FillHeight; y++)
+			{
+				memcpy(DestBuffer, SrcBuffer, size);
+				DestBuffer += DestLockRect.Pitch;
 			}
 		}
-
-		// Fill surface rect
-		for (LONG y = 0; y < FillHeight; y++)
+		// Fill 32-bit surface
+		else
 		{
-			if (ByteCount == 4)
+			if (FillWidth * (INT)ByteCount == DestLockRect.Pitch)
 			{
-				memset(surfaceBuffer,							// Video memory address
-					dwFillColor,								// Fill color
-					FillWidth);									// Size of bytes to write
+				memset(DestBuffer, dwFillColor, DestLockRect.Pitch * FillHeight);
 			}
 			else
 			{
-				memcpy(surfaceBuffer,							// Video memory address
-					&surfaceArray[0],							// Fill color array
-					FillWidth * ByteCount);						// Size of bytes to write
+				for (LONG y = 0; y < FillHeight; y++)
+				{
+					memset(DestBuffer, dwFillColor, FillWidth);
+					DestBuffer += DestLockRect.Pitch;
+				}
 			}
-			surfaceBuffer += DestLockRect.Pitch;
 		}
-
-		LeaveCriticalSection(&ddscs);
 
 	} while (false);
 
@@ -3377,12 +3388,18 @@ HRESULT m_IDirectDrawSurfaceX::CopySurface(m_IDirectDrawSurfaceX* pSourceSurface
 
 		if (pSourceRect)
 		{
-			memcpy(&SrcRect, pSourceRect, sizeof(RECT));
+			SrcRect.left = pSourceRect->left;
+			SrcRect.top = pSourceRect->top;
+			SrcRect.right = pSourceRect->right;
+			SrcRect.bottom = pSourceRect->bottom;
 		}
 
 		if (pDestRect)
 		{
-			memcpy(&DestRect, pDestRect, sizeof(RECT));
+			DestRect.left = pDestRect->left;
+			DestRect.top = pDestRect->top;
+			DestRect.right = pDestRect->right;
+			DestRect.bottom = pDestRect->bottom;
 		}
 
 		// Get copy flags
@@ -3459,7 +3476,7 @@ HRESULT m_IDirectDrawSurfaceX::CopySurface(m_IDirectDrawSurfaceX* pSourceSurface
 		BYTE *DestBuffer = (BYTE*)DestLockRect.pBits;
 
 		// For mirror copy up/down
-		LONG DestPitch = DestLockRect.Pitch;
+		INT DestPitch = DestLockRect.Pitch;
 		if (IsMirrorUpDown)
 		{
 			DestPitch = -DestLockRect.Pitch;
@@ -3469,11 +3486,18 @@ HRESULT m_IDirectDrawSurfaceX::CopySurface(m_IDirectDrawSurfaceX* pSourceSurface
 		// Copy memory (simple)
 		if (!IsStretchRect && !IsColorKey & !IsMirrorLeftRight)
 		{
-			for (LONG y = 0; y < DestRectHeight; y++)
+			if ((DestRectWidth * (INT)ByteCount) == DestPitch && SrcLockRect.Pitch == DestLockRect.Pitch)
 			{
-				memcpy(DestBuffer, SrcBuffer, DestRectWidth * ByteCount);
-				SrcBuffer += SrcLockRect.Pitch;
-				DestBuffer += DestPitch;
+				memcpy(DestBuffer, SrcBuffer, DestRectHeight * DestLockRect.Pitch);
+			}
+			else
+			{
+				for (LONG y = 0; y < DestRectHeight; y++)
+				{
+					memcpy(DestBuffer, SrcBuffer, DestRectWidth * ByteCount);
+					SrcBuffer += SrcLockRect.Pitch;
+					DestBuffer += DestPitch;
+				}
 			}
 			break;
 		}
@@ -3490,6 +3514,7 @@ HRESULT m_IDirectDrawSurfaceX::CopySurface(m_IDirectDrawSurfaceX* pSourceSurface
 		// Copy memory (complex)
 		for (LONG y = 0; y < DestRectHeight; y++)
 		{
+			BYTE *LoopBuffer = DestBuffer;
 			for (LONG x = 0; x < DestRectWidth; x++)
 			{
 				DWORD r = (IsStretchRect) ? (DWORD)((float)x * WidthRatio) : x;
@@ -3498,7 +3523,15 @@ HRESULT m_IDirectDrawSurfaceX::CopySurface(m_IDirectDrawSurfaceX* pSourceSurface
 
 				if (!IsColorKey || PixelColor < ColorKeyLow || PixelColor > ColorKeyHigh)
 				{
-					memcpy(DestBuffer + (x * ByteCount), NewPixel, ByteCount);
+					for (DWORD i = 0; i < ByteCount; i++)
+					{
+						*LoopBuffer = NewPixel[i];
+						LoopBuffer++;
+					}
+				}
+				else
+				{
+					LoopBuffer += ByteCount;
 				}
 			}
 			SrcBuffer = (IsStretchRect) ? (BYTE*)SrcLockRect.pBits + (DWORD)((float)y * HeightRatio) * SrcLockRect.Pitch : SrcBuffer + SrcLockRect.Pitch;
@@ -3555,7 +3588,8 @@ HRESULT m_IDirectDrawSurfaceX::CopyEmulatedSurface(LPRECT lpDestRect, bool CopyT
 		// Create buffer variables
 		BYTE *EmulatedBuffer = (BYTE*)EmulatedLockRect.pBits;
 		BYTE *SurfaceBuffer = (BYTE*)SurfaceLockRect.pBits;
-		DWORD WidthPitch = (SurfaceLockRect.Pitch / surfaceDesc2.dwWidth) * (DestRect.right - DestRect.left);
+		INT WidthPitch = (SurfaceLockRect.Pitch / surfaceDesc2.dwWidth) * (DestRect.right - DestRect.left);
+		LONG RectHeight = (DestRect.bottom - DestRect.top);
 
 		// Copy data
 		switch (surfaceFormat)
@@ -3569,9 +3603,16 @@ HRESULT m_IDirectDrawSurfaceX::CopyEmulatedSurface(LPRECT lpDestRect, bool CopyT
 					BYTE *SurfaceBufferLoop = SurfaceBuffer;
 					for (LONG y = DestRect.left; y < DestRect.right; y++)
 					{
-						memcpy(SurfaceBufferLoop, EmulatedBufferLoop, 3);
-						EmulatedBufferLoop += 3;
-						SurfaceBufferLoop += 4;
+						*SurfaceBufferLoop = *EmulatedBufferLoop;
+						EmulatedBufferLoop++;
+						SurfaceBufferLoop++;
+						*SurfaceBufferLoop = *EmulatedBufferLoop;
+						EmulatedBufferLoop++;
+						SurfaceBufferLoop++;
+						*SurfaceBufferLoop = *EmulatedBufferLoop;
+						EmulatedBufferLoop++;
+						SurfaceBufferLoop++;
+						SurfaceBufferLoop++;
 					}
 					EmulatedBuffer += EmulatedLockRect.Pitch;
 					SurfaceBuffer += SurfaceLockRect.Pitch;
@@ -3585,9 +3626,16 @@ HRESULT m_IDirectDrawSurfaceX::CopyEmulatedSurface(LPRECT lpDestRect, bool CopyT
 					BYTE *SurfaceBufferLoop = SurfaceBuffer;
 					for (LONG y = DestRect.left; y < DestRect.right; y++)
 					{
-						memcpy(EmulatedBufferLoop, SurfaceBufferLoop, 3);
-						EmulatedBufferLoop += 3;
-						SurfaceBufferLoop += 4;
+						*EmulatedBufferLoop = *SurfaceBufferLoop;
+						EmulatedBufferLoop++;
+						SurfaceBufferLoop++;
+						*EmulatedBufferLoop = *SurfaceBufferLoop;
+						EmulatedBufferLoop++;
+						SurfaceBufferLoop++;
+						*EmulatedBufferLoop = *SurfaceBufferLoop;
+						EmulatedBufferLoop++;
+						SurfaceBufferLoop++;
+						SurfaceBufferLoop++;
 					}
 					EmulatedBuffer += EmulatedLockRect.Pitch;
 					SurfaceBuffer += SurfaceLockRect.Pitch;
@@ -3597,20 +3645,34 @@ HRESULT m_IDirectDrawSurfaceX::CopyEmulatedSurface(LPRECT lpDestRect, bool CopyT
 		default:
 			if (CopyToRealSurfaceTexture)
 			{
-				for (LONG x = DestRect.top; x < DestRect.bottom; x++)
+				if (WidthPitch == SurfaceLockRect.Pitch)
 				{
-					memcpy(SurfaceBuffer, EmulatedBuffer, WidthPitch);
-					EmulatedBuffer += EmulatedLockRect.Pitch;
-					SurfaceBuffer += SurfaceLockRect.Pitch;
+					memcpy(SurfaceBuffer, EmulatedBuffer, SurfaceLockRect.Pitch * RectHeight);
+				}
+				else
+				{
+					for (LONG x = DestRect.top; x < DestRect.bottom; x++)
+					{
+						memcpy(SurfaceBuffer, EmulatedBuffer, WidthPitch);
+						EmulatedBuffer += EmulatedLockRect.Pitch;
+						SurfaceBuffer += SurfaceLockRect.Pitch;
+					}
 				}
 			}
 			else
 			{
-				for (LONG x = DestRect.top; x < DestRect.bottom; x++)
+				if (WidthPitch == EmulatedLockRect.Pitch)
 				{
-					memcpy(EmulatedBuffer, SurfaceBuffer, WidthPitch);
-					EmulatedBuffer += EmulatedLockRect.Pitch;
-					SurfaceBuffer += SurfaceLockRect.Pitch;
+					memcpy(EmulatedBuffer, SurfaceBuffer, EmulatedLockRect.Pitch * RectHeight);
+				}
+				else
+				{
+					for (LONG x = DestRect.top; x < DestRect.bottom; x++)
+					{
+						memcpy(EmulatedBuffer, SurfaceBuffer, WidthPitch);
+						EmulatedBuffer += EmulatedLockRect.Pitch;
+						SurfaceBuffer += SurfaceLockRect.Pitch;
+					}
 				}
 			}
 		}
@@ -3632,7 +3694,8 @@ void m_IDirectDrawSurfaceX::UpdatePaletteData()
 	}
 
 	DWORD CurrentPaletteUSN = 0;
-	PALETTEENTRY *rgbPalette = nullptr;
+	DWORD entryCount = 0;
+	D3DCOLOR *rgbPalette = nullptr;
 
 	// Get palette data
 	if (attachedPalette && attachedPalette->rgbPalette)
@@ -3640,7 +3703,8 @@ void m_IDirectDrawSurfaceX::UpdatePaletteData()
 		CurrentPaletteUSN = PaletteUSN + attachedPalette->PaletteUSN;
 		if (CurrentPaletteUSN && CurrentPaletteUSN != LastPaletteUSN)
 		{
-			rgbPalette = (PALETTEENTRY*)attachedPalette->rgbPalette;
+			rgbPalette = (D3DCOLOR*)attachedPalette->rgbPalette;
+			entryCount = attachedPalette->GetEntryCount();
 		}
 	}
 	// Get palette from primary surface if this is not primary
@@ -3655,7 +3719,8 @@ void m_IDirectDrawSurfaceX::UpdatePaletteData()
 				CurrentPaletteUSN = lpPrimarySurface->GetPaletteUSN() + lpPalette->PaletteUSN;
 				if (CurrentPaletteUSN && CurrentPaletteUSN != LastPaletteUSN)
 				{
-					rgbPalette = (PALETTEENTRY*)lpPalette->rgbPalette;
+					rgbPalette = (D3DCOLOR*)lpPalette->rgbPalette;
+					entryCount = lpPalette->GetEntryCount();
 				}
 			}
 		}
@@ -3670,7 +3735,7 @@ void m_IDirectDrawSurfaceX::UpdatePaletteData()
 	// Set color palette for device context
 	if (emu->surfaceDC)
 	{
-		SetDIBColorTable(emu->surfaceDC, 0, 256, (RGBQUAD*)rgbPalette);
+		SetDIBColorTable(emu->surfaceDC, 0, entryCount, (RGBQUAD*)rgbPalette);
 	}
 
 	// If new palette data then write it to texture
@@ -3678,7 +3743,7 @@ void m_IDirectDrawSurfaceX::UpdatePaletteData()
 	{
 		do {
 			D3DLOCKED_RECT LockRect;
-			RECT Rect = { 0, 0, 256, 1 };
+			RECT Rect = { 0, 0, (LONG)entryCount, 1 };
 
 			if (FAILED(paletteTexture->LockRect(0, &LockRect, &Rect, 0)))
 			{
@@ -3686,7 +3751,7 @@ void m_IDirectDrawSurfaceX::UpdatePaletteData()
 				break;
 			}
 
-			memcpy(LockRect.pBits, rgbPalette, 256 * sizeof(PALETTEENTRY));
+			memcpy(LockRect.pBits, rgbPalette, entryCount * sizeof(D3DCOLOR));
 
 			paletteTexture->UnlockRect(0);
 

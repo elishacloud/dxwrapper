@@ -10,8 +10,16 @@ private:
 	// Convert to Direct3D9
 	m_IDirectDrawX *ddrawParent = nullptr;
 	DWORD paletteCaps = 0;						// Palette flags
-	UINT entryCount = 0;						// Number of palette entries
+	DWORD entryCount = 0;						// Number of palette entries
 	bool hasAlpha = false;						// Raw palette has alpha data
+
+	struct RGBDWORD {
+		union
+		{
+			D3DCOLOR PaletteColor;
+			DDARGB pe;
+		};
+	};
 
 public:
 	m_IDirectDrawPalette(IDirectDrawPalette *aOriginal) : ProxyInterface(aOriginal)
@@ -48,40 +56,11 @@ public:
 		// Allocate raw ddraw palette
 		rawPalette = new PALETTEENTRY[entryCount];
 
-		// Copy inital palette into raw palette
-		if (lpDDColorArray)
-		{
-			memcpy(rawPalette, lpDDColorArray, sizeof(PALETTEENTRY) * entryCount);
-		}
-
-		// Check flags for alpha
-		if (dwFlags & DDPCAPS_ALPHA)
-		{
-			hasAlpha = true;
-		}
-		else
-		{
-			hasAlpha = false;
-		}
-
 		// Allocate rgb palette
-		rgbPalette = new DWORD[entryCount];
+		rgbPalette = new RGBDWORD[entryCount];
 
-		// For all entries
-		for (UINT i = 0; i < entryCount; i++)
-		{
-			// Translate the raw palette to ARGB
-			if (hasAlpha)
-			{
-				// Include peFlags as 8bit alpha
-				rgbPalette[i] = D3DCOLOR_ARGB(rawPalette[i].peFlags, rawPalette[i].peRed, rawPalette[i].peGreen, rawPalette[i].peBlue);
-			}
-			else
-			{
-				// Alpha is always 255
-				rgbPalette[i] = D3DCOLOR_XRGB(rawPalette[i].peRed, rawPalette[i].peGreen, rawPalette[i].peBlue);
-			}
-		}
+		// Set initial entries
+		SetEntries(dwFlags, 0, entryCount, lpDDColorArray);
 	}
 	~m_IDirectDrawPalette()
 	{
@@ -126,8 +105,11 @@ public:
 	// Release interface
 	void ReleaseInterface();
 
+	// Other functions
+	DWORD GetEntryCount() { return entryCount; };
+
 	// Public varables
 	DWORD PaletteUSN = (DWORD)this;				// The USN that's used to see if the palette data was updated
-	DWORD *rgbPalette = nullptr;				// Rgb translated palette
+	RGBDWORD *rgbPalette = nullptr;				// Rgb translated palette
 	LPPALETTEENTRY rawPalette = nullptr;		// Raw palette data
 };
