@@ -98,8 +98,8 @@ HRESULT m_IDirectDrawPalette::GetEntries(DWORD dwFlags, DWORD dwBase, DWORD dwNu
 
 	if (!ProxyInterface)
 	{
-		// lpEntries cannot be null and dwFlags must be 0
-		if (!lpEntries || !rawPalette || dwBase > entryCount || dwFlags != 0)
+		// Do some error checking
+		if (!lpEntries || !rawPalette || dwBase > entryCount)
 		{
 			return DDERR_INVALIDPARAMS;
 		}
@@ -142,8 +142,8 @@ HRESULT m_IDirectDrawPalette::SetEntries(DWORD dwFlags, DWORD dwStartingEntry, D
 
 	if (!ProxyInterface)
 	{
-		// lpEntries cannot be null and dwFlags must be 0
-		if (!lpEntries || !rawPalette || !rgbPalette || dwStartingEntry > entryCount || dwFlags != 0)
+		// Do some error checking
+		if (!lpEntries || !rawPalette || !rgbPalette || dwStartingEntry > entryCount)
 		{
 			return DDERR_INVALIDPARAMS;
 		}
