@@ -18,6 +18,14 @@ private:
 		bool IsColorSpace = false;
 	};
 
+	// Used for 24-bit surfaces
+	struct TRIBYTE
+	{
+		BYTE first;
+		BYTE second;
+		BYTE third;
+	};
+
 	// Convert to Direct3D9
 	m_IDirectDrawX *ddrawParent = nullptr;
 	m_IDirectDrawPalette *attachedPalette = nullptr;	// Associated palette
@@ -27,6 +35,7 @@ private:
 	DWORD surfaceBitCount = 0;							// Bit count for this surface
 	CRITICAL_SECTION ddscs;								// Critical section for surfaceArray
 	std::vector<byte> surfaceArray;						// Memory used for coping from one surface to the same surface
+	std::vector<byte> surfaceBackup;					// Memory used for backing up the surfaceTexture
 	CKEYS ColorKeys[4];									// Color keys (0 = DDCKEY_DESTBLT, 1 = DDCKEY_DESTOVERLAY, 2 = DDCKEY_SRCBLT, 3 = DDCKEY_SRCOVERLAY)
 	LONG overlayX = 0;
 	LONG overlayY = 0;

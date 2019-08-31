@@ -2247,7 +2247,7 @@ HRESULT m_IDirectDrawSurfaceX::CreateD3d9Surface()
 	Logging::LogDebug() << __FUNCTION__ << " D3d9 Surface size: " << surfaceDesc2.dwWidth << "x" << surfaceDesc2.dwHeight << " Format: " << Format;
 
 	// Create surface
-	if (FAILED((*d3d9Device)->CreateTexture(surfaceDesc2.dwWidth, surfaceDesc2.dwHeight, 0, 0, Format, D3DPOOL_SYSTEMMEM, &surfaceTexture, nullptr)))
+	if (FAILED((*d3d9Device)->CreateTexture(surfaceDesc2.dwWidth, surfaceDesc2.dwHeight, 1, 0, Format, D3DPOOL_SYSTEMMEM, &surfaceTexture, nullptr)))
 	{
 		LOG_LIMIT(100, __FUNCTION__ << " Error: failed to create surface size: " << surfaceDesc2.dwWidth << "x" << surfaceDesc2.dwHeight << " Format: " << surfaceFormat);
 		return DDERR_GENERIC;
@@ -2256,7 +2256,7 @@ HRESULT m_IDirectDrawSurfaceX::CreateD3d9Surface()
 	// Create display texture
 	if (IsPrimarySurface())
 	{
-		if (FAILED((*d3d9Device)->CreateTexture(surfaceDesc2.dwWidth, surfaceDesc2.dwHeight, 0, 0, Format, D3DPOOL_DEFAULT, &displayTexture, nullptr)))
+		if (FAILED((*d3d9Device)->CreateTexture(surfaceDesc2.dwWidth, surfaceDesc2.dwHeight, 1, 0, Format, D3DPOOL_DEFAULT, &displayTexture, nullptr)))
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Error: failed to create display surface size: " << surfaceDesc2.dwWidth << "x" << surfaceDesc2.dwHeight << " Format: " << surfaceFormat);
 			return DDERR_GENERIC;
@@ -2266,7 +2266,7 @@ HRESULT m_IDirectDrawSurfaceX::CreateD3d9Surface()
 	// Create palette surface
 	if (surfaceFormat == D3DFMT_P8 && IsPrimarySurface())
 	{
-		if (FAILED((*d3d9Device)->CreateTexture(256, 256, 0, 0, D3DFMT_X8R8G8B8, D3DPOOL_MANAGED, &paletteTexture, nullptr)) ||
+		if (FAILED((*d3d9Device)->CreateTexture(256, 256, 1, 0, D3DFMT_X8R8G8B8, D3DPOOL_MANAGED, &paletteTexture, nullptr)) ||
 			FAILED((*d3d9Device)->CreatePixelShader((DWORD*)PalettePixelShaderSrc, &pixelShader)))
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Error: failed to create palette surface");
@@ -2275,20 +2275,16 @@ HRESULT m_IDirectDrawSurfaceX::CreateD3d9Surface()
 	}
 
 	// Reset d3d9 surface texture data
-	if (surfaceArray.size())
+	if (surfaceBackup.size())
 	{
 		do {
 			Logging::LogDebug() << __FUNCTION__ << " Resetting Direct3D9 texture surface data";
 			// Reset emulated surface data
 			if (IsSurfaceEmulated)
 			{
-				if (emu->surfacepBits && surfaceArray.size() == emu->surfaceSize)
+				if (emu->surfacepBits && surfaceBackup.size() == emu->surfaceSize)
 				{
-					EnterCriticalSection(&ddscs);
-
-					memcpy(emu->surfacepBits, &surfaceArray[0], emu->surfaceSize);
-
-					LeaveCriticalSection(&ddscs);
+					memcpy(emu->surfacepBits, &surfaceBackup[0], emu->surfaceSize);
 				}
 			}
 			// Reset normal texture surface
@@ -2303,18 +2299,17 @@ HRESULT m_IDirectDrawSurfaceX::CreateD3d9Surface()
 
 				size_t size = surfaceDesc2.dwHeight * LockRect.Pitch;
 
-				if (size == surfaceArray.size())
+				if (size == surfaceBackup.size())
 				{
-					EnterCriticalSection(&ddscs);
-
-					memcpy(LockRect.pBits, &surfaceArray[0], size);
-
-					LeaveCriticalSection(&ddscs);
+					memcpy(LockRect.pBits, &surfaceBackup[0], size);
 				}
 
 				surfaceTexture->UnlockRect(0);
 			}
 		} while (false);
+
+		// Data is no longer needed
+		surfaceBackup.clear();
 	}
 
 	PaletteUSN++;
@@ -2547,16 +2542,9 @@ void m_IDirectDrawSurfaceX::ReleaseD9Surface(bool BackupData)
 			{
 				if (emu->surfacepBits)
 				{
-					EnterCriticalSection(&ddscs);
+					surfaceBackup.resize(emu->surfaceSize);
 
-					if (surfaceArray.size() != emu->surfaceSize)
-					{
-						surfaceArray.resize(emu->surfaceSize);
-					}
-
-					memcpy(&surfaceArray[0], emu->surfacepBits, emu->surfaceSize);
-
-					LeaveCriticalSection(&ddscs);
+					memcpy(&surfaceBackup[0], emu->surfacepBits, emu->surfaceSize);
 				}
 			}
 			// Normal texture surface
@@ -2573,16 +2561,9 @@ void m_IDirectDrawSurfaceX::ReleaseD9Surface(bool BackupData)
 
 				size_t size = surfaceDesc2.dwHeight * LockRect.Pitch;
 
-				EnterCriticalSection(&ddscs);
+				surfaceBackup.resize(size);
 
-				if (size != surfaceArray.size())
-				{
-					surfaceArray.resize(size);
-				}
-
-				memcpy(&surfaceArray[0], LockRect.pBits, size);
-
-				LeaveCriticalSection(&ddscs);
+				memcpy(&surfaceBackup[0], LockRect.pBits, size);
 
 				surfaceTexture->UnlockRect(0);
 			}
@@ -3276,50 +3257,27 @@ HRESULT m_IDirectDrawSurfaceX::ColorFill(RECT* pRect, D3DCOLOR dwFillColor)
 		LONG FillHeight = DestRect.bottom - DestRect.top;
 
 		// Set memory address
+		BYTE *SrcBuffer = (BYTE*)&dwFillColor;
 		BYTE *DestBuffer = (BYTE*)DestLockRect.pBits;
 
-		// Fill 8-bit, 16-bit and 24-bit surfaces
-		if (ByteCount != 4)
+		// Fill first line memory
+		for (LONG x = 0; x < FillWidth; x++)
 		{
-			size_t size = FillWidth * ByteCount;
-			if (size > surfaceArray.size())
+			for (DWORD y = 0; y < ByteCount; y++)
 			{
-				surfaceArray.resize(size);
-			}
-			// Fill first line memory
-			BYTE *SrcBuffer = (BYTE*)&dwFillColor;
-			for (LONG x = 0; x < FillWidth; x++)
-			{
-				for (DWORD y = 0; y < ByteCount; y++)
-				{
-					*DestBuffer = SrcBuffer[y];
-					DestBuffer++;
-				}
-			}
-			// Fill rest of surface rect using the first line
-			SrcBuffer = (BYTE*)DestLockRect.pBits;
-			DestBuffer = (BYTE*)DestLockRect.pBits + DestLockRect.Pitch;
-			for (LONG y = 1; y < FillHeight; y++)
-			{
-				memcpy(DestBuffer, SrcBuffer, size);
-				DestBuffer += DestLockRect.Pitch;
+				*DestBuffer = SrcBuffer[y];
+				DestBuffer++;
 			}
 		}
-		// Fill 32-bit surface
-		else
+
+		// Fill rest of surface rect using the first line as a template
+		SrcBuffer = (BYTE*)DestLockRect.pBits;
+		DestBuffer = (BYTE*)DestLockRect.pBits + DestLockRect.Pitch;
+		size_t size = FillWidth * ByteCount;
+		for (LONG y = 1; y < FillHeight; y++)
 		{
-			if (FillWidth * (INT)ByteCount == DestLockRect.Pitch)
-			{
-				memset(DestBuffer, dwFillColor, DestLockRect.Pitch * FillHeight);
-			}
-			else
-			{
-				for (LONG y = 0; y < FillHeight; y++)
-				{
-					memset(DestBuffer, dwFillColor, FillWidth);
-					DestBuffer += DestLockRect.Pitch;
-				}
-			}
+			memcpy(DestBuffer, SrcBuffer, size);
+			DestBuffer += DestLockRect.Pitch;
 		}
 
 	} while (false);
@@ -3444,20 +3402,22 @@ HRESULT m_IDirectDrawSurfaceX::CopySurface(m_IDirectDrawSurfaceX* pSourceSurface
 			IsCriticalSectionSet = true;
 			EnterCriticalSection(&ddscs);
 
-			size_t size = surfaceDesc2.dwHeight * SrcLockRect.Pitch;
+			size_t size = SrcRectWidth * ByteCount * SrcRectHeight;
 			if (size > surfaceArray.size())
 			{
 				surfaceArray.resize(size);
 			}
 			BYTE *SrcBuffer = (BYTE*)SrcLockRect.pBits;
 			BYTE *DestBuffer = (BYTE*)&surfaceArray[0];
+			INT DestPitch = SrcRectWidth * ByteCount;
 			for (LONG y = 0; y < SrcRectHeight; y++)
 			{
 				memcpy(DestBuffer, SrcBuffer, SrcRectWidth * ByteCount);
 				SrcBuffer += SrcLockRect.Pitch;
-				DestBuffer += SrcLockRect.Pitch;
+				DestBuffer += DestPitch;
 			}
 			SrcLockRect.pBits = &surfaceArray[0];
+			SrcLockRect.Pitch = DestPitch;
 			SetUnlock(true);
 			UnlockSrc = false;
 		}
@@ -3519,7 +3479,7 @@ HRESULT m_IDirectDrawSurfaceX::CopySurface(m_IDirectDrawSurfaceX* pSourceSurface
 			{
 				DWORD r = (IsStretchRect) ? (DWORD)((float)x * WidthRatio) : x;
 				BYTE *NewPixel = (IsMirrorLeftRight) ? SrcBuffer + ((SrcRectWidth - r - 1) * ByteCount) : SrcBuffer + (r * ByteCount);
-				DWORD PixelColor = (IsColorKey) ? (DWORD)(*(DWORD*)NewPixel) & ByteMask : 0;
+				DWORD PixelColor = (*(DWORD*)NewPixel) & ByteMask;
 
 				if (!IsColorKey || PixelColor < ColorKeyLow || PixelColor > ColorKeyHigh)
 				{
@@ -3599,19 +3559,12 @@ HRESULT m_IDirectDrawSurfaceX::CopyEmulatedSurface(LPRECT lpDestRect, bool CopyT
 			{
 				for (LONG x = DestRect.top; x < DestRect.bottom; x++)
 				{
-					BYTE *EmulatedBufferLoop = EmulatedBuffer;
-					BYTE *SurfaceBufferLoop = SurfaceBuffer;
+					TRIBYTE *EmulatedBufferLoop = (TRIBYTE*)EmulatedBuffer;
+					DWORD *SurfaceBufferLoop = (DWORD*)SurfaceBuffer;
 					for (LONG y = DestRect.left; y < DestRect.right; y++)
 					{
-						*SurfaceBufferLoop = *EmulatedBufferLoop;
+						*SurfaceBufferLoop = *(DWORD*)EmulatedBufferLoop;
 						EmulatedBufferLoop++;
-						SurfaceBufferLoop++;
-						*SurfaceBufferLoop = *EmulatedBufferLoop;
-						EmulatedBufferLoop++;
-						SurfaceBufferLoop++;
-						*SurfaceBufferLoop = *EmulatedBufferLoop;
-						EmulatedBufferLoop++;
-						SurfaceBufferLoop++;
 						SurfaceBufferLoop++;
 					}
 					EmulatedBuffer += EmulatedLockRect.Pitch;
@@ -3622,19 +3575,12 @@ HRESULT m_IDirectDrawSurfaceX::CopyEmulatedSurface(LPRECT lpDestRect, bool CopyT
 			{
 				for (LONG x = DestRect.top; x < DestRect.bottom; x++)
 				{
-					BYTE *EmulatedBufferLoop = EmulatedBuffer;
-					BYTE *SurfaceBufferLoop = SurfaceBuffer;
+					TRIBYTE *EmulatedBufferLoop = (TRIBYTE*)EmulatedBuffer;
+					DWORD *SurfaceBufferLoop = (DWORD*)SurfaceBuffer;
 					for (LONG y = DestRect.left; y < DestRect.right; y++)
 					{
-						*EmulatedBufferLoop = *SurfaceBufferLoop;
+						*EmulatedBufferLoop = *(TRIBYTE*)SurfaceBufferLoop;
 						EmulatedBufferLoop++;
-						SurfaceBufferLoop++;
-						*EmulatedBufferLoop = *SurfaceBufferLoop;
-						EmulatedBufferLoop++;
-						SurfaceBufferLoop++;
-						*EmulatedBufferLoop = *SurfaceBufferLoop;
-						EmulatedBufferLoop++;
-						SurfaceBufferLoop++;
 						SurfaceBufferLoop++;
 					}
 					EmulatedBuffer += EmulatedLockRect.Pitch;
@@ -3698,12 +3644,12 @@ void m_IDirectDrawSurfaceX::UpdatePaletteData()
 	D3DCOLOR *rgbPalette = nullptr;
 
 	// Get palette data
-	if (attachedPalette && attachedPalette->rgbPalette)
+	if (attachedPalette && attachedPalette->GetRgbPalette())
 	{
-		CurrentPaletteUSN = PaletteUSN + attachedPalette->PaletteUSN;
+		CurrentPaletteUSN = PaletteUSN + attachedPalette->GetPaletteUSN();
 		if (CurrentPaletteUSN && CurrentPaletteUSN != LastPaletteUSN)
 		{
-			rgbPalette = (D3DCOLOR*)attachedPalette->rgbPalette;
+			rgbPalette = (D3DCOLOR*)attachedPalette->GetRgbPalette();
 			entryCount = attachedPalette->GetEntryCount();
 		}
 	}
@@ -3714,12 +3660,12 @@ void m_IDirectDrawSurfaceX::UpdatePaletteData()
 		if (lpPrimarySurface)
 		{
 			m_IDirectDrawPalette *lpPalette = lpPrimarySurface->GetAttachedPalette();
-			if (lpPalette && lpPalette->rgbPalette)
+			if (lpPalette && lpPalette->GetRgbPalette())
 			{
-				CurrentPaletteUSN = lpPrimarySurface->GetPaletteUSN() + lpPalette->PaletteUSN;
+				CurrentPaletteUSN = lpPrimarySurface->GetPaletteUSN() + lpPalette->GetPaletteUSN();
 				if (CurrentPaletteUSN && CurrentPaletteUSN != LastPaletteUSN)
 				{
-					rgbPalette = (D3DCOLOR*)lpPalette->rgbPalette;
+					rgbPalette = (D3DCOLOR*)lpPalette->GetRgbPalette();
 					entryCount = lpPalette->GetEntryCount();
 				}
 			}

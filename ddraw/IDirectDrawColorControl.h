@@ -15,6 +15,16 @@ public:
 
 		ProxyAddressLookupTable.SaveAddress(this, ProxyInterface);
 
+		InitColorControl();
+	}
+	m_IDirectDrawColorControl()
+	{
+		LOG_LIMIT(3, "Creating device " << __FUNCTION__ << "(" << this << ")");
+
+		InitColorControl();
+	}
+	void InitColorControl()
+	{
 		ColorControl.dwSize = sizeof(DDCOLORCONTROL);
 		ColorControl.dwFlags = DDCOLOR_BRIGHTNESS | DDCOLOR_CONTRAST | DDCOLOR_HUE | DDCOLOR_SATURATION | DDCOLOR_SHARPNESS | DDCOLOR_GAMMA | DDCOLOR_COLORENABLE;
 		ColorControl.lBrightness = 750;
@@ -25,10 +35,6 @@ public:
 		ColorControl.lGamma = 1;
 		ColorControl.lColorEnable = 1;
 		ColorControl.dwReserved1 = 0;
-	}
-	m_IDirectDrawColorControl()
-	{
-		LOG_LIMIT(3, "Creating device " << __FUNCTION__ << "(" << this << ")");
 	}
 	~m_IDirectDrawColorControl()
 	{

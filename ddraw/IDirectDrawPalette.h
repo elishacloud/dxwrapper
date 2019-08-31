@@ -7,12 +7,7 @@ private:
 	REFIID WrapperID = IID_IDirectDrawPalette;
 	ULONG RefCount = 1;
 
-	// Convert to Direct3D9
-	m_IDirectDrawX *ddrawParent = nullptr;
-	DWORD paletteCaps = 0;						// Palette flags
-	DWORD entryCount = 0;						// Number of palette entries
-	bool hasAlpha = false;						// Raw palette has alpha data
-
+	// Used for RGB palette
 	struct RGBDWORD {
 		union
 		{
@@ -20,6 +15,15 @@ private:
 			DDARGB pe;
 		};
 	};
+
+	// Convert to Direct3D9
+	m_IDirectDrawX *ddrawParent = nullptr;
+	DWORD paletteCaps = 0;						// Palette flags
+	LPPALETTEENTRY rawPalette = nullptr;		// Raw palette data
+	RGBDWORD *rgbPalette = nullptr;				// Rgb translated palette
+	DWORD PaletteUSN = (DWORD)this;				// The USN that's used to see if the palette data was updated
+	DWORD entryCount = 0;						// Number of palette entries
+	bool hasAlpha = false;						// Raw palette has alpha data
 
 public:
 	m_IDirectDrawPalette(IDirectDrawPalette *aOriginal) : ProxyInterface(aOriginal)
@@ -68,17 +72,18 @@ public:
 
 		ProxyAddressLookupTable.DeleteAddress(this);
 
-		if (rawPalette)
-		{
-			delete rawPalette;
-		}
-		if (rgbPalette)
-		{
-			delete rgbPalette;
-		}
-		if (Config.Dd7to9 && !Config.Exiting)
+		if (!ProxyInterface && !Config.Exiting)
 		{
 			ReleaseInterface();
+
+			if (rawPalette)
+			{
+				delete rawPalette;
+			}
+			if (rgbPalette)
+			{
+				delete rgbPalette;
+			}
 		}
 	}
 
@@ -102,14 +107,11 @@ public:
 	void SetDdrawParent(m_IDirectDrawX *ddraw) { ddrawParent = ddraw; }
 	void ClearDdraw() { ddrawParent = nullptr; }
 
+	// Other functions
+	RGBDWORD *GetRgbPalette() { return rgbPalette; }
+	DWORD GetPaletteUSN() { return PaletteUSN; }
+	DWORD GetEntryCount() { return entryCount; }
+
 	// Release interface
 	void ReleaseInterface();
-
-	// Other functions
-	DWORD GetEntryCount() { return entryCount; };
-
-	// Public varables
-	DWORD PaletteUSN = (DWORD)this;				// The USN that's used to see if the palette data was updated
-	RGBDWORD *rgbPalette = nullptr;				// Rgb translated palette
-	LPPALETTEENTRY rawPalette = nullptr;		// Raw palette data
 };
