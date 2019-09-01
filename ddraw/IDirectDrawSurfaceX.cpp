@@ -389,6 +389,7 @@ HRESULT m_IDirectDrawSurfaceX::Blt(LPRECT lpDestRect, LPDIRECTDRAWSURFACE7 lpDDS
 			if (((dwFlags & DDBLT_KEYDEST) && !ColorKeys[0].IsSet) || ((dwFlags & DDBLT_KEYSRC) && !lpDDSrcSurfaceX->ColorKeys[2].IsSet))
 			{
 				LOG_LIMIT(100, __FUNCTION__ << " Error: color key not set");
+				Flags &= ~(DDBLT_KEYDESTOVERRIDE | DDBLT_KEYSRCOVERRIDE | DDBLT_KEYDEST | DDBLT_KEYSRC);
 			}
 
 			// Get color key
@@ -1366,6 +1367,34 @@ HRESULT m_IDirectDrawSurfaceX::GetSurfaceDesc2(LPDDSURFACEDESC2 lpDDSurfaceDesc2
 			lpDDSurfaceDesc2->dwFlags |= DDSD_PITCH;
 			lpDDSurfaceDesc2->lPitch = lpDDSurfaceDesc2->dwWidth * (GetBitCount(lpDDSurfaceDesc2->ddpfPixelFormat) / 8);
 		}
+		// Set ColorKey
+		if (!(surfaceDesc2.ddsCaps.dwCaps2 & DDSCAPS2_CUBEMAP))
+		{
+			if (ColorKeys[0].IsSet)
+			{
+				lpDDSurfaceDesc2->dwFlags |= DDSD_CKDESTBLT;
+				lpDDSurfaceDesc2->ddckCKDestBlt.dwColorSpaceLowValue;
+				lpDDSurfaceDesc2->ddckCKDestBlt.dwColorSpaceHighValue;
+			}
+			if (ColorKeys[1].IsSet)
+			{
+				lpDDSurfaceDesc2->dwFlags |= DDSD_CKDESTOVERLAY;
+				lpDDSurfaceDesc2->ddckCKDestOverlay.dwColorSpaceLowValue;
+				lpDDSurfaceDesc2->ddckCKDestOverlay.dwColorSpaceHighValue;
+			}
+			if (ColorKeys[2].IsSet)
+			{
+				lpDDSurfaceDesc2->dwFlags |= DDSD_CKSRCBLT;
+				lpDDSurfaceDesc2->ddckCKSrcBlt.dwColorSpaceLowValue;
+				lpDDSurfaceDesc2->ddckCKSrcBlt.dwColorSpaceHighValue;
+			}
+			if (ColorKeys[3].IsSet)
+			{
+				lpDDSurfaceDesc2->dwFlags |= DDSD_CKSRCOVERLAY;
+				lpDDSurfaceDesc2->ddckCKSrcOverlay.dwColorSpaceLowValue;
+				lpDDSurfaceDesc2->ddckCKSrcOverlay.dwColorSpaceHighValue;
+			}
+		}
 
 		// Return
 		return DD_OK;
@@ -2229,7 +2258,34 @@ HRESULT m_IDirectDrawSurfaceX::CreateD3d9Surface()
 	}
 
 	// Update surface description
-	GetSurfaceDesc2(&surfaceDesc2);
+	if ((surfaceDesc2.dwFlags & (DDSD_HEIGHT | DDSD_WIDTH | DDSD_PIXELFORMAT)) != (DDSD_HEIGHT | DDSD_WIDTH | DDSD_PIXELFORMAT))
+	{
+		DDSURFACEDESC2 Desc2 = { NULL };
+		Desc2.dwSize = sizeof(DDSURFACEDESC2);
+		Desc2.ddpfPixelFormat.dwSize = sizeof(DDPIXELFORMAT);
+		GetSurfaceDesc2(&Desc2);
+
+		// Set Height and Width
+		if ((Desc2.dwFlags & (DDSD_HEIGHT | DDSD_WIDTH)) == (DDSD_HEIGHT | DDSD_WIDTH) &&
+			(surfaceDesc2.dwFlags & (DDSD_HEIGHT | DDSD_WIDTH)) != (DDSD_HEIGHT | DDSD_WIDTH))
+		{
+			surfaceDesc2.dwFlags |= DDSD_HEIGHT | DDSD_WIDTH;
+			surfaceDesc2.dwWidth = Desc2.dwWidth;
+			surfaceDesc2.dwHeight = Desc2.dwHeight;
+		}
+		// Set Refresh Rate
+		if ((Desc2.dwFlags & DDSD_REFRESHRATE) && !(surfaceDesc2.dwFlags & DDSD_REFRESHRATE))
+		{
+			surfaceDesc2.dwFlags |= DDSD_REFRESHRATE;
+			surfaceDesc2.dwRefreshRate = Desc2.dwRefreshRate;
+		}
+		// Set PixelFormat
+		if ((Desc2.dwFlags & DDSD_PIXELFORMAT) && !(surfaceDesc2.dwFlags & DDSD_PIXELFORMAT))
+		{
+			surfaceDesc2.dwFlags |= DDSD_PIXELFORMAT;
+			ConvertPixelFormat(surfaceDesc2.ddpfPixelFormat, Desc2.ddpfPixelFormat);
+		}
+	}
 
 	// Get texture data
 	surfaceFormat = GetDisplayFormat(surfaceDesc2.ddpfPixelFormat);
@@ -3098,6 +3154,25 @@ void m_IDirectDrawSurfaceX::InitSurfaceDesc(LPDDSURFACEDESC2 lpDDSurfaceDesc2, D
 	}
 	surfaceDesc2.ddsCaps.dwCaps4 = 0x00;
 	surfaceDesc2.dwReserved = 0;
+
+	// Set ColorKey
+	if (surfaceDesc2.dwFlags & DDSD_CKDESTOVERLAY)
+	{
+		SetColorKey(DDCKEY_DESTOVERLAY | DDCKEY_COLORSPACE, &surfaceDesc2.ddckCKDestOverlay);
+	}
+	if (surfaceDesc2.dwFlags & DDSD_CKDESTBLT)
+	{
+		SetColorKey(DDCKEY_DESTBLT | DDCKEY_COLORSPACE, &surfaceDesc2.ddckCKDestBlt);
+	}
+	if (surfaceDesc2.dwFlags & DDSD_CKSRCOVERLAY)
+	{
+		SetColorKey(DDCKEY_SRCOVERLAY | DDCKEY_COLORSPACE, &surfaceDesc2.ddckCKSrcOverlay);
+	}
+	if (surfaceDesc2.dwFlags & DDSD_CKSRCBLT)
+	{
+		SetColorKey(DDCKEY_SRCBLT | DDCKEY_COLORSPACE, &surfaceDesc2.ddckCKSrcBlt);
+	}
+	surfaceDesc2.dwFlags &= ~(DDSD_CKDESTOVERLAY | DDSD_CKDESTBLT | DDSD_CKSRCOVERLAY | DDSD_CKSRCBLT);
 
 	// Update surface description
 	GetSurfaceDesc2(&surfaceDesc2);

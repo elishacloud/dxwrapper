@@ -213,6 +213,13 @@ std::ostream& operator<<(std::ostream& os, const DDPIXELFORMAT& pf)
 		<< Logging::hex(pf.dwRGBAlphaBitMask);
 }
 
+std::ostream& operator<<(std::ostream& os, const DDCOLORKEY& ck)
+{
+	return Logging::LogStruct(os)
+		<< Logging::hex(ck.dwColorSpaceLowValue)
+		<< Logging::hex(ck.dwColorSpaceHighValue);
+}
+
 std::ostream& operator<<(std::ostream& os, const DDSURFACEDESC& sd)
 {
 	return Logging::LogStruct(os)
@@ -245,14 +252,10 @@ std::ostream& operator<<(std::ostream& os, const DDSURFACEDESC2& sd)
 		<< sd.dwAlphaBitDepth
 		<< sd.dwReserved
 		<< sd.lpSurface
-		<< sd.ddckCKDestOverlay.dwColorSpaceLowValue
-		<< sd.ddckCKDestOverlay.dwColorSpaceHighValue
-		<< sd.ddckCKDestBlt.dwColorSpaceLowValue
-		<< sd.ddckCKDestBlt.dwColorSpaceHighValue
-		<< sd.ddckCKSrcOverlay.dwColorSpaceLowValue
-		<< sd.ddckCKSrcOverlay.dwColorSpaceHighValue
-		<< sd.ddckCKSrcBlt.dwColorSpaceLowValue
-		<< sd.ddckCKSrcBlt.dwColorSpaceHighValue
+		<< sd.ddckCKDestOverlay
+		<< sd.ddckCKDestBlt
+		<< sd.ddckCKSrcOverlay
+		<< sd.ddckCKSrcBlt
 		<< sd.ddpfPixelFormat
 		<< sd.dwFVF
 		<< sd.ddsCaps
