@@ -2542,7 +2542,7 @@ HRESULT m_IDirectDrawSurfaceX::CreateDCSurface()
 		LOG_LIMIT(100, __FUNCTION__ << " Error: failed to create compatible DC!");
 		return DDERR_GENERIC;
 	}
-	emu->bitmap = CreateDIBSection(emu->surfaceDC, emu->bmi, (surfaceBitCount == 8) ? DIB_PAL_COLORS : DIB_RGB_COLORS, (void **)&emu->surfacepBits, nullptr, 0);
+	emu->bitmap = CreateDIBSection(ddrawParent->GetDC(), emu->bmi, (surfaceBitCount == 8) ? DIB_PAL_COLORS : DIB_RGB_COLORS, (void **)&emu->surfacepBits, nullptr, 0);
 	emu->bmi->bmiHeader.biHeight = -(LONG)surfaceDesc2.dwHeight;
 	if (!emu->bitmap)
 	{
@@ -2557,8 +2557,6 @@ HRESULT m_IDirectDrawSurfaceX::CreateDCSurface()
 	}
 	emu->surfacePitch = surfaceDesc2.dwWidth * (surfaceBitCount / 8);
 	emu->surfaceSize = surfaceDesc2.dwHeight * emu->surfacePitch;
-	DeleteObject(emu->OldDCObject);
-	emu->OldDCObject = nullptr;
 	PaletteUSN++;
 
 	return DD_OK;
@@ -2672,15 +2670,16 @@ void m_IDirectDrawSurfaceX::ReleaseD9Surface(bool BackupData)
 	}
 
 	// Release device context memory
+	if (emu->surfaceDC)
+	{
+		SelectObject(emu->surfaceDC, emu->OldDCObject);
+		DeleteDC(emu->surfaceDC);
+		emu->surfaceDC = nullptr;
+	}
 	if (emu->bitmap)
 	{
 		DeleteObject(emu->bitmap);
 		emu->bitmap = nullptr;
-	}
-	if (emu->surfaceDC)
-	{
-		DeleteDC(emu->surfaceDC);
-		emu->surfaceDC = nullptr;
 	}
 	emu->surfacepBits = nullptr;
 	emu->surfaceSize = 0;
