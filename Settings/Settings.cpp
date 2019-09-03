@@ -240,7 +240,7 @@ void __stdcall Settings::ParseCallback(char* name, char* value)
 	}
 	if (!_strcmpi(name, "DisableMaxWindowedMode"))
 	{
-		Config.DDrawResolutionHackNotSet = false;
+		Config.DdrawResolutionHackNotSet = false;
 	}
 	if (!_strcmpi(name, "DDrawResolutionHack"))
 	{
@@ -352,7 +352,7 @@ void Settings::ClearConfigSettings()
 
 	// Default to 'true' until we know it is set
 	Config.CacheClipPlaneNotSet = true;
-	Config.DDrawResolutionHackNotSet = true;
+	Config.DdrawResolutionHackNotSet = true;
 	Config.DisableMaxWindowedModeNotSet = true;
 }
 
@@ -583,7 +583,7 @@ void CONFIG::Init()
 	}
 
 	DDrawCompat = (DDrawCompat || DDrawCompat20 || DDrawCompat21 || DDrawCompatExperimental);
-	isDdrawWrapperEnabled = (EnableDdrawWrapper || ConvertToDirectDraw7 || ConvertToDirect3D7 || DDrawResolutionHack);
+	isDdrawWrapperEnabled = (EnableDdrawWrapper || ConvertToDirectDraw7 || ConvertToDirect3D7 || DdrawResolutionHack);
 	EnableWindowMode = (FullscreenWindowMode) ? true : EnableWindowMode;
 	isD3d9WrapperEnabled = (AntiAliasing || CacheClipPlane || EnableVSync || EnableWindowMode);
 
@@ -619,9 +619,9 @@ void CONFIG::Init()
 	}
 
 	// Enable ddraw resolution hack by default
-	if (DDrawResolutionHackNotSet)
+	if (DdrawResolutionHackNotSet)
 	{
-		DDrawResolutionHack = true;
+		DdrawResolutionHack = true;
 	}
 
 	// Disable DDrawCompat process affinity if dxwrapper's SingleProcAffinity is enabled

@@ -702,7 +702,7 @@ HRESULT m_IDirect3DX::EvictManagedTextures()
 
 void m_IDirect3DX::ResolutionHack()
 {
-	if (Config.DDrawResolutionHack)
+	if (Config.DdrawResolutionHack)
 	{
 		if (GetD3DPath)
 		{

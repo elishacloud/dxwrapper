@@ -25,6 +25,11 @@
 bool SceneReady = false;
 bool IsPresentRunning = false;
 
+// Used for sharing emulated memory
+bool ShareEmulatedMemory = false;
+CRITICAL_SECTION smcs;
+std::vector<EMUSURFACE*> memorySurfaces;
+
 /************************/
 /*** IUnknown methods ***/
 /************************/
@@ -1087,12 +1092,12 @@ HRESULT m_IDirectDrawSurfaceX::GetDC(HDC FAR * lphDC)
 
 		if (IsSurfaceEmulated || DCRequiresEmulation)
 		{
-			if (!emu->surfaceDC)
+			if (!emu)
 			{
 				CreateDCSurface();
 			}
 
-			if (!emu->surfaceDC || !emu->surfacepBits)
+			if (!emu || !emu->surfaceDC || !emu->surfacepBits)
 			{
 				return DDERR_GENERIC;
 			}
@@ -1581,7 +1586,7 @@ HRESULT m_IDirectDrawSurfaceX::ReleaseDC(HDC hDC)
 
 		if (IsSurfaceEmulated || DCRequiresEmulation)
 		{
-			if (!emu->surfaceDC || !emu->surfacepBits)
+			if (!emu || !emu->surfaceDC || !emu->surfacepBits)
 			{
 				return DDERR_GENERIC;
 			}
@@ -2290,7 +2295,9 @@ HRESULT m_IDirectDrawSurfaceX::CreateD3d9Surface()
 	// Get texture data
 	surfaceFormat = GetDisplayFormat(surfaceDesc2.ddpfPixelFormat);
 	surfaceBitCount = GetBitCount(surfaceFormat);
-	IsSurfaceEmulated = (surfaceFormat == D3DFMT_R8G8B8);
+	IsSurfaceEmulated = (surfaceFormat == D3DFMT_R8G8B8) ||
+		(Config.DdrawEmulateSurface && (surfaceFormat == D3DFMT_P8 || surfaceFormat == D3DFMT_R5G6B5 || surfaceFormat == D3DFMT_A1R5G5B5 || surfaceFormat == D3DFMT_X1R5G5B5 ||
+			surfaceFormat == D3DFMT_A8R8G8B8 || surfaceFormat == D3DFMT_X8R8G8B8));
 	DCRequiresEmulation = (surfaceFormat != D3DFMT_R5G6B5 && surfaceFormat != D3DFMT_X1R5G5B5 && surfaceFormat != D3DFMT_R8G8B8 && surfaceFormat != D3DFMT_X8R8G8B8);
 	D3DFORMAT Format = (surfaceFormat == D3DFMT_P8) ? D3DFMT_L8 : (surfaceFormat == D3DFMT_R8G8B8) ? D3DFMT_X8R8G8B8 : surfaceFormat;
 
@@ -2331,43 +2338,33 @@ HRESULT m_IDirectDrawSurfaceX::CreateD3d9Surface()
 	}
 
 	// Reset d3d9 surface texture data
-	if (surfaceBackup.size())
+	if (surfaceBackup.size() && surfaceTexture)
 	{
 		do {
-			Logging::LogDebug() << __FUNCTION__ << " Resetting Direct3D9 texture surface data";
-			// Reset emulated surface data
-			if (IsSurfaceEmulated)
+			D3DLOCKED_RECT LockRect;
+			if (FAILED(surfaceTexture->LockRect(0, &LockRect, nullptr, 0)))
 			{
-				if (emu->surfacepBits && surfaceBackup.size() == emu->surfaceSize)
-				{
-					memcpy(emu->surfacepBits, &surfaceBackup[0], emu->surfaceSize);
-				}
+				LOG_LIMIT(100, __FUNCTION__ << " Error: failed to lock texture surface!");
+				break;
 			}
-			// Reset normal texture surface
-			else if (surfaceTexture)
+
+			size_t size = surfaceDesc2.dwHeight * LockRect.Pitch;
+
+			if (size == surfaceBackup.size())
 			{
-				D3DLOCKED_RECT LockRect;
-				if (FAILED(surfaceTexture->LockRect(0, &LockRect, nullptr, 0)))
-				{
-					LOG_LIMIT(100, __FUNCTION__ << " Error: failed to lock texture surface!");
-					break;
-				}
+				Logging::LogDebug() << __FUNCTION__ << " Resetting Direct3D9 texture surface data";
 
-				size_t size = surfaceDesc2.dwHeight * LockRect.Pitch;
-
-				if (size == surfaceBackup.size())
-				{
-					memcpy(LockRect.pBits, &surfaceBackup[0], size);
-				}
-
-				surfaceTexture->UnlockRect(0);
+				memcpy(LockRect.pBits, &surfaceBackup[0], size);
 			}
+
+			surfaceTexture->UnlockRect(0);
 		} while (false);
-
-		// Data is no longer needed
-		surfaceBackup.clear();
 	}
 
+	// Data is no longer needed
+	surfaceBackup.clear();
+
+	// Maark palette as updated
 	PaletteUSN++;
 
 	// Only display surface if it is primary for now...
@@ -2505,6 +2502,75 @@ HRESULT m_IDirectDrawSurfaceX::CreateDCSurface()
 	bool ColorMaskReq = ((surfaceBitCount == 16 || surfaceBitCount == 32) &&																// Only valid when used with 16 bit and 32 bit surfaces
 		(surfaceDesc2.ddpfPixelFormat.dwFlags & DDPF_RGB) &&																				// Check to make sure it is an RGB surface
 		(surfaceDesc2.ddpfPixelFormat.dwRBitMask && surfaceDesc2.ddpfPixelFormat.dwGBitMask && surfaceDesc2.ddpfPixelFormat.dwBBitMask));	// Check to make sure the masks actually exist
+	
+	// Check if emulated surface already exists
+	if (emu)
+	{
+		// Check if emulated memory is good
+		if (!emu->surfaceDC || !emu->surfacepBits)
+		{
+			DeleteSharedEmulatedMemory(&emu);
+		}
+		else
+		{
+			// Check if current emulated surface is still ok
+			if (emu->bmi->bmiHeader.biWidth == (LONG)surfaceDesc2.dwWidth && -emu->bmi->bmiHeader.biHeight == (LONG)surfaceDesc2.dwHeight &&
+				emu->bmi->bmiHeader.biBitCount == surfaceBitCount &&
+				(!ColorMaskReq || ((DWORD*)emu->bmi->bmiColors)[0] == surfaceDesc2.ddpfPixelFormat.dwRBitMask &&
+				((DWORD*)emu->bmi->bmiColors)[1] == surfaceDesc2.ddpfPixelFormat.dwGBitMask &&
+					((DWORD*)emu->bmi->bmiColors)[2] == surfaceDesc2.ddpfPixelFormat.dwBBitMask))
+			{
+				return DD_OK;
+			}
+
+			// Save current emulated surface and prepare for creating a new one.
+			if (ShareEmulatedMemory)
+			{
+				EnterCriticalSection(&smcs);
+				memorySurfaces.push_back(emu);
+				emu = nullptr;
+				LeaveCriticalSection(&smcs);
+			}
+			else
+			{
+				DeleteSharedEmulatedMemory(&emu);
+			}
+		}
+	}
+
+	// If sharing memory than check the shared memory vector for a surface that matches
+	if (ShareEmulatedMemory)
+	{
+		EnterCriticalSection(&smcs);
+		for (auto it = memorySurfaces.begin(); it != memorySurfaces.end(); it++)
+		{
+			EMUSURFACE* pEmuSurface = *it;
+
+			if (pEmuSurface->bmi->bmiHeader.biWidth == (LONG)surfaceDesc2.dwWidth && -pEmuSurface->bmi->bmiHeader.biHeight == (LONG)surfaceDesc2.dwHeight &&
+				pEmuSurface->bmi->bmiHeader.biBitCount == surfaceBitCount &&
+				(!ColorMaskReq || ((DWORD*)pEmuSurface->bmi->bmiColors)[0] == surfaceDesc2.ddpfPixelFormat.dwRBitMask &&
+				((DWORD*)pEmuSurface->bmi->bmiColors)[1] == surfaceDesc2.ddpfPixelFormat.dwGBitMask &&
+					((DWORD*)pEmuSurface->bmi->bmiColors)[2] == surfaceDesc2.ddpfPixelFormat.dwBBitMask))
+			{
+				emu = pEmuSurface;
+
+				it = memorySurfaces.erase(it);
+
+				break;
+			}
+		}
+		LeaveCriticalSection(&smcs);
+
+		if (emu)
+		{
+			ZeroMemory(emu->surfacepBits, emu->surfaceSize);
+
+			return DD_OK;
+		}
+	}
+
+	// Create new emulated surface structure
+	emu = new EMUSURFACE;
 
 	// Add some padding to surface size to a avoid overflow with some games
 	DWORD padding = 200;
@@ -2587,40 +2653,26 @@ void m_IDirectDrawSurfaceX::ReleaseD9Interface(T **ppInterface)
 void m_IDirectDrawSurfaceX::ReleaseD9Surface(bool BackupData)
 {
 	// Store d3d9 surface texture
-	if (BackupData)
+	if (BackupData && surfaceTexture)
 	{
 		Logging::LogDebug() << __FUNCTION__ << " Storing Direct3D9 texture surface data";
 		do {
-			// Emulated surface
-			if (IsSurfaceEmulated)
+			surfaceTexture->UnlockRect(0);
+
+			D3DLOCKED_RECT LockRect;
+			if (FAILED(surfaceTexture->LockRect(0, &LockRect, nullptr, 0)))
 			{
-				if (emu->surfacepBits)
-				{
-					surfaceBackup.resize(emu->surfaceSize);
-
-					memcpy(&surfaceBackup[0], emu->surfacepBits, emu->surfaceSize);
-				}
+				LOG_LIMIT(100, __FUNCTION__ << " Error: failed to lock texture surface!");
+				break;
 			}
-			// Normal texture surface
-			else if (surfaceTexture)
-			{
-				surfaceTexture->UnlockRect(0);
 
-				D3DLOCKED_RECT LockRect;
-				if (FAILED(surfaceTexture->LockRect(0, &LockRect, nullptr, 0)))
-				{
-					LOG_LIMIT(100, __FUNCTION__ << " Error: failed to lock texture surface!");
-					break;
-				}
+			size_t size = surfaceDesc2.dwHeight * LockRect.Pitch;
 
-				size_t size = surfaceDesc2.dwHeight * LockRect.Pitch;
+			surfaceBackup.resize(size);
 
-				surfaceBackup.resize(size);
+			memcpy(&surfaceBackup[0], LockRect.pBits, size);
 
-				memcpy(&surfaceBackup[0], LockRect.pBits, size);
-
-				surfaceTexture->UnlockRect(0);
-			}
+			surfaceTexture->UnlockRect(0);
 		} while (false);
 	}
 
@@ -2669,21 +2721,21 @@ void m_IDirectDrawSurfaceX::ReleaseD9Surface(bool BackupData)
 		ReleaseD9Interface(&vertexBuffer);
 	}
 
-	// Release device context memory
-	if (emu->surfaceDC)
+	// Emulated surface
+	if (emu && !BackupData)
 	{
-		SelectObject(emu->surfaceDC, emu->OldDCObject);
-		DeleteDC(emu->surfaceDC);
-		emu->surfaceDC = nullptr;
+		if (!ShareEmulatedMemory || !emu->surfaceDC || !emu->surfacepBits)
+		{
+			DeleteSharedEmulatedMemory(&emu);
+		}
+		else
+		{
+			EnterCriticalSection(&smcs);
+			memorySurfaces.push_back(emu);
+			emu = nullptr;
+			LeaveCriticalSection(&smcs);
+		}
 	}
-	if (emu->bitmap)
-	{
-		DeleteObject(emu->bitmap);
-		emu->bitmap = nullptr;
-	}
-	emu->surfacepBits = nullptr;
-	emu->surfaceSize = 0;
-	emu->surfacePitch = 0;
 
 	// Set flags
 	IsInDC = false;
@@ -3040,7 +3092,7 @@ HRESULT m_IDirectDrawSurfaceX::SetUnlock(BOOL isSkipScene)
 
 HRESULT m_IDirectDrawSurfaceX::LockEmulatedSurface(D3DLOCKED_RECT* pLockedRect, LPRECT lpDestRect)
 {
-	if (!pLockedRect || !emu->surfacepBits)
+	if (!pLockedRect || !emu || !emu->surfacepBits)
 	{
 		return DDERR_GENERIC;
 	}
@@ -3753,7 +3805,7 @@ void m_IDirectDrawSurfaceX::UpdatePaletteData()
 	}
 
 	// Set color palette for device context
-	if (emu->surfaceDC)
+	if (emu && emu->surfaceDC)
 	{
 		SetDIBColorTable(emu->surfaceDC, 0, entryCount, (RGBQUAD*)rgbPalette);
 	}
@@ -3779,6 +3831,55 @@ void m_IDirectDrawSurfaceX::UpdatePaletteData()
 	}
 
 	LastPaletteUSN = CurrentPaletteUSN;
+}
+
+void m_IDirectDrawSurfaceX::StartSharedEmulatedMemory()
+{
+	ShareEmulatedMemory = true;
+	InitializeCriticalSection(&smcs);
+}
+
+void m_IDirectDrawSurfaceX::DeleteSharedEmulatedMemory(EMUSURFACE **ppEmuSurface)
+{
+	if (!ppEmuSurface || !*ppEmuSurface)
+	{
+		return;
+	}
+
+	// Release device context memory
+	if ((*ppEmuSurface)->surfaceDC)
+	{
+		SelectObject((*ppEmuSurface)->surfaceDC, (*ppEmuSurface)->OldDCObject);
+		DeleteDC((*ppEmuSurface)->surfaceDC);
+	}
+	if ((*ppEmuSurface)->bitmap)
+	{
+		DeleteObject((*ppEmuSurface)->bitmap);
+	}
+	delete (*ppEmuSurface);
+	ppEmuSurface = nullptr;
+}
+
+void m_IDirectDrawSurfaceX::CleanupSharedEmulatedMemory()
+{
+	// Disable shared memory
+	ShareEmulatedMemory = false;
+	
+	// Make sure that vectore is not in use
+	EnterCriticalSection(&smcs);
+	LeaveCriticalSection(&smcs);
+
+	// Deleted critical section
+	DeleteCriticalSection(&smcs);
+
+	LOG_LIMIT(100, __FUNCTION__ << " Deleting " << memorySurfaces.size() << " emulated surfaces!");
+
+	// Clean up unused emulated surfaces
+	for (EMUSURFACE *pEmuSurface: memorySurfaces)
+	{
+		DeleteSharedEmulatedMemory(&pEmuSurface);
+	}
+	memorySurfaces.clear();
 }
 
 void m_IDirectDrawSurfaceX::ReleaseInterface()

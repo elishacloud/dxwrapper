@@ -160,6 +160,7 @@ public:
 	HRESULT CheckInterface(char *FunctionName, bool CheckD3DDevice);
 	HRESULT CreateD3D9Device();
 	HRESULT ReinitDevice();
+	void ReleaseAllDirectDrawD9Surfaces();
 	void ReleaseAllD9Surfaces(bool CriticalSection = true);
 	void ReleaseD3d9Device();
 

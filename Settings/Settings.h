@@ -18,14 +18,15 @@
 	visit(DDrawCompatExperimental) \
 	visit(DDrawCompatDisableGDIHook) \
 	visit(DDrawCompatNoProcAffinity) \
+	visit(DdrawEmulateSurface) \
 	visit(DdrawLimitDisplayModeCount) \
 	visit(DdrawMaintainAspectRatio) \
-	visit(DdrawUseNativeResolution) \
 	visit(DdrawOverrideBitMode) \
 	visit(DdrawOverrideWidth) \
 	visit(DdrawOverrideHeight) \
 	visit(DdrawOverrideRefreshRate) \
-	visit(DDrawResolutionHack) \
+	visit(DdrawResolutionHack) \
+	visit(DdrawUseNativeResolution) \
 	visit(DisableGameUX) \
 	visit(DisableHighDPIScaling) \
 	visit(DisableLogging) \
@@ -164,8 +165,9 @@ struct CONFIG
 	bool DDrawCompatExperimental;		// Enables DDrawCompat Experimental version
 	bool DDrawCompatDisableGDIHook;		// Disables DDrawCompat GDI hooks
 	bool DDrawCompatNoProcAffinity;		// Disables DDrawCompat single processor affinity
-	bool DDrawResolutionHack;			// Removes the artificial resolution limit from Direct3D7 and below https://github.com/UCyborg/LegacyD3DResolutionHack
-	bool DDrawResolutionHackNotSet;		// If the DDrawResolutionHack option exists in the config file
+	bool DdrawResolutionHack;			// Removes the artificial resolution limit from Direct3D7 and below https://github.com/UCyborg/LegacyD3DResolutionHack
+	bool DdrawResolutionHackNotSet;		// If the DDrawResolutionHack option exists in the config file
+	bool DdrawEmulateSurface;			// Emulates the ddraw surface using device context for Dd7to9
 	bool DdrawMaintainAspectRatio;		// Keeps the current DirectDraw aspect ratio when overriding the game's resolution
 	bool DdrawUseNativeResolution;		// Uses the current screen resolution for Dd7to9
 	DWORD DdrawLimitDisplayModeCount;	// Limits the number of display modes sent to program, some games crash when you feed them with too many resolutions

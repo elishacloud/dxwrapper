@@ -2,6 +2,19 @@
 
 #include <map>
 
+// Emulated surface
+struct EMUSURFACE
+{
+	HDC surfaceDC = nullptr;
+	DWORD surfaceSize = 0;
+	void *surfacepBits = nullptr;
+	DWORD surfacePitch = 0;
+	HBITMAP bitmap = nullptr;
+	BYTE bmiMemory[(sizeof(BITMAPINFOHEADER) + sizeof(RGBQUAD) * 256)];
+	PBITMAPINFO bmi = (PBITMAPINFO)bmiMemory;
+	HGDIOBJ OldDCObject = nullptr;
+};
+
 class m_IDirectDrawSurfaceX : public IUnknown
 {
 private:
@@ -36,6 +49,7 @@ private:
 	CRITICAL_SECTION ddscs;								// Critical section for surfaceArray
 	std::vector<byte> surfaceArray;						// Memory used for coping from one surface to the same surface
 	std::vector<byte> surfaceBackup;					// Memory used for backing up the surfaceTexture
+	EMUSURFACE *emu = nullptr;
 	CKEYS ColorKeys[4];									// Color keys (0 = DDCKEY_DESTBLT, 1 = DDCKEY_DESTOVERLAY, 2 = DDCKEY_SRCBLT, 3 = DDCKEY_SRCOVERLAY)
 	LONG overlayX = 0;
 	LONG overlayY = 0;
@@ -59,20 +73,6 @@ private:
 	DWORD RestoreSurfaceFlags = 0;
 	bool DoCopyRect = false;
 	RECT LastRect = { 0, 0, 0, 0 };
-
-	// Emulated surface
-	struct EMUSURFACE
-	{
-		HDC surfaceDC = nullptr;
-		DWORD surfaceSize = 0;
-		void *surfacepBits = nullptr;
-		DWORD surfacePitch = 0;
-		HBITMAP bitmap = nullptr;
-		BYTE bmiMemory[(sizeof(BITMAPINFOHEADER) + sizeof(RGBQUAD) * 256)];
-		PBITMAPINFO bmi = (PBITMAPINFO)bmiMemory;
-		HGDIOBJ OldDCObject = nullptr;
-	};
-	EMUSURFACE *emu = nullptr;
 
 	// Display resolution
 	DWORD displayWidth = 0;								// Width used to override the default application set width
@@ -147,9 +147,6 @@ public:
 
 		// Update surface description and create backbuffers
 		InitSurfaceDesc(lpDDSurfaceDesc2, DirectXVersion);
-
-		// Emulated surface
-		emu = new EMUSURFACE;
 	}
 	~m_IDirectDrawSurfaceX()
 	{
@@ -159,12 +156,6 @@ public:
 		{
 			ReleaseInterface();
 			ReleaseD9Surface(false);
-
-			// Delete emulated surface
-			if (emu)
-			{
-				delete emu;
-			}
 
 			// Delete Critical Section for surface array
 			DeleteCriticalSection(&ddscs);
@@ -328,6 +319,11 @@ public:
 	m_IDirectDrawPalette *GetAttachedPalette() { return attachedPalette; }
 	void UpdatePaletteData();
 	DWORD GetPaletteUSN() { return PaletteUSN; }
+
+	// For emulated surfaces
+	static void StartSharedEmulatedMemory();
+	static void DeleteSharedEmulatedMemory(EMUSURFACE **ppEmuSurface);
+	static void CleanupSharedEmulatedMemory();
 
 	// Release interface
 	void ReleaseInterface();

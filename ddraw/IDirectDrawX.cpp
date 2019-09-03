@@ -1577,6 +1577,7 @@ void m_IDirectDrawX::InitDdrawSettings()
 	if (ref == 1)
 	{
 		SetDdrawDefaults();
+		m_IDirectDrawSurfaceX::StartSharedEmulatedMemory();
 	}
 
 	ReleaseCriticalSection();
@@ -1667,37 +1668,26 @@ void m_IDirectDrawX::ReleaseDdraw()
 	}
 	PaletteVector.clear();
 
-	// Release shared d3d9device
 	if (ref == 0)
 	{
+		// Release shared d3d9device
 		ReleaseD3d9Device();
-	}
 
-	// Release shared d3d9object
-	if (ref == 0)
-	{
+		// Release shared d3d9object
 		d3d9Object->Release();
 		d3d9Object = nullptr;
+
+		// Release DC
+		if (MainhWnd && MainhDC)
+		{
+			ReleaseDC(MainhWnd, MainhDC);
+			MainhDC = nullptr;
+		}
+
+		// Clean up shared memory
+		m_IDirectDrawSurfaceX::CleanupSharedEmulatedMemory();
 	}
 
-	// Release DC
-	if (MainhWnd && MainhDC)
-	{
-		ReleaseDC(MainhWnd, MainhDC);
-		MainhDC = nullptr;
-	}
-
-	ReleaseCriticalSection();
-}
-
-// Release all surfaces from all ddraw devices
-void ReleaseAllDirectDrawD9Surfaces()
-{
-	SetCriticalSection();
-	for (m_IDirectDrawX *pDDraw : DDrawVector)
-	{
-		pDDraw->ReleaseAllD9Surfaces(false);
-	}
 	ReleaseCriticalSection();
 }
 
@@ -1934,6 +1924,17 @@ HRESULT m_IDirectDrawX::ReinitDevice()
 
 	// Success
 	return DD_OK;
+}
+
+// Release all surfaces from all ddraw devices
+void m_IDirectDrawX::ReleaseAllDirectDrawD9Surfaces()
+{
+	SetCriticalSection();
+	for (m_IDirectDrawX *pDDraw : DDrawVector)
+	{
+		pDDraw->ReleaseAllD9Surfaces(false);
+	}
+	ReleaseCriticalSection();
 }
 
 // Release all d3d9 surfaces
