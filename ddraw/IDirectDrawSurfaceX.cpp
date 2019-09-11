@@ -2364,7 +2364,7 @@ HRESULT m_IDirectDrawSurfaceX::CreateD3d9Surface()
 	// Data is no longer needed
 	surfaceBackup.clear();
 
-	// Maark palette as updated
+	// Mark palette as updated
 	PaletteUSN++;
 
 	// Only display surface if it is primary for now...
@@ -2564,6 +2564,8 @@ HRESULT m_IDirectDrawSurfaceX::CreateDCSurface()
 		if (emu)
 		{
 			ZeroMemory(emu->surfacepBits, emu->surfaceSize);
+
+			PaletteUSN++;
 
 			return DD_OK;
 		}
@@ -3865,14 +3867,14 @@ void m_IDirectDrawSurfaceX::CleanupSharedEmulatedMemory()
 	// Disable shared memory
 	ShareEmulatedMemory = false;
 	
-	// Make sure that vectore is not in use
+	// Make sure that vector is not in use
 	EnterCriticalSection(&smcs);
 	LeaveCriticalSection(&smcs);
 
 	// Deleted critical section
 	DeleteCriticalSection(&smcs);
 
-	LOG_LIMIT(100, __FUNCTION__ << " Deleting " << memorySurfaces.size() << " emulated surfaces!");
+	LOG_LIMIT(100, __FUNCTION__ << " Deleting " << memorySurfaces.size() << " emulated surface" << ((memorySurfaces.size() != 1) ? "s" : "") << "!");
 
 	// Clean up unused emulated surfaces
 	for (EMUSURFACE *pEmuSurface: memorySurfaces)
