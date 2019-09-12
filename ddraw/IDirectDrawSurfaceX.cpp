@@ -1458,7 +1458,7 @@ HRESULT m_IDirectDrawSurfaceX::IsLost()
 	if (Config.Dd7to9)
 	{
 		// Check for device interface
-		if (FAILED(CheckInterface(__FUNCTION__, true, true)))
+		if (FAILED(CheckInterface(__FUNCTION__, true, false)))
 		{
 			return DDERR_GENERIC;
 		}
@@ -1467,13 +1467,15 @@ HRESULT m_IDirectDrawSurfaceX::IsLost()
 		switch ((*d3d9Device)->TestCooperativeLevel())
 		{
 		case D3DERR_DEVICELOST:
-		case D3DERR_DEVICENOTRESET:
 			return DDERR_SURFACELOST;
+		case D3DERR_DEVICENOTRESET:
+			ddrawParent->ReinitDevice();
+		case D3D_OK:
+			return DD_OK;
 		case D3DERR_DRIVERINTERNALERROR:
 		case D3DERR_INVALIDCALL:
-			return DDERR_GENERIC;
 		default:
-			return DD_OK;
+			return DDERR_GENERIC;
 		}
 	}
 
@@ -1624,6 +1626,12 @@ HRESULT m_IDirectDrawSurfaceX::Restore()
 		if (FAILED(CheckInterface(__FUNCTION__, true, true)))
 		{
 			return DDERR_GENERIC;
+		}
+
+		// Check device status
+		if ((*d3d9Device)->TestCooperativeLevel() == D3DERR_DEVICENOTRESET)
+		{
+			ddrawParent->ReinitDevice();
 		}
 
 		return DD_OK;

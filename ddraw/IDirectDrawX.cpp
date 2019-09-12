@@ -1452,9 +1452,10 @@ HRESULT m_IDirectDrawX::TestCooperativeLevel()
 		case D3DERR_DRIVERINTERNALERROR:
 		case D3DERR_INVALIDCALL:
 			return DDERR_WRONGMODE;
-		case D3DERR_DEVICELOST:
-			return DDERR_NOEXCLUSIVEMODE;
 		case D3DERR_DEVICENOTRESET:
+			ReinitDevice();
+		case D3DERR_DEVICELOST:
+		case D3D_OK:
 		default:
 			return DD_OK;
 		}
