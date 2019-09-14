@@ -25,6 +25,8 @@
 	visit(DdrawOverrideWidth) \
 	visit(DdrawOverrideHeight) \
 	visit(DdrawOverrideRefreshRate) \
+	visit(DdrawScaledWidth) \
+	visit(DdrawScaledHeight) \
 	visit(DdrawResolutionHack) \
 	visit(DdrawUseNativeResolution) \
 	visit(DisableGameUX) \
@@ -175,6 +177,8 @@ struct CONFIG
 	DWORD DdrawOverrideWidth;			// Force Direct3d9 to use this width when using Dd7to9
 	DWORD DdrawOverrideHeight;			// Force Direct3d9 to use this height when using Dd7to9
 	DWORD DdrawOverrideRefreshRate;		// Force Direct3d9 to use this refresh rate when using Dd7to9
+	DWORD DdrawScaledWidth;				// Used to scaled Direct3d9 to use this width when using Dd7to9
+	DWORD DdrawScaledHeight;			// Used to scaled Direct3d9 to use this height when using Dd7to9
 	bool DisableGameUX;					// Disables the Microsoft Game Explorer which can sometimes cause high CPU in rundll32.exe and hang the game process
 	bool DisableHighDPIScaling;			// Disables display scaling on high DPI settings
 	bool DisableLogging;				// Disables the logging file

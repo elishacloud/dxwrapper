@@ -278,6 +278,7 @@ public:
 	HRESULT CheckInterface(char *FunctionName, bool CheckD3DDevice, bool CheckD3DSurface);
 	HRESULT CreateD3d9Surface();
 	HRESULT CreateDCSurface();
+	void UpdateSurfaceDesc();
 	template <typename T>
 	void ReleaseD9Interface(T **ppInterface);
 	void ReleaseD9Surface(bool BackupData = true);

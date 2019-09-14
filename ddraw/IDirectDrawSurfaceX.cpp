@@ -2271,34 +2271,7 @@ HRESULT m_IDirectDrawSurfaceX::CreateD3d9Surface()
 	}
 
 	// Update surface description
-	if ((surfaceDesc2.dwFlags & (DDSD_HEIGHT | DDSD_WIDTH | DDSD_PIXELFORMAT)) != (DDSD_HEIGHT | DDSD_WIDTH | DDSD_PIXELFORMAT))
-	{
-		DDSURFACEDESC2 Desc2 = { NULL };
-		Desc2.dwSize = sizeof(DDSURFACEDESC2);
-		Desc2.ddpfPixelFormat.dwSize = sizeof(DDPIXELFORMAT);
-		GetSurfaceDesc2(&Desc2);
-
-		// Set Height and Width
-		if ((Desc2.dwFlags & (DDSD_HEIGHT | DDSD_WIDTH)) == (DDSD_HEIGHT | DDSD_WIDTH) &&
-			(surfaceDesc2.dwFlags & (DDSD_HEIGHT | DDSD_WIDTH)) != (DDSD_HEIGHT | DDSD_WIDTH))
-		{
-			surfaceDesc2.dwFlags |= DDSD_HEIGHT | DDSD_WIDTH;
-			surfaceDesc2.dwWidth = Desc2.dwWidth;
-			surfaceDesc2.dwHeight = Desc2.dwHeight;
-		}
-		// Set Refresh Rate
-		if ((Desc2.dwFlags & DDSD_REFRESHRATE) && !(surfaceDesc2.dwFlags & DDSD_REFRESHRATE))
-		{
-			surfaceDesc2.dwFlags |= DDSD_REFRESHRATE;
-			surfaceDesc2.dwRefreshRate = Desc2.dwRefreshRate;
-		}
-		// Set PixelFormat
-		if ((Desc2.dwFlags & DDSD_PIXELFORMAT) && !(surfaceDesc2.dwFlags & DDSD_PIXELFORMAT))
-		{
-			surfaceDesc2.dwFlags |= DDSD_PIXELFORMAT;
-			ConvertPixelFormat(surfaceDesc2.ddpfPixelFormat, Desc2.ddpfPixelFormat);
-		}
-	}
+	UpdateSurfaceDesc();
 
 	// Get texture data
 	surfaceFormat = GetDisplayFormat(surfaceDesc2.ddpfPixelFormat);
@@ -2442,57 +2415,75 @@ HRESULT m_IDirectDrawSurfaceX::CreateD3d9Surface()
 	}
 
 	// Calculate width and height with original aspect ratio
-	DWORD xpad = 0;
-	DWORD ypad = 0;
+	int xpad = 0, ypad = 0;
+	float u0tex = 0.0f, u1tex = 1.0f, v0tex = 0.0f, v1tex = 1.0f;
+	DWORD DisplayBufferWidth = (displayWidth > BackBufferWidth) ? displayWidth : BackBufferWidth;
+	DWORD DisplayBufferHeight = (displayHeight > BackBufferHeight) ? displayHeight : BackBufferHeight;
+	DWORD TexWidth = surfaceDesc2.dwWidth;
+	DWORD TexHeight = surfaceDesc2.dwHeight;
+	if (Config.DdrawScaledWidth && Config.DdrawScaledWidth < TexWidth &&
+		Config.DdrawScaledHeight && Config.DdrawScaledHeight < TexHeight)
+	{
+		u0tex = (((TexWidth - Config.DdrawScaledWidth) / 2.0f)) / TexWidth;
+		u1tex = u0tex + ((float)Config.DdrawScaledWidth / TexWidth);
+
+		v0tex = (((TexHeight - Config.DdrawScaledHeight) / 2.0f)) / TexHeight;
+		v1tex = v0tex + ((float)Config.DdrawScaledHeight / TexHeight);
+
+		TexWidth = Config.DdrawScaledWidth;
+		TexHeight = Config.DdrawScaledHeight;
+	}
 	if (Config.DdrawMaintainAspectRatio)
 	{
-		if (surfaceDesc2.dwWidth * displayHeight < surfaceDesc2.dwHeight * displayWidth)
+		if (TexWidth * DisplayBufferHeight < TexHeight * DisplayBufferWidth)
 		{
 			// 4:3 displayed on 16:9
-			BackBufferWidth = displayHeight * surfaceDesc2.dwWidth / surfaceDesc2.dwHeight;
+			BackBufferWidth = DisplayBufferHeight * TexWidth / TexHeight;
 		}
 		else
 		{
 			// 16:9 displayed on 4:3
-			BackBufferHeight = displayWidth * surfaceDesc2.dwHeight / surfaceDesc2.dwWidth;
+			BackBufferHeight = DisplayBufferWidth * TexHeight / TexWidth;
 		}
-		xpad = (displayWidth - BackBufferWidth) / 2;
-		ypad = (displayHeight - BackBufferHeight) / 2;
+		xpad = (DisplayBufferWidth - BackBufferWidth) / 2;
+		ypad = (DisplayBufferHeight - BackBufferHeight) / 2;
 	}
 
-	Logging::LogDebug() << __FUNCTION__ << " D3d9 Vertex size: " << BackBufferWidth << "x" << BackBufferHeight;
+	Logging::LogDebug() << __FUNCTION__ << " D3d9 Vertex size: " << BackBufferWidth << "x" << BackBufferHeight <<
+		" pad: " << xpad << "x" << ypad;
+
 	// Set vertex points
 	// 0, 0
 	vertices[0].x = -0.5f + xpad;
 	vertices[0].y = -0.5f + ypad;
 	vertices[0].z = 0.0f;
 	vertices[0].rhw = 1.0f;
-	vertices[0].u = 0.0f;
-	vertices[0].v = 0.0f;
+	vertices[0].u = u0tex;
+	vertices[0].v = v0tex;
 
 	// scaledWidth, 0
 	vertices[1].x = -0.5f + xpad + BackBufferWidth;
 	vertices[1].y = vertices[0].y;
 	vertices[1].z = 0.0f;
 	vertices[1].rhw = 1.0f;
-	vertices[1].u = 1.0f;
-	vertices[1].v = 0.0f;
+	vertices[1].u = u1tex;
+	vertices[1].v = v0tex;
 
 	// scaledWidth, scaledHeight
 	vertices[2].x = vertices[1].x;
 	vertices[2].y = -0.5f + ypad + BackBufferHeight;
 	vertices[2].z = 0.0f;
 	vertices[2].rhw = 1.0f;
-	vertices[2].u = 1.0f;
-	vertices[2].v = 1.0f;
+	vertices[2].u = u1tex;
+	vertices[2].v = v1tex;
 
 	// 0, scaledHeight
 	vertices[3].x = vertices[0].x;
 	vertices[3].y = vertices[2].y;
 	vertices[3].z = 0.0f;
 	vertices[3].rhw = 1.0f;
-	vertices[3].u = 0.0f;
-	vertices[3].v = 1.0f;
+	vertices[3].u = u0tex;
+	vertices[3].v = v1tex;
 
 	// Unlock vertex buffer
 	if (FAILED(vertexBuffer->Unlock()))
@@ -2636,6 +2627,39 @@ HRESULT m_IDirectDrawSurfaceX::CreateDCSurface()
 	PaletteUSN++;
 
 	return DD_OK;
+}
+
+// Update surface description
+void m_IDirectDrawSurfaceX::UpdateSurfaceDesc()
+{
+	if ((surfaceDesc2.dwFlags & (DDSD_HEIGHT | DDSD_WIDTH | DDSD_PIXELFORMAT)) != (DDSD_HEIGHT | DDSD_WIDTH | DDSD_PIXELFORMAT))
+	{
+		DDSURFACEDESC2 Desc2 = { NULL };
+		Desc2.dwSize = sizeof(DDSURFACEDESC2);
+		Desc2.ddpfPixelFormat.dwSize = sizeof(DDPIXELFORMAT);
+		GetSurfaceDesc2(&Desc2);
+
+		// Set Height and Width
+		if ((Desc2.dwFlags & (DDSD_HEIGHT | DDSD_WIDTH)) == (DDSD_HEIGHT | DDSD_WIDTH) &&
+			(surfaceDesc2.dwFlags & (DDSD_HEIGHT | DDSD_WIDTH)) != (DDSD_HEIGHT | DDSD_WIDTH))
+		{
+			surfaceDesc2.dwFlags |= DDSD_HEIGHT | DDSD_WIDTH;
+			surfaceDesc2.dwWidth = Desc2.dwWidth;
+			surfaceDesc2.dwHeight = Desc2.dwHeight;
+		}
+		// Set Refresh Rate
+		if ((Desc2.dwFlags & DDSD_REFRESHRATE) && !(surfaceDesc2.dwFlags & DDSD_REFRESHRATE))
+		{
+			surfaceDesc2.dwFlags |= DDSD_REFRESHRATE;
+			surfaceDesc2.dwRefreshRate = Desc2.dwRefreshRate;
+		}
+		// Set PixelFormat
+		if ((Desc2.dwFlags & DDSD_PIXELFORMAT) && !(surfaceDesc2.dwFlags & DDSD_PIXELFORMAT))
+		{
+			surfaceDesc2.dwFlags |= DDSD_PIXELFORMAT;
+			ConvertPixelFormat(surfaceDesc2.ddpfPixelFormat, Desc2.ddpfPixelFormat);
+		}
+	}
 }
 
 template <typename T>
@@ -3236,7 +3260,7 @@ void m_IDirectDrawSurfaceX::InitSurfaceDesc(LPDDSURFACEDESC2 lpDDSurfaceDesc2, D
 	surfaceDesc2.dwFlags &= ~(DDSD_CKDESTOVERLAY | DDSD_CKDESTBLT | DDSD_CKSRCOVERLAY | DDSD_CKSRCBLT);
 
 	// Update surface description
-	GetSurfaceDesc2(&surfaceDesc2);
+	UpdateSurfaceDesc();
 }
 
 // Add attached surface to map
