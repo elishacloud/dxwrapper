@@ -43,6 +43,7 @@
 	ShardProcs::procName ## _var = procName ## _funct;
 
 #define HOOK_WRAPPED_PROC(procName, unused) \
+	if (GetProcAddress(dll, #procName)) \
 	{ \
 		FARPROC prodAddr = (FARPROC)Hook::HookAPI(dll, dllname, Hook::GetProcAddress(dll, #procName), #procName, procName ## _funct); \
 		if (prodAddr) \
@@ -52,7 +53,10 @@
 	}
 
 #define HOOK_FORCE_WRAPPED_PROC(procName, unused) \
-	Hook::HotPatch(Hook::GetProcAddress(dll, #procName), #procName, procName ## _funct, true);
+	if (GetProcAddress(dll, #procName)) \
+	{ \
+		Hook::HotPatch(Hook::GetProcAddress(dll, #procName), #procName, procName ## _funct, true); \
+	}
 
 // Declare variables
 HMODULE hModule_dll = nullptr;
