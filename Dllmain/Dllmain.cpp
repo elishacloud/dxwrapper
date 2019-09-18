@@ -49,13 +49,15 @@
 		if (prodAddr) \
 		{ \
 			procName ## _var = prodAddr; \
+			Logging::LogDebug() << __FUNCTION__ << " " << #procName << " addr: " << prodAddr; \
 		} \
 	}
 
 #define HOOK_FORCE_WRAPPED_PROC(procName, unused) \
 	if (GetProcAddress(dll, #procName)) \
 	{ \
-		Hook::HotPatch(Hook::GetProcAddress(dll, #procName), #procName, procName ## _funct, true); \
+		FARPROC prodAddr = (FARPROC)Hook::HotPatch(Hook::GetProcAddress(dll, #procName), #procName, procName ## _funct, true); \
+		Logging::LogDebug() << __FUNCTION__ << " " << #procName << " addr: " << prodAddr; \
 	}
 
 // Declare variables
