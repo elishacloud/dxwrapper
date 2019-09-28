@@ -2421,19 +2421,36 @@ HRESULT m_IDirectDrawSurfaceX::CreateD3d9Surface()
 	DWORD DisplayBufferHeight = (displayHeight > BackBufferHeight) ? displayHeight : BackBufferHeight;
 	DWORD TexWidth = surfaceDesc2.dwWidth;
 	DWORD TexHeight = surfaceDesc2.dwHeight;
-	if (Config.DdrawScaledWidth && Config.DdrawScaledWidth < TexWidth &&
-		Config.DdrawScaledHeight && Config.DdrawScaledHeight < TexHeight)
+	if (Config.DdrawClippedWidth && Config.DdrawClippedWidth <= TexWidth &&
+		Config.DdrawClippedHeight && Config.DdrawClippedHeight <= TexHeight)
 	{
-		u0tex = (((TexWidth - Config.DdrawScaledWidth) / 2.0f)) / TexWidth;
-		u1tex = u0tex + ((float)Config.DdrawScaledWidth / TexWidth);
+		u0tex = (((TexWidth - Config.DdrawClippedWidth) / 2.0f)) / TexWidth;
+		u1tex = u0tex + ((float)Config.DdrawClippedWidth / TexWidth);
 
-		v0tex = (((TexHeight - Config.DdrawScaledHeight) / 2.0f)) / TexHeight;
-		v1tex = v0tex + ((float)Config.DdrawScaledHeight / TexHeight);
+		v0tex = (((TexHeight - Config.DdrawClippedHeight) / 2.0f)) / TexHeight;
+		v1tex = v0tex + ((float)Config.DdrawClippedHeight / TexHeight);
 
-		TexWidth = Config.DdrawScaledWidth;
-		TexHeight = Config.DdrawScaledHeight;
+		TexWidth = Config.DdrawClippedWidth;
+		TexHeight = Config.DdrawClippedHeight;
 	}
-	if (Config.DdrawMaintainAspectRatio)
+	if (Config.DdrawIntegerScalingClamp)
+	{
+		DWORD xScaleRatio = DisplayBufferWidth / TexWidth;
+		DWORD yScaleRatio = DisplayBufferHeight / TexHeight;
+
+		if (Config.DdrawMaintainAspectRatio)
+		{
+			xScaleRatio = min(xScaleRatio, yScaleRatio);
+			yScaleRatio = min(xScaleRatio, yScaleRatio);
+		}
+
+		BackBufferWidth = xScaleRatio * TexWidth;
+		BackBufferHeight = yScaleRatio * TexHeight;
+
+		xpad = (DisplayBufferWidth - BackBufferWidth) / 2;
+		ypad = (DisplayBufferHeight - BackBufferHeight) / 2;
+	}
+	else if (Config.DdrawMaintainAspectRatio)
 	{
 		if (TexWidth * DisplayBufferHeight < TexHeight * DisplayBufferWidth)
 		{
