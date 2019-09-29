@@ -2278,7 +2278,7 @@ HRESULT m_IDirectDrawSurfaceX::CreateD3d9Surface()
 	surfaceBitCount = GetBitCount(surfaceFormat);
 	IsSurfaceEmulated = (surfaceFormat == D3DFMT_R8G8B8) ||
 		(Config.DdrawEmulateSurface && (surfaceFormat == D3DFMT_P8 || surfaceFormat == D3DFMT_R5G6B5 || surfaceFormat == D3DFMT_A1R5G5B5 || surfaceFormat == D3DFMT_X1R5G5B5 ||
-			surfaceFormat == D3DFMT_A8R8G8B8 || surfaceFormat == D3DFMT_X8R8G8B8));
+			surfaceFormat == D3DFMT_R8G8B8 || surfaceFormat == D3DFMT_A8R8G8B8 || surfaceFormat == D3DFMT_X8R8G8B8));
 	DCRequiresEmulation = (surfaceFormat != D3DFMT_R5G6B5 && surfaceFormat != D3DFMT_X1R5G5B5 && surfaceFormat != D3DFMT_R8G8B8 && surfaceFormat != D3DFMT_X8R8G8B8);
 	D3DFORMAT Format = (surfaceFormat == D3DFMT_P8) ? D3DFMT_L8 : (surfaceFormat == D3DFMT_R8G8B8) ? D3DFMT_X8R8G8B8 : surfaceFormat;
 
@@ -3623,7 +3623,7 @@ HRESULT m_IDirectDrawSurfaceX::CopySurface(m_IDirectDrawSurfaceX* pSourceSurface
 		// Copy memory (simple)
 		if (!IsStretchRect && !IsColorKey & !IsMirrorLeftRight)
 		{
-			if ((DestRectWidth * (INT)ByteCount) == DestPitch && SrcLockRect.Pitch == DestLockRect.Pitch)
+			if (SrcLockRect.Pitch == DestLockRect.Pitch && (DestRectWidth * (INT)ByteCount) == DestPitch)
 			{
 				memcpy(DestBuffer, SrcBuffer, DestRectHeight * DestLockRect.Pitch);
 			}
@@ -3768,7 +3768,7 @@ HRESULT m_IDirectDrawSurfaceX::CopyEmulatedSurface(LPRECT lpDestRect, bool CopyT
 		default:
 			if (CopyToRealSurfaceTexture)
 			{
-				if (WidthPitch == SurfaceLockRect.Pitch)
+				if (SurfaceLockRect.Pitch == EmulatedLockRect.Pitch && WidthPitch == SurfaceLockRect.Pitch)
 				{
 					memcpy(SurfaceBuffer, EmulatedBuffer, SurfaceLockRect.Pitch * RectHeight);
 				}
@@ -3784,7 +3784,7 @@ HRESULT m_IDirectDrawSurfaceX::CopyEmulatedSurface(LPRECT lpDestRect, bool CopyT
 			}
 			else
 			{
-				if (WidthPitch == EmulatedLockRect.Pitch)
+				if (SurfaceLockRect.Pitch == EmulatedLockRect.Pitch && WidthPitch == EmulatedLockRect.Pitch)
 				{
 					memcpy(EmulatedBuffer, SurfaceBuffer, EmulatedLockRect.Pitch * RectHeight);
 				}
