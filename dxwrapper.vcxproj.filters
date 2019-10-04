@@ -1724,6 +1724,9 @@
     <ClInclude Include="ddraw\d3d9ShaderPalette.h">
       <Filter>ddraw</Filter>
     </ClInclude>
+    <ClInclude Include="Wrappers\dwmapi.h">
+      <Filter>Wrappers</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="Dllmain\BuildNo.rc">

@@ -659,6 +659,7 @@ cmd /q /c "cd /D ""$(ProjectDir)d3d8\"" &amp;&amp; del build.bat"</Command>
     <ClInclude Include="Wrappers\dinput8.h" />
     <ClInclude Include="Wrappers\dplayx.h" />
     <ClInclude Include="Wrappers\dsound.h" />
+    <ClInclude Include="Wrappers\dwmapi.h" />
     <ClInclude Include="Wrappers\msacm32.h" />
     <ClInclude Include="Wrappers\msvfw32.h" />
     <ClInclude Include="Wrappers\shared.h" />

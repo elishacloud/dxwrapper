@@ -27,6 +27,7 @@ namespace Wrapper
 	visit(dinput8) \
 	visit(dplayx) \
 	visit(dsound) \
+	visit(dwmapi) \
 	visit(msacm32) \
 	visit(msvfw32) \
 	visit(version) \
@@ -48,6 +49,7 @@ namespace Wrapper
 #include "dinput8.h"
 #include "dplayx.h"
 #include "dsound.h"
+#include "dwmapi.h"
 #include "msacm32.h"
 #include "msvfw32.h"
 #include "version.h"

@@ -396,6 +396,57 @@ DirectPlayLobbyCreateW
 
 
 ; ****
+;LIBRARY "dwmapi"
+; ****
+DllCanUnloadNow					PRIVATE
+DllGetClassObject				PRIVATE
+DwmAttachMilContent
+DwmDefWindowProc
+DwmDetachMilContent
+DwmEnableBlurBehindWindow
+DwmEnableComposition
+DwmEnableMMCSS
+DwmExtendFrameIntoClientArea
+DwmFlush
+DwmGetColorizationColor
+DwmGetCompositionTimingInfo
+DwmGetGraphicsStreamClient
+DwmGetGraphicsStreamTransformHint
+DwmGetTransportAttributes
+DwmGetUnmetTabRequirements
+DwmGetWindowAttribute
+DwmInvalidateIconicBitmaps
+DwmIsCompositionEnabled
+DwmModifyPreviousDxFrameDuration
+DwmQueryThumbnailSourceSize
+DwmRegisterThumbnail
+DwmRenderGesture
+DwmSetDxFrameDuration
+DwmSetIconicLivePreviewBitmap
+DwmSetIconicThumbnail
+DwmSetPresentParameters
+DwmSetWindowAttribute
+DwmShowContact
+DwmTetherContact
+DwmTetherTextContact
+DwmTransitionOwnedWindow
+DwmUnregisterThumbnail
+DwmUpdateThumbnailProperties
+DwmpAllocateSecurityDescriptor
+DwmpDxBindSwapChain
+DwmpDxGetWindowSharedSurface
+DwmpDxUnbindSwapChain
+DwmpDxUpdateWindowRedirectionBltSurface
+DwmpDxUpdateWindowSharedSurface
+DwmpDxgiIsThreadDesktopComposited
+DwmpEnableDDASupport
+DwmpFreeSecurityDescriptor
+DwmpGetColorizationParameters
+DwmpRenderFlick
+DwmpSetColorizationParameters
+
+
+; ****
 ;LIBRARY "msacm32"
 ; ****
 XRegThunkEntry
