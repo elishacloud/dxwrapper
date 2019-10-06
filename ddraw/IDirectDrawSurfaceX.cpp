@@ -284,7 +284,7 @@ HRESULT m_IDirectDrawSurfaceX::Blt(LPRECT lpDestRect, LPDIRECTDRAWSURFACE7 lpDDS
 		// Check for non-Win32 raster operations flag
 		if (dwFlags & DDBLT_DDROPS)
 		{
-			LOG_LIMIT(100, __FUNCTION__ << " Non-Win32 raster operations Not Implemented ");
+			LOG_LIMIT(100, __FUNCTION__ << " Non-Win32 raster operations Not Implemented");
 			return DDERR_NODDROPSHW;
 		}
 
@@ -314,12 +314,16 @@ HRESULT m_IDirectDrawSurfaceX::Blt(LPRECT lpDestRect, LPDIRECTDRAWSURFACE7 lpDDS
 			return DDERR_NOROTATIONHW;
 		}
 
-		// Unused flags (can be safely ignored?)
-		// DDBLT_ALPHA
+		// Check for Alpha flags
+		if (dwFlags & 0x1FF)
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " DDBLT_ALPHA flags Not Implemented " << Logging::hex(dwFlags & 0x1FF));
+		}
+
+		// Unneeded flags (can be safely ignored?)
 		// DDBLT_ASYNC
 		// DDBLT_DONOTWAIT
 		// DDBLT_WAIT
-		// DDBLTFX_NOTEARING
 
 		// Use WaitForVerticalBlank for wait timer
 		if ((dwFlags & DDBLT_DDFX) && (lpDDBltFx->dwDDFX & DDBLTFX_NOTEARING))
@@ -733,7 +737,6 @@ HRESULT m_IDirectDrawSurfaceX::Flip(LPDIRECTDRAWSURFACE7 lpDDSurfaceTargetOverri
 		}
 
 		// Unneeded flags (can be safely ignored?)
-		// Note: vsync handled by d3d9 PresentationInterval
 		// - DDFLIP_DONOTWAIT
 		// - DDFLIP_WAIT
 
