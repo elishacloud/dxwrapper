@@ -419,6 +419,17 @@ HRESULT m_IDirectDrawSurfaceX::Blt(LPRECT lpDestRect, LPDIRECTDRAWSURFACE7 lpDDS
 
 			// Present surface
 			PresentSurface(isSkipScene);
+
+			if (emu && IsPrimarySurface() && lpDestRect)
+			{
+				int XOffset = 0;
+				int YOffset = 23;
+				LONG Left = (lpDestRect->left >= XOffset) ? lpDestRect->left - XOffset : lpDestRect->left;
+				LONG Top = (lpDestRect->top >= YOffset) ? lpDestRect->top - YOffset : lpDestRect->top;
+				LONG Width = lpDestRect->right - lpDestRect->left;
+				LONG Height = lpDestRect->bottom - lpDestRect->top;
+				BitBlt(ddrawParent->GetDC(), Left, Top, Width, Height, emu->surfaceDC, lpDestRect->left, lpDestRect->top, SRCCOPY);
+			}
 		}
 
 		IsInBlt = false;

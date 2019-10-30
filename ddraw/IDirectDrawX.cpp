@@ -1161,17 +1161,20 @@ HRESULT m_IDirectDrawX::SetCooperativeLevel(HWND hWnd, DWORD dwFlags)
 			t_hWnd = data.best_handle;
 		}
 
-		if (MainhWnd && MainhDC && (MainhWnd != t_hWnd))
+		if (!MainhDC || !MainhWnd)
 		{
-			ReleaseDC(MainhWnd, MainhDC);
-			MainhDC = nullptr;
-		}
+			if (MainhWnd && MainhDC && (MainhWnd != t_hWnd))
+			{
+				ReleaseDC(MainhWnd, MainhDC);
+				MainhDC = nullptr;
+			}
 
-		MainhWnd = t_hWnd;
+			MainhWnd = t_hWnd;
 
-		if (MainhWnd && !MainhDC)
-		{
-			MainhDC = ::GetDC(MainhWnd);
+			if (MainhWnd && !MainhDC)
+			{
+				MainhDC = ::GetDC(MainhWnd);
+			}
 		}
 
 		return DD_OK;
@@ -1594,17 +1597,22 @@ void m_IDirectDrawX::SetDdrawDefaults()
 	NoWindowChanges = false;
 	isWindowed = true;
 
-	// Exclusive mode
-	ExclusiveMode = false;
-	ExclusiveHwnd = nullptr;
-
-	// Application display mode
-	if (MainhWnd && MainhDC)
+	static bool RunOnce = true;
+	if (RunOnce)
 	{
-		ReleaseDC(MainhWnd, MainhDC);
+		// Exclusive mode
+		ExclusiveMode = false;
+		ExclusiveHwnd = nullptr;
+
+		// Application display mode
+		if (MainhWnd && MainhDC)
+		{
+			ReleaseDC(MainhWnd, MainhDC);
+		}
+		MainhWnd = nullptr;
+		MainhDC = nullptr;
+		RunOnce = false;
 	}
-	MainhWnd = nullptr;
-	MainhDC = nullptr;
 	displayModeWidth = 0;
 	displayModeHeight = 0;
 	displayModeBPP = 0;
@@ -2221,7 +2229,7 @@ HRESULT m_IDirectDrawX::EndScene()
 	IsInScene = false;
 
 	// Present everthing
-	HRESULT hr = d3d9Device->Present(nullptr, nullptr, nullptr, nullptr);
+	HRESULT hr = DD_OK;	// d3d9Device->Present(nullptr, nullptr, nullptr, nullptr);
 
 	// Device lost
 	if (hr == D3DERR_DEVICELOST)
