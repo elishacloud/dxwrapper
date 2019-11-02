@@ -14,6 +14,10 @@ private:
 	HHOOK g_hook = nullptr;
 	HWND chWnd = nullptr;
 
+	// Cooperative level settings
+	HWND MainhWnd = nullptr;
+	HDC MainhDC = nullptr;
+
 	// Store ddraw version wrappers
 	std::unique_ptr<m_IDirectDraw> UniqueProxyInterface = nullptr;
 	std::unique_ptr<m_IDirectDraw2> UniqueProxyInterface2 = nullptr;

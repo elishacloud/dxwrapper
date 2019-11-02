@@ -414,21 +414,34 @@ HRESULT m_IDirectDrawSurfaceX::Blt(LPRECT lpDestRect, LPDIRECTDRAWSURFACE7 lpDDS
 		// If successful
 		if (SUCCEEDED(hr))
 		{
-			// Set dirty flag
-			dirtyFlag = true;
-
-			// Present surface
-			PresentSurface(isSkipScene);
-
-			if (emu && IsPrimarySurface() && lpDestRect)
+			// SWAT 2 patch to Blt directly to GDI
+			if (Config.PatchForSWAT2)
 			{
-				int XOffset = 0;
-				int YOffset = 23;
-				LONG Left = (lpDestRect->left >= XOffset) ? lpDestRect->left - XOffset : lpDestRect->left;
-				LONG Top = (lpDestRect->top >= YOffset) ? lpDestRect->top - YOffset : lpDestRect->top;
-				LONG Width = lpDestRect->right - lpDestRect->left;
-				LONG Height = lpDestRect->bottom - lpDestRect->top;
-				BitBlt(ddrawParent->GetDC(), Left, Top, Width, Height, emu->surfaceDC, lpDestRect->left, lpDestRect->top, SRCCOPY);
+				if (IsPrimarySurface() && emu && emu->surfaceDC && ddrawParent->GetDC())
+				{
+					int XOffset = 0;
+					int YOffset = 23;
+					RECT DestRect = {
+						(lpDestRect) ? lpDestRect->left : 0,
+						(lpDestRect) ? lpDestRect->top : 0,
+						(lpDestRect) ? lpDestRect->right : (LONG)GetWidth(),
+						(lpDestRect) ? lpDestRect->bottom : (LONG)GetHeight()
+					};
+					LONG Left = (DestRect.left >= XOffset) ? DestRect.left - XOffset : DestRect.left;
+					LONG Top = (DestRect.top >= YOffset) ? DestRect.top - YOffset : DestRect.top;
+					LONG Width = DestRect.right - DestRect.left;
+					LONG Height = DestRect.bottom - DestRect.top;
+					BitBlt(ddrawParent->GetDC(), Left, Top, Width, Height, emu->surfaceDC, DestRect.left, DestRect.top, SRCCOPY);
+				}
+			}
+			// Other games
+			else
+			{
+				// Set dirty flag
+				dirtyFlag = true;
+
+				// Present surface
+				PresentSurface(isSkipScene);
 			}
 		}
 

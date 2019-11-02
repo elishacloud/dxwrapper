@@ -65,6 +65,7 @@
 	visit(LoopSleepTime) \
 	visit(Num2DBuffers) \
 	visit(Num3DBuffers) \
+	visit(PatchForSWAT2) \
 	visit(PreventSpeakerSetup) \
 	visit(PrimaryBufferBits) \
 	visit(PrimaryBufferChannels) \
@@ -203,6 +204,7 @@ struct CONFIG
 	bool LoadPlugins;					// Loads ASI plugins
 	bool LoadFromScriptsOnly;			// Loads ASI plugins from 'scripts' and 'plugins' folder only
 	bool ProcessExcluded;				// Set if this process is excluded from dxwrapper functions
+	bool PatchForSWAT2;					// Patch for SWAT 2, disables Preset() and will Blt to GDI
 	bool ResetScreenRes;				// Reset the screen resolution on close
 	bool SendAltEnter;					// Sends an Alt+Enter message to the wind to tell it to go into fullscreen, requires FullScreen
 	bool WaitForProcess;				// Waits for process to end before continuing, requires FullScreen
