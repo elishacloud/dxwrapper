@@ -1493,12 +1493,12 @@ HRESULT m_IDirectDrawSurfaceX::IsLost()
 		// Check device
 		switch ((*d3d9Device)->TestCooperativeLevel())
 		{
+		case D3D_OK:
+			return DD_OK;
 		case D3DERR_DEVICELOST:
 			return DDERR_SURFACELOST;
 		case D3DERR_DEVICENOTRESET:
-			ddrawParent->ReinitDevice();
-		case D3D_OK:
-			return DD_OK;
+			return ddrawParent->ReinitDevice();
 		case D3DERR_DRIVERINTERNALERROR:
 		case D3DERR_INVALIDCALL:
 		default:

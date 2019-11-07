@@ -354,6 +354,24 @@ HRESULT m_IDirectDrawX::CreateSurface2(LPDDSURFACEDESC2 lpDDSurfaceDesc2, LPDIRE
 			return DDERR_INVALIDPARAMS;
 		}
 
+		if (!displayModeWidth && !displayModeHeight && !displayModeBPP && (lpDDSurfaceDesc2->ddsCaps.dwCaps & DDSCAPS_PRIMARYSURFACE))
+		{
+			HWND hwnd = GetHwnd();
+			DWORD Width = 0, Height = 0;
+			if (IsWindow(hwnd))
+			{
+				RECT Rect;
+				GetClientRect(hwnd, &Rect);
+				Width = Rect.right - Rect.left;
+				Height = Rect.bottom - Rect.top;
+			}
+			if (Width && Height)
+			{
+				Logging::LogDebug() << __FUNCTION__ << " Setting the display mode " << Width << "x" << Height;
+				SetDisplayMode(Width, Height, 32, 0, 0);
+			}
+		}
+
 		DDSURFACEDESC2 Desc2;
 		Desc2.dwSize = sizeof(DDSURFACEDESC2);
 		Desc2.ddpfPixelFormat.dwSize = sizeof(DDPIXELFORMAT);
