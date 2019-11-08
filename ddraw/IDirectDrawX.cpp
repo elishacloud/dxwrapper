@@ -358,17 +358,18 @@ HRESULT m_IDirectDrawX::CreateSurface2(LPDDSURFACEDESC2 lpDDSurfaceDesc2, LPDIRE
 		{
 			HWND hwnd = GetHwnd();
 			DWORD Width = 0, Height = 0;
+			DWORD BitMode = (Config.DdrawOverrideBitMode) ? Config.DdrawOverrideBitMode : 32;
 			if (IsWindow(hwnd))
 			{
-				RECT Rect;
+				RECT Rect = { NULL };
 				GetClientRect(hwnd, &Rect);
 				Width = Rect.right - Rect.left;
 				Height = Rect.bottom - Rect.top;
 			}
 			if (Width && Height)
 			{
-				Logging::LogDebug() << __FUNCTION__ << " Setting the display mode " << Width << "x" << Height;
-				SetDisplayMode(Width, Height, 32, 0, 0);
+				Logging::LogDebug() << __FUNCTION__ << " Setting the display mode " << Width << "x" << Height << " " << BitMode;
+				SetDisplayMode(Width, Height, BitMode, 0, 0);
 			}
 		}
 
@@ -722,6 +723,11 @@ HRESULT m_IDirectDrawX::GetCaps(LPDDCAPS lpDDDriverCaps, LPDDCAPS lpDDHELCaps)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
+	if (!lpDDDriverCaps && !lpDDHELCaps)
+	{
+		return DDERR_INVALIDPARAMS;
+	}
+
 	DDCAPS DriverCaps, HELCaps;
 	DriverCaps.dwSize = sizeof(DDCAPS);
 	HELCaps.dwSize = sizeof(DDCAPS);
@@ -730,11 +736,6 @@ HRESULT m_IDirectDrawX::GetCaps(LPDDCAPS lpDDDriverCaps, LPDDCAPS lpDDHELCaps)
 
 	if (Config.Dd7to9)
 	{
-		if (!lpDDDriverCaps && !lpDDHELCaps)
-		{
-			return DDERR_INVALIDPARAMS;
-		}
-
 		// Check for device interface
 		if (FAILED(CheckInterface(__FUNCTION__, false)))
 		{
@@ -1135,7 +1136,7 @@ HRESULT m_IDirectDrawX::SetCooperativeLevel(HWND hWnd, DWORD dwFlags)
 				ExclusiveMode = false;
 				ExclusiveHwnd = nullptr;
 			}
-				isWindowed = true;
+			isWindowed = true;
 		}
 		else if (dwFlags & DDSCL_FULLSCREEN)
 		{
