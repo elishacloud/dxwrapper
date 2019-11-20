@@ -227,11 +227,11 @@ void ConvertCaps(DDCAPS &Caps7, D3DCAPS9 &Caps9)
 
 	// General settings
 	tmpCaps7.dwPalCaps = DDPCAPS_8BIT | DDPCAPS_ALLOW256;
-	tmpCaps7.dwMaxVisibleOverlays = 0x1;
-	tmpCaps7.dwNumFourCCCodes = 0x12;
+	//tmpCaps7.dwMaxVisibleOverlays = 0x1;
+	//tmpCaps7.dwNumFourCCCodes = 0x12;
 	tmpCaps7.dwRops[6] = 4096;
-	tmpCaps7.dwMinOverlayStretch = 0x1;
-	tmpCaps7.dwMaxOverlayStretch = 0x4e20;
+	//tmpCaps7.dwMinOverlayStretch = 0x1;
+	//tmpCaps7.dwMaxOverlayStretch = 0x4e20;
 
 	// Caps
 	tmpCaps7.dwCaps = (Caps9.Caps & (D3DCAPS_OVERLAY | D3DCAPS_READ_SCANLINE)) |
@@ -247,6 +247,10 @@ void ConvertCaps(DDCAPS &Caps7, D3DCAPS9 &Caps9)
 	tmpCaps7.ddsCaps.dwCaps = (DDSCAPS_BACKBUFFER | DDSCAPS_COMPLEX | DDSCAPS_FLIP | DDSCAPS_FRONTBUFFER | DDSCAPS_OFFSCREENPLAIN /*| DDSCAPS_OVERLAY*/ | DDSCAPS_PALETTE |
 		DDSCAPS_PRIMARYSURFACE | DDSCAPS_TEXTURE /*| DDSCAPS_3DDEVICE*/ | DDSCAPS_VIDEOMEMORY | /*DDSCAPS_ZBUFFER |*/ DDSCAPS_OWNDC /*| DDSCAPS_MIPMAP*/ | DDSCAPS_LOCALVIDMEM |
 		DDSCAPS_NONLOCALVIDMEM);
+	// Extra ddsCaps parameters
+	tmpCaps7.ddsCaps.dwCaps2 = 0;	// Additional surface capabilities
+	tmpCaps7.ddsCaps.dwCaps3 = 0;	// Not used
+	tmpCaps7.ddsCaps.dwCaps4 = 0;	// Not used
 	ConvertCaps(tmpCaps7.ddsOldCaps, tmpCaps7.ddsCaps);
 
 	// Copy to variable

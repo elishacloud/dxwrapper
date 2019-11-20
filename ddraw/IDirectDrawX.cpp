@@ -20,7 +20,8 @@
 #include "ddrawExternal.h"
 #include "Utils\Utils.h"
 
-constexpr DWORD MaxVidMemory = 0x8000000;
+constexpr DWORD MaxVidMemory  = 0x16000000;	// 256 MBs
+constexpr DWORD UsedVidMemory = 0x00100000;	// 1 MB
 
 // ddraw interface counter
 DWORD ddrawRefCount = 0;
@@ -732,7 +733,7 @@ HRESULT m_IDirectDrawX::GetCaps(LPDDCAPS lpDDDriverCaps, LPDDCAPS lpDDHELCaps)
 	DriverCaps.dwSize = sizeof(DDCAPS);
 	HELCaps.dwSize = sizeof(DDCAPS);
 
-	HRESULT hr = DDERR_GENERIC;
+	HRESULT hr = DD_OK;
 
 	if (Config.Dd7to9)
 	{
@@ -744,7 +745,7 @@ HRESULT m_IDirectDrawX::GetCaps(LPDDCAPS lpDDDriverCaps, LPDDCAPS lpDDHELCaps)
 
 		// Get video memory
 		DWORD dwVidTotal = MaxVidMemory;
-		DWORD dwVidFree = MaxVidMemory - 0x100000;
+		DWORD dwVidFree = MaxVidMemory - UsedVidMemory;
 		GetAvailableVidMem2(nullptr, &dwVidTotal, &dwVidFree);
 
 		// Get caps
@@ -827,8 +828,7 @@ HRESULT m_IDirectDrawX::GetDisplayMode2(LPDDSURFACEDESC2 lpDDSurfaceDesc2)
 	{
 		if (!lpDDSurfaceDesc2)
 		{
-			// Just return OK
-			return DD_OK;
+			return DDERR_INVALIDPARAMS;
 		}
 
 		// Set Surface Desc
@@ -848,6 +848,10 @@ HRESULT m_IDirectDrawX::GetDisplayMode2(LPDDSURFACEDESC2 lpDDSurfaceDesc2)
 			lpDDSurfaceDesc2->dwRefreshRate = Utils::GetRefreshRate(GetHwnd());
 			displayModeBits = GetDeviceCaps(hdc, BITSPIXEL);
 			ReleaseDC(nullptr, hdc);
+		}
+		if (lpDDSurfaceDesc2->dwSize == sizeof(DDSURFACEDESC2) && !lpDDSurfaceDesc2->ddpfPixelFormat.dwSize)
+		{
+			lpDDSurfaceDesc2->ddpfPixelFormat.dwSize = sizeof(DDPIXELFORMAT);
 		}
 
 		// Force color mode
@@ -1393,21 +1397,26 @@ HRESULT m_IDirectDrawX::GetAvailableVidMem2(LPDDSCAPS2 lpDDSCaps2, LPDWORD lpdwT
 
 	if (Config.Dd7to9)
 	{
+		if (!lpDDSCaps2 && !lpdwTotal && !lpdwFree)
+		{
+			return DDERR_INVALIDPARAMS;
+		}
+
 		// Check for device interface
 		if (FAILED(CheckInterface(__FUNCTION__, true)))
 		{
 			return DDERR_GENERIC;
 		}
 
-		DWORD TotalMemory = d3d9Device->GetAvailableTextureMem();
+		DWORD AvailableMemory = d3d9Device->GetAvailableTextureMem();
 
 		if (lpdwTotal)
 		{
-			*lpdwTotal = TotalMemory;
+			*lpdwTotal = AvailableMemory;
 		}
 		if (lpdwFree)
 		{
-			*lpdwFree = (TotalMemory > 0x100000) ? TotalMemory - 0x100000 : TotalMemory;
+			*lpdwFree = AvailableMemory;
 		}
 	}
 	else
@@ -2151,7 +2160,7 @@ void m_IDirectDrawX::AdjustVidMemory(LPDWORD lpdwTotal, LPDWORD lpdwFree)
 	DWORD TotalVidMem = (lpdwTotal) ? *lpdwTotal : (lpdwFree) ? *lpdwFree : MaxVidMemory;
 	if (lpdwFree && *lpdwFree > TotalVidMem)
 	{
-		*lpdwFree = (TotalVidMem > 0x100000) ? TotalVidMem - 0x100000 : TotalVidMem;
+		*lpdwFree = (TotalVidMem > UsedVidMemory) ? TotalVidMem - UsedVidMemory : TotalVidMem;
 	}
 }
 

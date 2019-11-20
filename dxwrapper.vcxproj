@@ -53,8 +53,8 @@
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
       <ObjectFileName>$(SolutionDir)bin\Intermediate\$(Configuration)\Object\%(RelativeDir)</ObjectFileName>
       <WarningLevel>Level4</WarningLevel>
-      <BufferSecurityCheck>false</BufferSecurityCheck>
       <AdditionalIncludeDirectories>$(ProjectDir);Libraries;Libraries\DirectX81SDK\include;DDrawCompat\Experimental;External\detours\src</AdditionalIncludeDirectories>
+      <FloatingPointModel>Fast</FloatingPointModel>
     </ClCompile>
     <Link>
       <AdditionalDependencies>dxguid.lib;detours.lib;msimg32.lib;oleacc.lib;%(AdditionalDependencies)</AdditionalDependencies>
@@ -77,12 +77,9 @@ copy /Y "$(ProjectDir)Resources\dxwnd.exe" "$(TargetDir)Build\" &gt;nul</Command
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
       <ObjectFileName>$(SolutionDir)bin\Intermediate\$(Configuration)\Object\%(RelativeDir)</ObjectFileName>
       <WarningLevel>Level4</WarningLevel>
-      <BufferSecurityCheck>false</BufferSecurityCheck>
-      <ControlFlowGuard>false</ControlFlowGuard>
       <FloatingPointModel>Fast</FloatingPointModel>
       <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
-      <EnableEnhancedInstructionSet>StreamingSIMDExtensions2</EnableEnhancedInstructionSet>
       <AdditionalIncludeDirectories>$(ProjectDir);Libraries;Libraries\DirectX81SDK\include;DDrawCompat\Experimental;External\detours\src</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
