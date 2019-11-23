@@ -306,14 +306,14 @@ HRESULT m_IDirectDrawX::CreateSurface(LPDDSURFACEDESC lpDDSurfaceDesc, LPDIRECTD
 	// Game using old DirectX, Convert to LPDDSURFACEDESC2
 	if (ProxyDirectXVersion > 3)
 	{
-		if (!lplpDDSurface || !lpDDSurfaceDesc)
+		if (!lplpDDSurface || !lpDDSurfaceDesc || lpDDSurfaceDesc->dwSize != sizeof(DDSURFACEDESC))
 		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error! Invalid parameters. dwSize: " << ((lpDDSurfaceDesc) ? lpDDSurfaceDesc->dwSize : -1));
 			return DDERR_INVALIDPARAMS;
 		}
 
 		DDSURFACEDESC2 Desc2;
 		Desc2.dwSize = sizeof(DDSURFACEDESC2);
-		Desc2.ddpfPixelFormat.dwSize = sizeof(DDPIXELFORMAT);
 		ConvertSurfaceDesc(Desc2, *lpDDSurfaceDesc);
 
 		return CreateSurface2(&Desc2, lplpDDSurface, pUnkOuter, DirectXVersion);
@@ -335,8 +335,9 @@ HRESULT m_IDirectDrawX::CreateSurface2(LPDDSURFACEDESC2 lpDDSurfaceDesc2, LPDIRE
 
 	if (Config.Dd7to9)
 	{
-		if (!lplpDDSurface || !lpDDSurfaceDesc2)
+		if (!lplpDDSurface || !lpDDSurfaceDesc2 || lpDDSurfaceDesc2->dwSize != sizeof(DDSURFACEDESC2))
 		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error! Invalid parameters. dwSize: " << ((lpDDSurfaceDesc2) ? lpDDSurfaceDesc2->dwSize : -1));
 			return DDERR_INVALIDPARAMS;
 		}
 
@@ -376,7 +377,6 @@ HRESULT m_IDirectDrawX::CreateSurface2(LPDDSURFACEDESC2 lpDDSurfaceDesc2, LPDIRE
 
 		DDSURFACEDESC2 Desc2;
 		Desc2.dwSize = sizeof(DDSURFACEDESC2);
-		Desc2.ddpfPixelFormat.dwSize = sizeof(DDPIXELFORMAT);
 		ConvertSurfaceDesc(Desc2, *lpDDSurfaceDesc2);
 		Desc2.ddsCaps.dwCaps4 = DDSCAPS4_CREATESURFACE |											// Indicates surface was created using CreateSurface()
 			((Desc2.ddsCaps.dwCaps & DDSCAPS_PRIMARYSURFACE) ? DDSCAPS4_PRIMARYSURFACE : NULL);		// Indicates surface is a primary surface or a backbuffer of a primary surface
@@ -461,7 +461,6 @@ HRESULT m_IDirectDrawX::DuplicateSurface(LPDIRECTDRAWSURFACE7 lpDDSurface, LPDIR
 
 		DDSURFACEDESC2 Desc2;
 		Desc2.dwSize = sizeof(DDSURFACEDESC2);
-		Desc2.ddpfPixelFormat.dwSize = sizeof(DDPIXELFORMAT);
 		lpDDSurfaceX->GetSurfaceDesc2(&Desc2);
 		Desc2.ddsCaps.dwCaps &= ~DDSCAPS_PRIMARYSURFACE;		// Remove Primary surface flag
 
@@ -494,14 +493,14 @@ HRESULT m_IDirectDrawX::EnumDisplayModes(DWORD dwFlags, LPDDSURFACEDESC lpDDSurf
 	// Game using old DirectX, Convert to LPDDSURFACEDESC2
 	if (ProxyDirectXVersion > 3)
 	{
-		if (!lpEnumModesCallback)
+		if (!lpEnumModesCallback || (lpDDSurfaceDesc && lpDDSurfaceDesc->dwSize != sizeof(DDSURFACEDESC)))
 		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error! Invalid parameters. dwSize: " << ((lpDDSurfaceDesc) ? lpDDSurfaceDesc->dwSize : -1));
 			return DDERR_INVALIDPARAMS;
 		}
 
 		DDSURFACEDESC2 Desc2;
 		Desc2.dwSize = sizeof(DDSURFACEDESC2);
-		Desc2.ddpfPixelFormat.dwSize = sizeof(DDPIXELFORMAT);
 		if (lpDDSurfaceDesc)
 		{
 			ConvertSurfaceDesc(Desc2, *lpDDSurfaceDesc);
@@ -523,8 +522,9 @@ HRESULT m_IDirectDrawX::EnumDisplayModes2(DWORD dwFlags, LPDDSURFACEDESC2 lpDDSu
 
 	if (Config.Dd7to9)
 	{
-		if (!lpEnumModesCallback2)
+		if (!lpEnumModesCallback2 || (lpDDSurfaceDesc2 && lpDDSurfaceDesc2->dwSize != sizeof(DDSURFACEDESC2)))
 		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error! Invalid parameters. dwSize: " << ((lpDDSurfaceDesc2) ? lpDDSurfaceDesc2->dwSize : -1));
 			return DDERR_INVALIDPARAMS;
 		}
 
@@ -560,7 +560,6 @@ HRESULT m_IDirectDrawX::EnumDisplayModes2(DWORD dwFlags, LPDDSURFACEDESC2 lpDDSu
 		// Setup surface desc
 		DDSURFACEDESC2 Desc2 = { NULL };
 		Desc2.dwSize = sizeof(DDSURFACEDESC2);
-		Desc2.ddpfPixelFormat.dwSize = sizeof(DDPIXELFORMAT);
 
 		// Setup display mode
 		D3DDISPLAYMODE d3ddispmode;
@@ -601,12 +600,13 @@ HRESULT m_IDirectDrawX::EnumDisplayModes2(DWORD dwFlags, LPDDSURFACEDESC2 lpDDSu
 
 					// Set surface desc options
 					Desc2.dwSize = sizeof(DDSURFACEDESC2);
-					Desc2.dwFlags = DDSD_WIDTH | DDSD_HEIGHT | DDSD_REFRESHRATE | DDSD_PITCH | DDSD_PIXELFORMAT;
+					Desc2.dwFlags = DDSD_WIDTH | DDSD_HEIGHT | DDSD_REFRESHRATE | DDSD_PITCH;
 					Desc2.dwWidth = d3ddispmode.Width;
 					Desc2.dwHeight = d3ddispmode.Height;
 					Desc2.dwRefreshRate = d3ddispmode.RefreshRate;
 
 					// Set adapter pixel format
+					Desc2.dwFlags |= DDSD_PIXELFORMAT;
 					Desc2.ddpfPixelFormat.dwSize = sizeof(DDPIXELFORMAT);
 					switch (DisplayBitCount)
 					{
@@ -649,8 +649,9 @@ HRESULT m_IDirectDrawX::EnumSurfaces(DWORD dwFlags, LPDDSURFACEDESC lpDDSurfaceD
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	if (!lpEnumSurfacesCallback)
+	if (!lpEnumSurfacesCallback || (lpDDSurfaceDesc && lpDDSurfaceDesc->dwSize != sizeof(DDSURFACEDESC)))
 	{
+		LOG_LIMIT(100, __FUNCTION__ << " Error! Invalid parameters. dwSize: " << ((lpDDSurfaceDesc) ? lpDDSurfaceDesc->dwSize : -1));
 		return DDERR_INVALIDPARAMS;
 	}
 
@@ -659,7 +660,6 @@ HRESULT m_IDirectDrawX::EnumSurfaces(DWORD dwFlags, LPDDSURFACEDESC lpDDSurfaceD
 	{
 		DDSURFACEDESC2 Desc2;
 		Desc2.dwSize = sizeof(DDSURFACEDESC2);
-		Desc2.ddpfPixelFormat.dwSize = sizeof(DDPIXELFORMAT);
 		if (lpDDSurfaceDesc)
 		{
 			ConvertSurfaceDesc(Desc2, *lpDDSurfaceDesc);
@@ -680,8 +680,9 @@ HRESULT m_IDirectDrawX::EnumSurfaces2(DWORD dwFlags, LPDDSURFACEDESC2 lpDDSurfac
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	if (!lpEnumSurfacesCallback7)
+	if (!lpEnumSurfacesCallback7 || (lpDDSurfaceDesc2 && lpDDSurfaceDesc2->dwSize != sizeof(DDSURFACEDESC2)))
 	{
+		LOG_LIMIT(100, __FUNCTION__ << " Error! Invalid parameters. dwSize: " << ((lpDDSurfaceDesc2) ? lpDDSurfaceDesc2->dwSize : -1));
 		return DDERR_INVALIDPARAMS;
 	}
 
@@ -724,8 +725,15 @@ HRESULT m_IDirectDrawX::GetCaps(LPDDCAPS lpDDDriverCaps, LPDDCAPS lpDDHELCaps)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	if (!lpDDDriverCaps && !lpDDHELCaps)
+	if ((!lpDDDriverCaps && !lpDDHELCaps) ||
+		(lpDDDriverCaps && lpDDDriverCaps->dwSize != sizeof(DDCAPS_DX1) &&
+		lpDDDriverCaps->dwSize != sizeof(DDCAPS_DX3) && lpDDDriverCaps->dwSize != sizeof(DDCAPS_DX5) &&
+		lpDDDriverCaps->dwSize != sizeof(DDCAPS_DX6) && lpDDDriverCaps->dwSize != sizeof(DDCAPS_DX7)) ||
+		(lpDDHELCaps && lpDDHELCaps->dwSize != sizeof(DDCAPS_DX1) &&
+		lpDDHELCaps->dwSize != sizeof(DDCAPS_DX3) && lpDDHELCaps->dwSize != sizeof(DDCAPS_DX5) &&
+		lpDDHELCaps->dwSize != sizeof(DDCAPS_DX6) && lpDDHELCaps->dwSize != sizeof(DDCAPS_DX7)))
 	{
+		LOG_LIMIT(100, __FUNCTION__ << " Error! Invalid parameters. dwSize: " << ((lpDDDriverCaps) ? lpDDDriverCaps->dwSize : -1) << " " << ((lpDDHELCaps) ? lpDDHELCaps->dwSize : -1));
 		return DDERR_INVALIDPARAMS;
 	}
 
@@ -796,15 +804,14 @@ HRESULT m_IDirectDrawX::GetDisplayMode(LPDDSURFACEDESC lpDDSurfaceDesc)
 	// Game using old DirectX, Convert to LPDDSURFACEDESC2
 	if (ProxyDirectXVersion > 3)
 	{
-		if (!lpDDSurfaceDesc)
+		if (!lpDDSurfaceDesc || lpDDSurfaceDesc->dwSize != sizeof(DDSURFACEDESC))
 		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error! Invalid parameters. dwSize: " << ((lpDDSurfaceDesc) ? lpDDSurfaceDesc->dwSize : -1));
 			return DDERR_INVALIDPARAMS;
 		}
 
 		DDSURFACEDESC2 Desc2;
 		Desc2.dwSize = sizeof(DDSURFACEDESC2);
-		Desc2.ddpfPixelFormat.dwSize = sizeof(DDPIXELFORMAT);
-		ConvertSurfaceDesc(Desc2, *lpDDSurfaceDesc);
 
 		HRESULT hr = GetDisplayMode2(&Desc2);
 
@@ -826,13 +833,16 @@ HRESULT m_IDirectDrawX::GetDisplayMode2(LPDDSURFACEDESC2 lpDDSurfaceDesc2)
 
 	if (Config.Dd7to9)
 	{
-		if (!lpDDSurfaceDesc2)
+		if (!lpDDSurfaceDesc2 || lpDDSurfaceDesc2->dwSize != sizeof(DDSURFACEDESC2))
 		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error! Invalid parameters. dwSize: " << ((lpDDSurfaceDesc2) ? lpDDSurfaceDesc2->dwSize : -1));
 			return DDERR_INVALIDPARAMS;
 		}
 
 		// Set Surface Desc
-		lpDDSurfaceDesc2->dwFlags = DDSD_WIDTH | DDSD_HEIGHT | DDSD_REFRESHRATE | DDSD_PIXELFORMAT;
+		ZeroMemory(lpDDSurfaceDesc2, sizeof(DDSURFACEDESC2));
+		lpDDSurfaceDesc2->dwSize = sizeof(DDSURFACEDESC2);
+		lpDDSurfaceDesc2->dwFlags = DDSD_WIDTH | DDSD_HEIGHT | DDSD_REFRESHRATE;
 		DWORD displayModeBits = displayModeBPP;
 		if (displayModeBits)
 		{
@@ -849,15 +859,13 @@ HRESULT m_IDirectDrawX::GetDisplayMode2(LPDDSURFACEDESC2 lpDDSurfaceDesc2)
 			displayModeBits = GetDeviceCaps(hdc, BITSPIXEL);
 			ReleaseDC(nullptr, hdc);
 		}
-		if (lpDDSurfaceDesc2->dwSize == sizeof(DDSURFACEDESC2) && !lpDDSurfaceDesc2->ddpfPixelFormat.dwSize)
-		{
-			lpDDSurfaceDesc2->ddpfPixelFormat.dwSize = sizeof(DDPIXELFORMAT);
-		}
 
 		// Force color mode
 		displayModeBits = (Config.DdrawOverrideBitMode) ? Config.DdrawOverrideBitMode : displayModeBits;
 
 		// Set Pixel Format
+		lpDDSurfaceDesc2->dwFlags |= DDSD_PIXELFORMAT;
+		lpDDSurfaceDesc2->ddpfPixelFormat.dwSize = sizeof(DDPIXELFORMAT);
 		switch (displayModeBits)
 		{
 		case 8:
@@ -1128,6 +1136,7 @@ HRESULT m_IDirectDrawX::SetCooperativeLevel(HWND hWnd, DWORD dwFlags)
 			((dwFlags & DDSCL_ALLOWMODEX) && !(dwFlags & DDSCL_EXCLUSIVE)) ||															// If AllowModeX is set then Exclusive mode must be set
 			(((dwFlags & DDSCL_EXCLUSIVE) || (hWnd && hWnd != ExclusiveHwnd)) && !IsWindow(hWnd)))										// When using Exclusive mode the hwnd must be valid
 		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error! Invalid parameters. dwFlags: " << dwFlags << " " << hWnd);
 			return DDERR_INVALIDPARAMS;
 		}
 
@@ -1146,6 +1155,7 @@ HRESULT m_IDirectDrawX::SetCooperativeLevel(HWND hWnd, DWORD dwFlags)
 		{
 			if (ExclusiveMode && ExclusiveHwnd != hWnd && IsWindow(ExclusiveHwnd))
 			{
+				LOG_LIMIT(100, __FUNCTION__ << " Error! Exclusive mode already set.");
 				return DDERR_EXCLUSIVEMODEALREADYSET;
 			}
 			isWindowed = false;
@@ -1397,7 +1407,7 @@ HRESULT m_IDirectDrawX::GetAvailableVidMem2(LPDDSCAPS2 lpDDSCaps2, LPDWORD lpdwT
 
 	if (Config.Dd7to9)
 	{
-		if (!lpDDSCaps2 && !lpdwTotal && !lpdwFree)
+		if (!lpdwTotal && !lpdwFree)
 		{
 			return DDERR_INVALIDPARAMS;
 		}
@@ -1412,6 +1422,7 @@ HRESULT m_IDirectDrawX::GetAvailableVidMem2(LPDDSCAPS2 lpDDSCaps2, LPDWORD lpdwT
 
 		if (lpdwTotal)
 		{
+			// TODO: Get correct total video memory size
 			*lpdwTotal = AvailableMemory;
 		}
 		if (lpdwFree)
@@ -1553,6 +1564,7 @@ HRESULT m_IDirectDrawX::GetDeviceIdentifier2(LPDDDEVICEIDENTIFIER2 lpdddi2, DWOR
 		}
 
 		D3DADAPTER_IDENTIFIER9 Identifier9;
+
 		HRESULT hr = d3d9Object->GetAdapterIdentifier(D3DADAPTER_DEFAULT, D3DENUM_WHQL_LEVEL, &Identifier9);
 
 		if (FAILED(hr))

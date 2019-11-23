@@ -18,9 +18,9 @@
 
 HRESULT CALLBACK m_IDirectDrawEnumDisplayModes::ConvertCallback(LPDDSURFACEDESC2 lpDDSurfaceDesc2, LPVOID lpContext)
 {
-	if (!lpContext || !lpDDSurfaceDesc2)
+	if (!lpContext || !lpDDSurfaceDesc2 || lpDDSurfaceDesc2->dwSize != sizeof(DDSURFACEDESC2))
 	{
-		LOG_LIMIT(100, __FUNCTION__ << " Error: invaid context!");
+		LOG_LIMIT(100, __FUNCTION__ << " Error! Invalid parameters. dwSize: " << ((lpDDSurfaceDesc2) ? lpDDSurfaceDesc2->dwSize : -1));
 		return DDENUMRET_CANCEL;
 	}
 
@@ -34,7 +34,6 @@ HRESULT CALLBACK m_IDirectDrawEnumDisplayModes::ConvertCallback(LPDDSURFACEDESC2
 
 	DDSURFACEDESC Desc;
 	Desc.dwSize = sizeof(DDSURFACEDESC);
-	Desc.ddpfPixelFormat.dwSize = sizeof(DDPIXELFORMAT);
 	ConvertSurfaceDesc(Desc, *lpDDSurfaceDesc2);
 
 	return lpCallbackContext->lpCallback(&Desc, lpCallbackContext->lpContext);
@@ -88,9 +87,14 @@ HRESULT CALLBACK m_IDirectDrawEnumSurface::ConvertCallback2(LPDIRECTDRAWSURFACE7
 	// Game using old DirectX, Convert back to LPDDSURFACEDESC
 	if (lpDDSurfaceDesc2 && lpCallbackContext->ConvertSurfaceDescTo2)
 	{
+		if (lpDDSurfaceDesc2 && lpDDSurfaceDesc2->dwSize != sizeof(DDSURFACEDESC2))
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error! Invalid parameters. dwSize: " << ((lpDDSurfaceDesc2) ? lpDDSurfaceDesc2->dwSize : -1));
+			return DDENUMRET_CANCEL;
+		}
+
 		DDSURFACEDESC Desc;
 		Desc.dwSize = sizeof(DDSURFACEDESC);
-		Desc.ddpfPixelFormat.dwSize = sizeof(DDPIXELFORMAT);
 		ConvertSurfaceDesc(Desc, *lpDDSurfaceDesc2);
 
 		return ((LPDDENUMSURFACESCALLBACK)lpCallbackContext->lpCallback7)((LPDIRECTDRAWSURFACE)lpDDSurface, &Desc, lpCallbackContext->lpContext);

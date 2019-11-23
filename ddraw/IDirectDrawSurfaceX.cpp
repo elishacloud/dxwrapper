@@ -445,6 +445,7 @@ HRESULT m_IDirectDrawSurfaceX::Blt(LPRECT lpDestRect, LPDIRECTDRAWSURFACE7 lpDDS
 			}
 		}
 
+		// Reset Blt flag
 		IsInBlt = false;
 
 		// Return
@@ -619,7 +620,6 @@ HRESULT m_IDirectDrawSurfaceX::EnumAttachedSurfaces2(LPVOID lpContext, LPDDENUMS
 		{
 			DDSURFACEDESC2 Desc2;
 			Desc2.dwSize = sizeof(DDSURFACEDESC2);
-			Desc2.ddpfPixelFormat.dwSize = sizeof(DDPIXELFORMAT);
 			it.second.pSurface->GetSurfaceDesc2(&Desc2);
 			if (lpEnumSurfacesCallback7((LPDIRECTDRAWSURFACE7)it.second.pSurface->GetWrapperInterfaceX(DirectXVersion), &Desc2, lpContext) == DDENUMRET_CANCEL)
 			{
@@ -844,6 +844,9 @@ HRESULT m_IDirectDrawSurfaceX::Flip(LPDIRECTDRAWSURFACE7 lpDDSurfaceTargetOverri
 		// Present surface
 		if (SUCCEEDED(hr))
 		{
+			// Set dirty flag
+			dirtyFlag = true;
+
 			PresentSurface();
 		}
 
@@ -1287,7 +1290,6 @@ HRESULT m_IDirectDrawSurfaceX::GetPixelFormat(LPDDPIXELFORMAT lpDDPixelFormat)
 
 		DDSURFACEDESC2 Desc2;
 		Desc2.dwSize = sizeof(DDSURFACEDESC2);
-		Desc2.ddpfPixelFormat.dwSize = sizeof(DDPIXELFORMAT);
 
 		// Update surface description
 		GetSurfaceDesc2(&Desc2);
@@ -1308,14 +1310,14 @@ HRESULT m_IDirectDrawSurfaceX::GetSurfaceDesc(LPDDSURFACEDESC lpDDSurfaceDesc)
 	// Game using old DirectX, Convert to LPDDSURFACEDESC2
 	if (ProxyDirectXVersion > 3)
 	{
-		if (!lpDDSurfaceDesc)
+		if (!lpDDSurfaceDesc || lpDDSurfaceDesc->dwSize != sizeof(DDSURFACEDESC))
 		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error! Invalid parameters. dwSize: " << ((lpDDSurfaceDesc) ? lpDDSurfaceDesc->dwSize : -1));
 			return DDERR_INVALIDPARAMS;
 		}
 
 		DDSURFACEDESC2 Desc2;
 		Desc2.dwSize = sizeof(DDSURFACEDESC2);
-		Desc2.ddpfPixelFormat.dwSize = sizeof(DDPIXELFORMAT);
 
 		HRESULT hr = GetSurfaceDesc2(&Desc2);
 
@@ -1337,8 +1339,9 @@ HRESULT m_IDirectDrawSurfaceX::GetSurfaceDesc2(LPDDSURFACEDESC2 lpDDSurfaceDesc2
 
 	if (Config.Dd7to9)
 	{
-		if (!lpDDSurfaceDesc2)
+		if (!lpDDSurfaceDesc2 || lpDDSurfaceDesc2->dwSize != sizeof(DDSURFACEDESC2))
 		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error! Invalid parameters. dwSize: " << ((lpDDSurfaceDesc2) ? lpDDSurfaceDesc2->dwSize : -1));
 			return DDERR_INVALIDPARAMS;
 		}
 
@@ -1349,15 +1352,11 @@ HRESULT m_IDirectDrawSurfaceX::GetSurfaceDesc2(LPDDSURFACEDESC2 lpDDSurfaceDesc2
 		}
 
 		// Copy surfacedesc to lpDDSurfaceDesc2
-		if (lpDDSurfaceDesc2 != &surfaceDesc2)
-		{
-			ConvertSurfaceDesc(*lpDDSurfaceDesc2, surfaceDesc2);
-		}
+		ConvertSurfaceDesc(*lpDDSurfaceDesc2, surfaceDesc2);
 
 		// Surface description
 		DDSURFACEDESC2 Desc2 = { NULL };
 		Desc2.dwSize = sizeof(DDSURFACEDESC2);
-		Desc2.ddpfPixelFormat.dwSize = sizeof(DDPIXELFORMAT);
 
 		// Set Height and Width
 		if ((lpDDSurfaceDesc2->dwFlags & (DDSD_HEIGHT | DDSD_WIDTH)) != (DDSD_HEIGHT | DDSD_WIDTH))
@@ -1391,6 +1390,7 @@ HRESULT m_IDirectDrawSurfaceX::GetSurfaceDesc2(LPDDSURFACEDESC2 lpDDSurfaceDesc2
 				ddrawParent->GetDisplayMode2(&Desc2);
 			}
 			lpDDSurfaceDesc2->dwFlags |= DDSD_PIXELFORMAT;
+			lpDDSurfaceDesc2->ddpfPixelFormat.dwSize = sizeof(DDPIXELFORMAT);
 			SetPixelDisplayFormat(GetDisplayFormat(Desc2.ddpfPixelFormat), lpDDSurfaceDesc2->ddpfPixelFormat);
 		}
 		// Set lPitch
@@ -1441,9 +1441,14 @@ HRESULT m_IDirectDrawSurfaceX::Initialize(LPDIRECTDRAW lpDD, LPDDSURFACEDESC lpD
 
 	if (ProxyDirectXVersion > 3)
 	{
+		if (lpDDSurfaceDesc && lpDDSurfaceDesc->dwSize != sizeof(DDSURFACEDESC))
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error! Invalid parameters. dwSize: " << ((lpDDSurfaceDesc) ? lpDDSurfaceDesc->dwSize : -1));
+			return DDERR_INVALIDPARAMS;
+		}
+		
 		DDSURFACEDESC2 Desc2;
 		Desc2.dwSize = sizeof(DDSURFACEDESC2);
-		Desc2.ddpfPixelFormat.dwSize = sizeof(DDPIXELFORMAT);
 		if (lpDDSurfaceDesc)
 		{
 			ConvertSurfaceDesc(Desc2, *lpDDSurfaceDesc);
@@ -1516,15 +1521,14 @@ HRESULT m_IDirectDrawSurfaceX::Lock(LPRECT lpDestRect, LPDDSURFACEDESC lpDDSurfa
 	// Game using old DirectX, Convert to LPDDSURFACEDESC2
 	if (ProxyDirectXVersion > 3)
 	{
-		if (!lpDDSurfaceDesc)
+		if (!lpDDSurfaceDesc || lpDDSurfaceDesc->dwSize != sizeof(DDSURFACEDESC))
 		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error! Invalid parameters. dwSize: " << ((lpDDSurfaceDesc) ? lpDDSurfaceDesc->dwSize : -1));
 			return DDERR_INVALIDPARAMS;
 		}
 
-		DDSURFACEDESC2 Desc2 = { NULL };
+		DDSURFACEDESC2 Desc2;
 		Desc2.dwSize = sizeof(DDSURFACEDESC2);
-		Desc2.ddpfPixelFormat.dwSize = sizeof(DDPIXELFORMAT);
-		ConvertSurfaceDesc(Desc2, *lpDDSurfaceDesc);
 
 		HRESULT hr = Lock2(lpDestRect, &Desc2, dwFlags, hEvent);
 
@@ -1546,8 +1550,9 @@ HRESULT m_IDirectDrawSurfaceX::Lock2(LPRECT lpDestRect, LPDDSURFACEDESC2 lpDDSur
 
 	if (Config.Dd7to9)
 	{
-		if (!lpDDSurfaceDesc2)
+		if (!lpDDSurfaceDesc2 || lpDDSurfaceDesc2->dwSize != sizeof(DDSURFACEDESC2))
 		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error! Invalid parameters. dwSize: " << ((lpDDSurfaceDesc2) ? lpDDSurfaceDesc2->dwSize : -1));
 			return DDERR_INVALIDPARAMS;
 		}
 
@@ -1571,12 +1576,6 @@ HRESULT m_IDirectDrawSurfaceX::Lock2(LPRECT lpDestRect, LPDDSURFACEDESC2 lpDDSur
 			return hr;
 		}
 
-		// Set surfaceDesc
-		DDSURFACEDESC2 Desc2;
-		Desc2.dwSize = sizeof(DDSURFACEDESC2);
-		Desc2.ddpfPixelFormat.dwSize = sizeof(DDPIXELFORMAT);
-		ConvertSurfaceDesc(Desc2, surfaceDesc2);
-
 		// Set video memory and pitch
 		if (!LockedRect.pBits)
 		{
@@ -1584,11 +1583,11 @@ HRESULT m_IDirectDrawSurfaceX::Lock2(LPRECT lpDestRect, LPDDSURFACEDESC2 lpDDSur
 			return DDERR_GENERIC;
 		}
 
-		Desc2.dwFlags |= DDSD_LPSURFACE | DDSD_PITCH;
-		Desc2.lpSurface = LockedRect.pBits;
-		Desc2.lPitch = LockedRect.Pitch;
-
-		ConvertSurfaceDesc(*lpDDSurfaceDesc2, Desc2);
+		// Set surfaceDesc
+		ConvertSurfaceDesc(*lpDDSurfaceDesc2, surfaceDesc2);
+		lpDDSurfaceDesc2->dwFlags |= DDSD_LPSURFACE | DDSD_PITCH;
+		lpDDSurfaceDesc2->lpSurface = LockedRect.pBits;
+		lpDDSurfaceDesc2->lPitch = LockedRect.Pitch;
 
 		return DD_OK;
 	}
@@ -1633,6 +1632,9 @@ HRESULT m_IDirectDrawSurfaceX::ReleaseDC(HDC hDC)
 
 		// Reset DC flag
 		IsInDC = false;
+
+		// Set dirty flag
+		dirtyFlag = true;
 
 		// Present surface
 		PresentSurface();
@@ -2008,7 +2010,6 @@ HRESULT m_IDirectDrawSurfaceX::SetSurfaceDesc(LPDDSURFACEDESC lpDDSurfaceDesc, D
 
 		DDSURFACEDESC2 Desc2;
 		Desc2.dwSize = sizeof(DDSURFACEDESC2);
-		Desc2.ddpfPixelFormat.dwSize = sizeof(DDPIXELFORMAT);
 		ConvertSurfaceDesc(Desc2, *lpDDSurfaceDesc);
 
 		return SetSurfaceDesc2(&Desc2, dwFlags);
@@ -2680,7 +2681,6 @@ void m_IDirectDrawSurfaceX::UpdateSurfaceDesc()
 	{
 		DDSURFACEDESC2 Desc2 = { NULL };
 		Desc2.dwSize = sizeof(DDSURFACEDESC2);
-		Desc2.ddpfPixelFormat.dwSize = sizeof(DDPIXELFORMAT);
 		GetSurfaceDesc2(&Desc2);
 
 		// Set Height and Width
@@ -2701,6 +2701,7 @@ void m_IDirectDrawSurfaceX::UpdateSurfaceDesc()
 		if ((Desc2.dwFlags & DDSD_PIXELFORMAT) && !(surfaceDesc2.dwFlags & DDSD_PIXELFORMAT))
 		{
 			surfaceDesc2.dwFlags |= DDSD_PIXELFORMAT;
+			surfaceDesc2.ddpfPixelFormat.dwSize = sizeof(DDPIXELFORMAT);
 			ConvertPixelFormat(surfaceDesc2.ddpfPixelFormat, Desc2.ddpfPixelFormat);
 		}
 	}
@@ -2830,20 +2831,19 @@ HRESULT m_IDirectDrawSurfaceX::PresentSurface(BOOL isSkipScene)
 	}
 
 	// Check if is not primary surface or if scene should be skipped
-	if (!IsPrimarySurface() && SceneReady && !IsPresentRunning)
+	if (!IsPrimarySurface())
 	{
-		m_IDirectDrawSurfaceX *lpDDSrcSurfaceX = ddrawParent->GetPrimarySurface();
-		if (lpDDSrcSurfaceX)
+		if (SceneReady && !IsPresentRunning)
 		{
-			lpDDSrcSurfaceX->PresentSurface(isSkipScene);
+			m_IDirectDrawSurfaceX *lpDDSrcSurfaceX = ddrawParent->GetPrimarySurface();
+			if (lpDDSrcSurfaceX)
+			{
+				return lpDDSrcSurfaceX->PresentSurface(isSkipScene);
+			}
 		}
 		return DDERR_GENERIC;
 	}
-	else if (!IsPrimarySurface())
-	{
-		return DDERR_GENERIC;
-	}
-	else if (isSkipScene && !SceneReady)
+	else if ((isSkipScene && !SceneReady) || !dirtyFlag || IsPresentRunning)
 	{
 		Logging::LogDebug() << __FUNCTION__ << " Skipping scene!";
 		return DDERR_GENERIC;
@@ -2853,11 +2853,13 @@ HRESULT m_IDirectDrawSurfaceX::PresentSurface(BOOL isSkipScene)
 	SceneReady = true;
 
 	// Check if surface is locked or has an open DC
-	if (WaitForLockState() || IsSurfaceInDC() || IsPresentRunning)
+	if (WaitForLockState() || IsSurfaceInDC())
 	{
 		Logging::LogDebug() << __FUNCTION__ << " Surface is busy!";
 		return DDERR_SURFACEBUSY;
 	}
+
+	// Set present flag
 	IsPresentRunning = true;
 
 	// Preset surface
@@ -3064,13 +3066,10 @@ HRESULT m_IDirectDrawSurfaceX::SetLock(D3DLOCKED_RECT* pLockedRect, LPRECT lpDes
 		}
 	}
 
-	// Run EndScene before locking if dirty flag is set
-	if (dirtyFlag)
+	// Run EndScene before locking if SceneReady flag is set
+	if (SceneReady)
 	{
-		if (SUCCEEDED(PresentSurface(isSkipScene)))
-		{
-			EndSceneLock = true;
-		}
+		PresentSurface(isSkipScene);
 	}
 
 	// Emulated surface
@@ -3115,7 +3114,10 @@ HRESULT m_IDirectDrawSurfaceX::SetLock(D3DLOCKED_RECT* pLockedRect, LPRECT lpDes
 	surfaceDesc2.lPitch = pLockedRect->Pitch;
 
 	// Set dirty flag
-	dirtyFlag = true;
+	if (!(dwFlags & D3DLOCK_READONLY))
+	{
+		dirtyFlag = true;
+	}
 
 	// Success
 	return DD_OK;
@@ -3154,16 +3156,12 @@ HRESULT m_IDirectDrawSurfaceX::SetUnlock(BOOL isSkipScene)
 				DDERR_SURFACELOST;
 		}
 	}
+
+	// Reset locked flag
 	IsLocked = false;
 
 	// Present surface
-	if (!EndSceneLock)
-	{
-		PresentSurface(isSkipScene);
-	}
-
-	// Reset endscene lock
-	EndSceneLock = false;
+	PresentSurface(isSkipScene);
 
 	return DD_OK;
 }
@@ -3198,7 +3196,6 @@ void m_IDirectDrawSurfaceX::InitSurfaceDesc(LPDDSURFACEDESC2 lpDDSurfaceDesc2, D
 
 	// Copy surface description
 	surfaceDesc2.dwSize = sizeof(DDSURFACEDESC2);
-	surfaceDesc2.ddpfPixelFormat.dwSize = sizeof(DDPIXELFORMAT);
 	ConvertSurfaceDesc(surfaceDesc2, *lpDDSurfaceDesc2);
 
 	// Update dds caps flags
@@ -3218,7 +3215,6 @@ void m_IDirectDrawSurfaceX::InitSurfaceDesc(LPDDSURFACEDESC2 lpDDSurfaceDesc2, D
 	{
 		DDSURFACEDESC2 Desc2;
 		Desc2.dwSize = sizeof(DDSURFACEDESC2);
-		Desc2.ddpfPixelFormat.dwSize = sizeof(DDPIXELFORMAT);
 		ConvertSurfaceDesc(Desc2, surfaceDesc2);
 		Desc2.ddsCaps.dwCaps4 &= ~(DDSCAPS4_CREATESURFACE);	// Clear surface creation flag
 		Desc2.dwBackBufferCount--;
