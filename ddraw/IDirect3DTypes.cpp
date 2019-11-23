@@ -21,153 +21,169 @@
 
 void ConvertMaterial(D3DMATERIAL &Material, D3DMATERIAL7 &Material7)
 {
-	D3DMATERIAL tmpMaterial;
-	tmpMaterial.dwSize = min(sizeof(D3DMATERIAL), Material.dwSize);
-	tmpMaterial.dcvDiffuse = Material7.dcvDiffuse;
-	tmpMaterial.dcvAmbient = Material7.dcvAmbient;
-	tmpMaterial.dcvSpecular = Material7.dcvSpecular;
-	tmpMaterial.dcvEmissive = Material7.dcvEmissive;
-	tmpMaterial.dvPower = Material7.dvPower;
+	if (Material.dwSize != sizeof(D3DMATERIAL))
+	{
+		LOG_LIMIT(100, __FUNCTION__ << " Error! Incorrect dwSize: " << Material.dwSize);
+		return;
+	}
+	Material.dcvDiffuse = Material7.dcvDiffuse;
+	Material.dcvAmbient = Material7.dcvAmbient;
+	Material.dcvSpecular = Material7.dcvSpecular;
+	Material.dcvEmissive = Material7.dcvEmissive;
+	Material.dvPower = Material7.dvPower;
 	// Extra parameters
-	tmpMaterial.hTexture = 0;
-	tmpMaterial.dwRampSize = 0;
-	// Copy to variable
-	CopyMemory(&Material, &tmpMaterial, tmpMaterial.dwSize);
+	Material.hTexture = 0;
+	Material.dwRampSize = 0;
 }
 
 void ConvertMaterial(D3DMATERIAL7 &Material7, D3DMATERIAL &Material)
 {
-	D3DMATERIAL tmpMaterial = { NULL };
-	CopyMemory(&tmpMaterial, &Material, min(sizeof(D3DMATERIAL), Material.dwSize));
-	Material7.dcvDiffuse = tmpMaterial.dcvDiffuse;
-	Material7.dcvAmbient = tmpMaterial.dcvAmbient;
-	Material7.dcvSpecular = tmpMaterial.dcvSpecular;
-	Material7.dcvEmissive = tmpMaterial.dcvEmissive;
-	Material7.dvPower = tmpMaterial.dvPower;
+	if (Material.dwSize != sizeof(D3DMATERIAL))
+	{
+		LOG_LIMIT(100, __FUNCTION__ << " Error! Incorrect dwSize: " << Material.dwSize);
+		return;
+	}
+	Material7.dcvDiffuse = Material.dcvDiffuse;
+	Material7.dcvAmbient = Material.dcvAmbient;
+	Material7.dcvSpecular = Material.dcvSpecular;
+	Material7.dcvEmissive = Material.dcvEmissive;
+	Material7.dvPower = Material.dvPower;
 }
 
 void ConvertViewport(D3DVIEWPORT &ViewPort, D3DVIEWPORT &ViewPort2)
 {
-	DWORD dwSize = min(sizeof(D3DVIEWPORT), ViewPort.dwSize);
-	ZeroMemory(&ViewPort, dwSize);
-	memcpy(&ViewPort, &ViewPort2, min(dwSize, ViewPort2.dwSize));
-	ViewPort.dwSize = dwSize;
+	if (ViewPort.dwSize != sizeof(D3DVIEWPORT) || ViewPort2.dwSize != sizeof(D3DVIEWPORT))
+	{
+		LOG_LIMIT(100, __FUNCTION__ << " Error! Incorrect dwSize: " << ViewPort.dwSize << " " << ViewPort2.dwSize);
+		return;
+	}
+	memcpy(&ViewPort, &ViewPort2, sizeof(D3DVIEWPORT));
 }
 
 void ConvertViewport(D3DVIEWPORT2 &ViewPort, D3DVIEWPORT2 &ViewPort2)
 {
-	DWORD dwSize = min(sizeof(D3DVIEWPORT2), ViewPort.dwSize);
-	ZeroMemory(&ViewPort, dwSize);
-	memcpy(&ViewPort, &ViewPort2, min(dwSize, ViewPort2.dwSize));
-	ViewPort.dwSize = dwSize;
+	if (ViewPort.dwSize != sizeof(D3DVIEWPORT2) || ViewPort2.dwSize != sizeof(D3DVIEWPORT2))
+	{
+		LOG_LIMIT(100, __FUNCTION__ << " Error! Incorrect dwSize: " << ViewPort.dwSize << " " << ViewPort2.dwSize);
+		return;
+	}
+	memcpy(&ViewPort, &ViewPort2, sizeof(D3DVIEWPORT2));
 }
 
 void ConvertViewport(D3DVIEWPORT &ViewPort, D3DVIEWPORT2 &ViewPort2)
 {
-	// Prepare varables
-	D3DVIEWPORT tmpViewPort;
-	D3DVIEWPORT2 tmpViewPort2 = { NULL };
-	CopyMemory(&tmpViewPort2, &ViewPort2, min(ViewPort2.dwSize, sizeof(D3DVIEWPORT2)));
+	if (ViewPort.dwSize != sizeof(D3DVIEWPORT) || ViewPort2.dwSize != sizeof(D3DVIEWPORT2))
+	{
+		LOG_LIMIT(100, __FUNCTION__ << " Error! Incorrect dwSize: " << ViewPort.dwSize << " " << ViewPort2.dwSize);
+		return;
+	}
 	// Convert varables
-	tmpViewPort.dwSize = min(sizeof(D3DVIEWPORT), ViewPort.dwSize);
-	tmpViewPort.dwX = tmpViewPort2.dwX;
-	tmpViewPort.dwY = tmpViewPort2.dwY;
-	tmpViewPort.dwWidth = tmpViewPort2.dwWidth;
-	tmpViewPort.dwHeight = tmpViewPort2.dwHeight;
-	tmpViewPort.dvMinZ = tmpViewPort2.dvMinZ;
-	tmpViewPort.dvMaxZ = tmpViewPort2.dvMaxZ;
+	ViewPort.dwX = ViewPort2.dwX;
+	ViewPort.dwY = ViewPort2.dwY;
+	ViewPort.dwWidth = ViewPort2.dwWidth;
+	ViewPort.dwHeight = ViewPort2.dwHeight;
+	ViewPort.dvMinZ = ViewPort2.dvMinZ;
+	ViewPort.dvMaxZ = ViewPort2.dvMaxZ;
 	// Extra parameters
-	tmpViewPort.dvScaleX = 0;        /* Scale homogeneous to screen */
-	tmpViewPort.dvScaleY = 0;        /* Scale homogeneous to screen */
-	tmpViewPort.dvMaxX = 0;          /* Min/max homogeneous x coord */
-	tmpViewPort.dvMaxY = 0;          /* Min/max homogeneous y coord */
-	// Copy to variable
-	CopyMemory(&ViewPort, &tmpViewPort, tmpViewPort.dwSize);
+	ViewPort.dvScaleX = 0;        /* Scale homogeneous to screen */
+	ViewPort.dvScaleY = 0;        /* Scale homogeneous to screen */
+	ViewPort.dvMaxX = 0;          /* Min/max homogeneous x coord */
+	ViewPort.dvMaxY = 0;          /* Min/max homogeneous y coord */
 }
 
 void ConvertViewport(D3DVIEWPORT2 &ViewPort2, D3DVIEWPORT &ViewPort)
 {
-	// Prepare varables
-	D3DVIEWPORT2 tmpViewPort2;
-	D3DVIEWPORT tmpViewPort = { NULL };
-	CopyMemory(&tmpViewPort, &ViewPort, min(ViewPort.dwSize, sizeof(D3DVIEWPORT)));
+	if (ViewPort2.dwSize != sizeof(D3DVIEWPORT2) || ViewPort.dwSize != sizeof(D3DVIEWPORT))
+	{
+		LOG_LIMIT(100, __FUNCTION__ << " Error! Incorrect dwSize: " << ViewPort2.dwSize << " " << ViewPort.dwSize);
+		return;
+	}
 	// Convert varables
-	tmpViewPort2.dwSize = min(sizeof(D3DVIEWPORT2), ViewPort2.dwSize);
-	tmpViewPort2.dwX = tmpViewPort.dwX;
-	tmpViewPort2.dwY = tmpViewPort.dwY;
-	tmpViewPort2.dwWidth = tmpViewPort.dwWidth;
-	tmpViewPort2.dwHeight = tmpViewPort.dwHeight;
-	tmpViewPort2.dvMinZ = tmpViewPort.dvMinZ;
-	tmpViewPort2.dvMaxZ = tmpViewPort.dvMaxZ;
+	ViewPort2.dwX = ViewPort.dwX;
+	ViewPort2.dwY = ViewPort.dwY;
+	ViewPort2.dwWidth = ViewPort.dwWidth;
+	ViewPort2.dwHeight = ViewPort.dwHeight;
+	ViewPort2.dvMinZ = ViewPort.dvMinZ;
+	ViewPort2.dvMaxZ = ViewPort.dvMaxZ;
 	// Extra parameters
-	tmpViewPort2.dvClipX = 0;        /* Top left of clip volume */
-	tmpViewPort2.dvClipY = 0;
-	tmpViewPort2.dvClipWidth = 0;    /* Clip Volume Dimensions */
-	tmpViewPort2.dvClipHeight = 0;
-	// Copy to variable
-	CopyMemory(&ViewPort2, &tmpViewPort2, tmpViewPort2.dwSize);
+	ViewPort2.dvClipX = 0;        /* Top left of clip volume */
+	ViewPort2.dvClipY = 0;
+	ViewPort2.dvClipWidth = 0;    /* Clip Volume Dimensions */
+	ViewPort2.dvClipHeight = 0;
 }
 
 void ConvertViewport(D3DVIEWPORT &ViewPort, D3DVIEWPORT7 &ViewPort7)
 {
-	D3DVIEWPORT tmpViewPort;
-	tmpViewPort.dwSize = min(sizeof(D3DVIEWPORT), ViewPort.dwSize);
-	tmpViewPort.dwX = ViewPort7.dwX;
-	tmpViewPort.dwY = ViewPort7.dwY;
-	tmpViewPort.dwWidth = ViewPort7.dwWidth;
-	tmpViewPort.dwHeight = ViewPort7.dwHeight;
-	tmpViewPort.dvMinZ = ViewPort7.dvMinZ;
-	tmpViewPort.dvMaxZ = ViewPort7.dvMaxZ;
+	if (ViewPort.dwSize != sizeof(D3DVIEWPORT))
+	{
+		LOG_LIMIT(100, __FUNCTION__ << " Error! Incorrect dwSize: " << ViewPort.dwSize);
+		return;
+	}
+	// Convert varables
+	ViewPort.dwX = ViewPort7.dwX;
+	ViewPort.dwY = ViewPort7.dwY;
+	ViewPort.dwWidth = ViewPort7.dwWidth;
+	ViewPort.dwHeight = ViewPort7.dwHeight;
+	ViewPort.dvMinZ = ViewPort7.dvMinZ;
+	ViewPort.dvMaxZ = ViewPort7.dvMaxZ;
 	// Extra parameters
-	tmpViewPort.dvScaleX = 0;        /* Scale homogeneous to screen */
-	tmpViewPort.dvScaleY = 0;        /* Scale homogeneous to screen */
-	tmpViewPort.dvMaxX = 0;          /* Min/max homogeneous x coord */
-	tmpViewPort.dvMaxY = 0;          /* Min/max homogeneous y coord */
-	// Copy to variable
-	CopyMemory(&ViewPort, &tmpViewPort, tmpViewPort.dwSize);
+	ViewPort.dvScaleX = 0;        /* Scale homogeneous to screen */
+	ViewPort.dvScaleY = 0;        /* Scale homogeneous to screen */
+	ViewPort.dvMaxX = 0;          /* Min/max homogeneous x coord */
+	ViewPort.dvMaxY = 0;          /* Min/max homogeneous y coord */
 }
 
 void ConvertViewport(D3DVIEWPORT2 &ViewPort2, D3DVIEWPORT7 &ViewPort7)
 {
-	D3DVIEWPORT2 tmpViewPort2;
-	tmpViewPort2.dwSize = min(sizeof(D3DVIEWPORT2), ViewPort2.dwSize);
-	tmpViewPort2.dwX = ViewPort7.dwX;
-	tmpViewPort2.dwY = ViewPort7.dwY;
-	tmpViewPort2.dwWidth = ViewPort7.dwWidth;
-	tmpViewPort2.dwHeight = ViewPort7.dwHeight;
-	tmpViewPort2.dvMinZ = ViewPort7.dvMinZ;
-	tmpViewPort2.dvMaxZ = ViewPort7.dvMaxZ;
+	if (ViewPort2.dwSize != sizeof(D3DVIEWPORT2))
+	{
+		LOG_LIMIT(100, __FUNCTION__ << " Error! Incorrect dwSize: " << ViewPort2.dwSize);
+		return;
+	}
+	// Convert varables
+	ViewPort2.dwX = ViewPort7.dwX;
+	ViewPort2.dwY = ViewPort7.dwY;
+	ViewPort2.dwWidth = ViewPort7.dwWidth;
+	ViewPort2.dwHeight = ViewPort7.dwHeight;
+	ViewPort2.dvMinZ = ViewPort7.dvMinZ;
+	ViewPort2.dvMaxZ = ViewPort7.dvMaxZ;
 	// Extra parameters
-	tmpViewPort2.dvClipX = 0;        /* Top left of clip volume */
-	tmpViewPort2.dvClipY = 0;
-	tmpViewPort2.dvClipWidth = 0;    /* Clip Volume Dimensions */
-	tmpViewPort2.dvClipHeight = 0;
-	// Copy to variable
-	CopyMemory(&ViewPort2, &tmpViewPort2, tmpViewPort2.dwSize);
+	ViewPort2.dvClipX = 0;        /* Top left of clip volume */
+	ViewPort2.dvClipY = 0;
+	ViewPort2.dvClipWidth = 0;    /* Clip Volume Dimensions */
+	ViewPort2.dvClipHeight = 0;
 }
 
 void ConvertViewport(D3DVIEWPORT7 &ViewPort7, D3DVIEWPORT &ViewPort)
 {
-	D3DVIEWPORT tmpViewPort = { NULL };
-	CopyMemory(&tmpViewPort, &ViewPort, min(sizeof(D3DVIEWPORT), ViewPort.dwSize));
-	ViewPort7.dwX = tmpViewPort.dwX;
-	ViewPort7.dwY = tmpViewPort.dwY;
-	ViewPort7.dwWidth = tmpViewPort.dwWidth;
-	ViewPort7.dwHeight = tmpViewPort.dwHeight;
-	ViewPort7.dvMinZ = tmpViewPort.dvMinZ;
-	ViewPort7.dvMaxZ = tmpViewPort.dvMaxZ;
+	if (ViewPort.dwSize != sizeof(D3DVIEWPORT))
+	{
+		LOG_LIMIT(100, __FUNCTION__ << " Error! Incorrect dwSize: " << ViewPort.dwSize);
+		return;
+	}
+	// Convert varables
+	ViewPort7.dwX = ViewPort.dwX;
+	ViewPort7.dwY = ViewPort.dwY;
+	ViewPort7.dwWidth = ViewPort.dwWidth;
+	ViewPort7.dwHeight = ViewPort.dwHeight;
+	ViewPort7.dvMinZ = ViewPort.dvMinZ;
+	ViewPort7.dvMaxZ = ViewPort.dvMaxZ;
 }
 
 void ConvertViewport(D3DVIEWPORT7 &ViewPort7, D3DVIEWPORT2 &ViewPort2)
 {
-	D3DVIEWPORT2 tmpViewPort2 = { NULL };
-	CopyMemory(&tmpViewPort2, &ViewPort2, min(sizeof(D3DVIEWPORT2), ViewPort2.dwSize));
-	ViewPort7.dwX = tmpViewPort2.dwX;
-	ViewPort7.dwY = tmpViewPort2.dwY;
-	ViewPort7.dwWidth = tmpViewPort2.dwWidth;
-	ViewPort7.dwHeight = tmpViewPort2.dwHeight;
-	ViewPort7.dvMinZ = tmpViewPort2.dvMinZ;
-	ViewPort7.dvMaxZ = tmpViewPort2.dvMaxZ;
+	if (ViewPort2.dwSize != sizeof(D3DVIEWPORT2))
+	{
+		LOG_LIMIT(100, __FUNCTION__ << " Error! Incorrect dwSize: " << ViewPort2.dwSize);
+		return;
+	}
+	// Convert varables
+	ViewPort7.dwX = ViewPort2.dwX;
+	ViewPort7.dwY = ViewPort2.dwY;
+	ViewPort7.dwWidth = ViewPort2.dwWidth;
+	ViewPort7.dwHeight = ViewPort2.dwHeight;
+	ViewPort7.dvMinZ = ViewPort2.dvMinZ;
+	ViewPort7.dvMaxZ = ViewPort2.dvMaxZ;
 }
 
 void ConvertViewport(D3DVIEWPORT7 &ViewPort, D3DVIEWPORT7 &ViewPort7)
@@ -182,112 +198,131 @@ void ConvertViewport(D3DVIEWPORT7 &ViewPort, D3DVIEWPORT7 &ViewPort7)
 
 void ConverCaps(D3DPRIMCAPS &PrimCaps, D3DPRIMCAPS &PrimCaps2)
 {
-	DWORD dwSize = min(sizeof(D3DPRIMCAPS), PrimCaps.dwSize);
-	ZeroMemory(&PrimCaps, dwSize);
-	memcpy(&PrimCaps, &PrimCaps2, min(dwSize, PrimCaps2.dwSize));
-	PrimCaps.dwSize = dwSize;
+	if (PrimCaps.dwSize != sizeof(D3DPRIMCAPS) || PrimCaps2.dwSize != sizeof(D3DPRIMCAPS))
+	{
+		LOG_LIMIT(100, __FUNCTION__ << " Error! Incorrect dwSize: " << PrimCaps.dwSize << " " << PrimCaps2.dwSize);
+		return;
+	}
+	// Convert varables
+	memcpy(&PrimCaps, &PrimCaps2, sizeof(D3DPRIMCAPS));
 }
 
 void ConvertDeviceDesc(D3DDEVICEDESC &Desc, D3DDEVICEDESC7 &Desc7)
 {
-	// Prepare varables
-	D3DDEVICEDESC tmpDesc;
+	if (Desc.dwSize != D3DDEVICEDESC1_SIZE && Desc.dwSize != D3DDEVICEDESC5_SIZE && Desc.dwSize != D3DDEVICEDESC6_SIZE)
+	{
+		LOG_LIMIT(100, __FUNCTION__ << " Error! Incorrect dwSize: " << Desc.dwSize);
+		return;
+	}
 	// Convert varables
-	tmpDesc.dwSize = min(sizeof(D3DDEVICEDESC), Desc.dwSize);
-	tmpDesc.dwFlags = D3DDD_COLORMODEL | D3DDD_DEVCAPS | D3DDD_LINECAPS | D3DDD_TRICAPS | D3DDD_DEVICERENDERBITDEPTH | D3DDD_DEVICEZBUFFERBITDEPTH;
-	tmpDesc.dcmColorModel = 2;
-	tmpDesc.dwDevCaps = Desc7.dwDevCaps | D3DDEVCAPS_HWTRANSFORMANDLIGHT;
-	tmpDesc.dtcTransformCaps.dwSize = sizeof(D3DTRANSFORMCAPS);
-	tmpDesc.dtcTransformCaps.dwCaps = D3DTRANSFORMCAPS_CLIP;
-	tmpDesc.bClipping = TRUE;
-	tmpDesc.dlcLightingCaps.dwSize = sizeof(D3DLIGHTINGCAPS);
-	tmpDesc.dlcLightingCaps.dwCaps = D3DLIGHTCAPS_POINT | D3DLIGHTCAPS_SPOT | D3DLIGHTCAPS_DIRECTIONAL;
-	tmpDesc.dlcLightingCaps.dwLightingModel = 1;
-	tmpDesc.dlcLightingCaps.dwNumLights = 8;
-	tmpDesc.dpcLineCaps.dwSize = sizeof(D3DPRIMCAPS);
-	ConverCaps(tmpDesc.dpcLineCaps, Desc7.dpcLineCaps);
-	tmpDesc.dpcTriCaps.dwSize = sizeof(D3DPRIMCAPS);
-	ConverCaps(tmpDesc.dpcTriCaps, Desc7.dpcTriCaps);
-	tmpDesc.dwDeviceRenderBitDepth = Desc7.dwDeviceRenderBitDepth;
-	tmpDesc.dwDeviceZBufferBitDepth = Desc7.dwDeviceZBufferBitDepth;
-	tmpDesc.dwMaxBufferSize = 0;
-	tmpDesc.dwMaxVertexCount = 65534;
+	Desc.dwFlags = D3DDD_COLORMODEL | D3DDD_DEVCAPS | D3DDD_LINECAPS | D3DDD_TRICAPS | D3DDD_DEVICERENDERBITDEPTH | D3DDD_DEVICEZBUFFERBITDEPTH;
+	Desc.dcmColorModel = 2;
+	Desc.dwDevCaps = Desc7.dwDevCaps | D3DDEVCAPS_HWTRANSFORMANDLIGHT;
+	Desc.dtcTransformCaps.dwSize = sizeof(D3DTRANSFORMCAPS);
+	Desc.dtcTransformCaps.dwCaps = D3DTRANSFORMCAPS_CLIP;
+	Desc.bClipping = TRUE;
+	Desc.dlcLightingCaps.dwSize = sizeof(D3DLIGHTINGCAPS);
+	Desc.dlcLightingCaps.dwCaps = D3DLIGHTCAPS_POINT | D3DLIGHTCAPS_SPOT | D3DLIGHTCAPS_DIRECTIONAL;
+	Desc.dlcLightingCaps.dwLightingModel = 1;
+	Desc.dlcLightingCaps.dwNumLights = 8;
+	Desc.dpcLineCaps.dwSize = sizeof(D3DPRIMCAPS);
+	ConverCaps(Desc.dpcLineCaps, Desc7.dpcLineCaps);
+	Desc.dpcTriCaps.dwSize = sizeof(D3DPRIMCAPS);
+	ConverCaps(Desc.dpcTriCaps, Desc7.dpcTriCaps);
+	Desc.dwDeviceRenderBitDepth = Desc7.dwDeviceRenderBitDepth;
+	Desc.dwDeviceZBufferBitDepth = Desc7.dwDeviceZBufferBitDepth;
+	Desc.dwMaxBufferSize = 0;
+	Desc.dwMaxVertexCount = 65534;
 	/* DIRECT3D_VERSION >= 0x0500 */
-	tmpDesc.dwMinTextureWidth = Desc7.dwMinTextureWidth;
-	tmpDesc.dwMinTextureHeight = Desc7.dwMinTextureHeight;
-	tmpDesc.dwMaxTextureWidth = Desc7.dwMaxTextureWidth;
-	tmpDesc.dwMaxTextureHeight = Desc7.dwMaxTextureHeight;
-	tmpDesc.dwMinStippleWidth = (Desc7.dpcLineCaps.dwStippleWidth) ? 1 : 0;
-	tmpDesc.dwMaxStippleWidth = Desc7.dpcLineCaps.dwStippleWidth;
-	tmpDesc.dwMinStippleHeight = (Desc7.dpcLineCaps.dwStippleHeight) ? 1 : 0;
-	tmpDesc.dwMaxStippleHeight = Desc7.dpcLineCaps.dwStippleHeight;
+	if (Desc.dwSize < D3DDEVICEDESC5_SIZE)
+	{
+		return;
+	}
+	Desc.dwMinTextureWidth = Desc7.dwMinTextureWidth;
+	Desc.dwMinTextureHeight = Desc7.dwMinTextureHeight;
+	Desc.dwMaxTextureWidth = Desc7.dwMaxTextureWidth;
+	Desc.dwMaxTextureHeight = Desc7.dwMaxTextureHeight;
+	Desc.dwMinStippleWidth = (Desc7.dpcLineCaps.dwStippleWidth) ? 1 : 0;
+	Desc.dwMaxStippleWidth = Desc7.dpcLineCaps.dwStippleWidth;
+	Desc.dwMinStippleHeight = (Desc7.dpcLineCaps.dwStippleHeight) ? 1 : 0;
+	Desc.dwMaxStippleHeight = Desc7.dpcLineCaps.dwStippleHeight;
 	/* DIRECT3D_VERSION >= 0x0600 */
-	tmpDesc.dwMaxTextureRepeat = Desc7.dwMaxTextureRepeat;
-	tmpDesc.dwMaxTextureAspectRatio = Desc7.dwMaxTextureAspectRatio;
-	tmpDesc.dwMaxAnisotropy = Desc7.dwMaxAnisotropy;
-	tmpDesc.dvGuardBandLeft = Desc7.dvGuardBandLeft;
-	tmpDesc.dvGuardBandTop = Desc7.dvGuardBandTop;
-	tmpDesc.dvGuardBandRight = Desc7.dvGuardBandRight;
-	tmpDesc.dvGuardBandBottom = Desc7.dvGuardBandBottom;
-	tmpDesc.dvExtentsAdjust = Desc7.dvExtentsAdjust;
-	tmpDesc.dwStencilCaps = Desc7.dwStencilCaps;
-	tmpDesc.dwFVFCaps = Desc7.dwFVFCaps;
-	tmpDesc.dwTextureOpCaps = Desc7.dwTextureOpCaps;
-	tmpDesc.wMaxTextureBlendStages = Desc7.wMaxTextureBlendStages;
-	tmpDesc.wMaxSimultaneousTextures = Desc7.wMaxSimultaneousTextures;
-	// Copy to variable
-	CopyMemory(&Desc, &tmpDesc, tmpDesc.dwSize);
+	if (Desc.dwSize < D3DDEVICEDESC6_SIZE)
+	{
+		return;
+	}
+	Desc.dwMaxTextureRepeat = Desc7.dwMaxTextureRepeat;
+	Desc.dwMaxTextureAspectRatio = Desc7.dwMaxTextureAspectRatio;
+	Desc.dwMaxAnisotropy = Desc7.dwMaxAnisotropy;
+	Desc.dvGuardBandLeft = Desc7.dvGuardBandLeft;
+	Desc.dvGuardBandTop = Desc7.dvGuardBandTop;
+	Desc.dvGuardBandRight = Desc7.dvGuardBandRight;
+	Desc.dvGuardBandBottom = Desc7.dvGuardBandBottom;
+	Desc.dvExtentsAdjust = Desc7.dvExtentsAdjust;
+	Desc.dwStencilCaps = Desc7.dwStencilCaps;
+	Desc.dwFVFCaps = Desc7.dwFVFCaps;
+	Desc.dwTextureOpCaps = Desc7.dwTextureOpCaps;
+	Desc.wMaxTextureBlendStages = Desc7.wMaxTextureBlendStages;
+	Desc.wMaxSimultaneousTextures = Desc7.wMaxSimultaneousTextures;
 }
 
 void ConvertDeviceDescSoft(D3DDEVICEDESC &Desc)
 {
-	// Prepare varables
-	D3DDEVICEDESC tmpDesc;
+	if (Desc.dwSize != D3DDEVICEDESC1_SIZE && Desc.dwSize != D3DDEVICEDESC5_SIZE && Desc.dwSize != D3DDEVICEDESC6_SIZE)
+	{
+		LOG_LIMIT(100, __FUNCTION__ << " Error! Incorrect dwSize: " << Desc.dwSize);
+		return;
+	}
 	// Convert varables
-	tmpDesc.dwSize = min(sizeof(D3DDEVICEDESC), Desc.dwSize);
-	tmpDesc.dwFlags = D3DDD_COLORMODEL | D3DDD_DEVCAPS | D3DDD_TRANSFORMCAPS | D3DDD_LIGHTINGCAPS | D3DDD_BCLIPPING;
-	tmpDesc.dcmColorModel = 0;
-	tmpDesc.dwDevCaps = D3DDEVCAPS_FLOATTLVERTEX;
-	tmpDesc.dtcTransformCaps.dwSize = sizeof(D3DTRANSFORMCAPS);
-	tmpDesc.dtcTransformCaps.dwCaps = D3DTRANSFORMCAPS_CLIP;
-	tmpDesc.bClipping = TRUE;
-	tmpDesc.dlcLightingCaps.dwSize = sizeof(D3DLIGHTINGCAPS);
-	tmpDesc.dlcLightingCaps.dwCaps = D3DLIGHTCAPS_POINT | D3DLIGHTCAPS_SPOT | D3DLIGHTCAPS_DIRECTIONAL | D3DLIGHTCAPS_PARALLELPOINT;
-	tmpDesc.dlcLightingCaps.dwLightingModel = 1;
-	tmpDesc.dlcLightingCaps.dwNumLights = 0;
-	ZeroMemory(&tmpDesc.dpcLineCaps, sizeof(D3DPRIMCAPS));
-	tmpDesc.dpcLineCaps.dwSize = sizeof(D3DPRIMCAPS);
-	ZeroMemory(&tmpDesc.dpcTriCaps, sizeof(D3DPRIMCAPS));
-	tmpDesc.dpcTriCaps.dwSize = sizeof(D3DPRIMCAPS);
-	tmpDesc.dwDeviceRenderBitDepth = 0;
-	tmpDesc.dwDeviceZBufferBitDepth = 0;
-	tmpDesc.dwMaxBufferSize = 0;
-	tmpDesc.dwMaxVertexCount = 65534;
+	Desc.dwFlags = D3DDD_COLORMODEL | D3DDD_DEVCAPS | D3DDD_TRANSFORMCAPS | D3DDD_LIGHTINGCAPS | D3DDD_BCLIPPING;
+	Desc.dcmColorModel = 0;
+	Desc.dwDevCaps = D3DDEVCAPS_FLOATTLVERTEX;
+	Desc.dtcTransformCaps.dwSize = sizeof(D3DTRANSFORMCAPS);
+	Desc.dtcTransformCaps.dwCaps = D3DTRANSFORMCAPS_CLIP;
+	Desc.bClipping = TRUE;
+	Desc.dlcLightingCaps.dwSize = sizeof(D3DLIGHTINGCAPS);
+	Desc.dlcLightingCaps.dwCaps = D3DLIGHTCAPS_POINT | D3DLIGHTCAPS_SPOT | D3DLIGHTCAPS_DIRECTIONAL | D3DLIGHTCAPS_PARALLELPOINT;
+	Desc.dlcLightingCaps.dwLightingModel = 1;
+	Desc.dlcLightingCaps.dwNumLights = 0;
+	ZeroMemory(&Desc.dpcLineCaps, sizeof(D3DPRIMCAPS));
+	Desc.dpcLineCaps.dwSize = sizeof(D3DPRIMCAPS);
+	ZeroMemory(&Desc.dpcTriCaps, sizeof(D3DPRIMCAPS));
+	Desc.dpcTriCaps.dwSize = sizeof(D3DPRIMCAPS);
+	Desc.dwDeviceRenderBitDepth = 0;
+	Desc.dwDeviceZBufferBitDepth = 0;
+	Desc.dwMaxBufferSize = 0;
+	Desc.dwMaxVertexCount = 65534;
 	/* DIRECT3D_VERSION >= 0x0500 */
-	tmpDesc.dwMinTextureWidth = 0;
-	tmpDesc.dwMinTextureHeight = 0;
-	tmpDesc.dwMaxTextureWidth = 0;
-	tmpDesc.dwMaxTextureHeight = 0;
-	tmpDesc.dwMinStippleWidth = 0;
-	tmpDesc.dwMaxStippleWidth = 0;
-	tmpDesc.dwMinStippleHeight = 0;
-	tmpDesc.dwMaxStippleHeight = 0;
+	if (Desc.dwSize < D3DDEVICEDESC5_SIZE)
+	{
+		return;
+	}
+	Desc.dwMinTextureWidth = 0;
+	Desc.dwMinTextureHeight = 0;
+	Desc.dwMaxTextureWidth = 0;
+	Desc.dwMaxTextureHeight = 0;
+	Desc.dwMinStippleWidth = 0;
+	Desc.dwMaxStippleWidth = 0;
+	Desc.dwMinStippleHeight = 0;
+	Desc.dwMaxStippleHeight = 0;
 	/* DIRECT3D_VERSION >= 0x0600 */
-	tmpDesc.dwMaxTextureRepeat = 0;
-	tmpDesc.dwMaxTextureAspectRatio = 0;
-	tmpDesc.dwMaxAnisotropy = 0;
-	tmpDesc.dvGuardBandLeft = 0;
-	tmpDesc.dvGuardBandTop = 0;
-	tmpDesc.dvGuardBandRight = 0;
-	tmpDesc.dvGuardBandBottom = 0;
-	tmpDesc.dvExtentsAdjust = 0;
-	tmpDesc.dwStencilCaps = 0;
-	tmpDesc.dwFVFCaps = 0;
-	tmpDesc.dwTextureOpCaps = 0;
-	tmpDesc.wMaxTextureBlendStages = 0;
-	tmpDesc.wMaxSimultaneousTextures = 0;
-	// Copy to variable
-	CopyMemory(&Desc, &tmpDesc, tmpDesc.dwSize);
+	if (Desc.dwSize < D3DDEVICEDESC6_SIZE)
+	{
+		return;
+	}
+	Desc.dwMaxTextureRepeat = 0;
+	Desc.dwMaxTextureAspectRatio = 0;
+	Desc.dwMaxAnisotropy = 0;
+	Desc.dvGuardBandLeft = 0;
+	Desc.dvGuardBandTop = 0;
+	Desc.dvGuardBandRight = 0;
+	Desc.dvGuardBandBottom = 0;
+	Desc.dvExtentsAdjust = 0;
+	Desc.dwStencilCaps = 0;
+	Desc.dwFVFCaps = 0;
+	Desc.dwTextureOpCaps = 0;
+	Desc.wMaxTextureBlendStages = 0;
+	Desc.wMaxSimultaneousTextures = 0;
 }
 
 void ConvertDeviceDesc(D3DDEVICEDESC7 &Desc7, D3DCAPS9 &Caps9)
@@ -311,7 +346,6 @@ void ConvertDeviceDesc(D3DDEVICEDESC7 &Desc7, D3DCAPS9 &Caps9)
 	Desc7.dvMaxVertexW = Caps9.MaxVertexW;
 	Desc7.wMaxUserClipPlanes = (WORD)((Caps9.MaxUserClipPlanes > 0xFFFF) ? 0xFFFF : Caps9.MaxUserClipPlanes);
 	Desc7.wMaxVertexBlendMatrices = (WORD)((Caps9.MaxVertexBlendMatrices > 0xFFFF) ? 0xFFFF : Caps9.MaxVertexBlendMatrices);
-
 	// Caps
 	Desc7.dwDevCaps = (Caps9.DevCaps & ~(D3DDEVCAPS_PUREDEVICE | D3DDEVCAPS_QUINTICRTPATCHES | D3DDEVCAPS_RTPATCHES | D3DDEVCAPS_RTPATCHHANDLEZERO | D3DDEVCAPS_NPATCHES)) |
 		D3DDEVCAPS_FLOATTLVERTEX | D3DDEVCAPS_HWTRANSFORMANDLIGHT | 0x00100000L | 0x02000000L;
@@ -319,7 +353,6 @@ void ConvertDeviceDesc(D3DDEVICEDESC7 &Desc7, D3DCAPS9 &Caps9)
 	Desc7.dwFVFCaps = (Caps9.FVFCaps & 0x8FFFF) | 0x00100000;
 	Desc7.dwTextureOpCaps = (Caps9.TextureOpCaps & 0xFFFFFF) | 0x01000000 | 0x02000000;
 	Desc7.dwVertexProcessingCaps = Caps9.VertexProcessingCaps & 0x3F;
-
 	// Line Caps
 	Desc7.dpcLineCaps.dwSize = sizeof(D3DPRIMCAPS);
 	Desc7.dpcLineCaps.dwMiscCaps = (Caps9.PrimitiveMiscCaps & 0x72) | 0x00000200;
@@ -337,10 +370,8 @@ void ConvertDeviceDesc(D3DDEVICEDESC7 &Desc7, D3DCAPS9 &Caps9)
 	Desc7.dpcLineCaps.dwTextureAddressCaps = Caps9.TextureAddressCaps & 0x1F;
 	Desc7.dpcLineCaps.dwStippleWidth = 0;
 	Desc7.dpcLineCaps.dwStippleHeight = 0;
-
 	// Tri Caps same as Line Caps
 	memcpy(&Desc7.dpcTriCaps, &Desc7.dpcLineCaps, sizeof(D3DPRIMCAPS));
-
 	// Specific settings
 	if (Caps9.DeviceType == D3DDEVTYPE_REF)
 	{
@@ -364,7 +395,6 @@ void ConvertDeviceDesc(D3DDEVICEDESC7 &Desc7, D3DCAPS9 &Caps9)
 		Desc7.dwDeviceRenderBitDepth = 3328;
 		Desc7.dwDeviceZBufferBitDepth = 1536;
 	}
-
 	// Reserved
 	Desc7.dwReserved1 = 0;
 	Desc7.dwReserved2 = 0;
@@ -376,10 +406,9 @@ void GetBufferFormat(DDPIXELFORMAT &ddpfPixelFormat, DWORD Num)
 {
 	if (ddpfPixelFormat.dwSize != sizeof(DDPIXELFORMAT))
 	{
-		LOG_LIMIT(100, __FUNCTION__ << " Error: invalid DDPIXELFORMAT dwSize! " << ddpfPixelFormat.dwSize);
+		LOG_LIMIT(100, __FUNCTION__ << " Error! Incorrect dwSize: " << ddpfPixelFormat.dwSize);
 		return;
 	}
-
 	switch (Num)
 	{
 	case 0:

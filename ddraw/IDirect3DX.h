@@ -1,5 +1,9 @@
 #pragma once
 
+#define D3DDEVICEDESC1_SIZE 168
+#define D3DDEVICEDESC5_SIZE 200
+#define D3DDEVICEDESC6_SIZE 228
+
 class m_IDirect3DX : public IUnknown
 {
 private:

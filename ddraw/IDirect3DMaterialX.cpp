@@ -137,12 +137,13 @@ HRESULT m_IDirect3DMaterialX::SetMaterial(LPD3DMATERIAL lpMat)
 	case 7:
 	case 9:
 	{
-		if (!lpMat)
+		if (!lpMat || lpMat->dwSize != sizeof(D3DMATERIAL))
 		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error! Incorrect dwSize: " << ((lpMat) ? lpMat->dwSize : -1));
 			return DDERR_INVALIDPARAMS;
 		}
 
-		D3DMATERIAL7 tmpMaterial;
+		D3DMATERIAL7 Material7;
 
 		if (lpMat->hTexture)
 		{
@@ -155,9 +156,9 @@ HRESULT m_IDirect3DMaterialX::SetMaterial(LPD3DMATERIAL lpMat)
 			return DDERR_GENERIC;
 		}
 
-		ConvertMaterial(tmpMaterial, *lpMat);
+		ConvertMaterial(Material7, *lpMat);
 
-		return (*D3DDeviceInterface)->SetMaterial(&tmpMaterial);
+		return (*D3DDeviceInterface)->SetMaterial(&Material7);
 	}
 	default:
 		return DDERR_GENERIC;
@@ -194,8 +195,14 @@ HRESULT m_IDirect3DMaterialX::GetMaterial(LPD3DMATERIAL lpMat)
 
 		HRESULT hr = (*D3DDeviceInterface)->GetMaterial(&tmpMaterial);
 
-		LOG_LIMIT(100, __FUNCTION__ << " D3DMATERIALHANDLE Not Implemented");
-		ConvertMaterial(tmpMaterial, *lpMat);
+		if (SUCCEEDED(hr))
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " D3DMATERIALHANDLE Not Implemented");
+
+			lpMat->dwSize = sizeof(D3DMATERIAL);
+
+			ConvertMaterial(tmpMaterial, *lpMat);
+		}
 
 		return hr;
 	}

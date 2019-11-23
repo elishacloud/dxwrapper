@@ -135,6 +135,8 @@ HRESULT m_IDirect3DViewportX::GetViewport(LPD3DVIEWPORT lpData)
 
 		if (ViewPortSet)
 		{
+			lpData->dwSize = sizeof(D3DVIEWPORT);
+
 			ConvertViewport(*lpData, ViewPort);
 
 			return D3D_OK;
@@ -142,6 +144,8 @@ HRESULT m_IDirect3DViewportX::GetViewport(LPD3DVIEWPORT lpData)
 
 		if (ViewPort2Set)
 		{
+			lpData->dwSize = sizeof(D3DVIEWPORT);
+
 			ConvertViewport(*lpData, ViewPort2);
 
 			return D3D_OK;
@@ -159,8 +163,9 @@ HRESULT m_IDirect3DViewportX::SetViewport(LPD3DVIEWPORT lpData)
 
 	if (ProxyDirectXVersion > 3)
 	{
-		if (!lpData)
+		if (!lpData || lpData->dwSize != sizeof(D3DVIEWPORT))
 		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error! Incorrect dwSize: " << ((lpData) ? lpData->dwSize : -1));
 			return DDERR_INVALIDPARAMS;
 		}
 
@@ -372,6 +377,8 @@ HRESULT m_IDirect3DViewportX::GetViewport2(LPD3DVIEWPORT2 lpData)
 
 		if (ViewPort2Set)
 		{
+			lpData->dwSize = sizeof(D3DVIEWPORT2);
+
 			ConvertViewport(*lpData, ViewPort2);
 
 			return D3D_OK;
@@ -379,6 +386,8 @@ HRESULT m_IDirect3DViewportX::GetViewport2(LPD3DVIEWPORT2 lpData)
 
 		if (ViewPortSet)
 		{
+			lpData->dwSize = sizeof(D3DVIEWPORT2);
+
 			ConvertViewport(*lpData, ViewPort);
 
 			return D3D_OK;
@@ -396,8 +405,9 @@ HRESULT m_IDirect3DViewportX::SetViewport2(LPD3DVIEWPORT2 lpData)
 
 	if (ProxyDirectXVersion > 3)
 	{
-		if (!lpData)
+		if (!lpData || lpData->dwSize != sizeof(D3DVIEWPORT2))
 		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error! Incorrect dwSize: " << ((lpData) ? lpData->dwSize : -1));
 			return DDERR_INVALIDPARAMS;
 		}
 
