@@ -159,6 +159,7 @@ public:
 	HWND GetHwnd();
 	HDC GetDC();
 	bool IsExclusiveMode();
+	void GetResolution(DWORD &Width, DWORD &Height, DWORD &RefreshRate, DWORD &BPP);
 
 	// Direct3D9 interface functions
 	HRESULT CheckInterface(char *FunctionName, bool CheckD3DDevice);

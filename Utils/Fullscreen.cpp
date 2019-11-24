@@ -180,6 +180,33 @@ DWORD Utils::GetRefreshRate(HWND hWnd)
 	return RefreshRate;
 }
 
+DWORD Utils::GetBitCount(HWND hWnd)
+{
+	if (IsWindow(hWnd))
+	{
+		MONITORINFOEX mi;
+		mi.cbSize = sizeof(MONITORINFOEX);
+		bool DeviceNameFlag = (GetMonitorInfoA(MonitorFromWindow(hWnd, MONITOR_DEFAULTTONEAREST), &mi) != 0);
+		if (!DeviceNameFlag)
+		{
+			Logging::Log() << __FUNCTION__ << " Failed to get MonitorInfo!";
+		}
+		DEVMODEA DevMode;
+		ZeroMemory(&DevMode, sizeof(DEVMODEA));
+		DevMode.dmSize = sizeof(DEVMODEA);
+		if (EnumDisplaySettingsA((DeviceNameFlag) ? mi.szDevice : nullptr, ENUM_CURRENT_SETTINGS, &DevMode))
+		{
+			return DevMode.dmBitsPerPel;
+		}
+	}
+
+	HDC hdc = GetDC(nullptr);
+	DWORD BPP = GetDeviceCaps(hdc, BITSPIXEL);
+	ReleaseDC(nullptr, hdc);
+
+	return BPP;
+}
+
 DWORD Utils::GetWindowHeight(HWND hWnd)
 {
 	if (IsWindow(hWnd))

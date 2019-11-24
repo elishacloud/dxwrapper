@@ -29,6 +29,7 @@ namespace Utils
 	void GetScreenSettings();
 	void ResetScreenSettings();
 	DWORD GetRefreshRate(HWND hWnd);
+	DWORD GetBitCount(HWND hWnd);
 	DWORD GetWindowHeight(HWND hWnd);
 	void DisableGameUX();
 

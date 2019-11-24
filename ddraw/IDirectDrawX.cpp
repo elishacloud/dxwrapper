@@ -36,6 +36,10 @@ HDC SharedMainhDC;
 // Exclusive mode
 bool ExclusiveMode;
 HWND ExclusiveHwnd;
+DWORD ExclusiveWidth;
+DWORD ExclusiveHeight;
+DWORD ExclusiveBPP;
+DWORD ExclusiveRefreshRate;
 
 // Application display mode
 bool ResetDisplayMode;
@@ -49,6 +53,10 @@ bool SetDefaultDisplayMode;			// Set native resolution
 DWORD displayWidth;
 DWORD displayHeight;
 DWORD displayRefreshRate;			// Refresh rate for fullscreen
+
+// Last resolution
+DWORD LastWidth;
+DWORD LastHeight;
 
 // Display mode settings
 bool AllowModeX;
@@ -71,9 +79,9 @@ DWORD monitorHeight = 0;
 // Direct3D9 Objects
 LPDIRECT3D9 d3d9Object = nullptr;
 LPDIRECT3DDEVICE9 d3d9Device = nullptr;
-D3DPRESENT_PARAMETERS presParams;
+D3DPRESENT_PARAMETERS presParams = { NULL };
 
-struct handle_data
+struct HANDLE_DATA
 {
 	DWORD process_id = 0;
 	HWND best_handle = nullptr;
@@ -356,25 +364,6 @@ HRESULT m_IDirectDrawX::CreateSurface2(LPDDSURFACEDESC2 lpDDSurfaceDesc2, LPDIRE
 			return DDERR_INVALIDPARAMS;
 		}
 
-		if (!displayModeWidth && !displayModeHeight && !displayModeBPP && (lpDDSurfaceDesc2->ddsCaps.dwCaps & DDSCAPS_PRIMARYSURFACE))
-		{
-			HWND hwnd = GetHwnd();
-			DWORD Width = 0, Height = 0;
-			DWORD BitMode = (Config.DdrawOverrideBitMode) ? Config.DdrawOverrideBitMode : 32;
-			if (IsWindow(hwnd))
-			{
-				RECT Rect = { NULL };
-				GetClientRect(hwnd, &Rect);
-				Width = Rect.right - Rect.left;
-				Height = Rect.bottom - Rect.top;
-			}
-			if (Width && Height)
-			{
-				Logging::LogDebug() << __FUNCTION__ << " Setting the display mode " << Width << "x" << Height << " " << BitMode;
-				SetDisplayMode(Width, Height, BitMode, 0, 0);
-			}
-		}
-
 		DDSURFACEDESC2 Desc2;
 		Desc2.dwSize = sizeof(DDSURFACEDESC2);
 		ConvertSurfaceDesc(Desc2, *lpDDSurfaceDesc2);
@@ -608,21 +597,7 @@ HRESULT m_IDirectDrawX::EnumDisplayModes2(DWORD dwFlags, LPDDSURFACEDESC2 lpDDSu
 					// Set adapter pixel format
 					Desc2.dwFlags |= DDSD_PIXELFORMAT;
 					Desc2.ddpfPixelFormat.dwSize = sizeof(DDPIXELFORMAT);
-					switch (DisplayBitCount)
-					{
-					case 8:
-						SetPixelDisplayFormat(D3DFMT_P8, Desc2.ddpfPixelFormat);
-						break;
-					case 16:
-						SetPixelDisplayFormat(D3DFMT_R5G6B5, Desc2.ddpfPixelFormat);
-						break;
-					case 24:
-						SetPixelDisplayFormat(D3DFMT_R8G8B8, Desc2.ddpfPixelFormat);
-						break;
-					case 32:
-						SetPixelDisplayFormat(D3DFMT_X8R8G8B8, Desc2.ddpfPixelFormat);
-						break;
-					}
+					SetDisplayFormat(DisplayBitCount, Desc2.ddpfPixelFormat);
 					Desc2.lPitch = (Desc2.ddpfPixelFormat.dwRGBBitCount / 8) * Desc2.dwHeight;
 
 					if (lpEnumModesCallback2(&Desc2, lpContext) == DDENUMRET_CANCEL)
@@ -844,20 +819,19 @@ HRESULT m_IDirectDrawX::GetDisplayMode2(LPDDSURFACEDESC2 lpDDSurfaceDesc2)
 		lpDDSurfaceDesc2->dwSize = sizeof(DDSURFACEDESC2);
 		lpDDSurfaceDesc2->dwFlags = DDSD_WIDTH | DDSD_HEIGHT | DDSD_REFRESHRATE;
 		DWORD displayModeBits = displayModeBPP;
-		if (displayModeBits)
+		if (ExclusiveMode && ExclusiveWidth && ExclusiveHeight && ExclusiveBPP)
 		{
-			lpDDSurfaceDesc2->dwWidth = displayModeWidth;
-			lpDDSurfaceDesc2->dwHeight = displayModeHeight;
-			lpDDSurfaceDesc2->dwRefreshRate = displayModeRefreshRate;
+			lpDDSurfaceDesc2->dwWidth = ExclusiveWidth;
+			lpDDSurfaceDesc2->dwHeight = ExclusiveHeight;
+			lpDDSurfaceDesc2->dwRefreshRate = ExclusiveRefreshRate;
+			displayModeBits = ExclusiveBPP;
 		}
 		else
 		{
-			HDC hdc = ::GetDC(nullptr);
 			lpDDSurfaceDesc2->dwWidth = GetSystemMetrics(SM_CXSCREEN);
 			lpDDSurfaceDesc2->dwHeight = GetSystemMetrics(SM_CYSCREEN);
 			lpDDSurfaceDesc2->dwRefreshRate = Utils::GetRefreshRate(GetHwnd());
-			displayModeBits = GetDeviceCaps(hdc, BITSPIXEL);
-			ReleaseDC(nullptr, hdc);
+			displayModeBits = Utils::GetBitCount(GetHwnd());
 		}
 
 		// Force color mode
@@ -866,21 +840,8 @@ HRESULT m_IDirectDrawX::GetDisplayMode2(LPDDSURFACEDESC2 lpDDSurfaceDesc2)
 		// Set Pixel Format
 		lpDDSurfaceDesc2->dwFlags |= DDSD_PIXELFORMAT;
 		lpDDSurfaceDesc2->ddpfPixelFormat.dwSize = sizeof(DDPIXELFORMAT);
-		switch (displayModeBits)
+		if (FAILED(SetDisplayFormat(displayModeBits, lpDDSurfaceDesc2->ddpfPixelFormat)))
 		{
-		case 8:
-			SetPixelDisplayFormat(D3DFMT_P8, lpDDSurfaceDesc2->ddpfPixelFormat);
-			break;
-		case 16:
-			SetPixelDisplayFormat(D3DFMT_R5G6B5, lpDDSurfaceDesc2->ddpfPixelFormat);
-			break;
-		case 24:
-			SetPixelDisplayFormat(D3DFMT_R8G8B8, lpDDSurfaceDesc2->ddpfPixelFormat);
-			break;
-		case 32:
-			SetPixelDisplayFormat(D3DFMT_X8R8G8B8, lpDDSurfaceDesc2->ddpfPixelFormat);
-			break;
-		default:
 			LOG_LIMIT(100, __FUNCTION__ << " Not implemented bit count " << displayModeBits);
 			return DDERR_UNSUPPORTED;
 		}
@@ -1101,7 +1062,7 @@ LRESULT CALLBACK CBTProc(int nCode, WPARAM wParam, LPARAM lParam)
 BOOL CALLBACK EnumProcWindowCallback(HWND hwnd, LPARAM lParam)
 {
 	// Get variables from call back
-	handle_data& data = *(handle_data*)lParam;
+	HANDLE_DATA& data = *(HANDLE_DATA*)lParam;
 
 	// Skip windows that are from a different process ID
 	DWORD process_id;
@@ -1148,6 +1109,10 @@ HRESULT m_IDirectDrawX::SetCooperativeLevel(HWND hWnd, DWORD dwFlags)
 			{
 				ExclusiveMode = false;
 				ExclusiveHwnd = nullptr;
+				ExclusiveWidth = 0;
+				ExclusiveHeight = 0;
+				ExclusiveBPP = 0;
+				ExclusiveRefreshRate = 0;
 			}
 			isWindowed = true;
 		}
@@ -1174,7 +1139,7 @@ HRESULT m_IDirectDrawX::SetCooperativeLevel(HWND hWnd, DWORD dwFlags)
 		if (!t_hWnd)
 		{
 			// Set variables
-			handle_data data;
+			HANDLE_DATA data;
 			data.process_id = GetCurrentProcessId();
 			data.best_handle = nullptr;
 
@@ -1277,6 +1242,12 @@ HRESULT m_IDirectDrawX::SetDisplayMode(DWORD dwWidth, DWORD dwHeight, DWORD dwBP
 
 	if (Config.Dd7to9)
 	{
+		if (!dwWidth || !dwHeight || !dwBPP)
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error! Invalid parameters. " << dwWidth << "x" << dwHeight << " " << dwBPP);
+			return DDERR_INVALIDPARAMS;
+		}
+
 		bool ChangeMode = false;
 
 		// Set display mode to dwWidth x dwHeight with dwBPP color depth
@@ -1300,6 +1271,15 @@ HRESULT m_IDirectDrawX::SetDisplayMode(DWORD dwWidth, DWORD dwHeight, DWORD dwBP
 				displayHeight = (Config.DdrawUseNativeResolution || Config.DdrawOverrideHeight) ? displayHeight : displayModeHeight;
 				displayRefreshRate = (Config.DdrawOverrideRefreshRate) ? displayRefreshRate : displayModeRefreshRate;
 			}
+		}
+
+		// Set exclusive mode resolution
+		if (ExclusiveMode && ExclusiveHwnd == MainhWnd)
+		{
+			ExclusiveWidth = NewWidth;
+			ExclusiveHeight = NewHeight;
+			ExclusiveBPP = NewBPP;
+			ExclusiveRefreshRate = NewRefreshRate;
 		}
 
 		// Update the d3d9 device to use new display mode
@@ -1412,13 +1392,49 @@ HRESULT m_IDirectDrawX::GetAvailableVidMem2(LPDDSCAPS2 lpDDSCaps2, LPDWORD lpdwT
 			return DDERR_INVALIDPARAMS;
 		}
 
-		// Check for device interface
-		if (FAILED(CheckInterface(__FUNCTION__, true)))
+		DWORD AvailableMemory = MaxVidMemory;
+
+		if (d3d9Device)
 		{
-			return DDERR_GENERIC;
+			AvailableMemory = d3d9Device->GetAvailableTextureMem();
+		}
+		else
+		{
+			// Check for device interface
+			if (FAILED(CheckInterface(__FUNCTION__, false)))
+			{
+				return DDERR_GENERIC;
+			}
+
+			// Set parameters
+			D3DPRESENT_PARAMETERS tmpParams = { NULL };
+			tmpParams.Windowed = TRUE;
+			tmpParams.BackBufferWidth = 100;
+			tmpParams.BackBufferHeight = 100;
+			tmpParams.PresentationInterval = D3DPRESENT_INTERVAL_IMMEDIATE;
+			tmpParams.SwapEffect = D3DSWAPEFFECT_DISCARD;
+
+			// Create device
+			LPDIRECT3DDEVICE9 tmpd3d9 = nullptr;
+			if (SUCCEEDED(d3d9Object->CreateDevice(D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, GetHwnd(), D3DCREATE_SOFTWARE_VERTEXPROCESSING, &tmpParams, &tmpd3d9)))
+			{
+				// Get available memory
+				AvailableMemory = tmpd3d9->GetAvailableTextureMem();
+
+				// Release device
+				tmpd3d9->Release();
+			}
+			else
+			{
+				LOG_LIMIT(100, __FUNCTION__ << " Failed to create Direct3D9 device!");
+			}
 		}
 
-		DWORD AvailableMemory = d3d9Device->GetAvailableTextureMem();
+		if (!AvailableMemory)
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: failed to get available memory!");
+			return DDERR_GENERIC;
+		}
 
 		if (lpdwTotal)
 		{
@@ -1507,10 +1523,18 @@ HRESULT m_IDirectDrawX::TestCooperativeLevel()
 		{
 		case D3DERR_DRIVERINTERNALERROR:
 		case D3DERR_INVALIDCALL:
-			return DDERR_WRONGMODE;
-		case D3DERR_DEVICENOTRESET:
-			ReinitDevice();
+			if (SUCCEEDED(ReinitDevice()))
+			{
+				return DD_OK;
+			}
+			return DDERR_GENERIC;
+		case D3DERR_DEVICENOTRESET:				  
 		case D3DERR_DEVICELOST:
+			if (SUCCEEDED(ReinitDevice()))
+			{
+				return DD_OK;
+			}
+			return DDERR_WRONGMODE;
 		case D3D_OK:
 		default:
 			return DD_OK;
@@ -1654,6 +1678,14 @@ void m_IDirectDrawX::SetDdrawDefaults()
 	// Exclusive mode
 	ExclusiveMode = false;
 	ExclusiveHwnd = nullptr;
+	ExclusiveWidth = 0;
+	ExclusiveHeight = 0;
+	ExclusiveBPP = 0;
+	ExclusiveRefreshRate = 0;
+
+	// Last resolution
+	LastWidth = 0;
+	LastHeight = 0;
 
 	// Application display mode
 	if (SharedMainhWnd && SharedMainhDC)
@@ -1771,6 +1803,58 @@ bool m_IDirectDrawX::IsExclusiveMode()
 	return ExclusiveMode;
 }
 
+void m_IDirectDrawX::GetResolution(DWORD &Width, DWORD &Height, DWORD &RefreshRate, DWORD &BPP)
+{
+	// Init settings
+	Width = 0;
+	Height = 0;
+	RefreshRate = 0;
+	BPP = 0;
+
+	// Width, Height, RefreshMode
+	if (ExclusiveMode && ExclusiveWidth && ExclusiveHeight && ExclusiveBPP)
+	{
+		Width = ExclusiveWidth;
+		Height = ExclusiveHeight;
+		RefreshRate = ExclusiveRefreshRate;
+		BPP = ExclusiveBPP;
+	}
+	else if (displayModeWidth && displayModeHeight && displayModeBPP)
+	{
+		Width = displayModeWidth;
+		Height = displayModeHeight;
+		RefreshRate = displayModeRefreshRate;
+		BPP = displayModeBPP;
+	}
+	else if (isWindowed && IsWindow(GetHwnd()))
+	{
+		HWND hwnd = GetHwnd();
+		RECT Rect = { NULL };
+		GetClientRect(hwnd, &Rect);
+		Width = Rect.right - Rect.left;
+		Height = Rect.bottom - Rect.top;
+		BPP = Utils::GetBitCount(GetHwnd());
+	}
+	else
+	{
+		Width = GetSystemMetrics(SM_CXSCREEN);
+		Height = GetSystemMetrics(SM_CYSCREEN);
+		RefreshRate = Utils::GetRefreshRate(GetHwnd());
+		BPP = Utils::GetBitCount(GetHwnd());
+	}
+
+	// Force color mode
+	BPP = (Config.DdrawOverrideBitMode) ? Config.DdrawOverrideBitMode : BPP;
+
+	// Check if resolution changed
+	if (LastWidth && LastHeight && LastWidth != Width && LastHeight != Height)
+	{
+		CreateD3D9Device();
+	}
+	LastWidth = Width;
+	LastHeight = Height;
+}
+
 HRESULT m_IDirectDrawX::CheckInterface(char *FunctionName, bool CheckD3DDevice)
 {
 	// Check for device
@@ -1848,8 +1932,19 @@ HRESULT m_IDirectDrawX::CreateD3D9Device()
 	DWORD BackBufferHeight = displayHeight;
 	if (!BackBufferWidth || !BackBufferHeight)
 	{
-		BackBufferWidth = GetSystemMetrics(SM_CXSCREEN);
-		BackBufferHeight = GetSystemMetrics(SM_CYSCREEN);
+		if (isWindowed && IsWindow(GetHwnd()))
+		{
+			HWND hwnd = GetHwnd();
+			RECT Rect = { NULL };
+			GetClientRect(hwnd, &Rect);
+			BackBufferWidth = Rect.right - Rect.left;
+			BackBufferHeight = Rect.bottom - Rect.top;
+		}
+		else
+		{
+			BackBufferWidth = GetSystemMetrics(SM_CXSCREEN);
+			BackBufferHeight = GetSystemMetrics(SM_CYSCREEN);
+		}
 	}
 
 	// Set display window

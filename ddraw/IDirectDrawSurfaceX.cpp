@@ -395,7 +395,7 @@ HRESULT m_IDirectDrawSurfaceX::Blt(LPRECT lpDestRect, LPDIRECTDRAWSURFACE7 lpDDS
 				((lpDDBltFx && (dwFlags & DDBLT_DDFX)) ? (lpDDBltFx->dwDDFX & (DDBLTFX_MIRRORLEFTRIGHT | DDBLTFX_MIRRORUPDOWN)) : 0);			// Mirror flags
 
 			// Check if color key is set
-			if (((dwFlags & DDBLT_KEYDEST) && !ColorKeys[0].IsSet) || ((dwFlags & DDBLT_KEYSRC) && !lpDDSrcSurfaceX->ColorKeys[2].IsSet))
+			if (((dwFlags & DDBLT_KEYDEST) && !(surfaceDesc2.ddsCaps.dwCaps & DDSD_CKDESTBLT)) || ((dwFlags & DDBLT_KEYSRC) && !(lpDDSrcSurfaceX->surfaceDesc2.ddsCaps.dwCaps & DDSD_CKSRCBLT)))
 			{
 				LOG_LIMIT(100, __FUNCTION__ << " Error: color key not set");
 				Flags &= ~(DDBLT_KEYDESTOVERRIDE | DDBLT_KEYSRCOVERRIDE | DDBLT_KEYDEST | DDBLT_KEYSRC);
@@ -404,8 +404,8 @@ HRESULT m_IDirectDrawSurfaceX::Blt(LPRECT lpDestRect, LPDIRECTDRAWSURFACE7 lpDDS
 			// Get color key
 			DDCOLORKEY ColorKey = (dwFlags & DDBLT_KEYDESTOVERRIDE) ? lpDDBltFx->ddckDestColorkey :
 				(dwFlags & DDBLT_KEYSRCOVERRIDE) ? lpDDBltFx->ddckSrcColorkey :
-				(dwFlags & DDBLT_KEYDEST) ? ColorKeys[0].Key :
-				(dwFlags & DDBLT_KEYSRC) ? lpDDSrcSurfaceX->ColorKeys[2].Key : ColorKeys[0].Key;
+				(dwFlags & DDBLT_KEYDEST) ? surfaceDesc2.ddckCKDestBlt :
+				(dwFlags & DDBLT_KEYSRC) ? lpDDSrcSurfaceX->surfaceDesc2.ddckCKSrcBlt : surfaceDesc2.ddckCKDestBlt;
 
 			hr = CopySurface(lpDDSrcSurfaceX, lpSrcRect, lpDestRect, D3DTEXF_NONE, ColorKey, Flags);
 
@@ -1068,27 +1068,54 @@ HRESULT m_IDirectDrawSurfaceX::GetColorKey(DWORD dwFlags, LPDDCOLORKEY lpDDColor
 
 	if (Config.Dd7to9)
 	{
-		// Get color key index
-		int x = (dwFlags == DDCKEY_DESTBLT) ? 0 :
-			(dwFlags == DDCKEY_DESTOVERLAY) ? 1 :
-			(dwFlags == DDCKEY_SRCBLT) ? 2 :
-			(dwFlags == DDCKEY_SRCOVERLAY) ? 3 : -1;
-
 		// Check index
-		if (!lpDDColorKey || x == -1)
+		if (!lpDDColorKey)
 		{
 			return DDERR_INVALIDPARAMS;
 		}
 
+		// Get color key index
+		DWORD dds = 0;
+		switch (dwFlags)
+		{
+		case DDCKEY_DESTBLT:
+			dds = DDSD_CKDESTBLT;
+			break;
+		case DDCKEY_DESTOVERLAY:
+			dds = DDSD_CKDESTOVERLAY;
+			break;
+		case DDCKEY_SRCBLT:
+			dds = DDSD_CKSRCBLT;
+			break;
+		case DDCKEY_SRCOVERLAY:
+			dds = DDSD_CKSRCOVERLAY;
+			break;
+		default:
+			return DDERR_INVALIDPARAMS;
+		}
+
 		// Check if color key is set
-		if (!ColorKeys[x].IsSet)
+		if (!(surfaceDesc2.ddsCaps.dwCaps & dds))
 		{
 			return DDERR_NOCOLORKEY;
 		}
 
-		// Copy color key
-		lpDDColorKey->dwColorSpaceHighValue = ColorKeys[x].Key.dwColorSpaceHighValue;
-		lpDDColorKey->dwColorSpaceLowValue = ColorKeys[x].Key.dwColorSpaceLowValue;
+		// Set color key
+		switch (dds)
+		{
+		case DDSD_CKDESTBLT:
+			*lpDDColorKey = surfaceDesc2.ddckCKDestBlt;
+			break;
+		case DDSD_CKDESTOVERLAY:
+			*lpDDColorKey = surfaceDesc2.ddckCKDestOverlay;
+			break;
+		case DDSD_CKSRCBLT:
+			*lpDDColorKey = surfaceDesc2.ddckCKSrcBlt;
+			break;
+		case DDSD_CKSRCOVERLAY:
+			*lpDDColorKey = surfaceDesc2.ddckCKSrcOverlay;
+			break;
+		}
 
 		// Return
 		return DD_OK;
@@ -1283,19 +1310,17 @@ HRESULT m_IDirectDrawSurfaceX::GetPixelFormat(LPDDPIXELFORMAT lpDDPixelFormat)
 
 	if (Config.Dd7to9)
 	{
-		if (!lpDDPixelFormat)
+		if (!lpDDPixelFormat || lpDDPixelFormat->dwSize != sizeof(DDPIXELFORMAT))
 		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error! Invalid parameters. dwSize: " << ((lpDDPixelFormat) ? lpDDPixelFormat->dwSize : -1));
 			return DDERR_INVALIDPARAMS;
 		}
 
-		DDSURFACEDESC2 Desc2;
-		Desc2.dwSize = sizeof(DDSURFACEDESC2);
-
 		// Update surface description
-		GetSurfaceDesc2(&Desc2);
+		UpdateSurfaceDesc();
 
 		// Copy pixel format to lpDDPixelFormat
-		ConvertPixelFormat(*lpDDPixelFormat, Desc2.ddpfPixelFormat);
+		ConvertPixelFormat(*lpDDPixelFormat, surfaceDesc2.ddpfPixelFormat);
 
 		return DD_OK;
 	}
@@ -1345,88 +1370,11 @@ HRESULT m_IDirectDrawSurfaceX::GetSurfaceDesc2(LPDDSURFACEDESC2 lpDDSurfaceDesc2
 			return DDERR_INVALIDPARAMS;
 		}
 
-		// Check for device interface
-		if (FAILED(CheckInterface(__FUNCTION__, false, false)))
-		{
-			return DDERR_GENERIC;
-		}
+		// Update surfacedesc
+		UpdateSurfaceDesc();
 
 		// Copy surfacedesc to lpDDSurfaceDesc2
 		ConvertSurfaceDesc(*lpDDSurfaceDesc2, surfaceDesc2);
-
-		// Surface description
-		DDSURFACEDESC2 Desc2 = { NULL };
-		Desc2.dwSize = sizeof(DDSURFACEDESC2);
-
-		// Set Height and Width
-		if ((lpDDSurfaceDesc2->dwFlags & (DDSD_HEIGHT | DDSD_WIDTH)) != (DDSD_HEIGHT | DDSD_WIDTH))
-		{
-			if ((Desc2.dwFlags & (DDSD_HEIGHT | DDSD_WIDTH)) != (DDSD_HEIGHT | DDSD_WIDTH))
-			{
-				ddrawParent->GetDisplayMode2(&Desc2);
-			}
-			lpDDSurfaceDesc2->dwFlags |= DDSD_HEIGHT | DDSD_WIDTH;
-			lpDDSurfaceDesc2->dwWidth = Desc2.dwWidth;
-			lpDDSurfaceDesc2->dwHeight = Desc2.dwHeight;
-		}
-		// Set Refresh Rate
-		if (!(lpDDSurfaceDesc2->dwFlags & DDSD_REFRESHRATE))
-		{
-			if (!(Desc2.dwFlags & DDSD_REFRESHRATE))
-			{
-				ddrawParent->GetDisplayMode2(&Desc2);
-			}
-			if (Desc2.dwRefreshRate)
-			{
-				lpDDSurfaceDesc2->dwFlags |= DDSD_REFRESHRATE;
-				lpDDSurfaceDesc2->dwRefreshRate = Desc2.dwRefreshRate;
-			}
-		}
-		// Set PixelFormat
-		if (!(lpDDSurfaceDesc2->dwFlags & DDSD_PIXELFORMAT))
-		{
-			if (!(Desc2.dwFlags & DDSD_PIXELFORMAT))
-			{
-				ddrawParent->GetDisplayMode2(&Desc2);
-			}
-			lpDDSurfaceDesc2->dwFlags |= DDSD_PIXELFORMAT;
-			lpDDSurfaceDesc2->ddpfPixelFormat.dwSize = sizeof(DDPIXELFORMAT);
-			SetPixelDisplayFormat(GetDisplayFormat(Desc2.ddpfPixelFormat), lpDDSurfaceDesc2->ddpfPixelFormat);
-		}
-		// Set lPitch
-		if (!(lpDDSurfaceDesc2->dwFlags & DDSD_PITCH))
-		{
-			lpDDSurfaceDesc2->dwFlags |= DDSD_PITCH;
-			lpDDSurfaceDesc2->lPitch = lpDDSurfaceDesc2->dwWidth * (GetBitCount(lpDDSurfaceDesc2->ddpfPixelFormat) / 8);
-		}
-		// Set ColorKey
-		if (!(surfaceDesc2.ddsCaps.dwCaps2 & DDSCAPS2_CUBEMAP))
-		{
-			if (ColorKeys[0].IsSet)
-			{
-				lpDDSurfaceDesc2->dwFlags |= DDSD_CKDESTBLT;
-				lpDDSurfaceDesc2->ddckCKDestBlt.dwColorSpaceLowValue;
-				lpDDSurfaceDesc2->ddckCKDestBlt.dwColorSpaceHighValue;
-			}
-			if (ColorKeys[1].IsSet)
-			{
-				lpDDSurfaceDesc2->dwFlags |= DDSD_CKDESTOVERLAY;
-				lpDDSurfaceDesc2->ddckCKDestOverlay.dwColorSpaceLowValue;
-				lpDDSurfaceDesc2->ddckCKDestOverlay.dwColorSpaceHighValue;
-			}
-			if (ColorKeys[2].IsSet)
-			{
-				lpDDSurfaceDesc2->dwFlags |= DDSD_CKSRCBLT;
-				lpDDSurfaceDesc2->ddckCKSrcBlt.dwColorSpaceLowValue;
-				lpDDSurfaceDesc2->ddckCKSrcBlt.dwColorSpaceHighValue;
-			}
-			if (ColorKeys[3].IsSet)
-			{
-				lpDDSurfaceDesc2->dwFlags |= DDSD_CKSRCOVERLAY;
-				lpDDSurfaceDesc2->ddckCKSrcOverlay.dwColorSpaceLowValue;
-				lpDDSurfaceDesc2->ddckCKSrcOverlay.dwColorSpaceHighValue;
-			}
-		}
 
 		// Return
 		return DD_OK;
@@ -1723,39 +1671,63 @@ HRESULT m_IDirectDrawSurfaceX::SetColorKey(DWORD dwFlags, LPDDCOLORKEY lpDDColor
 	if (Config.Dd7to9)
 	{
 		// Get color key index
-		DWORD Flag = (dwFlags & ~DDCKEY_COLORSPACE);
-		int x = (Flag == DDCKEY_DESTBLT) ? 0 :
-			(Flag == DDCKEY_DESTOVERLAY) ? 1 :
-			(Flag == DDCKEY_SRCBLT) ? 2 :
-			(Flag == DDCKEY_SRCOVERLAY) ? 3 : -1;
-
-		// Check index
-		if (x == -1)
+		DWORD dds = 0;
+		switch (dwFlags & ~DDCKEY_COLORSPACE)
 		{
+		case DDCKEY_DESTBLT:
+			dds = DDSD_CKDESTBLT;
+			break;
+		case DDCKEY_DESTOVERLAY:
+			dds = DDSD_CKDESTOVERLAY;
+			break;
+		case DDCKEY_SRCBLT:
+			dds = DDSD_CKSRCBLT;
+			break;
+		case DDCKEY_SRCOVERLAY:
+			dds = DDSD_CKSRCOVERLAY;
+			break;
+		default:
 			return DDERR_INVALIDPARAMS;
 		}
 
 		// Set color key
 		if (!lpDDColorKey)
 		{
-			ColorKeys[x].IsSet = false;
-			ColorKeys[x].Key.dwColorSpaceHighValue = 0;
-			ColorKeys[x].Key.dwColorSpaceLowValue = 0;
+			surfaceDesc2.ddsCaps.dwCaps &= ~dds;
 		}
 		else
 		{
-			ColorKeys[x].IsSet = true;
-			ColorKeys[x].IsColorSpace = ((dwFlags & DDCKEY_COLORSPACE) != 0);
-			if (ColorKeys[x].IsColorSpace)
+			// Set color key flag
+			surfaceDesc2.ddsCaps.dwCaps |= dds;
+
+			// Get ColorKey
+			DDCOLORKEY ColorKey;
+			if (!(dwFlags & DDCKEY_COLORSPACE))
 			{
-				ColorKeys[x].Key.dwColorSpaceHighValue = lpDDColorKey->dwColorSpaceHighValue;
-				ColorKeys[x].Key.dwColorSpaceLowValue = lpDDColorKey->dwColorSpaceLowValue;
+				// You must add the flag DDCKEY_COLORSPACE, otherwise DirectDraw will collapse the range to one value
+				ColorKey.dwColorSpaceLowValue = *(DWORD*)lpDDColorKey;
+				ColorKey.dwColorSpaceHighValue = *(DWORD*)lpDDColorKey;
 			}
-			// You must add the flag DDCKEY_COLORSPACE, otherwise DirectDraw will collapse the range to one value
 			else
 			{
-				ColorKeys[x].Key.dwColorSpaceHighValue = *(DWORD*)lpDDColorKey;
-				ColorKeys[x].Key.dwColorSpaceLowValue = *(DWORD*)lpDDColorKey;
+				ColorKey = *lpDDColorKey;
+			}
+
+			// Set color key
+			switch (dds)
+			{
+			case DDSD_CKDESTBLT:
+				surfaceDesc2.ddckCKDestBlt = ColorKey;
+				break;
+			case DDSD_CKDESTOVERLAY:
+				surfaceDesc2.ddckCKDestOverlay = ColorKey;
+				break;
+			case DDSD_CKSRCBLT:
+				surfaceDesc2.ddckCKSrcBlt = ColorKey;
+				break;
+			case DDSD_CKSRCOVERLAY:
+				surfaceDesc2.ddckCKSrcOverlay = ColorKey;
+				break;
 			}
 		}
 
@@ -2677,33 +2649,46 @@ HRESULT m_IDirectDrawSurfaceX::CreateDCSurface()
 // Update surface description
 void m_IDirectDrawSurfaceX::UpdateSurfaceDesc()
 {
-	if ((surfaceDesc2.dwFlags & (DDSD_HEIGHT | DDSD_WIDTH | DDSD_PIXELFORMAT)) != (DDSD_HEIGHT | DDSD_WIDTH | DDSD_PIXELFORMAT))
+	if ((surfaceDesc2.dwFlags & (DDSD_WIDTH | DDSD_HEIGHT | DDSD_PIXELFORMAT)) != (DDSD_WIDTH | DDSD_HEIGHT | DDSD_PIXELFORMAT))
 	{
-		DDSURFACEDESC2 Desc2 = { NULL };
-		Desc2.dwSize = sizeof(DDSURFACEDESC2);
-		GetSurfaceDesc2(&Desc2);
+		// Check for device interface
+		if (FAILED(CheckInterface(__FUNCTION__, false, false)))
+		{
+			return;
+		}
+
+		// Get resolution
+		DWORD Width, Height, RefreshRate, BPP;
+		ddrawParent->GetResolution(Width, Height, RefreshRate, BPP);
 
 		// Set Height and Width
-		if ((Desc2.dwFlags & (DDSD_HEIGHT | DDSD_WIDTH)) == (DDSD_HEIGHT | DDSD_WIDTH) &&
-			(surfaceDesc2.dwFlags & (DDSD_HEIGHT | DDSD_WIDTH)) != (DDSD_HEIGHT | DDSD_WIDTH))
+		if (Width && Height &&
+			(surfaceDesc2.dwFlags & (DDSD_WIDTH | DDSD_HEIGHT)) != (DDSD_WIDTH | DDSD_HEIGHT))
 		{
-			surfaceDesc2.dwFlags |= DDSD_HEIGHT | DDSD_WIDTH;
-			surfaceDesc2.dwWidth = Desc2.dwWidth;
-			surfaceDesc2.dwHeight = Desc2.dwHeight;
+			RestoreDisplayFlags = true;
+			surfaceDesc2.dwFlags |= DDSD_WIDTH | DDSD_HEIGHT;
+			surfaceDesc2.dwWidth = Width;
+			surfaceDesc2.dwHeight = Height;
 		}
 		// Set Refresh Rate
-		if ((Desc2.dwFlags & DDSD_REFRESHRATE) && !(surfaceDesc2.dwFlags & DDSD_REFRESHRATE))
+		if (RefreshRate && !(surfaceDesc2.dwFlags & DDSD_REFRESHRATE))
 		{
 			surfaceDesc2.dwFlags |= DDSD_REFRESHRATE;
-			surfaceDesc2.dwRefreshRate = Desc2.dwRefreshRate;
+			surfaceDesc2.dwRefreshRate = RefreshRate;
 		}
 		// Set PixelFormat
-		if ((Desc2.dwFlags & DDSD_PIXELFORMAT) && !(surfaceDesc2.dwFlags & DDSD_PIXELFORMAT))
+		if (BPP && !(surfaceDesc2.dwFlags & DDSD_PIXELFORMAT))
 		{
 			surfaceDesc2.dwFlags |= DDSD_PIXELFORMAT;
 			surfaceDesc2.ddpfPixelFormat.dwSize = sizeof(DDPIXELFORMAT);
-			ConvertPixelFormat(surfaceDesc2.ddpfPixelFormat, Desc2.ddpfPixelFormat);
+			SetDisplayFormat(BPP, surfaceDesc2.ddpfPixelFormat);
 		}
+	}
+	// Set lPitch
+	if (!(surfaceDesc2.dwFlags & DDSD_PITCH))
+	{
+		surfaceDesc2.dwFlags |= DDSD_PITCH;
+		surfaceDesc2.lPitch = surfaceDesc2.dwWidth * (GetBitCount(surfaceDesc2.ddpfPixelFormat) / 8);
 	}
 }
 
@@ -2819,6 +2804,12 @@ void m_IDirectDrawSurfaceX::ReleaseD9Surface(bool BackupData)
 	// Set flags
 	IsInDC = false;
 	IsLocked = false;
+
+	// Reset display flags
+	if (RestoreDisplayFlags)
+	{
+		surfaceDesc2.dwFlags &= ~(DDSD_WIDTH | DDSD_HEIGHT | DDSD_REFRESHRATE | DDSD_PIXELFORMAT);
+	}
 }
 
 // Present surface
@@ -2938,10 +2929,10 @@ HRESULT m_IDirectDrawSurfaceX::PresentSurface(BOOL isSkipScene)
 // Reset primary surface display settings
 void m_IDirectDrawSurfaceX::RestoreSurfaceDisplay()
 {
-	// Reset surface desc
-	if (RestoreSurfaceFlags)
+	// Reset display flags
+	if (RestoreDisplayFlags)
 	{
-		surfaceDesc2.dwFlags &= ~(RestoreSurfaceFlags);
+		surfaceDesc2.dwFlags &= ~(DDSD_WIDTH | DDSD_HEIGHT | DDSD_REFRESHRATE | DDSD_PIXELFORMAT);
 	}
 }
 
@@ -3186,12 +3177,6 @@ void m_IDirectDrawSurfaceX::InitSurfaceDesc(LPDDSURFACEDESC2 lpDDSurfaceDesc2, D
 	if (!lpDDSurfaceDesc2)
 	{
 		return;
-	}
-
-	// Backup missing display surface description flags from primary surface
-	if (surfaceDesc2.ddsCaps.dwCaps4 & DDSCAPS4_PRIMARYSURFACE)
-	{
-		RestoreSurfaceFlags = ((DDSD_WIDTH | DDSD_HEIGHT | DDSD_REFRESHRATE | DDSD_PIXELFORMAT) & ~surfaceDesc2.dwFlags);
 	}
 
 	// Copy surface description

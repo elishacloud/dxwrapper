@@ -568,3 +568,25 @@ void SetPixelDisplayFormat(D3DFORMAT Format, DDPIXELFORMAT &ddpfPixelFormat)
 		return;
 	}
 }
+
+HRESULT SetDisplayFormat(DWORD BPP, DDPIXELFORMAT &ddpfPixelFormat)
+{
+	switch (BPP)
+	{
+	case 8:
+		SetPixelDisplayFormat(D3DFMT_P8, ddpfPixelFormat);
+		break;
+	case 16:
+		SetPixelDisplayFormat(D3DFMT_R5G6B5, ddpfPixelFormat);
+		break;
+	case 24:
+		SetPixelDisplayFormat(D3DFMT_R8G8B8, ddpfPixelFormat);
+		break;
+	case 32:
+		SetPixelDisplayFormat(D3DFMT_X8R8G8B8, ddpfPixelFormat);
+		break;
+	default:
+		return DDERR_UNSUPPORTED;
+	}
+	return DD_OK;
+}
