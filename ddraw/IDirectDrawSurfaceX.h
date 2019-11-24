@@ -58,7 +58,7 @@ private:
 	bool IsSurfaceEmulated = false;
 	bool DCRequiresEmulation = false;
 	bool ComplexRoot = false;
-	bool dirtyFlag = false;
+	bool PresentOnUnlock = false;
 	bool IsLocked = false;
 	DWORD LockThreadID = 0;
 	bool IsInDC = false;

@@ -22,6 +22,7 @@
 #include "d3d9ShaderPalette.h"
 
 // Used to allow presenting non-primary surfaces in case the primary surface present fails
+bool dirtyFlag = false;
 bool SceneReady = false;
 bool IsPresentRunning = false;
 
@@ -1184,6 +1185,10 @@ HRESULT m_IDirectDrawSurfaceX::GetDC(HDC FAR * lphDC)
 			}
 		}
 
+		// Set dirty flag
+		dirtyFlag = true;
+
+		// Set DC flag
 		IsInDC = true;
 
 		return DD_OK;
@@ -1580,9 +1585,6 @@ HRESULT m_IDirectDrawSurfaceX::ReleaseDC(HDC hDC)
 
 		// Reset DC flag
 		IsInDC = false;
-
-		// Set dirty flag
-		dirtyFlag = true;
 
 		// Present surface
 		PresentSurface();
@@ -2834,7 +2836,7 @@ HRESULT m_IDirectDrawSurfaceX::PresentSurface(BOOL isSkipScene)
 		}
 		return DDERR_GENERIC;
 	}
-	else if ((isSkipScene && !SceneReady) || !dirtyFlag || IsPresentRunning)
+	else if ((isSkipScene && !SceneReady) || IsPresentRunning)
 	{
 		Logging::LogDebug() << __FUNCTION__ << " Skipping scene!";
 		return DDERR_GENERIC;
@@ -3057,10 +3059,13 @@ HRESULT m_IDirectDrawSurfaceX::SetLock(D3DLOCKED_RECT* pLockedRect, LPRECT lpDes
 		}
 	}
 
-	// Run EndScene before locking if SceneReady flag is set
-	if (SceneReady)
+	// Run EndScene before locking if dirty flag is set
+	if (dirtyFlag)
 	{
-		PresentSurface(isSkipScene);
+		if (SUCCEEDED(PresentSurface(isSkipScene)))
+		{
+			PresentOnUnlock = true;
+		}
 	}
 
 	// Emulated surface
@@ -3152,7 +3157,13 @@ HRESULT m_IDirectDrawSurfaceX::SetUnlock(BOOL isSkipScene)
 	IsLocked = false;
 
 	// Present surface
-	PresentSurface(isSkipScene);
+	if (!PresentOnUnlock)
+	{
+		PresentSurface(isSkipScene);
+	}
+
+	// Reset endscene lock
+	PresentOnUnlock = false;
 
 	return DD_OK;
 }
