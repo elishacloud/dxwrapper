@@ -57,6 +57,7 @@ DWORD displayRefreshRate;			// Refresh rate for fullscreen
 // Last resolution
 DWORD LastWidth;
 DWORD LastHeight;
+DWORD LastBPP;
 
 // Display mode settings
 bool AllowModeX;
@@ -1392,7 +1393,7 @@ HRESULT m_IDirectDrawX::GetAvailableVidMem2(LPDDSCAPS2 lpDDSCaps2, LPDWORD lpdwT
 			return DDERR_INVALIDPARAMS;
 		}
 
-		DWORD AvailableMemory = MaxVidMemory;
+		DWORD AvailableMemory = 0;
 
 		if (d3d9Device)
 		{
@@ -1401,39 +1402,37 @@ HRESULT m_IDirectDrawX::GetAvailableVidMem2(LPDDSCAPS2 lpDDSCaps2, LPDWORD lpdwT
 		else
 		{
 			// Check for device interface
-			if (FAILED(CheckInterface(__FUNCTION__, false)))
+			if (SUCCEEDED(CheckInterface(__FUNCTION__, false)))
 			{
-				return DDERR_GENERIC;
-			}
+				// Set parameters
+				D3DPRESENT_PARAMETERS tmpParams = { NULL };
+				tmpParams.Windowed = TRUE;
+				tmpParams.BackBufferWidth = 100;
+				tmpParams.BackBufferHeight = 100;
+				tmpParams.PresentationInterval = D3DPRESENT_INTERVAL_IMMEDIATE;
+				tmpParams.SwapEffect = D3DSWAPEFFECT_DISCARD;
 
-			// Set parameters
-			D3DPRESENT_PARAMETERS tmpParams = { NULL };
-			tmpParams.Windowed = TRUE;
-			tmpParams.BackBufferWidth = 100;
-			tmpParams.BackBufferHeight = 100;
-			tmpParams.PresentationInterval = D3DPRESENT_INTERVAL_IMMEDIATE;
-			tmpParams.SwapEffect = D3DSWAPEFFECT_DISCARD;
+				// Create device
+				LPDIRECT3DDEVICE9 tmpd3d9 = nullptr;
+				if (SUCCEEDED(d3d9Object->CreateDevice(D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, GetHwnd(), D3DCREATE_SOFTWARE_VERTEXPROCESSING, &tmpParams, &tmpd3d9)))
+				{
+					// Get available memory
+					AvailableMemory = tmpd3d9->GetAvailableTextureMem();
 
-			// Create device
-			LPDIRECT3DDEVICE9 tmpd3d9 = nullptr;
-			if (SUCCEEDED(d3d9Object->CreateDevice(D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, GetHwnd(), D3DCREATE_SOFTWARE_VERTEXPROCESSING, &tmpParams, &tmpd3d9)))
-			{
-				// Get available memory
-				AvailableMemory = tmpd3d9->GetAvailableTextureMem();
-
-				// Release device
-				tmpd3d9->Release();
-			}
-			else
-			{
-				LOG_LIMIT(100, __FUNCTION__ << " Failed to create Direct3D9 device!");
+					// Release device
+					tmpd3d9->Release();
+				}
+				else
+				{
+					LOG_LIMIT(100, __FUNCTION__ << " Failed to create Direct3D9 device!");
+				}
 			}
 		}
 
+		// If memory cannot be found just return default memory
 		if (!AvailableMemory)
 		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error: failed to get available memory!");
-			return DDERR_GENERIC;
+			AvailableMemory = MaxVidMemory;
 		}
 
 		if (lpdwTotal)
@@ -1847,12 +1846,17 @@ void m_IDirectDrawX::GetResolution(DWORD &Width, DWORD &Height, DWORD &RefreshRa
 	BPP = (Config.DdrawOverrideBitMode) ? Config.DdrawOverrideBitMode : BPP;
 
 	// Check if resolution changed
-	if (LastWidth && LastHeight && LastWidth != Width && LastHeight != Height)
+	if ((LastWidth && LastHeight && Width && Height && LastWidth != Width && LastHeight != Height) ||
+		LastBPP && BPP && LastBPP != BPP)
 	{
-		CreateD3D9Device();
+		for (m_IDirectDrawSurfaceX *pSurface : SurfaceVector)
+		{
+			pSurface->ReleaseD9Surface();
+		}
 	}
 	LastWidth = Width;
 	LastHeight = Height;
+	LastBPP = BPP;
 }
 
 HRESULT m_IDirectDrawX::CheckInterface(char *FunctionName, bool CheckD3DDevice)

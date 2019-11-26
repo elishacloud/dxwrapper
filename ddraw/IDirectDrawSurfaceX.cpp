@@ -275,6 +275,12 @@ HRESULT m_IDirectDrawSurfaceX::Blt(LPRECT lpDestRect, LPDIRECTDRAWSURFACE7 lpDDS
 
 	if (Config.Dd7to9)
 	{
+		// Check for device interface
+		if (FAILED(CheckInterface(__FUNCTION__, false, false)))
+		{
+			return DDERR_GENERIC;
+		}
+
 		// Check for required DDBLTFX structure
 		if (!lpDDBltFx && (dwFlags & (DDBLT_DDFX | DDBLT_COLORFILL | DDBLT_DEPTHFILL | DDBLT_DDROPS | DDBLT_KEYDESTOVERRIDE | DDBLT_KEYSRCOVERRIDE | DDBLT_ROP | DDBLT_ROTATIONANGLE)))
 		{
@@ -321,24 +327,27 @@ HRESULT m_IDirectDrawSurfaceX::Blt(LPRECT lpDestRect, LPDIRECTDRAWSURFACE7 lpDDS
 			LOG_LIMIT(100, __FUNCTION__ << " DDBLT_ALPHA flags Not Implemented " << Logging::hex(dwFlags & 0x1FF));
 		}
 
-		// Unneeded flags (can be safely ignored?)
+		// Other flags (can be safely ignored?)
 		// DDBLT_ASYNC
 		// DDBLT_DONOTWAIT
 		// DDBLT_WAIT
 
-		// Use WaitForVerticalBlank for wait timer
-		if ((dwFlags & DDBLT_DDFX) && (lpDDBltFx->dwDDFX & DDBLTFX_NOTEARING))
-		{
-			ddrawParent->WaitForVerticalBlank(DDWAITVB_BLOCKBEGIN, nullptr);
-		}
-
 		HRESULT hr = DD_OK;
 		m_IDirectDrawSurfaceX *lpDDSrcSurfaceX = nullptr;
 		do {
-			IsInBlt = true;
-
 			// Check if the scene needs to be presented
 			isSkipScene |= ((lpDestRect) ? (abs(lpDestRect->bottom - lpDestRect->top) < 2 || abs(lpDestRect->right - lpDestRect->left) < 2) : FALSE);
+
+			// Present before write if needed
+			BeginWritePresent(isSkipScene);
+
+			IsInBlt = true;
+
+			// Use WaitForVerticalBlank for wait timer
+			if ((dwFlags & DDBLT_DDFX) && (lpDDBltFx->dwDDFX & DDBLTFX_NOTEARING))
+			{
+				ddrawParent->WaitForVerticalBlank(DDWAITVB_BLOCKBEGIN, nullptr);
+			}
 
 			// Do color fill
 			if (dwFlags & DDBLT_COLORFILL)
@@ -383,7 +392,7 @@ HRESULT m_IDirectDrawSurfaceX::Blt(LPRECT lpDestRect, LPDIRECTDRAWSURFACE7 lpDDS
 				lpDDSrcSurfaceX = ((m_IDirectDrawSurface*)lpDDSrcSurfaceX)->GetWrapperInterface();
 
 				// Check if source Surface exists
-				if (!ddrawParent || !ddrawParent->DoesSurfaceExist(lpDDSrcSurfaceX))
+				if (!ddrawParent->DoesSurfaceExist(lpDDSrcSurfaceX))
 				{
 					LOG_LIMIT(100, __FUNCTION__ << " Error: could not find source surface");
 					hr = DDERR_INVALIDOBJECT;
@@ -412,6 +421,9 @@ HRESULT m_IDirectDrawSurfaceX::Blt(LPRECT lpDestRect, LPDIRECTDRAWSURFACE7 lpDDS
 
 		} while (false);
 
+		// Reset Blt flag
+		IsInBlt = false;
+
 		// If successful
 		if (SUCCEEDED(hr))
 		{
@@ -435,19 +447,13 @@ HRESULT m_IDirectDrawSurfaceX::Blt(LPRECT lpDestRect, LPDIRECTDRAWSURFACE7 lpDDS
 					BitBlt(ddrawParent->GetDC(), Left, Top, Width, Height, emu->surfaceDC, DestRect.left, DestRect.top, SRCCOPY);
 				}
 			}
-			// Other games
-			else
-			{
-				// Set dirty flag
-				dirtyFlag = true;
 
-				// Present surface
-				PresentSurface(isSkipScene);
-			}
+			// Set dirty flag
+			SetDirtyFlag();
+
+			// Present surface
+			EndWritePresent(isSkipScene);
 		}
-
-		// Reset Blt flag
-		IsInBlt = false;
 
 		// Return
 		return hr;
@@ -761,14 +767,20 @@ HRESULT m_IDirectDrawSurfaceX::Flip(LPDIRECTDRAWSURFACE7 lpDDSurfaceTargetOverri
 			return DDERR_SURFACEBUSY;
 		}
 
-		// Unneeded flags (can be safely ignored?)
-		// - DDFLIP_DONOTWAIT
-		// - DDFLIP_WAIT
-
 		if ((dwFlags & (DDFLIP_INTERVAL2 | DDFLIP_INTERVAL3 | DDFLIP_INTERVAL4)) && (surfaceDesc2.ddsCaps.dwCaps2 & DDCAPS2_FLIPINTERVAL))
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Interval flipping not fully implemented");
 		}
+
+		// Other flags (can be safely ignored?)
+		// - DDFLIP_DONOTWAIT
+		// - DDFLIP_WAIT
+
+		// Present before write if needed
+		BeginWritePresent();
+
+		// Set flip flag
+		IsInFlip = true;
 
 		// Use WaitForVerticalBlank for wait timer
 		if ((dwFlags & DDFLIP_NOVSYNC) == 0)
@@ -778,8 +790,6 @@ HRESULT m_IDirectDrawSurfaceX::Flip(LPDIRECTDRAWSURFACE7 lpDDSurfaceTargetOverri
 
 		HRESULT hr = DD_OK;
 		do {
-			IsInFlip = true;
-
 			// If SurfaceTargetOverride then use that surface
 			if (lpDDSurfaceTargetOverride)
 			{
@@ -842,17 +852,18 @@ HRESULT m_IDirectDrawSurfaceX::Flip(LPDIRECTDRAWSURFACE7 lpDDSurfaceTargetOverri
 
 		} while (false);
 
+		// Reset flip flag
+		IsInFlip = false;
+
 		// Present surface
 		if (SUCCEEDED(hr))
 		{
 			// Set dirty flag
-			dirtyFlag = true;
+			SetDirtyFlag();
 
-			PresentSurface();
+			// Present surface
+			EndWritePresent();
 		}
-
-		// Reset flip flag
-		IsInFlip = false;
 
 		return hr;
 	}
@@ -1148,6 +1159,9 @@ HRESULT m_IDirectDrawSurfaceX::GetDC(HDC FAR * lphDC)
 			return DDERR_GENERIC;
 		}
 
+		// Present before write if needed
+		BeginWritePresent();
+
 		if (IsSurfaceEmulated || DCRequiresEmulation)
 		{
 			if (!emu)
@@ -1185,11 +1199,11 @@ HRESULT m_IDirectDrawSurfaceX::GetDC(HDC FAR * lphDC)
 			}
 		}
 
-		// Set dirty flag
-		dirtyFlag = true;
-
 		// Set DC flag
 		IsInDC = true;
+
+		// Set dirty flag
+		SetDirtyFlag();
 
 		return DD_OK;
 	}
@@ -1587,7 +1601,7 @@ HRESULT m_IDirectDrawSurfaceX::ReleaseDC(HDC hDC)
 		IsInDC = false;
 
 		// Present surface
-		PresentSurface();
+		EndWritePresent();
 
 		return DD_OK;
 	}
@@ -2808,10 +2822,7 @@ void m_IDirectDrawSurfaceX::ReleaseD9Surface(bool BackupData)
 	IsLocked = false;
 
 	// Reset display flags
-	if (RestoreDisplayFlags)
-	{
-		surfaceDesc2.dwFlags &= ~(DDSD_WIDTH | DDSD_HEIGHT | DDSD_REFRESHRATE | DDSD_PIXELFORMAT);
-	}
+	RestoreSurfaceDisplay();
 }
 
 // Present surface
@@ -3059,14 +3070,8 @@ HRESULT m_IDirectDrawSurfaceX::SetLock(D3DLOCKED_RECT* pLockedRect, LPRECT lpDes
 		}
 	}
 
-	// Run EndScene before locking if dirty flag is set
-	if (dirtyFlag)
-	{
-		if (SUCCEEDED(PresentSurface(isSkipScene)))
-		{
-			PresentOnUnlock = true;
-		}
-	}
+	// Present before write if needed
+	BeginWritePresent(isSkipScene);
 
 	// Emulated surface
 	if (IsSurfaceEmulated)
@@ -3112,7 +3117,7 @@ HRESULT m_IDirectDrawSurfaceX::SetLock(D3DLOCKED_RECT* pLockedRect, LPRECT lpDes
 	// Set dirty flag
 	if (!(dwFlags & D3DLOCK_READONLY))
 	{
-		dirtyFlag = true;
+		SetDirtyFlag();
 	}
 
 	// Success
@@ -3157,13 +3162,7 @@ HRESULT m_IDirectDrawSurfaceX::SetUnlock(BOOL isSkipScene)
 	IsLocked = false;
 
 	// Present surface
-	if (!PresentOnUnlock)
-	{
-		PresentSurface(isSkipScene);
-	}
-
-	// Reset endscene lock
-	PresentOnUnlock = false;
+	EndWritePresent(isSkipScene);
 
 	return DD_OK;
 }
@@ -3180,6 +3179,39 @@ HRESULT m_IDirectDrawSurfaceX::LockEmulatedSurface(D3DLOCKED_RECT* pLockedRect, 
 	pLockedRect->pBits = (void*)((DWORD)emu->surfacepBits + Delta);
 
 	return DD_OK;
+}
+
+// Set dirty flag
+inline void m_IDirectDrawSurfaceX::SetDirtyFlag()
+{
+	if (IsPrimarySurface())
+	{
+		dirtyFlag = true;
+	}
+}
+
+inline void m_IDirectDrawSurfaceX::BeginWritePresent(bool isSkipScene)
+{
+	// Check if data needs to be presented before write
+	if (dirtyFlag)
+	{
+		if (SUCCEEDED(PresentSurface(isSkipScene)))
+		{
+			PresentOnUnlock = true;
+		}
+	}
+}
+
+inline void m_IDirectDrawSurfaceX::EndWritePresent(bool isSkipScene)
+{
+	// Present surface
+	if (!PresentOnUnlock)
+	{
+		PresentSurface(isSkipScene);
+	}
+
+	// Reset endscene lock
+	PresentOnUnlock = false;
 }
 
 // Update surface description and create backbuffers
@@ -3294,9 +3326,6 @@ void m_IDirectDrawSurfaceX::InitSurfaceDesc(LPDDSURFACEDESC2 lpDDSurfaceDesc2, D
 		SetColorKey(DDCKEY_SRCBLT | DDCKEY_COLORSPACE, &surfaceDesc2.ddckCKSrcBlt);
 	}
 	surfaceDesc2.dwFlags &= ~(DDSD_CKDESTOVERLAY | DDSD_CKDESTBLT | DDSD_CKSRCOVERLAY | DDSD_CKSRCBLT);
-
-	// Update surface description
-	UpdateSurfaceDesc();
 }
 
 // Add attached surface to map

@@ -300,6 +300,9 @@ public:
 	HRESULT SetLock(D3DLOCKED_RECT* pLockedRect, LPRECT lpDestRect, DWORD dwFlags, BOOL isSkipScene = false);
 	HRESULT SetUnlock(BOOL isSkipScene = false);
 	HRESULT LockEmulatedSurface(D3DLOCKED_RECT* pLockedRect, LPRECT lpDestRect);
+	void SetDirtyFlag();
+	void BeginWritePresent(bool isSkipScene = false);
+	void EndWritePresent(bool isSkipScene = false);
 
 	// Attached surfaces
 	void InitSurfaceDesc(LPDDSURFACEDESC2 lpDDSurfaceDesc2, DWORD DirectXVersion);
