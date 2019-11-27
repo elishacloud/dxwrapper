@@ -2292,15 +2292,6 @@ HRESULT m_IDirectDrawX::BeginScene()
 		return DDERR_GENERIC;
 	}
 
-	// Check if any surfaces are locked
-	for (m_IDirectDrawSurfaceX* it : SurfaceVector)
-	{
-		if (it->IsSurfaceLocked())
-		{
-			return DDERR_LOCKEDSURFACES;
-		}
-	}
-
 	// Begin scene
 	if (FAILED(d3d9Device->BeginScene()))
 	{
