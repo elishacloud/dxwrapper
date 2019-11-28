@@ -31,110 +31,154 @@ void ConvertGammaRamp(DDGAMMARAMP &RampData, DDGAMMARAMP &RampData2)
 	CopyMemory(&RampData, &RampData2, sizeof(DDGAMMARAMP));
 }
 
-void ConvertSurfaceDesc(DDSURFACEDESC &Desc, DDSURFACEDESC &Desc2)
+bool CheckSurfaceDescSize(LPDDSURFACEDESC lpDesc)
 {
-	if (Desc.dwSize != sizeof(DDSURFACEDESC) || Desc2.dwSize != sizeof(DDSURFACEDESC))
-	{
-		LOG_LIMIT(100, __FUNCTION__ << " Error! Incorrect dwSize: " << Desc.dwSize << " " << Desc2.dwSize);
-		return;
-	}
-	CopyMemory(&Desc, &Desc2, sizeof(DDSURFACEDESC));
+	return (lpDesc && (lpDesc->dwSize == sizeof(DDSURFACEDESC) || lpDesc->dwSize == sizeof(DDSURFACEDESC2)));
 }
 
-void ConvertSurfaceDesc(DDSURFACEDESC2 &Desc, DDSURFACEDESC2 &Desc2)
+bool CheckSurfaceDescSize(LPDDSURFACEDESC2 lpDesc)
 {
-	if (Desc.dwSize != sizeof(DDSURFACEDESC2) || Desc2.dwSize != sizeof(DDSURFACEDESC2))
-	{
-		LOG_LIMIT(100, __FUNCTION__ << " Error! Incorrect dwSize: " << Desc.dwSize << " " << Desc2.dwSize);
-		return;
-	}
-	CopyMemory(&Desc, &Desc2, sizeof(DDSURFACEDESC2));
+	return (lpDesc && (lpDesc->dwSize == sizeof(DDSURFACEDESC) || lpDesc->dwSize == sizeof(DDSURFACEDESC2)));
 }
 
-void ConvertSurfaceDesc(DDSURFACEDESC &Desc, DDSURFACEDESC2 &Desc2)
+void ConvertSurfaceDescGeneric(DDSURFACEDESC2 &Desc, DDSURFACEDESC2 &Desc2)
 {
-	if (Desc.dwSize != sizeof(DDSURFACEDESC) || Desc2.dwSize != sizeof(DDSURFACEDESC2))
+	// Check for supported dwSize
+	if (!CheckSurfaceDescSize(&Desc) || !CheckSurfaceDescSize(&Desc2))
 	{
 		LOG_LIMIT(100, __FUNCTION__ << " Error! Incorrect dwSize: " << Desc.dwSize << " " << Desc2.dwSize);
 		return;
 	}
-	ZeroMemory(&Desc, sizeof(DDSURFACEDESC));
-	Desc.dwSize = sizeof(DDSURFACEDESC);
+	// Use quick conversion if dwSize matches
+	if (Desc.dwSize == Desc2.dwSize)
+	{
+		CopyMemory(&Desc, &Desc2, Desc.dwSize);
+		return;
+	}
+	// Prepare destination structure
+	DWORD Size = Desc.dwSize;
+	ZeroMemory(&Desc, Desc.dwSize);
+	Desc.dwSize = Size;
 	// Convert varables
-	Desc.dwFlags = Desc2.dwFlags & ~(DDSD_ZBUFFERBITDEPTH | DDSD_TEXTURESTAGE | DDSD_FVF | DDSD_SRCVBHANDLE | DDSD_DEPTH);		// Remove unsupported flags
-	Desc.dwHeight = Desc2.dwHeight;
-	Desc.dwWidth = Desc2.dwWidth;
-	Desc.dwLinearSize = Desc2.dwLinearSize;
+	if (Desc2.dwFlags & DDSD_CAPS)
+	{
+		Desc.dwFlags |= DDSD_CAPS;
+		if (Desc.dwSize == sizeof(DDSURFACEDESC) && Desc2.dwSize == sizeof(DDSURFACEDESC2))
+		{
+			ConvertCaps(*(LPDDSCAPS)&Desc.ddsCaps, Desc2.ddsCaps);
+		}
+		else if (Desc.dwSize == sizeof(DDSURFACEDESC2) && Desc2.dwSize == sizeof(DDSURFACEDESC))
+		{
+			ConvertCaps(Desc.ddsCaps, *(LPDDSCAPS)&Desc2.ddsCaps);
+		}
+		else
+		{
+			// Should never get here
+			LOG_LIMIT(100, __FUNCTION__ << " Error with ddsCaps conversion.  dwFlags: " << Desc.dwFlags << " " << Desc2.dwFlags);
+		}
+	}
+	if (Desc2.dwFlags & DDSD_HEIGHT)
+	{
+		Desc.dwFlags |= DDSD_HEIGHT;
+		Desc.dwHeight = Desc2.dwHeight;
+	}
+	if (Desc2.dwFlags & DDSD_WIDTH)
+	{
+		Desc.dwFlags |= DDSD_WIDTH;
+		Desc.dwWidth = Desc2.dwWidth;
+	}
+	if (Desc2.dwFlags & DDSD_PITCH)
+	{
+		Desc.dwFlags |= DDSD_PITCH;
+		Desc.lPitch = Desc2.lPitch;
+	}
 	if (Desc2.dwFlags & DDSD_BACKBUFFERCOUNT)
 	{
+		Desc.dwFlags |= DDSD_BACKBUFFERCOUNT;
 		Desc.dwBackBufferCount = Desc2.dwBackBufferCount;
 	}
-	if (Desc2.dwFlags & (DDSD_REFRESHRATE | DDSD_MIPMAPCOUNT))
+	if (Desc2.dwFlags & DDSD_ALPHABITDEPTH)
 	{
-		Desc.dwRefreshRate = Desc2.dwRefreshRate;
+		Desc.dwFlags |= DDSD_ALPHABITDEPTH;
+		Desc.dwAlphaBitDepth = Desc2.dwAlphaBitDepth;
 	}
-	Desc.dwAlphaBitDepth = Desc2.dwAlphaBitDepth;
-	Desc.dwReserved = Desc2.dwReserved;
-	Desc.lpSurface = Desc2.lpSurface;
-	if (Desc2.dwFlags & DDSD_CKSRCOVERLAY)
+	if (Desc2.dwFlags & DDSD_LPSURFACE)
 	{
-		Desc.ddckCKDestOverlay.dwColorSpaceLowValue = Desc2.ddckCKDestOverlay.dwColorSpaceLowValue;
-		Desc.ddckCKDestOverlay.dwColorSpaceHighValue = Desc2.ddckCKDestOverlay.dwColorSpaceHighValue;
+		Desc.dwFlags |= DDSD_LPSURFACE;
+		Desc.lpSurface = Desc2.lpSurface;
 	}
-	Desc.ddckCKDestBlt.dwColorSpaceLowValue = Desc2.ddckCKDestBlt.dwColorSpaceLowValue;
-	Desc.ddckCKDestBlt.dwColorSpaceHighValue = Desc2.ddckCKDestBlt.dwColorSpaceHighValue;
-	Desc.ddckCKSrcOverlay.dwColorSpaceLowValue = Desc2.ddckCKSrcOverlay.dwColorSpaceLowValue;
-	Desc.ddckCKSrcOverlay.dwColorSpaceHighValue = Desc2.ddckCKSrcOverlay.dwColorSpaceHighValue;
-	Desc.ddckCKSrcBlt.dwColorSpaceLowValue = Desc2.ddckCKSrcBlt.dwColorSpaceLowValue;
-	Desc.ddckCKSrcBlt.dwColorSpaceHighValue = Desc2.ddckCKSrcBlt.dwColorSpaceHighValue;
 	if (Desc2.dwFlags & DDSD_PIXELFORMAT)
 	{
+		Desc.dwFlags |= DDSD_PIXELFORMAT;
 		Desc.ddpfPixelFormat.dwSize = sizeof(DDPIXELFORMAT);
 		Desc2.ddpfPixelFormat.dwSize = sizeof(DDPIXELFORMAT);
 		ConvertPixelFormat(Desc.ddpfPixelFormat, Desc2.ddpfPixelFormat);
 	}
-	ConvertCaps(Desc.ddsCaps, Desc2.ddsCaps);
+	if (Desc2.dwFlags & DDSD_CKDESTOVERLAY)
+	{
+		Desc.dwFlags |= DDSD_CKDESTOVERLAY;
+		Desc.ddckCKDestOverlay.dwColorSpaceLowValue = Desc2.ddckCKDestOverlay.dwColorSpaceLowValue;
+		Desc.ddckCKDestOverlay.dwColorSpaceHighValue = Desc2.ddckCKDestOverlay.dwColorSpaceHighValue;
+	}
+	if (Desc2.dwFlags & DDSD_CKDESTBLT)
+	{
+		Desc.dwFlags |= DDSD_CKDESTBLT;
+		Desc.ddckCKDestBlt.dwColorSpaceLowValue = Desc2.ddckCKDestBlt.dwColorSpaceLowValue;
+		Desc.ddckCKDestBlt.dwColorSpaceHighValue = Desc2.ddckCKDestBlt.dwColorSpaceHighValue;
+	}
+	if (Desc2.dwFlags & DDSD_CKSRCOVERLAY)
+	{
+		Desc.dwFlags |= DDSD_CKSRCOVERLAY;
+		Desc.ddckCKSrcOverlay.dwColorSpaceLowValue = Desc2.ddckCKSrcOverlay.dwColorSpaceLowValue;
+		Desc.ddckCKSrcOverlay.dwColorSpaceHighValue = Desc2.ddckCKSrcOverlay.dwColorSpaceHighValue;
+	}
+	if (Desc2.dwFlags & DDSD_CKSRCBLT)
+	{
+		Desc.dwFlags |= DDSD_CKSRCBLT;
+		Desc.ddckCKSrcBlt.dwColorSpaceLowValue = Desc2.ddckCKSrcBlt.dwColorSpaceLowValue;
+		Desc.ddckCKSrcBlt.dwColorSpaceHighValue = Desc2.ddckCKSrcBlt.dwColorSpaceHighValue;
+	}
+	if (Desc2.dwFlags & DDSD_MIPMAPCOUNT)
+	{
+		Desc.dwFlags |= DDSD_MIPMAPCOUNT;
+		Desc.dwMipMapCount = Desc2.dwMipMapCount;
+	}
+	else if (Desc2.dwFlags & DDSD_REFRESHRATE)
+	{
+		Desc.dwFlags |= DDSD_REFRESHRATE;
+		Desc.dwRefreshRate = Desc2.dwRefreshRate;
+	}
+	if (Desc2.dwFlags & DDSD_LINEARSIZE)
+	{
+		Desc.dwFlags |= DDSD_LINEARSIZE;
+		Desc.dwLinearSize = Desc2.dwLinearSize;
+	}
+	Desc.dwReserved = Desc2.dwReserved;
+	// Check for dwFlags that did not get converted
+	if (Desc.dwFlags != Desc2.dwFlags)
+	{
+		LOG_LIMIT(100, __FUNCTION__ << " Error! Removing unsupported flags: " << (Desc2.dwFlags & ~Desc.dwFlags));
+	}
+}
+
+void ConvertSurfaceDesc(DDSURFACEDESC &Desc, DDSURFACEDESC &Desc2)
+{
+	ConvertSurfaceDescGeneric(*(LPDDSURFACEDESC2)&Desc, *(LPDDSURFACEDESC2)&Desc2);
+}
+
+void ConvertSurfaceDesc(DDSURFACEDESC2 &Desc, DDSURFACEDESC2 &Desc2)
+{
+	ConvertSurfaceDescGeneric(Desc, Desc2);
+}
+
+void ConvertSurfaceDesc(DDSURFACEDESC &Desc, DDSURFACEDESC2 &Desc2)
+{
+	ConvertSurfaceDescGeneric(*(LPDDSURFACEDESC2)&Desc, Desc2);
 }
 
 void ConvertSurfaceDesc(DDSURFACEDESC2 &Desc2, DDSURFACEDESC &Desc)
 {
-	if (Desc2.dwSize != sizeof(DDSURFACEDESC2) || Desc.dwSize != sizeof(DDSURFACEDESC))
-	{
-		LOG_LIMIT(100, __FUNCTION__ << " Error! Incorrect dwSize: " << Desc2.dwSize << " " << Desc.dwSize);
-		return;
-	}
-	ZeroMemory(&Desc2, sizeof(DDSURFACEDESC2));
-	Desc2.dwSize = sizeof(DDSURFACEDESC2);
-	// Convert varables
-	Desc2.dwFlags = Desc.dwFlags & ~(DDSD_ZBUFFERBITDEPTH | DDSD_TEXTURESTAGE | DDSD_FVF | DDSD_SRCVBHANDLE | DDSD_DEPTH);		// Remove unsupported flags
-	Desc2.dwHeight = Desc.dwHeight;
-	Desc2.dwWidth = Desc.dwWidth;
-	Desc2.dwLinearSize = Desc.dwLinearSize;
-	Desc2.dwBackBufferCount = Desc.dwBackBufferCount;
-	if (Desc.dwFlags & (DDSD_REFRESHRATE | DDSD_MIPMAPCOUNT))
-	{
-		Desc2.dwRefreshRate = Desc.dwRefreshRate;
-	}
-	Desc2.dwAlphaBitDepth = Desc.dwAlphaBitDepth;
-	Desc2.dwReserved = Desc.dwReserved;
-	Desc2.lpSurface = Desc.lpSurface;
-	Desc2.ddckCKDestOverlay.dwColorSpaceLowValue = Desc.ddckCKDestOverlay.dwColorSpaceLowValue;
-	Desc2.ddckCKDestOverlay.dwColorSpaceHighValue = Desc.ddckCKDestOverlay.dwColorSpaceHighValue;
-	Desc2.ddckCKDestBlt.dwColorSpaceLowValue = Desc.ddckCKDestBlt.dwColorSpaceLowValue;
-	Desc2.ddckCKDestBlt.dwColorSpaceHighValue = Desc.ddckCKDestBlt.dwColorSpaceHighValue;
-	Desc2.ddckCKSrcOverlay.dwColorSpaceLowValue = Desc.ddckCKSrcOverlay.dwColorSpaceLowValue;
-	Desc2.ddckCKSrcOverlay.dwColorSpaceHighValue = Desc.ddckCKSrcOverlay.dwColorSpaceHighValue;
-	Desc2.ddckCKSrcBlt.dwColorSpaceLowValue = Desc.ddckCKSrcBlt.dwColorSpaceLowValue;
-	Desc2.ddckCKSrcBlt.dwColorSpaceHighValue = Desc.ddckCKSrcBlt.dwColorSpaceHighValue;
-	if (Desc.dwFlags & DDSD_PIXELFORMAT)
-	{
-		Desc.ddpfPixelFormat.dwSize = sizeof(DDPIXELFORMAT);
-		Desc2.ddpfPixelFormat.dwSize = sizeof(DDPIXELFORMAT);
-		ConvertPixelFormat(Desc2.ddpfPixelFormat, Desc.ddpfPixelFormat);
-	}
-	ConvertCaps(Desc2.ddsCaps, Desc.ddsCaps);
-	// Extra parameters
-	Desc2.dwTextureStage = 0;			// Stage identifier that is used to bind a texture to a specific stage
+	ConvertSurfaceDescGeneric(Desc2, *(LPDDSURFACEDESC2)&Desc);
 }
 
 void ConvertPixelFormat(DDPIXELFORMAT &Format, DDPIXELFORMAT &Format2)
@@ -189,6 +233,11 @@ void ConvertCaps(DDSCAPS2 &Caps, DDSCAPS2 &Caps2)
 void ConvertCaps(DDSCAPS &Caps, DDSCAPS2 &Caps2)
 {
 	Caps.dwCaps = Caps2.dwCaps;
+	// Check for dwFlags that did not get converted
+	if (Caps2.dwCaps2)
+	{
+		LOG_LIMIT(100, __FUNCTION__ << " Error! Removing unsupported dwCaps2: " << Caps2.dwCaps2);
+	}
 }
 
 void ConvertCaps(DDSCAPS2 &Caps2, DDSCAPS &Caps)

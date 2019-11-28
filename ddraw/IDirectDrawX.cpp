@@ -365,9 +365,27 @@ HRESULT m_IDirectDrawX::CreateSurface2(LPDDSURFACEDESC2 lpDDSurfaceDesc2, LPDIRE
 			return DDERR_INVALIDPARAMS;
 		}
 
+		// Check for unsupported flags
+		DWORD UnsupportedSDFlags = (DDSD_ZBUFFERBITDEPTH | DDSD_ALPHABITDEPTH | DDSD_LPSURFACE | DDSD_MIPMAPCOUNT | DDSD_LINEARSIZE | DDSD_TEXTURESTAGE | DDSD_FVF | DDSD_SRCVBHANDLE | DDSD_DEPTH);
+		if (lpDDSurfaceDesc2->dwFlags & UnsupportedSDFlags)
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: non-supported dwFlags! " << (lpDDSurfaceDesc2->dwFlags & UnsupportedSDFlags));
+		}
+
+		// Check for unsupported ddsCaps
+		DWORD UnsupportedSDddsCaps = (DDSCAPS_RESERVED1 | DDSCAPS_RESERVED2 | DDSCAPS_RESERVED3 | DDSCAPS_ALPHA | DDSCAPS_OVERLAY | DDSCAPS_3DDEVICE | DDSCAPS_ZBUFFER | DDSCAPS_OWNDC |
+			DDSCAPS_LIVEVIDEO | DDSCAPS_HWCODEC | DDSCAPS_MIPMAP | DDSCAPS_ALLOCONLOAD | DDSCAPS_VIDEOPORT | DDSCAPS_NONLOCALVIDMEM);
+		if ((lpDDSurfaceDesc2->ddsCaps.dwCaps & UnsupportedSDddsCaps) || lpDDSurfaceDesc2->ddsCaps.dwCaps2)
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: non-supported ddsCaps! " << (lpDDSurfaceDesc2->ddsCaps.dwCaps & UnsupportedSDddsCaps) << " " << lpDDSurfaceDesc2->ddsCaps.dwCaps2);
+		}
+
 		DDSURFACEDESC2 Desc2;
 		Desc2.dwSize = sizeof(DDSURFACEDESC2);
 		ConvertSurfaceDesc(Desc2, *lpDDSurfaceDesc2);
+		Desc2.dwFlags &= ~UnsupportedSDFlags;														// Remove unsupported flags
+		Desc2.ddsCaps.dwCaps &= ~UnsupportedSDddsCaps;												// Remove unsupported Caps
+		Desc2.ddsCaps.dwCaps2 = 0;																	// Remove unsupported Caps2
 		Desc2.ddsCaps.dwCaps4 = DDSCAPS4_CREATESURFACE |											// Indicates surface was created using CreateSurface()
 			((Desc2.ddsCaps.dwCaps & DDSCAPS_PRIMARYSURFACE) ? DDSCAPS4_PRIMARYSURFACE : NULL);		// Indicates surface is a primary surface or a backbuffer of a primary surface
 		Desc2.dwReserved = 0;
