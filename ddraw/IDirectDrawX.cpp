@@ -643,15 +643,20 @@ HRESULT m_IDirectDrawX::EnumSurfaces(DWORD dwFlags, LPDDSURFACEDESC lpDDSurfaceD
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	if (!lpEnumSurfacesCallback || (lpDDSurfaceDesc && lpDDSurfaceDesc->dwSize != sizeof(DDSURFACEDESC)))
+	if (!lpEnumSurfacesCallback)
 	{
-		LOG_LIMIT(100, __FUNCTION__ << " Error! Invalid parameters. dwSize: " << ((lpDDSurfaceDesc) ? lpDDSurfaceDesc->dwSize : -1));
 		return DDERR_INVALIDPARAMS;
 	}
 
 	// Game using old DirectX, Convert to LPDDSURFACEDESC2
 	if (ProxyDirectXVersion > 3)
 	{
+		if ((lpDDSurfaceDesc && lpDDSurfaceDesc->dwSize != sizeof(DDSURFACEDESC)) || (!lpDDSurfaceDesc && !(dwFlags & DDENUMSURFACES_ALL)))
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error! Invalid parameters. dwSize: " << ((lpDDSurfaceDesc) ? lpDDSurfaceDesc->dwSize : -1));
+			return DDERR_INVALIDPARAMS;
+		}
+
 		DDSURFACEDESC2 Desc2;
 		Desc2.dwSize = sizeof(DDSURFACEDESC2);
 		if (lpDDSurfaceDesc)
@@ -674,14 +679,19 @@ HRESULT m_IDirectDrawX::EnumSurfaces2(DWORD dwFlags, LPDDSURFACEDESC2 lpDDSurfac
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	if (!lpEnumSurfacesCallback7 || (lpDDSurfaceDesc2 && lpDDSurfaceDesc2->dwSize != sizeof(DDSURFACEDESC2)))
+	if (!lpEnumSurfacesCallback7)
 	{
-		LOG_LIMIT(100, __FUNCTION__ << " Error! Invalid parameters. dwSize: " << ((lpDDSurfaceDesc2) ? lpDDSurfaceDesc2->dwSize : -1));
 		return DDERR_INVALIDPARAMS;
 	}
 
 	if (Config.Dd7to9)
 	{
+		if ((lpDDSurfaceDesc2 && lpDDSurfaceDesc2->dwSize != sizeof(DDSURFACEDESC2)) || (!lpDDSurfaceDesc2 && !(dwFlags & DDENUMSURFACES_ALL)))
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error! Invalid parameters. dwSize: " << ((lpDDSurfaceDesc2) ? lpDDSurfaceDesc2->dwSize : -1));
+			return DDERR_INVALIDPARAMS;
+		}
+
 		LOG_LIMIT(100, __FUNCTION__ << " Not Implemented");
 		return DDERR_UNSUPPORTED;
 	}
@@ -1006,7 +1016,9 @@ HRESULT m_IDirectDrawX::Initialize(GUID FAR * lpGUID)
 
 	if (Config.Dd7to9)
 	{
-		// Not needed with d3d9
+		// ToDo: If you already used the DirectDrawCreate function to create a DirectDraw object, this method returns DDERR_ALREADYINITIALIZED.
+		// If you do not call IDirectDraw7::Initialize when you use CoCreateInstance to create a DirectDraw object, any method that you
+		// call afterward returns DDERR_NOTINITIALIZED.
 		return DD_OK;
 	}
 
@@ -1077,33 +1089,6 @@ LRESULT CALLBACK CBTProc(int nCode, WPARAM wParam, LPARAM lParam)
 	return CallNextHookEx(nullptr, nCode, wParam, lParam);
 }
 
-// Enums all windows and returns the handle to the active window
-BOOL CALLBACK EnumProcWindowCallback(HWND hwnd, LPARAM lParam)
-{
-	// Get variables from call back
-	HANDLE_DATA& data = *(HANDLE_DATA*)lParam;
-
-	// Skip windows that are from a different process ID
-	DWORD process_id;
-	GetWindowThreadProcessId(hwnd, &process_id);
-	if (data.process_id != process_id)
-	{
-		return TRUE;
-	}
-
-	// Skip compatibility class windows
-	char class_name[80] = { 0 };
-	GetClassName(hwnd, class_name, sizeof(class_name));
-	if (strcmp(class_name, "CompatWindowDesktopReplacement") == 0)			// Compatibility class windows
-	{
-		return TRUE;
-	}
-
-	// Match found returning value
-	data.best_handle = hwnd;
-	return FALSE;
-}
-
 HRESULT m_IDirectDrawX::SetCooperativeLevel(HWND hWnd, DWORD dwFlags)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
@@ -1111,14 +1096,28 @@ HRESULT m_IDirectDrawX::SetCooperativeLevel(HWND hWnd, DWORD dwFlags)
 	if (Config.Dd7to9)
 	{
 		// Check for valid parameters
-		if (((dwFlags & DDSCL_NORMAL) && (dwFlags & (DDSCL_ALLOWMODEX | DDSCL_EXCLUSIVE | DDSCL_FULLSCREEN))) ||						// Both Normal and Exclusive mode flags cannot be set
-			((dwFlags & (DDSCL_EXCLUSIVE | DDSCL_FULLSCREEN)) != (DDSCL_EXCLUSIVE | DDSCL_FULLSCREEN) && !(dwFlags & DDSCL_NORMAL)) ||	// Both Exclusive and Fullscreen flags must be set together
-			((dwFlags & DDSCL_ALLOWMODEX) && !(dwFlags & DDSCL_EXCLUSIVE)) ||															// If AllowModeX is set then Exclusive mode must be set
-			(((dwFlags & DDSCL_EXCLUSIVE) || (hWnd && hWnd != ExclusiveHwnd)) && !IsWindow(hWnd)))										// When using Exclusive mode the hwnd must be valid
+		if (!(dwFlags & (DDSCL_EXCLUSIVE | DDSCL_NORMAL)) ||																			// An application must set either the DDSCL_EXCLUSIVE or the DDSCL_NORMAL flag
+			((dwFlags & DDSCL_NORMAL) && (dwFlags & (DDSCL_ALLOWMODEX | DDSCL_EXCLUSIVE | DDSCL_FULLSCREEN))) ||						// Normal flag cannot be used with Modex, Exclusive or Fullscreen flags
+			((dwFlags & DDSCL_EXCLUSIVE) && !(dwFlags & DDSCL_FULLSCREEN)) ||															// If Exclusive flag is set then Fullscreen flag must be set
+			((dwFlags & DDSCL_FULLSCREEN) && !(dwFlags & DDSCL_EXCLUSIVE)) ||															// If Fullscreen flag is set then Exclusive flag must be set
+			((dwFlags & DDSCL_ALLOWMODEX) && (!(dwFlags & DDSCL_EXCLUSIVE) || !(dwFlags & DDSCL_FULLSCREEN))) ||						// If AllowModeX is set then Exclusive and Fullscreen flags must be set
+			((dwFlags & DDSCL_SETDEVICEWINDOW) && (dwFlags & DDSCL_SETFOCUSWINDOW)) ||													// SetDeviceWindow flag cannot be used with SetFocusWindow flag
+			(!hWnd && !(dwFlags & DDSCL_NORMAL)) ||																						// hWnd can only be null if normal flag is set
+			((dwFlags & DDSCL_EXCLUSIVE) && !IsWindow(hWnd)))																			// When using Exclusive mode the hwnd must be valid
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Error! Invalid parameters. dwFlags: " << dwFlags << " " << hWnd);
 			return DDERR_INVALIDPARAMS;
 		}
+
+		// Check for unsupported flags
+		if (dwFlags & (DDSCL_CREATEDEVICEWINDOW | DDSCL_SETDEVICEWINDOW | DDSCL_SETFOCUSWINDOW))
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Flags not supported. dwFlags: " << dwFlags << " " << hWnd);
+		}
+
+		// ToDo: The DDSCL_EXCLUSIVE flag must be set to call functions that can adversely affect performance of other applications.
+
+		bool ChangeMode = false;
 
 		// Set windowed mode
 		if (dwFlags & DDSCL_NORMAL)
@@ -1132,6 +1131,7 @@ HRESULT m_IDirectDrawX::SetCooperativeLevel(HWND hWnd, DWORD dwFlags)
 				ExclusiveHeight = 0;
 				ExclusiveBPP = 0;
 				ExclusiveRefreshRate = 0;
+				ChangeMode = true;
 			}
 			isWindowed = true;
 		}
@@ -1141,6 +1141,10 @@ HRESULT m_IDirectDrawX::SetCooperativeLevel(HWND hWnd, DWORD dwFlags)
 			{
 				LOG_LIMIT(100, __FUNCTION__ << " Error! Exclusive mode already set.");
 				return DDERR_EXCLUSIVEMODEALREADYSET;
+			}
+			if (!ExclusiveMode)
+			{
+				ChangeMode = true;
 			}
 			isWindowed = false;
 			ExclusiveMode = true;
@@ -1153,42 +1157,14 @@ HRESULT m_IDirectDrawX::SetCooperativeLevel(HWND hWnd, DWORD dwFlags)
 		FUPPreserve = ((dwFlags & (DDSCL_FPUPRESERVE | DDSCL_FPUSETUP)) != 0);
 		NoWindowChanges = ((dwFlags & DDSCL_NOWINDOWCHANGES) != 0);
 
-		// Set display window
-		HWND t_hWnd = (IsWindow(ExclusiveHwnd)) ? ExclusiveHwnd : (IsWindow(hWnd)) ? hWnd : nullptr;
-		if (!t_hWnd)
-		{
-			// Set variables
-			HANDLE_DATA data;
-			data.process_id = GetCurrentProcessId();
-			data.best_handle = nullptr;
-
-			// Gets all window layers and looks for a main window that is fullscreen
-			EnumWindows(EnumProcWindowCallback, (LPARAM)&data);
-
-			// Get top window
-			HWND m_hWnd = GetTopWindow(data.best_handle);
-			if (m_hWnd)
-			{
-				data.best_handle = m_hWnd;
-			}
-
-			// Cannot find window handle
-			if (!data.best_handle)
-			{
-				LOG_LIMIT(100, __FUNCTION__ << " Error: could not get window handle");
-			}
-
-			// Return the best handle
-			t_hWnd = data.best_handle;
-		}
-
-		if (MainhWnd && MainhDC && (MainhWnd != t_hWnd))
+		// Check if DC needs to be released
+		if (MainhWnd && MainhDC && (MainhWnd != hWnd))
 		{
 			ReleaseDC(MainhWnd, MainhDC);
 			MainhDC = nullptr;
 		}
 
-		MainhWnd = t_hWnd;
+		MainhWnd = hWnd;
 
 		if (MainhWnd && !MainhDC)
 		{
@@ -1206,6 +1182,13 @@ HRESULT m_IDirectDrawX::SetCooperativeLevel(HWND hWnd, DWORD dwFlags)
 
 			SharedMainhWnd = MainhWnd;
 			SharedMainhDC = ::GetDC(SharedMainhWnd);
+		}
+
+		// Check if mode was changed
+		if (ChangeMode && d3d9Device)
+		{
+			// Release existing d3d9device
+			ReleaseD3d9Device();
 		}
 
 		return DD_OK;
@@ -1782,6 +1765,8 @@ void m_IDirectDrawX::ReleaseDdraw()
 		MainhDC = nullptr;
 	}
 
+	ReleaseCriticalSection();
+
 	if (ref == 0)
 	{
 		// Release shared d3d9device
@@ -1801,8 +1786,6 @@ void m_IDirectDrawX::ReleaseDdraw()
 		// Clean up shared memory
 		m_IDirectDrawSurfaceX::CleanupSharedEmulatedMemory();
 	}
-
-	ReleaseCriticalSection();
 }
 
 HWND m_IDirectDrawX::GetHwnd()
@@ -1925,9 +1908,6 @@ HRESULT m_IDirectDrawX::CreateD3D9Device()
 	{
 		return DDERR_GENERIC;
 	}
-
-	// Release all existing surfaces
-	ReleaseAllD9Surfaces();
 
 	// Release existing d3d9device
 	ReleaseD3d9Device();
@@ -2092,7 +2072,7 @@ HRESULT m_IDirectDrawX::ReinitDevice()
 	}
 
 	// Release surfaces to prepare for reset
-	ReleaseAllD9Surfaces(true);
+	ReleaseAllDirectDrawD9Surfaces();
 
 	// Attempt to reset the device
 	if (FAILED(d3d9Device->Reset(&presParams)))
@@ -2114,33 +2094,26 @@ void m_IDirectDrawX::ReleaseAllDirectDrawD9Surfaces()
 	SetCriticalSection();
 	for (m_IDirectDrawX *pDDraw : DDrawVector)
 	{
-		pDDraw->ReleaseAllD9Surfaces(false);
+		pDDraw->ReleaseAllD9Surfaces();
 	}
 	ReleaseCriticalSection();
 }
 
 // Release all d3d9 surfaces
-void m_IDirectDrawX::ReleaseAllD9Surfaces(bool CriticalSection)
+void m_IDirectDrawX::ReleaseAllD9Surfaces()
 {
-	if (CriticalSection)
-	{
-		SetCriticalSection();
-	}
-
 	for (m_IDirectDrawSurfaceX *pSurface : SurfaceVector)
 	{
 		pSurface->ReleaseD9Surface();
-	}
-
-	if (CriticalSection)
-	{
-		ReleaseCriticalSection();
 	}
 }
 
 // Release all d3d9 classes for Release()
 void m_IDirectDrawX::ReleaseD3d9Device()
 {
+	// Release all existing surfaces
+	ReleaseAllDirectDrawD9Surfaces();
+
 	// Release device
 	if (d3d9Device)
 	{

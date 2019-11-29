@@ -166,7 +166,7 @@ public:
 	HRESULT CreateD3D9Device();
 	HRESULT ReinitDevice();
 	void ReleaseAllDirectDrawD9Surfaces();
-	void ReleaseAllD9Surfaces(bool CriticalSection = true);
+	void ReleaseAllD9Surfaces();
 	void ReleaseD3d9Device();
 
 	// Surface vector functions

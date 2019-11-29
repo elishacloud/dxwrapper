@@ -196,7 +196,7 @@ void ConvertViewport(D3DVIEWPORT7 &ViewPort, D3DVIEWPORT7 &ViewPort7)
 	ViewPort.dvMaxZ = ViewPort7.dvMaxZ;
 }
 
-void ConverCaps(D3DPRIMCAPS &PrimCaps, D3DPRIMCAPS &PrimCaps2)
+void ConvertCaps(D3DPRIMCAPS &PrimCaps, D3DPRIMCAPS &PrimCaps2)
 {
 	if (PrimCaps.dwSize != sizeof(D3DPRIMCAPS) || PrimCaps2.dwSize != sizeof(D3DPRIMCAPS))
 	{
@@ -226,9 +226,9 @@ void ConvertDeviceDesc(D3DDEVICEDESC &Desc, D3DDEVICEDESC7 &Desc7)
 	Desc.dlcLightingCaps.dwLightingModel = 1;
 	Desc.dlcLightingCaps.dwNumLights = 8;
 	Desc.dpcLineCaps.dwSize = sizeof(D3DPRIMCAPS);
-	ConverCaps(Desc.dpcLineCaps, Desc7.dpcLineCaps);
+	ConvertCaps(Desc.dpcLineCaps, Desc7.dpcLineCaps);
 	Desc.dpcTriCaps.dwSize = sizeof(D3DPRIMCAPS);
-	ConverCaps(Desc.dpcTriCaps, Desc7.dpcTriCaps);
+	ConvertCaps(Desc.dpcTriCaps, Desc7.dpcTriCaps);
 	Desc.dwDeviceRenderBitDepth = Desc7.dwDeviceRenderBitDepth;
 	Desc.dwDeviceZBufferBitDepth = Desc7.dwDeviceZBufferBitDepth;
 	Desc.dwMaxBufferSize = 0;

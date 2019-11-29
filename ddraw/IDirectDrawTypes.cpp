@@ -31,129 +31,58 @@ void ConvertGammaRamp(DDGAMMARAMP &RampData, DDGAMMARAMP &RampData2)
 	CopyMemory(&RampData, &RampData2, sizeof(DDGAMMARAMP));
 }
 
-bool CheckSurfaceDescSize(LPDDSURFACEDESC lpDesc)
+void ConvertSurfaceDesc(DDSURFACEDESC &Desc, DDSURFACEDESC &Desc2)
 {
-	return (lpDesc && (lpDesc->dwSize == sizeof(DDSURFACEDESC) || lpDesc->dwSize == sizeof(DDSURFACEDESC2)));
-}
-
-bool CheckSurfaceDescSize(LPDDSURFACEDESC2 lpDesc)
-{
-	return (lpDesc && (lpDesc->dwSize == sizeof(DDSURFACEDESC) || lpDesc->dwSize == sizeof(DDSURFACEDESC2)));
-}
-
-void ConvertSurfaceDescGeneric(DDSURFACEDESC2 &Desc, DDSURFACEDESC2 &Desc2)
-{
-	// Check for supported dwSize
-	if (!CheckSurfaceDescSize(&Desc) || !CheckSurfaceDescSize(&Desc2))
+	if (Desc.dwSize != sizeof(DDSURFACEDESC) || Desc2.dwSize != sizeof(DDSURFACEDESC))
 	{
 		LOG_LIMIT(100, __FUNCTION__ << " Error! Incorrect dwSize: " << Desc.dwSize << " " << Desc2.dwSize);
 		return;
 	}
-	// Use quick conversion if dwSize matches
-	if (Desc.dwSize == Desc2.dwSize)
+	CopyMemory(&Desc, &Desc2, sizeof(DDSURFACEDESC));
+}
+
+void ConvertSurfaceDesc(DDSURFACEDESC2 &Desc, DDSURFACEDESC2 &Desc2)
+{
+	if (Desc.dwSize != sizeof(DDSURFACEDESC2) || Desc2.dwSize != sizeof(DDSURFACEDESC2))
 	{
-		CopyMemory(&Desc, &Desc2, Desc.dwSize);
+		LOG_LIMIT(100, __FUNCTION__ << " Error! Incorrect dwSize: " << Desc.dwSize << " " << Desc2.dwSize);
+		return;
+	}
+	CopyMemory(&Desc, &Desc2, sizeof(DDSURFACEDESC2));
+}
+
+void ConvertSurfaceDesc(DDSURFACEDESC &Desc, DDSURFACEDESC2 &Desc2)
+{
+	// Check for supported dwSize
+	if (Desc.dwSize != sizeof(DDSURFACEDESC) || Desc2.dwSize != sizeof(DDSURFACEDESC2))
+	{
+		LOG_LIMIT(100, __FUNCTION__ << " Error! Incorrect dwSize: " << Desc.dwSize << " " << Desc2.dwSize);
 		return;
 	}
 	// Prepare destination structure
-	DWORD Size = Desc.dwSize;
-	ZeroMemory(&Desc, Desc.dwSize);
-	Desc.dwSize = Size;
+	ZeroMemory(&Desc, sizeof(DDSURFACEDESC));
+	Desc.dwSize = sizeof(DDSURFACEDESC);
 	// Convert varables
-	if (Desc2.dwFlags & DDSD_CAPS)
+	Desc.dwFlags = Desc2.dwFlags & ~(DDSD_ZBUFFERBITDEPTH | DDSD_TEXTURESTAGE | DDSD_FVF | DDSD_SRCVBHANDLE | DDSD_DEPTH);		// Remove unsupported flags
+	Desc.dwHeight = Desc2.dwHeight;
+	Desc.dwWidth = Desc2.dwWidth;
+	Desc.lPitch = Desc2.lPitch;
+	Desc.dwBackBufferCount = Desc2.dwBackBufferCount;
+	Desc.dwRefreshRate = Desc2.dwRefreshRate;
+	Desc.dwAlphaBitDepth = Desc2.dwAlphaBitDepth;
+	Desc.dwReserved = Desc2.dwReserved;
+	Desc.lpSurface = Desc2.lpSurface;
+	Desc.ddckCKDestOverlay = Desc2.ddckCKDestOverlay;
+	Desc.ddckCKDestBlt = Desc2.ddckCKDestBlt;
+	Desc.ddckCKSrcOverlay = Desc2.ddckCKSrcOverlay;
+	Desc.ddckCKSrcBlt = Desc2.ddckCKSrcBlt;
+	if (Desc.dwFlags & DDSD_PIXELFORMAT)
 	{
-		Desc.dwFlags |= DDSD_CAPS;
-		if (Desc.dwSize == sizeof(DDSURFACEDESC) && Desc2.dwSize == sizeof(DDSURFACEDESC2))
-		{
-			ConvertCaps(*(LPDDSCAPS)&Desc.ddsCaps, Desc2.ddsCaps);
-		}
-		else if (Desc.dwSize == sizeof(DDSURFACEDESC2) && Desc2.dwSize == sizeof(DDSURFACEDESC))
-		{
-			ConvertCaps(Desc.ddsCaps, *(LPDDSCAPS)&Desc2.ddsCaps);
-		}
-		else
-		{
-			// Should never get here
-			LOG_LIMIT(100, __FUNCTION__ << " Error with ddsCaps conversion.  dwFlags: " << Desc.dwFlags << " " << Desc2.dwFlags);
-		}
-	}
-	if (Desc2.dwFlags & DDSD_HEIGHT)
-	{
-		Desc.dwFlags |= DDSD_HEIGHT;
-		Desc.dwHeight = Desc2.dwHeight;
-	}
-	if (Desc2.dwFlags & DDSD_WIDTH)
-	{
-		Desc.dwFlags |= DDSD_WIDTH;
-		Desc.dwWidth = Desc2.dwWidth;
-	}
-	if (Desc2.dwFlags & DDSD_PITCH)
-	{
-		Desc.dwFlags |= DDSD_PITCH;
-		Desc.lPitch = Desc2.lPitch;
-	}
-	if (Desc2.dwFlags & DDSD_BACKBUFFERCOUNT)
-	{
-		Desc.dwFlags |= DDSD_BACKBUFFERCOUNT;
-		Desc.dwBackBufferCount = Desc2.dwBackBufferCount;
-	}
-	if (Desc2.dwFlags & DDSD_ALPHABITDEPTH)
-	{
-		Desc.dwFlags |= DDSD_ALPHABITDEPTH;
-		Desc.dwAlphaBitDepth = Desc2.dwAlphaBitDepth;
-	}
-	if (Desc2.dwFlags & DDSD_LPSURFACE)
-	{
-		Desc.dwFlags |= DDSD_LPSURFACE;
-		Desc.lpSurface = Desc2.lpSurface;
-	}
-	if (Desc2.dwFlags & DDSD_PIXELFORMAT)
-	{
-		Desc.dwFlags |= DDSD_PIXELFORMAT;
 		Desc.ddpfPixelFormat.dwSize = sizeof(DDPIXELFORMAT);
 		Desc2.ddpfPixelFormat.dwSize = sizeof(DDPIXELFORMAT);
 		ConvertPixelFormat(Desc.ddpfPixelFormat, Desc2.ddpfPixelFormat);
 	}
-	if (Desc2.dwFlags & DDSD_CKDESTOVERLAY)
-	{
-		Desc.dwFlags |= DDSD_CKDESTOVERLAY;
-		Desc.ddckCKDestOverlay.dwColorSpaceLowValue = Desc2.ddckCKDestOverlay.dwColorSpaceLowValue;
-		Desc.ddckCKDestOverlay.dwColorSpaceHighValue = Desc2.ddckCKDestOverlay.dwColorSpaceHighValue;
-	}
-	if (Desc2.dwFlags & DDSD_CKDESTBLT)
-	{
-		Desc.dwFlags |= DDSD_CKDESTBLT;
-		Desc.ddckCKDestBlt.dwColorSpaceLowValue = Desc2.ddckCKDestBlt.dwColorSpaceLowValue;
-		Desc.ddckCKDestBlt.dwColorSpaceHighValue = Desc2.ddckCKDestBlt.dwColorSpaceHighValue;
-	}
-	if (Desc2.dwFlags & DDSD_CKSRCOVERLAY)
-	{
-		Desc.dwFlags |= DDSD_CKSRCOVERLAY;
-		Desc.ddckCKSrcOverlay.dwColorSpaceLowValue = Desc2.ddckCKSrcOverlay.dwColorSpaceLowValue;
-		Desc.ddckCKSrcOverlay.dwColorSpaceHighValue = Desc2.ddckCKSrcOverlay.dwColorSpaceHighValue;
-	}
-	if (Desc2.dwFlags & DDSD_CKSRCBLT)
-	{
-		Desc.dwFlags |= DDSD_CKSRCBLT;
-		Desc.ddckCKSrcBlt.dwColorSpaceLowValue = Desc2.ddckCKSrcBlt.dwColorSpaceLowValue;
-		Desc.ddckCKSrcBlt.dwColorSpaceHighValue = Desc2.ddckCKSrcBlt.dwColorSpaceHighValue;
-	}
-	if (Desc2.dwFlags & DDSD_MIPMAPCOUNT)
-	{
-		Desc.dwFlags |= DDSD_MIPMAPCOUNT;
-		Desc.dwMipMapCount = Desc2.dwMipMapCount;
-	}
-	else if (Desc2.dwFlags & DDSD_REFRESHRATE)
-	{
-		Desc.dwFlags |= DDSD_REFRESHRATE;
-		Desc.dwRefreshRate = Desc2.dwRefreshRate;
-	}
-	if (Desc2.dwFlags & DDSD_LINEARSIZE)
-	{
-		Desc.dwFlags |= DDSD_LINEARSIZE;
-		Desc.dwLinearSize = Desc2.dwLinearSize;
-	}
-	Desc.dwReserved = Desc2.dwReserved;
+	ConvertCaps(Desc.ddsCaps, Desc2.ddsCaps);
 	// Check for dwFlags that did not get converted
 	if (Desc.dwFlags != Desc2.dwFlags)
 	{
@@ -161,24 +90,45 @@ void ConvertSurfaceDescGeneric(DDSURFACEDESC2 &Desc, DDSURFACEDESC2 &Desc2)
 	}
 }
 
-void ConvertSurfaceDesc(DDSURFACEDESC &Desc, DDSURFACEDESC &Desc2)
-{
-	ConvertSurfaceDescGeneric(*(LPDDSURFACEDESC2)&Desc, *(LPDDSURFACEDESC2)&Desc2);
-}
-
-void ConvertSurfaceDesc(DDSURFACEDESC2 &Desc, DDSURFACEDESC2 &Desc2)
-{
-	ConvertSurfaceDescGeneric(Desc, Desc2);
-}
-
-void ConvertSurfaceDesc(DDSURFACEDESC &Desc, DDSURFACEDESC2 &Desc2)
-{
-	ConvertSurfaceDescGeneric(*(LPDDSURFACEDESC2)&Desc, Desc2);
-}
-
 void ConvertSurfaceDesc(DDSURFACEDESC2 &Desc2, DDSURFACEDESC &Desc)
 {
-	ConvertSurfaceDescGeneric(Desc2, *(LPDDSURFACEDESC2)&Desc);
+	// Check for supported dwSize
+	if (Desc2.dwSize != sizeof(DDSURFACEDESC2) || Desc.dwSize != sizeof(DDSURFACEDESC))
+	{
+		LOG_LIMIT(100, __FUNCTION__ << " Error! Incorrect dwSize: " << Desc2.dwSize << " " << Desc.dwSize);
+		return;
+	}
+	// Prepare destination structure
+	ZeroMemory(&Desc2, sizeof(DDSURFACEDESC2));
+	Desc2.dwSize = sizeof(DDSURFACEDESC2);
+	// Convert varables
+	Desc2.dwFlags = Desc.dwFlags & ~(DDSD_ZBUFFERBITDEPTH | DDSD_TEXTURESTAGE | DDSD_FVF | DDSD_SRCVBHANDLE | DDSD_DEPTH);		// Remove unsupported flags
+	Desc2.dwHeight = Desc.dwHeight;
+	Desc2.dwWidth = Desc.dwWidth;
+	Desc2.lPitch = Desc.lPitch;
+	Desc2.dwBackBufferCount = Desc.dwBackBufferCount;
+	Desc2.dwRefreshRate = Desc.dwRefreshRate;
+	Desc2.dwAlphaBitDepth = Desc.dwAlphaBitDepth;
+	Desc2.dwReserved = Desc.dwReserved;
+	Desc2.lpSurface = Desc.lpSurface;
+	Desc2.ddckCKDestOverlay = Desc.ddckCKDestOverlay;
+	Desc2.ddckCKDestBlt = Desc.ddckCKDestBlt;
+	Desc2.ddckCKSrcOverlay = Desc.ddckCKSrcOverlay;
+	Desc2.ddckCKSrcBlt = Desc.ddckCKSrcBlt;
+	if (Desc2.dwFlags & DDSD_PIXELFORMAT)
+	{
+		Desc.ddpfPixelFormat.dwSize = sizeof(DDPIXELFORMAT);
+		Desc2.ddpfPixelFormat.dwSize = sizeof(DDPIXELFORMAT);
+		ConvertPixelFormat(Desc2.ddpfPixelFormat, Desc.ddpfPixelFormat);
+	}
+	ConvertCaps(Desc2.ddsCaps, Desc.ddsCaps);
+	// Extra parameters
+	Desc2.dwTextureStage = 0;			// Stage identifier that is used to bind a texture to a specific stage
+										// Check for dwFlags that did not get converted
+	if (Desc2.dwFlags != Desc.dwFlags)
+	{
+		LOG_LIMIT(100, __FUNCTION__ << " Error! Removing unsupported flags: " << (Desc.dwFlags & ~Desc2.dwFlags));
+	}
 }
 
 void ConvertPixelFormat(DDPIXELFORMAT &Format, DDPIXELFORMAT &Format2)
@@ -345,7 +295,7 @@ DWORD GetBitCount(D3DFORMAT Format)
 	switch (Format)
 	{
 	case D3DFMT_UNKNOWN:
-		return 0;
+		break;
 	case D3DFMT_R3G3B2:
 	case D3DFMT_A8:
 	case D3DFMT_P8:
@@ -635,6 +585,7 @@ HRESULT SetDisplayFormat(DWORD BPP, DDPIXELFORMAT &ddpfPixelFormat)
 		SetPixelDisplayFormat(D3DFMT_X8R8G8B8, ddpfPixelFormat);
 		break;
 	default:
+		LOG_LIMIT(100, __FUNCTION__ << " Error! Bit mode not supported: " << BPP);
 		return DDERR_UNSUPPORTED;
 	}
 	return DD_OK;
