@@ -1285,10 +1285,10 @@ HRESULT m_IDirectDrawX::SetDisplayMode(DWORD dwWidth, DWORD dwHeight, DWORD dwBP
 		}
 
 		// Update the d3d9 device to use new display mode
-		if ((ChangeMode || !d3d9Device) && FAILED(CreateD3D9Device()))
+		if (ChangeMode && d3d9Device)
 		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error: creating Direct3D9 Device");
-			return DDERR_GENERIC;
+			// Release existing d3d9device
+			ReleaseD3d9Device();
 		}
 
 		ResetDisplayMode = false;
@@ -1811,6 +1811,9 @@ void m_IDirectDrawX::GetResolution(DWORD &Width, DWORD &Height, DWORD &RefreshRa
 	RefreshRate = 0;
 	BPP = 0;
 
+	// Get hwnd
+	HWND hWnd = GetHwnd();
+
 	// Width, Height, RefreshMode
 	if (ExclusiveMode && ExclusiveWidth && ExclusiveHeight && ExclusiveBPP)
 	{
@@ -1826,21 +1829,20 @@ void m_IDirectDrawX::GetResolution(DWORD &Width, DWORD &Height, DWORD &RefreshRa
 		RefreshRate = displayModeRefreshRate;
 		BPP = displayModeBPP;
 	}
-	else if (isWindowed && IsWindow(GetHwnd()))
+	else if (isWindowed && IsWindow(hWnd))
 	{
-		HWND hwnd = GetHwnd();
 		RECT Rect = { NULL };
-		GetClientRect(hwnd, &Rect);
+		GetClientRect(hWnd, &Rect);
 		Width = Rect.right - Rect.left;
 		Height = Rect.bottom - Rect.top;
-		BPP = Utils::GetBitCount(GetHwnd());
+		BPP = Utils::GetBitCount(hWnd);
 	}
 	else
 	{
 		Width = GetSystemMetrics(SM_CXSCREEN);
 		Height = GetSystemMetrics(SM_CYSCREEN);
-		RefreshRate = Utils::GetRefreshRate(GetHwnd());
-		BPP = Utils::GetBitCount(GetHwnd());
+		RefreshRate = Utils::GetRefreshRate(hWnd);
+		BPP = Utils::GetBitCount(hWnd);
 	}
 
 	// Force color mode
@@ -1929,16 +1931,18 @@ HRESULT m_IDirectDrawX::CreateD3D9Device()
 		return DDERR_GENERIC;
 	}
 
+	// Get hwnd
+	HWND hWnd = GetHwnd();
+
 	// Get width and height
 	DWORD BackBufferWidth = displayWidth;
 	DWORD BackBufferHeight = displayHeight;
 	if (!BackBufferWidth || !BackBufferHeight)
 	{
-		if (isWindowed && IsWindow(GetHwnd()))
+		if (isWindowed && IsWindow(hWnd))
 		{
-			HWND hwnd = GetHwnd();
 			RECT Rect = { NULL };
-			GetClientRect(hwnd, &Rect);
+			GetClientRect(hWnd, &Rect);
 			BackBufferWidth = Rect.right - Rect.left;
 			BackBufferHeight = Rect.bottom - Rect.top;
 		}
@@ -1964,7 +1968,7 @@ HRESULT m_IDirectDrawX::CreateD3D9Device()
 	presParams.PresentationInterval = D3DPRESENT_INTERVAL_IMMEDIATE;
 
 	// Set parameters for the current display mode
-	if (isWindowed || !GetHwnd())
+	if (isWindowed || !hWnd)
 	{
 		// Window mode
 		presParams.Windowed = TRUE;
@@ -1985,7 +1989,7 @@ HRESULT m_IDirectDrawX::CreateD3D9Device()
 		}
 
 		// Get refresh rate
-		DWORD BackBufferRefreshRate = (displayRefreshRate) ? displayRefreshRate : Utils::GetRefreshRate(GetHwnd());
+		DWORD BackBufferRefreshRate = (displayRefreshRate) ? displayRefreshRate : Utils::GetRefreshRate(hWnd);
 
 		// Loop through all modes looking for our requested resolution
 		D3DDISPLAYMODE d3ddispmode;
@@ -2033,18 +2037,18 @@ HRESULT m_IDirectDrawX::CreateD3D9Device()
 		((FUPPreserve) ? D3DCREATE_FPU_PRESERVE : 0) |
 		((NoWindowChanges) ? D3DCREATE_NOWINDOWCHANGES : 0);
 
-	Logging::LogDebug() << __FUNCTION__ << " wnd: " << GetHwnd() << " D3d9 Device size: " << presParams << " flags: " << BehaviorFlags;
+	Logging::LogDebug() << __FUNCTION__ << " wnd: " << hWnd << " D3d9 Device size: " << presParams << " flags: " << BehaviorFlags;
 
 	// Create d3d9 Device
-	if (FAILED(d3d9Object->CreateDevice(D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, GetHwnd(), BehaviorFlags, &presParams, &d3d9Device)))
+	if (FAILED(d3d9Object->CreateDevice(D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, hWnd, BehaviorFlags, &presParams, &d3d9Device)))
 	{
 		LOG_LIMIT(100, __FUNCTION__ << " Error: failed to create Direct3D9 device! " << presParams.BackBufferWidth << "x" << presParams.BackBufferHeight << " refresh: " << presParams.FullScreen_RefreshRateInHz <<
-			" format: " << presParams.BackBufferFormat);
+			" format: " << presParams.BackBufferFormat << " wnd: " << hWnd);
 		return DDERR_GENERIC;
 	}
 
 	// Store display frequency
-	monitorRefreshRate = (presParams.FullScreen_RefreshRateInHz) ? presParams.FullScreen_RefreshRateInHz : Utils::GetRefreshRate(GetHwnd());
+	monitorRefreshRate = (presParams.FullScreen_RefreshRateInHz) ? presParams.FullScreen_RefreshRateInHz : Utils::GetRefreshRate(hWnd);
 	monitorHeight = GetSystemMetrics(SM_CYSCREEN);
 
 	// Reset BeginScene
