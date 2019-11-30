@@ -663,6 +663,7 @@ cmd /q /c "cd /D ""$(ProjectDir)d3d8\"" &amp;&amp; del build.bat"</Command>
     <ClInclude Include="Wrappers\wininet.h" />
     <ClInclude Include="Wrappers\winmm.h" />
     <ClInclude Include="Wrappers\wrapper.h" />
+    <ClInclude Include="Wrappers\wsock32.h" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="Dllmain\BuildNo.rc" />

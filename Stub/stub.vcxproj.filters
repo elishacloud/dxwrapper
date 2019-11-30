@@ -86,6 +86,9 @@
     <ClInclude Include="..\Wrappers\dwmapi.h">
       <Filter>Wrappers</Filter>
     </ClInclude>
+    <ClInclude Include="..\Wrappers\wsock32.h">
+      <Filter>Wrappers</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="BuildNo.rc" />

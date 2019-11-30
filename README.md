@@ -78,6 +78,7 @@ DxWrapper can wrap the following dlls:
  - wininet.dll
  - winmm.dll
  - winmmbase.dll
+ - wsock32.dll
 
 ### Donations
 

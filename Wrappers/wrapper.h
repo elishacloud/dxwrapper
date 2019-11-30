@@ -32,7 +32,8 @@ namespace Wrapper
 	visit(msvfw32) \
 	visit(version) \
 	visit(wininet) \
-	visit(winmm)
+	visit(winmm) \
+	visit(wsock32)
 
 // Wrappers
 #include "bcrypt.h"
@@ -55,6 +56,7 @@ namespace Wrapper
 #include "version.h"
 #include "wininet.h"
 #include "winmm.h"
+#include "wsock32.h"
 
 #define DECLARE_PROC_VARABLES(procName, unused) \
 	extern FARPROC procName ## _funct; \
