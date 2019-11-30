@@ -373,19 +373,16 @@ HRESULT m_IDirectDrawX::CreateSurface2(LPDDSURFACEDESC2 lpDDSurfaceDesc2, LPDIRE
 		}
 
 		// Check for unsupported ddsCaps
-		DWORD UnsupportedSDddsCaps = (DDSCAPS_RESERVED1 | DDSCAPS_RESERVED2 | DDSCAPS_RESERVED3 | DDSCAPS_ALPHA | DDSCAPS_OVERLAY | DDSCAPS_3DDEVICE | DDSCAPS_ZBUFFER | DDSCAPS_OWNDC |
+		DWORD UnsupportedSDddsCaps = (DDSCAPS_RESERVED1 | DDSCAPS_RESERVED2 | DDSCAPS_RESERVED3 | DDSCAPS_ALPHA | DDSCAPS_OVERLAY | DDSCAPS_TEXTURE | DDSCAPS_3DDEVICE | DDSCAPS_ZBUFFER | DDSCAPS_OWNDC |
 			DDSCAPS_LIVEVIDEO | DDSCAPS_HWCODEC | DDSCAPS_MIPMAP | DDSCAPS_ALLOCONLOAD | DDSCAPS_VIDEOPORT | DDSCAPS_NONLOCALVIDMEM);
-		if ((lpDDSurfaceDesc2->ddsCaps.dwCaps & UnsupportedSDddsCaps) || lpDDSurfaceDesc2->ddsCaps.dwCaps2)
+		if ((lpDDSurfaceDesc2->ddsCaps.dwCaps & UnsupportedSDddsCaps) || lpDDSurfaceDesc2->ddsCaps.dwCaps2 || lpDDSurfaceDesc2->ddsCaps.dwVolumeDepth)
 		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error: non-supported ddsCaps! " << (lpDDSurfaceDesc2->ddsCaps.dwCaps & UnsupportedSDddsCaps) << " " << lpDDSurfaceDesc2->ddsCaps.dwCaps2);
+			LOG_LIMIT(100, __FUNCTION__ << " Error: non-supported ddsCaps! " << (lpDDSurfaceDesc2->ddsCaps.dwCaps & UnsupportedSDddsCaps) << " " << lpDDSurfaceDesc2->ddsCaps.dwCaps2 << " " << lpDDSurfaceDesc2->ddsCaps.dwVolumeDepth);
 		}
 
 		DDSURFACEDESC2 Desc2;
 		Desc2.dwSize = sizeof(DDSURFACEDESC2);
 		ConvertSurfaceDesc(Desc2, *lpDDSurfaceDesc2);
-		Desc2.dwFlags &= ~UnsupportedSDFlags;														// Remove unsupported flags
-		Desc2.ddsCaps.dwCaps &= ~UnsupportedSDddsCaps;												// Remove unsupported Caps
-		Desc2.ddsCaps.dwCaps2 = 0;																	// Remove unsupported Caps2
 		Desc2.ddsCaps.dwCaps4 = DDSCAPS4_CREATESURFACE |											// Indicates surface was created using CreateSurface()
 			((Desc2.ddsCaps.dwCaps & DDSCAPS_PRIMARYSURFACE) ? DDSCAPS4_PRIMARYSURFACE : NULL);		// Indicates surface is a primary surface or a backbuffer of a primary surface
 		Desc2.dwReserved = 0;
@@ -543,6 +540,7 @@ HRESULT m_IDirectDrawX::EnumDisplayModes2(DWORD dwFlags, LPDDSURFACEDESC2 lpDDSu
 		}
 
 		// Save width, height and refresh rate
+		bool SetRefreshRate = true;
 		DWORD EnumWidth = 0;
 		DWORD EnumHeight = 0;
 		DWORD EnumRefreshRate = 0;
@@ -554,6 +552,7 @@ HRESULT m_IDirectDrawX::EnumDisplayModes2(DWORD dwFlags, LPDDSURFACEDESC2 lpDDSu
 		}
 		if (!(dwFlags & DDEDM_REFRESHRATES) && !EnumRefreshRate)
 		{
+			SetRefreshRate = false;
 			EnumRefreshRate = Utils::GetRefreshRate(GetHwnd());
 		}
 
@@ -588,7 +587,7 @@ HRESULT m_IDirectDrawX::EnumDisplayModes2(DWORD dwFlags, LPDDSURFACEDESC2 lpDDSu
 			}
 
 			// Loop through each bit count
-			for (DWORD bpMode : {8, 16, 24, 32})
+			for (DWORD bpMode : {8, 16, 32})
 			{
 				// Set display bit count
 				if (DisplayAllModes)
@@ -611,13 +610,13 @@ HRESULT m_IDirectDrawX::EnumDisplayModes2(DWORD dwFlags, LPDDSURFACEDESC2 lpDDSu
 					Desc2.dwFlags = DDSD_WIDTH | DDSD_HEIGHT | DDSD_REFRESHRATE | DDSD_PITCH;
 					Desc2.dwWidth = d3ddispmode.Width;
 					Desc2.dwHeight = d3ddispmode.Height;
-					Desc2.dwRefreshRate = d3ddispmode.RefreshRate;
+					Desc2.dwRefreshRate = (SetRefreshRate) ? d3ddispmode.RefreshRate : 0;
 
 					// Set adapter pixel format
 					Desc2.dwFlags |= DDSD_PIXELFORMAT;
 					Desc2.ddpfPixelFormat.dwSize = sizeof(DDPIXELFORMAT);
 					SetDisplayFormat(DisplayBitCount, Desc2.ddpfPixelFormat);
-					Desc2.lPitch = (Desc2.ddpfPixelFormat.dwRGBBitCount / 8) * Desc2.dwHeight;
+					Desc2.lPitch = (Desc2.ddpfPixelFormat.dwRGBBitCount / 8) * Desc2.dwWidth;
 
 					if (lpEnumModesCallback2(&Desc2, lpContext) == DDENUMRET_CANCEL)
 					{
