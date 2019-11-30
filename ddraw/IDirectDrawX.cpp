@@ -857,10 +857,11 @@ HRESULT m_IDirectDrawX::GetDisplayMode2(LPDDSURFACEDESC2 lpDDSurfaceDesc2)
 		}
 		else
 		{
+			HWND hWnd = GetHwnd();
 			lpDDSurfaceDesc2->dwWidth = GetSystemMetrics(SM_CXSCREEN);
 			lpDDSurfaceDesc2->dwHeight = GetSystemMetrics(SM_CYSCREEN);
-			lpDDSurfaceDesc2->dwRefreshRate = Utils::GetRefreshRate(GetHwnd());
-			displayModeBits = Utils::GetBitCount(GetHwnd());
+			lpDDSurfaceDesc2->dwRefreshRate = Utils::GetRefreshRate(hWnd);
+			displayModeBits = Utils::GetBitCount(hWnd);
 		}
 
 		// Force color mode
@@ -925,20 +926,24 @@ HRESULT m_IDirectDrawX::GetMonitorFrequency(LPDWORD lpdwFrequency)
 			return DDERR_INVALIDPARAMS;
 		}
 
-		// Check for device interface
-		if (FAILED(CheckInterface(__FUNCTION__, true)))
+		DWORD Frequency = 0;
+
+		if (d3d9Device)
 		{
-			return DDERR_GENERIC;
+			D3DDISPLAYMODE Mode;
+			if (SUCCEEDED(d3d9Device->GetDisplayMode(0, &Mode)))
+			{
+				Frequency = Mode.RefreshRate;
+			}
 		}
 
-		D3DDISPLAYMODE Mode;
-		if (FAILED(d3d9Device->GetDisplayMode(0, &Mode)))
+		// If frequency cannot be found
+		if (!Frequency)
 		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error: failed to get display mode!");
-			return DDERR_GENERIC;
+			Frequency = Utils::GetRefreshRate(GetHwnd());
 		}
 
-		*lpdwFrequency = Mode.RefreshRate;
+		*lpdwFrequency = Frequency;
 
 		return DD_OK;
 	}
@@ -1394,52 +1399,39 @@ HRESULT m_IDirectDrawX::GetAvailableVidMem2(LPDDSCAPS2 lpDDSCaps2, LPDWORD lpdwT
 			return DDERR_INVALIDPARAMS;
 		}
 
+		// TODO: Get correct total video memory size
+		DWORD TotalMemory = 0;
 		DWORD AvailableMemory = 0;
 
+		// Get available video memory
 		if (d3d9Device)
 		{
 			AvailableMemory = d3d9Device->GetAvailableTextureMem();
 		}
 		else
 		{
-			// Check for device interface
-			if (SUCCEEDED(CheckInterface(__FUNCTION__, false)))
+			if (SUCCEEDED(CheckInterface(__FUNCTION__, true)))
 			{
-				// Set parameters
-				D3DPRESENT_PARAMETERS tmpParams = { NULL };
-				tmpParams.Windowed = TRUE;
-				tmpParams.BackBufferWidth = 100;
-				tmpParams.BackBufferHeight = 100;
-				tmpParams.PresentationInterval = D3DPRESENT_INTERVAL_IMMEDIATE;
-				tmpParams.SwapEffect = D3DSWAPEFFECT_DISCARD;
-
-				// Create device
-				LPDIRECT3DDEVICE9 tmpd3d9 = nullptr;
-				if (SUCCEEDED(d3d9Object->CreateDevice(D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, GetHwnd(), D3DCREATE_SOFTWARE_VERTEXPROCESSING, &tmpParams, &tmpd3d9)))
-				{
-					// Get available memory
-					AvailableMemory = tmpd3d9->GetAvailableTextureMem();
-
-					// Release device
-					tmpd3d9->Release();
-				}
-				else
-				{
-					LOG_LIMIT(100, __FUNCTION__ << " Failed to create Direct3D9 device!");
-				}
+				AvailableMemory = d3d9Device->GetAvailableTextureMem();
+				ReleaseD3d9Device();
 			}
+		}
+
+		// If memory cannot be found just return default memory
+		if (!TotalMemory)
+		{
+			TotalMemory = (AvailableMemory) ? AvailableMemory : MaxVidMemory;
 		}
 
 		// If memory cannot be found just return default memory
 		if (!AvailableMemory)
 		{
-			AvailableMemory = MaxVidMemory;
+			AvailableMemory = TotalMemory - UsedVidMemory;
 		}
 
 		if (lpdwTotal)
 		{
-			// TODO: Get correct total video memory size
-			*lpdwTotal = AvailableMemory;
+			*lpdwTotal = TotalMemory;
 		}
 		if (lpdwFree)
 		{
@@ -2259,14 +2251,15 @@ bool m_IDirectDrawX::DoesPaletteExist(m_IDirectDrawPalette* lpPalette)
 // Adjusts available memory, some games have issues if this is set to high
 void m_IDirectDrawX::AdjustVidMemory(LPDWORD lpdwTotal, LPDWORD lpdwFree)
 {
-	if (lpdwTotal && *lpdwTotal > MaxVidMemory)
-	{
-		*lpdwTotal = MaxVidMemory;
-	}
 	DWORD TotalVidMem = (lpdwTotal) ? *lpdwTotal : (lpdwFree) ? *lpdwFree : MaxVidMemory;
-	if (lpdwFree && *lpdwFree > TotalVidMem)
+	TotalVidMem = (TotalVidMem > MaxVidMemory) ? MaxVidMemory : TotalVidMem;
+	if (lpdwTotal)
 	{
-		*lpdwFree = (TotalVidMem > UsedVidMemory) ? TotalVidMem - UsedVidMemory : TotalVidMem;
+		*lpdwTotal = TotalVidMem;
+	}
+	if (lpdwFree && *lpdwFree >= TotalVidMem)
+	{
+		*lpdwFree = TotalVidMem - UsedVidMemory;
 	}
 }
 
