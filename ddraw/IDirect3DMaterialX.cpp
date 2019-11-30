@@ -143,18 +143,23 @@ HRESULT m_IDirect3DMaterialX::SetMaterial(LPD3DMATERIAL lpMat)
 			return DDERR_INVALIDPARAMS;
 		}
 
-		D3DMATERIAL7 Material7;
-
-		if (lpMat->hTexture)
-		{
-			LOG_LIMIT(100, __FUNCTION__ << " D3DMATERIALHANDLE Not Implemented");
-		}
-
 		if (!D3DDeviceInterface || !*D3DDeviceInterface)
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Error: no D3DirectDevice interface!");
 			return DDERR_GENERIC;
 		}
+
+		MaterialSet = true;
+
+		Material.dwSize = sizeof(D3DMATERIAL);
+		ConvertMaterial(Material, *lpMat);
+
+		if (lpMat->hTexture || lpMat->dwRampSize)
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " D3DMATERIALHANDLE and RampSize Not Implemented: " << lpMat->hTexture << " " << lpMat->dwRampSize);
+		}
+
+		D3DMATERIAL7 Material7;
 
 		ConvertMaterial(Material7, *lpMat);
 
@@ -185,26 +190,16 @@ HRESULT m_IDirect3DMaterialX::GetMaterial(LPD3DMATERIAL lpMat)
 			return DDERR_INVALIDPARAMS;
 		}
 
-		if (!D3DDeviceInterface || !*D3DDeviceInterface)
+		if (MaterialSet)
 		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error: no D3DirectDevice interface!");
-			return DDERR_GENERIC;
-		}
-
-		D3DMATERIAL7 tmpMaterial;
-
-		HRESULT hr = (*D3DDeviceInterface)->GetMaterial(&tmpMaterial);
-
-		if (SUCCEEDED(hr))
-		{
-			LOG_LIMIT(100, __FUNCTION__ << " D3DMATERIALHANDLE Not Implemented");
-
 			lpMat->dwSize = sizeof(D3DMATERIAL);
 
-			ConvertMaterial(tmpMaterial, *lpMat);
+			ConvertMaterial(*lpMat, Material);
+
+			return D3D_OK;
 		}
 
-		return hr;
+		return D3DERR_MATERIAL_GETDATA_FAILED;
 	}
 	default:
 		return DDERR_GENERIC;

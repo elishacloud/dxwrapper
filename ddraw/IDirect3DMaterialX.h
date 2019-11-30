@@ -10,6 +10,8 @@ private:
 
 	// Convert Material
 	m_IDirect3DDeviceX **D3DDeviceInterface = nullptr;
+	D3DMATERIAL Material;
+	bool MaterialSet = false;
 
 	// Store d3d material version wrappers
 	std::unique_ptr<m_IDirect3DMaterial> UniqueProxyInterface = nullptr;

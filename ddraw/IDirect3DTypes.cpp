@@ -19,6 +19,21 @@
 #define D3DLIGHTCAPS_PARALLELPOINT      0x00000008L /* Parallel point lights supported */
 #define D3DLIGHTCAPS_GLSPOT             0x00000010L /* GL syle spot lights supported */
 
+void ConvertMaterial(D3DMATERIAL &Material, D3DMATERIAL &Material2)
+{
+	if (Material.dwSize != sizeof(D3DMATERIAL) || Material2.dwSize != sizeof(D3DMATERIAL))
+	{
+		LOG_LIMIT(100, __FUNCTION__ << " Error! Incorrect dwSize: " << Material.dwSize << " " << Material2.dwSize);
+		return;
+	}
+	CopyMemory(&Material, &Material2, sizeof(D3DMATERIAL));
+}
+
+void ConvertMaterial(D3DMATERIAL7 &Material, D3DMATERIAL7 &Material2)
+{
+	CopyMemory(&Material, &Material2, sizeof(D3DMATERIAL7));
+}
+
 void ConvertMaterial(D3DMATERIAL &Material, D3DMATERIAL7 &Material7)
 {
 	if (Material.dwSize != sizeof(D3DMATERIAL))

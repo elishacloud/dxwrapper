@@ -1,5 +1,7 @@
 #pragma once
 
+void ConvertMaterial(D3DMATERIAL &Material, D3DMATERIAL &Material2);
+void ConvertMaterial(D3DMATERIAL7 &Material, D3DMATERIAL7 &Material2);
 void ConvertMaterial(D3DMATERIAL &Material, D3DMATERIAL7 &Material7);
 void ConvertMaterial(D3DMATERIAL7 &Material7, D3DMATERIAL &Material);
 void ConvertViewport(D3DVIEWPORT &ViewPort, D3DVIEWPORT &ViewPort2);
