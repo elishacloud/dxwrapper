@@ -131,6 +131,8 @@ void WINAPI d8_DebugSetMute()
 
 Direct3D8 *WINAPI d8_Direct3DCreate8(UINT SDKVersion)
 {
+	LOG_LIMIT(1, __FUNCTION__);
+
 	if (!Config.D3d8to9)
 	{
 		return nullptr;

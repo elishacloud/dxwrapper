@@ -33,6 +33,8 @@ using namespace DsoundWrapper;
 
 HRESULT WINAPI ds_DirectSoundCreate(LPCGUID pcGuidDevice, LPDIRECTSOUND *ppDS, LPUNKNOWN pUnkOuter)
 {
+	LOG_LIMIT(1, __FUNCTION__);
+
 	static DirectSoundCreateProc m_pDirectSoundCreate = (Wrapper::ValidProcAddress(DirectSoundCreate_out)) ? (DirectSoundCreateProc)DirectSoundCreate_out : nullptr;
 
 	if (!m_pDirectSoundCreate)
@@ -222,6 +224,8 @@ HRESULT WINAPI ds_DirectSoundFullDuplexCreate(LPCGUID pcGuidCaptureDevice, LPCGU
 
 HRESULT WINAPI ds_DirectSoundCreate8(LPCGUID pcGuidDevice, LPDIRECTSOUND8 *ppDS8, LPUNKNOWN pUnkOuter)
 {
+	LOG_LIMIT(1, __FUNCTION__);
+
 	static DirectSoundCreate8Proc m_pDirectSoundCreate8 = (Wrapper::ValidProcAddress(DirectSoundCreate8_out)) ? (DirectSoundCreate8Proc)DirectSoundCreate8_out : nullptr;
 
 	if (!m_pDirectSoundCreate8)

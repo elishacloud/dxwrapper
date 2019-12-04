@@ -14,156 +14,93 @@
 *   3. This notice may not be removed or altered from any source distribution.
 */
 
-#define DIRECTINPUT_VERSION 0x0700
-
-#include <dinput.h>
+#include <windows.h>
 #include "..\Wrappers\wrapper.h"
 
-// dinput proc typedefs
-typedef HRESULT(WINAPI *DirectInputCreateAProc)(HINSTANCE hinst, DWORD dwVersion, LPDIRECTINPUTA* lplpDirectInput, LPUNKNOWN punkOuter);
-typedef HRESULT(WINAPI *DirectInputCreateWProc)(HINSTANCE hinst, DWORD dwVersion, LPDIRECTINPUTW* lplpDirectInput, LPUNKNOWN punkOuter);
-typedef HRESULT(WINAPI *DirectInputCreateExProc)(HINSTANCE hinst, DWORD dwVersion, REFIID riid, LPVOID* lplpDD, LPUNKNOWN punkOuter);
-typedef HRESULT(WINAPI *DllCanUnloadNowProc)();
-typedef HRESULT(WINAPI *DllGetClassObjectProc)(IN REFCLSID rclsid, IN REFIID riid, OUT LPVOID FAR* ppv);
-typedef HRESULT(WINAPI *DllRegisterServerProc)();
-typedef HRESULT(WINAPI *DllUnregisterServerProc)();
+#undef VISIT_ALL_PROCS
+#define VISIT_ALL_PROCS(visit) \
+	VISIT_PROCS_DINPUT(visit) \
+	VISIT_PROCS_DINPUT_SHARED(visit)
+
+#define DLL_NAME "\\dinput.dll"
+
+#define CREATE_WRAPPED_PROC(procName, unused) \
+	FARPROC m_p ## procName = nullptr;
+
+#define INITIALIZE_WRAPPED_PROC(procName, unused) \
+	m_p ## procName = (FARPROC)GetProcAddress(dll, #procName); \
+	dinput::procName ## _var = m_p ## procName;
+
+#define REDIRECT_WRAPPED_PROC(procName, unused) \
+	dinput::procName ## _var = (FARPROC)*di_ ## procName;
+
+#define CREATE_PROC_STUB(procName, unused) \
+	extern "C" __declspec(naked) void __stdcall di_ ## procName() \
+	{ \
+		__asm mov edi, edi \
+		__asm cmp IsLoaded, 0 \
+		__asm jne NEAR AsmExit \
+		__asm call InitAsm \
+		__asm AsmExit: \
+		__asm jmp m_p ## procName \
+	}
 
 namespace DinputWrapper
 {
+	bool IsLoaded = false;
+
 	char dllname[MAX_PATH];
 
-#define INITIALIZE_WRAPPED_PROC(procName, unused) \
-	procName ## Proc m_p ## procName = nullptr;
+	VISIT_ALL_PROCS(CREATE_WRAPPED_PROC);
 
-	VISIT_PROCS_DINPUT(INITIALIZE_WRAPPED_PROC);
-	VISIT_PROCS_DINPUT_SHARED(INITIALIZE_WRAPPED_PROC);
-
-#undef INITIALIZE_WRAPPED_PROC
-}
-
-using namespace DinputWrapper;
-
-void InitDinput()
-{
-	static bool RunOnce = true;
-
-	if (RunOnce)
+	void InitDll()
 	{
 		// Load dll
-		HMODULE dinputdll = LoadLibraryA(dllname);
+		HMODULE dll = LoadLibraryA(dllname);
 
 		// Get function addresses
-#define INITIALIZE_WRAPPED_PROC(procName, unused) \
-	m_p ## procName = (procName ## Proc)GetProcAddress(dinputdll, #procName);
+		VISIT_ALL_PROCS(INITIALIZE_WRAPPED_PROC);
 
-		VISIT_PROCS_DINPUT(INITIALIZE_WRAPPED_PROC);
-		VISIT_PROCS_DINPUT_SHARED(INITIALIZE_WRAPPED_PROC);
-
-#undef INITIALIZE_WRAPPED_PROC
-
-		RunOnce = false;
+		// Mark ddraw as loaded
+		IsLoaded = true;
 	}
-}
 
-HRESULT WINAPI di_DirectInputCreateA(HINSTANCE hinst, DWORD dwVersion, LPDIRECTINPUTA* lplpDirectInput, LPUNKNOWN punkOuter)
-{
-	InitDinput();
-
-	if (!m_pDirectInputCreateA)
+	__declspec(naked) void __stdcall InitAsm()
 	{
-		return E_FAIL;
+		__asm
+		{
+			mov edi, edi
+			push eax
+			push ebx
+			push ecx
+			push edx
+			push esi
+			push edi
+			call InitDll
+			pop edi
+			pop esi
+			pop edx
+			pop ecx
+			pop ebx
+			pop eax
+			ret
+		}
 	}
 
-	return m_pDirectInputCreateA(hinst, dwVersion, lplpDirectInput, punkOuter);
-}
+	VISIT_ALL_PROCS(CREATE_PROC_STUB);
 
-HRESULT WINAPI di_DirectInputCreateEx(HINSTANCE hinst, DWORD dwVersion, REFIID riid, LPVOID * lplpDD, LPUNKNOWN punkOuter)
-{
-	InitDinput();
-
-	if (!m_pDirectInputCreateEx)
+	void Start(const char *name)
 	{
-		return E_FAIL;
+		if (name)
+		{
+			strcpy_s(dllname, MAX_PATH, name);
+		}
+		else
+		{
+			GetSystemDirectoryA(dllname, MAX_PATH);
+			strcat_s(dllname, DLL_NAME);
+		}
+
+		VISIT_ALL_PROCS(REDIRECT_WRAPPED_PROC);
 	}
-
-	return m_pDirectInputCreateEx(hinst, dwVersion, riid, lplpDD, punkOuter);
-}
-
-HRESULT WINAPI di_DirectInputCreateW(HINSTANCE hinst, DWORD dwVersion, LPDIRECTINPUTW* lplpDirectInput, LPUNKNOWN punkOuter)
-{
-	InitDinput();
-
-	if (!m_pDirectInputCreateW)
-	{
-		return E_FAIL;
-	}
-
-	return m_pDirectInputCreateW(hinst, dwVersion, lplpDirectInput, punkOuter);
-}
-
-HRESULT WINAPI di_DllCanUnloadNow()
-{
-	InitDinput();
-
-	if (!m_pDllCanUnloadNow)
-	{
-		return E_FAIL;
-	}
-
-	return m_pDllCanUnloadNow();
-}
-
-HRESULT WINAPI di_DllGetClassObject(IN REFCLSID rclsid, IN REFIID riid, OUT LPVOID FAR* ppv)
-{
-	InitDinput();
-
-	if (!m_pDllGetClassObject)
-	{
-		return E_FAIL;
-	}
-
-	return m_pDllGetClassObject(rclsid, riid, ppv);
-}
-
-HRESULT WINAPI di_DllRegisterServer()
-{
-	InitDinput();
-
-	if (!m_pDllRegisterServer)
-	{
-		return E_FAIL;
-	}
-
-	return m_pDllRegisterServer();
-}
-
-HRESULT WINAPI di_DllUnregisterServer()
-{
-	InitDinput();
-
-	if (!m_pDllUnregisterServer)
-	{
-		return E_FAIL;
-	}
-
-	return m_pDllUnregisterServer();
-}
-
-void StartDinput(const char *name)
-{
-	if (name)
-	{
-		strcpy_s(dllname, MAX_PATH, name);
-	}
-	else
-	{
-		GetSystemDirectoryA(dllname, MAX_PATH);
-		strcat_s(dllname, "\\dinput.dll");
-	}
-
-#define INITIALIZE_WRAPPED_PROC(procName, unused) \
-	dinput::procName ## _var = (FARPROC)*di_ ## procName;
-
-	VISIT_PROCS_DINPUT(INITIALIZE_WRAPPED_PROC);
-	VISIT_PROCS_DINPUT_SHARED(INITIALIZE_WRAPPED_PROC);
 }

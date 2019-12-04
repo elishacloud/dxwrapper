@@ -1056,11 +1056,8 @@ HRESULT m_IDirectDrawX::RestoreDisplayMode()
 		displayModeBPP = 0;
 		displayModeRefreshRate = 0;
 
-		// Reset primary surface display settings
-		for (m_IDirectDrawSurfaceX *pSurface : SurfaceVector)
-		{
-			pSurface->RestoreSurfaceDisplay();
-		}
+		// Release existing d3d9device
+		ReleaseD3d9Device();
 
 		return DD_OK;
 	}
@@ -1289,10 +1286,10 @@ HRESULT m_IDirectDrawX::SetDisplayMode(DWORD dwWidth, DWORD dwHeight, DWORD dwBP
 		}
 
 		// Update the d3d9 device to use new display mode
-		if (ChangeMode && d3d9Device)
+		if ((ChangeMode || !d3d9Device) && FAILED(CreateD3D9Device()))
 		{
-			// Release existing d3d9device
-			ReleaseD3d9Device();
+			LOG_LIMIT(100, __FUNCTION__ << " Error: creating Direct3D9 Device");
+			return DDERR_GENERIC;
 		}
 
 		ResetDisplayMode = false;

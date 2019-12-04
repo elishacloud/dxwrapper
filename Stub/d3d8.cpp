@@ -17,126 +17,90 @@
 #include <windows.h>
 #include "..\Wrappers\wrapper.h"
 
-// d3d8 proc typedefs
-typedef void(WINAPI *Direct3D8EnableMaximizedWindowedModeShimProc)();
-typedef HRESULT(WINAPI *ValidatePixelShaderProc)(DWORD* pixelshader, DWORD* reserved1, BOOL flag, DWORD* toto);
-typedef HRESULT(WINAPI *ValidateVertexShaderProc)(DWORD* vertexshader, DWORD* reserved1, DWORD* reserved2, BOOL flag, DWORD* toto);
-typedef void(WINAPI *DebugSetMuteProc)();
-typedef LPVOID(WINAPI *Direct3DCreate8Proc)(UINT SDKVersion);
+#undef VISIT_ALL_PROCS
+#define VISIT_ALL_PROCS(visit) \
+	VISIT_PROCS_D3D8(visit) \
+	VISIT_PROCS_D3D8_SHARED(visit)
+
+#define DLL_NAME "\\d3d8.dll"
+
+#define CREATE_WRAPPED_PROC(procName, unused) \
+	FARPROC m_p ## procName = nullptr;
+
+#define INITIALIZE_WRAPPED_PROC(procName, unused) \
+	m_p ## procName = (FARPROC)GetProcAddress(dll, #procName); \
+	d3d8::procName ## _var = m_p ## procName;
+
+#define REDIRECT_WRAPPED_PROC(procName, unused) \
+	d3d8::procName ## _var = (FARPROC)*d8_ ## procName;
+
+#define CREATE_PROC_STUB(procName, unused) \
+	extern "C" __declspec(naked) void __stdcall d8_ ## procName() \
+	{ \
+		__asm mov edi, edi \
+		__asm cmp IsLoaded, 0 \
+		__asm jne NEAR AsmExit \
+		__asm call InitAsm \
+		__asm AsmExit: \
+		__asm jmp m_p ## procName \
+	}
 
 namespace D3d8Wrapper
 {
+	bool IsLoaded = false;
+
 	char dllname[MAX_PATH];
 
-#define INITIALIZE_WRAPPED_PROC(procName, unused) \
-	procName ## Proc m_p ## procName = nullptr;
+	VISIT_ALL_PROCS(CREATE_WRAPPED_PROC);
 
-	VISIT_PROCS_D3D8(INITIALIZE_WRAPPED_PROC);
-	VISIT_PROCS_D3D8_SHARED(INITIALIZE_WRAPPED_PROC);
-
-#undef INITIALIZE_WRAPPED_PROC
-}
-
-using namespace D3d8Wrapper;
-
-void InitD3d8()
-{
-	static bool RunOnce = true;
-
-	if (RunOnce)
+	void InitDll()
 	{
 		// Load dll
-		HMODULE d3d8dll = LoadLibraryA(dllname);
+		HMODULE dll = LoadLibraryA(dllname);
 
 		// Get function addresses
-#define INITIALIZE_WRAPPED_PROC(procName, unused) \
-	m_p ## procName = (procName ## Proc)GetProcAddress(d3d8dll, #procName);
+		VISIT_ALL_PROCS(INITIALIZE_WRAPPED_PROC);
 
-		VISIT_PROCS_D3D8(INITIALIZE_WRAPPED_PROC);
-		VISIT_PROCS_D3D8_SHARED(INITIALIZE_WRAPPED_PROC);
-
-#undef INITIALIZE_WRAPPED_PROC
-
-		RunOnce = false;
+		// Mark ddraw as loaded
+		IsLoaded = true;
 	}
-}
 
-
-void WINAPI d8_Direct3D8EnableMaximizedWindowedModeShim()
-{
-	InitD3d8();
-
-	if (!m_pDirect3D8EnableMaximizedWindowedModeShim)
+	__declspec(naked) void __stdcall InitAsm()
 	{
-		return;
+		__asm
+		{
+			mov edi, edi
+			push eax
+			push ebx
+			push ecx
+			push edx
+			push esi
+			push edi
+			call InitDll
+			pop edi
+			pop esi
+			pop edx
+			pop ecx
+			pop ebx
+			pop eax
+			ret
+		}
 	}
 
-	return m_pDirect3D8EnableMaximizedWindowedModeShim();
-}
+	VISIT_ALL_PROCS(CREATE_PROC_STUB);
 
-HRESULT WINAPI d8_ValidatePixelShader(DWORD* pixelshader, DWORD* reserved1, BOOL flag, DWORD* toto)
-{
-	InitD3d8();
-
-	if (!m_pValidatePixelShader)
+	void Start(const char *name)
 	{
-		return E_FAIL;
+		if (name)
+		{
+			strcpy_s(dllname, MAX_PATH, name);
+		}
+		else
+		{
+			GetSystemDirectoryA(dllname, MAX_PATH);
+			strcat_s(dllname, DLL_NAME);
+		}
+
+		VISIT_ALL_PROCS(REDIRECT_WRAPPED_PROC);
 	}
-
-	return m_pValidatePixelShader(pixelshader, reserved1, flag, toto);
-}
-
-HRESULT WINAPI d8_ValidateVertexShader(DWORD* vertexshader, DWORD* reserved1, DWORD* reserved2, BOOL flag, DWORD* toto)
-{
-	InitD3d8();
-
-	if (!m_pValidateVertexShader)
-	{
-		return E_FAIL;
-	}
-
-	return m_pValidateVertexShader(vertexshader, reserved1, reserved2, flag, toto);
-}
-
-void WINAPI d8_DebugSetMute()
-{
-	InitD3d8();
-
-	if (!m_pDebugSetMute)
-	{
-		return;
-	}
-
-	return m_pDebugSetMute();
-}
-
-LPVOID WINAPI d8_Direct3DCreate8(UINT SDKVersion)
-{
-	InitD3d8();
-
-	if (!m_pDirect3DCreate8)
-	{
-		return nullptr;
-	}
-
-	return m_pDirect3DCreate8(SDKVersion);
-}
-
-void StartD3d8(const char *name)
-{
-	if (name)
-	{
-		strcpy_s(dllname, MAX_PATH, name);
-	}
-	else
-	{
-		GetSystemDirectoryA(dllname, MAX_PATH);
-		strcat_s(dllname, "\\d3d8.dll");
-	}
-
-#define INITIALIZE_WRAPPED_PROC(procName, unused) \
-	d3d8::procName ## _var = (FARPROC)*d8_ ## procName;
-
-	VISIT_PROCS_D3D8(INITIALIZE_WRAPPED_PROC);
-	VISIT_PROCS_D3D8_SHARED(INITIALIZE_WRAPPED_PROC);
 }

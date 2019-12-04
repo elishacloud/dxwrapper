@@ -212,6 +212,8 @@ void WINAPI d9_Direct3D9EnableMaximizedWindowedModeShim()
 
 IDirect3D9 *WINAPI d9_Direct3DCreate9(UINT SDKVersion)
 {
+	LOG_LIMIT(1, __FUNCTION__);
+
 	static Direct3DCreate9Proc m_pDirect3DCreate9 = (Wrapper::ValidProcAddress(Direct3DCreate9_out)) ? (Direct3DCreate9Proc)Direct3DCreate9_out : nullptr;
 
 	if (!m_pDirect3DCreate9)
@@ -234,6 +236,8 @@ IDirect3D9 *WINAPI d9_Direct3DCreate9(UINT SDKVersion)
 
 HRESULT WINAPI d9_Direct3DCreate9Ex(UINT SDKVersion, IDirect3D9Ex **ppD3D)
 {
+	LOG_LIMIT(1, __FUNCTION__);
+
 	static Direct3DCreate9ExProc m_pDirect3DCreate9Ex = (Wrapper::ValidProcAddress(Direct3DCreate9Ex_out)) ? (Direct3DCreate9ExProc)Direct3DCreate9Ex_out : nullptr;
 
 	if (!m_pDirect3DCreate9Ex)

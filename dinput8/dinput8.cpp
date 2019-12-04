@@ -35,6 +35,8 @@ using namespace Dinput8Wrapper;
 
 HRESULT WINAPI di8_DirectInput8Create(HINSTANCE hinst, DWORD dwVersion, REFIID riidltf, LPVOID * ppvOut, LPUNKNOWN punkOuter)
 {
+	LOG_LIMIT(1, __FUNCTION__);
+
 	static DirectInput8CreateProc m_pDirectInput8Create = (Wrapper::ValidProcAddress(DirectInput8Create_out)) ? (DirectInput8CreateProc)DirectInput8Create_out : nullptr;
 
 	if (!m_pDirectInput8Create)

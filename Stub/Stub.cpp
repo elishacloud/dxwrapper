@@ -23,6 +23,7 @@
 
 bool StubOnly = false;				// Don't load dxwrapper
 bool LoadFromMemory = false;		// Use MemoryModule to load dxwrapper
+bool DelayRealDllLoad = true;		// Don't load specific dll's until they are used
 std::string RealDllPath;			// Manually set Dll to wrap
 std::string WrapperMode;			// Name of dxwrapper
 
@@ -48,6 +49,12 @@ void __stdcall ParseCallback(char* name, char* value)
 	if (!_strcmpi(name, "LoadFromMemory"))
 	{
 		LoadFromMemory = IsValueEnabled(value);
+		return;
+	}
+
+	if (!_strcmpi(name, "DelayRealDllLoad"))
+	{
+		DelayRealDllLoad = IsValueEnabled(value);
 		return;
 	}
 
@@ -98,19 +105,19 @@ bool APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 		const char *RealWrapperMode = Wrapper::GetWrapperName((WrapperMode.size()) ? WrapperMode.c_str() : WrapperName.c_str());
 		
 		// Load custom wrapper
-		if (_strcmpi(RealWrapperMode, "ddraw.dll") == 0)
+		if (DelayRealDllLoad && _strcmpi(RealWrapperMode, "ddraw.dll") == 0)
 		{
-			StartDdraw((RealDllPath.size()) ? RealDllPath.c_str() : nullptr);
+			DdrawWrapper::Start((RealDllPath.size()) ? RealDllPath.c_str() : nullptr);
 		}
-		else if (_strcmpi(RealWrapperMode, "d3d8.dll") == 0)
+		else if (DelayRealDllLoad && _strcmpi(RealWrapperMode, "d3d8.dll") == 0)
 		{
-			StartD3d8((RealDllPath.size()) ? RealDllPath.c_str() : nullptr);
+			D3d8Wrapper::Start((RealDllPath.size()) ? RealDllPath.c_str() : nullptr);
 		}
-		else if (_strcmpi(RealWrapperMode, "dinput.dll") == 0)
+		else if (DelayRealDllLoad && _strcmpi(RealWrapperMode, "dinput.dll") == 0)
 		{
-			StartDinput((RealDllPath.size()) ? RealDllPath.c_str() : nullptr);
+			DinputWrapper::Start((RealDllPath.size()) ? RealDllPath.c_str() : nullptr);
 		}
-		// Start wrapper
+		// Start normal wrapper
 		else
 		{
 			proxy_dll = Wrapper::CreateWrapper((RealDllPath.size()) ? RealDllPath.c_str() : nullptr, (WrapperMode.size()) ? WrapperMode.c_str() : nullptr, WrapperName.c_str());
