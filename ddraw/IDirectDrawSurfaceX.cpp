@@ -2664,7 +2664,7 @@ HRESULT m_IDirectDrawSurfaceX::CreateDCSurface()
 		LOG_LIMIT(100, __FUNCTION__ << " Error: failed to replace object in DC!");
 		return DDERR_GENERIC;
 	}
-	emu->surfacePitch = surfaceDesc2.dwWidth * (surfaceBitCount / 8);
+	emu->surfacePitch = ((((emu->bmi->bmiHeader.biWidth * emu->bmi->bmiHeader.biBitCount) + 31) & ~31) >> 3);	// Use Surface Stride for pitch
 	emu->surfaceSize = surfaceDesc2.dwHeight * emu->surfacePitch;
 	PaletteUSN++;
 
@@ -2714,6 +2714,7 @@ void m_IDirectDrawSurfaceX::UpdateSurfaceDesc()
 	{
 		surfaceDesc2.dwFlags |= DDSD_PITCH;
 		surfaceDesc2.lPitch = surfaceDesc2.dwWidth * (GetBitCount(surfaceDesc2.ddpfPixelFormat) / 8);
+		surfaceDesc2.lPitch = ((((surfaceDesc2.dwWidth * GetBitCount(surfaceDesc2.ddpfPixelFormat)) + 31) & ~31) >> 3);	// Use Surface Stride for pitch
 	}
 }
 
@@ -2954,7 +2955,7 @@ void m_IDirectDrawSurfaceX::RestoreSurfaceDisplay()
 	// Reset display flags
 	if (RestoreDisplayFlags)
 	{
-		surfaceDesc2.dwFlags &= ~(DDSD_WIDTH | DDSD_HEIGHT | DDSD_REFRESHRATE | DDSD_PIXELFORMAT);
+		surfaceDesc2.dwFlags &= ~(DDSD_WIDTH | DDSD_HEIGHT | DDSD_REFRESHRATE | DDSD_PIXELFORMAT | DDSD_PITCH);
 	}
 }
 
@@ -3118,6 +3119,11 @@ HRESULT m_IDirectDrawSurfaceX::SetLock(D3DLOCKED_RECT* pLockedRect, LPRECT lpDes
 	// Set lock flag
 	InterlockedExchange(&LockThreadID, GetCurrentThreadId());
 	IsLocked = true;
+
+	if ((surfaceDesc2.dwFlags & DDSD_PITCH) && surfaceDesc2.lPitch != pLockedRect->Pitch)
+	{
+		LOG_LIMIT(100, __FUNCTION__ << " Warning: surface pitch changed size: " << surfaceDesc2.lPitch << " --> " << pLockedRect->Pitch);
+	}
 
 	// Set pitch
 	surfaceDesc2.dwFlags |= DDSD_PITCH;
@@ -3478,7 +3484,7 @@ HRESULT m_IDirectDrawSurfaceX::ColorFill(RECT* pRect, D3DCOLOR dwFillColor)
 		UnlockDest = true;
 
 		// Get byte count
-		DWORD ByteCount = DestLockRect.Pitch / surfaceDesc2.dwWidth;
+		DWORD ByteCount = GetSurfaceBitCount() / 8;
 		if (!ByteCount || ByteCount > 4)
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Error: could not find correct fill color for ByteCount " << ByteCount);
@@ -3757,7 +3763,7 @@ HRESULT m_IDirectDrawSurfaceX::CopySurface(m_IDirectDrawSurfaceX* pSourceSurface
 // Copy from emulated surface
 HRESULT m_IDirectDrawSurfaceX::CopyEmulatedSurface(LPRECT lpDestRect, bool CopyToRealSurfaceTexture)
 {
-	HRESULT hr = D3D_OK;
+	HRESULT hr = DD_OK;
 
 	do {
 		// Update rect
