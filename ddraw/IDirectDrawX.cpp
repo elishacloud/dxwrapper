@@ -2019,13 +2019,25 @@ HRESULT m_IDirectDrawX::CreateD3D9Device()
 		presParams.FullScreen_RefreshRateInHz = set_d3ddispmode.RefreshRate;
 	}
 
+	// Set window size
+	if (IsWindow(hWnd) && !NoWindowChanges)
+	{
+		RECT Rect = { NULL };
+		GetClientRect(hWnd, &Rect);
+		SetWindowLong(hWnd, GWL_STYLE, GetWindowLong(hWnd, GWL_STYLE) | WS_VISIBLE);
+		if (Rect.right - Rect.left != (LONG)presParams.BackBufferWidth || Rect.bottom - Rect.top != (LONG)presParams.BackBufferHeight)
+		{
+			SetWindowPos(hWnd, HWND_TOP, 0, 0, presParams.BackBufferWidth, presParams.BackBufferHeight, SWP_ASYNCWINDOWPOS | SWP_NOSENDCHANGING | SWP_NOMOVE);
+		}
+	}
+
 	// Set behavior flags
 	DWORD BehaviorFlags = ((d3dcaps.VertexProcessingCaps) ? D3DCREATE_HARDWARE_VERTEXPROCESSING : D3DCREATE_SOFTWARE_VERTEXPROCESSING) | D3DCREATE_MULTITHREADED |
 		((MultiThreaded) ? D3DCREATE_MULTITHREADED : 0) |
 		((FUPPreserve) ? D3DCREATE_FPU_PRESERVE : 0) |
 		((NoWindowChanges) ? D3DCREATE_NOWINDOWCHANGES : 0);
 
-	Logging::LogDebug() << __FUNCTION__ << " wnd: " << hWnd << " D3d9 Device size: " << presParams << " flags: " << BehaviorFlags;
+	Logging::LogDebug() << __FUNCTION__ << " wnd: " << hWnd << " D3d9 Device params: " << presParams << " flags: " << BehaviorFlags;
 
 	// Create d3d9 Device
 	if (FAILED(d3d9Object->CreateDevice(D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, hWnd, BehaviorFlags, &presParams, &d3d9Device)))
