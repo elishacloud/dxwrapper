@@ -269,7 +269,6 @@ public:
 	DWORD GetWidth() { return surfaceDesc2.dwWidth; }
 	DWORD GetHeight() { return surfaceDesc2.dwHeight; }
 	DDSCAPS2 GetSurfaceCaps() { return surfaceDesc2.ddsCaps; }
-	DWORD GetSurfaceBitCount() { return surfaceBitCount; }
 	D3DFORMAT GetSurfaceFormat() { return surfaceFormat; }
 
 	// Direct3D9 interface functions

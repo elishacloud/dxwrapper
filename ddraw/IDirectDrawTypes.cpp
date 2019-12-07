@@ -602,3 +602,8 @@ HRESULT SetDisplayFormat(DWORD BPP, DDPIXELFORMAT &ddpfPixelFormat)
 	}
 	return DD_OK;
 }
+
+DWORD ComputePitch(DWORD Width, DWORD BitCount)
+{
+	return ((((Width * BitCount) + 31) & ~31) >> 3);	// Use Surface Stride for pitch
+}

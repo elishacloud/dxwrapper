@@ -2664,7 +2664,7 @@ HRESULT m_IDirectDrawSurfaceX::CreateDCSurface()
 		LOG_LIMIT(100, __FUNCTION__ << " Error: failed to replace object in DC!");
 		return DDERR_GENERIC;
 	}
-	emu->surfacePitch = ((((emu->bmi->bmiHeader.biWidth * emu->bmi->bmiHeader.biBitCount) + 31) & ~31) >> 3);	// Use Surface Stride for pitch
+	emu->surfacePitch = ComputePitch(emu->bmi->bmiHeader.biWidth, emu->bmi->bmiHeader.biBitCount);
 	emu->surfaceSize = surfaceDesc2.dwHeight * emu->surfacePitch;
 	PaletteUSN++;
 
@@ -2714,7 +2714,7 @@ void m_IDirectDrawSurfaceX::UpdateSurfaceDesc()
 	{
 		surfaceDesc2.dwFlags |= DDSD_PITCH;
 		surfaceDesc2.lPitch = surfaceDesc2.dwWidth * (GetBitCount(surfaceDesc2.ddpfPixelFormat) / 8);
-		surfaceDesc2.lPitch = ((((surfaceDesc2.dwWidth * GetBitCount(surfaceDesc2.ddpfPixelFormat)) + 31) & ~31) >> 3);	// Use Surface Stride for pitch
+		surfaceDesc2.lPitch = ComputePitch(surfaceDesc2.dwWidth, GetBitCount(surfaceDesc2.ddpfPixelFormat));
 	}
 }
 
@@ -3484,7 +3484,7 @@ HRESULT m_IDirectDrawSurfaceX::ColorFill(RECT* pRect, D3DCOLOR dwFillColor)
 		UnlockDest = true;
 
 		// Get byte count
-		DWORD ByteCount = GetSurfaceBitCount() / 8;
+		DWORD ByteCount = surfaceBitCount / 8;
 		if (!ByteCount || ByteCount > 4)
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Error: could not find correct fill color for ByteCount " << ByteCount);
@@ -3556,7 +3556,7 @@ HRESULT m_IDirectDrawSurfaceX::CopySurface(m_IDirectDrawSurfaceX* pSourceSurface
 	bool IsCriticalSectionSet = false;
 	do {
 		D3DLOCKED_RECT SrcLockRect, DestLockRect;
-		DWORD DestBitCount = GetSurfaceBitCount();
+		DWORD DestBitCount = surfaceBitCount;
 		D3DFORMAT SrcFormat = pSourceSurface->GetSurfaceFormat();
 		D3DFORMAT DestFormat = GetSurfaceFormat();
 
@@ -3686,7 +3686,7 @@ HRESULT m_IDirectDrawSurfaceX::CopySurface(m_IDirectDrawSurfaceX* pSourceSurface
 		// Copy memory (simple)
 		if (!IsStretchRect && !IsColorKey & !IsMirrorLeftRight)
 		{
-			if (SrcLockRect.Pitch == DestLockRect.Pitch && (DestRectWidth * (INT)ByteCount) == DestPitch)
+			if (SrcLockRect.Pitch == DestLockRect.Pitch && (LONG)ComputePitch(DestRectWidth, DestBitCount) == DestPitch)
 			{
 				memcpy(DestBuffer, SrcBuffer, DestRectHeight * DestLockRect.Pitch);
 			}
@@ -3788,7 +3788,7 @@ HRESULT m_IDirectDrawSurfaceX::CopyEmulatedSurface(LPRECT lpDestRect, bool CopyT
 		// Create buffer variables
 		BYTE *EmulatedBuffer = (BYTE*)EmulatedLockRect.pBits;
 		BYTE *SurfaceBuffer = (BYTE*)SurfaceLockRect.pBits;
-		INT WidthPitch = (SurfaceLockRect.Pitch / surfaceDesc2.dwWidth) * (DestRect.right - DestRect.left);
+		INT WidthPitch = (surfaceBitCount / 8) * (DestRect.right - DestRect.left);
 		LONG RectHeight = (DestRect.bottom - DestRect.top);
 
 		// Copy data
@@ -3831,7 +3831,7 @@ HRESULT m_IDirectDrawSurfaceX::CopyEmulatedSurface(LPRECT lpDestRect, bool CopyT
 		default:
 			if (CopyToRealSurfaceTexture)
 			{
-				if (SurfaceLockRect.Pitch == EmulatedLockRect.Pitch && WidthPitch == SurfaceLockRect.Pitch)
+				if (SurfaceLockRect.Pitch == EmulatedLockRect.Pitch && (LONG)ComputePitch(DestRect.right - DestRect.left, surfaceBitCount) == SurfaceLockRect.Pitch)
 				{
 					memcpy(SurfaceBuffer, EmulatedBuffer, SurfaceLockRect.Pitch * RectHeight);
 				}
@@ -3847,7 +3847,7 @@ HRESULT m_IDirectDrawSurfaceX::CopyEmulatedSurface(LPRECT lpDestRect, bool CopyT
 			}
 			else
 			{
-				if (SurfaceLockRect.Pitch == EmulatedLockRect.Pitch && WidthPitch == EmulatedLockRect.Pitch)
+				if (SurfaceLockRect.Pitch == EmulatedLockRect.Pitch && (LONG)ComputePitch(DestRect.right - DestRect.left, surfaceBitCount) == EmulatedLockRect.Pitch)
 				{
 					memcpy(EmulatedBuffer, SurfaceBuffer, EmulatedLockRect.Pitch * RectHeight);
 				}

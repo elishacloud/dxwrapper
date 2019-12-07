@@ -23,3 +23,4 @@ DWORD GetBitCount(D3DFORMAT Format);
 D3DFORMAT GetDisplayFormat(DDPIXELFORMAT ddpfPixelFormat);
 void SetPixelDisplayFormat(D3DFORMAT Format, DDPIXELFORMAT &lpPixelFormat);
 HRESULT SetDisplayFormat(DWORD BPP, DDPIXELFORMAT &ddpfPixelFormat);
+DWORD ComputePitch(DWORD Width, DWORD BitCount);
