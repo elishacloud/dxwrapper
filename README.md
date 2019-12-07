@@ -20,7 +20,7 @@ DxWrapper has many features including:
  - Can disable High DPI scaling in Windows
  - ASI loader to load custom libraries with the file extension .asi into game processes using [Ultimate ASI Loader](https://github.com/ThirteenAG/Ultimate-ASI-Loader)
  - Supports being loaded as an ASI plug-in
- - Adding AntiAliasing support into DirectX 8 or 9 games even if the game does not support it (Windows 10 only)
+ - Adding AntiAliasing support into DirectX 8 or 9 games even if the game does not support it
  - Hot patch memory support (update game memory at run time, can be used to remove CD/DVD checks or resolve graphics or other glitches)
  - Set single CPU affinity (some games have issues with multi-core CPUs)
  - Disable display scaling on high DPI mode
