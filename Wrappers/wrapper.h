@@ -9,6 +9,15 @@ namespace Wrapper
 	HMODULE CreateWrapper(const char *ProxyDll, const char *WrapperMode, const char *MyDllName);
 }
 
+struct DXWAPPERSETTINGS
+{
+	bool Dd7to9 = false;
+	bool D3d8to9 = false;
+	bool Dinputto8 = false;
+};
+
+typedef void(WINAPI *DxWrapperSettingsProc)(DXWAPPERSETTINGS *DxSettings);
+
 // Shared procs
 #include "shared.h"
 

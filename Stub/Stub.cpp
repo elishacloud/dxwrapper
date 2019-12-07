@@ -20,12 +20,24 @@
 #include "..\Settings\ReadParse.h"
 #include "..\External\MemoryModule\MemoryModule.h"
 #include "..\Wrappers\wrapper.h"
+#include "..\External\Hooking\Hook.h"
 
 bool StubOnly = false;				// Don't load dxwrapper
 bool LoadFromMemory = false;		// Use MemoryModule to load dxwrapper
-bool DelayRealDllLoad = true;		// Don't load specific dll's until they are used
 std::string RealDllPath;			// Manually set Dll to wrap
 std::string WrapperMode;			// Name of dxwrapper
+
+std::string WrapperName;
+HMEMORYMODULE m_wrapper_dll = nullptr;
+HMODULE wrapper_dll = nullptr;
+HMODULE proxy_dll = nullptr;
+
+DXWAPPERSETTINGS DxSettings = { NULL };
+
+void WINAPI DxWrapperSettings(DXWAPPERSETTINGS *)
+{
+	return;
+}
 
 // Set booloean value from string (file)
 bool IsValueEnabled(char* name)
@@ -52,12 +64,6 @@ void __stdcall ParseCallback(char* name, char* value)
 		return;
 	}
 
-	if (!_strcmpi(name, "DelayRealDllLoad"))
-	{
-		DelayRealDllLoad = IsValueEnabled(value);
-		return;
-	}
-
 	if (!_strcmpi(name, "RealDllPath"))
 	{
 		RealDllPath.assign(value);
@@ -71,111 +77,131 @@ void __stdcall ParseCallback(char* name, char* value)
 	}
 }
 
+inline void GetConfig(HMODULE hModule)
+{
+	// Get config file path
+	char configname[MAX_PATH];
+	GetModuleFileNameA(hModule, configname, MAX_PATH);
+	WrapperName.assign(strrchr(configname, '\\') + 1);
+	strcpy_s(strrchr(configname, '.'), MAX_PATH - strlen(configname), ".ini");
+
+	// Read config file
+	char* szCfg = Settings::Read(configname);
+
+	// Parce config file
+	if (szCfg)
+	{
+		Settings::Parse(szCfg, ParseCallback);
+		free(szCfg);
+	}
+}
+
+inline void LoadDxWrapper(HMODULE hModule)
+{
+	// Open file and get size
+	char path[MAX_PATH];
+	std::ifstream myfile;
+
+	// Get config file path
+	GetModuleFileNameA(hModule, path, sizeof(path));
+	strcpy_s(strrchr(path, '\\'), MAX_PATH - strlen(path), "\\dxwrapper.dll");
+
+	// Check if the dll is already loaded
+	wrapper_dll = GetModuleHandle(path);
+	if (wrapper_dll)
+	{
+		// Already loaded
+	}
+	// Use MemoryModule to load dxwrapper
+	else if (LoadFromMemory)
+	{
+		// Get config file name for log
+		myfile.open(path, std::ios::binary | std::ios::in | std::ios::ate);
+		DWORD size = (DWORD)myfile.tellg();
+
+		// If size is greater than 0
+		if (size && myfile.is_open())
+		{
+			// Read file
+			myfile.seekg(0, std::ios::beg);
+			std::string memblock(size, '\0');
+			myfile.read(&memblock[0], size);
+
+			// Load library into memory
+			m_wrapper_dll = MemoryLoadLibrary(&memblock[0], size);
+		}
+
+		// Close the file
+		myfile.close();
+	}
+	// Load dxwrapper normally
+	else
+	{
+		wrapper_dll = LoadLibrary(path);
+	}
+
+	HMODULE DxWrapperDll = (wrapper_dll) ? wrapper_dll : (HMODULE)m_wrapper_dll;
+
+	// Check if DxWrapper is loaded
+	if (DxWrapperDll)
+	{
+		DxWrapperSettingsProc DxWrapperSettings = (DxWrapperSettingsProc)Hook::GetProcAddress(DxWrapperDll, "DxWrapperSettings");
+		if (DxWrapperSettings)
+		{
+			DxWrapperSettings(&DxSettings);
+		}
+	}
+	else
+	{
+		MessageBoxA(nullptr, "Could not find DxWrapper.dll functions will be disabled!", "DxWrapper Stub", MB_ICONWARNING | MB_TOPMOST | MB_SETFOREGROUND);
+	}
+}
+
+void LoadRealDLL()
+{
+	// Get wrapper mode
+	const char *RealWrapperMode = Wrapper::GetWrapperName((WrapperMode.size()) ? WrapperMode.c_str() : WrapperName.c_str());
+
+	// Load custom wrapper
+	if (DxSettings.Dd7to9 && _strcmpi(RealWrapperMode, "ddraw.dll") == 0)
+	{
+		DdrawWrapper::Start((RealDllPath.size()) ? RealDllPath.c_str() : nullptr);
+	}
+	else if (DxSettings.D3d8to9 && _strcmpi(RealWrapperMode, "d3d8.dll") == 0)
+	{
+		D3d8Wrapper::Start((RealDllPath.size()) ? RealDllPath.c_str() : nullptr);
+	}
+	else if (DxSettings.Dinputto8 && _strcmpi(RealWrapperMode, "dinput.dll") == 0)
+	{
+		DinputWrapper::Start((RealDllPath.size()) ? RealDllPath.c_str() : nullptr);
+	}
+	// Start normal wrapper
+	else
+	{
+		proxy_dll = Wrapper::CreateWrapper((RealDllPath.size()) ? RealDllPath.c_str() : nullptr, (WrapperMode.size()) ? WrapperMode.c_str() : nullptr, WrapperName.c_str());
+	}
+}
+
 // Dll main function
 bool APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 {
 	UNREFERENCED_PARAMETER(lpReserved);
 
-	static HMEMORYMODULE m_wrapper_dll = nullptr;
-	static HMODULE wrapper_dll = nullptr;
-	static HMODULE proxy_dll = nullptr;
-
 	switch (fdwReason)
 	{
 	case DLL_PROCESS_ATTACH:
 	{
-		// Get config file path
-		char configname[MAX_PATH];
-		GetModuleFileNameA(hModule, configname, MAX_PATH);
-		std::string WrapperName;
-		WrapperName.assign(strrchr(configname, '\\') + 1);
-		strcpy_s(strrchr(configname, '.'), MAX_PATH - strlen(configname), ".ini");
+		// Get config settings
+		GetConfig(hModule);
 
-		// Read config file
-		char* szCfg = Settings::Read(configname);
-
-		// Parce config file
-		if (szCfg)
+		// Load DxWrapper
+		if (!StubOnly)
 		{
-			Settings::Parse(szCfg, ParseCallback);
-			free(szCfg);
+			LoadDxWrapper(hModule);
 		}
 
-		// Get wrapper mode
-		const char *RealWrapperMode = Wrapper::GetWrapperName((WrapperMode.size()) ? WrapperMode.c_str() : WrapperName.c_str());
-		
-		// Load custom wrapper
-		if (DelayRealDllLoad && _strcmpi(RealWrapperMode, "ddraw.dll") == 0)
-		{
-			DdrawWrapper::Start((RealDllPath.size()) ? RealDllPath.c_str() : nullptr);
-		}
-		else if (DelayRealDllLoad && _strcmpi(RealWrapperMode, "d3d8.dll") == 0)
-		{
-			D3d8Wrapper::Start((RealDllPath.size()) ? RealDllPath.c_str() : nullptr);
-		}
-		else if (DelayRealDllLoad && _strcmpi(RealWrapperMode, "dinput.dll") == 0)
-		{
-			DinputWrapper::Start((RealDllPath.size()) ? RealDllPath.c_str() : nullptr);
-		}
-		// Start normal wrapper
-		else
-		{
-			proxy_dll = Wrapper::CreateWrapper((RealDllPath.size()) ? RealDllPath.c_str() : nullptr, (WrapperMode.size()) ? WrapperMode.c_str() : nullptr, WrapperName.c_str());
-		}
-
-		// Don't load DxWrapper
-		if (StubOnly)
-		{
-			return true;
-		}
-
-		// Open file and get size
-		char path[MAX_PATH];
-		std::ifstream myfile;
-
-		// Get config file path
-		GetModuleFileNameA(hModule, path, sizeof(path));
-		strcpy_s(strrchr(path, '\\'), MAX_PATH - strlen(path), "\\dxwrapper.dll");
-
-		// Check if the dll is already loaded
-		wrapper_dll = GetModuleHandle(path);
-		if (wrapper_dll)
-		{
-			// Already loaded
-		}
-		// Use MemoryModule to load dxwrapper
-		else if (LoadFromMemory)
-		{
-			// Get config file name for log
-			myfile.open(path, std::ios::binary | std::ios::in | std::ios::ate);
-			DWORD size = (DWORD)myfile.tellg();
-
-			// If size is greater than 0
-			if (size && myfile.is_open())
-			{
-				// Read file
-				myfile.seekg(0, std::ios::beg);
-				std::string memblock(size, '\0');
-				myfile.read(&memblock[0], size);
-
-				// Load library into memory
-				m_wrapper_dll = MemoryLoadLibrary(&memblock[0], size);
-			}
-
-			// Close the file
-			myfile.close();
-		}
-		// Load dxwrapper normally
-		else
-		{
-			wrapper_dll = LoadLibrary(path);
-		}
-
-		// Check if DxWrapper is loaded
-		if (!m_wrapper_dll && !wrapper_dll)
-		{
-			MessageBoxA(nullptr, "Could not find DxWrapper.dll functions will be disabled!", "DxWrapper Stub", MB_ICONWARNING | MB_TOPMOST | MB_SETFOREGROUND);
-		}
+		// Load the real dll
+		LoadRealDLL();
 	}
 	break;
 	case DLL_PROCESS_DETACH:

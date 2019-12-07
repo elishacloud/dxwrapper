@@ -60,6 +60,19 @@
 		Logging::LogDebug() << __FUNCTION__ << " " << #procName << " addr: " << prodAddr; \
 	}
 
+void WINAPI DxWrapperSettings(DXWAPPERSETTINGS *DxSettings)
+{
+	Logging::LogDebug() << __FUNCTION__ << " Called!";
+	if (!DxSettings)
+	{
+		return;
+	}
+
+	DxSettings->Dd7to9 = Config.Dd7to9;
+	DxSettings->D3d8to9 = Config.D3d8to9;
+	DxSettings->Dinputto8 = Config.Dinputto8;
+}
+
 // Declare variables
 HMODULE hModule_dll = nullptr;
 
@@ -121,6 +134,10 @@ bool APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 				Logging::Log() << "DxWrapper already running!";
 			}
 
+			// Disable wrapper
+			Logging::Log() << "Disabling DxWrapper...";
+			Settings::ClearConfigSettings();
+
 			if (Config.RealWrapperMode == dtype.dxwrapper)
 			{
 				// Resetting thread priority
@@ -130,14 +147,10 @@ bool APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 				CloseHandle(hCurrentThread);
 
 				// Return false on process attach causes dll to get unloaded
-				return false;
+				return true;
 			}
 			else
 			{
-				// Disable wrapper
-				Logging::Log() << "Disabling DxWrapper...";
-				Settings::ClearConfigSettings();
-
 				// Release named Mutex
 				if (n_hMutex)
 				{

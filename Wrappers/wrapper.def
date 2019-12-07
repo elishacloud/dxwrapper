@@ -27,6 +27,12 @@ AmdPowerXpressRequestHighPerformance DATA
 
 
 ; ****
+;Retrieve specific settings from dxwrapper
+; ****
+DxWrapperSettings
+
+
+; ****
 ;LIBRARY "bcrypt"
 ; ****
 BCryptAddContextFunction 

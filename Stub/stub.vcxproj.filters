@@ -14,6 +14,18 @@
     <ClCompile Include="ddraw.cpp" />
     <ClCompile Include="d3d8.cpp" />
     <ClCompile Include="dinput.cpp" />
+    <ClCompile Include="..\External\Hooking\Hook.cpp">
+      <Filter>External\Hooking</Filter>
+    </ClCompile>
+    <ClCompile Include="..\External\Hooking\HotPatch.cpp">
+      <Filter>External\Hooking</Filter>
+    </ClCompile>
+    <ClCompile Include="..\External\Hooking\IATPatch.cpp">
+      <Filter>External\Hooking</Filter>
+    </ClCompile>
+    <ClCompile Include="Logging\Logging.cpp">
+      <Filter>Logging</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="stub.h" />
@@ -89,6 +101,9 @@
     <ClInclude Include="..\Wrappers\wsock32.h">
       <Filter>Wrappers</Filter>
     </ClInclude>
+    <ClInclude Include="..\External\Hooking\Hook.h">
+      <Filter>External\Hooking</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="BuildNo.rc" />
@@ -109,6 +124,9 @@
     </Filter>
     <Filter Include="Settings">
       <UniqueIdentifier>{103ef3c8-ace8-4021-a1c2-130a38edf466}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="External\Hooking">
+      <UniqueIdentifier>{4b47871c-608b-4247-9c72-22e050ae3f4f}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
