@@ -332,8 +332,25 @@ HRESULT m_IDirectDrawSurfaceX::Blt(LPRECT lpDestRect, LPDIRECTDRAWSURFACE7 lpDDS
 		// DDBLT_DONOTWAIT
 		// DDBLT_WAIT
 
+		// Get source surface
+		m_IDirectDrawSurfaceX *lpDDSrcSurfaceX = (m_IDirectDrawSurfaceX*)lpDDSrcSurface;
+		if (!lpDDSrcSurfaceX)
+		{
+			lpDDSrcSurfaceX = this;
+		}
+		else
+		{
+			lpDDSrcSurfaceX = ((m_IDirectDrawSurface*)lpDDSrcSurfaceX)->GetWrapperInterface();
+
+			// Check if source Surface exists
+			if (!ddrawParent->DoesSurfaceExist(lpDDSrcSurfaceX))
+			{
+				LOG_LIMIT(100, __FUNCTION__ << " Error: could not find source surface!");
+				return DD_OK;	// Just return OK
+			}
+		}
+
 		HRESULT hr = DD_OK;
-		m_IDirectDrawSurfaceX *lpDDSrcSurfaceX = nullptr;
 		do {
 			// Check if the scene needs to be presented
 			isSkipScene |= ((lpDestRect) ? (abs(lpDestRect->bottom - lpDestRect->top) < 2 || abs(lpDestRect->right - lpDestRect->left) < 2) : FALSE);
@@ -381,25 +398,6 @@ HRESULT m_IDirectDrawSurfaceX::Blt(LPRECT lpDestRect, LPDIRECTDRAWSURFACE7 lpDDS
 				}
 			}
 
-			// Get source surface
-			lpDDSrcSurfaceX = (m_IDirectDrawSurfaceX*)lpDDSrcSurface;
-			if (!lpDDSrcSurfaceX)
-			{
-				lpDDSrcSurfaceX = this;
-			}
-			else
-			{
-				lpDDSrcSurfaceX = ((m_IDirectDrawSurface*)lpDDSrcSurfaceX)->GetWrapperInterface();
-
-				// Check if source Surface exists
-				if (!ddrawParent->DoesSurfaceExist(lpDDSrcSurfaceX))
-				{
-					LOG_LIMIT(100, __FUNCTION__ << " Error: could not find source surface");
-					hr = DDERR_INVALIDOBJECT;
-					break;
-				}
-			}
-
 			// Get surface copy flags
 			DWORD Flags = ((dwFlags & (DDBLT_KEYDESTOVERRIDE | DDBLT_KEYSRCOVERRIDE | DDBLT_KEYDEST | DDBLT_KEYSRC)) ? DDBLT_KEYDEST : 0) |		// Color key flags
 				((lpDDBltFx && (dwFlags & DDBLT_DDFX)) ? (lpDDBltFx->dwDDFX & (DDBLTFX_MIRRORLEFTRIGHT | DDBLTFX_MIRRORUPDOWN)) : 0);			// Mirror flags
@@ -427,27 +425,6 @@ HRESULT m_IDirectDrawSurfaceX::Blt(LPRECT lpDestRect, LPDIRECTDRAWSURFACE7 lpDDS
 		// If successful
 		if (SUCCEEDED(hr))
 		{
-			// SWAT 2 patch to Blt directly to GDI
-			if (Config.PatchForSWAT2)
-			{
-				if (IsPrimarySurface() && emu && emu->surfaceDC && ddrawParent->GetDC())
-				{
-					int XOffset = 0;
-					int YOffset = 23;
-					RECT DestRect = {
-						(lpDestRect) ? lpDestRect->left : 0,
-						(lpDestRect) ? lpDestRect->top : 0,
-						(lpDestRect) ? lpDestRect->right : (LONG)GetWidth(),
-						(lpDestRect) ? lpDestRect->bottom : (LONG)GetHeight()
-					};
-					LONG Left = (DestRect.left >= XOffset) ? DestRect.left - XOffset : DestRect.left;
-					LONG Top = (DestRect.top >= YOffset) ? DestRect.top - YOffset : DestRect.top;
-					LONG Width = DestRect.right - DestRect.left;
-					LONG Height = DestRect.bottom - DestRect.top;
-					BitBlt(ddrawParent->GetDC(), Left, Top, Width, Height, emu->surfaceDC, DestRect.left, DestRect.top, SRCCOPY);
-				}
-			}
-
 			// Set dirty flag
 			SetDirtyFlag();
 
@@ -461,6 +438,13 @@ HRESULT m_IDirectDrawSurfaceX::Blt(LPRECT lpDestRect, LPDIRECTDRAWSURFACE7 lpDDS
 
 	if (lpDDSrcSurface)
 	{
+		// Check if source Surface exists
+		if (!ProxyAddressLookupTable.IsValidProxyAddress<m_IDirectDrawSurface*>(((m_IDirectDrawSurface7*)lpDDSrcSurface)->GetProxyInterface()))
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: could not find source surface!");
+			return DD_OK;	// Just return OK
+		}
+
 		lpDDSrcSurface = static_cast<m_IDirectDrawSurface7 *>(lpDDSrcSurface)->GetProxyInterface();
 	}
 
@@ -962,6 +946,16 @@ HRESULT m_IDirectDrawSurfaceX::GetAttachedSurface2(LPDDSCAPS2 lpDDSCaps2, LPDIRE
 	if (SUCCEEDED(hr) && lplpDDAttachedSurface)
 	{
 		*lplpDDAttachedSurface = ProxyAddressLookupTable.FindAddress<m_IDirectDrawSurface7>(*lplpDDAttachedSurface, DirectXVersion);
+
+		if (Config.ConvertToDirectDraw7 && *lplpDDAttachedSurface)
+		{
+			m_IDirectDrawSurfaceX *lpDDSurfaceX = ((m_IDirectDrawSurface7*)*lplpDDAttachedSurface)->GetWrapperInterface();
+
+			if (lpDDSurfaceX)
+			{
+				lpDDSurfaceX->SetDdrawParent(ddrawParent);
+			}
+		}
 	}
 
 	return hr;
@@ -1157,6 +1151,12 @@ HRESULT m_IDirectDrawSurfaceX::GetDC(HDC FAR * lphDC)
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Error: does not support getting device context twice!");
 			return DDERR_GENERIC;
+		}
+
+		// If Blting surface directly to GDI
+		if (Config.DdrawWriteToGDI && IsPrimarySurface())
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Warning: GetDC is not fully implemented when writing to GDI!");
 		}
 
 		// Present before write if needed
@@ -2302,7 +2302,7 @@ HRESULT m_IDirectDrawSurfaceX::CreateD3d9Surface()
 	surfaceFormat = GetDisplayFormat(surfaceDesc2.ddpfPixelFormat);
 	surfaceBitCount = GetBitCount(surfaceFormat);
 	IsSurfaceEmulated = (surfaceFormat == D3DFMT_R8G8B8) ||
-		(Config.DdrawEmulateSurface && (surfaceFormat == D3DFMT_P8 || surfaceFormat == D3DFMT_R5G6B5 || surfaceFormat == D3DFMT_A1R5G5B5 || surfaceFormat == D3DFMT_X1R5G5B5 ||
+		((Config.DdrawEmulateSurface || Config.DdrawWriteToGDI) && (surfaceFormat == D3DFMT_P8 || surfaceFormat == D3DFMT_R5G6B5 || surfaceFormat == D3DFMT_A1R5G5B5 || surfaceFormat == D3DFMT_X1R5G5B5 ||
 			surfaceFormat == D3DFMT_R8G8B8 || surfaceFormat == D3DFMT_A8R8G8B8 || surfaceFormat == D3DFMT_X8R8G8B8));
 	DCRequiresEmulation = (surfaceFormat != D3DFMT_R5G6B5 && surfaceFormat != D3DFMT_X1R5G5B5 && surfaceFormat != D3DFMT_R8G8B8 && surfaceFormat != D3DFMT_X8R8G8B8);
 	D3DFORMAT Format = (surfaceFormat == D3DFMT_P8) ? D3DFMT_L8 : (surfaceFormat == D3DFMT_R8G8B8) ? D3DFMT_X8R8G8B8 : surfaceFormat;
@@ -2320,6 +2320,12 @@ HRESULT m_IDirectDrawSurfaceX::CreateD3d9Surface()
 	{
 		LOG_LIMIT(100, __FUNCTION__ << " Error: failed to create surface size: " << surfaceDesc2.dwWidth << "x" << surfaceDesc2.dwHeight << " Format: " << surfaceFormat);
 		return DDERR_GENERIC;
+	}
+
+	// Writing surface to GDI
+	if (Config.DdrawWriteToGDI)
+	{
+		return DD_OK;
 	}
 
 	// Create display texture
@@ -2845,7 +2851,12 @@ HRESULT m_IDirectDrawSurfaceX::PresentSurface(BOOL isSkipScene)
 	}
 
 	// Check if is not primary surface or if scene should be skipped
-	if (!IsPrimarySurface())
+	if (Config.DdrawWriteToGDI)
+	{
+		// Never present if writing to GDI
+		return DD_OK;
+	}
+	else if (!IsPrimarySurface())
 	{
 		if (SceneReady && !IsPresentRunning)
 		{
@@ -3148,8 +3159,24 @@ HRESULT m_IDirectDrawSurfaceX::SetUnlock(BOOL isSkipScene)
 		return DDERR_GENERIC;
 	}
 
+	// Blt surface directly to GDI
+	if (Config.DdrawWriteToGDI)
+	{
+		if (IsPrimarySurface() && emu && emu->surfaceDC && ddrawParent->GetDC())
+		{
+			RECT WindowRect = { NULL };
+			MapWindowPoints(ddrawParent->GetHwnd(), HWND_DESKTOP, (LPPOINT)&WindowRect, 2);
+			LONG XOffset = WindowRect.left;
+			LONG YOffset = WindowRect.top;
+			LONG Left = (LastRect.left >= XOffset) ? LastRect.left - XOffset : LastRect.left;
+			LONG Top = (LastRect.top >= YOffset) ? LastRect.top - YOffset : LastRect.top;
+			LONG Width = LastRect.right - LastRect.left;
+			LONG Height = LastRect.bottom - LastRect.top;
+			BitBlt(ddrawParent->GetDC(), Left, Top, Width, Height, emu->surfaceDC, LastRect.left, LastRect.top, SRCCOPY);
+		}
+	}
 	// Emulated surface
-	if (IsSurfaceEmulated)
+	else if (IsSurfaceEmulated)
 	{
 		// Copy emulated surface to real texture
 		if (DoCopyRect)

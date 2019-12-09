@@ -486,6 +486,16 @@ HRESULT m_IDirectDrawX::DuplicateSurface(LPDIRECTDRAWSURFACE7 lpDDSurface, LPDIR
 	if (SUCCEEDED(hr) && lplpDupDDSurface && lpDDSurface)
 	{
 		*lplpDupDDSurface = ProxyAddressLookupTable.FindAddress<m_IDirectDrawSurface7>(*lplpDupDDSurface, ((m_IDirectDrawSurface7 *)lpDDSurface)->GetDirectXVersion());
+
+		if (Config.ConvertToDirectDraw7 && *lplpDupDDSurface)
+		{
+			m_IDirectDrawSurfaceX *lpDDSurfaceX = ((m_IDirectDrawSurface7*)*lplpDupDDSurface)->GetWrapperInterface();
+
+			if (lpDDSurfaceX)
+			{
+				lpDDSurfaceX->SetDdrawParent(this);
+			}
+		}
 	}
 
 	return hr;
@@ -1079,7 +1089,7 @@ LRESULT CALLBACK CBTProc(int nCode, WPARAM wParam, LPARAM lParam)
 		if (it != std::end(g_hookmap))
 		{
 			m_IDirectDraw7 *lpDDraw = it->second;
-			if (lpDDraw && ProxyAddressLookupTable.IsValidAddress(lpDDraw))
+			if (lpDDraw && ProxyAddressLookupTable.IsValidWrapperAddress(lpDDraw))
 			{
 				lpDDraw->SetCooperativeLevel(hWnd, DDSCL_NORMAL);
 			}
@@ -1817,7 +1827,7 @@ void m_IDirectDrawX::GetResolution(DWORD &Width, DWORD &Height, DWORD &RefreshRa
 		RefreshRate = displayModeRefreshRate;
 		BPP = displayModeBPP;
 	}
-	else if (isWindowed && IsWindow(hWnd))
+	else if (isWindowed && IsWindow(hWnd) && !Config.DdrawWriteToGDI)
 	{
 		RECT Rect = { NULL };
 		GetClientRect(hWnd, &Rect);
@@ -2020,7 +2030,7 @@ HRESULT m_IDirectDrawX::CreateD3D9Device()
 	}
 
 	// Set window size
-	if (IsWindow(hWnd) && !NoWindowChanges)
+	if (IsWindow(hWnd) && !NoWindowChanges && !Config.DdrawWriteToGDI)
 	{
 		RECT Rect = { NULL };
 		GetClientRect(hWnd, &Rect);
@@ -2371,7 +2381,7 @@ HRESULT m_IDirectDrawX::EndScene()
 	IsInScene = false;
 
 	// Present everthing, skip Preset for SWAT 2
-	HRESULT hr = (Config.PatchForSWAT2) ? D3D_OK : d3d9Device->Present(nullptr, nullptr, nullptr, nullptr);
+	HRESULT hr = d3d9Device->Present(nullptr, nullptr, nullptr, nullptr);
 
 	// Device lost
 	if (hr == D3DERR_DEVICELOST)

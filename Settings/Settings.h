@@ -21,6 +21,7 @@
 	visit(DdrawClippedWidth) \
 	visit(DdrawClippedHeight) \
 	visit(DdrawEmulateSurface) \
+	visit(DdrawWriteToGDI) \
 	visit(DdrawIntegerScalingClamp) \
 	visit(DdrawLimitDisplayModeCount) \
 	visit(DdrawMaintainAspectRatio) \
@@ -65,7 +66,6 @@
 	visit(LoopSleepTime) \
 	visit(Num2DBuffers) \
 	visit(Num3DBuffers) \
-	visit(PatchForSWAT2) \
 	visit(PreventSpeakerSetup) \
 	visit(PrimaryBufferBits) \
 	visit(PrimaryBufferChannels) \
@@ -172,6 +172,7 @@ struct CONFIG
 	bool DdrawResolutionHack;			// Removes the artificial resolution limit from Direct3D7 and below https://github.com/UCyborg/LegacyD3DResolutionHack
 	bool DdrawResolutionHackNotSet;		// If the DDrawResolutionHack option exists in the config file
 	bool DdrawEmulateSurface;			// Emulates the ddraw surface using device context for Dd7to9
+	bool DdrawWriteToGDI;				// Blt surface directly to GDI rather than Direct3D9
 	bool DdrawIntegerScalingClamp;		// Scales the screen by an integer value to help preserve video quality
 	bool DdrawMaintainAspectRatio;		// Keeps the current DirectDraw aspect ratio when overriding the game's resolution
 	bool DdrawUseNativeResolution;		// Uses the current screen resolution for Dd7to9
@@ -204,7 +205,6 @@ struct CONFIG
 	bool LoadPlugins;					// Loads ASI plugins
 	bool LoadFromScriptsOnly;			// Loads ASI plugins from 'scripts' and 'plugins' folder only
 	bool ProcessExcluded;				// Set if this process is excluded from dxwrapper functions
-	bool PatchForSWAT2;					// Patch for SWAT 2, disables Preset() and will Blt to GDI
 	bool ResetScreenRes;				// Reset the screen resolution on close
 	bool SendAltEnter;					// Sends an Alt+Enter message to the wind to tell it to go into fullscreen, requires FullScreen
 	bool WaitForProcess;				// Waits for process to end before continuing, requires FullScreen

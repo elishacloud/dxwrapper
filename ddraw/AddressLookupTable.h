@@ -175,7 +175,7 @@ public:
 	}
 
 	template <typename T>
-	bool IsValidAddress(T *Wrapper)
+	bool IsValidWrapperAddress(T *Wrapper)
 	{
 		if (!Wrapper)
 		{
@@ -186,6 +186,28 @@ public:
 		{
 			auto it = std::find_if(g_map[CacheIndex].begin(), g_map[CacheIndex].end(),
 				[=](auto Map) -> bool { return Map.second == Wrapper; });
+
+			if (it != std::end(g_map[CacheIndex]))
+			{
+				return true;
+			}
+		}
+
+		return false;
+	}
+
+	template <typename T>
+	bool IsValidProxyAddress(void *Proxy)
+	{
+		if (!Proxy)
+		{
+			return false;
+		}
+
+		constexpr UINT Index = AddressCacheIndex<T>::CacheIndex;
+		for (UINT CacheIndex = 0; CacheIndex < MaxIndex; CacheIndex++)
+		{
+			auto it = g_map[CacheIndex].find(Proxy);
 
 			if (it != std::end(g_map[CacheIndex]))
 			{
