@@ -1555,9 +1555,12 @@ HRESULT m_IDirectDrawSurfaceX::Lock2(LPRECT lpDestRect, LPDDSURFACEDESC2 lpDDSur
 
 		// Set surfaceDesc
 		ConvertSurfaceDesc(*lpDDSurfaceDesc2, surfaceDesc2);
-		lpDDSurfaceDesc2->dwFlags |= DDSD_LPSURFACE | DDSD_PITCH;
-		lpDDSurfaceDesc2->lpSurface = LockedRect.pBits;
+		if (!(lpDDSurfaceDesc2->dwFlags & DDSD_LPSURFACE))
+		{
+			lpDDSurfaceDesc2->lpSurface = LockedRect.pBits;
+		}
 		lpDDSurfaceDesc2->lPitch = LockedRect.Pitch;
+		lpDDSurfaceDesc2->dwFlags |= DDSD_LPSURFACE | DDSD_PITCH;
 
 		return DD_OK;
 	}

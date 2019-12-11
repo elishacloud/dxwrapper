@@ -365,6 +365,52 @@ HRESULT m_IDirectDrawX::CreateSurface2(LPDDSURFACEDESC2 lpDDSurfaceDesc2, LPDIRE
 			return DDERR_INVALIDPARAMS;
 		}
 
+		// Check for FourCC
+		if ((lpDDSurfaceDesc2->dwFlags & DDSD_PIXELFORMAT) && (lpDDSurfaceDesc2->ddpfPixelFormat.dwFlags & DDPF_FOURCC))
+		{
+			unsigned char ch0 = lpDDSurfaceDesc2->ddpfPixelFormat.dwFourCC & 0xFF;
+			unsigned char ch1 = (lpDDSurfaceDesc2->ddpfPixelFormat.dwFourCC >> 8) & 0xFF;
+			unsigned char ch2 = (lpDDSurfaceDesc2->ddpfPixelFormat.dwFourCC >> 16) & 0xFF;
+			unsigned char ch3 = (lpDDSurfaceDesc2->ddpfPixelFormat.dwFourCC >> 24) & 0xFF;
+			LOG_LIMIT(100, __FUNCTION__ << " Error: FourCC format not Implemented. Code = MAKEFOURCC('" << (char)ch0 << "', '" << (char)ch1 << "', '" << (char)ch2 << "', '" << (char)ch3 << "')");
+			return DDERR_INVALIDPIXELFORMAT;
+		}
+
+		// Check for other unsupported pixel formats
+		if ((lpDDSurfaceDesc2->dwFlags & DDSD_PIXELFORMAT) && (lpDDSurfaceDesc2->ddpfPixelFormat.dwFlags & 
+			(DDPF_BUMPDUDV | DDPF_BUMPLUMINANCE | DDPF_COMPRESSED | DDPF_LUMINANCE | DDPF_PALETTEINDEXED1 | DDPF_PALETTEINDEXED2 | DDPF_PALETTEINDEXED4)))
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: PixelForamt not Implemented. " << lpDDSurfaceDesc2->ddpfPixelFormat.dwFlags);
+			return DDERR_INVALIDPIXELFORMAT;
+		}
+
+		// Check for MipMap
+		if ((lpDDSurfaceDesc2->dwFlags & DDSD_MIPMAPCOUNT) || (lpDDSurfaceDesc2->ddsCaps.dwCaps & DDSCAPS_MIPMAP))
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: MipMap not Implemented.");
+			return DDERR_NOMIPMAPHW;
+		}
+
+		// Check for zbuffer
+		if (((lpDDSurfaceDesc2->dwFlags & DDSD_PIXELFORMAT) && (lpDDSurfaceDesc2->ddpfPixelFormat.dwFlags & DDPF_ZBUFFER)) || (lpDDSurfaceDesc2->ddsCaps.dwCaps & DDSCAPS_ZBUFFER))
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: zbuffer not Implemented.");
+			return DDERR_NOZBUFFERHW;
+		}
+
+		// Check for alpha
+		if (((lpDDSurfaceDesc2->dwFlags & DDSD_PIXELFORMAT) && (lpDDSurfaceDesc2->ddpfPixelFormat.dwFlags & (DDPF_ALPHA | DDPF_ALPHAPIXELS | DDPF_ALPHAPREMULT))) ||
+			(lpDDSurfaceDesc2->ddsCaps.dwCaps & DDSCAPS_ALPHA))
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: Aplpha not Implemented.");
+		}
+
+		// Check for Overlay
+		if ((lpDDSurfaceDesc2->dwFlags & (DDSD_CKDESTOVERLAY | DDSD_CKSRCOVERLAY)) || (lpDDSurfaceDesc2->ddsCaps.dwCaps & DDSCAPS_OVERLAY))
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: Overlay not Implemented.");
+		}
+
 		// Check for unsupported flags
 		DWORD UnsupportedSDFlags = (DDSD_ZBUFFERBITDEPTH | DDSD_ALPHABITDEPTH | DDSD_LPSURFACE | DDSD_MIPMAPCOUNT | DDSD_LINEARSIZE | DDSD_TEXTURESTAGE | DDSD_FVF | DDSD_SRCVBHANDLE | DDSD_DEPTH);
 		if (lpDDSurfaceDesc2->dwFlags & UnsupportedSDFlags)
@@ -373,11 +419,12 @@ HRESULT m_IDirectDrawX::CreateSurface2(LPDDSURFACEDESC2 lpDDSurfaceDesc2, LPDIRE
 		}
 
 		// Check for unsupported ddsCaps
-		DWORD UnsupportedSDddsCaps = (DDSCAPS_RESERVED1 | DDSCAPS_RESERVED2 | DDSCAPS_RESERVED3 | DDSCAPS_ALPHA | DDSCAPS_OVERLAY | DDSCAPS_TEXTURE | DDSCAPS_3DDEVICE | DDSCAPS_ZBUFFER | DDSCAPS_OWNDC |
+		DWORD UnsupportedSDddsCaps = (DDSCAPS_RESERVED1 | DDSCAPS_RESERVED2 | DDSCAPS_RESERVED3 | DDSCAPS_TEXTURE | DDSCAPS_3DDEVICE | DDSCAPS_OWNDC |
 			DDSCAPS_LIVEVIDEO | DDSCAPS_HWCODEC | DDSCAPS_MIPMAP | DDSCAPS_ALLOCONLOAD | DDSCAPS_VIDEOPORT | DDSCAPS_NONLOCALVIDMEM);
 		if ((lpDDSurfaceDesc2->ddsCaps.dwCaps & UnsupportedSDddsCaps) || lpDDSurfaceDesc2->ddsCaps.dwCaps2 || lpDDSurfaceDesc2->ddsCaps.dwVolumeDepth)
 		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error: non-supported ddsCaps! " << (lpDDSurfaceDesc2->ddsCaps.dwCaps & UnsupportedSDddsCaps) << " " << lpDDSurfaceDesc2->ddsCaps.dwCaps2 << " " << lpDDSurfaceDesc2->ddsCaps.dwVolumeDepth);
+			LOG_LIMIT(100, __FUNCTION__ << " Error: non-supported ddsCaps! " << (lpDDSurfaceDesc2->ddsCaps.dwCaps & UnsupportedSDddsCaps) << " " <<
+				lpDDSurfaceDesc2->ddsCaps.dwCaps2 << " " << lpDDSurfaceDesc2->ddsCaps.dwVolumeDepth);
 		}
 
 		DDSURFACEDESC2 Desc2;
