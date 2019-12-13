@@ -575,7 +575,7 @@ bool APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 				}
 
 				// Terminate the current process
-				Logging::Log() << "Terminating process!";
+				Logging::Log() << __FUNCTION__ << " Terminating process!";
 				TerminateProcess(OpenProcess(PROCESS_ALL_ACCESS, false, GetCurrentProcessId()), 0);
 			}
 		}

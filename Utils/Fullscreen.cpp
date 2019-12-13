@@ -24,8 +24,8 @@ namespace Utils
 	namespace Fullscreen
 	{
 		// Declare constants
-		static constexpr LONG MinWindowWidth = 320;			// Minimum window width for valid window check
-		static constexpr LONG MinWindowHeight = 240;		// Minimum window height for valid window check
+		static constexpr LONG MinWindowWidth = 4;			// Minimum window width for valid window check
+		static constexpr LONG MinWindowHeight = 4;			// Minimum window height for valid window check
 		static constexpr LONG WindowDelta = 40;				// Delta between window size and screensize for fullscreen check
 		static constexpr DWORD TerminationCount = 10;		// Minimum number of loops to check for termination
 		static constexpr DWORD TerminationWaitTime = 2000;	// Minimum time to wait for termination (LoopSleepTime * NumberOfLoops)
@@ -621,7 +621,7 @@ void Fullscreen::CheckForTermination(DWORD m_ProcessId)
 			}
 
 			// Terminate the current process
-			Logging::Log() << "Terminating process!";
+			Logging::Log() << __FUNCTION__ << " Terminating process!";
 			TerminateProcess(OpenProcess(PROCESS_ALL_ACCESS, false, GetCurrentProcessId()), 0);
 		}
 	}
