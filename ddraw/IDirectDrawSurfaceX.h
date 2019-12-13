@@ -134,17 +134,24 @@ public:
 
 		LOG_LIMIT(3, "Creating device " << __FUNCTION__ << "(" << this << ")" << " converting device from v" << DirectXVersion << " to v" << ProxyDirectXVersion);
 
+		// Initialize Critical Section for surface array
+		InitializeCriticalSection(&ddscs);
+
+		// Copy surface description before adding to vector
+		if (lpDDSurfaceDesc2)
+		{
+			surfaceDesc2.dwSize = sizeof(DDSURFACEDESC2);
+			ConvertSurfaceDesc(surfaceDesc2, *lpDDSurfaceDesc2);
+		}
+
 		// Store surface
 		if (ddrawParent)
 		{
 			ddrawParent->AddSurfaceToVector(this);
 		}
 
-		// Initialize Critical Section for surface array
-		InitializeCriticalSection(&ddscs);
-
 		// Update surface description and create backbuffers
-		InitSurfaceDesc(lpDDSurfaceDesc2, DirectXVersion);
+		InitSurfaceDesc(DirectXVersion);
 	}
 	~m_IDirectDrawSurfaceX()
 	{
@@ -304,7 +311,7 @@ public:
 	void EndWritePresent(bool isSkipScene = false);
 
 	// Attached surfaces
-	void InitSurfaceDesc(LPDDSURFACEDESC2 lpDDSurfaceDesc2, DWORD DirectXVersion);
+	void InitSurfaceDesc(DWORD DirectXVersion);
 	void AddAttachedSurfaceToMap(m_IDirectDrawSurfaceX* lpSurfaceX, bool MarkAttached = false);
 	void RemoveAttachedSurfaceFromMap(m_IDirectDrawSurfaceX* lpSurfaceX);
 	bool DoesAttachedSurfaceExist(m_IDirectDrawSurfaceX* lpSurfaceX);

@@ -455,11 +455,6 @@ HRESULT m_IDirectDrawX::CreateSurface2(LPDDSURFACEDESC2 lpDDSurfaceDesc2, LPDIRE
 
 		*lplpDDSurface = (LPDIRECTDRAWSURFACE7)p_IDirectDrawSurfaceX->GetWrapperInterfaceX(DirectXVersion);
 
-		if (Desc2.ddsCaps.dwCaps & DDSCAPS_PRIMARYSURFACE)
-		{
-			PrimarySurface = p_IDirectDrawSurfaceX;
-		}
-
 		return DD_OK;
 	}
 
@@ -1242,8 +1237,8 @@ HRESULT m_IDirectDrawX::SetCooperativeLevel(HWND hWnd, DWORD dwFlags)
 			SharedMainhDC = ::GetDC(SharedMainhWnd);
 		}
 
-		// Check if mode was changed
-		if (ChangeMode && d3d9Device)
+		// Reset if mode was changed and primary surface does not exist
+		if (ChangeMode && d3d9Device && !PrimarySurface)
 		{
 			// Release existing d3d9device
 			ReleaseD3d9Device();
@@ -2081,7 +2076,6 @@ HRESULT m_IDirectDrawX::CreateD3D9Device()
 	{
 		RECT Rect = { NULL };
 		GetClientRect(hWnd, &Rect);
-		SetWindowLong(hWnd, GWL_STYLE, GetWindowLong(hWnd, GWL_STYLE) | WS_VISIBLE);
 		if (Rect.right - Rect.left != (LONG)presParams.BackBufferWidth || Rect.bottom - Rect.top != (LONG)presParams.BackBufferHeight)
 		{
 			SetWindowPos(hWnd, HWND_TOP, 0, 0, presParams.BackBufferWidth, presParams.BackBufferHeight, SWP_ASYNCWINDOWPOS | SWP_NOSENDCHANGING | SWP_NOMOVE);
@@ -2200,6 +2194,11 @@ void m_IDirectDrawX::AddSurfaceToVector(m_IDirectDrawSurfaceX* lpSurfaceX)
 		return;
 	}
 
+	if (lpSurfaceX->IsPrimarySurface())
+	{
+		PrimarySurface = lpSurfaceX;
+	}
+
 	// Store surface
 	SurfaceVector.push_back(lpSurfaceX);
 }
@@ -2210,6 +2209,11 @@ void m_IDirectDrawX::RemoveSurfaceFromVector(m_IDirectDrawSurfaceX* lpSurfaceX)
 	if (!lpSurfaceX)
 	{
 		return;
+	}
+
+	if (lpSurfaceX == PrimarySurface)
+	{
+		PrimarySurface = nullptr;
 	}
 
 	auto it = std::find_if(SurfaceVector.begin(), SurfaceVector.end(),

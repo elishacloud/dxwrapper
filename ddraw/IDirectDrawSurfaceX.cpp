@@ -3260,17 +3260,8 @@ inline void m_IDirectDrawSurfaceX::EndWritePresent(bool isSkipScene)
 }
 
 // Update surface description and create backbuffers
-void m_IDirectDrawSurfaceX::InitSurfaceDesc(LPDDSURFACEDESC2 lpDDSurfaceDesc2, DWORD DirectXVersion)
+void m_IDirectDrawSurfaceX::InitSurfaceDesc(DWORD DirectXVersion)
 {
-	if (!lpDDSurfaceDesc2)
-	{
-		return;
-	}
-
-	// Copy surface description
-	surfaceDesc2.dwSize = sizeof(DDSURFACEDESC2);
-	ConvertSurfaceDesc(surfaceDesc2, *lpDDSurfaceDesc2);
-
 	// Update dds caps flags
 	surfaceDesc2.dwFlags |= DDSD_CAPS;
 	if (surfaceDesc2.ddsCaps.dwCaps & DDSCAPS_PRIMARYSURFACE)
@@ -3352,25 +3343,6 @@ void m_IDirectDrawSurfaceX::InitSurfaceDesc(LPDDSURFACEDESC2 lpDDSurfaceDesc2, D
 	}
 	surfaceDesc2.ddsCaps.dwCaps4 = 0x00;
 	surfaceDesc2.dwReserved = 0;
-
-	// Set ColorKey
-	if (surfaceDesc2.dwFlags & DDSD_CKDESTOVERLAY)
-	{
-		SetColorKey(DDCKEY_DESTOVERLAY | DDCKEY_COLORSPACE, &surfaceDesc2.ddckCKDestOverlay);
-	}
-	if (surfaceDesc2.dwFlags & DDSD_CKDESTBLT)
-	{
-		SetColorKey(DDCKEY_DESTBLT | DDCKEY_COLORSPACE, &surfaceDesc2.ddckCKDestBlt);
-	}
-	if (surfaceDesc2.dwFlags & DDSD_CKSRCOVERLAY)
-	{
-		SetColorKey(DDCKEY_SRCOVERLAY | DDCKEY_COLORSPACE, &surfaceDesc2.ddckCKSrcOverlay);
-	}
-	if (surfaceDesc2.dwFlags & DDSD_CKSRCBLT)
-	{
-		SetColorKey(DDCKEY_SRCBLT | DDCKEY_COLORSPACE, &surfaceDesc2.ddckCKSrcBlt);
-	}
-	surfaceDesc2.dwFlags &= ~(DDSD_CKDESTOVERLAY | DDSD_CKDESTBLT | DDSD_CKSRCOVERLAY | DDSD_CKSRCBLT);
 }
 
 // Add attached surface to map
