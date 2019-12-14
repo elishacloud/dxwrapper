@@ -737,10 +737,8 @@ void m_IDirect3DX::ResolutionHack()
 
 void m_IDirect3DX::ReleaseInterface()
 {
-	SetCriticalSection();
 	if (ddrawParent)
 	{
 		ddrawParent->ClearD3D();
 	}
-	ReleaseCriticalSection();
 }

@@ -46,6 +46,7 @@ private:
 	DDSURFACEDESC2 surfaceDesc2 = { NULL };				// Surface description for this surface
 	D3DFORMAT surfaceFormat = D3DFMT_UNKNOWN;			// Format for this surface
 	DWORD surfaceBitCount = 0;							// Bit count for this surface
+	DWORD ResetDisplayFlags = 0;						// Flags that need to be reset when display mode changes
 	CRITICAL_SECTION ddscs;								// Critical section for surfaceArray
 	std::vector<byte> surfaceArray;						// Memory used for coping from one surface to the same surface
 	std::vector<byte> surfaceBackup;					// Memory used for backing up the surfaceTexture
@@ -68,7 +69,6 @@ private:
 	DWORD LastPaletteUSN = 0;			// The USN that was used last time the palette was updated
 	bool PaletteFirstRun = true;
 	bool ClipperFirstRun = true;
-	bool RestoreDisplayFlags = false;
 	bool DoCopyRect = false;
 	RECT LastRect = { 0, 0, 0, 0 };
 
@@ -287,7 +287,7 @@ public:
 	void ReleaseD9Interface(T **ppInterface);
 	void ReleaseD9Surface(bool BackupData = true);
 	HRESULT PresentSurface(BOOL isSkipScene = false);
-	void RestoreSurfaceDisplay();
+	void ResetSurfaceDisplay();
 
 	// Swap surface addresses for Flip
 	template <typename T>

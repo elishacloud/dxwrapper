@@ -1666,10 +1666,8 @@ HRESULT m_IDirect3DDeviceX::GetInfo(DWORD dwDevInfoID, LPVOID pDevInfoStruct, DW
 
 void m_IDirect3DDeviceX::ReleaseInterface()
 {
-	SetCriticalSection();
 	if (ddrawParent)
 	{
 		ddrawParent->ClearD3DDevice();
 	}
-	ReleaseCriticalSection();
 }

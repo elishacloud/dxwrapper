@@ -2249,30 +2249,28 @@ HRESULT m_IDirectDrawSurfaceX::CheckInterface(char *FunctionName, bool CheckD3DD
 	}
 
 	// Check for device, if not then create it
-	if (CheckD3DDevice)
+	if (CheckD3DDevice && (!d3d9Device || !*d3d9Device))
 	{
-		if (!d3d9Device || !*d3d9Device)
-		{
-			ddrawParent->CreateD3D9Device();
+		// For concurrency
+		SetCriticalSection();
+		bool flag = (!d3d9Device || !*d3d9Device);
+		ReleaseCriticalSection();
 
-			if (!d3d9Device || !*d3d9Device)
-			{
-				LOG_LIMIT(100, FunctionName << " Error: d3d9 device not setup!");
-				return DDERR_GENERIC;
-			}
+		// Create d3d9 device
+		if (flag && FAILED(ddrawParent->CreateD3D9Device()))
+		{
+			LOG_LIMIT(100, FunctionName << " Error: d3d9 device not setup!");
+			return DDERR_GENERIC;
 		}
 	}
 
 	// Make sure surface exists, if not then create it
-	if (CheckD3DSurface)
+	if (CheckD3DSurface && !surfaceTexture)
 	{
-		if (!surfaceTexture)
+		if (FAILED(CreateD3d9Surface()))
 		{
-			if (FAILED(CreateD3d9Surface()))
-			{
-				LOG_LIMIT(100, FunctionName << " Error: d3d9 surface texture not setup!");
-				return DDERR_GENERIC;
-			}
+			LOG_LIMIT(100, FunctionName << " Error: d3d9 surface texture not setup!");
+			return DDERR_GENERIC;
 		}
 	}
 
@@ -2699,7 +2697,6 @@ void m_IDirectDrawSurfaceX::UpdateSurfaceDesc()
 		if (Width && Height &&
 			(surfaceDesc2.dwFlags & (DDSD_WIDTH | DDSD_HEIGHT)) != (DDSD_WIDTH | DDSD_HEIGHT))
 		{
-			RestoreDisplayFlags = true;
 			surfaceDesc2.dwFlags |= DDSD_WIDTH | DDSD_HEIGHT;
 			surfaceDesc2.dwWidth = Width;
 			surfaceDesc2.dwHeight = Height;
@@ -2841,7 +2838,10 @@ void m_IDirectDrawSurfaceX::ReleaseD9Surface(bool BackupData)
 	IsLocked = false;
 
 	// Reset display flags
-	RestoreSurfaceDisplay();
+	if (ResetDisplayFlags)
+	{
+		surfaceDesc2.dwFlags &= ~ResetDisplayFlags;
+	}
 }
 
 // Present surface
@@ -2964,12 +2964,11 @@ HRESULT m_IDirectDrawSurfaceX::PresentSurface(BOOL isSkipScene)
 }
 
 // Reset primary surface display settings
-void m_IDirectDrawSurfaceX::RestoreSurfaceDisplay()
+void m_IDirectDrawSurfaceX::ResetSurfaceDisplay()
 {
-	// Reset display flags
-	if (RestoreDisplayFlags)
+	if (ResetDisplayFlags)
 	{
-		surfaceDesc2.dwFlags &= ~(DDSD_WIDTH | DDSD_HEIGHT | DDSD_REFRESHRATE | DDSD_PIXELFORMAT | DDSD_PITCH);
+		ReleaseD9Surface(true);
 	}
 }
 
@@ -3220,8 +3219,7 @@ HRESULT m_IDirectDrawSurfaceX::LockEmulatedSurface(D3DLOCKED_RECT* pLockedRect, 
 	}
 
 	pLockedRect->Pitch = emu->surfacePitch;
-	DWORD Delta = (lpDestRect && (lpDestRect->top || lpDestRect->left)) ? ((lpDestRect->top * pLockedRect->Pitch) + (lpDestRect->left * (surfaceBitCount / 8))) : 0;
-	pLockedRect->pBits = (void*)((DWORD)emu->surfacepBits + Delta);
+	pLockedRect->pBits = (lpDestRect) ? (void*)((DWORD)emu->surfacepBits + ((lpDestRect->top * pLockedRect->Pitch) + (lpDestRect->left * (surfaceBitCount / 8)))) : emu->surfacepBits;
 
 	return DD_OK;
 }
@@ -3343,6 +3341,10 @@ void m_IDirectDrawSurfaceX::InitSurfaceDesc(DWORD DirectXVersion)
 	}
 	surfaceDesc2.ddsCaps.dwCaps4 = 0x00;
 	surfaceDesc2.dwReserved = 0;
+
+	// Store flags that need to be reset when display mode changes
+	ResetDisplayFlags = (~surfaceDesc2.dwFlags & (DDSD_WIDTH | DDSD_HEIGHT | DDSD_REFRESHRATE | DDSD_PIXELFORMAT)) |
+		(~surfaceDesc2.dwFlags & ((DDSD_WIDTH | DDSD_HEIGHT | DDSD_PIXELFORMAT)) ? DDSD_PITCH : 0);
 }
 
 // Add attached surface to map
@@ -4000,10 +4002,8 @@ void m_IDirectDrawSurfaceX::CleanupSharedEmulatedMemory()
 
 void m_IDirectDrawSurfaceX::ReleaseInterface()
 {
-	SetCriticalSection();
 	if (ddrawParent)
 	{
 		ddrawParent->RemoveSurfaceFromVector(this);
 	}
-	ReleaseCriticalSection();
 }

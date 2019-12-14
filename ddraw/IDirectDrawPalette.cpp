@@ -195,10 +195,8 @@ HRESULT m_IDirectDrawPalette::SetEntries(DWORD dwFlags, DWORD dwStartingEntry, D
 
 void m_IDirectDrawPalette::ReleaseInterface()
 {
-	SetCriticalSection();
 	if (ddrawParent)
 	{
 		ddrawParent->RemovePaletteFromVector(this);
 	}
-	ReleaseCriticalSection();
 }
