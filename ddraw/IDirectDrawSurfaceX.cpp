@@ -2697,6 +2697,7 @@ void m_IDirectDrawSurfaceX::UpdateSurfaceDesc()
 		if (Width && Height &&
 			(surfaceDesc2.dwFlags & (DDSD_WIDTH | DDSD_HEIGHT)) != (DDSD_WIDTH | DDSD_HEIGHT))
 		{
+			ResetDisplayFlags |= DDSD_WIDTH | DDSD_HEIGHT | DDSD_PITCH;
 			surfaceDesc2.dwFlags |= DDSD_WIDTH | DDSD_HEIGHT;
 			surfaceDesc2.dwWidth = Width;
 			surfaceDesc2.dwHeight = Height;
@@ -2704,23 +2705,31 @@ void m_IDirectDrawSurfaceX::UpdateSurfaceDesc()
 		// Set Refresh Rate
 		if (RefreshRate && !(surfaceDesc2.dwFlags & DDSD_REFRESHRATE))
 		{
+			ResetDisplayFlags |= DDSD_REFRESHRATE;
 			surfaceDesc2.dwFlags |= DDSD_REFRESHRATE;
 			surfaceDesc2.dwRefreshRate = RefreshRate;
 		}
 		// Set PixelFormat
 		if (BPP && !(surfaceDesc2.dwFlags & DDSD_PIXELFORMAT))
 		{
+			ResetDisplayFlags |= DDSD_PIXELFORMAT | DDSD_PITCH;
 			surfaceDesc2.dwFlags |= DDSD_PIXELFORMAT;
 			surfaceDesc2.ddpfPixelFormat.dwSize = sizeof(DDPIXELFORMAT);
 			SetDisplayFormat(BPP, surfaceDesc2.ddpfPixelFormat);
 		}
 	}
 	// Set lPitch
-	if (!(surfaceDesc2.dwFlags & DDSD_PITCH))
+	if ((surfaceDesc2.dwFlags & (DDSD_WIDTH | DDSD_HEIGHT | DDSD_PIXELFORMAT)) == (DDSD_WIDTH | DDSD_HEIGHT | DDSD_PIXELFORMAT))
 	{
-		surfaceDesc2.dwFlags |= DDSD_PITCH;
-		surfaceDesc2.lPitch = surfaceDesc2.dwWidth * (GetBitCount(surfaceDesc2.ddpfPixelFormat) / 8);
-		surfaceDesc2.lPitch = ComputePitch(surfaceDesc2.dwWidth, GetBitCount(surfaceDesc2.ddpfPixelFormat));
+		if (!(surfaceDesc2.dwFlags & DDSD_PITCH))
+		{
+			surfaceDesc2.dwFlags |= DDSD_PITCH;
+			surfaceDesc2.lPitch = ComputePitch(surfaceDesc2.dwWidth, GetBitCount(surfaceDesc2.ddpfPixelFormat));
+		}
+	}
+	else
+	{
+		surfaceDesc2.dwFlags &= ~DDSD_PITCH;
 	}
 }
 
@@ -3341,10 +3350,6 @@ void m_IDirectDrawSurfaceX::InitSurfaceDesc(DWORD DirectXVersion)
 	}
 	surfaceDesc2.ddsCaps.dwCaps4 = 0x00;
 	surfaceDesc2.dwReserved = 0;
-
-	// Store flags that need to be reset when display mode changes
-	ResetDisplayFlags = (~surfaceDesc2.dwFlags & (DDSD_WIDTH | DDSD_HEIGHT | DDSD_REFRESHRATE | DDSD_PIXELFORMAT)) |
-		(~surfaceDesc2.dwFlags & ((DDSD_WIDTH | DDSD_HEIGHT | DDSD_PIXELFORMAT)) ? DDSD_PITCH : 0);
 }
 
 // Add attached surface to map
