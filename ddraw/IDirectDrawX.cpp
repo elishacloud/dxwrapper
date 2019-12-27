@@ -2151,17 +2151,6 @@ HRESULT m_IDirectDrawX::CreateD3D9Device()
 			presParams.FullScreen_RefreshRateInHz = set_d3ddispmode.RefreshRate;
 		}
 
-		// Set window size
-		if (IsWindow(hWnd) && !NoWindowChanges && !Config.DdrawWriteToGDI)
-		{
-			RECT Rect = { NULL };
-			GetClientRect(hWnd, &Rect);
-			if (Rect.right - Rect.left != (LONG)presParams.BackBufferWidth || Rect.bottom - Rect.top != (LONG)presParams.BackBufferHeight)
-			{
-				SetWindowPos(hWnd, HWND_TOP, 0, 0, presParams.BackBufferWidth, presParams.BackBufferHeight, SWP_ASYNCWINDOWPOS | SWP_NOSENDCHANGING | SWP_NOMOVE);
-			}
-		}
-
 		// Set behavior flags
 		DWORD BehaviorFlags = ((d3dcaps.VertexProcessingCaps) ? D3DCREATE_HARDWARE_VERTEXPROCESSING : D3DCREATE_SOFTWARE_VERTEXPROCESSING) | D3DCREATE_MULTITHREADED |
 			((MultiThreaded) ? D3DCREATE_MULTITHREADED : 0) |

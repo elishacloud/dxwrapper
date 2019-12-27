@@ -16,6 +16,10 @@
 
 #include "d3d9.h"
 
+bool InResize = false;
+HWND WndProcHwnd = nullptr;
+WNDPROC OriginalWndProc = nullptr;
+
 HWND DeviceWindow = nullptr;
 LONG BufferWidth = 0, BufferHeight = 0;
 
@@ -23,6 +27,8 @@ LONG BufferWidth = 0, BufferHeight = 0;
 bool DeviceMultiSampleFlag = false;
 D3DMULTISAMPLE_TYPE DeviceMultiSampleType = D3DMULTISAMPLE_NONE;
 DWORD DeviceMultiSampleQuality = 0;
+
+LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 
 HRESULT m_IDirect3D9Ex::QueryInterface(REFIID riid, void** ppvObj)
 {
@@ -351,6 +357,10 @@ void UpdatePresentParameter(D3DPRESENT_PARAMETERS* pPresentationParameters, HWND
 		pPresentationParameters->PresentationInterval = D3DPRESENT_INTERVAL_ONE;
 	}
 
+	LONG LastBufferWidth = BufferWidth;
+	LONG LastBufferHeight = BufferHeight;
+	HWND LastDeviceWindow = DeviceWindow;
+
 	// Set window size if window mode is enabled
 	if (Config.EnableWindowMode && (IsWindow(pPresentationParameters->hDeviceWindow) || IsWindow(DeviceWindow) || IsWindow(hFocusWindow)))
 	{
@@ -358,13 +368,10 @@ void UpdatePresentParameter(D3DPRESENT_PARAMETERS* pPresentationParameters, HWND
 		pPresentationParameters->FullScreen_RefreshRateInHz = 0;
 		if (SetWindow)
 		{
-			LONG LastBufferWidth = BufferWidth;
-			LONG LastBufferHeight = BufferHeight;
-			HWND LastDeviceWindow = DeviceWindow;
 			BufferWidth = (pPresentationParameters->BackBufferWidth) ? pPresentationParameters->BackBufferWidth : BufferWidth;
 			BufferHeight = (pPresentationParameters->BackBufferHeight) ? pPresentationParameters->BackBufferHeight : BufferHeight;
-			DeviceWindow = (IsWindow(hFocusWindow)) ? hFocusWindow : 
-				(IsWindow(pPresentationParameters->hDeviceWindow)) ? pPresentationParameters->hDeviceWindow : 
+			DeviceWindow = (IsWindow(hFocusWindow)) ? hFocusWindow :
+				(IsWindow(pPresentationParameters->hDeviceWindow)) ? pPresentationParameters->hDeviceWindow :
 				DeviceWindow;
 			if (!BufferWidth || !BufferHeight)
 			{
@@ -385,11 +392,47 @@ void UpdatePresentParameter(D3DPRESENT_PARAMETERS* pPresentationParameters, HWND
 					ChangeDisplaySettings(&newSettings, CDS_FULLSCREEN);
 				}
 			}
-			if (LastBufferWidth != BufferWidth || LastBufferHeight != BufferHeight || LastDeviceWindow != DeviceWindow)
-			{
-				AdjustWindow(DeviceWindow, BufferWidth, BufferHeight);
-			}
 		}
+	}
+
+	// Set WndProc
+	if (IsWindow(DeviceWindow) && DeviceWindow != WndProcHwnd)
+	{
+		// Restore old wndproc
+		if (IsWindow(WndProcHwnd))
+		{
+			SetWindowLong(WndProcHwnd, GWL_WNDPROC, (LONG)OriginalWndProc);
+		}
+
+		// Install new wndproc
+		WndProcHwnd = DeviceWindow;
+		OriginalWndProc = (WNDPROC)GetWindowLong(DeviceWindow, GWL_WNDPROC);
+		if (SetWindowLong(DeviceWindow, GWL_WNDPROC, (LONG)WndProc) == 0)
+		{
+			Logging::LogDebug() << __FUNCTION__ << " Failed to overload WNDPROC";
+		}
+	}
+
+	// Set window size
+	if (SetWindow && IsWindow(DeviceWindow))
+	{
+		RECT Rect = { NULL };
+		GetClientRect(DeviceWindow, &Rect);
+		if (Rect.right - Rect.left != BufferWidth || Rect.bottom - Rect.top != BufferHeight)
+		{
+			InResize = true;
+			SetWindowPos(DeviceWindow, HWND_TOP, 0, 0, BufferWidth, BufferHeight, SWP_NOSENDCHANGING | SWP_NOMOVE);
+			InResize = false;
+		}
+	}
+
+	// Adjust window size
+	if (SetWindow && Config.EnableWindowMode && (IsWindow(pPresentationParameters->hDeviceWindow) || IsWindow(DeviceWindow) || IsWindow(hFocusWindow)) &&
+		(LastBufferWidth != BufferWidth || LastBufferHeight != BufferHeight || LastDeviceWindow != DeviceWindow))
+	{
+		InResize = true;
+		AdjustWindow(DeviceWindow, BufferWidth, BufferHeight);
+		InResize = false;
 	}
 }
 
@@ -442,10 +485,10 @@ void AdjustWindow(HWND MainhWnd, LONG displayWidth, LONG displayHeight)
 
 	// Set window border
 	SetWindowLong(MainhWnd, GWL_STYLE, lStyle);
-	SetWindowPos(MainhWnd, HWND_TOP, 0, 0, 0, 0, SWP_ASYNCWINDOWPOS | SWP_NOSENDCHANGING | SWP_FRAMECHANGED);
+	SetWindowPos(MainhWnd, HWND_TOP, 0, 0, 0, 0, SWP_NOSENDCHANGING | SWP_FRAMECHANGED);
 
 	// Set window size
-	SetWindowPos(MainhWnd, HWND_TOP, 0, 0, displayWidth, displayHeight, SWP_ASYNCWINDOWPOS | SWP_NOSENDCHANGING | SWP_NOMOVE);
+	SetWindowPos(MainhWnd, HWND_TOP, 0, 0, displayWidth, displayHeight, SWP_NOSENDCHANGING | SWP_NOMOVE);
 
 	// Adjust for window decoration to ensure client area matches display size
 	RECT tempRect;
@@ -461,5 +504,27 @@ void AdjustWindow(HWND MainhWnd, LONG displayWidth, LONG displayHeight)
 		xLoc = (screenWidth - newDisplayWidth) / 2;
 		yLoc = (screenHeight - newDisplayHeight) / 2;
 	}
-	SetWindowPos(MainhWnd, HWND_TOP, xLoc, yLoc, newDisplayWidth, newDisplayHeight, SWP_ASYNCWINDOWPOS | SWP_NOSENDCHANGING);
+	SetWindowPos(MainhWnd, HWND_TOP, xLoc, yLoc, newDisplayWidth, newDisplayHeight, SWP_NOSENDCHANGING);
+}
+
+LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
+{
+	Logging::LogDebug() << __FUNCTION__ << " " << uMsg;
+
+	switch (uMsg)
+	{
+	case WM_STYLECHANGING:
+	case WM_STYLECHANGED:
+	case WM_NCCALCSIZE:
+	case WM_ERASEBKGND:
+	case WM_WINDOWPOSCHANGED:
+	case WM_MOVE:
+	case WM_SIZE:
+		if (InResize)
+		{
+			return 0;
+		}
+	}
+
+	return OriginalWndProc(hWnd, uMsg, wParam, lParam);
 }

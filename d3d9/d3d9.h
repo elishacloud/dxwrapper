@@ -49,7 +49,10 @@ namespace D3d9Wrapper
 	void WINAPI genericQueryInterface(REFIID riid, LPVOID *ppvObj, m_IDirect3DDevice9Ex* m_pDeviceEx);
 }
 
-extern HWND DeviceWindow;
+typedef LRESULT(CALLBACK *WNDPROC)(HWND, UINT, WPARAM, LPARAM);
+
+extern WNDPROC OriginalWndProc;
+extern HWND WndProcHwnd, DeviceWindow;
 extern LONG BufferWidth, BufferHeight;
 
 // For AntiAliasing
