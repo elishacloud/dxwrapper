@@ -511,17 +511,19 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
 	Logging::LogDebug() << __FUNCTION__ << " " << uMsg;
 
-	switch (uMsg)
+	// Filter events during window resize
+	if (InResize)
 	{
-	case WM_STYLECHANGING:
-	case WM_STYLECHANGED:
-	case WM_NCCALCSIZE:
-	case WM_ERASEBKGND:
-	case WM_WINDOWPOSCHANGED:
-	case WM_MOVE:
-	case WM_SIZE:
-		if (InResize)
+		switch (uMsg)
 		{
+		case WM_STYLECHANGING:
+		case WM_STYLECHANGED:
+		case WM_NCCALCSIZE:
+		case WM_NCPAINT:
+		case WM_ERASEBKGND:
+		case WM_WINDOWPOSCHANGED:
+		case WM_MOVE:
+		case WM_SIZE:
 			return 0;
 		}
 	}
