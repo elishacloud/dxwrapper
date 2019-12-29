@@ -38,11 +38,17 @@ public:
 		LOG_LIMIT(3, __FUNCTION__ << "(" << this << ")" << " deleting device!");
 
 		// Restore old wndproc
-		if (IsWindow(WndProcHwnd))
+		if (OriginalWndProc && IsWindow(WndProcHwnd))
 		{
-			SetWindowLong(WndProcHwnd, GWL_WNDPROC, (LONG)OriginalWndProc);
-			WndProcHwnd = nullptr;
-			OriginalWndProc = nullptr;
+			// Get current WndProc
+			WNDPROC CurrentWndProc = (WNDPROC)GetWindowLong(WndProcHwnd, GWL_WNDPROC);
+
+			// Check WndProc and restore
+			if (CurrentWndProc == WndProc && SetWindowLong(WndProcHwnd, GWL_WNDPROC, (LONG)OriginalWndProc))
+			{
+				WndProcHwnd = nullptr;
+				OriginalWndProc = nullptr;
+			}
 		}
 
 		delete ProxyAddressLookupTable;

@@ -1281,10 +1281,18 @@ HRESULT m_IDirectDrawX::SetCooperativeLevel(HWND hWnd, DWORD dwFlags)
 		LONG lStyle = GetWindowLong(hWnd, GWL_STYLE);
 		if (lStyle & WS_CAPTION)
 		{
-			Logging::LogDebug() << __FUNCTION__ << " Removing window WS_CAPTION!";
+			LOG_LIMIT(3, __FUNCTION__ << " Removing window WS_CAPTION!");
 
+			// Overload WndProc
+			Utils::SetWndProcFilter(hWnd);
+
+			// Removing WS_CAPTION
 			SetWindowLong(hWnd, GWL_STYLE, lStyle & ~WS_CAPTION);
-			SetWindowPos(hWnd, HWND_TOP, 0, 0, 0, 0, SWP_ASYNCWINDOWPOS | SWP_NOSENDCHANGING | SWP_FRAMECHANGED);
+			SetWindowPos(hWnd, HWND_TOP, 0, 0, 0, 0, SWP_FRAMECHANGED | SWP_NOSENDCHANGING | SWP_NOZORDER | SWP_NOOWNERZORDER | SWP_ASYNCWINDOWPOS);
+			Sleep(0);	// Allow WndProcs to complete before unhooking
+
+			// Resetting WndProc
+			Utils::RestoreWndProcFilter(hWnd);
 		}
 	}
 

@@ -90,6 +90,7 @@ namespace Utils
 	std::vector<type_dll> custom_dll;		// Used for custom dll's and asi plugins
 	LPTOP_LEVEL_EXCEPTION_FILTER pOriginalSetUnhandledExceptionFilter = SetUnhandledExceptionFilter((LPTOP_LEVEL_EXCEPTION_FILTER)EXCEPTION_CONTINUE_EXECUTION);
 	PFN_SetUnhandledExceptionFilter pSetUnhandledExceptionFilter = reinterpret_cast<PFN_SetUnhandledExceptionFilter>(SetUnhandledExceptionFilter);
+	WNDPROC OriginalWndProc = nullptr;
 
 	// Function declarations
 	void InitializeASI(HMODULE hModule);
@@ -97,6 +98,7 @@ namespace Utils
 	LONG WINAPI myUnhandledExceptionFilter(LPEXCEPTION_POINTERS);
 	LPTOP_LEVEL_EXCEPTION_FILTER WINAPI extSetUnhandledExceptionFilter(LPTOP_LEVEL_EXCEPTION_FILTER);
 	void *memmem(const void *l, size_t l_len, const void *s, size_t s_len);
+	LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 }
 
 // Execute a specified string
@@ -816,4 +818,161 @@ void Utils::DisableGameUX()
 	HMODULE h_kernel32 = GetModuleHandle("kernel32");
 	InterlockedExchangePointer((PVOID*)&p_CreateProcessA, Hook::HotPatch(Hook::GetProcAddress(h_kernel32, "CreateProcessA"), "CreateProcessA", *CreateProcessAHandler));
 	InterlockedExchangePointer((PVOID*)&p_CreateProcessW, Hook::HotPatch(Hook::GetProcAddress(h_kernel32, "CreateProcessW"), "CreateProcessW", *CreateProcessWHandler));
+}
+
+bool Utils::SetWndProcFilter(HWND hWnd)
+{
+	// Check window handle
+	if (!IsWindow(hWnd))
+	{
+		Logging::Log() << __FUNCTION__ << " Error: hWnd invalid!";
+		return false;
+	}
+
+	// Check if WndProc is already overloaded
+	if (OriginalWndProc)
+	{
+		Logging::Log() << __FUNCTION__ << " Error: WndProc already overloaded!";
+		return false;
+	}
+
+	LOG_LIMIT(3, __FUNCTION__ << " Setting new WndProc " << hWnd);
+
+	// Store existing WndProc
+	OriginalWndProc = (WNDPROC)GetWindowLong(hWnd, GWL_WNDPROC);
+
+	// Set new WndProc
+	if (!OriginalWndProc || !SetWindowLong(hWnd, GWL_WNDPROC, (LONG)WndProc))
+	{
+		Logging::Log() << __FUNCTION__ << " Failed to overload WndProc!";
+		OriginalWndProc = nullptr;
+		return false;
+	}
+
+	return true;
+}
+
+bool Utils::RestoreWndProcFilter(HWND hWnd)
+{
+	// Check window handle
+	if (!IsWindow(hWnd))
+	{
+		Logging::Log() << __FUNCTION__ << " Error: hWnd invalid!";
+		return false;
+	}
+
+	// Check if WndProc is overloaded
+	if (!OriginalWndProc)
+	{
+		Logging::Log() << __FUNCTION__ << " Error: WndProc is not yet overloaded!";
+		return false;
+	}
+
+	// Get current WndProc
+	WNDPROC CurrentWndProc = (WNDPROC)GetWindowLong(hWnd, GWL_WNDPROC);
+
+	// Check if WndProc is overloaded
+	if (CurrentWndProc != WndProc)
+	{
+		Logging::Log() << __FUNCTION__ << " Error: WndProc does not match!";
+		return false;
+	}
+
+	// Resetting WndProc
+	if (!SetWindowLong(hWnd, GWL_WNDPROC, (LONG)OriginalWndProc))
+	{
+		Logging::Log() << __FUNCTION__ << " Failed to reset WndProc";
+		return false;
+	}
+
+	OriginalWndProc = nullptr;
+	return true;
+}
+
+bool Utils::IsWindowMessageFiltered(UINT uMsg, LRESULT *lpReturn)
+{
+	if (!lpReturn)
+	{
+		return false;
+	}
+
+	switch (uMsg)
+	{
+	case WM_ACTIVATEAPP:
+	case WM_CANCELMODE:
+	case WM_CHILDACTIVATE:
+	case WM_CLOSE:
+	case WM_COMPACTING:
+	case WM_CREATE:
+	case WM_DESTROY:
+	case WM_DPICHANGED:
+	case WM_ENABLE:
+	case WM_ENTERSIZEMOVE:
+	case WM_EXITSIZEMOVE:
+	case WM_GETICON:
+	case WM_GETMINMAXINFO:
+	case WM_INPUTLANGCHANGE:
+	case WM_INPUTLANGCHANGEREQUEST:
+	case WM_MOVE:
+	case WM_MOVING:
+	case WM_NCACTIVATE:
+	case WM_NCCALCSIZE:
+	case WM_NCCREATE:
+	case WM_NCDESTROY:
+	case WM_NULL:
+	case WM_QUERYDRAGICON:
+	case WM_QUERYOPEN:
+	case WM_QUIT:
+	case WM_SHOWWINDOW:
+	case WM_SIZE:
+	case WM_SIZING:
+	case WM_STYLECHANGED:
+	case WM_STYLECHANGING:
+	case WM_THEMECHANGED:
+	case WM_USERCHANGED:
+	case WM_WINDOWPOSCHANGED:
+	case WM_WINDOWPOSCHANGING:
+	case WM_DISPLAYCHANGE:
+	case WM_NCPAINT:
+	case WM_PAINT:
+	case WM_PRINT:
+	case WM_PRINTCLIENT:
+	case WM_SETREDRAW:
+	case WM_SYNCPAINT:
+	case MN_GETHMENU:
+	case WM_GETFONT:
+	case WM_GETTEXT:
+	case WM_GETTEXTLENGTH:
+	case WM_SETFONT:
+	case WM_SETICON:
+	case WM_SETTEXT:
+		*lpReturn = 0;
+		return true;
+	case WM_ERASEBKGND:
+		*lpReturn = 1;
+		return true;
+	}
+
+	return false;
+}
+
+LRESULT CALLBACK Utils::WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
+{
+	Logging::LogDebug() << __FUNCTION__ << " " << Logging::hex(uMsg);
+
+	// Filter window message events
+	LRESULT ret = 0;
+	if (Utils::IsWindowMessageFiltered(uMsg, &ret))
+	{
+		SetLastError(0);
+		return ret;
+	}
+
+	if (!OriginalWndProc)
+	{
+		LOG_LIMIT(100, __FUNCTION__ << " Error: no WndProc specified " << Logging::hex(uMsg));
+		return NULL;
+	}
+
+	return OriginalWndProc(hWnd, uMsg, wParam, lParam);
 }

@@ -32,6 +32,9 @@ namespace Utils
 	DWORD GetBitCount(HWND hWnd);
 	DWORD GetWindowHeight(HWND hWnd);
 	void DisableGameUX();
+	bool SetWndProcFilter(HWND hWnd);
+	bool RestoreWndProcFilter(HWND hWnd);
+	bool IsWindowMessageFiltered(UINT uMsg, LRESULT *lpReturn);
 
 	namespace WriteMemory
 	{
