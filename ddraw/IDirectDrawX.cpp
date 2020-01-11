@@ -365,17 +365,6 @@ HRESULT m_IDirectDrawX::CreateSurface2(LPDDSURFACEDESC2 lpDDSurfaceDesc2, LPDIRE
 			return DDERR_INVALIDPARAMS;
 		}
 
-		// Check for FourCC
-		if ((lpDDSurfaceDesc2->dwFlags & DDSD_PIXELFORMAT) && (lpDDSurfaceDesc2->ddpfPixelFormat.dwFlags & DDPF_FOURCC))
-		{
-			unsigned char ch0 = lpDDSurfaceDesc2->ddpfPixelFormat.dwFourCC & 0xFF;
-			unsigned char ch1 = (lpDDSurfaceDesc2->ddpfPixelFormat.dwFourCC >> 8) & 0xFF;
-			unsigned char ch2 = (lpDDSurfaceDesc2->ddpfPixelFormat.dwFourCC >> 16) & 0xFF;
-			unsigned char ch3 = (lpDDSurfaceDesc2->ddpfPixelFormat.dwFourCC >> 24) & 0xFF;
-			LOG_LIMIT(100, __FUNCTION__ << " Error: FourCC format not Implemented. Code = MAKEFOURCC('" << (char)ch0 << "', '" << (char)ch1 << "', '" << (char)ch2 << "', '" << (char)ch3 << "')");
-			return DDERR_INVALIDPIXELFORMAT;
-		}
-
 		// Check for other unsupported pixel formats
 		if ((lpDDSurfaceDesc2->dwFlags & DDSD_PIXELFORMAT) && (lpDDSurfaceDesc2->ddpfPixelFormat.dwFlags & 
 			(DDPF_BUMPDUDV | DDPF_BUMPLUMINANCE | DDPF_COMPRESSED | DDPF_LUMINANCE | DDPF_PALETTEINDEXED1 | DDPF_PALETTEINDEXED2 | DDPF_PALETTEINDEXED4)))
@@ -939,8 +928,22 @@ HRESULT m_IDirectDrawX::GetFourCCCodes(LPDWORD lpNumCodes, LPDWORD lpCodes)
 
 	if (Config.Dd7to9)
 	{
-		LOG_LIMIT(100, __FUNCTION__ << " Not Implemented");
-		return DDERR_UNSUPPORTED;
+		if (!lpNumCodes)
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error! Invalid parameters.");
+			return DDERR_INVALIDPARAMS;
+		}
+
+		// Cpoy data to array
+		if (lpCodes)
+		{
+			DWORD SizeToCopy = min(NumFourCCs, *lpNumCodes);
+			memcpy(lpCodes, FourCCTypes, SizeToCopy * sizeof(DWORD));
+		}
+
+		// Return value
+		*lpNumCodes = NumFourCCs;
+		return DD_OK;
 	}
 
 	return ProxyInterface->GetFourCCCodes(lpNumCodes, lpCodes);
