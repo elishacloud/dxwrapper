@@ -393,13 +393,6 @@ void UpdatePresentParameter(D3DPRESENT_PARAMETERS* pPresentationParameters, HWND
 	{
 		LOG_LIMIT(3, __FUNCTION__ << " Setting WndProc: " << DeviceWindow);
 
-		// Restore old wndproc
-		if (OriginalWndProc && IsWindow(WndProcHwnd) && SetWindowLong(WndProcHwnd, GWL_WNDPROC, (LONG)OriginalWndProc))
-		{
-			WndProcHwnd = nullptr;
-			OriginalWndProc = nullptr;
-		}
-
 		// Install new wndproc
 		if (!IsWindow(WndProcHwnd))
 		{
@@ -453,6 +446,13 @@ void UpdatePresentParameter(D3DPRESENT_PARAMETERS* pPresentationParameters, HWND
 		AdjustWindow(DeviceWindow, BufferWidth, BufferHeight);
 		Sleep(0);	// Allow WndProcs to complete if needed
 		InResize = false;
+	}
+
+	// Restore old wndproc
+	if (OriginalWndProc && IsWindow(WndProcHwnd) && SetWindowLong(WndProcHwnd, GWL_WNDPROC, (LONG)OriginalWndProc))
+	{
+		WndProcHwnd = nullptr;
+		OriginalWndProc = nullptr;
 	}
 }
 
