@@ -85,7 +85,7 @@ DxWrapper can wrap the following dlls:
 All my work here is free and can be freely used.  For more details on how you can use this module see the [license](#license) section below.  However, if you would like to donate then check out my [donations page](https://PayPal.me/elishacloud).  All donations are for work already completed!  Please don't donate for future work or to try and increase my development speed.  Thanks!
 
 ### License
-Copyright (C) 2019 Elisha Riedlinger
+Copyright (C) 2020 Elisha Riedlinger
 
 This software is provided 'as-is', without any express or implied warranty. In no event will the author(s) be held liable for any damages arising from the use of this software. Permission is granted to anyone to use this software for any purpose, including commercial applications, and to alter it and redistribute it freely, subject to the following restrictions:
 
