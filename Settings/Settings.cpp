@@ -585,7 +585,7 @@ void CONFIG::Init()
 	DDrawCompat = (DDrawCompat || DDrawCompat20 || DDrawCompat21 || DDrawCompatExperimental);
 	isDdrawWrapperEnabled = (EnableDdrawWrapper || ConvertToDirectDraw7 || ConvertToDirect3D7 || DdrawResolutionHack);
 	EnableWindowMode = (FullscreenWindowMode) ? true : EnableWindowMode;
-	isD3d9WrapperEnabled = (AntiAliasing || CacheClipPlane || EnableVSync || EnableWindowMode);
+	isD3d9WrapperEnabled = (AnisotropicFiltering || AntiAliasing || CacheClipPlane || EnableVSync || ForceVsyncMode || EnableWindowMode);
 
 	// Enable clip plane caching by default
 	if (CacheClipPlaneNotSet)

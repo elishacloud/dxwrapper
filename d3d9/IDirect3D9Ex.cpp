@@ -354,9 +354,13 @@ void UpdatePresentParameter(D3DPRESENT_PARAMETERS* pPresentationParameters, HWND
 	}
 
 	// Set vsync
-	if (Config.EnableVSync && pPresentationParameters->PresentationInterval == D3DPRESENT_INTERVAL_IMMEDIATE)
+	if (Config.EnableVSync && (Config.ForceVsyncMode || pPresentationParameters->PresentationInterval == D3DPRESENT_INTERVAL_IMMEDIATE))
 	{
 		pPresentationParameters->PresentationInterval = D3DPRESENT_INTERVAL_ONE;
+	}
+	else if (Config.ForceVsyncMode)
+	{
+		pPresentationParameters->PresentationInterval = D3DPRESENT_INTERVAL_IMMEDIATE;
 	}
 
 	// Set windowed mode if enabled

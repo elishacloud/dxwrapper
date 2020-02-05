@@ -391,6 +391,12 @@ HRESULT m_IDirect3DDevice9Ex::SetRenderState(D3DRENDERSTATETYPE State, DWORD Val
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
+	// Set for Multisample
+	if (State == D3DRS_MULTISAMPLEANTIALIAS || State == D3DRS_ANTIALIASEDLINEENABLE)
+	{
+		Value = TRUE;
+	}
+
 	HRESULT hr = ProxyInterface->SetRenderState(State, Value);
 
 	// CacheClipPlane
@@ -730,6 +736,28 @@ HRESULT m_IDirect3DDevice9Ex::DrawPrimitiveUP(D3DPRIMITIVETYPE PrimitiveType, UI
 HRESULT m_IDirect3DDevice9Ex::BeginScene()
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
+
+	// Set for Multisample
+	if (DeviceMultiSampleFlag)
+	{
+		ProxyInterface->SetRenderState(D3DRS_MULTISAMPLEANTIALIAS, TRUE);
+		ProxyInterface->SetRenderState(D3DRS_ANTIALIASEDLINEENABLE, TRUE);
+	}
+
+	// Enable Anisotropic Filtering
+	if (Config.AnisotropicFiltering)
+	{
+		if (!MaxAnisotropySet)
+		{
+			MaxAnisotropySet = true;
+			D3DCAPS9 Caps;
+			ZeroMemory(&Caps, sizeof(D3DCAPS9));
+			if (SUCCEEDED(ProxyInterface->GetDeviceCaps(&Caps)))
+			{
+				MaxAnisotropy = (Config.AnisotropicFiltering == 1) ? Caps.MaxAnisotropy : min((DWORD)Config.AnisotropicFiltering, Caps.MaxAnisotropy);
+			}
+		}
+	}
 
 	return ProxyInterface->BeginScene();
 }
@@ -1254,6 +1282,22 @@ HRESULT m_IDirect3DDevice9Ex::GetSamplerState(THIS_ DWORD Sampler, D3DSAMPLERSTA
 HRESULT m_IDirect3DDevice9Ex::SetSamplerState(THIS_ DWORD Sampler, D3DSAMPLERSTATETYPE Type, DWORD Value)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
+
+	// Enable Anisotropic Filtering
+	if (MaxAnisotropy)
+	{
+		if (Type == D3DSAMP_MAXANISOTROPY)
+		{
+			if (SUCCEEDED(ProxyInterface->SetSamplerState(Sampler, D3DSAMP_MAXANISOTROPY, MaxAnisotropy)))
+			{
+				return D3D_OK;
+			}
+		}
+		else if (Type == D3DSAMP_MAGFILTER || Type == D3DSAMP_MINFILTER)
+		{
+			ProxyInterface->SetSamplerState(Sampler, D3DSAMP_MAXANISOTROPY, MaxAnisotropy);
+		}
+	}
 
 	return ProxyInterface->SetSamplerState(Sampler, Type, Value);
 }

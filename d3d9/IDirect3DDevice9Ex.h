@@ -7,6 +7,10 @@ private:
 	m_IDirect3D9Ex* m_pD3DEx;
 	GUID WrapperID = IID_IUnknown;
 
+	// Anisotropic Filtering
+	bool MaxAnisotropySet = false;
+	DWORD MaxAnisotropy = 0;
+
 	// For CacheClipPlane
 	bool isClipPlaneSet = false;
 	DWORD m_clipPlaneRenderState = 0;

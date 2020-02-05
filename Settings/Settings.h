@@ -7,6 +7,7 @@
 #include "ReadParse.h"
 
 #define VISIT_CONFIG_SETTINGS(visit) \
+	visit(AnisotropicFiltering) \
 	visit(AntiAliasing) \
 	visit(AutoFrameSkip) \
 	visit(Dd7to9) \
@@ -53,6 +54,7 @@
 	visit(ForceSpeakerConfig) \
 	visit(ForceTermination) \
 	visit(ForceVoiceManagement) \
+	visit(ForceVsyncMode) \
 	visit(ForceWindowResize) \
 	visit(FullScreen) \
 	visit(FullscreenWindowMode) \
@@ -201,6 +203,7 @@ struct CONFIG
 	bool FullscreenWindowMode;			// Enables fullscreen windowed mode, requires EnableWindowMode
 	bool ForceTermination;				// Terminates application when main window closes
 	bool ForceWindowResize;				// Forces main window to fullscreen, requires FullScreen
+	bool ForceVsyncMode;				// Forces d3d9 game to use EnableVsync option
 	bool HandleExceptions;				// Handles unhandled exceptions in the application
 	bool LoadPlugins;					// Loads ASI plugins
 	bool LoadFromScriptsOnly;			// Loads ASI plugins from 'scripts' and 'plugins' folder only
@@ -215,6 +218,7 @@ struct CONFIG
 	DWORD WindowSleepTime;				// Time to wait (sleep) for window handle and screen updates to finish, requires FullScreen
 	DWORD SingleProcAffinity;			// Sets the CPU affinity for this process
 	DWORD SetFullScreenLayer;			// The layer to be selected for fullscreen, requires FullScreen
+	DWORD AnisotropicFiltering;			// Enable Anisotropic Filtering for d3d9
 	DWORD AntiAliasing;					// Enable AntiAliasing for d3d9 CreateDevice
 	DWORD RealWrapperMode;				// Internal wrapper mode
 	MEMORYINFO VerifyMemoryInfo;		// Memory used for verification before hot patching
