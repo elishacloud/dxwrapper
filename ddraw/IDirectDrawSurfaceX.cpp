@@ -360,12 +360,6 @@ HRESULT m_IDirectDrawSurfaceX::Blt(LPRECT lpDestRect, LPDIRECTDRAWSURFACE7 lpDDS
 
 			IsInBlt = true;
 
-			// Use WaitForVerticalBlank for wait timer
-			if ((dwFlags & DDBLT_DDFX) && (lpDDBltFx->dwDDFX & DDBLTFX_NOTEARING))
-			{
-				ddrawParent->WaitForVerticalBlank(DDWAITVB_BLOCKBEGIN, nullptr);
-			}
-
 			// Do color fill
 			if (dwFlags & DDBLT_COLORFILL)
 			{
@@ -427,6 +421,12 @@ HRESULT m_IDirectDrawSurfaceX::Blt(LPRECT lpDestRect, LPDIRECTDRAWSURFACE7 lpDDS
 		{
 			// Set dirty flag
 			SetDirtyFlag();
+
+			// Set vertical sync wait timer
+			if ((dwFlags & DDBLT_DDFX) && (lpDDBltFx->dwDDFX & DDBLTFX_NOTEARING))
+			{
+				ddrawParent->SetVsync();
+			}
 
 			// Present surface
 			EndWritePresent(isSkipScene);
@@ -766,12 +766,6 @@ HRESULT m_IDirectDrawSurfaceX::Flip(LPDIRECTDRAWSURFACE7 lpDDSurfaceTargetOverri
 		// Set flip flag
 		IsInFlip = true;
 
-		// Use WaitForVerticalBlank for wait timer
-		if ((dwFlags & DDFLIP_NOVSYNC) == 0)
-		{
-			ddrawParent->WaitForVerticalBlank(DDWAITVB_BLOCKBEGIN, nullptr);
-		}
-
 		HRESULT hr = DD_OK;
 		do {
 			// If SurfaceTargetOverride then use that surface
@@ -844,6 +838,12 @@ HRESULT m_IDirectDrawSurfaceX::Flip(LPDIRECTDRAWSURFACE7 lpDDSurfaceTargetOverri
 		{
 			// Set dirty flag
 			SetDirtyFlag();
+
+			// Set vertical sync wait timer
+			if ((dwFlags & DDFLIP_NOVSYNC) == 0)
+			{
+				ddrawParent->SetVsync();
+			}
 
 			// Present surface
 			EndWritePresent();

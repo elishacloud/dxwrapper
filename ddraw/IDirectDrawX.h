@@ -185,6 +185,7 @@ public:
 	static void AdjustVidMemory(LPDWORD lpdwTotal, LPDWORD lpdwFree);
 
 	// Begin & end scene
+	void SetVsync();
 	HRESULT BeginScene();
 	HRESULT EndScene();
  };

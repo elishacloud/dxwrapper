@@ -68,6 +68,7 @@ bool isWindowed;					// Window mode enabled
 
 // Convert to Direct3D9
 bool IsInScene;						// Used for BeginScene/EndScene
+bool EnableVsync;
 
 // High resolution counter
 bool FrequencyFlag = false;
@@ -1396,41 +1397,50 @@ HRESULT m_IDirectDrawX::WaitForVerticalBlank(DWORD dwFlags, HANDLE hEvent)
 
 	if (Config.Dd7to9)
 	{
-		// Check flags
-		switch (dwFlags)
-		{
-		case DDWAITVB_BLOCKBEGIN:
-			// Return when vertical blank begins
-		case DDWAITVB_BLOCKEND:
-			// Return when the vertical blank interval ends and the display begins
-			break;
-		case DDWAITVB_BLOCKBEGINEVENT:
-			// Triggers an event when the vertical blank begins. This value is not supported.
-			return DDERR_UNSUPPORTED;
-		default:
-			return DDERR_INVALIDPARAMS;
-		}
-
 		// Check for device interface
 		if (FAILED(CheckInterface(__FUNCTION__, true)))
 		{
 			return DDERR_GENERIC;
 		}
 
-		// Do some simple wait
+		// Check flags
 		D3DRASTER_STATUS RasterStatus;
-		if (SUCCEEDED(d3d9Device->GetRasterStatus(0, &RasterStatus)) && 
-			(!RasterStatus.InVBlank || dwFlags != DDWAITVB_BLOCKBEGIN) &&
-			monitorHeight && monitorRefreshRate)
+		switch (dwFlags)
 		{
-			float percentageLeft = 1.0f - (float)((RasterStatus.InVBlank) ? monitorHeight : RasterStatus.ScanLine) / (float)monitorHeight;
-			float blinkTime = trunc(1000.0f / monitorRefreshRate);
-			DWORD WaitTime = min(100, (DWORD)trunc(blinkTime * percentageLeft) + ((dwFlags == DDWAITVB_BLOCKBEGIN) ? 0 : 2));
-			Sleep(WaitTime);
+		case DDWAITVB_BLOCKBEGIN:
+			// Return when vertical blank begins
+			if (SUCCEEDED(d3d9Device->GetRasterStatus(0, &RasterStatus)))
+			{
+				bool InBlock = RasterStatus.InVBlank;
+				while (SUCCEEDED(d3d9Device->GetRasterStatus(0, &RasterStatus)) && !(!InBlock && RasterStatus.InVBlank))
+				{
+					if (!RasterStatus.InVBlank)
+					{
+						InBlock = false;
+					}
+				}
+			}
+			return DD_OK;
+		case DDWAITVB_BLOCKEND:
+			// Return when the vertical blank interval ends and the display begins
+			if (SUCCEEDED(d3d9Device->GetRasterStatus(0, &RasterStatus)))
+			{
+				bool InBlock = RasterStatus.InVBlank;
+				while (SUCCEEDED(d3d9Device->GetRasterStatus(0, &RasterStatus)) && !(InBlock && !RasterStatus.InVBlank))
+				{
+					if (RasterStatus.InVBlank)
+					{
+						InBlock = true;
+					}
+				}
+			}
+			return DD_OK;
+		case DDWAITVB_BLOCKBEGINEVENT:
+			// Triggers an event when the vertical blank begins. This value is not supported.
+			return DDERR_UNSUPPORTED;
+		default:
+			return DDERR_INVALIDPARAMS;
 		}
-
-		// Vertical blank supported by vsync so just return
-		return DD_OK;
 	}
 
 	return ProxyInterface->WaitForVerticalBlank(dwFlags, hEvent);
@@ -1753,6 +1763,7 @@ void m_IDirectDrawX::SetDdrawDefaults()
 {
 	// Convert to Direct3D9
 	IsInScene = false;
+	EnableVsync = false;
 	AllowModeX = false;
 	MultiThreaded = false;
 	FUPPreserve = false;
@@ -1866,6 +1877,7 @@ void m_IDirectDrawX::ReleaseDdraw()
 
 		// Set is not in scene
 		IsInScene = false;
+		EnableVsync = false;
 
 		// Release shared d3d9object
 		d3d9Object->Release();
@@ -2040,6 +2052,7 @@ HRESULT m_IDirectDrawX::CreateD3D9Device()
 
 		// Reset BeginScene
 		IsInScene = false;
+		EnableVsync = false;
 
 		// Check device caps to make sure it supports dynamic textures
 		D3DCAPS9 d3dcaps;
@@ -2268,6 +2281,7 @@ void m_IDirectDrawX::ReleaseD3d9Device()
 
 	// Set is not in scene
 	IsInScene = false;
+	EnableVsync = false;
 }
 
 // Add surface wrapper to vector
@@ -2480,6 +2494,12 @@ HRESULT m_IDirectDrawX::BeginScene()
 	return DD_OK;
 }
 
+// Enable vsync
+void m_IDirectDrawX::SetVsync()
+{
+	EnableVsync = true;
+}
+
 // Do d3d9 EndScene and Present if all surfaces are unlocked
 HRESULT m_IDirectDrawX::EndScene()
 {
@@ -2506,6 +2526,25 @@ HRESULT m_IDirectDrawX::EndScene()
 		LOG_LIMIT(100, __FUNCTION__ << " Error: failed to draw primitive");
 		return DDERR_GENERIC;
 	}
+
+	// End scene
+	if (FAILED(d3d9Device->EndScene()))
+	{
+		d3d9Device->BeginScene();
+		if (FAILED(d3d9Device->EndScene()))
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: failed to end scene");
+			return DDERR_GENERIC;
+		}
+	}
+	IsInScene = false;
+
+	// Use WaitForVerticalBlank for wait timer
+	if (EnableVsync)
+	{
+		WaitForVerticalBlank(DDWAITVB_BLOCKBEGIN, nullptr);
+	}
+	EnableVsync = false;
 
 	// Skip frame if time lapse is too small
 	if (Config.AutoFrameSkip)
@@ -2534,18 +2573,6 @@ HRESULT m_IDirectDrawX::EndScene()
 			Logging::LogDebug() << __func__ << " Drawing frame " << deltaPresentMS << "ms screen frequancy " << MaxScreenTimer;
 		}
 	}
-
-	// End scene
-	if (FAILED(d3d9Device->EndScene()))
-	{
-		d3d9Device->BeginScene();
-		if (FAILED(d3d9Device->EndScene()))
-		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error: failed to end scene");
-			return DDERR_GENERIC;
-		}
-	}
-	IsInScene = false;
 
 	// Present everthing, skip Preset for SWAT 2
 	HRESULT hr = d3d9Device->Present(nullptr, nullptr, nullptr, nullptr);
