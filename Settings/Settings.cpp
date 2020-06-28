@@ -400,7 +400,8 @@ void Settings::SetDefaultConfigSettings()
 	Config.PrimaryBufferBits = 16;
 	Config.PrimaryBufferSamples = 44100;
 	Config.PrimaryBufferChannels = 2;
-	Config.SpeakerConfig = 6;
+	Config.FixSpeakerConfigType = 1;
+	Config.AudioFadeOutDelayMS = 20;
 	SetValue("ExcludeProcess", "dxwnd.exe", &Config.ExcludeProcess);
 	SetValue("ExcludeProcess", "dgVoodooSetup.exe", &Config.ExcludeProcess);
 }

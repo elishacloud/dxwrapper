@@ -9,6 +9,8 @@
 #define VISIT_CONFIG_SETTINGS(visit) \
 	visit(AnisotropicFiltering) \
 	visit(AntiAliasing) \
+	visit(AudioClipDetection) \
+	visit(AudioFadeOutDelayMS) \
 	visit(AutoFrameSkip) \
 	visit(Dd7to9) \
 	visit(D3d8to9) \
@@ -45,13 +47,13 @@
 	visit(EnableVSync) \
 	visit(EnableWindowMode) \
 	visit(ExcludeProcess) \
+	visit(FixSpeakerConfigType) \
 	visit(ForceExclusiveMode) \
 	visit(ForceHardwareMixing) \
 	visit(ForceHQ3DSoftMixing) \
 	visit(ForceNonStaticBuffers) \
 	visit(ForcePrimaryBufferFormat) \
 	visit(ForceSoftwareMixing) \
-	visit(ForceSpeakerConfig) \
 	visit(ForceTermination) \
 	visit(ForceVoiceManagement) \
 	visit(ForceVsyncMode) \
@@ -68,7 +70,6 @@
 	visit(LoopSleepTime) \
 	visit(Num2DBuffers) \
 	visit(Num3DBuffers) \
-	visit(PreventSpeakerSetup) \
 	visit(PrimaryBufferBits) \
 	visit(PrimaryBufferChannels) \
 	visit(PrimaryBufferSamples) \
@@ -80,7 +81,6 @@
 	visit(SetFullScreenLayer) \
 	visit(SetNamedLayer) \
 	visit(SingleProcAffinity) \
-	visit(SpeakerConfig) \
 	visit(StoppedDriverWorkaround) \
 	visit(WaitForProcess) \
 	visit(WaitForWindowChanges) \
@@ -245,7 +245,6 @@ struct CONFIG
 	bool ForceExclusiveMode;
 	bool ForceSoftwareMixing;
 	bool ForceHardwareMixing;
-	bool PreventSpeakerSetup;
 	bool ForceHQ3DSoftMixing;
 	bool ForceNonStaticBuffers;
 	bool ForceVoiceManagement;
@@ -253,8 +252,9 @@ struct CONFIG
 	DWORD PrimaryBufferBits;
 	DWORD PrimaryBufferSamples;
 	DWORD PrimaryBufferChannels;
-	bool ForceSpeakerConfig;
-	DWORD SpeakerConfig;
+	bool AudioClipDetection;
+	DWORD AudioFadeOutDelayMS;
+	DWORD FixSpeakerConfigType;
 	bool StoppedDriverWorkaround;
 };
 extern CONFIG Config;

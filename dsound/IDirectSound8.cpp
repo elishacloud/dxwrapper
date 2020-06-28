@@ -65,37 +65,42 @@ HRESULT m_IDirectSound8::CreateSoundBuffer(LPCDSBUFFERDESC pcDSBufferDesc, LPDIR
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	if (pcDSBufferDesc)
+	if (pcDSBufferDesc && pcDSBufferDesc->dwSize)
 	{
-		DSBUFFERDESC dsdesc = *pcDSBufferDesc;
+		DSBUFFERDESC *dsdesc = (DSBUFFERDESC*)pcDSBufferDesc;
 
 		if (Config.ForceSoftwareMixing)
 		{
-			dsdesc.dwFlags &= ~DSBCAPS_LOCHARDWARE;
-			dsdesc.dwFlags |= DSBCAPS_LOCSOFTWARE;
+			dsdesc->dwFlags &= ~DSBCAPS_LOCHARDWARE;
+			dsdesc->dwFlags |= DSBCAPS_LOCSOFTWARE;
 		}
 
 		if (Config.ForceHardwareMixing)
 		{
-			dsdesc.dwFlags &= ~DSBCAPS_LOCSOFTWARE;
-			dsdesc.dwFlags |= DSBCAPS_LOCHARDWARE;
+			dsdesc->dwFlags &= ~DSBCAPS_LOCSOFTWARE;
+			dsdesc->dwFlags |= DSBCAPS_LOCHARDWARE;
 		}
 
-		if ((Config.ForceHQ3DSoftMixing) && (dsdesc.dwFlags & DSBCAPS_LOCSOFTWARE) && (dsdesc.dwFlags & DSBCAPS_CTRL3D))
+		if ((Config.ForceHQ3DSoftMixing) && (dsdesc->dwFlags & DSBCAPS_LOCSOFTWARE) && (dsdesc->dwFlags & DSBCAPS_CTRL3D))
 		{
-			dsdesc.guid3DAlgorithm = DS3DALG_HRTF_FULL;
+			dsdesc->guid3DAlgorithm = DS3DALG_HRTF_FULL;
 		}
 
-		if ((Config.ForceNonStaticBuffers) && (dsdesc.dwFlags & DSBCAPS_STATIC))
+		if ((Config.ForceNonStaticBuffers) && (dsdesc->dwFlags & DSBCAPS_STATIC))
 		{
-			dsdesc.dwFlags &= ~DSBCAPS_STATIC;
+			dsdesc->dwFlags &= ~DSBCAPS_STATIC;
 		}
 
-		if ((Config.ForceVoiceManagement) && ((dsdesc.dwFlags & DSBCAPS_LOCDEFER) == 0))
+		if ((Config.ForceVoiceManagement) && ((dsdesc->dwFlags & DSBCAPS_LOCDEFER) == 0))
 		{
-			dsdesc.dwFlags &= ~DSBCAPS_LOCSOFTWARE;
-			dsdesc.dwFlags &= ~DSBCAPS_LOCHARDWARE;
-			dsdesc.dwFlags |= DSBCAPS_LOCDEFER;
+			dsdesc->dwFlags &= ~DSBCAPS_LOCSOFTWARE;
+			dsdesc->dwFlags &= ~DSBCAPS_LOCHARDWARE;
+			dsdesc->dwFlags |= DSBCAPS_LOCDEFER;
+		}
+
+		if (Config.AudioClipDetection)
+		{
+			dsdesc->dwFlags |= DSBCAPS_CTRLVOLUME;
 		}
 	}
 
@@ -210,24 +215,20 @@ HRESULT m_IDirectSound8::GetSpeakerConfig(LPDWORD pdwSpeakerConfig)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	if (Config.ForceSpeakerConfig && pdwSpeakerConfig)
-	{
-		*pdwSpeakerConfig = Config.SpeakerConfig;
+	HRESULT hr = ProxyInterface->GetSpeakerConfig(pdwSpeakerConfig);
 
-		return DS_OK;
+	if (Config.FixSpeakerConfigType && pdwSpeakerConfig)
+	{
+		*pdwSpeakerConfig = (*pdwSpeakerConfig == DSSPEAKER_7POINT1_SURROUND) ? DSSPEAKER_7POINT1 :
+			(*pdwSpeakerConfig == DSSPEAKER_5POINT1_SURROUND) ? DSSPEAKER_5POINT1 : *pdwSpeakerConfig;
 	}
 
-	return ProxyInterface->GetSpeakerConfig(pdwSpeakerConfig);
+	return hr;
 }
 
 HRESULT m_IDirectSound8::SetSpeakerConfig(DWORD dwSpeakerConfig)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
-
-	if (Config.PreventSpeakerSetup)
-	{
-		return DS_OK;
-	}
 
 	return ProxyInterface->SetSpeakerConfig(dwSpeakerConfig);
 }

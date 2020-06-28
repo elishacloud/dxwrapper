@@ -16,6 +16,8 @@
 
 #include "dsound.h"
 
+DWORD WINAPI ResetPending(LPVOID pvParam);
+
 HRESULT m_IDirectSoundBuffer8::QueryInterface(REFIID riid, LPVOID * ppvObj)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
@@ -50,7 +52,18 @@ ULONG m_IDirectSoundBuffer8::Release()
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
+	EnterCriticalSection(&AudioClip.dics);
+
 	ULONG x = ProxyInterface->Release();
+
+	if (x == 0 && AudioClip.ds_ThreadID)
+	{
+		HANDLE hThread = OpenThread(THREAD_TERMINATE, 0, AudioClip.ds_ThreadID);
+		TerminateThread(hThread, S_FALSE);
+		CloseHandle(hThread);
+	}
+
+	LeaveCriticalSection(&AudioClip.dics);
 
 	if (x == 0)
 	{
@@ -112,6 +125,13 @@ HRESULT m_IDirectSoundBuffer8::GetVolume(LPLONG plVolume)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
+	if (AudioClip.PendingStop && plVolume)
+	{
+		*plVolume = AudioClip.CurrentVolume;
+
+		return DS_OK;
+	}
+
 	return ProxyInterface->GetVolume(plVolume);
 }
 
@@ -159,6 +179,17 @@ HRESULT m_IDirectSoundBuffer8::Play(DWORD dwReserved1, DWORD dwPriority, DWORD d
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
+	if (AudioClip.PendingStop)
+	{
+		AudioClip.PendingStop = false;
+
+		// Stop
+		ProxyInterface->Stop();
+
+		// Reset volume
+		ProxyInterface->SetVolume(AudioClip.CurrentVolume);
+	}
+
 	return ProxyInterface->Play(dwReserved1, dwPriority, dwFlags);
 }
 
@@ -198,6 +229,13 @@ HRESULT m_IDirectSoundBuffer8::SetVolume(LONG lVolume)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
+	AudioClip.CurrentVolume = lVolume;
+
+	if (AudioClip.PendingStop)
+	{
+		return DS_OK;
+	}
+
 	return ProxyInterface->SetVolume(lVolume);
 }
 
@@ -218,6 +256,37 @@ HRESULT m_IDirectSoundBuffer8::SetFrequency(DWORD dwFrequency)
 HRESULT m_IDirectSoundBuffer8::Stop()
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
+
+	if (Config.AudioClipDetection)
+	{
+		EnterCriticalSection(&AudioClip.dics);
+
+		if (!AudioClip.ds_ThreadID)
+		{
+			// Set pending stop
+			AudioClip.PendingStop = true;
+
+			// Lower volume
+			ProxyInterface->SetVolume(DSBVOLUME_MIN);
+
+			// Get current counter
+			QueryPerformanceFrequency(&AudioClip.Frequency);
+			AudioClip.Frequency.QuadPart /= ((Config.AudioFadeOutDelayMS) ? 1000 / Config.AudioFadeOutDelayMS : AudioClip.Frequency.QuadPart);
+			QueryPerformanceCounter(&AudioClip.StartingTime);
+
+			// Start thread
+			if (CreateThread(nullptr, 0, ResetPending, &AudioClip, 0, &AudioClip.ds_ThreadID) == nullptr || !AudioClip.ds_ThreadID)
+			{
+				AudioClip.PendingStop = false;
+				AudioClip.ds_ThreadID = 0;
+			}
+		}
+
+		LeaveCriticalSection(&AudioClip.dics);
+
+		// Return value
+		return DS_OK;
+	}
 
 	return ProxyInterface->Stop();
 }
@@ -261,4 +330,45 @@ HRESULT m_IDirectSoundBuffer8::GetObjectInPath(REFGUID rguidObject, DWORD dwInde
 	}
 
 	return hr;
+}
+
+DWORD WINAPI ResetPending(LPVOID pvParam)
+{
+	if (!pvParam)
+	{
+		return S_FALSE;
+	}
+
+	AUDIOCLIP &AudioClip = *(AUDIOCLIP*)pvParam;
+
+	// Pending stop
+	if (AudioClip.PendingStop)
+	{
+		// Add slight delay
+		do {
+			Sleep(0);
+			QueryPerformanceCounter(&AudioClip.EndingTime);
+		} while (AudioClip.PendingStop && AudioClip.StartingTime.QuadPart + AudioClip.Frequency.QuadPart > AudioClip.EndingTime.QuadPart);
+	}
+
+	EnterCriticalSection(&AudioClip.dics);
+
+	if (AudioClip.PendingStop && AudioClip.ProxyInterface)
+	{
+		// Stop
+		AudioClip.ProxyInterface->Stop();
+
+		// Reset volume
+		AudioClip.ProxyInterface->SetVolume(AudioClip.CurrentVolume);
+	}
+
+	// Reset pending stop
+	AudioClip.PendingStop = false;
+
+	// Reset thread ID
+	AudioClip.ds_ThreadID = 0;
+
+	LeaveCriticalSection(&AudioClip.dics);
+
+	return S_OK;
 }

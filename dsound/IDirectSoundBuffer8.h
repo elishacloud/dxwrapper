@@ -1,20 +1,41 @@
 #pragma once
 
+struct AUDIOCLIP
+{
+	DWORD ds_ThreadID = 0;
+	CRITICAL_SECTION dics;
+	LPDIRECTSOUNDBUFFER8 ProxyInterface = nullptr;
+	LONG CurrentVolume = 0;
+	LARGE_INTEGER StartingTime, EndingTime, Frequency;
+	bool PendingStop = false;
+};
+
 class m_IDirectSoundBuffer8 : public IDirectSoundBuffer8, public AddressLookupTableDsoundObject
 {
 private:
 	LPDIRECTSOUNDBUFFER8 ProxyInterface;
+
+	// Set varables
+	AUDIOCLIP AudioClip;
 
 public:
 	m_IDirectSoundBuffer8(LPDIRECTSOUNDBUFFER8 pSound8) : ProxyInterface(pSound8)
 	{
 		LOG_LIMIT(3, "Creating device " << __FUNCTION__ << "(" << this << ")");
 
+		AudioClip.ProxyInterface = ProxyInterface;
+
+		// Initialize Critical Section
+		InitializeCriticalSection(&AudioClip.dics);
+
 		ProxyAddressLookupTableDsound.SaveAddress(this, ProxyInterface);
 	}
 	~m_IDirectSoundBuffer8()
 	{
 		LOG_LIMIT(3, __FUNCTION__ << "(" << this << ")" << " deleting device!");
+
+		// Delete Critical Section
+		DeleteCriticalSection(&AudioClip.dics);
 
 		ProxyAddressLookupTableDsound.DeleteAddress(this);
 	}
