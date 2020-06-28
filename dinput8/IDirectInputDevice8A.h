@@ -5,10 +5,14 @@ class m_IDirectInputDevice8A : public IDirectInputDevice8A, public AddressLookup
 private:
 	IDirectInputDevice8A *ProxyInterface;
 
+	DWORD ProcessID;
+
 public:
 	m_IDirectInputDevice8A(IDirectInputDevice8A *aOriginal) : ProxyInterface(aOriginal)
 	{
 		LOG_LIMIT(3, "Creating device " << __FUNCTION__ << "(" << this << ")");
+
+		ProcessID = GetCurrentProcessId();
 
 		ProxyAddressLookupTableDinput8.SaveAddress(this, ProxyInterface);
 	}

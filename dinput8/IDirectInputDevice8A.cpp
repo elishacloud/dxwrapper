@@ -113,6 +113,23 @@ HRESULT m_IDirectInputDevice8A::GetDeviceData(DWORD cbObjectData, LPDIDEVICEOBJE
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
+	if (Config.FilterNonActiveInput)
+	{
+		// Check foreground window's process and don't copy device data if process is not active
+		HWND hfgwnd = GetForegroundWindow();
+		if (hfgwnd)
+		{
+			DWORD fgwndprocid = 0;
+			GetWindowThreadProcessId(hfgwnd, &fgwndprocid);
+
+			if (ProcessID != fgwndprocid)
+			{
+				// Foreground window belongs to another process, don't copy the device data
+				*pdwInOut = 0;
+			}
+		}
+	}
+
 	return ProxyInterface->GetDeviceData(cbObjectData, rgdod, pdwInOut, dwFlags);
 }
 

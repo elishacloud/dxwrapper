@@ -43,10 +43,12 @@
 	visit(ConvertToDirectDraw7) \
 	visit(ConvertToDirect3D7) \
 	visit(EnableDdrawWrapper) \
+	visit(EnableDinput8Wrapper) \
 	visit(EnableDsoundWrapper) \
 	visit(EnableVSync) \
 	visit(EnableWindowMode) \
 	visit(ExcludeProcess) \
+	visit(FilterNonActiveInput) \
 	visit(FixSpeakerConfigType) \
 	visit(ForceExclusiveMode) \
 	visit(ForceHardwareMixing) \
@@ -232,6 +234,9 @@ struct CONFIG
 	std::vector<std::string> LoadCustomDllPath;	// List of custom dlls to load
 	std::vector<std::string> ExcludeProcess;	// List of excluded applications
 	std::vector<std::string> IncludeProcess;	// List of included applications
+
+	// Dinput8
+	bool FilterNonActiveInput;
 
 	// SetAppCompatData
 	bool DXPrimaryEmulation[13];		// SetAppCompatData exported functions from ddraw.dll http://www.blitzbasic.com/Community/posts.php?topic=99477

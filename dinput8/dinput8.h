@@ -12,6 +12,7 @@ class m_IDirectInputDevice8W;
 class m_IDirectInputEffect8;
 
 #include "AddressLookupTable.h"
+#include "Settings\Settings.h"
 #include "Logging\Logging.h"
 
 typedef HRESULT(WINAPI *DirectInput8CreateProc)(HINSTANCE, DWORD, REFIID, LPVOID*, LPUNKNOWN);

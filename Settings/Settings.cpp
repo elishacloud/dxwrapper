@@ -575,7 +575,7 @@ void CONFIG::Init()
 	}
 
 	// Enable wrapper settings
-	EnableDinput8Wrapper = false;
+	EnableDinput8Wrapper = (Dinputto8 || EnableDinput8Wrapper);
 
 	if (Dd7to9)
 	{
