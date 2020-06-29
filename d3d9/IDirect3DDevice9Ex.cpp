@@ -1579,8 +1579,8 @@ HRESULT m_IDirect3DDevice9Ex::GetFrontBufferData(THIS_ UINT iSwapChain, IDirect3
 
 		// Create new surface to hold data
 		IDirect3DSurface9 *pSrcSurface = nullptr;
-		int ScreenWidth = GetSystemMetrics(SM_CXSCREEN);
-		int ScreenHeight = GetSystemMetrics(SM_CYSCREEN);
+		LONG ScreenWidth, ScreenHeight;
+		Utils::GetScreenSize(DeviceWindow, ScreenWidth, ScreenHeight);
 		if (FAILED(ProxyInterface->CreateOffscreenPlainSurface(ScreenWidth, ScreenHeight, Desc.Format, Desc.Pool, &pSrcSurface, nullptr)))
 		{
 			return D3DERR_INVALIDCALL;

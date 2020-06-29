@@ -35,6 +35,8 @@ namespace Utils
 	bool SetWndProcFilter(HWND hWnd);
 	bool RestoreWndProcFilter(HWND hWnd);
 	bool IsWindowMessageFiltered(UINT uMsg, LRESULT *lpReturn);
+	void GetScreenSize(HWND hwnd, LONG &screenWidth, LONG &screenHeight);
+	void GetScreenSize(HWND hwnd, DWORD &screenWidth, DWORD &screenHeight);
 
 	namespace WriteMemory
 	{

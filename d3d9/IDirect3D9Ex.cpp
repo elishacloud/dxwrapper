@@ -493,8 +493,8 @@ void AdjustWindow(HWND MainhWnd, LONG displayWidth, LONG displayHeight)
 	}
 
 	// Get screen width and height
-	LONG screenWidth = GetSystemMetrics(SM_CXSCREEN);
-	LONG screenHeight = GetSystemMetrics(SM_CYSCREEN);
+	LONG screenWidth, screenHeight;
+	Utils::GetScreenSize(MainhWnd, screenWidth, screenHeight);
 
 	// Get window border
 	LONG lStyle = GetWindowLong(MainhWnd, GWL_STYLE) | WS_VISIBLE;

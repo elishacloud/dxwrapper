@@ -20,6 +20,7 @@
 
 #include "ddraw.h"
 #include "d3d9ShaderPalette.h"
+#include "Utils\Utils.h"
 
 // Used to allow presenting non-primary surfaces in case the primary surface present fails
 bool dirtyFlag = false;
@@ -2442,8 +2443,7 @@ HRESULT m_IDirectDrawSurfaceX::CreateD3d9Surface()
 	DWORD BackBufferHeight = displayHeight;
 	if (!BackBufferWidth || !BackBufferHeight)
 	{
-		BackBufferWidth = GetSystemMetrics(SM_CXSCREEN);
-		BackBufferHeight = GetSystemMetrics(SM_CYSCREEN);
+		Utils::GetScreenSize(ddrawParent->GetHwnd(), BackBufferWidth, BackBufferHeight);
 	}
 
 	// Calculate width and height with original aspect ratio

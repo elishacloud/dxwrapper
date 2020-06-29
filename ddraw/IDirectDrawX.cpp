@@ -899,8 +899,7 @@ HRESULT m_IDirectDrawX::GetDisplayMode2(LPDDSURFACEDESC2 lpDDSurfaceDesc2)
 		else
 		{
 			HWND hWnd = GetHwnd();
-			lpDDSurfaceDesc2->dwWidth = GetSystemMetrics(SM_CXSCREEN);
-			lpDDSurfaceDesc2->dwHeight = GetSystemMetrics(SM_CYSCREEN);
+			Utils::GetScreenSize(hWnd, lpDDSurfaceDesc2->dwWidth, lpDDSurfaceDesc2->dwHeight);
 			lpDDSurfaceDesc2->dwRefreshRate = Utils::GetRefreshRate(hWnd);
 			displayModeBits = Utils::GetBitCount(hWnd);
 		}
@@ -1796,8 +1795,15 @@ void m_IDirectDrawX::SetDdrawDefaults()
 	ResetDisplayMode = false;
 
 	// Display resolution
-	displayWidth = (Config.DdrawUseNativeResolution) ? GetSystemMetrics(SM_CXSCREEN) : (Config.DdrawOverrideWidth) ? Config.DdrawOverrideWidth : 0;
-	displayHeight = (Config.DdrawUseNativeResolution) ? GetSystemMetrics(SM_CYSCREEN) : (Config.DdrawOverrideHeight) ? Config.DdrawOverrideHeight : 0;
+	if (Config.DdrawUseNativeResolution)
+	{
+		Utils::GetScreenSize(GetHwnd(), displayWidth, displayHeight);
+	}
+	else
+	{
+		displayWidth = (Config.DdrawOverrideWidth) ? Config.DdrawOverrideWidth : 0;
+		displayHeight = (Config.DdrawOverrideHeight) ? Config.DdrawOverrideHeight : 0;
+	}
 	displayRefreshRate = (Config.DdrawOverrideRefreshRate) ? Config.DdrawOverrideRefreshRate : 0;
 
 	SetDefaultDisplayMode = (!displayWidth || !displayHeight || !displayRefreshRate);
@@ -1948,8 +1954,7 @@ void m_IDirectDrawX::GetResolution(DWORD &Width, DWORD &Height, DWORD &RefreshRa
 	}
 	else
 	{
-		Width = GetSystemMetrics(SM_CXSCREEN);
-		Height = GetSystemMetrics(SM_CYSCREEN);
+		Utils::GetScreenSize(hWnd, Width, Height);
 		RefreshRate = Utils::GetRefreshRate(hWnd);
 		BPP = Utils::GetBitCount(hWnd);
 	}
@@ -2090,8 +2095,7 @@ HRESULT m_IDirectDrawX::CreateD3D9Device()
 			}
 			else
 			{
-				BackBufferWidth = GetSystemMetrics(SM_CXSCREEN);
-				BackBufferHeight = GetSystemMetrics(SM_CYSCREEN);
+				Utils::GetScreenSize(GetHwnd(), BackBufferWidth, BackBufferHeight);
 			}
 		}
 
@@ -2194,7 +2198,8 @@ HRESULT m_IDirectDrawX::CreateD3D9Device()
 
 		// Store display frequency
 		monitorRefreshRate = (presParams.FullScreen_RefreshRateInHz) ? presParams.FullScreen_RefreshRateInHz : Utils::GetRefreshRate(hWnd);
-		monitorHeight = GetSystemMetrics(SM_CYSCREEN);
+		DWORD tmpWidth = 0;
+		Utils::GetScreenSize(GetHwnd(), tmpWidth, monitorHeight);
 
 	} while (FALSE);
 
@@ -2254,10 +2259,14 @@ void m_IDirectDrawX::ReleaseAllDirectDrawD9Surfaces()
 // Release all d3d9 surfaces
 void m_IDirectDrawX::ReleaseAllD9Surfaces()
 {
+	SetCriticalSection();
+
 	for (m_IDirectDrawSurfaceX *pSurface : SurfaceVector)
 	{
 		pSurface->ReleaseD9Surface();
 	}
+
+	ReleaseCriticalSection();
 }
 
 // Release all d3d9 classes for Release()

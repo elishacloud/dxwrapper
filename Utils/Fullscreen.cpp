@@ -222,15 +222,35 @@ DWORD Utils::GetWindowHeight(HWND hWnd)
 		return Height;
 	}
 
-	return GetSystemMetrics(SM_CYSCREEN);
+	LONG screenWidth, screenHeight;
+	Utils::GetScreenSize(nullptr, screenWidth, screenHeight);
+	return screenHeight;
 }
 
 // Gets the screen size from a wnd handle
 void Fullscreen::GetScreenSize(HWND& hwnd, screen_res& Res, MONITORINFO& mi)
 {
-	GetMonitorInfo(MonitorFromWindow(hwnd, MONITOR_DEFAULTTOPRIMARY), &mi);
+	GetMonitorInfo(MonitorFromWindow((IsWindow(hwnd)) ? hwnd : GetDesktopWindow(), MONITOR_DEFAULTTONEAREST), &mi);
 	Res.Width = mi.rcMonitor.right - mi.rcMonitor.left;
 	Res.Height = mi.rcMonitor.bottom - mi.rcMonitor.top;
+}
+
+void Utils::GetScreenSize(HWND hwnd, LONG &screenWidth, LONG &screenHeight)
+{
+	MONITORINFO mi = {};
+	mi.cbSize = sizeof(MONITORINFO);
+	Fullscreen::screen_res Res;
+	Fullscreen::GetScreenSize(hwnd, Res, mi);
+	screenWidth = Res.Width;
+	screenHeight = Res.Height;
+}
+
+void Utils::GetScreenSize(HWND hwnd, DWORD &screenWidth, DWORD &screenHeight)
+{
+	LONG Width, Height;
+	GetScreenSize(hwnd, Width, Height);
+	screenWidth = Width;
+	screenHeight = Height;
 }
 
 // Check with resolution is best
