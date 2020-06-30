@@ -198,4 +198,4 @@ public:
 	void SetVsync();
 	HRESULT BeginScene();
 	HRESULT EndScene();
- };
+};

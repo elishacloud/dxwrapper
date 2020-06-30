@@ -1,11 +1,15 @@
 #pragma once
 
+#include "Utils\Utils.h"
+
 class m_IDirect3DDevice9Ex : public IDirect3DDevice9Ex
 {
 private:
 	LPDIRECT3DDEVICE9EX ProxyInterface;
 	m_IDirect3D9Ex* m_pD3DEx;
 	GUID WrapperID = IID_IUnknown;
+
+	LONG screenWidth, screenHeight;
 
 	// Anisotropic Filtering
 	bool MaxAnisotropySet = false;
@@ -34,6 +38,9 @@ public:
 	void InitDirect3DDevice()
 	{
 		LOG_LIMIT(3, "Creating device " << __FUNCTION__ << "(" << this << ")");
+
+		// Get screen size
+		Utils::GetScreenSize(DeviceWindow, screenWidth, screenHeight);
 
 		ProxyAddressLookupTable = new AddressLookupTableD3d9<m_IDirect3DDevice9Ex>(this);
 	}
@@ -98,6 +105,7 @@ public:
 	STDMETHOD(UpdateTexture)(THIS_ IDirect3DBaseTexture9* pSourceTexture, IDirect3DBaseTexture9* pDestinationTexture);
 	STDMETHOD(GetRenderTargetData)(THIS_ IDirect3DSurface9* pRenderTarget, IDirect3DSurface9* pDestSurface);
 	STDMETHOD(GetFrontBufferData)(THIS_ UINT iSwapChain, IDirect3DSurface9* pDestSurface);
+	STDMETHOD(FakeGetFrontBufferData)(THIS_ UINT iSwapChain, IDirect3DSurface9* pDestSurface);
 	STDMETHOD(CopyRects)(THIS_ IDirect3DSurface9 *pSourceSurface, const RECT *pSourceRectsArray, UINT cRects, IDirect3DSurface9 *pDestinationSurface, const POINT *pDestPointsArray);
 	STDMETHOD(StretchRect)(THIS_ IDirect3DSurface9* pSourceSurface, CONST RECT* pSourceRect, IDirect3DSurface9* pDestSurface, CONST RECT* pDestRect, D3DTEXTUREFILTERTYPE Filter);
 	STDMETHOD(StretchRectFake)(THIS_ IDirect3DSurface9* pSourceSurface, CONST RECT* pSourceRect, IDirect3DSurface9* pDestSurface, CONST RECT* pDestRect, D3DTEXTUREFILTERTYPE Filter);

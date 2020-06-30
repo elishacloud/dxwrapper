@@ -1563,84 +1563,91 @@ HRESULT m_IDirect3DDevice9Ex::GetFrontBufferData(THIS_ UINT iSwapChain, IDirect3
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
+	if (Config.EnableWindowMode && (BufferWidth != screenWidth || BufferHeight != screenHeight))
+	{
+		return FakeGetFrontBufferData(iSwapChain, pDestSurface);
+	}
+	else
+	{
+		if (pDestSurface)
+		{
+			pDestSurface = static_cast<m_IDirect3DSurface9 *>(pDestSurface)->GetProxyInterface();
+		}
+
+		return ProxyInterface->GetFrontBufferData(iSwapChain, pDestSurface);
+	}
+}
+
+HRESULT m_IDirect3DDevice9Ex::FakeGetFrontBufferData(THIS_ UINT iSwapChain, IDirect3DSurface9* pDestSurface)
+{
 	if (pDestSurface)
 	{
 		pDestSurface = static_cast<m_IDirect3DSurface9 *>(pDestSurface)->GetProxyInterface();
 	}
 
-	if (Config.EnableWindowMode && DeviceWindow && BufferWidth && BufferHeight)
+	// Get surface desc
+	D3DSURFACE_DESC Desc;
+	if (!pDestSurface || FAILED(pDestSurface->GetDesc(&Desc)))
 	{
-		// Get surface desc
-		D3DSURFACE_DESC Desc;
-		if (!pDestSurface || FAILED(pDestSurface->GetDesc(&Desc)))
-		{
-			return D3DERR_INVALIDCALL;
-		}
+		return D3DERR_INVALIDCALL;
+	}
 
-		// Create new surface to hold data
-		IDirect3DSurface9 *pSrcSurface = nullptr;
-		LONG ScreenWidth, ScreenHeight;
-		Utils::GetScreenSize(DeviceWindow, ScreenWidth, ScreenHeight);
-		if (FAILED(ProxyInterface->CreateOffscreenPlainSurface(ScreenWidth, ScreenHeight, Desc.Format, Desc.Pool, &pSrcSurface, nullptr)))
-		{
-			return D3DERR_INVALIDCALL;
-		}
+	// Get location of client window
+	RECT RectSrc = { 0, 0, BufferWidth , BufferHeight };
+	RECT rcClient = { 0, 0, BufferWidth , BufferHeight };
+	if (Config.EnableWindowMode && DeviceWindow && (!GetWindowRect(DeviceWindow, &RectSrc) || !GetClientRect(DeviceWindow, &rcClient)))
+	{
+		return D3DERR_INVALIDCALL;
+	}
+	int border_thickness = ((RectSrc.right - RectSrc.left) - rcClient.right) / 2;
+	int top_border = (RectSrc.bottom - RectSrc.top) - rcClient.bottom - border_thickness;
+	RectSrc.left += border_thickness;
+	RectSrc.top += top_border;
+	RectSrc.right = RectSrc.left + rcClient.right;
+	RectSrc.bottom = RectSrc.top + rcClient.bottom;
 
-		// Get FrontBuffer data to new surface
-		HRESULT hr = ProxyInterface->GetFrontBufferData(iSwapChain, pSrcSurface);
-		if (FAILED(hr))
-		{
-			pSrcSurface->Release();
-			return hr;
-		}
+	// Create new surface to hold data
+	IDirect3DSurface9 *pSrcSurface = nullptr;
+	if (FAILED(ProxyInterface->CreateOffscreenPlainSurface(max(screenWidth, RectSrc.right), max(screenHeight, RectSrc.bottom), Desc.Format, Desc.Pool, &pSrcSurface, nullptr)))
+	{
+		return D3DERR_INVALIDCALL;
+	}
 
-		// Get location of client window
-		RECT RectSrc;
-		if (FAILED(GetWindowRect(DeviceWindow, &RectSrc)))
-		{
-			pSrcSurface->Release();
-			return D3DERR_INVALIDCALL;
-		}
-		RECT rcClient;
-		if (FAILED(GetClientRect(DeviceWindow, &rcClient)))
-		{
-			pSrcSurface->Release();
-			return D3DERR_INVALIDCALL;
-		}
-		int border_thickness = ((RectSrc.right - RectSrc.left) - rcClient.right) / 2;
-		int top_border = (RectSrc.bottom - RectSrc.top) - rcClient.bottom - border_thickness;
-		RectSrc.left += border_thickness;
-		RectSrc.top += top_border;
-		RectSrc.right = min(RectSrc.left + rcClient.right, ScreenWidth);
-		RectSrc.bottom = min(RectSrc.top + rcClient.bottom, ScreenHeight);
-
-		// Copy data to DestSurface
-		hr = D3DERR_INVALIDCALL;
-		if (BufferWidth == rcClient.right && BufferHeight == rcClient.bottom)
-		{
-			const POINT PointDest = { 0, 0 };
-			hr = CopyRects(pSrcSurface, &RectSrc, 1, pDestSurface, &PointDest);
-		}
-
-		// Try using StretchRect
-		if (FAILED(hr))
-		{
-			const RECT RectDest = { 0, 0, min(BufferWidth, ScreenWidth), min(BufferHeight, ScreenHeight) };
-			hr = ProxyInterface->StretchRect(pSrcSurface, &RectSrc, pDestSurface, &RectDest, D3DTEXF_NONE);
-
-			// Try using fake StretchRect
-			if (FAILED(hr))
-			{
-				hr = StretchRectFake(pSrcSurface, &RectSrc, pDestSurface, &RectDest, D3DTEXF_NONE);
-			}
-		}
-
-		// Release surface
+	// Get FrontBuffer data to new surface
+	HRESULT hr = ProxyInterface->GetFrontBufferData(iSwapChain, pSrcSurface);
+	if (FAILED(hr))
+	{
 		pSrcSurface->Release();
 		return hr;
 	}
 
-	return ProxyInterface->GetFrontBufferData(iSwapChain, pDestSurface);
+	// Copy data to DestSurface
+	hr = D3DERR_INVALIDCALL;
+	if (rcClient.left == 0 && rcClient.top == 0 && (LONG)Desc.Width == rcClient.right && (LONG)Desc.Height == rcClient.bottom)
+	{
+		POINT PointDest = { 0, 0 };
+		hr = CopyRects(pSrcSurface, &RectSrc, 1, pDestSurface, &PointDest);
+	}
+
+	// Try using StretchRect
+	if (FAILED(hr))
+	{
+		IDirect3DSurface9 *pTmpSurface = nullptr;
+		if (SUCCEEDED(ProxyInterface->CreateOffscreenPlainSurface(Desc.Width, Desc.Height, Desc.Format, Desc.Pool, &pTmpSurface, nullptr)))
+		{
+			if (SUCCEEDED(StretchRect(pSrcSurface, &RectSrc, pTmpSurface, nullptr, D3DTEXF_NONE)))
+			{
+				POINT PointDest = { 0, 0 };
+				RECT Rect = { 0, 0, (LONG)Desc.Width, (LONG)Desc.Height };
+				hr = CopyRects(pTmpSurface, &Rect, 1, pDestSurface, &PointDest);
+			}
+			pTmpSurface->Release();
+		}
+	}
+
+	// Release surface
+	pSrcSurface->Release();
+	return hr;
 }
 
 HRESULT m_IDirect3DDevice9Ex::GetRenderTargetData(THIS_ IDirect3DSurface9* pRenderTarget, IDirect3DSurface9* pDestSurface)
