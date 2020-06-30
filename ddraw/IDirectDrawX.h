@@ -1,7 +1,5 @@
 #pragma once
 
-#include "IDirectDrawPalette.h"
-
 class m_IDirectDrawX : public IUnknown
 {
 private:
@@ -33,6 +31,12 @@ private:
 
 	// Store a list of palettes
 	std::vector<m_IDirectDrawPalette*> PaletteVector;
+
+	// Store color control interface
+	m_IDirectDrawColorControl *ColorControlInterface = nullptr;
+
+	// Store gamma control interface
+	m_IDirectDrawGammaControl *GammaControlInterface = nullptr;
 
 	// Store d3d interface
 	m_IDirect3DX *D3DInterface = nullptr;
@@ -180,6 +184,12 @@ public:
 	void AddPaletteToVector(m_IDirectDrawPalette* lpPalette);
 	void RemovePaletteFromVector(m_IDirectDrawPalette* lpPalette);
 	bool DoesPaletteExist(m_IDirectDrawPalette* lpPalette);
+
+	// Color and gamma control
+	HRESULT CreateColorInterface(LPVOID *ppvObj);
+	HRESULT CreateGammaInterface(LPVOID *ppvObj);
+	void ClearColorInterface() { ColorControlInterface = nullptr;  };
+	void ClearGammaInterface() { GammaControlInterface = nullptr; };
 
 	// Video memory size
 	static void AdjustVidMemory(LPDWORD lpdwTotal, LPDWORD lpdwFree);

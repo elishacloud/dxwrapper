@@ -102,8 +102,26 @@ HRESULT m_IDirectDrawGammaControl::SetGammaRamp(DWORD dwFlags, LPDDGAMMARAMP lpR
 
 		ConvertGammaRamp(RampData, *lpRampData);
 
+		// Present new gamma setting
+		if (ddrawParent)
+		{
+			m_IDirectDrawSurfaceX *lpDDSrcSurfaceX = ddrawParent->GetPrimarySurface();
+			if (lpDDSrcSurfaceX)
+			{
+				lpDDSrcSurfaceX->PresentSurface();
+			}
+		}
+
 		return DD_OK;
 	}
 
 	return ProxyInterface->SetGammaRamp(dwFlags, lpRampData);
+}
+
+void m_IDirectDrawGammaControl::ReleaseInterface()
+{
+	if (ddrawParent)
+	{
+		ddrawParent->ClearGammaInterface();
+	}
 }

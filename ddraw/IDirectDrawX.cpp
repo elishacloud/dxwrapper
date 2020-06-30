@@ -99,9 +99,14 @@ HRESULT m_IDirectDrawX::QueryInterface(REFIID riid, LPVOID FAR * ppvObj, DWORD D
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
+	if (!ppvObj)
+	{
+		return DDERR_GENERIC;
+	}
+
 	if (Config.Dd7to9)
 	{
-		if ((riid == IID_IDirectDraw || riid == IID_IDirectDraw2 || riid == IID_IDirectDraw3 || riid == IID_IDirectDraw4 || riid == IID_IDirectDraw7 || riid == IID_IUnknown) && ppvObj)
+		if (riid == IID_IDirectDraw || riid == IID_IDirectDraw2 || riid == IID_IDirectDraw3 || riid == IID_IDirectDraw4 || riid == IID_IDirectDraw7 || riid == IID_IUnknown)
 		{
 			DWORD DxVersion = (riid == IID_IUnknown) ? DirectXVersion : GetIIDVersion(riid);
 
@@ -111,7 +116,7 @@ HRESULT m_IDirectDrawX::QueryInterface(REFIID riid, LPVOID FAR * ppvObj, DWORD D
 
 			return DD_OK;
 		}
-		if ((riid == IID_IDirect3D || riid == IID_IDirect3D2 || riid == IID_IDirect3D3 || riid == IID_IDirect3D7) && ppvObj)
+		if (riid == IID_IDirect3D || riid == IID_IDirect3D2 || riid == IID_IDirect3D3 || riid == IID_IDirect3D7)
 		{
 			DWORD DxVersion = GetIIDVersion(riid);
 
@@ -134,11 +139,19 @@ HRESULT m_IDirectDrawX::QueryInterface(REFIID riid, LPVOID FAR * ppvObj, DWORD D
 
 			return DD_OK;
 		}
+		if (riid == IID_IDirectDrawColorControl)
+		{
+			return CreateColorInterface(ppvObj);
+		}
+		if (riid == IID_IDirectDrawGammaControl)
+		{
+			return CreateGammaInterface(ppvObj);
+		}
 	}
 
 	HRESULT hr = ProxyQueryInterface(ProxyInterface, riid, ppvObj, GetWrapperType(DirectXVersion), WrapperInterface);
 
-	if (SUCCEEDED(hr) && Config.ConvertToDirect3D7 && ppvObj)
+	if (SUCCEEDED(hr) && Config.ConvertToDirect3D7)
 	{
 		if (riid == IID_IDirect3D || riid == IID_IDirect3D2 || riid == IID_IDirect3D3 || riid == IID_IDirect3D7)
 		{
@@ -1859,6 +1872,18 @@ void m_IDirectDrawX::ReleaseDdraw()
 	}
 	PaletteVector.clear();
 
+	// Release color control
+	if (ColorControlInterface)
+	{
+		ColorControlInterface->ClearDdraw();
+	}
+
+	// Release gamma control
+	if (GammaControlInterface)
+	{
+		GammaControlInterface->ClearDdraw();
+	}
+
 	// Release DC
 	if (MainhWnd && MainhDC)
 	{
@@ -2454,6 +2479,40 @@ bool m_IDirectDrawX::DoesPaletteExist(m_IDirectDrawPalette* lpPalette)
 	ReleaseCriticalSection();
 
 	return hr;
+}
+
+HRESULT m_IDirectDrawX::CreateColorInterface(LPVOID *ppvObj)
+{
+	if (!ppvObj)
+	{
+		return DDERR_GENERIC;
+	}
+
+	if (!ColorControlInterface)
+	{
+		ColorControlInterface = new m_IDirectDrawColorControl(this);
+	}
+
+	*ppvObj = ColorControlInterface;
+
+	return DD_OK;
+}
+
+HRESULT m_IDirectDrawX::CreateGammaInterface(LPVOID *ppvObj)
+{
+	if (!ppvObj)
+	{
+		return DDERR_GENERIC;
+	}
+
+	if (!GammaControlInterface)
+	{
+		GammaControlInterface = new m_IDirectDrawGammaControl(this);
+	}
+
+	*ppvObj = GammaControlInterface;
+
+	return DD_OK;
 }
 
 // Adjusts available memory, some games have issues if this is set to high

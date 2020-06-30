@@ -111,16 +111,13 @@ HRESULT DdrawWrapper::ProxyQueryInterface(LPVOID ProxyInterface, REFIID riid, LP
 
 	if (Config.Dd7to9 || !ProxyInterface)
 	{
-		if (ppvObj)
+		*ppvObj = nullptr;
+
+		genericQueryInterface(riid, ppvObj);
+
+		if (*ppvObj)
 		{
-			*ppvObj = nullptr;
-
-			genericQueryInterface(riid, ppvObj);
-
-			if (*ppvObj)
-			{
-				return DD_OK;
-			}
+			return DD_OK;
 		}
 
 		LOG_LIMIT(100, __FUNCTION__ << " Query Not Implemented for " << riid << " from " << WrapperID);
@@ -136,16 +133,13 @@ HRESULT DdrawWrapper::ProxyQueryInterface(LPVOID ProxyInterface, REFIID riid, LP
 	}
 	else
 	{
-		if (ppvObj)
+		*ppvObj = nullptr;
+
+		genericQueryInterface(riid, ppvObj);
+
+		if (*ppvObj)
 		{
-			*ppvObj = nullptr;
-
-			genericQueryInterface(riid, ppvObj);
-
-			if (*ppvObj)
-			{
-				return DD_OK;
-			}
+			return DD_OK;
 		}
 
 		LOG_LIMIT(100, __FUNCTION__ << "Query failed for " << riid << " Error " << hr);
@@ -163,6 +157,11 @@ void WINAPI DdrawWrapper::genericQueryInterface(REFIID riid, LPVOID *ppvObj)
 
 	if (!*ppvObj)
 	{
+		if (riid == IID_IDirectDrawClipper)
+		{
+			*ppvObj = new m_IDirectDrawClipper(nullptr);
+			return;
+		}
 		if (riid == IID_IClassFactory)
 		{
 			*ppvObj = new m_IClassFactory(nullptr, genericQueryInterface);
@@ -171,21 +170,6 @@ void WINAPI DdrawWrapper::genericQueryInterface(REFIID riid, LPVOID *ppvObj)
 		if (riid == IID_IDirectDrawFactory)
 		{
 			*ppvObj = new m_IDirectDrawFactory(nullptr);
-			return;
-		}
-		if (riid == IID_IDirectDrawColorControl)
-		{
-			*ppvObj = new m_IDirectDrawColorControl(nullptr);
-			return;
-		}
-		if (riid == IID_IDirectDrawGammaControl)
-		{
-			*ppvObj = new m_IDirectDrawGammaControl(nullptr);
-			return;
-		}
-		if (riid == IID_IDirectDrawClipper)
-		{
-			*ppvObj = new m_IDirectDrawClipper(nullptr);
 			return;
 		}
 		if (Config.Dd7to9 &&

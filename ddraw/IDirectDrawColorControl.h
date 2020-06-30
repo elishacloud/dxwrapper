@@ -6,6 +6,9 @@ private:
 	IDirectDrawColorControl *ProxyInterface = nullptr;
 	REFIID WrapperID = IID_IDirectDrawColorControl;
 	ULONG RefCount = 1;
+
+	// Convert to Direct3D9
+	m_IDirectDrawX *ddrawParent = nullptr;
 	DDCOLORCONTROL ColorControl;
 
 public:
@@ -17,7 +20,7 @@ public:
 
 		InitColorControl();
 	}
-	m_IDirectDrawColorControl()
+	m_IDirectDrawColorControl(m_IDirectDrawX *Interface) : ddrawParent(Interface)
 	{
 		LOG_LIMIT(3, "Creating device " << __FUNCTION__ << "(" << this << ")");
 
@@ -41,6 +44,11 @@ public:
 		LOG_LIMIT(3, __FUNCTION__ << "(" << this << ")" << " deleting device!");
 
 		ProxyAddressLookupTable.DeleteAddress(this);
+
+		if (!ProxyInterface && !Config.Exiting)
+		{
+			ReleaseInterface();
+		}
 	}
 
 	DWORD GetDirectXVersion() { return 1; }
@@ -56,4 +64,11 @@ public:
 	/*** IDirectDrawColorControl methods ***/
 	STDMETHOD(GetColorControls)(THIS_ LPDDCOLORCONTROL);
 	STDMETHOD(SetColorControls)(THIS_ LPDDCOLORCONTROL);
+
+	// Functions handling the ddraw parent interface
+	void SetDdrawParent(m_IDirectDrawX *ddraw) { ddrawParent = ddraw; }
+	void ClearDdraw() { ddrawParent = nullptr; }
+
+	// Release interface
+	void ReleaseInterface();
 };

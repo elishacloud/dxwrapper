@@ -40,9 +40,14 @@ HRESULT m_IDirectDrawSurfaceX::QueryInterface(REFIID riid, LPVOID FAR * ppvObj, 
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
+	if (!ppvObj)
+	{
+		return DDERR_GENERIC;
+	}
+
 	if (Config.Dd7to9)
 	{
-		if ((riid == IID_IDirectDrawSurface || riid == IID_IDirectDrawSurface2 || riid == IID_IDirectDrawSurface3 || riid == IID_IDirectDrawSurface4 || riid == IID_IDirectDrawSurface7 || riid == IID_IUnknown) && ppvObj)
+		if (riid == IID_IDirectDrawSurface || riid == IID_IDirectDrawSurface2 || riid == IID_IDirectDrawSurface3 || riid == IID_IDirectDrawSurface4 || riid == IID_IDirectDrawSurface7 || riid == IID_IUnknown)
 		{
 			DWORD DxVersion = (riid == IID_IUnknown) ? DirectXVersion : GetIIDVersion(riid);
 
@@ -52,7 +57,7 @@ HRESULT m_IDirectDrawSurfaceX::QueryInterface(REFIID riid, LPVOID FAR * ppvObj, 
 
 			return DD_OK;
 		}
-		if ((riid == IID_IDirect3DHALDevice || riid == IID_IDirect3DRGBDevice || riid == IID_IDirect3DRampDevice || riid == IID_IDirect3DNullDevice) && ppvObj)
+		if (riid == IID_IDirect3DHALDevice || riid == IID_IDirect3DRGBDevice || riid == IID_IDirect3DRampDevice || riid == IID_IDirect3DNullDevice)
 		{
 			// Check for device interface
 			if (FAILED(CheckInterface(__FUNCTION__, false, false)))
@@ -86,9 +91,31 @@ HRESULT m_IDirectDrawSurfaceX::QueryInterface(REFIID riid, LPVOID FAR * ppvObj, 
 
 			return E_NOINTERFACE;
 		}
+		if (riid == IID_IDirectDrawColorControl)
+		{
+			if (SUCCEEDED(CheckInterface(__FUNCTION__, false, false)))
+			{
+				return ddrawParent->CreateColorInterface(ppvObj);
+			}
+			else
+			{
+				return DDERR_GENERIC;
+			}
+		}
+		if (riid == IID_IDirectDrawGammaControl)
+		{
+			if (SUCCEEDED(CheckInterface(__FUNCTION__, false, false)))
+			{
+				return ddrawParent->CreateGammaInterface(ppvObj);
+			}
+			else
+			{
+				return DDERR_GENERIC;
+			}
+		}
 	}
 
-	if (Config.ConvertToDirect3D7 && (riid == IID_IDirect3DTexture || riid == IID_IDirect3DTexture2) && ppvObj)
+	if (Config.ConvertToDirect3D7 && (riid == IID_IDirect3DTexture || riid == IID_IDirect3DTexture2))
 	{
 		// Check for device interface
 		if (FAILED(CheckInterface(__FUNCTION__, false, false)))

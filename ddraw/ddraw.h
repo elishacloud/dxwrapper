@@ -44,6 +44,9 @@ class m_IDirectDrawSurface3;
 class m_IDirectDrawSurface4;
 class m_IDirectDrawSurface7;
 class m_IDirectDrawSurfaceX;
+class m_IDirectDrawPalette;
+class m_IDirectDrawColorControl;
+class m_IDirectDrawGammaControl;
 
 #include "AddressLookupTable.h"
 #include "Settings\Settings.h"

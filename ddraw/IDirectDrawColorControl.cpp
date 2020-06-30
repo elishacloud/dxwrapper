@@ -102,8 +102,26 @@ HRESULT m_IDirectDrawColorControl::SetColorControls(LPDDCOLORCONTROL lpColorCont
 
 		ConvertColorControl(ColorControl, *lpColorControl);
 
+		// Present new color setting
+		if (ddrawParent)
+		{
+			m_IDirectDrawSurfaceX *lpDDSrcSurfaceX = ddrawParent->GetPrimarySurface();
+			if (lpDDSrcSurfaceX)
+			{
+				lpDDSrcSurfaceX->PresentSurface();
+			}
+		}
+
 		return DD_OK;
 	}
 
 	return ProxyInterface->SetColorControls(lpColorControl);
+}
+
+void m_IDirectDrawColorControl::ReleaseInterface()
+{
+	if (ddrawParent)
+	{
+		ddrawParent->ClearColorInterface();
+	}
 }

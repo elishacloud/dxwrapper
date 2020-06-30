@@ -6,6 +6,9 @@ private:
 	IDirectDrawGammaControl *ProxyInterface = nullptr;
 	REFIID WrapperID = IID_IDirectDrawGammaControl;
 	ULONG RefCount = 1;
+
+	// Convert to Direct3D9
+	m_IDirectDrawX *ddrawParent = nullptr;
 	DDGAMMARAMP RampData = { NULL };
 
 public:
@@ -15,7 +18,7 @@ public:
 
 		ProxyAddressLookupTable.SaveAddress(this, ProxyInterface);
 	}
-	m_IDirectDrawGammaControl()
+	m_IDirectDrawGammaControl(m_IDirectDrawX *Interface) : ddrawParent(Interface)
 	{
 		LOG_LIMIT(3, "Creating device " << __FUNCTION__ << "(" << this << ")");
 	}
@@ -24,6 +27,11 @@ public:
 		LOG_LIMIT(3, __FUNCTION__ << "(" << this << ")" << " deleting device!");
 
 		ProxyAddressLookupTable.DeleteAddress(this);
+
+		if (!ProxyInterface && !Config.Exiting)
+		{
+			ReleaseInterface();
+		}
 	}
 
 	DWORD GetDirectXVersion() { return 1; }
@@ -39,4 +47,11 @@ public:
 	/*** IDirectDrawGammaControl methods ***/
 	STDMETHOD(GetGammaRamp)(THIS_ DWORD, LPDDGAMMARAMP);
 	STDMETHOD(SetGammaRamp)(THIS_ DWORD, LPDDGAMMARAMP);
+
+	// Functions handling the ddraw parent interface
+	void SetDdrawParent(m_IDirectDrawX *ddraw) { ddrawParent = ddraw; }
+	void ClearDdraw() { ddrawParent = nullptr; }
+
+	// Release interface
+	void ReleaseInterface();
 };
