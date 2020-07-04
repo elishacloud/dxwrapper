@@ -613,6 +613,7 @@ cmd /q /c "cd /D ""$(ProjectDir)d3d8\"" &amp;&amp; del build.bat"</Command>
     <ClInclude Include="External\d3d8to9\source\lookup_table.hpp" />
     <ClInclude Include="External\dinputto8\AddressLookupTable.h" />
     <ClInclude Include="External\dinputto8\dinputto8.h" />
+    <ClInclude Include="External\dinputto8\ditypes.h" />
     <ClInclude Include="External\dinputto8\IDirectInputDeviceX.h" />
     <ClInclude Include="External\dinputto8\IDirectInputEffect.h" />
     <ClInclude Include="External\dinputto8\IDirectInputEnum.h" />

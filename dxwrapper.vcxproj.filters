@@ -1730,6 +1730,9 @@
     <ClInclude Include="Wrappers\wsock32.h">
       <Filter>Wrappers</Filter>
     </ClInclude>
+    <ClInclude Include="External\dinputto8\ditypes.h">
+      <Filter>External\dinputto8</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="Dllmain\BuildNo.rc">
