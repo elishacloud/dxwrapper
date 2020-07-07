@@ -1,10 +1,9 @@
 #pragma once
 
-class m_IDirectDrawX : public IUnknown
+class m_IDirectDrawX : public IUnknown, public AddressLookupTableDdrawObject
 {
 private:
 	IDirectDraw7 *ProxyInterface = nullptr;
-	m_IDirectDraw7 *WrapperInterface = nullptr;
 	DWORD ProxyDirectXVersion;
 	ULONG RefCount = 1;
 
@@ -17,11 +16,11 @@ private:
 	HDC MainhDC = nullptr;
 
 	// Store ddraw version wrappers
-	std::unique_ptr<m_IDirectDraw> UniqueProxyInterface = nullptr;
-	std::unique_ptr<m_IDirectDraw2> UniqueProxyInterface2 = nullptr;
-	std::unique_ptr<m_IDirectDraw3> UniqueProxyInterface3 = nullptr;
-	std::unique_ptr<m_IDirectDraw4> UniqueProxyInterface4 = nullptr;
-	std::unique_ptr<m_IDirectDraw7> UniqueProxyInterface7 = nullptr;
+	m_IDirectDraw *WrapperInterface;
+	m_IDirectDraw2 *WrapperInterface2;
+	m_IDirectDraw3 *WrapperInterface3;
+	m_IDirectDraw4 *WrapperInterface4;
+	m_IDirectDraw7 *WrapperInterface7;
 
 	// Store primary surface
 	m_IDirectDrawSurfaceX *PrimarySurface = nullptr;
@@ -43,9 +42,9 @@ private:
 	m_IDirect3DDeviceX *D3DDeviceInterface = nullptr;
 
 public:
-	m_IDirectDrawX(IDirectDraw7 *aOriginal, DWORD DirectXVersion, m_IDirectDraw7 *Interface) : ProxyInterface(aOriginal), WrapperInterface(Interface)
+	m_IDirectDrawX(IDirectDraw7 *aOriginal, DWORD DirectXVersion) : ProxyInterface(aOriginal)
 	{
-		ProxyDirectXVersion = GetIIDVersion(ConvertREFIID(GetWrapperType(DirectXVersion)));
+		ProxyDirectXVersion = GetGUIDVersion(ConvertREFIID(GetWrapperType(DirectXVersion)));
 
 		if (ProxyDirectXVersion != DirectXVersion)
 		{
@@ -55,6 +54,14 @@ public:
 		{
 			LOG_LIMIT(3, "Creating device " << __FUNCTION__ << "(" << this << ") v" << DirectXVersion);
 		}
+
+		WrapperInterface = new m_IDirectDraw((LPDIRECTDRAW)ProxyInterface, this);
+		WrapperInterface2 = new m_IDirectDraw2((LPDIRECTDRAW2)ProxyInterface, this);
+		WrapperInterface3 = new m_IDirectDraw3((LPDIRECTDRAW3)ProxyInterface, this);
+		WrapperInterface4 = new m_IDirectDraw4((LPDIRECTDRAW4)ProxyInterface, this);
+		WrapperInterface7 = new m_IDirectDraw7((LPDIRECTDRAW7)ProxyInterface, this);
+
+		ProxyAddressLookupTable.SaveAddress(this, ProxyInterface);
 	}
 	m_IDirectDrawX(DWORD DirectXVersion)
 	{
@@ -62,11 +69,25 @@ public:
 
 		LOG_LIMIT(3, "Creating device " << __FUNCTION__ << "(" << this << ")" << " converting device from v" << DirectXVersion << " to v" << ProxyDirectXVersion);
 
+		WrapperInterface = new m_IDirectDraw((LPDIRECTDRAW)ProxyInterface, this);
+		WrapperInterface2 = new m_IDirectDraw2((LPDIRECTDRAW2)ProxyInterface, this);
+		WrapperInterface3 = new m_IDirectDraw3((LPDIRECTDRAW3)ProxyInterface, this);
+		WrapperInterface4 = new m_IDirectDraw4((LPDIRECTDRAW4)ProxyInterface, this);
+		WrapperInterface7 = new m_IDirectDraw7((LPDIRECTDRAW7)ProxyInterface, this);
+
 		InitDdrawSettings();
+
+		ProxyAddressLookupTable.SaveAddress(this, ProxyInterface);
 	}
 	~m_IDirectDrawX()
 	{
 		LOG_LIMIT(3, __FUNCTION__ << "(" << this << ")" << " deleting device!");
+
+		WrapperInterface->DeleteMe();
+		WrapperInterface2->DeleteMe();
+		WrapperInterface3->DeleteMe();
+		WrapperInterface4->DeleteMe();
+		WrapperInterface7->DeleteMe();
 
 		if (g_hook)
 		{
@@ -77,16 +98,12 @@ public:
 		{
 			ReleaseDdraw();
 		}
+
+		ProxyAddressLookupTable.DeleteAddress(this);
 	}
 
-	DWORD GetDirectXVersion() { return DDWRAPPER_TYPEX; }
-	REFIID GetWrapperType() { return IID_IUnknown; }
-	IDirectDraw7 *GetProxyInterface() { return ProxyInterface; }
-	m_IDirectDraw7 *GetWrapperInterface() { return WrapperInterface; }
-
 	/*** IUnknown methods ***/
-	HRESULT QueryInterface(REFIID riid, LPVOID FAR * ppvObj, DWORD DirectXVersion);
-	STDMETHOD(QueryInterface) (THIS_ REFIID riid, LPVOID FAR * ppvObj) { return QueryInterface(riid, ppvObj, ProxyDirectXVersion); }
+	STDMETHOD(QueryInterface) (THIS_ REFIID riid, LPVOID FAR * ppvObj);
 	STDMETHOD_(ULONG, AddRef) (THIS);
 	STDMETHOD_(ULONG, Release) (THIS);
 

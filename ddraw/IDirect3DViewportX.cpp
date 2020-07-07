@@ -16,9 +16,20 @@
 
 #include "ddraw.h"
 
-HRESULT m_IDirect3DViewportX::QueryInterface(REFIID riid, LPVOID * ppvObj, DWORD DirectXVersion)
+HRESULT m_IDirect3DViewportX::QueryInterface(REFIID riid, LPVOID * ppvObj)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
+
+	if (ppvObj && riid == IID_GetRealInterface)
+	{
+		*ppvObj = ProxyInterface;
+		return DD_OK;
+	}
+	if (ppvObj && riid == IID_GetInterfaceX)
+	{
+		*ppvObj = this;
+		return DD_OK;
+	}
 
 	if (ProxyDirectXVersion > 3)
 	{
@@ -32,7 +43,7 @@ HRESULT m_IDirect3DViewportX::QueryInterface(REFIID riid, LPVOID * ppvObj, DWORD
 		}
 	}
 
-	return ProxyQueryInterface(ProxyInterface, riid, ppvObj, GetWrapperType(DirectXVersion), WrapperInterface);
+	return ProxyQueryInterface(ProxyInterface, riid, ppvObj, GetWrapperType(GetGUIDVersion(riid)), GetWrapperInterfaceX(GetGUIDVersion(riid)));
 }
 
 void *m_IDirect3DViewportX::GetWrapperInterfaceX(DWORD DirectXVersion)
@@ -40,23 +51,11 @@ void *m_IDirect3DViewportX::GetWrapperInterfaceX(DWORD DirectXVersion)
 	switch (DirectXVersion)
 	{
 	case 1:
-		if (!UniqueProxyInterface.get())
-		{
-			UniqueProxyInterface = std::make_unique<m_IDirect3DViewport>(this);
-		}
-		return UniqueProxyInterface.get();
+		return WrapperInterface;
 	case 2:
-		if (!UniqueProxyInterface2.get())
-		{
-			UniqueProxyInterface2 = std::make_unique<m_IDirect3DViewport2>(this);
-		}
-		return UniqueProxyInterface2.get();
+		return WrapperInterface2;
 	case 3:
-		if (!UniqueProxyInterface3.get())
-		{
-			UniqueProxyInterface3 = std::make_unique<m_IDirect3DViewport3>(this);
-		}
-		return UniqueProxyInterface3.get();
+		return WrapperInterface3;
 	default:
 		LOG_LIMIT(100, __FUNCTION__ << " Error: wrapper interface version not found: " << DirectXVersion);
 		return nullptr;
@@ -92,14 +91,7 @@ ULONG m_IDirect3DViewportX::Release()
 
 	if (ref == 0)
 	{
-		if (WrapperInterface)
-		{
-			WrapperInterface->DeleteMe();
-		}
-		else
-		{
-			delete this;
-		}
+		delete this;
 	}
 
 	return ref;
@@ -116,7 +108,7 @@ HRESULT m_IDirect3DViewportX::Initialize(LPDIRECT3D lpDirect3D)
 
 	if (lpDirect3D)
 	{
-		lpDirect3D = static_cast<m_IDirect3D *>(lpDirect3D)->GetProxyInterface();
+		lpDirect3D->QueryInterface(IID_GetRealInterface, (LPVOID*)&lpDirect3D);
 	}
 
 	return ProxyInterface->Initialize(lpDirect3D);
@@ -259,7 +251,7 @@ HRESULT m_IDirect3DViewportX::SetBackgroundDepth(LPDIRECTDRAWSURFACE lpDDSurface
 
 	if (lpDDSurface)
 	{
-		lpDDSurface = static_cast<m_IDirectDrawSurface *>(lpDDSurface)->GetProxyInterface();
+		lpDDSurface->QueryInterface(IID_GetRealInterface, (LPVOID*)&lpDDSurface);
 	}
 
 	return ProxyInterface->SetBackgroundDepth(lpDDSurface);
@@ -315,7 +307,7 @@ HRESULT m_IDirect3DViewportX::AddLight(LPDIRECT3DLIGHT lpDirect3DLight)
 
 	if (lpDirect3DLight)
 	{
-		lpDirect3DLight = static_cast<m_IDirect3DLight *>(lpDirect3DLight)->GetProxyInterface();
+		lpDirect3DLight->QueryInterface(IID_GetRealInterface, (LPVOID*)&lpDirect3DLight);
 	}
 
 	return ProxyInterface->AddLight(lpDirect3DLight);
@@ -333,7 +325,7 @@ HRESULT m_IDirect3DViewportX::DeleteLight(LPDIRECT3DLIGHT lpDirect3DLight)
 
 	if (lpDirect3DLight)
 	{
-		lpDirect3DLight = static_cast<m_IDirect3DLight *>(lpDirect3DLight)->GetProxyInterface();
+		lpDirect3DLight->QueryInterface(IID_GetRealInterface, (LPVOID*)&lpDirect3DLight);
 	}
 
 	return ProxyInterface->DeleteLight(lpDirect3DLight);
@@ -351,7 +343,7 @@ HRESULT m_IDirect3DViewportX::NextLight(LPDIRECT3DLIGHT lpDirect3DLight, LPDIREC
 
 	if (lpDirect3DLight)
 	{
-		lpDirect3DLight = static_cast<m_IDirect3DLight *>(lpDirect3DLight)->GetProxyInterface();
+		lpDirect3DLight->QueryInterface(IID_GetRealInterface, (LPVOID*)&lpDirect3DLight);
 	}
 
 	HRESULT hr = ProxyInterface->NextLight(lpDirect3DLight, lplpDirect3DLight, dwFlags);
@@ -449,7 +441,7 @@ HRESULT m_IDirect3DViewportX::SetBackgroundDepth2(LPDIRECTDRAWSURFACE4 lpDDS)
 
 	if (lpDDS)
 	{
-		lpDDS = static_cast<m_IDirectDrawSurface4 *>(lpDDS)->GetProxyInterface();
+		lpDDS->QueryInterface(IID_GetRealInterface, (LPVOID*)&lpDDS);
 	}
 
 	return ProxyInterface->SetBackgroundDepth2(lpDDS);

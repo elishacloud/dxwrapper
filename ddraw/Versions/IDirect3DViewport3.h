@@ -3,32 +3,20 @@
 class m_IDirect3DViewport3 : public IDirect3DViewport3, public AddressLookupTableDdrawObject
 {
 private:
-	std::unique_ptr<m_IDirect3DViewportX> UniqueProxyInterface;
 	m_IDirect3DViewportX *ProxyInterface;
 	IDirect3DViewport3 *RealInterface;
 	REFIID WrapperID = IID_IDirect3DViewport3;
 	const DWORD DirectXVersion = 3;
 
 public:
-	m_IDirect3DViewport3(IDirect3DViewport3 *aOriginal) : RealInterface(aOriginal)
+	m_IDirect3DViewport3(IDirect3DViewport3 *aOriginal, m_IDirect3DViewportX *Interface) : RealInterface(aOriginal), ProxyInterface(Interface)
 	{
-		UniqueProxyInterface = std::make_unique<m_IDirect3DViewportX>((IDirect3DViewport3*)RealInterface, DirectXVersion, (m_IDirect3DViewport3*)this);
-		ProxyInterface = UniqueProxyInterface.get();
 		ProxyAddressLookupTable.SaveAddress(this, RealInterface);
-	}
-	m_IDirect3DViewport3(m_IDirect3DViewportX *aOriginal) : ProxyInterface(aOriginal)
-	{
-		RealInterface = nullptr;
 	}
 	~m_IDirect3DViewport3()
 	{
 		ProxyAddressLookupTable.DeleteAddress(this);
 	}
-
-	DWORD GetDirectXVersion() { return DirectXVersion; }
-	REFIID GetWrapperType() { return WrapperID; }
-	IDirect3DViewport3 *GetProxyInterface() { return RealInterface; }
-	m_IDirect3DViewportX *GetWrapperInterface() { return ProxyInterface; }
 
 	/*** IUnknown methods ***/
 	STDMETHOD(QueryInterface)(THIS_ REFIID riid, LPVOID * ppvObj);

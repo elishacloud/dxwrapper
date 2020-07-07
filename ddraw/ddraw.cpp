@@ -275,7 +275,9 @@ HRESULT WINAPI dd_DirectDrawCreate(GUID FAR *lpGUID, LPDIRECTDRAW FAR *lplpDD, I
 		}
 		else
 		{
-			*lplpDD = ProxyAddressLookupTable.FindAddress<m_IDirectDraw>(*lplpDD);
+			m_IDirectDrawX *Interface = new m_IDirectDrawX((IDirectDraw7*)*lplpDD, 1);
+
+			*lplpDD = (LPDIRECTDRAW)Interface->GetWrapperInterfaceX(1);
 		}
 	}
 
@@ -309,7 +311,7 @@ HRESULT WINAPI dd_DirectDrawCreateClipper(DWORD dwFlags, LPDIRECTDRAWCLIPPER *lp
 
 	if (SUCCEEDED(hr) && lplpDDClipper)
 	{
-		*lplpDDClipper = ProxyAddressLookupTable.FindAddress<m_IDirectDrawClipper>(*lplpDDClipper);
+		*lplpDDClipper = new m_IDirectDrawClipper(*lplpDDClipper);
 	}
 
 	return hr;
@@ -336,7 +338,7 @@ HRESULT WINAPI dd_DirectDrawCreateEx(GUID FAR *lpGUID, LPVOID *lplpDD, REFIID ri
 			return DDERR_INVALIDPARAMS;
 		}
 
-		DWORD DxVersion = GetIIDVersion(riid);
+		DWORD DxVersion = GetGUIDVersion(riid);
 
 		LOG_LIMIT(3, "Redirecting 'DirectDrawCreate' " << riid << " to --> 'Direct3DCreate9'");
 
@@ -361,7 +363,11 @@ HRESULT WINAPI dd_DirectDrawCreateEx(GUID FAR *lpGUID, LPVOID *lplpDD, REFIID ri
 
 	if (SUCCEEDED(hr))
 	{
-		genericQueryInterface(riid, lplpDD);
+		DWORD DxVersion = GetGUIDVersion(riid);
+
+		m_IDirectDrawX *p_IDirectDrawX = new m_IDirectDrawX((IDirectDraw7*)*lplpDD, DxVersion);
+
+		*lplpDD = p_IDirectDrawX->GetWrapperInterfaceX(DxVersion);
 	}
 
 	return hr;

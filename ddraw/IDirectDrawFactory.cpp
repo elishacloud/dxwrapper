@@ -103,7 +103,9 @@ HRESULT m_IDirectDrawFactory::CreateDirectDraw(GUID * pGUID, HWND hWnd, DWORD dw
 
 	if (SUCCEEDED(hr) && ppDirectDraw)
 	{
-		*ppDirectDraw = ProxyAddressLookupTable.FindAddress<m_IDirectDraw>(*ppDirectDraw);
+		m_IDirectDrawX *Interface = new m_IDirectDrawX((IDirectDraw7*)*ppDirectDraw, 1);
+
+		*ppDirectDraw = (LPDIRECTDRAW)Interface->GetWrapperInterfaceX(1);
 	}
 
 	return hr;

@@ -89,27 +89,38 @@ struct HANDLE_DATA
 	HWND best_handle = nullptr;
 };
 
-std::unordered_map<HWND, m_IDirectDraw7*> g_hookmap;
+std::unordered_map<HWND, m_IDirectDrawX*> g_hookmap;
 
 /************************/
 /*** IUnknown methods ***/
 /************************/
 
-HRESULT m_IDirectDrawX::QueryInterface(REFIID riid, LPVOID FAR * ppvObj, DWORD DirectXVersion)
+HRESULT m_IDirectDrawX::QueryInterface(REFIID riid, LPVOID FAR * ppvObj)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
+
+	if (ppvObj && riid == IID_GetRealInterface)
+	{
+		*ppvObj = ProxyInterface;
+		return DD_OK;
+	}
+	if (ppvObj && riid == IID_GetInterfaceX)
+	{
+		*ppvObj = this;
+		return DD_OK;
+	}
 
 	if (!ppvObj)
 	{
 		return DDERR_GENERIC;
 	}
 
+	DWORD DxVersion = GetGUIDVersion(riid);
+
 	if (Config.Dd7to9)
 	{
 		if (riid == IID_IDirectDraw || riid == IID_IDirectDraw2 || riid == IID_IDirectDraw3 || riid == IID_IDirectDraw4 || riid == IID_IDirectDraw7 || riid == IID_IUnknown)
 		{
-			DWORD DxVersion = (riid == IID_IUnknown) ? DirectXVersion : GetIIDVersion(riid);
-
 			*ppvObj = GetWrapperInterfaceX(DxVersion);
 
 			::AddRef(*ppvObj);
@@ -118,8 +129,6 @@ HRESULT m_IDirectDrawX::QueryInterface(REFIID riid, LPVOID FAR * ppvObj, DWORD D
 		}
 		if (riid == IID_IDirect3D || riid == IID_IDirect3D2 || riid == IID_IDirect3D3 || riid == IID_IDirect3D7)
 		{
-			DWORD DxVersion = GetIIDVersion(riid);
-
 			SetCriticalSection();
 			if (D3DInterface)
 			{
@@ -149,13 +158,15 @@ HRESULT m_IDirectDrawX::QueryInterface(REFIID riid, LPVOID FAR * ppvObj, DWORD D
 		}
 	}
 
-	HRESULT hr = ProxyQueryInterface(ProxyInterface, riid, ppvObj, GetWrapperType(DirectXVersion), WrapperInterface);
+	HRESULT hr = ProxyQueryInterface(ProxyInterface, riid, ppvObj, GetWrapperType(DxVersion), GetWrapperInterfaceX(DxVersion));
 
 	if (SUCCEEDED(hr) && Config.ConvertToDirect3D7)
 	{
 		if (riid == IID_IDirect3D || riid == IID_IDirect3D2 || riid == IID_IDirect3D3 || riid == IID_IDirect3D7)
 		{
-			m_IDirect3DX *lpD3DirectX = ((m_IDirect3D7*)*ppvObj)->GetWrapperInterface();
+			m_IDirect3DX *lpD3DirectX = nullptr;
+
+			((IDirect3D7*)*ppvObj)->QueryInterface(IID_GetInterfaceX, (LPVOID*)&lpD3DirectX);
 
 			if (lpD3DirectX)
 			{
@@ -172,35 +183,15 @@ void *m_IDirectDrawX::GetWrapperInterfaceX(DWORD DirectXVersion)
 	switch (DirectXVersion)
 	{
 	case 1:
-		if (!UniqueProxyInterface.get())
-		{
-			UniqueProxyInterface = std::make_unique<m_IDirectDraw>(this);
-		}
-		return UniqueProxyInterface.get();
+		return WrapperInterface;
 	case 2:
-		if (!UniqueProxyInterface2.get())
-		{
-			UniqueProxyInterface2 = std::make_unique<m_IDirectDraw2>(this);
-		}
-		return UniqueProxyInterface2.get();
+		return WrapperInterface2;
 	case 3:
-		if (!UniqueProxyInterface3.get())
-		{
-			UniqueProxyInterface3 = std::make_unique<m_IDirectDraw3>(this);
-		}
-		return UniqueProxyInterface3.get();
+		return WrapperInterface3;
 	case 4:
-		if (!UniqueProxyInterface4.get())
-		{
-			UniqueProxyInterface4 = std::make_unique<m_IDirectDraw4>(this);
-		}
-		return UniqueProxyInterface4.get();
+		return WrapperInterface4;
 	case 7:
-		if (!UniqueProxyInterface7.get())
-		{
-			UniqueProxyInterface7 = std::make_unique<m_IDirectDraw7>(this);
-		}
-		return UniqueProxyInterface7.get();
+		return WrapperInterface7;
 	default:
 		LOG_LIMIT(100, __FUNCTION__ << " Error: wrapper interface version not found: " << DirectXVersion);
 		return nullptr;
@@ -236,14 +227,7 @@ ULONG m_IDirectDrawX::Release()
 
 	if (ref == 0)
 	{
-		if (WrapperInterface)
-		{
-			WrapperInterface->DeleteMe();
-		}
-		else
-		{
-			delete this;
-		}
+		delete this;
 	}
 
 	return ref;
@@ -286,7 +270,7 @@ HRESULT m_IDirectDrawX::CreateClipper(DWORD dwFlags, LPDIRECTDRAWCLIPPER FAR * l
 
 	if (SUCCEEDED(hr) && lplpDDClipper)
 	{
-		*lplpDDClipper = ProxyAddressLookupTable.FindAddress<m_IDirectDrawClipper>(*lplpDDClipper);
+		*lplpDDClipper = new m_IDirectDrawClipper(*lplpDDClipper);
 	}
 
 	return hr;
@@ -316,7 +300,7 @@ HRESULT m_IDirectDrawX::CreatePalette(DWORD dwFlags, LPPALETTEENTRY lpDDColorArr
 
 	if (SUCCEEDED(hr) && lplpDDPalette)
 	{
-		*lplpDDPalette = ProxyAddressLookupTable.FindAddress<m_IDirectDrawPalette>(*lplpDDPalette);
+		*lplpDDPalette = new m_IDirectDrawPalette(*lplpDDPalette);
 	}
 
 	return hr;
@@ -346,7 +330,9 @@ HRESULT m_IDirectDrawX::CreateSurface(LPDDSURFACEDESC lpDDSurfaceDesc, LPDIRECTD
 
 	if (SUCCEEDED(hr) && lplpDDSurface)
 	{
-		*lplpDDSurface = ProxyAddressLookupTable.FindAddress<m_IDirectDrawSurface7>(*lplpDDSurface, DirectXVersion);
+		m_IDirectDrawSurfaceX *D3DSurfaceDevice = new m_IDirectDrawSurfaceX((IDirectDrawSurface7*)*lplpDDSurface, DirectXVersion);
+
+		*lplpDDSurface = (LPDIRECTDRAWSURFACE7)D3DSurfaceDevice->GetWrapperInterfaceX(DirectXVersion);
 	}
 
 	return hr;
@@ -481,16 +467,13 @@ HRESULT m_IDirectDrawX::CreateSurface2(LPDDSURFACEDESC2 lpDDSurfaceDesc2, LPDIRE
 
 	if (SUCCEEDED(hr) && lplpDDSurface)
 	{
-		*lplpDDSurface = ProxyAddressLookupTable.FindAddress<m_IDirectDrawSurface7>(*lplpDDSurface, DirectXVersion);
+		m_IDirectDrawSurfaceX *D3DSurfaceDevice = new m_IDirectDrawSurfaceX((IDirectDrawSurface7*)*lplpDDSurface, DirectXVersion);
 
-		if (Config.ConvertToDirectDraw7 && *lplpDDSurface)
+		*lplpDDSurface = (LPDIRECTDRAWSURFACE7)D3DSurfaceDevice->GetWrapperInterfaceX(DirectXVersion);
+
+		if (Config.ConvertToDirectDraw7)
 		{
-			m_IDirectDrawSurfaceX *lpDDSurfaceX = ((m_IDirectDrawSurface7*)*lplpDDSurface)->GetWrapperInterface();
-
-			if (lpDDSurfaceX)
-			{
-				lpDDSurfaceX->SetDdrawParent(this);
-			}
+			D3DSurfaceDevice->SetDdrawParent(this);
 		}
 	}
 
@@ -523,23 +506,20 @@ HRESULT m_IDirectDrawX::DuplicateSurface(LPDIRECTDRAWSURFACE7 lpDDSurface, LPDIR
 
 	if (lpDDSurface)
 	{
-		lpDDSurface = static_cast<m_IDirectDrawSurface7 *>(lpDDSurface)->GetProxyInterface();
+		lpDDSurface->QueryInterface(IID_GetRealInterface, (LPVOID*)&lpDDSurface);
 	}
 
 	HRESULT hr = ProxyInterface->DuplicateSurface(lpDDSurface, lplpDupDDSurface);
 
 	if (SUCCEEDED(hr) && lplpDupDDSurface && lpDDSurface)
 	{
-		*lplpDupDDSurface = ProxyAddressLookupTable.FindAddress<m_IDirectDrawSurface7>(*lplpDupDDSurface, ((m_IDirectDrawSurface7 *)lpDDSurface)->GetDirectXVersion());
+		m_IDirectDrawSurfaceX *D3DSurfaceDevice = new m_IDirectDrawSurfaceX((IDirectDrawSurface7*)*lplpDupDDSurface, DirectXVersion);
 
-		if (Config.ConvertToDirectDraw7 && *lplpDupDDSurface)
+		*lplpDupDDSurface = (LPDIRECTDRAWSURFACE7)D3DSurfaceDevice->GetWrapperInterfaceX(DirectXVersion);
+
+		if (Config.ConvertToDirectDraw7)
 		{
-			m_IDirectDrawSurfaceX *lpDDSurfaceX = ((m_IDirectDrawSurface7*)*lplpDupDDSurface)->GetWrapperInterface();
-
-			if (lpDDSurfaceX)
-			{
-				lpDDSurfaceX->SetDdrawParent(this);
-			}
+			D3DSurfaceDevice->SetDdrawParent(this);
 		}
 	}
 
@@ -1146,7 +1126,7 @@ LRESULT CALLBACK CBTProc(int nCode, WPARAM wParam, LPARAM lParam)
 		auto it = g_hookmap.find(hWnd);
 		if (it != std::end(g_hookmap))
 		{
-			m_IDirectDraw7 *lpDDraw = it->second;
+			m_IDirectDrawX *lpDDraw = it->second;
 			if (lpDDraw && ProxyAddressLookupTable.IsValidWrapperAddress(lpDDraw))
 			{
 				lpDDraw->SetCooperativeLevel(hWnd, DDSCL_NORMAL);
@@ -1277,7 +1257,7 @@ HRESULT m_IDirectDrawX::SetCooperativeLevel(HWND hWnd, DWORD dwFlags)
 			g_hook = nullptr;
 		}
 
-		g_hookmap[hWnd] = WrapperInterface;
+		g_hookmap[hWnd] = this;
 		g_hook = SetWindowsHookEx(WH_CBT, CBTProc, nullptr, GetWindowThreadProcessId(hWnd, nullptr));
 
 		chWnd = hWnd;

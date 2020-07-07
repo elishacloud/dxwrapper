@@ -28,11 +28,6 @@ public:
 		ProxyAddressLookupTable.DeleteAddress(this);
 	}
 
-	DWORD GetDirectXVersion() { return 1; }
-	REFIID GetWrapperType() { return WrapperID; }
-	IDirect3DExecuteBuffer *GetProxyInterface() { return ProxyInterface; }
-	m_IDirect3DExecuteBuffer *GetWrapperInterface() { return this; }
-
 	/*** IUnknown methods ***/
 	STDMETHOD(QueryInterface)(THIS_ REFIID riid, LPVOID * ppvObj);
 	STDMETHOD_(ULONG, AddRef)(THIS);

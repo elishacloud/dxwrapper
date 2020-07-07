@@ -20,6 +20,17 @@ HRESULT m_IDirect3DExecuteBuffer::QueryInterface(REFIID riid, LPVOID * ppvObj)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
+	if (ppvObj && riid == IID_GetRealInterface)
+	{
+		*ppvObj = ProxyInterface;
+		return DD_OK;
+	}
+	if (ppvObj && riid == IID_GetInterfaceX)
+	{
+		*ppvObj = this;
+		return DD_OK;
+	}
+
 	if (!ProxyInterface)
 	{
 		if ((riid == IID_IDirect3DExecuteBuffer || riid == IID_IUnknown) && ppvObj)
@@ -82,7 +93,7 @@ HRESULT m_IDirect3DExecuteBuffer::Initialize(LPDIRECT3DDEVICE lpDirect3DDevice, 
 
 	if (lpDirect3DDevice)
 	{
-		lpDirect3DDevice = static_cast<m_IDirect3DDevice *>(lpDirect3DDevice)->GetProxyInterface();
+		lpDirect3DDevice->QueryInterface(IID_GetRealInterface, (LPVOID*)&lpDirect3DDevice);
 	}
 
 	return ProxyInterface->Initialize(lpDirect3DDevice, lpDesc);

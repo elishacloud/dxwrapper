@@ -23,61 +23,47 @@ char D3DIm700Path[MAX_PATH] = { '\0' };
 HMODULE hD3DIm = nullptr;
 HMODULE hD3DIm700 = nullptr;
 
-HRESULT m_IDirect3DX::QueryInterface(REFIID riid, LPVOID * ppvObj, DWORD DirectXVersion)
+HRESULT m_IDirect3DX::QueryInterface(REFIID riid, LPVOID * ppvObj)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
+
+	if (ppvObj && riid == IID_GetRealInterface)
+	{
+		*ppvObj = ProxyInterface;
+		return DD_OK;
+	}
+	if (ppvObj && riid == IID_GetInterfaceX)
+	{
+		*ppvObj = this;
+		return DD_OK;
+	}
 
 	if (Config.Dd7to9)
 	{
 		if ((riid == IID_IDirect3D || riid == IID_IDirect3D2 || riid == IID_IDirect3D3 || riid == IID_IDirect3D7 || riid == IID_IUnknown) && ppvObj)
 		{
-			DWORD DxVersion = (riid == IID_IUnknown) ? DirectXVersion : GetIIDVersion(riid);
-
-			*ppvObj = GetWrapperInterfaceX(DxVersion);
+			*ppvObj = GetWrapperInterfaceX(GetGUIDVersion(riid));
 
 			::AddRef(*ppvObj);
 
 			return D3D_OK;
 		}
 	}
-	return ProxyQueryInterface(ProxyInterface, riid, ppvObj, GetWrapperType(DirectXVersion), WrapperInterface);
+	return ProxyQueryInterface(ProxyInterface, riid, ppvObj, GetWrapperType(GetGUIDVersion(riid)), GetWrapperInterfaceX(GetGUIDVersion(riid)));
 }
 
 void *m_IDirect3DX::GetWrapperInterfaceX(DWORD DirectXVersion)
 {
-	// Check for device
-	if (!ddrawParent)
-	{
-		LOG_LIMIT(100, __FUNCTION__ << " Error: no ddraw parent!");
-		return nullptr;
-	}
-
 	switch (DirectXVersion)
 	{
 	case 1:
-		if (!UniqueProxyInterface.get())
-		{
-			UniqueProxyInterface = std::make_unique<m_IDirect3D>(this);
-		}
-		return UniqueProxyInterface.get();
+		return WrapperInterface;
 	case 2:
-		if (!UniqueProxyInterface2.get())
-		{
-			UniqueProxyInterface2 = std::make_unique<m_IDirect3D2>(this);
-		}
-		return UniqueProxyInterface2.get();
+		return WrapperInterface2;
 	case 3:
-		if (!UniqueProxyInterface3.get())
-		{
-			UniqueProxyInterface3 = std::make_unique<m_IDirect3D3>(this);
-		}
-		return UniqueProxyInterface3.get();
+		return WrapperInterface3;
 	case 7:
-		if (!UniqueProxyInterface7.get())
-		{
-			UniqueProxyInterface7 = std::make_unique<m_IDirect3D7>(this);
-		}
-		return UniqueProxyInterface7.get();
+		return WrapperInterface7;
 	default:
 		LOG_LIMIT(100, __FUNCTION__ << " Error: wrapper interface version not found: " << DirectXVersion);
 		return nullptr;
@@ -114,14 +100,7 @@ ULONG m_IDirect3DX::Release()
 	if (ref == 0)
 	{
 		// ToDo: Release all m_IDirect3DDeviceX devices when using Dd7to9.
-		if (WrapperInterface)
-		{
-			WrapperInterface->DeleteMe();
-		}
-		else
-		{
-			delete this;
-		}
+		delete this;
 	}
 
 	return ref;
@@ -334,7 +313,7 @@ HRESULT m_IDirect3DX::CreateLight(LPDIRECT3DLIGHT * lplpDirect3DLight, LPUNKNOWN
 
 	if (SUCCEEDED(hr) && lplpDirect3DLight)
 	{
-		*lplpDirect3DLight = ProxyAddressLookupTable.FindAddress<m_IDirect3DLight>(*lplpDirect3DLight);
+		*lplpDirect3DLight = new m_IDirect3DLight(*lplpDirect3DLight);
 	}
 
 	return hr;
@@ -381,7 +360,9 @@ HRESULT m_IDirect3DX::CreateMaterial(LPDIRECT3DMATERIAL3 * lplpDirect3DMaterial,
 
 	if (SUCCEEDED(hr) && lplpDirect3DMaterial)
 	{
-		*lplpDirect3DMaterial = ProxyAddressLookupTable.FindAddress<m_IDirect3DMaterial3>(*lplpDirect3DMaterial, DirectXVersion);
+		m_IDirect3DMaterialX *Interface = new m_IDirect3DMaterialX((IDirect3DMaterial3*)*lplpDirect3DMaterial, DirectXVersion);
+
+		*lplpDirect3DMaterial = (LPDIRECT3DMATERIAL3)Interface->GetWrapperInterfaceX(DirectXVersion);
 	}
 
 	return hr;
@@ -428,7 +409,9 @@ HRESULT m_IDirect3DX::CreateViewport(LPDIRECT3DVIEWPORT3 * lplpD3DViewport, LPUN
 
 	if (SUCCEEDED(hr) && lplpD3DViewport)
 	{
-		*lplpD3DViewport = ProxyAddressLookupTable.FindAddress<m_IDirect3DViewport3>(*lplpD3DViewport, DirectXVersion);
+		m_IDirect3DViewportX *Interface = new m_IDirect3DViewportX((IDirect3DViewport3*)*lplpD3DViewport, DirectXVersion);
+
+		*lplpD3DViewport = (LPDIRECT3DVIEWPORT3)Interface->GetWrapperInterfaceX(DirectXVersion);
 	}
 
 	return hr;
@@ -524,7 +507,7 @@ HRESULT m_IDirect3DX::CreateDevice(REFCLSID rclsid, LPDIRECTDRAWSURFACE7 lpDDS, 
 
 	if (lpDDS)
 	{
-		lpDDS = static_cast<m_IDirectDrawSurface7 *>(lpDDS)->GetProxyInterface();
+		lpDDS->QueryInterface(IID_GetRealInterface, (LPVOID*)&lpDDS);
 	}
 
 	HRESULT hr = DDERR_GENERIC;
@@ -547,16 +530,13 @@ HRESULT m_IDirect3DX::CreateDevice(REFCLSID rclsid, LPDIRECTDRAWSURFACE7 lpDDS, 
 
 	if (SUCCEEDED(hr) && lplpD3DDevice)
 	{
-		*lplpD3DDevice = ProxyAddressLookupTable.FindAddress<m_IDirect3DDevice7>(*lplpD3DDevice, DirectXVersion);
+		m_IDirect3DDeviceX *Interface = new m_IDirect3DDeviceX((m_IDirect3DDevice7*)*lplpD3DDevice, DirectXVersion);
 
-		if (Config.ConvertToDirect3D7 && ddrawParent && *lplpD3DDevice)
+		*lplpD3DDevice = (LPDIRECT3DDEVICE7)Interface->GetWrapperInterfaceX(DirectXVersion);
+
+		if (Config.ConvertToDirect3D7 && ddrawParent)
 		{
-			m_IDirect3DDeviceX *lpD3DDeviceX = ((m_IDirect3DDevice7*)*lplpD3DDevice)->GetWrapperInterface();
-
-			if (lpD3DDeviceX)
-			{
-				lpD3DDeviceX->SetDdrawParent(ddrawParent);
-			}
+			Interface->SetDdrawParent(ddrawParent);
 		}
 	}
 
@@ -602,7 +582,9 @@ HRESULT m_IDirect3DX::CreateVertexBuffer(LPD3DVERTEXBUFFERDESC lpVBDesc, LPDIREC
 
 	if (SUCCEEDED(hr) && lplpD3DVertexBuffer)
 	{
-		*lplpD3DVertexBuffer = ProxyAddressLookupTable.FindAddress<m_IDirect3DVertexBuffer7>(*lplpD3DVertexBuffer, (DirectXVersion == 7) ? 7 : 1);
+		m_IDirect3DVertexBufferX *Interface = new m_IDirect3DVertexBufferX((m_IDirect3DVertexBuffer7*)*lplpD3DVertexBuffer, DirectXVersion);
+
+		*lplpD3DVertexBuffer = (LPDIRECT3DVERTEXBUFFER7)Interface->GetWrapperInterfaceX(DirectXVersion);
 	}
 
 	return hr;

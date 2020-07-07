@@ -36,9 +36,20 @@ std::vector<EMUSURFACE*> memorySurfaces;
 /*** IUnknown methods ***/
 /************************/
 
-HRESULT m_IDirectDrawSurfaceX::QueryInterface(REFIID riid, LPVOID FAR * ppvObj, DWORD DirectXVersion)
+HRESULT m_IDirectDrawSurfaceX::QueryInterface(REFIID riid, LPVOID FAR * ppvObj)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
+
+	if (ppvObj && riid == IID_GetRealInterface)
+	{
+		*ppvObj = ProxyInterface;
+		return DD_OK;
+	}
+	if (ppvObj && riid == IID_GetInterfaceX)
+	{
+		*ppvObj = this;
+		return DD_OK;
+	}
 
 	if (!ppvObj)
 	{
@@ -49,9 +60,7 @@ HRESULT m_IDirectDrawSurfaceX::QueryInterface(REFIID riid, LPVOID FAR * ppvObj, 
 	{
 		if (riid == IID_IDirectDrawSurface || riid == IID_IDirectDrawSurface2 || riid == IID_IDirectDrawSurface3 || riid == IID_IDirectDrawSurface4 || riid == IID_IDirectDrawSurface7 || riid == IID_IUnknown)
 		{
-			DWORD DxVersion = (riid == IID_IUnknown) ? DirectXVersion : GetIIDVersion(riid);
-
-			*ppvObj = GetWrapperInterfaceX(DxVersion);
+			*ppvObj = GetWrapperInterfaceX(GetGUIDVersion(riid));
 
 			::AddRef(*ppvObj);
 
@@ -69,7 +78,7 @@ HRESULT m_IDirectDrawSurfaceX::QueryInterface(REFIID riid, LPVOID FAR * ppvObj, 
 
 			if (D3DDeviceX)
 			{
-				*ppvObj = D3DDeviceX->GetWrapperInterfaceX(DirectXVersion);
+				*ppvObj = D3DDeviceX->GetWrapperInterfaceX(GetGUIDVersion(riid));
 
 				::AddRef(*ppvObj);
 
@@ -80,14 +89,14 @@ HRESULT m_IDirectDrawSurfaceX::QueryInterface(REFIID riid, LPVOID FAR * ppvObj, 
 
 			if (D3DX)
 			{
-				D3DX->CreateDevice(riid, (LPDIRECTDRAWSURFACE7)this, (LPDIRECT3DDEVICE7*)&D3DDeviceX, nullptr, DirectXVersion);
+				D3DX->CreateDevice(riid, (LPDIRECTDRAWSURFACE7)this, (LPDIRECT3DDEVICE7*)&D3DDeviceX, nullptr, GetGUIDVersion(riid));
 
 				*ppvObj = D3DDeviceX;
 
 				return DD_OK;
 			}
 
-			LOG_LIMIT(100, __FUNCTION__ << " Query failed for " << riid << " from " << GetWrapperType(DirectXVersion));
+			LOG_LIMIT(100, __FUNCTION__ << " Query failed for " << riid << " from " << GetWrapperType(GetGUIDVersion(riid)));
 
 			return E_NOINTERFACE;
 		}
@@ -128,7 +137,7 @@ HRESULT m_IDirectDrawSurfaceX::QueryInterface(REFIID riid, LPVOID FAR * ppvObj, 
 		return DD_OK;
 	}
 
-	return ProxyQueryInterface(ProxyInterface, riid, ppvObj, GetWrapperType(DirectXVersion), WrapperInterface);
+	return ProxyQueryInterface(ProxyInterface, riid, ppvObj, GetWrapperType(GetGUIDVersion(riid)), WrapperInterface);
 }
 
 void *m_IDirectDrawSurfaceX::GetWrapperInterfaceX(DWORD DirectXVersion)
@@ -136,35 +145,15 @@ void *m_IDirectDrawSurfaceX::GetWrapperInterfaceX(DWORD DirectXVersion)
 	switch (DirectXVersion)
 	{
 	case 1:
-		if (!UniqueProxyInterface.get())
-		{
-			UniqueProxyInterface = std::make_unique<m_IDirectDrawSurface>(this);
-		}
-		return UniqueProxyInterface.get();
+		return WrapperInterface;
 	case 2:
-		if (!UniqueProxyInterface2.get())
-		{
-			UniqueProxyInterface2 = std::make_unique<m_IDirectDrawSurface2>(this);
-		}
-		return UniqueProxyInterface2.get();
+		return WrapperInterface2;
 	case 3:
-		if (!UniqueProxyInterface3.get())
-		{
-			UniqueProxyInterface3 = std::make_unique<m_IDirectDrawSurface3>(this);
-		}
-		return UniqueProxyInterface3.get();
+		return WrapperInterface3;
 	case 4:
-		if (!UniqueProxyInterface4.get())
-		{
-			UniqueProxyInterface4 = std::make_unique<m_IDirectDrawSurface4>(this);
-		}
-		return UniqueProxyInterface4.get();
+		return WrapperInterface4;
 	case 7:
-		if (!UniqueProxyInterface7.get())
-		{
-			UniqueProxyInterface7 = std::make_unique<m_IDirectDrawSurface7>(this);
-		}
-		return UniqueProxyInterface7.get();
+		return WrapperInterface7;
 	default:
 		LOG_LIMIT(100, __FUNCTION__ << " Error: wrapper interface version not found: " << DirectXVersion);
 		return nullptr;
@@ -205,14 +194,7 @@ ULONG m_IDirectDrawSurfaceX::Release()
 	}
 	else if (ref == 0)
 	{
-		if (WrapperInterface)
-		{
-			WrapperInterface->DeleteMe();
-		}
-		else
-		{
-			delete this;
-		}
+		delete this;
 	}
 
 	return ref;
@@ -239,7 +221,9 @@ HRESULT m_IDirectDrawSurfaceX::AddAttachedSurface(LPDIRECTDRAWSURFACE7 lpDDSurfa
 			return DDERR_GENERIC;
 		}
 
-		m_IDirectDrawSurfaceX *lpAttachedSurface = ((m_IDirectDrawSurface*)lpDDSurface)->GetWrapperInterface();
+		m_IDirectDrawSurfaceX *lpAttachedSurface = nullptr;
+
+		lpDDSurface->QueryInterface(IID_GetInterfaceX, (LPVOID*)&lpAttachedSurface);
 
 		if (lpAttachedSurface == this)
 		{
@@ -278,7 +262,7 @@ HRESULT m_IDirectDrawSurfaceX::AddAttachedSurface(LPDIRECTDRAWSURFACE7 lpDDSurfa
 
 	if (lpDDSurface)
 	{
-		lpDDSurface = static_cast<m_IDirectDrawSurface7 *>(lpDDSurface)->GetProxyInterface();
+		lpDDSurface->QueryInterface(IID_GetRealInterface, (LPVOID*)&lpDDSurface);
 	}
 
 	return ProxyInterface->AddAttachedSurface(lpDDSurface);
@@ -368,7 +352,7 @@ HRESULT m_IDirectDrawSurfaceX::Blt(LPRECT lpDestRect, LPDIRECTDRAWSURFACE7 lpDDS
 		}
 		else
 		{
-			lpDDSrcSurfaceX = ((m_IDirectDrawSurface*)lpDDSrcSurfaceX)->GetWrapperInterface();
+			lpDDSrcSurfaceX->QueryInterface(IID_GetInterfaceX, (LPVOID*)&lpDDSrcSurfaceX);
 
 			// Check if source Surface exists
 			if (!ddrawParent->DoesSurfaceExist(lpDDSrcSurfaceX))
@@ -466,14 +450,14 @@ HRESULT m_IDirectDrawSurfaceX::Blt(LPRECT lpDestRect, LPDIRECTDRAWSURFACE7 lpDDS
 
 	if (lpDDSrcSurface)
 	{
+		lpDDSrcSurface->QueryInterface(IID_GetRealInterface, (LPVOID*)&lpDDSrcSurface);
+
 		// Check if source Surface exists
-		if (!ProxyAddressLookupTable.IsValidProxyAddress<m_IDirectDrawSurface*>(((m_IDirectDrawSurface7*)lpDDSrcSurface)->GetProxyInterface()))
+		if (!ProxyAddressLookupTable.IsValidProxyAddress<m_IDirectDrawSurface*>(lpDDSrcSurface))
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Error: could not find source surface!");
 			return DD_OK;	// Just return OK
 		}
-
-		lpDDSrcSurface = static_cast<m_IDirectDrawSurface7 *>(lpDDSrcSurface)->GetProxyInterface();
 	}
 
 	return ProxyInterface->Blt(lpDestRect, lpDDSrcSurface, lpSrcRect, dwFlags, lpDDBltFx);
@@ -506,7 +490,7 @@ HRESULT m_IDirectDrawSurfaceX::BltBatch(LPDDBLTBATCH lpDDBltBatch, DWORD dwCount
 
 	if (lpDDBltBatch && lpDDBltBatch->lpDDSSrc)
 	{
-		lpDDBltBatch->lpDDSSrc = static_cast<m_IDirectDrawSurface *>(lpDDBltBatch->lpDDSSrc)->GetProxyInterface();
+		lpDDBltBatch->lpDDSSrc->QueryInterface(IID_GetRealInterface, (LPVOID*)&(lpDDBltBatch->lpDDSSrc));
 	}
 
 	return ProxyInterface->BltBatch(lpDDBltBatch, dwCount, dwFlags);
@@ -535,7 +519,16 @@ HRESULT m_IDirectDrawSurfaceX::BltFast(DWORD dwX, DWORD dwY, LPDIRECTDRAWSURFACE
 
 		// Get SrcRect
 		RECT SrcRect;
-		m_IDirectDrawSurfaceX *lpDDSrcSurfaceX = (!lpDDSrcSurface) ? this : ((m_IDirectDrawSurface*)lpDDSrcSurface)->GetWrapperInterface();
+		m_IDirectDrawSurfaceX *lpDDSrcSurfaceX = nullptr;
+
+		if (!lpDDSrcSurface)
+		{
+			lpDDSrcSurfaceX = this;
+		}
+		else
+		{
+			lpDDSrcSurface->QueryInterface(IID_GetInterfaceX, (LPVOID*)&lpDDSrcSurfaceX);
+		}
 
 		// Check if source Surface exists
 		if (!ddrawParent || !ddrawParent->DoesSurfaceExist(lpDDSrcSurfaceX))
@@ -555,7 +548,7 @@ HRESULT m_IDirectDrawSurfaceX::BltFast(DWORD dwX, DWORD dwY, LPDIRECTDRAWSURFACE
 
 	if (lpDDSrcSurface)
 	{
-		lpDDSrcSurface = static_cast<m_IDirectDrawSurface7 *>(lpDDSrcSurface)->GetProxyInterface();
+		lpDDSrcSurface->QueryInterface(IID_GetRealInterface, (LPVOID*)&lpDDSrcSurface);
 	}
 	
 	return ProxyInterface->BltFast(dwX, dwY, lpDDSrcSurface, lpSrcRect, dwFlags);
@@ -573,7 +566,9 @@ HRESULT m_IDirectDrawSurfaceX::DeleteAttachedSurface(DWORD dwFlags, LPDIRECTDRAW
 			return DDERR_INVALIDPARAMS;
 		}
 
-		m_IDirectDrawSurfaceX *lpAttachedSurface = ((m_IDirectDrawSurface*)lpDDSAttachedSurface)->GetWrapperInterface();
+		m_IDirectDrawSurfaceX *lpAttachedSurface = nullptr;
+
+		lpDDSAttachedSurface->QueryInterface(IID_GetInterfaceX, (LPVOID*)&lpAttachedSurface);
 
 		if (!DoesAttachedSurfaceExist(lpAttachedSurface))
 		{
@@ -596,7 +591,7 @@ HRESULT m_IDirectDrawSurfaceX::DeleteAttachedSurface(DWORD dwFlags, LPDIRECTDRAW
 
 	if (lpDDSAttachedSurface)
 	{
-		lpDDSAttachedSurface = static_cast<m_IDirectDrawSurface7 *>(lpDDSAttachedSurface)->GetProxyInterface();
+		lpDDSAttachedSurface->QueryInterface(IID_GetRealInterface, (LPVOID*)&lpDDSAttachedSurface);
 	}
 
 	return ProxyInterface->DeleteAttachedSurface(dwFlags, lpDDSAttachedSurface);
@@ -799,7 +794,9 @@ HRESULT m_IDirectDrawSurfaceX::Flip(LPDIRECTDRAWSURFACE7 lpDDSurfaceTargetOverri
 			// If SurfaceTargetOverride then use that surface
 			if (lpDDSurfaceTargetOverride)
 			{
-				m_IDirectDrawSurfaceX *lpTargetSurface = ((m_IDirectDrawSurface*)lpDDSurfaceTargetOverride)->GetWrapperInterface();
+				m_IDirectDrawSurfaceX *lpTargetSurface = nullptr;
+
+				lpDDSurfaceTargetOverride->QueryInterface(IID_GetInterfaceX, (LPVOID*)&lpTargetSurface);
 
 				// Check if target surface exists
 				if (!DoesFlipBackBufferExist(lpTargetSurface) || lpTargetSurface == this)
@@ -882,7 +879,7 @@ HRESULT m_IDirectDrawSurfaceX::Flip(LPDIRECTDRAWSURFACE7 lpDDSurfaceTargetOverri
 
 	if (lpDDSurfaceTargetOverride)
 	{
-		lpDDSurfaceTargetOverride = static_cast<m_IDirectDrawSurface7 *>(lpDDSurfaceTargetOverride)->GetProxyInterface();
+		lpDDSurfaceTargetOverride->QueryInterface(IID_GetRealInterface, (LPVOID*)&lpDDSurfaceTargetOverride);
 	}
 
 	return ProxyInterface->Flip(lpDDSurfaceTargetOverride, dwFlags);
@@ -977,7 +974,9 @@ HRESULT m_IDirectDrawSurfaceX::GetAttachedSurface2(LPDDSCAPS2 lpDDSCaps2, LPDIRE
 
 		if (Config.ConvertToDirectDraw7 && *lplpDDAttachedSurface)
 		{
-			m_IDirectDrawSurfaceX *lpDDSurfaceX = ((m_IDirectDrawSurface7*)*lplpDDAttachedSurface)->GetWrapperInterface();
+			m_IDirectDrawSurfaceX *lpDDSurfaceX = nullptr;
+
+			(*lplpDDAttachedSurface)->QueryInterface(IID_GetInterfaceX, (LPVOID*)&lpDDSurfaceX);
 
 			if (lpDDSurfaceX)
 			{
@@ -1453,7 +1452,7 @@ HRESULT m_IDirectDrawSurfaceX::Initialize(LPDIRECTDRAW lpDD, LPDDSURFACEDESC lpD
 
 	if (lpDD)
 	{
-		lpDD = static_cast<m_IDirectDraw *>(lpDD)->GetProxyInterface();
+		lpDD->QueryInterface(IID_GetRealInterface, (LPVOID*)&lpDD);
 	}
 
 	return GetProxyInterfaceV3()->Initialize(lpDD, lpDDSurfaceDesc);
@@ -1471,7 +1470,7 @@ HRESULT m_IDirectDrawSurfaceX::Initialize2(LPDIRECTDRAW lpDD, LPDDSURFACEDESC2 l
 
 	if (lpDD)
 	{
-		lpDD = static_cast<m_IDirectDraw *>(lpDD)->GetProxyInterface();
+		lpDD->QueryInterface(IID_GetRealInterface, (LPVOID*)&lpDD);
 	}
 
 	return ProxyInterface->Initialize(lpDD, lpDDSurfaceDesc2);
@@ -1708,7 +1707,7 @@ HRESULT m_IDirectDrawSurfaceX::SetClipper(LPDIRECTDRAWCLIPPER lpDDClipper)
 
 	if (lpDDClipper)
 	{
-		lpDDClipper = static_cast<m_IDirectDrawClipper *>(lpDDClipper)->GetProxyInterface();
+		lpDDClipper->QueryInterface(IID_GetRealInterface, (LPVOID*)&lpDDClipper);
 	}
 
 	return ProxyInterface->SetClipper(lpDDClipper);
@@ -1864,7 +1863,7 @@ HRESULT m_IDirectDrawSurfaceX::SetPalette(LPDIRECTDRAWPALETTE lpDDPalette)
 
 	if (lpDDPalette)
 	{
-		lpDDPalette = static_cast<m_IDirectDrawPalette *>(lpDDPalette)->GetProxyInterface();
+		lpDDPalette->QueryInterface(IID_GetRealInterface, (LPVOID*)&lpDDPalette);
 	}
 
 	return ProxyInterface->SetPalette(lpDDPalette);
@@ -1901,7 +1900,7 @@ HRESULT m_IDirectDrawSurfaceX::UpdateOverlay(LPRECT lpSrcRect, LPDIRECTDRAWSURFA
 
 	if (lpDDDestSurface)
 	{
-		lpDDDestSurface = static_cast<m_IDirectDrawSurface7 *>(lpDDDestSurface)->GetProxyInterface();
+		lpDDDestSurface->QueryInterface(IID_GetRealInterface, (LPVOID*)&lpDDDestSurface);
 	}
 
 	return ProxyInterface->UpdateOverlay(lpSrcRect, lpDDDestSurface, lpDestRect, dwFlags, lpDDOverlayFx);
@@ -1932,7 +1931,7 @@ HRESULT m_IDirectDrawSurfaceX::UpdateOverlayZOrder(DWORD dwFlags, LPDIRECTDRAWSU
 
 	if (lpDDSReference)
 	{
-		lpDDSReference = static_cast<m_IDirectDrawSurface7 *>(lpDDSReference)->GetProxyInterface();
+		lpDDSReference->QueryInterface(IID_GetRealInterface, (LPVOID*)&lpDDSReference);
 	}
 
 	return ProxyInterface->UpdateOverlayZOrder(dwFlags, lpDDSReference);

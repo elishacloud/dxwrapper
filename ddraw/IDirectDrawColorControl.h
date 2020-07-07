@@ -51,11 +51,6 @@ public:
 		}
 	}
 
-	DWORD GetDirectXVersion() { return 1; }
-	REFIID GetWrapperType() { return WrapperID; }
-	IDirectDrawColorControl *GetProxyInterface() { return ProxyInterface; }
-	m_IDirectDrawColorControl *GetWrapperInterface() { return this; }
-
 	/*** IUnknown methods ***/
 	STDMETHOD(QueryInterface) (THIS_ REFIID riid, LPVOID FAR * ppvObj);
 	STDMETHOD_(ULONG, AddRef) (THIS);

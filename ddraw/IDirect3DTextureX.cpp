@@ -16,9 +16,20 @@
 
 #include "ddraw.h"
 
-HRESULT m_IDirect3DTextureX::QueryInterface(REFIID riid, LPVOID * ppvObj, DWORD DirectXVersion)
+HRESULT m_IDirect3DTextureX::QueryInterface(REFIID riid, LPVOID * ppvObj)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
+
+	if (ppvObj && riid == IID_GetRealInterface)
+	{
+		*ppvObj = ProxyInterface;
+		return DD_OK;
+	}
+	if (ppvObj && riid == IID_GetInterfaceX)
+	{
+		*ppvObj = this;
+		return DD_OK;
+	}
 
 	if (ProxyDirectXVersion > 3)
 	{
@@ -32,7 +43,7 @@ HRESULT m_IDirect3DTextureX::QueryInterface(REFIID riid, LPVOID * ppvObj, DWORD 
 		}
 	}
 
-	return ProxyQueryInterface(ProxyInterface, riid, ppvObj, GetWrapperType(DirectXVersion), WrapperInterface);
+	return ProxyQueryInterface(ProxyInterface, riid, ppvObj, GetWrapperType(GetGUIDVersion(riid)), GetWrapperInterfaceX(GetGUIDVersion(riid)));
 }
 
 void *m_IDirect3DTextureX::GetWrapperInterfaceX(DWORD DirectXVersion)
@@ -40,17 +51,9 @@ void *m_IDirect3DTextureX::GetWrapperInterfaceX(DWORD DirectXVersion)
 	switch (DirectXVersion)
 	{
 	case 1:
-		if (!UniqueProxyInterface.get())
-		{
-			UniqueProxyInterface = std::make_unique<m_IDirect3DTexture>(this);
-		}
-		return UniqueProxyInterface.get();
+		return WrapperInterface;
 	case 2:
-		if (!UniqueProxyInterface2.get())
-		{
-			UniqueProxyInterface2 = std::make_unique<m_IDirect3DTexture2>(this);
-		}
-		return UniqueProxyInterface2.get();
+		return WrapperInterface2;
 	default:
 		LOG_LIMIT(100, __FUNCTION__ << " Error: wrapper interface version not found: " << DirectXVersion);
 		return nullptr;
@@ -86,14 +89,7 @@ ULONG m_IDirect3DTextureX::Release()
 
 	if (ref == 0)
 	{
-		if (WrapperInterface)
-		{
-			WrapperInterface->DeleteMe();
-		}
-		else
-		{
-			delete this;
-		}
+		delete this;
 	}
 
 	return ref;
@@ -110,11 +106,11 @@ HRESULT m_IDirect3DTextureX::Initialize(LPDIRECT3DDEVICE lpDirect3DDevice, LPDIR
 
 	if (lpDirect3DDevice)
 	{
-		lpDirect3DDevice = static_cast<m_IDirect3DDevice *>(lpDirect3DDevice)->GetProxyInterface();
+		lpDirect3DDevice->QueryInterface(IID_GetRealInterface, (LPVOID*)&lpDirect3DDevice);
 	}
 	if (lplpDDSurface)
 	{
-		lplpDDSurface = static_cast<m_IDirectDrawSurface *>(lplpDDSurface)->GetProxyInterface();
+		lplpDDSurface->QueryInterface(IID_GetRealInterface, (LPVOID*)&lplpDDSurface);
 	}
 
 	return GetProxyInterfaceV1()->Initialize(lpDirect3DDevice, lplpDDSurface);
@@ -126,7 +122,7 @@ HRESULT m_IDirect3DTextureX::GetHandle(LPDIRECT3DDEVICE2 lpDirect3DDevice2, LPD3
 
 	if (lpDirect3DDevice2)
 	{
-		lpDirect3DDevice2 = static_cast<m_IDirect3DDevice2 *>(lpDirect3DDevice2)->GetProxyInterface();
+		lpDirect3DDevice2->QueryInterface(IID_GetRealInterface, (LPVOID*)&lpDirect3DDevice2);
 	}
 
 	switch (ProxyDirectXVersion)
@@ -169,7 +165,7 @@ HRESULT m_IDirect3DTextureX::Load(LPDIRECT3DTEXTURE2 lpD3DTexture2)
 
 	if (lpD3DTexture2)
 	{
-		lpD3DTexture2 = static_cast<m_IDirect3DTexture2 *>(lpD3DTexture2)->GetProxyInterface();
+		lpD3DTexture2->QueryInterface(IID_GetRealInterface, (LPVOID*)&lpD3DTexture2);
 	}
 
 	switch (ProxyDirectXVersion)

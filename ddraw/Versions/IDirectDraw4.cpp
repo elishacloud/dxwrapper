@@ -18,7 +18,7 @@
 
 HRESULT m_IDirectDraw4::QueryInterface(REFIID riid, LPVOID FAR * ppvObj)
 {
-	return ProxyInterface->QueryInterface(riid, ppvObj, DirectXVersion);
+	return ProxyInterface->QueryInterface(ReplaceIIDUnknown(riid, WrapperID), ppvObj);
 }
 
 ULONG m_IDirectDraw4::AddRef()

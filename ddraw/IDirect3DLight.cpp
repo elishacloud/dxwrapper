@@ -20,6 +20,17 @@ HRESULT m_IDirect3DLight::QueryInterface(REFIID riid, LPVOID * ppvObj)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
+	if (ppvObj && riid == IID_GetRealInterface)
+	{
+		*ppvObj = ProxyInterface;
+		return DD_OK;
+	}
+	if (ppvObj && riid == IID_GetInterfaceX)
+	{
+		*ppvObj = this;
+		return DD_OK;
+	}
+
 	if (!ProxyInterface)
 	{
 		if ((riid == IID_IDirect3DLight || riid == IID_IUnknown) && ppvObj)
@@ -82,7 +93,7 @@ HRESULT m_IDirect3DLight::Initialize(LPDIRECT3D lpDirect3D)
 
 	if (lpDirect3D)
 	{
-		lpDirect3D = static_cast<m_IDirect3D *>(lpDirect3D)->GetProxyInterface();
+		lpDirect3D->QueryInterface(IID_GetRealInterface, (LPVOID*)&lpDirect3D);
 	}
 
 	return ProxyInterface->Initialize(lpDirect3D);

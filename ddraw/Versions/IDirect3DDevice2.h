@@ -3,32 +3,20 @@
 class m_IDirect3DDevice2 : public IDirect3DDevice2, public AddressLookupTableDdrawObject
 {
 private:
-	std::unique_ptr<m_IDirect3DDeviceX> UniqueProxyInterface;
 	m_IDirect3DDeviceX *ProxyInterface;
 	IDirect3DDevice2 *RealInterface;
 	REFIID WrapperID = IID_IDirect3DDevice2;
 	const DWORD DirectXVersion = 2;
 
 public:
-	m_IDirect3DDevice2(IDirect3DDevice2 *aOriginal) : RealInterface(aOriginal)
+	m_IDirect3DDevice2(IDirect3DDevice2 *aOriginal, m_IDirect3DDeviceX *Interface) : RealInterface(aOriginal), ProxyInterface(Interface)
 	{
-		UniqueProxyInterface = std::make_unique<m_IDirect3DDeviceX>((IDirect3DDevice7*)RealInterface, DirectXVersion, (m_IDirect3DDevice7*)this);
-		ProxyInterface = UniqueProxyInterface.get();
 		ProxyAddressLookupTable.SaveAddress(this, RealInterface);
-	}
-	m_IDirect3DDevice2(m_IDirect3DDeviceX *aOriginal) : ProxyInterface(aOriginal)
-	{
-		RealInterface = nullptr;
 	}
 	~m_IDirect3DDevice2()
 	{
 		ProxyAddressLookupTable.DeleteAddress(this);
 	}
-
-	DWORD GetDirectXVersion() { return DirectXVersion; }
-	REFIID GetWrapperType() { return WrapperID; }
-	IDirect3DDevice2 *GetProxyInterface() { return RealInterface; }
-	m_IDirect3DDeviceX *GetWrapperInterface() { return ProxyInterface; }
 
 	/*** IUnknown methods ***/
 	STDMETHOD(QueryInterface)(THIS_ REFIID riid, LPVOID * ppvObj);

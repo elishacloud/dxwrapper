@@ -20,6 +20,17 @@ HRESULT m_IDirectDrawColorControl::QueryInterface(REFIID riid, LPVOID FAR * ppvO
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
+	if (ppvObj && riid == IID_GetRealInterface)
+	{
+		*ppvObj = ProxyInterface;
+		return DD_OK;
+	}
+	if (ppvObj && riid == IID_GetInterfaceX)
+	{
+		*ppvObj = this;
+		return DD_OK;
+	}
+
 	if (!ProxyInterface)
 	{
 		if ((riid == IID_IDirectDrawColorControl || riid == IID_IUnknown) && ppvObj)

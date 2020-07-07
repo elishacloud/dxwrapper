@@ -22,6 +22,17 @@ HRESULT m_IDirectDrawClipper::QueryInterface(REFIID riid, LPVOID FAR * ppvObj)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
+	if (ppvObj && riid == IID_GetRealInterface)
+	{
+		*ppvObj = ProxyInterface;
+		return DD_OK;
+	}
+	if (ppvObj && riid == IID_GetInterfaceX)
+	{
+		*ppvObj = this;
+		return DD_OK;
+	}
+
 	if (!ProxyInterface)
 	{
 		if ((riid == IID_IDirectDrawClipper || riid == IID_IUnknown) && ppvObj)
@@ -151,7 +162,7 @@ HRESULT m_IDirectDrawClipper::Initialize(LPDIRECTDRAW lpDD, DWORD dwFlags)
 
 	if (lpDD)
 	{
-		lpDD = static_cast<m_IDirectDraw *>(lpDD)->GetProxyInterface();
+		lpDD->QueryInterface(IID_GetRealInterface, (LPVOID*)&lpDD);
 	}
 
 	return ProxyInterface->Initialize(lpDD, dwFlags);

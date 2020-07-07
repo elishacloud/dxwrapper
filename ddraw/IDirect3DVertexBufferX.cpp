@@ -16,9 +16,20 @@
 
 #include "ddraw.h"
 
-HRESULT m_IDirect3DVertexBufferX::QueryInterface(REFIID riid, LPVOID * ppvObj, DWORD DirectXVersion)
+HRESULT m_IDirect3DVertexBufferX::QueryInterface(REFIID riid, LPVOID * ppvObj)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
+
+	if (ppvObj && riid == IID_GetRealInterface)
+	{
+		*ppvObj = ProxyInterface;
+		return DD_OK;
+	}
+	if (ppvObj && riid == IID_GetInterfaceX)
+	{
+		*ppvObj = this;
+		return DD_OK;
+	}
 
 	if (ProxyDirectXVersion == 9)
 	{
@@ -32,7 +43,7 @@ HRESULT m_IDirect3DVertexBufferX::QueryInterface(REFIID riid, LPVOID * ppvObj, D
 		}
 	}
 
-	return ProxyQueryInterface(ProxyInterface, riid, ppvObj, GetWrapperType(DirectXVersion), WrapperInterface);
+	return ProxyQueryInterface(ProxyInterface, riid, ppvObj, GetWrapperType(GetGUIDVersion(riid)), GetWrapperInterfaceX(GetGUIDVersion(riid)));
 }
 
 void *m_IDirect3DVertexBufferX::GetWrapperInterfaceX(DWORD DirectXVersion)
@@ -40,17 +51,9 @@ void *m_IDirect3DVertexBufferX::GetWrapperInterfaceX(DWORD DirectXVersion)
 	switch (DirectXVersion)
 	{
 	case 1:
-		if (!UniqueProxyInterface.get())
-		{
-			UniqueProxyInterface = std::make_unique<m_IDirect3DVertexBuffer>(this);
-		}
-		return UniqueProxyInterface.get();
+		return WrapperInterface;
 	case 7:
-		if (!UniqueProxyInterface7.get())
-		{
-			UniqueProxyInterface7 = std::make_unique<m_IDirect3DVertexBuffer7>(this);
-		}
-		return UniqueProxyInterface7.get();
+		return WrapperInterface7;
 	default:
 		LOG_LIMIT(100, __FUNCTION__ << " Error: wrapper interface version not found: " << DirectXVersion);
 		return nullptr;
@@ -86,14 +89,7 @@ ULONG m_IDirect3DVertexBufferX::Release()
 
 	if (ref == 0)
 	{
-		if (WrapperInterface)
-		{
-			WrapperInterface->DeleteMe();
-		}
-		else
-		{
-			delete this;
-		}
+		delete this;
 	}
 
 	return ref;
@@ -137,11 +133,11 @@ HRESULT m_IDirect3DVertexBufferX::ProcessVertices(DWORD dwVertexOp, DWORD dwDest
 
 	if (lpSrcBuffer)
 	{
-		lpSrcBuffer = static_cast<m_IDirect3DVertexBuffer7 *>(lpSrcBuffer)->GetProxyInterface();
+		lpSrcBuffer->QueryInterface(IID_GetRealInterface, (LPVOID*)&lpSrcBuffer);
 	}
 	if (lpD3DDevice)
 	{
-		lpD3DDevice = static_cast<m_IDirect3DDevice7 *>(lpD3DDevice)->GetProxyInterface();
+		lpD3DDevice->QueryInterface(IID_GetRealInterface, (LPVOID*)&lpD3DDevice);
 	}
 
 	return ProxyInterface->ProcessVertices(dwVertexOp, dwDestIndex, dwCount, lpSrcBuffer, dwSrcIndex, lpD3DDevice, dwFlags);
@@ -172,7 +168,7 @@ HRESULT m_IDirect3DVertexBufferX::Optimize(LPDIRECT3DDEVICE7 lpD3DDevice, DWORD 
 
 	if (lpD3DDevice)
 	{
-		lpD3DDevice = static_cast<m_IDirect3DDevice7 *>(lpD3DDevice)->GetProxyInterface();
+		lpD3DDevice->QueryInterface(IID_GetRealInterface, (LPVOID*)&lpD3DDevice);
 	}
 
 	return ProxyInterface->Optimize(lpD3DDevice, dwFlags);
@@ -184,7 +180,7 @@ HRESULT m_IDirect3DVertexBufferX::ProcessVerticesStrided(DWORD dwVertexOp, DWORD
 
 	if (lpD3DDevice)
 	{
-		lpD3DDevice = static_cast<m_IDirect3DDevice7 *>(lpD3DDevice)->GetProxyInterface();
+		lpD3DDevice->QueryInterface(IID_GetRealInterface, (LPVOID*)&lpD3DDevice);
 	}
 
 	switch (ProxyDirectXVersion)

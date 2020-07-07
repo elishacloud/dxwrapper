@@ -17,7 +17,7 @@
 #include "ddraw.h"
 #include "IClassFactory\IClassFactory.h"
 
-DWORD DdrawWrapper::GetIIDVersion(REFIID riid)
+DWORD DdrawWrapper::GetGUIDVersion(REFIID riid)
 {
 	return (riid == IID_IDirectDraw || riid == IID_IDirectDrawSurface || riid == IID_IDirect3D || riid == IID_IDirect3DDevice ||
 		riid == IID_IDirect3DMaterial || riid == IID_IDirect3DTexture || riid == IID_IDirect3DVertexBuffer || riid == IID_IDirect3DViewport ||
@@ -30,6 +30,11 @@ DWORD DdrawWrapper::GetIIDVersion(REFIID riid)
 		(riid == IID_IDirectDraw4 || riid == IID_IDirectDrawSurface4) ? 4 :
 		(riid == IID_IDirectDraw7 || riid == IID_IDirectDrawSurface7 || riid == IID_IDirect3D7 || riid == IID_IDirect3DDevice7 ||
 			riid == IID_IDirect3DVertexBuffer7) ? 7 : 0;
+}
+
+REFIID DdrawWrapper::ReplaceIIDUnknown(REFIID riid, REFIID guid)
+{
+	return (riid == IID_IUnknown) ? guid : riid;
 }
 
 REFCLSID DdrawWrapper::ConvertREFCLSID(REFCLSID rclsid)

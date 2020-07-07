@@ -18,7 +18,7 @@
 
 HRESULT m_IDirect3DDevice7::QueryInterface(REFIID riid, LPVOID * ppvObj)
 {
-	return ProxyInterface->QueryInterface(riid, ppvObj, DirectXVersion);
+	return ProxyInterface->QueryInterface(ReplaceIIDUnknown(riid, WrapperID), ppvObj);
 }
 
 ULONG m_IDirect3DDevice7::AddRef()

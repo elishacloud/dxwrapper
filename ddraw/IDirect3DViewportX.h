@@ -1,10 +1,9 @@
 #pragma once
 
-class m_IDirect3DViewportX : public IUnknown
+class m_IDirect3DViewportX : public IUnknown, public AddressLookupTableDdrawObject
 {
 private:
 	IDirect3DViewport3 *ProxyInterface = nullptr;
-	m_IDirect3DViewport3 *WrapperInterface = nullptr;
 	DWORD ProxyDirectXVersion;
 	ULONG RefCount = 1;
 
@@ -15,15 +14,15 @@ private:
 	bool ViewPortSet = false;
 	bool ViewPort2Set = false;
 
-	// Store ddraw version wrappers
-	std::unique_ptr<m_IDirect3DViewport> UniqueProxyInterface = nullptr;
-	std::unique_ptr<m_IDirect3DViewport2> UniqueProxyInterface2 = nullptr;
-	std::unique_ptr<m_IDirect3DViewport3> UniqueProxyInterface3 = nullptr;
+	// Store version wrappers
+	m_IDirect3DViewport *WrapperInterface;
+	m_IDirect3DViewport2 *WrapperInterface2;
+	m_IDirect3DViewport3 *WrapperInterface3;
 
 public:
-	m_IDirect3DViewportX(IDirect3DViewport3 *aOriginal, DWORD DirectXVersion, m_IDirect3DViewport3 *Interface) : ProxyInterface(aOriginal), WrapperInterface(Interface)
+	m_IDirect3DViewportX(IDirect3DViewport3 *aOriginal, DWORD DirectXVersion) : ProxyInterface(aOriginal)
 	{
-		ProxyDirectXVersion = GetIIDVersion(ConvertREFIID(GetWrapperType(DirectXVersion)));
+		ProxyDirectXVersion = GetGUIDVersion(ConvertREFIID(GetWrapperType(DirectXVersion)));
 
 		if (ProxyDirectXVersion != DirectXVersion)
 		{
@@ -33,26 +32,38 @@ public:
 		{
 			LOG_LIMIT(3, "Creating device " << __FUNCTION__ << "(" << this << ") v" << DirectXVersion);
 		}
+
+		WrapperInterface = new m_IDirect3DViewport((LPDIRECT3DVIEWPORT)ProxyInterface, this);
+		WrapperInterface2 = new m_IDirect3DViewport2((LPDIRECT3DVIEWPORT2)ProxyInterface, this);
+		WrapperInterface3 = new m_IDirect3DViewport3((LPDIRECT3DVIEWPORT3)ProxyInterface, this);
+
+		ProxyAddressLookupTable.SaveAddress(this, ProxyInterface);
 	}
 	m_IDirect3DViewportX(m_IDirect3DDeviceX **D3DDInterface, DWORD DirectXVersion) : D3DDeviceInterface(D3DDInterface)
 	{
 		ProxyDirectXVersion = (!Config.Dd7to9) ? 7 : 9;
 
 		LOG_LIMIT(3, "Creating device " << __FUNCTION__ << "(" << this << ")" << " converting device from v" << DirectXVersion << " to v" << ProxyDirectXVersion);
+
+		WrapperInterface = new m_IDirect3DViewport((LPDIRECT3DVIEWPORT)ProxyInterface, this);
+		WrapperInterface2 = new m_IDirect3DViewport2((LPDIRECT3DVIEWPORT2)ProxyInterface, this);
+		WrapperInterface3 = new m_IDirect3DViewport3((LPDIRECT3DVIEWPORT3)ProxyInterface, this);
+
+		ProxyAddressLookupTable.SaveAddress(this, ProxyInterface);
 	}
 	~m_IDirect3DViewportX()
 	{
 		LOG_LIMIT(3, __FUNCTION__ << "(" << this << ")" << " deleting device!");
+
+		WrapperInterface->DeleteMe();
+		WrapperInterface2->DeleteMe();
+		WrapperInterface3->DeleteMe();
+
+		ProxyAddressLookupTable.DeleteAddress(this);
 	}
 
-	DWORD GetDirectXVersion() { return DDWRAPPER_TYPEX; }
-	REFIID GetWrapperType() { return IID_IUnknown; }
-	IDirect3DViewport3 *GetProxyInterface() { return ProxyInterface; }
-	m_IDirect3DViewport3 *GetWrapperInterface() { return WrapperInterface; }
-
 	/*** IUnknown methods ***/
-	HRESULT QueryInterface(REFIID riid, LPVOID FAR * ppvObj, DWORD DirectXVersion);
-	STDMETHOD(QueryInterface) (THIS_ REFIID riid, LPVOID FAR * ppvObj) { return QueryInterface(riid, ppvObj, ProxyDirectXVersion); }
+	STDMETHOD(QueryInterface) (THIS_ REFIID riid, LPVOID FAR * ppvObj);
 	STDMETHOD_(ULONG, AddRef)(THIS);
 	STDMETHOD_(ULONG, Release)(THIS);
 

@@ -15,11 +15,10 @@ struct EMUSURFACE
 	HGDIOBJ OldDCObject = nullptr;
 };
 
-class m_IDirectDrawSurfaceX : public IUnknown
+class m_IDirectDrawSurfaceX : public IUnknown, public AddressLookupTableDdrawObject
 {
 private:
 	IDirectDrawSurface7 *ProxyInterface = nullptr;
-	m_IDirectDrawSurface7 *WrapperInterface = nullptr;
 	DWORD ProxyDirectXVersion;
 	ULONG RefCount = 1;
 
@@ -86,11 +85,11 @@ private:
 	LPDIRECT3DVERTEXBUFFER9 vertexBuffer = nullptr;		// Vertex buffer used to stretch the texture accross the screen
 
 	// Store ddraw surface version wrappers
-	std::unique_ptr<m_IDirectDrawSurface> UniqueProxyInterface = nullptr;
-	std::unique_ptr<m_IDirectDrawSurface2> UniqueProxyInterface2 = nullptr;
-	std::unique_ptr<m_IDirectDrawSurface3> UniqueProxyInterface3 = nullptr;
-	std::unique_ptr<m_IDirectDrawSurface4> UniqueProxyInterface4 = nullptr;
-	std::unique_ptr<m_IDirectDrawSurface7> UniqueProxyInterface7 = nullptr;
+	m_IDirectDrawSurface *WrapperInterface;
+	m_IDirectDrawSurface2 *WrapperInterface2;
+	m_IDirectDrawSurface3 *WrapperInterface3;
+	m_IDirectDrawSurface4 *WrapperInterface4;
+	m_IDirectDrawSurface7 *WrapperInterface7;
 
 	// Store a list of attached surfaces
 	std::unique_ptr<m_IDirectDrawSurfaceX> BackBufferInterface;
@@ -114,9 +113,9 @@ private:
 	};
 
 public:
-	m_IDirectDrawSurfaceX(IDirectDrawSurface7 *pOriginal, DWORD DirectXVersion, m_IDirectDrawSurface7 *Interface) : ProxyInterface(pOriginal), WrapperInterface(Interface)
+	m_IDirectDrawSurfaceX(IDirectDrawSurface7 *pOriginal, DWORD DirectXVersion) : ProxyInterface(pOriginal)
 	{
-		ProxyDirectXVersion = GetIIDVersion(ConvertREFIID(GetWrapperType(DirectXVersion)));
+		ProxyDirectXVersion = GetGUIDVersion(ConvertREFIID(GetWrapperType(DirectXVersion)));
 
 		if (ProxyDirectXVersion != DirectXVersion)
 		{
@@ -126,6 +125,14 @@ public:
 		{
 			LOG_LIMIT(3, "Creating device " << __FUNCTION__ << "(" << this << ") v" << DirectXVersion);
 		}
+
+		WrapperInterface = new m_IDirectDrawSurface((LPDIRECTDRAWSURFACE)ProxyInterface, this);
+		WrapperInterface2 = new m_IDirectDrawSurface2((LPDIRECTDRAWSURFACE2)ProxyInterface, this);
+		WrapperInterface3 = new m_IDirectDrawSurface3((LPDIRECTDRAWSURFACE3)ProxyInterface, this);
+		WrapperInterface4 = new m_IDirectDrawSurface4((LPDIRECTDRAWSURFACE4)ProxyInterface, this);
+		WrapperInterface7 = new m_IDirectDrawSurface7((LPDIRECTDRAWSURFACE7)ProxyInterface, this);
+
+		ProxyAddressLookupTable.SaveAddress(this, ProxyInterface);
 	}
 	m_IDirectDrawSurfaceX(LPDIRECT3DDEVICE9 *lplpDevice, m_IDirectDrawX *Interface, DWORD DirectXVersion, LPDDSURFACEDESC2 lpDDSurfaceDesc2, DWORD Width, DWORD Height) :
 		d3d9Device(lplpDevice), ddrawParent(Interface), displayWidth(Width), displayHeight(Height)
@@ -133,6 +140,12 @@ public:
 		ProxyDirectXVersion = 9;
 
 		LOG_LIMIT(3, "Creating device " << __FUNCTION__ << "(" << this << ")" << " converting device from v" << DirectXVersion << " to v" << ProxyDirectXVersion);
+
+		WrapperInterface = new m_IDirectDrawSurface((LPDIRECTDRAWSURFACE)ProxyInterface, this);
+		WrapperInterface2 = new m_IDirectDrawSurface2((LPDIRECTDRAWSURFACE2)ProxyInterface, this);
+		WrapperInterface3 = new m_IDirectDrawSurface3((LPDIRECTDRAWSURFACE3)ProxyInterface, this);
+		WrapperInterface4 = new m_IDirectDrawSurface4((LPDIRECTDRAWSURFACE4)ProxyInterface, this);
+		WrapperInterface7 = new m_IDirectDrawSurface7((LPDIRECTDRAWSURFACE7)ProxyInterface, this);
 
 		// Initialize Critical Section for surface array
 		InitializeCriticalSection(&ddscs);
@@ -152,10 +165,18 @@ public:
 
 		// Update surface description and create backbuffers
 		InitSurfaceDesc(DirectXVersion);
+
+		ProxyAddressLookupTable.SaveAddress(this, ProxyInterface);
 	}
 	~m_IDirectDrawSurfaceX()
 	{
 		LOG_LIMIT(3, __FUNCTION__ << "(" << this << ")" << " deleting device!");
+
+		WrapperInterface->DeleteMe();
+		WrapperInterface2->DeleteMe();
+		WrapperInterface3->DeleteMe();
+		WrapperInterface4->DeleteMe();
+		WrapperInterface7->DeleteMe();
 
 		if (Config.Dd7to9 && !Config.Exiting)
 		{
@@ -165,16 +186,12 @@ public:
 			// Delete Critical Section for surface array
 			DeleteCriticalSection(&ddscs);
 		}
+
+		ProxyAddressLookupTable.DeleteAddress(this);
 	}
 
-	DWORD GetDirectXVersion() { return DDWRAPPER_TYPEX; }
-	REFIID GetWrapperType() { return IID_IUnknown; }
-	IDirectDrawSurface7 *GetProxyInterface() { return ProxyInterface; }
-	m_IDirectDrawSurface7 *GetWrapperInterface() { return WrapperInterface; }
-
 	/*** IUnknown methods ***/
-	HRESULT QueryInterface(REFIID riid, LPVOID FAR * ppvObj, DWORD DirectXVersion);
-	STDMETHOD(QueryInterface) (THIS_ REFIID riid, LPVOID FAR * ppvObj) { return QueryInterface(riid, ppvObj, ProxyDirectXVersion); }
+	STDMETHOD(QueryInterface) (THIS_ REFIID riid, LPVOID FAR * ppvObj);
 	STDMETHOD_(ULONG, AddRef) (THIS);
 	STDMETHOD_(ULONG, Release) (THIS);
 

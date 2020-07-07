@@ -59,6 +59,9 @@ class m_IDirectDrawGammaControl;
 // Indicates surface is a primary surface or a backbuffer of a primary surface
 #define DDSCAPS4_PRIMARYSURFACE 0x0200
 
+DEFINE_GUID(IID_GetRealInterface,    0x254e1ffd, 0x10f9, 0x10c0, 0xc1, 0xb8, 0x21, 0x7d, 0x59, 0xd1, 0xe5, 0xb2);
+DEFINE_GUID(IID_GetInterfaceX,       0x254e1ffd, 0x10f9, 0x10c0, 0xc1, 0xb8, 0x21, 0x7d, 0x59, 0xd1, 0xe5, 0xb4);
+
 // ddraw proc typedefs
 typedef void(WINAPI *AcquireDDThreadLockProc)();
 typedef void(WINAPI *CompleteCreateSysmemSurfaceProc)();
@@ -93,7 +96,8 @@ HRESULT WINAPI dd_DirectDrawEnumerateW(LPDDENUMCALLBACKW lpCallback, LPVOID lpCo
 // Function and variable forward declarations
 namespace DdrawWrapper
 {
-	DWORD GetIIDVersion(REFIID CalledID);
+	DWORD GetGUIDVersion(REFIID CalledID);
+	REFIID ReplaceIIDUnknown(REFIID riid, REFIID guid);
 	REFCLSID ConvertREFCLSID(REFCLSID rclsid);
 	REFIID ConvertREFIID(REFIID riid);
 	void SetCriticalSection();
@@ -134,18 +138,6 @@ using namespace DdrawWrapper;
 #include "Versions\IDirect3DViewport.h"
 #include "Versions\IDirect3DViewport2.h"
 #include "Versions\IDirect3DViewport3.h"
-// Direct3D Helpers
-#include "IDirect3DTypes.h"
-#include "IDirect3DEnumCallback.h"
-// Direct3D Interfaces
-#include "IDirect3DX.h"
-#include "IDirect3DDeviceX.h"
-#include "IDirect3DExecuteBuffer.h"
-#include "IDirect3DLight.h"
-#include "IDirect3DMaterialX.h"
-#include "IDirect3DTextureX.h"
-#include "IDirect3DVertexBufferX.h"
-#include "IDirect3DViewportX.h"
 // DirectDraw Version Wrappers
 #include "Versions\IDirectDraw.h"
 #include "Versions\IDirectDraw2.h"
@@ -157,9 +149,21 @@ using namespace DdrawWrapper;
 #include "Versions\IDirectDrawSurface3.h"
 #include "Versions\IDirectDrawSurface4.h"
 #include "Versions\IDirectDrawSurface7.h"
+// Direct3D Helpers
+#include "IDirect3DTypes.h"
+#include "IDirect3DEnumCallback.h"
 // DirectDraw Helpers
 #include "IDirectDrawEnumCallback.h"
 #include "IDirectDrawTypes.h"
+// Direct3D Interfaces
+#include "IDirect3DX.h"
+#include "IDirect3DDeviceX.h"
+#include "IDirect3DExecuteBuffer.h"
+#include "IDirect3DLight.h"
+#include "IDirect3DMaterialX.h"
+#include "IDirect3DTextureX.h"
+#include "IDirect3DVertexBufferX.h"
+#include "IDirect3DViewportX.h"
 // DirectDraw Interfaces
 #include "IDirectDrawX.h"
 #include "IDirectDrawClipper.h"

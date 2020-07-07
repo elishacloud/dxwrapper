@@ -34,11 +34,6 @@ public:
 		}
 	}
 
-	DWORD GetDirectXVersion() { return 1; }
-	REFIID GetWrapperType() { return WrapperID; }
-	IDirectDrawGammaControl *GetProxyInterface() { return ProxyInterface; }
-	m_IDirectDrawGammaControl *GetWrapperInterface() { return this; }
-
 	/*** IUnknown methods ***/
 	STDMETHOD(QueryInterface) (THIS_ REFIID riid, LPVOID FAR * ppvObj);
 	STDMETHOD_(ULONG, AddRef) (THIS);
