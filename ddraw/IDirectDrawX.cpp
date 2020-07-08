@@ -68,7 +68,7 @@ bool isWindowed;					// Window mode enabled
 
 // Convert to Direct3D9
 bool IsInScene;						// Used for BeginScene/EndScene
-bool EnableVsync;
+bool EnableWaitVsync;
 
 // High resolution counter
 bool FrequencyFlag = false;
@@ -1406,10 +1406,7 @@ HRESULT m_IDirectDrawX::WaitForVerticalBlank(DWORD dwFlags, HANDLE hEvent)
 				bool InBlock = RasterStatus.InVBlank;
 				while (SUCCEEDED(d3d9Device->GetRasterStatus(0, &RasterStatus)) && !(!InBlock && RasterStatus.InVBlank))
 				{
-					if (!RasterStatus.InVBlank)
-					{
-						InBlock = false;
-					}
+					InBlock = RasterStatus.InVBlank;
 				}
 			}
 			return DD_OK;
@@ -1420,10 +1417,7 @@ HRESULT m_IDirectDrawX::WaitForVerticalBlank(DWORD dwFlags, HANDLE hEvent)
 				bool InBlock = RasterStatus.InVBlank;
 				while (SUCCEEDED(d3d9Device->GetRasterStatus(0, &RasterStatus)) && !(InBlock && !RasterStatus.InVBlank))
 				{
-					if (RasterStatus.InVBlank)
-					{
-						InBlock = true;
-					}
+					InBlock = RasterStatus.InVBlank;
 				}
 			}
 			return DD_OK;
@@ -1755,7 +1749,7 @@ void m_IDirectDrawX::SetDdrawDefaults()
 {
 	// Convert to Direct3D9
 	IsInScene = false;
-	EnableVsync = false;
+	EnableWaitVsync = false;
 	AllowModeX = false;
 	MultiThreaded = false;
 	FUPPreserve = false;
@@ -1888,7 +1882,7 @@ void m_IDirectDrawX::ReleaseDdraw()
 
 		// Set is not in scene
 		IsInScene = false;
-		EnableVsync = false;
+		EnableWaitVsync = false;
 
 		// Release shared d3d9object
 		d3d9Object->Release();
@@ -2062,7 +2056,7 @@ HRESULT m_IDirectDrawX::CreateD3D9Device()
 
 		// Reset BeginScene
 		IsInScene = false;
-		EnableVsync = false;
+		EnableWaitVsync = false;
 
 		// Check device caps to make sure it supports dynamic textures
 		D3DCAPS9 d3dcaps;
@@ -2295,7 +2289,7 @@ void m_IDirectDrawX::ReleaseD3d9Device()
 
 	// Set is not in scene
 	IsInScene = false;
-	EnableVsync = false;
+	EnableWaitVsync = false;
 }
 
 // Add surface wrapper to vector
@@ -2545,7 +2539,7 @@ HRESULT m_IDirectDrawX::BeginScene()
 // Enable vsync
 void m_IDirectDrawX::SetVsync()
 {
-	EnableVsync = true;
+	EnableWaitVsync = true;
 }
 
 // Do d3d9 EndScene and Present if all surfaces are unlocked
@@ -2588,14 +2582,13 @@ HRESULT m_IDirectDrawX::EndScene()
 	IsInScene = false;
 
 	// Use WaitForVerticalBlank for wait timer
-	if (EnableVsync)
+	if (EnableWaitVsync && !Config.EnableVSync)
 	{
-		WaitForVerticalBlank(DDWAITVB_BLOCKBEGIN, nullptr);
+		WaitForVerticalBlank(DDWAITVB_BLOCKEND, nullptr);
+		EnableWaitVsync = false;
 	}
-	EnableVsync = false;
-
 	// Skip frame if time lapse is too small
-	if (Config.AutoFrameSkip)
+	else if (Config.AutoFrameSkip)
 	{
 		if (FrequencyFlag)
 		{
