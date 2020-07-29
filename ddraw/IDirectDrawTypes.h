@@ -2,6 +2,12 @@
 
 #include <ddraw.h>
 
+#define D3DFMT_W11V11U10 (D3DFORMAT)65
+#define D3DFMT_S1D15     (D3DFORMAT)72
+#define D3DFMT_S8D24     (D3DFORMAT)74
+#define D3DFMT_X8D24     (D3DFORMAT)76
+#define D3DFMT_X4S4D24   (D3DFORMAT)78
+
 static constexpr DWORD FourCCTypes[]
 {
 	//0x026CFB68, // MAKEFOURCC('N', 'V', '1', '2')
