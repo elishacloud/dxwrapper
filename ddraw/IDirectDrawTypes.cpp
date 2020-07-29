@@ -314,7 +314,7 @@ DWORD GetBitCount(DDPIXELFORMAT ddpfPixelFormat)
 // https://github.com/microsoft/Windows-driver-samples/blob/master/video/pixlib/pixel.cpp
 DWORD GetBitCount(D3DFORMAT Format)
 {
-	switch (Format)
+	switch (DWORD(Format))
 	{
 	case D3DFMT_DXT1:
 		// Size is negative to indicate DXT; and indicates
