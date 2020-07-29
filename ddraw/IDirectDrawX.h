@@ -41,6 +41,32 @@ private:
 	m_IDirect3DX *D3DInterface = nullptr;
 	m_IDirect3DDeviceX *D3DDeviceInterface = nullptr;
 
+	// Wrapper interface functions
+	REFIID GetWrapperType(DWORD DirectXVersion)
+	{
+		return (DirectXVersion == 1) ? IID_IDirectDraw :
+			(DirectXVersion == 2) ? IID_IDirectDraw2 :
+			(DirectXVersion == 3) ? IID_IDirectDraw3 :
+			(DirectXVersion == 4) ? IID_IDirectDraw4 :
+			(DirectXVersion == 7) ? IID_IDirectDraw7 : IID_IUnknown;
+	}
+	IDirectDraw *GetProxyInterfaceV1() { return (IDirectDraw *)ProxyInterface; }
+	IDirectDraw2 *GetProxyInterfaceV2() { return (IDirectDraw2 *)ProxyInterface; }
+	IDirectDraw3 *GetProxyInterfaceV3() { return (IDirectDraw3 *)ProxyInterface; }
+	IDirectDraw4 *GetProxyInterfaceV4() { return (IDirectDraw4 *)ProxyInterface; }
+	IDirectDraw7 *GetProxyInterfaceV7() { return ProxyInterface; }
+
+	// Device information functions
+	void InitDdrawSettings();
+	void SetDdrawDefaults();
+	void ReleaseDdraw();
+
+	// Direct3D9 interface functions
+	HRESULT CheckInterface(char *FunctionName, bool CheckD3DDevice);
+	void ReleaseAllDirectDrawD9Surfaces();
+	void ReleaseAllD9Surfaces();
+	void ReleaseD3d9Device();
+
 public:
 	m_IDirectDrawX(IDirectDraw7 *aOriginal, DWORD DirectXVersion) : ProxyInterface(aOriginal)
 	{
@@ -48,11 +74,11 @@ public:
 
 		if (ProxyDirectXVersion != DirectXVersion)
 		{
-			LOG_LIMIT(3, "Creating device " << __FUNCTION__ << "(" << this << ")" << " converting device from v" << DirectXVersion << " to v" << ProxyDirectXVersion);
+			LOG_LIMIT(3, "Creating interface " << __FUNCTION__ << "(" << this << ")" << " converting interface from v" << DirectXVersion << " to v" << ProxyDirectXVersion);
 		}
 		else
 		{
-			LOG_LIMIT(3, "Creating device " << __FUNCTION__ << "(" << this << ") v" << DirectXVersion);
+			LOG_LIMIT(3, "Creating interface " << __FUNCTION__ << "(" << this << ") v" << DirectXVersion);
 		}
 
 		WrapperInterface = new m_IDirectDraw((LPDIRECTDRAW)ProxyInterface, this);
@@ -67,7 +93,7 @@ public:
 	{
 		ProxyDirectXVersion = 9;
 
-		LOG_LIMIT(3, "Creating device " << __FUNCTION__ << "(" << this << ")" << " converting device from v" << DirectXVersion << " to v" << ProxyDirectXVersion);
+		LOG_LIMIT(3, "Creating interface " << __FUNCTION__ << "(" << this << ")" << " converting interface from v" << DirectXVersion << " to v" << ProxyDirectXVersion);
 
 		WrapperInterface = new m_IDirectDraw((LPDIRECTDRAW)ProxyInterface, this);
 		WrapperInterface2 = new m_IDirectDraw2((LPDIRECTDRAW2)ProxyInterface, this);
@@ -81,7 +107,7 @@ public:
 	}
 	~m_IDirectDrawX()
 	{
-		LOG_LIMIT(3, __FUNCTION__ << "(" << this << ")" << " deleting device!");
+		LOG_LIMIT(3, __FUNCTION__ << "(" << this << ")" << " deleting interface!");
 
 		WrapperInterface->DeleteMe();
 		WrapperInterface2->DeleteMe();
@@ -148,47 +174,27 @@ public:
 	STDMETHOD(StartModeTest)(THIS_ LPSIZE, DWORD, DWORD);
 	STDMETHOD(EvaluateMode)(THIS_ DWORD, DWORD *);
 
-	// Wrapper interface functions
-	REFIID GetWrapperType(DWORD DirectXVersion)
-	{
-		return (DirectXVersion == 1) ? IID_IDirectDraw :
-			(DirectXVersion == 2) ? IID_IDirectDraw2 :
-			(DirectXVersion == 3) ? IID_IDirectDraw3 :
-			(DirectXVersion == 4) ? IID_IDirectDraw4 :
-			(DirectXVersion == 7) ? IID_IDirectDraw7 : IID_IUnknown;
-	}
-	IDirectDraw *GetProxyInterfaceV1() { return (IDirectDraw *)ProxyInterface; }
-	IDirectDraw2 *GetProxyInterfaceV2() { return (IDirectDraw2 *)ProxyInterface; }
-	IDirectDraw3 *GetProxyInterfaceV3() { return (IDirectDraw3 *)ProxyInterface; }
-	IDirectDraw4 *GetProxyInterfaceV4() { return (IDirectDraw4 *)ProxyInterface; }
-	IDirectDraw7 *GetProxyInterfaceV7() { return ProxyInterface; }
+	// Helper functions
 	void *GetWrapperInterfaceX(DWORD DirectXVersion);
+
+	// Direct3D interfaces
+	m_IDirect3DX **GetCurrentD3D() { return &D3DInterface; }
+	void ClearD3D() { D3DInterface = nullptr; }
+	void SetD3DDevice(m_IDirect3DDeviceX *D3DDevice) { D3DDeviceInterface = D3DDevice; }
+	m_IDirect3DDeviceX **GetCurrentD3DDevice() { return &D3DDeviceInterface; }
+	void ClearD3DDevice() { D3DDeviceInterface = nullptr; }
 
 	// Direct3D9 interfaces
 	LPDIRECT3D9 GetDirect3D9Object();
 	LPDIRECT3DDEVICE9 *GetDirect3D9Device();
-	void ClearD3D() { D3DInterface = nullptr; }
-	m_IDirect3DX **GetCurrentD3D() { return &D3DInterface; }
-	void ClearD3DDevice() { D3DDeviceInterface = nullptr; }
-	void SetD3DDevice(m_IDirect3DDeviceX *D3DDevice) { D3DDeviceInterface = D3DDevice; }
-	m_IDirect3DDeviceX **GetCurrentD3DDevice() { return &D3DDeviceInterface; }
+	HRESULT CreateD3D9Device();
+	HRESULT ReinitDevice();
 
 	// Device information functions
-	void InitDdrawSettings();
-	void SetDdrawDefaults();
-	void ReleaseDdraw();
 	HWND GetHwnd();
 	HDC GetDC();
 	bool IsExclusiveMode();
 	void GetResolution(DWORD &Width, DWORD &Height, DWORD &RefreshRate, DWORD &BPP);
-
-	// Direct3D9 interface functions
-	HRESULT CheckInterface(char *FunctionName, bool CheckD3DDevice);
-	HRESULT CreateD3D9Device();
-	HRESULT ReinitDevice();
-	void ReleaseAllDirectDrawD9Surfaces();
-	void ReleaseAllD9Surfaces();
-	void ReleaseD3d9Device();
 
 	// Surface vector functions
 	void AddSurfaceToVector(m_IDirectDrawSurfaceX* lpSurfaceX);

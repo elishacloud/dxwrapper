@@ -205,11 +205,3 @@ HRESULT m_IDirectDrawPalette::SetEntries(DWORD dwFlags, DWORD dwStartingEntry, D
 
 	return ProxyInterface->SetEntries(dwFlags, dwStartingEntry, dwCount, lpEntries);
 }
-
-void m_IDirectDrawPalette::ReleaseInterface()
-{
-	if (ddrawParent)
-	{
-		ddrawParent->RemovePaletteFromVector(this);
-	}
-}

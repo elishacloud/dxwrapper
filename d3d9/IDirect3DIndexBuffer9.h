@@ -9,16 +9,14 @@ private:
 public:
 	m_IDirect3DIndexBuffer9(LPDIRECT3DINDEXBUFFER9 pBuffer9, m_IDirect3DDevice9Ex* pDevice) : ProxyInterface(pBuffer9), m_pDeviceEx(pDevice)
 	{
-		LOG_LIMIT(3, "Creating device " << __FUNCTION__ << "(" << this << ")");
+		LOG_LIMIT(3, "Creating interface " << __FUNCTION__ << "(" << this << ")");
 
 		pDevice->ProxyAddressLookupTable->SaveAddress(this, ProxyInterface);
 	}
 	~m_IDirect3DIndexBuffer9()
 	{
-		LOG_LIMIT(3, __FUNCTION__ << "(" << this << ")" << " deleting device!");
+		LOG_LIMIT(3, __FUNCTION__ << "(" << this << ")" << " deleting interface!");
 	}
-
-	LPDIRECT3DINDEXBUFFER9 GetProxyInterface() { return ProxyInterface; }
 
 	/*** IUnknown methods ***/
 	STDMETHOD(QueryInterface)(THIS_ REFIID riid, void** ppvObj);
@@ -37,4 +35,7 @@ public:
 	STDMETHOD(Lock)(THIS_ UINT OffsetToLock, UINT SizeToLock, void** ppbData, DWORD Flags);
 	STDMETHOD(Unlock)(THIS);
 	STDMETHOD(GetDesc)(THIS_ D3DINDEXBUFFER_DESC *pDesc);
+
+	// Helper functions
+	LPDIRECT3DINDEXBUFFER9 GetProxyInterface() { return ProxyInterface; }
 };

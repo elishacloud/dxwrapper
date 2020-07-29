@@ -37,7 +37,7 @@ public:
 	}
 	void InitDirect3DDevice()
 	{
-		LOG_LIMIT(3, "Creating device " << __FUNCTION__ << "(" << this << ")");
+		LOG_LIMIT(3, "Creating interface " << __FUNCTION__ << "(" << this << ")");
 
 		// Get screen size
 		Utils::GetScreenSize(DeviceWindow, screenWidth, screenHeight);
@@ -46,7 +46,7 @@ public:
 	}
 	~m_IDirect3DDevice9Ex()
 	{
-		LOG_LIMIT(3, __FUNCTION__ << "(" << this << ")" << " deleting device!");
+		LOG_LIMIT(3, __FUNCTION__ << "(" << this << ")" << " deleting interface!");
 
 		// Restore old wndproc
 		if (OriginalWndProc && IsWindow(WndProcHwnd))
@@ -65,7 +65,6 @@ public:
 		delete ProxyAddressLookupTable;
 	}
 
-	LPDIRECT3DDEVICE9EX GetProxyInterface() { return ProxyInterface; }
 	AddressLookupTableD3d9<m_IDirect3DDevice9Ex> *ProxyAddressLookupTable;
 
 	/*** IUnknown methods ***/
@@ -211,4 +210,7 @@ public:
 	STDMETHOD(CreateDepthStencilSurfaceEx)(THIS_ UINT Width, UINT Height, D3DFORMAT Format, D3DMULTISAMPLE_TYPE MultiSample, DWORD MultisampleQuality, BOOL Discard, IDirect3DSurface9** ppSurface, HANDLE* pSharedHandle, DWORD Usage);
 	STDMETHOD(ResetEx)(THIS_ D3DPRESENT_PARAMETERS* pPresentationParameters, D3DDISPLAYMODEEX *pFullscreenDisplayMode);
 	STDMETHOD(GetDisplayModeEx)(THIS_ UINT iSwapChain, D3DDISPLAYMODEEX* pMode, D3DDISPLAYROTATION* pRotation);
+
+	// Helper functions
+	LPDIRECT3DDEVICE9EX GetProxyInterface() { return ProxyInterface; }
 };

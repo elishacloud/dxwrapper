@@ -14,6 +14,15 @@ private:
 	m_IDirect3DTexture *WrapperInterface;
 	m_IDirect3DTexture2 *WrapperInterface2;
 
+	// Wrapper interface functions
+	REFIID GetWrapperType(DWORD DirectXVersion)
+	{
+		return (DirectXVersion == 1) ? IID_IDirect3DTexture :
+			(DirectXVersion == 2) ? IID_IDirect3DTexture2 : IID_IUnknown;
+	}
+	IDirect3DTexture *GetProxyInterfaceV1() { return (IDirect3DTexture *)ProxyInterface; }
+	IDirect3DTexture2 *GetProxyInterfaceV2() { return ProxyInterface; }
+
 public:
 	m_IDirect3DTextureX(IDirect3DTexture2 *aOriginal, DWORD DirectXVersion) : ProxyInterface(aOriginal)
 	{
@@ -21,11 +30,11 @@ public:
 
 		if (ProxyDirectXVersion != DirectXVersion)
 		{
-			LOG_LIMIT(3, "Creating device " << __FUNCTION__ << "(" << this << ")" << " converting device from v" << DirectXVersion << " to v" << ProxyDirectXVersion);
+			LOG_LIMIT(3, "Creating interface " << __FUNCTION__ << "(" << this << ")" << " converting interface from v" << DirectXVersion << " to v" << ProxyDirectXVersion);
 		}
 		else
 		{
-			LOG_LIMIT(3, "Creating device " << __FUNCTION__ << "(" << this << ") v" << DirectXVersion);
+			LOG_LIMIT(3, "Creating interface " << __FUNCTION__ << "(" << this << ") v" << DirectXVersion);
 		}
 
 		WrapperInterface = new m_IDirect3DTexture((LPDIRECT3DTEXTURE)ProxyInterface, this);
@@ -37,7 +46,7 @@ public:
 	{
 		ProxyDirectXVersion = (!Config.Dd7to9) ? 7 : 9;
 
-		LOG_LIMIT(3, "Creating device " << __FUNCTION__ << "(" << this << ")" << " converting device from v" << DirectXVersion << " to v" << ProxyDirectXVersion);
+		LOG_LIMIT(3, "Creating interface " << __FUNCTION__ << "(" << this << ")" << " converting interface from v" << DirectXVersion << " to v" << ProxyDirectXVersion);
 
 		WrapperInterface = new m_IDirect3DTexture((LPDIRECT3DTEXTURE)ProxyInterface, this);
 		WrapperInterface2 = new m_IDirect3DTexture2((LPDIRECT3DTEXTURE2)ProxyInterface, this);
@@ -46,7 +55,7 @@ public:
 	}
 	~m_IDirect3DTextureX()
 	{
-		LOG_LIMIT(3, __FUNCTION__ << "(" << this << ")" << " deleting device!");
+		LOG_LIMIT(3, __FUNCTION__ << "(" << this << ")" << " deleting interface!");
 
 		WrapperInterface->DeleteMe();
 		WrapperInterface2->DeleteMe();
@@ -66,13 +75,6 @@ public:
 	STDMETHOD(Load)(THIS_ LPDIRECT3DTEXTURE2);
 	STDMETHOD(Unload)(THIS);
 
-	// Wrapper interface functions
-	REFIID GetWrapperType(DWORD DirectXVersion)
-	{
-		return (DirectXVersion == 1) ? IID_IDirect3DTexture :
-			(DirectXVersion == 2) ? IID_IDirect3DTexture2 : IID_IUnknown;
-	}
-	IDirect3DTexture *GetProxyInterfaceV1() { return (IDirect3DTexture *)ProxyInterface; }
-	IDirect3DTexture2 *GetProxyInterfaceV2() { return ProxyInterface; }
+	// Helper functions
 	void *GetWrapperInterfaceX(DWORD DirectXVersion);
 };

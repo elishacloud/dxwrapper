@@ -8,18 +8,16 @@ private:
 public:
 	m_IDirectInputEffect8(IDirectInputEffect *aOriginal) : ProxyInterface(aOriginal)
 	{
-		LOG_LIMIT(3, "Creating device " << __FUNCTION__ << "(" << this << ")");
+		LOG_LIMIT(3, "Creating interface " << __FUNCTION__ << "(" << this << ")");
 
 		ProxyAddressLookupTableDinput8.SaveAddress(this, ProxyInterface);
 	}
 	~m_IDirectInputEffect8()
 	{
-		LOG_LIMIT(3, __FUNCTION__ << "(" << this << ")" << " deleting device!");
+		LOG_LIMIT(3, __FUNCTION__ << "(" << this << ")" << " deleting interface!");
 
 		ProxyAddressLookupTableDinput8.DeleteAddress(this);
 	}
-
-	IDirectInputEffect *GetProxyInterface() { return ProxyInterface; }
 
 	/*** IUnknown methods ***/
 	STDMETHOD(QueryInterface)(THIS_ REFIID riid, LPVOID * ppvObj);
@@ -37,4 +35,7 @@ public:
 	STDMETHOD(Download)(THIS);
 	STDMETHOD(Unload)(THIS);
 	STDMETHOD(Escape)(THIS_ LPDIEFFESCAPE);
+
+	// Helper functions
+	IDirectInputEffect *GetProxyInterface() { return ProxyInterface; }
 };

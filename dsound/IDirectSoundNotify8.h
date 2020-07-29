@@ -8,18 +8,16 @@ private:
 public:
 	m_IDirectSoundNotify8(LPDIRECTSOUNDNOTIFY8 pSound8) : ProxyInterface(pSound8)
 	{
-		LOG_LIMIT(3, "Creating device " << __FUNCTION__ << "(" << this << ")");
+		LOG_LIMIT(3, "Creating interface " << __FUNCTION__ << "(" << this << ")");
 
 		ProxyAddressLookupTableDsound.SaveAddress(this, ProxyInterface);
 	}
 	~m_IDirectSoundNotify8()
 	{
-		LOG_LIMIT(3, __FUNCTION__ << "(" << this << ")" << " deleting device!");
+		LOG_LIMIT(3, __FUNCTION__ << "(" << this << ")" << " deleting interface!");
 
 		ProxyAddressLookupTableDsound.DeleteAddress(this);
 	}
-
-	LPDIRECTSOUNDNOTIFY8 GetProxyInterface() { return ProxyInterface; }
 
 	// IUnknown methods
 	STDMETHOD(QueryInterface)(THIS_ _In_ REFIID, _Outptr_ LPVOID*);
@@ -28,4 +26,7 @@ public:
 
 	// IDirectSoundNotify methods
 	STDMETHOD(SetNotificationPositions)(THIS_ DWORD dwPositionNotifies, _In_reads_(dwPositionNotifies) LPCDSBPOSITIONNOTIFY pcPositionNotifies);
+
+	// Helper functions
+	LPDIRECTSOUNDNOTIFY8 GetProxyInterface() { return ProxyInterface; }
 };

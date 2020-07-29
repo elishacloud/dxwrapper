@@ -716,11 +716,3 @@ void m_IDirect3DX::ResolutionHack()
 		}
 	}
 }
-
-void m_IDirect3DX::ReleaseInterface()
-{
-	if (ddrawParent)
-	{
-		ddrawParent->ClearD3D();
-	}
-}

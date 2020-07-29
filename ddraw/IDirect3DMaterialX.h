@@ -17,6 +17,17 @@ private:
 	m_IDirect3DMaterial2 *WrapperInterface2;
 	m_IDirect3DMaterial3 *WrapperInterface3;
 
+	// Wrapper interface functions
+	REFIID GetWrapperType(DWORD DirectXVersion)
+	{
+		return (DirectXVersion == 1) ? IID_IDirect3DMaterial :
+			(DirectXVersion == 2) ? IID_IDirect3DMaterial2 :
+			(DirectXVersion == 3) ? IID_IDirect3DMaterial3 : IID_IUnknown;
+	}
+	IDirect3DMaterial *GetProxyInterfaceV1() { return (IDirect3DMaterial *)ProxyInterface; }
+	IDirect3DMaterial2 *GetProxyInterfaceV2() { return (IDirect3DMaterial2 *)ProxyInterface; }
+	IDirect3DMaterial3 *GetProxyInterfaceV3() { return ProxyInterface; }
+
 public:
 	m_IDirect3DMaterialX(IDirect3DMaterial3 *aOriginal, DWORD DirectXVersion) : ProxyInterface(aOriginal)
 	{
@@ -24,11 +35,11 @@ public:
 
 		if (ProxyDirectXVersion != DirectXVersion)
 		{
-			LOG_LIMIT(3, "Creating device " << __FUNCTION__ << "(" << this << ")" << " converting device from v" << DirectXVersion << " to v" << ProxyDirectXVersion);
+			LOG_LIMIT(3, "Creating interface " << __FUNCTION__ << "(" << this << ")" << " converting interface from v" << DirectXVersion << " to v" << ProxyDirectXVersion);
 		}
 		else
 		{
-			LOG_LIMIT(3, "Creating device " << __FUNCTION__ << "(" << this << ") v" << DirectXVersion);
+			LOG_LIMIT(3, "Creating interface " << __FUNCTION__ << "(" << this << ") v" << DirectXVersion);
 		}
 
 		WrapperInterface = new m_IDirect3DMaterial((LPDIRECT3DMATERIAL)ProxyInterface, this);
@@ -41,7 +52,7 @@ public:
 	{
 		ProxyDirectXVersion = (!Config.Dd7to9) ? 7 : 9;
 
-		LOG_LIMIT(3, "Creating device " << __FUNCTION__ << "(" << this << ")" << " converting device from v" << DirectXVersion << " to v" << ProxyDirectXVersion);
+		LOG_LIMIT(3, "Creating interface " << __FUNCTION__ << "(" << this << ")" << " converting interface from v" << DirectXVersion << " to v" << ProxyDirectXVersion);
 
 		WrapperInterface = new m_IDirect3DMaterial((LPDIRECT3DMATERIAL)ProxyInterface, this);
 		WrapperInterface2 = new m_IDirect3DMaterial2((LPDIRECT3DMATERIAL2)ProxyInterface, this);
@@ -51,7 +62,7 @@ public:
 	}
 	~m_IDirect3DMaterialX()
 	{
-		LOG_LIMIT(3, __FUNCTION__ << "(" << this << ")" << " deleting device!");
+		LOG_LIMIT(3, __FUNCTION__ << "(" << this << ")" << " deleting interface!");
 
 		WrapperInterface->DeleteMe();
 		WrapperInterface2->DeleteMe();
@@ -73,15 +84,6 @@ public:
 	STDMETHOD(Reserve)(THIS);
 	STDMETHOD(Unreserve)(THIS);
 
-	// Wrapper interface functions
-	REFIID GetWrapperType(DWORD DirectXVersion)
-	{
-		return (DirectXVersion == 1) ? IID_IDirect3DMaterial :
-			(DirectXVersion == 2) ? IID_IDirect3DMaterial2 :
-			(DirectXVersion == 3) ? IID_IDirect3DMaterial3 : IID_IUnknown;
-	}
-	IDirect3DMaterial *GetProxyInterfaceV1() { return (IDirect3DMaterial *)ProxyInterface; }
-	IDirect3DMaterial2 *GetProxyInterfaceV2() { return (IDirect3DMaterial2 *)ProxyInterface; }
-	IDirect3DMaterial3 *GetProxyInterfaceV3() { return ProxyInterface; }
+	// Helper function
 	void *GetWrapperInterfaceX(DWORD DirectXVersion);
 };

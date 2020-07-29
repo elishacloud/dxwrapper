@@ -8,18 +8,16 @@ private:
 public:
 	m_IDirectSound3DListener8(LPDIRECTSOUND3DLISTENER8 pSound8) : ProxyInterface(pSound8)
 	{
-		LOG_LIMIT(3, "Creating device " << __FUNCTION__ << "(" << this << ")");
+		LOG_LIMIT(3, "Creating interface " << __FUNCTION__ << "(" << this << ")");
 
 		ProxyAddressLookupTableDsound.SaveAddress(this, ProxyInterface);
 	}
 	~m_IDirectSound3DListener8()
 	{
-		LOG_LIMIT(3, __FUNCTION__ << "(" << this << ")" << " deleting device!");
+		LOG_LIMIT(3, __FUNCTION__ << "(" << this << ")" << " deleting interface!");
 
 		ProxyAddressLookupTableDsound.DeleteAddress(this);
 	}
-
-	LPDIRECTSOUND3DLISTENER8 GetProxyInterface() { return ProxyInterface; }
 
 	// IUnknown methods
 	STDMETHOD(QueryInterface)(THIS_ _In_ REFIID, _Outptr_ LPVOID*);
@@ -43,4 +41,7 @@ public:
 	STDMETHOD(SetRolloffFactor)(THIS_ D3DVALUE flRolloffFactor, DWORD dwApply);
 	STDMETHOD(SetVelocity)(THIS_ D3DVALUE x, D3DVALUE y, D3DVALUE z, DWORD dwApply);
 	STDMETHOD(CommitDeferredSettings)(THIS);
+
+	// Helper functions
+	LPDIRECTSOUND3DLISTENER8 GetProxyInterface() { return ProxyInterface; }
 };

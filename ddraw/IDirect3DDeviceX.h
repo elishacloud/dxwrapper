@@ -19,6 +19,19 @@ private:
 	m_IDirect3DDevice3 *WrapperInterface3;
 	m_IDirect3DDevice7 *WrapperInterface7;
 
+	// Wrapper interface functions
+	REFIID GetWrapperType(DWORD DirectXVersion)
+	{
+		return (DirectXVersion == 1) ? IID_IDirect3DDevice :
+			(DirectXVersion == 2) ? IID_IDirect3DDevice2 :
+			(DirectXVersion == 3) ? IID_IDirect3DDevice3 :
+			(DirectXVersion == 7) ? IID_IDirect3DDevice7 : IID_IUnknown;
+	}
+	IDirect3DDevice *GetProxyInterfaceV1() { return (IDirect3DDevice *)ProxyInterface; }
+	IDirect3DDevice2 *GetProxyInterfaceV2() { return (IDirect3DDevice2 *)ProxyInterface; }
+	IDirect3DDevice3 *GetProxyInterfaceV3() { return (IDirect3DDevice3 *)ProxyInterface; }
+	IDirect3DDevice7 *GetProxyInterfaceV7() { return ProxyInterface; }
+
 public:
 	m_IDirect3DDeviceX(IDirect3DDevice7 *aOriginal, DWORD DirectXVersion) : ProxyInterface(aOriginal)
 	{
@@ -26,11 +39,11 @@ public:
 
 		if (ProxyDirectXVersion != DirectXVersion)
 		{
-			LOG_LIMIT(3, "Creating device " << __FUNCTION__ << "(" << this << ")" << " converting device from v" << DirectXVersion << " to v" << ProxyDirectXVersion);
+			LOG_LIMIT(3, "Creating interface " << __FUNCTION__ << "(" << this << ")" << " converting interface from v" << DirectXVersion << " to v" << ProxyDirectXVersion);
 		}
 		else
 		{
-			LOG_LIMIT(3, "Creating device " << __FUNCTION__ << "(" << this << ") v" << DirectXVersion);
+			LOG_LIMIT(3, "Creating interface " << __FUNCTION__ << "(" << this << ") v" << DirectXVersion);
 		}
 
 		WrapperInterface = new m_IDirect3DDevice((LPDIRECT3DDEVICE)ProxyInterface, this);
@@ -44,7 +57,7 @@ public:
 	{
 		ProxyDirectXVersion = 9;
 
-		LOG_LIMIT(3, "Creating device " << __FUNCTION__ << "(" << this << ")" << " converting device from v" << DirectXVersion << " to v" << ProxyDirectXVersion);
+		LOG_LIMIT(3, "Creating interface " << __FUNCTION__ << "(" << this << ")" << " converting interface from v" << DirectXVersion << " to v" << ProxyDirectXVersion);
 
 		WrapperInterface = new m_IDirect3DDevice((LPDIRECT3DDEVICE)ProxyInterface, this);
 		WrapperInterface2 = new m_IDirect3DDevice2((LPDIRECT3DDEVICE2)ProxyInterface, this);
@@ -55,7 +68,7 @@ public:
 	}
 	~m_IDirect3DDeviceX()
 	{
-		LOG_LIMIT(3, __FUNCTION__ << "(" << this << ")" << " deleting device!");
+		LOG_LIMIT(3, __FUNCTION__ << "(" << this << ")" << " deleting interface!");
 
 		WrapperInterface->DeleteMe();
 		WrapperInterface2->DeleteMe();
@@ -64,7 +77,10 @@ public:
 
 		if (Config.Dd7to9 && !Config.Exiting)
 		{
-			ReleaseInterface();
+			if (ddrawParent)
+			{
+				ddrawParent->ClearD3DDevice();
+			}
 		}
 
 		ProxyAddressLookupTable.DeleteAddress(this);
@@ -150,18 +166,7 @@ public:
 	STDMETHOD(GetClipPlane)(THIS_ DWORD, D3DVALUE*);
 	STDMETHOD(GetInfo)(THIS_ DWORD, LPVOID, DWORD);
 
-	// Wrapper interface functions
-	REFIID GetWrapperType(DWORD DirectXVersion)
-	{
-		return (DirectXVersion == 1) ? IID_IDirect3DDevice :
-			(DirectXVersion == 2) ? IID_IDirect3DDevice2 :
-			(DirectXVersion == 3) ? IID_IDirect3DDevice3 :
-			(DirectXVersion == 7) ? IID_IDirect3DDevice7 : IID_IUnknown;
-	}
-	IDirect3DDevice *GetProxyInterfaceV1() { return (IDirect3DDevice *)ProxyInterface; }
-	IDirect3DDevice2 *GetProxyInterfaceV2() { return (IDirect3DDevice2 *)ProxyInterface; }
-	IDirect3DDevice3 *GetProxyInterfaceV3() { return (IDirect3DDevice3 *)ProxyInterface; }
-	IDirect3DDevice7 *GetProxyInterfaceV7() { return ProxyInterface; }
+	// Helper functions
 	void *GetWrapperInterfaceX(DWORD DirectXVersion);
 
 	// Functions handling the ddraw parent interface
@@ -176,7 +181,4 @@ public:
 		}
 	}
 	void ClearDdraw() { ddrawParent = nullptr; }
-
-	// Release interface
-	void ReleaseInterface();
 };

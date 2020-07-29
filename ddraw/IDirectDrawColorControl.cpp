@@ -130,11 +130,3 @@ HRESULT m_IDirectDrawColorControl::SetColorControls(LPDDCOLORCONTROL lpColorCont
 
 	return ProxyInterface->SetColorControls(lpColorControl);
 }
-
-void m_IDirectDrawColorControl::ReleaseInterface()
-{
-	if (ddrawParent)
-	{
-		ddrawParent->ClearColorInterface();
-	}
-}

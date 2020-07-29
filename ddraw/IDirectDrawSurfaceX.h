@@ -112,6 +112,76 @@ private:
 		float v;
 	};
 
+	// Wrapper interface functions
+	REFIID GetWrapperType(DWORD DirectXVersion)
+	{
+		return (DirectXVersion == 1) ? IID_IDirectDrawSurface :
+			(DirectXVersion == 2) ? IID_IDirectDrawSurface2 :
+			(DirectXVersion == 3) ? IID_IDirectDrawSurface3 :
+			(DirectXVersion == 4) ? IID_IDirectDrawSurface4 :
+			(DirectXVersion == 7) ? IID_IDirectDrawSurface7 : IID_IUnknown;
+	}
+	IDirectDrawSurface *GetProxyInterfaceV1() { return (IDirectDrawSurface *)ProxyInterface; }
+	IDirectDrawSurface2 *GetProxyInterfaceV2() { return (IDirectDrawSurface2 *)ProxyInterface; }
+	IDirectDrawSurface3 *GetProxyInterfaceV3() { return (IDirectDrawSurface3 *)ProxyInterface; }
+	IDirectDrawSurface4 *GetProxyInterfaceV4() { return (IDirectDrawSurface4 *)ProxyInterface; }
+	IDirectDrawSurface7 *GetProxyInterfaceV7() { return ProxyInterface; }
+
+	// Swap surface addresses for Flip
+	template <typename T>
+	void SwapAddresses(T *Address1, T *Address2)
+	{
+		T tmpAddr = *Address1;
+		*Address1 = *Address2;
+		*Address2 = tmpAddr;
+	}
+	void SwapSurface(m_IDirectDrawSurfaceX* lpTargetSurface1, m_IDirectDrawSurfaceX* lpTargetSurface2);
+	HRESULT FlipBackBuffer();
+
+	// Direct3D9 interface functions
+	HRESULT CheckInterface(char *FunctionName, bool CheckD3DDevice, bool CheckD3DSurface);
+	HRESULT CreateD3d9Surface();
+	HRESULT CreateDCSurface();
+	void UpdateSurfaceDesc();
+	template <typename T>
+	void ReleaseD9Interface(T **ppInterface);
+
+	// Direct3D9 interfaces
+	EMUSURFACE **GetEmulatedSurface() { return &emu; }
+	LPDIRECT3DTEXTURE9 *GetSurfaceTexture() { return &surfaceTexture; }
+	LPDIRECT3DSURFACE9 *GetContextSurface() { return &contextSurface; }
+
+	// Locking rect coordinates
+	bool CheckCoordinates(LPRECT lpOutRect, LPRECT lpInRect);
+	bool WaitForLockState();
+	HRESULT SetLock(D3DLOCKED_RECT* pLockedRect, LPRECT lpDestRect, DWORD dwFlags, BOOL isSkipScene = false);
+	HRESULT SetUnlock(BOOL isSkipScene = false);
+	HRESULT LockEmulatedSurface(D3DLOCKED_RECT* pLockedRect, LPRECT lpDestRect);
+	void SetDirtyFlag();
+	void BeginWritePresent(bool isSkipScene = false);
+	void EndWritePresent(bool isSkipScene = false);
+
+	// Surface information functions
+	bool IsSurfaceLocked() { return IsLocked; }
+	bool IsSurfaceInDC() { return IsInDC; }
+	bool CanSurfaceBeDeleted() { return (ComplexRoot || (surfaceDesc2.ddsCaps.dwCaps & DDSCAPS_COMPLEX) == 0); }
+	DWORD GetWidth() { return surfaceDesc2.dwWidth; }
+	DWORD GetHeight() { return surfaceDesc2.dwHeight; }
+	DDSCAPS2 GetSurfaceCaps() { return surfaceDesc2.ddsCaps; }
+	D3DFORMAT GetSurfaceFormat() { return surfaceFormat; }
+
+	// Attached surfaces
+	void InitSurfaceDesc(DWORD DirectXVersion);
+	void AddAttachedSurfaceToMap(m_IDirectDrawSurfaceX* lpSurfaceX, bool MarkAttached = false);
+	bool DoesAttachedSurfaceExist(m_IDirectDrawSurfaceX* lpSurfaceX);
+	bool WasAttachedSurfaceAdded(m_IDirectDrawSurfaceX* lpSurfaceX);
+	bool DoesFlipBackBufferExist(m_IDirectDrawSurfaceX* lpSurfaceX);
+
+	// Copying surface textures
+	HRESULT ColorFill(RECT* pRect, D3DCOLOR dwFillColor);
+	HRESULT CopySurface(m_IDirectDrawSurfaceX* pSourceSurface, RECT* pSourceRect, RECT* pDestRect, D3DTEXTUREFILTERTYPE Filter, DDCOLORKEY ColorKey, DWORD dwFlags);
+	HRESULT CopyEmulatedSurface(LPRECT lpDestRect, bool CopyToRealSurfaceTexture);
+
 public:
 	m_IDirectDrawSurfaceX(IDirectDrawSurface7 *pOriginal, DWORD DirectXVersion) : ProxyInterface(pOriginal)
 	{
@@ -119,11 +189,11 @@ public:
 
 		if (ProxyDirectXVersion != DirectXVersion)
 		{
-			LOG_LIMIT(3, "Creating device " << __FUNCTION__ << "(" << this << ")" << " converting device from v" << DirectXVersion << " to v" << ProxyDirectXVersion);
+			LOG_LIMIT(3, "Creating interface " << __FUNCTION__ << "(" << this << ")" << " converting interface from v" << DirectXVersion << " to v" << ProxyDirectXVersion);
 		}
 		else
 		{
-			LOG_LIMIT(3, "Creating device " << __FUNCTION__ << "(" << this << ") v" << DirectXVersion);
+			LOG_LIMIT(3, "Creating interface " << __FUNCTION__ << "(" << this << ") v" << DirectXVersion);
 		}
 
 		WrapperInterface = new m_IDirectDrawSurface((LPDIRECTDRAWSURFACE)ProxyInterface, this);
@@ -139,7 +209,7 @@ public:
 	{
 		ProxyDirectXVersion = 9;
 
-		LOG_LIMIT(3, "Creating device " << __FUNCTION__ << "(" << this << ")" << " converting device from v" << DirectXVersion << " to v" << ProxyDirectXVersion);
+		LOG_LIMIT(3, "Creating interface " << __FUNCTION__ << "(" << this << ")" << " converting interface from v" << DirectXVersion << " to v" << ProxyDirectXVersion);
 
 		WrapperInterface = new m_IDirectDrawSurface((LPDIRECTDRAWSURFACE)ProxyInterface, this);
 		WrapperInterface2 = new m_IDirectDrawSurface2((LPDIRECTDRAWSURFACE2)ProxyInterface, this);
@@ -170,7 +240,7 @@ public:
 	}
 	~m_IDirectDrawSurfaceX()
 	{
-		LOG_LIMIT(3, __FUNCTION__ << "(" << this << ")" << " deleting device!");
+		LOG_LIMIT(3, __FUNCTION__ << "(" << this << ")" << " deleting interface!");
 
 		WrapperInterface->DeleteMe();
 		WrapperInterface2->DeleteMe();
@@ -180,7 +250,11 @@ public:
 
 		if (Config.Dd7to9 && !Config.Exiting)
 		{
-			ReleaseInterface();
+			if (ddrawParent)
+			{
+				ddrawParent->RemoveSurfaceFromVector(this);
+			}
+
 			ReleaseD9Surface(false);
 
 			// Delete Critical Section for surface array
@@ -259,86 +333,24 @@ public:
 	STDMETHOD(SetLOD)(THIS_ DWORD);
 	STDMETHOD(GetLOD)(THIS_ LPDWORD);
 
-	// Wrapper interface functions
-	REFIID GetWrapperType(DWORD DirectXVersion)
-	{
-		return (DirectXVersion == 1) ? IID_IDirectDrawSurface :
-			(DirectXVersion == 2) ? IID_IDirectDrawSurface2 :
-			(DirectXVersion == 3) ? IID_IDirectDrawSurface3 :
-			(DirectXVersion == 4) ? IID_IDirectDrawSurface4 :
-			(DirectXVersion == 7) ? IID_IDirectDrawSurface7 : IID_IUnknown;
-	}
-	IDirectDrawSurface *GetProxyInterfaceV1() { return (IDirectDrawSurface *)ProxyInterface; }
-	IDirectDrawSurface2 *GetProxyInterfaceV2() { return (IDirectDrawSurface2 *)ProxyInterface; }
-	IDirectDrawSurface3 *GetProxyInterfaceV3() { return (IDirectDrawSurface3 *)ProxyInterface; }
-	IDirectDrawSurface4 *GetProxyInterfaceV4() { return (IDirectDrawSurface4 *)ProxyInterface; }
-	IDirectDrawSurface7 *GetProxyInterfaceV7() { return ProxyInterface; }
+	// Helper functions
 	void *GetWrapperInterfaceX(DWORD DirectXVersion);
 
 	// Functions handling the ddraw parent interface
 	void SetDdrawParent(m_IDirectDrawX *ddraw) { ddrawParent = ddraw; }
 	void ClearDdraw() { ddrawParent = nullptr; }
 
-	// Direct3D9 interfaces
-	EMUSURFACE **GetEmulatedSurface() { return &emu; }
-	LPDIRECT3DTEXTURE9 *GetSurfaceTexture() { return &surfaceTexture; }
-	LPDIRECT3DSURFACE9 *GetContextSurface() { return &contextSurface; }
-
-	// Surface information functions
-	bool IsPrimarySurface() { return (surfaceDesc2.ddsCaps.dwCaps & DDSCAPS_PRIMARYSURFACE) != 0; }
-	bool IsSurfaceLocked() { return IsLocked; }
-	bool IsSurfaceInDC() { return IsInDC; }
-	bool IsSurfaceManaged() { return (surfaceDesc2.ddsCaps.dwCaps2 & (DDSCAPS2_TEXTUREMANAGE | DDSCAPS2_D3DTEXTUREMANAGE)) != 0; }
-	bool CanSurfaceBeDeleted() { return (ComplexRoot || (surfaceDesc2.ddsCaps.dwCaps & DDSCAPS_COMPLEX) == 0); }
-	DWORD GetWidth() { return surfaceDesc2.dwWidth; }
-	DWORD GetHeight() { return surfaceDesc2.dwHeight; }
-	DDSCAPS2 GetSurfaceCaps() { return surfaceDesc2.ddsCaps; }
-	D3DFORMAT GetSurfaceFormat() { return surfaceFormat; }
-
 	// Direct3D9 interface functions
-	HRESULT CheckInterface(char *FunctionName, bool CheckD3DDevice, bool CheckD3DSurface);
-	HRESULT CreateD3d9Surface();
-	HRESULT CreateDCSurface();
-	void UpdateSurfaceDesc();
-	template <typename T>
-	void ReleaseD9Interface(T **ppInterface);
 	void ReleaseD9Surface(bool BackupData = true);
 	HRESULT PresentSurface(BOOL isSkipScene = false);
 	void ResetSurfaceDisplay();
 
-	// Swap surface addresses for Flip
-	template <typename T>
-	void SwapAddresses(T *Address1, T *Address2)
-	{
-		T tmpAddr = *Address1;
-		*Address1 = *Address2;
-		*Address2 = tmpAddr;
-	}
-	void SwapSurface(m_IDirectDrawSurfaceX* lpTargetSurface1, m_IDirectDrawSurfaceX* lpTargetSurface2);
-	HRESULT FlipBackBuffer();
-
-	// Locking rect coordinates
-	bool CheckCoordinates(LPRECT lpOutRect, LPRECT lpInRect);
-	bool WaitForLockState();
-	HRESULT SetLock(D3DLOCKED_RECT* pLockedRect, LPRECT lpDestRect, DWORD dwFlags, BOOL isSkipScene = false);
-	HRESULT SetUnlock(BOOL isSkipScene = false);
-	HRESULT LockEmulatedSurface(D3DLOCKED_RECT* pLockedRect, LPRECT lpDestRect);
-	void SetDirtyFlag();
-	void BeginWritePresent(bool isSkipScene = false);
-	void EndWritePresent(bool isSkipScene = false);
+	// Surface information functions
+	bool IsPrimarySurface() { return (surfaceDesc2.ddsCaps.dwCaps & DDSCAPS_PRIMARYSURFACE) != 0; }
+	bool IsSurfaceManaged() { return (surfaceDesc2.ddsCaps.dwCaps2 & (DDSCAPS2_TEXTUREMANAGE | DDSCAPS2_D3DTEXTUREMANAGE)) != 0; }
 
 	// Attached surfaces
-	void InitSurfaceDesc(DWORD DirectXVersion);
-	void AddAttachedSurfaceToMap(m_IDirectDrawSurfaceX* lpSurfaceX, bool MarkAttached = false);
 	void RemoveAttachedSurfaceFromMap(m_IDirectDrawSurfaceX* lpSurfaceX);
-	bool DoesAttachedSurfaceExist(m_IDirectDrawSurfaceX* lpSurfaceX);
-	bool WasAttachedSurfaceAdded(m_IDirectDrawSurfaceX* lpSurfaceX);
-	bool DoesFlipBackBufferExist(m_IDirectDrawSurfaceX* lpSurfaceX);
-
-	// Copying surface textures
-	HRESULT ColorFill(RECT* pRect, D3DCOLOR dwFillColor);
-	HRESULT CopySurface(m_IDirectDrawSurfaceX* pSourceSurface, RECT* pSourceRect, RECT* pDestRect, D3DTEXTUREFILTERTYPE Filter, DDCOLORKEY ColorKey, DWORD dwFlags);
-	HRESULT CopyEmulatedSurface(LPRECT lpDestRect, bool CopyToRealSurfaceTexture);
 
 	// For palettes
 	m_IDirectDrawPalette *GetAttachedPalette() { return attachedPalette; }
@@ -349,7 +361,4 @@ public:
 	static void StartSharedEmulatedMemory();
 	static void DeleteSharedEmulatedMemory(EMUSURFACE **ppEmuSurface);
 	static void CleanupSharedEmulatedMemory();
-
-	// Release interface
-	void ReleaseInterface();
 };

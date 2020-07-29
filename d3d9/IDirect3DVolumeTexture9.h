@@ -9,16 +9,14 @@ private:
 public:
 	m_IDirect3DVolumeTexture9(LPDIRECT3DVOLUMETEXTURE9 pTexture8, m_IDirect3DDevice9Ex* pDevice) : ProxyInterface(pTexture8), m_pDeviceEx(pDevice)
 	{
-		LOG_LIMIT(3, "Creating device " << __FUNCTION__ << "(" << this << ")");
+		LOG_LIMIT(3, "Creating interface " << __FUNCTION__ << "(" << this << ")");
 
 		pDevice->ProxyAddressLookupTable->SaveAddress(this, ProxyInterface);
 	}
 	~m_IDirect3DVolumeTexture9()
 	{
-		LOG_LIMIT(3, __FUNCTION__ << "(" << this << ")" << " deleting device!");
+		LOG_LIMIT(3, __FUNCTION__ << "(" << this << ")" << " deleting interface!");
 	}
-
-	LPDIRECT3DVOLUMETEXTURE9 GetProxyInterface() { return ProxyInterface; }
 
 	/*** IUnknown methods ***/
 	STDMETHOD(QueryInterface)(THIS_ REFIID riid, void** ppvObj);
@@ -45,4 +43,7 @@ public:
 	STDMETHOD(LockBox)(THIS_ UINT Level, D3DLOCKED_BOX* pLockedVolume, CONST D3DBOX* pBox, DWORD Flags);
 	STDMETHOD(UnlockBox)(THIS_ UINT Level);
 	STDMETHOD(AddDirtyBox)(THIS_ CONST D3DBOX* pDirtyBox);
+
+	// Helper functions
+	LPDIRECT3DVOLUMETEXTURE9 GetProxyInterface() { return ProxyInterface; }
 };

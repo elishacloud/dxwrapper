@@ -1,5 +1,7 @@
 #pragma once
 
+#include "IDirectDrawX.h"
+
 #define D3DDEVICEDESC1_SIZE 172
 #define D3DDEVICEDESC5_SIZE 204
 #define D3DDEVICEDESC6_SIZE 252
@@ -18,6 +20,22 @@ private:
 	m_IDirect3D3 *WrapperInterface3;
 	m_IDirect3D7 *WrapperInterface7;
 
+	// Wrapper interface functions
+	REFIID GetWrapperType(DWORD DirectXVersion)
+	{
+		return (DirectXVersion == 1) ? IID_IDirect3D :
+			(DirectXVersion == 2) ? IID_IDirect3D2 :
+			(DirectXVersion == 3) ? IID_IDirect3D3 :
+			(DirectXVersion == 7) ? IID_IDirect3D7 : IID_IDirect3D7;
+	}
+	IDirect3D *GetProxyInterfaceV1() { return (IDirect3D *)ProxyInterface; }
+	IDirect3D2 *GetProxyInterfaceV2() { return (IDirect3D2 *)ProxyInterface; }
+	IDirect3D3 *GetProxyInterfaceV3() { return (IDirect3D3 *)ProxyInterface; }
+	IDirect3D7 *GetProxyInterfaceV7() { return ProxyInterface; }
+
+	// Resolution hack
+	void ResolutionHack();
+
 public:
 	m_IDirect3DX(IDirect3D7 *aOriginal, DWORD DirectXVersion) : ProxyInterface(aOriginal)
 	{
@@ -25,11 +43,11 @@ public:
 
 		if (ProxyDirectXVersion != DirectXVersion)
 		{
-			LOG_LIMIT(3, "Creating device " << __FUNCTION__ << "(" << this << ")" << " converting device from v" << DirectXVersion << " to v" << ProxyDirectXVersion);
+			LOG_LIMIT(3, "Creating interface " << __FUNCTION__ << "(" << this << ")" << " converting interface from v" << DirectXVersion << " to v" << ProxyDirectXVersion);
 		}
 		else
 		{
-			LOG_LIMIT(3, "Creating device " << __FUNCTION__ << "(" << this << ") v" << DirectXVersion);
+			LOG_LIMIT(3, "Creating interface " << __FUNCTION__ << "(" << this << ") v" << DirectXVersion);
 		}
 
 		WrapperInterface = new m_IDirect3D((LPDIRECT3D)ProxyInterface, this);
@@ -45,7 +63,7 @@ public:
 	{
 		ProxyDirectXVersion = 9;
 
-		LOG_LIMIT(3, "Creating device " << __FUNCTION__ << "(" << this << ")" << " converting device from v" << DirectXVersion << " to v" << ProxyDirectXVersion);
+		LOG_LIMIT(3, "Creating interface " << __FUNCTION__ << "(" << this << ")" << " converting interface from v" << DirectXVersion << " to v" << ProxyDirectXVersion);
 
 		WrapperInterface = new m_IDirect3D((LPDIRECT3D)ProxyInterface, this);
 		WrapperInterface2 = new m_IDirect3D2((LPDIRECT3D2)ProxyInterface, this);
@@ -56,7 +74,7 @@ public:
 	}
 	~m_IDirect3DX()
 	{
-		LOG_LIMIT(3, __FUNCTION__ << "(" << this << ")" << " deleting device!");
+		LOG_LIMIT(3, __FUNCTION__ << "(" << this << ")" << " deleting interface!");
 
 		WrapperInterface->DeleteMe();
 		WrapperInterface2->DeleteMe();
@@ -65,7 +83,10 @@ public:
 
 		if (Config.Dd7to9 && !Config.Exiting)
 		{
-			ReleaseInterface();
+			if (ddrawParent)
+			{
+				ddrawParent->ClearD3D();
+			}
 		}
 
 		ProxyAddressLookupTable.DeleteAddress(this);
@@ -89,27 +110,10 @@ public:
 	STDMETHOD(EnumZBufferFormats)(THIS_ REFCLSID, LPD3DENUMPIXELFORMATSCALLBACK, LPVOID);
 	STDMETHOD(EvictManagedTextures)(THIS);
 
-	// Wrapper interface functions
-	REFIID GetWrapperType(DWORD DirectXVersion)
-	{
-		return (DirectXVersion == 1) ? IID_IDirect3D :
-			(DirectXVersion == 2) ? IID_IDirect3D2 :
-			(DirectXVersion == 3) ? IID_IDirect3D3 :
-			(DirectXVersion == 7) ? IID_IDirect3D7 : IID_IDirect3D7;
-	}
-	IDirect3D *GetProxyInterfaceV1() { return (IDirect3D *)ProxyInterface; }
-	IDirect3D2 *GetProxyInterfaceV2() { return (IDirect3D2 *)ProxyInterface; }
-	IDirect3D3 *GetProxyInterfaceV3() { return (IDirect3D3 *)ProxyInterface; }
-	IDirect3D7 *GetProxyInterfaceV7() { return ProxyInterface; }
+	// Helper functions
 	void *GetWrapperInterfaceX(DWORD DirectXVersion);
 
 	// Functions handling the ddraw parent interface
 	void SetDdrawParent(m_IDirectDrawX *ddraw) { ddrawParent = ddraw; }
 	void ClearDdraw() { ddrawParent = nullptr; }
-
-	// Resolution hack
-	void ResolutionHack();
-
-	// Release interface
-	void ReleaseInterface();
 };

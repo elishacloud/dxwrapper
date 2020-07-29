@@ -4030,11 +4030,3 @@ void m_IDirectDrawSurfaceX::CleanupSharedEmulatedMemory()
 	}
 	memorySurfaces.clear();
 }
-
-void m_IDirectDrawSurfaceX::ReleaseInterface()
-{
-	if (ddrawParent)
-	{
-		ddrawParent->RemoveSurfaceFromVector(this);
-	}
-}

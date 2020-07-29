@@ -8,18 +8,16 @@ private:
 public:
 	m_IDirectSoundFXFlanger8(LPDIRECTSOUNDFXFLANGER8 pSound8) : ProxyInterface(pSound8)
 	{
-		LOG_LIMIT(3, "Creating device " << __FUNCTION__ << "(" << this << ")");
+		LOG_LIMIT(3, "Creating interface " << __FUNCTION__ << "(" << this << ")");
 
 		ProxyAddressLookupTableDsound.SaveAddress(this, ProxyInterface);
 	}
 	~m_IDirectSoundFXFlanger8()
 	{
-		LOG_LIMIT(3, __FUNCTION__ << "(" << this << ")" << " deleting device!");
+		LOG_LIMIT(3, __FUNCTION__ << "(" << this << ")" << " deleting interface!");
 
 		ProxyAddressLookupTableDsound.DeleteAddress(this);
 	}
-
-	LPDIRECTSOUNDFXFLANGER8 GetProxyInterface() { return ProxyInterface; }
 
 	// IUnknown methods
 	STDMETHOD(QueryInterface)(THIS_ _In_ REFIID, _Outptr_ LPVOID*);
@@ -29,4 +27,7 @@ public:
 	// IDirectSoundFXFlanger methods
 	STDMETHOD(SetAllParameters)(THIS_ _In_ LPCDSFXFlanger pcDsFxFlanger);
 	STDMETHOD(GetAllParameters)(THIS_ _Out_ LPDSFXFlanger pDsFxFlanger);
+
+	// Helper functions
+	LPDIRECTSOUNDFXFLANGER8 GetProxyInterface() { return ProxyInterface; }
 };

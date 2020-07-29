@@ -8,18 +8,16 @@ private:
 public:
 	m_IDirectSoundCapture8(LPDIRECTSOUNDCAPTURE8 pSound8) : ProxyInterface(pSound8)
 	{
-		LOG_LIMIT(3, "Creating device " << __FUNCTION__ << "(" << this << ")");
+		LOG_LIMIT(3, "Creating interface " << __FUNCTION__ << "(" << this << ")");
 
 		ProxyAddressLookupTableDsound.SaveAddress(this, ProxyInterface);
 	}
 	~m_IDirectSoundCapture8()
 	{
-		LOG_LIMIT(3, __FUNCTION__ << "(" << this << ")" << " deleting device!");
+		LOG_LIMIT(3, __FUNCTION__ << "(" << this << ")" << " deleting interface!");
 
 		ProxyAddressLookupTableDsound.DeleteAddress(this);
 	}
-
-	LPDIRECTSOUNDCAPTURE8 GetProxyInterface() { return ProxyInterface; }
 
 	// IUnknown methods
 	STDMETHOD(QueryInterface)(THIS_ _In_ REFIID, _Outptr_ LPVOID*);
@@ -30,4 +28,7 @@ public:
 	STDMETHOD(CreateCaptureBuffer)(THIS_ _In_ LPCDSCBUFFERDESC pcDSCBufferDesc, _Outptr_ LPDIRECTSOUNDCAPTUREBUFFER *ppDSCBuffer, _Pre_null_ LPUNKNOWN pUnkOuter);
 	STDMETHOD(GetCaps)(THIS_ _Out_ LPDSCCAPS pDSCCaps);
 	STDMETHOD(Initialize)(THIS_ _In_opt_ LPCGUID pcGuidDevice);
+
+	// Helper functions
+	LPDIRECTSOUNDCAPTURE8 GetProxyInterface() { return ProxyInterface; }
 };

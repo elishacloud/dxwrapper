@@ -28,13 +28,13 @@ private:
 public:
 	m_IDirectDrawPalette(IDirectDrawPalette *aOriginal) : ProxyInterface(aOriginal)
 	{
-		LOG_LIMIT(3, "Creating device " << __FUNCTION__ << "(" << this << ")");
+		LOG_LIMIT(3, "Creating interface " << __FUNCTION__ << "(" << this << ")");
 
 		ProxyAddressLookupTable.SaveAddress(this, ProxyInterface);
 	}
 	m_IDirectDrawPalette(m_IDirectDrawX *Interface, DWORD dwFlags, LPPALETTEENTRY lpDDColorArray) : ddrawParent(Interface), paletteCaps(dwFlags)
 	{
-		LOG_LIMIT(3, "Creating device " << __FUNCTION__ << "(" << this << ")");
+		LOG_LIMIT(3, "Creating interface " << __FUNCTION__ << "(" << this << ")");
 
 		// Default to 256 entries
 		entryCount = 256;
@@ -68,13 +68,16 @@ public:
 	}
 	~m_IDirectDrawPalette()
 	{
-		LOG_LIMIT(3, __FUNCTION__ << "(" << this << ")" << " deleting device!");
+		LOG_LIMIT(3, __FUNCTION__ << "(" << this << ")" << " deleting interface!");
 
 		ProxyAddressLookupTable.DeleteAddress(this);
 
 		if (!ProxyInterface && !Config.Exiting)
 		{
-			ReleaseInterface();
+			if (ddrawParent)
+			{
+				ddrawParent->RemovePaletteFromVector(this);
+			}
 
 			if (rawPalette)
 			{
@@ -102,11 +105,8 @@ public:
 	void SetDdrawParent(m_IDirectDrawX *ddraw) { ddrawParent = ddraw; }
 	void ClearDdraw() { ddrawParent = nullptr; }
 
-	// Other functions
+	// Helper functions
 	RGBDWORD *GetRgbPalette() { return rgbPalette; }
 	DWORD GetPaletteUSN() { return PaletteUSN; }
 	DWORD GetEntryCount() { return entryCount; }
-
-	// Release interface
-	void ReleaseInterface();
 };

@@ -14,23 +14,26 @@ private:
 public:
 	m_IDirectDrawGammaControl(IDirectDrawGammaControl *aOriginal) : ProxyInterface(aOriginal)
 	{
-		LOG_LIMIT(3, "Creating device " << __FUNCTION__ << "(" << this << ")");
+		LOG_LIMIT(3, "Creating interface " << __FUNCTION__ << "(" << this << ")");
 
 		ProxyAddressLookupTable.SaveAddress(this, ProxyInterface);
 	}
 	m_IDirectDrawGammaControl(m_IDirectDrawX *Interface) : ddrawParent(Interface)
 	{
-		LOG_LIMIT(3, "Creating device " << __FUNCTION__ << "(" << this << ")");
+		LOG_LIMIT(3, "Creating interface " << __FUNCTION__ << "(" << this << ")");
 	}
 	~m_IDirectDrawGammaControl()
 	{
-		LOG_LIMIT(3, __FUNCTION__ << "(" << this << ")" << " deleting device!");
+		LOG_LIMIT(3, __FUNCTION__ << "(" << this << ")" << " deleting interface!");
 
 		ProxyAddressLookupTable.DeleteAddress(this);
 
 		if (!ProxyInterface && !Config.Exiting)
 		{
-			ReleaseInterface();
+			if (ddrawParent)
+			{
+				ddrawParent->ClearGammaInterface();
+			}
 		}
 	}
 
@@ -46,7 +49,4 @@ public:
 	// Functions handling the ddraw parent interface
 	void SetDdrawParent(m_IDirectDrawX *ddraw) { ddrawParent = ddraw; }
 	void ClearDdraw() { ddrawParent = nullptr; }
-
-	// Release interface
-	void ReleaseInterface();
 };
