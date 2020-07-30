@@ -7,6 +7,11 @@ private:
 	DWORD ProxyDirectXVersion;
 	ULONG RefCount = 1;
 
+	// Direct3D9 Objects
+	LPDIRECT3D9 d3d9Object = nullptr;
+	LPDIRECT3DDEVICE9 d3d9Device = nullptr;
+	D3DPRESENT_PARAMETERS presParams = { NULL };
+
 	// Fix exclusive mode issue
 	HHOOK g_hook = nullptr;
 	HWND chWnd = nullptr;
@@ -14,6 +19,25 @@ private:
 	// Cooperative level settings
 	HWND MainhWnd = nullptr;
 	HDC MainhDC = nullptr;
+
+	// Convert to Direct3D9
+	bool IsInScene = false;					// Used for BeginScene/EndScene
+	bool EnableWaitVsync = false;
+
+	// Display mode settings
+	bool AllowModeX = false;
+	bool MultiThreaded = false;
+	bool FUPPreserve = false;
+	bool NoWindowChanges = false;
+	bool isWindowed = true;					// Window mode enabled
+
+	// High resolution counter
+	bool FrequencyFlag = false;
+	LARGE_INTEGER clockFrequency, clickTime, lastPresentTime = { 0, 0 };
+	LONGLONG lastFrameTime = 0;
+	DWORD FrameCounter = 0;
+	DWORD monitorRefreshRate = 0;
+	DWORD monitorHeight = 0;
 
 	// Store ddraw version wrappers
 	m_IDirectDraw *WrapperInterface;
@@ -58,7 +82,6 @@ private:
 
 	// Device information functions
 	void InitDdrawSettings();
-	void SetDdrawDefaults();
 	void ReleaseDdraw();
 
 	// Direct3D9 interface functions
@@ -185,8 +208,8 @@ public:
 	void ClearD3DDevice() { D3DDeviceInterface = nullptr; }
 
 	// Direct3D9 interfaces
-	LPDIRECT3D9 GetDirect3D9Object();
-	LPDIRECT3DDEVICE9 *GetDirect3D9Device();
+	LPDIRECT3D9 GetDirect3D9Object() { return d3d9Object; }
+	LPDIRECT3DDEVICE9 *GetDirect3D9Device() { return &d3d9Device; }
 	HRESULT CreateD3D9Device();
 	HRESULT ReinitDevice();
 
@@ -218,7 +241,7 @@ public:
 	static void AdjustVidMemory(LPDWORD lpdwTotal, LPDWORD lpdwFree);
 
 	// Begin & end scene
-	void SetVsync();
+	void SetVsync() { EnableWaitVsync = true; }
 	HRESULT BeginScene();
 	HRESULT EndScene();
 };

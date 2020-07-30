@@ -59,36 +59,6 @@ DWORD LastWidth;
 DWORD LastHeight;
 DWORD LastBPP;
 
-// Display mode settings
-bool AllowModeX;
-bool MultiThreaded;
-bool FUPPreserve;
-bool NoWindowChanges;
-bool isWindowed;					// Window mode enabled
-
-// Convert to Direct3D9
-bool IsInScene;						// Used for BeginScene/EndScene
-bool EnableWaitVsync;
-
-// High resolution counter
-bool FrequencyFlag = false;
-LARGE_INTEGER clockFrequency, clickTime, lastPresentTime = { 0, 0 };
-LONGLONG lastFrameTime = 0;
-DWORD FrameCounter = 0;
-DWORD monitorRefreshRate = 0;
-DWORD monitorHeight = 0;
-
-// Direct3D9 Objects
-LPDIRECT3D9 d3d9Object = nullptr;
-LPDIRECT3DDEVICE9 d3d9Device = nullptr;
-D3DPRESENT_PARAMETERS presParams = { NULL };
-
-struct HANDLE_DATA
-{
-	DWORD process_id = 0;
-	HWND best_handle = nullptr;
-};
-
 std::unordered_map<HWND, m_IDirectDrawX*> g_hookmap;
 
 /************************/
@@ -414,6 +384,18 @@ HRESULT m_IDirectDrawX::CreateSurface2(LPDDSURFACEDESC2 lpDDSurfaceDesc2, LPDIRE
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Error: non-supported ddsCaps! " << (lpDDSurfaceDesc2->ddsCaps.dwCaps & UnsupportedSDddsCaps) << " " <<
 				lpDDSurfaceDesc2->ddsCaps.dwCaps2 << " " << lpDDSurfaceDesc2->ddsCaps.dwVolumeDepth);
+		}
+
+		// Setup d3d9 device
+		if (!d3d9Device)
+		{
+			if ((!displayWidth || !displayHeight) && lpDDSurfaceDesc2->dwWidth && lpDDSurfaceDesc2->dwHeight)
+			{
+				displayWidth = lpDDSurfaceDesc2->dwWidth;
+				displayHeight = lpDDSurfaceDesc2->dwHeight;
+			}
+
+			CreateD3D9Device();
 		}
 
 		DDSURFACEDESC2 Desc2;
@@ -1344,27 +1326,17 @@ HRESULT m_IDirectDrawX::SetDisplayMode(DWORD dwWidth, DWORD dwHeight, DWORD dwBP
 		// Update the d3d9 device to use new display mode
 		if (ChangeMode)
 		{
-			// Reset d3d9 device
-			if (SetDefaultDisplayMode || !d3d9Device)
-			{
-				if (FAILED(CreateD3D9Device()))
-				{
-					LOG_LIMIT(100, __FUNCTION__ << " Error: creating Direct3D9 Device");
-					return DDERR_GENERIC;
-				}
-			}
+			CreateD3D9Device();
+
+			SetCriticalSection();
+
 			// Reset surfaces
-			else
+			for (m_IDirectDrawSurfaceX *pSurface : SurfaceVector)
 			{
-				SetCriticalSection();
-
-				for (m_IDirectDrawSurfaceX *pSurface : SurfaceVector)
-				{
-					pSurface->ResetSurfaceDisplay();
-				}
-
-				ReleaseCriticalSection();
+				pSurface->ResetSurfaceDisplay();
 			}
+
+			ReleaseCriticalSection();
 		}
 
 		ResetDisplayMode = false;
@@ -1396,6 +1368,7 @@ HRESULT m_IDirectDrawX::WaitForVerticalBlank(DWORD dwFlags, HANDLE hEvent)
 		}
 
 		// Check flags
+		DWORD ExitSystemTime = GetTickCount() + min((2000 / ((monitorRefreshRate) ? monitorRefreshRate : 60)), 34);
 		D3DRASTER_STATUS RasterStatus;
 		switch (dwFlags)
 		{
@@ -1404,7 +1377,7 @@ HRESULT m_IDirectDrawX::WaitForVerticalBlank(DWORD dwFlags, HANDLE hEvent)
 			if (SUCCEEDED(d3d9Device->GetRasterStatus(0, &RasterStatus)))
 			{
 				bool InBlock = RasterStatus.InVBlank;
-				while (SUCCEEDED(d3d9Device->GetRasterStatus(0, &RasterStatus)) && !(!InBlock && RasterStatus.InVBlank))
+				while (SUCCEEDED(d3d9Device->GetRasterStatus(0, &RasterStatus)) && !(!InBlock && RasterStatus.InVBlank) && ExitSystemTime > GetTickCount())
 				{
 					InBlock = RasterStatus.InVBlank;
 				}
@@ -1415,7 +1388,7 @@ HRESULT m_IDirectDrawX::WaitForVerticalBlank(DWORD dwFlags, HANDLE hEvent)
 			if (SUCCEEDED(d3d9Device->GetRasterStatus(0, &RasterStatus)))
 			{
 				bool InBlock = RasterStatus.InVBlank;
-				while (SUCCEEDED(d3d9Device->GetRasterStatus(0, &RasterStatus)) && !(InBlock && !RasterStatus.InVBlank))
+				while (SUCCEEDED(d3d9Device->GetRasterStatus(0, &RasterStatus)) && !(InBlock && !RasterStatus.InVBlank) && ExitSystemTime > GetTickCount())
 				{
 					InBlock = RasterStatus.InVBlank;
 				}
@@ -1715,16 +1688,6 @@ HRESULT m_IDirectDrawX::EvaluateMode(DWORD dwFlags, DWORD * pSecondsUntilTimeout
 /*** Helper functions ***/
 /************************/
 
-LPDIRECT3D9 m_IDirectDrawX::GetDirect3D9Object()
-{
-	return d3d9Object;
-}
-
-LPDIRECT3DDEVICE9 *m_IDirectDrawX::GetDirect3D9Device()
-{
-	return &d3d9Device;
-}
-
 void m_IDirectDrawX::InitDdrawSettings()
 {
 	DWORD ref = InterlockedIncrement(&ddrawRefCount);
@@ -1736,70 +1699,57 @@ void m_IDirectDrawX::InitDdrawSettings()
 
 	DDrawVector.push_back(this);
 
+	FrequencyFlag = (QueryPerformanceFrequency(&clockFrequency) != 0);
+
 	if (ref == 1)
 	{
-		SetDdrawDefaults();
+		// Release DC
+		if (SharedMainhWnd && SharedMainhDC)
+		{
+			ReleaseDC(SharedMainhWnd, SharedMainhDC);
+			SharedMainhDC = nullptr;
+		}
+		SharedMainhWnd = nullptr;
+		SharedMainhDC = nullptr;
+
+		// Exclusive mode
+		ExclusiveMode = false;
+		ExclusiveHwnd = nullptr;
+		ExclusiveWidth = 0;
+		ExclusiveHeight = 0;
+		ExclusiveBPP = 0;
+		ExclusiveRefreshRate = 0;
+
+		// Application display mode
+		ResetDisplayMode = false;
+		displayModeWidth = 0;
+		displayModeHeight = 0;
+		displayModeBPP = 0;
+		displayModeRefreshRate = 0;
+
+		// Last resolution
+		LastWidth = 0;
+		LastHeight = 0;
+		LastBPP = 0;
+
+		// Display resolution
+		if (Config.DdrawUseNativeResolution)
+		{
+			Utils::GetScreenSize(GetHwnd(), displayWidth, displayHeight);
+		}
+		else
+		{
+			displayWidth = (Config.DdrawOverrideWidth) ? Config.DdrawOverrideWidth : 0;
+			displayHeight = (Config.DdrawOverrideHeight) ? Config.DdrawOverrideHeight : 0;
+		}
+		displayRefreshRate = (Config.DdrawOverrideRefreshRate) ? Config.DdrawOverrideRefreshRate : 0;
+		SetDefaultDisplayMode = (!displayWidth || !displayHeight || !displayRefreshRate);
+
+		// Prepair shared memory
 		m_IDirectDrawSurfaceX::StartSharedEmulatedMemory();
 	}
 
 	ReleaseCriticalSection();
-}
-
-void m_IDirectDrawX::SetDdrawDefaults()
-{
-	// Convert to Direct3D9
-	IsInScene = false;
-	EnableWaitVsync = false;
-	AllowModeX = false;
-	MultiThreaded = false;
-	FUPPreserve = false;
-	NoWindowChanges = false;
-	isWindowed = true;
-
-	// Exclusive mode
-	ExclusiveMode = false;
-	ExclusiveHwnd = nullptr;
-	ExclusiveWidth = 0;
-	ExclusiveHeight = 0;
-	ExclusiveBPP = 0;
-	ExclusiveRefreshRate = 0;
-
-	// Last resolution
-	LastWidth = 0;
-	LastHeight = 0;
-
-	// Application display mode
-	if (SharedMainhWnd && SharedMainhDC)
-	{
-		ReleaseDC(SharedMainhWnd, SharedMainhDC);
-	}
-	SharedMainhWnd = nullptr;
-	SharedMainhDC = nullptr;
-	displayModeWidth = 0;
-	displayModeHeight = 0;
-	displayModeBPP = 0;
-	displayModeRefreshRate = 0;
-	ResetDisplayMode = false;
-
-	// Display resolution
-	if (Config.DdrawUseNativeResolution)
-	{
-		Utils::GetScreenSize(GetHwnd(), displayWidth, displayHeight);
-	}
-	else
-	{
-		displayWidth = (Config.DdrawOverrideWidth) ? Config.DdrawOverrideWidth : 0;
-		displayHeight = (Config.DdrawOverrideHeight) ? Config.DdrawOverrideHeight : 0;
-	}
-	displayRefreshRate = (Config.DdrawOverrideRefreshRate) ? Config.DdrawOverrideRefreshRate : 0;
-
-	SetDefaultDisplayMode = (!displayWidth || !displayHeight || !displayRefreshRate);
-
-	// Other settings
-	monitorRefreshRate = 0;
-	monitorHeight = 0;
-	FrequencyFlag = (QueryPerformanceFrequency(&clockFrequency) != 0);
-	ZeroMemory(&presParams, sizeof(presParams));
 }
 
 void m_IDirectDrawX::ReleaseDdraw()
@@ -1865,29 +1815,30 @@ void m_IDirectDrawX::ReleaseDdraw()
 		MainhDC = nullptr;
 	}
 
-	if (ref == 0)
+	// Release d3d9device
+	if (d3d9Device)
 	{
-		// Release shared d3d9device
-		if (d3d9Device)
+		// EndEcene
+		if (IsInScene)
 		{
-			// EndEcene
-			if (IsInScene)
-			{
-				d3d9Device->EndScene();
-			}
-
-			d3d9Device->Release();
-			d3d9Device = nullptr;
+			d3d9Device->EndScene();
 		}
 
-		// Set is not in scene
-		IsInScene = false;
-		EnableWaitVsync = false;
+		d3d9Device->Release();
+		d3d9Device = nullptr;
+	}
 
-		// Release shared d3d9object
+	// Release d3d9object
+	if (d3d9Object)
+	{
 		d3d9Object->Release();
 		d3d9Object = nullptr;
+	}
 
+	ReleaseCriticalSection();
+
+	if (ref == 0)
+	{
 		// Release DC
 		if (SharedMainhWnd && SharedMainhDC)
 		{
@@ -1898,8 +1849,6 @@ void m_IDirectDrawX::ReleaseDdraw()
 		// Clean up shared memory
 		m_IDirectDrawSurfaceX::CleanupSharedEmulatedMemory();
 	}
-
-	ReleaseCriticalSection();
 }
 
 HWND m_IDirectDrawX::GetHwnd()
@@ -2006,13 +1955,8 @@ HRESULT m_IDirectDrawX::CheckInterface(char *FunctionName, bool CheckD3DDevice)
 	// Check for device, if not then create it
 	if (CheckD3DDevice && !d3d9Device)
 	{
-		// For concurrency
-		SetCriticalSection();
-		bool flag = (!d3d9Device);
-		ReleaseCriticalSection();
-
 		// Create d3d9 device
-		if (flag && FAILED(CreateD3D9Device()))
+		if (FAILED(CreateD3D9Device()))
 		{
 			LOG_LIMIT(100, FunctionName << " Error: d3d9 device not setup!");
 			return DDERR_GENERIC;
@@ -2534,12 +2478,6 @@ HRESULT m_IDirectDrawX::BeginScene()
 	IsInScene = true;
 
 	return DD_OK;
-}
-
-// Enable vsync
-void m_IDirectDrawX::SetVsync()
-{
-	EnableWaitVsync = true;
 }
 
 // Do d3d9 EndScene and Present if all surfaces are unlocked

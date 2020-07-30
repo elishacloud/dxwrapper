@@ -137,7 +137,7 @@ HRESULT m_IDirectDrawSurfaceX::QueryInterface(REFIID riid, LPVOID FAR * ppvObj)
 		return DD_OK;
 	}
 
-	return ProxyQueryInterface(ProxyInterface, riid, ppvObj, GetWrapperType(GetGUIDVersion(riid)), WrapperInterface);
+	return ProxyQueryInterface(ProxyInterface, (IID_IDirect3DRampDevice == riid ? IID_IDirect3DRGBDevice : riid), ppvObj, GetWrapperType(GetGUIDVersion(riid)), WrapperInterface);
 }
 
 void *m_IDirectDrawSurfaceX::GetWrapperInterfaceX(DWORD DirectXVersion)
