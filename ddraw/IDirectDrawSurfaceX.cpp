@@ -2718,6 +2718,7 @@ void m_IDirectDrawSurfaceX::UpdateSurfaceDesc()
 		// Get resolution
 		DWORD Width, Height, RefreshRate, BPP;
 		ddrawParent->GetResolution(Width, Height, RefreshRate, BPP);
+		ddrawParent->GetDisplay(displayWidth, displayHeight);
 
 		// Set Height and Width
 		if (Width && Height &&
