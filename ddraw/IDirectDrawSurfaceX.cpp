@@ -36,36 +36,30 @@ std::vector<EMUSURFACE*> memorySurfaces;
 /*** IUnknown methods ***/
 /************************/
 
-HRESULT m_IDirectDrawSurfaceX::QueryInterface(REFIID riid, LPVOID FAR * ppvObj)
+HRESULT m_IDirectDrawSurfaceX::QueryInterface(REFIID riid, LPVOID FAR * ppvObj, DWORD DirectXVersion)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
-
-	if (ppvObj && riid == IID_GetRealInterface)
-	{
-		*ppvObj = ProxyInterface;
-		return DD_OK;
-	}
-	if (ppvObj && riid == IID_GetInterfaceX)
-	{
-		*ppvObj = this;
-		return DD_OK;
-	}
 
 	if (!ppvObj)
 	{
 		return DDERR_GENERIC;
 	}
 
+	if (riid == IID_GetRealInterface)
+	{
+		*ppvObj = ProxyInterface;
+		return DD_OK;
+	}
+	if (riid == IID_GetInterfaceX)
+	{
+		*ppvObj = this;
+		return DD_OK;
+	}
+
+	DWORD DxVersion = (CheckWrapperType(riid) && (Config.Dd7to9 || Config.ConvertToDirectDraw7)) ? GetGUIDVersion(riid) : DirectXVersion;
+
 	if (Config.Dd7to9)
 	{
-		if (riid == IID_IDirectDrawSurface || riid == IID_IDirectDrawSurface2 || riid == IID_IDirectDrawSurface3 || riid == IID_IDirectDrawSurface4 || riid == IID_IDirectDrawSurface7 || riid == IID_IUnknown)
-		{
-			*ppvObj = GetWrapperInterfaceX(GetGUIDVersion(riid));
-
-			::AddRef(*ppvObj);
-
-			return DD_OK;
-		}
 		if (riid == IID_IDirect3DHALDevice || riid == IID_IDirect3DRGBDevice || riid == IID_IDirect3DRampDevice || riid == IID_IDirect3DNullDevice)
 		{
 			// Check for device interface
@@ -137,7 +131,7 @@ HRESULT m_IDirectDrawSurfaceX::QueryInterface(REFIID riid, LPVOID FAR * ppvObj)
 		return DD_OK;
 	}
 
-	return ProxyQueryInterface(ProxyInterface, (IID_IDirect3DRampDevice == riid ? IID_IDirect3DRGBDevice : riid), ppvObj, GetWrapperType(GetGUIDVersion(riid)), WrapperInterface);
+	return ProxyQueryInterface(ProxyInterface, (IID_IDirect3DRampDevice == riid ? IID_IDirect3DRGBDevice : riid), ppvObj, GetWrapperType(DxVersion), GetWrapperInterfaceX(DxVersion));
 }
 
 void *m_IDirectDrawSurfaceX::GetWrapperInterfaceX(DWORD DirectXVersion)

@@ -9,10 +9,6 @@ private:
 
 	// Convert Viewport
 	m_IDirect3DDeviceX **D3DDeviceInterface = nullptr;
-	D3DVIEWPORT ViewPort;
-	D3DVIEWPORT2 ViewPort2;
-	bool ViewPortSet = false;
-	bool ViewPort2Set = false;
 
 	// Store version wrappers
 	m_IDirect3DViewport *WrapperInterface;
@@ -25,6 +21,12 @@ private:
 		return (DirectXVersion == 1) ? IID_IDirect3DViewport :
 			(DirectXVersion == 2) ? IID_IDirect3DViewport2 :
 			(DirectXVersion == 3) ? IID_IDirect3DViewport3 : IID_IUnknown;
+	}
+	bool CheckWrapperType(REFIID IID)
+	{
+		return (IID == IID_IDirect3DViewport ||
+			IID == IID_IDirect3DViewport2 ||
+			IID == IID_IDirect3DViewport3) ? true : false;
 	}
 	IDirect3DViewport *GetProxyInterfaceV1() { return (IDirect3DViewport *)ProxyInterface; }
 	IDirect3DViewport2 *GetProxyInterfaceV2() { return (IDirect3DViewport2 *)ProxyInterface; }
@@ -52,9 +54,16 @@ public:
 	}
 	m_IDirect3DViewportX(m_IDirect3DDeviceX **D3DDInterface, DWORD DirectXVersion) : D3DDeviceInterface(D3DDInterface)
 	{
-		ProxyDirectXVersion = (!Config.Dd7to9) ? 7 : 9;
+		ProxyDirectXVersion = (!Config.Dd7to9) ? 3 : 9;
 
-		LOG_LIMIT(3, "Creating interface " << __FUNCTION__ << "(" << this << ")" << " converting interface from v" << DirectXVersion << " to v" << ProxyDirectXVersion);
+		if (ProxyDirectXVersion != DirectXVersion)
+		{
+			LOG_LIMIT(3, "Creating interface " << __FUNCTION__ << "(" << this << ")" << " converting interface from v" << DirectXVersion << " to v" << ProxyDirectXVersion);
+		}
+		else
+		{
+			LOG_LIMIT(3, "Creating interface " << __FUNCTION__ << "(" << this << ") v" << DirectXVersion);
+		}
 
 		WrapperInterface = new m_IDirect3DViewport((LPDIRECT3DVIEWPORT)ProxyInterface, this);
 		WrapperInterface2 = new m_IDirect3DViewport2((LPDIRECT3DVIEWPORT2)ProxyInterface, this);
@@ -74,7 +83,8 @@ public:
 	}
 
 	/*** IUnknown methods ***/
-	STDMETHOD(QueryInterface) (THIS_ REFIID riid, LPVOID FAR * ppvObj);
+	STDMETHOD(QueryInterface) (THIS_ REFIID riid, LPVOID FAR * ppvObj, DWORD DirectXVersion);
+	STDMETHOD(QueryInterface) (THIS_ REFIID riid, LPVOID FAR * ppvObj) { return QueryInterface(riid, ppvObj, GetGUIDVersion(riid)); }
 	STDMETHOD_(ULONG, AddRef)(THIS);
 	STDMETHOD_(ULONG, Release)(THIS);
 

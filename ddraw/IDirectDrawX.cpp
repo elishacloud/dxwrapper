@@ -89,38 +89,30 @@ std::unordered_map<HWND, m_IDirectDrawX*> g_hookmap;
 /*** IUnknown methods ***/
 /************************/
 
-HRESULT m_IDirectDrawX::QueryInterface(REFIID riid, LPVOID FAR * ppvObj)
+HRESULT m_IDirectDrawX::QueryInterface(REFIID riid, LPVOID FAR * ppvObj, DWORD DirectXVersion)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
-
-	if (ppvObj && riid == IID_GetRealInterface)
-	{
-		*ppvObj = ProxyInterface;
-		return DD_OK;
-	}
-	if (ppvObj && riid == IID_GetInterfaceX)
-	{
-		*ppvObj = this;
-		return DD_OK;
-	}
 
 	if (!ppvObj)
 	{
 		return DDERR_GENERIC;
 	}
 
-	DWORD DxVersion = GetGUIDVersion(riid);
+	if (riid == IID_GetRealInterface)
+	{
+		*ppvObj = ProxyInterface;
+		return DD_OK;
+	}
+	if (riid == IID_GetInterfaceX)
+	{
+		*ppvObj = this;
+		return DD_OK;
+	}
+
+	DWORD DxVersion = (CheckWrapperType(riid) && (Config.Dd7to9 || Config.ConvertToDirectDraw7)) ? GetGUIDVersion(riid) : DirectXVersion;
 
 	if (Config.Dd7to9)
 	{
-		if (riid == IID_IDirectDraw || riid == IID_IDirectDraw2 || riid == IID_IDirectDraw3 || riid == IID_IDirectDraw4 || riid == IID_IDirectDraw7 || riid == IID_IUnknown)
-		{
-			*ppvObj = GetWrapperInterfaceX(DxVersion);
-
-			::AddRef(*ppvObj);
-
-			return DD_OK;
-		}
 		if (riid == IID_IDirect3D || riid == IID_IDirect3D2 || riid == IID_IDirect3D3 || riid == IID_IDirect3D7)
 		{
 			SetCriticalSection();

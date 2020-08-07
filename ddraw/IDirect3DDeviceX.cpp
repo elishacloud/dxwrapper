@@ -16,7 +16,7 @@
 
 #include "ddraw.h"
 
-HRESULT m_IDirect3DDeviceX::QueryInterface(REFIID riid, LPVOID * ppvObj)
+HRESULT m_IDirect3DDeviceX::QueryInterface(REFIID riid, LPVOID FAR * ppvObj, DWORD DirectXVersion)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
@@ -31,18 +31,9 @@ HRESULT m_IDirect3DDeviceX::QueryInterface(REFIID riid, LPVOID * ppvObj)
 		return DD_OK;
 	}
 
-	if (Config.Dd7to9)
-	{
-		if ((riid == IID_IDirect3DDevice || riid == IID_IDirect3DDevice2 || riid == IID_IDirect3DDevice3 || riid == IID_IDirect3DDevice7 || riid == IID_IUnknown) && ppvObj)
-		{
-			*ppvObj = GetWrapperInterfaceX(GetGUIDVersion(riid));
+	DWORD DxVersion = (CheckWrapperType(riid) && (Config.Dd7to9 || Config.ConvertToDirect3D7)) ? GetGUIDVersion(riid) : DirectXVersion;
 
-			::AddRef(*ppvObj);
-
-			return D3D_OK;
-		}
-	}
-	return ProxyQueryInterface(ProxyInterface, riid, ppvObj, GetWrapperType(GetGUIDVersion(riid)), GetWrapperInterfaceX(GetGUIDVersion(riid)));
+	return ProxyQueryInterface(ProxyInterface, riid, ppvObj, GetWrapperType(DxVersion), GetWrapperInterfaceX(DxVersion));
 }
 
 void *m_IDirect3DDeviceX::GetWrapperInterfaceX(DWORD DirectXVersion)
@@ -370,6 +361,7 @@ HRESULT m_IDirect3DDeviceX::AddViewport(LPDIRECT3DVIEWPORT3 lpDirect3DViewport)
 		}
 
 		D3DVIEWPORT Viewport;
+		Viewport.dwSize = sizeof(D3DVIEWPORT);
 
 		// ToDo: Validate Viewport address
 		HRESULT hr = lpDirect3DViewport->GetViewport(&Viewport);

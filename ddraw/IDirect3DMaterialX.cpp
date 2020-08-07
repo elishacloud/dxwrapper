@@ -16,7 +16,7 @@
 
 #include "ddraw.h"
 
-HRESULT m_IDirect3DMaterialX::QueryInterface(REFIID riid, LPVOID * ppvObj)
+HRESULT m_IDirect3DMaterialX::QueryInterface(REFIID riid, LPVOID FAR * ppvObj, DWORD DirectXVersion)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
@@ -31,19 +31,9 @@ HRESULT m_IDirect3DMaterialX::QueryInterface(REFIID riid, LPVOID * ppvObj)
 		return DD_OK;
 	}
 
-	if (ProxyDirectXVersion > 3)
-	{
-		if ((riid == IID_IDirect3DMaterial || riid == IID_IDirect3DMaterial2 || riid == IID_IDirect3DMaterial3 || riid == IID_IUnknown) && ppvObj)
-		{
-			AddRef();
+	DWORD DxVersion = (CheckWrapperType(riid) && (Config.Dd7to9 || Config.ConvertToDirect3D7)) ? GetGUIDVersion(riid) : DirectXVersion;
 
-			*ppvObj = this;
-
-			return D3D_OK;
-		}
-	}
-
-	return ProxyQueryInterface(ProxyInterface, riid, ppvObj, GetWrapperType(GetGUIDVersion(riid)), GetWrapperInterfaceX(GetGUIDVersion(riid)));
+	return ProxyQueryInterface(ProxyInterface, riid, ppvObj, GetWrapperType(DxVersion), GetWrapperInterfaceX(DxVersion));
 }
 
 void *m_IDirect3DMaterialX::GetWrapperInterfaceX(DWORD DirectXVersion)
@@ -66,7 +56,7 @@ ULONG m_IDirect3DMaterialX::AddRef()
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	if (ProxyDirectXVersion > 3)
+	if (!ProxyInterface)
 	{
 		return InterlockedIncrement(&RefCount);
 	}
@@ -80,7 +70,7 @@ ULONG m_IDirect3DMaterialX::Release()
 
 	LONG ref;
 
-	if (ProxyDirectXVersion > 3)
+	if (!ProxyInterface)
 	{
 		ref = InterlockedDecrement(&RefCount);
 	}
@@ -118,16 +108,7 @@ HRESULT m_IDirect3DMaterialX::SetMaterial(LPD3DMATERIAL lpMat)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	switch (ProxyDirectXVersion)
-	{
-	case 1:
-		return GetProxyInterfaceV1()->SetMaterial(lpMat);
-	case 2:
-		return GetProxyInterfaceV2()->SetMaterial(lpMat);
-	case 3:
-		return GetProxyInterfaceV3()->SetMaterial(lpMat);
-	case 7:
-	case 9:
+	if (!ProxyInterface)
 	{
 		if (!lpMat || lpMat->dwSize != sizeof(D3DMATERIAL))
 		{
@@ -157,6 +138,15 @@ HRESULT m_IDirect3DMaterialX::SetMaterial(LPD3DMATERIAL lpMat)
 
 		return (*D3DDeviceInterface)->SetMaterial(&Material7);
 	}
+
+	switch (ProxyDirectXVersion)
+	{
+	case 1:
+		return GetProxyInterfaceV1()->SetMaterial(lpMat);
+	case 2:
+		return GetProxyInterfaceV2()->SetMaterial(lpMat);
+	case 3:
+		return GetProxyInterfaceV3()->SetMaterial(lpMat);
 	default:
 		return DDERR_GENERIC;
 	}
@@ -166,16 +156,7 @@ HRESULT m_IDirect3DMaterialX::GetMaterial(LPD3DMATERIAL lpMat)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	switch (ProxyDirectXVersion)
-	{
-	case 1:
-		return GetProxyInterfaceV1()->GetMaterial(lpMat);
-	case 2:
-		return GetProxyInterfaceV2()->GetMaterial(lpMat);
-	case 3:
-		return GetProxyInterfaceV3()->GetMaterial(lpMat);
-	case 7:
-	case 9:
+	if (!ProxyInterface)
 	{
 		if (!lpMat)
 		{
@@ -193,6 +174,15 @@ HRESULT m_IDirect3DMaterialX::GetMaterial(LPD3DMATERIAL lpMat)
 
 		return D3DERR_MATERIAL_GETDATA_FAILED;
 	}
+
+	switch (ProxyDirectXVersion)
+	{
+	case 1:
+		return GetProxyInterfaceV1()->GetMaterial(lpMat);
+	case 2:
+		return GetProxyInterfaceV2()->GetMaterial(lpMat);
+	case 3:
+		return GetProxyInterfaceV3()->GetMaterial(lpMat);
 	default:
 		return DDERR_GENERIC;
 	}
@@ -207,6 +197,12 @@ HRESULT m_IDirect3DMaterialX::GetHandle(LPDIRECT3DDEVICE3 lpDirect3DDevice, LPD3
 		lpDirect3DDevice->QueryInterface(IID_GetRealInterface, (LPVOID*)&lpDirect3DDevice);
 	}
 
+	if (!ProxyInterface)
+	{
+		LOG_LIMIT(100, __FUNCTION__ << " Not Implemented");
+		return DDERR_UNSUPPORTED;
+	}
+
 	switch (ProxyDirectXVersion)
 	{
 	case 1:
@@ -215,10 +211,6 @@ HRESULT m_IDirect3DMaterialX::GetHandle(LPDIRECT3DDEVICE3 lpDirect3DDevice, LPD3
 		return GetProxyInterfaceV2()->GetHandle((LPDIRECT3DDEVICE2)lpDirect3DDevice, lpHandle);
 	case 3:
 		return GetProxyInterfaceV3()->GetHandle(lpDirect3DDevice, lpHandle);
-	case 7:
-	case 9:
-		LOG_LIMIT(100, __FUNCTION__ << " Not Implemented");
-		return DDERR_UNSUPPORTED;
 	default:
 		return DDERR_GENERIC;
 	}

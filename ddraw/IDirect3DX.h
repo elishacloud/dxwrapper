@@ -26,7 +26,14 @@ private:
 		return (DirectXVersion == 1) ? IID_IDirect3D :
 			(DirectXVersion == 2) ? IID_IDirect3D2 :
 			(DirectXVersion == 3) ? IID_IDirect3D3 :
-			(DirectXVersion == 7) ? IID_IDirect3D7 : IID_IDirect3D7;
+			(DirectXVersion == 7) ? IID_IDirect3D7 : IID_IUnknown;
+	}
+	bool CheckWrapperType(REFIID IID)
+	{
+		return (IID == IID_IDirect3D ||
+			IID == IID_IDirect3D2 ||
+			IID == IID_IDirect3D3 ||
+			IID == IID_IDirect3D7) ? true : false;
 	}
 	IDirect3D *GetProxyInterfaceV1() { return (IDirect3D *)ProxyInterface; }
 	IDirect3D2 *GetProxyInterfaceV2() { return (IDirect3D2 *)ProxyInterface; }
@@ -93,7 +100,8 @@ public:
 	}
 
 	/*** IUnknown methods ***/
-	STDMETHOD(QueryInterface) (THIS_ REFIID riid, LPVOID FAR * ppvObj);
+	STDMETHOD(QueryInterface) (THIS_ REFIID riid, LPVOID FAR * ppvObj, DWORD DirectXVersion);
+	STDMETHOD(QueryInterface) (THIS_ REFIID riid, LPVOID FAR * ppvObj) { return QueryInterface(riid, ppvObj, GetGUIDVersion(riid)); }
 	STDMETHOD_(ULONG, AddRef)(THIS);
 	STDMETHOD_(ULONG, Release)(THIS);
 

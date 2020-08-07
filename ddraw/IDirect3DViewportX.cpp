@@ -16,7 +16,7 @@
 
 #include "ddraw.h"
 
-HRESULT m_IDirect3DViewportX::QueryInterface(REFIID riid, LPVOID * ppvObj)
+HRESULT m_IDirect3DViewportX::QueryInterface(REFIID riid, LPVOID FAR * ppvObj, DWORD DirectXVersion)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
@@ -31,19 +31,9 @@ HRESULT m_IDirect3DViewportX::QueryInterface(REFIID riid, LPVOID * ppvObj)
 		return DD_OK;
 	}
 
-	if (ProxyDirectXVersion > 3)
-	{
-		if ((riid == IID_IDirect3DViewport || riid == IID_IDirect3DViewport2 || riid == IID_IDirect3DViewport3 || riid == IID_IUnknown) && ppvObj)
-		{
-			AddRef();
+	DWORD DxVersion = (CheckWrapperType(riid) && (Config.Dd7to9 || Config.ConvertToDirect3D7)) ? GetGUIDVersion(riid) : DirectXVersion;
 
-			*ppvObj = this;
-
-			return D3D_OK;
-		}
-	}
-
-	return ProxyQueryInterface(ProxyInterface, riid, ppvObj, GetWrapperType(GetGUIDVersion(riid)), GetWrapperInterfaceX(GetGUIDVersion(riid)));
+	return ProxyQueryInterface(ProxyInterface, riid, ppvObj, GetWrapperType(DxVersion), GetWrapperInterfaceX(DxVersion));
 }
 
 void *m_IDirect3DViewportX::GetWrapperInterfaceX(DWORD DirectXVersion)
@@ -66,7 +56,7 @@ ULONG m_IDirect3DViewportX::AddRef()
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	if (ProxyDirectXVersion > 3)
+	if (!ProxyInterface)
 	{
 		return InterlockedIncrement(&RefCount);
 	}
@@ -80,7 +70,7 @@ ULONG m_IDirect3DViewportX::Release()
 
 	LONG ref;
 
-	if (ProxyDirectXVersion > 3)
+	if (!ProxyInterface)
 	{
 		ref = InterlockedDecrement(&RefCount);
 	}
@@ -101,7 +91,7 @@ HRESULT m_IDirect3DViewportX::Initialize(LPDIRECT3D lpDirect3D)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	if (ProxyDirectXVersion > 3)
+	if (!ProxyInterface)
 	{
 		return D3D_OK;
 	}
@@ -118,32 +108,26 @@ HRESULT m_IDirect3DViewportX::GetViewport(LPD3DVIEWPORT lpData)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	if (ProxyDirectXVersion > 3)
+	if (!ProxyInterface)
 	{
 		if (!lpData)
 		{
 			return DDERR_INVALIDPARAMS;
 		}
 
-		if (ViewPortSet)
+		if (!D3DDeviceInterface || !*D3DDeviceInterface)
 		{
-			lpData->dwSize = sizeof(D3DVIEWPORT);
-
-			ConvertViewport(*lpData, ViewPort);
-
-			return D3D_OK;
+			LOG_LIMIT(100, __FUNCTION__ << " Error: no D3DirectDevice interface!");
+			return DDERR_GENERIC;
 		}
 
-		if (ViewPort2Set)
-		{
-			lpData->dwSize = sizeof(D3DVIEWPORT);
+		D3DVIEWPORT7 ViewPort7;
 
-			ConvertViewport(*lpData, ViewPort2);
+		HRESULT hr = (*D3DDeviceInterface)->GetViewport(&ViewPort7);
 
-			return D3D_OK;
-		}
+		ConvertViewport(*lpData, ViewPort7);
 
-		return D3DERR_NOVIEWPORTS;
+		return hr;
 	}
 
 	return ProxyInterface->GetViewport(lpData);
@@ -153,7 +137,7 @@ HRESULT m_IDirect3DViewportX::SetViewport(LPD3DVIEWPORT lpData)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	if (ProxyDirectXVersion > 3)
+	if (!ProxyInterface)
 	{
 		if (!lpData || lpData->dwSize != sizeof(D3DVIEWPORT))
 		{
@@ -166,11 +150,6 @@ HRESULT m_IDirect3DViewportX::SetViewport(LPD3DVIEWPORT lpData)
 			LOG_LIMIT(100, __FUNCTION__ << " Error: no D3DirectDevice interface!");
 			return DDERR_GENERIC;
 		}
-
-		ViewPortSet = true;
-
-		ViewPort.dwSize = sizeof(D3DVIEWPORT);
-		ConvertViewport(ViewPort, *lpData);
 
 		if (lpData->dwSize > 44 && (lpData->dvScaleX != 0 || lpData->dvScaleY != 0))
 		{
@@ -191,7 +170,7 @@ HRESULT m_IDirect3DViewportX::TransformVertices(DWORD dwVertexCount, LPD3DTRANSF
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	if (ProxyDirectXVersion > 3)
+	if (!ProxyInterface)
 	{
 		LOG_LIMIT(100, __FUNCTION__ << " Not Implemented");
 		return DDERR_UNSUPPORTED;
@@ -204,7 +183,7 @@ HRESULT m_IDirect3DViewportX::LightElements(DWORD dwElementCount, LPD3DLIGHTDATA
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	if (ProxyDirectXVersion > 3)
+	if (!ProxyInterface)
 	{
 		LOG_LIMIT(100, __FUNCTION__ << " Not Implemented");
 		return DDERR_UNSUPPORTED;
@@ -217,7 +196,7 @@ HRESULT m_IDirect3DViewportX::SetBackground(D3DMATERIALHANDLE hMat)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	if (ProxyDirectXVersion > 3)
+	if (!ProxyInterface)
 	{
 		LOG_LIMIT(100, __FUNCTION__ << " Not Implemented");
 		return DDERR_UNSUPPORTED;
@@ -230,7 +209,7 @@ HRESULT m_IDirect3DViewportX::GetBackground(LPD3DMATERIALHANDLE lphMat, LPBOOL l
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	if (ProxyDirectXVersion > 3)
+	if (!ProxyInterface)
 	{
 		LOG_LIMIT(100, __FUNCTION__ << " Not Implemented");
 		return DDERR_UNSUPPORTED;
@@ -243,7 +222,7 @@ HRESULT m_IDirect3DViewportX::SetBackgroundDepth(LPDIRECTDRAWSURFACE lpDDSurface
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	if (ProxyDirectXVersion > 3)
+	if (!ProxyInterface)
 	{
 		LOG_LIMIT(100, __FUNCTION__ << " Not Implemented");
 		return DDERR_UNSUPPORTED;
@@ -261,7 +240,7 @@ HRESULT m_IDirect3DViewportX::GetBackgroundDepth(LPDIRECTDRAWSURFACE * lplpDDSur
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	if (ProxyDirectXVersion > 3)
+	if (!ProxyInterface)
 	{
 		LOG_LIMIT(100, __FUNCTION__ << " Not Implemented");
 		return DDERR_UNSUPPORTED;
@@ -281,7 +260,7 @@ HRESULT m_IDirect3DViewportX::Clear(DWORD dwCount, LPD3DRECT lpRects, DWORD dwFl
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	if (ProxyDirectXVersion > 3)
+	if (!ProxyInterface)
 	{
 		if (!D3DDeviceInterface || !*D3DDeviceInterface)
 		{
@@ -299,7 +278,7 @@ HRESULT m_IDirect3DViewportX::AddLight(LPDIRECT3DLIGHT lpDirect3DLight)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	if (ProxyDirectXVersion > 3)
+	if (!ProxyInterface)
 	{
 		LOG_LIMIT(100, __FUNCTION__ << " Not Implemented");
 		return DDERR_UNSUPPORTED;
@@ -317,7 +296,7 @@ HRESULT m_IDirect3DViewportX::DeleteLight(LPDIRECT3DLIGHT lpDirect3DLight)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	if (ProxyDirectXVersion > 3)
+	if (!ProxyInterface)
 	{
 		LOG_LIMIT(100, __FUNCTION__ << " Not Implemented");
 		return DDERR_UNSUPPORTED;
@@ -335,7 +314,7 @@ HRESULT m_IDirect3DViewportX::NextLight(LPDIRECT3DLIGHT lpDirect3DLight, LPDIREC
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	if (ProxyDirectXVersion > 3)
+	if (!ProxyInterface)
 	{
 		LOG_LIMIT(100, __FUNCTION__ << " Not Implemented");
 		return DDERR_UNSUPPORTED;
@@ -360,32 +339,26 @@ HRESULT m_IDirect3DViewportX::GetViewport2(LPD3DVIEWPORT2 lpData)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	if (ProxyDirectXVersion > 3)
+	if (!ProxyInterface)
 	{
 		if (!lpData)
 		{
 			return DDERR_INVALIDPARAMS;
 		}
 
-		if (ViewPort2Set)
+		if (!D3DDeviceInterface || !*D3DDeviceInterface)
 		{
-			lpData->dwSize = sizeof(D3DVIEWPORT2);
-
-			ConvertViewport(*lpData, ViewPort2);
-
-			return D3D_OK;
+			LOG_LIMIT(100, __FUNCTION__ << " Error: no D3DirectDevice interface!");
+			return DDERR_GENERIC;
 		}
 
-		if (ViewPortSet)
-		{
-			lpData->dwSize = sizeof(D3DVIEWPORT2);
+		D3DVIEWPORT7 ViewPort7;
 
-			ConvertViewport(*lpData, ViewPort);
+		HRESULT hr = (*D3DDeviceInterface)->GetViewport(&ViewPort7);
 
-			return D3D_OK;
-		}
+		ConvertViewport(*lpData, ViewPort7);
 
-		return D3DERR_NOVIEWPORTS;
+		return hr;
 	}
 
 	return ProxyInterface->GetViewport2(lpData);
@@ -395,7 +368,7 @@ HRESULT m_IDirect3DViewportX::SetViewport2(LPD3DVIEWPORT2 lpData)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	if (ProxyDirectXVersion > 3)
+	if (!ProxyInterface)
 	{
 		if (!lpData || lpData->dwSize != sizeof(D3DVIEWPORT2))
 		{
@@ -408,11 +381,6 @@ HRESULT m_IDirect3DViewportX::SetViewport2(LPD3DVIEWPORT2 lpData)
 			LOG_LIMIT(100, __FUNCTION__ << " Error: no D3DirectDevice interface!");
 			return DDERR_GENERIC;
 		}
-
-		ViewPort2Set = true;
-
-		ViewPort2.dwSize = sizeof(D3DVIEWPORT2);
-		ConvertViewport(ViewPort2, *lpData);
 
 		if (lpData->dwSize > 44 && (lpData->dvClipX != 0 || lpData->dvClipY != 0))
 		{
@@ -433,7 +401,7 @@ HRESULT m_IDirect3DViewportX::SetBackgroundDepth2(LPDIRECTDRAWSURFACE4 lpDDS)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	if (ProxyDirectXVersion > 3)
+	if (!ProxyInterface)
 	{
 		LOG_LIMIT(100, __FUNCTION__ << " Not Implemented");
 		return DDERR_UNSUPPORTED;
@@ -451,7 +419,7 @@ HRESULT m_IDirect3DViewportX::GetBackgroundDepth2(LPDIRECTDRAWSURFACE4 * lplpDDS
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	if (ProxyDirectXVersion > 3)
+	if (!ProxyInterface)
 	{
 		LOG_LIMIT(100, __FUNCTION__ << " Not Implemented");
 		return DDERR_UNSUPPORTED;
@@ -471,7 +439,7 @@ HRESULT m_IDirect3DViewportX::Clear2(DWORD dwCount, LPD3DRECT lpRects, DWORD dwF
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	if (ProxyDirectXVersion > 3)
+	if (!ProxyInterface)
 	{
 		if (!D3DDeviceInterface || !*D3DDeviceInterface)
 		{

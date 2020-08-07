@@ -24,6 +24,12 @@ private:
 			(DirectXVersion == 2) ? IID_IDirect3DMaterial2 :
 			(DirectXVersion == 3) ? IID_IDirect3DMaterial3 : IID_IUnknown;
 	}
+	bool CheckWrapperType(REFIID IID)
+	{
+		return (IID == IID_IDirect3DMaterial ||
+			IID == IID_IDirect3DMaterial2 ||
+			IID == IID_IDirect3DMaterial3) ? true : false;
+	}
 	IDirect3DMaterial *GetProxyInterfaceV1() { return (IDirect3DMaterial *)ProxyInterface; }
 	IDirect3DMaterial2 *GetProxyInterfaceV2() { return (IDirect3DMaterial2 *)ProxyInterface; }
 	IDirect3DMaterial3 *GetProxyInterfaceV3() { return ProxyInterface; }
@@ -50,9 +56,16 @@ public:
 	}
 	m_IDirect3DMaterialX(m_IDirect3DDeviceX **D3DDInterface, DWORD DirectXVersion) : D3DDeviceInterface(D3DDInterface)
 	{
-		ProxyDirectXVersion = (!Config.Dd7to9) ? 7 : 9;
+		ProxyDirectXVersion = (!Config.Dd7to9) ? 3 : 9;
 
-		LOG_LIMIT(3, "Creating interface " << __FUNCTION__ << "(" << this << ")" << " converting interface from v" << DirectXVersion << " to v" << ProxyDirectXVersion);
+		if (ProxyDirectXVersion != DirectXVersion)
+		{
+			LOG_LIMIT(3, "Creating interface " << __FUNCTION__ << "(" << this << ")" << " converting interface from v" << DirectXVersion << " to v" << ProxyDirectXVersion);
+		}
+		else
+		{
+			LOG_LIMIT(3, "Creating interface " << __FUNCTION__ << "(" << this << ") v" << DirectXVersion);
+		}
 
 		WrapperInterface = new m_IDirect3DMaterial((LPDIRECT3DMATERIAL)ProxyInterface, this);
 		WrapperInterface2 = new m_IDirect3DMaterial2((LPDIRECT3DMATERIAL2)ProxyInterface, this);
@@ -72,7 +85,8 @@ public:
 	}
 
 	/*** IUnknown methods ***/
-	STDMETHOD(QueryInterface) (THIS_ REFIID riid, LPVOID FAR * ppvObj);
+	STDMETHOD(QueryInterface) (THIS_ REFIID riid, LPVOID FAR * ppvObj, DWORD DirectXVersion);
+	STDMETHOD(QueryInterface) (THIS_ REFIID riid, LPVOID FAR * ppvObj) { return QueryInterface(riid, ppvObj, GetGUIDVersion(riid)); }
 	STDMETHOD_(ULONG, AddRef)(THIS);
 	STDMETHOD_(ULONG, Release)(THIS);
 

@@ -27,6 +27,13 @@ private:
 			(DirectXVersion == 3) ? IID_IDirect3DDevice3 :
 			(DirectXVersion == 7) ? IID_IDirect3DDevice7 : IID_IUnknown;
 	}
+	bool CheckWrapperType(REFIID IID)
+	{
+		return (IID == IID_IDirect3DDevice ||
+			IID == IID_IDirect3DDevice2 ||
+			IID == IID_IDirect3DDevice3 ||
+			IID == IID_IDirect3DDevice7) ? true : false;
+	}
 	IDirect3DDevice *GetProxyInterfaceV1() { return (IDirect3DDevice *)ProxyInterface; }
 	IDirect3DDevice2 *GetProxyInterfaceV2() { return (IDirect3DDevice2 *)ProxyInterface; }
 	IDirect3DDevice3 *GetProxyInterfaceV3() { return (IDirect3DDevice3 *)ProxyInterface; }
@@ -87,7 +94,8 @@ public:
 	}
 
 	/*** IUnknown methods ***/
-	STDMETHOD(QueryInterface) (THIS_ REFIID riid, LPVOID FAR * ppvObj);
+	STDMETHOD(QueryInterface) (THIS_ REFIID riid, LPVOID FAR * ppvObj, DWORD DirectXVersion);
+	STDMETHOD(QueryInterface) (THIS_ REFIID riid, LPVOID FAR * ppvObj) { return QueryInterface(riid, ppvObj, GetGUIDVersion(riid)); }
 	STDMETHOD_(ULONG, AddRef)(THIS);
 	STDMETHOD_(ULONG, Release)(THIS);
 

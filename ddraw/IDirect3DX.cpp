@@ -23,7 +23,7 @@ char D3DIm700Path[MAX_PATH] = { '\0' };
 HMODULE hD3DIm = nullptr;
 HMODULE hD3DIm700 = nullptr;
 
-HRESULT m_IDirect3DX::QueryInterface(REFIID riid, LPVOID * ppvObj)
+HRESULT m_IDirect3DX::QueryInterface(REFIID riid, LPVOID FAR * ppvObj, DWORD DirectXVersion)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
@@ -38,18 +38,9 @@ HRESULT m_IDirect3DX::QueryInterface(REFIID riid, LPVOID * ppvObj)
 		return DD_OK;
 	}
 
-	if (Config.Dd7to9)
-	{
-		if ((riid == IID_IDirect3D || riid == IID_IDirect3D2 || riid == IID_IDirect3D3 || riid == IID_IDirect3D7 || riid == IID_IUnknown) && ppvObj)
-		{
-			*ppvObj = GetWrapperInterfaceX(GetGUIDVersion(riid));
+	DWORD DxVersion = (CheckWrapperType(riid) && (Config.Dd7to9 || Config.ConvertToDirect3D7)) ? GetGUIDVersion(riid) : DirectXVersion;
 
-			::AddRef(*ppvObj);
-
-			return D3D_OK;
-		}
-	}
-	return ProxyQueryInterface(ProxyInterface, riid, ppvObj, GetWrapperType(GetGUIDVersion(riid)), GetWrapperInterfaceX(GetGUIDVersion(riid)));
+	return ProxyQueryInterface(ProxyInterface, riid, ppvObj, GetWrapperType(DxVersion), GetWrapperInterfaceX(DxVersion));
 }
 
 void *m_IDirect3DX::GetWrapperInterfaceX(DWORD DirectXVersion)
@@ -323,6 +314,8 @@ HRESULT m_IDirect3DX::CreateMaterial(LPDIRECT3DMATERIAL3 * lplpDirect3DMaterial,
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
+	DirectXVersion = (DirectXVersion < 3) ? DirectXVersion : 3;
+
 	HRESULT hr = DDERR_GENERIC;
 
 	switch (ProxyDirectXVersion)
@@ -371,6 +364,8 @@ HRESULT m_IDirect3DX::CreateMaterial(LPDIRECT3DMATERIAL3 * lplpDirect3DMaterial,
 HRESULT m_IDirect3DX::CreateViewport(LPDIRECT3DVIEWPORT3 * lplpD3DViewport, LPUNKNOWN pUnkOuter, DWORD DirectXVersion)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
+
+	DirectXVersion = (DirectXVersion < 3) ? DirectXVersion : 3;
 
 	HRESULT hr = DDERR_GENERIC;
 
@@ -546,6 +541,8 @@ HRESULT m_IDirect3DX::CreateDevice(REFCLSID rclsid, LPDIRECTDRAWSURFACE7 lpDDS, 
 HRESULT m_IDirect3DX::CreateVertexBuffer(LPD3DVERTEXBUFFERDESC lpVBDesc, LPDIRECT3DVERTEXBUFFER7 * lplpD3DVertexBuffer, DWORD dwFlags, LPUNKNOWN pUnkOuter, DWORD DirectXVersion)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
+
+	DirectXVersion = (DirectXVersion < 7) ? 1 : 7;
 
 	HRESULT hr = DDERR_GENERIC;
 
