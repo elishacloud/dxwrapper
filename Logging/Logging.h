@@ -19,6 +19,7 @@ std::ostream& operator<<(std::ostream& os, const DDSURFACEDESC& sd);
 std::ostream& operator<<(std::ostream& os, const DDSURFACEDESC2& sd);
 #endif
 #ifdef _d3d9TYPES_H_
+std::ostream& operator<<(std::ostream& os, const D3DFORMAT& format);
 std::ostream& operator<<(std::ostream& os, const D3DPRESENT_PARAMETERS& pp);
 #endif
 #ifdef GUID_DEFINED

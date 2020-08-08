@@ -249,7 +249,7 @@ HRESULT m_IDirectDrawSurfaceX::AddAttachedSurface(LPDIRECTDRAWSURFACE7 lpDDSurfa
 			((AttachedSurfaceCaps & DDSCAPS_MIPMAP) && (surfaceDesc2.ddsCaps.dwCaps & DDSCAPS_MIPMAP)) ||
 			(AttachedSurfaceCaps & DDSCAPS_ZBUFFER)))
 		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error: cannot attach surface with this method. dwCaps: " << lpAttachedSurface->GetSurfaceCaps().dwCaps);
+			LOG_LIMIT(100, __FUNCTION__ << " Error: cannot attach surface with this method. dwCaps: " << Logging::hex(lpAttachedSurface->GetSurfaceCaps().dwCaps));
 			return DDERR_CANNOTATTACHSURFACE;
 		}
 
@@ -397,7 +397,7 @@ HRESULT m_IDirectDrawSurfaceX::Blt(LPRECT lpDestRect, LPDIRECTDRAWSURFACE7 lpDDS
 				}
 				else
 				{
-					LOG_LIMIT(100, __FUNCTION__ << " Raster operation Not Implemented " << lpDDBltFx->dwROP);
+					LOG_LIMIT(100, __FUNCTION__ << " Raster operation Not Implemented " << Logging::hex(lpDDBltFx->dwROP));
 					hr = DDERR_NORASTEROPHW;
 					break;
 				}
@@ -2067,7 +2067,7 @@ HRESULT m_IDirectDrawSurfaceX::SetSurfaceDesc2(LPDDSURFACEDESC2 lpDDSurfaceDesc2
 		}
 		if (SurfaceFlags)
 		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error: flags not implemented " << SurfaceFlags);
+			LOG_LIMIT(100, __FUNCTION__ << " Error: flags not implemented " << Logging::hex(SurfaceFlags));
 			return DDERR_UNSUPPORTED;
 		}
 		return DD_OK;

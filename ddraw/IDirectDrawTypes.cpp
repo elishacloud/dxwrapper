@@ -86,7 +86,7 @@ void ConvertSurfaceDesc(DDSURFACEDESC &Desc, DDSURFACEDESC2 &Desc2)
 	// Check for dwFlags that did not get converted
 	if (Desc.dwFlags != Desc2.dwFlags)
 	{
-		LOG_LIMIT(100, __FUNCTION__ << " Error! Removing unsupported flags: " << (Desc2.dwFlags & ~Desc.dwFlags));
+		LOG_LIMIT(100, __FUNCTION__ << " Error! Removing unsupported flags: " << Logging::hex(Desc2.dwFlags & ~Desc.dwFlags));
 	}
 }
 
@@ -127,7 +127,7 @@ void ConvertSurfaceDesc(DDSURFACEDESC2 &Desc2, DDSURFACEDESC &Desc)
 										// Check for dwFlags that did not get converted
 	if (Desc2.dwFlags != Desc.dwFlags)
 	{
-		LOG_LIMIT(100, __FUNCTION__ << " Error! Removing unsupported flags: " << (Desc.dwFlags & ~Desc2.dwFlags));
+		LOG_LIMIT(100, __FUNCTION__ << " Error! Removing unsupported flags: " << Logging::hex(Desc.dwFlags & ~Desc2.dwFlags));
 	}
 }
 
@@ -187,7 +187,7 @@ void ConvertCaps(DDSCAPS &Caps, DDSCAPS2 &Caps2)
 	// Check for dwFlags that did not get converted
 	if (Caps2.dwCaps2 || Caps2.dwVolumeDepth)
 	{
-		LOG_LIMIT(100, __FUNCTION__ << " Error! Removing unsupported dwCaps2 and dwVolumeDepth: " << Caps2.dwCaps2 << " " << Caps2.dwVolumeDepth);
+		LOG_LIMIT(100, __FUNCTION__ << " Error! Removing unsupported dwCaps2 and dwVolumeDepth: " << Logging::hex(Caps2.dwCaps2) << " " << Caps2.dwVolumeDepth);
 	}
 }
 
@@ -443,23 +443,13 @@ D3DFORMAT GetDisplayFormat(DDPIXELFORMAT ddpfPixelFormat)
 		switch (ddpfPixelFormat.dwFourCC)
 		{
 		case D3DFMT_DXT1:
-			LOG_LIMIT(100, __FUNCTION__ << " Using format: D3DFMT_DXT1");
-			return D3DFMT_DXT1;
 		case D3DFMT_DXT2:
-			LOG_LIMIT(100, __FUNCTION__ << " Using format: D3DFMT_DXT2");
-			return D3DFMT_DXT2;
 		case D3DFMT_DXT3:
-			LOG_LIMIT(100, __FUNCTION__ << " Using format: D3DFMT_DXT3");
-			return D3DFMT_DXT3;
 		case D3DFMT_DXT4:
-			LOG_LIMIT(100, __FUNCTION__ << " Using format: D3DFMT_DXT4");
-			return D3DFMT_DXT4;
 		case D3DFMT_UYVY:
-			LOG_LIMIT(100, __FUNCTION__ << " Using format: D3DFMT_UYVY");
-			return D3DFMT_UYVY;
 		case D3DFMT_YUY2:
-			LOG_LIMIT(100, __FUNCTION__ << " Using format: D3DFMT_YUY2");
-			return D3DFMT_YUY2;
+			LOG_LIMIT(100, __FUNCTION__ << " Using format: " << (D3DFORMAT)ddpfPixelFormat.dwFourCC);
+			return (D3DFORMAT)ddpfPixelFormat.dwFourCC;
 		}
 
 		unsigned char ch0 = ddpfPixelFormat.dwFourCC & 0xFF;

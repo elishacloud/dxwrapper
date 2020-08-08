@@ -62,6 +62,155 @@ void Logging::InitLog()
 	Open(wrappername);
 }
 
+std::ostream& operator<<(std::ostream& os, const D3DFORMAT& format)
+{
+	switch ((DWORD)format)
+	{
+	case 0:
+		return os << "D3DFMT_UNKNOWN";
+	case 20:
+		return os << "D3DFMT_R8G8B8";
+	case 21:
+		return os << "D3DFMT_A8R8G8B8";
+	case 22:
+		return os << "D3DFMT_X8R8G8B8";
+	case 23:
+		return os << "D3DFMT_R5G6B5";
+	case 24:
+		return os << "D3DFMT_X1R5G5B5";
+	case 25:
+		return os << "D3DFMT_A1R5G5B5";
+	case 26:
+		return os << "D3DFMT_A4R4G4B4";
+	case 27:
+		return os << "D3DFMT_R3G3B2";
+	case 28:
+		return os << "D3DFMT_A8";
+	case 29:
+		return os << "D3DFMT_A8R3G3B2";
+	case 30:
+		return os << "D3DFMT_X4R4G4B4";
+	case 31:
+		return os << "D3DFMT_A2B10G10R10";
+	case 32:
+		return os << "D3DFMT_A8B8G8R8";
+	case 33:
+		return os << "D3DFMT_X8B8G8R8";
+	case 34:
+		return os << "D3DFMT_G16R16";
+	case 35:
+		return os << "D3DFMT_A2R10G10B10";
+	case 36:
+		return os << "D3DFMT_A16B16G16R16";
+	case 40:
+		return os << "D3DFMT_A8P8";
+	case 41:
+		return os << "D3DFMT_P8";
+	case 50:
+		return os << "D3DFMT_L8";
+	case 51:
+		return os << "D3DFMT_A8L8";
+	case 52:
+		return os << "D3DFMT_A4L4";
+	case 60:
+		return os << "D3DFMT_V8U8";
+	case 61:
+		return os << "D3DFMT_L6V5U5";
+	case 62:
+		return os << "D3DFMT_X8L8V8U8";
+	case 63:
+		return os << "D3DFMT_Q8W8V8U8";
+	case 64:
+		return os << "D3DFMT_V16U16";
+	case 67:
+		return os << "D3DFMT_A2W10V10U10";
+	case MAKEFOURCC('U', 'Y', 'V', 'Y'):
+		return os << "D3DFMT_UYVY";
+	case MAKEFOURCC('R', 'G', 'B', 'G'):
+		return os << "D3DFMT_R8G8_B8G8";
+	case MAKEFOURCC('Y', 'U', 'Y', '2'):
+		return os << "D3DFMT_YUY2";
+	case MAKEFOURCC('G', 'R', 'G', 'B'):
+		return os << "D3DFMT_G8R8_G8B8";
+	case MAKEFOURCC('D', 'X', 'T', '1'):
+		return os << "D3DFMT_DXT1";
+	case MAKEFOURCC('D', 'X', 'T', '2'):
+		return os << "D3DFMT_DXT2";
+	case MAKEFOURCC('D', 'X', 'T', '3'):
+		return os << "D3DFMT_DXT3";
+	case MAKEFOURCC('D', 'X', 'T', '4'):
+		return os << "D3DFMT_DXT4";
+	case MAKEFOURCC('D', 'X', 'T', '5'):
+		return os << "D3DFMT_DXT5";
+	case 70:
+		return os << "D3DFMT_D16_LOCKABLE";
+	case 71:
+		return os << "D3DFMT_D32";
+	case 72:
+		return os << "D3DFMT_S1D15";
+	case 73:
+		return os << "D3DFMT_D15S1";
+	case 74:
+		return os << "D3DFMT_S8D24";
+	case 75:
+		return os << "D3DFMT_D24S8";
+	case 76:
+		return os << "D3DFMT_X8D24";
+	case 77:
+		return os << "D3DFMT_D24X8";
+	case 78:
+		return os << "D3DFMT_X4S4D24";
+	case 79:
+		return os << "D3DFMT_D24X4S4";
+	case 80:
+		return os << "D3DFMT_D16";
+	case 82:
+		return os << "D3DFMT_D32F_LOCKABLE";
+	case 83:
+		return os << "D3DFMT_D24FS8";
+	case 84:
+		return os << "D3DFMT_D32_LOCKABLE";
+	case 85:
+		return os << "D3DFMT_S8_LOCKABLE";
+	case 81:
+		return os << "D3DFMT_L16";
+	case 100:
+		return os << "D3DFMT_VERTEXDATA";
+	case 101:
+		return os << "D3DFMT_INDEX16";
+	case 102:
+		return os << "D3DFMT_INDEX32";
+	case 110:
+		return os << "D3DFMT_Q16W16V16U16";
+	case MAKEFOURCC('M', 'E', 'T', '1'):
+		return os << "D3DFMT_MULTI2_ARGB8";
+	case 111:
+		return os << "D3DFMT_R16F";
+	case 112:
+		return os << "D3DFMT_G16R16F";
+	case 113:
+		return os << "D3DFMT_A16B16G16R16F";
+	case 114:
+		return os << "D3DFMT_R32F";
+	case 115:
+		return os << "D3DFMT_G32R32F";
+	case 116:
+		return os << "D3DFMT_A32B32G32R32F";
+	case 117:
+		return os << "D3DFMT_CxV8U8";
+	case 118:
+		return os << "D3DFMT_A1";
+	case 119:
+		return os << "D3DFMT_A2B10G10R10_XR_BIAS";
+	case 199:
+		return os << "D3DFMT_BINARYBUFFER";
+	case 0x7fffffff:
+		return os << "D3DFMT_FORCE_DWORD";
+	}
+
+	return os << (DWORD)format;
+}
+
 std::ostream& operator<<(std::ostream& os, const DDCAPS& cp)
 {
 	DDCAPS caps = { NULL };

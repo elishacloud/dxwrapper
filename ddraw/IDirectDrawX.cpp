@@ -357,7 +357,7 @@ HRESULT m_IDirectDrawX::CreateSurface2(LPDDSURFACEDESC2 lpDDSurfaceDesc2, LPDIRE
 		if ((lpDDSurfaceDesc2->dwFlags & DDSD_PIXELFORMAT) && (lpDDSurfaceDesc2->ddpfPixelFormat.dwFlags & 
 			(DDPF_BUMPDUDV | DDPF_BUMPLUMINANCE | DDPF_COMPRESSED | DDPF_LUMINANCE | DDPF_PALETTEINDEXED1 | DDPF_PALETTEINDEXED2 | DDPF_PALETTEINDEXED4)))
 		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error: PixelForamt not Implemented. " << lpDDSurfaceDesc2->ddpfPixelFormat.dwFlags);
+			LOG_LIMIT(100, __FUNCTION__ << " Error: PixelForamt not Implemented. " << Logging::hex(lpDDSurfaceDesc2->ddpfPixelFormat.dwFlags));
 			return DDERR_INVALIDPIXELFORMAT;
 		}
 
@@ -392,7 +392,7 @@ HRESULT m_IDirectDrawX::CreateSurface2(LPDDSURFACEDESC2 lpDDSurfaceDesc2, LPDIRE
 		DWORD UnsupportedSDFlags = (DDSD_ZBUFFERBITDEPTH | DDSD_ALPHABITDEPTH | DDSD_LPSURFACE | DDSD_MIPMAPCOUNT | DDSD_LINEARSIZE | DDSD_TEXTURESTAGE | DDSD_FVF | DDSD_SRCVBHANDLE | DDSD_DEPTH);
 		if (lpDDSurfaceDesc2->dwFlags & UnsupportedSDFlags)
 		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error: non-supported dwFlags! " << (lpDDSurfaceDesc2->dwFlags & UnsupportedSDFlags));
+			LOG_LIMIT(100, __FUNCTION__ << " Error: non-supported dwFlags! " << Logging::hex(lpDDSurfaceDesc2->dwFlags & UnsupportedSDFlags));
 		}
 
 		// Check for unsupported ddsCaps
@@ -400,8 +400,8 @@ HRESULT m_IDirectDrawX::CreateSurface2(LPDDSURFACEDESC2 lpDDSurfaceDesc2, LPDIRE
 			DDSCAPS_LIVEVIDEO | DDSCAPS_HWCODEC | DDSCAPS_MIPMAP | DDSCAPS_ALLOCONLOAD | DDSCAPS_VIDEOPORT | DDSCAPS_NONLOCALVIDMEM);
 		if ((lpDDSurfaceDesc2->ddsCaps.dwCaps & UnsupportedSDddsCaps) || lpDDSurfaceDesc2->ddsCaps.dwCaps2 || lpDDSurfaceDesc2->ddsCaps.dwVolumeDepth)
 		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error: non-supported ddsCaps! " << (lpDDSurfaceDesc2->ddsCaps.dwCaps & UnsupportedSDddsCaps) << " " <<
-				lpDDSurfaceDesc2->ddsCaps.dwCaps2 << " " << lpDDSurfaceDesc2->ddsCaps.dwVolumeDepth);
+			LOG_LIMIT(100, __FUNCTION__ << " Error: non-supported ddsCaps! " << Logging::hex(lpDDSurfaceDesc2->ddsCaps.dwCaps & UnsupportedSDddsCaps) << " " <<
+				Logging::hex(lpDDSurfaceDesc2->ddsCaps.dwCaps2) << " " << lpDDSurfaceDesc2->ddsCaps.dwVolumeDepth);
 		}
 
 		// Setup d3d9 device
@@ -1164,14 +1164,14 @@ HRESULT m_IDirectDrawX::SetCooperativeLevel(HWND hWnd, DWORD dwFlags)
 			(!hWnd && !(dwFlags & DDSCL_NORMAL)) ||																						// hWnd can only be null if normal flag is set
 			((dwFlags & DDSCL_EXCLUSIVE) && !IsWindow(hWnd)))																			// When using Exclusive mode the hwnd must be valid
 		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error! Invalid parameters. dwFlags: " << dwFlags << " " << hWnd);
+			LOG_LIMIT(100, __FUNCTION__ << " Error! Invalid parameters. dwFlags: " << Logging::hex(dwFlags) << " " << hWnd);
 			return DDERR_INVALIDPARAMS;
 		}
 
 		// Check for unsupported flags
 		if (dwFlags & (DDSCL_CREATEDEVICEWINDOW | DDSCL_SETDEVICEWINDOW | DDSCL_SETFOCUSWINDOW))
 		{
-			LOG_LIMIT(100, __FUNCTION__ << " Flags not supported. dwFlags: " << dwFlags << " " << hWnd);
+			LOG_LIMIT(100, __FUNCTION__ << " Flags not supported. dwFlags: " << Logging::hex(dwFlags) << " " << hWnd);
 		}
 
 		// ToDo: The DDSCL_EXCLUSIVE flag must be set to call functions that can adversely affect performance of other applications.
@@ -2171,7 +2171,7 @@ HRESULT m_IDirectDrawX::CreateD3D9Device()
 			((FUPPreserve) ? D3DCREATE_FPU_PRESERVE : 0) |
 			((NoWindowChanges) ? D3DCREATE_NOWINDOWCHANGES : 0);
 
-		Logging::LogDebug() << __FUNCTION__ << " wnd: " << hWnd << " D3d9 Device params: " << presParams << " flags: " << BehaviorFlags;
+		Logging::LogDebug() << __FUNCTION__ << " wnd: " << hWnd << " D3d9 Device params: " << presParams << " flags: " << Logging::hex(BehaviorFlags);
 
 		// Create d3d9 Device
 		if (FAILED(d3d9Object->CreateDevice(D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, hWnd, BehaviorFlags, &presParams, &d3d9Device)))
