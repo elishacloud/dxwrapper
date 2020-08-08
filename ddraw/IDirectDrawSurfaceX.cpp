@@ -62,6 +62,8 @@ HRESULT m_IDirectDrawSurfaceX::QueryInterface(REFIID riid, LPVOID FAR * ppvObj, 
 	{
 		if (riid == IID_IDirect3DHALDevice || riid == IID_IDirect3DRGBDevice || riid == IID_IDirect3DRampDevice || riid == IID_IDirect3DNullDevice)
 		{
+			DxVersion = (DxVersion == 4) ? 3 : DxVersion;
+
 			// Check for device interface
 			if (FAILED(CheckInterface(__FUNCTION__, false, false)))
 			{
@@ -72,7 +74,7 @@ HRESULT m_IDirectDrawSurfaceX::QueryInterface(REFIID riid, LPVOID FAR * ppvObj, 
 
 			if (D3DDeviceX)
 			{
-				*ppvObj = D3DDeviceX->GetWrapperInterfaceX(GetGUIDVersion(riid));
+				*ppvObj = D3DDeviceX->GetWrapperInterfaceX(DxVersion);
 
 				::AddRef(*ppvObj);
 
@@ -83,14 +85,14 @@ HRESULT m_IDirectDrawSurfaceX::QueryInterface(REFIID riid, LPVOID FAR * ppvObj, 
 
 			if (D3DX)
 			{
-				D3DX->CreateDevice(riid, (LPDIRECTDRAWSURFACE7)this, (LPDIRECT3DDEVICE7*)&D3DDeviceX, nullptr, GetGUIDVersion(riid));
+				D3DX->CreateDevice(riid, (LPDIRECTDRAWSURFACE7)this, (LPDIRECT3DDEVICE7*)&D3DDeviceX, nullptr, DxVersion);
 
 				*ppvObj = D3DDeviceX;
 
 				return DD_OK;
 			}
 
-			LOG_LIMIT(100, __FUNCTION__ << " Query failed for " << riid << " from " << GetWrapperType(GetGUIDVersion(riid)));
+			LOG_LIMIT(100, __FUNCTION__ << " Query failed for " << riid << " from " << GetWrapperType(DirectXVersion));
 
 			return E_NOINTERFACE;
 		}
@@ -120,13 +122,17 @@ HRESULT m_IDirectDrawSurfaceX::QueryInterface(REFIID riid, LPVOID FAR * ppvObj, 
 
 	if (Config.ConvertToDirect3D7 && (riid == IID_IDirect3DTexture || riid == IID_IDirect3DTexture2))
 	{
+		DxVersion = GetGUIDVersion(riid);
+
 		// Check for device interface
 		if (FAILED(CheckInterface(__FUNCTION__, false, false)))
 		{
 			return DDERR_GENERIC;
 		}
 
-		*ppvObj = new m_IDirect3DTextureX(ddrawParent->GetCurrentD3DDevice(), 7, ProxyInterface);
+		m_IDirect3DTextureX *InterfaceX = new m_IDirect3DTextureX(ddrawParent->GetCurrentD3DDevice(), DxVersion, ProxyInterface);
+
+		*ppvObj = InterfaceX->GetWrapperInterfaceX(DxVersion);
 
 		return DD_OK;
 	}

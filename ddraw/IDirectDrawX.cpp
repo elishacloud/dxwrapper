@@ -115,6 +115,8 @@ HRESULT m_IDirectDrawX::QueryInterface(REFIID riid, LPVOID FAR * ppvObj, DWORD D
 	{
 		if (riid == IID_IDirect3D || riid == IID_IDirect3D2 || riid == IID_IDirect3D3 || riid == IID_IDirect3D7)
 		{
+			DxVersion = GetGUIDVersion(riid);
+
 			SetCriticalSection();
 			if (D3DInterface)
 			{
@@ -1374,20 +1376,15 @@ HRESULT m_IDirectDrawX::WaitForVerticalBlank(DWORD dwFlags, HANDLE hEvent)
 
 	if (Config.Dd7to9)
 	{
-		// Check for device interface
-		if (FAILED(CheckInterface(__FUNCTION__, true)))
-		{
-			return DDERR_GENERIC;
-		}
-
-		// Check flags
 		DWORD ExitSystemTime = GetTickCount() + min((2000 / ((monitorRefreshRate) ? monitorRefreshRate : 60)), 34);
 		D3DRASTER_STATUS RasterStatus;
+
+		// Check flags
 		switch (dwFlags)
 		{
 		case DDWAITVB_BLOCKBEGIN:
 			// Return when vertical blank begins
-			if (SUCCEEDED(d3d9Device->GetRasterStatus(0, &RasterStatus)))
+			if (d3d9Device && SUCCEEDED(d3d9Device->GetRasterStatus(0, &RasterStatus)))
 			{
 				bool InBlock = RasterStatus.InVBlank;
 				while (SUCCEEDED(d3d9Device->GetRasterStatus(0, &RasterStatus)) && !(!InBlock && RasterStatus.InVBlank) && ExitSystemTime > GetTickCount())
@@ -1398,7 +1395,7 @@ HRESULT m_IDirectDrawX::WaitForVerticalBlank(DWORD dwFlags, HANDLE hEvent)
 			return DD_OK;
 		case DDWAITVB_BLOCKEND:
 			// Return when the vertical blank interval ends and the display begins
-			if (SUCCEEDED(d3d9Device->GetRasterStatus(0, &RasterStatus)))
+			if (d3d9Device && SUCCEEDED(d3d9Device->GetRasterStatus(0, &RasterStatus)))
 			{
 				bool InBlock = RasterStatus.InVBlank;
 				while (SUCCEEDED(d3d9Device->GetRasterStatus(0, &RasterStatus)) && !(InBlock && !RasterStatus.InVBlank) && ExitSystemTime > GetTickCount())
