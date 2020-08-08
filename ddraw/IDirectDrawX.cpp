@@ -2185,6 +2185,13 @@ HRESULT m_IDirectDrawX::CreateD3D9Device()
 			break;
 		}
 
+		// Set window pos
+		if (IsWindow(hWnd))
+		{
+			WINDOWPOS winpos = { nullptr, hWnd, 0, 0, (int)presParams.BackBufferWidth, (int)presParams.BackBufferHeight, WM_NULL };
+			SendMessage(hWnd, WM_WINDOWPOSCHANGED, (WPARAM)TRUE, (LPARAM)&winpos);
+		}
+
 		// Store display frequency
 		monitorRefreshRate = (presParams.FullScreen_RefreshRateInHz) ? presParams.FullScreen_RefreshRateInHz : Utils::GetRefreshRate(hWnd);
 		DWORD tmpWidth = 0;
