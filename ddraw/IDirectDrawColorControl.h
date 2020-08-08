@@ -16,15 +16,17 @@ public:
 	{
 		LOG_LIMIT(3, "Creating interface " << __FUNCTION__ << "(" << this << ")");
 
-		ProxyAddressLookupTable.SaveAddress(this, ProxyInterface);
-
 		InitColorControl();
+
+		ProxyAddressLookupTable.SaveAddress(this, (ProxyInterface) ? ProxyInterface : (void*)this);
 	}
 	m_IDirectDrawColorControl(m_IDirectDrawX *Interface) : ddrawParent(Interface)
 	{
 		LOG_LIMIT(3, "Creating interface " << __FUNCTION__ << "(" << this << ")");
 
 		InitColorControl();
+
+		ProxyAddressLookupTable.SaveAddress(this, (ProxyInterface) ? ProxyInterface : (void*)this);
 	}
 	void InitColorControl()
 	{

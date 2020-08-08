@@ -11,7 +11,7 @@ private:
 public:
 	m_IDirect3DVertexBuffer7(IDirect3DVertexBuffer7 *aOriginal, m_IDirect3DVertexBufferX *Interface) : RealInterface(aOriginal), ProxyInterface(Interface)
 	{
-		ProxyAddressLookupTable.SaveAddress(this, RealInterface);
+		ProxyAddressLookupTable.SaveAddress(this, (RealInterface) ? RealInterface : (void*)ProxyInterface);
 	}
 	~m_IDirect3DVertexBuffer7()
 	{

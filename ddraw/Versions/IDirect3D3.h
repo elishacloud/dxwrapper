@@ -11,7 +11,7 @@ private:
 public:
 	m_IDirect3D3(IDirect3D3 *aOriginal, m_IDirect3DX *Interface) : RealInterface(aOriginal), ProxyInterface(Interface)
 	{
-		ProxyAddressLookupTable.SaveAddress(this, RealInterface);
+		ProxyAddressLookupTable.SaveAddress(this, (RealInterface) ? RealInterface : (void*)ProxyInterface);
 	}
 	~m_IDirect3D3()
 	{

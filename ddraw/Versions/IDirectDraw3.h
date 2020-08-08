@@ -11,7 +11,7 @@ private:
 public:
 	m_IDirectDraw3(IDirectDraw3 *aOriginal, m_IDirectDrawX *Interface) : RealInterface(aOriginal), ProxyInterface(Interface)
 	{
-		ProxyAddressLookupTable.SaveAddress(this, RealInterface);
+		ProxyAddressLookupTable.SaveAddress(this, (RealInterface) ? RealInterface : (void*)ProxyInterface);
 	}
 	~m_IDirectDraw3()
 	{

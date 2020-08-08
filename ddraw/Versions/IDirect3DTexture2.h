@@ -11,7 +11,7 @@ private:
 public:
 	m_IDirect3DTexture2(IDirect3DTexture2 *aOriginal, m_IDirect3DTextureX *Interface) : RealInterface(aOriginal), ProxyInterface(Interface)
 	{
-		ProxyAddressLookupTable.SaveAddress(this, RealInterface);
+		ProxyAddressLookupTable.SaveAddress(this, (RealInterface) ? RealInterface : (void*)ProxyInterface);
 	}
 	~m_IDirect3DTexture2()
 	{

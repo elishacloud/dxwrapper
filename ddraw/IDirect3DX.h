@@ -64,7 +64,7 @@ public:
 
 		ResolutionHack();
 
-		ProxyAddressLookupTable.SaveAddress(this, ProxyInterface);
+		ProxyAddressLookupTable.SaveAddress(this, (ProxyInterface) ? ProxyInterface : (void*)this);
 	}
 	m_IDirect3DX(m_IDirectDrawX *lpDdraw, DWORD DirectXVersion) : ddrawParent(lpDdraw)
 	{
@@ -77,7 +77,7 @@ public:
 		WrapperInterface3 = new m_IDirect3D3((LPDIRECT3D3)ProxyInterface, this);
 		WrapperInterface7 = new m_IDirect3D7((LPDIRECT3D7)ProxyInterface, this);
 
-		ProxyAddressLookupTable.SaveAddress(this, ProxyInterface);
+		ProxyAddressLookupTable.SaveAddress(this, (ProxyInterface) ? ProxyInterface : (void*)this);
 	}
 	~m_IDirect3DX()
 	{
