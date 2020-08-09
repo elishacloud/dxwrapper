@@ -352,10 +352,14 @@ HRESULT m_IDirectDrawSurfaceX::Blt(LPRECT lpDestRect, LPDIRECTDRAWSURFACE7 lpDDS
 		}
 		else
 		{
-			if (!ProxyAddressLookupTable.IsValidWrapperAddress((m_IDirectDrawSurface*)lpDDSrcSurfaceX))
+			if (!ProxyAddressLookupTable.IsValidWrapperAddress((m_IDirectDrawSurface*)lpDDSrcSurfaceX) &&
+				!ProxyAddressLookupTable.IsValidWrapperAddress((m_IDirectDrawSurface2*)lpDDSrcSurfaceX) &&
+				!ProxyAddressLookupTable.IsValidWrapperAddress((m_IDirectDrawSurface3*)lpDDSrcSurfaceX) &&
+				!ProxyAddressLookupTable.IsValidWrapperAddress((m_IDirectDrawSurface4*)lpDDSrcSurfaceX) &&
+				!ProxyAddressLookupTable.IsValidWrapperAddress((m_IDirectDrawSurface7*)lpDDSrcSurfaceX))
 			{
 				LOG_LIMIT(100, __FUNCTION__ << " Error: could not find source surface!");
-				return DD_OK;
+				return DD_OK;	// Just return OK
 			}
 
 			lpDDSrcSurfaceX->QueryInterface(IID_GetInterfaceX, (LPVOID*)&lpDDSrcSurfaceX);
@@ -450,7 +454,11 @@ HRESULT m_IDirectDrawSurfaceX::Blt(LPRECT lpDestRect, LPDIRECTDRAWSURFACE7 lpDDS
 	if (lpDDSrcSurface)
 	{
 		// Check if source Surface exists
-		if (!ProxyAddressLookupTable.IsValidWrapperAddress((m_IDirectDrawSurface*)lpDDSrcSurface))
+		if (!ProxyAddressLookupTable.IsValidWrapperAddress((m_IDirectDrawSurface*)lpDDSrcSurface) &&
+			!ProxyAddressLookupTable.IsValidWrapperAddress((m_IDirectDrawSurface2*)lpDDSrcSurface) &&
+			!ProxyAddressLookupTable.IsValidWrapperAddress((m_IDirectDrawSurface3*)lpDDSrcSurface) &&
+			!ProxyAddressLookupTable.IsValidWrapperAddress((m_IDirectDrawSurface4*)lpDDSrcSurface) &&
+			!ProxyAddressLookupTable.IsValidWrapperAddress((m_IDirectDrawSurface7*)lpDDSrcSurface))
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Error: could not find source surface!");
 			return DD_OK;	// Just return OK

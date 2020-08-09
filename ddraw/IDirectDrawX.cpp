@@ -407,7 +407,7 @@ HRESULT m_IDirectDrawX::CreateSurface2(LPDDSURFACEDESC2 lpDDSurfaceDesc2, LPDIRE
 		// Setup d3d9 device
 		if (!d3d9Device)
 		{
-			if ((!displayWidth || !displayHeight) && lpDDSurfaceDesc2->dwWidth && lpDDSurfaceDesc2->dwHeight)
+			if ((!displayWidth || !displayHeight) && (lpDDSurfaceDesc2->dwFlags & (DDSD_WIDTH | DDSD_HEIGHT)) && lpDDSurfaceDesc2->dwWidth && lpDDSurfaceDesc2->dwHeight)
 			{
 				displayWidth = lpDDSurfaceDesc2->dwWidth;
 				displayHeight = lpDDSurfaceDesc2->dwHeight;
@@ -1137,7 +1137,8 @@ LRESULT CALLBACK CBTProc(int nCode, WPARAM wParam, LPARAM lParam)
 		if (it != std::end(g_hookmap))
 		{
 			m_IDirectDrawX *lpDDraw = it->second;
-			if (lpDDraw && ProxyAddressLookupTable.IsValidWrapperAddress(lpDDraw))
+			if (lpDDraw && (ProxyAddressLookupTable.IsValidWrapperAddress(lpDDraw) ||
+				ProxyAddressLookupTable.IsValidProxyAddress<m_IDirectDrawX>(lpDDraw)))
 			{
 				lpDDraw->SetCooperativeLevel(hWnd, DDSCL_NORMAL);
 			}

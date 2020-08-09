@@ -308,15 +308,13 @@ public:
 			return false;
 		}
 
-		for (UINT CacheIndex = 0 ; CacheIndex < MaxIndex; CacheIndex++)
-		{
-			auto it = std::find_if(g_map[CacheIndex].begin(), g_map[CacheIndex].end(),
-				[=](auto Map) -> bool { return Map.second == Wrapper; });
+		constexpr UINT CacheIndex = AddressCacheIndex<T>::CacheIndex;
+		auto it = std::find_if(g_map[CacheIndex].begin(), g_map[CacheIndex].end(),
+			[=](auto Map) -> bool { return Map.second == Wrapper; });
 
-			if (it != std::end(g_map[CacheIndex]))
-			{
-				return true;
-			}
+		if (it != std::end(g_map[CacheIndex]))
+		{
+			return true;
 		}
 
 		return false;
@@ -330,15 +328,12 @@ public:
 			return false;
 		}
 
-		constexpr UINT Index = AddressCacheIndex<T>::CacheIndex;
-		for (UINT CacheIndex = 0; CacheIndex < MaxIndex; CacheIndex++)
-		{
-			auto it = g_map[CacheIndex].find(Proxy);
+		constexpr UINT CacheIndex = AddressCacheIndex<T>::CacheIndex;
+		auto it = g_map[CacheIndex].find(Proxy);
 
-			if (it != std::end(g_map[CacheIndex]))
-			{
-				return true;
-			}
+		if (it != std::end(g_map[CacheIndex]))
+		{
+			return true;
 		}
 
 		return false;
