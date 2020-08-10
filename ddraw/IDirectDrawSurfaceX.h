@@ -135,6 +135,10 @@ private:
 	IDirectDrawSurface4 *GetProxyInterfaceV4() { return (IDirectDrawSurface4 *)ProxyInterface; }
 	IDirectDrawSurface7 *GetProxyInterfaceV7() { return ProxyInterface; }
 
+	// Interface initialization functions
+	void InitSurface();
+	void ReleaseSurface();
+
 	// Swap surface addresses for Flip
 	template <typename T>
 	void SwapAddresses(T *Address1, T *Address2)
@@ -204,11 +208,7 @@ public:
 			LOG_LIMIT(3, "Creating interface " << __FUNCTION__ << "(" << this << ") v" << DirectXVersion);
 		}
 
-		WrapperInterface = new m_IDirectDrawSurface((LPDIRECTDRAWSURFACE)ProxyInterface, this);
-		WrapperInterface2 = new m_IDirectDrawSurface2((LPDIRECTDRAWSURFACE2)ProxyInterface, this);
-		WrapperInterface3 = new m_IDirectDrawSurface3((LPDIRECTDRAWSURFACE3)ProxyInterface, this);
-		WrapperInterface4 = new m_IDirectDrawSurface4((LPDIRECTDRAWSURFACE4)ProxyInterface, this);
-		WrapperInterface7 = new m_IDirectDrawSurface7((LPDIRECTDRAWSURFACE7)ProxyInterface, this);
+		InitSurface();
 
 		ProxyAddressLookupTable.SaveAddress(this, (ProxyInterface) ? ProxyInterface : (void*)this);
 	}
@@ -219,30 +219,17 @@ public:
 
 		LOG_LIMIT(3, "Creating interface " << __FUNCTION__ << "(" << this << ")" << " converting interface from v" << DirectXVersion << " to v" << ProxyDirectXVersion);
 
-		WrapperInterface = new m_IDirectDrawSurface((LPDIRECTDRAWSURFACE)ProxyInterface, this);
-		WrapperInterface2 = new m_IDirectDrawSurface2((LPDIRECTDRAWSURFACE2)ProxyInterface, this);
-		WrapperInterface3 = new m_IDirectDrawSurface3((LPDIRECTDRAWSURFACE3)ProxyInterface, this);
-		WrapperInterface4 = new m_IDirectDrawSurface4((LPDIRECTDRAWSURFACE4)ProxyInterface, this);
-		WrapperInterface7 = new m_IDirectDrawSurface7((LPDIRECTDRAWSURFACE7)ProxyInterface, this);
+		InitSurface();
 
-		// Initialize Critical Section for surface array
-		InitializeCriticalSection(&ddscs);
-
-		// Copy surface description before adding to vector
+		// Copy surface description and handle complex surfaces after adding surface to vector
 		if (lpDDSurfaceDesc2)
 		{
 			surfaceDesc2.dwSize = sizeof(DDSURFACEDESC2);
 			ConvertSurfaceDesc(surfaceDesc2, *lpDDSurfaceDesc2);
-		}
 
-		// Store surface
-		if (ddrawParent)
-		{
-			ddrawParent->AddSurfaceToVector(this);
+			// Update surface description and create backbuffers
+			InitSurfaceDesc(DirectXVersion);
 		}
-
-		// Update surface description and create backbuffers
-		InitSurfaceDesc(DirectXVersion);
 
 		ProxyAddressLookupTable.SaveAddress(this, (ProxyInterface) ? ProxyInterface : (void*)this);
 	}
@@ -250,24 +237,7 @@ public:
 	{
 		LOG_LIMIT(3, __FUNCTION__ << "(" << this << ")" << " deleting interface!");
 
-		WrapperInterface->DeleteMe();
-		WrapperInterface2->DeleteMe();
-		WrapperInterface3->DeleteMe();
-		WrapperInterface4->DeleteMe();
-		WrapperInterface7->DeleteMe();
-
-		if (Config.Dd7to9 && !Config.Exiting)
-		{
-			if (ddrawParent)
-			{
-				ddrawParent->RemoveSurfaceFromVector(this);
-			}
-
-			ReleaseD9Surface(false);
-
-			// Delete Critical Section for surface array
-			DeleteCriticalSection(&ddscs);
-		}
+		ReleaseSurface();
 
 		ProxyAddressLookupTable.DeleteAddress(this);
 	}

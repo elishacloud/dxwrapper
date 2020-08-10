@@ -40,6 +40,10 @@ private:
 	IDirect3D3 *GetProxyInterfaceV3() { return (IDirect3D3 *)ProxyInterface; }
 	IDirect3D7 *GetProxyInterfaceV7() { return ProxyInterface; }
 
+	// Interface initialization functions
+	void InitDirect3D();
+	void ReleaseDirect3D();
+
 	// Resolution hack
 	void ResolutionHack();
 
@@ -57,12 +61,7 @@ public:
 			LOG_LIMIT(3, "Creating interface " << __FUNCTION__ << "(" << this << ") v" << DirectXVersion);
 		}
 
-		WrapperInterface = new m_IDirect3D((LPDIRECT3D)ProxyInterface, this);
-		WrapperInterface2 = new m_IDirect3D2((LPDIRECT3D2)ProxyInterface, this);
-		WrapperInterface3 = new m_IDirect3D3((LPDIRECT3D3)ProxyInterface, this);
-		WrapperInterface7 = new m_IDirect3D7((LPDIRECT3D7)ProxyInterface, this);
-
-		ResolutionHack();
+		InitDirect3D();
 
 		ProxyAddressLookupTable.SaveAddress(this, (ProxyInterface) ? ProxyInterface : (void*)this);
 	}
@@ -72,10 +71,7 @@ public:
 
 		LOG_LIMIT(3, "Creating interface " << __FUNCTION__ << "(" << this << ")" << " converting interface from v" << DirectXVersion << " to v" << ProxyDirectXVersion);
 
-		WrapperInterface = new m_IDirect3D((LPDIRECT3D)ProxyInterface, this);
-		WrapperInterface2 = new m_IDirect3D2((LPDIRECT3D2)ProxyInterface, this);
-		WrapperInterface3 = new m_IDirect3D3((LPDIRECT3D3)ProxyInterface, this);
-		WrapperInterface7 = new m_IDirect3D7((LPDIRECT3D7)ProxyInterface, this);
+		InitDirect3D();
 
 		ProxyAddressLookupTable.SaveAddress(this, (ProxyInterface) ? ProxyInterface : (void*)this);
 	}
@@ -83,18 +79,7 @@ public:
 	{
 		LOG_LIMIT(3, __FUNCTION__ << "(" << this << ")" << " deleting interface!");
 
-		WrapperInterface->DeleteMe();
-		WrapperInterface2->DeleteMe();
-		WrapperInterface3->DeleteMe();
-		WrapperInterface7->DeleteMe();
-
-		if (Config.Dd7to9 && !Config.Exiting)
-		{
-			if (ddrawParent)
-			{
-				ddrawParent->ClearD3D();
-			}
-		}
+		ReleaseDirect3D();
 
 		ProxyAddressLookupTable.DeleteAddress(this);
 	}

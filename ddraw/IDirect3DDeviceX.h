@@ -39,6 +39,10 @@ private:
 	IDirect3DDevice3 *GetProxyInterfaceV3() { return (IDirect3DDevice3 *)ProxyInterface; }
 	IDirect3DDevice7 *GetProxyInterfaceV7() { return ProxyInterface; }
 
+	// Interface initialization functions
+	void InitDevice();
+	void ReleaseDevice();
+
 public:
 	m_IDirect3DDeviceX(IDirect3DDevice7 *aOriginal, DWORD DirectXVersion) : ProxyInterface(aOriginal)
 	{
@@ -53,10 +57,7 @@ public:
 			LOG_LIMIT(3, "Creating interface " << __FUNCTION__ << "(" << this << ") v" << DirectXVersion);
 		}
 
-		WrapperInterface = new m_IDirect3DDevice((LPDIRECT3DDEVICE)ProxyInterface, this);
-		WrapperInterface2 = new m_IDirect3DDevice2((LPDIRECT3DDEVICE2)ProxyInterface, this);
-		WrapperInterface3 = new m_IDirect3DDevice3((LPDIRECT3DDEVICE3)ProxyInterface, this);
-		WrapperInterface7 = new m_IDirect3DDevice7((LPDIRECT3DDEVICE7)ProxyInterface, this);
+		InitDevice();
 
 		ProxyAddressLookupTable.SaveAddress(this, (ProxyInterface) ? ProxyInterface : (void*)this);
 	}
@@ -66,10 +67,7 @@ public:
 
 		LOG_LIMIT(3, "Creating interface " << __FUNCTION__ << "(" << this << ")" << " converting interface from v" << DirectXVersion << " to v" << ProxyDirectXVersion);
 
-		WrapperInterface = new m_IDirect3DDevice((LPDIRECT3DDEVICE)ProxyInterface, this);
-		WrapperInterface2 = new m_IDirect3DDevice2((LPDIRECT3DDEVICE2)ProxyInterface, this);
-		WrapperInterface3 = new m_IDirect3DDevice3((LPDIRECT3DDEVICE3)ProxyInterface, this);
-		WrapperInterface7 = new m_IDirect3DDevice7((LPDIRECT3DDEVICE7)ProxyInterface, this);
+		InitDevice();
 
 		ProxyAddressLookupTable.SaveAddress(this, (ProxyInterface) ? ProxyInterface : (void*)this);
 	}
@@ -77,18 +75,7 @@ public:
 	{
 		LOG_LIMIT(3, __FUNCTION__ << "(" << this << ")" << " deleting interface!");
 
-		WrapperInterface->DeleteMe();
-		WrapperInterface2->DeleteMe();
-		WrapperInterface3->DeleteMe();
-		WrapperInterface7->DeleteMe();
-
-		if (Config.Dd7to9 && !Config.Exiting)
-		{
-			if (ddrawParent)
-			{
-				ddrawParent->ClearD3DDevice();
-			}
-		}
+		ReleaseDevice();
 
 		ProxyAddressLookupTable.DeleteAddress(this);
 	}

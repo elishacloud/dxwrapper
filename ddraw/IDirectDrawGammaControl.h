@@ -11,10 +11,16 @@ private:
 	m_IDirectDrawX *ddrawParent = nullptr;
 	DDGAMMARAMP RampData = { NULL };
 
+	// Interface initialization functions
+	void InitGammaControl();
+	void ReleaseGammaControl();
+
 public:
 	m_IDirectDrawGammaControl(IDirectDrawGammaControl *aOriginal) : ProxyInterface(aOriginal)
 	{
 		LOG_LIMIT(3, "Creating interface " << __FUNCTION__ << "(" << this << ")");
+
+		InitGammaControl();
 
 		ProxyAddressLookupTable.SaveAddress(this, (ProxyInterface) ? ProxyInterface : (void*)this);
 	}
@@ -22,21 +28,17 @@ public:
 	{
 		LOG_LIMIT(3, "Creating interface " << __FUNCTION__ << "(" << this << ")");
 
+		InitGammaControl();
+
 		ProxyAddressLookupTable.SaveAddress(this, (ProxyInterface) ? ProxyInterface : (void*)this);
 	}
 	~m_IDirectDrawGammaControl()
 	{
 		LOG_LIMIT(3, __FUNCTION__ << "(" << this << ")" << " deleting interface!");
 
-		ProxyAddressLookupTable.DeleteAddress(this);
+		ReleaseGammaControl();
 
-		if (!ProxyInterface && !Config.Exiting)
-		{
-			if (ddrawParent)
-			{
-				ddrawParent->ClearGammaInterface();
-			}
-		}
+		ProxyAddressLookupTable.DeleteAddress(this);
 	}
 
 	/*** IUnknown methods ***/

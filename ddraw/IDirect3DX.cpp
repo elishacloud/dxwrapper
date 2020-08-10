@@ -679,6 +679,33 @@ HRESULT m_IDirect3DX::EvictManagedTextures()
 	}
 }
 
+/************************/
+/*** Helper functions ***/
+/************************/
+
+void m_IDirect3DX::InitDirect3D()
+{
+	WrapperInterface = new m_IDirect3D((LPDIRECT3D)ProxyInterface, this);
+	WrapperInterface2 = new m_IDirect3D2((LPDIRECT3D2)ProxyInterface, this);
+	WrapperInterface3 = new m_IDirect3D3((LPDIRECT3D3)ProxyInterface, this);
+	WrapperInterface7 = new m_IDirect3D7((LPDIRECT3D7)ProxyInterface, this);
+
+	ResolutionHack();
+}
+
+void m_IDirect3DX::ReleaseDirect3D()
+{
+	WrapperInterface->DeleteMe();
+	WrapperInterface2->DeleteMe();
+	WrapperInterface3->DeleteMe();
+	WrapperInterface7->DeleteMe();
+
+	if (ddrawParent && !Config.Exiting)
+	{
+		ddrawParent->ClearD3D();
+	}
+}
+
 void m_IDirect3DX::ResolutionHack()
 {
 	if (Config.DdrawResolutionHack)

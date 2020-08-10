@@ -158,6 +158,8 @@ HRESULT m_IDirectDrawPalette::SetEntries(DWORD dwFlags, DWORD dwStartingEntry, D
 		{
 			return DDERR_INVALIDPARAMS;
 		}
+
+		// Get new entry count
 		dwCount = min(dwCount, entryCount - dwStartingEntry);
 
 		// Copy raw palette entries from dwStartingEntry and of count dwCount
@@ -204,4 +206,53 @@ HRESULT m_IDirectDrawPalette::SetEntries(DWORD dwFlags, DWORD dwStartingEntry, D
 	}
 
 	return ProxyInterface->SetEntries(dwFlags, dwStartingEntry, dwCount, lpEntries);
+}
+
+void m_IDirectDrawPalette::InitPalette()
+{
+	if (ProxyInterface)
+	{
+		return;
+	}
+
+	// Create palette of requested bit size
+	if (paletteCaps & DDPCAPS_1BIT)
+	{
+		entryCount = 2;
+	}
+	else if (paletteCaps & DDPCAPS_2BIT)
+	{
+		entryCount = 4;
+	}
+	else if (paletteCaps & DDPCAPS_4BIT)
+	{
+		entryCount = 16;
+	}
+	else if (paletteCaps & DDPCAPS_8BIT || paletteCaps & DDPCAPS_ALLOW256)
+	{
+		entryCount = 256;
+	}
+
+	// Allocate raw ddraw palette
+	rawPalette = new PALETTEENTRY[entryCount];
+
+	// Allocate rgb palette
+	rgbPalette = new RGBDWORD[entryCount];
+}
+
+void m_IDirectDrawPalette::ReleasePalette()
+{
+	if (ddrawParent && !Config.Exiting)
+	{
+		ddrawParent->RemovePaletteFromVector(this);
+	}
+
+	if (rawPalette)
+	{
+		delete rawPalette;
+	}
+	if (rgbPalette)
+	{
+		delete rgbPalette;
+	}
 }

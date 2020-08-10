@@ -186,3 +186,19 @@ HRESULT m_IDirect3DVertexBufferX::ProcessVerticesStrided(DWORD dwVertexOp, DWORD
 		return DDERR_GENERIC;
 	}
 }
+
+/************************/
+/*** Helper functions ***/
+/************************/
+
+void m_IDirect3DVertexBufferX::InitVertexBuffer()
+{
+	WrapperInterface = new m_IDirect3DVertexBuffer((LPDIRECT3DVERTEXBUFFER)ProxyInterface, this);
+	WrapperInterface7 = new m_IDirect3DVertexBuffer7((LPDIRECT3DVERTEXBUFFER7)ProxyInterface, this);
+}
+
+void m_IDirect3DVertexBufferX::ReleaseVertexBuffer()
+{
+	WrapperInterface->DeleteMe();
+	WrapperInterface7->DeleteMe();
+}

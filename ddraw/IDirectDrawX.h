@@ -60,8 +60,8 @@ private:
 	IDirectDraw4 *GetProxyInterfaceV4() { return (IDirectDraw4 *)ProxyInterface; }
 	IDirectDraw7 *GetProxyInterfaceV7() { return ProxyInterface; }
 
-	// Device information functions
-	void InitDdrawSettings();
+	// Interface initialization functions
+	void InitDdraw();
 	void ReleaseDdraw();
 
 	// Direct3D9 interface functions
@@ -84,11 +84,7 @@ public:
 			LOG_LIMIT(3, "Creating interface " << __FUNCTION__ << "(" << this << ") v" << DirectXVersion);
 		}
 
-		WrapperInterface = new m_IDirectDraw((LPDIRECTDRAW)ProxyInterface, this);
-		WrapperInterface2 = new m_IDirectDraw2((LPDIRECTDRAW2)ProxyInterface, this);
-		WrapperInterface3 = new m_IDirectDraw3((LPDIRECTDRAW3)ProxyInterface, this);
-		WrapperInterface4 = new m_IDirectDraw4((LPDIRECTDRAW4)ProxyInterface, this);
-		WrapperInterface7 = new m_IDirectDraw7((LPDIRECTDRAW7)ProxyInterface, this);
+		InitDdraw();
 
 		ProxyAddressLookupTable.SaveAddress(this, (ProxyInterface) ? ProxyInterface : (void*)this);
 	}
@@ -98,13 +94,7 @@ public:
 
 		LOG_LIMIT(3, "Creating interface " << __FUNCTION__ << "(" << this << ")" << " converting interface from v" << DirectXVersion << " to v" << ProxyDirectXVersion);
 
-		WrapperInterface = new m_IDirectDraw((LPDIRECTDRAW)ProxyInterface, this);
-		WrapperInterface2 = new m_IDirectDraw2((LPDIRECTDRAW2)ProxyInterface, this);
-		WrapperInterface3 = new m_IDirectDraw3((LPDIRECTDRAW3)ProxyInterface, this);
-		WrapperInterface4 = new m_IDirectDraw4((LPDIRECTDRAW4)ProxyInterface, this);
-		WrapperInterface7 = new m_IDirectDraw7((LPDIRECTDRAW7)ProxyInterface, this);
-
-		InitDdrawSettings();
+		InitDdraw();
 
 		ProxyAddressLookupTable.SaveAddress(this, (ProxyInterface) ? ProxyInterface : (void*)this);
 	}
@@ -112,21 +102,7 @@ public:
 	{
 		LOG_LIMIT(3, __FUNCTION__ << "(" << this << ")" << " deleting interface!");
 
-		WrapperInterface->DeleteMe();
-		WrapperInterface2->DeleteMe();
-		WrapperInterface3->DeleteMe();
-		WrapperInterface4->DeleteMe();
-		WrapperInterface7->DeleteMe();
-
-		if (g_hook)
-		{
-			UnhookWindowsHookEx(g_hook);
-		}
-
-		if (Config.Dd7to9 && !Config.Exiting)
-		{
-			ReleaseDdraw();
-		}
+		ReleaseDdraw();
 
 		ProxyAddressLookupTable.DeleteAddress(this);
 	}

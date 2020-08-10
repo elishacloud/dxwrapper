@@ -244,3 +244,17 @@ HRESULT m_IDirectDrawClipper::SetHWnd(DWORD dwFlags, HWND hWnd)
 
 	return ProxyInterface->SetHWnd(dwFlags, hWnd);
 }
+
+/************************/
+/*** Helper functions ***/
+/************************/
+
+void m_IDirectDrawClipper::InitClipper()
+{
+	// To add later
+}
+
+void m_IDirectDrawClipper::ReleaseClipper()
+{
+	// To add later
+}

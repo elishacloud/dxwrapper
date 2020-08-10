@@ -22,13 +22,19 @@ private:
 	LPPALETTEENTRY rawPalette = nullptr;		// Raw palette data
 	RGBDWORD *rgbPalette = nullptr;				// Rgb translated palette
 	DWORD PaletteUSN = (DWORD)this;				// The USN that's used to see if the palette data was updated
-	DWORD entryCount = 0;						// Number of palette entries
+	DWORD entryCount = 256;						// Number of palette entries (Default to 256 entries)
 	bool hasAlpha = false;						// Raw palette has alpha data
+
+	// Interface initialization functions
+	void InitPalette();
+	void ReleasePalette();
 
 public:
 	m_IDirectDrawPalette(IDirectDrawPalette *aOriginal) : ProxyInterface(aOriginal)
 	{
 		LOG_LIMIT(3, "Creating interface " << __FUNCTION__ << "(" << this << ")");
+
+		InitPalette();
 
 		ProxyAddressLookupTable.SaveAddress(this, (ProxyInterface) ? ProxyInterface : (void*)this);
 	}
@@ -36,35 +42,13 @@ public:
 	{
 		LOG_LIMIT(3, "Creating interface " << __FUNCTION__ << "(" << this << ")");
 
-		// Default to 256 entries
-		entryCount = 256;
+		InitPalette();
 
-		// Create palette of requested bit size
-		if (dwFlags & DDPCAPS_1BIT)
+		// Set initial entries after initializing the palette
+		if (lpDDColorArray)
 		{
-			entryCount = 2;
+			SetEntries(dwFlags, 0, entryCount, lpDDColorArray);
 		}
-		else if (dwFlags & DDPCAPS_2BIT)
-		{
-			entryCount = 4;
-		}
-		else if (dwFlags & DDPCAPS_4BIT)
-		{
-			entryCount = 16;
-		}
-		else if (dwFlags & DDPCAPS_8BIT || dwFlags & DDPCAPS_ALLOW256)
-		{
-			entryCount = 256;
-		}
-
-		// Allocate raw ddraw palette
-		rawPalette = new PALETTEENTRY[entryCount];
-
-		// Allocate rgb palette
-		rgbPalette = new RGBDWORD[entryCount];
-
-		// Set initial entries
-		SetEntries(dwFlags, 0, entryCount, lpDDColorArray);
 
 		ProxyAddressLookupTable.SaveAddress(this, (ProxyInterface) ? ProxyInterface : (void*)this);
 	}
@@ -72,24 +56,9 @@ public:
 	{
 		LOG_LIMIT(3, __FUNCTION__ << "(" << this << ")" << " deleting interface!");
 
+		ReleasePalette();
+
 		ProxyAddressLookupTable.DeleteAddress(this);
-
-		if (!ProxyInterface && !Config.Exiting)
-		{
-			if (ddrawParent)
-			{
-				ddrawParent->RemovePaletteFromVector(this);
-			}
-
-			if (rawPalette)
-			{
-				delete rawPalette;
-			}
-			if (rgbPalette)
-			{
-				delete rgbPalette;
-			}
-		}
 	}
 
 	/*** IUnknown methods ***/

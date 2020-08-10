@@ -1641,3 +1641,28 @@ HRESULT m_IDirect3DDeviceX::GetInfo(DWORD dwDevInfoID, LPVOID pDevInfoStruct, DW
 
 	return GetProxyInterfaceV7()->GetInfo(dwDevInfoID, pDevInfoStruct, dwSize);
 }
+
+/************************/
+/*** Helper functions ***/
+/************************/
+
+void m_IDirect3DDeviceX::InitDevice()
+{
+	WrapperInterface = new m_IDirect3DDevice((LPDIRECT3DDEVICE)ProxyInterface, this);
+	WrapperInterface2 = new m_IDirect3DDevice2((LPDIRECT3DDEVICE2)ProxyInterface, this);
+	WrapperInterface3 = new m_IDirect3DDevice3((LPDIRECT3DDEVICE3)ProxyInterface, this);
+	WrapperInterface7 = new m_IDirect3DDevice7((LPDIRECT3DDEVICE7)ProxyInterface, this);
+}
+
+void m_IDirect3DDeviceX::ReleaseDevice()
+{
+	WrapperInterface->DeleteMe();
+	WrapperInterface2->DeleteMe();
+	WrapperInterface3->DeleteMe();
+	WrapperInterface7->DeleteMe();
+
+	if (ddrawParent && !Config.Exiting)
+	{
+		ddrawParent->ClearD3DDevice();
+	}
+}

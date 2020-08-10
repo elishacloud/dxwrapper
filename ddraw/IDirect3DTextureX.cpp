@@ -185,3 +185,19 @@ HRESULT m_IDirect3DTextureX::Unload()
 
 	return GetProxyInterfaceV1()->Unload();
 }
+
+/************************/
+/*** Helper functions ***/
+/************************/
+
+void m_IDirect3DTextureX::InitTexture()
+{
+	WrapperInterface = new m_IDirect3DTexture((LPDIRECT3DTEXTURE)ProxyInterface, this);
+	WrapperInterface2 = new m_IDirect3DTexture2((LPDIRECT3DTEXTURE2)ProxyInterface, this);
+}
+
+void m_IDirect3DTextureX::ReleaseTexture()
+{
+	WrapperInterface->DeleteMe();
+	WrapperInterface2->DeleteMe();
+}

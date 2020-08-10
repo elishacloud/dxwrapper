@@ -2273,6 +2273,53 @@ HRESULT m_IDirectDrawSurfaceX::GetLOD(LPDWORD lpdwMaxLOD)
 /*** Helper functions ***/
 /************************/
 
+void m_IDirectDrawSurfaceX::InitSurface()
+{
+	WrapperInterface = new m_IDirectDrawSurface((LPDIRECTDRAWSURFACE)ProxyInterface, this);
+	WrapperInterface2 = new m_IDirectDrawSurface2((LPDIRECTDRAWSURFACE2)ProxyInterface, this);
+	WrapperInterface3 = new m_IDirectDrawSurface3((LPDIRECTDRAWSURFACE3)ProxyInterface, this);
+	WrapperInterface4 = new m_IDirectDrawSurface4((LPDIRECTDRAWSURFACE4)ProxyInterface, this);
+	WrapperInterface7 = new m_IDirectDrawSurface7((LPDIRECTDRAWSURFACE7)ProxyInterface, this);
+
+	if (!Config.Dd7to9)
+	{
+		return;
+	}
+
+	// Store surface
+	if (ddrawParent)
+	{
+		ddrawParent->AddSurfaceToVector(this);
+	}
+
+	// Initialize Critical Section for surface array
+	InitializeCriticalSection(&ddscs);
+}
+
+void m_IDirectDrawSurfaceX::ReleaseSurface()
+{
+	WrapperInterface->DeleteMe();
+	WrapperInterface2->DeleteMe();
+	WrapperInterface3->DeleteMe();
+	WrapperInterface4->DeleteMe();
+	WrapperInterface7->DeleteMe();
+
+	if (!Config.Dd7to9 || Config.Exiting)
+	{
+		return;
+	}
+
+	if (ddrawParent)
+	{
+		ddrawParent->RemoveSurfaceFromVector(this);
+	}
+
+	ReleaseD9Surface(false);
+
+	// Delete Critical Section for surface array
+	DeleteCriticalSection(&ddscs);
+}
+
 HRESULT m_IDirectDrawSurfaceX::CheckInterface(char *FunctionName, bool CheckD3DDevice, bool CheckD3DSurface)
 {
 	// Check for device
@@ -3364,7 +3411,7 @@ void m_IDirectDrawSurfaceX::InitSurfaceDesc(DWORD DirectXVersion)
 		m_IDirectDrawSurfaceX *attachedSurface = (m_IDirectDrawSurfaceX *)surfaceDesc2.dwReserved;
 
 		// Check if source Surface exists and add to surface map
-		if (ddrawParent->DoesSurfaceExist(attachedSurface))
+		if (ddrawParent && ddrawParent->DoesSurfaceExist(attachedSurface))
 		{
 			AddAttachedSurfaceToMap(attachedSurface);
 		}

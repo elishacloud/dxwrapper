@@ -64,10 +64,7 @@ void WINAPI dd_AcquireDDThreadLock()
 
 	if (Config.Dd7to9)
 	{
-		if (IsInitialized)
-		{
-			EnterCriticalSection(&ddcs);
-		}
+		SetCriticalSection();
 		return;
 	}
 
@@ -741,10 +738,7 @@ void WINAPI dd_ReleaseDDThreadLock()
 
 	if (Config.Dd7to9)
 	{
-		if (IsInitialized)
-		{
-			LeaveCriticalSection(&ddcs);
-		}
+		ReleaseCriticalSection();
 		return;
 	}
 

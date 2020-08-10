@@ -130,3 +130,29 @@ HRESULT m_IDirectDrawColorControl::SetColorControls(LPDDCOLORCONTROL lpColorCont
 
 	return ProxyInterface->SetColorControls(lpColorControl);
 }
+
+/************************/
+/*** Helper functions ***/
+/************************/
+
+void m_IDirectDrawColorControl::InitColorControl()
+{
+	ColorControl.dwSize = sizeof(DDCOLORCONTROL);
+	ColorControl.dwFlags = DDCOLOR_BRIGHTNESS | DDCOLOR_CONTRAST | DDCOLOR_HUE | DDCOLOR_SATURATION | DDCOLOR_SHARPNESS | DDCOLOR_GAMMA | DDCOLOR_COLORENABLE;
+	ColorControl.lBrightness = 750;
+	ColorControl.lContrast = 10000;
+	ColorControl.lHue = 0;
+	ColorControl.lSaturation = 10000;
+	ColorControl.lSharpness = 5;
+	ColorControl.lGamma = 1;
+	ColorControl.lColorEnable = 1;
+	ColorControl.dwReserved1 = 0;
+}
+
+void m_IDirectDrawColorControl::ReleaseColorControl()
+{
+	if (ddrawParent && !Config.Exiting)
+	{
+		ddrawParent->ClearColorInterface();
+	}
+}

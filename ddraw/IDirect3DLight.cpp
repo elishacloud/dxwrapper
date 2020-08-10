@@ -124,3 +124,17 @@ HRESULT m_IDirect3DLight::GetLight(LPD3DLIGHT lpLight)
 
 	return ProxyInterface->GetLight(lpLight);
 }
+
+/************************/
+/*** Helper functions ***/
+/************************/
+
+void m_IDirect3DLight::InitLight()
+{
+	// To add later
+}
+
+void m_IDirect3DLight::ReleaseLight()
+{
+	// To add later
+}

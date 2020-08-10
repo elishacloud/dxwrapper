@@ -29,6 +29,10 @@ private:
 	IDirect3DVertexBuffer *GetProxyInterfaceV1() { return (IDirect3DVertexBuffer *)ProxyInterface; }
 	IDirect3DVertexBuffer7 *GetProxyInterfaceV7() { return ProxyInterface; }
 
+	// Interface initialization functions
+	void InitVertexBuffer();
+	void ReleaseVertexBuffer();
+
 public:
 	m_IDirect3DVertexBufferX(IDirect3DVertexBuffer7 *aOriginal, DWORD DirectXVersion) : ProxyInterface(aOriginal)
 	{
@@ -43,8 +47,7 @@ public:
 			LOG_LIMIT(3, "Creating interface " << __FUNCTION__ << "(" << this << ") v" << DirectXVersion);
 		}
 
-		WrapperInterface = new m_IDirect3DVertexBuffer((LPDIRECT3DVERTEXBUFFER)ProxyInterface, this);
-		WrapperInterface7 = new m_IDirect3DVertexBuffer7((LPDIRECT3DVERTEXBUFFER7)ProxyInterface, this);
+		InitVertexBuffer();
 
 		ProxyAddressLookupTable.SaveAddress(this, (ProxyInterface) ? ProxyInterface : (void*)this);
 	}
@@ -54,9 +57,6 @@ public:
 
 		LOG_LIMIT(3, "Creating interface " << __FUNCTION__ << "(" << this << ")" << " converting interface from v" << DirectXVersion << " to v" << ProxyDirectXVersion);
 
-		WrapperInterface = new m_IDirect3DVertexBuffer((LPDIRECT3DVERTEXBUFFER)ProxyInterface, this);
-		WrapperInterface7 = new m_IDirect3DVertexBuffer7((LPDIRECT3DVERTEXBUFFER7)ProxyInterface, this);
-
 		if (lpVBDesc && lpVBDesc->dwSize)
 		{
 			VBDesc.dwSize = sizeof(D3DVERTEXBUFFERDESC);
@@ -65,14 +65,15 @@ public:
 			VBDesc.dwNumVertices = lpVBDesc->dwNumVertices;
 		}
 
+		InitVertexBuffer();
+
 		ProxyAddressLookupTable.SaveAddress(this, (ProxyInterface) ? ProxyInterface : (void*)this);
 	}
 	~m_IDirect3DVertexBufferX()
 	{
 		LOG_LIMIT(3, __FUNCTION__ << "(" << this << ")" << " deleting interface!");
 
-		WrapperInterface->DeleteMe();
-		WrapperInterface7->DeleteMe();
+		ReleaseVertexBuffer();
 
 		ProxyAddressLookupTable.DeleteAddress(this);
 	}

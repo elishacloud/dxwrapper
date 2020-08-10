@@ -452,3 +452,21 @@ HRESULT m_IDirect3DViewportX::Clear2(DWORD dwCount, LPD3DRECT lpRects, DWORD dwF
 
 	return ProxyInterface->Clear2(dwCount, lpRects, dwFlags, dwColor, dvZ, dwStencil);
 }
+
+/************************/
+/*** Helper functions ***/
+/************************/
+
+void m_IDirect3DViewportX::InitViewport()
+{
+	WrapperInterface = new m_IDirect3DViewport((LPDIRECT3DVIEWPORT)ProxyInterface, this);
+	WrapperInterface2 = new m_IDirect3DViewport2((LPDIRECT3DVIEWPORT2)ProxyInterface, this);
+	WrapperInterface3 = new m_IDirect3DViewport3((LPDIRECT3DVIEWPORT3)ProxyInterface, this);
+}
+
+void m_IDirect3DViewportX::ReleaseViewport()
+{
+	WrapperInterface->DeleteMe();
+	WrapperInterface2->DeleteMe();
+	WrapperInterface3->DeleteMe();
+}

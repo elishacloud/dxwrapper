@@ -241,3 +241,21 @@ HRESULT m_IDirect3DMaterialX::Unreserve()
 
 	return GetProxyInterfaceV1()->Unreserve();
 }
+
+/************************/
+/*** Helper functions ***/
+/************************/
+
+void m_IDirect3DMaterialX::InitMaterial()
+{
+	WrapperInterface = new m_IDirect3DMaterial((LPDIRECT3DMATERIAL)ProxyInterface, this);
+	WrapperInterface2 = new m_IDirect3DMaterial2((LPDIRECT3DMATERIAL2)ProxyInterface, this);
+	WrapperInterface3 = new m_IDirect3DMaterial3((LPDIRECT3DMATERIAL3)ProxyInterface, this);
+}
+
+void m_IDirect3DMaterialX::ReleaseMaterial()
+{
+	WrapperInterface->DeleteMe();
+	WrapperInterface2->DeleteMe();
+	WrapperInterface3->DeleteMe();
+}

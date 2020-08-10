@@ -32,6 +32,10 @@ private:
 	IDirect3DViewport2 *GetProxyInterfaceV2() { return (IDirect3DViewport2 *)ProxyInterface; }
 	IDirect3DViewport3 *GetProxyInterfaceV3() { return ProxyInterface; }
 
+	// Interface initialization functions
+	void InitViewport();
+	void ReleaseViewport();
+
 public:
 	m_IDirect3DViewportX(IDirect3DViewport3 *aOriginal, DWORD DirectXVersion) : ProxyInterface(aOriginal)
 	{
@@ -46,9 +50,7 @@ public:
 			LOG_LIMIT(3, "Creating interface " << __FUNCTION__ << "(" << this << ") v" << DirectXVersion);
 		}
 
-		WrapperInterface = new m_IDirect3DViewport((LPDIRECT3DVIEWPORT)ProxyInterface, this);
-		WrapperInterface2 = new m_IDirect3DViewport2((LPDIRECT3DVIEWPORT2)ProxyInterface, this);
-		WrapperInterface3 = new m_IDirect3DViewport3((LPDIRECT3DVIEWPORT3)ProxyInterface, this);
+		InitViewport();
 
 		ProxyAddressLookupTable.SaveAddress(this, (ProxyInterface) ? ProxyInterface : (void*)this);
 	}
@@ -65,9 +67,7 @@ public:
 			LOG_LIMIT(3, "Creating interface " << __FUNCTION__ << "(" << this << ") v" << DirectXVersion);
 		}
 
-		WrapperInterface = new m_IDirect3DViewport((LPDIRECT3DVIEWPORT)ProxyInterface, this);
-		WrapperInterface2 = new m_IDirect3DViewport2((LPDIRECT3DVIEWPORT2)ProxyInterface, this);
-		WrapperInterface3 = new m_IDirect3DViewport3((LPDIRECT3DVIEWPORT3)ProxyInterface, this);
+		InitViewport();
 
 		ProxyAddressLookupTable.SaveAddress(this, (ProxyInterface) ? ProxyInterface : (void*)this);
 	}
@@ -75,9 +75,7 @@ public:
 	{
 		LOG_LIMIT(3, __FUNCTION__ << "(" << this << ")" << " deleting interface!");
 
-		WrapperInterface->DeleteMe();
-		WrapperInterface2->DeleteMe();
-		WrapperInterface3->DeleteMe();
+		ReleaseViewport();
 
 		ProxyAddressLookupTable.DeleteAddress(this);
 	}

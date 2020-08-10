@@ -12,10 +12,16 @@ private:
 	bool IsClipListSet = false;
 	bool IsClipListChangedFlag = false;
 
+	// Interface initialization functions
+	void InitClipper();
+	void ReleaseClipper();
+
 public:
 	m_IDirectDrawClipper(IDirectDrawClipper *aOriginal) : ProxyInterface(aOriginal)
 	{
 		LOG_LIMIT(3, "Creating interface " << __FUNCTION__ << "(" << this << ")");
+
+		InitClipper();
 
 		ProxyAddressLookupTable.SaveAddress(this, (ProxyInterface) ? ProxyInterface : (void*)this);
 	}
@@ -23,11 +29,15 @@ public:
 	{
 		LOG_LIMIT(3, "Creating interface " << __FUNCTION__ << "(" << this << ")");
 
+		InitClipper();
+
 		ProxyAddressLookupTable.SaveAddress(this, (ProxyInterface) ? ProxyInterface : (void*)this);
 	}
 	~m_IDirectDrawClipper()
 	{
 		LOG_LIMIT(3, __FUNCTION__ << "(" << this << ")" << " deleting interface!");
+
+		ReleaseClipper();
 
 		ProxyAddressLookupTable.DeleteAddress(this);
 	}

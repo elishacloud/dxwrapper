@@ -1699,8 +1699,19 @@ HRESULT m_IDirectDrawX::EvaluateMode(DWORD dwFlags, DWORD * pSecondsUntilTimeout
 /*** Helper functions ***/
 /************************/
 
-void m_IDirectDrawX::InitDdrawSettings()
+void m_IDirectDrawX::InitDdraw()
 {
+	WrapperInterface = new m_IDirectDraw((LPDIRECTDRAW)ProxyInterface, this);
+	WrapperInterface2 = new m_IDirectDraw2((LPDIRECTDRAW2)ProxyInterface, this);
+	WrapperInterface3 = new m_IDirectDraw3((LPDIRECTDRAW3)ProxyInterface, this);
+	WrapperInterface4 = new m_IDirectDraw4((LPDIRECTDRAW4)ProxyInterface, this);
+	WrapperInterface7 = new m_IDirectDraw7((LPDIRECTDRAW7)ProxyInterface, this);
+
+	if (!Config.Dd7to9)
+	{
+		return;
+	}
+
 	DWORD ref = InterlockedIncrement(&ddrawRefCount);
 
 	SetCriticalSection();
@@ -1789,6 +1800,22 @@ void m_IDirectDrawX::InitDdrawSettings()
 
 void m_IDirectDrawX::ReleaseDdraw()
 {
+	WrapperInterface->DeleteMe();
+	WrapperInterface2->DeleteMe();
+	WrapperInterface3->DeleteMe();
+	WrapperInterface4->DeleteMe();
+	WrapperInterface7->DeleteMe();
+
+	if (g_hook)
+	{
+		UnhookWindowsHookEx(g_hook);
+	}
+
+	if (!Config.Dd7to9 || Config.Exiting)
+	{
+		return;
+	}
+
 	DWORD ref = InterlockedDecrement(&ddrawRefCount);
 
 	SetCriticalSection();
@@ -2167,8 +2194,8 @@ HRESULT m_IDirectDrawX::CreateD3D9Device()
 		}
 
 		// Set behavior flags
-		DWORD BehaviorFlags = ((d3dcaps.VertexProcessingCaps) ? D3DCREATE_HARDWARE_VERTEXPROCESSING : D3DCREATE_SOFTWARE_VERTEXPROCESSING) | D3DCREATE_MULTITHREADED |
-			((MultiThreaded) ? D3DCREATE_MULTITHREADED : 0) |
+		DWORD BehaviorFlags = ((d3dcaps.VertexProcessingCaps) ? D3DCREATE_HARDWARE_VERTEXPROCESSING : D3DCREATE_SOFTWARE_VERTEXPROCESSING) |
+			((MultiThreaded || !Config.SingleProcAffinity) ? D3DCREATE_MULTITHREADED : 0) |
 			((FUPPreserve) ? D3DCREATE_FPU_PRESERVE : 0) |
 			((NoWindowChanges) ? D3DCREATE_NOWINDOWCHANGES : 0);
 

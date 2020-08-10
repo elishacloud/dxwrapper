@@ -130,3 +130,20 @@ HRESULT m_IDirectDrawGammaControl::SetGammaRamp(DWORD dwFlags, LPDDGAMMARAMP lpR
 
 	return ProxyInterface->SetGammaRamp(dwFlags, lpRampData);
 }
+
+/************************/
+/*** Helper functions ***/
+/************************/
+
+void m_IDirectDrawGammaControl::InitGammaControl()
+{
+	// To add later
+}
+
+void m_IDirectDrawGammaControl::ReleaseGammaControl()
+{
+	if (ddrawParent && !Config.Exiting)
+	{
+		ddrawParent->ClearGammaInterface();
+	}
+}

@@ -176,3 +176,17 @@ HRESULT m_IDirect3DExecuteBuffer::Optimize(DWORD dwDummy)
 
 	return ProxyInterface->Optimize(dwDummy);
 }
+
+/************************/
+/*** Helper functions ***/
+/************************/
+
+void m_IDirect3DExecuteBuffer::InitExecuteBuffer()
+{
+	// To add later
+}
+
+void m_IDirect3DExecuteBuffer::ReleaseExecuteBuffer()
+{
+	// To add later
+}
