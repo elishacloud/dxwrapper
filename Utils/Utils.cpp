@@ -71,7 +71,8 @@ namespace Utils
 	// FontSmoothing
 	struct SystemSettings
 	{
-		BOOL isEnabled = FALSE;
+		bool isSet = false;
+		BOOL enabled = FALSE;
 		UINT type = 0;
 		UINT contrast = 0;
 		UINT orientation = 0;
@@ -691,43 +692,66 @@ void Utils::GetScreenSettings()
 {
 	// Store screen settings
 	//hDC = GetDC(nullptr);
-	//GetDeviceGammaRamp(hDC, lpRamp);
+	//GetDeviceGammaRamp(hDC, lpRamp);  // <-- Hangs on this line starting in Windows 10 update 1903
+
+	// Read values from the registry if they exist
+	DWORD Size = sizeof(int);
+	if (RegGetValue(HKEY_CURRENT_USER, "Volatile Environment", "DxWrapper_Font_Enabled", RRF_RT_REG_DWORD, nullptr, (PVOID)&fontSystemSettings.enabled, &Size) == ERROR_SUCCESS &&
+		RegGetValue(HKEY_CURRENT_USER, "Volatile Environment", "DxWrapper_Font_Type", RRF_RT_REG_DWORD, nullptr, (PVOID)&fontSystemSettings.type, &Size) == ERROR_SUCCESS &&
+		RegGetValue(HKEY_CURRENT_USER, "Volatile Environment", "DxWrapper_Font_Contrast", RRF_RT_REG_DWORD, nullptr, (PVOID)&fontSystemSettings.contrast, &Size) == ERROR_SUCCESS &&
+		RegGetValue(HKEY_CURRENT_USER, "Volatile Environment", "DxWrapper_Font_Orientation", RRF_RT_REG_DWORD, nullptr, (PVOID)&fontSystemSettings.orientation, &Size) == ERROR_SUCCESS)
+	{
+		fontSystemSettings.isSet = true;
+	}
 
 	// Store font settings
-	SystemParametersInfo(SPI_GETFONTSMOOTHING, 0, &fontSystemSettings.isEnabled, 0);
-	SystemParametersInfo(SPI_GETFONTSMOOTHINGTYPE, 0, &fontSystemSettings.type, 0);
-	SystemParametersInfo(SPI_GETFONTSMOOTHINGCONTRAST, 0, &fontSystemSettings.contrast, 0);
-	SystemParametersInfo(SPI_GETFONTSMOOTHINGORIENTATION, 0, &fontSystemSettings.orientation, 0);
+	if (!fontSystemSettings.isSet &&
+		SystemParametersInfo(SPI_GETFONTSMOOTHING, 0, &fontSystemSettings.enabled, 0) &&
+		SystemParametersInfo(SPI_GETFONTSMOOTHINGTYPE, 0, &fontSystemSettings.type, 0) &&
+		SystemParametersInfo(SPI_GETFONTSMOOTHINGCONTRAST, 0, &fontSystemSettings.contrast, 0) &&
+		SystemParametersInfo(SPI_GETFONTSMOOTHINGORIENTATION, 0, &fontSystemSettings.orientation, 0))
+	{
+		fontSystemSettings.isSet = true;
+		RegSetKeyValue(HKEY_CURRENT_USER, "Volatile Environment", "DxWrapper_Font_Enabled", REG_DWORD, (PVOID)&fontSystemSettings.enabled, Size);
+		RegSetKeyValue(HKEY_CURRENT_USER, "Volatile Environment", "DxWrapper_Font_Type", REG_DWORD, (PVOID)&fontSystemSettings.type, Size);
+		RegSetKeyValue(HKEY_CURRENT_USER, "Volatile Environment", "DxWrapper_Font_Contrast", REG_DWORD, (PVOID)&fontSystemSettings.contrast, Size);
+		RegSetKeyValue(HKEY_CURRENT_USER, "Volatile Environment", "DxWrapper_Font_Orientation", REG_DWORD, (PVOID)&fontSystemSettings.orientation, Size);
+	}
 }
 
 void Utils::ResetScreenSettings()
 {
-	// Reset screen settings
 	Logging::Log() << "Reseting screen resolution";
+
+	// Reset Gamma Ramp
 	if (hDC)
 	{
-		SetDeviceGammaRamp(hDC, lpRamp);
+		SetDeviceGammaRamp(hDC, lpRamp);  // <-- Hangs on this line starting in Windows 10 update 1903
 		ReleaseDC(nullptr, hDC);
 	}
+
+	// Reset screen settings
 	ChangeDisplaySettingsEx(nullptr, nullptr, nullptr, CDS_RESET, nullptr);
 
 	// Reset font settings
-	if (fontSystemSettings.isEnabled)
+	if (fontSystemSettings.isSet)
 	{
 		Logging::Log() << "Reseting font smoothing";
-		SystemParametersInfo(SPI_SETFONTSMOOTHING, fontSystemSettings.isEnabled, nullptr, 0);
-		SystemParametersInfo(SPI_SETFONTSMOOTHINGTYPE, 0,
-			reinterpret_cast<void*>(fontSystemSettings.type), 0);
-		SystemParametersInfo(SPI_SETFONTSMOOTHINGCONTRAST, 0,
-			reinterpret_cast<void*>(fontSystemSettings.contrast), 0);
-		SystemParametersInfo(SPI_SETFONTSMOOTHINGORIENTATION, 0,
-			reinterpret_cast<void*>(fontSystemSettings.orientation), 0);
-
-		/*const char* regKey = "FontSmoothing";
-		SendMessageTimeout(HWND_BROADCAST, WM_SETTINGCHANGE, SPI_SETFONTSMOOTHING,
-			reinterpret_cast<LPARAM>(regKey), SMTO_BLOCK, 100, nullptr);*/
-		RedrawWindow(nullptr, nullptr, nullptr, RDW_INVALIDATE | RDW_ERASE | RDW_ALLCHILDREN);
+		if (SystemParametersInfo(SPI_SETFONTSMOOTHING, fontSystemSettings.enabled, nullptr, SPIF_SENDCHANGE) &&
+			SystemParametersInfo(SPI_SETFONTSMOOTHINGTYPE, 0, (LPVOID)fontSystemSettings.type, SPIF_SENDCHANGE) &&
+			SystemParametersInfo(SPI_SETFONTSMOOTHINGCONTRAST, 0, (LPVOID)fontSystemSettings.contrast, SPIF_SENDCHANGE) &&
+			SystemParametersInfo(SPI_SETFONTSMOOTHINGORIENTATION, 0, (LPVOID)fontSystemSettings.orientation, SPIF_SENDCHANGE))
+		{
+			// Delete registry keys
+			RegDeleteKeyValueA(HKEY_CURRENT_USER, "Volatile Environment", "DxWrapper_Font_Enabled");
+			RegDeleteKeyValueA(HKEY_CURRENT_USER, "Volatile Environment", "DxWrapper_Font_Type");
+			RegDeleteKeyValueA(HKEY_CURRENT_USER, "Volatile Environment", "DxWrapper_Font_Contrast");
+			RegDeleteKeyValueA(HKEY_CURRENT_USER, "Volatile Environment", "DxWrapper_Font_Orientation");
+		}
 	}
+
+	// Redraw desktop window
+	RedrawWindow(nullptr, nullptr, nullptr, RDW_INVALIDATE | RDW_ALLCHILDREN | RDW_UPDATENOW);
 }
 
 BOOL WINAPI CreateProcessAHandler(LPCSTR lpApplicationName, LPSTR lpCommandLine, LPSECURITY_ATTRIBUTES lpProcessAttributes, LPSECURITY_ATTRIBUTES lpThreadAttributes, BOOL bInheritHandles, DWORD dwCreationFlags,
