@@ -181,6 +181,13 @@ private:
 	DWORD GetHeight() { return surfaceDesc2.dwHeight; }
 	DDSCAPS2 GetSurfaceCaps() { return surfaceDesc2.ddsCaps; }
 	D3DFORMAT GetSurfaceFormat() { return surfaceFormat; }
+	bool CheckSurfaceExists(LPDIRECTDRAWSURFACE7 lpDDSrcSurface) { return
+		(ProxyAddressLookupTable.IsValidWrapperAddress((m_IDirectDrawSurface*)lpDDSrcSurface) ||
+		ProxyAddressLookupTable.IsValidWrapperAddress((m_IDirectDrawSurface2*)lpDDSrcSurface) ||
+		ProxyAddressLookupTable.IsValidWrapperAddress((m_IDirectDrawSurface3*)lpDDSrcSurface) ||
+		ProxyAddressLookupTable.IsValidWrapperAddress((m_IDirectDrawSurface4*)lpDDSrcSurface) ||
+		ProxyAddressLookupTable.IsValidWrapperAddress((m_IDirectDrawSurface7*)lpDDSrcSurface));
+	}
 
 	// Attached surfaces
 	void InitSurfaceDesc(DWORD DirectXVersion);

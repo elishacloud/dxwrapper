@@ -285,6 +285,16 @@ HRESULT m_IDirectDrawSurfaceX::Blt(LPRECT lpDestRect, LPDIRECTDRAWSURFACE7 lpDDS
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
+	if (lpDestRect && !lpDestRect->left && !lpDestRect->right && !lpDestRect->top && !lpDestRect->bottom)
+	{
+		lpDestRect = nullptr;
+	}
+
+	if (lpSrcRect && !lpSrcRect->left && !lpSrcRect->right && !lpSrcRect->top && !lpSrcRect->bottom)
+	{
+		lpSrcRect = nullptr;
+	}
+
 	if (Config.Dd7to9)
 	{
 		// Check for device interface
@@ -352,11 +362,7 @@ HRESULT m_IDirectDrawSurfaceX::Blt(LPRECT lpDestRect, LPDIRECTDRAWSURFACE7 lpDDS
 		}
 		else
 		{
-			if (!ProxyAddressLookupTable.IsValidWrapperAddress((m_IDirectDrawSurface*)lpDDSrcSurfaceX) &&
-				!ProxyAddressLookupTable.IsValidWrapperAddress((m_IDirectDrawSurface2*)lpDDSrcSurfaceX) &&
-				!ProxyAddressLookupTable.IsValidWrapperAddress((m_IDirectDrawSurface3*)lpDDSrcSurfaceX) &&
-				!ProxyAddressLookupTable.IsValidWrapperAddress((m_IDirectDrawSurface4*)lpDDSrcSurfaceX) &&
-				!ProxyAddressLookupTable.IsValidWrapperAddress((m_IDirectDrawSurface7*)lpDDSrcSurfaceX))
+			if (!CheckSurfaceExists(lpDDSrcSurface))
 			{
 				LOG_LIMIT(100, __FUNCTION__ << " Error: could not find source surface!");
 				return DD_OK;	// Just return OK
@@ -454,11 +460,7 @@ HRESULT m_IDirectDrawSurfaceX::Blt(LPRECT lpDestRect, LPDIRECTDRAWSURFACE7 lpDDS
 	if (lpDDSrcSurface)
 	{
 		// Check if source Surface exists
-		if (!ProxyAddressLookupTable.IsValidWrapperAddress((m_IDirectDrawSurface*)lpDDSrcSurface) &&
-			!ProxyAddressLookupTable.IsValidWrapperAddress((m_IDirectDrawSurface2*)lpDDSrcSurface) &&
-			!ProxyAddressLookupTable.IsValidWrapperAddress((m_IDirectDrawSurface3*)lpDDSrcSurface) &&
-			!ProxyAddressLookupTable.IsValidWrapperAddress((m_IDirectDrawSurface4*)lpDDSrcSurface) &&
-			!ProxyAddressLookupTable.IsValidWrapperAddress((m_IDirectDrawSurface7*)lpDDSrcSurface))
+		if (!CheckSurfaceExists(lpDDSrcSurface))
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Error: could not find source surface!");
 			return DD_OK;	// Just return OK
@@ -467,45 +469,67 @@ HRESULT m_IDirectDrawSurfaceX::Blt(LPRECT lpDestRect, LPDIRECTDRAWSURFACE7 lpDDS
 		lpDDSrcSurface->QueryInterface(IID_GetRealInterface, (LPVOID*)&lpDDSrcSurface);
 	}
 
-	return ProxyInterface->Blt(lpDestRect, lpDDSrcSurface, lpSrcRect, dwFlags, lpDDBltFx);
+	HRESULT hr = ProxyInterface->Blt(lpDestRect, lpDDSrcSurface, lpSrcRect, dwFlags, lpDDBltFx);
+
+	// Fix for some games that calculate the rect incorrectly
+	if (hr == 0x88760096 /*DDERR_INVALIDRECT*/)
+	{
+		RECT SrcRect, DestRect;
+		LPRECT pSrcRect = lpSrcRect;
+		LPRECT pDestRect = lpDestRect;
+		if (lpSrcRect)
+		{
+			memcpy(&SrcRect, lpSrcRect, sizeof(RECT));
+			SrcRect.left -= 1;
+			SrcRect.bottom -= 1;
+			pSrcRect = &SrcRect;
+		}
+		if (lpDestRect)
+		{
+			memcpy(&DestRect, lpDestRect, sizeof(RECT));
+			DestRect.left -= 1;
+			DestRect.bottom -= 1;
+			pDestRect = &DestRect;
+		}
+		hr = ProxyInterface->Blt(pDestRect, lpDDSrcSurface, pSrcRect, dwFlags, lpDDBltFx);
+	}
+
+	return hr;
 }
 
 HRESULT m_IDirectDrawSurfaceX::BltBatch(LPDDBLTBATCH lpDDBltBatch, DWORD dwCount, DWORD dwFlags)
 {
+	UNREFERENCED_PARAMETER(dwFlags);
+
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	if (Config.Dd7to9)
+	if (!lpDDBltBatch)
 	{
-		if (!lpDDBltBatch)
-		{
-			return DDERR_INVALIDPARAMS;
-		}
-
-		HRESULT hr;
-
-		for (DWORD x = 0; x < dwCount; x++)
-		{
-			hr = Blt(lpDDBltBatch[x].lprDest, (LPDIRECTDRAWSURFACE7)lpDDBltBatch[x].lpDDSSrc, lpDDBltBatch[x].lprSrc, lpDDBltBatch[x].dwFlags, lpDDBltBatch[x].lpDDBltFx, (x != dwCount - 1));
-			if (FAILED(hr))
-			{
-				return hr;
-			}
-		}
-
-		return DD_OK;
+		return DDERR_INVALIDPARAMS;
 	}
 
-	if (lpDDBltBatch && lpDDBltBatch->lpDDSSrc)
+	HRESULT hr;
+
+	for (DWORD x = 0; x < dwCount; x++)
 	{
-		lpDDBltBatch->lpDDSSrc->QueryInterface(IID_GetRealInterface, (LPVOID*)&(lpDDBltBatch->lpDDSSrc));
+		hr = Blt(lpDDBltBatch[x].lprDest, (LPDIRECTDRAWSURFACE7)lpDDBltBatch[x].lpDDSSrc, lpDDBltBatch[x].lprSrc, lpDDBltBatch[x].dwFlags, lpDDBltBatch[x].lpDDBltFx, (x != dwCount - 1));
+		if (FAILED(hr))
+		{
+			return hr;
+		}
 	}
 
-	return ProxyInterface->BltBatch(lpDDBltBatch, dwCount, dwFlags);
+	return DD_OK;
 }
 
 HRESULT m_IDirectDrawSurfaceX::BltFast(DWORD dwX, DWORD dwY, LPDIRECTDRAWSURFACE7 lpDDSrcSurface, LPRECT lpSrcRect, DWORD dwFlags)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
+
+	if (lpSrcRect && !lpSrcRect->left && !lpSrcRect->right && !lpSrcRect->top && !lpSrcRect->bottom)
+	{
+		lpSrcRect = nullptr;
+	}
 
 	if (Config.Dd7to9)
 	{
@@ -525,23 +549,21 @@ HRESULT m_IDirectDrawSurfaceX::BltFast(DWORD dwX, DWORD dwY, LPDIRECTDRAWSURFACE
 		}
 
 		// Get SrcRect
-		RECT SrcRect;
-		m_IDirectDrawSurfaceX *lpDDSrcSurfaceX = nullptr;
-
-		if (!lpDDSrcSurface)
+		RECT SrcRect = {};
+		m_IDirectDrawSurfaceX *lpDDSrcSurfaceX = (m_IDirectDrawSurfaceX*)lpDDSrcSurface;
+		if (!lpDDSrcSurfaceX)
 		{
 			lpDDSrcSurfaceX = this;
 		}
 		else
 		{
-			lpDDSrcSurface->QueryInterface(IID_GetInterfaceX, (LPVOID*)&lpDDSrcSurfaceX);
-		}
+			if (!CheckSurfaceExists(lpDDSrcSurface))
+			{
+				LOG_LIMIT(100, __FUNCTION__ << " Error: could not find source surface!");
+				return DD_OK;	// Just return OK
+			}
 
-		// Check if source Surface exists
-		if (!ddrawParent || !ddrawParent->DoesSurfaceExist(lpDDSrcSurfaceX))
-		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error: could not find source surface");
-			return DD_OK;		// Return OK to allow some games to continue to work
+			lpDDSrcSurfaceX->QueryInterface(IID_GetInterfaceX, (LPVOID*)&lpDDSrcSurfaceX);
 		}
 
 		lpDDSrcSurfaceX->CheckCoordinates(&SrcRect, lpSrcRect);
@@ -555,10 +577,29 @@ HRESULT m_IDirectDrawSurfaceX::BltFast(DWORD dwX, DWORD dwY, LPDIRECTDRAWSURFACE
 
 	if (lpDDSrcSurface)
 	{
+		// Check if source Surface exists
+		if (!CheckSurfaceExists(lpDDSrcSurface))
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: could not find source surface!");
+			return DD_OK;	// Just return OK
+		}
+
 		lpDDSrcSurface->QueryInterface(IID_GetRealInterface, (LPVOID*)&lpDDSrcSurface);
 	}
-	
-	return ProxyInterface->BltFast(dwX, dwY, lpDDSrcSurface, lpSrcRect, dwFlags);
+
+	HRESULT hr = ProxyInterface->BltFast(dwX, dwY, lpDDSrcSurface, lpSrcRect, dwFlags);
+
+	// Fix for some games that calculate the rect incorrectly
+	if (hr == 0x88760096 /*DDERR_INVALIDRECT*/ && lpSrcRect)
+	{
+		RECT SrcRect;
+		memcpy(&SrcRect, lpSrcRect, sizeof(RECT));
+		SrcRect.left -= 1;
+		SrcRect.bottom -= 1;
+		hr = ProxyInterface->BltFast(dwX, dwY, lpDDSrcSurface, &SrcRect, dwFlags);
+	}
+
+	return hr;
 }
 
 HRESULT m_IDirectDrawSurfaceX::DeleteAttachedSurface(DWORD dwFlags, LPDIRECTDRAWSURFACE7 lpDDSAttachedSurface)
@@ -1564,7 +1605,7 @@ HRESULT m_IDirectDrawSurfaceX::Lock2(LPRECT lpDestRect, LPDDSURFACEDESC2 lpDDSur
 		DWORD Flags = dwFlags & (D3DLOCK_READONLY | (!IsPrimarySurface() ? DDLOCK_NOSYSLOCK : 0) | ((!lpDestRect) ? D3DLOCK_DISCARD : 0));
 
 		// Update rect
-		RECT DestRect;
+		RECT DestRect = {};
 		if (lpDestRect && !CheckCoordinates(&DestRect, lpDestRect))
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Error: invalid rect!");
@@ -3556,7 +3597,7 @@ HRESULT m_IDirectDrawSurfaceX::ColorFill(RECT* pRect, D3DCOLOR dwFillColor)
 	bool UnlockDest = false;
 	do {
 		// Check and copy rect
-		RECT DestRect;
+		RECT DestRect = {};
 		if (!CheckCoordinates(&DestRect, pRect))
 		{
 			hr = DDERR_INVALIDRECT;
@@ -3857,7 +3898,7 @@ HRESULT m_IDirectDrawSurfaceX::CopyEmulatedSurface(LPRECT lpDestRect, bool CopyT
 
 	do {
 		// Update rect
-		RECT DestRect;
+		RECT DestRect = {};
 		if (!CheckCoordinates(&DestRect, lpDestRect))
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Error: invalid rect!");
