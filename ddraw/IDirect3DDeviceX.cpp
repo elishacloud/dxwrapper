@@ -280,8 +280,36 @@ HRESULT m_IDirect3DDeviceX::EnumTextureFormats(LPD3DENUMTEXTUREFORMATSCALLBACK l
 		return DDERR_GENERIC;
 	case 7:
 	case 9:
+	{
+		ENUMPIXELFORMAT CallbackContext;
+		CallbackContext.lpContext = lpArg;
+		CallbackContext.lpTextureCallback = lpd3dEnumTextureProc;
+
+		return EnumTextureFormats(m_IDirect3DEnumPixelFormat::ConvertCallback, &CallbackContext);
+	}
+	}
+}
+
+HRESULT m_IDirect3DDeviceX::EnumTextureFormats(LPD3DENUMPIXELFORMATSCALLBACK lpd3dEnumPixelProc, LPVOID lpArg)
+{
+	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
+
+	if (Config.Dd7to9)
+	{
 		LOG_LIMIT(100, __FUNCTION__ << " Not Implemented");
 		return DDERR_UNSUPPORTED;
+	}
+
+	switch (ProxyDirectXVersion)
+	{
+	case 1:
+	case 2:
+	default:
+		return DDERR_GENERIC;
+	case 3:
+		return GetProxyInterfaceV3()->EnumTextureFormats(lpd3dEnumPixelProc, lpArg);
+	case 7:
+		return GetProxyInterfaceV7()->EnumTextureFormats(lpd3dEnumPixelProc, lpArg);
 	}
 }
 
@@ -329,6 +357,38 @@ HRESULT m_IDirect3DDeviceX::GetCaps(LPD3DDEVICEDESC lpD3DHWDevDesc, LPD3DDEVICED
 	default:
 		return DDERR_GENERIC;
 	}
+}
+
+HRESULT m_IDirect3DDeviceX::GetCaps(LPD3DDEVICEDESC7 lpD3DDevDesc)
+{
+	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
+
+	if (Config.Dd7to9)
+	{
+		if (!lpD3DDevDesc)
+		{
+			return DDERR_INVALIDPARAMS;
+		}
+
+		// Check for device interface
+		if (FAILED(CheckInterface(__FUNCTION__, true)))
+		{
+			return DDERR_GENERIC;
+		}
+
+		D3DCAPS9 Caps9 = {};
+
+		HRESULT hr = (*d3d9Device)->GetDeviceCaps(&Caps9);
+
+		if (SUCCEEDED(hr))
+		{
+			ConvertDeviceDesc(*lpD3DDevDesc, Caps9);
+		}
+
+		return hr;
+	}
+
+	return GetProxyInterfaceV7()->GetCaps(lpD3DDevDesc);
 }
 
 HRESULT m_IDirect3DDeviceX::GetStats(LPD3DSTATS lpD3DStats)
@@ -532,6 +592,64 @@ HRESULT m_IDirect3DDeviceX::GetCurrentViewport(LPDIRECT3DVIEWPORT3 * lplpd3dView
 	return hr;
 }
 
+HRESULT m_IDirect3DDeviceX::SetViewport(LPD3DVIEWPORT7 lpViewport)
+{
+	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
+
+	if (Config.Dd7to9)
+	{
+		if (!lpViewport)
+		{
+			return DDERR_INVALIDPARAMS;
+		}
+
+		// Check for device interface
+		if (FAILED(CheckInterface(__FUNCTION__, true)))
+		{
+			return DDERR_GENERIC;
+		}
+
+		D3DVIEWPORT9 Viewport9;
+		ConvertViewport(Viewport9, *lpViewport);
+
+		return (*d3d9Device)->SetViewport(&Viewport9);
+	}
+
+	return GetProxyInterfaceV7()->SetViewport(lpViewport);
+}
+
+HRESULT m_IDirect3DDeviceX::GetViewport(LPD3DVIEWPORT7 lpViewport)
+{
+	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
+
+	if (Config.Dd7to9)
+	{
+		if (!lpViewport)
+		{
+			return DDERR_INVALIDPARAMS;
+		}
+
+		// Check for device interface
+		if (FAILED(CheckInterface(__FUNCTION__, true)))
+		{
+			return DDERR_GENERIC;
+		}
+
+		D3DVIEWPORT9 Viewport9;
+
+		HRESULT hr = (*d3d9Device)->GetViewport(&Viewport9);
+
+		if (SUCCEEDED(hr))
+		{
+			ConvertViewport(*lpViewport, Viewport9);
+		}
+
+		return hr;
+	}
+
+	return GetProxyInterfaceV7()->GetViewport(lpViewport);
+}
+
 HRESULT m_IDirect3DDeviceX::Begin(D3DPRIMITIVETYPE d3dpt, DWORD d3dvt, DWORD dwFlags)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
@@ -733,61 +851,6 @@ HRESULT m_IDirect3DDeviceX::SetTexture(DWORD dwStage, LPDIRECT3DTEXTURE2 lpTextu
 	}
 
 	return GetProxyInterfaceV3()->SetTexture(dwStage, lpTexture);
-}
-
-HRESULT m_IDirect3DDeviceX::GetCaps(LPD3DDEVICEDESC7 lpD3DDevDesc)
-{
-	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
-
-	if (Config.Dd7to9)
-	{
-		if (!lpD3DDevDesc)
-		{
-			return DDERR_INVALIDPARAMS;
-		}
-
-		// Check for device interface
-		if (FAILED(CheckInterface(__FUNCTION__, true)))
-		{
-			return DDERR_GENERIC;
-		}
-
-		D3DCAPS9 Caps9 = {};
-
-		HRESULT hr = (*d3d9Device)->GetDeviceCaps(&Caps9);
-
-		if (SUCCEEDED(hr))
-		{
-			ConvertDeviceDesc(*lpD3DDevDesc, Caps9);
-		}
-
-		return hr;
-	}
-
-	return GetProxyInterfaceV7()->GetCaps(lpD3DDevDesc);
-}
-
-HRESULT m_IDirect3DDeviceX::EnumTextureFormats(LPD3DENUMPIXELFORMATSCALLBACK lpd3dEnumPixelProc, LPVOID lpArg)
-{
-	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
-
-	if (Config.Dd7to9)
-	{
-		LOG_LIMIT(100, __FUNCTION__ << " Not Implemented");
-		return DDERR_UNSUPPORTED;
-	}
-
-	switch (ProxyDirectXVersion)
-	{
-	case 1:
-	case 2:
-	default:
-		return DDERR_GENERIC;
-	case 3:
-		return GetProxyInterfaceV3()->EnumTextureFormats(lpd3dEnumPixelProc, lpArg);
-	case 7:
-		return GetProxyInterfaceV7()->EnumTextureFormats(lpd3dEnumPixelProc, lpArg);
-	}
 }
 
 HRESULT m_IDirect3DDeviceX::BeginScene()
@@ -1000,32 +1063,6 @@ HRESULT m_IDirect3DDeviceX::GetTransform(D3DTRANSFORMSTATETYPE dtstTransformStat
 	}
 }
 
-HRESULT m_IDirect3DDeviceX::SetViewport(LPD3DVIEWPORT7 lpViewport)
-{
-	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
-
-	if (Config.Dd7to9)
-	{
-		if (!lpViewport)
-		{
-			return DDERR_INVALIDPARAMS;
-		}
-
-		// Check for device interface
-		if (FAILED(CheckInterface(__FUNCTION__, true)))
-		{
-			return DDERR_GENERIC;
-		}
-
-		D3DVIEWPORT9 Viewport9;
-		ConvertViewport(Viewport9, *lpViewport);
-
-		return (*d3d9Device)->SetViewport(&Viewport9);
-	}
-
-	return GetProxyInterfaceV7()->SetViewport(lpViewport);
-}
-
 HRESULT m_IDirect3DDeviceX::MultiplyTransform(D3DTRANSFORMSTATETYPE dtstTransformStateType, LPD3DMATRIX lpD3DMatrix)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
@@ -1048,38 +1085,6 @@ HRESULT m_IDirect3DDeviceX::MultiplyTransform(D3DTRANSFORMSTATETYPE dtstTransfor
 	case 7:
 		return GetProxyInterfaceV7()->MultiplyTransform(dtstTransformStateType, lpD3DMatrix);
 	}
-}
-
-HRESULT m_IDirect3DDeviceX::GetViewport(LPD3DVIEWPORT7 lpViewport)
-{
-	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
-
-	if (Config.Dd7to9)
-	{
-		if (!lpViewport)
-		{
-			return DDERR_INVALIDPARAMS;
-		}
-
-		// Check for device interface
-		if (FAILED(CheckInterface(__FUNCTION__, true)))
-		{
-			return DDERR_GENERIC;
-		}
-
-		D3DVIEWPORT9 Viewport9;
-
-		HRESULT hr = (*d3d9Device)->GetViewport(&Viewport9);
-
-		if (SUCCEEDED(hr))
-		{
-			ConvertViewport(*lpViewport, Viewport9);
-		}
-
-		return hr;
-	}
-
-	return GetProxyInterfaceV7()->GetViewport(lpViewport);
 }
 
 HRESULT m_IDirect3DDeviceX::SetMaterial(LPD3DMATERIAL7 lpMaterial)

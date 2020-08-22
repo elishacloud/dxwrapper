@@ -40,3 +40,33 @@ HRESULT CALLBACK m_IDirect3DEnumDevices::ConvertCallback(LPSTR lpDeviceDescripti
 
 	return lpCallbackContext->lpCallback(&lpDeviceDesc->deviceGUID, lpDeviceDescription, lpDeviceName, &D3DHWDevDesc, &D3DHELDevDesc, lpCallbackContext->lpContext);
 }
+
+HRESULT CALLBACK m_IDirect3DEnumPixelFormat::ConvertCallback(LPDDPIXELFORMAT lpDDPixFmt, LPVOID lpContext)
+{
+	if (!lpContext || !lpDDPixFmt)
+	{
+		LOG_LIMIT(100, __FUNCTION__ << " Error: invaid context!");
+		return DDENUMRET_CANCEL;
+	}
+
+	ENUMPIXELFORMAT *lpCallbackContext = (ENUMPIXELFORMAT*)lpContext;
+
+	if (lpCallbackContext->lpCallback)
+	{
+		return lpCallbackContext->lpCallback(lpDDPixFmt, lpCallbackContext->lpContext);
+	}
+
+	if (lpCallbackContext->lpTextureCallback)
+	{
+		DDSURFACEDESC Desc = {};
+		Desc.dwSize = sizeof(DDSURFACEDESC);
+		Desc.dwFlags = DDSD_PIXELFORMAT;
+		Desc.ddpfPixelFormat.dwSize = sizeof(DDPIXELFORMAT);
+		ConvertPixelFormat(Desc.ddpfPixelFormat, *lpDDPixFmt);
+
+		return lpCallbackContext->lpTextureCallback(&Desc, lpCallbackContext->lpContext);
+	}
+
+	LOG_LIMIT(100, __FUNCTION__ << " Error: invaid callback!");
+	return DDENUMRET_CANCEL;
+}

@@ -89,13 +89,6 @@ HRESULT m_IDirectDrawSurfaceX::QueryInterface(REFIID riid, LPVOID FAR * ppvObj, 
 
 				*ppvObj = D3DDeviceX;
 
-				SetCriticalSection();
-				if (ddrawParent)
-				{
-					ddrawParent->SetD3DDevice(D3DDeviceX);
-				}
-				ReleaseCriticalSection();
-
 				return DD_OK;
 			}
 

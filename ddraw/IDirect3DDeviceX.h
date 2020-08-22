@@ -7,6 +7,7 @@ class m_IDirect3DDeviceX : public IUnknown, public AddressLookupTableDdrawObject
 private:
 	IDirect3DDevice7 *ProxyInterface = nullptr;
 	DWORD ProxyDirectXVersion;
+	REFCLSID ClassID;
 	ULONG RefCount = 1;
 
 	// Convert Device
@@ -48,7 +49,7 @@ private:
 	HRESULT CheckInterface(char *FunctionName, bool CheckD3DDevice);
 
 public:
-	m_IDirect3DDeviceX(IDirect3DDevice7 *aOriginal, DWORD DirectXVersion) : ProxyInterface(aOriginal)
+	m_IDirect3DDeviceX(IDirect3DDevice7 *aOriginal, DWORD DirectXVersion) : ProxyInterface(aOriginal), ClassID(IID_IUnknown)
 	{
 		ProxyDirectXVersion = GetGUIDVersion(ConvertREFIID(GetWrapperType(DirectXVersion)));
 
@@ -65,7 +66,7 @@ public:
 
 		ProxyAddressLookupTable.SaveAddress(this, (ProxyInterface) ? ProxyInterface : (void*)this);
 	}
-	m_IDirect3DDeviceX(m_IDirectDrawX *lpDdraw, DWORD DirectXVersion) : ddrawParent(lpDdraw)
+	m_IDirect3DDeviceX(m_IDirectDrawX *lpDdraw, REFCLSID rclsid, DWORD DirectXVersion) : ddrawParent(lpDdraw), ClassID(rclsid)
 	{
 		ProxyDirectXVersion = 9;
 
@@ -102,13 +103,17 @@ public:
 	STDMETHOD(DeleteMatrix)(THIS_ D3DMATRIXHANDLE);
 	STDMETHOD(SwapTextureHandles)(THIS_ LPDIRECT3DTEXTURE2, LPDIRECT3DTEXTURE2);
 	STDMETHOD(EnumTextureFormats)(THIS_ LPD3DENUMTEXTUREFORMATSCALLBACK, LPVOID);
+	STDMETHOD(EnumTextureFormats)(THIS_ LPD3DENUMPIXELFORMATSCALLBACK, LPVOID);
 	STDMETHOD(GetCaps)(THIS_ LPD3DDEVICEDESC, LPD3DDEVICEDESC);
+	STDMETHOD(GetCaps)(THIS_ LPD3DDEVICEDESC7);
 	STDMETHOD(GetStats)(THIS_ LPD3DSTATS);
 	STDMETHOD(AddViewport)(THIS_ LPDIRECT3DVIEWPORT3);
 	STDMETHOD(DeleteViewport)(THIS_ LPDIRECT3DVIEWPORT3);
 	STDMETHOD(NextViewport)(THIS_ LPDIRECT3DVIEWPORT3, LPDIRECT3DVIEWPORT3*, DWORD, DWORD);
 	STDMETHOD(SetCurrentViewport)(THIS_ LPDIRECT3DVIEWPORT3);
 	STDMETHOD(GetCurrentViewport)(THIS_ LPDIRECT3DVIEWPORT3 *, DWORD);
+	STDMETHOD(SetViewport)(THIS_ LPD3DVIEWPORT7);
+	STDMETHOD(GetViewport)(THIS_ LPD3DVIEWPORT7);
 	STDMETHOD(Begin)(THIS_ D3DPRIMITIVETYPE, DWORD, DWORD);
 	STDMETHOD(BeginIndexed)(THIS_ D3DPRIMITIVETYPE, DWORD, LPVOID, DWORD, DWORD);
 	STDMETHOD(Vertex)(THIS_ LPVOID);
@@ -118,8 +123,6 @@ public:
 	STDMETHOD(SetLightState)(THIS_ D3DLIGHTSTATETYPE, DWORD);
 	STDMETHOD(GetTexture)(THIS_ DWORD, LPDIRECT3DTEXTURE2 *, DWORD);
 	STDMETHOD(SetTexture)(THIS_ DWORD, LPDIRECT3DTEXTURE2);
-	STDMETHOD(GetCaps)(THIS_ LPD3DDEVICEDESC7);
-	STDMETHOD(EnumTextureFormats)(THIS_ LPD3DENUMPIXELFORMATSCALLBACK, LPVOID);
 	STDMETHOD(BeginScene)(THIS);
 	STDMETHOD(EndScene)(THIS);
 	STDMETHOD(GetDirect3D)(THIS_ LPDIRECT3D7*, DWORD);
@@ -128,9 +131,7 @@ public:
 	STDMETHOD(Clear)(THIS_ DWORD, LPD3DRECT, DWORD, D3DCOLOR, D3DVALUE, DWORD);
 	STDMETHOD(SetTransform)(THIS_ D3DTRANSFORMSTATETYPE, LPD3DMATRIX);
 	STDMETHOD(GetTransform)(THIS_ D3DTRANSFORMSTATETYPE, LPD3DMATRIX);
-	STDMETHOD(SetViewport)(THIS_ LPD3DVIEWPORT7);
 	STDMETHOD(MultiplyTransform)(THIS_ D3DTRANSFORMSTATETYPE, LPD3DMATRIX);
-	STDMETHOD(GetViewport)(THIS_ LPD3DVIEWPORT7);
 	STDMETHOD(SetMaterial)(THIS_ LPD3DMATERIAL7);
 	STDMETHOD(GetMaterial)(THIS_ LPD3DMATERIAL7);
 	STDMETHOD(SetLight)(THIS_ DWORD, LPD3DLIGHT7);
