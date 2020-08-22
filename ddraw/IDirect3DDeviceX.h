@@ -10,8 +10,9 @@ private:
 	ULONG RefCount = 1;
 
 	// Convert Device
-	m_IDirect3DViewportX *lpCurrentViewport = nullptr;
 	m_IDirectDrawX *ddrawParent = nullptr;
+	m_IDirect3DViewportX *lpCurrentViewport = nullptr;
+	LPDIRECT3DDEVICE9 *d3d9Device = nullptr;
 
 	// Store d3d device version wrappers
 	m_IDirect3DDevice *WrapperInterface;
@@ -42,6 +43,9 @@ private:
 	// Interface initialization functions
 	void InitDevice();
 	void ReleaseDevice();
+
+	// Check interfaces
+	HRESULT CheckInterface(char *FunctionName, bool CheckD3DDevice);
 
 public:
 	m_IDirect3DDeviceX(IDirect3DDevice7 *aOriginal, DWORD DirectXVersion) : ProxyInterface(aOriginal)

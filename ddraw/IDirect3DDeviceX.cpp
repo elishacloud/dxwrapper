@@ -741,8 +741,27 @@ HRESULT m_IDirect3DDeviceX::GetCaps(LPD3DDEVICEDESC7 lpD3DDevDesc)
 
 	if (Config.Dd7to9)
 	{
-		LOG_LIMIT(100, __FUNCTION__ << " Not Implemented");
-		return DDERR_UNSUPPORTED;
+		if (!lpD3DDevDesc)
+		{
+			return DDERR_INVALIDPARAMS;
+		}
+
+		// Check for device interface
+		if (FAILED(CheckInterface(__FUNCTION__, true)))
+		{
+			return DDERR_GENERIC;
+		}
+
+		D3DCAPS9 Caps9 = {};
+
+		HRESULT hr = (*d3d9Device)->GetDeviceCaps(&Caps9);
+
+		if (SUCCEEDED(hr))
+		{
+			ConvertDeviceDesc(*lpD3DDevDesc, Caps9);
+		}
+
+		return hr;
 	}
 
 	return GetProxyInterfaceV7()->GetCaps(lpD3DDevDesc);
@@ -987,8 +1006,21 @@ HRESULT m_IDirect3DDeviceX::SetViewport(LPD3DVIEWPORT7 lpViewport)
 
 	if (Config.Dd7to9)
 	{
-		LOG_LIMIT(100, __FUNCTION__ << " Not Implemented");
-		return DDERR_UNSUPPORTED;
+		if (!lpViewport)
+		{
+			return DDERR_INVALIDPARAMS;
+		}
+
+		// Check for device interface
+		if (FAILED(CheckInterface(__FUNCTION__, true)))
+		{
+			return DDERR_GENERIC;
+		}
+
+		D3DVIEWPORT9 Viewport9;
+		ConvertViewport(Viewport9, *lpViewport);
+
+		return (*d3d9Device)->SetViewport(&Viewport9);
 	}
 
 	return GetProxyInterfaceV7()->SetViewport(lpViewport);
@@ -1024,8 +1056,27 @@ HRESULT m_IDirect3DDeviceX::GetViewport(LPD3DVIEWPORT7 lpViewport)
 
 	if (Config.Dd7to9)
 	{
-		LOG_LIMIT(100, __FUNCTION__ << " Not Implemented");
-		return DDERR_UNSUPPORTED;
+		if (!lpViewport)
+		{
+			return DDERR_INVALIDPARAMS;
+		}
+
+		// Check for device interface
+		if (FAILED(CheckInterface(__FUNCTION__, true)))
+		{
+			return DDERR_GENERIC;
+		}
+
+		D3DVIEWPORT9 Viewport9;
+
+		HRESULT hr = (*d3d9Device)->GetViewport(&Viewport9);
+
+		if (SUCCEEDED(hr))
+		{
+			ConvertViewport(*lpViewport, Viewport9);
+		}
+
+		return hr;
 	}
 
 	return GetProxyInterfaceV7()->GetViewport(lpViewport);
@@ -1089,8 +1140,13 @@ HRESULT m_IDirect3DDeviceX::SetRenderState(D3DRENDERSTATETYPE dwRendStateType, D
 
 	if (Config.Dd7to9)
 	{
-		LOG_LIMIT(100, __FUNCTION__ << " Not Implemented");
-		return DDERR_UNSUPPORTED;
+		// Check for device interface
+		if (FAILED(CheckInterface(__FUNCTION__, true)))
+		{
+			return DDERR_GENERIC;
+		}
+
+		return (*d3d9Device)->SetRenderState(dwRendStateType, dwRenderState);
 	}
 
 	switch (ProxyDirectXVersion)
@@ -1463,8 +1519,13 @@ HRESULT m_IDirect3DDeviceX::SetTextureStageState(DWORD dwStage, D3DTEXTURESTAGES
 
 	if (Config.Dd7to9)
 	{
-		LOG_LIMIT(100, __FUNCTION__ << " Not Implemented");
-		return DDERR_UNSUPPORTED;
+		// Check for device interface
+		if (FAILED(CheckInterface(__FUNCTION__, true)))
+		{
+			return DDERR_GENERIC;
+		}
+
+		return (*d3d9Device)->SetTextureStageState(dwStage, dwState, dwValue);
 	}
 
 	switch (ProxyDirectXVersion)
@@ -1665,4 +1726,34 @@ void m_IDirect3DDeviceX::ReleaseDevice()
 	{
 		ddrawParent->ClearD3DDevice();
 	}
+}
+
+HRESULT m_IDirect3DDeviceX::CheckInterface(char *FunctionName, bool CheckD3DDevice)
+{
+	// Check for device
+	if (!ddrawParent)
+	{
+		LOG_LIMIT(100, FunctionName << " Error: no ddraw parent!");
+		return DDERR_GENERIC;
+	}
+
+	// Check for device, if not then create it
+	if (CheckD3DDevice && (!d3d9Device || !*d3d9Device))
+	{
+		d3d9Device = ddrawParent->GetDirect3D9Device();
+
+		// For concurrency
+		SetCriticalSection();
+		bool flag = (!d3d9Device || !*d3d9Device);
+		ReleaseCriticalSection();
+
+		// Create d3d9 device
+		if (flag && FAILED(ddrawParent->CreateD3D9Device()))
+		{
+			LOG_LIMIT(100, FunctionName << " Error: d3d9 device not setup!");
+			return DDERR_GENERIC;
+		}
+	}
+
+	return DD_OK;
 }

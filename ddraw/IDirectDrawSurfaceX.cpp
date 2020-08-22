@@ -89,6 +89,13 @@ HRESULT m_IDirectDrawSurfaceX::QueryInterface(REFIID riid, LPVOID FAR * ppvObj, 
 
 				*ppvObj = D3DDeviceX;
 
+				SetCriticalSection();
+				if (ddrawParent)
+				{
+					ddrawParent->SetD3DDevice(D3DDeviceX);
+				}
+				ReleaseCriticalSection();
+
 				return DD_OK;
 			}
 
@@ -2373,6 +2380,8 @@ HRESULT m_IDirectDrawSurfaceX::CheckInterface(char *FunctionName, bool CheckD3DD
 	// Check for device, if not then create it
 	if (CheckD3DDevice && (!d3d9Device || !*d3d9Device))
 	{
+		d3d9Device = ddrawParent->GetDirect3D9Device();
+
 		// For concurrency
 		SetCriticalSection();
 		bool flag = (!d3d9Device || !*d3d9Device);

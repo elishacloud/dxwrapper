@@ -497,6 +497,13 @@ HRESULT m_IDirect3DX::CreateDevice(REFCLSID rclsid, LPDIRECTDRAWSURFACE7 lpDDS, 
 
 		*lplpD3DDevice = (LPDIRECT3DDEVICE7)p_IDirect3DDeviceX->GetWrapperInterfaceX(DirectXVersion);
 
+		SetCriticalSection();
+		if (ddrawParent)
+		{
+			ddrawParent->SetD3DDevice(p_IDirect3DDeviceX);
+		}
+		ReleaseCriticalSection();
+
 		return D3D_OK;
 	}
 
