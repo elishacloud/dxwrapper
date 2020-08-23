@@ -101,6 +101,7 @@ HRESULT m_IDirect3DX::Initialize(REFCLSID rclsid)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
+	// Former stub method. This method was never implemented and is not supported in any interface.
 	if (ProxyDirectXVersion != 1)
 	{
 		return D3D_OK;
@@ -412,31 +413,6 @@ HRESULT m_IDirect3DX::CreateViewport(LPDIRECT3DVIEWPORT3 * lplpD3DViewport, LPUN
 	return hr;
 }
 
-struct ENUMSTRUCT
-{
-	bool Found = false;
-	GUID guid;
-	D3DDEVICEDESC7 DeviceDesc7;
-};
-
-HRESULT CALLBACK D3DEnumDevicesCallback7(LPSTR lpDeviceDescription, LPSTR lpDeviceName, LPD3DDEVICEDESC7 lpDeviceDesc7, LPVOID lpContext)
-{
-	UNREFERENCED_PARAMETER(lpDeviceDescription);
-	UNREFERENCED_PARAMETER(lpDeviceName);
-
-	ENUMSTRUCT *lpEnumStruct = (ENUMSTRUCT*)lpContext;
-
-	if (lpDeviceDesc7 && lpContext && lpDeviceDesc7->deviceGUID == lpEnumStruct->guid)
-	{
-		lpEnumStruct->Found = true;
-		memcpy(&lpEnumStruct->DeviceDesc7, lpDeviceDesc7, sizeof(D3DDEVICEDESC7));
-
-		return DDENUMRET_CANCEL;
-	}
-
-	return DDENUMRET_OK;
-}
-
 HRESULT m_IDirect3DX::FindDevice(LPD3DFINDDEVICESEARCH lpD3DFDS, LPD3DFINDDEVICERESULT lpD3DFDR)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
@@ -452,16 +428,16 @@ HRESULT m_IDirect3DX::FindDevice(LPD3DFINDDEVICESEARCH lpD3DFDS, LPD3DFINDDEVICE
 	case 7:
 	case 9:
 	{
-		ENUMSTRUCT EnumStruct;
-		EnumStruct.guid = lpD3DFDS->guid;
+		ENUMFINDDEVICES CallbackContext;
+		CallbackContext.guid = lpD3DFDS->guid;
 
-		EnumDevices7(D3DEnumDevicesCallback7, &EnumStruct, false);
+		EnumDevices7(m_IDirect3DEnumFindDevices::ConvertCallback, &CallbackContext, false);
 
-		if (EnumStruct.Found)
+		if (CallbackContext.Found)
 		{
-			lpD3DFDR->guid = EnumStruct.DeviceDesc7.deviceGUID;
+			lpD3DFDR->guid = CallbackContext.DeviceDesc7.deviceGUID;
 			lpD3DFDR->ddHwDesc.dwSize = (lpD3DFDR->dwSize - sizeof(DWORD) - sizeof(GUID)) / 2;
-			ConvertDeviceDesc(lpD3DFDR->ddHwDesc, EnumStruct.DeviceDesc7);
+			ConvertDeviceDesc(lpD3DFDR->ddHwDesc, CallbackContext.DeviceDesc7);
 			lpD3DFDR->ddSwDesc.dwSize = (lpD3DFDR->dwSize - sizeof(DWORD) - sizeof(GUID)) / 2;
 			ConvertDeviceDescSoft(lpD3DFDR->ddSwDesc);
 

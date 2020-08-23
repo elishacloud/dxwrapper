@@ -89,6 +89,7 @@ HRESULT m_IDirect3DTextureX::Initialize(LPDIRECT3DDEVICE lpDirect3DDevice, LPDIR
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
+	// Former stub method. This method was never implemented and is not supported in any interface.
 	if (ProxyDirectXVersion != 1)
 	{
 		return D3D_OK;
@@ -177,10 +178,10 @@ HRESULT m_IDirect3DTextureX::Unload()
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
+	// Former stub method. This method was never implemented and is not supported in any interface.
 	if (ProxyDirectXVersion != 1)
 	{
-		LOG_LIMIT(100, __FUNCTION__ << " Not Implemented");
-		return DDERR_UNSUPPORTED;
+		return DD_OK;
 	}
 
 	return GetProxyInterfaceV1()->Unload();

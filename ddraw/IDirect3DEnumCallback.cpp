@@ -41,6 +41,24 @@ HRESULT CALLBACK m_IDirect3DEnumDevices::ConvertCallback(LPSTR lpDeviceDescripti
 	return lpCallbackContext->lpCallback(&lpDeviceDesc->deviceGUID, lpDeviceDescription, lpDeviceName, &D3DHWDevDesc, &D3DHELDevDesc, lpCallbackContext->lpContext);
 }
 
+HRESULT CALLBACK m_IDirect3DEnumFindDevices::ConvertCallback(LPSTR lpDeviceDescription, LPSTR lpDeviceName, LPD3DDEVICEDESC7 lpDeviceDesc7, LPVOID lpContext)
+{
+	UNREFERENCED_PARAMETER(lpDeviceDescription);
+	UNREFERENCED_PARAMETER(lpDeviceName);
+
+	ENUMFINDDEVICES *lpEnumStruct = (ENUMFINDDEVICES*)lpContext;
+
+	if (lpDeviceDesc7 && lpContext && lpDeviceDesc7->deviceGUID == lpEnumStruct->guid)
+	{
+		lpEnumStruct->Found = true;
+		memcpy(&lpEnumStruct->DeviceDesc7, lpDeviceDesc7, sizeof(D3DDEVICEDESC7));
+
+		return DDENUMRET_CANCEL;
+	}
+
+	return DDENUMRET_OK;
+}
+
 HRESULT CALLBACK m_IDirect3DEnumPixelFormat::ConvertCallback(LPDDPIXELFORMAT lpDDPixFmt, LPVOID lpContext)
 {
 	if (!lpContext || !lpDDPixFmt)

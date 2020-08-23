@@ -262,13 +262,7 @@ HRESULT m_IDirect3DViewportX::Clear(DWORD dwCount, LPD3DRECT lpRects, DWORD dwFl
 
 	if (!ProxyInterface)
 	{
-		if (!D3DDeviceInterface || !*D3DDeviceInterface)
-		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error: no D3DirectDevice interface!");
-			return DDERR_GENERIC;
-		}
-
-		return (*D3DDeviceInterface)->Clear(dwCount, lpRects, dwFlags, 0, 0, 0);
+		return Clear2(dwCount, lpRects, dwFlags, 0, 0.0f, 0);
 	}
 
 	return ProxyInterface->Clear(dwCount, lpRects, dwFlags);

@@ -15,6 +15,22 @@ public:
 	static HRESULT CALLBACK ConvertCallback(LPSTR lpDeviceDescription, LPSTR lpDeviceName, LPD3DDEVICEDESC7 lpDeviceDesc, LPVOID lpContext);
 };
 
+struct ENUMFINDDEVICES
+{
+	bool Found = false;
+	GUID guid;
+	D3DDEVICEDESC7 DeviceDesc7;
+};
+
+class m_IDirect3DEnumFindDevices
+{
+public:
+	m_IDirect3DEnumFindDevices() {}
+	~m_IDirect3DEnumFindDevices() {}
+
+	static HRESULT CALLBACK ConvertCallback(LPSTR lpDeviceDescription, LPSTR lpDeviceName, LPD3DDEVICEDESC7 lpDeviceDesc7, LPVOID lpContext);
+};
+
 struct ENUMPIXELFORMAT
 {
 	LPVOID lpContext = nullptr;

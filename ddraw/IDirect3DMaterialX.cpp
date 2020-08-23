@@ -91,6 +91,7 @@ HRESULT m_IDirect3DMaterialX::Initialize(LPDIRECT3D lplpD3D)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
+	// Former stub method. This method was never implemented and is not supported in any interface.
 	if (ProxyDirectXVersion != 1)
 	{
 		return D3D_OK;
@@ -220,10 +221,10 @@ HRESULT m_IDirect3DMaterialX::Reserve()
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
+	// Former stub method. This method was never implemented and is not supported in any interface.
 	if (ProxyDirectXVersion != 1)
 	{
-		LOG_LIMIT(100, __FUNCTION__ << " Not Implemented");
-		return DDERR_UNSUPPORTED;
+		return DD_OK;
 	}
 
 	return GetProxyInterfaceV1()->Reserve();
@@ -233,10 +234,10 @@ HRESULT m_IDirect3DMaterialX::Unreserve()
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
+	// Former stub method. This method was never implemented and is not supported in any interface.
 	if (ProxyDirectXVersion != 1)
 	{
-		LOG_LIMIT(100, __FUNCTION__ << " Not Implemented");
-		return DDERR_UNSUPPORTED;
+		return DD_OK;
 	}
 
 	return GetProxyInterfaceV1()->Unreserve();
