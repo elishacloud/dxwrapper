@@ -2146,6 +2146,26 @@ HRESULT m_IDirectDrawX::CreateD3D9Device()
 				(BackBufferWidth == 640 && BackBufferHeight == 400))
 			{
 				BackBufferHeight += BackBufferHeight / 5;
+				if ((displayWidth == 320 && displayHeight == 200) ||
+					(displayWidth == 640 && displayHeight == 400) ||
+					!displayWidth || !displayHeight)
+				{
+					displayWidth = BackBufferWidth;
+					displayHeight = BackBufferHeight;
+				}
+			}
+
+			// Check for minimum resolution
+			if (BackBufferWidth == 320 && BackBufferHeight == 240)
+			{
+				BackBufferWidth = 640;
+				BackBufferHeight = 480;
+				if ((displayWidth == 320 && displayHeight == 240) ||
+					!displayWidth || !displayHeight)
+				{
+					displayWidth = 640;
+					displayHeight = 480;
+				}
 			}
 
 			// Get refresh rate
