@@ -2222,7 +2222,7 @@ HRESULT m_IDirectDrawX::CreateD3D9Device()
 		DWORD tmpWidth = 0;
 		Utils::GetScreenSize(GetHwnd(), tmpWidth, monitorHeight);
 
-	} while (FALSE);
+	} while (false);
 
 	ReleaseCriticalSection();
 

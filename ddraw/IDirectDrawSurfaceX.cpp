@@ -285,6 +285,13 @@ HRESULT m_IDirectDrawSurfaceX::Blt(LPRECT lpDestRect, LPDIRECTDRAWSURFACE7 lpDDS
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
+	// Check if source Surface exists
+	if (lpDDSrcSurface && !CheckSurfaceExists(lpDDSrcSurface))
+	{
+		LOG_LIMIT(100, __FUNCTION__ << " Error: could not find source surface!");
+		return DD_OK;	// Just return OK
+	}
+
 	if (lpDestRect && !lpDestRect->left && !lpDestRect->right && !lpDestRect->top && !lpDestRect->bottom)
 	{
 		lpDestRect = nullptr;
@@ -362,12 +369,6 @@ HRESULT m_IDirectDrawSurfaceX::Blt(LPRECT lpDestRect, LPDIRECTDRAWSURFACE7 lpDDS
 		}
 		else
 		{
-			if (!CheckSurfaceExists(lpDDSrcSurface))
-			{
-				LOG_LIMIT(100, __FUNCTION__ << " Error: could not find source surface!");
-				return DD_OK;	// Just return OK
-			}
-
 			lpDDSrcSurfaceX->QueryInterface(IID_GetInterfaceX, (LPVOID*)&lpDDSrcSurfaceX);
 		}
 
@@ -459,13 +460,6 @@ HRESULT m_IDirectDrawSurfaceX::Blt(LPRECT lpDestRect, LPDIRECTDRAWSURFACE7 lpDDS
 
 	if (lpDDSrcSurface)
 	{
-		// Check if source Surface exists
-		if (!CheckSurfaceExists(lpDDSrcSurface))
-		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error: could not find source surface!");
-			return DD_OK;	// Just return OK
-		}
-
 		lpDDSrcSurface->QueryInterface(IID_GetRealInterface, (LPVOID*)&lpDDSrcSurface);
 	}
 
@@ -526,6 +520,13 @@ HRESULT m_IDirectDrawSurfaceX::BltFast(DWORD dwX, DWORD dwY, LPDIRECTDRAWSURFACE
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
+	// Check if source Surface exists
+	if (lpDDSrcSurface && !CheckSurfaceExists(lpDDSrcSurface))
+	{
+		LOG_LIMIT(100, __FUNCTION__ << " Error: could not find source surface!");
+		return DD_OK;	// Just return OK
+	}
+
 	if (lpSrcRect && !lpSrcRect->left && !lpSrcRect->right && !lpSrcRect->top && !lpSrcRect->bottom)
 	{
 		lpSrcRect = nullptr;
@@ -557,12 +558,6 @@ HRESULT m_IDirectDrawSurfaceX::BltFast(DWORD dwX, DWORD dwY, LPDIRECTDRAWSURFACE
 		}
 		else
 		{
-			if (!CheckSurfaceExists(lpDDSrcSurface))
-			{
-				LOG_LIMIT(100, __FUNCTION__ << " Error: could not find source surface!");
-				return DD_OK;	// Just return OK
-			}
-
 			lpDDSrcSurfaceX->QueryInterface(IID_GetInterfaceX, (LPVOID*)&lpDDSrcSurfaceX);
 		}
 
@@ -577,13 +572,6 @@ HRESULT m_IDirectDrawSurfaceX::BltFast(DWORD dwX, DWORD dwY, LPDIRECTDRAWSURFACE
 
 	if (lpDDSrcSurface)
 	{
-		// Check if source Surface exists
-		if (!CheckSurfaceExists(lpDDSrcSurface))
-		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error: could not find source surface!");
-			return DD_OK;	// Just return OK
-		}
-
 		lpDDSrcSurface->QueryInterface(IID_GetRealInterface, (LPVOID*)&lpDDSrcSurface);
 	}
 
