@@ -2141,40 +2141,13 @@ HRESULT m_IDirectDrawX::CreateD3D9Device()
 			// Enumerate modes for format XRGB
 			UINT modeCount = d3d9Object->GetAdapterModeCount(D3DADAPTER_DEFAULT, D3DFMT_X8R8G8B8);
 
-			// Check for ModeX resolutions
-			if ((BackBufferWidth == 320 && BackBufferHeight == 200) ||
-				(BackBufferWidth == 640 && BackBufferHeight == 400))
-			{
-				BackBufferHeight += BackBufferHeight / 5;
-				if ((displayWidth == 320 && displayHeight == 200) ||
-					(displayWidth == 640 && displayHeight == 400) ||
-					!displayWidth || !displayHeight)
-				{
-					displayWidth = BackBufferWidth;
-					displayHeight = BackBufferHeight;
-				}
-			}
-
-			// Check for minimum resolution
-			if (BackBufferWidth == 320 && BackBufferHeight == 240)
-			{
-				BackBufferWidth = 640;
-				BackBufferHeight = 480;
-				if ((displayWidth == 320 && displayHeight == 240) ||
-					!displayWidth || !displayHeight)
-				{
-					displayWidth = 640;
-					displayHeight = 480;
-				}
-			}
-
 			// Get refresh rate
 			DWORD BackBufferRefreshRate = (displayRefreshRate) ? displayRefreshRate : Utils::GetRefreshRate(hWnd);
 
 			// Loop through all modes looking for our requested resolution
 			D3DDISPLAYMODE d3ddispmode;
 			D3DDISPLAYMODE set_d3ddispmode = { NULL };
-			bool modeFound = false;
+			bool modeFound = false, relativeFound = false;
 			for (UINT i = 0; i < modeCount; i++)
 			{
 				// Get display modes here
@@ -2185,21 +2158,41 @@ HRESULT m_IDirectDrawX::CreateD3D9Device()
 					hr = DDERR_GENERIC;
 					break;
 				}
-				if (d3ddispmode.Width == BackBufferWidth && d3ddispmode.Height == BackBufferHeight &&		// Check height and width
-					(d3ddispmode.RefreshRate == BackBufferRefreshRate || !BackBufferRefreshRate))			// Check refresh rate
+				// Check refresh rate
+				if (d3ddispmode.RefreshRate == BackBufferRefreshRate || !BackBufferRefreshRate)
 				{
-					// Found a match
-					modeFound = true;
-					memcpy(&set_d3ddispmode, &d3ddispmode, sizeof(D3DDISPLAYMODE));
+					// Check height and width
+					if (d3ddispmode.Width == BackBufferWidth && d3ddispmode.Height == BackBufferHeight)
+					{
+						modeFound = true;
+						memcpy(&set_d3ddispmode, &d3ddispmode, sizeof(D3DDISPLAYMODE));
+						break;
+					}
+					// Check for ModeX and low resolutions
+					if (((d3ddispmode.Width == 320 || d3ddispmode.Width == 640) &&
+						d3ddispmode.Width == BackBufferWidth && d3ddispmode.Height == BackBufferHeight + (BackBufferHeight / 5)) ||
+						(d3ddispmode.Width == 640 && d3ddispmode.Height == 480 &&
+						(BackBufferWidth == 320 && (BackBufferHeight == 200 || BackBufferHeight == 240))))
+					{
+						relativeFound = true;
+						memcpy(&set_d3ddispmode, &d3ddispmode, sizeof(D3DDISPLAYMODE));
+					}
 				}
 			}
 
 			// No mode found
-			if (!modeFound)
+			if (!modeFound && !relativeFound)
 			{
 				LOG_LIMIT(100, __FUNCTION__ << " Error: failed to find compatible fullscreen display mode " << BackBufferWidth << "x" << BackBufferHeight);
 				hr = DDERR_GENERIC;
 				break;
+			}
+
+			// Found relative match
+			if (SetDefaultDisplayMode && relativeFound && !modeFound)
+			{
+				displayWidth = set_d3ddispmode.Width;
+				displayHeight = set_d3ddispmode.Height;
 			}
 
 			// Fullscreen
