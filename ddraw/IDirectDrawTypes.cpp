@@ -277,7 +277,7 @@ DWORD GetBitCount(DDPIXELFORMAT ddpfPixelFormat)
 		return 0;
 	}
 	if (ddpfPixelFormat.dwRGBBitCount && (ddpfPixelFormat.dwFlags &
-		(DDPF_RGB | DDPF_YUV | DDPF_ALPHA | DDPF_ZBUFFER | DDPF_LUMINANCE | DDPF_BUMPDUDV | DDPF_FOURCC | DDPF_STENCILBUFFER | DDPF_PALETTEINDEXEDTO8)))
+		(DDPF_RGB | DDPF_YUV | DDPF_ALPHA | DDPF_ZBUFFER | DDPF_LUMINANCE | DDPF_BUMPDUDV | DDPF_STENCILBUFFER | DDPF_PALETTEINDEXEDTO8)))
 	{
 		return ddpfPixelFormat.dwRGBBitCount;
 	}
@@ -446,17 +446,14 @@ D3DFORMAT GetDisplayFormat(DDPIXELFORMAT ddpfPixelFormat)
 		case D3DFMT_DXT2:
 		case D3DFMT_DXT3:
 		case D3DFMT_DXT4:
+		case D3DFMT_DXT5:
 		case D3DFMT_UYVY:
 		case D3DFMT_YUY2:
 			LOG_LIMIT(100, __FUNCTION__ << " Using format: " << (D3DFORMAT)ddpfPixelFormat.dwFourCC);
 			return (D3DFORMAT)ddpfPixelFormat.dwFourCC;
 		}
 
-		unsigned char ch0 = ddpfPixelFormat.dwFourCC & 0xFF;
-		unsigned char ch1 = (ddpfPixelFormat.dwFourCC >> 8) & 0xFF;
-		unsigned char ch2 = (ddpfPixelFormat.dwFourCC >> 16) & 0xFF;
-		unsigned char ch3 = (ddpfPixelFormat.dwFourCC >> 24) & 0xFF;
-		LOG_LIMIT(100, __FUNCTION__ << " FourCC format not Implemented. Code = MAKEFOURCC('" << (char)ch0 << "', '" << (char)ch1 << "', '" << (char)ch2 << "', '" << (char)ch3 << "')");
+		LOG_LIMIT(100, __FUNCTION__ << " FourCC format not Implemented. Code = " << (DDFOURCC)ddpfPixelFormat.dwFourCC);
 		return D3DFMT_UNKNOWN;
 	}
 	if (ddpfPixelFormat.dwFlags & DDPF_ALPHAPREMULT)
@@ -546,7 +543,8 @@ void SetPixelDisplayFormat(D3DFORMAT Format, DDPIXELFORMAT &ddpfPixelFormat)
 	}
 
 	ddpfPixelFormat.dwFlags = DDPF_RGB;
-	ddpfPixelFormat.dwRGBBitCount = GetBitCount(Format);
+	ddpfPixelFormat.dwFourCC = 0;
+	ddpfPixelFormat.dwRGBBitCount = (Format & 0xFF000000) ? 0 : GetBitCount(Format);
 	ddpfPixelFormat.dwRGBAlphaBitMask = 0x0;
 	ddpfPixelFormat.dwRBitMask = 0x0;
 	ddpfPixelFormat.dwGBitMask = 0x0;
@@ -555,6 +553,13 @@ void SetPixelDisplayFormat(D3DFORMAT Format, DDPIXELFORMAT &ddpfPixelFormat)
 	// Set BitCount and BitMask
 	switch (Format)
 	{
+	case D3DFMT_A4R4G4B4:
+		ddpfPixelFormat.dwFlags |= DDPF_ALPHAPIXELS;
+		ddpfPixelFormat.dwRGBAlphaBitMask = 0xF000;
+		ddpfPixelFormat.dwRBitMask = 0xF00;
+		ddpfPixelFormat.dwGBitMask = 0xF0;
+		ddpfPixelFormat.dwBBitMask = 0xF;
+		break;
 	case D3DFMT_R5G6B5:
 		ddpfPixelFormat.dwRBitMask = 0xF800;
 		ddpfPixelFormat.dwGBitMask = 0x7E0;
@@ -584,6 +589,17 @@ void SetPixelDisplayFormat(D3DFORMAT Format, DDPIXELFORMAT &ddpfPixelFormat)
 		ddpfPixelFormat.dwGBitMask = 0xFFC00;
 		ddpfPixelFormat.dwBBitMask = 0x3FF;
 		break;
+	case D3DFMT_V8U8:
+		ddpfPixelFormat.dwFlags = DDPF_BUMPDUDV;
+		ddpfPixelFormat.dwBumpDuBitMask = 0xFF;
+		ddpfPixelFormat.dwBumpDvBitMask = 0xFF00;
+		break;
+	case D3DFMT_X8L8V8U8:
+		ddpfPixelFormat.dwFlags = DDPF_BUMPLUMINANCE + DDPF_BUMPDUDV;
+		ddpfPixelFormat.dwBumpDuBitMask = 0xFF;
+		ddpfPixelFormat.dwBumpDvBitMask = 0xFF00;
+		ddpfPixelFormat.dwBumpLuminanceBitMask = 0xFF0000;
+		break;
 	case D3DFMT_P8:
 		ddpfPixelFormat.dwFlags |= DDPF_PALETTEINDEXED8;
 		break;
@@ -592,42 +608,32 @@ void SetPixelDisplayFormat(D3DFORMAT Format, DDPIXELFORMAT &ddpfPixelFormat)
 		break;
 	case D3DFMT_L8:
 		ddpfPixelFormat.dwFlags = DDPF_LUMINANCE;
+		ddpfPixelFormat.dwLuminanceBitMask = 0xFF;
 		break;
 	case D3DFMT_A4L4:
 		ddpfPixelFormat.dwFlags = DDPF_ALPHAPIXELS | DDPF_LUMINANCE;
 		ddpfPixelFormat.dwLuminanceAlphaBitMask = 0xF0;
+		ddpfPixelFormat.dwLuminanceBitMask = 0x0F;
 		break;
 	case D3DFMT_A8L8:
 		ddpfPixelFormat.dwFlags = DDPF_ALPHAPIXELS | DDPF_LUMINANCE;
 		ddpfPixelFormat.dwLuminanceAlphaBitMask = 0xFF00;
-		break;
-	case D3DFMT_DXT1:
-		ddpfPixelFormat.dwFlags = DDPF_FOURCC;
-		ddpfPixelFormat.dwFourCC = D3DFMT_DXT1;
-		break;
-	case D3DFMT_DXT2:
-		ddpfPixelFormat.dwFlags = DDPF_FOURCC;
-		ddpfPixelFormat.dwFourCC = D3DFMT_DXT2;
-		break;
-	case D3DFMT_DXT3:
-		ddpfPixelFormat.dwFlags = DDPF_FOURCC;
-		ddpfPixelFormat.dwFourCC = D3DFMT_DXT3;
-		break;
-	case D3DFMT_DXT4:
-		ddpfPixelFormat.dwFlags = DDPF_FOURCC;
-		ddpfPixelFormat.dwFourCC = D3DFMT_DXT4;
-		break;
-	case D3DFMT_UYVY:
-		ddpfPixelFormat.dwFlags = DDPF_FOURCC;
-		ddpfPixelFormat.dwFourCC = D3DFMT_UYVY;
-		break;
-	case D3DFMT_YUY2:
-		ddpfPixelFormat.dwFlags = DDPF_FOURCC;
-		ddpfPixelFormat.dwFourCC = D3DFMT_YUY2;
+		ddpfPixelFormat.dwLuminanceBitMask = 0xFF;
 		break;
 	default:
-		LOG_LIMIT(100, __FUNCTION__ << " Display format not Implemented: " << Format);
-		return;
+		// FourCC
+		if (Format & 0xFF000000)
+		{
+			ddpfPixelFormat.dwFlags = DDPF_FOURCC;
+			ddpfPixelFormat.dwFourCC = Format;
+			break;
+		}
+		// Not supported
+		else
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Display format not Implemented: " << Format);
+			return;
+		}
 	}
 }
 

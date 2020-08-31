@@ -363,9 +363,7 @@ HRESULT m_IDirect3DDeviceX::EnumTextureFormats(LPD3DENUMTEXTUREFORMATSCALLBACK l
 		return GetProxyInterfaceV1()->EnumTextureFormats(lpd3dEnumTextureProc, lpArg);
 	case 2:
 		return GetProxyInterfaceV2()->EnumTextureFormats(lpd3dEnumTextureProc, lpArg);
-	default:
 	case 3:
-		return DDERR_GENERIC;
 	case 7:
 	case 9:
 	{
@@ -375,6 +373,8 @@ HRESULT m_IDirect3DDeviceX::EnumTextureFormats(LPD3DENUMTEXTUREFORMATSCALLBACK l
 
 		return EnumTextureFormats(m_IDirect3DEnumPixelFormat::ConvertCallback, &CallbackContext);
 	}
+	default:
+		return DDERR_GENERIC;
 	}
 }
 
@@ -384,8 +384,68 @@ HRESULT m_IDirect3DDeviceX::EnumTextureFormats(LPD3DENUMPIXELFORMATSCALLBACK lpd
 
 	if (Config.Dd7to9)
 	{
-		LOG_LIMIT(100, __FUNCTION__ << " Not Implemented");
-		return DDERR_UNSUPPORTED;
+		if (!lpd3dEnumPixelProc)
+		{
+			return DDERR_GENERIC;
+		}
+
+		// Check for device interface
+		if (FAILED(CheckInterface(__FUNCTION__, false)))
+		{
+			return DDERR_GENERIC;
+		}
+
+		LPDIRECT3D9 d3d9Object = ddrawParent->GetDirect3D9Object();
+
+		if (!d3d9Object)
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: failed to get d3d9 object!");
+			return DDERR_GENERIC;
+		}
+
+		DDPIXELFORMAT ddpfPixelFormat;
+		ddpfPixelFormat.dwSize = sizeof(DDPIXELFORMAT);
+
+		for (D3DFORMAT format : {
+			D3DFMT_X1R5G5B5,
+			D3DFMT_A1R5G5B5,
+			D3DFMT_A4R4G4B4,
+			D3DFMT_R5G6B5,
+			D3DFMT_X8R8G8B8,
+			D3DFMT_A8R8G8B8,
+			D3DFMT_V8U8,
+			D3DFMT_X8L8V8U8,
+			D3DFMT_DXT1,
+			D3DFMT_DXT2,
+			D3DFMT_DXT3,
+			D3DFMT_DXT4,
+			D3DFMT_DXT5,
+			(D3DFORMAT)MAKEFOURCC('N', 'V', 'C', 'S'),
+			(D3DFORMAT)MAKEFOURCC('N', 'V', 'H', 'U'),
+			(D3DFORMAT)MAKEFOURCC('N', 'V', 'H', 'S'),
+			D3DFMT_L8,
+			D3DFMT_A8,
+			D3DFMT_A8L8,
+			(D3DFORMAT)MAKEFOURCC('N', 'U', 'L', 'L'),
+			(D3DFORMAT)MAKEFOURCC('A', 'T', 'I', '1'),
+			(D3DFORMAT)MAKEFOURCC('A', 'T', 'I', '2'),
+			(D3DFORMAT)MAKEFOURCC('I', 'N', 'T', 'Z'),
+			(D3DFORMAT)MAKEFOURCC('3', 'x', '1', '1'),
+			(D3DFORMAT)MAKEFOURCC('3', 'x', '1', '6')})
+		{
+			HRESULT hr = d3d9Object->CheckDeviceFormat(D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, D3DFMT_X8R8G8B8, 0, D3DRTYPE_TEXTURE, format);
+			if (SUCCEEDED(hr))
+			{
+				SetPixelDisplayFormat(format, ddpfPixelFormat);
+				lpd3dEnumPixelProc(&ddpfPixelFormat, lpArg);
+			}
+			else
+			{
+				Logging::LogDebug() << __FUNCTION__ << " " << format << " " << hr;
+			}
+		}
+
+		return DD_OK;
 	}
 
 	switch (ProxyDirectXVersion)

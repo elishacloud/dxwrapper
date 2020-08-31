@@ -206,6 +206,11 @@ std::ostream& operator<<(std::ostream& os, const D3DFORMAT& format)
 		return os << "D3DFMT_BINARYBUFFER";
 	case 0x7fffffff:
 		return os << "D3DFMT_FORCE_DWORD";
+	default:
+		if (format & 0xFF000000)
+		{
+			return os << (DDFOURCC)format;
+		}
 	}
 
 	return os << (DWORD)format;
@@ -350,11 +355,26 @@ std::ostream& operator<<(std::ostream& os, const DDSCAPS2& caps)
 		<< Logging::hex(caps.dwCaps4);
 }
 
+std::ostream& operator<<(std::ostream& os, const DDFOURCC& dwFourCC)
+{
+	if (dwFourCC)
+	{
+		unsigned char ch0 = dwFourCC & 0xFF;
+		unsigned char ch1 = (dwFourCC >> 8) & 0xFF;
+		unsigned char ch2 = (dwFourCC >> 16) & 0xFF;
+		unsigned char ch3 = (dwFourCC >> 24) & 0xFF;
+
+		return os << "MAKEFOURCC('" << (char)ch0 << "', '" << (char)ch1 << "', '" << (char)ch2 << "', '" << (char)ch3 << "')";
+	}
+
+	return os << (DWORD)dwFourCC;
+}
+
 std::ostream& operator<<(std::ostream& os, const DDPIXELFORMAT& pf)
 {
 	return Logging::LogStruct(os)
 		<< Logging::hex(pf.dwFlags)
-		<< Logging::hex(pf.dwFourCC)
+		<< (DDFOURCC)pf.dwFourCC
 		<< pf.dwRGBBitCount
 		<< Logging::hex(pf.dwRBitMask)
 		<< Logging::hex(pf.dwGBitMask)
