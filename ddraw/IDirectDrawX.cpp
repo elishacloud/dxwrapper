@@ -159,6 +159,8 @@ HRESULT m_IDirectDrawX::QueryInterface(REFIID riid, LPVOID FAR * ppvObj, DWORD D
 			if (lpD3DirectX)
 			{
 				lpD3DirectX->SetDdrawParent(this);
+
+				D3DInterface = lpD3DirectX;
 			}
 		}
 	}

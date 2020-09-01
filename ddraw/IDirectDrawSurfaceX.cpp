@@ -137,7 +137,26 @@ HRESULT m_IDirectDrawSurfaceX::QueryInterface(REFIID riid, LPVOID FAR * ppvObj, 
 		return DD_OK;
 	}
 
-	return ProxyQueryInterface(ProxyInterface, (IID_IDirect3DRampDevice == riid ? IID_IDirect3DRGBDevice : riid), ppvObj, GetWrapperType(DxVersion), GetWrapperInterfaceX(DxVersion));
+	HRESULT hr = ProxyQueryInterface(ProxyInterface, (IID_IDirect3DRampDevice == riid ? IID_IDirect3DRGBDevice : riid), ppvObj, GetWrapperType(DxVersion), GetWrapperInterfaceX(DxVersion));
+
+	if (SUCCEEDED(hr) && Config.ConvertToDirect3D7 && ddrawParent)
+	{
+		if (riid == IID_IDirect3DHALDevice || riid == IID_IDirect3DRGBDevice || riid == IID_IDirect3DRampDevice || riid == IID_IDirect3DNullDevice)
+		{
+			m_IDirect3DDeviceX *lpD3DDeviceX = nullptr;
+
+			((IDirect3DDevice7*)*ppvObj)->QueryInterface(IID_GetInterfaceX, (LPVOID*)&lpD3DDeviceX);
+
+			if (lpD3DDeviceX)
+			{
+				lpD3DDeviceX->SetDdrawParent(ddrawParent);
+
+				ddrawParent->SetD3DDevice(lpD3DDeviceX);
+			}
+		}
+	}
+
+	return hr;
 }
 
 void *m_IDirectDrawSurfaceX::GetWrapperInterfaceX(DWORD DirectXVersion)
@@ -1000,6 +1019,22 @@ HRESULT m_IDirectDrawSurfaceX::GetAttachedSurface2(LPDDSCAPS2 lpDDSCaps2, LPDIRE
 		*lplpDDAttachedSurface = (LPDIRECTDRAWSURFACE7)lpAttachedSurface;
 
 		return DD_OK;
+	}
+
+	DDSCAPS2 DDSCaps2;
+	
+	if (lpDDSCaps2)
+	{
+		memcpy(&DDSCaps2, lpDDSCaps2, sizeof(DDSCAPS2));
+
+		lpDDSCaps2 = &DDSCaps2;
+
+		if (ProxyDirectXVersion != DirectXVersion)
+		{
+			DDSCaps2.dwCaps2 = 0;
+			DDSCaps2.dwCaps3 = 0;
+			DDSCaps2.dwCaps4 = 0;
+		}
 	}
 
 	HRESULT hr = ProxyInterface->GetAttachedSurface(lpDDSCaps2, lplpDDAttachedSurface);
