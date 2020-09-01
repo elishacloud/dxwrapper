@@ -110,6 +110,7 @@ bool APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 		Logging::LogOSVersion();
 		Logging::LogProcessNameAndPID();
 		Logging::LogGameType();
+		Logging::LogCompatLayer();
 
 		// Create Mutex to ensure only one copy of DxWrapper is running
 		char MutexName[MAX_PATH] = { 0 };

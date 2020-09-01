@@ -105,7 +105,7 @@ namespace CompatExperimental
 			GetModuleFileName(nullptr, currentProcessPath, MAX_PATH);
 			Compat::Log() << "Process path: " << currentProcessPath;
 
-			printEnvironmentVariable("__COMPAT_LAYER");
+			//printEnvironmentVariable("__COMPAT_LAYER");
 
 			char currentDllPath[MAX_PATH] = {};
 			GetModuleFileName(hinstDLL, currentDllPath, MAX_PATH);
