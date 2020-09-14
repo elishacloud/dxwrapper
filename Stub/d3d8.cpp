@@ -40,7 +40,21 @@
 		__asm mov edi, edi \
 		__asm cmp IsLoaded, 0 \
 		__asm jne NEAR AsmExit \
-		__asm call InitAsm \
+		__asm pushf \
+		__asm push eax \
+		__asm push ebx \
+		__asm push ecx \
+		__asm push edx \
+		__asm push esi \
+		__asm push edi \
+		__asm call InitDll \
+		__asm pop edi \
+		__asm pop esi \
+		__asm pop edx \
+		__asm pop ecx \
+		__asm pop ebx \
+		__asm pop eax \
+		__asm popf \
 		__asm AsmExit: \
 		__asm jmp m_p ## procName \
 	}
@@ -63,28 +77,6 @@ namespace D3d8Wrapper
 
 		// Mark ddraw as loaded
 		IsLoaded = true;
-	}
-
-	__declspec(naked) void __stdcall InitAsm()
-	{
-		__asm
-		{
-			mov edi, edi
-			push eax
-			push ebx
-			push ecx
-			push edx
-			push esi
-			push edi
-			call InitDll
-			pop edi
-			pop esi
-			pop edx
-			pop ecx
-			pop ebx
-			pop eax
-			ret
-		}
 	}
 
 	VISIT_ALL_PROCS(CREATE_PROC_STUB);
