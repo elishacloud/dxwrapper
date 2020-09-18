@@ -241,8 +241,21 @@ HRESULT m_IDirect3DDeviceX::SetTransform(D3DTRANSFORMSTATETYPE dtstTransformStat
 
 	if (Config.Dd7to9)
 	{
-		LOG_LIMIT(100, __FUNCTION__ << " Not Implemented");
-		return DDERR_UNSUPPORTED;
+		// Check for device interface
+		if (FAILED(CheckInterface(__FUNCTION__, true)))
+		{
+			Logging::Log() << __FUNCTION__ " Error: no ddrawParent";
+			return DDERR_GENERIC;
+		}
+
+		if (dtstTransformStateType == D3DTRANSFORMSTATE_WORLD || dtstTransformStateType == D3DTRANSFORMSTATE_WORLD1 ||
+			dtstTransformStateType == D3DTRANSFORMSTATE_WORLD2 || dtstTransformStateType == D3DTRANSFORMSTATE_WORLD3)
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " D3DTRANSFORMSTATE_WORLD state: Not Implemented");
+			return DDERR_UNSUPPORTED;
+		}
+
+		return (*d3d9Device)->SetTransform(dtstTransformStateType, lpD3DMatrix);
 	}
 
 	switch (ProxyDirectXVersion)
@@ -289,8 +302,8 @@ HRESULT m_IDirect3DDeviceX::PreLoad(LPDIRECTDRAWSURFACE7 lpddsTexture)
 
 	if (Config.Dd7to9)
 	{
-		LOG_LIMIT(100, __FUNCTION__ << " Not Implemented");
-		return DDERR_UNSUPPORTED;
+		// Not needed for Direct3D9
+		return D3D_OK;
 	}
 
 	if (lpddsTexture)
@@ -552,8 +565,42 @@ HRESULT m_IDirect3DDeviceX::SetRenderTarget(LPDIRECTDRAWSURFACE7 lpNewRenderTarg
 
 	if (Config.Dd7to9)
 	{
-		LOG_LIMIT(100, __FUNCTION__ << " Not Implemented");
-		return DDERR_UNSUPPORTED;
+		if (!lpNewRenderTarget)
+		{
+			Logging::Log() << __FUNCTION__ " Error: nullptr";
+			return DDERR_GENERIC;
+		}
+
+		// Check for device interface
+		if (FAILED(CheckInterface(__FUNCTION__, true)))
+		{
+			Logging::Log() << __FUNCTION__ " Error: no ddrawParent";
+			return DDERR_GENERIC;
+		}
+
+		m_IDirectDrawSurfaceX *lpDDSrcSurfaceX = nullptr;
+
+		lpNewRenderTarget->QueryInterface(IID_GetInterfaceX, (LPVOID*)&lpDDSrcSurfaceX);
+
+		if (!lpDDSrcSurfaceX)
+		{
+			Logging::Log() << __FUNCTION__ " Error: surface does not exist! " << lpDDSrcSurfaceX;
+			return DDERR_GENERIC;
+		}
+
+		IDirect3DSurface9* pRenderTarget = lpDDSrcSurfaceX->Get3DSurface();
+
+		if (!pRenderTarget)
+		{
+			Logging::Log() << __FUNCTION__ " Error: d3d9 surface does not exist!";
+			return DDERR_GENERIC;
+		}
+
+		(*d3d9Device)->SetRenderTarget(0, pRenderTarget);
+
+		Logging::LogDebug() << __FUNCTION__ << " (" << this << ") " << lpDDSrcSurfaceX;
+
+		return D3D_OK;
 	}
 
 	if (lpNewRenderTarget)
@@ -1117,8 +1164,14 @@ HRESULT m_IDirect3DDeviceX::BeginScene()
 
 	if (Config.Dd7to9)
 	{
-		LOG_LIMIT(100, __FUNCTION__ << " Not Implemented");
-		return DDERR_UNSUPPORTED;
+		// Check for device interface
+		if (FAILED(CheckInterface(__FUNCTION__, true)))
+		{
+			Logging::Log() << __FUNCTION__ " Error: no ddrawParent";
+			return DDERR_GENERIC;
+		}
+
+		return (*d3d9Device)->BeginScene();
 	}
 
 	switch (ProxyDirectXVersion)
@@ -1142,8 +1195,14 @@ HRESULT m_IDirect3DDeviceX::EndScene()
 
 	if (Config.Dd7to9)
 	{
-		LOG_LIMIT(100, __FUNCTION__ << " Not Implemented");
-		return DDERR_UNSUPPORTED;
+		// Check for device interface
+		if (FAILED(CheckInterface(__FUNCTION__, true)))
+		{
+			Logging::Log() << __FUNCTION__ " Error: no ddrawParent";
+			return DDERR_GENERIC;
+		}
+
+		return (*d3d9Device)->EndScene();
 	}
 
 	switch (ProxyDirectXVersion)

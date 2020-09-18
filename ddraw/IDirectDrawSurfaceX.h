@@ -39,6 +39,7 @@ private:
 	};
 
 	// Convert to Direct3D9
+	bool IsDirect3DSurface = false;
 	m_IDirectDrawX *ddrawParent = nullptr;
 	m_IDirectDrawPalette *attachedPalette = nullptr;	// Associated palette
 	m_IDirectDrawClipper *attachedClipper = nullptr;	// Associated clipper
@@ -77,6 +78,7 @@ private:
 
 	// Direct3D9 vars
 	LPDIRECT3DDEVICE9 *d3d9Device = nullptr;			// Direct3D9 Device
+	LPDIRECT3DSURFACE9 surface3D = nullptr;				// Surface used for Direct3D
 	LPDIRECT3DTEXTURE9 surfaceTexture = nullptr;		// Main surface texture used for locks, Blts and Flips
 	LPDIRECT3DSURFACE9 contextSurface = nullptr;		// Main surface texture used for locks, Blts and Flips
 	LPDIRECT3DTEXTURE9 displayTexture = nullptr;		// Surface texture used for displaying image
@@ -334,6 +336,7 @@ public:
 	// Surface information functions
 	bool IsPrimarySurface() { return (surfaceDesc2.ddsCaps.dwCaps & DDSCAPS_PRIMARYSURFACE) != 0; }
 	bool IsSurfaceManaged() { return (surfaceDesc2.ddsCaps.dwCaps2 & (DDSCAPS2_TEXTUREMANAGE | DDSCAPS2_D3DTEXTUREMANAGE)) != 0; }
+	LPDIRECT3DSURFACE9 Get3DSurface();
 
 	// Attached surfaces
 	void RemoveAttachedSurfaceFromMap(m_IDirectDrawSurfaceX* lpSurfaceX);

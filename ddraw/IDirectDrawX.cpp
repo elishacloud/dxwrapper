@@ -2677,6 +2677,9 @@ HRESULT m_IDirectDrawX::EndScene()
 		}
 	}
 
+	// Clear device before BeginScene
+	d3d9Device->Clear(0, nullptr, D3DCLEAR_STENCIL | D3DCLEAR_TARGET | D3DCLEAR_ZBUFFER, 0, 0.0f, 0);
+
 	// BeginScene after EndScene is done
 	BeginScene();
 
