@@ -87,6 +87,8 @@ typedef void(WINAPI *RegisterSpecialCaseProc)();
 typedef void(WINAPI *ReleaseDDThreadLockProc)();
 typedef HRESULT(WINAPI *SetAppCompatDataProc)(DWORD, DWORD);
 typedef LPDIRECT3D9(WINAPI *PFN_Direct3DCreate9)(UINT SDKVersion);
+// gdi32 proc typedefs
+typedef int(WINAPI *GetDeviceCapsProc)(HDC hdc, int index);
 
 // ddraw proc forward declaration
 HRESULT WINAPI dd_DirectDrawCreate(GUID FAR *lpGUID, LPDIRECTDRAW FAR *lplpDD, IUnknown FAR *pUnkOuter);

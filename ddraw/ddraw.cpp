@@ -42,6 +42,7 @@ namespace DdrawWrapper
 	VISIT_PROCS_DDRAW(INITIALIZE_WRAPPED_PROC);
 	VISIT_PROCS_DDRAW_SHARED(INITIALIZE_WRAPPED_PROC);
 	FARPROC Direct3DCreate9_out = nullptr;
+	FARPROC GetDeviceCaps_out = nullptr;
 }
 
 using namespace DdrawWrapper;

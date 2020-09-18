@@ -26,6 +26,8 @@ void WINAPI dd_RegisterSpecialCase();
 void WINAPI dd_ReleaseDDThreadLock();
 HRESULT WINAPI dd_SetAppCompatData(DWORD Type, DWORD Value);
 
+int WINAPI dd_GetDeviceCaps(HDC hdc, int index);
+
 void InitDDraw();
 void ExitDDraw();
 
@@ -43,6 +45,7 @@ namespace DdrawWrapper
 	VISIT_PROCS_DDRAW(EXPORT_OUT_WRAPPED_PROC);
 	VISIT_PROCS_DDRAW_SHARED(EXPORT_OUT_WRAPPED_PROC);
 	extern FARPROC Direct3DCreate9_out;
+	extern FARPROC GetDeviceCaps_out;
 }
 
 #undef DECLARE_IN_WRAPPED_PROC

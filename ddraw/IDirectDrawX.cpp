@@ -2682,3 +2682,21 @@ HRESULT m_IDirectDrawX::EndScene()
 
 	return DD_OK;
 }
+
+int WINAPI dd_GetDeviceCaps(HDC hdc, int index)
+{
+	static GetDeviceCapsProc m_pGetDeviceCaps = (Wrapper::ValidProcAddress(GetDeviceCaps_out)) ? (GetDeviceCapsProc)GetDeviceCaps_out : nullptr;
+
+	if (ddrawRefCount && index == BITSPIXEL)
+	{
+		int BPP = (ExclusiveBPP) ? ExclusiveBPP : (displayModeBPP) ? displayModeBPP : 32;
+		return (BPP == 15) ? 16 : BPP;		// When nIndex is BITSPIXEL and the device has 15bpp or 16bpp, the return value is 16.
+	}
+
+	if (!m_pGetDeviceCaps)
+	{
+		return 0;
+	}
+
+	return m_pGetDeviceCaps(hdc, index);
+}
