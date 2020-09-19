@@ -162,6 +162,7 @@ private:
 
 	// Direct3D9 interfaces
 	EMUSURFACE **GetEmulatedSurface() { return &emu; }
+	LPDIRECT3DSURFACE9 *GetSurface3D() { return &surface3D; }
 	LPDIRECT3DTEXTURE9 *GetSurfaceTexture() { return &surfaceTexture; }
 	LPDIRECT3DSURFACE9 *GetContextSurface() { return &contextSurface; }
 

@@ -815,12 +815,6 @@ HRESULT m_IDirectDrawSurfaceX::Flip(LPDIRECTDRAWSURFACE7 lpDDSurfaceTargetOverri
 			return DDERR_GENERIC;
 		}
 
-		if (IsDirect3DSurface)
-		{
-			(*d3d9Device)->Present(nullptr, nullptr, nullptr, nullptr);
-			return D3D_OK;
-		}
-
 		// Flip can be called only for a surface that has the DDSCAPS_FLIP and DDSCAPS_FRONTBUFFER capabilities
 		if ((surfaceDesc2.ddsCaps.dwCaps & (DDSCAPS_FLIP | DDSCAPS_FRONTBUFFER)) != (DDSCAPS_FLIP | DDSCAPS_FRONTBUFFER))
 		{
@@ -932,7 +926,14 @@ HRESULT m_IDirectDrawSurfaceX::Flip(LPDIRECTDRAWSURFACE7 lpDDSurfaceTargetOverri
 			}
 
 			// Present surface
-			EndWritePresent();
+			if (!IsDirect3DSurface)
+			{
+				EndWritePresent();
+			}
+			else
+			{
+				(*d3d9Device)->Present(nullptr, nullptr, nullptr, nullptr);
+			}
 		}
 
 		return hr;
@@ -983,15 +984,6 @@ HRESULT m_IDirectDrawSurfaceX::GetAttachedSurface2(LPDDSCAPS2 lpDDSCaps2, LPDIRE
 		if (!lplpDDAttachedSurface || !lpDDSCaps2)
 		{
 			return DDERR_INVALIDPARAMS;
-		}
-
-		if (IsDirect3DSurface)
-		{
-			*lplpDDAttachedSurface = (LPDIRECTDRAWSURFACE7)GetWrapperInterfaceX(DirectXVersion);
-
-			AddRef();
-
-			return D3D_OK;
 		}
 
 		// Check for device interface
@@ -1297,7 +1289,7 @@ HRESULT m_IDirectDrawSurfaceX::GetDC(HDC FAR * lphDC)
 
 			*lphDC = emu->surfaceDC;
 		}
-		else
+		else if (surfaceTexture)
 		{
 			if (!contextSurface && FAILED(surfaceTexture->GetSurfaceLevel(0, &contextSurface)))
 			{
@@ -1306,6 +1298,14 @@ HRESULT m_IDirectDrawSurfaceX::GetDC(HDC FAR * lphDC)
 			}
 
 			if (FAILED(contextSurface->GetDC(lphDC)))
+			{
+				LOG_LIMIT(100, __FUNCTION__ << " Error: could not get device context!");
+				return DDERR_GENERIC;
+			}
+		}
+		else
+		{
+			if (FAILED(surface3D->GetDC(lphDC)))
 			{
 				LOG_LIMIT(100, __FUNCTION__ << " Error: could not get device context!");
 				return DDERR_GENERIC;
@@ -2179,7 +2179,14 @@ HRESULT m_IDirectDrawSurfaceX::SetPrivateData(REFGUID guidTag, LPVOID lpData, DW
 			return DDERR_GENERIC;
 		}
 
-		return surfaceTexture->SetPrivateData(guidTag, lpData, cbSize, dwFlags);
+		if (surfaceTexture)
+		{
+			return surfaceTexture->SetPrivateData(guidTag, lpData, cbSize, dwFlags);
+		}
+		else
+		{
+			return surface3D->SetPrivateData(guidTag, lpData, cbSize, dwFlags);
+		}
 	}
 
 	return ProxyInterface->SetPrivateData(guidTag, lpData, cbSize, dwFlags);
@@ -2197,7 +2204,14 @@ HRESULT m_IDirectDrawSurfaceX::GetPrivateData(REFGUID guidTag, LPVOID lpBuffer, 
 			return DDERR_GENERIC;
 		}
 
-		return surfaceTexture->GetPrivateData(guidTag, lpBuffer, lpcbBufferSize);
+		if (surfaceTexture)
+		{
+			return surfaceTexture->GetPrivateData(guidTag, lpBuffer, lpcbBufferSize);
+		}
+		else
+		{
+			return surface3D->GetPrivateData(guidTag, lpBuffer, lpcbBufferSize);
+		}
 	}
 
 	return ProxyInterface->GetPrivateData(guidTag, lpBuffer, lpcbBufferSize);
@@ -2215,7 +2229,14 @@ HRESULT m_IDirectDrawSurfaceX::FreePrivateData(REFGUID guidTag)
 			return DDERR_GENERIC;
 		}
 
-		return surfaceTexture->FreePrivateData(guidTag);
+		if (surfaceTexture)
+		{
+			return surfaceTexture->FreePrivateData(guidTag);
+		}
+		else
+		{
+			return surface3D->FreePrivateData(guidTag);
+		}
 	}
 
 	return ProxyInterface->FreePrivateData(guidTag);
@@ -2456,7 +2477,7 @@ HRESULT m_IDirectDrawSurfaceX::CheckInterface(char *FunctionName, bool CheckD3DD
 HRESULT m_IDirectDrawSurfaceX::CreateD3d9Surface()
 {
 	// Don't recreate surface while it is locked
-	if (surfaceTexture && IsLocked)
+	if ((surfaceTexture || surface3D) && IsLocked)
 	{
 		LOG_LIMIT(100, __FUNCTION__ << " Error: surface is locked!");
 		return DDERR_GENERIC;
@@ -3195,6 +3216,9 @@ void m_IDirectDrawSurfaceX::SwapSurface(m_IDirectDrawSurfaceX *lpTargetSurface1,
 		return;
 	}
 
+	// Swap 3D surface
+	SwapAddresses(lpTargetSurface1->GetSurface3D(), lpTargetSurface2->GetSurface3D());
+
 	// Swap surface textures
 	SwapAddresses(lpTargetSurface1->GetSurfaceTexture(), lpTargetSurface2->GetSurfaceTexture());
 
@@ -3781,13 +3805,6 @@ HRESULT m_IDirectDrawSurfaceX::CopySurface(m_IDirectDrawSurfaceX* pSourceSurface
 {
 	UNREFERENCED_PARAMETER(Filter);
 
-	if (IsDirect3DSurface)
-	{
-		// ToDo: Get this working with Direct3D
-		Logging::Log() << __FUNCTION__;
-		return DD_OK;
-	}
-
 	// Check parameters
 	if (!pSourceSurface)
 	{
@@ -4011,7 +4028,7 @@ HRESULT m_IDirectDrawSurfaceX::CopySurface(m_IDirectDrawSurfaceX* pSourceSurface
 }
 
 // Copy from emulated surface
-HRESULT m_IDirectDrawSurfaceX::CopyEmulatedSurface(LPRECT lpDestRect, bool CopyToRealSurfaceTexture)
+HRESULT m_IDirectDrawSurfaceX::CopyEmulatedSurface(LPRECT lpDestRect, bool CopyToRealSurface)
 {
 	HRESULT hr = DD_OK;
 
@@ -4027,8 +4044,15 @@ HRESULT m_IDirectDrawSurfaceX::CopyEmulatedSurface(LPRECT lpDestRect, bool CopyT
 
 		// Check if destination surface is not locked then lock it
 		D3DLOCKED_RECT EmulatedLockRect, SurfaceLockRect;
-		if (FAILED(LockEmulatedSurface(&EmulatedLockRect, &DestRect)) ||
-			FAILED(surfaceTexture->LockRect(0, &SurfaceLockRect, &DestRect, (!CopyToRealSurfaceTexture) ? D3DLOCK_READONLY : 0)))
+		if (surfaceTexture)
+		{
+			surfaceTexture->LockRect(0, &SurfaceLockRect, &DestRect, (!CopyToRealSurface) ? D3DLOCK_READONLY : 0);
+		}
+		else
+		{
+			surface3D->LockRect(&SurfaceLockRect, &DestRect, (!CopyToRealSurface) ? D3DLOCK_READONLY : 0);
+		}
+		if (FAILED(LockEmulatedSurface(&EmulatedLockRect, &DestRect)) || FAILED(hr))
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Error: could not lock surface!");
 			hr = DDERR_GENERIC;
@@ -4045,7 +4069,7 @@ HRESULT m_IDirectDrawSurfaceX::CopyEmulatedSurface(LPRECT lpDestRect, bool CopyT
 		switch (surfaceFormat)
 		{
 		case D3DFMT_R8G8B8:
-			if (CopyToRealSurfaceTexture)
+			if (CopyToRealSurface)
 			{
 				for (LONG x = DestRect.top; x < DestRect.bottom; x++)
 				{
@@ -4079,7 +4103,7 @@ HRESULT m_IDirectDrawSurfaceX::CopyEmulatedSurface(LPRECT lpDestRect, bool CopyT
 			}
 			break;
 		default:
-			if (CopyToRealSurfaceTexture)
+			if (CopyToRealSurface)
 			{
 				if (SurfaceLockRect.Pitch == EmulatedLockRect.Pitch && (LONG)ComputePitch(DestRect.right - DestRect.left, surfaceBitCount) == SurfaceLockRect.Pitch)
 				{
@@ -4114,7 +4138,14 @@ HRESULT m_IDirectDrawSurfaceX::CopyEmulatedSurface(LPRECT lpDestRect, bool CopyT
 		}
 
 		// Unlock surface texture
-		surfaceTexture->UnlockRect(0);
+		if (surfaceTexture)
+		{
+			surfaceTexture->UnlockRect(0);
+		}
+		else
+		{
+			surface3D->UnlockRect();
+		}
 
 	} while (false);
 
