@@ -111,6 +111,15 @@ HRESULT m_IDirect3DTextureX::GetHandle(LPDIRECT3DDEVICE2 lpDirect3DDevice2, LPD3
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
+	if (ProxyDirectXVersion > 3)
+	{
+		if (lpHandle)
+		{
+			*lpHandle = tHandle;
+		}
+		return D3D_OK;
+	}
+
 	if (lpDirect3DDevice2)
 	{
 		lpDirect3DDevice2->QueryInterface(IID_GetRealInterface, (LPVOID*)&lpDirect3DDevice2);
@@ -122,10 +131,6 @@ HRESULT m_IDirect3DTextureX::GetHandle(LPDIRECT3DDEVICE2 lpDirect3DDevice2, LPD3
 		return GetProxyInterfaceV1()->GetHandle((LPDIRECT3DDEVICE)lpDirect3DDevice2, lpHandle);
 	case 2:
 		return GetProxyInterfaceV2()->GetHandle(lpDirect3DDevice2, lpHandle);
-	case 7:
-	case 9:
-		LOG_LIMIT(100, __FUNCTION__ << " Not Implemented");
-		return DDERR_UNSUPPORTED;
 	default:
 		return DDERR_GENERIC;
 	}
@@ -195,6 +200,8 @@ void m_IDirect3DTextureX::InitTexture()
 {
 	WrapperInterface = new m_IDirect3DTexture((LPDIRECT3DTEXTURE)ProxyInterface, this);
 	WrapperInterface2 = new m_IDirect3DTexture2((LPDIRECT3DTEXTURE2)ProxyInterface, this);
+
+	tHandle = (DWORD)this + 32;
 }
 
 void m_IDirect3DTextureX::ReleaseTexture()

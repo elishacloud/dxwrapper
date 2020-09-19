@@ -128,9 +128,14 @@ HRESULT m_IDirect3DMaterialX::SetMaterial(LPD3DMATERIAL lpMat)
 		Material.dwSize = sizeof(D3DMATERIAL);
 		ConvertMaterial(Material, *lpMat);
 
-		if (lpMat->hTexture || lpMat->dwRampSize)
+		if (lpMat->hTexture)
 		{
-			LOG_LIMIT(100, __FUNCTION__ << " D3DMATERIALHANDLE and RampSize Not Implemented: " << lpMat->hTexture << " " << lpMat->dwRampSize);
+			LOG_LIMIT(100, __FUNCTION__ << " D3DTEXTUREHANDLE Not Implemented: " << lpMat->hTexture);
+		}
+
+		if (lpMat->dwRampSize)
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " RampSize Not Implemented: " << lpMat->dwRampSize);
 		}
 
 		D3DMATERIAL7 Material7;
@@ -193,15 +198,18 @@ HRESULT m_IDirect3DMaterialX::GetHandle(LPDIRECT3DDEVICE3 lpDirect3DDevice, LPD3
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
+	if (!ProxyInterface)
+	{
+		if (lpHandle)
+		{
+			*lpHandle = mHandle;
+		}
+		return D3D_OK;
+	}
+
 	if (lpDirect3DDevice)
 	{
 		lpDirect3DDevice->QueryInterface(IID_GetRealInterface, (LPVOID*)&lpDirect3DDevice);
-	}
-
-	if (!ProxyInterface)
-	{
-		LOG_LIMIT(100, __FUNCTION__ << " Not Implemented");
-		return DDERR_UNSUPPORTED;
 	}
 
 	switch (ProxyDirectXVersion)
@@ -252,6 +260,8 @@ void m_IDirect3DMaterialX::InitMaterial()
 	WrapperInterface = new m_IDirect3DMaterial((LPDIRECT3DMATERIAL)ProxyInterface, this);
 	WrapperInterface2 = new m_IDirect3DMaterial2((LPDIRECT3DMATERIAL2)ProxyInterface, this);
 	WrapperInterface3 = new m_IDirect3DMaterial3((LPDIRECT3DMATERIAL3)ProxyInterface, this);
+
+	mHandle = (DWORD)this + 32;
 }
 
 void m_IDirect3DMaterialX::ReleaseMaterial()
