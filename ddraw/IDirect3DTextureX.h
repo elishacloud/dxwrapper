@@ -9,6 +9,7 @@ private:
 
 	// Convert Texture
 	m_IDirect3DDeviceX **D3DDeviceInterface = nullptr;
+	m_IDirectDrawSurfaceX *DDrawSurface = nullptr;
 	DWORD tHandle = 0;
 
 	// Store d3d texture version wrappers
@@ -51,7 +52,7 @@ public:
 
 		ProxyAddressLookupTable.SaveAddress(this, (ProxyInterface) ? ProxyInterface : (void*)this);
 	}
-	m_IDirect3DTextureX(m_IDirect3DDeviceX **D3DDInterface, DWORD DirectXVersion, IDirectDrawSurface7 *lpSurface) : D3DDeviceInterface(D3DDInterface), ProxyInterface((IDirect3DTexture2*)lpSurface)
+	m_IDirect3DTextureX(m_IDirect3DDeviceX **D3DDInterface, DWORD DirectXVersion, m_IDirectDrawSurfaceX *lpSurface) : D3DDeviceInterface(D3DDInterface), DDrawSurface(lpSurface)
 	{
 		ProxyDirectXVersion = (Config.Dd7to9) ? 9 : 7;
 
@@ -85,4 +86,6 @@ public:
 
 	// Helper functions
 	void *GetWrapperInterfaceX(DWORD DirectXVersion);
+	void ClearSurface() { DDrawSurface = nullptr; }
+	m_IDirectDrawSurfaceX *GetSurface() { return DDrawSurface; }
 };

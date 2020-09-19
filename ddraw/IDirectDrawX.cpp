@@ -391,19 +391,21 @@ HRESULT m_IDirectDrawX::CreateSurface2(LPDDSURFACEDESC2 lpDDSurfaceDesc2, LPDIRE
 		}
 
 		// Check for unsupported flags
-		DWORD UnsupportedSDFlags = (DDSD_ZBUFFERBITDEPTH | DDSD_ALPHABITDEPTH | DDSD_LPSURFACE | DDSD_MIPMAPCOUNT | DDSD_LINEARSIZE | DDSD_TEXTURESTAGE | DDSD_FVF | DDSD_SRCVBHANDLE | DDSD_DEPTH);
-		if (lpDDSurfaceDesc2->dwFlags & UnsupportedSDFlags)
+		DWORD UnsupportedDDSDFlags = (DDSD_ZBUFFERBITDEPTH | DDSD_ALPHABITDEPTH | DDSD_LPSURFACE | DDSD_MIPMAPCOUNT | DDSD_LINEARSIZE | DDSD_FVF | DDSD_SRCVBHANDLE | DDSD_DEPTH);
+		if (lpDDSurfaceDesc2->dwFlags & UnsupportedDDSDFlags)
 		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error: non-supported dwFlags! " << Logging::hex(lpDDSurfaceDesc2->dwFlags & UnsupportedSDFlags));
+			LOG_LIMIT(100, __FUNCTION__ << " Error: non-supported dwFlags! " << Logging::hex(lpDDSurfaceDesc2->dwFlags & UnsupportedDDSDFlags));
 		}
 
 		// Check for unsupported ddsCaps
-		DWORD UnsupportedSDddsCaps = (DDSCAPS_RESERVED1 | DDSCAPS_RESERVED2 | DDSCAPS_RESERVED3 | DDSCAPS_TEXTURE | DDSCAPS_3DDEVICE | DDSCAPS_OWNDC |
-			DDSCAPS_LIVEVIDEO | DDSCAPS_HWCODEC | DDSCAPS_MIPMAP | DDSCAPS_ALLOCONLOAD | DDSCAPS_VIDEOPORT | DDSCAPS_NONLOCALVIDMEM);
-		if ((lpDDSurfaceDesc2->ddsCaps.dwCaps & UnsupportedSDddsCaps) || lpDDSurfaceDesc2->ddsCaps.dwCaps2 || lpDDSurfaceDesc2->ddsCaps.dwVolumeDepth)
+		DWORD UnsupportedDDSCaps = (DDSCAPS_RESERVED1 | DDSCAPS_RESERVED2 | DDSCAPS_RESERVED3 | DDSCAPS_OWNDC | DDSCAPS_LIVEVIDEO |
+			DDSCAPS_HWCODEC | DDSCAPS_MIPMAP | DDSCAPS_ALLOCONLOAD | DDSCAPS_VIDEOPORT | DDSCAPS_NONLOCALVIDMEM);
+		DWORD UnsupportedDDSCaps2 = (DDSCAPS2_RESERVED4 | DDSCAPS2_HINTDYNAMIC | DDSCAPS2_HINTSTATIC | DDSCAPS2_RESERVED1 | DDSCAPS2_RESERVED2 |
+			DDSCAPS2_OPAQUE | DDSCAPS2_HINTANTIALIASING | DDSCAPS2_CUBEMAP | DDSCAPS2_CUBEMAP_ALLFACES);
+		if ((lpDDSurfaceDesc2->ddsCaps.dwCaps & UnsupportedDDSCaps) || (lpDDSurfaceDesc2->ddsCaps.dwCaps2 & UnsupportedDDSCaps2) || lpDDSurfaceDesc2->ddsCaps.dwVolumeDepth)
 		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error: non-supported ddsCaps! " << Logging::hex(lpDDSurfaceDesc2->ddsCaps.dwCaps & UnsupportedSDddsCaps) << " " <<
-				Logging::hex(lpDDSurfaceDesc2->ddsCaps.dwCaps2) << " " << lpDDSurfaceDesc2->ddsCaps.dwVolumeDepth);
+			LOG_LIMIT(100, __FUNCTION__ << " Error: non-supported ddsCaps! " << Logging::hex(lpDDSurfaceDesc2->ddsCaps.dwCaps & UnsupportedDDSCaps) << " " <<
+				Logging::hex(lpDDSurfaceDesc2->ddsCaps.dwCaps2 & UnsupportedDDSCaps2) << " " << lpDDSurfaceDesc2->ddsCaps.dwVolumeDepth);
 		}
 
 		// Setup d3d9 device

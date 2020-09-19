@@ -54,7 +54,7 @@ ULONG m_IDirect3DTextureX::AddRef()
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	if (ProxyDirectXVersion > 3)
+	if (!ProxyInterface)
 	{
 		return InterlockedIncrement(&RefCount);
 	}
@@ -68,7 +68,7 @@ ULONG m_IDirect3DTextureX::Release()
 
 	LONG ref;
 
-	if (ProxyDirectXVersion > 3)
+	if (!ProxyInterface)
 	{
 		ref = InterlockedDecrement(&RefCount);
 	}
@@ -111,7 +111,7 @@ HRESULT m_IDirect3DTextureX::GetHandle(LPDIRECT3DDEVICE2 lpDirect3DDevice2, LPD3
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	if (ProxyDirectXVersion > 3)
+	if (!ProxyInterface)
 	{
 		if (lpHandle)
 		{
@@ -140,16 +140,18 @@ HRESULT m_IDirect3DTextureX::PaletteChanged(DWORD dwStart, DWORD dwCount)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
+	if (!ProxyInterface)
+	{
+		LOG_LIMIT(100, __FUNCTION__ << " Not Implemented");
+		return DDERR_UNSUPPORTED;
+	}
+
 	switch (ProxyDirectXVersion)
 	{
 	case 1:
 		return GetProxyInterfaceV1()->PaletteChanged(dwStart, dwCount);
 	case 2:
 		return GetProxyInterfaceV2()->PaletteChanged(dwStart, dwCount);
-	case 7:
-	case 9:
-		LOG_LIMIT(100, __FUNCTION__ << " Not Implemented");
-		return DDERR_UNSUPPORTED;
 	default:
 		return DDERR_GENERIC;
 	}
@@ -158,6 +160,12 @@ HRESULT m_IDirect3DTextureX::PaletteChanged(DWORD dwStart, DWORD dwCount)
 HRESULT m_IDirect3DTextureX::Load(LPDIRECT3DTEXTURE2 lpD3DTexture2)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
+
+	if (!ProxyInterface)
+	{
+		LOG_LIMIT(100, __FUNCTION__ << " Not Implemented");
+		return DDERR_UNSUPPORTED;
+	}
 
 	if (lpD3DTexture2)
 	{
@@ -170,10 +178,6 @@ HRESULT m_IDirect3DTextureX::Load(LPDIRECT3DTEXTURE2 lpD3DTexture2)
 		return GetProxyInterfaceV1()->Load((LPDIRECT3DTEXTURE)lpD3DTexture2);
 	case 2:
 		return GetProxyInterfaceV2()->Load(lpD3DTexture2);
-	case 7:
-	case 9:
-		LOG_LIMIT(100, __FUNCTION__ << " Not Implemented");
-		return DDERR_UNSUPPORTED;
 	default:
 		return DDERR_GENERIC;
 	}
@@ -208,4 +212,9 @@ void m_IDirect3DTextureX::ReleaseTexture()
 {
 	WrapperInterface->DeleteMe();
 	WrapperInterface2->DeleteMe();
+
+	if (DDrawSurface)
+	{
+		DDrawSurface->ClearTexture();
+	}
 }

@@ -181,4 +181,5 @@ public:
 		}
 	}
 	void ClearDdraw() { ddrawParent = nullptr; }
+	UINT GetVertexStride(DWORD dwVertexTypeDesc);
 };

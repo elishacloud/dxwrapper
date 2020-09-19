@@ -251,6 +251,7 @@ HRESULT m_IDirect3DDeviceX::SetTransform(D3DTRANSFORMSTATETYPE dtstTransformStat
 		if (dtstTransformStateType == D3DTRANSFORMSTATE_WORLD || dtstTransformStateType == D3DTRANSFORMSTATE_WORLD1 ||
 			dtstTransformStateType == D3DTRANSFORMSTATE_WORLD2 || dtstTransformStateType == D3DTRANSFORMSTATE_WORLD3)
 		{
+			// ToDo: convert to D3DTS_WORLDMATRIX
 			LOG_LIMIT(100, __FUNCTION__ << " D3DTRANSFORMSTATE_WORLD state: Not Implemented");
 			return DDERR_UNSUPPORTED;
 		}
@@ -278,8 +279,22 @@ HRESULT m_IDirect3DDeviceX::GetTransform(D3DTRANSFORMSTATETYPE dtstTransformStat
 
 	if (Config.Dd7to9)
 	{
-		LOG_LIMIT(100, __FUNCTION__ << " Not Implemented");
-		return DDERR_UNSUPPORTED;
+		// Check for device interface
+		if (FAILED(CheckInterface(__FUNCTION__, true)))
+		{
+			Logging::Log() << __FUNCTION__ " Error: no ddrawParent";
+			return DDERR_GENERIC;
+		}
+
+		if (dtstTransformStateType == D3DTRANSFORMSTATE_WORLD || dtstTransformStateType == D3DTRANSFORMSTATE_WORLD1 ||
+			dtstTransformStateType == D3DTRANSFORMSTATE_WORLD2 || dtstTransformStateType == D3DTRANSFORMSTATE_WORLD3)
+		{
+			// ToDo: convert to D3DTS_WORLDMATRIX
+			LOG_LIMIT(100, __FUNCTION__ << " D3DTRANSFORMSTATE_WORLD state: Not Implemented");
+			return DDERR_UNSUPPORTED;
+		}
+
+		return (*d3d9Device)->GetTransform(dtstTransformStateType, lpD3DMatrix);
 	}
 
 	switch (ProxyDirectXVersion)
@@ -517,20 +532,31 @@ HRESULT m_IDirect3DDeviceX::SetTexture(DWORD dwStage, LPDIRECT3DTEXTURE2 lpTextu
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	if (Config.Dd7to9)
+	if (Config.Dd7to9 || ProxyDirectXVersion == 7)
 	{
-		return SetTexture(dwStage, (LPDIRECTDRAWSURFACE7)lpTexture);
-	}
-
-	if (ProxyDirectXVersion == 7)
-	{
-		// ToDo: Validate Texture address
-		if (lpTexture)
+		if (!lpTexture)
 		{
-			lpTexture->QueryInterface(IID_GetRealInterface, (LPVOID*)&lpTexture);
+			return SetTexture(dwStage, (LPDIRECTDRAWSURFACE7)nullptr);
 		}
 
-		return ProxyInterface->SetTexture(dwStage, (LPDIRECTDRAWSURFACE7)lpTexture);
+		m_IDirect3DTextureX *pTextureX = nullptr;
+		lpTexture->QueryInterface(IID_GetInterfaceX, (LPVOID*)&pTextureX);
+
+		if (!pTextureX)
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: could not get texture!");
+			return DDERR_GENERIC;
+		}
+
+		m_IDirectDrawSurfaceX *pSurfaceX = pTextureX->GetSurface();
+
+		if (!pSurfaceX)
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: could not get surface!");
+			return DDERR_GENERIC;
+		}
+
+		return SetTexture(dwStage, (LPDIRECTDRAWSURFACE7)pSurfaceX->GetWrapperInterfaceX(7));
 	}
 
 	if (lpTexture)
@@ -541,22 +567,51 @@ HRESULT m_IDirect3DDeviceX::SetTexture(DWORD dwStage, LPDIRECT3DTEXTURE2 lpTextu
 	return GetProxyInterfaceV3()->SetTexture(dwStage, lpTexture);
 }
 
-HRESULT m_IDirect3DDeviceX::SetTexture(DWORD dwStage, LPDIRECTDRAWSURFACE7 lpTexture)
+HRESULT m_IDirect3DDeviceX::SetTexture(DWORD dwStage, LPDIRECTDRAWSURFACE7 lpSurface)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
 	if (Config.Dd7to9)
 	{
-		LOG_LIMIT(100, __FUNCTION__ << " Not Implemented");
-		return DDERR_UNSUPPORTED;
+		// Check for device interface
+		if (FAILED(CheckInterface(__FUNCTION__, true)))
+		{
+			Logging::Log() << __FUNCTION__ " Error: no ddrawParent";
+			return DDERR_GENERIC;
+		}
+
+		if (!lpSurface)
+		{
+			return (*d3d9Device)->SetTexture(dwStage, nullptr);
+		}
+
+		m_IDirectDrawSurfaceX *lpDDSrcSurfaceX = nullptr;
+
+		lpSurface->QueryInterface(IID_GetInterfaceX, (LPVOID*)&lpDDSrcSurfaceX);
+
+		if (!lpDDSrcSurfaceX)
+		{
+			Logging::Log() << __FUNCTION__ " Error: surface does not exist! " << lpDDSrcSurfaceX;
+			return DDERR_GENERIC;
+		}
+
+		IDirect3DTexture9 *pTexture9 = lpDDSrcSurfaceX->Get3DTexture();
+
+		if (!pTexture9)
+		{
+			Logging::Log() << __FUNCTION__ " Error: d3d9 texture does not exist!";
+			return DDERR_GENERIC;
+		}
+
+		return (*d3d9Device)->SetTexture(dwStage, pTexture9);
 	}
 
-	if (lpTexture)
+	if (lpSurface)
 	{
-		lpTexture->QueryInterface(IID_GetRealInterface, (LPVOID*)&lpTexture);
+		lpSurface->QueryInterface(IID_GetRealInterface, (LPVOID*)&lpSurface);
 	}
 
-	return GetProxyInterfaceV7()->SetTexture(dwStage, lpTexture);
+	return GetProxyInterfaceV7()->SetTexture(dwStage, lpSurface);
 }
 
 HRESULT m_IDirect3DDeviceX::SetRenderTarget(LPDIRECTDRAWSURFACE7 lpNewRenderTarget, DWORD dwFlags)
@@ -588,19 +643,15 @@ HRESULT m_IDirect3DDeviceX::SetRenderTarget(LPDIRECTDRAWSURFACE7 lpNewRenderTarg
 			return DDERR_GENERIC;
 		}
 
-		IDirect3DSurface9* pRenderTarget = lpDDSrcSurfaceX->Get3DSurface();
+		IDirect3DSurface9* pRenderTarget9 = lpDDSrcSurfaceX->Get3DSurface();
 
-		if (!pRenderTarget)
+		if (!pRenderTarget9)
 		{
 			Logging::Log() << __FUNCTION__ " Error: d3d9 surface does not exist!";
 			return DDERR_GENERIC;
 		}
 
-		(*d3d9Device)->SetRenderTarget(0, pRenderTarget);
-
-		Logging::LogDebug() << __FUNCTION__ << " (" << this << ") " << lpDDSrcSurfaceX;
-
-		return D3D_OK;
+		return (*d3d9Device)->SetRenderTarget(0, pRenderTarget9);
 	}
 
 	if (lpNewRenderTarget)
@@ -1507,8 +1558,20 @@ HRESULT m_IDirect3DDeviceX::DrawPrimitive(D3DPRIMITIVETYPE dptPrimitiveType, DWO
 
 	if (Config.Dd7to9)
 	{
-		LOG_LIMIT(100, __FUNCTION__ << " Not Implemented");
-		return DDERR_UNSUPPORTED;
+		// Check for device interface
+		if (FAILED(CheckInterface(__FUNCTION__, true)))
+		{
+			Logging::Log() << __FUNCTION__ " Error: no ddrawParent";
+			return DDERR_GENERIC;
+		}
+
+		// dwFlags (D3DDP_WAIT) can be ignored safely
+
+		// Set fixed function vertex type
+		(*d3d9Device)->SetFVF(dwVertexTypeDesc);
+
+		// Draw primitive UP
+		return (*d3d9Device)->DrawPrimitiveUP(dptPrimitiveType, dwVertexCount, lpVertices, GetVertexStride(dwVertexTypeDesc));
 	}
 
 	switch (ProxyDirectXVersion)
@@ -1889,4 +1952,31 @@ HRESULT m_IDirect3DDeviceX::CheckInterface(char *FunctionName, bool CheckD3DDevi
 	}
 
 	return DD_OK;
+}
+
+UINT m_IDirect3DDeviceX::GetVertexStride(DWORD dwVertexTypeDesc)
+{
+	return
+		((dwVertexTypeDesc & D3DFVF_POSITION_MASK) ? sizeof(DWORD) : 0) +
+		((dwVertexTypeDesc & D3DFVF_XYZ) ? sizeof(float) * 3 : 0) +
+		((dwVertexTypeDesc & D3DFVF_XYZRHW) ? sizeof(float) * 4 : 0) +
+		((dwVertexTypeDesc & D3DFVF_XYZB1) ? sizeof(float) * 4 : 0) +
+		((dwVertexTypeDesc & D3DFVF_XYZB2) ? sizeof(float) * 5 : 0) +
+		((dwVertexTypeDesc & D3DFVF_XYZB3) ? sizeof(float) * 6 : 0) +
+		((dwVertexTypeDesc & D3DFVF_XYZB4) ? sizeof(float) * 7 : 0) +
+		((dwVertexTypeDesc & D3DFVF_XYZB5) ? sizeof(float) * 8 : 0) +
+		((dwVertexTypeDesc & D3DFVF_NORMAL) ? sizeof(float) * 3 : 0) +
+		((dwVertexTypeDesc & D3DFVF_DIFFUSE) ? sizeof(DWORD) : 0) +
+		((dwVertexTypeDesc & D3DFVF_SPECULAR) ? sizeof(DWORD) : 0) +
+		((dwVertexTypeDesc & D3DFVF_TEXCOUNT_MASK) ? sizeof(DWORD) : 0) +
+		((dwVertexTypeDesc & D3DFVF_TEXCOUNT_SHIFT) ? sizeof(DWORD) : 0) +
+		((dwVertexTypeDesc & D3DFVF_TEX1) ? sizeof(float) * 2 : 0) +
+		((dwVertexTypeDesc & D3DFVF_TEX2) ? sizeof(float) * 4 : 0) +
+		((dwVertexTypeDesc & D3DFVF_TEX3) ? sizeof(float) * 6 : 0) +
+		((dwVertexTypeDesc & D3DFVF_TEX4) ? sizeof(float) * 8 : 0) +
+		((dwVertexTypeDesc & D3DFVF_TEX5) ? sizeof(float) * 10 : 0) +
+		((dwVertexTypeDesc & D3DFVF_TEX6) ? sizeof(float) * 12 : 0) +
+		((dwVertexTypeDesc & D3DFVF_TEX7) ? sizeof(float) * 14 : 0) +
+		((dwVertexTypeDesc & D3DFVF_TEX8) ? sizeof(float) * 16 : 0) +
+		0;
 }

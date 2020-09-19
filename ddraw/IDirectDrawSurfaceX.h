@@ -43,6 +43,7 @@ private:
 	m_IDirectDrawX *ddrawParent = nullptr;
 	m_IDirectDrawPalette *attachedPalette = nullptr;	// Associated palette
 	m_IDirectDrawClipper *attachedClipper = nullptr;	// Associated clipper
+	m_IDirect3DTextureX *attachedTexture = nullptr;		// Associated texture
 	DDSURFACEDESC2 surfaceDesc2 = { NULL };				// Surface description for this surface
 	D3DFORMAT surfaceFormat = D3DFMT_UNKNOWN;			// Format for this surface
 	DWORD surfaceBitCount = 0;							// Bit count for this surface
@@ -336,8 +337,11 @@ public:
 
 	// Surface information functions
 	bool IsPrimarySurface() { return (surfaceDesc2.ddsCaps.dwCaps & DDSCAPS_PRIMARYSURFACE) != 0; }
+	bool IsTexture() { return (surfaceDesc2.ddsCaps.dwCaps & DDSCAPS_TEXTURE) != 0; }
 	bool IsSurfaceManaged() { return (surfaceDesc2.ddsCaps.dwCaps2 & (DDSCAPS2_TEXTUREMANAGE | DDSCAPS2_D3DTEXTUREMANAGE)) != 0; }
 	LPDIRECT3DSURFACE9 Get3DSurface();
+	LPDIRECT3DTEXTURE9 Get3DTexture();
+	void ClearTexture() { attachedTexture = nullptr; }
 
 	// Attached surfaces
 	void RemoveAttachedSurfaceFromMap(m_IDirectDrawSurfaceX* lpSurfaceX);
