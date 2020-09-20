@@ -76,17 +76,23 @@ void ConvertSurfaceDesc(DDSURFACEDESC &Desc, DDSURFACEDESC2 &Desc2)
 	Desc.ddckCKDestBlt = Desc2.ddckCKDestBlt;
 	Desc.ddckCKSrcOverlay = Desc2.ddckCKSrcOverlay;
 	Desc.ddckCKSrcBlt = Desc2.ddckCKSrcBlt;
-	if (Desc.dwFlags & DDSD_PIXELFORMAT)
+	if (Desc2.dwFlags & DDSD_PIXELFORMAT)
 	{
 		Desc.ddpfPixelFormat.dwSize = sizeof(DDPIXELFORMAT);
-		Desc2.ddpfPixelFormat.dwSize = sizeof(DDPIXELFORMAT);
 		ConvertPixelFormat(Desc.ddpfPixelFormat, Desc2.ddpfPixelFormat);
+	}
+	if (Desc2.ddpfPixelFormat.dwFlags & DDPF_ZBUFFER)
+	{
+		Desc.dwFlags |= DDSD_ZBUFFERBITDEPTH;
+		Desc.dwZBufferBitDepth = Desc2.ddpfPixelFormat.dwZBufferBitDepth;
+		Desc.ddpfPixelFormat.dwFlags &= ~DDPF_ZBUFFER;
+		Desc.ddpfPixelFormat.dwZBufferBitDepth = 0;
 	}
 	ConvertCaps(Desc.ddsCaps, Desc2.ddsCaps);
 	// Check for dwFlags that did not get converted
-	if (Desc.dwFlags != Desc2.dwFlags)
+	if ((Desc.dwFlags & ~DDSD_ZBUFFERBITDEPTH) != Desc2.dwFlags)
 	{
-		LOG_LIMIT(100, __FUNCTION__ << " Error! Removing unsupported flags: " << Logging::hex(Desc2.dwFlags & ~Desc.dwFlags));
+		LOG_LIMIT(100, __FUNCTION__ << " Error! (Desc2->Desc) Removing unsupported flags: " << Logging::hex(Desc2.dwFlags & ~Desc.dwFlags));
 	}
 }
 
@@ -115,19 +121,24 @@ void ConvertSurfaceDesc(DDSURFACEDESC2 &Desc2, DDSURFACEDESC &Desc)
 	Desc2.ddckCKDestBlt = Desc.ddckCKDestBlt;
 	Desc2.ddckCKSrcOverlay = Desc.ddckCKSrcOverlay;
 	Desc2.ddckCKSrcBlt = Desc.ddckCKSrcBlt;
-	if (Desc2.dwFlags & DDSD_PIXELFORMAT)
+	if (Desc.dwFlags & DDSD_PIXELFORMAT)
 	{
-		Desc.ddpfPixelFormat.dwSize = sizeof(DDPIXELFORMAT);
 		Desc2.ddpfPixelFormat.dwSize = sizeof(DDPIXELFORMAT);
 		ConvertPixelFormat(Desc2.ddpfPixelFormat, Desc.ddpfPixelFormat);
+	}
+	if (Desc.dwFlags & DDSD_ZBUFFERBITDEPTH)
+	{
+		Desc2.ddpfPixelFormat.dwFlags |= DDPF_ZBUFFER;
+		Desc2.ddpfPixelFormat.dwZBufferBitDepth = Desc.dwZBufferBitDepth;
+		Desc2.dwRefreshRate = 0;	// Union with dwZBufferBitDepth
 	}
 	ConvertCaps(Desc2.ddsCaps, Desc.ddsCaps);
 	// Extra parameters
 	Desc2.dwTextureStage = 0;			// Stage identifier that is used to bind a texture to a specific stage
 										// Check for dwFlags that did not get converted
-	if (Desc2.dwFlags != Desc.dwFlags)
+	if (Desc2.dwFlags != (Desc.dwFlags & ~DDSD_ZBUFFERBITDEPTH))
 	{
-		LOG_LIMIT(100, __FUNCTION__ << " Error! Removing unsupported flags: " << Logging::hex(Desc.dwFlags & ~Desc2.dwFlags));
+		LOG_LIMIT(100, __FUNCTION__ << " Error! (Desc->Desc2) Removing unsupported flags: " << Logging::hex(Desc.dwFlags & ~Desc2.dwFlags));
 	}
 }
 
