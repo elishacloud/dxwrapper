@@ -1333,8 +1333,44 @@ HRESULT m_IDirect3DDeviceX::GetLightState(D3DLIGHTSTATETYPE dwLightStateType, LP
 
 	if (ProxyDirectXVersion > 3)
 	{
-		LOG_LIMIT(100, __FUNCTION__ << " Not Implemented");
-		return DDERR_UNSUPPORTED;
+		if (dwLightStateType == D3DLIGHTSTATE_MATERIAL || dwLightStateType == D3DLIGHTSTATE_COLORMODEL)
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " LightStateType: " << dwLightStateType << " Not Implemented");
+			return DDERR_UNSUPPORTED;
+		}
+
+		DWORD RenderState = 0;
+		switch (dwLightStateType)
+		{
+		case D3DLIGHTSTATE_AMBIENT:
+			RenderState = D3DRENDERSTATE_AMBIENT;
+			break;
+		case D3DLIGHTSTATE_FOGMODE:
+			RenderState = D3DRENDERSTATE_FOGVERTEXMODE;
+			break;
+		case D3DLIGHTSTATE_FOGSTART:
+			RenderState = D3DRENDERSTATE_FOGSTART;
+			break;
+		case D3DLIGHTSTATE_FOGEND:
+			RenderState = D3DRENDERSTATE_FOGEND;
+			break;
+		case D3DLIGHTSTATE_FOGDENSITY:
+			RenderState = D3DRENDERSTATE_FOGDENSITY;
+			break;
+		case D3DLIGHTSTATE_COLORVERTEX:
+			RenderState = D3DRENDERSTATE_COLORVERTEX;
+			break;
+		default:
+			break;
+		}
+
+		if (!RenderState)
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: unknown LightStateType: " << dwLightStateType);
+			return DDERR_HEIGHTALIGN;
+		}
+
+		return GetRenderState((D3DRENDERSTATETYPE)RenderState, lpdwLightState);
 	}
 
 	switch (ProxyDirectXVersion)
@@ -1355,8 +1391,44 @@ HRESULT m_IDirect3DDeviceX::SetLightState(D3DLIGHTSTATETYPE dwLightStateType, DW
 
 	if (ProxyDirectXVersion > 3)
 	{
-		LOG_LIMIT(100, __FUNCTION__ << " Not Implemented");
-		return DDERR_UNSUPPORTED;
+		if (dwLightStateType == D3DLIGHTSTATE_MATERIAL || dwLightStateType == D3DLIGHTSTATE_COLORMODEL)
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " LightStateType: " << dwLightStateType << " Not Implemented");
+			return DDERR_UNSUPPORTED;
+		}
+
+		DWORD RenderState = 0;
+		switch (dwLightStateType)
+		{
+		case D3DLIGHTSTATE_AMBIENT:
+			RenderState = D3DRENDERSTATE_AMBIENT;
+			break;
+		case D3DLIGHTSTATE_FOGMODE:
+			RenderState = D3DRENDERSTATE_FOGVERTEXMODE;
+			break;
+		case D3DLIGHTSTATE_FOGSTART:
+			RenderState = D3DRENDERSTATE_FOGSTART;
+			break;
+		case D3DLIGHTSTATE_FOGEND:
+			RenderState = D3DRENDERSTATE_FOGEND;
+			break;
+		case D3DLIGHTSTATE_FOGDENSITY:
+			RenderState = D3DRENDERSTATE_FOGDENSITY;
+			break;
+		case D3DLIGHTSTATE_COLORVERTEX:
+			RenderState = D3DRENDERSTATE_COLORVERTEX;
+			break;
+		default:
+			break;
+		}
+
+		if (!RenderState)
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: unknown LightStateType: " << dwLightStateType);
+			return DDERR_HEIGHTALIGN;
+		}
+
+		return SetRenderState((D3DRENDERSTATETYPE)RenderState, dwLightState);
 	}
 
 	switch (ProxyDirectXVersion)
@@ -1567,6 +1639,10 @@ HRESULT m_IDirect3DDeviceX::DrawPrimitive(D3DPRIMITIVETYPE dptPrimitiveType, DWO
 
 		// dwFlags (D3DDP_WAIT) can be ignored safely
 
+		// ToDo: In DirectX7 By default, Direct3D performs lighting calculations on all vertices, even those without vertex normals.
+		// (This is different from the behavior in previous releases of DirectX, where lighting was performed only on vertices that contained a vertex normal.)
+		// Update all Draw functions
+
 		// Set fixed function vertex type
 		(*d3d9Device)->SetFVF(dwVertexTypeDesc);
 
@@ -1594,6 +1670,12 @@ HRESULT m_IDirect3DDeviceX::DrawPrimitiveStrided(D3DPRIMITIVETYPE dptPrimitiveTy
 
 	if (Config.Dd7to9)
 	{
+		// dwFlags (D3DDP_WAIT) can be ignored safely
+
+		// ToDo: In DirectX7 By default, Direct3D performs lighting calculations on all vertices, even those without vertex normals.
+		// (This is different from the behavior in previous releases of DirectX, where lighting was performed only on vertices that contained a vertex normal.)
+		// Update all Draw functions
+
 		LOG_LIMIT(100, __FUNCTION__ << " Not Implemented");
 		return DDERR_UNSUPPORTED;
 	}
@@ -1617,6 +1699,12 @@ HRESULT m_IDirect3DDeviceX::DrawPrimitiveVB(D3DPRIMITIVETYPE d3dptPrimitiveType,
 
 	if (Config.Dd7to9)
 	{
+		// dwFlags (D3DDP_WAIT) can be ignored safely
+
+		// ToDo: In DirectX7 By default, Direct3D performs lighting calculations on all vertices, even those without vertex normals.
+		// (This is different from the behavior in previous releases of DirectX, where lighting was performed only on vertices that contained a vertex normal.)
+		// Update all Draw functions
+
 		LOG_LIMIT(100, __FUNCTION__ << " Not Implemented");
 		return DDERR_UNSUPPORTED;
 	}
@@ -1648,6 +1736,12 @@ HRESULT m_IDirect3DDeviceX::DrawIndexedPrimitive(D3DPRIMITIVETYPE dptPrimitiveTy
 		// Check for device interface
 		if (FAILED(CheckInterface(__FUNCTION__, true)))
 		{
+			// dwFlags (D3DDP_WAIT) can be ignored safely
+
+			// ToDo: In DirectX7 By default, Direct3D performs lighting calculations on all vertices, even those without vertex normals.
+			// (This is different from the behavior in previous releases of DirectX, where lighting was performed only on vertices that contained a vertex normal.)
+			// Update all Draw functions
+
 			Logging::Log() << __FUNCTION__ " Error: no ddrawParent";
 			return DDERR_GENERIC;
 		}
@@ -1681,6 +1775,12 @@ HRESULT m_IDirect3DDeviceX::DrawIndexedPrimitiveStrided(D3DPRIMITIVETYPE d3dptPr
 
 	if (Config.Dd7to9)
 	{
+		// dwFlags (D3DDP_WAIT) can be ignored safely
+
+		// ToDo: In DirectX7 By default, Direct3D performs lighting calculations on all vertices, even those without vertex normals.
+		// (This is different from the behavior in previous releases of DirectX, where lighting was performed only on vertices that contained a vertex normal.)
+		// Update all Draw functions
+
 		LOG_LIMIT(100, __FUNCTION__ << " Not Implemented");
 		return DDERR_UNSUPPORTED;
 	}
@@ -1704,6 +1804,12 @@ HRESULT m_IDirect3DDeviceX::DrawIndexedPrimitiveVB(D3DPRIMITIVETYPE d3dptPrimiti
 
 	if (Config.Dd7to9)
 	{
+		// dwFlags (D3DDP_WAIT) can be ignored safely
+
+		// ToDo: In DirectX7 By default, Direct3D performs lighting calculations on all vertices, even those without vertex normals.
+		// (This is different from the behavior in previous releases of DirectX, where lighting was performed only on vertices that contained a vertex normal.)
+		// Update all Draw functions
+
 		LOG_LIMIT(100, __FUNCTION__ << " Not Implemented");
 		return DDERR_UNSUPPORTED;
 	}
