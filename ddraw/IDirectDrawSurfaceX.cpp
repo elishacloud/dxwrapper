@@ -2709,8 +2709,9 @@ HRESULT m_IDirectDrawSurfaceX::CreateD3d9Surface()
 	}
 
 	// Get width and height
-	DWORD BackBufferWidth = displayWidth;
-	DWORD BackBufferHeight = displayHeight;
+	bool displayflag = (surfaceDesc2.dwWidth < displayWidth) && (surfaceDesc2.dwHeight < displayHeight);
+	DWORD BackBufferWidth = (displayflag) ? displayWidth : surfaceDesc2.dwWidth;
+	DWORD BackBufferHeight = (displayflag) ? displayHeight : surfaceDesc2.dwHeight;
 	if (!BackBufferWidth || !BackBufferHeight)
 	{
 		Utils::GetScreenSize(ddrawParent->GetHwnd(), BackBufferWidth, BackBufferHeight);
