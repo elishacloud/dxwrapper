@@ -78,8 +78,8 @@ void ConvertSurfaceDesc(DDSURFACEDESC &Desc, DDSURFACEDESC2 &Desc2)
 	Desc.ddckCKSrcBlt = Desc2.ddckCKSrcBlt;
 	if (Desc2.dwFlags & DDSD_PIXELFORMAT)
 	{
+		CopyMemory(&Desc.ddpfPixelFormat, &Desc2.ddpfPixelFormat, sizeof(DDPIXELFORMAT));
 		Desc.ddpfPixelFormat.dwSize = sizeof(DDPIXELFORMAT);
-		ConvertPixelFormat(Desc.ddpfPixelFormat, Desc2.ddpfPixelFormat);
 	}
 	if (Desc2.ddpfPixelFormat.dwFlags & DDPF_ZBUFFER)
 	{
@@ -123,8 +123,8 @@ void ConvertSurfaceDesc(DDSURFACEDESC2 &Desc2, DDSURFACEDESC &Desc)
 	Desc2.ddckCKSrcBlt = Desc.ddckCKSrcBlt;
 	if (Desc.dwFlags & DDSD_PIXELFORMAT)
 	{
+		CopyMemory(&Desc2.ddpfPixelFormat, &Desc.ddpfPixelFormat, sizeof(DDPIXELFORMAT));
 		Desc2.ddpfPixelFormat.dwSize = sizeof(DDPIXELFORMAT);
-		ConvertPixelFormat(Desc2.ddpfPixelFormat, Desc.ddpfPixelFormat);
 	}
 	if (Desc.dwFlags & DDSD_ZBUFFERBITDEPTH)
 	{

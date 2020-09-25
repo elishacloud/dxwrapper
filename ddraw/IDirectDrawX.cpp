@@ -34,6 +34,7 @@ HWND MainhWnd = nullptr;
 HDC MainhDC = nullptr;
 
 // Exclusive mode
+bool WasResolutionChanged;
 bool ExclusiveMode;
 HWND ExclusiveHwnd;
 DWORD ExclusiveWidth;
@@ -1121,6 +1122,13 @@ HRESULT m_IDirectDrawX::RestoreDisplayMode()
 		// Release existing d3d9device
 		ReleaseD3d9Device();
 
+		// Reset screen settings
+		if (WasResolutionChanged)
+		{
+			WasResolutionChanged = false;
+			ChangeDisplaySettingsEx(nullptr, nullptr, nullptr, CDS_RESET, nullptr);
+		}
+
 		return DD_OK;
 	}
 
@@ -1343,20 +1351,25 @@ HRESULT m_IDirectDrawX::SetDisplayMode(DWORD dwWidth, DWORD dwHeight, DWORD dwBP
 			ExclusiveRefreshRate = NewRefreshRate;
 		}
 
+		if ((!Config.EnableWindowMode || Config.FullscreenWindowMode) && ExclusiveMode && dwWidth && dwHeight)
+		{
+			DEVMODE newSettings;
+			ZeroMemory(&newSettings, sizeof(newSettings));
+			if (EnumDisplaySettings(nullptr, ENUM_CURRENT_SETTINGS, &newSettings))
+			{
+				WasResolutionChanged = true;
+				newSettings.dmPelsWidth = dwWidth;
+				newSettings.dmPelsHeight = dwHeight;
+				newSettings.dmFields = DM_PELSWIDTH | DM_PELSHEIGHT;
+				ChangeDisplaySettings(&newSettings, CDS_FULLSCREEN);
+				Sleep(0);	// Allow WndProcs to complete if needed
+			}
+		}
+
 		// Update the d3d9 device to use new display mode
 		if (ChangeMode)
 		{
 			CreateD3D9Device();
-
-			SetCriticalSection();
-
-			// Reset surfaces
-			for (m_IDirectDrawSurfaceX *pSurface : SurfaceVector)
-			{
-				pSurface->ResetSurfaceDisplay();
-			}
-
-			ReleaseCriticalSection();
 		}
 
 		ResetDisplayMode = false;
@@ -1734,6 +1747,7 @@ void m_IDirectDrawX::InitDdraw()
 		MainhDC = nullptr;
 
 		// Exclusive mode
+		WasResolutionChanged = false;
 		ExclusiveMode = false;
 		ExclusiveHwnd = nullptr;
 		ExclusiveWidth = 0;
@@ -1880,20 +1894,16 @@ void m_IDirectDrawX::ReleaseDdraw()
 		if (d3d9Device)
 		{
 			// EndEcene
-			if (IsInScene)
-			{
-				d3d9Device->EndScene();
-			}
+			IsInScene = false;
+			d3d9Device->EndScene();
 
-			d3d9Device->Release();
-			d3d9Device = nullptr;
+			ReleaseD9Interface(&d3d9Device);
 		}
 
 		// Release d3d9object
 		if (d3d9Object)
 		{
-			d3d9Object->Release();
-			d3d9Object = nullptr;
+			ReleaseD9Interface(&d3d9Object);
 		}
 
 		// Release DC
@@ -1905,6 +1915,13 @@ void m_IDirectDrawX::ReleaseDdraw()
 
 		// Clean up shared memory
 		m_IDirectDrawSurfaceX::CleanupSharedEmulatedMemory();
+
+		// Reset screen settings
+		if (WasResolutionChanged)
+		{
+			WasResolutionChanged = false;
+			ChangeDisplaySettingsEx(nullptr, nullptr, nullptr, CDS_RESET, nullptr);
+		}
 	}
 
 	ReleaseCriticalSection();
@@ -2064,13 +2081,10 @@ HRESULT m_IDirectDrawX::CreateD3D9Device()
 		if (d3d9Device)
 		{
 			// EndEcene
-			if (IsInScene)
-			{
-				d3d9Device->EndScene();
-			}
+			IsInScene = false;
+			d3d9Device->EndScene();
 
-			d3d9Device->Release();
-			d3d9Device = nullptr;
+			ReleaseD9Interface(&d3d9Device);
 		}
 
 		// Reset BeginScene
@@ -2281,6 +2295,29 @@ HRESULT m_IDirectDrawX::ReinitDevice()
 	return DD_OK;
 }
 
+template <typename T>
+void m_IDirectDrawX::ReleaseD9Interface(T **ppInterface)
+{
+	if (ppInterface && *ppInterface)
+	{
+		DWORD x = 0, z = 0;
+		do
+		{
+			z = (*ppInterface)->Release();
+		} while (z != 0 && ++x < 100);
+
+		// Error checking
+		if (z != 0)
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: failed to release Direct3D9 interface");
+		}
+		else
+		{
+			*ppInterface = nullptr;
+		}
+	}
+}
+
 // Release all surfaces from all ddraw devices
 void m_IDirectDrawX::ReleaseAllDirectDrawD9Surfaces()
 {
@@ -2322,8 +2359,7 @@ void m_IDirectDrawX::ReleaseD3d9Device()
 			d3d9Device->EndScene();
 		}
 
-		d3d9Device->Release();
-		d3d9Device = nullptr;
+		ReleaseD9Interface(&d3d9Device);
 	}
 
 	// Set is not in scene

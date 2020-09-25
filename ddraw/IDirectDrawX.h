@@ -60,6 +60,9 @@ private:
 	IDirectDraw4 *GetProxyInterfaceV4() { return (IDirectDraw4 *)ProxyInterface; }
 	IDirectDraw7 *GetProxyInterfaceV7() { return ProxyInterface; }
 
+	template <typename T>
+	void ReleaseD9Interface(T **ppInterface);
+
 	// Interface initialization functions
 	void InitDdraw();
 	void ReleaseDdraw();

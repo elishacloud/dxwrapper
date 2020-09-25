@@ -3021,8 +3021,10 @@ void m_IDirectDrawSurfaceX::ReleaseD9Interface(T **ppInterface)
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Error: failed to release Direct3D9 interface");
 		}
-
-		(*ppInterface) = nullptr;
+		else
+		{
+			*ppInterface = nullptr;
+		}
 	}
 }
 
@@ -3065,8 +3067,8 @@ void m_IDirectDrawSurfaceX::ReleaseD9Surface(bool BackupData)
 	if (contextSurface)
 	{
 		Logging::LogDebug() << __FUNCTION__ << " Releasing Direct3D9 context surface";
-		contextSurface->Release();
-		contextSurface = nullptr;
+		contextSurface->UnlockRect();
+		ReleaseD9Interface(&contextSurface);
 	}
 
 	// Release d3d9 surface texture
@@ -3081,6 +3083,7 @@ void m_IDirectDrawSurfaceX::ReleaseD9Surface(bool BackupData)
 	if (displayTexture)
 	{
 		Logging::LogDebug() << __FUNCTION__ << " Releasing Direct3D9 display texture surface";
+		displayTexture->UnlockRect(0);
 		ReleaseD9Interface(&displayTexture);
 	}
 
