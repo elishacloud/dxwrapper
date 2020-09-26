@@ -1327,6 +1327,48 @@ HRESULT m_IDirectDrawX::SetDisplayMode(DWORD dwWidth, DWORD dwHeight, DWORD dwBP
 
 		if (ResetDisplayMode || displayModeWidth != NewWidth || displayModeHeight != NewHeight || displayModeBPP != NewBPP || displayModeRefreshRate != NewRefreshRate)
 		{
+			// Check if it is a supported resolution
+			if ((!Config.EnableWindowMode || Config.FullscreenWindowMode) && ExclusiveMode)
+			{
+				// Check for device interface
+				if (FAILED(CheckInterface(__FUNCTION__, false)))
+				{
+					return DDERR_GENERIC;
+				}
+
+				// Enumerate modes for format XRGB
+				UINT modeCount = d3d9Object->GetAdapterModeCount(D3DADAPTER_DEFAULT, D3DFMT_X8R8G8B8);
+
+				D3DDISPLAYMODE d3ddispmode;
+				bool modeFound = false;
+
+				// Loop through all modes looking for our requested resolution
+				for (UINT i = 0; i < modeCount; i++)
+				{
+					// Get display modes here
+					ZeroMemory(&d3ddispmode, sizeof(D3DDISPLAYMODE));
+					if (FAILED(d3d9Object->EnumAdapterModes(D3DADAPTER_DEFAULT, D3DFMT_X8R8G8B8, i, &d3ddispmode)))
+					{
+						LOG_LIMIT(100, __FUNCTION__ << " Error: EnumAdapterModes failed");
+						break;
+					}
+					// Check height and width
+					if ((d3ddispmode.Width == dwWidth && d3ddispmode.Height == dwHeight) ||
+						((d3ddispmode.Width == 320 || d3ddispmode.Width == 640) && d3ddispmode.Width == dwWidth && d3ddispmode.Height == dwHeight + (dwHeight / 5)) ||
+						(d3ddispmode.Width == 640 && d3ddispmode.Height == 480 && (dwWidth == 320 && (dwHeight == 200 || dwHeight == 240))))
+					{
+						modeFound = true;
+						break;
+					}
+				}
+
+				// Mode not found
+				if (!modeFound)
+				{
+					return DDERR_INVALIDMODE;
+				}
+			}
+
 			ChangeMode = true;
 			displayModeWidth = NewWidth;
 			displayModeHeight = NewHeight;
@@ -1351,24 +1393,29 @@ HRESULT m_IDirectDrawX::SetDisplayMode(DWORD dwWidth, DWORD dwHeight, DWORD dwBP
 			ExclusiveRefreshRate = NewRefreshRate;
 		}
 
-		if ((!Config.EnableWindowMode || Config.FullscreenWindowMode) && ExclusiveMode && dwWidth && dwHeight)
-		{
-			DEVMODE newSettings;
-			ZeroMemory(&newSettings, sizeof(newSettings));
-			if (EnumDisplaySettings(nullptr, ENUM_CURRENT_SETTINGS, &newSettings))
-			{
-				WasResolutionChanged = true;
-				newSettings.dmPelsWidth = dwWidth;
-				newSettings.dmPelsHeight = dwHeight;
-				newSettings.dmFields = DM_PELSWIDTH | DM_PELSHEIGHT;
-				ChangeDisplaySettings(&newSettings, CDS_FULLSCREEN);
-				Sleep(0);	// Allow WndProcs to complete if needed
-			}
-		}
-
 		// Update the d3d9 device to use new display mode
 		if (ChangeMode)
 		{
+			if ((!Config.EnableWindowMode || Config.FullscreenWindowMode) && ExclusiveMode)
+			{
+				// Set new resolution
+				DEVMODE newSettings;
+				ZeroMemory(&newSettings, sizeof(newSettings));
+				if (EnumDisplaySettings(nullptr, ENUM_CURRENT_SETTINGS, &newSettings))
+				{
+					WasResolutionChanged = true;
+					newSettings.dmPelsWidth = displayWidth;
+					newSettings.dmPelsHeight = displayHeight;
+					newSettings.dmFields = DM_PELSWIDTH | DM_PELSHEIGHT;
+					ChangeDisplaySettings(&newSettings, CDS_FULLSCREEN);
+				}
+
+				// Send display change message
+				DWORD bpp = displayModeBPP;
+				DWORD res = (WORD)displayWidth | ((WORD)displayHeight << 16);
+				SendMessage(GetHwnd(), WM_DISPLAYCHANGE, (WPARAM)bpp, (LPARAM)res);
+			}
+
 			CreateD3D9Device();
 		}
 
@@ -2131,6 +2178,10 @@ HRESULT m_IDirectDrawX::CreateD3D9Device()
 			}
 		}
 
+		// Get current resolution
+		DWORD CurrentWidth, CurrentHeight;
+		Utils::GetScreenSize(hWnd, CurrentWidth, CurrentHeight);
+
 		// Set display window
 		ZeroMemory(&presParams, sizeof(presParams));
 
@@ -2246,6 +2297,18 @@ HRESULT m_IDirectDrawX::CreateD3D9Device()
 		{
 			WINDOWPOS winpos = { nullptr, hWnd, 0, 0, (int)presParams.BackBufferWidth, (int)presParams.BackBufferHeight, WM_NULL };
 			SendMessage(hWnd, WM_WINDOWPOSCHANGED, (WPARAM)TRUE, (LPARAM)&winpos);
+
+			// Get new resolution
+			DWORD NewWidth, NewHeight;
+			Utils::GetScreenSize(hWnd, NewWidth, NewHeight);
+
+			// Set display change message
+			if (NewWidth != CurrentWidth || NewHeight != CurrentHeight)
+			{
+				DWORD bpp = displayModeBPP;
+				DWORD res = (WORD)NewWidth | ((WORD)NewHeight << 16);
+				SendMessage(hWnd, WM_DISPLAYCHANGE, (WPARAM)bpp, (LPARAM)res);
+			}
 		}
 
 		// Store display frequency
@@ -2682,10 +2745,10 @@ HRESULT m_IDirectDrawX::EndScene()
 			// Use last frame time and average frame time to decide if next frame will be less than the screen frequency timer
 			if (CounterFlag && (deltaPresentMS + (deltaFrameMS * 1.1f) < MaxScreenTimer) && (deltaPresentMS + ((deltaPresentMS / FrameCounter) * 1.1f) < MaxScreenTimer))
 			{
-				Logging::LogDebug() << __func__ << " Skipping frame " << deltaPresentMS << "ms screen frequancy " << MaxScreenTimer;
+				Logging::LogDebug() << __FUNCTION__ << " Skipping frame " << deltaPresentMS << "ms screen frequancy " << MaxScreenTimer;
 				return D3D_OK;
 			}
-			Logging::LogDebug() << __func__ << " Drawing frame " << deltaPresentMS << "ms screen frequancy " << MaxScreenTimer;
+			Logging::LogDebug() << __FUNCTION__ << " Drawing frame " << deltaPresentMS << "ms screen frequancy " << MaxScreenTimer;
 		}
 	}
 
