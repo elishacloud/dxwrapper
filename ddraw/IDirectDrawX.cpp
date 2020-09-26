@@ -1311,7 +1311,7 @@ HRESULT m_IDirectDrawX::SetDisplayMode(DWORD dwWidth, DWORD dwHeight, DWORD dwBP
 
 	if (Config.Dd7to9)
 	{
-		if (!dwWidth || !dwHeight || !dwBPP)
+		if (!dwWidth || !dwHeight || (dwBPP != 8 && dwBPP != 16 && dwBPP != 24 && dwBPP != 32))
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Error! Invalid parameters. " << dwWidth << "x" << dwHeight << " " << dwBPP);
 			return DDERR_INVALIDPARAMS;
@@ -1396,7 +1396,7 @@ HRESULT m_IDirectDrawX::SetDisplayMode(DWORD dwWidth, DWORD dwHeight, DWORD dwBP
 		// Update the d3d9 device to use new display mode
 		if (ChangeMode)
 		{
-			if ((!Config.EnableWindowMode || Config.FullscreenWindowMode) && ExclusiveMode)
+			if (IsWindow(GetHwnd()) && (!Config.EnableWindowMode || Config.FullscreenWindowMode) && ExclusiveMode && displayModeBPP && displayWidth && displayHeight)
 			{
 				// Set new resolution
 				DEVMODE newSettings;
@@ -2303,9 +2303,9 @@ HRESULT m_IDirectDrawX::CreateD3D9Device()
 			Utils::GetScreenSize(hWnd, NewWidth, NewHeight);
 
 			// Set display change message
-			if (NewWidth != CurrentWidth || NewHeight != CurrentHeight)
+			if ((NewWidth != CurrentWidth || NewHeight != CurrentHeight) && NewWidth && NewHeight)
 			{
-				DWORD bpp = displayModeBPP;
+				DWORD bpp = (displayModeBPP) ? displayModeBPP : 32;
 				DWORD res = (WORD)NewWidth | ((WORD)NewHeight << 16);
 				SendMessage(hWnd, WM_DISPLAYCHANGE, (WPARAM)bpp, (LPARAM)res);
 			}
