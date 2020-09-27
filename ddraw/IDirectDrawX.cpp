@@ -1118,6 +1118,7 @@ HRESULT m_IDirectDrawX::RestoreDisplayMode()
 		displayModeHeight = 0;
 		displayModeBPP = 0;
 		displayModeRefreshRate = 0;
+		isWindowed = true;
 
 		// Release existing d3d9device
 		ReleaseD3d9Device();
@@ -1205,7 +1206,6 @@ HRESULT m_IDirectDrawX::SetCooperativeLevel(HWND hWnd, DWORD dwFlags)
 				ExclusiveRefreshRate = 0;
 				ChangeMode = true;
 			}
-			isWindowed = true;
 		}
 		else if (dwFlags & DDSCL_FULLSCREEN)
 		{
@@ -1218,7 +1218,6 @@ HRESULT m_IDirectDrawX::SetCooperativeLevel(HWND hWnd, DWORD dwFlags)
 			{
 				ChangeMode = true;
 			}
-			isWindowed = false;
 			ExclusiveMode = true;
 			ExclusiveHwnd = hWnd;
 		}
@@ -1374,6 +1373,7 @@ HRESULT m_IDirectDrawX::SetDisplayMode(DWORD dwWidth, DWORD dwHeight, DWORD dwBP
 			displayModeHeight = NewHeight;
 			displayModeBPP = NewBPP;
 			displayModeRefreshRate = NewRefreshRate;
+			isWindowed = !ExclusiveMode;
 
 			// Display resolution
 			if (SetDefaultDisplayMode)
