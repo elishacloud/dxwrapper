@@ -248,12 +248,25 @@ HRESULT m_IDirect3DDeviceX::SetTransform(D3DTRANSFORMSTATETYPE dtstTransformStat
 			return DDERR_GENERIC;
 		}
 
-		if (dtstTransformStateType == D3DTRANSFORMSTATE_WORLD || dtstTransformStateType == D3DTRANSFORMSTATE_WORLD1 ||
-			dtstTransformStateType == D3DTRANSFORMSTATE_WORLD2 || dtstTransformStateType == D3DTRANSFORMSTATE_WORLD3)
+		if (!lpD3DMatrix)
 		{
-			// ToDo: convert to D3DTS_WORLDMATRIX
-			LOG_LIMIT(100, __FUNCTION__ << " D3DTRANSFORMSTATE_WORLD state: Not Implemented");
-			return DDERR_UNSUPPORTED;
+			return  DDERR_INVALIDPARAMS;
+		}
+
+		switch ((DWORD)dtstTransformStateType)
+		{
+		case D3DTRANSFORMSTATE_WORLD:
+			dtstTransformStateType = D3DTS_WORLD;
+			break;
+		case D3DTRANSFORMSTATE_WORLD1:
+			dtstTransformStateType = D3DTS_WORLD1;
+			break;
+		case D3DTRANSFORMSTATE_WORLD2:
+			dtstTransformStateType = D3DTS_WORLD2;
+			break;
+		case D3DTRANSFORMSTATE_WORLD3:
+			dtstTransformStateType = D3DTS_WORLD3;
+			break;
 		}
 
 		return (*d3d9Device)->SetTransform(dtstTransformStateType, lpD3DMatrix);
@@ -286,12 +299,25 @@ HRESULT m_IDirect3DDeviceX::GetTransform(D3DTRANSFORMSTATETYPE dtstTransformStat
 			return DDERR_GENERIC;
 		}
 
-		if (dtstTransformStateType == D3DTRANSFORMSTATE_WORLD || dtstTransformStateType == D3DTRANSFORMSTATE_WORLD1 ||
-			dtstTransformStateType == D3DTRANSFORMSTATE_WORLD2 || dtstTransformStateType == D3DTRANSFORMSTATE_WORLD3)
+		if (!lpD3DMatrix)
 		{
-			// ToDo: convert to D3DTS_WORLDMATRIX
-			LOG_LIMIT(100, __FUNCTION__ << " D3DTRANSFORMSTATE_WORLD state: Not Implemented");
-			return DDERR_UNSUPPORTED;
+			return  DDERR_INVALIDPARAMS;
+		}
+
+		switch ((DWORD)dtstTransformStateType)
+		{
+		case D3DTRANSFORMSTATE_WORLD:
+			dtstTransformStateType = D3DTS_WORLD;
+			break;
+		case D3DTRANSFORMSTATE_WORLD1:
+			dtstTransformStateType = D3DTS_WORLD1;
+			break;
+		case D3DTRANSFORMSTATE_WORLD2:
+			dtstTransformStateType = D3DTS_WORLD2;
+			break;
+		case D3DTRANSFORMSTATE_WORLD3:
+			dtstTransformStateType = D3DTS_WORLD3;
+			break;
 		}
 
 		return (*d3d9Device)->GetTransform(dtstTransformStateType, lpD3DMatrix);
