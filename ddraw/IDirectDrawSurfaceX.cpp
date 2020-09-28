@@ -1278,6 +1278,12 @@ HRESULT m_IDirectDrawSurfaceX::GetDC(HDC FAR * lphDC)
 			return DDERR_GENERIC;
 		}
 
+		if (LastDC && IsSurfaceInDC())
+		{
+			*lphDC = LastDC;
+			return DD_OK;
+		}
+
 		if (IsSurfaceInDC())
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Error: does not support getting device context twice!");
@@ -1340,6 +1346,9 @@ HRESULT m_IDirectDrawSurfaceX::GetDC(HDC FAR * lphDC)
 
 		// Set DC flag
 		IsInDC = true;
+
+		// Set LastDC
+		LastDC = *lphDC;
 
 		// Set dirty flag
 		SetDirtyFlag();
@@ -1744,6 +1753,9 @@ HRESULT m_IDirectDrawSurfaceX::ReleaseDC(HDC hDC)
 
 		// Reset DC flag
 		IsInDC = false;
+
+		// Set LastDC
+		LastDC = nullptr;
 
 		// Present surface
 		EndWritePresent();
@@ -3055,6 +3067,12 @@ void m_IDirectDrawSurfaceX::ReleaseD9Surface(bool BackupData)
 		} while (false);
 	}
 
+	// Release DC
+	if (LastDC && IsSurfaceInDC())
+	{
+		ReleaseDC(LastDC);
+	}
+
 	// Release d3d9 3D surface
 	if (surface3D)
 	{
@@ -3128,6 +3146,9 @@ void m_IDirectDrawSurfaceX::ReleaseD9Surface(bool BackupData)
 	// Set flags
 	IsInDC = false;
 	IsLocked = false;
+
+	// Set LastDC
+	LastDC = nullptr;
 
 	// Reset display flags
 	if (ResetDisplayFlags)

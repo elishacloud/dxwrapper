@@ -63,7 +63,9 @@ private:
 	bool PresentOnUnlock = false;
 	bool IsLocked = false;
 	DWORD LockThreadID = 0;
+	RECT LastRect = { 0, 0, 0, 0 };
 	bool IsInDC = false;
+	HDC LastDC = nullptr;
 	bool IsInBlt = false;
 	bool IsInFlip = false;
 	DWORD PaletteUSN = (DWORD)this;		// The USN thats used to see if the palette data was updated
@@ -71,7 +73,6 @@ private:
 	bool PaletteFirstRun = true;
 	bool ClipperFirstRun = true;
 	bool DoCopyRect = false;
-	RECT LastRect = { 0, 0, 0, 0 };
 
 	// Display resolution
 	DWORD displayWidth = 0;								// Width used to override the default application set width
