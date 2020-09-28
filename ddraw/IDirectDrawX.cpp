@@ -1354,7 +1354,8 @@ HRESULT m_IDirectDrawX::SetDisplayMode(DWORD dwWidth, DWORD dwHeight, DWORD dwBP
 					// Check height and width
 					if ((d3ddispmode.Width == dwWidth && d3ddispmode.Height == dwHeight) ||
 						((d3ddispmode.Width == 320 || d3ddispmode.Width == 640) && d3ddispmode.Width == dwWidth && d3ddispmode.Height == dwHeight + (dwHeight / 5)) ||
-						(d3ddispmode.Width == 640 && d3ddispmode.Height == 480 && (dwWidth == 320 && (dwHeight == 200 || dwHeight == 240))))
+						(d3ddispmode.Width == 640 && d3ddispmode.Height == 480 && (dwWidth == 320 && (dwHeight == 200 || dwHeight == 240))) ||
+						(d3ddispmode.Width == 1024 && d3ddispmode.Height == 768 && dwWidth == 512 && dwHeight == 384))
 					{
 						modeFound = true;
 						break;
@@ -2241,7 +2242,8 @@ HRESULT m_IDirectDrawX::CreateD3D9Device()
 					if (((d3ddispmode.Width == 320 || d3ddispmode.Width == 640) &&
 						d3ddispmode.Width == BackBufferWidth && d3ddispmode.Height == BackBufferHeight + (BackBufferHeight / 5)) ||
 						(d3ddispmode.Width == 640 && d3ddispmode.Height == 480 &&
-						(BackBufferWidth == 320 && (BackBufferHeight == 200 || BackBufferHeight == 240))))
+						(BackBufferWidth == 320 && (BackBufferHeight == 200 || BackBufferHeight == 240))) ||
+						(d3ddispmode.Width == 1024 && d3ddispmode.Height == 768 && BackBufferWidth == 512 && BackBufferHeight == 384))
 					{
 						relativeFound = true;
 						memcpy(&set_d3ddispmode, &d3ddispmode, sizeof(D3DDISPLAYMODE));
