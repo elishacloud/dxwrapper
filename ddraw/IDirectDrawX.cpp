@@ -34,7 +34,6 @@ HWND MainhWnd = nullptr;
 HDC MainhDC = nullptr;
 
 // Exclusive mode
-bool WasResolutionChanged;
 bool ExclusiveMode;
 HWND ExclusiveHwnd;
 DWORD ExclusiveWidth;
@@ -43,7 +42,6 @@ DWORD ExclusiveBPP;
 DWORD ExclusiveRefreshRate;
 
 // Application display mode
-bool ResetDisplayMode;
 DWORD displayModeWidth;
 DWORD displayModeHeight;
 DWORD displayModeBPP;
@@ -54,6 +52,7 @@ bool SetDefaultDisplayMode;			// Set native resolution
 DWORD displayWidth;
 DWORD displayHeight;
 DWORD displayRefreshRate;			// Refresh rate for fullscreen
+bool SetResolution;
 
 // Last resolution
 DWORD LastWidth;
@@ -760,14 +759,7 @@ HRESULT m_IDirectDrawX::FlipToGDISurface()
 
 	if (Config.Dd7to9)
 	{
-		if (d3d9Device && FAILED(CreateD3D9Device()))
-		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error: creating Direct3D9 Device");
-			return DDERR_GENERIC;
-		}
-
-		ResetDisplayMode = true;
-
+		// ToDo: Do proper implementation
 		return DD_OK;
 	}
 
@@ -1123,13 +1115,6 @@ HRESULT m_IDirectDrawX::RestoreDisplayMode()
 		// Release existing d3d9device
 		ReleaseD3d9Device();
 
-		// Reset screen settings
-		if (WasResolutionChanged)
-		{
-			WasResolutionChanged = false;
-			ChangeDisplaySettingsEx(nullptr, nullptr, nullptr, CDS_RESET, nullptr);
-		}
-
 		return DD_OK;
 	}
 
@@ -1324,7 +1309,7 @@ HRESULT m_IDirectDrawX::SetDisplayMode(DWORD dwWidth, DWORD dwHeight, DWORD dwBP
 		DWORD NewBPP = (Config.DdrawOverrideBitMode) ? Config.DdrawOverrideBitMode : dwBPP;
 		DWORD NewRefreshRate = dwRefreshRate;
 
-		if (ResetDisplayMode || displayModeWidth != NewWidth || displayModeHeight != NewHeight || displayModeBPP != NewBPP || displayModeRefreshRate != NewRefreshRate)
+		if (displayModeWidth != NewWidth || displayModeHeight != NewHeight || displayModeBPP != NewBPP || displayModeRefreshRate != NewRefreshRate)
 		{
 			// Check if it is a supported resolution
 			if ((!Config.EnableWindowMode || Config.FullscreenWindowMode) && ExclusiveMode)
@@ -1355,6 +1340,7 @@ HRESULT m_IDirectDrawX::SetDisplayMode(DWORD dwWidth, DWORD dwHeight, DWORD dwBP
 					if ((d3ddispmode.Width == dwWidth && d3ddispmode.Height == dwHeight) ||
 						((d3ddispmode.Width == 320 || d3ddispmode.Width == 640) && d3ddispmode.Width == dwWidth && d3ddispmode.Height == dwHeight + (dwHeight / 5)) ||
 						(d3ddispmode.Width == 640 && d3ddispmode.Height == 480 && (dwWidth == 320 && (dwHeight == 200 || dwHeight == 240))) ||
+						(d3ddispmode.Width == 800 && d3ddispmode.Height == 600 && dwWidth == 400 && dwHeight == 300) ||
 						(d3ddispmode.Width == 1024 && d3ddispmode.Height == 768 && dwWidth == 512 && dwHeight == 384))
 					{
 						modeFound = true;
@@ -1397,30 +1383,10 @@ HRESULT m_IDirectDrawX::SetDisplayMode(DWORD dwWidth, DWORD dwHeight, DWORD dwBP
 		// Update the d3d9 device to use new display mode
 		if (ChangeMode)
 		{
-			if (IsWindow(GetHwnd()) && (!Config.EnableWindowMode || Config.FullscreenWindowMode) && ExclusiveMode && displayModeBPP && displayWidth && displayHeight)
-			{
-				// Set new resolution
-				DEVMODE newSettings;
-				ZeroMemory(&newSettings, sizeof(newSettings));
-				if (EnumDisplaySettings(nullptr, ENUM_CURRENT_SETTINGS, &newSettings))
-				{
-					WasResolutionChanged = true;
-					newSettings.dmPelsWidth = displayWidth;
-					newSettings.dmPelsHeight = displayHeight;
-					newSettings.dmFields = DM_PELSWIDTH | DM_PELSHEIGHT;
-					ChangeDisplaySettings(&newSettings, CDS_FULLSCREEN);
-				}
-
-				// Send display change message
-				DWORD bpp = displayModeBPP;
-				DWORD res = (WORD)displayWidth | ((WORD)displayHeight << 16);
-				SendMessage(GetHwnd(), WM_DISPLAYCHANGE, (WPARAM)bpp, (LPARAM)res);
-			}
+			SetResolution = ExclusiveMode;
 
 			CreateD3D9Device();
 		}
-
-		ResetDisplayMode = false;
 
 		return DD_OK;
 	}
@@ -1795,7 +1761,6 @@ void m_IDirectDrawX::InitDdraw()
 		MainhDC = nullptr;
 
 		// Exclusive mode
-		WasResolutionChanged = false;
 		ExclusiveMode = false;
 		ExclusiveHwnd = nullptr;
 		ExclusiveWidth = 0;
@@ -1804,7 +1769,6 @@ void m_IDirectDrawX::InitDdraw()
 		ExclusiveRefreshRate = 0;
 
 		// Application display mode
-		ResetDisplayMode = false;
 		displayModeWidth = 0;
 		displayModeHeight = 0;
 		displayModeBPP = 0;
@@ -1853,6 +1817,7 @@ void m_IDirectDrawX::InitDdraw()
 		}
 		displayRefreshRate = (Config.DdrawOverrideRefreshRate) ? Config.DdrawOverrideRefreshRate : 0;
 		SetDefaultDisplayMode = (!displayWidth || !displayHeight || !displayRefreshRate);
+		SetResolution = false;
 
 		// Prepair shared memory
 		m_IDirectDrawSurfaceX::StartSharedEmulatedMemory();
@@ -1963,13 +1928,6 @@ void m_IDirectDrawX::ReleaseDdraw()
 
 		// Clean up shared memory
 		m_IDirectDrawSurfaceX::CleanupSharedEmulatedMemory();
-
-		// Reset screen settings
-		if (WasResolutionChanged)
-		{
-			WasResolutionChanged = false;
-			ChangeDisplaySettingsEx(nullptr, nullptr, nullptr, CDS_RESET, nullptr);
-		}
 	}
 
 	ReleaseCriticalSection();
@@ -2243,6 +2201,7 @@ HRESULT m_IDirectDrawX::CreateD3D9Device()
 						d3ddispmode.Width == BackBufferWidth && d3ddispmode.Height == BackBufferHeight + (BackBufferHeight / 5)) ||
 						(d3ddispmode.Width == 640 && d3ddispmode.Height == 480 &&
 						(BackBufferWidth == 320 && (BackBufferHeight == 200 || BackBufferHeight == 240))) ||
+						(d3ddispmode.Width == 800 && d3ddispmode.Height == 600 && BackBufferWidth == 400 && BackBufferHeight == 300) ||
 						(d3ddispmode.Width == 1024 && d3ddispmode.Height == 768 && BackBufferWidth == 512 && BackBufferHeight == 384))
 					{
 						relativeFound = true;
@@ -2297,20 +2256,22 @@ HRESULT m_IDirectDrawX::CreateD3D9Device()
 		// Set window pos
 		if (IsWindow(hWnd))
 		{
-			WINDOWPOS winpos = { nullptr, hWnd, 0, 0, (int)presParams.BackBufferWidth, (int)presParams.BackBufferHeight, WM_NULL };
-			SendMessage(hWnd, WM_WINDOWPOSCHANGED, (WPARAM)TRUE, (LPARAM)&winpos);
-
 			// Get new resolution
 			DWORD NewWidth, NewHeight;
 			Utils::GetScreenSize(hWnd, NewWidth, NewHeight);
 
 			// Set display change message
-			if ((NewWidth != CurrentWidth || NewHeight != CurrentHeight) && NewWidth && NewHeight)
+			if ((SetResolution || NewWidth != CurrentWidth || NewHeight != CurrentHeight) && NewWidth && NewHeight)
 			{
+				SetResolution = false;
 				DWORD bpp = (displayModeBPP) ? displayModeBPP : 32;
 				DWORD res = (WORD)NewWidth | ((WORD)NewHeight << 16);
 				SendMessage(hWnd, WM_DISPLAYCHANGE, (WPARAM)bpp, (LPARAM)res);
 			}
+
+			// Send message about window changes
+			WINDOWPOS winpos = { nullptr, hWnd, 0, 0, (int)presParams.BackBufferWidth, (int)presParams.BackBufferHeight, WM_NULL };
+			SendMessage(hWnd, WM_WINDOWPOSCHANGED, (WPARAM)TRUE, (LPARAM)&winpos);
 		}
 
 		// Store display frequency
