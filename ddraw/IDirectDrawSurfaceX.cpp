@@ -98,25 +98,19 @@ HRESULT m_IDirectDrawSurfaceX::QueryInterface(REFIID riid, LPVOID FAR * ppvObj, 
 		}
 		if (riid == IID_IDirectDrawColorControl)
 		{
-			if (SUCCEEDED(CheckInterface(__FUNCTION__, false, false)))
-			{
-				return ddrawParent->CreateColorInterface(ppvObj);
-			}
-			else
+			if (FAILED(CheckInterface(__FUNCTION__, false, false)))
 			{
 				return DDERR_GENERIC;
 			}
+			return ddrawParent->CreateColorInterface(ppvObj);
 		}
 		if (riid == IID_IDirectDrawGammaControl)
 		{
-			if (SUCCEEDED(CheckInterface(__FUNCTION__, false, false)))
-			{
-				return ddrawParent->CreateGammaInterface(ppvObj);
-			}
-			else
+			if (FAILED(CheckInterface(__FUNCTION__, false, false)))
 			{
 				return DDERR_GENERIC;
 			}
+			return ddrawParent->CreateGammaInterface(ppvObj);
 		}
 	}
 
@@ -335,9 +329,10 @@ HRESULT m_IDirectDrawSurfaceX::Blt(LPRECT lpDestRect, LPDIRECTDRAWSURFACE7 lpDDS
 	if (Config.Dd7to9)
 	{
 		// Check for device interface
-		if (FAILED(CheckInterface(__FUNCTION__, false, false)))
+		HRESULT c_hr = CheckInterface(__FUNCTION__, true, true);
+		if (FAILED(c_hr))
 		{
-			return DDERR_GENERIC;
+			return c_hr;
 		}
 
 		// Check for required DDBLTFX structure
@@ -788,10 +783,11 @@ HRESULT m_IDirectDrawSurfaceX::FlipBackBuffer()
 		return DDERR_GENERIC;
 	}
 
-	// Check surface interface
-	if (FAILED(lpTargetSurface->CheckInterface(__FUNCTION__, true, true)))
+	// Check for device interface
+	HRESULT c_hr = CheckInterface(__FUNCTION__, true, true);
+	if (FAILED(c_hr))
 	{
-		return DDERR_GENERIC;
+		return c_hr;
 	}
 
 	// Check if surface is busy
@@ -821,9 +817,10 @@ HRESULT m_IDirectDrawSurfaceX::Flip(LPDIRECTDRAWSURFACE7 lpDDSurfaceTargetOverri
 	if (Config.Dd7to9)
 	{
 		// Check for device interface
-		if (FAILED(CheckInterface(__FUNCTION__, true, true)))
+		HRESULT c_hr = CheckInterface(__FUNCTION__, true, true);
+		if (FAILED(c_hr))
 		{
-			return DDERR_GENERIC;
+			return c_hr;
 		}
 
 		// For Direct3D
@@ -885,7 +882,7 @@ HRESULT m_IDirectDrawSurfaceX::Flip(LPDIRECTDRAWSURFACE7 lpDDSurfaceTargetOverri
 				// Check for device interface
 				if (FAILED(lpTargetSurface->CheckInterface(__FUNCTION__, true, true)))
 				{
-					hr = DDERR_GENERIC;
+					hr = DDERR_SURFACEBUSY;
 					break;
 				}
 
@@ -1273,9 +1270,10 @@ HRESULT m_IDirectDrawSurfaceX::GetDC(HDC FAR * lphDC)
 		}
 
 		// Check for device interface
-		if (FAILED(CheckInterface(__FUNCTION__, true, true)))
+		HRESULT c_hr = CheckInterface(__FUNCTION__, true, true);
+		if (FAILED(c_hr))
 		{
-			return DDERR_GENERIC;
+			return c_hr;
 		}
 
 		if (LastDC && IsSurfaceInDC())
@@ -1604,7 +1602,7 @@ HRESULT m_IDirectDrawSurfaceX::IsLost()
 			return DDERR_GENERIC;
 		}
 
-		// Check device
+		// Check device status
 		switch ((*d3d9Device)->TestCooperativeLevel())
 		{
 		case D3D_OK:
@@ -1642,10 +1640,7 @@ HRESULT m_IDirectDrawSurfaceX::Lock(LPRECT lpDestRect, LPDDSURFACEDESC lpDDSurfa
 		HRESULT hr = Lock2(lpDestRect, &Desc2, dwFlags, hEvent);
 
 		// Convert back to LPDDSURFACEDESC
-		if (SUCCEEDED(hr))
-		{
-			ConvertSurfaceDesc(*lpDDSurfaceDesc, Desc2);
-		}
+		ConvertSurfaceDesc(*lpDDSurfaceDesc, Desc2);
 
 		return hr;
 	}
@@ -1669,6 +1664,10 @@ HRESULT m_IDirectDrawSurfaceX::Lock2(LPRECT lpDestRect, LPDDSURFACEDESC2 lpDDSur
 			return DDERR_INVALIDPARAMS;
 		}
 
+		// Clear surfaceDesc
+		ZeroMemory(lpDDSurfaceDesc2, sizeof(DDSURFACEDESC2));
+		lpDDSurfaceDesc2->dwSize = sizeof(DDSURFACEDESC2);
+
 		// Convert flags to d3d9
 		DWORD Flags = dwFlags & (D3DLOCK_READONLY | (!IsPrimarySurface() ? DDLOCK_NOSYSLOCK : 0) | ((!lpDestRect) ? D3DLOCK_DISCARD : 0));
 
@@ -1681,11 +1680,11 @@ HRESULT m_IDirectDrawSurfaceX::Lock2(LPRECT lpDestRect, LPDDSURFACEDESC2 lpDDSur
 		}
 
 		// Lock surface
-		D3DLOCKED_RECT LockedRect;
+		D3DLOCKED_RECT LockedRect = {};
 		HRESULT hr = SetLock(&LockedRect, (lpDestRect) ? &DestRect : nullptr, Flags);
 		if (FAILED(hr))
 		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error: failed to lock texture surface!");
+			LOG_LIMIT(100, __FUNCTION__ << " Error: failed to lock texture surface! " << hr);
 			return hr;
 		}
 
@@ -1718,9 +1717,10 @@ HRESULT m_IDirectDrawSurfaceX::ReleaseDC(HDC hDC)
 	if (Config.Dd7to9)
 	{
 		// Check for device interface
-		if (FAILED(CheckInterface(__FUNCTION__, true, true)))
+		HRESULT c_hr = CheckInterface(__FUNCTION__, true, true);
+		if (FAILED(c_hr))
 		{
-			return DDERR_GENERIC;
+			return c_hr;
 		}
 
 		if (!IsSurfaceInDC())
@@ -1771,18 +1771,25 @@ HRESULT m_IDirectDrawSurfaceX::Restore()
 	if (Config.Dd7to9)
 	{
 		// Check for device interface
-		if (FAILED(CheckInterface(__FUNCTION__, true, true)))
+		if (FAILED(CheckInterface(__FUNCTION__, true, false)))
 		{
 			return DDERR_GENERIC;
 		}
 
 		// Check device status
-		if ((*d3d9Device)->TestCooperativeLevel() == D3DERR_DEVICENOTRESET)
+		switch ((*d3d9Device)->TestCooperativeLevel())
 		{
-			ddrawParent->ReinitDevice();
+		case D3D_OK:
+			return DD_OK;
+		case D3DERR_DEVICELOST:
+			return DDERR_GENERIC;
+		case D3DERR_DEVICENOTRESET:
+			return ddrawParent->ReinitDevice();
+		case D3DERR_DRIVERINTERNALERROR:
+		case D3DERR_INVALIDCALL:
+		default:
+			return DDERR_GENERIC;
 		}
-
-		return DD_OK;
 	}
 
 	return ProxyInterface->Restore();
@@ -2210,9 +2217,10 @@ HRESULT m_IDirectDrawSurfaceX::SetPrivateData(REFGUID guidTag, LPVOID lpData, DW
 	if (Config.Dd7to9)
 	{
 		// Check for device interface
-		if (FAILED(CheckInterface(__FUNCTION__, true, true)))
+		HRESULT c_hr = CheckInterface(__FUNCTION__, true, true);
+		if (FAILED(c_hr))
 		{
-			return DDERR_GENERIC;
+			return c_hr;
 		}
 
 		if (surfaceTexture)
@@ -2235,9 +2243,10 @@ HRESULT m_IDirectDrawSurfaceX::GetPrivateData(REFGUID guidTag, LPVOID lpBuffer, 
 	if (Config.Dd7to9)
 	{
 		// Check for device interface
-		if (FAILED(CheckInterface(__FUNCTION__, true, true)))
+		HRESULT c_hr = CheckInterface(__FUNCTION__, true, true);
+		if (FAILED(c_hr))
 		{
-			return DDERR_GENERIC;
+			return c_hr;
 		}
 
 		if (surfaceTexture)
@@ -2260,9 +2269,10 @@ HRESULT m_IDirectDrawSurfaceX::FreePrivateData(REFGUID guidTag)
 	if (Config.Dd7to9)
 	{
 		// Check for device interface
-		if (FAILED(CheckInterface(__FUNCTION__, true, true)))
+		HRESULT c_hr = CheckInterface(__FUNCTION__, true, true);
+		if (FAILED(c_hr))
 		{
-			return DDERR_GENERIC;
+			return c_hr;
 		}
 
 		if (surfaceTexture)
@@ -2520,6 +2530,16 @@ HRESULT m_IDirectDrawSurfaceX::CheckInterface(char *FunctionName, bool CheckD3DD
 		{
 			LOG_LIMIT(100, FunctionName << " Error: d3d9 surface texture not setup!");
 			return DDERR_GENERIC;
+		}
+	}
+
+	// Check if surface is lost
+	if ((IsPrimarySurface() || IsBackBuffer()) && !IsSurfaceEmulated && CheckD3DDevice && CheckD3DSurface)
+	{
+		HRESULT hr = (*d3d9Device)->TestCooperativeLevel();
+		if (hr == D3DERR_DEVICENOTRESET || hr == D3DERR_DEVICELOST)
+		{
+			return DDERR_SURFACELOST;
 		}
 	}
 
@@ -3042,6 +3062,11 @@ void m_IDirectDrawSurfaceX::ReleaseD9Interface(T **ppInterface)
 // Release surface and vertext buffer
 void m_IDirectDrawSurfaceX::ReleaseD9Surface(bool BackupData)
 {
+	if (IsLocked || IsInDC)
+	{
+		Logging::Log() << __FUNCTION__ << " Error: surface still in use!";
+	}
+
 	// Store d3d9 surface texture
 	if (BackupData && surfaceTexture)
 	{
@@ -3160,9 +3185,10 @@ void m_IDirectDrawSurfaceX::ReleaseD9Surface(bool BackupData)
 HRESULT m_IDirectDrawSurfaceX::PresentSurface(BOOL isSkipScene)
 {
 	// Check for device interface
-	if (FAILED(CheckInterface(__FUNCTION__, true, true)))
+	HRESULT c_hr = CheckInterface(__FUNCTION__, true, true);
+	if (FAILED(c_hr))
 	{
-		return DDERR_GENERIC;
+		return c_hr;
 	}
 
 	// Check if is not primary surface or if scene should be skipped
@@ -3388,10 +3414,15 @@ HRESULT m_IDirectDrawSurfaceX::SetLock(D3DLOCKED_RECT* pLockedRect, LPRECT lpDes
 		return DDERR_INVALIDPARAMS;
 	}
 
+	// Clear locked rect
+	pLockedRect->Pitch = 0;
+	pLockedRect->pBits = nullptr;
+
 	// Check for device interface
-	if (FAILED(CheckInterface(__FUNCTION__, true, true)))
+	HRESULT c_hr = CheckInterface(__FUNCTION__, true, true);
+	if (FAILED(c_hr))
 	{
-		return DDERR_GENERIC;
+		return c_hr;
 	}
 
 	// Check if the scene needs to be presented
@@ -3443,9 +3474,8 @@ HRESULT m_IDirectDrawSurfaceX::SetLock(D3DLOCKED_RECT* pLockedRect, LPRECT lpDes
 			if (FAILED(surfaceTexture->LockRect(0, pLockedRect, lpDestRect, dwFlags)))
 			{
 				LOG_LIMIT(100, __FUNCTION__ << " Error: failed to lock surface texture");
-				return (hr == D3DERR_INVALIDCALL) ? DDERR_GENERIC :
-					(hr == D3DERR_WASSTILLDRAWING) ? DDERR_WASSTILLDRAWING :
-					DDERR_SURFACELOST;
+				return (hr == D3DERR_WASSTILLDRAWING) ? DDERR_WASSTILLDRAWING :
+					DDERR_GENERIC;
 			}
 		}
 	}
@@ -3461,9 +3491,8 @@ HRESULT m_IDirectDrawSurfaceX::SetLock(D3DLOCKED_RECT* pLockedRect, LPRECT lpDes
 			if (FAILED(surface3D->LockRect(pLockedRect, lpDestRect, dwFlags)))
 			{
 				LOG_LIMIT(100, __FUNCTION__ << " Error: failed to lock surface");
-				return (hr == D3DERR_INVALIDCALL) ? DDERR_GENERIC :
-					(hr == D3DERR_WASSTILLDRAWING) ? DDERR_WASSTILLDRAWING :
-					DDERR_SURFACELOST;
+				return (hr == D3DERR_WASSTILLDRAWING) ? DDERR_WASSTILLDRAWING :
+					DDERR_GENERIC;
 			}
 		}
 	}
@@ -3495,9 +3524,10 @@ HRESULT m_IDirectDrawSurfaceX::SetLock(D3DLOCKED_RECT* pLockedRect, LPRECT lpDes
 HRESULT m_IDirectDrawSurfaceX::SetUnlock(BOOL isSkipScene)
 {
 	// Check for device interface
-	if (FAILED(CheckInterface(__FUNCTION__, true, true)))
+	HRESULT c_hr = CheckInterface(__FUNCTION__, true, true);
+	if (FAILED(c_hr))
 	{
-		return DDERR_GENERIC;
+		return c_hr;
 	}
 
 	// Emulated surface
@@ -3797,9 +3827,10 @@ HRESULT m_IDirectDrawSurfaceX::ColorFill(RECT* pRect, D3DCOLOR dwFillColor)
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
 	// Check for device interface
-	if (FAILED(CheckInterface(__FUNCTION__, true, true)))
+	HRESULT c_hr = CheckInterface(__FUNCTION__, true, true);
+	if (FAILED(c_hr))
 	{
-		return DDERR_GENERIC;
+		return c_hr;
 	}
 
 	HRESULT hr = DD_OK;
@@ -3884,9 +3915,11 @@ HRESULT m_IDirectDrawSurfaceX::CopySurface(m_IDirectDrawSurfaceX* pSourceSurface
 	}
 
 	// Check for device interface
-	if (FAILED(CheckInterface(__FUNCTION__, true, true)) || FAILED(pSourceSurface->CheckInterface(__FUNCTION__, true, true)))
+		// Check for device interface
+	HRESULT c_hr = CheckInterface(__FUNCTION__, true, true);
+	if (FAILED(c_hr) || FAILED(pSourceSurface->CheckInterface(__FUNCTION__, true, true)))
 	{
-		return DDERR_GENERIC;
+		return FAILED(c_hr) ? c_hr : DDERR_GENERIC;
 	}
 
 	HRESULT hr = DD_OK;

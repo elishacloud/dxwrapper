@@ -2299,9 +2299,14 @@ HRESULT m_IDirectDrawX::ReinitDevice()
 	}
 
 	// Check if device is ready to be restored
-	if (d3d9Device->TestCooperativeLevel() != D3DERR_DEVICENOTRESET)
+	HRESULT hr = d3d9Device->TestCooperativeLevel();
+	if (SUCCEEDED(hr))
 	{
 		return DD_OK;
+	}
+	else if (hr != D3DERR_DEVICENOTRESET)
+	{
+		return DDERR_GENERIC;
 	}
 
 	// Release surfaces to prepare for reset
@@ -2747,7 +2752,7 @@ HRESULT m_IDirectDrawX::EndScene()
 	// BeginScene after EndScene is done
 	BeginScene();
 
-	return DD_OK;
+	return hr;
 }
 
 int WINAPI dd_GetDeviceCaps(HDC hdc, int index)
