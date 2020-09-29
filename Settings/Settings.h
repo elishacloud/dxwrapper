@@ -24,6 +24,7 @@
 	visit(DdrawClippedWidth) \
 	visit(DdrawClippedHeight) \
 	visit(DdrawEmulateSurface) \
+	visit(DdrawReadFromGDI) \
 	visit(DdrawWriteToGDI) \
 	visit(DdrawIntegerScalingClamp) \
 	visit(DdrawLimitDisplayModeCount) \
@@ -176,6 +177,7 @@ struct CONFIG
 	bool DdrawResolutionHack;			// Removes the artificial resolution limit from Direct3D7 and below https://github.com/UCyborg/LegacyD3DResolutionHack
 	bool DdrawResolutionHackNotSet;		// If the DDrawResolutionHack option exists in the config file
 	bool DdrawEmulateSurface;			// Emulates the ddraw surface using device context for Dd7to9
+	bool DdrawReadFromGDI;				// Read from GDI bfore passing surface to program
 	bool DdrawWriteToGDI;				// Blt surface directly to GDI rather than Direct3D9
 	bool DdrawIntegerScalingClamp;		// Scales the screen by an integer value to help preserve video quality
 	bool DdrawMaintainAspectRatio;		// Keeps the current DirectDraw aspect ratio when overriding the game's resolution

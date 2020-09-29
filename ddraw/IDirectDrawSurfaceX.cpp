@@ -1290,12 +1290,6 @@ HRESULT m_IDirectDrawSurfaceX::GetDC(HDC FAR * lphDC)
 			return DDERR_GENERIC;
 		}
 
-		// If Blting surface directly to GDI
-		if (Config.DdrawWriteToGDI && IsPrimarySurface())
-		{
-			LOG_LIMIT(100, __FUNCTION__ << " Warning: GetDC is not fully implemented when writing to GDI!");
-		}
-
 		// Present before write if needed
 		BeginWritePresent();
 
@@ -1306,18 +1300,19 @@ HRESULT m_IDirectDrawSurfaceX::GetDC(HDC FAR * lphDC)
 				CreateDCSurface();
 			}
 
-			if (!emu || !emu->surfaceDC || !emu->surfacepBits)
+			if (IsSurfaceEmulated)
 			{
-				return DDERR_GENERIC;
+				// Read surface from GDI
+				if (Config.DdrawReadFromGDI && (IsPrimarySurface() || IsBackBuffer()))
+				{
+					CopyEmulatedSurfaceFromGDI(LastRect);
+				}
 			}
-
 			// Copy surface data to device context
-			if (!IsSurfaceEmulated)
+			else
 			{
 				CopyEmulatedSurface(nullptr, false);
 			}
-
-			UpdatePaletteData();
 
 			*lphDC = emu->surfaceDC;
 		}
@@ -1735,13 +1730,16 @@ HRESULT m_IDirectDrawSurfaceX::ReleaseDC(HDC hDC)
 
 		if (IsSurfaceEmulated || DCRequiresEmulation)
 		{
-			if (!emu || !emu->surfaceDC || !emu->surfacepBits)
+			// Blt surface directly to GDI
+			if (Config.DdrawWriteToGDI && (IsPrimarySurface() || IsBackBuffer()))
 			{
-				return DDERR_GENERIC;
+				CopyEmulatedSurfaceToGDI(LastRect);
 			}
-
 			// Copy emulated surface to real surface
-			CopyEmulatedSurface(nullptr, true);
+			else
+			{
+				CopyEmulatedSurface(nullptr, true);
+			}
 		}
 		else
 		{
@@ -2554,7 +2552,8 @@ HRESULT m_IDirectDrawSurfaceX::CreateD3d9Surface()
 	surfaceFormat = GetDisplayFormat(surfaceDesc2.ddpfPixelFormat);
 	surfaceBitCount = GetBitCount(surfaceFormat);
 	IsSurfaceEmulated = (surfaceFormat == D3DFMT_R8G8B8) ||
-		((Config.DdrawEmulateSurface || Config.DdrawWriteToGDI) && (surfaceFormat == D3DFMT_P8 || surfaceFormat == D3DFMT_R5G6B5 || surfaceFormat == D3DFMT_A1R5G5B5 || surfaceFormat == D3DFMT_X1R5G5B5 ||
+		((Config.DdrawEmulateSurface || ((IsPrimarySurface() || IsBackBuffer()) && (Config.DdrawWriteToGDI || Config.DdrawReadFromGDI))) &&
+		(surfaceFormat == D3DFMT_P8 || surfaceFormat == D3DFMT_R5G6B5 || surfaceFormat == D3DFMT_A1R5G5B5 || surfaceFormat == D3DFMT_X1R5G5B5 ||
 			surfaceFormat == D3DFMT_R8G8B8 || surfaceFormat == D3DFMT_A8R8G8B8 || surfaceFormat == D3DFMT_X8R8G8B8));
 	DCRequiresEmulation = (surfaceFormat != D3DFMT_R5G6B5 && surfaceFormat != D3DFMT_X1R5G5B5 && surfaceFormat != D3DFMT_R8G8B8 && surfaceFormat != D3DFMT_X8R8G8B8);
 	D3DFORMAT Format = (surfaceFormat == D3DFMT_P8) ? D3DFMT_L8 : (surfaceFormat == D3DFMT_R8G8B8) ? D3DFMT_X8R8G8B8 : surfaceFormat;
@@ -2570,7 +2569,7 @@ HRESULT m_IDirectDrawSurfaceX::CreateD3d9Surface()
 	// Create Direct3D surface
 	if (IsDirect3DSurface)
 	{
-		if (IsPrimarySurface())
+		if (IsPrimarySurface() || IsBackBuffer())
 		{
 			if (FAILED((*d3d9Device)->CreateRenderTarget(surfaceDesc2.dwWidth, surfaceDesc2.dwHeight, Format, D3DMULTISAMPLE_NONE, 0, 0, &surface3D, nullptr)))
 			{
@@ -3425,6 +3424,12 @@ HRESULT m_IDirectDrawSurfaceX::SetLock(D3DLOCKED_RECT* pLockedRect, LPRECT lpDes
 		// Backup last rect
 		CheckCoordinates(&LastRect, lpDestRect);
 		DoCopyRect = ((dwFlags & D3DLOCK_READONLY) == 0);
+
+		// Read surface from GDI
+		if (Config.DdrawReadFromGDI && (IsPrimarySurface() || IsBackBuffer()))
+		{
+			CopyEmulatedSurfaceFromGDI(LastRect);
+		}
 	}
 	// Lock surface texture
 	else if (surfaceTexture)
@@ -3495,27 +3500,16 @@ HRESULT m_IDirectDrawSurfaceX::SetUnlock(BOOL isSkipScene)
 		return DDERR_GENERIC;
 	}
 
-	// Blt surface directly to GDI
-	if (Config.DdrawWriteToGDI)
-	{
-		if (IsPrimarySurface() && emu && emu->surfaceDC && ddrawParent->GetDC())
-		{
-			RECT WindowRect = { NULL };
-			MapWindowPoints(ddrawParent->GetHwnd(), HWND_DESKTOP, (LPPOINT)&WindowRect, 2);
-			LONG XOffset = WindowRect.left;
-			LONG YOffset = WindowRect.top;
-			LONG Left = (LastRect.left >= XOffset) ? LastRect.left - XOffset : LastRect.left;
-			LONG Top = (LastRect.top >= YOffset) ? LastRect.top - YOffset : LastRect.top;
-			LONG Width = LastRect.right - LastRect.left;
-			LONG Height = LastRect.bottom - LastRect.top;
-			BitBlt(ddrawParent->GetDC(), Left, Top, Width, Height, emu->surfaceDC, LastRect.left, LastRect.top, SRCCOPY);
-		}
-	}
 	// Emulated surface
-	else if (IsSurfaceEmulated)
+	if (IsSurfaceEmulated)
 	{
+		// Blt surface directly to GDI
+		if (Config.DdrawWriteToGDI && (IsPrimarySurface() || IsBackBuffer()))
+		{
+			CopyEmulatedSurfaceToGDI(LastRect);
+		}
 		// Copy emulated surface to real texture
-		if (DoCopyRect)
+		else if (DoCopyRect)
 		{
 			CopyEmulatedSurface(&LastRect, true);
 
@@ -3573,7 +3567,7 @@ HRESULT m_IDirectDrawSurfaceX::LockEmulatedSurface(D3DLOCKED_RECT* pLockedRect, 
 // Set dirty flag
 inline void m_IDirectDrawSurfaceX::SetDirtyFlag()
 {
-	if (IsPrimarySurface())
+	if (IsPrimarySurface() || IsBackBuffer())
 	{
 		dirtyFlag = true;
 	}
@@ -4107,6 +4101,11 @@ HRESULT m_IDirectDrawSurfaceX::CopySurface(m_IDirectDrawSurfaceX* pSourceSurface
 // Copy from emulated surface
 HRESULT m_IDirectDrawSurfaceX::CopyEmulatedSurface(LPRECT lpDestRect, bool CopyToRealSurface)
 {
+	if (!emu || !emu->surfaceDC || !emu->surfacepBits)
+	{
+		return DDERR_GENERIC;
+	}
+
 	HRESULT hr = DD_OK;
 
 	do {
@@ -4118,6 +4117,8 @@ HRESULT m_IDirectDrawSurfaceX::CopyEmulatedSurface(LPRECT lpDestRect, bool CopyT
 			hr = DDERR_INVALIDRECT;
 			break;
 		}
+
+		UpdatePaletteData();
 
 		// Check if destination surface is not locked then lock it
 		D3DLOCKED_RECT EmulatedLockRect, SurfaceLockRect;
@@ -4227,6 +4228,59 @@ HRESULT m_IDirectDrawSurfaceX::CopyEmulatedSurface(LPRECT lpDestRect, bool CopyT
 	} while (false);
 
 	return hr;
+}
+
+HRESULT m_IDirectDrawSurfaceX::CopyEmulatedSurfaceFromGDI(RECT Rect)
+{
+	if (!emu || !emu->surfaceDC || !ddrawParent->GetDC())
+	{
+		return DDERR_GENERIC;
+	}
+
+	RECT WindowRect = { NULL };
+	GetClientRect(ddrawParent->GetHwnd(), &WindowRect);
+	MapWindowPoints(ddrawParent->GetHwnd(), HWND_DESKTOP, (LPPOINT)&WindowRect, 2);
+	LONG XOffset = WindowRect.left;
+	LONG YOffset = WindowRect.top;
+	LONG Left = Rect.left + XOffset;
+	LONG Top = Rect.top + YOffset;
+	LONG Width = Rect.right - Rect.left;
+	LONG Height = Rect.bottom - Rect.top;
+
+	if (Rect.left + Width > WindowRect.right || Rect.top + Height > WindowRect.bottom)
+	{
+		return DDERR_GENERIC;
+	}
+
+	BitBlt(emu->surfaceDC, Left, Top, Width, Height, ddrawParent->GetDC(), Rect.left, Rect.top, SRCCOPY);
+
+	return DD_OK;
+}
+
+HRESULT m_IDirectDrawSurfaceX::CopyEmulatedSurfaceToGDI(RECT Rect)
+{
+	if (!emu || !emu->surfaceDC || !ddrawParent->GetDC())
+	{
+		return DDERR_GENERIC;
+	}
+
+	RECT WindowRect = { NULL };
+	MapWindowPoints(ddrawParent->GetHwnd(), HWND_DESKTOP, (LPPOINT)&WindowRect, 2);
+	LONG XOffset = WindowRect.left;
+	LONG YOffset = WindowRect.top;
+	LONG Left = (Rect.left >= XOffset) ? Rect.left - XOffset : Rect.left;
+	LONG Top = (Rect.top >= YOffset) ? Rect.top - YOffset : Rect.top;
+	LONG Width = Rect.right - Rect.left;
+	LONG Height = Rect.bottom - Rect.top;
+
+	if (Rect.left + Width > (LONG)surfaceDesc2.dwWidth || Rect.top + Height > (LONG)surfaceDesc2.dwHeight)
+	{
+		return DDERR_GENERIC;
+	}
+
+	BitBlt(ddrawParent->GetDC(), Left, Top, Width, Height, emu->surfaceDC, Rect.left, Rect.top, SRCCOPY);
+
+	return DD_OK;
 }
 
 void m_IDirectDrawSurfaceX::UpdatePaletteData()
