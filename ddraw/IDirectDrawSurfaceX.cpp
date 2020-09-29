@@ -1782,7 +1782,7 @@ HRESULT m_IDirectDrawSurfaceX::Restore()
 		case D3D_OK:
 			return DD_OK;
 		case D3DERR_DEVICELOST:
-			return DDERR_GENERIC;
+			return DD_OK;
 		case D3DERR_DEVICENOTRESET:
 			return ddrawParent->ReinitDevice();
 		case D3DERR_DRIVERINTERNALERROR:
@@ -3915,7 +3915,6 @@ HRESULT m_IDirectDrawSurfaceX::CopySurface(m_IDirectDrawSurfaceX* pSourceSurface
 	}
 
 	// Check for device interface
-		// Check for device interface
 	HRESULT c_hr = CheckInterface(__FUNCTION__, true, true);
 	if (FAILED(c_hr) || FAILED(pSourceSurface->CheckInterface(__FUNCTION__, true, true)))
 	{
