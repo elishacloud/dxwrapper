@@ -6,6 +6,8 @@ typedef DWORD D3DCOLOR;
 struct __declspec(uuid("81BDCBCA-64D4-426d-AE8D-AD0147F4275C")) IDirect3D9;
 struct __declspec(uuid("02177241-69FC-400C-8FF1-93A44DF6861D")) IDirect3D9Ex;
 
+typedef int(WINAPI *Direct3D9EnableMaximizedWindowedModeShimProc)(BOOL);
+
 HRESULT WINAPI d9_Direct3DShaderValidatorCreate9();
 HRESULT WINAPI d9_PSGPError();
 HRESULT WINAPI d9_PSGPSampleTexture();
@@ -18,7 +20,7 @@ void WINAPI d9_D3DPERF_SetOptions(DWORD dwOptions);
 void WINAPI d9_D3DPERF_SetRegion(D3DCOLOR col, LPCWSTR wszName);
 HRESULT WINAPI d9_DebugSetLevel(DWORD dw1);
 void WINAPI d9_DebugSetMute();
-void WINAPI d9_Direct3D9EnableMaximizedWindowedModeShim();
+int WINAPI d9_Direct3D9EnableMaximizedWindowedModeShim(BOOL mEnable);
 IDirect3D9 *WINAPI d9_Direct3DCreate9(UINT SDKVersion);
 HRESULT WINAPI d9_Direct3DCreate9Ex(UINT SDKVersion, IDirect3D9Ex **ppD3D);
 

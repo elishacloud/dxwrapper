@@ -36,7 +36,7 @@ typedef void(WINAPI *Direct3D8EnableMaximizedWindowedModeShimProc)();
 namespace D3d8Wrapper
 {
 	FARPROC Direct3DCreate9_out = nullptr;
-	FARPROC Direct3D8EnableMaximizedWindowedModeShim_out = nullptr;
+	FARPROC Direct3D9EnableMaximizedWindowedModeShim_out = nullptr;
 	FARPROC DebugSetMute_out = nullptr;
 }
 
@@ -50,14 +50,14 @@ void WINAPI d8_Direct3D8EnableMaximizedWindowedModeShim()
 {
 	LOG_LIMIT(1, __FUNCTION__);
 
-	static Direct3D8EnableMaximizedWindowedModeShimProc m_pDirect3D8EnableMaximizedWindowedModeShim = (Wrapper::ValidProcAddress(Direct3D8EnableMaximizedWindowedModeShim_out)) ? (Direct3D8EnableMaximizedWindowedModeShimProc)Direct3D8EnableMaximizedWindowedModeShim_out : nullptr;
+	static Direct3D9EnableMaximizedWindowedModeShimProc m_pDirect3D9EnableMaximizedWindowedModeShim = (Wrapper::ValidProcAddress(Direct3D9EnableMaximizedWindowedModeShim_out)) ? (Direct3D9EnableMaximizedWindowedModeShimProc)Direct3D9EnableMaximizedWindowedModeShim_out : nullptr;
 
-	if (!m_pDirect3D8EnableMaximizedWindowedModeShim)
+	if (!m_pDirect3D9EnableMaximizedWindowedModeShim)
 	{
 		return;
 	}
 
-	return m_pDirect3D8EnableMaximizedWindowedModeShim();
+	m_pDirect3D9EnableMaximizedWindowedModeShim(1);
 }
 
 HRESULT WINAPI d8_ValidatePixelShader(DWORD* pixelshader, DWORD* reserved1, BOOL flag, DWORD* toto)

@@ -228,6 +228,9 @@ bool APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 			Utils::HookExceptionHandler();
 		}
 
+		// Run app compat settings
+		Utils::SetAppCompat();
+
 		// Start ddraw.dll module
 		if (Config.DDrawCompat || Config.isDdrawWrapperEnabled)
 		{
@@ -454,7 +457,7 @@ bool APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 			if (Config.D3d8to9)
 			{
 				D3d8Wrapper::Direct3DCreate9_out = Direct3DCreate9_in;
-				D3d8Wrapper::Direct3D8EnableMaximizedWindowedModeShim_out = Direct3D9EnableMaximizedWindowedModeShim_in;
+				D3d8Wrapper::Direct3D9EnableMaximizedWindowedModeShim_out = Direct3D9EnableMaximizedWindowedModeShim_in;
 				D3d8Wrapper::DebugSetMute_out = DebugSetMute_in;
 			}
 
@@ -517,9 +520,6 @@ bool APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 				Config.DxWnd = false;
 			}
 		}
-
-		// Run app compat settings
-		Utils::SetAppCompat();
 
 		// Load custom dlls
 		if (Config.LoadCustomDllPath.size() != 0)

@@ -196,7 +196,7 @@ void WINAPI d9_DebugSetMute()
 	return m_pDebugSetMute();
 }
 
-void WINAPI d9_Direct3D9EnableMaximizedWindowedModeShim()
+int WINAPI d9_Direct3D9EnableMaximizedWindowedModeShim(BOOL mEnable)
 {
 	LOG_LIMIT(1, __FUNCTION__);
 
@@ -204,10 +204,15 @@ void WINAPI d9_Direct3D9EnableMaximizedWindowedModeShim()
 
 	if (!m_pDirect3D9EnableMaximizedWindowedModeShim)
 	{
-		return;
+		return NULL;
 	}
 
-	return m_pDirect3D9EnableMaximizedWindowedModeShim();
+	if (Config.DXPrimaryEmulation[AppCompatDataType.DisableMaxWindowedMode])
+	{
+		mEnable = FALSE;
+	}
+
+	return m_pDirect3D9EnableMaximizedWindowedModeShim(mEnable);
 }
 
 IDirect3D9 *WINAPI d9_Direct3DCreate9(UINT SDKVersion)
