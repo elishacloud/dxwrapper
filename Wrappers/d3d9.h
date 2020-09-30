@@ -12,7 +12,7 @@
 	visit(D3DPERF_SetOptions, jmpaddrvoid) \
 	visit(D3DPERF_SetRegion, jmpaddrvoid) \
 	visit(DebugSetLevel, jmpaddr) \
-	visit(Direct3D9EnableMaximizedWindowedModeShim, jmpaddrvoid) \
+	visit(Direct3D9EnableMaximizedWindowedModeShim, jmpaddr) \
 	visit(Direct3DCreate9, jmpaddr) \
 	visit(Direct3DCreate9Ex, jmpaddr)
 

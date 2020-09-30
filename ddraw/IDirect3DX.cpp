@@ -462,7 +462,8 @@ HRESULT m_IDirect3DX::CreateDevice(REFCLSID rclsid, LPDIRECTDRAWSURFACE7 lpDDS, 
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	REFCLSID riid = (rclsid == IID_IDirect3DRampDevice) ? IID_IDirect3DRGBDevice : rclsid;
+	REFCLSID riid = (rclsid == IID_IDirect3DRampDevice) ? IID_IDirect3DRGBDevice : (ProxyDirectXVersion != 7) ? rclsid :
+		(rclsid == IID_IDirect3DTnLHalDevice || rclsid == IID_IDirect3DHALDevice || rclsid == IID_IDirect3DMMXDevice || rclsid == IID_IDirect3DRGBDevice) ? rclsid : IID_IDirect3DRGBDevice;
 
 	if (Config.Dd7to9)
 	{
