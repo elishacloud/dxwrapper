@@ -461,9 +461,9 @@ HRESULT m_IDirectDrawX::CreateSurface2(LPDDSURFACEDESC2 lpDDSurfaceDesc2, LPDIRE
 		return DD_OK;
 	}
 
-	// BackBufferCount must be at least 1
 	if (ProxyDirectXVersion != DirectXVersion && lpDDSurfaceDesc2)
 	{
+		// BackBufferCount must be at least 1
 		if (lpDDSurfaceDesc2->dwFlags & DDSD_BACKBUFFERCOUNT)
 		{
 			if (!lpDDSurfaceDesc2->dwBackBufferCount)
@@ -474,6 +474,12 @@ HRESULT m_IDirectDrawX::CreateSurface2(LPDDSURFACEDESC2 lpDDSurfaceDesc2, LPDIRE
 		else
 		{
 			lpDDSurfaceDesc2->dwBackBufferCount = 0;
+		}
+
+		// Add flag for 3D device
+		if ((lpDDSurfaceDesc2->dwFlags & DDSD_CAPS) && (lpDDSurfaceDesc2->ddsCaps.dwCaps & DDSCAPS_PRIMARYSURFACE))
+		{
+			lpDDSurfaceDesc2->ddsCaps.dwCaps |= DDSCAPS_3DDEVICE;
 		}
 	}
 
