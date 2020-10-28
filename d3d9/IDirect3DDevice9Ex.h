@@ -7,7 +7,7 @@ class m_IDirect3DDevice9Ex : public IDirect3DDevice9Ex
 private:
 	LPDIRECT3DDEVICE9EX ProxyInterface;
 	m_IDirect3D9Ex* m_pD3DEx;
-	GUID WrapperID = IID_IUnknown;
+	REFIID WrapperID;
 
 	LONG screenWidth, screenHeight;
 
@@ -22,11 +22,11 @@ private:
 	float m_storedClipPlanes[MAX_CLIP_PLANES][4];
 
 public:
-	m_IDirect3DDevice9Ex(LPDIRECT3DDEVICE9EX pDevice, m_IDirect3D9Ex* pD3D) : ProxyInterface(pDevice), m_pD3DEx(pD3D)
+	m_IDirect3DDevice9Ex(LPDIRECT3DDEVICE9EX pDevice, m_IDirect3D9Ex* pD3D, REFIID DeviceID = IID_IUnknown) : ProxyInterface(pDevice), m_pD3DEx(pD3D), WrapperID(DeviceID)
 	{
 		InitDirect3DDevice();
 	}
-	m_IDirect3DDevice9Ex(LPDIRECT3DDEVICE9EX pDevice, m_IDirect3D9Ex* pD3D, GUID DeviceID, D3DMULTISAMPLE_TYPE MultiSampleType, DWORD MultiSampleQuality, bool MultiSampleFlag) :
+	m_IDirect3DDevice9Ex(LPDIRECT3DDEVICE9EX pDevice, m_IDirect3D9Ex* pD3D, REFIID DeviceID, D3DMULTISAMPLE_TYPE MultiSampleType, DWORD MultiSampleQuality, bool MultiSampleFlag) :
 		ProxyInterface(pDevice), m_pD3DEx(pD3D), WrapperID(DeviceID)
 	{
 		InitDirect3DDevice();

@@ -181,9 +181,6 @@
     <ClCompile Include="d3d9\IDirect3DSurface9.cpp">
       <Filter>d3d9</Filter>
     </ClCompile>
-    <ClCompile Include="d3d9\IDirect3DSwapChain9.cpp">
-      <Filter>d3d9</Filter>
-    </ClCompile>
     <ClCompile Include="d3d9\IDirect3DTexture9.cpp">
       <Filter>d3d9</Filter>
     </ClCompile>
@@ -820,6 +817,9 @@
     <ClCompile Include="Utils\MyStrings.cpp">
       <Filter>Utils</Filter>
     </ClCompile>
+    <ClCompile Include="d3d9\IDirect3DSwapChain9Ex.cpp">
+      <Filter>d3d9</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="Settings\AllSettings.ini">
@@ -921,9 +921,6 @@
       <Filter>d3d9</Filter>
     </ClInclude>
     <ClInclude Include="d3d9\IDirect3DSurface9.h">
-      <Filter>d3d9</Filter>
-    </ClInclude>
-    <ClInclude Include="d3d9\IDirect3DSwapChain9.h">
       <Filter>d3d9</Filter>
     </ClInclude>
     <ClInclude Include="d3d9\IDirect3DTexture9.h">
@@ -1732,6 +1729,9 @@
     </ClInclude>
     <ClInclude Include="External\dinputto8\ditypes.h">
       <Filter>External\dinputto8</Filter>
+    </ClInclude>
+    <ClInclude Include="d3d9\IDirect3DSwapChain9Ex.h">
+      <Filter>d3d9</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

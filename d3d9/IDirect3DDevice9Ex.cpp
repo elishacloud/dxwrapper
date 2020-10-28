@@ -194,7 +194,7 @@ HRESULT m_IDirect3DDevice9Ex::CreateAdditionalSwapChain(D3DPRESENT_PARAMETERS *p
 
 	if (SUCCEEDED(hr) && ppSwapChain)
 	{
-		*ppSwapChain = ProxyAddressLookupTable->FindAddress<m_IDirect3DSwapChain9>(*ppSwapChain);
+		*ppSwapChain = ProxyAddressLookupTable->FindAddress<m_IDirect3DSwapChain9Ex>(*ppSwapChain);
 	}
 
 	return hr;
@@ -1699,7 +1699,7 @@ HRESULT m_IDirect3DDevice9Ex::GetSwapChain(THIS_ UINT iSwapChain, IDirect3DSwapC
 
 	if (SUCCEEDED(hr) && ppSwapChain)
 	{
-		*ppSwapChain = ProxyAddressLookupTable->FindAddress<m_IDirect3DSwapChain9>(*ppSwapChain);
+		*ppSwapChain = ProxyAddressLookupTable->FindAddress<m_IDirect3DSwapChain9Ex>(*ppSwapChain);
 	}
 
 	return hr;

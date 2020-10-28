@@ -48,6 +48,12 @@ void WINAPI D3d9Wrapper::genericQueryInterface(REFIID riid, LPVOID *ppvObj, m_ID
 		return;
 	}
 
+	if (riid == IID_IDirect3DSwapChain9 || riid == IID_IDirect3DSwapChain9Ex)
+	{
+		*ppvObj = m_pDeviceEx->ProxyAddressLookupTable->FindAddress<m_IDirect3DSwapChain9Ex>(*ppvObj, riid);
+		return;
+	}
+
 #define QUERYINTERFACE(x) \
 	if (riid == IID_ ## x) \
 		{ \
@@ -61,7 +67,6 @@ void WINAPI D3d9Wrapper::genericQueryInterface(REFIID riid, LPVOID *ppvObj, m_ID
 	QUERYINTERFACE(IDirect3DQuery9);
 	QUERYINTERFACE(IDirect3DStateBlock9);
 	QUERYINTERFACE(IDirect3DSurface9);
-	QUERYINTERFACE(IDirect3DSwapChain9);
 	QUERYINTERFACE(IDirect3DTexture9);
 	QUERYINTERFACE(IDirect3DVertexBuffer9);
 	QUERYINTERFACE(IDirect3DVertexDeclaration9);

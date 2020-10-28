@@ -123,7 +123,7 @@ cmd /q /c "cd /D ""$(ProjectDir)d3d8\"" &amp;&amp; del build.bat"</Command>
     <ClCompile Include="d3d9\IDirect3DQuery9.cpp" />
     <ClCompile Include="d3d9\IDirect3DStateBlock9.cpp" />
     <ClCompile Include="d3d9\IDirect3DSurface9.cpp" />
-    <ClCompile Include="d3d9\IDirect3DSwapChain9.cpp" />
+    <ClCompile Include="d3d9\IDirect3DSwapChain9Ex.cpp" />
     <ClCompile Include="d3d9\IDirect3DTexture9.cpp" />
     <ClCompile Include="d3d9\IDirect3DVertexBuffer9.cpp" />
     <ClCompile Include="d3d9\IDirect3DVertexDeclaration9.cpp" />
@@ -377,7 +377,7 @@ cmd /q /c "cd /D ""$(ProjectDir)d3d8\"" &amp;&amp; del build.bat"</Command>
     <ClInclude Include="d3d9\IDirect3DQuery9.h" />
     <ClInclude Include="d3d9\IDirect3DStateBlock9.h" />
     <ClInclude Include="d3d9\IDirect3DSurface9.h" />
-    <ClInclude Include="d3d9\IDirect3DSwapChain9.h" />
+    <ClInclude Include="d3d9\IDirect3DSwapChain9Ex.h" />
     <ClInclude Include="d3d9\IDirect3DTexture9.h" />
     <ClInclude Include="d3d9\IDirect3DVertexBuffer9.h" />
     <ClInclude Include="d3d9\IDirect3DVertexDeclaration9.h" />

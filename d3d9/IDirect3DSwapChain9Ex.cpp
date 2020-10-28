@@ -16,11 +16,11 @@
 
 #include "d3d9.h"
 
-HRESULT m_IDirect3DSwapChain9::QueryInterface(THIS_ REFIID riid, void** ppvObj)
+HRESULT m_IDirect3DSwapChain9Ex::QueryInterface(THIS_ REFIID riid, void** ppvObj)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	if ((riid == IID_IDirect3DSwapChain9 || riid == IID_IUnknown) && ppvObj)
+	if ((riid == WrapperID || riid == IID_IUnknown) && ppvObj)
 	{
 		AddRef();
 
@@ -39,28 +39,28 @@ HRESULT m_IDirect3DSwapChain9::QueryInterface(THIS_ REFIID riid, void** ppvObj)
 	return hr;
 }
 
-ULONG m_IDirect3DSwapChain9::AddRef(THIS)
+ULONG m_IDirect3DSwapChain9Ex::AddRef(THIS)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
 	return ProxyInterface->AddRef();
 }
 
-ULONG m_IDirect3DSwapChain9::Release(THIS)
+ULONG m_IDirect3DSwapChain9Ex::Release(THIS)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
 	return ProxyInterface->Release();
 }
 
-HRESULT m_IDirect3DSwapChain9::Present(THIS_ CONST RECT* pSourceRect, CONST RECT* pDestRect, HWND hDestWindowOverride, CONST RGNDATA* pDirtyRegion, DWORD dwFlags)
+HRESULT m_IDirect3DSwapChain9Ex::Present(THIS_ CONST RECT* pSourceRect, CONST RECT* pDestRect, HWND hDestWindowOverride, CONST RGNDATA* pDirtyRegion, DWORD dwFlags)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
 	return ProxyInterface->Present(pSourceRect, pDestRect, hDestWindowOverride, pDirtyRegion, dwFlags);
 }
 
-HRESULT m_IDirect3DSwapChain9::GetFrontBufferData(THIS_ IDirect3DSurface9* pDestSurface)
+HRESULT m_IDirect3DSwapChain9Ex::GetFrontBufferData(THIS_ IDirect3DSurface9* pDestSurface)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
@@ -72,7 +72,7 @@ HRESULT m_IDirect3DSwapChain9::GetFrontBufferData(THIS_ IDirect3DSurface9* pDest
 	return GetFrontBufferData(pDestSurface);
 }
 
-HRESULT m_IDirect3DSwapChain9::GetBackBuffer(THIS_ UINT BackBuffer, D3DBACKBUFFER_TYPE Type, IDirect3DSurface9** ppBackBuffer)
+HRESULT m_IDirect3DSwapChain9Ex::GetBackBuffer(THIS_ UINT BackBuffer, D3DBACKBUFFER_TYPE Type, IDirect3DSurface9** ppBackBuffer)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
@@ -86,21 +86,21 @@ HRESULT m_IDirect3DSwapChain9::GetBackBuffer(THIS_ UINT BackBuffer, D3DBACKBUFFE
 	return hr;
 }
 
-HRESULT m_IDirect3DSwapChain9::GetRasterStatus(THIS_ D3DRASTER_STATUS* pRasterStatus)
+HRESULT m_IDirect3DSwapChain9Ex::GetRasterStatus(THIS_ D3DRASTER_STATUS* pRasterStatus)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
 	return ProxyInterface->GetRasterStatus(pRasterStatus);
 }
 
-HRESULT m_IDirect3DSwapChain9::GetDisplayMode(THIS_ D3DDISPLAYMODE* pMode)
+HRESULT m_IDirect3DSwapChain9Ex::GetDisplayMode(THIS_ D3DDISPLAYMODE* pMode)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
 	return ProxyInterface->GetDisplayMode(pMode);
 }
 
-HRESULT m_IDirect3DSwapChain9::GetDevice(THIS_ IDirect3DDevice9** ppDevice)
+HRESULT m_IDirect3DSwapChain9Ex::GetDevice(THIS_ IDirect3DDevice9** ppDevice)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
@@ -116,9 +116,30 @@ HRESULT m_IDirect3DSwapChain9::GetDevice(THIS_ IDirect3DDevice9** ppDevice)
 	return D3D_OK;
 }
 
-HRESULT m_IDirect3DSwapChain9::GetPresentParameters(THIS_ D3DPRESENT_PARAMETERS* pPresentationParameters)
+HRESULT m_IDirect3DSwapChain9Ex::GetPresentParameters(THIS_ D3DPRESENT_PARAMETERS* pPresentationParameters)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
 	return ProxyInterface->GetPresentParameters(pPresentationParameters);
+}
+
+HRESULT m_IDirect3DSwapChain9Ex::GetLastPresentCount(THIS_ UINT* pLastPresentCount)
+{
+	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
+
+	return ProxyInterface->GetLastPresentCount(pLastPresentCount);
+}
+
+HRESULT m_IDirect3DSwapChain9Ex::GetPresentStats(THIS_ D3DPRESENTSTATS* pPresentationStatistics)
+{
+	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
+
+	return ProxyInterface->GetPresentStats(pPresentationStatistics);
+}
+
+HRESULT m_IDirect3DSwapChain9Ex::GetDisplayModeEx(THIS_ D3DDISPLAYMODEEX* pMode, D3DDISPLAYROTATION* pRotation)
+{
+	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
+
+	return ProxyInterface->GetDisplayModeEx(pMode, pRotation);
 }

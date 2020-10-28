@@ -42,7 +42,7 @@ public:
 	template <>
 	struct AddressCacheIndex<m_IDirect3DSurface9> { static constexpr UINT CacheIndex = 8; };
 	template <>
-	struct AddressCacheIndex<m_IDirect3DSwapChain9> { static constexpr UINT CacheIndex = 9; };
+	struct AddressCacheIndex<m_IDirect3DSwapChain9Ex> { static constexpr UINT CacheIndex = 9; };
 	template <>
 	struct AddressCacheIndex<m_IDirect3DTexture9> { static constexpr UINT CacheIndex = 10; };
 	template <>
@@ -56,8 +56,19 @@ public:
 	template <>
 	struct AddressCacheIndex<m_IDirect3DVolumeTexture9> { static constexpr UINT CacheIndex = 15; };
 
+	m_IDirect3DSwapChain9Ex *CreateInterface(void *Proxy, REFIID riid)
+	{
+		return new m_IDirect3DSwapChain9Ex(static_cast<m_IDirect3DSwapChain9Ex*>(Proxy), pDevice, riid);
+	}
+
 	template <typename T>
-	T *FindAddress(void *Proxy)
+	T *CreateInterface(void *Proxy)
+	{
+		return new T(static_cast<T *>(Proxy), pDevice);
+	}
+
+	template <typename T>
+	T *FindAddress(void *Proxy, REFIID riid = IID_IUnknown)
 	{
 		if (!Proxy)
 		{
@@ -72,7 +83,14 @@ public:
 			return static_cast<T *>(it->second);
 		}
 
-		return new T(static_cast<T *>(Proxy), pDevice);
+		if (riid == IID_IUnknown)
+		{
+			return CreateInterface<T>(Proxy);
+		}
+		else
+		{
+			return (T*)CreateInterface(Proxy, riid);
+		}
 	}
 
 	template <typename T>
