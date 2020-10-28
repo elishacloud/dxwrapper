@@ -6,6 +6,11 @@
 #include "Logging\Logging.h"
 
 typedef void(WINAPI *IQueryInterfaceProc)(REFIID, LPVOID *);
+typedef HRESULT(WINAPI *CoCreateInstanceHandleProc)(REFCLSID rclsid, LPUNKNOWN pUnkOuter, DWORD dwClsContext, REFIID riid, LPVOID *ppv);
+
+extern CoCreateInstanceHandleProc p_CoCreateInstance;
+
+HRESULT WINAPI CoCreateInstanceHandle(REFCLSID rclsid, LPUNKNOWN pUnkOuter, DWORD dwClsContext, REFIID riid, LPVOID *ppv);
 
 class m_IClassFactory : public IClassFactory
 {

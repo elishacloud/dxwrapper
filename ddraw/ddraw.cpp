@@ -258,7 +258,7 @@ HRESULT WINAPI dd_DirectDrawCreate(GUID FAR *lpGUID, LPDIRECTDRAW FAR *lplpDD, I
 	if (SUCCEEDED(hr) && lplpDD && *lplpDD)
 	{
 		// Convert to new DirectDraw version
-		if (ConvertREFIID(IID_IDirectDraw) != IID_IDirectDraw)
+		if (Config.ConvertToDirectDraw7)
 		{
 			LPDIRECTDRAW lpDD = (LPDIRECTDRAW)*lplpDD;
 

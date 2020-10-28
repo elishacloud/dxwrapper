@@ -7,6 +7,8 @@ private:
 	DWORD ProxyDirectXVersion;
 	ULONG RefCount = 1;
 
+	bool IsInitialize = false;
+
 	// Fix exclusive mode issue
 	HHOOK g_hook = nullptr;
 	HWND chWnd = nullptr;

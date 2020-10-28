@@ -25,6 +25,7 @@
 #include "Utils\Utils.h"
 #include "Logging\Logging.h"
 // Wrappers last
+#include "IClassFactory\IClassFactory.h"
 #include "ddraw\ddrawExternal.h"
 #include "dinput\dinputExternal.h"
 #include "dinput8\dinput8External.h"
@@ -230,6 +231,12 @@ bool APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 
 		// Run app compat settings
 		Utils::SetAppCompat();
+
+		// Hook CoCreateInstance
+		if (Config.isDdrawWrapperEnabled || Config.EnableDinput8Wrapper || Config.Dinputto8)
+		{
+			InterlockedExchangePointer((PVOID*)&p_CoCreateInstance, Hook::HotPatch(GetProcAddress(LoadLibraryA("ole32.dll"), "CoCreateInstance"), "CoCreateInstance", *CoCreateInstanceHandle));
+		}
 
 		// Start ddraw.dll module
 		if (Config.DDrawCompat || Config.isDdrawWrapperEnabled)
@@ -494,7 +501,7 @@ bool APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 
 				// Hook dsound.dll -> DsoundWrapper
 				Logging::Log() << "Hooking dsound.dll APIs...";
-				char *dllname = dtypename[dtype.dinput8];
+				char *dllname = dtypename[dtype.dsound];
 				VISIT_PROCS_DSOUND(HOOK_WRAPPED_PROC);
 				VISIT_PROCS_DSOUND_SHARED(HOOK_WRAPPED_PROC);
 			}
