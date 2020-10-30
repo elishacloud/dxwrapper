@@ -23,12 +23,12 @@ HRESULT m_IDirect3DTexture::QueryInterface(REFIID riid, LPVOID * ppvObj)
 
 ULONG m_IDirect3DTexture::AddRef()
 {
-	return ProxyInterface->AddRef();
+	return ProxyInterface->AddRef(DirectXVersion);
 }
 
 ULONG m_IDirect3DTexture::Release()
 {
-	return ProxyInterface->Release();
+	return ProxyInterface->Release(DirectXVersion);
 }
 
 HRESULT m_IDirect3DTexture::Initialize(LPDIRECT3DDEVICE a, LPDIRECTDRAWSURFACE b)

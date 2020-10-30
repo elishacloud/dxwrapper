@@ -23,12 +23,12 @@ HRESULT m_IDirect3DMaterial3::QueryInterface(REFIID riid, LPVOID * ppvObj)
 
 ULONG m_IDirect3DMaterial3::AddRef()
 {
-	return ProxyInterface->AddRef();
+	return ProxyInterface->AddRef(DirectXVersion);
 }
 
 ULONG m_IDirect3DMaterial3::Release()
 {
-	return ProxyInterface->Release();
+	return ProxyInterface->Release(DirectXVersion);
 }
 
 HRESULT m_IDirect3DMaterial3::SetMaterial(LPD3DMATERIAL a)

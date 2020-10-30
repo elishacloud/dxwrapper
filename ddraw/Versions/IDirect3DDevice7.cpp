@@ -23,12 +23,12 @@ HRESULT m_IDirect3DDevice7::QueryInterface(REFIID riid, LPVOID * ppvObj)
 
 ULONG m_IDirect3DDevice7::AddRef()
 {
-	return ProxyInterface->AddRef();
+	return ProxyInterface->AddRef(DirectXVersion);
 }
 
 ULONG m_IDirect3DDevice7::Release()
 {
-	return ProxyInterface->Release();
+	return ProxyInterface->Release(DirectXVersion);
 }
 
 HRESULT m_IDirect3DDevice7::GetCaps(LPD3DDEVICEDESC7 a)

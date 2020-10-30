@@ -109,7 +109,22 @@ HRESULT m_IDirectDrawX::QueryInterface(REFIID riid, LPVOID FAR * ppvObj, DWORD D
 		return DD_OK;
 	}
 
+	if (DirectXVersion != 1 && DirectXVersion != 2 && DirectXVersion != 3 && DirectXVersion != 4 && DirectXVersion != 7)
+	{
+		LOG_LIMIT(100, __FUNCTION__ << " Error: wrapper interface version not found: " << DirectXVersion);
+		return DDERR_GENERIC;
+	}
+
 	DWORD DxVersion = (CheckWrapperType(riid) && (Config.Dd7to9 || Config.ConvertToDirectDraw7)) ? GetGUIDVersion(riid) : DirectXVersion;
+
+	if (riid == GetWrapperType(DxVersion) || riid == IID_IUnknown)
+	{
+		*ppvObj = GetWrapperInterfaceX(DxVersion);
+
+		AddRef(DxVersion);
+
+		return DD_OK;
+	}
 
 	if (Config.Dd7to9)
 	{
@@ -122,7 +137,7 @@ HRESULT m_IDirectDrawX::QueryInterface(REFIID riid, LPVOID FAR * ppvObj, DWORD D
 			{
 				*ppvObj = D3DInterface->GetWrapperInterfaceX(DxVersion);
 
-				::AddRef(*ppvObj);
+				D3DInterface->AddRef(DxVersion);
 			}
 			else
 			{
@@ -146,7 +161,7 @@ HRESULT m_IDirectDrawX::QueryInterface(REFIID riid, LPVOID FAR * ppvObj, DWORD D
 		}
 	}
 
-	HRESULT hr = ProxyQueryInterface(ProxyInterface, riid, ppvObj, GetWrapperType(DxVersion), GetWrapperInterfaceX(DxVersion));
+	HRESULT hr = ProxyQueryInterface(ProxyInterface, riid, ppvObj, GetWrapperType(DxVersion));
 
 	if (SUCCEEDED(hr) && Config.ConvertToDirect3D7)
 	{
@@ -188,19 +203,34 @@ void *m_IDirectDrawX::GetWrapperInterfaceX(DWORD DirectXVersion)
 	}
 }
 
-ULONG m_IDirectDrawX::AddRef()
+ULONG m_IDirectDrawX::AddRef(DWORD DirectXVersion)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
 	if (Config.Dd7to9)
 	{
-		return InterlockedIncrement(&RefCount);
+		switch (DirectXVersion)
+		{
+		case 1:
+			return InterlockedIncrement(&RefCount1);
+		case 2:
+			return InterlockedIncrement(&RefCount2);
+		case 3:
+			return InterlockedIncrement(&RefCount3);
+		case 4:
+			return InterlockedIncrement(&RefCount4);
+		case 7:
+			return InterlockedIncrement(&RefCount7);
+		default:
+			LOG_LIMIT(100, __FUNCTION__ << " Error: wrapper interface version not found: " << DirectXVersion);
+			return 0;
+		}
 	}
 
 	return ProxyInterface->AddRef();
 }
 
-ULONG m_IDirectDrawX::Release()
+ULONG m_IDirectDrawX::Release(DWORD DirectXVersion)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
@@ -208,16 +238,43 @@ ULONG m_IDirectDrawX::Release()
 
 	if (Config.Dd7to9)
 	{
-		ref = InterlockedDecrement(&RefCount);
+		switch (DirectXVersion)
+		{
+		case 1:
+			ref = (InterlockedCompareExchange(&RefCount1, 0, 0)) ? InterlockedDecrement(&RefCount1) : 0;
+			break;
+		case 2:
+			ref = (InterlockedCompareExchange(&RefCount2, 0, 0)) ? InterlockedDecrement(&RefCount2) : 0;
+			break;
+		case 3:
+			ref = (InterlockedCompareExchange(&RefCount3, 0, 0)) ? InterlockedDecrement(&RefCount3) : 0;
+			break;
+		case 4:
+			ref = (InterlockedCompareExchange(&RefCount4, 0, 0)) ? InterlockedDecrement(&RefCount4) : 0;
+			break;
+		case 7:
+			ref = (InterlockedCompareExchange(&RefCount7, 0, 0)) ? InterlockedDecrement(&RefCount7) : 0;
+			break;
+		default:
+			LOG_LIMIT(100, __FUNCTION__ << " Error: wrapper interface version not found: " << DirectXVersion);
+			ref = 0;
+		}
+
+		if (InterlockedCompareExchange(&RefCount1, 0, 0) + InterlockedCompareExchange(&RefCount2, 0, 0) +
+			InterlockedCompareExchange(&RefCount3, 0, 0) + InterlockedCompareExchange(&RefCount4, 0, 0) +
+			InterlockedCompareExchange(&RefCount7, 0, 0) == 0)
+		{
+			delete this;
+		}
 	}
 	else
 	{
 		ref = ProxyInterface->Release();
-	}
 
-	if (ref == 0)
-	{
-		delete this;
+		if (ref == 0)
+		{
+			delete this;
+		}
 	}
 
 	return ref;
@@ -1746,7 +1803,7 @@ HRESULT m_IDirectDrawX::EvaluateMode(DWORD dwFlags, DWORD * pSecondsUntilTimeout
 /*** Helper functions ***/
 /************************/
 
-void m_IDirectDrawX::InitDdraw()
+void m_IDirectDrawX::InitDdraw(DWORD DirectXVersion)
 {
 	WrapperInterface = new m_IDirectDraw((LPDIRECTDRAW)ProxyInterface, this);
 	WrapperInterface2 = new m_IDirectDraw2((LPDIRECTDRAW2)ProxyInterface, this);
@@ -1758,6 +1815,8 @@ void m_IDirectDrawX::InitDdraw()
 	{
 		return;
 	}
+
+	AddRef(DirectXVersion);
 
 	DWORD ref = InterlockedIncrement(&ddrawRefCount);
 

@@ -5,7 +5,9 @@ class m_IDirect3DViewportX : public IUnknown, public AddressLookupTableDdrawObje
 private:
 	IDirect3DViewport3 *ProxyInterface = nullptr;
 	DWORD ProxyDirectXVersion;
-	ULONG RefCount = 1;
+	ULONG RefCount1 = 0;
+	ULONG RefCount2 = 0;
+	ULONG RefCount3 = 0;
 
 	// Convert Viewport
 	m_IDirect3DDeviceX **D3DDeviceInterface = nullptr;
@@ -33,7 +35,7 @@ private:
 	IDirect3DViewport3 *GetProxyInterfaceV3() { return ProxyInterface; }
 
 	// Interface initialization functions
-	void InitViewport();
+	void InitViewport(DWORD DirectXVersion);
 	void ReleaseViewport();
 
 public:
@@ -50,7 +52,7 @@ public:
 			LOG_LIMIT(3, "Creating interface " << __FUNCTION__ << "(" << this << ") v" << DirectXVersion);
 		}
 
-		InitViewport();
+		InitViewport(DirectXVersion);
 
 		ProxyAddressLookupTable.SaveAddress(this, (ProxyInterface) ? ProxyInterface : (void*)this);
 	}
@@ -67,7 +69,7 @@ public:
 			LOG_LIMIT(3, "Creating interface " << __FUNCTION__ << "(" << this << ") v" << DirectXVersion);
 		}
 
-		InitViewport();
+		InitViewport(DirectXVersion);
 
 		ProxyAddressLookupTable.SaveAddress(this, (ProxyInterface) ? ProxyInterface : (void*)this);
 	}
@@ -81,10 +83,9 @@ public:
 	}
 
 	/*** IUnknown methods ***/
-	STDMETHOD(QueryInterface) (THIS_ REFIID riid, LPVOID FAR * ppvObj, DWORD DirectXVersion);
-	STDMETHOD(QueryInterface) (THIS_ REFIID riid, LPVOID FAR * ppvObj) { return QueryInterface(riid, ppvObj, GetGUIDVersion(riid)); }
-	STDMETHOD_(ULONG, AddRef)(THIS);
-	STDMETHOD_(ULONG, Release)(THIS);
+	STDMETHOD(QueryInterface) (THIS_ REFIID riid, LPVOID FAR * ppvObj) { return QueryInterface(riid, ppvObj, 0); }
+	STDMETHOD_(ULONG, AddRef) (THIS) { return AddRef(0); }
+	STDMETHOD_(ULONG, Release) (THIS) { return Release(0); }
 
 	/*** IDirect3DViewport methods ***/
 	STDMETHOD(Initialize)(THIS_ LPDIRECT3D);
@@ -111,5 +112,8 @@ public:
 	STDMETHOD(Clear2)(THIS_ DWORD, LPD3DRECT, DWORD, D3DCOLOR, D3DVALUE, DWORD);
 
 	// Helper functions
+	HRESULT QueryInterface(REFIID riid, LPVOID FAR * ppvObj, DWORD DirectXVersion);
 	void *GetWrapperInterfaceX(DWORD DirectXVersion);
+	ULONG AddRef(DWORD DirectXVersion);
+	ULONG Release(DWORD DirectXVersion);
 };

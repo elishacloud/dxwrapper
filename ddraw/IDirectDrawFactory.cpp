@@ -24,19 +24,16 @@ HRESULT m_IDirectDrawFactory::QueryInterface(REFIID riid, LPVOID FAR * ppvObj)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	if (!ProxyInterface)
+	if ((riid == IID_IDirectDrawFactory || riid == IID_IUnknown) && ppvObj)
 	{
-		if ((riid == IID_IDirectDrawFactory || riid == IID_IUnknown) && ppvObj)
-		{
-			AddRef();
+		AddRef();
 
-			*ppvObj = this;
+		*ppvObj = this;
 
-			return DD_OK;
-		}
+		return DD_OK;
 	}
 
-	return ProxyQueryInterface(ProxyInterface, riid, ppvObj, WrapperID, this);
+	return ProxyQueryInterface(ProxyInterface, riid, ppvObj, WrapperID);
 }
 
 ULONG m_IDirectDrawFactory::AddRef()

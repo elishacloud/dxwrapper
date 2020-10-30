@@ -5,7 +5,11 @@ class m_IDirectDrawX : public IUnknown, public AddressLookupTableDdrawObject
 private:
 	IDirectDraw7 *ProxyInterface = nullptr;
 	DWORD ProxyDirectXVersion;
-	ULONG RefCount = 1;
+	ULONG RefCount1 = 0;
+	ULONG RefCount2 = 0;
+	ULONG RefCount3 = 0;
+	ULONG RefCount4 = 0;
+	ULONG RefCount7 = 0;
 
 	bool IsInitialize = false;
 
@@ -66,7 +70,7 @@ private:
 	void ReleaseD9Interface(T **ppInterface);
 
 	// Interface initialization functions
-	void InitDdraw();
+	void InitDdraw(DWORD DirectXVersion);
 	void ReleaseDdraw();
 
 	// Direct3D9 interface functions
@@ -89,7 +93,7 @@ public:
 			LOG_LIMIT(3, "Creating interface " << __FUNCTION__ << "(" << this << ") v" << DirectXVersion);
 		}
 
-		InitDdraw();
+		InitDdraw(DirectXVersion);
 
 		ProxyAddressLookupTable.SaveAddress(this, (ProxyInterface) ? ProxyInterface : (void*)this);
 	}
@@ -99,7 +103,7 @@ public:
 
 		LOG_LIMIT(3, "Creating interface " << __FUNCTION__ << "(" << this << ")" << " converting interface from v" << DirectXVersion << " to v" << ProxyDirectXVersion);
 
-		InitDdraw();
+		InitDdraw(DirectXVersion);
 
 		ProxyAddressLookupTable.SaveAddress(this, (ProxyInterface) ? ProxyInterface : (void*)this);
 	}
@@ -113,10 +117,9 @@ public:
 	}
 
 	/*** IUnknown methods ***/
-	STDMETHOD(QueryInterface) (THIS_ REFIID riid, LPVOID FAR * ppvObj, DWORD DirectXVersion);
-	STDMETHOD(QueryInterface) (THIS_ REFIID riid, LPVOID FAR * ppvObj) { return QueryInterface(riid, ppvObj, GetGUIDVersion(riid)); }
-	STDMETHOD_(ULONG, AddRef) (THIS);
-	STDMETHOD_(ULONG, Release) (THIS);
+	STDMETHOD(QueryInterface) (THIS_ REFIID riid, LPVOID FAR * ppvObj) { return QueryInterface(riid, ppvObj, 0); }
+	STDMETHOD_(ULONG, AddRef) (THIS) { return AddRef(0); }
+	STDMETHOD_(ULONG, Release) (THIS) { return Release(0); }
 
 	/*** IDirectDraw methods ***/
 	STDMETHOD(Compact)(THIS);
@@ -160,7 +163,10 @@ public:
 	STDMETHOD(EvaluateMode)(THIS_ DWORD, DWORD *);
 
 	// Helper functions
+	HRESULT QueryInterface(REFIID riid, LPVOID FAR * ppvObj, DWORD DirectXVersion);
 	void *GetWrapperInterfaceX(DWORD DirectXVersion);
+	ULONG AddRef(DWORD DirectXVersion);
+	ULONG Release(DWORD DirectXVersion);
 
 	// Direct3D interfaces
 	m_IDirect3DX **GetCurrentD3D() { return &D3DInterface; }

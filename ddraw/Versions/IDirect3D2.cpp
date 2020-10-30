@@ -23,12 +23,12 @@ HRESULT m_IDirect3D2::QueryInterface(REFIID riid, LPVOID * ppvObj)
 
 ULONG m_IDirect3D2::AddRef()
 {
-	return ProxyInterface->AddRef();
+	return ProxyInterface->AddRef(DirectXVersion);
 }
 
 ULONG m_IDirect3D2::Release()
 {
-	return ProxyInterface->Release();
+	return ProxyInterface->Release(DirectXVersion);
 }
 
 HRESULT m_IDirect3D2::EnumDevices(LPD3DENUMDEVICESCALLBACK a, LPVOID b)

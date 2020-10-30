@@ -20,30 +20,32 @@ HRESULT m_IDirect3DLight::QueryInterface(REFIID riid, LPVOID FAR * ppvObj)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	if (ppvObj && riid == IID_GetRealInterface)
+	if (!ppvObj)
+	{
+		return DDERR_GENERIC;
+	}
+
+	if (riid == IID_GetRealInterface)
 	{
 		*ppvObj = ProxyInterface;
 		return DD_OK;
 	}
-	if (ppvObj && riid == IID_GetInterfaceX)
+	if (riid == IID_GetInterfaceX)
 	{
 		*ppvObj = this;
 		return DD_OK;
 	}
 
-	if (!ProxyInterface)
+	if (riid == IID_IDirect3DLight || riid == IID_IUnknown)
 	{
-		if ((riid == IID_IDirect3DLight || riid == IID_IUnknown) && ppvObj)
-		{
-			AddRef();
+		AddRef();
 
-			*ppvObj = this;
+		*ppvObj = this;
 
-			return D3D_OK;
-		}
+		return D3D_OK;
 	}
 
-	return ProxyQueryInterface(ProxyInterface, riid, ppvObj, WrapperID, this);
+	return ProxyQueryInterface(ProxyInterface, riid, ppvObj, WrapperID);
 }
 
 ULONG m_IDirect3DLight::AddRef()

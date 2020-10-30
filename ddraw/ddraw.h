@@ -105,8 +105,7 @@ namespace DdrawWrapper
 	REFIID ConvertREFIID(REFIID riid);
 	void SetCriticalSection();
 	void ReleaseCriticalSection();
-	void AddRef(void *lpvObj);
-	HRESULT ProxyQueryInterface(LPVOID ProxyInterface, REFIID CalledID, LPVOID * ppvObj, REFIID CallerID, LPVOID WrapperInterface);
+	HRESULT ProxyQueryInterface(LPVOID ProxyInterface, REFIID CalledID, LPVOID * ppvObj, REFIID CallerID);
 	void WINAPI genericQueryInterface(REFIID riid, LPVOID *ppvObj);
 }
 

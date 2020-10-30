@@ -91,27 +91,13 @@ REFIID DdrawWrapper::ConvertREFIID(REFIID riid)
 	return riid;
 }
 
-void DdrawWrapper::AddRef(void *lpvObj)
-{
-	((IUnknown*)lpvObj)->AddRef();
-}
-
-HRESULT DdrawWrapper::ProxyQueryInterface(LPVOID ProxyInterface, REFIID riid, LPVOID * ppvObj, REFIID WrapperID, LPVOID WrapperInterface)
+HRESULT DdrawWrapper::ProxyQueryInterface(LPVOID ProxyInterface, REFIID riid, LPVOID * ppvObj, REFIID WrapperID)
 {
 	Logging::LogDebug() << "Query for " << riid << " from " << WrapperID;
 
 	if (!ppvObj)
 	{
 		return DDERR_GENERIC;
-	}
-
-	if (riid == WrapperID || riid == IID_IUnknown)
-	{
-		*ppvObj = WrapperInterface;
-
-		AddRef(*ppvObj);
-
-		return DD_OK;
 	}
 
 	if (Config.Dd7to9 || !ProxyInterface)

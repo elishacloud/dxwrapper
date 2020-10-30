@@ -23,12 +23,12 @@ HRESULT m_IDirect3D::QueryInterface(REFIID riid, LPVOID * ppvObj)
 
 ULONG m_IDirect3D::AddRef()
 {
-	return ProxyInterface->AddRef();
+	return ProxyInterface->AddRef(DirectXVersion);
 }
 
 ULONG m_IDirect3D::Release()
 {
-	return ProxyInterface->Release();
+	return ProxyInterface->Release(DirectXVersion);
 }
 
 HRESULT m_IDirect3D::Initialize(REFCLSID a)

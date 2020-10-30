@@ -56,7 +56,22 @@ HRESULT m_IDirectDrawSurfaceX::QueryInterface(REFIID riid, LPVOID FAR * ppvObj, 
 		return DD_OK;
 	}
 
+	if (DirectXVersion != 1 && DirectXVersion != 2 && DirectXVersion != 3 && DirectXVersion != 4 && DirectXVersion != 7)
+	{
+		LOG_LIMIT(100, __FUNCTION__ << " Error: wrapper interface version not found: " << DirectXVersion);
+		return DDERR_GENERIC;
+	}
+
 	DWORD DxVersion = (CheckWrapperType(riid) && (Config.Dd7to9 || Config.ConvertToDirectDraw7)) ? GetGUIDVersion(riid) : DirectXVersion;
+
+	if (riid == GetWrapperType(DxVersion) || riid == IID_IUnknown)
+	{
+		*ppvObj = GetWrapperInterfaceX(DxVersion);
+
+		AddRef(DxVersion);
+
+		return DD_OK;
+	}
 
 	if (Config.Dd7to9)
 	{
@@ -76,7 +91,7 @@ HRESULT m_IDirectDrawSurfaceX::QueryInterface(REFIID riid, LPVOID FAR * ppvObj, 
 			{
 				*ppvObj = D3DDeviceX->GetWrapperInterfaceX(DxVersion);
 
-				::AddRef(*ppvObj);
+				D3DDeviceX->AddRef(DxVersion);
 
 				return DD_OK;
 			}
@@ -129,7 +144,7 @@ HRESULT m_IDirectDrawSurfaceX::QueryInterface(REFIID riid, LPVOID FAR * ppvObj, 
 		if (attachedTexture)
 		{
 			InterfaceX = attachedTexture;
-			InterfaceX->AddRef();
+			InterfaceX->AddRef(DxVersion);
 		}
 		else
 		{
@@ -142,7 +157,7 @@ HRESULT m_IDirectDrawSurfaceX::QueryInterface(REFIID riid, LPVOID FAR * ppvObj, 
 		return DD_OK;
 	}
 
-	HRESULT hr = ProxyQueryInterface(ProxyInterface, (IID_IDirect3DRampDevice == riid ? IID_IDirect3DRGBDevice : riid), ppvObj, GetWrapperType(DxVersion), GetWrapperInterfaceX(DxVersion));
+	HRESULT hr = ProxyQueryInterface(ProxyInterface, (IID_IDirect3DRampDevice == riid ? IID_IDirect3DRGBDevice : riid), ppvObj, GetWrapperType(DxVersion));
 
 	if (SUCCEEDED(hr) && Config.ConvertToDirect3D7 && ddrawParent)
 	{
@@ -184,19 +199,34 @@ void *m_IDirectDrawSurfaceX::GetWrapperInterfaceX(DWORD DirectXVersion)
 	}
 }
 
-ULONG m_IDirectDrawSurfaceX::AddRef()
+ULONG m_IDirectDrawSurfaceX::AddRef(DWORD DirectXVersion)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
 	if (Config.Dd7to9)
 	{
-		return InterlockedIncrement(&RefCount);
+		switch (DirectXVersion)
+		{
+		case 1:
+			return InterlockedIncrement(&RefCount1);
+		case 2:
+			return InterlockedIncrement(&RefCount2);
+		case 3:
+			return InterlockedIncrement(&RefCount3);
+		case 4:
+			return InterlockedIncrement(&RefCount4);
+		case 7:
+			return InterlockedIncrement(&RefCount7);
+		default:
+			LOG_LIMIT(100, __FUNCTION__ << " Error: wrapper interface version not found: " << DirectXVersion);
+			return 0;
+		}
 	}
 
 	return ProxyInterface->AddRef();
 }
 
-ULONG m_IDirectDrawSurfaceX::Release()
+ULONG m_IDirectDrawSurfaceX::Release(DWORD DirectXVersion)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
@@ -204,21 +234,43 @@ ULONG m_IDirectDrawSurfaceX::Release()
 
 	if (Config.Dd7to9)
 	{
-		ref = InterlockedDecrement(&RefCount);
+		switch (DirectXVersion)
+		{
+		case 1:
+			ref = (InterlockedCompareExchange(&RefCount1, 0, 0)) ? InterlockedDecrement(&RefCount1) : 0;
+			break;
+		case 2:
+			ref = (InterlockedCompareExchange(&RefCount2, 0, 0)) ? InterlockedDecrement(&RefCount2) : 0;
+			break;
+		case 3:
+			ref = (InterlockedCompareExchange(&RefCount3, 0, 0)) ? InterlockedDecrement(&RefCount3) : 0;
+			break;
+		case 4:
+			ref = (InterlockedCompareExchange(&RefCount4, 0, 0)) ? InterlockedDecrement(&RefCount4) : 0;
+			break;
+		case 7:
+			ref = (InterlockedCompareExchange(&RefCount7, 0, 0)) ? InterlockedDecrement(&RefCount7) : 0;
+			break;
+		default:
+			LOG_LIMIT(100, __FUNCTION__ << " Error: wrapper interface version not found: " << DirectXVersion);
+			ref = 0;
+		}
+
+		if (InterlockedCompareExchange(&RefCount1, 0, 0) + InterlockedCompareExchange(&RefCount2, 0, 0) +
+			InterlockedCompareExchange(&RefCount3, 0, 0) + InterlockedCompareExchange(&RefCount4, 0, 0) +
+			InterlockedCompareExchange(&RefCount7, 0, 0) == 0)
+		{
+			delete this;
+		}
 	}
 	else
 	{
 		ref = ProxyInterface->Release();
-	}
 
-	// A complex structure can be destroyed only by destroying the root
-	if (ref == 0 && !CanSurfaceBeDeleted())
-	{
-		InterlockedIncrement(&RefCount);
-	}
-	else if (ref == 0)
-	{
-		delete this;
+		if (ref == 0)
+		{
+			delete this;
+		}
 	}
 
 	return ref;
@@ -279,7 +331,7 @@ HRESULT m_IDirectDrawSurfaceX::AddAttachedSurface(LPDIRECTDRAWSURFACE7 lpDDSurfa
 
 		AddAttachedSurfaceToMap(lpAttachedSurface, true);
 
-		lpAttachedSurface->AddRef();
+		lpDDSurface->AddRef();
 
 		return DD_OK;
 	}
@@ -645,7 +697,7 @@ HRESULT m_IDirectDrawSurfaceX::DeleteAttachedSurface(DWORD dwFlags, LPDIRECTDRAW
 
 		RemoveAttachedSurfaceFromMap(lpAttachedSurface);
 
-		lpAttachedSurface->Release();
+		lpDDSAttachedSurface->Release();
 
 		return DD_OK;
 	}
@@ -1044,9 +1096,9 @@ HRESULT m_IDirectDrawSurfaceX::GetAttachedSurface2(LPDDSCAPS2 lpDDSCaps2, LPDIRE
 
 		m_IDirectDrawSurfaceX *lpAttachedSurface = (m_IDirectDrawSurfaceX *)lpFoundSurface->GetWrapperInterfaceX(DirectXVersion);
 
-		lpAttachedSurface->AddRef();
-
 		*lplpDDAttachedSurface = (LPDIRECTDRAWSURFACE7)lpAttachedSurface;
+
+		(*lplpDDAttachedSurface)->AddRef();
 
 		return DD_OK;
 	}
@@ -2089,7 +2141,7 @@ HRESULT m_IDirectDrawSurfaceX::GetDDInterface(LPVOID FAR * lplpDD, DWORD DirectX
 
 		*lplpDD = ddrawParent->GetWrapperInterfaceX(DirectXVersion);
 
-		::AddRef(*lplpDD);
+		ddrawParent->AddRef(DirectXVersion);
 
 		return DD_OK;
 	}
@@ -2113,7 +2165,7 @@ HRESULT m_IDirectDrawSurfaceX::GetDDInterface(LPVOID FAR * lplpDD, DWORD DirectX
 		if (SUCCEEDED(hr))
 		{
 			*lplpDD = ProxyAddressLookupTable.FindAddress<m_IDirectDraw7>(*lplpDD, DirectXVersion);
-			lpDD->Release();
+			((IUnknown*)*lplpDD)->Release();
 		}
 	}
 
@@ -2419,7 +2471,7 @@ HRESULT m_IDirectDrawSurfaceX::GetLOD(LPDWORD lpdwMaxLOD)
 /*** Helper functions ***/
 /************************/
 
-void m_IDirectDrawSurfaceX::InitSurface()
+void m_IDirectDrawSurfaceX::InitSurface(DWORD DirectXVersion)
 {
 	WrapperInterface = new m_IDirectDrawSurface((LPDIRECTDRAWSURFACE)ProxyInterface, this);
 	WrapperInterface2 = new m_IDirectDrawSurface2((LPDIRECTDRAWSURFACE2)ProxyInterface, this);
@@ -2431,6 +2483,8 @@ void m_IDirectDrawSurfaceX::InitSurface()
 	{
 		return;
 	}
+
+	AddRef(DirectXVersion);
 
 	// Store surface
 	if (ddrawParent)
@@ -3675,7 +3729,7 @@ void m_IDirectDrawSurfaceX::InitSurfaceDesc(DWORD DirectXVersion)
 
 			AddAttachedSurfaceToMap(attachedSurface);
 
-			attachedSurface->AddRef();
+			attachedSurface->AddRef(DirectXVersion);
 		}
 		else
 		{

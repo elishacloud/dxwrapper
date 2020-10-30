@@ -20,7 +20,11 @@ class m_IDirectDrawSurfaceX : public IUnknown, public AddressLookupTableDdrawObj
 private:
 	IDirectDrawSurface7 *ProxyInterface = nullptr;
 	DWORD ProxyDirectXVersion;
-	ULONG RefCount = 1;
+	ULONG RefCount1 = 0;
+	ULONG RefCount2 = 0;
+	ULONG RefCount3 = 0;
+	ULONG RefCount4 = 0;
+	ULONG RefCount7 = 0;
 
 	// Color Key Structure
 	struct CKEYS
@@ -140,7 +144,7 @@ private:
 	IDirectDrawSurface7 *GetProxyInterfaceV7() { return ProxyInterface; }
 
 	// Interface initialization functions
-	void InitSurface();
+	void InitSurface(DWORD DirectXVersion);
 	void ReleaseSurface();
 
 	// Swap surface addresses for Flip
@@ -222,7 +226,7 @@ public:
 			LOG_LIMIT(3, "Creating interface " << __FUNCTION__ << "(" << this << ") v" << DirectXVersion);
 		}
 
-		InitSurface();
+		InitSurface(DirectXVersion);
 
 		ProxyAddressLookupTable.SaveAddress(this, (ProxyInterface) ? ProxyInterface : (void*)this);
 	}
@@ -233,7 +237,7 @@ public:
 
 		LOG_LIMIT(3, "Creating interface " << __FUNCTION__ << "(" << this << ")" << " converting interface from v" << DirectXVersion << " to v" << ProxyDirectXVersion);
 
-		InitSurface();
+		InitSurface(DirectXVersion);
 
 		// Copy surface description and handle complex surfaces after adding surface to vector
 		if (lpDDSurfaceDesc2)
@@ -257,10 +261,9 @@ public:
 	}
 
 	/*** IUnknown methods ***/
-	STDMETHOD(QueryInterface) (THIS_ REFIID riid, LPVOID FAR * ppvObj, DWORD DirectXVersion);
-	STDMETHOD(QueryInterface) (THIS_ REFIID riid, LPVOID FAR * ppvObj) { return QueryInterface(riid, ppvObj, GetGUIDVersion(riid)); }
-	STDMETHOD_(ULONG, AddRef) (THIS);
-	STDMETHOD_(ULONG, Release) (THIS);
+	STDMETHOD(QueryInterface) (THIS_ REFIID riid, LPVOID FAR * ppvObj) { return QueryInterface(riid, ppvObj, 0); }
+	STDMETHOD_(ULONG, AddRef) (THIS) { return AddRef(0); }
+	STDMETHOD_(ULONG, Release) (THIS) { return Release(0); }
 
 	/*** IDirectDrawSurface methods ***/
 	STDMETHOD(AddAttachedSurface)(THIS_ LPDIRECTDRAWSURFACE7);
@@ -327,7 +330,10 @@ public:
 	STDMETHOD(GetLOD)(THIS_ LPDWORD);
 
 	// Helper functions
+	HRESULT QueryInterface(REFIID riid, LPVOID FAR * ppvObj, DWORD DirectXVersion);
 	void *GetWrapperInterfaceX(DWORD DirectXVersion);
+	ULONG AddRef(DWORD DirectXVersion);
+	ULONG Release(DWORD DirectXVersion);
 
 	// Functions handling the ddraw parent interface
 	void SetDdrawParent(m_IDirectDrawX *ddraw) { ddrawParent = ddraw; }

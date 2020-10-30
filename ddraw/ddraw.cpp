@@ -610,11 +610,15 @@ HRESULT WINAPI dd_DllGetClassObject(REFCLSID rclsid, REFIID riid, LPVOID *ppv)
 			return DDERR_INVALIDPARAMS;
 		}
 
-		HRESULT hr = ProxyQueryInterface(nullptr, riid, ppv, rclsid, nullptr);
+		HRESULT hr = ProxyQueryInterface(nullptr, riid, ppv, rclsid);
 
-		if (SUCCEEDED(hr) && riid == IID_IClassFactory && ppv && *ppv)
+		if (SUCCEEDED(hr) && ppv && *ppv)
 		{
-			((m_IClassFactory*)(*ppv))->SetCLSID(rclsid);
+			if (riid == IID_IClassFactory)
+			{
+				((m_IClassFactory*)(*ppv))->SetCLSID(rclsid);
+			}
+			((IUnknown*)ppv)->AddRef();
 		}
 
 		return hr;

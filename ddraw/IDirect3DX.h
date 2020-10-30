@@ -11,7 +11,10 @@ class m_IDirect3DX : public IUnknown, public AddressLookupTableDdrawObject
 private:
 	IDirect3D7 *ProxyInterface = nullptr;
 	DWORD ProxyDirectXVersion;
-	ULONG RefCount = 1;
+	ULONG RefCount1 = 0;
+	ULONG RefCount2 = 0;
+	ULONG RefCount3 = 0;
+	ULONG RefCount7 = 0;
 	m_IDirectDrawX *ddrawParent = nullptr;
 
 	// Store d3d version wrappers
@@ -41,7 +44,7 @@ private:
 	IDirect3D7 *GetProxyInterfaceV7() { return ProxyInterface; }
 
 	// Interface initialization functions
-	void InitDirect3D();
+	void InitDirect3D(DWORD DirectXVersion);
 	void ReleaseDirect3D();
 
 	// Resolution hack
@@ -61,7 +64,7 @@ public:
 			LOG_LIMIT(3, "Creating interface " << __FUNCTION__ << "(" << this << ") v" << DirectXVersion);
 		}
 
-		InitDirect3D();
+		InitDirect3D(DirectXVersion);
 
 		ProxyAddressLookupTable.SaveAddress(this, (ProxyInterface) ? ProxyInterface : (void*)this);
 	}
@@ -71,7 +74,7 @@ public:
 
 		LOG_LIMIT(3, "Creating interface " << __FUNCTION__ << "(" << this << ")" << " converting interface from v" << DirectXVersion << " to v" << ProxyDirectXVersion);
 
-		InitDirect3D();
+		InitDirect3D(DirectXVersion);
 
 		ProxyAddressLookupTable.SaveAddress(this, (ProxyInterface) ? ProxyInterface : (void*)this);
 	}
@@ -85,10 +88,9 @@ public:
 	}
 
 	/*** IUnknown methods ***/
-	STDMETHOD(QueryInterface) (THIS_ REFIID riid, LPVOID FAR * ppvObj, DWORD DirectXVersion);
-	STDMETHOD(QueryInterface) (THIS_ REFIID riid, LPVOID FAR * ppvObj) { return QueryInterface(riid, ppvObj, GetGUIDVersion(riid)); }
-	STDMETHOD_(ULONG, AddRef)(THIS);
-	STDMETHOD_(ULONG, Release)(THIS);
+	STDMETHOD(QueryInterface) (THIS_ REFIID riid, LPVOID FAR * ppvObj) { return QueryInterface(riid, ppvObj, 0); }
+	STDMETHOD_(ULONG, AddRef) (THIS) { return AddRef(0); }
+	STDMETHOD_(ULONG, Release) (THIS) { return Release(0); }
 
 	/*** IDirect3D methods ***/
 	STDMETHOD(Initialize)(THIS_ REFCLSID);
@@ -104,7 +106,10 @@ public:
 	STDMETHOD(EvictManagedTextures)(THIS);
 
 	// Helper functions
+	HRESULT QueryInterface(REFIID riid, LPVOID FAR * ppvObj, DWORD DirectXVersion);
 	void *GetWrapperInterfaceX(DWORD DirectXVersion);
+	ULONG AddRef(DWORD DirectXVersion);
+	ULONG Release(DWORD DirectXVersion);
 
 	// Functions handling the ddraw parent interface
 	void SetDdrawParent(m_IDirectDrawX *ddraw) { ddrawParent = ddraw; }

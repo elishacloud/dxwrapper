@@ -20,20 +20,40 @@ HRESULT m_IDirect3DVertexBufferX::QueryInterface(REFIID riid, LPVOID FAR * ppvOb
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	if (ppvObj && riid == IID_GetRealInterface)
+	if (!ppvObj)
+	{
+		return DDERR_GENERIC;
+	}
+
+	if (riid == IID_GetRealInterface)
 	{
 		*ppvObj = ProxyInterface;
 		return DD_OK;
 	}
-	if (ppvObj && riid == IID_GetInterfaceX)
+	if (riid == IID_GetInterfaceX)
 	{
 		*ppvObj = this;
 		return DD_OK;
 	}
 
+	if (DirectXVersion != 1 && DirectXVersion != 7)
+	{
+		LOG_LIMIT(100, __FUNCTION__ << " Error: wrapper interface version not found: " << DirectXVersion);
+		return DDERR_GENERIC;
+	}
+
 	DWORD DxVersion = (CheckWrapperType(riid) && (Config.Dd7to9 || Config.ConvertToDirect3D7)) ? GetGUIDVersion(riid) : DirectXVersion;
 
-	return ProxyQueryInterface(ProxyInterface, riid, ppvObj, GetWrapperType(DxVersion), GetWrapperInterfaceX(DxVersion));
+	if (riid == GetWrapperType(DxVersion) || riid == IID_IUnknown)
+	{
+		*ppvObj = GetWrapperInterfaceX(DxVersion);
+
+		AddRef(DxVersion);
+
+		return DD_OK;
+	}
+
+	return ProxyQueryInterface(ProxyInterface, riid, ppvObj, GetWrapperType(DxVersion));
 }
 
 void *m_IDirect3DVertexBufferX::GetWrapperInterfaceX(DWORD DirectXVersion)
@@ -50,36 +70,61 @@ void *m_IDirect3DVertexBufferX::GetWrapperInterfaceX(DWORD DirectXVersion)
 	}
 }
 
-ULONG m_IDirect3DVertexBufferX::AddRef()
+ULONG m_IDirect3DVertexBufferX::AddRef(DWORD DirectXVersion)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	if (ProxyDirectXVersion == 9)
+	if (Config.Dd7to9)
 	{
-		return InterlockedIncrement(&RefCount);
+		switch (DirectXVersion)
+		{
+		case 1:
+			return InterlockedIncrement(&RefCount1);
+		case 7:
+			return InterlockedIncrement(&RefCount7);
+		default:
+			LOG_LIMIT(100, __FUNCTION__ << " Error: wrapper interface version not found: " << DirectXVersion);
+			return 0;
+		}
 	}
 
 	return ProxyInterface->AddRef();
 }
 
-ULONG m_IDirect3DVertexBufferX::Release()
+ULONG m_IDirect3DVertexBufferX::Release(DWORD DirectXVersion)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	LONG ref;
+	ULONG ref;
 
-	if (ProxyDirectXVersion == 9)
+	if (Config.Dd7to9)
 	{
-		ref = InterlockedDecrement(&RefCount);
+		switch (DirectXVersion)
+		{
+		case 1:
+			ref = (InterlockedCompareExchange(&RefCount1, 0, 0)) ? InterlockedDecrement(&RefCount1) : 0;
+			break;
+		case 7:
+			ref = (InterlockedCompareExchange(&RefCount7, 0, 0)) ? InterlockedDecrement(&RefCount7) : 0;
+			break;
+		default:
+			LOG_LIMIT(100, __FUNCTION__ << " Error: wrapper interface version not found: " << DirectXVersion);
+			ref = 0;
+		}
+
+		if (InterlockedCompareExchange(&RefCount1, 0, 0) + InterlockedCompareExchange(&RefCount7, 0, 0) == 0)
+		{
+			delete this;
+		}
 	}
 	else
 	{
 		ref = ProxyInterface->Release();
-	}
 
-	if (ref == 0)
-	{
-		delete this;
+		if (ref == 0)
+		{
+			delete this;
+		}
 	}
 
 	return ref;
@@ -191,10 +236,12 @@ HRESULT m_IDirect3DVertexBufferX::ProcessVerticesStrided(DWORD dwVertexOp, DWORD
 /*** Helper functions ***/
 /************************/
 
-void m_IDirect3DVertexBufferX::InitVertexBuffer()
+void m_IDirect3DVertexBufferX::InitVertexBuffer(DWORD DirectXVersion)
 {
 	WrapperInterface = new m_IDirect3DVertexBuffer((LPDIRECT3DVERTEXBUFFER)ProxyInterface, this);
 	WrapperInterface7 = new m_IDirect3DVertexBuffer7((LPDIRECT3DVERTEXBUFFER7)ProxyInterface, this);
+
+	AddRef(DirectXVersion);
 }
 
 void m_IDirect3DVertexBufferX::ReleaseVertexBuffer()

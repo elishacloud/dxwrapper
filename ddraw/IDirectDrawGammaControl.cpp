@@ -20,7 +20,12 @@ HRESULT m_IDirectDrawGammaControl::QueryInterface(REFIID riid, LPVOID FAR * ppvO
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	if (ppvObj && riid == IID_GetRealInterface)
+	if (!ppvObj)
+	{
+		return DDERR_GENERIC;
+	}
+
+	if (riid == IID_GetRealInterface)
 	{
 		*ppvObj = ProxyInterface;
 		return DD_OK;
@@ -31,19 +36,16 @@ HRESULT m_IDirectDrawGammaControl::QueryInterface(REFIID riid, LPVOID FAR * ppvO
 		return DD_OK;
 	}
 
-	if (!ProxyInterface)
+	if (riid == IID_IDirectDrawGammaControl || riid == IID_IUnknown)
 	{
-		if ((riid == IID_IDirectDrawGammaControl || riid == IID_IUnknown) && ppvObj)
-		{
-			AddRef();
+		AddRef();
 
-			*ppvObj = this;
+		*ppvObj = this;
 
-			return DD_OK;
-		}
+		return DD_OK;
 	}
 
-	return ProxyQueryInterface(ProxyInterface, riid, ppvObj, WrapperID, this);
+	return ProxyQueryInterface(ProxyInterface, riid, ppvObj, WrapperID);
 }
 
 ULONG m_IDirectDrawGammaControl::AddRef()
