@@ -65,8 +65,7 @@ void WINAPI dd_AcquireDDThreadLock()
 
 	if (Config.Dd7to9)
 	{
-		SetCriticalSection();
-		return;
+		return SetCriticalSection();
 	}
 
 	static AcquireDDThreadLockProc m_pAcquireDDThreadLock = (Wrapper::ValidProcAddress(AcquireDDThreadLock_out)) ? (AcquireDDThreadLockProc)AcquireDDThreadLock_out : nullptr;
@@ -743,8 +742,7 @@ void WINAPI dd_ReleaseDDThreadLock()
 
 	if (Config.Dd7to9)
 	{
-		ReleaseCriticalSection();
-		return;
+		return ReleaseCriticalSection();
 	}
 
 	static ReleaseDDThreadLockProc m_pReleaseDDThreadLock = (Wrapper::ValidProcAddress(ReleaseDDThreadLock_out)) ? (ReleaseDDThreadLockProc)ReleaseDDThreadLock_out : nullptr;

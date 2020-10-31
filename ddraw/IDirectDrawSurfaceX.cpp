@@ -2486,14 +2486,17 @@ void m_IDirectDrawSurfaceX::InitSurface(DWORD DirectXVersion)
 
 	AddRef(DirectXVersion);
 
-	// Store surface
+	// Initialize Critical Section for surface array
+	InitializeCriticalSection(&ddscs);
+
+	// Store surface, needs to run before InitSurfaceDesc()
 	if (ddrawParent)
 	{
 		ddrawParent->AddSurfaceToVector(this);
 	}
 
-	// Initialize Critical Section for surface array
-	InitializeCriticalSection(&ddscs);
+	// Update surface description and create backbuffers
+	InitSurfaceDesc(DirectXVersion);
 }
 
 void m_IDirectDrawSurfaceX::ReleaseSurface()

@@ -237,17 +237,14 @@ public:
 
 		LOG_LIMIT(3, "Creating interface " << __FUNCTION__ << "(" << this << ")" << " converting interface from v" << DirectXVersion << " to v" << ProxyDirectXVersion);
 
-		InitSurface(DirectXVersion);
-
-		// Copy surface description and handle complex surfaces after adding surface to vector
+		// Copy surface description, needs to run before InitSurface()
 		if (lpDDSurfaceDesc2)
 		{
 			surfaceDesc2.dwSize = sizeof(DDSURFACEDESC2);
 			ConvertSurfaceDesc(surfaceDesc2, *lpDDSurfaceDesc2);
-
-			// Update surface description and create backbuffers
-			InitSurfaceDesc(DirectXVersion);
 		}
+
+		InitSurface(DirectXVersion);
 
 		ProxyAddressLookupTable.SaveAddress(this, (ProxyInterface) ? ProxyInterface : (void*)this);
 	}
