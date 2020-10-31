@@ -1736,7 +1736,7 @@ HRESULT m_IDirectDrawSurfaceX::Lock2(LPRECT lpDestRect, LPDDSURFACEDESC2 lpDDSur
 		HRESULT hr = SetLock(&LockedRect, (lpDestRect) ? &DestRect : nullptr, Flags);
 		if (FAILED(hr))
 		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error: failed to lock texture surface! " << hr);
+			LOG_LIMIT(100, __FUNCTION__ << " Error: failed to lock texture surface! " << (DDERR)hr);
 			return hr;
 		}
 

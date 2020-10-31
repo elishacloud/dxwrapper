@@ -10,6 +10,7 @@ namespace Logging
 }
 
 typedef enum _DDFOURCC { } DDFOURCC;
+typedef enum _DDERR { } DDERR;
 
 #ifdef __DDRAW_INCLUDED__
 std::ostream& operator<<(std::ostream& os, const DDCAPS& caps);
@@ -20,6 +21,7 @@ std::ostream& operator<<(std::ostream& os, const DDPIXELFORMAT& pf);
 std::ostream& operator<<(std::ostream& os, const DDCOLORKEY& ck);
 std::ostream& operator<<(std::ostream& os, const DDSURFACEDESC& sd);
 std::ostream& operator<<(std::ostream& os, const DDSURFACEDESC2& sd);
+std::ostream& operator<<(std::ostream& os, const DDERR& ErrCode);
 #endif
 #ifdef _d3d9TYPES_H_
 std::ostream& operator<<(std::ostream& os, const D3DFORMAT& format);
