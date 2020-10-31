@@ -2578,7 +2578,7 @@ HRESULT m_IDirectDrawSurfaceX::CheckInterface(char *FunctionName, bool CheckD3DD
 	}
 
 	// Check for D3DDevice
-	IsDirect3DSurface = (*ddrawParent->GetCurrentD3DDevice() && (surfaceDesc2.ddsCaps.dwCaps && DDSCAPS_3DDEVICE));
+	IsDirect3DSurface = (*ddrawParent->GetCurrentD3DDevice() && (surfaceDesc2.ddsCaps.dwCaps & DDSCAPS_3DDEVICE));
 
 	// Make sure surface exists, if not then create it
 	if (CheckD3DSurface && (((!IsDirect3DSurface || IsTexture()) && !surfaceTexture) || (IsDirect3DSurface && !IsTexture() && !surface3D)))
