@@ -1173,7 +1173,7 @@ HRESULT m_IDirectDrawX::RestoreDisplayMode()
 	if (Config.Dd7to9)
 	{
 		// Exclusive-level access is required to use this method.
-		if (!ExclusiveMode)
+		if (displayModeWidth && displayModeHeight && displayModeBPP && !ExclusiveMode)
 		{
 			return DDERR_NOEXCLUSIVEMODE;
 		}

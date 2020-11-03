@@ -1,5 +1,9 @@
 #pragma once
 
+#ifndef D3DTSS_ADDRESS
+#define D3DTSS_ADDRESS 12
+#endif
+
 void ConvertMaterial(D3DMATERIAL &Material, D3DMATERIAL &Material2);
 void ConvertMaterial(D3DMATERIAL7 &Material, D3DMATERIAL7 &Material2);
 void ConvertMaterial(D3DMATERIAL &Material, D3DMATERIAL7 &Material7);
@@ -20,3 +24,5 @@ void ConvertDeviceDesc(D3DDEVICEDESC &Desc, D3DDEVICEDESC7 &Desc7);
 void ConvertDeviceDescSoft(D3DDEVICEDESC &Desc);
 void ConvertDeviceDesc(D3DDEVICEDESC7 &Desc7, D3DCAPS9 &Caps9);
 void GetBufferFormat(DDPIXELFORMAT &ddpfPixelFormat, DWORD Num);
+bool CheckTextureStageStateType(D3DTEXTURESTAGESTATETYPE dwState);
+bool CheckRenderStateType(D3DRENDERSTATETYPE dwRenderStateType);

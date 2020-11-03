@@ -2648,7 +2648,7 @@ HRESULT m_IDirectDrawSurfaceX::CreateD3d9Surface()
 	{
 		if (IsPrimarySurface() || IsBackBuffer())
 		{
-			if (FAILED((*d3d9Device)->CreateRenderTarget(surfaceDesc2.dwWidth, surfaceDesc2.dwHeight, Format, D3DMULTISAMPLE_NONE, 0, 0, &surface3D, nullptr)))
+			if (FAILED((*d3d9Device)->CreateRenderTarget(surfaceDesc2.dwWidth, surfaceDesc2.dwHeight, Format, D3DMULTISAMPLE_NONE, 0, TRUE, &surface3D, nullptr)))
 			{
 				LOG_LIMIT(100, __FUNCTION__ << " Error: failed to create render target size: " << surfaceDesc2.dwWidth << "x" << surfaceDesc2.dwHeight << " Format: " << surfaceFormat);
 				return DDERR_GENERIC;

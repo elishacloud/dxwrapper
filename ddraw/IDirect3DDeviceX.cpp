@@ -15,6 +15,7 @@
 */
 
 #include "ddraw.h"
+#include "d3dhal.h"
 
 HRESULT m_IDirect3DDeviceX::QueryInterface(REFIID riid, LPVOID FAR * ppvObj, DWORD DirectXVersion)
 {
@@ -800,6 +801,58 @@ HRESULT m_IDirect3DDeviceX::GetTextureStageState(DWORD dwStage, D3DTEXTURESTAGES
 			return DDERR_GENERIC;
 		}
 
+		if (!lpdwValue)
+		{
+			return DDERR_GENERIC;
+		}
+
+		switch ((DWORD)dwState)
+		{
+		case D3DTSS_ADDRESS:
+		{
+			DWORD ValueU = 0, ValueV = 0;
+			(*d3d9Device)->GetSamplerState(dwStage, D3DSAMP_ADDRESSU, &ValueU);
+			(*d3d9Device)->GetSamplerState(dwStage, D3DSAMP_ADDRESSV, &ValueV);
+			if (ValueU == ValueV)
+			{
+				*lpdwValue = ValueU;
+				return D3D_OK;
+			}
+			else
+			{
+				LOG_LIMIT(100, __FUNCTION__ << " Error: AddressU and AddressV don't match");
+				*lpdwValue = 0;
+				return DDERR_GENERIC;
+			}
+		}
+		case D3DTSS_ADDRESSU:
+			return (*d3d9Device)->GetSamplerState(dwStage, D3DSAMP_ADDRESSU, lpdwValue);
+		case D3DTSS_ADDRESSV:
+			return (*d3d9Device)->GetSamplerState(dwStage, D3DSAMP_ADDRESSV, lpdwValue);
+		case D3DTSS_ADDRESSW:
+			return (*d3d9Device)->GetSamplerState(dwStage, D3DSAMP_ADDRESSW, lpdwValue);
+		case D3DTSS_BORDERCOLOR:
+			return (*d3d9Device)->GetSamplerState(dwStage, D3DSAMP_BORDERCOLOR, lpdwValue);
+		case D3DTSS_MAGFILTER:
+			return (*d3d9Device)->GetSamplerState(dwStage, D3DSAMP_MAGFILTER, lpdwValue);
+		case D3DTSS_MINFILTER:
+			return (*d3d9Device)->GetSamplerState(dwStage, D3DSAMP_MINFILTER, lpdwValue);
+		case D3DTSS_MIPFILTER:
+			return (*d3d9Device)->GetSamplerState(dwStage, D3DSAMP_MIPFILTER, lpdwValue);
+		case D3DTSS_MIPMAPLODBIAS:
+			return (*d3d9Device)->GetSamplerState(dwStage, D3DSAMP_MIPMAPLODBIAS, lpdwValue);
+		case D3DTSS_MAXMIPLEVEL:
+			return (*d3d9Device)->GetSamplerState(dwStage, D3DSAMP_MAXMIPLEVEL, lpdwValue);
+		case D3DTSS_MAXANISOTROPY:
+			return (*d3d9Device)->GetSamplerState(dwStage, D3DSAMP_MAXANISOTROPY, lpdwValue);
+		}
+
+		if (!CheckTextureStageStateType(dwState))
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Warning: Texture state type not implemented: " << dwState);
+			return DDERR_UNSUPPORTED;
+		}
+
 		return (*d3d9Device)->GetTextureStageState(dwStage, dwState, lpdwValue);
 	}
 
@@ -826,6 +879,46 @@ HRESULT m_IDirect3DDeviceX::SetTextureStageState(DWORD dwStage, D3DTEXTURESTAGES
 		if (FAILED(CheckInterface(__FUNCTION__, true)))
 		{
 			return DDERR_GENERIC;
+		}
+
+		switch ((DWORD)dwState)
+		{
+		case D3DTSS_ADDRESS:
+			if (SUCCEEDED((*d3d9Device)->SetSamplerState(dwStage, D3DSAMP_ADDRESSU, dwValue)) &&
+				SUCCEEDED((*d3d9Device)->SetSamplerState(dwStage, D3DSAMP_ADDRESSV, dwValue)))
+			{
+				return D3D_OK;
+			}
+			else
+			{
+				return DDERR_GENERIC;
+			}
+		case D3DTSS_ADDRESSU:
+			return (*d3d9Device)->SetSamplerState(dwStage, D3DSAMP_ADDRESSU, dwValue);
+		case D3DTSS_ADDRESSV:
+			return (*d3d9Device)->SetSamplerState(dwStage, D3DSAMP_ADDRESSV, dwValue);
+		case D3DTSS_ADDRESSW:
+			return (*d3d9Device)->SetSamplerState(dwStage, D3DSAMP_ADDRESSW, dwValue);
+		case D3DTSS_BORDERCOLOR:
+			return (*d3d9Device)->SetSamplerState(dwStage, D3DSAMP_BORDERCOLOR, dwValue);
+		case D3DTSS_MAGFILTER:
+			return (*d3d9Device)->SetSamplerState(dwStage, D3DSAMP_MAGFILTER, dwValue);
+		case D3DTSS_MINFILTER:
+			return (*d3d9Device)->SetSamplerState(dwStage, D3DSAMP_MINFILTER, dwValue);
+		case D3DTSS_MIPFILTER:
+			return (*d3d9Device)->SetSamplerState(dwStage, D3DSAMP_MIPFILTER, dwValue);
+		case D3DTSS_MIPMAPLODBIAS:
+			return (*d3d9Device)->SetSamplerState(dwStage, D3DSAMP_MIPMAPLODBIAS, dwValue);
+		case D3DTSS_MAXMIPLEVEL:
+			return (*d3d9Device)->SetSamplerState(dwStage, D3DSAMP_MAXMIPLEVEL, dwValue);
+		case D3DTSS_MAXANISOTROPY:
+			return (*d3d9Device)->SetSamplerState(dwStage, D3DSAMP_MAXANISOTROPY, dwValue);
+		}
+
+		if (!CheckTextureStageStateType(dwState))
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Warning: Texture state type not implemented: " << dwState);
+			return DDERR_UNSUPPORTED;
 		}
 
 		return (*d3d9Device)->SetTextureStageState(dwStage, dwState, dwValue);
@@ -1627,7 +1720,7 @@ HRESULT m_IDirect3DDeviceX::GetMaterial(LPD3DMATERIAL7 lpMaterial)
 	return GetProxyInterfaceV7()->GetMaterial(lpMaterial);
 }
 
-HRESULT m_IDirect3DDeviceX::SetRenderState(D3DRENDERSTATETYPE dwRendStateType, DWORD dwRenderState)
+HRESULT m_IDirect3DDeviceX::SetRenderState(D3DRENDERSTATETYPE dwRenderStateType, DWORD dwRenderState)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
@@ -1639,7 +1732,26 @@ HRESULT m_IDirect3DDeviceX::SetRenderState(D3DRENDERSTATETYPE dwRendStateType, D
 			return DDERR_GENERIC;
 		}
 
-		return (*d3d9Device)->SetRenderState(dwRendStateType, dwRenderState);
+		switch ((DWORD)dwRenderStateType)
+		{
+		case D3DRENDERSTATE_ANTIALIAS:
+			dwRenderStateType = D3DRS_MULTISAMPLEANTIALIAS;
+			break;
+		case D3DRENDERSTATE_TEXTUREPERSPECTIVE:
+			LOG_ONCE(__FUNCTION__ << " Warning: 'D3DRENDERSTATE_TEXTUREPERSPECTIVE' not implemented!");
+			return DDERR_UNSUPPORTED;
+		case D3DRENDERSTATE_EDGEANTIALIAS:
+			dwRenderStateType = D3DRS_ANTIALIASEDLINEENABLE;
+			break;
+		}
+
+		if (!CheckRenderStateType(dwRenderStateType))
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Warning: Render state type not implemented: " << dwRenderStateType);
+			return DDERR_UNSUPPORTED;
+		}
+
+		return (*d3d9Device)->SetRenderState(dwRenderStateType, dwRenderState);
 	}
 
 	switch (ProxyDirectXVersion)
@@ -1648,11 +1760,11 @@ HRESULT m_IDirect3DDeviceX::SetRenderState(D3DRENDERSTATETYPE dwRendStateType, D
 	default:
 		return DDERR_GENERIC;
 	case 2:
-		return GetProxyInterfaceV2()->SetRenderState(dwRendStateType, dwRenderState);
+		return GetProxyInterfaceV2()->SetRenderState(dwRenderStateType, dwRenderState);
 	case 3:
-		return GetProxyInterfaceV3()->SetRenderState(dwRendStateType, dwRenderState);
+		return GetProxyInterfaceV3()->SetRenderState(dwRenderStateType, dwRenderState);
 	case 7:
-		return GetProxyInterfaceV7()->SetRenderState(dwRendStateType, dwRenderState);
+		return GetProxyInterfaceV7()->SetRenderState(dwRenderStateType, dwRenderState);
 	}
 }
 
@@ -1662,8 +1774,32 @@ HRESULT m_IDirect3DDeviceX::GetRenderState(D3DRENDERSTATETYPE dwRenderStateType,
 
 	if (Config.Dd7to9)
 	{
-		LOG_LIMIT(100, __FUNCTION__ << " Not Implemented");
-		return DDERR_UNSUPPORTED;
+		// Check for device interface
+		if (FAILED(CheckInterface(__FUNCTION__, true)))
+		{
+			return DDERR_GENERIC;
+		}
+
+		switch ((DWORD)dwRenderStateType)
+		{
+		case D3DRENDERSTATE_ANTIALIAS:
+			dwRenderStateType = D3DRS_MULTISAMPLEANTIALIAS;
+			break;
+		case D3DRENDERSTATE_EDGEANTIALIAS:
+			dwRenderStateType = D3DRS_ANTIALIASEDLINEENABLE;
+			break;
+		case D3DRENDERSTATE_TEXTUREPERSPECTIVE:
+			LOG_ONCE(__FUNCTION__ << " Warning: 'D3DRENDERSTATE_TEXTUREPERSPECTIVE' not implemented!");
+			return DDERR_UNSUPPORTED;
+		}
+
+		if (!CheckRenderStateType(dwRenderStateType))
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Warning: Render state type not implemented: " << dwRenderStateType);
+			return DDERR_UNSUPPORTED;
+		}
+
+		return (*d3d9Device)->GetRenderState(dwRenderStateType, lpdwRenderState);
 	}
 
 	switch (ProxyDirectXVersion)
