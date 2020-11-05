@@ -362,7 +362,7 @@ HRESULT m_IDirectDrawX::CreateSurface(LPDDSURFACEDESC lpDDSurfaceDesc, LPDIRECTD
 	{
 		if (!lplpDDSurface || !lpDDSurfaceDesc || lpDDSurfaceDesc->dwSize != sizeof(DDSURFACEDESC))
 		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error! Invalid parameters. dwSize: " << ((lpDDSurfaceDesc) ? lpDDSurfaceDesc->dwSize : -1));
+			LOG_LIMIT(100, __FUNCTION__ << " Error: Invalid parameters. dwSize: " << ((lpDDSurfaceDesc) ? lpDDSurfaceDesc->dwSize : -1));
 			return DDERR_INVALIDPARAMS;
 		}
 
@@ -393,7 +393,7 @@ HRESULT m_IDirectDrawX::CreateSurface2(LPDDSURFACEDESC2 lpDDSurfaceDesc2, LPDIRE
 	{
 		if (!lplpDDSurface || !lpDDSurfaceDesc2 || lpDDSurfaceDesc2->dwSize != sizeof(DDSURFACEDESC2))
 		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error! Invalid parameters. dwSize: " << ((lpDDSurfaceDesc2) ? lpDDSurfaceDesc2->dwSize : -1));
+			LOG_LIMIT(100, __FUNCTION__ << " Error: Invalid parameters. dwSize: " << ((lpDDSurfaceDesc2) ? lpDDSurfaceDesc2->dwSize : -1));
 			return DDERR_INVALIDPARAMS;
 		}
 
@@ -423,35 +423,46 @@ HRESULT m_IDirectDrawX::CreateSurface2(LPDDSURFACEDESC2 lpDDSurfaceDesc2, LPDIRE
 		// Check for MipMap
 		if ((lpDDSurfaceDesc2->dwFlags & DDSD_MIPMAPCOUNT) || (lpDDSurfaceDesc2->ddsCaps.dwCaps & DDSCAPS_MIPMAP))
 		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error: MipMap not Implemented.");
-			return DDERR_NOMIPMAPHW;
+			if (lpDDSurfaceDesc2->dwMipMapCount > 1)
+			{
+				LOG_LIMIT(100, __FUNCTION__ << " Error: MipMap not Implemented.");
+				return DDERR_NOMIPMAPHW;
+			}
+			else
+			{
+				LOG_LIMIT(100, __FUNCTION__ << " Warning: MipMap not Implemented.");
+			}
 		}
 
 		// Check for zbuffer
-		if (((lpDDSurfaceDesc2->dwFlags & DDSD_PIXELFORMAT) && (lpDDSurfaceDesc2->ddpfPixelFormat.dwFlags & DDPF_ZBUFFER)) || (lpDDSurfaceDesc2->ddsCaps.dwCaps & DDSCAPS_ZBUFFER))
+		if ((lpDDSurfaceDesc2->dwFlags & DDSD_PIXELFORMAT) && (lpDDSurfaceDesc2->ddpfPixelFormat.dwFlags & DDPF_ZBUFFER))
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Error: zbuffer not Implemented.");
 			return DDERR_NOZBUFFERHW;
 		}
+		if ((lpDDSurfaceDesc2->dwFlags & DDSD_CAPS) && (lpDDSurfaceDesc2->ddsCaps.dwCaps & DDSCAPS_ZBUFFER))
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Warning: zbuffer not Implemented.");
+		}
 
 		// Check for alpha
 		if (((lpDDSurfaceDesc2->dwFlags & DDSD_PIXELFORMAT) && (lpDDSurfaceDesc2->ddpfPixelFormat.dwFlags & (DDPF_ALPHA | DDPF_ALPHAPIXELS | DDPF_ALPHAPREMULT))) ||
-			(lpDDSurfaceDesc2->ddsCaps.dwCaps & DDSCAPS_ALPHA))
+			((lpDDSurfaceDesc2->dwFlags & DDSD_CAPS) && (lpDDSurfaceDesc2->ddsCaps.dwCaps & DDSCAPS_ALPHA)))
 		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error: Aplpha not Implemented.");
+			LOG_LIMIT(100, __FUNCTION__ << " Warning: Aplpha not Implemented.");
 		}
 
 		// Check for Overlay
 		if ((lpDDSurfaceDesc2->dwFlags & (DDSD_CKDESTOVERLAY | DDSD_CKSRCOVERLAY)) || (lpDDSurfaceDesc2->ddsCaps.dwCaps & DDSCAPS_OVERLAY))
 		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error: Overlay not Implemented.");
+			LOG_LIMIT(100, __FUNCTION__ << " Warning: Overlay not Implemented.");
 		}
 
 		// Check for unsupported flags
 		DWORD UnsupportedDDSDFlags = (DDSD_ZBUFFERBITDEPTH | DDSD_ALPHABITDEPTH | DDSD_LPSURFACE | DDSD_MIPMAPCOUNT | DDSD_LINEARSIZE | DDSD_FVF | DDSD_SRCVBHANDLE | DDSD_DEPTH);
 		if (lpDDSurfaceDesc2->dwFlags & UnsupportedDDSDFlags)
 		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error: non-supported dwFlags! " << Logging::hex(lpDDSurfaceDesc2->dwFlags & UnsupportedDDSDFlags));
+			LOG_LIMIT(100, __FUNCTION__ << " Warning: non-supported dwFlags! " << Logging::hex(lpDDSurfaceDesc2->dwFlags & UnsupportedDDSDFlags));
 		}
 
 		// Check for unsupported ddsCaps
@@ -461,7 +472,7 @@ HRESULT m_IDirectDrawX::CreateSurface2(LPDDSURFACEDESC2 lpDDSurfaceDesc2, LPDIRE
 			DDSCAPS2_OPAQUE | DDSCAPS2_HINTANTIALIASING | DDSCAPS2_CUBEMAP | DDSCAPS2_CUBEMAP_ALLFACES);
 		if ((lpDDSurfaceDesc2->ddsCaps.dwCaps & UnsupportedDDSCaps) || (lpDDSurfaceDesc2->ddsCaps.dwCaps2 & UnsupportedDDSCaps2) || lpDDSurfaceDesc2->ddsCaps.dwVolumeDepth)
 		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error: non-supported ddsCaps! " << Logging::hex(lpDDSurfaceDesc2->ddsCaps.dwCaps & UnsupportedDDSCaps) << " " <<
+			LOG_LIMIT(100, __FUNCTION__ << " Warning: non-supported ddsCaps! " << Logging::hex(lpDDSurfaceDesc2->ddsCaps.dwCaps & UnsupportedDDSCaps) << " " <<
 				Logging::hex(lpDDSurfaceDesc2->ddsCaps.dwCaps2 & UnsupportedDDSCaps2) << " " << lpDDSurfaceDesc2->ddsCaps.dwVolumeDepth);
 		}
 
@@ -612,7 +623,7 @@ HRESULT m_IDirectDrawX::EnumDisplayModes(DWORD dwFlags, LPDDSURFACEDESC lpDDSurf
 	{
 		if (!lpEnumModesCallback || (lpDDSurfaceDesc && lpDDSurfaceDesc->dwSize != sizeof(DDSURFACEDESC)))
 		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error! Invalid parameters. dwSize: " << ((lpDDSurfaceDesc) ? lpDDSurfaceDesc->dwSize : -1));
+			LOG_LIMIT(100, __FUNCTION__ << " Error: Invalid parameters. dwSize: " << ((lpDDSurfaceDesc) ? lpDDSurfaceDesc->dwSize : -1));
 			return DDERR_INVALIDPARAMS;
 		}
 
@@ -641,7 +652,7 @@ HRESULT m_IDirectDrawX::EnumDisplayModes2(DWORD dwFlags, LPDDSURFACEDESC2 lpDDSu
 	{
 		if (!lpEnumModesCallback2 || (lpDDSurfaceDesc2 && lpDDSurfaceDesc2->dwSize != sizeof(DDSURFACEDESC2)))
 		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error! Invalid parameters. dwSize: " << ((lpDDSurfaceDesc2) ? lpDDSurfaceDesc2->dwSize : -1));
+			LOG_LIMIT(100, __FUNCTION__ << " Error: Invalid parameters. dwSize: " << ((lpDDSurfaceDesc2) ? lpDDSurfaceDesc2->dwSize : -1));
 			return DDERR_INVALIDPARAMS;
 		}
 
@@ -764,7 +775,7 @@ HRESULT m_IDirectDrawX::EnumSurfaces(DWORD dwFlags, LPDDSURFACEDESC lpDDSurfaceD
 	{
 		if ((lpDDSurfaceDesc && lpDDSurfaceDesc->dwSize != sizeof(DDSURFACEDESC)) || (!lpDDSurfaceDesc && !(dwFlags & DDENUMSURFACES_ALL)))
 		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error! Invalid parameters. dwSize: " << ((lpDDSurfaceDesc) ? lpDDSurfaceDesc->dwSize : -1));
+			LOG_LIMIT(100, __FUNCTION__ << " Error: Invalid parameters. dwSize: " << ((lpDDSurfaceDesc) ? lpDDSurfaceDesc->dwSize : -1));
 			return DDERR_INVALIDPARAMS;
 		}
 
@@ -799,11 +810,11 @@ HRESULT m_IDirectDrawX::EnumSurfaces2(DWORD dwFlags, LPDDSURFACEDESC2 lpDDSurfac
 	{
 		if ((lpDDSurfaceDesc2 && lpDDSurfaceDesc2->dwSize != sizeof(DDSURFACEDESC2)) || (!lpDDSurfaceDesc2 && !(dwFlags & DDENUMSURFACES_ALL)))
 		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error! Invalid parameters. dwSize: " << ((lpDDSurfaceDesc2) ? lpDDSurfaceDesc2->dwSize : -1));
+			LOG_LIMIT(100, __FUNCTION__ << " Error: Invalid parameters. dwSize: " << ((lpDDSurfaceDesc2) ? lpDDSurfaceDesc2->dwSize : -1));
 			return DDERR_INVALIDPARAMS;
 		}
 
-		LOG_LIMIT(100, __FUNCTION__ << " Not Implemented");
+		LOG_LIMIT(100, __FUNCTION__ << " Error: Not Implemented");
 		return DDERR_UNSUPPORTED;
 	}
 
@@ -841,7 +852,7 @@ HRESULT m_IDirectDrawX::GetCaps(LPDDCAPS lpDDDriverCaps, LPDDCAPS lpDDHELCaps)
 		lpDDHELCaps->dwSize != sizeof(DDCAPS_DX3) && lpDDHELCaps->dwSize != sizeof(DDCAPS_DX5) &&
 		lpDDHELCaps->dwSize != sizeof(DDCAPS_DX6) && lpDDHELCaps->dwSize != sizeof(DDCAPS_DX7)))
 	{
-		LOG_LIMIT(100, __FUNCTION__ << " Error! Invalid parameters. dwSize: " << ((lpDDDriverCaps) ? lpDDDriverCaps->dwSize : -1) << " " << ((lpDDHELCaps) ? lpDDHELCaps->dwSize : -1));
+		LOG_LIMIT(100, __FUNCTION__ << " Error: Invalid parameters. dwSize: " << ((lpDDDriverCaps) ? lpDDDriverCaps->dwSize : -1) << " " << ((lpDDHELCaps) ? lpDDHELCaps->dwSize : -1));
 		return DDERR_INVALIDPARAMS;
 	}
 
@@ -914,7 +925,7 @@ HRESULT m_IDirectDrawX::GetDisplayMode(LPDDSURFACEDESC lpDDSurfaceDesc)
 	{
 		if (!lpDDSurfaceDesc || lpDDSurfaceDesc->dwSize != sizeof(DDSURFACEDESC))
 		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error! Invalid parameters. dwSize: " << ((lpDDSurfaceDesc) ? lpDDSurfaceDesc->dwSize : -1));
+			LOG_LIMIT(100, __FUNCTION__ << " Error: Invalid parameters. dwSize: " << ((lpDDSurfaceDesc) ? lpDDSurfaceDesc->dwSize : -1));
 			return DDERR_INVALIDPARAMS;
 		}
 
@@ -943,7 +954,7 @@ HRESULT m_IDirectDrawX::GetDisplayMode2(LPDDSURFACEDESC2 lpDDSurfaceDesc2)
 	{
 		if (!lpDDSurfaceDesc2 || lpDDSurfaceDesc2->dwSize != sizeof(DDSURFACEDESC2))
 		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error! Invalid parameters. dwSize: " << ((lpDDSurfaceDesc2) ? lpDDSurfaceDesc2->dwSize : -1));
+			LOG_LIMIT(100, __FUNCTION__ << " Error: Invalid parameters. dwSize: " << ((lpDDSurfaceDesc2) ? lpDDSurfaceDesc2->dwSize : -1));
 			return DDERR_INVALIDPARAMS;
 		}
 
@@ -993,7 +1004,7 @@ HRESULT m_IDirectDrawX::GetFourCCCodes(LPDWORD lpNumCodes, LPDWORD lpCodes)
 	{
 		if (!lpNumCodes)
 		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error! Invalid parameters.");
+			LOG_LIMIT(100, __FUNCTION__ << " Error: Invalid parameters.");
 			return DDERR_INVALIDPARAMS;
 		}
 
@@ -1236,14 +1247,14 @@ HRESULT m_IDirectDrawX::SetCooperativeLevel(HWND hWnd, DWORD dwFlags)
 			(!hWnd && !(dwFlags & DDSCL_NORMAL)) ||																						// hWnd can only be null if normal flag is set
 			((dwFlags & DDSCL_EXCLUSIVE) && !IsWindow(hWnd)))																			// When using Exclusive mode the hwnd must be valid
 		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error! Invalid parameters. dwFlags: " << Logging::hex(dwFlags) << " " << hWnd);
+			LOG_LIMIT(100, __FUNCTION__ << " Error: Invalid parameters. dwFlags: " << Logging::hex(dwFlags) << " " << hWnd);
 			return DDERR_INVALIDPARAMS;
 		}
 
 		// Check for unsupported flags
 		if (dwFlags & (DDSCL_CREATEDEVICEWINDOW | DDSCL_SETDEVICEWINDOW | DDSCL_SETFOCUSWINDOW))
 		{
-			LOG_LIMIT(100, __FUNCTION__ << " Flags not supported. dwFlags: " << Logging::hex(dwFlags) << " " << hWnd);
+			LOG_LIMIT(100, __FUNCTION__ << " Warning: Flags not supported. dwFlags: " << Logging::hex(dwFlags) << " " << hWnd);
 		}
 
 		// ToDo: The DDSCL_EXCLUSIVE flag must be set to call functions that can adversely affect performance of other applications.
@@ -1269,7 +1280,7 @@ HRESULT m_IDirectDrawX::SetCooperativeLevel(HWND hWnd, DWORD dwFlags)
 		{
 			if (ExclusiveMode && ExclusiveHwnd != hWnd && IsWindow(ExclusiveHwnd))
 			{
-				LOG_LIMIT(100, __FUNCTION__ << " Error! Exclusive mode already set.");
+				LOG_LIMIT(100, __FUNCTION__ << " Error: Exclusive mode already set.");
 				return DDERR_EXCLUSIVEMODEALREADYSET;
 			}
 			if (!ExclusiveMode)
@@ -1370,7 +1381,7 @@ HRESULT m_IDirectDrawX::SetDisplayMode(DWORD dwWidth, DWORD dwHeight, DWORD dwBP
 	{
 		if (!dwWidth || !dwHeight || (dwBPP != 8 && dwBPP != 16 && dwBPP != 24 && dwBPP != 32))
 		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error! Invalid parameters. " << dwWidth << "x" << dwHeight << " " << dwBPP);
+			LOG_LIMIT(100, __FUNCTION__ << " Error: Invalid parameters. " << dwWidth << "x" << dwHeight << " " << dwBPP);
 			return DDERR_INVALIDPARAMS;
 		}
 
@@ -2415,7 +2426,7 @@ void m_IDirectDrawX::ReleaseD9Interface(T **ppInterface)
 		// Error checking
 		if (z != 0)
 		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error: failed to release Direct3D9 interface");
+			LOG_LIMIT(100, __FUNCTION__ << " Warning: failed to release Direct3D9 interface");
 		}
 		else
 		{

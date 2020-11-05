@@ -20,7 +20,7 @@ void ConvertColorControl(DDCOLORCONTROL &ColorControl, DDCOLORCONTROL &ColorCont
 {
 	if (ColorControl.dwSize != sizeof(DDCOLORCONTROL) || ColorControl.dwSize != sizeof(DDCOLORCONTROL))
 	{
-		LOG_LIMIT(100, __FUNCTION__ << " Error! Incorrect dwSize: " << ColorControl.dwSize << " " << ColorControl.dwSize);
+		LOG_LIMIT(100, __FUNCTION__ << " Error: Incorrect dwSize: " << ColorControl.dwSize << " " << ColorControl.dwSize);
 		return;
 	}
 	CopyMemory(&ColorControl, &ColorControl2, sizeof(DDCOLORCONTROL));
@@ -35,7 +35,7 @@ void ConvertSurfaceDesc(DDSURFACEDESC &Desc, DDSURFACEDESC &Desc2)
 {
 	if (Desc.dwSize != sizeof(DDSURFACEDESC) || Desc2.dwSize != sizeof(DDSURFACEDESC))
 	{
-		LOG_LIMIT(100, __FUNCTION__ << " Error! Incorrect dwSize: " << Desc.dwSize << " " << Desc2.dwSize);
+		LOG_LIMIT(100, __FUNCTION__ << " Error: Incorrect dwSize: " << Desc.dwSize << " " << Desc2.dwSize);
 		return;
 	}
 	CopyMemory(&Desc, &Desc2, sizeof(DDSURFACEDESC));
@@ -45,7 +45,7 @@ void ConvertSurfaceDesc(DDSURFACEDESC2 &Desc, DDSURFACEDESC2 &Desc2)
 {
 	if (Desc.dwSize != sizeof(DDSURFACEDESC2) || Desc2.dwSize != sizeof(DDSURFACEDESC2))
 	{
-		LOG_LIMIT(100, __FUNCTION__ << " Error! Incorrect dwSize: " << Desc.dwSize << " " << Desc2.dwSize);
+		LOG_LIMIT(100, __FUNCTION__ << " Error: Incorrect dwSize: " << Desc.dwSize << " " << Desc2.dwSize);
 		return;
 	}
 	CopyMemory(&Desc, &Desc2, sizeof(DDSURFACEDESC2));
@@ -56,7 +56,7 @@ void ConvertSurfaceDesc(DDSURFACEDESC &Desc, DDSURFACEDESC2 &Desc2)
 	// Check for supported dwSize
 	if (Desc.dwSize != sizeof(DDSURFACEDESC) || (Desc2.dwSize != sizeof(DDSURFACEDESC2) && Desc2.dwSize != sizeof(DDSURFACEDESC)))
 	{
-		LOG_LIMIT(100, __FUNCTION__ << " Error! Incorrect dwSize: " << Desc.dwSize << " " << Desc2.dwSize);
+		LOG_LIMIT(100, __FUNCTION__ << " Error: Incorrect dwSize: " << Desc.dwSize << " " << Desc2.dwSize);
 		return;
 	}
 	// Prepare destination structure
@@ -92,7 +92,7 @@ void ConvertSurfaceDesc(DDSURFACEDESC &Desc, DDSURFACEDESC2 &Desc2)
 	// Check for dwFlags that did not get converted
 	if ((Desc.dwFlags & ~DDSD_ZBUFFERBITDEPTH) != Desc2.dwFlags)
 	{
-		LOG_LIMIT(100, __FUNCTION__ << " Error! (Desc2->Desc) Removing unsupported flags: " << Logging::hex(Desc2.dwFlags & ~Desc.dwFlags));
+		LOG_LIMIT(100, __FUNCTION__ << " Warning: (Desc2->Desc) Removing unsupported flags: " << Logging::hex(Desc2.dwFlags & ~Desc.dwFlags));
 	}
 }
 
@@ -101,7 +101,7 @@ void ConvertSurfaceDesc(DDSURFACEDESC2 &Desc2, DDSURFACEDESC &Desc)
 	// Check for supported dwSize
 	if (Desc2.dwSize != sizeof(DDSURFACEDESC2) || Desc.dwSize != sizeof(DDSURFACEDESC))
 	{
-		LOG_LIMIT(100, __FUNCTION__ << " Error! Incorrect dwSize: " << Desc2.dwSize << " " << Desc.dwSize);
+		LOG_LIMIT(100, __FUNCTION__ << " Error: Incorrect dwSize: " << Desc2.dwSize << " " << Desc.dwSize);
 		return;
 	}
 	// Prepare destination structure
@@ -138,7 +138,7 @@ void ConvertSurfaceDesc(DDSURFACEDESC2 &Desc2, DDSURFACEDESC &Desc)
 										// Check for dwFlags that did not get converted
 	if (Desc2.dwFlags != (Desc.dwFlags & ~DDSD_ZBUFFERBITDEPTH))
 	{
-		LOG_LIMIT(100, __FUNCTION__ << " Error! (Desc->Desc2) Removing unsupported flags: " << Logging::hex(Desc.dwFlags & ~Desc2.dwFlags));
+		LOG_LIMIT(100, __FUNCTION__ << " Warning: (Desc->Desc2) Removing unsupported flags: " << Logging::hex(Desc.dwFlags & ~Desc2.dwFlags));
 	}
 }
 
@@ -146,7 +146,7 @@ void ConvertPixelFormat(DDPIXELFORMAT &Format, DDPIXELFORMAT &Format2)
 {
 	if (Format.dwSize != sizeof(DDPIXELFORMAT) || Format2.dwSize != sizeof(DDPIXELFORMAT))
 	{
-		LOG_LIMIT(100, __FUNCTION__ << " Error! Incorrect dwSize: " << Format.dwSize << " " << Format2.dwSize);
+		LOG_LIMIT(100, __FUNCTION__ << " Error: Incorrect dwSize: " << Format.dwSize << " " << Format2.dwSize);
 		return;
 	}
 	CopyMemory(&Format, &Format2, sizeof(DDPIXELFORMAT));
@@ -198,7 +198,7 @@ void ConvertCaps(DDSCAPS &Caps, DDSCAPS2 &Caps2)
 	// Check for dwFlags that did not get converted
 	if (Caps2.dwCaps2 || Caps2.dwVolumeDepth)
 	{
-		LOG_LIMIT(100, __FUNCTION__ << " Error! Removing unsupported dwCaps2 and dwVolumeDepth: " << Logging::hex(Caps2.dwCaps2) << " " << Caps2.dwVolumeDepth);
+		LOG_LIMIT(100, __FUNCTION__ << " Warning: Removing unsupported dwCaps2 and dwVolumeDepth: " << Logging::hex(Caps2.dwCaps2) << " " << Caps2.dwVolumeDepth);
 	}
 }
 
@@ -220,7 +220,7 @@ void ConvertCaps(DDCAPS &Caps, DDCAPS &Caps2)
 		Caps2.dwSize != sizeof(DDCAPS_DX3) && Caps2.dwSize != sizeof(DDCAPS_DX5) &&
 		Caps2.dwSize != sizeof(DDCAPS_DX6) && Caps2.dwSize != sizeof(DDCAPS_DX7)))
 	{
-		LOG_LIMIT(100, __FUNCTION__ << " Error! Incorrect dwSize: " << Caps.dwSize << " " << Caps2.dwSize);
+		LOG_LIMIT(100, __FUNCTION__ << " Error: Incorrect dwSize: " << Caps.dwSize << " " << Caps2.dwSize);
 		return;
 	}
 	DWORD Size = Caps.dwSize;
@@ -235,7 +235,7 @@ void ConvertCaps(DDCAPS &Caps7, D3DCAPS9 &Caps9)
 	// Note: dwVidMemTotal and dwVidMemFree are not part of D3DCAPS9 and need to be set separately
 	if (Caps7.dwSize != sizeof(DDCAPS))
 	{
-		LOG_LIMIT(100, __FUNCTION__ << " Error! Incorrect dwSize: " << Caps7.dwSize);
+		LOG_LIMIT(100, __FUNCTION__ << " Error: Incorrect dwSize: " << Caps7.dwSize);
 		return;
 	}
 	ZeroMemory(&Caps7, sizeof(DDCAPS));
@@ -283,7 +283,7 @@ DWORD GetBitCount(DDPIXELFORMAT ddpfPixelFormat)
 {
 	if (ddpfPixelFormat.dwSize != sizeof(DDPIXELFORMAT))
 	{
-		LOG_LIMIT(100, __FUNCTION__ << " Error! Incorrect dwSize: " << ddpfPixelFormat.dwSize);
+		LOG_LIMIT(100, __FUNCTION__ << " Error: Incorrect dwSize: " << ddpfPixelFormat.dwSize);
 		return 0;
 	}
 	if (ddpfPixelFormat.dwRGBBitCount && (ddpfPixelFormat.dwFlags &
@@ -420,32 +420,32 @@ D3DFORMAT GetDisplayFormat(DDPIXELFORMAT ddpfPixelFormat)
 {
 	if (ddpfPixelFormat.dwSize != sizeof(DDPIXELFORMAT))
 	{
-		LOG_LIMIT(100, __FUNCTION__ << " Error! Incorrect dwSize: " << ddpfPixelFormat.dwSize);
+		LOG_LIMIT(100, __FUNCTION__ << " Error: Incorrect dwSize: " << ddpfPixelFormat.dwSize);
 		return D3DFMT_UNKNOWN;
 	}
 	if (ddpfPixelFormat.dwFlags & (DDPF_PALETTEINDEXED1 | DDPF_PALETTEINDEXED2 | DDPF_PALETTEINDEXED4))
 	{
-		LOG_LIMIT(100, __FUNCTION__ << " 1-bit, 2-bit and 4-bit palette formats not Implemented");
+		LOG_LIMIT(100, __FUNCTION__ << " Error: 1-bit, 2-bit and 4-bit palette formats not Implemented");
 		return D3DFMT_UNKNOWN;
 	}
 	if (ddpfPixelFormat.dwFlags & DDPF_PALETTEINDEXEDTO8)
 	{
-		LOG_LIMIT(100, __FUNCTION__ << " 8-bit indexed to palette format not Implemented");
+		LOG_LIMIT(100, __FUNCTION__ << " Error: 8-bit indexed to palette format not Implemented");
 		return D3DFMT_UNKNOWN;
 	}
 	if (ddpfPixelFormat.dwFlags & DDPF_STENCILBUFFER)
 	{
-		LOG_LIMIT(100, __FUNCTION__ << " Stencil buffer format not Implemented");
+		LOG_LIMIT(100, __FUNCTION__ << " Error: Stencil buffer format not Implemented");
 		return D3DFMT_UNKNOWN;
 	}
 	if (ddpfPixelFormat.dwFlags & DDPF_YUV)
 	{
-		LOG_LIMIT(100, __FUNCTION__ << " YUV format not Implemented");
+		LOG_LIMIT(100, __FUNCTION__ << " Error: YUV format not Implemented");
 		return D3DFMT_UNKNOWN;
 	}
 	if (ddpfPixelFormat.dwFlags & DDPF_ZBUFFER)
 	{
-		LOG_LIMIT(100, __FUNCTION__ << " z-buffer format not Implemented");
+		LOG_LIMIT(100, __FUNCTION__ << " Error: z-buffer format not Implemented");
 		return D3DFMT_UNKNOWN;
 	}
 	if (ddpfPixelFormat.dwFlags & DDPF_FOURCC)
@@ -463,20 +463,20 @@ D3DFORMAT GetDisplayFormat(DDPIXELFORMAT ddpfPixelFormat)
 			return (D3DFORMAT)ddpfPixelFormat.dwFourCC;
 		}
 
-		LOG_LIMIT(100, __FUNCTION__ << " FourCC format not Implemented. Code = " << (DDFOURCC)ddpfPixelFormat.dwFourCC);
+		LOG_LIMIT(100, __FUNCTION__ << " Error: FourCC format not Implemented. Code = " << (DDFOURCC)ddpfPixelFormat.dwFourCC);
 		return D3DFMT_UNKNOWN;
 	}
 	if (ddpfPixelFormat.dwFlags & DDPF_ALPHAPREMULT)
 	{
-		LOG_LIMIT(100, __FUNCTION__ << " premultiplied alpha format not Implemented");
+		LOG_LIMIT(100, __FUNCTION__ << " Warning: premultiplied alpha format not Implemented");
 	}
 	if (ddpfPixelFormat.dwFlags & DDPF_RGBTOYUV)
 	{
-		LOG_LIMIT(100, __FUNCTION__ << " RGB to YUV format not Implemented");
+		LOG_LIMIT(100, __FUNCTION__ << " Warning: RGB to YUV format not Implemented");
 	}
 	if (ddpfPixelFormat.dwFlags & DDPF_ZPIXELS)
 	{
-		LOG_LIMIT(100, __FUNCTION__ << " z-pixels not Implemented");
+		LOG_LIMIT(100, __FUNCTION__ << " Warning: z-pixels not Implemented");
 	}
 
 	if (ddpfPixelFormat.dwFlags & (DDPF_RGB | DDPF_PALETTEINDEXED8 | DDPF_LUMINANCE | DDPF_ALPHA))
@@ -540,7 +540,7 @@ D3DFORMAT GetDisplayFormat(DDPIXELFORMAT ddpfPixelFormat)
 		return D3DFMT_UNKNOWN;
 	}
 
-	LOG_LIMIT(100, __FUNCTION__ << " PixelFormat not implemented: " << ddpfPixelFormat);
+	LOG_LIMIT(100, __FUNCTION__ << " Error: PixelFormat not implemented: " << ddpfPixelFormat);
 	return D3DFMT_UNKNOWN;
 }
 
@@ -548,7 +548,7 @@ void SetPixelDisplayFormat(D3DFORMAT Format, DDPIXELFORMAT &ddpfPixelFormat)
 {
 	if (ddpfPixelFormat.dwSize != sizeof(DDPIXELFORMAT))
 	{
-		LOG_LIMIT(100, __FUNCTION__ << " Error! Incorrect dwSize: " << ddpfPixelFormat.dwSize);
+		LOG_LIMIT(100, __FUNCTION__ << " Error: Incorrect dwSize: " << ddpfPixelFormat.dwSize);
 		return;
 	}
 
@@ -664,7 +664,7 @@ HRESULT SetDisplayFormat(DWORD BPP, DDPIXELFORMAT &ddpfPixelFormat)
 		SetPixelDisplayFormat(D3DFMT_X8R8G8B8, ddpfPixelFormat);
 		break;
 	default:
-		LOG_LIMIT(100, __FUNCTION__ << " Error! Bit mode not supported: " << BPP);
+		LOG_LIMIT(100, __FUNCTION__ << " Error: Bit mode not supported: " << BPP);
 		return DDERR_UNSUPPORTED;
 	}
 	return DD_OK;

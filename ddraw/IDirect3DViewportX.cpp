@@ -192,7 +192,7 @@ HRESULT m_IDirect3DViewportX::SetViewport(LPD3DVIEWPORT lpData)
 	{
 		if (!lpData || lpData->dwSize != sizeof(D3DVIEWPORT))
 		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error! Incorrect dwSize: " << ((lpData) ? lpData->dwSize : -1));
+			LOG_LIMIT(100, __FUNCTION__ << " Error: Incorrect dwSize: " << ((lpData) ? lpData->dwSize : -1));
 			return DDERR_INVALIDPARAMS;
 		}
 
@@ -417,7 +417,7 @@ HRESULT m_IDirect3DViewportX::SetViewport2(LPD3DVIEWPORT2 lpData)
 	{
 		if (!lpData || lpData->dwSize != sizeof(D3DVIEWPORT2))
 		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error! Incorrect dwSize: " << ((lpData) ? lpData->dwSize : -1));
+			LOG_LIMIT(100, __FUNCTION__ << " Error: Incorrect dwSize: " << ((lpData) ? lpData->dwSize : -1));
 			return DDERR_INVALIDPARAMS;
 		}
 

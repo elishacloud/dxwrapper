@@ -23,7 +23,7 @@ void ConvertMaterial(D3DMATERIAL &Material, D3DMATERIAL &Material2)
 {
 	if (Material.dwSize != sizeof(D3DMATERIAL) || Material2.dwSize != sizeof(D3DMATERIAL))
 	{
-		LOG_LIMIT(100, __FUNCTION__ << " Error! Incorrect dwSize: " << Material.dwSize << " " << Material2.dwSize);
+		LOG_LIMIT(100, __FUNCTION__ << " Error: Incorrect dwSize: " << Material.dwSize << " " << Material2.dwSize);
 		return;
 	}
 	CopyMemory(&Material, &Material2, sizeof(D3DMATERIAL));
@@ -38,7 +38,7 @@ void ConvertMaterial(D3DMATERIAL &Material, D3DMATERIAL7 &Material7)
 {
 	if (Material.dwSize != sizeof(D3DMATERIAL))
 	{
-		LOG_LIMIT(100, __FUNCTION__ << " Error! Incorrect dwSize: " << Material.dwSize);
+		LOG_LIMIT(100, __FUNCTION__ << " Error: Incorrect dwSize: " << Material.dwSize);
 		return;
 	}
 	Material.dcvDiffuse = Material7.dcvDiffuse;
@@ -55,7 +55,7 @@ void ConvertMaterial(D3DMATERIAL7 &Material7, D3DMATERIAL &Material)
 {
 	if (Material.dwSize != sizeof(D3DMATERIAL))
 	{
-		LOG_LIMIT(100, __FUNCTION__ << " Error! Incorrect dwSize: " << Material.dwSize);
+		LOG_LIMIT(100, __FUNCTION__ << " Error: Incorrect dwSize: " << Material.dwSize);
 		return;
 	}
 	Material7.dcvDiffuse = Material.dcvDiffuse;
@@ -69,7 +69,7 @@ void ConvertViewport(D3DVIEWPORT &ViewPort, D3DVIEWPORT &ViewPort2)
 {
 	if (ViewPort.dwSize != sizeof(D3DVIEWPORT) || ViewPort2.dwSize != sizeof(D3DVIEWPORT))
 	{
-		LOG_LIMIT(100, __FUNCTION__ << " Error! Incorrect dwSize: " << ViewPort.dwSize << " " << ViewPort2.dwSize);
+		LOG_LIMIT(100, __FUNCTION__ << " Error: Incorrect dwSize: " << ViewPort.dwSize << " " << ViewPort2.dwSize);
 		return;
 	}
 	memcpy(&ViewPort, &ViewPort2, sizeof(D3DVIEWPORT));
@@ -79,7 +79,7 @@ void ConvertViewport(D3DVIEWPORT2 &ViewPort, D3DVIEWPORT2 &ViewPort2)
 {
 	if (ViewPort.dwSize != sizeof(D3DVIEWPORT2) || ViewPort2.dwSize != sizeof(D3DVIEWPORT2))
 	{
-		LOG_LIMIT(100, __FUNCTION__ << " Error! Incorrect dwSize: " << ViewPort.dwSize << " " << ViewPort2.dwSize);
+		LOG_LIMIT(100, __FUNCTION__ << " Error: Incorrect dwSize: " << ViewPort.dwSize << " " << ViewPort2.dwSize);
 		return;
 	}
 	memcpy(&ViewPort, &ViewPort2, sizeof(D3DVIEWPORT2));
@@ -89,7 +89,7 @@ void ConvertViewport(D3DVIEWPORT &ViewPort, D3DVIEWPORT2 &ViewPort2)
 {
 	if (ViewPort.dwSize != sizeof(D3DVIEWPORT) || ViewPort2.dwSize != sizeof(D3DVIEWPORT2))
 	{
-		LOG_LIMIT(100, __FUNCTION__ << " Error! Incorrect dwSize: " << ViewPort.dwSize << " " << ViewPort2.dwSize);
+		LOG_LIMIT(100, __FUNCTION__ << " Error: Incorrect dwSize: " << ViewPort.dwSize << " " << ViewPort2.dwSize);
 		return;
 	}
 	// Convert varables
@@ -110,7 +110,7 @@ void ConvertViewport(D3DVIEWPORT2 &ViewPort2, D3DVIEWPORT &ViewPort)
 {
 	if (ViewPort2.dwSize != sizeof(D3DVIEWPORT2) || ViewPort.dwSize != sizeof(D3DVIEWPORT))
 	{
-		LOG_LIMIT(100, __FUNCTION__ << " Error! Incorrect dwSize: " << ViewPort2.dwSize << " " << ViewPort.dwSize);
+		LOG_LIMIT(100, __FUNCTION__ << " Error: Incorrect dwSize: " << ViewPort2.dwSize << " " << ViewPort.dwSize);
 		return;
 	}
 	// Convert varables
@@ -131,7 +131,7 @@ void ConvertViewport(D3DVIEWPORT &ViewPort, D3DVIEWPORT7 &ViewPort7)
 {
 	if (ViewPort.dwSize != sizeof(D3DVIEWPORT))
 	{
-		LOG_LIMIT(100, __FUNCTION__ << " Error! Incorrect dwSize: " << ViewPort.dwSize);
+		LOG_LIMIT(100, __FUNCTION__ << " Error: Incorrect dwSize: " << ViewPort.dwSize);
 		return;
 	}
 	// Convert varables
@@ -152,7 +152,7 @@ void ConvertViewport(D3DVIEWPORT2 &ViewPort2, D3DVIEWPORT7 &ViewPort7)
 {
 	if (ViewPort2.dwSize != sizeof(D3DVIEWPORT2))
 	{
-		LOG_LIMIT(100, __FUNCTION__ << " Error! Incorrect dwSize: " << ViewPort2.dwSize);
+		LOG_LIMIT(100, __FUNCTION__ << " Error: Incorrect dwSize: " << ViewPort2.dwSize);
 		return;
 	}
 	// Convert varables
@@ -173,7 +173,7 @@ void ConvertViewport(D3DVIEWPORT7 &ViewPort7, D3DVIEWPORT &ViewPort)
 {
 	if (ViewPort.dwSize != sizeof(D3DVIEWPORT))
 	{
-		LOG_LIMIT(100, __FUNCTION__ << " Error! Incorrect dwSize: " << ViewPort.dwSize);
+		LOG_LIMIT(100, __FUNCTION__ << " Error: Incorrect dwSize: " << ViewPort.dwSize);
 		return;
 	}
 	// Convert varables
@@ -189,7 +189,7 @@ void ConvertViewport(D3DVIEWPORT7 &ViewPort7, D3DVIEWPORT2 &ViewPort2)
 {
 	if (ViewPort2.dwSize != sizeof(D3DVIEWPORT2))
 	{
-		LOG_LIMIT(100, __FUNCTION__ << " Error! Incorrect dwSize: " << ViewPort2.dwSize);
+		LOG_LIMIT(100, __FUNCTION__ << " Error: Incorrect dwSize: " << ViewPort2.dwSize);
 		return;
 	}
 	// Convert varables
@@ -237,7 +237,7 @@ void ConvertCaps(D3DPRIMCAPS &PrimCaps, D3DPRIMCAPS &PrimCaps2)
 {
 	if (PrimCaps.dwSize != sizeof(D3DPRIMCAPS) || PrimCaps2.dwSize != sizeof(D3DPRIMCAPS))
 	{
-		LOG_LIMIT(100, __FUNCTION__ << " Error! Incorrect dwSize: " << PrimCaps.dwSize << " " << PrimCaps2.dwSize);
+		LOG_LIMIT(100, __FUNCTION__ << " Error: Incorrect dwSize: " << PrimCaps.dwSize << " " << PrimCaps2.dwSize);
 		return;
 	}
 	// Convert varables
@@ -248,7 +248,7 @@ void ConvertDeviceDesc(D3DDEVICEDESC &Desc, D3DDEVICEDESC7 &Desc7)
 {
 	if (Desc.dwSize != D3DDEVICEDESC1_SIZE && Desc.dwSize != D3DDEVICEDESC5_SIZE && Desc.dwSize != D3DDEVICEDESC6_SIZE)
 	{
-		LOG_LIMIT(100, __FUNCTION__ << " Error! Incorrect dwSize: " << Desc.dwSize);
+		LOG_LIMIT(100, __FUNCTION__ << " Error: Incorrect dwSize: " << Desc.dwSize);
 		return;
 	}
 	// Convert varables
@@ -307,7 +307,7 @@ void ConvertDeviceDescSoft(D3DDEVICEDESC &Desc)
 {
 	if (Desc.dwSize != D3DDEVICEDESC1_SIZE && Desc.dwSize != D3DDEVICEDESC5_SIZE && Desc.dwSize != D3DDEVICEDESC6_SIZE)
 	{
-		LOG_LIMIT(100, __FUNCTION__ << " Error! Incorrect dwSize: " << Desc.dwSize);
+		LOG_LIMIT(100, __FUNCTION__ << " Error: Incorrect dwSize: " << Desc.dwSize);
 		return;
 	}
 	// Convert varables
@@ -443,7 +443,7 @@ void GetBufferFormat(DDPIXELFORMAT &ddpfPixelFormat, DWORD Num)
 {
 	if (ddpfPixelFormat.dwSize != sizeof(DDPIXELFORMAT))
 	{
-		LOG_LIMIT(100, __FUNCTION__ << " Error! Incorrect dwSize: " << ddpfPixelFormat.dwSize);
+		LOG_LIMIT(100, __FUNCTION__ << " Error: Incorrect dwSize: " << ddpfPixelFormat.dwSize);
 		return;
 	}
 	switch (Num)
