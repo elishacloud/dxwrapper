@@ -1861,6 +1861,29 @@ HRESULT m_IDirect3DDeviceX::DrawPrimitive(D3DPRIMITIVETYPE dptPrimitiveType, DWO
 		// (This is different from the behavior in previous releases of DirectX, where lighting was performed only on vertices that contained a vertex normal.)
 		// Update all Draw functions
 
+		if (D3DFVF_LVERTEX == dwVertexTypeDesc)
+		{
+			D3DLVERTEX *lFVF = (D3DLVERTEX*)lpVertices;
+			std::vector<D3DLVERTEX9> lFVF9(dwVertexCount);
+
+			for (UINT x = 0; x < dwVertexCount; x++)
+			{
+				lFVF9[x].x = lFVF[x].x;
+				lFVF9[x].y = lFVF[x].y;
+				lFVF9[x].z = lFVF[x].z;
+				lFVF9[x].diffuse = lFVF[x].color;
+				lFVF9[x].specular = lFVF[x].specular;
+				lFVF9[x].tu = lFVF[x].tu;
+				lFVF9[x].tv = lFVF[x].tv;
+			}
+
+			// Set fixed function vertex type
+			(*d3d9Device)->SetFVF(D3DFVF_LVERTEX9);
+
+			// Draw primitive UP
+			return (*d3d9Device)->DrawPrimitiveUP(dptPrimitiveType, dwVertexCount, &lFVF9[0], sizeof(D3DLVERTEX9));
+		}
+
 		// Set fixed function vertex type
 		(*d3d9Device)->SetFVF(dwVertexTypeDesc);
 
@@ -1965,6 +1988,29 @@ HRESULT m_IDirect3DDeviceX::DrawIndexedPrimitive(D3DPRIMITIVETYPE dptPrimitiveTy
 		}
 
 		// dwFlags (D3DDP_WAIT) can be ignored safely
+
+		if (D3DFVF_LVERTEX == dwVertexTypeDesc)
+		{
+			D3DLVERTEX *lFVF = (D3DLVERTEX*)lpVertices;
+			std::vector<D3DLVERTEX9> lFVF9(dwVertexCount);
+
+			for (UINT x = 0; x < dwVertexCount; x++)
+			{
+				lFVF9[x].x = lFVF[x].x;
+				lFVF9[x].y = lFVF[x].y;
+				lFVF9[x].z = lFVF[x].z;
+				lFVF9[x].diffuse = lFVF[x].color;
+				lFVF9[x].specular = lFVF[x].specular;
+				lFVF9[x].tu = lFVF[x].tu;
+				lFVF9[x].tv = lFVF[x].tv;
+			}
+
+			// Set fixed function vertex type
+			(*d3d9Device)->SetFVF(D3DFVF_LVERTEX9);
+
+			// Draw indexed primitive UP
+			return (*d3d9Device)->DrawIndexedPrimitiveUP(dptPrimitiveType, 0, dwVertexCount, dwIndexCount, lpIndices, D3DFMT_INDEX16, &lFVF9[0], sizeof(D3DLVERTEX9));
+		}
 
 		// Set fixed function vertex type
 		(*d3d9Device)->SetFVF(dwVertexTypeDesc);
@@ -2294,27 +2340,41 @@ HRESULT m_IDirect3DDeviceX::CheckInterface(char *FunctionName, bool CheckD3DDevi
 
 UINT m_IDirect3DDeviceX::GetVertexStride(DWORD dwVertexTypeDesc)
 {
+	// Reserved:
+	// #define D3DFVF_RESERVED0        0x001  // (DX7)
+	// #define D3DFVF_RESERVED0        0x001  // (DX9)
+
+	// #define D3DFVF_RESERVED1        0x020  // (DX7)
+	// #define D3DFVF_PSIZE            0x020  // (DX9)
+
+	// #define D3DFVF_RESERVED2        0xf000  // 4 reserved bits (DX7)
+	// #define D3DFVF_RESERVED2        0x6000  // 2 reserved bits (DX9)
+
+	// Check for unsupported vertex types
+	DWORD UnSupportedVertexTypes = dwVertexTypeDesc & ~(D3DFVF_POSITION_MASK | D3DFVF_NORMAL | D3DFVF_DIFFUSE | D3DFVF_SPECULAR | D3DFVF_TEXCOUNT_MASK);
+	if (UnSupportedVertexTypes)
+	{
+		LOG_LIMIT(100, __FUNCTION__ " Warning: Unsupported FVF type: " << Logging::hex(UnSupportedVertexTypes));
+	}
+
 	return
-		((dwVertexTypeDesc & D3DFVF_POSITION_MASK) ? sizeof(DWORD) : 0) +
-		((dwVertexTypeDesc & D3DFVF_XYZ) ? sizeof(float) * 3 : 0) +
-		((dwVertexTypeDesc & D3DFVF_XYZRHW) ? sizeof(float) * 4 : 0) +
-		((dwVertexTypeDesc & D3DFVF_XYZB1) ? sizeof(float) * 4 : 0) +
-		((dwVertexTypeDesc & D3DFVF_XYZB2) ? sizeof(float) * 5 : 0) +
-		((dwVertexTypeDesc & D3DFVF_XYZB3) ? sizeof(float) * 6 : 0) +
-		((dwVertexTypeDesc & D3DFVF_XYZB4) ? sizeof(float) * 7 : 0) +
-		((dwVertexTypeDesc & D3DFVF_XYZB5) ? sizeof(float) * 8 : 0) +
+		(((dwVertexTypeDesc & D3DFVF_POSITION_MASK) == D3DFVF_XYZ) ? sizeof(float) * 3 : 0) +
+		(((dwVertexTypeDesc & D3DFVF_POSITION_MASK) == D3DFVF_XYZRHW) ? sizeof(float) * 4 : 0) +
+		(((dwVertexTypeDesc & D3DFVF_POSITION_MASK) == D3DFVF_XYZB1) ? sizeof(float) * 4 : 0) +
+		(((dwVertexTypeDesc & D3DFVF_POSITION_MASK) == D3DFVF_XYZB2) ? sizeof(float) * 5 : 0) +
+		(((dwVertexTypeDesc & D3DFVF_POSITION_MASK) == D3DFVF_XYZB3) ? sizeof(float) * 6 : 0) +
+		(((dwVertexTypeDesc & D3DFVF_POSITION_MASK) == D3DFVF_XYZB4) ? sizeof(float) * 6 + sizeof(DWORD) : 0) +
+		(((dwVertexTypeDesc & D3DFVF_POSITION_MASK) == D3DFVF_XYZB5) ? sizeof(float) * 7 + sizeof(DWORD) : 0) +
 		((dwVertexTypeDesc & D3DFVF_NORMAL) ? sizeof(float) * 3 : 0) +
-		((dwVertexTypeDesc & D3DFVF_DIFFUSE) ? sizeof(DWORD) : 0) +
-		((dwVertexTypeDesc & D3DFVF_SPECULAR) ? sizeof(DWORD) : 0) +
-		((dwVertexTypeDesc & D3DFVF_TEXCOUNT_MASK) ? sizeof(DWORD) : 0) +
-		((dwVertexTypeDesc & D3DFVF_TEXCOUNT_SHIFT) ? sizeof(DWORD) : 0) +
-		((dwVertexTypeDesc & D3DFVF_TEX1) ? sizeof(float) * 2 : 0) +
-		((dwVertexTypeDesc & D3DFVF_TEX2) ? sizeof(float) * 4 : 0) +
-		((dwVertexTypeDesc & D3DFVF_TEX3) ? sizeof(float) * 6 : 0) +
-		((dwVertexTypeDesc & D3DFVF_TEX4) ? sizeof(float) * 8 : 0) +
-		((dwVertexTypeDesc & D3DFVF_TEX5) ? sizeof(float) * 10 : 0) +
-		((dwVertexTypeDesc & D3DFVF_TEX6) ? sizeof(float) * 12 : 0) +
-		((dwVertexTypeDesc & D3DFVF_TEX7) ? sizeof(float) * 14 : 0) +
-		((dwVertexTypeDesc & D3DFVF_TEX8) ? sizeof(float) * 16 : 0) +
+		((dwVertexTypeDesc & D3DFVF_DIFFUSE) ? sizeof(D3DCOLOR) : 0) +
+		((dwVertexTypeDesc & D3DFVF_SPECULAR) ? sizeof(D3DCOLOR) : 0) +
+		(((dwVertexTypeDesc & D3DFVF_TEXCOUNT_MASK) == D3DFVF_TEX1) ? sizeof(float) * 2 : 0) +
+		(((dwVertexTypeDesc & D3DFVF_TEXCOUNT_MASK) == D3DFVF_TEX2) ? sizeof(float) * 4 : 0) +
+		(((dwVertexTypeDesc & D3DFVF_TEXCOUNT_MASK) == D3DFVF_TEX3) ? sizeof(float) * 6 : 0) +
+		(((dwVertexTypeDesc & D3DFVF_TEXCOUNT_MASK) == D3DFVF_TEX4) ? sizeof(float) * 8 : 0) +
+		(((dwVertexTypeDesc & D3DFVF_TEXCOUNT_MASK) == D3DFVF_TEX5) ? sizeof(float) * 10 : 0) +
+		(((dwVertexTypeDesc & D3DFVF_TEXCOUNT_MASK) == D3DFVF_TEX6) ? sizeof(float) * 12 : 0) +
+		(((dwVertexTypeDesc & D3DFVF_TEXCOUNT_MASK) == D3DFVF_TEX7) ? sizeof(float) * 14 : 0) +
+		(((dwVertexTypeDesc & D3DFVF_TEXCOUNT_MASK) == D3DFVF_TEX8) ? sizeof(float) * 16 : 0) +
 		0;
 }

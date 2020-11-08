@@ -4,6 +4,21 @@
 #define D3DTSS_ADDRESS 12
 #endif
 
+#undef D3DFVF_RESERVED2
+#define D3DFVF_RESERVED2        0xf000  // 4 reserved bits
+#define D3DFVF_RESERVED2_9      0x6000  // 2 reserved bits
+#undef D3DFVF_POSITION_MASK
+#define D3DFVF_POSITION_MASK    0x00e
+#define D3DFVF_POSITION_MASK_9  0x400E
+
+#define D3DFVF_LVERTEX9 (D3DFVF_XYZ | D3DFVF_DIFFUSE | D3DFVF_SPECULAR | D3DFVF_TEX1)
+
+typedef struct _D3DLVERTEX9 {
+	FLOAT    x, y, z;
+	D3DCOLOR diffuse, specular;
+	FLOAT    tu, tv;
+} D3DLVERTEX9, *LPD3DLVERTEX9;
+
 void ConvertMaterial(D3DMATERIAL &Material, D3DMATERIAL &Material2);
 void ConvertMaterial(D3DMATERIAL7 &Material, D3DMATERIAL7 &Material2);
 void ConvertMaterial(D3DMATERIAL &Material, D3DMATERIAL7 &Material7);
