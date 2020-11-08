@@ -1977,17 +1977,15 @@ HRESULT m_IDirect3DDeviceX::DrawIndexedPrimitive(D3DPRIMITIVETYPE dptPrimitiveTy
 		// Check for device interface
 		if (FAILED(CheckInterface(__FUNCTION__, true)))
 		{
-			// dwFlags (D3DDP_WAIT) can be ignored safely
-
-			// ToDo: In DirectX7 By default, Direct3D performs lighting calculations on all vertices, even those without vertex normals.
-			// (This is different from the behavior in previous releases of DirectX, where lighting was performed only on vertices that contained a vertex normal.)
-			// Update all Draw functions
-
 			Logging::Log() << __FUNCTION__ " Error: no ddrawParent";
 			return DDERR_GENERIC;
 		}
 
 		// dwFlags (D3DDP_WAIT) can be ignored safely
+
+		// ToDo: In DirectX7 By default, Direct3D performs lighting calculations on all vertices, even those without vertex normals.
+		// (This is different from the behavior in previous releases of DirectX, where lighting was performed only on vertices that contained a vertex normal.)
+		// Update all Draw functions
 
 		if (D3DFVF_LVERTEX == dwVertexTypeDesc)
 		{
