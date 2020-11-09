@@ -186,5 +186,6 @@ public:
 		}
 	}
 	void ClearDdraw() { ddrawParent = nullptr; }
+	UINT GetNumberOfPrimitives(D3DPRIMITIVETYPE dptPrimitiveType, DWORD dwVertexCount);
 	UINT GetVertexStride(DWORD dwVertexTypeDesc);
 };

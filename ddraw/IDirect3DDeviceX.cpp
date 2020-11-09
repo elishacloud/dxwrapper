@@ -1881,7 +1881,7 @@ HRESULT m_IDirect3DDeviceX::DrawPrimitive(D3DPRIMITIVETYPE dptPrimitiveType, DWO
 			(*d3d9Device)->SetFVF(D3DFVF_LVERTEX9);
 
 			// Draw primitive UP
-			return (*d3d9Device)->DrawPrimitiveUP(dptPrimitiveType, dwVertexCount, &lFVF9[0], sizeof(D3DLVERTEX9));
+			return (*d3d9Device)->DrawPrimitiveUP(dptPrimitiveType, GetNumberOfPrimitives(dptPrimitiveType, dwVertexCount), &lFVF9[0], sizeof(D3DLVERTEX9));
 		}
 
 		// Set fixed function vertex type
@@ -2334,6 +2334,18 @@ HRESULT m_IDirect3DDeviceX::CheckInterface(char *FunctionName, bool CheckD3DDevi
 	}
 
 	return DD_OK;
+}
+
+UINT m_IDirect3DDeviceX::GetNumberOfPrimitives(D3DPRIMITIVETYPE dptPrimitiveType, DWORD dwVertexCount)
+{
+	return
+		(dptPrimitiveType == D3DPT_POINTLIST) ? dwVertexCount :
+		(dptPrimitiveType == D3DPT_LINELIST) ? dwVertexCount / 2 :
+		(dptPrimitiveType == D3DPT_LINESTRIP) ? dwVertexCount - 1 :
+		(dptPrimitiveType == D3DPT_TRIANGLELIST) ? dwVertexCount / 3 :
+		(dptPrimitiveType == D3DPT_TRIANGLESTRIP) ? dwVertexCount - 2 :
+		(dptPrimitiveType == D3DPT_TRIANGLEFAN) ? dwVertexCount - 2 :
+		0;
 }
 
 UINT m_IDirect3DDeviceX::GetVertexStride(DWORD dwVertexTypeDesc)
