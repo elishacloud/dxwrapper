@@ -1857,6 +1857,10 @@ HRESULT m_IDirect3DDeviceX::DrawPrimitive(D3DPRIMITIVETYPE dptPrimitiveType, DWO
 
 		// dwFlags (D3DDP_WAIT) can be ignored safely
 
+		// ToDo: This method, unlike its predecessor in previous interfaces, does not accept the D3DDP_DONOTCLIP, D3DDP_DONOTLIGHT, and D3DDP_DONOTUPDATEEXTENTS flags
+		// in the dwFlags parameter. The functionality offered by these flags is now available through the D3DRENDERSTATE_CLIPPING, D3DRENDERSTATE_LIGHTING, and
+		// D3DRENDERSTATE_EXTENTS render states.
+
 		// ToDo: In DirectX7 By default, Direct3D performs lighting calculations on all vertices, even those without vertex normals.
 		// (This is different from the behavior in previous releases of DirectX, where lighting was performed only on vertices that contained a vertex normal.)
 		// Update all Draw functions
@@ -1888,7 +1892,7 @@ HRESULT m_IDirect3DDeviceX::DrawPrimitive(D3DPRIMITIVETYPE dptPrimitiveType, DWO
 		(*d3d9Device)->SetFVF(dwVertexTypeDesc);
 
 		// Draw primitive UP
-		return (*d3d9Device)->DrawPrimitiveUP(dptPrimitiveType, dwVertexCount, lpVertices, GetVertexStride(dwVertexTypeDesc));
+		return (*d3d9Device)->DrawPrimitiveUP(dptPrimitiveType, GetNumberOfPrimitives(dptPrimitiveType, dwVertexCount), lpVertices, GetVertexStride(dwVertexTypeDesc));
 	}
 
 	switch (ProxyDirectXVersion)
@@ -1911,12 +1915,6 @@ HRESULT m_IDirect3DDeviceX::DrawPrimitiveStrided(D3DPRIMITIVETYPE dptPrimitiveTy
 
 	if (Config.Dd7to9)
 	{
-		// dwFlags (D3DDP_WAIT) can be ignored safely
-
-		// ToDo: In DirectX7 By default, Direct3D performs lighting calculations on all vertices, even those without vertex normals.
-		// (This is different from the behavior in previous releases of DirectX, where lighting was performed only on vertices that contained a vertex normal.)
-		// Update all Draw functions
-
 		LOG_LIMIT(100, __FUNCTION__ << " Not Implemented");
 		return DDERR_UNSUPPORTED;
 	}
@@ -1940,12 +1938,6 @@ HRESULT m_IDirect3DDeviceX::DrawPrimitiveVB(D3DPRIMITIVETYPE d3dptPrimitiveType,
 
 	if (Config.Dd7to9)
 	{
-		// dwFlags (D3DDP_WAIT) can be ignored safely
-
-		// ToDo: In DirectX7 By default, Direct3D performs lighting calculations on all vertices, even those without vertex normals.
-		// (This is different from the behavior in previous releases of DirectX, where lighting was performed only on vertices that contained a vertex normal.)
-		// Update all Draw functions
-
 		LOG_LIMIT(100, __FUNCTION__ << " Not Implemented");
 		return DDERR_UNSUPPORTED;
 	}
@@ -1983,6 +1975,10 @@ HRESULT m_IDirect3DDeviceX::DrawIndexedPrimitive(D3DPRIMITIVETYPE dptPrimitiveTy
 
 		// dwFlags (D3DDP_WAIT) can be ignored safely
 
+		// ToDo: This method, unlike its predecessor in previous interfaces, does not accept the D3DDP_DONOTCLIP, D3DDP_DONOTLIGHT, and D3DDP_DONOTUPDATEEXTENTS flags
+		// in the dwFlags parameter. The functionality offered by these flags is now available through the D3DRENDERSTATE_CLIPPING, D3DRENDERSTATE_LIGHTING, and
+		// D3DRENDERSTATE_EXTENTS render states.
+
 		// ToDo: In DirectX7 By default, Direct3D performs lighting calculations on all vertices, even those without vertex normals.
 		// (This is different from the behavior in previous releases of DirectX, where lighting was performed only on vertices that contained a vertex normal.)
 		// Update all Draw functions
@@ -2007,14 +2003,14 @@ HRESULT m_IDirect3DDeviceX::DrawIndexedPrimitive(D3DPRIMITIVETYPE dptPrimitiveTy
 			(*d3d9Device)->SetFVF(D3DFVF_LVERTEX9);
 
 			// Draw indexed primitive UP
-			return (*d3d9Device)->DrawIndexedPrimitiveUP(dptPrimitiveType, 0, dwVertexCount, dwIndexCount, lpIndices, D3DFMT_INDEX16, &lFVF9[0], sizeof(D3DLVERTEX9));
+			return (*d3d9Device)->DrawIndexedPrimitiveUP(dptPrimitiveType, 0, dwIndexCount, GetNumberOfPrimitives(dptPrimitiveType, dwVertexCount), lpIndices, D3DFMT_INDEX16, &lFVF9[0], sizeof(D3DLVERTEX9));
 		}
 
 		// Set fixed function vertex type
 		(*d3d9Device)->SetFVF(dwVertexTypeDesc);
 
 		// Draw indexed primitive UP
-		return (*d3d9Device)->DrawIndexedPrimitiveUP(dptPrimitiveType, 0, dwVertexCount, dwIndexCount, lpIndices, D3DFMT_INDEX16, lpVertices, GetVertexStride(dwVertexTypeDesc));
+		return (*d3d9Device)->DrawIndexedPrimitiveUP(dptPrimitiveType, 0, dwIndexCount, GetNumberOfPrimitives(dptPrimitiveType, dwVertexCount), lpIndices, D3DFMT_INDEX16, lpVertices, GetVertexStride(dwVertexTypeDesc));
 	}
 
 	switch (ProxyDirectXVersion)
@@ -2037,12 +2033,6 @@ HRESULT m_IDirect3DDeviceX::DrawIndexedPrimitiveStrided(D3DPRIMITIVETYPE d3dptPr
 
 	if (Config.Dd7to9)
 	{
-		// dwFlags (D3DDP_WAIT) can be ignored safely
-
-		// ToDo: In DirectX7 By default, Direct3D performs lighting calculations on all vertices, even those without vertex normals.
-		// (This is different from the behavior in previous releases of DirectX, where lighting was performed only on vertices that contained a vertex normal.)
-		// Update all Draw functions
-
 		LOG_LIMIT(100, __FUNCTION__ << " Not Implemented");
 		return DDERR_UNSUPPORTED;
 	}
@@ -2066,12 +2056,6 @@ HRESULT m_IDirect3DDeviceX::DrawIndexedPrimitiveVB(D3DPRIMITIVETYPE d3dptPrimiti
 
 	if (Config.Dd7to9)
 	{
-		// dwFlags (D3DDP_WAIT) can be ignored safely
-
-		// ToDo: In DirectX7 By default, Direct3D performs lighting calculations on all vertices, even those without vertex normals.
-		// (This is different from the behavior in previous releases of DirectX, where lighting was performed only on vertices that contained a vertex normal.)
-		// Update all Draw functions
-
 		LOG_LIMIT(100, __FUNCTION__ << " Not Implemented");
 		return DDERR_UNSUPPORTED;
 	}
