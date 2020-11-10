@@ -143,12 +143,12 @@ HRESULT m_IDirect3DDevice7::PreLoad(LPDIRECTDRAWSURFACE7 a)
 
 HRESULT m_IDirect3DDevice7::DrawPrimitive(D3DPRIMITIVETYPE a, DWORD b, LPVOID c, DWORD d, DWORD e)
 {
-	return ProxyInterface->DrawPrimitive(a, b, c, d, e);
+	return ProxyInterface->DrawPrimitive(a, b, c, d, e, DirectXVersion);
 }
 
 HRESULT m_IDirect3DDevice7::DrawIndexedPrimitive(D3DPRIMITIVETYPE a, DWORD b, LPVOID c, DWORD d, LPWORD e, DWORD f, DWORD g)
 {
-	return ProxyInterface->DrawIndexedPrimitive(a, b, c, d, e, f, g);
+	return ProxyInterface->DrawIndexedPrimitive(a, b, c, d, e, f, g, DirectXVersion);
 }
 
 HRESULT m_IDirect3DDevice7::SetClipStatus(LPD3DCLIPSTATUS a)
@@ -163,22 +163,22 @@ HRESULT m_IDirect3DDevice7::GetClipStatus(LPD3DCLIPSTATUS a)
 
 HRESULT m_IDirect3DDevice7::DrawPrimitiveStrided(D3DPRIMITIVETYPE a, DWORD b, LPD3DDRAWPRIMITIVESTRIDEDDATA c, DWORD d, DWORD e)
 {
-	return ProxyInterface->DrawPrimitiveStrided(a, b, c, d, e);
+	return ProxyInterface->DrawPrimitiveStrided(a, b, c, d, e, DirectXVersion);
 }
 
 HRESULT m_IDirect3DDevice7::DrawIndexedPrimitiveStrided(D3DPRIMITIVETYPE a, DWORD b, LPD3DDRAWPRIMITIVESTRIDEDDATA c, DWORD d, LPWORD e, DWORD f, DWORD g)
 {
-	return ProxyInterface->DrawIndexedPrimitiveStrided(a, b, c, d, e, f, g);
+	return ProxyInterface->DrawIndexedPrimitiveStrided(a, b, c, d, e, f, g, DirectXVersion);
 }
 
 HRESULT m_IDirect3DDevice7::DrawPrimitiveVB(D3DPRIMITIVETYPE a, LPDIRECT3DVERTEXBUFFER7 b, DWORD c, DWORD d, DWORD e)
 {
-	return ProxyInterface->DrawPrimitiveVB(a, b, c, d, e);
+	return ProxyInterface->DrawPrimitiveVB(a, b, c, d, e, DirectXVersion);
 }
 
 HRESULT m_IDirect3DDevice7::DrawIndexedPrimitiveVB(D3DPRIMITIVETYPE a, LPDIRECT3DVERTEXBUFFER7 b, DWORD c, DWORD d, LPWORD e, DWORD f, DWORD g)
 {
-	return ProxyInterface->DrawIndexedPrimitiveVB(a, b, c, d, e, f, g);
+	return ProxyInterface->DrawIndexedPrimitiveVB(a, b, c, d, e, f, g, DirectXVersion);
 }
 
 HRESULT m_IDirect3DDevice7::ComputeSphereVisibility(LPD3DVECTOR a, LPD3DVALUE b, DWORD c, DWORD d, LPDWORD e)

@@ -158,12 +158,12 @@ HRESULT m_IDirect3DDevice3::MultiplyTransform(D3DTRANSFORMSTATETYPE a, LPD3DMATR
 
 HRESULT m_IDirect3DDevice3::DrawPrimitive(D3DPRIMITIVETYPE a, DWORD b, LPVOID c, DWORD d, DWORD e)
 {
-	return ProxyInterface->DrawPrimitive(a, b, c, d, e);
+	return ProxyInterface->DrawPrimitive(a, b, c, d, e, DirectXVersion);
 }
 
 HRESULT m_IDirect3DDevice3::DrawIndexedPrimitive(D3DPRIMITIVETYPE a, DWORD b, LPVOID c, DWORD d, LPWORD e, DWORD f, DWORD g)
 {
-	return ProxyInterface->DrawIndexedPrimitive(a, b, c, d, e, f, g);
+	return ProxyInterface->DrawIndexedPrimitive(a, b, c, d, e, f, g, DirectXVersion);
 }
 
 HRESULT m_IDirect3DDevice3::SetClipStatus(LPD3DCLIPSTATUS a)
@@ -178,22 +178,22 @@ HRESULT m_IDirect3DDevice3::GetClipStatus(LPD3DCLIPSTATUS a)
 
 HRESULT m_IDirect3DDevice3::DrawPrimitiveStrided(D3DPRIMITIVETYPE a, DWORD b, LPD3DDRAWPRIMITIVESTRIDEDDATA c, DWORD d, DWORD e)
 {
-	return ProxyInterface->DrawPrimitiveStrided(a, b, c, d, e);
+	return ProxyInterface->DrawPrimitiveStrided(a, b, c, d, e, DirectXVersion);
 }
 
 HRESULT m_IDirect3DDevice3::DrawIndexedPrimitiveStrided(D3DPRIMITIVETYPE a, DWORD b, LPD3DDRAWPRIMITIVESTRIDEDDATA c, DWORD d, LPWORD e, DWORD f, DWORD g)
 {
-	return ProxyInterface->DrawIndexedPrimitiveStrided(a, b, c, d, e, f, g);
+	return ProxyInterface->DrawIndexedPrimitiveStrided(a, b, c, d, e, f, g, DirectXVersion);
 }
 
 HRESULT m_IDirect3DDevice3::DrawPrimitiveVB(D3DPRIMITIVETYPE a, LPDIRECT3DVERTEXBUFFER b, DWORD c, DWORD d, DWORD e)
 {
-	return ProxyInterface->DrawPrimitiveVB(a, (LPDIRECT3DVERTEXBUFFER7)b, c, d, e);
+	return ProxyInterface->DrawPrimitiveVB(a, (LPDIRECT3DVERTEXBUFFER7)b, c, d, e, DirectXVersion);
 }
 
 HRESULT m_IDirect3DDevice3::DrawIndexedPrimitiveVB(D3DPRIMITIVETYPE a, LPDIRECT3DVERTEXBUFFER b, LPWORD c, DWORD d, DWORD e)
 {
-	return ProxyInterface->DrawIndexedPrimitiveVB(a, (LPDIRECT3DVERTEXBUFFER7)b, 0, 0, c, d, e);
+	return ProxyInterface->DrawIndexedPrimitiveVB(a, (LPDIRECT3DVERTEXBUFFER7)b, 0, 0, c, d, e, DirectXVersion);
 }
 
 HRESULT m_IDirect3DDevice3::ComputeSphereVisibility(LPD3DVECTOR a, LPD3DVALUE b, DWORD c, DWORD d, LPDWORD e)

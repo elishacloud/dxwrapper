@@ -1903,7 +1903,7 @@ HRESULT m_IDirect3DDeviceX::EndStateBlock(LPDWORD lpdwBlockHandle)
 	return GetProxyInterfaceV7()->EndStateBlock(lpdwBlockHandle);
 }
 
-HRESULT m_IDirect3DDeviceX::DrawPrimitive(D3DPRIMITIVETYPE dptPrimitiveType, DWORD dwVertexTypeDesc, LPVOID lpVertices, DWORD dwVertexCount, DWORD dwFlags)
+HRESULT m_IDirect3DDeviceX::DrawPrimitive(D3DPRIMITIVETYPE dptPrimitiveType, DWORD dwVertexTypeDesc, LPVOID lpVertices, DWORD dwVertexCount, DWORD dwFlags, DWORD DirectXVersion)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
@@ -1918,14 +1918,11 @@ HRESULT m_IDirect3DDeviceX::DrawPrimitive(D3DPRIMITIVETYPE dptPrimitiveType, DWO
 
 		// dwFlags (D3DDP_WAIT) can be ignored safely
 
-		// ToDo: This method, unlike its predecessor in previous interfaces, does not accept the D3DDP_DONOTCLIP, D3DDP_DONOTLIGHT, and D3DDP_DONOTUPDATEEXTENTS flags
-		// in the dwFlags parameter. The functionality offered by these flags is now available through the D3DRENDERSTATE_CLIPPING, D3DRENDERSTATE_LIGHTING, and
-		// D3DRENDERSTATE_EXTENTS render states.
+		// Handle dwFlags
+		DWORD rsClipping = 0, rsLighting = 0, rsExtents = 0;
+		SetDrawFlags(rsClipping, rsLighting, rsExtents, dwVertexTypeDesc, dwFlags, DirectXVersion);
 
-		// ToDo: In DirectX7 By default, Direct3D performs lighting calculations on all vertices, even those without vertex normals.
-		// (This is different from the behavior in previous releases of DirectX, where lighting was performed only on vertices that contained a vertex normal.)
-		// Update all Draw functions
-
+		HRESULT hr;
 		if (D3DFVF_LVERTEX == dwVertexTypeDesc)
 		{
 			D3DLVERTEX *lFVF = (D3DLVERTEX*)lpVertices;
@@ -1946,14 +1943,21 @@ HRESULT m_IDirect3DDeviceX::DrawPrimitive(D3DPRIMITIVETYPE dptPrimitiveType, DWO
 			(*d3d9Device)->SetFVF(D3DFVF_LVERTEX9);
 
 			// Draw primitive UP
-			return (*d3d9Device)->DrawPrimitiveUP(dptPrimitiveType, GetNumberOfPrimitives(dptPrimitiveType, dwVertexCount), &lFVF9[0], sizeof(D3DLVERTEX9));
+			hr = (*d3d9Device)->DrawPrimitiveUP(dptPrimitiveType, GetNumberOfPrimitives(dptPrimitiveType, dwVertexCount), &lFVF9[0], sizeof(D3DLVERTEX9));
+		}
+		else
+		{
+			// Set fixed function vertex type
+			(*d3d9Device)->SetFVF(dwVertexTypeDesc);
+
+			// Draw primitive UP
+			hr = (*d3d9Device)->DrawPrimitiveUP(dptPrimitiveType, GetNumberOfPrimitives(dptPrimitiveType, dwVertexCount), lpVertices, GetVertexStride(dwVertexTypeDesc));
 		}
 
-		// Set fixed function vertex type
-		(*d3d9Device)->SetFVF(dwVertexTypeDesc);
+		// Handle dwFlags
+		UnSetDrawFlags(rsClipping, rsLighting, rsExtents, dwVertexTypeDesc, dwFlags, DirectXVersion);
 
-		// Draw primitive UP
-		return (*d3d9Device)->DrawPrimitiveUP(dptPrimitiveType, GetNumberOfPrimitives(dptPrimitiveType, dwVertexCount), lpVertices, GetVertexStride(dwVertexTypeDesc));
+		return hr;
 	}
 
 	switch (ProxyDirectXVersion)
@@ -1966,11 +1970,27 @@ HRESULT m_IDirect3DDeviceX::DrawPrimitive(D3DPRIMITIVETYPE dptPrimitiveType, DWO
 	case 3:
 		return GetProxyInterfaceV3()->DrawPrimitive(dptPrimitiveType, dwVertexTypeDesc, lpVertices, dwVertexCount, dwFlags);
 	case 7:
-		return GetProxyInterfaceV7()->DrawPrimitive(dptPrimitiveType, dwVertexTypeDesc, lpVertices, dwVertexCount, dwFlags);
+		if (DirectXVersion != 7)
+		{
+			// Handle dwFlags
+			DWORD rsClipping = 0, rsLighting = 0, rsExtents = 0;
+			SetDrawFlags(rsClipping, rsLighting, rsExtents, dwVertexTypeDesc, dwFlags, DirectXVersion);
+
+			HRESULT hr = GetProxyInterfaceV7()->DrawPrimitive(dptPrimitiveType, dwVertexTypeDesc, lpVertices, dwVertexCount, dwFlags);
+
+			// Handle dwFlags
+			UnSetDrawFlags(rsClipping, rsLighting, rsExtents, dwVertexTypeDesc, dwFlags, DirectXVersion);
+
+			return hr;
+		}
+		else
+		{
+			return GetProxyInterfaceV7()->DrawPrimitive(dptPrimitiveType, dwVertexTypeDesc, lpVertices, dwVertexCount, dwFlags);
+		}
 	}
 }
 
-HRESULT m_IDirect3DDeviceX::DrawPrimitiveStrided(D3DPRIMITIVETYPE dptPrimitiveType, DWORD dwVertexTypeDesc, LPD3DDRAWPRIMITIVESTRIDEDDATA lpVertexArray, DWORD dwVertexCount, DWORD dwFlags)
+HRESULT m_IDirect3DDeviceX::DrawPrimitiveStrided(D3DPRIMITIVETYPE dptPrimitiveType, DWORD dwVertexTypeDesc, LPD3DDRAWPRIMITIVESTRIDEDDATA lpVertexArray, DWORD dwVertexCount, DWORD dwFlags, DWORD DirectXVersion)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
@@ -1989,11 +2009,27 @@ HRESULT m_IDirect3DDeviceX::DrawPrimitiveStrided(D3DPRIMITIVETYPE dptPrimitiveTy
 	case 3:
 		return GetProxyInterfaceV3()->DrawPrimitiveStrided(dptPrimitiveType, dwVertexTypeDesc, lpVertexArray, dwVertexCount, dwFlags);
 	case 7:
-		return GetProxyInterfaceV7()->DrawPrimitiveStrided(dptPrimitiveType, dwVertexTypeDesc, lpVertexArray, dwVertexCount, dwFlags);
+		if (DirectXVersion != 7)
+		{
+			// Handle dwFlags
+			DWORD rsClipping = 0, rsLighting = 0, rsExtents = 0;
+			SetDrawFlags(rsClipping, rsLighting, rsExtents, dwVertexTypeDesc, dwFlags, DirectXVersion);
+
+			HRESULT hr = GetProxyInterfaceV7()->DrawPrimitiveStrided(dptPrimitiveType, dwVertexTypeDesc, lpVertexArray, dwVertexCount, dwFlags);
+
+			// Handle dwFlags
+			UnSetDrawFlags(rsClipping, rsLighting, rsExtents, dwVertexTypeDesc, dwFlags, DirectXVersion);
+
+			return hr;
+		}
+		else
+		{
+			return GetProxyInterfaceV7()->DrawPrimitiveStrided(dptPrimitiveType, dwVertexTypeDesc, lpVertexArray, dwVertexCount, dwFlags);
+		}
 	}
 }
 
-HRESULT m_IDirect3DDeviceX::DrawPrimitiveVB(D3DPRIMITIVETYPE d3dptPrimitiveType, LPDIRECT3DVERTEXBUFFER7 lpd3dVertexBuffer, DWORD dwStartVertex, DWORD dwNumVertices, DWORD dwFlags)
+HRESULT m_IDirect3DDeviceX::DrawPrimitiveVB(D3DPRIMITIVETYPE d3dptPrimitiveType, LPDIRECT3DVERTEXBUFFER7 lpd3dVertexBuffer, DWORD dwStartVertex, DWORD dwNumVertices, DWORD dwFlags, DWORD DirectXVersion)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
@@ -2017,11 +2053,33 @@ HRESULT m_IDirect3DDeviceX::DrawPrimitiveVB(D3DPRIMITIVETYPE d3dptPrimitiveType,
 	case 3:
 		return GetProxyInterfaceV3()->DrawPrimitiveVB(d3dptPrimitiveType, (LPDIRECT3DVERTEXBUFFER)lpd3dVertexBuffer, dwStartVertex, dwNumVertices, dwFlags);
 	case 7:
-		return GetProxyInterfaceV7()->DrawPrimitiveVB(d3dptPrimitiveType, lpd3dVertexBuffer, dwStartVertex, dwNumVertices, dwFlags);
+		if (DirectXVersion != 7)
+		{
+			D3DVERTEXBUFFERDESC BufferDesc = { NULL };
+			if (lpd3dVertexBuffer)
+			{
+				lpd3dVertexBuffer->GetVertexBufferDesc(&BufferDesc);
+			}
+
+			// Handle dwFlags
+			DWORD rsClipping = 0, rsLighting = 0, rsExtents = 0;
+			SetDrawFlags(rsClipping, rsLighting, rsExtents, BufferDesc.dwFVF, dwFlags, DirectXVersion);
+
+			HRESULT hr = GetProxyInterfaceV7()->DrawPrimitiveVB(d3dptPrimitiveType, lpd3dVertexBuffer, dwStartVertex, dwNumVertices, dwFlags);
+
+			// Handle dwFlags
+			UnSetDrawFlags(rsClipping, rsLighting, rsExtents, BufferDesc.dwFVF, dwFlags, DirectXVersion);
+
+			return hr;
+		}
+		else
+		{
+			return GetProxyInterfaceV7()->DrawPrimitiveVB(d3dptPrimitiveType, lpd3dVertexBuffer, dwStartVertex, dwNumVertices, dwFlags);
+		}
 	}
 }
 
-HRESULT m_IDirect3DDeviceX::DrawIndexedPrimitive(D3DPRIMITIVETYPE dptPrimitiveType, DWORD dwVertexTypeDesc, LPVOID lpVertices, DWORD dwVertexCount, LPWORD lpIndices, DWORD dwIndexCount, DWORD dwFlags)
+HRESULT m_IDirect3DDeviceX::DrawIndexedPrimitive(D3DPRIMITIVETYPE dptPrimitiveType, DWORD dwVertexTypeDesc, LPVOID lpVertices, DWORD dwVertexCount, LPWORD lpIndices, DWORD dwIndexCount, DWORD dwFlags, DWORD DirectXVersion)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
@@ -2036,14 +2094,11 @@ HRESULT m_IDirect3DDeviceX::DrawIndexedPrimitive(D3DPRIMITIVETYPE dptPrimitiveTy
 
 		// dwFlags (D3DDP_WAIT) can be ignored safely
 
-		// ToDo: This method, unlike its predecessor in previous interfaces, does not accept the D3DDP_DONOTCLIP, D3DDP_DONOTLIGHT, and D3DDP_DONOTUPDATEEXTENTS flags
-		// in the dwFlags parameter. The functionality offered by these flags is now available through the D3DRENDERSTATE_CLIPPING, D3DRENDERSTATE_LIGHTING, and
-		// D3DRENDERSTATE_EXTENTS render states.
+		// Handle dwFlags
+		DWORD rsClipping = 0, rsLighting = 0, rsExtents = 0;
+		SetDrawFlags(rsClipping, rsLighting, rsExtents, dwVertexTypeDesc, dwFlags, DirectXVersion);
 
-		// ToDo: In DirectX7 By default, Direct3D performs lighting calculations on all vertices, even those without vertex normals.
-		// (This is different from the behavior in previous releases of DirectX, where lighting was performed only on vertices that contained a vertex normal.)
-		// Update all Draw functions
-
+		HRESULT hr;
 		if (D3DFVF_LVERTEX == dwVertexTypeDesc)
 		{
 			D3DLVERTEX *lFVF = (D3DLVERTEX*)lpVertices;
@@ -2064,14 +2119,21 @@ HRESULT m_IDirect3DDeviceX::DrawIndexedPrimitive(D3DPRIMITIVETYPE dptPrimitiveTy
 			(*d3d9Device)->SetFVF(D3DFVF_LVERTEX9);
 
 			// Draw indexed primitive UP
-			return (*d3d9Device)->DrawIndexedPrimitiveUP(dptPrimitiveType, 0, dwIndexCount, GetNumberOfPrimitives(dptPrimitiveType, dwVertexCount), lpIndices, D3DFMT_INDEX16, &lFVF9[0], sizeof(D3DLVERTEX9));
+			hr = (*d3d9Device)->DrawIndexedPrimitiveUP(dptPrimitiveType, 0, dwVertexCount, GetNumberOfPrimitives(dptPrimitiveType, dwIndexCount), lpIndices, D3DFMT_INDEX16, &lFVF9[0], sizeof(D3DLVERTEX9));
+		}
+		else
+		{
+			// Set fixed function vertex type
+			(*d3d9Device)->SetFVF(dwVertexTypeDesc);
+
+			// Draw indexed primitive UP
+			hr = (*d3d9Device)->DrawIndexedPrimitiveUP(dptPrimitiveType, 0, dwVertexCount, GetNumberOfPrimitives(dptPrimitiveType, dwIndexCount), lpIndices, D3DFMT_INDEX16, lpVertices, GetVertexStride(dwVertexTypeDesc));
 		}
 
-		// Set fixed function vertex type
-		(*d3d9Device)->SetFVF(dwVertexTypeDesc);
+		// Handle dwFlags
+		UnSetDrawFlags(rsClipping, rsLighting, rsExtents, dwVertexTypeDesc, dwFlags, DirectXVersion);
 
-		// Draw indexed primitive UP
-		return (*d3d9Device)->DrawIndexedPrimitiveUP(dptPrimitiveType, 0, dwIndexCount, GetNumberOfPrimitives(dptPrimitiveType, dwVertexCount), lpIndices, D3DFMT_INDEX16, lpVertices, GetVertexStride(dwVertexTypeDesc));
+		return hr;
 	}
 
 	switch (ProxyDirectXVersion)
@@ -2084,11 +2146,27 @@ HRESULT m_IDirect3DDeviceX::DrawIndexedPrimitive(D3DPRIMITIVETYPE dptPrimitiveTy
 	case 3:
 		return GetProxyInterfaceV3()->DrawIndexedPrimitive(dptPrimitiveType, dwVertexTypeDesc, lpVertices, dwVertexCount, lpIndices, dwIndexCount, dwFlags);
 	case 7:
-		return GetProxyInterfaceV7()->DrawIndexedPrimitive(dptPrimitiveType, dwVertexTypeDesc, lpVertices, dwVertexCount, lpIndices, dwIndexCount, dwFlags);
+		if (DirectXVersion != 7)
+		{
+			// Handle dwFlags
+			DWORD rsClipping = 0, rsLighting = 0, rsExtents = 0;
+			SetDrawFlags(rsClipping, rsLighting, rsExtents, dwVertexTypeDesc, dwFlags, DirectXVersion);
+
+			HRESULT hr = GetProxyInterfaceV7()->DrawIndexedPrimitive(dptPrimitiveType, dwVertexTypeDesc, lpVertices, dwVertexCount, lpIndices, dwIndexCount, dwFlags);
+
+			// Handle dwFlags
+			UnSetDrawFlags(rsClipping, rsLighting, rsExtents, dwVertexTypeDesc, dwFlags, DirectXVersion);
+
+			return hr;
+		}
+		else
+		{
+			return GetProxyInterfaceV7()->DrawIndexedPrimitive(dptPrimitiveType, dwVertexTypeDesc, lpVertices, dwVertexCount, lpIndices, dwIndexCount, dwFlags);
+		}
 	}
 }
 
-HRESULT m_IDirect3DDeviceX::DrawIndexedPrimitiveStrided(D3DPRIMITIVETYPE d3dptPrimitiveType, DWORD dwVertexTypeDesc, LPD3DDRAWPRIMITIVESTRIDEDDATA lpVertexArray, DWORD dwVertexCount, LPWORD lpwIndices, DWORD dwIndexCount, DWORD dwFlags)
+HRESULT m_IDirect3DDeviceX::DrawIndexedPrimitiveStrided(D3DPRIMITIVETYPE d3dptPrimitiveType, DWORD dwVertexTypeDesc, LPD3DDRAWPRIMITIVESTRIDEDDATA lpVertexArray, DWORD dwVertexCount, LPWORD lpwIndices, DWORD dwIndexCount, DWORD dwFlags, DWORD DirectXVersion)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
@@ -2107,11 +2185,27 @@ HRESULT m_IDirect3DDeviceX::DrawIndexedPrimitiveStrided(D3DPRIMITIVETYPE d3dptPr
 	case 3:
 		return GetProxyInterfaceV3()->DrawIndexedPrimitiveStrided(d3dptPrimitiveType, dwVertexTypeDesc, lpVertexArray, dwVertexCount, lpwIndices, dwIndexCount, dwFlags);
 	case 7:
-		return GetProxyInterfaceV7()->DrawIndexedPrimitiveStrided(d3dptPrimitiveType, dwVertexTypeDesc, lpVertexArray, dwVertexCount, lpwIndices, dwIndexCount, dwFlags);
+		if (DirectXVersion != 7)
+		{
+			// Handle dwFlags
+			DWORD rsClipping = 0, rsLighting = 0, rsExtents = 0;
+			SetDrawFlags(rsClipping, rsLighting, rsExtents, dwVertexTypeDesc, dwFlags, DirectXVersion);
+
+			HRESULT hr = GetProxyInterfaceV7()->DrawIndexedPrimitiveStrided(d3dptPrimitiveType, dwVertexTypeDesc, lpVertexArray, dwVertexCount, lpwIndices, dwIndexCount, dwFlags);
+
+			// Handle dwFlags
+			UnSetDrawFlags(rsClipping, rsLighting, rsExtents, dwVertexTypeDesc, dwFlags, DirectXVersion);
+
+			return hr;
+		}
+		else
+		{
+			return GetProxyInterfaceV7()->DrawIndexedPrimitiveStrided(d3dptPrimitiveType, dwVertexTypeDesc, lpVertexArray, dwVertexCount, lpwIndices, dwIndexCount, dwFlags);
+		}
 	}
 }
 
-HRESULT m_IDirect3DDeviceX::DrawIndexedPrimitiveVB(D3DPRIMITIVETYPE d3dptPrimitiveType, LPDIRECT3DVERTEXBUFFER7 lpd3dVertexBuffer, DWORD dwStartVertex, DWORD dwNumVertices, LPWORD lpwIndices, DWORD dwIndexCount, DWORD dwFlags)
+HRESULT m_IDirect3DDeviceX::DrawIndexedPrimitiveVB(D3DPRIMITIVETYPE d3dptPrimitiveType, LPDIRECT3DVERTEXBUFFER7 lpd3dVertexBuffer, DWORD dwStartVertex, DWORD dwNumVertices, LPWORD lpwIndices, DWORD dwIndexCount, DWORD dwFlags, DWORD DirectXVersion)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
@@ -2135,7 +2229,29 @@ HRESULT m_IDirect3DDeviceX::DrawIndexedPrimitiveVB(D3DPRIMITIVETYPE d3dptPrimiti
 	case 3:
 		return GetProxyInterfaceV3()->DrawIndexedPrimitiveVB(d3dptPrimitiveType, (LPDIRECT3DVERTEXBUFFER)lpd3dVertexBuffer, lpwIndices, dwIndexCount, dwFlags);
 	case 7:
-		return GetProxyInterfaceV7()->DrawIndexedPrimitiveVB(d3dptPrimitiveType, lpd3dVertexBuffer, dwStartVertex, dwNumVertices, lpwIndices, dwIndexCount, dwFlags);
+		if (DirectXVersion != 7)
+		{
+			D3DVERTEXBUFFERDESC BufferDesc = { NULL };
+			if (lpd3dVertexBuffer)
+			{
+				lpd3dVertexBuffer->GetVertexBufferDesc(&BufferDesc);
+			}
+
+			// Handle dwFlags
+			DWORD rsClipping = 0, rsLighting = 0, rsExtents = 0;
+			SetDrawFlags(rsClipping, rsLighting, rsExtents, BufferDesc.dwFVF, dwFlags, DirectXVersion);
+
+			HRESULT hr = GetProxyInterfaceV7()->DrawIndexedPrimitiveVB(d3dptPrimitiveType, lpd3dVertexBuffer, dwStartVertex, dwNumVertices, lpwIndices, dwIndexCount, dwFlags);
+
+			// Handle dwFlags
+			UnSetDrawFlags(rsClipping, rsLighting, rsExtents, BufferDesc.dwFVF, dwFlags, DirectXVersion);
+
+			return hr;
+		}
+		else
+		{
+			return GetProxyInterfaceV7()->DrawIndexedPrimitiveVB(d3dptPrimitiveType, lpd3dVertexBuffer, dwStartVertex, dwNumVertices, lpwIndices, dwIndexCount, dwFlags);
+		}
 	}
 }
 
@@ -2379,6 +2495,49 @@ HRESULT m_IDirect3DDeviceX::CheckInterface(char *FunctionName, bool CheckD3DDevi
 	}
 
 	return DD_OK;
+}
+
+void m_IDirect3DDeviceX::SetDrawFlags(DWORD &rsClipping, DWORD &rsLighting, DWORD &rsExtents, DWORD dwVertexTypeDesc, DWORD dwFlags, DWORD DirectXVersion)
+{
+	if (DirectXVersion != 7)
+	{
+		// Handle dwFlags
+		if (dwFlags & D3DDP_DONOTCLIP)
+		{
+			GetRenderState(D3DRENDERSTATE_CLIPPING, &rsClipping);
+			SetRenderState(D3DRENDERSTATE_CLIPPING, FALSE);
+		}
+		if ((dwFlags & D3DDP_DONOTLIGHT) || !(dwVertexTypeDesc & D3DFVF_NORMAL))
+		{
+			GetRenderState(D3DRENDERSTATE_LIGHTING, &rsLighting);
+			SetRenderState(D3DRENDERSTATE_LIGHTING, FALSE);
+		}
+		if (dwFlags & D3DDP_DONOTUPDATEEXTENTS)
+		{
+			GetRenderState(D3DRENDERSTATE_EXTENTS, &rsExtents);
+			SetRenderState(D3DRENDERSTATE_EXTENTS, FALSE);
+		}
+	}
+}
+
+void m_IDirect3DDeviceX::UnSetDrawFlags(DWORD rsClipping, DWORD rsLighting, DWORD rsExtents, DWORD dwVertexTypeDesc, DWORD dwFlags, DWORD DirectXVersion)
+{
+	if (DirectXVersion != 7)
+	{
+		// Handle dwFlags
+		if (dwFlags & D3DDP_DONOTCLIP)
+		{
+			SetRenderState(D3DRENDERSTATE_CLIPPING, rsClipping);
+		}
+		if ((dwFlags & D3DDP_DONOTLIGHT) || !(dwVertexTypeDesc & D3DFVF_NORMAL))
+		{
+			SetRenderState(D3DRENDERSTATE_LIGHTING, rsLighting);
+		}
+		if (dwFlags & D3DDP_DONOTUPDATEEXTENTS)
+		{
+			SetRenderState(D3DRENDERSTATE_EXTENTS, rsExtents);
+		}
+	}
 }
 
 UINT m_IDirect3DDeviceX::GetNumberOfPrimitives(D3DPRIMITIVETYPE dptPrimitiveType, DWORD dwVertexCount)

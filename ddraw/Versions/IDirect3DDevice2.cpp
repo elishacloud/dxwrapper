@@ -163,12 +163,12 @@ HRESULT m_IDirect3DDevice2::MultiplyTransform(D3DTRANSFORMSTATETYPE a, LPD3DMATR
 
 HRESULT m_IDirect3DDevice2::DrawPrimitive(D3DPRIMITIVETYPE a, D3DVERTEXTYPE b, LPVOID c, DWORD d, DWORD e)
 {
-	return ProxyInterface->DrawPrimitive(a, b, c, d, e);
+	return ProxyInterface->DrawPrimitive(a, b, c, d, e, DirectXVersion);
 }
 
 HRESULT m_IDirect3DDevice2::DrawIndexedPrimitive(D3DPRIMITIVETYPE a, D3DVERTEXTYPE b, LPVOID c, DWORD d, LPWORD e, DWORD f, DWORD g)
 {
-	return ProxyInterface->DrawIndexedPrimitive(a, b, c, d, e, f, g);
+	return ProxyInterface->DrawIndexedPrimitive(a, b, c, d, e, f, g, DirectXVersion);
 }
 
 HRESULT m_IDirect3DDevice2::SetClipStatus(LPD3DCLIPSTATUS a)
