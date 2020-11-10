@@ -850,7 +850,6 @@ HRESULT m_IDirect3DDeviceX::GetTextureStageState(DWORD dwStage, D3DTEXTURESTAGES
 		if (!CheckTextureStageStateType(dwState))
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Warning: Texture state type not implemented: " << dwState);
-			return DDERR_UNSUPPORTED;
 		}
 
 		return (*d3d9Device)->GetTextureStageState(dwStage, dwState, lpdwValue);
@@ -918,7 +917,6 @@ HRESULT m_IDirect3DDeviceX::SetTextureStageState(DWORD dwStage, D3DTEXTURESTAGES
 		if (!CheckTextureStageStateType(dwState))
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Warning: Texture state type not implemented: " << dwState);
-			return DDERR_UNSUPPORTED;
 		}
 
 		return (*d3d9Device)->SetTextureStageState(dwStage, dwState, dwValue);
@@ -1736,19 +1734,47 @@ HRESULT m_IDirect3DDeviceX::SetRenderState(D3DRENDERSTATETYPE dwRenderStateType,
 		{
 		case D3DRENDERSTATE_ANTIALIAS:
 			dwRenderStateType = D3DRS_MULTISAMPLEANTIALIAS;
+			dwRenderState = (dwRenderState == D3DANTIALIAS_SORTDEPENDENT || dwRenderState == D3DANTIALIAS_SORTINDEPENDENT);
 			break;
-		case D3DRENDERSTATE_TEXTUREPERSPECTIVE:
-			LOG_ONCE(__FUNCTION__ << " Warning: 'D3DRENDERSTATE_TEXTUREPERSPECTIVE' not implemented!");
-			return DDERR_UNSUPPORTED;
 		case D3DRENDERSTATE_EDGEANTIALIAS:
 			dwRenderStateType = D3DRS_ANTIALIASEDLINEENABLE;
 			break;
+		case D3DRENDERSTATE_ZBIAS:
+		{
+			if (dwRenderState > 16)
+			{
+				return DDERR_INVALIDPARAMS;
+			}
+			float Biased = (float)dwRenderState * -0.000005f;
+			dwRenderState = *(DWORD*)&Biased;
+			dwRenderStateType = D3DRS_DEPTHBIAS;
+			break;
+		}
+		case D3DRENDERSTATE_TEXTUREPERSPECTIVE:
+			return D3D_OK;		// As long as the device's D3DPTEXTURECAPS_PERSPECTIVE is enabled, the correction will be applied automatically.
+		case D3DRENDERSTATE_LINEPATTERN:
+			LOG_LIMIT(100, __FUNCTION__ << " Warning: 'D3DRENDERSTATE_LINEPATTERN' not implemented!");
+			return D3D_OK;
+		case D3DRENDERSTATE_ZVISIBLE:
+			LOG_LIMIT(100, __FUNCTION__ << " Warning: 'D3DRENDERSTATE_ZVISIBLE' not implemented!");
+			return D3D_OK;
+		case D3DRENDERSTATE_STIPPLEDALPHA:
+			LOG_LIMIT(100, __FUNCTION__ << " Warning: 'D3DRENDERSTATE_STIPPLEDALPHA' not implemented!");
+			return D3D_OK;
+		case D3DRENDERSTATE_EXTENTS:
+			LOG_LIMIT(100, __FUNCTION__ << " Warning: 'D3DRENDERSTATE_EXTENTS' not implemented!");
+			return D3D_OK;
+		case D3DRENDERSTATE_COLORKEYENABLE:
+			LOG_LIMIT(100, __FUNCTION__ << " Warning: 'D3DRENDERSTATE_COLORKEYENABLE' not implemented!");
+			return D3D_OK;
+		case D3DRENDERSTATE_COLORKEYBLENDENABLE:
+			LOG_LIMIT(100, __FUNCTION__ << " Warning: 'D3DRENDERSTATE_COLORKEYBLENDENABLE' not implemented!");
+			return D3D_OK;
 		}
 
 		if (!CheckRenderStateType(dwRenderStateType))
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Warning: Render state type not implemented: " << dwRenderStateType);
-			return DDERR_UNSUPPORTED;
 		}
 
 		return (*d3d9Device)->SetRenderState(dwRenderStateType, dwRenderState);
@@ -1780,6 +1806,12 @@ HRESULT m_IDirect3DDeviceX::GetRenderState(D3DRENDERSTATETYPE dwRenderStateType,
 			return DDERR_GENERIC;
 		}
 
+		// Check parameter
+		if (!lpdwRenderState)
+		{
+			return DDERR_INVALIDPARAMS;
+		}
+
 		switch ((DWORD)dwRenderStateType)
 		{
 		case D3DRENDERSTATE_ANTIALIAS:
@@ -1788,15 +1820,44 @@ HRESULT m_IDirect3DDeviceX::GetRenderState(D3DRENDERSTATETYPE dwRenderStateType,
 		case D3DRENDERSTATE_EDGEANTIALIAS:
 			dwRenderStateType = D3DRS_ANTIALIASEDLINEENABLE;
 			break;
+		case D3DRENDERSTATE_ZBIAS:
+		{
+			HRESULT hr = ProxyInterface->GetRenderState(D3DRS_DEPTHBIAS, lpdwRenderState);
+			*lpdwRenderState = (DWORD)(*(float*)lpdwRenderState * -500000.0f);
+			return hr;
+		}
 		case D3DRENDERSTATE_TEXTUREPERSPECTIVE:
-			LOG_ONCE(__FUNCTION__ << " Warning: 'D3DRENDERSTATE_TEXTUREPERSPECTIVE' not implemented!");
-			return DDERR_UNSUPPORTED;
+			*lpdwRenderState = TRUE;	// As long as the device's D3DPTEXTURECAPS_PERSPECTIVE is enabled, the correction will be applied automatically.
+			return D3D_OK;
+		case D3DRENDERSTATE_LINEPATTERN:
+			LOG_LIMIT(100, __FUNCTION__ << " Warning: 'D3DRENDERSTATE_LINEPATTERN' not implemented!");
+			*lpdwRenderState = 0;
+			return D3D_OK;
+		case D3DRENDERSTATE_ZVISIBLE:
+			LOG_LIMIT(100, __FUNCTION__ << " Warning: 'D3DRENDERSTATE_ZVISIBLE' not implemented!");
+			*lpdwRenderState = FALSE;
+			return D3D_OK;
+		case D3DRENDERSTATE_STIPPLEDALPHA:
+			LOG_LIMIT(100, __FUNCTION__ << " Warning: 'D3DRENDERSTATE_STIPPLEDALPHA' not implemented!");
+			*lpdwRenderState = FALSE;
+			return D3D_OK;
+		case D3DRENDERSTATE_EXTENTS:
+			LOG_LIMIT(100, __FUNCTION__ << " Warning: 'D3DRENDERSTATE_EXTENTS' not implemented!");
+			*lpdwRenderState = FALSE;
+			return D3D_OK;
+		case D3DRENDERSTATE_COLORKEYENABLE:
+			LOG_LIMIT(100, __FUNCTION__ << " Warning: 'D3DRENDERSTATE_COLORKEYENABLE' not implemented!");
+			*lpdwRenderState = FALSE;
+			return D3D_OK;
+		case D3DRENDERSTATE_COLORKEYBLENDENABLE:
+			LOG_LIMIT(100, __FUNCTION__ << " Warning: 'D3DRENDERSTATE_COLORKEYBLENDENABLE' not implemented!");
+			*lpdwRenderState = FALSE;
+			return D3D_OK;
 		}
 
 		if (!CheckRenderStateType(dwRenderStateType))
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Warning: Render state type not implemented: " << dwRenderStateType);
-			return DDERR_UNSUPPORTED;
 		}
 
 		return (*d3d9Device)->GetRenderState(dwRenderStateType, lpdwRenderState);
