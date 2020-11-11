@@ -23,6 +23,10 @@ std::ostream& operator<<(std::ostream& os, const DDSURFACEDESC& sd);
 std::ostream& operator<<(std::ostream& os, const DDSURFACEDESC2& sd);
 std::ostream& operator<<(std::ostream& os, const DDERR& ErrCode);
 #endif
+#ifdef _D3DCAPS_H
+std::ostream& operator<<(std::ostream& os, const D3DPRIMCAPS& pc);
+std::ostream& operator<<(std::ostream& os, const D3DDEVICEDESC7& dd);
+#endif
 #ifdef _d3d9TYPES_H_
 std::ostream& operator<<(std::ostream& os, const D3DFORMAT& format);
 std::ostream& operator<<(std::ostream& os, const D3DPRESENT_PARAMETERS& pp);

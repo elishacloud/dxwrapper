@@ -16,9 +16,6 @@
 
 #include "ddraw.h"
 
-#define D3DLIGHTCAPS_PARALLELPOINT      0x00000008L /* Parallel point lights supported */
-#define D3DLIGHTCAPS_GLSPOT             0x00000010L /* GL syle spot lights supported */
-
 void ConvertMaterial(D3DMATERIAL &Material, D3DMATERIAL &Material2)
 {
 	if (Material.dwSize != sizeof(D3DMATERIAL) || Material2.dwSize != sizeof(D3DMATERIAL))
@@ -377,34 +374,38 @@ void ConvertDeviceDesc(D3DDEVICEDESC7 &Desc7, D3DCAPS9 &Caps9)
 	Desc7.dvGuardBandRight = Caps9.GuardBandRight;
 	Desc7.dvGuardBandBottom = Caps9.GuardBandBottom;
 	Desc7.dvExtentsAdjust = Caps9.ExtentsAdjust;
-	Desc7.wMaxTextureBlendStages = (WORD)((Caps9.MaxTextureBlendStages > 0xFFFF) ? 0xFFFF : Caps9.MaxTextureBlendStages);
-	Desc7.wMaxSimultaneousTextures = (WORD)((Caps9.MaxSimultaneousTextures > 0xFFFF) ? 0xFFFF : Caps9.MaxSimultaneousTextures);
+	Desc7.wMaxTextureBlendStages = (WORD)min(Caps9.MaxTextureBlendStages, USHRT_MAX);
+	Desc7.wMaxSimultaneousTextures = (WORD)min(Caps9.MaxSimultaneousTextures, USHRT_MAX);
 	Desc7.dwMaxActiveLights = Caps9.MaxActiveLights;
 	Desc7.dvMaxVertexW = Caps9.MaxVertexW;
-	Desc7.wMaxUserClipPlanes = (WORD)((Caps9.MaxUserClipPlanes > 0xFFFF) ? 0xFFFF : Caps9.MaxUserClipPlanes);
-	Desc7.wMaxVertexBlendMatrices = (WORD)((Caps9.MaxVertexBlendMatrices > 0xFFFF) ? 0xFFFF : Caps9.MaxVertexBlendMatrices);
+	Desc7.wMaxUserClipPlanes = (WORD)min(Caps9.MaxUserClipPlanes, USHRT_MAX);
+	Desc7.wMaxVertexBlendMatrices = (WORD)min(Caps9.MaxVertexBlendMatrices, USHRT_MAX);
 	// Caps
 	Desc7.dwDevCaps = (Caps9.DevCaps & ~(D3DDEVCAPS_PUREDEVICE | D3DDEVCAPS_QUINTICRTPATCHES | D3DDEVCAPS_RTPATCHES | D3DDEVCAPS_RTPATCHHANDLEZERO | D3DDEVCAPS_NPATCHES)) |
-		D3DDEVCAPS_FLOATTLVERTEX | D3DDEVCAPS_HWTRANSFORMANDLIGHT | 0x00100000L | 0x02000000L;
+		D3DDEVCAPS_FLOATTLVERTEX;
 	Desc7.dwStencilCaps = Caps9.StencilCaps;
-	Desc7.dwFVFCaps = (Caps9.FVFCaps & 0x8FFFF) | 0x00100000;
-	Desc7.dwTextureOpCaps = (Caps9.TextureOpCaps & 0xFFFFFF) | 0x01000000 | 0x02000000;
-	Desc7.dwVertexProcessingCaps = Caps9.VertexProcessingCaps & 0x3F;
+	Desc7.dwFVFCaps = Caps9.FVFCaps & ~(D3DFVFCAPS_PSIZE);
+	Desc7.dwTextureOpCaps = Caps9.TextureOpCaps & ~(D3DTEXOPCAPS_MULTIPLYADD | D3DTEXOPCAPS_LERP);
+	Desc7.dwVertexProcessingCaps = (Caps9.VertexProcessingCaps & (D3DVTXPCAPS_TEXGEN | D3DVTXPCAPS_MATERIALSOURCE7 | D3DVTXPCAPS_DIRECTIONALLIGHTS | D3DVTXPCAPS_POSITIONALLIGHTS | D3DVTXPCAPS_LOCALVIEWER)) |
+		D3DVTXPCAPS_VERTEXFOG;
 	// Line Caps
 	Desc7.dpcLineCaps.dwSize = sizeof(D3DPRIMCAPS);
-	Desc7.dpcLineCaps.dwMiscCaps = (Caps9.PrimitiveMiscCaps & 0x72) | 0x00000200;
-	Desc7.dpcLineCaps.dwRasterCaps = (Caps9.RasterCaps & 0x3FFFFF) | D3DPRASTERCAPS_SUBPIXEL | D3DPRASTERCAPS_ANTIALIASSORTINDEPENDENT | D3DPRASTERCAPS_ANTIALIASEDGES | D3DPRASTERCAPS_ZBIAS;
-	Desc7.dpcLineCaps.dwZCmpCaps = Caps9.ZCmpCaps & 0xFF;
-	Desc7.dpcLineCaps.dwSrcBlendCaps = Caps9.SrcBlendCaps & 0x1FFF;
-	Desc7.dpcLineCaps.dwDestBlendCaps = Caps9.DestBlendCaps & 0x1FFF;
-	Desc7.dpcLineCaps.dwAlphaCmpCaps = Caps9.AlphaCmpCaps & 0xFF;
-	Desc7.dpcLineCaps.dwShadeCaps = (Caps9.ShadeCaps & 0x1FFFFF) | D3DPSHADECAPS_COLORFLATMONO | D3DPSHADECAPS_COLORFLATRGB | D3DPSHADECAPS_COLORGOURAUDMONO | D3DPSHADECAPS_SPECULARFLATRGB | 
-		D3DPSHADECAPS_ALPHAFLATBLEND | D3DPSHADECAPS_FOGFLAT;
-	Desc7.dpcLineCaps.dwTextureCaps = (Caps9.TextureCaps & 0x1FFF) | D3DPTEXTURECAPS_TRANSPARENCY;
-	Desc7.dpcLineCaps.dwTextureFilterCaps = (Caps9.TextureFilterCaps & 0x1F373F) | D3DPTFILTERCAPS_NEAREST | D3DPTFILTERCAPS_LINEAR | D3DPTFILTERCAPS_MIPNEAREST | D3DPTFILTERCAPS_MIPLINEAR |
-		D3DPTFILTERCAPS_LINEARMIPNEAREST | D3DPTFILTERCAPS_LINEARMIPLINEAR | D3DPTFILTERCAPS_MAGFPOINT | D3DPTFILTERCAPS_MAGFLINEAR;
+	Desc7.dpcLineCaps.dwMiscCaps = Caps9.PrimitiveMiscCaps & (D3DPMISCCAPS_MASKZ | D3DPMISCCAPS_CULLNONE | D3DPMISCCAPS_CULLCW | D3DPMISCCAPS_CULLCCW);
+	Desc7.dpcLineCaps.dwRasterCaps = (Caps9.RasterCaps & ~(D3DPRASTERCAPS_COLORPERSPECTIVE | D3DPRASTERCAPS_SCISSORTEST | D3DPRASTERCAPS_SLOPESCALEDEPTHBIAS | D3DPRASTERCAPS_DEPTHBIAS | D3DPRASTERCAPS_MULTISAMPLE_TOGGLE)) |
+		D3DPRASTERCAPS_SUBPIXEL | D3DPRASTERCAPS_ANTIALIASSORTINDEPENDENT | D3DPRASTERCAPS_ANTIALIASEDGES | D3DPRASTERCAPS_ZBIAS;
+	Desc7.dpcLineCaps.dwZCmpCaps = Caps9.ZCmpCaps;
+	Desc7.dpcLineCaps.dwAlphaCmpCaps = Caps9.AlphaCmpCaps;
+	Desc7.dpcLineCaps.dwSrcBlendCaps = Caps9.SrcBlendCaps & ~(D3DPBLENDCAPS_BLENDFACTOR);
+	Desc7.dpcLineCaps.dwDestBlendCaps = Caps9.DestBlendCaps & ~(D3DPBLENDCAPS_BLENDFACTOR);
+	Desc7.dpcLineCaps.dwShadeCaps = Caps9.ShadeCaps |
+		D3DPSHADECAPS_COLORFLATMONO | D3DPSHADECAPS_COLORFLATRGB | D3DPSHADECAPS_COLORGOURAUDMONO | D3DPSHADECAPS_SPECULARFLATRGB | D3DPSHADECAPS_ALPHAFLATBLEND | D3DPSHADECAPS_FOGFLAT;
+	Desc7.dpcLineCaps.dwTextureCaps = (Caps9.TextureCaps & (D3DPTEXTURECAPS_PERSPECTIVE | D3DPTEXTURECAPS_POW2 | D3DPTEXTURECAPS_ALPHA | D3DPTEXTURECAPS_SQUAREONLY | D3DPTEXTURECAPS_TEXREPEATNOTSCALEDBYSIZE |
+		D3DPTEXTURECAPS_ALPHAPALETTE | D3DPTEXTURECAPS_NONPOW2CONDITIONAL | D3DPTEXTURECAPS_PROJECTED | D3DPTEXTURECAPS_CUBEMAP)) |
+		D3DPTEXTURECAPS_TRANSPARENCY;
+	Desc7.dpcLineCaps.dwTextureFilterCaps = (Caps9.TextureFilterCaps & ~(D3DPTFILTERCAPS_MINFPYRAMIDALQUAD | D3DPTFILTERCAPS_MINFGAUSSIANQUAD | D3DPTFILTERCAPS_CONVOLUTIONMONO)) |
+		D3DPTFILTERCAPS_NEAREST | D3DPTFILTERCAPS_LINEAR | D3DPTFILTERCAPS_MIPNEAREST | D3DPTFILTERCAPS_MIPLINEAR | D3DPTFILTERCAPS_LINEARMIPNEAREST | D3DPTFILTERCAPS_LINEARMIPLINEAR;
 	Desc7.dpcLineCaps.dwTextureBlendCaps = D3DPTBLENDCAPS_DECAL | D3DPTBLENDCAPS_MODULATE | D3DPTBLENDCAPS_DECALALPHA | D3DPTBLENDCAPS_MODULATEALPHA | D3DPTBLENDCAPS_COPY | D3DPTBLENDCAPS_ADD;
-	Desc7.dpcLineCaps.dwTextureAddressCaps = Caps9.TextureAddressCaps & 0x1F;
+	Desc7.dpcLineCaps.dwTextureAddressCaps = Caps9.TextureAddressCaps & ~(D3DPTADDRESSCAPS_MIRRORONCE);
 	Desc7.dpcLineCaps.dwStippleWidth = 0;
 	Desc7.dpcLineCaps.dwStippleHeight = 0;
 	// Tri Caps same as Line Caps
@@ -413,24 +414,27 @@ void ConvertDeviceDesc(D3DDEVICEDESC7 &Desc7, D3DCAPS9 &Caps9)
 	if (Caps9.DeviceType == D3DDEVTYPE_REF)
 	{
 		Desc7.deviceGUID = IID_IDirect3DRGBDevice;
+		Desc7.dwDevCaps &= ~(D3DDEVCAPS_HWTRANSFORMANDLIGHT);
 		Desc7.dpcLineCaps.dwStippleWidth = 4;
 		Desc7.dpcLineCaps.dwStippleHeight = 4;
-		Desc7.dwDeviceRenderBitDepth = 3840;
-		Desc7.dwDeviceZBufferBitDepth = 1024;
+		Desc7.dpcTriCaps.dwStippleWidth = 4;
+		Desc7.dpcTriCaps.dwStippleHeight = 4;
+		Desc7.dwDeviceRenderBitDepth = DDBD_8 | DDBD_16 | DDBD_24 | DDBD_32;
+		Desc7.dwDeviceZBufferBitDepth = DDBD_16;
 	}
 	else if (Caps9.DeviceType == D3DDEVTYPE_HAL)
 	{
 		Desc7.deviceGUID = IID_IDirect3DHALDevice;
-		Desc7.dwDevCaps |= D3DDEVCAPS_HWRASTERIZATION;
-		Desc7.dwDeviceRenderBitDepth = 3328;
-		Desc7.dwDeviceZBufferBitDepth = 1536;
+		Desc7.dwDevCaps = (Desc7.dwDevCaps | D3DDEVCAPS_HWRASTERIZATION) & ~(D3DDEVCAPS_HWTRANSFORMANDLIGHT);
+		Desc7.dwDeviceRenderBitDepth = DDBD_8 | DDBD_16 | DDBD_32;
+		Desc7.dwDeviceZBufferBitDepth = DDBD_16 | DDBD_24;
 	}
 	else if (Caps9.DeviceType == D3DDEVTYPE_HAL + 0x10)
 	{
 		Desc7.deviceGUID = IID_IDirect3DTnLHalDevice;
-		Desc7.dwDevCaps |= D3DDEVCAPS_HWRASTERIZATION | D3DDEVCAPS_HWTRANSFORMANDLIGHT;
-		Desc7.dwDeviceRenderBitDepth = 3328;
-		Desc7.dwDeviceZBufferBitDepth = 1536;
+		Desc7.dwDevCaps |= Desc7.dwDevCaps | D3DDEVCAPS_HWRASTERIZATION;
+		Desc7.dwDeviceRenderBitDepth = DDBD_8 | DDBD_16 | DDBD_32;
+		Desc7.dwDeviceZBufferBitDepth = DDBD_16 | DDBD_24;
 	}
 	// Reserved
 	Desc7.dwReserved1 = 0;
@@ -439,7 +443,7 @@ void ConvertDeviceDesc(D3DDEVICEDESC7 &Desc7, D3DCAPS9 &Caps9)
 	Desc7.dwReserved4 = 0;
 }
 
-void GetBufferFormat(DDPIXELFORMAT &ddpfPixelFormat, DWORD Num)
+void GetZBufferFormat(DDPIXELFORMAT &ddpfPixelFormat, DWORD Num)
 {
 	if (ddpfPixelFormat.dwSize != sizeof(DDPIXELFORMAT))
 	{
@@ -449,197 +453,68 @@ void GetBufferFormat(DDPIXELFORMAT &ddpfPixelFormat, DWORD Num)
 	switch (Num)
 	{
 	case 0:
-		ddpfPixelFormat.dwFlags = 1024;
+		ddpfPixelFormat.dwFlags = DDPF_ZBUFFER;
 		ddpfPixelFormat.dwFourCC = 0;
-		ddpfPixelFormat.dwRGBBitCount = 16;
-		ddpfPixelFormat.dwYUVBitCount = 16;
 		ddpfPixelFormat.dwZBufferBitDepth = 16;
-		ddpfPixelFormat.dwAlphaBitDepth = 16;
-		ddpfPixelFormat.dwLuminanceBitCount = 16;
-		ddpfPixelFormat.dwBumpBitCount = 16;
-		ddpfPixelFormat.dwPrivateFormatBitCount = 16;
-		ddpfPixelFormat.dwRBitMask = 0;
-		ddpfPixelFormat.dwYBitMask = 0;
 		ddpfPixelFormat.dwStencilBitDepth = 0;
-		ddpfPixelFormat.dwLuminanceBitMask = 0;
-		ddpfPixelFormat.dwBumpDuBitMask = 0;
-		ddpfPixelFormat.dwOperations = 0;
-		ddpfPixelFormat.dwGBitMask = 65535;
-		ddpfPixelFormat.dwUBitMask = 65535;
-		ddpfPixelFormat.dwZBitMask = 65535;
-		ddpfPixelFormat.dwBumpDvBitMask = 65535;
-		ddpfPixelFormat.MultiSampleCaps.wFlipMSTypes = 65535;
-		ddpfPixelFormat.MultiSampleCaps.wBltMSTypes = 0;
-		ddpfPixelFormat.dwBBitMask = 0;
-		ddpfPixelFormat.dwVBitMask = 0;
+		ddpfPixelFormat.dwZBitMask = 0xFFFF;
 		ddpfPixelFormat.dwStencilBitMask = 0;
-		ddpfPixelFormat.dwBumpLuminanceBitMask = 0;
-		ddpfPixelFormat.dwRGBAlphaBitMask = 0;
-		ddpfPixelFormat.dwYUVAlphaBitMask = 0;
-		ddpfPixelFormat.dwLuminanceAlphaBitMask = 0;
 		ddpfPixelFormat.dwRGBZBitMask = 0;
-		ddpfPixelFormat.dwYUVZBitMask = 0;
 		break;
 	case 1:
-		ddpfPixelFormat.dwFlags = 1024;
+		ddpfPixelFormat.dwFlags = DDPF_ZBUFFER;
 		ddpfPixelFormat.dwFourCC = 0;
-		ddpfPixelFormat.dwRGBBitCount = 32;
-		ddpfPixelFormat.dwYUVBitCount = 32;
 		ddpfPixelFormat.dwZBufferBitDepth = 32;
-		ddpfPixelFormat.dwAlphaBitDepth = 32;
-		ddpfPixelFormat.dwLuminanceBitCount = 32;
-		ddpfPixelFormat.dwBumpBitCount = 32;
-		ddpfPixelFormat.dwPrivateFormatBitCount = 32;
-		ddpfPixelFormat.dwRBitMask = 0;
-		ddpfPixelFormat.dwYBitMask = 0;
 		ddpfPixelFormat.dwStencilBitDepth = 0;
-		ddpfPixelFormat.dwLuminanceBitMask = 0;
-		ddpfPixelFormat.dwBumpDuBitMask = 0;
-		ddpfPixelFormat.dwOperations = 0;
-		ddpfPixelFormat.dwGBitMask = 4294967040;
-		ddpfPixelFormat.dwUBitMask = 4294967040;
-		ddpfPixelFormat.dwZBitMask = 4294967040;
-		ddpfPixelFormat.dwBumpDvBitMask = 4294967040;
-		ddpfPixelFormat.MultiSampleCaps.wFlipMSTypes = 65280;
-		ddpfPixelFormat.MultiSampleCaps.wBltMSTypes = 65535;
-		ddpfPixelFormat.dwBBitMask = 0;
-		ddpfPixelFormat.dwVBitMask = 0;
+		ddpfPixelFormat.dwZBitMask = 0xFFFFFF00;
 		ddpfPixelFormat.dwStencilBitMask = 0;
-		ddpfPixelFormat.dwBumpLuminanceBitMask = 0;
-		ddpfPixelFormat.dwRGBAlphaBitMask = 0;
-		ddpfPixelFormat.dwYUVAlphaBitMask = 0;
-		ddpfPixelFormat.dwLuminanceAlphaBitMask = 0;
 		ddpfPixelFormat.dwRGBZBitMask = 0;
-		ddpfPixelFormat.dwYUVZBitMask = 0;
 		break;
 	case 2:
-		ddpfPixelFormat.dwFlags = 17408;
+		ddpfPixelFormat.dwFlags = DDPF_ZBUFFER | DDPF_STENCILBUFFER;
 		ddpfPixelFormat.dwFourCC = 0;
-		ddpfPixelFormat.dwRGBBitCount = 32;
-		ddpfPixelFormat.dwYUVBitCount = 32;
 		ddpfPixelFormat.dwZBufferBitDepth = 32;
-		ddpfPixelFormat.dwAlphaBitDepth = 32;
-		ddpfPixelFormat.dwLuminanceBitCount = 32;
-		ddpfPixelFormat.dwBumpBitCount = 32;
-		ddpfPixelFormat.dwPrivateFormatBitCount = 32;
-		ddpfPixelFormat.dwRBitMask = 8;
-		ddpfPixelFormat.dwYBitMask = 8;
 		ddpfPixelFormat.dwStencilBitDepth = 8;
-		ddpfPixelFormat.dwLuminanceBitMask = 8;
-		ddpfPixelFormat.dwBumpDuBitMask = 8;
-		ddpfPixelFormat.dwOperations = 8;
-		ddpfPixelFormat.dwGBitMask = 4294967040;
-		ddpfPixelFormat.dwUBitMask = 4294967040;
-		ddpfPixelFormat.dwZBitMask = 4294967040;
-		ddpfPixelFormat.dwBumpDvBitMask = 4294967040;
-		ddpfPixelFormat.MultiSampleCaps.wFlipMSTypes = 65280;
-		ddpfPixelFormat.MultiSampleCaps.wBltMSTypes = 65535;
-		ddpfPixelFormat.dwBBitMask = 255;
-		ddpfPixelFormat.dwVBitMask = 255;
-		ddpfPixelFormat.dwStencilBitMask = 255;
-		ddpfPixelFormat.dwBumpLuminanceBitMask = 255;
-		ddpfPixelFormat.dwRGBAlphaBitMask = 0;
-		ddpfPixelFormat.dwYUVAlphaBitMask = 0;
-		ddpfPixelFormat.dwLuminanceAlphaBitMask = 0;
+		ddpfPixelFormat.dwZBitMask = 0xFFFFFF00;
+		ddpfPixelFormat.dwStencilBitMask = 0xFF;
 		ddpfPixelFormat.dwRGBZBitMask = 0;
-		ddpfPixelFormat.dwYUVZBitMask = 0;
 		break;
 	case 3:
-		ddpfPixelFormat.dwFlags = 17408;
+		ddpfPixelFormat.dwFlags = DDPF_ZBUFFER | DDPF_STENCILBUFFER;
 		ddpfPixelFormat.dwFourCC = 0;
-		ddpfPixelFormat.dwRGBBitCount = 32;
-		ddpfPixelFormat.dwYUVBitCount = 32;
 		ddpfPixelFormat.dwZBufferBitDepth = 32;
-		ddpfPixelFormat.dwAlphaBitDepth = 32;
-		ddpfPixelFormat.dwLuminanceBitCount = 32;
-		ddpfPixelFormat.dwBumpBitCount = 32;
-		ddpfPixelFormat.dwPrivateFormatBitCount = 32;
-		ddpfPixelFormat.dwRBitMask = 8;
-		ddpfPixelFormat.dwYBitMask = 8;
 		ddpfPixelFormat.dwStencilBitDepth = 8;
-		ddpfPixelFormat.dwLuminanceBitMask = 8;
-		ddpfPixelFormat.dwBumpDuBitMask = 8;
-		ddpfPixelFormat.dwOperations = 8;
-		ddpfPixelFormat.dwGBitMask = 16777215;
-		ddpfPixelFormat.dwUBitMask = 16777215;
-		ddpfPixelFormat.dwZBitMask = 16777215;
-		ddpfPixelFormat.dwBumpDvBitMask = 16777215;
-		ddpfPixelFormat.MultiSampleCaps.wFlipMSTypes = 65535;
-		ddpfPixelFormat.MultiSampleCaps.wBltMSTypes = 255;
-		ddpfPixelFormat.dwBBitMask = 4278190080;
-		ddpfPixelFormat.dwVBitMask = 4278190080;
-		ddpfPixelFormat.dwStencilBitMask = 4278190080;
-		ddpfPixelFormat.dwBumpLuminanceBitMask = 4278190080;
-		ddpfPixelFormat.dwRGBAlphaBitMask = 0;
-		ddpfPixelFormat.dwYUVAlphaBitMask = 0;
-		ddpfPixelFormat.dwLuminanceAlphaBitMask = 0;
+		ddpfPixelFormat.dwZBitMask = 0xFFFFFF;
+		ddpfPixelFormat.dwStencilBitMask = 0xFF000000;
 		ddpfPixelFormat.dwRGBZBitMask = 0;
-		ddpfPixelFormat.dwYUVZBitMask = 0;
 		break;
 	case 4:
-		ddpfPixelFormat.dwFlags = 1024;
+		ddpfPixelFormat.dwFlags = DDPF_ZBUFFER;
 		ddpfPixelFormat.dwFourCC = 0;
-		ddpfPixelFormat.dwRGBBitCount = 32;
-		ddpfPixelFormat.dwYUVBitCount = 32;
 		ddpfPixelFormat.dwZBufferBitDepth = 32;
-		ddpfPixelFormat.dwAlphaBitDepth = 32;
-		ddpfPixelFormat.dwLuminanceBitCount = 32;
-		ddpfPixelFormat.dwBumpBitCount = 32;
-		ddpfPixelFormat.dwPrivateFormatBitCount = 32;
-		ddpfPixelFormat.dwRBitMask = 0;
-		ddpfPixelFormat.dwYBitMask = 0;
 		ddpfPixelFormat.dwStencilBitDepth = 0;
-		ddpfPixelFormat.dwLuminanceBitMask = 0;
-		ddpfPixelFormat.dwBumpDuBitMask = 0;
-		ddpfPixelFormat.dwOperations = 0;
-		ddpfPixelFormat.dwGBitMask = 16777215;
-		ddpfPixelFormat.dwUBitMask = 16777215;
-		ddpfPixelFormat.dwZBitMask = 16777215;
-		ddpfPixelFormat.dwBumpDvBitMask = 16777215;
-		ddpfPixelFormat.MultiSampleCaps.wFlipMSTypes = 65535;
-		ddpfPixelFormat.MultiSampleCaps.wBltMSTypes = 255;
-		ddpfPixelFormat.dwBBitMask = 0;
-		ddpfPixelFormat.dwVBitMask = 0;
+		ddpfPixelFormat.dwZBitMask = 0xFFFFFF;
 		ddpfPixelFormat.dwStencilBitMask = 0;
-		ddpfPixelFormat.dwBumpLuminanceBitMask = 0;
-		ddpfPixelFormat.dwRGBAlphaBitMask = 0;
-		ddpfPixelFormat.dwYUVAlphaBitMask = 0;
-		ddpfPixelFormat.dwLuminanceAlphaBitMask = 0;
 		ddpfPixelFormat.dwRGBZBitMask = 0;
-		ddpfPixelFormat.dwYUVZBitMask = 0;
 		break;
 	case 5:
-		ddpfPixelFormat.dwFlags = 1024;
+		ddpfPixelFormat.dwFlags = DDPF_ZBUFFER;
 		ddpfPixelFormat.dwFourCC = 0;
-		ddpfPixelFormat.dwRGBBitCount = 24;
-		ddpfPixelFormat.dwYUVBitCount = 24;
 		ddpfPixelFormat.dwZBufferBitDepth = 24;
-		ddpfPixelFormat.dwAlphaBitDepth = 24;
-		ddpfPixelFormat.dwLuminanceBitCount = 24;
-		ddpfPixelFormat.dwBumpBitCount = 24;
-		ddpfPixelFormat.dwPrivateFormatBitCount = 24;
-		ddpfPixelFormat.dwRBitMask = 0;
-		ddpfPixelFormat.dwYBitMask = 0;
 		ddpfPixelFormat.dwStencilBitDepth = 0;
-		ddpfPixelFormat.dwLuminanceBitMask = 0;
-		ddpfPixelFormat.dwBumpDuBitMask = 0;
-		ddpfPixelFormat.dwOperations = 0;
-		ddpfPixelFormat.dwGBitMask = 16777215;
-		ddpfPixelFormat.dwUBitMask = 16777215;
-		ddpfPixelFormat.dwZBitMask = 16777215;
-		ddpfPixelFormat.dwBumpDvBitMask = 16777215;
-		ddpfPixelFormat.MultiSampleCaps.wFlipMSTypes = 65535;
-		ddpfPixelFormat.MultiSampleCaps.wBltMSTypes = 255;
-		ddpfPixelFormat.dwBBitMask = 0;
-		ddpfPixelFormat.dwVBitMask = 0;
+		ddpfPixelFormat.dwZBitMask = 0xFFFFFF;
 		ddpfPixelFormat.dwStencilBitMask = 0;
-		ddpfPixelFormat.dwBumpLuminanceBitMask = 0;
-		ddpfPixelFormat.dwRGBAlphaBitMask = 0;
-		ddpfPixelFormat.dwYUVAlphaBitMask = 0;
-		ddpfPixelFormat.dwLuminanceAlphaBitMask = 0;
 		ddpfPixelFormat.dwRGBZBitMask = 0;
-		ddpfPixelFormat.dwYUVZBitMask = 0;
 		break;
+	default:
+		LOG_LIMIT(100, __FUNCTION__ << " Error: Invalid ZBufferFormat num!");
+		ddpfPixelFormat.dwFlags = 0;
+		ddpfPixelFormat.dwFourCC = 0;
+		ddpfPixelFormat.dwZBufferBitDepth = 0;
+		ddpfPixelFormat.dwStencilBitDepth = 0;
+		ddpfPixelFormat.dwZBitMask = 0;
+		ddpfPixelFormat.dwStencilBitMask = 0;
+		ddpfPixelFormat.dwRGBZBitMask = 0;
 	}
 }
 

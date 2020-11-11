@@ -239,8 +239,8 @@ HRESULT m_IDirect3DX::EnumDevices7(LPD3DENUMDEVICESCALLBACK7 lpEnumDevicesCallba
 					ConvertDeviceDesc(DeviceDesc7, Caps9);
 
 					GUID deviceGUID = DeviceDesc7.deviceGUID;
-					D3DDEVICEDESC D3DHWDevDesc, D3DHELDevDesc;
-					D3DHWDevDesc.dwSize = sizeof(D3DDEVICEDESC);
+					D3DDEVICEDESC D3DSWDevDesc, D3DHELDevDesc;
+					D3DSWDevDesc.dwSize = sizeof(D3DDEVICEDESC);
 					D3DHELDevDesc.dwSize = sizeof(D3DDEVICEDESC);
 
 					LPSTR lpDescription, lpName;
@@ -253,7 +253,7 @@ HRESULT m_IDirect3DX::EnumDevices7(LPD3DENUMDEVICESCALLBACK7 lpEnumDevicesCallba
 						if (ConvertCallback)
 						{
 							// Get Device Caps D3DDEVTYPE_REF
-							ConvertDeviceDesc(D3DHWDevDesc, DeviceDesc7);
+							ConvertDeviceDesc(D3DSWDevDesc, DeviceDesc7);
 
 							// Get Device Caps D3DDEVTYPE_HAL
 							if (SUCCEEDED(d3d9Object->GetDeviceCaps(i, D3DDEVTYPE_HAL, &Caps9)))
@@ -262,7 +262,7 @@ HRESULT m_IDirect3DX::EnumDevices7(LPD3DENUMDEVICESCALLBACK7 lpEnumDevicesCallba
 								ConvertDeviceDesc(DeviceDesc7, Caps9);
 								ConvertDeviceDesc(D3DHELDevDesc, DeviceDesc7);
 
-								if (lpEnumDevicesCallback(&deviceGUID, lpDescription, lpName, &D3DHWDevDesc, &D3DHELDevDesc, lpUserArg) == DDENUMRET_CANCEL)
+								if (lpEnumDevicesCallback(&deviceGUID, lpDescription, lpName, &D3DSWDevDesc, &D3DHELDevDesc, lpUserArg) == DDENUMRET_CANCEL)
 								{
 									return D3D_OK;
 								}
@@ -282,9 +282,9 @@ HRESULT m_IDirect3DX::EnumDevices7(LPD3DENUMDEVICESCALLBACK7 lpEnumDevicesCallba
 							{
 								Caps9.DeviceType = D3DDEVTYPE_REF;
 								ConvertDeviceDesc(DeviceDesc7, Caps9);
-								ConvertDeviceDesc(D3DHWDevDesc, DeviceDesc7);
+								ConvertDeviceDesc(D3DSWDevDesc, DeviceDesc7);
 
-								if (lpEnumDevicesCallback(&deviceGUID, lpDescription, lpName, &D3DHWDevDesc, &D3DHELDevDesc, lpUserArg) == DDENUMRET_CANCEL)
+								if (lpEnumDevicesCallback(&deviceGUID, lpDescription, lpName, &D3DSWDevDesc, &D3DHELDevDesc, lpUserArg) == DDENUMRET_CANCEL)
 								{
 									return D3D_OK;
 								}
@@ -658,14 +658,14 @@ HRESULT m_IDirect3DX::EnumZBufferFormats(REFCLSID riidDevice, LPD3DENUMPIXELFORM
 			return DDERR_INVALIDPARAMS;
 		}
 
-		if (riidDevice == IID_IDirect3DRGBDevice || riidDevice == IID_IDirect3DRampDevice)
+		if (riidDevice == IID_IDirect3DRGBDevice || riidDevice == IID_IDirect3DMMXDevice || riidDevice == IID_IDirect3DRefDevice)
 		{
 			DDPIXELFORMAT PixelFormat = { NULL };
 			PixelFormat.dwSize = sizeof(DDPIXELFORMAT);
 
 			for (DWORD Num : {0, 2})
 			{
-				GetBufferFormat(PixelFormat, Num);
+				GetZBufferFormat(PixelFormat, Num);
 
 				if (lpEnumCallback(&PixelFormat, lpContext) == DDENUMRET_CANCEL)
 				{
@@ -674,14 +674,14 @@ HRESULT m_IDirect3DX::EnumZBufferFormats(REFCLSID riidDevice, LPD3DENUMPIXELFORM
 			}
 			return D3D_OK;
 		}
-		else if (riidDevice == IID_IDirect3DHALDevice || riidDevice == IID_IDirect3DNullDevice)
+		else if (riidDevice == IID_IDirect3DHALDevice || riidDevice == IID_IDirect3DTnLHalDevice)
 		{
 			DDPIXELFORMAT PixelFormat = { NULL };
 			PixelFormat.dwSize = sizeof(DDPIXELFORMAT);
 
 			for (DWORD Num = 0; Num < 6; Num++)
 			{
-				GetBufferFormat(PixelFormat, Num);
+				GetZBufferFormat(PixelFormat, Num);
 
 				if (lpEnumCallback(&PixelFormat, lpContext) == DDENUMRET_CANCEL)
 				{
@@ -690,8 +690,14 @@ HRESULT m_IDirect3DX::EnumZBufferFormats(REFCLSID riidDevice, LPD3DENUMPIXELFORM
 			}
 			return D3D_OK;
 		}
-		else if (riidDevice == IID_IDirect3DMMXDevice || riidDevice == IID_IDirect3DRefDevice || riidDevice == IID_IDirect3DTnLHalDevice)
+		else if (riidDevice == IID_IDirect3DRampDevice)
 		{
+			// The IID_IDirect3DRampDevice, used for the ramp emulation device, is not supported by interfaces later than IDirect3D2
+			return DDERR_NOZBUFFERHW;
+		}
+		else if (riidDevice == IID_IDirect3DNullDevice)
+		{
+			// NullDevice renders nothing
 			return D3D_OK;
 		}
 		else

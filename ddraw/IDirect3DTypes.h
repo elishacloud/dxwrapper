@@ -1,5 +1,8 @@
 #pragma once
 
+#define D3DLIGHTCAPS_PARALLELPOINT      0x00000008L /* Parallel point lights supported */
+#define D3DLIGHTCAPS_GLSPOT             0x00000010L /* GL syle spot lights supported */
+
 #ifndef D3DTSS_ADDRESS
 #define D3DTSS_ADDRESS 12
 #endif
@@ -38,6 +41,6 @@ void ConvertCaps(D3DPRIMCAPS &PrimCaps, D3DPRIMCAPS &PrimCaps2);
 void ConvertDeviceDesc(D3DDEVICEDESC &Desc, D3DDEVICEDESC7 &Desc7);
 void ConvertDeviceDescSoft(D3DDEVICEDESC &Desc);
 void ConvertDeviceDesc(D3DDEVICEDESC7 &Desc7, D3DCAPS9 &Caps9);
-void GetBufferFormat(DDPIXELFORMAT &ddpfPixelFormat, DWORD Num);
+void GetZBufferFormat(DDPIXELFORMAT &ddpfPixelFormat, DWORD Num);
 bool CheckTextureStageStateType(D3DTEXTURESTAGESTATETYPE dwState);
 bool CheckRenderStateType(D3DRENDERSTATETYPE dwRenderStateType);

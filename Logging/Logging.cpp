@@ -435,6 +435,61 @@ std::ostream& operator<<(std::ostream& os, const DDSURFACEDESC2& sd)
 		<< sd.dwTextureStage;
 }
 
+std::ostream& operator<<(std::ostream& os, const D3DPRIMCAPS& dpc)
+{
+	return Logging::LogStruct(os)
+		<< Logging::hex(dpc.dwMiscCaps)
+		<< Logging::hex(dpc.dwRasterCaps)
+		<< Logging::hex(dpc.dwZCmpCaps)
+		<< Logging::hex(dpc.dwSrcBlendCaps)
+		<< Logging::hex(dpc.dwDestBlendCaps)
+		<< Logging::hex(dpc.dwAlphaCmpCaps)
+		<< Logging::hex(dpc.dwShadeCaps)
+		<< Logging::hex(dpc.dwTextureCaps)
+		<< Logging::hex(dpc.dwTextureFilterCaps)
+		<< Logging::hex(dpc.dwTextureBlendCaps)
+		<< Logging::hex(dpc.dwTextureAddressCaps)
+		<< dpc.dwStippleWidth
+		<< dpc.dwStippleHeight;
+}
+
+std::ostream& operator<<(std::ostream& os, const D3DDEVICEDESC7& dd)
+{
+	return Logging::LogStruct(os)
+		<< Logging::hex(dd.dwDevCaps)
+		<< dd.dpcLineCaps
+		<< dd.dpcTriCaps
+		<< dd.dwDeviceRenderBitDepth
+		<< dd.dwDeviceZBufferBitDepth
+		<< dd.dwMinTextureWidth
+		<< dd.dwMinTextureHeight
+		<< dd.dwMaxTextureWidth
+		<< dd.dwMaxTextureHeight
+		<< dd.dwMaxTextureRepeat
+		<< dd.dwMaxTextureAspectRatio
+		<< dd.dwMaxAnisotropy
+		<< dd.dvGuardBandLeft
+		<< dd.dvGuardBandTop
+		<< dd.dvGuardBandRight
+		<< dd.dvGuardBandBottom
+		<< dd.dvExtentsAdjust
+		<< Logging::hex(dd.dwStencilCaps)
+		<< Logging::hex(dd.dwFVFCaps)
+		<< Logging::hex(dd.dwTextureOpCaps)
+		<< dd.wMaxTextureBlendStages
+		<< dd.wMaxSimultaneousTextures
+		<< dd.dwMaxActiveLights
+		<< dd.dvMaxVertexW
+		<< dd.deviceGUID
+		<< dd.wMaxUserClipPlanes
+		<< dd.wMaxVertexBlendMatrices
+		<< Logging::hex(dd.dwVertexProcessingCaps)
+		<< dd.dwReserved1
+		<< dd.dwReserved2
+		<< dd.dwReserved3
+		<< dd.dwReserved4;
+}
+
 std::ostream& operator<<(std::ostream& os, const D3DPRESENT_PARAMETERS& pp)
 {
 	return Logging::LogStruct(os)
