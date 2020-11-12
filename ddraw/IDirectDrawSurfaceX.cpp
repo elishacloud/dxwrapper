@@ -1784,12 +1784,26 @@ HRESULT m_IDirectDrawSurfaceX::ReleaseDC(HDC hDC)
 				CopyEmulatedSurface(nullptr, true);
 			}
 		}
-		else
+		else if (surfaceTexture)
 		{
 			if (!contextSurface || FAILED(contextSurface->ReleaseDC(hDC)))
 			{
+				LOG_LIMIT(100, __FUNCTION__ << " Error: failed to release surface DC!");
 				return DDERR_GENERIC;
 			}
+		}
+		else if (surface3D)
+		{
+			if (FAILED(surface3D->ReleaseDC(hDC)))
+			{
+				LOG_LIMIT(100, __FUNCTION__ << " Error: failed to release surface DC!");
+				return DDERR_GENERIC;
+			}
+		}
+		else
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: could not find surface!");
+			return DDERR_GENERIC;
 		}
 
 		// Reset DC flag
@@ -2661,9 +2675,8 @@ HRESULT m_IDirectDrawSurfaceX::CreateD3d9Surface()
 		}
 	}
 	// Create texture
-	else if (IsTexture() || !IsDirect3DSurface)
+	else if (IsTexture() || ((IsPrimarySurface() || IsBackBuffer()) && !IsDirect3DSurface))
 	{
-		// Create surface
 		if (FAILED((*d3d9Device)->CreateTexture(surfaceDesc2.dwWidth, surfaceDesc2.dwHeight, 1, 0, TextureFormat, D3DPOOL_SYSTEMMEM, &surfaceTexture, nullptr)))
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Error: failed to create surface texture size: " << surfaceDesc2.dwWidth << "x" << surfaceDesc2.dwHeight << " Format: " << surfaceFormat);
