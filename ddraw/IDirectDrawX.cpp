@@ -496,7 +496,7 @@ HRESULT m_IDirectDrawX::CreateSurface2(LPDDSURFACEDESC2 lpDDSurfaceDesc2, LPDIRE
 		if (lpDDSurfaceDesc2->ddsCaps.dwCaps & DDSCAPS_PRIMARYSURFACE)
 		{
 			// Anti-aliasing
-			AntiAliasing = ((lpDDSurfaceDesc2->dwFlags & DDSD_CAPS) && (lpDDSurfaceDesc2->ddsCaps.dwCaps2 & DDSCAPS2_HINTANTIALIASING));
+			AntiAliasing = ((lpDDSurfaceDesc2->dwFlags & DDSD_CAPS) && (lpDDSurfaceDesc2->ddsCaps.dwCaps2 & DDSCAPS2_HINTANTIALIASING) && (lpDDSurfaceDesc2->ddsCaps.dwCaps & DDSCAPS_3DDEVICE));
 
 			// Back buffer count
 			BackBufferCount = (lpDDSurfaceDesc2->dwFlags & DDSD_BACKBUFFERCOUNT) ? lpDDSurfaceDesc2->dwBackBufferCount : 0;
@@ -2308,6 +2308,19 @@ HRESULT m_IDirectDrawX::CreateD3D9Device()
 			presParams.FullScreen_RefreshRateInHz = displayModeRefreshRate;
 			// Window handle
 			presParams.hDeviceWindow = nullptr;
+		}
+
+		// Enable antialiasing
+		if (AntiAliasing)
+		{
+			DWORD QualityLevels = 0;
+
+			// Check AntiAliasing quality
+			if (SUCCEEDED(d3d9Object->CheckDeviceMultiSampleType(D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, D9DisplayFormat, presParams.Windowed, D3DMULTISAMPLE_NONMASKABLE, &QualityLevels)))
+			{
+				presParams.MultiSampleType = D3DMULTISAMPLE_NONMASKABLE;
+				presParams.MultiSampleQuality = (QualityLevels) ? QualityLevels - 1 : 0;
+			}
 		}
 
 		// Set behavior flags
