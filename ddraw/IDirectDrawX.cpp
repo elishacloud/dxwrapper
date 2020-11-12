@@ -66,6 +66,10 @@ bool MultiThreaded;
 bool FUPPreserve;
 bool NoWindowChanges;
 
+// D3d9 Present Parameters
+bool AntiAliasing;
+DWORD BackBufferCount;
+
 // Convert to Direct3D9
 bool IsInScene;						// Used for BeginScene/EndScene
 bool EnableWaitVsync;
@@ -420,46 +424,37 @@ HRESULT m_IDirectDrawX::CreateSurface2(LPDDSURFACEDESC2 lpDDSurfaceDesc2, LPDIRE
 			return DDERR_INVALIDPIXELFORMAT;
 		}
 
-		// Check for MipMap
-		if ((lpDDSurfaceDesc2->dwFlags & DDSD_MIPMAPCOUNT) || (lpDDSurfaceDesc2->ddsCaps.dwCaps & DDSCAPS_MIPMAP))
+		// Check for Cube map
+		if ((lpDDSurfaceDesc2->dwFlags & DDSD_CAPS) && (lpDDSurfaceDesc2->ddsCaps.dwCaps2 & (DDSCAPS2_CUBEMAP | DDSCAPS2_CUBEMAP_ALLFACES)))
 		{
-			if (lpDDSurfaceDesc2->dwMipMapCount > 1)
-			{
-				LOG_LIMIT(100, __FUNCTION__ << " Error: MipMap not Implemented.");
-				return DDERR_NOMIPMAPHW;
-			}
-			else
-			{
-				LOG_LIMIT(100, __FUNCTION__ << " Warning: MipMap not Implemented.");
-			}
+			LOG_LIMIT(100, __FUNCTION__ << " Warning: Cube map not Implemented.");
+		}
+
+		// Check for MipMap
+		if ((lpDDSurfaceDesc2->dwFlags & DDSD_MIPMAPCOUNT) ||
+			((lpDDSurfaceDesc2->dwFlags & DDSD_CAPS) && (lpDDSurfaceDesc2->ddsCaps.dwCaps & DDSCAPS_MIPMAP)) ||
+			(lpDDSurfaceDesc2->dwMipMapCount > 1))
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Warning: MipMap not Implemented.");
 		}
 
 		// Check for zbuffer
-		if ((lpDDSurfaceDesc2->dwFlags & DDSD_PIXELFORMAT) && (lpDDSurfaceDesc2->ddpfPixelFormat.dwFlags & DDPF_ZBUFFER))
+		if (((lpDDSurfaceDesc2->dwFlags & DDSD_PIXELFORMAT) && (lpDDSurfaceDesc2->ddpfPixelFormat.dwFlags & DDPF_ZBUFFER)) ||
+			((lpDDSurfaceDesc2->dwFlags & DDSD_CAPS) && (lpDDSurfaceDesc2->ddsCaps.dwCaps & DDSCAPS_ZBUFFER)) ||
+			(lpDDSurfaceDesc2->dwFlags & DDSD_ZBUFFERBITDEPTH))
 		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error: zbuffer not Implemented.");
-			return DDERR_NOZBUFFERHW;
-		}
-		if ((lpDDSurfaceDesc2->dwFlags & DDSD_CAPS) && (lpDDSurfaceDesc2->ddsCaps.dwCaps & DDSCAPS_ZBUFFER))
-		{
-			LOG_LIMIT(100, __FUNCTION__ << " Warning: zbuffer not Implemented.");
-		}
-
-		// Check for alpha
-		if (((lpDDSurfaceDesc2->dwFlags & DDSD_PIXELFORMAT) && (lpDDSurfaceDesc2->ddpfPixelFormat.dwFlags & (DDPF_ALPHA | DDPF_ALPHAPIXELS | DDPF_ALPHAPREMULT))) ||
-			((lpDDSurfaceDesc2->dwFlags & DDSD_CAPS) && (lpDDSurfaceDesc2->ddsCaps.dwCaps & DDSCAPS_ALPHA)))
-		{
-			LOG_LIMIT(100, __FUNCTION__ << " Warning: Aplpha not Implemented.");
+			LOG_LIMIT(100, __FUNCTION__ << " Warning: z-buffer not Implemented.");
 		}
 
 		// Check for Overlay
-		if ((lpDDSurfaceDesc2->dwFlags & (DDSD_CKDESTOVERLAY | DDSD_CKSRCOVERLAY)) || (lpDDSurfaceDesc2->ddsCaps.dwCaps & DDSCAPS_OVERLAY))
+		if ((lpDDSurfaceDesc2->dwFlags & (DDSD_CKDESTOVERLAY | DDSD_CKSRCOVERLAY)) ||
+			((lpDDSurfaceDesc2->dwFlags & DDSD_CAPS) && (lpDDSurfaceDesc2->ddsCaps.dwCaps & DDSCAPS_OVERLAY)))
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Warning: Overlay not Implemented.");
 		}
 
 		// Check for unsupported flags
-		DWORD UnsupportedDDSDFlags = (DDSD_ZBUFFERBITDEPTH | DDSD_ALPHABITDEPTH | DDSD_LPSURFACE | DDSD_MIPMAPCOUNT | DDSD_LINEARSIZE | DDSD_FVF | DDSD_SRCVBHANDLE | DDSD_DEPTH);
+		DWORD UnsupportedDDSDFlags = (DDSD_ALPHABITDEPTH | DDSD_LPSURFACE | DDSD_LINEARSIZE | DDSD_FVF | DDSD_SRCVBHANDLE | DDSD_DEPTH);
 		if (lpDDSurfaceDesc2->dwFlags & UnsupportedDDSDFlags)
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Warning: non-supported dwFlags! " << Logging::hex(lpDDSurfaceDesc2->dwFlags & UnsupportedDDSDFlags));
@@ -467,13 +462,44 @@ HRESULT m_IDirectDrawX::CreateSurface2(LPDDSURFACEDESC2 lpDDSurfaceDesc2, LPDIRE
 
 		// Check for unsupported ddsCaps
 		DWORD UnsupportedDDSCaps = (DDSCAPS_RESERVED1 | DDSCAPS_RESERVED2 | DDSCAPS_RESERVED3 | DDSCAPS_OWNDC | DDSCAPS_LIVEVIDEO |
-			DDSCAPS_HWCODEC | DDSCAPS_MIPMAP | DDSCAPS_ALLOCONLOAD | DDSCAPS_VIDEOPORT | DDSCAPS_NONLOCALVIDMEM);
+			DDSCAPS_HWCODEC | DDSCAPS_ALLOCONLOAD | DDSCAPS_VIDEOPORT | DDSCAPS_NONLOCALVIDMEM);
 		DWORD UnsupportedDDSCaps2 = (DDSCAPS2_RESERVED4 | DDSCAPS2_HINTDYNAMIC | DDSCAPS2_HINTSTATIC | DDSCAPS2_RESERVED1 | DDSCAPS2_RESERVED2 |
-			DDSCAPS2_OPAQUE | DDSCAPS2_HINTANTIALIASING | DDSCAPS2_CUBEMAP | DDSCAPS2_CUBEMAP_ALLFACES);
+			DDSCAPS2_OPAQUE);
 		if ((lpDDSurfaceDesc2->ddsCaps.dwCaps & UnsupportedDDSCaps) || (lpDDSurfaceDesc2->ddsCaps.dwCaps2 & UnsupportedDDSCaps2) || lpDDSurfaceDesc2->ddsCaps.dwVolumeDepth)
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Warning: non-supported ddsCaps! " << Logging::hex(lpDDSurfaceDesc2->ddsCaps.dwCaps & UnsupportedDDSCaps) << " " <<
 				Logging::hex(lpDDSurfaceDesc2->ddsCaps.dwCaps2 & UnsupportedDDSCaps2) << " " << lpDDSurfaceDesc2->ddsCaps.dwVolumeDepth);
+		}
+
+		// Check for device interface
+		if (FAILED(CheckInterface(__FUNCTION__, false)))
+		{
+			return DDERR_GENERIC;
+		}
+
+		// Check pixel format
+		if (lpDDSurfaceDesc2->dwFlags & DDSD_PIXELFORMAT)
+		{
+			D3DFORMAT Format = GetDisplayFormat(lpDDSurfaceDesc2->ddpfPixelFormat);
+			DWORD Usage = (lpDDSurfaceDesc2->ddsCaps.dwCaps & DDSCAPS_PRIMARYSURFACE) ? D3DUSAGE_RENDERTARGET :
+				((lpDDSurfaceDesc2->dwFlags & DDSD_MIPMAPCOUNT) || (lpDDSurfaceDesc2->ddsCaps.dwCaps & DDSCAPS_MIPMAP)) ? D3DUSAGE_AUTOGENMIPMAP :
+				(lpDDSurfaceDesc2->ddpfPixelFormat.dwFlags & (DDPF_ZBUFFER | DDPF_STENCILBUFFER)) ? D3DUSAGE_DEPTHSTENCIL : 0;
+
+			if (FAILED(d3d9Object->CheckDeviceFormat(D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, D9DisplayFormat, Usage, D3DRTYPE_SURFACE, Format)))
+			{
+				LOG_LIMIT(100, __FUNCTION__ << " Error: non-supported pixel format! " << lpDDSurfaceDesc2->ddpfPixelFormat);
+				return DDERR_INVALIDPIXELFORMAT;
+			}
+		}
+
+		// Get present parameters
+		if (lpDDSurfaceDesc2->ddsCaps.dwCaps & DDSCAPS_PRIMARYSURFACE)
+		{
+			// Anti-aliasing
+			AntiAliasing = ((lpDDSurfaceDesc2->dwFlags & DDSD_CAPS) && (lpDDSurfaceDesc2->ddsCaps.dwCaps2 & DDSCAPS2_HINTANTIALIASING));
+
+			// Back buffer count
+			BackBufferCount = (lpDDSurfaceDesc2->dwFlags & DDSD_BACKBUFFERCOUNT) ? lpDDSurfaceDesc2->dwBackBufferCount : 0;
 		}
 
 		// Setup d3d9 device
@@ -1878,6 +1904,10 @@ void m_IDirectDrawX::InitDdraw(DWORD DirectXVersion)
 		FUPPreserve = false;
 		NoWindowChanges = false;
 		isWindowed = true;
+
+		// D3d9 Present Parameters
+		AntiAliasing = false;
+		BackBufferCount = 0;
 
 		// Convert to Direct3D9
 		IsInScene = false;

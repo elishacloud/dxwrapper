@@ -658,34 +658,63 @@ HRESULT m_IDirect3DX::EnumZBufferFormats(REFCLSID riidDevice, LPD3DENUMPIXELFORM
 			return DDERR_INVALIDPARAMS;
 		}
 
-		if (riidDevice == IID_IDirect3DRGBDevice || riidDevice == IID_IDirect3DMMXDevice || riidDevice == IID_IDirect3DRefDevice)
+		// Check for device
+		if (!ddrawParent)
 		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: no ddraw parent!");
+			return DDERR_GENERIC;
+		}
+
+		// Get d3d9Object
+		IDirect3D9 *d3d9Object = ddrawParent->GetDirect3D9Object();
+
+		if (riidDevice == IID_IDirect3DRGBDevice || riidDevice == IID_IDirect3DMMXDevice || riidDevice == IID_IDirect3DRefDevice ||
+			riidDevice == IID_IDirect3DHALDevice || riidDevice == IID_IDirect3DTnLHalDevice)
+		{
+			D3DDEVICEDESC7 Desc7 = { NULL };
+			D3DCAPS9 Caps9;
+			ZeroMemory(&Caps9, sizeof(D3DCAPS9));
+			Caps9.DeviceType = (riidDevice == IID_IDirect3DRGBDevice || riidDevice == IID_IDirect3DMMXDevice || riidDevice == IID_IDirect3DRefDevice) ? D3DDEVTYPE_REF :
+				(riidDevice == IID_IDirect3DHALDevice) ? D3DDEVTYPE_HAL :
+				(riidDevice == IID_IDirect3DTnLHalDevice) ? (D3DDEVTYPE)(D3DDEVTYPE_HAL + 0x10) :
+				D3DDEVTYPE_NULLREF;
+
+			ConvertDeviceDesc(Desc7, Caps9);
+
 			DDPIXELFORMAT PixelFormat = { NULL };
 			PixelFormat.dwSize = sizeof(DDPIXELFORMAT);
 
-			for (DWORD Num : {0, 2})
+			// Handle 16bit zBuffer
+			if (Desc7.dwDeviceZBufferBitDepth & DDBD_16)
 			{
-				GetZBufferFormat(PixelFormat, Num);
-
-				if (lpEnumCallback(&PixelFormat, lpContext) == DDENUMRET_CANCEL)
+				for (D3DFORMAT Format : { D3DFMT_D16 })
 				{
-					return D3D_OK;
+					if (SUCCEEDED(d3d9Object->CheckDeviceFormat(D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, D9DisplayFormat, D3DUSAGE_DEPTHSTENCIL, D3DRTYPE_SURFACE, Format)))
+					{
+						SetPixelDisplayFormat(Format, PixelFormat);
+
+						if (PixelFormat.dwFlags && lpEnumCallback(&PixelFormat, lpContext) == DDENUMRET_CANCEL)
+						{
+							return D3D_OK;
+						}
+					}
 				}
 			}
-			return D3D_OK;
-		}
-		else if (riidDevice == IID_IDirect3DHALDevice || riidDevice == IID_IDirect3DTnLHalDevice)
-		{
-			DDPIXELFORMAT PixelFormat = { NULL };
-			PixelFormat.dwSize = sizeof(DDPIXELFORMAT);
 
-			for (DWORD Num = 0; Num < 6; Num++)
+			// Handle 24bit zBuffer
+			if (Desc7.dwDeviceZBufferBitDepth & DDBD_24)
 			{
-				GetZBufferFormat(PixelFormat, Num);
-
-				if (lpEnumCallback(&PixelFormat, lpContext) == DDENUMRET_CANCEL)
+				for (D3DFORMAT Format : { D3DFMT_D24S8, D3DFMT_D24X8, D3DFMT_D24X4S4 })
 				{
-					return D3D_OK;
+					if (SUCCEEDED(d3d9Object->CheckDeviceFormat(D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, D9DisplayFormat, D3DUSAGE_DEPTHSTENCIL, D3DRTYPE_SURFACE, Format)))
+					{
+						SetPixelDisplayFormat(Format, PixelFormat);
+
+						if (PixelFormat.dwFlags && lpEnumCallback(&PixelFormat, lpContext) == DDENUMRET_CANCEL)
+						{
+							return D3D_OK;
+						}
+					}
 				}
 			}
 			return D3D_OK;
