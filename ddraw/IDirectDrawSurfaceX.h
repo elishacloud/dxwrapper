@@ -121,7 +121,7 @@ private:
 	};
 
 	// Wrapper interface functions
-	REFIID GetWrapperType(DWORD DirectXVersion)
+	inline REFIID GetWrapperType(DWORD DirectXVersion)
 	{
 		return (DirectXVersion == 1) ? IID_IDirectDrawSurface :
 			(DirectXVersion == 2) ? IID_IDirectDrawSurface2 :
@@ -129,7 +129,7 @@ private:
 			(DirectXVersion == 4) ? IID_IDirectDrawSurface4 :
 			(DirectXVersion == 7) ? IID_IDirectDrawSurface7 : IID_IUnknown;
 	}
-	bool CheckWrapperType(REFIID IID)
+	inline bool CheckWrapperType(REFIID IID)
 	{
 		return (IID == IID_IDirectDrawSurface ||
 			IID == IID_IDirectDrawSurface2 ||
@@ -137,11 +137,11 @@ private:
 			IID == IID_IDirectDrawSurface4 ||
 			IID == IID_IDirectDrawSurface7) ? true : false;
 	}
-	IDirectDrawSurface *GetProxyInterfaceV1() { return (IDirectDrawSurface *)ProxyInterface; }
-	IDirectDrawSurface2 *GetProxyInterfaceV2() { return (IDirectDrawSurface2 *)ProxyInterface; }
-	IDirectDrawSurface3 *GetProxyInterfaceV3() { return (IDirectDrawSurface3 *)ProxyInterface; }
-	IDirectDrawSurface4 *GetProxyInterfaceV4() { return (IDirectDrawSurface4 *)ProxyInterface; }
-	IDirectDrawSurface7 *GetProxyInterfaceV7() { return ProxyInterface; }
+	inline IDirectDrawSurface *GetProxyInterfaceV1() { return (IDirectDrawSurface *)ProxyInterface; }
+	inline IDirectDrawSurface2 *GetProxyInterfaceV2() { return (IDirectDrawSurface2 *)ProxyInterface; }
+	inline IDirectDrawSurface3 *GetProxyInterfaceV3() { return (IDirectDrawSurface3 *)ProxyInterface; }
+	inline IDirectDrawSurface4 *GetProxyInterfaceV4() { return (IDirectDrawSurface4 *)ProxyInterface; }
+	inline IDirectDrawSurface7 *GetProxyInterfaceV7() { return ProxyInterface; }
 
 	// Interface initialization functions
 	void InitSurface(DWORD DirectXVersion);

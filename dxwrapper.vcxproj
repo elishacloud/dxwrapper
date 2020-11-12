@@ -322,7 +322,6 @@ cmd /q /c "cd /D ""$(ProjectDir)d3d8\"" &amp;&amp; del build.bat"</Command>
     <ClCompile Include="External\d3d8to9\source\d3d8to9_volume.cpp" />
     <ClCompile Include="External\d3d8to9\source\d3d8types.cpp" />
     <ClCompile Include="External\d3d8to9\source\interface_query.cpp" />
-    <ClCompile Include="External\d3d8to9\source\lookup_table.cpp" />
     <ClCompile Include="External\dinputto8\IDirectInputDeviceX.cpp" />
     <ClCompile Include="External\dinputto8\IDirectInputEffect.cpp" />
     <ClCompile Include="External\dinputto8\IDirectInputEnum.cpp" />
@@ -610,7 +609,7 @@ cmd /q /c "cd /D ""$(ProjectDir)d3d8\"" &amp;&amp; del build.bat"</Command>
     <ClInclude Include="External\d3d8to9\source\d3d8to9.hpp" />
     <ClInclude Include="External\d3d8to9\source\d3d8types.hpp" />
     <ClInclude Include="External\d3d8to9\source\d3dx9.hpp" />
-    <ClInclude Include="External\d3d8to9\source\lookup_table.hpp" />
+    <ClInclude Include="External\d3d8to9\source\interface_query.hpp" />
     <ClInclude Include="External\dinputto8\AddressLookupTable.h" />
     <ClInclude Include="External\dinputto8\dinputto8.h" />
     <ClInclude Include="External\dinputto8\ditypes.h" />

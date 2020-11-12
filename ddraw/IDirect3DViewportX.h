@@ -18,21 +18,21 @@ private:
 	m_IDirect3DViewport3 *WrapperInterface3;
 
 	// Wrapper interface functions
-	REFIID GetWrapperType(DWORD DirectXVersion)
+	inline REFIID GetWrapperType(DWORD DirectXVersion)
 	{
 		return (DirectXVersion == 1) ? IID_IDirect3DViewport :
 			(DirectXVersion == 2) ? IID_IDirect3DViewport2 :
 			(DirectXVersion == 3) ? IID_IDirect3DViewport3 : IID_IUnknown;
 	}
-	bool CheckWrapperType(REFIID IID)
+	inline bool CheckWrapperType(REFIID IID)
 	{
 		return (IID == IID_IDirect3DViewport ||
 			IID == IID_IDirect3DViewport2 ||
 			IID == IID_IDirect3DViewport3) ? true : false;
 	}
-	IDirect3DViewport *GetProxyInterfaceV1() { return (IDirect3DViewport *)ProxyInterface; }
-	IDirect3DViewport2 *GetProxyInterfaceV2() { return (IDirect3DViewport2 *)ProxyInterface; }
-	IDirect3DViewport3 *GetProxyInterfaceV3() { return ProxyInterface; }
+	inline IDirect3DViewport *GetProxyInterfaceV1() { return (IDirect3DViewport *)ProxyInterface; }
+	inline IDirect3DViewport2 *GetProxyInterfaceV2() { return (IDirect3DViewport2 *)ProxyInterface; }
+	inline IDirect3DViewport3 *GetProxyInterfaceV3() { return ProxyInterface; }
 
 	// Interface initialization functions
 	void InitViewport(DWORD DirectXVersion);

@@ -25,24 +25,24 @@ private:
 	m_IDirect3DDevice7 *WrapperInterface7;
 
 	// Wrapper interface functions
-	REFIID GetWrapperType(DWORD DirectXVersion)
+	inline REFIID GetWrapperType(DWORD DirectXVersion)
 	{
 		return (DirectXVersion == 1) ? IID_IDirect3DDevice :
 			(DirectXVersion == 2) ? IID_IDirect3DDevice2 :
 			(DirectXVersion == 3) ? IID_IDirect3DDevice3 :
 			(DirectXVersion == 7) ? IID_IDirect3DDevice7 : IID_IUnknown;
 	}
-	bool CheckWrapperType(REFIID IID)
+	inline bool CheckWrapperType(REFIID IID)
 	{
 		return (IID == IID_IDirect3DDevice ||
 			IID == IID_IDirect3DDevice2 ||
 			IID == IID_IDirect3DDevice3 ||
 			IID == IID_IDirect3DDevice7) ? true : false;
 	}
-	IDirect3DDevice *GetProxyInterfaceV1() { return (IDirect3DDevice *)ProxyInterface; }
-	IDirect3DDevice2 *GetProxyInterfaceV2() { return (IDirect3DDevice2 *)ProxyInterface; }
-	IDirect3DDevice3 *GetProxyInterfaceV3() { return (IDirect3DDevice3 *)ProxyInterface; }
-	IDirect3DDevice7 *GetProxyInterfaceV7() { return ProxyInterface; }
+	inline IDirect3DDevice *GetProxyInterfaceV1() { return (IDirect3DDevice *)ProxyInterface; }
+	inline IDirect3DDevice2 *GetProxyInterfaceV2() { return (IDirect3DDevice2 *)ProxyInterface; }
+	inline IDirect3DDevice3 *GetProxyInterfaceV3() { return (IDirect3DDevice3 *)ProxyInterface; }
+	inline IDirect3DDevice7 *GetProxyInterfaceV7() { return ProxyInterface; }
 
 	// Interface initialization functions
 	void InitDevice(DWORD DirectXVersion);

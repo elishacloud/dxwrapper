@@ -21,21 +21,21 @@ private:
 	m_IDirect3DMaterial3 *WrapperInterface3;
 
 	// Wrapper interface functions
-	REFIID GetWrapperType(DWORD DirectXVersion)
+	inline REFIID GetWrapperType(DWORD DirectXVersion)
 	{
 		return (DirectXVersion == 1) ? IID_IDirect3DMaterial :
 			(DirectXVersion == 2) ? IID_IDirect3DMaterial2 :
 			(DirectXVersion == 3) ? IID_IDirect3DMaterial3 : IID_IUnknown;
 	}
-	bool CheckWrapperType(REFIID IID)
+	inline bool CheckWrapperType(REFIID IID)
 	{
 		return (IID == IID_IDirect3DMaterial ||
 			IID == IID_IDirect3DMaterial2 ||
 			IID == IID_IDirect3DMaterial3) ? true : false;
 	}
-	IDirect3DMaterial *GetProxyInterfaceV1() { return (IDirect3DMaterial *)ProxyInterface; }
-	IDirect3DMaterial2 *GetProxyInterfaceV2() { return (IDirect3DMaterial2 *)ProxyInterface; }
-	IDirect3DMaterial3 *GetProxyInterfaceV3() { return ProxyInterface; }
+	inline IDirect3DMaterial *GetProxyInterfaceV1() { return (IDirect3DMaterial *)ProxyInterface; }
+	inline IDirect3DMaterial2 *GetProxyInterfaceV2() { return (IDirect3DMaterial2 *)ProxyInterface; }
+	inline IDirect3DMaterial3 *GetProxyInterfaceV3() { return ProxyInterface; }
 
 	// Interface initialization functions
 	void InitMaterial(DWORD DirectXVersion);

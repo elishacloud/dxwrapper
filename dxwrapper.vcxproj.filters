@@ -637,9 +637,6 @@
     <ClCompile Include="External\d3d8to9\source\d3d8types.cpp">
       <Filter>External\d3d8to9</Filter>
     </ClCompile>
-    <ClCompile Include="External\d3d8to9\source\lookup_table.cpp">
-      <Filter>External\d3d8to9</Filter>
-    </ClCompile>
     <ClCompile Include="External\Logging\Logging.cpp">
       <Filter>External\Logging</Filter>
     </ClCompile>
@@ -1541,9 +1538,6 @@
     <ClInclude Include="External\d3d8to9\source\d3dx9.hpp">
       <Filter>External\d3d8to9</Filter>
     </ClInclude>
-    <ClInclude Include="External\d3d8to9\source\lookup_table.hpp">
-      <Filter>External\d3d8to9</Filter>
-    </ClInclude>
     <ClInclude Include="Wrappers\version.h">
       <Filter>Wrappers</Filter>
     </ClInclude>
@@ -1732,6 +1726,9 @@
     </ClInclude>
     <ClInclude Include="d3d9\IDirect3DSwapChain9Ex.h">
       <Filter>d3d9</Filter>
+    </ClInclude>
+    <ClInclude Include="External\d3d8to9\source\interface_query.hpp">
+      <Filter>External\d3d8to9</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

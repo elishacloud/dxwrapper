@@ -24,24 +24,24 @@ private:
 	m_IDirect3D7 *WrapperInterface7;
 
 	// Wrapper interface functions
-	REFIID GetWrapperType(DWORD DirectXVersion)
+	inline REFIID GetWrapperType(DWORD DirectXVersion)
 	{
 		return (DirectXVersion == 1) ? IID_IDirect3D :
 			(DirectXVersion == 2) ? IID_IDirect3D2 :
 			(DirectXVersion == 3) ? IID_IDirect3D3 :
 			(DirectXVersion == 7) ? IID_IDirect3D7 : IID_IUnknown;
 	}
-	bool CheckWrapperType(REFIID IID)
+	inline bool CheckWrapperType(REFIID IID)
 	{
 		return (IID == IID_IDirect3D ||
 			IID == IID_IDirect3D2 ||
 			IID == IID_IDirect3D3 ||
 			IID == IID_IDirect3D7) ? true : false;
 	}
-	IDirect3D *GetProxyInterfaceV1() { return (IDirect3D *)ProxyInterface; }
-	IDirect3D2 *GetProxyInterfaceV2() { return (IDirect3D2 *)ProxyInterface; }
-	IDirect3D3 *GetProxyInterfaceV3() { return (IDirect3D3 *)ProxyInterface; }
-	IDirect3D7 *GetProxyInterfaceV7() { return ProxyInterface; }
+	inline IDirect3D *GetProxyInterfaceV1() { return (IDirect3D *)ProxyInterface; }
+	inline IDirect3D2 *GetProxyInterfaceV2() { return (IDirect3D2 *)ProxyInterface; }
+	inline IDirect3D3 *GetProxyInterfaceV3() { return (IDirect3D3 *)ProxyInterface; }
+	inline IDirect3D7 *GetProxyInterfaceV7() { return ProxyInterface; }
 
 	// Interface initialization functions
 	void InitDirect3D(DWORD DirectXVersion);

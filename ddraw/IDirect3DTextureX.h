@@ -18,18 +18,18 @@ private:
 	m_IDirect3DTexture2 *WrapperInterface2;
 
 	// Wrapper interface functions
-	REFIID GetWrapperType(DWORD DirectXVersion)
+	inline REFIID GetWrapperType(DWORD DirectXVersion)
 	{
 		return (DirectXVersion == 1) ? IID_IDirect3DTexture :
 			(DirectXVersion == 2) ? IID_IDirect3DTexture2 : IID_IUnknown;
 	}
-	bool CheckWrapperType(REFIID IID)
+	inline bool CheckWrapperType(REFIID IID)
 	{
 		return (IID == IID_IDirect3DTexture ||
 			IID == IID_IDirect3DTexture2) ? true : false;
 	}
-	IDirect3DTexture *GetProxyInterfaceV1() { return (IDirect3DTexture *)ProxyInterface; }
-	IDirect3DTexture2 *GetProxyInterfaceV2() { return ProxyInterface; }
+	inline IDirect3DTexture *GetProxyInterfaceV1() { return (IDirect3DTexture *)ProxyInterface; }
+	inline IDirect3DTexture2 *GetProxyInterfaceV2() { return ProxyInterface; }
 
 	// Interface initialization functions
 	void InitTexture(DWORD DirectXVersion);

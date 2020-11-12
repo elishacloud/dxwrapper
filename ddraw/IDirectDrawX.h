@@ -44,7 +44,7 @@ private:
 	m_IDirect3DDeviceX *D3DDeviceInterface = nullptr;
 
 	// Wrapper interface functions
-	REFIID GetWrapperType(DWORD DirectXVersion)
+	inline REFIID GetWrapperType(DWORD DirectXVersion)
 	{
 		return (DirectXVersion == 1) ? IID_IDirectDraw :
 			(DirectXVersion == 2) ? IID_IDirectDraw2 :
@@ -52,7 +52,7 @@ private:
 			(DirectXVersion == 4) ? IID_IDirectDraw4 :
 			(DirectXVersion == 7) ? IID_IDirectDraw7 : IID_IUnknown;
 	}
-	bool CheckWrapperType(REFIID IID)
+	inline bool CheckWrapperType(REFIID IID)
 	{
 		return (IID == IID_IDirectDraw ||
 			IID == IID_IDirectDraw2 ||
@@ -60,11 +60,11 @@ private:
 			IID == IID_IDirectDraw4 ||
 			IID == IID_IDirectDraw7) ? true : false;
 	}
-	IDirectDraw *GetProxyInterfaceV1() { return (IDirectDraw *)ProxyInterface; }
-	IDirectDraw2 *GetProxyInterfaceV2() { return (IDirectDraw2 *)ProxyInterface; }
-	IDirectDraw3 *GetProxyInterfaceV3() { return (IDirectDraw3 *)ProxyInterface; }
-	IDirectDraw4 *GetProxyInterfaceV4() { return (IDirectDraw4 *)ProxyInterface; }
-	IDirectDraw7 *GetProxyInterfaceV7() { return ProxyInterface; }
+	inline IDirectDraw *GetProxyInterfaceV1() { return (IDirectDraw *)ProxyInterface; }
+	inline IDirectDraw2 *GetProxyInterfaceV2() { return (IDirectDraw2 *)ProxyInterface; }
+	inline IDirectDraw3 *GetProxyInterfaceV3() { return (IDirectDraw3 *)ProxyInterface; }
+	inline IDirectDraw4 *GetProxyInterfaceV4() { return (IDirectDraw4 *)ProxyInterface; }
+	inline IDirectDraw7 *GetProxyInterfaceV7() { return ProxyInterface; }
 
 	template <typename T>
 	void ReleaseD9Interface(T **ppInterface);

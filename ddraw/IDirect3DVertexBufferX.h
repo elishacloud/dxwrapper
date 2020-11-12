@@ -17,18 +17,18 @@ private:
 	m_IDirect3DVertexBuffer7 *WrapperInterface7;
 
 	// Wrapper interface functions
-	REFIID GetWrapperType(DWORD DirectXVersion)
+	inline REFIID GetWrapperType(DWORD DirectXVersion)
 	{
 		return (DirectXVersion == 1) ? IID_IDirect3DVertexBuffer :
 			(DirectXVersion == 7) ? IID_IDirect3DVertexBuffer7 : IID_IUnknown;
 	}
-	bool CheckWrapperType(REFIID IID)
+	inline bool CheckWrapperType(REFIID IID)
 	{
 		return (IID == IID_IDirect3DVertexBuffer ||
 			IID == IID_IDirect3DVertexBuffer7) ? true : false;
 	}
-	IDirect3DVertexBuffer *GetProxyInterfaceV1() { return (IDirect3DVertexBuffer *)ProxyInterface; }
-	IDirect3DVertexBuffer7 *GetProxyInterfaceV7() { return ProxyInterface; }
+	inline IDirect3DVertexBuffer *GetProxyInterfaceV1() { return (IDirect3DVertexBuffer *)ProxyInterface; }
+	inline IDirect3DVertexBuffer7 *GetProxyInterfaceV7() { return ProxyInterface; }
 
 	// Interface initialization functions
 	void InitVertexBuffer(DWORD DirectXVersion);
