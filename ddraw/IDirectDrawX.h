@@ -187,6 +187,7 @@ public:
 	bool IsExclusiveMode();
 	void GetResolution(DWORD &Width, DWORD &Height, DWORD &RefreshRate, DWORD &BPP);
 	void GetDisplay(DWORD &Width, DWORD &Height);
+	bool IsUsing3D();
 
 	// Surface vector functions
 	void AddSurfaceToVector(m_IDirectDrawSurfaceX* lpSurfaceX);

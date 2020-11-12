@@ -418,21 +418,21 @@ HRESULT m_IDirectDrawX::CreateSurface2(LPDDSURFACEDESC2 lpDDSurfaceDesc2, LPDIRE
 
 		// Check for other unsupported pixel formats
 		if ((lpDDSurfaceDesc2->dwFlags & DDSD_PIXELFORMAT) && (lpDDSurfaceDesc2->ddpfPixelFormat.dwFlags & 
-			(DDPF_BUMPDUDV | DDPF_BUMPLUMINANCE | DDPF_COMPRESSED | DDPF_LUMINANCE | DDPF_PALETTEINDEXED1 | DDPF_PALETTEINDEXED2 | DDPF_PALETTEINDEXED4)))
+			(DDPF_RGBTOYUV | DDPF_YUV | DDPF_BUMPDUDV | DDPF_BUMPLUMINANCE | DDPF_ALPHAPREMULT | DDPF_COMPRESSED | DDPF_ZPIXELS |
+				DDPF_PALETTEINDEXED1 | DDPF_PALETTEINDEXED2 | DDPF_PALETTEINDEXED4 | DDPF_PALETTEINDEXEDTO8)))
 		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error: PixelForamt not Implemented. " << Logging::hex(lpDDSurfaceDesc2->ddpfPixelFormat.dwFlags));
+			LOG_LIMIT(100, __FUNCTION__ << " Error: PixelForamt not Implemented: " << lpDDSurfaceDesc2->ddpfPixelFormat);
 			return DDERR_INVALIDPIXELFORMAT;
 		}
 
 		// Check for Cube map
-		if ((lpDDSurfaceDesc2->dwFlags & DDSD_CAPS) && (lpDDSurfaceDesc2->ddsCaps.dwCaps2 & (DDSCAPS2_CUBEMAP | DDSCAPS2_CUBEMAP_ALLFACES)))
+		if (lpDDSurfaceDesc2->ddsCaps.dwCaps2 & (DDSCAPS2_CUBEMAP | DDSCAPS2_CUBEMAP_ALLFACES))
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Warning: Cube map not Implemented.");
 		}
 
 		// Check for MipMap
-		if ((lpDDSurfaceDesc2->dwFlags & DDSD_MIPMAPCOUNT) ||
-			((lpDDSurfaceDesc2->dwFlags & DDSD_CAPS) && (lpDDSurfaceDesc2->ddsCaps.dwCaps & DDSCAPS_MIPMAP)) ||
+		if ((lpDDSurfaceDesc2->dwFlags & DDSD_MIPMAPCOUNT) || (lpDDSurfaceDesc2->ddsCaps.dwCaps & DDSCAPS_MIPMAP) ||
 			(lpDDSurfaceDesc2->dwMipMapCount > 1))
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Warning: MipMap not Implemented.");
@@ -440,15 +440,13 @@ HRESULT m_IDirectDrawX::CreateSurface2(LPDDSURFACEDESC2 lpDDSurfaceDesc2, LPDIRE
 
 		// Check for zbuffer
 		if (((lpDDSurfaceDesc2->dwFlags & DDSD_PIXELFORMAT) && (lpDDSurfaceDesc2->ddpfPixelFormat.dwFlags & DDPF_ZBUFFER)) ||
-			((lpDDSurfaceDesc2->dwFlags & DDSD_CAPS) && (lpDDSurfaceDesc2->ddsCaps.dwCaps & DDSCAPS_ZBUFFER)) ||
-			(lpDDSurfaceDesc2->dwFlags & DDSD_ZBUFFERBITDEPTH))
+			(lpDDSurfaceDesc2->ddsCaps.dwCaps & DDSCAPS_ZBUFFER) || (lpDDSurfaceDesc2->dwFlags & DDSD_ZBUFFERBITDEPTH))
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Warning: z-buffer not Implemented.");
 		}
 
 		// Check for Overlay
-		if ((lpDDSurfaceDesc2->dwFlags & (DDSD_CKDESTOVERLAY | DDSD_CKSRCOVERLAY)) ||
-			((lpDDSurfaceDesc2->dwFlags & DDSD_CAPS) && (lpDDSurfaceDesc2->ddsCaps.dwCaps & DDSCAPS_OVERLAY)))
+		if ((lpDDSurfaceDesc2->dwFlags & (DDSD_CKDESTOVERLAY | DDSD_CKSRCOVERLAY)) || (lpDDSurfaceDesc2->ddsCaps.dwCaps & DDSCAPS_OVERLAY))
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Warning: Overlay not Implemented.");
 		}
@@ -483,9 +481,9 @@ HRESULT m_IDirectDrawX::CreateSurface2(LPDDSURFACEDESC2 lpDDSurfaceDesc2, LPDIRE
 			D3DFORMAT Format = GetDisplayFormat(lpDDSurfaceDesc2->ddpfPixelFormat);
 			Format = (Format == D3DFMT_R8G8B8) ? D3DFMT_X8R8G8B8 : Format;
 			DWORD Usage = (lpDDSurfaceDesc2->ddsCaps.dwCaps & DDSCAPS_PRIMARYSURFACE) ? D3DUSAGE_RENDERTARGET :
-				((lpDDSurfaceDesc2->dwFlags & DDSD_MIPMAPCOUNT) || ((lpDDSurfaceDesc2->dwFlags & DDSD_CAPS) && (lpDDSurfaceDesc2->ddsCaps.dwCaps & DDSCAPS_MIPMAP))) ? D3DUSAGE_AUTOGENMIPMAP :
+				((lpDDSurfaceDesc2->dwFlags & DDSD_MIPMAPCOUNT) || ((lpDDSurfaceDesc2->ddsCaps.dwCaps & DDSCAPS_MIPMAP))) ? D3DUSAGE_AUTOGENMIPMAP :
 				(lpDDSurfaceDesc2->ddpfPixelFormat.dwFlags & (DDPF_ZBUFFER | DDPF_STENCILBUFFER)) ? D3DUSAGE_DEPTHSTENCIL : 0;
-			D3DRESOURCETYPE Resource = ((lpDDSurfaceDesc2->dwFlags & DDSD_CAPS) && (lpDDSurfaceDesc2->ddsCaps.dwCaps & DDSCAPS_TEXTURE)) ? D3DRTYPE_TEXTURE : D3DRTYPE_SURFACE;
+			D3DRESOURCETYPE Resource = ((lpDDSurfaceDesc2->ddsCaps.dwCaps & DDSCAPS_TEXTURE)) ? D3DRTYPE_TEXTURE : D3DRTYPE_SURFACE;
 
 			if (FAILED(d3d9Object->CheckDeviceFormat(D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, D9DisplayFormat, Usage, Resource, Format)))
 			{
@@ -494,11 +492,50 @@ HRESULT m_IDirectDrawX::CreateSurface2(LPDDSURFACEDESC2 lpDDSurfaceDesc2, LPDIRE
 			}
 		}
 
+		// Updates for surface description
+		lpDDSurfaceDesc2->dwFlags |= DDSD_CAPS;
+		lpDDSurfaceDesc2->ddsCaps.dwCaps4 = DDSCAPS4_CREATESURFACE |											// Indicates surface was created using CreateSurface()
+			((lpDDSurfaceDesc2->ddsCaps.dwCaps & DDSCAPS_PRIMARYSURFACE) ? DDSCAPS4_PRIMARYSURFACE : NULL);		// Indicates surface is a primary surface or a backbuffer of a primary surface
+		if (lpDDSurfaceDesc2->ddsCaps.dwCaps & DDSCAPS_FLIP)
+		{
+			lpDDSurfaceDesc2->ddsCaps.dwCaps |= DDSCAPS_FRONTBUFFER;
+		}
+		lpDDSurfaceDesc2->dwReserved = 0;
+
+		// BackBufferCount must be at least 1
+		if (lpDDSurfaceDesc2->dwFlags & DDSD_BACKBUFFERCOUNT)
+		{
+			if (!lpDDSurfaceDesc2->dwBackBufferCount)
+			{
+				lpDDSurfaceDesc2->dwBackBufferCount = 1;
+			}
+		}
+		else
+		{
+			lpDDSurfaceDesc2->dwBackBufferCount = 0;
+		}
+
+		// Add flag for 3D device
+		if ((DirectXVersion < 4) && (lpDDSurfaceDesc2->ddsCaps.dwCaps & DDSCAPS_PRIMARYSURFACE))
+		{
+			lpDDSurfaceDesc2->ddsCaps.dwCaps |= DDSCAPS_3DDEVICE;
+		}
+
+		// Remove unused flags
+		if (!lpDDSurfaceDesc2->dwWidth || !lpDDSurfaceDesc2->dwHeight)
+		{
+			lpDDSurfaceDesc2->dwFlags &= ~(DDSD_WIDTH | DDSD_HEIGHT | DDSD_PITCH);
+		}
+		if (!lpDDSurfaceDesc2->dwRefreshRate)
+		{
+			lpDDSurfaceDesc2->dwFlags &= ~DDSD_REFRESHRATE;
+		}
+
 		// Get present parameters
 		if (lpDDSurfaceDesc2->ddsCaps.dwCaps & DDSCAPS_PRIMARYSURFACE)
 		{
 			// Anti-aliasing
-			AntiAliasing = ((lpDDSurfaceDesc2->dwFlags & DDSD_CAPS) && (lpDDSurfaceDesc2->ddsCaps.dwCaps2 & DDSCAPS2_HINTANTIALIASING) && (lpDDSurfaceDesc2->ddsCaps.dwCaps & DDSCAPS_3DDEVICE));
+			AntiAliasing = ((lpDDSurfaceDesc2->ddsCaps.dwCaps2 & DDSCAPS2_HINTANTIALIASING) && (lpDDSurfaceDesc2->ddsCaps.dwCaps & DDSCAPS_3DDEVICE));
 
 			// Back buffer count
 			BackBufferCount = (lpDDSurfaceDesc2->dwFlags & DDSD_BACKBUFFERCOUNT) ? lpDDSurfaceDesc2->dwBackBufferCount : 0;
@@ -507,7 +544,7 @@ HRESULT m_IDirectDrawX::CreateSurface2(LPDDSURFACEDESC2 lpDDSurfaceDesc2, LPDIRE
 		// Setup d3d9 device
 		if (!d3d9Device)
 		{
-			if ((!displayWidth || !displayHeight) && (lpDDSurfaceDesc2->dwFlags & (DDSD_WIDTH | DDSD_HEIGHT)) && lpDDSurfaceDesc2->dwWidth && lpDDSurfaceDesc2->dwHeight)
+			if ((!displayWidth || !displayHeight) && (lpDDSurfaceDesc2->dwFlags & DDSD_WIDTH) && (lpDDSurfaceDesc2->dwFlags & DDSD_HEIGHT))
 			{
 				displayWidth = lpDDSurfaceDesc2->dwWidth;
 				displayHeight = lpDDSurfaceDesc2->dwHeight;
@@ -516,41 +553,7 @@ HRESULT m_IDirectDrawX::CreateSurface2(LPDDSURFACEDESC2 lpDDSurfaceDesc2, LPDIRE
 			CreateD3D9Device();
 		}
 
-		DDSURFACEDESC2 Desc2;
-		Desc2.dwSize = sizeof(DDSURFACEDESC2);
-		ConvertSurfaceDesc(Desc2, *lpDDSurfaceDesc2);
-		Desc2.ddsCaps.dwCaps4 = DDSCAPS4_CREATESURFACE |											// Indicates surface was created using CreateSurface()
-			((Desc2.ddsCaps.dwCaps & DDSCAPS_PRIMARYSURFACE) ? DDSCAPS4_PRIMARYSURFACE : NULL);		// Indicates surface is a primary surface or a backbuffer of a primary surface
-		Desc2.dwReserved = 0;
-
-		if (Desc2.ddsCaps.dwCaps & DDSCAPS_FLIP)
-		{
-			Desc2.ddsCaps.dwCaps |= DDSCAPS_FRONTBUFFER;
-		}
-
-		if (Desc2.dwFlags & DDSD_BACKBUFFERCOUNT)
-		{
-			if (!Desc2.dwBackBufferCount)
-			{
-				Desc2.dwBackBufferCount = 1;
-			}
-		}
-		else
-		{
-			Desc2.dwBackBufferCount = 0;
-		}
-
-		if (!Desc2.dwWidth || !Desc2.dwHeight)
-		{
-			Desc2.dwFlags &= ~(DDSD_WIDTH | DDSD_HEIGHT | DDSD_PITCH);
-		}
-
-		if (!Desc2.dwRefreshRate)
-		{
-			Desc2.dwFlags &= ~DDSD_REFRESHRATE;
-		}
-
-		m_IDirectDrawSurfaceX *p_IDirectDrawSurfaceX = new m_IDirectDrawSurfaceX(&d3d9Device, this, DirectXVersion, &Desc2, displayWidth, displayHeight);
+		m_IDirectDrawSurfaceX *p_IDirectDrawSurfaceX = new m_IDirectDrawSurfaceX(&d3d9Device, this, DirectXVersion, lpDDSurfaceDesc2, displayWidth, displayHeight);
 
 		*lplpDDSurface = (LPDIRECTDRAWSURFACE7)p_IDirectDrawSurfaceX->GetWrapperInterfaceX(DirectXVersion);
 
@@ -573,7 +576,7 @@ HRESULT m_IDirectDrawX::CreateSurface2(LPDDSURFACEDESC2 lpDDSurfaceDesc2, LPDIRE
 		}
 
 		// Add flag for 3D device
-		if ((lpDDSurfaceDesc2->dwFlags & DDSD_CAPS) && (lpDDSurfaceDesc2->ddsCaps.dwCaps & DDSCAPS_PRIMARYSURFACE))
+		if ((DirectXVersion < 4) && (lpDDSurfaceDesc2->ddsCaps.dwCaps & DDSCAPS_PRIMARYSURFACE))
 		{
 			lpDDSurfaceDesc2->ddsCaps.dwCaps |= DDSCAPS_3DDEVICE;
 		}
@@ -2131,6 +2134,11 @@ void m_IDirectDrawX::GetDisplay(DWORD &Width, DWORD &Height)
 {
 	Width = displayWidth;
 	Height = displayHeight;
+}
+
+bool m_IDirectDrawX::IsUsing3D()
+{
+	return (D3DDeviceInterface != nullptr);
 }
 
 HRESULT m_IDirectDrawX::CheckInterface(char *FunctionName, bool CheckD3DDevice)

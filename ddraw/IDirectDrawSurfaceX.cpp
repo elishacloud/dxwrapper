@@ -2598,8 +2598,8 @@ HRESULT m_IDirectDrawSurfaceX::CheckInterface(char *FunctionName, bool CheckD3DD
 		}
 	}
 
-	// Check for D3DDevice
-	IsDirect3DSurface = (*ddrawParent->GetCurrentD3DDevice() && (surfaceDesc2.ddsCaps.dwCaps & DDSCAPS_3DDEVICE));
+	// Check if using Direct3D
+	IsDirect3DSurface = (ddrawParent->IsUsing3D() && (surfaceDesc2.ddsCaps.dwCaps & DDSCAPS_3DDEVICE));
 
 	// Make sure surface exists, if not then create it
 	if (CheckD3DSurface && ((!surfaceTexture && !surface3D) || (IsDirect3DSurface && !IsTexture() && !surface3D)))
@@ -2675,7 +2675,7 @@ HRESULT m_IDirectDrawSurfaceX::CreateD3d9Surface()
 		}
 	}
 	// Create texture
-	else if (IsTexture() || ((IsPrimarySurface() || IsBackBuffer()) && !IsDirect3DSurface))
+	else if (IsTexture() || (!IsDirect3DSurface && (IsPrimarySurface() || IsBackBuffer())))
 	{
 		if (FAILED((*d3d9Device)->CreateTexture(surfaceDesc2.dwWidth, surfaceDesc2.dwHeight, 1, 0, TextureFormat, D3DPOOL_SYSTEMMEM, &surfaceTexture, nullptr)))
 		{
