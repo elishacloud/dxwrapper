@@ -41,7 +41,7 @@ DWORD ExclusiveHeight;
 DWORD ExclusiveBPP;
 DWORD ExclusiveRefreshRate;
 
-// Application display mode
+// Application set display mode
 DWORD displayModeWidth;
 DWORD displayModeHeight;
 DWORD displayModeBPP;
@@ -49,10 +49,10 @@ DWORD displayModeRefreshRate;
 
 // Display resolution
 bool SetDefaultDisplayMode;			// Set native resolution
+bool SetResolution;
 DWORD displayWidth;
 DWORD displayHeight;
 DWORD displayRefreshRate;			// Refresh rate for fullscreen
-bool SetResolution;
 
 // Last resolution
 DWORD LastWidth;
@@ -60,17 +60,17 @@ DWORD LastHeight;
 DWORD LastBPP;
 
 // Display mode settings
+bool isWindowed;					// Window mode enabled
 bool AllowModeX;
 bool MultiThreaded;
 bool FUPPreserve;
 bool NoWindowChanges;
-bool isWindowed;					// Window mode enabled
 
 // Convert to Direct3D9
 bool IsInScene;						// Used for BeginScene/EndScene
 bool EnableWaitVsync;
 
-// High resolution counter
+// High resolution counter used for auto frame skipping
 bool FrequencyFlag;
 LARGE_INTEGER clockFrequency, clickTime, lastPresentTime;
 LONGLONG lastFrameTime;
@@ -695,7 +695,7 @@ HRESULT m_IDirectDrawX::EnumDisplayModes2(DWORD dwFlags, LPDDSURFACEDESC2 lpDDSu
 		D3DDISPLAYMODE d3ddispmode;
 
 		// Enumerate modes for format XRGB
-		UINT modeCount = d3d9Object->GetAdapterModeCount(D3DADAPTER_DEFAULT, D3DFMT_X8R8G8B8);
+		UINT modeCount = d3d9Object->GetAdapterModeCount(D3DADAPTER_DEFAULT, D9DisplayFormat);
 
 		// Loop through all modes
 		DWORD Loop = 0;
@@ -703,7 +703,7 @@ HRESULT m_IDirectDrawX::EnumDisplayModes2(DWORD dwFlags, LPDDSURFACEDESC2 lpDDSu
 		{
 			// Get display modes
 			ZeroMemory(&d3ddispmode, sizeof(D3DDISPLAYMODE));
-			if (FAILED(d3d9Object->EnumAdapterModes(D3DADAPTER_DEFAULT, D3DFMT_X8R8G8B8, i, &d3ddispmode)))
+			if (FAILED(d3d9Object->EnumAdapterModes(D3DADAPTER_DEFAULT, D9DisplayFormat, i, &d3ddispmode)))
 			{
 				LOG_LIMIT(100, __FUNCTION__ << " Error: EnumAdapterModes failed");
 				break;
@@ -1388,12 +1388,11 @@ HRESULT m_IDirectDrawX::SetDisplayMode(DWORD dwWidth, DWORD dwHeight, DWORD dwBP
 		bool ChangeMode = false;
 
 		// Set display mode to dwWidth x dwHeight with dwBPP color depth
-		DWORD NewWidth = dwWidth;
-		DWORD NewHeight = dwHeight;
+		DWORD FoundWidth = 0;
+		DWORD FoundHeight = 0;
 		DWORD NewBPP = (Config.DdrawOverrideBitMode) ? Config.DdrawOverrideBitMode : dwBPP;
-		DWORD NewRefreshRate = dwRefreshRate;
 
-		if (displayModeWidth != NewWidth || displayModeHeight != NewHeight || displayModeBPP != NewBPP || displayModeRefreshRate != NewRefreshRate)
+		if (displayModeWidth != dwWidth || displayModeHeight != dwHeight || displayModeBPP != NewBPP || displayModeRefreshRate != dwRefreshRate)
 		{
 			// Check if it is a supported resolution
 			if ((!Config.EnableWindowMode || Config.FullscreenWindowMode) && ExclusiveMode)
@@ -1405,7 +1404,7 @@ HRESULT m_IDirectDrawX::SetDisplayMode(DWORD dwWidth, DWORD dwHeight, DWORD dwBP
 				}
 
 				// Enumerate modes for format XRGB
-				UINT modeCount = d3d9Object->GetAdapterModeCount(D3DADAPTER_DEFAULT, D3DFMT_X8R8G8B8);
+				UINT modeCount = d3d9Object->GetAdapterModeCount(D3DADAPTER_DEFAULT, D9DisplayFormat);
 
 				D3DDISPLAYMODE d3ddispmode;
 				bool modeFound = false;
@@ -1415,20 +1414,28 @@ HRESULT m_IDirectDrawX::SetDisplayMode(DWORD dwWidth, DWORD dwHeight, DWORD dwBP
 				{
 					// Get display modes here
 					ZeroMemory(&d3ddispmode, sizeof(D3DDISPLAYMODE));
-					if (FAILED(d3d9Object->EnumAdapterModes(D3DADAPTER_DEFAULT, D3DFMT_X8R8G8B8, i, &d3ddispmode)))
+					if (FAILED(d3d9Object->EnumAdapterModes(D3DADAPTER_DEFAULT, D9DisplayFormat, i, &d3ddispmode)))
 					{
 						LOG_LIMIT(100, __FUNCTION__ << " Error: EnumAdapterModes failed");
 						break;
 					}
-					// Check height and width
-					if ((d3ddispmode.Width == dwWidth && d3ddispmode.Height == dwHeight) ||
-						((d3ddispmode.Width == 320 || d3ddispmode.Width == 640) && d3ddispmode.Width == dwWidth && d3ddispmode.Height == dwHeight + (dwHeight / 5)) ||
+					// Check exact height and width match
+					if (d3ddispmode.Width == dwWidth && d3ddispmode.Height == dwHeight)
+					{
+						modeFound = true;
+						FoundWidth = d3ddispmode.Width;
+						FoundHeight = d3ddispmode.Height;
+						break;
+					}
+					// Check partial height and width match
+					if (((d3ddispmode.Width == 320 || d3ddispmode.Width == 640) && d3ddispmode.Width == dwWidth && d3ddispmode.Height == dwHeight + (dwHeight / 5)) ||
 						(d3ddispmode.Width == 640 && d3ddispmode.Height == 480 && (dwWidth == 320 && (dwHeight == 200 || dwHeight == 240))) ||
 						(d3ddispmode.Width == 800 && d3ddispmode.Height == 600 && dwWidth == 400 && dwHeight == 300) ||
 						(d3ddispmode.Width == 1024 && d3ddispmode.Height == 768 && dwWidth == 512 && dwHeight == 384))
 					{
 						modeFound = true;
-						break;
+						FoundWidth = d3ddispmode.Width;
+						FoundHeight = d3ddispmode.Height;
 					}
 				}
 
@@ -1440,17 +1447,17 @@ HRESULT m_IDirectDrawX::SetDisplayMode(DWORD dwWidth, DWORD dwHeight, DWORD dwBP
 			}
 
 			ChangeMode = true;
-			displayModeWidth = NewWidth;
-			displayModeHeight = NewHeight;
+			displayModeWidth = dwWidth;
+			displayModeHeight = dwHeight;
 			displayModeBPP = NewBPP;
-			displayModeRefreshRate = NewRefreshRate;
+			displayModeRefreshRate = dwRefreshRate;
 			isWindowed = !ExclusiveMode;
 
 			// Display resolution
 			if (SetDefaultDisplayMode)
 			{
-				displayWidth = (Config.DdrawUseNativeResolution || Config.DdrawOverrideWidth) ? displayWidth : displayModeWidth;
-				displayHeight = (Config.DdrawUseNativeResolution || Config.DdrawOverrideHeight) ? displayHeight : displayModeHeight;
+				displayWidth = (Config.DdrawUseNativeResolution || Config.DdrawOverrideWidth) ? displayWidth : FoundWidth;
+				displayHeight = (Config.DdrawUseNativeResolution || Config.DdrawOverrideHeight) ? displayHeight : FoundHeight;
 				displayRefreshRate = (Config.DdrawOverrideRefreshRate) ? displayRefreshRate : displayModeRefreshRate;
 			}
 		}
@@ -1458,10 +1465,10 @@ HRESULT m_IDirectDrawX::SetDisplayMode(DWORD dwWidth, DWORD dwHeight, DWORD dwBP
 		// Set exclusive mode resolution
 		if (ExclusiveMode && ExclusiveHwnd == MainhWnd)
 		{
-			ExclusiveWidth = NewWidth;
-			ExclusiveHeight = NewHeight;
+			ExclusiveWidth = dwWidth;
+			ExclusiveHeight = dwHeight;
 			ExclusiveBPP = NewBPP;
-			ExclusiveRefreshRate = NewRefreshRate;
+			ExclusiveRefreshRate = dwRefreshRate;
 		}
 
 		// Update the d3d9 device to use new display mode
@@ -2219,7 +2226,7 @@ HRESULT m_IDirectDrawX::CreateD3D9Device()
 			}
 			else
 			{
-				Utils::GetScreenSize(GetHwnd(), BackBufferWidth, BackBufferHeight);
+				Utils::GetScreenSize(hWnd, BackBufferWidth, BackBufferHeight);
 			}
 		}
 
@@ -2230,96 +2237,47 @@ HRESULT m_IDirectDrawX::CreateD3D9Device()
 		// Set display window
 		ZeroMemory(&presParams, sizeof(presParams));
 
+		// Width/height
+		presParams.BackBufferWidth = BackBufferWidth;
+		presParams.BackBufferHeight = BackBufferHeight;
 		// Discard swap
 		presParams.SwapEffect = D3DSWAPEFFECT_DISCARD;
 		// Backbuffer
 		presParams.BackBufferCount = 1;
 		// Auto stencel
-		presParams.EnableAutoDepthStencil = true;
+		presParams.EnableAutoDepthStencil = TRUE;
 		// Auto stencel format
 		presParams.AutoDepthStencilFormat = D3DFMT_D24S8;
 		// Interval level
 		presParams.PresentationInterval = D3DPRESENT_INTERVAL_IMMEDIATE;
+		// Anti-aliasing
+		presParams.MultiSampleType = D3DMULTISAMPLE_NONE;
+		presParams.MultiSampleQuality = 0;
+		// Present flags
+		presParams.Flags = 0;
 
 		// Set parameters for the current display mode
 		if (isWindowed || !hWnd)
 		{
 			// Window mode
 			presParams.Windowed = TRUE;
-			// Width/height
-			presParams.BackBufferWidth = BackBufferWidth;
-			presParams.BackBufferHeight = BackBufferHeight;
+			// Backbuffer
+			presParams.BackBufferFormat = D3DFMT_UNKNOWN;
+			// Display mode refresh
+			presParams.FullScreen_RefreshRateInHz = 0;
+			// Window handle
+			presParams.hDeviceWindow = hWnd;
 		}
 		else
 		{
-			// Enumerate modes for format XRGB
-			UINT modeCount = d3d9Object->GetAdapterModeCount(D3DADAPTER_DEFAULT, D3DFMT_X8R8G8B8);
-
-			// Get refresh rate
-			DWORD BackBufferRefreshRate = (displayRefreshRate) ? displayRefreshRate : Utils::GetRefreshRate(hWnd);
-
-			// Loop through all modes looking for our requested resolution
-			D3DDISPLAYMODE d3ddispmode;
-			D3DDISPLAYMODE set_d3ddispmode = { NULL };
-			bool modeFound = false, relativeFound = false;
-			for (UINT i = 0; i < modeCount; i++)
-			{
-				// Get display modes here
-				ZeroMemory(&d3ddispmode, sizeof(D3DDISPLAYMODE));
-				if (FAILED(d3d9Object->EnumAdapterModes(D3DADAPTER_DEFAULT, D3DFMT_X8R8G8B8, i, &d3ddispmode)))
-				{
-					LOG_LIMIT(100, __FUNCTION__ << " Error: EnumAdapterModes failed");
-					hr = DDERR_GENERIC;
-					break;
-				}
-				// Check refresh rate
-				if (d3ddispmode.RefreshRate == BackBufferRefreshRate || !BackBufferRefreshRate)
-				{
-					// Check height and width
-					if (d3ddispmode.Width == BackBufferWidth && d3ddispmode.Height == BackBufferHeight)
-					{
-						modeFound = true;
-						memcpy(&set_d3ddispmode, &d3ddispmode, sizeof(D3DDISPLAYMODE));
-						break;
-					}
-					// Check for ModeX and low resolutions
-					if (((d3ddispmode.Width == 320 || d3ddispmode.Width == 640) &&
-						d3ddispmode.Width == BackBufferWidth && d3ddispmode.Height == BackBufferHeight + (BackBufferHeight / 5)) ||
-						(d3ddispmode.Width == 640 && d3ddispmode.Height == 480 &&
-						(BackBufferWidth == 320 && (BackBufferHeight == 200 || BackBufferHeight == 240))) ||
-						(d3ddispmode.Width == 800 && d3ddispmode.Height == 600 && BackBufferWidth == 400 && BackBufferHeight == 300) ||
-						(d3ddispmode.Width == 1024 && d3ddispmode.Height == 768 && BackBufferWidth == 512 && BackBufferHeight == 384))
-					{
-						relativeFound = true;
-						memcpy(&set_d3ddispmode, &d3ddispmode, sizeof(D3DDISPLAYMODE));
-					}
-				}
-			}
-
-			// No mode found
-			if (!modeFound && !relativeFound)
-			{
-				LOG_LIMIT(100, __FUNCTION__ << " Error: failed to find compatible fullscreen display mode " << BackBufferWidth << "x" << BackBufferHeight);
-				hr = DDERR_GENERIC;
-				break;
-			}
-
-			// Found relative match
-			if (SetDefaultDisplayMode && relativeFound && !modeFound)
-			{
-				displayWidth = set_d3ddispmode.Width;
-				displayHeight = set_d3ddispmode.Height;
-			}
-
 			// Fullscreen
 			presParams.Windowed = FALSE;
-			// Width/height
-			presParams.BackBufferWidth = set_d3ddispmode.Width;
-			presParams.BackBufferHeight = set_d3ddispmode.Height;
 			// Backbuffer
-			presParams.BackBufferFormat = set_d3ddispmode.Format;
+			presParams.BackBufferFormat = D9DisplayFormat;
 			// Display mode refresh
-			presParams.FullScreen_RefreshRateInHz = set_d3ddispmode.RefreshRate;
+			presParams.FullScreen_RefreshRateInHz = displayModeRefreshRate;
+			// Window handle
+			presParams.hDeviceWindow = nullptr;
 		}
 
 		// Set behavior flags
@@ -2363,7 +2321,7 @@ HRESULT m_IDirectDrawX::CreateD3D9Device()
 		// Store display frequency
 		monitorRefreshRate = (presParams.FullScreen_RefreshRateInHz) ? presParams.FullScreen_RefreshRateInHz : Utils::GetRefreshRate(hWnd);
 		DWORD tmpWidth = 0;
-		Utils::GetScreenSize(GetHwnd(), tmpWidth, monitorHeight);
+		Utils::GetScreenSize(hWnd, tmpWidth, monitorHeight);
 
 	} while (false);
 

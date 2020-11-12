@@ -2,6 +2,8 @@
 
 #include <ddraw.h>
 
+constexpr D3DFORMAT D9DisplayFormat = D3DFMT_X8R8G8B8;
+
 static constexpr DWORD FourCCTypes[]
 {
 	//0x026CFB68, // MAKEFOURCC('N', 'V', '1', '2')
