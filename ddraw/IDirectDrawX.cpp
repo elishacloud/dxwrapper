@@ -481,11 +481,13 @@ HRESULT m_IDirectDrawX::CreateSurface2(LPDDSURFACEDESC2 lpDDSurfaceDesc2, LPDIRE
 		if (lpDDSurfaceDesc2->dwFlags & DDSD_PIXELFORMAT)
 		{
 			D3DFORMAT Format = GetDisplayFormat(lpDDSurfaceDesc2->ddpfPixelFormat);
+			Format = (Format == D3DFMT_R8G8B8) ? D3DFMT_X8R8G8B8 : Format;
 			DWORD Usage = (lpDDSurfaceDesc2->ddsCaps.dwCaps & DDSCAPS_PRIMARYSURFACE) ? D3DUSAGE_RENDERTARGET :
-				((lpDDSurfaceDesc2->dwFlags & DDSD_MIPMAPCOUNT) || (lpDDSurfaceDesc2->ddsCaps.dwCaps & DDSCAPS_MIPMAP)) ? D3DUSAGE_AUTOGENMIPMAP :
+				((lpDDSurfaceDesc2->dwFlags & DDSD_MIPMAPCOUNT) || ((lpDDSurfaceDesc2->dwFlags & DDSD_CAPS) && (lpDDSurfaceDesc2->ddsCaps.dwCaps & DDSCAPS_MIPMAP))) ? D3DUSAGE_AUTOGENMIPMAP :
 				(lpDDSurfaceDesc2->ddpfPixelFormat.dwFlags & (DDPF_ZBUFFER | DDPF_STENCILBUFFER)) ? D3DUSAGE_DEPTHSTENCIL : 0;
+			D3DRESOURCETYPE Resource = ((lpDDSurfaceDesc2->dwFlags & DDSD_CAPS) && (lpDDSurfaceDesc2->ddsCaps.dwCaps & DDSCAPS_TEXTURE)) ? D3DRTYPE_TEXTURE : D3DRTYPE_SURFACE;
 
-			if (FAILED(d3d9Object->CheckDeviceFormat(D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, D9DisplayFormat, Usage, D3DRTYPE_SURFACE, Format)))
+			if (FAILED(d3d9Object->CheckDeviceFormat(D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, D9DisplayFormat, Usage, Resource, Format)))
 			{
 				LOG_LIMIT(100, __FUNCTION__ << " Error: non-supported pixel format! " << lpDDSurfaceDesc2->ddpfPixelFormat);
 				return DDERR_INVALIDPIXELFORMAT;
@@ -1735,18 +1737,10 @@ HRESULT m_IDirectDrawX::TestCooperativeLevel()
 		{
 		case D3DERR_DRIVERINTERNALERROR:
 		case D3DERR_INVALIDCALL:
-			if (SUCCEEDED(ReinitDevice()))
-			{
-				return DD_OK;
-			}
-			return DDERR_GENERIC;
-		case D3DERR_DEVICENOTRESET:				  
-		case D3DERR_DEVICELOST:
-			if (SUCCEEDED(ReinitDevice()))
-			{
-				return DD_OK;
-			}
 			return DDERR_WRONGMODE;
+		case D3DERR_DEVICENOTRESET:
+			ReinitDevice();
+		case D3DERR_DEVICELOST:
 		case D3D_OK:
 		default:
 			return DD_OK;
