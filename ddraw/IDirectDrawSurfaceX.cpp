@@ -2665,17 +2665,8 @@ HRESULT m_IDirectDrawSurfaceX::CreateD3d9Surface()
 		CreateDCSurface();
 	}
 
-	// Create render target
-	if (IsDirect3DSurface && (IsPrimarySurface() || IsBackBuffer()))
-	{
-		if (FAILED((*d3d9Device)->CreateRenderTarget(surfaceDesc2.dwWidth, surfaceDesc2.dwHeight, Format, D3DMULTISAMPLE_NONE, 0, TRUE, &surface3D, nullptr)))
-		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error: failed to create render target size: " << surfaceDesc2.dwWidth << "x" << surfaceDesc2.dwHeight << " Format: " << surfaceFormat);
-			return DDERR_GENERIC;
-		}
-	}
 	// Create texture
-	else if (IsTexture() || (!IsDirect3DSurface && (IsPrimarySurface() || IsBackBuffer())))
+	if (IsTexture() || (!IsDirect3DSurface && (IsPrimarySurface() || IsBackBuffer())))
 	{
 		if (FAILED((*d3d9Device)->CreateTexture(surfaceDesc2.dwWidth, surfaceDesc2.dwHeight, 1, 0, TextureFormat, D3DPOOL_SYSTEMMEM, &surfaceTexture, nullptr)))
 		{

@@ -61,14 +61,11 @@ DWORD LastBPP;
 
 // Display mode settings
 bool isWindowed;					// Window mode enabled
+bool AntiAliasing;
 bool AllowModeX;
 bool MultiThreaded;
 bool FUPPreserve;
 bool NoWindowChanges;
-
-// D3d9 Present Parameters
-bool AntiAliasing;
-DWORD BackBufferCount;
 
 // Convert to Direct3D9
 bool IsInScene;						// Used for BeginScene/EndScene
@@ -535,10 +532,15 @@ HRESULT m_IDirectDrawX::CreateSurface2(LPDDSURFACEDESC2 lpDDSurfaceDesc2, LPDIRE
 		if (lpDDSurfaceDesc2->ddsCaps.dwCaps & DDSCAPS_PRIMARYSURFACE)
 		{
 			// Anti-aliasing
+			bool OldAntiAliasing = AntiAliasing;
 			AntiAliasing = ((lpDDSurfaceDesc2->ddsCaps.dwCaps2 & DDSCAPS2_HINTANTIALIASING) && (lpDDSurfaceDesc2->ddsCaps.dwCaps & DDSCAPS_3DDEVICE));
 
-			// Back buffer count
-			BackBufferCount = (lpDDSurfaceDesc2->dwFlags & DDSD_BACKBUFFERCOUNT) ? lpDDSurfaceDesc2->dwBackBufferCount : 0;
+			// Check if there is a change in the present parameters
+			if (d3d9Device && AntiAliasing != OldAntiAliasing)
+			{
+				// Release existing d3d9 device
+				ReleaseD3d9Device();
+			}
 		}
 
 		// Setup d3d9 device
@@ -1507,7 +1509,11 @@ HRESULT m_IDirectDrawX::SetDisplayMode(DWORD dwWidth, DWORD dwHeight, DWORD dwBP
 		{
 			SetResolution = ExclusiveMode;
 
-			CreateD3D9Device();
+			// Recreate d3d9 device
+			if (d3d9Device)
+			{
+				CreateD3D9Device();
+			}
 		}
 
 		return DD_OK;
@@ -1896,15 +1902,12 @@ void m_IDirectDrawX::InitDdraw(DWORD DirectXVersion)
 		LastBPP = 0;
 
 		// Display mode settings
+		isWindowed = true;
+		AntiAliasing = false;
 		AllowModeX = false;
 		MultiThreaded = false;
 		FUPPreserve = false;
 		NoWindowChanges = false;
-		isWindowed = true;
-
-		// D3d9 Present Parameters
-		AntiAliasing = false;
-		BackBufferCount = 0;
 
 		// Convert to Direct3D9
 		IsInScene = false;
@@ -2202,25 +2205,11 @@ HRESULT m_IDirectDrawX::CreateD3D9Device()
 
 	HRESULT hr = DD_OK;
 	do {
-		// Release all existing surfaces
-		for (m_IDirectDrawX *pDDraw : DDrawVector)
-		{
-			pDDraw->ReleaseAllD9Surfaces();
-		}
-
-		// Release device
+		// Release existing d3d9 device
 		if (d3d9Device)
 		{
-			// EndEcene
-			IsInScene = false;
-			d3d9Device->EndScene();
-
-			ReleaseD9Interface(&d3d9Device);
+			ReleaseD3d9Device();
 		}
-
-		// Reset BeginScene
-		IsInScene = false;
-		EnableWaitVsync = false;
 
 		// Check device caps to make sure it supports dynamic textures
 		D3DCAPS9 d3dcaps;
