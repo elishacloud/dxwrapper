@@ -20,7 +20,7 @@
 #include "ddrawExternal.h"
 #include "Utils\Utils.h"
 
-constexpr DWORD MaxVidMemory  = 0x16000000;	// 256 MBs
+constexpr DWORD MaxVidMemory  = 0x32000000;	// 512 MBs
 constexpr DWORD UsedVidMemory = 0x00100000;	// 1 MB
 
 // ddraw interface counter
@@ -2825,7 +2825,7 @@ HRESULT m_IDirectDrawX::EndScene()
 	}
 
 	// Clear device before BeginScene
-	d3d9Device->Clear(0, nullptr, D3DCLEAR_STENCIL | D3DCLEAR_TARGET | D3DCLEAR_ZBUFFER, 0, 0.0f, 0);
+	d3d9Device->Clear(0, nullptr, D3DCLEAR_TARGET, D3DCOLOR_XRGB(0, 0, 0), 1.0f, 0);
 
 	// BeginScene after EndScene is done
 	BeginScene();

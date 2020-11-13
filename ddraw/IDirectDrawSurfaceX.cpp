@@ -2665,8 +2665,17 @@ HRESULT m_IDirectDrawSurfaceX::CreateD3d9Surface()
 		CreateDCSurface();
 	}
 
+	// Create primary texture
+	if (!IsDirect3DSurface && (IsPrimarySurface() || IsBackBuffer()))
+	{
+		if (FAILED((*d3d9Device)->CreateTexture(surfaceDesc2.dwWidth, surfaceDesc2.dwHeight, 1, D3DUSAGE_DYNAMIC, TextureFormat, D3DPOOL_DEFAULT, &surfaceTexture, nullptr)))
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: failed to create Primary surface texture size: " << surfaceDesc2.dwWidth << "x" << surfaceDesc2.dwHeight << " Format: " << surfaceFormat);
+			return DDERR_GENERIC;
+		}
+	}
 	// Create texture
-	if (IsTexture() || (!IsDirect3DSurface && (IsPrimarySurface() || IsBackBuffer())))
+	if (IsTexture())
 	{
 		if (FAILED((*d3d9Device)->CreateTexture(surfaceDesc2.dwWidth, surfaceDesc2.dwHeight, 1, 0, TextureFormat, D3DPOOL_SYSTEMMEM, &surfaceTexture, nullptr)))
 		{
@@ -2688,16 +2697,6 @@ HRESULT m_IDirectDrawSurfaceX::CreateD3d9Surface()
 	if (IsDirect3DSurface || Config.DdrawWriteToGDI)
 	{
 		return DD_OK;
-	}
-
-	// Create display texture
-	if (IsPrimarySurface())
-	{
-		if (FAILED((*d3d9Device)->CreateTexture(surfaceDesc2.dwWidth, surfaceDesc2.dwHeight, 1, 0, TextureFormat, D3DPOOL_DEFAULT, &displayTexture, nullptr)))
-		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error: failed to create display surface texture size: " << surfaceDesc2.dwWidth << "x" << surfaceDesc2.dwHeight << " Format: " << surfaceFormat);
-			return DDERR_GENERIC;
-		}
 	}
 
 	// Create palette surface
@@ -3183,13 +3182,6 @@ void m_IDirectDrawSurfaceX::ReleaseD9Surface(bool BackupData)
 		ReleaseD9Interface(&surfaceTexture);
 	}
 
-	// Release d3d9 display surface texture
-	if (displayTexture)
-	{
-		Logging::LogDebug() << __FUNCTION__ << " Releasing Direct3D9 display texture surface";
-		ReleaseD9Interface(&displayTexture);
-	}
-
 	// Release d3d9 palette surface texture
 	if (paletteTexture)
 	{
@@ -3292,22 +3284,7 @@ HRESULT m_IDirectDrawSurfaceX::PresentSurface(BOOL isSkipScene)
 	HRESULT hr = DD_OK;
 	do {
 		// Set texture
-		if (displayTexture && surfaceTexture)
-		{
-			if (FAILED((*d3d9Device)->UpdateTexture(surfaceTexture, displayTexture)))
-			{
-				LOG_LIMIT(100, __FUNCTION__ << " Error: failed to update texture");
-				hr = DDERR_GENERIC;
-				break;
-			}
-			if (FAILED((*d3d9Device)->SetTexture(0, displayTexture)))
-			{
-				LOG_LIMIT(100, __FUNCTION__ << " Error: failed to set display texture");
-				hr = DDERR_GENERIC;
-				break;
-			}
-		}
-		else if (surfaceTexture)
+		if (surfaceTexture)
 		{
 			if (FAILED((*d3d9Device)->SetTexture(0, surfaceTexture)))
 			{

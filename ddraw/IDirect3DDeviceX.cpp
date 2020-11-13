@@ -1426,7 +1426,12 @@ HRESULT m_IDirect3DDeviceX::EndScene()
 			return DDERR_GENERIC;
 		}
 
-		return (*d3d9Device)->EndScene();
+		// The IDirect3DDevice7::EndScene method ends a scene that was begun by calling the IDirect3DDevice7::BeginScene method.
+		// When this method succeeds, the scene has been rendered, and the device surface holds the rendered scene.
+
+		(*d3d9Device)->EndScene();
+
+		return (*d3d9Device)->Present(nullptr, nullptr, nullptr, nullptr);
 	}
 
 	switch (ProxyDirectXVersion)
