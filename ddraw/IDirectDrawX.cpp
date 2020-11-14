@@ -96,7 +96,7 @@ HRESULT m_IDirectDrawX::QueryInterface(REFIID riid, LPVOID FAR * ppvObj, DWORD D
 
 	if (!ppvObj)
 	{
-		return DDERR_GENERIC;
+		return E_POINTER;
 	}
 
 	if (riid == IID_GetRealInterface)

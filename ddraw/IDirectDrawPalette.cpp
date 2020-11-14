@@ -24,7 +24,7 @@ HRESULT m_IDirectDrawPalette::QueryInterface(REFIID riid, LPVOID FAR * ppvObj)
 
 	if (!ppvObj)
 	{
-		return DDERR_GENERIC;
+		return E_POINTER;
 	}
 
 	if (riid == IID_GetRealInterface)

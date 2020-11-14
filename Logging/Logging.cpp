@@ -1046,7 +1046,9 @@ std::ostream& operator<<(std::ostream& os, const DDERR& ErrCode)
 	visit(D3DERR_INVALIDSTATEBLOCK) \
 	visit(D3DERR_INBEGINSTATEBLOCK) \
 	visit(D3DERR_NOTINBEGINSTATEBLOCK) \
-	visit(D3DERR_COMMAND_UNPARSED)
+	visit(D3DERR_COMMAND_UNPARSED) \
+	visit(E_NOINTERFACE) \
+	visit(E_POINTER)
 
 #define VISIT_DDERR_RETURN(x) \
 	if (ErrCode == x) \

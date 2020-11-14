@@ -22,7 +22,7 @@ HRESULT m_IDirect3DMaterialX::QueryInterface(REFIID riid, LPVOID FAR * ppvObj, D
 
 	if (!ppvObj)
 	{
-		return DDERR_GENERIC;
+		return E_POINTER;
 	}
 
 	if (riid == IID_GetRealInterface)

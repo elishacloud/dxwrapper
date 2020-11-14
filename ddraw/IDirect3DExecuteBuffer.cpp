@@ -22,7 +22,7 @@ HRESULT m_IDirect3DExecuteBuffer::QueryInterface(REFIID riid, LPVOID FAR * ppvOb
 
 	if (!ppvObj)
 	{
-		return DDERR_GENERIC;
+		return E_POINTER;
 	}
 
 	if (riid == IID_GetRealInterface)

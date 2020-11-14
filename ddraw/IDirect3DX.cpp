@@ -29,7 +29,7 @@ HRESULT m_IDirect3DX::QueryInterface(REFIID riid, LPVOID FAR * ppvObj, DWORD Dir
 
 	if (!ppvObj)
 	{
-		return DDERR_GENERIC;
+		return E_POINTER;
 	}
 
 	if (riid == IID_GetRealInterface)

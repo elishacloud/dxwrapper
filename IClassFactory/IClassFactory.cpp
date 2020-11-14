@@ -55,7 +55,12 @@ HRESULT m_IClassFactory::QueryInterface(REFIID riid, LPVOID FAR * ppvObj)
 {
 	Logging::LogDebug() << __FUNCTION__;
 
-	if ((riid == IID_IClassFactory || riid == IID_IUnknown) && ppvObj)
+	if (!ppvObj)
+	{
+		return E_POINTER;
+	}
+
+	if (riid == IID_IClassFactory || riid == IID_IUnknown)
 	{
 		AddRef();
 
@@ -68,16 +73,13 @@ HRESULT m_IClassFactory::QueryInterface(REFIID riid, LPVOID FAR * ppvObj)
 
 	if (!ProxyInterface)
 	{
-		if (ppvObj)
+		*ppvObj = nullptr;
+
+		IQueryInterface(riid, ppvObj);
+
+		if (*ppvObj)
 		{
-			*ppvObj = nullptr;
-
-			IQueryInterface(riid, ppvObj);
-
-			if (*ppvObj)
-			{
-				return S_OK;
-			}
+			return S_OK;
 		}
 
 		Logging::Log() << __FUNCTION__ << " Query Not Implemented for " << riid << " from " << WrapperID;
@@ -93,19 +95,16 @@ HRESULT m_IClassFactory::QueryInterface(REFIID riid, LPVOID FAR * ppvObj)
 	}
 	else
 	{
-		if (ppvObj)
+		*ppvObj = nullptr;
+
+		IQueryInterface(riid, ppvObj);
+
+		if (*ppvObj)
 		{
-			*ppvObj = nullptr;
-
-			IQueryInterface(riid, ppvObj);
-
-			if (*ppvObj)
-			{
-				return S_OK;
-			}
+			return S_OK;
 		}
 
-		Logging::LogDebug() << "Query failed for " << riid << " Error " << hr;
+		Logging::LogDebug() << "Query failed for " << riid << " Error " << Logging::hex(hr);
 	}
 
 	return hr;
@@ -193,7 +192,7 @@ HRESULT m_IClassFactory::CreateInstance(IUnknown *pUnkOuter, REFIID riid, void *
 			}
 		}
 
-		Logging::LogDebug() << "Query failed for " << riid << " Error " << hr;
+		Logging::LogDebug() << "Query failed for " << riid << " Error " << Logging::hex(hr);
 	}
 
 	return hr;

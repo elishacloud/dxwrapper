@@ -97,7 +97,7 @@ HRESULT DdrawWrapper::ProxyQueryInterface(LPVOID ProxyInterface, REFIID riid, LP
 
 	if (!ppvObj)
 	{
-		return DDERR_GENERIC;
+		return E_POINTER;
 	}
 
 	if (Config.Dd7to9 || !ProxyInterface)
@@ -133,7 +133,7 @@ HRESULT DdrawWrapper::ProxyQueryInterface(LPVOID ProxyInterface, REFIID riid, LP
 			return DD_OK;
 		}
 
-		LOG_LIMIT(100, __FUNCTION__ << "Query failed for " << riid << " Error: " << Logging::hex(hr));
+		LOG_LIMIT(100, __FUNCTION__ << "Query failed for " << riid << " Error: " << (DDERR)hr);
 	}
 
 	return hr;

@@ -606,7 +606,7 @@ HRESULT WINAPI dd_DllGetClassObject(REFCLSID rclsid, REFIID riid, LPVOID *ppv)
 	{
 		if (!ppv)
 		{
-			return DDERR_INVALIDPARAMS;
+			return E_POINTER;
 		}
 
 		HRESULT hr = ProxyQueryInterface(nullptr, riid, ppv, rclsid);

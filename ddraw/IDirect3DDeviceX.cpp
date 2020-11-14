@@ -23,7 +23,7 @@ HRESULT m_IDirect3DDeviceX::QueryInterface(REFIID riid, LPVOID FAR * ppvObj, DWO
 
 	if (!ppvObj)
 	{
-		return DDERR_GENERIC;
+		return E_POINTER;
 	}
 
 	if (riid == IID_GetRealInterface)
@@ -552,7 +552,7 @@ HRESULT m_IDirect3DDeviceX::EnumTextureFormats(LPD3DENUMPIXELFORMATSCALLBACK lpd
 			}
 			else
 			{
-				Logging::LogDebug() << __FUNCTION__ << " " << format << " " << hr;
+				Logging::LogDebug() << __FUNCTION__ << " " << format << " " << (DDERR)hr;
 			}
 		}
 

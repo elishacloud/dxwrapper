@@ -22,7 +22,7 @@ HRESULT m_IDirectDrawGammaControl::QueryInterface(REFIID riid, LPVOID FAR * ppvO
 
 	if (!ppvObj)
 	{
-		return DDERR_GENERIC;
+		return E_POINTER;
 	}
 
 	if (riid == IID_GetRealInterface)
