@@ -233,20 +233,6 @@ void Settings::SetValue(char* name, char* value, bool* setting)
 // Set config from string (file)
 void __stdcall Settings::ParseCallback(char* name, char* value)
 {
-	// Check for the existance of certian values
-	if (!_strcmpi(name, "CacheClipPlane"))
-	{
-		Config.CacheClipPlaneNotSet = false;
-	}
-	if (!_strcmpi(name, "DisableMaxWindowedMode"))
-	{
-		Config.DdrawResolutionHackNotSet = false;
-	}
-	if (!_strcmpi(name, "DDrawResolutionHack"))
-	{
-		Config.DisableMaxWindowedModeNotSet = false;
-	}
-
 	// Set Value of local settings
 	VISIT_LOCAL_SETTINGS(SET_LOCAL_VALUE);
 
@@ -349,11 +335,6 @@ void Settings::ClearConfigSettings()
 
 	// Set Value of AppCompatData config settings
 	VISIT_APPCOMPATDATA_SETTINGS(CLEAR_APPCOMPATDATA_VALUE);
-
-	// Default to 'true' until we know it is set
-	Config.CacheClipPlaneNotSet = true;
-	Config.DdrawResolutionHackNotSet = true;
-	Config.DisableMaxWindowedModeNotSet = true;
 }
 
 // Get wrapper mode based on dll name
@@ -393,6 +374,9 @@ void Settings::SetDefaultConfigSettings()
 	// Set defaults
 	Config.DisableHighDPIScaling = true;
 	Config.ResetScreenRes = true;
+	Config.CacheClipPlane = true;
+	Config.DdrawResolutionHack = true;
+	Config.DXPrimaryEmulation[AppCompatDataType.DisableMaxWindowedMode] = true;
 
 	// Set other default values
 	Config.LoopSleepTime = 120;
@@ -588,12 +572,6 @@ void CONFIG::Init()
 	EnableWindowMode = (FullscreenWindowMode) ? true : EnableWindowMode;
 	isD3d9WrapperEnabled = (AnisotropicFiltering || AntiAliasing || CacheClipPlane || EnableVSync || ForceVsyncMode || EnableWindowMode);
 
-	// Enable clip plane caching by default
-	if (CacheClipPlaneNotSet)
-	{
-		CacheClipPlane = true;
-	}
-
 	// Set ddraw color bit mode
 	DdrawOverrideBitMode = (DdrawOverrideBitMode) ? DdrawOverrideBitMode : (Force32bitColor) ? 32 : (Force16bitColor) ? 16 : 0;
 	switch (DdrawOverrideBitMode)
@@ -617,12 +595,6 @@ void CONFIG::Init()
 	default:
 		DdrawOverrideBitMode = 0;
 		break;
-	}
-
-	// Enable ddraw resolution hack by default
-	if (DdrawResolutionHackNotSet)
-	{
-		DdrawResolutionHack = true;
 	}
 
 	// Disable DDrawCompat process affinity if dxwrapper's SingleProcAffinity is enabled

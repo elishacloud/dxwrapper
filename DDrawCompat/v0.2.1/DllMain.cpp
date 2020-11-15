@@ -201,7 +201,7 @@ namespace Compat21
 			Time::init();
 
 			//********** Begin Edit *************
-			if (Config.DisableMaxWindowedModeNotSet)
+			if (Config.DXPrimaryEmulation[AppCompatDataType.DisableMaxWindowedMode])
 			{
 				if (Compat::origProcs.SetAppCompatData)
 				{

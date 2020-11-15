@@ -175,7 +175,6 @@ struct CONFIG
 	bool DDrawCompatDisableGDIHook;		// Disables DDrawCompat GDI hooks
 	bool DDrawCompatNoProcAffinity;		// Disables DDrawCompat single processor affinity
 	bool DdrawResolutionHack;			// Removes the artificial resolution limit from Direct3D7 and below https://github.com/UCyborg/LegacyD3DResolutionHack
-	bool DdrawResolutionHackNotSet;		// If the DDrawResolutionHack option exists in the config file
 	bool DdrawEmulateSurface;			// Emulates the ddraw surface using device context for Dd7to9
 	bool DdrawReadFromGDI;				// Read from GDI bfore passing surface to program
 	bool DdrawWriteToGDI;				// Blt surface directly to GDI rather than Direct3D9
@@ -195,7 +194,6 @@ struct CONFIG
 	bool DSoundCtrl;					// Enables DirectSoundControl https://github.com/nRaecheR/DirectSoundControl
 	bool DxWnd;							// Enables DxWnd https://sourceforge.net/projects/dxwnd/
 	bool CacheClipPlane;				// Caches the ClipPlane for Direct3D9 to fix an issue in d3d9 on Windows 8 and newer
-	bool CacheClipPlaneNotSet;			// If the CacheClipPlane option exists in the config file
 	bool ConvertToDirectDraw7;			// Converts DirectDraw 1-6 to DirectDraw 7
 	bool ConvertToDirect3D7;			// Converts Direct3D 1-6 to Direct3D 7
 	bool EnableDdrawWrapper;			// Enables the ddraw wrapper
@@ -243,7 +241,6 @@ struct CONFIG
 	// SetAppCompatData
 	bool DXPrimaryEmulation[13];		// SetAppCompatData exported functions from ddraw.dll http://www.blitzbasic.com/Community/posts.php?topic=99477
 	DWORD LockColorkey;					// DXPrimaryEmulation option that needs a second parameter
-	bool DisableMaxWindowedModeNotSet;	// If the DisableMaxWindowedMode option exists in the config file
 
 	// DSoundCtrl
 	DWORD Num2DBuffers;

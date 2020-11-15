@@ -146,7 +146,7 @@ namespace CompatExperimental
 			Time::init();
 
 			//********** Begin Edit *************
-			if (Config.DisableMaxWindowedModeNotSet)
+			if (Config.DXPrimaryEmulation[AppCompatDataType.DisableMaxWindowedMode])
 			{
 				const DWORD disableMaxWindowedMode = 12;
 				CALL_ORIG_PROC(SetAppCompatData, disableMaxWindowedMode, 0);

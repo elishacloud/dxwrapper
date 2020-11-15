@@ -189,7 +189,7 @@ namespace Compat20
 			//********** End Edit ***************
 
 			//********** Begin Edit *************
-			if (Config.DisableMaxWindowedModeNotSet)
+			if (Config.DXPrimaryEmulation[AppCompatDataType.DisableMaxWindowedMode])
 			{
 				if (Compat::origProcs.SetAppCompatData)
 				{
