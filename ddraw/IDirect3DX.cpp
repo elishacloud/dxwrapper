@@ -779,9 +779,14 @@ void m_IDirect3DX::InitDirect3D(DWORD DirectXVersion)
 	WrapperInterface3 = new m_IDirect3D3((LPDIRECT3D3)ProxyInterface, this);
 	WrapperInterface7 = new m_IDirect3D7((LPDIRECT3D7)ProxyInterface, this);
 
-	AddRef(DirectXVersion);
-
 	ResolutionHack();
+
+	if (!Config.Dd7to9)
+	{
+		return;
+	}
+
+	AddRef(DirectXVersion);
 }
 
 void m_IDirect3DX::ReleaseDirect3D()

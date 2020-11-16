@@ -134,7 +134,7 @@ HRESULT m_IDirect3DVertexBufferX::Lock(DWORD dwFlags, LPVOID * lplpData, LPDWORD
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	if (ProxyDirectXVersion == 9)
+	if (Config.Dd7to9)
 	{
 		LOG_LIMIT(100, __FUNCTION__ << " Not Implemented");
 		return DDERR_UNSUPPORTED;
@@ -147,7 +147,7 @@ HRESULT m_IDirect3DVertexBufferX::Unlock()
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	if (ProxyDirectXVersion == 9)
+	if (Config.Dd7to9)
 	{
 		LOG_LIMIT(100, __FUNCTION__ << " Not Implemented");
 		return DDERR_UNSUPPORTED;
@@ -160,7 +160,7 @@ HRESULT m_IDirect3DVertexBufferX::ProcessVertices(DWORD dwVertexOp, DWORD dwDest
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	if (ProxyDirectXVersion == 9)
+	if (Config.Dd7to9)
 	{
 		LOG_LIMIT(100, __FUNCTION__ << " Not Implemented");
 		return DDERR_UNSUPPORTED;
@@ -182,7 +182,7 @@ HRESULT m_IDirect3DVertexBufferX::GetVertexBufferDesc(LPD3DVERTEXBUFFERDESC lpVB
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	if (ProxyDirectXVersion == 9)
+	if (Config.Dd7to9)
 	{
 		LOG_LIMIT(100, __FUNCTION__ << " Not Implemented");
 		return DDERR_UNSUPPORTED;
@@ -195,7 +195,7 @@ HRESULT m_IDirect3DVertexBufferX::Optimize(LPDIRECT3DDEVICE7 lpD3DDevice, DWORD 
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	if (ProxyDirectXVersion == 9)
+	if (Config.Dd7to9)
 	{
 		LOG_LIMIT(100, __FUNCTION__ << " Not Implemented");
 		return DDERR_UNSUPPORTED;
@@ -213,6 +213,12 @@ HRESULT m_IDirect3DVertexBufferX::ProcessVerticesStrided(DWORD dwVertexOp, DWORD
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
+	if (Config.Dd7to9)
+	{
+		LOG_LIMIT(100, __FUNCTION__ << " Not Implemented");
+		return DDERR_UNSUPPORTED;
+	}
+
 	if (lpD3DDevice)
 	{
 		lpD3DDevice->QueryInterface(IID_GetRealInterface, (LPVOID*)&lpD3DDevice);
@@ -224,9 +230,6 @@ HRESULT m_IDirect3DVertexBufferX::ProcessVerticesStrided(DWORD dwVertexOp, DWORD
 		return DDERR_GENERIC;
 	case 7:
 		return ProxyInterface->ProcessVerticesStrided(dwVertexOp, dwDestIndex, dwCount, lpVertexArray, dwSrcIndex, lpD3DDevice, dwFlags);
-	case 9:
-		LOG_LIMIT(100, __FUNCTION__ << " Not Implemented");
-		return DDERR_UNSUPPORTED;
 	default:
 		return DDERR_GENERIC;
 	}
@@ -240,6 +243,11 @@ void m_IDirect3DVertexBufferX::InitVertexBuffer(DWORD DirectXVersion)
 {
 	WrapperInterface = new m_IDirect3DVertexBuffer((LPDIRECT3DVERTEXBUFFER)ProxyInterface, this);
 	WrapperInterface7 = new m_IDirect3DVertexBuffer7((LPDIRECT3DVERTEXBUFFER7)ProxyInterface, this);
+
+	if (!Config.Dd7to9)
+	{
+		return;
+	}
 
 	AddRef(DirectXVersion);
 }

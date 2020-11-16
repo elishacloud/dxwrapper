@@ -76,7 +76,7 @@ ULONG m_IDirect3DMaterialX::AddRef(DWORD DirectXVersion)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	if (Config.Dd7to9)
+	if (!ProxyInterface)
 	{
 		switch (DirectXVersion)
 		{
@@ -101,7 +101,7 @@ ULONG m_IDirect3DMaterialX::Release(DWORD DirectXVersion)
 
 	ULONG ref;
 
-	if (Config.Dd7to9)
+	if (!ProxyInterface)
 	{
 		switch (DirectXVersion)
 		{
@@ -311,6 +311,11 @@ void m_IDirect3DMaterialX::InitMaterial(DWORD DirectXVersion)
 	WrapperInterface = new m_IDirect3DMaterial((LPDIRECT3DMATERIAL)ProxyInterface, this);
 	WrapperInterface2 = new m_IDirect3DMaterial2((LPDIRECT3DMATERIAL2)ProxyInterface, this);
 	WrapperInterface3 = new m_IDirect3DMaterial3((LPDIRECT3DMATERIAL3)ProxyInterface, this);
+
+	if (ProxyInterface)
+	{
+		return;
+	}
 
 	AddRef(DirectXVersion);
 

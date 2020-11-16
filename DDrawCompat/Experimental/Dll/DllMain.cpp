@@ -148,8 +148,8 @@ namespace CompatExperimental
 			//********** Begin Edit *************
 			if (Config.DXPrimaryEmulation[AppCompatDataType.DisableMaxWindowedMode])
 			{
-				const DWORD disableMaxWindowedMode = 12;
-				CALL_ORIG_PROC(SetAppCompatData, disableMaxWindowedMode, 0);
+				//const DWORD disableMaxWindowedMode = 12;
+				//CALL_ORIG_PROC(SetAppCompatData, disableMaxWindowedMode, 0);
 			}
 			//********** End Edit ***************
 			Compat::Log() << "DDrawCompat Experimental version loaded successfully";

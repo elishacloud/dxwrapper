@@ -22,6 +22,7 @@
 #include <ddrawex.h>
 #include <d3d.h>
 #include <d3dhal.h>
+#include "ddraw\ddraw.h"
 #include "Logging.h"
 
 std::ofstream LOG;
@@ -818,6 +819,9 @@ std::ostream& operator<<(std::ostream& os, REFIID riid)
 	// direct show
 	CHECK_REFIID(IID, IMediaStream);
 	CHECK_REFIID(IID, IAMMediaStream);
+	// dxwrapper specific
+	CHECK_REFIID(IID, GetRealInterface);
+	CHECK_REFIID(IID, GetInterfaceX);
 
 	UINT x = 0;
 	char buffer[(sizeof(IID) * 2) + 5] = { '\0' };

@@ -246,7 +246,14 @@ ULONG m_IDirectDrawSurfaceX::Release(DWORD DirectXVersion)
 			InterlockedCompareExchange(&RefCount3, 0, 0) + InterlockedCompareExchange(&RefCount4, 0, 0) +
 			InterlockedCompareExchange(&RefCount7, 0, 0) == 0)
 		{
-			delete this;
+			if (CanSurfaceBeDeleted())
+			{
+				delete this;
+			}
+			else
+			{
+				ref = 1;
+			}
 		}
 	}
 	else

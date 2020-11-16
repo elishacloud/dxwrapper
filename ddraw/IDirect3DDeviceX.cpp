@@ -2456,6 +2456,11 @@ void m_IDirect3DDeviceX::InitDevice(DWORD DirectXVersion)
 	WrapperInterface3 = new m_IDirect3DDevice3((LPDIRECT3DDEVICE3)ProxyInterface, this);
 	WrapperInterface7 = new m_IDirect3DDevice7((LPDIRECT3DDEVICE7)ProxyInterface, this);
 
+	if (!Config.Dd7to9)
+	{
+		return;
+	}
+
 	AddRef(DirectXVersion);
 }
 

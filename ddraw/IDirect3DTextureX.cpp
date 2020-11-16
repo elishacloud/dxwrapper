@@ -74,7 +74,7 @@ ULONG m_IDirect3DTextureX::AddRef(DWORD DirectXVersion)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	if (Config.Dd7to9)
+	if (!ProxyInterface)
 	{
 		switch (DirectXVersion)
 		{
@@ -97,7 +97,7 @@ ULONG m_IDirect3DTextureX::Release(DWORD DirectXVersion)
 
 	ULONG ref;
 
-	if (Config.Dd7to9)
+	if (!ProxyInterface)
 	{
 		switch (DirectXVersion)
 		{
@@ -249,6 +249,11 @@ void m_IDirect3DTextureX::InitTexture(DWORD DirectXVersion)
 {
 	WrapperInterface = new m_IDirect3DTexture((LPDIRECT3DTEXTURE)ProxyInterface, this);
 	WrapperInterface2 = new m_IDirect3DTexture2((LPDIRECT3DTEXTURE2)ProxyInterface, this);
+
+	if (ProxyInterface)
+	{
+		return;
+	}
 
 	AddRef(DirectXVersion);
 

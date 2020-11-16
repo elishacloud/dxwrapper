@@ -76,7 +76,7 @@ ULONG m_IDirect3DViewportX::AddRef(DWORD DirectXVersion)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	if (Config.Dd7to9)
+	if (!ProxyInterface)
 	{
 		switch (DirectXVersion)
 		{
@@ -101,7 +101,7 @@ ULONG m_IDirect3DViewportX::Release(DWORD DirectXVersion)
 
 	ULONG ref;
 
-	if (Config.Dd7to9)
+	if (!ProxyInterface)
 	{
 		switch (DirectXVersion)
 		{
@@ -507,6 +507,11 @@ void m_IDirect3DViewportX::InitViewport(DWORD DirectXVersion)
 	WrapperInterface = new m_IDirect3DViewport((LPDIRECT3DVIEWPORT)ProxyInterface, this);
 	WrapperInterface2 = new m_IDirect3DViewport2((LPDIRECT3DVIEWPORT2)ProxyInterface, this);
 	WrapperInterface3 = new m_IDirect3DViewport3((LPDIRECT3DVIEWPORT3)ProxyInterface, this);
+
+	if (ProxyInterface)
+	{
+		return;
+	}
 
 	AddRef(DirectXVersion);
 }

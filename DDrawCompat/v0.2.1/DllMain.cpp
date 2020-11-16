@@ -205,10 +205,10 @@ namespace Compat21
 			{
 				if (Compat::origProcs.SetAppCompatData)
 				{
-					typedef HRESULT WINAPI SetAppCompatDataFunc(DWORD, DWORD);
-					auto setAppCompatData = reinterpret_cast<SetAppCompatDataFunc*>(Compat::origProcs.SetAppCompatData);
-					const DWORD disableMaxWindowedMode = 12;
-					setAppCompatData(disableMaxWindowedMode, 0);
+					//typedef HRESULT WINAPI SetAppCompatDataFunc(DWORD, DWORD);
+					//auto setAppCompatData = reinterpret_cast<SetAppCompatDataFunc*>(Compat::origProcs.SetAppCompatData);
+					//const DWORD disableMaxWindowedMode = 12;
+					//setAppCompatData(disableMaxWindowedMode, 0);
 				}
 			}
 			//********** End Edit ***************
