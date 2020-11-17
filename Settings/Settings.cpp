@@ -233,6 +233,20 @@ void Settings::SetValue(char* name, char* value, bool* setting)
 // Set config from string (file)
 void __stdcall Settings::ParseCallback(char* name, char* value)
 {
+	// Check for the existance of certian values
+	if (!_strcmpi(name, "CacheClipPlane"))
+	{
+		Config.CacheClipPlaneNotSet = false;
+	}
+	if (!_strcmpi(name, "DDrawResolutionHack"))
+	{
+		Config.DdrawResolutionHackNotSet = false;
+	}
+	if (!_strcmpi(name, "DisableMaxWindowedMode"))
+	{
+		Config.DisableMaxWindowedModeNotSet = false;
+	}
+
 	// Set Value of local settings
 	VISIT_LOCAL_SETTINGS(SET_LOCAL_VALUE);
 
@@ -374,10 +388,7 @@ void Settings::SetDefaultConfigSettings()
 	// Set defaults
 	Config.DisableHighDPIScaling = true;
 	Config.ResetScreenRes = true;
-	Config.DdrawResolutionHack = true;
-	Config.CacheClipPlane = true;
 	Config.FixSpeakerConfigType = true;
-	Config.DXPrimaryEmulation[AppCompatDataType.DisableMaxWindowedMode] = true;
 
 	// Set other default values
 	Config.LoopSleepTime = 120;
@@ -388,6 +399,11 @@ void Settings::SetDefaultConfigSettings()
 	Config.AudioFadeOutDelayMS = 20;
 	SetValue("ExcludeProcess", "dxwnd.exe", &Config.ExcludeProcess);
 	SetValue("ExcludeProcess", "dgVoodooSetup.exe", &Config.ExcludeProcess);
+
+	// Default to 'true' until we know it is set
+	Config.DdrawResolutionHackNotSet = true;
+	Config.CacheClipPlaneNotSet = true;
+	Config.DisableMaxWindowedModeNotSet = true;
 }
 
 void CONFIG::Init()
@@ -601,5 +617,15 @@ void CONFIG::Init()
 	if (SingleProcAffinity)
 	{
 		DDrawCompatNoProcAffinity = true;
+	}
+
+	// Set unset options
+	if (Config.DdrawResolutionHackNotSet)
+	{
+		Config.DdrawResolutionHack = true;
+	}
+	if (Config.CacheClipPlaneNotSet)
+	{
+		Config.CacheClipPlane = true;
 	}
 }

@@ -189,14 +189,14 @@ namespace Compat20
 			//********** End Edit ***************
 
 			//********** Begin Edit *************
-			if (Config.DXPrimaryEmulation[AppCompatDataType.DisableMaxWindowedMode])
+			if (Config.DisableMaxWindowedModeNotSet)
 			{
 				if (Compat::origProcs.SetAppCompatData)
 				{
-					//typedef HRESULT WINAPI SetAppCompatDataFunc(DWORD, DWORD);
-					//auto setAppCompatData = reinterpret_cast<SetAppCompatDataFunc*>(Compat::origProcs.SetAppCompatData);
-					//const DWORD disableMaxWindowedMode = 12;
-					//setAppCompatData(disableMaxWindowedMode, 0);
+					typedef HRESULT WINAPI SetAppCompatDataFunc(DWORD, DWORD);
+					auto setAppCompatData = reinterpret_cast<SetAppCompatDataFunc*>(Compat::origProcs.SetAppCompatData);
+					const DWORD disableMaxWindowedMode = 12;
+					setAppCompatData(disableMaxWindowedMode, 0);
 				}
 			}
 			//********** End Edit ***************
