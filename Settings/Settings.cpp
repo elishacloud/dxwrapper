@@ -374,8 +374,9 @@ void Settings::SetDefaultConfigSettings()
 	// Set defaults
 	Config.DisableHighDPIScaling = true;
 	Config.ResetScreenRes = true;
-	Config.CacheClipPlane = true;
 	Config.DdrawResolutionHack = true;
+	Config.CacheClipPlane = true;
+	Config.FixSpeakerConfigType = true;
 	Config.DXPrimaryEmulation[AppCompatDataType.DisableMaxWindowedMode] = true;
 
 	// Set other default values
@@ -384,7 +385,6 @@ void Settings::SetDefaultConfigSettings()
 	Config.PrimaryBufferBits = 16;
 	Config.PrimaryBufferSamples = 44100;
 	Config.PrimaryBufferChannels = 2;
-	Config.FixSpeakerConfigType = 1;
 	Config.AudioFadeOutDelayMS = 20;
 	SetValue("ExcludeProcess", "dxwnd.exe", &Config.ExcludeProcess);
 	SetValue("ExcludeProcess", "dgVoodooSetup.exe", &Config.ExcludeProcess);

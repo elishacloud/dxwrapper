@@ -258,7 +258,7 @@ struct CONFIG
 	DWORD PrimaryBufferChannels;
 	bool AudioClipDetection;
 	DWORD AudioFadeOutDelayMS;
-	DWORD FixSpeakerConfigType;
+	bool FixSpeakerConfigType;
 	bool StoppedDriverWorkaround;
 };
 extern CONFIG Config;
