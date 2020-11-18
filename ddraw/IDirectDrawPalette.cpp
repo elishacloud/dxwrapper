@@ -195,16 +195,16 @@ HRESULT m_IDirectDrawPalette::SetEntries(DWORD dwFlags, DWORD dwStartingEntry, D
 		// Present new palette
 		if (ddrawParent)
 		{
-			if (paletteCaps & DDPCAPS_VSYNC)
-			{
-				ddrawParent->SetVsync();
-			}
-
 			if (paletteCaps & DDPCAPS_PRIMARYSURFACE)
 			{
 				m_IDirectDrawSurfaceX *lpDDSrcSurfaceX = ddrawParent->GetPrimarySurface();
 				if (lpDDSrcSurfaceX)
 				{
+					if (paletteCaps & DDPCAPS_VSYNC)
+					{
+						ddrawParent->SetVsync();
+					}
+
 					lpDDSrcSurfaceX->PresentSurface();
 				}
 			}
