@@ -2379,8 +2379,15 @@ HRESULT m_IDirectDrawSurfaceX::GetUniquenessValue(LPDWORD lpValue)
 			return DDERR_INVALIDPARAMS;
 		}
 
-		// The only defined uniqueness value is 0.
-		*lpValue = UniquenessValue;
+		if (IsSurfaceLocked() || IsSurfaceInDC())
+		{
+			// The only defined uniqueness value is 0, which indicates that the surface is likely to be changing beyond the control of DirectDraw.
+			*lpValue = 0;
+		}
+		else
+		{
+			*lpValue = UniquenessValue;
+		}
 		return DD_OK;
 	}
 
@@ -2394,7 +2401,7 @@ HRESULT m_IDirectDrawSurfaceX::ChangeUniquenessValue()
 	if (Config.Dd7to9)
 	{
 		// Manually updates the uniqueness value for this surface.
-		UniquenessValue = (DWORD)this + UniquenessValue + 1;
+		UniquenessValue += 1;
 		return DD_OK;
 	}
 
@@ -2522,6 +2529,9 @@ void m_IDirectDrawSurfaceX::InitSurface(DWORD DirectXVersion)
 	{
 		ddrawParent->AddSurfaceToVector(this);
 	}
+
+	// Set Uniqueness Value
+	UniquenessValue = 1;
 
 	// Update surface description and create backbuffers
 	InitSurfaceDesc(DirectXVersion);
@@ -3655,6 +3665,9 @@ inline void m_IDirectDrawSurfaceX::SetDirtyFlag()
 	{
 		dirtyFlag = true;
 	}
+
+	// Update Uniqueness Value
+	ChangeUniquenessValue();
 }
 
 inline void m_IDirectDrawSurfaceX::BeginWritePresent(bool isSkipScene)
