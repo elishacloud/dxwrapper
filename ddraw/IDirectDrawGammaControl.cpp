@@ -89,9 +89,14 @@ HRESULT m_IDirectDrawGammaControl::GetGammaRamp(DWORD dwFlags, LPDDGAMMARAMP lpR
 
 	if (!ProxyInterface)
 	{
-		if (dwFlags || !lpRampData)
+		if (!lpRampData)
 		{
 			return DDERR_INVALIDPARAMS;
+		}
+
+		if (dwFlags & DDSGR_CALIBRATE)
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Calibrating gamma ramps is not Implemented");
 		}
 
 		ConvertGammaRamp(*lpRampData, RampData);

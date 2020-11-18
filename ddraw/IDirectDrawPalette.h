@@ -23,7 +23,6 @@ private:
 	RGBDWORD *rgbPalette = nullptr;				// Rgb translated palette
 	DWORD PaletteUSN = (DWORD)this;				// The USN that's used to see if the palette data was updated
 	DWORD entryCount = 256;						// Number of palette entries (Default to 256 entries)
-	bool hasAlpha = false;						// Raw palette has alpha data
 
 	// Interface initialization functions
 	void InitPalette();
@@ -38,7 +37,7 @@ public:
 
 		ProxyAddressLookupTable.SaveAddress(this, (ProxyInterface) ? ProxyInterface : (void*)this);
 	}
-	m_IDirectDrawPalette(m_IDirectDrawX *Interface, DWORD dwFlags, LPPALETTEENTRY lpDDColorArray) : ddrawParent(Interface), paletteCaps(dwFlags)
+	m_IDirectDrawPalette(m_IDirectDrawX *Interface, DWORD dwFlags, LPPALETTEENTRY lpDDColorArray) : ddrawParent(Interface), paletteCaps(dwFlags & ~DDPCAPS_INITIALIZE)
 	{
 		LOG_LIMIT(3, "Creating interface " << __FUNCTION__ << "(" << this << ")");
 

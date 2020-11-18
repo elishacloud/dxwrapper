@@ -171,7 +171,7 @@ HRESULT m_IDirectDrawPalette::SetEntries(DWORD dwFlags, DWORD dwStartingEntry, D
 		for (UINT i = dwStartingEntry; i < dwStartingEntry + dwCount; i++)
 		{
 			// Translate the raw palette to ARGB
-			if (hasAlpha)
+			if (paletteCaps & DDPCAPS_ALPHA)
 			{
 				// Include peFlags as 8bit alpha
 				rgbPalette[i].pe.blue = rawPalette[i].peBlue;
@@ -195,12 +195,18 @@ HRESULT m_IDirectDrawPalette::SetEntries(DWORD dwFlags, DWORD dwStartingEntry, D
 		// Present new palette
 		if (ddrawParent)
 		{
-			ddrawParent->SetVsync();
-
-			m_IDirectDrawSurfaceX *lpDDSrcSurfaceX = ddrawParent->GetPrimarySurface();
-			if (lpDDSrcSurfaceX)
+			if (paletteCaps & DDPCAPS_VSYNC)
 			{
-				lpDDSrcSurfaceX->PresentSurface();
+				ddrawParent->SetVsync();
+			}
+
+			if (paletteCaps & DDPCAPS_PRIMARYSURFACE)
+			{
+				m_IDirectDrawSurfaceX *lpDDSrcSurfaceX = ddrawParent->GetPrimarySurface();
+				if (lpDDSrcSurfaceX)
+				{
+					lpDDSrcSurfaceX->PresentSurface();
+				}
 			}
 		}
 
@@ -218,7 +224,12 @@ void m_IDirectDrawPalette::InitPalette()
 	}
 
 	// Create palette of requested bit size
-	if (paletteCaps & DDPCAPS_1BIT)
+	if ((paletteCaps & DDPCAPS_8BIT) || (paletteCaps & DDPCAPS_ALLOW256) ||
+		((paletteCaps & DDPCAPS_8BITENTRIES) && (paletteCaps & (DDPCAPS_1BIT | DDPCAPS_2BIT | DDPCAPS_4BIT))))
+	{
+		entryCount = 256;
+	}
+	else if (paletteCaps & DDPCAPS_1BIT)
 	{
 		entryCount = 2;
 	}
@@ -230,9 +241,11 @@ void m_IDirectDrawPalette::InitPalette()
 	{
 		entryCount = 16;
 	}
-	else if (paletteCaps & DDPCAPS_8BIT || paletteCaps & DDPCAPS_ALLOW256)
+
+	// Check for unsupported flags
+	if (paletteCaps & DDPCAPS_PRIMARYSURFACELEFT)
 	{
-		entryCount = 256;
+		Logging::Log() << __FUNCTION__ << " Warning: Primary surface left is not implemented.";
 	}
 
 	// Allocate raw ddraw palette
