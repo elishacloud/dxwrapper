@@ -29,6 +29,13 @@ DWORD ddrawRefCount = 0;
 // Store a list of ddraw devices
 std::vector<m_IDirectDrawX*> DDrawVector;
 
+// Mouse hook
+HANDLE ghWriteEvent = nullptr;
+HANDLE threadID = nullptr;
+HHOOK m_hook = nullptr;
+bool bMouseChange = false;
+POINT mousePos;
+
 // Cooperative level settings
 HWND MainhWnd = nullptr;
 HDC MainhDC = nullptr;
@@ -1369,7 +1376,7 @@ HRESULT m_IDirectDrawX::SetCooperativeLevel(HWND hWnd, DWORD dwFlags)
 		}
 
 		g_hookmap[hWnd] = this;
-		g_hook = SetWindowsHookEx(WH_CBT, CBTProc, nullptr, GetWindowThreadProcessId(hWnd, nullptr));
+		g_hook = SetWindowsHookEx(WH_CBT, CBTProc, GetModuleHandle(nullptr), GetWindowThreadProcessId(hWnd, nullptr));
 
 		chWnd = hWnd;
 	}
@@ -1938,6 +1945,24 @@ void m_IDirectDrawX::InitDdraw(DWORD DirectXVersion)
 		SetDefaultDisplayMode = (!displayWidth || !displayHeight || !displayRefreshRate);
 		SetResolution = false;
 
+		// Set mouse hook
+		if (!m_hook)
+		{
+			m_hook = SetWindowsHookEx(WH_MOUSE_LL, mouseHookProc, GetModuleHandle(nullptr), 0);
+		}
+
+		// Start thread
+		if (!threadID)
+		{
+			threadID = CreateThread(nullptr, 0, setMousePosThread, nullptr, 0, nullptr);
+		}
+
+		// Create event
+		if (!ghWriteEvent)
+		{
+			ghWriteEvent = CreateEvent(nullptr, FALSE, FALSE, TEXT("DxwrapperMouseEvent"));
+		}
+
 		// Prepair shared memory
 		m_IDirectDrawSurfaceX::StartSharedEmulatedMemory();
 	}
@@ -2292,7 +2317,7 @@ HRESULT m_IDirectDrawX::CreateD3D9Device()
 			// Backbuffer
 			presParams.BackBufferFormat = D9DisplayFormat;
 			// Display mode refresh
-			presParams.FullScreen_RefreshRateInHz = displayModeRefreshRate;
+			presParams.FullScreen_RefreshRateInHz = displayRefreshRate;
 			// Window handle
 			presParams.hDeviceWindow = nullptr;
 		}
@@ -2845,4 +2870,58 @@ int WINAPI dd_GetDeviceCaps(HDC hdc, int index)
 	}
 
 	return m_pGetDeviceCaps(hdc, index);
+}
+
+// A thread to bypass Windows preventing hooks from modifying mouse position
+DWORD WINAPI setMousePosThread(LPVOID)
+{
+	DWORD dwWaitResult = 0;
+	do {
+		dwWaitResult = WaitForSingleObject(ghWriteEvent, INFINITE);
+		if (bMouseChange)
+		{
+			SetCursorPos(mousePos.x, mousePos.y);
+			bMouseChange = false;
+		}
+	} while (!Config.Exiting && dwWaitResult == WAIT_OBJECT_0);
+
+	// Unhook mouse
+	if (m_hook)
+	{
+		UnhookWindowsHookEx(m_hook);
+		m_hook = nullptr;
+	}
+
+	// Close handle
+	if (ghWriteEvent)
+	{
+		CloseHandle(ghWriteEvent);
+		ghWriteEvent = nullptr;
+	}
+
+	threadID = nullptr;
+	return 0;
+}
+
+LRESULT CALLBACK mouseHookProc(int nCode, WPARAM wParam, LPARAM lParam)
+{
+	POINT p;
+	if (GetCursorPos(&p))
+	{
+		if (ddrawRefCount && displayModeWidth && displayModeHeight &&
+			displayModeWidth != displayWidth && displayModeHeight != displayHeight &&
+			(!Config.EnableWindowMode || (Config.EnableWindowMode && Config.FullscreenWindowMode)) &&
+			!isWindowed && threadID && ghWriteEvent && IsWindow(MainhWnd) && !IsIconic(MainhWnd))
+		{
+			mousePos.x = min(p.x, (LONG)displayModeWidth - 1);
+			mousePos.y = min(p.y, (LONG)displayModeHeight - 1);
+
+			if (mousePos.x != p.x || mousePos.y != p.y)
+			{
+				bMouseChange = true;
+				SetEvent(ghWriteEvent);
+			}
+		}
+	}
+	return CallNextHookEx(nullptr, nCode, wParam, lParam);
 }
