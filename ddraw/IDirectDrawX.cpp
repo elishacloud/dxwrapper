@@ -1627,11 +1627,7 @@ HRESULT m_IDirectDrawX::GetAvailableVidMem2(LPDDSCAPS2 lpDDSCaps2, LPDWORD lpdwT
 		}
 		else
 		{
-			if (SUCCEEDED(CheckInterface(__FUNCTION__, true)))
-			{
-				AvailableMemory = d3d9Device->GetAvailableTextureMem();
-				ReleaseD3d9Device();
-			}
+			TotalMemory = Utils::GetVideoRam(MaxVidMemory);
 		}
 
 		// If memory cannot be found just return default memory
@@ -2677,12 +2673,12 @@ HRESULT m_IDirectDrawX::CreateGammaInterface(LPVOID *ppvObj)
 void m_IDirectDrawX::AdjustVidMemory(LPDWORD lpdwTotal, LPDWORD lpdwFree)
 {
 	DWORD TotalVidMem = (lpdwTotal) ? *lpdwTotal : (lpdwFree) ? *lpdwFree : MaxVidMemory;
-	TotalVidMem = (TotalVidMem > MaxVidMemory) ? MaxVidMemory : TotalVidMem;
+	TotalVidMem = (!TotalVidMem || TotalVidMem > MaxVidMemory) ? MaxVidMemory : TotalVidMem;
 	if (lpdwTotal)
 	{
 		*lpdwTotal = TotalVidMem;
 	}
-	if (lpdwFree && *lpdwFree >= TotalVidMem)
+	if (lpdwFree && (!*lpdwFree || *lpdwFree >= TotalVidMem))
 	{
 		*lpdwFree = TotalVidMem - UsedVidMemory;
 	}

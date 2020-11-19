@@ -24,8 +24,17 @@
 *
 * DDrawResolutionHack taken from source code found in LegacyD3DResolutionHack
 * https://github.com/UCyborg/LegacyD3DResolutionHack
+*
+* GetVideoRam taken from source code found in doom3.gpl
+* https://github.com/TTimo/doom3.gpl
 */
 
+#define WIN32_LEAN_AND_MEAN
+#include <Windows.h>
+#include <atlbase.h>
+#include <comdef.h>
+#include <comutil.h>
+#include <Wbemidl.h>
 #include "Settings\Settings.h"
 #include "Dllmain\Dllmain.h"
 #include "Wrappers\wrapper.h"
@@ -40,6 +49,8 @@ extern "C"
 #include "Logging\Logging.h"
 
 #undef LoadLibrary
+
+#pragma comment (lib, "wbemuuid.lib")
 
 typedef enum PROCESS_DPI_AWARENESS {
 	PROCESS_DPI_UNAWARE = 0,
@@ -919,6 +930,60 @@ void Utils::DisableGameUX()
 	HMODULE h_kernel32 = GetModuleHandle("kernel32");
 	InterlockedExchangePointer((PVOID*)&p_CreateProcessA, Hook::HotPatch(Hook::GetProcAddress(h_kernel32, "CreateProcessA"), "CreateProcessA", *CreateProcessAHandler));
 	InterlockedExchangePointer((PVOID*)&p_CreateProcessW, Hook::HotPatch(Hook::GetProcAddress(h_kernel32, "CreateProcessW"), "CreateProcessW", *CreateProcessWHandler));
+}
+
+DWORD Utils::GetVideoRam(DWORD DefaultSize)
+{
+	DWORD retSize = DefaultSize;
+
+	CComPtr<IWbemLocator> spLoc = NULL;
+	HRESULT hr = CoCreateInstance(CLSID_WbemLocator, 0, CLSCTX_SERVER, IID_IWbemLocator, (LPVOID *)&spLoc);
+	if (hr != S_OK || spLoc == NULL)
+	{
+		return retSize;
+	}
+
+	CComBSTR bstrNamespace(_T("\\\\.\\root\\CIMV2"));
+	CComPtr<IWbemServices> spServices;
+
+	// Connect to CIM
+	hr = spLoc->ConnectServer(bstrNamespace, NULL, NULL, 0, NULL, 0, 0, &spServices);
+	if (hr != WBEM_S_NO_ERROR)
+	{
+		return retSize;
+	}
+
+	// Switch the security level to IMPERSONATE so that provider will grant access to system-level objects.  
+	hr = CoSetProxyBlanket(spServices, RPC_C_AUTHN_WINNT, RPC_C_AUTHZ_NONE, NULL, RPC_C_AUTHN_LEVEL_CALL, RPC_C_IMP_LEVEL_IMPERSONATE, NULL, EOAC_NONE);
+	if (hr != S_OK)
+	{
+		return retSize;
+	}
+
+	// Get the vid controller
+	CComPtr<IEnumWbemClassObject> spEnumInst = NULL;
+	hr = spServices->CreateInstanceEnum(CComBSTR("Win32_VideoController"), WBEM_FLAG_SHALLOW, NULL, &spEnumInst);
+	if (hr != WBEM_S_NO_ERROR || spEnumInst == NULL)
+	{
+		return retSize;
+	}
+
+	ULONG uNumOfInstances = 0;
+	CComPtr<IWbemClassObject> spInstance = NULL;
+	hr = spEnumInst->Next(10000, 1, &spInstance, &uNumOfInstances);
+
+	if (hr == S_OK && spInstance)
+	{
+		// Get properties from the object
+		CComVariant varSize;
+		hr = spInstance->Get(CComBSTR(_T("AdapterRAM")), 0, &varSize, 0, 0);
+		if (hr == S_OK)
+		{
+			retSize = (varSize.intVal) ? (DWORD)varSize.intVal : retSize;
+		}
+	}
+
+	return retSize;
 }
 
 bool Utils::SetWndProcFilter(HWND hWnd)

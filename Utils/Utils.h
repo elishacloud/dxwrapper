@@ -37,6 +37,7 @@ namespace Utils
 	bool IsWindowMessageFiltered(UINT uMsg, LRESULT *lpReturn);
 	void GetScreenSize(HWND hwnd, LONG &screenWidth, LONG &screenHeight);
 	void GetScreenSize(HWND hwnd, DWORD &screenWidth, DWORD &screenHeight);
+	DWORD GetVideoRam(DWORD DefaultSize);
 
 	namespace WriteMemory
 	{
