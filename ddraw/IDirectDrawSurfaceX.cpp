@@ -2685,14 +2685,47 @@ HRESULT m_IDirectDrawSurfaceX::CreateD3d9Surface()
 	// Create primary texture
 	if (!IsDirect3DSurface && (IsPrimarySurface() || IsBackBuffer()))
 	{
-		if (FAILED((*d3d9Device)->CreateTexture(surfaceDesc2.dwWidth, surfaceDesc2.dwHeight, 1, D3DUSAGE_DYNAMIC, TextureFormat, D3DPOOL_DEFAULT, &surfaceTexture, nullptr)))
+		if (ddrawParent->IsDynamicTexturesSupported() && !Config.DdrawWriteToGDI)
 		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error: failed to create Primary surface texture size: " << surfaceDesc2.dwWidth << "x" << surfaceDesc2.dwHeight << " Format: " << surfaceFormat);
-			return DDERR_GENERIC;
+			if (FAILED((*d3d9Device)->CreateTexture(surfaceDesc2.dwWidth, surfaceDesc2.dwHeight, 1, D3DUSAGE_DYNAMIC, TextureFormat, D3DPOOL_DEFAULT, &surfaceTexture, nullptr)))
+			{
+				LOG_LIMIT(100, __FUNCTION__ << " Error: failed to create Primary surface texture size: " << surfaceDesc2.dwWidth << "x" << surfaceDesc2.dwHeight << " Format: " << surfaceFormat);
+				return DDERR_GENERIC;
+			}
+		}
+		else
+		{
+			//  Create lockable texture
+			if (FAILED((*d3d9Device)->CreateTexture(surfaceDesc2.dwWidth, surfaceDesc2.dwHeight, 1, 0, TextureFormat, D3DPOOL_SYSTEMMEM, &surfaceTexture, nullptr)))
+			{
+				LOG_LIMIT(100, __FUNCTION__ << " Error: failed to create Primary surface texture size: " << surfaceDesc2.dwWidth << "x" << surfaceDesc2.dwHeight << " Format: " << surfaceFormat);
+				return DDERR_GENERIC;
+			}
+
+			// Create display texture
+			if (IsPrimarySurface() && !Config.DdrawWriteToGDI)
+			{
+				if (FAILED((*d3d9Device)->CreateTexture(surfaceDesc2.dwWidth, surfaceDesc2.dwHeight, 1, 0, TextureFormat, D3DPOOL_DEFAULT, &displayTexture, nullptr)))
+				{
+					LOG_LIMIT(100, __FUNCTION__ << " Error: failed to create display surface texture size: " << surfaceDesc2.dwWidth << "x" << surfaceDesc2.dwHeight << " Format: " << surfaceFormat);
+					return DDERR_GENERIC;
+				}
+			}
+		}
+
+		// Create palette surface
+		if (surfaceFormat == D3DFMT_P8 && IsPrimarySurface())
+		{
+			if (FAILED((*d3d9Device)->CreateTexture(256, 256, 1, 0, D3DFMT_X8R8G8B8, D3DPOOL_MANAGED, &paletteTexture, nullptr)) ||
+				FAILED((*d3d9Device)->CreatePixelShader((DWORD*)PalettePixelShaderSrc, &pixelShader)))
+			{
+				LOG_LIMIT(100, __FUNCTION__ << " Error: failed to create palette surface texture");
+				return DDERR_GENERIC;
+			}
 		}
 	}
 	// Create texture
-	if (IsTexture())
+	else if (IsTexture())
 	{
 		if (FAILED((*d3d9Device)->CreateTexture(surfaceDesc2.dwWidth, surfaceDesc2.dwHeight, 1, 0, TextureFormat, D3DPOOL_SYSTEMMEM, &surfaceTexture, nullptr)))
 		{
@@ -2706,23 +2739,6 @@ HRESULT m_IDirectDrawSurfaceX::CreateD3d9Surface()
 		if (FAILED((*d3d9Device)->CreateOffscreenPlainSurface(surfaceDesc2.dwWidth, surfaceDesc2.dwHeight, Format, D3DPOOL_SYSTEMMEM, &surface3D, nullptr)))
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Error: failed to create surface size: " << surfaceDesc2.dwWidth << "x" << surfaceDesc2.dwHeight << " Format: " << surfaceFormat);
-			return DDERR_GENERIC;
-		}
-	}
-
-	// Is 3D surface or is writing surface to GDI
-	if (IsDirect3DSurface || Config.DdrawWriteToGDI)
-	{
-		return DD_OK;
-	}
-
-	// Create palette surface
-	if (surfaceFormat == D3DFMT_P8 && IsPrimarySurface())
-	{
-		if (FAILED((*d3d9Device)->CreateTexture(256, 256, 1, 0, D3DFMT_X8R8G8B8, D3DPOOL_MANAGED, &paletteTexture, nullptr)) ||
-			FAILED((*d3d9Device)->CreatePixelShader((DWORD*)PalettePixelShaderSrc, &pixelShader)))
-		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error: failed to create palette surface texture");
 			return DDERR_GENERIC;
 		}
 	}
@@ -2761,54 +2777,20 @@ HRESULT m_IDirectDrawSurfaceX::CreateD3d9Surface()
 	// Mark palette as updated
 	PaletteUSN++;
 
-	// Only display surface if it is primary for now...
-	if (!IsPrimarySurface())
+	// Only need to create vertex buffer for primary surface when using DirectDraw and not writing to GDI
+	if (!IsPrimarySurface() || IsDirect3DSurface || Config.DdrawWriteToGDI)
 	{
 		return DD_OK;
 	}
 
-	// Set vertex shader
-	if (FAILED((*d3d9Device)->SetVertexShader(nullptr)))
-	{
-		LOG_LIMIT(100, __FUNCTION__ << " Error: failed to set vertex shader");
-		return DDERR_GENERIC;
-	}
-
-	// Set fv format
-	if (FAILED((*d3d9Device)->SetFVF(D3DFVF_XYZRHW | D3DFVF_TEX1)))
-	{
-		LOG_LIMIT(100, __FUNCTION__ << " Error: failed to set the current vertex stream format");
-		return DDERR_GENERIC;
-	}
-
 	// Create vertex buffer
-	if (FAILED((*d3d9Device)->CreateVertexBuffer(sizeof(TLVERTEX) * 4, D3DUSAGE_DYNAMIC, (D3DFVF_XYZRHW | D3DFVF_TEX1), D3DPOOL_DEFAULT, &vertexBuffer, nullptr)))
+	if (FAILED((*d3d9Device)->CreateVertexBuffer(sizeof(TLVERTEX) * 4, D3DUSAGE_DYNAMIC, TLVERTEXFVF, D3DPOOL_DEFAULT, &vertexBuffer, nullptr)))
 	{
 		LOG_LIMIT(100, __FUNCTION__ << " Error: failed to create vertex buffer");
 		return DDERR_GENERIC;
 	}
 
-	// Set stream source
-	if (FAILED((*d3d9Device)->SetStreamSource(0, vertexBuffer, 0, sizeof(TLVERTEX))))
-	{
-		LOG_LIMIT(100, __FUNCTION__ << " Error: failed to set vertex buffer stream source");
-		return DDERR_GENERIC;
-	}
-
-	// Set render states(no lighting)
-	if (FAILED((*d3d9Device)->SetRenderState(D3DRS_LIGHTING, FALSE)))
-	{
-		LOG_LIMIT(100, __FUNCTION__ << " Error: failed to set device render state(no lighting)");
-		return DDERR_GENERIC;
-	}
-
-	// Set scale mode to linear
-	if (FAILED((*d3d9Device)->SetSamplerState(0, D3DSAMP_MAGFILTER, D3DTEXF_POINT)))
-	{
-		LOG_LIMIT(100, __FUNCTION__ << " Warning: failed to set D3D device to LINEAR sampling");
-	}
-
-	// Setup verticies (0,0,currentWidth,currentHeight)
+	// Setup verticies (0, 0, currentWidth, currentHeight)
 	TLVERTEX* vertices;
 
 	// Lock vertex buffer
@@ -3199,6 +3181,13 @@ void m_IDirectDrawSurfaceX::ReleaseD9Surface(bool BackupData)
 		ReleaseD9Interface(&surfaceTexture);
 	}
 
+	// Release d3d9 display surface texture
+	if (displayTexture)
+	{
+		Logging::LogDebug() << __FUNCTION__ << " Releasing Direct3D9 display texture surface";
+		ReleaseD9Interface(&displayTexture);
+	}
+
 	// Release d3d9 palette surface texture
 	if (paletteTexture)
 	{
@@ -3301,7 +3290,22 @@ HRESULT m_IDirectDrawSurfaceX::PresentSurface(BOOL isSkipScene)
 	HRESULT hr = DD_OK;
 	do {
 		// Set texture
-		if (surfaceTexture)
+		if (displayTexture && surfaceTexture)
+		{
+			if (FAILED((*d3d9Device)->UpdateTexture(surfaceTexture, displayTexture)))
+			{
+				LOG_LIMIT(100, __FUNCTION__ << " Error: failed to update texture");
+				hr = DDERR_GENERIC;
+				break;
+			}
+			if (FAILED((*d3d9Device)->SetTexture(0, displayTexture)))
+			{
+				LOG_LIMIT(100, __FUNCTION__ << " Error: failed to set display texture");
+				hr = DDERR_GENERIC;
+				break;
+			}
+		}
+		else if (surfaceTexture)
 		{
 			if (FAILED((*d3d9Device)->SetTexture(0, surfaceTexture)))
 			{
@@ -3311,9 +3315,48 @@ HRESULT m_IDirectDrawSurfaceX::PresentSurface(BOOL isSkipScene)
 			}
 		}
 
-		// Set palette texture
-		if (paletteTexture)
+		// Set vertex buffer and lighting
+		if (vertexBuffer)
 		{
+			// Set vertex shader
+			if (FAILED((*d3d9Device)->SetVertexShader(nullptr)))
+			{
+				LOG_LIMIT(100, __FUNCTION__ << " Error: failed to set vertex shader");
+				return DDERR_GENERIC;
+			}
+
+			// Set vertex format
+			if (FAILED((*d3d9Device)->SetFVF(TLVERTEXFVF)))
+			{
+				LOG_LIMIT(100, __FUNCTION__ << " Error: failed to set the current vertex stream format");
+				return DDERR_GENERIC;
+			}
+
+			// Set stream source
+			if (FAILED((*d3d9Device)->SetStreamSource(0, vertexBuffer, 0, sizeof(TLVERTEX))))
+			{
+				LOG_LIMIT(100, __FUNCTION__ << " Error: failed to set vertex buffer stream source");
+				return DDERR_GENERIC;
+			}
+
+			// Set render states(no lighting)
+			if (FAILED((*d3d9Device)->SetRenderState(D3DRS_LIGHTING, FALSE)))
+			{
+				LOG_LIMIT(100, __FUNCTION__ << " Error: failed to set device render state(no lighting)");
+				return DDERR_GENERIC;
+			}
+
+			// Set scale mode to linear
+			if (FAILED((*d3d9Device)->SetSamplerState(0, D3DSAMP_MAGFILTER, D3DTEXF_POINT)))
+			{
+				LOG_LIMIT(100, __FUNCTION__ << " Warning: failed to set D3D device to LINEAR sampling");
+			}
+		}
+
+		// Handle palette surfaces
+		if (paletteTexture && pixelShader)
+		{
+			// Set palette texture
 			UpdatePaletteData();
 			if (FAILED((*d3d9Device)->SetTexture(1, paletteTexture)))
 			{
@@ -3321,11 +3364,8 @@ HRESULT m_IDirectDrawSurfaceX::PresentSurface(BOOL isSkipScene)
 				hr = DDERR_GENERIC;
 				break;
 			}
-		}
 
-		// Set pixel shader
-		if (pixelShader)
-		{
+			// Set pixel shader
 			if (FAILED((*d3d9Device)->SetPixelShader(pixelShader)))
 			{
 				LOG_LIMIT(100, __FUNCTION__ << " Error: failed to set pixel shader");
@@ -3334,8 +3374,8 @@ HRESULT m_IDirectDrawSurfaceX::PresentSurface(BOOL isSkipScene)
 			}
 		}
 
-		// EndScene
-		if (FAILED(ddrawParent->EndScene()))
+		// Present to d3d9
+		if (FAILED(ddrawParent->Present()))
 		{
 			hr = DDERR_GENERIC;
 			break;

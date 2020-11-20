@@ -188,6 +188,7 @@ public:
 	void GetResolution(DWORD &Width, DWORD &Height, DWORD &RefreshRate, DWORD &BPP);
 	void GetDisplay(DWORD &Width, DWORD &Height);
 	bool IsUsing3D();
+	bool IsDynamicTexturesSupported();
 
 	// Surface vector functions
 	void AddSurfaceToVector(m_IDirectDrawSurfaceX* lpSurfaceX);
@@ -212,6 +213,5 @@ public:
 
 	// Begin & end scene
 	void SetVsync();
-	HRESULT BeginScene();
-	HRESULT EndScene();
+	HRESULT Present();
 };

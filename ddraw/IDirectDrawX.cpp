@@ -73,9 +73,7 @@ bool AllowModeX;
 bool MultiThreaded;
 bool FUPPreserve;
 bool NoWindowChanges;
-
-// Convert to Direct3D9
-bool IsInScene;						// Used for BeginScene/EndScene
+bool DynamicTexturesSupported;
 bool EnableWaitVsync;
 
 // High resolution counter used for auto frame skipping
@@ -1911,9 +1909,6 @@ void m_IDirectDrawX::InitDdraw(DWORD DirectXVersion)
 		MultiThreaded = false;
 		FUPPreserve = false;
 		NoWindowChanges = false;
-
-		// Convert to Direct3D9
-		IsInScene = false;
 		EnableWaitVsync = false;
 
 		// High resolution counter
@@ -2050,10 +2045,6 @@ void m_IDirectDrawX::ReleaseDdraw()
 		// Release d3d9device
 		if (d3d9Device)
 		{
-			// EndEcene
-			IsInScene = false;
-			d3d9Device->EndScene();
-
 			ReleaseD9Interface(&d3d9Device);
 		}
 
@@ -2165,6 +2156,11 @@ bool m_IDirectDrawX::IsUsing3D()
 	return (D3DDeviceInterface != nullptr);
 }
 
+bool m_IDirectDrawX::IsDynamicTexturesSupported()
+{
+	return DynamicTexturesSupported;
+}
+
 HRESULT m_IDirectDrawX::CheckInterface(char *FunctionName, bool CheckD3DDevice)
 {
 	// Check for device
@@ -2242,14 +2238,8 @@ HRESULT m_IDirectDrawX::CreateD3D9Device()
 			break;
 		}
 
-		// Is dynamic textures flag set?
-		if (!(d3dcaps.Caps2 & D3DCAPS2_DYNAMICTEXTURES))
-		{
-			// No dynamic textures
-			LOG_LIMIT(100, __FUNCTION__ << " Error: device does not support dynamic textures");
-			hr = DDERR_GENERIC;
-			break;
-		}
+		// Are dynamic textures supported
+		DynamicTexturesSupported = (d3dcaps.Caps2 & D3DCAPS2_DYNAMICTEXTURES);
 
 		// Get hwnd
 		HWND hWnd = GetHwnd();
@@ -2352,6 +2342,12 @@ HRESULT m_IDirectDrawX::CreateD3D9Device()
 			break;
 		}
 
+		// BeginScene after creating device
+		if (FAILED(d3d9Device->BeginScene()))
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: failed to begin scene");
+		}
+
 		// Set window pos
 		if (IsWindow(hWnd))
 		{
@@ -2418,9 +2414,6 @@ HRESULT m_IDirectDrawX::ReinitDevice()
 		return DDERR_GENERIC;
 	}
 
-	// Reset BeginScene
-	IsInScene = false;
-
 	// Success
 	return DD_OK;
 }
@@ -2483,17 +2476,10 @@ void m_IDirectDrawX::ReleaseD3d9Device()
 	// Release device
 	if (d3d9Device)
 	{
-		// EndEcene
-		if (IsInScene)
-		{
-			d3d9Device->EndScene();
-		}
-
 		ReleaseD9Interface(&d3d9Device);
 	}
 
-	// Set is not in scene
-	IsInScene = false;
+	// Reset flags
 	EnableWaitVsync = false;
 }
 
@@ -2714,51 +2700,10 @@ void m_IDirectDrawX::SetVsync()
 	EnableWaitVsync = true;
 }
 
-// Do d3d9 BeginScene if all surfaces are unlocked
-HRESULT m_IDirectDrawX::BeginScene()
+// Do d3d9 Present
+HRESULT m_IDirectDrawX::Present()
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
-
-	// Check if we can run BeginScene
-	if (IsInScene)
-	{
-		return DDERR_GENERIC;
-	}
-
-	// Check for device interface
-	if (FAILED(CheckInterface(__FUNCTION__, true)))
-	{
-		return DDERR_GENERIC;
-	}
-
-	// Begin scene
-	if (FAILED(d3d9Device->BeginScene()))
-	{
-		d3d9Device->EndScene();
-		if (FAILED(d3d9Device->BeginScene()))
-		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error: failed to begin scene");
-			return DDERR_GENERIC;
-		}
-	}
-	IsInScene = true;
-
-	return DD_OK;
-}
-
-// Do d3d9 EndScene and Present if all surfaces are unlocked
-HRESULT m_IDirectDrawX::EndScene()
-{
-	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
-
-	// Run BeginScene (ignore results)
-	BeginScene();
-
-	// Check if BeginScene has finished
-	if (!IsInScene)
-	{
-		return DDERR_GENERIC;
-	}
 
 	// Check for device interface
 	if (FAILED(CheckInterface(__FUNCTION__, true)))
@@ -2783,7 +2728,6 @@ HRESULT m_IDirectDrawX::EndScene()
 			return DDERR_GENERIC;
 		}
 	}
-	IsInScene = false;
 
 	// Use WaitForVerticalBlank for wait timer
 	if (EnableWaitVsync && !Config.EnableVSync)
@@ -2813,6 +2757,11 @@ HRESULT m_IDirectDrawX::EndScene()
 			if (CounterFlag && (deltaPresentMS + (deltaFrameMS * 1.1f) < MaxScreenTimer) && (deltaPresentMS + ((deltaPresentMS / FrameCounter) * 1.1f) < MaxScreenTimer))
 			{
 				Logging::LogDebug() << __FUNCTION__ << " Skipping frame " << deltaPresentMS << "ms screen frequancy " << MaxScreenTimer;
+				if (FAILED(d3d9Device->BeginScene()))
+				{
+					LOG_LIMIT(100, __FUNCTION__ << " Error: failed to begin scene");
+					return DDERR_GENERIC;
+				}
 				return D3D_OK;
 			}
 			Logging::LogDebug() << __FUNCTION__ << " Drawing frame " << deltaPresentMS << "ms screen frequancy " << MaxScreenTimer;
@@ -2831,11 +2780,10 @@ HRESULT m_IDirectDrawX::EndScene()
 	else if (FAILED(hr))
 	{
 		LOG_LIMIT(100, __FUNCTION__ << " Error: failed to present scene");
-		return DDERR_GENERIC;
 	}
 
 	// Store new click time after frame draw is complete
-	if (Config.AutoFrameSkip)
+	if (SUCCEEDED(hr) && Config.AutoFrameSkip)
 	{
 		if (QueryPerformanceCounter(&clickTime))
 		{
@@ -2848,8 +2796,12 @@ HRESULT m_IDirectDrawX::EndScene()
 	// Clear device before BeginScene
 	d3d9Device->Clear(0, nullptr, D3DCLEAR_TARGET, D3DCOLOR_XRGB(0, 0, 0), 1.0f, 0);
 
-	// BeginScene after EndScene is done
-	BeginScene();
+	// BeginScene after present is done
+	if (FAILED(d3d9Device->BeginScene()))
+	{
+		LOG_LIMIT(100, __FUNCTION__ << " Error: failed to begin scene");
+		return DDERR_GENERIC;
+	}
 
 	return hr;
 }
