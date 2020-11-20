@@ -74,7 +74,6 @@ bool MultiThreaded;
 bool FUPPreserve;
 bool NoWindowChanges;
 bool DynamicTexturesSupported;
-bool EnableWaitVsync;
 
 // High resolution counter used for auto frame skipping
 bool FrequencyFlag;
@@ -83,6 +82,10 @@ LONGLONG lastFrameTime;
 DWORD FrameCounter;
 DWORD monitorRefreshRate;
 DWORD monitorHeight;
+
+// Direct3D9 flags
+bool IsInScene;
+bool EnableWaitVsync;
 
 // Direct3D9 Objects
 LPDIRECT3D9 d3d9Object;
@@ -1909,7 +1912,6 @@ void m_IDirectDrawX::InitDdraw(DWORD DirectXVersion)
 		MultiThreaded = false;
 		FUPPreserve = false;
 		NoWindowChanges = false;
-		EnableWaitVsync = false;
 
 		// High resolution counter
 		FrequencyFlag = (QueryPerformanceFrequency(&clockFrequency) != 0);
@@ -2342,11 +2344,9 @@ HRESULT m_IDirectDrawX::CreateD3D9Device()
 			break;
 		}
 
-		// BeginScene after creating device
-		if (FAILED(d3d9Device->BeginScene()))
-		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error: failed to begin scene");
-		}
+		// Reset flags after creating device
+		IsInScene = false;
+		EnableWaitVsync = false;
 
 		// Set window pos
 		if (IsWindow(hWnd))
@@ -2413,6 +2413,10 @@ HRESULT m_IDirectDrawX::ReinitDevice()
 		LOG_LIMIT(100, __FUNCTION__ << " Error: failed to reset Direct3D9 device");
 		return DDERR_GENERIC;
 	}
+
+	// Reset flags after resetting device
+	IsInScene = false;
+	EnableWaitVsync = false;
 
 	// Success
 	return DD_OK;
@@ -2711,22 +2715,22 @@ HRESULT m_IDirectDrawX::Present()
 		return DDERR_GENERIC;
 	}
 
+	// Begine scene
+	if (!IsInScene)
+	{
+		if (FAILED(d3d9Device->BeginScene()))
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: failed to end scene");
+			return DDERR_GENERIC;
+		}
+	}
+	IsInScene = true;
+
 	// Draw primitive
 	if (FAILED(d3d9Device->DrawPrimitive(D3DPT_TRIANGLEFAN, 0, 2)))
 	{
 		LOG_LIMIT(100, __FUNCTION__ << " Error: failed to draw primitive");
 		return DDERR_GENERIC;
-	}
-
-	// End scene
-	if (FAILED(d3d9Device->EndScene()))
-	{
-		d3d9Device->BeginScene();
-		if (FAILED(d3d9Device->EndScene()))
-		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error: failed to end scene");
-			return DDERR_GENERIC;
-		}
 	}
 
 	// Use WaitForVerticalBlank for wait timer
@@ -2757,16 +2761,19 @@ HRESULT m_IDirectDrawX::Present()
 			if (CounterFlag && (deltaPresentMS + (deltaFrameMS * 1.1f) < MaxScreenTimer) && (deltaPresentMS + ((deltaPresentMS / FrameCounter) * 1.1f) < MaxScreenTimer))
 			{
 				Logging::LogDebug() << __FUNCTION__ << " Skipping frame " << deltaPresentMS << "ms screen frequancy " << MaxScreenTimer;
-				if (FAILED(d3d9Device->BeginScene()))
-				{
-					LOG_LIMIT(100, __FUNCTION__ << " Error: failed to begin scene");
-					return DDERR_GENERIC;
-				}
 				return D3D_OK;
 			}
 			Logging::LogDebug() << __FUNCTION__ << " Drawing frame " << deltaPresentMS << "ms screen frequancy " << MaxScreenTimer;
 		}
 	}
+
+	// End scene
+	if (FAILED(d3d9Device->EndScene()))
+	{
+		LOG_LIMIT(100, __FUNCTION__ << " Error: failed to end scene");
+		return DDERR_GENERIC;
+	}
+	IsInScene = false;
 
 	// Present everthing, skip Preset for SWAT 2
 	HRESULT hr = d3d9Device->Present(nullptr, nullptr, nullptr, nullptr);
@@ -2802,6 +2809,7 @@ HRESULT m_IDirectDrawX::Present()
 		LOG_LIMIT(100, __FUNCTION__ << " Error: failed to begin scene");
 		return DDERR_GENERIC;
 	}
+	IsInScene = true;
 
 	return hr;
 }
