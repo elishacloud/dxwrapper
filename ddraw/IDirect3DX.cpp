@@ -534,8 +534,12 @@ HRESULT m_IDirect3DX::CreateDevice(REFCLSID rclsid, LPDIRECTDRAWSURFACE7 lpDDS, 
 			return DDERR_GENERIC;
 		}
 
-		// ToDo: Add check to see if the lpDDS surface is a valid 3D surface.
-		// This is the DirectDrawSurface object that is the device's rendering target. The surface must have been created as a 3D device by using the DDSCAPS_3DDEVICE capability.
+		m_IDirectDrawSurfaceX *DdrawSurface3D = nullptr;
+		if (lpDDS && SUCCEEDED(lpDDS->QueryInterface(IID_GetInterfaceX, (LPVOID*)&DdrawSurface3D)) && DdrawSurface3D && !DdrawSurface3D->IsSurface3D())
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: surface is not a Direct3D surface!");
+			return DDERR_GENERIC;
+		}
 
 		m_IDirect3DDeviceX *p_IDirect3DDeviceX = new m_IDirect3DDeviceX(ddrawParent, riid, DirectXVersion);
 

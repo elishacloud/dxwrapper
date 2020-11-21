@@ -868,16 +868,6 @@ HRESULT m_IDirectDrawSurfaceX::Flip(LPDIRECTDRAWSURFACE7 lpDDSurfaceTargetOverri
 			return c_hr;
 		}
 
-		// For Direct3D
-		if (IsDirect3DSurface)
-		{
-			// ToDo: add backbuffer support
-
-			(*d3d9Device)->Present(nullptr, nullptr, nullptr, nullptr);
-
-			return D3D_OK;
-		}
-
 		// Flip can be called only for a surface that has the DDSCAPS_FLIP and DDSCAPS_FRONTBUFFER capabilities
 		if ((surfaceDesc2.ddsCaps.dwCaps & (DDSCAPS_FLIP | DDSCAPS_FRONTBUFFER)) != (DDSCAPS_FLIP | DDSCAPS_FRONTBUFFER))
 		{
@@ -1046,18 +1036,6 @@ HRESULT m_IDirectDrawSurfaceX::GetAttachedSurface2(LPDDSCAPS2 lpDDSCaps2, LPDIRE
 		if (FAILED(CheckInterface(__FUNCTION__, false, false)))
 		{
 			return DDERR_GENERIC;
-		}
-
-		// For Direct3D
-		if (IsDirect3DSurface)
-		{
-			// ToDo: add backbuffer support
-
-			*lplpDDAttachedSurface = (LPDIRECTDRAWSURFACE7)GetWrapperInterfaceX(DirectXVersion);
-
-			(*lplpDDAttachedSurface)->AddRef();
-
-			return DD_OK;
 		}
 
 		m_IDirectDrawSurfaceX *lpFoundSurface = nullptr;
@@ -2685,7 +2663,7 @@ HRESULT m_IDirectDrawSurfaceX::CreateD3d9Surface()
 	// Create primary texture
 	if (!IsDirect3DSurface && (IsPrimarySurface() || IsBackBuffer()))
 	{
-		if (ddrawParent->IsDynamicTexturesSupported() && !Config.DdrawWriteToGDI)
+		if (ddrawParent->IsDynamicTexturesSupported() && surfaceFormat != D3DFMT_P8 && !Config.DdrawWriteToGDI)
 		{
 			if (FAILED((*d3d9Device)->CreateTexture(surfaceDesc2.dwWidth, surfaceDesc2.dwHeight, 1, D3DUSAGE_DYNAMIC, TextureFormat, D3DPOOL_DEFAULT, &surfaceTexture, nullptr)))
 			{
@@ -3252,7 +3230,7 @@ HRESULT m_IDirectDrawSurfaceX::PresentSurface(BOOL isSkipScene)
 	// Check if is not primary surface or if scene should be skipped
 	if (Config.DdrawWriteToGDI || IsDirect3DSurface)
 	{
-		// Never present if writing to GDI
+		// Never present when using Direct3D or when writing to GDI
 		return DD_OK;
 	}
 	else if (!IsPrimarySurface())

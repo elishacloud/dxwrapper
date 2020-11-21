@@ -171,9 +171,10 @@ public:
 	// Direct3D interfaces
 	m_IDirect3DX **GetCurrentD3D() { return &D3DInterface; }
 	void ClearD3D() { D3DInterface = nullptr; }
-	void SetD3DDevice(m_IDirect3DDeviceX *D3DDevice) { D3DDeviceInterface = D3DDevice; }
+	void SetD3DDevice(m_IDirect3DDeviceX *D3DDevice);
 	m_IDirect3DDeviceX **GetCurrentD3DDevice() { return &D3DDeviceInterface; }
 	void ClearD3DDevice() { D3DDeviceInterface = nullptr; }
+	bool IsUsing3D();
 
 	// Direct3D9 interfaces
 	LPDIRECT3D9 GetDirect3D9Object();
@@ -187,7 +188,6 @@ public:
 	bool IsExclusiveMode();
 	void GetResolution(DWORD &Width, DWORD &Height, DWORD &RefreshRate, DWORD &BPP);
 	void GetDisplay(DWORD &Width, DWORD &Height);
-	bool IsUsing3D();
 	bool IsDynamicTexturesSupported();
 
 	// Surface vector functions

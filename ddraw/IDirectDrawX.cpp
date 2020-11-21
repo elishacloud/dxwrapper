@@ -2153,6 +2153,15 @@ void m_IDirectDrawX::GetDisplay(DWORD &Width, DWORD &Height)
 	Height = displayHeight;
 }
 
+void m_IDirectDrawX::SetD3DDevice(m_IDirect3DDeviceX *D3DDevice)
+{
+	if (!D3DDeviceInterface)
+	{
+		ReleaseD3d9Device();
+	}
+	D3DDeviceInterface = D3DDevice;
+}
+
 bool m_IDirectDrawX::IsUsing3D()
 {
 	return (D3DDeviceInterface != nullptr);
