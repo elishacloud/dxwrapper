@@ -531,7 +531,7 @@ void CONFIG::Init()
 	// Verify sleep time to make sure it is not set too low (can be perf issues if it is too low)
 	if (LoopSleepTime < 30)
 	{
-		Logging::Log() << "Cannot set LoopSleepTime to less than 30ms!  Resetting to 30ms.";
+		Logging::Log() << "Cannot set 'LoopSleepTime' to less than 30ms!  Resetting to 30ms.";
 		LoopSleepTime = 30;
 	}
 
@@ -541,29 +541,29 @@ void CONFIG::Init()
 	{
 		if (ForceSoftwareMixing && ForceHardwareMixing)
 		{
-			Logging::Log() << "Cannot set both ForceSoftwareMixing and ForceHardwareMixing!  Disabling ForceSoftwareMixing.";
+			Logging::Log() << "Cannot set both 'ForceSoftwareMixing' and 'ForceHardwareMixing'!  Disabling 'ForceSoftwareMixing'.";
 			ForceSoftwareMixing = false;
 		}
 		if (ForceVoiceManagement && (ForceSoftwareMixing || ForceHardwareMixing))
 		{
 			if (ForceSoftwareMixing)
 			{
-				Logging::Log() << "Cannot set both ForceVoiceManagement and ForceSoftwareMixing!  Disabling ForceVoiceManagement.";
+				Logging::Log() << "Cannot set both 'ForceVoiceManagement' and 'ForceSoftwareMixing'!  Disabling 'ForceVoiceManagement'.";
 			}
 			else
 			{
-				Logging::Log() << "Cannot set both ForceVoiceManagement and ForceSoftwareMixing!  Disabling ForceVoiceManagement.";
+				Logging::Log() << "Cannot set both 'ForceVoiceManagement' and 'ForceHardwareMixing'!  Disabling 'ForceVoiceManagement'.";
 			}
 			ForceVoiceManagement = false;
 		}
 		if (ForceVoiceManagement && !ForceNonStaticBuffers)
 		{
-			Logging::Log() << "ForceNonStaticBuffers should always be enabled with ForceVoiceManagement!  Enabling ForceNonStaticBuffers.";
+			Logging::Log() << "'ForceNonStaticBuffers' should always be enabled with 'ForceVoiceManagement'!  Enabling 'ForceNonStaticBuffers'.";
 			ForceNonStaticBuffers = true;
 		}
 		if (ForceHQ3DSoftMixing && ForceHardwareMixing)
 		{
-			Logging::Log() << "ForceHQ3DSoftMixing has no effect whenForceHardwareMixing is enabled!  Disabling ForceHQ3DSoftMixing.";
+			Logging::Log() << "'ForceHQ3DSoftMixing' has no effect when 'ForceHardwareMixing' is enabled!  Disabling 'ForceHQ3DSoftMixing'.";
 			ForceHQ3DSoftMixing = false;
 		}
 	}
@@ -609,6 +609,7 @@ void CONFIG::Init()
 		DdrawOverrideBitMode = 32;
 		break;
 	default:
+		Logging::Log() << "Invalid 'DdrawOverrideBitMode'!  Disabling.";
 		DdrawOverrideBitMode = 0;
 		break;
 	}
