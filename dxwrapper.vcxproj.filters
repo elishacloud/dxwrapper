@@ -694,9 +694,6 @@
     <ClCompile Include="External\dinputto8\IDirectInputEffect.cpp">
       <Filter>External\dinputto8</Filter>
     </ClCompile>
-    <ClCompile Include="External\dinputto8\IDirectInputEnum.cpp">
-      <Filter>External\dinputto8</Filter>
-    </ClCompile>
     <ClCompile Include="External\dinputto8\IDirectInputTypes.cpp">
       <Filter>External\dinputto8</Filter>
     </ClCompile>
@@ -1599,9 +1596,6 @@
       <Filter>External\dinputto8</Filter>
     </ClInclude>
     <ClInclude Include="External\dinputto8\IDirectInputEffect.h">
-      <Filter>External\dinputto8</Filter>
-    </ClInclude>
-    <ClInclude Include="External\dinputto8\IDirectInputEnum.h">
       <Filter>External\dinputto8</Filter>
     </ClInclude>
     <ClInclude Include="External\dinputto8\IDirectInputTypes.h">

@@ -324,7 +324,6 @@ cmd /q /c "cd /D ""$(ProjectDir)d3d8\"" &amp;&amp; del build.bat"</Command>
     <ClCompile Include="External\d3d8to9\source\interface_query.cpp" />
     <ClCompile Include="External\dinputto8\IDirectInputDeviceX.cpp" />
     <ClCompile Include="External\dinputto8\IDirectInputEffect.cpp" />
-    <ClCompile Include="External\dinputto8\IDirectInputEnum.cpp" />
     <ClCompile Include="External\dinputto8\IDirectInputTypes.cpp" />
     <ClCompile Include="External\dinputto8\IDirectInputX.cpp" />
     <ClCompile Include="External\dinputto8\InterfaceQuery.cpp" />
@@ -615,7 +614,6 @@ cmd /q /c "cd /D ""$(ProjectDir)d3d8\"" &amp;&amp; del build.bat"</Command>
     <ClInclude Include="External\dinputto8\ditypes.h" />
     <ClInclude Include="External\dinputto8\IDirectInputDeviceX.h" />
     <ClInclude Include="External\dinputto8\IDirectInputEffect.h" />
-    <ClInclude Include="External\dinputto8\IDirectInputEnum.h" />
     <ClInclude Include="External\dinputto8\IDirectInputTypes.h" />
     <ClInclude Include="External\dinputto8\IDirectInputX.h" />
     <ClInclude Include="External\dinputto8\Versions\IDirectInput2A.h" />
