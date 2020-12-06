@@ -18,7 +18,7 @@ private:
 public:
 	m_IDirectDrawColorControl(IDirectDrawColorControl *aOriginal) : ProxyInterface(aOriginal)
 	{
-		LOG_LIMIT(3, "Creating interface " << __FUNCTION__ << "(" << this << ")");
+		LOG_LIMIT(3, "Creating interface " << __FUNCTION__ << " (" << this << ")");
 
 		InitColorControl();
 
@@ -26,7 +26,7 @@ public:
 	}
 	m_IDirectDrawColorControl(m_IDirectDrawX *Interface) : ddrawParent(Interface)
 	{
-		LOG_LIMIT(3, "Creating interface " << __FUNCTION__ << "(" << this << ")");
+		LOG_LIMIT(3, "Creating interface " << __FUNCTION__ << " (" << this << ")");
 
 		InitColorControl();
 
@@ -34,7 +34,7 @@ public:
 	}
 	~m_IDirectDrawColorControl()
 	{
-		LOG_LIMIT(3, __FUNCTION__ << "(" << this << ")" << " deleting interface!");
+		LOG_LIMIT(3, __FUNCTION__ << " (" << this << ")" << " deleting interface!");
 
 		ReleaseColorControl();
 

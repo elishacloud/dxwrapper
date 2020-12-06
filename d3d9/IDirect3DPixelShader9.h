@@ -9,13 +9,13 @@ private:
 public:
 	m_IDirect3DPixelShader9(LPDIRECT3DPIXELSHADER9 pShader9, m_IDirect3DDevice9Ex* pDevice) : ProxyInterface(pShader9), m_pDeviceEx(pDevice)
 	{
-		LOG_LIMIT(3, "Creating interface " << __FUNCTION__ << "(" << this << ")");
+		LOG_LIMIT(3, "Creating interface " << __FUNCTION__ << " (" << this << ")");
 
 		pDevice->ProxyAddressLookupTable->SaveAddress(this, ProxyInterface);
 	}
 	~m_IDirect3DPixelShader9()
 	{
-		LOG_LIMIT(3, __FUNCTION__ << "(" << this << ")" << " deleting interface!");
+		LOG_LIMIT(3, __FUNCTION__ << " (" << this << ")" << " deleting interface!");
 	}
 
 	/*** IUnknown methods ***/

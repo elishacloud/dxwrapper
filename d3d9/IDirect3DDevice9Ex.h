@@ -37,7 +37,7 @@ public:
 	}
 	void InitDirect3DDevice()
 	{
-		LOG_LIMIT(3, "Creating interface " << __FUNCTION__ << "(" << this << ")");
+		LOG_LIMIT(3, "Creating interface " << __FUNCTION__ << " (" << this << ")");
 
 		// Get screen size
 		Utils::GetScreenSize(DeviceWindow, screenWidth, screenHeight);
@@ -46,7 +46,7 @@ public:
 	}
 	~m_IDirect3DDevice9Ex()
 	{
-		LOG_LIMIT(3, __FUNCTION__ << "(" << this << ")" << " deleting interface!");
+		LOG_LIMIT(3, __FUNCTION__ << " (" << this << ")" << " deleting interface!");
 
 		// Restore old wndproc
 		if (OriginalWndProc && IsWindow(WndProcHwnd))

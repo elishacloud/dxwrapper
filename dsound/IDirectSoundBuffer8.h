@@ -27,7 +27,7 @@ protected:
 public:
 	m_IDirectSoundBuffer8(LPDIRECTSOUNDBUFFER8 pSound8) : ProxyInterface(pSound8)
 	{
-		LOG_LIMIT(3, "Creating interface " << __FUNCTION__ << "(" << this << ")");
+		LOG_LIMIT(3, "Creating interface " << __FUNCTION__ << " (" << this << ")");
 
 		AudioClip.ProxyInterface = ProxyInterface;
 
@@ -38,7 +38,7 @@ public:
 	}
 	~m_IDirectSoundBuffer8()
 	{
-		LOG_LIMIT(3, __FUNCTION__ << "(" << this << ")" << " deleting interface!");
+		LOG_LIMIT(3, __FUNCTION__ << " (" << this << ")" << " deleting interface!");
 
 		// Delete Critical Section
 		DeleteCriticalSection(&AudioClip.dics);
