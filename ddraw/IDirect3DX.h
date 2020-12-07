@@ -2,10 +2,6 @@
 
 #include "IDirectDrawX.h"
 
-#define D3DDEVICEDESC1_SIZE 172
-#define D3DDEVICEDESC5_SIZE 204
-#define D3DDEVICEDESC6_SIZE 252
-
 class m_IDirect3DX : public IUnknown, public AddressLookupTableDdrawObject
 {
 private:

@@ -228,7 +228,6 @@ cmd /q /c "cd /D ""$(ProjectDir)d3d8\"" &amp;&amp; del build.bat"</Command>
     <ClCompile Include="DDrawCompat\v0.2.1\UnmodifiedDDrawProcs.cpp" />
     <ClCompile Include="ddraw\ddraw.cpp" />
     <ClCompile Include="ddraw\IDirect3DDeviceX.cpp" />
-    <ClCompile Include="ddraw\IDirect3DEnumCallback.cpp" />
     <ClCompile Include="ddraw\IDirect3DMaterialX.cpp" />
     <ClCompile Include="ddraw\IDirect3DTextureX.cpp" />
     <ClCompile Include="ddraw\IDirect3DTypes.cpp" />
@@ -241,7 +240,6 @@ cmd /q /c "cd /D ""$(ProjectDir)d3d8\"" &amp;&amp; del build.bat"</Command>
     <ClCompile Include="ddraw\IDirect3DLight.cpp" />
     <ClCompile Include="ddraw\IDirectDrawClipper.cpp" />
     <ClCompile Include="ddraw\IDirectDrawColorControl.cpp" />
-    <ClCompile Include="ddraw\IDirectDrawEnumCallback.cpp" />
     <ClCompile Include="ddraw\IDirectDrawFactory.cpp" />
     <ClCompile Include="ddraw\IDirectDrawGammaControl.cpp" />
     <ClCompile Include="ddraw\IDirectDrawPalette.cpp" />
@@ -282,8 +280,6 @@ cmd /q /c "cd /D ""$(ProjectDir)d3d8\"" &amp;&amp; del build.bat"</Command>
     <ClCompile Include="dinput8\IDirectInputDevice8A.cpp" />
     <ClCompile Include="dinput8\IDirectInputDevice8W.cpp" />
     <ClCompile Include="dinput8\IDirectInputEffect.cpp" />
-    <ClCompile Include="dinput8\IDirectInputEnumDevice.cpp" />
-    <ClCompile Include="dinput8\IDirectInputEnumEffect.cpp" />
     <ClCompile Include="dinput8\InterfaceQuery.cpp" />
     <ClCompile Include="dinput\dinput.cpp" />
     <ClCompile Include="Disasm\cmdlist.c" />
@@ -521,7 +517,6 @@ cmd /q /c "cd /D ""$(ProjectDir)d3d8\"" &amp;&amp; del build.bat"</Command>
     <ClInclude Include="ddraw\ddraw.h" />
     <ClInclude Include="ddraw\ddrawExternal.h" />
     <ClInclude Include="ddraw\IDirect3DDeviceX.h" />
-    <ClInclude Include="ddraw\IDirect3DEnumCallback.h" />
     <ClInclude Include="ddraw\IDirect3DMaterialX.h" />
     <ClInclude Include="ddraw\IDirect3DTextureX.h" />
     <ClInclude Include="ddraw\IDirect3DTypes.h" />
@@ -534,7 +529,6 @@ cmd /q /c "cd /D ""$(ProjectDir)d3d8\"" &amp;&amp; del build.bat"</Command>
     <ClInclude Include="ddraw\IDirect3DLight.h" />
     <ClInclude Include="ddraw\IDirectDrawClipper.h" />
     <ClInclude Include="ddraw\IDirectDrawColorControl.h" />
-    <ClInclude Include="ddraw\IDirectDrawEnumCallback.h" />
     <ClInclude Include="ddraw\IDirectDrawFactory.h" />
     <ClInclude Include="ddraw\IDirectDrawGammaControl.h" />
     <ClInclude Include="ddraw\IDirectDrawPalette.h" />
@@ -574,8 +568,6 @@ cmd /q /c "cd /D ""$(ProjectDir)d3d8\"" &amp;&amp; del build.bat"</Command>
     <ClInclude Include="dinput8\IDirectInputDevice8A.h" />
     <ClInclude Include="dinput8\IDirectInputDevice8W.h" />
     <ClInclude Include="dinput8\IDirectInputEffect.h" />
-    <ClInclude Include="dinput8\IDirectInputEnumDevice.h" />
-    <ClInclude Include="dinput8\IDirectInputEnumEffect.h" />
     <ClInclude Include="dinput\dinputExternal.h" />
     <ClInclude Include="Disasm\disasm.h" />
     <ClInclude Include="Dllmain\Dllmain.h" />

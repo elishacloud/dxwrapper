@@ -1,5 +1,9 @@
 #pragma once
 
+#define D3DDEVICEDESC1_SIZE 172
+#define D3DDEVICEDESC5_SIZE 204
+#define D3DDEVICEDESC6_SIZE 252
+
 #define D3DLIGHTCAPS_PARALLELPOINT      0x00000008L /* Parallel point lights supported */
 #define D3DLIGHTCAPS_GLSPOT             0x00000010L /* GL syle spot lights supported */
 

@@ -668,6 +668,25 @@ HRESULT m_IDirectDrawX::EnumDisplayModes(DWORD dwFlags, LPDDSURFACEDESC lpDDSurf
 			return DDERR_INVALIDPARAMS;
 		}
 
+		struct EnumDisplay
+		{
+			LPVOID lpContext;
+			LPDDENUMMODESCALLBACK lpCallback;
+
+			static HRESULT CALLBACK ConvertCallback(LPDDSURFACEDESC2 lpDDSurfaceDesc2, LPVOID lpContext)
+			{
+				EnumDisplay *self = (EnumDisplay*)lpContext;
+
+				DDSURFACEDESC Desc;
+				Desc.dwSize = sizeof(DDSURFACEDESC);
+				ConvertSurfaceDesc(Desc, *lpDDSurfaceDesc2);
+
+				return self->lpCallback(&Desc, self->lpContext);
+			}
+		} CallbackContext;
+		CallbackContext.lpContext = lpContext;
+		CallbackContext.lpCallback = lpEnumModesCallback;
+
 		DDSURFACEDESC2 Desc2;
 		Desc2.dwSize = sizeof(DDSURFACEDESC2);
 		if (lpDDSurfaceDesc)
@@ -675,11 +694,7 @@ HRESULT m_IDirectDrawX::EnumDisplayModes(DWORD dwFlags, LPDDSURFACEDESC lpDDSurf
 			ConvertSurfaceDesc(Desc2, *lpDDSurfaceDesc);
 		}
 
-		ENUMDISPLAYMODES CallbackContext;
-		CallbackContext.lpContext = lpContext;
-		CallbackContext.lpCallback = lpEnumModesCallback;
-
-		return EnumDisplayModes2(dwFlags, (lpDDSurfaceDesc) ? &Desc2 : nullptr, &CallbackContext, m_IDirectDrawEnumDisplayModes::ConvertCallback);
+		return EnumDisplayModes2(dwFlags, (lpDDSurfaceDesc) ? &Desc2 : nullptr, &CallbackContext, EnumDisplay::ConvertCallback);
 	}
 
 	return GetProxyInterfaceV3()->EnumDisplayModes(dwFlags, lpDDSurfaceDesc, lpContext, lpEnumModesCallback);
@@ -830,12 +845,29 @@ HRESULT m_IDirectDrawX::EnumSurfaces(DWORD dwFlags, LPDDSURFACEDESC lpDDSurfaceD
 		return EnumSurfaces2(dwFlags, (lpDDSurfaceDesc) ? &Desc2 : nullptr, lpContext, (LPDDENUMSURFACESCALLBACK7)lpEnumSurfacesCallback, DirectXVersion);
 	}
 
-	ENUMSURFACE CallbackContext;
+	struct EnumSurface
+	{
+		LPVOID lpContext;
+		LPDDENUMSURFACESCALLBACK lpCallback;
+		DWORD DirectXVersion;
+
+		static HRESULT CALLBACK ConvertCallback(LPDIRECTDRAWSURFACE lpDDSurface, LPDDSURFACEDESC lpDDSurfaceDesc, LPVOID lpContext)
+		{
+			EnumSurface *self = (EnumSurface*)lpContext;
+
+			if (lpDDSurface)
+			{
+				lpDDSurface = (LPDIRECTDRAWSURFACE)ProxyAddressLookupTable.FindAddress<m_IDirectDrawSurface7>(lpDDSurface, self->DirectXVersion);
+			}
+
+			return self->lpCallback(lpDDSurface, lpDDSurfaceDesc, self->lpContext);
+		}
+	} CallbackContext;
 	CallbackContext.lpContext = lpContext;
 	CallbackContext.lpCallback = lpEnumSurfacesCallback;
 	CallbackContext.DirectXVersion = DirectXVersion;
 
-	return GetProxyInterfaceV3()->EnumSurfaces(dwFlags, lpDDSurfaceDesc, &CallbackContext, m_IDirectDrawEnumSurface::ConvertCallback);
+	return GetProxyInterfaceV3()->EnumSurfaces(dwFlags, lpDDSurfaceDesc, &CallbackContext, EnumSurface::ConvertCallback);
 }
 
 HRESULT m_IDirectDrawX::EnumSurfaces2(DWORD dwFlags, LPDDSURFACEDESC2 lpDDSurfaceDesc2, LPVOID lpContext, LPDDENUMSURFACESCALLBACK7 lpEnumSurfacesCallback7, DWORD DirectXVersion)
@@ -859,13 +891,41 @@ HRESULT m_IDirectDrawX::EnumSurfaces2(DWORD dwFlags, LPDDSURFACEDESC2 lpDDSurfac
 		return DDERR_UNSUPPORTED;
 	}
 
-	ENUMSURFACE CallbackContext;
+	struct EnumSurface
+	{
+		LPVOID lpContext;
+		LPDDENUMSURFACESCALLBACK7 lpCallback;
+		DWORD DirectXVersion;
+		bool ConvertSurfaceDescTo2;
+
+		static HRESULT CALLBACK ConvertCallback(LPDIRECTDRAWSURFACE7 lpDDSurface, LPDDSURFACEDESC2 lpDDSurfaceDesc2, LPVOID lpContext)
+		{
+			EnumSurface *self = (EnumSurface*)lpContext;
+
+			if (lpDDSurface)
+			{
+				lpDDSurface = ProxyAddressLookupTable.FindAddress<m_IDirectDrawSurface7>(lpDDSurface, self->DirectXVersion);
+			}
+
+			// Game using old DirectX, Convert back to LPDDSURFACEDESC
+			if (self->ConvertSurfaceDescTo2)
+			{
+				DDSURFACEDESC Desc;
+				Desc.dwSize = sizeof(DDSURFACEDESC);
+				ConvertSurfaceDesc(Desc, *lpDDSurfaceDesc2);
+
+				return ((LPDDENUMSURFACESCALLBACK)self->lpCallback)((LPDIRECTDRAWSURFACE)lpDDSurface, &Desc, self->lpContext);
+			}
+
+			return self->lpCallback(lpDDSurface, lpDDSurfaceDesc2, self->lpContext);
+		}
+	} CallbackContext;
 	CallbackContext.lpContext = lpContext;
-	CallbackContext.lpCallback7 = lpEnumSurfacesCallback7;
+	CallbackContext.lpCallback = lpEnumSurfacesCallback7;
 	CallbackContext.DirectXVersion = DirectXVersion;
 	CallbackContext.ConvertSurfaceDescTo2 = (ProxyDirectXVersion > 3 && DirectXVersion < 4);
 
-	return ProxyInterface->EnumSurfaces(dwFlags, lpDDSurfaceDesc2, &CallbackContext, m_IDirectDrawEnumSurface::ConvertCallback2);
+	return ProxyInterface->EnumSurfaces(dwFlags, lpDDSurfaceDesc2, &CallbackContext, EnumSurface::ConvertCallback);
 }
 
 HRESULT m_IDirectDrawX::FlipToGDISurface()
@@ -1246,32 +1306,6 @@ HRESULT m_IDirectDrawX::RestoreDisplayMode()
 	return ProxyInterface->RestoreDisplayMode();
 }
 
-// Fixes a bug in ddraw in Windows 8 and 10 where the exclusive flag remains even after the window (hWnd) closes
-LRESULT CALLBACK CBTProc(int nCode, WPARAM wParam, LPARAM lParam)
-{
-	UNREFERENCED_PARAMETER(lParam);
-
-	if (nCode == HCBT_DESTROYWND && !Config.Exiting)
-	{
-		Logging::LogDebug() << __FUNCTION__;
-
-		HWND hWnd = (HWND)wParam;
-		auto it = g_hookmap.find(hWnd);
-		if (it != std::end(g_hookmap))
-		{
-			m_IDirectDrawX *lpDDraw = it->second;
-			if (lpDDraw && (ProxyAddressLookupTable.IsValidWrapperAddress(lpDDraw) ||
-				ProxyAddressLookupTable.IsValidProxyAddress<m_IDirectDrawX>(lpDDraw)))
-			{
-				lpDDraw->SetCooperativeLevel(hWnd, DDSCL_NORMAL);
-			}
-			g_hookmap.clear();
-		}
-	}
-
-	return CallNextHookEx(nullptr, nCode, wParam, lParam);
-}
-
 HRESULT m_IDirectDrawX::SetCooperativeLevel(HWND hWnd, DWORD dwFlags)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
@@ -1368,6 +1402,35 @@ HRESULT m_IDirectDrawX::SetCooperativeLevel(HWND hWnd, DWORD dwFlags)
 	// Hook window message to get notified when the window is about to exit to remove the exclusive flag
 	if (SUCCEEDED(hr) && (dwFlags & DDSCL_EXCLUSIVE) && IsWindow(hWnd) && hWnd != chWnd)
 	{
+		// Fixes a bug in ddraw in Windows 8 and 10 where the exclusive flag remains even after the window (hWnd) closes
+		struct WindowsGDIHook
+		{
+			static LRESULT CALLBACK CBTProc(int nCode, WPARAM wParam, LPARAM lParam)
+			{
+				UNREFERENCED_PARAMETER(lParam);
+
+				if (nCode == HCBT_DESTROYWND && !Config.Exiting)
+				{
+					Logging::LogDebug() << __FUNCTION__;
+
+					HWND hWnd = (HWND)wParam;
+					auto it = g_hookmap.find(hWnd);
+					if (it != std::end(g_hookmap))
+					{
+						m_IDirectDrawX *lpDDraw = it->second;
+						if (lpDDraw && (ProxyAddressLookupTable.IsValidWrapperAddress(lpDDraw) ||
+							ProxyAddressLookupTable.IsValidProxyAddress<m_IDirectDrawX>(lpDDraw)))
+						{
+							lpDDraw->SetCooperativeLevel(hWnd, DDSCL_NORMAL);
+						}
+						g_hookmap.clear();
+					}
+				}
+
+				return CallNextHookEx(nullptr, nCode, wParam, lParam);
+			}
+		};
+
 		g_hookmap.clear();
 
 		if (g_hook)
@@ -1377,7 +1440,7 @@ HRESULT m_IDirectDrawX::SetCooperativeLevel(HWND hWnd, DWORD dwFlags)
 		}
 
 		g_hookmap[hWnd] = this;
-		g_hook = SetWindowsHookEx(WH_CBT, CBTProc, GetModuleHandle(nullptr), GetWindowThreadProcessId(hWnd, nullptr));
+		g_hook = SetWindowsHookEx(WH_CBT, WindowsGDIHook::CBTProc, GetModuleHandle(nullptr), GetWindowThreadProcessId(hWnd, nullptr));
 
 		chWnd = hWnd;
 	}
@@ -1945,13 +2008,73 @@ void m_IDirectDrawX::InitDdraw(DWORD DirectXVersion)
 		// Set mouse hook
 		if (!m_hook)
 		{
-			m_hook = SetWindowsHookEx(WH_MOUSE_LL, mouseHookProc, GetModuleHandle(nullptr), 0);
+			struct WindowsMouseHook
+			{
+				static LRESULT CALLBACK mouseHookProc(int nCode, WPARAM wParam, LPARAM lParam)
+				{
+					POINT p;
+					if (GetCursorPos(&p))
+					{
+						if (ddrawRefCount && displayModeWidth && displayModeHeight &&
+							displayModeWidth != displayWidth && displayModeHeight != displayHeight &&
+							(!Config.EnableWindowMode || (Config.EnableWindowMode && Config.FullscreenWindowMode)) &&
+							!isWindowed && threadID && ghWriteEvent && IsWindow(MainhWnd) && !IsIconic(MainhWnd))
+						{
+							mousePos.x = min(p.x, (LONG)displayModeWidth - 1);
+							mousePos.y = min(p.y, (LONG)displayModeHeight - 1);
+
+							if (mousePos.x != p.x || mousePos.y != p.y)
+							{
+								bMouseChange = true;
+								SetEvent(ghWriteEvent);
+							}
+						}
+					}
+					return CallNextHookEx(nullptr, nCode, wParam, lParam);
+				}
+			};
+
+			m_hook = SetWindowsHookEx(WH_MOUSE_LL, WindowsMouseHook::mouseHookProc, GetModuleHandle(nullptr), 0);
 		}
 
 		// Start thread
 		if (!threadID)
 		{
-			threadID = CreateThread(nullptr, 0, setMousePosThread, nullptr, 0, nullptr);
+			// A thread to bypass Windows preventing hooks from modifying mouse position
+			struct WindowsMouseThread
+			{
+				static DWORD WINAPI setMousePosThread(LPVOID)
+				{
+					DWORD dwWaitResult = 0;
+					do {
+						dwWaitResult = WaitForSingleObject(ghWriteEvent, INFINITE);
+						if (bMouseChange)
+						{
+							SetCursorPos(mousePos.x, mousePos.y);
+							bMouseChange = false;
+						}
+					} while (!Config.Exiting && dwWaitResult == WAIT_OBJECT_0);
+
+					// Unhook mouse
+					if (m_hook)
+					{
+						UnhookWindowsHookEx(m_hook);
+						m_hook = nullptr;
+					}
+
+					// Close handle
+					if (ghWriteEvent)
+					{
+						CloseHandle(ghWriteEvent);
+						ghWriteEvent = nullptr;
+					}
+
+					threadID = nullptr;
+					return 0;
+				}
+			};
+
+			threadID = CreateThread(nullptr, 0, WindowsMouseThread::setMousePosThread, nullptr, 0, nullptr);
 		}
 
 		// Create event
@@ -2839,58 +2962,4 @@ int WINAPI dd_GetDeviceCaps(HDC hdc, int index)
 	}
 
 	return m_pGetDeviceCaps(hdc, index);
-}
-
-// A thread to bypass Windows preventing hooks from modifying mouse position
-DWORD WINAPI setMousePosThread(LPVOID)
-{
-	DWORD dwWaitResult = 0;
-	do {
-		dwWaitResult = WaitForSingleObject(ghWriteEvent, INFINITE);
-		if (bMouseChange)
-		{
-			SetCursorPos(mousePos.x, mousePos.y);
-			bMouseChange = false;
-		}
-	} while (!Config.Exiting && dwWaitResult == WAIT_OBJECT_0);
-
-	// Unhook mouse
-	if (m_hook)
-	{
-		UnhookWindowsHookEx(m_hook);
-		m_hook = nullptr;
-	}
-
-	// Close handle
-	if (ghWriteEvent)
-	{
-		CloseHandle(ghWriteEvent);
-		ghWriteEvent = nullptr;
-	}
-
-	threadID = nullptr;
-	return 0;
-}
-
-LRESULT CALLBACK mouseHookProc(int nCode, WPARAM wParam, LPARAM lParam)
-{
-	POINT p;
-	if (GetCursorPos(&p))
-	{
-		if (ddrawRefCount && displayModeWidth && displayModeHeight &&
-			displayModeWidth != displayWidth && displayModeHeight != displayHeight &&
-			(!Config.EnableWindowMode || (Config.EnableWindowMode && Config.FullscreenWindowMode)) &&
-			!isWindowed && threadID && ghWriteEvent && IsWindow(MainhWnd) && !IsIconic(MainhWnd))
-		{
-			mousePos.x = min(p.x, (LONG)displayModeWidth - 1);
-			mousePos.y = min(p.y, (LONG)displayModeHeight - 1);
-
-			if (mousePos.x != p.x || mousePos.y != p.y)
-			{
-				bMouseChange = true;
-				SetEvent(ghWriteEvent);
-			}
-		}
-	}
-	return CallNextHookEx(nullptr, nCode, wParam, lParam);
 }

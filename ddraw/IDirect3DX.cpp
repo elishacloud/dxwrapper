@@ -184,11 +184,28 @@ HRESULT m_IDirect3DX::EnumDevices(LPD3DENUMDEVICESCALLBACK lpEnumDevicesCallback
 			return DDERR_INVALIDPARAMS;
 		}
 
-		ENUMDEVICES CallbackContext;
+		struct EnumDevices
+		{
+			LPVOID lpContext;
+			LPD3DENUMDEVICESCALLBACK lpCallback;
+
+			static HRESULT CALLBACK ConvertCallback(LPSTR lpDeviceDescription, LPSTR lpDeviceName, LPD3DDEVICEDESC7 lpDeviceDesc, LPVOID lpContext)
+			{
+				EnumDevices *self = (EnumDevices*)lpContext;
+
+				D3DDEVICEDESC D3DHWDevDesc, D3DHELDevDesc;
+				D3DHWDevDesc.dwSize = sizeof(D3DDEVICEDESC);
+				D3DHELDevDesc.dwSize = sizeof(D3DDEVICEDESC);
+				ConvertDeviceDesc(D3DHWDevDesc, *lpDeviceDesc);
+				ConvertDeviceDesc(D3DHELDevDesc, *lpDeviceDesc);
+
+				return self->lpCallback(&lpDeviceDesc->deviceGUID, lpDeviceDescription, lpDeviceName, &D3DHWDevDesc, &D3DHELDevDesc, self->lpContext);
+			}
+		} CallbackContext;
 		CallbackContext.lpContext = lpUserArg;
 		CallbackContext.lpCallback = lpEnumDevicesCallback;
 
-		return EnumDevices7(m_IDirect3DEnumDevices::ConvertCallback, &CallbackContext);
+		return EnumDevices7(EnumDevices::ConvertCallback, &CallbackContext);
 	}
 	case 9:
 		return EnumDevices7((LPD3DENUMDEVICESCALLBACK7)lpEnumDevicesCallback, lpUserArg, true);
@@ -490,10 +507,33 @@ HRESULT m_IDirect3DX::FindDevice(LPD3DFINDDEVICESEARCH lpD3DFDS, LPD3DFINDDEVICE
 	case 7:
 	case 9:
 	{
-		ENUMFINDDEVICES CallbackContext;
+		struct EnumFindDevice
+		{
+			bool Found = false;
+			GUID guid;
+			D3DDEVICEDESC7 DeviceDesc7;
+
+			static HRESULT CALLBACK ConvertCallback(LPSTR lpDeviceDescription, LPSTR lpDeviceName, LPD3DDEVICEDESC7 lpDeviceDesc7, LPVOID lpContext)
+			{
+				UNREFERENCED_PARAMETER(lpDeviceDescription);
+				UNREFERENCED_PARAMETER(lpDeviceName);
+
+				EnumFindDevice *self = (EnumFindDevice*)lpContext;
+
+				if (lpDeviceDesc7->deviceGUID == self->guid)
+				{
+					self->Found = true;
+					memcpy(&self->DeviceDesc7, lpDeviceDesc7, sizeof(D3DDEVICEDESC7));
+
+					return DDENUMRET_CANCEL;
+				}
+
+				return DDENUMRET_OK;
+			}
+		} CallbackContext;
 		CallbackContext.guid = lpD3DFDS->guid;
 
-		EnumDevices7(m_IDirect3DEnumFindDevices::ConvertCallback, &CallbackContext, false);
+		EnumDevices7(EnumFindDevice::ConvertCallback, &CallbackContext, false);
 
 		if (CallbackContext.Found)
 		{

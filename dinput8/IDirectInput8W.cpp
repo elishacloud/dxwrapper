@@ -118,11 +118,27 @@ HRESULT m_IDirectInput8W::EnumDevicesBySemantics(LPCWSTR ptszUserName, LPDIACTIO
 		return DIERR_INVALIDPARAM;
 	}
 
-	ENUMDEVICEW CallbackContext;
+	struct EnumDevice
+	{
+		LPVOID pvRef;
+		LPDIENUMDEVICESBYSEMANTICSCBW lpCallback;
+
+		static BOOL CALLBACK EnumDeviceCallback(LPCDIDEVICEINSTANCEW lpddi, LPDIRECTINPUTDEVICE8W lpdid, DWORD dwFlags, DWORD dwRemaining, LPVOID pvRef)
+		{
+			EnumDevice *self = (EnumDevice*)pvRef;
+
+			if (lpdid)
+			{
+				lpdid = ProxyAddressLookupTableDinput8.FindAddress<m_IDirectInputDevice8W>(lpdid);
+			}
+
+			return self->lpCallback(lpddi, lpdid, dwFlags, dwRemaining, self->pvRef);
+		}
+	} CallbackContext;
 	CallbackContext.pvRef = pvRef;
 	CallbackContext.lpCallback = lpCallback;
 
-	return ProxyInterface->EnumDevicesBySemantics(ptszUserName, lpdiActionFormat, m_IDirectInputEnumDevice::EnumDeviceCallbackW, &CallbackContext, dwFlags);
+	return ProxyInterface->EnumDevicesBySemantics(ptszUserName, lpdiActionFormat, EnumDevice::EnumDeviceCallback, &CallbackContext, dwFlags);
 }
 
 HRESULT m_IDirectInput8W::ConfigureDevices(LPDICONFIGUREDEVICESCALLBACK lpdiCallback, LPDICONFIGUREDEVICESPARAMSW lpdiCDParams, DWORD dwFlags, LPVOID pvRefData)

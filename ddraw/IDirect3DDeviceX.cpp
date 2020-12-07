@@ -478,11 +478,33 @@ HRESULT m_IDirect3DDeviceX::EnumTextureFormats(LPD3DENUMTEXTUREFORMATSCALLBACK l
 	case 7:
 	case 9:
 	{
-		ENUMPIXELFORMAT CallbackContext;
-		CallbackContext.lpContext = lpArg;
-		CallbackContext.lpTextureCallback = lpd3dEnumTextureProc;
+		if (!lpd3dEnumTextureProc)
+		{
+			return DDERR_INVALIDPARAMS;
+		}
 
-		return EnumTextureFormats(m_IDirect3DEnumPixelFormat::ConvertCallback, &CallbackContext);
+		struct EnumPixelFormat
+		{
+			LPVOID lpContext;
+			LPD3DENUMTEXTUREFORMATSCALLBACK lpCallback;
+
+			static HRESULT CALLBACK ConvertCallback(LPDDPIXELFORMAT lpDDPixFmt, LPVOID lpContext)
+			{
+				EnumPixelFormat *self = (EnumPixelFormat*)lpContext;
+
+				DDSURFACEDESC Desc = {};
+				Desc.dwSize = sizeof(DDSURFACEDESC);
+				Desc.dwFlags = DDSD_PIXELFORMAT;
+				Desc.ddpfPixelFormat.dwSize = sizeof(DDPIXELFORMAT);
+				ConvertPixelFormat(Desc.ddpfPixelFormat, *lpDDPixFmt);
+
+				return self->lpCallback(&Desc, self->lpContext);
+			}
+		} CallbackContext;
+		CallbackContext.lpContext = lpArg;
+		CallbackContext.lpCallback = lpd3dEnumTextureProc;
+
+		return EnumTextureFormats(EnumPixelFormat::ConvertCallback, &CallbackContext);
 	}
 	default:
 		return DDERR_GENERIC;

@@ -96,9 +96,6 @@ HRESULT WINAPI dd_DirectDrawCreateEx(GUID FAR *lpGUID, LPVOID *lplpDD, REFIID ri
 HRESULT WINAPI dd_DirectDrawEnumerateA(LPDDENUMCALLBACKA lpCallback, LPVOID lpContext);
 HRESULT WINAPI dd_DirectDrawEnumerateW(LPDDENUMCALLBACKW lpCallback, LPVOID lpContext);
 
-DWORD WINAPI setMousePosThread(LPVOID);
-LRESULT CALLBACK mouseHookProc(int nCode, WPARAM wParam, LPARAM lParam);
-
 // Function and variable forward declarations
 namespace DdrawWrapper
 {
@@ -156,9 +153,7 @@ using namespace DdrawWrapper;
 #include "Versions\IDirectDrawSurface7.h"
 // Direct3D Helpers
 #include "IDirect3DTypes.h"
-#include "IDirect3DEnumCallback.h"
 // DirectDraw Helpers
-#include "IDirectDrawEnumCallback.h"
 #include "IDirectDrawTypes.h"
 // Direct3D Interfaces
 #include "IDirect3DX.h"

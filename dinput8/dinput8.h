@@ -36,5 +36,3 @@ using namespace Dinput8Wrapper;
 #include "IDirectInputDevice8A.h"
 #include "IDirectInputDevice8W.h"
 #include "IDirectInputEffect.h"
-#include "IDirectInputEnumDevice.h"
-#include "IDirectInputEnumEffect.h"
