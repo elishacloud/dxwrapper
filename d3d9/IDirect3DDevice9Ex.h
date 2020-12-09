@@ -11,6 +11,8 @@ private:
 
 	LONG screenWidth, screenHeight;
 
+	bool SetSSAA = false;
+
 	// Anisotropic Filtering
 	bool MaxAnisotropySet = false;
 	DWORD MaxAnisotropy = 0;
@@ -41,6 +43,13 @@ public:
 
 		// Get screen size
 		Utils::GetScreenSize(DeviceWindow, screenWidth, screenHeight);
+
+		// Check for SSAA
+		if (DeviceMultiSampleType && m_pD3DEx &&
+			m_pD3DEx->CheckDeviceFormat(D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, D3DFMT_X8R8G8B8, 0, D3DRTYPE_SURFACE, (D3DFORMAT)MAKEFOURCC('S', 'S', 'A', 'A')) == S_OK)
+		{
+			SetSSAA = true;
+		}
 
 		ProxyAddressLookupTable = new AddressLookupTableD3d9<m_IDirect3DDevice9Ex>(this);
 	}

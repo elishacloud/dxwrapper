@@ -407,7 +407,7 @@ HRESULT m_IDirect3DDevice9Ex::SetRenderState(D3DRENDERSTATETYPE State, DWORD Val
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
 	// Set for Multisample
-	if (State == D3DRS_MULTISAMPLEANTIALIAS || State == D3DRS_ANTIALIASEDLINEENABLE)
+	if (DeviceMultiSampleFlag && State == D3DRS_MULTISAMPLEANTIALIAS)
 	{
 		Value = TRUE;
 	}
@@ -752,11 +752,16 @@ HRESULT m_IDirect3DDevice9Ex::BeginScene()
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
+	HRESULT hr = ProxyInterface->BeginScene();
+
 	// Set for Multisample
 	if (DeviceMultiSampleFlag)
 	{
 		ProxyInterface->SetRenderState(D3DRS_MULTISAMPLEANTIALIAS, TRUE);
-		ProxyInterface->SetRenderState(D3DRS_ANTIALIASEDLINEENABLE, TRUE);
+		if (SetSSAA)
+		{
+			ProxyInterface->SetRenderState(D3DRS_ADAPTIVETESS_Y, MAKEFOURCC('S', 'S', 'A', 'A'));
+		}
 	}
 
 	// Enable Anisotropic Filtering
@@ -774,7 +779,7 @@ HRESULT m_IDirect3DDevice9Ex::BeginScene()
 		}
 	}
 
-	return ProxyInterface->BeginScene();
+	return hr;
 }
 
 HRESULT m_IDirect3DDevice9Ex::GetStreamSource(THIS_ UINT StreamNumber, IDirect3DVertexBuffer9** ppStreamData, UINT* OffsetInBytes, UINT* pStride)
