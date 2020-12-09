@@ -2363,17 +2363,13 @@ HRESULT m_IDirectDrawX::CreateD3D9Device()
 		}
 
 		// Check device caps to make sure it supports dynamic textures
+		DynamicTexturesSupported = false;
 		D3DCAPS9 d3dcaps;
 		ZeroMemory(&d3dcaps, sizeof(D3DCAPS9));
-		if (FAILED(d3d9Object->GetDeviceCaps(D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, &d3dcaps)))
+		if (SUCCEEDED(d3d9Object->GetDeviceCaps(D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, &d3dcaps)))
 		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error: failed to retrieve device-specific information about the device");
-			hr = DDERR_GENERIC;
-			break;
+			DynamicTexturesSupported = (d3dcaps.Caps2 & D3DCAPS2_DYNAMICTEXTURES);
 		}
-
-		// Are dynamic textures supported
-		DynamicTexturesSupported = (d3dcaps.Caps2 & D3DCAPS2_DYNAMICTEXTURES);
 
 		// Get hwnd
 		HWND hWnd = GetHwnd();
@@ -2868,7 +2864,7 @@ HRESULT m_IDirectDrawX::Present()
 	// Use WaitForVerticalBlank for wait timer
 	if (EnableWaitVsync && !Config.EnableVSync)
 	{
-		WaitForVerticalBlank(DDWAITVB_BLOCKEND, nullptr);
+		WaitForVerticalBlank(DDWAITVB_BLOCKBEGIN, nullptr);
 		EnableWaitVsync = false;
 	}
 	// Skip frame if time lapse is too small

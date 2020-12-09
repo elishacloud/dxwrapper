@@ -71,6 +71,8 @@ HRESULT m_IDirect3DDevice9Ex::Reset(D3DPRESENT_PARAMETERS *pPresentationParamete
 		return D3DERR_INVALIDCALL;
 	}
 
+	HRESULT hr;
+
 	// Setup presentation parameters
 	D3DPRESENT_PARAMETERS d3dpp;
 	CopyMemory(&d3dpp, pPresentationParameters, sizeof(D3DPRESENT_PARAMETERS));
@@ -83,12 +85,14 @@ HRESULT m_IDirect3DDevice9Ex::Reset(D3DPRESENT_PARAMETERS *pPresentationParamete
 		UpdatePresentParameterForMultisample(&d3dpp, DeviceMultiSampleType, DeviceMultiSampleQuality);
 
 		// Reset device
-		HRESULT hr = ProxyInterface->Reset(&d3dpp);
+		hr = ProxyInterface->Reset(&d3dpp);
 
 		// Check if device was reset successfully
 		if (SUCCEEDED(hr))
 		{
 			SetRenderState(D3DRS_MULTISAMPLEANTIALIAS, TRUE);
+
+			CopyMemory(pPresentationParameters, &d3dpp, sizeof(D3DPRESENT_PARAMETERS));
 
 			return D3D_OK;
 		}
@@ -107,13 +111,22 @@ HRESULT m_IDirect3DDevice9Ex::Reset(D3DPRESENT_PARAMETERS *pPresentationParamete
 				DeviceMultiSampleFlag = false;
 				DeviceMultiSampleType = D3DMULTISAMPLE_NONE;
 				DeviceMultiSampleQuality = 0;
+
+				CopyMemory(pPresentationParameters, &d3dpp, sizeof(D3DPRESENT_PARAMETERS));
 			}
 
 			return hr;
 		}
 	}
 
-	return ProxyInterface->Reset(&d3dpp);
+	hr = ProxyInterface->Reset(&d3dpp);
+
+	if (SUCCEEDED(hr))
+	{
+		CopyMemory(pPresentationParameters, &d3dpp, sizeof(D3DPRESENT_PARAMETERS));
+	}
+
+	return hr;
 }
 
 HRESULT m_IDirect3DDevice9Ex::EndScene()
@@ -195,6 +208,8 @@ HRESULT m_IDirect3DDevice9Ex::CreateAdditionalSwapChain(D3DPRESENT_PARAMETERS *p
 	if (SUCCEEDED(hr) && ppSwapChain)
 	{
 		*ppSwapChain = ProxyAddressLookupTable->FindAddress<m_IDirect3DSwapChain9Ex>(*ppSwapChain);
+
+		CopyMemory(pPresentationParameters, &d3dpp, sizeof(D3DPRESENT_PARAMETERS));
 	}
 
 	return hr;
@@ -1882,6 +1897,8 @@ HRESULT m_IDirect3DDevice9Ex::ResetEx(THIS_ D3DPRESENT_PARAMETERS* pPresentation
 		return D3DERR_INVALIDCALL;
 	}
 
+	HRESULT hr;
+
 	// Setup presentation parameters
 	D3DPRESENT_PARAMETERS d3dpp;
 	CopyMemory(&d3dpp, pPresentationParameters, sizeof(D3DPRESENT_PARAMETERS));
@@ -1894,12 +1911,14 @@ HRESULT m_IDirect3DDevice9Ex::ResetEx(THIS_ D3DPRESENT_PARAMETERS* pPresentation
 		UpdatePresentParameterForMultisample(&d3dpp, DeviceMultiSampleType, DeviceMultiSampleQuality);
 
 		// Reset device
-		HRESULT hr = ProxyInterface->ResetEx(&d3dpp, pFullscreenDisplayMode);
+		hr = ProxyInterface->ResetEx(&d3dpp, pFullscreenDisplayMode);
 
 		// Check if device was reset successfully
 		if (SUCCEEDED(hr))
 		{
 			SetRenderState(D3DRS_MULTISAMPLEANTIALIAS, TRUE);
+
+			CopyMemory(pPresentationParameters, &d3dpp, sizeof(D3DPRESENT_PARAMETERS));
 
 			return D3D_OK;
 		}
@@ -1918,13 +1937,22 @@ HRESULT m_IDirect3DDevice9Ex::ResetEx(THIS_ D3DPRESENT_PARAMETERS* pPresentation
 				DeviceMultiSampleFlag = false;
 				DeviceMultiSampleType = D3DMULTISAMPLE_NONE;
 				DeviceMultiSampleQuality = 0;
+
+				CopyMemory(pPresentationParameters, &d3dpp, sizeof(D3DPRESENT_PARAMETERS));
 			}
 
 			return hr;
 		}
 	}
 
-	return ProxyInterface->ResetEx(&d3dpp, pFullscreenDisplayMode);
+	hr = ProxyInterface->ResetEx(&d3dpp, pFullscreenDisplayMode);
+
+	if (SUCCEEDED(hr))
+	{
+		CopyMemory(pPresentationParameters, &d3dpp, sizeof(D3DPRESENT_PARAMETERS));
+	}
+
+	return hr;
 }
 
 HRESULT m_IDirect3DDevice9Ex::GetDisplayModeEx(THIS_ UINT iSwapChain, D3DDISPLAYMODEEX* pMode, D3DDISPLAYROTATION* pRotation)

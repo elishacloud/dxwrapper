@@ -2793,7 +2793,7 @@ HRESULT m_IDirectDrawSurfaceX::CreateD3d9Surface()
 		}
 	}
 	// Create texture
-	else if (IsTexture())
+	else if (IsTexture() || !IsDirect3DSurface)
 	{
 		if (FAILED((*d3d9Device)->CreateTexture(surfaceDesc2.dwWidth, surfaceDesc2.dwHeight, 1, 0, TextureFormat, D3DPOOL_SYSTEMMEM, &surfaceTexture, nullptr)))
 		{
