@@ -379,7 +379,13 @@ HRESULT m_IDirectDrawX::CreateSurface(LPDDSURFACEDESC lpDDSurfaceDesc, LPDIRECTD
 		Desc2.dwSize = sizeof(DDSURFACEDESC2);
 		ConvertSurfaceDesc(Desc2, *lpDDSurfaceDesc);
 
-		return CreateSurface2(&Desc2, lplpDDSurface, pUnkOuter, DirectXVersion);
+		HRESULT hr = CreateSurface2(&Desc2, lplpDDSurface, pUnkOuter, DirectXVersion);
+
+		Desc2.ddsCaps.dwCaps2 = 0;
+		Desc2.ddsCaps.dwVolumeDepth = 0;
+		ConvertSurfaceDesc(*lpDDSurfaceDesc, Desc2);
+
+		return hr;
 	}
 
 	HRESULT hr = GetProxyInterfaceV3()->CreateSurface(lpDDSurfaceDesc, (LPDIRECTDRAWSURFACE*)lplpDDSurface, pUnkOuter);
