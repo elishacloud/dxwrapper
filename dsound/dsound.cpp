@@ -48,7 +48,7 @@ HRESULT WINAPI ds_DirectSoundCreate(LPCGUID pcGuidDevice, LPDIRECTSOUND *ppDS, L
 
 	if (SUCCEEDED(hr) && ppDS)
 	{
-		*ppDS = ProxyAddressLookupTableDsound.FindAddress<m_IDirectSound8>(*ppDS);
+		*ppDS = new m_IDirectSound8((IDirectSound8*)*ppDS);
 	}
 
 	return hr;
@@ -239,7 +239,7 @@ HRESULT WINAPI ds_DirectSoundCreate8(LPCGUID pcGuidDevice, LPDIRECTSOUND8 *ppDS8
 
 	if (SUCCEEDED(hr) && ppDS8)
 	{
-		*ppDS8 = ProxyAddressLookupTableDsound.FindAddress<m_IDirectSound8>(*ppDS8);
+		*ppDS8 = new m_IDirectSound8(*ppDS8);
 	}
 
 	return hr;

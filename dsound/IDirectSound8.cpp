@@ -108,7 +108,7 @@ HRESULT m_IDirectSound8::CreateSoundBuffer(LPCDSBUFFERDESC pcDSBufferDesc, LPDIR
 
 	if (SUCCEEDED(hr) && ppDSBuffer)
 	{
-		*ppDSBuffer = ProxyAddressLookupTableDsound.FindAddress<m_IDirectSoundBuffer8>(*ppDSBuffer);
+		*ppDSBuffer = new m_IDirectSoundBuffer8((IDirectSoundBuffer8*)*ppDSBuffer);
 
 		if (pcDSBufferDesc && (pcDSBufferDesc->dwFlags & DSBCAPS_PRIMARYBUFFER) != 0)
 		{

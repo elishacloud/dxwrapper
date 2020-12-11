@@ -261,11 +261,13 @@ HRESULT WINAPI dd_DirectDrawCreate(GUID FAR *lpGUID, LPDIRECTDRAW FAR *lplpDD, I
 		{
 			LPDIRECTDRAW lpDD = (LPDIRECTDRAW)*lplpDD;
 
-			hr = lpDD->QueryInterface(ConvertREFIID(IID_IDirectDraw), (LPVOID*)lplpDD);
+			hr = lpDD->QueryInterface(ConvertREFIID(IID_IDirectDraw7), (LPVOID*)lplpDD);
 
 			if (SUCCEEDED(hr))
 			{
-				genericQueryInterface(IID_IDirectDraw, (LPVOID*)lplpDD);
+				m_IDirectDrawX *Interface = new m_IDirectDrawX((IDirectDraw7*)*lplpDD, 7);
+
+				*lplpDD = (LPDIRECTDRAW)Interface->GetWrapperInterfaceX(1);
 
 				lpDD->Release();
 			}

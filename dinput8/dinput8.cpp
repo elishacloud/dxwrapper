@@ -50,7 +50,18 @@ HRESULT WINAPI di8_DirectInput8Create(HINSTANCE hinst, DWORD dwVersion, REFIID r
 
 	if (SUCCEEDED(hr) && ppvOut)
 	{
-		genericQueryInterface(riidltf, ppvOut);
+		if (riidltf == IID_IDirectInput8A)
+		{
+			*ppvOut = new m_IDirectInput8A((IDirectInput8A*)*ppvOut);
+		}
+		else if (riidltf == IID_IDirectInput8W)
+		{
+			*ppvOut = new m_IDirectInput8W((IDirectInput8W*)*ppvOut);
+		}
+		else
+		{
+			genericQueryInterface(riidltf, ppvOut);
+		}
 	}
 
 	return hr;
