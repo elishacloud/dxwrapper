@@ -1726,9 +1726,8 @@ HRESULT m_IDirectDrawSurfaceX::IsLost()
 		case D3D_OK:
 			return DD_OK;
 		case D3DERR_DEVICELOST:
-			return DDERR_SURFACELOST;
 		case D3DERR_DEVICENOTRESET:
-			return ddrawParent->ReinitDevice();
+			return DDERR_SURFACELOST;
 		case D3DERR_DRIVERINTERNALERROR:
 		case D3DERR_INVALIDCALL:
 		default:

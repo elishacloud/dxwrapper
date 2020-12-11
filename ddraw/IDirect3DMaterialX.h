@@ -56,8 +56,6 @@ public:
 		}
 
 		InitMaterial(DirectXVersion);
-
-		ProxyAddressLookupTable.SaveAddress(this, (ProxyInterface) ? ProxyInterface : (void*)this);
 	}
 	m_IDirect3DMaterialX(m_IDirect3DDeviceX **D3DDInterface, DWORD DirectXVersion) : D3DDeviceInterface(D3DDInterface)
 	{
@@ -73,16 +71,12 @@ public:
 		}
 
 		InitMaterial(DirectXVersion);
-
-		ProxyAddressLookupTable.SaveAddress(this, (ProxyInterface) ? ProxyInterface : (void*)this);
 	}
 	~m_IDirect3DMaterialX()
 	{
 		LOG_LIMIT(3, __FUNCTION__ << " (" << this << ")" << " deleting interface!");
 
 		ReleaseMaterial();
-
-		ProxyAddressLookupTable.DeleteAddress(this);
 	}
 
 	/*** IUnknown methods ***/

@@ -94,8 +94,6 @@ public:
 		}
 
 		InitDdraw(DirectXVersion);
-
-		ProxyAddressLookupTable.SaveAddress(this, (ProxyInterface) ? ProxyInterface : (void*)this);
 	}
 	m_IDirectDrawX(DWORD DirectXVersion)
 	{
@@ -104,16 +102,12 @@ public:
 		LOG_LIMIT(3, "Creating interface " << __FUNCTION__ << " (" << this << ")" << " converting interface from v" << DirectXVersion << " to v" << ProxyDirectXVersion);
 
 		InitDdraw(DirectXVersion);
-
-		ProxyAddressLookupTable.SaveAddress(this, (ProxyInterface) ? ProxyInterface : (void*)this);
 	}
 	~m_IDirectDrawX()
 	{
 		LOG_LIMIT(3, __FUNCTION__ << " (" << this << ")" << " deleting interface!");
 
 		ReleaseDdraw();
-
-		ProxyAddressLookupTable.DeleteAddress(this);
 	}
 
 	/*** IUnknown methods ***/

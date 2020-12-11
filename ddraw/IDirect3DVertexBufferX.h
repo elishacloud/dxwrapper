@@ -49,8 +49,6 @@ public:
 		}
 
 		InitVertexBuffer(DirectXVersion);
-
-		ProxyAddressLookupTable.SaveAddress(this, (ProxyInterface) ? ProxyInterface : (void*)this);
 	}
 	m_IDirect3DVertexBufferX(m_IDirect3DDeviceX **D3DDInterface, LPD3DVERTEXBUFFERDESC lpVBDesc, DWORD DirectXVersion) : D3DDeviceInterface(D3DDInterface)
 	{
@@ -67,16 +65,12 @@ public:
 		}
 
 		InitVertexBuffer(DirectXVersion);
-
-		ProxyAddressLookupTable.SaveAddress(this, (ProxyInterface) ? ProxyInterface : (void*)this);
 	}
 	~m_IDirect3DVertexBufferX()
 	{
 		LOG_LIMIT(3, __FUNCTION__ << " (" << this << ")" << " deleting interface!");
 
 		ReleaseVertexBuffer();
-
-		ProxyAddressLookupTable.DeleteAddress(this);
 	}
 
 	/*** IUnknown methods ***/

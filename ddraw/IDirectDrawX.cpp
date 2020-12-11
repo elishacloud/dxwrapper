@@ -2147,8 +2147,8 @@ void m_IDirectDrawX::ReleaseDdraw()
 	// Release surfaces
 	for (m_IDirectDrawSurfaceX *pSurface : SurfaceVector)
 	{
-		pSurface->ReleaseD9Surface();
 		pSurface->ClearDdraw();
+		pSurface->ReleaseD9Surface();
 	}
 	SurfaceVector.clear();
 
