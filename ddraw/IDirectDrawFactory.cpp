@@ -22,7 +22,7 @@
 
 HRESULT m_IDirectDrawFactory::QueryInterface(REFIID riid, LPVOID FAR * ppvObj)
 {
-	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
+	Logging::LogDebug() << __FUNCTION__ << " (" << this << ") " << riid;
 
 	if ((riid == IID_IDirectDrawFactory || riid == IID_IUnknown) && ppvObj)
 	{

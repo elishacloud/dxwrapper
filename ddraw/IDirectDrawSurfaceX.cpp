@@ -38,7 +38,7 @@ std::vector<EMUSURFACE*> memorySurfaces;
 
 HRESULT m_IDirectDrawSurfaceX::QueryInterface(REFIID riid, LPVOID FAR * ppvObj, DWORD DirectXVersion)
 {
-	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
+	Logging::LogDebug() << __FUNCTION__ << " (" << this << ") " << riid;
 
 	if (!ppvObj)
 	{
@@ -187,7 +187,7 @@ void *m_IDirectDrawSurfaceX::GetWrapperInterfaceX(DWORD DirectXVersion)
 
 ULONG m_IDirectDrawSurfaceX::AddRef(DWORD DirectXVersion)
 {
-	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
+	Logging::LogDebug() << __FUNCTION__ << " (" << this << ") v" << DirectXVersion;
 
 	if (Config.Dd7to9)
 	{
@@ -214,7 +214,7 @@ ULONG m_IDirectDrawSurfaceX::AddRef(DWORD DirectXVersion)
 
 ULONG m_IDirectDrawSurfaceX::Release(DWORD DirectXVersion)
 {
-	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
+	Logging::LogDebug() << __FUNCTION__ << " (" << this << ") v" << DirectXVersion;
 
 	ULONG ref;
 

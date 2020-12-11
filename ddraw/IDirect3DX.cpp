@@ -25,7 +25,7 @@ HMODULE hD3DIm700 = nullptr;
 
 HRESULT m_IDirect3DX::QueryInterface(REFIID riid, LPVOID FAR * ppvObj, DWORD DirectXVersion)
 {
-	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
+	Logging::LogDebug() << __FUNCTION__ << " (" << this << ") " << riid;
 
 	if (!ppvObj)
 	{

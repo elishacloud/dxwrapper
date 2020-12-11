@@ -18,7 +18,7 @@
 
 HRESULT m_IDirect3DVertexBufferX::QueryInterface(REFIID riid, LPVOID FAR * ppvObj, DWORD DirectXVersion)
 {
-	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
+	Logging::LogDebug() << __FUNCTION__ << " (" << this << ") " << riid;
 
 	if (!ppvObj)
 	{
@@ -72,7 +72,7 @@ void *m_IDirect3DVertexBufferX::GetWrapperInterfaceX(DWORD DirectXVersion)
 
 ULONG m_IDirect3DVertexBufferX::AddRef(DWORD DirectXVersion)
 {
-	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
+	Logging::LogDebug() << __FUNCTION__ << " (" << this << ") v" << DirectXVersion;
 
 	if (Config.Dd7to9)
 	{
@@ -93,7 +93,7 @@ ULONG m_IDirect3DVertexBufferX::AddRef(DWORD DirectXVersion)
 
 ULONG m_IDirect3DVertexBufferX::Release(DWORD DirectXVersion)
 {
-	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
+	Logging::LogDebug() << __FUNCTION__ << " (" << this << ") v" << DirectXVersion;
 
 	ULONG ref;
 

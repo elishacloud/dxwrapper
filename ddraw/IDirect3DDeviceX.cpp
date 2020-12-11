@@ -19,7 +19,7 @@
 
 HRESULT m_IDirect3DDeviceX::QueryInterface(REFIID riid, LPVOID FAR * ppvObj, DWORD DirectXVersion)
 {
-	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
+	Logging::LogDebug() << __FUNCTION__ << " (" << this << ") " << riid;
 
 	if (!ppvObj)
 	{
@@ -77,7 +77,7 @@ void *m_IDirect3DDeviceX::GetWrapperInterfaceX(DWORD DirectXVersion)
 
 ULONG m_IDirect3DDeviceX::AddRef(DWORD DirectXVersion)
 {
-	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
+	Logging::LogDebug() << __FUNCTION__ << " (" << this << ") v" << DirectXVersion;
 
 	if (Config.Dd7to9)
 	{
@@ -102,7 +102,7 @@ ULONG m_IDirect3DDeviceX::AddRef(DWORD DirectXVersion)
 
 ULONG m_IDirect3DDeviceX::Release(DWORD DirectXVersion)
 {
-	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
+	Logging::LogDebug() << __FUNCTION__ << " (" << this << ") v" << DirectXVersion;
 
 	ULONG ref;
 

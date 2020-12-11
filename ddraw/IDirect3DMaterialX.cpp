@@ -18,7 +18,7 @@
 
 HRESULT m_IDirect3DMaterialX::QueryInterface(REFIID riid, LPVOID FAR * ppvObj, DWORD DirectXVersion)
 {
-	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
+	Logging::LogDebug() << __FUNCTION__ << " (" << this << ") " << riid;
 
 	if (!ppvObj)
 	{
@@ -74,7 +74,7 @@ void *m_IDirect3DMaterialX::GetWrapperInterfaceX(DWORD DirectXVersion)
 
 ULONG m_IDirect3DMaterialX::AddRef(DWORD DirectXVersion)
 {
-	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
+	Logging::LogDebug() << __FUNCTION__ << " (" << this << ") v" << DirectXVersion;
 
 	if (!ProxyInterface)
 	{
@@ -97,7 +97,7 @@ ULONG m_IDirect3DMaterialX::AddRef(DWORD DirectXVersion)
 
 ULONG m_IDirect3DMaterialX::Release(DWORD DirectXVersion)
 {
-	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
+	Logging::LogDebug() << __FUNCTION__ << " (" << this << ") v" << DirectXVersion;
 
 	ULONG ref;
 
