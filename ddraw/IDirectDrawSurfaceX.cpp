@@ -1914,10 +1914,13 @@ HRESULT m_IDirectDrawSurfaceX::Restore()
 		{
 		case D3D_OK:
 			return DD_OK;
+		case D3DERR_DEVICENOTRESET:
+			if (SUCCEEDED(ddrawParent->ReinitDevice()))
+			{
+				return DD_OK;
+			}
 		case D3DERR_DEVICELOST:
 			return DDERR_SURFACELOST;
-		case D3DERR_DEVICENOTRESET:
-			return ddrawParent->ReinitDevice();
 		case D3DERR_DRIVERINTERNALERROR:
 		case D3DERR_INVALIDCALL:
 		default:
@@ -2683,26 +2686,35 @@ HRESULT m_IDirectDrawSurfaceX::CheckInterface(char *FunctionName, bool CheckD3DD
 		}
 	}
 
-	// Check if using Direct3D
-	IsDirect3DSurface = (ddrawParent->IsUsing3D() && (surfaceDesc2.ddsCaps.dwCaps & DDSCAPS_3DDEVICE));
-
-	// Make sure surface exists, if not then create it
-	if (CheckD3DSurface && ((!surfaceTexture && !surface3D) || (IsDirect3DSurface && !IsTexture() && !surface3D)))
+	// Check surface
+	if (CheckD3DSurface)
 	{
-		if (FAILED(CreateD3d9Surface()))
+		// Check if device is lost
+		if (!IsSurfaceEmulated && CheckD3DDevice)
 		{
-			LOG_LIMIT(100, FunctionName << " Error: d3d9 surface texture not setup!");
-			return DDERR_GENERIC;
+			HRESULT hr = (*d3d9Device)->TestCooperativeLevel();
+			if (hr == D3DERR_DEVICELOST || (hr == D3DERR_DEVICENOTRESET && FAILED(ddrawParent->ReinitDevice())))
+			{
+				return DDERR_SURFACELOST;
+			}
+			if (FAILED(hr))
+			{
+				LOG_LIMIT(100, FunctionName << " Error: TestCooperativeLevel = " << (DDERR)hr);
+				return DDERR_GENERIC;
+			}
 		}
-	}
 
-	// Check if surface is lost
-	if ((IsPrimarySurface() || IsBackBuffer()) && !IsSurfaceEmulated && CheckD3DDevice && CheckD3DSurface)
-	{
-		HRESULT hr = (*d3d9Device)->TestCooperativeLevel();
-		if (hr == D3DERR_DEVICENOTRESET || hr == D3DERR_DEVICELOST)
+		// Check if using Direct3D
+		IsDirect3DSurface = (ddrawParent->IsUsing3D() && (surfaceDesc2.ddsCaps.dwCaps & DDSCAPS_3DDEVICE));
+
+		// Make sure surface exists, if not then create it
+		if ((!surfaceTexture && !surface3D) || (IsDirect3DSurface && !IsTexture() && !surface3D))
 		{
-			return DDERR_SURFACELOST;
+			if (FAILED(CreateD3d9Surface()))
+			{
+				LOG_LIMIT(100, FunctionName << " Error: d3d9 surface texture not setup!");
+				return DDERR_GENERIC;
+			}
 		}
 	}
 
@@ -2782,7 +2794,7 @@ HRESULT m_IDirectDrawSurfaceX::CreateD3d9Surface()
 		}
 
 		// Create palette surface
-		if (surfaceFormat == D3DFMT_P8 && IsPrimarySurface())
+		if (IsPrimarySurface() && surfaceFormat == D3DFMT_P8)
 		{
 			if (FAILED((*d3d9Device)->CreateTexture(256, 256, 1, 0, D3DFMT_X8R8G8B8, D3DPOOL_MANAGED, &paletteTexture, nullptr)) ||
 				FAILED((*d3d9Device)->CreatePixelShader((DWORD*)PalettePixelShaderSrc, &pixelShader)))
