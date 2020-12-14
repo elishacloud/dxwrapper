@@ -79,4 +79,5 @@ public:
 	RGBDWORD *GetRgbPalette() { return rgbPalette; }
 	DWORD GetPaletteUSN() { return PaletteUSN; }
 	DWORD GetEntryCount() { return entryCount; }
+	void SetPrimary() { paletteCaps |= DDPCAPS_PRIMARYSURFACE; }
 };

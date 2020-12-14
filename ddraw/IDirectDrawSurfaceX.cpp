@@ -2118,6 +2118,12 @@ HRESULT m_IDirectDrawSurfaceX::SetPalette(LPDIRECTDRAWPALETTE lpDDPalette)
 				PaletteFirstRun = false;
 			}
 
+			// Set primary
+			if (IsPrimarySurface())
+			{
+				attachedPalette->SetPrimary();
+			}
+
 			// If new palette is set
 			PaletteUSN++;
 		}
