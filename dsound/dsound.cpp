@@ -141,7 +141,7 @@ HRESULT WINAPI ds_DirectSoundCaptureCreate(LPCGUID pcGuidDevice, LPDIRECTSOUNDCA
 
 	if (SUCCEEDED(hr) && ppDSC)
 	{
-		*ppDSC = ProxyAddressLookupTableDsound.FindAddress<m_IDirectSoundCapture8>(*ppDSC);
+		*ppDSC = new m_IDirectSoundCapture8(*ppDSC);
 	}
 
 	return hr;
@@ -207,15 +207,15 @@ HRESULT WINAPI ds_DirectSoundFullDuplexCreate(LPCGUID pcGuidCaptureDevice, LPCGU
 	{
 		if (ppDSFD)
 		{
-			*ppDSFD = ProxyAddressLookupTableDsound.FindAddress<m_IDirectSoundFullDuplex8>(*ppDSFD);
+			*ppDSFD = new m_IDirectSoundFullDuplex8(*ppDSFD);
 		}
 		if (ppDSCBuffer8)
 		{
-			*ppDSCBuffer8 = ProxyAddressLookupTableDsound.FindAddress<m_IDirectSoundCaptureBuffer8>(*ppDSCBuffer8);
+			*ppDSCBuffer8 = new m_IDirectSoundCaptureBuffer8(*ppDSCBuffer8);
 		}
 		if (ppDSBuffer8)
 		{
-			*ppDSBuffer8 = ProxyAddressLookupTableDsound.FindAddress<m_IDirectSoundBuffer8>(*ppDSBuffer8);
+			*ppDSBuffer8 = new m_IDirectSoundBuffer8(*ppDSBuffer8);
 		}
 	}
 
@@ -260,7 +260,7 @@ HRESULT WINAPI ds_DirectSoundCaptureCreate8(LPCGUID pcGuidDevice, LPDIRECTSOUNDC
 
 	if (SUCCEEDED(hr) && ppDSC8)
 	{
-		*ppDSC8 = ProxyAddressLookupTableDsound.FindAddress<m_IDirectSoundCapture8>(*ppDSC8);
+		*ppDSC8 = new m_IDirectSoundCapture8(*ppDSC8);
 	}
 
 	return hr;
