@@ -718,14 +718,7 @@ HRESULT WINAPI dd_GetSurfaceFromDC(HDC hdc, LPDIRECTDRAWSURFACE7 *lpDDS, DWORD a
 		return DDERR_UNSUPPORTED;
 	}
 
-	HRESULT hr = m_pGetSurfaceFromDC(hdc, lpDDS, arg);
-
-	if (SUCCEEDED(hr) && lpDDS)
-	{
-		*lpDDS = ProxyAddressLookupTable.FindAddress<m_IDirectDrawSurface7>(*lpDDS);
-	}
-
-	return hr;
+	return m_pGetSurfaceFromDC(hdc, lpDDS, arg);
 }
 
 HRESULT WINAPI dd_RegisterSpecialCase(DWORD arg1, DWORD arg2, DWORD arg3, DWORD arg4)
