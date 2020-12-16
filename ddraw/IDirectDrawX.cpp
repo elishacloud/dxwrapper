@@ -1477,8 +1477,7 @@ HRESULT m_IDirectDrawX::SetCooperativeLevel(HWND hWnd, DWORD dwFlags)
 
 			// Removing WS_CAPTION
 			SetWindowLong(hWnd, GWL_STYLE, lStyle & ~WS_CAPTION);
-			SetWindowPos(hWnd, HWND_TOP, 0, 0, 0, 0, SWP_FRAMECHANGED | SWP_NOSENDCHANGING | SWP_NOZORDER | SWP_NOOWNERZORDER | SWP_ASYNCWINDOWPOS);
-			Sleep(0);	// Allow WndProcs to complete before unhooking
+			SetWindowPos(hWnd, HWND_TOP, 0, 0, 0, 0, SWP_FRAMECHANGED | SWP_NOSENDCHANGING | SWP_NOZORDER | SWP_NOOWNERZORDER);
 
 			// Resetting WndProc
 			Utils::RestoreWndProcFilter(hWnd);
@@ -1501,16 +1500,15 @@ HRESULT m_IDirectDrawX::SetDisplayMode(DWORD dwWidth, DWORD dwHeight, DWORD dwBP
 		}
 
 		bool ChangeMode = false;
-
-		// Set display mode to dwWidth x dwHeight with dwBPP color depth
-		DWORD FoundWidth = 0;
-		DWORD FoundHeight = 0;
 		DWORD NewBPP = (Config.DdrawOverrideBitMode) ? Config.DdrawOverrideBitMode : dwBPP;
 
 		if (displayModeWidth != dwWidth || displayModeHeight != dwHeight || displayModeBPP != NewBPP || displayModeRefreshRate != dwRefreshRate)
 		{
+			DWORD FoundWidth = dwWidth;
+			DWORD FoundHeight = dwHeight;
+
 			// Check if it is a supported resolution
-			if ((!Config.EnableWindowMode || Config.FullscreenWindowMode) && ExclusiveMode)
+			if (ExclusiveMode && (!Config.EnableWindowMode || Config.FullscreenWindowMode))
 			{
 				// Check for device interface
 				if (FAILED(CheckInterface(__FUNCTION__, false)))
@@ -2503,9 +2501,19 @@ HRESULT m_IDirectDrawX::CreateD3D9Device()
 				SendMessage(hWnd, WM_DISPLAYCHANGE, (WPARAM)bpp, (LPARAM)res);
 			}
 
+			// Get window size
+			RECT tempRect = { NULL };
+			GetClientRect(hWnd, &tempRect);
+
 			// Send message about window changes
-			WINDOWPOS winpos = { nullptr, hWnd, 0, 0, (int)presParams.BackBufferWidth, (int)presParams.BackBufferHeight, WM_NULL };
+			WINDOWPOS winpos = { nullptr, hWnd, tempRect.left, tempRect.top, tempRect.right, tempRect.bottom, WM_NULL };
 			SendMessage(hWnd, WM_WINDOWPOSCHANGED, (WPARAM)TRUE, (LPARAM)&winpos);
+
+			// Check window style
+			if (GetWindowLong(hWnd, GWL_STYLE) & WS_POPUP)
+			{
+				Sleep(1000);	// Wait for display
+			}
 		}
 
 		// Store display frequency

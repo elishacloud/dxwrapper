@@ -396,71 +396,68 @@ void UpdatePresentParameter(D3DPRESENT_PARAMETERS* pPresentationParameters, HWND
 		}
 	}
 
-	// Set WndProc hook
-	if (WndProcHwnd != DeviceWindow && IsWindow(DeviceWindow))
+	// Set window size
+	if (SetWindow && Config.EnableWindowMode && IsWindow(DeviceWindow))
 	{
-		LOG_LIMIT(3, __FUNCTION__ << " Setting WndProc: " << DeviceWindow);
-
-		// Install new wndproc
-		if (!IsWindow(WndProcHwnd))
+		// Set fullscreen resolution
+		if (Config.FullscreenWindowMode)
 		{
-			WndProcHwnd = DeviceWindow;
-			OriginalWndProc = (WNDPROC)GetWindowLong(DeviceWindow, GWL_WNDPROC);
-			if (!OriginalWndProc || !SetWindowLong(DeviceWindow, GWL_WNDPROC, (LONG)WndProc))
+			DEVMODE newSettings;
+			ZeroMemory(&newSettings, sizeof(newSettings));
+			if (EnumDisplaySettings(nullptr, ENUM_CURRENT_SETTINGS, &newSettings))
 			{
-				WndProcHwnd = nullptr;
-				OriginalWndProc = nullptr;
-				Logging::LogDebug() << __FUNCTION__ << " Failed to overload WndProc";
+				newSettings.dmPelsWidth = BufferWidth;
+				newSettings.dmPelsHeight = BufferHeight;
+				newSettings.dmFields = DM_PELSWIDTH | DM_PELSHEIGHT;
+				ChangeDisplaySettings(&newSettings, CDS_FULLSCREEN);
 			}
 		}
-	}
 
-	// Set fullscreen resolution
-	if (Config.FullscreenWindowMode && SetWindow)
-	{
-		DEVMODE newSettings;
-		ZeroMemory(&newSettings, sizeof(newSettings));
-		if (EnumDisplaySettings(nullptr, ENUM_CURRENT_SETTINGS, &newSettings))
+		// Set WndProc hook
+		if (WndProcHwnd != DeviceWindow)
 		{
-			newSettings.dmPelsWidth = BufferWidth;
-			newSettings.dmPelsHeight = BufferHeight;
-			newSettings.dmFields = DM_PELSWIDTH | DM_PELSHEIGHT;
-			InResize = true;
-			ChangeDisplaySettings(&newSettings, CDS_FULLSCREEN);
-			Sleep(0);	// Allow WndProcs to complete if needed
-			InResize = false;
-		}
-	}
+			LOG_LIMIT(3, __FUNCTION__ << " Setting WndProc: " << DeviceWindow);
 
-	// Set window size
-	if (SetWindow && IsWindow(DeviceWindow))
-	{
-		RECT Rect = { NULL };
-		GetClientRect(DeviceWindow, &Rect);
-		if (Rect.right - Rect.left != BufferWidth || Rect.bottom - Rect.top != BufferHeight)
+			// Install new wndproc
+			if (!IsWindow(WndProcHwnd))
+			{
+				WndProcHwnd = DeviceWindow;
+				OriginalWndProc = (WNDPROC)GetWindowLong(DeviceWindow, GWL_WNDPROC);
+				if (!OriginalWndProc || !SetWindowLong(DeviceWindow, GWL_WNDPROC, (LONG)WndProc))
+				{
+					WndProcHwnd = nullptr;
+					OriginalWndProc = nullptr;
+					Logging::LogDebug() << __FUNCTION__ << " Failed to overload WndProc";
+				}
+			}
+		}
+
+		// Adjust window size
+		if (LastBufferWidth != BufferWidth || LastBufferHeight != BufferHeight || LastDeviceWindow != DeviceWindow)
 		{
 			InResize = true;
-			SetWindowPos(DeviceWindow, HWND_TOP, 0, 0, BufferWidth, BufferHeight, SWP_NOMOVE | SWP_NOSENDCHANGING | SWP_NOZORDER | SWP_NOOWNERZORDER | SWP_ASYNCWINDOWPOS);
-			Sleep(0);	// Allow WndProcs to complete if needed
+			AdjustWindow(DeviceWindow, BufferWidth, BufferHeight);
 			InResize = false;
 		}
-	}
+		// Set window position
+		else
+		{
+			RECT Rect;
+			GetClientRect(DeviceWindow, &Rect);
+			if (Rect.right - Rect.left != BufferWidth || Rect.bottom - Rect.top != BufferHeight)
+			{
+				InResize = true;
+				SetWindowPos(DeviceWindow, HWND_TOP, 0, 0, BufferWidth, BufferHeight, SWP_NOMOVE | SWP_NOSENDCHANGING | SWP_NOZORDER | SWP_NOOWNERZORDER);
+				InResize = false;
+			}
+		}
 
-	// Adjust window size
-	if (Config.EnableWindowMode && SetWindow && IsWindow(DeviceWindow) &&
-		(LastBufferWidth != BufferWidth || LastBufferHeight != BufferHeight || LastDeviceWindow != DeviceWindow))
-	{
-		InResize = true;
-		AdjustWindow(DeviceWindow, BufferWidth, BufferHeight);
-		Sleep(0);	// Allow WndProcs to complete if needed
-		InResize = false;
-	}
-
-	// Restore old wndproc
-	if (OriginalWndProc && IsWindow(WndProcHwnd) && SetWindowLong(WndProcHwnd, GWL_WNDPROC, (LONG)OriginalWndProc))
-	{
-		WndProcHwnd = nullptr;
-		OriginalWndProc = nullptr;
+		// Restore old wndproc
+		if (OriginalWndProc && SetWindowLong(WndProcHwnd, GWL_WNDPROC, (LONG)OriginalWndProc))
+		{
+			WndProcHwnd = nullptr;
+			OriginalWndProc = nullptr;
+		}
 	}
 }
 
@@ -513,10 +510,10 @@ void AdjustWindow(HWND MainhWnd, LONG displayWidth, LONG displayHeight)
 
 	// Set window border
 	SetWindowLong(MainhWnd, GWL_STYLE, lStyle);
-	SetWindowPos(MainhWnd, HWND_TOP, 0, 0, 0, 0, SWP_FRAMECHANGED | SWP_NOSENDCHANGING | SWP_NOZORDER | SWP_NOOWNERZORDER | SWP_ASYNCWINDOWPOS);
+	SetWindowPos(MainhWnd, HWND_TOP, 0, 0, 0, 0, SWP_FRAMECHANGED | SWP_NOSENDCHANGING | SWP_NOZORDER | SWP_NOOWNERZORDER);
 
 	// Set window size
-	SetWindowPos(MainhWnd, HWND_TOP, 0, 0, displayWidth, displayHeight, SWP_NOMOVE | SWP_NOSENDCHANGING | SWP_NOZORDER | SWP_NOOWNERZORDER | SWP_ASYNCWINDOWPOS);
+	SetWindowPos(MainhWnd, HWND_TOP, 0, 0, displayWidth, displayHeight, SWP_NOMOVE | SWP_NOSENDCHANGING | SWP_NOZORDER | SWP_NOOWNERZORDER);
 
 	// Adjust for window decoration to ensure client area matches display size
 	RECT tempRect;
@@ -532,7 +529,7 @@ void AdjustWindow(HWND MainhWnd, LONG displayWidth, LONG displayHeight)
 		xLoc = (screenWidth - newDisplayWidth) / 2;
 		yLoc = (screenHeight - newDisplayHeight) / 2;
 	}
-	SetWindowPos(MainhWnd, HWND_TOP, xLoc, yLoc, newDisplayWidth, newDisplayHeight, SWP_NOSENDCHANGING | SWP_NOZORDER | SWP_NOOWNERZORDER | SWP_ASYNCWINDOWPOS);
+	SetWindowPos(MainhWnd, HWND_TOP, xLoc, yLoc, newDisplayWidth, newDisplayHeight, SWP_NOSENDCHANGING | SWP_NOZORDER | SWP_NOOWNERZORDER);
 }
 
 LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)

@@ -314,10 +314,10 @@ void Fullscreen::ResetScreen()
 	std::string lpRamp((3 * 256 * 2), '\0');
 	HDC hDC = GetDC(nullptr);
 	GetDeviceGammaRamp(hDC, &lpRamp[0]);
-	Sleep(0);
+	Sleep(1);
 	SetDeviceGammaRamp(hDC, &lpRamp[0]);
 	ReleaseDC(nullptr, hDC);
-	Sleep(0);
+	Sleep(1);
 	ChangeDisplaySettings(nullptr, 0);
 }
 
@@ -572,7 +572,7 @@ void Fullscreen::SetFullScreen(HWND& hwnd, const MONITORINFO& mi)
 		mi.rcMonitor.left, mi.rcMonitor.top,
 		mi.rcMonitor.right - mi.rcMonitor.left,
 		mi.rcMonitor.bottom - mi.rcMonitor.top,
-		SWP_ASYNCWINDOWPOS | SWP_NOSENDCHANGING | SWP_FRAMECHANGED);
+		SWP_NOSENDCHANGING | SWP_FRAMECHANGED);
 
 	// Set window to forground
 	SetForegroundWindow(hwnd);
@@ -862,7 +862,7 @@ void Fullscreen::MainFunc()
 				if (Config.ForceWindowResize || !IsWindowTooSmall(WindowSize))
 				{
 					// Update screen when change detected
-					SetWindowPos(CurrentLoop.hwnd, HWND_TOP, 0, 0, 0, 0, SWP_ASYNCWINDOWPOS | SWP_NOSENDCHANGING | SWP_FRAMECHANGED | SWP_NOSIZE);
+					SetWindowPos(CurrentLoop.hwnd, HWND_TOP, 0, 0, 0, 0, SWP_NOSENDCHANGING | SWP_FRAMECHANGED | SWP_NOSIZE);
 
 					// Change resolution if not fullscreen and ignore certian windows
 					if (IsNotFullScreenFlag &&																								// Check if it is already fullscreen
