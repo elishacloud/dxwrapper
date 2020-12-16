@@ -2508,12 +2508,6 @@ HRESULT m_IDirectDrawX::CreateD3D9Device()
 			// Send message about window changes
 			WINDOWPOS winpos = { nullptr, hWnd, tempRect.left, tempRect.top, tempRect.right, tempRect.bottom, WM_NULL };
 			SendMessage(hWnd, WM_WINDOWPOSCHANGED, (WPARAM)TRUE, (LPARAM)&winpos);
-
-			// Check window style
-			if (GetWindowLong(hWnd, GWL_STYLE) & WS_POPUP)
-			{
-				Sleep(1000);	// Wait for display
-			}
 		}
 
 		// Store display frequency

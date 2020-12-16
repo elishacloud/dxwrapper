@@ -28,6 +28,9 @@ HRESULT WINAPI dd_SetAppCompatData(DWORD Type, DWORD Value);
 
 int WINAPI dd_GetDeviceCaps(HDC hdc, int index);
 
+HWND WINAPI dd_CreateWindowExA(DWORD dwExStyle, LPCSTR lpClassName, LPCSTR lpWindowName, DWORD dwStyle, int X, int Y, int nWidth, int nHeight, HWND hWndParent, HMENU hMenu, HINSTANCE hInstance, LPVOID lpParam);
+HWND WINAPI dd_CreateWindowExW(DWORD dwExStyle, LPCWSTR lpClassName, LPCWSTR lpWindowName, DWORD dwStyle, int X, int Y, int nWidth, int nHeight, HWND hWndParent, HMENU hMenu, HINSTANCE hInstance, LPVOID lpParam);
+
 void InitDDraw();
 void ExitDDraw();
 
@@ -46,6 +49,8 @@ namespace DdrawWrapper
 	VISIT_PROCS_DDRAW_SHARED(EXPORT_OUT_WRAPPED_PROC);
 	extern FARPROC Direct3DCreate9_out;
 	extern FARPROC GetDeviceCaps_out;
+	extern FARPROC CreateWindowExA_out;
+	extern FARPROC CreateWindowExW_out;
 }
 
 #undef DECLARE_IN_WRAPPED_PROC

@@ -384,6 +384,8 @@ bool APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 					VISIT_PROCS_DDRAW(HOOK_FORCE_WRAPPED_PROC);
 					VISIT_PROCS_DDRAW_SHARED(HOOK_FORCE_WRAPPED_PROC);
 					GetDeviceCaps_out = (FARPROC)Hook::HotPatch(Hook::GetProcAddress(LoadLibrary("gdi32.dll"), "GetDeviceCaps"), "GetDeviceCaps", dd_GetDeviceCaps);
+					CreateWindowExA_out = (FARPROC)Hook::HotPatch(Hook::GetProcAddress(LoadLibrary("User32.dll"), "CreateWindowExA"), "CreateWindowExA", dd_CreateWindowExA);
+					CreateWindowExW_out = (FARPROC)Hook::HotPatch(Hook::GetProcAddress(LoadLibrary("User32.dll"), "CreateWindowExW"), "CreateWindowExW", dd_CreateWindowExW);
 				}
 			}
 

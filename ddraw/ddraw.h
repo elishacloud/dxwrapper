@@ -90,6 +90,9 @@ typedef HRESULT(WINAPI *SetAppCompatDataProc)(DWORD Type, DWORD Value);
 typedef LPDIRECT3D9(WINAPI *PFN_Direct3DCreate9)(UINT SDKVersion);
 // gdi32 proc typedefs
 typedef int(WINAPI *GetDeviceCapsProc)(HDC hdc, int index);
+// user32 proc typedefs
+typedef HWND(WINAPI *CreateWindowExAProc)(DWORD dwExStyle, LPCSTR lpClassName, LPCSTR lpWindowName, DWORD dwStyle, int X, int Y, int nWidth, int nHeight, HWND hWndParent, HMENU hMenu, HINSTANCE hInstance, LPVOID lpParam);
+typedef HWND(WINAPI *CreateWindowExWProc)(DWORD dwExStyle, LPCWSTR lpClassName, LPCWSTR lpWindowName, DWORD dwStyle, int X, int Y, int nWidth, int nHeight, HWND hWndParent, HMENU hMenu, HINSTANCE hInstance, LPVOID lpParam);
 
 // ddraw proc forward declaration
 HRESULT WINAPI dd_DirectDrawCreate(GUID FAR *lpGUID, LPDIRECTDRAW FAR *lplpDD, IUnknown FAR *pUnkOuter);

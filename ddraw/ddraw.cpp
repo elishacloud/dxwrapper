@@ -43,6 +43,8 @@ namespace DdrawWrapper
 	VISIT_PROCS_DDRAW_SHARED(INITIALIZE_WRAPPED_PROC);
 	FARPROC Direct3DCreate9_out = nullptr;
 	FARPROC GetDeviceCaps_out = nullptr;
+	FARPROC CreateWindowExA_out = nullptr;
+	FARPROC CreateWindowExW_out = nullptr;
 }
 
 using namespace DdrawWrapper;
@@ -778,6 +780,76 @@ HRESULT WINAPI dd_SetAppCompatData(DWORD Type, DWORD Value)
 	}
 
 	return m_pSetAppCompatData(Type, Value);
+}
+
+HWND dd_CreateWindowEx_out(DWORD dwExStyle, LPCSTR lpClassName, LPCSTR lpWindowName, DWORD dwStyle, int X, int Y, int nWidth, int nHeight, HWND hWndParent, HMENU hMenu, HINSTANCE hInstance, LPVOID lpParam)
+{
+	static CreateWindowExAProc m_pCreateWindowExA = (Wrapper::ValidProcAddress(CreateWindowExA_out)) ? (CreateWindowExAProc)CreateWindowExA_out : nullptr;
+
+	if (!m_pCreateWindowExA)
+	{
+		return nullptr;
+	}
+
+	return m_pCreateWindowExA(dwExStyle, lpClassName, lpWindowName, dwStyle, X, Y, nWidth, nHeight, hWndParent, hMenu, hInstance, lpParam);
+}
+
+HWND dd_CreateWindowEx_out(DWORD dwExStyle, LPCWSTR lpClassName, LPCWSTR lpWindowName, DWORD dwStyle, int X, int Y, int nWidth, int nHeight, HWND hWndParent, HMENU hMenu, HINSTANCE hInstance, LPVOID lpParam)
+{
+	static CreateWindowExWProc m_pCreateWindowExW = (Wrapper::ValidProcAddress(CreateWindowExW_out)) ? (CreateWindowExWProc)CreateWindowExW_out : nullptr;
+
+	if (!m_pCreateWindowExW)
+	{
+		return nullptr;
+	}
+
+	return m_pCreateWindowExW(dwExStyle, lpClassName, lpWindowName, dwStyle, X, Y, nWidth, nHeight, hWndParent, hMenu, hInstance, lpParam);
+}
+
+template <class T>
+HWND dd_CreateWindowEx(DWORD dwExStyle, T lpClassName, T lpWindowName, DWORD dwStyle, int X, int Y, int nWidth, int nHeight, HWND hWndParent, HMENU hMenu, HINSTANCE hInstance, LPVOID lpParam)
+{
+	Logging::LogDebug() << __FUNCTION__ << " " << Logging::hex(dwExStyle) << " " << Logging::hex(dwStyle) << " " << X << "x" << Y << " " << nWidth << "x" << nHeight << " " << hWndParent << " " << hMenu << " " << hInstance;
+
+	// Handle popup window type
+	if (dwStyle & WS_POPUP)
+	{
+		DWORD dwNewStyle = dwStyle;
+		int NewnHeight = nHeight;
+
+		// Remove popup style
+		dwNewStyle = dwStyle & ~(WS_POPUP | WS_CLIPSIBLINGS);
+
+		// Add extra room for the caption
+		if (nHeight && !((nHeight >> 16) & 0xFFFF))
+		{
+			NewnHeight += ((dwStyle & WS_BORDER) ? 0 : GetSystemMetrics(SM_CYBORDER)) +
+				((dwStyle & WS_CAPTION) ? 0 : GetSystemMetrics(SM_CYCAPTION));
+		}
+
+		HWND hwnd = dd_CreateWindowEx_out(dwExStyle, lpClassName, lpWindowName, dwNewStyle, X, Y, nWidth, NewnHeight, hWndParent, hMenu, hInstance, lpParam);
+
+		if (IsWindow(hwnd))
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Removed WS_POPUP window style!");
+
+			SetWindowLong(hwnd, GWL_STYLE, dwNewStyle);
+
+			return hwnd;
+		}
+	}
+
+	return dd_CreateWindowEx_out(dwExStyle, lpClassName, lpWindowName, dwStyle, X, Y, nWidth, nHeight, hWndParent, hMenu, hInstance, lpParam);
+}
+
+HWND WINAPI dd_CreateWindowExA(DWORD dwExStyle, LPCSTR lpClassName, LPCSTR lpWindowName, DWORD dwStyle, int X, int Y, int nWidth, int nHeight, HWND hWndParent, HMENU hMenu, HINSTANCE hInstance, LPVOID lpParam)
+{
+	return dd_CreateWindowEx<LPCSTR>(dwExStyle, lpClassName, lpWindowName, dwStyle, X, Y, nWidth, nHeight, hWndParent, hMenu, hInstance, lpParam);
+}
+
+HWND WINAPI dd_CreateWindowExW(DWORD dwExStyle, LPCWSTR lpClassName, LPCWSTR lpWindowName, DWORD dwStyle, int X, int Y, int nWidth, int nHeight, HWND hWndParent, HMENU hMenu, HINSTANCE hInstance, LPVOID lpParam)
+{
+	return dd_CreateWindowEx<LPCWSTR>(dwExStyle, lpClassName, lpWindowName, dwStyle, X, Y, nWidth, nHeight, hWndParent, hMenu, hInstance, lpParam);
 }
 
 HRESULT DdrawWrapper::SetCriticalSection()
