@@ -2,7 +2,7 @@
 
 #include <ddraw.h>
 
-constexpr D3DFORMAT D9DisplayFormat = D3DFMT_X8R8G8B8;
+#define DDERR_INVALIDRECTBLT 0x88760096
 
 static constexpr DWORD FourCCTypes[]
 {

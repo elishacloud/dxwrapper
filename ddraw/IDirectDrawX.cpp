@@ -23,6 +23,8 @@
 constexpr DWORD MaxVidMemory  = 0x32000000;	// 512 MBs
 constexpr DWORD UsedVidMemory = 0x00100000;	// 1 MB
 
+const D3DFORMAT D9DisplayFormat = D3DFMT_X8R8G8B8;
+
 // ddraw interface counter
 DWORD ddrawRefCount = 0;
 
@@ -1339,6 +1341,9 @@ HRESULT m_IDirectDrawX::SetCooperativeLevel(HWND hWnd, DWORD dwFlags)
 		}
 
 		// ToDo: The DDSCL_EXCLUSIVE flag must be set to call functions that can adversely affect performance of other applications.
+
+		// If SetCooperativeLevel is called once in a process, a binding is established between the process and the window.
+		// If it is called again in the same process with a different non-null window handle, it returns the DDERR_HWNDALREADYSET error value.
 
 		bool ChangeMode = false;
 

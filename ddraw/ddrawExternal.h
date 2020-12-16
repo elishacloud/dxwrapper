@@ -3,13 +3,13 @@
 #include <ddraw.h>
 #include "Wrappers\wrapper.h"
 
-void WINAPI dd_AcquireDDThreadLock();
-void WINAPI dd_CompleteCreateSysmemSurface();
+HRESULT WINAPI dd_AcquireDDThreadLock();
+DWORD WINAPI dd_CompleteCreateSysmemSurface(DWORD arg);
 HRESULT WINAPI dd_D3DParseUnknownCommand(LPVOID lpCmd, LPVOID *lpRetCmd);
-void WINAPI dd_DDGetAttachedSurfaceLcl();
-void WINAPI dd_DDInternalLock();
-void WINAPI dd_DDInternalUnlock();
-void WINAPI dd_DSoundHelp();
+HRESULT WINAPI dd_DDGetAttachedSurfaceLcl(DWORD arg1, DWORD arg2, DWORD arg3);
+DWORD WINAPI dd_DDInternalLock(DWORD arg1, DWORD arg2);
+DWORD WINAPI dd_DDInternalUnlock(DWORD arg);
+HRESULT WINAPI dd_DSoundHelp(DWORD arg1, DWORD arg2, DWORD arg3);
 HRESULT WINAPI dd_DirectDrawCreate(GUID FAR *lpGUID, LPDIRECTDRAW FAR *lplpDD, IUnknown FAR *pUnkOuter);
 HRESULT WINAPI dd_DirectDrawCreateClipper(DWORD dwFlags, LPDIRECTDRAWCLIPPER *lplpDDClipper, LPUNKNOWN pUnkOuter);
 HRESULT WINAPI dd_DirectDrawCreateEx(GUID FAR *lpGUID, LPVOID *lplpDD, REFIID riid, IUnknown FAR *pUnkOuter);
@@ -19,11 +19,11 @@ HRESULT WINAPI dd_DirectDrawEnumerateExW(LPDDENUMCALLBACKEXW lpCallback, LPVOID 
 HRESULT WINAPI dd_DirectDrawEnumerateW(LPDDENUMCALLBACKW lpCallback, LPVOID lpContext);
 HRESULT WINAPI dd_DllCanUnloadNow();
 HRESULT WINAPI dd_DllGetClassObject(REFCLSID rclsid, REFIID riid, LPVOID *ppv);
-void WINAPI dd_GetDDSurfaceLocal();
-HANDLE WINAPI dd_GetOLEThunkData(int i1);
-HRESULT WINAPI dd_GetSurfaceFromDC(HDC hdc, LPDIRECTDRAWSURFACE7 *lpDDS);
-void WINAPI dd_RegisterSpecialCase();
-void WINAPI dd_ReleaseDDThreadLock();
+HRESULT WINAPI dd_GetDDSurfaceLocal(DWORD arg1, DWORD arg2, DWORD arg3);
+DWORD WINAPI dd_GetOLEThunkData(DWORD index);
+HRESULT WINAPI dd_GetSurfaceFromDC(HDC hdc, LPDIRECTDRAWSURFACE7 *lpDDS, DWORD arg);
+HRESULT WINAPI dd_RegisterSpecialCase(DWORD arg1, DWORD arg2, DWORD arg3, DWORD arg4);
+HRESULT WINAPI dd_ReleaseDDThreadLock();
 HRESULT WINAPI dd_SetAppCompatData(DWORD Type, DWORD Value);
 
 int WINAPI dd_GetDeviceCaps(HDC hdc, int index);

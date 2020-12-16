@@ -387,13 +387,6 @@ HRESULT m_IDirectDrawSurfaceX::Blt(LPRECT lpDestRect, LPDIRECTDRAWSURFACE7 lpDDS
 			return DDERR_INVALIDPARAMS;
 		}
 
-		// Check for non-Win32 raster operations flag
-		if (dwFlags & DDBLT_DDROPS)
-		{
-			LOG_LIMIT(100, __FUNCTION__ << " Non-Win32 raster operations Not Implemented");
-			return DDERR_NODDROPSHW;
-		}
-
 		// Check for depth fill flag
 		if (dwFlags & DDBLT_DEPTHFILL)
 		{
@@ -409,12 +402,7 @@ HRESULT m_IDirectDrawSurfaceX::Blt(LPRECT lpDestRect, LPDIRECTDRAWSURFACE7 lpDDS
 		}
 
 		// Check for rotation flags
-		if (((dwFlags & DDBLT_DDFX) && (lpDDBltFx->dwDDFX & DDBLTFX_ROTATE180)))
-		{
-			// 180 degree rotate is the same as rotating both left to right and up to down
-			dwFlags |= DDBLTFX_MIRRORLEFTRIGHT | DDBLTFX_MIRRORUPDOWN;
-		}
-		else if ((dwFlags & DDBLT_ROTATIONANGLE) || ((dwFlags & DDBLT_DDFX) && (lpDDBltFx->dwDDFX & (DDBLTFX_ROTATE90 | DDBLTFX_ROTATE270))))
+		if ((dwFlags & DDBLT_ROTATIONANGLE) || ((dwFlags & DDBLT_DDFX) && (lpDDBltFx->dwDDFX & (DDBLTFX_ROTATE90 | DDBLTFX_ROTATE180 | DDBLTFX_ROTATE270))))
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Rotation operations Not Implemented");
 			return DDERR_NOROTATIONHW;
@@ -427,6 +415,7 @@ HRESULT m_IDirectDrawSurfaceX::Blt(LPRECT lpDestRect, LPDIRECTDRAWSURFACE7 lpDDS
 		}
 
 		// Other flags (can be safely ignored?)
+		// DDBLT_DDROPS - dwDDROP is ignored as "no such ROPs are currently defined"
 		// DDBLT_ASYNC
 		// DDBLT_DONOTWAIT
 		// DDBLT_WAIT
@@ -536,7 +525,7 @@ HRESULT m_IDirectDrawSurfaceX::Blt(LPRECT lpDestRect, LPDIRECTDRAWSURFACE7 lpDDS
 	HRESULT hr = ProxyInterface->Blt(lpDestRect, lpDDSrcSurface, lpSrcRect, dwFlags, lpDDBltFx);
 
 	// Fix for some games that calculate the rect incorrectly
-	if (hr == 0x88760096 /*DDERR_INVALIDRECT*/)
+	if (hr == DDERR_INVALIDRECT || hr == DDERR_INVALIDRECTBLT)
 	{
 		RECT SrcRect, DestRect;
 		LPRECT pSrcRect = lpSrcRect;
@@ -648,7 +637,7 @@ HRESULT m_IDirectDrawSurfaceX::BltFast(DWORD dwX, DWORD dwY, LPDIRECTDRAWSURFACE
 	HRESULT hr = ProxyInterface->BltFast(dwX, dwY, lpDDSrcSurface, lpSrcRect, dwFlags);
 
 	// Fix for some games that calculate the rect incorrectly
-	if (hr == 0x88760096 /*DDERR_INVALIDRECT*/ && lpSrcRect)
+	if (lpSrcRect && (hr == DDERR_INVALIDRECT || hr == DDERR_INVALIDRECTBLT))
 	{
 		RECT SrcRect;
 		memcpy(&SrcRect, lpSrcRect, sizeof(RECT));

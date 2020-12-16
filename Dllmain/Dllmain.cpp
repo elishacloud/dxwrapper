@@ -377,9 +377,7 @@ bool APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 				if (!Config.Dd7to9)
 				{
 					char *dllname = dtypename[dtype.ddraw];
-					HOOK_WRAPPED_PROC(DirectDrawCreate, unused);
-					HOOK_WRAPPED_PROC(DirectDrawCreateEx, unused);
-					HOOK_WRAPPED_PROC(DllGetClassObject, unused);
+					VISIT_DOCUMENTED_DDRAW_PROCS(HOOK_WRAPPED_PROC);
 				}
 				else
 				{
