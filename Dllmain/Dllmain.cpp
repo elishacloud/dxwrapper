@@ -238,82 +238,36 @@ bool APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 			InterlockedExchangePointer((PVOID*)&p_CoCreateInstance, Hook::HotPatch(GetProcAddress(LoadLibraryA("ole32.dll"), "CoCreateInstance"), "CoCreateInstance", *CoCreateInstanceHandle));
 		}
 
-		// Start ddraw.dll module
-		if (Config.DDrawCompat || Config.isDdrawWrapperEnabled)
+		// Start dsound.dll module
+		if (Config.isDsoundWrapperEnabled)
 		{
-			// Initialize ddraw wrapper procs
-			if (Config.RealWrapperMode == dtype.ddraw)
+			using namespace dsound;
+			using namespace DsoundWrapper;
+
+			// Initialize dsound wrapper procs
+			if (Config.RealWrapperMode == dtype.dsound)
 			{
-				using namespace ddraw;
-				using namespace DdrawWrapper;
-				VISIT_PROCS_DDRAW_SHARED(SET_WRAPPED_PROC_SHARED);
+				VISIT_PROCS_DSOUND_SHARED(SET_WRAPPED_PROC_SHARED);
 			}
 			else
 			{
-				using namespace ddraw;
-				using namespace DdrawWrapper;
-
-				// Load ddraw procs
+				// Load dsound procs
 				HMODULE dll = Load(nullptr, Config.WrapperName.c_str());
 				if (dll)
 				{
-					Utils::AddHandleToVector(dll, dtypename[dtype.ddraw]);
+					Utils::AddHandleToVector(dll, dtypename[dtype.dsound]);
 				}
 
-				// Hook ddraw.dll APIs
-				Logging::Log() << "Hooking ddraw.dll APIs...";
-				if (!Config.Dd7to9)
-				{
-					char *dllname = dtypename[dtype.ddraw];
-					HOOK_WRAPPED_PROC(DirectDrawCreate, unused);
-					HOOK_WRAPPED_PROC(DirectDrawCreateEx, unused);
-					HOOK_WRAPPED_PROC(DllGetClassObject, unused);
-				}
-				else
-				{
-					VISIT_PROCS_DDRAW(HOOK_FORCE_WRAPPED_PROC);
-					VISIT_PROCS_DDRAW_SHARED(HOOK_FORCE_WRAPPED_PROC);
-					GetDeviceCaps_out = (FARPROC)Hook::HotPatch(Hook::GetProcAddress(LoadLibrary("gdi32.dll"), "GetDeviceCaps"), "GetDeviceCaps", dd_GetDeviceCaps);
-				}
+				// Hook dsound.dll -> DsoundWrapper
+				Logging::Log() << "Hooking dsound.dll APIs...";
+				char *dllname = dtypename[dtype.dsound];
+				VISIT_PROCS_DSOUND(HOOK_WRAPPED_PROC);
+				VISIT_PROCS_DSOUND_SHARED(HOOK_WRAPPED_PROC);
 			}
 
-			// Start Dd7to9
-			if (Config.Dd7to9)
-			{
-				InitDDraw();
-				using namespace ddraw;
-				using namespace DdrawWrapper;
-				VISIT_PROCS_DDRAW(SET_WRAPPED_PROC);
-				VISIT_PROCS_DDRAW_SHARED(SET_WRAPPED_PROC);
-				Config.DDrawCompat = false;
-			}
-
-			// Add DDrawCompat to the chain
-			if (Config.DDrawCompat)
-			{
-				Logging::Log() << "Enabling DDrawCompat";
-				using namespace ddraw;
-				using namespace DDrawCompat;
-				DDrawCompat::Prepare();
-				VISIT_PROCS_DDRAW(SHIM_WRAPPED_PROC);
-				VISIT_PROCS_DDRAW_SHARED(SHIM_WRAPPED_PROC);
-			}
-
-			// Add DdrawWrapper to the chain
-			if (Config.isDdrawWrapperEnabled)
-			{
-				Logging::Log() << "Enabling ddraw wrapper";
-				using namespace ddraw;
-				using namespace DdrawWrapper;
-				VISIT_PROCS_DDRAW(SHIM_WRAPPED_PROC);
-				VISIT_PROCS_DDRAW_SHARED(SHIM_WRAPPED_PROC);
-			}
-
-			// Start DDrawCompat
-			if (Config.DDrawCompat)
-			{
-				Config.DDrawCompat = DDrawCompat::Start(hModule_dll, DLL_PROCESS_ATTACH);
-			}
+			// Prepare wrapper
+			VISIT_PROCS_DSOUND(SHIM_WRAPPED_PROC);
+			VISIT_PROCS_DSOUND_SHARED(SHIM_WRAPPED_PROC);
 		}
 
 		// Start dinput.dll module
@@ -396,7 +350,85 @@ bool APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 			VISIT_PROCS_DINPUT8_SHARED(SHIM_WRAPPED_PROC);
 		}
 
-		// Start D3d8to9 module
+		// Start ddraw.dll module
+		if (Config.DDrawCompat || Config.isDdrawWrapperEnabled)
+		{
+			// Initialize ddraw wrapper procs
+			if (Config.RealWrapperMode == dtype.ddraw)
+			{
+				using namespace ddraw;
+				using namespace DdrawWrapper;
+				VISIT_PROCS_DDRAW_SHARED(SET_WRAPPED_PROC_SHARED);
+			}
+			else
+			{
+				using namespace ddraw;
+				using namespace DdrawWrapper;
+
+				// Load ddraw procs
+				HMODULE dll = Load(nullptr, Config.WrapperName.c_str());
+				if (dll)
+				{
+					Utils::AddHandleToVector(dll, dtypename[dtype.ddraw]);
+				}
+
+				// Hook ddraw.dll APIs
+				Logging::Log() << "Hooking ddraw.dll APIs...";
+				if (!Config.Dd7to9)
+				{
+					char *dllname = dtypename[dtype.ddraw];
+					HOOK_WRAPPED_PROC(DirectDrawCreate, unused);
+					HOOK_WRAPPED_PROC(DirectDrawCreateEx, unused);
+					HOOK_WRAPPED_PROC(DllGetClassObject, unused);
+				}
+				else
+				{
+					VISIT_PROCS_DDRAW(HOOK_FORCE_WRAPPED_PROC);
+					VISIT_PROCS_DDRAW_SHARED(HOOK_FORCE_WRAPPED_PROC);
+					GetDeviceCaps_out = (FARPROC)Hook::HotPatch(Hook::GetProcAddress(LoadLibrary("gdi32.dll"), "GetDeviceCaps"), "GetDeviceCaps", dd_GetDeviceCaps);
+				}
+			}
+
+			// Start Dd7to9
+			if (Config.Dd7to9)
+			{
+				InitDDraw();
+				using namespace ddraw;
+				using namespace DdrawWrapper;
+				VISIT_PROCS_DDRAW(SET_WRAPPED_PROC);
+				VISIT_PROCS_DDRAW_SHARED(SET_WRAPPED_PROC);
+				Config.DDrawCompat = false;
+			}
+
+			// Add DDrawCompat to the chain
+			if (Config.DDrawCompat)
+			{
+				Logging::Log() << "Enabling DDrawCompat";
+				using namespace ddraw;
+				using namespace DDrawCompat;
+				DDrawCompat::Prepare();
+				VISIT_PROCS_DDRAW(SHIM_WRAPPED_PROC);
+				VISIT_PROCS_DDRAW_SHARED(SHIM_WRAPPED_PROC);
+			}
+
+			// Add DdrawWrapper to the chain
+			if (Config.isDdrawWrapperEnabled)
+			{
+				Logging::Log() << "Enabling ddraw wrapper";
+				using namespace ddraw;
+				using namespace DdrawWrapper;
+				VISIT_PROCS_DDRAW(SHIM_WRAPPED_PROC);
+				VISIT_PROCS_DDRAW_SHARED(SHIM_WRAPPED_PROC);
+			}
+
+			// Start DDrawCompat
+			if (Config.DDrawCompat)
+			{
+				Config.DDrawCompat = DDrawCompat::Start(hModule_dll, DLL_PROCESS_ATTACH);
+			}
+		}
+
+		// Start d3d8.dll module
 		if (Config.D3d8to9)
 		{
 			Logging::Log() << "Enabling d3d8to9 wrapper";
@@ -477,38 +509,6 @@ bool APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 			// Prepare wrapper
 			VISIT_PROCS_D3D9(SHIM_WRAPPED_PROC);
 			VISIT_PROCS_D3D9_SHARED(SHIM_WRAPPED_PROC);
-		}
-
-		// Start dsound.dll module
-		if (Config.isDsoundWrapperEnabled)
-		{
-			using namespace dsound;
-			using namespace DsoundWrapper;
-
-			// Initialize dsound wrapper procs
-			if (Config.RealWrapperMode == dtype.dsound)
-			{
-				VISIT_PROCS_DSOUND_SHARED(SET_WRAPPED_PROC_SHARED);
-			}
-			else
-			{
-				// Load dsound procs
-				HMODULE dll = Load(nullptr, Config.WrapperName.c_str());
-				if (dll)
-				{
-					Utils::AddHandleToVector(dll, dtypename[dtype.dsound]);
-				}
-
-				// Hook dsound.dll -> DsoundWrapper
-				Logging::Log() << "Hooking dsound.dll APIs...";
-				char *dllname = dtypename[dtype.dsound];
-				VISIT_PROCS_DSOUND(HOOK_WRAPPED_PROC);
-				VISIT_PROCS_DSOUND_SHARED(HOOK_WRAPPED_PROC);
-			}
-
-			// Prepare wrapper
-			VISIT_PROCS_DSOUND(SHIM_WRAPPED_PROC);
-			VISIT_PROCS_DSOUND_SHARED(SHIM_WRAPPED_PROC);
 		}
 
 		// Start DxWnd module
