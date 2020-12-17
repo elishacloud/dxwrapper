@@ -812,7 +812,7 @@ HWND dd_CreateWindowEx(DWORD dwExStyle, T lpClassName, T lpWindowName, DWORD dwS
 	Logging::LogDebug() << __FUNCTION__ << " " << Logging::hex(dwExStyle) << " " << Logging::hex(dwStyle) << " " << X << "x" << Y << " " << nWidth << "x" << nHeight << " " << hWndParent << " " << hMenu << " " << hInstance;
 
 	// Handle popup window type
-	if (dwStyle & WS_POPUP)
+	if ((dwStyle & WS_POPUP) && !hWndParent)
 	{
 		DWORD dwNewStyle = dwStyle;
 		int NewnHeight = nHeight;
