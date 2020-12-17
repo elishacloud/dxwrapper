@@ -42,15 +42,13 @@ typedef HRESULT(WINAPI *Direct3DCreate9ExProc)(UINT, IDirect3D9Ex **);
 
 void UpdatePresentParameter(D3DPRESENT_PARAMETERS* pPresentationParameters, HWND hFocusWindow, bool SetWindow);
 void UpdatePresentParameterForMultisample(D3DPRESENT_PARAMETERS* pPresentationParameters, D3DMULTISAMPLE_TYPE MultiSampleType, DWORD MultiSampleQuality);
-LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 
 namespace D3d9Wrapper
 {
 	void WINAPI genericQueryInterface(REFIID riid, LPVOID *ppvObj, m_IDirect3DDevice9Ex* m_pDeviceEx);
 }
 
-extern WNDPROC OriginalWndProc;
-extern HWND WndProcHwnd, DeviceWindow;
+extern HWND DeviceWindow;
 extern LONG BufferWidth, BufferHeight;
 
 // For AntiAliasing

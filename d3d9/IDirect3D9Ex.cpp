@@ -17,10 +17,6 @@
 #include "d3d9.h"
 #include "Utils\Utils.h"
 
-bool InResize = false;
-HWND WndProcHwnd = nullptr;
-WNDPROC OriginalWndProc = nullptr;
-
 HWND DeviceWindow = nullptr;
 LONG BufferWidth = 0, BufferHeight = 0;
 
@@ -399,6 +395,9 @@ void UpdatePresentParameter(D3DPRESENT_PARAMETERS* pPresentationParameters, HWND
 	// Set window size
 	if (SetWindow && Config.EnableWindowMode && IsWindow(DeviceWindow))
 	{
+		// Overload WndProc
+		Utils::SetWndProcFilter(DeviceWindow);
+
 		// Set fullscreen resolution
 		if (Config.FullscreenWindowMode)
 		{
@@ -413,51 +412,24 @@ void UpdatePresentParameter(D3DPRESENT_PARAMETERS* pPresentationParameters, HWND
 			}
 		}
 
-		// Set WndProc hook
-		if (WndProcHwnd != DeviceWindow)
-		{
-			LOG_LIMIT(3, __FUNCTION__ << " Setting WndProc: " << DeviceWindow);
-
-			// Install new wndproc
-			if (!IsWindow(WndProcHwnd))
-			{
-				WndProcHwnd = DeviceWindow;
-				OriginalWndProc = (WNDPROC)GetWindowLong(DeviceWindow, GWL_WNDPROC);
-				if (!OriginalWndProc || !SetWindowLong(DeviceWindow, GWL_WNDPROC, (LONG)WndProc))
-				{
-					WndProcHwnd = nullptr;
-					OriginalWndProc = nullptr;
-					Logging::LogDebug() << __FUNCTION__ << " Failed to overload WndProc";
-				}
-			}
-		}
-
-		// Adjust window size
+		// Adjust window
 		if (LastBufferWidth != BufferWidth || LastBufferHeight != BufferHeight || LastDeviceWindow != DeviceWindow)
 		{
-			InResize = true;
 			AdjustWindow(DeviceWindow, BufferWidth, BufferHeight);
-			InResize = false;
 		}
-		// Set window position
+		// Set window size
 		else
 		{
 			RECT Rect;
 			GetClientRect(DeviceWindow, &Rect);
 			if (Rect.right - Rect.left != BufferWidth || Rect.bottom - Rect.top != BufferHeight)
 			{
-				InResize = true;
 				SetWindowPos(DeviceWindow, HWND_TOP, 0, 0, BufferWidth, BufferHeight, SWP_NOMOVE | SWP_NOSENDCHANGING | SWP_NOZORDER | SWP_NOOWNERZORDER);
-				InResize = false;
 			}
 		}
 
-		// Restore old wndproc
-		if (OriginalWndProc && SetWindowLong(WndProcHwnd, GWL_WNDPROC, (LONG)OriginalWndProc))
-		{
-			WndProcHwnd = nullptr;
-			OriginalWndProc = nullptr;
-		}
+		// Resetting WndProc
+		Utils::RestoreWndProcFilter(DeviceWindow);
 	}
 }
 
@@ -499,7 +471,7 @@ void AdjustWindow(HWND MainhWnd, LONG displayWidth, LONG displayHeight)
 
 	// Get window border
 	LONG lStyle = GetWindowLong(MainhWnd, GWL_STYLE) | WS_VISIBLE;
-	if (Config.WindowModeBorder && screenHeight > displayHeight + GetSystemMetrics(SM_CYCAPTION) + GetSystemMetrics(SM_CYFIXEDFRAME))
+	if (Config.WindowModeBorder && screenHeight > displayHeight + GetSystemMetrics(SM_CYCAPTION) + GetSystemMetrics(SM_CYBORDER))
 	{
 		lStyle |= WS_OVERLAPPEDWINDOW;
 	}
@@ -530,28 +502,4 @@ void AdjustWindow(HWND MainhWnd, LONG displayWidth, LONG displayHeight)
 		yLoc = (screenHeight - newDisplayHeight) / 2;
 	}
 	SetWindowPos(MainhWnd, HWND_TOP, xLoc, yLoc, newDisplayWidth, newDisplayHeight, SWP_NOSENDCHANGING | SWP_NOZORDER | SWP_NOOWNERZORDER);
-}
-
-LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
-{
-	Logging::LogDebug() << __FUNCTION__ << " " << Logging::hex(uMsg);
-
-	// Filter events during window resize
-	if (InResize)
-	{
-		LRESULT ret = 0;
-		if (Utils::IsWindowMessageFiltered(uMsg, &ret))
-		{
-			SetLastError(0);
-			return ret;
-		}
-	}
-
-	if (!OriginalWndProc)
-	{
-		LOG_LIMIT(100, __FUNCTION__ << " Error: no WndProc specified " << Logging::hex(uMsg));
-		return NULL;
-	}
-
-	return OriginalWndProc(hWnd, uMsg, wParam, lParam);
 }

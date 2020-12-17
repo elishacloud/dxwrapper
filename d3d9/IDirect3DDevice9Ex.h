@@ -57,20 +57,6 @@ public:
 	{
 		LOG_LIMIT(3, __FUNCTION__ << " (" << this << ")" << " deleting interface!");
 
-		// Restore old wndproc
-		if (OriginalWndProc && IsWindow(WndProcHwnd))
-		{
-			// Get current WndProc
-			WNDPROC CurrentWndProc = (WNDPROC)GetWindowLong(WndProcHwnd, GWL_WNDPROC);
-
-			// Check WndProc and restore
-			if (CurrentWndProc == WndProc && SetWindowLong(WndProcHwnd, GWL_WNDPROC, (LONG)OriginalWndProc))
-			{
-				WndProcHwnd = nullptr;
-				OriginalWndProc = nullptr;
-			}
-		}
-
 		delete ProxyAddressLookupTable;
 	}
 
