@@ -357,7 +357,7 @@ HRESULT m_IDirectDrawSurfaceX::Blt(LPRECT lpDestRect, LPDIRECTDRAWSURFACE7 lpDDS
 	// Check if source Surface exists
 	if (lpDDSrcSurface && !CheckSurfaceExists(lpDDSrcSurface))
 	{
-		LOG_LIMIT(100, __FUNCTION__ << " Error: could not find source surface!");
+		LOG_LIMIT(100, __FUNCTION__ << " Error: could not find source surface! " << Logging::hex(lpDDSrcSurface));
 		return DD_OK;	// Just return OK
 	}
 
@@ -525,7 +525,7 @@ HRESULT m_IDirectDrawSurfaceX::Blt(LPRECT lpDestRect, LPDIRECTDRAWSURFACE7 lpDDS
 	HRESULT hr = ProxyInterface->Blt(lpDestRect, lpDDSrcSurface, lpSrcRect, dwFlags, lpDDBltFx);
 
 	// Fix for some games that calculate the rect incorrectly
-	if (hr == DDERR_INVALIDRECT || hr == DDERR_INVALIDRECTBLT)
+	if (hr == DDERR_INVALIDRECT)
 	{
 		RECT SrcRect, DestRect;
 		LPRECT pSrcRect = lpSrcRect;
@@ -582,7 +582,7 @@ HRESULT m_IDirectDrawSurfaceX::BltFast(DWORD dwX, DWORD dwY, LPDIRECTDRAWSURFACE
 	// Check if source Surface exists
 	if (lpDDSrcSurface && !CheckSurfaceExists(lpDDSrcSurface))
 	{
-		LOG_LIMIT(100, __FUNCTION__ << " Warning: could not find source surface!");
+		LOG_LIMIT(100, __FUNCTION__ << " Error: could not find source surface! " << Logging::hex(lpDDSrcSurface));
 		return DD_OK;	// Just return OK
 	}
 
@@ -637,7 +637,7 @@ HRESULT m_IDirectDrawSurfaceX::BltFast(DWORD dwX, DWORD dwY, LPDIRECTDRAWSURFACE
 	HRESULT hr = ProxyInterface->BltFast(dwX, dwY, lpDDSrcSurface, lpSrcRect, dwFlags);
 
 	// Fix for some games that calculate the rect incorrectly
-	if (lpSrcRect && (hr == DDERR_INVALIDRECT || hr == DDERR_INVALIDRECTBLT))
+	if (lpSrcRect && hr == DDERR_INVALIDRECT)
 	{
 		RECT SrcRect;
 		memcpy(&SrcRect, lpSrcRect, sizeof(RECT));

@@ -2,8 +2,6 @@
 
 #include <ddraw.h>
 
-#define DDERR_INVALIDRECTBLT 0x88760096
-
 static constexpr DWORD FourCCTypes[]
 {
 	//0x026CFB68, // MAKEFOURCC('N', 'V', '1', '2')
