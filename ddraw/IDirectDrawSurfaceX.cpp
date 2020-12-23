@@ -1644,10 +1644,10 @@ HRESULT m_IDirectDrawSurfaceX::GetSurfaceDesc2(LPDDSURFACEDESC2 lpDDSurfaceDesc2
 
 		// Set lPitch
 		if ((lpDDSurfaceDesc2->dwFlags & (DDSD_WIDTH | DDSD_HEIGHT | DDSD_PIXELFORMAT)) == (DDSD_WIDTH | DDSD_HEIGHT | DDSD_PIXELFORMAT) &&
-			(surfaceDesc2.ddpfPixelFormat.dwFlags & DDPF_RGB) && !(lpDDSurfaceDesc2->dwFlags & DDSD_PITCH) && !(lpDDSurfaceDesc2->dwFlags & DDSD_LINEARSIZE))
+			(lpDDSurfaceDesc2->ddpfPixelFormat.dwFlags & DDPF_RGB) && !(lpDDSurfaceDesc2->dwFlags & DDSD_PITCH) && !(lpDDSurfaceDesc2->dwFlags & DDSD_LINEARSIZE))
 		{
 			lpDDSurfaceDesc2->dwFlags |= DDSD_PITCH;
-			lpDDSurfaceDesc2->lPitch = ComputePitch(surfaceDesc2.dwWidth, GetBitCount(surfaceDesc2.ddpfPixelFormat));
+			lpDDSurfaceDesc2->lPitch = ComputePitch(lpDDSurfaceDesc2->dwWidth, GetBitCount(lpDDSurfaceDesc2->ddpfPixelFormat));
 		}
 
 		// Return
