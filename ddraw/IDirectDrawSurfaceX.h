@@ -55,6 +55,7 @@ private:
 	CRITICAL_SECTION ddscs;								// Critical section for surfaceArray
 	std::vector<byte> surfaceArray;						// Memory used for coping from one surface to the same surface
 	std::vector<byte> surfaceBackup;					// Memory used for backing up the surfaceTexture
+	std::vector<RECT> surfaceLockRect;					// Rects used to lock the surface
 	EMUSURFACE *emu = nullptr;
 	LONG overlayX = 0;
 	LONG overlayY = 0;
@@ -66,7 +67,6 @@ private:
 	bool ComplexRoot = false;
 	bool PresentOnUnlock = false;
 	bool IsLocked = false;
-	DWORD LockThreadID = 0;
 	RECT LastRect = { 0, 0, 0, 0 };
 	bool IsInDC = false;
 	HDC LastDC = nullptr;
@@ -176,7 +176,6 @@ private:
 
 	// Locking rect coordinates
 	bool CheckCoordinates(LPRECT lpOutRect, LPRECT lpInRect);
-	bool WaitForLockState();
 	HRESULT SetLock(D3DLOCKED_RECT* pLockedRect, LPRECT lpDestRect, DWORD dwFlags, BOOL isSkipScene = false);
 	HRESULT SetUnlock(BOOL isSkipScene = false);
 	HRESULT LockEmulatedSurface(D3DLOCKED_RECT* pLockedRect, LPRECT lpDestRect);
