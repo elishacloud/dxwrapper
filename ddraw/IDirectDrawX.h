@@ -12,6 +12,7 @@ private:
 	ULONG RefCount7 = 0;
 
 	bool IsInitialize = false;
+	bool Using3D = false;
 
 	// Fix exclusive mode issue
 	HHOOK g_hook = nullptr;
@@ -167,8 +168,9 @@ public:
 	void ClearD3D() { D3DInterface = nullptr; }
 	void SetD3DDevice(m_IDirect3DDeviceX *D3DDevice);
 	m_IDirect3DDeviceX **GetCurrentD3DDevice() { return &D3DDeviceInterface; }
-	void ClearD3DDevice() { D3DDeviceInterface = nullptr; }
-	bool IsUsing3D();
+	void ClearD3DDevice() { D3DDeviceInterface = nullptr; Using3D = false; }
+	bool IsUsing3D() { return Using3D; }
+	void Enable3D() { Using3D = true; }
 
 	// Direct3D9 interfaces
 	LPDIRECT3D9 GetDirect3D9Object();

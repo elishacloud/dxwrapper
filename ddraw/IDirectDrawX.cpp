@@ -528,6 +528,12 @@ HRESULT m_IDirectDrawX::CreateSurface2(LPDDSURFACEDESC2 lpDDSurfaceDesc2, LPDIRE
 			lpDDSurfaceDesc2->dwBackBufferCount = 0;
 		}
 
+		// Add flag for 3D device
+		if ((DirectXVersion < 4) && (lpDDSurfaceDesc2->ddsCaps.dwCaps & DDSCAPS_PRIMARYSURFACE))
+		{
+			lpDDSurfaceDesc2->ddsCaps.dwCaps |= DDSCAPS_3DDEVICE;
+		}
+
 		// Remove unused flags
 		if (!lpDDSurfaceDesc2->dwWidth || !lpDDSurfaceDesc2->dwHeight)
 		{
@@ -2286,11 +2292,6 @@ void m_IDirectDrawX::SetD3DDevice(m_IDirect3DDeviceX *D3DDevice)
 		ReleaseD3d9Device();
 	}
 	D3DDeviceInterface = D3DDevice;
-}
-
-bool m_IDirectDrawX::IsUsing3D()
-{
-	return (D3DDeviceInterface != nullptr);
 }
 
 bool m_IDirectDrawX::IsDynamicTexturesSupported()

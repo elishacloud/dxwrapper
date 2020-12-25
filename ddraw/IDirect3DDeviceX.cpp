@@ -301,7 +301,6 @@ HRESULT m_IDirect3DDeviceX::SetTransform(D3DTRANSFORMSTATETYPE dtstTransformStat
 		// Check for device interface
 		if (FAILED(CheckInterface(__FUNCTION__, true)))
 		{
-			Logging::Log() << __FUNCTION__ " Error: no ddrawParent";
 			return DDERR_GENERIC;
 		}
 
@@ -352,7 +351,6 @@ HRESULT m_IDirect3DDeviceX::GetTransform(D3DTRANSFORMSTATETYPE dtstTransformStat
 		// Check for device interface
 		if (FAILED(CheckInterface(__FUNCTION__, true)))
 		{
-			Logging::Log() << __FUNCTION__ " Error: no ddrawParent";
 			return DDERR_GENERIC;
 		}
 
@@ -681,7 +679,6 @@ HRESULT m_IDirect3DDeviceX::SetTexture(DWORD dwStage, LPDIRECTDRAWSURFACE7 lpSur
 		// Check for device interface
 		if (FAILED(CheckInterface(__FUNCTION__, true)))
 		{
-			Logging::Log() << __FUNCTION__ " Error: no ddrawParent";
 			return DDERR_GENERIC;
 		}
 
@@ -734,7 +731,6 @@ HRESULT m_IDirect3DDeviceX::SetRenderTarget(LPDIRECTDRAWSURFACE7 lpNewRenderTarg
 		// Check for device interface
 		if (FAILED(CheckInterface(__FUNCTION__, true)))
 		{
-			Logging::Log() << __FUNCTION__ " Error: no ddrawParent";
 			return DDERR_GENERIC;
 		}
 
@@ -1413,9 +1409,11 @@ HRESULT m_IDirect3DDeviceX::BeginScene()
 		// Check for device interface
 		if (FAILED(CheckInterface(__FUNCTION__, true)))
 		{
-			Logging::Log() << __FUNCTION__ " Error: no ddrawParent";
 			return DDERR_GENERIC;
 		}
+
+		// Set 3D Enabled
+		ddrawParent->Enable3D();
 
 		return (*d3d9Device)->BeginScene();
 	}
@@ -1444,7 +1442,6 @@ HRESULT m_IDirect3DDeviceX::EndScene()
 		// Check for device interface
 		if (FAILED(CheckInterface(__FUNCTION__, true)))
 		{
-			Logging::Log() << __FUNCTION__ " Error: no ddrawParent";
 			return DDERR_GENERIC;
 		}
 
@@ -1480,7 +1477,6 @@ HRESULT m_IDirect3DDeviceX::Clear(DWORD dwCount, LPD3DRECT lpRects, DWORD dwFlag
 		// Check for device interface
 		if (FAILED(CheckInterface(__FUNCTION__, true)))
 		{
-			Logging::Log() << __FUNCTION__ " Error: no ddrawParent";
 			return DDERR_GENERIC;
 		}
 
@@ -1939,7 +1935,6 @@ HRESULT m_IDirect3DDeviceX::DrawPrimitive(D3DPRIMITIVETYPE dptPrimitiveType, DWO
 		// Check for device interface
 		if (FAILED(CheckInterface(__FUNCTION__, true)))
 		{
-			Logging::Log() << __FUNCTION__ " Error: no ddrawParent";
 			return DDERR_GENERIC;
 		}
 
@@ -2115,7 +2110,6 @@ HRESULT m_IDirect3DDeviceX::DrawIndexedPrimitive(D3DPRIMITIVETYPE dptPrimitiveTy
 		// Check for device interface
 		if (FAILED(CheckInterface(__FUNCTION__, true)))
 		{
-			Logging::Log() << __FUNCTION__ " Error: no ddrawParent";
 			return DDERR_GENERIC;
 		}
 
