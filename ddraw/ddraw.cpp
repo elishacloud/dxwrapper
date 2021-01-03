@@ -809,7 +809,7 @@ HWND dd_CreateWindowEx_out(DWORD dwExStyle, LPCWSTR lpClassName, LPCWSTR lpWindo
 template <class T>
 HWND dd_CreateWindowEx(DWORD dwExStyle, T lpClassName, T lpWindowName, DWORD dwStyle, int X, int Y, int nWidth, int nHeight, HWND hWndParent, HMENU hMenu, HINSTANCE hInstance, LPVOID lpParam)
 {
-	Logging::LogDebug() << __FUNCTION__ << " " << lpClassName << " " << lpWindowName << Logging::hex(dwExStyle) << " " << Logging::hex(dwStyle) << " " << X << "x" << Y << " " << nWidth << "x" << nHeight << " " << Logging::hex((DWORD)hWndParent) << " " << hWndParent << " " << hMenu << " " << hInstance;
+	Logging::LogDebug() << __FUNCTION__ << " " << lpClassName << " " << lpWindowName << " " << Logging::hex(dwExStyle) << " " << Logging::hex(dwStyle) << " " << X << "x" << Y << " " << nWidth << "x" << nHeight << " " << Logging::hex((DWORD)hWndParent) << " " << hWndParent << " " << hMenu << " " << hInstance;
 
 	// Handle popup window type
 	if ((dwStyle & WS_POPUP) && (!hWndParent || ((DWORD)hWndParent & 0xFFFFFFF0) == 0xFFFFFFF0))
