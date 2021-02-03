@@ -19,11 +19,17 @@
 #include "ddraw.h"
 #include "ddrawExternal.h"
 #include "Utils\Utils.h"
+#include <..\km\d3dkmthk.h>
 
 constexpr DWORD MaxVidMemory  = 0x32000000;	// 512 MBs
 constexpr DWORD UsedVidMemory = 0x00100000;	// 1 MB
 
 const D3DFORMAT D9DisplayFormat = D3DFMT_X8R8G8B8;
+
+#define STATUS_SUCCESS 0
+typedef NTSTATUS(WINAPI *D3DKMTWaitForVerticalBlankEventProc)(const D3DKMT_WAITFORVERTICALBLANKEVENT *Arg1);
+typedef NTSTATUS(WINAPI *D3DKMTOpenAdapterFromHdcProc)(D3DKMT_OPENADAPTERFROMHDC *Arg1);
+typedef NTSTATUS(WINAPI *D3DKMTCloseAdapterProc)(const D3DKMT_CLOSEADAPTER *Arg1);
 
 // ddraw interface counter
 DWORD ddrawRefCount = 0;
@@ -93,6 +99,16 @@ bool EnableWaitVsync;
 LPDIRECT3D9 d3d9Object;
 LPDIRECT3DDEVICE9 d3d9Device;
 D3DPRESENT_PARAMETERS presParams;
+
+// D3DKMT vertical blank
+bool VSyncLoaded = false;
+HMODULE gdi_dll = nullptr;
+D3DKMTWaitForVerticalBlankEventProc m_pD3DKMTWaitForVerticalBlankEvent = nullptr;
+D3DKMTOpenAdapterFromHdcProc m_pD3DKMTOpenAdapterFromHdc = nullptr;
+D3DKMTCloseAdapterProc m_pD3DKMTCloseAdapter = nullptr;
+D3DKMT_OPENADAPTERFROMHDC openAdapter = {};
+D3DKMT_CLOSEADAPTER closeAdapter = {};
+D3DKMT_WAITFORVERTICALBLANKEVENT VBlankEvent = {};
 
 std::unordered_map<HWND, m_IDirectDrawX*> g_hookmap;
 
@@ -1386,6 +1402,7 @@ HRESULT m_IDirectDrawX::SetCooperativeLevel(HWND hWnd, DWORD dwFlags)
 		// Check if DC needs to be released
 		if (MainhWnd && MainhDC && (MainhWnd != hWnd))
 		{
+			CloseVSync();
 			ReleaseDC(MainhWnd, MainhDC);
 			MainhDC = nullptr;
 		}
@@ -1616,31 +1633,31 @@ HRESULT m_IDirectDrawX::WaitForVerticalBlank(DWORD dwFlags, HANDLE hEvent)
 
 	if (Config.Dd7to9)
 	{
-		DWORD ExitSystemTime = GetTickCount() + min((2000 / ((monitorRefreshRate) ? monitorRefreshRate : 60)), 34);
 		D3DRASTER_STATUS RasterStatus;
 
 		// Check flags
 		switch (dwFlags)
 		{
 		case DDWAITVB_BLOCKBEGIN:
-			// Return when vertical blank begins
-			if (d3d9Device && SUCCEEDED(d3d9Device->GetRasterStatus(0, &RasterStatus)))
+			// Use D3DKMT for vertical blank
+			if (InitVSync() && m_pD3DKMTWaitForVerticalBlankEvent(&VBlankEvent) == STATUS_SUCCESS)
 			{
-				bool InBlock = RasterStatus.InVBlank;
-				while (SUCCEEDED(d3d9Device->GetRasterStatus(0, &RasterStatus)) && !(!InBlock && RasterStatus.InVBlank) && ExitSystemTime > GetTickCount())
-				{
-					InBlock = RasterStatus.InVBlank;
-				}
+				return DD_OK;
 			}
-			return DD_OK;
 		case DDWAITVB_BLOCKEND:
-			// Return when the vertical blank interval ends and the display begins
 			if (d3d9Device && SUCCEEDED(d3d9Device->GetRasterStatus(0, &RasterStatus)))
 			{
-				bool InBlock = RasterStatus.InVBlank;
-				while (SUCCEEDED(d3d9Device->GetRasterStatus(0, &RasterStatus)) && !(InBlock && !RasterStatus.InVBlank) && ExitSystemTime > GetTickCount())
+				DWORD ExitSystemTime = GetTickCount() + min((2000 / ((monitorRefreshRate) ? monitorRefreshRate : 60)), 34);
+
+				if (dwFlags == DDWAITVB_BLOCKBEGIN)
 				{
-					InBlock = RasterStatus.InVBlank;
+					// Use raster status for vertical blank (uses high CPU)
+					while (SUCCEEDED(d3d9Device->GetRasterStatus(0, &RasterStatus)) && !RasterStatus.InVBlank && ExitSystemTime > GetTickCount()) {}
+				}
+				else
+				{
+					// Use raster status for vertical blank end (uses high CPU)
+					while (SUCCEEDED(d3d9Device->GetRasterStatus(0, &RasterStatus)) && RasterStatus.InVBlank && ExitSystemTime > GetTickCount()) {}
 				}
 			}
 			return DD_OK;
@@ -2188,6 +2205,12 @@ void m_IDirectDrawX::ReleaseDdraw()
 			ReleaseD9Interface(&d3d9Object);
 		}
 
+		// Close vsync
+		if (VSyncLoaded)
+		{
+			CloseVSync();
+		}
+
 		// Release DC
 		if (MainhWnd && MainhDC)
 		{
@@ -2200,6 +2223,49 @@ void m_IDirectDrawX::ReleaseDdraw()
 	}
 
 	ReleaseCriticalSection();
+}
+
+bool m_IDirectDrawX::InitVSync()
+{
+	if (VSyncLoaded)
+	{
+		return true;
+	}
+
+	static bool RunOnce = true;
+	if (RunOnce)
+	{
+		RunOnce = false;
+		gdi_dll = LoadLibrary("gdi32.dll");
+		m_pD3DKMTWaitForVerticalBlankEvent = (D3DKMTWaitForVerticalBlankEventProc)GetProcAddress(gdi_dll, "D3DKMTWaitForVerticalBlankEvent");
+		m_pD3DKMTOpenAdapterFromHdc = (D3DKMTOpenAdapterFromHdcProc)GetProcAddress(gdi_dll, "D3DKMTOpenAdapterFromHdc");
+		m_pD3DKMTCloseAdapter = (D3DKMTCloseAdapterProc)GetProcAddress(gdi_dll, "D3DKMTCloseAdapter");
+	}
+
+	HDC hDC = GetDC();
+
+	if (m_pD3DKMTWaitForVerticalBlankEvent && m_pD3DKMTOpenAdapterFromHdc && m_pD3DKMTCloseAdapter && hDC)
+	{
+		openAdapter.hDc = hDC;
+		if (m_pD3DKMTOpenAdapterFromHdc(&openAdapter) == STATUS_SUCCESS)
+		{
+			VSyncLoaded = true;
+			VBlankEvent.hAdapter = openAdapter.hAdapter;
+			closeAdapter.hAdapter = openAdapter.hAdapter;
+		}
+	}
+	return VSyncLoaded;
+}
+
+void m_IDirectDrawX::CloseVSync()
+{
+	if (VSyncLoaded && m_pD3DKMTCloseAdapter)
+	{
+		if (m_pD3DKMTCloseAdapter(&closeAdapter) == STATUS_SUCCESS)
+		{
+			VSyncLoaded = false;
+		}
+	}
 }
 
 HWND m_IDirectDrawX::GetHwnd()
@@ -2869,14 +2935,10 @@ HRESULT m_IDirectDrawX::Present()
 		return DDERR_GENERIC;
 	}
 
-	// Use WaitForVerticalBlank for wait timer
-	if (EnableWaitVsync && !Config.EnableVSync)
-	{
-		WaitForVerticalBlank(DDWAITVB_BLOCKBEGIN, nullptr);
-		EnableWaitVsync = false;
-	}
+	const bool UseVSync = (EnableWaitVsync && !Config.EnableVSync);
+
 	// Skip frame if time lapse is too small
-	else if (Config.AutoFrameSkip)
+	if (Config.AutoFrameSkip && !UseVSync)
 	{
 		if (FrequencyFlag)
 		{
@@ -2910,6 +2972,13 @@ HRESULT m_IDirectDrawX::Present()
 		return DDERR_GENERIC;
 	}
 	IsInScene = false;
+
+	// Use WaitForVerticalBlank for wait timer
+	if (UseVSync)
+	{
+		WaitForVerticalBlank(DDWAITVB_BLOCKBEGIN, nullptr);
+		EnableWaitVsync = false;
+	}
 
 	// Present everthing, skip Preset for SWAT 2
 	HRESULT hr = d3d9Device->Present(nullptr, nullptr, nullptr, nullptr);

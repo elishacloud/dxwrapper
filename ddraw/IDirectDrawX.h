@@ -179,6 +179,8 @@ public:
 	HRESULT ReinitDevice();
 
 	// Device information functions
+	bool InitVSync();
+	void CloseVSync();
 	HWND GetHwnd();
 	HDC GetDC();
 	bool IsExclusiveMode();
