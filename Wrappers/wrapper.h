@@ -96,13 +96,11 @@ namespace dinput8
 namespace d3d8
 {
 	VISIT_PROCS_D3D8(DECLARE_PROC_VARABLES);
-	VISIT_SHARED_D3D8_PROCS(DECLARE_PROC_VARABLES_SHARED);
 	HMODULE Load(const char *ProxyDll, const char *MyDllName);
 }
 namespace d3d9
 {
 	VISIT_PROCS_D3D9(DECLARE_PROC_VARABLES);
-	VISIT_SHARED_D3D9_PROCS(DECLARE_PROC_VARABLES_SHARED);
 	HMODULE Load(const char *ProxyDll, const char *MyDllName);
 }
 namespace dsound

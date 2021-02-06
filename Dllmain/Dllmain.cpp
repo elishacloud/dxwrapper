@@ -437,11 +437,7 @@ bool APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 			using namespace D3d8Wrapper;
 
 			// Initialize d3d8 wrapper procs
-			if (Config.RealWrapperMode == dtype.d3d8)
-			{
-				VISIT_PROCS_D3D8_SHARED(SET_WRAPPED_PROC_SHARED);
-			}
-			else
+			if (Config.RealWrapperMode != dtype.d3d8)
 			{
 				// Load d3d8 procs
 				HMODULE dll = Load(nullptr, Config.WrapperName.c_str());
@@ -457,7 +453,6 @@ bool APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 
 			// Prepare wrapper
 			VISIT_PROCS_D3D8(SET_WRAPPED_PROC);
-			VISIT_PROCS_D3D8_SHARED(SET_WRAPPED_PROC);
 		}
 
 		// Start d3d9.dll module
@@ -469,11 +464,7 @@ bool APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 			using namespace D3d9Wrapper;
 
 			// Initialize d3d9 wrapper procs
-			if (Config.RealWrapperMode == dtype.d3d9)
-			{
-				VISIT_PROCS_D3D9_SHARED(SET_WRAPPED_PROC_SHARED);
-			}
-			else
+			if (Config.RealWrapperMode != dtype.d3d9)
 			{
 				// Load d3d9 procs
 				HMODULE dll = Load(nullptr, Config.WrapperName.c_str());
@@ -496,8 +487,6 @@ bool APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 			if (Config.D3d8to9)
 			{
 				D3d8Wrapper::Direct3DCreate9_out = Direct3DCreate9_in;
-				D3d8Wrapper::Direct3D9EnableMaximizedWindowedModeShim_out = Direct3D9EnableMaximizedWindowedModeShim_in;
-				D3d8Wrapper::DebugSetMute_out = DebugSetMute_in;
 			}
 
 			// Redirect DdrawWrapper -> D3d9Wrapper
@@ -508,7 +497,6 @@ bool APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 
 			// Prepare wrapper
 			VISIT_PROCS_D3D9(SHIM_WRAPPED_PROC);
-			VISIT_PROCS_D3D9_SHARED(SHIM_WRAPPED_PROC);
 		}
 
 		// Start DxWnd module

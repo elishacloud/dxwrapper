@@ -30,14 +30,10 @@
 #define APP_VERSION TOSTRING(FILEVERSION)
 
 typedef LPDIRECT3D9(WINAPI *PFN_Direct3DCreate9)(UINT SDKVersion);
-typedef void(WINAPI *DebugSetMuteProc)();
-typedef void(WINAPI *Direct3D8EnableMaximizedWindowedModeShimProc)();
 
 namespace D3d8Wrapper
 {
 	FARPROC Direct3DCreate9_out = nullptr;
-	FARPROC Direct3D9EnableMaximizedWindowedModeShim_out = nullptr;
-	FARPROC DebugSetMute_out = nullptr;
 }
 
 PFN_D3DXAssembleShader D3DXAssembleShader = nullptr;
@@ -45,20 +41,6 @@ PFN_D3DXDisassembleShader D3DXDisassembleShader = nullptr;
 PFN_D3DXLoadSurfaceFromSurface D3DXLoadSurfaceFromSurface = nullptr;
 
 using namespace D3d8Wrapper;
-
-void WINAPI d8_Direct3D8EnableMaximizedWindowedModeShim()
-{
-	LOG_LIMIT(1, __FUNCTION__);
-
-	static Direct3D9EnableMaximizedWindowedModeShimProc m_pDirect3D9EnableMaximizedWindowedModeShim = (Wrapper::ValidProcAddress(Direct3D9EnableMaximizedWindowedModeShim_out)) ? (Direct3D9EnableMaximizedWindowedModeShimProc)Direct3D9EnableMaximizedWindowedModeShim_out : nullptr;
-
-	if (!m_pDirect3D9EnableMaximizedWindowedModeShim)
-	{
-		return;
-	}
-
-	m_pDirect3D9EnableMaximizedWindowedModeShim(1);
-}
 
 HRESULT WINAPI d8_ValidatePixelShader(DWORD* pixelshader, DWORD* reserved1, BOOL flag, DWORD* toto)
 {
@@ -113,20 +95,6 @@ HRESULT WINAPI d8_ValidateVertexShader(DWORD* vertexshader, DWORD* reserved1, DW
 	default:
 		return D3DERR_INVALIDCALL;
 	}
-}
-
-void WINAPI d8_DebugSetMute()
-{
-	LOG_LIMIT(1, __FUNCTION__);
-
-	static DebugSetMuteProc m_pDebugSetMute = (Wrapper::ValidProcAddress(DebugSetMute_out)) ? (DebugSetMuteProc)DebugSetMute_out : nullptr;
-
-	if (!m_pDebugSetMute)
-	{
-		return;
-	}
-
-	return m_pDebugSetMute();
 }
 
 Direct3D8 *WINAPI d8_Direct3DCreate8(UINT SDKVersion)

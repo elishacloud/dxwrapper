@@ -5,7 +5,6 @@
 	visit(DllGetClassObject, jmpaddr) \
 	visit(DllRegisterServer, jmpaddr) \
 	visit(DllUnregisterServer, jmpaddr) \
-	visit(DebugSetMute, jmpaddrvoid) \
 	visit(SetAppCompatStringPointer, jmpaddr) \
 	visit(D3DFree, jmpaddr) \
 	visit(D3DMalloc, jmpaddr) \

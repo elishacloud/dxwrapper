@@ -65,6 +65,7 @@ typedef FARPROC(WINAPI *GetProcAddressProc)(HMODULE, LPSTR);
 typedef DWORD(WINAPI *GetModuleFileNameAProc)(HMODULE, LPSTR, DWORD);
 typedef DWORD(WINAPI *GetModuleFileNameWProc)(HMODULE, LPWSTR, DWORD);
 typedef HRESULT(WINAPI *SetAppCompatDataFunc)(DWORD, DWORD);
+typedef int(WINAPI *Direct3DEnableMaximizedWindowedModeShimProc)(BOOL);
 typedef LPTOP_LEVEL_EXCEPTION_FILTER(WINAPI *PFN_SetUnhandledExceptionFilter)(LPTOP_LEVEL_EXCEPTION_FILTER);
 typedef BOOL(WINAPI *CreateProcessAFunc)(LPCSTR lpApplicationName, LPSTR lpCommandLine, LPSECURITY_ATTRIBUTES lpProcessAttributes, LPSECURITY_ATTRIBUTES lpThreadAttributes, BOOL bInheritHandles, DWORD dwCreationFlags,
 	LPVOID lpEnvironment, LPCSTR lpCurrentDirectory, LPSTARTUPINFOA lpStartupInfo, LPPROCESS_INFORMATION lpProcessInformation);
@@ -101,7 +102,7 @@ namespace Utils
 	FARPROC pGetModuleFileNameW = nullptr;
 	FARPROC p_CreateProcessA = nullptr;
 	FARPROC p_CreateProcessW = nullptr;
-	Direct3D9EnableMaximizedWindowedModeShimProc m_pDirect3D9WindowedModeShim = nullptr;
+	Direct3DEnableMaximizedWindowedModeShimProc m_pDirect3D9WindowedModeShim = nullptr;
 	std::vector<type_dll> custom_dll;		// Used for custom dll's and asi plugins
 	LPTOP_LEVEL_EXCEPTION_FILTER pOriginalSetUnhandledExceptionFilter = SetUnhandledExceptionFilter((LPTOP_LEVEL_EXCEPTION_FILTER)EXCEPTION_CONTINUE_EXECUTION);
 	PFN_SetUnhandledExceptionFilter pSetUnhandledExceptionFilter = reinterpret_cast<PFN_SetUnhandledExceptionFilter>(SetUnhandledExceptionFilter);
@@ -292,6 +293,8 @@ void Utils::SetAppCompat()
 			{
 				if (addr[0] == 0xC7 && addr[1] == 0x05)
 				{
+					Logging::Log() << "Disabling MaximizedWindowedMode for Direct3D8!";
+
 					// Update function to disable Maximized Windowed Mode
 					DWORD Protect;
 					VirtualProtect((LPVOID)(addr + 6), 4, PAGE_EXECUTE_READWRITE, &Protect);
@@ -299,8 +302,8 @@ void Utils::SetAppCompat()
 					VirtualProtect((LPVOID)(addr + 6), 4, Protect, &Protect);
 
 					// Launch function to disable Maximized Windowed Mode
-					Direct3D8EnableMaximizedWindowedModeShimProc Direct3D8EnableMaximizedWindowedMode = (Direct3D8EnableMaximizedWindowedModeShimProc)addr;
-					Direct3D8EnableMaximizedWindowedMode();
+					Direct3DEnableMaximizedWindowedModeShimProc Direct3D8EnableMaximizedWindowedMode = (Direct3DEnableMaximizedWindowedModeShimProc)addr;
+					Direct3D8EnableMaximizedWindowedMode(0);
 				}
 			}
 		}
@@ -320,12 +323,14 @@ void Utils::SetAppCompat()
 			BYTE *addr = (BYTE*)Hook::GetProcAddress(dll, "Direct3D9EnableMaximizedWindowedModeShim");
 			if (addr)
 			{
+				Logging::Log() << "Disabling MaximizedWindowedMode for Direct3D9!";
+
 				// Launch function to disable Maximized Windowed Mode
-				Direct3D9EnableMaximizedWindowedModeShimProc Direct3D9EnableMaximizedWindowedMode = (Direct3D9EnableMaximizedWindowedModeShimProc)addr;
+				Direct3DEnableMaximizedWindowedModeShimProc Direct3D9EnableMaximizedWindowedMode = (Direct3DEnableMaximizedWindowedModeShimProc)addr;
 				Direct3D9EnableMaximizedWindowedMode(0);
 
 				// Hook function to keep Maximized Windowed Mode disabled
-				m_pDirect3D9WindowedModeShim = (Direct3D9EnableMaximizedWindowedModeShimProc)Hook::HookAPI(dll, "d3d9.dll", Direct3D9EnableMaximizedWindowedMode, "Direct3D9EnableMaximizedWindowedModeShim", DisableMaximizedWindowedMode);
+				m_pDirect3D9WindowedModeShim = (Direct3DEnableMaximizedWindowedModeShimProc)Hook::HookAPI(dll, "d3d9.dll", Direct3D9EnableMaximizedWindowedMode, "Direct3D9EnableMaximizedWindowedModeShim", DisableMaximizedWindowedMode);
 			}
 		}
 		else

@@ -38,9 +38,9 @@
 	extern "C" __declspec(naked) void __stdcall di_ ## procName() \
 	{ \
 		__asm mov edi, edi \
+		__asm pushf \
 		__asm cmp IsLoaded, 0 \
 		__asm jne NEAR AsmExit \
-		__asm pushf \
 		__asm push eax \
 		__asm push ebx \
 		__asm push ecx \
@@ -54,8 +54,8 @@
 		__asm pop ecx \
 		__asm pop ebx \
 		__asm pop eax \
-		__asm popf \
 		__asm AsmExit: \
+		__asm popf \
 		__asm jmp m_p ## procName \
 	}
 

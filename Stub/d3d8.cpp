@@ -19,8 +19,7 @@
 
 #undef VISIT_ALL_PROCS
 #define VISIT_ALL_PROCS(visit) \
-	VISIT_PROCS_D3D8(visit) \
-	VISIT_PROCS_D3D8_SHARED(visit)
+	VISIT_PROCS_D3D8(visit)
 
 #define DLL_NAME "\\d3d8.dll"
 
@@ -38,9 +37,9 @@
 	extern "C" __declspec(naked) void __stdcall d8_ ## procName() \
 	{ \
 		__asm mov edi, edi \
+		__asm pushf \
 		__asm cmp IsLoaded, 0 \
 		__asm jne NEAR AsmExit \
-		__asm pushf \
 		__asm push eax \
 		__asm push ebx \
 		__asm push ecx \
@@ -54,8 +53,8 @@
 		__asm pop ecx \
 		__asm pop ebx \
 		__asm pop eax \
-		__asm popf \
 		__asm AsmExit: \
+		__asm popf \
 		__asm jmp m_p ## procName \
 	}
 

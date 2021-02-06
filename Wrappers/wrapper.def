@@ -188,19 +188,14 @@ D2DTkCreateAlgorithmFactory
 ; ****
 ;LIBRARY "d3d8"
 ; ****
-Direct3D8EnableMaximizedWindowedModeShim
 ValidatePixelShader
 ValidateVertexShader
-DebugSetMute
 Direct3DCreate8
 
 
 ; ****
 ;LIBRARY "d3d9"
 ; ****
-Direct3DShaderValidatorCreate9
-PSGPError
-PSGPSampleTexture
 D3DPERF_BeginEvent
 D3DPERF_EndEvent
 D3DPERF_GetStatus
@@ -208,9 +203,6 @@ D3DPERF_QueryRepeatFrame
 D3DPERF_SetMarker
 D3DPERF_SetOptions
 D3DPERF_SetRegion
-DebugSetLevel
-DebugSetMute
-Direct3D9EnableMaximizedWindowedModeShim
 Direct3DCreate9
 Direct3DCreate9Ex
 
