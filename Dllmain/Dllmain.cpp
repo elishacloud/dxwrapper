@@ -448,7 +448,7 @@ bool APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 
 				// Hook d3d8.dll -> D3d8to9
 				Logging::Log() << "Hooking d3d8.dll APIs...";
-				HOOK_FORCE_WRAPPED_PROC(Direct3DCreate8, unused);
+				VISIT_PROCS_D3D8(HOOK_FORCE_WRAPPED_PROC);
 			}
 
 			// Prepare wrapper
