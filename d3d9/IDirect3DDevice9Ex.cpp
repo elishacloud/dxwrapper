@@ -1316,6 +1316,11 @@ HRESULT m_IDirect3DDevice9Ex::SetSamplerState(THIS_ DWORD Sampler, D3DSAMPLERSTA
 		else if (Type == D3DSAMP_MAGFILTER || Type == D3DSAMP_MINFILTER)
 		{
 			ProxyInterface->SetSamplerState(Sampler, D3DSAMP_MAXANISOTROPY, MaxAnisotropy);
+
+			if (Value == D3DTEXF_POINT || Value == D3DTEXF_LINEAR)
+			{
+				Value = D3DTEXF_ANISOTROPIC;
+			}
 		}
 	}
 
