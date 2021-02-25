@@ -15,6 +15,7 @@
 */
 
 #define INITGUID
+#define DIRECTINPUT_VERSION 0x0800
 
 #include <d3d9.h>
 #include <d3d9types.h>
@@ -22,8 +23,11 @@
 #include <ddrawex.h>
 #include <d3d.h>
 #include <d3dhal.h>
+#include <dinput.h>
 #include "ddraw\ddraw.h"
 #include "Logging.h"
+
+typedef enum _DIERR { } DIERR;
 
 std::ofstream LOG;
 
@@ -1061,6 +1065,70 @@ std::ostream& operator<<(std::ostream& os, const DDERR& ErrCode)
 	}
 
 	VISIT_DDERR_CODES(VISIT_DDERR_RETURN);
+
+	return os << Logging::hex((DWORD)ErrCode);
+}
+
+
+std::ostream& operator<<(std::ostream& os, const DIERR& ErrCode)
+{
+#define VISIT_DIERR_CODES(visit) \
+	visit(DI_OK) \
+	visit(DI_POLLEDDEVICE) \
+	visit(DI_DOWNLOADSKIPPED) \
+	visit(DI_EFFECTRESTARTED) \
+	visit(DI_TRUNCATED) \
+	visit(DI_SETTINGSNOTSAVED) \
+	visit(DI_TRUNCATEDANDRESTARTED) \
+	visit(DI_WRITEPROTECT) \
+	visit(DIERR_OLDDIRECTINPUTVERSION) \
+	visit(DIERR_BETADIRECTINPUTVERSION) \
+	visit(DIERR_BADDRIVERVER) \
+	visit(DIERR_DEVICENOTREG) \
+	visit(DIERR_NOTFOUND) \
+	visit(DIERR_OBJECTNOTFOUND) \
+	visit(DIERR_INVALIDPARAM) \
+	visit(DIERR_NOINTERFACE) \
+	visit(DIERR_GENERIC) \
+	visit(DIERR_OUTOFMEMORY) \
+	visit(DIERR_UNSUPPORTED) \
+	visit(DIERR_NOTINITIALIZED) \
+	visit(DIERR_ALREADYINITIALIZED) \
+	visit(DIERR_NOAGGREGATION) \
+	visit(DIERR_OTHERAPPHASPRIO) \
+	visit(DIERR_INPUTLOST) \
+	visit(DIERR_ACQUIRED) \
+	visit(DIERR_NOTACQUIRED) \
+	visit(DIERR_READONLY) \
+	visit(DIERR_HANDLEEXISTS) \
+	visit(E_PENDING) \
+	visit(DIERR_INSUFFICIENTPRIVS) \
+	visit(DIERR_DEVICEFULL) \
+	visit(DIERR_MOREDATA) \
+	visit(DIERR_NOTDOWNLOADED) \
+	visit(DIERR_HASEFFECTS) \
+	visit(DIERR_NOTEXCLUSIVEACQUIRED) \
+	visit(DIERR_INCOMPLETEEFFECT) \
+	visit(DIERR_NOTBUFFERED) \
+	visit(DIERR_EFFECTPLAYING) \
+	visit(DIERR_UNPLUGGED) \
+	visit(DIERR_REPORTFULL) \
+	visit(DIERR_MAPFILEFAIL) \
+	visit(E_NOINTERFACE) \
+	visit(E_POINTER)
+
+#define VISIT_DIERR_RETURN(x) \
+	if (ErrCode == x) \
+	{ \
+		return os << #x; \
+	}
+
+	if (ErrCode == S_FALSE)
+	{
+		return os << "'DI_NOTATTACHED' or 'DI_BUFFEROVERFLOW' or 'DI_PROPNOEFFECT' or 'DI_NOEFFECT'";
+	}
+
+	VISIT_DIERR_CODES(VISIT_DIERR_RETURN);
 
 	return os << Logging::hex((DWORD)ErrCode);
 }

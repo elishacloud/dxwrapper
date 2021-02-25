@@ -83,6 +83,9 @@
     <Filter Include="IClassFactory">
       <UniqueIdentifier>{5bdf9ac3-800a-4a16-9c5d-d2f3c097b237}</UniqueIdentifier>
     </Filter>
+    <Filter Include="External\dinputto8\Logging">
+      <UniqueIdentifier>{c9ee6616-e41e-4e80-a435-0898ab9b224a}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="libraries\dwmapi.cpp">
@@ -801,6 +804,9 @@
     </ClCompile>
     <ClCompile Include="d3d9\IDirect3DSwapChain9Ex.cpp">
       <Filter>d3d9</Filter>
+    </ClCompile>
+    <ClCompile Include="External\dinputto8\Logging\Logging.cpp">
+      <Filter>External\dinputto8\Logging</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -1699,6 +1705,9 @@
     </ClInclude>
     <ClInclude Include="External\d3d8to9\source\interface_query.hpp">
       <Filter>External\d3d8to9</Filter>
+    </ClInclude>
+    <ClInclude Include="External\dinputto8\Logging\Logging.h">
+      <Filter>External\dinputto8\Logging</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
