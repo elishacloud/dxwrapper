@@ -1,5 +1,5 @@
 /**
-* Copyright (C) 2020 Elisha Riedlinger
+* Copyright (C) 2021 Elisha Riedlinger
 *
 * This software is  provided 'as-is', without any express  or implied  warranty. In no event will the
 * authors be held liable for any damages arising from the use of this software.
@@ -43,34 +43,34 @@ void WINAPI DxWrapperSettings(DXWAPPERSETTINGS *)
 bool IsValueEnabled(char* name)
 {
 	return (atoi(name) > 0 ||
-		_strcmpi("on", name) == 0 ||
-		_strcmpi("yes", name) == 0 ||
-		_strcmpi("true", name) == 0 ||
-		_strcmpi("enabled", name) == 0);
+		_stricmp("on", name) == 0 ||
+		_stricmp("yes", name) == 0 ||
+		_stricmp("true", name) == 0 ||
+		_stricmp("enabled", name) == 0);
 }
 
 // Set config from string (file)
 void __stdcall ParseCallback(char* name, char* value)
 {
-	if (!_strcmpi(name, "StubOnly"))
+	if (!_stricmp(name, "StubOnly"))
 	{
 		StubOnly = IsValueEnabled(value);
 		return;
 	}
 
-	if (!_strcmpi(name, "LoadFromMemory"))
+	if (!_stricmp(name, "LoadFromMemory"))
 	{
 		LoadFromMemory = IsValueEnabled(value);
 		return;
 	}
 
-	if (!_strcmpi(name, "RealDllPath"))
+	if (!_stricmp(name, "RealDllPath"))
 	{
 		RealDllPath.assign(value);
 		return;
 	}
 
-	if (!_strcmpi(name, "WrapperMode"))
+	if (!_stricmp(name, "WrapperMode"))
 	{
 		WrapperMode.assign(value);
 		return;
@@ -163,15 +163,15 @@ void LoadRealDLL()
 	const char *RealWrapperMode = Wrapper::GetWrapperName((WrapperMode.size()) ? WrapperMode.c_str() : WrapperName.c_str());
 
 	// Load custom wrapper
-	if (DxSettings.Dd7to9 && _strcmpi(RealWrapperMode, "ddraw.dll") == 0)
+	if (DxSettings.Dd7to9 && _stricmp(RealWrapperMode, "ddraw.dll") == 0)
 	{
 		DdrawWrapper::Start((RealDllPath.size()) ? RealDllPath.c_str() : nullptr);
 	}
-	else if (DxSettings.D3d8to9 && _strcmpi(RealWrapperMode, "d3d8.dll") == 0)
+	else if (DxSettings.D3d8to9 && _stricmp(RealWrapperMode, "d3d8.dll") == 0)
 	{
 		D3d8Wrapper::Start((RealDllPath.size()) ? RealDllPath.c_str() : nullptr);
 	}
-	else if (DxSettings.Dinputto8 && _strcmpi(RealWrapperMode, "dinput.dll") == 0)
+	else if (DxSettings.Dinputto8 && _stricmp(RealWrapperMode, "dinput.dll") == 0)
 	{
 		DinputWrapper::Start((RealDllPath.size()) ? RealDllPath.c_str() : nullptr);
 	}

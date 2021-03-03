@@ -1,5 +1,5 @@
 /**
-* Copyright (C) 2020 Elisha Riedlinger
+* Copyright (C) 2021 Elisha Riedlinger
 *
 * This software is  provided 'as-is', without any express  or implied  warranty. In no event will the
 * authors be held liable for any damages arising from the use of this software.
@@ -74,7 +74,7 @@ bool Settings::IsValidSettings(char* name, char* value)
 	if (strlen(name) == 0 || strlen(value) == 0 ||
 		strlen(name) == ((size_t)(-1)) || strlen(value) == ((size_t)(-1)) ||
 		name[0] == '\0' || value[0] == '\0' ||
-		!_strcmpi(value, "AUTO"))
+		!_stricmp(value, "AUTO"))
 	{
 		return false;
 	}

@@ -1,5 +1,5 @@
 /**
-* Copyright (C) 2020 Elisha Riedlinger
+* Copyright (C) 2021 Elisha Riedlinger
 *
 * This software is  provided 'as-is', without any express  or implied  warranty. In no event will the
 * authors be held liable for any damages arising from the use of this software.
@@ -549,7 +549,7 @@ HMODULE Utils::LoadLibrary(const char *dllname, bool EnableLogging)
 	// Check if dll is already loaded
 	for (size_t x = 0; x < custom_dll.size(); x++)
 	{
-		if (_strcmpi(custom_dll[x].name.c_str(), dllname) == 0 || _strcmpi(custom_dll[x].fullname.c_str(), dllname) == 0)
+		if (_stricmp(custom_dll[x].name.c_str(), dllname) == 0 || _stricmp(custom_dll[x].fullname.c_str(), dllname) == 0)
 		{
 			return custom_dll[x].dll;
 		}
@@ -562,7 +562,7 @@ HMODULE Utils::LoadLibrary(const char *dllname, bool EnableLogging)
 	}
 
 	// Load default dll if not loading current dll
-	if (_strcmpi(Config.WrapperName.c_str(), dllname) != 0)
+	if (_stricmp(Config.WrapperName.c_str(), dllname) != 0)
 	{
 		loadpath = dllname;
 		dll = ::LoadLibraryA(loadpath);

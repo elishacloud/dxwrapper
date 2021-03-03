@@ -1,5 +1,5 @@
 /**
-* Copyright (C) 2020 Elisha Riedlinger
+* Copyright (C) 2021 Elisha Riedlinger
 *
 * This software is  provided 'as-is', without any express  or implied  warranty. In no event will the
 * authors be held liable for any damages arising from the use of this software.
@@ -53,21 +53,21 @@ namespace Settings
 	visit(Force32bitColor)
 
 #define SET_LOCAL_VALUE(functionName) \
-	if (!_strcmpi(name, #functionName)) \
+	if (!_stricmp(name, #functionName)) \
 	{ \
 		SetValue(name, value, &functionName); \
 		return; \
 	}
 
 #define SET_VALUE(functionName) \
-	if (!_strcmpi(name, #functionName)) \
+	if (!_stricmp(name, #functionName)) \
 	{ \
 		SetValue(name, value, &Config.functionName); \
 		return; \
 	}
 
 #define SET_APPCOMPATDATA_VALUE(functionName) \
-	if (!_strcmpi(name, #functionName)) \
+	if (!_stricmp(name, #functionName)) \
 	{ \
 		SetValue(name, value, &Config.DXPrimaryEmulation[AppCompatDataType.functionName]); \
 		return; \
@@ -93,7 +93,7 @@ bool Settings::IfStringExistsInList(const char* szValue, std::vector<std::string
 			}
 		}
 		// Case insensitive check
-		else if (_strcmpi(szValue, szList[x].c_str()) == 0)
+		else if (_stricmp(szValue, szList[x].c_str()) == 0)
 		{
 			return true;
 		}
@@ -105,11 +105,11 @@ bool Settings::IfStringExistsInList(const char* szValue, std::vector<std::string
 bool Settings::IsValueEnabled(char* name)
 {
 	return (atoi(name) > 0 ||
-		_strcmpi("on", name) == 0 ||
-		_strcmpi("yes", name) == 0 ||
-		_strcmpi("true", name) == 0 ||
-		_strcmpi("enable", name) == 0 ||
-		_strcmpi("enabled", name) == 0);
+		_stricmp("on", name) == 0 ||
+		_stricmp("yes", name) == 0 ||
+		_stricmp("true", name) == 0 ||
+		_stricmp("enable", name) == 0 ||
+		_stricmp("enabled", name) == 0);
 }
 
 // Set value for MEMORYINFO
@@ -234,15 +234,15 @@ void Settings::SetValue(char* name, char* value, bool* setting)
 void __stdcall Settings::ParseCallback(char* name, char* value)
 {
 	// Check for the existance of certian values
-	if (!_strcmpi(name, "CacheClipPlane"))
+	if (!_stricmp(name, "CacheClipPlane"))
 	{
 		Config.CacheClipPlaneNotSet = false;
 	}
-	if (!_strcmpi(name, "DDrawResolutionHack"))
+	if (!_stricmp(name, "DDrawResolutionHack"))
 	{
 		Config.DdrawResolutionHackNotSet = false;
 	}
-	if (!_strcmpi(name, "DisableMaxWindowedMode"))
+	if (!_stricmp(name, "DisableMaxWindowedMode"))
 	{
 		Config.DisableMaxWindowedModeNotSet = false;
 	}
@@ -254,7 +254,7 @@ void __stdcall Settings::ParseCallback(char* name, char* value)
 	VISIT_CONFIG_SETTINGS(SET_VALUE);
 
 	// Set Value of AppCompatData LockColorkey setting
-	if (!_strcmpi(name, "LockColorkey"))
+	if (!_stricmp(name, "LockColorkey"))
 	{
 		SetValue(name, value, &Config.LockColorkey);
 		Config.DXPrimaryEmulation[AppCompatDataType.LockColorkey] = true;
@@ -265,17 +265,17 @@ void __stdcall Settings::ParseCallback(char* name, char* value)
 	VISIT_APPCOMPATDATA_SETTINGS(SET_APPCOMPATDATA_VALUE);
 
 	// Set Value of Memory Hack config settings
-	if (!_strcmpi(name, "VerificationAddress"))
+	if (!_stricmp(name, "VerificationAddress"))
 	{
 		SetValue(name, value, &Config.VerifyMemoryInfo.AddressPointer);
 		return;
 	}
-	if (!_strcmpi(name, "VerificationBytes"))
+	if (!_stricmp(name, "VerificationBytes"))
 	{
 		SetValue(name, value, &Config.VerifyMemoryInfo);
 		return;
 	}
-	if (!_strcmpi(name, "AddressPointer"))
+	if (!_stricmp(name, "AddressPointer"))
 	{
 		if (Config.MemoryInfo.size() < AddressPointerCount + 1)
 		{
@@ -285,7 +285,7 @@ void __stdcall Settings::ParseCallback(char* name, char* value)
 		SetValue(name, value, &Config.MemoryInfo[AddressPointerCount++].AddressPointer);
 		return;
 	}
-	if (!_strcmpi(name, "BytesToWrite"))
+	if (!_stricmp(name, "BytesToWrite"))
 	{
 		if (Config.MemoryInfo.size() < BytesToWriteCount + 1)
 		{
@@ -359,7 +359,7 @@ UINT Settings::GetWrapperMode(std::string *name)
 	for (UINT x = 1; x < dtypeArraySize; ++x)
 	{
 		// Check dll name
-		if (_strcmpi(name->c_str(), dtypename[x]) == 0)
+		if (_stricmp(name->c_str(), dtypename[x]) == 0)
 		{
 			return x;
 		}
@@ -431,7 +431,7 @@ void CONFIG::Init()
 	SetDefaultConfigSettings();
 
 	// Check for memory loading
-	if (_strcmpi(p_wName, p_pName) == 0)
+	if (_stricmp(p_wName, p_pName) == 0)
 	{
 		strcpy_s(wrappername, MAX_PATH, processname);
 		strcpy_s(strrchr(wrappername, '\\'), MAX_PATH - strlen(wrappername), "\\dxwrapper.dll");
@@ -484,7 +484,7 @@ void CONFIG::Init()
 	}
 
 	// Set module name
-	if (_strcmpi(p_wName, p_pName) == 0)
+	if (_stricmp(p_wName, p_pName) == 0)
 	{
 		WrapperName.assign("dxwrapper.dll");
 	}

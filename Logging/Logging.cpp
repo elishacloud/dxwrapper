@@ -1,5 +1,5 @@
 /**
-* Copyright (C) 2020 Elisha Riedlinger
+* Copyright (C) 2021 Elisha Riedlinger
 *
 * This software is  provided 'as-is', without any express  or implied  warranty. In no event will the
 * authors be held liable for any damages arising from the use of this software.
@@ -51,7 +51,7 @@ void Logging::InitLog()
 	GetModuleFileName(nullptr, processname, MAX_PATH);
 
 	// Check if module name is the same as process name
-	if (_strcmpi(strrchr(wrappername, '\\') + 1, strrchr(processname, '\\') + 1) == 0)
+	if (_stricmp(strrchr(wrappername, '\\') + 1, strrchr(processname, '\\') + 1) == 0)
 	{
 		strcpy_s(strrchr(wrappername, '\\') + 1, MAX_PATH - strlen(wrappername), "dxwrapper.dll");
 	}

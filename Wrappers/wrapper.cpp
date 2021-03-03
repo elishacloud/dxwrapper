@@ -1,5 +1,5 @@
 /**
-* Copyright (C) 2020 Elisha Riedlinger
+* Copyright (C) 2021 Elisha Riedlinger
 *
 * This software is  provided 'as-is', without any express  or implied  warranty. In no event will the
 * authors be held liable for any damages arising from the use of this software.
@@ -77,7 +77,7 @@ extern "C" { _declspec(dllexport) DWORD AmdPowerXpressRequestHighPerformance = 0
 			char path[MAX_PATH]; \
 			const char *DllName = (MyDllName) ? MyDllName : Name; \
 			HMODULE dll = nullptr; \
-			if (ProxyDll && _strcmpi(ProxyDll, DllName) != 0) \
+			if (ProxyDll && _stricmp(ProxyDll, DllName) != 0) \
 			{ \
 				Logging::Log() << "Loading '" << ProxyDll << "' as real dll..."; \
 				dll = LoadLibraryA(ProxyDll); \
@@ -86,7 +86,7 @@ extern "C" { _declspec(dllexport) DWORD AmdPowerXpressRequestHighPerformance = 0
 					Logging::Log() << "Error: Failed to load '" << ProxyDll << "'!"; \
 				} \
 			} \
-			if (!dll && _strcmpi(Name, DllName) != 0) \
+			if (!dll && _stricmp(Name, DllName) != 0) \
 			{ \
 				Logging::Log() << "Loading '" << Name << "'..."; \
 				dll = LoadLibraryA(Name); \
@@ -186,7 +186,7 @@ const char *Wrapper::GetWrapperName(const char *WrapperMode)
 {
 	// Check dll name and load correct wrapper
 #define CHECK_WRAPPER(dllName) \
-	{ using namespace dllName; if (_strcmpi(WrapperMode, Name) == 0) { return Name; }}
+	{ using namespace dllName; if (_stricmp(WrapperMode, Name) == 0) { return Name; }}
 
 	VISIT_DLLS(CHECK_WRAPPER);
 
@@ -208,7 +208,7 @@ const char *Wrapper::GetWrapperName(const char *WrapperMode)
 	}
 
 	// Special handling for winmmbase.dll because it is sharing procs from winmm
-	{ using namespace winmm; if (_strcmpi(WrapperMode, "winmmbase.dll") == 0) { return "winmmbase.dll"; }}
+	{ using namespace winmm; if (_stricmp(WrapperMode, "winmmbase.dll") == 0) { return "winmmbase.dll"; }}
 
 	return nullptr;
 }
@@ -252,12 +252,12 @@ HMODULE Wrapper::GetWrapperType(const char *ProxyDll, const char *WrapperMode, c
 
 	// Check dll name and load correct wrapper
 #define CHECK_FOR_WRAPPER(dllName) \
-	{ using namespace dllName; if (_strcmpi(WrapperName, Name) == 0) { return Load(ProxyDll, MyDllName); }}
+	{ using namespace dllName; if (_stricmp(WrapperName, Name) == 0) { return Load(ProxyDll, MyDllName); }}
 
 	VISIT_DLLS(CHECK_FOR_WRAPPER);
 
 	// Special handling for winmmbase.dll because it is sharing procs from winmm
-	{ using namespace winmm; if (_strcmpi(WrapperName, "winmmbase.dll") == 0) { Name = "winmmbase.dll"; return Load(ProxyDll, MyDllName); }}
+	{ using namespace winmm; if (_stricmp(WrapperName, "winmmbase.dll") == 0) { Name = "winmmbase.dll"; return Load(ProxyDll, MyDllName); }}
 
 	return nullptr;
 }
