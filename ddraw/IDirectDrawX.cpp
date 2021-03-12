@@ -1635,6 +1635,8 @@ HRESULT m_IDirectDrawX::WaitForVerticalBlank(DWORD dwFlags, HANDLE hEvent)
 	{
 		D3DRASTER_STATUS RasterStatus;
 
+		dwFlags = (dwFlags < 0x8 && (dwFlags & DDWAITVB_BLOCKBEGIN)) ? DDWAITVB_BLOCKBEGIN : dwFlags;
+
 		// Check flags
 		switch (dwFlags)
 		{
