@@ -11,7 +11,9 @@ namespace Logging
 
 typedef enum _DDFOURCC { } DDFOURCC;
 typedef enum _DDERR { } DDERR;
+typedef enum _WMMSG { } WMMSG;
 
+std::ostream& operator<<(std::ostream& os, const WMMSG& Id);
 #ifdef __DDRAW_INCLUDED__
 std::ostream& operator<<(std::ostream& os, const DDCAPS& caps);
 std::ostream& operator<<(std::ostream& os, const DDSCAPS& caps);
