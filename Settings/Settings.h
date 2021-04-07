@@ -23,6 +23,7 @@
 	visit(DDrawCompatNoProcAffinity) \
 	visit(DdrawClippedWidth) \
 	visit(DdrawClippedHeight) \
+	visit(DdrawFixByteAlignment) \
 	visit(DdrawEmulateSurface) \
 	visit(DdrawReadFromGDI) \
 	visit(DdrawWriteToGDI) \
@@ -174,6 +175,7 @@ struct CONFIG
 	bool DDrawCompatExperimental;		// Enables DDrawCompat Experimental version
 	bool DDrawCompatDisableGDIHook;		// Disables DDrawCompat GDI hooks
 	bool DDrawCompatNoProcAffinity;		// Disables DDrawCompat single processor affinity
+	bool DdrawFixByteAlignment;			// Fixes lock with surfaces that have unaligned byte sizes
 	bool DdrawResolutionHack;			// Removes the artificial resolution limit from Direct3D7 and below https://github.com/UCyborg/LegacyD3DResolutionHack
 	bool DdrawResolutionHackNotSet;		// Check if 'DdrawResolutionHack' exists in the ini file
 	bool DdrawEmulateSurface;			// Emulates the ddraw surface using device context for Dd7to9

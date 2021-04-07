@@ -1735,6 +1735,40 @@ HRESULT m_IDirectDrawSurfaceX::IsLost()
 	return ProxyInterface->IsLost();
 }
 
+// Fix issue with some games that ignore the pitch size
+template <class T>
+void m_IDirectDrawSurfaceX::LockBitAlign(LPRECT lpDestRect, T lpDDSurfaceDesc)
+{
+	if (Config.DdrawFixByteAlignment && lpDDSurfaceDesc && !lpDestRect)
+	{
+		DWORD BBP = GetBitCount(lpDDSurfaceDesc->ddpfPixelFormat);
+		LONG NewPitch = (BBP / 8) * lpDDSurfaceDesc->dwWidth;
+
+		// Check if surface needs to be fixed
+		if (lpDDSurfaceDesc->dwWidth && lpDDSurfaceDesc->dwHeight &&
+			(BBP == 8 || BBP == 16 || BBP == 24 || BBP == 32) &&
+			lpDDSurfaceDesc->lPitch != NewPitch)
+		{
+			// Store old variables
+			EmuLock.Locked = true;
+			EmuLock.Addr = lpDDSurfaceDesc->lpSurface;
+			EmuLock.Pitch = lpDDSurfaceDesc->lPitch;
+			EmuLock.BBP = BBP;
+			EmuLock.Height = lpDDSurfaceDesc->dwHeight;
+			EmuLock.Width = lpDDSurfaceDesc->dwWidth;
+
+			// Update surface memory and pitch
+			DWORD Size = BBP * lpDDSurfaceDesc->dwWidth * lpDDSurfaceDesc->dwHeight;
+			if (EmuLock.surfaceMem.size() < Size)
+			{
+				EmuLock.surfaceMem.resize(Size);
+			}
+			lpDDSurfaceDesc->lpSurface = &EmuLock.surfaceMem[0];
+			lpDDSurfaceDesc->lPitch = (BBP / 8) * lpDDSurfaceDesc->dwWidth;
+		}
+	}
+}
+
 HRESULT m_IDirectDrawSurfaceX::Lock(LPRECT lpDestRect, LPDDSURFACEDESC lpDDSurfaceDesc, DWORD dwFlags, HANDLE hEvent)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
@@ -1759,7 +1793,14 @@ HRESULT m_IDirectDrawSurfaceX::Lock(LPRECT lpDestRect, LPDDSURFACEDESC lpDDSurfa
 		return hr;
 	}
 
-	return GetProxyInterfaceV3()->Lock(lpDestRect, lpDDSurfaceDesc, dwFlags, hEvent);
+	HRESULT hr = GetProxyInterfaceV3()->Lock(lpDestRect, lpDDSurfaceDesc, dwFlags, hEvent);
+
+	if (SUCCEEDED(hr))
+	{
+		LockBitAlign<LPDDSURFACEDESC>(lpDestRect, lpDDSurfaceDesc);
+	}
+
+	return hr;
 }
 
 HRESULT m_IDirectDrawSurfaceX::Lock2(LPRECT lpDestRect, LPDDSURFACEDESC2 lpDDSurfaceDesc2, DWORD dwFlags, HANDLE hEvent)
@@ -1833,7 +1874,14 @@ HRESULT m_IDirectDrawSurfaceX::Lock2(LPRECT lpDestRect, LPDDSURFACEDESC2 lpDDSur
 		return DD_OK;
 	}
 
-	return ProxyInterface->Lock(lpDestRect, lpDDSurfaceDesc2, dwFlags, hEvent);
+	HRESULT hr = ProxyInterface->Lock(lpDestRect, lpDDSurfaceDesc2, dwFlags, hEvent);
+
+	if (SUCCEEDED(hr))
+	{
+		LockBitAlign<LPDDSURFACEDESC2>(lpDestRect, lpDDSurfaceDesc2);
+	}
+
+	return hr;
 }
 
 HRESULT m_IDirectDrawSurfaceX::ReleaseDC(HDC hDC)
@@ -2186,6 +2234,24 @@ HRESULT m_IDirectDrawSurfaceX::Unlock(LPRECT lpRect)
 
 		// Unlock surface
 		return SetUnlock();
+	}
+
+	// Fix issue with some games that ignore the pitch size
+	if (EmuLock.Locked && EmuLock.Addr)
+	{
+		BYTE *InAddr = &EmuLock.surfaceMem[0];
+		DWORD InPitch = (EmuLock.BBP / 8) * EmuLock.Width;
+		BYTE *OutAddr = (BYTE*)EmuLock.Addr;
+		DWORD OutPitch = EmuLock.Pitch;
+		for (DWORD x = 0; x < EmuLock.Height; x++)
+		{
+			memcpy(OutAddr, InAddr, InPitch);
+			InAddr += InPitch;
+			OutAddr += OutPitch;
+		}
+
+		EmuLock.Locked = false;
+		EmuLock.Addr = nullptr;
 	}
 
 	return ProxyInterface->Unlock(lpRect);
@@ -4283,7 +4349,7 @@ HRESULT m_IDirectDrawSurfaceX::CopySurface(m_IDirectDrawSurfaceX* pSourceSurface
 		float WidthRatio = (float)SrcRectWidth / (float)DestRectWidth;
 		float HeightRatio = (float)SrcRectHeight / (float)DestRectHeight;
 
-		// Set color varables
+		// Set color variables
 		DWORD ByteMask = (ByteCount == 1) ? 0x000000FF : (ByteCount == 2) ? 0x0000FFFF : (ByteCount == 3) ? 0x00FFFFFF : 0xFFFFFFFF;
 		DWORD ColorKeyLow = ColorKey.dwColorSpaceLowValue & ByteMask;
 		DWORD ColorKeyHigh = ColorKey.dwColorSpaceHighValue & ByteMask;

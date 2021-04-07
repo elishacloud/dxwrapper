@@ -89,7 +89,7 @@ void ConvertViewport(D3DVIEWPORT &ViewPort, D3DVIEWPORT2 &ViewPort2)
 		LOG_LIMIT(100, __FUNCTION__ << " Error: Incorrect dwSize: " << ViewPort.dwSize << " " << ViewPort2.dwSize);
 		return;
 	}
-	// Convert varables
+	// Convert variables
 	ViewPort.dwX = ViewPort2.dwX;
 	ViewPort.dwY = ViewPort2.dwY;
 	ViewPort.dwWidth = ViewPort2.dwWidth;
@@ -110,7 +110,7 @@ void ConvertViewport(D3DVIEWPORT2 &ViewPort2, D3DVIEWPORT &ViewPort)
 		LOG_LIMIT(100, __FUNCTION__ << " Error: Incorrect dwSize: " << ViewPort2.dwSize << " " << ViewPort.dwSize);
 		return;
 	}
-	// Convert varables
+	// Convert variables
 	ViewPort2.dwX = ViewPort.dwX;
 	ViewPort2.dwY = ViewPort.dwY;
 	ViewPort2.dwWidth = ViewPort.dwWidth;
@@ -131,7 +131,7 @@ void ConvertViewport(D3DVIEWPORT &ViewPort, D3DVIEWPORT7 &ViewPort7)
 		LOG_LIMIT(100, __FUNCTION__ << " Error: Incorrect dwSize: " << ViewPort.dwSize);
 		return;
 	}
-	// Convert varables
+	// Convert variables
 	ViewPort.dwX = ViewPort7.dwX;
 	ViewPort.dwY = ViewPort7.dwY;
 	ViewPort.dwWidth = ViewPort7.dwWidth;
@@ -152,7 +152,7 @@ void ConvertViewport(D3DVIEWPORT2 &ViewPort2, D3DVIEWPORT7 &ViewPort7)
 		LOG_LIMIT(100, __FUNCTION__ << " Error: Incorrect dwSize: " << ViewPort2.dwSize);
 		return;
 	}
-	// Convert varables
+	// Convert variables
 	ViewPort2.dwX = ViewPort7.dwX;
 	ViewPort2.dwY = ViewPort7.dwY;
 	ViewPort2.dwWidth = ViewPort7.dwWidth;
@@ -173,7 +173,7 @@ void ConvertViewport(D3DVIEWPORT7 &ViewPort7, D3DVIEWPORT &ViewPort)
 		LOG_LIMIT(100, __FUNCTION__ << " Error: Incorrect dwSize: " << ViewPort.dwSize);
 		return;
 	}
-	// Convert varables
+	// Convert variables
 	ViewPort7.dwX = ViewPort.dwX;
 	ViewPort7.dwY = ViewPort.dwY;
 	ViewPort7.dwWidth = ViewPort.dwWidth;
@@ -189,7 +189,7 @@ void ConvertViewport(D3DVIEWPORT7 &ViewPort7, D3DVIEWPORT2 &ViewPort2)
 		LOG_LIMIT(100, __FUNCTION__ << " Error: Incorrect dwSize: " << ViewPort2.dwSize);
 		return;
 	}
-	// Convert varables
+	// Convert variables
 	ViewPort7.dwX = ViewPort2.dwX;
 	ViewPort7.dwY = ViewPort2.dwY;
 	ViewPort7.dwWidth = ViewPort2.dwWidth;
@@ -210,7 +210,7 @@ void ConvertViewport(D3DVIEWPORT7 &ViewPort, D3DVIEWPORT7 &ViewPort7)
 
 void ConvertViewport(D3DVIEWPORT7 &ViewPort7, D3DVIEWPORT9 &ViewPort9)
 {
-	// Convert varables
+	// Convert variables
 	ViewPort7.dwX = ViewPort9.X;
 	ViewPort7.dwY = ViewPort9.Y;
 	ViewPort7.dwWidth = ViewPort9.Width;
@@ -221,7 +221,7 @@ void ConvertViewport(D3DVIEWPORT7 &ViewPort7, D3DVIEWPORT9 &ViewPort9)
 
 void ConvertViewport(D3DVIEWPORT9 &ViewPort9, D3DVIEWPORT7 &ViewPort7)
 {
-	// Convert varables
+	// Convert variables
 	ViewPort9.X = ViewPort7.dwX;
 	ViewPort9.Y = ViewPort7.dwY;
 	ViewPort9.Width = ViewPort7.dwWidth;
@@ -237,7 +237,7 @@ void ConvertCaps(D3DPRIMCAPS &PrimCaps, D3DPRIMCAPS &PrimCaps2)
 		LOG_LIMIT(100, __FUNCTION__ << " Error: Incorrect dwSize: " << PrimCaps.dwSize << " " << PrimCaps2.dwSize);
 		return;
 	}
-	// Convert varables
+	// Convert variables
 	memcpy(&PrimCaps, &PrimCaps2, sizeof(D3DPRIMCAPS));
 }
 
@@ -248,7 +248,7 @@ void ConvertDeviceDesc(D3DDEVICEDESC &Desc, D3DDEVICEDESC7 &Desc7)
 		LOG_LIMIT(100, __FUNCTION__ << " Error: Incorrect dwSize: " << Desc.dwSize);
 		return;
 	}
-	// Convert varables
+	// Convert variables
 	Desc.dwFlags = D3DDD_COLORMODEL | D3DDD_DEVCAPS | D3DDD_LINECAPS | D3DDD_TRICAPS | D3DDD_DEVICERENDERBITDEPTH | D3DDD_DEVICEZBUFFERBITDEPTH;
 	Desc.dcmColorModel = 2;
 	Desc.dwDevCaps = Desc7.dwDevCaps | D3DDEVCAPS_HWTRANSFORMANDLIGHT;
@@ -307,7 +307,7 @@ void ConvertDeviceDescSoft(D3DDEVICEDESC &Desc)
 		LOG_LIMIT(100, __FUNCTION__ << " Error: Incorrect dwSize: " << Desc.dwSize);
 		return;
 	}
-	// Convert varables
+	// Convert variables
 	Desc.dwFlags = D3DDD_COLORMODEL | D3DDD_DEVCAPS | D3DDD_TRANSFORMCAPS | D3DDD_LIGHTINGCAPS | D3DDD_BCLIPPING;
 	Desc.dcmColorModel = 0;
 	Desc.dwDevCaps = D3DDEVCAPS_FLOATTLVERTEX;

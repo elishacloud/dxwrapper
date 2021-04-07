@@ -15,7 +15,7 @@ class m_IDirectSoundBuffer8 : public IDirectSoundBuffer8, public AddressLookupTa
 private:
 	LPDIRECTSOUNDBUFFER8 ProxyInterface;
 
-	// Set varables
+	// Set variables
 	AUDIOCLIP AudioClip;
 
 protected:

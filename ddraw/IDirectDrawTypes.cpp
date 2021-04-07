@@ -62,7 +62,7 @@ void ConvertSurfaceDesc(DDSURFACEDESC &Desc, DDSURFACEDESC2 &Desc2)
 	// Prepare destination structure
 	ZeroMemory(&Desc, sizeof(DDSURFACEDESC));
 	Desc.dwSize = sizeof(DDSURFACEDESC);
-	// Convert varables
+	// Convert variables
 	Desc.dwFlags = Desc2.dwFlags & ~(DDSD_ZBUFFERBITDEPTH | DDSD_TEXTURESTAGE | DDSD_FVF | DDSD_SRCVBHANDLE | DDSD_DEPTH);		// Remove unsupported flags
 	Desc.dwHeight = Desc2.dwHeight;
 	Desc.dwWidth = Desc2.dwWidth;
@@ -107,7 +107,7 @@ void ConvertSurfaceDesc(DDSURFACEDESC2 &Desc2, DDSURFACEDESC &Desc)
 	// Prepare destination structure
 	ZeroMemory(&Desc2, sizeof(DDSURFACEDESC2));
 	Desc2.dwSize = sizeof(DDSURFACEDESC2);
-	// Convert varables
+	// Convert variables
 	Desc2.dwFlags = Desc.dwFlags & ~(DDSD_ZBUFFERBITDEPTH | DDSD_TEXTURESTAGE | DDSD_FVF | DDSD_SRCVBHANDLE | DDSD_DEPTH);		// Remove unsupported flags
 	Desc2.dwHeight = Desc.dwHeight;
 	Desc2.dwWidth = Desc.dwWidth;

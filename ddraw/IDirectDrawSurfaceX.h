@@ -42,6 +42,18 @@ private:
 		BYTE third;
 	};
 
+	struct DDRAWEMULATELOCK
+	{
+		bool Locked = false;
+		std::vector<byte> surfaceMem;
+		void *Addr = nullptr;
+		DWORD Pitch = 0;
+		DWORD BBP = 0;
+		DWORD Height = 0;
+		DWORD Width = 0;
+	};
+	DDRAWEMULATELOCK EmuLock;
+
 	// Convert to Direct3D9
 	bool IsDirect3DSurface = false;
 	m_IDirectDrawX *ddrawParent = nullptr;
@@ -326,6 +338,10 @@ public:
 	void *GetWrapperInterfaceX(DWORD DirectXVersion);
 	ULONG AddRef(DWORD DirectXVersion);
 	ULONG Release(DWORD DirectXVersion);
+
+	// Fix byte alignment issue
+	template <class T>
+	void LockBitAlign(LPRECT lpDestRect, T lpDDSurfaceDesc);
 
 	// Functions handling the ddraw parent interface
 	void SetDdrawParent(m_IDirectDrawX *ddraw) { ddrawParent = ddraw; }
