@@ -1758,13 +1758,13 @@ void m_IDirectDrawSurfaceX::LockBitAlign(LPRECT lpDestRect, T lpDDSurfaceDesc)
 			EmuLock.Width = lpDDSurfaceDesc->dwWidth;
 
 			// Update surface memory and pitch
-			DWORD Size = BBP * lpDDSurfaceDesc->dwWidth * lpDDSurfaceDesc->dwHeight;
+			DWORD Size = NewPitch * lpDDSurfaceDesc->dwHeight;
 			if (EmuLock.surfaceMem.size() < Size)
 			{
 				EmuLock.surfaceMem.resize(Size);
 			}
 			lpDDSurfaceDesc->lpSurface = &EmuLock.surfaceMem[0];
-			lpDDSurfaceDesc->lPitch = (BBP / 8) * lpDDSurfaceDesc->dwWidth;
+			lpDDSurfaceDesc->lPitch = NewPitch;
 		}
 	}
 }
