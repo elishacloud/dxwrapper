@@ -1869,7 +1869,9 @@ HRESULT m_IDirectDrawSurfaceX::Lock2(LPRECT lpDestRect, LPDDSURFACEDESC2 lpDDSur
 			lpDDSurfaceDesc2->lpSurface = LockedRect.pBits;
 		}
 		lpDDSurfaceDesc2->lPitch = LockedRect.Pitch;
-		lpDDSurfaceDesc2->dwFlags |= DDSD_LPSURFACE | DDSD_PITCH;
+		lpDDSurfaceDesc2->dwFlags |= DDSD_PITCH;
+
+		LockBitAlign<LPDDSURFACEDESC2>(lpDestRect, lpDDSurfaceDesc2);
 
 		return DD_OK;
 	}
@@ -2200,6 +2202,24 @@ HRESULT m_IDirectDrawSurfaceX::Unlock(LPRECT lpRect)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
+	// Fix issue with some games that ignore the pitch size
+	if (EmuLock.Locked && EmuLock.Addr)
+	{
+		BYTE *InAddr = &EmuLock.surfaceMem[0];
+		DWORD InPitch = (EmuLock.BBP / 8) * EmuLock.Width;
+		BYTE *OutAddr = (BYTE*)EmuLock.Addr;
+		DWORD OutPitch = EmuLock.Pitch;
+		for (DWORD x = 0; x < EmuLock.Height; x++)
+		{
+			memcpy(OutAddr, InAddr, InPitch);
+			InAddr += InPitch;
+			OutAddr += OutPitch;
+		}
+
+		EmuLock.Locked = false;
+		EmuLock.Addr = nullptr;
+	}
+
 	if (Config.Dd7to9)
 	{
 		// Check rect
@@ -2234,24 +2254,6 @@ HRESULT m_IDirectDrawSurfaceX::Unlock(LPRECT lpRect)
 
 		// Unlock surface
 		return SetUnlock();
-	}
-
-	// Fix issue with some games that ignore the pitch size
-	if (EmuLock.Locked && EmuLock.Addr)
-	{
-		BYTE *InAddr = &EmuLock.surfaceMem[0];
-		DWORD InPitch = (EmuLock.BBP / 8) * EmuLock.Width;
-		BYTE *OutAddr = (BYTE*)EmuLock.Addr;
-		DWORD OutPitch = EmuLock.Pitch;
-		for (DWORD x = 0; x < EmuLock.Height; x++)
-		{
-			memcpy(OutAddr, InAddr, InPitch);
-			InAddr += InPitch;
-			OutAddr += OutPitch;
-		}
-
-		EmuLock.Locked = false;
-		EmuLock.Addr = nullptr;
 	}
 
 	return ProxyInterface->Unlock(lpRect);

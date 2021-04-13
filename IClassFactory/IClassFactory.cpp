@@ -213,7 +213,7 @@ HRESULT m_IClassFactory::LockServer(BOOL fLock)
 
 HRESULT WINAPI CoCreateInstanceHandle(REFCLSID rclsid, LPUNKNOWN pUnkOuter, DWORD dwClsContext, REFIID riid, LPVOID *ppv)
 {
-	Logging::LogDebug() << __FUNCTION__;
+	Logging::LogDebug() << __FUNCTION__ " " << riid;
 
 	if (!p_CoCreateInstance)
 	{

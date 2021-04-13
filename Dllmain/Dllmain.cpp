@@ -74,6 +74,32 @@ void WINAPI DxWrapperSettings(DXWAPPERSETTINGS *DxSettings)
 	DxSettings->Dinputto8 = Config.Dinputto8;
 }
 
+typedef HMODULE(*LoadProc)(const char *ProxyDll, const char *MyDllName);
+
+HMODULE LoadHookedDll(char *dllname, LoadProc Load)
+{
+	HMODULE dll = Load(nullptr, Config.WrapperName.c_str());
+
+	if (GetProcAddress(GetModuleHandle(dllname), "DxWrapperSettings") == nullptr)
+	{
+		char path[MAX_PATH];
+		GetSystemDirectory(path, MAX_PATH);
+		PathAppend(path, dllname);
+		HMODULE lib = LoadLibrary(path);
+		if (lib)
+		{
+			dll = lib;
+		}
+	}
+
+	if (dll)
+	{
+		Utils::AddHandleToVector(dll, dllname);
+	}
+
+	return dll;
+}
+
 // Declare variables
 HMODULE hModule_dll = nullptr;
 
@@ -252,15 +278,11 @@ bool APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 			else
 			{
 				// Load dsound procs
-				HMODULE dll = Load(nullptr, Config.WrapperName.c_str());
-				if (dll)
-				{
-					Utils::AddHandleToVector(dll, dtypename[dtype.dsound]);
-				}
+				char *dllname = dtypename[dtype.dsound];
+				HMODULE dll = LoadHookedDll(dllname, Load);
 
 				// Hook dsound.dll -> DsoundWrapper
 				Logging::Log() << "Hooking dsound.dll APIs...";
-				char *dllname = dtypename[dtype.dsound];
 				VISIT_PROCS_DSOUND(HOOK_WRAPPED_PROC);
 				VISIT_PROCS_DSOUND_SHARED(HOOK_WRAPPED_PROC);
 			}
@@ -286,11 +308,8 @@ bool APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 			else
 			{
 				// Load dinput procs
-				HMODULE dll = Load(nullptr, Config.WrapperName.c_str());
-				if (dll)
-				{
-					Utils::AddHandleToVector(dll, dtypename[dtype.dinput]);
-				}
+				char *dllname = dtypename[dtype.dinput];
+				HMODULE dll = LoadHookedDll(dllname, Load);
 
 				// Hook dinput.dll APIs
 				Logging::Log() << "Hooking dinput.dll APIs...";
@@ -319,17 +338,13 @@ bool APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 			else
 			{
 				// Load dinput8 procs
-				HMODULE dll = Load(nullptr, Config.WrapperName.c_str());
-				if (dll)
-				{
-					Utils::AddHandleToVector(dll, dtypename[dtype.dinput8]);
-				}
+				char *dllname = dtypename[dtype.dinput8];
+				HMODULE dll = LoadHookedDll(dllname, Load);
 
 				// Hook dinput8.dll APIs
 				if (Config.EnableDinput8Wrapper)
 				{
 					Logging::Log() << "Hooking dinput8.dll APIs...";
-					char *dllname = dtypename[dtype.dinput8];
 					VISIT_PROCS_DINPUT8(HOOK_WRAPPED_PROC);
 					VISIT_PROCS_DINPUT8_SHARED(HOOK_WRAPPED_PROC);
 				}
@@ -366,17 +381,13 @@ bool APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 				using namespace DdrawWrapper;
 
 				// Load ddraw procs
-				HMODULE dll = Load(nullptr, Config.WrapperName.c_str());
-				if (dll)
-				{
-					Utils::AddHandleToVector(dll, dtypename[dtype.ddraw]);
-				}
+				char *dllname = dtypename[dtype.ddraw];
+				HMODULE dll = LoadHookedDll(dllname, Load);
 
 				// Hook ddraw.dll APIs
 				Logging::Log() << "Hooking ddraw.dll APIs...";
 				if (!Config.Dd7to9)
 				{
-					char *dllname = dtypename[dtype.ddraw];
 					VISIT_DOCUMENTED_DDRAW_PROCS(HOOK_WRAPPED_PROC);
 				}
 				else
@@ -440,11 +451,8 @@ bool APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 			if (Config.RealWrapperMode != dtype.d3d8)
 			{
 				// Load d3d8 procs
-				HMODULE dll = Load(nullptr, Config.WrapperName.c_str());
-				if (dll)
-				{
-					Utils::AddHandleToVector(dll, dtypename[dtype.d3d8]);
-				}
+				char *dllname = dtypename[dtype.d3d8];
+				HMODULE dll = LoadHookedDll(dllname, Load);
 
 				// Hook d3d8.dll -> D3d8to9
 				Logging::Log() << "Hooking d3d8.dll APIs...";
@@ -467,17 +475,13 @@ bool APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 			if (Config.RealWrapperMode != dtype.d3d9)
 			{
 				// Load d3d9 procs
-				HMODULE dll = Load(nullptr, Config.WrapperName.c_str());
-				if (dll)
-				{
-					Utils::AddHandleToVector(dll, dtypename[dtype.d3d9]);
-				}
+				char *dllname = dtypename[dtype.d3d9];
+				HMODULE dll = LoadHookedDll(dllname, Load);
 
 				// Hook d3d9.dll -> D3d9Wrapper
 				if (Config.isD3d9WrapperEnabled)
 				{
 					Logging::Log() << "Hooking d3d9.dll APIs...";
-					char *dllname = dtypename[dtype.d3d9];
 					HOOK_WRAPPED_PROC(Direct3DCreate9, unused);
 					HOOK_WRAPPED_PROC(Direct3DCreate9Ex, unused);
 				}
