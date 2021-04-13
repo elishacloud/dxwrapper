@@ -816,25 +816,18 @@ HWND dd_CreateWindowEx(DWORD dwExStyle, T lpClassName, T lpWindowName, DWORD dwS
 	if ((dwStyle & WS_POPUP) && (!hWndParent || ((DWORD)hWndParent & 0xFFFFFFF0) == 0xFFFFFFF0))
 	{
 		DWORD dwNewStyle = dwStyle;
-		int NewnHeight = nHeight;
 
 		// Remove popup style
 		dwNewStyle = dwStyle & ~(WS_POPUP | WS_CLIPSIBLINGS);
 
-		// Add extra room for the caption
-		if (nHeight && !((nHeight >> 16) & 0xFFFF))
-		{
-			NewnHeight += ((dwStyle & WS_BORDER) ? 0 : GetSystemMetrics(SM_CYBORDER)) +
-				((dwStyle & WS_CAPTION) ? 0 : GetSystemMetrics(SM_CYCAPTION));
-		}
+		HWND hwnd = dd_CreateWindowEx_out(dwExStyle, lpClassName, lpWindowName, dwNewStyle, X, Y, nWidth, nHeight, hWndParent, hMenu, hInstance, lpParam);
 
-		HWND hwnd = dd_CreateWindowEx_out(dwExStyle, lpClassName, lpWindowName, dwNewStyle, X, Y, nWidth, NewnHeight, hWndParent, hMenu, hInstance, lpParam);
-
-		if (IsWindow(hwnd))
+		if (hwnd)
 		{
-			LOG_LIMIT(100, __FUNCTION__ << " Removed WS_POPUP window style!");
+			LOG_LIMIT(100, __FUNCTION__ << " Removed WS_POPUP window style! " << hwnd);
 
 			SetWindowLong(hwnd, GWL_STYLE, dwNewStyle);
+			SetWindowLong(hwnd, GWL_STYLE, dwStyle);
 
 			return hwnd;
 		}
