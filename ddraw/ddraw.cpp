@@ -432,22 +432,17 @@ HRESULT DirectDrawEnumerateHandler(LPVOID lpCallback, LPVOID lpContext, DWORD dw
 	}
 
 	D3DADAPTER_IDENTIFIER9 Identifier = { NULL };
-	int AdapterCount = (int)d3d9Object->GetAdapterCount();
-	bool UseDefaultAdapter = false;
-	if (!AdapterCount)
-	{
-		AdapterCount = 1;
-		UseDefaultAdapter = true;
-	}
+	int AdapterCount = (!dwFlags) ? 0 : (int)d3d9Object->GetAdapterCount();
+
 	GUID* lpGUID;
 	LPSTR lpDesc, lpName;
 	wchar_t lpwName[32] = { '\0' };
 	wchar_t lpwDesc[128] = { '\0' };
 	HMONITOR hm = nullptr;
 	HRESULT hr = DD_OK;
-	for (int x = 0; x < AdapterCount; x++)
+	for (int x = -1; x < AdapterCount; x++)
 	{
-		if (UseDefaultAdapter)
+		if (x == -1)
 		{
 			lpGUID = nullptr;
 			lpDesc = "Primary Display Driver";
