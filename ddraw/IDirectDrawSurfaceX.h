@@ -90,10 +90,6 @@ private:
 	bool ClipperFirstRun = true;
 	bool DoCopyRect = false;
 
-	// Display resolution
-	DWORD displayWidth = 0;								// Width used to override the default application set width
-	DWORD displayHeight = 0;							// Height used to override the default application set height
-
 	// Direct3D9 vars
 	LPDIRECT3DDEVICE9 *d3d9Device = nullptr;			// Direct3D9 Device
 	LPDIRECT3DSURFACE9 surface3D = nullptr;				// Surface used for Direct3D
@@ -241,8 +237,8 @@ public:
 
 		InitSurface(DirectXVersion);
 	}
-	m_IDirectDrawSurfaceX(LPDIRECT3DDEVICE9 *lplpDevice, m_IDirectDrawX *Interface, DWORD DirectXVersion, LPDDSURFACEDESC2 lpDDSurfaceDesc2, DWORD Width, DWORD Height) :
-		d3d9Device(lplpDevice), ddrawParent(Interface), displayWidth(Width), displayHeight(Height)
+	m_IDirectDrawSurfaceX(LPDIRECT3DDEVICE9 *lplpDevice, m_IDirectDrawX *Interface, DWORD DirectXVersion, LPDDSURFACEDESC2 lpDDSurfaceDesc2) :
+		d3d9Device(lplpDevice), ddrawParent(Interface)
 	{
 		ProxyDirectXVersion = 9;
 

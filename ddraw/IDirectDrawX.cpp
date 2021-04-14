@@ -578,16 +578,10 @@ HRESULT m_IDirectDrawX::CreateSurface2(LPDDSURFACEDESC2 lpDDSurfaceDesc2, LPDIRE
 		// Setup d3d9 device
 		if (!d3d9Device)
 		{
-			if ((!displayWidth || !displayHeight) && (lpDDSurfaceDesc2->dwFlags & DDSD_WIDTH) && (lpDDSurfaceDesc2->dwFlags & DDSD_HEIGHT))
-			{
-				displayWidth = lpDDSurfaceDesc2->dwWidth;
-				displayHeight = lpDDSurfaceDesc2->dwHeight;
-			}
-
 			CreateD3D9Device();
 		}
 
-		m_IDirectDrawSurfaceX *p_IDirectDrawSurfaceX = new m_IDirectDrawSurfaceX(&d3d9Device, this, DirectXVersion, lpDDSurfaceDesc2, displayWidth, displayHeight);
+		m_IDirectDrawSurfaceX *p_IDirectDrawSurfaceX = new m_IDirectDrawSurfaceX(&d3d9Device, this, DirectXVersion, lpDDSurfaceDesc2);
 
 		*lplpDDSurface = (LPDIRECTDRAWSURFACE7)p_IDirectDrawSurfaceX->GetWrapperInterfaceX(DirectXVersion);
 
@@ -650,7 +644,7 @@ HRESULT m_IDirectDrawX::DuplicateSurface(LPDIRECTDRAWSURFACE7 lpDDSurface, LPDIR
 		lpDDSurfaceX->GetSurfaceDesc2(&Desc2);
 		Desc2.ddsCaps.dwCaps &= ~DDSCAPS_PRIMARYSURFACE;		// Remove Primary surface flag
 
-		m_IDirectDrawSurfaceX *p_IDirectDrawSurfaceX = new m_IDirectDrawSurfaceX(&d3d9Device, this, DirectXVersion, &Desc2, displayWidth, displayHeight);
+		m_IDirectDrawSurfaceX *p_IDirectDrawSurfaceX = new m_IDirectDrawSurfaceX(&d3d9Device, this, DirectXVersion, &Desc2);
 
 		*lplpDupDDSurface = (LPDIRECTDRAWSURFACE7)p_IDirectDrawSurfaceX->GetWrapperInterfaceX(DirectXVersion);
 
@@ -2285,7 +2279,7 @@ bool m_IDirectDrawX::IsExclusiveMode()
 	return ExclusiveMode;
 }
 
-void m_IDirectDrawX::GetResolution(DWORD &Width, DWORD &Height, DWORD &RefreshRate, DWORD &BPP)
+void m_IDirectDrawX::GetFullDisplay(DWORD &Width, DWORD &Height, DWORD &RefreshRate, DWORD &BPP)
 {
 	// Init settings
 	Width = 0;
@@ -2349,8 +2343,8 @@ void m_IDirectDrawX::GetResolution(DWORD &Width, DWORD &Height, DWORD &RefreshRa
 
 void m_IDirectDrawX::GetDisplay(DWORD &Width, DWORD &Height)
 {
-	Width = displayWidth;
-	Height = displayHeight;
+	Width = presParams.BackBufferWidth;
+	Height = presParams.BackBufferHeight;
 }
 
 void m_IDirectDrawX::SetD3DDevice(m_IDirect3DDeviceX *D3DDevice)
@@ -2458,7 +2452,7 @@ HRESULT m_IDirectDrawX::CreateD3D9Device()
 				BackBufferWidth = Rect.right - Rect.left;
 				BackBufferHeight = Rect.bottom - Rect.top;
 			}
-			else
+			if (!BackBufferWidth || !BackBufferHeight)
 			{
 				Utils::GetScreenSize(hWnd, BackBufferWidth, BackBufferHeight);
 			}

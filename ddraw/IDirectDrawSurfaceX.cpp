@@ -2993,6 +2993,8 @@ HRESULT m_IDirectDrawSurfaceX::CreateD3d9Surface()
 	}
 
 	// Get width and height
+	DWORD displayWidth, displayHeight;
+	ddrawParent->GetDisplay(displayWidth, displayHeight);
 	bool displayflag = (surfaceDesc2.dwWidth < displayWidth) && (surfaceDesc2.dwHeight < displayHeight);
 	DWORD BackBufferWidth = (displayflag) ? displayWidth : surfaceDesc2.dwWidth;
 	DWORD BackBufferHeight = (displayflag) ? displayHeight : surfaceDesc2.dwHeight;
@@ -3246,8 +3248,7 @@ void m_IDirectDrawSurfaceX::UpdateSurfaceDesc()
 
 		// Get resolution
 		DWORD Width, Height, RefreshRate, BPP;
-		ddrawParent->GetResolution(Width, Height, RefreshRate, BPP);
-		ddrawParent->GetDisplay(displayWidth, displayHeight);
+		ddrawParent->GetFullDisplay(Width, Height, RefreshRate, BPP);
 
 		// Set Height and Width
 		if (Width && Height &&
@@ -3944,7 +3945,7 @@ void m_IDirectDrawSurfaceX::InitSurfaceDesc(DWORD DirectXVersion)
 				ComplexRoot = true;
 			}
 
-			BackBufferInterface = std::make_unique<m_IDirectDrawSurfaceX>(d3d9Device, ddrawParent, DirectXVersion, &Desc2, displayWidth, displayHeight);
+			BackBufferInterface = std::make_unique<m_IDirectDrawSurfaceX>(d3d9Device, ddrawParent, DirectXVersion, &Desc2);
 
 			m_IDirectDrawSurfaceX *attachedSurface = BackBufferInterface.get();
 
@@ -3954,7 +3955,7 @@ void m_IDirectDrawSurfaceX::InitSurfaceDesc(DWORD DirectXVersion)
 		}
 		else
 		{
-			m_IDirectDrawSurfaceX *attachedSurface = new m_IDirectDrawSurfaceX(d3d9Device, ddrawParent, DirectXVersion, &Desc2, displayWidth, displayHeight);
+			m_IDirectDrawSurfaceX *attachedSurface = new m_IDirectDrawSurfaceX(d3d9Device, ddrawParent, DirectXVersion, &Desc2);
 
 			AddAttachedSurfaceToMap(attachedSurface);
 		}
