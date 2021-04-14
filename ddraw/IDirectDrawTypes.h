@@ -2,6 +2,13 @@
 
 #include <ddraw.h>
 
+#define D3DCOLOR_R5G6B5_BLUE(w) \
+	(BYTE)((w)&0x1f)*8
+#define D3DCOLOR_R5G6B5_GREEN(w) \
+	(BYTE)((w>>5)&0x3f)*4
+#define D3DCOLOR_R5G6B5_RED(w) \
+	(BYTE)((w>>11)&0x1f)*8
+
 static constexpr DWORD FourCCTypes[]
 {
 	//0x026CFB68, // MAKEFOURCC('N', 'V', '1', '2')

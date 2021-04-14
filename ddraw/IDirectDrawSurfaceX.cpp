@@ -4178,6 +4178,32 @@ HRESULT m_IDirectDrawSurfaceX::ColorFill(RECT* pRect, D3DCOLOR dwFillColor)
 	return hr;
 }
 
+void vmemcpy(void* _Dst, void const* _Src, size_t _Width, D3DFORMAT SrcFormat, D3DFORMAT DestFormat)
+{
+	// Error checking
+	if (!_Dst || !_Src || !_Width)
+	{
+		return;
+	}
+	if (SrcFormat == D3DFMT_R5G6B5 && (DestFormat == D3DFMT_A8R8G8B8 || DestFormat == D3DFMT_X8R8G8B8))
+	{
+		WORD *SrcAddr = (WORD*)_Src;
+		BYTE *DstAddr = (BYTE*)_Dst;
+		for (UINT x = 0; x < _Width; x++)
+		{
+			DstAddr[0] = D3DCOLOR_R5G6B5_BLUE(*SrcAddr);
+			DstAddr[1] = D3DCOLOR_R5G6B5_GREEN(*SrcAddr);
+			DstAddr[2] = D3DCOLOR_R5G6B5_RED(*SrcAddr);
+			SrcAddr += 1;
+			DstAddr += 4;
+		}
+	}
+	else
+	{
+		LOG_LIMIT(100, __FUNCTION__ << " Error: not supported for specified source and destination formats! " << SrcFormat << "-->" << DestFormat);
+	}
+}
+
 // Copy surface
 HRESULT m_IDirectDrawSurfaceX::CopySurface(m_IDirectDrawSurfaceX* pSourceSurface, RECT* pSourceRect, RECT* pDestRect, D3DTEXTUREFILTERTYPE Filter, DDCOLORKEY ColorKey, DWORD dwFlags)
 {
@@ -4216,12 +4242,17 @@ HRESULT m_IDirectDrawSurfaceX::CopySurface(m_IDirectDrawSurfaceX* pSourceSurface
 		}
 
 		// Check source and destination format
-		if (!(SrcFormat == DestFormat ||
+		bool FormatMismatch = false;
+		if (SrcFormat == D3DFMT_R5G6B5 && (DestFormat == D3DFMT_A8R8G8B8 || DestFormat == D3DFMT_X8R8G8B8))
+		{
+			FormatMismatch = true;
+		}
+		else if (!(SrcFormat == DestFormat ||
 			((SrcFormat == D3DFMT_A1R5G5B5 || SrcFormat == D3DFMT_X1R5G5B5) && (DestFormat == D3DFMT_A1R5G5B5 || DestFormat == D3DFMT_X1R5G5B5)) ||
 			((SrcFormat == D3DFMT_A8R8G8B8 || SrcFormat == D3DFMT_X8R8G8B8) && (DestFormat == D3DFMT_A8R8G8B8 || DestFormat == D3DFMT_X8R8G8B8)) ||
 			((SrcFormat == D3DFMT_A8B8G8R8 || SrcFormat == D3DFMT_X8B8G8R8) && (DestFormat == D3DFMT_A8B8G8R8 || DestFormat == D3DFMT_X8B8G8R8))))
 		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error: not supported for different source and destination formats! " << SrcFormat << "-->" << DestFormat);
+			LOG_LIMIT(100, __FUNCTION__ << " Error: not supported for specified source and destination formats! " << SrcFormat << "-->" << DestFormat);
 			hr = DDERR_GENERIC;
 			break;
 		}
@@ -4251,6 +4282,7 @@ HRESULT m_IDirectDrawSurfaceX::CopySurface(m_IDirectDrawSurfaceX* pSourceSurface
 		bool IsColorKey = ((dwFlags & DDBLT_KEYDEST) != 0);
 		bool IsMirrorLeftRight = ((dwFlags & DDBLTFX_MIRRORLEFTRIGHT) != 0);
 		bool IsMirrorUpDown = ((dwFlags & DDBLTFX_MIRRORUPDOWN) != 0);
+		bool UseQuickCopy = (!IsStretchRect && !IsColorKey && !IsMirrorLeftRight);
 
 		// Check and copy rect and do clipping
 		if (!pSourceSurface->CheckCoordinates(&SrcRect, pSourceRect) || !CheckCoordinates(&DestRect, pDestRect))
@@ -4304,8 +4336,11 @@ HRESULT m_IDirectDrawSurfaceX::CopySurface(m_IDirectDrawSurfaceX* pSourceSurface
 			}
 			SrcLockRect.pBits = &surfaceArray[0];
 			SrcLockRect.Pitch = DestPitch;
-			SetUnlock(true);
-			UnlockSrc = false;
+			if (UnlockSrc)
+			{
+				pSourceSurface->SetUnlock(true);
+				UnlockSrc = false;
+			}
 		}
 
 		// Check if destination surface is not locked then lock it
@@ -4330,9 +4365,18 @@ HRESULT m_IDirectDrawSurfaceX::CopySurface(m_IDirectDrawSurfaceX* pSourceSurface
 		}
 
 		// Copy memory (simple)
-		if (!IsStretchRect && !IsColorKey & !IsMirrorLeftRight)
+		if (UseQuickCopy)
 		{
-			if (SrcLockRect.Pitch == DestLockRect.Pitch && (LONG)ComputePitch(DestRectWidth, DestBitCount) == DestPitch)
+			if (FormatMismatch)
+			{
+				for (LONG y = 0; y < DestRectHeight; y++)
+				{
+					vmemcpy(DestBuffer, SrcBuffer, DestRectWidth, SrcFormat, DestFormat);
+					SrcBuffer += SrcLockRect.Pitch;
+					DestBuffer += DestPitch;
+				}
+			}
+			else if (SrcLockRect.Pitch == DestLockRect.Pitch && (LONG)ComputePitch(DestRectWidth, DestBitCount) == DestPitch)
 			{
 				memcpy(DestBuffer, SrcBuffer, DestRectHeight * DestLockRect.Pitch);
 			}
@@ -4357,6 +4401,9 @@ HRESULT m_IDirectDrawSurfaceX::CopySurface(m_IDirectDrawSurfaceX* pSourceSurface
 		DWORD ColorKeyLow = ColorKey.dwColorSpaceLowValue & ByteMask;
 		DWORD ColorKeyHigh = ColorKey.dwColorSpaceHighValue & ByteMask;
 
+		// Source byte count
+		DWORD SrcByteCount = (FormatMismatch) ? GetBitCount(SrcFormat) / 8 : ByteCount;
+
 		// Copy memory (complex)
 		for (LONG y = 0; y < DestRectHeight; y++)
 		{
@@ -4364,15 +4411,25 @@ HRESULT m_IDirectDrawSurfaceX::CopySurface(m_IDirectDrawSurfaceX* pSourceSurface
 			for (LONG x = 0; x < DestRectWidth; x++)
 			{
 				DWORD r = (IsStretchRect) ? (DWORD)((float)x * WidthRatio) : x;
-				BYTE *NewPixel = (IsMirrorLeftRight) ? SrcBuffer + ((SrcRectWidth - r - 1) * ByteCount) : SrcBuffer + (r * ByteCount);
+				BYTE *NewPixel = (IsMirrorLeftRight) ? SrcBuffer + ((SrcRectWidth - r - 1) * SrcByteCount) : SrcBuffer + (r * SrcByteCount);
 				DWORD PixelColor = (*(DWORD*)NewPixel) & ByteMask;
 
 				if (!IsColorKey || PixelColor < ColorKeyLow || PixelColor > ColorKeyHigh)
 				{
-					for (DWORD i = 0; i < ByteCount; i++)
+					if (FormatMismatch && SrcFormat == D3DFMT_R5G6B5)
 					{
-						*LoopBuffer = NewPixel[i];
-						LoopBuffer++;
+						LoopBuffer[0] = D3DCOLOR_R5G6B5_BLUE(*(WORD*)NewPixel);
+						LoopBuffer[1] = D3DCOLOR_R5G6B5_GREEN(*(WORD*)NewPixel);
+						LoopBuffer[2] = D3DCOLOR_R5G6B5_RED(*(WORD*)NewPixel);
+						LoopBuffer += ByteCount;
+					}
+					else
+					{
+						for (DWORD i = 0; i < ByteCount; i++)
+						{
+							*LoopBuffer = NewPixel[i];
+							LoopBuffer++;
+						}
 					}
 				}
 				else
