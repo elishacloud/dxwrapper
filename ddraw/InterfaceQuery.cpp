@@ -93,7 +93,7 @@ REFIID DdrawWrapper::ConvertREFIID(REFIID riid)
 
 HRESULT DdrawWrapper::ProxyQueryInterface(LPVOID ProxyInterface, REFIID riid, LPVOID * ppvObj, REFIID WrapperID)
 {
-	Logging::LogDebug() << "Query for " << riid << " from " << WrapperID;
+	Logging::LogDebug() << __FUNCTION__ << " Query for " << riid << " from " << WrapperID;
 
 	if (!ppvObj)
 	{
@@ -133,7 +133,7 @@ HRESULT DdrawWrapper::ProxyQueryInterface(LPVOID ProxyInterface, REFIID riid, LP
 			return DD_OK;
 		}
 
-		LOG_LIMIT(100, __FUNCTION__ << "Query failed for " << riid << " Error: " << (DDERR)hr);
+		LOG_LIMIT(100, __FUNCTION__ << " Query failed for " << riid << " Error: " << (DDERR)hr);
 	}
 
 	return hr;
@@ -148,22 +148,27 @@ void WINAPI DdrawWrapper::genericQueryInterface(REFIID riid, LPVOID *ppvObj)
 
 	if (!*ppvObj)
 	{
-		if (riid == IID_IDirectDrawClipper)
+		if (riid == IID_IDirectDrawColorControl)
+		{
+			*ppvObj = new m_IDirectDrawColorControl((IDirectDrawColorControl*)nullptr);
+		}
+		else if (riid == IID_IDirectDrawGammaControl)
+		{
+			*ppvObj = new m_IDirectDrawGammaControl((IDirectDrawGammaControl*)nullptr);
+		}
+		else if (riid == IID_IDirectDrawClipper)
 		{
 			*ppvObj = new m_IDirectDrawClipper(nullptr);
-			return;
 		}
-		if (riid == IID_IClassFactory)
+		else if (riid == IID_IClassFactory)
 		{
 			*ppvObj = new m_IClassFactory(nullptr, genericQueryInterface);
-			return;
 		}
-		if (riid == IID_IDirectDrawFactory)
+		else if (riid == IID_IDirectDrawFactory)
 		{
 			*ppvObj = new m_IDirectDrawFactory(nullptr);
-			return;
 		}
-		if (Config.Dd7to9 &&
+		else if (Config.Dd7to9 &&
 			(riid == IID_IDirectDraw ||
 			riid == IID_IDirectDraw2 ||
 			riid == IID_IDirectDraw3 ||
@@ -171,7 +176,11 @@ void WINAPI DdrawWrapper::genericQueryInterface(REFIID riid, LPVOID *ppvObj)
 			riid == IID_IDirectDraw7))
 		{
 			dd_DirectDrawCreateEx(nullptr, ppvObj, riid, nullptr);
-			return;
+		}
+
+		if (*ppvObj && !Config.Dd7to9)
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Warning: Emulating empty class: " << riid);
 		}
 
 		return;
