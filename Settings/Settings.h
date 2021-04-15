@@ -50,6 +50,8 @@
 	visit(EnableVSync) \
 	visit(EnableWindowMode) \
 	visit(ExcludeProcess) \
+	visit(ForceMixedVertexProcessing) \
+	visit(ForceSystemMemVertexCache) \
 	visit(FilterNonActiveInput) \
 	visit(FixSpeakerConfigType) \
 	visit(ForceExclusiveMode) \
@@ -205,6 +207,8 @@ struct CONFIG
 	bool EnableDsoundWrapper;			// Enables the dsound wrapper
 	bool EnableWindowMode;				// Enables WndMode for d3d9 wrapper
 	bool EnableVSync;					// Enables VSync for d3d9 wrapper
+	bool ForceMixedVertexProcessing;	// Forces Mixed mode for vertex processing in d3d9
+	bool ForceSystemMemVertexCache;		// Forces System Memory caching for vertexes in d3d9
 	bool FullScreen;					// Sets the main window to fullscreen
 	bool FullscreenWindowMode;			// Enables fullscreen windowed mode, requires EnableWindowMode
 	bool ForceTermination;				// Terminates application when main window closes

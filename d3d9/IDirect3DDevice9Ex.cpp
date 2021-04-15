@@ -17,6 +17,7 @@
 #include "d3d9.h"
 #include "d3dx9.h"
 #include "Utils\Utils.h"
+#include <intrin.h>
 
 HRESULT m_IDirect3DDevice9Ex::QueryInterface(REFIID riid, void** ppvObj)
 {
@@ -293,6 +294,12 @@ HRESULT m_IDirect3DDevice9Ex::CreateTexture(THIS_ UINT Width, UINT Height, UINT 
 HRESULT m_IDirect3DDevice9Ex::CreateVertexBuffer(THIS_ UINT Length, DWORD Usage, DWORD FVF, D3DPOOL Pool, IDirect3DVertexBuffer9** ppVertexBuffer, HANDLE* pSharedHandle)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
+
+	if (Config.ForceSystemMemVertexCache)
+	{
+		Pool = D3DPOOL_SYSTEMMEM;
+		Usage = D3DUSAGE_DYNAMIC | D3DUSAGE_WRITEONLY;
+	}
 
 	HRESULT hr = ProxyInterface->CreateVertexBuffer(Length, Usage, FVF, Pool, ppVertexBuffer, pSharedHandle);
 
@@ -1719,6 +1726,24 @@ HRESULT m_IDirect3DDevice9Ex::SetDialogBoxMode(THIS_ BOOL bEnableDialogs)
 HRESULT m_IDirect3DDevice9Ex::GetSwapChain(THIS_ UINT iSwapChain, IDirect3DSwapChain9** ppSwapChain)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
+
+	// Add 16 bytes for Steam Overlay Fix
+	__nop();
+	__nop();
+	__nop();
+	__nop();
+	__nop();
+	__nop();
+	__nop();
+	__nop();
+	__nop();
+	__nop();
+	__nop();
+	__nop();
+	__nop();
+	__nop();
+	__nop();
+	__nop();
 
 	HRESULT hr = ProxyInterface->GetSwapChain(iSwapChain, ppSwapChain);
 

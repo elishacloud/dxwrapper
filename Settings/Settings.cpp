@@ -586,7 +586,7 @@ void CONFIG::Init()
 	DDrawCompat = (DDrawCompat || DDrawCompat20 || DDrawCompat21 || DDrawCompatExperimental);
 	isDdrawWrapperEnabled = (EnableDdrawWrapper || ConvertToDirectDraw7 || ConvertToDirect3D7 || DdrawResolutionHack);
 	EnableWindowMode = (FullscreenWindowMode) ? true : EnableWindowMode;
-	isD3d9WrapperEnabled = (AnisotropicFiltering || AntiAliasing || CacheClipPlane || EnableVSync || ForceVsyncMode || EnableWindowMode);
+	isD3d9WrapperEnabled = (AnisotropicFiltering || AntiAliasing || CacheClipPlane || EnableVSync || ForceMixedVertexProcessing || ForceSystemMemVertexCache || ForceVsyncMode || EnableWindowMode);
 
 	// Set ddraw color bit mode
 	DdrawOverrideBitMode = (DdrawOverrideBitMode) ? DdrawOverrideBitMode : (Force32bitColor) ? 32 : (Force16bitColor) ? 16 : 0;

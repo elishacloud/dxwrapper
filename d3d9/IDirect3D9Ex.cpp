@@ -174,6 +174,8 @@ HRESULT m_IDirect3D9Ex::CreateDevice(UINT Adapter, D3DDEVTYPE DeviceType, HWND h
 		return D3DERR_INVALIDCALL;
 	}
 
+	BehaviorFlags = UpdateBehaviorFlags(BehaviorFlags);
+
 	// Create new d3d9 device
 	HRESULT hr = D3DERR_INVALIDCALL;
 
@@ -271,6 +273,8 @@ HRESULT m_IDirect3D9Ex::CreateDeviceEx(THIS_ UINT Adapter, D3DDEVTYPE DeviceType
 		return D3DERR_INVALIDCALL;
 	}
 
+	BehaviorFlags = UpdateBehaviorFlags(BehaviorFlags);
+
 	// Create new d3d9 device
 	HRESULT hr = D3DERR_INVALIDCALL;
 
@@ -343,6 +347,31 @@ HRESULT m_IDirect3D9Ex::GetAdapterLUID(THIS_ UINT Adapter, LUID * pLUID)
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
 	return ProxyInterface->GetAdapterLUID(Adapter, pLUID);
+}
+
+DWORD UpdateBehaviorFlags(DWORD BehaviorFlags)
+{
+	if (Config.ForceMixedVertexProcessing)
+	{
+		BehaviorFlags &= ~(D3DCREATE_PUREDEVICE | D3DCREATE_HARDWARE_VERTEXPROCESSING | D3DCREATE_SOFTWARE_VERTEXPROCESSING);
+		BehaviorFlags |= D3DCREATE_MIXED_VERTEXPROCESSING;
+	}
+	else if (BehaviorFlags & D3DCREATE_SOFTWARE_VERTEXPROCESSING)
+	{
+		BehaviorFlags &= ~(D3DCREATE_PUREDEVICE | D3DCREATE_HARDWARE_VERTEXPROCESSING | D3DCREATE_MIXED_VERTEXPROCESSING);
+		BehaviorFlags |= D3DCREATE_SOFTWARE_VERTEXPROCESSING;
+	}
+	else if (BehaviorFlags & D3DCREATE_MIXED_VERTEXPROCESSING)
+	{
+		BehaviorFlags &= ~(D3DCREATE_PUREDEVICE | D3DCREATE_HARDWARE_VERTEXPROCESSING | D3DCREATE_SOFTWARE_VERTEXPROCESSING);
+		BehaviorFlags |= D3DCREATE_MIXED_VERTEXPROCESSING;
+	}
+	else if (BehaviorFlags & D3DCREATE_HARDWARE_VERTEXPROCESSING)
+	{
+		BehaviorFlags &= ~(D3DCREATE_MIXED_VERTEXPROCESSING | D3DCREATE_SOFTWARE_VERTEXPROCESSING);
+		BehaviorFlags |= D3DCREATE_HARDWARE_VERTEXPROCESSING;
+	}
+	return BehaviorFlags;
 }
 
 // Set Presentation Parameters
