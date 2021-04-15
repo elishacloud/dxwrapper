@@ -169,14 +169,15 @@ void Utils::SetProcessAffinity()
 	HANDLE hCurrentProcess = GetCurrentProcess();
 	if (GetProcessAffinityMask(hCurrentProcess, &ProcessAffinityMask, &SystemAffinityMask))
 	{
-		DWORD_PTR AffinityMask = 1;
-		while (AffinityMask && (AffinityMask & ProcessAffinityMask) == 0)
+		DWORD_PTR AffinityLow = 1;
+		while (AffinityLow && (AffinityLow & SystemAffinityMask) == 0)
 		{
-			AffinityMask <<= 1;
+			AffinityLow <<= 1;
 		}
-		if (AffinityMask)
+		if (AffinityLow)
 		{
-			SetProcessAffinityMask(hCurrentProcess, ((AffinityMask << (Config.SingleProcAffinity - 1)) & ProcessAffinityMask) ? (AffinityMask << (Config.SingleProcAffinity - 1)) : AffinityMask);
+			DWORD_PTR nMask = ((AffinityLow << (Config.SingleProcAffinity - 1)) & SystemAffinityMask) ? (AffinityLow << (Config.SingleProcAffinity - 1)) : AffinityLow;
+			SetProcessAffinityMask(hCurrentProcess, nMask);
 		}
 	}
 	CloseHandle(hCurrentProcess);
