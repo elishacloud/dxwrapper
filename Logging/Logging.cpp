@@ -24,10 +24,10 @@
 #include <d3d.h>
 #include <d3dhal.h>
 #include <dinput.h>
+#include <MMSystem.h>
+#include <dsound.h>
 #include "ddraw\ddraw.h"
 #include "Logging.h"
-
-typedef enum _DIERR { } DIERR;
 
 std::ofstream LOG;
 
@@ -1069,6 +1069,11 @@ std::ostream& operator<<(std::ostream& os, const DDERR& ErrCode)
 	return os << Logging::hex((DWORD)ErrCode);
 }
 
+std::ostream& operator<<(std::ostream& os, const D3DERR& ErrCode)
+{
+	return os << (DDERR)ErrCode;
+}
+
 std::ostream& operator<<(std::ostream& os, const DIERR& ErrCode)
 {
 #define VISIT_DIERR_CODES(visit) \
@@ -1128,6 +1133,48 @@ std::ostream& operator<<(std::ostream& os, const DIERR& ErrCode)
 	}
 
 	VISIT_DIERR_CODES(VISIT_DIERR_RETURN);
+
+	return os << Logging::hex((DWORD)ErrCode);
+}
+
+std::ostream& operator<<(std::ostream& os, const DSERR& ErrCode)
+{
+#define VISIT_DSERR_CODES(visit) \
+	visit(DS_OK) \
+	visit(DS_NO_VIRTUALIZATION) \
+	visit(DSERR_ALLOCATED) \
+	visit(DSERR_CONTROLUNAVAIL) \
+	visit(DSERR_INVALIDPARAM) \
+	visit(DSERR_INVALIDCALL) \
+	visit(DSERR_GENERIC) \
+	visit(DSERR_PRIOLEVELNEEDED) \
+	visit(DSERR_OUTOFMEMORY) \
+	visit(DSERR_BADFORMAT) \
+	visit(DSERR_UNSUPPORTED) \
+	visit(DSERR_NODRIVER) \
+	visit(DSERR_ALREADYINITIALIZED) \
+	visit(DSERR_NOAGGREGATION) \
+	visit(DSERR_BUFFERLOST) \
+	visit(DSERR_OTHERAPPHASPRIO) \
+	visit(DSERR_UNINITIALIZED) \
+	visit(DSERR_NOINTERFACE) \
+	visit(DSERR_ACCESSDENIED) \
+	visit(DSERR_BUFFERTOOSMALL) \
+	visit(DSERR_DS8_REQUIRED) \
+	visit(DSERR_SENDLOOP) \
+	visit(DSERR_BADSENDBUFFERGUID) \
+	visit(DSERR_OBJECTNOTFOUND) \
+	visit(DSERR_FXUNAVAILABLE) \
+	visit(E_NOINTERFACE) \
+	visit(E_POINTER)
+
+#define VISIT_DSERR_RETURN(x) \
+	if (ErrCode == x) \
+	{ \
+		return os << #x; \
+	}
+
+	VISIT_DSERR_CODES(VISIT_DSERR_RETURN);
 
 	return os << Logging::hex((DWORD)ErrCode);
 }
