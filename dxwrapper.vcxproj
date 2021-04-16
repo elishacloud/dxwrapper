@@ -282,6 +282,7 @@ cmd /q /c "cd /D ""$(ProjectDir)d3d8\"" &amp;&amp; del build.bat"</Command>
     <ClCompile Include="dinput8\IDirectInputEffect.cpp" />
     <ClCompile Include="dinput8\InterfaceQuery.cpp" />
     <ClCompile Include="dinput\dinput.cpp" />
+    <ClCompile Include="DirectShow\IAMMediaStream.cpp" />
     <ClCompile Include="Disasm\cmdlist.c" />
     <ClCompile Include="Disasm\Disasm.c" />
     <ClCompile Include="Dllmain\Dllmain.cpp" />
@@ -570,6 +571,7 @@ cmd /q /c "cd /D ""$(ProjectDir)d3d8\"" &amp;&amp; del build.bat"</Command>
     <ClInclude Include="dinput8\IDirectInputDevice8W.h" />
     <ClInclude Include="dinput8\IDirectInputEffect.h" />
     <ClInclude Include="dinput\dinputExternal.h" />
+    <ClInclude Include="DirectShow\IAMMediaStream.h" />
     <ClInclude Include="Disasm\disasm.h" />
     <ClInclude Include="Dllmain\Dllmain.h" />
     <ClInclude Include="Dllmain\dxwrapper.h" />

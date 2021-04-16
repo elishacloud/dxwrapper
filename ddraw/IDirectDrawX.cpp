@@ -20,6 +20,7 @@
 #include "ddrawExternal.h"
 #include "Utils\Utils.h"
 #include <..\km\d3dkmthk.h>
+#include "Dllmain\DllMain.h"
 
 constexpr DWORD MaxVidMemory  = 0x32000000;	// 512 MBs
 constexpr DWORD UsedVidMemory = 0x00100000;	// 1 MB
@@ -2027,20 +2028,24 @@ void m_IDirectDrawX::InitDdraw(DWORD DirectXVersion)
 		SetDefaultDisplayMode = (!displayWidth || !displayHeight || !displayRefreshRate);
 		SetResolution = false;
 
+		static bool EnableMouseHook = ((Config.DdrawUseNativeResolution || Config.DdrawOverrideWidth || Config.DdrawOverrideHeight) &&
+			(!Config.EnableWindowMode || (Config.EnableWindowMode && Config.FullscreenWindowMode)));
+
 		// Set mouse hook
-		if (!m_hook)
+		if (!m_hook && EnableMouseHook)
 		{
 			struct WindowsMouseHook
 			{
 				static LRESULT CALLBACK mouseHookProc(int nCode, WPARAM wParam, LPARAM lParam)
 				{
 					POINT p;
-					if (GetCursorPos(&p))
+					if (nCode == HC_ACTION && wParam == WM_MOUSEMOVE)
 					{
-						if (ddrawRefCount && displayModeWidth && displayModeHeight &&
+						if (ddrawRefCount && threadID && ghWriteEvent &&
+							displayModeWidth && displayModeHeight && displayWidth && displayHeight &&
 							displayModeWidth != displayWidth && displayModeHeight != displayHeight &&
-							(!Config.EnableWindowMode || (Config.EnableWindowMode && Config.FullscreenWindowMode)) &&
-							!isWindowed && threadID && ghWriteEvent && IsWindow(MainhWnd) && !IsIconic(MainhWnd))
+							!isWindowed && IsWindow(MainhWnd) && !IsIconic(MainhWnd) &&
+							GetCursorPos(&p))
 						{
 							mousePos.x = min(p.x, (LONG)displayModeWidth - 1);
 							mousePos.y = min(p.y, (LONG)displayModeHeight - 1);
@@ -2056,11 +2061,11 @@ void m_IDirectDrawX::InitDdraw(DWORD DirectXVersion)
 				}
 			};
 
-			m_hook = SetWindowsHookEx(WH_MOUSE_LL, WindowsMouseHook::mouseHookProc, GetModuleHandle(nullptr), 0);
+			m_hook = SetWindowsHookEx(WH_MOUSE_LL, WindowsMouseHook::mouseHookProc, hModule_dll, 0);
 		}
 
 		// Start thread
-		if (!threadID)
+		if (!threadID && EnableMouseHook)
 		{
 			// A thread to bypass Windows preventing hooks from modifying mouse position
 			struct WindowsMouseThread

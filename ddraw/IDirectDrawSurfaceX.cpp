@@ -1859,7 +1859,12 @@ HRESULT m_IDirectDrawSurfaceX::Lock2(LPRECT lpDestRect, LPDDSURFACEDESC2 lpDDSur
 		if (lpDestRect)
 		{
 			RECT lRect = { lpDestRect->left, lpDestRect->top, lpDestRect->right, lpDestRect->bottom };
-			surfaceLockRect.push_back(lRect);
+			surfaceLockRectList.push_back(lRect);
+		}
+		else if (!lpDestRect && !surfaceLockRectList.empty())
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: locking surface with NULL rect when surface is already locked!");
+			return DDERR_INVALIDRECT;
 		}
 
 		// Set surfaceDesc
@@ -2223,32 +2228,32 @@ HRESULT m_IDirectDrawSurfaceX::Unlock(LPRECT lpRect)
 	if (Config.Dd7to9)
 	{
 		// Check rect
-		if (!surfaceLockRect.empty() && !lpRect)
+		if (!lpRect && !surfaceLockRectList.empty())
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Error: Rect cannot be NULL when locked with a specific rect!");
 			return DDERR_INVALIDRECT;
 		}
 
 		// Check stored rect
-		if (lpRect && !surfaceLockRect.empty())
+		if (lpRect && surfaceLockRectList.size() > 1)
 		{
-			auto it = std::find_if(surfaceLockRect.begin(), surfaceLockRect.end(),
+			auto it = std::find_if(surfaceLockRectList.begin(), surfaceLockRectList.end(),
 				[=](auto Rect) -> bool { return (Rect.left == lpRect->left && Rect.top == lpRect->top && Rect.right == lpRect->right && Rect.bottom == lpRect->bottom); });
 
-			if (it == std::end(surfaceLockRect))
+			if (it != std::end(surfaceLockRectList))
 			{
-				LOG_LIMIT(100, __FUNCTION__ << " Error: Rect does not match locked rect: " << lpRect);
-				return DDERR_INVALIDRECT;
-			}
-			else
-			{
-				surfaceLockRect.erase(it);
+				surfaceLockRectList.erase(it);
 
 				// Unlock once all rects have been unlocked
-				if (!surfaceLockRect.empty())
+				if (!surfaceLockRectList.empty())
 				{
 					return DD_OK;
 				}
+			}
+			else
+			{
+				LOG_LIMIT(100, __FUNCTION__ << " Error: Rect does not match locked rect: " << lpRect);
+				return DDERR_INVALIDRECT;
 			}
 		}
 
@@ -3411,7 +3416,7 @@ void m_IDirectDrawSurfaceX::ReleaseD9Surface(bool BackupData)
 	}
 
 	// Clear locked rects
-	surfaceLockRect.clear();
+	surfaceLockRectList.clear();
 
 	// Set flags
 	IsInDC = false;
@@ -3843,7 +3848,7 @@ HRESULT m_IDirectDrawSurfaceX::SetUnlock(BOOL isSkipScene)
 	}
 
 	// Clear vector
-	surfaceLockRect.clear();
+	surfaceLockRectList.clear();
 
 	// Reset locked flag
 	IsLocked = false;

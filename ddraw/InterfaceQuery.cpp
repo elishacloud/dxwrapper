@@ -15,6 +15,7 @@
 */
 
 #include "ddraw.h"
+#include "DirectShow\IAMMediaStream.h"
 #include "IClassFactory\IClassFactory.h"
 
 DWORD DdrawWrapper::GetGUIDVersion(REFIID riid)
@@ -159,6 +160,10 @@ void WINAPI DdrawWrapper::genericQueryInterface(REFIID riid, LPVOID *ppvObj)
 		else if (riid == IID_IDirectDrawClipper)
 		{
 			*ppvObj = new m_IDirectDrawClipper(nullptr);
+		}
+		else if (Config.DirectShowEmulation && (riid == IID_IMediaStream || riid == IID_IAMMediaStream))
+		{
+			*ppvObj = new m_IAMMediaStream(riid);
 		}
 		else if (riid == IID_IClassFactory)
 		{

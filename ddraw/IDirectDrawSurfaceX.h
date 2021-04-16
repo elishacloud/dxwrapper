@@ -67,7 +67,7 @@ private:
 	CRITICAL_SECTION ddscs;								// Critical section for surfaceArray
 	std::vector<byte> surfaceArray;						// Memory used for coping from one surface to the same surface
 	std::vector<byte> surfaceBackup;					// Memory used for backing up the surfaceTexture
-	std::vector<RECT> surfaceLockRect;					// Rects used to lock the surface
+	std::vector<RECT> surfaceLockRectList;					// Rects used to lock the surface
 	EMUSURFACE *emu = nullptr;
 	LONG overlayX = 0;
 	LONG overlayY = 0;
