@@ -2228,7 +2228,7 @@ HRESULT m_IDirectDrawSurfaceX::Unlock(LPRECT lpRect)
 	if (Config.Dd7to9)
 	{
 		// Check rect
-		if (!lpRect && !surfaceLockRectList.empty())
+		if (!lpRect && surfaceLockRectList.size() > 1)
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Error: Rect cannot be NULL when locked with a specific rect!");
 			return DDERR_INVALIDRECT;
