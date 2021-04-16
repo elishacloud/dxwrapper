@@ -5,6 +5,9 @@
 #include "Settings\Settings.h"
 #include "Logging\Logging.h"
 
+DEFINE_GUID(IID_GetRealInterface, 0x254e1ffd, 0x10f9, 0x10c0, 0xc1, 0xb8, 0x21, 0x7d, 0x59, 0xd1, 0xe5, 0xb2);
+DEFINE_GUID(IID_GetInterfaceX, 0x254e1ffd, 0x10f9, 0x10c0, 0xc1, 0xb8, 0x21, 0x7d, 0x59, 0xd1, 0xe5, 0xb4);
+
 typedef void(WINAPI *IQueryInterfaceProc)(REFIID, LPVOID *);
 typedef HRESULT(WINAPI *CoCreateInstanceHandleProc)(REFCLSID rclsid, LPUNKNOWN pUnkOuter, DWORD dwClsContext, REFIID riid, LPVOID *ppv);
 

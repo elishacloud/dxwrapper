@@ -50,6 +50,7 @@ class m_IDirectDrawColorControl;
 class m_IDirectDrawGammaControl;
 
 #include "AddressLookupTable.h"
+#include "IClassFactory\IClassFactory.h"
 #include "Settings\Settings.h"
 #include "Logging\Logging.h"
 
@@ -59,9 +60,6 @@ class m_IDirectDrawGammaControl;
 #define DDSCAPS4_CREATESURFACE  0x0001
 // Indicates surface is a primary surface or a backbuffer of a primary surface
 #define DDSCAPS4_PRIMARYSURFACE 0x0200
-
-DEFINE_GUID(IID_GetRealInterface,    0x254e1ffd, 0x10f9, 0x10c0, 0xc1, 0xb8, 0x21, 0x7d, 0x59, 0xd1, 0xe5, 0xb2);
-DEFINE_GUID(IID_GetInterfaceX,       0x254e1ffd, 0x10f9, 0x10c0, 0xc1, 0xb8, 0x21, 0x7d, 0x59, 0xd1, 0xe5, 0xb4);
 
 // ddraw proc typedefs
 typedef HRESULT(WINAPI *AcquireDDThreadLockProc)();
