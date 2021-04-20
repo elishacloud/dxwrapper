@@ -1630,33 +1630,31 @@ HRESULT m_IDirectDrawX::WaitForVerticalBlank(DWORD dwFlags, HANDLE hEvent)
 	{
 		D3DRASTER_STATUS RasterStatus;
 
-		dwFlags = (dwFlags < 0x8 && (dwFlags & DDWAITVB_BLOCKBEGIN)) ? DDWAITVB_BLOCKBEGIN : dwFlags;
-
 		// Check flags
 		switch (dwFlags)
 		{
 		case DDWAITVB_BLOCKBEGIN:
-			// Use D3DKMT for vertical blank
+		case DDWAITVB_BLOCKEND:
+			// Get vertical blank begin first, then get vertical blank end if requested
+			// Use D3DKMT for vertical blank begin
 			if (InitVSync() && m_pD3DKMTWaitForVerticalBlankEvent(&VBlankEvent) == STATUS_SUCCESS)
 			{
-				return DD_OK;
-			}
-		case DDWAITVB_BLOCKEND:
-			if (d3d9Device && SUCCEEDED(d3d9Device->GetRasterStatus(0, &RasterStatus)))
-			{
-				DWORD ExitSystemTime = GetTickCount() + min((2000 / ((monitorRefreshRate) ? monitorRefreshRate : 60)), 34);
-
 				if (dwFlags == DDWAITVB_BLOCKBEGIN)
 				{
-					// Use raster status for vertical blank (uses high CPU)
-					while (SUCCEEDED(d3d9Device->GetRasterStatus(0, &RasterStatus)) && !RasterStatus.InVBlank && ExitSystemTime > GetTickCount()) {}
-				}
-				else
-				{
-					// Use raster status for vertical blank end (uses high CPU)
-					while (SUCCEEDED(d3d9Device->GetRasterStatus(0, &RasterStatus)) && RasterStatus.InVBlank && ExitSystemTime > GetTickCount()) {}
+					return DD_OK;
 				}
 			}
+			// Use raster status for vertical blank begin (uses high CPU)
+			else if (d3d9Device && SUCCEEDED(d3d9Device->GetRasterStatus(0, &RasterStatus)))
+			{
+				while (SUCCEEDED(d3d9Device->GetRasterStatus(0, &RasterStatus)) && !RasterStatus.InVBlank);
+				if (dwFlags == DDWAITVB_BLOCKBEGIN)
+				{
+					return DD_OK;
+				}
+			}
+			// Use raster status for vertical blank end (uses high CPU)
+			while (SUCCEEDED(d3d9Device->GetRasterStatus(0, &RasterStatus)) && RasterStatus.InVBlank);
 			return DD_OK;
 		case DDWAITVB_BLOCKBEGINEVENT:
 			// Triggers an event when the vertical blank begins. This value is not supported.
