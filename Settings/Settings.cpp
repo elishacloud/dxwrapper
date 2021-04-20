@@ -385,6 +385,9 @@ UINT Settings::GetWrapperMode(std::string *name)
 // Set default values
 void Settings::SetDefaultConfigSettings()
 {
+	// Set value to check if it exists in the ini file
+	Config.EnableD3d9Wrapper = 0xFFFF;
+
 	// Set defaults
 	Config.DisableHighDPIScaling = true;
 	Config.ResetScreenRes = true;
@@ -536,8 +539,8 @@ void CONFIG::Init()
 	}
 
 	// Verify DSoundCtrl options
-	isDsoundWrapperEnabled = (EnableDsoundWrapper || DSoundCtrl);
-	if (isDsoundWrapperEnabled)
+	EnableDsoundWrapper = (EnableDsoundWrapper || DSoundCtrl || DsoundHookSystem32);
+	if (EnableDsoundWrapper)
 	{
 		if (ForceSoftwareMixing && ForceHardwareMixing)
 		{
@@ -575,7 +578,8 @@ void CONFIG::Init()
 	}
 
 	// Enable wrapper settings
-	EnableDinput8Wrapper = (Dinputto8 || EnableDinput8Wrapper);
+	Dinputto8 = (Dinputto8 || Dinput8HookSystem32);
+	EnableDinput8Wrapper = (EnableDinput8Wrapper || Dinput8HookSystem32);
 
 	if (Dd7to9)
 	{
@@ -584,9 +588,11 @@ void CONFIG::Init()
 	}
 
 	DDrawCompat = (DDrawCompat || DDrawCompat20 || DDrawCompat21 || DDrawCompatExperimental);
-	isDdrawWrapperEnabled = (EnableDdrawWrapper || ConvertToDirectDraw7 || ConvertToDirect3D7 || DdrawResolutionHack);
+	EnableDdrawWrapper = (EnableDdrawWrapper || DdrawHookSystem32 || ConvertToDirectDraw7 || ConvertToDirect3D7 || DdrawResolutionHack);
+	D3d8to9 = (D3d8to9 || D3d8HookSystem32);
 	EnableWindowMode = (FullscreenWindowMode) ? true : EnableWindowMode;
-	isD3d9WrapperEnabled = (AnisotropicFiltering || AntiAliasing || CacheClipPlane || EnableVSync || ForceMixedVertexProcessing || ForceSystemMemVertexCache || ForceVsyncMode || EnableWindowMode);
+	EnableD3d9Wrapper = (EnableD3d9Wrapper || D3d9HookSystem32 ||
+		(EnableD3d9Wrapper == 0xFFFF && (AnisotropicFiltering || AntiAliasing || CacheClipPlane || EnableVSync || ForceMixedVertexProcessing || ForceSystemMemVertexCache || ForceVsyncMode || EnableWindowMode)));	// For legacy purposes
 
 	// Set ddraw color bit mode
 	DdrawOverrideBitMode = (DdrawOverrideBitMode) ? DdrawOverrideBitMode : (Force32bitColor) ? 32 : (Force16bitColor) ? 16 : 0;

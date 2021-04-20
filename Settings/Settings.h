@@ -36,6 +36,12 @@
 	visit(DdrawOverrideRefreshRate) \
 	visit(DdrawResolutionHack) \
 	visit(DdrawUseNativeResolution) \
+	visit(DdrawHookSystem32) \
+	visit(D3d8HookSystem32) \
+	visit(D3d9HookSystem32) \
+	visit(DinputHookSystem32) \
+	visit(Dinput8HookSystem32) \
+	visit(DsoundHookSystem32) \
 	visit(DisableGameUX) \
 	visit(DisableHighDPIScaling) \
 	visit(DisableLogging) \
@@ -46,6 +52,7 @@
 	visit(ConvertToDirectDraw7) \
 	visit(ConvertToDirect3D7) \
 	visit(EnableDdrawWrapper) \
+	visit(EnableD3d9Wrapper) \
 	visit(EnableDinput8Wrapper) \
 	visit(EnableDsoundWrapper) \
 	visit(EnableVSync) \
@@ -166,9 +173,6 @@ struct CONFIG
 	void Init();						// Initialize the config setting
 	bool Exiting = false;				// Dxwrapper is being unloaded
 	bool AutoFrameSkip;					// Automatically skips frames to reduce input lag
-	bool isDdrawWrapperEnabled;			// Specifies if DdrawWrapper needs to be enabled
-	bool isD3d9WrapperEnabled;			// Specifies if D3d9Wrapper needs to be enabled
-	bool isDsoundWrapperEnabled;		// Specifies if DsoundWrapper needs to be enabled
 	bool Dd7to9;						// Converts DirectDraw/Direct3D (ddraw.dll) to Direct3D9 (d3d9.dll)
 	bool D3d8to9;						// Converts Direct3D8 (d3d8.dll) to Direct3D9 (d3d9.dll) https://github.com/crosire/d3d8to9
 	bool Dinputto8;						// Converts DirectInput (dinput.dll) to DirectInput8 (dinput8.dll)
@@ -194,6 +198,12 @@ struct CONFIG
 	DWORD DdrawOverrideWidth;			// Force Direct3d9 to use this width when using Dd7to9
 	DWORD DdrawOverrideHeight;			// Force Direct3d9 to use this height when using Dd7to9
 	DWORD DdrawOverrideRefreshRate;		// Force Direct3d9 to use this refresh rate when using Dd7to9
+	bool DdrawHookSystem32;				// Hooks the ddraw.dll file in the Windows System32 folder
+	bool D3d8HookSystem32;				// Hooks the d3d8.dll file in the Windows System32 folder
+	bool D3d9HookSystem32;				// Hooks the d3d9.dll file in the Windows System32 folder
+	bool DinputHookSystem32;			// Hooks the dinput.dll file in the Windows System32 folder
+	bool Dinput8HookSystem32;			// Hooks the dinput8.dll file in the Windows System32 folder
+	bool DsoundHookSystem32;			// Hooks the dsound.dll file in the Windows System32 folder
 	bool DirectShowEmulation;			// Emulates DirectShow APIs
 	bool DisableGameUX;					// Disables the Microsoft Game Explorer which can sometimes cause high CPU in rundll32.exe and hang the game process
 	bool DisableHighDPIScaling;			// Disables display scaling on high DPI settings
@@ -205,6 +215,7 @@ struct CONFIG
 	bool ConvertToDirectDraw7;			// Converts DirectDraw 1-6 to DirectDraw 7
 	bool ConvertToDirect3D7;			// Converts Direct3D 1-6 to Direct3D 7
 	bool EnableDdrawWrapper;			// Enables the ddraw wrapper
+	DWORD EnableD3d9Wrapper;			// Enables the d3d9 wrapper
 	bool EnableDinput8Wrapper;			// Enables the dinput8 wrapper
 	bool EnableDsoundWrapper;			// Enables the dsound wrapper
 	bool EnableWindowMode;				// Enables WndMode for d3d9 wrapper

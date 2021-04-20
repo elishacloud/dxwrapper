@@ -76,11 +76,11 @@ void WINAPI DxWrapperSettings(DXWAPPERSETTINGS *DxSettings)
 
 typedef HMODULE(*LoadProc)(const char *ProxyDll, const char *MyDllName);
 
-HMODULE LoadHookedDll(char *dllname, LoadProc Load)
+HMODULE LoadHookedDll(char *dllname, LoadProc Load, bool HookSystem32)
 {
 	HMODULE dll = Load(nullptr, Config.WrapperName.c_str());
 
-	if (GetProcAddress(GetModuleHandle(dllname), "DxWrapperSettings") == nullptr)
+	if (HookSystem32)
 	{
 		char path[MAX_PATH];
 		GetSystemDirectory(path, MAX_PATH);
@@ -259,13 +259,13 @@ bool APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 		Utils::SetAppCompat();
 
 		// Hook CoCreateInstance
-		if (Config.isDdrawWrapperEnabled || Config.EnableDinput8Wrapper || Config.Dinputto8)
+		if (Config.EnableDdrawWrapper || Config.EnableDinput8Wrapper || Config.Dinputto8)
 		{
 			InterlockedExchangePointer((PVOID*)&p_CoCreateInstance, Hook::HotPatch(GetProcAddress(LoadLibraryA("ole32.dll"), "CoCreateInstance"), "CoCreateInstance", *CoCreateInstanceHandle));
 		}
 
 		// Start dsound.dll module
-		if (Config.isDsoundWrapperEnabled)
+		if (Config.EnableDsoundWrapper)
 		{
 			using namespace dsound;
 			using namespace DsoundWrapper;
@@ -279,7 +279,7 @@ bool APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 			{
 				// Load dsound procs
 				char *dllname = dtypename[dtype.dsound];
-				HMODULE dll = LoadHookedDll(dllname, Load);
+				HMODULE dll = LoadHookedDll(dllname, Load, Config.DsoundHookSystem32);
 
 				// Hook dsound.dll -> DsoundWrapper
 				Logging::Log() << "Hooking dsound.dll APIs...";
@@ -309,7 +309,7 @@ bool APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 			{
 				// Load dinput procs
 				char *dllname = dtypename[dtype.dinput];
-				HMODULE dll = LoadHookedDll(dllname, Load);
+				HMODULE dll = LoadHookedDll(dllname, Load, Config.DinputHookSystem32);
 
 				// Hook dinput.dll APIs
 				Logging::Log() << "Hooking dinput.dll APIs...";
@@ -339,7 +339,7 @@ bool APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 			{
 				// Load dinput8 procs
 				char *dllname = dtypename[dtype.dinput8];
-				HMODULE dll = LoadHookedDll(dllname, Load);
+				HMODULE dll = LoadHookedDll(dllname, Load, Config.Dinput8HookSystem32);
 
 				// Hook dinput8.dll APIs
 				if (Config.EnableDinput8Wrapper)
@@ -366,7 +366,7 @@ bool APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 		}
 
 		// Start ddraw.dll module
-		if (Config.DDrawCompat || Config.isDdrawWrapperEnabled)
+		if (Config.EnableDdrawWrapper || Config.DDrawCompat)
 		{
 			// Initialize ddraw wrapper procs
 			if (Config.RealWrapperMode == dtype.ddraw)
@@ -382,7 +382,7 @@ bool APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 
 				// Load ddraw procs
 				char *dllname = dtypename[dtype.ddraw];
-				HMODULE dll = LoadHookedDll(dllname, Load);
+				HMODULE dll = LoadHookedDll(dllname, Load, Config.DdrawHookSystem32);
 
 				// Hook ddraw.dll APIs
 				Logging::Log() << "Hooking ddraw.dll APIs...";
@@ -423,7 +423,7 @@ bool APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 			}
 
 			// Add DdrawWrapper to the chain
-			if (Config.isDdrawWrapperEnabled)
+			if (Config.EnableDdrawWrapper)
 			{
 				Logging::Log() << "Enabling ddraw wrapper";
 				using namespace ddraw;
@@ -452,7 +452,7 @@ bool APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 			{
 				// Load d3d8 procs
 				char *dllname = dtypename[dtype.d3d8];
-				HMODULE dll = LoadHookedDll(dllname, Load);
+				HMODULE dll = LoadHookedDll(dllname, Load, Config.D3d8HookSystem32);
 
 				// Hook d3d8.dll -> D3d8to9
 				Logging::Log() << "Hooking d3d8.dll APIs...";
@@ -464,7 +464,7 @@ bool APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 		}
 
 		// Start d3d9.dll module
-		if (Config.isD3d9WrapperEnabled || Config.D3d8to9 || Config.Dd7to9)
+		if (Config.EnableD3d9Wrapper || Config.D3d8to9 || Config.Dd7to9)
 		{
 			Logging::Log() << "Enabling d3d9 wrapper";
 
@@ -476,10 +476,10 @@ bool APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 			{
 				// Load d3d9 procs
 				char *dllname = dtypename[dtype.d3d9];
-				HMODULE dll = LoadHookedDll(dllname, Load);
+				HMODULE dll = LoadHookedDll(dllname, Load, Config.D3d9HookSystem32);
 
 				// Hook d3d9.dll -> D3d9Wrapper
-				if (Config.isD3d9WrapperEnabled)
+				if (Config.EnableD3d9Wrapper)
 				{
 					Logging::Log() << "Hooking d3d9.dll APIs...";
 					HOOK_WRAPPED_PROC(Direct3DCreate9, unused);

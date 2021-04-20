@@ -226,7 +226,7 @@ HRESULT WINAPI CoCreateInstanceHandle(REFCLSID rclsid, LPUNKNOWN pUnkOuter, DWOR
 	}
 
 	// IDirectDraw wrapper
-	if (Config.isDdrawWrapperEnabled)
+	if (Config.EnableDdrawWrapper)
 	{
 		// Create DirectDraw interface
 		if (rclsid == CLSID_DirectDraw)
