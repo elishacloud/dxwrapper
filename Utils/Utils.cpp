@@ -109,6 +109,7 @@ namespace Utils
 	WNDPROC OriginalWndProc = nullptr;
 
 	// Function declarations
+	DWORD_PTR GetProcessMask();
 	int WINAPI DisableMaximizedWindowedMode(BOOL mEnable);
 	void InitializeASI(HMODULE hModule);
 	void FindFiles(WIN32_FIND_DATA*);
@@ -162,12 +163,17 @@ void Utils::Shell(const char* fileName)
 	return;
 }
 
-// Sets the proccess to single core affinity
-void Utils::SetProcessAffinity()
+// Get processor mask
+DWORD_PTR Utils::GetProcessMask()
 {
+	static DWORD_PTR nMask = 0;
+	if (nMask)
+	{
+		return nMask;
+	}
+
 	DWORD_PTR ProcessAffinityMask, SystemAffinityMask;
-	HANDLE hCurrentProcess = GetCurrentProcess();
-	if (GetProcessAffinityMask(hCurrentProcess, &ProcessAffinityMask, &SystemAffinityMask))
+	if (GetProcessAffinityMask(GetCurrentProcess(), &ProcessAffinityMask, &SystemAffinityMask))
 	{
 		DWORD_PTR AffinityLow = 1;
 		while (AffinityLow && (AffinityLow & SystemAffinityMask) == 0)
@@ -176,11 +182,19 @@ void Utils::SetProcessAffinity()
 		}
 		if (AffinityLow)
 		{
-			DWORD_PTR nMask = ((AffinityLow << (Config.SingleProcAffinity - 1)) & SystemAffinityMask) ? (AffinityLow << (Config.SingleProcAffinity - 1)) : AffinityLow;
-			SetProcessAffinityMask(hCurrentProcess, nMask);
+			nMask = ((AffinityLow << (Config.SingleProcAffinity - 1)) & SystemAffinityMask) ? (AffinityLow << (Config.SingleProcAffinity - 1)) : AffinityLow;
 		}
 	}
-	CloseHandle(hCurrentProcess);
+
+	Logging::Log() << __FUNCTION__ << " Setting CPU mask: " << Logging::hex(nMask);
+	return nMask;
+}
+
+// Set Single Core Affinity
+void Utils::SetProcessAffinity()
+{
+	Logging::Log() << "Setting SingleCoreAffinity...";
+	SetProcessAffinityMask(GetCurrentProcess(), GetProcessMask());
 }
 
 // Sets application DPI aware which disables DPI virtulization/High DPI scaling for this process
