@@ -2107,7 +2107,7 @@ void m_IDirectDrawX::InitDdraw(DWORD DirectXVersion)
 		// Create event
 		if (!ghWriteEvent)
 		{
-			ghWriteEvent = CreateEvent(nullptr, FALSE, FALSE, TEXT("DxwrapperMouseEvent"));
+			ghWriteEvent = CreateEvent(nullptr, FALSE, FALSE, TEXT("Local\\DxwrapperMouseEvent"));
 		}
 
 		// Prepair shared memory

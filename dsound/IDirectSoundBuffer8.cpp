@@ -52,18 +52,12 @@ ULONG m_IDirectSoundBuffer8::Release()
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	EnterCriticalSection(&AudioClip.dics);
-
-	ULONG x = ProxyInterface->Release();
-
-	if (x == 0 && AudioClip.ds_ThreadID)
+	if (CheckThreadRunning())
 	{
-		HANDLE hThread = OpenThread(THREAD_TERMINATE, 0, AudioClip.ds_ThreadID);
-		TerminateThread(hThread, S_FALSE);
-		CloseHandle(hThread);
+		StopThread();
 	}
 
-	LeaveCriticalSection(&AudioClip.dics);
+	ULONG x = ProxyInterface->Release();
 
 	if (x == 0)
 	{
@@ -125,11 +119,25 @@ HRESULT m_IDirectSoundBuffer8::GetVolume(LPLONG plVolume)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	if (AudioClip.PendingStop && plVolume)
+	if (Config.AudioClipDetection)
 	{
-		*plVolume = AudioClip.CurrentVolume;
+		bool VolumeSet = false;
 
-		return DS_OK;
+		EnterCriticalSection(&AudioClip.dics);
+
+		if (AudioClip.PendingStop && plVolume)
+		{
+			*plVolume = AudioClip.CurrentVolume;
+
+			VolumeSet = true;
+		}
+
+		LeaveCriticalSection(&AudioClip.dics);
+
+		if (VolumeSet)
+		{
+			return DS_OK;
+		}
 	}
 
 	return ProxyInterface->GetVolume(plVolume);
@@ -179,11 +187,12 @@ HRESULT m_IDirectSoundBuffer8::Play(DWORD dwReserved1, DWORD dwPriority, DWORD d
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	if (AudioClip.PendingStop)
+	if (CheckThreadRunning())
 	{
-		AudioClip.PendingStop = false;
+		// Stop thread
+		StopThread();
 
-		// Stop
+		// Stop audio
 		ProxyInterface->Stop();
 
 		// Reset volume
@@ -229,11 +238,25 @@ HRESULT m_IDirectSoundBuffer8::SetVolume(LONG lVolume)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	AudioClip.CurrentVolume = lVolume;
-
-	if (AudioClip.PendingStop)
+	if (Config.AudioClipDetection)
 	{
-		return DS_OK;
+		bool VolumeSet = false;
+
+		EnterCriticalSection(&AudioClip.dics);
+
+		if (AudioClip.PendingStop)
+		{
+			AudioClip.CurrentVolume = lVolume;
+
+			VolumeSet = true;
+		}
+
+		LeaveCriticalSection(&AudioClip.dics);
+
+		if (VolumeSet)
+		{
+			return DS_OK;
+		}
 	}
 
 	return ProxyInterface->SetVolume(lVolume);
@@ -259,20 +282,26 @@ HRESULT m_IDirectSoundBuffer8::Stop()
 
 	if (Config.AudioClipDetection)
 	{
+		if (CheckThreadRunning())
+		{
+			return DS_OK;
+		}
+
 		EnterCriticalSection(&AudioClip.dics);
 
-		if (!AudioClip.ds_ThreadID)
+		DWORD dwStatus = 0;
+		ProxyInterface->GetStatus(&dwStatus);
+
+		if (!AudioClip.ds_ThreadID && (dwStatus & DSBSTATUS_PLAYING))
 		{
 			// Set pending stop
 			AudioClip.PendingStop = true;
 
+			// Get volume
+			ProxyInterface->GetVolume(&AudioClip.CurrentVolume);
+
 			// Lower volume
 			ProxyInterface->SetVolume(DSBVOLUME_MIN);
-
-			// Get current counter
-			QueryPerformanceFrequency(&AudioClip.Frequency);
-			AudioClip.Frequency.QuadPart /= ((Config.AudioFadeOutDelayMS) ? 1000 / Config.AudioFadeOutDelayMS : AudioClip.Frequency.QuadPart);
-			QueryPerformanceCounter(&AudioClip.StartingTime);
 
 			// Start thread
 			if (CreateThread(nullptr, 0, ResetPending, &AudioClip, 0, &AudioClip.ds_ThreadID) == nullptr || !AudioClip.ds_ThreadID)
@@ -284,7 +313,7 @@ HRESULT m_IDirectSoundBuffer8::Stop()
 
 		LeaveCriticalSection(&AudioClip.dics);
 
-		// Return value
+		// Return
 		return DS_OK;
 	}
 
@@ -332,6 +361,43 @@ HRESULT m_IDirectSoundBuffer8::GetObjectInPath(REFGUID rguidObject, DWORD dwInde
 	return hr;
 }
 
+// Helper functions
+bool m_IDirectSoundBuffer8::CheckThreadRunning()
+{
+	bool ThreadRunning = false;
+
+	EnterCriticalSection(&AudioClip.dics);
+
+	if (AudioClip.ds_ThreadID)
+	{
+		ThreadRunning = true;
+	}
+
+	LeaveCriticalSection(&AudioClip.dics);
+
+	return ThreadRunning;
+}
+
+void m_IDirectSoundBuffer8::StopThread()
+{
+	// Trigger thread
+	SetEvent(AudioClip.hTriggerEvent);
+
+	// Wiat for thread to exit
+	bool flag = false;
+	do {
+
+		Sleep(0);
+
+		EnterCriticalSection(&AudioClip.dics);
+
+		flag = (AudioClip.ds_ThreadID != 0);
+
+		LeaveCriticalSection(&AudioClip.dics);
+
+	} while (flag);
+}
+
 DWORD WINAPI ResetPending(LPVOID pvParam)
 {
 	if (!pvParam)
@@ -341,15 +407,8 @@ DWORD WINAPI ResetPending(LPVOID pvParam)
 
 	AUDIOCLIP &AudioClip = *(AUDIOCLIP*)pvParam;
 
-	// Pending stop
-	if (AudioClip.PendingStop)
-	{
-		// Add slight delay
-		do {
-			Sleep(0);
-			QueryPerformanceCounter(&AudioClip.EndingTime);
-		} while (AudioClip.PendingStop && AudioClip.StartingTime.QuadPart + AudioClip.Frequency.QuadPart > AudioClip.EndingTime.QuadPart);
-	}
+	// Add slight delay
+	WaitForSingleObject(AudioClip.hTriggerEvent, ((Config.AudioFadeOutDelayMS) ? Config.AudioFadeOutDelayMS : 20));
 
 	EnterCriticalSection(&AudioClip.dics);
 
