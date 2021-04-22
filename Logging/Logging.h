@@ -36,6 +36,19 @@ std::ostream& operator<<(std::ostream& os, const DDSURFACEDESC& sd);
 std::ostream& operator<<(std::ostream& os, const DDSURFACEDESC2& sd);
 #endif
 #ifdef _D3DCAPS_H
+std::ostream& operator<<(std::ostream& os, const D3DCOLORVALUE& data);
+std::ostream& operator<<(std::ostream& os, const D3DDP_PTRSTRIDE& data);
+std::ostream& operator<<(std::ostream& os, const D3DDRAWPRIMITIVESTRIDEDDATA& data);
+std::ostream& operator<<(std::ostream& os, const D3DEXECUTEBUFFERDESC& data);
+std::ostream& operator<<(std::ostream& os, const D3DEXECUTEDATA& data);
+std::ostream& operator<<(std::ostream& os, const D3DLIGHT& data);
+std::ostream& operator<<(std::ostream& os, const D3DLIGHT2& data);
+std::ostream& operator<<(std::ostream& os, const D3DLIGHT7& data);
+std::ostream& operator<<(std::ostream& os, const D3DMATERIAL& data);
+std::ostream& operator<<(std::ostream& os, const D3DMATERIAL7& data);
+std::ostream& operator<<(std::ostream& os, const D3DRECT& data);
+std::ostream& operator<<(std::ostream& os, const D3DSTATUS& data);
+std::ostream& operator<<(std::ostream& os, const D3DVERTEXBUFFERDESC& data);
 std::ostream& operator<<(std::ostream& os, const D3DPRIMCAPS& pc);
 std::ostream& operator<<(std::ostream& os, const D3DDEVICEDESC7& dd);
 #endif
@@ -46,3 +59,38 @@ std::ostream& operator<<(std::ostream& os, const D3DPRESENT_PARAMETERS& pp);
 #ifdef GUID_DEFINED
 std::ostream& operator<<(std::ostream& os, REFIID riid);
 #endif
+std::ostream& operator<<(std::ostream& os, const COMPAREITEMSTRUCT& cis);
+std::ostream& operator<<(std::ostream& os, const COPYDATASTRUCT& cds);
+std::ostream& operator<<(std::ostream& os, const CREATESTRUCTA& cs);
+std::ostream& operator<<(std::ostream& os, const CREATESTRUCTW& cs);
+std::ostream& operator<<(std::ostream& os, const CWPSTRUCT& cwp);
+std::ostream& operator<<(std::ostream& os, const CWPRETSTRUCT& cwrp);
+std::ostream& operator<<(std::ostream& os, const DELETEITEMSTRUCT& dis);
+std::ostream& operator<<(std::ostream& os, const DEVMODEA& dm);
+std::ostream& operator<<(std::ostream& os, const DEVMODEW& dm);
+std::ostream& operator<<(std::ostream& os, const DRAWITEMSTRUCT& dis);
+std::ostream& operator<<(std::ostream& os, const GESTURENOTIFYSTRUCT& gns);
+std::ostream& operator<<(std::ostream& os, HDC__& dc);
+std::ostream& operator<<(std::ostream& os, const HELPINFO& hi);
+std::ostream& operator<<(std::ostream& os, HFONT font);
+std::ostream& operator<<(std::ostream& os, HRGN rgn);
+std::ostream& operator<<(std::ostream& os, HWND__& hwnd);
+std::ostream& operator<<(std::ostream& os, const LOGFONT& lf);
+std::ostream& operator<<(std::ostream& os, const MDICREATESTRUCTA& mcs);
+std::ostream& operator<<(std::ostream& os, const MDICREATESTRUCTW& mcs);
+std::ostream& operator<<(std::ostream& os, const MDINEXTMENU& mnm);
+std::ostream& operator<<(std::ostream& os, const MEASUREITEMSTRUCT& mis);
+std::ostream& operator<<(std::ostream& os, const MEMORYSTATUS& ms);
+std::ostream& operator<<(std::ostream& os, const MENUGETOBJECTINFO& mgoi);
+std::ostream& operator<<(std::ostream& os, const MINMAXINFO& mmi);
+std::ostream& operator<<(std::ostream& os, const MSG& msg);
+std::ostream& operator<<(std::ostream& os, const NCCALCSIZE_PARAMS& nccs);
+std::ostream& operator<<(std::ostream& os, const NMHDR& nm);
+std::ostream& operator<<(std::ostream& os, const POINT& p);
+std::ostream& operator<<(std::ostream& os, const POINTS& p);
+std::ostream& operator<<(std::ostream& os, const RECT& rect);
+std::ostream& operator<<(std::ostream& os, const SIZE& size);
+std::ostream& operator<<(std::ostream& os, const STYLESTRUCT& ss);
+std::ostream& operator<<(std::ostream& os, const TITLEBARINFOEX& tbi);
+std::ostream& operator<<(std::ostream& os, const TOUCH_HIT_TESTING_INPUT& thti);
+std::ostream& operator<<(std::ostream& os, const WINDOWPOS& wp);

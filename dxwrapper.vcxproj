@@ -13,16 +13,16 @@
   <PropertyGroup Label="Globals">
     <ProjectGuid>{579E7FE7-2745-4100-A802-23511711FCDE}</ProjectGuid>
     <RootNamespace>dxwrapper</RootNamespace>
-    <WindowsTargetPlatformVersion>10.0.17134.0</WindowsTargetPlatformVersion>
+    <WindowsTargetPlatformVersion>10.0.19041.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
     <ConfigurationType>DynamicLibrary</ConfigurationType>
-    <PlatformToolset>v141</PlatformToolset>
+    <PlatformToolset>v142</PlatformToolset>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
     <ConfigurationType>DynamicLibrary</ConfigurationType>
-    <PlatformToolset>v141</PlatformToolset>
+    <PlatformToolset>v142</PlatformToolset>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
   <ImportGroup Label="ExtensionSettings">
@@ -49,15 +49,16 @@
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
-      <PreprocessorDefinitions>WIN32;_DEBUG;_WINDOWS;_USRDLL;FULLSCREENLOG;WRAPPERLOGGING;DISABLE_COMMON_LOGGING;DDRAWCOMPATLOG;DDRAWCOMPAT_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32;_DEBUG;_WINDOWS;_USRDLL;DPSAPI_VERSION=1;FULLSCREENLOG;WRAPPERLOGGING;DISABLE_COMMON_LOGGING;DDRAWCOMPATLOG;_NO_DDRAWINT_NO_COM;DDRAWCOMPAT_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
       <ObjectFileName>$(SolutionDir)bin\Intermediate\$(Configuration)\Object\%(RelativeDir)</ObjectFileName>
       <WarningLevel>Level4</WarningLevel>
-      <AdditionalIncludeDirectories>$(ProjectDir);Libraries;Libraries\DirectX81SDK\include;DDrawCompat\Experimental;External\detours\src</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir);Libraries;Libraries\DirectX81SDK\include;DDrawCompat\v0.3.0;External\detours\src</AdditionalIncludeDirectories>
       <FloatingPointModel>Fast</FloatingPointModel>
+      <LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>dxguid.lib;detours.lib;msimg32.lib;oleacc.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>dbgeng.lib;detours.lib;dxguid.lib;msimg32.lib;oleacc.lib;uxtheme.lib;dwmapi.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <ModuleDefinitionFile>Wrappers\wrapper.def</ModuleDefinitionFile>
       <AdditionalLibraryDirectories>Libraries\detours\lib</AdditionalLibraryDirectories>
     </Link>
@@ -73,17 +74,18 @@ copy /Y "$(ProjectDir)Resources\dxwnd.exe" "$(TargetDir)Build\" &gt;nul</Command
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
-      <PreprocessorDefinitions>WIN32;NDEBUG;_WINDOWS;_USRDLL;DISABLE_COMMON_LOGGING;DDRAWCOMPAT_EXPORTS;D3D8TO9NOLOG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32;NDEBUG;_WINDOWS;_USRDLL;DPSAPI_VERSION=1;DISABLE_COMMON_LOGGING;_NO_DDRAWINT_NO_COM;DDRAWCOMPAT_EXPORTS;D3D8TO9NOLOG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
       <ObjectFileName>$(SolutionDir)bin\Intermediate\$(Configuration)\Object\%(RelativeDir)</ObjectFileName>
       <WarningLevel>Level4</WarningLevel>
       <FloatingPointModel>Fast</FloatingPointModel>
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
-      <AdditionalIncludeDirectories>$(ProjectDir);Libraries;Libraries\DirectX81SDK\include;DDrawCompat\Experimental;External\detours\src</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir);Libraries;Libraries\DirectX81SDK\include;DDrawCompat\v0.3.0;External\detours\src</AdditionalIncludeDirectories>
+      <LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>
     <Link>
       <ModuleDefinitionFile>Wrappers\wrapper.def</ModuleDefinitionFile>
-      <AdditionalDependencies>dxguid.lib;detours.lib;msimg32.lib;oleacc.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>dbgeng.lib;detours.lib;dxguid.lib;msimg32.lib;oleacc.lib;uxtheme.lib;dwmapi.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <OptimizeReferences>true</OptimizeReferences>
       <AdditionalLibraryDirectories>Libraries\detours\lib</AdditionalLibraryDirectories>
     </Link>
@@ -132,59 +134,6 @@ cmd /q /c "cd /D ""$(ProjectDir)d3d8\"" &amp;&amp; del build.bat"</Command>
     <ClCompile Include="d3d9\IDirect3DVolumeTexture9.cpp" />
     <ClCompile Include="d3d9\InterfaceQuery.cpp" />
     <ClCompile Include="DDrawCompat\DDrawCompatExternal.cpp" />
-    <ClCompile Include="DDrawCompat\Experimental\Common\Hook.cpp" />
-    <ClCompile Include="DDrawCompat\Experimental\Common\Time.cpp" />
-    <ClCompile Include="DDrawCompat\Experimental\D3dDdi\AdapterCallbacks.cpp" />
-    <ClCompile Include="DDrawCompat\Experimental\D3dDdi\AdapterFuncs.cpp" />
-    <ClCompile Include="DDrawCompat\Experimental\D3dDdi\DeviceCallbacks.cpp" />
-    <ClCompile Include="DDrawCompat\Experimental\D3dDdi\DeviceFuncs.cpp" />
-    <ClCompile Include="DDrawCompat\Experimental\D3dDdi\Hooks.cpp" />
-    <ClCompile Include="DDrawCompat\Experimental\D3dDdi\KernelModeThunks.cpp" />
-    <ClCompile Include="DDrawCompat\Experimental\D3dDdi\LockResource.cpp" />
-    <ClCompile Include="DDrawCompat\Experimental\D3dDdi\Log\AdapterFuncsLog.cpp" />
-    <ClCompile Include="DDrawCompat\Experimental\D3dDdi\Log\DeviceCallbacksLog.cpp" />
-    <ClCompile Include="DDrawCompat\Experimental\D3dDdi\Log\DeviceFuncsLog.cpp" />
-    <ClCompile Include="DDrawCompat\Experimental\D3dDdi\Log\KernelModeThunksLog.cpp" />
-    <ClCompile Include="DDrawCompat\Experimental\D3dDdi\OversizedResource.cpp" />
-    <ClCompile Include="DDrawCompat\Experimental\DDraw\ActivateAppHandler.cpp" />
-    <ClCompile Include="DDrawCompat\Experimental\DDraw\DirectDraw.cpp" />
-    <ClCompile Include="DDrawCompat\Experimental\DDraw\DirectDrawClipper.cpp" />
-    <ClCompile Include="DDrawCompat\Experimental\DDraw\DirectDrawGammaControl.cpp" />
-    <ClCompile Include="DDrawCompat\Experimental\DDraw\DirectDrawPalette.cpp" />
-    <ClCompile Include="DDrawCompat\Experimental\DDraw\DirectDrawSurface.cpp" />
-    <ClCompile Include="DDrawCompat\Experimental\DDraw\Hooks.cpp" />
-    <ClCompile Include="DDrawCompat\Experimental\DDraw\IReleaseNotifier.cpp" />
-    <ClCompile Include="DDrawCompat\Experimental\DDraw\RealPrimarySurface.cpp" />
-    <ClCompile Include="DDrawCompat\Experimental\DDraw\Repository.cpp" />
-    <ClCompile Include="DDrawCompat\Experimental\DDraw\Surfaces\PrimarySurface.cpp" />
-    <ClCompile Include="DDrawCompat\Experimental\DDraw\Surfaces\PrimarySurfaceImpl.cpp" />
-    <ClCompile Include="DDrawCompat\Experimental\DDraw\Surfaces\Surface.cpp" />
-    <ClCompile Include="DDrawCompat\Experimental\DDraw\Surfaces\SurfaceImpl.cpp" />
-    <ClCompile Include="DDrawCompat\Experimental\DDraw\Surfaces\TagSurface.cpp" />
-    <ClCompile Include="DDrawCompat\Experimental\Direct3d\DepthBuffer.cpp" />
-    <ClCompile Include="DDrawCompat\Experimental\Direct3d\Direct3d.cpp" />
-    <ClCompile Include="DDrawCompat\Experimental\Direct3d\Direct3dDevice.cpp" />
-    <ClCompile Include="DDrawCompat\Experimental\Direct3d\Direct3dTexture.cpp" />
-    <ClCompile Include="DDrawCompat\Experimental\Direct3d\Direct3dVertexBuffer.cpp" />
-    <ClCompile Include="DDrawCompat\Experimental\Direct3d\Direct3dViewport.cpp" />
-    <ClCompile Include="DDrawCompat\Experimental\Direct3d\Hooks.cpp" />
-    <ClCompile Include="DDrawCompat\Experimental\Dll\DllMain.cpp" />
-    <ClCompile Include="DDrawCompat\Experimental\Dll\Procs.cpp" />
-    <ClCompile Include="DDrawCompat\Experimental\Dll\UnmodifiedProcs.cpp" />
-    <ClCompile Include="DDrawCompat\Experimental\Gdi\Caret.cpp" />
-    <ClCompile Include="DDrawCompat\Experimental\Gdi\Dc.cpp" />
-    <ClCompile Include="DDrawCompat\Experimental\Gdi\DcCache.cpp" />
-    <ClCompile Include="DDrawCompat\Experimental\Gdi\DcFunctions.cpp" />
-    <ClCompile Include="DDrawCompat\Experimental\Gdi\Gdi.cpp" />
-    <ClCompile Include="DDrawCompat\Experimental\Gdi\PaintHandlers.cpp" />
-    <ClCompile Include="DDrawCompat\Experimental\Gdi\ScrollBar.cpp" />
-    <ClCompile Include="DDrawCompat\Experimental\Gdi\ScrollFunctions.cpp" />
-    <ClCompile Include="DDrawCompat\Experimental\Gdi\TitleBar.cpp" />
-    <ClCompile Include="DDrawCompat\Experimental\Gdi\WinProc.cpp" />
-    <ClCompile Include="DDrawCompat\Experimental\Win32\DisplayMode.cpp" />
-    <ClCompile Include="DDrawCompat\Experimental\Win32\FontSmoothing.cpp" />
-    <ClCompile Include="DDrawCompat\Experimental\Win32\MsgHooks.cpp" />
-    <ClCompile Include="DDrawCompat\Experimental\Win32\Registry.cpp" />
     <ClCompile Include="DDrawCompat\v0.2.0b\CompatDirectDraw.cpp" />
     <ClCompile Include="DDrawCompat\v0.2.0b\CompatDirectDrawPalette.cpp" />
     <ClCompile Include="DDrawCompat\v0.2.0b\CompatDirectDrawSurface.cpp" />
@@ -226,6 +175,74 @@ cmd /q /c "cd /D ""$(ProjectDir)d3d8\"" &amp;&amp; del build.bat"</Command>
     <ClCompile Include="DDrawCompat\v0.2.1\RealPrimarySurface.cpp" />
     <ClCompile Include="DDrawCompat\v0.2.1\Time.cpp" />
     <ClCompile Include="DDrawCompat\v0.2.1\UnmodifiedDDrawProcs.cpp" />
+    <ClCompile Include="DDrawCompat\v0.3.0\Common\Hook.cpp" />
+    <ClCompile Include="DDrawCompat\v0.3.0\Common\Time.cpp" />
+    <ClCompile Include="DDrawCompat\v0.3.0\D3dDdi\Adapter.cpp" />
+    <ClCompile Include="DDrawCompat\v0.3.0\D3dDdi\AdapterCallbacks.cpp" />
+    <ClCompile Include="DDrawCompat\v0.3.0\D3dDdi\AdapterFuncs.cpp" />
+    <ClCompile Include="DDrawCompat\v0.3.0\D3dDdi\Device.cpp" />
+    <ClCompile Include="DDrawCompat\v0.3.0\D3dDdi\DeviceCallbacks.cpp" />
+    <ClCompile Include="DDrawCompat\v0.3.0\D3dDdi\DeviceFuncs.cpp" />
+    <ClCompile Include="DDrawCompat\v0.3.0\D3dDdi\DeviceState.cpp" />
+    <ClCompile Include="DDrawCompat\v0.3.0\D3dDdi\DrawPrimitive.cpp" />
+    <ClCompile Include="DDrawCompat\v0.3.0\D3dDdi\DynamicBuffer.cpp" />
+    <ClCompile Include="DDrawCompat\v0.3.0\D3dDdi\FormatInfo.cpp" />
+    <ClCompile Include="DDrawCompat\v0.3.0\D3dDdi\Hooks.cpp" />
+    <ClCompile Include="DDrawCompat\v0.3.0\D3dDdi\KernelModeThunks.cpp" />
+    <ClCompile Include="DDrawCompat\v0.3.0\D3dDdi\Log\AdapterFuncsLog.cpp" />
+    <ClCompile Include="DDrawCompat\v0.3.0\D3dDdi\Log\CommonLog.cpp" />
+    <ClCompile Include="DDrawCompat\v0.3.0\D3dDdi\Log\DeviceCallbacksLog.cpp" />
+    <ClCompile Include="DDrawCompat\v0.3.0\D3dDdi\Log\DeviceFuncsLog.cpp" />
+    <ClCompile Include="DDrawCompat\v0.3.0\D3dDdi\Log\KernelModeThunksLog.cpp" />
+    <ClCompile Include="DDrawCompat\v0.3.0\D3dDdi\Resource.cpp" />
+    <ClCompile Include="DDrawCompat\v0.3.0\D3dDdi\ScopedCriticalSection.cpp" />
+    <ClCompile Include="DDrawCompat\v0.3.0\DDraw\Blitter.cpp" />
+    <ClCompile Include="DDrawCompat\v0.3.0\DDraw\DirectDraw.cpp" />
+    <ClCompile Include="DDrawCompat\v0.3.0\DDraw\DirectDrawClipper.cpp" />
+    <ClCompile Include="DDrawCompat\v0.3.0\DDraw\DirectDrawGammaControl.cpp" />
+    <ClCompile Include="DDrawCompat\v0.3.0\DDraw\DirectDrawPalette.cpp" />
+    <ClCompile Include="DDrawCompat\v0.3.0\DDraw\DirectDrawSurface.cpp" />
+    <ClCompile Include="DDrawCompat\v0.3.0\DDraw\Hooks.cpp" />
+    <ClCompile Include="DDrawCompat\v0.3.0\DDraw\IReleaseNotifier.cpp" />
+    <ClCompile Include="DDrawCompat\v0.3.0\DDraw\RealPrimarySurface.cpp" />
+    <ClCompile Include="DDrawCompat\v0.3.0\DDraw\Surfaces\PrimarySurface.cpp" />
+    <ClCompile Include="DDrawCompat\v0.3.0\DDraw\Surfaces\PrimarySurfaceImpl.cpp" />
+    <ClCompile Include="DDrawCompat\v0.3.0\DDraw\Surfaces\Surface.cpp" />
+    <ClCompile Include="DDrawCompat\v0.3.0\DDraw\Surfaces\SurfaceImpl.cpp" />
+    <ClCompile Include="DDrawCompat\v0.3.0\Direct3d\Direct3d.cpp" />
+    <ClCompile Include="DDrawCompat\v0.3.0\Direct3d\Direct3dDevice.cpp" />
+    <ClCompile Include="DDrawCompat\v0.3.0\Direct3d\Direct3dExecuteBuffer.cpp" />
+    <ClCompile Include="DDrawCompat\v0.3.0\Direct3d\Direct3dLight.cpp" />
+    <ClCompile Include="DDrawCompat\v0.3.0\Direct3d\Direct3dMaterial.cpp" />
+    <ClCompile Include="DDrawCompat\v0.3.0\Direct3d\Direct3dTexture.cpp" />
+    <ClCompile Include="DDrawCompat\v0.3.0\Direct3d\Direct3dVertexBuffer.cpp" />
+    <ClCompile Include="DDrawCompat\v0.3.0\Direct3d\Direct3dViewport.cpp" />
+    <ClCompile Include="DDrawCompat\v0.3.0\Direct3d\Hooks.cpp" />
+    <ClCompile Include="DDrawCompat\v0.3.0\Dll\Dll.cpp" />
+    <ClCompile Include="DDrawCompat\v0.3.0\Dll\DllMain.cpp" />
+    <ClCompile Include="DDrawCompat\v0.3.0\Gdi\Caret.cpp" />
+    <ClCompile Include="DDrawCompat\v0.3.0\Gdi\CompatDc.cpp" />
+    <ClCompile Include="DDrawCompat\v0.3.0\Gdi\Dc.cpp" />
+    <ClCompile Include="DDrawCompat\v0.3.0\Gdi\DcFunctions.cpp" />
+    <ClCompile Include="DDrawCompat\v0.3.0\Gdi\Font.cpp" />
+    <ClCompile Include="DDrawCompat\v0.3.0\Gdi\Gdi.cpp" />
+    <ClCompile Include="DDrawCompat\v0.3.0\Gdi\Icon.cpp" />
+    <ClCompile Include="DDrawCompat\v0.3.0\Gdi\Metrics.cpp" />
+    <ClCompile Include="DDrawCompat\v0.3.0\Gdi\Palette.cpp" />
+    <ClCompile Include="DDrawCompat\v0.3.0\Gdi\PresentationWindow.cpp" />
+    <ClCompile Include="DDrawCompat\v0.3.0\Gdi\Region.cpp" />
+    <ClCompile Include="DDrawCompat\v0.3.0\Gdi\ScrollBar.cpp" />
+    <ClCompile Include="DDrawCompat\v0.3.0\Gdi\ScrollFunctions.cpp" />
+    <ClCompile Include="DDrawCompat\v0.3.0\Gdi\TitleBar.cpp" />
+    <ClCompile Include="DDrawCompat\v0.3.0\Gdi\User32WndProcs.cpp" />
+    <ClCompile Include="DDrawCompat\v0.3.0\Gdi\VirtualScreen.cpp" />
+    <ClCompile Include="DDrawCompat\v0.3.0\Gdi\Window.cpp" />
+    <ClCompile Include="DDrawCompat\v0.3.0\Gdi\WinProc.cpp" />
+    <ClCompile Include="DDrawCompat\v0.3.0\Win32\DisplayMode.cpp" />
+    <ClCompile Include="DDrawCompat\v0.3.0\Win32\MemoryManagement.cpp" />
+    <ClCompile Include="DDrawCompat\v0.3.0\Win32\MsgHooks.cpp" />
+    <ClCompile Include="DDrawCompat\v0.3.0\Win32\Registry.cpp" />
+    <ClCompile Include="DDrawCompat\v0.3.0\Win32\WaitFunctions.cpp" />
     <ClCompile Include="ddraw\ddraw.cpp" />
     <ClCompile Include="ddraw\IDirect3DDeviceX.cpp" />
     <ClCompile Include="ddraw\IDirect3DMaterialX.cpp" />
@@ -382,83 +399,6 @@ cmd /q /c "cd /D ""$(ProjectDir)d3d8\"" &amp;&amp; del build.bat"</Command>
     <ClInclude Include="d3d9\IDirect3DVolumeTexture9.h" />
     <ClInclude Include="DDrawCompat\DDrawCompatExternal.h" />
     <ClInclude Include="DDrawCompat\DDrawLog.h" />
-    <ClInclude Include="DDrawCompat\Experimental\Common\CompatPtr.h" />
-    <ClInclude Include="DDrawCompat\Experimental\Common\CompatQueryInterface.h" />
-    <ClInclude Include="DDrawCompat\Experimental\Common\CompatRef.h" />
-    <ClInclude Include="DDrawCompat\Experimental\Common\CompatVtable.h" />
-    <ClInclude Include="DDrawCompat\Experimental\Common\CompatWeakPtr.h" />
-    <ClInclude Include="DDrawCompat\Experimental\Common\Hook.h" />
-    <ClInclude Include="DDrawCompat\Experimental\Common\ScopedCriticalSection.h" />
-    <ClInclude Include="DDrawCompat\Experimental\Common\Time.h" />
-    <ClInclude Include="DDrawCompat\Experimental\Common\VtableVisitor.h" />
-    <ClInclude Include="DDrawCompat\Experimental\Config\Config.h" />
-    <ClInclude Include="DDrawCompat\Experimental\D3dDdi\AdapterCallbacks.h" />
-    <ClInclude Include="DDrawCompat\Experimental\D3dDdi\AdapterFuncs.h" />
-    <ClInclude Include="DDrawCompat\Experimental\D3dDdi\DeviceCallbacks.h" />
-    <ClInclude Include="DDrawCompat\Experimental\D3dDdi\DeviceFuncs.h" />
-    <ClInclude Include="DDrawCompat\Experimental\D3dDdi\Hooks.h" />
-    <ClInclude Include="DDrawCompat\Experimental\D3dDdi\KernelModeThunks.h" />
-    <ClInclude Include="DDrawCompat\Experimental\D3dDdi\LockResource.h" />
-    <ClInclude Include="DDrawCompat\Experimental\D3dDdi\Log\AdapterFuncsLog.h" />
-    <ClInclude Include="DDrawCompat\Experimental\D3dDdi\Log\DeviceCallbacksLog.h" />
-    <ClInclude Include="DDrawCompat\Experimental\D3dDdi\Log\DeviceFuncsLog.h" />
-    <ClInclude Include="DDrawCompat\Experimental\D3dDdi\Log\KernelModeThunksLog.h" />
-    <ClInclude Include="DDrawCompat\Experimental\D3dDdi\OversizedResource.h" />
-    <ClInclude Include="DDrawCompat\Experimental\D3dDdi\Visitors\AdapterCallbacksVisitor.h" />
-    <ClInclude Include="DDrawCompat\Experimental\D3dDdi\Visitors\AdapterFuncsVisitor.h" />
-    <ClInclude Include="DDrawCompat\Experimental\D3dDdi\Visitors\DeviceCallbacksVisitor.h" />
-    <ClInclude Include="DDrawCompat\Experimental\D3dDdi\Visitors\DeviceFuncsVisitor.h" />
-    <ClInclude Include="DDrawCompat\Experimental\DDraw\ActivateAppHandler.h" />
-    <ClInclude Include="DDrawCompat\Experimental\DDraw\DirectDraw.h" />
-    <ClInclude Include="DDrawCompat\Experimental\DDraw\DirectDrawClipper.h" />
-    <ClInclude Include="DDrawCompat\Experimental\DDraw\DirectDrawGammaControl.h" />
-    <ClInclude Include="DDrawCompat\Experimental\DDraw\DirectDrawPalette.h" />
-    <ClInclude Include="DDrawCompat\Experimental\DDraw\DirectDrawSurface.h" />
-    <ClInclude Include="DDrawCompat\Experimental\DDraw\Hooks.h" />
-    <ClInclude Include="DDrawCompat\Experimental\DDraw\IReleaseNotifier.h" />
-    <ClInclude Include="DDrawCompat\Experimental\DDraw\RealPrimarySurface.h" />
-    <ClInclude Include="DDrawCompat\Experimental\DDraw\Repository.h" />
-    <ClInclude Include="DDrawCompat\Experimental\DDraw\ScopedThreadLock.h" />
-    <ClInclude Include="DDrawCompat\Experimental\DDraw\Surfaces\PrimarySurface.h" />
-    <ClInclude Include="DDrawCompat\Experimental\DDraw\Surfaces\PrimarySurfaceImpl.h" />
-    <ClInclude Include="DDrawCompat\Experimental\DDraw\Surfaces\Surface.h" />
-    <ClInclude Include="DDrawCompat\Experimental\DDraw\Surfaces\SurfaceImpl.h" />
-    <ClInclude Include="DDrawCompat\Experimental\DDraw\Surfaces\TagSurface.h" />
-    <ClInclude Include="DDrawCompat\Experimental\DDraw\Types.h" />
-    <ClInclude Include="DDrawCompat\Experimental\DDraw\Visitors\DirectDrawClipperVtblVisitor.h" />
-    <ClInclude Include="DDrawCompat\Experimental\DDraw\Visitors\DirectDrawGammaControlVtblVisitor.h" />
-    <ClInclude Include="DDrawCompat\Experimental\DDraw\Visitors\DirectDrawPaletteVtblVisitor.h" />
-    <ClInclude Include="DDrawCompat\Experimental\DDraw\Visitors\DirectDrawSurfaceVtblVisitor.h" />
-    <ClInclude Include="DDrawCompat\Experimental\DDraw\Visitors\DirectDrawVtblVisitor.h" />
-    <ClInclude Include="DDrawCompat\Experimental\Direct3d\DepthBuffer.h" />
-    <ClInclude Include="DDrawCompat\Experimental\Direct3d\Direct3d.h" />
-    <ClInclude Include="DDrawCompat\Experimental\Direct3d\Direct3dDevice.h" />
-    <ClInclude Include="DDrawCompat\Experimental\Direct3d\Direct3dTexture.h" />
-    <ClInclude Include="DDrawCompat\Experimental\Direct3d\Direct3dVertexBuffer.h" />
-    <ClInclude Include="DDrawCompat\Experimental\Direct3d\Direct3dViewport.h" />
-    <ClInclude Include="DDrawCompat\Experimental\Direct3d\Hooks.h" />
-    <ClInclude Include="DDrawCompat\Experimental\Direct3d\Types.h" />
-    <ClInclude Include="DDrawCompat\Experimental\Direct3d\Visitors\Direct3dDeviceVtblVisitor.h" />
-    <ClInclude Include="DDrawCompat\Experimental\Direct3d\Visitors\Direct3dTextureVtblVisitor.h" />
-    <ClInclude Include="DDrawCompat\Experimental\Direct3d\Visitors\Direct3dVertexBufferVtblVisitor.h" />
-    <ClInclude Include="DDrawCompat\Experimental\Direct3d\Visitors\Direct3dViewportVtblVisitor.h" />
-    <ClInclude Include="DDrawCompat\Experimental\Direct3d\Visitors\Direct3dVtblVisitor.h" />
-    <ClInclude Include="DDrawCompat\Experimental\Dll\DllMain.h" />
-    <ClInclude Include="DDrawCompat\Experimental\Dll\Procs.h" />
-    <ClInclude Include="DDrawCompat\Experimental\Gdi\Caret.h" />
-    <ClInclude Include="DDrawCompat\Experimental\Gdi\Dc.h" />
-    <ClInclude Include="DDrawCompat\Experimental\Gdi\DcCache.h" />
-    <ClInclude Include="DDrawCompat\Experimental\Gdi\DcFunctions.h" />
-    <ClInclude Include="DDrawCompat\Experimental\Gdi\Gdi.h" />
-    <ClInclude Include="DDrawCompat\Experimental\Gdi\PaintHandlers.h" />
-    <ClInclude Include="DDrawCompat\Experimental\Gdi\ScrollBar.h" />
-    <ClInclude Include="DDrawCompat\Experimental\Gdi\ScrollFunctions.h" />
-    <ClInclude Include="DDrawCompat\Experimental\Gdi\TitleBar.h" />
-    <ClInclude Include="DDrawCompat\Experimental\Gdi\WinProc.h" />
-    <ClInclude Include="DDrawCompat\Experimental\Win32\DisplayMode.h" />
-    <ClInclude Include="DDrawCompat\Experimental\Win32\FontSmoothing.h" />
-    <ClInclude Include="DDrawCompat\Experimental\Win32\MsgHooks.h" />
-    <ClInclude Include="DDrawCompat\Experimental\Win32\Registry.h" />
     <ClInclude Include="DDrawCompat\v0.2.0b\CompatDirectDraw.h" />
     <ClInclude Include="DDrawCompat\v0.2.0b\CompatDirectDrawPalette.h" />
     <ClInclude Include="DDrawCompat\v0.2.0b\CompatDirectDrawSurface.h" />
@@ -514,6 +454,105 @@ cmd /q /c "cd /D ""$(ProjectDir)d3d8\"" &amp;&amp; del build.bat"</Command>
     <ClInclude Include="DDrawCompat\v0.2.1\RealPrimarySurface.h" />
     <ClInclude Include="DDrawCompat\v0.2.1\ScopedCriticalSection.h" />
     <ClInclude Include="DDrawCompat\v0.2.1\Time.h" />
+    <ClInclude Include="DDrawCompat\v0.3.0\Common\CompatPtr.h" />
+    <ClInclude Include="DDrawCompat\v0.3.0\Common\CompatQueryInterface.h" />
+    <ClInclude Include="DDrawCompat\v0.3.0\Common\CompatRef.h" />
+    <ClInclude Include="DDrawCompat\v0.3.0\Common\CompatVtable.h" />
+    <ClInclude Include="DDrawCompat\v0.3.0\Common\CompatWeakPtr.h" />
+    <ClInclude Include="DDrawCompat\v0.3.0\Common\Hook.h" />
+    <ClInclude Include="DDrawCompat\v0.3.0\Common\HResultException.h" />
+    <ClInclude Include="DDrawCompat\v0.3.0\Common\ScopedCriticalSection.h" />
+    <ClInclude Include="DDrawCompat\v0.3.0\Common\ScopedSrwLock.h" />
+    <ClInclude Include="DDrawCompat\v0.3.0\Common\Time.h" />
+    <ClInclude Include="DDrawCompat\v0.3.0\Common\VtableHookVisitor.h" />
+    <ClInclude Include="DDrawCompat\v0.3.0\Common\VtableSizeVisitor.h" />
+    <ClInclude Include="DDrawCompat\v0.3.0\Common\VtableVisitor.h" />
+    <ClInclude Include="DDrawCompat\v0.3.0\Config\Config.h" />
+    <ClInclude Include="DDrawCompat\v0.3.0\D3dDdi\Adapter.h" />
+    <ClInclude Include="DDrawCompat\v0.3.0\D3dDdi\AdapterCallbacks.h" />
+    <ClInclude Include="DDrawCompat\v0.3.0\D3dDdi\AdapterFuncs.h" />
+    <ClInclude Include="DDrawCompat\v0.3.0\D3dDdi\Device.h" />
+    <ClInclude Include="DDrawCompat\v0.3.0\D3dDdi\DeviceCallbacks.h" />
+    <ClInclude Include="DDrawCompat\v0.3.0\D3dDdi\DeviceFuncs.h" />
+    <ClInclude Include="DDrawCompat\v0.3.0\D3dDdi\DeviceState.h" />
+    <ClInclude Include="DDrawCompat\v0.3.0\D3dDdi\DrawPrimitive.h" />
+    <ClInclude Include="DDrawCompat\v0.3.0\D3dDdi\DynamicBuffer.h" />
+    <ClInclude Include="DDrawCompat\v0.3.0\D3dDdi\FormatInfo.h" />
+    <ClInclude Include="DDrawCompat\v0.3.0\D3dDdi\Hooks.h" />
+    <ClInclude Include="DDrawCompat\v0.3.0\D3dDdi\KernelModeThunks.h" />
+    <ClInclude Include="DDrawCompat\v0.3.0\D3dDdi\Log\AdapterFuncsLog.h" />
+    <ClInclude Include="DDrawCompat\v0.3.0\D3dDdi\Log\CommonLog.h" />
+    <ClInclude Include="DDrawCompat\v0.3.0\D3dDdi\Log\DeviceCallbacksLog.h" />
+    <ClInclude Include="DDrawCompat\v0.3.0\D3dDdi\Log\DeviceFuncsLog.h" />
+    <ClInclude Include="DDrawCompat\v0.3.0\D3dDdi\Log\KernelModeThunksLog.h" />
+    <ClInclude Include="DDrawCompat\v0.3.0\D3dDdi\Resource.h" />
+    <ClInclude Include="DDrawCompat\v0.3.0\D3dDdi\ScopedCriticalSection.h" />
+    <ClInclude Include="DDrawCompat\v0.3.0\D3dDdi\Visitors\AdapterCallbacksVisitor.h" />
+    <ClInclude Include="DDrawCompat\v0.3.0\D3dDdi\Visitors\AdapterFuncsVisitor.h" />
+    <ClInclude Include="DDrawCompat\v0.3.0\D3dDdi\Visitors\DeviceCallbacksVisitor.h" />
+    <ClInclude Include="DDrawCompat\v0.3.0\D3dDdi\Visitors\DeviceFuncsVisitor.h" />
+    <ClInclude Include="DDrawCompat\v0.3.0\DDraw\Blitter.h" />
+    <ClInclude Include="DDrawCompat\v0.3.0\DDraw\DirectDraw.h" />
+    <ClInclude Include="DDrawCompat\v0.3.0\DDraw\DirectDrawClipper.h" />
+    <ClInclude Include="DDrawCompat\v0.3.0\DDraw\DirectDrawGammaControl.h" />
+    <ClInclude Include="DDrawCompat\v0.3.0\DDraw\DirectDrawPalette.h" />
+    <ClInclude Include="DDrawCompat\v0.3.0\DDraw\DirectDrawSurface.h" />
+    <ClInclude Include="DDrawCompat\v0.3.0\DDraw\Hooks.h" />
+    <ClInclude Include="DDrawCompat\v0.3.0\DDraw\IReleaseNotifier.h" />
+    <ClInclude Include="DDrawCompat\v0.3.0\DDraw\RealPrimarySurface.h" />
+    <ClInclude Include="DDrawCompat\v0.3.0\DDraw\ScopedThreadLock.h" />
+    <ClInclude Include="DDrawCompat\v0.3.0\DDraw\Surfaces\PrimarySurface.h" />
+    <ClInclude Include="DDrawCompat\v0.3.0\DDraw\Surfaces\PrimarySurfaceImpl.h" />
+    <ClInclude Include="DDrawCompat\v0.3.0\DDraw\Surfaces\Surface.h" />
+    <ClInclude Include="DDrawCompat\v0.3.0\DDraw\Surfaces\SurfaceImpl.h" />
+    <ClInclude Include="DDrawCompat\v0.3.0\DDraw\Types.h" />
+    <ClInclude Include="DDrawCompat\v0.3.0\DDraw\Visitors\DirectDrawClipperVtblVisitor.h" />
+    <ClInclude Include="DDrawCompat\v0.3.0\DDraw\Visitors\DirectDrawGammaControlVtblVisitor.h" />
+    <ClInclude Include="DDrawCompat\v0.3.0\DDraw\Visitors\DirectDrawPaletteVtblVisitor.h" />
+    <ClInclude Include="DDrawCompat\v0.3.0\DDraw\Visitors\DirectDrawSurfaceVtblVisitor.h" />
+    <ClInclude Include="DDrawCompat\v0.3.0\DDraw\Visitors\DirectDrawVtblVisitor.h" />
+    <ClInclude Include="DDrawCompat\v0.3.0\Direct3d\Direct3d.h" />
+    <ClInclude Include="DDrawCompat\v0.3.0\Direct3d\Direct3dDevice.h" />
+    <ClInclude Include="DDrawCompat\v0.3.0\Direct3d\Direct3dExecuteBuffer.h" />
+    <ClInclude Include="DDrawCompat\v0.3.0\Direct3d\Direct3dLight.h" />
+    <ClInclude Include="DDrawCompat\v0.3.0\Direct3d\Direct3dMaterial.h" />
+    <ClInclude Include="DDrawCompat\v0.3.0\Direct3d\Direct3dTexture.h" />
+    <ClInclude Include="DDrawCompat\v0.3.0\Direct3d\Direct3dVertexBuffer.h" />
+    <ClInclude Include="DDrawCompat\v0.3.0\Direct3d\Direct3dViewport.h" />
+    <ClInclude Include="DDrawCompat\v0.3.0\Direct3d\Hooks.h" />
+    <ClInclude Include="DDrawCompat\v0.3.0\Direct3d\Visitors\Direct3dDeviceVtblVisitor.h" />
+    <ClInclude Include="DDrawCompat\v0.3.0\Direct3d\Visitors\Direct3dExecuteBufferVtblVisitor.h" />
+    <ClInclude Include="DDrawCompat\v0.3.0\Direct3d\Visitors\Direct3dLightVtblVisitor.h" />
+    <ClInclude Include="DDrawCompat\v0.3.0\Direct3d\Visitors\Direct3dMaterialVtblVisitor.h" />
+    <ClInclude Include="DDrawCompat\v0.3.0\Direct3d\Visitors\Direct3dTextureVtblVisitor.h" />
+    <ClInclude Include="DDrawCompat\v0.3.0\Direct3d\Visitors\Direct3dVertexBufferVtblVisitor.h" />
+    <ClInclude Include="DDrawCompat\v0.3.0\Direct3d\Visitors\Direct3dViewportVtblVisitor.h" />
+    <ClInclude Include="DDrawCompat\v0.3.0\Direct3d\Visitors\Direct3dVtblVisitor.h" />
+    <ClInclude Include="DDrawCompat\v0.3.0\Dll\Dll.h" />
+    <ClInclude Include="DDrawCompat\v0.3.0\Dll\DllMain.h" />
+    <ClInclude Include="DDrawCompat\v0.3.0\Gdi\Caret.h" />
+    <ClInclude Include="DDrawCompat\v0.3.0\Gdi\CompatDc.h" />
+    <ClInclude Include="DDrawCompat\v0.3.0\Gdi\Dc.h" />
+    <ClInclude Include="DDrawCompat\v0.3.0\Gdi\DcFunctions.h" />
+    <ClInclude Include="DDrawCompat\v0.3.0\Gdi\Font.h" />
+    <ClInclude Include="DDrawCompat\v0.3.0\Gdi\Gdi.h" />
+    <ClInclude Include="DDrawCompat\v0.3.0\Gdi\Icon.h" />
+    <ClInclude Include="DDrawCompat\v0.3.0\Gdi\Metrics.h" />
+    <ClInclude Include="DDrawCompat\v0.3.0\Gdi\Palette.h" />
+    <ClInclude Include="DDrawCompat\v0.3.0\Gdi\PresentationWindow.h" />
+    <ClInclude Include="DDrawCompat\v0.3.0\Gdi\Region.h" />
+    <ClInclude Include="DDrawCompat\v0.3.0\Gdi\ScrollBar.h" />
+    <ClInclude Include="DDrawCompat\v0.3.0\Gdi\ScrollFunctions.h" />
+    <ClInclude Include="DDrawCompat\v0.3.0\Gdi\TitleBar.h" />
+    <ClInclude Include="DDrawCompat\v0.3.0\Gdi\User32WndProcs.h" />
+    <ClInclude Include="DDrawCompat\v0.3.0\Gdi\VirtualScreen.h" />
+    <ClInclude Include="DDrawCompat\v0.3.0\Gdi\Window.h" />
+    <ClInclude Include="DDrawCompat\v0.3.0\Gdi\WinProc.h" />
+    <ClInclude Include="DDrawCompat\v0.3.0\Win32\DisplayMode.h" />
+    <ClInclude Include="DDrawCompat\v0.3.0\Win32\MemoryManagement.h" />
+    <ClInclude Include="DDrawCompat\v0.3.0\Win32\MsgHooks.h" />
+    <ClInclude Include="DDrawCompat\v0.3.0\Win32\Registry.h" />
+    <ClInclude Include="DDrawCompat\v0.3.0\Win32\WaitFunctions.h" />
     <ClInclude Include="ddraw\AddressLookupTable.h" />
     <ClInclude Include="ddraw\d3d9ShaderPalette.h" />
     <ClInclude Include="ddraw\ddraw.h" />
@@ -638,9 +677,6 @@ cmd /q /c "cd /D ""$(ProjectDir)d3d8\"" &amp;&amp; del build.bat"</Command>
     <ClInclude Include="Wrappers\bcrypt.h" />
     <ClInclude Include="Wrappers\cryptsp.h" />
     <ClInclude Include="Wrappers\d2d1.h" />
-    <ClInclude Include="Wrappers\d3d10.h" />
-    <ClInclude Include="Wrappers\d3d11.h" />
-    <ClInclude Include="Wrappers\d3d12.h" />
     <ClInclude Include="Wrappers\d3d8.h" />
     <ClInclude Include="Wrappers\d3d9.h" />
     <ClInclude Include="Wrappers\dciman32.h" />

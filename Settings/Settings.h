@@ -19,6 +19,7 @@
 	visit(DDrawCompat20) \
 	visit(DDrawCompat21) \
 	visit(DDrawCompatExperimental) \
+	visit(DDrawCompat30) \
 	visit(DDrawCompatDisableGDIHook) \
 	visit(DDrawCompatNoProcAffinity) \
 	visit(DdrawClippedWidth) \
@@ -179,7 +180,8 @@ struct CONFIG
 	bool DDrawCompat;					// Enables the default DDrawCompat functions https://github.com/narzoul/DDrawCompat/
 	bool DDrawCompat20;					// Enables DDrawCompat v0.2.0b
 	bool DDrawCompat21;					// Enables DDrawCompat v0.2.1
-	bool DDrawCompatExperimental;		// Enables DDrawCompat Experimental version
+	bool DDrawCompatExperimental;		// Legacy setting
+	bool DDrawCompat30;					// Enables DDrawCompat v0.3.0
 	bool DDrawCompatDisableGDIHook;		// Disables DDrawCompat GDI hooks
 	bool DDrawCompatNoProcAffinity;		// Disables DDrawCompat single processor affinity
 	bool DdrawFixByteAlignment;			// Fixes lock with surfaces that have unaligned byte sizes

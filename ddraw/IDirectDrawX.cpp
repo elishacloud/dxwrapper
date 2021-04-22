@@ -19,7 +19,7 @@
 #include "ddraw.h"
 #include "ddrawExternal.h"
 #include "Utils\Utils.h"
-#include <..\km\d3dkmthk.h>
+#include <d3dkmthk.h>
 #include "Dllmain\DllMain.h"
 
 constexpr DWORD MaxVidMemory  = 0x32000000;	// 512 MBs

@@ -443,6 +443,137 @@ std::ostream& operator<<(std::ostream& os, const DDSURFACEDESC2& sd)
 		<< sd.ddsCaps
 		<< sd.dwTextureStage;
 }
+std::ostream& operator<<(std::ostream& os, const D3DCOLORVALUE& data)
+{
+	return Logging::LogStruct(os)
+		<< data.r
+		<< data.g
+		<< data.b
+		<< data.a;
+}
+
+std::ostream& operator<<(std::ostream& os, const D3DDP_PTRSTRIDE& data)
+{
+	return Logging::LogStruct(os)
+		<< data.lpvData
+		<< data.dwStride;
+}
+
+std::ostream& operator<<(std::ostream& os, const D3DDRAWPRIMITIVESTRIDEDDATA& data)
+{
+	return Logging::LogStruct(os)
+		<< data.position
+		<< data.normal
+		<< data.diffuse
+		<< data.specular
+		<< Logging::array(data.textureCoords, D3DDP_MAXTEXCOORD);
+}
+
+std::ostream& operator<<(std::ostream& os, const D3DEXECUTEBUFFERDESC& data)
+{
+	return Logging::LogStruct(os)
+		<< Logging::hex(data.dwFlags)
+		<< Logging::hex(data.dwCaps)
+		<< data.dwBufferSize
+		<< data.lpData;
+}
+
+std::ostream& operator<<(std::ostream& os, const D3DEXECUTEDATA& data)
+{
+	return Logging::LogStruct(os)
+		<< data.dwVertexOffset
+		<< data.dwVertexCount
+		<< data.dwInstructionOffset
+		<< data.dwInstructionLength
+		<< data.dwHVertexOffset
+		<< data.dsStatus;
+}
+
+std::ostream& operator<<(std::ostream& os, const D3DLIGHT& data)
+{
+	D3DLIGHT2 light = {};
+	reinterpret_cast<D3DLIGHT&>(light) = data;
+	return os << light;
+}
+
+std::ostream& operator<<(std::ostream& os, const D3DLIGHT2& data)
+{
+	return Logging::LogStruct(os)
+		<< data.dltType
+		<< data.dcvColor
+		<< data.dvPosition
+		<< data.dvDirection
+		<< data.dvRange
+		<< data.dvFalloff
+		<< data.dvAttenuation0
+		<< data.dvAttenuation1
+		<< data.dvAttenuation2
+		<< data.dvTheta
+		<< data.dvPhi
+		<< Logging::hex(data.dwFlags);
+}
+
+std::ostream& operator<<(std::ostream& os, const D3DLIGHT7& data)
+{
+	return Logging::LogStruct(os)
+		<< data.dltType
+		<< data.dcvDiffuse
+		<< data.dcvSpecular
+		<< data.dcvAmbient
+		<< data.dvPosition
+		<< data.dvDirection
+		<< data.dvRange
+		<< data.dvFalloff
+		<< data.dvAttenuation0
+		<< data.dvAttenuation1
+		<< data.dvAttenuation2
+		<< data.dvTheta
+		<< data.dvPhi;
+}
+
+std::ostream& operator<<(std::ostream& os, const D3DMATERIAL& data)
+{
+	return Logging::LogStruct(os)
+		<< data.diffuse
+		<< data.ambient
+		<< data.specular
+		<< data.emissive
+		<< data.power
+		<< Logging::hex(data.hTexture)
+		<< data.dwRampSize;
+}
+
+std::ostream& operator<<(std::ostream& os, const D3DMATERIAL7& data)
+{
+	D3DMATERIAL material = {};
+	reinterpret_cast<D3DMATERIAL7&>(material) = data;
+	return os << material;
+}
+
+std::ostream& operator<<(std::ostream& os, const D3DRECT& data)
+{
+	return Logging::LogStruct(os)
+		<< data.x1
+		<< data.y1
+		<< data.x2
+		<< data.y2;
+}
+
+std::ostream& operator<<(std::ostream& os, const D3DSTATUS& data)
+{
+	return Logging::LogStruct(os)
+		<< Logging::hex(data.dwFlags)
+		<< Logging::hex(data.dwStatus)
+		<< data.drExtent;
+}
+
+std::ostream& operator<<(std::ostream& os, const D3DVERTEXBUFFERDESC& data)
+{
+	return Logging::LogStruct(os)
+		<< Logging::hex(data.dwCaps)
+		<< Logging::hex(data.dwFVF)
+		<< data.dwNumVertices;
+}
 
 std::ostream& operator<<(std::ostream& os, const D3DPRIMCAPS& dpc)
 {
@@ -1775,4 +1906,388 @@ std::ostream& operator<<(std::ostream& os, const WMMSG& Id)
 	VISIT_WMMSG_CODES(VISIT_WMMSG_RETURN);
 
 	return os << Logging::hex((DWORD)Id);
+}
+
+namespace
+{
+	template <typename CreateStruct>
+	std::ostream& logCreateStruct(std::ostream& os, const CreateStruct& cs)
+	{
+		return Logging::LogStruct(os)
+			<< Logging::hex(cs.dwExStyle)
+			<< cs.lpszClass
+			<< cs.lpszName
+			<< Logging::hex(cs.style)
+			<< cs.x
+			<< cs.y
+			<< cs.cx
+			<< cs.cy
+			<< cs.hwndParent
+			<< cs.hMenu
+			<< cs.hInstance
+			<< cs.lpCreateParams;
+	}
+
+	template <typename DevMode>
+	std::ostream& logDevMode(std::ostream& os, const DevMode& dm)
+	{
+		return Logging::LogStruct(os)
+			<< dm.dmPelsWidth
+			<< dm.dmPelsHeight
+			<< dm.dmBitsPerPel
+			<< dm.dmDisplayFrequency
+			<< dm.dmDisplayFlags;
+	}
+
+	template <typename MdiCreateStruct>
+	std::ostream& logMdiCreateStruct(std::ostream& os, const MdiCreateStruct& mcs)
+	{
+		return Logging::LogStruct(os)
+			<< mcs.szClass
+			<< mcs.szTitle
+			<< mcs.hOwner
+			<< mcs.x
+			<< mcs.y
+			<< mcs.cx
+			<< mcs.cy
+			<< Logging::hex(mcs.style)
+			<< Logging::hex(mcs.lParam);
+	}
+}
+
+std::ostream& operator<<(std::ostream& os, const COMPAREITEMSTRUCT& cis)
+{
+	return Logging::LogStruct(os)
+		<< cis.CtlType
+		<< cis.CtlID
+		<< cis.hwndItem
+		<< cis.itemID1
+		<< Logging::hex(cis.itemData1)
+		<< cis.itemID2
+		<< Logging::hex(cis.itemData2)
+		<< Logging::hex(cis.dwLocaleId);
+}
+
+std::ostream& operator<<(std::ostream& os, const COPYDATASTRUCT& cds)
+{
+	return Logging::LogStruct(os)
+		<< Logging::hex(cds.dwData)
+		<< cds.cbData
+		<< cds.lpData;
+}
+
+std::ostream& operator<<(std::ostream& os, const CREATESTRUCTA& cs)
+{
+	return logCreateStruct(os, cs);
+}
+
+std::ostream& operator<<(std::ostream& os, const CREATESTRUCTW& cs)
+{
+	return logCreateStruct(os, cs);
+}
+
+std::ostream& operator<<(std::ostream& os, const CWPSTRUCT& cwp)
+{
+	return Logging::LogStruct(os)
+		<< Logging::hex(cwp.message)
+		<< cwp.hwnd
+		<< Logging::hex(cwp.wParam)
+		<< Logging::hex(cwp.lParam);
+}
+
+std::ostream& operator<<(std::ostream& os, const CWPRETSTRUCT& cwrp)
+{
+	return Logging::LogStruct(os)
+		<< Logging::hex(cwrp.message)
+		<< cwrp.hwnd
+		<< Logging::hex(cwrp.wParam)
+		<< Logging::hex(cwrp.lParam)
+		<< Logging::hex(cwrp.lResult);
+}
+
+std::ostream& operator<<(std::ostream& os, const DELETEITEMSTRUCT& dis)
+{
+	return Logging::LogStruct(os)
+		<< dis.CtlType
+		<< dis.CtlID
+		<< dis.itemID
+		<< dis.hwndItem
+		<< Logging::hex(dis.itemData);
+}
+
+std::ostream& operator<<(std::ostream& os, const DEVMODEA& dm)
+{
+	return logDevMode(os, dm);
+}
+
+std::ostream& operator<<(std::ostream& os, const DEVMODEW& dm)
+{
+	return logDevMode(os, dm);
+}
+
+std::ostream& operator<<(std::ostream& os, const DRAWITEMSTRUCT& dis)
+{
+	return Logging::LogStruct(os)
+		<< dis.CtlType
+		<< dis.CtlID
+		<< dis.itemID
+		<< Logging::hex(dis.itemAction)
+		<< Logging::hex(dis.itemState)
+		<< dis.hwndItem
+		<< dis.hDC
+		<< dis.rcItem
+		<< Logging::hex(dis.itemData);
+}
+
+std::ostream& operator<<(std::ostream& os, const GESTURENOTIFYSTRUCT& gns)
+{
+	return Logging::LogStruct(os)
+		<< gns.cbSize
+		<< Logging::hex(gns.dwFlags)
+		<< gns.hwndTarget
+		<< gns.ptsLocation
+		<< gns.dwInstanceID;
+}
+
+std::ostream& operator<<(std::ostream& os, HDC__& dc)
+{
+	return os << "DC(" << static_cast<void*>(&dc) << ',' << WindowFromDC(&dc) << ')';
+}
+
+std::ostream& operator<<(std::ostream& os, const HELPINFO& hi)
+{
+	Logging::LogStruct log(os);
+	log << hi.cbSize
+		<< hi.iContextType
+		<< hi.iCtrlId;
+
+	if (HELPINFO_WINDOW == hi.iContextType)
+	{
+		log << static_cast<HWND>(hi.hItemHandle);
+	}
+	else
+	{
+		log << static_cast<HMENU>(hi.hItemHandle);
+	}
+
+	return log
+		<< hi.dwContextId
+		<< hi.MousePos;
+}
+
+std::ostream& operator<<(std::ostream& os, HFONT font)
+{
+	LOGFONT lf = {};
+	if (font)
+	{
+		GetObject(font, sizeof(lf), &lf);
+	}
+	return Logging::LogStruct(os)
+		<< static_cast<void*>(font)
+		<< (font ? &lf : nullptr);
+}
+
+std::ostream& operator<<(std::ostream& os, HRGN rgn)
+{
+	os << "RGN";
+	if (!rgn)
+	{
+		return os << "(null)";
+	}
+
+	DWORD size = GetRegionData(rgn, 0, nullptr);
+	if (0 == size)
+	{
+		return os << "[]";
+	}
+
+	std::vector<unsigned char> rgnDataBuf(size);
+	auto& rgnData = *reinterpret_cast<RGNDATA*>(rgnDataBuf.data());
+	GetRegionData(rgn, size, &rgnData);
+
+	return os << Logging::array(reinterpret_cast<RECT*>(rgnData.Buffer), rgnData.rdh.nCount);
+}
+
+std::ostream& operator<<(std::ostream& os, HWND__& hwnd)
+{
+	char name[256] = {};
+	GetClassNameA(&hwnd, name, sizeof(name));
+	RECT rect = {};
+	GetWindowRect(&hwnd, &rect);
+	return os << "WND(" << static_cast<void*>(&hwnd) << ',' << name << ',' << rect << ')';
+}
+
+std::ostream& operator<<(std::ostream& os, const LOGFONT& lf)
+{
+	return Logging::LogStruct(os)
+		<< lf.lfHeight
+		<< lf.lfWidth
+		<< lf.lfEscapement
+		<< lf.lfOrientation
+		<< lf.lfWeight
+		<< static_cast<UINT>(lf.lfItalic)
+		<< static_cast<UINT>(lf.lfUnderline)
+		<< static_cast<UINT>(lf.lfStrikeOut)
+		<< static_cast<UINT>(lf.lfCharSet)
+		<< static_cast<UINT>(lf.lfOutPrecision)
+		<< static_cast<UINT>(lf.lfClipPrecision)
+		<< static_cast<UINT>(lf.lfQuality)
+		<< Logging::hex<UINT>(lf.lfPitchAndFamily)
+		<< lf.lfFaceName;
+}
+
+std::ostream& operator<<(std::ostream& os, const MDICREATESTRUCTA& mcs)
+{
+	return logMdiCreateStruct(os, mcs);
+}
+
+std::ostream& operator<<(std::ostream& os, const MDICREATESTRUCTW& mcs)
+{
+	return logMdiCreateStruct(os, mcs);
+}
+
+std::ostream& operator<<(std::ostream& os, const MDINEXTMENU& mnm)
+{
+	return Logging::LogStruct(os)
+		<< mnm.hmenuIn
+		<< mnm.hmenuNext
+		<< mnm.hwndNext;
+}
+
+std::ostream& operator<<(std::ostream& os, const MEASUREITEMSTRUCT& mis)
+{
+	return Logging::LogStruct(os)
+		<< mis.CtlType
+		<< mis.CtlID
+		<< mis.itemID
+		<< mis.itemWidth
+		<< mis.itemHeight
+		<< Logging::hex(mis.itemData);
+}
+
+std::ostream& operator<<(std::ostream& os, const MEMORYSTATUS& ms)
+{
+	return Logging::LogStruct(os)
+		<< ms.dwLength
+		<< ms.dwMemoryLoad
+		<< ms.dwTotalPhys
+		<< ms.dwAvailPhys
+		<< ms.dwTotalPageFile
+		<< ms.dwAvailPageFile
+		<< ms.dwTotalVirtual
+		<< ms.dwAvailVirtual;
+}
+
+std::ostream& operator<<(std::ostream& os, const MENUGETOBJECTINFO& mgoi)
+{
+	return Logging::LogStruct(os)
+		<< Logging::hex(mgoi.dwFlags)
+		<< mgoi.uPos
+		<< mgoi.hmenu
+		<< static_cast<GUID*>(mgoi.riid)
+		<< mgoi.pvObj;
+}
+
+std::ostream& operator<<(std::ostream& os, const MINMAXINFO& mmi)
+{
+	return Logging::LogStruct(os)
+		<< mmi.ptReserved
+		<< mmi.ptMaxSize
+		<< mmi.ptMaxPosition
+		<< mmi.ptMinTrackSize
+		<< mmi.ptMaxTrackSize;
+}
+
+std::ostream& operator<<(std::ostream& os, const MSG& msg)
+{
+	return Logging::LogStruct(os)
+		<< msg.hwnd
+		<< Logging::hex(msg.message)
+		<< Logging::hex(msg.wParam)
+		<< Logging::hex(msg.lParam)
+		<< msg.time
+		<< msg.pt;
+}
+
+std::ostream& operator<<(std::ostream& os, const NCCALCSIZE_PARAMS& nccs)
+{
+	return Logging::LogStruct(os)
+		<< Logging::array(nccs.rgrc, sizeof(nccs.rgrc) / sizeof(nccs.rgrc[0]))
+		<< nccs.lppos;
+}
+
+std::ostream& operator<<(std::ostream& os, const NMHDR& nm)
+{
+	return Logging::LogStruct(os)
+		<< nm.hwndFrom
+		<< nm.idFrom
+		<< Logging::hex(nm.code);
+}
+
+std::ostream& operator<<(std::ostream& os, const POINT& p)
+{
+	return Logging::LogStruct(os)
+		<< p.x
+		<< p.y;
+}
+
+std::ostream& operator<<(std::ostream& os, const POINTS& p)
+{
+	return Logging::LogStruct(os)
+		<< p.x
+		<< p.y;
+}
+
+std::ostream& operator<<(std::ostream& os, const RECT& rect)
+{
+	return Logging::LogStruct(os)
+		<< rect.left
+		<< rect.top
+		<< rect.right
+		<< rect.bottom;
+}
+
+std::ostream& operator<<(std::ostream& os, const SIZE& size)
+{
+	return Logging::LogStruct(os)
+		<< size.cx
+		<< size.cy;
+}
+
+std::ostream& operator<<(std::ostream& os, const STYLESTRUCT& ss)
+{
+	return Logging::LogStruct(os)
+		<< Logging::hex(ss.styleOld)
+		<< Logging::hex(ss.styleNew);
+}
+
+std::ostream& operator<<(std::ostream& os, const TITLEBARINFOEX& tbi)
+{
+	return Logging::LogStruct(os)
+		<< tbi.cbSize
+		<< tbi.rcTitleBar
+		<< Logging::array(tbi.rgstate, sizeof(tbi.rgstate) / sizeof(tbi.rgstate[0]))
+		<< Logging::array(tbi.rgrect, sizeof(tbi.rgrect) / sizeof(tbi.rgrect[0]));
+}
+
+std::ostream& operator<<(std::ostream& os, const TOUCH_HIT_TESTING_INPUT& thti)
+{
+	return Logging::LogStruct(os)
+		<< thti.pointerId
+		<< thti.point
+		<< thti.boundingBox
+		<< thti.nonOccludedBoundingBox
+		<< thti.orientation;
+}
+
+std::ostream& operator<<(std::ostream& os, const WINDOWPOS& wp)
+{
+	return Logging::LogStruct(os)
+		<< wp.hwnd
+		<< wp.hwndInsertAfter
+		<< wp.x
+		<< wp.y
+		<< wp.cx
+		<< wp.cy
+		<< Logging::hex(wp.flags);
 }

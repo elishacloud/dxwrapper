@@ -44,15 +44,6 @@
     <ClInclude Include="..\Wrappers\d3d9.h">
       <Filter>Wrappers</Filter>
     </ClInclude>
-    <ClInclude Include="..\Wrappers\d3d10.h">
-      <Filter>Wrappers</Filter>
-    </ClInclude>
-    <ClInclude Include="..\Wrappers\d3d11.h">
-      <Filter>Wrappers</Filter>
-    </ClInclude>
-    <ClInclude Include="..\Wrappers\d3d12.h">
-      <Filter>Wrappers</Filter>
-    </ClInclude>
     <ClInclude Include="..\Wrappers\dciman32.h">
       <Filter>Wrappers</Filter>
     </ClInclude>

@@ -13,15 +13,16 @@
   <PropertyGroup Label="Globals">
     <ProjectGuid>{E204DCB3-D122-4F2E-88A8-89AC22CE3274}</ProjectGuid>
     <RootNamespace>stub</RootNamespace>
+    <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
     <ConfigurationType>DynamicLibrary</ConfigurationType>
-    <PlatformToolset>v141</PlatformToolset>
+    <PlatformToolset>v142</PlatformToolset>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
     <ConfigurationType>DynamicLibrary</ConfigurationType>
-    <PlatformToolset>v141</PlatformToolset>
+    <PlatformToolset>v142</PlatformToolset>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
   <ImportGroup Label="ExtensionSettings">
@@ -61,9 +62,6 @@ copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\Stub\cryptsp.dll" &gt
 copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\Stub\d2d1.dll" &gt;nul
 copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\Stub\d3d8.dll" &gt;nul
 copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\Stub\d3d9.dll" &gt;nul
-copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\Stub\d3d10.dll" &gt;nul
-copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\Stub\d3d11.dll" &gt;nul
-copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\Stub\d3d12.dll" &gt;nul
 copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\Stub\dciman32.dll" &gt;nul
 copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\Stub\ddraw.dll" &gt;nul
 copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\Stub\dinput.dll" &gt;nul
@@ -106,9 +104,6 @@ copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\Stub\cryptsp.dll" &gt
 copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\Stub\d2d1.dll" &gt;nul
 copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\Stub\d3d8.dll" &gt;nul
 copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\Stub\d3d9.dll" &gt;nul
-copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\Stub\d3d10.dll" &gt;nul
-copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\Stub\d3d11.dll" &gt;nul
-copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\Stub\d3d12.dll" &gt;nul
 copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\Stub\dciman32.dll" &gt;nul
 copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\Stub\ddraw.dll" &gt;nul
 copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\Stub\dinput.dll" &gt;nul
@@ -151,9 +146,6 @@ copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\Stub\wsock32.dll" &gt
     <ClInclude Include="..\Wrappers\bcrypt.h" />
     <ClInclude Include="..\Wrappers\cryptsp.h" />
     <ClInclude Include="..\Wrappers\d2d1.h" />
-    <ClInclude Include="..\Wrappers\d3d10.h" />
-    <ClInclude Include="..\Wrappers\d3d11.h" />
-    <ClInclude Include="..\Wrappers\d3d12.h" />
     <ClInclude Include="..\Wrappers\d3d8.h" />
     <ClInclude Include="..\Wrappers\d3d9.h" />
     <ClInclude Include="..\Wrappers\dciman32.h" />

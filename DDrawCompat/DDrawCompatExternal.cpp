@@ -2,9 +2,9 @@
 #include "DDrawCompatExternal.h"
 
 // DDrawCompat versions
-#include "Experimental\Dll\DllMain.h"
 #include "v0.2.0b\DllMain.h"
 #include "v0.2.1\DllMain.h"
+#include "v0.3.0\Dll\DllMain.h"
 
 #define INITIALIZE_WRAPPED_PROC(procName) \
 	FARPROC procName ## _in = nullptr; \
@@ -33,6 +33,11 @@ namespace DDrawCompat
 
 	void Prepare()
 	{
+		// DDrawCompat v0.3.0
+#ifdef DDRAWCOMPAT_30
+		PREPARE_DDRAWCOMPAT(Compat30);
+#endif
+
 		// DDrawCompat v0.2.1
 #ifdef DDRAWCOMPAT_21
 		PREPARE_DDRAWCOMPAT(Compat21);
@@ -43,11 +48,6 @@ namespace DDrawCompat
 		PREPARE_DDRAWCOMPAT(Compat20);
 #endif
 
-		// DDrawCompat Eperimental
-#ifdef DDRAWCOMPAT_EXP
-		PREPARE_DDRAWCOMPAT(CompatExperimental);
-#endif
-
 		// Default DDrawCompat version
 		using namespace DDrawCompatDefault;
 		VISIT_ALL_DDRAW_PROCS(ASSIGN_WRAPPED_PROC);
@@ -56,6 +56,11 @@ namespace DDrawCompat
 
 	bool Start(HINSTANCE hinstDLL, DWORD fdwReason)
 	{
+		// DDrawCompat v0.3.0
+#ifdef DDRAWCOMPAT_30
+		START_DDRAWCOMPAT(Compat30);
+#endif
+
 		// DDrawCompat v0.2.1
 #ifdef DDRAWCOMPAT_21
 		START_DDRAWCOMPAT(Compat21);
@@ -64,11 +69,6 @@ namespace DDrawCompat
 		// DDrawCompat v0.2.0b
 #ifdef DDRAWCOMPAT_20
 		START_DDRAWCOMPAT(Compat20);
-#endif
-
-		// DDrawCompat Eperimental
-#ifdef DDRAWCOMPAT_EXP
-		START_DDRAWCOMPAT(CompatExperimental);
 #endif
 
 		// Default DDrawCompat version

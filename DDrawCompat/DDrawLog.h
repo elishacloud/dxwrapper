@@ -59,3 +59,8 @@ namespace Compat21
 		using namespace Logging;
 	}
 }
+
+namespace Compat30
+{
+	using namespace Logging;
+}
