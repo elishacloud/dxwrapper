@@ -62,9 +62,6 @@ DxWrapper can wrap the following dlls:
  - d2d1.dll
  - d3d8.dll
  - d3d9.dll
- - d3d10.dll
- - d3d11.dll
- - d3d12.dll
  - dciman32.dll
  - ddraw.dll
  - dinput.dll
@@ -118,10 +115,10 @@ DxWrapper uses code from several other projects. So to give credit where credit 
  - [WineD3D d3d8.dll](https://github.com/alexhenrie/wine/tree/master/dlls/d3d8): Includes functions ValidatePixelShader and ValidateVertexShader.
 
 ### Development
-DxWrapper is written mostly in C++ using Microsoft Visual Studio Community 2017.
+DxWrapper is written mostly in C++ using Microsoft Visual Studio 2019.
 
 The project requires both the Windows 10 SDK and WDK. The exact version required can be seen in the project properties in Visual Studio.
 
-Our GitHub Link: https://github.com/elishacloud/dxwrapper
+GitHub Link: https://github.com/elishacloud/dxwrapper
 
 Thanks for stopping by!
