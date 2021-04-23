@@ -7,13 +7,13 @@
 
 #include <dwmapi.h>
 
-#include <../DDrawLog.h>
-#include <D3dDdi/KernelModeThunks.h>
-#include <D3dDdi/ScopedCriticalSection.h>
-#include <DDraw/RealPrimarySurface.h>
-#include <Gdi/PresentationWindow.h>
-#include <Gdi/VirtualScreen.h>
-#include <Gdi/Window.h>
+#include <DDrawCompat/DDrawLog.h>
+#include <DDrawCompat/v0.3.0/D3dDdi/KernelModeThunks.h>
+#include <DDrawCompat/v0.3.0/D3dDdi/ScopedCriticalSection.h>
+#include <DDrawCompat/v0.3.0/DDraw/RealPrimarySurface.h>
+#include <DDrawCompat/v0.3.0/Gdi/PresentationWindow.h>
+#include <DDrawCompat/v0.3.0/Gdi/VirtualScreen.h>
+#include <DDrawCompat/v0.3.0/Gdi/Window.h>
 
 namespace
 {

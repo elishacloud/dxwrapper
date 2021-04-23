@@ -2,9 +2,9 @@
 
 #include <ddraw.h>
 
-#include <Common/CompatPtr.h>
-#include <Common/CompatRef.h>
-#include <DDraw/Surfaces/Surface.h>
+#include <DDrawCompat/v0.3.0/Common/CompatPtr.h>
+#include <DDrawCompat/v0.3.0/Common/CompatRef.h>
+#include <DDrawCompat/v0.3.0/DDraw/Surfaces/Surface.h>
 
 namespace DDraw
 {

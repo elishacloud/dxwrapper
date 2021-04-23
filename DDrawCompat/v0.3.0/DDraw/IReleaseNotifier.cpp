@@ -1,7 +1,7 @@
 #define WIN32_LEAN_AND_MEAN
 #define CINTERFACE
 
-#include <DDraw/IReleaseNotifier.h>
+#include <DDrawCompat/v0.3.0/DDraw/IReleaseNotifier.h>
 
 #include <initguid.h>
 

@@ -7,8 +7,8 @@
 #include <d3dnthal.h>
 #include <d3dumddi.h>
 
-#include <D3dDdi/DeviceState.h>
-#include <D3dDdi/DrawPrimitive.h>
+#include <DDrawCompat/v0.3.0/D3dDdi/DeviceState.h>
+#include <DDrawCompat/v0.3.0/D3dDdi/DrawPrimitive.h>
 
 namespace D3dDdi
 {

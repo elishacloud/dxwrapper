@@ -3,20 +3,20 @@
 
 #include <string>
 
-#include <../DDrawLog.h>
-#include <Common/Hook.h>
-#include <Common/ScopedSrwLock.h>
-#include <Common/Time.h>
-#include <D3dDdi/Device.h>
-#include <D3dDdi/KernelModeThunks.h>
-#include <D3dDdi/Log/KernelModeThunksLog.h>
-#include <D3dDdi/Resource.h>
-#include <D3dDdi/ScopedCriticalSection.h>
-#include <DDraw/RealPrimarySurface.h>
-#include <DDraw/ScopedThreadLock.h>
-#include <DDraw/Surfaces/PrimarySurface.h>
-#include <Gdi/Palette.h>
-#include <Win32/DisplayMode.h>
+#include <DDrawCompat/DDrawLog.h>
+#include <DDrawCompat/v0.3.0/Common/Hook.h>
+#include <DDrawCompat/v0.3.0/Common/ScopedSrwLock.h>
+#include <DDrawCompat/v0.3.0/Common/Time.h>
+#include <DDrawCompat/v0.3.0/D3dDdi/Device.h>
+#include <DDrawCompat/v0.3.0/D3dDdi/KernelModeThunks.h>
+#include <DDrawCompat/v0.3.0/D3dDdi/Log/KernelModeThunksLog.h>
+#include <DDrawCompat/v0.3.0/D3dDdi/Resource.h>
+#include <DDrawCompat/v0.3.0/D3dDdi/ScopedCriticalSection.h>
+#include <DDrawCompat/v0.3.0/DDraw/RealPrimarySurface.h>
+#include <DDrawCompat/v0.3.0/DDraw/ScopedThreadLock.h>
+#include <DDrawCompat/v0.3.0/DDraw/Surfaces/PrimarySurface.h>
+#include <DDrawCompat/v0.3.0/Gdi/Palette.h>
+#include <DDrawCompat/v0.3.0/Win32/DisplayMode.h>
 
 namespace
 {

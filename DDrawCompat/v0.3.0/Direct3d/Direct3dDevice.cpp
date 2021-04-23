@@ -1,15 +1,15 @@
 #define WIN32_LEAN_AND_MEAN
 #define CINTERFACE
 
-#include <Common/CompatPtr.h>
-#include <Common/CompatRef.h>
-#include <Common/CompatVtable.h>
-#include <D3dDdi/Device.h>
-#include <D3dDdi/ScopedCriticalSection.h>
-#include <DDraw/ScopedThreadLock.h>
-#include <DDraw/Surfaces/Surface.h>
-#include <Direct3d/Direct3dDevice.h>
-#include <Direct3d/Visitors/Direct3dDeviceVtblVisitor.h>
+#include <DDrawCompat/v0.3.0/Common/CompatPtr.h>
+#include <DDrawCompat/v0.3.0/Common/CompatRef.h>
+#include <DDrawCompat/v0.3.0/Common/CompatVtable.h>
+#include <DDrawCompat/v0.3.0/D3dDdi/Device.h>
+#include <DDrawCompat/v0.3.0/D3dDdi/ScopedCriticalSection.h>
+#include <DDrawCompat/v0.3.0/DDraw/ScopedThreadLock.h>
+#include <DDrawCompat/v0.3.0/DDraw/Surfaces/Surface.h>
+#include <DDrawCompat/v0.3.0/Direct3d/Direct3dDevice.h>
+#include <DDrawCompat/v0.3.0/Direct3d/Visitors/Direct3dDeviceVtblVisitor.h>
 
 namespace
 {

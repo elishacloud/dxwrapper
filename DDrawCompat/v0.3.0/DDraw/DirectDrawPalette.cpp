@@ -4,13 +4,13 @@
 #include <cstring>
 #include <deque>
 
-#include <Common/CompatVtable.h>
-#include <Common/Time.h>
-#include <Config/Config.h>
-#include <DDraw/DirectDrawPalette.h>
-#include <DDraw/ScopedThreadLock.h>
-#include <DDraw/Surfaces/PrimarySurface.h>
-#include <DDraw/Visitors/DirectDrawPaletteVtblVisitor.h>
+#include <DDrawCompat/v0.3.0/Common/CompatVtable.h>
+#include <DDrawCompat/v0.3.0/Common/Time.h>
+#include <DDrawCompat/v0.3.0/Config/Config.h>
+#include <DDrawCompat/v0.3.0/DDraw/DirectDrawPalette.h>
+#include <DDrawCompat/v0.3.0/DDraw/ScopedThreadLock.h>
+#include <DDrawCompat/v0.3.0/DDraw/Surfaces/PrimarySurface.h>
+#include <DDrawCompat/v0.3.0/DDraw/Visitors/DirectDrawPaletteVtblVisitor.h>
 
 namespace
 {

@@ -1,12 +1,12 @@
 #define WIN32_LEAN_AND_MEAN
 #define CINTERFACE
 
-#include <Common/CompatVtable.h>
-#include <DDraw/DirectDrawSurface.h>
-#include <DDraw/ScopedThreadLock.h>
-#include <DDraw/Surfaces/Surface.h>
-#include <DDraw/Surfaces/SurfaceImpl.h>
-#include <DDraw/Visitors/DirectDrawSurfaceVtblVisitor.h>
+#include <DDrawCompat/v0.3.0/Common/CompatVtable.h>
+#include <DDrawCompat/v0.3.0/DDraw/DirectDrawSurface.h>
+#include <DDrawCompat/v0.3.0/DDraw/ScopedThreadLock.h>
+#include <DDrawCompat/v0.3.0/DDraw/Surfaces/Surface.h>
+#include <DDrawCompat/v0.3.0/DDraw/Surfaces/SurfaceImpl.h>
+#include <DDrawCompat/v0.3.0/DDraw/Visitors/DirectDrawSurfaceVtblVisitor.h>
 
 #define SET_COMPAT_METHOD(method) \
 	vtable.method = &callImpl<decltype(&DDraw::SurfaceImpl<TSurface>::method), &DDraw::SurfaceImpl<TSurface>::method, \

@@ -1,9 +1,9 @@
 #define WIN32_LEAN_AND_MEAN
 #define CINTERFACE
 
-#include <Common/CompatVtable.h>
-#include <D3dDdi/AdapterCallbacks.h>
-#include <D3dDdi/Visitors/AdapterCallbacksVisitor.h>
+#include <DDrawCompat/v0.3.0/Common/CompatVtable.h>
+#include <DDrawCompat/v0.3.0/D3dDdi/AdapterCallbacks.h>
+#include <DDrawCompat/v0.3.0/D3dDdi/Visitors/AdapterCallbacksVisitor.h>
 
 namespace
 {

@@ -1,11 +1,11 @@
 #define WIN32_LEAN_AND_MEAN
 #define CINTERFACE
 
-#include <Common/CompatVtable.h>
-#include <D3dDdi/Device.h>
-#include <D3dDdi/DeviceFuncs.h>
-#include <D3dDdi/ScopedCriticalSection.h>
-#include <D3dDdi/Visitors/DeviceFuncsVisitor.h>
+#include <DDrawCompat/v0.3.0/Common/CompatVtable.h>
+#include <DDrawCompat/v0.3.0/D3dDdi/Device.h>
+#include <DDrawCompat/v0.3.0/D3dDdi/DeviceFuncs.h>
+#include <DDrawCompat/v0.3.0/D3dDdi/ScopedCriticalSection.h>
+#include <DDrawCompat/v0.3.0/D3dDdi/Visitors/DeviceFuncsVisitor.h>
 
 namespace
 {

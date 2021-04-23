@@ -7,14 +7,14 @@
 #include <winternl.h>
 #include <d3dkmthk.h>
 
-#include <Common/CompatVtable.h>
-#include <Common/HResultException.h>
-#include <../DDrawLog.h>
-#include <D3dDdi/Adapter.h>
-#include <D3dDdi/Device.h>
-#include <D3dDdi/DeviceFuncs.h>
-#include <D3dDdi/Resource.h>
-#include <D3dDdi/ScopedCriticalSection.h>
+#include <DDrawCompat/v0.3.0/Common/CompatVtable.h>
+#include <DDrawCompat/v0.3.0/Common/HResultException.h>
+#include <DDrawCompat/DDrawLog.h>
+#include <DDrawCompat/v0.3.0/D3dDdi/Adapter.h>
+#include <DDrawCompat/v0.3.0/D3dDdi/Device.h>
+#include <DDrawCompat/v0.3.0/D3dDdi/DeviceFuncs.h>
+#include <DDrawCompat/v0.3.0/D3dDdi/Resource.h>
+#include <DDrawCompat/v0.3.0/D3dDdi/ScopedCriticalSection.h>
 
 namespace
 {

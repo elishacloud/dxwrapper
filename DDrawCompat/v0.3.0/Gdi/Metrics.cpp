@@ -3,9 +3,9 @@
 
 #include <Windows.h>
 
-#include <Common/Hook.h>
-#include <../DDrawLog.h>
-#include <Gdi/Metrics.h>
+#include <DDrawCompat/v0.3.0/Common/Hook.h>
+#include <DDrawCompat/DDrawLog.h>
+#include <DDrawCompat/v0.3.0/Gdi/Metrics.h>
 
 namespace
 {

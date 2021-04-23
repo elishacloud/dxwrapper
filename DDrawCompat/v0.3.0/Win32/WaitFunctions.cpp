@@ -6,10 +6,10 @@
 //#include <timeapi.h>
 //********** End Edit ***************
 
-#include <Common/Hook.h>
-#include <Common/Time.h>
-#include <Config/Config.h>
-#include <Win32/WaitFunctions.h>
+#include <DDrawCompat/v0.3.0/Common/Hook.h>
+#include <DDrawCompat/v0.3.0/Common/Time.h>
+#include <DDrawCompat/v0.3.0/Config/Config.h>
+#include <DDrawCompat/v0.3.0/Win32/WaitFunctions.h>
 
 namespace
 {

@@ -2,7 +2,7 @@
 
 #include <d3d.h>
 
-#include <Common/VtableVisitor.h>
+#include <DDrawCompat/v0.3.0/Common/VtableVisitor.h>
 
 template <>
 struct VtableForEach<IDirect3DTextureVtbl>

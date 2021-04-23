@@ -4,13 +4,13 @@
 #include <string>
 #include <vector>
 
-#include <Common/CompatPtr.h>
-#include <Common/Hook.h>
-#include <DDraw/DirectDraw.h>
-#include <DDraw/ScopedThreadLock.h>
-#include <Gdi/Gdi.h>
-#include <Gdi/VirtualScreen.h>
-#include <Win32/DisplayMode.h>
+#include <DDrawCompat/v0.3.0/Common/CompatPtr.h>
+#include <DDrawCompat/v0.3.0/Common/Hook.h>
+#include <DDrawCompat/v0.3.0/DDraw/DirectDraw.h>
+#include <DDrawCompat/v0.3.0/DDraw/ScopedThreadLock.h>
+#include <DDrawCompat/v0.3.0/Gdi/Gdi.h>
+#include <DDrawCompat/v0.3.0/Gdi/VirtualScreen.h>
+#include <DDrawCompat/v0.3.0/Win32/DisplayMode.h>
 
 BOOL WINAPI DWM8And16Bit_IsShimApplied_CallOut() { return FALSE; }
 BOOL WINAPI SE_COM_HookInterface(CLSID*, GUID*, DWORD, DWORD) { return 0; }

@@ -7,8 +7,8 @@
 
 #include <intrin.h>
 
-#include <Common/ScopedCriticalSection.h>
-#include <DDraw/Blitter.h>
+#include <DDrawCompat/v0.3.0/Common/ScopedCriticalSection.h>
+#include <DDrawCompat/v0.3.0/DDraw/Blitter.h>
 
 #pragma warning(disable : 4127)
 

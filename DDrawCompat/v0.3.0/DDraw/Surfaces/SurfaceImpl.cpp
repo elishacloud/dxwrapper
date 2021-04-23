@@ -3,14 +3,14 @@
 
 #include <set>
 
-#include <Common/CompatPtr.h>
-#include <DDraw/DirectDrawClipper.h>
-#include <DDraw/DirectDrawSurface.h>
-#include <DDraw/RealPrimarySurface.h>
-#include <DDraw/Surfaces/PrimarySurface.h>
-#include <DDraw/Surfaces/Surface.h>
-#include <DDraw/Surfaces/SurfaceImpl.h>
-#include <Dll/Dll.h>
+#include <DDrawCompat/v0.3.0/Common/CompatPtr.h>
+#include <DDrawCompat/v0.3.0/DDraw/DirectDrawClipper.h>
+#include <DDrawCompat/v0.3.0/DDraw/DirectDrawSurface.h>
+#include <DDrawCompat/v0.3.0/DDraw/RealPrimarySurface.h>
+#include <DDrawCompat/v0.3.0/DDraw/Surfaces/PrimarySurface.h>
+#include <DDrawCompat/v0.3.0/DDraw/Surfaces/Surface.h>
+#include <DDrawCompat/v0.3.0/DDraw/Surfaces/SurfaceImpl.h>
+#include <DDrawCompat/v0.3.0/Dll/Dll.h>
 
 namespace
 {

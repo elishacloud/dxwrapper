@@ -1,9 +1,9 @@
 #define WIN32_LEAN_AND_MEAN
 #define CINTERFACE
 
-#include <Common/Hook.h>
-#include <../DDrawLog.h>
-#include <Gdi/Font.h>
+#include <DDrawCompat/v0.3.0/Common/Hook.h>
+#include <DDrawCompat/DDrawLog.h>
+#include <DDrawCompat/v0.3.0/Gdi/Font.h>
 
 namespace
 {

@@ -3,9 +3,9 @@
 
 #include <Windows.h>
 
-#include <Common/Hook.h>
-#include <../DDrawLog.h>
-#include <Win32/MemoryManagement.h>
+#include <DDrawCompat/v0.3.0/Common/Hook.h>
+#include <DDrawCompat/DDrawLog.h>
+#include <DDrawCompat/v0.3.0/Win32/MemoryManagement.h>
 
 namespace
 {

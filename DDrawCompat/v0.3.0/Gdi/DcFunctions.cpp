@@ -1,16 +1,16 @@
 #define WIN32_LEAN_AND_MEAN
 #define CINTERFACE
 
-#include <Common/Hook.h>
-#include <../DDrawLog.h>
-#include <Gdi/CompatDc.h>
-#include <Gdi/Dc.h>
-#include <Gdi/DcFunctions.h>
-#include <Gdi/Font.h>
-#include <Gdi/Gdi.h>
-#include <Gdi/Region.h>
-#include <Gdi/VirtualScreen.h>
-#include <Win32/DisplayMode.h>
+#include <DDrawCompat/v0.3.0/Common/Hook.h>
+#include <DDrawCompat/DDrawLog.h>
+#include <DDrawCompat/v0.3.0/Gdi/CompatDc.h>
+#include <DDrawCompat/v0.3.0/Gdi/Dc.h>
+#include <DDrawCompat/v0.3.0/Gdi/DcFunctions.h>
+#include <DDrawCompat/v0.3.0/Gdi/Font.h>
+#include <DDrawCompat/v0.3.0/Gdi/Gdi.h>
+#include <DDrawCompat/v0.3.0/Gdi/Region.h>
+#include <DDrawCompat/v0.3.0/Gdi/VirtualScreen.h>
+#include <DDrawCompat/v0.3.0/Win32/DisplayMode.h>
 
 namespace
 {

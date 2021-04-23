@@ -2,10 +2,10 @@
 
 #include <ddraw.h>
 
-#include <Common/CompatRef.h>
-#include <Common/CompatVtable.h>
-#include <DDraw/Surfaces/SurfaceImpl.h>
-#include <DDraw/Types.h>
+#include <DDrawCompat/v0.3.0/Common/CompatRef.h>
+#include <DDrawCompat/v0.3.0/Common/CompatVtable.h>
+#include <DDrawCompat/v0.3.0/DDraw/Surfaces/SurfaceImpl.h>
+#include <DDrawCompat/v0.3.0/DDraw/Types.h>
 
 namespace DDraw
 {

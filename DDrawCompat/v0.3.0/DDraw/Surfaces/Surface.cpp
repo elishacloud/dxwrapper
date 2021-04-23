@@ -3,13 +3,13 @@
 
 #include <initguid.h>
 
-#include <Common/CompatPtr.h>
-#include <D3dDdi/Device.h>
-#include <D3dDdi/Resource.h>
-#include <DDraw/DirectDrawSurface.h>
-#include <DDraw/Surfaces/Surface.h>
-#include <DDraw/Surfaces/SurfaceImpl.h>
-#include <Win32/DisplayMode.h>
+#include <DDrawCompat/v0.3.0/Common/CompatPtr.h>
+#include <DDrawCompat/v0.3.0/D3dDdi/Device.h>
+#include <DDrawCompat/v0.3.0/D3dDdi/Resource.h>
+#include <DDrawCompat/v0.3.0/DDraw/DirectDrawSurface.h>
+#include <DDrawCompat/v0.3.0/DDraw/Surfaces/Surface.h>
+#include <DDrawCompat/v0.3.0/DDraw/Surfaces/SurfaceImpl.h>
+#include <DDrawCompat/v0.3.0/Win32/DisplayMode.h>
 
 // {C62D8849-DFAC-4454-A1E8-DA67446426BA}
 DEFINE_GUID(IID_CompatSurfacePrivateData,

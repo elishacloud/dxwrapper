@@ -2,7 +2,7 @@
 
 #include <ostream>
 
-#include <Common/CompatVtable.h>
+#include <DDrawCompat/v0.3.0/Common/CompatVtable.h>
 
 template <typename Intf>
 class CompatWeakPtr

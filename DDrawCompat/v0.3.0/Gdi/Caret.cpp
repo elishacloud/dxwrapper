@@ -3,12 +3,12 @@
 
 #include <Windows.h>
 
-#include <Common/Hook.h>
-#include <Common/Time.h>
-#include <D3dDdi/ScopedCriticalSection.h>
-#include <Dll/Dll.h>
-#include <Gdi/Caret.h>
-#include <Gdi/Gdi.h>
+#include <DDrawCompat/v0.3.0/Common/Hook.h>
+#include <DDrawCompat/v0.3.0/Common/Time.h>
+#include <DDrawCompat/v0.3.0/D3dDdi/ScopedCriticalSection.h>
+#include <DDrawCompat/v0.3.0/Dll/Dll.h>
+#include <DDrawCompat/v0.3.0/Gdi/Caret.h>
+#include <DDrawCompat/v0.3.0/Gdi/Gdi.h>
 
 namespace
 {

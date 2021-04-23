@@ -10,9 +10,9 @@
 #include <initguid.h>
 #include <DbgEng.h>
 
-#include <Common/Hook.h>
-#include <../DDrawLog.h>
-#include <Dll/Dll.h>
+#include <DDrawCompat/v0.3.0/Common/Hook.h>
+#include <DDrawCompat/DDrawLog.h>
+#include <DDrawCompat/v0.3.0/Dll/Dll.h>
 
 namespace
 {
@@ -217,8 +217,19 @@ namespace
 		}
 		g_isDbgEngInitialized = true;
 
+		//********** Begin Edit *************
+		typedef HRESULT(WINAPI* PFN_DebugCreate)(_In_ REFIID InterfaceId, _Out_ PVOID* Interface);
+		static HMODULE dll = LoadLibrary("DbgHelp.dll");
+		static PFN_DebugCreate pDebugCreate = (PFN_DebugCreate)GetProcAddress(dll, "DebugCreate");
+		if (pDebugCreate)
+		{
+			Compat30::Log() << "ERROR: DbgEng: failed to get proc address!";
+			return false;
+		}
+		//********** End Edit ***************
+
 		HRESULT result = S_OK;
-		if (FAILED(result = DebugCreate(IID_IDebugClient, reinterpret_cast<void**>(&g_debugClient))) ||
+		if (FAILED(result = pDebugCreate(IID_IDebugClient, reinterpret_cast<void**>(&g_debugClient))) ||
 			FAILED(result = g_debugClient->QueryInterface(IID_IDebugControl, reinterpret_cast<void**>(&g_debugControl))) ||
 			FAILED(result = g_debugClient->QueryInterface(IID_IDebugSymbols, reinterpret_cast<void**>(&g_debugSymbols))) ||
 			FAILED(result = g_debugClient->QueryInterface(IID_IDebugDataSpaces4, reinterpret_cast<void**>(&g_debugDataSpaces))))

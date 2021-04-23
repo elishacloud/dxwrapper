@@ -50,8 +50,6 @@ extern "C"
 
 #undef LoadLibrary
 
-#pragma comment (lib, "wbemuuid.lib")
-
 typedef enum PROCESS_DPI_AWARENESS {
 	PROCESS_DPI_UNAWARE = 0,
 	PROCESS_SYSTEM_DPI_AWARE = 1,

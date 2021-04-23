@@ -4,8 +4,8 @@
 #include <typeinfo>
 #include <type_traits>
 
-#include <Common/Hook.h>
-#include <../DDrawLog.h>
+#include <DDrawCompat/v0.3.0/Common/Hook.h>
+#include <DDrawCompat/DDrawLog.h>
 
 template <auto memberPtr, typename Interface, typename... Params>
 auto __stdcall callOrigFunc(Interface This, Params... params)

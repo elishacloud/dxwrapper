@@ -3,10 +3,10 @@
 
 #include <algorithm>
 
-#include <../DDrawLog.h>
-#include <D3dDdi/DrawPrimitive.h>
-#include <D3dDdi/Device.h>
-#include <D3dDdi/Resource.h>
+#include <DDrawCompat/DDrawLog.h>
+#include <DDrawCompat/v0.3.0/D3dDdi/DrawPrimitive.h>
+#include <DDrawCompat/v0.3.0/D3dDdi/Device.h>
+#include <DDrawCompat/v0.3.0/D3dDdi/Resource.h>
 
 namespace
 {

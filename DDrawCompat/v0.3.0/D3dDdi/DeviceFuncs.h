@@ -3,7 +3,7 @@
 #include <d3d.h>
 #include <d3dumddi.h>
 
-#include <D3dDdi/Log/DeviceFuncsLog.h>
+#include <DDrawCompat/v0.3.0/D3dDdi/Log/DeviceFuncsLog.h>
 
 namespace D3dDdi
 {

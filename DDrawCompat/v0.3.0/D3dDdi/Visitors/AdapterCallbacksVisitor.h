@@ -3,7 +3,7 @@
 #include <d3d.h>
 #include <d3dumddi.h>
 
-#include <Common/VtableVisitor.h>
+#include <DDrawCompat/v0.3.0/Common/VtableVisitor.h>
 
 template <>
 struct VtableForEach<D3DDDI_ADAPTERCALLBACKS>

@@ -7,7 +7,7 @@
 #include <winternl.h>
 #include <d3dkmthk.h>
 
-#include <D3dDdi/Log/CommonLog.h>
+#include <DDrawCompat/v0.3.0/D3dDdi/Log/CommonLog.h>
 
 std::ostream& operator<<(std::ostream& os, const LUID& luid);
 std::ostream& operator<<(std::ostream& os, const D3DKMT_CREATECONTEXT& data);

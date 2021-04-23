@@ -3,8 +3,8 @@
 
 #include <Windows.h>
 
-#include <Common/Hook.h>
-#include <Win32/MsgHooks.h>
+#include <DDrawCompat/v0.3.0/Common/Hook.h>
+#include <DDrawCompat/v0.3.0/Win32/MsgHooks.h>
 
 namespace
 {

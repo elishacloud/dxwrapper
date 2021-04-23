@@ -1,6 +1,6 @@
 #pragma once
 
-#include <Gdi/Gdi.h>
+#include <DDrawCompat/v0.3.0/Gdi/Gdi.h>
 
 namespace Gdi
 {

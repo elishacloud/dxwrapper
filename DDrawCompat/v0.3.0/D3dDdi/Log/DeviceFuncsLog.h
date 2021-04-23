@@ -5,7 +5,7 @@
 #include <d3d.h>
 #include <d3dumddi.h>
 
-#include <D3dDdi/Log/CommonLog.h>
+#include <DDrawCompat/v0.3.0/D3dDdi/Log/CommonLog.h>
 
 std::ostream& operator<<(std::ostream& os, D3DDDI_POOL val);
 std::ostream& operator<<(std::ostream& os, const D3DDDI_SURFACEINFO& val);

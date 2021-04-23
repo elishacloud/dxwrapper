@@ -6,7 +6,7 @@
 #include <d3d.h>
 #include <d3dumddi.h>
 
-#include <D3dDdi/FormatInfo.h>
+#include <DDrawCompat/v0.3.0/D3dDdi/FormatInfo.h>
 
 namespace D3dDdi
 {

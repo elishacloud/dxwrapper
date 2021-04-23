@@ -2,7 +2,7 @@
 
 #include <d3d.h>
 
-#include <../DDrawLog.h>
+#include <DDrawCompat/DDrawLog.h>
 
 namespace Direct3d
 {

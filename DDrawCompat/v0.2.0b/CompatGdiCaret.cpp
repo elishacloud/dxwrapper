@@ -3,7 +3,7 @@
 
 #include <oleacc.h>
 #include <Windows.h>
-#include <detours.h>
+#include <External\detours\src\detours.h>
 
 #include "CompatGdi.h"
 #include "CompatGdiCaret.h"

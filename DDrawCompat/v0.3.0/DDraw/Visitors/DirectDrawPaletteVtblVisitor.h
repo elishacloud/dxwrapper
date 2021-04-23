@@ -1,6 +1,6 @@
 #pragma once
 
-#include <Common/VtableVisitor.h>
+#include <DDrawCompat/v0.3.0/Common/VtableVisitor.h>
 
 template <>
 struct VtableForEach<IDirectDrawPaletteVtbl>

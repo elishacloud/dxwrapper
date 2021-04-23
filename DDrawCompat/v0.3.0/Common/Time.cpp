@@ -1,6 +1,6 @@
 #pragma once
 
-#include <Common/Time.h>
+#include <DDrawCompat/v0.3.0/Common/Time.h>
 
 namespace Time
 {

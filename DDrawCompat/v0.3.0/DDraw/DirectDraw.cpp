@@ -3,14 +3,14 @@
 
 #include <type_traits>
 
-#include <Common/CompatPtr.h>
-#include <Common/CompatVtable.h>
-#include <D3dDdi/KernelModeThunks.h>
-#include <DDraw/DirectDraw.h>
-#include <DDraw/RealPrimarySurface.h>
-#include <DDraw/ScopedThreadLock.h>
-#include <DDraw/Surfaces/PrimarySurface.h>
-#include <DDraw/Visitors/DirectDrawVtblVisitor.h>
+#include <DDrawCompat/v0.3.0/Common/CompatPtr.h>
+#include <DDrawCompat/v0.3.0/Common/CompatVtable.h>
+#include <DDrawCompat/v0.3.0/D3dDdi/KernelModeThunks.h>
+#include <DDrawCompat/v0.3.0/DDraw/DirectDraw.h>
+#include <DDrawCompat/v0.3.0/DDraw/RealPrimarySurface.h>
+#include <DDrawCompat/v0.3.0/DDraw/ScopedThreadLock.h>
+#include <DDrawCompat/v0.3.0/DDraw/Surfaces/PrimarySurface.h>
+#include <DDrawCompat/v0.3.0/DDraw/Visitors/DirectDrawVtblVisitor.h>
 
 namespace
 {

@@ -19,22 +19,22 @@
 #include <ShellScalingApi.h>
 #include <Uxtheme.h>
 
-#include <Common/Hook.h>
-#include <../DDrawLog.h>
-#include <Common/Time.h>
-#include <D3dDdi/Hooks.h>
-#include <DDraw/DirectDraw.h>
-#include <DDraw/Hooks.h>
-#include <Direct3d/Hooks.h>
-#include <Dll/Dll.h>
-#include <Gdi/Gdi.h>
-#include <Gdi/PresentationWindow.h>
-#include <Gdi/VirtualScreen.h>
-#include <Win32/DisplayMode.h>
-#include <Win32/MemoryManagement.h>
-#include <Win32/MsgHooks.h>
-#include <Win32/Registry.h>
-#include <Win32/WaitFunctions.h>
+#include <DDrawCompat/v0.3.0/Common/Hook.h>
+#include <DDrawCompat/DDrawLog.h>
+#include <DDrawCompat/v0.3.0/Common/Time.h>
+#include <DDrawCompat/v0.3.0/D3dDdi/Hooks.h>
+#include <DDrawCompat/v0.3.0/DDraw/DirectDraw.h>
+#include <DDrawCompat/v0.3.0/DDraw/Hooks.h>
+#include <DDrawCompat/v0.3.0/Direct3d/Hooks.h>
+#include <DDrawCompat/v0.3.0/Dll/Dll.h>
+#include <DDrawCompat/v0.3.0/Gdi/Gdi.h>
+#include <DDrawCompat/v0.3.0/Gdi/PresentationWindow.h>
+#include <DDrawCompat/v0.3.0/Gdi/VirtualScreen.h>
+#include <DDrawCompat/v0.3.0/Win32/DisplayMode.h>
+#include <DDrawCompat/v0.3.0/Win32/MemoryManagement.h>
+#include <DDrawCompat/v0.3.0/Win32/MsgHooks.h>
+#include <DDrawCompat/v0.3.0/Win32/Registry.h>
+#include <DDrawCompat/v0.3.0/Win32/WaitFunctions.h>
 //********** Begin Edit *************
 #define DllMain DllMain_DDrawCompat
 //********** End Edit ***************

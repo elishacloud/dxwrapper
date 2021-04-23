@@ -3,18 +3,18 @@
 
 #include <type_traits>
 
-#include <Common/HResultException.h>
-#include <../DDrawLog.h>
-#include <Common/Time.h>
-#include <Config/Config.h>
-#include <D3dDdi/Adapter.h>
-#include <D3dDdi/Device.h>
-#include <D3dDdi/KernelModeThunks.h>
-#include <D3dDdi/Log/DeviceFuncsLog.h>
-#include <D3dDdi/Resource.h>
-#include <DDraw/Blitter.h>
-#include <Gdi/Palette.h>
-#include <Gdi/VirtualScreen.h>
+#include <DDrawCompat/v0.3.0/Common/HResultException.h>
+#include <DDrawCompat/DDrawLog.h>
+#include <DDrawCompat/v0.3.0/Common/Time.h>
+#include <DDrawCompat/v0.3.0/Config/Config.h>
+#include <DDrawCompat/v0.3.0/D3dDdi/Adapter.h>
+#include <DDrawCompat/v0.3.0/D3dDdi/Device.h>
+#include <DDrawCompat/v0.3.0/D3dDdi/KernelModeThunks.h>
+#include <DDrawCompat/v0.3.0/D3dDdi/Log/DeviceFuncsLog.h>
+#include <DDrawCompat/v0.3.0/D3dDdi/Resource.h>
+#include <DDrawCompat/v0.3.0/DDraw/Blitter.h>
+#include <DDrawCompat/v0.3.0/Gdi/Palette.h>
+#include <DDrawCompat/v0.3.0/Gdi/VirtualScreen.h>
 
 namespace
 {

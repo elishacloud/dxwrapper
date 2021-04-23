@@ -5,24 +5,24 @@
 #include <memory>
 #include <vector>
 
-#include <Common/CompatPtr.h>
-#include <Common/Hook.h>
-#include <Common/Time.h>
-#include <Config/Config.h>
-#include <D3dDdi/Device.h>
-#include <D3dDdi/KernelModeThunks.h>
-#include <DDraw/DirectDraw.h>
-#include <DDraw/DirectDrawSurface.h>
-#include <DDraw/IReleaseNotifier.h>
-#include <DDraw/RealPrimarySurface.h>
-#include <DDraw/ScopedThreadLock.h>
-#include <DDraw/Surfaces/PrimarySurface.h>
-#include <DDraw/Types.h>
-#include <Gdi/Caret.h>
-#include <Gdi/Gdi.h>
-#include <Gdi/VirtualScreen.h>
-#include <Gdi/Window.h>
-#include <Win32/DisplayMode.h>
+#include <DDrawCompat/v0.3.0/Common/CompatPtr.h>
+#include <DDrawCompat/v0.3.0/Common/Hook.h>
+#include <DDrawCompat/v0.3.0/Common/Time.h>
+#include <DDrawCompat/v0.3.0/Config/Config.h>
+#include <DDrawCompat/v0.3.0/D3dDdi/Device.h>
+#include <DDrawCompat/v0.3.0/D3dDdi/KernelModeThunks.h>
+#include <DDrawCompat/v0.3.0/DDraw/DirectDraw.h>
+#include <DDrawCompat/v0.3.0/DDraw/DirectDrawSurface.h>
+#include <DDrawCompat/v0.3.0/DDraw/IReleaseNotifier.h>
+#include <DDrawCompat/v0.3.0/DDraw/RealPrimarySurface.h>
+#include <DDrawCompat/v0.3.0/DDraw/ScopedThreadLock.h>
+#include <DDrawCompat/v0.3.0/DDraw/Surfaces/PrimarySurface.h>
+#include <DDrawCompat/v0.3.0/DDraw/Types.h>
+#include <DDrawCompat/v0.3.0/Gdi/Caret.h>
+#include <DDrawCompat/v0.3.0/Gdi/Gdi.h>
+#include <DDrawCompat/v0.3.0/Gdi/VirtualScreen.h>
+#include <DDrawCompat/v0.3.0/Gdi/Window.h>
+#include <DDrawCompat/v0.3.0/Win32/DisplayMode.h>
 
 namespace
 {

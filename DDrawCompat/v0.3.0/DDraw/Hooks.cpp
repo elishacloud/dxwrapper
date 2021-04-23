@@ -1,17 +1,17 @@
 #define WIN32_LEAN_AND_MEAN
 #define CINTERFACE
 
-#include <Common/CompatRef.h>
-#include <../DDrawLog.h>
-#include <DDraw/DirectDraw.h>
-#include <DDraw/DirectDrawClipper.h>
-#include <DDraw/DirectDrawGammaControl.h>
-#include <DDraw/DirectDrawPalette.h>
-#include <DDraw/DirectDrawSurface.h>
-#include <DDraw/Hooks.h>
-#include <DDraw/RealPrimarySurface.h>
-#include <DDraw/ScopedThreadLock.h>
-#include <Win32/Registry.h>
+#include <DDrawCompat/v0.3.0/Common/CompatRef.h>
+#include <DDrawCompat/DDrawLog.h>
+#include <DDrawCompat/v0.3.0/DDraw/DirectDraw.h>
+#include <DDrawCompat/v0.3.0/DDraw/DirectDrawClipper.h>
+#include <DDrawCompat/v0.3.0/DDraw/DirectDrawGammaControl.h>
+#include <DDrawCompat/v0.3.0/DDraw/DirectDrawPalette.h>
+#include <DDrawCompat/v0.3.0/DDraw/DirectDrawSurface.h>
+#include <DDrawCompat/v0.3.0/DDraw/Hooks.h>
+#include <DDrawCompat/v0.3.0/DDraw/RealPrimarySurface.h>
+#include <DDrawCompat/v0.3.0/DDraw/ScopedThreadLock.h>
+#include <DDrawCompat/v0.3.0/Win32/Registry.h>
 
 namespace
 {

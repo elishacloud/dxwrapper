@@ -6,18 +6,18 @@
 
 #include <Windows.h>
 
-#include <Common/Hook.h>
-#include <../DDrawLog.h>
-#include <Common/ScopedSrwLock.h>
-#include <Dll/Dll.h>
-#include <Gdi/CompatDc.h>
-#include <Gdi/Dc.h>
-#include <Gdi/PresentationWindow.h>
-#include <Gdi/ScrollBar.h>
-#include <Gdi/ScrollFunctions.h>
-#include <Gdi/TitleBar.h>
-#include <Gdi/Window.h>
-#include <Gdi/WinProc.h>
+#include <DDrawCompat/v0.3.0/Common/Hook.h>
+#include <DDrawCompat/DDrawLog.h>
+#include <DDrawCompat/v0.3.0/Common/ScopedSrwLock.h>
+#include <DDrawCompat/v0.3.0/Dll/Dll.h>
+#include <DDrawCompat/v0.3.0/Gdi/CompatDc.h>
+#include <DDrawCompat/v0.3.0/Gdi/Dc.h>
+#include <DDrawCompat/v0.3.0/Gdi/PresentationWindow.h>
+#include <DDrawCompat/v0.3.0/Gdi/ScrollBar.h>
+#include <DDrawCompat/v0.3.0/Gdi/ScrollFunctions.h>
+#include <DDrawCompat/v0.3.0/Gdi/TitleBar.h>
+#include <DDrawCompat/v0.3.0/Gdi/Window.h>
+#include <DDrawCompat/v0.3.0/Gdi/WinProc.h>
 
 namespace
 {

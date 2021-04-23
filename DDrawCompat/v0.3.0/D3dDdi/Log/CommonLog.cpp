@@ -3,8 +3,8 @@
 
 #include <cctype>
 
-#include <../DDrawLog.h>
-#include <D3dDdi/Log/CommonLog.h>
+#include <DDrawCompat/DDrawLog.h>
+#include <DDrawCompat/v0.3.0/D3dDdi/Log/CommonLog.h>
 
 std::ostream& operator<<(std::ostream& os, const D3DDDI_RATIONAL& val)
 {

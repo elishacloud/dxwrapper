@@ -3,15 +3,15 @@
 
 #include <set>
 
-#include <Common/Hook.h>
-#include <../DDrawLog.h>
-#include <D3dDdi/Adapter.h>
-#include <D3dDdi/AdapterCallbacks.h>
-#include <D3dDdi/AdapterFuncs.h>
-#include <D3dDdi/Hooks.h>
-#include <D3dDdi/KernelModeThunks.h>
-#include <D3dDdi/ScopedCriticalSection.h>
-#include <Dll/Dll.h>
+#include <DDrawCompat/v0.3.0/Common/Hook.h>
+#include <DDrawCompat/DDrawLog.h>
+#include <DDrawCompat/v0.3.0/D3dDdi/Adapter.h>
+#include <DDrawCompat/v0.3.0/D3dDdi/AdapterCallbacks.h>
+#include <DDrawCompat/v0.3.0/D3dDdi/AdapterFuncs.h>
+#include <DDrawCompat/v0.3.0/D3dDdi/Hooks.h>
+#include <DDrawCompat/v0.3.0/D3dDdi/KernelModeThunks.h>
+#include <DDrawCompat/v0.3.0/D3dDdi/ScopedCriticalSection.h>
+#include <DDrawCompat/v0.3.0/Dll/Dll.h>
 
 std::ostream& operator<<(std::ostream& os, const D3DDDIARG_OPENADAPTER& data)
 {

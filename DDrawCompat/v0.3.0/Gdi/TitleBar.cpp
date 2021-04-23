@@ -1,10 +1,10 @@
 #define WIN32_LEAN_AND_MEAN
 #define CINTERFACE
 
-#include <Common/Hook.h>
-#include <Gdi/Region.h>
-#include <Gdi/TitleBar.h>
-#include <Win32/DisplayMode.h>
+#include <DDrawCompat/v0.3.0/Common/Hook.h>
+#include <DDrawCompat/v0.3.0/Gdi/Region.h>
+#include <DDrawCompat/v0.3.0/Gdi/TitleBar.h>
+#include <DDrawCompat/v0.3.0/Win32/DisplayMode.h>
 
 namespace
 {

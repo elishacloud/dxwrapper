@@ -3,8 +3,8 @@
 
 #include <utility>
 
-#include <Common/Hook.h>
-#include <Gdi/Region.h>
+#include <DDrawCompat/v0.3.0/Common/Hook.h>
+#include <DDrawCompat/v0.3.0/Gdi/Region.h>
 
 namespace
 {

@@ -1,12 +1,12 @@
 #define WIN32_LEAN_AND_MEAN
 #define CINTERFACE
 
-#include <Common/CompatVtable.h>
-#include <D3dDdi/Adapter.h>
-#include <D3dDdi/AdapterFuncs.h>
-#include <D3dDdi/Device.h>
-#include <D3dDdi/DeviceCallbacks.h>
-#include <D3dDdi/DeviceFuncs.h>
+#include <DDrawCompat/v0.3.0/Common/CompatVtable.h>
+#include <DDrawCompat/v0.3.0/D3dDdi/Adapter.h>
+#include <DDrawCompat/v0.3.0/D3dDdi/AdapterFuncs.h>
+#include <DDrawCompat/v0.3.0/D3dDdi/Device.h>
+#include <DDrawCompat/v0.3.0/D3dDdi/DeviceCallbacks.h>
+#include <DDrawCompat/v0.3.0/D3dDdi/DeviceFuncs.h>
 
 namespace
 {

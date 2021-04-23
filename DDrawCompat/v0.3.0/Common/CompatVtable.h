@@ -2,9 +2,9 @@
 
 #include <Windows.h>
 
-#include <Common/VtableHookVisitor.h>
-#include <Common/VtableSizeVisitor.h>
-#include <Common/VtableVisitor.h>
+#include <DDrawCompat/v0.3.0/Common/VtableHookVisitor.h>
+#include <DDrawCompat/v0.3.0/Common/VtableSizeVisitor.h>
+#include <DDrawCompat/v0.3.0/Common/VtableVisitor.h>
 
 template <typename Interface>
 using Vtable = typename std::remove_pointer<decltype(Interface::lpVtbl)>::type;

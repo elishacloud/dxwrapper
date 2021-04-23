@@ -2,8 +2,8 @@
 
 #include <algorithm>
 
-#include <Common/CompatQueryInterface.h>
-#include <Common/CompatWeakPtr.h>
+#include <DDrawCompat/v0.3.0/Common/CompatQueryInterface.h>
+#include <DDrawCompat/v0.3.0/Common/CompatWeakPtr.h>
 
 template <typename Intf>
 class CompatPtr : public CompatWeakPtr<Intf>

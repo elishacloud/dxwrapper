@@ -6,7 +6,7 @@
 #include <d3d.h>
 #include <d3dumddi.h>
 
-#include <D3dDdi/DynamicBuffer.h>
+#include <DDrawCompat/v0.3.0/D3dDdi/DynamicBuffer.h>
 
 namespace D3dDdi
 {

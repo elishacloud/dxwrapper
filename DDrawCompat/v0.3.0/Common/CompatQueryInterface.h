@@ -4,7 +4,7 @@
 
 #include <d3d.h>
 
-#include <Common/CompatVtable.h>
+#include <DDrawCompat/v0.3.0/Common/CompatVtable.h>
 
 namespace Compat30
 {

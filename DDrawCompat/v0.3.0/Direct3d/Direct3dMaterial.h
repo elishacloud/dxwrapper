@@ -1,6 +1,6 @@
 #pragma once
 
-#include <../DDrawLog.h>
+#include <DDrawCompat/DDrawLog.h>
 
 namespace Direct3d
 {

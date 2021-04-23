@@ -2,8 +2,8 @@
 
 #include <ddraw.h>
 
-#include <Common/CompatRef.h>
-#include <Gdi/Region.h>
+#include <DDrawCompat/v0.3.0/Common/CompatRef.h>
+#include <DDrawCompat/v0.3.0/Gdi/Region.h>
 
 namespace Gdi
 {

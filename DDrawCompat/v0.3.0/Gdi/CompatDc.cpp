@@ -1,13 +1,13 @@
 #define WIN32_LEAN_AND_MEAN
 #define CINTERFACE
 
-#include <D3dDdi/Device.h>
-#include <D3dDdi/Resource.h>
-#include <D3dDdi/ScopedCriticalSection.h>
-#include <DDraw/RealPrimarySurface.h>
-#include <DDraw/Surfaces/PrimarySurface.h>
-#include <Gdi/CompatDc.h>
-#include <Gdi/Dc.h>
+#include <DDrawCompat/v0.3.0/D3dDdi/Device.h>
+#include <DDrawCompat/v0.3.0/D3dDdi/Resource.h>
+#include <DDrawCompat/v0.3.0/D3dDdi/ScopedCriticalSection.h>
+#include <DDrawCompat/v0.3.0/DDraw/RealPrimarySurface.h>
+#include <DDrawCompat/v0.3.0/DDraw/Surfaces/PrimarySurface.h>
+#include <DDrawCompat/v0.3.0/Gdi/CompatDc.h>
+#include <DDrawCompat/v0.3.0/Gdi/Dc.h>
 
 namespace Gdi
 {

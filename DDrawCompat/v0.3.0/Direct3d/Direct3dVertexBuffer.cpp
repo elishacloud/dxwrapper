@@ -1,10 +1,10 @@
 #define WIN32_LEAN_AND_MEAN
 #define CINTERFACE
 
-#include <Common/CompatVtable.h>
-#include <DDraw/ScopedThreadLock.h>
-#include <Direct3d/Direct3dVertexBuffer.h>
-#include <Direct3d/Visitors/Direct3dVertexBufferVtblVisitor.h>
+#include <DDrawCompat/v0.3.0/Common/CompatVtable.h>
+#include <DDrawCompat/v0.3.0/DDraw/ScopedThreadLock.h>
+#include <DDrawCompat/v0.3.0/Direct3d/Direct3dVertexBuffer.h>
+#include <DDrawCompat/v0.3.0/Direct3d/Visitors/Direct3dVertexBufferVtblVisitor.h>
 
 namespace
 {

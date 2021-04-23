@@ -4,8 +4,8 @@
 
 #include <Windows.h>
 
-#include <Common/CompatPtr.h>
-#include <Common/CompatRef.h>
+#include <DDrawCompat/v0.3.0/Common/CompatPtr.h>
+#include <DDrawCompat/v0.3.0/Common/CompatRef.h>
 
 namespace DDraw
 {

@@ -3,17 +3,17 @@
 
 #include <d3d.h>
 
-#include <Common/CompatRef.h>
-#include <../DDrawLog.h>
-#include <Direct3d/Direct3d.h>
-#include <Direct3d/Direct3dDevice.h>
-#include <Direct3d/Direct3dExecuteBuffer.h>
-#include <Direct3d/Direct3dLight.h>
-#include <Direct3d/Direct3dMaterial.h>
-#include <Direct3d/Direct3dTexture.h>
-#include <Direct3d/Direct3dVertexBuffer.h>
-#include <Direct3d/Direct3dViewport.h>
-#include <Direct3d/Hooks.h>
+#include <DDrawCompat/v0.3.0/Common/CompatRef.h>
+#include <DDrawCompat/DDrawLog.h>
+#include <DDrawCompat/v0.3.0/Direct3d/Direct3d.h>
+#include <DDrawCompat/v0.3.0/Direct3d/Direct3dDevice.h>
+#include <DDrawCompat/v0.3.0/Direct3d/Direct3dExecuteBuffer.h>
+#include <DDrawCompat/v0.3.0/Direct3d/Direct3dLight.h>
+#include <DDrawCompat/v0.3.0/Direct3d/Direct3dMaterial.h>
+#include <DDrawCompat/v0.3.0/Direct3d/Direct3dTexture.h>
+#include <DDrawCompat/v0.3.0/Direct3d/Direct3dVertexBuffer.h>
+#include <DDrawCompat/v0.3.0/Direct3d/Direct3dViewport.h>
+#include <DDrawCompat/v0.3.0/Direct3d/Hooks.h>
 
 namespace
 {

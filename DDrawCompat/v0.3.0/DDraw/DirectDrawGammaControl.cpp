@@ -1,12 +1,12 @@
 #define WIN32_LEAN_AND_MEAN
 #define CINTERFACE
 
-#include <Common/CompatVtable.h>
-#include <DDraw/DirectDrawGammaControl.h>
-#include <DDraw/RealPrimarySurface.h>
-#include <DDraw/ScopedThreadLock.h>
-#include <DDraw/Surfaces/PrimarySurface.h>
-#include <DDraw/Visitors/DirectDrawGammaControlVtblVisitor.h>
+#include <DDrawCompat/v0.3.0/Common/CompatVtable.h>
+#include <DDrawCompat/v0.3.0/DDraw/DirectDrawGammaControl.h>
+#include <DDrawCompat/v0.3.0/DDraw/RealPrimarySurface.h>
+#include <DDrawCompat/v0.3.0/DDraw/ScopedThreadLock.h>
+#include <DDrawCompat/v0.3.0/DDraw/Surfaces/PrimarySurface.h>
+#include <DDrawCompat/v0.3.0/DDraw/Visitors/DirectDrawGammaControlVtblVisitor.h>
 
 namespace
 {

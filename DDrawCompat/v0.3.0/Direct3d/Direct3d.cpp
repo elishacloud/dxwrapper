@@ -4,14 +4,14 @@
 #include <set>
 #include <type_traits>
 
-#include <Common/CompatPtr.h>
-#include <Common/CompatVtable.h>
-#include <DDraw/ScopedThreadLock.h>
-#include <DDraw/Surfaces/Surface.h>
-#include <Direct3d/Direct3d.h>
-#include <Direct3d/Direct3dDevice.h>
-#include <Direct3d/Direct3dVertexBuffer.h>
-#include <Direct3d/Visitors/Direct3dVtblVisitor.h>
+#include <DDrawCompat/v0.3.0/Common/CompatPtr.h>
+#include <DDrawCompat/v0.3.0/Common/CompatVtable.h>
+#include <DDrawCompat/v0.3.0/DDraw/ScopedThreadLock.h>
+#include <DDrawCompat/v0.3.0/DDraw/Surfaces/Surface.h>
+#include <DDrawCompat/v0.3.0/Direct3d/Direct3d.h>
+#include <DDrawCompat/v0.3.0/Direct3d/Direct3dDevice.h>
+#include <DDrawCompat/v0.3.0/Direct3d/Direct3dVertexBuffer.h>
+#include <DDrawCompat/v0.3.0/Direct3d/Visitors/Direct3dVtblVisitor.h>
 
 namespace
 {

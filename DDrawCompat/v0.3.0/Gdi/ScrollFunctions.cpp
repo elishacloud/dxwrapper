@@ -1,13 +1,13 @@
 #define WIN32_LEAN_AND_MEAN
 #define CINTERFACE
 
-#include <Common/Hook.h>
-#include <../DDrawLog.h>
-#include <Gdi/Dc.h>
-#include <Gdi/Gdi.h>
-#include <Gdi/Region.h>
-#include <Gdi/ScrollFunctions.h>
-#include <Gdi/Window.h>
+#include <DDrawCompat/v0.3.0/Common/Hook.h>
+#include <DDrawCompat/DDrawLog.h>
+#include <DDrawCompat/v0.3.0/Gdi/Dc.h>
+#include <DDrawCompat/v0.3.0/Gdi/Gdi.h>
+#include <DDrawCompat/v0.3.0/Gdi/Region.h>
+#include <DDrawCompat/v0.3.0/Gdi/ScrollFunctions.h>
+#include <DDrawCompat/v0.3.0/Gdi/Window.h>
 
 namespace
 {

@@ -4,14 +4,14 @@
 #include <map>
 #include <vector>
 
-#include <Common/CompatRef.h>
-#include <Common/CompatVtable.h>
-#include <D3dDdi/KernelModeThunks.h>
-#include <DDraw/DirectDrawClipper.h>
-#include <DDraw/ScopedThreadLock.h>
-#include <DDraw/Visitors/DirectDrawClipperVtblVisitor.h>
-#include <Gdi/Gdi.h>
-#include <Gdi/Region.h>
+#include <DDrawCompat/v0.3.0/Common/CompatRef.h>
+#include <DDrawCompat/v0.3.0/Common/CompatVtable.h>
+#include <DDrawCompat/v0.3.0/D3dDdi/KernelModeThunks.h>
+#include <DDrawCompat/v0.3.0/DDraw/DirectDrawClipper.h>
+#include <DDrawCompat/v0.3.0/DDraw/ScopedThreadLock.h>
+#include <DDrawCompat/v0.3.0/DDraw/Visitors/DirectDrawClipperVtblVisitor.h>
+#include <DDrawCompat/v0.3.0/Gdi/Gdi.h>
+#include <DDrawCompat/v0.3.0/Gdi/Region.h>
 
 namespace
 {

@@ -1,13 +1,13 @@
 #define WIN32_LEAN_AND_MEAN
 #define CINTERFACE
 
-#include <Common/Hook.h>
-#include <../DDrawLog.h>
-#include <D3dDdi/ScopedCriticalSection.h>
-#include <Dll/Dll.h>
-#include <Gdi/PresentationWindow.h>
-#include <Gdi/WinProc.h>
-#include <Win32/DisplayMode.h>
+#include <DDrawCompat/v0.3.0/Common/Hook.h>
+#include <DDrawCompat/DDrawLog.h>
+#include <DDrawCompat/v0.3.0/D3dDdi/ScopedCriticalSection.h>
+#include <DDrawCompat/v0.3.0/Dll/Dll.h>
+#include <DDrawCompat/v0.3.0/Gdi/PresentationWindow.h>
+#include <DDrawCompat/v0.3.0/Gdi/WinProc.h>
+#include <DDrawCompat/v0.3.0/Win32/DisplayMode.h>
 
 namespace
 {

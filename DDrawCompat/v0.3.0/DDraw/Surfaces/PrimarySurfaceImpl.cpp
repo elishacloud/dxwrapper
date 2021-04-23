@@ -1,19 +1,19 @@
 #define WIN32_LEAN_AND_MEAN
 #define CINTERFACE
 
-#include <Common/CompatPtr.h>
-#include <D3dDdi/KernelModeThunks.h>
-#include <D3dDdi/ScopedCriticalSection.h>
-#include <DDraw/DirectDrawClipper.h>
-#include <DDraw/DirectDrawPalette.h>
-#include <DDraw/DirectDrawSurface.h>
-#include <DDraw/RealPrimarySurface.h>
-#include <DDraw/Surfaces/PrimarySurface.h>
-#include <DDraw/Surfaces/PrimarySurfaceImpl.h>
-#include <Dll/Dll.h>
-#include <Gdi/Gdi.h>
-#include <Gdi/Region.h>
-#include <Gdi/VirtualScreen.h>
+#include <DDrawCompat/v0.3.0/Common/CompatPtr.h>
+#include <DDrawCompat/v0.3.0/D3dDdi/KernelModeThunks.h>
+#include <DDrawCompat/v0.3.0/D3dDdi/ScopedCriticalSection.h>
+#include <DDrawCompat/v0.3.0/DDraw/DirectDrawClipper.h>
+#include <DDrawCompat/v0.3.0/DDraw/DirectDrawPalette.h>
+#include <DDrawCompat/v0.3.0/DDraw/DirectDrawSurface.h>
+#include <DDrawCompat/v0.3.0/DDraw/RealPrimarySurface.h>
+#include <DDrawCompat/v0.3.0/DDraw/Surfaces/PrimarySurface.h>
+#include <DDrawCompat/v0.3.0/DDraw/Surfaces/PrimarySurfaceImpl.h>
+#include <DDrawCompat/v0.3.0/Dll/Dll.h>
+#include <DDrawCompat/v0.3.0/Gdi/Gdi.h>
+#include <DDrawCompat/v0.3.0/Gdi/Region.h>
+#include <DDrawCompat/v0.3.0/Gdi/VirtualScreen.h>
 
 namespace
 {

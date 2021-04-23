@@ -7,7 +7,7 @@
 #include <vector>
 
 #include <Windows.h>
-#include <detours.h>
+#include <External\detours\src\detours.h>
 
 #include "DDrawCompat\DDrawLog.h"
 #include "DDrawVtableVisitor.h"

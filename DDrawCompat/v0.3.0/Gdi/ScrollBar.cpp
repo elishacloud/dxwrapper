@@ -1,8 +1,8 @@
 #define WIN32_LEAN_AND_MEAN
 #define CINTERFACE
 
-#include <Common/Hook.h>
-#include <Gdi/ScrollBar.h>
+#include <DDrawCompat/v0.3.0/Common/Hook.h>
+#include <DDrawCompat/v0.3.0/Gdi/ScrollBar.h>
 
 namespace
 {

@@ -1,14 +1,14 @@
 #define WIN32_LEAN_AND_MEAN
 #define CINTERFACE
 
-#include <D3dDdi/ScopedCriticalSection.h>
-#include <Gdi/CompatDc.h>
-#include <Gdi/ScrollBar.h>
-#include <Gdi/ScrollFunctions.h>
-#include <Gdi/TitleBar.h>
-#include <Gdi/User32WndProcs.h>
-#include <Gdi/VirtualScreen.h>
-#include <Gdi/WinProc.h>
+#include <DDrawCompat/v0.3.0/D3dDdi/ScopedCriticalSection.h>
+#include <DDrawCompat/v0.3.0/Gdi/CompatDc.h>
+#include <DDrawCompat/v0.3.0/Gdi/ScrollBar.h>
+#include <DDrawCompat/v0.3.0/Gdi/ScrollFunctions.h>
+#include <DDrawCompat/v0.3.0/Gdi/TitleBar.h>
+#include <DDrawCompat/v0.3.0/Gdi/User32WndProcs.h>
+#include <DDrawCompat/v0.3.0/Gdi/VirtualScreen.h>
+#include <DDrawCompat/v0.3.0/Gdi/WinProc.h>
 
 std::ostream& operator<<(std::ostream& os, const MENUITEMINFOW& val)
 {

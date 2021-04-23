@@ -1,8 +1,8 @@
 #define WIN32_LEAN_AND_MEAN
 #define CINTERFACE
 
-#include <D3dDdi/Device.h>
-#include <D3dDdi/DynamicBuffer.h>
+#include <DDrawCompat/v0.3.0/D3dDdi/Device.h>
+#include <DDrawCompat/v0.3.0/D3dDdi/DynamicBuffer.h>
 
 namespace
 {

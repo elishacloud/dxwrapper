@@ -3,7 +3,7 @@
 #include "CompatGdiFunctions.h"
 #include "DDrawCompat\DDrawLog.h"
 
-#include <detours.h>
+#include <External\detours\src\detours.h>
 
 namespace Compat20
 {

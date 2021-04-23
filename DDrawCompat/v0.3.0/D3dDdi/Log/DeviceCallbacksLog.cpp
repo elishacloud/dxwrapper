@@ -1,8 +1,8 @@
 #define WIN32_LEAN_AND_MEAN
 #define CINTERFACE
 
-#include <../DDrawLog.h>
-#include <D3dDdi/Log/DeviceCallbacksLog.h>
+#include <DDrawCompat/DDrawLog.h>
+#include <DDrawCompat/v0.3.0/D3dDdi/Log/DeviceCallbacksLog.h>
 
 std::ostream& operator<<(std::ostream& os, const D3DDDI_ALLOCATIONINFO& data)
 {

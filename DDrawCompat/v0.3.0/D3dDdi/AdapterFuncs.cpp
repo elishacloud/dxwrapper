@@ -4,13 +4,13 @@
 #include <guiddef.h>
 #include <d3dnthal.h>
 
-#include <Common/CompatVtable.h>
-#include <D3dDdi/Adapter.h>
-#include <D3dDdi/AdapterFuncs.h>
-#include <D3dDdi/DeviceCallbacks.h>
-#include <D3dDdi/DeviceFuncs.h>
-#include <D3dDdi/ScopedCriticalSection.h>
-#include <D3dDdi/Visitors/AdapterFuncsVisitor.h>
+#include <DDrawCompat/v0.3.0/Common/CompatVtable.h>
+#include <DDrawCompat/v0.3.0/D3dDdi/Adapter.h>
+#include <DDrawCompat/v0.3.0/D3dDdi/AdapterFuncs.h>
+#include <DDrawCompat/v0.3.0/D3dDdi/DeviceCallbacks.h>
+#include <DDrawCompat/v0.3.0/D3dDdi/DeviceFuncs.h>
+#include <DDrawCompat/v0.3.0/D3dDdi/ScopedCriticalSection.h>
+#include <DDrawCompat/v0.3.0/D3dDdi/Visitors/AdapterFuncsVisitor.h>
 
 namespace
 {

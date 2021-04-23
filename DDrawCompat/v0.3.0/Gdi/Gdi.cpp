@@ -1,19 +1,19 @@
 #define WIN32_LEAN_AND_MEAN
 #define CINTERFACE
 
-#include <DDraw/Surfaces/PrimarySurface.h>
-#include <Gdi/Caret.h>
-#include <Gdi/Dc.h>
-#include <Gdi/DcFunctions.h>
-#include <Gdi/Font.h>
-#include <Gdi/Gdi.h>
-#include <Gdi/Icon.h>
-#include <Gdi/Metrics.h>
-#include <Gdi/Palette.h>
-#include <Gdi/PresentationWindow.h>
-#include <Gdi/ScrollFunctions.h>
-#include <Gdi/User32WndProcs.h>
-#include <Gdi/WinProc.h>
+#include <DDrawCompat/v0.3.0/DDraw/Surfaces/PrimarySurface.h>
+#include <DDrawCompat/v0.3.0/Gdi/Caret.h>
+#include <DDrawCompat/v0.3.0/Gdi/Dc.h>
+#include <DDrawCompat/v0.3.0/Gdi/DcFunctions.h>
+#include <DDrawCompat/v0.3.0/Gdi/Font.h>
+#include <DDrawCompat/v0.3.0/Gdi/Gdi.h>
+#include <DDrawCompat/v0.3.0/Gdi/Icon.h>
+#include <DDrawCompat/v0.3.0/Gdi/Metrics.h>
+#include <DDrawCompat/v0.3.0/Gdi/Palette.h>
+#include <DDrawCompat/v0.3.0/Gdi/PresentationWindow.h>
+#include <DDrawCompat/v0.3.0/Gdi/ScrollFunctions.h>
+#include <DDrawCompat/v0.3.0/Gdi/User32WndProcs.h>
+#include <DDrawCompat/v0.3.0/Gdi/WinProc.h>
 
 namespace
 {
