@@ -361,16 +361,6 @@ HRESULT m_IDirectDrawSurfaceX::Blt(LPRECT lpDestRect, LPDIRECTDRAWSURFACE7 lpDDS
 		return DD_OK;	// Just return OK
 	}
 
-	if (lpDestRect && !lpDestRect->left && !lpDestRect->right && !lpDestRect->top && !lpDestRect->bottom)
-	{
-		lpDestRect = nullptr;
-	}
-
-	if (lpSrcRect && !lpSrcRect->left && !lpSrcRect->right && !lpSrcRect->top && !lpSrcRect->bottom)
-	{
-		lpSrcRect = nullptr;
-	}
-
 	if (Config.Dd7to9)
 	{
 		// Check for device interface
@@ -586,11 +576,6 @@ HRESULT m_IDirectDrawSurfaceX::BltFast(DWORD dwX, DWORD dwY, LPDIRECTDRAWSURFACE
 		return DD_OK;	// Just return OK
 	}
 
-	if (lpSrcRect && !lpSrcRect->left && !lpSrcRect->right && !lpSrcRect->top && !lpSrcRect->bottom)
-	{
-		lpSrcRect = nullptr;
-	}
-
 	if (Config.Dd7to9)
 	{
 		// Convert BltFast flags into Blt flags
@@ -608,8 +593,7 @@ HRESULT m_IDirectDrawSurfaceX::BltFast(DWORD dwX, DWORD dwY, LPDIRECTDRAWSURFACE
 			Flags |= DDBLT_WAIT;
 		}
 
-		// Get SrcRect
-		RECT SrcRect = {};
+		// Get SurfaceX
 		m_IDirectDrawSurfaceX *lpDDSrcSurfaceX = (m_IDirectDrawSurfaceX*)lpDDSrcSurface;
 		if (!lpDDSrcSurfaceX)
 		{
@@ -620,13 +604,20 @@ HRESULT m_IDirectDrawSurfaceX::BltFast(DWORD dwX, DWORD dwY, LPDIRECTDRAWSURFACE
 			lpDDSrcSurfaceX->QueryInterface(IID_GetInterfaceX, (LPVOID*)&lpDDSrcSurfaceX);
 		}
 
+		// Get SrcRect
+		RECT SrcRect = {};
 		lpDDSrcSurfaceX->CheckCoordinates(&SrcRect, lpSrcRect);
 
 		// Create DestRect
 		RECT DestRect = { (LONG)dwX, (LONG)dwY, SrcRect.right - SrcRect.left + (LONG)dwX , SrcRect.bottom - SrcRect.top + (LONG)dwY };
+		LPRECT pDestRect = &DestRect;
+		if (!lpSrcRect && !dwX && !dwY)
+		{
+			pDestRect = nullptr;
+		}
 
 		// Call Blt
-		return Blt(&DestRect, lpDDSrcSurface, &SrcRect, Flags, nullptr);
+		return Blt(pDestRect, lpDDSrcSurface, lpSrcRect, Flags, nullptr);
 	}
 
 	if (lpDDSrcSurface)
@@ -1815,16 +1806,16 @@ HRESULT m_IDirectDrawSurfaceX::Lock2(LPRECT lpDestRect, LPDDSURFACEDESC2 lpDDSur
 			return Lock(lpDestRect, (LPDDSURFACEDESC)lpDDSurfaceDesc2, dwFlags, hEvent);
 		}
 
-		// Clear surfaceDesc
-		ZeroMemory(lpDDSurfaceDesc2, sizeof(DDSURFACEDESC2));
-		lpDDSurfaceDesc2->dwSize = sizeof(DDSURFACEDESC2);
-
 		// Check parameters
 		if (!lpDDSurfaceDesc2 || lpDDSurfaceDesc2->dwSize != sizeof(DDSURFACEDESC2))
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Error: Invalid parameters. dwSize: " << ((lpDDSurfaceDesc2) ? lpDDSurfaceDesc2->dwSize : -1));
 			return DDERR_INVALIDPARAMS;
 		}
+
+		// Clear surfaceDesc
+		ZeroMemory(lpDDSurfaceDesc2, sizeof(DDSURFACEDESC2));
+		lpDDSurfaceDesc2->dwSize = sizeof(DDSURFACEDESC2);
 
 		// Convert flags to d3d9
 		DWORD Flags = dwFlags & (D3DLOCK_READONLY | (!IsPrimarySurface() ? DDLOCK_NOSYSLOCK : 0) | ((!lpDestRect) ? D3DLOCK_DISCARD : 0));
@@ -3875,7 +3866,7 @@ HRESULT m_IDirectDrawSurfaceX::LockEmulatedSurface(D3DLOCKED_RECT* pLockedRect, 
 // Set dirty flag
 inline void m_IDirectDrawSurfaceX::SetDirtyFlag()
 {
-	if (IsPrimarySurface() || IsBackBuffer())
+	if (IsPrimarySurface())
 	{
 		dirtyFlag = true;
 	}

@@ -1602,10 +1602,7 @@ HRESULT m_IDirectDrawX::SetDisplayMode(DWORD dwWidth, DWORD dwHeight, DWORD dwBP
 			SetResolution = ExclusiveMode;
 
 			// Recreate d3d9 device
-			if (d3d9Device)
-			{
-				CreateD3D9Device();
-			}
+			CreateD3D9Device();
 		}
 
 		return DD_OK;
@@ -2059,6 +2056,7 @@ void m_IDirectDrawX::InitDdraw(DWORD DirectXVersion)
 				}
 			};
 
+			Logging::Log() << __FUNCTION__ << " Hooking mouse cursor!";
 			m_hook = SetWindowsHookEx(WH_MOUSE_LL, WindowsMouseHook::mouseHookProc, hModule_dll, 0);
 		}
 
@@ -3024,8 +3022,11 @@ int WINAPI dd_GetDeviceCaps(HDC hdc, int index)
 
 	if (ddrawRefCount && index == BITSPIXEL)
 	{
-		int BPP = (ExclusiveBPP) ? ExclusiveBPP : (displayModeBPP) ? displayModeBPP : 32;
-		return (BPP == 15) ? 16 : BPP;		// When nIndex is BITSPIXEL and the device has 15bpp or 16bpp, the return value is 16.
+		int BPP = (ExclusiveBPP) ? ExclusiveBPP : (displayModeBPP) ? displayModeBPP : 0;
+		if (BPP)
+		{
+			return (BPP == 15) ? 16 : BPP;		// When nIndex is BITSPIXEL and the device has 15bpp or 16bpp, the return value is 16.
+		}
 	}
 
 	if (!m_pGetDeviceCaps)

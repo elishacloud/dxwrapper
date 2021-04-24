@@ -144,7 +144,13 @@ HRESULT m_IDirectDrawGammaControl::SetGammaRamp(DWORD dwFlags, LPDDGAMMARAMP lpR
 
 void m_IDirectDrawGammaControl::InitGammaControl()
 {
-	// To add later
+	// Initialize gamma control
+	for (int x = 0; x < 256; x++)
+	{
+		RampData.red[x] = 255;
+		RampData.green[x] = 255;
+		RampData.blue[x] = 255;
+	}
 }
 
 void m_IDirectDrawGammaControl::ReleaseGammaControl()

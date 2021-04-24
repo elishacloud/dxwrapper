@@ -826,9 +826,6 @@ HWND dd_CreateWindowEx(DWORD dwExStyle, T lpClassName, T lpWindowName, DWORD dwS
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Removed WS_POPUP window style! " << hwnd);
 
-			SetWindowLong(hwnd, GWL_STYLE, dwNewStyle);
-			SetWindowLong(hwnd, GWL_STYLE, dwStyle);
-
 			return hwnd;
 		}
 	}
