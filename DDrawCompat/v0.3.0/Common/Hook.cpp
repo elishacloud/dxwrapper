@@ -218,10 +218,10 @@ namespace
 		g_isDbgEngInitialized = true;
 
 		//********** Begin Edit *************
-		typedef HRESULT(WINAPI* PFN_DebugCreate)(_In_ REFIID InterfaceId, _Out_ PVOID* Interface);
-		static HMODULE dll = LoadLibrary("DbgHelp.dll");
+		typedef HRESULT(STDAPICALLTYPE* PFN_DebugCreate)(_In_ REFIID InterfaceId, _Out_ PVOID* Interface);
+		static HMODULE dll = LoadLibrary("dbgeng.dll");
 		static PFN_DebugCreate pDebugCreate = (PFN_DebugCreate)GetProcAddress(dll, "DebugCreate");
-		if (pDebugCreate)
+		if (!pDebugCreate)
 		{
 			Compat30::Log() << "ERROR: DbgEng: failed to get proc address!";
 			return false;
