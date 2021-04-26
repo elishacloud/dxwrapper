@@ -172,6 +172,7 @@ static const APPCOMPATDATATYPE AppCompatDataType;
 struct CONFIG
 {
 	void Init();						// Initialize the config setting
+	void SetConfig();					// Set additional settings
 	bool Exiting = false;				// Dxwrapper is being unloaded
 	bool AutoFrameSkip;					// Automatically skips frames to reduce input lag
 	bool Dd7to9;						// Converts DirectDraw/Direct3D (ddraw.dll) to Direct3D9 (d3d9.dll)

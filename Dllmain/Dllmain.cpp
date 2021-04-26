@@ -132,6 +132,12 @@ bool APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 		Logging::EnableLogging = !Config.DisableLogging;
 		Logging::InitLog();
 		Logging::Log() << "Starting DxWrapper v" << APP_VERSION;
+		{
+			char path[MAX_PATH];
+			GetModuleFileName(hModule, path, MAX_PATH);
+			Logging::Log() << "Running from: " << path;
+		}
+		Config.SetConfig();			// Finish setting up config
 		Logging::LogComputerManufacturer();
 		Logging::LogVideoCard();
 		Logging::LogOSVersion();

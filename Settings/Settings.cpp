@@ -25,6 +25,12 @@ CONFIG Config;
 
 namespace Settings
 {
+	// Config
+	bool ConfigLoaded = false;
+	char configpath[MAX_PATH] = {};
+	char p_wName[MAX_PATH] = {};
+	char p_pName[MAX_PATH] = {};
+
 	// Declare variables
 	size_t AddressPointerCount = 0;				// Count of addresses to hot patch
 	size_t BytesToWriteCount = 0;				// Count of bytes to hot patch
@@ -423,12 +429,18 @@ void CONFIG::Init()
 	// Get module name
 	char wrappername[MAX_PATH] = { 0 };
 	GetModuleFileName(hModule, wrappername, MAX_PATH);
-	char* p_wName = strrchr(wrappername, '\\') + 1;
+	if (strrchr(wrappername, '\\'))
+	{
+		strcpy_s(p_wName, MAX_PATH, strrchr(wrappername, '\\') + 1);
+	}
 
 	// Get process name
 	char processname[MAX_PATH] = { 0 };
 	GetModuleFileName(nullptr, processname, MAX_PATH);
-	char* p_pName = strrchr(processname, '\\') + 1;
+	if (strrchr(processname, '\\'))
+	{
+		strcpy_s(p_pName, MAX_PATH, strrchr(processname, '\\') + 1);
+	}
 
 	// Set default settings
 	SetDefaultConfigSettings();
@@ -440,23 +452,18 @@ void CONFIG::Init()
 		strcpy_s(strrchr(wrappername, '\\'), MAX_PATH - strlen(wrappername), "\\dxwrapper.dll");
 	}
 
-	// Set lower case
-	for (char* p = wrappername; *p != '\0'; p++) { *p = (char)tolower(*p); }
-
 	// Get config path to include process name
-	char buffer[MAX_PATH] = { 0 };
-	strcpy_s(buffer, MAX_PATH, wrappername);
-	strcpy_s(strrchr(buffer, '.'), MAX_PATH - strlen(buffer), "-");
-	strcat_s(buffer, MAX_PATH, p_pName);
-	strcpy_s(strrchr(buffer, '.'), MAX_PATH - strlen(buffer), ".ini");
+	strcpy_s(configpath, MAX_PATH, wrappername);
+	strcpy_s(strrchr(configpath, '.'), MAX_PATH - strlen(configpath), "-");
+	strcat_s(configpath, MAX_PATH, p_pName);
+	strcpy_s(strrchr(configpath, '.'), MAX_PATH - strlen(configpath), ".ini");
 
 	// Read defualt config file
-	char* szCfg = Read(buffer);
+	char* szCfg = Read(configpath);
 
 	// Parce config file
 	if (szCfg)
 	{
-		Logging::Log() << "Reading config file: " << strrchr(buffer, '\\') + 1;
 		Parse(szCfg, ParseCallback);
 		free(szCfg);
 	}
@@ -465,23 +472,36 @@ void CONFIG::Init()
 	if (!szCfg)
 	{
 		// Get config file path
-		strcpy_s(buffer, MAX_PATH, wrappername);
-		strcpy_s(strrchr(buffer, '.'), MAX_PATH - strlen(buffer), ".ini");
+		strcpy_s(configpath, MAX_PATH, wrappername);
+		strcpy_s(strrchr(configpath, '.'), MAX_PATH - strlen(configpath), ".ini");
 
 		// Open config file
-		szCfg = Read(buffer);
+		szCfg = Read(configpath);
 
 		// Parce config file
 		if (szCfg)
 		{
-			Logging::Log() << "Reading config file: " << strrchr(buffer, '\\') + 1;
 			Parse(szCfg, ParseCallback);
 			free(szCfg);
 		}
 	}
 
-	// If config file cannot be read
-	if (!szCfg)
+	if (szCfg)
+	{
+		ConfigLoaded = true;
+	}
+}
+
+void CONFIG::SetConfig()
+{
+	using namespace Settings;
+
+	// If config file was read
+	if (ConfigLoaded)
+	{
+		Logging::Log() << "Reading config file: " << configpath;
+	}
+	else
 	{
 		Logging::Log() << "Could not load config file using defaults";
 	}
@@ -599,6 +619,8 @@ void CONFIG::Init()
 	DdrawOverrideBitMode = (DdrawOverrideBitMode) ? DdrawOverrideBitMode : (Force32bitColor) ? 32 : (Force16bitColor) ? 16 : 0;
 	switch (DdrawOverrideBitMode)
 	{
+	case 0:
+		break;
 	case 1:
 	case 8:
 		DdrawOverrideBitMode = 8;
@@ -616,7 +638,7 @@ void CONFIG::Init()
 		DdrawOverrideBitMode = 32;
 		break;
 	default:
-		Logging::Log() << "Invalid 'DdrawOverrideBitMode'!  Disabling.";
+		Logging::Log() << "Invalid 'DdrawOverrideBitMode'!  Disabling...";
 		DdrawOverrideBitMode = 0;
 		break;
 	}
