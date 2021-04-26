@@ -392,7 +392,13 @@ UINT Settings::GetWrapperMode(std::string *name)
 void Settings::SetDefaultConfigSettings()
 {
 	// Set value to check if it exists in the ini file
-	Config.EnableD3d9Wrapper = 0xFFFF;
+	Config.EnableD3d9Wrapper = NOT_EXIST;
+	Config.DdrawHookSystem32 = NOT_EXIST;
+	Config.D3d8HookSystem32 = NOT_EXIST;
+	Config.D3d9HookSystem32 = NOT_EXIST;
+	Config.DinputHookSystem32 = NOT_EXIST;
+	Config.Dinput8HookSystem32 = NOT_EXIST;
+	Config.DsoundHookSystem32 = NOT_EXIST;
 
 	// Set defaults
 	Config.DisableHighDPIScaling = true;
@@ -413,6 +419,11 @@ void Settings::SetDefaultConfigSettings()
 	Config.DdrawResolutionHackNotSet = true;
 	Config.CacheClipPlaneNotSet = true;
 	Config.DisableMaxWindowedModeNotSet = true;
+}
+
+bool CONFIG::IsSet(DWORD Value)
+{
+	return (Value && Value != NOT_EXIST);
 }
 
 void CONFIG::Init()
@@ -559,7 +570,7 @@ void CONFIG::SetConfig()
 	}
 
 	// Verify DSoundCtrl options
-	EnableDsoundWrapper = (EnableDsoundWrapper || DSoundCtrl || DsoundHookSystem32);
+	EnableDsoundWrapper = (EnableDsoundWrapper || DSoundCtrl || IsSet(DsoundHookSystem32));
 	if (EnableDsoundWrapper)
 	{
 		if (ForceSoftwareMixing && ForceHardwareMixing)
@@ -598,8 +609,8 @@ void CONFIG::SetConfig()
 	}
 
 	// Enable wrapper settings
-	Dinputto8 = (Dinputto8 || Dinput8HookSystem32);
-	EnableDinput8Wrapper = (EnableDinput8Wrapper || Dinput8HookSystem32);
+	Dinputto8 = (Dinputto8 || IsSet(Dinput8HookSystem32));
+	EnableDinput8Wrapper = (EnableDinput8Wrapper || IsSet(Dinput8HookSystem32));
 
 	if (Dd7to9)
 	{
@@ -609,11 +620,11 @@ void CONFIG::SetConfig()
 
 	DDrawCompat30 = (DDrawCompat30 | DDrawCompatExperimental);
 	DDrawCompat = (DDrawCompat || DDrawCompat20 || DDrawCompat21 || DDrawCompat30);
-	EnableDdrawWrapper = (EnableDdrawWrapper || DdrawHookSystem32 || ConvertToDirectDraw7 || ConvertToDirect3D7 || DdrawResolutionHack);
-	D3d8to9 = (D3d8to9 || D3d8HookSystem32);
+	EnableDdrawWrapper = (EnableDdrawWrapper || IsSet(DdrawHookSystem32) || ConvertToDirectDraw7 || ConvertToDirect3D7 || DdrawResolutionHack);
+	D3d8to9 = (D3d8to9 || IsSet(D3d8HookSystem32));
 	EnableWindowMode = (FullscreenWindowMode) ? true : EnableWindowMode;
-	EnableD3d9Wrapper = (EnableD3d9Wrapper || D3d9HookSystem32 ||
-		(EnableD3d9Wrapper == 0xFFFF && (AnisotropicFiltering || AntiAliasing || CacheClipPlane || EnableVSync || ForceMixedVertexProcessing || ForceSystemMemVertexCache || ForceVsyncMode || EnableWindowMode)));	// For legacy purposes
+	EnableD3d9Wrapper = (IsSet(EnableD3d9Wrapper) || IsSet(D3d9HookSystem32) ||
+		(EnableD3d9Wrapper == NOT_EXIST && (AnisotropicFiltering || AntiAliasing || CacheClipPlane || EnableVSync || ForceMixedVertexProcessing || ForceSystemMemVertexCache || ForceVsyncMode || EnableWindowMode)));	// For legacy purposes
 
 	// Set ddraw color bit mode
 	DdrawOverrideBitMode = (DdrawOverrideBitMode) ? DdrawOverrideBitMode : (Force32bitColor) ? 32 : (Force16bitColor) ? 16 : 0;

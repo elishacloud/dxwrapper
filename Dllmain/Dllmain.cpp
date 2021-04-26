@@ -76,11 +76,11 @@ void WINAPI DxWrapperSettings(DXWAPPERSETTINGS *DxSettings)
 
 typedef HMODULE(*LoadProc)(const char *ProxyDll, const char *MyDllName);
 
-HMODULE LoadHookedDll(char *dllname, LoadProc Load, bool HookSystem32)
+HMODULE LoadHookedDll(char *dllname, LoadProc Load, DWORD HookSystem32)
 {
 	HMODULE dll = Load(nullptr, Config.WrapperName.c_str());
 
-	if (HookSystem32)
+	if (Config.IsSet(HookSystem32) || (HookSystem32 == NOT_EXIST && GetProcAddress(GetModuleHandle(dllname), "DxWrapperSettings") == nullptr))
 	{
 		char path[MAX_PATH];
 		GetSystemDirectory(path, MAX_PATH);

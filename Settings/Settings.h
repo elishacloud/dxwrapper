@@ -6,6 +6,8 @@
 #include <string>
 #include "ReadParse.h"
 
+#define NOT_EXIST 0xFFFF
+
 #define VISIT_CONFIG_SETTINGS(visit) \
 	visit(AnisotropicFiltering) \
 	visit(AntiAliasing) \
@@ -173,6 +175,7 @@ struct CONFIG
 {
 	void Init();						// Initialize the config setting
 	void SetConfig();					// Set additional settings
+	bool IsSet(DWORD Value);			// Check if a value is set
 	bool Exiting = false;				// Dxwrapper is being unloaded
 	bool AutoFrameSkip;					// Automatically skips frames to reduce input lag
 	bool Dd7to9;						// Converts DirectDraw/Direct3D (ddraw.dll) to Direct3D9 (d3d9.dll)
@@ -181,7 +184,7 @@ struct CONFIG
 	bool DDrawCompat;					// Enables the default DDrawCompat functions https://github.com/narzoul/DDrawCompat/
 	bool DDrawCompat20;					// Enables DDrawCompat v0.2.0b
 	bool DDrawCompat21;					// Enables DDrawCompat v0.2.1
-	bool DDrawCompatExperimental;		// Legacy setting
+	bool DDrawCompatExperimental;		// Legacy setting replaced by DDrawCompat30
 	bool DDrawCompat30;					// Enables DDrawCompat v0.3.0
 	bool DDrawCompatDisableGDIHook;		// Disables DDrawCompat GDI hooks
 	bool DDrawCompatNoProcAffinity;		// Disables DDrawCompat single processor affinity
@@ -201,12 +204,12 @@ struct CONFIG
 	DWORD DdrawOverrideWidth;			// Force Direct3d9 to use this width when using Dd7to9
 	DWORD DdrawOverrideHeight;			// Force Direct3d9 to use this height when using Dd7to9
 	DWORD DdrawOverrideRefreshRate;		// Force Direct3d9 to use this refresh rate when using Dd7to9
-	bool DdrawHookSystem32;				// Hooks the ddraw.dll file in the Windows System32 folder
-	bool D3d8HookSystem32;				// Hooks the d3d8.dll file in the Windows System32 folder
-	bool D3d9HookSystem32;				// Hooks the d3d9.dll file in the Windows System32 folder
-	bool DinputHookSystem32;			// Hooks the dinput.dll file in the Windows System32 folder
-	bool Dinput8HookSystem32;			// Hooks the dinput8.dll file in the Windows System32 folder
-	bool DsoundHookSystem32;			// Hooks the dsound.dll file in the Windows System32 folder
+	DWORD DdrawHookSystem32;			// Hooks the ddraw.dll file in the Windows System32 folder
+	DWORD D3d8HookSystem32;				// Hooks the d3d8.dll file in the Windows System32 folder
+	DWORD D3d9HookSystem32;				// Hooks the d3d9.dll file in the Windows System32 folder
+	DWORD DinputHookSystem32;			// Hooks the dinput.dll file in the Windows System32 folder
+	DWORD Dinput8HookSystem32;			// Hooks the dinput8.dll file in the Windows System32 folder
+	DWORD DsoundHookSystem32;			// Hooks the dsound.dll file in the Windows System32 folder
 	bool DirectShowEmulation;			// Emulates DirectShow APIs
 	bool DisableGameUX;					// Disables the Microsoft Game Explorer which can sometimes cause high CPU in rundll32.exe and hang the game process
 	bool DisableHighDPIScaling;			// Disables display scaling on high DPI settings
