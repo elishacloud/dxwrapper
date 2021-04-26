@@ -54,6 +54,9 @@ Sample configuration file: [dxwrapper.ini](https://github.com/elishacloud/dxwrap
 
 List of all configuration options: [allsettings.ini](https://github.com/elishacloud/dxwrapper/blob/master/Settings/AllSettings.ini)
 
+### Logging
+The log file will be created in the same folder where the game executable is located.  It will be named 'dxwrapper' with the name of the game executable appended to it.  So if you are running the file `game.exe` then the log file will be called `dxwrapper-game.log`.
+
 ### Supported DLLs
 
 DxWrapper can wrap the following dlls:
