@@ -54,6 +54,7 @@ std::ostream& operator<<(std::ostream& os, const D3DDEVICEDESC7& dd);
 #endif
 #ifdef _d3d9TYPES_H_
 std::ostream& operator<<(std::ostream& os, const D3DFORMAT& format);
+std::ostream& operator<<(std::ostream& os, const D3DRESOURCETYPE& Resource);
 std::ostream& operator<<(std::ostream& os, const D3DPRESENT_PARAMETERS& pp);
 #endif
 #ifdef GUID_DEFINED

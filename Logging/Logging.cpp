@@ -229,6 +229,31 @@ std::ostream& operator<<(std::ostream& os, const D3DFORMAT& format)
 	return os << (DWORD)format;
 }
 
+std::ostream& operator<<(std::ostream& os, const D3DRESOURCETYPE& Resource)
+{
+	switch (Resource)
+	{
+	case D3DRTYPE_SURFACE:
+		return os << "D3DRTYPE_SURFACE";
+	case D3DRTYPE_VOLUME:
+		return os << "D3DRTYPE_VOLUME";
+	case D3DRTYPE_TEXTURE:
+		return os << "D3DRTYPE_TEXTURE";
+	case D3DRTYPE_VOLUMETEXTURE:
+		return os << "D3DRTYPE_VOLUMETEXTURE";
+	case D3DRTYPE_CUBETEXTURE:
+		return os << "D3DRTYPE_CUBETEXTURE";
+	case D3DRTYPE_VERTEXBUFFER:
+		return os << "D3DRTYPE_VERTEXBUFFER";
+	case D3DRTYPE_INDEXBUFFER:
+		return os << "D3DRTYPE_INDEXBUFFER";
+	case D3DRTYPE_FORCE_DWORD:
+		return os << "D3DRTYPE_FORCE_DWORD";
+	}
+
+	return os << (DWORD)Resource;
+}
+
 std::ostream& operator<<(std::ostream& os, const DDCAPS& cp)
 {
 	DDCAPS caps = { NULL };

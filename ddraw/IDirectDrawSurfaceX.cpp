@@ -3723,15 +3723,9 @@ HRESULT m_IDirectDrawSurfaceX::SetLock(D3DLOCKED_RECT* pLockedRect, LPRECT lpDes
 		HRESULT hr = surfaceTexture->LockRect(0, pLockedRect, lpDestRect, dwFlags);
 		if (FAILED(hr))
 		{
-			// If lock fails unlock and try again
-			surfaceTexture->UnlockRect(0);
-			hr = surfaceTexture->LockRect(0, pLockedRect, lpDestRect, dwFlags);
-			if (FAILED(hr))
-			{
-				LOG_LIMIT(100, __FUNCTION__ << " Error: failed to lock surface texture");
-				return (hr == D3DERR_WASSTILLDRAWING) ? DDERR_WASSTILLDRAWING :
-					DDERR_GENERIC;
-			}
+			LOG_LIMIT(100, __FUNCTION__ << " Error: failed to lock surface texture");
+			return (hr == D3DERR_WASSTILLDRAWING) ? DDERR_WASSTILLDRAWING :
+				DDERR_GENERIC;
 		}
 	}
 	// Lock 3D surface
@@ -3741,15 +3735,9 @@ HRESULT m_IDirectDrawSurfaceX::SetLock(D3DLOCKED_RECT* pLockedRect, LPRECT lpDes
 		HRESULT hr = surface3D->LockRect(pLockedRect, lpDestRect, dwFlags);
 		if (FAILED(hr))
 		{
-			// If lock fails unlock and try again
-			surface3D->UnlockRect();
-			hr = surface3D->LockRect(pLockedRect, lpDestRect, dwFlags);
-			if (FAILED(hr))
-			{
-				LOG_LIMIT(100, __FUNCTION__ << " Error: failed to lock surface");
-				return (hr == D3DERR_WASSTILLDRAWING) ? DDERR_WASSTILLDRAWING :
-					DDERR_GENERIC;
-			}
+			LOG_LIMIT(100, __FUNCTION__ << " Error: failed to lock surface");
+			return (hr == D3DERR_WASSTILLDRAWING) ? DDERR_WASSTILLDRAWING :
+				DDERR_GENERIC;
 		}
 	}
 	else
