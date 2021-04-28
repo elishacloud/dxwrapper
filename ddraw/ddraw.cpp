@@ -813,18 +813,20 @@ HWND dd_CreateWindowEx(DWORD dwExStyle, T lpClassName, T lpWindowName, DWORD dwS
 	Logging::LogDebug() << __FUNCTION__ << " " << lpClassName << " " << lpWindowName << " " << Logging::hex(dwExStyle) << " " << Logging::hex(dwStyle) << " " << X << "x" << Y << " " << nWidth << "x" << nHeight << " " << Logging::hex((DWORD)hWndParent) << " " << hWndParent << " " << hMenu << " " << hInstance;
 
 	// Handle popup window type
-	if ((dwStyle & WS_POPUP) && (!hWndParent || ((DWORD)hWndParent & 0xFFFFFFF0) == 0xFFFFFFF0))
+	if ((dwStyle & WS_POPUP) && (dwStyle & WS_VISIBLE) && !(dwStyle & WS_CLIPSIBLINGS) && !hWndParent)
 	{
 		DWORD dwNewStyle = dwStyle;
 
 		// Remove popup style
-		dwNewStyle = dwStyle & ~(WS_POPUP | WS_CLIPSIBLINGS);
+		dwNewStyle = dwStyle & ~WS_POPUP;
 
 		HWND hwnd = dd_CreateWindowEx_out(dwExStyle, lpClassName, lpWindowName, dwNewStyle, X, Y, nWidth, nHeight, hWndParent, hMenu, hInstance, lpParam);
 
 		if (hwnd)
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Removed WS_POPUP window style! " << hwnd);
+
+			SetWindowLong(hwnd, GWL_STYLE, dwNewStyle);
 
 			return hwnd;
 		}

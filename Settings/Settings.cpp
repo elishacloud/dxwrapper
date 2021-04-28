@@ -240,14 +240,6 @@ void Settings::SetValue(char* name, char* value, bool* setting)
 void __stdcall Settings::ParseCallback(char* name, char* value)
 {
 	// Check for the existance of certian values
-	if (!_stricmp(name, "CacheClipPlane"))
-	{
-		Config.CacheClipPlaneNotSet = false;
-	}
-	if (!_stricmp(name, "DDrawResolutionHack"))
-	{
-		Config.DdrawResolutionHackNotSet = false;
-	}
 	if (!_stricmp(name, "DisableMaxWindowedMode"))
 	{
 		Config.DisableMaxWindowedModeNotSet = false;
@@ -399,6 +391,11 @@ void Settings::SetDefaultConfigSettings()
 	Config.DinputHookSystem32 = NOT_EXIST;
 	Config.Dinput8HookSystem32 = NOT_EXIST;
 	Config.DsoundHookSystem32 = NOT_EXIST;
+	Config.DdrawResolutionHack = NOT_EXIST;
+	Config.CacheClipPlane = NOT_EXIST;
+
+	// Other values that may not exist in ini file
+	Config.DisableMaxWindowedModeNotSet = true;
 
 	// Set defaults
 	Config.DisableHighDPIScaling = true;
@@ -414,11 +411,6 @@ void Settings::SetDefaultConfigSettings()
 	Config.AudioFadeOutDelayMS = 20;
 	SetValue("ExcludeProcess", "dxwnd.exe", &Config.ExcludeProcess);
 	SetValue("ExcludeProcess", "dgVoodooSetup.exe", &Config.ExcludeProcess);
-
-	// Default to 'true' until we know it is set
-	Config.DdrawResolutionHackNotSet = true;
-	Config.CacheClipPlaneNotSet = true;
-	Config.DisableMaxWindowedModeNotSet = true;
 }
 
 bool CONFIG::IsSet(DWORD Value)
@@ -620,11 +612,12 @@ void CONFIG::SetConfig()
 
 	DDrawCompat30 = (DDrawCompat30 | DDrawCompatExperimental);
 	DDrawCompat = (DDrawCompat || DDrawCompat20 || DDrawCompat21 || DDrawCompat30);
-	EnableDdrawWrapper = (EnableDdrawWrapper || IsSet(DdrawHookSystem32) || ConvertToDirectDraw7 || ConvertToDirect3D7 || DdrawResolutionHack);
+	EnableDdrawWrapper = (EnableDdrawWrapper || IsSet(DdrawHookSystem32) || ConvertToDirectDraw7 || ConvertToDirect3D7 || IsSet(DdrawResolutionHack));
 	D3d8to9 = (D3d8to9 || IsSet(D3d8HookSystem32));
 	EnableWindowMode = (FullscreenWindowMode) ? true : EnableWindowMode;
 	EnableD3d9Wrapper = (IsSet(EnableD3d9Wrapper) || IsSet(D3d9HookSystem32) ||
-		(EnableD3d9Wrapper == NOT_EXIST && (AnisotropicFiltering || AntiAliasing || CacheClipPlane || EnableVSync || ForceMixedVertexProcessing || ForceSystemMemVertexCache || ForceVsyncMode || EnableWindowMode)));	// For legacy purposes
+		(EnableD3d9Wrapper == NOT_EXIST && (AnisotropicFiltering || AntiAliasing || IsSet(CacheClipPlane) || EnableVSync ||		// For legacy purposes
+			ForceMixedVertexProcessing || ForceSystemMemVertexCache || ForceVsyncMode || EnableWindowMode)));					// For legacy purposes
 
 	// Set ddraw color bit mode
 	DdrawOverrideBitMode = (DdrawOverrideBitMode) ? DdrawOverrideBitMode : (Force32bitColor) ? 32 : (Force16bitColor) ? 16 : 0;
@@ -661,12 +654,6 @@ void CONFIG::SetConfig()
 	}
 
 	// Set unset options
-	if (Config.DdrawResolutionHackNotSet)
-	{
-		Config.DdrawResolutionHack = true;
-	}
-	if (Config.CacheClipPlaneNotSet)
-	{
-		Config.CacheClipPlane = true;
-	}
+	DdrawResolutionHack = (DdrawResolutionHack != 0);
+	CacheClipPlane = (CacheClipPlane != 0);
 }
