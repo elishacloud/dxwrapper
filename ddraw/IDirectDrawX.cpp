@@ -2536,7 +2536,10 @@ HRESULT m_IDirectDrawX::CreateD3D9Device()
 		// Create d3d9 Device
 		if (FAILED(d3d9Object->CreateDevice(D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, hWnd, BehaviorFlags, &presParams, &d3d9Device)))
 		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error: failed to create Direct3D9 device! " << presParams.BackBufferWidth << "x" << presParams.BackBufferHeight << " refresh: " << presParams.FullScreen_RefreshRateInHz <<
+			DWORD dwProcessId = 0;
+			GetWindowThreadProcessId(hWnd, &dwProcessId);
+			LOG_LIMIT(100, __FUNCTION__ << " Error: failed to create Direct3D9 device! " << ((dwProcessId && dwProcessId != GetCurrentThreadId()) ? "Calling from a non-owner thread! " : "")
+				<< presParams.BackBufferWidth << "x" << presParams.BackBufferHeight << " refresh: " << presParams.FullScreen_RefreshRateInHz <<
 				" format: " << presParams.BackBufferFormat << " wnd: " << hWnd);
 			hr = DDERR_GENERIC;
 			break;
