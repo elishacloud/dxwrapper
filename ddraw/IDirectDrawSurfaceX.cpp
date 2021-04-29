@@ -4057,8 +4057,7 @@ bool m_IDirectDrawSurfaceX::DoesFlipBackBufferExist(m_IDirectDrawSurfaceX* lpSur
 	// Loop through each surface
 	for (auto it : AttachedSurfaceMap)
 	{
-		dwCaps = it.second.pSurface->GetSurfaceCaps().dwCaps;
-		if (dwCaps & DDSCAPS_FLIP)
+		if (it.second.pSurface && (it.second.pSurface->GetSurfaceCaps().dwCaps & DDSCAPS_FLIP))
 		{
 			lpTargetSurface = it.second.pSurface;
 
@@ -4632,6 +4631,8 @@ HRESULT m_IDirectDrawSurfaceX::CopyEmulatedSurfaceToGDI(RECT Rect)
 	{
 		return DDERR_GENERIC;
 	}
+
+	UpdatePaletteData();
 
 	BitBlt(ddrawParent->GetDC(), Left, Top, Width, Height, emu->surfaceDC, Rect.left, Rect.top, SRCCOPY);
 
