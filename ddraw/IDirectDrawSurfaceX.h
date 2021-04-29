@@ -13,6 +13,7 @@ struct EMUSURFACE
 	BYTE bmiMemory[(sizeof(BITMAPINFOHEADER) + sizeof(RGBQUAD) * 256)];
 	PBITMAPINFO bmi = (PBITMAPINFO)bmiMemory;
 	HGDIOBJ OldDCObject = nullptr;
+	DWORD LastPaletteUSN = 0;
 };
 
 class m_IDirectDrawSurfaceX : public IUnknown, public AddressLookupTableDdrawObject

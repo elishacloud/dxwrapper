@@ -3710,6 +3710,9 @@ HRESULT m_IDirectDrawSurfaceX::SetLock(D3DLOCKED_RECT* pLockedRect, LPRECT lpDes
 		CheckCoordinates(&LastRect, lpDestRect);
 		DoCopyRect = ((dwFlags & D3DLOCK_READONLY) == 0);
 
+		// Set new palette data
+		UpdatePaletteData();
+
 		// Read surface from GDI
 		if (Config.DdrawReadFromGDI && (IsPrimarySurface() || IsBackBuffer()))
 		{
@@ -4632,8 +4635,6 @@ HRESULT m_IDirectDrawSurfaceX::CopyEmulatedSurfaceToGDI(RECT Rect)
 		return DDERR_GENERIC;
 	}
 
-	UpdatePaletteData();
-
 	BitBlt(ddrawParent->GetDC(), Left, Top, Width, Height, emu->surfaceDC, Rect.left, Rect.top, SRCCOPY);
 
 	return DD_OK;
@@ -4671,7 +4672,7 @@ void m_IDirectDrawSurfaceX::UpdatePaletteData()
 			if (lpPalette && lpPalette->GetRgbPalette())
 			{
 				CurrentPaletteUSN = lpPrimarySurface->GetPaletteUSN() + lpPalette->GetPaletteUSN();
-				if (CurrentPaletteUSN && CurrentPaletteUSN != LastPaletteUSN)
+				if (CurrentPaletteUSN && ((CurrentPaletteUSN != LastPaletteUSN) || (emu && CurrentPaletteUSN != emu->LastPaletteUSN)))
 				{
 					rgbPalette = (D3DCOLOR*)lpPalette->GetRgbPalette();
 					entryCount = lpPalette->GetEntryCount();
@@ -4690,6 +4691,8 @@ void m_IDirectDrawSurfaceX::UpdatePaletteData()
 	if (emu && emu->surfaceDC)
 	{
 		SetDIBColorTable(emu->surfaceDC, 0, entryCount, (RGBQUAD*)rgbPalette);
+
+		emu->LastPaletteUSN = CurrentPaletteUSN;
 	}
 
 	// If new palette data then write it to texture
