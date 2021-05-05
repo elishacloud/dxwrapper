@@ -55,6 +55,13 @@ private:
 	};
 	DDRAWEMULATELOCK EmuLock;
 
+	struct DSWRAPPER
+	{
+		DWORD Height = 0;
+		DWORD Width = 0;
+	};
+	DSWRAPPER DsWrapper;
+
 	// Convert to Direct3D9
 	bool IsDirect3DSurface = false;
 	m_IDirectDrawX *ddrawParent = nullptr;
@@ -358,6 +365,7 @@ public:
 	LPDIRECT3DSURFACE9 Get3DSurface();
 	LPDIRECT3DTEXTURE9 Get3DTexture();
 	void ClearTexture() { attachedTexture = nullptr; }
+	void SetWrapperSurfaceSize(DWORD Height, DWORD Width) { DsWrapper.Width = Width; DsWrapper.Height = Height; }
 
 	// Attached surfaces
 	void RemoveAttachedSurfaceFromMap(m_IDirectDrawSurfaceX* lpSurfaceX);

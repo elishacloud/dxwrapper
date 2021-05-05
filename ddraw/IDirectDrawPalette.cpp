@@ -167,8 +167,12 @@ HRESULT m_IDirectDrawPalette::SetEntries(DWORD dwFlags, DWORD dwStartingEntry, D
 		// Copy raw palette entries from dwStartingEntry and of count dwCount
 		memcpy(&(rawPalette[dwStartingEntry]), lpEntries, sizeof(PALETTEENTRY) * dwCount);
 
+		// Set new start and end entries
+		DWORD Start = max(1, dwStartingEntry);
+		DWORD End = min(255, dwStartingEntry + dwCount);
+
 		// Translate new raw pallete entries to RGB(make sure not to go off the end of the memory)
-		for (UINT i = dwStartingEntry; i < dwStartingEntry + dwCount; i++)
+		for (UINT i = Start; i < End; i++)
 		{
 			// Translate the raw palette to ARGB
 			if (paletteCaps & DDPCAPS_ALPHA)
@@ -253,6 +257,19 @@ void m_IDirectDrawPalette::InitPalette()
 
 	// Allocate rgb palette
 	rgbPalette = new RGBDWORD[entryCount];
+
+	// Set palette entry 0 to black to simulate ddraw functionality
+	rgbPalette[0].pe.blue = 0x00;
+	rgbPalette[0].pe.green = 0x00;
+	rgbPalette[0].pe.red = 0x00;
+
+	// Set palette entry 255 to white to simulate ddraw functionality
+	if (entryCount == 256)
+	{
+		rgbPalette[255].pe.blue = 0xFF;
+		rgbPalette[255].pe.green = 0xFF;
+		rgbPalette[255].pe.red = 0xFF;
+	}
 }
 
 void m_IDirectDrawPalette::ReleasePalette()

@@ -2,6 +2,8 @@
 
 #include <ddraw.h>
 
+#define D3DFMT_B8G8R8 (D3DFORMAT)19
+
 #define D3DCOLOR_R5G6B5_BLUE(w) \
 	(BYTE)((w)&0x1f)*8
 #define D3DCOLOR_R5G6B5_GREEN(w) \

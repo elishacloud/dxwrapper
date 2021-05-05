@@ -407,6 +407,17 @@ HRESULT m_IDirectDrawX::CreateSurface(LPDDSURFACEDESC lpDDSurfaceDesc, LPDIRECTD
 		return hr;
 	}
 
+	// Adjust Height and Width
+	DWORD Width = 0;
+	DWORD Height = 0;
+	if (lpDDSurfaceDesc && (lpDDSurfaceDesc->dwFlags & DDSD_WIDTH) && (lpDDSurfaceDesc->dwFlags & DDSD_HEIGHT))
+	{
+		Width = lpDDSurfaceDesc->dwWidth;
+		Height = lpDDSurfaceDesc->dwHeight;
+		lpDDSurfaceDesc->dwWidth += lpDDSurfaceDesc->dwWidth % 2;
+		lpDDSurfaceDesc->dwHeight += lpDDSurfaceDesc->dwHeight % 2;
+	}
+
 	HRESULT hr = GetProxyInterfaceV3()->CreateSurface(lpDDSurfaceDesc, (LPDIRECTDRAWSURFACE*)lplpDDSurface, pUnkOuter);
 
 	if (SUCCEEDED(hr) && lplpDDSurface)
@@ -414,6 +425,12 @@ HRESULT m_IDirectDrawX::CreateSurface(LPDDSURFACEDESC lpDDSurfaceDesc, LPDIRECTD
 		m_IDirectDrawSurfaceX *D3DSurfaceDevice = new m_IDirectDrawSurfaceX((IDirectDrawSurface7*)*lplpDDSurface, DirectXVersion);
 
 		*lplpDDSurface = (LPDIRECTDRAWSURFACE7)D3DSurfaceDevice->GetWrapperInterfaceX(DirectXVersion);
+
+		// Set original Height and Width
+		if (Height && Width)
+		{
+			D3DSurfaceDevice->SetWrapperSurfaceSize(Height, Width);
+		}
 	}
 
 	return hr;
@@ -512,7 +529,7 @@ HRESULT m_IDirectDrawX::CreateSurface2(LPDDSURFACEDESC2 lpDDSurfaceDesc2, LPDIRE
 			memcpy(&ddpfPixelFormat, &lpDDSurfaceDesc2->ddpfPixelFormat, sizeof(DDPIXELFORMAT));
 			ddpfPixelFormat.dwSize = sizeof(DDPIXELFORMAT);
 			D3DFORMAT Format = GetDisplayFormat(ddpfPixelFormat);
-			Format = (Format == D3DFMT_R8G8B8) ? D3DFMT_X8R8G8B8 : Format;
+			Format = (Format == D3DFMT_R8G8B8 || Format == D3DFMT_B8G8R8 || Format == D3DFMT_X8B8G8R8) ? D3DFMT_X8R8G8B8 : (Format == D3DFMT_A8B8G8R8) ? D3DFMT_A8R8G8B8 : Format;
 			DWORD Usage = (lpDDSurfaceDesc2->ddsCaps.dwCaps & DDSCAPS_PRIMARYSURFACE) ? D3DUSAGE_RENDERTARGET :
 				((lpDDSurfaceDesc2->dwFlags & DDSD_MIPMAPCOUNT) || ((lpDDSurfaceDesc2->ddsCaps.dwCaps & DDSCAPS_MIPMAP))) ? D3DUSAGE_AUTOGENMIPMAP :
 				(ddpfPixelFormat.dwFlags & (DDPF_ZBUFFER | DDPF_STENCILBUFFER)) ? D3DUSAGE_DEPTHSTENCIL : 0;
@@ -614,6 +631,17 @@ HRESULT m_IDirectDrawX::CreateSurface2(LPDDSURFACEDESC2 lpDDSurfaceDesc2, LPDIRE
 		}
 	}
 
+	// Adjust Height and Width
+	DWORD Width = 0;
+	DWORD Height = 0;
+	if (lpDDSurfaceDesc2 && (lpDDSurfaceDesc2->dwFlags & DDSD_WIDTH) && (lpDDSurfaceDesc2->dwFlags & DDSD_HEIGHT))
+	{
+		Width = lpDDSurfaceDesc2->dwWidth;
+		Height = lpDDSurfaceDesc2->dwHeight;
+		lpDDSurfaceDesc2->dwWidth += lpDDSurfaceDesc2->dwWidth % 2;
+		lpDDSurfaceDesc2->dwHeight += lpDDSurfaceDesc2->dwHeight % 2;
+	}
+
 	HRESULT hr = ProxyInterface->CreateSurface(lpDDSurfaceDesc2, lplpDDSurface, pUnkOuter);
 
 	if (SUCCEEDED(hr) && lplpDDSurface)
@@ -621,6 +649,12 @@ HRESULT m_IDirectDrawX::CreateSurface2(LPDDSURFACEDESC2 lpDDSurfaceDesc2, LPDIRE
 		m_IDirectDrawSurfaceX *D3DSurfaceDevice = new m_IDirectDrawSurfaceX((IDirectDrawSurface7*)*lplpDDSurface, DirectXVersion);
 
 		*lplpDDSurface = (LPDIRECTDRAWSURFACE7)D3DSurfaceDevice->GetWrapperInterfaceX(DirectXVersion);
+
+		// Set original Height and Width
+		if (Height && Width)
+		{
+			D3DSurfaceDevice->SetWrapperSurfaceSize(Height, Width);
+		}
 
 		if (Config.ConvertToDirectDraw7)
 		{
@@ -2104,7 +2138,7 @@ void m_IDirectDrawX::InitDdraw(DWORD DirectXVersion)
 		}
 
 		// Create event
-		if (!ghWriteEvent)
+		if (!ghWriteEvent && EnableMouseHook)
 		{
 			ghWriteEvent = CreateEvent(nullptr, FALSE, FALSE, TEXT("Local\\DxwrapperMouseEvent"));
 		}

@@ -23,6 +23,7 @@
 #include <ddrawex.h>
 #include <d3d.h>
 #include <d3dhal.h>
+#include "ddraw\IDirectDrawTypes.h"
 #include <dinput.h>
 #include <dsound.h>
 #include <MMSystem.h>
@@ -81,6 +82,8 @@ std::ostream& operator<<(std::ostream& os, const D3DFORMAT& format)
 	{
 	case 0:
 		return os << "D3DFMT_UNKNOWN";
+	case D3DFMT_B8G8R8:
+		return os << "D3DFMT_B8G8R8";
 	case 20:
 		return os << "D3DFMT_R8G8B8";
 	case 21:

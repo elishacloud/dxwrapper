@@ -430,6 +430,7 @@ DWORD GetBitCount(D3DFORMAT Format)
 		return 4 * 8;
 
 	case D3DFMT_R8G8B8:
+	case D3DFMT_B8G8R8:
 		return 3 * 8;
 
 	case D3DFMT_R5G6B5:
@@ -578,6 +579,10 @@ D3DFORMAT GetDisplayFormat(DDPIXELFORMAT ddpfPixelFormat)
 			{
 				return D3DFMT_R8G8B8;
 			}
+			if ((ddpfPixelFormat.dwRBitMask == 0xFF) && (ddpfPixelFormat.dwGBitMask == 0xFF00) && (ddpfPixelFormat.dwBBitMask == 0xFF0000))
+			{
+				return D3DFMT_B8G8R8;
+			}
 			break;
 		case 32:
 			if ((ddpfPixelFormat.dwRBitMask == 0xFF0000) && (ddpfPixelFormat.dwGBitMask == 0xFF00) && (ddpfPixelFormat.dwBBitMask == 0xFF))
@@ -589,6 +594,17 @@ D3DFORMAT GetDisplayFormat(DDPIXELFORMAT ddpfPixelFormat)
 				else if (ddpfPixelFormat.dwRGBAlphaBitMask == 0x00)
 				{
 					return D3DFMT_X8R8G8B8;
+				}
+			}
+			if ((ddpfPixelFormat.dwRBitMask == 0xFF) && (ddpfPixelFormat.dwGBitMask == 0xFF00) && (ddpfPixelFormat.dwBBitMask == 0xFF0000))
+			{
+				if ((ddpfPixelFormat.dwFlags & DDPF_ALPHAPIXELS) && (ddpfPixelFormat.dwRGBAlphaBitMask == 0xFF000000))
+				{
+					return D3DFMT_A8B8G8R8;
+				}
+				else if (ddpfPixelFormat.dwRGBAlphaBitMask == 0x00)
+				{
+					return D3DFMT_X8B8G8R8;
 				}
 			}
 			if ((ddpfPixelFormat.dwRBitMask == 0x3FF00000) && (ddpfPixelFormat.dwGBitMask == 0xFFC00) && (ddpfPixelFormat.dwBBitMask == 0x3FF) &&
@@ -651,7 +667,7 @@ void SetPixelDisplayFormat(D3DFORMAT Format, DDPIXELFORMAT &ddpfPixelFormat)
 	ddpfPixelFormat.dwRGBAlphaBitMask = 0x0;
 
 	// Set BitCount and BitMask
-	switch (Format)
+	switch ((DWORD)Format)
 	{
 	case D3DFMT_A4R4G4B4:
 		ddpfPixelFormat.dwFlags |= DDPF_ALPHAPIXELS;
@@ -681,6 +697,15 @@ void SetPixelDisplayFormat(D3DFORMAT Format, DDPIXELFORMAT &ddpfPixelFormat)
 		ddpfPixelFormat.dwRBitMask = 0xFF0000;
 		ddpfPixelFormat.dwGBitMask = 0xFF00;
 		ddpfPixelFormat.dwBBitMask = 0xFF;
+		break;
+	case D3DFMT_A8B8G8R8:
+		ddpfPixelFormat.dwFlags |= DDPF_ALPHAPIXELS;
+		ddpfPixelFormat.dwRGBAlphaBitMask = 0xFF000000;
+	case D3DFMT_B8G8R8:
+	case D3DFMT_X8B8G8R8:
+		ddpfPixelFormat.dwRBitMask = 0xFF;
+		ddpfPixelFormat.dwGBitMask = 0xFF00;
+		ddpfPixelFormat.dwBBitMask = 0xFF0000;
 		break;
 	case D3DFMT_A2R10G10B10:
 		ddpfPixelFormat.dwFlags |= DDPF_ALPHAPIXELS;
