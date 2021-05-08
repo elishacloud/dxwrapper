@@ -7,6 +7,7 @@
 #include <string>
 
 #include <Windows.h>
+#include <Shlwapi.h>
 #include <initguid.h>
 #include <DbgEng.h>
 
@@ -219,8 +220,40 @@ namespace
 
 		//********** Begin Edit *************
 		typedef HRESULT(STDAPICALLTYPE* PFN_DebugCreate)(_In_ REFIID InterfaceId, _Out_ PVOID* Interface);
-		static HMODULE dll = LoadLibrary("dbgeng.dll");
-		static PFN_DebugCreate pDebugCreate = (PFN_DebugCreate)GetProcAddress(dll, "DebugCreate");
+		static PFN_DebugCreate pDebugCreate = nullptr;
+		static bool RunOnce = true;
+		if (RunOnce)
+		{
+			// Get System32 path
+			char syspath[MAX_PATH];
+			GetSystemDirectory(syspath, MAX_PATH);
+
+			// Load dbghelp.dll from System32
+			char path[MAX_PATH];
+			strcpy_s(path, MAX_PATH, syspath);
+			PathAppend(path, "dbghelp.dll");
+			HMODULE dll = LoadLibrary(path);
+
+			// Try loading dbgeng.dll from System32
+			strcpy_s(path, MAX_PATH, syspath);
+			PathAppend(path, "dbgeng.dll");
+			dll = LoadLibrary(path);
+			if (dll)
+			{
+				pDebugCreate = (PFN_DebugCreate)GetProcAddress(dll, "DebugCreate");
+			}
+
+			// Try loading dbgeng.dll from local path
+			if (!pDebugCreate)
+			{
+				dll = LoadLibrary("dbgeng.dll");
+				if (dll)
+				{
+					pDebugCreate = (PFN_DebugCreate)GetProcAddress(dll, "DebugCreate");
+				}
+			}
+		}
+		RunOnce = false;
 		if (!pDebugCreate)
 		{
 			Compat30::Log() << "ERROR: DbgEng: failed to get proc address!";
