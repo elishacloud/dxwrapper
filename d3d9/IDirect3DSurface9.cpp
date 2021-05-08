@@ -51,7 +51,16 @@ ULONG m_IDirect3DSurface9::Release(THIS)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	return ProxyInterface->Release();
+	ULONG ref = ProxyInterface->Release();
+
+	if (ref == 0 && pEmuSurface)
+	{
+		pEmuSurface->UnlockRect();
+		pEmuSurface->Release();
+		pEmuSurface = nullptr;
+	}
+
+	return ref;
 }
 
 HRESULT m_IDirect3DSurface9::GetDevice(THIS_ IDirect3DDevice9** ppDevice)
@@ -151,34 +160,60 @@ HRESULT m_IDirect3DSurface9::LockRect(THIS_ D3DLOCKED_RECT* pLockedRect, CONST R
 
 	HRESULT hr = ProxyInterface->LockRect(pLockedRect, pRect, Flags);
 
-	if (FAILED(hr) && DeviceMultiSampleFlag)
+	if (hr == D3DERR_INVALIDCALL && !IsLocked && pLockedRect && !pEmuSurface && DeviceMultiSampleType != D3DMULTISAMPLE_NONE)
 	{
 		D3DSURFACE_DESC Desc;
 		if (SUCCEEDED(GetDesc(&Desc)))
 		{
-			DWORD bits = GetBitCount(Desc.Format) / 8;
-			DWORD size = bits * Desc.Width * Desc.Height;
-			if (!bits || (IsLocked && surfaceArray.size() < size))
+			DWORD bytes = GetBitCount(Desc.Format) / 8;
+			if (!bytes)
 			{
+				LOG_LIMIT(100, __FUNCTION__ << " Error: Surface Lock error getting bit count: " << (D3DERR)hr);
 				return hr;
 			}
-			else if (surfaceArray.size() < size)
+
+			// Copy surface data to memory
+			if (SUCCEEDED(m_pDeviceEx->CreateOffscreenPlainSurface(Desc.Width, Desc.Height, Desc.Format, D3DPOOL_SCRATCH, &pEmuSurface, nullptr)) && pEmuSurface)
 			{
-				surfaceArray.resize(size);
+				EmuReadOnly = (Flags & D3DLOCK_READONLY);
+				EmuRect.left = 0;
+				EmuRect.top = 0;
+				EmuRect.right = (LONG)Desc.Width;
+				EmuRect.bottom = (LONG)Desc.Height;
+				if (pRect) { memcpy(&EmuRect, pRect, sizeof(RECT)); }
+				POINT Point = { EmuRect.left, EmuRect.top };
+
+				if (FAILED(m_pDeviceEx->CopyRects(this, &EmuRect, 1, pEmuSurface, &Point)))
+				{
+					LOG_LIMIT(100, __FUNCTION__ << " Error: copying emulated surface!");
+				}
+				D3DLOCKED_RECT LockedRect = { NULL };
+				if (SUCCEEDED(pEmuSurface->LockRect(&LockedRect, &EmuRect, Flags)) && LockedRect.pBits)
+				{
+					pLockedRect->pBits = LockedRect.pBits;
+					pLockedRect->Pitch = LockedRect.Pitch;
+					return D3D_OK;
+				}
+				else
+				{
+					LOG_LIMIT(100, __FUNCTION__ << " Error: locking emulated surface!");
+				}
+				pEmuSurface->Release();
+				pEmuSurface = nullptr;
+			}
+			else
+			{
+				LOG_LIMIT(100, __FUNCTION__ << " Error: creating emulated surface!");
 			}
 
-			LOG_LIMIT(100, __FUNCTION__ << " Emulating the surface lock. Data may be lost here!");
+			LOG_LIMIT(100, __FUNCTION__ << " Error: Surface Lock error: " << (D3DERR)hr);
 
-			DWORD start = (pRect) ? ((pRect->top * Desc.Width * bits) + (pRect->left * bits)) : 0;
-
-			// ToDo: copy surface data to memory
-			pLockedRect->pBits = &surfaceArray[start];
-			pLockedRect->Pitch = Desc.Width * bits;
-
-			IsLocked = true;
-
-			return D3D_OK;
+			return hr;
 		}
+	}
+	else if (SUCCEEDED(hr))
+	{
+		IsLocked = true;
 	}
 
 	return hr;
@@ -188,12 +223,28 @@ HRESULT m_IDirect3DSurface9::UnlockRect(THIS)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	HRESULT hr = ProxyInterface->UnlockRect();
+	HRESULT hr = D3DERR_INVALIDCALL;
 
-	if (SUCCEEDED(hr))
+	// Copy data back from emulated surface
+	if (pEmuSurface)
 	{
-		// ToDo: copy data back from emulated surface
-		IsLocked = false;
+		hr = pEmuSurface->UnlockRect();
+		POINT Point = { EmuRect.left, EmuRect.top };
+		if (!EmuReadOnly && FAILED(m_pDeviceEx->CopyRects(this, &EmuRect, 1, pEmuSurface, &Point)))
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: copying surface!");
+		}
+		pEmuSurface->Release();
+		pEmuSurface = nullptr;
+	}
+	else
+	{
+		hr = ProxyInterface->UnlockRect();
+
+		if (SUCCEEDED(hr))
+		{
+			IsLocked = false;
+		}
 	}
 
 	return hr;

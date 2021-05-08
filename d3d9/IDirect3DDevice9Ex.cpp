@@ -1382,6 +1382,9 @@ HRESULT m_IDirect3DDevice9Ex::CopyRects(THIS_ IDirect3DSurface9 *pSourceSurface,
 		return D3DERR_INVALIDCALL;
 	}
 
+	pSourceSurface = static_cast<m_IDirect3DSurface9*>(pSourceSurface)->GetProxyInterface();
+	pDestinationSurface = static_cast<m_IDirect3DSurface9*>(pDestinationSurface)->GetProxyInterface();
+
 	D3DSURFACE_DESC SourceDesc, DestinationDesc;
 	pSourceSurface->GetDesc(&SourceDesc);
 	pDestinationSurface->GetDesc(&DestinationDesc);
@@ -1426,7 +1429,17 @@ HRESULT m_IDirect3DDevice9Ex::CopyRects(THIS_ IDirect3DSurface9 *pSourceSurface,
 			DestinationRect = SourceRect;
 		}
 
-		if (SourceDesc.Pool == D3DPOOL_MANAGED || DestinationDesc.Pool != D3DPOOL_DEFAULT)
+		if (SourceDesc.Pool == D3DPOOL_DEFAULT)
+		{
+			hr = ProxyInterface->StretchRect(pSourceSurface, &SourceRect, pDestinationSurface, &DestinationRect, D3DTEXF_NONE);
+		}
+		else if (SourceDesc.Pool == D3DPOOL_SYSTEMMEM)
+		{
+			const POINT pt = { DestinationRect.left, DestinationRect.top };
+
+			hr = ProxyInterface->UpdateSurface(pSourceSurface, &SourceRect, pDestinationSurface, &pt);
+		}
+		if (FAILED(hr))
 		{
 			hr = D3DERR_INVALIDCALL;
 			if (SUCCEEDED(D3DXLoadSurfaceFromSurface(pDestinationSurface, nullptr, &DestinationRect, pSourceSurface, nullptr, &SourceRect, D3DX_FILTER_NONE, 0)))
@@ -1441,16 +1454,6 @@ HRESULT m_IDirect3DDevice9Ex::CopyRects(THIS_ IDirect3DSurface9 *pSourceSurface,
 				}
 				hr = D3D_OK;
 			}
-		}
-		else if (SourceDesc.Pool == D3DPOOL_DEFAULT)
-		{
-			hr = ProxyInterface->StretchRect(pSourceSurface, &SourceRect, pDestinationSurface, &DestinationRect, D3DTEXF_NONE);
-		}
-		else if (SourceDesc.Pool == D3DPOOL_SYSTEMMEM)
-		{
-			const POINT pt = { DestinationRect.left, DestinationRect.top };
-
-			hr = ProxyInterface->UpdateSurface(pSourceSurface, &SourceRect, pDestinationSurface, &pt);
 		}
 
 		if (FAILED(hr))
