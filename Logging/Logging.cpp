@@ -1049,7 +1049,6 @@ std::ostream& operator<<(std::ostream& os, const DDERR& ErrCode)
 	visit(DDERR_BADVERSIONINFO) \
 	visit(DDERR_BADPROCADDRESS) \
 	visit(DDERR_LEGACYUSAGE) \
-	visit(D3D_OK) \
 	visit(D3DERR_BADMAJORVERSION) \
 	visit(D3DERR_BADMINORVERSION) \
 	visit(D3DERR_INVALID_DEVICE) \
@@ -1131,8 +1130,32 @@ std::ostream& operator<<(std::ostream& os, const DDERR& ErrCode)
 	visit(D3DERR_INBEGINSTATEBLOCK) \
 	visit(D3DERR_NOTINBEGINSTATEBLOCK) \
 	visit(D3DERR_COMMAND_UNPARSED) \
+	visit(D3DERR_DRIVERINTERNALERROR) \
+	visit(D3DERR_NOTFOUND) \
+	visit(D3DERR_MOREDATA) \
+	visit(D3DERR_DEVICELOST) \
+	visit(D3DERR_DEVICENOTRESET) \
+	visit(D3DERR_NOTAVAILABLE) \
+	visit(D3DERR_OUTOFVIDEOMEMORY) \
+	visit(D3DERR_INVALIDDEVICE) \
+	visit(D3DERR_INVALIDCALL) \
+	visit(D3DERR_DRIVERINVALIDCALL) \
+	visit(D3DERR_WASSTILLDRAWING) \
+	visit(D3DOK_NOAUTOGEN) \
+	visit(D3DERR_DEVICEREMOVED) \
+	visit(D3DERR_DEVICEHUNG) \
+	visit(D3DERR_UNSUPPORTEDOVERLAY) \
+	visit(D3DERR_UNSUPPORTEDOVERLAYFORMAT) \
+	visit(D3DERR_CANNOTPROTECTCONTENT) \
+	visit(D3DERR_UNSUPPORTEDCRYPTO) \
+	visit(D3DERR_PRESENT_STATISTICS_DISJOINT) \
 	visit(E_NOINTERFACE) \
-	visit(E_POINTER)
+	visit(E_POINTER) \
+	visit(S_NOT_RESIDENT) \
+	visit(S_RESIDENT_IN_SHARED_MEMORY) \
+	visit(S_PRESENT_MODE_CHANGED) \
+	visit(S_PRESENT_OCCLUDED) \
+	visit(D3D_OK)
 
 #define VISIT_DDERR_RETURN(x) \
 	if (ErrCode == x) \
@@ -1142,7 +1165,7 @@ std::ostream& operator<<(std::ostream& os, const DDERR& ErrCode)
 
 	VISIT_DDERR_CODES(VISIT_DDERR_RETURN);
 
-	return os << Logging::hex((DWORD)ErrCode);
+	return os << Logging::hex(ErrCode);
 }
 
 std::ostream& operator<<(std::ostream& os, const D3DERR& ErrCode)
@@ -1210,7 +1233,7 @@ std::ostream& operator<<(std::ostream& os, const DIERR& ErrCode)
 
 	VISIT_DIERR_CODES(VISIT_DIERR_RETURN);
 
-	return os << Logging::hex((DWORD)ErrCode);
+	return os << Logging::hex(ErrCode);
 }
 
 std::ostream& operator<<(std::ostream& os, const DSERR& ErrCode)
@@ -1252,7 +1275,7 @@ std::ostream& operator<<(std::ostream& os, const DSERR& ErrCode)
 
 	VISIT_DSERR_CODES(VISIT_DSERR_RETURN);
 
-	return os << Logging::hex((DWORD)ErrCode);
+	return os << Logging::hex(ErrCode);
 }
 
 std::ostream& operator<<(std::ostream& os, const WMMSG& Id)
@@ -1933,7 +1956,7 @@ std::ostream& operator<<(std::ostream& os, const WMMSG& Id)
 
 	VISIT_WMMSG_CODES(VISIT_WMMSG_RETURN);
 
-	return os << Logging::hex((DWORD)Id);
+	return os << Logging::hex(Id);
 }
 
 namespace
