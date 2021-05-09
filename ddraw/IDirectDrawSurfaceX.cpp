@@ -2860,11 +2860,11 @@ HRESULT m_IDirectDrawSurfaceX::CreateD3d9Surface()
 	// Create primary texture
 	if (!IsDirect3DSurface && (IsPrimarySurface() || IsBackBuffer()))
 	{
-		if (ddrawParent->IsDynamicTexturesSupported() && surfaceFormat != D3DFMT_P8 && !Config.DdrawWriteToGDI)
+		if (ddrawParent->IsDynamicTexturesSupported() && !IsTexture() && surfaceFormat != D3DFMT_P8 && !(surfaceDesc2.ddsCaps.dwCaps & DDSCAPS_WRITEONLY) && !Config.DdrawWriteToGDI)
 		{
 			if (FAILED((*d3d9Device)->CreateTexture(Width, Height, 1, D3DUSAGE_DYNAMIC, TextureFormat, D3DPOOL_DEFAULT, &surfaceTexture, nullptr)))
 			{
-				LOG_LIMIT(100, __FUNCTION__ << " Error: failed to create Primary surface texture size: " << Width << "x" << Height << " Format: " << surfaceFormat);
+				LOG_LIMIT(100, __FUNCTION__ << " Error: failed to create dynamic Primary surface texture size: " << Width << "x" << Height << " Format: " << surfaceFormat);
 				return DDERR_GENERIC;
 			}
 		}

@@ -20,13 +20,6 @@ DirectSoundCaptureCreate8		@12
 
 
 ; ****
-;Forces Nvidia and AMD high performance graphics
-; ****
-NvOptimusEnablement                  DATA
-AmdPowerXpressRequestHighPerformance DATA
-
-
-; ****
 ;Retrieve specific settings from dxwrapper
 ; ****
 DxWrapperSettings
