@@ -1382,11 +1382,6 @@ HRESULT m_IDirectDrawX::SetCooperativeLevel(HWND hWnd, DWORD dwFlags)
 			LOG_LIMIT(100, __FUNCTION__ << " Warning: Flags not supported. dwFlags: " << Logging::hex(dwFlags) << " " << hWnd);
 		}
 
-		// ToDo: The DDSCL_EXCLUSIVE flag must be set to call functions that can adversely affect performance of other applications.
-
-		// If SetCooperativeLevel is called once in a process, a binding is established between the process and the window.
-		// If it is called again in the same process with a different non-null window handle, it returns the DDERR_HWNDALREADYSET error value.
-
 		bool ChangeMode = false;
 
 		// Set windowed mode
@@ -1408,8 +1403,10 @@ HRESULT m_IDirectDrawX::SetCooperativeLevel(HWND hWnd, DWORD dwFlags)
 		{
 			if (ExclusiveMode && ExclusiveHwnd != hWnd && IsWindow(ExclusiveHwnd))
 			{
+				// If SetCooperativeLevel is called once in a process, a binding is established between the process and the window.
+				// If it is called again in the same process with a different non-null window handle, it returns the DDERR_HWNDALREADYSET error value.
 				LOG_LIMIT(100, __FUNCTION__ << " Error: Exclusive mode already set.");
-				return DDERR_EXCLUSIVEMODEALREADYSET;
+				return DDERR_HWNDALREADYSET;
 			}
 			if (!ExclusiveMode)
 			{
@@ -1419,25 +1416,43 @@ HRESULT m_IDirectDrawX::SetCooperativeLevel(HWND hWnd, DWORD dwFlags)
 			ExclusiveHwnd = hWnd;
 		}
 
+		struct MODES {
+			DWORD ComputeModes()
+			{
+				return (AllowModeX * 4) + (MultiThreaded * 3) + (FUPPreserve * 2) + NoWindowChanges;
+			}
+		} m;
+		DWORD Modes = m.ComputeModes();
+
 		// Set device flags
 		AllowModeX = ((dwFlags & DDSCL_ALLOWMODEX) != 0);
 		MultiThreaded = ((dwFlags & DDSCL_MULTITHREADED) != 0);
-		FUPPreserve = ((dwFlags & (DDSCL_FPUPRESERVE | DDSCL_FPUSETUP)) != 0);
+		FUPPreserve = ((dwFlags & (DDSCL_FPUPRESERVE)) != 0);
 		NoWindowChanges = ((dwFlags & DDSCL_NOWINDOWCHANGES) != 0);
 
-		// Check if DC needs to be released
-		if (MainhWnd && MainhDC && (MainhWnd != hWnd))
+		// Check if modes changed
+		if (Modes != m.ComputeModes())
 		{
-			CloseVSync();
-			ReleaseDC(MainhWnd, MainhDC);
-			MainhDC = nullptr;
+			ChangeMode = true;
 		}
 
-		MainhWnd = hWnd;
-
-		if (MainhWnd && !MainhDC)
+		// Check window handle
+		if (hWnd)
 		{
-			MainhDC = ::GetDC(MainhWnd);
+			// Check if DC needs to be released
+			if (MainhWnd && MainhDC && (MainhWnd != hWnd))
+			{
+				CloseVSync();
+				ReleaseDC(MainhWnd, MainhDC);
+				MainhDC = nullptr;
+			}
+
+			MainhWnd = hWnd;
+
+			if (MainhWnd &&!MainhDC)
+			{
+				MainhDC = ::GetDC(MainhWnd);
+			}
 		}
 
 		// Reset if mode was changed and primary surface does not exist
