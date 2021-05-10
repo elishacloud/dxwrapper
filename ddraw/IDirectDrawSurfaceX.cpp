@@ -3919,7 +3919,7 @@ void m_IDirectDrawSurfaceX::InitSurfaceDesc(DWORD DirectXVersion)
 				ComplexRoot = true;
 			}
 
-			BackBufferInterface = std::make_unique<m_IDirectDrawSurfaceX>(d3d9Device, ddrawParent, DirectXVersion, &Desc2);
+			BackBufferInterface = std::make_unique<m_IDirectDrawSurfaceX>(ddrawParent, DirectXVersion, &Desc2);
 
 			m_IDirectDrawSurfaceX *attachedSurface = BackBufferInterface.get();
 
@@ -3929,7 +3929,7 @@ void m_IDirectDrawSurfaceX::InitSurfaceDesc(DWORD DirectXVersion)
 		}
 		else
 		{
-			m_IDirectDrawSurfaceX *attachedSurface = new m_IDirectDrawSurfaceX(d3d9Device, ddrawParent, DirectXVersion, &Desc2);
+			m_IDirectDrawSurfaceX *attachedSurface = new m_IDirectDrawSurfaceX(ddrawParent, DirectXVersion, &Desc2);
 
 			AddAttachedSurfaceToMap(attachedSurface);
 		}

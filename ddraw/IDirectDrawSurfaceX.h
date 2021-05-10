@@ -245,8 +245,7 @@ public:
 
 		InitSurface(DirectXVersion);
 	}
-	m_IDirectDrawSurfaceX(LPDIRECT3DDEVICE9 *lplpDevice, m_IDirectDrawX *Interface, DWORD DirectXVersion, LPDDSURFACEDESC2 lpDDSurfaceDesc2) :
-		d3d9Device(lplpDevice), ddrawParent(Interface)
+	m_IDirectDrawSurfaceX(m_IDirectDrawX *Interface, DWORD DirectXVersion, LPDDSURFACEDESC2 lpDDSurfaceDesc2) : ddrawParent(Interface)
 	{
 		ProxyDirectXVersion = 9;
 

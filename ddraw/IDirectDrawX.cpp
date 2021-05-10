@@ -591,18 +591,12 @@ HRESULT m_IDirectDrawX::CreateSurface2(LPDDSURFACEDESC2 lpDDSurfaceDesc2, LPDIRE
 			// Check if there is a change in the present parameters
 			if (d3d9Device && AntiAliasing != OldAntiAliasing)
 			{
-				// Release existing d3d9 device
-				ReleaseD3d9Device();
+				// Recreate d3d9 device
+				CreateD3D9Device();
 			}
 		}
 
-		// Setup d3d9 device
-		if (!d3d9Device)
-		{
-			CreateD3D9Device();
-		}
-
-		m_IDirectDrawSurfaceX *p_IDirectDrawSurfaceX = new m_IDirectDrawSurfaceX(&d3d9Device, this, DirectXVersion, lpDDSurfaceDesc2);
+		m_IDirectDrawSurfaceX *p_IDirectDrawSurfaceX = new m_IDirectDrawSurfaceX(this, DirectXVersion, lpDDSurfaceDesc2);
 
 		*lplpDDSurface = (LPDIRECTDRAWSURFACE7)p_IDirectDrawSurfaceX->GetWrapperInterfaceX(DirectXVersion);
 
@@ -682,7 +676,7 @@ HRESULT m_IDirectDrawX::DuplicateSurface(LPDIRECTDRAWSURFACE7 lpDDSurface, LPDIR
 		lpDDSurfaceX->GetSurfaceDesc2(&Desc2);
 		Desc2.ddsCaps.dwCaps &= ~DDSCAPS_PRIMARYSURFACE;		// Remove Primary surface flag
 
-		m_IDirectDrawSurfaceX *p_IDirectDrawSurfaceX = new m_IDirectDrawSurfaceX(&d3d9Device, this, DirectXVersion, &Desc2);
+		m_IDirectDrawSurfaceX *p_IDirectDrawSurfaceX = new m_IDirectDrawSurfaceX(this, DirectXVersion, &Desc2);
 
 		*lplpDupDDSurface = (LPDIRECTDRAWSURFACE7)p_IDirectDrawSurfaceX->GetWrapperInterfaceX(DirectXVersion);
 
@@ -1364,7 +1358,7 @@ HRESULT m_IDirectDrawX::RestoreDisplayMode()
 
 HRESULT m_IDirectDrawX::SetCooperativeLevel(HWND hWnd, DWORD dwFlags)
 {
-	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
+	Logging::LogDebug() << __FUNCTION__ << " (" << this << ") " << hWnd << " " << Logging::hex(dwFlags);
 
 	if (Config.Dd7to9)
 	{
@@ -1538,7 +1532,7 @@ HRESULT m_IDirectDrawX::SetCooperativeLevel(HWND hWnd, DWORD dwFlags)
 
 HRESULT m_IDirectDrawX::SetDisplayMode(DWORD dwWidth, DWORD dwHeight, DWORD dwBPP, DWORD dwRefreshRate, DWORD dwFlags)
 {
-	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
+	Logging::LogDebug() << __FUNCTION__ << " (" << this << ") " << dwWidth << "x" << dwHeight << " " << dwBPP << " " << dwRefreshRate << Logging::hex(dwFlags);
 
 	if (Config.Dd7to9)
 	{
@@ -1662,6 +1656,12 @@ HRESULT m_IDirectDrawX::WaitForVerticalBlank(DWORD dwFlags, HANDLE hEvent)
 
 	if (Config.Dd7to9)
 	{
+		// Check for device interface
+		if (FAILED(CheckInterface(__FUNCTION__, true)))
+		{
+			return DDERR_GENERIC;
+		}
+
 		D3DRASTER_STATUS RasterStatus;
 
 		// Check flags
@@ -1679,7 +1679,7 @@ HRESULT m_IDirectDrawX::WaitForVerticalBlank(DWORD dwFlags, HANDLE hEvent)
 				}
 			}
 			// Use raster status for vertical blank begin (uses high CPU)
-			else if (d3d9Device && SUCCEEDED(d3d9Device->GetRasterStatus(0, &RasterStatus)))
+			else if (SUCCEEDED(d3d9Device->GetRasterStatus(0, &RasterStatus)))
 			{
 				while (SUCCEEDED(d3d9Device->GetRasterStatus(0, &RasterStatus)) && !RasterStatus.InVBlank);
 				if (dwFlags == DDWAITVB_BLOCKBEGIN)
@@ -2478,6 +2478,10 @@ HRESULT m_IDirectDrawX::CreateD3D9Device()
 		// Get hwnd
 		HWND hWnd = GetHwnd();
 
+		// Get current resolution
+		DWORD CurrentWidth, CurrentHeight;
+		Utils::GetScreenSize(hWnd, CurrentWidth, CurrentHeight);
+
 		// Get width and height
 		DWORD BackBufferWidth = displayWidth;
 		DWORD BackBufferHeight = displayHeight;
@@ -2492,13 +2496,10 @@ HRESULT m_IDirectDrawX::CreateD3D9Device()
 			}
 			if (!BackBufferWidth || !BackBufferHeight)
 			{
-				Utils::GetScreenSize(hWnd, BackBufferWidth, BackBufferHeight);
+				BackBufferWidth = CurrentWidth;
+				BackBufferHeight = CurrentHeight;
 			}
 		}
-
-		// Get current resolution
-		DWORD CurrentWidth, CurrentHeight;
-		Utils::GetScreenSize(hWnd, CurrentWidth, CurrentHeight);
 
 		// Set display window
 		ZeroMemory(&presParams, sizeof(presParams));
@@ -2563,16 +2564,14 @@ HRESULT m_IDirectDrawX::CreateD3D9Device()
 		DWORD BehaviorFlags = ((d3dcaps.VertexProcessingCaps) ? D3DCREATE_HARDWARE_VERTEXPROCESSING : D3DCREATE_SOFTWARE_VERTEXPROCESSING) |
 			((MultiThreaded || !Config.SingleProcAffinity) ? D3DCREATE_MULTITHREADED : 0) |
 			((FUPPreserve) ? D3DCREATE_FPU_PRESERVE : 0) |
-			((NoWindowChanges) ? D3DCREATE_NOWINDOWCHANGES : 0);
+			((NoWindowChanges | AllowModeX) ? D3DCREATE_NOWINDOWCHANGES : 0);
 
 		Logging::LogDebug() << __FUNCTION__ << " wnd: " << hWnd << " D3d9 Device params: " << presParams << " flags: " << Logging::hex(BehaviorFlags);
 
 		// Create d3d9 Device
 		if (FAILED(d3d9Object->CreateDevice(D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, hWnd, BehaviorFlags, &presParams, &d3d9Device)))
 		{
-			DWORD dwProcessId = 0;
-			GetWindowThreadProcessId(hWnd, &dwProcessId);
-			LOG_LIMIT(100, __FUNCTION__ << " Error: failed to create Direct3D9 device! " << ((dwProcessId && dwProcessId != GetCurrentThreadId()) ? "Calling from a non-owner thread! " : "")
+			LOG_LIMIT(100, __FUNCTION__ << " Error: failed to create Direct3D9 device! " << ((GetWindowThreadProcessId(hWnd, nullptr) != GetCurrentThreadId()) ? "Calling from a non-owner thread! " : "")
 				<< presParams.BackBufferWidth << "x" << presParams.BackBufferHeight << " refresh: " << presParams.FullScreen_RefreshRateInHz <<
 				" format: " << presParams.BackBufferFormat << " wnd: " << hWnd);
 			hr = DDERR_GENERIC;
@@ -3060,7 +3059,7 @@ int WINAPI dd_GetDeviceCaps(HDC hdc, int index)
 {
 	static GetDeviceCapsProc m_pGetDeviceCaps = (Wrapper::ValidProcAddress(GetDeviceCaps_out)) ? (GetDeviceCapsProc)GetDeviceCaps_out : nullptr;
 
-	if (ddrawRefCount && index == BITSPIXEL)
+	if (ddrawRefCount && index == BITSPIXEL && MainhWnd && GetWindowThreadProcessId(MainhWnd, nullptr) == GetCurrentThreadId())
 	{
 		int BPP = (ExclusiveBPP) ? ExclusiveBPP : (displayModeBPP) ? displayModeBPP : 0;
 		if (BPP)
