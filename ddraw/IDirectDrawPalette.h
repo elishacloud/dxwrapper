@@ -11,7 +11,7 @@ private:
 	struct RGBDWORD {
 		union
 		{
-			D3DCOLOR PaletteColor;
+			D3DCOLOR PaletteColor = NULL;
 			DDARGB pe;
 		};
 	};

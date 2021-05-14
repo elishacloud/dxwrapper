@@ -167,30 +167,24 @@ HRESULT m_IDirectDrawPalette::SetEntries(DWORD dwFlags, DWORD dwStartingEntry, D
 		// Copy raw palette entries from dwStartingEntry and of count dwCount
 		memcpy(&(rawPalette[dwStartingEntry]), lpEntries, sizeof(PALETTEENTRY) * dwCount);
 
-		// Set new start and end entries
-		DWORD Start = max(1, dwStartingEntry);
-		DWORD End = min(255, dwStartingEntry + dwCount);
+		// Set start and end entries
+		DWORD Start = max(0, dwStartingEntry);
+		DWORD End = min(entryCount, dwStartingEntry + dwCount);
 
-		// Translate new raw pallete entries to RGB(make sure not to go off the end of the memory)
+		// Handle DDPCAPS_ALLOW256
+		if (!(paletteCaps & DDPCAPS_ALLOW256))
+		{
+			Start = max(1, Start);
+			End = min(255, End);
+		}
+
+		// Translate new raw pallete entries to RGB
 		for (UINT i = Start; i < End; i++)
 		{
-			// Translate the raw palette to ARGB
-			if (paletteCaps & DDPCAPS_ALPHA)
-			{
-				// Include peFlags as 8bit alpha
-				rgbPalette[i].pe.blue = rawPalette[i].peBlue;
-				rgbPalette[i].pe.green = rawPalette[i].peGreen;
-				rgbPalette[i].pe.red = rawPalette[i].peRed;
-				rgbPalette[i].pe.alpha = rawPalette[i].peFlags;
-			}
-			else
-			{
-				// Alpha is always 255
-				rgbPalette[i].pe.blue = rawPalette[i].peBlue;
-				rgbPalette[i].pe.green = rawPalette[i].peGreen;
-				rgbPalette[i].pe.red = rawPalette[i].peRed;
-				rgbPalette[i].pe.alpha = 0xFF;
-			}
+			rgbPalette[i].pe.blue = rawPalette[i].peBlue;
+			rgbPalette[i].pe.green = rawPalette[i].peGreen;
+			rgbPalette[i].pe.red = rawPalette[i].peRed;
+			rgbPalette[i].pe.alpha = (paletteCaps & DDPCAPS_ALPHA) ? rawPalette[i].peFlags : 0x00;
 		}
 
 		// Note that there is new palette data
@@ -258,12 +252,7 @@ void m_IDirectDrawPalette::InitPalette()
 	// Allocate rgb palette
 	rgbPalette = new RGBDWORD[entryCount];
 
-	// Set palette entry 0 to black to simulate ddraw functionality
-	rgbPalette[0].pe.blue = 0x00;
-	rgbPalette[0].pe.green = 0x00;
-	rgbPalette[0].pe.red = 0x00;
-
-	// Set palette entry 255 to white to simulate ddraw functionality
+	// Init palette entry 255 to white to simulate ddraw functionality
 	if (entryCount == 256)
 	{
 		rgbPalette[255].pe.blue = 0xFF;
