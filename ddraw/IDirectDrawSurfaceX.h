@@ -181,8 +181,6 @@ private:
 	HRESULT CreateD3d9Surface();
 	HRESULT CreateDCSurface();
 	void UpdateSurfaceDesc();
-	template <typename T>
-	void ReleaseD9Interface(T **ppInterface);
 
 	// Direct3D9 interfaces
 	EMUSURFACE **GetEmulatedSurface() { return &emu; }

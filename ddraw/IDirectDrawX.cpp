@@ -2245,13 +2245,15 @@ void m_IDirectDrawX::ReleaseDdraw()
 		// Release d3d9device
 		if (d3d9Device)
 		{
-			ReleaseD9Interface(&d3d9Device);
+			d3d9Device->Release();
+			d3d9Device = nullptr;
 		}
 
 		// Release d3d9object
 		if (d3d9Object)
 		{
-			ReleaseD9Interface(&d3d9Object);
+			d3d9Object->Release();
+			d3d9Object = nullptr;
 		}
 
 		// Close vsync
@@ -2515,6 +2517,7 @@ HRESULT m_IDirectDrawX::CreateD3D9Device()
 				BackBufferHeight = CurrentHeight;
 			}
 		}
+		bool IsFullscreen = ((CurrentWidth == BackBufferWidth && CurrentHeight == BackBufferHeight) || Config.FullscreenWindowMode);
 
 		// Set display window
 		ZeroMemory(&presParams, sizeof(presParams));
@@ -2579,7 +2582,7 @@ HRESULT m_IDirectDrawX::CreateD3D9Device()
 		DWORD BehaviorFlags = ((d3dcaps.VertexProcessingCaps) ? D3DCREATE_HARDWARE_VERTEXPROCESSING : D3DCREATE_SOFTWARE_VERTEXPROCESSING) |
 			((MultiThreaded || !Config.SingleProcAffinity) ? D3DCREATE_MULTITHREADED : 0) |
 			((FUPPreserve) ? D3DCREATE_FPU_PRESERVE : 0) |
-			((NoWindowChanges | AllowModeX) ? D3DCREATE_NOWINDOWCHANGES : 0);
+			((NoWindowChanges || (isWindowed && !IsFullscreen)) ? D3DCREATE_NOWINDOWCHANGES : 0);
 
 		Logging::LogDebug() << __FUNCTION__ << " wnd: " << hWnd << " D3d9 Device params: " << presParams << " flags: " << Logging::hex(BehaviorFlags);
 
@@ -2675,29 +2678,6 @@ HRESULT m_IDirectDrawX::ReinitDevice()
 	return DD_OK;
 }
 
-template <typename T>
-void m_IDirectDrawX::ReleaseD9Interface(T **ppInterface)
-{
-	if (ppInterface && *ppInterface)
-	{
-		DWORD x = 0, z = 0;
-		do
-		{
-			z = (*ppInterface)->Release();
-		} while (z != 0 && ++x < 100);
-
-		// Error checking
-		if (z != 0)
-		{
-			LOG_LIMIT(100, __FUNCTION__ << " Warning: failed to release Direct3D9 interface");
-		}
-		else
-		{
-			*ppInterface = nullptr;
-		}
-	}
-}
-
 // Release all surfaces from all ddraw devices
 void m_IDirectDrawX::ReleaseAllDirectDrawD9Surfaces()
 {
@@ -2733,7 +2713,8 @@ void m_IDirectDrawX::ReleaseD3d9Device()
 	// Release device
 	if (d3d9Device)
 	{
-		ReleaseD9Interface(&d3d9Device);
+		d3d9Device->Release();
+		d3d9Device = nullptr;
 	}
 
 	// Reset flags
@@ -3070,23 +3051,11 @@ HRESULT m_IDirectDrawX::Present()
 	return hr;
 }
 
-int WINAPI dd_GetDeviceCaps(HDC hdc, int index)
+DWORD GetCurrentBitsPixel()
 {
-	static GetDeviceCapsProc m_pGetDeviceCaps = (Wrapper::ValidProcAddress(GetDeviceCaps_out)) ? (GetDeviceCapsProc)GetDeviceCaps_out : nullptr;
-
-	if (ddrawRefCount && index == BITSPIXEL && MainhWnd && GetWindowThreadProcessId(MainhWnd, nullptr) == GetCurrentThreadId())
+	if (ddrawRefCount && MainhWnd && GetWindowThreadProcessId(MainhWnd, nullptr) == GetCurrentThreadId())
 	{
-		int BPP = (ExclusiveBPP) ? ExclusiveBPP : (displayModeBPP) ? displayModeBPP : 0;
-		if (BPP)
-		{
-			return (BPP == 15) ? 16 : BPP;		// When nIndex is BITSPIXEL and the device has 15bpp or 16bpp, the return value is 16.
-		}
+		return (ExclusiveBPP) ? ExclusiveBPP : (displayModeBPP) ? displayModeBPP : 0;
 	}
-
-	if (!m_pGetDeviceCaps)
-	{
-		return 0;
-	}
-
-	return m_pGetDeviceCaps(hdc, index);
+	return 0;
 }

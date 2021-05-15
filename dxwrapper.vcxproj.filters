@@ -89,6 +89,9 @@
     <Filter Include="DDrawCompat\v0.3.0">
       <UniqueIdentifier>{6e8a028c-e392-4211-b845-bfd89a9952e1}</UniqueIdentifier>
     </Filter>
+    <Filter Include="GDI">
+      <UniqueIdentifier>{9e2da775-deb8-4b6d-9178-e41800ff180e}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="libraries\dwmapi.cpp">
@@ -858,6 +861,9 @@
     </ClCompile>
     <ClCompile Include="DDrawCompat\v0.3.0\Gdi\WinProc.cpp">
       <Filter>DDrawCompat\v0.3.0</Filter>
+    </ClCompile>
+    <ClCompile Include="GDI\Gdi32.cpp">
+      <Filter>GDI</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -1819,6 +1825,9 @@
     </ClInclude>
     <ClInclude Include="DDrawCompat\v0.3.0\Dll\DllMain.h">
       <Filter>DDrawCompat\v0.3.0</Filter>
+    </ClInclude>
+    <ClInclude Include="GDI\Gdi32.h">
+      <Filter>GDI</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

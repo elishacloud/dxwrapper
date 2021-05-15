@@ -26,6 +26,7 @@
 #include "Logging\Logging.h"
 // Wrappers last
 #include "IClassFactory\IClassFactory.h"
+#include "GDI\Gdi32.h"
 #include "ddraw\ddrawExternal.h"
 #include "dinput\dinputExternal.h"
 #include "dinput8\dinput8External.h"
@@ -400,9 +401,6 @@ bool APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 				{
 					VISIT_PROCS_DDRAW(HOOK_FORCE_WRAPPED_PROC);
 					VISIT_PROCS_DDRAW_SHARED(HOOK_FORCE_WRAPPED_PROC);
-					GetDeviceCaps_out = (FARPROC)Hook::HotPatch(Hook::GetProcAddress(LoadLibrary("gdi32.dll"), "GetDeviceCaps"), "GetDeviceCaps", dd_GetDeviceCaps);
-					CreateWindowExA_out = (FARPROC)Hook::HotPatch(Hook::GetProcAddress(LoadLibrary("User32.dll"), "CreateWindowExA"), "CreateWindowExA", dd_CreateWindowExA);
-					CreateWindowExW_out = (FARPROC)Hook::HotPatch(Hook::GetProcAddress(LoadLibrary("User32.dll"), "CreateWindowExW"), "CreateWindowExW", dd_CreateWindowExW);
 				}
 			}
 
@@ -507,6 +505,15 @@ bool APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 
 			// Prepare wrapper
 			VISIT_PROCS_D3D9(SHIM_WRAPPED_PROC);
+		}
+
+		// Hook other gdi32 and user32 APIs
+		if (Config.Dd7to9)
+		{
+			using namespace Gdi32;
+			GetDeviceCaps_out = (FARPROC)Hook::HotPatch(Hook::GetProcAddress(LoadLibrary("gdi32.dll"), "GetDeviceCaps"), "GetDeviceCaps", gdi_GetDeviceCaps);
+			CreateWindowExA_out = (FARPROC)Hook::HotPatch(Hook::GetProcAddress(LoadLibrary("user32.dll"), "CreateWindowExA"), "CreateWindowExA", user_CreateWindowExA);
+			CreateWindowExW_out = (FARPROC)Hook::HotPatch(Hook::GetProcAddress(LoadLibrary("user32.dll"), "CreateWindowExW"), "CreateWindowExW", user_CreateWindowExW);
 		}
 
 		// Start DxWnd module

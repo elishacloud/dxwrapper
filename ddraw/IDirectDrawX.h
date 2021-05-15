@@ -67,9 +67,6 @@ private:
 	inline IDirectDraw4 *GetProxyInterfaceV4() { return (IDirectDraw4 *)ProxyInterface; }
 	inline IDirectDraw7 *GetProxyInterfaceV7() { return ProxyInterface; }
 
-	template <typename T>
-	void ReleaseD9Interface(T **ppInterface);
-
 	// Interface initialization functions
 	void InitDdraw(DWORD DirectXVersion);
 	void ReleaseDdraw();

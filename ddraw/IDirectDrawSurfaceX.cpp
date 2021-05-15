@@ -3265,29 +3265,6 @@ void m_IDirectDrawSurfaceX::UpdateSurfaceDesc()
 	}
 }
 
-template <typename T>
-void m_IDirectDrawSurfaceX::ReleaseD9Interface(T **ppInterface)
-{
-	if (ppInterface && *ppInterface)
-	{
-		DWORD x = 0, z = 0;
-		do
-		{
-			z = (*ppInterface)->Release();
-		} while (z != 0 && ++x < 100);
-
-		// Error checking
-		if (z != 0)
-		{
-			LOG_LIMIT(100, __FUNCTION__ << " Warning: failed to release Direct3D9 interface");
-		}
-		else
-		{
-			*ppInterface = nullptr;
-		}
-	}
-}
-
 // Release surface and vertext buffer
 void m_IDirectDrawSurfaceX::ReleaseD9Surface(bool BackupData)
 {
@@ -3332,49 +3309,56 @@ void m_IDirectDrawSurfaceX::ReleaseD9Surface(bool BackupData)
 	if (surface3D)
 	{
 		Logging::LogDebug() << __FUNCTION__ << " Releasing Direct3D9 surface";
-		ReleaseD9Interface(&surface3D);
+		surface3D->Release();
+		surface3D = nullptr;
 	}
 
 	// Release d3d9 context surface
 	if (contextSurface)
 	{
 		Logging::LogDebug() << __FUNCTION__ << " Releasing Direct3D9 context surface";
-		ReleaseD9Interface(&contextSurface);
+		contextSurface->Release();
+		contextSurface = nullptr;
 	}
 
 	// Release d3d9 surface texture
 	if (surfaceTexture)
 	{
 		Logging::LogDebug() << __FUNCTION__ << " Releasing Direct3D9 texture surface";
-		ReleaseD9Interface(&surfaceTexture);
+		surfaceTexture->Release();
+		surfaceTexture = nullptr;
 	}
 
 	// Release d3d9 display surface texture
 	if (displayTexture)
 	{
 		Logging::LogDebug() << __FUNCTION__ << " Releasing Direct3D9 display texture surface";
-		ReleaseD9Interface(&displayTexture);
+		displayTexture->Release();
+		displayTexture = nullptr;
 	}
 
 	// Release d3d9 palette surface texture
 	if (paletteTexture)
 	{
 		Logging::LogDebug() << __FUNCTION__ << " Releasing Direct3D9 palette texture surface";
-		ReleaseD9Interface(&paletteTexture);
+		paletteTexture->Release();
+		paletteTexture = nullptr;
 	}
 
 	// Release d3d9 pixel shader
 	if (pixelShader)
 	{
 		Logging::LogDebug() << __FUNCTION__ << " Releasing Direct3D9 pixel shader";
-		ReleaseD9Interface(&pixelShader);
+		pixelShader->Release();
+		pixelShader = nullptr;
 	}
 
 	// Release d3d9 vertex buffer
 	if (vertexBuffer)
 	{
 		Logging::LogDebug() << __FUNCTION__ << " Releasing Direct3D9 vertext buffer";
-		ReleaseD9Interface(&vertexBuffer);
+		vertexBuffer->Release();
+		vertexBuffer = nullptr;
 	}
 
 	// Emulated surface
