@@ -2517,7 +2517,6 @@ HRESULT m_IDirectDrawX::CreateD3D9Device()
 				BackBufferHeight = CurrentHeight;
 			}
 		}
-		bool IsFullscreen = ((CurrentWidth == BackBufferWidth && CurrentHeight == BackBufferHeight) || Config.FullscreenWindowMode);
 
 		// Set display window
 		ZeroMemory(&presParams, sizeof(presParams));
@@ -2582,7 +2581,7 @@ HRESULT m_IDirectDrawX::CreateD3D9Device()
 		DWORD BehaviorFlags = ((d3dcaps.VertexProcessingCaps) ? D3DCREATE_HARDWARE_VERTEXPROCESSING : D3DCREATE_SOFTWARE_VERTEXPROCESSING) |
 			((MultiThreaded || !Config.SingleProcAffinity) ? D3DCREATE_MULTITHREADED : 0) |
 			((FUPPreserve) ? D3DCREATE_FPU_PRESERVE : 0) |
-			((NoWindowChanges || (isWindowed && !IsFullscreen)) ? D3DCREATE_NOWINDOWCHANGES : 0);
+			((NoWindowChanges) ? D3DCREATE_NOWINDOWCHANGES : 0);
 
 		Logging::LogDebug() << __FUNCTION__ << " wnd: " << hWnd << " D3d9 Device params: " << presParams << " flags: " << Logging::hex(BehaviorFlags);
 
