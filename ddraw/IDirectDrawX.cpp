@@ -836,16 +836,19 @@ HRESULT m_IDirectDrawX::EnumDisplayModes2(DWORD dwFlags, LPDDSURFACEDESC2 lpDDSu
 
 					// Set surface desc options
 					Desc2.dwSize = sizeof(DDSURFACEDESC2);
-					Desc2.dwFlags = DDSD_WIDTH | DDSD_HEIGHT | DDSD_REFRESHRATE | DDSD_PITCH;
+					Desc2.dwFlags = DDSD_WIDTH | DDSD_HEIGHT;
 					Desc2.dwWidth = d3ddispmode.Width;
 					Desc2.dwHeight = d3ddispmode.Height;
-					Desc2.dwRefreshRate = (SetRefreshRate) ? d3ddispmode.RefreshRate : 0;
+					if (SetRefreshRate)
+					{
+						Desc2.dwFlags |= DDSD_REFRESHRATE;
+						Desc2.dwRefreshRate = d3ddispmode.RefreshRate;
+					}
 
 					// Set adapter pixel format
 					Desc2.dwFlags |= DDSD_PIXELFORMAT;
 					Desc2.ddpfPixelFormat.dwSize = sizeof(DDPIXELFORMAT);
 					SetDisplayFormat(DisplayBitCount, Desc2.ddpfPixelFormat);
-					Desc2.lPitch = (Desc2.ddpfPixelFormat.dwRGBBitCount / 8) * Desc2.dwWidth;
 
 					if (lpEnumModesCallback2(&Desc2, lpContext) == DDENUMRET_CANCEL)
 					{
@@ -2582,7 +2585,7 @@ HRESULT m_IDirectDrawX::CreateD3D9Device()
 		DWORD BehaviorFlags = ((d3dcaps.VertexProcessingCaps) ? D3DCREATE_HARDWARE_VERTEXPROCESSING : D3DCREATE_SOFTWARE_VERTEXPROCESSING) |
 			((MultiThreaded || !Config.SingleProcAffinity) ? D3DCREATE_MULTITHREADED : 0) |
 			((FUPPreserve) ? D3DCREATE_FPU_PRESERVE : 0) |
-			((NoWindowChanges) ? D3DCREATE_NOWINDOWCHANGES : 0);
+			((NoWindowChanges || (GetWindowLong(hWnd, GWL_STYLE) & WS_TABSTOP)) ? D3DCREATE_NOWINDOWCHANGES : 0);
 
 		Logging::LogDebug() << __FUNCTION__ << " wnd: " << hWnd << " D3d9 Device params: " << presParams << " flags: " << Logging::hex(BehaviorFlags);
 
