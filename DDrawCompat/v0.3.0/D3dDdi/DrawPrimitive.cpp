@@ -10,7 +10,7 @@
 
 namespace
 {
-	const UINT INDEX_BUFFER_SIZE = 256 * 1024;
+	const UINT INDEX_BUFFER_SIZE = D3DMAXNUMPRIMITIVES * 3 * sizeof(UINT16);
 	const UINT VERTEX_BUFFER_SIZE = 1024 * 1024;
 
 	UINT getVertexCount(D3DPRIMITIVETYPE primitiveType, UINT primitiveCount)
@@ -206,7 +206,7 @@ namespace D3dDdi
 	bool DrawPrimitive::appendPrimitives(D3DPRIMITIVETYPE primitiveType, INT baseVertexIndex, UINT primitiveCount,
 		const UINT16* indices, UINT minIndex, UINT maxIndex)
 	{
-		if ((m_batched.primitiveCount + primitiveCount) * 3 > D3DMAXNUMVERTICES)
+		if (m_batched.primitiveCount + primitiveCount > D3DMAXNUMPRIMITIVES)
 		{
 			return false;
 		}

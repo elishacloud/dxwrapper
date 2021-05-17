@@ -21,6 +21,7 @@
 
 #include <DDrawCompat/v0.3.0/Common/Hook.h>
 #include <DDrawCompat/DDrawLog.h>
+#include <DDrawCompat/v0.3.0/Common/Path.h>
 #include <DDrawCompat/v0.3.0/Common/Time.h>
 #include <DDrawCompat/v0.3.0/D3dDdi/Hooks.h>
 #include <DDrawCompat/v0.3.0/DDraw/DirectDraw.h>
@@ -64,31 +65,6 @@ namespace Compat30
 			installHooks();
 			suppressEmulatedDirectDraw(firstParam);
 			return LOG_RESULT(reinterpret_cast<OrigFuncPtrType>(Dll::g_origProcs.*origFunc)(firstParam, params...));
-		}
-
-		std::string getDirName(const std::string& path)
-		{
-			return path.substr(0, path.find_last_of('\\'));
-		}
-
-		std::string getFileName(const std::string& path)
-		{
-			auto lastSeparatorPos = path.find_last_of('\\');
-			return std::string::npos == lastSeparatorPos ? path : path.substr(lastSeparatorPos + 1, std::string::npos);
-		}
-
-		std::string getModulePath(HMODULE module)
-		{
-			char path[MAX_PATH] = {};
-			GetModuleFileName(module, path, sizeof(path));
-			return path;
-		}
-
-		std::string getSystemDirectory()
-		{
-			char path[MAX_PATH] = {};
-			GetSystemDirectory(path, sizeof(path));
-			return path;
 		}
 
 		void installHooks()
@@ -147,20 +123,14 @@ namespace Compat30
 			}
 		}
 
-		bool isEqual(const std::string& p1, const std::string& p2)
-		{
-			return 0 == _stricmp(p1.c_str(), p2.c_str());
-		}
-
 		bool isOtherDDrawWrapperLoaded()
 		{
-			const auto currentDllPath = getModulePath(Dll::g_currentModule);
-			const auto currentDllDir = getDirName(currentDllPath);
-			const auto ddrawDllPath = currentDllDir + "\\ddraw.dll";
-			const auto dciman32DllPath = currentDllDir + "\\dciman32.dll";
+			const auto currentDllPath(Compat30::getModulePath(Dll::g_currentModule));
+			const auto ddrawDllPath(Compat30::replaceFilename(currentDllPath, "ddraw.dll"));
+			const auto dciman32DllPath(Compat30::replaceFilename(currentDllPath, "dciman32.dll"));
 
-			return (!isEqual(currentDllPath, ddrawDllPath) && GetModuleHandle(ddrawDllPath.c_str())) ||
-				(!isEqual(currentDllPath, dciman32DllPath) && GetModuleHandle(dciman32DllPath.c_str()));
+			return (!Compat30::isEqual(currentDllPath, ddrawDllPath) && GetModuleHandleW(ddrawDllPath.c_str())) ||
+				(!Compat30::isEqual(currentDllPath, dciman32DllPath) && GetModuleHandleW(dciman32DllPath.c_str()));
 		}
 
 		void printEnvironmentVariable(const char* var)
@@ -244,30 +214,29 @@ namespace Compat30
 			}*/
 			//********** End Edit ***************
 
-			auto processPath = getModulePath(nullptr);
+			auto processPath(Compat30::getModulePath(nullptr));
 			//********** Begin Edit *************
-			//Compat30::Log::initLogging(getDirName(processPath), getFileName(processPath));
+			//Compat30::Log::initLogging(processPath);
 			//********** End Edit ***************
 
-			Compat30::Log() << "Process path: " << processPath;
+			Compat30::Log() << "Process path: " << processPath.u8string();
 			//********** Begin Edit *************
 			//printEnvironmentVariable("__COMPAT_LAYER");
 			//********** End Edit ***************
-			auto currentDllPath = getModulePath(hinstDLL);
-			Compat30::Log() << "Loading DDrawCompat " << (lpvReserved ? "statically" : "dynamically") << " from " << currentDllPath;
+			auto currentDllPath(Compat30::getModulePath(hinstDLL));
+			Compat30::Log() << "Loading DDrawCompat " << (lpvReserved ? "statically" : "dynamically") << " from " << currentDllPath.u8string();
 
-			auto systemDirectory = getSystemDirectory();
-			if (isEqual(getDirName(currentDllPath), systemDirectory))
+			auto systemPath(Compat30::getSystemPath());
+			if (Compat30::isEqual(currentDllPath.parent_path(), systemPath))
 			{
 				Compat30::Log() << "DDrawCompat cannot be installed in the Windows system directory";
 				return FALSE;
 			}
 
-			auto systemDDrawDllPath = systemDirectory + "\\ddraw.dll";
-			Dll::g_origDDrawModule = LoadLibrary(systemDDrawDllPath.c_str());
+			Dll::g_origDDrawModule = LoadLibraryW((systemPath / "ddraw.dll").c_str());
 			if (!Dll::g_origDDrawModule)
 			{
-				Compat::Log() << "ERROR: Failed to load system ddraw.dll from " << systemDDrawDllPath;
+				Compat::Log() << "ERROR: Failed to load system ddraw.dll from " << systemPath.u8string();
 				return FALSE;
 			}
 
@@ -288,8 +257,7 @@ namespace Compat30
 			}
 			//********** End Edit ***************
 
-			auto systemDciman32DllPath = systemDirectory + "\\dciman32.dll";
-			Dll::g_origDciman32Module = LoadLibrary(systemDciman32DllPath.c_str());
+			Dll::g_origDciman32Module = LoadLibraryW((systemPath / "dciman32.dll").c_str());
 			if (Dll::g_origDciman32Module)
 			{
 				origModule = Dll::g_origDciman32Module;

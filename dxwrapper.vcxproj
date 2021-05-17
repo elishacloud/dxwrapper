@@ -176,6 +176,7 @@ cmd /q /c "cd /D ""$(ProjectDir)d3d8\"" &amp;&amp; del build.bat"</Command>
     <ClCompile Include="DDrawCompat\v0.2.1\Time.cpp" />
     <ClCompile Include="DDrawCompat\v0.2.1\UnmodifiedDDrawProcs.cpp" />
     <ClCompile Include="DDrawCompat\v0.3.0\Common\Hook.cpp" />
+    <ClCompile Include="DDrawCompat\v0.3.0\Common\Path.cpp" />
     <ClCompile Include="DDrawCompat\v0.3.0\Common\Time.cpp" />
     <ClCompile Include="DDrawCompat\v0.3.0\D3dDdi\Adapter.cpp" />
     <ClCompile Include="DDrawCompat\v0.3.0\D3dDdi\AdapterCallbacks.cpp" />
@@ -462,6 +463,7 @@ cmd /q /c "cd /D ""$(ProjectDir)d3d8\"" &amp;&amp; del build.bat"</Command>
     <ClInclude Include="DDrawCompat\v0.3.0\Common\CompatWeakPtr.h" />
     <ClInclude Include="DDrawCompat\v0.3.0\Common\Hook.h" />
     <ClInclude Include="DDrawCompat\v0.3.0\Common\HResultException.h" />
+    <ClInclude Include="DDrawCompat\v0.3.0\Common\Path.h" />
     <ClInclude Include="DDrawCompat\v0.3.0\Common\ScopedCriticalSection.h" />
     <ClInclude Include="DDrawCompat\v0.3.0\Common\ScopedSrwLock.h" />
     <ClInclude Include="DDrawCompat\v0.3.0\Common\Time.h" />

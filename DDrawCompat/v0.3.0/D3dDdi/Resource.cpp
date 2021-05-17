@@ -399,7 +399,7 @@ namespace D3dDdi
 		{
 			surfaceInfo[i].Width = m_fixedData.pSurfList[i].Width;
 			surfaceInfo[i].Height = m_fixedData.pSurfList[i].Height;
-			surfaceInfo[i].SysMemPitch = (surfaceInfo[i].Width * m_formatInfo.bytesPerPixel + 7) & ~7;
+			surfaceInfo[i].SysMemPitch = (surfaceInfo[i].Width * m_formatInfo.bytesPerPixel + 3) & ~3;
 			if (i != 0)
 			{
 				std::uintptr_t offset = reinterpret_cast<std::uintptr_t>(surfaceInfo[i - 1].pSysMem) +

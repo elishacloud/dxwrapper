@@ -39,7 +39,6 @@ namespace
 	bool g_isUpdatePending = false;
 	bool g_waitingForPrimaryUnlock = false;
 	std::atomic<long long> g_qpcLastUpdate = 0;
-	long long g_qpcFlipEnd = 0;
 	UINT g_flipEndVsyncCount = 0;
 	UINT g_presentEndVsyncCount = 0;
 
@@ -231,7 +230,10 @@ namespace
 			DDraw::ScopedThreadLock lock;
 			if (g_isUpdatePending && !isPresentPending())
 			{
-				if (Time::qpcToMs(Time::queryPerformanceCounter() - g_qpcFlipEnd) < 1)
+				auto qpcNow = Time::queryPerformanceCounter();
+				auto qpcLastVsync = D3dDdi::KernelModeThunks::getQpcLastVsync();
+				if (Time::qpcToMs(qpcNow - qpcLastVsync) < 1 ||
+					Time::qpcToMs(qpcNow - g_qpcLastUpdate) < 1 && Time::qpcToMs(qpcNow - qpcLastVsync) <= 3)
 				{
 					skipWaitForVsync = true;
 				}
@@ -432,10 +434,7 @@ namespace DDraw
 			return !isFlipPending();
 		}
 
-		if (D3dDdi::KernelModeThunks::waitForVsyncCounter(g_flipEndVsyncCount))
-		{
-			g_qpcFlipEnd = Time::queryPerformanceCounter();
-		}
+		D3dDdi::KernelModeThunks::waitForVsyncCounter(g_flipEndVsyncCount);
 		return true;
 	}
 }

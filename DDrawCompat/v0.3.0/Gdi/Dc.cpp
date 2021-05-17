@@ -93,7 +93,7 @@ namespace
 
 		POINT brushOrg = {};
 		GetBrushOrgEx(origDc, &brushOrg);
-		SetBrushOrgEx(compatDc.dc, brushOrg.x, brushOrg.y, nullptr);
+		SetBrushOrgEx(compatDc.dc, origin.x + brushOrg.x, origin.y + brushOrg.y, nullptr);
 
 		POINT currentPos = {};
 		GetCurrentPositionEx(origDc, &currentPos);

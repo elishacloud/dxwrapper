@@ -69,7 +69,7 @@ namespace
 		case BM_SETSTATE:
 		{
 			LRESULT result = CallWindowProc(origWndProc, hwnd, msg, wParam, lParam);
-			RedrawWindow(hwnd, nullptr, nullptr, RDW_INVALIDATE | RDW_UPDATENOW);
+			InvalidateRect(hwnd, nullptr, TRUE);
 			return result;
 		}
 
@@ -158,6 +158,19 @@ namespace
 				return result;
 			}
 			break;
+
+		case WM_ERASEBKGND:
+		{
+			HBRUSH brush = reinterpret_cast<HBRUSH>(GetClassLong(hwnd, GCL_HBRBACKGROUND));
+			if (!brush)
+			{
+				return FALSE;
+			}
+			RECT rect = {};
+			GetClientRect(hwnd, &rect);
+			FillRect(Gdi::CompatDc(reinterpret_cast<HDC>(wParam)), &rect, brush);
+			return TRUE;
+		}
 
 		case WM_NCACTIVATE:
 			return onNcActivate(hwnd, wParam, lParam);

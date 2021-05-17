@@ -7,6 +7,7 @@ namespace D3dDdi
 	namespace KernelModeThunks
 	{
 		RECT getMonitorRect();
+		long long getQpcLastVsync();
 		UINT getVsyncCounter();
 		void installHooks();
 		void setDcFormatOverride(UINT format);

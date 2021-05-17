@@ -13,11 +13,12 @@
 
 #include <DDrawCompat/v0.3.0/Common/Hook.h>
 #include <DDrawCompat/DDrawLog.h>
+#include <DDrawCompat/v0.3.0/Common/Path.h>
 #include <DDrawCompat/v0.3.0/Dll/Dll.h>
 
 namespace
 {
-	IDebugClient* g_debugClient = nullptr;
+	IDebugClient4* g_debugClient = nullptr;
 	IDebugControl* g_debugControl = nullptr;
 	IDebugSymbols* g_debugSymbols = nullptr;
 	IDebugDataSpaces4* g_debugDataSpaces = nullptr;
@@ -25,7 +26,6 @@ namespace
 	bool g_isDbgEngInitialized = false;
 
 	PIMAGE_NT_HEADERS getImageNtHeaders(HMODULE module);
-	std::string getModulePath(HMODULE module);
 	bool initDbgEng();
 
 	FARPROC* findProcAddressInIat(HMODULE module, const char* procName)
@@ -107,13 +107,6 @@ namespace
 		}
 
 		return static_cast<unsigned>(endOffset - g_debugBase);
-	}
-
-	std::string getModulePath(HMODULE module)
-	{
-		char path[MAX_PATH] = {};
-		GetModuleFileName(module, path, sizeof(path));
-		return path;
 	}
 
 	void hookFunction(void*& origFuncPtr, void* newFuncPtr, const char* funcName)
@@ -262,7 +255,7 @@ namespace
 		//********** End Edit ***************
 
 		HRESULT result = S_OK;
-		if (FAILED(result = pDebugCreate(IID_IDebugClient, reinterpret_cast<void**>(&g_debugClient))) ||
+		if (FAILED(result = pDebugCreate(IID_IDebugClient4, reinterpret_cast<void**>(&g_debugClient))) ||
 			FAILED(result = g_debugClient->QueryInterface(IID_IDebugControl, reinterpret_cast<void**>(&g_debugControl))) ||
 			FAILED(result = g_debugClient->QueryInterface(IID_IDebugSymbols, reinterpret_cast<void**>(&g_debugSymbols))) ||
 			FAILED(result = g_debugClient->QueryInterface(IID_IDebugDataSpaces4, reinterpret_cast<void**>(&g_debugDataSpaces))))
@@ -271,10 +264,7 @@ namespace
 			return false;
 		}
 
-		char dllPath[MAX_PATH] = {};
-		GetModuleFileName(Dll::g_currentModule, dllPath, sizeof(dllPath));
-
-		result = g_debugClient->OpenDumpFile(dllPath);
+		result = g_debugClient->OpenDumpFileWide(Compat30::getModulePath(Dll::g_currentModule).c_str(), 0);
 		if (FAILED(result))
 		{
 			Compat30::Log() << "ERROR: DbgEng: OpenDumpFile failed: " << Compat30::hex(result);
@@ -348,7 +338,7 @@ namespace Compat30
 		HMODULE module = Compat30::getModuleHandleFromAddress(funcPtr);
 		if (module)
 		{
-			oss << getModulePath(module) << "+0x" << std::hex <<
+			oss << Compat30::getModulePath(module).u8string() << "+0x" << std::hex <<
 				reinterpret_cast<DWORD>(funcPtr) - reinterpret_cast<DWORD>(module);
 		}
 		else
