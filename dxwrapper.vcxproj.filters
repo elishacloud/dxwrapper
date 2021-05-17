@@ -86,7 +86,7 @@
     <Filter Include="DirectShow">
       <UniqueIdentifier>{3549a8a2-e4e1-4598-988f-c070d6fe7b84}</UniqueIdentifier>
     </Filter>
-    <Filter Include="DDrawCompat\v0.3.0">
+    <Filter Include="DDrawCompat\v0.3.1">
       <UniqueIdentifier>{6e8a028c-e392-4211-b845-bfd89a9952e1}</UniqueIdentifier>
     </Filter>
     <Filter Include="GDI">
@@ -658,215 +658,215 @@
     <ClCompile Include="DirectShow\IAMMediaStream.cpp">
       <Filter>DirectShow</Filter>
     </ClCompile>
-    <ClCompile Include="DDrawCompat\v0.3.0\D3dDdi\Adapter.cpp">
-      <Filter>DDrawCompat\v0.3.0</Filter>
+    <ClCompile Include="DDrawCompat\v0.3.1\D3dDdi\Adapter.cpp">
+      <Filter>DDrawCompat\v0.3.1</Filter>
     </ClCompile>
-    <ClCompile Include="DDrawCompat\v0.3.0\D3dDdi\AdapterCallbacks.cpp">
-      <Filter>DDrawCompat\v0.3.0</Filter>
+    <ClCompile Include="DDrawCompat\v0.3.1\D3dDdi\AdapterCallbacks.cpp">
+      <Filter>DDrawCompat\v0.3.1</Filter>
     </ClCompile>
-    <ClCompile Include="DDrawCompat\v0.3.0\D3dDdi\AdapterFuncs.cpp">
-      <Filter>DDrawCompat\v0.3.0</Filter>
+    <ClCompile Include="DDrawCompat\v0.3.1\D3dDdi\AdapterFuncs.cpp">
+      <Filter>DDrawCompat\v0.3.1</Filter>
     </ClCompile>
-    <ClCompile Include="DDrawCompat\v0.3.0\D3dDdi\Log\AdapterFuncsLog.cpp">
-      <Filter>DDrawCompat\v0.3.0</Filter>
+    <ClCompile Include="DDrawCompat\v0.3.1\D3dDdi\Log\AdapterFuncsLog.cpp">
+      <Filter>DDrawCompat\v0.3.1</Filter>
     </ClCompile>
-    <ClCompile Include="DDrawCompat\v0.3.0\DDraw\Blitter.cpp">
-      <Filter>DDrawCompat\v0.3.0</Filter>
+    <ClCompile Include="DDrawCompat\v0.3.1\DDraw\Blitter.cpp">
+      <Filter>DDrawCompat\v0.3.1</Filter>
     </ClCompile>
-    <ClCompile Include="DDrawCompat\v0.3.0\Gdi\Caret.cpp">
-      <Filter>DDrawCompat\v0.3.0</Filter>
+    <ClCompile Include="DDrawCompat\v0.3.1\Gdi\Caret.cpp">
+      <Filter>DDrawCompat\v0.3.1</Filter>
     </ClCompile>
-    <ClCompile Include="DDrawCompat\v0.3.0\D3dDdi\Log\CommonLog.cpp">
-      <Filter>DDrawCompat\v0.3.0</Filter>
+    <ClCompile Include="DDrawCompat\v0.3.1\D3dDdi\Log\CommonLog.cpp">
+      <Filter>DDrawCompat\v0.3.1</Filter>
     </ClCompile>
-    <ClCompile Include="DDrawCompat\v0.3.0\Gdi\CompatDc.cpp">
-      <Filter>DDrawCompat\v0.3.0</Filter>
+    <ClCompile Include="DDrawCompat\v0.3.1\Gdi\CompatDc.cpp">
+      <Filter>DDrawCompat\v0.3.1</Filter>
     </ClCompile>
-    <ClCompile Include="DDrawCompat\v0.3.0\Gdi\Dc.cpp">
-      <Filter>DDrawCompat\v0.3.0</Filter>
+    <ClCompile Include="DDrawCompat\v0.3.1\Gdi\Dc.cpp">
+      <Filter>DDrawCompat\v0.3.1</Filter>
     </ClCompile>
-    <ClCompile Include="DDrawCompat\v0.3.0\Gdi\DcFunctions.cpp">
-      <Filter>DDrawCompat\v0.3.0</Filter>
+    <ClCompile Include="DDrawCompat\v0.3.1\Gdi\DcFunctions.cpp">
+      <Filter>DDrawCompat\v0.3.1</Filter>
     </ClCompile>
-    <ClCompile Include="DDrawCompat\v0.3.0\D3dDdi\Device.cpp">
-      <Filter>DDrawCompat\v0.3.0</Filter>
+    <ClCompile Include="DDrawCompat\v0.3.1\D3dDdi\Device.cpp">
+      <Filter>DDrawCompat\v0.3.1</Filter>
     </ClCompile>
-    <ClCompile Include="DDrawCompat\v0.3.0\D3dDdi\DeviceCallbacks.cpp">
-      <Filter>DDrawCompat\v0.3.0</Filter>
+    <ClCompile Include="DDrawCompat\v0.3.1\D3dDdi\DeviceCallbacks.cpp">
+      <Filter>DDrawCompat\v0.3.1</Filter>
     </ClCompile>
-    <ClCompile Include="DDrawCompat\v0.3.0\D3dDdi\Log\DeviceCallbacksLog.cpp">
-      <Filter>DDrawCompat\v0.3.0</Filter>
+    <ClCompile Include="DDrawCompat\v0.3.1\D3dDdi\Log\DeviceCallbacksLog.cpp">
+      <Filter>DDrawCompat\v0.3.1</Filter>
     </ClCompile>
-    <ClCompile Include="DDrawCompat\v0.3.0\D3dDdi\DeviceFuncs.cpp">
-      <Filter>DDrawCompat\v0.3.0</Filter>
+    <ClCompile Include="DDrawCompat\v0.3.1\D3dDdi\DeviceFuncs.cpp">
+      <Filter>DDrawCompat\v0.3.1</Filter>
     </ClCompile>
-    <ClCompile Include="DDrawCompat\v0.3.0\D3dDdi\Log\DeviceFuncsLog.cpp">
-      <Filter>DDrawCompat\v0.3.0</Filter>
+    <ClCompile Include="DDrawCompat\v0.3.1\D3dDdi\Log\DeviceFuncsLog.cpp">
+      <Filter>DDrawCompat\v0.3.1</Filter>
     </ClCompile>
-    <ClCompile Include="DDrawCompat\v0.3.0\D3dDdi\DeviceState.cpp">
-      <Filter>DDrawCompat\v0.3.0</Filter>
+    <ClCompile Include="DDrawCompat\v0.3.1\D3dDdi\DeviceState.cpp">
+      <Filter>DDrawCompat\v0.3.1</Filter>
     </ClCompile>
-    <ClCompile Include="DDrawCompat\v0.3.0\Direct3d\Direct3d.cpp">
-      <Filter>DDrawCompat\v0.3.0</Filter>
+    <ClCompile Include="DDrawCompat\v0.3.1\Direct3d\Direct3d.cpp">
+      <Filter>DDrawCompat\v0.3.1</Filter>
     </ClCompile>
-    <ClCompile Include="DDrawCompat\v0.3.0\Direct3d\Direct3dDevice.cpp">
-      <Filter>DDrawCompat\v0.3.0</Filter>
+    <ClCompile Include="DDrawCompat\v0.3.1\Direct3d\Direct3dDevice.cpp">
+      <Filter>DDrawCompat\v0.3.1</Filter>
     </ClCompile>
-    <ClCompile Include="DDrawCompat\v0.3.0\Direct3d\Direct3dExecuteBuffer.cpp">
-      <Filter>DDrawCompat\v0.3.0</Filter>
+    <ClCompile Include="DDrawCompat\v0.3.1\Direct3d\Direct3dExecuteBuffer.cpp">
+      <Filter>DDrawCompat\v0.3.1</Filter>
     </ClCompile>
-    <ClCompile Include="DDrawCompat\v0.3.0\Direct3d\Direct3dLight.cpp">
-      <Filter>DDrawCompat\v0.3.0</Filter>
+    <ClCompile Include="DDrawCompat\v0.3.1\Direct3d\Direct3dLight.cpp">
+      <Filter>DDrawCompat\v0.3.1</Filter>
     </ClCompile>
-    <ClCompile Include="DDrawCompat\v0.3.0\Direct3d\Direct3dMaterial.cpp">
-      <Filter>DDrawCompat\v0.3.0</Filter>
+    <ClCompile Include="DDrawCompat\v0.3.1\Direct3d\Direct3dMaterial.cpp">
+      <Filter>DDrawCompat\v0.3.1</Filter>
     </ClCompile>
-    <ClCompile Include="DDrawCompat\v0.3.0\Direct3d\Direct3dTexture.cpp">
-      <Filter>DDrawCompat\v0.3.0</Filter>
+    <ClCompile Include="DDrawCompat\v0.3.1\Direct3d\Direct3dTexture.cpp">
+      <Filter>DDrawCompat\v0.3.1</Filter>
     </ClCompile>
-    <ClCompile Include="DDrawCompat\v0.3.0\Direct3d\Direct3dVertexBuffer.cpp">
-      <Filter>DDrawCompat\v0.3.0</Filter>
+    <ClCompile Include="DDrawCompat\v0.3.1\Direct3d\Direct3dVertexBuffer.cpp">
+      <Filter>DDrawCompat\v0.3.1</Filter>
     </ClCompile>
-    <ClCompile Include="DDrawCompat\v0.3.0\Direct3d\Direct3dViewport.cpp">
-      <Filter>DDrawCompat\v0.3.0</Filter>
+    <ClCompile Include="DDrawCompat\v0.3.1\Direct3d\Direct3dViewport.cpp">
+      <Filter>DDrawCompat\v0.3.1</Filter>
     </ClCompile>
-    <ClCompile Include="DDrawCompat\v0.3.0\DDraw\DirectDraw.cpp">
-      <Filter>DDrawCompat\v0.3.0</Filter>
+    <ClCompile Include="DDrawCompat\v0.3.1\DDraw\DirectDraw.cpp">
+      <Filter>DDrawCompat\v0.3.1</Filter>
     </ClCompile>
-    <ClCompile Include="DDrawCompat\v0.3.0\DDraw\DirectDrawClipper.cpp">
-      <Filter>DDrawCompat\v0.3.0</Filter>
+    <ClCompile Include="DDrawCompat\v0.3.1\DDraw\DirectDrawClipper.cpp">
+      <Filter>DDrawCompat\v0.3.1</Filter>
     </ClCompile>
-    <ClCompile Include="DDrawCompat\v0.3.0\DDraw\DirectDrawGammaControl.cpp">
-      <Filter>DDrawCompat\v0.3.0</Filter>
+    <ClCompile Include="DDrawCompat\v0.3.1\DDraw\DirectDrawGammaControl.cpp">
+      <Filter>DDrawCompat\v0.3.1</Filter>
     </ClCompile>
-    <ClCompile Include="DDrawCompat\v0.3.0\DDraw\DirectDrawPalette.cpp">
-      <Filter>DDrawCompat\v0.3.0</Filter>
+    <ClCompile Include="DDrawCompat\v0.3.1\DDraw\DirectDrawPalette.cpp">
+      <Filter>DDrawCompat\v0.3.1</Filter>
     </ClCompile>
-    <ClCompile Include="DDrawCompat\v0.3.0\DDraw\DirectDrawSurface.cpp">
-      <Filter>DDrawCompat\v0.3.0</Filter>
+    <ClCompile Include="DDrawCompat\v0.3.1\DDraw\DirectDrawSurface.cpp">
+      <Filter>DDrawCompat\v0.3.1</Filter>
     </ClCompile>
-    <ClCompile Include="DDrawCompat\v0.3.0\Win32\DisplayMode.cpp">
-      <Filter>DDrawCompat\v0.3.0</Filter>
+    <ClCompile Include="DDrawCompat\v0.3.1\Win32\DisplayMode.cpp">
+      <Filter>DDrawCompat\v0.3.1</Filter>
     </ClCompile>
-    <ClCompile Include="DDrawCompat\v0.3.0\Dll\Dll.cpp">
-      <Filter>DDrawCompat\v0.3.0</Filter>
+    <ClCompile Include="DDrawCompat\v0.3.1\Dll\Dll.cpp">
+      <Filter>DDrawCompat\v0.3.1</Filter>
     </ClCompile>
-    <ClCompile Include="DDrawCompat\v0.3.0\Dll\DllMain.cpp">
-      <Filter>DDrawCompat\v0.3.0</Filter>
+    <ClCompile Include="DDrawCompat\v0.3.1\Dll\DllMain.cpp">
+      <Filter>DDrawCompat\v0.3.1</Filter>
     </ClCompile>
-    <ClCompile Include="DDrawCompat\v0.3.0\D3dDdi\DrawPrimitive.cpp">
-      <Filter>DDrawCompat\v0.3.0</Filter>
+    <ClCompile Include="DDrawCompat\v0.3.1\D3dDdi\DrawPrimitive.cpp">
+      <Filter>DDrawCompat\v0.3.1</Filter>
     </ClCompile>
-    <ClCompile Include="DDrawCompat\v0.3.0\D3dDdi\DynamicBuffer.cpp">
-      <Filter>DDrawCompat\v0.3.0</Filter>
+    <ClCompile Include="DDrawCompat\v0.3.1\D3dDdi\DynamicBuffer.cpp">
+      <Filter>DDrawCompat\v0.3.1</Filter>
     </ClCompile>
-    <ClCompile Include="DDrawCompat\v0.3.0\Gdi\Font.cpp">
-      <Filter>DDrawCompat\v0.3.0</Filter>
+    <ClCompile Include="DDrawCompat\v0.3.1\Gdi\Font.cpp">
+      <Filter>DDrawCompat\v0.3.1</Filter>
     </ClCompile>
-    <ClCompile Include="DDrawCompat\v0.3.0\D3dDdi\FormatInfo.cpp">
-      <Filter>DDrawCompat\v0.3.0</Filter>
+    <ClCompile Include="DDrawCompat\v0.3.1\D3dDdi\FormatInfo.cpp">
+      <Filter>DDrawCompat\v0.3.1</Filter>
     </ClCompile>
-    <ClCompile Include="DDrawCompat\v0.3.0\Gdi\Gdi.cpp">
-      <Filter>DDrawCompat\v0.3.0</Filter>
+    <ClCompile Include="DDrawCompat\v0.3.1\Gdi\Gdi.cpp">
+      <Filter>DDrawCompat\v0.3.1</Filter>
     </ClCompile>
-    <ClCompile Include="DDrawCompat\v0.3.0\Common\Hook.cpp">
-      <Filter>DDrawCompat\v0.3.0</Filter>
+    <ClCompile Include="DDrawCompat\v0.3.1\Common\Hook.cpp">
+      <Filter>DDrawCompat\v0.3.1</Filter>
     </ClCompile>
-    <ClCompile Include="DDrawCompat\v0.3.0\D3dDdi\Hooks.cpp">
-      <Filter>DDrawCompat\v0.3.0</Filter>
+    <ClCompile Include="DDrawCompat\v0.3.1\D3dDdi\Hooks.cpp">
+      <Filter>DDrawCompat\v0.3.1</Filter>
     </ClCompile>
-    <ClCompile Include="DDrawCompat\v0.3.0\DDraw\Hooks.cpp">
-      <Filter>DDrawCompat\v0.3.0</Filter>
+    <ClCompile Include="DDrawCompat\v0.3.1\DDraw\Hooks.cpp">
+      <Filter>DDrawCompat\v0.3.1</Filter>
     </ClCompile>
-    <ClCompile Include="DDrawCompat\v0.3.0\Direct3d\Hooks.cpp">
-      <Filter>DDrawCompat\v0.3.0</Filter>
+    <ClCompile Include="DDrawCompat\v0.3.1\Direct3d\Hooks.cpp">
+      <Filter>DDrawCompat\v0.3.1</Filter>
     </ClCompile>
-    <ClCompile Include="DDrawCompat\v0.3.0\Gdi\Icon.cpp">
-      <Filter>DDrawCompat\v0.3.0</Filter>
+    <ClCompile Include="DDrawCompat\v0.3.1\Gdi\Icon.cpp">
+      <Filter>DDrawCompat\v0.3.1</Filter>
     </ClCompile>
-    <ClCompile Include="DDrawCompat\v0.3.0\DDraw\IReleaseNotifier.cpp">
-      <Filter>DDrawCompat\v0.3.0</Filter>
+    <ClCompile Include="DDrawCompat\v0.3.1\DDraw\IReleaseNotifier.cpp">
+      <Filter>DDrawCompat\v0.3.1</Filter>
     </ClCompile>
-    <ClCompile Include="DDrawCompat\v0.3.0\D3dDdi\KernelModeThunks.cpp">
-      <Filter>DDrawCompat\v0.3.0</Filter>
+    <ClCompile Include="DDrawCompat\v0.3.1\D3dDdi\KernelModeThunks.cpp">
+      <Filter>DDrawCompat\v0.3.1</Filter>
     </ClCompile>
-    <ClCompile Include="DDrawCompat\v0.3.0\D3dDdi\Log\KernelModeThunksLog.cpp">
-      <Filter>DDrawCompat\v0.3.0</Filter>
+    <ClCompile Include="DDrawCompat\v0.3.1\D3dDdi\Log\KernelModeThunksLog.cpp">
+      <Filter>DDrawCompat\v0.3.1</Filter>
     </ClCompile>
-    <ClCompile Include="DDrawCompat\v0.3.0\Win32\MemoryManagement.cpp">
-      <Filter>DDrawCompat\v0.3.0</Filter>
+    <ClCompile Include="DDrawCompat\v0.3.1\Win32\MemoryManagement.cpp">
+      <Filter>DDrawCompat\v0.3.1</Filter>
     </ClCompile>
-    <ClCompile Include="DDrawCompat\v0.3.0\Gdi\Metrics.cpp">
-      <Filter>DDrawCompat\v0.3.0</Filter>
+    <ClCompile Include="DDrawCompat\v0.3.1\Gdi\Metrics.cpp">
+      <Filter>DDrawCompat\v0.3.1</Filter>
     </ClCompile>
-    <ClCompile Include="DDrawCompat\v0.3.0\Win32\MsgHooks.cpp">
-      <Filter>DDrawCompat\v0.3.0</Filter>
+    <ClCompile Include="DDrawCompat\v0.3.1\Win32\MsgHooks.cpp">
+      <Filter>DDrawCompat\v0.3.1</Filter>
     </ClCompile>
-    <ClCompile Include="DDrawCompat\v0.3.0\Gdi\Palette.cpp">
-      <Filter>DDrawCompat\v0.3.0</Filter>
+    <ClCompile Include="DDrawCompat\v0.3.1\Gdi\Palette.cpp">
+      <Filter>DDrawCompat\v0.3.1</Filter>
     </ClCompile>
-    <ClCompile Include="DDrawCompat\v0.3.0\Gdi\PresentationWindow.cpp">
-      <Filter>DDrawCompat\v0.3.0</Filter>
+    <ClCompile Include="DDrawCompat\v0.3.1\Gdi\PresentationWindow.cpp">
+      <Filter>DDrawCompat\v0.3.1</Filter>
     </ClCompile>
-    <ClCompile Include="DDrawCompat\v0.3.0\DDraw\Surfaces\PrimarySurface.cpp">
-      <Filter>DDrawCompat\v0.3.0</Filter>
+    <ClCompile Include="DDrawCompat\v0.3.1\DDraw\Surfaces\PrimarySurface.cpp">
+      <Filter>DDrawCompat\v0.3.1</Filter>
     </ClCompile>
-    <ClCompile Include="DDrawCompat\v0.3.0\DDraw\Surfaces\PrimarySurfaceImpl.cpp">
-      <Filter>DDrawCompat\v0.3.0</Filter>
+    <ClCompile Include="DDrawCompat\v0.3.1\DDraw\Surfaces\PrimarySurfaceImpl.cpp">
+      <Filter>DDrawCompat\v0.3.1</Filter>
     </ClCompile>
-    <ClCompile Include="DDrawCompat\v0.3.0\DDraw\RealPrimarySurface.cpp">
-      <Filter>DDrawCompat\v0.3.0</Filter>
+    <ClCompile Include="DDrawCompat\v0.3.1\DDraw\RealPrimarySurface.cpp">
+      <Filter>DDrawCompat\v0.3.1</Filter>
     </ClCompile>
-    <ClCompile Include="DDrawCompat\v0.3.0\Gdi\Region.cpp">
-      <Filter>DDrawCompat\v0.3.0</Filter>
+    <ClCompile Include="DDrawCompat\v0.3.1\Gdi\Region.cpp">
+      <Filter>DDrawCompat\v0.3.1</Filter>
     </ClCompile>
-    <ClCompile Include="DDrawCompat\v0.3.0\Win32\Registry.cpp">
-      <Filter>DDrawCompat\v0.3.0</Filter>
+    <ClCompile Include="DDrawCompat\v0.3.1\Win32\Registry.cpp">
+      <Filter>DDrawCompat\v0.3.1</Filter>
     </ClCompile>
-    <ClCompile Include="DDrawCompat\v0.3.0\D3dDdi\Resource.cpp">
-      <Filter>DDrawCompat\v0.3.0</Filter>
+    <ClCompile Include="DDrawCompat\v0.3.1\D3dDdi\Resource.cpp">
+      <Filter>DDrawCompat\v0.3.1</Filter>
     </ClCompile>
-    <ClCompile Include="DDrawCompat\v0.3.0\D3dDdi\ScopedCriticalSection.cpp">
-      <Filter>DDrawCompat\v0.3.0</Filter>
+    <ClCompile Include="DDrawCompat\v0.3.1\D3dDdi\ScopedCriticalSection.cpp">
+      <Filter>DDrawCompat\v0.3.1</Filter>
     </ClCompile>
-    <ClCompile Include="DDrawCompat\v0.3.0\Gdi\ScrollBar.cpp">
-      <Filter>DDrawCompat\v0.3.0</Filter>
+    <ClCompile Include="DDrawCompat\v0.3.1\Gdi\ScrollBar.cpp">
+      <Filter>DDrawCompat\v0.3.1</Filter>
     </ClCompile>
-    <ClCompile Include="DDrawCompat\v0.3.0\Gdi\ScrollFunctions.cpp">
-      <Filter>DDrawCompat\v0.3.0</Filter>
+    <ClCompile Include="DDrawCompat\v0.3.1\Gdi\ScrollFunctions.cpp">
+      <Filter>DDrawCompat\v0.3.1</Filter>
     </ClCompile>
-    <ClCompile Include="DDrawCompat\v0.3.0\DDraw\Surfaces\Surface.cpp">
-      <Filter>DDrawCompat\v0.3.0</Filter>
+    <ClCompile Include="DDrawCompat\v0.3.1\DDraw\Surfaces\Surface.cpp">
+      <Filter>DDrawCompat\v0.3.1</Filter>
     </ClCompile>
-    <ClCompile Include="DDrawCompat\v0.3.0\DDraw\Surfaces\SurfaceImpl.cpp">
-      <Filter>DDrawCompat\v0.3.0</Filter>
+    <ClCompile Include="DDrawCompat\v0.3.1\DDraw\Surfaces\SurfaceImpl.cpp">
+      <Filter>DDrawCompat\v0.3.1</Filter>
     </ClCompile>
-    <ClCompile Include="DDrawCompat\v0.3.0\Common\Time.cpp">
-      <Filter>DDrawCompat\v0.3.0</Filter>
+    <ClCompile Include="DDrawCompat\v0.3.1\Common\Time.cpp">
+      <Filter>DDrawCompat\v0.3.1</Filter>
     </ClCompile>
-    <ClCompile Include="DDrawCompat\v0.3.0\Gdi\TitleBar.cpp">
-      <Filter>DDrawCompat\v0.3.0</Filter>
+    <ClCompile Include="DDrawCompat\v0.3.1\Gdi\TitleBar.cpp">
+      <Filter>DDrawCompat\v0.3.1</Filter>
     </ClCompile>
-    <ClCompile Include="DDrawCompat\v0.3.0\Gdi\User32WndProcs.cpp">
-      <Filter>DDrawCompat\v0.3.0</Filter>
+    <ClCompile Include="DDrawCompat\v0.3.1\Gdi\User32WndProcs.cpp">
+      <Filter>DDrawCompat\v0.3.1</Filter>
     </ClCompile>
-    <ClCompile Include="DDrawCompat\v0.3.0\Gdi\VirtualScreen.cpp">
-      <Filter>DDrawCompat\v0.3.0</Filter>
+    <ClCompile Include="DDrawCompat\v0.3.1\Gdi\VirtualScreen.cpp">
+      <Filter>DDrawCompat\v0.3.1</Filter>
     </ClCompile>
-    <ClCompile Include="DDrawCompat\v0.3.0\Win32\WaitFunctions.cpp">
-      <Filter>DDrawCompat\v0.3.0</Filter>
+    <ClCompile Include="DDrawCompat\v0.3.1\Win32\WaitFunctions.cpp">
+      <Filter>DDrawCompat\v0.3.1</Filter>
     </ClCompile>
-    <ClCompile Include="DDrawCompat\v0.3.0\Gdi\Window.cpp">
-      <Filter>DDrawCompat\v0.3.0</Filter>
+    <ClCompile Include="DDrawCompat\v0.3.1\Gdi\Window.cpp">
+      <Filter>DDrawCompat\v0.3.1</Filter>
     </ClCompile>
-    <ClCompile Include="DDrawCompat\v0.3.0\Gdi\WinProc.cpp">
-      <Filter>DDrawCompat\v0.3.0</Filter>
+    <ClCompile Include="DDrawCompat\v0.3.1\Gdi\WinProc.cpp">
+      <Filter>DDrawCompat\v0.3.1</Filter>
     </ClCompile>
     <ClCompile Include="GDI\Gdi32.cpp">
       <Filter>GDI</Filter>
     </ClCompile>
-    <ClCompile Include="DDrawCompat\v0.3.0\Common\Path.cpp">
-      <Filter>DDrawCompat\v0.3.0</Filter>
+    <ClCompile Include="DDrawCompat\v0.3.1\Common\Path.cpp">
+      <Filter>DDrawCompat\v0.3.1</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -1532,308 +1532,308 @@
     <ClInclude Include="DirectShow\IAMMediaStream.h">
       <Filter>DirectShow</Filter>
     </ClInclude>
-    <ClInclude Include="DDrawCompat\v0.3.0\D3dDdi\Adapter.h">
-      <Filter>DDrawCompat\v0.3.0</Filter>
+    <ClInclude Include="DDrawCompat\v0.3.1\D3dDdi\Adapter.h">
+      <Filter>DDrawCompat\v0.3.1</Filter>
     </ClInclude>
-    <ClInclude Include="DDrawCompat\v0.3.0\D3dDdi\AdapterCallbacks.h">
-      <Filter>DDrawCompat\v0.3.0</Filter>
+    <ClInclude Include="DDrawCompat\v0.3.1\D3dDdi\AdapterCallbacks.h">
+      <Filter>DDrawCompat\v0.3.1</Filter>
     </ClInclude>
-    <ClInclude Include="DDrawCompat\v0.3.0\D3dDdi\Visitors\AdapterCallbacksVisitor.h">
-      <Filter>DDrawCompat\v0.3.0</Filter>
+    <ClInclude Include="DDrawCompat\v0.3.1\D3dDdi\Visitors\AdapterCallbacksVisitor.h">
+      <Filter>DDrawCompat\v0.3.1</Filter>
     </ClInclude>
-    <ClInclude Include="DDrawCompat\v0.3.0\D3dDdi\AdapterFuncs.h">
-      <Filter>DDrawCompat\v0.3.0</Filter>
+    <ClInclude Include="DDrawCompat\v0.3.1\D3dDdi\AdapterFuncs.h">
+      <Filter>DDrawCompat\v0.3.1</Filter>
     </ClInclude>
-    <ClInclude Include="DDrawCompat\v0.3.0\D3dDdi\Log\AdapterFuncsLog.h">
-      <Filter>DDrawCompat\v0.3.0</Filter>
+    <ClInclude Include="DDrawCompat\v0.3.1\D3dDdi\Log\AdapterFuncsLog.h">
+      <Filter>DDrawCompat\v0.3.1</Filter>
     </ClInclude>
-    <ClInclude Include="DDrawCompat\v0.3.0\D3dDdi\Visitors\AdapterFuncsVisitor.h">
-      <Filter>DDrawCompat\v0.3.0</Filter>
+    <ClInclude Include="DDrawCompat\v0.3.1\D3dDdi\Visitors\AdapterFuncsVisitor.h">
+      <Filter>DDrawCompat\v0.3.1</Filter>
     </ClInclude>
-    <ClInclude Include="DDrawCompat\v0.3.0\D3dDdi\Log\CommonLog.h">
-      <Filter>DDrawCompat\v0.3.0</Filter>
+    <ClInclude Include="DDrawCompat\v0.3.1\D3dDdi\Log\CommonLog.h">
+      <Filter>DDrawCompat\v0.3.1</Filter>
     </ClInclude>
-    <ClInclude Include="DDrawCompat\v0.3.0\D3dDdi\Device.h">
-      <Filter>DDrawCompat\v0.3.0</Filter>
+    <ClInclude Include="DDrawCompat\v0.3.1\D3dDdi\Device.h">
+      <Filter>DDrawCompat\v0.3.1</Filter>
     </ClInclude>
-    <ClInclude Include="DDrawCompat\v0.3.0\D3dDdi\DeviceCallbacks.h">
-      <Filter>DDrawCompat\v0.3.0</Filter>
+    <ClInclude Include="DDrawCompat\v0.3.1\D3dDdi\DeviceCallbacks.h">
+      <Filter>DDrawCompat\v0.3.1</Filter>
     </ClInclude>
-    <ClInclude Include="DDrawCompat\v0.3.0\D3dDdi\Log\DeviceCallbacksLog.h">
-      <Filter>DDrawCompat\v0.3.0</Filter>
+    <ClInclude Include="DDrawCompat\v0.3.1\D3dDdi\Log\DeviceCallbacksLog.h">
+      <Filter>DDrawCompat\v0.3.1</Filter>
     </ClInclude>
-    <ClInclude Include="DDrawCompat\v0.3.0\D3dDdi\Visitors\DeviceCallbacksVisitor.h">
-      <Filter>DDrawCompat\v0.3.0</Filter>
+    <ClInclude Include="DDrawCompat\v0.3.1\D3dDdi\Visitors\DeviceCallbacksVisitor.h">
+      <Filter>DDrawCompat\v0.3.1</Filter>
     </ClInclude>
-    <ClInclude Include="DDrawCompat\v0.3.0\D3dDdi\DeviceFuncs.h">
-      <Filter>DDrawCompat\v0.3.0</Filter>
+    <ClInclude Include="DDrawCompat\v0.3.1\D3dDdi\DeviceFuncs.h">
+      <Filter>DDrawCompat\v0.3.1</Filter>
     </ClInclude>
-    <ClInclude Include="DDrawCompat\v0.3.0\D3dDdi\Log\DeviceFuncsLog.h">
-      <Filter>DDrawCompat\v0.3.0</Filter>
+    <ClInclude Include="DDrawCompat\v0.3.1\D3dDdi\Log\DeviceFuncsLog.h">
+      <Filter>DDrawCompat\v0.3.1</Filter>
     </ClInclude>
-    <ClInclude Include="DDrawCompat\v0.3.0\D3dDdi\Visitors\DeviceFuncsVisitor.h">
-      <Filter>DDrawCompat\v0.3.0</Filter>
+    <ClInclude Include="DDrawCompat\v0.3.1\D3dDdi\Visitors\DeviceFuncsVisitor.h">
+      <Filter>DDrawCompat\v0.3.1</Filter>
     </ClInclude>
-    <ClInclude Include="DDrawCompat\v0.3.0\D3dDdi\DeviceState.h">
-      <Filter>DDrawCompat\v0.3.0</Filter>
+    <ClInclude Include="DDrawCompat\v0.3.1\D3dDdi\DeviceState.h">
+      <Filter>DDrawCompat\v0.3.1</Filter>
     </ClInclude>
-    <ClInclude Include="DDrawCompat\v0.3.0\D3dDdi\DrawPrimitive.h">
-      <Filter>DDrawCompat\v0.3.0</Filter>
+    <ClInclude Include="DDrawCompat\v0.3.1\D3dDdi\DrawPrimitive.h">
+      <Filter>DDrawCompat\v0.3.1</Filter>
     </ClInclude>
-    <ClInclude Include="DDrawCompat\v0.3.0\D3dDdi\DynamicBuffer.h">
-      <Filter>DDrawCompat\v0.3.0</Filter>
+    <ClInclude Include="DDrawCompat\v0.3.1\D3dDdi\DynamicBuffer.h">
+      <Filter>DDrawCompat\v0.3.1</Filter>
     </ClInclude>
-    <ClInclude Include="DDrawCompat\v0.3.0\D3dDdi\FormatInfo.h">
-      <Filter>DDrawCompat\v0.3.0</Filter>
+    <ClInclude Include="DDrawCompat\v0.3.1\D3dDdi\FormatInfo.h">
+      <Filter>DDrawCompat\v0.3.1</Filter>
     </ClInclude>
-    <ClInclude Include="DDrawCompat\v0.3.0\D3dDdi\Hooks.h">
-      <Filter>DDrawCompat\v0.3.0</Filter>
+    <ClInclude Include="DDrawCompat\v0.3.1\D3dDdi\Hooks.h">
+      <Filter>DDrawCompat\v0.3.1</Filter>
     </ClInclude>
-    <ClInclude Include="DDrawCompat\v0.3.0\D3dDdi\KernelModeThunks.h">
-      <Filter>DDrawCompat\v0.3.0</Filter>
+    <ClInclude Include="DDrawCompat\v0.3.1\D3dDdi\KernelModeThunks.h">
+      <Filter>DDrawCompat\v0.3.1</Filter>
     </ClInclude>
-    <ClInclude Include="DDrawCompat\v0.3.0\D3dDdi\Log\KernelModeThunksLog.h">
-      <Filter>DDrawCompat\v0.3.0</Filter>
+    <ClInclude Include="DDrawCompat\v0.3.1\D3dDdi\Log\KernelModeThunksLog.h">
+      <Filter>DDrawCompat\v0.3.1</Filter>
     </ClInclude>
-    <ClInclude Include="DDrawCompat\v0.3.0\D3dDdi\Resource.h">
-      <Filter>DDrawCompat\v0.3.0</Filter>
+    <ClInclude Include="DDrawCompat\v0.3.1\D3dDdi\Resource.h">
+      <Filter>DDrawCompat\v0.3.1</Filter>
     </ClInclude>
-    <ClInclude Include="DDrawCompat\v0.3.0\D3dDdi\ScopedCriticalSection.h">
-      <Filter>DDrawCompat\v0.3.0</Filter>
+    <ClInclude Include="DDrawCompat\v0.3.1\D3dDdi\ScopedCriticalSection.h">
+      <Filter>DDrawCompat\v0.3.1</Filter>
     </ClInclude>
-    <ClInclude Include="DDrawCompat\v0.3.0\DDraw\Blitter.h">
-      <Filter>DDrawCompat\v0.3.0</Filter>
+    <ClInclude Include="DDrawCompat\v0.3.1\DDraw\Blitter.h">
+      <Filter>DDrawCompat\v0.3.1</Filter>
     </ClInclude>
-    <ClInclude Include="DDrawCompat\v0.3.0\Gdi\Caret.h">
-      <Filter>DDrawCompat\v0.3.0</Filter>
+    <ClInclude Include="DDrawCompat\v0.3.1\Gdi\Caret.h">
+      <Filter>DDrawCompat\v0.3.1</Filter>
     </ClInclude>
-    <ClInclude Include="DDrawCompat\v0.3.0\Gdi\CompatDc.h">
-      <Filter>DDrawCompat\v0.3.0</Filter>
+    <ClInclude Include="DDrawCompat\v0.3.1\Gdi\CompatDc.h">
+      <Filter>DDrawCompat\v0.3.1</Filter>
     </ClInclude>
-    <ClInclude Include="DDrawCompat\v0.3.0\Common\CompatPtr.h">
-      <Filter>DDrawCompat\v0.3.0</Filter>
+    <ClInclude Include="DDrawCompat\v0.3.1\Common\CompatPtr.h">
+      <Filter>DDrawCompat\v0.3.1</Filter>
     </ClInclude>
-    <ClInclude Include="DDrawCompat\v0.3.0\Common\CompatQueryInterface.h">
-      <Filter>DDrawCompat\v0.3.0</Filter>
+    <ClInclude Include="DDrawCompat\v0.3.1\Common\CompatQueryInterface.h">
+      <Filter>DDrawCompat\v0.3.1</Filter>
     </ClInclude>
-    <ClInclude Include="DDrawCompat\v0.3.0\Common\CompatRef.h">
-      <Filter>DDrawCompat\v0.3.0</Filter>
+    <ClInclude Include="DDrawCompat\v0.3.1\Common\CompatRef.h">
+      <Filter>DDrawCompat\v0.3.1</Filter>
     </ClInclude>
-    <ClInclude Include="DDrawCompat\v0.3.0\Common\CompatVtable.h">
-      <Filter>DDrawCompat\v0.3.0</Filter>
+    <ClInclude Include="DDrawCompat\v0.3.1\Common\CompatVtable.h">
+      <Filter>DDrawCompat\v0.3.1</Filter>
     </ClInclude>
-    <ClInclude Include="DDrawCompat\v0.3.0\Common\CompatWeakPtr.h">
-      <Filter>DDrawCompat\v0.3.0</Filter>
+    <ClInclude Include="DDrawCompat\v0.3.1\Common\CompatWeakPtr.h">
+      <Filter>DDrawCompat\v0.3.1</Filter>
     </ClInclude>
-    <ClInclude Include="DDrawCompat\v0.3.0\Config\Config.h">
-      <Filter>DDrawCompat\v0.3.0</Filter>
+    <ClInclude Include="DDrawCompat\v0.3.1\Config\Config.h">
+      <Filter>DDrawCompat\v0.3.1</Filter>
     </ClInclude>
-    <ClInclude Include="DDrawCompat\v0.3.0\Gdi\Dc.h">
-      <Filter>DDrawCompat\v0.3.0</Filter>
+    <ClInclude Include="DDrawCompat\v0.3.1\Gdi\Dc.h">
+      <Filter>DDrawCompat\v0.3.1</Filter>
     </ClInclude>
-    <ClInclude Include="DDrawCompat\v0.3.0\Gdi\DcFunctions.h">
-      <Filter>DDrawCompat\v0.3.0</Filter>
+    <ClInclude Include="DDrawCompat\v0.3.1\Gdi\DcFunctions.h">
+      <Filter>DDrawCompat\v0.3.1</Filter>
     </ClInclude>
-    <ClInclude Include="DDrawCompat\v0.3.0\Direct3d\Direct3d.h">
-      <Filter>DDrawCompat\v0.3.0</Filter>
+    <ClInclude Include="DDrawCompat\v0.3.1\Direct3d\Direct3d.h">
+      <Filter>DDrawCompat\v0.3.1</Filter>
     </ClInclude>
-    <ClInclude Include="DDrawCompat\v0.3.0\Direct3d\Direct3dDevice.h">
-      <Filter>DDrawCompat\v0.3.0</Filter>
+    <ClInclude Include="DDrawCompat\v0.3.1\Direct3d\Direct3dDevice.h">
+      <Filter>DDrawCompat\v0.3.1</Filter>
     </ClInclude>
-    <ClInclude Include="DDrawCompat\v0.3.0\Direct3d\Visitors\Direct3dDeviceVtblVisitor.h">
-      <Filter>DDrawCompat\v0.3.0</Filter>
+    <ClInclude Include="DDrawCompat\v0.3.1\Direct3d\Visitors\Direct3dDeviceVtblVisitor.h">
+      <Filter>DDrawCompat\v0.3.1</Filter>
     </ClInclude>
-    <ClInclude Include="DDrawCompat\v0.3.0\Direct3d\Direct3dExecuteBuffer.h">
-      <Filter>DDrawCompat\v0.3.0</Filter>
+    <ClInclude Include="DDrawCompat\v0.3.1\Direct3d\Direct3dExecuteBuffer.h">
+      <Filter>DDrawCompat\v0.3.1</Filter>
     </ClInclude>
-    <ClInclude Include="DDrawCompat\v0.3.0\Direct3d\Visitors\Direct3dExecuteBufferVtblVisitor.h">
-      <Filter>DDrawCompat\v0.3.0</Filter>
+    <ClInclude Include="DDrawCompat\v0.3.1\Direct3d\Visitors\Direct3dExecuteBufferVtblVisitor.h">
+      <Filter>DDrawCompat\v0.3.1</Filter>
     </ClInclude>
-    <ClInclude Include="DDrawCompat\v0.3.0\Direct3d\Direct3dLight.h">
-      <Filter>DDrawCompat\v0.3.0</Filter>
+    <ClInclude Include="DDrawCompat\v0.3.1\Direct3d\Direct3dLight.h">
+      <Filter>DDrawCompat\v0.3.1</Filter>
     </ClInclude>
-    <ClInclude Include="DDrawCompat\v0.3.0\Direct3d\Visitors\Direct3dLightVtblVisitor.h">
-      <Filter>DDrawCompat\v0.3.0</Filter>
+    <ClInclude Include="DDrawCompat\v0.3.1\Direct3d\Visitors\Direct3dLightVtblVisitor.h">
+      <Filter>DDrawCompat\v0.3.1</Filter>
     </ClInclude>
-    <ClInclude Include="DDrawCompat\v0.3.0\Direct3d\Direct3dMaterial.h">
-      <Filter>DDrawCompat\v0.3.0</Filter>
+    <ClInclude Include="DDrawCompat\v0.3.1\Direct3d\Direct3dMaterial.h">
+      <Filter>DDrawCompat\v0.3.1</Filter>
     </ClInclude>
-    <ClInclude Include="DDrawCompat\v0.3.0\Direct3d\Visitors\Direct3dMaterialVtblVisitor.h">
-      <Filter>DDrawCompat\v0.3.0</Filter>
+    <ClInclude Include="DDrawCompat\v0.3.1\Direct3d\Visitors\Direct3dMaterialVtblVisitor.h">
+      <Filter>DDrawCompat\v0.3.1</Filter>
     </ClInclude>
-    <ClInclude Include="DDrawCompat\v0.3.0\Direct3d\Direct3dTexture.h">
-      <Filter>DDrawCompat\v0.3.0</Filter>
+    <ClInclude Include="DDrawCompat\v0.3.1\Direct3d\Direct3dTexture.h">
+      <Filter>DDrawCompat\v0.3.1</Filter>
     </ClInclude>
-    <ClInclude Include="DDrawCompat\v0.3.0\Direct3d\Visitors\Direct3dTextureVtblVisitor.h">
-      <Filter>DDrawCompat\v0.3.0</Filter>
+    <ClInclude Include="DDrawCompat\v0.3.1\Direct3d\Visitors\Direct3dTextureVtblVisitor.h">
+      <Filter>DDrawCompat\v0.3.1</Filter>
     </ClInclude>
-    <ClInclude Include="DDrawCompat\v0.3.0\Direct3d\Direct3dVertexBuffer.h">
-      <Filter>DDrawCompat\v0.3.0</Filter>
+    <ClInclude Include="DDrawCompat\v0.3.1\Direct3d\Direct3dVertexBuffer.h">
+      <Filter>DDrawCompat\v0.3.1</Filter>
     </ClInclude>
-    <ClInclude Include="DDrawCompat\v0.3.0\Direct3d\Visitors\Direct3dVertexBufferVtblVisitor.h">
-      <Filter>DDrawCompat\v0.3.0</Filter>
+    <ClInclude Include="DDrawCompat\v0.3.1\Direct3d\Visitors\Direct3dVertexBufferVtblVisitor.h">
+      <Filter>DDrawCompat\v0.3.1</Filter>
     </ClInclude>
-    <ClInclude Include="DDrawCompat\v0.3.0\Direct3d\Direct3dViewport.h">
-      <Filter>DDrawCompat\v0.3.0</Filter>
+    <ClInclude Include="DDrawCompat\v0.3.1\Direct3d\Direct3dViewport.h">
+      <Filter>DDrawCompat\v0.3.1</Filter>
     </ClInclude>
-    <ClInclude Include="DDrawCompat\v0.3.0\Direct3d\Visitors\Direct3dViewportVtblVisitor.h">
-      <Filter>DDrawCompat\v0.3.0</Filter>
+    <ClInclude Include="DDrawCompat\v0.3.1\Direct3d\Visitors\Direct3dViewportVtblVisitor.h">
+      <Filter>DDrawCompat\v0.3.1</Filter>
     </ClInclude>
-    <ClInclude Include="DDrawCompat\v0.3.0\Direct3d\Visitors\Direct3dVtblVisitor.h">
-      <Filter>DDrawCompat\v0.3.0</Filter>
+    <ClInclude Include="DDrawCompat\v0.3.1\Direct3d\Visitors\Direct3dVtblVisitor.h">
+      <Filter>DDrawCompat\v0.3.1</Filter>
     </ClInclude>
-    <ClInclude Include="DDrawCompat\v0.3.0\DDraw\DirectDraw.h">
-      <Filter>DDrawCompat\v0.3.0</Filter>
+    <ClInclude Include="DDrawCompat\v0.3.1\DDraw\DirectDraw.h">
+      <Filter>DDrawCompat\v0.3.1</Filter>
     </ClInclude>
-    <ClInclude Include="DDrawCompat\v0.3.0\DDraw\DirectDrawClipper.h">
-      <Filter>DDrawCompat\v0.3.0</Filter>
+    <ClInclude Include="DDrawCompat\v0.3.1\DDraw\DirectDrawClipper.h">
+      <Filter>DDrawCompat\v0.3.1</Filter>
     </ClInclude>
-    <ClInclude Include="DDrawCompat\v0.3.0\DDraw\Visitors\DirectDrawClipperVtblVisitor.h">
-      <Filter>DDrawCompat\v0.3.0</Filter>
+    <ClInclude Include="DDrawCompat\v0.3.1\DDraw\Visitors\DirectDrawClipperVtblVisitor.h">
+      <Filter>DDrawCompat\v0.3.1</Filter>
     </ClInclude>
-    <ClInclude Include="DDrawCompat\v0.3.0\DDraw\DirectDrawGammaControl.h">
-      <Filter>DDrawCompat\v0.3.0</Filter>
+    <ClInclude Include="DDrawCompat\v0.3.1\DDraw\DirectDrawGammaControl.h">
+      <Filter>DDrawCompat\v0.3.1</Filter>
     </ClInclude>
-    <ClInclude Include="DDrawCompat\v0.3.0\DDraw\Visitors\DirectDrawGammaControlVtblVisitor.h">
-      <Filter>DDrawCompat\v0.3.0</Filter>
+    <ClInclude Include="DDrawCompat\v0.3.1\DDraw\Visitors\DirectDrawGammaControlVtblVisitor.h">
+      <Filter>DDrawCompat\v0.3.1</Filter>
     </ClInclude>
-    <ClInclude Include="DDrawCompat\v0.3.0\DDraw\DirectDrawPalette.h">
-      <Filter>DDrawCompat\v0.3.0</Filter>
+    <ClInclude Include="DDrawCompat\v0.3.1\DDraw\DirectDrawPalette.h">
+      <Filter>DDrawCompat\v0.3.1</Filter>
     </ClInclude>
-    <ClInclude Include="DDrawCompat\v0.3.0\DDraw\Visitors\DirectDrawPaletteVtblVisitor.h">
-      <Filter>DDrawCompat\v0.3.0</Filter>
+    <ClInclude Include="DDrawCompat\v0.3.1\DDraw\Visitors\DirectDrawPaletteVtblVisitor.h">
+      <Filter>DDrawCompat\v0.3.1</Filter>
     </ClInclude>
-    <ClInclude Include="DDrawCompat\v0.3.0\DDraw\DirectDrawSurface.h">
-      <Filter>DDrawCompat\v0.3.0</Filter>
+    <ClInclude Include="DDrawCompat\v0.3.1\DDraw\DirectDrawSurface.h">
+      <Filter>DDrawCompat\v0.3.1</Filter>
     </ClInclude>
-    <ClInclude Include="DDrawCompat\v0.3.0\DDraw\Visitors\DirectDrawSurfaceVtblVisitor.h">
-      <Filter>DDrawCompat\v0.3.0</Filter>
+    <ClInclude Include="DDrawCompat\v0.3.1\DDraw\Visitors\DirectDrawSurfaceVtblVisitor.h">
+      <Filter>DDrawCompat\v0.3.1</Filter>
     </ClInclude>
-    <ClInclude Include="DDrawCompat\v0.3.0\DDraw\Visitors\DirectDrawVtblVisitor.h">
-      <Filter>DDrawCompat\v0.3.0</Filter>
+    <ClInclude Include="DDrawCompat\v0.3.1\DDraw\Visitors\DirectDrawVtblVisitor.h">
+      <Filter>DDrawCompat\v0.3.1</Filter>
     </ClInclude>
-    <ClInclude Include="DDrawCompat\v0.3.0\Win32\DisplayMode.h">
-      <Filter>DDrawCompat\v0.3.0</Filter>
+    <ClInclude Include="DDrawCompat\v0.3.1\Win32\DisplayMode.h">
+      <Filter>DDrawCompat\v0.3.1</Filter>
     </ClInclude>
-    <ClInclude Include="DDrawCompat\v0.3.0\Dll\Dll.h">
-      <Filter>DDrawCompat\v0.3.0</Filter>
+    <ClInclude Include="DDrawCompat\v0.3.1\Dll\Dll.h">
+      <Filter>DDrawCompat\v0.3.1</Filter>
     </ClInclude>
-    <ClInclude Include="DDrawCompat\v0.3.0\Gdi\Font.h">
-      <Filter>DDrawCompat\v0.3.0</Filter>
+    <ClInclude Include="DDrawCompat\v0.3.1\Gdi\Font.h">
+      <Filter>DDrawCompat\v0.3.1</Filter>
     </ClInclude>
-    <ClInclude Include="DDrawCompat\v0.3.0\Gdi\Gdi.h">
-      <Filter>DDrawCompat\v0.3.0</Filter>
+    <ClInclude Include="DDrawCompat\v0.3.1\Gdi\Gdi.h">
+      <Filter>DDrawCompat\v0.3.1</Filter>
     </ClInclude>
-    <ClInclude Include="DDrawCompat\v0.3.0\Common\Hook.h">
-      <Filter>DDrawCompat\v0.3.0</Filter>
+    <ClInclude Include="DDrawCompat\v0.3.1\Common\Hook.h">
+      <Filter>DDrawCompat\v0.3.1</Filter>
     </ClInclude>
-    <ClInclude Include="DDrawCompat\v0.3.0\DDraw\Hooks.h">
-      <Filter>DDrawCompat\v0.3.0</Filter>
+    <ClInclude Include="DDrawCompat\v0.3.1\DDraw\Hooks.h">
+      <Filter>DDrawCompat\v0.3.1</Filter>
     </ClInclude>
-    <ClInclude Include="DDrawCompat\v0.3.0\Direct3d\Hooks.h">
-      <Filter>DDrawCompat\v0.3.0</Filter>
+    <ClInclude Include="DDrawCompat\v0.3.1\Direct3d\Hooks.h">
+      <Filter>DDrawCompat\v0.3.1</Filter>
     </ClInclude>
-    <ClInclude Include="DDrawCompat\v0.3.0\Common\HResultException.h">
-      <Filter>DDrawCompat\v0.3.0</Filter>
+    <ClInclude Include="DDrawCompat\v0.3.1\Common\HResultException.h">
+      <Filter>DDrawCompat\v0.3.1</Filter>
     </ClInclude>
-    <ClInclude Include="DDrawCompat\v0.3.0\Gdi\Icon.h">
-      <Filter>DDrawCompat\v0.3.0</Filter>
+    <ClInclude Include="DDrawCompat\v0.3.1\Gdi\Icon.h">
+      <Filter>DDrawCompat\v0.3.1</Filter>
     </ClInclude>
-    <ClInclude Include="DDrawCompat\v0.3.0\DDraw\IReleaseNotifier.h">
-      <Filter>DDrawCompat\v0.3.0</Filter>
+    <ClInclude Include="DDrawCompat\v0.3.1\DDraw\IReleaseNotifier.h">
+      <Filter>DDrawCompat\v0.3.1</Filter>
     </ClInclude>
-    <ClInclude Include="DDrawCompat\v0.3.0\Win32\MemoryManagement.h">
-      <Filter>DDrawCompat\v0.3.0</Filter>
+    <ClInclude Include="DDrawCompat\v0.3.1\Win32\MemoryManagement.h">
+      <Filter>DDrawCompat\v0.3.1</Filter>
     </ClInclude>
-    <ClInclude Include="DDrawCompat\v0.3.0\Gdi\Metrics.h">
-      <Filter>DDrawCompat\v0.3.0</Filter>
+    <ClInclude Include="DDrawCompat\v0.3.1\Gdi\Metrics.h">
+      <Filter>DDrawCompat\v0.3.1</Filter>
     </ClInclude>
-    <ClInclude Include="DDrawCompat\v0.3.0\Win32\MsgHooks.h">
-      <Filter>DDrawCompat\v0.3.0</Filter>
+    <ClInclude Include="DDrawCompat\v0.3.1\Win32\MsgHooks.h">
+      <Filter>DDrawCompat\v0.3.1</Filter>
     </ClInclude>
-    <ClInclude Include="DDrawCompat\v0.3.0\Gdi\Palette.h">
-      <Filter>DDrawCompat\v0.3.0</Filter>
+    <ClInclude Include="DDrawCompat\v0.3.1\Gdi\Palette.h">
+      <Filter>DDrawCompat\v0.3.1</Filter>
     </ClInclude>
-    <ClInclude Include="DDrawCompat\v0.3.0\Gdi\PresentationWindow.h">
-      <Filter>DDrawCompat\v0.3.0</Filter>
+    <ClInclude Include="DDrawCompat\v0.3.1\Gdi\PresentationWindow.h">
+      <Filter>DDrawCompat\v0.3.1</Filter>
     </ClInclude>
-    <ClInclude Include="DDrawCompat\v0.3.0\DDraw\Surfaces\PrimarySurface.h">
-      <Filter>DDrawCompat\v0.3.0</Filter>
+    <ClInclude Include="DDrawCompat\v0.3.1\DDraw\Surfaces\PrimarySurface.h">
+      <Filter>DDrawCompat\v0.3.1</Filter>
     </ClInclude>
-    <ClInclude Include="DDrawCompat\v0.3.0\DDraw\Surfaces\PrimarySurfaceImpl.h">
-      <Filter>DDrawCompat\v0.3.0</Filter>
+    <ClInclude Include="DDrawCompat\v0.3.1\DDraw\Surfaces\PrimarySurfaceImpl.h">
+      <Filter>DDrawCompat\v0.3.1</Filter>
     </ClInclude>
-    <ClInclude Include="DDrawCompat\v0.3.0\DDraw\RealPrimarySurface.h">
-      <Filter>DDrawCompat\v0.3.0</Filter>
+    <ClInclude Include="DDrawCompat\v0.3.1\DDraw\RealPrimarySurface.h">
+      <Filter>DDrawCompat\v0.3.1</Filter>
     </ClInclude>
-    <ClInclude Include="DDrawCompat\v0.3.0\Gdi\Region.h">
-      <Filter>DDrawCompat\v0.3.0</Filter>
+    <ClInclude Include="DDrawCompat\v0.3.1\Gdi\Region.h">
+      <Filter>DDrawCompat\v0.3.1</Filter>
     </ClInclude>
-    <ClInclude Include="DDrawCompat\v0.3.0\Win32\Registry.h">
-      <Filter>DDrawCompat\v0.3.0</Filter>
+    <ClInclude Include="DDrawCompat\v0.3.1\Win32\Registry.h">
+      <Filter>DDrawCompat\v0.3.1</Filter>
     </ClInclude>
-    <ClInclude Include="DDrawCompat\v0.3.0\Common\ScopedCriticalSection.h">
-      <Filter>DDrawCompat\v0.3.0</Filter>
+    <ClInclude Include="DDrawCompat\v0.3.1\Common\ScopedCriticalSection.h">
+      <Filter>DDrawCompat\v0.3.1</Filter>
     </ClInclude>
-    <ClInclude Include="DDrawCompat\v0.3.0\Common\ScopedSrwLock.h">
-      <Filter>DDrawCompat\v0.3.0</Filter>
+    <ClInclude Include="DDrawCompat\v0.3.1\Common\ScopedSrwLock.h">
+      <Filter>DDrawCompat\v0.3.1</Filter>
     </ClInclude>
-    <ClInclude Include="DDrawCompat\v0.3.0\DDraw\ScopedThreadLock.h">
-      <Filter>DDrawCompat\v0.3.0</Filter>
+    <ClInclude Include="DDrawCompat\v0.3.1\DDraw\ScopedThreadLock.h">
+      <Filter>DDrawCompat\v0.3.1</Filter>
     </ClInclude>
-    <ClInclude Include="DDrawCompat\v0.3.0\Gdi\ScrollBar.h">
-      <Filter>DDrawCompat\v0.3.0</Filter>
+    <ClInclude Include="DDrawCompat\v0.3.1\Gdi\ScrollBar.h">
+      <Filter>DDrawCompat\v0.3.1</Filter>
     </ClInclude>
-    <ClInclude Include="DDrawCompat\v0.3.0\Gdi\ScrollFunctions.h">
-      <Filter>DDrawCompat\v0.3.0</Filter>
+    <ClInclude Include="DDrawCompat\v0.3.1\Gdi\ScrollFunctions.h">
+      <Filter>DDrawCompat\v0.3.1</Filter>
     </ClInclude>
-    <ClInclude Include="DDrawCompat\v0.3.0\DDraw\Surfaces\Surface.h">
-      <Filter>DDrawCompat\v0.3.0</Filter>
+    <ClInclude Include="DDrawCompat\v0.3.1\DDraw\Surfaces\Surface.h">
+      <Filter>DDrawCompat\v0.3.1</Filter>
     </ClInclude>
-    <ClInclude Include="DDrawCompat\v0.3.0\DDraw\Surfaces\SurfaceImpl.h">
-      <Filter>DDrawCompat\v0.3.0</Filter>
+    <ClInclude Include="DDrawCompat\v0.3.1\DDraw\Surfaces\SurfaceImpl.h">
+      <Filter>DDrawCompat\v0.3.1</Filter>
     </ClInclude>
-    <ClInclude Include="DDrawCompat\v0.3.0\Common\Time.h">
-      <Filter>DDrawCompat\v0.3.0</Filter>
+    <ClInclude Include="DDrawCompat\v0.3.1\Common\Time.h">
+      <Filter>DDrawCompat\v0.3.1</Filter>
     </ClInclude>
-    <ClInclude Include="DDrawCompat\v0.3.0\Gdi\TitleBar.h">
-      <Filter>DDrawCompat\v0.3.0</Filter>
+    <ClInclude Include="DDrawCompat\v0.3.1\Gdi\TitleBar.h">
+      <Filter>DDrawCompat\v0.3.1</Filter>
     </ClInclude>
-    <ClInclude Include="DDrawCompat\v0.3.0\DDraw\Types.h">
-      <Filter>DDrawCompat\v0.3.0</Filter>
+    <ClInclude Include="DDrawCompat\v0.3.1\DDraw\Types.h">
+      <Filter>DDrawCompat\v0.3.1</Filter>
     </ClInclude>
-    <ClInclude Include="DDrawCompat\v0.3.0\Gdi\User32WndProcs.h">
-      <Filter>DDrawCompat\v0.3.0</Filter>
+    <ClInclude Include="DDrawCompat\v0.3.1\Gdi\User32WndProcs.h">
+      <Filter>DDrawCompat\v0.3.1</Filter>
     </ClInclude>
-    <ClInclude Include="DDrawCompat\v0.3.0\Gdi\VirtualScreen.h">
-      <Filter>DDrawCompat\v0.3.0</Filter>
+    <ClInclude Include="DDrawCompat\v0.3.1\Gdi\VirtualScreen.h">
+      <Filter>DDrawCompat\v0.3.1</Filter>
     </ClInclude>
-    <ClInclude Include="DDrawCompat\v0.3.0\Common\VtableHookVisitor.h">
-      <Filter>DDrawCompat\v0.3.0</Filter>
+    <ClInclude Include="DDrawCompat\v0.3.1\Common\VtableHookVisitor.h">
+      <Filter>DDrawCompat\v0.3.1</Filter>
     </ClInclude>
-    <ClInclude Include="DDrawCompat\v0.3.0\Common\VtableSizeVisitor.h">
-      <Filter>DDrawCompat\v0.3.0</Filter>
+    <ClInclude Include="DDrawCompat\v0.3.1\Common\VtableSizeVisitor.h">
+      <Filter>DDrawCompat\v0.3.1</Filter>
     </ClInclude>
-    <ClInclude Include="DDrawCompat\v0.3.0\Common\VtableVisitor.h">
-      <Filter>DDrawCompat\v0.3.0</Filter>
+    <ClInclude Include="DDrawCompat\v0.3.1\Common\VtableVisitor.h">
+      <Filter>DDrawCompat\v0.3.1</Filter>
     </ClInclude>
-    <ClInclude Include="DDrawCompat\v0.3.0\Win32\WaitFunctions.h">
-      <Filter>DDrawCompat\v0.3.0</Filter>
+    <ClInclude Include="DDrawCompat\v0.3.1\Win32\WaitFunctions.h">
+      <Filter>DDrawCompat\v0.3.1</Filter>
     </ClInclude>
-    <ClInclude Include="DDrawCompat\v0.3.0\Gdi\Window.h">
-      <Filter>DDrawCompat\v0.3.0</Filter>
+    <ClInclude Include="DDrawCompat\v0.3.1\Gdi\Window.h">
+      <Filter>DDrawCompat\v0.3.1</Filter>
     </ClInclude>
-    <ClInclude Include="DDrawCompat\v0.3.0\Gdi\WinProc.h">
-      <Filter>DDrawCompat\v0.3.0</Filter>
+    <ClInclude Include="DDrawCompat\v0.3.1\Gdi\WinProc.h">
+      <Filter>DDrawCompat\v0.3.1</Filter>
     </ClInclude>
-    <ClInclude Include="DDrawCompat\v0.3.0\Dll\DllMain.h">
-      <Filter>DDrawCompat\v0.3.0</Filter>
+    <ClInclude Include="DDrawCompat\v0.3.1\Dll\DllMain.h">
+      <Filter>DDrawCompat\v0.3.1</Filter>
     </ClInclude>
     <ClInclude Include="GDI\Gdi32.h">
       <Filter>GDI</Filter>
     </ClInclude>
-    <ClInclude Include="DDrawCompat\v0.3.0\Common\Path.h">
-      <Filter>DDrawCompat\v0.3.0</Filter>
+    <ClInclude Include="DDrawCompat\v0.3.1\Common\Path.h">
+      <Filter>DDrawCompat\v0.3.1</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

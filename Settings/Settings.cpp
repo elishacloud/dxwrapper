@@ -610,8 +610,8 @@ void CONFIG::SetConfig()
 		ConvertToDirect3D7 = true;
 	}
 
-	DDrawCompat30 = (DDrawCompat30 | DDrawCompatExperimental);
-	DDrawCompat = (DDrawCompat || DDrawCompat20 || DDrawCompat21 || DDrawCompat30);
+	DDrawCompat31 = (DDrawCompat30 || DDrawCompat31 || DDrawCompatExperimental);
+	DDrawCompat = (DDrawCompat || DDrawCompat20 || DDrawCompat21 || DDrawCompat31);
 	EnableDdrawWrapper = (EnableDdrawWrapper || IsSet(DdrawHookSystem32) || ConvertToDirectDraw7 || ConvertToDirect3D7 || IsSet(DdrawResolutionHack));
 	D3d8to9 = (D3d8to9 || IsSet(D3d8HookSystem32));
 	EnableWindowMode = (FullscreenWindowMode) ? true : EnableWindowMode;
