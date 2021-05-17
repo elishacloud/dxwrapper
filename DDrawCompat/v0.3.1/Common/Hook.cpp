@@ -143,7 +143,12 @@ namespace
 			else if (0xFF == targetFunc[0] && 0x25 == targetFunc[1])
 			{
 				instructionSize = 6;
-				targetFunc = **reinterpret_cast<BYTE***>(targetFunc + 2);
+				auto candidateTargetFunc = **reinterpret_cast<BYTE***>(targetFunc + 2);
+				if (Compat31::getModuleHandleFromAddress(candidateTargetFunc) == Compat31::getModuleHandleFromAddress(targetFunc))
+				{
+					break;
+				}
+				targetFunc = candidateTargetFunc;
 			}
 			else
 			{
