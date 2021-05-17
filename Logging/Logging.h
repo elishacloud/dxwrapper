@@ -9,6 +9,7 @@ namespace Logging
 	void InitLog();
 }
 
+#pragma warning (disable: 26812)
 typedef enum _DDFOURCC { } DDFOURCC;
 typedef enum _DDERR { } DDERR;
 typedef enum _D3DERR { } D3DERR;

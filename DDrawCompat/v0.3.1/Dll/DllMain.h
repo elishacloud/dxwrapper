@@ -11,7 +11,7 @@ namespace Compat31
 {
 	BOOL WINAPI DllMain_DDrawCompat(HINSTANCE, DWORD, LPVOID);
 
-#define EXTERN_PROC_STUB(procName) extern "C" __declspec(dllexport) void DC30_ ## procName();
+#define EXTERN_PROC_STUB(procName) extern "C" __declspec(dllexport) void DC31_ ## procName();
 	VISIT_ALL_DDRAW_PROCS(EXTERN_PROC_STUB);
 #undef EXTERN_PROC_STUB
 

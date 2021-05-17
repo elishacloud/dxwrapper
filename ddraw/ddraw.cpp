@@ -474,7 +474,7 @@ HRESULT DirectDrawEnumerateHandler(LPVOID lpCallback, LPVOID lpContext, DWORD dw
 			mbstowcs_s(&nReturn, lpwDesc, lpDesc, 128);
 		}
 
-		HRESULT hr_Callback = DDENUMRET_OK;
+		BOOL hr_Callback = DDENUMRET_OK;
 		switch (DDETType)
 		{
 		case DDET_ENUMCALLBACKA:

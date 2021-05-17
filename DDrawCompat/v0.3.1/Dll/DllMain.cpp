@@ -177,7 +177,7 @@ namespace Compat31
 	FARPROC proc ## _proc = (FARPROC)static_cast<decltype(&proc)>(&directDrawFunc<&Dll::Procs::proc, decltype(&proc)>);
 
 #define INITIALIZE_PRIVATE_WRAPPED_PROC(proc) \
-	FARPROC proc ## _proc = (FARPROC)*DC30_ ## proc;
+	FARPROC proc ## _proc = (FARPROC)*DC31_ ## proc;
 
 	VISIT_PUBLIC_DDRAW_PROCS(INITIALIZE_PUBLIC_WRAPPED_PROC);
 	VISIT_PRIVATE_DDRAW_PROCS(INITIALIZE_PRIVATE_WRAPPED_PROC);

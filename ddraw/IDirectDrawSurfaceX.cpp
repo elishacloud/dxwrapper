@@ -1939,6 +1939,7 @@ HRESULT m_IDirectDrawSurfaceX::Restore()
 			{
 				return DD_OK;
 			}
+			[[fallthrough]];
 		case D3DERR_DEVICELOST:
 			return DDERR_SURFACELOST;
 		case D3DERR_DRIVERINTERNALERROR:

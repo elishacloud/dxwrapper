@@ -75,7 +75,7 @@ namespace Utils
 	// Strictures
 	struct type_dll
 	{
-		HMODULE dll;
+		HMODULE dll = nullptr;
 		std::string name;
 		std::string fullname;
 	};

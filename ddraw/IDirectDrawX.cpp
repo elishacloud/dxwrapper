@@ -1886,6 +1886,7 @@ HRESULT m_IDirectDrawX::TestCooperativeLevel()
 			return DDERR_WRONGMODE;
 		case D3DERR_DEVICENOTRESET:
 			ReinitDevice();
+			[[fallthrough]];
 		case D3DERR_DEVICELOST:
 		case D3D_OK:
 		default:
@@ -2586,12 +2587,12 @@ HRESULT m_IDirectDrawX::CreateD3D9Device()
 		Logging::LogDebug() << __FUNCTION__ << " wnd: " << hWnd << " D3d9 Device params: " << presParams << " flags: " << Logging::hex(BehaviorFlags);
 
 		// Create d3d9 Device
-		if (FAILED(d3d9Object->CreateDevice(D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, hWnd, BehaviorFlags, &presParams, &d3d9Device)))
+		hr = d3d9Object->CreateDevice(D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, hWnd, BehaviorFlags, &presParams, &d3d9Device);
+		if (FAILED(hr))
 		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error: failed to create Direct3D9 device! " << ((GetWindowThreadProcessId(hWnd, nullptr) != GetCurrentThreadId()) ? "Calling from a non-owner thread! " : "")
+			LOG_LIMIT(100, __FUNCTION__ << " Error: failed to create Direct3D9 device! " << (DDERR)hr << " " << ((GetWindowThreadProcessId(hWnd, nullptr) != GetCurrentThreadId()) ? "Calling from a non-owner thread! " : "")
 				<< presParams.BackBufferWidth << "x" << presParams.BackBufferHeight << " refresh: " << presParams.FullScreen_RefreshRateInHz <<
 				" format: " << presParams.BackBufferFormat << " wnd: " << hWnd);
-			hr = DDERR_GENERIC;
 			break;
 		}
 
@@ -2633,7 +2634,7 @@ HRESULT m_IDirectDrawX::CreateD3D9Device()
 
 	ReleaseCriticalSection();
 
-	// Success
+	// Return result
 	return hr;
 }
 

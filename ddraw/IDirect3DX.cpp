@@ -511,7 +511,7 @@ HRESULT m_IDirect3DX::FindDevice(LPD3DFINDDEVICESEARCH lpD3DFDS, LPD3DFINDDEVICE
 		{
 			bool Found = false;
 			GUID guid;
-			D3DDEVICEDESC7 DeviceDesc7;
+			D3DDEVICEDESC7 DeviceDesc7 = { NULL };
 
 			static HRESULT CALLBACK ConvertCallback(LPSTR lpDeviceDescription, LPSTR lpDeviceName, LPD3DDEVICEDESC7 lpDeviceDesc7, LPVOID lpContext)
 			{

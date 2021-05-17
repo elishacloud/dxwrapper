@@ -94,6 +94,8 @@ HWND WINAPI user_CreateWindowExW(DWORD dwExStyle, LPCWSTR lpClassName, LPCWSTR l
 
 int WINAPI gdi_GetDeviceCaps(HDC hdc, int index)
 {
+	Logging::LogDebug() << __FUNCTION__ << " " << hdc << " " << index;
+
 	static GetDeviceCapsProc m_pGetDeviceCaps = (Wrapper::ValidProcAddress(GetDeviceCaps_out)) ? (GetDeviceCapsProc)GetDeviceCaps_out : nullptr;
 
 	if (index == BITSPIXEL)

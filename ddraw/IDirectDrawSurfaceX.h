@@ -10,7 +10,7 @@ struct EMUSURFACE
 	void *surfacepBits = nullptr;
 	DWORD surfacePitch = 0;
 	HBITMAP bitmap = nullptr;
-	BYTE bmiMemory[(sizeof(BITMAPINFOHEADER) + sizeof(RGBQUAD) * 256)];
+	BYTE bmiMemory[(sizeof(BITMAPINFOHEADER) + sizeof(RGBQUAD) * 256)] = { NULL };
 	PBITMAPINFO bmi = (PBITMAPINFO)bmiMemory;
 	HGDIOBJ OldDCObject = nullptr;
 	DWORD LastPaletteUSN = 0;

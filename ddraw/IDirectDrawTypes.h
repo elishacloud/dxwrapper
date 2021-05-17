@@ -11,7 +11,7 @@
 #define D3DCOLOR_R5G6B5_RED(w) \
 	(BYTE)((w>>11)&0x1f)*8
 
-static constexpr DWORD FourCCTypes[]
+static constexpr DWORD FourCCTypes[] =
 {
 	//0x026CFB68, // MAKEFOURCC('N', 'V', '1', '2')
 	//0x026CFB6C, // MAKEFOURCC('P', '0', '1', '0')

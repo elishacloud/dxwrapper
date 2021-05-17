@@ -18,7 +18,7 @@
 
 void ConvertColorControl(DDCOLORCONTROL &ColorControl, DDCOLORCONTROL &ColorControl2)
 {
-	if (ColorControl.dwSize != sizeof(DDCOLORCONTROL) || ColorControl.dwSize != sizeof(DDCOLORCONTROL))
+	if (ColorControl.dwSize != sizeof(DDCOLORCONTROL) || ColorControl2.dwSize != sizeof(DDCOLORCONTROL))
 	{
 		LOG_LIMIT(100, __FUNCTION__ << " Error: Incorrect dwSize: " << ColorControl.dwSize << " " << ColorControl.dwSize);
 		return;
@@ -684,6 +684,7 @@ void SetPixelDisplayFormat(D3DFORMAT Format, DDPIXELFORMAT &ddpfPixelFormat)
 	case D3DFMT_A1R5G5B5:
 		ddpfPixelFormat.dwFlags |= DDPF_ALPHAPIXELS;
 		ddpfPixelFormat.dwRGBAlphaBitMask = 0x8000;
+		[[fallthrough]];
 	case D3DFMT_X1R5G5B5:
 		ddpfPixelFormat.dwRBitMask = 0x7C00;
 		ddpfPixelFormat.dwGBitMask = 0x3E0;
@@ -692,6 +693,7 @@ void SetPixelDisplayFormat(D3DFORMAT Format, DDPIXELFORMAT &ddpfPixelFormat)
 	case D3DFMT_A8R8G8B8:
 		ddpfPixelFormat.dwFlags |= DDPF_ALPHAPIXELS;
 		ddpfPixelFormat.dwRGBAlphaBitMask = 0xFF000000;
+		[[fallthrough]];
 	case D3DFMT_R8G8B8:
 	case D3DFMT_X8R8G8B8:
 		ddpfPixelFormat.dwRBitMask = 0xFF0000;
@@ -701,6 +703,7 @@ void SetPixelDisplayFormat(D3DFORMAT Format, DDPIXELFORMAT &ddpfPixelFormat)
 	case D3DFMT_A8B8G8R8:
 		ddpfPixelFormat.dwFlags |= DDPF_ALPHAPIXELS;
 		ddpfPixelFormat.dwRGBAlphaBitMask = 0xFF000000;
+		[[fallthrough]];
 	case D3DFMT_B8G8R8:
 	case D3DFMT_X8B8G8R8:
 		ddpfPixelFormat.dwRBitMask = 0xFF;
