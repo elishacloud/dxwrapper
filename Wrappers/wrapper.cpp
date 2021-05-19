@@ -180,6 +180,11 @@ void Wrapper::ShimProc(FARPROC &var, FARPROC in, FARPROC &out)
 
 const char *Wrapper::GetWrapperName(const char *WrapperMode)
 {
+	if (!WrapperMode)
+	{
+		return nullptr;
+	}
+
 	// Check dll name and load correct wrapper
 #define CHECK_WRAPPER(dllName) \
 	{ using namespace dllName; if (_stricmp(WrapperMode, Name) == 0) { return Name; }}

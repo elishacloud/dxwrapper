@@ -20,7 +20,12 @@ HRESULT m_IDirectSoundFXParamEq8::QueryInterface(REFIID riid, LPVOID * ppvObj)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	if ((riid == IID_IDirectSoundFXParamEq || riid == IID_IDirectSoundFXParamEq8 || riid == IID_IUnknown) && ppvObj)
+	if (!ppvObj)
+	{
+		return E_POINTER;
+	}
+
+	if (riid == IID_IDirectSoundFXParamEq8 || riid == IID_IUnknown)
 	{
 		AddRef();
 
@@ -61,14 +66,14 @@ ULONG m_IDirectSoundFXParamEq8::Release()
 }
 
 // IDirectSoundFXParamEq methods
-HRESULT m_IDirectSoundFXParamEq8::SetAllParameters(LPCDSFXParamEq pcDsFxParamEq)
+HRESULT m_IDirectSoundFXParamEq8::SetAllParameters(_In_ LPCDSFXParamEq pcDsFxParamEq)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
 	return ProxyInterface->SetAllParameters(pcDsFxParamEq);
 }
 
-HRESULT m_IDirectSoundFXParamEq8::GetAllParameters(LPDSFXParamEq pDsFxParamEq)
+HRESULT m_IDirectSoundFXParamEq8::GetAllParameters(_Out_ LPDSFXParamEq pDsFxParamEq)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 

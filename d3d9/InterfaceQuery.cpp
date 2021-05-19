@@ -23,7 +23,7 @@ void WINAPI D3d9Wrapper::genericQueryInterface(REFIID riid, LPVOID *ppvObj, m_ID
 		return;
 	}
 
-	if (riid == IID_IDirect3D9Ex || riid == IID_IDirect3D9Ex)
+	if (riid == IID_IDirect3D9 || riid == IID_IDirect3D9Ex)
 	{
 		IDirect3D9 *pD3D9 = nullptr;
 		if (SUCCEEDED(m_pDeviceEx->GetDirect3D(&pD3D9)) && pD3D9)

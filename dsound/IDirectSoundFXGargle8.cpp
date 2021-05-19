@@ -20,7 +20,12 @@ HRESULT m_IDirectSoundFXGargle8::QueryInterface(REFIID riid, LPVOID * ppvObj)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	if ((riid == IID_IDirectSoundFXGargle || riid == IID_IDirectSoundFXGargle8 || riid == IID_IUnknown) && ppvObj)
+	if (!ppvObj)
+	{
+		return E_POINTER;
+	}
+
+	if (riid == IID_IDirectSoundFXGargle8 || riid == IID_IUnknown)
 	{
 		AddRef();
 
@@ -61,14 +66,14 @@ ULONG m_IDirectSoundFXGargle8::Release()
 }
 
 // IDirectSoundFXGargle methods
-HRESULT m_IDirectSoundFXGargle8::SetAllParameters(LPCDSFXGargle pcDsFxGargle)
+HRESULT m_IDirectSoundFXGargle8::SetAllParameters(_In_ LPCDSFXGargle pcDsFxGargle)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
 	return ProxyInterface->SetAllParameters(pcDsFxGargle);
 }
 
-HRESULT m_IDirectSoundFXGargle8::GetAllParameters(LPDSFXGargle pDsFxGargle)
+HRESULT m_IDirectSoundFXGargle8::GetAllParameters(_Out_ LPDSFXGargle pDsFxGargle)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 

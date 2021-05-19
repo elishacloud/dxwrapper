@@ -71,6 +71,12 @@ namespace D3d8Wrapper
 		// Load dll
 		HMODULE dll = LoadLibraryA(dllname);
 
+		// Check dll
+		if (!dll)
+		{
+			return;
+		}
+
 		// Get function addresses
 		VISIT_ALL_PROCS(INITIALIZE_WRAPPED_PROC);
 

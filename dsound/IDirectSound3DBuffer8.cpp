@@ -20,7 +20,12 @@ HRESULT m_IDirectSound3DBuffer8::QueryInterface(REFIID riid, LPVOID * ppvObj)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	if ((riid == IID_IDirectSound3DBuffer || riid == IID_IDirectSound3DBuffer8 || riid == IID_IUnknown) && ppvObj)
+	if (!ppvObj)
+	{
+		return E_POINTER;
+	}
+
+	if (riid == IID_IDirectSound3DBuffer8 || riid == IID_IUnknown)
 	{
 		AddRef();
 
@@ -61,70 +66,70 @@ ULONG m_IDirectSound3DBuffer8::Release()
 }
 
 // IDirectSound3DBuffer methods
-HRESULT m_IDirectSound3DBuffer8::GetAllParameters(LPDS3DBUFFER pDs3dBuffer)
+HRESULT m_IDirectSound3DBuffer8::GetAllParameters(_Out_ LPDS3DBUFFER pDs3dBuffer)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
 	return ProxyInterface->GetAllParameters(pDs3dBuffer);
 }
 
-HRESULT m_IDirectSound3DBuffer8::GetConeAngles(LPDWORD pdwInsideConeAngle, LPDWORD pdwOutsideConeAngle)
+HRESULT m_IDirectSound3DBuffer8::GetConeAngles(_Out_ LPDWORD pdwInsideConeAngle, _Out_ LPDWORD pdwOutsideConeAngle)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
 	return ProxyInterface->GetConeAngles(pdwInsideConeAngle, pdwOutsideConeAngle);
 }
 
-HRESULT m_IDirectSound3DBuffer8::GetConeOrientation(D3DVECTOR* pvOrientation)
+HRESULT m_IDirectSound3DBuffer8::GetConeOrientation(_Out_ D3DVECTOR* pvOrientation)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
 	return ProxyInterface->GetConeOrientation(pvOrientation);
 }
 
-HRESULT m_IDirectSound3DBuffer8::GetConeOutsideVolume(LPLONG plConeOutsideVolume)
+HRESULT m_IDirectSound3DBuffer8::GetConeOutsideVolume(_Out_ LPLONG plConeOutsideVolume)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
 	return ProxyInterface->GetConeOutsideVolume(plConeOutsideVolume);
 }
 
-HRESULT m_IDirectSound3DBuffer8::GetMaxDistance(D3DVALUE* pflMaxDistance)
+HRESULT m_IDirectSound3DBuffer8::GetMaxDistance(_Out_ D3DVALUE* pflMaxDistance)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
 	return ProxyInterface->GetMaxDistance(pflMaxDistance);
 }
 
-HRESULT m_IDirectSound3DBuffer8::GetMinDistance(D3DVALUE* pflMinDistance)
+HRESULT m_IDirectSound3DBuffer8::GetMinDistance(_Out_ D3DVALUE* pflMinDistance)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
 	return ProxyInterface->GetMinDistance(pflMinDistance);
 }
 
-HRESULT m_IDirectSound3DBuffer8::GetMode(LPDWORD pdwMode)
+HRESULT m_IDirectSound3DBuffer8::GetMode(_Out_ LPDWORD pdwMode)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
 	return ProxyInterface->GetMode(pdwMode);
 }
 
-HRESULT m_IDirectSound3DBuffer8::GetPosition(D3DVECTOR* pvPosition)
+HRESULT m_IDirectSound3DBuffer8::GetPosition(_Out_ D3DVECTOR* pvPosition)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
 	return ProxyInterface->GetPosition(pvPosition);
 }
 
-HRESULT m_IDirectSound3DBuffer8::GetVelocity(D3DVECTOR* pvVelocity)
+HRESULT m_IDirectSound3DBuffer8::GetVelocity(_Out_ D3DVECTOR* pvVelocity)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
 	return ProxyInterface->GetVelocity(pvVelocity);
 }
 
-HRESULT m_IDirectSound3DBuffer8::SetAllParameters(LPCDS3DBUFFER pcDs3dBuffer, DWORD dwApply)
+HRESULT m_IDirectSound3DBuffer8::SetAllParameters(_In_ LPCDS3DBUFFER pcDs3dBuffer, DWORD dwApply)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 

@@ -20,7 +20,12 @@ HRESULT m_IDirectSound3DListener8::QueryInterface(REFIID riid, LPVOID * ppvObj)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	if ((riid == IID_IDirectSound3DListener || riid == IID_IDirectSound3DListener8 || riid == IID_IUnknown) && ppvObj)
+	if (!ppvObj)
+	{
+		return E_POINTER;
+	}
+
+	if (riid == IID_IDirectSound3DListener8 || riid == IID_IUnknown)
 	{
 		AddRef();
 
@@ -61,56 +66,56 @@ ULONG m_IDirectSound3DListener8::Release()
 }
 
 // IDirectSound3DListener methods
-HRESULT m_IDirectSound3DListener8::GetAllParameters(LPDS3DLISTENER pListener)
+HRESULT m_IDirectSound3DListener8::GetAllParameters(_Out_ LPDS3DLISTENER pListener)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
 	return ProxyInterface->GetAllParameters(pListener);
 }
 
-HRESULT m_IDirectSound3DListener8::GetDistanceFactor(D3DVALUE* pflDistanceFactor)
+HRESULT m_IDirectSound3DListener8::GetDistanceFactor(_Out_ D3DVALUE* pflDistanceFactor)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
 	return ProxyInterface->GetDistanceFactor(pflDistanceFactor);
 }
 
-HRESULT m_IDirectSound3DListener8::GetDopplerFactor(D3DVALUE* pflDopplerFactor)
+HRESULT m_IDirectSound3DListener8::GetDopplerFactor(_Out_ D3DVALUE* pflDopplerFactor)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
 	return ProxyInterface->GetDopplerFactor(pflDopplerFactor);
 }
 
-HRESULT m_IDirectSound3DListener8::GetOrientation(D3DVECTOR* pvOrientFront, D3DVECTOR* pvOrientTop)
+HRESULT m_IDirectSound3DListener8::GetOrientation(_Out_ D3DVECTOR* pvOrientFront, _Out_ D3DVECTOR* pvOrientTop)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
 	return ProxyInterface->GetOrientation(pvOrientFront, pvOrientTop);
 }
 
-HRESULT m_IDirectSound3DListener8::GetPosition(D3DVECTOR* pvPosition)
+HRESULT m_IDirectSound3DListener8::GetPosition(_Out_ D3DVECTOR* pvPosition)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
 	return ProxyInterface->GetPosition(pvPosition);
 }
 
-HRESULT m_IDirectSound3DListener8::GetRolloffFactor(D3DVALUE* pflRolloffFactor)
+HRESULT m_IDirectSound3DListener8::GetRolloffFactor(_Out_ D3DVALUE* pflRolloffFactor)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
 	return ProxyInterface->GetRolloffFactor(pflRolloffFactor);
 }
 
-HRESULT m_IDirectSound3DListener8::GetVelocity(D3DVECTOR* pvVelocity)
+HRESULT m_IDirectSound3DListener8::GetVelocity(_Out_ D3DVECTOR* pvVelocity)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
 	return ProxyInterface->GetVelocity(pvVelocity);
 }
 
-HRESULT m_IDirectSound3DListener8::SetAllParameters(LPCDS3DLISTENER pcListener, DWORD dwApply)
+HRESULT m_IDirectSound3DListener8::SetAllParameters(_In_ LPCDS3DLISTENER pcListener, DWORD dwApply)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 

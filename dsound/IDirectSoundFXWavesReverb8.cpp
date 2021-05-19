@@ -20,7 +20,12 @@ HRESULT m_IDirectSoundFXWavesReverb8::QueryInterface(REFIID riid, LPVOID * ppvOb
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	if ((riid == IID_IDirectSoundFXWavesReverb || riid == IID_IDirectSoundFXWavesReverb8 || riid == IID_IUnknown) && ppvObj)
+	if (!ppvObj)
+	{
+		return E_POINTER;
+	}
+
+	if (riid == IID_IDirectSoundFXWavesReverb8 || riid == IID_IUnknown)
 	{
 		AddRef();
 
@@ -61,14 +66,14 @@ ULONG m_IDirectSoundFXWavesReverb8::Release()
 }
 
 // IDirectSoundFXWavesReverb methods
-HRESULT m_IDirectSoundFXWavesReverb8::SetAllParameters(LPCDSFXWavesReverb pcDsFxWavesReverb)
+HRESULT m_IDirectSoundFXWavesReverb8::SetAllParameters(_In_ LPCDSFXWavesReverb pcDsFxWavesReverb)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
 	return ProxyInterface->SetAllParameters(pcDsFxWavesReverb);
 }
 
-HRESULT m_IDirectSoundFXWavesReverb8::GetAllParameters(LPDSFXWavesReverb pDsFxWavesReverb)
+HRESULT m_IDirectSoundFXWavesReverb8::GetAllParameters(_Out_ LPDSFXWavesReverb pDsFxWavesReverb)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 

@@ -20,7 +20,12 @@ HRESULT m_IDirectSoundCaptureFXNoiseSuppress8::QueryInterface(REFIID riid, LPVOI
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	if ((riid == IID_IDirectSoundCaptureFXNoiseSuppress || riid == IID_IDirectSoundCaptureFXNoiseSuppress8 || riid == IID_IUnknown) && ppvObj)
+	if (!ppvObj)
+	{
+		return E_POINTER;
+	}
+
+	if (riid == IID_IDirectSoundCaptureFXNoiseSuppress8 || riid == IID_IUnknown)
 	{
 		AddRef();
 
@@ -61,14 +66,14 @@ ULONG m_IDirectSoundCaptureFXNoiseSuppress8::Release()
 }
 
 // IDirectSoundCaptureFXNoiseSuppress methods
-HRESULT m_IDirectSoundCaptureFXNoiseSuppress8::SetAllParameters(LPCDSCFXNoiseSuppress pcDscFxNoiseSuppress)
+HRESULT m_IDirectSoundCaptureFXNoiseSuppress8::SetAllParameters(_In_ LPCDSCFXNoiseSuppress pcDscFxNoiseSuppress)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
 	return ProxyInterface->SetAllParameters(pcDscFxNoiseSuppress);
 }
 
-HRESULT m_IDirectSoundCaptureFXNoiseSuppress8::GetAllParameters(LPDSCFXNoiseSuppress pDscFxNoiseSuppress)
+HRESULT m_IDirectSoundCaptureFXNoiseSuppress8::GetAllParameters(_Out_ LPDSCFXNoiseSuppress pDscFxNoiseSuppress)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 

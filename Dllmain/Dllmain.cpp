@@ -80,8 +80,9 @@ typedef HMODULE(*LoadProc)(const char *ProxyDll, const char *MyDllName);
 HMODULE LoadHookedDll(char *dllname, LoadProc Load, DWORD HookSystem32)
 {
 	HMODULE dll = Load(nullptr, Config.WrapperName.c_str());
+	HMODULE currentdll = GetModuleHandle(dllname);
 
-	if (Config.IsSet(HookSystem32) || (HookSystem32 == NOT_EXIST && GetProcAddress(GetModuleHandle(dllname), "DxWrapperSettings") == nullptr))
+	if (dllname && (Config.IsSet(HookSystem32) || (HookSystem32 == NOT_EXIST && currentdll && GetProcAddress(currentdll, "DxWrapperSettings") == nullptr)))
 	{
 		char path[MAX_PATH];
 		GetSystemDirectory(path, MAX_PATH);

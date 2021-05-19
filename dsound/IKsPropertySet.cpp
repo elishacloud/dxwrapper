@@ -20,7 +20,12 @@ HRESULT m_IKsPropertySet::QueryInterface(REFIID riid, LPVOID * ppvObj)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	if ((riid == IID_IKsPropertySet || riid == IID_IUnknown) && ppvObj)
+	if (!ppvObj)
+	{
+		return E_POINTER;
+	}
+
+	if (riid == IID_IKsPropertySet || riid == IID_IUnknown)
 	{
 		AddRef();
 
@@ -61,21 +66,23 @@ ULONG m_IKsPropertySet::Release()
 }
 
 // IKsPropertySet methods
-HRESULT m_IKsPropertySet::Get(REFGUID rguidPropSet, ULONG ulId, LPVOID pInstanceData, ULONG ulInstanceLength, LPVOID pPropertyData, ULONG ulDataLength, PULONG pulBytesReturned)
+HRESULT m_IKsPropertySet::Get(_In_ REFGUID rguidPropSet, ULONG ulId, _In_reads_bytes_opt_(ulInstanceLength) LPVOID pInstanceData, ULONG ulInstanceLength,
+	_Out_writes_bytes_(ulDataLength) LPVOID pPropertyData, ULONG ulDataLength, _Out_opt_ PULONG pulBytesReturned)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
 	return ProxyInterface->Get(rguidPropSet, ulId, pInstanceData, ulInstanceLength, pPropertyData, ulDataLength, pulBytesReturned);
 }
 
-HRESULT m_IKsPropertySet::Set(REFGUID rguidPropSet, ULONG ulId, LPVOID pInstanceData, ULONG ulInstanceLength, LPVOID pPropertyData, ULONG ulDataLength)
+HRESULT m_IKsPropertySet::Set(_In_ REFGUID rguidPropSet, ULONG ulId, _In_reads_bytes_opt_(ulInstanceLength)  LPVOID pInstanceData, ULONG ulInstanceLength,
+	_In_reads_bytes_(ulDataLength) LPVOID pPropertyData, ULONG ulDataLength)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
 	return ProxyInterface->Set(rguidPropSet, ulId, pInstanceData, ulInstanceLength, pPropertyData, ulDataLength);
 }
 
-HRESULT m_IKsPropertySet::QuerySupport(REFGUID rguidPropSet, ULONG ulId, PULONG pulTypeSupport)
+HRESULT m_IKsPropertySet::QuerySupport(_In_ REFGUID rguidPropSet, ULONG ulId, _Out_ PULONG pulTypeSupport)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 

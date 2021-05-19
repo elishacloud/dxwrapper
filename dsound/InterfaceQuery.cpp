@@ -35,24 +35,24 @@ void WINAPI DsoundWrapper::genericQueryInterface(REFIID riid, LPVOID * ppvObj)
 			*ppvObj = ProxyAddressLookupTableDsound.FindAddress<m_ ## x ## 8>(*ppvObj); \
 		}
 
-	QUERYINTERFACE8(IDirectSound3DBuffer);
-	QUERYINTERFACE8(IDirectSound3DListener);
+	QUERYINTERFACE(IDirectSound3DBuffer8);
+	QUERYINTERFACE(IDirectSound3DListener8);
 	QUERYINTERFACE8(IDirectSound);
 	QUERYINTERFACE8(IDirectSoundBuffer);
-	QUERYINTERFACE8(IDirectSoundCapture);
+	QUERYINTERFACE(IDirectSoundCapture8);
 	QUERYINTERFACE8(IDirectSoundCaptureBuffer);
-	QUERYINTERFACE8(IDirectSoundCaptureFXAec);
-	QUERYINTERFACE8(IDirectSoundCaptureFXNoiseSuppress);
-	QUERYINTERFACE8(IDirectSoundFullDuplex);
-	QUERYINTERFACE8(IDirectSoundFXChorus);
-	QUERYINTERFACE8(IDirectSoundFXCompressor);
-	QUERYINTERFACE8(IDirectSoundFXDistortion);
-	QUERYINTERFACE8(IDirectSoundFXEcho);
-	QUERYINTERFACE8(IDirectSoundFXFlanger);
-	QUERYINTERFACE8(IDirectSoundFXGargle);
-	QUERYINTERFACE8(IDirectSoundFXI3DL2Reverb);
-	QUERYINTERFACE8(IDirectSoundFXParamEq);
-	QUERYINTERFACE8(IDirectSoundFXWavesReverb);
-	QUERYINTERFACE8(IDirectSoundNotify);
+	QUERYINTERFACE(IDirectSoundCaptureFXAec8);
+	QUERYINTERFACE(IDirectSoundCaptureFXNoiseSuppress8);
+	QUERYINTERFACE(IDirectSoundFullDuplex8);
+	QUERYINTERFACE(IDirectSoundFXChorus8);
+	QUERYINTERFACE(IDirectSoundFXCompressor8);
+	QUERYINTERFACE(IDirectSoundFXDistortion8);
+	QUERYINTERFACE(IDirectSoundFXEcho8);
+	QUERYINTERFACE(IDirectSoundFXFlanger8);
+	QUERYINTERFACE(IDirectSoundFXGargle8);
+	QUERYINTERFACE(IDirectSoundFXI3DL2Reverb8);
+	QUERYINTERFACE(IDirectSoundFXParamEq8);
+	QUERYINTERFACE(IDirectSoundFXWavesReverb8);
+	QUERYINTERFACE(IDirectSoundNotify8);
 	QUERYINTERFACE(IKsPropertySet);
 }

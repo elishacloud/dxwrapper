@@ -20,7 +20,12 @@ HRESULT m_IDirectSound8::QueryInterface(REFIID riid, LPVOID * ppvObj)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	if ((riid == IID_IDirectSound || riid == IID_IDirectSound8 || riid == IID_IUnknown) && ppvObj)
+	if (!ppvObj)
+	{
+		return E_POINTER;
+	}
+
+	if (riid == IID_IDirectSound || riid == IID_IDirectSound8 || riid == IID_IUnknown)
 	{
 		AddRef();
 
@@ -61,7 +66,7 @@ ULONG m_IDirectSound8::Release()
 }
 
 // IDirectSound methods
-HRESULT m_IDirectSound8::CreateSoundBuffer(LPCDSBUFFERDESC pcDSBufferDesc, LPDIRECTSOUNDBUFFER *ppDSBuffer, LPUNKNOWN pUnkOuter)
+HRESULT m_IDirectSound8::CreateSoundBuffer(_In_ LPCDSBUFFERDESC pcDSBufferDesc, _Out_ LPDIRECTSOUNDBUFFER* ppDSBuffer, _Pre_null_ LPUNKNOWN pUnkOuter)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
@@ -124,7 +129,7 @@ HRESULT m_IDirectSound8::CreateSoundBuffer(LPCDSBUFFERDESC pcDSBufferDesc, LPDIR
 	return hr;
 }
 
-HRESULT m_IDirectSound8::GetCaps(LPDSCAPS pDSCaps)
+HRESULT m_IDirectSound8::GetCaps(_Out_ LPDSCAPS pDSCaps)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
@@ -173,7 +178,7 @@ HRESULT m_IDirectSound8::GetCaps(LPDSCAPS pDSCaps)
 	return hr;
 }
 
-HRESULT m_IDirectSound8::DuplicateSoundBuffer(LPDIRECTSOUNDBUFFER pDSBufferOriginal, LPDIRECTSOUNDBUFFER *ppDSBufferDuplicate)
+HRESULT m_IDirectSound8::DuplicateSoundBuffer(_In_ LPDIRECTSOUNDBUFFER pDSBufferOriginal, _Out_ LPDIRECTSOUNDBUFFER* ppDSBufferDuplicate)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
@@ -211,7 +216,7 @@ HRESULT m_IDirectSound8::Compact()
 	return ProxyInterface->Compact();
 }
 
-HRESULT m_IDirectSound8::GetSpeakerConfig(LPDWORD pdwSpeakerConfig)
+HRESULT m_IDirectSound8::GetSpeakerConfig(_Out_ LPDWORD pdwSpeakerConfig)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
@@ -233,7 +238,7 @@ HRESULT m_IDirectSound8::SetSpeakerConfig(DWORD dwSpeakerConfig)
 	return ProxyInterface->SetSpeakerConfig(dwSpeakerConfig);
 }
 
-HRESULT m_IDirectSound8::Initialize(LPCGUID pcGuidDevice)
+HRESULT m_IDirectSound8::Initialize(_In_opt_ LPCGUID pcGuidDevice)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
@@ -241,7 +246,7 @@ HRESULT m_IDirectSound8::Initialize(LPCGUID pcGuidDevice)
 }
 
 // IDirectSound8 methods
-HRESULT  m_IDirectSound8::VerifyCertification(LPDWORD pdwCertified)
+HRESULT  m_IDirectSound8::VerifyCertification(_Out_ LPDWORD pdwCertified)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 

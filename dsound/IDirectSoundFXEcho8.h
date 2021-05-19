@@ -20,7 +20,7 @@ public:
 	}
 
 	// IUnknown methods
-	STDMETHOD(QueryInterface)(THIS_ _In_ REFIID, _Outptr_ LPVOID*);
+	STDMETHOD(QueryInterface)(THIS_ REFIID riid, LPVOID* ppvObj);
 	STDMETHOD_(ULONG, AddRef)(THIS);
 	STDMETHOD_(ULONG, Release)(THIS);
 

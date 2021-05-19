@@ -20,7 +20,12 @@ HRESULT m_IDirectSoundCaptureFXAec8::QueryInterface(REFIID riid, LPVOID * ppvObj
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	if ((riid == IID_IDirectSoundCaptureFXAec || riid == IID_IDirectSoundCaptureFXAec8 || riid == IID_IUnknown) && ppvObj)
+	if (!ppvObj)
+	{
+		return E_POINTER;
+	}
+
+	if (riid == IID_IDirectSoundCaptureFXAec8 || riid == IID_IUnknown)
 	{
 		AddRef();
 
@@ -61,21 +66,21 @@ ULONG m_IDirectSoundCaptureFXAec8::Release()
 }
 
 // IDirectSoundCaptureFXAec methods
-HRESULT m_IDirectSoundCaptureFXAec8::SetAllParameters(LPCDSCFXAec pDscFxAec)
+HRESULT m_IDirectSoundCaptureFXAec8::SetAllParameters(_In_ LPCDSCFXAec pDscFxAec)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
 	return ProxyInterface->SetAllParameters(pDscFxAec);
 }
 
-HRESULT m_IDirectSoundCaptureFXAec8::GetAllParameters(LPDSCFXAec pDscFxAec)
+HRESULT m_IDirectSoundCaptureFXAec8::GetAllParameters(_Out_ LPDSCFXAec pDscFxAec)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
 	return ProxyInterface->GetAllParameters(pDscFxAec);
 }
 
-HRESULT m_IDirectSoundCaptureFXAec8::GetStatus(LPDWORD pdwStatus)
+HRESULT m_IDirectSoundCaptureFXAec8::GetStatus(_Out_ LPDWORD pdwStatus)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 

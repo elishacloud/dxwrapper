@@ -174,88 +174,88 @@ static const APPCOMPATDATATYPE AppCompatDataType;
 
 struct CONFIG
 {
-	void Init();						// Initialize the config setting
-	void SetConfig();					// Set additional settings
-	bool IsSet(DWORD Value);			// Check if a value is set
-	bool Exiting = false;				// Dxwrapper is being unloaded
-	bool AutoFrameSkip;					// Automatically skips frames to reduce input lag
-	bool Dd7to9;						// Converts DirectDraw/Direct3D (ddraw.dll) to Direct3D9 (d3d9.dll)
-	bool D3d8to9;						// Converts Direct3D8 (d3d8.dll) to Direct3D9 (d3d9.dll) https://github.com/crosire/d3d8to9
-	bool Dinputto8;						// Converts DirectInput (dinput.dll) to DirectInput8 (dinput8.dll)
-	bool DDrawCompat;					// Enables the default DDrawCompat functions https://github.com/narzoul/DDrawCompat/
-	bool DDrawCompat20;					// Enables DDrawCompat v0.2.0b
-	bool DDrawCompat21;					// Enables DDrawCompat v0.2.1
-	bool DDrawCompatExperimental;		// Legacy setting replaced by DDrawCompat31
-	bool DDrawCompat30;					// Legacy setting replaced by DDrawCompat31
-	bool DDrawCompat31;					// Enables DDrawCompat v0.3.1
-	bool DDrawCompatDisableGDIHook;		// Disables DDrawCompat GDI hooks
-	bool DDrawCompatNoProcAffinity;		// Disables DDrawCompat single processor affinity
-	bool DdrawFixByteAlignment;			// Fixes lock with surfaces that have unaligned byte sizes
-	DWORD DdrawResolutionHack;			// Removes the artificial resolution limit from Direct3D7 and below https://github.com/UCyborg/LegacyD3DResolutionHack
-	bool DdrawEmulateSurface;			// Emulates the ddraw surface using device context for Dd7to9
-	bool DdrawReadFromGDI;				// Read from GDI bfore passing surface to program
-	bool DdrawWriteToGDI;				// Blt surface directly to GDI rather than Direct3D9
-	bool DdrawIntegerScalingClamp;		// Scales the screen by an integer value to help preserve video quality
-	bool DdrawMaintainAspectRatio;		// Keeps the current DirectDraw aspect ratio when overriding the game's resolution
-	bool DdrawUseNativeResolution;		// Uses the current screen resolution for Dd7to9
-	DWORD DdrawClippedWidth;			// Used to scaled Direct3d9 to use this width when using Dd7to9
-	DWORD DdrawClippedHeight;			// Used to scaled Direct3d9 to use this height when using Dd7to9
-	DWORD DdrawLimitDisplayModeCount;	// Limits the number of display modes sent to program, some games crash when you feed them with too many resolutions
-	DWORD DdrawOverrideBitMode;			// Forces DirectX to use specified bit mode: 8, 16, 24, 32
-	DWORD DdrawOverrideWidth;			// Force Direct3d9 to use this width when using Dd7to9
-	DWORD DdrawOverrideHeight;			// Force Direct3d9 to use this height when using Dd7to9
-	DWORD DdrawOverrideRefreshRate;		// Force Direct3d9 to use this refresh rate when using Dd7to9
-	DWORD DdrawHookSystem32;			// Hooks the ddraw.dll file in the Windows System32 folder
-	DWORD D3d8HookSystem32;				// Hooks the d3d8.dll file in the Windows System32 folder
-	DWORD D3d9HookSystem32;				// Hooks the d3d9.dll file in the Windows System32 folder
-	DWORD DinputHookSystem32;			// Hooks the dinput.dll file in the Windows System32 folder
-	DWORD Dinput8HookSystem32;			// Hooks the dinput8.dll file in the Windows System32 folder
-	DWORD DsoundHookSystem32;			// Hooks the dsound.dll file in the Windows System32 folder
-	bool DirectShowEmulation;			// Emulates DirectShow APIs
-	bool DisableGameUX;					// Disables the Microsoft Game Explorer which can sometimes cause high CPU in rundll32.exe and hang the game process
-	bool DisableHighDPIScaling;			// Disables display scaling on high DPI settings
-	bool DisableLogging;				// Disables the logging file
-	bool DSoundCtrl;					// Enables DirectSoundControl https://github.com/nRaecheR/DirectSoundControl
-	bool DxWnd;							// Enables DxWnd https://sourceforge.net/projects/dxwnd/
-	DWORD CacheClipPlane;				// Caches the ClipPlane for Direct3D9 to fix an issue in d3d9 on Windows 8 and newer
-	bool ConvertToDirectDraw7;			// Converts DirectDraw 1-6 to DirectDraw 7
-	bool ConvertToDirect3D7;			// Converts Direct3D 1-6 to Direct3D 7
-	bool EnableDdrawWrapper;			// Enables the ddraw wrapper
-	DWORD EnableD3d9Wrapper;			// Enables the d3d9 wrapper
-	bool EnableDinput8Wrapper;			// Enables the dinput8 wrapper
-	bool EnableDsoundWrapper;			// Enables the dsound wrapper
-	bool EnableWindowMode;				// Enables WndMode for d3d9 wrapper
-	bool EnableVSync;					// Enables VSync for d3d9 wrapper
-	bool ForceMixedVertexProcessing;	// Forces Mixed mode for vertex processing in d3d9
-	bool ForceSystemMemVertexCache;		// Forces System Memory caching for vertexes in d3d9
-	bool FullScreen;					// Sets the main window to fullscreen
-	bool FullscreenWindowMode;			// Enables fullscreen windowed mode, requires EnableWindowMode
-	bool ForceTermination;				// Terminates application when main window closes
-	bool ForceWindowResize;				// Forces main window to fullscreen, requires FullScreen
-	bool ForceVsyncMode;				// Forces d3d9 game to use EnableVsync option
-	bool HandleExceptions;				// Handles unhandled exceptions in the application
-	bool LoadPlugins;					// Loads ASI plugins
-	bool LoadFromScriptsOnly;			// Loads ASI plugins from 'scripts' and 'plugins' folder only
-	bool ProcessExcluded;				// Set if this process is excluded from dxwrapper functions
-	bool ResetScreenRes;				// Reset the screen resolution on close
-	bool SendAltEnter;					// Sends an Alt+Enter message to the wind to tell it to go into fullscreen, requires FullScreen
-	bool WaitForProcess;				// Waits for process to end before continuing, requires FullScreen
-	bool WaitForWindowChanges;			// Waits for window handle to stabilize before setting fullsreen, requires FullScreen
-	bool WindowModeBorder;				// Enables the window border when EnableWindowMode is set, requires EnableWindowMode
-	DWORD LoopSleepTime;				// Time to sleep between each window handle check loop, requires FullScreen
-	DWORD ResetMemoryAfter;				// Undo hot patch after this amount of time
-	DWORD WindowSleepTime;				// Time to wait (sleep) for window handle and screen updates to finish, requires FullScreen
-	DWORD SingleProcAffinity;			// Sets the CPU affinity for this process
-	DWORD SetFullScreenLayer;			// The layer to be selected for fullscreen, requires FullScreen
-	DWORD AnisotropicFiltering;			// Enable Anisotropic Filtering for d3d9
-	DWORD AntiAliasing;					// Enable AntiAliasing for d3d9 CreateDevice
-	DWORD RealWrapperMode;				// Internal wrapper mode
-	MEMORYINFO VerifyMemoryInfo;		// Memory used for verification before hot patching
-	std::vector<MEMORYINFO> MemoryInfo;	// Addresses and memory used in hot patching
-	std::string RealDllPath;			// Manually set Dll to wrap
-	std::string RunProcess;				// Process to run on load
-	std::string WrapperMode;			// Mode of dxwrapper from config file
-	std::string WrapperName;			// dxwrapper dll filename
+	void Init();								// Initialize the config setting
+	void SetConfig();							// Set additional settings
+	bool IsSet(DWORD Value);					// Check if a value is set
+	bool Exiting = false;						// Dxwrapper is being unloaded
+	bool AutoFrameSkip = false;					// Automatically skips frames to reduce input lag
+	bool Dd7to9 = false;						// Converts DirectDraw/Direct3D (ddraw.dll) to Direct3D9 (d3d9.dll)
+	bool D3d8to9 = false;						// Converts Direct3D8 (d3d8.dll) to Direct3D9 (d3d9.dll) https://github.com/crosire/d3d8to9
+	bool Dinputto8 = false;						// Converts DirectInput (dinput.dll) to DirectInput8 (dinput8.dll)
+	bool DDrawCompat = false;					// Enables the default DDrawCompat functions https://github.com/narzoul/DDrawCompat/
+	bool DDrawCompat20 = false;					// Enables DDrawCompat v0.2.0b
+	bool DDrawCompat21 = false;					// Enables DDrawCompat v0.2.1
+	bool DDrawCompatExperimental = false;		// Legacy setting replaced by DDrawCompat31
+	bool DDrawCompat30 = false;					// Legacy setting replaced by DDrawCompat31
+	bool DDrawCompat31 = false;					// Enables DDrawCompat v0.3.1
+	bool DDrawCompatDisableGDIHook = false;		// Disables DDrawCompat GDI hooks
+	bool DDrawCompatNoProcAffinity = false;		// Disables DDrawCompat single processor affinity
+	bool DdrawFixByteAlignment = false;			// Fixes lock with surfaces that have unaligned byte sizes
+	DWORD DdrawResolutionHack = 0;				// Removes the artificial resolution limit from Direct3D7 and below https://github.com/UCyborg/LegacyD3DResolutionHack
+	bool DdrawEmulateSurface = false;			// Emulates the ddraw surface using device context for Dd7to9
+	bool DdrawReadFromGDI = false;				// Read from GDI bfore passing surface to program
+	bool DdrawWriteToGDI = false;				// Blt surface directly to GDI rather than Direct3D9
+	bool DdrawIntegerScalingClamp = false;		// Scales the screen by an integer value to help preserve video quality
+	bool DdrawMaintainAspectRatio = false;		// Keeps the current DirectDraw aspect ratio when overriding the game's resolution
+	bool DdrawUseNativeResolution = false;		// Uses the current screen resolution for Dd7to9
+	DWORD DdrawClippedWidth = 0;				// Used to scaled Direct3d9 to use this width when using Dd7to9
+	DWORD DdrawClippedHeight = 0;				// Used to scaled Direct3d9 to use this height when using Dd7to9
+	DWORD DdrawLimitDisplayModeCount = 0;		// Limits the number of display modes sent to program, some games crash when you feed them with too many resolutions
+	DWORD DdrawOverrideBitMode = 0;				// Forces DirectX to use specified bit mode: 8, 16, 24, 32
+	DWORD DdrawOverrideWidth = 0;				// Force Direct3d9 to use this width when using Dd7to9
+	DWORD DdrawOverrideHeight = 0;				// Force Direct3d9 to use this height when using Dd7to9
+	DWORD DdrawOverrideRefreshRate = 0;			// Force Direct3d9 to use this refresh rate when using Dd7to9
+	DWORD DdrawHookSystem32 = 0;				// Hooks the ddraw.dll file in the Windows System32 folder
+	DWORD D3d8HookSystem32 = 0;					// Hooks the d3d8.dll file in the Windows System32 folder
+	DWORD D3d9HookSystem32 = 0;					// Hooks the d3d9.dll file in the Windows System32 folder
+	DWORD DinputHookSystem32 = 0;				// Hooks the dinput.dll file in the Windows System32 folder
+	DWORD Dinput8HookSystem32 = 0;				// Hooks the dinput8.dll file in the Windows System32 folder
+	DWORD DsoundHookSystem32 = 0;				// Hooks the dsound.dll file in the Windows System32 folder
+	bool DirectShowEmulation = false;			// Emulates DirectShow APIs
+	bool DisableGameUX = false;					// Disables the Microsoft Game Explorer which can sometimes cause high CPU in rundll32.exe and hang the game process
+	bool DisableHighDPIScaling = false;			// Disables display scaling on high DPI settings
+	bool DisableLogging = false;				// Disables the logging file
+	bool DSoundCtrl = false;					// Enables DirectSoundControl https://github.com/nRaecheR/DirectSoundControl
+	bool DxWnd = false;							// Enables DxWnd https://sourceforge.net/projects/dxwnd/
+	DWORD CacheClipPlane = 0;					// Caches the ClipPlane for Direct3D9 to fix an issue in d3d9 on Windows 8 and newer
+	bool ConvertToDirectDraw7 = false;			// Converts DirectDraw 1-6 to DirectDraw 7
+	bool ConvertToDirect3D7 = false;			// Converts Direct3D 1-6 to Direct3D 7
+	bool EnableDdrawWrapper = false;			// Enables the ddraw wrapper
+	DWORD EnableD3d9Wrapper = 0;				// Enables the d3d9 wrapper
+	bool EnableDinput8Wrapper = false;			// Enables the dinput8 wrapper
+	bool EnableDsoundWrapper = false;			// Enables the dsound wrapper
+	bool EnableWindowMode = false;				// Enables WndMode for d3d9 wrapper
+	bool EnableVSync = false;					// Enables VSync for d3d9 wrapper
+	bool ForceMixedVertexProcessing = false;	// Forces Mixed mode for vertex processing in d3d9
+	bool ForceSystemMemVertexCache = false;		// Forces System Memory caching for vertexes in d3d9
+	bool FullScreen = false;					// Sets the main window to fullscreen
+	bool FullscreenWindowMode = false;			// Enables fullscreen windowed mode, requires EnableWindowMode
+	bool ForceTermination = false;				// Terminates application when main window closes
+	bool ForceWindowResize = false;				// Forces main window to fullscreen, requires FullScreen
+	bool ForceVsyncMode = false;				// Forces d3d9 game to use EnableVsync option
+	bool HandleExceptions = false;				// Handles unhandled exceptions in the application
+	bool LoadPlugins = false;					// Loads ASI plugins
+	bool LoadFromScriptsOnly = false;			// Loads ASI plugins from 'scripts' and 'plugins' folder only
+	bool ProcessExcluded = false;				// Set if this process is excluded from dxwrapper functions
+	bool ResetScreenRes = false;				// Reset the screen resolution on close
+	bool SendAltEnter = false;					// Sends an Alt+Enter message to the wind to tell it to go into fullscreen, requires FullScreen
+	bool WaitForProcess = false;				// Waits for process to end before continuing, requires FullScreen
+	bool WaitForWindowChanges = false;			// Waits for window handle to stabilize before setting fullsreen, requires FullScreen
+	bool WindowModeBorder = false;				// Enables the window border when EnableWindowMode is set, requires EnableWindowMode
+	DWORD LoopSleepTime = 0;					// Time to sleep between each window handle check loop, requires FullScreen
+	DWORD ResetMemoryAfter = 0;					// Undo hot patch after this amount of time
+	DWORD WindowSleepTime = 0;					// Time to wait (sleep) for window handle and screen updates to finish, requires FullScreen
+	DWORD SingleProcAffinity = 0;				// Sets the CPU affinity for this process
+	DWORD SetFullScreenLayer = 0;				// The layer to be selected for fullscreen, requires FullScreen
+	DWORD AnisotropicFiltering = 0;				// Enable Anisotropic Filtering for d3d9
+	DWORD AntiAliasing = 0;						// Enable AntiAliasing for d3d9 CreateDevice
+	DWORD RealWrapperMode = 0;					// Internal wrapper mode
+	MEMORYINFO VerifyMemoryInfo;				// Memory used for verification before hot patching
+	std::vector<MEMORYINFO> MemoryInfo;			// Addresses and memory used in hot patching
+	std::string RealDllPath;					// Manually set Dll to wrap
+	std::string RunProcess;						// Process to run on load
+	std::string WrapperMode;					// Mode of dxwrapper from config file
+	std::string WrapperName;					// dxwrapper dll filename
 	std::vector<std::string> SetNamedLayer;		// List of named layers to select for fullscreen
 	std::vector<std::string> IgnoreWindowName;	// List of window classes to ignore
 	std::vector<std::string> LoadCustomDllPath;	// List of custom dlls to load
@@ -263,31 +263,31 @@ struct CONFIG
 	std::vector<std::string> IncludeProcess;	// List of included applications
 
 	// Dinput8
-	bool FilterNonActiveInput;
+	bool FilterNonActiveInput = 0;
 
 	// SetAppCompatData
-	bool DXPrimaryEmulation[13];		// SetAppCompatData exported functions from ddraw.dll http://www.blitzbasic.com/Community/posts.php?topic=99477
-	DWORD LockColorkey;					// DXPrimaryEmulation option that needs a second parameter
-	bool DisableMaxWindowedModeNotSet;	// If the DisableMaxWindowedMode option exists in the config file
+	bool DXPrimaryEmulation[13] = { false };	// SetAppCompatData exported functions from ddraw.dll http://www.blitzbasic.com/Community/posts.php?topic=99477
+	DWORD LockColorkey = 0;						// DXPrimaryEmulation option that needs a second parameter
+	bool DisableMaxWindowedModeNotSet = false;	// If the DisableMaxWindowedMode option exists in the config file
 
 	// DSoundCtrl
-	DWORD Num2DBuffers;
-	DWORD Num3DBuffers;
-	bool ForceCertification;
-	bool ForceExclusiveMode;
-	bool ForceSoftwareMixing;
-	bool ForceHardwareMixing;
-	bool ForceHQ3DSoftMixing;
-	bool ForceNonStaticBuffers;
-	bool ForceVoiceManagement;
-	bool ForcePrimaryBufferFormat;
-	DWORD PrimaryBufferBits;
-	DWORD PrimaryBufferSamples;
-	DWORD PrimaryBufferChannels;
-	bool AudioClipDetection;
-	DWORD AudioFadeOutDelayMS;
-	bool FixSpeakerConfigType;
-	bool StoppedDriverWorkaround;
+	DWORD Num2DBuffers = 0;
+	DWORD Num3DBuffers = 0;
+	bool ForceCertification = false;
+	bool ForceExclusiveMode = false;
+	bool ForceSoftwareMixing = false;
+	bool ForceHardwareMixing = false;
+	bool ForceHQ3DSoftMixing = false;
+	bool ForceNonStaticBuffers = false;
+	bool ForceVoiceManagement = false;
+	bool ForcePrimaryBufferFormat = false;
+	DWORD PrimaryBufferBits = 0;
+	DWORD PrimaryBufferSamples = 0;
+	DWORD PrimaryBufferChannels = 0;
+	bool AudioClipDetection = false;
+	DWORD AudioFadeOutDelayMS = 0;
+	bool FixSpeakerConfigType = false;
+	bool StoppedDriverWorkaround = false;
 };
 extern CONFIG Config;
 

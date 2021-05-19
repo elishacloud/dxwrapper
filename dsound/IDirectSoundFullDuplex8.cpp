@@ -20,7 +20,12 @@ HRESULT m_IDirectSoundFullDuplex8::QueryInterface(REFIID riid, LPVOID * ppvObj)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	if ((riid == IID_IDirectSoundFullDuplex || riid == IID_IDirectSoundFullDuplex8 || riid == IID_IUnknown) && ppvObj)
+	if (!ppvObj)
+	{
+		return E_POINTER;
+	}
+
+	if (riid == IID_IDirectSoundFullDuplex8 || riid == IID_IUnknown)
 	{
 		AddRef();
 
@@ -61,8 +66,8 @@ ULONG m_IDirectSoundFullDuplex8::Release()
 }
 
 // IDirectSoundFullDuplex methods
-HRESULT m_IDirectSoundFullDuplex8::Initialize(LPCGUID pCaptureGuid, LPCGUID pRenderGuid, LPCDSCBUFFERDESC lpDscBufferDesc, LPCDSBUFFERDESC lpDsBufferDesc, HWND hWnd, DWORD dwLevel,
-	LPLPDIRECTSOUNDCAPTUREBUFFER8 lplpDirectSoundCaptureBuffer8, LPLPDIRECTSOUNDBUFFER8 lplpDirectSoundBuffer8)
+HRESULT m_IDirectSoundFullDuplex8::Initialize(_In_ LPCGUID pCaptureGuid, _In_ LPCGUID pRenderGuid, _In_ LPCDSCBUFFERDESC lpDscBufferDesc, _In_ LPCDSBUFFERDESC lpDsBufferDesc, HWND hWnd, DWORD dwLevel,
+	_Outptr_ LPLPDIRECTSOUNDCAPTUREBUFFER8 lplpDirectSoundCaptureBuffer8, _Outptr_ LPLPDIRECTSOUNDBUFFER8 lplpDirectSoundBuffer8)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 

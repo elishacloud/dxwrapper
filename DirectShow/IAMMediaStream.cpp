@@ -22,7 +22,7 @@ HRESULT m_IAMMediaStream::QueryInterface(REFIID riid, LPVOID FAR * ppvObj)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ") " << riid;
 
-	if (ppvObj && riid == WrapperID || riid == IID_IUnknown)
+	if (ppvObj && (riid == WrapperID || riid == IID_IUnknown))
 	{
 		AddRef();
 

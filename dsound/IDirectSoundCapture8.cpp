@@ -20,7 +20,12 @@ HRESULT m_IDirectSoundCapture8::QueryInterface(REFIID riid, LPVOID * ppvObj)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	if ((riid == IID_IDirectSoundCapture || riid == IID_IDirectSoundCapture8 || riid == IID_IUnknown) && ppvObj)
+	if (!ppvObj)
+	{
+		return E_POINTER;
+	}
+
+	if (riid == IID_IDirectSoundCapture8 || riid == IID_IUnknown)
 	{
 		AddRef();
 
@@ -61,7 +66,7 @@ ULONG m_IDirectSoundCapture8::Release()
 }
 
 // IDirectSoundCapture methods
-HRESULT m_IDirectSoundCapture8::CreateCaptureBuffer(LPCDSCBUFFERDESC pcDSCBufferDesc, LPDIRECTSOUNDCAPTUREBUFFER *ppDSCBuffer, LPUNKNOWN pUnkOuter)
+HRESULT m_IDirectSoundCapture8::CreateCaptureBuffer(_In_ LPCDSCBUFFERDESC pcDSCBufferDesc, _Outptr_ LPDIRECTSOUNDCAPTUREBUFFER* ppDSCBuffer, _Pre_null_ LPUNKNOWN pUnkOuter)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
@@ -75,14 +80,14 @@ HRESULT m_IDirectSoundCapture8::CreateCaptureBuffer(LPCDSCBUFFERDESC pcDSCBuffer
 	return hr;
 }
 
-HRESULT m_IDirectSoundCapture8::GetCaps(LPDSCCAPS pDSCCaps)
+HRESULT m_IDirectSoundCapture8::GetCaps(_Out_ LPDSCCAPS pDSCCaps)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
 	return ProxyInterface->GetCaps(pDSCCaps);
 }
 
-HRESULT m_IDirectSoundCapture8::Initialize(LPCGUID pcGuidDevice)
+HRESULT m_IDirectSoundCapture8::Initialize(_In_opt_ LPCGUID pcGuidDevice)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 

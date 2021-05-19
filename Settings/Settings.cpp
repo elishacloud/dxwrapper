@@ -467,12 +467,12 @@ void CONFIG::Init()
 	// Parce config file
 	if (szCfg)
 	{
+		ConfigLoaded = true;
 		Parse(szCfg, ParseCallback);
 		free(szCfg);
 	}
-
 	// If cannot load config file check for default config
-	if (!szCfg)
+	else
 	{
 		// Get config file path
 		strcpy_s(configpath, MAX_PATH, wrappername);
@@ -484,14 +484,10 @@ void CONFIG::Init()
 		// Parce config file
 		if (szCfg)
 		{
+			ConfigLoaded = true;
 			Parse(szCfg, ParseCallback);
 			free(szCfg);
 		}
-	}
-
-	if (szCfg)
-	{
-		ConfigLoaded = true;
 	}
 }
 

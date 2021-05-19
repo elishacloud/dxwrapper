@@ -20,7 +20,12 @@ HRESULT m_IDirectSoundNotify8::QueryInterface(REFIID riid, LPVOID * ppvObj)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	if ((riid == IID_IDirectSoundNotify || riid == IID_IDirectSoundNotify8 || riid == IID_IUnknown) && ppvObj)
+	if (!ppvObj)
+	{
+		return E_POINTER;
+	}
+
+	if (riid == IID_IDirectSoundNotify8 || riid == IID_IUnknown)
 	{
 		AddRef();
 
@@ -61,7 +66,7 @@ ULONG m_IDirectSoundNotify8::Release()
 }
 
 // IDirectSoundNotify methods
-HRESULT m_IDirectSoundNotify8::SetNotificationPositions(DWORD dwPositionNotifies, LPCDSBPOSITIONNOTIFY pcPositionNotifies)
+HRESULT m_IDirectSoundNotify8::SetNotificationPositions(DWORD dwPositionNotifies, _In_reads_(dwPositionNotifies) LPCDSBPOSITIONNOTIFY pcPositionNotifies)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
