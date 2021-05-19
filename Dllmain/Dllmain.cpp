@@ -26,7 +26,7 @@
 #include "Logging\Logging.h"
 // Wrappers last
 #include "IClassFactory\IClassFactory.h"
-#include "GDI\Gdi32.h"
+#include "GDI\GDI.h"
 #include "ddraw\ddrawExternal.h"
 #include "dinput\dinputExternal.h"
 #include "dinput8\dinput8External.h"
@@ -511,7 +511,7 @@ bool APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 		// Hook other gdi32 and user32 APIs
 		if (Config.Dd7to9)
 		{
-			using namespace Gdi32;
+			using namespace GdiWrapper;
 			GetDeviceCaps_out = (FARPROC)Hook::HotPatch(Hook::GetProcAddress(LoadLibrary("gdi32.dll"), "GetDeviceCaps"), "GetDeviceCaps", gdi_GetDeviceCaps);
 			CreateWindowExA_out = (FARPROC)Hook::HotPatch(Hook::GetProcAddress(LoadLibrary("user32.dll"), "CreateWindowExA"), "CreateWindowExA", user_CreateWindowExA);
 			CreateWindowExW_out = (FARPROC)Hook::HotPatch(Hook::GetProcAddress(LoadLibrary("user32.dll"), "CreateWindowExW"), "CreateWindowExW", user_CreateWindowExW);

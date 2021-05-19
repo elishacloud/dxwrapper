@@ -868,6 +868,9 @@
     <ClCompile Include="DDrawCompat\v0.3.1\Common\Path.cpp">
       <Filter>DDrawCompat\v0.3.1</Filter>
     </ClCompile>
+    <ClCompile Include="GDI\User32.cpp">
+      <Filter>GDI</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="Settings\AllSettings.ini">
@@ -1834,6 +1837,12 @@
     </ClInclude>
     <ClInclude Include="DDrawCompat\v0.3.1\Common\Path.h">
       <Filter>DDrawCompat\v0.3.1</Filter>
+    </ClInclude>
+    <ClInclude Include="GDI\GDI.h">
+      <Filter>GDI</Filter>
+    </ClInclude>
+    <ClInclude Include="GDI\User32.h">
+      <Filter>GDI</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
