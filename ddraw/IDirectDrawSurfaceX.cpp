@@ -2849,6 +2849,7 @@ HRESULT m_IDirectDrawSurfaceX::CreateD3d9Surface()
 	D3DFORMAT TextureFormat = (surfaceFormat == D3DFMT_P8) ? D3DFMT_L8 : (surfaceFormat == D3DFMT_R8G8B8) ? D3DFMT_X8R8G8B8 :
 		(surfaceFormat == D3DFMT_R8G8B8 || surfaceFormat == D3DFMT_B8G8R8 || surfaceFormat == D3DFMT_X8B8G8R8) ? D3DFMT_X8R8G8B8 : (surfaceFormat == D3DFMT_A8B8G8R8) ? D3DFMT_A8R8G8B8 : surfaceFormat;
 	D3DFORMAT Format = (surfaceFormat == D3DFMT_R8G8B8 || surfaceFormat == D3DFMT_B8G8R8 || surfaceFormat == D3DFMT_X8B8G8R8) ? D3DFMT_X8R8G8B8 : (surfaceFormat == D3DFMT_A8B8G8R8) ? D3DFMT_A8R8G8B8 : surfaceFormat;
+	bool UseDynamic = (ddrawParent->IsDynamicTexturesSupported() && !IsTexture() && !(surfaceDesc2.ddsCaps.dwCaps & DDSCAPS_SYSTEMMEMORY) && !Config.DdrawWriteToGDI);
 
 	Logging::LogDebug() << __FUNCTION__ " (" << this << ") D3d9 Surface size: " << Width << "x" << Height << " Format: " << surfaceFormat;
 
@@ -2861,31 +2862,19 @@ HRESULT m_IDirectDrawSurfaceX::CreateD3d9Surface()
 	// Create primary texture
 	if (!IsDirect3DSurface && (IsPrimarySurface() || IsBackBuffer()))
 	{
-		if (ddrawParent->IsDynamicTexturesSupported() && !IsTexture() && surfaceFormat != D3DFMT_P8 && !(surfaceDesc2.ddsCaps.dwCaps & DDSCAPS_WRITEONLY) && !Config.DdrawWriteToGDI)
+		if (FAILED((*d3d9Device)->CreateTexture(Width, Height, 1, (UseDynamic ? D3DUSAGE_DYNAMIC : 0), TextureFormat, (UseDynamic ? D3DPOOL_DEFAULT : D3DPOOL_SYSTEMMEM), &surfaceTexture, nullptr)))
 		{
-			if (FAILED((*d3d9Device)->CreateTexture(Width, Height, 1, D3DUSAGE_DYNAMIC, TextureFormat, D3DPOOL_DEFAULT, &surfaceTexture, nullptr)))
-			{
-				LOG_LIMIT(100, __FUNCTION__ << " Error: failed to create dynamic Primary surface texture size: " << Width << "x" << Height << " Format: " << surfaceFormat);
-				return DDERR_GENERIC;
-			}
+			LOG_LIMIT(100, __FUNCTION__ << " Error: failed to create primary surface texture size: " << Width << "x" << Height << " Format: " << surfaceFormat);
+			return DDERR_GENERIC;
 		}
-		else
-		{
-			//  Create lockable texture
-			if (FAILED((*d3d9Device)->CreateTexture(Width, Height, 1, 0, TextureFormat, D3DPOOL_SYSTEMMEM, &surfaceTexture, nullptr)))
-			{
-				LOG_LIMIT(100, __FUNCTION__ << " Error: failed to create Primary surface texture size: " << Width << "x" << Height << " Format: " << surfaceFormat);
-				return DDERR_GENERIC;
-			}
 
-			// Create display texture
-			if (IsPrimarySurface() && !Config.DdrawWriteToGDI)
+		// Create display texture
+		if (IsPrimarySurface() && !UseDynamic && !Config.DdrawWriteToGDI)
+		{
+			if (FAILED((*d3d9Device)->CreateTexture(Width, Height, 1, 0, TextureFormat, D3DPOOL_DEFAULT, &displayTexture, nullptr)))
 			{
-				if (FAILED((*d3d9Device)->CreateTexture(Width, Height, 1, 0, TextureFormat, D3DPOOL_DEFAULT, &displayTexture, nullptr)))
-				{
-					LOG_LIMIT(100, __FUNCTION__ << " Error: failed to create display surface texture size: " << Width << "x" << Height << " Format: " << surfaceFormat);
-					return DDERR_GENERIC;
-				}
+				LOG_LIMIT(100, __FUNCTION__ << " Error: failed to create display surface texture size: " << Width << "x" << Height << " Format: " << surfaceFormat);
+				return DDERR_GENERIC;
 			}
 		}
 
