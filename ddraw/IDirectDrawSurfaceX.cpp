@@ -3687,10 +3687,6 @@ void m_IDirectDrawSurfaceX::DeinterlaceLock()
 			}
 		}
 	}
-
-	// Reset interlacing flags
-	LastLock.bOddInterlacing = false;
-	LastLock.bEvenInterlacing = false;
 }
 
 // Deinterlace lines before unlocking surface
@@ -3699,6 +3695,11 @@ void m_IDirectDrawSurfaceX::DeinterlaceUnlock()
 	DWORD ByteCount = surfaceBitCount / 8;
 	DWORD RectWidth = LastLock.Rect.right - LastLock.Rect.left;
 	DWORD RectHeight = LastLock.Rect.bottom - LastLock.Rect.top;
+
+	// Reset interlacing flags
+	bool LastSet = (LastLock.bEvenInterlacing || LastLock.bOddInterlacing);
+	LastLock.bOddInterlacing = false;
+	LastLock.bEvenInterlacing = false;
 
 	if ((IsPrimarySurface() || IsBackBuffer()) && LastLock.LockedRect.pBits &&
 		ByteCount && ByteCount <= 4 && RectHeight > 16)
@@ -3751,7 +3752,7 @@ void m_IDirectDrawSurfaceX::DeinterlaceUnlock()
 		}
 
 		// If all scanlines are interlaced then do nothing
-		if (LastLock.bEvenInterlacing && LastLock.bOddInterlacing)
+		if (!LastSet && LastLock.bEvenInterlacing && LastLock.bOddInterlacing)
 		{
 			LastLock.bEvenInterlacing = false;
 			LastLock.bOddInterlacing = false;
