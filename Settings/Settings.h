@@ -27,6 +27,7 @@
 	visit(DDrawCompatNoProcAffinity) \
 	visit(DdrawClippedWidth) \
 	visit(DdrawClippedHeight) \
+	visit(DdrawDeInterlacing) \
 	visit(DdrawFixByteAlignment) \
 	visit(DdrawEmulateSurface) \
 	visit(DdrawReadFromGDI) \
@@ -192,6 +193,7 @@ struct CONFIG
 	bool DDrawCompatNoProcAffinity = false;		// Disables DDrawCompat single processor affinity
 	bool DdrawFixByteAlignment = false;			// Fixes lock with surfaces that have unaligned byte sizes
 	DWORD DdrawResolutionHack = 0;				// Removes the artificial resolution limit from Direct3D7 and below https://github.com/UCyborg/LegacyD3DResolutionHack
+	bool DdrawDeInterlacing = 0;				// Experimental feature to removing interlaced black lines
 	bool DdrawEmulateSurface = false;			// Emulates the ddraw surface using device context for Dd7to9
 	bool DdrawReadFromGDI = false;				// Read from GDI bfore passing surface to program
 	bool DdrawWriteToGDI = false;				// Blt surface directly to GDI rather than Direct3D9

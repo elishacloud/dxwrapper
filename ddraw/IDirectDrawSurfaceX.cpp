@@ -1358,7 +1358,7 @@ HRESULT m_IDirectDrawSurfaceX::GetDC(HDC FAR * lphDC)
 				// Read surface from GDI
 				if (Config.DdrawReadFromGDI && (IsPrimarySurface() || IsBackBuffer()))
 				{
-					CopyEmulatedSurfaceFromGDI(LastRect);
+					CopyEmulatedSurfaceFromGDI(LastLock.Rect);
 				}
 			}
 			// Copy surface data to device context
@@ -1689,43 +1689,6 @@ HRESULT m_IDirectDrawSurfaceX::IsLost()
 	return ProxyInterface->IsLost();
 }
 
-// Fix issue with some games that ignore the pitch size
-template <class T>
-void m_IDirectDrawSurfaceX::LockBitAlign(LPRECT lpDestRect, T lpDDSurfaceDesc)
-{
-	if (Config.DdrawFixByteAlignment && lpDDSurfaceDesc && !lpDestRect)
-	{
-		DWORD Width = (DsWrapper.Width) ? DsWrapper.Width : lpDDSurfaceDesc->dwWidth;
-		DWORD Height = (DsWrapper.Height) ? DsWrapper.Height : lpDDSurfaceDesc->dwHeight;
-
-		DWORD BBP = GetBitCount(lpDDSurfaceDesc->ddpfPixelFormat);
-		LONG NewPitch = (BBP / 8) * Width;
-
-		// Check if surface needs to be fixed
-		if (Width && Height &&
-			(BBP == 8 || BBP == 16 || BBP == 24 || BBP == 32) &&
-			lpDDSurfaceDesc->lPitch != NewPitch)
-		{
-			// Store old variables
-			EmuLock.Locked = true;
-			EmuLock.Addr = lpDDSurfaceDesc->lpSurface;
-			EmuLock.Pitch = lpDDSurfaceDesc->lPitch;
-			EmuLock.BBP = BBP;
-			EmuLock.Height = Height;
-			EmuLock.Width = Width;
-
-			// Update surface memory and pitch
-			DWORD Size = NewPitch * Height;
-			if (EmuLock.surfaceMem.size() < Size)
-			{
-				EmuLock.surfaceMem.resize(Size);
-			}
-			lpDDSurfaceDesc->lpSurface = &EmuLock.surfaceMem[0];
-			lpDDSurfaceDesc->lPitch = NewPitch;
-		}
-	}
-}
-
 HRESULT m_IDirectDrawSurfaceX::Lock(LPRECT lpDestRect, LPDDSURFACEDESC lpDDSurfaceDesc, DWORD dwFlags, HANDLE hEvent)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
@@ -1754,7 +1717,11 @@ HRESULT m_IDirectDrawSurfaceX::Lock(LPRECT lpDestRect, LPDDSURFACEDESC lpDDSurfa
 
 	if (SUCCEEDED(hr))
 	{
-		LockBitAlign<LPDDSURFACEDESC>(lpDestRect, lpDDSurfaceDesc);
+		// Fix misaligned bytes
+		if (Config.DdrawFixByteAlignment)
+		{
+			LockBitAlign<LPDDSURFACEDESC>(lpDestRect, lpDDSurfaceDesc);
+		}
 	}
 
 	return hr;
@@ -1833,7 +1800,11 @@ HRESULT m_IDirectDrawSurfaceX::Lock2(LPRECT lpDestRect, LPDDSURFACEDESC2 lpDDSur
 		lpDDSurfaceDesc2->lPitch = LockedRect.Pitch;
 		lpDDSurfaceDesc2->dwFlags |= DDSD_PITCH;
 
-		LockBitAlign<LPDDSURFACEDESC2>(lpDestRect, lpDDSurfaceDesc2);
+		// Fix misaligned bytes
+		if (Config.DdrawFixByteAlignment)
+		{
+			LockBitAlign<LPDDSURFACEDESC2>(lpDestRect, lpDDSurfaceDesc2);
+		}
 
 		return DD_OK;
 	}
@@ -1842,7 +1813,11 @@ HRESULT m_IDirectDrawSurfaceX::Lock2(LPRECT lpDestRect, LPDDSURFACEDESC2 lpDDSur
 
 	if (SUCCEEDED(hr))
 	{
-		LockBitAlign<LPDDSURFACEDESC2>(lpDestRect, lpDDSurfaceDesc2);
+		// Fix misaligned bytes
+		if (Config.DdrawFixByteAlignment)
+		{
+			LockBitAlign<LPDDSURFACEDESC2>(lpDestRect, lpDDSurfaceDesc2);
+		}
 	}
 
 	return hr;
@@ -1871,7 +1846,7 @@ HRESULT m_IDirectDrawSurfaceX::ReleaseDC(HDC hDC)
 			// Blt surface directly to GDI
 			if (Config.DdrawWriteToGDI && (IsPrimarySurface() || IsBackBuffer()))
 			{
-				CopyEmulatedSurfaceToGDI(LastRect);
+				CopyEmulatedSurfaceToGDI(LastLock.Rect);
 			}
 			// Copy emulated surface to real surface
 			else
@@ -2825,6 +2800,11 @@ HRESULT m_IDirectDrawSurfaceX::CreateD3d9Surface()
 	// Release existing surface
 	ReleaseD9Surface();
 
+	// Reset interlacing
+	LastLock.LockedRect.pBits = nullptr;
+	LastLock.bEvenInterlacing = false;
+	LastLock.bOddInterlacing = false;
+
 	// Check for device interface
 	if (FAILED(CheckInterface(__FUNCTION__, true, false)))
 	{
@@ -3632,6 +3612,181 @@ bool m_IDirectDrawSurfaceX::CheckCoordinates(LPRECT lpOutRect, LPRECT lpInRect)
 	return lpOutRect->left < lpOutRect->right && lpOutRect->top < lpOutRect->bottom;
 }
 
+// Fix issue with some games that ignore the pitch size
+template <class T>
+void m_IDirectDrawSurfaceX::LockBitAlign(LPRECT lpDestRect, T lpDDSurfaceDesc)
+{
+	if (lpDDSurfaceDesc && !lpDestRect)
+	{
+		DWORD Width = (DsWrapper.Width) ? DsWrapper.Width : lpDDSurfaceDesc->dwWidth;
+		DWORD Height = (DsWrapper.Height) ? DsWrapper.Height : lpDDSurfaceDesc->dwHeight;
+
+		DWORD BBP = GetBitCount(lpDDSurfaceDesc->ddpfPixelFormat);
+		LONG NewPitch = (BBP / 8) * Width;
+
+		// Check if surface needs to be fixed
+		if (Width && Height &&
+			(BBP == 8 || BBP == 16 || BBP == 24 || BBP == 32) &&
+			lpDDSurfaceDesc->lPitch != NewPitch)
+		{
+			// Store old variables
+			EmuLock.Locked = true;
+			EmuLock.Addr = lpDDSurfaceDesc->lpSurface;
+			EmuLock.Pitch = lpDDSurfaceDesc->lPitch;
+			EmuLock.BBP = BBP;
+			EmuLock.Height = Height;
+			EmuLock.Width = Width;
+
+			// Update surface memory and pitch
+			DWORD Size = NewPitch * Height;
+			if (EmuLock.surfaceMem.size() < Size)
+			{
+				EmuLock.surfaceMem.resize(Size);
+			}
+			lpDDSurfaceDesc->lpSurface = &EmuLock.surfaceMem[0];
+			lpDDSurfaceDesc->lPitch = NewPitch;
+		}
+	}
+}
+
+// Restore deinterlaced lines before locking surface
+void m_IDirectDrawSurfaceX::DeinterlaceLock()
+{
+	DWORD ByteCount = surfaceBitCount / 8;
+	DWORD RectWidth = LastLock.Rect.right - LastLock.Rect.left;
+	DWORD RectHeight = LastLock.Rect.bottom - LastLock.Rect.top;
+
+	if ((IsPrimarySurface() || IsBackBuffer()) && (LastLock.bEvenInterlacing || LastLock.bOddInterlacing) && LastLock.LockedRect.pBits &&
+		ByteCount && ByteCount <= 4 && RectWidth == LastLock.InterlacingWidth)
+	{
+		DWORD size = RectWidth * ByteCount;
+		BYTE* DestBuffer = (BYTE*)LastLock.LockedRect.pBits;
+
+		// Restore even scanlines
+		if (LastLock.bEvenInterlacing)
+		{
+			constexpr DWORD Starting = 0;
+			DestBuffer += LastLock.LockedRect.Pitch * Starting;
+
+			for (DWORD y = Starting; y < RectHeight; y = y + 2)
+			{
+				memcpy(DestBuffer, &LastLock.EvenScanLine[0], size);
+				DestBuffer += LastLock.LockedRect.Pitch * 2;
+			}
+		}
+		// Restore odd scanlines
+		else if (LastLock.bOddInterlacing)
+		{
+			constexpr DWORD Starting = 1;
+			DestBuffer += LastLock.LockedRect.Pitch * Starting;
+
+			for (DWORD y = Starting; y < RectHeight; y = y + 2)
+			{
+				memcpy(DestBuffer, &LastLock.OddScanLine[0], size);
+				DestBuffer += LastLock.LockedRect.Pitch * 2;
+			}
+		}
+	}
+
+	// Reset interlacing flags
+	LastLock.bOddInterlacing = false;
+	LastLock.bEvenInterlacing = false;
+}
+
+// Deinterlace lines before unlocking surface
+void m_IDirectDrawSurfaceX::DeinterlaceUnlock()
+{
+	DWORD ByteCount = surfaceBitCount / 8;
+	DWORD RectWidth = LastLock.Rect.right - LastLock.Rect.left;
+	DWORD RectHeight = LastLock.Rect.bottom - LastLock.Rect.top;
+
+	if ((IsPrimarySurface() || IsBackBuffer()) && LastLock.LockedRect.pBits &&
+		ByteCount && ByteCount <= 4 && RectHeight > 16)
+	{
+		DWORD size = LastLock.InterlacingWidth * ByteCount;
+		if (LastLock.EvenScanLine.size() < size || LastLock.OddScanLine.size() < size)
+		{
+			LastLock.EvenScanLine.resize(size);
+			LastLock.OddScanLine.resize(size);
+		}
+		LastLock.InterlacingWidth = RectWidth;
+
+		BYTE* DestBuffer = (BYTE*)LastLock.LockedRect.pBits;
+
+		// Check if video is being interlaced
+		for (DWORD y = 0; y < RectHeight; y++)
+		{
+			// Check for even scanlines
+			if (y % 2 == 0)
+			{
+				if (y == 0)
+				{
+					LastLock.bEvenInterlacing = true;
+					memcpy(&LastLock.EvenScanLine[0], DestBuffer, size);
+				}
+				else if (LastLock.bEvenInterlacing)
+				{
+					LastLock.bEvenInterlacing = (memcmp(&LastLock.EvenScanLine[0], DestBuffer, size) == 0);
+				}
+			}
+			// Check for odd scanlines
+			else
+			{
+				if (y == 1)
+				{
+					LastLock.bOddInterlacing = true;
+					memcpy(&LastLock.OddScanLine[0], DestBuffer, size);
+				}
+				else if (LastLock.bOddInterlacing)
+				{
+					LastLock.bOddInterlacing = (memcmp(&LastLock.OddScanLine[0], DestBuffer, size) == 0);
+				}
+			}
+			// Exit if not interlaced
+			if (!LastLock.bOddInterlacing && !LastLock.bEvenInterlacing)
+			{
+				break;
+			}
+			DestBuffer += LastLock.LockedRect.Pitch;
+		}
+
+		// If all scanlines are interlaced then do nothing
+		if (LastLock.bEvenInterlacing && LastLock.bOddInterlacing)
+		{
+			LastLock.bEvenInterlacing = false;
+			LastLock.bOddInterlacing = false;
+		}
+
+		// Reset destination buffer
+		DestBuffer = (BYTE*)LastLock.LockedRect.pBits;
+
+		// Double even scanlines
+		if (LastLock.bEvenInterlacing)
+		{
+			constexpr DWORD Starting = 0;
+			DestBuffer += LastLock.LockedRect.Pitch * Starting;
+
+			for (DWORD y = Starting; y < RectHeight - 1; y = y + 2)
+			{
+				memcpy(DestBuffer, DestBuffer + LastLock.LockedRect.Pitch, size);
+				DestBuffer += LastLock.LockedRect.Pitch * 2;
+			}
+		}
+		// Double odd scanlines
+		else if (LastLock.bOddInterlacing)
+		{
+			constexpr DWORD Starting = 1;
+			DestBuffer += LastLock.LockedRect.Pitch * Starting;
+
+			for (DWORD y = Starting; y < RectHeight; y = y + 2)
+			{
+				memcpy(DestBuffer, DestBuffer - LastLock.LockedRect.Pitch, size);
+				DestBuffer += LastLock.LockedRect.Pitch * 2;
+			}
+		}
+	}
+}
+
 // Lock the d3d9 surface
 HRESULT m_IDirectDrawSurfaceX::SetLock(D3DLOCKED_RECT* pLockedRect, LPRECT lpDestRect, DWORD dwFlags, BOOL isSkipScene)
 {
@@ -3668,7 +3823,7 @@ HRESULT m_IDirectDrawSurfaceX::SetLock(D3DLOCKED_RECT* pLockedRect, LPRECT lpDes
 		}
 
 		// Backup last rect
-		CheckCoordinates(&LastRect, lpDestRect);
+		CheckCoordinates(&LastLock.Rect, lpDestRect);
 		DoCopyRect = ((dwFlags & D3DLOCK_READONLY) == 0);
 
 		// Set new palette data
@@ -3677,7 +3832,7 @@ HRESULT m_IDirectDrawSurfaceX::SetLock(D3DLOCKED_RECT* pLockedRect, LPRECT lpDes
 		// Read surface from GDI
 		if (Config.DdrawReadFromGDI && (IsPrimarySurface() || IsBackBuffer()))
 		{
-			CopyEmulatedSurfaceFromGDI(LastRect);
+			CopyEmulatedSurfaceFromGDI(LastLock.Rect);
 		}
 	}
 	// Lock surface texture
@@ -3708,6 +3863,17 @@ HRESULT m_IDirectDrawSurfaceX::SetLock(D3DLOCKED_RECT* pLockedRect, LPRECT lpDes
 	{
 		LOG_LIMIT(100, __FUNCTION__ << " Error: could not find surface!");
 		return DDERR_GENERIC;
+	}
+
+	// Backup last rect before deinterlacing
+	CheckCoordinates(&LastLock.Rect, lpDestRect);
+	LastLock.LockedRect.pBits = pLockedRect->pBits;
+	LastLock.LockedRect.Pitch = pLockedRect->Pitch;
+
+	// Restore interlacing before returing surface memory
+	if (Config.DdrawDeInterlacing)
+	{
+		DeinterlaceLock();
 	}
 
 	// Set lock flag
@@ -3743,18 +3909,24 @@ HRESULT m_IDirectDrawSurfaceX::SetUnlock(BOOL isSkipScene)
 		return c_hr;
 	}
 
+	// Deinterlacing before unlocking surface
+	if (Config.DdrawDeInterlacing)
+	{
+		DeinterlaceUnlock();
+	}
+
 	// Emulated surface
 	if (IsSurfaceEmulated)
 	{
 		// Blt surface directly to GDI
 		if (Config.DdrawWriteToGDI && (IsPrimarySurface() || IsBackBuffer()))
 		{
-			CopyEmulatedSurfaceToGDI(LastRect);
+			CopyEmulatedSurfaceToGDI(LastLock.Rect);
 		}
 		// Copy emulated surface to real texture
 		else if (DoCopyRect)
 		{
-			CopyEmulatedSurface(&LastRect, true);
+			CopyEmulatedSurface(&LastLock.Rect, true);
 
 			// Reset copy flag
 			DoCopyRect = false;
@@ -3789,6 +3961,9 @@ HRESULT m_IDirectDrawSurfaceX::SetUnlock(BOOL isSkipScene)
 		LOG_LIMIT(100, __FUNCTION__ << " Error: could not find surface!");
 		return DDERR_GENERIC;
 	}
+
+	// Clear memory pointer
+	LastLock.LockedRect.pBits = nullptr;
 
 	// Clear vector
 	surfaceLockRectList.clear();

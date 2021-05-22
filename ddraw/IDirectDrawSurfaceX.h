@@ -52,15 +52,24 @@ private:
 		DWORD BBP = 0;
 		DWORD Height = 0;
 		DWORD Width = 0;
-	};
-	DDRAWEMULATELOCK EmuLock;
+	} EmuLock;
 
 	struct DSWRAPPER
 	{
 		DWORD Height = 0;
 		DWORD Width = 0;
-	};
-	DSWRAPPER DsWrapper;
+	} DsWrapper;
+
+	struct LASTLOCK
+	{
+		bool bEvenInterlacing = false;
+		bool bOddInterlacing = false;
+		DWORD InterlacingWidth = 0;
+		std::vector<BYTE> EvenScanLine;
+		std::vector<BYTE> OddScanLine;
+		RECT Rect = { NULL };
+		D3DLOCKED_RECT LockedRect = { NULL };
+	} LastLock;
 
 	// Convert to Direct3D9
 	bool IsDirect3DSurface = false;
@@ -87,7 +96,6 @@ private:
 	bool ComplexRoot = false;
 	bool PresentOnUnlock = false;
 	bool IsLocked = false;
-	RECT LastRect = { 0, 0, 0, 0 };
 	bool IsInDC = false;
 	HDC LastDC = nullptr;
 	bool IsInBlt = false;
@@ -343,6 +351,10 @@ public:
 	// Fix byte alignment issue
 	template <class T>
 	void LockBitAlign(LPRECT lpDestRect, T lpDDSurfaceDesc);
+
+	// For deinterlacing
+	void DeinterlaceLock();
+	void DeinterlaceUnlock();
 
 	// Functions handling the ddraw parent interface
 	void SetDdrawParent(m_IDirectDrawX *ddraw) { ddrawParent = ddraw; }
