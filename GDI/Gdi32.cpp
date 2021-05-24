@@ -28,7 +28,6 @@ namespace GdiWrapper
 
 using namespace GdiWrapper;
 
-
 int WINAPI gdi_GetDeviceCaps(HDC hdc, int index)
 {
 	Logging::LogDebug() << __FUNCTION__ << " " << hdc << " " << index;

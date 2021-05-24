@@ -1753,42 +1753,60 @@ HRESULT m_IDirectDrawSurfaceX::Lock2(LPRECT lpDestRect, LPDDSURFACEDESC2 lpDDSur
 		// Convert flags to d3d9
 		DWORD Flags = dwFlags & (D3DLOCK_READONLY | D3DLOCK_DONOTWAIT | (!IsPrimarySurface() ? D3DLOCK_NOSYSLOCK : 0));
 
-		// Update rect
-		RECT DestRect = {};
-		if (lpDestRect && (!CheckCoordinates(&DestRect, lpDestRect) || (lpDestRect->left < 0 || lpDestRect->top < 0 ||
-			lpDestRect->right <= lpDestRect->left || lpDestRect->bottom <= lpDestRect->top ||
-			lpDestRect->right >(LONG)surfaceDesc2.dwWidth || lpDestRect->bottom >(LONG)surfaceDesc2.dwHeight)))
-		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error: Invalid rect: " << lpDestRect);
-			return DDERR_INVALIDRECT;
-		}
-
-		// Lock surface
+		// Locked rect
 		D3DLOCKED_RECT LockedRect = {};
-		HRESULT hr = SetLock(&LockedRect, (lpDestRect) ? &DestRect : nullptr, Flags);
+
+		HRESULT hr = DDERR_INVALIDPARAMS;
+		do {
+			// Update rect
+			RECT DestRect = {};
+			if (lpDestRect && (!CheckCoordinates(&DestRect, lpDestRect) || (lpDestRect->left < 0 || lpDestRect->top < 0 ||
+				lpDestRect->right <= lpDestRect->left || lpDestRect->bottom <= lpDestRect->top ||
+				lpDestRect->right >(LONG)surfaceDesc2.dwWidth || lpDestRect->bottom >(LONG)surfaceDesc2.dwHeight)))
+			{
+				LOG_LIMIT(100, __FUNCTION__ << " Error: Invalid rect: " << lpDestRect);
+				hr = DDERR_INVALIDRECT;
+				break;
+			}
+
+			// Lock surface
+			hr = SetLock(&LockedRect, (lpDestRect) ? &DestRect : nullptr, Flags);
+			if (FAILED(hr))
+			{
+				LOG_LIMIT(100, __FUNCTION__ << " Error: failed to lock texture surface! " << (DDERR)hr);
+				break;
+			}
+
+			// Check pointer and pitch
+			if (!LockedRect.pBits || !LockedRect.Pitch)
+			{
+				LOG_LIMIT(100, __FUNCTION__ << " Error: failed to get surface address or pitch!");
+				hr = DDERR_GENERIC;
+				break;
+			}
+
+			// Store locked rect
+			if (lpDestRect)
+			{
+				RECT lRect = { lpDestRect->left, lpDestRect->top, lpDestRect->right, lpDestRect->bottom };
+				surfaceLockRectList.push_back(lRect);
+			}
+			else if (!lpDestRect && !surfaceLockRectList.empty())
+			{
+				LOG_LIMIT(100, __FUNCTION__ << " Error: locking surface with NULL rect when surface is already locked!");
+				hr = DDERR_INVALIDRECT;
+				break;
+			}
+		} while (FALSE);
+
 		if (FAILED(hr))
 		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error: failed to lock texture surface! " << (DDERR)hr);
+			ConvertSurfaceDesc(*lpDDSurfaceDesc2, surfaceDesc2);
+			if (!(lpDDSurfaceDesc2->dwFlags & DDSD_LPSURFACE))
+			{
+				lpDDSurfaceDesc2->lpSurface = nullptr;
+			}
 			return hr;
-		}
-
-		// Set video memory and pitch
-		if (!LockedRect.pBits)
-		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error: failed to get surface address!");
-			return DDERR_GENERIC;
-		}
-
-		// Store locked rect
-		if (lpDestRect)
-		{
-			RECT lRect = { lpDestRect->left, lpDestRect->top, lpDestRect->right, lpDestRect->bottom };
-			surfaceLockRectList.push_back(lRect);
-		}
-		else if (!lpDestRect && !surfaceLockRectList.empty())
-		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error: locking surface with NULL rect when surface is already locked!");
-			return DDERR_INVALIDRECT;
 		}
 
 		// Set surfaceDesc
@@ -1798,7 +1816,7 @@ HRESULT m_IDirectDrawSurfaceX::Lock2(LPRECT lpDestRect, LPDDSURFACEDESC2 lpDDSur
 			lpDDSurfaceDesc2->lpSurface = LockedRect.pBits;
 		}
 		lpDDSurfaceDesc2->lPitch = LockedRect.Pitch;
-		lpDDSurfaceDesc2->dwFlags |= DDSD_PITCH;
+		lpDDSurfaceDesc2->dwFlags |= DDSD_PITCH | DDSD_LPSURFACE;
 
 		// Fix misaligned bytes
 		if (Config.DdrawFixByteAlignment)
@@ -1838,6 +1856,7 @@ HRESULT m_IDirectDrawSurfaceX::ReleaseDC(HDC hDC)
 
 		if (!IsSurfaceInDC())
 		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: surface is not in DC!");
 			return DDERR_GENERIC;
 		}
 
@@ -1916,7 +1935,7 @@ HRESULT m_IDirectDrawSurfaceX::Restore()
 			}
 			[[fallthrough]];
 		case D3DERR_DEVICELOST:
-			return DDERR_SURFACELOST;
+			return DDERR_WRONGMODE;
 		case D3DERR_DRIVERINTERNALERROR:
 		case D3DERR_INVALIDCALL:
 		default:
@@ -2763,7 +2782,7 @@ HRESULT m_IDirectDrawSurfaceX::CheckInterface(char *FunctionName, bool CheckD3DD
 			{
 				return DDERR_SURFACELOST;
 			}
-			if (FAILED(hr))
+			else if (FAILED(hr))
 			{
 				LOG_LIMIT(100, FunctionName << " Error: TestCooperativeLevel = " << (DDERR)hr);
 				return DDERR_GENERIC;
@@ -3798,10 +3817,6 @@ HRESULT m_IDirectDrawSurfaceX::SetLock(D3DLOCKED_RECT* pLockedRect, LPRECT lpDes
 	{
 		return DDERR_INVALIDPARAMS;
 	}
-
-	// Clear locked rect
-	pLockedRect->Pitch = 0;
-	pLockedRect->pBits = nullptr;
 
 	// Check for device interface
 	HRESULT c_hr = CheckInterface(__FUNCTION__, true, true);
