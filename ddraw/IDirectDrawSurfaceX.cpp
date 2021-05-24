@@ -2800,14 +2800,6 @@ HRESULT m_IDirectDrawSurfaceX::CreateD3d9Surface()
 	// Release existing surface
 	ReleaseD9Surface();
 
-	// Reset interlacing
-	LastLock.LockedRect.pBits = nullptr;
-	LastLock.bEvenInterlacing = false;
-	LastLock.bOddInterlacing = false;
-
-	// Reset locked ID
-	LockedWithID = 0;
-
 	// Check for device interface
 	if (FAILED(CheckInterface(__FUNCTION__, true, false)))
 	{
@@ -3359,6 +3351,14 @@ void m_IDirectDrawSurfaceX::ReleaseD9Surface(bool BackupData)
 
 	// Set LastDC
 	LastDC = nullptr;
+
+	// Reset interlacing
+	LastLock.LockedRect.pBits = nullptr;
+	LastLock.bEvenInterlacing = false;
+	LastLock.bOddInterlacing = false;
+
+	// Reset locked ID
+	LockedWithID = 0;
 
 	// Reset display flags
 	if (ResetDisplayFlags)
