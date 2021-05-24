@@ -96,6 +96,7 @@ private:
 	bool ComplexRoot = false;
 	bool PresentOnUnlock = false;
 	bool IsLocked = false;
+	DWORD LockedWithID = 0;
 	bool IsInDC = false;
 	HDC LastDC = nullptr;
 	bool IsInBlt = false;

@@ -1751,7 +1751,7 @@ HRESULT m_IDirectDrawSurfaceX::Lock2(LPRECT lpDestRect, LPDDSURFACEDESC2 lpDDSur
 		lpDDSurfaceDesc2->dwSize = sizeof(DDSURFACEDESC2);
 
 		// Convert flags to d3d9
-		DWORD Flags = dwFlags & (D3DLOCK_READONLY | (!IsPrimarySurface() ? DDLOCK_NOSYSLOCK : 0) | ((!lpDestRect) ? D3DLOCK_DISCARD : 0));
+		DWORD Flags = dwFlags & (D3DLOCK_READONLY | D3DLOCK_DONOTWAIT | (!IsPrimarySurface() ? D3DLOCK_NOSYSLOCK : 0));
 
 		// Update rect
 		RECT DestRect = {};
@@ -2805,6 +2805,9 @@ HRESULT m_IDirectDrawSurfaceX::CreateD3d9Surface()
 	LastLock.bEvenInterlacing = false;
 	LastLock.bOddInterlacing = false;
 
+	// Reset locked ID
+	LockedWithID = 0;
+
 	// Check for device interface
 	if (FAILED(CheckInterface(__FUNCTION__, true, false)))
 	{
@@ -3843,9 +3846,21 @@ HRESULT m_IDirectDrawSurfaceX::SetLock(D3DLOCKED_RECT* pLockedRect, LPRECT lpDes
 		HRESULT hr = surfaceTexture->LockRect(0, pLockedRect, lpDestRect, dwFlags);
 		if (FAILED(hr))
 		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error: failed to lock surface texture");
-			return (hr == D3DERR_WASSTILLDRAWING) ? DDERR_WASSTILLDRAWING :
-				DDERR_GENERIC;
+			while (!(dwFlags & D3DLOCK_DONOTWAIT) && LockedWithID && LockedWithID != GetCurrentThreadId())
+			{
+				Sleep(0);
+				if (!surfaceTexture)
+				{
+					return DDERR_GENERIC;
+				}
+			}
+			hr = surfaceTexture->LockRect(0, pLockedRect, lpDestRect, dwFlags);
+			if (FAILED(hr))
+			{
+				LOG_LIMIT(100, __FUNCTION__ << " Error: failed to lock surface texture");
+				return (hr == D3DERR_WASSTILLDRAWING || (LockedWithID && (dwFlags & D3DLOCK_DONOTWAIT))) ? DDERR_WASSTILLDRAWING :
+					DDERR_GENERIC;
+			}
 		}
 	}
 	// Lock 3D surface
@@ -3853,10 +3868,19 @@ HRESULT m_IDirectDrawSurfaceX::SetLock(D3DLOCKED_RECT* pLockedRect, LPRECT lpDes
 	{
 		// Try to lock the rect
 		HRESULT hr = surface3D->LockRect(pLockedRect, lpDestRect, dwFlags);
+		while (!(dwFlags & D3DLOCK_DONOTWAIT) && LockedWithID && LockedWithID != GetCurrentThreadId())
+		{
+			Sleep(0);
+			if (!surface3D)
+			{
+				return DDERR_GENERIC;
+			}
+		}
+		hr = surface3D->LockRect(pLockedRect, lpDestRect, dwFlags);
 		if (FAILED(hr))
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Error: failed to lock surface");
-			return (hr == D3DERR_WASSTILLDRAWING) ? DDERR_WASSTILLDRAWING :
+			return (hr == D3DERR_WASSTILLDRAWING || (LockedWithID && (dwFlags & D3DLOCK_DONOTWAIT))) ? DDERR_WASSTILLDRAWING :
 				DDERR_GENERIC;
 		}
 	}
@@ -3865,6 +3889,9 @@ HRESULT m_IDirectDrawSurfaceX::SetLock(D3DLOCKED_RECT* pLockedRect, LPRECT lpDes
 		LOG_LIMIT(100, __FUNCTION__ << " Error: could not find surface!");
 		return DDERR_GENERIC;
 	}
+
+	// Set locked ID
+	LockedWithID = GetCurrentThreadId();
 
 	// Backup last rect before deinterlacing
 	CheckCoordinates(&LastLock.Rect, lpDestRect);
@@ -3962,6 +3989,9 @@ HRESULT m_IDirectDrawSurfaceX::SetUnlock(BOOL isSkipScene)
 		LOG_LIMIT(100, __FUNCTION__ << " Error: could not find surface!");
 		return DDERR_GENERIC;
 	}
+
+	// Reset locked ID
+	LockedWithID = 0;
 
 	// Clear memory pointer
 	LastLock.LockedRect.pBits = nullptr;
