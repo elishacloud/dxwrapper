@@ -1378,7 +1378,7 @@ HRESULT m_IDirectDrawX::SetCooperativeLevel(HWND hWnd, DWORD dwFlags)
 			((dwFlags & DDSCL_SETDEVICEWINDOW) && (dwFlags & DDSCL_SETFOCUSWINDOW)) ||													// SetDeviceWindow flag cannot be used with SetFocusWindow flag
 			(!hWnd && !(dwFlags & DDSCL_NORMAL)) ||																						// hWnd can only be null if normal flag is set
 			((dwFlags & DDSCL_EXCLUSIVE) && !IsWindow(hWnd)) || 																		// When using Exclusive mode the hwnd must be valid
-			GetWindowThreadProcessId(hWnd, nullptr) != GetCurrentThreadId())															// This method must be called by the same thread that created the application window.
+			GetWindowThreadProcessId((hWnd) ? hWnd : MainhWnd, nullptr) != GetCurrentThreadId())										// This method must be called by the same thread that created the application window.
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Error: Invalid parameters. dwFlags: " << Logging::hex(dwFlags) << " " << hWnd);
 			return DDERR_INVALIDPARAMS;
