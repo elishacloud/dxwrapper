@@ -861,7 +861,7 @@ HRESULT m_IDirectDrawX::EnumDisplayModes2(DWORD dwFlags, LPDDSURFACEDESC2 lpDDSu
 					// Set adapter pixel format
 					Desc2.dwFlags |= DDSD_PIXELFORMAT;
 					Desc2.ddpfPixelFormat.dwSize = sizeof(DDPIXELFORMAT);
-					SetDisplayFormat(DisplayBitCount, Desc2.ddpfPixelFormat);
+					SetDisplayFormat(Desc2.ddpfPixelFormat, DisplayBitCount);
 
 					// Set pitch
 					Desc2.dwFlags |= DDSD_PITCH;
@@ -1155,7 +1155,11 @@ HRESULT m_IDirectDrawX::GetDisplayMode2(LPDDSURFACEDESC2 lpDDSurfaceDesc2)
 		// Set Pixel Format
 		lpDDSurfaceDesc2->dwFlags |= DDSD_PIXELFORMAT;
 		lpDDSurfaceDesc2->ddpfPixelFormat.dwSize = sizeof(DDPIXELFORMAT);
-		if (FAILED(SetDisplayFormat(displayModeBits, lpDDSurfaceDesc2->ddpfPixelFormat)))
+		if (displayModeBits == DisplayPixelFormat.dwRGBBitCount)
+		{
+			memcpy(&lpDDSurfaceDesc2->ddpfPixelFormat, &DisplayPixelFormat, sizeof(DDPIXELFORMAT));
+		}
+		else if (FAILED(SetDisplayFormat(lpDDSurfaceDesc2->ddpfPixelFormat, displayModeBits)))
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Not implemented bit count " << displayModeBits);
 			return DDERR_UNSUPPORTED;
@@ -2433,7 +2437,7 @@ void m_IDirectDrawX::GetDisplayPixelFormat(DDPIXELFORMAT &ddpfPixelFormat, DWORD
 	}
 	else
 	{
-		SetDisplayFormat(BPP, ddpfPixelFormat);
+		SetDisplayFormat(ddpfPixelFormat, BPP);
 	}
 }
 

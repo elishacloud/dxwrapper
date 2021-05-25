@@ -2845,7 +2845,7 @@ HRESULT m_IDirectDrawSurfaceX::CreateD3d9Surface()
 		(surfaceFormat == D3DFMT_X4R4G4B4 || surfaceFormat == D3DFMT_R8G8B8 || surfaceFormat == D3DFMT_B8G8R8 || surfaceFormat == D3DFMT_X8B8G8R8) ? D3DFMT_X8R8G8B8 :
 		(surfaceFormat == D3DFMT_A4R4G4B4 || surfaceFormat == D3DFMT_A8B8G8R8) ? D3DFMT_A8R8G8B8 : surfaceFormat;
 	D3DFORMAT Format = (surfaceFormat == D3DFMT_R8G8B8 || surfaceFormat == D3DFMT_B8G8R8 || surfaceFormat == D3DFMT_X8B8G8R8) ? D3DFMT_X8R8G8B8 : (surfaceFormat == D3DFMT_A8B8G8R8) ? D3DFMT_A8R8G8B8 : surfaceFormat;
-	bool UseDynamic = (ddrawParent->IsDynamicTexturesSupported() && !IsTexture() && !(surfaceDesc2.ddsCaps.dwCaps & DDSCAPS_SYSTEMMEMORY) && !Config.DdrawWriteToGDI);
+	bool UseDynamic = (ddrawParent->IsDynamicTexturesSupported() && !IsTexture() && !(surfaceDesc2.ddsCaps.dwCaps & (DDSCAPS_SYSTEMMEMORY | DDSCAPS_FLIP)) && !Config.DdrawWriteToGDI);
 
 	Logging::LogDebug() << __FUNCTION__ " (" << this << ") D3d9 Surface size: " << Width << "x" << Height << " Format: " << surfaceFormat;
 
