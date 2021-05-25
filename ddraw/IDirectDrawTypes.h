@@ -10,6 +10,8 @@
 	(BYTE)((w>>5)&0x3f)*4
 #define D3DCOLOR_R5G6B5_RED(w) \
 	(BYTE)((w>>11)&0x1f)*8
+#define D3DFMT_A8B8G8R8_COPY(w) \
+	((w & 0xFF000000)+((w & 0xFF)<<16)+(w & 0xFF00)+((w & 0xFF0000)>>16))
 
 static constexpr DWORD FourCCTypes[] =
 {

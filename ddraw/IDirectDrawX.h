@@ -181,7 +181,8 @@ public:
 	HWND GetHwnd();
 	HDC GetDC();
 	bool IsExclusiveMode();
-	void GetFullDisplay(DWORD &Width, DWORD &Height, DWORD &RefreshRate, DWORD &BPP);
+	void GetFullDisplay(DWORD &Width, DWORD &Height, DWORD& BPP, DWORD &RefreshRate);
+	void GetDisplayPixelFormat(DDPIXELFORMAT& ddpfPixelFormat, DWORD BPP);
 	void GetDisplay(DWORD &Width, DWORD &Height);
 	bool IsDynamicTexturesSupported();
 

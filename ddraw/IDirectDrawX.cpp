@@ -70,6 +70,9 @@ DWORD displayWidth;
 DWORD displayHeight;
 DWORD displayRefreshRate;			// Refresh rate for fullscreen
 
+// Display pixel format
+DDPIXELFORMAT DisplayPixelFormat;
+
 // Last resolution
 DWORD LastWidth;
 DWORD LastHeight;
@@ -529,7 +532,8 @@ HRESULT m_IDirectDrawX::CreateSurface2(LPDDSURFACEDESC2 lpDDSurfaceDesc2, LPDIRE
 			memcpy(&ddpfPixelFormat, &lpDDSurfaceDesc2->ddpfPixelFormat, sizeof(DDPIXELFORMAT));
 			ddpfPixelFormat.dwSize = sizeof(DDPIXELFORMAT);
 			D3DFORMAT Format = GetDisplayFormat(ddpfPixelFormat);
-			Format = (Format == D3DFMT_R8G8B8 || Format == D3DFMT_B8G8R8 || Format == D3DFMT_X8B8G8R8) ? D3DFMT_X8R8G8B8 : (Format == D3DFMT_A8B8G8R8) ? D3DFMT_A8R8G8B8 : Format;
+			Format = (Format == D3DFMT_X4R4G4B4 || Format == D3DFMT_R8G8B8 || Format == D3DFMT_B8G8R8 || Format == D3DFMT_X8B8G8R8) ? D3DFMT_X8R8G8B8 :
+				(Format == D3DFMT_A4R4G4B4 || Format == D3DFMT_A8B8G8R8) ? D3DFMT_A8R8G8B8 : Format;
 			DWORD Usage = (lpDDSurfaceDesc2->ddsCaps.dwCaps & DDSCAPS_PRIMARYSURFACE) ? D3DUSAGE_RENDERTARGET :
 				((lpDDSurfaceDesc2->dwFlags & DDSD_MIPMAPCOUNT) || ((lpDDSurfaceDesc2->ddsCaps.dwCaps & DDSCAPS_MIPMAP))) ? D3DUSAGE_AUTOGENMIPMAP :
 				(ddpfPixelFormat.dwFlags & (DDPF_ZBUFFER | DDPF_STENCILBUFFER)) ? D3DUSAGE_DEPTHSTENCIL : 0;
@@ -540,6 +544,15 @@ HRESULT m_IDirectDrawX::CreateSurface2(LPDDSURFACEDESC2 lpDDSurfaceDesc2, LPDIRE
 				LOG_LIMIT(100, __FUNCTION__ << " Error: non-supported pixel format! " << Usage << " " << Resource << " " << Format << " " << lpDDSurfaceDesc2->ddpfPixelFormat);
 				return DDERR_INVALIDPIXELFORMAT;
 			}
+
+			if (lpDDSurfaceDesc2->ddsCaps.dwCaps & DDSCAPS_PRIMARYSURFACE)
+			{
+				memcpy(&DisplayPixelFormat, &lpDDSurfaceDesc2->ddpfPixelFormat, sizeof(DDPIXELFORMAT));
+			}
+		}
+		else if (lpDDSurfaceDesc2->ddsCaps.dwCaps & DDSCAPS_PRIMARYSURFACE)
+		{
+			ZeroMemory(&DisplayPixelFormat, sizeof(DDPIXELFORMAT));
 		}
 
 		// Updates for surface description
@@ -1377,10 +1390,12 @@ HRESULT m_IDirectDrawX::SetCooperativeLevel(HWND hWnd, DWORD dwFlags)
 			((dwFlags & DDSCL_ALLOWMODEX) && (!(dwFlags & DDSCL_EXCLUSIVE) || !(dwFlags & DDSCL_FULLSCREEN))) ||						// If AllowModeX is set then Exclusive and Fullscreen flags must be set
 			((dwFlags & DDSCL_SETDEVICEWINDOW) && (dwFlags & DDSCL_SETFOCUSWINDOW)) ||													// SetDeviceWindow flag cannot be used with SetFocusWindow flag
 			(!hWnd && !(dwFlags & DDSCL_NORMAL)) ||																						// hWnd can only be null if normal flag is set
-			((dwFlags & DDSCL_EXCLUSIVE) && !IsWindow(hWnd)) || 																		// When using Exclusive mode the hwnd must be valid
-			GetWindowThreadProcessId((hWnd) ? hWnd : MainhWnd, nullptr) != GetCurrentThreadId())										// This method must be called by the same thread that created the application window.
+			((dwFlags & DDSCL_EXCLUSIVE) && !IsWindow(hWnd)) ||																			// When using Exclusive mode the hwnd must be valid
+			(((dwFlags & DDSCL_EXCLUSIVE) || ExclusiveMode) &&
+				GetWindowThreadProcessId((hWnd) ? hWnd : MainhWnd, nullptr) != GetCurrentThreadId()))									// This method must be called by the same thread that created the application window.
 		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error: Invalid parameters. dwFlags: " << Logging::hex(dwFlags) << " " << hWnd);
+			LOG_LIMIT(100, __FUNCTION__ << " Error: Invalid parameters. dwFlags: " << Logging::hex(dwFlags) << " " << hWnd <<
+			" Thread ID: " << GetWindowThreadProcessId((hWnd) ? hWnd : MainhWnd, nullptr));
 			return DDERR_INVALIDPARAMS;
 		}
 
@@ -1560,7 +1575,7 @@ HRESULT m_IDirectDrawX::SetDisplayMode(DWORD dwWidth, DWORD dwHeight, DWORD dwBP
 	if (Config.Dd7to9)
 	{
 		if (!dwWidth || !dwHeight || (dwBPP != 8 && dwBPP != 16 && dwBPP != 24 && dwBPP != 32) ||
-			GetWindowThreadProcessId(MainhWnd, nullptr) != GetCurrentThreadId())
+			(ExclusiveMode && MainhWnd && GetWindowThreadProcessId(MainhWnd, nullptr) != GetCurrentThreadId()))
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Error: Invalid parameters. " << dwWidth << "x" << dwHeight << " " << dwBPP);
 			return DDERR_INVALIDPARAMS;
@@ -2043,6 +2058,9 @@ void m_IDirectDrawX::InitDdraw(DWORD DirectXVersion)
 		displayModeBPP = 0;
 		displayModeRefreshRate = 0;
 
+		// Display pixel format
+		ZeroMemory(&DisplayPixelFormat, sizeof(DDPIXELFORMAT));
+
 		// Last resolution
 		LastWidth = 0;
 		LastHeight = 0;
@@ -2344,7 +2362,7 @@ bool m_IDirectDrawX::IsExclusiveMode()
 	return ExclusiveMode;
 }
 
-void m_IDirectDrawX::GetFullDisplay(DWORD &Width, DWORD &Height, DWORD &RefreshRate, DWORD &BPP)
+void m_IDirectDrawX::GetFullDisplay(DWORD &Width, DWORD &Height, DWORD& BPP, DWORD &RefreshRate)
 {
 	// Init settings
 	Width = 0;
@@ -2404,6 +2422,19 @@ void m_IDirectDrawX::GetFullDisplay(DWORD &Width, DWORD &Height, DWORD &RefreshR
 	LastWidth = Width;
 	LastHeight = Height;
 	LastBPP = BPP;
+}
+
+void m_IDirectDrawX::GetDisplayPixelFormat(DDPIXELFORMAT &ddpfPixelFormat, DWORD BPP)
+{
+	ddpfPixelFormat.dwSize = sizeof(DDPIXELFORMAT);
+	if (BPP == DisplayPixelFormat.dwRGBBitCount)
+	{
+		memcpy(&ddpfPixelFormat, &DisplayPixelFormat, sizeof(DDPIXELFORMAT));
+	}
+	else
+	{
+		SetDisplayFormat(BPP, ddpfPixelFormat);
+	}
 }
 
 void m_IDirectDrawX::GetDisplay(DWORD &Width, DWORD &Height)
@@ -2764,6 +2795,7 @@ void m_IDirectDrawX::RemoveSurfaceFromVector(m_IDirectDrawSurfaceX* lpSurfaceX)
 	if (lpSurfaceX == PrimarySurface)
 	{
 		PrimarySurface = nullptr;
+		ZeroMemory(&DisplayPixelFormat, sizeof(DDPIXELFORMAT));
 	}
 
 	auto it = std::find_if(SurfaceVector.begin(), SurfaceVector.end(),
@@ -2777,6 +2809,7 @@ void m_IDirectDrawX::RemoveSurfaceFromVector(m_IDirectDrawSurfaceX* lpSurfaceX)
 		if (lpSurfaceX == PrimarySurface)
 		{
 			PrimarySurface = nullptr;
+			ZeroMemory(&DisplayPixelFormat, sizeof(DDPIXELFORMAT));
 		}
 	}
 

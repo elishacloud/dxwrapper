@@ -2835,13 +2835,15 @@ HRESULT m_IDirectDrawSurfaceX::CreateD3d9Surface()
 	// Get texture data
 	surfaceFormat = GetDisplayFormat(surfaceDesc2.ddpfPixelFormat);
 	surfaceBitCount = GetBitCount(surfaceFormat);
-	IsSurfaceEmulated = (surfaceFormat == D3DFMT_R8G8B8 || surfaceFormat == D3DFMT_B8G8R8 || surfaceFormat == D3DFMT_X8B8G8R8 || surfaceFormat == D3DFMT_A8B8G8R8) ||
+	IsSurfaceEmulated = (surfaceFormat == D3DFMT_X4R4G4B4 || surfaceFormat == D3DFMT_A4R4G4B4 || surfaceFormat == D3DFMT_R8G8B8 || surfaceFormat == D3DFMT_B8G8R8 ||
+		surfaceFormat == D3DFMT_X8B8G8R8 || surfaceFormat == D3DFMT_A8B8G8R8) ||
 		((Config.DdrawEmulateSurface || ((IsPrimarySurface() || IsBackBuffer()) && (Config.DdrawWriteToGDI || Config.DdrawReadFromGDI))) &&
 		(surfaceFormat == D3DFMT_P8 || surfaceFormat == D3DFMT_R5G6B5 || surfaceFormat == D3DFMT_A1R5G5B5 || surfaceFormat == D3DFMT_X1R5G5B5 ||
 			surfaceFormat == D3DFMT_A8R8G8B8 || surfaceFormat == D3DFMT_X8R8G8B8));
 	DCRequiresEmulation = (surfaceFormat != D3DFMT_R5G6B5 && surfaceFormat != D3DFMT_X1R5G5B5 && surfaceFormat != D3DFMT_R8G8B8 && surfaceFormat != D3DFMT_X8R8G8B8);
 	D3DFORMAT TextureFormat = (surfaceFormat == D3DFMT_P8) ? D3DFMT_L8 : (surfaceFormat == D3DFMT_R8G8B8) ? D3DFMT_X8R8G8B8 :
-		(surfaceFormat == D3DFMT_R8G8B8 || surfaceFormat == D3DFMT_B8G8R8 || surfaceFormat == D3DFMT_X8B8G8R8) ? D3DFMT_X8R8G8B8 : (surfaceFormat == D3DFMT_A8B8G8R8) ? D3DFMT_A8R8G8B8 : surfaceFormat;
+		(surfaceFormat == D3DFMT_X4R4G4B4 || surfaceFormat == D3DFMT_R8G8B8 || surfaceFormat == D3DFMT_B8G8R8 || surfaceFormat == D3DFMT_X8B8G8R8) ? D3DFMT_X8R8G8B8 :
+		(surfaceFormat == D3DFMT_A4R4G4B4 || surfaceFormat == D3DFMT_A8B8G8R8) ? D3DFMT_A8R8G8B8 : surfaceFormat;
 	D3DFORMAT Format = (surfaceFormat == D3DFMT_R8G8B8 || surfaceFormat == D3DFMT_B8G8R8 || surfaceFormat == D3DFMT_X8B8G8R8) ? D3DFMT_X8R8G8B8 : (surfaceFormat == D3DFMT_A8B8G8R8) ? D3DFMT_A8R8G8B8 : surfaceFormat;
 	bool UseDynamic = (ddrawParent->IsDynamicTexturesSupported() && !IsTexture() && !(surfaceDesc2.ddsCaps.dwCaps & DDSCAPS_SYSTEMMEMORY) && !Config.DdrawWriteToGDI);
 
@@ -3174,6 +3176,7 @@ HRESULT m_IDirectDrawSurfaceX::CreateDCSurface()
 		((DWORD*)emu->bmi->bmiColors)[0] = surfaceDesc2.ddpfPixelFormat.dwRBitMask;
 		((DWORD*)emu->bmi->bmiColors)[1] = surfaceDesc2.ddpfPixelFormat.dwGBitMask;
 		((DWORD*)emu->bmi->bmiColors)[2] = surfaceDesc2.ddpfPixelFormat.dwBBitMask;
+		((DWORD*)emu->bmi->bmiColors)[3] = surfaceDesc2.ddpfPixelFormat.dwRGBAlphaBitMask;
 	}
 
 	emu->surfaceDC = CreateCompatibleDC(ddrawParent->GetDC());
@@ -3215,7 +3218,7 @@ void m_IDirectDrawSurfaceX::UpdateSurfaceDesc()
 
 		// Get resolution
 		DWORD Width, Height, RefreshRate, BPP;
-		ddrawParent->GetFullDisplay(Width, Height, RefreshRate, BPP);
+		ddrawParent->GetFullDisplay(Width, Height, BPP, RefreshRate);
 
 		// Set Height and Width
 		if (Width && Height &&
@@ -3238,8 +3241,7 @@ void m_IDirectDrawSurfaceX::UpdateSurfaceDesc()
 		{
 			ResetDisplayFlags |= DDSD_PIXELFORMAT | DDSD_PITCH;
 			surfaceDesc2.dwFlags |= DDSD_PIXELFORMAT;
-			surfaceDesc2.ddpfPixelFormat.dwSize = sizeof(DDPIXELFORMAT);
-			SetDisplayFormat(BPP, surfaceDesc2.ddpfPixelFormat);
+			ddrawParent->GetDisplayPixelFormat(surfaceDesc2.ddpfPixelFormat, BPP);
 		}
 	}
 	// Unset lPitch
@@ -3414,7 +3416,7 @@ HRESULT m_IDirectDrawSurfaceX::PresentSurface(BOOL isSkipScene)
 		}
 		return DDERR_GENERIC;
 	}
-	else if ((isSkipScene && !SceneReady) || IsPresentRunning)
+	else if ((isSkipScene && Config.DdrawDeInterlacing && !SceneReady) || IsPresentRunning)
 	{
 		Logging::LogDebug() << __FUNCTION__ << " Skipping scene!";
 		return DDERR_GENERIC;
@@ -4417,6 +4419,7 @@ HRESULT m_IDirectDrawSurfaceX::CopySurface(m_IDirectDrawSurfaceX* pSourceSurface
 		}
 		else if (!(SrcFormat == DestFormat ||
 			((SrcFormat == D3DFMT_A1R5G5B5 || SrcFormat == D3DFMT_X1R5G5B5) && (DestFormat == D3DFMT_A1R5G5B5 || DestFormat == D3DFMT_X1R5G5B5)) ||
+			((SrcFormat == D3DFMT_A4R4G4B4 || SrcFormat == D3DFMT_X4R4G4B4) && (DestFormat == D3DFMT_A4R4G4B4 || DestFormat == D3DFMT_X4R4G4B4)) ||
 			((SrcFormat == D3DFMT_A8R8G8B8 || SrcFormat == D3DFMT_X8R8G8B8) && (DestFormat == D3DFMT_A8R8G8B8 || DestFormat == D3DFMT_X8R8G8B8)) ||
 			((SrcFormat == D3DFMT_A8B8G8R8 || SrcFormat == D3DFMT_X8B8G8R8) && (DestFormat == D3DFMT_A8B8G8R8 || DestFormat == D3DFMT_X8B8G8R8))))
 		{
@@ -4686,7 +4689,40 @@ HRESULT m_IDirectDrawSurfaceX::CopyEmulatedSurface(LPRECT lpDestRect, bool CopyT
 		switch ((DWORD)surfaceFormat)
 		{
 		case D3DFMT_B8G8R8:
-			// ToDo: implement D3DFMT_B8G8R8
+			if (CopyToRealSurface)
+			{
+				for (LONG x = DestRect.top; x < DestRect.bottom; x++)
+				{
+					TRIBYTE* EmulatedBufferLoop = (TRIBYTE*)EmulatedBuffer;
+					DWORD* SurfaceBufferLoop = (DWORD*)SurfaceBuffer;
+					for (LONG y = DestRect.left; y < DestRect.right; y++)
+					{
+						*SurfaceBufferLoop = D3DFMT_A8B8G8R8_COPY(*(DWORD*)EmulatedBufferLoop);
+						EmulatedBufferLoop++;
+						SurfaceBufferLoop++;
+					}
+					EmulatedBuffer += EmulatedLockRect.Pitch;
+					SurfaceBuffer += SurfaceLockRect.Pitch;
+				}
+			}
+			else
+			{
+				for (LONG x = DestRect.top; x < DestRect.bottom; x++)
+				{
+					TRIBYTE* EmulatedBufferLoop = (TRIBYTE*)EmulatedBuffer;
+					DWORD* SurfaceBufferLoop = (DWORD*)SurfaceBuffer;
+					for (LONG y = DestRect.left; y < DestRect.right; y++)
+					{
+						DWORD Pixel = D3DFMT_A8B8G8R8_COPY(*(DWORD*)SurfaceBufferLoop);
+						*EmulatedBufferLoop = *(TRIBYTE*)&Pixel;
+						EmulatedBufferLoop++;
+						SurfaceBufferLoop++;
+					}
+					EmulatedBuffer += EmulatedLockRect.Pitch;
+					SurfaceBuffer += SurfaceLockRect.Pitch;
+				}
+			}
+			break;
 		case D3DFMT_R8G8B8:
 			if (CopyToRealSurface)
 			{
@@ -4721,9 +4757,82 @@ HRESULT m_IDirectDrawSurfaceX::CopyEmulatedSurface(LPRECT lpDestRect, bool CopyT
 				}
 			}
 			break;
+		case D3DFMT_X4R4G4B4:
+		case D3DFMT_A4R4G4B4:
+			if (CopyToRealSurface)
+			{
+				for (LONG x = DestRect.top; x < DestRect.bottom; x++)
+				{
+					BYTE* EmulatedBufferLoop = (BYTE*)EmulatedBuffer;
+					BYTE* SurfaceBufferLoop = (BYTE*)SurfaceBuffer;
+					for (LONG y = DestRect.left; y < DestRect.right; y++)
+					{
+						SurfaceBufferLoop[0] = (BYTE)((EmulatedBufferLoop[0] >> 4) * 17);
+						SurfaceBufferLoop[1] = (BYTE)((EmulatedBufferLoop[0] & 0xF) * 17);
+						SurfaceBufferLoop[2] = (BYTE)((EmulatedBufferLoop[1] >> 4) * 17);
+						SurfaceBufferLoop[3] = (BYTE)((EmulatedBufferLoop[1] & 0xF) * 17);
+						EmulatedBufferLoop += 2;
+						SurfaceBufferLoop += 4;
+					}
+					EmulatedBuffer += EmulatedLockRect.Pitch;
+					SurfaceBuffer += SurfaceLockRect.Pitch;
+				}
+			}
+			else
+			{
+				for (LONG x = DestRect.top; x < DestRect.bottom; x++)
+				{
+					WORD* EmulatedBufferLoop = (WORD*)EmulatedBuffer;
+					BYTE* SurfaceBufferLoop = (BYTE*)SurfaceBuffer;
+					for (LONG y = DestRect.left; y < DestRect.right; y++)
+					{
+						*EmulatedBufferLoop = 
+							(WORD)((SurfaceBufferLoop[0] / 17) << 12) +
+							(WORD)((SurfaceBufferLoop[1] / 17) << 8) +
+							(WORD)((SurfaceBufferLoop[2] / 17) << 4) +
+							(WORD)((SurfaceBufferLoop[3] / 17));
+						EmulatedBufferLoop++;
+						SurfaceBufferLoop += 4;
+					}
+					EmulatedBuffer += EmulatedLockRect.Pitch;
+					SurfaceBuffer += SurfaceLockRect.Pitch;
+				}
+			}
+			break;
 		case D3DFMT_X8B8G8R8:
 		case D3DFMT_A8B8G8R8:
-			// ToDo: implement D3DFMT_X8B8G8R8 / D3DFMT_A8B8G8R8
+			if (CopyToRealSurface)
+			{
+				for (LONG x = DestRect.top; x < DestRect.bottom; x++)
+				{
+					DWORD* EmulatedBufferLoop = (DWORD*)EmulatedBuffer;
+					DWORD* SurfaceBufferLoop = (DWORD*)SurfaceBuffer;
+					for (LONG y = DestRect.left; y < DestRect.right; y++)
+					{
+						*SurfaceBufferLoop = D3DFMT_A8B8G8R8_COPY(*(DWORD*)EmulatedBufferLoop);
+						EmulatedBufferLoop++;
+						SurfaceBufferLoop++;
+					}
+					EmulatedBuffer += EmulatedLockRect.Pitch;
+					SurfaceBuffer += SurfaceLockRect.Pitch;
+				}
+			}
+			else
+			{
+				for (LONG x = DestRect.top; x < DestRect.bottom; x++)
+				{
+					DWORD* EmulatedBufferLoop = (DWORD*)EmulatedBuffer;
+					DWORD* SurfaceBufferLoop = (DWORD*)SurfaceBuffer;
+					for (LONG y = DestRect.left; y < DestRect.right; y++)
+					{
+						*EmulatedBufferLoop = D3DFMT_A8B8G8R8_COPY(*(DWORD*)SurfaceBufferLoop);
+						EmulatedBufferLoop++;
+						SurfaceBufferLoop++;
+					}
+					EmulatedBuffer += EmulatedLockRect.Pitch;
+					SurfaceBuffer += SurfaceLockRect.Pitch;
+				}
+			}
 			break;
 		default:
 			if (CopyToRealSurface)
