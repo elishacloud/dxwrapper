@@ -3416,7 +3416,7 @@ HRESULT m_IDirectDrawSurfaceX::PresentSurface(BOOL isSkipScene)
 		}
 		return DDERR_GENERIC;
 	}
-	else if ((isSkipScene && Config.DdrawDeInterlacing && !SceneReady) || IsPresentRunning)
+	else if ((isSkipScene && !SceneReady) || IsPresentRunning)
 	{
 		Logging::LogDebug() << __FUNCTION__ << " Skipping scene!";
 		return DDERR_GENERIC;
