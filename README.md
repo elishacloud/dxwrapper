@@ -15,15 +15,16 @@ DxWrapper has many features including:
  - Conversion of DirectInput 1-7 (dinput.dll) to DirectInput 8 (dinput8.dll) using [dinputto8](https://github.com/elishacloud/dinputto8)
  - Includes [LegacyD3DResolutionHack](https://github.com/UCyborg/LegacyD3DResolutionHack) to remove the artificial resolution limit from Direct3D 1-7, which allows DirectDraw games to play at 4K resolution
  - Tweaking of Microsoft DirectSound function calls using [DSoundCtrl](http://www.bockholdt.com/dsc/)
- - Can cause Direct3D 8 and Direct3D 9 games to run in windowed mode
+ - Can cause DirectDraw 1-7, Direct3D 8 and Direct3D 9 games to run in windowed mode
+ - Can set vertex processing and cache modes to fix perfromance in some Direct3D 9 games
+ - Can remove scanlines from DirectDraw 1-7 games
+ - Can disable High DPI scaling to solve issues with some games
  - Can disable Microsoft Game Explorer (GameUX) to prevent rundll32.exe high CPU
- - Can disable High DPI scaling in Windows
  - ASI loader to load custom libraries with the file extension .asi into game processes using [Ultimate ASI Loader](https://github.com/ThirteenAG/Ultimate-ASI-Loader)
  - Supports being loaded as an ASI plug-in
- - Adding AntiAliasing support into DirectX 8 or 9 games even if the game does not support it
+ - Adding AntiAliasing support into Direct3D 8 or 9 games even if the game does not support it
  - Hot patch memory support (update game memory at run time, can be used to remove CD/DVD checks or resolve graphics or other glitches)
  - Set single CPU affinity (some games have issues with multi-core CPUs)
- - Disable display scaling on high DPI mode
  - Ability to set all 12 Application Compatibility Toolkit options for DXPrimaryEmulation using SetAppCompatData API
  - Set game window to fullscreen (some games have fullscreen issues)
  - Handling in-game exceptions or crashes
@@ -31,7 +32,7 @@ DxWrapper has many features including:
  - Run custom processes at game start-up
 
 ### Compatibility List for Games on Windows 10
-So far I have tested this with over 70 games (that don't otherwise work correctly) to get them running on Windows 10.  Most games will work, but some still have issues.  Check out the [Compatible Games wiki](https://github.com/elishacloud/dxwrapper/wiki/Compatible-Games) for a full list.
+So far I have tested this with hundreds of games (many of which  don't otherwise work correctly) to get them running on Windows 10.  Most games will work, but some still have issues.  Check out the [Compatible Games wiki](https://github.com/elishacloud/dxwrapper/wiki/Compatible-Games) and the [Dd7to9 Supported Games wiki](https://github.com/elishacloud/dxwrapper/wiki/DirectDraw-to-Direct3D9-Conversion#supported-2d-games-directdraw) for a list.
 
 ### Installation
 
