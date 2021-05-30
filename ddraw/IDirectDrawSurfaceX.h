@@ -62,9 +62,9 @@ private:
 
 	struct LASTLOCK
 	{
-		bool bEvenInterlacing = false;
-		bool bOddInterlacing = false;
-		DWORD InterlacingWidth = 0;
+		bool bEvenScanlines = false;
+		bool bOddScanlines = false;
+		DWORD ScanlineWidth = 0;
 		std::vector<BYTE> EvenScanLine;
 		std::vector<BYTE> OddScanLine;
 		RECT Rect = { NULL };
@@ -353,9 +353,9 @@ public:
 	template <class T>
 	void LockBitAlign(LPRECT lpDestRect, T lpDDSurfaceDesc);
 
-	// For deinterlacing
-	void DeinterlaceLock();
-	void DeinterlaceUnlock();
+	// For removing scanlines
+	void RestoreScanlines();
+	void RemoveScanlines();
 
 	// Functions handling the ddraw parent interface
 	void SetDdrawParent(m_IDirectDrawX *ddraw) { ddrawParent = ddraw; }

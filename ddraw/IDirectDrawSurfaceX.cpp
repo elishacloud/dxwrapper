@@ -3373,10 +3373,10 @@ void m_IDirectDrawSurfaceX::ReleaseD9Surface(bool BackupData)
 	// Set LastDC
 	LastDC = nullptr;
 
-	// Reset interlacing
+	// Reset scanline flags
 	LastLock.LockedRect.pBits = nullptr;
-	LastLock.bEvenInterlacing = false;
-	LastLock.bOddInterlacing = false;
+	LastLock.bEvenScanlines = false;
+	LastLock.bOddScanlines = false;
 
 	// Reset locked ID
 	LockedWithID = 0;
@@ -3673,21 +3673,21 @@ void m_IDirectDrawSurfaceX::LockBitAlign(LPRECT lpDestRect, T lpDDSurfaceDesc)
 	}
 }
 
-// Restore deinterlaced lines before locking surface
-void m_IDirectDrawSurfaceX::DeinterlaceLock()
+// Restore removed scanlines before locking surface
+void m_IDirectDrawSurfaceX::RestoreScanlines()
 {
 	DWORD ByteCount = surfaceBitCount / 8;
 	DWORD RectWidth = LastLock.Rect.right - LastLock.Rect.left;
 	DWORD RectHeight = LastLock.Rect.bottom - LastLock.Rect.top;
 
-	if ((IsPrimarySurface() || IsBackBuffer()) && (LastLock.bEvenInterlacing || LastLock.bOddInterlacing) && LastLock.LockedRect.pBits &&
-		ByteCount && ByteCount <= 4 && RectWidth == LastLock.InterlacingWidth)
+	if ((IsPrimarySurface() || IsBackBuffer()) && (LastLock.bEvenScanlines || LastLock.bOddScanlines) && LastLock.LockedRect.pBits &&
+		ByteCount && ByteCount <= 4 && RectWidth == LastLock.ScanlineWidth)
 	{
 		DWORD size = RectWidth * ByteCount;
 		BYTE* DestBuffer = (BYTE*)LastLock.LockedRect.pBits;
 
 		// Restore even scanlines
-		if (LastLock.bEvenInterlacing)
+		if (LastLock.bEvenScanlines)
 		{
 			constexpr DWORD Starting = 0;
 			DestBuffer += LastLock.LockedRect.Pitch * Starting;
@@ -3699,7 +3699,7 @@ void m_IDirectDrawSurfaceX::DeinterlaceLock()
 			}
 		}
 		// Restore odd scanlines
-		else if (LastLock.bOddInterlacing)
+		else if (LastLock.bOddScanlines)
 		{
 			constexpr DWORD Starting = 1;
 			DestBuffer += LastLock.LockedRect.Pitch * Starting;
@@ -3713,32 +3713,32 @@ void m_IDirectDrawSurfaceX::DeinterlaceLock()
 	}
 }
 
-// Deinterlace lines before unlocking surface
-void m_IDirectDrawSurfaceX::DeinterlaceUnlock()
+// Remove scanlines before unlocking surface
+void m_IDirectDrawSurfaceX::RemoveScanlines()
 {
 	DWORD ByteCount = surfaceBitCount / 8;
 	DWORD RectWidth = LastLock.Rect.right - LastLock.Rect.left;
 	DWORD RectHeight = LastLock.Rect.bottom - LastLock.Rect.top;
 
-	// Reset interlacing flags
-	bool LastSet = (LastLock.bEvenInterlacing || LastLock.bOddInterlacing);
-	LastLock.bOddInterlacing = false;
-	LastLock.bEvenInterlacing = false;
+	// Reset scanline flags
+	bool LastSet = (LastLock.bEvenScanlines || LastLock.bOddScanlines);
+	LastLock.bOddScanlines = false;
+	LastLock.bEvenScanlines = false;
 
 	if ((IsPrimarySurface() || IsBackBuffer()) && LastLock.LockedRect.pBits &&
-		ByteCount && ByteCount <= 4 && RectHeight > 16)
+		ByteCount && ByteCount <= 4 && RectHeight >= 100)
 	{
-		DWORD size = LastLock.InterlacingWidth * ByteCount;
+		DWORD size = LastLock.ScanlineWidth * ByteCount;
 		if (LastLock.EvenScanLine.size() < size || LastLock.OddScanLine.size() < size)
 		{
 			LastLock.EvenScanLine.resize(size);
 			LastLock.OddScanLine.resize(size);
 		}
-		LastLock.InterlacingWidth = RectWidth;
+		LastLock.ScanlineWidth = RectWidth;
 
 		BYTE* DestBuffer = (BYTE*)LastLock.LockedRect.pBits;
 
-		// Check if video is being interlaced
+		// Check if video has scanlines
 		for (DWORD y = 0; y < RectHeight; y++)
 		{
 			// Check for even scanlines
@@ -3746,12 +3746,12 @@ void m_IDirectDrawSurfaceX::DeinterlaceUnlock()
 			{
 				if (y == 0)
 				{
-					LastLock.bEvenInterlacing = true;
+					LastLock.bEvenScanlines = true;
 					memcpy(&LastLock.EvenScanLine[0], DestBuffer, size);
 				}
-				else if (LastLock.bEvenInterlacing)
+				else if (LastLock.bEvenScanlines)
 				{
-					LastLock.bEvenInterlacing = (memcmp(&LastLock.EvenScanLine[0], DestBuffer, size) == 0);
+					LastLock.bEvenScanlines = (memcmp(&LastLock.EvenScanLine[0], DestBuffer, size) == 0);
 				}
 			}
 			// Check for odd scanlines
@@ -3759,34 +3759,34 @@ void m_IDirectDrawSurfaceX::DeinterlaceUnlock()
 			{
 				if (y == 1)
 				{
-					LastLock.bOddInterlacing = true;
+					LastLock.bOddScanlines = true;
 					memcpy(&LastLock.OddScanLine[0], DestBuffer, size);
 				}
-				else if (LastLock.bOddInterlacing)
+				else if (LastLock.bOddScanlines)
 				{
-					LastLock.bOddInterlacing = (memcmp(&LastLock.OddScanLine[0], DestBuffer, size) == 0);
+					LastLock.bOddScanlines = (memcmp(&LastLock.OddScanLine[0], DestBuffer, size) == 0);
 				}
 			}
-			// Exit if not interlaced
-			if (!LastLock.bOddInterlacing && !LastLock.bEvenInterlacing)
+			// Exit if no scanlines found
+			if (!LastLock.bOddScanlines && !LastLock.bEvenScanlines)
 			{
 				break;
 			}
 			DestBuffer += LastLock.LockedRect.Pitch;
 		}
 
-		// If all scanlines are interlaced then do nothing
-		if (!LastSet && LastLock.bEvenInterlacing && LastLock.bOddInterlacing)
+		// If all scanlines are set then do nothing
+		if (!LastSet && LastLock.bEvenScanlines && LastLock.bOddScanlines)
 		{
-			LastLock.bEvenInterlacing = false;
-			LastLock.bOddInterlacing = false;
+			LastLock.bEvenScanlines = false;
+			LastLock.bOddScanlines = false;
 		}
 
 		// Reset destination buffer
 		DestBuffer = (BYTE*)LastLock.LockedRect.pBits;
 
 		// Double even scanlines
-		if (LastLock.bEvenInterlacing)
+		if (LastLock.bEvenScanlines)
 		{
 			constexpr DWORD Starting = 0;
 			DestBuffer += LastLock.LockedRect.Pitch * Starting;
@@ -3798,7 +3798,7 @@ void m_IDirectDrawSurfaceX::DeinterlaceUnlock()
 			}
 		}
 		// Double odd scanlines
-		else if (LastLock.bOddInterlacing)
+		else if (LastLock.bOddScanlines)
 		{
 			constexpr DWORD Starting = 1;
 			DestBuffer += LastLock.LockedRect.Pitch * Starting;
@@ -3910,15 +3910,15 @@ HRESULT m_IDirectDrawSurfaceX::SetLock(D3DLOCKED_RECT* pLockedRect, LPRECT lpDes
 	// Set locked ID
 	LockedWithID = GetCurrentThreadId();
 
-	// Backup last rect before deinterlacing
+	// Backup last rect before removing scanlines
 	CheckCoordinates(&LastLock.Rect, lpDestRect);
 	LastLock.LockedRect.pBits = pLockedRect->pBits;
 	LastLock.LockedRect.Pitch = pLockedRect->Pitch;
 
-	// Restore interlacing before returing surface memory
-	if (Config.DdrawDeInterlacing)
+	// Restore scanlines before returing surface memory
+	if (Config.DdrawRemoveScanlines)
 	{
-		DeinterlaceLock();
+		RestoreScanlines();
 	}
 
 	// Set lock flag
@@ -3954,10 +3954,10 @@ HRESULT m_IDirectDrawSurfaceX::SetUnlock(BOOL isSkipScene)
 		return c_hr;
 	}
 
-	// Deinterlacing before unlocking surface
-	if (Config.DdrawDeInterlacing)
+	// Remove scanlines before unlocking surface
+	if (Config.DdrawRemoveScanlines)
 	{
-		DeinterlaceUnlock();
+		RemoveScanlines();
 	}
 
 	// Emulated surface
