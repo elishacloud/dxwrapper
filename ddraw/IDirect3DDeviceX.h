@@ -182,6 +182,7 @@ public:
 	void ClearDdraw() { ddrawParent = nullptr; }
 	void SetDrawFlags(DWORD &rsClipping, DWORD &rsLighting, DWORD &rsExtents, DWORD dwVertexTypeDesc, DWORD dwFlags, DWORD DirectXVersion);
 	void UnSetDrawFlags(DWORD rsClipping, DWORD rsLighting, DWORD rsExtents, DWORD dwVertexTypeDesc, DWORD dwFlags, DWORD DirectXVersion);
+	void CopyScaleVertex(LPVOID lpVertices, std::vector<D3DTLVERTEX> &pVert, DWORD dwVertexCount);
 	UINT GetNumberOfPrimitives(D3DPRIMITIVETYPE dptPrimitiveType, DWORD dwVertexCount);
 	UINT GetVertexStride(DWORD dwVertexTypeDesc);
 };

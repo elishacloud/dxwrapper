@@ -63,6 +63,15 @@ DWORD displayModeHeight;
 DWORD displayModeBPP;
 DWORD displayModeRefreshRate;
 
+float ScaleDDWidthRatio = 1.0f;
+float ScaleDDHeightRatio = 1.0f;
+DWORD ScaleDDLastWidth = 0;
+DWORD ScaleDDLastHeight = 0;
+DWORD ScaleDDCurrentWidth = 0;
+DWORD ScaleDDCurrentHeight = 0;
+DWORD ScaleDDPadX = 0;
+DWORD ScaleDDPadY = 0;
+
 // Display resolution
 bool SetDefaultDisplayMode;			// Set native resolution
 bool SetResolution;
@@ -1684,6 +1693,32 @@ HRESULT m_IDirectDrawX::SetDisplayMode(DWORD dwWidth, DWORD dwHeight, DWORD dwBP
 
 	// Force color mode
 	dwBPP = (Config.DdrawOverrideBitMode) ? Config.DdrawOverrideBitMode : dwBPP;
+
+	if (Config.DdrawUseNativeResolution && dwWidth && dwHeight)
+	{
+		ScaleDDLastWidth = dwWidth;
+		ScaleDDLastHeight = dwHeight;
+		Utils::GetScreenSize(nullptr, ScaleDDCurrentWidth, ScaleDDCurrentHeight);
+		dwWidth = ScaleDDCurrentWidth;
+		dwHeight = ScaleDDCurrentHeight;
+		ScaleDDWidthRatio = (float)ScaleDDCurrentWidth / (float)ScaleDDLastWidth;
+		ScaleDDHeightRatio = (float)ScaleDDCurrentHeight / (float)ScaleDDLastHeight;
+		if (Config.DdrawIntegerScalingClamp)
+		{
+			ScaleDDWidthRatio = truncf(ScaleDDWidthRatio);
+			ScaleDDHeightRatio = truncf(ScaleDDHeightRatio);
+		}
+		if (Config.DdrawMaintainAspectRatio)
+		{
+				ScaleDDWidthRatio = min(ScaleDDWidthRatio, ScaleDDHeightRatio);
+				ScaleDDHeightRatio = min(ScaleDDWidthRatio, ScaleDDHeightRatio);
+		}
+		if (Config.DdrawIntegerScalingClamp || Config.DdrawMaintainAspectRatio)
+		{
+			ScaleDDPadX = (DWORD)((ScaleDDCurrentWidth - (ScaleDDLastWidth * ScaleDDWidthRatio)) / 2.0f);
+			ScaleDDPadY = (DWORD)((ScaleDDCurrentHeight - (ScaleDDLastHeight * ScaleDDHeightRatio)) / 2.0f);
+		}
+	}
 
 	if (ProxyDirectXVersion == 1)
 	{

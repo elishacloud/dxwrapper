@@ -16,6 +16,11 @@
 
 #include "ddraw.h"
 
+extern float ScaleDDWidthRatio;
+extern float ScaleDDHeightRatio;
+extern DWORD ScaleDDPadX;
+extern DWORD ScaleDDPadY;
+
 HRESULT m_IDirect3DViewportX::QueryInterface(REFIID riid, LPVOID FAR * ppvObj, DWORD DirectXVersion)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ") " << riid;
@@ -212,6 +217,14 @@ HRESULT m_IDirect3DViewportX::SetViewport(LPD3DVIEWPORT lpData)
 		ConvertViewport(ViewPort7, *lpData);		
 
 		return (*D3DDeviceInterface)->SetViewport(&ViewPort7);
+	}
+
+	if (Config.DdrawUseNativeResolution && lpData)
+	{
+		lpData->dwX = (LONG)(lpData->dwX * ScaleDDWidthRatio) + ScaleDDPadX;
+		lpData->dwY = (LONG)(lpData->dwY * ScaleDDHeightRatio) + ScaleDDPadY;
+		lpData->dwWidth = (LONG)(lpData->dwWidth * ScaleDDWidthRatio);
+		lpData->dwHeight = (LONG)(lpData->dwHeight * ScaleDDHeightRatio);
 	}
 
 	return ProxyInterface->SetViewport(lpData);
@@ -437,6 +450,14 @@ HRESULT m_IDirect3DViewportX::SetViewport2(LPD3DVIEWPORT2 lpData)
 		ConvertViewport(ViewPort7, *lpData);
 
 		return (*D3DDeviceInterface)->SetViewport(&ViewPort7);
+	}
+
+	if (Config.DdrawUseNativeResolution && lpData)
+	{
+		lpData->dwX = (LONG)(lpData->dwX * ScaleDDWidthRatio) + ScaleDDPadX;
+		lpData->dwY = (LONG)(lpData->dwY * ScaleDDHeightRatio) + ScaleDDPadY;
+		lpData->dwWidth = (LONG)(lpData->dwWidth * ScaleDDWidthRatio);
+		lpData->dwHeight = (LONG)(lpData->dwHeight * ScaleDDHeightRatio);
 	}
 
 	return ProxyInterface->SetViewport2(lpData);

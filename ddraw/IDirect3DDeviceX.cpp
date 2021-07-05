@@ -17,6 +17,11 @@
 #include "ddraw.h"
 #include <d3dhal.h>
 
+extern float ScaleDDWidthRatio;
+extern float ScaleDDHeightRatio;
+extern DWORD ScaleDDPadX;
+extern DWORD ScaleDDPadY;
+
 HRESULT m_IDirect3DDeviceX::QueryInterface(REFIID riid, LPVOID FAR * ppvObj, DWORD DirectXVersion)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ") " << riid;
@@ -1255,6 +1260,14 @@ HRESULT m_IDirect3DDeviceX::SetViewport(LPD3DVIEWPORT7 lpViewport)
 		return (*d3d9Device)->SetViewport(&Viewport9);
 	}
 
+	if (Config.DdrawUseNativeResolution && lpViewport)
+	{
+		lpViewport->dwX = (LONG)(lpViewport->dwX * ScaleDDWidthRatio) + ScaleDDPadX;
+		lpViewport->dwY = (LONG)(lpViewport->dwY * ScaleDDHeightRatio) + ScaleDDPadY;
+		lpViewport->dwWidth = (LONG)(lpViewport->dwWidth * ScaleDDWidthRatio);
+		lpViewport->dwHeight = (LONG)(lpViewport->dwHeight * ScaleDDHeightRatio);
+	}
+
 	return GetProxyInterfaceV7()->SetViewport(lpViewport);
 }
 
@@ -1982,6 +1995,13 @@ HRESULT m_IDirect3DDeviceX::DrawPrimitive(D3DPRIMITIVETYPE dptPrimitiveType, DWO
 		return hr;
 	}
 
+	std::vector<D3DTLVERTEX> pVert;
+	if (Config.DdrawUseNativeResolution && dwVertexTypeDesc == 3)
+	{
+		CopyScaleVertex(lpVertices, pVert, dwVertexCount);
+		lpVertices = &pVert[0];
+	}
+
 	switch (ProxyDirectXVersion)
 	{
 	case 1:
@@ -2155,6 +2175,13 @@ HRESULT m_IDirect3DDeviceX::DrawIndexedPrimitive(D3DPRIMITIVETYPE dptPrimitiveTy
 		UnSetDrawFlags(rsClipping, rsLighting, rsExtents, dwVertexTypeDesc, dwFlags, DirectXVersion);
 
 		return hr;
+	}
+
+	std::vector<D3DTLVERTEX> pVert;
+	if (Config.DdrawUseNativeResolution && dwVertexTypeDesc == 3)
+	{
+		CopyScaleVertex(lpVertices, pVert, dwVertexCount);
+		lpVertices = &pVert[0];
 	}
 
 	switch (ProxyDirectXVersion)
@@ -2563,6 +2590,21 @@ void m_IDirect3DDeviceX::UnSetDrawFlags(DWORD rsClipping, DWORD rsLighting, DWOR
 		{
 			SetRenderState(D3DRENDERSTATE_EXTENTS, rsExtents);
 		}
+	}
+}
+
+void m_IDirect3DDeviceX::CopyScaleVertex(LPVOID lpVertices, std::vector<D3DTLVERTEX>& pVert, DWORD dwVertexCount)
+{
+	if (!lpVertices)
+	{
+		return;
+	}
+	pVert.resize(dwVertexCount);
+	memcpy(&pVert[0], lpVertices, sizeof(D3DTLVERTEX) * dwVertexCount);
+	for (DWORD x = 0; x < dwVertexCount; x++)
+	{
+		pVert[x].sx = (D3DVALUE)(pVert[x].sx * ScaleDDWidthRatio) + ScaleDDPadX;
+		pVert[x].sy = (D3DVALUE)(pVert[x].sy * ScaleDDHeightRatio) + ScaleDDPadY;
 	}
 }
 
