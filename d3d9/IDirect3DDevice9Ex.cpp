@@ -1310,6 +1310,22 @@ HRESULT m_IDirect3DDevice9Ex::SetSamplerState(THIS_ DWORD Sampler, D3DSAMPLERSTA
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
+	// Disable AntiAliasing when using point filtering
+	if (Config.AntiAliasing)
+	{
+		if (Type == D3DSAMP_MAGFILTER || Type == D3DSAMP_MINFILTER || Type == D3DSAMP_MIPFILTER)
+		{
+			if (Value == D3DTEXF_NONE || Value == D3DTEXF_POINT)
+			{
+				ProxyInterface->SetRenderState(D3DRS_MULTISAMPLEANTIALIAS, FALSE);
+			}
+			else
+			{
+				ProxyInterface->SetRenderState(D3DRS_MULTISAMPLEANTIALIAS, TRUE);
+			}
+		}
+	}
+
 	// Enable Anisotropic Filtering
 	if (MaxAnisotropy)
 	{
@@ -1324,7 +1340,7 @@ HRESULT m_IDirect3DDevice9Ex::SetSamplerState(THIS_ DWORD Sampler, D3DSAMPLERSTA
 		{
 			ProxyInterface->SetSamplerState(Sampler, D3DSAMP_MAXANISOTROPY, MaxAnisotropy);
 
-			if (Value == D3DTEXF_POINT || Value == D3DTEXF_LINEAR)
+			if (Value == D3DTEXF_LINEAR)
 			{
 				Value = D3DTEXF_ANISOTROPIC;
 			}
