@@ -14,7 +14,7 @@ private:
 	bool SetSSAA = false;
 
 	// Anisotropic Filtering
-	bool MaxAnisotropySet = false;
+	bool AnisotropyFlag = (bool)Config.AnisotropicFiltering;
 	DWORD MaxAnisotropy = 0;
 
 	// For CacheClipPlane

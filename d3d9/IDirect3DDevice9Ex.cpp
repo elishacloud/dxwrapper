@@ -771,21 +771,6 @@ HRESULT m_IDirect3DDevice9Ex::BeginScene()
 		}
 	}
 
-	// Enable Anisotropic Filtering
-	if (Config.AnisotropicFiltering)
-	{
-		if (!MaxAnisotropySet)
-		{
-			MaxAnisotropySet = true;
-			D3DCAPS9 Caps;
-			ZeroMemory(&Caps, sizeof(D3DCAPS9));
-			if (SUCCEEDED(ProxyInterface->GetDeviceCaps(&Caps)))
-			{
-				MaxAnisotropy = (Config.AnisotropicFiltering == 1) ? Caps.MaxAnisotropy : min((DWORD)Config.AnisotropicFiltering, Caps.MaxAnisotropy);
-			}
-		}
-	}
-
 	return hr;
 }
 
@@ -1313,7 +1298,7 @@ HRESULT m_IDirect3DDevice9Ex::SetSamplerState(THIS_ DWORD Sampler, D3DSAMPLERSTA
 	// Disable AntiAliasing when using point filtering
 	if (Config.AntiAliasing)
 	{
-		if (Type == D3DSAMP_MAGFILTER || Type == D3DSAMP_MINFILTER || Type == D3DSAMP_MIPFILTER)
+		if (Type == D3DSAMP_MINFILTER || Type == D3DSAMP_MAGFILTER)
 		{
 			if (Value == D3DTEXF_NONE || Value == D3DTEXF_POINT)
 			{
@@ -1323,6 +1308,30 @@ HRESULT m_IDirect3DDevice9Ex::SetSamplerState(THIS_ DWORD Sampler, D3DSAMPLERSTA
 			{
 				ProxyInterface->SetRenderState(D3DRS_MULTISAMPLEANTIALIAS, TRUE);
 			}
+		}
+	}
+
+	// Setup Anisotropy Filtering
+	if (AnisotropyFlag && (Type == D3DSAMP_MAXANISOTROPY || ((Type == D3DSAMP_MINFILTER || Type == D3DSAMP_MAGFILTER) && Value == D3DTEXF_LINEAR)))
+	{
+		AnisotropyFlag = false;
+
+		D3DCAPS9 Caps;
+		ZeroMemory(&Caps, sizeof(D3DCAPS9));
+		if (SUCCEEDED(ProxyInterface->GetDeviceCaps(&Caps)))
+		{
+			MaxAnisotropy = (Config.AnisotropicFiltering == 1) ? Caps.MaxAnisotropy : min((DWORD)Config.AnisotropicFiltering, Caps.MaxAnisotropy);
+		}
+
+		if (MaxAnisotropy && SUCCEEDED(ProxyInterface->SetSamplerState(Sampler, D3DSAMP_MAXANISOTROPY, MaxAnisotropy)))
+		{
+			Logging::Log() << "Setting Anisotropy Filtering at " << MaxAnisotropy << "x";
+		}
+		else
+		{
+			MaxAnisotropy = 0;
+
+			Logging::Log() << "Failed to enable Anisotropy Filtering!";
 		}
 	}
 
@@ -1336,13 +1345,12 @@ HRESULT m_IDirect3DDevice9Ex::SetSamplerState(THIS_ DWORD Sampler, D3DSAMPLERSTA
 				return D3D_OK;
 			}
 		}
-		else if (Type == D3DSAMP_MAGFILTER || Type == D3DSAMP_MINFILTER)
+		else if ((Type == D3DSAMP_MINFILTER || Type == D3DSAMP_MAGFILTER) && Value == D3DTEXF_LINEAR)
 		{
-			ProxyInterface->SetSamplerState(Sampler, D3DSAMP_MAXANISOTROPY, MaxAnisotropy);
-
-			if (Value == D3DTEXF_LINEAR)
+			if (SUCCEEDED(ProxyInterface->SetSamplerState(Sampler, D3DSAMP_MAXANISOTROPY, MaxAnisotropy)) &&
+				SUCCEEDED(ProxyInterface->SetSamplerState(Sampler, Type, D3DTEXF_ANISOTROPIC)))
 			{
-				Value = D3DTEXF_ANISOTROPIC;
+				return D3D_OK;
 			}
 		}
 	}
