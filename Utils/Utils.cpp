@@ -35,6 +35,7 @@
 #include <comdef.h>
 #include <comutil.h>
 #include <Wbemidl.h>
+#include "Utils.h"
 #include "Settings\Settings.h"
 #include "Dllmain\Dllmain.h"
 #include "Wrappers\wrapper.h"
@@ -731,6 +732,28 @@ void Utils::UnloadAllDlls()
 		FreeLibrary(custom_dll.back().dll);
 		custom_dll.pop_back();
 	}
+}
+
+HMEMORYMODULE Utils::LoadResourceToMemory(DWORD ResID)
+{
+	HRSRC hResource = FindResource(hModule_dll, MAKEINTRESOURCE(ResID), RT_RCDATA);
+	if (hResource)
+	{
+		HGLOBAL hLoadedResource = LoadResource(hModule_dll, hResource);
+		if (hLoadedResource)
+		{
+			LPVOID pLockedResource = LockResource(hLoadedResource);
+			if (pLockedResource)
+			{
+				DWORD dwResourceSize = SizeofResource(hModule_dll, hResource);
+				if (dwResourceSize != 0)
+				{
+					return MemoryLoadLibrary(pLockedResource, dwResourceSize);
+				}
+			}
+		}
+	}
+	return nullptr;
 }
 
 // Searches the memory

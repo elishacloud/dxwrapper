@@ -2,6 +2,7 @@
 
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
+#include "External\MemoryModule\MemoryModule.h"
 
 #undef LoadLibrary
 
@@ -25,6 +26,7 @@ namespace Utils
 	void LoadCustomDll();
 	void LoadPlugins();
 	void UnloadAllDlls();
+	HMEMORYMODULE LoadResourceToMemory(DWORD ResID);
 	void DDrawResolutionHack(HMODULE hD3DIm);
 	void GetScreenSettings();
 	void ResetScreenSettings();

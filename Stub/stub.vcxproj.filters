@@ -95,6 +95,9 @@
     <ClInclude Include="..\External\Hooking\Hook.h">
       <Filter>External\Hooking</Filter>
     </ClInclude>
+    <ClInclude Include="..\External\MemoryModule\MemoryModule.h">
+      <Filter>External\MemoryModule</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="BuildNo.rc" />

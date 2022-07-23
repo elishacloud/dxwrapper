@@ -143,6 +143,7 @@ copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\Stub\wsock32.dll" &gt
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\External\Hooking\Hook.h" />
+    <ClInclude Include="..\External\MemoryModule\MemoryModule.h" />
     <ClInclude Include="..\Wrappers\bcrypt.h" />
     <ClInclude Include="..\Wrappers\cryptsp.h" />
     <ClInclude Include="..\Wrappers\d2d1.h" />

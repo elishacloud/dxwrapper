@@ -2,6 +2,9 @@
 // Microsoft Visual C++ generated include file.
 // Used by dxwrapper.rc
 
+#define IDR_D3DX9_DLL                   101
+#define IDR_D3DCOMPILE_DLL              202
+
 #ifndef DXWND_H
 #include "DxWnd\v2_03_60_src\dxwnd.h"
 #endif

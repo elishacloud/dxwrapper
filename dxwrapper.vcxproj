@@ -359,6 +359,7 @@ cmd /q /c "cd /D ""$(ProjectDir)d3d8\"" &amp;&amp; del build.bat"</Command>
     <ClCompile Include="External\Hooking\HotPatch.cpp" />
     <ClCompile Include="External\Hooking\IATPatch.cpp" />
     <ClCompile Include="External\Logging\Logging.cpp" />
+    <ClCompile Include="External\MemoryModule\MemoryModule.c" />
     <ClCompile Include="GDI\Gdi32.cpp" />
     <ClCompile Include="GDI\User32.cpp" />
     <ClCompile Include="IClassFactory\IClassFactory.cpp" />
@@ -669,6 +670,7 @@ cmd /q /c "cd /D ""$(ProjectDir)d3d8\"" &amp;&amp; del build.bat"</Command>
     <ClInclude Include="External\dinputto8\Versions\IDirectInputW.h" />
     <ClInclude Include="External\Hooking\Hook.h" />
     <ClInclude Include="External\Logging\Logging.h" />
+    <ClInclude Include="External\MemoryModule\MemoryModule.h" />
     <ClInclude Include="GDI\GDI.h" />
     <ClInclude Include="GDI\Gdi32.h" />
     <ClInclude Include="GDI\User32.h" />
@@ -705,6 +707,7 @@ cmd /q /c "cd /D ""$(ProjectDir)d3d8\"" &amp;&amp; del build.bat"</Command>
   <ItemGroup>
     <ResourceCompile Include="Dllmain\BuildNo.rc" />
     <ResourceCompile Include="Dllmain\dxwrapper.rc" />
+    <ResourceCompile Include="Dllmain\UALx86.rc" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

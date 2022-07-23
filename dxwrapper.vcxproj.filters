@@ -92,6 +92,9 @@
     <Filter Include="GDI">
       <UniqueIdentifier>{9e2da775-deb8-4b6d-9178-e41800ff180e}</UniqueIdentifier>
     </Filter>
+    <Filter Include="External\MemoryModule">
+      <UniqueIdentifier>{7ad4b754-a938-4e96-a831-dcea6c8f1f03}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="libraries\dwmapi.cpp">
@@ -870,6 +873,9 @@
     </ClCompile>
     <ClCompile Include="GDI\User32.cpp">
       <Filter>GDI</Filter>
+    </ClCompile>
+    <ClCompile Include="External\MemoryModule\MemoryModule.c">
+      <Filter>External\MemoryModule</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -1844,12 +1850,18 @@
     <ClInclude Include="GDI\User32.h">
       <Filter>GDI</Filter>
     </ClInclude>
+    <ClInclude Include="External\MemoryModule\MemoryModule.h">
+      <Filter>External\MemoryModule</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="Dllmain\BuildNo.rc">
       <Filter>Dllmain</Filter>
     </ResourceCompile>
     <ResourceCompile Include="Dllmain\dxwrapper.rc">
+      <Filter>Dllmain</Filter>
+    </ResourceCompile>
+    <ResourceCompile Include="Dllmain\UALx86.rc">
       <Filter>Dllmain</Filter>
     </ResourceCompile>
   </ItemGroup>

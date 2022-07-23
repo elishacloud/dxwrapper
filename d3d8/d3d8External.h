@@ -10,12 +10,6 @@ HRESULT WINAPI d8_ValidatePixelShader(DWORD* pixelshader, DWORD* reserved1, BOOL
 HRESULT WINAPI d8_ValidateVertexShader(DWORD* vertexshader, DWORD* reserved1, DWORD* reserved2, BOOL flag, DWORD* toto);
 Direct3D8 *WINAPI d8_Direct3DCreate8(UINT SDKVersion);
 
-void Loadd3dx9();
-
-extern FARPROC p_D3DXAssembleShader;
-extern FARPROC p_D3DXDisassembleShader;
-extern FARPROC p_D3DXLoadSurfaceFromSurface;
-
 #define DECLARE_IN_WRAPPED_PROC(procName, unused) \
 	const FARPROC procName ## _in = (FARPROC)*d8_ ## procName;
 

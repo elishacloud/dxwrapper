@@ -31,14 +31,18 @@
 
 typedef LPDIRECT3D9(WINAPI *PFN_Direct3DCreate9)(UINT SDKVersion);
 
+extern FARPROC f_D3DXAssembleShader;
+extern FARPROC f_D3DXDisassembleShader;
+extern FARPROC f_D3DXLoadSurfaceFromSurface;
+
+PFN_D3DXAssembleShader D3DXAssembleShader = (PFN_D3DXAssembleShader)f_D3DXAssembleShader;
+PFN_D3DXDisassembleShader D3DXDisassembleShader = (PFN_D3DXDisassembleShader)f_D3DXDisassembleShader;
+PFN_D3DXLoadSurfaceFromSurface D3DXLoadSurfaceFromSurface = (PFN_D3DXLoadSurfaceFromSurface)f_D3DXLoadSurfaceFromSurface;
+
 namespace D3d8Wrapper
 {
 	FARPROC Direct3DCreate9_out = nullptr;
 }
-
-PFN_D3DXAssembleShader D3DXAssembleShader = nullptr;
-PFN_D3DXDisassembleShader D3DXDisassembleShader = nullptr;
-PFN_D3DXLoadSurfaceFromSurface D3DXLoadSurfaceFromSurface = nullptr;
 
 using namespace D3d8Wrapper;
 
@@ -119,20 +123,6 @@ Direct3D8 *WINAPI d8_Direct3DCreate8(UINT SDKVersion)
 	}
 
 	IDirect3D9 *const d3d = Direct3DCreate9(D3D_SDK_VERSION);
-
-	if (!d3d)
-	{
-		return nullptr;
-	}
-
-	// Load D3DX
-	if (!D3DXAssembleShader || !D3DXDisassembleShader || !D3DXLoadSurfaceFromSurface)
-	{
-		Loadd3dx9();
-		D3DXAssembleShader = (PFN_D3DXAssembleShader)p_D3DXAssembleShader;
-		D3DXDisassembleShader = (PFN_D3DXDisassembleShader)p_D3DXDisassembleShader;
-		D3DXLoadSurfaceFromSurface = (PFN_D3DXLoadSurfaceFromSurface)p_D3DXLoadSurfaceFromSurface;
-	}
 
 	return new Direct3D8(d3d);
 }
