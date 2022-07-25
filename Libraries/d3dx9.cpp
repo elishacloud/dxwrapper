@@ -144,12 +144,20 @@ HRESULT WINAPI D3DXLoadSurfaceFromSurface(LPDIRECT3DSURFACE9 pDestSurface, const
 
 	LoadD3dx9();
 
-	if (p_D3DXLoadSurfaceFromSurface)
+	if (!p_D3DXLoadSurfaceFromSurface)
 	{
-		return p_D3DXLoadSurfaceFromSurface(pDestSurface, pDestPalette, pDestRect, pSrcSurface, pSrcPalette, pSrcRect, Filter, ColorKey);
+		LOG_ONCE(__FUNCTION__ << " Error: Could not find ProcAddress!");
+		return D3DERR_INVALIDCALL;
 	}
 
-	return D3DERR_INVALIDCALL;
+	HRESULT hr = p_D3DXLoadSurfaceFromSurface(pDestSurface, pDestPalette, pDestRect, pSrcSurface, pSrcPalette, pSrcRect, Filter, ColorKey);
+
+	if (FAILED(hr))
+	{
+		Logging::Log() << __FUNCTION__ << " Warning: Failed to Copy surface!";
+	}
+
+	return hr;
 }
 
 HRESULT WINAPI D3DAssemble(const void *pSrcData, SIZE_T SrcDataSize, const char *pFileName, const D3D_SHADER_MACRO *pDefines, ID3DInclude *pInclude, UINT Flags, ID3DBlob **ppShader, ID3DBlob **ppErrorMsgs)
@@ -158,16 +166,17 @@ HRESULT WINAPI D3DAssemble(const void *pSrcData, SIZE_T SrcDataSize, const char 
 
 	LoadD3dx9();
 
-	HRESULT hr = D3DERR_INVALIDCALL;
-
-	if (p_D3DAssemble)
+	if (!p_D3DAssemble)
 	{
-		hr = p_D3DAssemble(pSrcData, SrcDataSize, pFileName, pDefines, pInclude, Flags, ppShader, ppErrorMsgs);
+		LOG_ONCE(__FUNCTION__ << " Error: Could not find ProcAddress!");
+		return D3DERR_INVALIDCALL;
 	}
+
+	HRESULT hr = p_D3DAssemble(pSrcData, SrcDataSize, pFileName, pDefines, pInclude, Flags, ppShader, ppErrorMsgs);
 
 	if (FAILED(hr))
 	{
-		Logging::Log() << __FUNCTION__ << " Error: Failed to Assemble shader!";
+		Logging::Log() << __FUNCTION__ << " Warning: Failed to Assemble shader!";
 	}
 
 	return hr;
@@ -179,16 +188,17 @@ HRESULT WINAPI D3DCompile(LPCVOID pSrcData, SIZE_T SrcDataSize, LPCSTR pSourceNa
 
 	LoadD3dx9();
 
-	HRESULT hr = D3DERR_INVALIDCALL;
-
-	if (p_D3DCompile)
+	if (!p_D3DCompile)
 	{
-		hr = p_D3DCompile(pSrcData, SrcDataSize, pSourceName, pDefines, pInclude, pEntrypoint, pTarget, Flags1, Flags2, ppCode, ppErrorMsgs);
+		LOG_ONCE(__FUNCTION__ << " Error: Could not find ProcAddress!");
+		return D3DERR_INVALIDCALL;
 	}
+
+	HRESULT hr = p_D3DCompile(pSrcData, SrcDataSize, pSourceName, pDefines, pInclude, pEntrypoint, pTarget, Flags1, Flags2, ppCode, ppErrorMsgs);
 
 	if (FAILED(hr))
 	{
-		Logging::Log() << __FUNCTION__ << " Error: Failed to Compile shader!";
+		Logging::Log() << __FUNCTION__ << " Warning: Failed to Compile shader!";
 	}
 
 	return hr;
@@ -200,16 +210,17 @@ HRESULT WINAPI D3DDisassemble(LPCVOID pSrcData, SIZE_T SrcDataSize, UINT Flags, 
 
 	LoadD3dx9();
 
-	HRESULT hr = D3DERR_INVALIDCALL;
-
-	if (p_D3DDisassemble)
+	if (!p_D3DDisassemble)
 	{
-		hr = p_D3DDisassemble(pSrcData, SrcDataSize, Flags, szComments, ppDisassembly);
+		LOG_ONCE(__FUNCTION__ << " Error: Could not find ProcAddress!");
+		return D3DERR_INVALIDCALL;
 	}
+
+	HRESULT hr = p_D3DDisassemble(pSrcData, SrcDataSize, Flags, szComments, ppDisassembly);
 
 	if (FAILED(hr))
 	{
-		Logging::Log() << __FUNCTION__ << " Error: Failed to Disassemble shader!";
+		Logging::Log() << __FUNCTION__ << " Warning: Failed to Disassemble shader!";
 	}
 
 	return hr;
