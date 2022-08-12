@@ -387,6 +387,6 @@ public:
 
 	// For emulated surfaces
 	static void StartSharedEmulatedMemory();
-	static void DeleteSharedEmulatedMemory(EMUSURFACE **ppEmuSurface);
+	static void DeleteEmulatedMemory(EMUSURFACE **ppEmuSurface);
 	static void CleanupSharedEmulatedMemory();
 };

@@ -3162,7 +3162,7 @@ HRESULT m_IDirectDrawSurfaceX::CreateDCSurface()
 		// Check if emulated memory is good
 		if (!emu->surfaceDC || !emu->surfacepBits)
 		{
-			DeleteSharedEmulatedMemory(&emu);
+			DeleteEmulatedMemory(&emu);
 		}
 		else
 		{
@@ -3186,7 +3186,7 @@ HRESULT m_IDirectDrawSurfaceX::CreateDCSurface()
 			}
 			else
 			{
-				DeleteSharedEmulatedMemory(&emu);
+				DeleteEmulatedMemory(&emu);
 			}
 		}
 	}
@@ -3227,6 +3227,8 @@ HRESULT m_IDirectDrawSurfaceX::CreateDCSurface()
 	// Create new emulated surface structure
 	emu = new EMUSURFACE;
 
+	LOG_LIMIT(100, __FUNCTION__ << " Creating new emulated surface (" << emu << ")");
+
 	// Add some padding to surface size to a avoid overflow with some games
 	DWORD padding = 200;
 
@@ -3238,7 +3240,7 @@ HRESULT m_IDirectDrawSurfaceX::CreateDCSurface()
 	emu->bmi->bmiHeader.biPlanes = 1;
 	emu->bmi->bmiHeader.biBitCount = (WORD)surfaceBitCount;
 	emu->bmi->bmiHeader.biCompression = (ColorMaskReq) ? BI_BITFIELDS : BI_RGB;
-	emu->bmi->bmiHeader.biSizeImage = surfaceDesc2.dwWidth * (surfaceBitCount / 8) * surfaceDesc2.dwHeight;
+	emu->bmi->bmiHeader.biSizeImage = ((surfaceDesc2.dwWidth * surfaceBitCount + 31) & ~31) / 8 * surfaceDesc2.dwHeight;
 
 	if (surfaceBitCount == 8)
 	{
@@ -3257,6 +3259,11 @@ HRESULT m_IDirectDrawSurfaceX::CreateDCSurface()
 		((DWORD*)emu->bmi->bmiColors)[2] = surfaceDesc2.ddpfPixelFormat.dwBBitMask;
 		((DWORD*)emu->bmi->bmiColors)[3] = surfaceDesc2.ddpfPixelFormat.dwRGBAlphaBitMask;
 	}
+	else
+	{
+		LOG_LIMIT(100, __FUNCTION__ << " Error: failed to set bmi colors!");
+		return DDERR_GENERIC;
+	}
 
 	emu->surfaceDC = CreateCompatibleDC(ddrawParent->GetDC());
 	if (!emu->surfaceDC)
@@ -3264,18 +3271,20 @@ HRESULT m_IDirectDrawSurfaceX::CreateDCSurface()
 		LOG_LIMIT(100, __FUNCTION__ << " Error: failed to create compatible DC!");
 		return DDERR_GENERIC;
 	}
-	emu->bitmap = CreateDIBSection(ddrawParent->GetDC(), emu->bmi, (surfaceBitCount == 8) ? DIB_PAL_COLORS : DIB_RGB_COLORS, (void **)&emu->surfacepBits, nullptr, 0);
+	emu->bitmap = CreateDIBSection(emu->surfaceDC, emu->bmi, (surfaceBitCount == 8) ? DIB_PAL_COLORS : DIB_RGB_COLORS, (void**)&emu->surfacepBits, nullptr, 0);
 	emu->bmi->bmiHeader.biHeight = -(LONG)surfaceDesc2.dwHeight;
 	if (!emu->bitmap)
 	{
-		LOG_LIMIT(100, __FUNCTION__ << " Error: failed to create DIB section!");
-		return DDERR_GENERIC;
+		emu->surfacepBits = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, (surfaceDesc2.dwHeight + padding) * emu->surfacePitch);
 	}
-	emu->OldDCObject = SelectObject(emu->surfaceDC, emu->bitmap);
-	if (!emu->OldDCObject)
+	else
 	{
-		LOG_LIMIT(100, __FUNCTION__ << " Error: failed to replace object in DC!");
-		return DDERR_GENERIC;
+		emu->OldDCObject = SelectObject(emu->surfaceDC, emu->bitmap);
+		if (!emu->OldDCObject)
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: failed to replace object in DC!");
+			return DDERR_GENERIC;
+		}
 	}
 	emu->surfacePitch = ComputePitch(emu->bmi->bmiHeader.biWidth, emu->bmi->bmiHeader.biBitCount);
 	emu->surfaceSize = surfaceDesc2.dwHeight * emu->surfacePitch;
@@ -3431,7 +3440,7 @@ void m_IDirectDrawSurfaceX::ReleaseD9Surface(bool BackupData)
 	{
 		if (!ShareEmulatedMemory || !emu->surfaceDC || !emu->surfacepBits)
 		{
-			DeleteSharedEmulatedMemory(&emu);
+			DeleteEmulatedMemory(&emu);
 		}
 		else
 		{
@@ -5100,12 +5109,14 @@ void m_IDirectDrawSurfaceX::StartSharedEmulatedMemory()
 	InitializeCriticalSection(&smcs);
 }
 
-void m_IDirectDrawSurfaceX::DeleteSharedEmulatedMemory(EMUSURFACE **ppEmuSurface)
+void m_IDirectDrawSurfaceX::DeleteEmulatedMemory(EMUSURFACE **ppEmuSurface)
 {
 	if (!ppEmuSurface || !*ppEmuSurface)
 	{
 		return;
 	}
+
+	LOG_LIMIT(100, __FUNCTION__ << " Deleting emulated surface (" << *ppEmuSurface << ")");
 
 	// Release device context memory
 	if ((*ppEmuSurface)->surfaceDC)
@@ -5116,6 +5127,12 @@ void m_IDirectDrawSurfaceX::DeleteSharedEmulatedMemory(EMUSURFACE **ppEmuSurface
 	if ((*ppEmuSurface)->bitmap)
 	{
 		DeleteObject((*ppEmuSurface)->bitmap);
+		(*ppEmuSurface)->surfacepBits = nullptr;
+	}
+	if ((*ppEmuSurface)->surfacepBits)
+	{
+		HeapFree(GetProcessHeap(), NULL, (*ppEmuSurface)->surfacepBits);
+		(*ppEmuSurface)->surfacepBits = nullptr;
 	}
 	delete (*ppEmuSurface);
 	ppEmuSurface = nullptr;
@@ -5138,7 +5155,7 @@ void m_IDirectDrawSurfaceX::CleanupSharedEmulatedMemory()
 	// Clean up unused emulated surfaces
 	for (EMUSURFACE *pEmuSurface: memorySurfaces)
 	{
-		DeleteSharedEmulatedMemory(&pEmuSurface);
+		DeleteEmulatedMemory(&pEmuSurface);
 	}
 	memorySurfaces.clear();
 }

@@ -208,7 +208,7 @@ void Utils::DisableHighDPIScaling()
 
 		if (setProcessDpiAwarenessContext)
 		{
-			setDpiAware |= setProcessDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE);
+			setDpiAware = setProcessDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2);
 		}
 	}
 	if (hShcore && !setDpiAware)
@@ -217,7 +217,9 @@ void Utils::DisableHighDPIScaling()
 
 		if (setProcessDpiAwareness)
 		{
-			setDpiAware |= SUCCEEDED(setProcessDpiAwareness(PROCESS_PER_MONITOR_DPI_AWARE));
+			HRESULT result = SUCCEEDED(setProcessDpiAwareness(PROCESS_PER_MONITOR_DPI_AWARE));
+
+			setDpiAware = (result == S_OK || result == E_ACCESSDENIED);
 		}
 	}
 	if (hUser32 && !setDpiAware)
@@ -226,7 +228,7 @@ void Utils::DisableHighDPIScaling()
 
 		if (setProcessDPIAware)
 		{
-			setDpiAware |= setProcessDPIAware();
+			setDpiAware = setProcessDPIAware();
 		}
 	}
 

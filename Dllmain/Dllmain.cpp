@@ -120,12 +120,6 @@ bool APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 	{
 		// Get handle
 		hModule_dll = hModule;
-		HANDLE hCurrentThread = GetCurrentThread();
-
-		// Set thread priority a trick to reduce concurrency problems at program startup
-		int dwPriorityClass = GetThreadPriority(hCurrentThread);
-		dwPriorityClass = (GetLastError() == THREAD_PRIORITY_ERROR_RETURN) ? THREAD_PRIORITY_NORMAL : dwPriorityClass;
-		SetThreadPriority(hCurrentThread, THREAD_PRIORITY_HIGHEST);
 
 		// Initialize config
 		Config.Init();
@@ -176,12 +170,6 @@ bool APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 
 			if (Config.RealWrapperMode == dtype.dxwrapper)
 			{
-				// Resetting thread priority
-				SetThreadPriority(hCurrentThread, dwPriorityClass);
-
-				// Closing handle
-				CloseHandle(hCurrentThread);
-
 				// Return false on process attach causes dll to get unloaded
 				return true;
 			}
@@ -554,12 +542,6 @@ bool APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 
 		// Loaded
 		Logging::Log() << "DxWrapper loaded!";
-
-		// Resetting thread priority
-		SetThreadPriority(hCurrentThread, dwPriorityClass);
-
-		// Closing handle
-		CloseHandle(hCurrentThread);
 	}
 	break;
 	case DLL_THREAD_ATTACH:
