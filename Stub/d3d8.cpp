@@ -37,24 +37,14 @@
 	extern "C" __declspec(naked) void __stdcall d8_ ## procName() \
 	{ \
 		__asm mov edi, edi \
-		__asm pushf \
+		__asm pushfd \
 		__asm cmp IsLoaded, 0 \
 		__asm jne NEAR AsmExit \
-		__asm push eax \
-		__asm push ebx \
-		__asm push ecx \
-		__asm push edx \
-		__asm push esi \
-		__asm push edi \
+		__asm pushad \
 		__asm call InitDll \
-		__asm pop edi \
-		__asm pop esi \
-		__asm pop edx \
-		__asm pop ecx \
-		__asm pop ebx \
-		__asm pop eax \
+		__asm popad \
 		__asm AsmExit: \
-		__asm popf \
+		__asm popfd \
 		__asm jmp m_p ## procName \
 	}
 
