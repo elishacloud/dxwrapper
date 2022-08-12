@@ -1591,15 +1591,15 @@ HRESULT m_IDirectDrawX::SetCooperativeLevel(HWND hWnd, DWORD dwFlags)
 		{
 			LOG_LIMIT(3, __FUNCTION__ << " Removing window WS_CAPTION!");
 
-			// Overload WndProc
-			Utils::SetWndProcFilter(hWnd);
-
 			// Removing WS_CAPTION
 			SetWindowLong(hWnd, GWL_STYLE, lStyle & ~WS_CAPTION);
 			SetWindowPos(hWnd, HWND_TOP, 0, 0, 0, 0, SWP_FRAMECHANGED | SWP_NOSENDCHANGING | SWP_NOZORDER | SWP_NOOWNERZORDER);
 
-			// Resetting WndProc
-			Utils::RestoreWndProcFilter(hWnd);
+			if (hWnd)
+			{
+				MSG msg; /* workaround for "Not Responding" window problem */
+				PeekMessage(&msg, hWnd, 0, 0, PM_NOREMOVE);
+			}
 		}
 	}
 

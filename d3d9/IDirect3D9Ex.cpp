@@ -424,9 +424,6 @@ void UpdatePresentParameter(D3DPRESENT_PARAMETERS* pPresentationParameters, HWND
 	// Set window size
 	if (SetWindow && Config.EnableWindowMode && IsWindow(DeviceWindow))
 	{
-		// Overload WndProc
-		Utils::SetWndProcFilter(DeviceWindow);
-
 		// Set fullscreen resolution
 		if (Config.FullscreenWindowMode)
 		{
@@ -457,8 +454,11 @@ void UpdatePresentParameter(D3DPRESENT_PARAMETERS* pPresentationParameters, HWND
 			}
 		}
 
-		// Resetting WndProc
-		Utils::RestoreWndProcFilter(DeviceWindow);
+		if (DeviceWindow)
+		{
+			MSG msg; /* workaround for "Not Responding" window problem */
+			PeekMessage(&msg, DeviceWindow, 0, 0, PM_NOREMOVE);
+		}
 	}
 }
 

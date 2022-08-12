@@ -34,9 +34,6 @@ namespace Utils
 	DWORD GetBitCount(HWND hWnd);
 	DWORD GetWindowHeight(HWND hWnd);
 	void DisableGameUX();
-	bool SetWndProcFilter(HWND hWnd);
-	bool RestoreWndProcFilter(HWND hWnd);
-	bool IsWindowMessageFiltered(UINT uMsg, LRESULT *lpReturn);
 	void GetScreenSize(HWND hwnd, LONG &screenWidth, LONG &screenHeight);
 	void GetScreenSize(HWND hwnd, DWORD &screenWidth, DWORD &screenHeight);
 	DWORD GetVideoRam(DWORD DefaultSize);
