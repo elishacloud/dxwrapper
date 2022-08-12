@@ -1024,16 +1024,28 @@ HRESULT m_IDirectDrawX::GetCaps(LPDDCAPS lpDDDriverCaps, LPDDCAPS lpDDHELCaps)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	if ((!lpDDDriverCaps && !lpDDHELCaps) ||
-		(lpDDDriverCaps && lpDDDriverCaps->dwSize != sizeof(DDCAPS_DX1) &&
-		lpDDDriverCaps->dwSize != sizeof(DDCAPS_DX3) && lpDDDriverCaps->dwSize != sizeof(DDCAPS_DX5) &&
-		lpDDDriverCaps->dwSize != sizeof(DDCAPS_DX6) && lpDDDriverCaps->dwSize != sizeof(DDCAPS_DX7)) ||
-		(lpDDHELCaps && lpDDHELCaps->dwSize != sizeof(DDCAPS_DX1) &&
-		lpDDHELCaps->dwSize != sizeof(DDCAPS_DX3) && lpDDHELCaps->dwSize != sizeof(DDCAPS_DX5) &&
-		lpDDHELCaps->dwSize != sizeof(DDCAPS_DX6) && lpDDHELCaps->dwSize != sizeof(DDCAPS_DX7)))
+	if (!lpDDDriverCaps && !lpDDHELCaps)
 	{
-		LOG_LIMIT(100, __FUNCTION__ << " Error: Invalid parameters. dwSize: " << ((lpDDDriverCaps) ? lpDDDriverCaps->dwSize : -1) << " " << ((lpDDHELCaps) ? lpDDHELCaps->dwSize : -1));
 		return DDERR_INVALIDPARAMS;
+	}
+
+	if (lpDDDriverCaps)
+	{
+		lpDDDriverCaps->dwSize =
+			lpDDDriverCaps->dwSize == sizeof(DDCAPS_DX3) ? sizeof(DDCAPS_DX3) :
+			lpDDDriverCaps->dwSize == sizeof(DDCAPS_DX5) ? sizeof(DDCAPS_DX5) :
+			lpDDDriverCaps->dwSize == sizeof(DDCAPS_DX6) ? sizeof(DDCAPS_DX6) :
+			lpDDDriverCaps->dwSize == sizeof(DDCAPS_DX7) ? sizeof(DDCAPS_DX7) :
+			sizeof(DDCAPS_DX1);
+	}
+	if (lpDDHELCaps)
+	{
+		lpDDHELCaps->dwSize =
+			lpDDHELCaps->dwSize == sizeof(DDCAPS_DX3) ? sizeof(DDCAPS_DX3) :
+			lpDDHELCaps->dwSize == sizeof(DDCAPS_DX5) ? sizeof(DDCAPS_DX5) :
+			lpDDHELCaps->dwSize == sizeof(DDCAPS_DX6) ? sizeof(DDCAPS_DX6) :
+			lpDDHELCaps->dwSize == sizeof(DDCAPS_DX7) ? sizeof(DDCAPS_DX7) :
+			sizeof(DDCAPS_DX1);
 	}
 
 	DDCAPS DriverCaps, HELCaps;
@@ -1074,6 +1086,15 @@ HRESULT m_IDirectDrawX::GetCaps(LPDDCAPS lpDDDriverCaps, LPDDCAPS lpDDHELCaps)
 	}
 	else
 	{
+		if (lpDDDriverCaps)
+		{
+			DriverCaps.dwSize = lpDDDriverCaps->dwSize;
+		}
+		if (lpDDHELCaps)
+		{
+			HELCaps.dwSize = lpDDHELCaps->dwSize;
+		}
+
 		hr = ProxyInterface->GetCaps((lpDDDriverCaps) ? &DriverCaps : nullptr, (lpDDHELCaps) ? &HELCaps : nullptr);
 	}
 
@@ -1201,7 +1222,7 @@ HRESULT m_IDirectDrawX::GetFourCCCodes(LPDWORD lpNumCodes, LPDWORD lpCodes)
 
 		// Return value
 		*lpNumCodes = NumFourCCs;
-		return DD_OK;
+		return DDERR_INVALIDOBJECT;
 	}
 
 	return ProxyInterface->GetFourCCCodes(lpNumCodes, lpCodes);
@@ -1214,7 +1235,11 @@ HRESULT m_IDirectDrawX::GetGDISurface(LPDIRECTDRAWSURFACE7 FAR * lplpGDIDDSSurfa
 	if (Config.Dd7to9)
 	{
 		LOG_LIMIT(100, __FUNCTION__ << " Not Implemented");
-		return DDERR_UNSUPPORTED;
+		if (lplpGDIDDSSurface)
+		{
+			*lplpGDIDDSSurface = (LPDIRECTDRAWSURFACE7)GetPrimarySurface();
+		}
+		return DDERR_NOTFOUND;
 	}
 
 	HRESULT hr = ProxyInterface->GetGDISurface(lplpGDIDDSSurface);
