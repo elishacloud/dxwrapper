@@ -25,6 +25,7 @@ namespace GdiWrapper
 {
 	FARPROC CreateWindowExA_out = nullptr;
 	FARPROC CreateWindowExW_out = nullptr;
+	FARPROC DestroyWindow_out = nullptr;
 }
 
 using namespace GdiWrapper;
@@ -89,4 +90,23 @@ HWND WINAPI user_CreateWindowExA(DWORD dwExStyle, LPCSTR lpClassName, LPCSTR lpW
 HWND WINAPI user_CreateWindowExW(DWORD dwExStyle, LPCWSTR lpClassName, LPCWSTR lpWindowName, DWORD dwStyle, int X, int Y, int nWidth, int nHeight, HWND hWndParent, HMENU hMenu, HINSTANCE hInstance, LPVOID lpParam)
 {
 	return user_CreateWindowEx<LPCWSTR>(dwExStyle, lpClassName, lpWindowName, dwStyle, X, Y, nWidth, nHeight, hWndParent, hMenu, hInstance, lpParam);
+}
+
+BOOL WINAPI user_DestroyWindow(HWND hWnd)
+{
+	static DestroyWindowProc m_pDestroyWindow = (Wrapper::ValidProcAddress(DestroyWindow_out)) ? (DestroyWindowProc)DestroyWindow_out : nullptr;
+
+	if (!m_pDestroyWindow)
+	{
+		return NULL;
+	}
+
+	BOOL result = m_pDestroyWindow(hWnd);
+
+	if (result)
+	{
+		RedrawWindow(NULL, NULL, NULL, RDW_ERASE | RDW_INVALIDATE | RDW_ALLCHILDREN);
+	}
+
+	return result;
 }
