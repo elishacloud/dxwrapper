@@ -2730,7 +2730,7 @@ HRESULT m_IDirectDrawX::CreateD3D9Device()
 			if (NewRect.left != CurrentRect.left || NewRect.top != CurrentRect.top)
 			{
 				RECT ClientRect = { NULL };
-				GetWindowRect(hWnd, &ClientRect);
+				GetClientRect(hWnd, &ClientRect);
 				WINDOWPOS winpos = { hWnd, HWND_TOP, NewRect.left, NewRect.top, ClientRect.right, ClientRect.bottom, WM_NULL };
 				SendMessage(hWnd, WM_WINDOWPOSCHANGED, (WPARAM)TRUE, (LPARAM)&winpos);
 			}
