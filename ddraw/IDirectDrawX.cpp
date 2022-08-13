@@ -2621,10 +2621,6 @@ HRESULT m_IDirectDrawX::CreateD3D9Device()
 			}
 		}
 
-		// Get window size
-		RECT CurrentRect = { NULL };
-		GetWindowRect(hWnd, &CurrentRect);
-
 		// Set display window
 		ZeroMemory(&presParams, sizeof(presParams));
 
@@ -2727,13 +2723,8 @@ HRESULT m_IDirectDrawX::CreateD3D9Device()
 			GetWindowRect(hWnd, &NewRect);
 
 			// Send message about window changes
-			if (NewRect.left != CurrentRect.left || NewRect.top != CurrentRect.top)
-			{
-				RECT ClientRect = { NULL };
-				GetClientRect(hWnd, &ClientRect);
-				WINDOWPOS winpos = { hWnd, HWND_TOP, NewRect.left, NewRect.top, ClientRect.right, ClientRect.bottom, WM_NULL };
-				SendMessage(hWnd, WM_WINDOWPOSCHANGED, (WPARAM)TRUE, (LPARAM)&winpos);
-			}
+			WINDOWPOS winpos = { hWnd, HWND_TOP, NewRect.left, NewRect.top, NewRect.right - NewRect.left, NewRect.bottom - NewRect.top, WM_NULL };
+			SendMessage(hWnd, WM_WINDOWPOSCHANGED, (WPARAM)TRUE, (LPARAM)&winpos);
 
 			// Peek messages to help prevent a "Not Responding" window
 			MSG msg;
