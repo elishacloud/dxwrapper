@@ -1595,11 +1595,9 @@ HRESULT m_IDirectDrawX::SetCooperativeLevel(HWND hWnd, DWORD dwFlags)
 			SetWindowLong(hWnd, GWL_STYLE, lStyle & ~WS_CAPTION);
 			SetWindowPos(hWnd, HWND_TOP, 0, 0, 0, 0, SWP_FRAMECHANGED | SWP_NOSENDCHANGING | SWP_NOZORDER | SWP_NOOWNERZORDER);
 
-			if (hWnd)
-			{
-				MSG msg; /* workaround for "Not Responding" window problem */
-				PeekMessage(&msg, hWnd, 0, 0, PM_NOREMOVE);
-			}
+			// Peek messages to help prevent a "Not Responding" window
+			MSG msg;
+			PeekMessage(&msg, hWnd, 0, 0, PM_NOREMOVE);
 		}
 	}
 
@@ -2623,6 +2621,10 @@ HRESULT m_IDirectDrawX::CreateD3D9Device()
 			}
 		}
 
+		// Get window size
+		RECT CurrentRect = { NULL };
+		GetWindowRect(hWnd, &CurrentRect);
+
 		// Set display window
 		ZeroMemory(&presParams, sizeof(presParams));
 
@@ -2721,12 +2723,21 @@ HRESULT m_IDirectDrawX::CreateD3D9Device()
 			}
 
 			// Get window size
-			RECT tempRect = { NULL };
-			GetClientRect(hWnd, &tempRect);
+			RECT NewRect = { NULL };
+			GetWindowRect(hWnd, &NewRect);
 
 			// Send message about window changes
-			WINDOWPOS winpos = { nullptr, hWnd, tempRect.left, tempRect.top, tempRect.right, tempRect.bottom, WM_NULL };
-			SendMessage(hWnd, WM_WINDOWPOSCHANGED, (WPARAM)TRUE, (LPARAM)&winpos);
+			if (NewRect.left != CurrentRect.left || NewRect.top != CurrentRect.top)
+			{
+				RECT ClientRect = { NULL };
+				GetWindowRect(hWnd, &ClientRect);
+				WINDOWPOS winpos = { hWnd, HWND_TOP, NewRect.left, NewRect.top, ClientRect.right, ClientRect.bottom, WM_NULL };
+				SendMessage(hWnd, WM_WINDOWPOSCHANGED, (WPARAM)TRUE, (LPARAM)&winpos);
+			}
+
+			// Peek messages to help prevent a "Not Responding" window
+			MSG msg;
+			PeekMessage(&msg, hWnd, 0, 0, PM_NOREMOVE);
 		}
 
 		// Store display frequency

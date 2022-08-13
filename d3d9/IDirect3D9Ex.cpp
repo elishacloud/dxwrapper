@@ -174,7 +174,9 @@ HRESULT m_IDirect3D9Ex::CreateDevice(UINT Adapter, D3DDEVTYPE DeviceType, HWND h
 		return D3DERR_INVALIDCALL;
 	}
 
-	BehaviorFlags = UpdateBehaviorFlags(BehaviorFlags);
+	bool IsWindowed = (pPresentationParameters->Windowed != FALSE);
+
+	BehaviorFlags = UpdateBehaviorFlags(BehaviorFlags, IsWindowed);
 
 	// Create new d3d9 device
 	HRESULT hr = D3DERR_INVALIDCALL;
@@ -273,7 +275,9 @@ HRESULT m_IDirect3D9Ex::CreateDeviceEx(THIS_ UINT Adapter, D3DDEVTYPE DeviceType
 		return D3DERR_INVALIDCALL;
 	}
 
-	BehaviorFlags = UpdateBehaviorFlags(BehaviorFlags);
+	bool IsWindowed = (pPresentationParameters->Windowed != FALSE);
+
+	BehaviorFlags = UpdateBehaviorFlags(BehaviorFlags, IsWindowed);
 
 	// Create new d3d9 device
 	HRESULT hr = D3DERR_INVALIDCALL;
@@ -349,8 +353,13 @@ HRESULT m_IDirect3D9Ex::GetAdapterLUID(THIS_ UINT Adapter, LUID * pLUID)
 	return ProxyInterface->GetAdapterLUID(Adapter, pLUID);
 }
 
-DWORD UpdateBehaviorFlags(DWORD BehaviorFlags)
+DWORD UpdateBehaviorFlags(DWORD BehaviorFlags, bool IsWindowed)
 {
+	if (!IsWindowed && (Config.EnableWindowMode || Config.FullscreenWindowMode))
+	{
+		BehaviorFlags |= D3DCREATE_NOWINDOWCHANGES;
+	}
+
 	if (Config.ForceMixedVertexProcessing)
 	{
 		BehaviorFlags &= ~(D3DCREATE_PUREDEVICE | D3DCREATE_HARDWARE_VERTEXPROCESSING | D3DCREATE_SOFTWARE_VERTEXPROCESSING);
@@ -451,13 +460,11 @@ void UpdatePresentParameter(D3DPRESENT_PARAMETERS* pPresentationParameters, HWND
 			if (Rect.right - Rect.left != BufferWidth || Rect.bottom - Rect.top != BufferHeight)
 			{
 				SetWindowPos(DeviceWindow, HWND_TOP, 0, 0, BufferWidth, BufferHeight, SWP_NOMOVE | SWP_NOSENDCHANGING | SWP_NOZORDER | SWP_NOOWNERZORDER);
-			}
-		}
 
-		if (DeviceWindow)
-		{
-			MSG msg; /* workaround for "Not Responding" window problem */
-			PeekMessage(&msg, DeviceWindow, 0, 0, PM_NOREMOVE);
+				// Peek messages to help prevent a "Not Responding" window
+				MSG msg;
+				PeekMessage(&msg, DeviceWindow, 0, 0, PM_NOREMOVE);
+			}
 		}
 	}
 }
@@ -531,4 +538,8 @@ void AdjustWindow(HWND MainhWnd, LONG displayWidth, LONG displayHeight)
 		yLoc = (screenHeight - newDisplayHeight) / 2;
 	}
 	SetWindowPos(MainhWnd, HWND_TOP, xLoc, yLoc, newDisplayWidth, newDisplayHeight, SWP_NOSENDCHANGING | SWP_NOZORDER | SWP_NOOWNERZORDER);
+
+	// Peek messages to help prevent a "Not Responding" window
+	MSG msg;
+	PeekMessage(&msg, DeviceWindow, 0, 0, PM_NOREMOVE);
 }

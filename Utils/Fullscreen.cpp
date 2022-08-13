@@ -549,8 +549,10 @@ void Fullscreen::SendAltEnter(HWND& hwnd)
 void Fullscreen::SetFullScreen(HWND& hwnd, const MONITORINFO& mi)
 {
 	// Attach to window thread
-	DWORD h_ThreadID = GetWindowThreadProcessId(hwnd, nullptr);
-	AttachThreadInput(InterlockedCompareExchange(&m_dwThreadID, 0, 0), h_ThreadID, true);
+	HWND hCurWnd = GetForegroundWindow();
+	DWORD dwMyID = GetCurrentThreadId();
+	DWORD dwCurID = GetWindowThreadProcessId(hCurWnd, nullptr);
+	AttachThreadInput(dwCurID, dwMyID, TRUE);
 
 	// Try restoring the window to normal
 	PostMessage(hwnd, WM_SYSCOMMAND, SW_SHOWNORMAL, 0);
@@ -574,15 +576,15 @@ void Fullscreen::SetFullScreen(HWND& hwnd, const MONITORINFO& mi)
 		mi.rcMonitor.bottom - mi.rcMonitor.top,
 		SWP_NOSENDCHANGING | SWP_FRAMECHANGED);
 
-	// Set window to forground
-	SetForegroundWindow(hwnd);
-
-	// Dettach from window thread
-	AttachThreadInput(InterlockedCompareExchange(&m_dwThreadID, 0, 0), h_ThreadID, false);
-
 	// Set focus and activate
+	SetWindowPos(hwnd, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOSENDCHANGING | SWP_NOSIZE | SWP_NOMOVE);
+	SetWindowPos(hwnd, HWND_NOTOPMOST, 0, 0, 0, 0, SWP_NOSENDCHANGING | SWP_SHOWWINDOW | SWP_NOSIZE | SWP_NOMOVE);
+	SetForegroundWindow(hwnd);
 	SetFocus(hwnd);
 	SetActiveWindow(hwnd);
+
+	// Dettach from window thread
+	AttachThreadInput(dwCurID, dwMyID, FALSE);
 }
 
 
@@ -914,7 +916,7 @@ void Fullscreen::MainFunc()
 					if (Config.ForceWindowResize ||															// Force Window Resize
 						((IsWindowFullScreen(WindowSize, CurrentLoop.ScreenSize) ||							// Check if window size is the same as screen size
 						abs(CurrentLoop.rect.bottom) > 30000 || abs(CurrentLoop.rect.right) > 30000) &&		// Check if window is outside coordinate range
-						IsWindow(CurrentLoop.hwnd)))														// Check for valide window handle
+						IsWindow(CurrentLoop.hwnd)))														// Check for valid window handle
 					{
 #ifdef _DEBUG
 						// Debug log
@@ -949,6 +951,9 @@ void Fullscreen::MainFunc()
 					// Save last loop information
 					LastFullscreenLoop = CurrentLoop;
 
+					// Peek messages to help prevent a "Not Responding" window
+					MSG msg;
+					PeekMessage(&msg, CurrentLoop.hwnd, 0, 0, PM_NOREMOVE);
 				} // Window is too small
 
 			} // Change detected in screen resolution or window

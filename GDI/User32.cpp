@@ -94,6 +94,8 @@ HWND WINAPI user_CreateWindowExW(DWORD dwExStyle, LPCWSTR lpClassName, LPCWSTR l
 
 BOOL WINAPI user_DestroyWindow(HWND hWnd)
 {
+	Logging::LogDebug() << __FUNCTION__ << " " << hWnd;
+
 	static DestroyWindowProc m_pDestroyWindow = (Wrapper::ValidProcAddress(DestroyWindow_out)) ? (DestroyWindowProc)DestroyWindow_out : nullptr;
 
 	if (!m_pDestroyWindow)
@@ -101,11 +103,22 @@ BOOL WINAPI user_DestroyWindow(HWND hWnd)
 		return NULL;
 	}
 
+	HWND ownd = nullptr;
+
+	if (IsWindow(hWnd))
+	{
+		ownd = GetWindow(hWnd, GW_OWNER);
+	}
+
 	BOOL result = m_pDestroyWindow(hWnd);
 
-	if (result)
+	if (result && ownd)
 	{
-		RedrawWindow(NULL, NULL, NULL, RDW_ERASE | RDW_INVALIDATE | RDW_ALLCHILDREN);
+		RedrawWindow(ownd, NULL, NULL, RDW_ERASE | RDW_INVALIDATE | RDW_ALLCHILDREN);
+
+		// Peek messages to help prevent a "Not Responding" window
+		MSG msg;
+		PeekMessage(&msg, ownd, 0, 0, PM_NOREMOVE);
 	}
 
 	return result;
