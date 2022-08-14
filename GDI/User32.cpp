@@ -30,7 +30,17 @@ namespace GdiWrapper
 
 using namespace GdiWrapper;
 
-HWND user_CreateWindowEx_out(DWORD dwExStyle, LPCSTR lpClassName, LPCSTR lpWindowName, DWORD dwStyle, int X, int Y, int nWidth, int nHeight, HWND hWndParent, HMENU hMenu, HINSTANCE hInstance, LPVOID lpParam)
+LPCSTR GetClassName(LPCSTR lpClassName)
+{
+	return ((DWORD)lpClassName > 0xFFFF) ? lpClassName : "ClassName";
+}
+
+LPCWSTR GetClassName(LPCWSTR lpClassName)
+{
+	return ((DWORD)lpClassName > 0xFFFF) ? lpClassName : L"ClassName";
+}
+
+HWND WINAPI user_CreateWindowEx(DWORD dwExStyle, LPCSTR lpClassName, LPCSTR lpWindowName, DWORD dwStyle, int X, int Y, int nWidth, int nHeight, HWND hWndParent, HMENU hMenu, HINSTANCE hInstance, LPVOID lpParam)
 {
 	static CreateWindowExAProc m_pCreateWindowExA = (Wrapper::ValidProcAddress(CreateWindowExA_out)) ? (CreateWindowExAProc)CreateWindowExA_out : nullptr;
 
@@ -42,7 +52,7 @@ HWND user_CreateWindowEx_out(DWORD dwExStyle, LPCSTR lpClassName, LPCSTR lpWindo
 	return m_pCreateWindowExA(dwExStyle, lpClassName, lpWindowName, dwStyle, X, Y, nWidth, nHeight, hWndParent, hMenu, hInstance, lpParam);
 }
 
-HWND user_CreateWindowEx_out(DWORD dwExStyle, LPCWSTR lpClassName, LPCWSTR lpWindowName, DWORD dwStyle, int X, int Y, int nWidth, int nHeight, HWND hWndParent, HMENU hMenu, HINSTANCE hInstance, LPVOID lpParam)
+HWND WINAPI user_CreateWindowEx(DWORD dwExStyle, LPCWSTR lpClassName, LPCWSTR lpWindowName, DWORD dwStyle, int X, int Y, int nWidth, int nHeight, HWND hWndParent, HMENU hMenu, HINSTANCE hInstance, LPVOID lpParam)
 {
 	static CreateWindowExWProc m_pCreateWindowExW = (Wrapper::ValidProcAddress(CreateWindowExW_out)) ? (CreateWindowExWProc)CreateWindowExW_out : nullptr;
 
@@ -55,9 +65,11 @@ HWND user_CreateWindowEx_out(DWORD dwExStyle, LPCWSTR lpClassName, LPCWSTR lpWin
 }
 
 template <class T>
-HWND user_CreateWindowEx(DWORD dwExStyle, T lpClassName, T lpWindowName, DWORD dwStyle, int X, int Y, int nWidth, int nHeight, HWND hWndParent, HMENU hMenu, HINSTANCE hInstance, LPVOID lpParam)
+HWND WINAPI user_CreateWindowExT(DWORD dwExStyle, T lpClassName, T lpWindowName, DWORD dwStyle, int X, int Y, int nWidth, int nHeight, HWND hWndParent, HMENU hMenu, HINSTANCE hInstance, LPVOID lpParam)
 {
-	Logging::LogDebug() << __FUNCTION__ << " " << lpClassName << " " << lpWindowName << " " << Logging::hex(dwExStyle) << " " << Logging::hex(dwStyle) << " " << X << "x" << Y << " " << nWidth << "x" << nHeight << " " << Logging::hex((DWORD)hWndParent) << " " << hWndParent << " " << hMenu << " " << hInstance;
+	// lpClassName: A null-terminated string or a class atom created by a previous call to the RegisterClass or RegisterClassEx function.
+
+	Logging::LogDebug() << __FUNCTION__ << " " << GetClassName(lpClassName) << " " << lpWindowName << " " << Logging::hex(dwExStyle) << " " << Logging::hex(dwStyle) << " " << X << "x" << Y << " " << nWidth << "x" << nHeight << " " << Logging::hex((DWORD)hWndParent) << " " << hWndParent << " " << hMenu << " " << hInstance;
 
 	// Handle popup window type
 	if ((dwStyle & WS_POPUP) && (dwStyle & WS_VISIBLE) && !(dwStyle & WS_CLIPSIBLINGS) && !hWndParent)
@@ -67,7 +79,7 @@ HWND user_CreateWindowEx(DWORD dwExStyle, T lpClassName, T lpWindowName, DWORD d
 		// Remove popup style
 		dwNewStyle = dwStyle & ~WS_POPUP;
 
-		HWND hwnd = user_CreateWindowEx_out(dwExStyle, lpClassName, lpWindowName, dwNewStyle, X, Y, nWidth, nHeight, hWndParent, hMenu, hInstance, lpParam);
+		HWND hwnd = user_CreateWindowEx(dwExStyle, lpClassName, lpWindowName, dwNewStyle, X, Y, nWidth, nHeight, hWndParent, hMenu, hInstance, lpParam);
 
 		if (hwnd)
 		{
@@ -79,17 +91,17 @@ HWND user_CreateWindowEx(DWORD dwExStyle, T lpClassName, T lpWindowName, DWORD d
 		}
 	}
 
-	return user_CreateWindowEx_out(dwExStyle, lpClassName, lpWindowName, dwStyle, X, Y, nWidth, nHeight, hWndParent, hMenu, hInstance, lpParam);
+	return user_CreateWindowEx(dwExStyle, lpClassName, lpWindowName, dwStyle, X, Y, nWidth, nHeight, hWndParent, hMenu, hInstance, lpParam);
 }
 
 HWND WINAPI user_CreateWindowExA(DWORD dwExStyle, LPCSTR lpClassName, LPCSTR lpWindowName, DWORD dwStyle, int X, int Y, int nWidth, int nHeight, HWND hWndParent, HMENU hMenu, HINSTANCE hInstance, LPVOID lpParam)
 {
-	return user_CreateWindowEx<LPCSTR>(dwExStyle, lpClassName, lpWindowName, dwStyle, X, Y, nWidth, nHeight, hWndParent, hMenu, hInstance, lpParam);
+	return user_CreateWindowExT<LPCSTR>(dwExStyle, lpClassName, lpWindowName, dwStyle, X, Y, nWidth, nHeight, hWndParent, hMenu, hInstance, lpParam);
 }
 
 HWND WINAPI user_CreateWindowExW(DWORD dwExStyle, LPCWSTR lpClassName, LPCWSTR lpWindowName, DWORD dwStyle, int X, int Y, int nWidth, int nHeight, HWND hWndParent, HMENU hMenu, HINSTANCE hInstance, LPVOID lpParam)
 {
-	return user_CreateWindowEx<LPCWSTR>(dwExStyle, lpClassName, lpWindowName, dwStyle, X, Y, nWidth, nHeight, hWndParent, hMenu, hInstance, lpParam);
+	return user_CreateWindowExT<LPCWSTR>(dwExStyle, lpClassName, lpWindowName, dwStyle, X, Y, nWidth, nHeight, hWndParent, hMenu, hInstance, lpParam);
 }
 
 BOOL WINAPI user_DestroyWindow(HWND hWnd)
