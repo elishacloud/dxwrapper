@@ -48,10 +48,12 @@ POINT mousePos;
 // Cooperative level settings
 HWND MainhWnd = nullptr;
 HDC MainhDC = nullptr;
+m_IDirectDrawX* MainSetBy;
 
 // Exclusive mode
 bool ExclusiveMode;
 HWND ExclusiveHwnd;
+m_IDirectDrawX* ExclusiveSetBy;
 DWORD ExclusiveWidth;
 DWORD ExclusiveHeight;
 DWORD ExclusiveBPP;
@@ -304,6 +306,15 @@ ULONG m_IDirectDrawX::Release(DWORD DirectXVersion)
 			InterlockedCompareExchange(&RefCount3, 0, 0) + InterlockedCompareExchange(&RefCount4, 0, 0) +
 			InterlockedCompareExchange(&RefCount7, 0, 0) == 0)
 		{
+			if (MainSetBy == this)
+			{
+				MainSetBy = nullptr;
+			}
+			if (ExclusiveSetBy == this)
+			{
+				ExclusiveSetBy = nullptr;
+			}
+
 			delete this;
 		}
 	}
@@ -1406,7 +1417,7 @@ HRESULT m_IDirectDrawX::RestoreDisplayMode()
 		isWindowed = true;
 
 		// Release existing d3d9device
-		ReleaseD3d9Device();
+		ReleaseD3D9Device();
 
 		return DD_OK;
 	}
@@ -1443,21 +1454,25 @@ HRESULT m_IDirectDrawX::SetCooperativeLevel(HWND hWnd, DWORD dwFlags)
 			LOG_LIMIT(100, __FUNCTION__ << " Warning: Flags not supported. dwFlags: " << Logging::hex(dwFlags) << " " << hWnd);
 		}
 
-		bool ChangeMode = false;
+		HWND LastExclusiveHwnd = ExclusiveHwnd;
+		HWND LastMainhWnd = MainhWnd;
+		bool LastMultiThreaded = MultiThreaded;
+		bool LastFUPPreserve = FUPPreserve;
+		bool LastNoWindowChanges = NoWindowChanges;
 
 		// Set windowed mode
 		if (dwFlags & DDSCL_NORMAL)
 		{
 			// Check for exclusive mode
-			if (ExclusiveMode && hWnd && ExclusiveHwnd == hWnd)
+			if ((ExclusiveMode && hWnd && ExclusiveHwnd == hWnd && ExclusiveSetBy == this) || !IsWindow(ExclusiveHwnd))
 			{
 				ExclusiveMode = false;
 				ExclusiveHwnd = nullptr;
+				ExclusiveSetBy = nullptr;
 				ExclusiveWidth = 0;
 				ExclusiveHeight = 0;
 				ExclusiveBPP = 0;
 				ExclusiveRefreshRate = 0;
-				ChangeMode = true;
 			}
 		}
 		else if (dwFlags & DDSCL_FULLSCREEN)
@@ -1469,36 +1484,19 @@ HRESULT m_IDirectDrawX::SetCooperativeLevel(HWND hWnd, DWORD dwFlags)
 				LOG_LIMIT(100, __FUNCTION__ << " Error: Exclusive mode already set.");
 				return DDERR_HWNDALREADYSET;
 			}
-			if (!ExclusiveMode)
-			{
-				ChangeMode = true;
-			}
 			ExclusiveMode = true;
 			ExclusiveHwnd = hWnd;
+			ExclusiveSetBy = this;
 		}
-
-		struct MODES {
-			DWORD ComputeModes()
-			{
-				return (AllowModeX * 4) + (MultiThreaded * 3) + (FUPPreserve * 2) + NoWindowChanges;
-			}
-		} m;
-		DWORD Modes = m.ComputeModes();
 
 		// Set device flags
 		AllowModeX = ((dwFlags & DDSCL_ALLOWMODEX) != 0);
 		MultiThreaded = ((dwFlags & DDSCL_MULTITHREADED) != 0);
-		FUPPreserve = ((dwFlags & (DDSCL_FPUPRESERVE)) != 0);
+		FUPPreserve = ((dwFlags & DDSCL_FPUPRESERVE) != 0 || (dwFlags & DDSCL_FPUSETUP) == 0);
 		NoWindowChanges = ((dwFlags & DDSCL_NOWINDOWCHANGES) != 0);
 
-		// Check if modes changed
-		if (Modes != m.ComputeModes())
-		{
-			ChangeMode = true;
-		}
-
 		// Check window handle
-		if (hWnd)
+		if (hWnd && (((!ExclusiveMode || ExclusiveHwnd == hWnd) && (!MainhWnd || !MainSetBy || MainSetBy == this)) || !IsWindow(MainhWnd)))
 		{
 			// Check if DC needs to be released
 			if (MainhWnd && MainhDC && (MainhWnd != hWnd))
@@ -1509,6 +1507,7 @@ HRESULT m_IDirectDrawX::SetCooperativeLevel(HWND hWnd, DWORD dwFlags)
 			}
 
 			MainhWnd = hWnd;
+			MainSetBy = this;
 
 			if (MainhWnd &&!MainhDC)
 			{
@@ -1517,10 +1516,15 @@ HRESULT m_IDirectDrawX::SetCooperativeLevel(HWND hWnd, DWORD dwFlags)
 		}
 
 		// Reset if mode was changed and primary surface does not exist
-		if (ChangeMode && d3d9Device && !PrimarySurface)
+		if (d3d9Device && MainhWnd && hWnd && (
+			LastExclusiveHwnd != ExclusiveHwnd ||
+			LastMainhWnd != MainhWnd ||
+			LastMultiThreaded != MultiThreaded ||
+			LastFUPPreserve != FUPPreserve ||
+			LastNoWindowChanges != NoWindowChanges))
 		{
-			// Release existing d3d9device
-			ReleaseD3d9Device();
+			// Recreate d3d9device
+			CreateD3D9Device();
 		}
 
 		return DD_OK;
@@ -2105,10 +2109,12 @@ void m_IDirectDrawX::InitDdraw(DWORD DirectXVersion)
 		}
 		MainhWnd = nullptr;
 		MainhDC = nullptr;
+		MainSetBy = nullptr;
 
 		// Exclusive mode
 		ExclusiveMode = false;
 		ExclusiveHwnd = nullptr;
+		ExclusiveSetBy = nullptr;
 		ExclusiveWidth = 0;
 		ExclusiveHeight = 0;
 		ExclusiveBPP = 0;
@@ -2509,7 +2515,7 @@ void m_IDirectDrawX::SetD3DDevice(m_IDirect3DDeviceX *D3DDevice)
 {
 	if (!D3DDeviceInterface)
 	{
-		ReleaseD3d9Device();
+		ReleaseD3D9Device();
 	}
 	D3DDeviceInterface = D3DDevice;
 }
@@ -2583,7 +2589,7 @@ HRESULT m_IDirectDrawX::CreateD3D9Device()
 		// Release existing d3d9 device
 		if (d3d9Device)
 		{
-			ReleaseD3d9Device();
+			ReleaseD3D9Device();
 		}
 
 		// Check device caps to make sure it supports dynamic textures
@@ -2811,7 +2817,7 @@ void m_IDirectDrawX::ReleaseAllD9Surfaces()
 }
 
 // Release all d3d9 classes for Release()
-void m_IDirectDrawX::ReleaseD3d9Device()
+void m_IDirectDrawX::ReleaseD3D9Device()
 {
 	// Release all existing surfaces
 	ReleaseAllDirectDrawD9Surfaces();

@@ -75,7 +75,7 @@ private:
 	HRESULT CheckInterface(char *FunctionName, bool CheckD3DDevice);
 	void ReleaseAllDirectDrawD9Surfaces();
 	void ReleaseAllD9Surfaces();
-	void ReleaseD3d9Device();
+	void ReleaseD3D9Device();
 
 public:
 	m_IDirectDrawX(IDirectDraw7 *aOriginal, DWORD DirectXVersion) : ProxyInterface(aOriginal)
