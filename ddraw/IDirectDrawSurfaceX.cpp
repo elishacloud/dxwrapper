@@ -429,6 +429,7 @@ HRESULT m_IDirectDrawSurfaceX::Blt(LPRECT lpDestRect, LPDIRECTDRAWSURFACE7 lpDDS
 		}
 
 		HRESULT hr = DD_OK;
+
 		do {
 			// Check if the scene needs to be presented
 			isSkipScene |= ((lpDestRect) ? (abs(lpDestRect->bottom - lpDestRect->top) < 2 || abs(lpDestRect->right - lpDestRect->left) < 2) : FALSE);
@@ -1010,6 +1011,7 @@ HRESULT m_IDirectDrawSurfaceX::Flip(LPDIRECTDRAWSURFACE7 lpDDSurfaceTargetOverri
 		IsInFlip = true;
 
 		HRESULT hr = DD_OK;
+
 		do {
 			// If SurfaceTargetOverride then use that surface
 			if (lpDDSurfaceTargetOverride)
@@ -1232,7 +1234,7 @@ HRESULT m_IDirectDrawSurfaceX::GetBltStatus(DWORD dwFlags)
 		// Inquires whether a blit involving this surface can occur immediately, and returns DD_OK if the blit can be completed.
 		if (dwFlags == DDGBS_CANBLT)
 		{
-			if (IsInBlt || IsLocked)
+			if (IsInBlt)
 			{
 				return DDERR_WASSTILLDRAWING;
 			}
@@ -1836,6 +1838,7 @@ HRESULT m_IDirectDrawSurfaceX::Lock2(LPRECT lpDestRect, LPDDSURFACEDESC2 lpDDSur
 		D3DLOCKED_RECT LockedRect = {};
 
 		HRESULT hr = DDERR_INVALIDPARAMS;
+
 		do {
 			// Update rect
 			RECT DestRect = {};
@@ -3316,6 +3319,7 @@ void m_IDirectDrawSurfaceX::UpdateSurfaceDesc()
 			surfaceDesc2.dwFlags |= DDSD_WIDTH | DDSD_HEIGHT;
 			surfaceDesc2.dwWidth = Width;
 			surfaceDesc2.dwHeight = Height;
+			surfaceDesc2.lPitch = 0;
 		}
 		// Set Refresh Rate
 		if (RefreshRate && !(surfaceDesc2.dwFlags & DDSD_REFRESHRATE))
@@ -3336,6 +3340,7 @@ void m_IDirectDrawSurfaceX::UpdateSurfaceDesc()
 	if ((surfaceDesc2.dwFlags & (DDSD_WIDTH | DDSD_HEIGHT | DDSD_PIXELFORMAT)) != (DDSD_WIDTH | DDSD_HEIGHT | DDSD_PIXELFORMAT) || !surfaceDesc2.lPitch)
 	{
 		surfaceDesc2.dwFlags &= ~DDSD_PITCH;
+		surfaceDesc2.lPitch = 0;
 	}
 }
 
@@ -3523,8 +3528,9 @@ HRESULT m_IDirectDrawSurfaceX::PresentSurface(BOOL isSkipScene)
 	// Set present flag
 	IsPresentRunning = true;
 
-	// Preset surface
 	HRESULT hr = DD_OK;
+
+	// Preset surface
 	do {
 		// Set texture
 		if (displayTexture && surfaceTexture)
@@ -3559,28 +3565,32 @@ HRESULT m_IDirectDrawSurfaceX::PresentSurface(BOOL isSkipScene)
 			if (FAILED((*d3d9Device)->SetVertexShader(nullptr)))
 			{
 				LOG_LIMIT(100, __FUNCTION__ << " Error: failed to set vertex shader");
-				return DDERR_GENERIC;
+				hr = DDERR_GENERIC;
+				break;
 			}
 
 			// Set vertex format
 			if (FAILED((*d3d9Device)->SetFVF(TLVERTEXFVF)))
 			{
 				LOG_LIMIT(100, __FUNCTION__ << " Error: failed to set the current vertex stream format");
-				return DDERR_GENERIC;
+				hr = DDERR_GENERIC;
+				break;
 			}
 
 			// Set stream source
 			if (FAILED((*d3d9Device)->SetStreamSource(0, vertexBuffer, 0, sizeof(TLVERTEX))))
 			{
 				LOG_LIMIT(100, __FUNCTION__ << " Error: failed to set vertex buffer stream source");
-				return DDERR_GENERIC;
+				hr = DDERR_GENERIC;
+				break;
 			}
 
 			// Set render states(no lighting)
 			if (FAILED((*d3d9Device)->SetRenderState(D3DRS_LIGHTING, FALSE)))
 			{
 				LOG_LIMIT(100, __FUNCTION__ << " Error: failed to set device render state(no lighting)");
-				return DDERR_GENERIC;
+				hr = DDERR_GENERIC;
+				break;
 			}
 
 			// Set scale mode to linear
@@ -4048,6 +4058,8 @@ HRESULT m_IDirectDrawSurfaceX::SetUnlock(BOOL isSkipScene)
 		RemoveScanlines();
 	}
 
+	HRESULT hr = DD_OK;
+
 	// Emulated surface
 	if (IsSurfaceEmulated)
 	{
@@ -4064,15 +4076,16 @@ HRESULT m_IDirectDrawSurfaceX::SetUnlock(BOOL isSkipScene)
 			// Reset copy flag
 			DoCopyRect = false;
 		}
+		hr = DD_OK;
 	}
 	// Lock surface texture
 	else if (surfaceTexture)
 	{
-		HRESULT hr = surfaceTexture->UnlockRect(0);
+		hr = surfaceTexture->UnlockRect(0);
 		if (FAILED(hr))
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Error: failed to unlock surface texture");
-			return (hr == D3DERR_INVALIDCALL) ? DDERR_GENERIC :
+			hr = (hr == D3DERR_INVALIDCALL) ? DDERR_GENERIC :
 				(hr == D3DERR_WASSTILLDRAWING) ? DDERR_WASSTILLDRAWING :
 				DDERR_SURFACELOST;
 		}
@@ -4080,11 +4093,11 @@ HRESULT m_IDirectDrawSurfaceX::SetUnlock(BOOL isSkipScene)
 	// Lock 3D surface
 	else if (surface3D)
 	{
-		HRESULT hr = surface3D->UnlockRect();
+		hr = surface3D->UnlockRect();
 		if (FAILED(hr))
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Error: failed to unlock surface");
-			return (hr == D3DERR_INVALIDCALL) ? DDERR_GENERIC :
+			hr = (hr == D3DERR_INVALIDCALL) ? DDERR_GENERIC :
 				(hr == D3DERR_WASSTILLDRAWING) ? DDERR_WASSTILLDRAWING :
 				DDERR_SURFACELOST;
 		}
@@ -4092,7 +4105,7 @@ HRESULT m_IDirectDrawSurfaceX::SetUnlock(BOOL isSkipScene)
 	else
 	{
 		LOG_LIMIT(100, __FUNCTION__ << " Error: could not find surface!");
-		return DDERR_GENERIC;
+		hr = DDERR_GENERIC;
 	}
 
 	// Reset locked ID
@@ -4108,9 +4121,12 @@ HRESULT m_IDirectDrawSurfaceX::SetUnlock(BOOL isSkipScene)
 	IsLocked = false;
 
 	// Present surface
-	EndWritePresent(isSkipScene);
+	if (SUCCEEDED(hr))
+	{
+		EndWritePresent(isSkipScene);
+	}
 
-	return DD_OK;
+	return hr;
 }
 
 HRESULT m_IDirectDrawSurfaceX::LockEmulatedSurface(D3DLOCKED_RECT* pLockedRect, LPRECT lpDestRect)
@@ -4369,6 +4385,7 @@ HRESULT m_IDirectDrawSurfaceX::ColorFill(RECT* pRect, D3DCOLOR dwFillColor)
 
 	HRESULT hr = DD_OK;
 	bool UnlockDest = false;
+
 	do {
 		// Check and copy rect
 		RECT DestRect = {};
@@ -4484,6 +4501,7 @@ HRESULT m_IDirectDrawSurfaceX::CopySurface(m_IDirectDrawSurfaceX* pSourceSurface
 	HRESULT hr = DD_OK;
 	bool UnlockSrc = false, UnlockDest = false;
 	bool IsCriticalSectionSet = false;
+
 	do {
 		D3DLOCKED_RECT SrcLockRect, DestLockRect;
 		DWORD DestBitCount = surfaceBitCount;
