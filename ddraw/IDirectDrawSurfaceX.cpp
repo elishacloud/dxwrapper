@@ -2295,7 +2295,7 @@ HRESULT m_IDirectDrawSurfaceX::Unlock(LPRECT lpRect)
 		}
 
 		// Unlock surface
-		return SetUnlock();
+		return SetUnlock(LastLock.Rect);
 	}
 
 	return ProxyInterface->Unlock(lpRect);
@@ -3962,7 +3962,7 @@ HRESULT m_IDirectDrawSurfaceX::SetLock(D3DLOCKED_RECT* pLockedRect, LPRECT lpDes
 
 		// Backup last rect
 		CheckCoordinates(&LastLock.Rect, lpDestRect);
-		DoCopyRect = ((dwFlags & D3DLOCK_READONLY) == 0);
+		LastLock.ReadOnly = ((dwFlags & D3DLOCK_READONLY) != 0);
 
 		// Set new palette data
 		UpdatePaletteData();
@@ -4062,7 +4062,7 @@ HRESULT m_IDirectDrawSurfaceX::SetLock(D3DLOCKED_RECT* pLockedRect, LPRECT lpDes
 }
 
 // Unlock the d3d9 surface
-HRESULT m_IDirectDrawSurfaceX::SetUnlock(BOOL isSkipScene)
+HRESULT m_IDirectDrawSurfaceX::SetUnlock(RECT& UnLockRect, BOOL isSkipScene)
 {
 	// Check for device interface
 	HRESULT c_hr = CheckInterface(__FUNCTION__, true, true);
@@ -4082,18 +4082,18 @@ HRESULT m_IDirectDrawSurfaceX::SetUnlock(BOOL isSkipScene)
 	// Emulated surface
 	if (IsSurfaceEmulated)
 	{
-		// Blt surface directly to GDI
-		if (Config.DdrawWriteToGDI && (IsPrimarySurface() || IsBackBuffer()))
+		if (!LastLock.ReadOnly)
 		{
-			CopyEmulatedSurfaceToGDI(LastLock.Rect);
-		}
-		// Copy emulated surface to real texture
-		else if (DoCopyRect)
-		{
-			CopyEmulatedSurface(&LastLock.Rect, true);
-
-			// Reset copy flag
-			DoCopyRect = false;
+			// Blt surface directly to GDI
+			if (Config.DdrawWriteToGDI && (IsPrimarySurface() || IsBackBuffer()))
+			{
+				CopyEmulatedSurfaceToGDI(UnLockRect);
+			}
+			// Copy emulated surface to real texture
+			else
+			{
+				CopyEmulatedSurface(&UnLockRect, true);
+			}
 		}
 		hr = DD_OK;
 	}
@@ -4150,8 +4150,14 @@ HRESULT m_IDirectDrawSurfaceX::SetUnlock(BOOL isSkipScene)
 
 HRESULT m_IDirectDrawSurfaceX::LockEmulatedSurface(D3DLOCKED_RECT* pLockedRect, LPRECT lpDestRect)
 {
-	if (!pLockedRect || !emu || !emu->surfacepBits)
+	if (!pLockedRect)
 	{
+		return DDERR_GENERIC;
+	}
+	if (!emu || !emu->surfacepBits)
+	{
+		pLockedRect->Pitch = 0;
+		pLockedRect->pBits = nullptr;
 		return DDERR_GENERIC;
 	}
 
@@ -4404,10 +4410,10 @@ HRESULT m_IDirectDrawSurfaceX::ColorFill(RECT* pRect, D3DCOLOR dwFillColor)
 
 	HRESULT hr = DD_OK;
 	bool UnlockDest = false;
+	RECT DestRect = {};
 
 	do {
 		// Check and copy rect
-		RECT DestRect = {};
 		if (!CheckCoordinates(&DestRect, pRect))
 		{
 			hr = DDERR_INVALIDRECT;
@@ -4466,7 +4472,7 @@ HRESULT m_IDirectDrawSurfaceX::ColorFill(RECT* pRect, D3DCOLOR dwFillColor)
 	// Unlock surfaces if needed
 	if (UnlockDest)
 	{
-		SetUnlock(true);
+		SetUnlock(DestRect, true);
 	}
 
 	return hr;
@@ -4519,32 +4525,20 @@ HRESULT m_IDirectDrawSurfaceX::CopySurface(m_IDirectDrawSurfaceX* pSourceSurface
 
 	HRESULT hr = DD_OK;
 	bool UnlockSrc = false, UnlockDest = false;
+	RECT SrcRect, DestRect = {};
 	bool IsCriticalSectionSet = false;
 
 	do {
+		// Check and copy rect and do clipping
+		if (!pSourceSurface->CheckCoordinates(&SrcRect, pSourceRect) || !CheckCoordinates(&DestRect, pDestRect))
+		{
+			hr = DDERR_INVALIDRECT;
+			break;
+		}
+
 		// Get source and dest format
 		D3DFORMAT SrcFormat = pSourceSurface->GetSurfaceFormat();
 		D3DFORMAT DestFormat = GetSurfaceFormat();
-
-		// Get source and dest rect
-		RECT SrcRect = { 0, 0, (LONG)pSourceSurface->GetWidth(), (LONG)pSourceSurface->GetHeight() };
-		RECT DestRect = { 0, 0, (LONG)surfaceDesc2.dwWidth, (LONG)surfaceDesc2.dwHeight };
-
-		if (pSourceRect)
-		{
-			SrcRect.left = pSourceRect->left;
-			SrcRect.top = pSourceRect->top;
-			SrcRect.right = pSourceRect->right;
-			SrcRect.bottom = pSourceRect->bottom;
-		}
-
-		if (pDestRect)
-		{
-			DestRect.left = pDestRect->left;
-			DestRect.top = pDestRect->top;
-			DestRect.right = pDestRect->right;
-			DestRect.bottom = pDestRect->bottom;
-		}
 
 		// Get copy flags
 		bool IsStretchRect = (abs((DestRect.right - DestRect.left) - (SrcRect.right - SrcRect.left)) > 1 || abs((DestRect.bottom - DestRect.top) - (SrcRect.bottom - SrcRect.top)) > 1);
@@ -4553,16 +4547,8 @@ HRESULT m_IDirectDrawSurfaceX::CopySurface(m_IDirectDrawSurfaceX* pSourceSurface
 		bool IsMirrorUpDown = ((dwFlags & DDBLTFX_MIRRORUPDOWN) != 0);
 		bool UseQuickCopy = (!IsStretchRect && !IsColorKey && !IsMirrorLeftRight);
 
-		// Check and copy rect and do clipping
-		if (!pSourceSurface->CheckCoordinates(&SrcRect, pSourceRect) || !CheckCoordinates(&DestRect, pDestRect))
-		{
-			hr = DDERR_INVALIDRECT;
-			break;
-		}
-
 		// Use D3DXLoadSurfaceFromSurface to copy the surface
-		if (!Config.DdrawReadFromGDI && !Config.DdrawWriteToGDI &&
-			!pSourceSurface->IsUsingEmulation() && !IsUsingEmulation() &&
+		if (!Config.DdrawReadFromGDI && !Config.DdrawWriteToGDI && !IsUsingEmulation() &&
 			SrcFormat != D3DFMT_P8 && DestFormat != D3DFMT_P8 &&
 			!IsMirrorLeftRight && !IsMirrorUpDown && !IsColorKey)
 		{
@@ -4581,6 +4567,8 @@ HRESULT m_IDirectDrawSurfaceX::CopySurface(m_IDirectDrawSurfaceX* pSourceSurface
 
 				if (SUCCEEDED(s_hr))
 				{
+					UpdatePaletteData();
+
 					hr = DD_OK;
 					break;
 				}
@@ -4662,7 +4650,7 @@ HRESULT m_IDirectDrawSurfaceX::CopySurface(m_IDirectDrawSurfaceX* pSourceSurface
 			SrcLockRect.Pitch = DestPitch;
 			if (UnlockSrc)
 			{
-				pSourceSurface->SetUnlock(true);
+				pSourceSurface->SetUnlock(SrcRect, true);
 				UnlockSrc = false;
 			}
 		}
@@ -4775,20 +4763,20 @@ HRESULT m_IDirectDrawSurfaceX::CopySurface(m_IDirectDrawSurfaceX* pSourceSurface
 	}
 
 	// Unlock surfaces if needed
-	if (UnlockDest)
-	{
-		SetUnlock(true);
-	}
 	if (UnlockSrc)
 	{
-		pSourceSurface->SetUnlock(true);
+		pSourceSurface->SetUnlock(SrcRect, true);
+	}
+	if (UnlockDest)
+	{
+		SetUnlock(DestRect, true);
 	}
 
 	// Return
 	return hr;
 }
 
-// Copy from emulated surface
+// Copy from emulated surface to real surface
 HRESULT m_IDirectDrawSurfaceX::CopyEmulatedSurface(LPRECT lpDestRect, bool CopyToRealSurface)
 {
 	if (!emu || !emu->surfaceDC || !emu->surfacepBits)
@@ -4808,27 +4796,60 @@ HRESULT m_IDirectDrawSurfaceX::CopyEmulatedSurface(LPRECT lpDestRect, bool CopyT
 			break;
 		}
 
+		// Get lock for emulated surface
+		D3DLOCKED_RECT EmulatedLockRect;
+		if (FAILED(LockEmulatedSurface(&EmulatedLockRect, &DestRect)))
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: could not get emulated surface lock!");
+			hr = DDERR_GENERIC;
+			break;
+		}
+
 		UpdatePaletteData();
 
+		// Use D3DXLoadSurfaceFromMemory to copy the surface
+		if (CopyToRealSurface && emu && emu->surfacepBits && EmulatedLockRect.Pitch)
+		{
+			IDirect3DSurface9* pDestSurfaceD9 = GetD3D9Surface();
+
+			if (pDestSurfaceD9)
+			{
+				D3DSURFACE_DESC Desc = {};
+				pDestSurfaceD9->GetDesc(&Desc);
+
+				HRESULT s_hr = D3DXLoadSurfaceFromMemory(pDestSurfaceD9, nullptr, &DestRect, emu->surfacepBits, Desc.Format, EmulatedLockRect.Pitch, nullptr, &DestRect, D3DX_FILTER_NONE, 0);
+
+				if (SUCCEEDED(s_hr))
+				{
+					hr = DD_OK;
+					break;
+				}
+			}
+		}
+
 		// Check if destination surface is not locked then lock it
-		D3DLOCKED_RECT EmulatedLockRect, SurfaceLockRect = { NULL };
+		D3DLOCKED_RECT SurfaceLockRect;
 		if (surfaceTexture)
 		{
-			surfaceTexture->LockRect(0, &SurfaceLockRect, &DestRect, (!CopyToRealSurface) ? D3DLOCK_READONLY : 0);
+			if (FAILED(surfaceTexture->LockRect(0, &SurfaceLockRect, &DestRect, (!CopyToRealSurface) ? D3DLOCK_READONLY : 0)))
+			{
+				LOG_LIMIT(100, __FUNCTION__ << " Error: could not lock source surface " << DestRect);
+				hr = (IsSurfaceLocked()) ? DDERR_SURFACEBUSY : DDERR_GENERIC;
+				break;
+			}
 		}
 		else if (surface3D)
 		{
-			surface3D->LockRect(&SurfaceLockRect, &DestRect, (!CopyToRealSurface) ? D3DLOCK_READONLY : 0);
+			if (FAILED(surface3D->LockRect(&SurfaceLockRect, &DestRect, (!CopyToRealSurface) ? D3DLOCK_READONLY : 0)))
+			{
+				LOG_LIMIT(100, __FUNCTION__ << " Error: could not lock source surface " << DestRect);
+				hr = (IsSurfaceLocked()) ? DDERR_SURFACEBUSY : DDERR_GENERIC;
+				break;
+			}
 		}
 		else
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Error: could not find surface!");
-			hr = DDERR_GENERIC;
-			break;
-		}
-		if (FAILED(LockEmulatedSurface(&EmulatedLockRect, &DestRect)) || FAILED(hr))
-		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error: could not lock surface!");
 			hr = DDERR_GENERIC;
 			break;
 		}

@@ -64,6 +64,7 @@ private:
 	{
 		bool bEvenScanlines = false;
 		bool bOddScanlines = false;
+		bool ReadOnly = false;
 		DWORD ScanlineWidth = 0;
 		std::vector<BYTE> EvenScanLine;
 		std::vector<BYTE> OddScanLine;
@@ -105,7 +106,6 @@ private:
 	DWORD LastPaletteUSN = 0;			// The USN that was used last time the palette was updated
 	bool PaletteFirstRun = true;
 	bool ClipperFirstRun = true;
-	bool DoCopyRect = false;
 
 	// Direct3D9 vars
 	LPDIRECT3DDEVICE9 *d3d9Device = nullptr;			// Direct3D9 Device
@@ -200,7 +200,7 @@ private:
 	// Locking rect coordinates
 	bool CheckCoordinates(LPRECT lpOutRect, LPRECT lpInRect);
 	HRESULT SetLock(D3DLOCKED_RECT* pLockedRect, LPRECT lpDestRect, DWORD dwFlags, BOOL isSkipScene = false);
-	HRESULT SetUnlock(BOOL isSkipScene = false);
+	HRESULT SetUnlock(RECT &UnLockRect, BOOL isSkipScene = false);
 	HRESULT LockEmulatedSurface(D3DLOCKED_RECT* pLockedRect, LPRECT lpDestRect);
 	void SetDirtyFlag();
 	void BeginWritePresent(bool isSkipScene = false);
