@@ -1767,6 +1767,11 @@ HRESULT m_IDirectDrawX::WaitForVerticalBlank(DWORD dwFlags, HANDLE hEvent)
 			return DDERR_GENERIC;
 		}
 
+		if (Config.ForceVsyncMode)
+		{
+			return DD_OK;
+		}
+
 		D3DRASTER_STATUS RasterStatus;
 
 		// Check flags
@@ -3049,7 +3054,10 @@ void m_IDirectDrawX::AdjustVidMemory(LPDWORD lpdwTotal, LPDWORD lpdwFree)
 
 void m_IDirectDrawX::SetVsync()
 {
-	EnableWaitVsync = true;
+	if (!Config.ForceVsyncMode)
+	{
+		EnableWaitVsync = true;
+	}
 }
 
 // Do d3d9 Present

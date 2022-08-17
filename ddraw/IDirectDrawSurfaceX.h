@@ -372,8 +372,10 @@ public:
 	bool IsSurface3D() { return (surfaceDesc2.ddsCaps.dwCaps & DDSCAPS_3DDEVICE) != 0; }
 	bool IsTexture() { return (surfaceDesc2.ddsCaps.dwCaps & DDSCAPS_TEXTURE) != 0; }
 	bool IsSurfaceManaged() { return (surfaceDesc2.ddsCaps.dwCaps2 & (DDSCAPS2_TEXTUREMANAGE | DDSCAPS2_D3DTEXTUREMANAGE)) != 0; }
+	bool IsUsingEmulation() { return IsSurfaceEmulated; }
 	LPDIRECT3DSURFACE9 Get3DSurface();
 	LPDIRECT3DTEXTURE9 Get3DTexture();
+	LPDIRECT3DSURFACE9 GetD3D9Surface();
 	void ClearTexture() { attachedTexture = nullptr; }
 	void SetWrapperSurfaceSize(DWORD Height, DWORD Width) { DsWrapper.Width = Width; DsWrapper.Height = Height; }
 

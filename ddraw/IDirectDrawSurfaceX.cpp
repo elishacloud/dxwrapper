@@ -20,6 +20,7 @@
 
 #include "ddraw.h"
 #include "d3d9ShaderPalette.h"
+#include "d3dx9.h"
 #include "Utils\Utils.h"
 
 extern float ScaleDDWidthRatio;
@@ -2826,6 +2827,22 @@ LPDIRECT3DTEXTURE9 m_IDirectDrawSurfaceX::Get3DTexture()
 	return surfaceTexture;
 }
 
+LPDIRECT3DSURFACE9 m_IDirectDrawSurfaceX::GetD3D9Surface()
+{
+	if (surfaceTexture)
+	{
+		if (contextSurface || (!contextSurface && SUCCEEDED(surfaceTexture->GetSurfaceLevel(0, &contextSurface))))
+		{
+			return contextSurface;
+		}
+	}
+	else if (surface3D)
+	{
+		return surface3D;
+	}
+	return nullptr;
+}
+
 HRESULT m_IDirectDrawSurfaceX::CheckInterface(char *FunctionName, bool CheckD3DDevice, bool CheckD3DSurface)
 {
 	// Check for device
@@ -4503,36 +4520,9 @@ HRESULT m_IDirectDrawSurfaceX::CopySurface(m_IDirectDrawSurfaceX* pSourceSurface
 	bool IsCriticalSectionSet = false;
 
 	do {
-		D3DLOCKED_RECT SrcLockRect, DestLockRect;
-		DWORD DestBitCount = surfaceBitCount;
+		// Get source and dest format
 		D3DFORMAT SrcFormat = pSourceSurface->GetSurfaceFormat();
 		D3DFORMAT DestFormat = GetSurfaceFormat();
-
-		// Get byte count
-		DWORD ByteCount = DestBitCount / 8;
-		if (!ByteCount || ByteCount > 4)
-		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error: wrong bit count " << DestBitCount);
-			hr = DDERR_GENERIC;
-			break;
-		}
-
-		// Check source and destination format
-		bool FormatMismatch = false;
-		if (SrcFormat == D3DFMT_R5G6B5 && (DestFormat == D3DFMT_A8R8G8B8 || DestFormat == D3DFMT_X8R8G8B8))
-		{
-			FormatMismatch = true;
-		}
-		else if (!(SrcFormat == DestFormat ||
-			((SrcFormat == D3DFMT_A1R5G5B5 || SrcFormat == D3DFMT_X1R5G5B5) && (DestFormat == D3DFMT_A1R5G5B5 || DestFormat == D3DFMT_X1R5G5B5)) ||
-			((SrcFormat == D3DFMT_A4R4G4B4 || SrcFormat == D3DFMT_X4R4G4B4) && (DestFormat == D3DFMT_A4R4G4B4 || DestFormat == D3DFMT_X4R4G4B4)) ||
-			((SrcFormat == D3DFMT_A8R8G8B8 || SrcFormat == D3DFMT_X8R8G8B8) && (DestFormat == D3DFMT_A8R8G8B8 || DestFormat == D3DFMT_X8R8G8B8)) ||
-			((SrcFormat == D3DFMT_A8B8G8R8 || SrcFormat == D3DFMT_X8B8G8R8) && (DestFormat == D3DFMT_A8B8G8R8 || DestFormat == D3DFMT_X8B8G8R8))))
-		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error: not supported for specified source and destination formats! " << SrcFormat << "-->" << DestFormat);
-			hr = DDERR_GENERIC;
-			break;
-		}
 
 		// Get source and dest rect
 		RECT SrcRect = { 0, 0, (LONG)pSourceSurface->GetWidth(), (LONG)pSourceSurface->GetHeight() };
@@ -4568,6 +4558,60 @@ HRESULT m_IDirectDrawSurfaceX::CopySurface(m_IDirectDrawSurfaceX* pSourceSurface
 			break;
 		}
 
+		// Use D3DXLoadSurfaceFromSurface to copy the surface
+		if (!Config.DdrawReadFromGDI && !Config.DdrawWriteToGDI &&
+			!pSourceSurface->IsUsingEmulation() && !IsUsingEmulation() &&
+			SrcFormat != D3DFMT_P8 && DestFormat != D3DFMT_P8 &&
+			!IsMirrorLeftRight && !IsMirrorUpDown && !IsColorKey)
+		{
+			IDirect3DSurface9* pSourceSurfaceD9 = pSourceSurface->GetD3D9Surface();
+			IDirect3DSurface9* pDestSurfaceD9 = GetD3D9Surface();
+
+			if (pSourceSurfaceD9 && pDestSurfaceD9)
+			{
+				DWORD DX3XFilter =
+					(Filter & D3DTEXF_LINEAR || IsStretchRect) ? D3DX_FILTER_LINEAR :
+					(Filter & D3DTEXF_POINT) ? D3DX_FILTER_POINT :
+					(Filter & D3DTEXF_NONE) ? D3DX_FILTER_NONE :
+					D3DX_FILTER_POINT;
+
+				HRESULT s_hr = D3DXLoadSurfaceFromSurface(pDestSurfaceD9, nullptr, &DestRect, pSourceSurfaceD9, nullptr, &SrcRect, DX3XFilter, 0);
+
+				if (SUCCEEDED(s_hr))
+				{
+					hr = DD_OK;
+					break;
+				}
+			}
+		}
+
+		// Get byte count
+		DWORD DestBitCount = surfaceBitCount;
+		DWORD ByteCount = DestBitCount / 8;
+		if (!ByteCount || ByteCount > 4)
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: wrong bit count " << DestBitCount);
+			hr = DDERR_GENERIC;
+			break;
+		}
+
+		// Check source and destination format
+		bool FormatMismatch = false;
+		if (SrcFormat == D3DFMT_R5G6B5 && (DestFormat == D3DFMT_A8R8G8B8 || DestFormat == D3DFMT_X8R8G8B8))
+		{
+			FormatMismatch = true;
+		}
+		else if (!(SrcFormat == DestFormat ||
+			((SrcFormat == D3DFMT_A1R5G5B5 || SrcFormat == D3DFMT_X1R5G5B5) && (DestFormat == D3DFMT_A1R5G5B5 || DestFormat == D3DFMT_X1R5G5B5)) ||
+			((SrcFormat == D3DFMT_A4R4G4B4 || SrcFormat == D3DFMT_X4R4G4B4) && (DestFormat == D3DFMT_A4R4G4B4 || DestFormat == D3DFMT_X4R4G4B4)) ||
+			((SrcFormat == D3DFMT_A8R8G8B8 || SrcFormat == D3DFMT_X8R8G8B8) && (DestFormat == D3DFMT_A8R8G8B8 || DestFormat == D3DFMT_X8R8G8B8)) ||
+			((SrcFormat == D3DFMT_A8B8G8R8 || SrcFormat == D3DFMT_X8B8G8R8) && (DestFormat == D3DFMT_A8B8G8R8 || DestFormat == D3DFMT_X8B8G8R8))))
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: not supported for specified source and destination formats! " << SrcFormat << "-->" << DestFormat);
+			hr = DDERR_GENERIC;
+			break;
+		}
+
 		// Get width and height of rect
 		LONG SrcRectWidth = SrcRect.right - SrcRect.left;
 		LONG SrcRectHeight = SrcRect.bottom - SrcRect.top;
@@ -4583,6 +4627,7 @@ HRESULT m_IDirectDrawSurfaceX::CopySurface(m_IDirectDrawSurfaceX* pSourceSurface
 		}
 
 		// Check if source surface is not locked then lock it
+		D3DLOCKED_RECT SrcLockRect;
 		if (FAILED(pSourceSurface->SetLock(&SrcLockRect, &SrcRect, D3DLOCK_READONLY, true)))
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Error: could not lock source surface " << SrcRect);
@@ -4621,6 +4666,7 @@ HRESULT m_IDirectDrawSurfaceX::CopySurface(m_IDirectDrawSurfaceX* pSourceSurface
 		}
 
 		// Check if destination surface is not locked then lock it
+		D3DLOCKED_RECT DestLockRect;
 		if (FAILED(SetLock(&DestLockRect, &DestRect, 0, true)))
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Error: could not lock destination surface " << DestRect);

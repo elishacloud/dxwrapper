@@ -6,7 +6,11 @@
 
 #include <d3d9.h>
 
-#define D3DX_FILTER_NONE 1
+#define D3DX_FILTER_NONE             (1 << 0)
+#define D3DX_FILTER_POINT            (2 << 0)
+#define D3DX_FILTER_LINEAR           (3 << 0)
+#define D3DX_FILTER_TRIANGLE         (4 << 0)
+#define D3DX_FILTER_BOX              (5 << 0)
 
 #define D3DXASM_DEBUG 0x0001
 #define D3DXASM_SKIPVALIDATION  0x0010
