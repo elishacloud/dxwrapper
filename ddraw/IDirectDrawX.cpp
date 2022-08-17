@@ -622,9 +622,9 @@ HRESULT m_IDirectDrawX::CreateSurface2(LPDDSURFACEDESC2 lpDDSurfaceDesc2, LPDIRE
 			AntiAliasing = ((lpDDSurfaceDesc2->ddsCaps.dwCaps2 & DDSCAPS2_HINTANTIALIASING) && (lpDDSurfaceDesc2->ddsCaps.dwCaps & DDSCAPS_3DDEVICE));
 
 			// Check if there is a change in the present parameters
-			if ((!d3d9Device && displayWidth && displayHeight) || (d3d9Device && AntiAliasing != OldAntiAliasing))
+			if (d3d9Device && AntiAliasing != OldAntiAliasing)
 			{
-				// Create d3d9 device
+				// Recreate d3d9 device
 				CreateD3D9Device();
 			}
 		}
@@ -1523,7 +1523,7 @@ HRESULT m_IDirectDrawX::SetCooperativeLevel(HWND hWnd, DWORD dwFlags)
 			LastFUPPreserve != FUPPreserve ||
 			LastNoWindowChanges != NoWindowChanges))
 		{
-			// Recreate d3d9device
+			// Recreate d3d9 device
 			CreateD3D9Device();
 		}
 

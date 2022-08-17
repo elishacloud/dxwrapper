@@ -12,6 +12,11 @@
 #define D3DX_FILTER_TRIANGLE         (4 << 0)
 #define D3DX_FILTER_BOX              (5 << 0)
 
+#define D3DX_FILTER_MIRROR_U         (1 << 16)
+#define D3DX_FILTER_MIRROR_V         (2 << 16)
+#define D3DX_FILTER_MIRROR_W         (4 << 16)
+#define D3DX_FILTER_MIRROR           (7 << 16)
+
 #define D3DXASM_DEBUG 0x0001
 #define D3DXASM_SKIPVALIDATION  0x0010
 
@@ -57,6 +62,7 @@ DECLARE_INTERFACE_(ID3DXBuffer, IUnknown)
 
 typedef ID3DXBuffer ID3DBlob;
 
+HRESULT WINAPI D3DXCreateTexture(LPDIRECT3DDEVICE9 pDevice, UINT Width, UINT Height, UINT MipLevels, DWORD Usage, D3DFORMAT Format, D3DPOOL Pool, LPDIRECT3DTEXTURE9* ppTexture);
 HRESULT WINAPI D3DXAssembleShader(LPCSTR pSrcData, UINT SrcDataLen, const D3DXMACRO *pDefines, LPD3DXINCLUDE pInclude, DWORD Flags, LPD3DXBUFFER *ppShader, LPD3DXBUFFER *ppErrorMsgs);
 HRESULT WINAPI D3DXDisassembleShader(const DWORD *pShader, BOOL EnableColorCode, LPCSTR pComments, LPD3DXBUFFER *ppDisassembly);
 HRESULT WINAPI D3DXLoadSurfaceFromSurface(LPDIRECT3DSURFACE9 pDestSurface, const PALETTEENTRY *pDestPalette, const RECT *pDestRect, LPDIRECT3DSURFACE9 pSrcSurface, const PALETTEENTRY *pSrcPalette, const RECT *pSrcRect, DWORD Filter, D3DCOLOR ColorKey);
