@@ -489,7 +489,9 @@ HRESULT m_IDirectDrawSurfaceX::Blt(LPRECT lpDestRect, LPDIRECTDRAWSURFACE7 lpDDS
 				(dwFlags & DDBLT_KEYDEST) ? surfaceDesc2.ddckCKDestBlt :
 				(dwFlags & DDBLT_KEYSRC) ? lpDDSrcSurfaceX->surfaceDesc2.ddckCKSrcBlt : surfaceDesc2.ddckCKDestBlt;
 
-			hr = CopySurface(lpDDSrcSurfaceX, lpSrcRect, lpDestRect, D3DTEXF_NONE, ColorKey, Flags);
+			D3DTEXTUREFILTERTYPE Filter = ((lpDDBltFx && dwFlags & DDBLT_DDFX) && (lpDDBltFx->dwDDFX & DDBLTFX_ARITHSTRETCHY)) ? D3DTEXF_LINEAR : D3DTEXF_NONE;
+
+			hr = CopySurface(lpDDSrcSurfaceX, lpSrcRect, lpDestRect, Filter, ColorKey, Flags);
 
 		} while (false);
 
@@ -4570,9 +4572,9 @@ HRESULT m_IDirectDrawSurfaceX::CopySurface(m_IDirectDrawSurfaceX* pSourceSurface
 			if (pSourceSurfaceD9 && pDestSurfaceD9)
 			{
 				DWORD DX3XFilter =
-					(Filter & D3DTEXF_LINEAR || IsStretchRect) ? D3DX_FILTER_LINEAR :
+					(Filter & D3DTEXF_LINEAR) ? D3DX_FILTER_LINEAR :
 					(Filter & D3DTEXF_POINT) ? D3DX_FILTER_POINT :
-					(Filter & D3DTEXF_NONE) ? D3DX_FILTER_NONE :
+					(IsStretchRect) ? D3DX_FILTER_LINEAR :
 					D3DX_FILTER_POINT;
 
 				HRESULT s_hr = D3DXLoadSurfaceFromSurface(pDestSurfaceD9, nullptr, &DestRect, pSourceSurfaceD9, nullptr, &SrcRect, DX3XFilter, 0);
