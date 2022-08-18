@@ -9,7 +9,7 @@ private:
 	// For fake emulated locking
 	bool IsLocked = false;
 	bool EmuReadOnly = false;
-	RECT EmuRect = { NULL };
+	RECT EmuRect = {};
 	IDirect3DSurface9* pEmuSurface = nullptr;
 
 public:

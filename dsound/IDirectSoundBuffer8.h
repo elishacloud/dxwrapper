@@ -3,7 +3,7 @@
 struct AUDIOCLIP
 {
 	DWORD ds_ThreadID = 0;
-	CRITICAL_SECTION dics = { NULL };
+	CRITICAL_SECTION dics = {};
 	LPDIRECTSOUNDBUFFER8 ProxyInterface = nullptr;
 	LONG CurrentVolume = 0;
 	HANDLE hTriggerEvent = nullptr;

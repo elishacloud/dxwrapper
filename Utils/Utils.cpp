@@ -93,7 +93,7 @@ namespace Utils
 
 	// Screen settings
 	HDC hDC = nullptr;
-	WORD lpRamp[3 * 256] = { NULL };
+	WORD lpRamp[3 * 256] = {};
 
 	// Declare variables
 	FARPROC pGetProcAddress = nullptr;

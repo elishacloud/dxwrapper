@@ -428,7 +428,7 @@ HRESULT DirectDrawEnumerateHandler(LPVOID lpCallback, LPVOID lpContext, DWORD dw
 		return DDERR_UNSUPPORTED;
 	}
 
-	D3DADAPTER_IDENTIFIER9 Identifier = { NULL };
+	D3DADAPTER_IDENTIFIER9 Identifier = {};
 	int AdapterCount = (!dwFlags) ? 0 : (int)d3d9Object->GetAdapterCount();
 
 	GUID* lpGUID;

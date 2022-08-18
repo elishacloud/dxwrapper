@@ -211,7 +211,7 @@ DWORD Utils::GetWindowHeight(HWND hWnd)
 {
 	if (IsWindow(hWnd))
 	{
-		RECT rect = { NULL };
+		RECT rect = {};
 		GetWindowRect(hWnd, &rect);
 		DWORD Height = abs(rect.right - rect.left);
 		if (GetWindowLong(hWnd, GWL_STYLE) & WS_CAPTION)

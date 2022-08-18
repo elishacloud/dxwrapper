@@ -380,7 +380,7 @@ public:
 class AddressLookupTableDdrawObject
 {
 public:
-	virtual ~AddressLookupTableDdrawObject() { }
+	virtual ~AddressLookupTableDdrawObject() {}
 
 	void DeleteMe()
 	{

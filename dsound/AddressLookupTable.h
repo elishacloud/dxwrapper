@@ -122,7 +122,7 @@ private:
 class AddressLookupTableDsoundObject
 {
 public:
-	virtual ~AddressLookupTableDsoundObject() { }
+	virtual ~AddressLookupTableDsoundObject() {}
 
 	void DeleteMe()
 	{

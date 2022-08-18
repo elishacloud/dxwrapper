@@ -827,7 +827,7 @@ HRESULT m_IDirectDrawX::EnumDisplayModes2(DWORD dwFlags, LPDDSURFACEDESC2 lpDDSu
 		bool DisplayAllModes = (DisplayBitCount != 8 && DisplayBitCount != 16 && DisplayBitCount != 24 && DisplayBitCount != 32);
 
 		// Setup surface desc
-		DDSURFACEDESC2 Desc2 = { NULL };
+		DDSURFACEDESC2 Desc2 = {};
 		Desc2.dwSize = sizeof(DDSURFACEDESC2);
 
 		// Setup display mode
@@ -2463,7 +2463,7 @@ void m_IDirectDrawX::GetFullDisplay(DWORD &Width, DWORD &Height, DWORD& BPP, DWO
 	}
 	else if (isWindowed && IsWindow(hWnd) && !Config.DdrawWriteToGDI)
 	{
-		RECT Rect = { NULL };
+		RECT Rect = {};
 		GetClientRect(hWnd, &Rect);
 		Width = Rect.right - Rect.left;
 		Height = Rect.bottom - Rect.top;
@@ -2620,7 +2620,7 @@ HRESULT m_IDirectDrawX::CreateD3D9Device()
 		{
 			if (isWindowed && IsWindow(hWnd))
 			{
-				RECT Rect = { NULL };
+				RECT Rect = {};
 				GetClientRect(hWnd, &Rect);
 				BackBufferWidth = Rect.right - Rect.left;
 				BackBufferHeight = Rect.bottom - Rect.top;
@@ -2730,7 +2730,7 @@ HRESULT m_IDirectDrawX::CreateD3D9Device()
 			}
 
 			// Get window size
-			RECT NewRect = { NULL };
+			RECT NewRect = {};
 			GetWindowRect(hWnd, &NewRect);
 
 			// Send message about window changes

@@ -3009,7 +3009,7 @@ HRESULT m_IDirectDrawSurfaceX::CreateD3d9Surface()
 	if (!surfaceBackup.empty() && (surfaceTexture || surface3D))
 	{
 		do {
-			D3DLOCKED_RECT LockRect = { NULL };
+			D3DLOCKED_RECT LockRect = {};
 			HRESULT hr = (surfaceTexture) ? surfaceTexture->LockRect(0, &LockRect, nullptr, 0) :
 				(surface3D) ? surface3D->LockRect(&LockRect, nullptr, 0) : DDERR_GENERIC;
 			if (FAILED(hr))
@@ -3376,7 +3376,7 @@ void m_IDirectDrawSurfaceX::ReleaseD9Surface(bool BackupData)
 	{
 		Logging::LogDebug() << __FUNCTION__ << " Storing Direct3D9 texture surface data";
 		do {
-			D3DLOCKED_RECT LockRect = { NULL };
+			D3DLOCKED_RECT LockRect = {};
 			HRESULT hr = (surfaceTexture) ? surfaceTexture->LockRect(0, &LockRect, nullptr, 0) :
 				(surface3D) ? surface3D->LockRect(&LockRect, nullptr, 0) : DDERR_GENERIC;
 			if (FAILED(hr))
@@ -3797,8 +3797,9 @@ void m_IDirectDrawSurfaceX::RestoreScanlines()
 	DWORD RectWidth = LastLock.Rect.right - LastLock.Rect.left;
 	DWORD RectHeight = LastLock.Rect.bottom - LastLock.Rect.top;
 
-	if ((IsPrimarySurface() || IsBackBuffer()) && (LastLock.bEvenScanlines || LastLock.bOddScanlines) && LastLock.LockedRect.pBits &&
-		ByteCount && ByteCount <= 4 && RectWidth == LastLock.ScanlineWidth)
+	if ((IsPrimarySurface() || IsBackBuffer()) && LastLock.LockedRect.pBits &&
+		ByteCount && ByteCount <= 4 && RectWidth == LastLock.ScanlineWidth &&
+		(LastLock.bEvenScanlines || LastLock.bOddScanlines))
 	{
 		DWORD size = RectWidth * ByteCount;
 		BYTE* DestBuffer = (BYTE*)LastLock.LockedRect.pBits;
@@ -3960,10 +3961,6 @@ HRESULT m_IDirectDrawSurfaceX::SetLock(D3DLOCKED_RECT* pLockedRect, LPRECT lpDes
 			return DDERR_GENERIC;
 		}
 
-		// Backup last rect
-		CheckCoordinates(&LastLock.Rect, lpDestRect);
-		LastLock.ReadOnly = ((dwFlags & D3DLOCK_READONLY) != 0);
-
 		// Set new palette data
 		UpdatePaletteData();
 
@@ -4028,6 +4025,7 @@ HRESULT m_IDirectDrawSurfaceX::SetLock(D3DLOCKED_RECT* pLockedRect, LPRECT lpDes
 	LockedWithID = GetCurrentThreadId();
 
 	// Backup last rect before removing scanlines
+	LastLock.ReadOnly = ((dwFlags & D3DLOCK_READONLY) != 0);
 	CheckCoordinates(&LastLock.Rect, lpDestRect);
 	LastLock.LockedRect.pBits = pLockedRect->pBits;
 	LastLock.LockedRect.Pitch = pLockedRect->Pitch;
@@ -4525,7 +4523,7 @@ HRESULT m_IDirectDrawSurfaceX::CopySurface(m_IDirectDrawSurfaceX* pSourceSurface
 
 	HRESULT hr = DD_OK;
 	bool UnlockSrc = false, UnlockDest = false;
-	RECT SrcRect, DestRect = {};
+	RECT SrcRect = {}, DestRect = {};
 	bool IsCriticalSectionSet = false;
 
 	do {
@@ -5066,7 +5064,7 @@ HRESULT m_IDirectDrawSurfaceX::CopyEmulatedSurfaceFromGDI(RECT Rect)
 		return DDERR_GENERIC;
 	}
 
-	RECT WindowRect = { NULL };
+	RECT WindowRect = {};
 	GetClientRect(ddrawParent->GetHwnd(), &WindowRect);
 	MapWindowPoints(ddrawParent->GetHwnd(), HWND_DESKTOP, (LPPOINT)&WindowRect, 2);
 	LONG XOffset = WindowRect.left;
@@ -5093,7 +5091,7 @@ HRESULT m_IDirectDrawSurfaceX::CopyEmulatedSurfaceToGDI(RECT Rect)
 		return DDERR_GENERIC;
 	}
 
-	RECT WindowRect = { NULL };
+	RECT WindowRect = {};
 	MapWindowPoints(ddrawParent->GetHwnd(), HWND_DESKTOP, (LPPOINT)&WindowRect, 2);
 	LONG XOffset = WindowRect.left;
 	LONG YOffset = WindowRect.top;

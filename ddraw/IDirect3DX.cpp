@@ -511,7 +511,7 @@ HRESULT m_IDirect3DX::FindDevice(LPD3DFINDDEVICESEARCH lpD3DFDS, LPD3DFINDDEVICE
 		{
 			bool Found = false;
 			GUID guid;
-			D3DDEVICEDESC7 DeviceDesc7 = { NULL };
+			D3DDEVICEDESC7 DeviceDesc7 = {};
 
 			static HRESULT CALLBACK ConvertCallback(LPSTR lpDeviceDescription, LPSTR lpDeviceName, LPD3DDEVICEDESC7 lpDeviceDesc7, LPVOID lpContext)
 			{
@@ -718,7 +718,7 @@ HRESULT m_IDirect3DX::EnumZBufferFormats(REFCLSID riidDevice, LPD3DENUMPIXELFORM
 		if (riidDevice == IID_IDirect3DRGBDevice || riidDevice == IID_IDirect3DMMXDevice || riidDevice == IID_IDirect3DRefDevice ||
 			riidDevice == IID_IDirect3DHALDevice || riidDevice == IID_IDirect3DTnLHalDevice)
 		{
-			D3DDEVICEDESC7 Desc7 = { NULL };
+			D3DDEVICEDESC7 Desc7 = {};
 			D3DCAPS9 Caps9;
 			ZeroMemory(&Caps9, sizeof(D3DCAPS9));
 			Caps9.DeviceType = (riidDevice == IID_IDirect3DRGBDevice || riidDevice == IID_IDirect3DMMXDevice || riidDevice == IID_IDirect3DRefDevice) ? D3DDEVTYPE_REF :
@@ -728,7 +728,7 @@ HRESULT m_IDirect3DX::EnumZBufferFormats(REFCLSID riidDevice, LPD3DENUMPIXELFORM
 
 			ConvertDeviceDesc(Desc7, Caps9);
 
-			DDPIXELFORMAT PixelFormat = { NULL };
+			DDPIXELFORMAT PixelFormat = {};
 			PixelFormat.dwSize = sizeof(DDPIXELFORMAT);
 
 			// Handle 16bit zBuffer

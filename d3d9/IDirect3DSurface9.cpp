@@ -187,7 +187,7 @@ HRESULT m_IDirect3DSurface9::LockRect(THIS_ D3DLOCKED_RECT* pLockedRect, CONST R
 				{
 					LOG_LIMIT(100, __FUNCTION__ << " Error: copying emulated surface!");
 				}
-				D3DLOCKED_RECT LockedRect = { NULL };
+				D3DLOCKED_RECT LockedRect = {};
 				if (SUCCEEDED(pEmuSurface->LockRect(&LockedRect, &EmuRect, Flags)) && LockedRect.pBits)
 				{
 					pLockedRect->pBits = LockedRect.pBits;

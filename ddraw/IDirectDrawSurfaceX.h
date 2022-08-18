@@ -10,7 +10,7 @@ struct EMUSURFACE
 	void *surfacepBits = nullptr;
 	DWORD surfacePitch = 0;
 	HBITMAP bitmap = nullptr;
-	BYTE bmiMemory[(sizeof(BITMAPINFOHEADER) + sizeof(RGBQUAD) * 256)] = { NULL };
+	BYTE bmiMemory[(sizeof(BITMAPINFOHEADER) + sizeof(RGBQUAD) * 256)] = {};
 	PBITMAPINFO bmi = (PBITMAPINFO)bmiMemory;
 	HGDIOBJ OldDCObject = nullptr;
 	DWORD LastPaletteUSN = 0;
@@ -68,8 +68,8 @@ private:
 		DWORD ScanlineWidth = 0;
 		std::vector<BYTE> EvenScanLine;
 		std::vector<BYTE> OddScanLine;
-		RECT Rect = { NULL };
-		D3DLOCKED_RECT LockedRect = { NULL };
+		RECT Rect = {};
+		D3DLOCKED_RECT LockedRect = {};
 	} LastLock;
 
 	// Convert to Direct3D9
@@ -78,7 +78,7 @@ private:
 	m_IDirectDrawPalette *attachedPalette = nullptr;	// Associated palette
 	m_IDirectDrawClipper *attachedClipper = nullptr;	// Associated clipper
 	m_IDirect3DTextureX *attachedTexture = nullptr;		// Associated texture
-	DDSURFACEDESC2 surfaceDesc2 = { NULL };				// Surface description for this surface
+	DDSURFACEDESC2 surfaceDesc2 = {};					// Surface description for this surface
 	D3DFORMAT surfaceFormat = D3DFMT_UNKNOWN;			// Format for this surface
 	DWORD surfaceBitCount = 0;							// Bit count for this surface
 	DWORD ResetDisplayFlags = 0;						// Flags that need to be reset when display mode changes

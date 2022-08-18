@@ -92,7 +92,7 @@ private:
 class AddressLookupTableDinput8Object
 {
 public:
-	virtual ~AddressLookupTableDinput8Object() { }
+	virtual ~AddressLookupTableDinput8Object() {}
 
 	void DeleteMe()
 	{

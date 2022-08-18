@@ -259,7 +259,7 @@ std::ostream& operator<<(std::ostream& os, const D3DRESOURCETYPE& Resource)
 
 std::ostream& operator<<(std::ostream& os, const DDCAPS& cp)
 {
-	DDCAPS caps = { NULL };
+	DDCAPS caps = {};
 	memcpy(&caps, &cp, min(sizeof(DDCAPS), cp.dwSize));
 	return Logging::LogStruct(os)
 		<< Logging::hex(caps.dwCaps)

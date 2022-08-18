@@ -2097,7 +2097,7 @@ HRESULT m_IDirect3DDeviceX::DrawPrimitiveVB(D3DPRIMITIVETYPE d3dptPrimitiveType,
 	case 7:
 		if (DirectXVersion != 7)
 		{
-			D3DVERTEXBUFFERDESC BufferDesc = { NULL };
+			D3DVERTEXBUFFERDESC BufferDesc = {};
 			if (lpd3dVertexBuffer)
 			{
 				lpd3dVertexBuffer->GetVertexBufferDesc(&BufferDesc);
@@ -2279,7 +2279,7 @@ HRESULT m_IDirect3DDeviceX::DrawIndexedPrimitiveVB(D3DPRIMITIVETYPE d3dptPrimiti
 	case 7:
 		if (DirectXVersion != 7)
 		{
-			D3DVERTEXBUFFERDESC BufferDesc = { NULL };
+			D3DVERTEXBUFFERDESC BufferDesc = {};
 			if (lpd3dVertexBuffer)
 			{
 				lpd3dVertexBuffer->GetVertexBufferDesc(&BufferDesc);

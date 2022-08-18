@@ -32,7 +32,7 @@ HMEMORYMODULE m_wrapper_dll = nullptr;
 HMODULE wrapper_dll = nullptr;
 HMODULE proxy_dll = nullptr;
 
-DXWAPPERSETTINGS DxSettings = { NULL };
+DXWAPPERSETTINGS DxSettings = {};
 
 void WINAPI DxWrapperSettings(DXWAPPERSETTINGS *)
 {

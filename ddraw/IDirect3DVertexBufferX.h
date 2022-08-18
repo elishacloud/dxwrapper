@@ -10,7 +10,7 @@ private:
 
 	// Convert Material
 	m_IDirect3DDeviceX **D3DDeviceInterface = nullptr;
-	D3DVERTEXBUFFERDESC VBDesc = { NULL};
+	D3DVERTEXBUFFERDESC VBDesc = {};
 
 	// Store version wrappers
 	m_IDirect3DVertexBuffer *WrapperInterface;

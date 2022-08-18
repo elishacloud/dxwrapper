@@ -130,7 +130,7 @@ private:
 class AddressLookupTableD3d9Object
 {
 public:
-	virtual ~AddressLookupTableD3d9Object() { }
+	virtual ~AddressLookupTableD3d9Object() {}
 
 	void DeleteMe()
 	{

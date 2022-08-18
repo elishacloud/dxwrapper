@@ -10,15 +10,15 @@ namespace Logging
 }
 
 #pragma warning (disable: 26812)
-typedef enum _DDFOURCC { } DDFOURCC;
-typedef enum _DDERR { } DDERR;
-typedef enum _D3DERR { } D3DERR;
+typedef enum _DDFOURCC {} DDFOURCC;
+typedef enum _DDERR {} DDERR;
+typedef enum _D3DERR {} D3DERR;
 #ifndef DIERR_SET
 #define DIERR_SET
-typedef enum _DIERR { } DIERR;
+typedef enum _DIERR {} DIERR;
 #endif
-typedef enum _DSERR { } DSERR;
-typedef enum _WMMSG { } WMMSG;
+typedef enum _DSERR {} DSERR;
+typedef enum _WMMSG {} WMMSG;
 
 std::ostream& operator<<(std::ostream& os, const DDFOURCC& dwFourCC);
 std::ostream& operator<<(std::ostream& os, const DDERR& ErrCode);
