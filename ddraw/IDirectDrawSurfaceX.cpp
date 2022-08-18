@@ -3249,8 +3249,6 @@ HRESULT m_IDirectDrawSurfaceX::CreateDCSurface()
 	// Create new emulated surface structure
 	emu = new EMUSURFACE;
 
-	LOG_LIMIT(100, __FUNCTION__ << " Creating new emulated surface (" << emu << ")");
-
 	// Add some padding to surface size to a avoid overflow with some games
 	DWORD padding = 200;
 
@@ -4418,6 +4416,65 @@ HRESULT m_IDirectDrawSurfaceX::ColorFill(RECT* pRect, D3DCOLOR dwFillColor)
 			break;
 		}
 
+		// Use D3DXLoadSurfaceFromMemory to color fill the surface
+		if (!IsSurfaceEmulated)
+		{
+			IDirect3DSurface9* pDestSurfaceD9 = GetD3D9Surface();
+
+			if (pDestSurfaceD9)
+			{
+				D3DSURFACE_DESC Desc = {};
+				pDestSurfaceD9->GetDesc(&Desc);
+
+				DWORD ByteCount = GetBitCount(Desc.Format) / 8;
+
+				if (ByteCount && ByteCount <= 4)
+				{
+					D3DCOLOR ColorSurface[4] = {};	// Four bytes for a 2x2 surface
+
+					BYTE* Buffer = (BYTE*)ColorSurface;
+					BYTE* SrcBuffer = (BYTE*)&dwFillColor;
+
+					// Fill 2x2 surface with correct color
+					for (int x = 0; x < 4; x++)
+					{
+						if (surfaceFormat == D3DFMT_B8G8R8 || surfaceFormat == D3DFMT_A8B8G8R8)
+						{
+							*Buffer = SrcBuffer[2];
+							Buffer++;
+							*Buffer = SrcBuffer[1];
+							Buffer++;
+							*Buffer = SrcBuffer[0];
+							Buffer++;
+							if (ByteCount == 4)
+							{
+								*Buffer = (surfaceFormat == D3DFMT_A8B8G8R8) ? SrcBuffer[3] : 0;
+								Buffer++;
+							}
+						}
+						else
+						{
+							for (UINT c = 0; c < ByteCount; c++)
+							{
+								*Buffer = SrcBuffer[c];
+								Buffer++;
+							}
+						}
+					}
+
+					RECT SrcRect = { 0, 0, 2, 2 };
+
+					HRESULT s_hr = D3DXLoadSurfaceFromMemory(pDestSurfaceD9, nullptr, &DestRect, ColorSurface, Desc.Format, ByteCount * 2, nullptr, &SrcRect, D3DX_FILTER_POINT, 0);
+
+					if (SUCCEEDED(s_hr))
+					{
+						hr = DD_OK;
+						break;
+					}
+				}
+			}
+		}
+
 		// Check if surface is not locked then lock it
 		D3DLOCKED_RECT DestLockRect;
 		if (FAILED(SetLock(&DestLockRect, &DestRect, 0, true)))
@@ -4429,7 +4486,23 @@ HRESULT m_IDirectDrawSurfaceX::ColorFill(RECT* pRect, D3DCOLOR dwFillColor)
 		UnlockDest = true;
 
 		// Get byte count
-		DWORD ByteCount = surfaceBitCount / 8;
+		DWORD ByteCount = 0;
+		if (IsSurfaceEmulated)
+		{
+			ByteCount = surfaceBitCount / 8;
+		}
+		else if (surfaceTexture)
+		{
+			D3DSURFACE_DESC Desc = {};
+			surfaceTexture->GetLevelDesc(0, &Desc);
+			ByteCount = GetBitCount(Desc.Format) / 8;
+		}
+		else if (surface3D)
+		{
+			D3DSURFACE_DESC Desc = {};
+			surface3D->GetDesc(&Desc);
+			ByteCount = GetBitCount(Desc.Format) / 8;
+		}
 		if (!ByteCount || ByteCount > 4)
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Error: could not find correct fill color for ByteCount " << ByteCount);
