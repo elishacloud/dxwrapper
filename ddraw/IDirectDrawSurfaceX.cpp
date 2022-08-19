@@ -4438,27 +4438,10 @@ HRESULT m_IDirectDrawSurfaceX::ColorFill(RECT* pRect, D3DCOLOR dwFillColor)
 					// Fill 2x2 surface with correct color
 					for (int x = 0; x < 4; x++)
 					{
-						if (surfaceFormat == D3DFMT_B8G8R8 || surfaceFormat == D3DFMT_A8B8G8R8)
+						for (UINT c = 0; c < ByteCount; c++)
 						{
-							*Buffer = SrcBuffer[2];
+							*Buffer = SrcBuffer[c];
 							Buffer++;
-							*Buffer = SrcBuffer[1];
-							Buffer++;
-							*Buffer = SrcBuffer[0];
-							Buffer++;
-							if (ByteCount == 4)
-							{
-								*Buffer = (surfaceFormat == D3DFMT_A8B8G8R8) ? SrcBuffer[3] : 0;
-								Buffer++;
-							}
-						}
-						else
-						{
-							for (UINT c = 0; c < ByteCount; c++)
-							{
-								*Buffer = SrcBuffer[c];
-								Buffer++;
-							}
 						}
 					}
 
@@ -4885,16 +4868,7 @@ HRESULT m_IDirectDrawSurfaceX::CopyEmulatedSurface(LPRECT lpDestRect, bool CopyT
 
 			if (pDestSurfaceD9)
 			{
-				D3DSURFACE_DESC Desc = {};
-				pDestSurfaceD9->GetDesc(&Desc);
-				D3DFORMAT Format = Desc.Format;
-
-				if (surfaceFormat == D3DFMT_R8G8B8 || surfaceFormat == D3DFMT_B8G8R8 || surfaceFormat == D3DFMT_X8B8G8R8 || surfaceFormat == D3DFMT_A8B8G8R8)
-				{
-					Format = surfaceFormat;
-				}
-
-				HRESULT s_hr = D3DXLoadSurfaceFromMemory(pDestSurfaceD9, nullptr, &DestRect, emu->surfacepBits, Format, EmulatedLockRect.Pitch, nullptr, &DestRect, D3DX_FILTER_NONE, 0);
+				HRESULT s_hr = D3DXLoadSurfaceFromMemory(pDestSurfaceD9, nullptr, &DestRect, emu->surfacepBits, (surfaceFormat == D3DFMT_P8) ? D3DFMT_L8 : surfaceFormat, EmulatedLockRect.Pitch, nullptr, &DestRect, D3DX_FILTER_NONE, 0);
 
 				if (SUCCEEDED(s_hr))
 				{
