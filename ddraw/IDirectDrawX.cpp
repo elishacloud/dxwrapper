@@ -438,7 +438,6 @@ HRESULT m_IDirectDrawX::CreateSurface(LPDDSURFACEDESC lpDDSurfaceDesc, LPDIRECTD
 		Width = lpDDSurfaceDesc->dwWidth;
 		Height = lpDDSurfaceDesc->dwHeight;
 		lpDDSurfaceDesc->dwWidth += lpDDSurfaceDesc->dwWidth % 2;
-		lpDDSurfaceDesc->dwHeight += lpDDSurfaceDesc->dwHeight % 2;
 	}
 
 	HRESULT hr = GetProxyInterfaceV3()->CreateSurface(lpDDSurfaceDesc, (LPDIRECTDRAWSURFACE*)lplpDDSurface, pUnkOuter);
@@ -666,7 +665,6 @@ HRESULT m_IDirectDrawX::CreateSurface2(LPDDSURFACEDESC2 lpDDSurfaceDesc2, LPDIRE
 		Width = lpDDSurfaceDesc2->dwWidth;
 		Height = lpDDSurfaceDesc2->dwHeight;
 		lpDDSurfaceDesc2->dwWidth += lpDDSurfaceDesc2->dwWidth % 2;
-		lpDDSurfaceDesc2->dwHeight += lpDDSurfaceDesc2->dwHeight % 2;
 	}
 
 	HRESULT hr = ProxyInterface->CreateSurface(lpDDSurfaceDesc2, lplpDDSurface, pUnkOuter);

@@ -1685,7 +1685,7 @@ HRESULT m_IDirectDrawSurfaceX::GetSurfaceDesc2(LPDDSURFACEDESC2 lpDDSurfaceDesc2
 			(lpDDSurfaceDesc2->ddpfPixelFormat.dwFlags & DDPF_RGB) && !(lpDDSurfaceDesc2->dwFlags & DDSD_PITCH) && !(lpDDSurfaceDesc2->dwFlags & DDSD_LINEARSIZE))
 		{
 			lpDDSurfaceDesc2->dwFlags |= DDSD_PITCH;
-			lpDDSurfaceDesc2->lPitch = ComputePitch(lpDDSurfaceDesc2->dwWidth, GetBitCount(lpDDSurfaceDesc2->ddpfPixelFormat));
+			lpDDSurfaceDesc2->lPitch = ComputePitch(GetByteAlignedWidth(surfaceDesc2.dwWidth, surfaceBitCount), GetBitCount(lpDDSurfaceDesc2->ddpfPixelFormat));
 		}
 
 		// Return
@@ -2466,7 +2466,6 @@ HRESULT m_IDirectDrawSurfaceX::SetSurfaceDesc(LPDDSURFACEDESC lpDDSurfaceDesc, D
 	{
 		SetWrapperSurfaceSize(lpDDSurfaceDesc->dwWidth, lpDDSurfaceDesc->dwHeight);
 		lpDDSurfaceDesc->dwWidth += lpDDSurfaceDesc->dwWidth % 2;
-		lpDDSurfaceDesc->dwHeight += lpDDSurfaceDesc->dwHeight % 2;
 	}
 
 	return GetProxyInterfaceV3()->SetSurfaceDesc(lpDDSurfaceDesc, dwFlags);
@@ -2506,7 +2505,6 @@ HRESULT m_IDirectDrawSurfaceX::SetSurfaceDesc2(LPDDSURFACEDESC2 lpDDSurfaceDesc2
 	{
 		SetWrapperSurfaceSize(lpDDSurfaceDesc2->dwWidth, lpDDSurfaceDesc2->dwHeight);
 		lpDDSurfaceDesc2->dwWidth += lpDDSurfaceDesc2->dwWidth % 2;
-		lpDDSurfaceDesc2->dwHeight += lpDDSurfaceDesc2->dwHeight % 2;
 	}
 
 	return ProxyInterface->SetSurfaceDesc(lpDDSurfaceDesc2, dwFlags);
@@ -2929,10 +2927,6 @@ HRESULT m_IDirectDrawSurfaceX::CreateD3d9Surface()
 	// Update surface description
 	UpdateSurfaceDesc();
 
-	// Adjust Height and Width
-	DWORD Width = surfaceDesc2.dwWidth + (surfaceDesc2.dwWidth % 2);
-	DWORD Height = surfaceDesc2.dwHeight + (surfaceDesc2.dwHeight % 2);
-
 	// Get texture data
 	surfaceFormat = GetDisplayFormat(surfaceDesc2.ddpfPixelFormat);
 	surfaceBitCount = GetBitCount(surfaceFormat);
@@ -2947,6 +2941,10 @@ HRESULT m_IDirectDrawSurfaceX::CreateD3d9Surface()
 		(surfaceFormat == D3DFMT_A4R4G4B4 || surfaceFormat == D3DFMT_A8B8G8R8) ? D3DFMT_A8R8G8B8 : surfaceFormat;
 	D3DFORMAT Format = (surfaceFormat == D3DFMT_R8G8B8 || surfaceFormat == D3DFMT_B8G8R8 || surfaceFormat == D3DFMT_X8B8G8R8) ? D3DFMT_X8R8G8B8 : (surfaceFormat == D3DFMT_A8B8G8R8) ? D3DFMT_A8R8G8B8 : surfaceFormat;
 	bool UseDynamic = (ddrawParent->IsDynamicTexturesSupported() && !IsTexture() && !(surfaceDesc2.ddsCaps.dwCaps & (DDSCAPS_SYSTEMMEMORY | DDSCAPS_FLIP)) && !Config.DdrawWriteToGDI);
+
+	// Adjust Width to be byte-aligned
+	DWORD Width = GetByteAlignedWidth(surfaceDesc2.dwWidth, surfaceBitCount);
+	DWORD Height = surfaceDesc2.dwHeight;
 
 	Logging::LogDebug() << __FUNCTION__ " (" << this << ") D3d9 Surface size: " << Width << "x" << Height << " Format: " << surfaceFormat;
 
@@ -3178,6 +3176,10 @@ HRESULT m_IDirectDrawSurfaceX::CreateDCSurface()
 		(surfaceDesc2.ddpfPixelFormat.dwFlags & DDPF_RGB) &&																				// Check to make sure it is an RGB surface
 		(surfaceDesc2.ddpfPixelFormat.dwRBitMask && surfaceDesc2.ddpfPixelFormat.dwGBitMask && surfaceDesc2.ddpfPixelFormat.dwBBitMask));	// Check to make sure the masks actually exist
 	
+	// Adjust Width to be byte-aligned
+	DWORD Width = GetByteAlignedWidth(surfaceDesc2.dwWidth, surfaceBitCount);
+	DWORD Height = surfaceDesc2.dwHeight;
+
 	// Check if emulated surface already exists
 	if (emu)
 	{
@@ -3189,7 +3191,7 @@ HRESULT m_IDirectDrawSurfaceX::CreateDCSurface()
 		else
 		{
 			// Check if current emulated surface is still ok
-			if (emu->bmi->bmiHeader.biWidth == (LONG)surfaceDesc2.dwWidth && -emu->bmi->bmiHeader.biHeight == (LONG)surfaceDesc2.dwHeight &&
+			if (emu->bmi->bmiHeader.biWidth == (LONG)Width && -emu->bmi->bmiHeader.biHeight == (LONG)Height &&
 				emu->bmi->bmiHeader.biBitCount == surfaceBitCount &&
 				(!ColorMaskReq || ((DWORD*)emu->bmi->bmiColors)[0] == surfaceDesc2.ddpfPixelFormat.dwRBitMask &&
 				((DWORD*)emu->bmi->bmiColors)[1] == surfaceDesc2.ddpfPixelFormat.dwGBitMask &&
@@ -3221,7 +3223,7 @@ HRESULT m_IDirectDrawSurfaceX::CreateDCSurface()
 		{
 			EMUSURFACE* pEmuSurface = *it;
 
-			if (pEmuSurface->bmi->bmiHeader.biWidth == (LONG)surfaceDesc2.dwWidth && -pEmuSurface->bmi->bmiHeader.biHeight == (LONG)surfaceDesc2.dwHeight &&
+			if (pEmuSurface->bmi->bmiHeader.biWidth == (LONG)Width && -pEmuSurface->bmi->bmiHeader.biHeight == (LONG)Height &&
 				pEmuSurface->bmi->bmiHeader.biBitCount == surfaceBitCount &&
 				(!ColorMaskReq || ((DWORD*)pEmuSurface->bmi->bmiColors)[0] == surfaceDesc2.ddpfPixelFormat.dwRBitMask &&
 				((DWORD*)pEmuSurface->bmi->bmiColors)[1] == surfaceDesc2.ddpfPixelFormat.dwGBitMask &&
@@ -3255,12 +3257,12 @@ HRESULT m_IDirectDrawSurfaceX::CreateDCSurface()
 	// Create device context memory
 	ZeroMemory(emu->bmiMemory, sizeof(emu->bmiMemory));
 	emu->bmi->bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
-	emu->bmi->bmiHeader.biWidth = surfaceDesc2.dwWidth;
-	emu->bmi->bmiHeader.biHeight = -(LONG)(surfaceDesc2.dwHeight + padding);
+	emu->bmi->bmiHeader.biWidth = Width;
+	emu->bmi->bmiHeader.biHeight = -(LONG)(Height + padding);
 	emu->bmi->bmiHeader.biPlanes = 1;
 	emu->bmi->bmiHeader.biBitCount = (WORD)surfaceBitCount;
 	emu->bmi->bmiHeader.biCompression = (ColorMaskReq) ? BI_BITFIELDS : BI_RGB;
-	emu->bmi->bmiHeader.biSizeImage = ((surfaceDesc2.dwWidth * surfaceBitCount + 31) & ~31) / 8 * surfaceDesc2.dwHeight;
+	emu->bmi->bmiHeader.biSizeImage = ((Width * surfaceBitCount + 31) & ~31) / 8 * Height;
 
 	if (surfaceBitCount == 8)
 	{
@@ -3292,10 +3294,10 @@ HRESULT m_IDirectDrawSurfaceX::CreateDCSurface()
 		return DDERR_GENERIC;
 	}
 	emu->bitmap = CreateDIBSection(emu->surfaceDC, emu->bmi, (surfaceBitCount == 8) ? DIB_PAL_COLORS : DIB_RGB_COLORS, (void**)&emu->surfacepBits, nullptr, 0);
-	emu->bmi->bmiHeader.biHeight = -(LONG)surfaceDesc2.dwHeight;
+	emu->bmi->bmiHeader.biHeight = -(LONG)Height;
 	if (!emu->bitmap)
 	{
-		emu->surfacepBits = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, (surfaceDesc2.dwHeight + padding) * emu->surfacePitch);
+		emu->surfacepBits = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, (Height + padding) * emu->surfacePitch);
 	}
 	else
 	{
@@ -3307,7 +3309,7 @@ HRESULT m_IDirectDrawSurfaceX::CreateDCSurface()
 		}
 	}
 	emu->surfacePitch = ComputePitch(emu->bmi->bmiHeader.biWidth, emu->bmi->bmiHeader.biBitCount);
-	emu->surfaceSize = surfaceDesc2.dwHeight * emu->surfacePitch;
+	emu->surfaceSize = Height * emu->surfacePitch;
 	PaletteUSN++;
 
 	return DD_OK;

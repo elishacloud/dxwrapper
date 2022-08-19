@@ -333,6 +333,30 @@ void ConvertCaps(DDCAPS &Caps7, D3DCAPS9 &Caps9)
 	Caps7.dwCurrVideoPorts = 0;
 }
 
+DWORD GetByteAlignedWidth(DWORD Width, DWORD BitCount)
+{
+	if (BitCount == 8 || BitCount == 24)
+	{
+		DWORD mod = Width % 4;
+		if (mod == 0)
+		{
+			return Width;
+		}
+		else
+		{
+			return Width + (4 - mod);
+		}
+	}
+	else if (BitCount == 16)
+	{
+		return Width + (Width % 2);
+	}
+	else
+	{
+		return Width;
+	}
+}
+
 DWORD GetBitCount(DDPIXELFORMAT ddpfPixelFormat)
 {
 	if (ddpfPixelFormat.dwSize != sizeof(DDPIXELFORMAT))
