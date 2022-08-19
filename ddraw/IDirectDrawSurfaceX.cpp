@@ -4887,8 +4887,14 @@ HRESULT m_IDirectDrawSurfaceX::CopyEmulatedSurface(LPRECT lpDestRect, bool CopyT
 			{
 				D3DSURFACE_DESC Desc = {};
 				pDestSurfaceD9->GetDesc(&Desc);
+				D3DFORMAT Format = Desc.Format;
 
-				HRESULT s_hr = D3DXLoadSurfaceFromMemory(pDestSurfaceD9, nullptr, &DestRect, emu->surfacepBits, Desc.Format, EmulatedLockRect.Pitch, nullptr, &DestRect, D3DX_FILTER_NONE, 0);
+				if (surfaceFormat == D3DFMT_R8G8B8 || surfaceFormat == D3DFMT_B8G8R8 || surfaceFormat == D3DFMT_X8B8G8R8 || surfaceFormat == D3DFMT_A8B8G8R8)
+				{
+					Format = surfaceFormat;
+				}
+
+				HRESULT s_hr = D3DXLoadSurfaceFromMemory(pDestSurfaceD9, nullptr, &DestRect, emu->surfacepBits, Format, EmulatedLockRect.Pitch, nullptr, &DestRect, D3DX_FILTER_NONE, 0);
 
 				if (SUCCEEDED(s_hr))
 				{
