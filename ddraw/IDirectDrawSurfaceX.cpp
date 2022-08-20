@@ -4658,8 +4658,8 @@ HRESULT m_IDirectDrawSurfaceX::CopySurface(m_IDirectDrawSurfaceX* pSourceSurface
 		{
 			LONG DestLeft = DestRect.left;
 			LONG DestTop = DestRect.top;
-			LONG DestWidth = DestRect.right - DestRect.left;
-			LONG DestHeight = DestRect.bottom - DestRect.top;
+			LONG DestWidth = DestRectWidth;
+			LONG DestHeight = DestRectHeight;
 
 			if (IsMirrorLeftRight)
 			{
@@ -4689,7 +4689,7 @@ HRESULT m_IDirectDrawSurfaceX::CopySurface(m_IDirectDrawSurfaceX* pSourceSurface
 			BOOL ret = (IsStretchRect || IsMirrorLeftRight || IsMirrorUpDown) ?
 				StretchBlt(emu->surfaceDC, DestLeft, DestTop, DestWidth, DestHeight,
 					pSourceSurface->emu->surfaceDC, SrcRect.left, SrcRect.top, SrcRect.right - SrcRect.left, SrcRect.bottom - SrcRect.top, SRCCOPY) :
-				BitBlt(emu->surfaceDC, DestLeft, DestTop, DestWidth, DestHeight,
+				BitBlt(emu->surfaceDC, DestRect.left, DestRect.top, DestRectWidth, DestRectHeight,
 					pSourceSurface->emu->surfaceDC, SrcRect.left, SrcRect.top, SRCCOPY);
 
 			if (ret)
