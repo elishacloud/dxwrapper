@@ -4617,14 +4617,12 @@ HRESULT m_IDirectDrawSurfaceX::CopySurface(m_IDirectDrawSurfaceX* pSourceSurface
 					(Filter & D3DTEXF_LINEAR) ? D3DX_FILTER_LINEAR :
 					(Filter & D3DTEXF_POINT) ? D3DX_FILTER_POINT :
 					(IsStretchRect) ? D3DX_FILTER_LINEAR :
-					D3DX_FILTER_POINT;
+					D3DX_FILTER_NONE;
 
 				HRESULT s_hr = D3DXLoadSurfaceFromSurface(pDestSurfaceD9, nullptr, &DestRect, pSourceSurfaceD9, nullptr, &SrcRect, DX3XFilter, 0);
 
 				if (SUCCEEDED(s_hr))
 				{
-					UpdatePaletteData();
-
 					hr = DD_OK;
 					break;
 				}
