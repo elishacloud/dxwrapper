@@ -4597,11 +4597,32 @@ HRESULT m_IDirectDrawSurfaceX::CopySurface(m_IDirectDrawSurfaceX* pSourceSurface
 		D3DFORMAT DestFormat = GetSurfaceFormat();
 
 		// Get copy flags
-		bool IsStretchRect = (abs((DestRect.right - DestRect.left) - (SrcRect.right - SrcRect.left)) > 1 || abs((DestRect.bottom - DestRect.top) - (SrcRect.bottom - SrcRect.top)) > 1);
+		bool IsStretchRect = 
+			abs((pSourceRect ? pSourceRect->right - pSourceRect->left : SrcRect.right - SrcRect.left) -	// SrcWidth
+			(pDestRect ? pDestRect->right - pDestRect->left : DestRect.right - DestRect.left)) > 1 ||	// DestWidth
+			abs((pSourceRect ? pSourceRect->bottom - pSourceRect->top : SrcRect.bottom - SrcRect.top) -	// SrcHeight
+			(pDestRect ? pDestRect->bottom - pDestRect->top : DestRect.bottom - DestRect.top)) > 1;		// DestHeight
 		bool IsColorKey = ((dwFlags & DDBLT_KEYDEST) != 0);
 		bool IsMirrorLeftRight = ((dwFlags & DDBLTFX_MIRRORLEFTRIGHT) != 0);
 		bool IsMirrorUpDown = ((dwFlags & DDBLTFX_MIRRORUPDOWN) != 0);
-		bool UseQuickCopy = (!IsStretchRect && !IsColorKey && !IsMirrorLeftRight);
+
+		// Get width and height of rect
+		LONG SrcRectWidth = SrcRect.right - SrcRect.left;
+		LONG SrcRectHeight = SrcRect.bottom - SrcRect.top;
+		LONG DestRectWidth = DestRect.right - DestRect.left;
+		LONG DestRectHeight = DestRect.bottom - DestRect.top;
+
+		if (!IsStretchRect)
+		{
+			SrcRectWidth = min(SrcRectWidth, DestRectWidth);
+			SrcRectHeight = min(SrcRectHeight, DestRectHeight);
+			DestRectWidth = SrcRectWidth;
+			DestRectHeight = SrcRectHeight;
+			SrcRect.right = SrcRect.left + SrcRectWidth;
+			SrcRect.bottom = SrcRect.top + SrcRectHeight;
+			DestRect.right = DestRect.left + DestRectWidth;
+			DestRect.bottom = DestRect.top + DestRectHeight;
+		}
 
 		// Use D3DXLoadSurfaceFromSurface to copy the surface
 		if (!Config.DdrawReadFromGDI && !Config.DdrawWriteToGDI && !IsUsingEmulation() &&
@@ -4707,20 +4728,6 @@ HRESULT m_IDirectDrawSurfaceX::CopySurface(m_IDirectDrawSurfaceX* pSourceSurface
 			break;
 		}
 
-		// Get width and height of rect
-		LONG SrcRectWidth = SrcRect.right - SrcRect.left;
-		LONG SrcRectHeight = SrcRect.bottom - SrcRect.top;
-		LONG DestRectWidth = DestRect.right - DestRect.left;
-		LONG DestRectHeight = DestRect.bottom - DestRect.top;
-
-		if (!IsStretchRect)
-		{
-			SrcRectWidth = min(SrcRectWidth, DestRectWidth);
-			SrcRectHeight = min(SrcRectHeight, DestRectHeight);
-			DestRectWidth = min(SrcRectWidth, DestRectWidth);
-			DestRectHeight = min(SrcRectHeight, DestRectHeight);
-		}
-
 		// Check if source surface is not locked then lock it
 		D3DLOCKED_RECT SrcLockRect;
 		if (FAILED(pSourceSurface->SetLock(&SrcLockRect, &SrcRect, D3DLOCK_READONLY, true)))
@@ -4782,8 +4789,8 @@ HRESULT m_IDirectDrawSurfaceX::CopySurface(m_IDirectDrawSurfaceX* pSourceSurface
 			DestBuffer += DestLockRect.Pitch * (DestRectHeight - 1);
 		}
 
-		// Copy memory (simple)
-		if (UseQuickCopy)
+		// Simple memory copy (UseQuickCopy)
+		if (!IsStretchRect && !IsColorKey && !IsMirrorLeftRight)
 		{
 			if (FormatMismatch)
 			{
