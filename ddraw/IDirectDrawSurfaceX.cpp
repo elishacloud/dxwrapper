@@ -4630,6 +4630,43 @@ HRESULT m_IDirectDrawSurfaceX::CopySurface(m_IDirectDrawSurfaceX* pSourceSurface
 			}
 		}
 
+		// Use BitBlt and D3DX to copy the surface
+		if (IsUsingEmulation() && pSourceSurface->IsUsingEmulation() &&
+			SrcFormat == DestFormat &&
+			!IsMirrorLeftRight && !IsMirrorUpDown && !IsColorKey)
+		{
+			if (emu && emu->surfaceDC && pSourceSurface->emu && pSourceSurface->emu->surfaceDC)
+			{
+				// Set new palette data
+				if (DestFormat == D3DFMT_P8)
+				{
+					UpdatePaletteData();
+					pSourceSurface->UpdatePaletteData();
+				}
+
+				// Set stretch mode
+				if (IsStretchRect)
+				{
+					SetStretchBltMode(emu->surfaceDC, HALFTONE);
+					SetStretchBltMode(pSourceSurface->emu->surfaceDC, HALFTONE);
+				}
+
+				BOOL ret = (IsStretchRect) ?
+					StretchBlt(emu->surfaceDC, DestRect.left, DestRect.top, DestRect.right - DestRect.left, DestRect.bottom - DestRect.top,
+						pSourceSurface->emu->surfaceDC, SrcRect.left, SrcRect.top, SrcRect.right - SrcRect.left, SrcRect.bottom - SrcRect.top, SRCCOPY) :
+					BitBlt(emu->surfaceDC, DestRect.left, DestRect.top, DestRect.right - DestRect.left, DestRect.bottom - DestRect.top,
+						pSourceSurface->emu->surfaceDC, SrcRect.left, SrcRect.top, SRCCOPY);
+
+				if (ret)
+				{
+					CopyEmulatedSurface(&DestRect, true);
+
+					hr = DD_OK;
+					break;
+				}
+			}
+		}
+
 		// Get byte count
 		DWORD DestBitCount = surfaceBitCount;
 		DWORD ByteCount = DestBitCount / 8;
