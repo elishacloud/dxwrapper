@@ -4632,38 +4632,51 @@ HRESULT m_IDirectDrawSurfaceX::CopySurface(m_IDirectDrawSurfaceX* pSourceSurface
 
 		// Use BitBlt and D3DX to copy the surface
 		if (IsUsingEmulation() && pSourceSurface->IsUsingEmulation() &&
-			SrcFormat == DestFormat &&
-			!IsMirrorLeftRight && !IsMirrorUpDown && !IsColorKey)
+			emu && emu->surfaceDC && pSourceSurface->emu && pSourceSurface->emu->surfaceDC &&
+			SrcFormat == DestFormat && !IsColorKey)
 		{
-			if (emu && emu->surfaceDC && pSourceSurface->emu && pSourceSurface->emu->surfaceDC)
+			LONG DestLeft = DestRect.left;
+			LONG DestTop = DestRect.top;
+			LONG DestWidth = DestRect.right - DestRect.left;
+			LONG DestHeight = DestRect.bottom - DestRect.top;
+
+			if (IsMirrorLeftRight)
 			{
-				// Set new palette data
-				if (DestFormat == D3DFMT_P8)
-				{
-					UpdatePaletteData();
-					pSourceSurface->UpdatePaletteData();
-				}
+				DestLeft = DestRect.right;
+				DestWidth = -DestWidth;
+			}
+			if (IsMirrorUpDown)
+			{
+				DestTop = DestRect.bottom;
+				DestHeight = -DestHeight;
+			}
 
-				// Set stretch mode
-				if (IsStretchRect)
-				{
-					SetStretchBltMode(emu->surfaceDC, HALFTONE);
-					SetStretchBltMode(pSourceSurface->emu->surfaceDC, HALFTONE);
-				}
+			// Set new palette data
+			if (DestFormat == D3DFMT_P8)
+			{
+				UpdatePaletteData();
+				pSourceSurface->UpdatePaletteData();
+			}
 
-				BOOL ret = (IsStretchRect) ?
-					StretchBlt(emu->surfaceDC, DestRect.left, DestRect.top, DestRect.right - DestRect.left, DestRect.bottom - DestRect.top,
-						pSourceSurface->emu->surfaceDC, SrcRect.left, SrcRect.top, SrcRect.right - SrcRect.left, SrcRect.bottom - SrcRect.top, SRCCOPY) :
-					BitBlt(emu->surfaceDC, DestRect.left, DestRect.top, DestRect.right - DestRect.left, DestRect.bottom - DestRect.top,
-						pSourceSurface->emu->surfaceDC, SrcRect.left, SrcRect.top, SRCCOPY);
+			// Set stretch mode
+			if (IsStretchRect)
+			{
+				SetStretchBltMode(emu->surfaceDC, HALFTONE);
+				SetStretchBltMode(pSourceSurface->emu->surfaceDC, HALFTONE);
+			}
 
-				if (ret)
-				{
-					CopyEmulatedSurface(&DestRect, true);
+			BOOL ret = (IsStretchRect || IsMirrorLeftRight || IsMirrorUpDown) ?
+				StretchBlt(emu->surfaceDC, DestLeft, DestTop, DestWidth, DestHeight,
+					pSourceSurface->emu->surfaceDC, SrcRect.left, SrcRect.top, SrcRect.right - SrcRect.left, SrcRect.bottom - SrcRect.top, SRCCOPY) :
+				BitBlt(emu->surfaceDC, DestLeft, DestTop, DestWidth, DestHeight,
+					pSourceSurface->emu->surfaceDC, SrcRect.left, SrcRect.top, SRCCOPY);
 
-					hr = DD_OK;
-					break;
-				}
+			if (ret)
+			{
+				CopyEmulatedSurface(&DestRect, true);
+
+				hr = DD_OK;
+				break;
 			}
 		}
 
