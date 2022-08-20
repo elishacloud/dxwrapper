@@ -4605,7 +4605,7 @@ HRESULT m_IDirectDrawSurfaceX::CopySurface(m_IDirectDrawSurfaceX* pSourceSurface
 
 		// Use D3DXLoadSurfaceFromSurface to copy the surface
 		if (!Config.DdrawReadFromGDI && !Config.DdrawWriteToGDI && !IsUsingEmulation() &&
-			SrcFormat != D3DFMT_P8 && DestFormat != D3DFMT_P8 &&
+			(DestFormat != D3DFMT_P8 || (SrcFormat == D3DFMT_P8 && DestFormat == D3DFMT_P8)) &&
 			!IsMirrorLeftRight && !IsMirrorUpDown && !IsColorKey)
 		{
 			IDirect3DSurface9* pSourceSurfaceD9 = pSourceSurface->GetD3D9Surface();
@@ -4616,6 +4616,7 @@ HRESULT m_IDirectDrawSurfaceX::CopySurface(m_IDirectDrawSurfaceX* pSourceSurface
 				DWORD DX3XFilter =
 					(Filter & D3DTEXF_LINEAR) ? D3DX_FILTER_LINEAR :
 					(Filter & D3DTEXF_POINT) ? D3DX_FILTER_POINT :
+					(IsStretchRect && DestFormat == D3DFMT_P8) ? D3DX_FILTER_POINT :
 					(IsStretchRect) ? D3DX_FILTER_LINEAR :
 					D3DX_FILTER_NONE;
 
