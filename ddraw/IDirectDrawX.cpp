@@ -2316,7 +2316,7 @@ void m_IDirectDrawX::ReleaseDdraw()
 	for (m_IDirectDrawSurfaceX *pSurface : SurfaceVector)
 	{
 		pSurface->ClearDdraw();
-		pSurface->ReleaseD9Surface();
+		pSurface->ReleaseD9Surface(true);
 	}
 	SurfaceVector.clear();
 
@@ -2813,7 +2813,7 @@ void m_IDirectDrawX::ReleaseAllD9Surfaces()
 
 	for (m_IDirectDrawSurfaceX *pSurface : SurfaceVector)
 	{
-		pSurface->ReleaseD9Surface();
+		pSurface->ReleaseD9Surface(true);
 	}
 
 	ReleaseCriticalSection();
@@ -2932,7 +2932,7 @@ void m_IDirectDrawX::EvictManagedTextures()
 	{
 		if (pSurface->IsSurfaceManaged())
 		{
-			pSurface->ReleaseD9Surface();
+			pSurface->ReleaseD9Surface(true);
 		}
 	}
 

@@ -9,6 +9,8 @@ struct EMUSURFACE
 	DWORD surfaceSize = 0;
 	void *surfacepBits = nullptr;
 	DWORD surfacePitch = 0;
+	DWORD surfaceWidth = 0;
+	DWORD surfaceHeight = 0;
 	HBITMAP bitmap = nullptr;
 	BYTE bmiMemory[(sizeof(BITMAPINFOHEADER) + sizeof(RGBQUAD) * 256)] = {};
 	PBITMAPINFO bmi = (PBITMAPINFO)bmiMemory;
@@ -84,7 +86,6 @@ private:
 	DWORD ResetDisplayFlags = 0;						// Flags that need to be reset when display mode changes
 	CRITICAL_SECTION ddscs;								// Critical section for surfaceArray
 	std::vector<byte> surfaceArray;						// Memory used for coping from one surface to the same surface
-	std::vector<byte> surfaceBackup;					// Memory used for backing up the surfaceTexture
 	std::vector<RECT> surfaceLockRectList;				// Rects used to lock the surface
 	EMUSURFACE *emu = nullptr;
 	LONG overlayX = 0;
@@ -354,15 +355,15 @@ public:
 	void LockBitAlign(LPRECT lpDestRect, T lpDDSurfaceDesc);
 
 	// For removing scanlines
-	void RestoreScanlines();
-	void RemoveScanlines();
+	void RestoreScanlines(LASTLOCK &LLock);
+	void RemoveScanlines(LASTLOCK &LLock);
 
 	// Functions handling the ddraw parent interface
 	void SetDdrawParent(m_IDirectDrawX *ddraw) { ddrawParent = ddraw; }
 	void ClearDdraw() { ddrawParent = nullptr; }
 
 	// Direct3D9 interface functions
-	void ReleaseD9Surface(bool BackupData = true);
+	void ReleaseD9Surface(bool BackupData);
 	HRESULT PresentSurface(BOOL isSkipScene = false);
 	void ResetSurfaceDisplay();
 
