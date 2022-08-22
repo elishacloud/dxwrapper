@@ -378,45 +378,57 @@ HRESULT m_IDirectDrawSurfaceX::Blt(LPRECT lpDestRect, LPDIRECTDRAWSURFACE7 lpDDS
 			return c_hr;
 		}
 
+		// All DDBLT_ALPHA flag values, Not currently implemented in ddraw.
+		if (dwFlags & (DDBLT_ALPHADEST | DDBLT_ALPHADESTCONSTOVERRIDE | DDBLT_ALPHADESTNEG | DDBLT_ALPHADESTSURFACEOVERRIDE | DDBLT_ALPHAEDGEBLEND |
+			DDBLT_ALPHASRC | DDBLT_ALPHASRCCONSTOVERRIDE | DDBLT_ALPHASRCNEG | DDBLT_ALPHASRCSURFACEOVERRIDE))
+		{
+			return DDERR_NOALPHAHW;
+		}
+
+		// All DDBLT_ZBUFFER flag values, This method does not currently support z-aware bitblt operations. None of the flags beginning with "DDBLT_ZBUFFER" are supported in ddrw.
+		if (dwFlags & (DDBLT_ZBUFFER | DDBLT_ZBUFFERDESTCONSTOVERRIDE | DDBLT_ZBUFFERDESTOVERRIDE | DDBLT_ZBUFFERSRCCONSTOVERRIDE | DDBLT_ZBUFFERSRCOVERRIDE))
+		{
+			return DDERR_NOZBUFFERHW;
+		}
+
+		// DDBLT_DDROPS - dwDDROP is ignored as "no such ROPs are currently defined" in ddraw
+		if (dwFlags & DDBLT_DDROPS)
+		{
+			return DDERR_NODDROPSHW;
+		}
+
 		// Check for required DDBLTFX structure
-		if (!lpDDBltFx && (dwFlags & (DDBLT_DDFX | DDBLT_COLORFILL | DDBLT_DEPTHFILL | DDBLT_DDROPS | DDBLT_KEYDESTOVERRIDE | DDBLT_KEYSRCOVERRIDE | DDBLT_ROP | DDBLT_ROTATIONANGLE)))
+		if (!lpDDBltFx && (dwFlags & (DDBLT_DDFX | DDBLT_COLORFILL | DDBLT_DEPTHFILL | DDBLT_KEYDESTOVERRIDE | DDBLT_KEYSRCOVERRIDE | DDBLT_ROP | DDBLT_ROTATIONANGLE)))
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Error: DDBLTFX structure not found");
+			return DDERR_INVALIDPARAMS;
+		}
+
+		// Check for DDBLTFX structure size
+		if (lpDDBltFx && lpDDBltFx->dwSize != sizeof(DDBLTFX))
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: DDBLTFX structure is not initialized to the right size: " << lpDDBltFx->dwSize);
 			return DDERR_INVALIDPARAMS;
 		}
 
 		// Check for depth fill flag
 		if (dwFlags & DDBLT_DEPTHFILL)
 		{
-			LOG_LIMIT(100, __FUNCTION__ << " Depth Fill Not Implemented");
-			return DDERR_NOZBUFFERHW;
-		}
-
-		// Check for ZBuffer flags
-		if ((dwFlags & DDBLT_ZBUFFER) || ((dwFlags & DDBLT_DDFX) && (lpDDBltFx->dwDDFX & (DDBLTFX_ZBUFFERBASEDEST | DDBLTFX_ZBUFFERRANGE))))
-		{
-			LOG_LIMIT(100, __FUNCTION__ << " ZBuffer Not Implemented");
+			LOG_LIMIT(100, __FUNCTION__ << " Error: Depth Fill Not Implemented");
 			return DDERR_NOZBUFFERHW;
 		}
 
 		// Check for rotation flags
 		if ((dwFlags & DDBLT_ROTATIONANGLE) || ((dwFlags & DDBLT_DDFX) && (lpDDBltFx->dwDDFX & (DDBLTFX_ROTATE90 | DDBLTFX_ROTATE180 | DDBLTFX_ROTATE270))))
 		{
-			LOG_LIMIT(100, __FUNCTION__ << " Rotation operations Not Implemented");
+			LOG_LIMIT(100, __FUNCTION__ << " Error: Rotation operations Not Implemented: " << Logging::hex(lpDDBltFx->dwDDFX & (DDBLTFX_ROTATE90 | DDBLTFX_ROTATE180 | DDBLTFX_ROTATE270)));
 			return DDERR_NOROTATIONHW;
 		}
 
-		// Check for Alpha flags
-		if (dwFlags & 0x1FF)
-		{
-			LOG_LIMIT(100, __FUNCTION__ << " DDBLT_ALPHA flags Not Implemented " << Logging::hex(dwFlags & 0x1FF));
-		}
-
-		// Other flags (can be safely ignored?)
-		// DDBLT_DDROPS - dwDDROP is ignored as "no such ROPs are currently defined"
-		// DDBLT_ASYNC
-		// DDBLT_DONOTWAIT
-		// DDBLT_WAIT
+		// Other flags, not yet implemented in dxwrapper
+		// DDBLT_ASYNC - Current dxwrapper implementation always allows async if calling from multiple threads
+		// DDBLT_DONOTWAIT - Current dxwrapper implementation never waits for other threads to finish Bltting
+		// DDBLT_WAIT - Current dxwrapper implementation never waits for other threads to finish Bltting
 
 		// Get source surface
 		m_IDirectDrawSurfaceX *lpDDSrcSurfaceX = (m_IDirectDrawSurfaceX*)lpDDSrcSurface;
@@ -466,7 +478,7 @@ HRESULT m_IDirectDrawSurfaceX::Blt(LPRECT lpDestRect, LPDIRECTDRAWSURFACE7 lpDDS
 				}
 				else
 				{
-					LOG_LIMIT(100, __FUNCTION__ << " Raster operation Not Implemented " << Logging::hex(lpDDBltFx->dwROP));
+					LOG_LIMIT(100, __FUNCTION__ << " Error: Raster operation Not Implemented " << Logging::hex(lpDDBltFx->dwROP));
 					hr = DDERR_NORASTEROPHW;
 					break;
 				}
@@ -474,22 +486,33 @@ HRESULT m_IDirectDrawSurfaceX::Blt(LPRECT lpDestRect, LPDIRECTDRAWSURFACE7 lpDDS
 
 			// Get surface copy flags
 			DWORD Flags = ((dwFlags & (DDBLT_KEYDESTOVERRIDE | DDBLT_KEYSRCOVERRIDE | DDBLT_KEYDEST | DDBLT_KEYSRC)) ? DDBLT_KEYDEST : 0) |		// Color key flags
-				((lpDDBltFx && (dwFlags & DDBLT_DDFX)) ? (lpDDBltFx->dwDDFX & (DDBLTFX_MIRRORLEFTRIGHT | DDBLTFX_MIRRORUPDOWN)) : 0);			// Mirror flags
-
-			// Check if color key is set
-			if (((dwFlags & DDBLT_KEYDEST) && !(surfaceDesc2.ddsCaps.dwCaps & DDSD_CKDESTBLT)) || ((dwFlags & DDBLT_KEYSRC) && !(lpDDSrcSurfaceX->surfaceDesc2.ddsCaps.dwCaps & DDSD_CKSRCBLT)))
-			{
-				LOG_LIMIT(100, __FUNCTION__ << " Warning: color key not set");
-				Flags &= ~(DDBLT_KEYDESTOVERRIDE | DDBLT_KEYSRCOVERRIDE | DDBLT_KEYDEST | DDBLT_KEYSRC);
-			}
+				((dwFlags & DDBLT_DDFX) ? (lpDDBltFx->dwDDFX & (DDBLTFX_MIRRORLEFTRIGHT | DDBLTFX_MIRRORUPDOWN)) : 0);							// Mirror flags
 
 			// Get color key
-			DDCOLORKEY ColorKey = (dwFlags & DDBLT_KEYDESTOVERRIDE) ? lpDDBltFx->ddckDestColorkey :
-				(dwFlags & DDBLT_KEYSRCOVERRIDE) ? lpDDBltFx->ddckSrcColorkey :
-				(dwFlags & DDBLT_KEYDEST) ? surfaceDesc2.ddckCKDestBlt :
-				(dwFlags & DDBLT_KEYSRC) ? lpDDSrcSurfaceX->surfaceDesc2.ddckCKSrcBlt : surfaceDesc2.ddckCKDestBlt;
+			DDCOLORKEY ColorKey = {};
+			if (dwFlags & DDBLT_KEYDESTOVERRIDE)
+			{
+				ColorKey = lpDDBltFx->ddckDestColorkey;
+			}
+			else if (dwFlags & DDBLT_KEYSRCOVERRIDE)
+			{
+				ColorKey = lpDDBltFx->ddckSrcColorkey;
+			}
+			else if ((dwFlags & DDBLT_KEYDEST) && (surfaceDesc2.ddsCaps.dwCaps & DDSD_CKDESTBLT))
+			{
+				ColorKey = surfaceDesc2.ddckCKDestBlt;
+			}
+			else if ((dwFlags & DDBLT_KEYSRC) && (lpDDSrcSurfaceX->surfaceDesc2.ddsCaps.dwCaps & DDSD_CKSRCBLT))
+			{
+				ColorKey = lpDDSrcSurfaceX->surfaceDesc2.ddckCKSrcBlt;
+			}
+			else if (dwFlags & (DDBLT_KEYDEST | DDBLT_KEYSRC))
+			{
+				LOG_LIMIT(100, __FUNCTION__ << " Error: color key not found!");
+				Flags &= ~DDBLT_KEYDEST;
+			}
 
-			D3DTEXTUREFILTERTYPE Filter = ((lpDDBltFx && dwFlags & DDBLT_DDFX) && (lpDDBltFx->dwDDFX & DDBLTFX_ARITHSTRETCHY)) ? D3DTEXF_LINEAR : D3DTEXF_NONE;
+			D3DTEXTUREFILTERTYPE Filter = ((dwFlags & DDBLT_DDFX) && (lpDDBltFx->dwDDFX & DDBLTFX_ARITHSTRETCHY)) ? D3DTEXF_LINEAR : D3DTEXF_NONE;
 
 			hr = CopySurface(lpDDSrcSurfaceX, lpSrcRect, lpDestRect, Filter, ColorKey, Flags);
 
@@ -4694,6 +4717,17 @@ HRESULT m_IDirectDrawSurfaceX::CopySurface(m_IDirectDrawSurfaceX* pSourceSurface
 
 			if (ret)
 			{
+				// Remove scanlines before unlocking surface
+				if (Config.DdrawRemoveScanlines)
+				{
+					// Set last rect before removing scanlines
+					LastLock.ReadOnly = false;
+					LastLock.Rect = DestRect;
+					LockEmulatedSurface(&LastLock.LockedRect, &DestRect);
+
+					RemoveScanlines();
+				}
+
 				CopyEmulatedSurface(&DestRect, true);
 
 				hr = DD_OK;
