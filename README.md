@@ -119,9 +119,9 @@ DxWrapper uses code from several other projects. So to give credit where credit 
  - [WineD3D d3d8.dll](https://github.com/alexhenrie/wine/tree/master/dlls/d3d8): Includes functions ValidatePixelShader and ValidateVertexShader.
 
 ### Development
-DxWrapper is written mostly in C++ using Microsoft Visual Studio 2019.
+DxWrapper is written mostly in C++ using Microsoft Visual Studio 2022.
 
-The project requires both the Windows 10 SDK and WDK. The exact version required can be seen in the project properties in Visual Studio.
+The project requires both the Windows 10 SDK and WDK (needs to have matching SDK and WDK versions installed). The exact version required can be seen in the project properties in Visual Studio.
 
 GitHub Link: https://github.com/elishacloud/dxwrapper
 
