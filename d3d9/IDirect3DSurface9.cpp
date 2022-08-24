@@ -15,7 +15,6 @@
 */
 
 #include "d3d9.h"
-#include "ddraw\IDirectDrawTypes.h"
 
 HRESULT m_IDirect3DSurface9::QueryInterface(THIS_ REFIID riid, void** ppvObj)
 {
@@ -165,15 +164,8 @@ HRESULT m_IDirect3DSurface9::LockRect(THIS_ D3DLOCKED_RECT* pLockedRect, CONST R
 		D3DSURFACE_DESC Desc;
 		if (SUCCEEDED(GetDesc(&Desc)))
 		{
-			DWORD bytes = GetBitCount(Desc.Format) / 8;
-			if (!bytes)
-			{
-				LOG_LIMIT(100, __FUNCTION__ << " Error: Surface Lock error getting bit count: " << (D3DERR)hr);
-				return hr;
-			}
-
-			// Copy surface data to memory
-			if (SUCCEEDED(m_pDeviceEx->CreateOffscreenPlainSurface(Desc.Width, Desc.Height, Desc.Format, D3DPOOL_SCRATCH, &pEmuSurface, nullptr)) && pEmuSurface)
+			// Create new surface for lock
+			if (SUCCEEDED(m_pDeviceEx->CreateOffscreenPlainSurface(Desc.Width, Desc.Height, Desc.Format, D3DPOOL_SCRATCH, &pEmuSurface, nullptr)))
 			{
 				EmuReadOnly = (Flags & D3DLOCK_READONLY);
 				EmuRect.left = 0;
@@ -183,12 +175,13 @@ HRESULT m_IDirect3DSurface9::LockRect(THIS_ D3DLOCKED_RECT* pLockedRect, CONST R
 				if (pRect) { memcpy(&EmuRect, pRect, sizeof(RECT)); }
 				POINT Point = { EmuRect.left, EmuRect.top };
 
+				// Copy surface data
 				if (FAILED(m_pDeviceEx->CopyRects(this, &EmuRect, 1, pEmuSurface, &Point)))
 				{
-					LOG_LIMIT(100, __FUNCTION__ << " Error: copying emulated surface!");
+					LOG_LIMIT(100, __FUNCTION__ << " Error: copying surface!");
 				}
 				D3DLOCKED_RECT LockedRect = {};
-				if (SUCCEEDED(pEmuSurface->LockRect(&LockedRect, &EmuRect, Flags)) && LockedRect.pBits)
+				if (SUCCEEDED(pEmuSurface->LockRect(&LockedRect, &EmuRect, Flags)))
 				{
 					pLockedRect->pBits = LockedRect.pBits;
 					pLockedRect->Pitch = LockedRect.Pitch;
@@ -230,9 +223,13 @@ HRESULT m_IDirect3DSurface9::UnlockRect(THIS)
 	{
 		hr = pEmuSurface->UnlockRect();
 		POINT Point = { EmuRect.left, EmuRect.top };
-		if (!EmuReadOnly && FAILED(m_pDeviceEx->CopyRects(this, &EmuRect, 1, pEmuSurface, &Point)))
+		if (!EmuReadOnly)
 		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error: copying surface!");
+			// Copy emulated surface data
+			if (FAILED(m_pDeviceEx->CopyRects(pEmuSurface, &EmuRect, 1, this, &Point)))
+			{
+				LOG_LIMIT(100, __FUNCTION__ << " Error: copying emulated surface!");
+			}
 		}
 		pEmuSurface->Release();
 		pEmuSurface = nullptr;
