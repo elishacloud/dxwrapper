@@ -255,7 +255,7 @@ bool APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 		Utils::SetAppCompat();
 
 		// Hook CoCreateInstance
-		if (Config.EnableDdrawWrapper || Config.EnableDinput8Wrapper || Config.Dinputto8)
+		if (Config.EnableDdrawWrapper || Config.Dd7to9 || Config.EnableDinput8Wrapper || Config.Dinputto8)
 		{
 			InterlockedExchangePointer((PVOID*)&p_CoCreateInstance, Hook::HotPatch(GetProcAddress(LoadLibraryA("ole32.dll"), "CoCreateInstance"), "CoCreateInstance", *CoCreateInstanceHandle));
 		}
