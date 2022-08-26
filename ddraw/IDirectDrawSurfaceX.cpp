@@ -2953,16 +2953,17 @@ HRESULT m_IDirectDrawSurfaceX::CreateD3d9Surface()
 	// Get texture data
 	surfaceFormat = GetDisplayFormat(surfaceDesc2.ddpfPixelFormat);
 	surfaceBitCount = GetBitCount(surfaceFormat);
-	IsSurfaceEmulated = (surfaceFormat == D3DFMT_X4R4G4B4 || surfaceFormat == D3DFMT_A4R4G4B4 || surfaceFormat == D3DFMT_R8G8B8 || surfaceFormat == D3DFMT_B8G8R8 ||
-		surfaceFormat == D3DFMT_X8B8G8R8 || surfaceFormat == D3DFMT_A8B8G8R8) ||
-		((Config.DdrawEmulateSurface || ((IsPrimarySurface() || IsBackBuffer()) && (Config.DdrawWriteToGDI || Config.DdrawReadFromGDI))) &&
+	IsSurfaceEmulated = (((Config.DdrawEmulateSurface || ((IsPrimarySurface() || IsBackBuffer()) && (Config.DdrawWriteToGDI || Config.DdrawReadFromGDI))) &&
 		(surfaceFormat == D3DFMT_P8 || surfaceFormat == D3DFMT_R5G6B5 || surfaceFormat == D3DFMT_A1R5G5B5 || surfaceFormat == D3DFMT_X1R5G5B5 ||
-			surfaceFormat == D3DFMT_A8R8G8B8 || surfaceFormat == D3DFMT_X8R8G8B8));
+			surfaceFormat == D3DFMT_A8R8G8B8 || surfaceFormat == D3DFMT_X8R8G8B8)) ||
+		surfaceFormat == D3DFMT_X4R4G4B4 || surfaceFormat == D3DFMT_A4R4G4B4 || surfaceFormat == D3DFMT_R8G8B8 ||
+		surfaceFormat == D3DFMT_X8B8G8R8 || surfaceFormat == D3DFMT_A8B8G8R8 || surfaceFormat == D3DFMT_B8G8R8);
 	DCRequiresEmulation = (surfaceFormat != D3DFMT_R5G6B5 && surfaceFormat != D3DFMT_X1R5G5B5 && surfaceFormat != D3DFMT_R8G8B8 && surfaceFormat != D3DFMT_X8R8G8B8);
-	D3DFORMAT TextureFormat = (surfaceFormat == D3DFMT_P8) ? D3DFMT_L8 : (surfaceFormat == D3DFMT_R8G8B8) ? D3DFMT_X8R8G8B8 :
-		(surfaceFormat == D3DFMT_X4R4G4B4 || surfaceFormat == D3DFMT_R8G8B8 || surfaceFormat == D3DFMT_B8G8R8 || surfaceFormat == D3DFMT_X8B8G8R8) ? D3DFMT_X8R8G8B8 :
+	D3DFORMAT TextureFormat = (surfaceFormat == D3DFMT_P8) ? D3DFMT_L8 :
+		(surfaceFormat == D3DFMT_X4R4G4B4 || surfaceFormat == D3DFMT_X8B8G8R8 || surfaceFormat == D3DFMT_B8G8R8 || surfaceFormat == D3DFMT_R8G8B8) ? D3DFMT_X8R8G8B8 :
 		(surfaceFormat == D3DFMT_A4R4G4B4 || surfaceFormat == D3DFMT_A8B8G8R8) ? D3DFMT_A8R8G8B8 : surfaceFormat;
-	D3DFORMAT Format = (surfaceFormat == D3DFMT_R8G8B8 || surfaceFormat == D3DFMT_B8G8R8 || surfaceFormat == D3DFMT_X8B8G8R8) ? D3DFMT_X8R8G8B8 : (surfaceFormat == D3DFMT_A8B8G8R8) ? D3DFMT_A8R8G8B8 : surfaceFormat;
+	D3DFORMAT Format = (surfaceFormat == D3DFMT_X8B8G8R8 || surfaceFormat == D3DFMT_B8G8R8 || surfaceFormat == D3DFMT_R8G8B8) ? D3DFMT_X8R8G8B8 :
+		(surfaceFormat == D3DFMT_A8B8G8R8) ? D3DFMT_A8R8G8B8 : surfaceFormat;
 	bool UseDynamic = (ddrawParent->IsDynamicTexturesSupported() && !IsTexture() && !(surfaceDesc2.ddsCaps.dwCaps & (DDSCAPS_SYSTEMMEMORY | DDSCAPS_FLIP)) && !Config.DdrawWriteToGDI);
 
 	// Adjust Width to be byte-aligned
