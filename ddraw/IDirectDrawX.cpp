@@ -1595,7 +1595,7 @@ HRESULT m_IDirectDrawX::SetCooperativeLevel(HWND hWnd, DWORD dwFlags)
 
 			// Removing WS_CAPTION
 			SetWindowLong(hWnd, GWL_STYLE, lStyle & ~WS_CAPTION);
-			SetWindowPos(hWnd, HWND_TOP, 0, 0, 0, 0, SWP_FRAMECHANGED | SWP_NOSENDCHANGING | SWP_NOZORDER | SWP_NOOWNERZORDER);
+			SetWindowPos(hWnd, HWND_TOP, 0, 0, 0, 0, SWP_FRAMECHANGED | SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_NOSENDCHANGING);
 
 			// Peek messages to help prevent a "Not Responding" window
 			MSG msg;

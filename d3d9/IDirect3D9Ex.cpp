@@ -459,7 +459,7 @@ void UpdatePresentParameter(D3DPRESENT_PARAMETERS* pPresentationParameters, HWND
 			GetClientRect(DeviceWindow, &Rect);
 			if (Rect.right - Rect.left != BufferWidth || Rect.bottom - Rect.top != BufferHeight)
 			{
-				SetWindowPos(DeviceWindow, HWND_TOP, 0, 0, BufferWidth, BufferHeight, SWP_NOMOVE | SWP_NOSENDCHANGING | SWP_NOZORDER | SWP_NOOWNERZORDER);
+				SetWindowPos(DeviceWindow, HWND_TOP, 0, 0, BufferWidth, BufferHeight, SWP_NOMOVE | SWP_NOZORDER | SWP_NOSENDCHANGING);
 
 				// Peek messages to help prevent a "Not Responding" window
 				MSG msg;
@@ -506,9 +506,11 @@ void AdjustWindow(HWND MainhWnd, LONG displayWidth, LONG displayHeight)
 	Utils::GetScreenSize(MainhWnd, screenWidth, screenHeight);
 
 	// Get window border
+	bool HasBorder = false;
 	LONG lStyle = GetWindowLong(MainhWnd, GWL_STYLE) | WS_VISIBLE;
 	if (Config.WindowModeBorder && screenHeight > displayHeight + GetSystemMetrics(SM_CYCAPTION) + GetSystemMetrics(SM_CYBORDER))
 	{
+		HasBorder = true;
 		lStyle |= WS_OVERLAPPEDWINDOW;
 	}
 	else
@@ -518,26 +520,30 @@ void AdjustWindow(HWND MainhWnd, LONG displayWidth, LONG displayHeight)
 
 	// Set window border
 	SetWindowLong(MainhWnd, GWL_STYLE, lStyle);
-	SetWindowPos(MainhWnd, HWND_TOP, 0, 0, 0, 0, SWP_FRAMECHANGED | SWP_NOSENDCHANGING | SWP_NOZORDER | SWP_NOOWNERZORDER);
+	SetWindowPos(MainhWnd, HWND_TOP, 0, 0, 0, 0, SWP_FRAMECHANGED | SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_NOSENDCHANGING);
 
 	// Set window size
-	SetWindowPos(MainhWnd, HWND_TOP, 0, 0, displayWidth, displayHeight, SWP_NOMOVE | SWP_NOSENDCHANGING | SWP_NOZORDER | SWP_NOOWNERZORDER);
+	SetWindowPos(MainhWnd, HWND_TOP, 0, 0, displayWidth, displayHeight, SWP_NOMOVE | SWP_NOZORDER | SWP_NOSENDCHANGING);
 
 	// Adjust for window decoration to ensure client area matches display size
-	RECT tempRect;
-	GetClientRect(MainhWnd, &tempRect);
-	LONG newDisplayWidth = (displayWidth - tempRect.right) + displayWidth;
-	LONG newDisplayHeight = (displayHeight - tempRect.bottom) + displayHeight;
+	RECT cRect, wRect;
+	LONG xBorder = 0, yBorder = 0;
+	if (HasBorder && GetClientRect(MainhWnd, &cRect) && GetWindowRect(MainhWnd, &wRect))
+	{
+		xBorder = (wRect.right - wRect.left) - (cRect.right - cRect.left);
+		yBorder = (wRect.bottom - wRect.top) - (cRect.bottom - cRect.top);
+	}
+	LONG newDisplayWidth = displayWidth + xBorder;
+	LONG newDisplayHeight = displayHeight + yBorder;
 
 	// Move window to center and adjust size
-	LONG xLoc = 0;
-	LONG yLoc = 0;
+	LONG xLoc = 0, yLoc = 0;
 	if (screenWidth >= newDisplayWidth && screenHeight >= newDisplayHeight)
 	{
 		xLoc = (screenWidth - newDisplayWidth) / 2;
 		yLoc = (screenHeight - newDisplayHeight) / 2;
 	}
-	SetWindowPos(MainhWnd, HWND_TOP, xLoc, yLoc, newDisplayWidth, newDisplayHeight, SWP_NOSENDCHANGING | SWP_NOZORDER | SWP_NOOWNERZORDER);
+	SetWindowPos(MainhWnd, HWND_TOP, xLoc, yLoc, newDisplayWidth, newDisplayHeight, SWP_NOZORDER | SWP_NOSENDCHANGING);
 
 	// Peek messages to help prevent a "Not Responding" window
 	MSG msg;
