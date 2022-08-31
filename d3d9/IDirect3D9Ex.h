@@ -47,4 +47,7 @@ public:
 	STDMETHOD(GetAdapterDisplayModeEx)(THIS_ UINT Adapter, D3DDISPLAYMODEEX* pMode, D3DDISPLAYROTATION* pRotation);
 	STDMETHOD(CreateDeviceEx)(THIS_ UINT Adapter, D3DDEVTYPE DeviceType, HWND hFocusWindow, DWORD BehaviorFlags, D3DPRESENT_PARAMETERS* pPresentationParameters, D3DDISPLAYMODEEX* pFullscreenDisplayMode, IDirect3DDevice9Ex** ppReturnedDeviceInterface);
 	STDMETHOD(GetAdapterLUID)(THIS_ UINT Adapter, LUID * pLUID);
+
+	// Helper functions
+	bool TestResolution(UINT Adapter, DWORD BackBufferWidth, DWORD BackBufferHeight);
 };

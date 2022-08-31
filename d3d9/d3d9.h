@@ -35,7 +35,7 @@ typedef IDirect3D9 *(WINAPI *Direct3DCreate9Proc)(UINT);
 typedef HRESULT(WINAPI *Direct3DCreate9ExProc)(UINT, IDirect3D9Ex **);
 
 DWORD UpdateBehaviorFlags(DWORD BehaviorFlags, bool IsWindowed);
-void UpdatePresentParameter(D3DPRESENT_PARAMETERS* pPresentationParameters, HWND hFocusWindow, bool SetWindow);
+void UpdatePresentParameter(D3DPRESENT_PARAMETERS* pPresentationParameters, HWND hFocusWindow, bool ForceExclusiveFullscreen, bool SetWindow);
 void UpdatePresentParameterForMultisample(D3DPRESENT_PARAMETERS* pPresentationParameters, D3DMULTISAMPLE_TYPE MultiSampleType, DWORD MultiSampleQuality);
 
 namespace D3d9Wrapper

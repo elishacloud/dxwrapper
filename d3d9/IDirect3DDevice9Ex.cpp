@@ -74,10 +74,17 @@ HRESULT m_IDirect3DDevice9Ex::Reset(D3DPRESENT_PARAMETERS *pPresentationParamete
 
 	HRESULT hr;
 
+	// Check fullscreen
+	bool ForceFullscreen = false;
+	if (m_pD3DEx)
+	{
+		ForceFullscreen = m_pD3DEx->TestResolution(D3DADAPTER_DEFAULT, pPresentationParameters->BackBufferWidth, pPresentationParameters->BackBufferHeight);
+	}
+
 	// Setup presentation parameters
 	D3DPRESENT_PARAMETERS d3dpp;
 	CopyMemory(&d3dpp, pPresentationParameters, sizeof(D3DPRESENT_PARAMETERS));
-	UpdatePresentParameter(&d3dpp, nullptr, true);
+	UpdatePresentParameter(&d3dpp, nullptr, ForceFullscreen, true);
 
 	// Test for Multisample
 	if (DeviceMultiSampleFlag)
@@ -101,7 +108,7 @@ HRESULT m_IDirect3DDevice9Ex::Reset(D3DPRESENT_PARAMETERS *pPresentationParamete
 		{
 			// Reset presentation parameters
 			CopyMemory(&d3dpp, pPresentationParameters, sizeof(D3DPRESENT_PARAMETERS));
-			UpdatePresentParameter(&d3dpp, nullptr, false);
+			UpdatePresentParameter(&d3dpp, nullptr, ForceFullscreen, false);
 
 			// Reset device
 			hr = ProxyInterface->Reset(&d3dpp);
@@ -174,10 +181,17 @@ HRESULT m_IDirect3DDevice9Ex::CreateAdditionalSwapChain(D3DPRESENT_PARAMETERS *p
 
 	HRESULT hr = D3DERR_INVALIDCALL;
 
+	// Check fullscreen
+	bool ForceFullscreen = false;
+	if (m_pD3DEx)
+	{
+		ForceFullscreen = m_pD3DEx->TestResolution(D3DADAPTER_DEFAULT, pPresentationParameters->BackBufferWidth, pPresentationParameters->BackBufferHeight);
+	}
+
 	// Setup presentation parameters
 	D3DPRESENT_PARAMETERS d3dpp;
 	CopyMemory(&d3dpp, pPresentationParameters, sizeof(D3DPRESENT_PARAMETERS));
-	UpdatePresentParameter(&d3dpp, nullptr, false);
+	UpdatePresentParameter(&d3dpp, nullptr, ForceFullscreen, false);
 
 	// Test for Multisample
 	if (DeviceMultiSampleFlag)
@@ -192,7 +206,7 @@ HRESULT m_IDirect3DDevice9Ex::CreateAdditionalSwapChain(D3DPRESENT_PARAMETERS *p
 	if (FAILED(hr))
 	{
 		CopyMemory(&d3dpp, pPresentationParameters, sizeof(D3DPRESENT_PARAMETERS));
-		UpdatePresentParameter(&d3dpp, nullptr, false);
+		UpdatePresentParameter(&d3dpp, nullptr, ForceFullscreen, false);
 
 		// Create CwapChain
 		hr = ProxyInterface->CreateAdditionalSwapChain(&d3dpp, ppSwapChain);
@@ -1961,10 +1975,17 @@ HRESULT m_IDirect3DDevice9Ex::ResetEx(THIS_ D3DPRESENT_PARAMETERS* pPresentation
 
 	HRESULT hr;
 
+	// Check fullscreen
+	bool ForceFullscreen = false;
+	if (m_pD3DEx)
+	{
+		ForceFullscreen = m_pD3DEx->TestResolution(D3DADAPTER_DEFAULT, pPresentationParameters->BackBufferWidth, pPresentationParameters->BackBufferHeight);
+	}
+
 	// Setup presentation parameters
 	D3DPRESENT_PARAMETERS d3dpp;
 	CopyMemory(&d3dpp, pPresentationParameters, sizeof(D3DPRESENT_PARAMETERS));
-	UpdatePresentParameter(&d3dpp, nullptr, true);
+	UpdatePresentParameter(&d3dpp, nullptr, ForceFullscreen, true);
 
 	// Test for Multisample
 	if (DeviceMultiSampleFlag)
@@ -1988,7 +2009,7 @@ HRESULT m_IDirect3DDevice9Ex::ResetEx(THIS_ D3DPRESENT_PARAMETERS* pPresentation
 		{
 			// Reset presentation parameters
 			CopyMemory(&d3dpp, pPresentationParameters, sizeof(D3DPRESENT_PARAMETERS));
-			UpdatePresentParameter(&d3dpp, nullptr, false);
+			UpdatePresentParameter(&d3dpp, nullptr, ForceFullscreen, false);
 
 			// Reset device
 			hr = ProxyInterface->ResetEx(&d3dpp, pFullscreenDisplayMode);
