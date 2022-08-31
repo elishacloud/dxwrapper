@@ -3035,6 +3035,34 @@ HRESULT m_IDirectDrawSurfaceX::CreateD3d9Surface()
 	{
 		CopyEmulatedSurface(nullptr, true);
 	}
+	else if (!surfaceBackup.empty() && (surfaceTexture || surface3D))
+	{
+		do {
+			D3DLOCKED_RECT LockRect = {};
+			if (FAILED((surfaceTexture) ? surfaceTexture->LockRect(0, &LockRect, nullptr, 0) :
+				(surface3D) ? surface3D->LockRect(&LockRect, nullptr, 0) : DDERR_GENERIC))
+			{
+				LOG_LIMIT(100, __FUNCTION__ << " Error: failed to lock texture surface!");
+				break;
+			}
+
+			size_t size = Height * LockRect.Pitch;
+
+			if (size == surfaceBackup.size())
+			{
+				Logging::LogDebug() << __FUNCTION__ << " Resetting Direct3D9 texture surface data";
+
+				memcpy(LockRect.pBits, &surfaceBackup[0], size);
+			}
+
+			(surfaceTexture) ? surfaceTexture->UnlockRect(0) :
+				(surface3D) ? surface3D->UnlockRect() : DDERR_GENERIC;
+
+		} while (false);
+	}
+
+	// Data is no longer needed
+	surfaceBackup.clear();
 
 	// Create emulated surface using device context for creation
 	if (IsSurfaceEmulated && (!emu || !emu->surfacepBits || emu->surfaceWidth != Width || emu->surfaceHeight != Height))
@@ -3379,6 +3407,32 @@ void m_IDirectDrawSurfaceX::ReleaseD9Surface(bool BackupData)
 	if (IsLocked || IsInDC)
 	{
 		Logging::Log() << __FUNCTION__ << " Warning: surface still in use!";
+	}
+
+	// Store d3d9 surface texture
+	if (!IsSurfaceEmulated && BackupData && (surfaceTexture || surface3D))
+	{
+		Logging::LogDebug() << __FUNCTION__ << " Storing Direct3D9 texture surface data";
+		do {
+			D3DLOCKED_RECT LockRect = {};
+			HRESULT hr = (surfaceTexture) ? surfaceTexture->LockRect(0, &LockRect, nullptr, 0) :
+				(surface3D) ? surface3D->LockRect(&LockRect, nullptr, 0) : DDERR_GENERIC;
+			if (FAILED(hr))
+			{
+				LOG_LIMIT(100, __FUNCTION__ << " Error: failed to lock texture surface!");
+				break;
+			}
+
+			size_t size = surfaceDesc2.dwHeight * LockRect.Pitch;
+
+			surfaceBackup.resize(size);
+
+			memcpy(&surfaceBackup[0], LockRect.pBits, size);
+
+			(surfaceTexture) ? surfaceTexture->UnlockRect(0) :
+				(surface3D) ? surface3D->UnlockRect() : DDERR_GENERIC;
+
+		} while (false);
 	}
 
 	// Release DC

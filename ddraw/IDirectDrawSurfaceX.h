@@ -86,6 +86,7 @@ private:
 	DWORD ResetDisplayFlags = 0;						// Flags that need to be reset when display mode changes
 	CRITICAL_SECTION ddscs;								// Critical section for surfaceArray
 	std::vector<byte> surfaceArray;						// Memory used for coping from one surface to the same surface
+	std::vector<byte> surfaceBackup;					// Memory used for backing up the surfaceTexture
 	std::vector<RECT> surfaceLockRectList;				// Rects used to lock the surface
 	EMUSURFACE *emu = nullptr;
 	LONG overlayX = 0;

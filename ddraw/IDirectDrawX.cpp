@@ -2641,9 +2641,9 @@ HRESULT m_IDirectDrawX::CreateD3D9Device()
 		// Backbuffer
 		presParams.BackBufferCount = 1;
 		// Auto stencel
-		presParams.EnableAutoDepthStencil = TRUE;
+		presParams.EnableAutoDepthStencil = FALSE;
 		// Auto stencel format
-		presParams.AutoDepthStencilFormat = D3DFMT_D24S8;
+		presParams.AutoDepthStencilFormat = D3DFMT_UNKNOWN;
 		// Interval level
 		presParams.PresentationInterval = D3DPRESENT_INTERVAL_IMMEDIATE;
 		// Anti-aliasing
@@ -3158,7 +3158,7 @@ HRESULT m_IDirectDrawX::Present()
 	}
 
 	// Clear device before BeginScene
-	d3d9Device->Clear(0, nullptr, D3DCLEAR_TARGET, D3DCOLOR_XRGB(0, 0, 0), 1.0f, 0);
+	d3d9Device->Clear(0, nullptr, D3DCLEAR_TARGET, 0, 0.0f, 0);
 
 	// BeginScene after present is done
 	if (FAILED(d3d9Device->BeginScene()))

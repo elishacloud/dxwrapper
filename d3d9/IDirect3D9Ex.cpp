@@ -547,5 +547,5 @@ void AdjustWindow(HWND MainhWnd, LONG displayWidth, LONG displayHeight)
 
 	// Peek messages to help prevent a "Not Responding" window
 	MSG msg;
-	PeekMessage(&msg, DeviceWindow, 0, 0, PM_NOREMOVE);
+	PeekMessage(&msg, MainhWnd, 0, 0, PM_NOREMOVE);
 }
