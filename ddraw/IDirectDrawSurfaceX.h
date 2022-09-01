@@ -2,6 +2,10 @@
 
 #include <map>
 
+#define BLT_MIRRORLEFTRIGHT		0x00000002l
+#define BLT_MIRRORUPDOWN		0x00000004l
+#define BLT_COLORKEY			0x00002000l
+
 // Emulated surface
 struct EMUSURFACE
 {

@@ -485,8 +485,10 @@ HRESULT m_IDirectDrawSurfaceX::Blt(LPRECT lpDestRect, LPDIRECTDRAWSURFACE7 lpDDS
 			}
 
 			// Get surface copy flags
-			DWORD Flags = ((dwFlags & (DDBLT_KEYDESTOVERRIDE | DDBLT_KEYSRCOVERRIDE | DDBLT_KEYDEST | DDBLT_KEYSRC)) ? DDBLT_KEYDEST : 0) |		// Color key flags
-				((dwFlags & DDBLT_DDFX) ? (lpDDBltFx->dwDDFX & (DDBLTFX_MIRRORLEFTRIGHT | DDBLTFX_MIRRORUPDOWN)) : 0);							// Mirror flags
+			DWORD Flags =
+				(dwFlags & (DDBLT_KEYDESTOVERRIDE | DDBLT_KEYSRCOVERRIDE | DDBLT_KEYDEST | DDBLT_KEYSRC) ? BLT_COLORKEY : 0) |
+				((dwFlags & DDBLT_DDFX) && (lpDDBltFx->dwDDFX & DDBLTFX_MIRRORLEFTRIGHT) ? BLT_MIRRORLEFTRIGHT : 0) |
+				((dwFlags & DDBLT_DDFX) && (lpDDBltFx->dwDDFX & DDBLTFX_MIRRORUPDOWN) ? BLT_MIRRORUPDOWN : 0);
 
 			// Get color key
 			DDCOLORKEY ColorKey = {};
@@ -509,7 +511,7 @@ HRESULT m_IDirectDrawSurfaceX::Blt(LPRECT lpDestRect, LPDIRECTDRAWSURFACE7 lpDDS
 			else if (dwFlags & (DDBLT_KEYDEST | DDBLT_KEYSRC))
 			{
 				LOG_LIMIT(100, __FUNCTION__ << " Error: color key not found!");
-				Flags &= ~DDBLT_KEYDEST;
+				Flags &= ~BLT_COLORKEY;
 			}
 
 			D3DTEXTUREFILTERTYPE Filter = ((dwFlags & DDBLT_DDFX) && (lpDDBltFx->dwDDFX & DDBLTFX_ARITHSTRETCHY)) ? D3DTEXF_LINEAR : D3DTEXF_NONE;
@@ -1460,6 +1462,9 @@ HRESULT m_IDirectDrawSurfaceX::GetDC(HDC FAR * lphDC)
 				CreateDCSurface();
 			}
 
+			// Set new palette data
+			UpdatePaletteData();
+
 			if (IsSurfaceEmulated)
 			{
 				// Read surface from GDI
@@ -1469,7 +1474,7 @@ HRESULT m_IDirectDrawSurfaceX::GetDC(HDC FAR * lphDC)
 				}
 			}
 			// Copy surface data to device context
-			else
+			else if (DCRequiresEmulation)
 			{
 				CopyEmulatedSurface(nullptr, false);
 			}
@@ -1970,15 +1975,13 @@ HRESULT m_IDirectDrawSurfaceX::ReleaseDC(HDC hDC)
 
 		if (IsSurfaceEmulated || DCRequiresEmulation)
 		{
+			// Copy emulated surface to real texture
+			CopyEmulatedSurface(nullptr, true);
+
 			// Blt surface directly to GDI
 			if (Config.DdrawWriteToGDI && (IsPrimarySurface() || IsBackBuffer()))
 			{
 				CopyEmulatedSurfaceToGDI(LastLock.Rect);
-			}
-			// Copy emulated surface to real surface
-			else
-			{
-				CopyEmulatedSurface(nullptr, true);
 			}
 		}
 		else if (surfaceTexture)
@@ -2251,6 +2254,9 @@ HRESULT m_IDirectDrawSurfaceX::SetPalette(LPDIRECTDRAWPALETTE lpDDPalette)
 			// If new palette is set
 			PaletteUSN++;
 		}
+
+		// Set new palette data
+		UpdatePaletteData();
 
 		return DD_OK;
 	}
@@ -2953,7 +2959,7 @@ HRESULT m_IDirectDrawSurfaceX::CreateD3d9Surface()
 	// Get texture data
 	surfaceFormat = GetDisplayFormat(surfaceDesc2.ddpfPixelFormat);
 	surfaceBitCount = GetBitCount(surfaceFormat);
-	IsSurfaceEmulated = (((Config.DdrawEmulateSurface || ((IsPrimarySurface() || IsBackBuffer()) && (Config.DdrawWriteToGDI || Config.DdrawReadFromGDI))) &&
+	IsSurfaceEmulated = (((Config.DdrawEmulateSurface || ((IsPrimarySurface() || IsBackBuffer()) && (Config.DdrawWriteToGDI || Config.DdrawReadFromGDI || Config.DdrawRemoveScanlines))) &&
 		(surfaceFormat == D3DFMT_P8 || surfaceFormat == D3DFMT_R5G6B5 || surfaceFormat == D3DFMT_A1R5G5B5 || surfaceFormat == D3DFMT_X1R5G5B5 ||
 			surfaceFormat == D3DFMT_A8R8G8B8 || surfaceFormat == D3DFMT_X8R8G8B8)) ||
 		surfaceFormat == D3DFMT_X4R4G4B4 || surfaceFormat == D3DFMT_A4R4G4B4 || surfaceFormat == D3DFMT_R8G8B8 ||
@@ -3829,48 +3835,49 @@ void m_IDirectDrawSurfaceX::LockBitAlign(LPRECT lpDestRect, T lpDDSurfaceDesc)
 }
 
 // Restore removed scanlines before locking surface
-void m_IDirectDrawSurfaceX::RestoreScanlines(LASTLOCK &LLock)
+void m_IDirectDrawSurfaceX::RestoreScanlines(LASTLOCK& LLock)
 {
 	DWORD ByteCount = surfaceBitCount / 8;
 	DWORD RectWidth = LLock.Rect.right - LLock.Rect.left;
 	DWORD RectHeight = LLock.Rect.bottom - LLock.Rect.top;
 
-	if ((IsPrimarySurface() || IsBackBuffer()) && LLock.LockedRect.pBits &&
-		ByteCount && ByteCount <= 4 && RectWidth == LLock.ScanlineWidth &&
-		(LLock.bEvenScanlines || LLock.bOddScanlines))
+	if ((!IsPrimarySurface() && !IsBackBuffer()) || !LLock.LockedRect.pBits ||
+		!ByteCount || ByteCount > 4 || RectWidth != LLock.ScanlineWidth)
 	{
-		DWORD size = RectWidth * ByteCount;
-		BYTE* DestBuffer = (BYTE*)LLock.LockedRect.pBits;
+		return;
+	}
 
-		// Restore even scanlines
-		if (LLock.bEvenScanlines)
+	DWORD size = RectWidth * ByteCount;
+	BYTE* DestBuffer = (BYTE*)LLock.LockedRect.pBits;
+
+	// Restore even scanlines
+	if (LLock.bEvenScanlines)
+	{
+		constexpr DWORD Starting = 0;
+		DestBuffer += LLock.LockedRect.Pitch * Starting;
+
+		for (DWORD y = Starting; y < RectHeight; y = y + 2)
 		{
-			constexpr DWORD Starting = 0;
-			DestBuffer += LLock.LockedRect.Pitch * Starting;
-
-			for (DWORD y = Starting; y < RectHeight; y = y + 2)
-			{
-				memcpy(DestBuffer, &LLock.EvenScanLine[0], size);
-				DestBuffer += LLock.LockedRect.Pitch * 2;
-			}
+			memcpy(DestBuffer, &LLock.EvenScanLine[0], size);
+			DestBuffer += LLock.LockedRect.Pitch * 2;
 		}
-		// Restore odd scanlines
-		else if (LLock.bOddScanlines)
-		{
-			constexpr DWORD Starting = 1;
-			DestBuffer += LLock.LockedRect.Pitch * Starting;
+	}
+	// Restore odd scanlines
+	else if (LLock.bOddScanlines)
+	{
+		constexpr DWORD Starting = 1;
+		DestBuffer += LLock.LockedRect.Pitch * Starting;
 
-			for (DWORD y = Starting; y < RectHeight; y = y + 2)
-			{
-				memcpy(DestBuffer, &LLock.OddScanLine[0], size);
-				DestBuffer += LLock.LockedRect.Pitch * 2;
-			}
+		for (DWORD y = Starting; y < RectHeight; y = y + 2)
+		{
+			memcpy(DestBuffer, &LLock.OddScanLine[0], size);
+			DestBuffer += LLock.LockedRect.Pitch * 2;
 		}
 	}
 }
 
 // Remove scanlines before unlocking surface
-void m_IDirectDrawSurfaceX::RemoveScanlines(LASTLOCK &LLock)
+void m_IDirectDrawSurfaceX::RemoveScanlines(LASTLOCK& LLock)
 {
 	DWORD ByteCount = surfaceBitCount / 8;
 	DWORD RectWidth = LLock.Rect.right - LLock.Rect.left;
@@ -3881,89 +3888,91 @@ void m_IDirectDrawSurfaceX::RemoveScanlines(LASTLOCK &LLock)
 	LLock.bOddScanlines = false;
 	LLock.bEvenScanlines = false;
 
-	if ((IsPrimarySurface() || IsBackBuffer()) && LLock.LockedRect.pBits &&
-		ByteCount && ByteCount <= 4 && RectHeight >= 100)
+	if ((!IsPrimarySurface() && !IsBackBuffer()) || !LLock.LockedRect.pBits ||
+		!ByteCount || ByteCount > 4 || RectHeight < 100)
 	{
-		DWORD size = LLock.ScanlineWidth * ByteCount;
-		if (LLock.EvenScanLine.size() < size || LLock.OddScanLine.size() < size)
-		{
-			LLock.EvenScanLine.resize(size);
-			LLock.OddScanLine.resize(size);
-		}
-		LLock.ScanlineWidth = RectWidth;
+		return;
+	}
 
-		BYTE* DestBuffer = (BYTE*)LLock.LockedRect.pBits;
+	DWORD size = LLock.ScanlineWidth * ByteCount;
+	if (LLock.EvenScanLine.size() < size || LLock.OddScanLine.size() < size)
+	{
+		LLock.EvenScanLine.resize(size);
+		LLock.OddScanLine.resize(size);
+	}
+	LLock.ScanlineWidth = RectWidth;
 
-		// Check if video has scanlines
-		for (DWORD y = 0; y < RectHeight; y++)
+	BYTE* DestBuffer = (BYTE*)LLock.LockedRect.pBits;
+
+	// Check if video has scanlines
+	for (DWORD y = 0; y < RectHeight; y++)
+	{
+		// Check for even scanlines
+		if (y % 2 == 0)
 		{
-			// Check for even scanlines
-			if (y % 2 == 0)
+			if (y == 0)
 			{
-				if (y == 0)
-				{
-					LLock.bEvenScanlines = true;
-					memcpy(&LLock.EvenScanLine[0], DestBuffer, size);
-				}
-				else if (LLock.bEvenScanlines)
-				{
-					LLock.bEvenScanlines = (memcmp(&LLock.EvenScanLine[0], DestBuffer, size) == 0);
-				}
+				LLock.bEvenScanlines = true;
+				memcpy(&LLock.EvenScanLine[0], DestBuffer, size);
 			}
-			// Check for odd scanlines
-			else
+			else if (LLock.bEvenScanlines)
 			{
-				if (y == 1)
-				{
-					LLock.bOddScanlines = true;
-					memcpy(&LLock.OddScanLine[0], DestBuffer, size);
-				}
-				else if (LLock.bOddScanlines)
-				{
-					LLock.bOddScanlines = (memcmp(&LLock.OddScanLine[0], DestBuffer, size) == 0);
-				}
-			}
-			// Exit if no scanlines found
-			if (!LLock.bOddScanlines && !LLock.bEvenScanlines)
-			{
-				break;
-			}
-			DestBuffer += LLock.LockedRect.Pitch;
-		}
-
-		// If all scanlines are set then do nothing
-		if (!LastSet && LLock.bEvenScanlines && LLock.bOddScanlines)
-		{
-			LLock.bEvenScanlines = false;
-			LLock.bOddScanlines = false;
-		}
-
-		// Reset destination buffer
-		DestBuffer = (BYTE*)LLock.LockedRect.pBits;
-
-		// Double even scanlines
-		if (LLock.bEvenScanlines)
-		{
-			constexpr DWORD Starting = 0;
-			DestBuffer += LLock.LockedRect.Pitch * Starting;
-
-			for (DWORD y = Starting; y < RectHeight - 1; y = y + 2)
-			{
-				memcpy(DestBuffer, DestBuffer + LLock.LockedRect.Pitch, size);
-				DestBuffer += LLock.LockedRect.Pitch * 2;
+				LLock.bEvenScanlines = (memcmp(&LLock.EvenScanLine[0], DestBuffer, size) == 0);
 			}
 		}
-		// Double odd scanlines
-		else if (LLock.bOddScanlines)
+		// Check for odd scanlines
+		else
 		{
-			constexpr DWORD Starting = 1;
-			DestBuffer += LLock.LockedRect.Pitch * Starting;
-
-			for (DWORD y = Starting; y < RectHeight; y = y + 2)
+			if (y == 1)
 			{
-				memcpy(DestBuffer, DestBuffer - LLock.LockedRect.Pitch, size);
-				DestBuffer += LLock.LockedRect.Pitch * 2;
+				LLock.bOddScanlines = true;
+				memcpy(&LLock.OddScanLine[0], DestBuffer, size);
 			}
+			else if (LLock.bOddScanlines)
+			{
+				LLock.bOddScanlines = (memcmp(&LLock.OddScanLine[0], DestBuffer, size) == 0);
+			}
+		}
+		// Exit if no scanlines found
+		if (!LLock.bOddScanlines && !LLock.bEvenScanlines)
+		{
+			break;
+		}
+		DestBuffer += LLock.LockedRect.Pitch;
+	}
+
+	// If all scanlines are set then do nothing
+	if (!LastSet && LLock.bEvenScanlines && LLock.bOddScanlines)
+	{
+		LLock.bEvenScanlines = false;
+		LLock.bOddScanlines = false;
+	}
+
+	// Reset destination buffer
+	DestBuffer = (BYTE*)LLock.LockedRect.pBits;
+
+	// Double even scanlines
+	if (LLock.bEvenScanlines)
+	{
+		constexpr DWORD Starting = 0;
+		DestBuffer += LLock.LockedRect.Pitch * Starting;
+
+		for (DWORD y = Starting; y < RectHeight - 1; y = y + 2)
+		{
+			memcpy(DestBuffer, DestBuffer + LLock.LockedRect.Pitch, size);
+			DestBuffer += LLock.LockedRect.Pitch * 2;
+		}
+	}
+	// Double odd scanlines
+	else if (LLock.bOddScanlines)
+	{
+		constexpr DWORD Starting = 1;
+		DestBuffer += LLock.LockedRect.Pitch * Starting;
+
+		for (DWORD y = Starting; y < RectHeight; y = y + 2)
+		{
+			memcpy(DestBuffer, DestBuffer - LLock.LockedRect.Pitch, size);
+			DestBuffer += LLock.LockedRect.Pitch * 2;
 		}
 	}
 }
@@ -3998,9 +4007,6 @@ HRESULT m_IDirectDrawSurfaceX::SetLock(D3DLOCKED_RECT* pLockedRect, LPRECT lpDes
 			LOG_LIMIT(100, __FUNCTION__ << " Error: failed to lock emulated surface!");
 			return DDERR_GENERIC;
 		}
-
-		// Set new palette data
-		UpdatePaletteData();
 
 		// Read surface from GDI
 		if (Config.DdrawReadFromGDI && (IsPrimarySurface() || IsBackBuffer()))
@@ -4120,15 +4126,13 @@ HRESULT m_IDirectDrawSurfaceX::SetUnlock(RECT& UnLockRect, BOOL isSkipScene)
 	{
 		if (!LastLock.ReadOnly)
 		{
+			// Copy emulated surface to real texture
+			CopyEmulatedSurface(&UnLockRect, true);
+
 			// Blt surface directly to GDI
 			if (Config.DdrawWriteToGDI && (IsPrimarySurface() || IsBackBuffer()))
 			{
 				CopyEmulatedSurfaceToGDI(UnLockRect);
-			}
-			// Copy emulated surface to real texture
-			else
-			{
-				CopyEmulatedSurface(&UnLockRect, true);
 			}
 		}
 		hr = DD_OK;
@@ -4456,6 +4460,12 @@ HRESULT m_IDirectDrawSurfaceX::ColorFill(RECT* pRect, D3DCOLOR dwFillColor)
 			break;
 		}
 
+		// Read surface from GDI
+		if (IsSurfaceEmulated && Config.DdrawReadFromGDI && (IsPrimarySurface() || IsBackBuffer()))
+		{
+			CopyEmulatedSurfaceFromGDI(LastLock.Rect);
+		}
+
 		// Use D3DXLoadSurfaceFromMemory to color fill the surface
 		if (!IsSurfaceEmulated)
 		{
@@ -4499,8 +4509,11 @@ HRESULT m_IDirectDrawSurfaceX::ColorFill(RECT* pRect, D3DCOLOR dwFillColor)
 		}
 
 		// Check if surface is not locked then lock it
-		D3DLOCKED_RECT DestLockRect;
-		if (FAILED(SetLock(&DestLockRect, &DestRect, 0, true)))
+		D3DLOCKED_RECT DestLockRect = {};
+		if (FAILED(IsSurfaceEmulated ? LockEmulatedSurface(&DestLockRect, &DestRect) :
+			surfaceTexture ? surfaceTexture->LockRect(0, &DestLockRect, &DestRect, 0) :
+			surface3D ? surface3D->LockRect(&DestLockRect, &DestRect, 0) : DDERR_GENERIC))
+
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Error: could not lock dest surface " << DestRect);
 			hr = (IsLocked) ? DDERR_SURFACEBUSY : DDERR_GENERIC;
@@ -4566,7 +4579,22 @@ HRESULT m_IDirectDrawSurfaceX::ColorFill(RECT* pRect, D3DCOLOR dwFillColor)
 	// Unlock surfaces if needed
 	if (UnlockDest)
 	{
-		SetUnlock(DestRect, true);
+		IsSurfaceEmulated ? DD_OK :
+			surfaceTexture ? surfaceTexture->UnlockRect(0) :
+			surface3D ? surface3D->UnlockRect() : DDERR_GENERIC;
+	}
+
+	// Update for emulated surface
+	if (SUCCEEDED(hr) && IsSurfaceEmulated)
+	{
+		// Copy emulated surface to real texture
+		CopyEmulatedSurface(&DestRect, true);
+
+		// Blt surface directly to GDI
+		if (Config.DdrawWriteToGDI && (IsPrimarySurface() || IsBackBuffer()))
+		{
+			CopyEmulatedSurfaceToGDI(DestRect);
+		}
 	}
 
 	return hr;
@@ -4620,6 +4648,7 @@ HRESULT m_IDirectDrawSurfaceX::CopySurface(m_IDirectDrawSurfaceX* pSourceSurface
 	HRESULT hr = DD_OK;
 	bool UnlockSrc = false, UnlockDest = false;
 	RECT SrcRect = {}, DestRect = {};
+	D3DLOCKED_RECT DestLockRect = {};
 	bool IsCriticalSectionSet = false;
 
 	do {
@@ -4630,19 +4659,25 @@ HRESULT m_IDirectDrawSurfaceX::CopySurface(m_IDirectDrawSurfaceX* pSourceSurface
 			break;
 		}
 
+		// Read surface from GDI
+		if (IsSurfaceEmulated && Config.DdrawReadFromGDI && (IsPrimarySurface() || IsBackBuffer()))
+		{
+			CopyEmulatedSurfaceFromGDI(LastLock.Rect);
+		}
+
 		// Get source and dest format
 		D3DFORMAT SrcFormat = pSourceSurface->GetSurfaceFormat();
 		D3DFORMAT DestFormat = GetSurfaceFormat();
 
 		// Get copy flags
-		bool IsStretchRect = 
-			abs((pSourceRect ? pSourceRect->right - pSourceRect->left : SrcRect.right - SrcRect.left) -	// SrcWidth
-			(pDestRect ? pDestRect->right - pDestRect->left : DestRect.right - DestRect.left)) > 1 ||	// DestWidth
-			abs((pSourceRect ? pSourceRect->bottom - pSourceRect->top : SrcRect.bottom - SrcRect.top) -	// SrcHeight
-			(pDestRect ? pDestRect->bottom - pDestRect->top : DestRect.bottom - DestRect.top)) > 1;		// DestHeight
-		bool IsColorKey = ((dwFlags & DDBLT_KEYDEST) != 0);
-		bool IsMirrorLeftRight = ((dwFlags & DDBLTFX_MIRRORLEFTRIGHT) != 0);
-		bool IsMirrorUpDown = ((dwFlags & DDBLTFX_MIRRORUPDOWN) != 0);
+		bool IsStretchRect =
+			abs((pSourceRect ? pSourceRect->right - pSourceRect->left : SrcRect.right - SrcRect.left) -		// SrcWidth
+				(pDestRect ? pDestRect->right - pDestRect->left : DestRect.right - DestRect.left)) > 1 ||	// DestWidth
+			abs((pSourceRect ? pSourceRect->bottom - pSourceRect->top : SrcRect.bottom - SrcRect.top) -		// SrcHeight
+				(pDestRect ? pDestRect->bottom - pDestRect->top : DestRect.bottom - DestRect.top)) > 1;		// DestHeight
+		bool IsColorKey = ((dwFlags & BLT_COLORKEY) != 0);
+		bool IsMirrorLeftRight = ((dwFlags & BLT_MIRRORLEFTRIGHT) != 0);
+		bool IsMirrorUpDown = ((dwFlags & BLT_MIRRORUPDOWN) != 0);
 
 		// Get width and height of rect
 		LONG SrcRectWidth = SrcRect.right - SrcRect.left;
@@ -4663,9 +4698,8 @@ HRESULT m_IDirectDrawSurfaceX::CopySurface(m_IDirectDrawSurfaceX* pSourceSurface
 		}
 
 		// Use D3DXLoadSurfaceFromSurface to copy the surface
-		if (!Config.DdrawReadFromGDI && !Config.DdrawWriteToGDI && !IsUsingEmulation() &&
-			(DestFormat != D3DFMT_P8 || (SrcFormat == D3DFMT_P8 && DestFormat == D3DFMT_P8)) &&
-			!IsMirrorLeftRight && !IsMirrorUpDown && !IsColorKey)
+		if (!IsUsingEmulation() && !IsMirrorLeftRight && !IsMirrorUpDown && !IsColorKey &&
+			((SrcFormat != D3DFMT_P8 && DestFormat != D3DFMT_P8) || (SrcFormat == D3DFMT_P8 && DestFormat == D3DFMT_P8)))
 		{
 			IDirect3DSurface9* pSourceSurfaceD9 = pSourceSurface->GetD3D9Surface();
 			IDirect3DSurface9* pDestSurfaceD9 = GetD3D9Surface();
@@ -4689,11 +4723,9 @@ HRESULT m_IDirectDrawSurfaceX::CopySurface(m_IDirectDrawSurfaceX* pSourceSurface
 			}
 		}
 
-		// Use BitBlt and D3DX to copy the surface
-		if (!Config.DdrawReadFromGDI && !Config.DdrawWriteToGDI &&
-			IsUsingEmulation() && pSourceSurface->IsUsingEmulation() &&
-			emu && emu->surfaceDC && pSourceSurface->emu && pSourceSurface->emu->surfaceDC &&
-			SrcFormat == DestFormat && !IsColorKey)
+		// Use BitBlt/StretchBlt to copy the surface
+		if (IsUsingEmulation() && pSourceSurface->IsUsingEmulation() && !IsColorKey &&
+			emu && emu->surfaceDC && pSourceSurface->emu && pSourceSurface->emu->surfaceDC)
 		{
 			LONG DestLeft = DestRect.left;
 			LONG DestTop = DestRect.top;
@@ -4712,11 +4744,8 @@ HRESULT m_IDirectDrawSurfaceX::CopySurface(m_IDirectDrawSurfaceX* pSourceSurface
 			}
 
 			// Set new palette data
-			if (DestFormat == D3DFMT_P8)
-			{
-				UpdatePaletteData();
-				pSourceSurface->UpdatePaletteData();
-			}
+			UpdatePaletteData();
+			pSourceSurface->UpdatePaletteData();
 
 			// Set stretch mode
 			if (IsStretchRect)
@@ -4733,20 +4762,6 @@ HRESULT m_IDirectDrawSurfaceX::CopySurface(m_IDirectDrawSurfaceX* pSourceSurface
 
 			if (ret)
 			{
-				// Remove scanlines before unlocking surface
-				if (Config.DdrawRemoveScanlines)
-				{
-					// Set last rect before removing scanlines
-					LASTLOCK LLock;
-					LLock.ScanlineWidth = DestRect.right - DestRect.left;
-					LLock.Rect = DestRect;
-					LockEmulatedSurface(&LLock.LockedRect, &DestRect);
-
-					RemoveScanlines(LLock);
-				}
-
-				CopyEmulatedSurface(&DestRect, true);
-
 				hr = DD_OK;
 				break;
 			}
@@ -4780,8 +4795,10 @@ HRESULT m_IDirectDrawSurfaceX::CopySurface(m_IDirectDrawSurfaceX* pSourceSurface
 		}
 
 		// Check if source surface is not locked then lock it
-		D3DLOCKED_RECT SrcLockRect;
-		if (FAILED(pSourceSurface->SetLock(&SrcLockRect, &SrcRect, D3DLOCK_READONLY, true)))
+		D3DLOCKED_RECT SrcLockRect = {};
+		if (FAILED(pSourceSurface->IsUsingEmulation() ? pSourceSurface->LockEmulatedSurface(&SrcLockRect, &SrcRect) :
+			pSourceSurface->Get3DTexture() ? pSourceSurface->Get3DTexture()->LockRect(0, &SrcLockRect, &SrcRect, D3DLOCK_READONLY) :
+			pSourceSurface->Get3DSurface() ? pSourceSurface->Get3DSurface()->LockRect(&SrcLockRect, &SrcRect, D3DLOCK_READONLY) : DDERR_GENERIC))
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Error: could not lock source surface " << SrcRect);
 			hr = (pSourceSurface->IsSurfaceLocked()) ? DDERR_SURFACEBUSY : DDERR_GENERIC;
@@ -4800,8 +4817,8 @@ HRESULT m_IDirectDrawSurfaceX::CopySurface(m_IDirectDrawSurfaceX* pSourceSurface
 			{
 				surfaceArray.resize(size);
 			}
-			BYTE *SrcBuffer = (BYTE*)SrcLockRect.pBits;
-			BYTE *DestBuffer = (BYTE*)&surfaceArray[0];
+			BYTE* SrcBuffer = (BYTE*)SrcLockRect.pBits;
+			BYTE* DestBuffer = (BYTE*)&surfaceArray[0];
 			INT DestPitch = SrcRectWidth * ByteCount;
 			for (LONG y = 0; y < SrcRectHeight; y++)
 			{
@@ -4813,14 +4830,17 @@ HRESULT m_IDirectDrawSurfaceX::CopySurface(m_IDirectDrawSurfaceX* pSourceSurface
 			SrcLockRect.Pitch = DestPitch;
 			if (UnlockSrc)
 			{
-				pSourceSurface->SetUnlock(SrcRect, true);
+				pSourceSurface->IsUsingEmulation() ? DD_OK :
+					pSourceSurface->Get3DTexture() ? pSourceSurface->Get3DTexture()->UnlockRect(0) :
+					pSourceSurface->Get3DSurface() ? pSourceSurface->Get3DSurface()->UnlockRect() : DDERR_GENERIC;
 				UnlockSrc = false;
 			}
 		}
 
 		// Check if destination surface is not locked then lock it
-		D3DLOCKED_RECT DestLockRect;
-		if (FAILED(SetLock(&DestLockRect, &DestRect, 0, true)))
+		if (FAILED(IsSurfaceEmulated ? LockEmulatedSurface(&DestLockRect, &DestRect) :
+			surfaceTexture ? surfaceTexture->LockRect(0, &DestLockRect, &DestRect, 0) :
+			surface3D ? surface3D->LockRect(&DestLockRect, &DestRect, 0) : DDERR_GENERIC))
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Error: could not lock destination surface " << DestRect);
 			hr = (IsLocked) ? DDERR_SURFACEBUSY : DDERR_GENERIC;
@@ -4829,8 +4849,8 @@ HRESULT m_IDirectDrawSurfaceX::CopySurface(m_IDirectDrawSurfaceX* pSourceSurface
 		UnlockDest = true;
 
 		// Create buffer variables
-		BYTE *SrcBuffer = (BYTE*)SrcLockRect.pBits;
-		BYTE *DestBuffer = (BYTE*)DestLockRect.pBits;
+		BYTE* SrcBuffer = (BYTE*)SrcLockRect.pBits;
+		BYTE* DestBuffer = (BYTE*)DestLockRect.pBits;
 
 		// For mirror copy up/down
 		INT DestPitch = DestLockRect.Pitch;
@@ -4883,11 +4903,11 @@ HRESULT m_IDirectDrawSurfaceX::CopySurface(m_IDirectDrawSurfaceX* pSourceSurface
 		// Copy memory (complex)
 		for (LONG y = 0; y < DestRectHeight; y++)
 		{
-			BYTE *LoopBuffer = DestBuffer;
+			BYTE* LoopBuffer = DestBuffer;
 			for (LONG x = 0; x < DestRectWidth; x++)
 			{
 				DWORD r = (IsStretchRect) ? (DWORD)((float)x * WidthRatio) : x;
-				BYTE *NewPixel = (IsMirrorLeftRight) ? SrcBuffer + ((SrcRectWidth - r - 1) * SrcByteCount) : SrcBuffer + (r * SrcByteCount);
+				BYTE* NewPixel = (IsMirrorLeftRight) ? SrcBuffer + ((SrcRectWidth - r - 1) * SrcByteCount) : SrcBuffer + (r * SrcByteCount);
 				DWORD PixelColor = (*(DWORD*)NewPixel) & ByteMask;
 
 				if (!IsColorKey || PixelColor < ColorKeyLow || PixelColor > ColorKeyHigh)
@@ -4925,14 +4945,50 @@ HRESULT m_IDirectDrawSurfaceX::CopySurface(m_IDirectDrawSurfaceX* pSourceSurface
 		LeaveCriticalSection(&ddscs);
 	}
 
+	// Remove scanlines before unlocking surface
+	if (SUCCEEDED(hr) && Config.DdrawRemoveScanlines)
+	{
+		// Set last rect before removing scanlines
+		LASTLOCK LLock;
+		LLock.ScanlineWidth = DestRect.right - DestRect.left;
+		LLock.Rect = DestRect;
+		if (UnlockDest)
+		{
+			LLock.LockedRect = DestLockRect;
+		}
+		else if (IsSurfaceEmulated)
+		{
+			LockEmulatedSurface(&LLock.LockedRect, &DestRect);
+		}
+
+		RemoveScanlines(LLock);
+	}
+
 	// Unlock surfaces if needed
 	if (UnlockSrc)
 	{
-		pSourceSurface->SetUnlock(SrcRect, true);
+		pSourceSurface->IsUsingEmulation() ? DD_OK :
+			pSourceSurface->Get3DTexture() ? pSourceSurface->Get3DTexture()->UnlockRect(0) :
+			pSourceSurface->Get3DSurface() ? pSourceSurface->Get3DSurface()->UnlockRect() : DDERR_GENERIC;
 	}
 	if (UnlockDest)
 	{
-		SetUnlock(DestRect, true);
+		IsSurfaceEmulated ? DD_OK :
+			surfaceTexture ? surfaceTexture->UnlockRect(0) :
+			surface3D ? surface3D->UnlockRect() : DDERR_GENERIC;
+	}
+
+	// Update for emulated surface
+	if (SUCCEEDED(hr) && IsSurfaceEmulated)
+	{
+		// Copy emulated surface to real texture
+		CopyEmulatedSurface(&DestRect, true);
+
+		// Blt surface directly to GDI
+		if (Config.DdrawWriteToGDI && (IsPrimarySurface() || IsBackBuffer()))
+		{
+			CopyEmulatedSurfaceToGDI(DestRect);
+		}
 	}
 
 	// Return
@@ -4967,8 +5023,6 @@ HRESULT m_IDirectDrawSurfaceX::CopyEmulatedSurface(LPRECT lpDestRect, bool CopyT
 			hr = DDERR_GENERIC;
 			break;
 		}
-
-		UpdatePaletteData();
 
 		// Use D3DXLoadSurfaceFromMemory to copy the surface
 		if (CopyToRealSurface && emu && emu->surfacepBits && EmulatedLockRect.Pitch)
@@ -5241,6 +5295,9 @@ HRESULT m_IDirectDrawSurfaceX::CopyEmulatedSurfaceFromGDI(RECT Rect)
 		return DDERR_GENERIC;
 	}
 
+	// Set new palette data
+	UpdatePaletteData();
+
 	BitBlt(emu->surfaceDC, Left, Top, Width, Height, ddrawParent->GetDC(), Rect.left, Rect.top, SRCCOPY);
 
 	return DD_OK;
@@ -5266,6 +5323,9 @@ HRESULT m_IDirectDrawSurfaceX::CopyEmulatedSurfaceToGDI(RECT Rect)
 	{
 		return DDERR_GENERIC;
 	}
+
+	// Set new palette data
+	UpdatePaletteData();
 
 	BitBlt(ddrawParent->GetDC(), Left, Top, Width, Height, emu->surfaceDC, Rect.left, Rect.top, SRCCOPY);
 
