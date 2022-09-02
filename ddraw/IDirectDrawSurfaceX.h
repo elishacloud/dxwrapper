@@ -71,6 +71,7 @@ private:
 		bool bEvenScanlines = false;
 		bool bOddScanlines = false;
 		bool ReadOnly = false;
+		bool isSkipScene = false;
 		DWORD ScanlineWidth = 0;
 		std::vector<BYTE> EvenScanLine;
 		std::vector<BYTE> OddScanLine;
@@ -205,8 +206,6 @@ private:
 
 	// Locking rect coordinates
 	bool CheckCoordinates(LPRECT lpOutRect, LPRECT lpInRect);
-	HRESULT SetLock(D3DLOCKED_RECT* pLockedRect, LPRECT lpDestRect, DWORD dwFlags, BOOL isSkipScene = false);
-	HRESULT SetUnlock(RECT &UnLockRect, BOOL isSkipScene = false);
 	HRESULT LockEmulatedSurface(D3DLOCKED_RECT* pLockedRect, LPRECT lpDestRect);
 	void SetDirtyFlag();
 	void BeginWritePresent(bool isSkipScene = false);
