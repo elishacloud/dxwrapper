@@ -237,7 +237,8 @@ private:
 	// Copying surface textures
 	HRESULT ColorFill(RECT* pRect, D3DCOLOR dwFillColor);
 	HRESULT CopySurface(m_IDirectDrawSurfaceX* pSourceSurface, RECT* pSourceRect, RECT* pDestRect, D3DTEXTUREFILTERTYPE Filter, DDCOLORKEY ColorKey, DWORD dwFlags);
-	HRESULT CopyEmulatedSurface(LPRECT lpDestRect, bool CopyToRealSurfaceTexture);
+	HRESULT CopyFromEmulatedSurface(LPRECT lpDestRect);
+	HRESULT CopyToEmulatedSurface(LPRECT lpDestRect);
 	HRESULT CopyEmulatedSurfaceFromGDI(RECT Rect);
 	HRESULT CopyEmulatedSurfaceToGDI(RECT Rect);
 

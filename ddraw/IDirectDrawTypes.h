@@ -36,12 +36,54 @@ static constexpr DWORD FourCCTypes[] =
 };
 static constexpr int NumFourCCs = (sizeof(FourCCTypes) / sizeof(*FourCCTypes));
 
+struct DDS_PIXELFORMAT {
+	DWORD dwSize;
+	DWORD dwFlags;
+	DWORD dwFourCC;
+	DWORD dwRGBBitCount;
+	DWORD dwRBitMask;
+	DWORD dwGBitMask;
+	DWORD dwBBitMask;
+	DWORD dwABitMask;
+};
+
+typedef struct {
+	DWORD           dwSize;
+	DWORD           dwFlags;
+	DWORD           dwHeight;
+	DWORD           dwWidth;
+	DWORD           dwPitchOrLinearSize;
+	DWORD           dwDepth;
+	DWORD           dwMipMapCount;
+	DWORD           dwReserved1[11];
+	DDS_PIXELFORMAT ddspf;
+	DWORD           dwCaps;
+	DWORD           dwCaps2;
+	DWORD           dwCaps3;
+	DWORD           dwCaps4;
+	DWORD           dwReserved2;
+} DDS_HEADER;
+
+struct DDS_BUFFER
+{
+	DWORD               dwMagic;
+	DDS_HEADER          header;
+#pragma warning (suppress : 4200)
+	BYTE bdata[];
+};
+
+static constexpr DWORD DDS_MAGIC				= 0x20534444; // "DDS "
+static constexpr DWORD DDS_HEADER_SIZE			= sizeof(DWORD) + sizeof(DDS_HEADER);
+static constexpr DWORD DDS_HEADER_FLAGS_TEXTURE	= 0x00001007; // DDSD_CAPS | DDSD_HEIGHT | DDSD_WIDTH | DDSD_PIXELFORMAT 
+static constexpr DWORD DDS_HEADER_FLAGS_PITCH	= 0x00000008;
+
 void ConvertColorControl(DDCOLORCONTROL &ColorControl, DDCOLORCONTROL &ColorControl2);
 void ConvertGammaRamp(DDGAMMARAMP &RampData, DDGAMMARAMP &RampData2);
 void ConvertSurfaceDesc(DDSURFACEDESC &Desc, DDSURFACEDESC &Desc2);
 void ConvertSurfaceDesc(DDSURFACEDESC2 &Desc, DDSURFACEDESC2 &Desc2);
 void ConvertSurfaceDesc(DDSURFACEDESC &Desc, DDSURFACEDESC2 &Desc2);
 void ConvertSurfaceDesc(DDSURFACEDESC2 &Desc2, DDSURFACEDESC &Desc);
+void ConvertPixelFormat(DDPIXELFORMAT& Format, DDS_PIXELFORMAT &Format2);
 void ConvertPixelFormat(DDPIXELFORMAT &Format, DDPIXELFORMAT &Format2);
 void ConvertDeviceIdentifier(DDDEVICEIDENTIFIER2 &DeviceID, DDDEVICEIDENTIFIER2 &DeviceID2);
 void ConvertDeviceIdentifier(DDDEVICEIDENTIFIER &DeviceID, DDDEVICEIDENTIFIER2 &DeviceID2);
