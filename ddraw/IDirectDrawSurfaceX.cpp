@@ -2239,6 +2239,12 @@ HRESULT m_IDirectDrawSurfaceX::SetColorKey(DWORD dwFlags, LPDDCOLORKEY lpDDColor
 				ColorKey = *lpDDColorKey;
 			}
 
+			// Make sure HighValue is not lower than LowValue 
+			if (ColorKey.dwColorSpaceHighValue < ColorKey.dwColorSpaceLowValue)
+			{
+				ColorKey.dwColorSpaceHighValue = ColorKey.dwColorSpaceLowValue;
+			}
+
 			// Set color key
 			switch (dds)
 			{
