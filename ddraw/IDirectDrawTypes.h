@@ -77,6 +77,11 @@ static constexpr DWORD DDS_HEADER_SIZE			= sizeof(DWORD) + sizeof(DDS_HEADER);
 static constexpr DWORD DDS_HEADER_FLAGS_TEXTURE	= 0x00001007; // DDSD_CAPS | DDSD_HEIGHT | DDSD_WIDTH | DDSD_PIXELFORMAT 
 static constexpr DWORD DDS_HEADER_FLAGS_PITCH	= 0x00000008;
 
+inline DWORD ComputePitch(DWORD Width, DWORD BitCount)
+{
+	return ((((Width * BitCount) + 31) & ~31) >> 3);	// Use Surface Stride for pitch
+}
+
 void ConvertColorControl(DDCOLORCONTROL &ColorControl, DDCOLORCONTROL &ColorControl2);
 void ConvertGammaRamp(DDGAMMARAMP &RampData, DDGAMMARAMP &RampData2);
 void ConvertSurfaceDesc(DDSURFACEDESC &Desc, DDSURFACEDESC &Desc2);
@@ -100,4 +105,3 @@ DWORD GetBitCount(D3DFORMAT Format);
 D3DFORMAT GetDisplayFormat(DDPIXELFORMAT ddpfPixelFormat);
 void SetPixelDisplayFormat(D3DFORMAT Format, DDPIXELFORMAT &lpPixelFormat);
 HRESULT SetDisplayFormat(DDPIXELFORMAT &ddpfPixelFormat, DWORD BPP);
-DWORD ComputePitch(DWORD Width, DWORD BitCount);
