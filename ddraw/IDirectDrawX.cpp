@@ -1789,14 +1789,14 @@ HRESULT m_IDirectDrawX::WaitForVerticalBlank(DWORD dwFlags, HANDLE hEvent)
 			// Use raster status for vertical blank begin (uses high CPU)
 			else if (SUCCEEDED(d3d9Device->GetRasterStatus(0, &RasterStatus)))
 			{
-				while (SUCCEEDED(d3d9Device->GetRasterStatus(0, &RasterStatus)) && !RasterStatus.InVBlank);
+				while (SUCCEEDED(d3d9Device->GetRasterStatus(0, &RasterStatus)) && !RasterStatus.InVBlank) { Sleep(0); };
 				if (dwFlags == DDWAITVB_BLOCKBEGIN)
 				{
 					return DD_OK;
 				}
 			}
 			// Use raster status for vertical blank end (uses high CPU)
-			while (SUCCEEDED(d3d9Device->GetRasterStatus(0, &RasterStatus)) && RasterStatus.InVBlank);
+			while (SUCCEEDED(d3d9Device->GetRasterStatus(0, &RasterStatus)) && RasterStatus.InVBlank) { Sleep(0); };
 			return DD_OK;
 		case DDWAITVB_BLOCKBEGINEVENT:
 			// Triggers an event when the vertical blank begins. This value is not supported.
