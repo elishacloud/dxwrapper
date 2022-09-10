@@ -3142,7 +3142,7 @@ HRESULT m_IDirectDrawSurfaceX::CreateD3d9Surface()
 	do {
 		if (!IsDirect3DSurface && (IsPrimarySurface() || IsBackBuffer()))
 		{
-			if (FAILED(D3DXCreateTexture(*d3d9Device, Width, Height, 1, (UseDynamic ? D3DUSAGE_DYNAMIC : 0), TextureFormat, (UseDynamic ? D3DPOOL_DEFAULT : D3DPOOL_SYSTEMMEM), &surfaceTexture)))
+			if (FAILED((*d3d9Device)->CreateTexture(Width, Height, 1, (UseDynamic ? D3DUSAGE_DYNAMIC : 0), TextureFormat, (UseDynamic ? D3DPOOL_DEFAULT : D3DPOOL_SYSTEMMEM), &surfaceTexture, nullptr)))
 			{
 				LOG_LIMIT(100, __FUNCTION__ << " Error: failed to create primary surface texture size: " << Width << "x" << Height << " Format: " << surfaceFormat);
 				hr = DDERR_GENERIC;
@@ -3152,7 +3152,7 @@ HRESULT m_IDirectDrawSurfaceX::CreateD3d9Surface()
 			// Create display texture
 			if (IsPrimarySurface() && !UseDynamic && !Config.DdrawWriteToGDI)
 			{
-				if (FAILED((D3DXCreateTexture(*d3d9Device, Width, Height, 1, 0, TextureFormat, D3DPOOL_DEFAULT, &displayTexture))))
+				if (FAILED(((*d3d9Device)->CreateTexture(Width, Height, 1, 0, TextureFormat, D3DPOOL_DEFAULT, &displayTexture, nullptr))))
 				{
 					LOG_LIMIT(100, __FUNCTION__ << " Error: failed to create display surface texture size: " << Width << "x" << Height << " Format: " << surfaceFormat);
 					hr = DDERR_GENERIC;
@@ -3163,7 +3163,7 @@ HRESULT m_IDirectDrawSurfaceX::CreateD3d9Surface()
 			// Create palette surface
 			if (IsPrimarySurface() && surfaceFormat == D3DFMT_P8)
 			{
-				if (FAILED((D3DXCreateTexture(*d3d9Device, 256, 256, 1, 0, D3DFMT_X8R8G8B8, D3DPOOL_DEFAULT, &paletteTexture))) ||
+				if (FAILED(((*d3d9Device)->CreateTexture(256, 256, 1, 0, D3DFMT_X8R8G8B8, D3DPOOL_DEFAULT, &paletteTexture, nullptr))) ||
 					FAILED((*d3d9Device)->CreatePixelShader((DWORD*)PalettePixelShaderSrc, &pixelShader)))
 				{
 					LOG_LIMIT(100, __FUNCTION__ << " Error: failed to create palette surface texture");
@@ -3175,7 +3175,7 @@ HRESULT m_IDirectDrawSurfaceX::CreateD3d9Surface()
 		// Create texture
 		else if (IsTexture() || !IsDirect3DSurface)
 		{
-			if (FAILED((D3DXCreateTexture(*d3d9Device, Width, Height, 1, 0, TextureFormat, D3DPOOL_SYSTEMMEM, &surfaceTexture))))
+			if (FAILED(((*d3d9Device)->CreateTexture(Width, Height, 1, 0, TextureFormat, D3DPOOL_SYSTEMMEM, &surfaceTexture, nullptr))))
 			{
 				LOG_LIMIT(100, __FUNCTION__ << " Error: failed to create surface texture size: " << Width << "x" << Height << " Format: " << surfaceFormat);
 				hr = DDERR_GENERIC;
