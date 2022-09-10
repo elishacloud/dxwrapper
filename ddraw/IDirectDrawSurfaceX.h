@@ -13,8 +13,6 @@ struct EMUSURFACE
 	DWORD surfaceSize = 0;
 	void *surfacepBits = nullptr;
 	DWORD surfacePitch = 0;
-	DWORD surfaceWidth = 0;
-	DWORD surfaceHeight = 0;
 	HBITMAP bitmap = nullptr;
 	BYTE bmiMemory[(sizeof(BITMAPINFOHEADER) + sizeof(RGBQUAD) * 256)] = {};
 	PBITMAPINFO bmi = (PBITMAPINFO)bmiMemory;
@@ -89,7 +87,6 @@ private:
 	D3DFORMAT surfaceFormat = D3DFMT_UNKNOWN;			// Format for this surface
 	DWORD surfaceBitCount = 0;							// Bit count for this surface
 	DWORD ResetDisplayFlags = 0;						// Flags that need to be reset when display mode changes
-	CRITICAL_SECTION ddscs;								// Critical section for surfaceArray
 	std::vector<byte> surfaceArray;						// Memory used for coping from one surface to the same surface
 	std::vector<byte> surfaceBackup;					// Memory used for backing up the surfaceTexture
 	std::vector<RECT> surfaceLockRectList;				// Rects used to lock the surface
@@ -183,7 +180,7 @@ private:
 
 	// Swap surface addresses for Flip
 	template <typename T>
-	void SwapAddresses(T *Address1, T *Address2)
+	inline void SwapAddresses(T *Address1, T *Address2)
 	{
 		T tmpAddr = *Address1;
 		*Address1 = *Address2;
@@ -195,14 +192,15 @@ private:
 	// Direct3D9 interface functions
 	HRESULT CheckInterface(char *FunctionName, bool CheckD3DDevice, bool CheckD3DSurface);
 	HRESULT CreateD3d9Surface();
+	bool DoesDCMatch(EMUSURFACE* emu);
 	HRESULT CreateDCSurface();
 	void UpdateSurfaceDesc();
 
 	// Direct3D9 interfaces
-	EMUSURFACE **GetEmulatedSurface() { return &emu; }
-	LPDIRECT3DSURFACE9 *GetSurface3D() { return &surface3D; }
-	LPDIRECT3DTEXTURE9 *GetSurfaceTexture() { return &surfaceTexture; }
-	LPDIRECT3DSURFACE9 *GetContextSurface() { return &contextSurface; }
+	inline EMUSURFACE **GetEmulatedSurface() { return &emu; }
+	inline LPDIRECT3DSURFACE9 *GetSurface3D() { return &surface3D; }
+	inline LPDIRECT3DTEXTURE9 *GetSurfaceTexture() { return &surfaceTexture; }
+	inline LPDIRECT3DSURFACE9 *GetContextSurface() { return &contextSurface; }
 
 	// Locking rect coordinates
 	bool CheckCoordinates(LPRECT lpOutRect, LPRECT lpInRect);
@@ -212,14 +210,14 @@ private:
 	void EndWritePresent(bool isSkipScene = false);
 
 	// Surface information functions
-	bool IsSurfaceLocked() { return IsLocked; }
-	bool IsSurfaceInDC() { return IsInDC; }
-	bool CanSurfaceBeDeleted() { return (ComplexRoot || (surfaceDesc2.ddsCaps.dwCaps & DDSCAPS_COMPLEX) == 0); }
-	DWORD GetWidth() { return surfaceDesc2.dwWidth; }
-	DWORD GetHeight() { return surfaceDesc2.dwHeight; }
-	DDSCAPS2 GetSurfaceCaps() { return surfaceDesc2.ddsCaps; }
-	D3DFORMAT GetSurfaceFormat() { return surfaceFormat; }
-	bool CheckSurfaceExists(LPDIRECTDRAWSURFACE7 lpDDSrcSurface) { return
+	inline bool IsSurfaceLocked() { return IsLocked; }
+	inline bool IsSurfaceInDC() { return IsInDC; }
+	inline bool CanSurfaceBeDeleted() { return (ComplexRoot || (surfaceDesc2.ddsCaps.dwCaps & DDSCAPS_COMPLEX) == 0); }
+	inline DWORD GetWidth() { return surfaceDesc2.dwWidth; }
+	inline DWORD GetHeight() { return surfaceDesc2.dwHeight; }
+	inline DDSCAPS2 GetSurfaceCaps() { return surfaceDesc2.ddsCaps; }
+	inline D3DFORMAT GetSurfaceFormat() { return surfaceFormat; }
+	inline bool CheckSurfaceExists(LPDIRECTDRAWSURFACE7 lpDDSrcSurface) { return
 		(ProxyAddressLookupTable.IsValidWrapperAddress((m_IDirectDrawSurface*)lpDDSrcSurface) ||
 		ProxyAddressLookupTable.IsValidWrapperAddress((m_IDirectDrawSurface2*)lpDDSrcSurface) ||
 		ProxyAddressLookupTable.IsValidWrapperAddress((m_IDirectDrawSurface3*)lpDDSrcSurface) ||
@@ -364,8 +362,8 @@ public:
 	void RemoveScanlines(LASTLOCK &LLock);
 
 	// Functions handling the ddraw parent interface
-	void SetDdrawParent(m_IDirectDrawX *ddraw) { ddrawParent = ddraw; }
-	void ClearDdraw() { ddrawParent = nullptr; }
+	inline void SetDdrawParent(m_IDirectDrawX *ddraw) { ddrawParent = ddraw; }
+	inline void ClearDdraw() { ddrawParent = nullptr; }
 
 	// Direct3D9 interface functions
 	void ReleaseD9Surface(bool BackupData);
@@ -373,25 +371,25 @@ public:
 	void ResetSurfaceDisplay();
 
 	// Surface information functions
-	bool IsPrimarySurface() { return (surfaceDesc2.ddsCaps.dwCaps & DDSCAPS_PRIMARYSURFACE) != 0; }
-	bool IsBackBuffer() { return (surfaceDesc2.ddsCaps.dwCaps & DDSCAPS_BACKBUFFER) != 0; }
-	bool IsSurface3D() { return (surfaceDesc2.ddsCaps.dwCaps & DDSCAPS_3DDEVICE) != 0; }
-	bool IsTexture() { return (surfaceDesc2.ddsCaps.dwCaps & DDSCAPS_TEXTURE) != 0; }
-	bool IsSurfaceManaged() { return (surfaceDesc2.ddsCaps.dwCaps2 & (DDSCAPS2_TEXTUREMANAGE | DDSCAPS2_D3DTEXTUREMANAGE)) != 0; }
-	bool IsUsingEmulation() { return IsSurfaceEmulated; }
+	inline bool IsPrimarySurface() { return (surfaceDesc2.ddsCaps.dwCaps & DDSCAPS_PRIMARYSURFACE) != 0; }
+	inline bool IsBackBuffer() { return (surfaceDesc2.ddsCaps.dwCaps & DDSCAPS_BACKBUFFER) != 0; }
+	inline bool IsSurface3D() { return (surfaceDesc2.ddsCaps.dwCaps & DDSCAPS_3DDEVICE) != 0; }
+	inline bool IsTexture() { return (surfaceDesc2.ddsCaps.dwCaps & DDSCAPS_TEXTURE) != 0; }
+	inline bool IsSurfaceManaged() { return (surfaceDesc2.ddsCaps.dwCaps2 & (DDSCAPS2_TEXTUREMANAGE | DDSCAPS2_D3DTEXTUREMANAGE)) != 0; }
+	inline bool IsUsingEmulation() { return (IsSurfaceEmulated && emu && emu->surfaceDC && emu->surfacepBits); }
 	LPDIRECT3DSURFACE9 Get3DSurface();
 	LPDIRECT3DTEXTURE9 Get3DTexture();
 	LPDIRECT3DSURFACE9 GetD3D9Surface();
-	void ClearTexture() { attachedTexture = nullptr; }
-	void SetWrapperSurfaceSize(DWORD Height, DWORD Width) { DsWrapper.Width = Width; DsWrapper.Height = Height; }
+	inline void ClearTexture() { attachedTexture = nullptr; }
+	inline void SetWrapperSurfaceSize(DWORD Height, DWORD Width) { DsWrapper.Width = Width; DsWrapper.Height = Height; }
 
 	// Attached surfaces
 	void RemoveAttachedSurfaceFromMap(m_IDirectDrawSurfaceX* lpSurfaceX);
 
 	// For palettes
-	m_IDirectDrawPalette *GetAttachedPalette() { return attachedPalette; }
+	inline m_IDirectDrawPalette *GetAttachedPalette() { return attachedPalette; }
 	void UpdatePaletteData();
-	DWORD GetPaletteUSN() { return PaletteUSN; }
+	inline DWORD GetPaletteUSN() { return PaletteUSN; }
 
 	// For emulated surfaces
 	static void StartSharedEmulatedMemory();
