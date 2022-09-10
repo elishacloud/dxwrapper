@@ -576,7 +576,30 @@ HRESULT m_IDirectDrawSurfaceX::Blt(LPRECT lpDestRect, LPDIRECTDRAWSURFACE7 lpDDS
 		lpDDSrcSurface->QueryInterface(IID_GetRealInterface, (LPVOID*)&lpDDSrcSurface);
 	}
 
-	return ProxyInterface->Blt(lpDestRect, lpDDSrcSurface, lpSrcRect, dwFlags, lpDDBltFx);
+	HRESULT hr = ProxyInterface->Blt(lpDestRect, lpDDSrcSurface, lpSrcRect, dwFlags, lpDDBltFx);
+
+	// Fix for some games that calculate the rect incorrectly
+	if (hr == DDERR_INVALIDRECT)
+	{
+		RECT SrcRect, DestRect;
+		if (lpSrcRect)
+		{
+			memcpy(&SrcRect, lpSrcRect, sizeof(RECT));
+			SrcRect.left -= 1;
+			SrcRect.bottom -= 1;
+			lpSrcRect = &SrcRect;
+		}
+		if (lpDestRect)
+		{
+			memcpy(&DestRect, lpDestRect, sizeof(RECT));
+			DestRect.left -= 1;
+			DestRect.bottom -= 1;
+			lpDestRect = &DestRect;
+		}
+		hr = ProxyInterface->Blt(lpDestRect, lpDDSrcSurface, lpSrcRect, dwFlags, lpDDBltFx);
+	}
+
+	return hr;
 }
 
 HRESULT m_IDirectDrawSurfaceX::BltBatch(LPDDBLTBATCH lpDDBltBatch, DWORD dwCount, DWORD dwFlags)
@@ -708,7 +731,19 @@ HRESULT m_IDirectDrawSurfaceX::BltFast(DWORD dwX, DWORD dwY, LPDIRECTDRAWSURFACE
 		}
 	}
 
-	return ProxyInterface->BltFast(dwX, dwY, lpDDSrcSurface, lpSrcRect, dwFlags);
+	HRESULT hr = ProxyInterface->BltFast(dwX, dwY, lpDDSrcSurface, lpSrcRect, dwFlags);
+
+	// Fix for some games that calculate the rect incorrectly
+	if (lpSrcRect && hr == DDERR_INVALIDRECT)
+	{
+		RECT SrcRect;
+		memcpy(&SrcRect, lpSrcRect, sizeof(RECT));
+		SrcRect.left -= 1;
+		SrcRect.bottom -= 1;
+		hr = ProxyInterface->BltFast(dwX, dwY, lpDDSrcSurface, &SrcRect, dwFlags);
+	}
+
+	return hr;
 }
 
 HRESULT m_IDirectDrawSurfaceX::DeleteAttachedSurface(DWORD dwFlags, LPDIRECTDRAWSURFACE7 lpDDSAttachedSurface)
@@ -3197,7 +3232,7 @@ HRESULT m_IDirectDrawSurfaceX::CreateD3d9Surface()
 	bool EmuSurfaceCreated = false;
 
 	// Create emulated surface using device context for creation
-	if (IsSurfaceEmulated || (emu && !DoesDCMatch(emu)))
+	if (IsSurfaceEmulated || Config.DdrawWriteToGDI || (emu && !DoesDCMatch(emu)))
 	{
 		if (!DoesDCMatch(emu))
 		{
@@ -5009,7 +5044,7 @@ HRESULT m_IDirectDrawSurfaceX::CopySurface(m_IDirectDrawSurfaceX* pSourceSurface
 // Copy from emulated surface to real surface
 HRESULT m_IDirectDrawSurfaceX::CopyFromEmulatedSurface(LPRECT lpDestRect)
 {
-	if (!IsUsingEmulation())
+	if (!IsUsingEmulation() || Config.DdrawWriteToGDI)
 	{
 		return DDERR_GENERIC;
 	}
@@ -5051,7 +5086,7 @@ HRESULT m_IDirectDrawSurfaceX::CopyFromEmulatedSurface(LPRECT lpDestRect)
 // Copy from real surface to emulated surface
 HRESULT m_IDirectDrawSurfaceX::CopyToEmulatedSurface(LPRECT lpDestRect)
 {
-	if (!IsUsingEmulation())
+	if (!IsUsingEmulation() || Config.DdrawWriteToGDI)
 	{
 		return DDERR_GENERIC;
 	}
