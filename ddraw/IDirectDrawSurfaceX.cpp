@@ -3441,10 +3441,10 @@ bool m_IDirectDrawSurfaceX::DoesDCMatch(EMUSURFACE* pEmuSurface)
 HRESULT m_IDirectDrawSurfaceX::CreateDCSurface()
 {
 	// Check if color masks are needed
-	bool ColorMaskReq = ((surfaceBitCount == 16 || surfaceBitCount == 24 || surfaceBitCount == 32) &&										// Only valid when used with 16 bit and 32 bit surfaces
+	bool ColorMaskReq = ((surfaceBitCount == 16 || surfaceBitCount == 24 || surfaceBitCount == 32) &&										// Only valid when used with 16 bit, 24 bit and 32 bit surfaces
 		(surfaceDesc2.ddpfPixelFormat.dwFlags & DDPF_RGB) &&																				// Check to make sure it is an RGB surface
 		(surfaceDesc2.ddpfPixelFormat.dwRBitMask && surfaceDesc2.ddpfPixelFormat.dwGBitMask && surfaceDesc2.ddpfPixelFormat.dwBBitMask));	// Check to make sure the masks actually exist
-	
+
 	// Adjust Width to be byte-aligned
 	DWORD Width = GetByteAlignedWidth(surfaceDesc2.dwWidth, surfaceBitCount);
 	DWORD Height = surfaceDesc2.dwHeight;
@@ -3524,7 +3524,7 @@ HRESULT m_IDirectDrawSurfaceX::CreateDCSurface()
 	emu->bmi->bmiHeader.biHeight = -(LONG)(Height + padding);
 	emu->bmi->bmiHeader.biPlanes = 1;
 	emu->bmi->bmiHeader.biBitCount = (WORD)surfaceBitCount;
-	emu->bmi->bmiHeader.biCompression = (ColorMaskReq) ? BI_BITFIELDS : BI_RGB;
+	emu->bmi->bmiHeader.biCompression = (ColorMaskReq) ? BI_RGB : BI_BITFIELDS;
 	emu->bmi->bmiHeader.biSizeImage = ((Width * surfaceBitCount + 31) & ~31) / 8 * Height;
 
 	if (surfaceBitCount == 8)
@@ -3559,21 +3559,20 @@ HRESULT m_IDirectDrawSurfaceX::CreateDCSurface()
 		return DDERR_GENERIC;
 	}
 	emu->bitmap = CreateDIBSection(emu->surfaceDC, emu->bmi, (surfaceBitCount == 8) ? DIB_PAL_COLORS : DIB_RGB_COLORS, (void**)&emu->surfacepBits, nullptr, 0);
-	emu->bmi->bmiHeader.biHeight = -(LONG)Height;
 	if (!emu->bitmap)
 	{
-		emu->surfacepBits = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, (Height + padding) * emu->surfacePitch);
+		LOG_LIMIT(100, __FUNCTION__ << " Error: failed to create bitmap!");
+		DeleteEmulatedMemory(&emu);
+		return DDERR_GENERIC;
 	}
-	else
+	emu->OldDCObject = SelectObject(emu->surfaceDC, emu->bitmap);
+	if (!emu->OldDCObject)
 	{
-		emu->OldDCObject = SelectObject(emu->surfaceDC, emu->bitmap);
-		if (!emu->OldDCObject)
-		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error: failed to replace object in DC!");
-			DeleteEmulatedMemory(&emu);
-			return DDERR_GENERIC;
-		}
+		LOG_LIMIT(100, __FUNCTION__ << " Error: failed to replace object in DC!");
+		DeleteEmulatedMemory(&emu);
+		return DDERR_GENERIC;
 	}
+	emu->bmi->bmiHeader.biHeight = -(LONG)Height;
 	emu->surfacePitch = ComputePitch(emu->bmi->bmiHeader.biWidth, emu->bmi->bmiHeader.biBitCount);
 	emu->surfaceSize = Height * emu->surfacePitch;
 
