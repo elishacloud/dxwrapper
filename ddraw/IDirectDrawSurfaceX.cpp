@@ -2005,6 +2005,13 @@ HRESULT m_IDirectDrawSurfaceX::Lock2(LPRECT lpDestRect, LPDDSURFACEDESC2 lpDDSur
 			return DDERR_GENERIC;
 		}
 
+		// Check pointer and pitch
+		if (!LockedRect.pBits || !LockedRect.Pitch)
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: failed to get surface address or pitch!");
+			return DDERR_GENERIC;
+		}
+
 		// Set locked ID
 		LockedWithID = GetCurrentThreadId();
 
@@ -2018,13 +2025,8 @@ HRESULT m_IDirectDrawSurfaceX::Lock2(LPRECT lpDestRect, LPDDSURFACEDESC2 lpDDSur
 			surfaceLockRectList.push_back(lRect);
 		}
 
-		// Check pitch
-		if ((surfaceDesc2.dwFlags & DDSD_PITCH) && surfaceDesc2.lPitch != LockedRect.Pitch)
-		{
-			LOG_LIMIT(100, __FUNCTION__ << " Warning: surface pitch changed size: " << surfaceDesc2.lPitch << " --> " << LockedRect.Pitch);
-		}
-
 		// Set surfaceDesc
+		ConvertSurfaceDesc(*lpDDSurfaceDesc2, surfaceDesc2);
 		if (!(lpDDSurfaceDesc2->dwFlags & DDSD_LPSURFACE))
 		{
 			lpDDSurfaceDesc2->lpSurface = LockedRect.pBits;
@@ -2403,9 +2405,9 @@ HRESULT m_IDirectDrawSurfaceX::Unlock(LPRECT lpRect)
 	// Fix issue with some games that ignore the pitch size
 	if (EmuLock.Locked && EmuLock.Addr)
 	{
-		BYTE *InAddr = &EmuLock.surfaceMem[0];
+		BYTE* InAddr = &EmuLock.surfaceMem[0];
 		DWORD InPitch = (EmuLock.BBP / 8) * EmuLock.Width;
-		BYTE *OutAddr = (BYTE*)EmuLock.Addr;
+		BYTE* OutAddr = (BYTE*)EmuLock.Addr;
 		DWORD OutPitch = EmuLock.Pitch;
 		for (DWORD x = 0; x < EmuLock.Height; x++)
 		{
