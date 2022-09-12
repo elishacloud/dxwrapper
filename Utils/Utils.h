@@ -30,12 +30,14 @@ namespace Utils
 	void DDrawResolutionHack(HMODULE hD3DIm);
 	void GetScreenSettings();
 	void ResetScreenSettings();
+	HMONITOR GetMonitorHandle(HWND hWnd);
 	DWORD GetRefreshRate(HWND hWnd);
 	DWORD GetBitCount(HWND hWnd);
 	DWORD GetWindowHeight(HWND hWnd);
 	void DisableGameUX();
 	void GetScreenSize(HWND hwnd, LONG &screenWidth, LONG &screenHeight);
 	void GetScreenSize(HWND hwnd, DWORD &screenWidth, DWORD &screenHeight);
+	void GetDesktopRect(HWND hWnd, RECT& screenRect);
 	DWORD GetVideoRam(DWORD DefaultSize);
 
 	namespace WriteMemory

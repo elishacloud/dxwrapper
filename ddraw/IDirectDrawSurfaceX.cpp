@@ -4726,9 +4726,9 @@ HRESULT m_IDirectDrawSurfaceX::CopySurface(m_IDirectDrawSurfaceX* pSourceSurface
 			if (pSourceSurfaceD9 && pDestSurfaceD9)
 			{
 				DWORD DX3XFilter =
+					(IsStretchRect && DestFormat == D3DFMT_P8) ? D3DX_FILTER_POINT :
 					(Filter & D3DTEXF_LINEAR) ? D3DX_FILTER_LINEAR :
 					(Filter & D3DTEXF_POINT) ? D3DX_FILTER_POINT :
-					(IsStretchRect && DestFormat == D3DFMT_P8) ? D3DX_FILTER_POINT :
 					(IsStretchRect) ? D3DX_FILTER_LINEAR :
 					D3DX_FILTER_NONE;
 

@@ -16,7 +16,7 @@
 
 #define WIN32_LEAN_AND_MEAN
 #include <Windows.h>
-#include "Wrappers\wrapper.h"
+#include "ddraw\ddrawExternal.h"
 #include "GDI.h"
 #include "Settings\Settings.h"
 #include "Logging\Logging.h"
@@ -26,6 +26,7 @@ namespace GdiWrapper
 	FARPROC CreateWindowExA_out = nullptr;
 	FARPROC CreateWindowExW_out = nullptr;
 	FARPROC DestroyWindow_out = nullptr;
+	FARPROC GetSystemMetrics_out = nullptr;
 }
 
 using namespace GdiWrapper;
@@ -113,4 +114,36 @@ BOOL WINAPI user_DestroyWindow(HWND hWnd)
 	}
 
 	return result;
+}
+
+int WINAPI user_GetSystemMetrics(int nIndex)
+{
+	Logging::LogDebug() << __FUNCTION__ << " " << nIndex;
+
+	static GetSystemMetricsProc m_pGetSystemMetrics = (Wrapper::ValidProcAddress(GetSystemMetrics_out)) ? (GetSystemMetricsProc)GetSystemMetrics_out : nullptr;
+
+		if (nIndex == SM_CXSCREEN)
+		{
+			int Width = GetDDrawWidth();
+			if (Width)
+			{
+				return Width;
+			}
+		}
+
+		if (nIndex == SM_CYSCREEN)
+		{
+			int Height = GetDDrawHeight();
+			if (Height)
+			{
+				return Height;
+			}
+		}
+
+		if (!m_pGetSystemMetrics)
+		{
+			return 0;
+		}
+
+	return m_pGetSystemMetrics(nIndex);
 }

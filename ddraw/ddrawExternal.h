@@ -27,6 +27,8 @@ HRESULT WINAPI dd_ReleaseDDThreadLock();
 HRESULT WINAPI dd_SetAppCompatData(DWORD Type, DWORD Value);
 
 DWORD GetCurrentBitsPixel();
+int GetDDrawWidth();
+int GetDDrawHeight();
 
 void InitDDraw();
 void ExitDDraw();

@@ -125,7 +125,7 @@ namespace Utils
 		DWORD m_dwThreadID = 0;
 
 		// Function declarations
-		void GetScreenSize(HWND&, screen_res&, MONITORINFO&);
+		void GetScreenSize(HWND, screen_res&, MONITORINFO&);
 		LONG GetBestResolution(screen_res&, LONG, LONG);
 		void SetScreenResolution(LONG, LONG);
 		void SetScreen(screen_res);
@@ -152,6 +152,11 @@ using namespace Utils;
 //*********************************************************************************
 // Screen/monitor functions below
 //*********************************************************************************
+
+HMONITOR Utils::GetMonitorHandle(HWND hWnd)
+{
+	return MonitorFromWindow(IsWindow(hWnd) ? hWnd : GetDesktopWindow(), MONITOR_DEFAULTTONEAREST);
+}
 
 DWORD Utils::GetRefreshRate(HWND hWnd)
 {
@@ -228,7 +233,7 @@ DWORD Utils::GetWindowHeight(HWND hWnd)
 }
 
 // Gets the screen size from a wnd handle
-void Fullscreen::GetScreenSize(HWND& hwnd, screen_res& Res, MONITORINFO& mi)
+void Fullscreen::GetScreenSize(HWND hwnd, screen_res& Res, MONITORINFO& mi)
 {
 	GetMonitorInfo(MonitorFromWindow((IsWindow(hwnd)) ? hwnd : GetDesktopWindow(), MONITOR_DEFAULTTONEAREST), &mi);
 	Res.Width = mi.rcMonitor.right - mi.rcMonitor.left;
@@ -237,12 +242,11 @@ void Fullscreen::GetScreenSize(HWND& hwnd, screen_res& Res, MONITORINFO& mi)
 
 void Utils::GetScreenSize(HWND hwnd, LONG &screenWidth, LONG &screenHeight)
 {
-	MONITORINFO mi = {};
-	mi.cbSize = sizeof(MONITORINFO);
-	Fullscreen::screen_res Res;
-	Fullscreen::GetScreenSize(hwnd, Res, mi);
-	screenWidth = Res.Width;
-	screenHeight = Res.Height;
+	MONITORINFO info = {};
+	info.cbSize = sizeof(MONITORINFO);
+	GetMonitorInfo(GetMonitorHandle(hwnd), &info);
+	screenWidth = info.rcMonitor.right - info.rcMonitor.left;
+	screenHeight = info.rcMonitor.bottom - info.rcMonitor.top;
 }
 
 void Utils::GetScreenSize(HWND hwnd, DWORD &screenWidth, DWORD &screenHeight)
@@ -251,6 +255,17 @@ void Utils::GetScreenSize(HWND hwnd, DWORD &screenWidth, DWORD &screenHeight)
 	GetScreenSize(hwnd, Width, Height);
 	screenWidth = Width;
 	screenHeight = Height;
+}
+
+void Utils::GetDesktopRect(HWND hWnd, RECT& screenRect)
+{
+	MONITORINFO info = {};
+	info.cbSize = sizeof(MONITORINFO);
+	GetMonitorInfo(GetMonitorHandle(hWnd), &info);
+	screenRect.left = info.rcMonitor.left;
+	screenRect.top = info.rcMonitor.top;
+	screenRect.right = info.rcMonitor.right;
+	screenRect.bottom = info.rcMonitor.bottom;
 }
 
 // Check with resolution is best

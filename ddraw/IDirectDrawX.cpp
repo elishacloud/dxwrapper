@@ -3179,3 +3179,21 @@ DWORD GetCurrentBitsPixel()
 	}
 	return 0;
 }
+
+int GetDDrawWidth()
+{
+	if (ddrawRefCount && MainhWnd)
+	{
+		return (ExclusiveWidth) ? ExclusiveWidth : (displayModeWidth) ? displayModeWidth : 0;
+	}
+	return 0;
+}
+
+int GetDDrawHeight()
+{
+	if (ddrawRefCount && MainhWnd)
+	{
+		return (ExclusiveHeight) ? ExclusiveHeight : (displayModeHeight) ? displayModeHeight : 0;
+	}
+	return 0;
+}

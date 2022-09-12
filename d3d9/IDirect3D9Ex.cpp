@@ -480,33 +480,33 @@ void UpdatePresentParameter(D3DPRESENT_PARAMETERS* pPresentationParameters, HWND
 	// Set window size
 	if (SetWindow && Config.EnableWindowMode && IsWindow(DeviceWindow))
 	{
-		// Set fullscreen resolution
-		if (Config.FullscreenWindowMode)
+		bool AnyChange = (LastBufferWidth != BufferWidth || LastBufferHeight != BufferHeight || LastDeviceWindow != DeviceWindow);
+
+		// Adjust window
+		RECT Rect;
+		GetClientRect(DeviceWindow, &Rect);
+		if (AnyChange || Rect.right - Rect.left != BufferWidth || Rect.bottom - Rect.top != BufferHeight)
 		{
-			DEVMODE newSettings;
-			ZeroMemory(&newSettings, sizeof(newSettings));
-			if (EnumDisplaySettings(nullptr, ENUM_CURRENT_SETTINGS, &newSettings))
+			AdjustWindow(DeviceWindow, BufferWidth, BufferHeight);
+		}
+
+		// Set fullscreen resolution
+		if (Config.FullscreenWindowMode && AnyChange)
+		{
+			// Get monitor info
+			MONITORINFOEX infoex = {};
+			infoex.cbSize = sizeof(MONITORINFOEX);
+			BOOL bRet = GetMonitorInfo(Utils::GetMonitorHandle(DeviceWindow), &infoex);
+
+			// Get resolution list for specified monitor
+			DEVMODE newSettings = {};
+			newSettings.dmSize = sizeof(newSettings);
+			if (EnumDisplaySettings(bRet ? infoex.szDevice : nullptr, ENUM_CURRENT_SETTINGS, &newSettings) != 0)
 			{
 				newSettings.dmPelsWidth = BufferWidth;
 				newSettings.dmPelsHeight = BufferHeight;
 				newSettings.dmFields = DM_PELSWIDTH | DM_PELSHEIGHT;
-				ChangeDisplaySettings(&newSettings, CDS_FULLSCREEN);
-			}
-		}
-
-		// Adjust window
-		if (LastBufferWidth != BufferWidth || LastBufferHeight != BufferHeight || LastDeviceWindow != DeviceWindow)
-		{
-			AdjustWindow(DeviceWindow, BufferWidth, BufferHeight);
-		}
-		// Set window size
-		else
-		{
-			RECT Rect;
-			GetClientRect(DeviceWindow, &Rect);
-			if (Rect.right - Rect.left != BufferWidth || Rect.bottom - Rect.top != BufferHeight)
-			{
-				SetWindowPos(DeviceWindow, HWND_TOP, 0, 0, BufferWidth, BufferHeight, SWP_NOMOVE | SWP_NOZORDER | SWP_NOSENDCHANGING);
+				ChangeDisplaySettingsEx(bRet ? infoex.szDevice : nullptr, &newSettings, nullptr, CDS_FULLSCREEN, nullptr);
 
 				// Peek messages to help prevent a "Not Responding" window
 				MSG msg;
@@ -549,16 +549,19 @@ void AdjustWindow(HWND MainhWnd, LONG displayWidth, LONG displayHeight)
 	}
 
 	// Get screen width and height
-	LONG screenWidth, screenHeight;
+	LONG screenWidth = 0, screenHeight = 0;
 	Utils::GetScreenSize(MainhWnd, screenWidth, screenHeight);
+	RECT screenRect = {};
+	Utils::GetDesktopRect(MainhWnd, screenRect);
 
 	// Get window border
 	bool HasBorder = false;
 	LONG lStyle = GetWindowLong(MainhWnd, GWL_STYLE) | WS_VISIBLE;
-	if (Config.WindowModeBorder && screenHeight > displayHeight + GetSystemMetrics(SM_CYCAPTION) + GetSystemMetrics(SM_CYBORDER))
+	if (!Config.FullscreenWindowMode && Config.WindowModeBorder && screenWidth > displayWidth + (GetSystemMetrics(SM_CXSIZEFRAME) * 2) &&
+		screenHeight > displayHeight + (GetSystemMetrics(SM_CYSIZEFRAME) * 2) + GetSystemMetrics(SM_CYCAPTION))
 	{
 		HasBorder = true;
-		lStyle |= WS_OVERLAPPEDWINDOW;
+		lStyle = (lStyle | WS_OVERLAPPEDWINDOW) & ~(WS_MAXIMIZEBOX | WS_THICKFRAME);
 	}
 	else
 	{
@@ -567,7 +570,7 @@ void AdjustWindow(HWND MainhWnd, LONG displayWidth, LONG displayHeight)
 
 	// Set window border
 	SetWindowLong(MainhWnd, GWL_STYLE, lStyle);
-	SetWindowPos(MainhWnd, HWND_TOP, 0, 0, 0, 0, SWP_FRAMECHANGED | SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_NOSENDCHANGING);
+	SetWindowPos(MainhWnd, HWND_TOP, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_FRAMECHANGED | SWP_NOSENDCHANGING);
 
 	// Set window size
 	SetWindowPos(MainhWnd, HWND_TOP, 0, 0, displayWidth, displayHeight, SWP_NOMOVE | SWP_NOZORDER | SWP_NOSENDCHANGING);
@@ -585,10 +588,10 @@ void AdjustWindow(HWND MainhWnd, LONG displayWidth, LONG displayHeight)
 
 	// Move window to center and adjust size
 	LONG xLoc = 0, yLoc = 0;
-	if (screenWidth >= newDisplayWidth && screenHeight >= newDisplayHeight)
+	if (!Config.FullscreenWindowMode && Config.EnableWindowMode && screenWidth >= newDisplayWidth && screenHeight >= newDisplayHeight)
 	{
-		xLoc = (screenWidth - newDisplayWidth) / 2;
-		yLoc = (screenHeight - newDisplayHeight) / 2;
+		xLoc = screenRect.left + (screenWidth - newDisplayWidth) / 2;
+		yLoc = screenRect.top + (screenHeight - newDisplayHeight) / 2;
 	}
 	SetWindowPos(MainhWnd, HWND_TOP, xLoc, yLoc, newDisplayWidth, newDisplayHeight, SWP_NOZORDER | SWP_NOSENDCHANGING);
 
