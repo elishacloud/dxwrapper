@@ -4843,7 +4843,7 @@ HRESULT m_IDirectDrawSurfaceX::CopySurface(m_IDirectDrawSurfaceX* pSourceSurface
 					DestBuffer += DestPitch;
 				}
 			}
-			else if (SrcLockRect.Pitch == DestPitch)
+			else if (SrcLockRect.Pitch == DestLockRect.Pitch && (LONG)ComputePitch(DestRectWidth, DestBitCount) == DestPitch)
 			{
 				memcpy(DestBuffer, SrcBuffer, DestRectHeight * DestPitch);
 			}
@@ -5124,7 +5124,7 @@ HRESULT m_IDirectDrawSurfaceX::CopyToEmulatedSurface(LPRECT lpDestRect)
 	DWORD Height = (DestRect.bottom - DestRect.top);
 	INT WidthPitch = min(DestLockRect.Pitch, EmulatedLockRect.Pitch);
 
-	HRESULT hr = DDERR_GENERIC;
+	HRESULT hr = DD_OK;
 
 	// Copy real surface data to emulated surface
 	switch ((DWORD)surfaceFormat)
