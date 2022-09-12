@@ -1894,6 +1894,13 @@ HRESULT m_IDirectDrawSurfaceX::Lock2(LPRECT lpDestRect, LPDDSURFACEDESC2 lpDDSur
 			return DDERR_INVALIDPARAMS;
 		}
 
+		// Check for device interface
+		HRESULT c_hr = CheckInterface(__FUNCTION__, true, true);
+		if (FAILED(c_hr) && !IsUsingEmulation())
+		{
+			return c_hr;
+		}
+
 		// Prepare surfaceDesc
 		ZeroMemory(lpDDSurfaceDesc2, sizeof(DDSURFACEDESC2));
 		lpDDSurfaceDesc2->dwSize = sizeof(DDSURFACEDESC2);
@@ -1902,13 +1909,6 @@ HRESULT m_IDirectDrawSurfaceX::Lock2(LPRECT lpDestRect, LPDDSURFACEDESC2 lpDDSur
 		if (!(lpDDSurfaceDesc2->dwFlags & DDSD_LPSURFACE))
 		{
 			lpDDSurfaceDesc2->lpSurface = nullptr;
-		}
-
-		// Check for device interface
-		HRESULT c_hr = CheckInterface(__FUNCTION__, true, true);
-		if (FAILED(c_hr) && !IsUsingEmulation())
-		{
-			return c_hr;
 		}
 
 		// Check for already locked state
@@ -2026,7 +2026,6 @@ HRESULT m_IDirectDrawSurfaceX::Lock2(LPRECT lpDestRect, LPDDSURFACEDESC2 lpDDSur
 		}
 
 		// Set surfaceDesc
-		ConvertSurfaceDesc(*lpDDSurfaceDesc2, surfaceDesc2);
 		if (!(lpDDSurfaceDesc2->dwFlags & DDSD_LPSURFACE))
 		{
 			lpDDSurfaceDesc2->lpSurface = LockedRect.pBits;
@@ -3516,17 +3515,16 @@ HRESULT m_IDirectDrawSurfaceX::CreateDCSurface()
 	// Create new emulated surface structure
 	emu = new EMUSURFACE;
 
-	// Add some padding to surface size to a avoid overflow with some games
-	DWORD padding = 200;
-
 	// Create device context memory
 	ZeroMemory(emu->bmiMemory, sizeof(emu->bmiMemory));
 	emu->bmi->bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
 	emu->bmi->bmiHeader.biWidth = Width;
-	emu->bmi->bmiHeader.biHeight = -(LONG)(Height + padding);
+	emu->bmi->bmiHeader.biHeight = -((LONG)Height + 200);
 	emu->bmi->bmiHeader.biPlanes = 1;
 	emu->bmi->bmiHeader.biBitCount = (WORD)surfaceBitCount;
-	emu->bmi->bmiHeader.biCompression = (ColorMaskReq && surfaceBitCount != 24) ? BI_BITFIELDS : BI_RGB;	// For some reason 24-bit surfaces require BI_RGB
+	emu->bmi->bmiHeader.biCompression =
+		(surfaceBitCount == 8 || surfaceBitCount == 24) ? BI_RGB :
+		(ColorMaskReq) ? BI_BITFIELDS : 0;	// BI_BITFIELDS is only valid for 16-bpp and 32-bpp bitmaps.
 	emu->bmi->bmiHeader.biSizeImage = ((Width * surfaceBitCount + 31) & ~31) / 8 * Height;
 
 	if (surfaceBitCount == 8)
