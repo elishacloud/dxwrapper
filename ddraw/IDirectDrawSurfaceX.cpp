@@ -3526,7 +3526,7 @@ HRESULT m_IDirectDrawSurfaceX::CreateDCSurface()
 	emu->bmi->bmiHeader.biHeight = -(LONG)(Height + padding);
 	emu->bmi->bmiHeader.biPlanes = 1;
 	emu->bmi->bmiHeader.biBitCount = (WORD)surfaceBitCount;
-	emu->bmi->bmiHeader.biCompression = (ColorMaskReq) ? BI_RGB : BI_BITFIELDS;
+	emu->bmi->bmiHeader.biCompression = (ColorMaskReq && surfaceBitCount != 24) ? BI_BITFIELDS : BI_RGB;	// For some reason 24-bit surfaces require BI_RGB
 	emu->bmi->bmiHeader.biSizeImage = ((Width * surfaceBitCount + 31) & ~31) / 8 * Height;
 
 	if (surfaceBitCount == 8)
