@@ -102,7 +102,7 @@ HRESULT WINAPI D3DXCreateTexture(LPDIRECT3DDEVICE9 pDevice, UINT Width, UINT Hei
 
 	if (FAILED(hr))
 	{
-		Logging::Log() << __FUNCTION__ << " Warning: Failed to Disassemble shader!";
+		Logging::Log() << __FUNCTION__ << " Warning: Failed to Create texture!";
 	}
 
 	return hr;
@@ -124,7 +124,7 @@ HRESULT WINAPI D3DXLoadSurfaceFromMemory(LPDIRECT3DSURFACE9 pDestSurface, const 
 
 	if (FAILED(hr))
 	{
-		Logging::Log() << __FUNCTION__ << " Warning: Failed to Disassemble shader!";
+		Logging::Log() << __FUNCTION__ << " Warning: Failed to Copy surface from memory!";
 	}
 
 	return hr;
@@ -190,7 +190,7 @@ HRESULT WINAPI D3DXSaveTextureToFileInMemory(LPD3DXBUFFER* ppDestBuf, D3DXIMAGE_
 
 	if (FAILED(hr))
 	{
-		Logging::Log() << __FUNCTION__ << " Warning: Failed to Save surface!";
+		Logging::Log() << __FUNCTION__ << " Warning: Failed to Save texture!";
 	}
 
 	return hr;

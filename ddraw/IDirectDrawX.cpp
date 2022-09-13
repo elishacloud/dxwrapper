@@ -48,7 +48,6 @@ POINT mousePos;
 // Cooperative level settings
 HWND MainhWnd = nullptr;
 HDC MainhDC = nullptr;
-m_IDirectDrawX* MainSetBy;
 
 // Exclusive mode
 bool ExclusiveMode;
@@ -306,10 +305,6 @@ ULONG m_IDirectDrawX::Release(DWORD DirectXVersion)
 			InterlockedCompareExchange(&RefCount3, 0, 0) + InterlockedCompareExchange(&RefCount4, 0, 0) +
 			InterlockedCompareExchange(&RefCount7, 0, 0) == 0)
 		{
-			if (MainSetBy == this)
-			{
-				MainSetBy = nullptr;
-			}
 			if (ExclusiveSetBy == this)
 			{
 				ExclusiveSetBy = nullptr;
@@ -1494,7 +1489,7 @@ HRESULT m_IDirectDrawX::SetCooperativeLevel(HWND hWnd, DWORD dwFlags)
 		NoWindowChanges = ((dwFlags & DDSCL_NOWINDOWCHANGES) != 0);
 
 		// Check window handle
-		if (hWnd && (((!ExclusiveMode || ExclusiveHwnd == hWnd) && (!MainhWnd || !MainSetBy || MainSetBy == this)) || !IsWindow(MainhWnd)))
+		if (hWnd && ((!ExclusiveMode || ExclusiveHwnd == hWnd) || !IsWindow(MainhWnd)))
 		{
 			// Check if DC needs to be released
 			if (MainhWnd && MainhDC && (MainhWnd != hWnd))
@@ -1505,7 +1500,6 @@ HRESULT m_IDirectDrawX::SetCooperativeLevel(HWND hWnd, DWORD dwFlags)
 			}
 
 			MainhWnd = hWnd;
-			MainSetBy = this;
 
 			if (MainhWnd &&!MainhDC)
 			{
@@ -2112,7 +2106,6 @@ void m_IDirectDrawX::InitDdraw(DWORD DirectXVersion)
 		}
 		MainhWnd = nullptr;
 		MainhDC = nullptr;
-		MainSetBy = nullptr;
 
 		// Exclusive mode
 		ExclusiveMode = false;
