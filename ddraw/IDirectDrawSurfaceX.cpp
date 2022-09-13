@@ -3957,6 +3957,12 @@ void m_IDirectDrawSurfaceX::SwapSurface(m_IDirectDrawSurfaceX *lpTargetSurface1,
 
 	// Swap emulated surfaces
 	SwapAddresses(lpTargetSurface1->GetEmulatedSurface(), lpTargetSurface2->GetEmulatedSurface());
+
+	// Check emulated surface
+	if (lpTargetSurface1->IsUsingEmulation() != lpTargetSurface2->IsUsingEmulation())
+	{
+		Logging::Log() << __FUNCTION__ << " Error: mismatched emulated surfaces found on Flip!";
+	}
 }
 
 // Check surface reck dimensions and copy rect to new rect
