@@ -1001,6 +1001,7 @@ HRESULT m_IDirectDrawSurfaceX::FlipBackBuffer()
 	// Check if backbuffer was found
 	if (!lpTargetSurface)
 	{
+		LOG_LIMIT(100, __FUNCTION__ << " Error: Could not find backbuffer!");
 		return DDERR_GENERIC;
 	}
 
@@ -3114,13 +3115,17 @@ HRESULT m_IDirectDrawSurfaceX::CheckInterface(char *FunctionName, bool CheckD3DD
 		if (!IsUsingEmulation() && CheckD3DDevice)
 		{
 			HRESULT hr = (*d3d9Device)->TestCooperativeLevel();
-			if (hr == D3DERR_DEVICELOST || (hr == D3DERR_DEVICENOTRESET && FAILED(ddrawParent->ReinitDevice())))
+			if (hr == D3DERR_DEVICELOST || hr == D3DERR_DEVICENOTRESET)
 			{
-				return DDERR_SURFACELOST;
+				if (FAILED(ddrawParent->ReinitDevice()))
+				{
+					LOG_LIMIT(100, FunctionName << " Error: Surface lost! = " << (D3DERR)hr);
+					return DDERR_SURFACELOST;
+				}
 			}
 			else if (FAILED(hr))
 			{
-				LOG_LIMIT(100, FunctionName << " Error: TestCooperativeLevel = " << (DDERR)hr);
+				LOG_LIMIT(100, FunctionName << " Error: TestCooperativeLevel = " << (D3DERR)hr);
 				return DDERR_GENERIC;
 			}
 		}

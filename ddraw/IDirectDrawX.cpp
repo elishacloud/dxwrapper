@@ -2765,6 +2765,7 @@ HRESULT m_IDirectDrawX::ReinitDevice()
 	}
 	else if (hr != D3DERR_DEVICENOTRESET)
 	{
+		LOG_LIMIT(100, __FUNCTION__ << " Error: TestCooperativeLevel = " << (D3DERR)hr);
 		return DDERR_GENERIC;
 	}
 
