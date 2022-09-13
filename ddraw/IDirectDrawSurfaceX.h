@@ -106,8 +106,9 @@ private:
 	HDC LastDC = nullptr;
 	bool IsInBlt = false;
 	bool IsInFlip = false;
-	DWORD PaletteUSN = (DWORD)this;		// The USN thats used to see if the palette data was updated
-	DWORD LastPaletteUSN = 0;			// The USN that was used last time the palette was updated
+	bool DirtyFlip = false;								// Dirty flip flag indicates that surface needs to be cleared before flipping
+	DWORD PaletteUSN = (DWORD)this;						// The USN thats used to see if the palette data was updated
+	DWORD LastPaletteUSN = 0;							// The USN that was used last time the palette was updated
 	bool PaletteFirstRun = true;
 	bool ClipperFirstRun = true;
 
@@ -206,8 +207,8 @@ private:
 	bool CheckCoordinates(LPRECT lpOutRect, LPRECT lpInRect);
 	HRESULT LockEmulatedSurface(D3DLOCKED_RECT* pLockedRect, LPRECT lpDestRect);
 	void SetDirtyFlag();
-	void BeginWritePresent(bool isSkipScene = false);
-	void EndWritePresent(bool isSkipScene = false);
+	void BeginWritePresent(bool IsFlip, bool isSkipScene);
+	void EndWritePresent(bool IsFlip, bool isSkipScene);
 
 	// Surface information functions
 	inline bool IsSurfaceLocked() { return IsLocked; }
@@ -367,7 +368,7 @@ public:
 
 	// Direct3D9 interface functions
 	void ReleaseD9Surface(bool BackupData);
-	HRESULT PresentSurface(BOOL isSkipScene = false);
+	HRESULT PresentSurface(bool IsFlip, BOOL isSkipScene);
 	void ResetSurfaceDisplay();
 
 	// Surface information functions

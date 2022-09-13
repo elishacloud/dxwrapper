@@ -128,7 +128,7 @@ HRESULT m_IDirectDrawGammaControl::SetGammaRamp(DWORD dwFlags, LPDDGAMMARAMP lpR
 			m_IDirectDrawSurfaceX *lpDDSrcSurfaceX = ddrawParent->GetPrimarySurface();
 			if (lpDDSrcSurfaceX)
 			{
-				lpDDSrcSurfaceX->PresentSurface();
+				lpDDSrcSurfaceX->PresentSurface(false, false);
 			}
 		}
 

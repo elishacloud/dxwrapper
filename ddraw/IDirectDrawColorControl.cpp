@@ -123,7 +123,7 @@ HRESULT m_IDirectDrawColorControl::SetColorControls(LPDDCOLORCONTROL lpColorCont
 			m_IDirectDrawSurfaceX *lpDDSrcSurfaceX = ddrawParent->GetPrimarySurface();
 			if (lpDDSrcSurfaceX)
 			{
-				lpDDSrcSurfaceX->PresentSurface();
+				lpDDSrcSurfaceX->PresentSurface(false, false);
 			}
 		}
 
