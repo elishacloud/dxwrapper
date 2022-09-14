@@ -539,6 +539,12 @@ HRESULT m_IDirectDrawX::CreateSurface2(LPDDSURFACEDESC2 lpDDSurfaceDesc2, LPDIRE
 			return DDERR_GENERIC;
 		}
 
+		// Check pixel format flag
+		if ((lpDDSurfaceDesc2->dwFlags & DDSD_PIXELFORMAT) && !lpDDSurfaceDesc2->ddpfPixelFormat.dwFlags)
+		{
+			lpDDSurfaceDesc2->dwFlags &= ~DDSD_PIXELFORMAT;
+		}
+
 		// Check pixel format
 		if (lpDDSurfaceDesc2->dwFlags & DDSD_PIXELFORMAT)
 		{
@@ -2769,22 +2775,30 @@ HRESULT m_IDirectDrawX::ReinitDevice()
 		return DDERR_GENERIC;
 	}
 
-	// Release surfaces to prepare for reset
-	ReleaseAllDirectDrawD9Surfaces();
+	hr = DD_OK;
 
-	// Attempt to reset the device
-	if (FAILED(d3d9Device->Reset(&presParams)))
-	{
-		LOG_LIMIT(100, __FUNCTION__ << " Error: failed to reset Direct3D9 device");
-		return DDERR_GENERIC;
-	}
+	SetCriticalSection();
 
-	// Reset flags after resetting device
-	IsInScene = false;
-	EnableWaitVsync = false;
+	do {
+		// Release surfaces to prepare for reset
+		ReleaseAllDirectDrawD9Surfaces();
+
+		// Attempt to reset the device
+		if (FAILED(d3d9Device->Reset(&presParams)))
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: failed to reset Direct3D9 device");
+			hr = DDERR_GENERIC;
+			break;
+		}
+
+		// Reset flags after resetting device
+		IsInScene = false;
+		EnableWaitVsync = false;
+
+	} while (false);
 
 	// Success
-	return DD_OK;
+	return hr;
 }
 
 // Release all surfaces from all ddraw devices

@@ -1911,10 +1911,6 @@ HRESULT m_IDirectDrawSurfaceX::Lock2(LPRECT lpDestRect, LPDDSURFACEDESC2 lpDDSur
 
 		// Check for device interface
 		HRESULT c_hr = CheckInterface(__FUNCTION__, true, true);
-		if (FAILED(c_hr) && !IsUsingEmulation())
-		{
-			return c_hr;
-		}
 
 		// Prepare surfaceDesc
 		ZeroMemory(lpDDSurfaceDesc2, sizeof(DDSURFACEDESC2));
@@ -1924,6 +1920,12 @@ HRESULT m_IDirectDrawSurfaceX::Lock2(LPRECT lpDestRect, LPDDSURFACEDESC2 lpDDSur
 		if (!(lpDDSurfaceDesc2->dwFlags & DDSD_LPSURFACE))
 		{
 			lpDDSurfaceDesc2->lpSurface = nullptr;
+		}
+
+		// Return error for CheckInterface after preparing surfaceDesc
+		if (FAILED(c_hr) && !IsUsingEmulation())
+		{
+			return c_hr;
 		}
 
 		// Check for already locked state
@@ -1981,7 +1983,8 @@ HRESULT m_IDirectDrawSurfaceX::Lock2(LPRECT lpDestRect, LPDDSURFACEDESC2 lpDDSur
 					Sleep(0);
 					if (!surfaceTexture)
 					{
-						return DDERR_GENERIC;
+						LOG_LIMIT(100, __FUNCTION__ << " Error: surface texture missing!");
+						return DDERR_SURFACELOST;
 					}
 				}
 				hr = surfaceTexture->LockRect(0, &LockedRect, &DestRect, Flags);
@@ -2003,7 +2006,8 @@ HRESULT m_IDirectDrawSurfaceX::Lock2(LPRECT lpDestRect, LPDDSURFACEDESC2 lpDDSur
 				Sleep(0);
 				if (!surface3D)
 				{
-					return DDERR_GENERIC;
+					LOG_LIMIT(100, __FUNCTION__ << " Error: surface missing!");
+					return DDERR_SURFACELOST;
 				}
 			}
 			hr = surface3D->LockRect(&LockedRect, &DestRect, Flags);

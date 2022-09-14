@@ -401,6 +401,8 @@ bool APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 				using namespace DdrawWrapper;
 				VISIT_PROCS_DDRAW(SET_WRAPPED_PROC);
 				VISIT_PROCS_DDRAW_SHARED(SET_WRAPPED_PROC);
+				HMODULE d3d9_dll = LoadLibrary("d3d9.dll");
+				DdrawWrapper::Direct3DCreate9_out = GetProcAddress(d3d9_dll, "Direct3DCreate9");
 				Config.DDrawCompat = false;
 			}
 
