@@ -3115,13 +3115,18 @@ HRESULT m_IDirectDrawSurfaceX::CheckInterface(char *FunctionName, bool CheckD3DD
 		if (!IsUsingEmulation() && CheckD3DDevice)
 		{
 			HRESULT hr = (*d3d9Device)->TestCooperativeLevel();
-			if (hr == D3DERR_DEVICELOST || hr == D3DERR_DEVICENOTRESET)
+			if (hr == D3DERR_DEVICENOTRESET)
 			{
 				if (FAILED(ddrawParent->ReinitDevice()))
 				{
-					LOG_LIMIT(100, FunctionName << " Error: Surface lost! = " << (D3DERR)hr);
+					LOG_LIMIT(100, FunctionName << " Error: Failed to reinitialize the Driect3D device!");
 					return DDERR_SURFACELOST;
 				}
+			}
+			else if (hr == D3DERR_DEVICELOST)
+			{
+				LOG_LIMIT(100, FunctionName << " Error: Surface lost! = " << (D3DERR)hr);
+				return DDERR_SURFACELOST;
 			}
 			else if (FAILED(hr))
 			{
@@ -4533,13 +4538,14 @@ HRESULT m_IDirectDrawSurfaceX::ColorFill(RECT* pRect, D3DCOLOR dwFillColor)
 			return DDERR_GENERIC;
 		}
 
-		D3DCOLOR ColorSurface[4] = {};	// Four bytes for a 2x2 surface
+		D3DCOLOR ColorSurface[9] = {};	// Nine DOUBLE WORDs for a byte aligned 3x3 surface
 
 		BYTE* Buffer = (BYTE*)ColorSurface;
 		BYTE* SrcBuffer = (BYTE*)&dwFillColor;
 
-		// Fill 2x2 surface with correct color
-		for (int x = 0; x < 4; x++)
+		// Fill 3x3 surface with correct color
+		DWORD Count = 36 / ByteCount;
+		for (UINT x = 0; x < Count; x++)
 		{
 			for (UINT c = 0; c < ByteCount; c++)
 			{
@@ -4548,9 +4554,9 @@ HRESULT m_IDirectDrawSurfaceX::ColorFill(RECT* pRect, D3DCOLOR dwFillColor)
 			}
 		}
 
-		RECT SrcRect = { 0, 0, 2, 2 };
+		RECT SrcRect = { 0, 0, 12 / (LONG)ByteCount, 3 };
 
-		if (FAILED(D3DXLoadSurfaceFromMemory(pDestSurfaceD9, nullptr, &DestRect, ColorSurface, Desc.Format, ByteCount * 2, nullptr, &SrcRect, D3DX_FILTER_POINT, 0)))
+		if (FAILED(D3DXLoadSurfaceFromMemory(pDestSurfaceD9, nullptr, &DestRect, ColorSurface, Desc.Format, 12, nullptr, &SrcRect, D3DX_FILTER_POINT, 0)))
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Error: could not color fill surface!");
 			return DDERR_GENERIC;
@@ -4578,28 +4584,41 @@ HRESULT m_IDirectDrawSurfaceX::ColorFill(RECT* pRect, D3DCOLOR dwFillColor)
 		LONG FillWidth = DestRect.right - DestRect.left;
 		LONG FillHeight = DestRect.bottom - DestRect.top;
 
-		// Set memory address
-		BYTE* SrcBuffer = (BYTE*)&dwFillColor;
-		BYTE* DestBuffer = (BYTE*)DestLockRect.pBits;
-
-		// Fill first line memory
-		for (LONG x = 0; x < FillWidth; x++)
+		if ((LONG)ComputePitch(FillWidth, ByteCount) == DestLockRect.Pitch && ByteCount != 3)
 		{
-			for (DWORD y = 0; y < ByteCount; y++)
-			{
-				*DestBuffer = SrcBuffer[y];
-				DestBuffer++;
-			}
+			DWORD Color =
+				(ByteCount == 1) ? ((dwFillColor & 0xFF) << 24) + ((dwFillColor & 0xFF) << 16) +
+				((dwFillColor & 0xFF) << 8) + (dwFillColor & 0xFF) :
+				(ByteCount == 2) ? ((dwFillColor & 0xFFFF) << 16) + (dwFillColor & 0xFFFF) :
+				(ByteCount == 4) ? dwFillColor : 0;
+
+			memset(DestLockRect.pBits, Color, DestLockRect.Pitch * FillHeight);
 		}
-
-		// Fill rest of surface rect using the first line as a template
-		SrcBuffer = (BYTE*)DestLockRect.pBits;
-		DestBuffer = (BYTE*)DestLockRect.pBits + DestLockRect.Pitch;
-		size_t size = FillWidth * ByteCount;
-		for (LONG y = 1; y < FillHeight; y++)
+		else
 		{
-			memcpy(DestBuffer, SrcBuffer, size);
-			DestBuffer += DestLockRect.Pitch;
+			// Set memory address
+			BYTE* SrcBuffer = (BYTE*)&dwFillColor;
+			BYTE* DestBuffer = (BYTE*)DestLockRect.pBits;
+
+			// Fill first line memory
+			for (LONG x = 0; x < FillWidth; x++)
+			{
+				for (DWORD y = 0; y < ByteCount; y++)
+				{
+					*DestBuffer = SrcBuffer[y];
+					DestBuffer++;
+				}
+			}
+
+			// Fill rest of surface rect using the first line as a template
+			SrcBuffer = (BYTE*)DestLockRect.pBits;
+			DestBuffer = (BYTE*)DestLockRect.pBits + DestLockRect.Pitch;
+			size_t size = FillWidth * ByteCount;
+			for (LONG y = 1; y < FillHeight; y++)
+			{
+				memcpy(DestBuffer, SrcBuffer, size);
+				DestBuffer += DestLockRect.Pitch;
+			}
 		}
 
 		// Copy emulated surface to real texture
