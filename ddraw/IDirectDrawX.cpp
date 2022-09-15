@@ -2797,6 +2797,8 @@ HRESULT m_IDirectDrawX::ReinitDevice()
 
 	} while (false);
 
+	ReleaseCriticalSection();
+
 	// Success
 	return hr;
 }
