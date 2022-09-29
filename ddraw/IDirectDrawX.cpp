@@ -113,6 +113,7 @@ bool EnableWaitVsync;
 LPDIRECT3D9 d3d9Object;
 LPDIRECT3DDEVICE9 d3d9Device;
 D3DPRESENT_PARAMETERS presParams;
+DWORD BehaviorFlags;
 
 // D3DKMT vertical blank
 bool VSyncLoaded = false;
@@ -2158,6 +2159,7 @@ void m_IDirectDrawX::InitDdraw(DWORD DirectXVersion)
 		d3d9Device = nullptr;
 
 		ZeroMemory(&presParams, sizeof(D3DPRESENT_PARAMETERS));
+		BehaviorFlags = 0;
 
 		// Display resolution
 		if (Config.DdrawUseNativeResolution)
@@ -2588,10 +2590,10 @@ HRESULT m_IDirectDrawX::CreateD3D9Device()
 
 	HRESULT hr = DD_OK;
 	do {
-		// Release existing d3d9 device
+		// Release all existing surfaces
 		if (d3d9Device)
 		{
-			ReleaseD3D9Device();
+			ReleaseAllDirectDrawD9Surfaces();
 		}
 
 		// Check device caps to make sure it supports dynamic textures
@@ -2602,6 +2604,10 @@ HRESULT m_IDirectDrawX::CreateD3D9Device()
 		{
 			DynamicTexturesSupported = (d3dcaps.Caps2 & D3DCAPS2_DYNAMICTEXTURES);
 		}
+
+		// Last flags
+		DWORD LastBehaviorFlags = BehaviorFlags;
+		BOOL LastWindowedMode = presParams.Windowed;
 
 		// Get hwnd
 		HWND hWnd = GetHwnd();
@@ -2689,20 +2695,41 @@ HRESULT m_IDirectDrawX::CreateD3D9Device()
 		}
 
 		// Set behavior flags
-		DWORD BehaviorFlags = ((d3dcaps.VertexProcessingCaps) ? D3DCREATE_HARDWARE_VERTEXPROCESSING : D3DCREATE_SOFTWARE_VERTEXPROCESSING) |
+		BehaviorFlags = ((d3dcaps.VertexProcessingCaps) ? D3DCREATE_HARDWARE_VERTEXPROCESSING : D3DCREATE_SOFTWARE_VERTEXPROCESSING) |
 			((MultiThreaded || !Config.SingleProcAffinity) ? D3DCREATE_MULTITHREADED : 0) |
 			((FUPPreserve) ? D3DCREATE_FPU_PRESERVE : 0) |
 			((NoWindowChanges) ? D3DCREATE_NOWINDOWCHANGES : 0);
 
-		Logging::LogDebug() << __FUNCTION__ << " wnd: " << hWnd << " D3d9 Device params: " << presParams << " flags: " << Logging::hex(BehaviorFlags);
+		Logging::LogDebug() << __FUNCTION__ << " Direct3D9 device! " << (DDERR)hr << " " <<
+			presParams.BackBufferWidth << "x" << presParams.BackBufferHeight << " refresh: " << presParams.FullScreen_RefreshRateInHz <<
+			" format: " << presParams.BackBufferFormat << " wnd: " << hWnd << " params: " << presParams << " flags: " << Logging::hex(BehaviorFlags);
+
+		// Check if device needs to be recreated
+		if (d3d9Device && (LastBehaviorFlags != BehaviorFlags || LastWindowedMode != presParams.Windowed))
+		{
+			Logging::LogDebug() << __FUNCTION__ << " Recreate device! Last create: " << Logging::hex(LastBehaviorFlags) << "->" << Logging::hex(BehaviorFlags) << " Windowed: " << LastWindowedMode << "->" << presParams.Windowed;
+
+			d3d9Device->Release();
+			d3d9Device = nullptr;
+		}
+
+		// Reinit device
+		if (d3d9Device && FAILED(d3d9Device->Reset(&presParams)))
+		{
+			d3d9Device->Release();
+			d3d9Device = nullptr;
+		}
 
 		// Create d3d9 Device
-		hr = d3d9Object->CreateDevice(D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, hWnd, BehaviorFlags, &presParams, &d3d9Device);
+		if (!d3d9Device)
+		{
+			hr = d3d9Object->CreateDevice(D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, hWnd, BehaviorFlags, &presParams, &d3d9Device);
+		}
 		if (FAILED(hr))
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Error: failed to create Direct3D9 device! " << (DDERR)hr << " " <<
 				presParams.BackBufferWidth << "x" << presParams.BackBufferHeight << " refresh: " << presParams.FullScreen_RefreshRateInHz <<
-				" format: " << presParams.BackBufferFormat << " wnd: " << hWnd);
+				" format: " << presParams.BackBufferFormat << " wnd: " << hWnd << " params: " << presParams << " flags: " << Logging::hex(BehaviorFlags));
 			break;
 		}
 

@@ -6,10 +6,14 @@ private:
 	LPDIRECT3D9EX ProxyInterface;
 	REFIID WrapperID;
 
+	void LogAdapterNames();
+
 public:
 	m_IDirect3D9Ex(LPDIRECT3D9EX pDirect3D, REFIID DeviceID) : ProxyInterface(pDirect3D), WrapperID(DeviceID)
 	{
 		LOG_LIMIT(3, "Creating interface " << __FUNCTION__ << " (" << this << ")");
+
+		LogAdapterNames();
 	}
 	~m_IDirect3D9Ex()
 	{

@@ -64,6 +64,21 @@ ULONG m_IDirect3D9Ex::Release()
 	return ref;
 }
 
+void m_IDirect3D9Ex::LogAdapterNames()
+{
+#ifdef DEBUG
+	UINT Adapter = ProxyInterface->GetAdapterCount();
+	for (UINT x = 0; x < Adapter; x++)
+	{
+		D3DADAPTER_IDENTIFIER9 Identifier = {};
+		if (SUCCEEDED(ProxyInterface->GetAdapterIdentifier(x, NULL, &Identifier)))
+		{
+			Logging::Log() << __FUNCTION__ << " Adapter: " << x << " " << Identifier.DeviceName << " " << Identifier.Description;
+		}
+	}
+#endif // DEBUG
+}
+
 HRESULT m_IDirect3D9Ex::EnumAdapterModes(THIS_ UINT Adapter, D3DFORMAT Format, UINT Mode, D3DDISPLAYMODE* pMode)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
