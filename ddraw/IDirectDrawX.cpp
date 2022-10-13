@@ -2707,7 +2707,7 @@ HRESULT m_IDirectDrawX::CreateD3D9Device()
 		// Check if device needs to be recreated
 		if (d3d9Device && (LastBehaviorFlags != BehaviorFlags || LastWindowedMode != presParams.Windowed))
 		{
-			Logging::LogDebug() << __FUNCTION__ << " Recreate device! Last create: " << Logging::hex(LastBehaviorFlags) << "->" << Logging::hex(BehaviorFlags) << " Windowed: " << LastWindowedMode << "->" << presParams.Windowed;
+			Logging::Log() << __FUNCTION__ << " Recreate device! Last create: " << Logging::hex(LastBehaviorFlags) << "->" << Logging::hex(BehaviorFlags) << " Windowed: " << LastWindowedMode << "->" << presParams.Windowed;
 
 			d3d9Device->Release();
 			d3d9Device = nullptr;
@@ -2716,6 +2716,8 @@ HRESULT m_IDirectDrawX::CreateD3D9Device()
 		// Reinit device
 		if (d3d9Device && FAILED(d3d9Device->Reset(&presParams)))
 		{
+			Logging::Log() << __FUNCTION__ << " Failed to reset device! Last create: " << Logging::hex(LastBehaviorFlags) << "->" << Logging::hex(BehaviorFlags) << " Windowed: " << LastWindowedMode << "->" << presParams.Windowed;
+
 			d3d9Device->Release();
 			d3d9Device = nullptr;
 		}
