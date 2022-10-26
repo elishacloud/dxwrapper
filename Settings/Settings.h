@@ -80,7 +80,7 @@
 	visit(ForceWindowResize) \
 	visit(FullScreen) \
 	visit(FullscreenWindowMode) \
-	visit(GraphicsDisplayAdapter) \
+	visit(GraphicsHybridAdapter) \
 	visit(HandleExceptions) \
 	visit(IgnoreWindowName) \
 	visit(IncludeProcess) \
@@ -238,7 +238,7 @@ struct CONFIG
 	bool ForceTermination = false;				// Terminates application when main window closes
 	bool ForceWindowResize = false;				// Forces main window to fullscreen, requires FullScreen
 	bool ForceVsyncMode = false;				// Forces d3d9 game to use EnableVsync option
-	DWORD GraphicsDisplayAdapter = 0;			// Sets the Direct3D9 Hybrid Enumeration Mode to allow using a secondary display adapter
+	DWORD GraphicsHybridAdapter = 0;			// Sets the Direct3D9 Hybrid Enumeration Mode to allow using a secondary display adapter
 	bool HandleExceptions = false;				// Handles unhandled exceptions in the application
 	bool LoadPlugins = false;					// Loads ASI plugins
 	bool LoadFromScriptsOnly = false;			// Loads ASI plugins from 'scripts' and 'plugins' folder only

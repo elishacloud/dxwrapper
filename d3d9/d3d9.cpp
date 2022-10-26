@@ -141,7 +141,7 @@ HMODULE GetSystemD3d9()
 	return h_d3d9;
 }
 
-void SetGraphicsDisplayAdapter(UINT Mode)
+void SetGraphicsHybridAdapter(UINT Mode)
 {
 	static HMODULE h_d3d9 = GetSystemD3d9();
 
@@ -169,9 +169,9 @@ IDirect3D9 *WINAPI d9_Direct3DCreate9(UINT SDKVersion)
 		return nullptr;
 	}
 
-	if (Config.GraphicsDisplayAdapter)
+	if (Config.GraphicsHybridAdapter)
 	{
-		SetGraphicsDisplayAdapter(Config.GraphicsDisplayAdapter);
+		SetGraphicsHybridAdapter(Config.GraphicsHybridAdapter);
 	}
 
 	LOG_LIMIT(3, "Redirecting 'Direct3DCreate9' ...");
@@ -198,9 +198,9 @@ HRESULT WINAPI d9_Direct3DCreate9Ex(UINT SDKVersion, IDirect3D9Ex **ppD3D)
 		return D3DERR_INVALIDCALL;
 	}
 
-	if (Config.GraphicsDisplayAdapter)
+	if (Config.GraphicsHybridAdapter)
 	{
-		SetGraphicsDisplayAdapter(Config.GraphicsDisplayAdapter);
+		SetGraphicsHybridAdapter(Config.GraphicsHybridAdapter);
 	}
 
 	LOG_LIMIT(3, "Redirecting 'Direct3DCreate9Ex' ...");
