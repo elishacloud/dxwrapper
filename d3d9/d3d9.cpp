@@ -125,6 +125,39 @@ void WINAPI d9_D3DPERF_SetRegion(D3DCOLOR col, LPCWSTR wszName)
 	return m_pD3DPERF_SetRegion(col, wszName);
 }
 
+HMODULE GetSystemD3d9()
+{
+	static HMODULE h_d3d9 = nullptr;
+
+	// Get System d3d9.dll
+	if (!h_d3d9)
+	{
+		char Path[MAX_PATH] = {};
+		GetSystemDirectoryA(Path, MAX_PATH);
+		strcat_s(Path, "\\d3d9.dll");
+		h_d3d9 = GetModuleHandleA(Path);
+	}
+
+	return h_d3d9;
+}
+
+void SetGraphicsDisplayAdapter(UINT Mode)
+{
+	static HMODULE h_d3d9 = GetSystemD3d9();
+
+	if (h_d3d9)
+	{
+		// Get Direct3D9ForceHybridEnumeration address
+		static Direct3D9ForceHybridEnumerationProc Direct3D9ForceHybridEnumeration = (Direct3D9ForceHybridEnumerationProc)GetProcAddress(h_d3d9, reinterpret_cast<LPCSTR>(16));
+
+		if (Direct3D9ForceHybridEnumeration)
+		{
+			LOG_LIMIT(3, "Calling 'Direct3D9ForceHybridEnumeration' ... " << Mode);
+			Direct3D9ForceHybridEnumeration(Mode);
+		}
+	}
+}
+
 IDirect3D9 *WINAPI d9_Direct3DCreate9(UINT SDKVersion)
 {
 	LOG_LIMIT(1, __FUNCTION__);
@@ -134,6 +167,11 @@ IDirect3D9 *WINAPI d9_Direct3DCreate9(UINT SDKVersion)
 	if (!m_pDirect3DCreate9)
 	{
 		return nullptr;
+	}
+
+	if (Config.GraphicsDisplayAdapter)
+	{
+		SetGraphicsDisplayAdapter(Config.GraphicsDisplayAdapter);
 	}
 
 	LOG_LIMIT(3, "Redirecting 'Direct3DCreate9' ...");
@@ -158,6 +196,11 @@ HRESULT WINAPI d9_Direct3DCreate9Ex(UINT SDKVersion, IDirect3D9Ex **ppD3D)
 	if (!m_pDirect3DCreate9Ex)
 	{
 		return D3DERR_INVALIDCALL;
+	}
+
+	if (Config.GraphicsDisplayAdapter)
+	{
+		SetGraphicsDisplayAdapter(Config.GraphicsDisplayAdapter);
 	}
 
 	LOG_LIMIT(3, "Redirecting 'Direct3DCreate9Ex' ...");

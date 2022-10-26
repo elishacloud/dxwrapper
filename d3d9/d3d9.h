@@ -33,6 +33,7 @@ typedef void(WINAPI *D3DPERF_SetOptionsProc)(DWORD);
 typedef void(WINAPI *D3DPERF_SetRegionProc)(D3DCOLOR, LPCWSTR);
 typedef IDirect3D9 *(WINAPI *Direct3DCreate9Proc)(UINT);
 typedef HRESULT(WINAPI *Direct3DCreate9ExProc)(UINT, IDirect3D9Ex **);
+typedef void(WINAPI* Direct3D9ForceHybridEnumerationProc)(UINT Mode);
 
 DWORD UpdateBehaviorFlags(DWORD BehaviorFlags, bool IsWindowed);
 void UpdatePresentParameter(D3DPRESENT_PARAMETERS* pPresentationParameters, HWND hFocusWindow, bool ForceExclusiveFullscreen, bool SetWindow);
