@@ -1,8 +1,6 @@
 #pragma once
 
-#define INITGUID
-
-#include <d3d9.h>
+#include "d3d9External.h"
 
 class m_IDirect3D9Ex;
 class m_IDirect3DDevice9Ex;
@@ -24,16 +22,18 @@ class m_IDirect3DVolumeTexture9;
 #include "Settings\Settings.h"
 #include "Logging\Logging.h"
 
-typedef int(WINAPI *D3DPERF_BeginEventProc)(D3DCOLOR, LPCWSTR);
-typedef int(WINAPI *D3DPERF_EndEventProc)();
-typedef DWORD(WINAPI *D3DPERF_GetStatusProc)();
-typedef BOOL(WINAPI *D3DPERF_QueryRepeatFrameProc)();
-typedef void(WINAPI *D3DPERF_SetMarkerProc)(D3DCOLOR, LPCWSTR);
-typedef void(WINAPI *D3DPERF_SetOptionsProc)(DWORD);
-typedef void(WINAPI *D3DPERF_SetRegionProc)(D3DCOLOR, LPCWSTR);
-typedef IDirect3D9 *(WINAPI *Direct3DCreate9Proc)(UINT);
-typedef HRESULT(WINAPI *Direct3DCreate9ExProc)(UINT, IDirect3D9Ex **);
+typedef int(WINAPI* D3DPERF_BeginEventProc)(D3DCOLOR, LPCWSTR);
+typedef int(WINAPI* D3DPERF_EndEventProc)();
+typedef DWORD(WINAPI* D3DPERF_GetStatusProc)();
+typedef BOOL(WINAPI* D3DPERF_QueryRepeatFrameProc)();
+typedef void(WINAPI* D3DPERF_SetMarkerProc)(D3DCOLOR, LPCWSTR);
+typedef void(WINAPI* D3DPERF_SetOptionsProc)(DWORD);
+typedef void(WINAPI* D3DPERF_SetRegionProc)(D3DCOLOR, LPCWSTR);
 typedef void(WINAPI* Direct3D9ForceHybridEnumerationProc)(UINT Mode);
+typedef IDirect3D9* (WINAPI* Direct3DCreate9Proc)(UINT);
+typedef HRESULT(WINAPI* Direct3DCreate9ExProc)(UINT, IDirect3D9Ex**);
+typedef IDirect3D9* (WINAPI* Direct3DCreate9On12Proc)(UINT SDKVersion, D3D9ON12_ARGS* pOverrideList, UINT NumOverrideEntries);
+typedef HRESULT(WINAPI* Direct3DCreate9On12ExProc)(UINT SDKVersion, D3D9ON12_ARGS* pOverrideList, UINT NumOverrideEntries, IDirect3D9Ex** ppOutputInterface);
 
 DWORD UpdateBehaviorFlags(DWORD BehaviorFlags, bool IsWindowed);
 void UpdatePresentParameter(D3DPRESENT_PARAMETERS* pPresentationParameters, HWND hFocusWindow, bool ForceExclusiveFullscreen, bool SetWindow);
@@ -41,7 +41,7 @@ void UpdatePresentParameterForMultisample(D3DPRESENT_PARAMETERS* pPresentationPa
 
 namespace D3d9Wrapper
 {
-	void WINAPI genericQueryInterface(REFIID riid, LPVOID *ppvObj, m_IDirect3DDevice9Ex* m_pDeviceEx);
+	void WINAPI genericQueryInterface(REFIID riid, LPVOID* ppvObj, m_IDirect3DDevice9Ex* m_pDeviceEx);
 }
 
 extern HWND DeviceWindow;

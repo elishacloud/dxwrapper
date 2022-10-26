@@ -9,7 +9,9 @@
 	visit(D3DPERF_SetOptions, jmpaddrvoid) \
 	visit(D3DPERF_SetRegion, jmpaddrvoid) \
 	visit(Direct3DCreate9, jmpaddr) \
-	visit(Direct3DCreate9Ex, jmpaddr)
+	visit(Direct3DCreate9Ex, jmpaddr) \
+	visit(Direct3DCreate9On12, jmpaddr) \
+	visit(Direct3DCreate9On12Ex, jmpaddr)
 
 #ifdef PROC_CLASS
 PROC_CLASS(d3d9, dll, VISIT_PROCS_D3D9, VISIT_PROCS_BLANK)

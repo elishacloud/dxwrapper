@@ -158,7 +158,7 @@ void SetGraphicsHybridAdapter(UINT Mode)
 	}
 }
 
-IDirect3D9 *WINAPI d9_Direct3DCreate9(UINT SDKVersion)
+IDirect3D9* WINAPI d9_Direct3DCreate9(UINT SDKVersion)
 {
 	LOG_LIMIT(1, __FUNCTION__);
 
@@ -169,6 +169,17 @@ IDirect3D9 *WINAPI d9_Direct3DCreate9(UINT SDKVersion)
 		return nullptr;
 	}
 
+	if (Config.ForceDirect3D9On12 && Direct3DCreate9On12_out)
+	{
+		// Setup arguments
+		D3D9ON12_ARGS args;
+		memset(&args, 0, sizeof(args));
+		args.Enable9On12 = TRUE;
+
+		// Call function
+		return d9_Direct3DCreate9On12(SDKVersion, &args, 1);
+	}
+
 	if (Config.GraphicsHybridAdapter)
 	{
 		SetGraphicsHybridAdapter(Config.GraphicsHybridAdapter);
@@ -177,7 +188,7 @@ IDirect3D9 *WINAPI d9_Direct3DCreate9(UINT SDKVersion)
 	LOG_LIMIT(3, "Redirecting 'Direct3DCreate9' ...");
 
 	// Create new d3d9 object
-	IDirect3D9 *pD3D9 = m_pDirect3DCreate9(SDKVersion);
+	IDirect3D9* pD3D9 = m_pDirect3DCreate9(SDKVersion);
 
 	if (pD3D9)
 	{
@@ -187,7 +198,7 @@ IDirect3D9 *WINAPI d9_Direct3DCreate9(UINT SDKVersion)
 	return nullptr;
 }
 
-HRESULT WINAPI d9_Direct3DCreate9Ex(UINT SDKVersion, IDirect3D9Ex **ppD3D)
+HRESULT WINAPI d9_Direct3DCreate9Ex(UINT SDKVersion, IDirect3D9Ex** ppD3D)
 {
 	LOG_LIMIT(1, __FUNCTION__);
 
@@ -196,6 +207,17 @@ HRESULT WINAPI d9_Direct3DCreate9Ex(UINT SDKVersion, IDirect3D9Ex **ppD3D)
 	if (!m_pDirect3DCreate9Ex)
 	{
 		return D3DERR_INVALIDCALL;
+	}
+
+	if (Config.ForceDirect3D9On12 && Direct3DCreate9On12Ex_out)
+	{
+		// Setup arguments
+		D3D9ON12_ARGS args;
+		memset(&args, 0, sizeof(args));
+		args.Enable9On12 = TRUE;
+
+		// Call function
+		return d9_Direct3DCreate9On12Ex(SDKVersion, &args, 1, ppD3D);
 	}
 
 	if (Config.GraphicsHybridAdapter)
@@ -210,6 +232,73 @@ HRESULT WINAPI d9_Direct3DCreate9Ex(UINT SDKVersion, IDirect3D9Ex **ppD3D)
 	if (SUCCEEDED(hr) && ppD3D)
 	{
 		*ppD3D = new m_IDirect3D9Ex(*ppD3D, IID_IDirect3D9Ex);
+	}
+
+	return hr;
+}
+
+IDirect3D9* WINAPI d9_Direct3DCreate9On12(UINT SDKVersion, D3D9ON12_ARGS* pOverrideList, UINT NumOverrideEntries)
+{
+	LOG_LIMIT(1, __FUNCTION__);
+
+	static Direct3DCreate9On12Proc m_pDirect3DCreate9On12 = (Wrapper::ValidProcAddress(Direct3DCreate9On12_out)) ? (Direct3DCreate9On12Proc)Direct3DCreate9On12_out : nullptr;
+
+	if (!m_pDirect3DCreate9On12)
+	{
+		return d9_Direct3DCreate9(SDKVersion);
+	}
+
+	if (Config.GraphicsHybridAdapter)
+	{
+		SetGraphicsHybridAdapter(Config.GraphicsHybridAdapter);
+	}
+
+	LOG_LIMIT(3, "Redirecting 'Direct3DCreate9On12' ...");
+
+	if (Config.ForceDirect3D9On12 && pOverrideList)
+	{
+		pOverrideList->Enable9On12 = TRUE;
+	}
+
+	// Create new d3d9 object
+	IDirect3D9* pD3D9 = m_pDirect3DCreate9On12(SDKVersion, pOverrideList, NumOverrideEntries);
+
+	if (pD3D9)
+	{
+		return new m_IDirect3D9Ex((IDirect3D9Ex*)pD3D9, IID_IDirect3D9);
+	}
+
+	return nullptr;
+}
+
+HRESULT WINAPI d9_Direct3DCreate9On12Ex(UINT SDKVersion, D3D9ON12_ARGS* pOverrideList, UINT NumOverrideEntries, IDirect3D9Ex** ppOutputInterface)
+{
+	LOG_LIMIT(1, __FUNCTION__);
+
+	static Direct3DCreate9On12ExProc m_pDirect3DCreate9On12Ex = (Wrapper::ValidProcAddress(Direct3DCreate9On12Ex_out)) ? (Direct3DCreate9On12ExProc)Direct3DCreate9On12Ex_out : nullptr;
+
+	if (!m_pDirect3DCreate9On12Ex)
+	{
+		return d9_Direct3DCreate9Ex(SDKVersion, ppOutputInterface);
+	}
+
+	if (Config.GraphicsHybridAdapter)
+	{
+		SetGraphicsHybridAdapter(Config.GraphicsHybridAdapter);
+	}
+
+	LOG_LIMIT(3, "Redirecting 'Direct3DCreate9On12Ex' ...");
+
+	if (Config.ForceDirect3D9On12 && pOverrideList)
+	{
+		pOverrideList->Enable9On12 = TRUE;
+	}
+
+	HRESULT hr = m_pDirect3DCreate9On12Ex(SDKVersion, pOverrideList, NumOverrideEntries, ppOutputInterface);
+
+	if (SUCCEEDED(hr) && ppOutputInterface)
+	{
+		*ppOutputInterface = new m_IDirect3D9Ex(*ppOutputInterface, IID_IDirect3D9Ex);
 	}
 
 	return hr;

@@ -479,6 +479,8 @@ bool APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 					Logging::Log() << "Hooking d3d9.dll APIs...";
 					HOOK_WRAPPED_PROC(Direct3DCreate9, unused);
 					HOOK_WRAPPED_PROC(Direct3DCreate9Ex, unused);
+					HOOK_WRAPPED_PROC(Direct3DCreate9On12, unused);
+					HOOK_WRAPPED_PROC(Direct3DCreate9On12Ex, unused);
 				}
 			}
 
