@@ -2750,6 +2750,11 @@ HRESULT m_IDirectDrawX::CreateD3D9Device()
 		// Set window pos
 		if (IsWindow(hWnd))
 		{
+			// Attach thread input
+			DWORD dwMyID = GetCurrentThreadId();
+			DWORD dwCurID = GetWindowThreadProcessId(hWnd, nullptr);
+			AttachThreadInput(dwCurID, dwMyID, TRUE);
+
 			// Get new resolution
 			DWORD NewWidth, NewHeight;
 			Utils::GetScreenSize(hWnd, NewWidth, NewHeight);
@@ -2770,11 +2775,6 @@ HRESULT m_IDirectDrawX::CreateD3D9Device()
 			// Send message about window changes
 			WINDOWPOS winpos = { hWnd, HWND_TOP, NewRect.left, NewRect.top, NewRect.right - NewRect.left, NewRect.bottom - NewRect.top, WM_NULL };
 			SendMessage(hWnd, WM_WINDOWPOSCHANGED, (WPARAM)TRUE, (LPARAM)&winpos);
-
-			// Attach thread input
-			DWORD dwMyID = GetCurrentThreadId();
-			DWORD dwCurID = GetWindowThreadProcessId(hWnd, nullptr);
-			AttachThreadInput(dwCurID, dwMyID, TRUE);
 
 			// Peek messages to help prevent a "Not Responding" window
 			MSG msg;

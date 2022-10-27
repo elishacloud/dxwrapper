@@ -569,17 +569,32 @@ void AdjustWindow(HWND MainhWnd, LONG displayWidth, LONG displayHeight)
 		return;
 	}
 
+	// Attach thread input
+	DWORD dwMyID = GetCurrentThreadId();
+	DWORD dwCurID = GetWindowThreadProcessId(MainhWnd, nullptr);
+	AttachThreadInput(dwCurID, dwMyID, TRUE);
+
 	// Get screen width and height
 	LONG screenWidth = 0, screenHeight = 0;
 	Utils::GetScreenSize(MainhWnd, screenWidth, screenHeight);
 	RECT screenRect = {};
 	Utils::GetDesktopRect(MainhWnd, screenRect);
 
-	// Get window border
+	// Get window style
 	bool HasBorder = false;
 	LONG lStyle = GetWindowLong(MainhWnd, GWL_STYLE) | WS_VISIBLE;
-	if (!Config.FullscreenWindowMode && Config.WindowModeBorder && screenWidth > displayWidth + (GetSystemMetrics(SM_CXSIZEFRAME) * 2) &&
-		screenHeight > displayHeight + (GetSystemMetrics(SM_CYSIZEFRAME) * 2) + GetSystemMetrics(SM_CYCAPTION))
+	LONG lExStyle = GetWindowLong(MainhWnd, GWL_EXSTYLE);
+
+	// Get new window rect
+	RECT Rect = { 0, 0, displayWidth, displayHeight };
+	AdjustWindowRectEx(&Rect, lStyle, GetMenu(MainhWnd) != NULL, lExStyle);
+	Rect.right = Rect.right - Rect.left;
+	Rect.bottom = Rect.bottom - Rect.top;
+	Rect.left = 0;
+	Rect.top = 0;
+
+	// Get new style
+	if (!Config.FullscreenWindowMode && Config.WindowModeBorder && screenWidth > Rect.right && screenHeight > Rect.bottom)
 	{
 		HasBorder = true;
 		lStyle = (lStyle | WS_OVERLAPPEDWINDOW) & ~(WS_MAXIMIZEBOX | WS_THICKFRAME);
@@ -589,34 +604,23 @@ void AdjustWindow(HWND MainhWnd, LONG displayWidth, LONG displayHeight)
 		lStyle &= ~WS_OVERLAPPEDWINDOW;
 	}
 
-	// Set window border
+	// Set window style
 	SetWindowLong(MainhWnd, GWL_STYLE, lStyle);
 	SetWindowPos(MainhWnd, HWND_TOP, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_FRAMECHANGED | SWP_NOSENDCHANGING);
 
-	// Set window size
-	SetWindowPos(MainhWnd, HWND_TOP, 0, 0, displayWidth, displayHeight, SWP_NOMOVE | SWP_NOZORDER | SWP_NOSENDCHANGING);
-
-	// Adjust for window decoration to ensure client area matches display size
-	RECT cRect, wRect;
-	LONG xBorder = 0, yBorder = 0;
-	if (HasBorder && GetClientRect(MainhWnd, &cRect) && GetWindowRect(MainhWnd, &wRect))
-	{
-		xBorder = (wRect.right - wRect.left) - (cRect.right - cRect.left);
-		yBorder = (wRect.bottom - wRect.top) - (cRect.bottom - cRect.top);
-	}
-	LONG newDisplayWidth = displayWidth + xBorder;
-	LONG newDisplayHeight = displayHeight + yBorder;
-
 	// Move window to center and adjust size
 	LONG xLoc = 0, yLoc = 0;
-	if (!Config.FullscreenWindowMode && Config.EnableWindowMode && screenWidth >= newDisplayWidth && screenHeight >= newDisplayHeight)
+	if (!Config.FullscreenWindowMode && Config.EnableWindowMode && screenWidth >= Rect.right && screenHeight >= Rect.bottom)
 	{
-		xLoc = screenRect.left + (screenWidth - newDisplayWidth) / 2;
-		yLoc = screenRect.top + (screenHeight - newDisplayHeight) / 2;
+		xLoc = (screenWidth - Rect.right) / 2;
+		yLoc = (screenHeight - Rect.bottom) / 2;
 	}
-	SetWindowPos(MainhWnd, HWND_TOP, xLoc, yLoc, newDisplayWidth, newDisplayHeight, SWP_NOZORDER | SWP_NOSENDCHANGING);
+	SetWindowPos(MainhWnd, HWND_TOP, xLoc, yLoc, Rect.right, Rect.bottom, SWP_SHOWWINDOW | SWP_NOZORDER | SWP_NOSENDCHANGING);
 
 	// Peek messages to help prevent a "Not Responding" window
 	MSG msg;
 	PeekMessage(&msg, MainhWnd, 0, 0, PM_NOREMOVE);
+
+	// Detach thread input
+	AttachThreadInput(dwCurID, dwMyID, FALSE);
 }
