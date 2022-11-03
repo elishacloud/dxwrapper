@@ -569,10 +569,18 @@ void AdjustWindow(HWND MainhWnd, LONG displayWidth, LONG displayHeight)
 		return;
 	}
 
-	// Attach thread input
+	// Attach thread input and set window active and focus
 	DWORD dwMyID = GetCurrentThreadId();
 	DWORD dwCurID = GetWindowThreadProcessId(MainhWnd, nullptr);
 	AttachThreadInput(dwCurID, dwMyID, TRUE);
+	if ((GetWindowLong(MainhWnd, GWL_EXSTYLE) & WS_EX_TOPMOST) == 0)
+	{
+		SetWindowPos(MainhWnd, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOSIZE | SWP_NOMOVE);
+		SetWindowPos(MainhWnd, HWND_NOTOPMOST, 0, 0, 0, 0, SWP_SHOWWINDOW | SWP_NOSIZE | SWP_NOMOVE);
+	}
+	SetForegroundWindow(MainhWnd);
+	SetFocus(MainhWnd);
+	SetActiveWindow(MainhWnd);
 
 	// Get screen width and height
 	LONG screenWidth = 0, screenHeight = 0;
@@ -581,22 +589,14 @@ void AdjustWindow(HWND MainhWnd, LONG displayWidth, LONG displayHeight)
 	Utils::GetDesktopRect(MainhWnd, screenRect);
 
 	// Get window style
-	bool HasBorder = false;
 	LONG lStyle = GetWindowLong(MainhWnd, GWL_STYLE) | WS_VISIBLE;
 	LONG lExStyle = GetWindowLong(MainhWnd, GWL_EXSTYLE);
 
-	// Get new window rect
-	RECT Rect = { 0, 0, displayWidth, displayHeight };
-	AdjustWindowRectEx(&Rect, lStyle, GetMenu(MainhWnd) != NULL, lExStyle);
-	Rect.right = Rect.right - Rect.left;
-	Rect.bottom = Rect.bottom - Rect.top;
-	Rect.left = 0;
-	Rect.top = 0;
-
 	// Get new style
-	if (!Config.FullscreenWindowMode && Config.WindowModeBorder && screenWidth > Rect.right && screenHeight > Rect.bottom)
+	RECT Rect = { 0, 0, displayWidth, displayHeight };
+	AdjustWindowRectEx(&Rect, (lStyle | WS_OVERLAPPEDWINDOW) & ~(WS_MAXIMIZEBOX | WS_THICKFRAME), GetMenu(MainhWnd) != NULL, lExStyle);
+	if (!Config.FullscreenWindowMode && Config.WindowModeBorder && screenWidth > Rect.right - Rect.left && screenHeight > Rect.bottom - Rect.top)
 	{
-		HasBorder = true;
 		lStyle = (lStyle | WS_OVERLAPPEDWINDOW) & ~(WS_MAXIMIZEBOX | WS_THICKFRAME);
 	}
 	else
@@ -607,6 +607,11 @@ void AdjustWindow(HWND MainhWnd, LONG displayWidth, LONG displayHeight)
 	// Set window style
 	SetWindowLong(MainhWnd, GWL_STYLE, lStyle);
 	SetWindowPos(MainhWnd, HWND_TOP, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_FRAMECHANGED | SWP_NOSENDCHANGING);
+
+	// Get new window rect
+	Rect = { 0, 0, displayWidth, displayHeight };
+	AdjustWindowRectEx(&Rect, lStyle, GetMenu(MainhWnd) != NULL, lExStyle);
+	Rect = { 0, 0, Rect.right - Rect.left, Rect.bottom - Rect.top };
 
 	// Move window to center and adjust size
 	LONG xLoc = 0, yLoc = 0;

@@ -564,9 +564,8 @@ void Fullscreen::SendAltEnter(HWND& hwnd)
 void Fullscreen::SetFullScreen(HWND& hwnd, const MONITORINFO& mi)
 {
 	// Attach to window thread
-	HWND hCurWnd = GetForegroundWindow();
 	DWORD dwMyID = GetCurrentThreadId();
-	DWORD dwCurID = GetWindowThreadProcessId(hCurWnd, nullptr);
+	DWORD dwCurID = GetWindowThreadProcessId(hwnd, nullptr);
 	AttachThreadInput(dwCurID, dwMyID, TRUE);
 
 	// Try restoring the window to normal
@@ -592,11 +591,18 @@ void Fullscreen::SetFullScreen(HWND& hwnd, const MONITORINFO& mi)
 		SWP_NOSENDCHANGING | SWP_FRAMECHANGED);
 
 	// Set focus and activate
-	SetWindowPos(hwnd, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOSENDCHANGING | SWP_NOSIZE | SWP_NOMOVE);
-	SetWindowPos(hwnd, HWND_NOTOPMOST, 0, 0, 0, 0, SWP_NOSENDCHANGING | SWP_SHOWWINDOW | SWP_NOSIZE | SWP_NOMOVE);
+	if ((dwStyle & WS_EX_TOPMOST) == 0)
+	{
+		SetWindowPos(hwnd, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOSENDCHANGING | SWP_NOSIZE | SWP_NOMOVE);
+		SetWindowPos(hwnd, HWND_NOTOPMOST, 0, 0, 0, 0, SWP_NOSENDCHANGING | SWP_SHOWWINDOW | SWP_NOSIZE | SWP_NOMOVE);
+	}
 	SetForegroundWindow(hwnd);
 	SetFocus(hwnd);
 	SetActiveWindow(hwnd);
+
+	// Peek messages to help prevent a "Not Responding" window
+	MSG msg;
+	PeekMessage(&msg, hwnd, 0, 0, PM_NOREMOVE);
 
 	// Dettach from window thread
 	AttachThreadInput(dwCurID, dwMyID, FALSE);
