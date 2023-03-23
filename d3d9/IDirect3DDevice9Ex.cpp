@@ -63,10 +63,22 @@ ULONG m_IDirect3DDevice9Ex::Release()
 	return ref;
 }
 
-HRESULT m_IDirect3DDevice9Ex::Reset(D3DPRESENT_PARAMETERS *pPresentationParameters)
+void m_IDirect3DDevice9Ex::ClearVars(D3DPRESENT_PARAMETERS* pPresentationParameters)
 {
-	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
+	UNREFERENCED_PARAMETER(pPresentationParameters);
 
+	// Clear variables
+	ZeroMemory(&Caps, sizeof(D3DCAPS9));
+	MaxAnisotropy = 0;
+	isAnisotropySet = false;
+	AnisotropyDisabledFlag = false;
+	isClipPlaneSet = false;
+	m_clipPlaneRenderState = 0;
+}
+
+template <typename T>
+HRESULT m_IDirect3DDevice9Ex::ResetT(T func, D3DPRESENT_PARAMETERS &d3dpp, D3DPRESENT_PARAMETERS* pPresentationParameters, D3DDISPLAYMODEEX* pFullscreenDisplayMode)
+{
 	if (!pPresentationParameters)
 	{
 		return D3DERR_INVALIDCALL;
@@ -82,7 +94,6 @@ HRESULT m_IDirect3DDevice9Ex::Reset(D3DPRESENT_PARAMETERS *pPresentationParamete
 	}
 
 	// Setup presentation parameters
-	D3DPRESENT_PARAMETERS d3dpp;
 	CopyMemory(&d3dpp, pPresentationParameters, sizeof(D3DPRESENT_PARAMETERS));
 	UpdatePresentParameter(&d3dpp, nullptr, ForceFullscreen, true);
 
@@ -93,15 +104,11 @@ HRESULT m_IDirect3DDevice9Ex::Reset(D3DPRESENT_PARAMETERS *pPresentationParamete
 		UpdatePresentParameterForMultisample(&d3dpp, DeviceMultiSampleType, DeviceMultiSampleQuality);
 
 		// Reset device
-		hr = ProxyInterface->Reset(&d3dpp);
+		hr = ResetT(func, &d3dpp, pFullscreenDisplayMode);
 
 		// Check if device was reset successfully
 		if (SUCCEEDED(hr))
 		{
-			SetRenderState(D3DRS_MULTISAMPLEANTIALIAS, TRUE);
-
-			CopyMemory(pPresentationParameters, &d3dpp, sizeof(D3DPRESENT_PARAMETERS));
-
 			return D3D_OK;
 		}
 		else
@@ -111,7 +118,7 @@ HRESULT m_IDirect3DDevice9Ex::Reset(D3DPRESENT_PARAMETERS *pPresentationParamete
 			UpdatePresentParameter(&d3dpp, nullptr, ForceFullscreen, false);
 
 			// Reset device
-			hr = ProxyInterface->Reset(&d3dpp);
+			hr = ResetT(func, &d3dpp, pFullscreenDisplayMode);
 
 			if (SUCCEEDED(hr))
 			{
@@ -119,19 +126,34 @@ HRESULT m_IDirect3DDevice9Ex::Reset(D3DPRESENT_PARAMETERS *pPresentationParamete
 				DeviceMultiSampleFlag = false;
 				DeviceMultiSampleType = D3DMULTISAMPLE_NONE;
 				DeviceMultiSampleQuality = 0;
-
-				CopyMemory(pPresentationParameters, &d3dpp, sizeof(D3DPRESENT_PARAMETERS));
 			}
 
 			return hr;
 		}
 	}
 
-	hr = ProxyInterface->Reset(&d3dpp);
+	// Reset device
+	return ResetT(func, &d3dpp, pFullscreenDisplayMode);
+}
+
+HRESULT m_IDirect3DDevice9Ex::Reset(D3DPRESENT_PARAMETERS *pPresentationParameters)
+{
+	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
+
+	if (!pPresentationParameters)
+	{
+		return D3DERR_INVALIDCALL;
+	}
+
+	D3DPRESENT_PARAMETERS d3dpp;
+
+	HRESULT hr = ResetT<fReset>(nullptr, d3dpp, pPresentationParameters);
 
 	if (SUCCEEDED(hr))
 	{
 		CopyMemory(pPresentationParameters, &d3dpp, sizeof(D3DPRESENT_PARAMETERS));
+
+		ClearVars(pPresentationParameters);
 	}
 
 	return hr;
@@ -727,6 +749,12 @@ HRESULT m_IDirect3DDevice9Ex::DrawIndexedPrimitive(THIS_ D3DPRIMITIVETYPE Type, 
 		ApplyClipPlanes();
 	}
 
+	// Reenable Anisotropic Filtering
+	if (MaxAnisotropy)
+	{
+		ReeableAnisotropicSamplerState();
+	}
+
 	return ProxyInterface->DrawIndexedPrimitive(Type, BaseVertexIndex, MinVertexIndex, NumVertices, startIndex, primCount);
 }
 
@@ -738,6 +766,12 @@ HRESULT m_IDirect3DDevice9Ex::DrawIndexedPrimitiveUP(D3DPRIMITIVETYPE PrimitiveT
 	if (Config.CacheClipPlane && isClipPlaneSet)
 	{
 		ApplyClipPlanes();
+	}
+
+	// Reenable Anisotropic Filtering
+	if (MaxAnisotropy)
+	{
+		ReeableAnisotropicSamplerState();
 	}
 
 	return ProxyInterface->DrawIndexedPrimitiveUP(PrimitiveType, MinIndex, NumVertices, PrimitiveCount, pIndexData, IndexDataFormat, pVertexStreamZeroData, VertexStreamZeroStride);
@@ -753,6 +787,12 @@ HRESULT m_IDirect3DDevice9Ex::DrawPrimitive(D3DPRIMITIVETYPE PrimitiveType, UINT
 		ApplyClipPlanes();
 	}
 
+	// Reenable Anisotropic Filtering
+	if (MaxAnisotropy)
+	{
+		ReeableAnisotropicSamplerState();
+	}
+
 	return ProxyInterface->DrawPrimitive(PrimitiveType, StartVertex, PrimitiveCount);
 }
 
@@ -766,6 +806,12 @@ HRESULT m_IDirect3DDevice9Ex::DrawPrimitiveUP(D3DPRIMITIVETYPE PrimitiveType, UI
 		ApplyClipPlanes();
 	}
 
+	// Reenable Anisotropic Filtering
+	if (MaxAnisotropy)
+	{
+		ReeableAnisotropicSamplerState();
+	}
+
 	return ProxyInterface->DrawPrimitiveUP(PrimitiveType, PrimitiveCount, pVertexStreamZeroData, VertexStreamZeroStride);
 }
 
@@ -774,6 +820,21 @@ HRESULT m_IDirect3DDevice9Ex::BeginScene()
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
 	HRESULT hr = ProxyInterface->BeginScene();
+
+	// Get DeviceCaps
+	if (Caps.DeviceType == NULL)
+	{
+		if (SUCCEEDED(ProxyInterface->GetDeviceCaps(&Caps)))
+		{
+			// Set for Anisotropic Filtering
+			MaxAnisotropy = (Config.AnisotropicFiltering == 1) ? Caps.MaxAnisotropy : min((DWORD)Config.AnisotropicFiltering, Caps.MaxAnisotropy);
+		}
+		else
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: Falied to get DeviceCaps (" << this << ")");
+			ZeroMemory(&Caps, sizeof(D3DCAPS9));
+		}
+	}
 
 	// Set for Multisample
 	if (DeviceMultiSampleFlag)
@@ -886,12 +947,24 @@ HRESULT m_IDirect3DDevice9Ex::SetTexture(DWORD Stage, IDirect3DBaseTexture9 *pTe
 		{
 		case D3DRTYPE_TEXTURE:
 			pTexture = static_cast<m_IDirect3DTexture9 *>(pTexture)->GetProxyInterface();
+			if (MaxAnisotropy && Stage > 0)
+			{
+				DisableAnisotropicSamplerState((Caps.TextureFilterCaps & D3DPTFILTERCAPS_MINFANISOTROPIC), (Caps.TextureFilterCaps & D3DPTFILTERCAPS_MAGFANISOTROPIC));
+			}
 			break;
 		case D3DRTYPE_VOLUMETEXTURE:
 			pTexture = static_cast<m_IDirect3DVolumeTexture9 *>(pTexture)->GetProxyInterface();
+			if (MaxAnisotropy && Stage > 0)
+			{
+				DisableAnisotropicSamplerState((Caps.VolumeTextureFilterCaps & D3DPTFILTERCAPS_MINFANISOTROPIC), (Caps.VolumeTextureFilterCaps & D3DPTFILTERCAPS_MAGFANISOTROPIC));
+			}
 			break;
 		case D3DRTYPE_CUBETEXTURE:
 			pTexture = static_cast<m_IDirect3DCubeTexture9 *>(pTexture)->GetProxyInterface();
+			if (MaxAnisotropy && Stage > 0)
+			{
+				DisableAnisotropicSamplerState((Caps.CubeTextureFilterCaps & D3DPTFILTERCAPS_MINFANISOTROPIC), (Caps.CubeTextureFilterCaps & D3DPTFILTERCAPS_MAGFANISOTROPIC));
+			}
 			break;
 		default:
 			return D3DERR_INVALIDCALL;
@@ -1340,30 +1413,6 @@ HRESULT m_IDirect3DDevice9Ex::SetSamplerState(THIS_ DWORD Sampler, D3DSAMPLERSTA
 		}
 	}
 
-	// Setup Anisotropy Filtering
-	if (AnisotropyFlag && (Type == D3DSAMP_MAXANISOTROPY || ((Type == D3DSAMP_MINFILTER || Type == D3DSAMP_MAGFILTER) && Value == D3DTEXF_LINEAR)))
-	{
-		AnisotropyFlag = false;
-
-		D3DCAPS9 Caps;
-		ZeroMemory(&Caps, sizeof(D3DCAPS9));
-		if (SUCCEEDED(ProxyInterface->GetDeviceCaps(&Caps)))
-		{
-			MaxAnisotropy = (Config.AnisotropicFiltering == 1) ? Caps.MaxAnisotropy : min((DWORD)Config.AnisotropicFiltering, Caps.MaxAnisotropy);
-		}
-
-		if (MaxAnisotropy && SUCCEEDED(ProxyInterface->SetSamplerState(Sampler, D3DSAMP_MAXANISOTROPY, MaxAnisotropy)))
-		{
-			Logging::Log() << "Setting Anisotropy Filtering at " << MaxAnisotropy << "x";
-		}
-		else
-		{
-			MaxAnisotropy = 0;
-
-			Logging::Log() << "Failed to enable Anisotropy Filtering!";
-		}
-	}
-
 	// Enable Anisotropic Filtering
 	if (MaxAnisotropy)
 	{
@@ -1374,17 +1423,69 @@ HRESULT m_IDirect3DDevice9Ex::SetSamplerState(THIS_ DWORD Sampler, D3DSAMPLERSTA
 				return D3D_OK;
 			}
 		}
-		else if ((Type == D3DSAMP_MINFILTER || Type == D3DSAMP_MAGFILTER) && Value == D3DTEXF_LINEAR)
+		else if ((Value == D3DTEXF_LINEAR || Value == D3DTEXF_ANISOTROPIC) && (Type == D3DSAMP_MINFILTER || Type == D3DSAMP_MAGFILTER))
 		{
 			if (SUCCEEDED(ProxyInterface->SetSamplerState(Sampler, D3DSAMP_MAXANISOTROPY, MaxAnisotropy)) &&
 				SUCCEEDED(ProxyInterface->SetSamplerState(Sampler, Type, D3DTEXF_ANISOTROPIC)))
 			{
+				if (!isAnisotropySet)
+				{
+					isAnisotropySet = true;
+					Logging::Log() << "Setting Anisotropic Filtering at " << MaxAnisotropy << "x";
+				}
 				return D3D_OK;
 			}
 		}
 	}
 
 	return ProxyInterface->SetSamplerState(Sampler, Type, Value);
+}
+
+void m_IDirect3DDevice9Ex::DisableAnisotropicSamplerState(bool AnisotropyMin, bool AnisotropyMag)
+{
+	DWORD Value = 0;
+	for (int x = 0; x < 4; x++)
+	{
+		if (!AnisotropyMin)	// Anisotropic Min Filter is not supported for multi-stage textures
+		{
+			if (SUCCEEDED(ProxyInterface->GetSamplerState(x, D3DSAMP_MINFILTER, &Value)) && Value == D3DTEXF_ANISOTROPIC &&
+				SUCCEEDED(ProxyInterface->SetSamplerState(x, D3DSAMP_MINFILTER, D3DTEXF_LINEAR)))
+			{
+				AnisotropyDisabledFlag = true;
+			}
+		}
+		if (!AnisotropyMag)	// Anisotropic Mag Filter is not supported for multi-stage textures
+		{
+			if (SUCCEEDED(ProxyInterface->GetSamplerState(x, D3DSAMP_MAGFILTER, &Value)) && Value == D3DTEXF_ANISOTROPIC &&
+				SUCCEEDED(ProxyInterface->SetSamplerState(x, D3DSAMP_MAGFILTER, D3DTEXF_LINEAR)))
+			{
+				AnisotropyDisabledFlag = true;
+			}
+		}
+	}
+}
+
+void m_IDirect3DDevice9Ex::ReeableAnisotropicSamplerState()
+{
+	if (AnisotropyDisabledFlag)
+	{
+		bool Flag = false;
+		DWORD Value = 0;
+		for (int x = 0; x < 4; x++)
+		{
+			if (!(SUCCEEDED(ProxyInterface->GetSamplerState(x, D3DSAMP_MINFILTER, &Value)) && Value == D3DTEXF_LINEAR &&
+				SUCCEEDED(ProxyInterface->SetSamplerState(x, D3DSAMP_MINFILTER, D3DTEXF_ANISOTROPIC))))
+			{
+				Flag = true;	// Unable to re-eanble Anisotropic filtering
+			}
+			if (!(SUCCEEDED(ProxyInterface->GetSamplerState(x, D3DSAMP_MAGFILTER, &Value)) && Value == D3DTEXF_LINEAR &&
+				SUCCEEDED(ProxyInterface->SetSamplerState(x, D3DSAMP_MAGFILTER, D3DTEXF_ANISOTROPIC))))
+			{
+				Flag = true;	// Unable to re-eanble Anisotropic filtering
+			}
+		}
+		AnisotropyDisabledFlag = Flag;
+	}
 }
 
 HRESULT m_IDirect3DDevice9Ex::SetDepthStencilSurface(THIS_ IDirect3DSurface9* pNewZStencil)
@@ -1988,66 +2089,15 @@ HRESULT m_IDirect3DDevice9Ex::ResetEx(THIS_ D3DPRESENT_PARAMETERS* pPresentation
 		return D3DERR_INVALIDCALL;
 	}
 
-	HRESULT hr;
-
-	// Check fullscreen
-	bool ForceFullscreen = false;
-	if (m_pD3DEx)
-	{
-		ForceFullscreen = m_pD3DEx->TestResolution(D3DADAPTER_DEFAULT, pPresentationParameters->BackBufferWidth, pPresentationParameters->BackBufferHeight);
-	}
-
-	// Setup presentation parameters
 	D3DPRESENT_PARAMETERS d3dpp;
-	CopyMemory(&d3dpp, pPresentationParameters, sizeof(D3DPRESENT_PARAMETERS));
-	UpdatePresentParameter(&d3dpp, nullptr, ForceFullscreen, true);
 
-	// Test for Multisample
-	if (DeviceMultiSampleFlag)
-	{
-		// Update Present Parameter for Multisample
-		UpdatePresentParameterForMultisample(&d3dpp, DeviceMultiSampleType, DeviceMultiSampleQuality);
-
-		// Reset device
-		hr = ProxyInterface->ResetEx(&d3dpp, pFullscreenDisplayMode);
-
-		// Check if device was reset successfully
-		if (SUCCEEDED(hr))
-		{
-			SetRenderState(D3DRS_MULTISAMPLEANTIALIAS, TRUE);
-
-			CopyMemory(pPresentationParameters, &d3dpp, sizeof(D3DPRESENT_PARAMETERS));
-
-			return D3D_OK;
-		}
-		else
-		{
-			// Reset presentation parameters
-			CopyMemory(&d3dpp, pPresentationParameters, sizeof(D3DPRESENT_PARAMETERS));
-			UpdatePresentParameter(&d3dpp, nullptr, ForceFullscreen, false);
-
-			// Reset device
-			hr = ProxyInterface->ResetEx(&d3dpp, pFullscreenDisplayMode);
-
-			if (SUCCEEDED(hr))
-			{
-				LOG_LIMIT(3, __FUNCTION__ << " Disabling AntiAliasing...");
-				DeviceMultiSampleFlag = false;
-				DeviceMultiSampleType = D3DMULTISAMPLE_NONE;
-				DeviceMultiSampleQuality = 0;
-
-				CopyMemory(pPresentationParameters, &d3dpp, sizeof(D3DPRESENT_PARAMETERS));
-			}
-
-			return hr;
-		}
-	}
-
-	hr = ProxyInterface->ResetEx(&d3dpp, pFullscreenDisplayMode);
+	HRESULT hr = ResetT<fResetEx>(nullptr, d3dpp, pPresentationParameters, pFullscreenDisplayMode);
 
 	if (SUCCEEDED(hr))
 	{
 		CopyMemory(pPresentationParameters, &d3dpp, sizeof(D3DPRESENT_PARAMETERS));
+
+		ClearVars(pPresentationParameters);
 	}
 
 	return hr;

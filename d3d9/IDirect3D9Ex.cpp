@@ -186,10 +186,9 @@ HRESULT m_IDirect3D9Ex::CheckDeviceFormatConversion(THIS_ UINT Adapter, D3DDEVTY
 	return ProxyInterface->CheckDeviceFormatConversion(Adapter, DeviceType, SourceFormat, TargetFormat);
 }
 
-HRESULT m_IDirect3D9Ex::CreateDevice(UINT Adapter, D3DDEVTYPE DeviceType, HWND hFocusWindow, DWORD BehaviorFlags, D3DPRESENT_PARAMETERS *pPresentationParameters, IDirect3DDevice9 **ppReturnedDeviceInterface)
+template <typename T>
+HRESULT m_IDirect3D9Ex::CreateDeviceT(D3DPRESENT_PARAMETERS& d3dpp, bool& MultiSampleFlag, UINT Adapter, D3DDEVTYPE DeviceType, HWND hFocusWindow, DWORD BehaviorFlags, D3DPRESENT_PARAMETERS* pPresentationParameters, D3DDISPLAYMODEEX* pFullscreenDisplayMode, T ppReturnedDeviceInterface)
 {
-	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
-
 	if (!pPresentationParameters || !ppReturnedDeviceInterface)
 	{
 		return D3DERR_INVALIDCALL;
@@ -206,12 +205,10 @@ HRESULT m_IDirect3D9Ex::CreateDevice(UINT Adapter, D3DDEVTYPE DeviceType, HWND h
 	bool ForceFullscreen = TestResolution(Adapter, pPresentationParameters->BackBufferWidth, pPresentationParameters->BackBufferHeight);
 
 	// Setup presentation parameters
-	D3DPRESENT_PARAMETERS d3dpp;
 	CopyMemory(&d3dpp, pPresentationParameters, sizeof(D3DPRESENT_PARAMETERS));
 	UpdatePresentParameter(&d3dpp, hFocusWindow, ForceFullscreen, true);
 
 	// Check for AntiAliasing
-	bool MultiSampleFlag = false;
 	if (Config.AntiAliasing != 0)
 	{
 		DWORD QualityLevels = 0;
@@ -230,7 +227,7 @@ HRESULT m_IDirect3D9Ex::CreateDevice(UINT Adapter, D3DDEVTYPE DeviceType, HWND h
 				UpdatePresentParameterForMultisample(&d3dpp, (D3DMULTISAMPLE_TYPE)x, (QualityLevels > 0) ? QualityLevels - 1 : 0);
 
 				// Create Device
-				hr = ProxyInterface->CreateDevice(Adapter, DeviceType, hFocusWindow, BehaviorFlags, &d3dpp, ppReturnedDeviceInterface);
+				hr = CreateDeviceT(Adapter, DeviceType, hFocusWindow, BehaviorFlags, &d3dpp, (d3dpp.Windowed) ? nullptr : pFullscreenDisplayMode, ppReturnedDeviceInterface);
 
 				// Check if device was created successfully
 				if (SUCCEEDED(hr))
@@ -256,14 +253,31 @@ HRESULT m_IDirect3D9Ex::CreateDevice(UINT Adapter, D3DDEVTYPE DeviceType, HWND h
 		UpdatePresentParameter(&d3dpp, hFocusWindow, ForceFullscreen, false);
 
 		// Create Device
-		hr = ProxyInterface->CreateDevice(Adapter, DeviceType, hFocusWindow, BehaviorFlags, &d3dpp, ppReturnedDeviceInterface);
+		hr = CreateDeviceT(Adapter, DeviceType, hFocusWindow, BehaviorFlags, &d3dpp, (d3dpp.Windowed) ? nullptr : pFullscreenDisplayMode, ppReturnedDeviceInterface);
 	}
+
+	return hr;
+}
+
+HRESULT m_IDirect3D9Ex::CreateDevice(UINT Adapter, D3DDEVTYPE DeviceType, HWND hFocusWindow, DWORD BehaviorFlags, D3DPRESENT_PARAMETERS *pPresentationParameters, IDirect3DDevice9 **ppReturnedDeviceInterface)
+{
+	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
+
+	if (!pPresentationParameters || !ppReturnedDeviceInterface)
+	{
+		return D3DERR_INVALIDCALL;
+	}
+
+	bool MultiSampleFlag = false;
+	D3DPRESENT_PARAMETERS d3dpp;
+
+	HRESULT hr = CreateDeviceT(d3dpp, MultiSampleFlag, Adapter, DeviceType, hFocusWindow, BehaviorFlags, pPresentationParameters, nullptr, ppReturnedDeviceInterface);
 
 	if (SUCCEEDED(hr))
 	{
-		*ppReturnedDeviceInterface = new m_IDirect3DDevice9Ex((LPDIRECT3DDEVICE9EX)*ppReturnedDeviceInterface, this, IID_IDirect3DDevice9, d3dpp.MultiSampleType, d3dpp.MultiSampleQuality, MultiSampleFlag);
-
 		CopyMemory(pPresentationParameters, &d3dpp, sizeof(D3DPRESENT_PARAMETERS));
+
+		*ppReturnedDeviceInterface = new m_IDirect3DDevice9Ex((LPDIRECT3DDEVICE9EX)*ppReturnedDeviceInterface, this, IID_IDirect3DDevice9, pPresentationParameters->MultiSampleType, pPresentationParameters->MultiSampleQuality, MultiSampleFlag);
 	}
 
 	return hr;
@@ -299,75 +313,16 @@ HRESULT m_IDirect3D9Ex::CreateDeviceEx(THIS_ UINT Adapter, D3DDEVTYPE DeviceType
 		return D3DERR_INVALIDCALL;
 	}
 
-	bool IsWindowed = (pPresentationParameters->Windowed != FALSE);
-
-	BehaviorFlags = UpdateBehaviorFlags(BehaviorFlags, IsWindowed);
-
-	// Create new d3d9 device
-	HRESULT hr = D3DERR_INVALIDCALL;
-
-	// Check fullscreen
-	bool ForceFullscreen = TestResolution(Adapter, pPresentationParameters->BackBufferWidth, pPresentationParameters->BackBufferHeight);
-
-	// Setup presentation parameters
-	D3DPRESENT_PARAMETERS d3dpp;
-	CopyMemory(&d3dpp, pPresentationParameters, sizeof(D3DPRESENT_PARAMETERS));
-	UpdatePresentParameter(&d3dpp, hFocusWindow, ForceFullscreen, true);
-
-	// Check for AntiAliasing
 	bool MultiSampleFlag = false;
-	if (Config.AntiAliasing != 0)
-	{
-		DWORD QualityLevels = 0;
+	D3DPRESENT_PARAMETERS d3dpp;
 
-		// Check AntiAliasing quality
-		for (int x = min(16, Config.AntiAliasing); x > 0; x--)
-		{
-			if (SUCCEEDED(ProxyInterface->CheckDeviceMultiSampleType(Adapter,
-				DeviceType, (d3dpp.BackBufferFormat) ? d3dpp.BackBufferFormat : D3DFMT_A8R8G8B8, d3dpp.Windowed,
-				(D3DMULTISAMPLE_TYPE)x, &QualityLevels)) ||
-				SUCCEEDED(ProxyInterface->CheckDeviceMultiSampleType(Adapter,
-					DeviceType, d3dpp.AutoDepthStencilFormat, d3dpp.Windowed,
-					(D3DMULTISAMPLE_TYPE)x, &QualityLevels)))
-			{
-				// Update Present Parameter for Multisample
-				UpdatePresentParameterForMultisample(&d3dpp, (D3DMULTISAMPLE_TYPE)x, (QualityLevels > 0) ? QualityLevels - 1 : 0);
-
-				// Create Device
-				hr = ProxyInterface->CreateDeviceEx(Adapter, DeviceType, hFocusWindow, BehaviorFlags, &d3dpp, (d3dpp.Windowed) ? nullptr : pFullscreenDisplayMode, ppReturnedDeviceInterface);
-
-				// Check if device was created successfully
-				if (SUCCEEDED(hr))
-				{
-					MultiSampleFlag = true;
-					(*ppReturnedDeviceInterface)->SetRenderState(D3DRS_MULTISAMPLEANTIALIAS, TRUE);
-					LOG_LIMIT(3, "Setting MultiSample " << d3dpp.MultiSampleType << " Quality " << d3dpp.MultiSampleQuality);
-					break;
-				}
-			}
-		}
-		if (FAILED(hr))
-		{
-			LOG_LIMIT(100, __FUNCTION__ << " Failed to enable AntiAliasing!");
-		}
-	}
-
-	// Create Device
-	if (FAILED(hr))
-	{
-		// Update presentation parameters
-		CopyMemory(&d3dpp, pPresentationParameters, sizeof(D3DPRESENT_PARAMETERS));
-		UpdatePresentParameter(&d3dpp, hFocusWindow, ForceFullscreen, false);
-
-		// Create Device
-		hr = ProxyInterface->CreateDeviceEx(Adapter, DeviceType, hFocusWindow, BehaviorFlags, &d3dpp, (d3dpp.Windowed) ? nullptr : pFullscreenDisplayMode, ppReturnedDeviceInterface);
-	}
+	HRESULT hr = CreateDeviceT(d3dpp, MultiSampleFlag, Adapter, DeviceType, hFocusWindow, BehaviorFlags, pPresentationParameters, pFullscreenDisplayMode, ppReturnedDeviceInterface);
 
 	if (SUCCEEDED(hr))
 	{
-		*ppReturnedDeviceInterface = new m_IDirect3DDevice9Ex(*ppReturnedDeviceInterface, this, IID_IDirect3DDevice9Ex, d3dpp.MultiSampleType, d3dpp.MultiSampleQuality, MultiSampleFlag);
-
 		CopyMemory(pPresentationParameters, &d3dpp, sizeof(D3DPRESENT_PARAMETERS));
+
+		*ppReturnedDeviceInterface = new m_IDirect3DDevice9Ex(*ppReturnedDeviceInterface, this, IID_IDirect3DDevice9Ex, pPresentationParameters->MultiSampleType, pPresentationParameters->MultiSampleQuality, MultiSampleFlag);
 	}
 
 	return hr;
@@ -439,7 +394,7 @@ DWORD UpdateBehaviorFlags(DWORD BehaviorFlags, bool IsWindowed)
 	return BehaviorFlags;
 }
 
-// Set Presentation Parameters
+// Update Presentation Parameters
 void UpdatePresentParameter(D3DPRESENT_PARAMETERS* pPresentationParameters, HWND hFocusWindow, bool ForceExclusiveFullscreen, bool SetWindow)
 {
 	if (!pPresentationParameters)
@@ -455,6 +410,25 @@ void UpdatePresentParameter(D3DPRESENT_PARAMETERS* pPresentationParameters, HWND
 	else if (Config.ForceVsyncMode)
 	{
 		pPresentationParameters->PresentationInterval = D3DPRESENT_INTERVAL_IMMEDIATE;
+	}
+
+	// Set windowed mode if enabled
+	if (ForceExclusiveFullscreen)
+	{
+		pPresentationParameters->Windowed = false;
+		if (!pPresentationParameters->FullScreen_RefreshRateInHz)
+		{
+			pPresentationParameters->FullScreen_RefreshRateInHz = Utils::GetRefreshRate(DeviceWindow);
+		}
+		if (pPresentationParameters->BackBufferFormat == D3DFMT_UNKNOWN)
+		{
+			pPresentationParameters->BackBufferFormat = D3DFMT_X8R8G8B8;
+		}
+	}
+	else if (Config.EnableWindowMode)
+	{
+		pPresentationParameters->Windowed = true;
+		pPresentationParameters->FullScreen_RefreshRateInHz = 0;
 	}
 
 	// Store last window data
@@ -477,25 +451,6 @@ void UpdatePresentParameter(D3DPRESENT_PARAMETERS* pPresentationParameters, HWND
 			BufferWidth = tempRect.right;
 			BufferHeight = tempRect.bottom;
 		}
-	}
-
-	// Set windowed mode if enabled
-	if (ForceExclusiveFullscreen)
-	{
-		pPresentationParameters->Windowed = false;
-		if (!pPresentationParameters->FullScreen_RefreshRateInHz)
-		{
-			pPresentationParameters->FullScreen_RefreshRateInHz = Utils::GetRefreshRate(DeviceWindow);
-		}
-		if (pPresentationParameters->BackBufferFormat == D3DFMT_UNKNOWN)
-		{
-			pPresentationParameters->BackBufferFormat = D3DFMT_X8R8G8B8;
-		}
-	}
-	else if (Config.EnableWindowMode)
-	{
-		pPresentationParameters->Windowed = true;
-		pPresentationParameters->FullScreen_RefreshRateInHz = 0;
 	}
 
 	// Set window size

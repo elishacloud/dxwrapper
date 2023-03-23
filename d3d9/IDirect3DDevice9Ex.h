@@ -9,19 +9,35 @@ private:
 	m_IDirect3D9Ex* m_pD3DEx;
 	REFIID WrapperID;
 
+	D3DCAPS9 Caps = {};
+
 	LONG screenWidth, screenHeight;
 
 	bool SetSSAA = false;
 
 	// Anisotropic Filtering
-	bool AnisotropyFlag = (bool)Config.AnisotropicFiltering;
 	DWORD MaxAnisotropy = 0;
+	bool isAnisotropySet = false;
+	bool AnisotropyDisabledFlag = false;	// Tracks when Anisotropic Fintering was disabled becasue lack of multi-stage texture support
+	void DisableAnisotropicSamplerState(bool AnisotropyMin, bool AnisotropyMag);
+	void ReeableAnisotropicSamplerState();
 
 	// For CacheClipPlane
 	bool isClipPlaneSet = false;
 	DWORD m_clipPlaneRenderState = 0;
 	static constexpr size_t MAX_CLIP_PLANES = 6;
 	float m_storedClipPlanes[MAX_CLIP_PLANES][4];
+
+	// For Reset & ResetEx
+	void ClearVars(D3DPRESENT_PARAMETERS* pPresentationParameters);
+	typedef HRESULT(WINAPI* fReset)(D3DPRESENT_PARAMETERS* pPresentationParameters);
+	typedef HRESULT(WINAPI* fResetEx)(D3DPRESENT_PARAMETERS* pPresentationParameters, D3DDISPLAYMODEEX* pFullscreenDisplayMode);
+	template <typename T>
+	HRESULT ResetT(T, D3DPRESENT_PARAMETERS& d3dpp, D3DPRESENT_PARAMETERS* pPresentationParameters, D3DDISPLAYMODEEX* pFullscreenDisplayMode = nullptr);
+	HRESULT ResetT(fReset, D3DPRESENT_PARAMETERS* pPresentationParameters, D3DDISPLAYMODEEX*)
+	{ return ProxyInterface->Reset(pPresentationParameters); }
+	HRESULT ResetT(fResetEx, D3DPRESENT_PARAMETERS* pPresentationParameters, D3DDISPLAYMODEEX* pFullscreenDisplayMode)
+	{ return ProxyInterface->ResetEx(pPresentationParameters, pFullscreenDisplayMode); }
 
 public:
 	m_IDirect3DDevice9Ex(LPDIRECT3DDEVICE9EX pDevice, m_IDirect3D9Ex* pD3D, REFIID DeviceID = IID_IUnknown) : ProxyInterface(pDevice), m_pD3DEx(pD3D), WrapperID(DeviceID)
