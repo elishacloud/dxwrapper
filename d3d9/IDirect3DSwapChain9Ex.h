@@ -32,6 +32,8 @@ public:
 	STDMETHOD(GetDisplayMode)(THIS_ D3DDISPLAYMODE* pMode);
 	STDMETHOD(GetDevice)(THIS_ IDirect3DDevice9** ppDevice);
 	STDMETHOD(GetPresentParameters)(THIS_ D3DPRESENT_PARAMETERS* pPresentationParameters);
+
+	/*** IDirect3DSwapChain9Ex methods ***/
 	STDMETHOD(GetLastPresentCount)(THIS_ UINT* pLastPresentCount);
 	STDMETHOD(GetPresentStats)(THIS_ D3DPRESENTSTATS* pPresentationStatistics);
 	STDMETHOD(GetDisplayModeEx)(THIS_ D3DDISPLAYMODEEX* pMode, D3DDISPLAYROTATION* pRotation);

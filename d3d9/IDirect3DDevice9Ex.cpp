@@ -111,25 +111,23 @@ HRESULT m_IDirect3DDevice9Ex::ResetT(T func, D3DPRESENT_PARAMETERS &d3dpp, D3DPR
 		{
 			return D3D_OK;
 		}
-		else
+
+		// Reset presentation parameters
+		CopyMemory(&d3dpp, pPresentationParameters, sizeof(D3DPRESENT_PARAMETERS));
+		UpdatePresentParameter(&d3dpp, nullptr, ForceFullscreen, false);
+
+		// Reset device
+		hr = ResetT(func, &d3dpp, pFullscreenDisplayMode);
+
+		if (SUCCEEDED(hr))
 		{
-			// Reset presentation parameters
-			CopyMemory(&d3dpp, pPresentationParameters, sizeof(D3DPRESENT_PARAMETERS));
-			UpdatePresentParameter(&d3dpp, nullptr, ForceFullscreen, false);
-
-			// Reset device
-			hr = ResetT(func, &d3dpp, pFullscreenDisplayMode);
-
-			if (SUCCEEDED(hr))
-			{
-				LOG_LIMIT(3, __FUNCTION__ << " Disabling AntiAliasing...");
-				DeviceMultiSampleFlag = false;
-				DeviceMultiSampleType = D3DMULTISAMPLE_NONE;
-				DeviceMultiSampleQuality = 0;
-			}
-
-			return hr;
+			LOG_LIMIT(3, __FUNCTION__ << " Disabling AntiAliasing...");
+			DeviceMultiSampleFlag = false;
+			DeviceMultiSampleType = D3DMULTISAMPLE_NONE;
+			DeviceMultiSampleQuality = 0;
 		}
+
+		return hr;
 	}
 
 	// Reset device
@@ -196,7 +194,7 @@ HRESULT m_IDirect3DDevice9Ex::CreateAdditionalSwapChain(D3DPRESENT_PARAMETERS *p
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	if (!pPresentationParameters)
+	if (!pPresentationParameters || !ppSwapChain)
 	{
 		return D3DERR_INVALIDCALL;
 	}
@@ -233,7 +231,7 @@ HRESULT m_IDirect3DDevice9Ex::CreateAdditionalSwapChain(D3DPRESENT_PARAMETERS *p
 		// Create CwapChain
 		hr = ProxyInterface->CreateAdditionalSwapChain(&d3dpp, ppSwapChain);
 
-		if (SUCCEEDED(hr))
+		if (SUCCEEDED(hr) && DeviceMultiSampleFlag)
 		{
 			LOG_LIMIT(3, __FUNCTION__ <<" Disabling AntiAliasing...");
 			DeviceMultiSampleFlag = false;
@@ -242,11 +240,11 @@ HRESULT m_IDirect3DDevice9Ex::CreateAdditionalSwapChain(D3DPRESENT_PARAMETERS *p
 		}
 	}
 
-	if (SUCCEEDED(hr) && ppSwapChain)
+	if (SUCCEEDED(hr))
 	{
-		*ppSwapChain = new m_IDirect3DSwapChain9Ex((IDirect3DSwapChain9Ex*)*ppSwapChain, this);
-
 		CopyMemory(pPresentationParameters, &d3dpp, sizeof(D3DPRESENT_PARAMETERS));
+
+		*ppSwapChain = new m_IDirect3DSwapChain9Ex((IDirect3DSwapChain9Ex*)*ppSwapChain, this);
 	}
 
 	return hr;

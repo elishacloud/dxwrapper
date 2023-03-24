@@ -42,6 +42,10 @@ private:
 public:
 	m_IDirect3DDevice9Ex(LPDIRECT3DDEVICE9EX pDevice, m_IDirect3D9Ex* pD3D, REFIID DeviceID = IID_IUnknown) : ProxyInterface(pDevice), m_pD3DEx(pD3D), WrapperID(DeviceID)
 	{
+		if (WrapperID == IID_IUnknown)
+		{
+			Logging::Log() << "Warning: Creating interface " << __FUNCTION__ << " (" << this << ") with unknown IID";
+		}
 		InitDirect3DDevice();
 	}
 	m_IDirect3DDevice9Ex(LPDIRECT3DDEVICE9EX pDevice, m_IDirect3D9Ex* pD3D, REFIID DeviceID, D3DMULTISAMPLE_TYPE MultiSampleType, DWORD MultiSampleQuality, bool MultiSampleFlag) :
