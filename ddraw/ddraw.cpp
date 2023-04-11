@@ -48,14 +48,20 @@ using namespace DdrawWrapper;
 
 void InitDDraw()
 {
-	InitializeCriticalSection(&ddcs);
-	IsInitialized = true;
+	if (!IsInitialized)
+	{
+		InitializeCriticalSection(&ddcs);
+		IsInitialized = true;
+	}
 }
 
 void ExitDDraw()
 {
-	IsInitialized = false;
-	DeleteCriticalSection(&ddcs);
+	if (IsInitialized)
+	{
+		IsInitialized = false;
+		DeleteCriticalSection(&ddcs);
+	}
 }
 
 HRESULT WINAPI dd_AcquireDDThreadLock()

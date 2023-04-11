@@ -606,7 +606,7 @@ bool APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 		}
 
 		// Unload DdrawWrapper
-		if (Config.D3d8to9)
+		if (Config.Dd7to9)
 		{
 			ExitDDraw();
 		}

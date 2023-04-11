@@ -274,20 +274,26 @@ LONG Fullscreen::GetBestResolution(screen_res& ScreenRes, LONG xWidth, LONG xHei
 	//Set vars
 	DEVMODE dm = { 0 };
 	dm.dmSize = sizeof(dm);
-	LONG diff = 40000;
+	LONG diff = 0xFFFFFFFF;
 	LONG NewDiff = 0;
 	ScreenRes.Width = 0;
 	ScreenRes.Height = 0;
 
 	// Get closest resolution
+	// Sometimes the app window will be slightly larger or smaller than the expected screen resolution
 	for (DWORD iModeNum = 0; EnumDisplaySettings(nullptr, iModeNum, &dm) != 0; iModeNum++)
 	{
-		NewDiff = abs((LONG)dm.dmPelsWidth - xWidth) + abs((LONG)dm.dmPelsHeight - xHeight);
-		if (NewDiff < diff)
+		NewDiff = abs((LONG)dm.dmPelsWidth - xWidth) * 2 + abs((LONG)dm.dmPelsHeight - xHeight);	// Slightly preference height over width
+		bool isMatch = (dm.dmPelsWidth == xWidth && dm.dmPelsHeight == xHeight);
+		if (isMatch || NewDiff < diff)
 		{
 			diff = NewDiff;
 			ScreenRes.Width = (LONG)dm.dmPelsWidth;
 			ScreenRes.Height = (LONG)dm.dmPelsHeight;
+			if (isMatch)
+			{
+				break;
+			}
 		}
 	}
 	return diff;
