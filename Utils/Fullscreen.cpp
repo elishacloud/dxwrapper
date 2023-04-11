@@ -271,7 +271,7 @@ void Utils::GetDesktopRect(HWND hWnd, RECT& screenRect)
 // Check with resolution is best
 LONG Fullscreen::GetBestResolution(screen_res& ScreenRes, LONG xWidth, LONG xHeight)
 {
-	//Set vars
+	// Set vars
 	DEVMODE dm = { 0 };
 	dm.dmSize = sizeof(dm);
 	LONG diff = 0xFFFFFFFF;
@@ -284,7 +284,7 @@ LONG Fullscreen::GetBestResolution(screen_res& ScreenRes, LONG xWidth, LONG xHei
 	for (DWORD iModeNum = 0; EnumDisplaySettings(nullptr, iModeNum, &dm) != 0; iModeNum++)
 	{
 		NewDiff = abs((LONG)dm.dmPelsWidth - xWidth) * 2 + abs((LONG)dm.dmPelsHeight - xHeight);	// Slightly preference height over width
-		bool isMatch = (dm.dmPelsWidth == xWidth && dm.dmPelsHeight == xHeight);
+		bool isMatch = ((LONG)dm.dmPelsWidth == xWidth && (LONG)dm.dmPelsHeight == xHeight);
 		if (isMatch || NewDiff < diff)
 		{
 			diff = NewDiff;
