@@ -508,11 +508,6 @@ D3DFORMAT GetDisplayFormat(DDPIXELFORMAT ddpfPixelFormat)
 		LOG_LIMIT(100, __FUNCTION__ << " Error: 1-bit, 2-bit and 4-bit palette formats not Implemented");
 		return D3DFMT_UNKNOWN;
 	}
-	if (ddpfPixelFormat.dwFlags & DDPF_PALETTEINDEXEDTO8)
-	{
-		LOG_LIMIT(100, __FUNCTION__ << " Error: 8-bit indexed to palette format not Implemented");
-		return D3DFMT_UNKNOWN;
-	}
 	if (ddpfPixelFormat.dwFlags & DDPF_FOURCC)
 	{
 		switch (ddpfPixelFormat.dwFourCC)
@@ -525,15 +520,16 @@ D3DFORMAT GetDisplayFormat(DDPIXELFORMAT ddpfPixelFormat)
 		case D3DFMT_UYVY:
 		case D3DFMT_YUY2:
 			LOG_LIMIT(100, __FUNCTION__ << " Using format: " << (D3DFORMAT)ddpfPixelFormat.dwFourCC);
-			return (D3DFORMAT)ddpfPixelFormat.dwFourCC;
+			break;
+		default:
+			LOG_LIMIT(100, __FUNCTION__ << " Warning: FourCC format not Implemented. Code = " << (DDFOURCC)ddpfPixelFormat.dwFourCC);
+			break;
 		}
-
-		LOG_LIMIT(100, __FUNCTION__ << " Error: FourCC format not Implemented. Code = " << (DDFOURCC)ddpfPixelFormat.dwFourCC);
-		return D3DFMT_UNKNOWN;
+		return (D3DFORMAT)ddpfPixelFormat.dwFourCC;
 	}
 	if (ddpfPixelFormat.dwFlags & DDPF_YUV)
 	{
-		LOG_LIMIT(100, __FUNCTION__ << " Error: YUV format not Implemented");
+		LOG_LIMIT(100, __FUNCTION__ << " Warning: YUV format not Implemented");
 	}
 	if (ddpfPixelFormat.dwFlags & DDPF_RGBTOYUV)
 	{
@@ -639,40 +635,101 @@ D3DFORMAT GetDisplayFormat(DDPIXELFORMAT ddpfPixelFormat)
 			}
 			break;
 		}
-
 		LOG_LIMIT(100, __FUNCTION__ << " Error: could not find RGB format for PixelFormat: " << ddpfPixelFormat);
+		return D3DFMT_UNKNOWN;
+	}
+	
+	// Bump formats
+	if (ddpfPixelFormat.dwFlags & DDPF_BUMPDUDV)
+	{
+		if (ddpfPixelFormat.dwBumpBitCount == 16 && ddpfPixelFormat.dwBumpDuBitMask == 0xFF && ddpfPixelFormat.dwBumpDvBitMask == 0xFF00)
+		{
+			return D3DFMT_V8U8;
+		}
+		if (ddpfPixelFormat.dwFlags & DDPF_BUMPLUMINANCE && ddpfPixelFormat.dwBumpBitCount == 32 && ddpfPixelFormat.dwBumpDuBitMask == 0xFF &&
+			ddpfPixelFormat.dwBumpDvBitMask == 0xFF00 && ddpfPixelFormat.dwBumpLuminanceBitMask == 0xFF0000)
+		{
+			return D3DFMT_X8L8V8U8;
+		}
+		LOG_LIMIT(100, __FUNCTION__ << " Error: could not find Bump format for PixelFormat: " << ddpfPixelFormat);
 		return D3DFMT_UNKNOWN;
 	}
 
 	// zBuffer formats
-	if (ddpfPixelFormat.dwFlags & (DDPF_ZBUFFER | DDPF_STENCILBUFFER))
+	if (ddpfPixelFormat.dwFlags & DDPF_ZBUFFER)
 	{
-		if (ddpfPixelFormat.dwFlags == DDPF_ZBUFFER && ddpfPixelFormat.dwZBufferBitDepth == 16 && ddpfPixelFormat.dwZBitMask == 0xFFFF)
+		switch (ddpfPixelFormat.dwZBufferBitDepth)
 		{
-			return D3DFMT_D16;
-		}
-		if (ddpfPixelFormat.dwFlags == DDPF_ZBUFFER && ddpfPixelFormat.dwZBufferBitDepth == 32)
-		{
-			if (ddpfPixelFormat.dwZBitMask == 0xFFFFFF || ddpfPixelFormat.dwZBitMask == 0xFFFFFF00)
+		case 16:
+			if (ddpfPixelFormat.dwFlags & DDPF_STENCILBUFFER && ddpfPixelFormat.dwStencilBitDepth == 1)
+			{
+				if (ddpfPixelFormat.dwZBitMask == 0xFFFE && ddpfPixelFormat.dwStencilBitMask == 0x01)
+				{
+					return D3DFMT_D15S1;
+				}
+				else if (ddpfPixelFormat.dwZBitMask == 0x7FFF && ddpfPixelFormat.dwStencilBitMask == 0x8000)
+				{
+					return D3DFMT_S1D15;
+				}
+			}
+			if (ddpfPixelFormat.dwZBitMask == 0xFFFF)
+			{
+				return D3DFMT_D16;
+			}
+			break;
+		case 24:
+			if (ddpfPixelFormat.dwZBitMask == 0xFFFFFF00)
 			{
 				return D3DFMT_D24X8;
 			}
+			else if (ddpfPixelFormat.dwZBitMask == 0x00FFFFFF)
+			{
+				return D3DFMT_X8D24;
+			}
+			break;
+		case 32:
 			if (ddpfPixelFormat.dwZBitMask == 0xFFFFFFFF)
 			{
 				return D3DFMT_D32;
 			}
+			if (ddpfPixelFormat.dwZBitMask == 0xFFFFFF00)
+			{
+				if (ddpfPixelFormat.dwFlags & DDPF_STENCILBUFFER)
+				{
+					if (ddpfPixelFormat.dwStencilBitDepth == 8 && ddpfPixelFormat.dwStencilBitMask == 0xFF)
+					{
+						return D3DFMT_D24S8;
+					}
+					if (ddpfPixelFormat.dwStencilBitDepth == 4 && ddpfPixelFormat.dwStencilBitMask == 0x0F)
+					{
+						return D3DFMT_D24X4S4;
+					}
+				}
+				else
+				{
+					return D3DFMT_D24X8;
+				}
+			}
+			else if (ddpfPixelFormat.dwZBitMask == 0x00FFFFFF)
+			{
+				if (ddpfPixelFormat.dwFlags & DDPF_STENCILBUFFER)
+				{
+					if (ddpfPixelFormat.dwStencilBitDepth == 8 && ddpfPixelFormat.dwStencilBitMask == 0xFF000000)
+					{
+						return D3DFMT_S8D24;
+					}
+					if (ddpfPixelFormat.dwStencilBitDepth == 4 && ddpfPixelFormat.dwStencilBitMask == 0x0F000000)
+					{
+						return D3DFMT_X4S4D24;
+					}
+				}
+				else
+				{
+					return D3DFMT_X8D24;
+				}
+			}
+			break;
 		}
-		if (ddpfPixelFormat.dwFlags == (DDPF_ZBUFFER | DDPF_STENCILBUFFER) && ddpfPixelFormat.dwZBufferBitDepth == 32 && ddpfPixelFormat.dwStencilBitDepth == 8 &&
-			ddpfPixelFormat.dwZBitMask == 0xFFFFFF00 && ddpfPixelFormat.dwStencilBitMask == 0xFF)
-		{
-			return D3DFMT_D24S8;
-		}
-		if (ddpfPixelFormat.dwFlags == (DDPF_ZBUFFER | DDPF_STENCILBUFFER) && ddpfPixelFormat.dwZBufferBitDepth == 32 && ddpfPixelFormat.dwStencilBitDepth == 4 &&
-			ddpfPixelFormat.dwZBitMask == 0xFFFFFF00 && ddpfPixelFormat.dwStencilBitMask == 0xF)
-		{
-			return D3DFMT_D24X4S4;
-		}
-
 		LOG_LIMIT(100, __FUNCTION__ << " Error: could not find z-buffer format for PixelFormat: " << ddpfPixelFormat);
 		return D3DFMT_UNKNOWN;
 	}
@@ -690,9 +747,9 @@ void SetPixelDisplayFormat(D3DFORMAT Format, DDPIXELFORMAT &ddpfPixelFormat)
 	}
 
 	// Initialize pixel format
-	ddpfPixelFormat.dwFlags = DDPF_RGB;
+	ddpfPixelFormat.dwFlags = 0;
 	ddpfPixelFormat.dwFourCC = 0;
-	ddpfPixelFormat.dwRGBBitCount = (Format & 0xFF000000) ? 0 : GetBitCount(Format);
+	ddpfPixelFormat.dwRGBBitCount = 0;
 	ddpfPixelFormat.dwRBitMask = 0x0;
 	ddpfPixelFormat.dwGBitMask = 0x0;
 	ddpfPixelFormat.dwBBitMask = 0x0;
@@ -701,83 +758,125 @@ void SetPixelDisplayFormat(D3DFORMAT Format, DDPIXELFORMAT &ddpfPixelFormat)
 	// Set BitCount and BitMask
 	switch ((DWORD)Format)
 	{
-	case D3DFMT_A4R4G4B4:
-		ddpfPixelFormat.dwFlags |= DDPF_ALPHAPIXELS;
-		ddpfPixelFormat.dwRGBAlphaBitMask = 0xF000;
-		ddpfPixelFormat.dwRBitMask = 0xF00;
-		ddpfPixelFormat.dwGBitMask = 0xF0;
-		ddpfPixelFormat.dwBBitMask = 0xF;
-		break;
+	// 16-bit RGB
 	case D3DFMT_R5G6B5:
+		ddpfPixelFormat.dwFlags = DDPF_RGB;
+		ddpfPixelFormat.dwRGBBitCount = 16;
 		ddpfPixelFormat.dwRBitMask = 0xF800;
 		ddpfPixelFormat.dwGBitMask = 0x7E0;
 		ddpfPixelFormat.dwBBitMask = 0x1F;
 		break;
 	case D3DFMT_A1R5G5B5:
-		ddpfPixelFormat.dwFlags |= DDPF_ALPHAPIXELS;
+		ddpfPixelFormat.dwFlags = DDPF_ALPHAPIXELS;
 		ddpfPixelFormat.dwRGBAlphaBitMask = 0x8000;
 		[[fallthrough]];
 	case D3DFMT_X1R5G5B5:
+		ddpfPixelFormat.dwFlags |= DDPF_RGB;
+		ddpfPixelFormat.dwRGBBitCount = 16;
 		ddpfPixelFormat.dwRBitMask = 0x7C00;
 		ddpfPixelFormat.dwGBitMask = 0x3E0;
 		ddpfPixelFormat.dwBBitMask = 0x1F;
 		break;
+	case D3DFMT_A4R4G4B4:
+		ddpfPixelFormat.dwFlags = DDPF_RGB | DDPF_ALPHAPIXELS;
+		ddpfPixelFormat.dwRGBBitCount = 16;
+		ddpfPixelFormat.dwRGBAlphaBitMask = 0xF000;
+		ddpfPixelFormat.dwRBitMask = 0xF00;
+		ddpfPixelFormat.dwGBitMask = 0xF0;
+		ddpfPixelFormat.dwBBitMask = 0xF;
+		break;
+
+	// 24-bit RGB
+	case D3DFMT_R8G8B8:
+		ddpfPixelFormat.dwFlags = DDPF_RGB;
+		ddpfPixelFormat.dwRGBBitCount = 24;
+		ddpfPixelFormat.dwRBitMask = 0xFF0000;
+		ddpfPixelFormat.dwGBitMask = 0xFF00;
+		ddpfPixelFormat.dwBBitMask = 0xFF;
+		break;
+	case D3DFMT_B8G8R8:
+		ddpfPixelFormat.dwFlags = DDPF_RGB;
+		ddpfPixelFormat.dwRGBBitCount = 24;
+		ddpfPixelFormat.dwRBitMask = 0xFF;
+		ddpfPixelFormat.dwGBitMask = 0xFF00;
+		ddpfPixelFormat.dwBBitMask = 0xFF0000;
+		break;
+
+	// 32-bit RGB
 	case D3DFMT_A8R8G8B8:
-		ddpfPixelFormat.dwFlags |= DDPF_ALPHAPIXELS;
+		ddpfPixelFormat.dwFlags = DDPF_ALPHAPIXELS;
 		ddpfPixelFormat.dwRGBAlphaBitMask = 0xFF000000;
 		[[fallthrough]];
-	case D3DFMT_R8G8B8:
 	case D3DFMT_X8R8G8B8:
+		ddpfPixelFormat.dwFlags |= DDPF_RGB;
+		ddpfPixelFormat.dwRGBBitCount = 32;
 		ddpfPixelFormat.dwRBitMask = 0xFF0000;
 		ddpfPixelFormat.dwGBitMask = 0xFF00;
 		ddpfPixelFormat.dwBBitMask = 0xFF;
 		break;
 	case D3DFMT_A8B8G8R8:
-		ddpfPixelFormat.dwFlags |= DDPF_ALPHAPIXELS;
+		ddpfPixelFormat.dwFlags = DDPF_ALPHAPIXELS;
 		ddpfPixelFormat.dwRGBAlphaBitMask = 0xFF000000;
 		[[fallthrough]];
-	case D3DFMT_B8G8R8:
 	case D3DFMT_X8B8G8R8:
+		ddpfPixelFormat.dwFlags |= DDPF_RGB;
+		ddpfPixelFormat.dwRGBBitCount = 32;
 		ddpfPixelFormat.dwRBitMask = 0xFF;
 		ddpfPixelFormat.dwGBitMask = 0xFF00;
 		ddpfPixelFormat.dwBBitMask = 0xFF0000;
 		break;
 	case D3DFMT_A2R10G10B10:
-		ddpfPixelFormat.dwFlags |= DDPF_ALPHAPIXELS;
+		ddpfPixelFormat.dwFlags = DDPF_RGB | DDPF_ALPHAPIXELS;
+		ddpfPixelFormat.dwRGBBitCount = 32;
 		ddpfPixelFormat.dwRGBAlphaBitMask = 0xC0000000;
 		ddpfPixelFormat.dwRBitMask = 0x3FF00000;
 		ddpfPixelFormat.dwGBitMask = 0xFFC00;
 		ddpfPixelFormat.dwBBitMask = 0x3FF;
 		break;
+
+	// Palette
+	case D3DFMT_P8:
+		ddpfPixelFormat.dwFlags = DDPF_RGB | DDPF_PALETTEINDEXED8;
+		ddpfPixelFormat.dwRGBBitCount = 8;
+		break;
+
+	// Bump
 	case D3DFMT_V8U8:
 		ddpfPixelFormat.dwFlags = DDPF_BUMPDUDV;
+		ddpfPixelFormat.dwBumpBitCount = 16;
 		ddpfPixelFormat.dwBumpDuBitMask = 0xFF;
 		ddpfPixelFormat.dwBumpDvBitMask = 0xFF00;
 		break;
 	case D3DFMT_X8L8V8U8:
 		ddpfPixelFormat.dwFlags = DDPF_BUMPLUMINANCE | DDPF_BUMPDUDV;
+		ddpfPixelFormat.dwBumpBitCount = 32;
 		ddpfPixelFormat.dwBumpDuBitMask = 0xFF;
 		ddpfPixelFormat.dwBumpDvBitMask = 0xFF00;
 		ddpfPixelFormat.dwBumpLuminanceBitMask = 0xFF0000;
 		break;
-	case D3DFMT_P8:
-		ddpfPixelFormat.dwFlags |= DDPF_PALETTEINDEXED8;
-		break;
+
+	// Alpha
 	case D3DFMT_A8:
 		ddpfPixelFormat.dwFlags = DDPF_ALPHA;
+		ddpfPixelFormat.dwAlphaBitDepth = 8;
 		ddpfPixelFormat.dwRGBAlphaBitMask = 0xFF;
 		break;
+
+	// Luminance
 	case D3DFMT_L8:
 		ddpfPixelFormat.dwFlags = DDPF_LUMINANCE;
+		ddpfPixelFormat.dwLuminanceBitCount = 8;
 		ddpfPixelFormat.dwLuminanceBitMask = 0xFF;
 		break;
 	case D3DFMT_A4L4:
-		ddpfPixelFormat.dwFlags = DDPF_ALPHAPIXELS | DDPF_LUMINANCE;
+		ddpfPixelFormat.dwFlags = DDPF_LUMINANCE | DDPF_ALPHAPIXELS;
+		ddpfPixelFormat.dwLuminanceBitCount = 8;
 		ddpfPixelFormat.dwLuminanceAlphaBitMask = 0xF0;
 		ddpfPixelFormat.dwLuminanceBitMask = 0x0F;
 		break;
 	case D3DFMT_A8L8:
-		ddpfPixelFormat.dwFlags = DDPF_ALPHAPIXELS | DDPF_LUMINANCE;
+		ddpfPixelFormat.dwFlags = DDPF_LUMINANCE | DDPF_ALPHAPIXELS;
+		ddpfPixelFormat.dwLuminanceBitCount = 16;
 		ddpfPixelFormat.dwLuminanceAlphaBitMask = 0xFF00;
 		ddpfPixelFormat.dwLuminanceBitMask = 0xFF;
 		break;
@@ -785,24 +884,58 @@ void SetPixelDisplayFormat(D3DFORMAT Format, DDPIXELFORMAT &ddpfPixelFormat)
 	// zBuffer formats
 	case D3DFMT_D16:
 		ddpfPixelFormat.dwFlags = DDPF_ZBUFFER;
+		ddpfPixelFormat.dwZBufferBitDepth = 16;
 		ddpfPixelFormat.dwZBitMask = 0xFFFF;
 		break;
-	case D3DFMT_D24X8:
-		ddpfPixelFormat.dwFlags = DDPF_ZBUFFER;
-		ddpfPixelFormat.dwZBitMask = 0xFFFFFF;
+	case D3DFMT_D15S1:
+		ddpfPixelFormat.dwFlags = DDPF_ZBUFFER | DDPF_STENCILBUFFER;
+		ddpfPixelFormat.dwZBufferBitDepth = 16;
+		ddpfPixelFormat.dwStencilBitDepth = 1;
+		ddpfPixelFormat.dwZBitMask = 0xFFFE;
+		ddpfPixelFormat.dwStencilBitMask = 0x01;
+		break;
+	case D3DFMT_S1D15:
+		ddpfPixelFormat.dwFlags = DDPF_ZBUFFER | DDPF_STENCILBUFFER;
+		ddpfPixelFormat.dwZBufferBitDepth = 16;
+		ddpfPixelFormat.dwStencilBitDepth = 1;
+		ddpfPixelFormat.dwZBitMask = 0x7FFF;
+		ddpfPixelFormat.dwStencilBitMask = 0x8000;
 		break;
 	case D3DFMT_D32:
 		ddpfPixelFormat.dwFlags = DDPF_ZBUFFER;
+		ddpfPixelFormat.dwZBufferBitDepth = 32;
 		ddpfPixelFormat.dwZBitMask = 0xFFFFFFFF;
 		break;
-	case D3DFMT_D24S8:
-		ddpfPixelFormat.dwFlags = DDPF_ZBUFFER | DDPF_STENCILBUFFER;
+	case D3DFMT_S8D24:
+		ddpfPixelFormat.dwFlags = DDPF_STENCILBUFFER;
 		ddpfPixelFormat.dwStencilBitDepth = 8;
-		ddpfPixelFormat.dwZBitMask = 0xFFFFFF00;
+		ddpfPixelFormat.dwStencilBitMask = 0xFF000000;
+		[[fallthrough]];
+	case D3DFMT_X8D24:
+		ddpfPixelFormat.dwFlags |= DDPF_ZBUFFER;
+		ddpfPixelFormat.dwZBufferBitDepth = 32;
+		ddpfPixelFormat.dwZBitMask = 0x00FFFFFF;
+		break;
+	case D3DFMT_X4S4D24:
+		ddpfPixelFormat.dwFlags = DDPF_ZBUFFER | DDPF_STENCILBUFFER;
+		ddpfPixelFormat.dwZBufferBitDepth = 32;
+		ddpfPixelFormat.dwStencilBitDepth = 4;
+		ddpfPixelFormat.dwZBitMask = 0x00FFFFFF;
+		ddpfPixelFormat.dwStencilBitMask = 0x0F000000;
+		break;
+	case D3DFMT_D24S8:
+		ddpfPixelFormat.dwFlags = DDPF_STENCILBUFFER;
+		ddpfPixelFormat.dwStencilBitDepth = 8;
 		ddpfPixelFormat.dwStencilBitMask = 0xFF;
+		[[fallthrough]];
+	case D3DFMT_D24X8:
+		ddpfPixelFormat.dwFlags |= DDPF_ZBUFFER;
+		ddpfPixelFormat.dwZBufferBitDepth = 32;
+		ddpfPixelFormat.dwZBitMask = 0xFFFFFF00;
 		break;
 	case D3DFMT_D24X4S4:
 		ddpfPixelFormat.dwFlags = DDPF_ZBUFFER | DDPF_STENCILBUFFER;
+		ddpfPixelFormat.dwZBufferBitDepth = 32;
 		ddpfPixelFormat.dwStencilBitDepth = 4;
 		ddpfPixelFormat.dwZBitMask = 0xFFFFFF00;
 		ddpfPixelFormat.dwStencilBitMask = 0x0F;
