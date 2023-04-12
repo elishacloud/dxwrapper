@@ -764,6 +764,23 @@ HRESULT m_IDirect3DX::EnumZBufferFormats(REFCLSID riidDevice, LPD3DENUMPIXELFORM
 					}
 				}
 			}
+
+			// Handle 32bit zBuffer
+			if (Desc7.dwDeviceZBufferBitDepth & DDBD_32)
+			{
+				for (D3DFORMAT Format : { D3DFMT_D32 })
+				{
+					if (SUCCEEDED(d3d9Object->CheckDeviceFormat(D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, D9DisplayFormat, D3DUSAGE_DEPTHSTENCIL, D3DRTYPE_SURFACE, Format)))
+					{
+						SetPixelDisplayFormat(Format, PixelFormat);
+
+						if (PixelFormat.dwFlags && lpEnumCallback(&PixelFormat, lpContext) == DDENUMRET_CANCEL)
+						{
+							return D3D_OK;
+						}
+					}
+				}
+			}
 			return D3D_OK;
 		}
 		else if (riidDevice == IID_IDirect3DRampDevice)

@@ -651,9 +651,16 @@ D3DFORMAT GetDisplayFormat(DDPIXELFORMAT ddpfPixelFormat)
 		{
 			return D3DFMT_D16;
 		}
-		if (ddpfPixelFormat.dwFlags == DDPF_ZBUFFER && ddpfPixelFormat.dwZBufferBitDepth == 32 && ddpfPixelFormat.dwZBitMask == 0xFFFFFF00)
+		if (ddpfPixelFormat.dwFlags == DDPF_ZBUFFER && ddpfPixelFormat.dwZBufferBitDepth == 32)
 		{
-			return D3DFMT_D24X8;
+			if (ddpfPixelFormat.dwZBitMask == 0xFFFFFF || ddpfPixelFormat.dwZBitMask == 0xFFFFFF00)
+			{
+				return D3DFMT_D24X8;
+			}
+			if (ddpfPixelFormat.dwZBitMask == 0xFFFFFFFF)
+			{
+				return D3DFMT_D32;
+			}
 		}
 		if (ddpfPixelFormat.dwFlags == (DDPF_ZBUFFER | DDPF_STENCILBUFFER) && ddpfPixelFormat.dwZBufferBitDepth == 32 && ddpfPixelFormat.dwStencilBitDepth == 8 &&
 			ddpfPixelFormat.dwZBitMask == 0xFFFFFF00 && ddpfPixelFormat.dwStencilBitMask == 0xFF)
@@ -782,7 +789,11 @@ void SetPixelDisplayFormat(D3DFORMAT Format, DDPIXELFORMAT &ddpfPixelFormat)
 		break;
 	case D3DFMT_D24X8:
 		ddpfPixelFormat.dwFlags = DDPF_ZBUFFER;
-		ddpfPixelFormat.dwZBitMask = 0xFFFFFF00;
+		ddpfPixelFormat.dwZBitMask = 0xFFFFFF;
+		break;
+	case D3DFMT_D32:
+		ddpfPixelFormat.dwFlags = DDPF_ZBUFFER;
+		ddpfPixelFormat.dwZBitMask = 0xFFFFFFFF;
 		break;
 	case D3DFMT_D24S8:
 		ddpfPixelFormat.dwFlags = DDPF_ZBUFFER | DDPF_STENCILBUFFER;
