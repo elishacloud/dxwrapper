@@ -3,6 +3,7 @@
 #include <ddraw.h>
 
 #define D3DFMT_B8G8R8 (D3DFORMAT)19
+#define D3DFMT_YV12   MAKEFOURCC('Y','V','1','2')
 
 #define D3DCOLOR_R5G6B5_BLUE(w) \
 	(BYTE)((w)&0x1f)*8
@@ -18,7 +19,7 @@ static constexpr DWORD FourCCTypes[] =
 	//0x026CFB68, // MAKEFOURCC('N', 'V', '1', '2')
 	//0x026CFB6C, // MAKEFOURCC('P', '0', '1', '0')
 	//0x026CFB70, // MAKEFOURCC('N', 'V', '2', '4')
-	//0x026CFB74, // MAKEFOURCC('Y', 'V', '1', '2')
+	0x026CFB74, // MAKEFOURCC('Y', 'V', '1', '2')
 	0x026CFB78, // MAKEFOURCC('U', 'Y', 'V', 'Y')
 	0x026CFB7C, // MAKEFOURCC('Y', 'U', 'Y', '2')
 	//0x026CFB80, // MAKEFOURCC('A', 'I', '4', '4')
