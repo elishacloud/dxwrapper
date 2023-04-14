@@ -403,7 +403,7 @@ DWORD GetBitCount(D3DFORMAT Format)
 	case D3DFMT_DXT1:
 		// Size is negative to indicate DXT; and indicates
 		// the size of the block
-		return (UINT)(-8 * 8);
+		return (UINT)(-64);
 
 	case D3DFMT_DXT2:
 	case D3DFMT_DXT3:
@@ -411,17 +411,17 @@ DWORD GetBitCount(D3DFORMAT Format)
 	case D3DFMT_DXT5:
 		// Size is negative to indicate DXT; and indicates
 		// the size of the block
-		return (UINT)(-16 * 8);
+		return (UINT)(-128);
 
 	case D3DFMT_A32B32G32R32F:
-		return 16 * 8;
+		return 128;
 
 	case D3DFMT_A16B16G16R16:
 	case D3DFMT_Q16W16V16U16:
 	case D3DFMT_A16B16G16R16F:
 	case D3DFMT_G32R32F:
 	case D3DFMT_MULTI2_ARGB8:
-		return 8 * 8;
+		return 64;
 
 	case D3DFMT_A8R8G8B8:
 	case D3DFMT_X8R8G8B8:
@@ -447,11 +447,11 @@ DWORD GetBitCount(D3DFORMAT Format)
 	case D3DFMT_D32F_LOCKABLE:
 	case D3DFMT_D24FS8:
 	case D3DFMT_D32_LOCKABLE:
-		return 4 * 8;
+		return 32;
 
 	case D3DFMT_R8G8B8:
 	case D3DFMT_B8G8R8:
-		return 3 * 8;
+		return 24;
 
 	case D3DFMT_R5G6B5:
 	case D3DFMT_X1R5G5B5:
@@ -474,7 +474,7 @@ DWORD GetBitCount(D3DFORMAT Format)
 	case D3DFMT_R16F:
 	case D3DFMT_R8G8_B8G8:
 	case D3DFMT_G8R8_G8B8:
-		return 2 * 8;
+		return 16;
 
 	case D3DFMT_YV12:
 		return 12;
@@ -486,7 +486,7 @@ DWORD GetBitCount(D3DFORMAT Format)
 	case D3DFMT_A8:
 	case D3DFMT_A1:
 	case D3DFMT_S8_LOCKABLE:
-		return 1 * 8;
+		return 8;
 
 	default:
 		LOG_LIMIT(100, __FUNCTION__ << " Display format not Implemented: " << Format);
