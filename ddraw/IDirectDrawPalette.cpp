@@ -200,11 +200,15 @@ HRESULT m_IDirectDrawPalette::SetEntries(DWORD dwFlags, DWORD dwStartingEntry, D
 					ddrawParent->SetVsync();
 				}
 
+				SetCriticalSection();
+
 				m_IDirectDrawSurfaceX *lpDDSrcSurfaceX = ddrawParent->GetPrimarySurface();
 				if (lpDDSrcSurfaceX)
 				{
-					lpDDSrcSurfaceX->PresentSurface(false, false);
+					lpDDSrcSurfaceX->PresentSurface(false);
 				}
+
+				ReleaseCriticalSection();
 			}
 		}
 

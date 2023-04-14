@@ -120,11 +120,15 @@ HRESULT m_IDirectDrawColorControl::SetColorControls(LPDDCOLORCONTROL lpColorCont
 		{
 			ddrawParent->SetVsync();
 
+			SetCriticalSection();
+
 			m_IDirectDrawSurfaceX *lpDDSrcSurfaceX = ddrawParent->GetPrimarySurface();
 			if (lpDDSrcSurfaceX)
 			{
-				lpDDSrcSurfaceX->PresentSurface(false, false);
+				lpDDSrcSurfaceX->PresentSurface(false);
 			}
+
+			ReleaseCriticalSection();
 		}
 
 		return DD_OK;

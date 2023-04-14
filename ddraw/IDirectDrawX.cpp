@@ -500,15 +500,7 @@ HRESULT m_IDirectDrawX::CreateSurface2(LPDDSURFACEDESC2 lpDDSurfaceDesc2, LPDIRE
 		if ((lpDDSurfaceDesc2->dwFlags & DDSD_MIPMAPCOUNT) || (lpDDSurfaceDesc2->ddsCaps.dwCaps & DDSCAPS_MIPMAP) ||
 			(lpDDSurfaceDesc2->dwMipMapCount > 1))
 		{
-			if (lpDDSurfaceDesc2->dwMipMapCount > 1)
-			{
-				LOG_LIMIT(100, __FUNCTION__ << " Error: MipMap not Implemented.");
-				return DDERR_NOMIPMAPHW;
-			}
-			else
-			{
-				LOG_LIMIT(100, __FUNCTION__ << " Warning: MipMap not Implemented.");
-			}
+			LOG_LIMIT(100, __FUNCTION__ << " Warning: MipMap not Implemented.");
 		}
 
 		// Check for zbuffer
@@ -1032,7 +1024,18 @@ HRESULT m_IDirectDrawX::FlipToGDISurface()
 
 	if (Config.Dd7to9)
 	{
-		// ToDo: Do proper implementation
+		// ToDo: Do proper implementation here
+
+		SetCriticalSection();
+
+		m_IDirectDrawSurfaceX* lpDDSrcSurfaceX = GetPrimarySurface();
+		if (lpDDSrcSurfaceX)
+		{
+			lpDDSrcSurfaceX->SetDirtyFlipFlag();
+		}
+
+		ReleaseCriticalSection();
+
 		return DD_OK;
 	}
 
@@ -1253,12 +1256,21 @@ HRESULT m_IDirectDrawX::GetGDISurface(LPDIRECTDRAWSURFACE7 FAR * lplpGDIDDSSurfa
 
 	if (Config.Dd7to9)
 	{
-		LOG_LIMIT(100, __FUNCTION__ << " Not Implemented");
-		if (lplpGDIDDSSurface)
+		// ToDo: Do proper implementation here
+
+		if (!lplpGDIDDSSurface)
 		{
-			*lplpGDIDDSSurface = (LPDIRECTDRAWSURFACE7)GetPrimarySurface();
+			return DDERR_INVALIDPARAMS;
 		}
-		return DDERR_NOTFOUND;
+
+		*lplpGDIDDSSurface = (LPDIRECTDRAWSURFACE7)GetPrimarySurface();
+
+		if (!*lplpGDIDDSSurface)
+		{
+			return DDERR_NOTFOUND;
+		}
+
+		return DD_OK;
 	}
 
 	HRESULT hr = ProxyInterface->GetGDISurface(lplpGDIDDSSurface);
@@ -2907,12 +2919,12 @@ void m_IDirectDrawX::AddSurfaceToVector(m_IDirectDrawSurfaceX* lpSurfaceX)
 		return;
 	}
 
+	SetCriticalSection();
+
 	if (lpSurfaceX->IsPrimarySurface())
 	{
 		PrimarySurface = lpSurfaceX;
 	}
-
-	SetCriticalSection();
 
 	// Store surface
 	SurfaceVector.push_back(lpSurfaceX);

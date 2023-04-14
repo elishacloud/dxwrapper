@@ -207,8 +207,9 @@ private:
 	bool CheckCoordinates(LPRECT lpOutRect, LPRECT lpInRect);
 	HRESULT LockEmulatedSurface(D3DLOCKED_RECT* pLockedRect, LPRECT lpDestRect);
 	void SetDirtyFlag();
-	void BeginWritePresent(bool IsFlip, bool isSkipScene);
-	void EndWritePresent(bool IsFlip, bool isSkipScene);
+	bool CheckRectforSkipScene(RECT& DestRect);
+	void BeginWritePresent(bool isSkipScene);
+	void EndWritePresent(bool isSkipScene);
 
 	// Surface information functions
 	inline bool IsSurfaceLocked() { return IsLocked; }
@@ -287,7 +288,7 @@ public:
 	/*** IDirectDrawSurface methods ***/
 	STDMETHOD(AddAttachedSurface)(THIS_ LPDIRECTDRAWSURFACE7);
 	STDMETHOD(AddOverlayDirtyRect)(THIS_ LPRECT);
-	HRESULT Blt(LPRECT, LPDIRECTDRAWSURFACE7, LPRECT, DWORD, LPDDBLTFX, BOOL isSkipScene = false);
+	HRESULT Blt(LPRECT, LPDIRECTDRAWSURFACE7, LPRECT, DWORD, LPDDBLTFX, bool isSkipScene = false);
 	STDMETHOD(BltBatch)(THIS_ LPDDBLTBATCH, DWORD, DWORD);
 	STDMETHOD(BltFast)(THIS_ DWORD, DWORD, LPDIRECTDRAWSURFACE7, LPRECT, DWORD);
 	STDMETHOD(DeleteAttachedSurface)(THIS_ DWORD, LPDIRECTDRAWSURFACE7);
@@ -368,7 +369,7 @@ public:
 
 	// Direct3D9 interface functions
 	void ReleaseD9Surface(bool BackupData);
-	HRESULT PresentSurface(bool IsFlip, BOOL isSkipScene);
+	HRESULT PresentSurface(bool isSkipScene);
 	void ResetSurfaceDisplay();
 
 	// Surface information functions
@@ -385,6 +386,7 @@ public:
 	inline void SetWrapperSurfaceSize(DWORD Height, DWORD Width) { DsWrapper.Width = Width; DsWrapper.Height = Height; }
 
 	// Attached surfaces
+	void SetDirtyFlipFlag();
 	void RemoveAttachedSurfaceFromMap(m_IDirectDrawSurfaceX* lpSurfaceX);
 
 	// For palettes
