@@ -93,7 +93,7 @@ bool isWindowed;					// Window mode enabled
 bool AntiAliasing;
 bool AllowModeX;
 bool MultiThreaded;
-bool FUPPreserve;
+bool FPUPreserve;
 bool NoWindowChanges;
 bool DynamicTexturesSupported;
 
@@ -114,6 +114,7 @@ LPDIRECT3D9 d3d9Object;
 LPDIRECT3DDEVICE9 d3d9Device;
 D3DPRESENT_PARAMETERS presParams;
 DWORD BehaviorFlags;
+HWND hFocusWindow;
 
 // D3DKMT vertical blank
 bool VSyncLoaded = false;
@@ -1477,7 +1478,7 @@ HRESULT m_IDirectDrawX::SetCooperativeLevel(HWND hWnd, DWORD dwFlags)
 		HWND LastExclusiveHwnd = ExclusiveHwnd;
 		HWND LastMainhWnd = MainhWnd;
 		bool LastMultiThreaded = MultiThreaded;
-		bool LastFUPPreserve = FUPPreserve;
+		bool LastFPUPreserve = FPUPreserve;
 		bool LastNoWindowChanges = NoWindowChanges;
 
 		// Set windowed mode
@@ -1512,7 +1513,7 @@ HRESULT m_IDirectDrawX::SetCooperativeLevel(HWND hWnd, DWORD dwFlags)
 		// Set device flags
 		AllowModeX = ((dwFlags & DDSCL_ALLOWMODEX) != 0);
 		MultiThreaded = ((dwFlags & DDSCL_MULTITHREADED) != 0);
-		FUPPreserve = ((dwFlags & DDSCL_FPUPRESERVE) != 0 || (dwFlags & DDSCL_FPUSETUP) == 0);
+		FPUPreserve = ((dwFlags & DDSCL_FPUPRESERVE) != 0  && (dwFlags & DDSCL_FPUSETUP) == 0);
 		NoWindowChanges = ((dwFlags & DDSCL_NOWINDOWCHANGES) != 0);
 
 		// Check window handle
@@ -1534,12 +1535,12 @@ HRESULT m_IDirectDrawX::SetCooperativeLevel(HWND hWnd, DWORD dwFlags)
 			}
 		}
 
-		// Reset if mode was changed and primary surface does not exist
+		// Reset if mode was changed
 		if (d3d9Device && MainhWnd && hWnd && (
 			LastExclusiveHwnd != ExclusiveHwnd ||
 			LastMainhWnd != MainhWnd ||
 			LastMultiThreaded != MultiThreaded ||
-			LastFUPPreserve != FUPPreserve ||
+			LastFPUPreserve != FPUPreserve ||
 			LastNoWindowChanges != NoWindowChanges))
 		{
 			// Recreate d3d9 device
@@ -2170,7 +2171,7 @@ void m_IDirectDrawX::InitDdraw(DWORD DirectXVersion)
 		AntiAliasing = false;
 		AllowModeX = false;
 		MultiThreaded = false;
-		FUPPreserve = false;
+		FPUPreserve = false;
 		NoWindowChanges = false;
 
 		// High resolution counter
@@ -2188,6 +2189,7 @@ void m_IDirectDrawX::InitDdraw(DWORD DirectXVersion)
 
 		ZeroMemory(&presParams, sizeof(D3DPRESENT_PARAMETERS));
 		BehaviorFlags = 0;
+		hFocusWindow = nullptr;
 
 		// Display resolution
 		if (Config.DdrawUseNativeResolution)
@@ -2618,27 +2620,20 @@ HRESULT m_IDirectDrawX::CreateD3D9Device()
 
 	HRESULT hr = DD_OK;
 	do {
-		// Release all existing surfaces
-		if (d3d9Device)
-		{
-			ReleaseAllDirectDrawD9Surfaces();
-		}
-
-		// Check device caps to make sure it supports dynamic textures
-		DynamicTexturesSupported = false;
-		D3DCAPS9 d3dcaps;
-		ZeroMemory(&d3dcaps, sizeof(D3DCAPS9));
-		if (SUCCEEDED(d3d9Object->GetDeviceCaps(D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, &d3dcaps)))
-		{
-			DynamicTexturesSupported = (d3dcaps.Caps2 & D3DCAPS2_DYNAMICTEXTURES);
-		}
-
-		// Last flags
+		// Last call variables
 		DWORD LastBehaviorFlags = BehaviorFlags;
 		BOOL LastWindowedMode = presParams.Windowed;
+		HWND LastHWnd = hFocusWindow;
+		UINT LastBufferWidth = presParams.BackBufferWidth;
+		UINT LastBufferHeight = presParams.BackBufferHeight;
+		D3DMULTISAMPLE_TYPE LastMultiSampleType = presParams.MultiSampleType;
+		DWORD LastQualityLevels = presParams.MultiSampleQuality;
 
 		// Get hwnd
 		HWND hWnd = GetHwnd();
+
+		// Store new focus window
+		hFocusWindow = hWnd;
 
 		// Get current resolution
 		DWORD CurrentWidth, CurrentHeight;
@@ -2722,32 +2717,61 @@ HRESULT m_IDirectDrawX::CreateD3D9Device()
 			}
 		}
 
+		// Check device caps to make sure it supports dynamic textures
+		DynamicTexturesSupported = false;
+		D3DCAPS9 d3dcaps;
+		ZeroMemory(&d3dcaps, sizeof(D3DCAPS9));
+		if (SUCCEEDED(d3d9Object->GetDeviceCaps(D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, &d3dcaps)))
+		{
+			DynamicTexturesSupported = (d3dcaps.Caps2 & D3DCAPS2_DYNAMICTEXTURES);
+		}
+
 		// Set behavior flags
 		BehaviorFlags = ((d3dcaps.VertexProcessingCaps) ? D3DCREATE_HARDWARE_VERTEXPROCESSING : D3DCREATE_SOFTWARE_VERTEXPROCESSING) |
 			((MultiThreaded || !Config.SingleProcAffinity) ? D3DCREATE_MULTITHREADED : 0) |
-			((FUPPreserve) ? D3DCREATE_FPU_PRESERVE : 0) |
+			((FPUPreserve) ? D3DCREATE_FPU_PRESERVE : 0) |
 			((NoWindowChanges) ? D3DCREATE_NOWINDOWCHANGES : 0);
 
-		Logging::LogDebug() << __FUNCTION__ << " Direct3D9 device! " << (DDERR)hr << " " <<
+		// Check if there are no changes
+		if (d3d9Device && LastBufferWidth == presParams.BackBufferWidth && LastBufferHeight == presParams.BackBufferHeight &&
+			LastMultiSampleType == presParams.MultiSampleType && LastQualityLevels == presParams.MultiSampleQuality &&
+			LastHWnd == hWnd && LastWindowedMode == presParams.Windowed && LastBehaviorFlags == BehaviorFlags)
+		{
+			break;	// No changes found
+		}
+
+		Logging::Log() << __FUNCTION__ << " Direct3D9 device! " <<
 			presParams.BackBufferWidth << "x" << presParams.BackBufferHeight << " refresh: " << presParams.FullScreen_RefreshRateInHz <<
 			" format: " << presParams.BackBufferFormat << " wnd: " << hWnd << " params: " << presParams << " flags: " << Logging::hex(BehaviorFlags);
 
-		// Check if device needs to be recreated
-		if (d3d9Device && (LastBehaviorFlags != BehaviorFlags || LastWindowedMode != presParams.Windowed))
+		// Check if existing device exists
+		if (d3d9Device)
 		{
-			Logging::Log() << __FUNCTION__ << " Recreate device! Last create: " << Logging::hex(LastBehaviorFlags) << "->" << Logging::hex(BehaviorFlags) << " Windowed: " << LastWindowedMode << "->" << presParams.Windowed;
+			// Try to reset existing device
+			if (LastHWnd == hWnd && LastWindowedMode == presParams.Windowed && LastBehaviorFlags == BehaviorFlags)
+			{
+				ReleaseAllDirectDrawD9Surfaces();
 
-			d3d9Device->Release();
-			d3d9Device = nullptr;
-		}
+				// Reinit device
+				if (FAILED(d3d9Device->Reset(&presParams)))
+				{
+					Logging::Log() << __FUNCTION__ << " Failed to reset device! Last create: " << LastHWnd << "->" << hWnd << " " <<
+						" Windowed: " << LastWindowedMode << "->" << presParams.Windowed <<
+						Logging::hex(LastBehaviorFlags) << "->" << Logging::hex(BehaviorFlags);
 
-		// Reinit device
-		if (d3d9Device && FAILED(d3d9Device->Reset(&presParams)))
-		{
-			Logging::Log() << __FUNCTION__ << " Failed to reset device! Last create: " << Logging::hex(LastBehaviorFlags) << "->" << Logging::hex(BehaviorFlags) << " Windowed: " << LastWindowedMode << "->" << presParams.Windowed;
+					d3d9Device->Release();
+					d3d9Device = nullptr;
+				}
+			}
+			// Release existing device
+			else
+			{
+				Logging::Log() << __FUNCTION__ << " Recreate device! Last create: " << LastHWnd << "->" << hWnd << " " <<
+					" Windowed: " << LastWindowedMode << "->" << presParams.Windowed <<
+					Logging::hex(LastBehaviorFlags) << "->" << Logging::hex(BehaviorFlags);
 
-			d3d9Device->Release();
-			d3d9Device = nullptr;
+				ReleaseD3D9Device();
+			}
 		}
 
 		// Create d3d9 Device
