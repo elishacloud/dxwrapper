@@ -1487,7 +1487,7 @@ HRESULT m_IDirectDrawSurfaceX::GetDC(HDC FAR * lphDC)
 
 		// Check for device interface
 		HRESULT c_hr = CheckInterface(__FUNCTION__, true, true);
-		if (FAILED(c_hr) && !IsSurfaceEmulated && !DCRequiresEmulation)
+		if (FAILED(c_hr) && !IsUsingEmulation() && !DCRequiresEmulation)
 		{
 			return c_hr;
 		}
@@ -1507,7 +1507,7 @@ HRESULT m_IDirectDrawSurfaceX::GetDC(HDC FAR * lphDC)
 		// Present before write if needed
 		BeginWritePresent(false);
 
-		if (IsSurfaceEmulated || DCRequiresEmulation)
+		if (IsUsingEmulation() || DCRequiresEmulation)
 		{
 			if (!IsUsingEmulation())
 			{
@@ -2102,7 +2102,7 @@ HRESULT m_IDirectDrawSurfaceX::ReleaseDC(HDC hDC)
 	{
 		// Check for device interface
 		HRESULT c_hr = CheckInterface(__FUNCTION__, true, true);
-		if (FAILED(c_hr) && !IsSurfaceEmulated && !DCRequiresEmulation)
+		if (FAILED(c_hr) && !IsUsingEmulation() && !DCRequiresEmulation)
 		{
 			return c_hr;
 		}
@@ -2113,7 +2113,7 @@ HRESULT m_IDirectDrawSurfaceX::ReleaseDC(HDC hDC)
 			return DDERR_GENERIC;
 		}
 
-		if (IsSurfaceEmulated || DCRequiresEmulation)
+		if (IsUsingEmulation() || DCRequiresEmulation)
 		{
 			// Copy emulated surface to real texture
 			CopyFromEmulatedSurface(nullptr);
@@ -3181,7 +3181,7 @@ HRESULT m_IDirectDrawSurfaceX::CreateD3d9Surface()
 	// Get texture data
 	surfaceFormat = GetDisplayFormat(surfaceDesc2.ddpfPixelFormat);
 	surfaceBitCount = GetBitCount(surfaceFormat);
-	IsSurfaceEmulated = (((Config.DdrawEmulateSurface || ((IsPrimarySurface() || IsBackBuffer()) && (Config.DdrawWriteToGDI || Config.DdrawReadFromGDI || Config.DdrawRemoveScanlines))) &&
+	bool IsSurfaceEmulated = (((Config.DdrawEmulateSurface || ((IsPrimarySurface() || IsBackBuffer()) && (Config.DdrawWriteToGDI || Config.DdrawReadFromGDI || Config.DdrawRemoveScanlines))) &&
 		(surfaceFormat == D3DFMT_P8 || surfaceFormat == D3DFMT_R5G6B5 || surfaceFormat == D3DFMT_A1R5G5B5 || surfaceFormat == D3DFMT_X1R5G5B5 ||
 			surfaceFormat == D3DFMT_A8R8G8B8 || surfaceFormat == D3DFMT_X8R8G8B8)) ||
 		surfaceFormat == D3DFMT_X4R4G4B4 || surfaceFormat == D3DFMT_A4R4G4B4 || surfaceFormat == D3DFMT_R8G8B8 ||
@@ -3534,8 +3534,6 @@ HRESULT m_IDirectDrawSurfaceX::CreateDCSurface()
 
 			PaletteUSN++;
 
-			IsSurfaceEmulated = true;
-
 			return DD_OK;
 		}
 	}
@@ -3605,8 +3603,6 @@ HRESULT m_IDirectDrawSurfaceX::CreateDCSurface()
 	emu->surfaceSize = Height * emu->surfacePitch;
 
 	PaletteUSN++;
-
-	IsSurfaceEmulated = true;
 
 	return DD_OK;
 }
@@ -3989,12 +3985,6 @@ void m_IDirectDrawSurfaceX::SwapSurface(m_IDirectDrawSurfaceX *lpTargetSurface1,
 
 	// Swap emulated surfaces
 	SwapAddresses(lpTargetSurface1->GetEmulatedSurface(), lpTargetSurface2->GetEmulatedSurface());
-
-	// Check emulated surface
-	if (lpTargetSurface1->IsUsingEmulation() != lpTargetSurface2->IsUsingEmulation())
-	{
-		Logging::Log() << __FUNCTION__ << " Error: mismatched emulated surfaces found on Flip!";
-	}
 }
 
 // Check surface reck dimensions and copy rect to new rect
@@ -4275,12 +4265,12 @@ inline void m_IDirectDrawSurfaceX::SetDirtyFlag()
 // Set dirty flip flag
 void m_IDirectDrawSurfaceX::SetDirtyFlipFlag()
 {
-	if (IsPrimarySurface())
+	if (!DirtyFlip)
 	{
 		DirtyFlip = true;
 		for (auto& it : AttachedSurfaceMap)
 		{
-			it.second.pSurface->DirtyFlip = true;
+			it.second.pSurface->SetDirtyFlipFlag();
 		}
 	}
 }
