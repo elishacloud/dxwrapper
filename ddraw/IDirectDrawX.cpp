@@ -2740,6 +2740,12 @@ HRESULT m_IDirectDrawX::CreateD3D9Device()
 			break;	// No changes found
 		}
 
+		// Check if window is minimized
+		if (IsIconic(hWnd))
+		{
+			ShowWindow(hWnd, SW_RESTORE);
+		}
+
 		Logging::Log() << __FUNCTION__ << " Direct3D9 device! " <<
 			presParams.BackBufferWidth << "x" << presParams.BackBufferHeight << " refresh: " << presParams.FullScreen_RefreshRateInHz <<
 			" format: " << presParams.BackBufferFormat << " wnd: " << hWnd << " params: " << presParams << " flags: " << Logging::hex(BehaviorFlags);
