@@ -4280,7 +4280,7 @@ inline bool m_IDirectDrawSurfaceX::CheckRectforSkipScene(RECT& DestRect)
 {
 	bool isSingleLine = (DestRect.bottom - DestRect.top == 1);	// Only handles horizontal lines at this point
 
-	return isSingleLine;
+	return Config.DdrawRemoveInterlacing ? isSingleLine : false;
 }
 
 inline void m_IDirectDrawSurfaceX::BeginWritePresent(bool isSkipScene)
@@ -4298,7 +4298,7 @@ inline void m_IDirectDrawSurfaceX::BeginWritePresent(bool isSkipScene)
 inline void m_IDirectDrawSurfaceX::EndWritePresent(bool isSkipScene)
 {
 	// Present surface after each draw unless removing interlacing
-	if (PresentOnUnlock)
+	if (PresentOnUnlock || !Config.DdrawRemoveInterlacing)
 	{
 		PresentSurface(isSkipScene);
 	}

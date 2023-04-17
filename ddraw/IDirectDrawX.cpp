@@ -1575,6 +1575,7 @@ HRESULT m_IDirectDrawX::SetCooperativeLevel(HWND hWnd, DWORD dwFlags)
 						if (lpDDraw && (ProxyAddressLookupTable.IsValidWrapperAddress(lpDDraw) ||
 							ProxyAddressLookupTable.IsValidProxyAddress<m_IDirectDrawX>(lpDDraw)))
 						{
+							LOG_LIMIT(3, __FUNCTION__ << " Removing exclusive flag from closing window!");
 							lpDDraw->SetCooperativeLevel(hWnd, DDSCL_NORMAL);
 						}
 						g_hookmap.clear();
@@ -2724,6 +2725,12 @@ HRESULT m_IDirectDrawX::CreateD3D9Device()
 		if (SUCCEEDED(d3d9Object->GetDeviceCaps(D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, &d3dcaps)))
 		{
 			DynamicTexturesSupported = (d3dcaps.Caps2 & D3DCAPS2_DYNAMICTEXTURES);
+		}
+
+		// Check if game loads DirectPlay and enable FPU preserve
+		if (!FPUPreserve)
+		{
+			FPUPreserve = (GetModuleHandleA("dplayx.dll") != NULL);
 		}
 
 		// Set behavior flags
