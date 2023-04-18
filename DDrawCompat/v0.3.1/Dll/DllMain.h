@@ -2,14 +2,13 @@
 
 #include "DDrawCompat\DDrawCompatExternal.h"
 
-#undef DDrawCompatDefault
-#define DDrawCompatDefault Compat31
-
 #define DDRAWCOMPAT_31
 
 namespace Compat31
 {
 	BOOL WINAPI DllMain_DDrawCompat(HINSTANCE, DWORD, LPVOID);
+
+	void InstallHooks();
 
 #define EXTERN_PROC_STUB(procName) extern "C" __declspec(dllexport) void DC31_ ## procName();
 	VISIT_ALL_DDRAW_PROCS(EXTERN_PROC_STUB);

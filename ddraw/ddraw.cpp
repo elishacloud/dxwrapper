@@ -20,6 +20,7 @@
 #include "ddraw.h"
 #include "d3dhal.h"
 #include "ddrawExternal.h"
+#include "DDrawCompat\DDrawCompatExternal.h"
 #include "Dllmain\Dllmain.h"
 #include "IClassFactory\IClassFactory.h"
 
@@ -340,6 +341,12 @@ HRESULT WINAPI dd_DirectDrawCreateEx(GUID FAR *lpGUID, LPVOID *lplpDD, REFIID ri
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Error: invalid IID " << riid);
 			return DDERR_INVALIDPARAMS;
+		}
+
+		// Install DDrawCompat hooks
+		if (Config.DDrawCompat)
+		{
+			DDrawCompat::InstallHooks();
 		}
 
 		DWORD DxVersion = GetGUIDVersion(riid);

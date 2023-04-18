@@ -72,45 +72,56 @@ namespace Compat31
 			static bool isAlreadyInstalled = false;
 			if (!isAlreadyInstalled)
 			{
-				Compat31::Log() << "Installing display mode hooks";
-				Win32::DisplayMode::installHooks();
+				//********** Begin Edit *************
+				if (!Config.Dd7to9)
+				{
+					Compat31::Log() << "Installing display mode hooks";
+					Win32::DisplayMode::installHooks();
+				}
+				//********** End Edit ***************
 				Compat31::Log() << "Installing registry hooks";
 				Win32::Registry::installHooks();
 				Compat31::Log() << "Installing Direct3D driver hooks";
 				D3dDdi::installHooks();
 				Compat31::Log() << "Installing Win32 hooks";
 				Win32::WaitFunctions::installHooks();
-				Gdi::VirtualScreen::init();
 
-				CompatPtr<IDirectDraw> dd;
-				CALL_ORIG_PROC(DirectDrawCreate)(nullptr, &dd.getRef(), nullptr);
-				CompatPtr<IDirectDraw7> dd7;
-				CALL_ORIG_PROC(DirectDrawCreateEx)(nullptr, reinterpret_cast<void**>(&dd7.getRef()), IID_IDirectDraw7, nullptr);
-				if (!dd || !dd7)
-				{
-					Compat31::Log() << "ERROR: Failed to create a DirectDraw object for hooking";
-					return;
-				}
-
-				CompatVtable<IDirectDrawVtbl>::s_origVtable = *dd.get()->lpVtbl;
-				HRESULT result = dd->SetCooperativeLevel(dd, nullptr, DDSCL_NORMAL);
-				if (SUCCEEDED(result))
-				{
-					CompatVtable<IDirectDraw7Vtbl>::s_origVtable = *dd7.get()->lpVtbl;
-					dd7->SetCooperativeLevel(dd7, nullptr, DDSCL_NORMAL);
-				}
-				if (FAILED(result))
-				{
-					Compat31::Log() << "ERROR: Failed to set the cooperative level for hooking: " << Compat31::hex(result);
-					return;
-				}
-
-				Compat31::Log() << "Installing DirectDraw hooks";
-				DDraw::installHooks(dd7);
-				Compat31::Log() << "Installing Direct3D hooks";
-				Direct3d::installHooks(dd, dd7);
 				//********** Begin Edit *************
-				if (!Config.DDrawCompatDisableGDIHook)
+				if (!Config.Dd7to9)
+				{
+					Gdi::VirtualScreen::init();
+					CompatPtr<IDirectDraw> dd;
+					CALL_ORIG_PROC(DirectDrawCreate)(nullptr, &dd.getRef(), nullptr);
+					CompatPtr<IDirectDraw7> dd7;
+					CALL_ORIG_PROC(DirectDrawCreateEx)(nullptr, reinterpret_cast<void**>(&dd7.getRef()), IID_IDirectDraw7, nullptr);
+					if (!dd || !dd7)
+					{
+						Compat31::Log() << "ERROR: Failed to create a DirectDraw object for hooking";
+						return;
+					}
+
+					CompatVtable<IDirectDrawVtbl>::s_origVtable = *dd.get()->lpVtbl;
+					HRESULT result = dd->SetCooperativeLevel(dd, nullptr, DDSCL_NORMAL);
+					if (SUCCEEDED(result))
+					{
+						CompatVtable<IDirectDraw7Vtbl>::s_origVtable = *dd7.get()->lpVtbl;
+						dd7->SetCooperativeLevel(dd7, nullptr, DDSCL_NORMAL);
+					}
+					if (FAILED(result))
+					{
+						Compat31::Log() << "ERROR: Failed to set the cooperative level for hooking: " << Compat31::hex(result);
+						return;
+					}
+
+					Compat31::Log() << "Installing DirectDraw hooks";
+					DDraw::installHooks(dd7);
+					Compat31::Log() << "Installing Direct3D hooks";
+					Direct3d::installHooks(dd, dd7);
+				}
+				//********** End Edit ***************
+
+				//********** Begin Edit *************
+				if (!Config.DDrawCompatDisableGDIHook && !Config.Dd7to9)
 				{
 					Compat31::Log() << "Installing GDI hooks";
 					Gdi::installHooks();
@@ -171,6 +182,10 @@ namespace Compat31
 		}
 	}
 
+	void InstallHooks()
+	{
+		installHooks();
+	}
 
 	//********** Begin Edit *************
 #define INITIALIZE_PUBLIC_WRAPPED_PROC(proc) \
@@ -273,7 +288,7 @@ namespace Compat31
 			const BOOL disablePriorityBoost = TRUE;
 			SetProcessPriorityBoost(GetCurrentProcess(), disablePriorityBoost);
 			//********** Begin Edit *************
-			if (!Config.DDrawCompatNoProcAffinity) SetProcessAffinityMask(GetCurrentProcess(), 1);
+			if (!Config.DDrawCompatNoProcAffinity && !Config.Dd7to9) SetProcessAffinityMask(GetCurrentProcess(), 1);
 			//********** End Edit ***************
 			timeBeginPeriod(1);
 			setDpiAwareness();

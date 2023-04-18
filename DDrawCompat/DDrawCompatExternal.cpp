@@ -6,6 +6,9 @@
 #include "v0.2.1\DllMain.h"
 #include "v0.3.1\Dll\DllMain.h"
 
+#define DDrawCompatDefault Compat31
+#define DDrawCompatForDd7to9 Compat31
+
 #define INITIALIZE_WRAPPED_PROC(procName) \
 	FARPROC procName ## _in = nullptr; \
 	FARPROC procName ## _out = nullptr;
@@ -56,6 +59,12 @@ namespace DDrawCompat
 
 	bool Start(HINSTANCE hinstDLL, DWORD fdwReason)
 	{
+		// Dd7to9 DDrawCompat version
+		if (Config.Dd7to9)
+		{
+			return (DDrawCompatForDd7to9::DllMain_DDrawCompat(hinstDLL, fdwReason, nullptr) == TRUE);
+		}
+
 		// DDrawCompat v0.3.1
 #ifdef DDRAWCOMPAT_31
 		START_DDRAWCOMPAT(Compat31);
@@ -73,5 +82,12 @@ namespace DDrawCompat
 
 		// Default DDrawCompat version
 		return (DDrawCompatDefault::DllMain_DDrawCompat(hinstDLL, fdwReason, nullptr) == TRUE);
+	}
+
+	// Used for hooking with dd7to9
+	void InstallHooks()
+	{
+		// Dd7to9 DDrawCompat version
+		return DDrawCompatForDd7to9::InstallHooks();
 	}
 }

@@ -15,4 +15,5 @@ namespace DDrawCompat
 
 	void Prepare();
 	bool Start(HINSTANCE, DWORD);
+	void InstallHooks();
 }

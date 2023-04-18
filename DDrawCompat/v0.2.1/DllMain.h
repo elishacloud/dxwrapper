@@ -2,9 +2,6 @@
 
 #include "DDrawCompat\DDrawCompatExternal.h"
 
-#undef DDrawCompatDefault
-#define DDrawCompatDefault Compat21
-
 #define DDRAWCOMPAT_21
 
 namespace Compat21
