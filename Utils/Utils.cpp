@@ -108,7 +108,7 @@ namespace Utils
 
 	// Function declarations
 	DWORD_PTR GetProcessMask();
-	int WINAPI DisableMaximizedWindowedMode(BOOL mEnable);
+	int WINAPI d9_Direct3D9EnableMaximizedWindowedMode(BOOL nEnable);
 	void InitializeASI(HMODULE hModule);
 	void FindFiles(WIN32_FIND_DATA*);
 	LONG WINAPI myUnhandledExceptionFilter(LPEXCEPTION_POINTERS);
@@ -116,12 +116,14 @@ namespace Utils
 	void *memmem(const void *l, size_t l_len, const void *s, size_t s_len);
 }
 
-int WINAPI Utils::DisableMaximizedWindowedMode(BOOL)
+int WINAPI Utils::d9_Direct3D9EnableMaximizedWindowedMode(BOOL nEnable)
 {
 	if (!m_pDirect3D9WindowedModeShim)
 	{
 		return NULL;
 	}
+
+	Logging::Log() << __FUNCTION__ << " " << (void*)nEnable;
 
 	return m_pDirect3D9WindowedModeShim(FALSE);
 }
@@ -238,7 +240,7 @@ void Utils::DisableHighDPIScaling()
 	}
 }
 
-// Sets Application Compatibility Toolkit options for DXPrimaryEmulation using SetAppCompatData API
+// Set application compatibility mode
 void Utils::SetAppCompat()
 {
 	// Check if any DXPrimaryEmulation flags is set
@@ -251,7 +253,8 @@ void Utils::SetAppCompat()
 		}
 	}
 
-	// SetAppCompatData for DirectDraw
+	// Sets Application Compatibility Toolkit options for DXPrimaryEmulation using SetAppCompatData API
+	// http://web.archive.org/web/20170418171908/http://www.blitzbasic.com/Community/posts.php?topic=99477
 	if (appCompatFlag)
 	{
 		// Load ddraw.dll from System32
@@ -344,7 +347,7 @@ void Utils::SetAppCompat()
 				Direct3D9EnableMaximizedWindowedMode(0);
 
 				// Hook function to keep Maximized Windowed Mode disabled
-				m_pDirect3D9WindowedModeShim = (Direct3DEnableMaximizedWindowedModeShimProc)Hook::HookAPI(dll, "d3d9.dll", Direct3D9EnableMaximizedWindowedMode, "Direct3D9EnableMaximizedWindowedModeShim", DisableMaximizedWindowedMode);
+				m_pDirect3D9WindowedModeShim = (Direct3DEnableMaximizedWindowedModeShimProc)Hook::HookAPI(dll, "d3d9.dll", Direct3D9EnableMaximizedWindowedMode, "Direct3D9EnableMaximizedWindowedModeShim", d9_Direct3D9EnableMaximizedWindowedMode);
 			}
 		}
 		else
