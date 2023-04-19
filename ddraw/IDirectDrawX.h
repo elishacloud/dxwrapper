@@ -75,6 +75,7 @@ private:
 	HRESULT CheckInterface(char *FunctionName, bool CheckD3DDevice);
 	void ReleaseAllDirectDrawD9Surfaces();
 	void ReleaseAllD9Surfaces();
+	void ReleaseD3D9DeviceAllSurfaces();
 	void ReleaseD3D9Device();
 
 public:

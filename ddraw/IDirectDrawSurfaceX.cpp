@@ -3663,10 +3663,29 @@ void m_IDirectDrawSurfaceX::ReleaseD9Surface(bool BackupData)
 		Logging::Log() << __FUNCTION__ << " Warning: surface still in use!";
 	}
 
-	// Release DC (before emulated surface)
-	if (LastDC && IsSurfaceInDC())
+	// Release DC (before releasing surface)
+	if (IsInDC)
 	{
-		ReleaseDC(LastDC);
+		if (LastDC)
+		{
+			ReleaseDC(LastDC);
+			LastDC = nullptr;
+		}
+		IsInDC = false;
+	}
+
+	// Unlock surface (before releasing)
+	if (IsLocked)
+	{
+		if (surface3D)
+		{
+			surface3D->UnlockRect();
+		}
+		if (surfaceTexture)
+		{
+			surfaceTexture->UnlockRect(0);
+		}
+		IsLocked = false;
 	}
 
 	// Backup d3d9 surface texture
@@ -3715,7 +3734,12 @@ void m_IDirectDrawSurfaceX::ReleaseD9Surface(bool BackupData)
 	if (surface3D)
 	{
 		Logging::LogDebug() << __FUNCTION__ << " Releasing Direct3D9 surface";
-		surface3D->Release();
+		surface3D->UnlockRect();
+		ULONG ref = surface3D->Release();
+		if (ref)
+		{
+			Logging::Log() << __FUNCTION__ << " Error: there is still a reference to 'surface3D' " << ref;
+		}
 		surface3D = nullptr;
 	}
 
@@ -3723,7 +3747,15 @@ void m_IDirectDrawSurfaceX::ReleaseD9Surface(bool BackupData)
 	if (contextSurface)
 	{
 		Logging::LogDebug() << __FUNCTION__ << " Releasing Direct3D9 context surface";
-		contextSurface->Release();
+		ULONG ref = contextSurface->Release();
+		if (ref == 1)
+		{
+			ref = contextSurface->Release();
+		}
+		if (ref)
+		{
+			Logging::Log() << __FUNCTION__ << " Error: there is still a reference to 'contextSurface' " << ref;
+		}
 		contextSurface = nullptr;
 	}
 
@@ -3731,7 +3763,11 @@ void m_IDirectDrawSurfaceX::ReleaseD9Surface(bool BackupData)
 	if (surfaceTexture)
 	{
 		Logging::LogDebug() << __FUNCTION__ << " Releasing Direct3D9 texture surface";
-		surfaceTexture->Release();
+		ULONG ref = surfaceTexture->Release();
+		if (ref)
+		{
+			Logging::Log() << __FUNCTION__ << " Error: there is still a reference to 'surfaceTexture' " << ref;
+		}
 		surfaceTexture = nullptr;
 	}
 
@@ -3739,7 +3775,11 @@ void m_IDirectDrawSurfaceX::ReleaseD9Surface(bool BackupData)
 	if (displayTexture)
 	{
 		Logging::LogDebug() << __FUNCTION__ << " Releasing Direct3D9 display texture surface";
-		displayTexture->Release();
+		ULONG ref = displayTexture->Release();
+		if (ref)
+		{
+			Logging::Log() << __FUNCTION__ << " Error: there is still a reference to 'displayTexture' " << ref;
+		}
 		displayTexture = nullptr;
 	}
 
@@ -3747,7 +3787,11 @@ void m_IDirectDrawSurfaceX::ReleaseD9Surface(bool BackupData)
 	if (paletteTexture)
 	{
 		Logging::LogDebug() << __FUNCTION__ << " Releasing Direct3D9 palette texture surface";
-		paletteTexture->Release();
+		ULONG ref = paletteTexture->Release();
+		if (ref)
+		{
+			Logging::Log() << __FUNCTION__ << " Error: there is still a reference to 'paletteTexture' " << ref;
+		}
 		paletteTexture = nullptr;
 	}
 
@@ -3755,7 +3799,11 @@ void m_IDirectDrawSurfaceX::ReleaseD9Surface(bool BackupData)
 	if (pixelShader)
 	{
 		Logging::LogDebug() << __FUNCTION__ << " Releasing Direct3D9 pixel shader";
-		pixelShader->Release();
+		ULONG ref = pixelShader->Release();
+		if (ref)
+		{
+			Logging::Log() << __FUNCTION__ << " Error: there is still a reference to 'pixelShader' " << ref;
+		}
 		pixelShader = nullptr;
 	}
 
@@ -3763,16 +3811,16 @@ void m_IDirectDrawSurfaceX::ReleaseD9Surface(bool BackupData)
 	if (vertexBuffer)
 	{
 		Logging::LogDebug() << __FUNCTION__ << " Releasing Direct3D9 vertext buffer";
-		vertexBuffer->Release();
+		ULONG ref = vertexBuffer->Release();
+		if (ref)
+		{
+			Logging::Log() << __FUNCTION__ << " Error: there is still a reference to 'vertexBuffer' " << ref;
+		}
 		vertexBuffer = nullptr;
 	}
 
 	// Clear locked rects
 	surfaceLockRectList.clear();
-
-	// Set flags
-	IsInDC = false;
-	IsLocked = false;
 
 	// Set LastDC
 	LastDC = nullptr;
@@ -5417,7 +5465,15 @@ void m_IDirectDrawSurfaceX::UpdatePaletteData()
 				LOG_LIMIT(100, __FUNCTION__ << " Error: could not update palette surface!");
 			}
 
-			paletteSurface->Release();
+			ULONG ref = paletteSurface->Release();
+			if (ref == 1)
+			{
+				ref = paletteSurface->Release();
+			}
+			if (ref)
+			{
+				Logging::Log() << __FUNCTION__ << " Error: there is still a reference to 'paletteSurface' " << ref;
+			}
 
 		} while (false);
 	}

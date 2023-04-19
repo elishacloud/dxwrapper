@@ -21,6 +21,7 @@
 #include "Utils\Utils.h"
 #include <d3dkmthk.h>
 #include "Dllmain\DllMain.h"
+#include "d3d9\d3d9External.h"
 
 constexpr DWORD MaxVidMemory  = 0x32000000;	// 512 MBs
 constexpr DWORD UsedVidMemory = 0x00100000;	// 1 MB
@@ -1437,8 +1438,8 @@ HRESULT m_IDirectDrawX::RestoreDisplayMode()
 		displayModeRefreshRate = 0;
 		isWindowed = true;
 
-		// Release existing d3d9device
-		ReleaseD3D9Device();
+		// Release existing d3d9device and surfaces
+		ReleaseD3D9DeviceAllSurfaces();
 
 		return DD_OK;
 	}
@@ -2184,6 +2185,10 @@ void m_IDirectDrawX::InitDdraw(DWORD DirectXVersion)
 		monitorRefreshRate = 0;
 		monitorHeight = 0;
 
+		// Direct3D9 flags
+		IsInScene = false;
+		EnableWaitVsync = false;
+
 		// Direct3D9 Objects
 		d3d9Object = nullptr;
 		d3d9Device = nullptr;
@@ -2317,7 +2322,7 @@ void m_IDirectDrawX::ReleaseDdraw()
 		return;
 	}
 
-	DWORD ref = InterlockedDecrement(&ddrawRefCount);
+	DWORD ddref = InterlockedDecrement(&ddrawRefCount);
 
 	SetCriticalSection();
 
@@ -2371,19 +2376,22 @@ void m_IDirectDrawX::ReleaseDdraw()
 		GammaControlInterface->ClearDdraw();
 	}
 
-	if (ref == 0)
+	if (ddref == 0)
 	{
 		// Release d3d9device
 		if (d3d9Device)
 		{
-			d3d9Device->Release();
-			d3d9Device = nullptr;
+			ReleaseD3D9Device();
 		}
 
 		// Release d3d9object
 		if (d3d9Object)
 		{
-			d3d9Object->Release();
+			ULONG ref = d3d9Object->Release();
+			if (ref)
+			{
+				Logging::Log() << __FUNCTION__ << " Error: there is still a reference to 'd3d9Object' " << ref;
+			}			
 			d3d9Object = nullptr;
 		}
 
@@ -2550,7 +2558,7 @@ void m_IDirectDrawX::SetD3DDevice(m_IDirect3DDeviceX *D3DDevice)
 {
 	if (!D3DDeviceInterface)
 	{
-		ReleaseD3D9Device();
+		ReleaseD3D9DeviceAllSurfaces();
 	}
 	D3DDeviceInterface = D3DDevice;
 }
@@ -2566,7 +2574,7 @@ HRESULT m_IDirectDrawX::CheckInterface(char *FunctionName, bool CheckD3DDevice)
 	if (!d3d9Object)
 	{
 		// Declare Direct3DCreate9
-		static PFN_Direct3DCreate9 Direct3DCreate9 = reinterpret_cast<PFN_Direct3DCreate9>(Direct3DCreate9_out);
+		static Direct3DCreate9Proc Direct3DCreate9 = reinterpret_cast<Direct3DCreate9Proc>(Direct3DCreate9_out);
 
 		if (!Direct3DCreate9)
 		{
@@ -2763,17 +2771,24 @@ HRESULT m_IDirectDrawX::CreateD3D9Device()
 			// Try to reset existing device
 			if (LastHWnd == hWnd && LastWindowedMode == presParams.Windowed && LastBehaviorFlags == BehaviorFlags)
 			{
+				// Release surfaces to prepare for reset
 				ReleaseAllDirectDrawD9Surfaces();
 
-				// Reinit device
+				// EndScene before resetting
+				if (IsInScene)
+				{
+					d3d9Device->EndScene();
+					IsInScene = false;
+				}
+
+				// Attempt to reset the device
 				if (FAILED(d3d9Device->Reset(&presParams)))
 				{
 					Logging::Log() << __FUNCTION__ << " Failed to reset device! Last create: " << LastHWnd << "->" << hWnd << " " <<
 						" Windowed: " << LastWindowedMode << "->" << presParams.Windowed <<
 						Logging::hex(LastBehaviorFlags) << "->" << Logging::hex(BehaviorFlags);
 
-					d3d9Device->Release();
-					d3d9Device = nullptr;
+					ReleaseD3D9Device();
 				}
 			}
 			// Release existing device
@@ -2783,7 +2798,7 @@ HRESULT m_IDirectDrawX::CreateD3D9Device()
 					" Windowed: " << LastWindowedMode << "->" << presParams.Windowed <<
 					Logging::hex(LastBehaviorFlags) << "->" << Logging::hex(BehaviorFlags);
 
-				ReleaseD3D9Device();
+				ReleaseD3D9DeviceAllSurfaces();
 			}
 		}
 
@@ -2801,7 +2816,6 @@ HRESULT m_IDirectDrawX::CreateD3D9Device()
 		}
 
 		// Reset flags after creating device
-		IsInScene = false;
 		EnableWaitVsync = false;
 
 		// Set window pos
@@ -2885,6 +2899,13 @@ HRESULT m_IDirectDrawX::ReinitDevice()
 		// Release surfaces to prepare for reset
 		ReleaseAllDirectDrawD9Surfaces();
 
+		// EndScene before resetting
+		if (IsInScene)
+		{
+			d3d9Device->EndScene();
+			IsInScene = false;
+		}
+
 		// Attempt to reset the device
 		if (FAILED(d3d9Device->Reset(&presParams)))
 		{
@@ -2894,7 +2915,6 @@ HRESULT m_IDirectDrawX::ReinitDevice()
 		}
 
 		// Reset flags after resetting device
-		IsInScene = false;
 		EnableWaitVsync = false;
 
 	} while (false);
@@ -2932,15 +2952,31 @@ void m_IDirectDrawX::ReleaseAllD9Surfaces()
 }
 
 // Release all d3d9 classes for Release()
-void m_IDirectDrawX::ReleaseD3D9Device()
+void m_IDirectDrawX::ReleaseD3D9DeviceAllSurfaces()
 {
 	// Release all existing surfaces
 	ReleaseAllDirectDrawD9Surfaces();
 
+	// Release d3d9 device
+	ReleaseD3D9Device();
+}
+
+// Release all d3d9 device
+void m_IDirectDrawX::ReleaseD3D9Device()
+{
 	// Release device
 	if (d3d9Device)
 	{
-		d3d9Device->Release();
+		if (IsInScene)
+		{
+			d3d9Device->EndScene();
+			IsInScene = false;
+		}
+		ULONG ref = d3d9Device->Release();
+		if (ref)
+		{
+			Logging::Log() << __FUNCTION__ << " Error: there is still a reference to 'd3d9Device' " << ref;
+		}
 		d3d9Device = nullptr;
 	}
 
@@ -3186,7 +3222,8 @@ HRESULT m_IDirectDrawX::Present()
 	{
 		if (FAILED(d3d9Device->BeginScene()))
 		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error: failed to end scene");
+			LOG_LIMIT(100, __FUNCTION__ << " Error: failed to begin scene");
+			d3d9Device->EndScene();
 			return DDERR_GENERIC;
 		}
 	}

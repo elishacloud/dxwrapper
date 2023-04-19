@@ -30,7 +30,6 @@
 #define APP_VERSION TOSTRING(FILEVERSION)
 
 typedef int(WINAPI* Direct3D8EnableMaximizedWindowedModeShimProc)(BOOL);
-typedef LPDIRECT3D9(WINAPI *Direct3DCreate9Proc)(UINT SDKVersion);
 
 extern FARPROC f_D3DXAssembleShader;
 extern FARPROC f_D3DXDisassembleShader;

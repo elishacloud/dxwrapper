@@ -28,7 +28,6 @@
 #include "IClassFactory\IClassFactory.h"
 #include "d3d9\d3d9External.h"
 
-
 AddressLookupTableDdraw<void> ProxyAddressLookupTable = AddressLookupTableDdraw<void>();
 
 CRITICAL_SECTION ddcs;
@@ -474,7 +473,7 @@ HRESULT DirectDrawEnumerateHandler(LPVOID lpCallback, LPVOID lpContext, DWORD dw
 	}
 
 	// Declare Direct3DCreate9
-	static PFN_Direct3DCreate9 Direct3DCreate9 = reinterpret_cast<PFN_Direct3DCreate9>(Direct3DCreate9_out);
+	static Direct3DCreate9Proc Direct3DCreate9 = reinterpret_cast<Direct3DCreate9Proc>(Direct3DCreate9_out);
 
 	if (!Direct3DCreate9)
 	{
@@ -564,7 +563,11 @@ HRESULT DirectDrawEnumerateHandler(LPVOID lpCallback, LPVOID lpContext, DWORD dw
 		}
 	}
 
-	d3d9Object->Release();
+	ULONG ref = d3d9Object->Release();
+	if (ref)
+	{
+		Logging::Log() << __FUNCTION__ << " Error: there is still a reference to 'd3d9Object' " << ref;
+	}
 	return hr;
 }
 

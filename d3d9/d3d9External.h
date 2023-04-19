@@ -20,6 +20,9 @@ typedef struct _D3D9ON12_ARGS
 	UINT NodeMask;
 } D3D9ON12_ARGS;
 
+typedef LPDIRECT3D9(WINAPI* Direct3DCreate9Proc)(UINT SDKVersion);
+typedef HRESULT(WINAPI* Direct3DCreate9ExProc)(UINT, IDirect3D9Ex**);
+
 int WINAPI d9_D3DPERF_BeginEvent(D3DCOLOR col, LPCWSTR wszName);
 int WINAPI d9_D3DPERF_EndEvent();
 DWORD WINAPI d9_D3DPERF_GetStatus();

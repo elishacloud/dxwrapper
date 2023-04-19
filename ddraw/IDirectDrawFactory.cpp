@@ -88,7 +88,11 @@ HRESULT m_IDirectDrawFactory::CreateDirectDraw(GUID * pGUID, HWND hWnd, DWORD dw
 			hr = (*ppDirectDraw)->SetCooperativeLevel(hWnd, dwCoopLevelFlags);
 			if (FAILED(hr))
 			{
-				(*ppDirectDraw)->Release();
+				ULONG ref = (*ppDirectDraw)->Release();
+				if (ref)
+				{
+					Logging::Log() << __FUNCTION__ << " Error: there is still a reference to 'DirectDraw' " << ref;
+				}
 				*ppDirectDraw = nullptr;
 			}
 		}
