@@ -27,6 +27,22 @@ namespace D3d9Wrapper
 
 using namespace D3d9Wrapper;
 
+HMODULE GetSystemD3d9()
+{
+	static HMODULE h_d3d9 = nullptr;
+
+	// Get System d3d9.dll
+	if (!h_d3d9)
+	{
+		char Path[MAX_PATH] = {};
+		GetSystemDirectoryA(Path, MAX_PATH);
+		strcat_s(Path, "\\d3d9.dll");
+		GetModuleHandleExA(NULL, Path, &h_d3d9);
+	}
+
+	return h_d3d9;
+}
+
 int WINAPI d9_D3DPERF_BeginEvent(D3DCOLOR col, LPCWSTR wszName)
 {
 	LOG_LIMIT(1, __FUNCTION__);
@@ -125,37 +141,82 @@ void WINAPI d9_D3DPERF_SetRegion(D3DCOLOR col, LPCWSTR wszName)
 	return m_pD3DPERF_SetRegion(col, wszName);
 }
 
-HMODULE GetSystemD3d9()
-{
-	static HMODULE h_d3d9 = nullptr;
-
-	// Get System d3d9.dll
-	if (!h_d3d9)
-	{
-		char Path[MAX_PATH] = {};
-		GetSystemDirectoryA(Path, MAX_PATH);
-		strcat_s(Path, "\\d3d9.dll");
-		h_d3d9 = GetModuleHandleA(Path);
-	}
-
-	return h_d3d9;
-}
-
 void SetGraphicsHybridAdapter(UINT Mode)
 {
-	static HMODULE h_d3d9 = GetSystemD3d9();
+	static Direct3D9ForceHybridEnumerationProc m_pDirect3D9ForceHybridEnumeration = nullptr;
 
-	if (h_d3d9)
+	if (!m_pDirect3D9ForceHybridEnumeration)
 	{
-		// Get Direct3D9ForceHybridEnumeration address
-		static Direct3D9ForceHybridEnumerationProc Direct3D9ForceHybridEnumeration = (Direct3D9ForceHybridEnumerationProc)GetProcAddress(h_d3d9, reinterpret_cast<LPCSTR>(16));
+		HMODULE dll = GetSystemD3d9();
 
-		if (Direct3D9ForceHybridEnumeration)
+		if (!dll)
 		{
-			LOG_LIMIT(3, "Calling 'Direct3D9ForceHybridEnumeration' ... " << Mode);
-			Direct3D9ForceHybridEnumeration(Mode);
+			Logging::Log() << __FUNCTION__ << " d3d9.dll is not loaded!";
+			return;
+		}
+
+		// Get Direct3D9ForceHybridEnumeration address
+		m_pDirect3D9ForceHybridEnumeration = (Direct3D9ForceHybridEnumerationProc)GetProcAddress(dll, reinterpret_cast<LPCSTR>(16));
+
+		if (!m_pDirect3D9ForceHybridEnumeration)
+		{
+			Logging::Log() << __FUNCTION__ << " Error: Failed to get `Direct3D9ForceHybridEnumeration` address!";
+			return;
 		}
 	}
+
+	Logging::Log() << __FUNCTION__ << " Calling 'Direct3D9ForceHybridEnumeration' ... " << Mode;
+	m_pDirect3D9ForceHybridEnumeration(Mode);
+}
+
+bool Direct3D9DisableMaximizedWindowedMode()
+{
+	static Direct3D9EnableMaximizedWindowedModeShimProc m_pDirect3D9EnableMaximizedWindowedModeShim = nullptr;
+
+	if (!m_pDirect3D9EnableMaximizedWindowedModeShim)
+	{
+		// Load d3d9.dll from System32
+		HMODULE dll = GetSystemD3d9();
+
+		if (!dll)
+		{
+			Logging::Log() << __FUNCTION__ << " d3d9.dll is not loaded!";
+			return false;
+		}
+
+		// Get function address
+		BYTE* addr = (BYTE*)GetProcAddress(dll, "Direct3D9EnableMaximizedWindowedModeShim");
+		if (!addr)
+		{
+			Logging::Log() << __FUNCTION__ << " Error: Failed to get `Direct3D9EnableMaximizedWindowedModeShim` address!";
+			return false;
+		}
+
+		// Check memory address
+		if (*(BYTE*)(addr + 6) != 1)
+		{
+			Logging::Log() << __FUNCTION__ << " Error: Failed to vaidate memory address!";
+			return false;
+		}
+
+		// Update function to disable Maximized Windowed Mode
+		DWORD Protect;
+		BOOL ret = VirtualProtect((LPVOID)(addr + 6), 1, PAGE_EXECUTE_READWRITE, &Protect);
+		if (ret == 0)
+		{
+			Logging::Log() << __FUNCTION__ << " Error: Failed to VirtualProtect memory!";
+			return false;
+		}
+		*(BYTE*)(addr + 6) = 0;
+		VirtualProtect((LPVOID)(addr + 6), 1, Protect, &Protect);
+
+		// Set function address
+		m_pDirect3D9EnableMaximizedWindowedModeShim = (Direct3D9EnableMaximizedWindowedModeShimProc)addr;
+	}
+
+	// Launch function to disable Maximized Windowed Mode
+	Logging::Log() << __FUNCTION__ << " Disabling MaximizedWindowedMode for Direct3D9! Ret = " << (void*)m_pDirect3D9EnableMaximizedWindowedModeShim(0);
+	return true;
 }
 
 IDirect3D9* WINAPI d9_Direct3DCreate9(UINT SDKVersion)
@@ -183,6 +244,12 @@ IDirect3D9* WINAPI d9_Direct3DCreate9(UINT SDKVersion)
 	if (Config.GraphicsHybridAdapter)
 	{
 		SetGraphicsHybridAdapter(Config.GraphicsHybridAdapter);
+	}
+
+	// Disable MaxWindowedMode
+	if (Config.DXPrimaryEmulation[AppCompatDataType.DisableMaxWindowedMode])
+	{
+		Direct3D9DisableMaximizedWindowedMode();
 	}
 
 	LOG_LIMIT(3, "Redirecting 'Direct3DCreate9' ...");
@@ -225,6 +292,12 @@ HRESULT WINAPI d9_Direct3DCreate9Ex(UINT SDKVersion, IDirect3D9Ex** ppD3D)
 		SetGraphicsHybridAdapter(Config.GraphicsHybridAdapter);
 	}
 
+	// Disable MaxWindowedMode
+	if (Config.DXPrimaryEmulation[AppCompatDataType.DisableMaxWindowedMode])
+	{
+		Direct3D9DisableMaximizedWindowedMode();
+	}
+
 	LOG_LIMIT(3, "Redirecting 'Direct3DCreate9Ex' ...");
 
 	HRESULT hr = m_pDirect3DCreate9Ex(SDKVersion, ppD3D);
@@ -251,6 +324,12 @@ IDirect3D9* WINAPI d9_Direct3DCreate9On12(UINT SDKVersion, D3D9ON12_ARGS* pOverr
 	if (Config.GraphicsHybridAdapter)
 	{
 		SetGraphicsHybridAdapter(Config.GraphicsHybridAdapter);
+	}
+
+	// Disable MaxWindowedMode
+	if (Config.DXPrimaryEmulation[AppCompatDataType.DisableMaxWindowedMode])
+	{
+		Direct3D9DisableMaximizedWindowedMode();
 	}
 
 	LOG_LIMIT(3, "Redirecting 'Direct3DCreate9On12' ...");
@@ -285,6 +364,12 @@ HRESULT WINAPI d9_Direct3DCreate9On12Ex(UINT SDKVersion, D3D9ON12_ARGS* pOverrid
 	if (Config.GraphicsHybridAdapter)
 	{
 		SetGraphicsHybridAdapter(Config.GraphicsHybridAdapter);
+	}
+
+	// Disable MaxWindowedMode
+	if (Config.DXPrimaryEmulation[AppCompatDataType.DisableMaxWindowedMode])
+	{
+		Direct3D9DisableMaximizedWindowedMode();
 	}
 
 	LOG_LIMIT(3, "Redirecting 'Direct3DCreate9On12Ex' ...");

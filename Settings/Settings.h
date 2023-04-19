@@ -86,6 +86,7 @@
 	visit(HandleExceptions) \
 	visit(IgnoreWindowName) \
 	visit(IncludeProcess) \
+	visit(isAppCompatDataSet) \
 	visit(LoadCustomDllPath) \
 	visit(LoadFromScriptsOnly) \
 	visit(LoadPlugins) \
@@ -244,6 +245,7 @@ struct CONFIG
 	bool ForceVsyncMode = false;				// Forces d3d9 game to use EnableVsync option
 	DWORD GraphicsHybridAdapter = 0;			// Sets the Direct3D9 Hybrid Enumeration Mode to allow using a secondary display adapter
 	bool HandleExceptions = false;				// Handles unhandled exceptions in the application
+	bool isAppCompatDataSet = false;			// Flag that holds tells whether any of the AppCompatData flags are set
 	bool LoadPlugins = false;					// Loads ASI plugins
 	bool LoadFromScriptsOnly = false;			// Loads ASI plugins from 'scripts' and 'plugins' folder only
 	bool ProcessExcluded = false;				// Set if this process is excluded from dxwrapper functions
@@ -276,7 +278,7 @@ struct CONFIG
 	bool FilterNonActiveInput = 0;
 
 	// SetAppCompatData
-	bool DXPrimaryEmulation[13] = { false };	// SetAppCompatData exported functions from ddraw.dll http://www.blitzbasic.com/Community/posts.php?topic=99477
+	bool DXPrimaryEmulation[13] = { false };	// SetAppCompatData exported functions from ddraw.dll
 	DWORD LockColorkey = 0;						// DXPrimaryEmulation option that needs a second parameter
 	bool DisableMaxWindowedModeNotSet = false;	// If the DisableMaxWindowedMode option exists in the config file
 

@@ -16,9 +16,6 @@
 * Exception handling code taken from source code found in DxWnd v2.03.99
 * https://sourceforge.net/projects/dxwnd/
 *
-* SetAppCompatData code created based on information from here:
-* http://www.mojolabs.nz/posts.php?topic=99477
-*
 * ASI plugin loader taken from source code found in Ultimate ASI Loader
 * https://github.com/ThirteenAG/Ultimate-ASI-Loader
 *
@@ -63,8 +60,6 @@ typedef BOOL(WINAPI *SetProcessDpiAwarenessContextProc)(DPI_AWARENESS_CONTEXT va
 typedef FARPROC(WINAPI *GetProcAddressProc)(HMODULE, LPSTR);
 typedef DWORD(WINAPI *GetModuleFileNameAProc)(HMODULE, LPSTR, DWORD);
 typedef DWORD(WINAPI *GetModuleFileNameWProc)(HMODULE, LPWSTR, DWORD);
-typedef HRESULT(WINAPI *SetAppCompatDataFunc)(DWORD, DWORD);
-typedef int(WINAPI *Direct3DEnableMaximizedWindowedModeShimProc)(BOOL);
 typedef LPTOP_LEVEL_EXCEPTION_FILTER(WINAPI *PFN_SetUnhandledExceptionFilter)(LPTOP_LEVEL_EXCEPTION_FILTER);
 typedef BOOL(WINAPI *CreateProcessAFunc)(LPCSTR lpApplicationName, LPSTR lpCommandLine, LPSECURITY_ATTRIBUTES lpProcessAttributes, LPSECURITY_ATTRIBUTES lpThreadAttributes, BOOL bInheritHandles, DWORD dwCreationFlags,
 	LPVOID lpEnvironment, LPCSTR lpCurrentDirectory, LPSTARTUPINFOA lpStartupInfo, LPPROCESS_INFORMATION lpProcessInformation);
@@ -101,31 +96,17 @@ namespace Utils
 	FARPROC pGetModuleFileNameW = nullptr;
 	FARPROC p_CreateProcessA = nullptr;
 	FARPROC p_CreateProcessW = nullptr;
-	Direct3DEnableMaximizedWindowedModeShimProc m_pDirect3D9WindowedModeShim = nullptr;
 	std::vector<type_dll> custom_dll;		// Used for custom dll's and asi plugins
 	LPTOP_LEVEL_EXCEPTION_FILTER pOriginalSetUnhandledExceptionFilter = SetUnhandledExceptionFilter((LPTOP_LEVEL_EXCEPTION_FILTER)EXCEPTION_CONTINUE_EXECUTION);
 	PFN_SetUnhandledExceptionFilter pSetUnhandledExceptionFilter = reinterpret_cast<PFN_SetUnhandledExceptionFilter>(SetUnhandledExceptionFilter);
 
 	// Function declarations
 	DWORD_PTR GetProcessMask();
-	int WINAPI d9_Direct3D9EnableMaximizedWindowedMode(BOOL nEnable);
 	void InitializeASI(HMODULE hModule);
 	void FindFiles(WIN32_FIND_DATA*);
 	LONG WINAPI myUnhandledExceptionFilter(LPEXCEPTION_POINTERS);
 	LPTOP_LEVEL_EXCEPTION_FILTER WINAPI extSetUnhandledExceptionFilter(LPTOP_LEVEL_EXCEPTION_FILTER);
 	void *memmem(const void *l, size_t l_len, const void *s, size_t s_len);
-}
-
-int WINAPI Utils::d9_Direct3D9EnableMaximizedWindowedMode(BOOL nEnable)
-{
-	if (!m_pDirect3D9WindowedModeShim)
-	{
-		return NULL;
-	}
-
-	Logging::Log() << __FUNCTION__ << " " << (void*)nEnable;
-
-	return m_pDirect3D9WindowedModeShim(FALSE);
 }
 
 // Execute a specified string
@@ -237,123 +218,6 @@ void Utils::DisableHighDPIScaling()
 	if (!setDpiAware)
 	{
 		Logging::Log() << "Failed to disable High DPI Scaling!";
-	}
-}
-
-// Set application compatibility mode
-void Utils::SetAppCompat()
-{
-	// Check if any DXPrimaryEmulation flags is set
-	bool appCompatFlag = false;
-	for (UINT x = 1; x <= 12; x++)
-	{
-		if (Config.DXPrimaryEmulation[x])
-		{
-			appCompatFlag = true;
-		}
-	}
-
-	// Sets Application Compatibility Toolkit options for DXPrimaryEmulation using SetAppCompatData API
-	// http://web.archive.org/web/20170418171908/http://www.blitzbasic.com/Community/posts.php?topic=99477
-	if (appCompatFlag)
-	{
-		// Load ddraw.dll from System32
-		char path[MAX_PATH];
-		GetSystemDirectoryA(path, MAX_PATH);
-		strcat_s(path, MAX_PATH, "\\ddraw.dll");
-		HMODULE dll = LoadLibrary(path);
-
-		if (dll)
-		{
-			SetAppCompatDataFunc SetAppCompatData = (SetAppCompatDataFunc)GetProcAddress(dll, "SetAppCompatData");
-			if (SetAppCompatData)
-			{
-				for (DWORD x = 1; x <= 12; x++)
-				{
-					if (Config.DXPrimaryEmulation[x])
-					{
-						Logging::Log() << "SetAppCompatData: " << x;
-						// For LockColorkey, this one uses the second parameter
-						if (x == AppCompatDataType.LockColorkey)
-						{
-							(SetAppCompatData)(x, Config.LockColorkey);
-						}
-						// For all the other items
-						else
-						{
-							(SetAppCompatData)(x, 0);
-						}
-					}
-				}
-			}
-		}
-		else
-		{
-			Logging::Log() << "Cannnot open ddraw.dll to SetAppCompatData!";
-		}
-	}
-
-	// Disable MaxWindowedMode
-	if (Config.DXPrimaryEmulation[AppCompatDataType.DisableMaxWindowedMode])
-	{
-		// Load d3d8.dll from System32
-		char path[MAX_PATH];
-		GetSystemDirectoryA(path, MAX_PATH);
-		strcat_s(path, MAX_PATH, "\\d3d8.dll");
-		HMODULE dll = LoadLibrary(path);
-
-		if (dll)
-		{
-			// Get function address
-			BYTE *addr = (BYTE*)Hook::GetProcAddress(dll, "Direct3D8EnableMaximizedWindowedModeShim");
-			if (addr)
-			{
-				if (addr[0] == 0xC7 && addr[1] == 0x05)
-				{
-					Logging::Log() << "Disabling MaximizedWindowedMode for Direct3D8!";
-
-					// Update function to disable Maximized Windowed Mode
-					DWORD Protect;
-					VirtualProtect((LPVOID)(addr + 6), 4, PAGE_EXECUTE_READWRITE, &Protect);
-					*(DWORD*)(addr + 6) = 0;
-					VirtualProtect((LPVOID)(addr + 6), 4, Protect, &Protect);
-
-					// Launch function to disable Maximized Windowed Mode
-					Direct3DEnableMaximizedWindowedModeShimProc Direct3D8EnableMaximizedWindowedMode = (Direct3DEnableMaximizedWindowedModeShimProc)addr;
-					Direct3D8EnableMaximizedWindowedMode(0);
-				}
-			}
-		}
-		else
-		{
-			Logging::Log() << "Cannnot open d3d8.dll to disable MaximizedWindowedMode!";
-		}
-
-		// Load d3d9.dll from System32
-		GetSystemDirectoryA(path, MAX_PATH);
-		strcat_s(path, MAX_PATH, "\\d3d9.dll");
-		dll = LoadLibrary(path);
-
-		if (dll)
-		{
-			// Get function address
-			BYTE *addr = (BYTE*)Hook::GetProcAddress(dll, "Direct3D9EnableMaximizedWindowedModeShim");
-			if (addr)
-			{
-				Logging::Log() << "Disabling MaximizedWindowedMode for Direct3D9!";
-
-				// Launch function to disable Maximized Windowed Mode
-				Direct3DEnableMaximizedWindowedModeShimProc Direct3D9EnableMaximizedWindowedMode = (Direct3DEnableMaximizedWindowedModeShimProc)addr;
-				Direct3D9EnableMaximizedWindowedMode(0);
-
-				// Hook function to keep Maximized Windowed Mode disabled
-				m_pDirect3D9WindowedModeShim = (Direct3DEnableMaximizedWindowedModeShimProc)Hook::HookAPI(dll, "d3d9.dll", Direct3D9EnableMaximizedWindowedMode, "Direct3D9EnableMaximizedWindowedModeShim", d9_Direct3D9EnableMaximizedWindowedMode);
-			}
-		}
-		else
-		{
-			Logging::Log() << "Cannnot open d3d9.dll to disable MaximizedWindowedMode!";
-		}
 	}
 }
 

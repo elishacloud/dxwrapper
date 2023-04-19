@@ -643,6 +643,15 @@ void CONFIG::SetConfig()
 		break;
 	}
 
+	// Check if any DXPrimaryEmulation flags are set
+	for (UINT x = 1; x <= 12; x++)
+	{
+		if (Config.DXPrimaryEmulation[x])
+		{
+			isAppCompatDataSet = true;
+		}
+	}
+
 	// Disable DDrawCompat process affinity if dxwrapper's SingleProcAffinity is enabled
 	if (SingleProcAffinity)
 	{

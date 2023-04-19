@@ -29,7 +29,8 @@
 #define TOSTRING(x) STRINGIFY(x)
 #define APP_VERSION TOSTRING(FILEVERSION)
 
-typedef LPDIRECT3D9(WINAPI *PFN_Direct3DCreate9)(UINT SDKVersion);
+typedef int(WINAPI* Direct3D8EnableMaximizedWindowedModeShimProc)(BOOL);
+typedef LPDIRECT3D9(WINAPI *Direct3DCreate9Proc)(UINT SDKVersion);
 
 extern FARPROC f_D3DXAssembleShader;
 extern FARPROC f_D3DXDisassembleShader;
@@ -45,6 +46,22 @@ namespace D3d8Wrapper
 }
 
 using namespace D3d8Wrapper;
+
+HMODULE GetSystemD3d8()
+{
+	static HMODULE h_d3d8 = nullptr;
+
+	// Get System d3d8.dll
+	if (!h_d3d8)
+	{
+		char Path[MAX_PATH] = {};
+		GetSystemDirectoryA(Path, MAX_PATH);
+		strcat_s(Path, "\\d3d8.dll");
+		GetModuleHandleExA(NULL, Path, &h_d3d8);
+	}
+
+	return h_d3d8;
+}
 
 HRESULT WINAPI d8_ValidatePixelShader(DWORD* pixelshader, DWORD* reserved1, BOOL flag, DWORD* toto)
 {
@@ -101,6 +118,56 @@ HRESULT WINAPI d8_ValidateVertexShader(DWORD* vertexshader, DWORD* reserved1, DW
 	}
 }
 
+BOOL Direct3D8DisableMaximizedWindowedMode()
+{
+	static Direct3D8EnableMaximizedWindowedModeShimProc d8_Direct3D8EnableMaximizedWindowedModeShim = nullptr;
+
+	if (!d8_Direct3D8EnableMaximizedWindowedModeShim)
+	{
+		// Load d3d8.dll from System32
+		static HMODULE dll = GetSystemD3d8();
+
+		if (!dll)
+		{
+			Logging::Log() << __FUNCTION__ << " d3d8.dll is not loaded!";
+			return FALSE;
+		}
+
+		// Get function address
+		BYTE* addr = (BYTE*)GetProcAddress(dll, "Direct3D8EnableMaximizedWindowedModeShim");
+		if (!addr)
+		{
+			Logging::Log() << __FUNCTION__ << " Error: Failed to get `Direct3D8EnableMaximizedWindowedModeShim` address!";
+			return FALSE;
+		}
+
+		// Check memory address
+		if (addr[0] != 0xC7 || addr[1] != 0x05 || *(DWORD*)(addr + 6) != 1)
+		{
+			Logging::Log() << __FUNCTION__ << " Error: Failed to vaidate memory address!";
+			return FALSE;
+		}
+
+		// Update function to disable Maximized Windowed Mode
+		DWORD Protect;
+		BOOL ret = VirtualProtect((LPVOID)(addr + 6), 4, PAGE_EXECUTE_READWRITE, &Protect);
+		if (ret == 0)
+		{
+			Logging::Log() << __FUNCTION__ << " Error: Failed to VirtualProtect memory!";
+			return FALSE;
+		}
+		*(DWORD*)(addr + 6) = 0;
+		VirtualProtect((LPVOID)(addr + 6), 4, Protect, &Protect);
+
+		// Set function address
+		d8_Direct3D8EnableMaximizedWindowedModeShim = (Direct3D8EnableMaximizedWindowedModeShimProc)addr;
+	}
+
+	// Launch function to disable Maximized Windowed Mode
+	Logging::Log() << __FUNCTION__ << " Disabling MaximizedWindowedMode for Direct3D8! Ret = " << (void*)d8_Direct3D8EnableMaximizedWindowedModeShim(0);
+	return TRUE;
+}
+
 Direct3D8 *WINAPI d8_Direct3DCreate8(UINT SDKVersion)
 {
 	LOG_LIMIT(1, __FUNCTION__);
@@ -115,7 +182,7 @@ Direct3D8 *WINAPI d8_Direct3DCreate8(UINT SDKVersion)
 	LOG_LIMIT(3, "Redirecting 'Direct3DCreate8' to --> 'Direct3DCreate9' (" << SDKVersion << ")");
 
 	// Declare Direct3DCreate9
-	static PFN_Direct3DCreate9 Direct3DCreate9 = reinterpret_cast<PFN_Direct3DCreate9>(Direct3DCreate9_out);
+	static Direct3DCreate9Proc Direct3DCreate9 = reinterpret_cast<Direct3DCreate9Proc>(Direct3DCreate9_out);
 	if (!Direct3DCreate9)
 	{
 		LOG_LIMIT(100, "Failed to get 'Direct3DCreate9' ProcAddress of d3d9.dll!");

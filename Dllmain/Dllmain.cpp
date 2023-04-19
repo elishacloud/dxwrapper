@@ -251,9 +251,6 @@ bool APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 			Utils::HookExceptionHandler();
 		}
 
-		// Run app compat settings
-		Utils::SetAppCompat();
-
 		// Hook CoCreateInstance
 		if (Config.EnableDdrawWrapper || Config.Dd7to9 || Config.EnableDinput8Wrapper || Config.Dinputto8)
 		{

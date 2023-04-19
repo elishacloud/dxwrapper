@@ -13,6 +13,9 @@
 *      being the original software.
 *   3. This notice may not be removed or altered from any source distribution.
 *
+* SetAppCompatData code created based on information from here:
+* http://web.archive.org/web/20170418171908/http://www.blitzbasic.com/Community/posts.php?topic=99477
+*
 * D3DParseUnknownCommand created from source code found in ReactOS
 * https://doxygen.reactos.org/d3/d02/dll_2directx_2ddraw_2main_8c.html#af9a1eb1ced046770ad6f79838cc8517d
 */
@@ -23,6 +26,8 @@
 #include "DDrawCompat\DDrawCompatExternal.h"
 #include "Dllmain\Dllmain.h"
 #include "IClassFactory\IClassFactory.h"
+#include "d3d9\d3d9External.h"
+
 
 AddressLookupTableDdraw<void> ProxyAddressLookupTable = AddressLookupTableDdraw<void>();
 
@@ -63,6 +68,40 @@ void ExitDDraw()
 		IsInitialized = false;
 		DeleteCriticalSection(&ddcs);
 	}
+}
+
+// Sets Application Compatibility Toolkit options for DXPrimaryEmulation using SetAppCompatData API
+// http://web.archive.org/web/20170418171908/http://www.blitzbasic.com/Community/posts.php?topic=99477
+void SetAllAppCompatData()
+{
+	static SetAppCompatDataProc m_pSetAppCompatData = (Wrapper::ValidProcAddress(SetAppCompatData_out)) ? (SetAppCompatDataProc)SetAppCompatData_out : nullptr;
+
+	if (!m_pSetAppCompatData)
+	{
+		Logging::Log() << __FUNCTION__ << " Error: Failed to get `SetAppCompatData` address!";
+		return;
+	}
+
+	// Set AppCompatData
+	for (DWORD x = 1; x <= 12; x++)
+	{
+		if (Config.DXPrimaryEmulation[x])
+		{
+			Logging::Log() << __FUNCTION__ << " SetAppCompatData: " << x << " " << (DWORD)((x == AppCompatDataType.LockColorkey) ? AppCompatDataType.LockColorkey : 0);
+
+			// For LockColorkey, this one uses the second parameter
+			if (x == AppCompatDataType.LockColorkey)
+			{
+				m_pSetAppCompatData(x, Config.LockColorkey);
+			}
+			// For all the other items
+			else
+			{
+				m_pSetAppCompatData(x, 0);
+			}
+		}
+	}
+	return;
 }
 
 HRESULT WINAPI dd_AcquireDDThreadLock()
@@ -256,6 +295,12 @@ HRESULT WINAPI dd_DirectDrawCreate(GUID FAR *lpGUID, LPDIRECTDRAW FAR *lplpDD, I
 		return DDERR_UNSUPPORTED;
 	}
 
+	// Set AppCompatData
+	if (Config.isAppCompatDataSet)
+	{
+		SetAllAppCompatData();
+	}
+
 	LOG_LIMIT(3, "Redirecting 'DirectDrawCreate' ...");
 
 	HRESULT hr = m_pDirectDrawCreate(lpGUID, lplpDD, pUnkOuter);
@@ -366,6 +411,12 @@ HRESULT WINAPI dd_DirectDrawCreateEx(GUID FAR *lpGUID, LPVOID *lplpDD, REFIID ri
 	if (!m_pDirectDrawCreateEx)
 	{
 		return DDERR_UNSUPPORTED;
+	}
+
+	// Set AppCompatData
+	if (Config.isAppCompatDataSet)
+	{
+		SetAllAppCompatData();
 	}
 
 	LOG_LIMIT(3, "Redirecting 'DirectDrawCreateEx' ...");
@@ -779,7 +830,19 @@ HRESULT WINAPI dd_SetAppCompatData(DWORD Type, DWORD Value)
 
 	if (Config.Dd7to9)
 	{
-		LOG_LIMIT(100, __FUNCTION__ << " Not Implemented");
+		if (Type = AppCompatDataType.DisableMaxWindowedMode)
+		{
+			if (Direct3D9DisableMaximizedWindowedMode())
+			{
+				return DD_OK;
+			}
+			else
+			{
+				return DDERR_GENERIC;
+			}
+		}
+
+		LOG_LIMIT(100, __FUNCTION__ << " Not Implemented: " << Type << " " << Value);
 		return DDERR_UNSUPPORTED;
 	}
 
