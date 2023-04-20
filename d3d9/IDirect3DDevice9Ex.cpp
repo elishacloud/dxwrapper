@@ -245,8 +245,10 @@ HRESULT m_IDirect3DDevice9Ex::CreateAdditionalSwapChain(D3DPRESENT_PARAMETERS *p
 		CopyMemory(pPresentationParameters, &d3dpp, sizeof(D3DPRESENT_PARAMETERS));
 
 		*ppSwapChain = new m_IDirect3DSwapChain9Ex((IDirect3DSwapChain9Ex*)*ppSwapChain, this);
+		return D3D_OK;
 	}
 
+	Logging::LogDebug() << __FUNCTION__ << " FAILED! " << (D3DERR)hr << " " << *pPresentationParameters;
 	return hr;
 }
 
@@ -254,13 +256,20 @@ HRESULT m_IDirect3DDevice9Ex::CreateCubeTexture(THIS_ UINT EdgeLength, UINT Leve
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	HRESULT hr = ProxyInterface->CreateCubeTexture(EdgeLength, Levels, Usage, Format, Pool, ppCubeTexture, pSharedHandle);
-
-	if (SUCCEEDED(hr) && ppCubeTexture)
+	if (!ppCubeTexture)
 	{
-		*ppCubeTexture = new m_IDirect3DCubeTexture9(*ppCubeTexture, this);
+		return D3DERR_INVALIDCALL;
 	}
 
+	HRESULT hr = ProxyInterface->CreateCubeTexture(EdgeLength, Levels, Usage, Format, Pool, ppCubeTexture, pSharedHandle);
+
+	if (SUCCEEDED(hr))
+	{
+		*ppCubeTexture = new m_IDirect3DCubeTexture9(*ppCubeTexture, this);
+		return D3D_OK;
+	}
+
+	Logging::LogDebug() << __FUNCTION__ << " FAILED! " << (D3DERR)hr << " " << EdgeLength << " " << Levels << " " << Usage << " " << Format << " " << Pool << " " << pSharedHandle;
 	return hr;
 }
 
@@ -268,13 +277,20 @@ HRESULT m_IDirect3DDevice9Ex::CreateDepthStencilSurface(THIS_ UINT Width, UINT H
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	HRESULT hr = ProxyInterface->CreateDepthStencilSurface(Width, Height, Format, MultiSample, MultisampleQuality, Discard, ppSurface, pSharedHandle);
-
-	if (SUCCEEDED(hr) && ppSurface)
+	if (!ppSurface)
 	{
-		*ppSurface = new m_IDirect3DSurface9(*ppSurface, this);
+		return D3DERR_INVALIDCALL;
 	}
 
+	HRESULT hr = ProxyInterface->CreateDepthStencilSurface(Width, Height, Format, MultiSample, MultisampleQuality, Discard, ppSurface, pSharedHandle);
+
+	if (SUCCEEDED(hr))
+	{
+		*ppSurface = new m_IDirect3DSurface9(*ppSurface, this);
+		return D3D_OK;
+	}
+
+	Logging::LogDebug() << __FUNCTION__ << " FAILED! " << (D3DERR)hr << " " << Width << " " << Height << " " << Format << " " << MultiSample << " " << MultisampleQuality << " " << Discard << " " << pSharedHandle;
 	return hr;
 }
 
@@ -282,13 +298,20 @@ HRESULT m_IDirect3DDevice9Ex::CreateIndexBuffer(THIS_ UINT Length, DWORD Usage, 
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	HRESULT hr = ProxyInterface->CreateIndexBuffer(Length, Usage, Format, Pool, ppIndexBuffer, pSharedHandle);
-
-	if (SUCCEEDED(hr) && ppIndexBuffer)
+	if (!ppIndexBuffer)
 	{
-		*ppIndexBuffer = new m_IDirect3DIndexBuffer9(*ppIndexBuffer, this);
+		return D3DERR_INVALIDCALL;
 	}
 
+	HRESULT hr = ProxyInterface->CreateIndexBuffer(Length, Usage, Format, Pool, ppIndexBuffer, pSharedHandle);
+
+	if (SUCCEEDED(hr))
+	{
+		*ppIndexBuffer = new m_IDirect3DIndexBuffer9(*ppIndexBuffer, this);
+		return D3D_OK;
+	}
+
+	Logging::LogDebug() << __FUNCTION__ << " FAILED! " << (D3DERR)hr << " " << Length << " " << Usage << " " << Format << " " << Pool << " " << pSharedHandle;
 	return hr;
 }
 
@@ -296,13 +319,20 @@ HRESULT m_IDirect3DDevice9Ex::CreateRenderTarget(THIS_ UINT Width, UINT Height, 
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	HRESULT hr = ProxyInterface->CreateRenderTarget(Width, Height, Format, MultiSample, MultisampleQuality, Lockable, ppSurface, pSharedHandle);
-
-	if (SUCCEEDED(hr) && ppSurface)
+	if (!ppSurface)
 	{
-		*ppSurface = new m_IDirect3DSurface9(*ppSurface, this);
+		return D3DERR_INVALIDCALL;
 	}
 
+	HRESULT hr = ProxyInterface->CreateRenderTarget(Width, Height, Format, MultiSample, MultisampleQuality, Lockable, ppSurface, pSharedHandle);
+
+	if (SUCCEEDED(hr))
+	{
+		*ppSurface = new m_IDirect3DSurface9(*ppSurface, this);
+		return D3D_OK;
+	}
+
+	Logging::LogDebug() << __FUNCTION__ << " FAILED! " << (D3DERR)hr << " " << Width << " " << Height << " " << Format << " " << MultiSample << " " << MultisampleQuality << " " << Lockable << " " << pSharedHandle;
 	return hr;
 }
 
@@ -310,24 +340,31 @@ HRESULT m_IDirect3DDevice9Ex::CreateTexture(THIS_ UINT Width, UINT Height, UINT 
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
+	if (!ppTexture)
+	{
+		return D3DERR_INVALIDCALL;
+	}
+
 	HRESULT hr = ProxyInterface->CreateTexture(Width, Height, Levels, Usage, Format, Pool, ppTexture, pSharedHandle);
 
-	if (SUCCEEDED(hr) && ppTexture)
+	if (SUCCEEDED(hr))
 	{
 		*ppTexture = new m_IDirect3DTexture9(*ppTexture, this);
-		Logging::LogDebug() << __FUNCTION__ << " Succeeded";
-	}
-	else
-	{
-		Logging::LogDebug() << __FUNCTION__ << " FAILED! " << hr;
+		return D3D_OK;
 	}
 
+	Logging::LogDebug() << __FUNCTION__ << " FAILED! " << (D3DERR)hr << " " << Width << " " << Height << " " << Levels << " " << Usage << " " << Format << " " << Pool << " " << pSharedHandle;
 	return hr;
 }
 
 HRESULT m_IDirect3DDevice9Ex::CreateVertexBuffer(THIS_ UINT Length, DWORD Usage, DWORD FVF, D3DPOOL Pool, IDirect3DVertexBuffer9** ppVertexBuffer, HANDLE* pSharedHandle)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
+
+	if (!ppVertexBuffer)
+	{
+		return D3DERR_INVALIDCALL;
+	}
 
 	if (Config.ForceSystemMemVertexCache && Pool == D3DPOOL_MANAGED)
 	{
@@ -337,11 +374,13 @@ HRESULT m_IDirect3DDevice9Ex::CreateVertexBuffer(THIS_ UINT Length, DWORD Usage,
 
 	HRESULT hr = ProxyInterface->CreateVertexBuffer(Length, Usage, FVF, Pool, ppVertexBuffer, pSharedHandle);
 
-	if (SUCCEEDED(hr) && ppVertexBuffer)
+	if (SUCCEEDED(hr))
 	{
 		*ppVertexBuffer = new m_IDirect3DVertexBuffer9(*ppVertexBuffer, this);
+		return D3D_OK;
 	}
 
+	Logging::LogDebug() << __FUNCTION__ << " FAILED! " << (D3DERR)hr << " " << Length << " " << Usage << " " << FVF << " " << Pool << " " << pSharedHandle;
 	return hr;
 }
 
@@ -349,13 +388,20 @@ HRESULT m_IDirect3DDevice9Ex::CreateVolumeTexture(THIS_ UINT Width, UINT Height,
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	HRESULT hr = ProxyInterface->CreateVolumeTexture(Width, Height, Depth, Levels, Usage, Format, Pool, ppVolumeTexture, pSharedHandle);
-
-	if (SUCCEEDED(hr) && ppVolumeTexture)
+	if (!ppVolumeTexture)
 	{
-		*ppVolumeTexture = new m_IDirect3DVolumeTexture9(*ppVolumeTexture, this);
+		return D3DERR_INVALIDCALL;
 	}
 
+	HRESULT hr = ProxyInterface->CreateVolumeTexture(Width, Height, Depth, Levels, Usage, Format, Pool, ppVolumeTexture, pSharedHandle);
+
+	if (SUCCEEDED(hr))
+	{
+		*ppVolumeTexture = new m_IDirect3DVolumeTexture9(*ppVolumeTexture, this);
+		return D3D_OK;
+	}
+
+	Logging::LogDebug() << __FUNCTION__ << " FAILED! " << (D3DERR)hr << " " << Width << " " << Height << " " << Depth << " " << Levels << " " << Usage << " " << Format << " " << Pool << " " << pSharedHandle;
 	return hr;
 }
 
@@ -370,13 +416,20 @@ HRESULT m_IDirect3DDevice9Ex::CreateStateBlock(THIS_ D3DSTATEBLOCKTYPE Type, IDi
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	HRESULT hr = ProxyInterface->CreateStateBlock(Type, ppSB);
-
-	if (SUCCEEDED(hr) && ppSB)
+	if (!ppSB)
 	{
-		*ppSB = new m_IDirect3DStateBlock9(*ppSB, this);
+		return D3DERR_INVALIDCALL;
 	}
 
+	HRESULT hr = ProxyInterface->CreateStateBlock(Type, ppSB);
+
+	if (SUCCEEDED(hr))
+	{
+		*ppSB = new m_IDirect3DStateBlock9(*ppSB, this);
+		return D3D_OK;
+	}
+
+	Logging::LogDebug() << __FUNCTION__ << " FAILED! " << (D3DERR)hr << " " << Type;
 	return hr;
 }
 
@@ -694,13 +747,20 @@ HRESULT m_IDirect3DDevice9Ex::CreatePixelShader(THIS_ CONST DWORD* pFunction, ID
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	HRESULT hr = ProxyInterface->CreatePixelShader(pFunction, ppShader);
-
-	if (SUCCEEDED(hr) && ppShader)
+	if (!ppShader)
 	{
-		*ppShader = new m_IDirect3DPixelShader9(*ppShader, this);
+		return D3DERR_INVALIDCALL;
 	}
 
+	HRESULT hr = ProxyInterface->CreatePixelShader(pFunction, ppShader);
+
+	if (SUCCEEDED(hr))
+	{
+		*ppShader = new m_IDirect3DPixelShader9(*ppShader, this);
+		return D3D_OK;
+	}
+
+	Logging::LogDebug() << __FUNCTION__ << " FAILED! " << (D3DERR)hr << " " << pFunction;
 	return hr;
 }
 
@@ -1126,13 +1186,20 @@ HRESULT m_IDirect3DDevice9Ex::CreateVertexShader(THIS_ CONST DWORD* pFunction, I
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	HRESULT hr = ProxyInterface->CreateVertexShader(pFunction, ppShader);
-
-	if (SUCCEEDED(hr) && ppShader)
+	if (!ppShader)
 	{
-		*ppShader = new m_IDirect3DVertexShader9(*ppShader, this);
+		return D3DERR_INVALIDCALL;
 	}
 
+	HRESULT hr = ProxyInterface->CreateVertexShader(pFunction, ppShader);
+
+	if (SUCCEEDED(hr))
+	{
+		*ppShader = new m_IDirect3DVertexShader9(*ppShader, this);
+		return D3D_OK;
+	}
+
+	Logging::LogDebug() << __FUNCTION__ << " FAILED! " << (D3DERR)hr << " " << pFunction;
 	return hr;
 }
 
@@ -1166,13 +1233,20 @@ HRESULT m_IDirect3DDevice9Ex::CreateQuery(THIS_ D3DQUERYTYPE Type, IDirect3DQuer
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	HRESULT hr = ProxyInterface->CreateQuery(Type, ppQuery);
-
-	if (SUCCEEDED(hr) && ppQuery)
+	if (!ppQuery)
 	{
-		*ppQuery = new m_IDirect3DQuery9(*ppQuery, this);
+		return D3DERR_INVALIDCALL;
 	}
 
+	HRESULT hr = ProxyInterface->CreateQuery(Type, ppQuery);
+
+	if (SUCCEEDED(hr))
+	{
+		*ppQuery = new m_IDirect3DQuery9(*ppQuery, this);
+		return D3D_OK;
+	}
+
+	Logging::LogDebug() << __FUNCTION__ << " FAILED! " << (D3DERR)hr << " " << Type;
 	return hr;
 }
 
@@ -1292,13 +1366,20 @@ HRESULT m_IDirect3DDevice9Ex::CreateVertexDeclaration(THIS_ CONST D3DVERTEXELEME
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	HRESULT hr = ProxyInterface->CreateVertexDeclaration(pVertexElements, ppDecl);
-
-	if (SUCCEEDED(hr) && ppDecl)
+	if (!ppDecl)
 	{
-		*ppDecl = new m_IDirect3DVertexDeclaration9(*ppDecl, this);
+		return D3DERR_INVALIDCALL;
 	}
 
+	HRESULT hr = ProxyInterface->CreateVertexDeclaration(pVertexElements, ppDecl);
+
+	if (SUCCEEDED(hr))
+	{
+		*ppDecl = new m_IDirect3DVertexDeclaration9(*ppDecl, this);
+		return D3D_OK;
+	}
+
+	Logging::LogDebug() << __FUNCTION__ << " FAILED! " << (D3DERR)hr << " " << pVertexElements;
 	return hr;
 }
 
@@ -1502,13 +1583,20 @@ HRESULT m_IDirect3DDevice9Ex::CreateOffscreenPlainSurface(THIS_ UINT Width, UINT
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	HRESULT hr = ProxyInterface->CreateOffscreenPlainSurface(Width, Height, Format, Pool, ppSurface, pSharedHandle);
-
-	if (SUCCEEDED(hr) && ppSurface)
+	if (!ppSurface)
 	{
-		*ppSurface = new m_IDirect3DSurface9(*ppSurface, this);
+		return D3DERR_INVALIDCALL;
 	}
 
+	HRESULT hr = ProxyInterface->CreateOffscreenPlainSurface(Width, Height, Format, Pool, ppSurface, pSharedHandle);
+
+	if (SUCCEEDED(hr))
+	{
+		*ppSurface = new m_IDirect3DSurface9(*ppSurface, this);
+		return D3D_OK;
+	}
+
+	Logging::LogDebug() << __FUNCTION__ << " FAILED! " << (D3DERR)hr << " " << Width << " " << Height << " " << Format << " " << Pool << " " << pSharedHandle;
 	return hr;
 }
 
@@ -1880,8 +1968,6 @@ HRESULT m_IDirect3DDevice9Ex::SetDialogBoxMode(THIS_ BOOL bEnableDialogs)
 
 HRESULT m_IDirect3DDevice9Ex::GetSwapChain(THIS_ UINT iSwapChain, IDirect3DSwapChain9** ppSwapChain)
 {
-	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
-
 	// Add 16 bytes for Steam Overlay Fix
 	__nop();
 	__nop();
@@ -1900,9 +1986,16 @@ HRESULT m_IDirect3DDevice9Ex::GetSwapChain(THIS_ UINT iSwapChain, IDirect3DSwapC
 	__nop();
 	__nop();
 
+	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
+
+	if (!ppSwapChain)
+	{
+		return D3DERR_INVALIDCALL;
+	}
+
 	HRESULT hr = ProxyInterface->GetSwapChain(iSwapChain, ppSwapChain);
 
-	if (SUCCEEDED(hr) && ppSwapChain)
+	if (SUCCEEDED(hr))
 	{
 		*ppSwapChain = ProxyAddressLookupTable->FindAddress<m_IDirect3DSwapChain9Ex>(*ppSwapChain);
 	}
@@ -2040,13 +2133,20 @@ HRESULT m_IDirect3DDevice9Ex::CreateRenderTargetEx(THIS_ UINT Width, UINT Height
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	HRESULT hr = ProxyInterface->CreateRenderTargetEx(Width, Height, Format, MultiSample, MultisampleQuality, Lockable, ppSurface, pSharedHandle, Usage);
-
-	if (SUCCEEDED(hr) && ppSurface)
+	if (!ppSurface)
 	{
-		*ppSurface = new m_IDirect3DSurface9(*ppSurface, this);
+		return D3DERR_INVALIDCALL;
 	}
 
+	HRESULT hr = ProxyInterface->CreateRenderTargetEx(Width, Height, Format, MultiSample, MultisampleQuality, Lockable, ppSurface, pSharedHandle, Usage);
+
+	if (SUCCEEDED(hr))
+	{
+		*ppSurface = new m_IDirect3DSurface9(*ppSurface, this);
+		return D3D_OK;
+	}
+
+	Logging::LogDebug() << __FUNCTION__ << " FAILED! " << (D3DERR)hr << " " << Width << " " << Height << " " << Format << " " << MultiSample << " " << MultisampleQuality << " " << Lockable << " " << pSharedHandle << " " << Usage;
 	return hr;
 }
 
@@ -2054,13 +2154,20 @@ HRESULT m_IDirect3DDevice9Ex::CreateOffscreenPlainSurfaceEx(THIS_ UINT Width, UI
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	HRESULT hr = ProxyInterface->CreateOffscreenPlainSurfaceEx(Width, Height, Format, Pool, ppSurface, pSharedHandle, Usage);
-
-	if (SUCCEEDED(hr) && ppSurface)
+	if (!ppSurface)
 	{
-		*ppSurface = new m_IDirect3DSurface9(*ppSurface, this);
+		return D3DERR_INVALIDCALL;
 	}
 
+	HRESULT hr = ProxyInterface->CreateOffscreenPlainSurfaceEx(Width, Height, Format, Pool, ppSurface, pSharedHandle, Usage);
+
+	if (SUCCEEDED(hr))
+	{
+		*ppSurface = new m_IDirect3DSurface9(*ppSurface, this);
+		return D3D_OK;
+	}
+
+	Logging::LogDebug() << __FUNCTION__ << " FAILED! " << (D3DERR)hr << " " << Width << " " << Height << " " << Format << " " << Pool << " " << pSharedHandle;
 	return hr;
 }
 
@@ -2068,13 +2175,20 @@ HRESULT m_IDirect3DDevice9Ex::CreateDepthStencilSurfaceEx(THIS_ UINT Width, UINT
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	HRESULT hr = ProxyInterface->CreateDepthStencilSurfaceEx(Width, Height, Format, MultiSample, MultisampleQuality, Discard, ppSurface, pSharedHandle, Usage);
-
-	if (SUCCEEDED(hr) && ppSurface)
+	if (!ppSurface)
 	{
-		*ppSurface = new m_IDirect3DSurface9(*ppSurface, this);
+		return D3DERR_INVALIDCALL;
 	}
 
+	HRESULT hr = ProxyInterface->CreateDepthStencilSurfaceEx(Width, Height, Format, MultiSample, MultisampleQuality, Discard, ppSurface, pSharedHandle, Usage);
+
+	if (SUCCEEDED(hr))
+	{
+		*ppSurface = new m_IDirect3DSurface9(*ppSurface, this);
+		return D3D_OK;
+	}
+
+	Logging::LogDebug() << __FUNCTION__ << " FAILED! " << (D3DERR)hr << " " << Width << " " << Height << " " << Format << " " << MultiSample << " " << MultisampleQuality << " " << Discard << " " << pSharedHandle << " " << Usage;
 	return hr;
 }
 
