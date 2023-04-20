@@ -47,6 +47,7 @@ namespace DdrawWrapper
 	VISIT_PROCS_DDRAW(INITIALIZE_WRAPPED_PROC);
 	VISIT_PROCS_DDRAW_SHARED(INITIALIZE_WRAPPED_PROC);
 	FARPROC Direct3DCreate9_out = nullptr;
+	FARPROC Direct3DCreate9Ex_out = nullptr;
 }
 
 using namespace DdrawWrapper;
@@ -474,6 +475,7 @@ HRESULT DirectDrawEnumerateHandler(LPVOID lpCallback, LPVOID lpContext, DWORD dw
 
 	// Declare Direct3DCreate9
 	static Direct3DCreate9Proc Direct3DCreate9 = reinterpret_cast<Direct3DCreate9Proc>(Direct3DCreate9_out);
+	static Direct3DCreate9ExProc Direct3DCreate9Ex = reinterpret_cast<Direct3DCreate9ExProc>(Direct3DCreate9Ex_out);
 
 	if (!Direct3DCreate9)
 	{
@@ -481,8 +483,28 @@ HRESULT DirectDrawEnumerateHandler(LPVOID lpCallback, LPVOID lpContext, DWORD dw
 		return DDERR_UNSUPPORTED;
 	}
 
+	if (!Direct3DCreate9Ex && Config.DdrawUseDirect3D9Ex)
+	{
+		LOG_LIMIT(100, __FUNCTION__ << " Error: failed to get 'Direct3DCreate9Ex' ProcAddress of d3d9.dll!");
+		return DDERR_GENERIC;
+	}
+
 	// Create Direct3D9 device
-	LPDIRECT3D9 d3d9Object = Direct3DCreate9(D3D_SDK_VERSION);
+	LPDIRECT3D9 d3d9Object = nullptr;
+	LPDIRECT3D9EX d3d9ObjectEx = nullptr;
+
+	if (!Config.DdrawUseDirect3D9Ex)
+	{
+		d3d9Object = Direct3DCreate9(D3D_SDK_VERSION);
+	}
+	else
+	{
+		 HRESULT hr = Direct3DCreate9Ex(D3D_SDK_VERSION, &d3d9ObjectEx);
+		 if (SUCCEEDED(hr))
+		 {
+			 d3d9Object = d3d9ObjectEx;
+		 }
+	}
 
 	// Error creating Direct3D9
 	if (!d3d9Object)

@@ -41,6 +41,7 @@
 	visit(DdrawOverrideHeight) \
 	visit(DdrawOverrideRefreshRate) \
 	visit(DdrawResolutionHack) \
+	visit(DdrawUseDirect3D9Ex) \
 	visit(DdrawUseNativeResolution) \
 	visit(DdrawHookSystem32) \
 	visit(D3d8HookSystem32) \
@@ -205,6 +206,7 @@ struct CONFIG
 	bool DdrawWriteToGDI = false;				// Blt surface directly to GDI rather than Direct3D9
 	bool DdrawIntegerScalingClamp = false;		// Scales the screen by an integer value to help preserve video quality
 	bool DdrawMaintainAspectRatio = false;		// Keeps the current DirectDraw aspect ratio when overriding the game's resolution
+	bool DdrawUseDirect3D9Ex = false;			// Use Direct3D9Ex extensions for Dd7to9
 	bool DdrawUseNativeResolution = false;		// Uses the current screen resolution for Dd7to9
 	DWORD DdrawClippedWidth = 0;				// Used to scaled Direct3d9 to use this width when using Dd7to9
 	DWORD DdrawClippedHeight = 0;				// Used to scaled Direct3d9 to use this height when using Dd7to9
