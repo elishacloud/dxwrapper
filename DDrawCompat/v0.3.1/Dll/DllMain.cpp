@@ -77,10 +77,10 @@ namespace Compat31
 				{
 					Compat31::Log() << "Installing display mode hooks";
 					Win32::DisplayMode::installHooks();
+					Compat31::Log() << "Installing registry hooks";
+					Win32::Registry::installHooks();
 				}
 				//********** End Edit ***************
-				Compat31::Log() << "Installing registry hooks";
-				Win32::Registry::installHooks();
 				Compat31::Log() << "Installing Direct3D driver hooks";
 				D3dDdi::installHooks();
 				Compat31::Log() << "Installing Win32 hooks";
@@ -128,7 +128,10 @@ namespace Compat31
 				}
 				//********** End Edit ***************
 				Compat31::closeDbgEng();
-				Gdi::PresentationWindow::startThread();
+				if (!Config.Dd7to9)
+				{
+					Gdi::PresentationWindow::startThread();
+				}
 				Compat31::Log() << "Finished installing hooks";
 				isAlreadyInstalled = true;
 			}
