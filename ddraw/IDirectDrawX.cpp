@@ -1653,9 +1653,10 @@ HRESULT m_IDirectDrawX::SetDisplayMode(DWORD dwWidth, DWORD dwHeight, DWORD dwBP
 		}
 
 		bool ChangeMode = false;
+		bool ChangeBPP = false;
 		DWORD NewBPP = (Config.DdrawOverrideBitMode) ? Config.DdrawOverrideBitMode : dwBPP;
 
-		if (displayModeWidth != dwWidth || displayModeHeight != dwHeight || displayModeBPP != NewBPP || displayModeRefreshRate != dwRefreshRate)
+		if (displayModeWidth != dwWidth || displayModeHeight != dwHeight || displayModeBPP != NewBPP || (dwRefreshRate && displayModeRefreshRate != dwRefreshRate))
 		{
 			DWORD FoundWidth = dwWidth;
 			DWORD FoundHeight = dwHeight;
@@ -1712,7 +1713,8 @@ HRESULT m_IDirectDrawX::SetDisplayMode(DWORD dwWidth, DWORD dwHeight, DWORD dwBP
 				}
 			}
 
-			ChangeMode = true;
+			ChangeMode = (displayModeWidth != dwWidth || displayModeHeight != dwHeight || (dwRefreshRate && displayModeRefreshRate != dwRefreshRate));
+			ChangeBPP = (displayModeBPP != NewBPP);
 			displayModeWidth = dwWidth;
 			displayModeHeight = dwHeight;
 			displayModeBPP = NewBPP;
@@ -1744,6 +1746,11 @@ HRESULT m_IDirectDrawX::SetDisplayMode(DWORD dwWidth, DWORD dwHeight, DWORD dwBP
 
 			// Recreate d3d9 device
 			CreateD3D9Device();
+		}
+		else if (ChangeBPP)
+		{
+			// Reset all surfaces
+			RestoreAllSurfaces();
 		}
 
 		return DD_OK;
@@ -2858,7 +2865,7 @@ HRESULT m_IDirectDrawX::CreateD3D9Device()
 			DWORD NewWidth, NewHeight;
 			Utils::GetScreenSize(hWnd, NewWidth, NewHeight);
 
-			// Set display change message
+			// Send display change message
 			if ((SetResolution || NewWidth != CurrentWidth || NewHeight != CurrentHeight) && NewWidth && NewHeight)
 			{
 				SetResolution = false;

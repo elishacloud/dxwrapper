@@ -3783,6 +3783,10 @@ void m_IDirectDrawSurfaceX::ReleaseD9Surface(bool BackupData)
 	if (paletteTexture)
 	{
 		Logging::LogDebug() << __FUNCTION__ << " Releasing Direct3D9 palette texture surface";
+		if (d3d9Device && *d3d9Device)
+		{
+			(*d3d9Device)->SetTexture(1, nullptr);
+		}
 		ULONG ref = paletteTexture->Release();
 		if (ref)
 		{
@@ -3795,6 +3799,10 @@ void m_IDirectDrawSurfaceX::ReleaseD9Surface(bool BackupData)
 	if (pixelShader)
 	{
 		Logging::LogDebug() << __FUNCTION__ << " Releasing Direct3D9 pixel shader";
+		if (d3d9Device && *d3d9Device)
+		{
+			(*d3d9Device)->SetPixelShader(nullptr);
+		}
 		ULONG ref = pixelShader->Release();
 		if (ref)
 		{
@@ -5404,7 +5412,8 @@ void m_IDirectDrawSurfaceX::UpdatePaletteData()
 	if (attachedPalette && attachedPalette->GetRgbPalette())
 	{
 		CurrentPaletteUSN = PaletteUSN + attachedPalette->GetPaletteUSN();
-		if (CurrentPaletteUSN && CurrentPaletteUSN != LastPaletteUSN)
+		if (CurrentPaletteUSN && 
+			(CurrentPaletteUSN != LastPaletteUSN || (IsUsingEmulation() && CurrentPaletteUSN != emu->LastPaletteUSN)))
 		{
 			rgbPalette = (D3DCOLOR*)attachedPalette->GetRgbPalette();
 			entryCount = attachedPalette->GetEntryCount();
@@ -5420,7 +5429,8 @@ void m_IDirectDrawSurfaceX::UpdatePaletteData()
 			if (lpPalette && lpPalette->GetRgbPalette())
 			{
 				CurrentPaletteUSN = lpPrimarySurface->GetPaletteUSN() + lpPalette->GetPaletteUSN();
-				if (CurrentPaletteUSN && ((CurrentPaletteUSN != LastPaletteUSN) || (emu && CurrentPaletteUSN != emu->LastPaletteUSN)))
+				if (CurrentPaletteUSN &&
+					(CurrentPaletteUSN != LastPaletteUSN || (IsUsingEmulation() && CurrentPaletteUSN != emu->LastPaletteUSN)))
 				{
 					rgbPalette = (D3DCOLOR*)lpPalette->GetRgbPalette();
 					entryCount = lpPalette->GetEntryCount();
@@ -5463,10 +5473,10 @@ void m_IDirectDrawSurfaceX::UpdatePaletteData()
 
 			paletteSurface->Release();
 
+			LastPaletteUSN = CurrentPaletteUSN;
+
 		} while (false);
 	}
-
-	LastPaletteUSN = CurrentPaletteUSN;
 }
 
 void m_IDirectDrawSurfaceX::StartSharedEmulatedMemory()
