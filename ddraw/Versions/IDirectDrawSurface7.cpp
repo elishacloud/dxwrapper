@@ -73,7 +73,7 @@ HRESULT m_IDirectDrawSurface7::EnumOverlayZOrders(DWORD a, LPVOID b, LPDDENUMSUR
 
 HRESULT m_IDirectDrawSurface7::Flip(LPDIRECTDRAWSURFACE7 a, DWORD b)
 {
-	return ProxyInterface->Flip(a, b);
+	return ProxyInterface->Flip(a, b, DirectXVersion);
 }
 
 HRESULT m_IDirectDrawSurface7::GetAttachedSurface(LPDDSCAPS2 a, LPDIRECTDRAWSURFACE7 FAR * b)

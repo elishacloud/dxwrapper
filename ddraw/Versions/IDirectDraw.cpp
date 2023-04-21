@@ -118,7 +118,7 @@ HRESULT m_IDirectDraw::RestoreDisplayMode()
 
 HRESULT m_IDirectDraw::SetCooperativeLevel(HWND a, DWORD b)
 {
-	return ProxyInterface->SetCooperativeLevel(a, b);
+	return ProxyInterface->SetCooperativeLevel(a, b, DirectXVersion);
 }
 
 HRESULT m_IDirectDraw::SetDisplayMode(DWORD a, DWORD b, DWORD c)

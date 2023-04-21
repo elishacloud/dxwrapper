@@ -1450,7 +1450,7 @@ HRESULT m_IDirectDrawX::RestoreDisplayMode()
 	return ProxyInterface->RestoreDisplayMode();
 }
 
-HRESULT m_IDirectDrawX::SetCooperativeLevel(HWND hWnd, DWORD dwFlags)
+HRESULT m_IDirectDrawX::SetCooperativeLevel(HWND hWnd, DWORD dwFlags, DWORD DirectXVersion)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ") " << hWnd << " " << Logging::hex(dwFlags);
 
@@ -1516,7 +1516,8 @@ HRESULT m_IDirectDrawX::SetCooperativeLevel(HWND hWnd, DWORD dwFlags)
 		// Set device flags
 		AllowModeX = ((dwFlags & DDSCL_ALLOWMODEX) != 0);
 		MultiThreaded = ((dwFlags & DDSCL_MULTITHREADED) != 0);
-		FPUPreserve = ((dwFlags & DDSCL_FPUPRESERVE) != 0  && (dwFlags & DDSCL_FPUSETUP) == 0);
+		// The flag (DDSCL_FPUPRESERVE) is assumed by default in DirectX 6 and earlier.
+		FPUPreserve = (((dwFlags & DDSCL_FPUPRESERVE) || DirectXVersion <= 6) && (dwFlags & DDSCL_FPUSETUP) == 0);
 		NoWindowChanges = ((dwFlags & DDSCL_NOWINDOWCHANGES) != 0);
 
 		// Check window handle
@@ -1558,6 +1559,8 @@ HRESULT m_IDirectDrawX::SetCooperativeLevel(HWND hWnd, DWORD dwFlags)
 	// Hook window message to get notified when the window is about to exit to remove the exclusive flag
 	if (SUCCEEDED(hr) && (dwFlags & DDSCL_EXCLUSIVE) && IsWindow(hWnd) && hWnd != chWnd)
 	{
+		static DWORD WindowsGDIHook_DirectXVersion = DirectXVersion;
+
 		// Fixes a bug in ddraw in Windows 8 and 10 where the exclusive flag remains even after the window (hWnd) closes
 		struct WindowsGDIHook
 		{
@@ -1578,7 +1581,7 @@ HRESULT m_IDirectDrawX::SetCooperativeLevel(HWND hWnd, DWORD dwFlags)
 							ProxyAddressLookupTable.IsValidProxyAddress<m_IDirectDrawX>(lpDDraw)))
 						{
 							LOG_LIMIT(3, __FUNCTION__ << " Removing exclusive flag from closing window!");
-							lpDDraw->SetCooperativeLevel(hWnd, DDSCL_NORMAL);
+							lpDDraw->SetCooperativeLevel(hWnd, DDSCL_NORMAL, WindowsGDIHook_DirectXVersion);
 						}
 						g_hookmap.clear();
 					}
@@ -1596,6 +1599,7 @@ HRESULT m_IDirectDrawX::SetCooperativeLevel(HWND hWnd, DWORD dwFlags)
 			g_hook = nullptr;
 		}
 
+		WindowsGDIHook_DirectXVersion = DirectXVersion;
 		g_hookmap[hWnd] = this;
 		g_hook = SetWindowsHookEx(WH_CBT, WindowsGDIHook::CBTProc, GetModuleHandle(nullptr), GetWindowThreadProcessId(hWnd, nullptr));
 
@@ -2736,13 +2740,6 @@ HRESULT m_IDirectDrawX::CreateD3D9Device()
 		if (SUCCEEDED(d3d9Object->GetDeviceCaps(D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, &d3dcaps)))
 		{
 			DynamicTexturesSupported = (d3dcaps.Caps2 & D3DCAPS2_DYNAMICTEXTURES);
-		}
-
-		// Check if game loads DirectPlay and enable FPU preserve
-		if (!FPUPreserve)
-		{
-			LOG_LIMIT(1, __FUNCTION__ << " Found DirectPlay and enabling 'D3DCREATE_FPU_PRESERVE'");
-			FPUPreserve = (GetModuleHandleA("dplayx.dll") != NULL);
 		}
 
 		// Set behavior flags

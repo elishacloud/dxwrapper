@@ -1032,7 +1032,7 @@ HRESULT m_IDirectDrawSurfaceX::FlipBackBuffer()
 	return lpTargetSurface->FlipBackBuffer();
 }
 
-HRESULT m_IDirectDrawSurfaceX::Flip(LPDIRECTDRAWSURFACE7 lpDDSurfaceTargetOverride, DWORD dwFlags)
+HRESULT m_IDirectDrawSurfaceX::Flip(LPDIRECTDRAWSURFACE7 lpDDSurfaceTargetOverride, DWORD dwFlags, DWORD DirectXVersion)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
@@ -1056,17 +1056,23 @@ HRESULT m_IDirectDrawSurfaceX::Flip(LPDIRECTDRAWSURFACE7 lpDDSurfaceTargetOverri
 		if (IsSurfaceLocked() || IsSurfaceInDC())
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Error: surface is busy!");
-			return DDERR_SURFACEBUSY;
+
+			// On IDirectDrawSurface7 and higher interfaces, the default is DDFLIP_WAIT.
+			if (((dwFlags & DDFLIP_WAIT) || DirectXVersion == 7) && (dwFlags & DDFLIP_DONOTWAIT) == 0)
+			{
+				// ToDo: if surface is busy on another thread then wait for it here.
+				return DDERR_SURFACEBUSY;
+			}
+			else
+			{
+				return DDERR_WASSTILLDRAWING;
+			}
 		}
 
 		if ((dwFlags & (DDFLIP_INTERVAL2 | DDFLIP_INTERVAL3 | DDFLIP_INTERVAL4)) && (surfaceDesc2.ddsCaps.dwCaps2 & DDCAPS2_FLIPINTERVAL))
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Interval flipping not fully implemented");
 		}
-
-		// Other flags (can be safely ignored?)
-		// - DDFLIP_DONOTWAIT
-		// - DDFLIP_WAIT
 
 		// Present before write if needed
 		BeginWritePresent(false);

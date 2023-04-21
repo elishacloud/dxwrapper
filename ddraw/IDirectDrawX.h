@@ -137,7 +137,7 @@ public:
 	STDMETHOD(GetVerticalBlankStatus)(THIS_ LPBOOL);
 	STDMETHOD(Initialize)(THIS_ GUID FAR *);
 	STDMETHOD(RestoreDisplayMode)(THIS);
-	STDMETHOD(SetCooperativeLevel)(THIS_ HWND, DWORD);
+	STDMETHOD(SetCooperativeLevel)(THIS_ HWND, DWORD, DWORD);
 	STDMETHOD(SetDisplayMode)(THIS_ DWORD, DWORD, DWORD, DWORD, DWORD);
 	STDMETHOD(WaitForVerticalBlank)(THIS_ DWORD, HANDLE);
 
