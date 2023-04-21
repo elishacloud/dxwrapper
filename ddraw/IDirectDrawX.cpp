@@ -2912,15 +2912,15 @@ HRESULT m_IDirectDrawX::CreateD3D9Object()
 	static Direct3DCreate9Proc Direct3DCreate9 = reinterpret_cast<Direct3DCreate9Proc>(Direct3DCreate9_out);
 	static Direct3DCreate9ExProc Direct3DCreate9Ex = reinterpret_cast<Direct3DCreate9ExProc>(Direct3DCreate9Ex_out);
 
+	if (!Direct3DCreate9Ex && Config.DdrawUseDirect3D9Ex)
+	{
+		LOG_LIMIT(100, __FUNCTION__ << " Error: failed to find 'Direct3DCreate9Ex' ProcAddress in d3d9.dll.  Disabling 'DdrawUseDirect3D9Ex'!");
+		Config.DdrawUseDirect3D9Ex = false;
+	}
+
 	if (!Direct3DCreate9)
 	{
 		LOG_LIMIT(100, __FUNCTION__ << " Error: failed to get 'Direct3DCreate9' ProcAddress of d3d9.dll!");
-		return DDERR_GENERIC;
-	}
-
-	if (!Direct3DCreate9Ex && Config.DdrawUseDirect3D9Ex)
-	{
-		LOG_LIMIT(100, __FUNCTION__ << " Error: failed to get 'Direct3DCreate9Ex' ProcAddress of d3d9.dll!");
 		return DDERR_GENERIC;
 	}
 
