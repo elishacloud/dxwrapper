@@ -2737,6 +2737,7 @@ HRESULT m_IDirectDrawX::CreateD3D9Device()
 		// Check if game loads DirectPlay and enable FPU preserve
 		if (!FPUPreserve)
 		{
+			LOG_LIMIT(1, __FUNCTION__ << " Found DirectPlay and enabling 'D3DCREATE_FPU_PRESERVE'");
 			FPUPreserve = (GetModuleHandleA("dplayx.dll") != NULL);
 		}
 

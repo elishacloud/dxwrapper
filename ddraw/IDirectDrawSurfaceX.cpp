@@ -3748,11 +3748,7 @@ void m_IDirectDrawSurfaceX::ReleaseD9Surface(bool BackupData)
 	{
 		Logging::LogDebug() << __FUNCTION__ << " Releasing Direct3D9 context surface";
 		ULONG ref = contextSurface->Release();
-		if (ref == 1)
-		{
-			ref = contextSurface->Release();
-		}
-		if (ref)
+		if (ref > 1)	// Ref count is higher becasue it is a surface of 'surfaceTexture'
 		{
 			Logging::Log() << __FUNCTION__ << " Error: there is still a reference to 'contextSurface' " << ref;
 		}
@@ -5465,15 +5461,7 @@ void m_IDirectDrawSurfaceX::UpdatePaletteData()
 				LOG_LIMIT(100, __FUNCTION__ << " Error: could not update palette surface!");
 			}
 
-			ULONG ref = paletteSurface->Release();
-			if (ref == 1)
-			{
-				ref = paletteSurface->Release();
-			}
-			if (ref)
-			{
-				Logging::Log() << __FUNCTION__ << " Error: there is still a reference to 'paletteSurface' " << ref;
-			}
+			paletteSurface->Release();
 
 		} while (false);
 	}
