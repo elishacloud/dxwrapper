@@ -855,7 +855,7 @@ HRESULT WINAPI dd_SetAppCompatData(DWORD Type, DWORD Value)
 
 	if (Config.Dd7to9)
 	{
-		if (Type = AppCompatDataType.DisableMaxWindowedMode)
+		if (Type == AppCompatDataType.DisableMaxWindowedMode)
 		{
 			if (Direct3D9DisableMaximizedWindowedMode())
 			{
