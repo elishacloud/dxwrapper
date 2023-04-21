@@ -1479,7 +1479,6 @@ HRESULT m_IDirectDrawX::SetCooperativeLevel(HWND hWnd, DWORD dwFlags)
 			LOG_LIMIT(100, __FUNCTION__ << " Warning: Flags not supported. dwFlags: " << Logging::hex(dwFlags) << " " << hWnd);
 		}
 
-		HWND LastExclusiveHwnd = ExclusiveHwnd;
 		HWND LastMainhWnd = MainhWnd;
 		bool LastMultiThreaded = MultiThreaded;
 		bool LastFPUPreserve = FPUPreserve;
@@ -1541,7 +1540,6 @@ HRESULT m_IDirectDrawX::SetCooperativeLevel(HWND hWnd, DWORD dwFlags)
 
 		// Reset if mode was changed
 		if (d3d9Device && MainhWnd && hWnd && (
-			LastExclusiveHwnd != ExclusiveHwnd ||
 			LastMainhWnd != MainhWnd ||
 			LastMultiThreaded != MultiThreaded ||
 			LastFPUPreserve != FPUPreserve ||
@@ -1976,9 +1974,12 @@ HRESULT m_IDirectDrawX::RestoreAllSurfaces()
 		{
 			SetCriticalSection();
 
-			for (m_IDirectDrawSurfaceX *pSurface : SurfaceVector)
+			for (m_IDirectDrawX* pDDraw : DDrawVector)
 			{
-				pSurface->ResetSurfaceDisplay();
+				for (m_IDirectDrawSurfaceX* pSurface : pDDraw->SurfaceVector)
+				{
+					pSurface->ResetSurfaceDisplay();
+				}
 			}
 
 			ReleaseCriticalSection();
@@ -2620,13 +2621,9 @@ HRESULT m_IDirectDrawX::CreateD3D9Device()
 	HRESULT hr = DD_OK;
 	do {
 		// Last call variables
-		DWORD LastBehaviorFlags = BehaviorFlags;
-		BOOL LastWindowedMode = presParams.Windowed;
 		HWND LastHWnd = hFocusWindow;
-		UINT LastBufferWidth = presParams.BackBufferWidth;
-		UINT LastBufferHeight = presParams.BackBufferHeight;
-		D3DMULTISAMPLE_TYPE LastMultiSampleType = presParams.MultiSampleType;
-		DWORD LastQualityLevels = presParams.MultiSampleQuality;
+		BOOL LastWindowedMode = presParams.Windowed;
+		DWORD LastBehaviorFlags = BehaviorFlags;
 
 		// Get hwnd
 		HWND hWnd = GetHwnd();
@@ -2753,14 +2750,6 @@ HRESULT m_IDirectDrawX::CreateD3D9Device()
 			ShowWindow(hWnd, SW_RESTORE);
 		}
 
-		// Check if there are no changes
-		if (d3d9Device && LastBufferWidth == presParams.BackBufferWidth && LastBufferHeight == presParams.BackBufferHeight &&
-			LastMultiSampleType == presParams.MultiSampleType && LastQualityLevels == presParams.MultiSampleQuality &&
-			LastHWnd == hWnd && LastWindowedMode == presParams.Windowed && LastBehaviorFlags == BehaviorFlags)
-		{
-			break;	// No changes found
-		}
-
 		Logging::Log() << __FUNCTION__ << " Direct3D9 device! " <<
 			presParams.BackBufferWidth << "x" << presParams.BackBufferHeight << " refresh: " << presParams.FullScreen_RefreshRateInHz <<
 			" format: " << presParams.BackBufferFormat << " wnd: " << hWnd << " params: " << presParams << " flags: " << Logging::hex(BehaviorFlags);
@@ -2783,12 +2772,16 @@ HRESULT m_IDirectDrawX::CreateD3D9Device()
 				// these resources do not need to be recreated.
 				if (!Config.DdrawUseDirect3D9Ex)
 				{
-					ReleaseAllDirectDrawD9Surfaces();
+					ReleaseAllD9Surfaces();
 					hr = d3d9Device->Reset(&presParams);
 				}
 				else
 				{
 					hr = d3d9DeviceEx->ResetEx(&presParams, pFullscreenDisplayMode);
+					if (SUCCEEDED(hr))
+					{
+						RestoreAllSurfaces();
+					}
 				}
 
 				// Attempt to reset the device
@@ -2985,7 +2978,7 @@ HRESULT m_IDirectDrawX::ReinitDevice()
 		}
 
 		// Release surfaces to prepare for reset
-		ReleaseAllDirectDrawD9Surfaces();
+		ReleaseAllD9Surfaces();
 
 		if (!Config.DdrawUseDirect3D9Ex)
 		{
@@ -3026,36 +3019,26 @@ HRESULT m_IDirectDrawX::ReinitDevice()
 }
 
 // Release all surfaces from all ddraw devices
-void m_IDirectDrawX::ReleaseAllDirectDrawD9Surfaces()
+void m_IDirectDrawX::ReleaseAllD9Surfaces()
 {
 	SetCriticalSection();
 
 	for (m_IDirectDrawX *pDDraw : DDrawVector)
 	{
-		pDDraw->ReleaseAllD9Surfaces();
+		for (m_IDirectDrawSurfaceX* pSurface : pDDraw->SurfaceVector)
+		{
+			pSurface->ReleaseD9Surface(true);
+		}
 	}
 
 	ReleaseCriticalSection();
 }
 
-// Release all d3d9 surfaces
-void m_IDirectDrawX::ReleaseAllD9Surfaces()
-{
-	SetCriticalSection();
-
-	for (m_IDirectDrawSurfaceX *pSurface : SurfaceVector)
-	{
-		pSurface->ReleaseD9Surface(true);
-	}
-
-	ReleaseCriticalSection();
-}
-
-// Release all d3d9 classes for Release()
+// Release all d3d9 surfaces and devices
 void m_IDirectDrawX::ReleaseD3D9DeviceAllSurfaces()
 {
 	// Release all existing surfaces
-	ReleaseAllDirectDrawD9Surfaces();
+	ReleaseAllD9Surfaces();
 
 	// Release d3d9 device
 	ReleaseD3D9Device();

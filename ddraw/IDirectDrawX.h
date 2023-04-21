@@ -74,7 +74,6 @@ private:
 	// Direct3D9 interface functions
 	HRESULT CheckInterface(char *FunctionName, bool CheckD3DDevice);
 	HRESULT CreateD3D9Object();
-	void ReleaseAllDirectDrawD9Surfaces();
 	void ReleaseAllD9Surfaces();
 	void ReleaseD3D9DeviceAllSurfaces();
 	void ReleaseD3D9Device();
