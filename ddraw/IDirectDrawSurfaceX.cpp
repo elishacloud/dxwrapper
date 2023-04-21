@@ -1393,14 +1393,23 @@ HRESULT m_IDirectDrawSurfaceX::GetClipper(LPDIRECTDRAWCLIPPER FAR * lplpDDClippe
 
 	if (Config.Dd7to9)
 	{
+		if (!lplpDDClipper)
+		{
+			return DDERR_INVALIDPARAMS;
+		}
+
 		// No clipper attached
 		if (!attachedClipper)
 		{
+			*lplpDDClipper = nullptr;
 			return DDERR_NOCLIPPERATTACHED;
 		}
 
 		// Return attached clipper
 		*lplpDDClipper = (LPDIRECTDRAWCLIPPER)attachedClipper;
+
+		// Increase ref counter
+		(*lplpDDClipper)->AddRef();
 
 		// Success
 		return DD_OK;
@@ -1661,23 +1670,15 @@ HRESULT m_IDirectDrawSurfaceX::GetPalette(LPDIRECTDRAWPALETTE FAR * lplpDDPalett
 		// No palette attached
 		if (!attachedPalette)
 		{
+			*lplpDDPalette = nullptr;
 			return DDERR_NOPALETTEATTACHED;
-		}
-
-		// Check for device interface
-		if (FAILED(CheckInterface(__FUNCTION__, false, false)))
-		{
-			return DDERR_GENERIC;
-		}
-
-		// Check exclusive mode
-		if (!ddrawParent->IsExclusiveMode())
-		{
-			return DDERR_NOEXCLUSIVEMODE;
 		}
 
 		// Return attached palette
 		*lplpDDPalette = (LPDIRECTDRAWPALETTE)attachedPalette;
+
+		// Increase ref counter
+		(*lplpDDPalette)->AddRef();
 
 		// Success
 		return DD_OK;
