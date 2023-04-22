@@ -3670,7 +3670,7 @@ void m_IDirectDrawSurfaceX::ReleaseD9Surface(bool BackupData)
 {
 	if (IsLocked || IsInDC)
 	{
-		Logging::Log() << __FUNCTION__ << " Warning: surface still in use!";
+		Logging::Log() << __FUNCTION__ << " Warning: surface still in use! Locked: " << IsLocked << " DC: " << IsInDC;
 	}
 
 	// Release DC (before releasing surface)

@@ -2903,46 +2903,15 @@ HRESULT m_IDirectDrawX::CreateD3D9Device()
 // Creates d3d9 object
 HRESULT m_IDirectDrawX::CreateD3D9Object()
 {
-	if (d3d9Object)
-	{
-		return D3D_OK;
-	}
-
-	// Declare Direct3DCreate9
-	static Direct3DCreate9Proc Direct3DCreate9 = reinterpret_cast<Direct3DCreate9Proc>(Direct3DCreate9_out);
-	static Direct3DCreate9ExProc Direct3DCreate9Ex = reinterpret_cast<Direct3DCreate9ExProc>(Direct3DCreate9Ex_out);
-
-	if (!Direct3DCreate9Ex && Config.DdrawUseDirect3D9Ex)
-	{
-		LOG_LIMIT(100, __FUNCTION__ << " Error: failed to find 'Direct3DCreate9Ex' ProcAddress in d3d9.dll.  Disabling 'DdrawUseDirect3D9Ex'!");
-		Config.DdrawUseDirect3D9Ex = false;
-	}
-
-	if (!Direct3DCreate9)
-	{
-		LOG_LIMIT(100, __FUNCTION__ << " Error: failed to get 'Direct3DCreate9' ProcAddress of d3d9.dll!");
-		return DDERR_GENERIC;
-	}
-
-	// Create Direct3D9 device
-	if (!Config.DdrawUseDirect3D9Ex)
-	{
-		d3d9Object = Direct3DCreate9(D3D_SDK_VERSION);
-	}
-	else
-	{
-		HRESULT hr = Direct3DCreate9Ex(D3D_SDK_VERSION, &d3d9ObjectEx);
-		if (SUCCEEDED(hr))
-		{
-			d3d9Object = d3d9ObjectEx;
-		}
-	}
-
-	// Error creating Direct3D9
+	// Create d3d9 object
 	if (!d3d9Object)
 	{
-		LOG_LIMIT(100, __FUNCTION__ << " Error: d3d9 object not setup!");
-		return DDERR_GENERIC;
+		HRESULT hr = CreateD3D9(d3d9Object, d3d9ObjectEx);
+		if (FAILED(hr))
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: failed to create Direct3D9 object: " << (DDERR)hr);
+			return hr;
+		}
 	}
 
 	return D3D_OK;
@@ -2990,7 +2959,7 @@ HRESULT m_IDirectDrawX::ReinitDevice()
 		}
 		else
 		{
-			// In Direct3D9 extensions devices are only when the hardware is reset because it is hanging, and when the device driver is stopped.
+			// In Direct3D9 extension devices are only lost when the hardware is reset because it is hanging, and when the device driver is stopped.
 			// When hardware hangs, the device can be reset by calling ResetEx.
 			// After a driver is stopped, the IDirect9Ex object must be recreated to resume rendering.
 			hr = d3d9DeviceEx->ResetEx(&presParams, (presParams.Windowed) ? nullptr : &FullscreenDisplayMode);
@@ -3075,16 +3044,10 @@ void m_IDirectDrawX::ReleaseD3D9Device()
 // Release all d3d9 object
 void m_IDirectDrawX::ReleaseD3D9Object()
 {
-	// Release d3d9object
+	// Release d3d9 object
 	if (d3d9Object)
 	{
-		ULONG ref = d3d9Object->Release();
-		if (ref)
-		{
-			Logging::Log() << __FUNCTION__ << " Error: there is still a reference to 'd3d9Object' " << ref;
-		}
-		d3d9Object = nullptr;
-		d3d9ObjectEx = nullptr;
+		ReleaseD3D9(d3d9Object, d3d9ObjectEx);
 	}
 }
 
@@ -3343,7 +3306,7 @@ HRESULT m_IDirectDrawX::Present()
 	const bool UseVSync = (EnableWaitVsync && !Config.EnableVSync);
 
 	// Skip frame if time lapse is too small
-	if (Config.AutoFrameSkip && !UseVSync)
+	if (Config.AutoFrameSkip && !Config.DdrawUseDirect3D9Ex && !UseVSync)
 	{
 		if (FrequencyFlag)
 		{
@@ -3385,8 +3348,20 @@ HRESULT m_IDirectDrawX::Present()
 		EnableWaitVsync = false;
 	}
 
-	// Present everthing, skip Preset for SWAT 2
-	HRESULT hr = d3d9Device->Present(nullptr, nullptr, nullptr, nullptr);
+	// Present everthing, skip Preset when using DdrawWriteToGDI
+	HRESULT hr;
+	if (!Config.DdrawUseDirect3D9Ex)
+	{
+		hr = d3d9Device->Present(nullptr, nullptr, nullptr, nullptr);
+	}
+	else
+	{
+		hr = d3d9DeviceEx->PresentEx(nullptr, nullptr, nullptr, nullptr, Config.AutoFrameSkip ? D3DPRESENT_DONOTWAIT : 0);
+		if (Config.AutoFrameSkip && hr == D3DERR_WASSTILLDRAWING)
+		{
+			hr = D3D_OK;
+		}
+	}
 
 	// Device lost
 	if (hr == D3DERR_DEVICELOST)

@@ -464,13 +464,11 @@ BOOL CALLBACK DispayEnumeratorProc(HMONITOR hMonitor, HDC hdcMonitor, LPRECT lpr
 	return DDENUMRET_OK;
 }
 
-HRESULT DirectDrawEnumerateHandler(LPVOID lpCallback, LPVOID lpContext, DWORD dwFlags, DirectDrawEnumerateTypes DDETType)
+HRESULT CreateD3D9(LPDIRECT3D9& d3d9Object, LPDIRECT3D9EX& d3d9ObjectEx)
 {
-	UNREFERENCED_PARAMETER(dwFlags);
-
-	if (!lpCallback)
+	if (d3d9Object || d3d9ObjectEx)
 	{
-		return DDERR_INVALIDPARAMS;
+		LOG_LIMIT(100, __FUNCTION__ << " Warning: 'd3d9Object' already has a value!");
 	}
 
 	// Declare Direct3DCreate9
@@ -490,20 +488,17 @@ HRESULT DirectDrawEnumerateHandler(LPVOID lpCallback, LPVOID lpContext, DWORD dw
 	}
 
 	// Create Direct3D9 device
-	LPDIRECT3D9 d3d9Object = nullptr;
-	LPDIRECT3D9EX d3d9ObjectEx = nullptr;
-
 	if (!Config.DdrawUseDirect3D9Ex)
 	{
 		d3d9Object = Direct3DCreate9(D3D_SDK_VERSION);
 	}
 	else
 	{
-		 HRESULT hr = Direct3DCreate9Ex(D3D_SDK_VERSION, &d3d9ObjectEx);
-		 if (SUCCEEDED(hr))
-		 {
-			 d3d9Object = d3d9ObjectEx;
-		 }
+		HRESULT hr = Direct3DCreate9Ex(D3D_SDK_VERSION, &d3d9ObjectEx);
+		if (SUCCEEDED(hr))
+		{
+			d3d9Object = d3d9ObjectEx;
+		}
 	}
 
 	// Error creating Direct3D9
@@ -511,6 +506,47 @@ HRESULT DirectDrawEnumerateHandler(LPVOID lpCallback, LPVOID lpContext, DWORD dw
 	{
 		LOG_LIMIT(100, __FUNCTION__ << " Error: failed to create Direct3D9 object");
 		return DDERR_UNSUPPORTED;
+	}
+
+	return DD_OK;
+}
+
+HRESULT ReleaseD3D9(LPDIRECT3D9& d3d9Object, LPDIRECT3D9EX& d3d9ObjectEx)
+{
+	if (!d3d9Object)
+	{
+		LOG_LIMIT(100, __FUNCTION__ << " Error: 'd3d9Object' is set to NULL!");
+		return DDERR_GENERIC;
+	}
+
+	ULONG ref = d3d9Object->Release();
+	if (ref)
+	{
+		Logging::Log() << __FUNCTION__ << " Error: there is still a reference to 'd3d9Object' " << ref;
+	}
+	d3d9Object = nullptr;
+	d3d9ObjectEx = nullptr;
+
+	return DD_OK;
+}
+
+HRESULT DirectDrawEnumerateHandler(LPVOID lpCallback, LPVOID lpContext, DWORD dwFlags, DirectDrawEnumerateTypes DDETType)
+{
+	UNREFERENCED_PARAMETER(dwFlags);
+
+	if (!lpCallback)
+	{
+		return DDERR_INVALIDPARAMS;
+	}
+
+	// Create Direct3D9 object
+	LPDIRECT3D9 d3d9Object = nullptr;
+	LPDIRECT3D9EX d3d9ObjectEx = nullptr;
+	HRESULT hr = CreateD3D9(d3d9Object, d3d9ObjectEx);
+	if (FAILED(hr))
+	{
+		LOG_LIMIT(100, __FUNCTION__ << " Error: failed to create Direct3D9 object: " << (DDERR)hr);
+		return hr;
 	}
 
 	D3DADAPTER_IDENTIFIER9 Identifier = {};
@@ -521,7 +557,6 @@ HRESULT DirectDrawEnumerateHandler(LPVOID lpCallback, LPVOID lpContext, DWORD dw
 	wchar_t lpwName[32] = { '\0' };
 	wchar_t lpwDesc[128] = { '\0' };
 	HMONITOR hm = nullptr;
-	HRESULT hr = DD_OK;
 	for (int x = -1; x < AdapterCount; x++)
 	{
 		if (x == -1)
@@ -585,11 +620,10 @@ HRESULT DirectDrawEnumerateHandler(LPVOID lpCallback, LPVOID lpContext, DWORD dw
 		}
 	}
 
-	ULONG ref = d3d9Object->Release();
-	if (ref)
-	{
-		Logging::Log() << __FUNCTION__ << " Error: there is still a reference to 'd3d9Object' " << ref;
-	}
+	// Release Direct3D9 object
+	ReleaseD3D9(d3d9Object, d3d9ObjectEx);
+
+	// Return
 	return hr;
 }
 
