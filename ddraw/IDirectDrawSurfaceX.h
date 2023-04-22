@@ -100,6 +100,7 @@ private:
 	bool ComplexRoot = false;
 	bool PresentOnUnlock = false;
 	bool IsLocked = false;
+	bool IsSurfaceDynamic = false;
 	DWORD LockedWithID = 0;
 	bool IsInDC = false;
 	HDC LastDC = nullptr;
@@ -201,6 +202,8 @@ private:
 	inline LPDIRECT3DSURFACE9 *GetSurface3D() { return &surface3D; }
 	inline LPDIRECT3DTEXTURE9 *GetSurfaceTexture() { return &surfaceTexture; }
 	inline LPDIRECT3DSURFACE9 *GetContextSurface() { return &contextSurface; }
+	inline HRESULT LockD39Surface(D3DLOCKED_RECT* pLockedRect, RECT* pRect, DWORD Flags);
+	inline HRESULT UnlockD39Surface();
 
 	// Locking rect coordinates
 	bool CheckCoordinates(LPRECT lpOutRect, LPRECT lpInRect);
@@ -313,8 +316,8 @@ public:
 	HRESULT Initialize(LPDIRECTDRAW, LPDDSURFACEDESC);
 	HRESULT Initialize2(LPDIRECTDRAW, LPDDSURFACEDESC2);
 	STDMETHOD(IsLost)(THIS);
-	HRESULT Lock(LPRECT, LPDDSURFACEDESC, DWORD, HANDLE);
-	HRESULT Lock2(LPRECT, LPDDSURFACEDESC2, DWORD, HANDLE);
+	HRESULT Lock(LPRECT, LPDDSURFACEDESC, DWORD, HANDLE, DWORD);
+	HRESULT Lock2(LPRECT, LPDDSURFACEDESC2, DWORD, HANDLE, DWORD);
 	STDMETHOD(ReleaseDC)(THIS_ HDC);
 	STDMETHOD(Restore)(THIS);
 	STDMETHOD(SetClipper)(THIS_ LPDIRECTDRAWCLIPPER);

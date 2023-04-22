@@ -143,7 +143,7 @@ HRESULT m_IDirectDrawSurface3::IsLost()
 
 HRESULT m_IDirectDrawSurface3::Lock(LPRECT a, LPDDSURFACEDESC b, DWORD c, HANDLE d)
 {
-	return ProxyInterface->Lock(a, b, c, d);
+	return ProxyInterface->Lock(a, b, c, d, DirectXVersion);
 }
 
 HRESULT m_IDirectDrawSurface3::ReleaseDC(HDC a)
