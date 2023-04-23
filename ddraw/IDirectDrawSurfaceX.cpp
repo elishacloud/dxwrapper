@@ -378,20 +378,20 @@ HRESULT m_IDirectDrawSurfaceX::Blt(LPRECT lpDestRect, LPDIRECTDRAWSURFACE7 lpDDS
 			return c_hr;
 		}
 
-		// All DDBLT_ALPHA flag values, Not currently implemented in ddraw.
+		// All DDBLT_ALPHA flag values, Not currently implemented in DirectDraw.
 		if (dwFlags & (DDBLT_ALPHADEST | DDBLT_ALPHADESTCONSTOVERRIDE | DDBLT_ALPHADESTNEG | DDBLT_ALPHADESTSURFACEOVERRIDE | DDBLT_ALPHAEDGEBLEND |
 			DDBLT_ALPHASRC | DDBLT_ALPHASRCCONSTOVERRIDE | DDBLT_ALPHASRCNEG | DDBLT_ALPHASRCSURFACEOVERRIDE))
 		{
 			return DDERR_NOALPHAHW;
 		}
 
-		// All DDBLT_ZBUFFER flag values, This method does not currently support z-aware bitblt operations. None of the flags beginning with "DDBLT_ZBUFFER" are supported in ddraw.
+		// All DDBLT_ZBUFFER flag values: This method does not currently support z-aware bitblt operations. None of the flags beginning with "DDBLT_ZBUFFER" are supported in DirectDraw.
 		if (dwFlags & (DDBLT_ZBUFFER | DDBLT_ZBUFFERDESTCONSTOVERRIDE | DDBLT_ZBUFFERDESTOVERRIDE | DDBLT_ZBUFFERSRCCONSTOVERRIDE | DDBLT_ZBUFFERSRCOVERRIDE))
 		{
 			return DDERR_NOZBUFFERHW;
 		}
 
-		// DDBLT_DDROPS - dwDDROP is ignored as "no such ROPs are currently defined" in ddraw
+		// DDBLT_DDROPS - dwDDROP is ignored as "no such ROPs are currently defined" in DirectDraw
 		if (dwFlags & DDBLT_DDROPS)
 		{
 			return DDERR_NODDROPSHW;
@@ -419,16 +419,18 @@ HRESULT m_IDirectDrawSurfaceX::Blt(LPRECT lpDestRect, LPDIRECTDRAWSURFACE7 lpDDS
 		}
 
 		// Check for rotation flags
+		// ToDo: add support for other rotation flags (90,180, 270).  Not sure if any game uses these other flags.
 		if ((dwFlags & DDBLT_ROTATIONANGLE) || ((dwFlags & DDBLT_DDFX) && (lpDDBltFx->dwDDFX & (DDBLTFX_ROTATE90 | DDBLTFX_ROTATE180 | DDBLTFX_ROTATE270))))
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Error: Rotation operations Not Implemented: " << Logging::hex(lpDDBltFx->dwDDFX & (DDBLTFX_ROTATE90 | DDBLTFX_ROTATE180 | DDBLTFX_ROTATE270)));
 			return DDERR_NOROTATIONHW;
 		}
 
+		// ToDo: add support for waiting when surface is busy because of another thread
+		const bool BltWait = ((dwFlags & DDBLT_WAIT) && (dwFlags & DDBLT_DONOTWAIT) == 0);
+
 		// Other flags, not yet implemented in dxwrapper
 		// DDBLT_ASYNC - Current dxwrapper implementation always allows async if calling from multiple threads
-		// DDBLT_DONOTWAIT - Current dxwrapper implementation never waits for other threads to finish Bltting
-		// DDBLT_WAIT - Current dxwrapper implementation never waits for other threads to finish Bltting
 
 		// Check if the scene needs to be presented
 		isSkipScene = isSkipScene || ((lpDestRect) ? CheckRectforSkipScene(*lpDestRect) : false);
@@ -537,6 +539,12 @@ HRESULT m_IDirectDrawSurfaceX::Blt(LPRECT lpDestRect, LPDIRECTDRAWSURFACE7 lpDDS
 
 			// Present surface
 			EndWritePresent(isSkipScene);
+		}
+
+		// Check if surface was busy
+		if (!BltWait && hr == DDERR_SURFACEBUSY && LockedWithID && LockedWithID != GetCurrentThreadId())
+		{
+			return D3DERR_WASSTILLDRAWING;
 		}
 
 		// Return
@@ -1953,7 +1961,7 @@ HRESULT m_IDirectDrawSurfaceX::Lock2(LPRECT lpDestRect, LPDDSURFACEDESC2 lpDDSur
 		}
 
 		// Convert flags to d3d9
-		bool LockWait = (((dwFlags & DDLOCK_WAIT) || DirectXVersion == 7) && (dwFlags & DDLOCK_DONOTWAIT) == 0);
+		const bool LockWait = (((dwFlags & DDLOCK_WAIT) || DirectXVersion == 7) && (dwFlags & DDLOCK_DONOTWAIT) == 0);
 		DWORD Flags = (dwFlags & (D3DLOCK_READONLY | D3DLOCK_NOOVERWRITE | (IsSurfaceDynamic ? D3DLOCK_DISCARD : 0) | (!IsPrimarySurface() ? D3DLOCK_NOSYSLOCK : 0))) |
 			(!LockWait ? D3DLOCK_DONOTWAIT : 0) |
 			((dwFlags & DDLOCK_NODIRTYUPDATE) ? D3DLOCK_NO_DIRTY_UPDATE : 0);
