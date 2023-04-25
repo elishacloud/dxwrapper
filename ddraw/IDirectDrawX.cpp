@@ -1441,8 +1441,8 @@ HRESULT m_IDirectDrawX::RestoreDisplayMode()
 		displayModeRefreshRate = 0;
 		isWindowed = true;
 
-		// Release existing d3d9device and surfaces
-		ReleaseD3D9DeviceAllSurfaces();
+		// Restore all existing surfaces
+		RestoreAllSurfaces();
 
 		return DD_OK;
 	}
@@ -2571,7 +2571,7 @@ void m_IDirectDrawX::SetD3DDevice(m_IDirect3DDeviceX *D3DDevice)
 {
 	if (!D3DDeviceInterface)
 	{
-		ReleaseD3D9DeviceAllSurfaces();
+		ReleaseAllD9Surfaces(true);
 	}
 	D3DDeviceInterface = D3DDevice;
 }
@@ -2774,9 +2774,9 @@ HRESULT m_IDirectDrawX::CreateD3D9Device()
 				// Release surfaces to prepare for reset
 				// In Direct3D9 extensions calling Reset after a mode change does not cause texture memory surfaces, textures and state information to be lost and
 				// these resources do not need to be recreated.
-				if (!Config.DdrawUseDirect3D9Ex)
+				if (!d3d9ObjectEx)
 				{
-					ReleaseAllD9Surfaces();
+					ReleaseAllD9Surfaces(true);
 					hr = d3d9Device->Reset(&presParams);
 				}
 				else
@@ -2788,20 +2788,21 @@ HRESULT m_IDirectDrawX::CreateD3D9Device()
 					}
 				}
 
-				// Attempt to reset the device
+				// Resetting the device failed
 				if (FAILED(hr))
 				{
 					Logging::Log() << __FUNCTION__ << " Failed to reset device! Last create: " << LastHWnd << "->" << hWnd << " " <<
 						" Windowed: " << LastWindowedMode << "->" << presParams.Windowed <<
 						Logging::hex(LastBehaviorFlags) << "->" << Logging::hex(BehaviorFlags);
 
-					if (!Config.DdrawUseDirect3D9Ex)
+					if (!d3d9ObjectEx)
 					{
 						ReleaseD3D9Device();
 					}
 					else
 					{
-						ReleaseD3D9DeviceAllSurfaces();
+						ReleaseAllD9Surfaces(false);
+						ReleaseD3D9Device();
 					}
 				}
 			}
@@ -2812,14 +2813,15 @@ HRESULT m_IDirectDrawX::CreateD3D9Device()
 					" Windowed: " << LastWindowedMode << "->" << presParams.Windowed << " " <<
 					Logging::hex(LastBehaviorFlags) << "->" << Logging::hex(BehaviorFlags);
 
-				ReleaseD3D9DeviceAllSurfaces();
+				ReleaseAllD9Surfaces(true);
+				ReleaseD3D9Device();
 			}
 		}
 
 		// Create d3d9 Device
 		if (!d3d9Device)
 		{
-			if (!Config.DdrawUseDirect3D9Ex)
+			if (!d3d9ObjectEx)
 			{
 				hr = d3d9Object->CreateDevice(D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, hWnd, BehaviorFlags, &presParams, &d3d9Device);
 			}
@@ -2934,7 +2936,11 @@ HRESULT m_IDirectDrawX::ReinitDevice()
 	{
 		return DD_OK;
 	}
-	else if (hr != D3DERR_DEVICENOTRESET)
+	else if (hr == D3DERR_DEVICELOST)
+	{
+		return DDERR_SURFACELOST;
+	}
+	else if (hr != D3DERR_DEVICENOTRESET && hr != D3DERR_DRIVERINTERNALERROR)
 	{
 		LOG_LIMIT(100, __FUNCTION__ << " Error: TestCooperativeLevel = " << (D3DERR)hr);
 		return DDERR_GENERIC;
@@ -2943,28 +2949,28 @@ HRESULT m_IDirectDrawX::ReinitDevice()
 	SetCriticalSection();
 
 	do {
-		// EndScene before resetting
-		if (IsInScene)
+		if (!d3d9ObjectEx)
 		{
-			d3d9Device->EndScene();
-			IsInScene = false;
-		}
+			// Release surfaces to prepare for reset
+			ReleaseAllD9Surfaces(false);
 
-		// Release surfaces to prepare for reset
-		ReleaseAllD9Surfaces();
-
-		if (!Config.DdrawUseDirect3D9Ex)
-		{
 			hr = d3d9Device->Reset(&presParams);
+			if (hr == D3DERR_DEVICEREMOVED || hr == D3DERR_DRIVERINTERNALERROR)
+			{
+				ReleaseD3D9Device();
+				ReleaseD3D9Object();
+				CreateD3D9Object();
+				CreateD3D9Device();
+			}
 		}
 		else
 		{
 			// In Direct3D9 extension devices are only lost when the hardware is reset because it is hanging, and when the device driver is stopped.
-			// When hardware hangs, the device can be reset by calling ResetEx.
-			// After a driver is stopped, the IDirect9Ex object must be recreated to resume rendering.
+			// When hardware hangs, the device can be reset by calling ResetEx. After a driver is stopped, the IDirect9Ex object must be recreated to resume rendering.
 			hr = d3d9DeviceEx->ResetEx(&presParams, (presParams.Windowed) ? nullptr : &FullscreenDisplayMode);
-			if (SUCCEEDED(hr))
+			if (hr == D3DERR_DEVICEHUNG || hr == D3DERR_DEVICELOST)
 			{
+				ReleaseAllD9Surfaces(false);
 				ReleaseD3D9Device();
 				ReleaseD3D9Object();
 				CreateD3D9Object();
@@ -2975,12 +2981,13 @@ HRESULT m_IDirectDrawX::ReinitDevice()
 		// Attempt to reset the device
 		if (FAILED(hr))
 		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error: failed to reset Direct3D9 device");
+			LOG_LIMIT(100, __FUNCTION__ << " Error: failed to reset Direct3D9 device: " << (D3DERR)hr);
 			hr = DDERR_GENERIC;
 			break;
 		}
 
 		// Reset flags after resetting device
+		IsInScene = false;
 		EnableWaitVsync = false;
 
 	} while (false);
@@ -2992,7 +2999,7 @@ HRESULT m_IDirectDrawX::ReinitDevice()
 }
 
 // Release all surfaces from all ddraw devices
-void m_IDirectDrawX::ReleaseAllD9Surfaces()
+void m_IDirectDrawX::ReleaseAllD9Surfaces(bool BackupData)
 {
 	SetCriticalSection();
 
@@ -3000,21 +3007,11 @@ void m_IDirectDrawX::ReleaseAllD9Surfaces()
 	{
 		for (m_IDirectDrawSurfaceX* pSurface : pDDraw->SurfaceVector)
 		{
-			pSurface->ReleaseD9Surface(true);
+			pSurface->ReleaseD9Surface(BackupData);
 		}
 	}
 
 	ReleaseCriticalSection();
-}
-
-// Release all d3d9 surfaces and devices
-void m_IDirectDrawX::ReleaseD3D9DeviceAllSurfaces()
-{
-	// Release all existing surfaces
-	ReleaseAllD9Surfaces();
-
-	// Release d3d9 device
-	ReleaseD3D9Device();
 }
 
 // Release all d3d9 device
@@ -3306,7 +3303,7 @@ HRESULT m_IDirectDrawX::Present()
 	const bool UseVSync = (EnableWaitVsync && !Config.EnableVSync);
 
 	// Skip frame if time lapse is too small
-	if (Config.AutoFrameSkip && !Config.DdrawUseDirect3D9Ex && !UseVSync)
+	if (Config.AutoFrameSkip && !d3d9ObjectEx && !UseVSync)
 	{
 		if (FrequencyFlag)
 		{
@@ -3350,7 +3347,7 @@ HRESULT m_IDirectDrawX::Present()
 
 	// Present everthing, skip Preset when using DdrawWriteToGDI
 	HRESULT hr;
-	if (!Config.DdrawUseDirect3D9Ex)
+	if (!d3d9ObjectEx)
 	{
 		hr = d3d9Device->Present(nullptr, nullptr, nullptr, nullptr);
 	}

@@ -3686,7 +3686,10 @@ void m_IDirectDrawSurfaceX::ReleaseD9Surface(bool BackupData)
 	{
 		if (LastDC)
 		{
-			ReleaseDC(LastDC);
+			if (BackupData)
+			{
+				ReleaseDC(LastDC);
+			}
 			LastDC = nullptr;
 		}
 		IsInDC = false;
@@ -3695,7 +3698,10 @@ void m_IDirectDrawSurfaceX::ReleaseD9Surface(bool BackupData)
 	// Unlock surface (before releasing)
 	if (IsLocked)
 	{
-		UnlockD39Surface();
+		if (BackupData)
+		{
+			UnlockD39Surface();
+		}
 		IsLocked = false;
 		LockedWithID = 0;
 	}
@@ -3792,7 +3798,7 @@ void m_IDirectDrawSurfaceX::ReleaseD9Surface(bool BackupData)
 	if (paletteTexture)
 	{
 		Logging::LogDebug() << __FUNCTION__ << " Releasing Direct3D9 palette texture surface";
-		if (d3d9Device && *d3d9Device)
+		if (BackupData && d3d9Device && *d3d9Device)
 		{
 			(*d3d9Device)->SetTexture(1, nullptr);
 		}
@@ -3808,7 +3814,7 @@ void m_IDirectDrawSurfaceX::ReleaseD9Surface(bool BackupData)
 	if (pixelShader)
 	{
 		Logging::LogDebug() << __FUNCTION__ << " Releasing Direct3D9 pixel shader";
-		if (d3d9Device && *d3d9Device)
+		if (BackupData && d3d9Device && *d3d9Device)
 		{
 			(*d3d9Device)->SetPixelShader(nullptr);
 		}
@@ -5217,8 +5223,8 @@ HRESULT m_IDirectDrawSurfaceX::CopyToEmulatedSurface(LPRECT lpDestRect)
 	}
 
 	// Get lock for real surface
-	D3DLOCKED_RECT DestLockRect = {};
-	if (FAILED(LockD39Surface(&DestLockRect, &DestRect, 0)))
+	D3DLOCKED_RECT SrcLockRect = {};
+	if (FAILED(LockD39Surface(&SrcLockRect, &DestRect, 0)))
 	{
 		LOG_LIMIT(100, __FUNCTION__ << " Error: could not lock destination surface " << DestRect);
 		return (IsLocked) ? DDERR_SURFACEBUSY : DDERR_GENERIC;
@@ -5226,30 +5232,30 @@ HRESULT m_IDirectDrawSurfaceX::CopyToEmulatedSurface(LPRECT lpDestRect)
 
 	// Create buffer variables
 	BYTE* EmulatedBuffer = (BYTE*)EmulatedLockRect.pBits;
-	BYTE* SurfaceBuffer = (BYTE*)DestLockRect.pBits;
+	BYTE* SurfaceBuffer = (BYTE*)SrcLockRect.pBits;
 
 	DWORD Height = (DestRect.bottom - DestRect.top);
-	INT WidthPitch = min(DestLockRect.Pitch, EmulatedLockRect.Pitch);
+	INT WidthPitch = min(SrcLockRect.Pitch, EmulatedLockRect.Pitch);
 
 	HRESULT hr = DD_OK;
 
 	// Copy real surface data to emulated surface
 	switch ((DWORD)surfaceFormat)
 	{
-	case D3DFMT_B8G8R8:
+	case D3DFMT_X4R4G4B4:
+	case D3DFMT_A4R4G4B4:
 		for (LONG x = DestRect.top; x < DestRect.bottom; x++)
 		{
-			TRIBYTE* EmulatedBufferLoop = (TRIBYTE*)EmulatedBuffer;
+			WORD* EmulatedBufferLoop = (WORD*)EmulatedBuffer;
 			DWORD* SurfaceBufferLoop = (DWORD*)SurfaceBuffer;
 			for (LONG y = DestRect.left; y < DestRect.right; y++)
 			{
-				DWORD Pixel = D3DFMT_A8B8G8R8_COPY(*(DWORD*)SurfaceBufferLoop);
-				*EmulatedBufferLoop = *(TRIBYTE*)&Pixel;
+				*EmulatedBufferLoop = D3DFMT_A4R4G4B4_COPY(SurfaceBufferLoop);
 				EmulatedBufferLoop++;
 				SurfaceBufferLoop++;
 			}
 			EmulatedBuffer += EmulatedLockRect.Pitch;
-			SurfaceBuffer += DestLockRect.Pitch;
+			SurfaceBuffer += SrcLockRect.Pitch;
 		}
 		break;
 	case D3DFMT_R8G8B8:
@@ -5264,27 +5270,23 @@ HRESULT m_IDirectDrawSurfaceX::CopyToEmulatedSurface(LPRECT lpDestRect)
 				SurfaceBufferLoop++;
 			}
 			EmulatedBuffer += EmulatedLockRect.Pitch;
-			SurfaceBuffer += DestLockRect.Pitch;
+			SurfaceBuffer += SrcLockRect.Pitch;
 		}
 		break;
-	case D3DFMT_X4R4G4B4:
-	case D3DFMT_A4R4G4B4:
+	case D3DFMT_B8G8R8:
 		for (LONG x = DestRect.top; x < DestRect.bottom; x++)
 		{
-			WORD* EmulatedBufferLoop = (WORD*)EmulatedBuffer;
-			BYTE* SurfaceBufferLoop = (BYTE*)SurfaceBuffer;
+			TRIBYTE* EmulatedBufferLoop = (TRIBYTE*)EmulatedBuffer;
+			DWORD* SurfaceBufferLoop = (DWORD*)SurfaceBuffer;
 			for (LONG y = DestRect.left; y < DestRect.right; y++)
 			{
-				*EmulatedBufferLoop =
-					(WORD)((SurfaceBufferLoop[0] / 17) << 12) +
-					(WORD)((SurfaceBufferLoop[1] / 17) << 8) +
-					(WORD)((SurfaceBufferLoop[2] / 17) << 4) +
-					(WORD)((SurfaceBufferLoop[3] / 17));
+				DWORD Pixel = D3DFMT_B8G8R8_COPY(*(DWORD*)SurfaceBufferLoop);
+				*EmulatedBufferLoop = *(TRIBYTE*)&Pixel;
 				EmulatedBufferLoop++;
-				SurfaceBufferLoop += 4;
+				SurfaceBufferLoop++;
 			}
 			EmulatedBuffer += EmulatedLockRect.Pitch;
-			SurfaceBuffer += DestLockRect.Pitch;
+			SurfaceBuffer += SrcLockRect.Pitch;
 		}
 		break;
 	case D3DFMT_X8B8G8R8:
@@ -5300,13 +5302,13 @@ HRESULT m_IDirectDrawSurfaceX::CopyToEmulatedSurface(LPRECT lpDestRect)
 				SurfaceBufferLoop++;
 			}
 			EmulatedBuffer += EmulatedLockRect.Pitch;
-			SurfaceBuffer += DestLockRect.Pitch;
+			SurfaceBuffer += SrcLockRect.Pitch;
 		}
 		break;
 	default:
-		if (DestLockRect.Pitch == EmulatedLockRect.Pitch)
+		if (SrcLockRect.Pitch == EmulatedLockRect.Pitch && (LONG)ComputePitch((DWORD)(DestRect.right - DestRect.left), emu->bmi->bmiHeader.biBitCount) == EmulatedLockRect.Pitch)
 		{
-			memcpy(EmulatedBuffer, SurfaceBuffer, DestLockRect.Pitch * Height);
+			memcpy(EmulatedBuffer, SurfaceBuffer, SrcLockRect.Pitch * Height);
 		}
 		else if (emu->bmi->bmiHeader.biBitCount == surfaceBitCount)
 		{
@@ -5314,7 +5316,7 @@ HRESULT m_IDirectDrawSurfaceX::CopyToEmulatedSurface(LPRECT lpDestRect)
 			{
 				memcpy(EmulatedBuffer, SurfaceBuffer, WidthPitch);
 				EmulatedBuffer += EmulatedLockRect.Pitch;
-				SurfaceBuffer += DestLockRect.Pitch;
+				SurfaceBuffer += SrcLockRect.Pitch;
 			}
 		}
 		else

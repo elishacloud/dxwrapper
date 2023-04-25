@@ -475,30 +475,44 @@ HRESULT CreateD3D9(LPDIRECT3D9& d3d9Object, LPDIRECT3D9EX& d3d9ObjectEx)
 	static Direct3DCreate9Proc Direct3DCreate9 = reinterpret_cast<Direct3DCreate9Proc>(Direct3DCreate9_out);
 	static Direct3DCreate9ExProc Direct3DCreate9Ex = reinterpret_cast<Direct3DCreate9ExProc>(Direct3DCreate9Ex_out);
 
-	if (!Direct3DCreate9Ex && Config.DdrawUseDirect3D9Ex)
-	{
-		LOG_LIMIT(100, __FUNCTION__ << " Error: failed to find 'Direct3DCreate9Ex' ProcAddress in d3d9.dll.  Disabling 'DdrawUseDirect3D9Ex'!");
-		Config.DdrawUseDirect3D9Ex = false;
-	}
-
 	if (!Direct3DCreate9)
 	{
 		LOG_LIMIT(100, __FUNCTION__ << " Error: failed to get 'Direct3DCreate9' ProcAddress of d3d9.dll!");
 		return DDERR_GENERIC;
 	}
 
-	// Create Direct3D9 device
-	if (!Config.DdrawUseDirect3D9Ex)
+	if (Config.DdrawUseDirect3D9Ex)
 	{
-		d3d9Object = Direct3DCreate9(D3D_SDK_VERSION);
+		if (Direct3DCreate9Ex)
+		{
+			// Try creating Direct3D9 with extensions
+			HRESULT hr = Direct3DCreate9Ex(D3D_SDK_VERSION, &d3d9ObjectEx);
+			if (SUCCEEDED(hr))
+			{
+				d3d9Object = d3d9ObjectEx;
+			}
+			// Fail over to base Direct3D9
+			else
+			{
+				d3d9Object = Direct3DCreate9(D3D_SDK_VERSION);
+				if (d3d9Object)
+				{
+					LOG_LIMIT(100, __FUNCTION__ << " Error: failed to create Direct3D9 object with extensions.  Using base Direct3D9!");
+				}
+			}
+		}
+		else
+		{
+			// Fail over to base Direct3D9
+			d3d9Object = Direct3DCreate9(D3D_SDK_VERSION);
+
+			LOG_LIMIT(100, __FUNCTION__ << " Error: failed to find 'Direct3DCreate9Ex' ProcAddress in d3d9.dll.  Disabling 'DdrawUseDirect3D9Ex'!");
+			Config.DdrawUseDirect3D9Ex = false;
+		}
 	}
 	else
 	{
-		HRESULT hr = Direct3DCreate9Ex(D3D_SDK_VERSION, &d3d9ObjectEx);
-		if (SUCCEEDED(hr))
-		{
-			d3d9Object = d3d9ObjectEx;
-		}
+		d3d9Object = Direct3DCreate9(D3D_SDK_VERSION);
 	}
 
 	// Error creating Direct3D9

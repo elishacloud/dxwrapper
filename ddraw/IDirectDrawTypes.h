@@ -11,6 +11,10 @@
 	(BYTE)((w>>5)&0x3f)*4
 #define D3DCOLOR_R5G6B5_RED(w) \
 	(BYTE)((w>>11)&0x1f)*8
+#define D3DFMT_A4R4G4B4_COPY(w) \
+	(((WORD)(((BYTE*)w))[0]/17)<<12)+(((WORD)((BYTE*)w)[1]/17)<<8)+(((WORD)((BYTE*)w)[2]/17)<<4)+(((WORD)((BYTE*)w)[3]/17))
+#define D3DFMT_B8G8R8_COPY(w) \
+	(((w & 0xFF)<<16)+(w & 0xFF00)+((w & 0xFF0000)>>16))
 #define D3DFMT_A8B8G8R8_COPY(w) \
 	((w & 0xFF000000)+((w & 0xFF)<<16)+(w & 0xFF00)+((w & 0xFF0000)>>16))
 
