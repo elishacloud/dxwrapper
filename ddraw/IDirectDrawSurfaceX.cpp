@@ -4699,32 +4699,6 @@ HRESULT m_IDirectDrawSurfaceX::ColorFill(RECT* pRect, D3DCOLOR dwFillColor)
 	return DD_OK;
 }
 
-inline void vmemcpy(void* _Dst, void const* _Src, size_t _Width, D3DFORMAT SrcFormat, D3DFORMAT DestFormat)
-{
-	// Error checking
-	if (!_Dst || !_Src || !_Width)
-	{
-		return;
-	}
-	if (SrcFormat == D3DFMT_R5G6B5 && (DestFormat == D3DFMT_A8R8G8B8 || DestFormat == D3DFMT_X8R8G8B8))
-	{
-		WORD* SrcAddr = (WORD*)_Src;
-		BYTE* DstAddr = (BYTE*)_Dst;
-		for (UINT x = 0; x < _Width; x++)
-		{
-			DstAddr[0] = D3DCOLOR_R5G6B5_BLUE(*SrcAddr);
-			DstAddr[1] = D3DCOLOR_R5G6B5_GREEN(*SrcAddr);
-			DstAddr[2] = D3DCOLOR_R5G6B5_RED(*SrcAddr);
-			SrcAddr += 1;
-			DstAddr += 4;
-		}
-	}
-	else
-	{
-		LOG_LIMIT(100, __FUNCTION__ << " Error: not supported for specified source and destination formats! " << SrcFormat << "-->" << DestFormat);
-	}
-}
-
 // Copy surface
 HRESULT m_IDirectDrawSurfaceX::CopySurface(m_IDirectDrawSurfaceX* pSourceSurface, RECT* pSourceRect, RECT* pDestRect, D3DTEXTUREFILTERTYPE Filter, DDCOLORKEY ColorKey, DWORD dwFlags)
 {
@@ -4868,6 +4842,7 @@ HRESULT m_IDirectDrawSurfaceX::CopySurface(m_IDirectDrawSurfaceX* pSourceSurface
 		if (SrcFormat == D3DFMT_R5G6B5 && (DestFormat == D3DFMT_A8R8G8B8 || DestFormat == D3DFMT_X8R8G8B8))
 		{
 			FormatMismatch = true;
+			LOG_LIMIT(100, __FUNCTION__ << " Warning: source and destination formats don't match! " << SrcFormat << "-->" << DestFormat);
 		}
 		else if (!(SrcFormat == DestFormat ||
 			((SrcFormat == D3DFMT_A1R5G5B5 || SrcFormat == D3DFMT_X1R5G5B5) && (DestFormat == D3DFMT_A1R5G5B5 || DestFormat == D3DFMT_X1R5G5B5)) ||
@@ -4950,18 +4925,9 @@ HRESULT m_IDirectDrawSurfaceX::CopySurface(m_IDirectDrawSurfaceX* pSourceSurface
 		}
 
 		// Simple memory copy (QuickCopy)
-		if (!IsStretchRect && !IsColorKey && !IsMirrorLeftRight)
+		if (!IsStretchRect && !IsColorKey && !IsMirrorLeftRight && !FormatMismatch)
 		{
-			if (FormatMismatch)
-			{
-				for (LONG y = 0; y < DestRectHeight; y++)
-				{
-					vmemcpy(DestBuffer, SrcBuffer, DestRectWidth, SrcFormat, DestFormat);
-					SrcBuffer += SrcLockRect.Pitch;
-					DestBuffer += DestPitch;
-				}
-			}
-			else if (SrcLockRect.Pitch == DestLockRect.Pitch && (LONG)ComputePitch(DestRectWidth, DestBitCount) == DestPitch)
+			if (!IsMirrorUpDown && SrcLockRect.Pitch == DestLockRect.Pitch && (LONG)ComputePitch(DestRectWidth, DestBitCount) == DestPitch)
 			{
 				memcpy(DestBuffer, SrcBuffer, DestRectHeight * DestPitch);
 			}
@@ -5085,9 +5051,7 @@ HRESULT m_IDirectDrawSurfaceX::CopySurface(m_IDirectDrawSurfaceX* pSourceSurface
 				{
 					if (FormatMismatch)
 					{
-						LoopBuffer[0] = D3DCOLOR_R5G6B5_BLUE(*(WORD*)NewPixel);
-						LoopBuffer[1] = D3DCOLOR_R5G6B5_GREEN(*(WORD*)NewPixel);
-						LoopBuffer[2] = D3DCOLOR_R5G6B5_RED(*(WORD*)NewPixel);
+						*(DWORD*)LoopBuffer = D3DFMT_R5G6B5_TO_X8R8G8B8(*(WORD*)NewPixel);
 						LoopBuffer += ByteCount;
 					}
 					else
@@ -5250,7 +5214,7 @@ HRESULT m_IDirectDrawSurfaceX::CopyToEmulatedSurface(LPRECT lpDestRect)
 			DWORD* SurfaceBufferLoop = (DWORD*)SurfaceBuffer;
 			for (LONG y = DestRect.left; y < DestRect.right; y++)
 			{
-				*EmulatedBufferLoop = D3DFMT_A4R4G4B4_COPY(SurfaceBufferLoop);
+				*EmulatedBufferLoop = D3DFMT_A8R8G8B8_TO_A4R4G4B4(*SurfaceBufferLoop);
 				EmulatedBufferLoop++;
 				SurfaceBufferLoop++;
 			}
@@ -5280,7 +5244,7 @@ HRESULT m_IDirectDrawSurfaceX::CopyToEmulatedSurface(LPRECT lpDestRect)
 			DWORD* SurfaceBufferLoop = (DWORD*)SurfaceBuffer;
 			for (LONG y = DestRect.left; y < DestRect.right; y++)
 			{
-				DWORD Pixel = D3DFMT_B8G8R8_COPY(*(DWORD*)SurfaceBufferLoop);
+				DWORD Pixel = D3DFMT_X8R8G8B8_TO_B8G8R8(*SurfaceBufferLoop);
 				*EmulatedBufferLoop = *(TRIBYTE*)&Pixel;
 				EmulatedBufferLoop++;
 				SurfaceBufferLoop++;
@@ -5297,7 +5261,7 @@ HRESULT m_IDirectDrawSurfaceX::CopyToEmulatedSurface(LPRECT lpDestRect)
 			DWORD* SurfaceBufferLoop = (DWORD*)SurfaceBuffer;
 			for (LONG y = DestRect.left; y < DestRect.right; y++)
 			{
-				*EmulatedBufferLoop = D3DFMT_A8B8G8R8_COPY(*(DWORD*)SurfaceBufferLoop);
+				*EmulatedBufferLoop = D3DFMT_A8R8G8B8_TO_A8B8G8R8(*SurfaceBufferLoop);
 				EmulatedBufferLoop++;
 				SurfaceBufferLoop++;
 			}

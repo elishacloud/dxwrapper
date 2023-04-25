@@ -5,18 +5,14 @@
 #define D3DFMT_B8G8R8 (D3DFORMAT)19
 #define D3DFMT_YV12   MAKEFOURCC('Y','V','1','2')
 
-#define D3DCOLOR_R5G6B5_BLUE(w) \
-	(BYTE)((w)&0x1f)*8
-#define D3DCOLOR_R5G6B5_GREEN(w) \
-	(BYTE)((w>>5)&0x3f)*4
-#define D3DCOLOR_R5G6B5_RED(w) \
-	(BYTE)((w>>11)&0x1f)*8
-#define D3DFMT_A4R4G4B4_COPY(w) \
-	(((WORD)(((BYTE*)w))[0]/17)<<12)+(((WORD)((BYTE*)w)[1]/17)<<8)+(((WORD)((BYTE*)w)[2]/17)<<4)+(((WORD)((BYTE*)w)[3]/17))
-#define D3DFMT_B8G8R8_COPY(w) \
-	(((w & 0xFF)<<16)+(w & 0xFF00)+((w & 0xFF0000)>>16))
-#define D3DFMT_A8B8G8R8_COPY(w) \
-	((w & 0xFF000000)+((w & 0xFF)<<16)+(w & 0xFF00)+((w & 0xFF0000)>>16))
+#define D3DFMT_R5G6B5_TO_X8R8G8B8(w) \
+	((((DWORD)((w>>11)&0x1f)*8)<<16)+(((DWORD)((w>>5)&0x3f)*4)<<8)+((DWORD)(w&0x1f)*8))
+#define D3DFMT_A8R8G8B8_TO_A4R4G4B4(w) \
+	(WORD)(((((w&0xFF000000)>>24)/17)<<12)+((((w&0xFF0000)>>16)/17)<<8)+((((w&0xFF00)>>8)/17)<<4)+(((w&0xFF)/17)))
+#define D3DFMT_X8R8G8B8_TO_B8G8R8(w) \
+	(((w&0xFF)<<16)+(w&0xFF00)+((w&0xFF0000)>>16))
+#define D3DFMT_A8R8G8B8_TO_A8B8G8R8(w) \
+	((w&0xFF000000)+((w&0xFF)<<16)+(w&0xFF00)+((w&0xFF0000)>>16))
 
 static constexpr DWORD FourCCTypes[] =
 {
