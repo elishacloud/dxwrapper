@@ -138,6 +138,7 @@ cmd /q /c "cd /D ""$(ProjectDir)d3d8\"" &amp;&amp; del build.bat"</Command>
     <ClCompile Include="d3d9\IDirect3DVolume9.cpp" />
     <ClCompile Include="d3d9\IDirect3DVolumeTexture9.cpp" />
     <ClCompile Include="d3d9\InterfaceQuery.cpp" />
+    <ClCompile Include="D3DDDI\d3dddi.cpp" />
     <ClCompile Include="DDrawCompat\DDrawCompatExternal.cpp" />
     <ClCompile Include="DDrawCompat\v0.2.0b\CompatDirectDraw.cpp" />
     <ClCompile Include="DDrawCompat\v0.2.0b\CompatDirectDrawPalette.cpp" />
@@ -406,6 +407,7 @@ cmd /q /c "cd /D ""$(ProjectDir)d3d8\"" &amp;&amp; del build.bat"</Command>
     <ClInclude Include="d3d9\IDirect3DVertexShader9.h" />
     <ClInclude Include="d3d9\IDirect3DVolume9.h" />
     <ClInclude Include="d3d9\IDirect3DVolumeTexture9.h" />
+    <ClInclude Include="D3DDDI\d3dddiExternal.h" />
     <ClInclude Include="DDrawCompat\DDrawCompatExternal.h" />
     <ClInclude Include="DDrawCompat\DDrawLog.h" />
     <ClInclude Include="DDrawCompat\v0.2.0b\CompatDirectDraw.h" />

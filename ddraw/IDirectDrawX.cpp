@@ -19,19 +19,14 @@
 #include "ddraw.h"
 #include "ddrawExternal.h"
 #include "Utils\Utils.h"
-#include <d3dkmthk.h>
 #include "Dllmain\DllMain.h"
 #include "d3d9\d3d9External.h"
+#include "d3dddi\d3dddiExternal.h"
 
 constexpr DWORD MaxVidMemory		= 0x20000000;	// 512 MBs
 constexpr DWORD MinUsedVidMemory	= 0x00100000;	// 1 MB
 
 const D3DFORMAT D9DisplayFormat = D3DFMT_X8R8G8B8;
-
-#define STATUS_SUCCESS 0
-typedef NTSTATUS(WINAPI *D3DKMTWaitForVerticalBlankEventProc)(const D3DKMT_WAITFORVERTICALBLANKEVENT *Arg1);
-typedef NTSTATUS(WINAPI *D3DKMTOpenAdapterFromHdcProc)(D3DKMT_OPENADAPTERFROMHDC *Arg1);
-typedef NTSTATUS(WINAPI *D3DKMTCloseAdapterProc)(const D3DKMT_CLOSEADAPTER *Arg1);
 
 // ddraw interface counter
 DWORD ddrawRefCount = 0;
@@ -119,16 +114,6 @@ D3DPRESENT_PARAMETERS presParams;
 D3DDISPLAYMODEEX FullscreenDisplayMode;
 DWORD BehaviorFlags;
 HWND hFocusWindow;
-
-// D3DKMT vertical blank
-bool VSyncLoaded = false;
-HMODULE gdi_dll = nullptr;
-D3DKMTWaitForVerticalBlankEventProc m_pD3DKMTWaitForVerticalBlankEvent = nullptr;
-D3DKMTOpenAdapterFromHdcProc m_pD3DKMTOpenAdapterFromHdc = nullptr;
-D3DKMTCloseAdapterProc m_pD3DKMTCloseAdapter = nullptr;
-D3DKMT_OPENADAPTERFROMHDC openAdapter = {};
-D3DKMT_CLOSEADAPTER closeAdapter = {};
-D3DKMT_WAITFORVERTICALBLANKEVENT VBlankEvent = {};
 
 std::unordered_map<HWND, m_IDirectDrawX*> g_hookmap;
 
@@ -1527,7 +1512,7 @@ HRESULT m_IDirectDrawX::SetCooperativeLevel(HWND hWnd, DWORD dwFlags, DWORD Dire
 			// Check if DC needs to be released
 			if (MainhWnd && MainhDC && (MainhWnd != hWnd))
 			{
-				CloseVSync();
+				CloseD3DDDI();
 				ReleaseDC(MainhWnd, MainhDC);
 				MainhDC = nullptr;
 			}
@@ -1824,7 +1809,7 @@ HRESULT m_IDirectDrawX::WaitForVerticalBlank(DWORD dwFlags, HANDLE hEvent)
 		case DDWAITVB_BLOCKEND:
 			// Get vertical blank begin first, then get vertical blank end if requested
 			// Use D3DKMT for vertical blank begin
-			if (InitVSync() && m_pD3DKMTWaitForVerticalBlankEvent(&VBlankEvent) == STATUS_SUCCESS)
+			if (OpenD3DDDI(GetDC()) && D3DDDIWaitForVsync())
 			{
 				if (dwFlags == DDWAITVB_BLOCKBEGIN)
 				{
@@ -1906,17 +1891,20 @@ HRESULT m_IDirectDrawX::GetAvailableVidMem2(LPDDSCAPS2 lpDDSCaps2, LPDWORD lpdwT
 			{
 				AvailableMemory = d3d9Device->GetAvailableTextureMem();
 			}
-			else
-			{
-				LOG_LIMIT(100, __FUNCTION__ << " Warning: Unable to get real texture memory.  Direct3D9 device not yet setup!");
-			}
 		}
 		// Get video memory
 		else if (lpDDSCaps2 && lpDDSCaps2->dwCaps == DDSCAPS_VIDEOMEMORY)
 		{
-			// ToDo: figure out how to get the correct adapter number.
-			// For now just return the first video adapter
-			TotalMemory = Utils::GetVideoRam(1);
+			// Open the first adapter in the system
+			if (OpenD3DDDI(GetDC()) && D3DDDIGetVideoMemory(TotalMemory, AvailableMemory))
+			{
+				// Memory acquired using D3DDDI
+			}
+			else
+			{
+				// ToDo: figure out how to get the correct adapter number. For now just return the first video adapter
+				TotalMemory = Utils::GetVideoRam(1);
+			}
 		}
 		// Unknown memory type request
 		else
@@ -2425,11 +2413,8 @@ void m_IDirectDrawX::ReleaseDdraw()
 			ReleaseD3D9Object();
 		}
 
-		// Close vsync
-		if (VSyncLoaded)
-		{
-			CloseVSync();
-		}
+		// Close DDI
+		CloseD3DDDI();
 
 		// Release DC
 		if (MainhWnd && MainhDC)
@@ -2443,49 +2428,6 @@ void m_IDirectDrawX::ReleaseDdraw()
 	}
 
 	ReleaseCriticalSection();
-}
-
-bool m_IDirectDrawX::InitVSync()
-{
-	if (VSyncLoaded)
-	{
-		return true;
-	}
-
-	static bool RunOnce = true;
-	if (RunOnce)
-	{
-		RunOnce = false;
-		gdi_dll = LoadLibrary("gdi32.dll");
-		m_pD3DKMTWaitForVerticalBlankEvent = (D3DKMTWaitForVerticalBlankEventProc)GetProcAddress(gdi_dll, "D3DKMTWaitForVerticalBlankEvent");
-		m_pD3DKMTOpenAdapterFromHdc = (D3DKMTOpenAdapterFromHdcProc)GetProcAddress(gdi_dll, "D3DKMTOpenAdapterFromHdc");
-		m_pD3DKMTCloseAdapter = (D3DKMTCloseAdapterProc)GetProcAddress(gdi_dll, "D3DKMTCloseAdapter");
-	}
-
-	HDC hDC = GetDC();
-
-	if (m_pD3DKMTWaitForVerticalBlankEvent && m_pD3DKMTOpenAdapterFromHdc && m_pD3DKMTCloseAdapter && hDC)
-	{
-		openAdapter.hDc = hDC;
-		if (m_pD3DKMTOpenAdapterFromHdc(&openAdapter) == STATUS_SUCCESS)
-		{
-			VSyncLoaded = true;
-			VBlankEvent.hAdapter = openAdapter.hAdapter;
-			closeAdapter.hAdapter = openAdapter.hAdapter;
-		}
-	}
-	return VSyncLoaded;
-}
-
-void m_IDirectDrawX::CloseVSync()
-{
-	if (VSyncLoaded && m_pD3DKMTCloseAdapter)
-	{
-		if (m_pD3DKMTCloseAdapter(&closeAdapter) == STATUS_SUCCESS)
-		{
-			VSyncLoaded = false;
-		}
-	}
 }
 
 HWND m_IDirectDrawX::GetHwnd()
