@@ -840,56 +840,109 @@ void Utils::DisableGameUX()
 	InterlockedExchangePointer((PVOID*)&p_CreateProcessW, Hook::HotPatch(Hook::GetProcAddress(h_kernel32, "CreateProcessW"), "CreateProcessW", *CreateProcessWHandler));
 }
 
-DWORD Utils::GetVideoRam(DWORD DefaultSize)
+inline UINT GetValueFromString(wchar_t* str)
 {
-	DWORD retSize = DefaultSize;
-
-	CComPtr<IWbemLocator> spLoc = NULL;
-	HRESULT hr = CoCreateInstance(CLSID_WbemLocator, 0, CLSCTX_SERVER, IID_IWbemLocator, (LPVOID *)&spLoc);
-	if (hr != S_OK || spLoc == NULL)
+	int num = 0;
+	for (UINT i = 0; i < wcslen(str); i++)
 	{
-		return retSize;
-	}
-
-	CComBSTR bstrNamespace(_T("\\\\.\\root\\CIMV2"));
-	CComPtr<IWbemServices> spServices;
-
-	// Connect to CIM
-	hr = spLoc->ConnectServer(bstrNamespace, NULL, NULL, 0, NULL, 0, 0, &spServices);
-	if (hr != WBEM_S_NO_ERROR)
-	{
-		return retSize;
-	}
-
-	// Switch the security level to IMPERSONATE so that provider will grant access to system-level objects.  
-	hr = CoSetProxyBlanket(spServices, RPC_C_AUTHN_WINNT, RPC_C_AUTHZ_NONE, NULL, RPC_C_AUTHN_LEVEL_CALL, RPC_C_IMP_LEVEL_IMPERSONATE, NULL, EOAC_NONE);
-	if (hr != S_OK)
-	{
-		return retSize;
-	}
-
-	// Get the vid controller
-	CComPtr<IEnumWbemClassObject> spEnumInst = NULL;
-	hr = spServices->CreateInstanceEnum(CComBSTR("Win32_VideoController"), WBEM_FLAG_SHALLOW, NULL, &spEnumInst);
-	if (hr != WBEM_S_NO_ERROR || spEnumInst == NULL)
-	{
-		return retSize;
-	}
-
-	ULONG uNumOfInstances = 0;
-	CComPtr<IWbemClassObject> spInstance = NULL;
-	hr = spEnumInst->Next(10000, 1, &spInstance, &uNumOfInstances);
-
-	if (hr == S_OK && spInstance)
-	{
-		// Get properties from the object
-		CComVariant varSize;
-		hr = spInstance->Get(CComBSTR(_T("AdapterRAM")), 0, &varSize, 0, 0);
-		if (hr == S_OK)
+		if (iswdigit(str[i]))
 		{
-			retSize = (varSize.intVal) ? (DWORD)varSize.intVal : retSize;
+			num = (num * 10) + (str[i] - '0');
+		}
+		else if (num)
+		{
+			break;
 		}
 	}
+	return num;
+}
+
+DWORD Utils::GetVideoRam(UINT AdapterNo)
+{
+	DWORD retSize = 0;
+
+	// Initialize COM
+	HRESULT hr = CoInitialize(nullptr);
+	if (FAILED(hr))
+	{
+		// Handle error
+		Logging::Log() << __FUNCTION__ << " Error: Failed to CoInitialize.";
+		return retSize;
+	}
+
+	do {
+		// Create an instance of the IWbemLocator interface
+		CComPtr<IWbemLocator> spLoc = nullptr;
+		hr = CoCreateInstance(CLSID_WbemLocator, 0, CLSCTX_SERVER, IID_IWbemLocator, (LPVOID*)&spLoc);
+		if (FAILED(hr))
+		{
+			// Handle error
+			Logging::Log() << __FUNCTION__ << " Error: Failed to CoCreateInstance.";
+			break;
+		}
+
+		// Connect to the root\cimv2 namespace with the IWbemServices interface
+		CComPtr<IWbemServices> spServices = nullptr;
+		hr = spLoc->ConnectServer(CComBSTR(L"root\\cimv2"), nullptr, nullptr, nullptr, 0, nullptr, nullptr, &spServices);
+		if (FAILED(hr))
+		{
+			// Handle error
+			Logging::Log() << __FUNCTION__ << " Error: Failed to connect to the root\\cimv2 namespace.";
+			break;
+		}
+
+		// Set the security levels for the proxy
+		hr = CoSetProxyBlanket(spServices, RPC_C_AUTHN_WINNT, RPC_C_AUTHZ_NONE, nullptr, RPC_C_AUTHN_LEVEL_CALL, RPC_C_IMP_LEVEL_IMPERSONATE, nullptr, EOAC_NONE);
+		if (FAILED(hr))
+		{
+			// Handle error
+			Logging::Log() << __FUNCTION__ << " Error: Failed to set the security levels.";
+			break;
+		}
+
+		// Create an enumerator for Win32_VideoController instances
+		CComPtr<IEnumWbemClassObject> spEnumInst = nullptr;
+		hr = spServices->CreateInstanceEnum(CComBSTR(L"Win32_VideoController"), WBEM_FLAG_SHALLOW, nullptr, &spEnumInst);
+		if (FAILED(hr))
+		{
+			// Handle error
+			Logging::Log() << __FUNCTION__ << " Error: Failed to create an enumerator for Win32_VideoController instances.";
+			break;
+		}
+
+		// Loop through the instances and retrieve the video RAM
+		ULONG uNumOfInstances = 0;
+		do {
+			CComPtr<IWbemClassObject> spInstance = nullptr;
+			hr = spEnumInst->Next(WBEM_INFINITE, 1, &spInstance, &uNumOfInstances);
+			if (SUCCEEDED(hr) && uNumOfInstances)
+			{
+				// Get the DeviceID property from the instance
+				CComVariant varId;
+				hr = spInstance->Get(CComBSTR(L"DeviceID"), 0, &varId, nullptr, nullptr);
+				if (SUCCEEDED(hr))
+				{
+					UINT VideoAdapter = GetValueFromString(varId.bstrVal);
+
+					// Check adapter number
+					if (AdapterNo == VideoAdapter)
+					{
+						// Get the AdapterRAM property from the instance
+						CComVariant varSize;
+						if (SUCCEEDED(spInstance->Get(CComBSTR(L"AdapterRAM"), 0, &varSize, nullptr, nullptr)))
+						{
+							Logging::LogDebug() << __FUNCTION__ << " Found AdapterRAM on adapter: " << VideoAdapter << " Size: " << varSize.intVal;
+							retSize = varSize.intVal;
+							break;
+						}
+					}
+				}
+			}
+		} while (SUCCEEDED(hr) && uNumOfInstances);
+
+	} while (false);
+
+	CoUninitialize();
 
 	return retSize;
 }

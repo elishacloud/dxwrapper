@@ -23,8 +23,8 @@
 #include "Dllmain\DllMain.h"
 #include "d3d9\d3d9External.h"
 
-constexpr DWORD MaxVidMemory  = 0x32000000;	// 512 MBs
-constexpr DWORD UsedVidMemory = 0x00100000;	// 1 MB
+constexpr DWORD MaxVidMemory		= 0x20000000;	// 512 MBs
+constexpr DWORD MinUsedVidMemory	= 0x00100000;	// 1 MB
 
 const D3DFORMAT D9DisplayFormat = D3DFMT_X8R8G8B8;
 
@@ -1090,9 +1090,10 @@ HRESULT m_IDirectDrawX::GetCaps(LPDDCAPS lpDDDriverCaps, LPDDCAPS lpDDHELCaps)
 		}
 
 		// Get video memory
-		DWORD dwVidTotal = MaxVidMemory;
-		DWORD dwVidFree = MaxVidMemory - UsedVidMemory;
-		GetAvailableVidMem2(nullptr, &dwVidTotal, &dwVidFree);
+		DDSCAPS2 ddsCaps2 = {};
+		ddsCaps2.dwCaps = DDSCAPS_VIDEOMEMORY;
+		DWORD dwVidTotal, dwVidFree;
+		GetAvailableVidMem2(&ddsCaps2, &dwVidTotal, &dwVidFree);
 
 		// Get caps
 		D3DCAPS9 Caps9;
@@ -1894,30 +1895,46 @@ HRESULT m_IDirectDrawX::GetAvailableVidMem2(LPDDSCAPS2 lpDDSCaps2, LPDWORD lpdwT
 			return DDERR_INVALIDPARAMS;
 		}
 
-		// TODO: Get correct total video memory size
+		// ToDo: Get correct total video memory size
 		DWORD TotalMemory = 0;
 		DWORD AvailableMemory = 0;
 
-		// Get available video memory
-		if (d3d9Device)
+		// Get texture memory
+		if (lpDDSCaps2 && lpDDSCaps2->dwCaps == DDSCAPS_TEXTURE)
 		{
-			AvailableMemory = d3d9Device->GetAvailableTextureMem();
+			if (d3d9Device)
+			{
+				AvailableMemory = d3d9Device->GetAvailableTextureMem();
+			}
+			else
+			{
+				LOG_LIMIT(100, __FUNCTION__ << " Warning: Unable to get real texture memory.  Direct3D9 device not yet setup!");
+			}
 		}
+		// Get video memory
+		else if (lpDDSCaps2 && lpDDSCaps2->dwCaps == DDSCAPS_VIDEOMEMORY)
+		{
+			// ToDo: figure out how to get the correct adapter number.
+			// For now just return the first video adapter
+			TotalMemory = Utils::GetVideoRam(1);
+		}
+		// Unknown memory type request
 		else
 		{
-			TotalMemory = Utils::GetVideoRam(MaxVidMemory);
+			Logging::Log() << __FUNCTION__ << " Error: Unknown memory type.  dwCaps: " << ((lpDDSCaps2) ? (void*)lpDDSCaps2->dwCaps : nullptr);
+			return DDERR_INVALIDPARAMS;
 		}
 
 		// If memory cannot be found just return default memory
 		if (!TotalMemory)
 		{
-			TotalMemory = (AvailableMemory) ? AvailableMemory : MaxVidMemory;
+			TotalMemory = (AvailableMemory) ? AvailableMemory + MinUsedVidMemory : MaxVidMemory;
 		}
 
 		// If memory cannot be found just return default memory
 		if (!AvailableMemory)
 		{
-			AvailableMemory = TotalMemory - UsedVidMemory;
+			AvailableMemory = TotalMemory - MinUsedVidMemory;
 		}
 
 		if (lpdwTotal)
@@ -3250,15 +3267,17 @@ HRESULT m_IDirectDrawX::CreateGammaInterface(LPVOID *ppvObj)
 // Adjusts available memory, some games have issues if this is set to high
 void m_IDirectDrawX::AdjustVidMemory(LPDWORD lpdwTotal, LPDWORD lpdwFree)
 {
-	DWORD TotalVidMem = (lpdwTotal) ? *lpdwTotal : (lpdwFree) ? *lpdwFree : MaxVidMemory;
-	TotalVidMem = (!TotalVidMem || TotalVidMem > MaxVidMemory) ? MaxVidMemory : TotalVidMem;
-	if (lpdwTotal)
+	DWORD TotalVidMem = (lpdwTotal && *lpdwTotal) ? *lpdwTotal : (lpdwFree && *lpdwFree) ? *lpdwFree + MinUsedVidMemory : MaxVidMemory;
+	TotalVidMem = min(TotalVidMem, MaxVidMemory);
+	DWORD AvailVidMem = (lpdwFree && *lpdwFree) ? *lpdwFree : TotalVidMem - MinUsedVidMemory;
+	AvailVidMem = min(AvailVidMem, TotalVidMem - MinUsedVidMemory);
+	if (lpdwTotal && *lpdwTotal)
 	{
 		*lpdwTotal = TotalVidMem;
 	}
-	if (lpdwFree && (!*lpdwFree || *lpdwFree >= TotalVidMem))
+	if (lpdwFree && *lpdwFree)
 	{
-		*lpdwFree = TotalVidMem - UsedVidMemory;
+		*lpdwFree = AvailVidMem;
 	}
 }
 

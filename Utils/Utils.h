@@ -37,7 +37,7 @@ namespace Utils
 	void GetScreenSize(HWND hwnd, LONG &screenWidth, LONG &screenHeight);
 	void GetScreenSize(HWND hwnd, DWORD &screenWidth, DWORD &screenHeight);
 	void GetDesktopRect(HWND hWnd, RECT& screenRect);
-	DWORD GetVideoRam(DWORD DefaultSize);
+	DWORD GetVideoRam(UINT AdapterNo);	// Adapters start numbering from '1', based on "Win32_VideoController" WMI class and "DeviceID" property.
 
 	namespace WriteMemory
 	{
