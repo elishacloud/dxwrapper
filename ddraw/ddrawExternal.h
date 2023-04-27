@@ -26,7 +26,7 @@ HRESULT WINAPI dd_RegisterSpecialCase(DWORD arg1, DWORD arg2, DWORD arg3, DWORD 
 HRESULT WINAPI dd_ReleaseDDThreadLock();
 HRESULT WINAPI dd_SetAppCompatData(DWORD Type, DWORD Value);
 
-DWORD GetCurrentBitsPixel();
+DWORD GetDDrawBitsPixel();
 DWORD GetDDrawWidth();
 DWORD GetDDrawHeight();
 

@@ -36,7 +36,7 @@ int WINAPI gdi_GetDeviceCaps(HDC hdc, int index)
 
 	if (index == BITSPIXEL)
 	{
-		switch (GetCurrentBitsPixel())
+		switch (GetDDrawBitsPixel())
 		{
 		case 8:
 			return 8;

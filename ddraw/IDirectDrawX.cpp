@@ -3357,7 +3357,7 @@ HRESULT m_IDirectDrawX::Present()
 	return hr;
 }
 
-DWORD GetCurrentBitsPixel()
+DWORD GetDDrawBitsPixel()
 {
 	if (ddrawRefCount && MainhWnd)
 	{
