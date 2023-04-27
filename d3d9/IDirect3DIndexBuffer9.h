@@ -4,7 +4,7 @@ class m_IDirect3DIndexBuffer9 : public IDirect3DIndexBuffer9, public AddressLook
 {
 private:
 	LPDIRECT3DINDEXBUFFER9 ProxyInterface;
-	m_IDirect3DDevice9Ex* m_pDeviceEx = nullptr;
+	m_IDirect3DDevice9Ex* m_pDeviceEx;
 
 public:
 	m_IDirect3DIndexBuffer9(LPDIRECT3DINDEXBUFFER9 pBuffer9, m_IDirect3DDevice9Ex* pDevice) : ProxyInterface(pBuffer9), m_pDeviceEx(pDevice)

@@ -127,19 +127,37 @@ HRESULT m_IDirect3DSwapChain9Ex::GetLastPresentCount(THIS_ UINT* pLastPresentCou
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	return ProxyInterface->GetLastPresentCount(pLastPresentCount);
+	if (!ProxyInterfaceEx)
+	{
+		Logging::Log() << __FUNCTION__ << " Error: Calling extension function from a non-extension device!";
+		return D3DERR_INVALIDCALL;
+	}
+
+	return ProxyInterfaceEx->GetLastPresentCount(pLastPresentCount);
 }
 
 HRESULT m_IDirect3DSwapChain9Ex::GetPresentStats(THIS_ D3DPRESENTSTATS* pPresentationStatistics)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	return ProxyInterface->GetPresentStats(pPresentationStatistics);
+	if (!ProxyInterfaceEx)
+	{
+		Logging::Log() << __FUNCTION__ << " Error: Calling extension function from a non-extension device!";
+		return D3DERR_INVALIDCALL;
+	}
+
+	return ProxyInterfaceEx->GetPresentStats(pPresentationStatistics);
 }
 
 HRESULT m_IDirect3DSwapChain9Ex::GetDisplayModeEx(THIS_ D3DDISPLAYMODEEX* pMode, D3DDISPLAYROTATION* pRotation)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	return ProxyInterface->GetDisplayModeEx(pMode, pRotation);
+	if (!ProxyInterfaceEx)
+	{
+		Logging::Log() << __FUNCTION__ << " Error: Calling extension function from a non-extension device!";
+		return D3DERR_INVALIDCALL;
+	}
+
+	return ProxyInterfaceEx->GetDisplayModeEx(pMode, pRotation);
 }

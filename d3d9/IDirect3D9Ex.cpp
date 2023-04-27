@@ -289,21 +289,39 @@ UINT m_IDirect3D9Ex::GetAdapterModeCountEx(THIS_ UINT Adapter, CONST D3DDISPLAYM
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	return ProxyInterface->GetAdapterModeCountEx(Adapter, pFilter);
+	if (!ProxyInterfaceEx)
+	{
+		Logging::Log() << __FUNCTION__ << " Error: Calling extension function from a non-extension device!";
+		return NULL;
+	}
+
+	return ProxyInterfaceEx->GetAdapterModeCountEx(Adapter, pFilter);
 }
 
 HRESULT m_IDirect3D9Ex::EnumAdapterModesEx(THIS_ UINT Adapter, CONST D3DDISPLAYMODEFILTER* pFilter, UINT Mode, D3DDISPLAYMODEEX* pMode)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	return ProxyInterface->EnumAdapterModesEx(Adapter, pFilter, Mode, pMode);
+	if (!ProxyInterfaceEx)
+	{
+		Logging::Log() << __FUNCTION__ << " Error: Calling extension function from a non-extension device!";
+		return D3DERR_INVALIDCALL;
+	}
+
+	return ProxyInterfaceEx->EnumAdapterModesEx(Adapter, pFilter, Mode, pMode);
 }
 
 HRESULT m_IDirect3D9Ex::GetAdapterDisplayModeEx(THIS_ UINT Adapter, D3DDISPLAYMODEEX* pMode, D3DDISPLAYROTATION* pRotation)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	return ProxyInterface->GetAdapterDisplayModeEx(Adapter, pMode, pRotation);
+	if (!ProxyInterfaceEx)
+	{
+		Logging::Log() << __FUNCTION__ << " Error: Calling extension function from a non-extension device!";
+		return D3DERR_INVALIDCALL;
+	}
+
+	return ProxyInterfaceEx->GetAdapterDisplayModeEx(Adapter, pMode, pRotation);
 }
 
 HRESULT m_IDirect3D9Ex::CreateDeviceEx(THIS_ UINT Adapter, D3DDEVTYPE DeviceType, HWND hFocusWindow, DWORD BehaviorFlags, D3DPRESENT_PARAMETERS* pPresentationParameters, D3DDISPLAYMODEEX* pFullscreenDisplayMode, IDirect3DDevice9Ex** ppReturnedDeviceInterface)
@@ -336,7 +354,13 @@ HRESULT m_IDirect3D9Ex::GetAdapterLUID(THIS_ UINT Adapter, LUID * pLUID)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	return ProxyInterface->GetAdapterLUID(Adapter, pLUID);
+	if (!ProxyInterfaceEx)
+	{
+		Logging::Log() << __FUNCTION__ << " Error: Calling extension function from a non-extension device!";
+		return D3DERR_INVALIDCALL;
+	}
+
+	return ProxyInterfaceEx->GetAdapterLUID(Adapter, pLUID);
 }
 
 bool m_IDirect3D9Ex::TestResolution(UINT Adapter, DWORD BackBufferWidth, DWORD BackBufferHeight)

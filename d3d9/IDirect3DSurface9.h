@@ -4,7 +4,7 @@ class m_IDirect3DSurface9 : public IDirect3DSurface9, public AddressLookupTableD
 {
 private:
 	LPDIRECT3DSURFACE9 ProxyInterface;
-	m_IDirect3DDevice9Ex* m_pDeviceEx = nullptr;
+	m_IDirect3DDevice9Ex* m_pDeviceEx;
 
 	// For fake emulated locking
 	bool IsLocked = false;

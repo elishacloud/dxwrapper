@@ -4,7 +4,7 @@ class m_IDirect3DQuery9 : public IDirect3DQuery9, public AddressLookupTableD3d9O
 {
 private:
 	LPDIRECT3DQUERY9 ProxyInterface;
-	m_IDirect3DDevice9Ex* m_pDeviceEx = nullptr;
+	m_IDirect3DDevice9Ex* m_pDeviceEx;
 
 public:
 	m_IDirect3DQuery9(LPDIRECT3DQUERY9 pQuery9, m_IDirect3DDevice9Ex* pDevice) : ProxyInterface(pQuery9), m_pDeviceEx(pDevice)

@@ -3,7 +3,8 @@
 class m_IDirect3D9Ex : public IDirect3D9Ex
 {
 private:
-	LPDIRECT3D9EX ProxyInterface;
+	LPDIRECT3D9 ProxyInterface;
+	LPDIRECT3D9EX ProxyInterfaceEx = nullptr;
 	REFIID WrapperID;
 
 	// For Create & CreateEx
@@ -12,7 +13,7 @@ private:
 	HRESULT CreateDeviceT(UINT Adapter, D3DDEVTYPE DeviceType, HWND hFocusWindow, DWORD BehaviorFlags, D3DPRESENT_PARAMETERS* pPresentationParameters, D3DDISPLAYMODEEX*, IDirect3DDevice9** ppReturnedDeviceInterface)
 	{ return ProxyInterface->CreateDevice(Adapter, DeviceType, hFocusWindow, BehaviorFlags, pPresentationParameters, ppReturnedDeviceInterface); }
 	HRESULT CreateDeviceT(UINT Adapter, D3DDEVTYPE DeviceType, HWND hFocusWindow, DWORD BehaviorFlags, D3DPRESENT_PARAMETERS* pPresentationParameters, D3DDISPLAYMODEEX* pFullscreenDisplayMode, IDirect3DDevice9Ex** ppReturnedDeviceInterface)
-	{ return ProxyInterface->CreateDeviceEx(Adapter, DeviceType, hFocusWindow, BehaviorFlags, pPresentationParameters, pFullscreenDisplayMode, ppReturnedDeviceInterface); }
+	{ return (ProxyInterfaceEx) ? ProxyInterfaceEx->CreateDeviceEx(Adapter, DeviceType, hFocusWindow, BehaviorFlags, pPresentationParameters, pFullscreenDisplayMode, ppReturnedDeviceInterface) : D3DERR_INVALIDCALL; }
 
 	// Other helper functions
 	void LogAdapterNames();
@@ -21,6 +22,11 @@ public:
 	m_IDirect3D9Ex(LPDIRECT3D9EX pDirect3D, REFIID DeviceID) : ProxyInterface(pDirect3D), WrapperID(DeviceID)
 	{
 		LOG_LIMIT(3, "Creating interface " << __FUNCTION__ << " (" << this << ")");
+
+		if (WrapperID == IID_IDirect3D9Ex)
+		{
+			ProxyInterfaceEx = pDirect3D;
+		}
 
 		LogAdapterNames();
 	}

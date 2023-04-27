@@ -95,7 +95,7 @@ HRESULT m_IDirect3DDevice9Ex::ResetT(T func, D3DPRESENT_PARAMETERS &d3dpp, D3DPR
 
 	// Setup presentation parameters
 	CopyMemory(&d3dpp, pPresentationParameters, sizeof(D3DPRESENT_PARAMETERS));
-	UpdatePresentParameter(&d3dpp, nullptr, ForceFullscreen, true);
+	UpdatePresentParameter(&d3dpp, DeviceWindow, ForceFullscreen, true);
 
 	// Test for Multisample
 	if (DeviceMultiSampleFlag)
@@ -114,7 +114,7 @@ HRESULT m_IDirect3DDevice9Ex::ResetT(T func, D3DPRESENT_PARAMETERS &d3dpp, D3DPR
 
 		// Reset presentation parameters
 		CopyMemory(&d3dpp, pPresentationParameters, sizeof(D3DPRESENT_PARAMETERS));
-		UpdatePresentParameter(&d3dpp, nullptr, ForceFullscreen, false);
+		UpdatePresentParameter(&d3dpp, DeviceWindow, ForceFullscreen, false);
 
 		// Reset device
 		hr = ResetT(func, &d3dpp, pFullscreenDisplayMode);
@@ -125,6 +125,7 @@ HRESULT m_IDirect3DDevice9Ex::ResetT(T func, D3DPRESENT_PARAMETERS &d3dpp, D3DPR
 			DeviceMultiSampleFlag = false;
 			DeviceMultiSampleType = D3DMULTISAMPLE_NONE;
 			DeviceMultiSampleQuality = 0;
+			SetSSAA = false;
 		}
 
 		return hr;
@@ -152,6 +153,9 @@ HRESULT m_IDirect3DDevice9Ex::Reset(D3DPRESENT_PARAMETERS *pPresentationParamete
 		CopyMemory(pPresentationParameters, &d3dpp, sizeof(D3DPRESENT_PARAMETERS));
 
 		ClearVars(pPresentationParameters);
+
+		// Get screen size
+		Utils::GetScreenSize(DeviceWindow, screenWidth, screenHeight);
 	}
 
 	return hr;
@@ -211,7 +215,7 @@ HRESULT m_IDirect3DDevice9Ex::CreateAdditionalSwapChain(D3DPRESENT_PARAMETERS *p
 	// Setup presentation parameters
 	D3DPRESENT_PARAMETERS d3dpp;
 	CopyMemory(&d3dpp, pPresentationParameters, sizeof(D3DPRESENT_PARAMETERS));
-	UpdatePresentParameter(&d3dpp, nullptr, ForceFullscreen, false);
+	UpdatePresentParameter(&d3dpp, DeviceWindow, ForceFullscreen, false);
 
 	// Test for Multisample
 	if (DeviceMultiSampleFlag)
@@ -226,17 +230,14 @@ HRESULT m_IDirect3DDevice9Ex::CreateAdditionalSwapChain(D3DPRESENT_PARAMETERS *p
 	if (FAILED(hr))
 	{
 		CopyMemory(&d3dpp, pPresentationParameters, sizeof(D3DPRESENT_PARAMETERS));
-		UpdatePresentParameter(&d3dpp, nullptr, ForceFullscreen, false);
+		UpdatePresentParameter(&d3dpp, DeviceWindow, ForceFullscreen, false);
 
 		// Create CwapChain
 		hr = ProxyInterface->CreateAdditionalSwapChain(&d3dpp, ppSwapChain);
 
 		if (SUCCEEDED(hr) && DeviceMultiSampleFlag)
 		{
-			LOG_LIMIT(3, __FUNCTION__ <<" Disabling AntiAliasing...");
-			DeviceMultiSampleFlag = false;
-			DeviceMultiSampleType = D3DMULTISAMPLE_NONE;
-			DeviceMultiSampleQuality = 0;
+			LOG_LIMIT(3, __FUNCTION__ <<" Disabling AntiAliasing for SwapChain...");
 		}
 	}
 
@@ -2007,12 +2008,24 @@ HRESULT m_IDirect3DDevice9Ex::SetConvolutionMonoKernel(THIS_ UINT width, UINT he
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	return ProxyInterface->SetConvolutionMonoKernel(width, height, rows, columns);
+	if (!ProxyInterfaceEx)
+	{
+		Logging::Log() << __FUNCTION__ << " Error: Calling extension function from a non-extension device!";
+		return D3DERR_INVALIDCALL;
+	}
+
+	return ProxyInterfaceEx->SetConvolutionMonoKernel(width, height, rows, columns);
 }
 
 HRESULT m_IDirect3DDevice9Ex::ComposeRects(THIS_ IDirect3DSurface9* pSrc, IDirect3DSurface9* pDst, IDirect3DVertexBuffer9* pSrcRectDescs, UINT NumRects, IDirect3DVertexBuffer9* pDstRectDescs, D3DCOMPOSERECTSOP Operation, int Xoffset, int Yoffset)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
+
+	if (!ProxyInterfaceEx)
+	{
+		Logging::Log() << __FUNCTION__ << " Error: Calling extension function from a non-extension device!";
+		return D3DERR_INVALIDCALL;
+	}
 
 	if (pSrc)
 	{
@@ -2034,40 +2047,70 @@ HRESULT m_IDirect3DDevice9Ex::ComposeRects(THIS_ IDirect3DSurface9* pSrc, IDirec
 		pDstRectDescs = static_cast<m_IDirect3DVertexBuffer9 *>(pDstRectDescs)->GetProxyInterface();
 	}
 
-	return ProxyInterface->ComposeRects(pSrc, pDst, pSrcRectDescs, NumRects, pDstRectDescs, Operation, Xoffset, Yoffset);
+	return ProxyInterfaceEx->ComposeRects(pSrc, pDst, pSrcRectDescs, NumRects, pDstRectDescs, Operation, Xoffset, Yoffset);
 }
 
 HRESULT m_IDirect3DDevice9Ex::PresentEx(THIS_ CONST RECT* pSourceRect, CONST RECT* pDestRect, HWND hDestWindowOverride, CONST RGNDATA* pDirtyRegion, DWORD dwFlags)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	return ProxyInterface->PresentEx(pSourceRect, pDestRect, hDestWindowOverride, pDirtyRegion, dwFlags);
+	if (!ProxyInterfaceEx)
+	{
+		Logging::Log() << __FUNCTION__ << " Error: Calling extension function from a non-extension device!";
+		return D3DERR_INVALIDCALL;
+	}
+
+	return ProxyInterfaceEx->PresentEx(pSourceRect, pDestRect, hDestWindowOverride, pDirtyRegion, dwFlags);
 }
 
 HRESULT m_IDirect3DDevice9Ex::GetGPUThreadPriority(THIS_ INT* pPriority)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	return ProxyInterface->GetGPUThreadPriority(pPriority);
+	if (!ProxyInterfaceEx)
+	{
+		Logging::Log() << __FUNCTION__ << " Error: Calling extension function from a non-extension device!";
+		return D3DERR_INVALIDCALL;
+	}
+
+	return ProxyInterfaceEx->GetGPUThreadPriority(pPriority);
 }
 
 HRESULT m_IDirect3DDevice9Ex::SetGPUThreadPriority(THIS_ INT Priority)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	return ProxyInterface->SetGPUThreadPriority(Priority);
+	if (!ProxyInterfaceEx)
+	{
+		Logging::Log() << __FUNCTION__ << " Error: Calling extension function from a non-extension device!";
+		return D3DERR_INVALIDCALL;
+	}
+
+	return ProxyInterfaceEx->SetGPUThreadPriority(Priority);
 }
 
 HRESULT m_IDirect3DDevice9Ex::WaitForVBlank(THIS_ UINT iSwapChain)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	return ProxyInterface->WaitForVBlank(iSwapChain);
+	if (!ProxyInterfaceEx)
+	{
+		Logging::Log() << __FUNCTION__ << " Error: Calling extension function from a non-extension device!";
+		return D3DERR_INVALIDCALL;
+	}
+
+	return ProxyInterfaceEx->WaitForVBlank(iSwapChain);
 }
 
 HRESULT m_IDirect3DDevice9Ex::CheckResourceResidency(THIS_ IDirect3DResource9** pResourceArray, UINT32 NumResources)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
+
+	if (!ProxyInterfaceEx)
+	{
+		Logging::Log() << __FUNCTION__ << " Error: Calling extension function from a non-extension device!";
+		return D3DERR_INVALIDCALL;
+	}
 
 	if (pResourceArray)
 	{
@@ -2105,40 +2148,64 @@ HRESULT m_IDirect3DDevice9Ex::CheckResourceResidency(THIS_ IDirect3DResource9** 
 		}
 	}
 
-	return ProxyInterface->CheckResourceResidency(pResourceArray, NumResources);
+	return ProxyInterfaceEx->CheckResourceResidency(pResourceArray, NumResources);
 }
 
 HRESULT m_IDirect3DDevice9Ex::SetMaximumFrameLatency(THIS_ UINT MaxLatency)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	return ProxyInterface->SetMaximumFrameLatency(MaxLatency);
+	if (!ProxyInterfaceEx)
+	{
+		Logging::Log() << __FUNCTION__ << " Error: Calling extension function from a non-extension device!";
+		return D3DERR_INVALIDCALL;
+	}
+
+	return ProxyInterfaceEx->SetMaximumFrameLatency(MaxLatency);
 }
 
 HRESULT m_IDirect3DDevice9Ex::GetMaximumFrameLatency(THIS_ UINT* pMaxLatency)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	return ProxyInterface->GetMaximumFrameLatency(pMaxLatency);
+	if (!ProxyInterfaceEx)
+	{
+		Logging::Log() << __FUNCTION__ << " Error: Calling extension function from a non-extension device!";
+		return D3DERR_INVALIDCALL;
+	}
+
+	return ProxyInterfaceEx->GetMaximumFrameLatency(pMaxLatency);
 }
 
 HRESULT m_IDirect3DDevice9Ex::CheckDeviceState(THIS_ HWND hDestinationWindow)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	return ProxyInterface->CheckDeviceState(hDestinationWindow);
+	if (!ProxyInterfaceEx)
+	{
+		Logging::Log() << __FUNCTION__ << " Error: Calling extension function from a non-extension device!";
+		return D3DERR_INVALIDCALL;
+	}
+
+	return ProxyInterfaceEx->CheckDeviceState(hDestinationWindow);
 }
 
 HRESULT m_IDirect3DDevice9Ex::CreateRenderTargetEx(THIS_ UINT Width, UINT Height, D3DFORMAT Format, D3DMULTISAMPLE_TYPE MultiSample, DWORD MultisampleQuality, BOOL Lockable, IDirect3DSurface9** ppSurface, HANDLE* pSharedHandle, DWORD Usage)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
+	if (!ProxyInterfaceEx)
+	{
+		Logging::Log() << __FUNCTION__ << " Error: Calling extension function from a non-extension device!";
+		return D3DERR_INVALIDCALL;
+	}
+
 	if (!ppSurface)
 	{
 		return D3DERR_INVALIDCALL;
 	}
 
-	HRESULT hr = ProxyInterface->CreateRenderTargetEx(Width, Height, Format, MultiSample, MultisampleQuality, Lockable, ppSurface, pSharedHandle, Usage);
+	HRESULT hr = ProxyInterfaceEx->CreateRenderTargetEx(Width, Height, Format, MultiSample, MultisampleQuality, Lockable, ppSurface, pSharedHandle, Usage);
 
 	if (SUCCEEDED(hr))
 	{
@@ -2154,12 +2221,18 @@ HRESULT m_IDirect3DDevice9Ex::CreateOffscreenPlainSurfaceEx(THIS_ UINT Width, UI
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
+	if (!ProxyInterfaceEx)
+	{
+		Logging::Log() << __FUNCTION__ << " Error: Calling extension function from a non-extension device!";
+		return D3DERR_INVALIDCALL;
+	}
+
 	if (!ppSurface)
 	{
 		return D3DERR_INVALIDCALL;
 	}
 
-	HRESULT hr = ProxyInterface->CreateOffscreenPlainSurfaceEx(Width, Height, Format, Pool, ppSurface, pSharedHandle, Usage);
+	HRESULT hr = ProxyInterfaceEx->CreateOffscreenPlainSurfaceEx(Width, Height, Format, Pool, ppSurface, pSharedHandle, Usage);
 
 	if (SUCCEEDED(hr))
 	{
@@ -2175,12 +2248,18 @@ HRESULT m_IDirect3DDevice9Ex::CreateDepthStencilSurfaceEx(THIS_ UINT Width, UINT
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
+	if (!ProxyInterfaceEx)
+	{
+		Logging::Log() << __FUNCTION__ << " Error: Calling extension function from a non-extension device!";
+		return D3DERR_INVALIDCALL;
+	}
+
 	if (!ppSurface)
 	{
 		return D3DERR_INVALIDCALL;
 	}
 
-	HRESULT hr = ProxyInterface->CreateDepthStencilSurfaceEx(Width, Height, Format, MultiSample, MultisampleQuality, Discard, ppSurface, pSharedHandle, Usage);
+	HRESULT hr = ProxyInterfaceEx->CreateDepthStencilSurfaceEx(Width, Height, Format, MultiSample, MultisampleQuality, Discard, ppSurface, pSharedHandle, Usage);
 
 	if (SUCCEEDED(hr))
 	{
@@ -2210,6 +2289,9 @@ HRESULT m_IDirect3DDevice9Ex::ResetEx(THIS_ D3DPRESENT_PARAMETERS* pPresentation
 		CopyMemory(pPresentationParameters, &d3dpp, sizeof(D3DPRESENT_PARAMETERS));
 
 		ClearVars(pPresentationParameters);
+
+		// Get screen size
+		Utils::GetScreenSize(DeviceWindow, screenWidth, screenHeight);
 	}
 
 	return hr;
@@ -2219,5 +2301,11 @@ HRESULT m_IDirect3DDevice9Ex::GetDisplayModeEx(THIS_ UINT iSwapChain, D3DDISPLAY
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	return ProxyInterface->GetDisplayModeEx(iSwapChain, pMode, pRotation);
+	if (!ProxyInterfaceEx)
+	{
+		Logging::Log() << __FUNCTION__ << " Error: Calling extension function from a non-extension device!";
+		return D3DERR_INVALIDCALL;
+	}
+
+	return ProxyInterfaceEx->GetDisplayModeEx(iSwapChain, pMode, pRotation);
 }

@@ -4,7 +4,7 @@ class m_IDirect3DVertexShader9 : public IDirect3DVertexShader9, public AddressLo
 {
 private:
 	LPDIRECT3DVERTEXSHADER9 ProxyInterface;
-	m_IDirect3DDevice9Ex* m_pDeviceEx = nullptr;
+	m_IDirect3DDevice9Ex* m_pDeviceEx;
 
 public:
 	m_IDirect3DVertexShader9(LPDIRECT3DVERTEXSHADER9 pShader9, m_IDirect3DDevice9Ex* pDevice) : ProxyInterface(pShader9), m_pDeviceEx(pDevice)

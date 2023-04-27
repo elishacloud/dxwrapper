@@ -5,7 +5,8 @@
 class m_IDirect3DDevice9Ex : public IDirect3DDevice9Ex
 {
 private:
-	LPDIRECT3DDEVICE9EX ProxyInterface;
+	LPDIRECT3DDEVICE9 ProxyInterface;
+	LPDIRECT3DDEVICE9EX ProxyInterfaceEx = nullptr;
 	m_IDirect3D9Ex* m_pD3DEx;
 	REFIID WrapperID;
 
@@ -37,7 +38,7 @@ private:
 	HRESULT ResetT(fReset, D3DPRESENT_PARAMETERS* pPresentationParameters, D3DDISPLAYMODEEX*)
 	{ return ProxyInterface->Reset(pPresentationParameters); }
 	HRESULT ResetT(fResetEx, D3DPRESENT_PARAMETERS* pPresentationParameters, D3DDISPLAYMODEEX* pFullscreenDisplayMode)
-	{ return ProxyInterface->ResetEx(pPresentationParameters, pFullscreenDisplayMode); }
+	{ return (ProxyInterfaceEx) ? ProxyInterfaceEx->ResetEx(pPresentationParameters, pFullscreenDisplayMode) : D3DERR_INVALIDCALL; }
 
 public:
 	m_IDirect3DDevice9Ex(LPDIRECT3DDEVICE9EX pDevice, m_IDirect3D9Ex* pD3D, REFIID DeviceID = IID_IUnknown) : ProxyInterface(pDevice), m_pD3DEx(pD3D), WrapperID(DeviceID)
@@ -46,23 +47,16 @@ public:
 		{
 			Logging::Log() << "Warning: Creating interface " << __FUNCTION__ << " (" << this << ") with unknown IID";
 		}
-		InitDirect3DDevice();
+		InitDirect3DDevice(pDevice);
 	}
 	m_IDirect3DDevice9Ex(LPDIRECT3DDEVICE9EX pDevice, m_IDirect3D9Ex* pD3D, REFIID DeviceID, D3DMULTISAMPLE_TYPE MultiSampleType, DWORD MultiSampleQuality, bool MultiSampleFlag) :
 		ProxyInterface(pDevice), m_pD3DEx(pD3D), WrapperID(DeviceID)
 	{
-		InitDirect3DDevice();
+		InitDirect3DDevice(pDevice);
 
 		DeviceMultiSampleFlag = MultiSampleFlag;
 		DeviceMultiSampleType = MultiSampleType;
 		DeviceMultiSampleQuality = MultiSampleQuality;
-	}
-	void InitDirect3DDevice()
-	{
-		LOG_LIMIT(3, "Creating interface " << __FUNCTION__ << " (" << this << ")");
-
-		// Get screen size
-		Utils::GetScreenSize(DeviceWindow, screenWidth, screenHeight);
 
 		// Check for SSAA
 		if (DeviceMultiSampleType && m_pD3DEx &&
@@ -70,6 +64,18 @@ public:
 		{
 			SetSSAA = true;
 		}
+	}
+	void InitDirect3DDevice(LPDIRECT3DDEVICE9EX pDevice)
+	{
+		LOG_LIMIT(3, "Creating interface " << __FUNCTION__ << " (" << this << ")");
+
+		if (WrapperID == IID_IDirect3DDevice9Ex)
+		{
+			ProxyInterfaceEx = pDevice;
+		}
+
+		// Get screen size
+		Utils::GetScreenSize(DeviceWindow, screenWidth, screenHeight);
 
 		ProxyAddressLookupTable = new AddressLookupTableD3d9<m_IDirect3DDevice9Ex>(this);
 	}
@@ -227,5 +233,5 @@ public:
 	STDMETHOD(GetDisplayModeEx)(THIS_ UINT iSwapChain, D3DDISPLAYMODEEX* pMode, D3DDISPLAYROTATION* pRotation);
 
 	// Helper functions
-	LPDIRECT3DDEVICE9EX GetProxyInterface() { return ProxyInterface; }
+	LPDIRECT3DDEVICE9 GetProxyInterface() { return ProxyInterface; }
 };

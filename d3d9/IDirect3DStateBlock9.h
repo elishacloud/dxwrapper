@@ -4,7 +4,7 @@ class m_IDirect3DStateBlock9 : public IDirect3DStateBlock9, public AddressLookup
 {
 private:
 	LPDIRECT3DSTATEBLOCK9 ProxyInterface;
-	m_IDirect3DDevice9Ex* m_pDeviceEx = nullptr;
+	m_IDirect3DDevice9Ex* m_pDeviceEx;
 
 public:
 	m_IDirect3DStateBlock9(LPDIRECT3DSTATEBLOCK9 pBlock9, m_IDirect3DDevice9Ex* pDevice) : ProxyInterface(pBlock9), m_pDeviceEx(pDevice)

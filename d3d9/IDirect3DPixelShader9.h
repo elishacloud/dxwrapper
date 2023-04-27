@@ -4,7 +4,7 @@ class m_IDirect3DPixelShader9 : public IDirect3DPixelShader9, public AddressLook
 {
 private:
 	LPDIRECT3DPIXELSHADER9 ProxyInterface;
-	m_IDirect3DDevice9Ex* m_pDeviceEx = nullptr;
+	m_IDirect3DDevice9Ex* m_pDeviceEx;
 
 public:
 	m_IDirect3DPixelShader9(LPDIRECT3DPIXELSHADER9 pShader9, m_IDirect3DDevice9Ex* pDevice) : ProxyInterface(pShader9), m_pDeviceEx(pDevice)

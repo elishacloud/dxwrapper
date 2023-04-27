@@ -3,14 +3,20 @@
 class m_IDirect3DSwapChain9Ex : public IDirect3DSwapChain9Ex, public AddressLookupTableD3d9Object
 {
 private:
-	LPDIRECT3DSWAPCHAIN9EX ProxyInterface;
-	m_IDirect3DDevice9Ex* m_pDeviceEx = nullptr;
+	LPDIRECT3DSWAPCHAIN9 ProxyInterface;
+	LPDIRECT3DSWAPCHAIN9EX ProxyInterfaceEx = nullptr;
+	m_IDirect3DDevice9Ex* m_pDeviceEx;
 	REFIID WrapperID;
 
 public:
 	m_IDirect3DSwapChain9Ex(LPDIRECT3DSWAPCHAIN9EX pSwapChain9, m_IDirect3DDevice9Ex* pDevice, REFIID DeviceID = IID_IDirect3DSwapChain9) : ProxyInterface(pSwapChain9), m_pDeviceEx(pDevice), WrapperID(DeviceID)
 	{
 		LOG_LIMIT(3, "Creating interface " << __FUNCTION__ << " (" << this << ")");
+
+		if (WrapperID == IID_IDirect3DSwapChain9Ex)
+		{
+			ProxyInterfaceEx = pSwapChain9;
+		}
 
 		pDevice->ProxyAddressLookupTable->SaveAddress(this, ProxyInterface);
 	}
@@ -39,5 +45,5 @@ public:
 	STDMETHOD(GetDisplayModeEx)(THIS_ D3DDISPLAYMODEEX* pMode, D3DDISPLAYROTATION* pRotation);
 
 	// Helper functions
-	LPDIRECT3DSWAPCHAIN9EX GetProxyInterface() { return ProxyInterface; }
+	LPDIRECT3DSWAPCHAIN9 GetProxyInterface() { return ProxyInterface; }
 };
