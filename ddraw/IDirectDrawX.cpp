@@ -3366,7 +3366,7 @@ DWORD GetCurrentBitsPixel()
 	return 0;
 }
 
-int GetDDrawWidth()
+DWORD GetDDrawWidth()
 {
 	if (ddrawRefCount && MainhWnd)
 	{
@@ -3375,7 +3375,7 @@ int GetDDrawWidth()
 	return 0;
 }
 
-int GetDDrawHeight()
+DWORD GetDDrawHeight()
 {
 	if (ddrawRefCount && MainhWnd)
 	{
