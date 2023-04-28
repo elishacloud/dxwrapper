@@ -393,8 +393,9 @@ public:
 
 	// For palettes
 	inline m_IDirectDrawPalette *GetAttachedPalette() { return attachedPalette; }
-	void UpdatePaletteData();
 	inline DWORD GetPaletteUSN() { return PaletteUSN; }
+	void UpdatePaletteData();
+	void RemovePalette(m_IDirectDrawPalette* PaletteToRemove);
 
 	// For emulated surfaces
 	static void StartSharedEmulatedMemory();

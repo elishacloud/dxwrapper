@@ -2369,12 +2369,8 @@ HRESULT m_IDirectDrawSurfaceX::SetPalette(LPDIRECTDRAWPALETTE lpDDPalette)
 				return DDERR_NOPALETTEATTACHED;
 			}
 
-			// Check if palette exists
-			if (ddrawParent && ddrawParent->DoesPaletteExist((m_IDirectDrawPalette *)lpDDPalette))
-			{
-				// Decrement ref count
-				attachedPalette->Release();
-			}
+			// Decrement ref count
+			attachedPalette->Release();
 
 			// Detach
 			attachedPalette = nullptr;
@@ -2386,14 +2382,14 @@ HRESULT m_IDirectDrawSurfaceX::SetPalette(LPDIRECTDRAWPALETTE lpDDPalette)
 		else
 		{
 			// Check if palette exists
-			if (!ddrawParent || !ddrawParent->DoesPaletteExist((m_IDirectDrawPalette *)lpDDPalette))
+			if (!ddrawParent || !ddrawParent->DoesPaletteExist((m_IDirectDrawPalette*)lpDDPalette))
 			{
 				LOG_LIMIT(100, __FUNCTION__ << " Error: could not find palette");
 				return DDERR_INVALIDOBJECT;
 			}
 
 			// Set palette address
-			attachedPalette = (m_IDirectDrawPalette *)lpDDPalette;
+			attachedPalette = (m_IDirectDrawPalette*)lpDDPalette;
 
 			// When you call SetPalette to set a palette to a surface for the first time, 
 			// SetPalette increments the palette's reference count; subsequent calls to 
@@ -2409,10 +2405,10 @@ HRESULT m_IDirectDrawSurfaceX::SetPalette(LPDIRECTDRAWPALETTE lpDDPalette)
 			{
 				attachedPalette->SetPrimary();
 			}
-
-			// If new palette is set
-			PaletteUSN++;
 		}
+
+		// If new palette is set
+		PaletteUSN++;
 
 		// Set new palette data
 		UpdatePaletteData();
@@ -5435,6 +5431,15 @@ void m_IDirectDrawSurfaceX::UpdatePaletteData()
 			LastPaletteUSN = CurrentPaletteUSN;
 
 		} while (false);
+	}
+}
+
+void m_IDirectDrawSurfaceX::RemovePalette(m_IDirectDrawPalette* PaletteToRemove)
+{
+	if (PaletteToRemove == attachedPalette)
+	{
+		attachedPalette = nullptr;
+		PaletteFirstRun = true;
 	}
 }
 

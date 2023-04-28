@@ -3139,9 +3139,19 @@ void m_IDirectDrawX::RemovePaletteFromVector(m_IDirectDrawPalette* lpPalette)
 	auto it = std::find_if(PaletteVector.begin(), PaletteVector.end(),
 		[=](auto pPalette) -> bool { return pPalette == lpPalette; });
 
+	// Remove palette from vector
 	if (it != std::end(PaletteVector))
 	{
 		PaletteVector.erase(it);
+	}
+
+	// Remove palette from attached surface
+	for (m_IDirectDrawX* pDDraw : DDrawVector)
+	{
+		for (m_IDirectDrawSurfaceX* pSurface : pDDraw->SurfaceVector)
+		{
+			pSurface->RemovePalette(lpPalette);
+		}
 	}
 
 	ReleaseCriticalSection();
