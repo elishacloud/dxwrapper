@@ -45,6 +45,7 @@ class m_IDirectDrawSurface3;
 class m_IDirectDrawSurface4;
 class m_IDirectDrawSurface7;
 class m_IDirectDrawSurfaceX;
+class m_IDirectDrawClipper;
 class m_IDirectDrawPalette;
 class m_IDirectDrawColorControl;
 class m_IDirectDrawGammaControl;

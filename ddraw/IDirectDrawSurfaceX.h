@@ -391,11 +391,14 @@ public:
 	void SetDirtyFlipFlag();
 	void RemoveAttachedSurfaceFromMap(m_IDirectDrawSurfaceX* lpSurfaceX);
 
+	// For clipper
+	void RemoveClipper(m_IDirectDrawClipper* ClipperToRemove);
+
 	// For palettes
 	inline m_IDirectDrawPalette *GetAttachedPalette() { return attachedPalette; }
 	inline DWORD GetPaletteUSN() { return PaletteUSN; }
-	void UpdatePaletteData();
 	void RemovePalette(m_IDirectDrawPalette* PaletteToRemove);
+	void UpdatePaletteData();
 
 	// For emulated surfaces
 	static void StartSharedEmulatedMemory();

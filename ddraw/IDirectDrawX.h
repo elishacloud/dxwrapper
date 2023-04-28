@@ -31,6 +31,9 @@ private:
 	// Store a list of surfaces
 	std::vector<m_IDirectDrawSurfaceX*> SurfaceVector;
 
+	// Store a list of clippers
+	std::vector<m_IDirectDrawClipper*> ClipperVector;
+
 	// Store a list of palettes
 	std::vector<m_IDirectDrawPalette*> PaletteVector;
 
@@ -191,6 +194,11 @@ public:
 	bool DoesSurfaceExist(m_IDirectDrawSurfaceX* lpSurfaceX);
 	m_IDirectDrawSurfaceX *GetPrimarySurface() { return PrimarySurface; }
 	void EvictManagedTextures();
+
+	// Clipper vector functions
+	void AddClipperToVector(m_IDirectDrawClipper* lpClipper);
+	void RemoveClipperFromVector(m_IDirectDrawClipper* lpClipper);
+	bool DoesClipperExist(m_IDirectDrawClipper* lpClipper);
 
 	// Palette vector functions
 	void AddPaletteToVector(m_IDirectDrawPalette* lpPalette);

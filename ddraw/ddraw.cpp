@@ -30,6 +30,9 @@
 
 AddressLookupTableDdraw<void> ProxyAddressLookupTable = AddressLookupTableDdraw<void>();
 
+// Store a list of clipper
+std::vector<m_IDirectDrawClipper*> BaseClipperVector;
+
 CRITICAL_SECTION ddcs;
 bool IsInitialized = false;
 
@@ -340,12 +343,16 @@ HRESULT WINAPI dd_DirectDrawCreateClipper(DWORD dwFlags, LPDIRECTDRAWCLIPPER *lp
 
 	if (Config.Dd7to9)
 	{
-		if (!lplpDDClipper)
+		if (!lplpDDClipper || pUnkOuter)
 		{
-			return DDERR_UNSUPPORTED;
+			return DDERR_INVALIDPARAMS;
 		}
 
-		*lplpDDClipper = new m_IDirectDrawClipper(dwFlags);
+		m_IDirectDrawClipper* ClipperX = new m_IDirectDrawClipper(nullptr, dwFlags);
+
+		AddBaseClipperToVetor(ClipperX);
+
+		*lplpDDClipper = ClipperX;
 
 		return DD_OK;
 	}
@@ -373,7 +380,7 @@ HRESULT WINAPI dd_DirectDrawCreateEx(GUID FAR *lpGUID, LPVOID *lplpDD, REFIID ri
 
 	if (Config.Dd7to9)
 	{
-		if (!lplpDD)
+		if (!lplpDD || pUnkOuter)
 		{
 			return DDERR_INVALIDPARAMS;
 		}
@@ -927,6 +934,66 @@ HRESULT WINAPI dd_SetAppCompatData(DWORD Type, DWORD Value)
 	}
 
 	return m_pSetAppCompatData(Type, Value);
+}
+
+void AddBaseClipperToVetor(m_IDirectDrawClipper* lpClipper)
+{
+	if (!lpClipper || DoesBaseClipperExist(lpClipper))
+	{
+		return;
+	}
+
+	SetCriticalSection();
+
+	// Store clipper
+	BaseClipperVector.push_back(lpClipper);
+
+	ReleaseCriticalSection();
+}
+
+void RemoveBaseClipperFromVector(m_IDirectDrawClipper* lpClipper)
+{
+	if (!lpClipper)
+	{
+		return;
+	}
+
+	SetCriticalSection();
+
+	auto it = std::find_if(BaseClipperVector.begin(), BaseClipperVector.end(),
+		[=](auto pClipper) -> bool { return pClipper == lpClipper; });
+
+	// Remove clipper from vector
+	if (it != std::end(BaseClipperVector))
+	{
+		BaseClipperVector.erase(it);
+	}
+
+	ReleaseCriticalSection();
+}
+
+bool DoesBaseClipperExist(m_IDirectDrawClipper* lpClipper)
+{
+	if (!lpClipper)
+	{
+		return false;
+	}
+
+	bool hr = false;
+
+	SetCriticalSection();
+
+	auto it = std::find_if(BaseClipperVector.begin(), BaseClipperVector.end(),
+		[=](auto pSurface) -> bool { return pSurface == lpClipper; });
+
+	if (it != std::end(BaseClipperVector))
+	{
+		hr = true;
+	}
+
+	ReleaseCriticalSection();
+
+	return hr;
 }
 
 HRESULT DdrawWrapper::SetCriticalSection()

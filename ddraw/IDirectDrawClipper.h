@@ -12,6 +12,9 @@ private:
 	bool IsClipListSet = false;
 	bool IsClipListChangedFlag = false;
 
+	// Convert to Direct3D9
+	m_IDirectDrawX* ddrawParent = nullptr;
+
 	// Interface initialization functions
 	void InitClipper();
 	void ReleaseClipper();
@@ -25,7 +28,7 @@ public:
 
 		ProxyAddressLookupTable.SaveAddress(this, (ProxyInterface) ? ProxyInterface : (void*)this);
 	}
-	m_IDirectDrawClipper(DWORD dwFlags) : clipperCaps(dwFlags)
+	m_IDirectDrawClipper(m_IDirectDrawX* Interface, DWORD dwFlags) : ddrawParent(Interface), clipperCaps(dwFlags)
 	{
 		LOG_LIMIT(3, "Creating interface " << __FUNCTION__ << " (" << this << ")");
 
@@ -54,4 +57,8 @@ public:
 	STDMETHOD(IsClipListChanged)(THIS_ BOOL FAR *);
 	STDMETHOD(SetClipList)(THIS_ LPRGNDATA, DWORD);
 	STDMETHOD(SetHWnd)(THIS_ DWORD, HWND);
+
+	// Functions handling the ddraw parent interface
+	void SetDdrawParent(m_IDirectDrawX* ddraw) { ddrawParent = ddraw; }
+	void ClearDdraw() { ddrawParent = nullptr; }
 };

@@ -340,12 +340,16 @@ HRESULT m_IDirectDrawX::CreateClipper(DWORD dwFlags, LPDIRECTDRAWCLIPPER FAR * l
 
 	if (Config.Dd7to9)
 	{
-		if (!lplpDDClipper)
+		if (!lplpDDClipper || pUnkOuter)
 		{
 			return DDERR_INVALIDPARAMS;
 		}
 
-		*lplpDDClipper = new m_IDirectDrawClipper(dwFlags);
+		m_IDirectDrawClipper* ClipperX = new m_IDirectDrawClipper(this, dwFlags);
+
+		AddClipperToVector(ClipperX);
+
+		*lplpDDClipper = ClipperX;
 
 		return DD_OK;
 	}
@@ -366,7 +370,7 @@ HRESULT m_IDirectDrawX::CreatePalette(DWORD dwFlags, LPPALETTEENTRY lpDDColorArr
 
 	if (Config.Dd7to9)
 	{
-		if (!lplpDDPalette || !lpDDColorArray)
+		if (!lplpDDPalette || !lpDDColorArray || pUnkOuter)
 		{
 			return DDERR_INVALIDPARAMS;
 		}
@@ -394,10 +398,15 @@ HRESULT m_IDirectDrawX::CreateSurface(LPDDSURFACEDESC lpDDSurfaceDesc, LPDIRECTD
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
+	if (!lplpDDSurface || !lpDDSurfaceDesc || pUnkOuter)
+	{
+		return DDERR_INVALIDPARAMS;
+	}
+
 	// Game using old DirectX, Convert to LPDDSURFACEDESC2
 	if (ProxyDirectXVersion > 3)
 	{
-		if (!lplpDDSurface || !lpDDSurfaceDesc || lpDDSurfaceDesc->dwSize != sizeof(DDSURFACEDESC))
+		if (lpDDSurfaceDesc->dwSize != sizeof(DDSURFACEDESC))
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Error: Invalid parameters. dwSize: " << ((lpDDSurfaceDesc) ? lpDDSurfaceDesc->dwSize : -1));
 			return DDERR_INVALIDPARAMS;
@@ -448,9 +457,14 @@ HRESULT m_IDirectDrawX::CreateSurface2(LPDDSURFACEDESC2 lpDDSurfaceDesc2, LPDIRE
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
+	if (!lplpDDSurface || !lpDDSurfaceDesc2 || pUnkOuter)
+	{
+		return DDERR_INVALIDPARAMS;
+	}
+
 	if (Config.Dd7to9)
 	{
-		if (!lplpDDSurface || !lpDDSurfaceDesc2 || lpDDSurfaceDesc2->dwSize != sizeof(DDSURFACEDESC2))
+		if (lpDDSurfaceDesc2->dwSize != sizeof(DDSURFACEDESC2))
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Error: Invalid parameters. dwSize: " << ((lpDDSurfaceDesc2) ? lpDDSurfaceDesc2->dwSize : -1));
 			return DDERR_INVALIDPARAMS;
@@ -1884,8 +1898,8 @@ HRESULT m_IDirectDrawX::GetAvailableVidMem2(LPDDSCAPS2 lpDDSCaps2, LPDWORD lpdwT
 		DWORD TotalMemory = 0;
 		DWORD AvailableMemory = 0;
 
-		// Get texture memory
-		if (lpDDSCaps2 && lpDDSCaps2->dwCaps == DDSCAPS_TEXTURE)
+		// Get texture/surface memory
+		if (lpDDSCaps2 && (lpDDSCaps2->dwCaps == DDSCAPS_TEXTURE || lpDDSCaps2->dwCaps == DDSCAPS_OFFSCREENPLAIN))
 		{
 			if (d3d9Device)
 			{
@@ -2376,9 +2390,16 @@ void m_IDirectDrawX::ReleaseDdraw()
 	for (m_IDirectDrawSurfaceX *pSurface : SurfaceVector)
 	{
 		pSurface->ClearDdraw();
-		pSurface->ReleaseD9Surface(true);
+		pSurface->ReleaseD9Surface(false);
 	}
 	SurfaceVector.clear();
+
+	// Release Clippers
+	for (m_IDirectDrawClipper* pClipper : ClipperVector)
+	{
+		pClipper->ClearDdraw();
+	}
+	ClipperVector.clear();
 
 	// Release palettes
 	for (m_IDirectDrawPalette *pPalette : PaletteVector)
@@ -3108,6 +3129,87 @@ void m_IDirectDrawX::EvictManagedTextures()
 	}
 
 	ReleaseCriticalSection();
+}
+
+// Add clipper wrapper to vector
+void m_IDirectDrawX::AddClipperToVector(m_IDirectDrawClipper* lpClipper)
+{
+	if (!lpClipper || DoesClipperExist(lpClipper))
+	{
+		return;
+	}
+
+	SetCriticalSection();
+
+	// Store clipper
+	ClipperVector.push_back(lpClipper);
+
+	ReleaseCriticalSection();
+}
+
+// Remove clipper wrapper from vector
+void m_IDirectDrawX::RemoveClipperFromVector(m_IDirectDrawClipper* lpClipper)
+{
+	if (!lpClipper)
+	{
+		return;
+	}
+
+	// Remove standalone clipper
+	RemoveBaseClipperFromVector(lpClipper);
+
+	SetCriticalSection();
+
+	auto it = std::find_if(ClipperVector.begin(), ClipperVector.end(),
+		[=](auto pClipper) -> bool { return pClipper == lpClipper; });
+
+	// Remove clipper from vector
+	if (it != std::end(ClipperVector))
+	{
+		ClipperVector.erase(it);
+	}
+
+	// Remove clipper from attached surface
+	for (m_IDirectDrawX* pDDraw : DDrawVector)
+	{
+		for (m_IDirectDrawSurfaceX* pSurface : pDDraw->SurfaceVector)
+		{
+			pSurface->RemoveClipper(lpClipper);
+		}
+	}
+
+	ReleaseCriticalSection();
+}
+
+// Check if clipper wrapper exists
+bool m_IDirectDrawX::DoesClipperExist(m_IDirectDrawClipper* lpClipper)
+{
+	if (!lpClipper)
+	{
+		return false;
+	}
+
+	// Check standalone clipper
+	if (DoesBaseClipperExist(lpClipper))
+	{
+		return true;
+	}
+
+	bool hr = false;
+
+	SetCriticalSection();
+
+	auto it = std::find_if(ClipperVector.begin(), ClipperVector.end(),
+		[=](auto pSurface) -> bool { return pSurface == lpClipper; });
+
+	if (it != std::end(ClipperVector))
+	{
+		hr = true;
+	}
+
+	ReleaseCriticalSection();
+
+	return hr;
 }
 
 // Add palette wrapper to vector

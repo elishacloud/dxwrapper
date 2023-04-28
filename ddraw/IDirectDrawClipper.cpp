@@ -258,5 +258,8 @@ void m_IDirectDrawClipper::InitClipper()
 
 void m_IDirectDrawClipper::ReleaseClipper()
 {
-	// To add later
+	if (ddrawParent && !Config.Exiting)
+	{
+		ddrawParent->RemoveClipperFromVector(this);
+	}
 }

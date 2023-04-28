@@ -26,6 +26,12 @@ HRESULT WINAPI dd_RegisterSpecialCase(DWORD arg1, DWORD arg2, DWORD arg3, DWORD 
 HRESULT WINAPI dd_ReleaseDDThreadLock();
 HRESULT WINAPI dd_SetAppCompatData(DWORD Type, DWORD Value);
 
+class m_IDirectDrawClipper;
+
+void AddBaseClipperToVetor(m_IDirectDrawClipper* lpClipper);
+void RemoveBaseClipperFromVector(m_IDirectDrawClipper* lpClipper);
+bool DoesBaseClipperExist(m_IDirectDrawClipper* lpClipper);
+
 DWORD GetDDrawBitsPixel();
 DWORD GetDDrawWidth();
 DWORD GetDDrawHeight();

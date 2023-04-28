@@ -2219,31 +2219,40 @@ HRESULT m_IDirectDrawSurfaceX::SetClipper(LPDIRECTDRAWCLIPPER lpDDClipper)
 		// If lpDDClipper is nullptr then detach the current clipper if it exists
 		if (!lpDDClipper)
 		{
-			if (attachedClipper)
+			if (!attachedClipper)
 			{
-				// Decrement ref count
-				attachedClipper->Release();
-
-				// Detach
-				attachedClipper = nullptr;
+				return DDERR_NOCLIPPERATTACHED;
 			}
+
+			// Decrement ref count
+			attachedClipper->Release();
+
+			// Detach
+			attachedClipper = nullptr;
 
 			// Reset FirstRun
 			ClipperFirstRun = true;
-
-			return DD_OK;
 		}
-
-		// Set clipper address
-		attachedClipper = (m_IDirectDrawClipper *)lpDDClipper;
-
-		// When you call SetClipper to set a clipper to a surface for the first time, 
-		// SetClipper increments the clipper's reference count; subsequent calls to 
-		// SetClipper do not affect the clipper's reference count.
-		if (ClipperFirstRun)
+		else
 		{
-			attachedClipper->AddRef();
-			ClipperFirstRun = false;
+			// Check if palette exists
+			if (!ddrawParent || !ddrawParent->DoesClipperExist((m_IDirectDrawClipper*)lpDDClipper))
+			{
+				LOG_LIMIT(100, __FUNCTION__ << " Error: could not find clipper");
+				return DDERR_INVALIDOBJECT;
+			}
+
+			// Set clipper address
+			attachedClipper = (m_IDirectDrawClipper*)lpDDClipper;
+
+			// When you call SetClipper to set a clipper to a surface for the first time, 
+			// SetClipper increments the clipper's reference count; subsequent calls to 
+			// SetClipper do not affect the clipper's reference count.
+			if (ClipperFirstRun)
+			{
+				attachedClipper->AddRef();
+				ClipperFirstRun = false;
+			}
 		}
 
 		return DD_OK;
@@ -3044,6 +3053,16 @@ void m_IDirectDrawSurfaceX::ReleaseSurface()
 	if (!Config.Dd7to9 || Config.Exiting)
 	{
 		return;
+	}
+
+	if (attachedClipper)
+	{
+		attachedClipper->Release();
+	}
+
+	if (attachedPalette)
+	{
+		attachedPalette->Release();
 	}
 
 	if (attachedTexture)
@@ -5351,6 +5370,24 @@ HRESULT m_IDirectDrawSurfaceX::CopyEmulatedSurfaceToGDI(RECT Rect)
 	return DD_OK;
 }
 
+void m_IDirectDrawSurfaceX::RemoveClipper(m_IDirectDrawClipper* ClipperToRemove)
+{
+	if (ClipperToRemove == attachedClipper)
+	{
+		attachedClipper = nullptr;
+		ClipperFirstRun = true;
+	}
+}
+
+void m_IDirectDrawSurfaceX::RemovePalette(m_IDirectDrawPalette* PaletteToRemove)
+{
+	if (PaletteToRemove == attachedPalette)
+	{
+		attachedPalette = nullptr;
+		PaletteFirstRun = true;
+	}
+}
+
 void m_IDirectDrawSurfaceX::UpdatePaletteData()
 {
 	// Check surface format
@@ -5431,15 +5468,6 @@ void m_IDirectDrawSurfaceX::UpdatePaletteData()
 			LastPaletteUSN = CurrentPaletteUSN;
 
 		} while (false);
-	}
-}
-
-void m_IDirectDrawSurfaceX::RemovePalette(m_IDirectDrawPalette* PaletteToRemove)
-{
-	if (PaletteToRemove == attachedPalette)
-	{
-		attachedPalette = nullptr;
-		PaletteFirstRun = true;
 	}
 }
 
