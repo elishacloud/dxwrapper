@@ -2,6 +2,8 @@
 
 #include <ddraw.h>
 
+#define ISDXTEX(tex) (tex == D3DFMT_DXT1 || tex == D3DFMT_DXT2 || tex == D3DFMT_DXT3 || tex == D3DFMT_DXT4 || tex == D3DFMT_DXT5)
+
 #define D3DFMT_B8G8R8 (D3DFORMAT)19
 #define D3DFMT_YV12   MAKEFOURCC('Y','V','1','2')
 

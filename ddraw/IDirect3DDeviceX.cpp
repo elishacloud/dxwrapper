@@ -1858,8 +1858,8 @@ HRESULT m_IDirect3DDeviceX::GetRenderState(D3DRENDERSTATETYPE dwRenderStateType,
 			break;
 		case D3DRENDERSTATE_ZBIAS:
 		{
-			HRESULT hr = ProxyInterface->GetRenderState(D3DRS_DEPTHBIAS, lpdwRenderState);
-			*lpdwRenderState = (DWORD)(*(float*)lpdwRenderState * -500000.0f);
+			HRESULT hr = (*d3d9Device)->GetRenderState(D3DRS_DEPTHBIAS, lpdwRenderState);
+			*lpdwRenderState = (DWORD)(*(float*)lpdwRenderState * -200000.0f);
 			return hr;
 		}
 		case D3DRENDERSTATE_TEXTUREPERSPECTIVE:

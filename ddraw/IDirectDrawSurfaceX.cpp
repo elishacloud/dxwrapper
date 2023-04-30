@@ -3272,7 +3272,7 @@ HRESULT m_IDirectDrawSurfaceX::CreateD3d9Surface()
 		// Create texture
 		else if (IsTexture() || !IsDirect3DSurface)
 		{
-			if (FAILED(((*d3d9Device)->CreateTexture(Width, Height, 1, 0, TextureFormat, D3DPOOL_SYSTEMMEM, &surfaceTexture, nullptr))))
+			if (FAILED(((*d3d9Device)->CreateTexture(Width, Height, 1, 0, TextureFormat, D3DPOOL_DEFAULT, &surfaceTexture, nullptr))))
 			{
 				LOG_LIMIT(100, __FUNCTION__ << " Error: failed to create surface texture size: " << Width << "x" << Height << " Format: " << surfaceFormat);
 				hr = DDERR_GENERIC;
@@ -4742,18 +4742,18 @@ HRESULT m_IDirectDrawSurfaceX::CopySurface(m_IDirectDrawSurfaceX* pSourceSurface
 	}
 
 	// Get source and dest format
-	D3DFORMAT SrcFormat = pSourceSurface->GetSurfaceFormat();
-	D3DFORMAT DestFormat = GetSurfaceFormat();
+	const D3DFORMAT SrcFormat = pSourceSurface->GetSurfaceFormat();
+	const D3DFORMAT DestFormat = GetSurfaceFormat();
 
 	// Get copy flags
-	bool IsStretchRect =
+	const bool IsStretchRect =
 		abs((pSourceRect ? pSourceRect->right - pSourceRect->left : SrcRect.right - SrcRect.left) -		// SrcWidth
 			(pDestRect ? pDestRect->right - pDestRect->left : DestRect.right - DestRect.left)) > 1 ||	// DestWidth
 		abs((pSourceRect ? pSourceRect->bottom - pSourceRect->top : SrcRect.bottom - SrcRect.top) -		// SrcHeight
 			(pDestRect ? pDestRect->bottom - pDestRect->top : DestRect.bottom - DestRect.top)) > 1;		// DestHeight
-	bool IsColorKey = ((dwFlags & BLT_COLORKEY) != 0);
-	bool IsMirrorLeftRight = ((dwFlags & BLT_MIRRORLEFTRIGHT) != 0);
-	bool IsMirrorUpDown = ((dwFlags & BLT_MIRRORUPDOWN) != 0);
+	const bool IsColorKey = ((dwFlags & BLT_COLORKEY) != 0);
+	const bool IsMirrorLeftRight = ((dwFlags & BLT_MIRRORLEFTRIGHT) != 0);
+	const bool IsMirrorUpDown = ((dwFlags & BLT_MIRRORUPDOWN) != 0);
 
 	// Get width and height of rect
 	LONG SrcRectWidth = SrcRect.right - SrcRect.left;
@@ -4854,12 +4854,18 @@ HRESULT m_IDirectDrawSurfaceX::CopySurface(m_IDirectDrawSurfaceX* pSourceSurface
 
 		// Check source and destination format
 		bool FormatMismatch = false;
-		if (SrcFormat == D3DFMT_R5G6B5 && (DestFormat == D3DFMT_A8R8G8B8 || DestFormat == D3DFMT_X8R8G8B8))
+		const bool FormatR5G6B5toX8R8G8B8 = (SrcFormat == D3DFMT_R5G6B5 && (DestFormat == D3DFMT_A8R8G8B8 || DestFormat == D3DFMT_X8R8G8B8));
+		if (FormatR5G6B5toX8R8G8B8)
 		{
 			FormatMismatch = true;
 			LOG_LIMIT(100, __FUNCTION__ << " Warning: source and destination formats don't match! " << SrcFormat << "-->" << DestFormat);
 		}
-		else if (!(SrcFormat == DestFormat ||
+		else if (ISDXTEX(SrcFormat) && !ISDXTEX(DestFormat))
+		{
+			FormatMismatch = true;
+			LOG_LIMIT(100, __FUNCTION__ << " Warning: decoding DirectX texture into other format! " << SrcFormat << "-->" << DestFormat);
+		}
+		else if (!(SrcFormat == DestFormat || ISDXTEX(SrcFormat) && ISDXTEX(DestFormat) ||
 			((SrcFormat == D3DFMT_A1R5G5B5 || SrcFormat == D3DFMT_X1R5G5B5) && (DestFormat == D3DFMT_A1R5G5B5 || DestFormat == D3DFMT_X1R5G5B5)) ||
 			((SrcFormat == D3DFMT_A4R4G4B4 || SrcFormat == D3DFMT_X4R4G4B4) && (DestFormat == D3DFMT_A4R4G4B4 || DestFormat == D3DFMT_X4R4G4B4)) ||
 			((SrcFormat == D3DFMT_A8R8G8B8 || SrcFormat == D3DFMT_X8R8G8B8) && (DestFormat == D3DFMT_A8R8G8B8 || DestFormat == D3DFMT_X8R8G8B8)) ||
@@ -4867,6 +4873,29 @@ HRESULT m_IDirectDrawSurfaceX::CopySurface(m_IDirectDrawSurfaceX* pSourceSurface
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Error: not supported for specified source and destination formats! " << SrcFormat << "-->" << DestFormat);
 			hr = DDERR_GENERIC;
+			break;
+		}
+
+		// Decode DirectX texture
+		if (ISDXTEX(SrcFormat))
+		{
+			if (IsColorKey)
+			{
+				LOG_LIMIT(100, __FUNCTION__ << " Warning: color key not supported with DirectX textures!");
+			}
+
+			if (IsMirrorLeftRight || IsMirrorUpDown)
+			{
+				LOG_LIMIT(100, __FUNCTION__ << " Warning: mirroring not supported with DirectX textures!");
+			}
+
+			hr = D3DXLoadSurfaceFromSurface(GetD3D9Surface(), nullptr, &DestRect, pSourceSurface->GetD3D9Surface(), nullptr, &SrcRect, D3DX_FILTER_TRIANGLE, 0);
+
+			if (FAILED(hr))
+			{
+				LOG_LIMIT(100, __FUNCTION__ << " Error: could not decode source texture. " << (D3DERR)hr);
+			}
+
 			break;
 		}
 
@@ -5064,7 +5093,7 @@ HRESULT m_IDirectDrawSurfaceX::CopySurface(m_IDirectDrawSurfaceX* pSourceSurface
 
 				if (!IsColorKey || PixelColor < ColorKeyLow || PixelColor > ColorKeyHigh)
 				{
-					if (FormatMismatch)
+					if (FormatR5G6B5toX8R8G8B8)
 					{
 						*(DWORD*)LoopBuffer = D3DFMT_R5G6B5_TO_X8R8G8B8(*(WORD*)NewPixel);
 						LoopBuffer += ByteCount;
