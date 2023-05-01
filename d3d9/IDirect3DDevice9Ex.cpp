@@ -1589,7 +1589,16 @@ HRESULT m_IDirect3DDevice9Ex::CreateOffscreenPlainSurface(THIS_ UINT Width, UINT
 		return D3DERR_INVALIDCALL;
 	}
 
-	HRESULT hr = ProxyInterface->CreateOffscreenPlainSurface(Width, Height, Format, Pool, ppSurface, pSharedHandle);
+	HRESULT hr;
+	// handle depth texture
+	if(Format >= D3DFMT_D16_LOCKABLE && Format <= D3DFMT_S8_LOCKABLE)
+	{
+		hr = ProxyInterface->CreateDepthStencilSurface(Width, Height, Format, D3DMULTISAMPLE_NONE, 0, TRUE, ppSurface, pSharedHandle);
+	}
+	else
+	{
+		hr = ProxyInterface->CreateOffscreenPlainSurface(Width, Height, Format, Pool, ppSurface, pSharedHandle);
+	}
 
 	if (SUCCEEDED(hr))
 	{
