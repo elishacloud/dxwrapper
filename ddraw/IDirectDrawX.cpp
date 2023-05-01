@@ -2248,7 +2248,8 @@ void m_IDirectDrawX::InitDdraw(DWORD DirectXVersion)
 		SetDefaultDisplayMode = (!displayWidth || !displayHeight || !displayRefreshRate);
 		SetResolution = false;
 
-		static bool EnableMouseHook = ((Config.DdrawUseNativeResolution || Config.DdrawOverrideWidth || Config.DdrawOverrideHeight) &&
+		static bool EnableMouseHook = Config.DdrawEnableMouseHook &&
+			((Config.DdrawUseNativeResolution || Config.DdrawOverrideWidth || Config.DdrawOverrideHeight) &&
 			(!Config.EnableWindowMode || (Config.EnableWindowMode && Config.FullscreenWindowMode)));
 
 		// Set mouse hook
