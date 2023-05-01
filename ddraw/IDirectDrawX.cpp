@@ -1899,7 +1899,7 @@ HRESULT m_IDirectDrawX::GetAvailableVidMem2(LPDDSCAPS2 lpDDSCaps2, LPDWORD lpdwT
 		DWORD AvailableMemory = 0;
 
 		// Get texture/surface memory
-		if (lpDDSCaps2 && (lpDDSCaps2->dwCaps == DDSCAPS_TEXTURE || lpDDSCaps2->dwCaps == DDSCAPS_OFFSCREENPLAIN))
+		if (lpDDSCaps2 && ((lpDDSCaps2->dwCaps & DDSCAPS_TEXTURE) || (lpDDSCaps2->dwCaps & DDSCAPS_OFFSCREENPLAIN)))
 		{
 			if (d3d9Device)
 			{
@@ -1907,7 +1907,7 @@ HRESULT m_IDirectDrawX::GetAvailableVidMem2(LPDDSCAPS2 lpDDSCaps2, LPDWORD lpdwT
 			}
 		}
 		// Get video memory
-		else if (lpDDSCaps2 && lpDDSCaps2->dwCaps == DDSCAPS_VIDEOMEMORY)
+		else if (lpDDSCaps2 && ((lpDDSCaps2->dwCaps & DDSCAPS_VIDEOMEMORY) || (lpDDSCaps2->dwCaps & DDSCAPS_LOCALVIDMEM)))
 		{
 			// Open the first adapter in the system
 			if (OpenD3DDDI(GetDC()) && D3DDDIGetVideoMemory(TotalMemory, AvailableMemory))
