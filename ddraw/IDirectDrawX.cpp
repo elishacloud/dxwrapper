@@ -2619,6 +2619,12 @@ HRESULT m_IDirectDrawX::CreateD3D9Device()
 		// Get hwnd
 		HWND hWnd = GetHwnd();
 
+		// get current window if none is set
+		if(hWnd == nullptr)
+		{
+			hWnd = GetActiveWindow();
+		}
+
 		// Store new focus window
 		hFocusWindow = hWnd;
 
