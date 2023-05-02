@@ -533,7 +533,7 @@ HRESULT m_IDirectDrawX::CreateSurface2(LPDDSURFACEDESC2 lpDDSurfaceDesc2, LPDIRE
 			DDSCAPS2_OPAQUE);
 		if ((lpDDSurfaceDesc2->ddsCaps.dwCaps & UnsupportedDDSCaps) || (lpDDSurfaceDesc2->ddsCaps.dwCaps2 & UnsupportedDDSCaps2) || LOWORD(lpDDSurfaceDesc2->ddsCaps.dwVolumeDepth))
 		{
-			LOG_LIMIT(100, __FUNCTION__ << " Warning: non-supported ddsCaps! " << Logging::hex(lpDDSurfaceDesc2->ddsCaps.dwCaps) << " " <<
+			LOG_LIMIT(100, __FUNCTION__ << " Warning: non-supported ddsCaps: " << Logging::hex(lpDDSurfaceDesc2->ddsCaps.dwCaps) << " " <<
 				Logging::hex(lpDDSurfaceDesc2->ddsCaps.dwCaps2) << " " << LOWORD(lpDDSurfaceDesc2->ddsCaps.dwVolumeDepth));
 		}
 
@@ -621,7 +621,7 @@ HRESULT m_IDirectDrawX::CreateSurface2(LPDDSURFACEDESC2 lpDDSurfaceDesc2, LPDIRE
 		// Get present parameters
 		if (lpDDSurfaceDesc2->ddsCaps.dwCaps & DDSCAPS_PRIMARYSURFACE)
 		{
-			Logging::LogDebug() << __FUNCTION__ << " Primary surface ddsCaps! " << Logging::hex(lpDDSurfaceDesc2->ddsCaps.dwCaps) << " " <<
+			Logging::LogDebug() << __FUNCTION__ << " Primary surface " << lpDDSurfaceDesc2->dwWidth << "x" << lpDDSurfaceDesc2->dwHeight << " ddsCaps: " << Logging::hex(lpDDSurfaceDesc2->ddsCaps.dwCaps) << " " <<
 				Logging::hex(lpDDSurfaceDesc2->ddsCaps.dwCaps2) << " " << LOWORD(lpDDSurfaceDesc2->ddsCaps.dwVolumeDepth);
 
 			// Anti-aliasing
@@ -1444,7 +1444,10 @@ HRESULT m_IDirectDrawX::RestoreDisplayMode()
 		isWindowed = true;
 
 		// Restore all existing surfaces
-		RestoreAllSurfaces();
+		if (d3d9Device)
+		{
+			RestoreAllSurfaces();
+		}
 
 		return DD_OK;
 	}
@@ -1991,14 +1994,8 @@ HRESULT m_IDirectDrawX::RestoreAllSurfaces()
 
 	if (Config.Dd7to9)
 	{
-		// Check for device interface
-		if (FAILED(CheckInterface(__FUNCTION__, true)))
-		{
-			return DDERR_GENERIC;
-		}
-
 		// Check device status
-		if (d3d9Device->TestCooperativeLevel() == D3DERR_DEVICENOTRESET)
+		if (d3d9Device && d3d9Device->TestCooperativeLevel() == D3DERR_DEVICENOTRESET)
 		{
 			ReinitDevice();
 		}
@@ -2626,12 +2623,6 @@ HRESULT m_IDirectDrawX::CreateD3D9Device()
 
 		// Get hwnd
 		HWND hWnd = GetHwnd();
-
-		// Get current window if none is set
-		if (hWnd == nullptr)
-		{
-			hWnd = GetActiveWindow();
-		}
 
 		// Store new focus window
 		hFocusWindow = hWnd;
