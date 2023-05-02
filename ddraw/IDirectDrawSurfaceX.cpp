@@ -3230,7 +3230,7 @@ HRESULT m_IDirectDrawSurfaceX::CreateD3d9Surface()
 	DWORD Width = GetByteAlignedWidth(surfaceDesc2.dwWidth, surfaceBitCount);
 	DWORD Height = surfaceDesc2.dwHeight;
 
-	Logging::LogDebug() << __FUNCTION__ " (" << this << ") D3d9 Surface size: " << Width << "x" << Height << " Format: " << surfaceFormat;
+	Logging::LogDebug() << __FUNCTION__ " (" << this << ") D3d9 Surface size: " << Width << "x" << Height << " Format: " << surfaceFormat << " dwCaps: " << Logging::hex(surfaceDesc2.ddsCaps.dwCaps);
 
 	HRESULT hr = DD_OK;
 
@@ -3241,7 +3241,7 @@ HRESULT m_IDirectDrawSurfaceX::CreateD3d9Surface()
 			IsSurfaceDynamic = UseDynamic;
 			if (FAILED((*d3d9Device)->CreateTexture(Width, Height, 1, (UseDynamic ? D3DUSAGE_DYNAMIC : 0), TextureFormat, (UseDynamic ? D3DPOOL_DEFAULT : D3DPOOL_SYSTEMMEM), &surfaceTexture, nullptr)))
 			{
-				LOG_LIMIT(100, __FUNCTION__ << " Error: failed to create primary surface texture size: " << Width << "x" << Height << " Format: " << surfaceFormat);
+				LOG_LIMIT(100, __FUNCTION__ << " Error: failed to create primary surface texture size: " << Width << "x" << Height << " Format: " << surfaceFormat << " dwCaps: " << Logging::hex(surfaceDesc2.ddsCaps.dwCaps));
 				hr = DDERR_GENERIC;
 				break;
 			}
@@ -3251,7 +3251,7 @@ HRESULT m_IDirectDrawSurfaceX::CreateD3d9Surface()
 			{
 				if (FAILED(((*d3d9Device)->CreateTexture(Width, Height, 1, 0, TextureFormat, D3DPOOL_DEFAULT, &displayTexture, nullptr))))
 				{
-					LOG_LIMIT(100, __FUNCTION__ << " Error: failed to create display surface texture size: " << Width << "x" << Height << " Format: " << surfaceFormat);
+					LOG_LIMIT(100, __FUNCTION__ << " Error: failed to create display surface texture size: " << Width << "x" << Height << " Format: " << surfaceFormat << " dwCaps: " << Logging::hex(surfaceDesc2.ddsCaps.dwCaps));
 					hr = DDERR_GENERIC;
 					break;
 				}
@@ -3274,7 +3274,7 @@ HRESULT m_IDirectDrawSurfaceX::CreateD3d9Surface()
 		{
 			if (FAILED(((*d3d9Device)->CreateTexture(Width, Height, 1, 0, TextureFormat, D3DPOOL_DEFAULT, &surfaceTexture, nullptr))))
 			{
-				LOG_LIMIT(100, __FUNCTION__ << " Error: failed to create surface texture size: " << Width << "x" << Height << " Format: " << surfaceFormat);
+				LOG_LIMIT(100, __FUNCTION__ << " Error: failed to create surface texture size: " << Width << "x" << Height << " Format: " << surfaceFormat << " dwCaps: " << Logging::hex(surfaceDesc2.ddsCaps.dwCaps));
 				hr = DDERR_GENERIC;
 				break;
 			}
@@ -3284,7 +3284,7 @@ HRESULT m_IDirectDrawSurfaceX::CreateD3d9Surface()
 		{
 			if (FAILED(((*d3d9Device)->CreateDepthStencilSurface(Width, Height, Format, ddrawParent->GetMultiSampleType(), ddrawParent->GetMultiSampleQuality(), TRUE, &surface3D, nullptr))))
 			{
-				LOG_LIMIT(100, __FUNCTION__ << " Error: failed to create depth buffer surface size: " << Width << "x" << Height << " Format: " << surfaceFormat);
+				LOG_LIMIT(100, __FUNCTION__ << " Error: failed to create depth buffer surface size: " << Width << "x" << Height << " Format: " << surfaceFormat << " dwCaps: " << Logging::hex(surfaceDesc2.ddsCaps.dwCaps));
 				hr = DDERR_GENERIC;
 				break;
 			}
@@ -3294,7 +3294,7 @@ HRESULT m_IDirectDrawSurfaceX::CreateD3d9Surface()
 		{
 			if (FAILED((*d3d9Device)->CreateOffscreenPlainSurface(Width, Height, Format, D3DPOOL_SYSTEMMEM, &surface3D, nullptr)))
 			{
-				LOG_LIMIT(100, __FUNCTION__ << " Error: failed to create surface size: " << Width << "x" << Height << " Format: " << surfaceFormat);
+				LOG_LIMIT(100, __FUNCTION__ << " Error: failed to create surface size: " << Width << "x" << Height << " Format: " << surfaceFormat << " dwCaps: " << Logging::hex(surfaceDesc2.ddsCaps.dwCaps));
 				hr = DDERR_GENERIC;
 				break;
 			}
