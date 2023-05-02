@@ -91,7 +91,6 @@ bool AllowModeX;
 bool MultiThreaded;
 bool FPUPreserve;
 bool NoWindowChanges;
-bool DynamicTexturesSupported;
 
 // High resolution counter used for auto frame skipping
 bool FrequencyFlag;
@@ -528,14 +527,14 @@ HRESULT m_IDirectDrawX::CreateSurface2(LPDDSURFACEDESC2 lpDDSurfaceDesc2, LPDIRE
 		}
 
 		// Check for unsupported ddsCaps
-		DWORD UnsupportedDDSCaps = (DDSCAPS_RESERVED1 | DDSCAPS_RESERVED2 | DDSCAPS_RESERVED3 | DDSCAPS_OWNDC | DDSCAPS_LIVEVIDEO |
-			DDSCAPS_HWCODEC | DDSCAPS_ALLOCONLOAD | DDSCAPS_VIDEOPORT | DDSCAPS_NONLOCALVIDMEM);
+		DWORD UnsupportedDDSCaps = (DDSCAPS_RESERVED1 | DDSCAPS_RESERVED2 | DDSCAPS_RESERVED3 | DDSCAPS_LIVEVIDEO |
+			DDSCAPS_HWCODEC | DDSCAPS_ALLOCONLOAD | DDSCAPS_VIDEOPORT);
 		DWORD UnsupportedDDSCaps2 = (DDSCAPS2_RESERVED4 | DDSCAPS2_HINTDYNAMIC | DDSCAPS2_HINTSTATIC | DDSCAPS2_RESERVED1 | DDSCAPS2_RESERVED2 |
 			DDSCAPS2_OPAQUE);
-		if ((lpDDSurfaceDesc2->ddsCaps.dwCaps & UnsupportedDDSCaps) || (lpDDSurfaceDesc2->ddsCaps.dwCaps2 & UnsupportedDDSCaps2) || lpDDSurfaceDesc2->ddsCaps.dwVolumeDepth)
+		if ((lpDDSurfaceDesc2->ddsCaps.dwCaps & UnsupportedDDSCaps) || (lpDDSurfaceDesc2->ddsCaps.dwCaps2 & UnsupportedDDSCaps2) || LOWORD(lpDDSurfaceDesc2->ddsCaps.dwVolumeDepth))
 		{
-			LOG_LIMIT(100, __FUNCTION__ << " Warning: non-supported ddsCaps! " << Logging::hex(lpDDSurfaceDesc2->ddsCaps.dwCaps & UnsupportedDDSCaps) << " " <<
-				Logging::hex(lpDDSurfaceDesc2->ddsCaps.dwCaps2 & UnsupportedDDSCaps2) << " " << lpDDSurfaceDesc2->ddsCaps.dwVolumeDepth);
+			LOG_LIMIT(100, __FUNCTION__ << " Warning: non-supported ddsCaps! " << Logging::hex(lpDDSurfaceDesc2->ddsCaps.dwCaps) << " " <<
+				Logging::hex(lpDDSurfaceDesc2->ddsCaps.dwCaps2) << " " << LOWORD(lpDDSurfaceDesc2->ddsCaps.dwVolumeDepth));
 		}
 
 		// Check for device interface
@@ -622,6 +621,9 @@ HRESULT m_IDirectDrawX::CreateSurface2(LPDDSURFACEDESC2 lpDDSurfaceDesc2, LPDIRE
 		// Get present parameters
 		if (lpDDSurfaceDesc2->ddsCaps.dwCaps & DDSCAPS_PRIMARYSURFACE)
 		{
+			Logging::LogDebug() << __FUNCTION__ << " Primary surface ddsCaps! " << Logging::hex(lpDDSurfaceDesc2->ddsCaps.dwCaps) << " " <<
+				Logging::hex(lpDDSurfaceDesc2->ddsCaps.dwCaps2) << " " << LOWORD(lpDDSurfaceDesc2->ddsCaps.dwVolumeDepth);
+
 			// Anti-aliasing
 			bool OldAntiAliasing = AntiAliasing;
 			AntiAliasing = ((lpDDSurfaceDesc2->ddsCaps.dwCaps2 & DDSCAPS2_HINTANTIALIASING) && (lpDDSurfaceDesc2->ddsCaps.dwCaps & DDSCAPS_3DDEVICE));
@@ -2567,11 +2569,6 @@ void m_IDirectDrawX::SetD3DDevice(m_IDirect3DDeviceX *D3DDevice)
 	D3DDeviceInterface = D3DDevice;
 }
 
-bool m_IDirectDrawX::IsDynamicTexturesSupported()
-{
-	return DynamicTexturesSupported;
-}
-
 HRESULT m_IDirectDrawX::CheckInterface(char *FunctionName, bool CheckD3DDevice)
 {
 	// Check for object, if not then create it
@@ -2630,8 +2627,8 @@ HRESULT m_IDirectDrawX::CreateD3D9Device()
 		// Get hwnd
 		HWND hWnd = GetHwnd();
 
-		// get current window if none is set
-		if(hWnd == nullptr)
+		// Get current window if none is set
+		if (hWnd == nullptr)
 		{
 			hWnd = GetActiveWindow();
 		}
@@ -2730,13 +2727,13 @@ HRESULT m_IDirectDrawX::CreateD3D9Device()
 			}
 		}
 
-		// Check device caps to make sure it supports dynamic textures
-		DynamicTexturesSupported = false;
+		// Check device caps for vertex processing support
 		D3DCAPS9 d3dcaps;
 		ZeroMemory(&d3dcaps, sizeof(D3DCAPS9));
-		if (SUCCEEDED(d3d9Object->GetDeviceCaps(D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, &d3dcaps)))
+		hr = d3d9Object->GetDeviceCaps(D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, &d3dcaps);
+		if (FAILED(hr))
 		{
-			DynamicTexturesSupported = (d3dcaps.Caps2 & D3DCAPS2_DYNAMICTEXTURES);
+			Logging::Log() << __FUNCTION__ << " Failed to get Direct3D9 device caps: " << (DDERR)hr;
 		}
 
 		// Set behavior flags

@@ -100,7 +100,6 @@ private:
 	bool ComplexRoot = false;
 	bool PresentOnUnlock = false;
 	bool IsLocked = false;
-	bool IsSurfaceDynamic = false;
 	DWORD LockedWithID = 0;
 	bool IsInDC = false;
 	HDC LastDC = nullptr;
@@ -117,7 +116,6 @@ private:
 	LPDIRECT3DSURFACE9 surface3D = nullptr;				// Surface used for Direct3D
 	LPDIRECT3DTEXTURE9 surfaceTexture = nullptr;		// Main surface texture used for locks, Blts and Flips
 	LPDIRECT3DSURFACE9 contextSurface = nullptr;		// Main surface texture used for locks, Blts and Flips
-	LPDIRECT3DTEXTURE9 displayTexture = nullptr;		// Surface texture used for displaying image
 	LPDIRECT3DTEXTURE9 paletteTexture = nullptr;		// Extra surface texture used for storing palette entries for the pixel shader
 	LPDIRECT3DPIXELSHADER9 pixelShader = nullptr;		// Used with palette surfaces to display proper palette data on the surface texture
 	LPDIRECT3DVERTEXBUFFER9 vertexBuffer = nullptr;		// Vertex buffer used to stretch the texture accross the screen
