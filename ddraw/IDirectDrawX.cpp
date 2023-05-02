@@ -2461,6 +2461,16 @@ HDC m_IDirectDrawX::GetDC()
 	return MainhDC;
 }
 
+D3DMULTISAMPLE_TYPE m_IDirectDrawX::GetMultiSampleType()
+{
+	return presParams.MultiSampleType;
+
+}
+DWORD m_IDirectDrawX::GetMultiSampleQuality()
+{
+	return presParams.MultiSampleQuality;
+}
+
 bool m_IDirectDrawX::IsExclusiveMode()
 {
 	return ExclusiveMode;

@@ -3279,6 +3279,16 @@ HRESULT m_IDirectDrawSurfaceX::CreateD3d9Surface()
 				break;
 			}
 		}
+		// Create depth buffer
+		else if (IsDepthBuffer())
+		{
+			if (FAILED(((*d3d9Device)->CreateDepthStencilSurface(Width, Height, Format, ddrawParent->GetMultiSampleType(), ddrawParent->GetMultiSampleQuality(), TRUE, &surface3D, nullptr))))
+			{
+				LOG_LIMIT(100, __FUNCTION__ << " Error: failed to create depth buffer surface size: " << Width << "x" << Height << " Format: " << surfaceFormat);
+				hr = DDERR_GENERIC;
+				break;
+			}
+		}
 		// Create offplain surface
 		else
 		{

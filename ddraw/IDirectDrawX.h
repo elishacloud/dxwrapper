@@ -182,6 +182,8 @@ public:
 	// Device information functions
 	HWND GetHwnd();
 	HDC GetDC();
+	D3DMULTISAMPLE_TYPE GetMultiSampleType();
+	DWORD GetMultiSampleQuality();
 	bool IsExclusiveMode();
 	void GetFullDisplay(DWORD &Width, DWORD &Height, DWORD& BPP, DWORD &RefreshRate);
 	void GetDisplayPixelFormat(DDPIXELFORMAT& ddpfPixelFormat, DWORD BPP);
