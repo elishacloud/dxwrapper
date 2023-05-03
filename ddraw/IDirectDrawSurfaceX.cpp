@@ -4736,6 +4736,11 @@ HRESULT m_IDirectDrawSurfaceX::CopySurface(m_IDirectDrawSurfaceX* pSourceSurface
 	const bool IsColorKey = ((dwFlags & BLT_COLORKEY) != 0);
 	const bool IsMirrorLeftRight = ((dwFlags & BLT_MIRRORLEFTRIGHT) != 0);
 	const bool IsMirrorUpDown = ((dwFlags & BLT_MIRRORUPDOWN) != 0);
+	const DWORD D3DXFilter =
+		(IsStretchRect && DestFormat == D3DFMT_P8) || (Filter & D3DTEXF_POINT) ? D3DX_FILTER_POINT :	// Force palette surfaces to use point filtering to prevent color banding
+		(Filter & D3DTEXF_LINEAR) ? D3DX_FILTER_LINEAR :												// Use linear filtering when requested by the application
+		(IsStretchRect) ? D3DX_FILTER_POINT :															// Default to point filtering when stretching the rect, same as DirectDraw
+		D3DX_FILTER_NONE;
 
 	// Get width and height of rect
 	LONG SrcRectWidth = SrcRect.right - SrcRect.left;
@@ -4797,7 +4802,7 @@ HRESULT m_IDirectDrawSurfaceX::CopySurface(m_IDirectDrawSurfaceX* pSourceSurface
 				break;
 			}
 
-			hr = D3DXLoadSurfaceFromSurface(pDestSurfaceD9, nullptr, &DestRect, pSourceSurfaceD9, nullptr, &SrcRect, D3DX_FILTER_NONE, 0);
+			hr = D3DXLoadSurfaceFromSurface(pDestSurfaceD9, nullptr, &DestRect, pSourceSurfaceD9, nullptr, &SrcRect, D3DXFilter, 0);
 
 			if (FAILED(hr))
 			{
@@ -4837,7 +4842,7 @@ HRESULT m_IDirectDrawSurfaceX::CopySurface(m_IDirectDrawSurfaceX* pSourceSurface
 				// function to set the brush origin. If it fails to do so, brush misalignment occurs.
 				POINT org;
 				GetBrushOrgEx(emu->surfaceDC, &org);
-				SetStretchBltMode(emu->surfaceDC, HALFTONE);
+				SetStretchBltMode(emu->surfaceDC, (Filter & D3DTEXF_LINEAR) ? HALFTONE : COLORONCOLOR);
 				SetBrushOrgEx(emu->surfaceDC, org.x, org.y, nullptr);
 			}
 
@@ -4860,14 +4865,7 @@ HRESULT m_IDirectDrawSurfaceX::CopySurface(m_IDirectDrawSurfaceX* pSourceSurface
 
 			if (pSourceSurfaceD9 && pDestSurfaceD9)
 			{
-				DWORD DX3XFilter =
-					(IsStretchRect && DestFormat == D3DFMT_P8) ? D3DX_FILTER_POINT :
-					(Filter & D3DTEXF_LINEAR) ? D3DX_FILTER_LINEAR :
-					(Filter & D3DTEXF_POINT) ? D3DX_FILTER_POINT :
-					(IsStretchRect) ? D3DX_FILTER_LINEAR :
-					D3DX_FILTER_NONE;
-
-				if (SUCCEEDED(D3DXLoadSurfaceFromSurface(pDestSurfaceD9, nullptr, &DestRect, pSourceSurfaceD9, nullptr, &SrcRect, DX3XFilter, 0)))
+				if (SUCCEEDED(D3DXLoadSurfaceFromSurface(pDestSurfaceD9, nullptr, &DestRect, pSourceSurfaceD9, nullptr, &SrcRect, D3DXFilter, 0)))
 				{
 					break;
 				}
