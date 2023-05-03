@@ -2502,6 +2502,13 @@ void m_IDirectDrawX::GetFullDisplay(DWORD &Width, DWORD &Height, DWORD& BPP, DWO
 		RefreshRate = displayModeRefreshRate;
 		BPP = displayModeBPP;
 	}
+	else if (d3d9Device && !(isWindowed && Config.DdrawWriteToGDI))
+	{
+		Width = presParams.BackBufferWidth;
+		Height = presParams.BackBufferHeight;
+		RefreshRate = presParams.FullScreen_RefreshRateInHz;
+		BPP = GetBitCount(presParams.BackBufferFormat);
+	}
 	else if (isWindowed && IsWindow(hWnd) && !Config.DdrawWriteToGDI)
 	{
 		RECT Rect = {};
