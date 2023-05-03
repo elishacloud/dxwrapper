@@ -2125,6 +2125,12 @@ HRESULT m_IDirect3DDeviceX::DrawIndexedPrimitive(D3DPRIMITIVETYPE dptPrimitiveTy
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
+	if(dwIndexCount < 3)
+	{
+		Logging::LogDebug() << __FUNCTION__ << " Warning: Expected at least three indices.";
+		return D3DERR_INVALIDCALL;
+	}
+
 	if (Config.Dd7to9)
 	{
 		// Check for device interface
