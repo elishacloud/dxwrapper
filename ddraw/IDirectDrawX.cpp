@@ -507,30 +507,6 @@ HRESULT m_IDirectDrawX::CreateSurface2(LPDDSURFACEDESC2 lpDDSurfaceDesc2, LPDIRE
 			LOG_LIMIT(100, __FUNCTION__ << " Warning: MipMap not Implemented.");
 		}
 
-		// Check for zbuffer
-		if (((lpDDSurfaceDesc2->dwFlags & DDSD_PIXELFORMAT) && (lpDDSurfaceDesc2->ddpfPixelFormat.dwFlags & DDPF_ZBUFFER)) ||
-			(lpDDSurfaceDesc2->ddsCaps.dwCaps & DDSCAPS_ZBUFFER) || (lpDDSurfaceDesc2->dwFlags & DDSD_ZBUFFERBITDEPTH))
-		{
-			D3DFORMAT NewDepthStencilSurface = GetDisplayFormat(lpDDSurfaceDesc2->ddpfPixelFormat);
-			const bool IsStencilSurface = (NewDepthStencilSurface >= 70 && NewDepthStencilSurface <= 80);
-
-			if (IsStencilSurface && NewDepthStencilSurface != DepthStencilSurface)
-			{
-				if (DepthStencilSurface != D3DFMT_UNKNOWN)
-				{
-					LOG_LIMIT(100, __FUNCTION__ << " Warning: existing stencil surface already setup.");
-				}
-				DepthStencilSurface = NewDepthStencilSurface;
-
-				// Check if there is a change in the present parameters
-				if (d3d9Device)
-				{
-					// Recreate d3d9 device
-					CreateD3D9Device();
-				}
-			}
-		}
-
 		// Check for Overlay
 		if ((lpDDSurfaceDesc2->dwFlags & (DDSD_CKDESTOVERLAY | DDSD_CKSRCOVERLAY)) || (lpDDSurfaceDesc2->ddsCaps.dwCaps & DDSCAPS_OVERLAY))
 		{
@@ -634,6 +610,30 @@ HRESULT m_IDirectDrawX::CreateSurface2(LPDDSURFACEDESC2 lpDDSurfaceDesc2, LPDIRE
 		if (!lpDDSurfaceDesc2->dwRefreshRate)
 		{
 			lpDDSurfaceDesc2->dwFlags &= ~DDSD_REFRESHRATE;
+		}
+
+		// Check for depth stencil surface
+		if (((lpDDSurfaceDesc2->dwFlags & DDSD_PIXELFORMAT) && (lpDDSurfaceDesc2->ddpfPixelFormat.dwFlags & (DDPF_ZBUFFER | DDPF_STENCILBUFFER))) ||
+			(lpDDSurfaceDesc2->ddsCaps.dwCaps & (DDSCAPS_ZBUFFER | DDSD_ZBUFFERBITDEPTH)))
+		{
+			D3DFORMAT NewDepthStencilSurface = GetDisplayFormat(lpDDSurfaceDesc2->ddpfPixelFormat);
+			const bool IsDepthStencilSurface = (lpDDSurfaceDesc2->ddpfPixelFormat.dwFlags & (DDPF_ZBUFFER | DDPF_STENCILBUFFER));
+
+			if (IsDepthStencilSurface && NewDepthStencilSurface != DepthStencilSurface)
+			{
+				if (DepthStencilSurface != D3DFMT_UNKNOWN)
+				{
+					LOG_LIMIT(100, __FUNCTION__ << " Warning: existing stencil surface already setup.");
+				}
+				DepthStencilSurface = NewDepthStencilSurface;
+
+				// Check if there is a change in the present parameters
+				if (d3d9Device)
+				{
+					// Recreate d3d9 device
+					CreateD3D9Device();
+				}
+			}
 		}
 
 		// Get present parameters
@@ -2480,7 +2480,7 @@ HDC m_IDirectDrawX::GetDC()
 	return MainhDC;
 }
 
-void m_IDirectDrawX::ClearSencilSurface()
+void m_IDirectDrawX::ClearDepthStencilSurface()
 {
 	DepthStencilSurface = D3DFMT_UNKNOWN;
 }
