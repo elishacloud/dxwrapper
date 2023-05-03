@@ -182,6 +182,7 @@ public:
 	// Device information functions
 	HWND GetHwnd();
 	HDC GetDC();
+	void ClearSencilSurface();
 	D3DMULTISAMPLE_TYPE GetMultiSampleType();
 	DWORD GetMultiSampleQuality();
 	bool IsExclusiveMode();

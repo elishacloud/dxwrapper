@@ -3075,6 +3075,12 @@ void m_IDirectDrawSurfaceX::ReleaseSurface()
 	if (ddrawParent)
 	{
 		ddrawParent->RemoveSurfaceFromVector(this);
+
+		// ToDo: Clear sencil surface only when using the one created by the d3d9 device
+		if (surfaceFormat >= 70 && surfaceFormat <= 80)
+		{
+			ddrawParent->ClearSencilSurface();
+		}
 	}
 
 	ReleaseD9Surface(false);
@@ -3271,6 +3277,7 @@ HRESULT m_IDirectDrawSurfaceX::CreateD3d9Surface()
 		// Create depth buffer
 		else if (IsDepthBuffer())
 		{
+			// ToDo: Get existing sencil surface rather than creating a new one
 			if (FAILED(((*d3d9Device)->CreateDepthStencilSurface(Width, Height, Format, ddrawParent->GetMultiSampleType(), ddrawParent->GetMultiSampleQuality(), TRUE, &surface3D, nullptr))))
 			{
 				LOG_LIMIT(100, __FUNCTION__ << " Error: failed to create depth buffer surface. Size: " << Width << "x" << Height << " Format: " << surfaceFormat << " dwCaps: " << Logging::hex(surfaceDesc2.ddsCaps.dwCaps));
