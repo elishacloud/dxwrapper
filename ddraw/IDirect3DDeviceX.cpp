@@ -301,6 +301,22 @@ HRESULT m_IDirect3DDeviceX::SetTransform(D3DTRANSFORMSTATETYPE dtstTransformStat
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
+	if(Config.DdrawConvertHomogeneousW)
+	{
+		if(dtstTransformStateType == D3DTS_VIEW)
+		{
+			ZeroMemory(lpD3DMatrix, sizeof(_D3DMATRIX));
+			lpD3DMatrix->_11 = 2.0f / 1920.0f;
+			lpD3DMatrix->_22 = -2.0f / 1080.0f;
+			lpD3DMatrix->_33 = -0.0005f;
+			lpD3DMatrix->_44 = 1.0f;
+		}
+		else
+		{
+			return D3D_OK;
+		}
+	}
+
 	if (Config.Dd7to9)
 	{
 		// Check for device interface
@@ -1758,6 +1774,11 @@ HRESULT m_IDirect3DDeviceX::SetRenderState(D3DRENDERSTATETYPE dwRenderStateType,
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
+	if(dwRenderStateType == D3DRS_LIGHTING && Config.DdrawConvertHomogeneousW)
+	{
+		dwRenderState = FALSE;
+	}
+
 	if (Config.Dd7to9)
 	{
 		// Check for device interface
@@ -2164,6 +2185,26 @@ HRESULT m_IDirect3DDeviceX::DrawIndexedPrimitive(D3DPRIMITIVETYPE dptPrimitiveTy
 		}
 		else
 		{
+			const UINT stride = GetVertexStride(dwVertexTypeDesc);
+
+			// Handle PositionT
+			if((dwVertexTypeDesc & D3DFVF_XYZRHW) != 0 && Config.DdrawConvertHomogeneousW)
+			{
+				UINT8 *vertex = (UINT8*)lpVertices;
+
+				for (UINT x = 0; x < dwVertexCount; x++)
+				{
+					float *pos = (float*) vertex;
+
+					pos[3] = 1.0f;
+
+					vertex += stride;
+				}
+
+				// Update the FVF
+				dwVertexTypeDesc = (dwVertexTypeDesc & ~D3DFVF_XYZRHW) | D3DFVF_XYZW;
+			}
+
 			// Set fixed function vertex type
 			(*d3d9Device)->SetFVF(dwVertexTypeDesc);
 
