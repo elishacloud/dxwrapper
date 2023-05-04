@@ -340,19 +340,11 @@ HRESULT m_IDirect3DDeviceX::SetTransform(D3DTRANSFORMSTATETYPE dtstTransformStat
 					ZeroMemory(lpD3DMatrix, sizeof(_D3DMATRIX));
 					lpD3DMatrix->_11 = 2.0f / (float)Viewport9.Width;
 					lpD3DMatrix->_22 = -2.0f / (float)Viewport9.Height;
-					lpD3DMatrix->_33 = -0.0005f;
+					lpD3DMatrix->_33 = 0.01f;
 					lpD3DMatrix->_41 = -1.0f;  // translate X
 					lpD3DMatrix->_42 = 1.0f;   // translate Y
 					lpD3DMatrix->_44 = 1.0f;
 				}
-			}
-			else if(dtstTransformStateType == D3DTS_PROJECTION)
-			{
-				ZeroMemory(lpD3DMatrix, sizeof(_D3DMATRIX));
-				lpD3DMatrix->_11 = 1.0f;
-				lpD3DMatrix->_22 = 1.0f;
-				lpD3DMatrix->_33 = 0.0f;
-				lpD3DMatrix->_44 = 1.0f;
 			}
 			else
 			{
