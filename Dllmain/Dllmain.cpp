@@ -400,7 +400,6 @@ bool APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 				VISIT_PROCS_DDRAW_SHARED(SET_WRAPPED_PROC);
 				HMODULE d3d9_dll = LoadLibrary("d3d9.dll");
 				DdrawWrapper::Direct3DCreate9_out = GetProcAddress(d3d9_dll, "Direct3DCreate9");
-				DdrawWrapper::Direct3DCreate9Ex_out = GetProcAddress(d3d9_dll, "Direct3DCreate9Ex");
 			}
 
 			// Add DDrawCompat to the chain
@@ -491,7 +490,6 @@ bool APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 			if (Config.Dd7to9)
 			{
 				DdrawWrapper::Direct3DCreate9_out = Direct3DCreate9_in;
-				DdrawWrapper::Direct3DCreate9Ex_out = Direct3DCreate9Ex_in;
 			}
 
 			// Prepare wrapper

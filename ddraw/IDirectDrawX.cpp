@@ -107,11 +107,8 @@ bool EnableWaitVsync;
 
 // Direct3D9 Objects
 LPDIRECT3D9 d3d9Object;
-LPDIRECT3D9EX d3d9ObjectEx;
 LPDIRECT3DDEVICE9 d3d9Device;
-LPDIRECT3DDEVICE9EX d3d9DeviceEx;
 D3DPRESENT_PARAMETERS presParams;
-D3DDISPLAYMODEEX FullscreenDisplayMode;
 DWORD BehaviorFlags;
 HWND hFocusWindow;
 
@@ -2243,12 +2240,9 @@ void m_IDirectDrawX::InitDdraw(DWORD DirectXVersion)
 
 		// Direct3D9 Objects
 		d3d9Object = nullptr;
-		d3d9ObjectEx = nullptr;
 		d3d9Device = nullptr;
-		d3d9DeviceEx = nullptr;
 
 		ZeroMemory(&presParams, sizeof(D3DPRESENT_PARAMETERS));
-		ZeroMemory(&FullscreenDisplayMode, sizeof(D3DDISPLAYMODEEX));
 		BehaviorFlags = 0;
 		hFocusWindow = nullptr;
 
@@ -2727,15 +2721,6 @@ HRESULT m_IDirectDrawX::CreateD3D9Device()
 			presParams.hDeviceWindow = nullptr;
 		}
 
-		ZeroMemory(&FullscreenDisplayMode, sizeof(D3DDISPLAYMODEEX));
-		FullscreenDisplayMode.Size = sizeof(D3DDISPLAYMODEEX);
-		FullscreenDisplayMode.Format = presParams.BackBufferFormat;
-		FullscreenDisplayMode.Width = presParams.BackBufferWidth;
-		FullscreenDisplayMode.Height = presParams.BackBufferHeight;
-		FullscreenDisplayMode.RefreshRate = presParams.FullScreen_RefreshRateInHz;
-		FullscreenDisplayMode.ScanLineOrdering = D3DSCANLINEORDERING_PROGRESSIVE;
-		D3DDISPLAYMODEEX* pFullscreenDisplayMode = (presParams.Windowed) ? nullptr : &FullscreenDisplayMode;
-
 		// Enable antialiasing
 		if (AntiAliasing)
 		{
@@ -2788,21 +2773,8 @@ HRESULT m_IDirectDrawX::CreateD3D9Device()
 				}
 
 				// Release surfaces to prepare for reset
-				// In Direct3D9 extensions calling Reset after a mode change does not cause texture memory surfaces, textures and state information to be lost and
-				// these resources do not need to be recreated.
-				if (!d3d9ObjectEx)
-				{
-					ReleaseAllD9Surfaces(true);
-					hr = d3d9Device->Reset(&presParams);
-				}
-				else
-				{
-					hr = d3d9DeviceEx->ResetEx(&presParams, pFullscreenDisplayMode);
-					if (SUCCEEDED(hr))
-					{
-						RestoreAllSurfaces();
-					}
-				}
+				ReleaseAllD9Surfaces(true);
+				hr = d3d9Device->Reset(&presParams);
 
 				// Resetting the device failed
 				if (FAILED(hr))
@@ -2811,15 +2783,7 @@ HRESULT m_IDirectDrawX::CreateD3D9Device()
 						" Windowed: " << LastWindowedMode << "->" << presParams.Windowed <<
 						Logging::hex(LastBehaviorFlags) << "->" << Logging::hex(BehaviorFlags);
 
-					if (!d3d9ObjectEx)
-					{
-						ReleaseD3D9Device();
-					}
-					else
-					{
-						ReleaseAllD9Surfaces(false);
-						ReleaseD3D9Device();
-					}
+					ReleaseD3D9Device();
 				}
 			}
 			// Release existing device
@@ -2837,18 +2801,7 @@ HRESULT m_IDirectDrawX::CreateD3D9Device()
 		// Create d3d9 Device
 		if (!d3d9Device)
 		{
-			if (!d3d9ObjectEx)
-			{
-				hr = d3d9Object->CreateDevice(D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, hWnd, BehaviorFlags, &presParams, &d3d9Device);
-			}
-			else
-			{
-				hr = d3d9ObjectEx->CreateDeviceEx(D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, hWnd, BehaviorFlags, &presParams, pFullscreenDisplayMode, &d3d9DeviceEx);
-				if (SUCCEEDED(hr))
-				{
-					d3d9Device = d3d9DeviceEx;
-				}
-			}
+			hr = d3d9Object->CreateDevice(D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, hWnd, BehaviorFlags, &presParams, &d3d9Device);
 		}
 		if (FAILED(hr))
 		{
@@ -2924,11 +2877,22 @@ HRESULT m_IDirectDrawX::CreateD3D9Object()
 	// Create d3d9 object
 	if (!d3d9Object)
 	{
-		HRESULT hr = CreateD3D9(d3d9Object, d3d9ObjectEx);
-		if (FAILED(hr))
+		// Declare Direct3DCreate9
+		static Direct3DCreate9Proc Direct3DCreate9 = reinterpret_cast<Direct3DCreate9Proc>(Direct3DCreate9_out);
+
+		if (!Direct3DCreate9)
 		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error: failed to create Direct3D9 object: " << (DDERR)hr);
-			return hr;
+			LOG_LIMIT(100, __FUNCTION__ << " Error: failed to get 'Direct3DCreate9' ProcAddress of d3d9.dll!");
+			return DDERR_GENERIC;
+		}
+
+		d3d9Object = Direct3DCreate9(D3D_SDK_VERSION);
+
+		// Error creating Direct3D9
+		if (!d3d9Object)
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: d3d9 object not setup!");
+			return DDERR_GENERIC;
 		}
 	}
 
@@ -2965,33 +2929,16 @@ HRESULT m_IDirectDrawX::ReinitDevice()
 	SetCriticalSection();
 
 	do {
-		if (!d3d9ObjectEx)
-		{
-			// Release surfaces to prepare for reset
-			ReleaseAllD9Surfaces(false);
+		// Release surfaces to prepare for reset
+		ReleaseAllD9Surfaces(false);
 
-			hr = d3d9Device->Reset(&presParams);
-			if (hr == D3DERR_DEVICEREMOVED || hr == D3DERR_DRIVERINTERNALERROR)
-			{
-				ReleaseD3D9Device();
-				ReleaseD3D9Object();
-				CreateD3D9Object();
-				CreateD3D9Device();
-			}
-		}
-		else
+		hr = d3d9Device->Reset(&presParams);
+		if (hr == D3DERR_DEVICEREMOVED || hr == D3DERR_DRIVERINTERNALERROR)
 		{
-			// In Direct3D9 extension devices are only lost when the hardware is reset because it is hanging, and when the device driver is stopped.
-			// When hardware hangs, the device can be reset by calling ResetEx. After a driver is stopped, the IDirect9Ex object must be recreated to resume rendering.
-			hr = d3d9DeviceEx->ResetEx(&presParams, (presParams.Windowed) ? nullptr : &FullscreenDisplayMode);
-			if (hr == D3DERR_DEVICEHUNG || hr == D3DERR_DEVICELOST)
-			{
-				ReleaseAllD9Surfaces(false);
-				ReleaseD3D9Device();
-				ReleaseD3D9Object();
-				CreateD3D9Object();
-				CreateD3D9Device();
-			}
+			ReleaseD3D9Device();
+			ReleaseD3D9Object();
+			CreateD3D9Object();
+			CreateD3D9Device();
 		}
 
 		// Attempt to reset the device
@@ -3047,20 +2994,23 @@ void m_IDirectDrawX::ReleaseD3D9Device()
 			Logging::Log() << __FUNCTION__ << " Error: there is still a reference to 'd3d9Device' " << ref;
 		}
 		d3d9Device = nullptr;
-		d3d9DeviceEx = nullptr;
 	}
 
 	// Reset flags
 	EnableWaitVsync = false;
 }
 
-// Release all d3d9 object
+// Release d3d9 object
 void m_IDirectDrawX::ReleaseD3D9Object()
 {
-	// Release d3d9 object
 	if (d3d9Object)
 	{
-		ReleaseD3D9(d3d9Object, d3d9ObjectEx);
+		ULONG ref = d3d9Object->Release();
+		if (ref)
+		{
+			Logging::Log() << __FUNCTION__ << " Error: there is still a reference to 'd3d9Object' " << ref;
+		}
+		d3d9Object = nullptr;
 	}
 }
 
@@ -3412,7 +3362,7 @@ HRESULT m_IDirectDrawX::Present()
 	const bool UseVSync = (EnableWaitVsync && !Config.EnableVSync);
 
 	// Skip frame if time lapse is too small
-	if (Config.AutoFrameSkip && !d3d9ObjectEx && !UseVSync)
+	if (Config.AutoFrameSkip && !UseVSync)
 	{
 		if (FrequencyFlag)
 		{
@@ -3455,19 +3405,7 @@ HRESULT m_IDirectDrawX::Present()
 	}
 
 	// Present everthing, skip Preset when using DdrawWriteToGDI
-	HRESULT hr;
-	if (!d3d9ObjectEx)
-	{
-		hr = d3d9Device->Present(nullptr, nullptr, nullptr, nullptr);
-	}
-	else
-	{
-		hr = d3d9DeviceEx->PresentEx(nullptr, nullptr, nullptr, nullptr, Config.AutoFrameSkip ? D3DPRESENT_DONOTWAIT : 0);
-		if (Config.AutoFrameSkip && hr == D3DERR_WASSTILLDRAWING)
-		{
-			hr = D3D_OK;
-		}
-	}
+	HRESULT hr = d3d9Device->Present(nullptr, nullptr, nullptr, nullptr);
 
 	// Device lost
 	if (hr == D3DERR_DEVICELOST)
