@@ -80,13 +80,15 @@ void ConvertSurfaceDesc(DDSURFACEDESC &Desc, DDSURFACEDESC2 &Desc2)
 	{
 		CopyMemory(&Desc.ddpfPixelFormat, &Desc2.ddpfPixelFormat, sizeof(DDPIXELFORMAT));
 		Desc.ddpfPixelFormat.dwSize = sizeof(DDPIXELFORMAT);
-	}
-	if (Desc2.ddpfPixelFormat.dwFlags & DDPF_ZBUFFER)
-	{
-		Desc.dwFlags |= DDSD_ZBUFFERBITDEPTH;
-		Desc.dwZBufferBitDepth = Desc2.ddpfPixelFormat.dwZBufferBitDepth;
-		Desc.ddpfPixelFormat.dwFlags &= ~DDPF_ZBUFFER;
-		Desc.ddpfPixelFormat.dwZBufferBitDepth = 0;
+		if (Desc2.ddpfPixelFormat.dwFlags & DDPF_ZBUFFER)
+		{
+			Desc.dwFlags = (Desc.dwFlags | DDSD_ZBUFFERBITDEPTH) & ~DDSD_PIXELFORMAT;
+			Desc.dwZBufferBitDepth = Desc2.ddpfPixelFormat.dwZBufferBitDepth;
+			Desc.ddpfPixelFormat.dwSize = 0;
+			Desc.ddpfPixelFormat.dwFlags = 0;
+			Desc.ddpfPixelFormat.dwZBufferBitDepth = 0;
+			Desc.ddpfPixelFormat.dwZBitMask = 0;
+		}
 	}
 	ConvertCaps(Desc.ddsCaps, Desc2.ddsCaps);
 	// Check for dwFlags that did not get converted
@@ -128,8 +130,20 @@ void ConvertSurfaceDesc(DDSURFACEDESC2 &Desc2, DDSURFACEDESC &Desc)
 	}
 	if (Desc.dwFlags & DDSD_ZBUFFERBITDEPTH)
 	{
-		Desc2.ddpfPixelFormat.dwFlags |= DDPF_ZBUFFER;
-		Desc2.ddpfPixelFormat.dwZBufferBitDepth = Desc.dwZBufferBitDepth;
+		if ((Desc.dwFlags & DDSD_PIXELFORMAT) && Desc.ddpfPixelFormat.dwFlags)
+		{
+			D3DFORMAT Format = GetDisplayFormat(Desc.ddpfPixelFormat);
+			if (Format != D3DFMT_UNKNOWN)
+			{
+				LOG_LIMIT(100, __FUNCTION__ << " Warning: overwritting existing pixel format: " << Format << " with zbuffer depth: " << Desc.dwZBufferBitDepth);
+			}
+		}
+		Desc2.dwFlags |= DDSD_PIXELFORMAT;
+		Desc2.ddpfPixelFormat.dwSize = sizeof(DDPIXELFORMAT);
+		Desc2.ddpfPixelFormat.dwFlags = DDPF_ZBUFFER;
+		Desc2.ddpfPixelFormat.dwZBufferBitDepth = Desc.dwZBufferBitDepth;		
+		Desc2.ddpfPixelFormat.dwZBitMask = (Desc2.ddpfPixelFormat.dwZBufferBitDepth == 32) ? 0xFFFFFFFF :
+			(Desc2.ddpfPixelFormat.dwZBufferBitDepth == 16) ? 0xFFFF : 0;
 		Desc2.dwRefreshRate = 0;	// Union with dwZBufferBitDepth
 	}
 	ConvertCaps(Desc2.ddsCaps, Desc.ddsCaps);
@@ -521,7 +535,6 @@ D3DFORMAT GetDisplayFormat(DDPIXELFORMAT ddpfPixelFormat)
 		case D3DFMT_MULTI2_ARGB8:
 		case D3DFMT_G8R8_G8B8:
 		case D3DFMT_R8G8_B8G8:
-			LOG_LIMIT(100, __FUNCTION__ << " Using format: " << (D3DFORMAT)ddpfPixelFormat.dwFourCC);
 			break;
 		default:
 			LOG_LIMIT(100, __FUNCTION__ << " Warning: FourCC format not Implemented. Code = " << (DDFOURCC)ddpfPixelFormat.dwFourCC);

@@ -405,7 +405,7 @@ HRESULT m_IDirectDrawX::CreateSurface(LPDDSURFACEDESC lpDDSurfaceDesc, LPDIRECTD
 	{
 		if (lpDDSurfaceDesc->dwSize != sizeof(DDSURFACEDESC))
 		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error: Invalid parameters. dwSize: " << ((lpDDSurfaceDesc) ? lpDDSurfaceDesc->dwSize : -1));
+			LOG_LIMIT(100, __FUNCTION__ << " Error: Invalid parameters. dwSize: " << lpDDSurfaceDesc->dwSize);
 			return DDERR_INVALIDPARAMS;
 		}
 
@@ -463,7 +463,7 @@ HRESULT m_IDirectDrawX::CreateSurface2(LPDDSURFACEDESC2 lpDDSurfaceDesc2, LPDIRE
 	{
 		if (lpDDSurfaceDesc2->dwSize != sizeof(DDSURFACEDESC2))
 		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error: Invalid parameters. dwSize: " << ((lpDDSurfaceDesc2) ? lpDDSurfaceDesc2->dwSize : -1));
+			LOG_LIMIT(100, __FUNCTION__ << " Error: Invalid parameters. dwSize: " << lpDDSurfaceDesc2->dwSize);
 			return DDERR_INVALIDPARAMS;
 		}
 
@@ -482,6 +482,14 @@ HRESULT m_IDirectDrawX::CreateSurface2(LPDDSURFACEDESC2 lpDDSurfaceDesc2, LPDIRE
 			return DDERR_INVALIDPARAMS;
 		}
 
+		// Check for invalid zbuffer flags
+		if ((lpDDSurfaceDesc2->dwFlags & DDSD_PIXELFORMAT) && (lpDDSurfaceDesc2->ddsCaps.dwCaps & DDSCAPS_ZBUFFER) &&
+			!(lpDDSurfaceDesc2->ddpfPixelFormat.dwFlags & (DDPF_ZBUFFER | DDPF_STENCILBUFFER)))
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: invalid zbuffer surface flags!");
+			return DDERR_INVALIDPARAMS;
+		}
+
 		// Check for other unsupported pixel formats
 		if ((lpDDSurfaceDesc2->dwFlags & DDSD_PIXELFORMAT) && (lpDDSurfaceDesc2->ddpfPixelFormat.dwFlags & 
 			(DDPF_RGBTOYUV | DDPF_YUV | DDPF_BUMPDUDV | DDPF_BUMPLUMINANCE | DDPF_ALPHAPREMULT | DDPF_COMPRESSED | DDPF_ZPIXELS |
@@ -495,6 +503,12 @@ HRESULT m_IDirectDrawX::CreateSurface2(LPDDSURFACEDESC2 lpDDSurfaceDesc2, LPDIRE
 		if (lpDDSurfaceDesc2->ddsCaps.dwCaps2 & (DDSCAPS2_CUBEMAP | DDSCAPS2_CUBEMAP_ALLFACES))
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Warning: Cube map not Implemented.");
+		}
+
+		// Check for Volume
+		if (lpDDSurfaceDesc2->ddsCaps.dwCaps2 & DDSCAPS2_VOLUME)
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Warning: Volume not Implemented.");
 		}
 
 		// Check for MipMap
@@ -518,14 +532,12 @@ HRESULT m_IDirectDrawX::CreateSurface2(LPDDSURFACEDESC2 lpDDSurfaceDesc2, LPDIRE
 		}
 
 		// Check for unsupported ddsCaps
-		DWORD UnsupportedDDSCaps = (DDSCAPS_RESERVED1 | DDSCAPS_RESERVED2 | DDSCAPS_RESERVED3 | DDSCAPS_LIVEVIDEO |
-			DDSCAPS_HWCODEC | DDSCAPS_ALLOCONLOAD | DDSCAPS_VIDEOPORT);
-		DWORD UnsupportedDDSCaps2 = (DDSCAPS2_RESERVED4 | DDSCAPS2_HINTDYNAMIC | DDSCAPS2_HINTSTATIC | DDSCAPS2_RESERVED1 | DDSCAPS2_RESERVED2 |
-			DDSCAPS2_OPAQUE);
-		if ((lpDDSurfaceDesc2->ddsCaps.dwCaps & UnsupportedDDSCaps) || (lpDDSurfaceDesc2->ddsCaps.dwCaps2 & UnsupportedDDSCaps2) || LOWORD(lpDDSurfaceDesc2->ddsCaps.dwVolumeDepth))
+		DWORD UnsupportedDDSCaps = (DDSCAPS_LIVEVIDEO | DDSCAPS_HWCODEC | DDSCAPS_ALLOCONLOAD | DDSCAPS_VIDEOPORT);
+		DWORD UnsupportedDDSCaps2 = (DDSCAPS2_HINTDYNAMIC | DDSCAPS2_HINTSTATIC | DDSCAPS2_OPAQUE | DDSCAPS2_NOTUSERLOCKABLE);
+		if ((lpDDSurfaceDesc2->ddsCaps.dwCaps & UnsupportedDDSCaps) || (lpDDSurfaceDesc2->ddsCaps.dwCaps2 & UnsupportedDDSCaps2))
 		{
-			LOG_LIMIT(100, __FUNCTION__ << " Warning: non-supported ddsCaps: " << Logging::hex(lpDDSurfaceDesc2->ddsCaps.dwCaps) << " " <<
-				Logging::hex(lpDDSurfaceDesc2->ddsCaps.dwCaps2) << " " << LOWORD(lpDDSurfaceDesc2->ddsCaps.dwVolumeDepth));
+			LOG_LIMIT(100, __FUNCTION__ << " Warning: non-supported ddsCaps: " << Logging::hex(lpDDSurfaceDesc2->ddsCaps.dwCaps & UnsupportedDDSCaps) << " " <<
+				Logging::hex(lpDDSurfaceDesc2->ddsCaps.dwCaps2 & UnsupportedDDSCaps2));
 		}
 
 		// Check for device interface
@@ -610,8 +622,7 @@ HRESULT m_IDirectDrawX::CreateSurface2(LPDDSURFACEDESC2 lpDDSurfaceDesc2, LPDIRE
 		}
 
 		// Check for depth stencil surface
-		if (((lpDDSurfaceDesc2->dwFlags & DDSD_PIXELFORMAT) && (lpDDSurfaceDesc2->ddpfPixelFormat.dwFlags & (DDPF_ZBUFFER | DDPF_STENCILBUFFER))) ||
-			(lpDDSurfaceDesc2->ddsCaps.dwCaps & (DDSCAPS_ZBUFFER | DDSD_ZBUFFERBITDEPTH)))
+		if (!Config.DdrawOverrideStencilFormat && (lpDDSurfaceDesc2->dwFlags & DDSD_PIXELFORMAT) && (lpDDSurfaceDesc2->ddpfPixelFormat.dwFlags & (DDPF_ZBUFFER | DDPF_STENCILBUFFER)))
 		{
 			D3DFORMAT NewDepthStencilSurface = GetDisplayFormat(lpDDSurfaceDesc2->ddpfPixelFormat);
 			const bool IsDepthStencilSurface = (lpDDSurfaceDesc2->ddpfPixelFormat.dwFlags & (DDPF_ZBUFFER | DDPF_STENCILBUFFER));
@@ -640,14 +651,17 @@ HRESULT m_IDirectDrawX::CreateSurface2(LPDDSURFACEDESC2 lpDDSurfaceDesc2, LPDIRE
 				Logging::hex(lpDDSurfaceDesc2->ddsCaps.dwCaps2) << " " << LOWORD(lpDDSurfaceDesc2->ddsCaps.dwVolumeDepth);
 
 			// Anti-aliasing
-			bool OldAntiAliasing = AntiAliasing;
-			AntiAliasing = ((lpDDSurfaceDesc2->ddsCaps.dwCaps2 & DDSCAPS2_HINTANTIALIASING) && (lpDDSurfaceDesc2->ddsCaps.dwCaps & DDSCAPS_3DDEVICE));
-
-			// Check if there is a change in the present parameters
-			if (d3d9Device && AntiAliasing != OldAntiAliasing)
+			if (!Config.AntiAliasing)
 			{
-				// Recreate d3d9 device
-				CreateD3D9Device();
+				bool OldAntiAliasing = AntiAliasing;
+				AntiAliasing = ((lpDDSurfaceDesc2->ddsCaps.dwCaps2 & DDSCAPS2_HINTANTIALIASING) && (lpDDSurfaceDesc2->ddsCaps.dwCaps & DDSCAPS_3DDEVICE));
+
+				// Check if there is a change in the present parameters
+				if (d3d9Device && AntiAliasing != OldAntiAliasing)
+				{
+					// Recreate d3d9 device
+					CreateD3D9Device();
+				}
 			}
 		}
 
@@ -1743,7 +1757,7 @@ HRESULT m_IDirectDrawX::SetDisplayMode(DWORD dwWidth, DWORD dwHeight, DWORD dwBP
 			displayModeHeight = dwHeight;
 			displayModeBPP = NewBPP;
 			displayModeRefreshRate = dwRefreshRate;
-			isWindowed = (!ExclusiveMode || Config.FullscreenWindowMode);
+			isWindowed = (!ExclusiveMode || Config.EnableWindowMode || Config.FullscreenWindowMode);
 
 			// Display resolution
 			if (SetDefaultDisplayMode)
@@ -2685,10 +2699,10 @@ HRESULT m_IDirectDrawX::CreateD3D9Device()
 		presParams.SwapEffect = D3DSWAPEFFECT_DISCARD;
 		// Backbuffer
 		presParams.BackBufferCount = 1;
-		// Auto stencel
-		presParams.EnableAutoDepthStencil = (DepthStencilSurface != D3DFMT_UNKNOWN) ? TRUE : FALSE;
 		// Auto stencel format
-		presParams.AutoDepthStencilFormat = DepthStencilSurface;
+		presParams.AutoDepthStencilFormat = (Config.DdrawOverrideStencilFormat) ? (D3DFORMAT)Config.DdrawOverrideStencilFormat : DepthStencilSurface;
+		// Auto stencel
+		presParams.EnableAutoDepthStencil = (presParams.AutoDepthStencilFormat != D3DFMT_UNKNOWN) ? TRUE : FALSE;
 		// Interval level
 		presParams.PresentationInterval = D3DPRESENT_INTERVAL_IMMEDIATE;
 		// Anti-aliasing
@@ -2772,14 +2786,17 @@ HRESULT m_IDirectDrawX::CreateD3D9Device()
 					IsInScene = false;
 				}
 
-				// Release surfaces to prepare for reset
+				// Prepare for reset
 				ReleaseAllD9Surfaces(true);
-				hr = d3d9Device->Reset(&presParams);
+				D3DPRESENT_PARAMETERS newParams = presParams;
+
+				// Reset device. When this method returns: BackBufferCount, BackBufferWidth, and BackBufferHeight are set to zero.
+				hr = d3d9Device->Reset(&newParams);
 
 				// Resetting the device failed
 				if (FAILED(hr))
 				{
-					Logging::Log() << __FUNCTION__ << " Failed to reset device! Last create: " << LastHWnd << "->" << hWnd << " " <<
+					Logging::Log() << __FUNCTION__ << " Failed to reset device! Last create: " << (D3DERR)hr << " " << LastHWnd << "->" << hWnd << " " <<
 						" Windowed: " << LastWindowedMode << "->" << presParams.Windowed <<
 						Logging::hex(LastBehaviorFlags) << "->" << Logging::hex(BehaviorFlags);
 
@@ -2929,16 +2946,18 @@ HRESULT m_IDirectDrawX::ReinitDevice()
 	SetCriticalSection();
 
 	do {
-		// Release surfaces to prepare for reset
-		ReleaseAllD9Surfaces(false);
+		// Prepare for reset
+		ReleaseAllD9Surfaces(true);
+		D3DPRESENT_PARAMETERS newParams = presParams;
 
-		hr = d3d9Device->Reset(&presParams);
+		// Reset device. When this method returns: BackBufferCount, BackBufferWidth, and BackBufferHeight are set to zero.
+		hr = d3d9Device->Reset(&newParams);
 		if (hr == D3DERR_DEVICEREMOVED || hr == D3DERR_DRIVERINTERNALERROR)
 		{
 			ReleaseD3D9Device();
 			ReleaseD3D9Object();
 			CreateD3D9Object();
-			CreateD3D9Device();
+			hr = CreateD3D9Device();
 		}
 
 		// Attempt to reset the device

@@ -643,6 +643,13 @@ void CONFIG::SetConfig()
 		break;
 	}
 
+	// Check stencil format
+	if (DdrawOverrideStencilFormat >= 70 && DdrawOverrideStencilFormat <= 80)
+	{
+		Logging::Log() << "Invalid 'DdrawOverrideStencilFormat'!  Disabling...";
+		DdrawOverrideStencilFormat = 0;
+	}
+
 	// Check if any DXPrimaryEmulation flags are set
 	for (UINT x = 1; x <= 12; x++)
 	{
