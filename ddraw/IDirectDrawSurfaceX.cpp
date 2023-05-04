@@ -1782,6 +1782,8 @@ HRESULT m_IDirectDrawSurfaceX::GetSurfaceDesc2(LPDDSURFACEDESC2 lpDDSurfaceDesc2
 			lpDDSurfaceDesc2->lPitch = ComputePitch(GetByteAlignedWidth(surfaceDesc2.dwWidth, surfaceBitCount), GetBitCount(lpDDSurfaceDesc2->ddpfPixelFormat));
 		}
 
+		lpDDSurfaceDesc2->lpSurface = nullptr;
+
 		// Return
 		return DD_OK;
 	}

@@ -1556,7 +1556,7 @@ HRESULT m_IDirectDrawX::SetCooperativeLevel(HWND hWnd, DWORD dwFlags, DWORD Dire
 
 			MainhWnd = hWnd;
 
-			if (MainhWnd &&!MainhDC)
+			if (MainhWnd && !MainhDC)
 			{
 				MainhDC = ::GetDC(MainhWnd);
 			}
@@ -2531,7 +2531,7 @@ void m_IDirectDrawX::GetFullDisplay(DWORD &Width, DWORD &Height, DWORD& BPP, DWO
 		Width = presParams.BackBufferWidth;
 		Height = presParams.BackBufferHeight;
 		RefreshRate = presParams.FullScreen_RefreshRateInHz;
-		BPP = GetBitCount(presParams.BackBufferFormat);
+		BPP = Utils::GetBitCount(hWnd);
 	}
 	else if (isWindowed && IsWindow(hWnd) && !Config.DdrawWriteToGDI)
 	{
