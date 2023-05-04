@@ -1788,7 +1788,7 @@ HRESULT m_IDirect3DDeviceX::SetRenderState(D3DRENDERSTATETYPE dwRenderStateType,
 			switch(dwRenderStateType)
 			{
 			case D3DRS_CULLMODE:
-				dwRenderState = D3DCULL_NONE;
+				//dwRenderState = D3DCULL_NONE;
 				break;
 
 			case D3DRS_LIGHTING:
@@ -1796,7 +1796,7 @@ HRESULT m_IDirect3DDeviceX::SetRenderState(D3DRENDERSTATETYPE dwRenderStateType,
 				break;
 
 			case D3DRS_CLIPPLANEENABLE:
-				dwRenderState = 0;
+				//dwRenderState = 0;
 				break;
 
 			default:
