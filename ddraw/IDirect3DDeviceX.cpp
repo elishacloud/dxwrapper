@@ -305,11 +305,15 @@ HRESULT m_IDirect3DDeviceX::SetTransform(D3DTRANSFORMSTATETYPE dtstTransformStat
 	{
 		if(dtstTransformStateType == D3DTS_VIEW)
 		{
-			ZeroMemory(lpD3DMatrix, sizeof(_D3DMATRIX));
-			lpD3DMatrix->_11 = 2.0f / 1920.0f;
-			lpD3DMatrix->_22 = -2.0f / 1080.0f;
-			lpD3DMatrix->_33 = -0.0005f;
-			lpD3DMatrix->_44 = 1.0f;
+			D3DVIEWPORT9 Viewport9;
+			if(SUCCEEDED((*d3d9Device)->GetViewport(&Viewport9)))
+			{
+				ZeroMemory(lpD3DMatrix, sizeof(_D3DMATRIX));
+				lpD3DMatrix->_11 = 2.0f / (float)Viewport9.Width;
+				lpD3DMatrix->_22 = -2.0f / (float)Viewport9.Height;
+				lpD3DMatrix->_33 = -0.0005f;
+				lpD3DMatrix->_44 = 1.0f;
+			}
 		}
 		else
 		{
