@@ -301,28 +301,6 @@ HRESULT m_IDirect3DDeviceX::SetTransform(D3DTRANSFORMSTATETYPE dtstTransformStat
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	if(Config.DdrawConvertHomogeneousW)
-	{
-		if(dtstTransformStateType == D3DTS_VIEW)
-		{
-			D3DVIEWPORT9 Viewport9;
-			if(SUCCEEDED((*d3d9Device)->GetViewport(&Viewport9)))
-			{
-				ZeroMemory(lpD3DMatrix, sizeof(_D3DMATRIX));
-				lpD3DMatrix->_11 = 2.0f / (float)Viewport9.Width;
-				lpD3DMatrix->_22 = -2.0f / (float)Viewport9.Height;
-				lpD3DMatrix->_33 = -0.0005f;
-				lpD3DMatrix->_41 = -1.0f;  // translate X
-				lpD3DMatrix->_42 = 1.0f;   // translate Y
-				lpD3DMatrix->_44 = 1.0f;
-			}
-		}
-		else
-		{
-			return D3D_OK;
-		}
-	}
-
 	if (Config.Dd7to9)
 	{
 		// Check for device interface
@@ -350,6 +328,36 @@ HRESULT m_IDirect3DDeviceX::SetTransform(D3DTRANSFORMSTATETYPE dtstTransformStat
 		case D3DTRANSFORMSTATE_WORLD3:
 			dtstTransformStateType = D3DTS_WORLD3;
 			break;
+		}
+
+		if(Config.DdrawConvertHomogeneousW)
+		{
+			if(dtstTransformStateType == D3DTS_VIEW)
+			{
+				D3DVIEWPORT9 Viewport9;
+				if(SUCCEEDED((*d3d9Device)->GetViewport(&Viewport9)))
+				{
+					ZeroMemory(lpD3DMatrix, sizeof(_D3DMATRIX));
+					lpD3DMatrix->_11 = 2.0f / (float)Viewport9.Width;
+					lpD3DMatrix->_22 = -2.0f / (float)Viewport9.Height;
+					lpD3DMatrix->_33 = -0.0005f;
+					lpD3DMatrix->_41 = -1.0f;  // translate X
+					lpD3DMatrix->_42 = 1.0f;   // translate Y
+					lpD3DMatrix->_44 = 1.0f;
+				}
+			}
+			else if(dtstTransformStateType == D3DTS_PROJECTION)
+			{
+				ZeroMemory(lpD3DMatrix, sizeof(_D3DMATRIX));
+				lpD3DMatrix->_11 = 1.0f;
+				lpD3DMatrix->_22 = 1.0f;
+				lpD3DMatrix->_33 = 0.0f;
+				lpD3DMatrix->_44 = 1.0f;
+			}
+			else
+			{
+				return D3D_OK;
+			}
 		}
 
 		return (*d3d9Device)->SetTransform(dtstTransformStateType, lpD3DMatrix);
@@ -1780,13 +1788,30 @@ HRESULT m_IDirect3DDeviceX::SetRenderState(D3DRENDERSTATETYPE dwRenderStateType,
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	if(dwRenderStateType == D3DRS_LIGHTING && Config.DdrawConvertHomogeneousW)
-	{
-		dwRenderState = FALSE;
-	}
-
 	if (Config.Dd7to9)
 	{
+		if(Config.DdrawConvertHomogeneousW)
+		{
+			// ReSharper disable once CppIncompleteSwitchStatement
+			switch(dwRenderStateType)
+			{
+			case D3DRS_CULLMODE:
+				dwRenderState = D3DCULL_NONE;
+				break;
+
+			case D3DRS_LIGHTING:
+				dwRenderState = FALSE;
+				break;
+
+			case D3DRS_CLIPPLANEENABLE:
+				dwRenderState = 0;
+				break;
+
+			default:
+				break;
+			}
+		}
+
 		// Check for device interface
 		if (FAILED(CheckInterface(__FUNCTION__, true)))
 		{
