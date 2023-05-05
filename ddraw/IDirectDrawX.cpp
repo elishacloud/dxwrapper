@@ -2735,7 +2735,7 @@ HRESULT m_IDirectDrawX::CreateD3D9Device()
 		// Auto stencel format
 		presParams.AutoDepthStencilFormat = (Config.DdrawOverrideStencilFormat) ? (D3DFORMAT)Config.DdrawOverrideStencilFormat : DepthStencilSurface;
 		// Auto stencel
-		presParams.EnableAutoDepthStencil = (presParams.AutoDepthStencilFormat != D3DFMT_UNKNOWN) ? TRUE : FALSE;
+		presParams.EnableAutoDepthStencil = (Config.DdrawOverrideStencilFormat || presParams.AutoDepthStencilFormat != D3DFMT_UNKNOWN) ? TRUE : FALSE;
 		// Interval level
 		presParams.PresentationInterval = D3DPRESENT_INTERVAL_IMMEDIATE;
 		// Anti-aliasing
