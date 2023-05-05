@@ -384,7 +384,7 @@ public:
 	LPDIRECT3DTEXTURE9 Get3DTexture();
 	LPDIRECT3DSURFACE9 GetD3D9Surface();
 	inline void ClearTexture() { attachedTexture = nullptr; }
-	inline void SetWrapperSurfaceSize(DWORD Height, DWORD Width) { DsWrapper.Width = Width; DsWrapper.Height = Height; }
+	inline void SetWrapperSurfaceSize(DWORD Width, DWORD Height) { DsWrapper.Width = Width; DsWrapper.Height = Height; }
 
 	// Attached surfaces
 	void SetDirtyFlipFlag();
