@@ -76,6 +76,10 @@ DWORD displayWidth;
 DWORD displayHeight;
 DWORD displayRefreshRate;			// Refresh rate for fullscreen
 
+// Surface resolution
+DWORD surfaceWidth;
+DWORD surfaceHeight;
+
 // Display pixel format
 DDPIXELFORMAT DisplayPixelFormat;
 
@@ -641,6 +645,21 @@ HRESULT m_IDirectDrawX::CreateSurface2(LPDDSURFACEDESC2 lpDDSurfaceDesc2, LPDIRE
 					// Recreate d3d9 device
 					CreateD3D9Device();
 				}
+			}
+		}
+
+		// Get surface size
+		if (!displayWidth && !displayHeight && (lpDDSurfaceDesc2->dwFlags & (DDSD_WIDTH | DDSD_HEIGHT)) == (DDSD_WIDTH | DDSD_HEIGHT) &&
+			(lpDDSurfaceDesc2->ddsCaps.dwCaps & (DDSCAPS_PRIMARYSURFACE | DDSCAPS_3DDEVICE)))
+		{
+			surfaceWidth = lpDDSurfaceDesc2->dwWidth;
+			surfaceHeight = lpDDSurfaceDesc2->dwHeight;
+
+			// Check if there is a change in the present parameters
+			if (d3d9Device && (surfaceWidth != presParams.BackBufferWidth || surfaceHeight != presParams.BackBufferHeight))
+			{
+				// Recreate d3d9 device
+				CreateD3D9Device();
 			}
 		}
 
@@ -1470,6 +1489,8 @@ HRESULT m_IDirectDrawX::RestoreDisplayMode()
 		displayModeHeight = 0;
 		displayModeBPP = 0;
 		displayModeRefreshRate = 0;
+		surfaceWidth = 0;
+		surfaceHeight = 0;
 		isWindowed = true;
 
 		// Restore all existing surfaces
@@ -1776,6 +1797,10 @@ HRESULT m_IDirectDrawX::SetDisplayMode(DWORD dwWidth, DWORD dwHeight, DWORD dwBP
 			ExclusiveBPP = NewBPP;
 			ExclusiveRefreshRate = dwRefreshRate;
 		}
+
+		// Reset surface resolution
+		surfaceWidth = 0;
+		surfaceHeight = 0;
 
 		// Update the d3d9 device to use new display mode
 		if (ChangeMode)
@@ -2274,6 +2299,9 @@ void m_IDirectDrawX::InitDdraw(DWORD DirectXVersion)
 		SetDefaultDisplayMode = (!displayWidth || !displayHeight || !displayRefreshRate);
 		SetResolution = false;
 
+		surfaceWidth = 0;
+		surfaceHeight = 0;
+
 		static bool EnableMouseHook = Config.DdrawEnableMouseHook &&
 			((Config.DdrawUseNativeResolution || Config.DdrawOverrideWidth || Config.DdrawOverrideHeight) &&
 			(!Config.EnableWindowMode || (Config.EnableWindowMode && Config.FullscreenWindowMode)));
@@ -2675,7 +2703,12 @@ HRESULT m_IDirectDrawX::CreateD3D9Device()
 		DWORD BackBufferHeight = displayHeight;
 		if (!BackBufferWidth || !BackBufferHeight)
 		{
-			if (isWindowed && IsWindow(hWnd))
+			if (surfaceWidth && surfaceHeight)
+			{
+				BackBufferWidth = surfaceWidth;
+				BackBufferHeight = surfaceHeight;
+			}
+			else if (isWindowed && IsWindow(hWnd))
 			{
 				RECT Rect = {};
 				GetClientRect(hWnd, &Rect);
