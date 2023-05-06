@@ -4695,6 +4695,65 @@ HRESULT m_IDirectDrawSurfaceX::ColorFill(RECT* pRect, D3DCOLOR dwFillColor)
 	return DD_OK;
 }
 
+// Save DXT data as a DDS file
+HRESULT m_IDirectDrawSurfaceX::SaveDXTDataToDDS(const void *data, size_t dataSize, const char *filename, int dxtVersion) const
+{
+	int blockSize = 0;
+	DWORD fourCC = 0;
+
+	switch(dxtVersion)
+	{
+	case 1:
+		blockSize = 8;
+		fourCC = '1TXD';
+		break;
+
+	case 3:
+		blockSize = 16;
+		fourCC = '3TXD';
+		break;
+
+	case 5:
+		blockSize = 16;
+		fourCC = '5TXD';
+		break;
+
+	default:
+		Logging::Log() << __FUNCTION__ << " Error: unsupported DXT version!";
+		return D3DERR_INVALIDCALL;
+	}
+
+	std::ofstream outFile(filename, std::ios::binary | std::ios::out);
+	if (outFile.is_open())
+	{
+		DDS_HEADER header = {};
+		header.dwSize = sizeof(DDS_HEADER);
+		header.dwFlags = DDSD_CAPS | DDSD_HEIGHT | DDSD_WIDTH | DDSD_PIXELFORMAT | DDSD_LINEARSIZE;
+		header.dwHeight = surfaceDesc2.dwHeight;
+		header.dwWidth = surfaceDesc2.dwHeight;
+		header.dwPitchOrLinearSize = max(1, (surfaceDesc2.dwWidth + 3) / 4) * blockSize;  // 8 for DXT1, 16 for others
+		header.dwDepth = 0;
+		header.dwMipMapCount = 0;
+		header.ddspf.dwSize = sizeof(DDS_PIXELFORMAT);
+		header.ddspf.dwFlags = DDPF_FOURCC;
+		header.ddspf.dwFourCC = fourCC;
+		header.dwCaps = DDSCAPS_TEXTURE;// | DDSCAPS_COMPLEX | DDSCAPS_MIPMAP;
+		header.dwCaps2 = 0x00000000;
+		header.dwCaps3 = 0x00000000;
+		header.dwCaps4 = 0x00000000;
+		header.dwReserved2 = 0;
+
+		outFile.write("DDS ", 4);
+		outFile.write((char*)&header, sizeof(DDS_HEADER));
+		outFile.write((char*)data, dataSize);
+		outFile.close();
+
+		return D3D_OK;
+	}
+
+	return DDERR_GENERIC;
+}
+
 // Copy surface
 HRESULT m_IDirectDrawSurfaceX::CopySurface(m_IDirectDrawSurfaceX* pSourceSurface, RECT* pSourceRect, RECT* pDestRect, D3DTEXTUREFILTERTYPE Filter, DDCOLORKEY ColorKey, DWORD dwFlags)
 {
