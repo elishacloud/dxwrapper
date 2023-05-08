@@ -18,6 +18,7 @@
 * Code to create emulated surface taken from: https://github.com/CnCNet/cnc-ddraw
 */
 
+#include <sstream>
 #include "ddraw.h"
 #include "d3d9ShaderPalette.h"
 #include "d3dx9.h"
@@ -4752,6 +4753,29 @@ HRESULT m_IDirectDrawSurfaceX::SaveDXTDataToDDS(const void *data, size_t dataSiz
 	}
 
 	return DDERR_GENERIC;
+}
+
+// Save a surface for debugging
+HRESULT m_IDirectDrawSurfaceX::SaveSurfaceToFile(const char *filename, D3DXIMAGE_FILEFORMAT format)
+{
+	LPD3DXBUFFER pDestBuf = nullptr;
+	HRESULT hr = D3DXSaveSurfaceToFileInMemory(&pDestBuf, format, GetD3D9Surface(), nullptr, nullptr);
+
+	if (SUCCEEDED(hr))
+	{
+		// Save the buffer to a file
+		std::ofstream outFile(filename, std::ios::binary | std::ios::out);
+		if (outFile.is_open())
+		{
+			outFile.write((const char*)pDestBuf->GetBufferPointer(), pDestBuf->GetBufferSize());
+			outFile.close();
+		}
+
+		// Release the buffer
+		pDestBuf->Release();
+	}
+
+	return hr;
 }
 
 // Copy surface

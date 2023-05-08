@@ -1260,12 +1260,15 @@ HRESULT m_IDirect3DDeviceX::SetViewport(LPD3DVIEWPORT7 lpViewport)
 		return (*d3d9Device)->SetViewport(&Viewport9);
 	}
 
+	D3DVIEWPORT7 Viewport7;
 	if (Config.DdrawUseNativeResolution && lpViewport)
 	{
-		lpViewport->dwX = (LONG)(lpViewport->dwX * ScaleDDWidthRatio) + ScaleDDPadX;
-		lpViewport->dwY = (LONG)(lpViewport->dwY * ScaleDDHeightRatio) + ScaleDDPadY;
-		lpViewport->dwWidth = (LONG)(lpViewport->dwWidth * ScaleDDWidthRatio);
-		lpViewport->dwHeight = (LONG)(lpViewport->dwHeight * ScaleDDHeightRatio);
+		ConvertViewport(Viewport7, *lpViewport);
+		Viewport7.dwX = (LONG)(Viewport7.dwX * ScaleDDWidthRatio) + ScaleDDPadX;
+		Viewport7.dwY = (LONG)(Viewport7.dwY * ScaleDDHeightRatio) + ScaleDDPadY;
+		Viewport7.dwWidth = (LONG)(Viewport7.dwWidth * ScaleDDWidthRatio);
+		Viewport7.dwHeight = (LONG)(Viewport7.dwHeight * ScaleDDHeightRatio);
+		lpViewport = &Viewport7;
 	}
 
 	return GetProxyInterfaceV7()->SetViewport(lpViewport);
