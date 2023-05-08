@@ -1784,7 +1784,7 @@ HRESULT m_IDirect3DDeviceX::SetRenderState(D3DRENDERSTATETYPE dwRenderStateType,
 			{
 				return DDERR_INVALIDPARAMS;
 			}
-			float Biased = (float)dwRenderState * -0.000005f;
+			float Biased = ((dwRenderState * 15) / 16) * -0.000005f;
 			dwRenderState = *(DWORD*)&Biased;
 			dwRenderStateType = D3DRS_DEPTHBIAS;
 			break;
@@ -1862,7 +1862,7 @@ HRESULT m_IDirect3DDeviceX::GetRenderState(D3DRENDERSTATETYPE dwRenderStateType,
 		case D3DRENDERSTATE_ZBIAS:
 		{
 			HRESULT hr = (*d3d9Device)->GetRenderState(D3DRS_DEPTHBIAS, lpdwRenderState);
-			*lpdwRenderState = (DWORD)(*(float*)lpdwRenderState * -200000.0f);
+			*lpdwRenderState = (DWORD)(((*(float*)lpdwRenderState * -200000.0f) * 16) / 15);
 			return hr;
 		}
 		case D3DRENDERSTATE_TEXTUREPERSPECTIVE:
