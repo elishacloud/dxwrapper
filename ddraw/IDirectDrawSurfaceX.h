@@ -1,6 +1,7 @@
 #pragma once
 
 #include <map>
+#include "d3dx9.h"
 
 #define BLT_MIRRORLEFTRIGHT		0x00000002l
 #define BLT_MIRRORUPDOWN		0x00000004l
@@ -236,6 +237,7 @@ private:
 
 	// Copying surface textures
 	HRESULT ColorFill(RECT* pRect, D3DCOLOR dwFillColor);
+	HRESULT SaveSurfaceToFile(const char* filename, D3DXIMAGE_FILEFORMAT format);
 	HRESULT CopySurface(m_IDirectDrawSurfaceX* pSourceSurface, RECT* pSourceRect, RECT* pDestRect, D3DTEXTUREFILTERTYPE Filter, DDCOLORKEY ColorKey, DWORD dwFlags);
 	HRESULT CopyFromEmulatedSurface(LPRECT lpDestRect);
 	HRESULT CopyToEmulatedSurface(LPRECT lpDestRect);
