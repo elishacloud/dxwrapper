@@ -1445,8 +1445,6 @@ HRESULT m_IDirect3DDeviceX::BeginScene()
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	HRESULT hr = DDERR_GENERIC;
-
 	if (Config.Dd7to9)
 	{
 		// Check for device interface
@@ -1458,66 +1456,37 @@ HRESULT m_IDirect3DDeviceX::BeginScene()
 		// Set 3D Enabled
 		ddrawParent->Enable3D();
 
-		hr = (*d3d9Device)->BeginScene();
+		HRESULT hr = (*d3d9Device)->BeginScene();
+
+#if WITH_IMGUI
+		ImGui_ImplDX9_NewFrame();
+		ImGui_ImplWin32_NewFrame();
+		ImGui::NewFrame();
+#endif
+
+		return hr;
 	}
 
 	switch (ProxyDirectXVersion)
 	{
 	case 1:
-		hr = GetProxyInterfaceV1()->BeginScene();
-		break;
+		return GetProxyInterfaceV1()->BeginScene();
 
 	case 2:
-		hr = GetProxyInterfaceV2()->BeginScene();
-		break;
+		return GetProxyInterfaceV2()->BeginScene();
 
 	case 3:
-		hr = GetProxyInterfaceV3()->BeginScene();
-		break;
+		return GetProxyInterfaceV3()->BeginScene();
 
 	case 7:
-		hr = GetProxyInterfaceV7()->BeginScene();
-		break;
+	default:
+		return GetProxyInterfaceV7()->BeginScene();
 	}
-
-#if WITH_IMGUI
-	if(SUCCEEDED(hr) || Config.Dd7to9)
-	{
-		ImGui_ImplDX9_NewFrame();
-		ImGui_ImplWin32_NewFrame();
-		ImGui::NewFrame();
-	}
-#endif
-
-	return hr;
 }
 
 HRESULT m_IDirect3DDeviceX::EndScene()
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
-
-#if WITH_IMGUI
-	static bool ShowDebugUI = false;
-	if (ImGui::IsKeyDown(ImGui::GetKeyIndex(ImGuiKey_LeftAlt)) &&
-		ImGui::IsKeyPressed(ImGui::GetKeyIndex(ImGuiKey_D), false))
-	{
-		ShowDebugUI = !ShowDebugUI;
-	}
-
-	if(ShowDebugUI)
-	{
-		ImGui::Begin("Hello, world!");
-		ImGui::Text("This is some text.");
-		ImGui::End();
-
-		ImGui::Render();
-		ImGui_ImplDX9_RenderDrawData(ImGui::GetDrawData());
-	}
-	else
-	{
-		ImGui::EndFrame();
-	}
-#endif
 
 	if (Config.Dd7to9)
 	{
@@ -1526,6 +1495,29 @@ HRESULT m_IDirect3DDeviceX::EndScene()
 		{
 			return DDERR_GENERIC;
 		}
+
+#if WITH_IMGUI
+		static bool ShowDebugUI = false;
+		if (ImGui::IsKeyDown(ImGui::GetKeyIndex(ImGuiKey_LeftAlt)) &&
+			ImGui::IsKeyPressed(ImGui::GetKeyIndex(ImGuiKey_D), false))
+		{
+			ShowDebugUI = !ShowDebugUI;
+		}
+
+		if (ShowDebugUI)
+		{
+			ImGui::Begin("Hello, world!");
+			ImGui::Text("This is some text.");
+			ImGui::End();
+
+			ImGui::Render();
+			ImGui_ImplDX9_RenderDrawData(ImGui::GetDrawData());
+		}
+		else
+		{
+			ImGui::EndFrame();
+		}
+#endif
 
 		// The IDirect3DDevice7::EndScene method ends a scene that was begun by calling the IDirect3DDevice7::BeginScene method.
 		// When this method succeeds, the scene has been rendered, and the device surface holds the rendered scene.
@@ -2578,16 +2570,20 @@ void m_IDirect3DDeviceX::InitDevice(DWORD DirectXVersion)
 
 void m_IDirect3DDeviceX::ReleaseDevice()
 {
-#if WITH_IMGUI
-	ImGui_ImplDX9_Shutdown();
-	ImGui_ImplWin32_Shutdown();
-	ImGui::DestroyContext();
-#endif
 
 	WrapperInterface->DeleteMe();
 	WrapperInterface2->DeleteMe();
 	WrapperInterface3->DeleteMe();
 	WrapperInterface7->DeleteMe();
+
+#if WITH_IMGUI
+	if (Config.Dd7to9)
+	{
+		ImGui_ImplDX9_Shutdown();
+		ImGui_ImplWin32_Shutdown();
+		ImGui::DestroyContext();
+	}
+#endif
 
 	if (ddrawParent && !Config.Exiting)
 	{
@@ -2634,7 +2630,7 @@ HRESULT m_IDirect3DDeviceX::CheckInterface(char *FunctionName, bool CheckD3DDevi
 		}
 
 #if WITH_IMGUI
-		HWND hwnd = GetActiveWindow();
+		HWND hwnd = ddrawParent->GetHwnd();
 
 		IMGUI_CHECKVERSION();
 		ImGui::CreateContext();
