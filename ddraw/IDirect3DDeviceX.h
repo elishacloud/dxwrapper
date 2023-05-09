@@ -24,6 +24,9 @@ private:
 	m_IDirect3DDevice3 *WrapperInterface3;
 	m_IDirect3DDevice7 *WrapperInterface7;
 
+	// SetTexture array
+	LPDIRECTDRAWSURFACE7 AttachedTexture[8] = {};
+
 	// Wrapper interface functions
 	inline REFIID GetWrapperType(DWORD DirectXVersion)
 	{
@@ -43,6 +46,13 @@ private:
 	inline IDirect3DDevice2 *GetProxyInterfaceV2() { return (IDirect3DDevice2 *)ProxyInterface; }
 	inline IDirect3DDevice3 *GetProxyInterfaceV3() { return (IDirect3DDevice3 *)ProxyInterface; }
 	inline IDirect3DDevice7 *GetProxyInterfaceV7() { return ProxyInterface; }
+	inline bool CheckSurfaceExists(LPDIRECTDRAWSURFACE7 lpDDSrcSurface) { return
+		(ProxyAddressLookupTable.IsValidWrapperAddress((m_IDirectDrawSurface*)lpDDSrcSurface) ||
+		ProxyAddressLookupTable.IsValidWrapperAddress((m_IDirectDrawSurface2*)lpDDSrcSurface) ||
+		ProxyAddressLookupTable.IsValidWrapperAddress((m_IDirectDrawSurface3*)lpDDSrcSurface) ||
+		ProxyAddressLookupTable.IsValidWrapperAddress((m_IDirectDrawSurface4*)lpDDSrcSurface) ||
+		ProxyAddressLookupTable.IsValidWrapperAddress((m_IDirectDrawSurface7*)lpDDSrcSurface));
+	}
 
 	// Interface initialization functions
 	void InitDevice(DWORD DirectXVersion);
@@ -105,8 +115,8 @@ public:
 	STDMETHOD(SwapTextureHandles)(THIS_ LPDIRECT3DTEXTURE2, LPDIRECT3DTEXTURE2);
 	STDMETHOD(EnumTextureFormats)(THIS_ LPD3DENUMTEXTUREFORMATSCALLBACK, LPVOID);
 	STDMETHOD(EnumTextureFormats)(THIS_ LPD3DENUMPIXELFORMATSCALLBACK, LPVOID);
-	STDMETHOD(GetTexture)(THIS_ DWORD, LPDIRECT3DTEXTURE2 *, DWORD);
-	STDMETHOD(GetTexture)(THIS_ DWORD, LPDIRECTDRAWSURFACE7 *, DWORD);
+	STDMETHOD(GetTexture)(THIS_ DWORD, LPDIRECT3DTEXTURE2 *);
+	STDMETHOD(GetTexture)(THIS_ DWORD, LPDIRECTDRAWSURFACE7 *);
 	STDMETHOD(SetTexture)(THIS_ DWORD, LPDIRECT3DTEXTURE2);
 	STDMETHOD(SetTexture)(THIS_ DWORD, LPDIRECTDRAWSURFACE7);
 	STDMETHOD(SetRenderTarget)(THIS_ LPDIRECTDRAWSURFACE7, DWORD);
@@ -180,6 +190,7 @@ public:
 		}
 	}
 	void ClearDdraw() { ddrawParent = nullptr; }
+	void ResetDevice();
 	void SetDrawFlags(DWORD &rsClipping, DWORD &rsLighting, DWORD &rsExtents, DWORD dwVertexTypeDesc, DWORD dwFlags, DWORD DirectXVersion);
 	void UnSetDrawFlags(DWORD rsClipping, DWORD rsLighting, DWORD rsExtents, DWORD dwVertexTypeDesc, DWORD dwFlags, DWORD DirectXVersion);
 	void CopyScaleVertex(LPVOID lpVertices, std::vector<D3DTLVERTEX> &pVert, DWORD dwVertexCount);

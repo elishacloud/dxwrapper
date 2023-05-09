@@ -2920,6 +2920,12 @@ HRESULT m_IDirectDrawX::CreateD3D9Device()
 
 	} while (false);
 
+	// Reset D3D device settings
+	if (D3DDeviceInterface)
+	{
+		D3DDeviceInterface->ResetDevice();
+	}
+
 	ReleaseCriticalSection();
 
 	// Return result
