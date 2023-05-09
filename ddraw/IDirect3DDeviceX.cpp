@@ -1105,7 +1105,7 @@ HRESULT m_IDirect3DDeviceX::AddViewport(LPDIRECT3DVIEWPORT3 lpDirect3DViewport)
 			hr = SetViewport(&Viewport7);
 		}
 
-		return D3D_OK;
+		return hr;
 	}
 
 	if (lpDirect3DViewport)
@@ -2649,7 +2649,9 @@ void m_IDirect3DDeviceX::ReleaseDevice()
 	}
 }
 
+#if WITH_IMGUI
 namespace {
+	HWND OriginalHwnd = nullptr;
 	WNDPROC OverrideWndProc_OriginalWndProc = nullptr;
 	LRESULT CALLBACK OverrideWndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 	{
@@ -2660,6 +2662,7 @@ namespace {
 		return res;
 	}
 }
+#endif
 
 HRESULT m_IDirect3DDeviceX::CheckInterface(char *FunctionName, bool CheckD3DDevice)
 {
@@ -2695,9 +2698,21 @@ HRESULT m_IDirect3DDeviceX::CheckInterface(char *FunctionName, bool CheckD3DDevi
 		ImGui_ImplWin32_Init(hwnd);
 		ImGui_ImplDX9_Init(*d3d9Device);
 
-		OverrideWndProc_OriginalWndProc = (WNDPROC)GetWindowLongPtr(hwnd, GWLP_WNDPROC);
+		// Restore WndProc if hwnd changes
+		if (IsWindow(OriginalHwnd) && OriginalHwnd != hwnd)
+		{
+			SetWindowLongPtr(OriginalHwnd, GWLP_WNDPROC, (LONG_PTR)OverrideWndProc_OriginalWndProc);
+			OverrideWndProc_OriginalWndProc = nullptr;
+			OriginalHwnd = nullptr;
+		}
 
-		SetWindowLongPtr(hwnd, GWLP_WNDPROC, (LONG_PTR)OverrideWndProc);
+		// Override WndProc if not already overridden
+		if (OriginalHwnd != hwnd)
+		{
+			OriginalHwnd = hwnd;
+			OverrideWndProc_OriginalWndProc = (WNDPROC)GetWindowLongPtr(hwnd, GWLP_WNDPROC);
+			SetWindowLongPtr(hwnd, GWLP_WNDPROC, (LONG_PTR)OverrideWndProc);
+		}
 #endif
 	}
 
