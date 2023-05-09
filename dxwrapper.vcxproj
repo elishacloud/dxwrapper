@@ -54,7 +54,7 @@
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
       <ObjectFileName>$(SolutionDir)bin\Intermediate\$(Configuration)\Object\%(RelativeDir)</ObjectFileName>
       <WarningLevel>Level4</WarningLevel>
-      <AdditionalIncludeDirectories>$(ProjectDir);Libraries;Libraries\DirectX81SDK\include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir);Libraries;Libraries\DirectX81SDK\include;External\imgui</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp17</LanguageStandard>
       <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
