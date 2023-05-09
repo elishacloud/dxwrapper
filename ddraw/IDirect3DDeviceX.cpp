@@ -17,6 +17,31 @@
 #include "ddraw.h"
 #include <d3dhal.h>
 
+#define WITH_IMGUI 1
+
+#if WITH_IMGUI
+#define IMGUI_DEFINE_MATH_OPERATORS
+#define IMGUI_DISABLE_OBSOLETE_KEYIO
+
+HRESULT DwmIsCompositionEnabled(BOOL *enabled) { *enabled = FALSE; return E_NOTIMPL;}
+HRESULT DwmGetColorizationColor(DWORD *colorization, BOOL *opaqueBlend) { *colorization = 0; *opaqueBlend = FALSE; return E_NOTIMPL; }
+HRESULT DwmEnableBlurBehindWindow(HWND, const struct DWM_BLURBEHIND*) { return E_NOTIMPL; }
+struct DWM_BLURBEHIND { DWORD dwFlags; BOOL fEnable; HRGN hRgnBlur; BOOL fTransitionOnMaximized; };
+#define DWM_BB_ENABLE 0x00000001
+#define DWM_BB_BLURREGION 0x00000002
+
+#include "External/imgui/imgui.h"
+#include "External/imgui/backends/imgui_impl_win32.h"
+#include "External/imgui/backends/imgui_impl_dx9.h"
+
+#include "External/imgui/imgui.cpp"
+#include "External/imgui/imgui_draw.cpp"
+#include "External/imgui/imgui_tables.cpp"
+#include "External/imgui/imgui_widgets.cpp"
+#include "External/imgui/backends/imgui_impl_win32.cpp"
+#include "External/imgui/backends/imgui_impl_dx9.cpp"
+#endif
+
 extern float ScaleDDWidthRatio;
 extern float ScaleDDHeightRatio;
 extern DWORD ScaleDDPadX;
@@ -1254,10 +1279,7 @@ HRESULT m_IDirect3DDeviceX::SetViewport(LPD3DVIEWPORT7 lpViewport)
 			return DDERR_GENERIC;
 		}
 
-		D3DVIEWPORT9 Viewport9;
-		ConvertViewport(Viewport9, *lpViewport);
-
-		return (*d3d9Device)->SetViewport(&Viewport9);
+		return (*d3d9Device)->SetViewport((D3DVIEWPORT9*)lpViewport);
 	}
 
 	D3DVIEWPORT7 Viewport7;
@@ -1291,16 +1313,7 @@ HRESULT m_IDirect3DDeviceX::GetViewport(LPD3DVIEWPORT7 lpViewport)
 			return DDERR_GENERIC;
 		}
 
-		D3DVIEWPORT9 Viewport9;
-
-		HRESULT hr = (*d3d9Device)->GetViewport(&Viewport9);
-
-		if (SUCCEEDED(hr))
-		{
-			ConvertViewport(*lpViewport, Viewport9);
-		}
-
-		return hr;
+		return (*d3d9Device)->GetViewport((D3DVIEWPORT9*)lpViewport);
 	}
 
 	return GetProxyInterfaceV7()->GetViewport(lpViewport);
@@ -1431,21 +1444,31 @@ HRESULT m_IDirect3DDeviceX::BeginScene()
 		// Set 3D Enabled
 		ddrawParent->Enable3D();
 
-		return (*d3d9Device)->BeginScene();
+		HRESULT hr = (*d3d9Device)->BeginScene();
+
+#if WITH_IMGUI
+		ImGui_ImplDX9_NewFrame();
+		ImGui_ImplWin32_NewFrame();
+		ImGui::NewFrame();
+#endif
+
+		return hr;
 	}
 
 	switch (ProxyDirectXVersion)
 	{
 	case 1:
 		return GetProxyInterfaceV1()->BeginScene();
+
 	case 2:
 		return GetProxyInterfaceV2()->BeginScene();
+
 	case 3:
 		return GetProxyInterfaceV3()->BeginScene();
+
 	case 7:
-		return GetProxyInterfaceV7()->BeginScene();
 	default:
-		return DDERR_GENERIC;
+		return GetProxyInterfaceV7()->BeginScene();
 	}
 }
 
@@ -1460,6 +1483,29 @@ HRESULT m_IDirect3DDeviceX::EndScene()
 		{
 			return DDERR_GENERIC;
 		}
+
+#if WITH_IMGUI
+		static bool ShowDebugUI = false;
+		if (ImGui::IsKeyDown(ImGui::GetKeyIndex(ImGuiKey_LeftAlt)) &&
+			ImGui::IsKeyPressed(ImGui::GetKeyIndex(ImGuiKey_D), false))
+		{
+			ShowDebugUI = !ShowDebugUI;
+		}
+
+		if (ShowDebugUI)
+		{
+			ImGui::Begin("Hello, world!");
+			ImGui::Text("This is some text.");
+			ImGui::End();
+
+			ImGui::Render();
+			ImGui_ImplDX9_RenderDrawData(ImGui::GetDrawData());
+		}
+		else
+		{
+			ImGui::EndFrame();
+		}
+#endif
 
 		// The IDirect3DDevice7::EndScene method ends a scene that was begun by calling the IDirect3DDevice7::BeginScene method.
 		// When this method succeeds, the scene has been rendered, and the device surface holds the rendered scene.
@@ -1661,8 +1707,30 @@ HRESULT m_IDirect3DDeviceX::SetLight(DWORD dwLightIndex, LPD3DLIGHT7 lpLight)
 
 	if (Config.Dd7to9)
 	{
-		LOG_LIMIT(100, __FUNCTION__ << " Not Implemented");
-		return DDERR_UNSUPPORTED;
+		if (!lpLight)
+		{
+			return DDERR_INVALIDPARAMS;
+		}
+
+		// Check for device interface
+		if (FAILED(CheckInterface(__FUNCTION__, true)))
+		{
+			return DDERR_GENERIC;
+		}
+
+		D3DLIGHT9 Light = *(D3DLIGHT9*)lpLight;
+
+		// Make spot light work more like it did in Direct3D7
+		if (Light.Type == D3DLIGHTTYPE::D3DLIGHT_SPOT)
+		{
+			// Theta must be in the range from 0 through the value specified by Phi
+			if (Light.Theta <= Light.Phi)
+			{
+				Light.Theta /= 1.75f;
+			}
+		}
+
+		return (*d3d9Device)->SetLight(dwLightIndex, &Light);
 	}
 
 	return GetProxyInterfaceV7()->SetLight(dwLightIndex, lpLight);
@@ -1674,8 +1742,18 @@ HRESULT m_IDirect3DDeviceX::GetLight(DWORD dwLightIndex, LPD3DLIGHT7 lpLight)
 
 	if (Config.Dd7to9)
 	{
-		LOG_LIMIT(100, __FUNCTION__ << " Not Implemented");
-		return DDERR_UNSUPPORTED;
+		if (!lpLight)
+		{
+			return DDERR_INVALIDPARAMS;
+		}
+
+		// Check for device interface
+		if (FAILED(CheckInterface(__FUNCTION__, true)))
+		{
+			return DDERR_GENERIC;
+		}
+
+		return (*d3d9Device)->GetLight(dwLightIndex, (D3DLIGHT9*)lpLight);
 	}
 
 	return GetProxyInterfaceV7()->GetLight(dwLightIndex, lpLight);
@@ -1687,21 +1765,36 @@ HRESULT m_IDirect3DDeviceX::LightEnable(DWORD dwLightIndex, BOOL bEnable)
 
 	if (Config.Dd7to9)
 	{
-		LOG_LIMIT(100, __FUNCTION__ << " Not Implemented");
-		return DDERR_UNSUPPORTED;
+		// Check for device interface
+		if (FAILED(CheckInterface(__FUNCTION__, true)))
+		{
+			return DDERR_GENERIC;
+		}
+
+		return (*d3d9Device)->LightEnable(dwLightIndex, bEnable);
 	}
 
 	return GetProxyInterfaceV7()->LightEnable(dwLightIndex, bEnable);
 }
 
-HRESULT m_IDirect3DDeviceX::GetLightEnable(DWORD dwLightIndex, BOOL * pbEnable)
+HRESULT m_IDirect3DDeviceX::GetLightEnable(DWORD dwLightIndex, BOOL* pbEnable)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
 	if (Config.Dd7to9)
 	{
-		LOG_LIMIT(100, __FUNCTION__ << " Not Implemented");
-		return DDERR_UNSUPPORTED;
+		if (!pbEnable)
+		{
+			return DDERR_INVALIDPARAMS;
+		}
+
+		// Check for device interface
+		if (FAILED(CheckInterface(__FUNCTION__, true)))
+		{
+			return DDERR_GENERIC;
+		}
+
+		return (*d3d9Device)->GetLightEnable(dwLightIndex, pbEnable);
 	}
 
 	return GetProxyInterfaceV7()->GetLightEnable(dwLightIndex, pbEnable);
@@ -1737,8 +1830,18 @@ HRESULT m_IDirect3DDeviceX::SetMaterial(LPD3DMATERIAL7 lpMaterial)
 
 	if (Config.Dd7to9)
 	{
-		LOG_LIMIT(100, __FUNCTION__ << " Not Implemented");
-		return DDERR_UNSUPPORTED;
+		if (!lpMaterial)
+		{
+			return DDERR_INVALIDPARAMS;
+		}
+
+		// Check for device interface
+		if (FAILED(CheckInterface(__FUNCTION__, true)))
+		{
+			return DDERR_GENERIC;
+		}
+
+		return (*d3d9Device)->SetMaterial((D3DMATERIAL9*)lpMaterial);
 	}
 
 	return GetProxyInterfaceV7()->SetMaterial(lpMaterial);
@@ -1750,8 +1853,18 @@ HRESULT m_IDirect3DDeviceX::GetMaterial(LPD3DMATERIAL7 lpMaterial)
 
 	if (Config.Dd7to9)
 	{
-		LOG_LIMIT(100, __FUNCTION__ << " Not Implemented");
-		return DDERR_UNSUPPORTED;
+		if (!lpMaterial)
+		{
+			return DDERR_INVALIDPARAMS;
+		}
+
+		// Check for device interface
+		if (FAILED(CheckInterface(__FUNCTION__, true)))
+		{
+			return DDERR_GENERIC;
+		}
+
+		return (*d3d9Device)->GetMaterial((D3DMATERIAL9*)lpMaterial);
 	}
 
 	return GetProxyInterfaceV7()->GetMaterial(lpMaterial);
@@ -2335,8 +2448,15 @@ HRESULT m_IDirect3DDeviceX::ValidateDevice(LPDWORD lpdwPasses)
 
 	if (Config.Dd7to9)
 	{
-		LOG_LIMIT(100, __FUNCTION__ << " Not Implemented");
-		return DDERR_UNSUPPORTED;
+		if (!lpdwPasses)
+		{
+			return DDERR_INVALIDPARAMS;
+		}
+
+		// Address to be filled with the number of rendering passes to complete the desired effect through multipass rendering.
+		*lpdwPasses = 1;
+
+		return DD_OK;
 	}
 
 	switch (ProxyDirectXVersion)
@@ -2512,14 +2632,36 @@ void m_IDirect3DDeviceX::InitDevice(DWORD DirectXVersion)
 
 void m_IDirect3DDeviceX::ReleaseDevice()
 {
+
 	WrapperInterface->DeleteMe();
 	WrapperInterface2->DeleteMe();
 	WrapperInterface3->DeleteMe();
 	WrapperInterface7->DeleteMe();
 
+#if WITH_IMGUI
+	if (Config.Dd7to9)
+	{
+		ImGui_ImplDX9_Shutdown();
+		ImGui_ImplWin32_Shutdown();
+		ImGui::DestroyContext();
+	}
+#endif
+
 	if (ddrawParent && !Config.Exiting)
 	{
 		ddrawParent->ClearD3DDevice();
+	}
+}
+
+namespace {
+	WNDPROC OverrideWndProc_OriginalWndProc = nullptr;
+	LRESULT CALLBACK OverrideWndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
+	{
+		LRESULT res = OverrideWndProc_OriginalWndProc(hwnd, uMsg, wParam, lParam);
+
+		ImGui_ImplWin32_WndProcHandler(hwnd, uMsg, wParam, lParam);
+
+		return res;
 	}
 }
 
@@ -2548,6 +2690,19 @@ HRESULT m_IDirect3DDeviceX::CheckInterface(char *FunctionName, bool CheckD3DDevi
 			LOG_LIMIT(100, FunctionName << " Error: d3d9 device not setup!");
 			return DDERR_GENERIC;
 		}
+
+#if WITH_IMGUI
+		HWND hwnd = ddrawParent->GetHwnd();
+
+		IMGUI_CHECKVERSION();
+		ImGui::CreateContext();
+		ImGui_ImplWin32_Init(hwnd);
+		ImGui_ImplDX9_Init(*d3d9Device);
+
+		OverrideWndProc_OriginalWndProc = (WNDPROC)GetWindowLongPtr(hwnd, GWLP_WNDPROC);
+
+		SetWindowLongPtr(hwnd, GWLP_WNDPROC, (LONG_PTR)OverrideWndProc);
+#endif
 	}
 
 	return DD_OK;
