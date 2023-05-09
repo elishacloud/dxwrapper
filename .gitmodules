@@ -19,4 +19,4 @@
 	url = https://github.com/elishacloud/dinputto8
 [submodule "External/imgui"]
 	path = External/imgui
-	url = https://github.com/ocornut/imgui.git
+	url = https://github.com/ocornut/imgui
