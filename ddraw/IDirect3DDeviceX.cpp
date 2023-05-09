@@ -1254,10 +1254,7 @@ HRESULT m_IDirect3DDeviceX::SetViewport(LPD3DVIEWPORT7 lpViewport)
 			return DDERR_GENERIC;
 		}
 
-		D3DVIEWPORT9 Viewport9;
-		ConvertViewport(Viewport9, *lpViewport);
-
-		return (*d3d9Device)->SetViewport(&Viewport9);
+		return (*d3d9Device)->SetViewport((D3DVIEWPORT9*)lpViewport);
 	}
 
 	D3DVIEWPORT7 Viewport7;
@@ -1291,16 +1288,7 @@ HRESULT m_IDirect3DDeviceX::GetViewport(LPD3DVIEWPORT7 lpViewport)
 			return DDERR_GENERIC;
 		}
 
-		D3DVIEWPORT9 Viewport9;
-
-		HRESULT hr = (*d3d9Device)->GetViewport(&Viewport9);
-
-		if (SUCCEEDED(hr))
-		{
-			ConvertViewport(*lpViewport, Viewport9);
-		}
-
-		return hr;
+		return (*d3d9Device)->GetViewport((D3DVIEWPORT9*)lpViewport);
 	}
 
 	return GetProxyInterfaceV7()->GetViewport(lpViewport);
@@ -1661,8 +1649,30 @@ HRESULT m_IDirect3DDeviceX::SetLight(DWORD dwLightIndex, LPD3DLIGHT7 lpLight)
 
 	if (Config.Dd7to9)
 	{
-		LOG_LIMIT(100, __FUNCTION__ << " Not Implemented");
-		return DDERR_UNSUPPORTED;
+		if (!lpLight)
+		{
+			return DDERR_INVALIDPARAMS;
+		}
+
+		// Check for device interface
+		if (FAILED(CheckInterface(__FUNCTION__, true)))
+		{
+			return DDERR_GENERIC;
+		}
+
+		D3DLIGHT9 Light = *(D3DLIGHT9*)lpLight;
+
+		// Make spot light work more like it did in Direct3D7
+		if (Light.Type == D3DLIGHTTYPE::D3DLIGHT_SPOT)
+		{
+			// Theta must be in the range from 0 through the value specified by Phi
+			if (Light.Theta <= Light.Phi)
+			{
+				Light.Theta /= 1.75f;
+			}
+		}
+
+		return (*d3d9Device)->SetLight(dwLightIndex, &Light);
 	}
 
 	return GetProxyInterfaceV7()->SetLight(dwLightIndex, lpLight);
@@ -1674,8 +1684,18 @@ HRESULT m_IDirect3DDeviceX::GetLight(DWORD dwLightIndex, LPD3DLIGHT7 lpLight)
 
 	if (Config.Dd7to9)
 	{
-		LOG_LIMIT(100, __FUNCTION__ << " Not Implemented");
-		return DDERR_UNSUPPORTED;
+		if (!lpLight)
+		{
+			return DDERR_INVALIDPARAMS;
+		}
+
+		// Check for device interface
+		if (FAILED(CheckInterface(__FUNCTION__, true)))
+		{
+			return DDERR_GENERIC;
+		}
+
+		return (*d3d9Device)->GetLight(dwLightIndex, (D3DLIGHT9*)lpLight);
 	}
 
 	return GetProxyInterfaceV7()->GetLight(dwLightIndex, lpLight);
@@ -1687,21 +1707,36 @@ HRESULT m_IDirect3DDeviceX::LightEnable(DWORD dwLightIndex, BOOL bEnable)
 
 	if (Config.Dd7to9)
 	{
-		LOG_LIMIT(100, __FUNCTION__ << " Not Implemented");
-		return DDERR_UNSUPPORTED;
+		// Check for device interface
+		if (FAILED(CheckInterface(__FUNCTION__, true)))
+		{
+			return DDERR_GENERIC;
+		}
+
+		return (*d3d9Device)->LightEnable(dwLightIndex, bEnable);
 	}
 
 	return GetProxyInterfaceV7()->LightEnable(dwLightIndex, bEnable);
 }
 
-HRESULT m_IDirect3DDeviceX::GetLightEnable(DWORD dwLightIndex, BOOL * pbEnable)
+HRESULT m_IDirect3DDeviceX::GetLightEnable(DWORD dwLightIndex, BOOL* pbEnable)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
 	if (Config.Dd7to9)
 	{
-		LOG_LIMIT(100, __FUNCTION__ << " Not Implemented");
-		return DDERR_UNSUPPORTED;
+		if (!pbEnable)
+		{
+			return DDERR_INVALIDPARAMS;
+		}
+
+		// Check for device interface
+		if (FAILED(CheckInterface(__FUNCTION__, true)))
+		{
+			return DDERR_GENERIC;
+		}
+
+		return (*d3d9Device)->GetLightEnable(dwLightIndex, pbEnable);
 	}
 
 	return GetProxyInterfaceV7()->GetLightEnable(dwLightIndex, pbEnable);
@@ -1737,8 +1772,18 @@ HRESULT m_IDirect3DDeviceX::SetMaterial(LPD3DMATERIAL7 lpMaterial)
 
 	if (Config.Dd7to9)
 	{
-		LOG_LIMIT(100, __FUNCTION__ << " Not Implemented");
-		return DDERR_UNSUPPORTED;
+		if (!lpMaterial)
+		{
+			return DDERR_INVALIDPARAMS;
+		}
+
+		// Check for device interface
+		if (FAILED(CheckInterface(__FUNCTION__, true)))
+		{
+			return DDERR_GENERIC;
+		}
+
+		return (*d3d9Device)->SetMaterial((D3DMATERIAL9*)lpMaterial);
 	}
 
 	return GetProxyInterfaceV7()->SetMaterial(lpMaterial);
@@ -1750,8 +1795,18 @@ HRESULT m_IDirect3DDeviceX::GetMaterial(LPD3DMATERIAL7 lpMaterial)
 
 	if (Config.Dd7to9)
 	{
-		LOG_LIMIT(100, __FUNCTION__ << " Not Implemented");
-		return DDERR_UNSUPPORTED;
+		if (!lpMaterial)
+		{
+			return DDERR_INVALIDPARAMS;
+		}
+
+		// Check for device interface
+		if (FAILED(CheckInterface(__FUNCTION__, true)))
+		{
+			return DDERR_GENERIC;
+		}
+
+		return (*d3d9Device)->GetMaterial((D3DMATERIAL9*)lpMaterial);
 	}
 
 	return GetProxyInterfaceV7()->GetMaterial(lpMaterial);
@@ -2335,8 +2390,15 @@ HRESULT m_IDirect3DDeviceX::ValidateDevice(LPDWORD lpdwPasses)
 
 	if (Config.Dd7to9)
 	{
-		LOG_LIMIT(100, __FUNCTION__ << " Not Implemented");
-		return DDERR_UNSUPPORTED;
+		if (!lpdwPasses)
+		{
+			return DDERR_INVALIDPARAMS;
+		}
+
+		// Address to be filled with the number of rendering passes to complete the desired effect through multipass rendering.
+		*lpdwPasses = 1;
+
+		return DD_OK;
 	}
 
 	switch (ProxyDirectXVersion)

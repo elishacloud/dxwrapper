@@ -208,28 +208,6 @@ void ConvertViewport(D3DVIEWPORT7 &ViewPort, D3DVIEWPORT7 &ViewPort7)
 	ViewPort.dvMaxZ = ViewPort7.dvMaxZ;
 }
 
-void ConvertViewport(D3DVIEWPORT7 &ViewPort7, D3DVIEWPORT9 &ViewPort9)
-{
-	// Convert variables
-	ViewPort7.dwX = ViewPort9.X;
-	ViewPort7.dwY = ViewPort9.Y;
-	ViewPort7.dwWidth = ViewPort9.Width;
-	ViewPort7.dwHeight = ViewPort9.Height;
-	ViewPort7.dvMinZ = ViewPort9.MinZ;
-	ViewPort7.dvMaxZ = ViewPort9.MaxZ;
-}
-
-void ConvertViewport(D3DVIEWPORT9 &ViewPort9, D3DVIEWPORT7 &ViewPort7)
-{
-	// Convert variables
-	ViewPort9.X = ViewPort7.dwX;
-	ViewPort9.Y = ViewPort7.dwY;
-	ViewPort9.Width = ViewPort7.dwWidth;
-	ViewPort9.Height = ViewPort7.dwHeight;
-	ViewPort9.MinZ = ViewPort7.dvMinZ;
-	ViewPort9.MaxZ = ViewPort7.dvMaxZ;
-}
-
 void ConvertCaps(D3DPRIMCAPS &PrimCaps, D3DPRIMCAPS &PrimCaps2)
 {
 	if (PrimCaps.dwSize != sizeof(D3DPRIMCAPS) || PrimCaps2.dwSize != sizeof(D3DPRIMCAPS))
