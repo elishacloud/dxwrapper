@@ -1571,8 +1571,60 @@ HRESULT m_IDirect3DDeviceX::EndScene()
 
 		if (ShowDebugUI)
 		{
-			ImGui::Begin("Hello, world!");
-			ImGui::Text("This is some text.");
+			ImGui::Begin("Lights");
+			if(LightDebugInfos.size() < 1)
+			{
+				ImGui::Text("None");
+			}
+			else
+			{
+				std::stringstream ss;
+
+				for(size_t i = 0; i < LightDebugInfos.size(); ++i)
+				{
+					const LightDebugInfo &light = LightDebugInfos[i];
+
+					const char *type;
+					switch(light.type)
+					{
+					case D3DLIGHT_POINT: type = "Point"; break;
+					case D3DLIGHT_SPOT: type = "Spot"; break;
+					case D3DLIGHT_DIRECTIONAL: type = "Dir"; break;
+					default: type = "ERROR"; break;
+					}
+
+					ss << (int)light.index << ' ' << type;
+
+					if(light.diffuseColor.a > 0)
+					{
+						ss << "  dif: " << (int)light.diffuseColor.r << ',' << (int)light.diffuseColor.g << ',' << (int)light.diffuseColor.b << ',' << (int)light.diffuseColor.a;
+					}
+
+					if(light.specularColor.a > 0)
+					{
+						ss << "  spec: " << (int)light.specularColor.r << ',' << (int)light.specularColor.g << ',' << (int)light.specularColor.b << ',' << (int)light.specularColor.a;
+					}
+
+					if(light.ambientColor.a > 0)
+					{
+						ss << "  amb: " << (int)light.ambientColor.r << ',' << (int)light.ambientColor.g << ',' << (int)light.ambientColor.b << ',' << (int)light.ambientColor.a;
+					}
+
+					ss << "\n  pos: " << light.position.x << " / " << light.position.y << " / " << light.position.z;
+
+					if(light.type != D3DLIGHT_POINT)
+					{
+						ss << "  dir: " << light.direction.x << " / " << light.direction.y << " / " << light.direction.z;
+					}
+
+					if(i < LightDebugInfos.size() - 1)
+					{
+						ss << '\n';
+					}
+				}
+
+				ImGui::Text(ss.str().c_str());
+			}
 			ImGui::End();
 
 			ImGui::Render();
@@ -1782,6 +1834,7 @@ HRESULT m_IDirect3DDeviceX::SetLight(DWORD dwLightIndex, LPD3DLIGHT7 lpLight)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
+	HRESULT hr;
 	if (Config.Dd7to9)
 	{
 		if (!lpLight)
@@ -1807,10 +1860,40 @@ HRESULT m_IDirect3DDeviceX::SetLight(DWORD dwLightIndex, LPD3DLIGHT7 lpLight)
 			}
 		}
 
-		return (*d3d9Device)->SetLight(dwLightIndex, &Light);
+		hr = (*d3d9Device)->SetLight(dwLightIndex, &Light);
+	}
+	else
+	{
+		hr = GetProxyInterfaceV7()->SetLight(dwLightIndex, lpLight);
 	}
 
-	return GetProxyInterfaceV7()->SetLight(dwLightIndex, lpLight);
+	if(SUCCEEDED(hr))
+	{
+		bool found = false;
+		for(size_t i = 0; i < LightDebugInfos.size(); ++i)
+		{
+			LightDebugInfo &info = LightDebugInfos[i];
+
+			if(info.index == (char)dwLightIndex)
+			{
+				found = true;
+				info.type = (char)lpLight->dltType;
+				info.position = lpLight->dvPosition;
+				info.direction = lpLight->dvDirection;
+				info.diffuseColor = lpLight->dcvDiffuse;
+				info.specularColor = lpLight->dcvSpecular;
+				info.ambientColor = lpLight->dcvAmbient;
+			}
+		}
+
+		if(!found)
+		{
+			LightDebugInfos.push_back({ (char)dwLightIndex, (char)lpLight->dltType, lpLight->dvPosition, lpLight->dvDirection,
+									 lpLight->dcvDiffuse, lpLight->dcvSpecular, lpLight->dcvAmbient });
+		}
+	}
+
+	return hr;
 }
 
 HRESULT m_IDirect3DDeviceX::GetLight(DWORD dwLightIndex, LPD3DLIGHT7 lpLight)
@@ -1840,6 +1923,7 @@ HRESULT m_IDirect3DDeviceX::LightEnable(DWORD dwLightIndex, BOOL bEnable)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
+	HRESULT hr;
 	if (Config.Dd7to9)
 	{
 		// Check for device interface
@@ -1848,10 +1932,26 @@ HRESULT m_IDirect3DDeviceX::LightEnable(DWORD dwLightIndex, BOOL bEnable)
 			return DDERR_GENERIC;
 		}
 
-		return (*d3d9Device)->LightEnable(dwLightIndex, bEnable);
+		hr = (*d3d9Device)->LightEnable(dwLightIndex, bEnable);
+	}
+	else
+	{
+		hr = GetProxyInterfaceV7()->LightEnable(dwLightIndex, bEnable);
 	}
 
-	return GetProxyInterfaceV7()->LightEnable(dwLightIndex, bEnable);
+	if(SUCCEEDED(hr))
+	{
+		for(size_t i = 0; i < LightDebugInfos.size(); ++i)
+		{
+			if(LightDebugInfos[i].index == (char)dwLightIndex)
+			{
+				LightDebugInfos.erase(LightDebugInfos.begin() + i);
+				break;
+			}
+		}
+	}
+
+	return hr;
 }
 
 HRESULT m_IDirect3DDeviceX::GetLightEnable(DWORD dwLightIndex, BOOL* pbEnable)
