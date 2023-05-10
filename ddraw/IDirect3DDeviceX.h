@@ -27,6 +27,9 @@ private:
 	// SetTexture array
 	LPDIRECTDRAWSURFACE7 AttachedTexture[8] = {};
 
+	// Store debug matrix information
+	D3DMATRIX worldMatrix, viewMatrix, projectionMatrix;
+
 	// Wrapper interface functions
 	inline REFIID GetWrapperType(DWORD DirectXVersion)
 	{
@@ -74,6 +77,10 @@ public:
 		{
 			LOG_LIMIT(3, "Creating interface " << __FUNCTION__ << " (" << this << ") v" << DirectXVersion);
 		}
+
+		std::memset(&worldMatrix, 0, sizeof(D3DMATRIX));
+		std::memset(&viewMatrix, 0, sizeof(D3DMATRIX));
+		std::memset(&projectionMatrix, 0, sizeof(D3DMATRIX));
 
 		InitDevice(DirectXVersion);
 	}
