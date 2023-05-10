@@ -188,7 +188,7 @@ HRESULT m_IDirect3DDevice7::ComputeSphereVisibility(LPD3DVECTOR a, LPD3DVALUE b,
 
 HRESULT m_IDirect3DDevice7::GetTexture(DWORD a, LPDIRECTDRAWSURFACE7 * b)
 {
-	return ProxyInterface->GetTexture(a, b, DirectXVersion);
+	return ProxyInterface->GetTexture(a, b);
 }
 
 HRESULT m_IDirect3DDevice7::SetTexture(DWORD a, LPDIRECTDRAWSURFACE7 b)

@@ -622,40 +622,106 @@ HRESULT m_IDirect3DDeviceX::EnumTextureFormats(LPD3DENUMPIXELFORMATSCALLBACK lpd
 	}
 }
 
-HRESULT m_IDirect3DDeviceX::GetTexture(DWORD dwStage, LPDIRECT3DTEXTURE2 * lplpTexture, DWORD DirectXVersion)
+HRESULT m_IDirect3DDeviceX::GetTexture(DWORD dwStage, LPDIRECT3DTEXTURE2* lplpTexture)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
 	if (ProxyDirectXVersion > 3)
 	{
-		return GetTexture(dwStage, (LPDIRECTDRAWSURFACE7*)lplpTexture, DirectXVersion);
+		if (!lplpTexture)
+		{
+			return DDERR_INVALIDPARAMS;
+		}
+
+		*lplpTexture = nullptr;
+
+		// Get surface stage
+		LPDIRECTDRAWSURFACE7 pSurface = nullptr;
+		HRESULT hr = GetTexture(dwStage, &pSurface);
+
+		if (FAILED(hr))
+		{
+			return hr;
+		}
+
+		// First relese ref for surface
+		pSurface->Release();
+
+		// Get surface wrapper
+		m_IDirectDrawSurfaceX* pSurfaceX = nullptr;
+		pSurface->QueryInterface(IID_GetInterfaceX, (LPVOID*)&pSurfaceX);
+
+		if (!pSurfaceX)
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: could not get surface wrapper!");
+			return DDERR_GENERIC;
+		}
+
+		// Get attached texture from surface
+		m_IDirect3DTextureX* pTextureX = pSurfaceX->GetAttachedTexture();
+		if (!pTextureX)
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: could not get texture!");
+			return DDERR_GENERIC;
+		}
+
+		// Add ref to texture
+		pTextureX->AddRef();
+
+		*lplpTexture = (LPDIRECT3DTEXTURE2)pTextureX->GetWrapperInterfaceX(2);
+
+		return DD_OK;
 	}
 
 	HRESULT hr = GetProxyInterfaceV3()->GetTexture(dwStage, lplpTexture);
 
 	if (SUCCEEDED(hr) && lplpTexture)
 	{
-		*lplpTexture = ProxyAddressLookupTable.FindAddress<m_IDirect3DTexture2>(*lplpTexture, DirectXVersion);
+		*lplpTexture = ProxyAddressLookupTable.FindAddress<m_IDirect3DTexture2>(*lplpTexture, 2);
 	}
 
 	return hr;
 }
 
-HRESULT m_IDirect3DDeviceX::GetTexture(DWORD dwStage, LPDIRECTDRAWSURFACE7 * lplpTexture, DWORD DirectXVersion)
+HRESULT m_IDirect3DDeviceX::GetTexture(DWORD dwStage, LPDIRECTDRAWSURFACE7* lplpTexture)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
 	if (Config.Dd7to9)
 	{
-		LOG_LIMIT(100, __FUNCTION__ << " Not Implemented");
-		return DDERR_UNSUPPORTED;
+		if (!lplpTexture || dwStage > 7)
+		{
+			return DDERR_INVALIDPARAMS;
+		}
+
+		HRESULT hr = DDERR_INVALIDOBJECT;
+
+		*lplpTexture = nullptr;
+
+		if (AttachedTexture[dwStage])
+		{
+			if (CheckSurfaceExists(AttachedTexture[dwStage]))
+			{
+				AttachedTexture[dwStage]->AddRef();
+
+				*lplpTexture = AttachedTexture[dwStage];
+
+				hr = DD_OK;
+			}
+			else
+			{
+				AttachedTexture[dwStage] = nullptr;
+			}
+		}
+
+		return hr;
 	}
 
 	HRESULT hr = GetProxyInterfaceV7()->GetTexture(dwStage, lplpTexture);
 
 	if (SUCCEEDED(hr) && lplpTexture)
 	{
-		*lplpTexture = ProxyAddressLookupTable.FindAddress<m_IDirectDrawSurface7>(*lplpTexture, DirectXVersion);
+		*lplpTexture = ProxyAddressLookupTable.FindAddress<m_IDirectDrawSurface7>(*lplpTexture, 7);
 	}
 
 	return hr;
@@ -665,7 +731,7 @@ HRESULT m_IDirect3DDeviceX::SetTexture(DWORD dwStage, LPDIRECT3DTEXTURE2 lpTextu
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	if (Config.Dd7to9 || ProxyDirectXVersion == 7)
+	if (ProxyDirectXVersion > 3)
 	{
 		if (!lpTexture)
 		{
@@ -677,7 +743,7 @@ HRESULT m_IDirect3DDeviceX::SetTexture(DWORD dwStage, LPDIRECT3DTEXTURE2 lpTextu
 
 		if (!pTextureX)
 		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error: could not get texture!");
+			LOG_LIMIT(100, __FUNCTION__ << " Error: could not get texture wrapper!");
 			return DDERR_GENERIC;
 		}
 
@@ -712,30 +778,41 @@ HRESULT m_IDirect3DDeviceX::SetTexture(DWORD dwStage, LPDIRECTDRAWSURFACE7 lpSur
 			return DDERR_GENERIC;
 		}
 
+		HRESULT hr;
+
 		if (!lpSurface)
 		{
-			return (*d3d9Device)->SetTexture(dwStage, nullptr);
+			hr = (*d3d9Device)->SetTexture(dwStage, nullptr);
 		}
-
-		m_IDirectDrawSurfaceX *lpDDSrcSurfaceX = nullptr;
-
-		lpSurface->QueryInterface(IID_GetInterfaceX, (LPVOID*)&lpDDSrcSurfaceX);
-
-		if (!lpDDSrcSurfaceX)
+		else
 		{
-			Logging::Log() << __FUNCTION__ " Error: surface does not exist! " << lpDDSrcSurfaceX;
-			return DDERR_GENERIC;
+			m_IDirectDrawSurfaceX* lpDDSrcSurfaceX = nullptr;
+
+			lpSurface->QueryInterface(IID_GetInterfaceX, (LPVOID*)&lpDDSrcSurfaceX);
+
+			if (!lpDDSrcSurfaceX)
+			{
+				LOG_LIMIT(100, __FUNCTION__ << " Error: could not get surface wrapper!");
+				return DDERR_GENERIC;
+			}
+
+			IDirect3DTexture9* pTexture9 = lpDDSrcSurfaceX->Get3DTexture();
+
+			if (!pTexture9)
+			{
+				LOG_LIMIT(100, __FUNCTION__ << " Error: could not get texture!");
+				return DDERR_GENERIC;
+			}
+
+			hr = (*d3d9Device)->SetTexture(dwStage, pTexture9);
 		}
 
-		IDirect3DTexture9 *pTexture9 = lpDDSrcSurfaceX->Get3DTexture();
-
-		if (!pTexture9)
+		if (SUCCEEDED(hr) && dwStage < 8)
 		{
-			Logging::Log() << __FUNCTION__ " Error: d3d9 texture does not exist!";
-			return DDERR_GENERIC;
+			AttachedTexture[dwStage] = lpSurface;
 		}
 
-		return (*d3d9Device)->SetTexture(dwStage, pTexture9);
+		return hr;
 	}
 
 	if (lpSurface)
@@ -2717,6 +2794,25 @@ HRESULT m_IDirect3DDeviceX::CheckInterface(char *FunctionName, bool CheckD3DDevi
 	}
 
 	return DD_OK;
+}
+
+void m_IDirect3DDeviceX::ResetDevice()
+{
+	// Reset textures after device reset
+	for (UINT x = 0; x < 8; x++)
+	{
+		if (AttachedTexture[x])
+		{
+			if (CheckSurfaceExists(AttachedTexture[x]))
+			{
+				SetTexture(x, AttachedTexture[x]);
+			}
+			else
+			{
+				AttachedTexture[x] = nullptr;
+			}
+		}
+	}
 }
 
 void m_IDirect3DDeviceX::SetDrawFlags(DWORD &rsClipping, DWORD &rsLighting, DWORD &rsExtents, DWORD dwVertexTypeDesc, DWORD dwFlags, DWORD DirectXVersion)
