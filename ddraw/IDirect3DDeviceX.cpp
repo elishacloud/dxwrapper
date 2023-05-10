@@ -328,15 +328,15 @@ HRESULT m_IDirect3DDeviceX::SetTransform(D3DTRANSFORMSTATETYPE dtstTransformStat
 
 	if (Config.Dd7to9)
 	{
+		if (!lpD3DMatrix)
+		{
+			return  DDERR_INVALIDPARAMS;
+		}
+
 		// Check for device interface
 		if (FAILED(CheckInterface(__FUNCTION__, true)))
 		{
 			return DDERR_GENERIC;
-		}
-
-		if (!lpD3DMatrix)
-		{
-			return  DDERR_INVALIDPARAMS;
 		}
 
 		switch ((DWORD)dtstTransformStateType)
@@ -378,15 +378,15 @@ HRESULT m_IDirect3DDeviceX::GetTransform(D3DTRANSFORMSTATETYPE dtstTransformStat
 
 	if (Config.Dd7to9)
 	{
+		if (!lpD3DMatrix)
+		{
+			return  DDERR_INVALIDPARAMS;
+		}
+
 		// Check for device interface
 		if (FAILED(CheckInterface(__FUNCTION__, true)))
 		{
 			return DDERR_GENERIC;
-		}
-
-		if (!lpD3DMatrix)
-		{
-			return  DDERR_INVALIDPARAMS;
 		}
 
 		switch ((DWORD)dtstTransformStateType)
@@ -920,13 +920,13 @@ HRESULT m_IDirect3DDeviceX::GetTextureStageState(DWORD dwStage, D3DTEXTURESTAGES
 
 	if (Config.Dd7to9)
 	{
-		// Check for device interface
-		if (FAILED(CheckInterface(__FUNCTION__, true)))
+		if (!lpdwValue)
 		{
-			return DDERR_GENERIC;
+			return DDERR_INVALIDPARAMS;
 		}
 
-		if (!lpdwValue)
+		// Check for device interface
+		if (FAILED(CheckInterface(__FUNCTION__, true)))
 		{
 			return DDERR_GENERIC;
 		}
@@ -2025,16 +2025,15 @@ HRESULT m_IDirect3DDeviceX::GetRenderState(D3DRENDERSTATETYPE dwRenderStateType,
 
 	if (Config.Dd7to9)
 	{
+		if (!lpdwRenderState)
+		{
+			return DDERR_INVALIDPARAMS;
+		}
+
 		// Check for device interface
 		if (FAILED(CheckInterface(__FUNCTION__, true)))
 		{
 			return DDERR_GENERIC;
-		}
-
-		// Check parameter
-		if (!lpdwRenderState)
-		{
-			return DDERR_INVALIDPARAMS;
 		}
 
 		switch ((DWORD)dwRenderStateType)
@@ -2134,6 +2133,11 @@ HRESULT m_IDirect3DDeviceX::DrawPrimitive(D3DPRIMITIVETYPE dptPrimitiveType, DWO
 
 	if (Config.Dd7to9)
 	{
+		if (!lpVertices)
+		{
+			return DDERR_INVALIDPARAMS;
+		}
+
 		// Check for device interface
 		if (FAILED(CheckInterface(__FUNCTION__, true)))
 		{
@@ -2316,6 +2320,11 @@ HRESULT m_IDirect3DDeviceX::DrawIndexedPrimitive(D3DPRIMITIVETYPE dptPrimitiveTy
 
 	if (Config.Dd7to9)
 	{
+		if (!lpVertices)
+		{
+			return DDERR_INVALIDPARAMS;
+		}
+
 		// Check for device interface
 		if (FAILED(CheckInterface(__FUNCTION__, true)))
 		{
