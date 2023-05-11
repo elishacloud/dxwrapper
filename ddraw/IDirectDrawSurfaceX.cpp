@@ -18,6 +18,7 @@
 * Code to create emulated surface taken from: https://github.com/CnCNet/cnc-ddraw
 */
 
+#include <sstream>
 #include "ddraw.h"
 #include "d3d9ShaderPalette.h"
 #include "d3dx9.h"
@@ -1782,6 +1783,11 @@ HRESULT m_IDirectDrawSurfaceX::GetSurfaceDesc2(LPDDSURFACEDESC2 lpDDSurfaceDesc2
 			lpDDSurfaceDesc2->lPitch = ComputePitch(GetByteAlignedWidth(surfaceDesc2.dwWidth, surfaceBitCount), GetBitCount(lpDDSurfaceDesc2->ddpfPixelFormat));
 		}
 
+		if (!(surfaceDesc2.dwFlags & DDSD_LPSURFACE))
+		{
+			lpDDSurfaceDesc2->lpSurface = nullptr;
+		}
+
 		// Return
 		return DD_OK;
 	}
@@ -2046,9 +2052,10 @@ HRESULT m_IDirectDrawSurfaceX::Lock2(LPRECT lpDestRect, LPDDSURFACEDESC2 lpDDSur
 		if (!(lpDDSurfaceDesc2->dwFlags & DDSD_LPSURFACE))
 		{
 			lpDDSurfaceDesc2->lpSurface = LockedRect.pBits;
+			lpDDSurfaceDesc2->dwFlags |= DDSD_LPSURFACE;
 		}
-		lpDDSurfaceDesc2->lPitch = LockedRect.Pitch;
-		lpDDSurfaceDesc2->dwFlags |= DDSD_PITCH | DDSD_LPSURFACE;
+		lpDDSurfaceDesc2->lPitch = LockedRect.Pitch * (ISDXTEX(surfaceFormat) ? 64 : 1);
+		lpDDSurfaceDesc2->dwFlags |= DDSD_PITCH;
 
 		// Fix misaligned bytes
 		if (Config.DdrawFixByteAlignment)
@@ -3076,10 +3083,10 @@ void m_IDirectDrawSurfaceX::ReleaseSurface()
 	{
 		ddrawParent->RemoveSurfaceFromVector(this);
 
-		// ToDo: Clear sencil surface only when using the one created by the d3d9 device
-		if (surfaceFormat >= 70 && surfaceFormat <= 80)
+		// ToDo: Clear stencil surface only when using the one created by the d3d9 device
+		if (IsDepthBuffer())
 		{
-			ddrawParent->ClearSencilSurface();
+			ddrawParent->ClearDepthStencilSurface();
 		}
 	}
 
@@ -3277,7 +3284,7 @@ HRESULT m_IDirectDrawSurfaceX::CreateD3d9Surface()
 		// Create depth buffer
 		else if (IsDepthBuffer())
 		{
-			// ToDo: Get existing sencil surface rather than creating a new one
+			// ToDo: Get existing stencil surface rather than creating a new one
 			if (FAILED(((*d3d9Device)->CreateDepthStencilSurface(Width, Height, Format, ddrawParent->GetMultiSampleType(), ddrawParent->GetMultiSampleQuality(), TRUE, &surface3D, nullptr))))
 			{
 				LOG_LIMIT(100, __FUNCTION__ << " Error: failed to create depth buffer surface. Size: " << Width << "x" << Height << " Format: " << surfaceFormat << " dwCaps: " << Logging::hex(surfaceDesc2.ddsCaps.dwCaps));
@@ -3710,10 +3717,7 @@ void m_IDirectDrawSurfaceX::ReleaseD9Surface(bool BackupData)
 	{
 		if (LastDC)
 		{
-			if (BackupData)
-			{
-				ReleaseDC(LastDC);
-			}
+			ReleaseDC(LastDC);
 			LastDC = nullptr;
 		}
 		IsInDC = false;
@@ -3722,10 +3726,7 @@ void m_IDirectDrawSurfaceX::ReleaseD9Surface(bool BackupData)
 	// Unlock surface (before releasing)
 	if (IsLocked)
 	{
-		if (BackupData)
-		{
-			UnlockD39Surface();
-		}
+		UnlockD39Surface();
 		IsLocked = false;
 		LockedWithID = 0;
 	}
@@ -3810,7 +3811,7 @@ void m_IDirectDrawSurfaceX::ReleaseD9Surface(bool BackupData)
 	if (paletteTexture)
 	{
 		Logging::LogDebug() << __FUNCTION__ << " Releasing Direct3D9 palette texture surface";
-		if (BackupData && d3d9Device && *d3d9Device)
+		if (d3d9Device && *d3d9Device)
 		{
 			(*d3d9Device)->SetTexture(1, nullptr);
 		}
@@ -3826,7 +3827,7 @@ void m_IDirectDrawSurfaceX::ReleaseD9Surface(bool BackupData)
 	if (pixelShader)
 	{
 		Logging::LogDebug() << __FUNCTION__ << " Releasing Direct3D9 pixel shader";
-		if (BackupData && d3d9Device && *d3d9Device)
+		if (d3d9Device && *d3d9Device)
 		{
 			(*d3d9Device)->SetPixelShader(nullptr);
 		}
@@ -4696,6 +4697,88 @@ HRESULT m_IDirectDrawSurfaceX::ColorFill(RECT* pRect, D3DCOLOR dwFillColor)
 	return DD_OK;
 }
 
+// Save DXT data as a DDS file
+HRESULT m_IDirectDrawSurfaceX::SaveDXTDataToDDS(const void *data, size_t dataSize, const char *filename, int dxtVersion) const
+{
+	int blockSize = 0;
+	DWORD fourCC = 0;
+
+	switch(dxtVersion)
+	{
+	case 1:
+		blockSize = 8;
+		fourCC = '1TXD';
+		break;
+
+	case 3:
+		blockSize = 16;
+		fourCC = '3TXD';
+		break;
+
+	case 5:
+		blockSize = 16;
+		fourCC = '5TXD';
+		break;
+
+	default:
+		Logging::Log() << __FUNCTION__ << " Error: unsupported DXT version!";
+		return D3DERR_INVALIDCALL;
+	}
+
+	std::ofstream outFile(filename, std::ios::binary | std::ios::out);
+	if (outFile.is_open())
+	{
+		DDS_HEADER header = {};
+		header.dwSize = sizeof(DDS_HEADER);
+		header.dwFlags = DDSD_CAPS | DDSD_HEIGHT | DDSD_WIDTH | DDSD_PIXELFORMAT | DDSD_LINEARSIZE;
+		header.dwHeight = surfaceDesc2.dwHeight;
+		header.dwWidth = surfaceDesc2.dwHeight;
+		header.dwPitchOrLinearSize = max(1, (surfaceDesc2.dwWidth + 3) / 4) * blockSize;  // 8 for DXT1, 16 for others
+		header.dwDepth = 0;
+		header.dwMipMapCount = 0;
+		header.ddspf.dwSize = sizeof(DDS_PIXELFORMAT);
+		header.ddspf.dwFlags = DDPF_FOURCC;
+		header.ddspf.dwFourCC = fourCC;
+		header.dwCaps = DDSCAPS_TEXTURE;// | DDSCAPS_COMPLEX | DDSCAPS_MIPMAP;
+		header.dwCaps2 = 0x00000000;
+		header.dwCaps3 = 0x00000000;
+		header.dwCaps4 = 0x00000000;
+		header.dwReserved2 = 0;
+
+		outFile.write("DDS ", 4);
+		outFile.write((char*)&header, sizeof(DDS_HEADER));
+		outFile.write((char*)data, dataSize);
+		outFile.close();
+
+		return D3D_OK;
+	}
+
+	return DDERR_GENERIC;
+}
+
+// Save a surface for debugging
+HRESULT m_IDirectDrawSurfaceX::SaveSurfaceToFile(const char *filename, D3DXIMAGE_FILEFORMAT format)
+{
+	LPD3DXBUFFER pDestBuf = nullptr;
+	HRESULT hr = D3DXSaveSurfaceToFileInMemory(&pDestBuf, format, GetD3D9Surface(), nullptr, nullptr);
+
+	if (SUCCEEDED(hr))
+	{
+		// Save the buffer to a file
+		std::ofstream outFile(filename, std::ios::binary | std::ios::out);
+		if (outFile.is_open())
+		{
+			outFile.write((const char*)pDestBuf->GetBufferPointer(), pDestBuf->GetBufferSize());
+			outFile.close();
+		}
+
+		// Release the buffer
+		pDestBuf->Release();
+	}
+
+	return hr;
+}
+
 // Copy surface
 HRESULT m_IDirectDrawSurfaceX::CopySurface(m_IDirectDrawSurfaceX* pSourceSurface, RECT* pSourceRect, RECT* pDestRect, D3DTEXTUREFILTERTYPE Filter, DDCOLORKEY ColorKey, DWORD dwFlags)
 {
@@ -4736,6 +4819,11 @@ HRESULT m_IDirectDrawSurfaceX::CopySurface(m_IDirectDrawSurfaceX* pSourceSurface
 	const bool IsColorKey = ((dwFlags & BLT_COLORKEY) != 0);
 	const bool IsMirrorLeftRight = ((dwFlags & BLT_MIRRORLEFTRIGHT) != 0);
 	const bool IsMirrorUpDown = ((dwFlags & BLT_MIRRORUPDOWN) != 0);
+	const DWORD D3DXFilter =
+		(IsStretchRect && DestFormat == D3DFMT_P8) || (Filter & D3DTEXF_POINT) ? D3DX_FILTER_POINT :	// Force palette surfaces to use point filtering to prevent color banding
+		(Filter & D3DTEXF_LINEAR) ? D3DX_FILTER_LINEAR :												// Use linear filtering when requested by the application
+		(IsStretchRect) ? D3DX_FILTER_POINT :															// Default to point filtering when stretching the rect, same as DirectDraw
+		D3DX_FILTER_NONE;
 
 	// Get width and height of rect
 	LONG SrcRectWidth = SrcRect.right - SrcRect.left;
@@ -4797,7 +4885,7 @@ HRESULT m_IDirectDrawSurfaceX::CopySurface(m_IDirectDrawSurfaceX* pSourceSurface
 				break;
 			}
 
-			hr = D3DXLoadSurfaceFromSurface(pDestSurfaceD9, nullptr, &DestRect, pSourceSurfaceD9, nullptr, &SrcRect, D3DX_FILTER_NONE, 0);
+			hr = D3DXLoadSurfaceFromSurface(pDestSurfaceD9, nullptr, &DestRect, pSourceSurfaceD9, nullptr, &SrcRect, D3DXFilter, 0);
 
 			if (FAILED(hr))
 			{
@@ -4837,7 +4925,7 @@ HRESULT m_IDirectDrawSurfaceX::CopySurface(m_IDirectDrawSurfaceX* pSourceSurface
 				// function to set the brush origin. If it fails to do so, brush misalignment occurs.
 				POINT org;
 				GetBrushOrgEx(emu->surfaceDC, &org);
-				SetStretchBltMode(emu->surfaceDC, HALFTONE);
+				SetStretchBltMode(emu->surfaceDC, (Filter & D3DTEXF_LINEAR) ? HALFTONE : COLORONCOLOR);
 				SetBrushOrgEx(emu->surfaceDC, org.x, org.y, nullptr);
 			}
 
@@ -4860,14 +4948,7 @@ HRESULT m_IDirectDrawSurfaceX::CopySurface(m_IDirectDrawSurfaceX* pSourceSurface
 
 			if (pSourceSurfaceD9 && pDestSurfaceD9)
 			{
-				DWORD DX3XFilter =
-					(IsStretchRect && DestFormat == D3DFMT_P8) ? D3DX_FILTER_POINT :
-					(Filter & D3DTEXF_LINEAR) ? D3DX_FILTER_LINEAR :
-					(Filter & D3DTEXF_POINT) ? D3DX_FILTER_POINT :
-					(IsStretchRect) ? D3DX_FILTER_LINEAR :
-					D3DX_FILTER_NONE;
-
-				if (SUCCEEDED(D3DXLoadSurfaceFromSurface(pDestSurfaceD9, nullptr, &DestRect, pSourceSurfaceD9, nullptr, &SrcRect, DX3XFilter, 0)))
+				if (SUCCEEDED(D3DXLoadSurfaceFromSurface(pDestSurfaceD9, nullptr, &DestRect, pSourceSurfaceD9, nullptr, &SrcRect, D3DXFilter, 0)))
 				{
 					break;
 				}

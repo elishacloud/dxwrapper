@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Debug|Win32">
@@ -50,11 +50,11 @@
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
-      <PreprocessorDefinitions>WIN32;_DEBUG;_WINDOWS;_USRDLL;FULLSCREENLOG;WRAPPERLOGGING;DISABLE_COMMON_LOGGING;DDRAWCOMPATLOG;_NO_DDRAWINT_NO_COM;DDRAWCOMPAT_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32;_DEBUG;_WINDOWS;_USRDLL;FULLSCREENLOG;WRAPPERLOGGING;DISABLE_COMMON_LOGGING;DDRAWCOMPATLOG;_NO_DDRAWINT_NO_COM;DDRAWCOMPAT_EXPORTS;ENABLE_DEBUGOVERLAY;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
       <ObjectFileName>$(SolutionDir)bin\Intermediate\$(Configuration)\Object\%(RelativeDir)</ObjectFileName>
       <WarningLevel>Level4</WarningLevel>
-      <AdditionalIncludeDirectories>$(ProjectDir);Libraries;Libraries\DirectX81SDK\include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir);Libraries;Libraries\DirectX81SDK\include;External\imgui</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp17</LanguageStandard>
       <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
@@ -83,7 +83,7 @@ copy /Y "$(ProjectDir)Resources\dxwnd.exe" "$(TargetDir)Build\" &gt;nul</Command
       <ObjectFileName>$(SolutionDir)bin\Intermediate\$(Configuration)\Object\%(RelativeDir)</ObjectFileName>
       <WarningLevel>Level4</WarningLevel>
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
-      <AdditionalIncludeDirectories>$(ProjectDir);Libraries;Libraries\DirectX81SDK\include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir);Libraries;Libraries\DirectX81SDK\include;External\imgui</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp17</LanguageStandard>
       <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
     </ClCompile>
@@ -251,6 +251,7 @@ cmd /q /c "cd /D ""$(ProjectDir)d3d8\"" &amp;&amp; del build.bat"</Command>
     <ClCompile Include="DDrawCompat\v0.3.1\Win32\Registry.cpp" />
     <ClCompile Include="DDrawCompat\v0.3.1\Win32\WaitFunctions.cpp" />
     <ClCompile Include="ddraw\ddraw.cpp" />
+    <ClCompile Include="ddraw\DebugOverlay.cpp" />
     <ClCompile Include="ddraw\IDirect3DDeviceX.cpp" />
     <ClCompile Include="ddraw\IDirect3DMaterialX.cpp" />
     <ClCompile Include="ddraw\IDirect3DTextureX.cpp" />
@@ -569,6 +570,7 @@ cmd /q /c "cd /D ""$(ProjectDir)d3d8\"" &amp;&amp; del build.bat"</Command>
     <ClInclude Include="ddraw\d3d9ShaderPalette.h" />
     <ClInclude Include="ddraw\ddraw.h" />
     <ClInclude Include="ddraw\ddrawExternal.h" />
+    <ClInclude Include="ddraw\DebugOverlay.h" />
     <ClInclude Include="ddraw\IDirect3DDeviceX.h" />
     <ClInclude Include="ddraw\IDirect3DMaterialX.h" />
     <ClInclude Include="ddraw\IDirect3DTextureX.h" />

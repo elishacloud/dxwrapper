@@ -43,11 +43,15 @@ namespace Settings
 	void ClearValue(std::vector<std::string>*);
 	void ClearValue(std::string*);
 	void ClearValue(DWORD*);
+	void ClearValue(float*);
+	void ClearValue(double*);
 	void ClearValue(bool*);
 	void SetValue(char*, char*, MEMORYINFO*);
 	void SetValue(char*, char*, void**);
 	void SetValue(char*, char*, std::string*);
 	void SetValue(char*, char*, DWORD*);
+	void SetValue(char*, char*, float*);
+	void SetValue(char*, char*, double*);
 	void SetValue(char*, char*, bool*);
 	void __stdcall ParseCallback(char*, char*);
 	void SetDefaultConfigSettings();
@@ -219,6 +223,36 @@ void Settings::SetValue(char* name, char* value, DWORD* setting)
 	}
 }
 
+// Set value for float
+void Settings::SetValue(char* name, char* value, float* setting)
+{
+	float NewValue = std::stof(value);
+	if ( std::abs(*setting - NewValue) > 0.0001f )
+	{
+		*setting = NewValue;
+#ifdef _DEBUG
+		Logging::Log() << name << " set to '" << *setting << "'";
+#else
+		UNREFERENCED_PARAMETER(name);
+#endif
+	}
+}
+
+// Set value for double
+void Settings::SetValue(char* name, char* value, double* setting)
+{
+	double NewValue = std::stod(value);
+	if ( std::abs(*setting - NewValue) > 0.0001 )
+	{
+		*setting = NewValue;
+#ifdef _DEBUG
+		Logging::Log() << name << " set to '" << *setting << "'";
+#else
+		UNREFERENCED_PARAMETER(name);
+#endif
+	}
+}
+
 // Set value for bool
 void Settings::SetValue(char* name, char* value, bool* setting)
 {
@@ -320,6 +354,18 @@ void Settings::ClearValue(std::string* setting)
 void Settings::ClearValue(DWORD* setting)
 {
 	*setting = 0;
+}
+
+// Clear float
+void Settings::ClearValue(float* setting)
+{
+	*setting = 0.0f;
+}
+
+// Clear double
+void Settings::ClearValue(double* setting)
+{
+	*setting = 0.0;
 }
 
 // Clear bool
@@ -641,6 +687,13 @@ void CONFIG::SetConfig()
 		Logging::Log() << "Invalid 'DdrawOverrideBitMode'!  Disabling...";
 		DdrawOverrideBitMode = 0;
 		break;
+	}
+
+	// Check stencil format
+	if (DdrawOverrideStencilFormat < 70 || DdrawOverrideStencilFormat > 80)
+	{
+		Logging::Log() << "Invalid 'DdrawOverrideStencilFormat'!  Disabling...";
+		DdrawOverrideStencilFormat = 0;
 	}
 
 	// Check if any DXPrimaryEmulation flags are set

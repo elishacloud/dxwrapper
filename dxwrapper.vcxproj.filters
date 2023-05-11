@@ -883,6 +883,9 @@
     <ClCompile Include="D3DDDI\d3dddi.cpp">
       <Filter>d3dddi</Filter>
     </ClCompile>
+    <ClCompile Include="ddraw\DebugOverlay.cpp">
+      <Filter>ddraw</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="Settings\AllSettings.ini">
@@ -1861,6 +1864,9 @@
     </ClInclude>
     <ClInclude Include="D3DDDI\d3dddiExternal.h">
       <Filter>d3dddi</Filter>
+    </ClInclude>
+    <ClInclude Include="ddraw\DebugOverlay.h">
+      <Filter>ddraw</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
