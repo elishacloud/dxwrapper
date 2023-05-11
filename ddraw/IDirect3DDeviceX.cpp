@@ -327,6 +327,25 @@ HRESULT m_IDirect3DDeviceX::SetTransform(D3DTRANSFORMSTATETYPE dtstTransformStat
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
+	switch((int)dtstTransformStateType)
+	{
+	case D3DTRANSFORMSTATE_WORLD:
+	case D3DTS_WORLD:
+		std::memcpy(&worldMatrix, lpD3DMatrix, sizeof(D3DMATRIX));
+		break;
+
+	case D3DTS_VIEW:
+		std::memcpy(&viewMatrix, lpD3DMatrix, sizeof(D3DMATRIX));
+		break;
+
+	case D3DTS_PROJECTION:
+		std::memcpy(&projectionMatrix, lpD3DMatrix, sizeof(D3DMATRIX));
+		break;
+
+	default:
+		break;
+	}
+
 	if (Config.Dd7to9)
 	{
 		if (!lpD3DMatrix)
@@ -1572,7 +1591,30 @@ HRESULT m_IDirect3DDeviceX::EndScene()
 
 		if (ShowDebugUI)
 		{
-			ImGui::Begin("Lights");
+			std::stringstream matrices;
+			matrices << "WORLD\n" <<
+				worldMatrix._11 << " / " << worldMatrix._12 << " / " << worldMatrix._13 << " / " << worldMatrix._14 << '\n' <<
+				worldMatrix._21 << " / " << worldMatrix._22 << " / " << worldMatrix._23 << " / " << worldMatrix._24 << '\n' <<
+				worldMatrix._31 << " / " << worldMatrix._32 << " / " << worldMatrix._33 << " / " << worldMatrix._34 << '\n' <<
+				worldMatrix._41 << " / " << worldMatrix._42 << " / " << worldMatrix._43 << " / " << worldMatrix._44;
+
+			matrices << "\n\nVIEW\n" <<
+				viewMatrix._11 << " / " << viewMatrix._12 << " / " << viewMatrix._13 << " / " << viewMatrix._14 << '\n' <<
+				viewMatrix._21 << " / " << viewMatrix._22 << " / " << viewMatrix._23 << " / " << viewMatrix._24 << '\n' <<
+				viewMatrix._31 << " / " << viewMatrix._32 << " / " << viewMatrix._33 << " / " << viewMatrix._34 << '\n' <<
+				viewMatrix._41 << " / " << viewMatrix._42 << " / " << viewMatrix._43 << " / " << viewMatrix._44;
+
+			matrices << "\n\nPROJECTION\n" <<
+				projectionMatrix._11 << " / " << projectionMatrix._12 << " / " << projectionMatrix._13 << " / " << projectionMatrix._14 << '\n' <<
+				projectionMatrix._21 << " / " << projectionMatrix._22 << " / " << projectionMatrix._23 << " / " << projectionMatrix._24 << '\n' <<
+				projectionMatrix._31 << " / " << projectionMatrix._32 << " / " << projectionMatrix._33 << " / " << projectionMatrix._34 << '\n' <<
+				projectionMatrix._41 << " / " << projectionMatrix._42 << " / " << projectionMatrix._43 << " / " << projectionMatrix._44;
+
+			ImGui::Begin("Matrices");
+			ImGui::Text(matrices.str().c_str());
+			ImGui::End();
+
+      ImGui::Begin("Lights");
 			if (LightDebugInfos.size() < 1)
 			{
 				ImGui::Text("None");
