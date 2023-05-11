@@ -16,6 +16,7 @@
 
 #include "ddraw.h"
 #include <d3dhal.h>
+#include <sstream>
 
 #define WITH_IMGUI 1
 
@@ -1572,7 +1573,7 @@ HRESULT m_IDirect3DDeviceX::EndScene()
 		if (ShowDebugUI)
 		{
 			ImGui::Begin("Lights");
-			if(LightDebugInfos.size() < 1)
+			if (LightDebugInfos.size() < 1)
 			{
 				ImGui::Text("None");
 			}
@@ -1580,7 +1581,7 @@ HRESULT m_IDirect3DDeviceX::EndScene()
 			{
 				std::stringstream ss;
 
-				for(size_t i = 0; i < LightDebugInfos.size(); ++i)
+				for (size_t i = 0; i < LightDebugInfos.size(); ++i)
 				{
 					const LightDebugInfo &light = LightDebugInfos[i];
 
@@ -1595,29 +1596,29 @@ HRESULT m_IDirect3DDeviceX::EndScene()
 
 					ss << (int)light.index << ' ' << type;
 
-					if(light.diffuseColor.a > 0)
+					if (light.diffuseColor.a > 0)
 					{
 						ss << "  dif: " << (int)light.diffuseColor.r << ',' << (int)light.diffuseColor.g << ',' << (int)light.diffuseColor.b << ',' << (int)light.diffuseColor.a;
 					}
 
-					if(light.specularColor.a > 0)
+					if (light.specularColor.a > 0)
 					{
 						ss << "  spec: " << (int)light.specularColor.r << ',' << (int)light.specularColor.g << ',' << (int)light.specularColor.b << ',' << (int)light.specularColor.a;
 					}
 
-					if(light.ambientColor.a > 0)
+					if (light.ambientColor.a > 0)
 					{
 						ss << "  amb: " << (int)light.ambientColor.r << ',' << (int)light.ambientColor.g << ',' << (int)light.ambientColor.b << ',' << (int)light.ambientColor.a;
 					}
 
 					ss << "\n  pos: " << light.position.x << " / " << light.position.y << " / " << light.position.z;
 
-					if(light.type != D3DLIGHT_POINT)
+					if (light.type != D3DLIGHT_POINT)
 					{
 						ss << "  dir: " << light.direction.x << " / " << light.direction.y << " / " << light.direction.z;
 					}
 
-					if(i < LightDebugInfos.size() - 1)
+					if (i < LightDebugInfos.size() - 1)
 					{
 						ss << '\n';
 					}
@@ -1861,39 +1862,37 @@ HRESULT m_IDirect3DDeviceX::SetLight(DWORD dwLightIndex, LPD3DLIGHT7 lpLight)
 		}
 
 		hr = (*d3d9Device)->SetLight(dwLightIndex, &Light);
-	}
-	else
-	{
-		hr = GetProxyInterfaceV7()->SetLight(dwLightIndex, lpLight);
-	}
 
-	if(SUCCEEDED(hr))
-	{
-		bool found = false;
-		for(size_t i = 0; i < LightDebugInfos.size(); ++i)
+		if (SUCCEEDED(hr))
 		{
-			LightDebugInfo &info = LightDebugInfos[i];
-
-			if(info.index == (char)dwLightIndex)
+			bool found = false;
+			for (size_t i = 0; i < LightDebugInfos.size(); ++i)
 			{
-				found = true;
-				info.type = (char)lpLight->dltType;
-				info.position = lpLight->dvPosition;
-				info.direction = lpLight->dvDirection;
-				info.diffuseColor = lpLight->dcvDiffuse;
-				info.specularColor = lpLight->dcvSpecular;
-				info.ambientColor = lpLight->dcvAmbient;
+				LightDebugInfo& info = LightDebugInfos[i];
+
+				if (info.index == (char)dwLightIndex)
+				{
+					found = true;
+					info.type = (char)lpLight->dltType;
+					info.position = lpLight->dvPosition;
+					info.direction = lpLight->dvDirection;
+					info.diffuseColor = lpLight->dcvDiffuse;
+					info.specularColor = lpLight->dcvSpecular;
+					info.ambientColor = lpLight->dcvAmbient;
+				}
+			}
+
+			if (!found)
+			{
+				LightDebugInfos.push_back({ (char)dwLightIndex, (char)lpLight->dltType, lpLight->dvPosition, lpLight->dvDirection,
+										 lpLight->dcvDiffuse, lpLight->dcvSpecular, lpLight->dcvAmbient });
 			}
 		}
 
-		if(!found)
-		{
-			LightDebugInfos.push_back({ (char)dwLightIndex, (char)lpLight->dltType, lpLight->dvPosition, lpLight->dvDirection,
-									 lpLight->dcvDiffuse, lpLight->dcvSpecular, lpLight->dcvAmbient });
-		}
+		return hr;
 	}
 
-	return hr;
+	return GetProxyInterfaceV7()->SetLight(dwLightIndex, lpLight);
 }
 
 HRESULT m_IDirect3DDeviceX::GetLight(DWORD dwLightIndex, LPD3DLIGHT7 lpLight)
@@ -1933,25 +1932,23 @@ HRESULT m_IDirect3DDeviceX::LightEnable(DWORD dwLightIndex, BOOL bEnable)
 		}
 
 		hr = (*d3d9Device)->LightEnable(dwLightIndex, bEnable);
-	}
-	else
-	{
-		hr = GetProxyInterfaceV7()->LightEnable(dwLightIndex, bEnable);
-	}
 
-	if(SUCCEEDED(hr))
-	{
-		for(size_t i = 0; i < LightDebugInfos.size(); ++i)
+		if (SUCCEEDED(hr))
 		{
-			if(LightDebugInfos[i].index == (char)dwLightIndex)
+			for (size_t i = 0; i < LightDebugInfos.size(); ++i)
 			{
-				LightDebugInfos.erase(LightDebugInfos.begin() + i);
-				break;
+				if (LightDebugInfos[i].index == (char)dwLightIndex)
+				{
+					LightDebugInfos.erase(LightDebugInfos.begin() + i);
+					break;
+				}
 			}
 		}
+
+		return hr;
 	}
 
-	return hr;
+	return GetProxyInterfaceV7()->LightEnable(dwLightIndex, bEnable);
 }
 
 HRESULT m_IDirect3DDeviceX::GetLightEnable(DWORD dwLightIndex, BOOL* pbEnable)
