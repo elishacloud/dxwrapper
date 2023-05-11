@@ -1,5 +1,5 @@
 /**
-* Copyright (C) 2022 Elisha Riedlinger
+* Copyright (C) 2023 Elisha Riedlinger
 *
 * This software is  provided 'as-is', without any express  or implied  warranty. In no event will the
 * authors be held liable for any damages arising from the use of this software.
@@ -16,31 +16,13 @@
 
 #include "ddraw.h"
 #include <d3dhal.h>
-#include <sstream>
 
-#define WITH_IMGUI 1
+// Enable for testing only
+//#define ENABLE_DEBUGOVERLAY
 
-#if WITH_IMGUI
-#define IMGUI_DEFINE_MATH_OPERATORS
-#define IMGUI_DISABLE_OBSOLETE_KEYIO
-
-HRESULT DwmIsCompositionEnabled(BOOL *enabled) { *enabled = FALSE; return E_NOTIMPL;}
-HRESULT DwmGetColorizationColor(DWORD *colorization, BOOL *opaqueBlend) { *colorization = 0; *opaqueBlend = FALSE; return E_NOTIMPL; }
-HRESULT DwmEnableBlurBehindWindow(HWND, const struct DWM_BLURBEHIND*) { return E_NOTIMPL; }
-struct DWM_BLURBEHIND { DWORD dwFlags; BOOL fEnable; HRGN hRgnBlur; BOOL fTransitionOnMaximized; };
-#define DWM_BB_ENABLE 0x00000001
-#define DWM_BB_BLURREGION 0x00000002
-
-#include "External/imgui/imgui.h"
-#include "External/imgui/backends/imgui_impl_win32.h"
-#include "External/imgui/backends/imgui_impl_dx9.h"
-
-#include "External/imgui/imgui.cpp"
-#include "External/imgui/imgui_draw.cpp"
-#include "External/imgui/imgui_tables.cpp"
-#include "External/imgui/imgui_widgets.cpp"
-#include "External/imgui/backends/imgui_impl_win32.cpp"
-#include "External/imgui/backends/imgui_impl_dx9.cpp"
+#ifdef ENABLE_DEBUGOVERLAY
+#include "DebugOverlay.h"
+DebugOverlay DOverlay;
 #endif
 
 extern float ScaleDDWidthRatio;
@@ -327,25 +309,6 @@ HRESULT m_IDirect3DDeviceX::SetTransform(D3DTRANSFORMSTATETYPE dtstTransformStat
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	switch((int)dtstTransformStateType)
-	{
-	case D3DTRANSFORMSTATE_WORLD:
-	case D3DTS_WORLD:
-		std::memcpy(&worldMatrix, lpD3DMatrix, sizeof(D3DMATRIX));
-		break;
-
-	case D3DTS_VIEW:
-		std::memcpy(&viewMatrix, lpD3DMatrix, sizeof(D3DMATRIX));
-		break;
-
-	case D3DTS_PROJECTION:
-		std::memcpy(&projectionMatrix, lpD3DMatrix, sizeof(D3DMATRIX));
-		break;
-
-	default:
-		break;
-	}
-
 	if (Config.Dd7to9)
 	{
 		if (!lpD3DMatrix)
@@ -375,7 +338,16 @@ HRESULT m_IDirect3DDeviceX::SetTransform(D3DTRANSFORMSTATETYPE dtstTransformStat
 			break;
 		}
 
-		return (*d3d9Device)->SetTransform(dtstTransformStateType, lpD3DMatrix);
+		HRESULT hr = (*d3d9Device)->SetTransform(dtstTransformStateType, lpD3DMatrix);
+
+		if (SUCCEEDED(hr))
+		{
+#ifdef ENABLE_DEBUGOVERLAY
+			DOverlay.SetTransform(dtstTransformStateType, lpD3DMatrix);
+#endif
+		}
+
+		return hr;
 	}
 
 	switch (ProxyDirectXVersion)
@@ -1543,10 +1515,8 @@ HRESULT m_IDirect3DDeviceX::BeginScene()
 
 		HRESULT hr = (*d3d9Device)->BeginScene();
 
-#if WITH_IMGUI
-		ImGui_ImplDX9_NewFrame();
-		ImGui_ImplWin32_NewFrame();
-		ImGui::NewFrame();
+#ifdef ENABLE_DEBUGOVERLAY
+		DOverlay.BeginScene();
 #endif
 
 		return hr;
@@ -1581,102 +1551,8 @@ HRESULT m_IDirect3DDeviceX::EndScene()
 			return DDERR_GENERIC;
 		}
 
-#if WITH_IMGUI
-		static bool ShowDebugUI = false;
-		if (ImGui::IsKeyDown(ImGui::GetKeyIndex(ImGuiKey_LeftAlt)) &&
-			ImGui::IsKeyPressed(ImGui::GetKeyIndex(ImGuiKey_D), false))
-		{
-			ShowDebugUI = !ShowDebugUI;
-		}
-
-		if (ShowDebugUI)
-		{
-			std::stringstream matrices;
-			matrices << "WORLD\n" <<
-				worldMatrix._11 << " / " << worldMatrix._12 << " / " << worldMatrix._13 << " / " << worldMatrix._14 << '\n' <<
-				worldMatrix._21 << " / " << worldMatrix._22 << " / " << worldMatrix._23 << " / " << worldMatrix._24 << '\n' <<
-				worldMatrix._31 << " / " << worldMatrix._32 << " / " << worldMatrix._33 << " / " << worldMatrix._34 << '\n' <<
-				worldMatrix._41 << " / " << worldMatrix._42 << " / " << worldMatrix._43 << " / " << worldMatrix._44;
-
-			matrices << "\n\nVIEW\n" <<
-				viewMatrix._11 << " / " << viewMatrix._12 << " / " << viewMatrix._13 << " / " << viewMatrix._14 << '\n' <<
-				viewMatrix._21 << " / " << viewMatrix._22 << " / " << viewMatrix._23 << " / " << viewMatrix._24 << '\n' <<
-				viewMatrix._31 << " / " << viewMatrix._32 << " / " << viewMatrix._33 << " / " << viewMatrix._34 << '\n' <<
-				viewMatrix._41 << " / " << viewMatrix._42 << " / " << viewMatrix._43 << " / " << viewMatrix._44;
-
-			matrices << "\n\nPROJECTION\n" <<
-				projectionMatrix._11 << " / " << projectionMatrix._12 << " / " << projectionMatrix._13 << " / " << projectionMatrix._14 << '\n' <<
-				projectionMatrix._21 << " / " << projectionMatrix._22 << " / " << projectionMatrix._23 << " / " << projectionMatrix._24 << '\n' <<
-				projectionMatrix._31 << " / " << projectionMatrix._32 << " / " << projectionMatrix._33 << " / " << projectionMatrix._34 << '\n' <<
-				projectionMatrix._41 << " / " << projectionMatrix._42 << " / " << projectionMatrix._43 << " / " << projectionMatrix._44;
-
-			ImGui::Begin("Matrices");
-			ImGui::Text(matrices.str().c_str());
-			ImGui::End();
-
-      ImGui::Begin("Lights");
-			if (LightDebugInfos.size() < 1)
-			{
-				ImGui::Text("None");
-			}
-			else
-			{
-				std::stringstream ss;
-
-				for (size_t i = 0; i < LightDebugInfos.size(); ++i)
-				{
-					const LightDebugInfo &light = LightDebugInfos[i];
-
-					const char *type;
-					switch(light.type)
-					{
-					case D3DLIGHT_POINT: type = "Point"; break;
-					case D3DLIGHT_SPOT: type = "Spot"; break;
-					case D3DLIGHT_DIRECTIONAL: type = "Dir"; break;
-					default: type = "ERROR"; break;
-					}
-
-					ss << (int)light.index << ' ' << type;
-
-					if (light.diffuseColor.a > 0)
-					{
-						ss << "  dif: " << (int)light.diffuseColor.r << ',' << (int)light.diffuseColor.g << ',' << (int)light.diffuseColor.b << ',' << (int)light.diffuseColor.a;
-					}
-
-					if (light.specularColor.a > 0)
-					{
-						ss << "  spec: " << (int)light.specularColor.r << ',' << (int)light.specularColor.g << ',' << (int)light.specularColor.b << ',' << (int)light.specularColor.a;
-					}
-
-					if (light.ambientColor.a > 0)
-					{
-						ss << "  amb: " << (int)light.ambientColor.r << ',' << (int)light.ambientColor.g << ',' << (int)light.ambientColor.b << ',' << (int)light.ambientColor.a;
-					}
-
-					ss << "\n  pos: " << light.position.x << " / " << light.position.y << " / " << light.position.z;
-
-					if (light.type != D3DLIGHT_POINT)
-					{
-						ss << "  dir: " << light.direction.x << " / " << light.direction.y << " / " << light.direction.z;
-					}
-
-					if (i < LightDebugInfos.size() - 1)
-					{
-						ss << '\n';
-					}
-				}
-
-				ImGui::Text(ss.str().c_str());
-			}
-			ImGui::End();
-
-			ImGui::Render();
-			ImGui_ImplDX9_RenderDrawData(ImGui::GetDrawData());
-		}
-		else
-		{
-			ImGui::EndFrame();
-		}
+#ifdef ENABLE_DEBUGOVERLAY
+		DOverlay.EndScene();
 #endif
 
 		// The IDirect3DDevice7::EndScene method ends a scene that was begun by calling the IDirect3DDevice7::BeginScene method.
@@ -1907,28 +1783,9 @@ HRESULT m_IDirect3DDeviceX::SetLight(DWORD dwLightIndex, LPD3DLIGHT7 lpLight)
 
 		if (SUCCEEDED(hr))
 		{
-			bool found = false;
-			for (size_t i = 0; i < LightDebugInfos.size(); ++i)
-			{
-				LightDebugInfo& info = LightDebugInfos[i];
-
-				if (info.index == (char)dwLightIndex)
-				{
-					found = true;
-					info.type = (char)lpLight->dltType;
-					info.position = lpLight->dvPosition;
-					info.direction = lpLight->dvDirection;
-					info.diffuseColor = lpLight->dcvDiffuse;
-					info.specularColor = lpLight->dcvSpecular;
-					info.ambientColor = lpLight->dcvAmbient;
-				}
-			}
-
-			if (!found)
-			{
-				LightDebugInfos.push_back({ (char)dwLightIndex, (char)lpLight->dltType, lpLight->dvPosition, lpLight->dvDirection,
-										 lpLight->dcvDiffuse, lpLight->dcvSpecular, lpLight->dcvAmbient });
-			}
+#ifdef ENABLE_DEBUGOVERLAY
+			DOverlay.SetLight(dwLightIndex, lpLight);
+#endif
 		}
 
 		return hr;
@@ -1964,7 +1821,6 @@ HRESULT m_IDirect3DDeviceX::LightEnable(DWORD dwLightIndex, BOOL bEnable)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	HRESULT hr;
 	if (Config.Dd7to9)
 	{
 		// Check for device interface
@@ -1973,18 +1829,13 @@ HRESULT m_IDirect3DDeviceX::LightEnable(DWORD dwLightIndex, BOOL bEnable)
 			return DDERR_GENERIC;
 		}
 
-		hr = (*d3d9Device)->LightEnable(dwLightIndex, bEnable);
+		HRESULT hr = (*d3d9Device)->LightEnable(dwLightIndex, bEnable);
 
 		if (SUCCEEDED(hr))
 		{
-			for (size_t i = 0; i < LightDebugInfos.size(); ++i)
-			{
-				if (LightDebugInfos[i].index == (char)dwLightIndex)
-				{
-					LightDebugInfos.erase(LightDebugInfos.begin() + i);
-					break;
-				}
-			}
+#ifdef ENABLE_DEBUGOVERLAY
+			DOverlay.LightEnable(dwLightIndex, bEnable);
+#endif
 		}
 
 		return hr;
@@ -2859,35 +2710,19 @@ void m_IDirect3DDeviceX::ReleaseDevice()
 	WrapperInterface3->DeleteMe();
 	WrapperInterface7->DeleteMe();
 
-#if WITH_IMGUI
+	// Teardown debug overlay
 	if (Config.Dd7to9)
 	{
-		ImGui_ImplDX9_Shutdown();
-		ImGui_ImplWin32_Shutdown();
-		ImGui::DestroyContext();
-	}
+#ifdef ENABLE_DEBUGOVERLAY
+		DOverlay.Shutdown();
 #endif
+	}
 
 	if (ddrawParent && !Config.Exiting)
 	{
 		ddrawParent->ClearD3DDevice();
 	}
 }
-
-#if WITH_IMGUI
-namespace {
-	HWND OriginalHwnd = nullptr;
-	WNDPROC OverrideWndProc_OriginalWndProc = nullptr;
-	LRESULT CALLBACK OverrideWndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
-	{
-		LRESULT res = OverrideWndProc_OriginalWndProc(hwnd, uMsg, wParam, lParam);
-
-		ImGui_ImplWin32_WndProcHandler(hwnd, uMsg, wParam, lParam);
-
-		return res;
-	}
-}
-#endif
 
 HRESULT m_IDirect3DDeviceX::CheckInterface(char *FunctionName, bool CheckD3DDevice)
 {
@@ -2915,29 +2750,8 @@ HRESULT m_IDirect3DDeviceX::CheckInterface(char *FunctionName, bool CheckD3DDevi
 			return DDERR_GENERIC;
 		}
 
-#if WITH_IMGUI
-		HWND hwnd = ddrawParent->GetHwnd();
-
-		IMGUI_CHECKVERSION();
-		ImGui::CreateContext();
-		ImGui_ImplWin32_Init(hwnd);
-		ImGui_ImplDX9_Init(*d3d9Device);
-
-		// Restore WndProc if hwnd changes
-		if (IsWindow(OriginalHwnd) && OriginalHwnd != hwnd)
-		{
-			SetWindowLongPtr(OriginalHwnd, GWLP_WNDPROC, (LONG_PTR)OverrideWndProc_OriginalWndProc);
-			OverrideWndProc_OriginalWndProc = nullptr;
-			OriginalHwnd = nullptr;
-		}
-
-		// Override WndProc if not already overridden
-		if (OriginalHwnd != hwnd)
-		{
-			OriginalHwnd = hwnd;
-			OverrideWndProc_OriginalWndProc = (WNDPROC)GetWindowLongPtr(hwnd, GWLP_WNDPROC);
-			SetWindowLongPtr(hwnd, GWLP_WNDPROC, (LONG_PTR)OverrideWndProc);
-		}
+#ifdef ENABLE_DEBUGOVERLAY
+		DOverlay.Setup(ddrawParent->GetHwnd(), *d3d9Device);
 #endif
 	}
 
