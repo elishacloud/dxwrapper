@@ -420,7 +420,8 @@ HRESULT m_IDirect3DDeviceX::PreLoad(LPDIRECTDRAWSURFACE7 lpddsTexture)
 
 	if (Config.Dd7to9)
 	{
-		// Not needed for Direct3D9
+		// ToDo: Call PreLoad for the texture.
+		// Calling this method indicates that the application will need this managed resource shortly. This method has no effect on nonmanaged resources.
 		return D3D_OK;
 	}
 
@@ -1163,6 +1164,7 @@ HRESULT m_IDirect3DDeviceX::AddViewport(LPDIRECT3DVIEWPORT3 lpDirect3DViewport)
 		Viewport.dwSize = sizeof(D3DVIEWPORT);
 
 		// ToDo: Validate Viewport address
+		// ToDo: Increment Viewport ref count
 		HRESULT hr = lpDirect3DViewport->GetViewport(&Viewport);
 
 		if (SUCCEEDED(hr))
@@ -1223,7 +1225,7 @@ HRESULT m_IDirect3DDeviceX::DeleteViewport(LPDIRECT3DVIEWPORT3 lpDirect3DViewpor
 	}
 }
 
-HRESULT m_IDirect3DDeviceX::NextViewport(LPDIRECT3DVIEWPORT3 lpDirect3DViewport, LPDIRECT3DVIEWPORT3 * lplpDirect3DViewport, DWORD dwFlags, DWORD DirectXVersion)
+HRESULT m_IDirect3DDeviceX::NextViewport(LPDIRECT3DVIEWPORT3 lpDirect3DViewport, LPDIRECT3DVIEWPORT3* lplpDirect3DViewport, DWORD dwFlags, DWORD DirectXVersion)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
@@ -1291,24 +1293,27 @@ HRESULT m_IDirect3DDeviceX::SetCurrentViewport(LPDIRECT3DVIEWPORT3 lpd3dViewport
 	}
 }
 
-HRESULT m_IDirect3DDeviceX::GetCurrentViewport(LPDIRECT3DVIEWPORT3 * lplpd3dViewport, DWORD DirectXVersion)
+HRESULT m_IDirect3DDeviceX::GetCurrentViewport(LPDIRECT3DVIEWPORT3* lplpd3dViewport, DWORD DirectXVersion)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
 	if (Config.Dd7to9 || ProxyDirectXVersion == 7)
 	{
-		if (lplpd3dViewport && lpCurrentViewport)
+		if (!lplpd3dViewport)
 		{
-			// ToDo: Validate current Viewport address
-			*lplpd3dViewport = (LPDIRECT3DVIEWPORT3)lpCurrentViewport;
-			return D3D_OK;
+			return DDERR_INVALIDPARAMS;
 		}
-		else if (!lpCurrentViewport)
+
+		if (!lpCurrentViewport)
 		{
 			return D3DERR_NOCURRENTVIEWPORT;
 		}
 
-		return DDERR_INVALIDPARAMS;
+		// ToDo: Validate Viewport address
+		// ToDo: Increment Viewport ref count
+		*lplpd3dViewport = (LPDIRECT3DVIEWPORT3)lpCurrentViewport;
+
+		return D3D_OK;
 	}
 
 	HRESULT hr = DDERR_GENERIC;
@@ -1753,7 +1758,6 @@ HRESULT m_IDirect3DDeviceX::SetLight(DWORD dwLightIndex, LPD3DLIGHT7 lpLight)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	HRESULT hr;
 	if (Config.Dd7to9)
 	{
 		if (!lpLight)
@@ -1779,7 +1783,7 @@ HRESULT m_IDirect3DDeviceX::SetLight(DWORD dwLightIndex, LPD3DLIGHT7 lpLight)
 			}
 		}
 
-		hr = (*d3d9Device)->SetLight(dwLightIndex, &Light);
+		HRESULT hr = (*d3d9Device)->SetLight(dwLightIndex, &Light);
 
 		if (SUCCEEDED(hr))
 		{
