@@ -1873,8 +1873,29 @@ HRESULT m_IDirect3DDeviceX::MultiplyTransform(D3DTRANSFORMSTATETYPE dtstTransfor
 
 	if (Config.Dd7to9)
 	{
-		LOG_LIMIT(100, __FUNCTION__ << " Not Implemented");
-		return DDERR_UNSUPPORTED;
+		// Check for device interface
+		if (FAILED(CheckInterface(__FUNCTION__, true)))
+		{
+			return DDERR_GENERIC;
+		}
+
+		switch ((DWORD)dtstTransformStateType)
+		{
+		case D3DTRANSFORMSTATE_WORLD:
+			dtstTransformStateType = D3DTS_WORLD;
+			break;
+		case D3DTRANSFORMSTATE_WORLD1:
+			dtstTransformStateType = D3DTS_WORLD1;
+			break;
+		case D3DTRANSFORMSTATE_WORLD2:
+			dtstTransformStateType = D3DTS_WORLD2;
+			break;
+		case D3DTRANSFORMSTATE_WORLD3:
+			dtstTransformStateType = D3DTS_WORLD3;
+			break;
+		}
+
+		return (*d3d9Device)->MultiplyTransform(dtstTransformStateType, lpD3DMatrix);
 	}
 
 	switch (ProxyDirectXVersion)
