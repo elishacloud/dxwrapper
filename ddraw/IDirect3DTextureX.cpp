@@ -208,8 +208,50 @@ HRESULT m_IDirect3DTextureX::Load(LPDIRECT3DTEXTURE2 lpD3DTexture2)
 
 	if (!ProxyInterface)
 	{
-		LOG_LIMIT(100, __FUNCTION__ << " Not Implemented");
-		return DDERR_UNSUPPORTED;
+		if (lpD3DTexture2)
+		{
+			return DDERR_INVALIDPARAMS;
+		}
+
+		if (!D3DDeviceInterface)
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: D3DDevice does not exist!");
+			return DDERR_GENERIC;
+		}
+
+		if (!DDrawSurface)
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: surface is not attached!");
+			return DDERR_GENERIC;
+		}
+
+		m_IDirect3DTextureX* pSrcTextureX = nullptr;
+		lpD3DTexture2->QueryInterface(IID_GetInterfaceX, (LPVOID*)&pSrcTextureX);
+
+		if (!pSrcTextureX)
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: could not get texture wrapper!");
+			return DDERR_GENERIC;
+		}
+
+		m_IDirectDrawSurfaceX* pSrcSurfaceX = pSrcTextureX->GetSurface();
+		if (!pSrcSurfaceX)
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: could not get surface!");
+			return DDERR_GENERIC;
+		}
+
+		IDirectDrawSurface7* pSrcSurface7 = (IDirectDrawSurface7*)pSrcSurfaceX->GetWrapperInterfaceX(7);
+		IDirectDrawSurface7* pDestSurface7 = (IDirectDrawSurface7*)DDrawSurface->GetWrapperInterfaceX(7);
+
+		if (!pDestSurface7 || !pSrcSurface7)
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: could not get v7 surface interface!");
+			return DDERR_GENERIC;
+		}
+
+		POINT Point = {};
+		return (*D3DDeviceInterface)->Load(pDestSurface7, &Point, pSrcSurface7, nullptr, 0);
 	}
 
 	if (lpD3DTexture2)

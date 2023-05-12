@@ -439,8 +439,68 @@ HRESULT m_IDirect3DDeviceX::Load(LPDIRECTDRAWSURFACE7 lpDestTex, LPPOINT lpDestP
 
 	if (Config.Dd7to9)
 	{
-		LOG_LIMIT(100, __FUNCTION__ << " Not Implemented");
-		return DDERR_UNSUPPORTED;
+		if (!lpDestTex || !lpSrcTex)
+		{
+			return  DDERR_INVALIDPARAMS;
+		}
+
+		// ToDo: support the following dwFlags: 
+		// DDSCAPS2_CUBEMAP_ALLFACES - All faces should be loaded with the image data within the source texture.
+		// DDSCAPS2_CUBEMAP_NEGATIVEX, DDSCAPS2_CUBEMAP_NEGATIVEY, or DDSCAPS2_CUBEMAP_NEGATIVEZ
+		//     The negative x, y, or z faces should receive the image data.
+		// DDSCAPS2_CUBEMAP_POSITIVEX, DDSCAPS2_CUBEMAP_POSITIVEY, or DDSCAPS2_CUBEMAP_POSITIVEZ
+		//     The positive x, y, or z faces should receive the image data.
+
+		if (dwFlags)
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Warning: flags not supported. dwFlags: " << Logging::hex(dwFlags));
+		}
+
+		// ToDo: check if source and destination surfaces are valid
+
+		if (!lprcSrcRect && (!lpDestPoint || (lpDestPoint && lpDestPoint->x == 0 && lpDestPoint->y == 0)))
+		{
+			return lpDestTex->Blt(nullptr, lpSrcTex, nullptr, 0, nullptr);
+		}
+		else
+		{
+			// Get source rect
+			RECT SrcRect = {};
+			if (lprcSrcRect)
+			{
+				SrcRect = *lprcSrcRect;
+			}
+			else
+			{
+				DDSURFACEDESC2 Desc2 = {};
+				Desc2.dwSize = sizeof(DDSURFACEDESC2);
+				lpSrcTex->GetSurfaceDesc(&Desc2);
+
+				if ((Desc2.dwFlags & (DDSD_WIDTH | DDSD_HEIGHT)) != (DDSD_WIDTH | DDSD_HEIGHT))
+				{
+					return DDERR_GENERIC;
+				}
+
+				SrcRect = { 0, 0, (LONG)Desc2.dwWidth, (LONG)Desc2.dwHeight };
+			}
+
+			// Get destination point
+			POINT DestPoint = {};
+			if (lpDestPoint)
+			{
+				DestPoint = *lpDestPoint;
+			}
+
+			// Get destination rect
+			RECT DestRect = {
+				DestPoint.x,									// left
+				DestPoint.y,									// top
+				DestPoint.x + (SrcRect.right - SrcRect.left),	// right
+				DestPoint.y + (SrcRect.bottom - SrcRect.top),	// bottom
+			};
+
+			return lpDestTex->Blt(&DestRect, lpSrcTex, &SrcRect, 0, nullptr);
+		}
 	}
 
 	if (lpDestTex)
