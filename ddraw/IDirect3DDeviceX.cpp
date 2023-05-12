@@ -2118,8 +2118,13 @@ HRESULT m_IDirect3DDeviceX::BeginStateBlock()
 
 	if (Config.Dd7to9)
 	{
-		LOG_LIMIT(100, __FUNCTION__ << " Not Implemented");
-		return DDERR_UNSUPPORTED;
+		// Check for device interface
+		if (FAILED(CheckInterface(__FUNCTION__, true)))
+		{
+			return DDERR_GENERIC;
+		}
+
+		return (*d3d9Device)->BeginStateBlock();
 	}
 
 	return GetProxyInterfaceV7()->BeginStateBlock();
@@ -2131,8 +2136,19 @@ HRESULT m_IDirect3DDeviceX::EndStateBlock(LPDWORD lpdwBlockHandle)
 
 	if (Config.Dd7to9)
 	{
-		LOG_LIMIT(100, __FUNCTION__ << " Not Implemented");
-		return DDERR_UNSUPPORTED;
+		if (!lpdwBlockHandle)
+		{
+			return DDERR_INVALIDPARAMS;
+		}
+
+		// Check for device interface
+		if (FAILED(CheckInterface(__FUNCTION__, true)))
+		{
+			return DDERR_GENERIC;
+		}
+
+		// ToDo: Validate BlockHandle
+		return (*d3d9Device)->EndStateBlock(reinterpret_cast<IDirect3DStateBlock9**>(lpdwBlockHandle));
 	}
 
 	return GetProxyInterfaceV7()->EndStateBlock(lpdwBlockHandle);
@@ -2571,8 +2587,13 @@ HRESULT m_IDirect3DDeviceX::ApplyStateBlock(DWORD dwBlockHandle)
 
 	if (Config.Dd7to9)
 	{
-		LOG_LIMIT(100, __FUNCTION__ << " Not Implemented");
-		return DDERR_UNSUPPORTED;
+		if (!dwBlockHandle)
+		{
+			return DDERR_INVALIDPARAMS;
+		}
+
+		// ToDo: Validate BlockHandle
+		return reinterpret_cast<IDirect3DStateBlock9*>(dwBlockHandle)->Apply();
 	}
 
 	return GetProxyInterfaceV7()->ApplyStateBlock(dwBlockHandle);
@@ -2584,8 +2605,13 @@ HRESULT m_IDirect3DDeviceX::CaptureStateBlock(DWORD dwBlockHandle)
 
 	if (Config.Dd7to9)
 	{
-		LOG_LIMIT(100, __FUNCTION__ << " Not Implemented");
-		return DDERR_UNSUPPORTED;
+		if (!dwBlockHandle)
+		{
+			return DDERR_INVALIDPARAMS;
+		}
+
+		// ToDo: Validate BlockHandle
+		return reinterpret_cast<IDirect3DStateBlock9*>(dwBlockHandle)->Capture();
 	}
 
 	return GetProxyInterfaceV7()->CaptureStateBlock(dwBlockHandle);
@@ -2597,8 +2623,13 @@ HRESULT m_IDirect3DDeviceX::DeleteStateBlock(DWORD dwBlockHandle)
 
 	if (Config.Dd7to9)
 	{
-		LOG_LIMIT(100, __FUNCTION__ << " Not Implemented");
-		return DDERR_UNSUPPORTED;
+		if (!dwBlockHandle)
+		{
+			return DDERR_INVALIDPARAMS;
+		}
+
+		// ToDo: Validate BlockHandle
+		reinterpret_cast<IDirect3DStateBlock9*>(dwBlockHandle)->Release();
 	}
 
 	return GetProxyInterfaceV7()->DeleteStateBlock(dwBlockHandle);
@@ -2610,8 +2641,19 @@ HRESULT m_IDirect3DDeviceX::CreateStateBlock(D3DSTATEBLOCKTYPE d3dsbtype, LPDWOR
 
 	if (Config.Dd7to9)
 	{
-		LOG_LIMIT(100, __FUNCTION__ << " Not Implemented");
-		return DDERR_UNSUPPORTED;
+		if (!lpdwBlockHandle)
+		{
+			return DDERR_INVALIDPARAMS;
+		}
+
+		// Check for device interface
+		if (FAILED(CheckInterface(__FUNCTION__, true)))
+		{
+			return DDERR_GENERIC;
+		}
+
+		// ToDo: Validate BlockHandle
+		return (*d3d9Device)->CreateStateBlock(d3dsbtype, reinterpret_cast<IDirect3DStateBlock9**>(lpdwBlockHandle));
 	}
 
 	return GetProxyInterfaceV7()->CreateStateBlock(d3dsbtype, lpdwBlockHandle);
