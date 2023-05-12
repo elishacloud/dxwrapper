@@ -2634,6 +2634,8 @@ HRESULT m_IDirect3DDeviceX::DeleteStateBlock(DWORD dwBlockHandle)
 
 		// ToDo: Validate BlockHandle
 		reinterpret_cast<IDirect3DStateBlock9*>(dwBlockHandle)->Release();
+
+		return DD_OK;
 	}
 
 	return GetProxyInterfaceV7()->DeleteStateBlock(dwBlockHandle);
