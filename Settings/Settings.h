@@ -43,6 +43,13 @@
 	visit(DdrawOverrideStencilFormat) \
 	visit(DdrawResolutionHack) \
 	visit(DdrawUseDirect3D9Ex) \
+	visit(DdrawConvertHomogeneousW) \
+	visit(DdrawConvertHomogeneousToWorld) \
+	visit(DdrawConvertHomogeneousToWorldUseGameCamera) \
+	visit(DdrawConvertHomogeneousToWorldFOV) \
+	visit(DdrawConvertHomogeneousToWorldNearPlane) \
+	visit(DdrawConvertHomogeneousToWorldFarPlane) \
+	visit(DdrawConvertHomogeneousToWorldDepthOffset) \
 	visit(DdrawUseNativeResolution) \
 	visit(DdrawEnableMouseHook) \
 	visit(DdrawHookSystem32) \
@@ -209,6 +216,13 @@ struct CONFIG
 	bool DdrawIntegerScalingClamp = false;		// Scales the screen by an integer value to help preserve video quality
 	bool DdrawMaintainAspectRatio = false;		// Keeps the current DirectDraw aspect ratio when overriding the game's resolution
 	bool DdrawUseDirect3D9Ex = false;			// Use Direct3D9Ex extensions for Dd7to9
+	bool DdrawConvertHomogeneousW = false;		// Convert primites using D3DFVF_XYZRHW to D3DFVF_XYZW.
+	bool DdrawConvertHomogeneousToWorld = false;			// Convert primitives back into a world space. Needed for RTX.
+	bool DdrawConvertHomogeneousToWorldUseGameCamera = false;	// Use the game's view matrix instead of replacing it with our own.
+	float DdrawConvertHomogeneousToWorldFOV = 90.0f;		// The field of view of the camera used to reconstruct the original 3D world.
+	float DdrawConvertHomogeneousToWorldNearPlane = 1.0f;	// The near plane of the camera used to reconstruct the original 3D world.
+	float DdrawConvertHomogeneousToWorldFarPlane = 1000.0f;	// The far plane of the camera used to reconstruct the original 3D world.
+	float DdrawConvertHomogeneousToWorldDepthOffset = 0.0f;	// The offset to add to the geometry so it does not clip into the near plane.
 	bool DdrawUseNativeResolution = false;		// Uses the current screen resolution for Dd7to9
 	DWORD DdrawClippedWidth = 0;				// Used to scaled Direct3d9 to use this width when using Dd7to9
 	DWORD DdrawClippedHeight = 0;				// Used to scaled Direct3d9 to use this height when using Dd7to9

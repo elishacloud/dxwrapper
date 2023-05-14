@@ -15,6 +15,7 @@
 */
 
 #include "DebugOverlay.h"
+#include "RenderData.h"
 #include <sstream>
 
 #define IMGUI_DEFINE_MATH_OPERATORS
@@ -98,7 +99,7 @@ void DebugOverlay::BeginScene()
 	ImGui::NewFrame();
 }
 
-void DebugOverlay::EndScene()
+void DebugOverlay::EndScene(const RenderData &RenderData)
 {
 	static bool ShowDebugUI = false;
 	if (ImGui::IsKeyDown(ImGui::GetKeyIndex(ImGuiKey_LeftAlt)) &&

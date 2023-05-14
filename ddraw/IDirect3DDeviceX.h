@@ -1,6 +1,7 @@
 #pragma once
 
 #include "IDirectDrawX.h"
+#include "RenderData.h"
 
 class m_IDirect3DDeviceX : public IUnknown, public AddressLookupTableDdrawObject
 {
@@ -26,6 +27,9 @@ private:
 
 	// SetTexture array
 	LPDIRECTDRAWSURFACE7 AttachedTexture[8] = {};
+
+	// The data used for rendering
+	RenderData RenderData;
 
 	// Wrapper interface functions
 	inline REFIID GetWrapperType(DWORD DirectXVersion)

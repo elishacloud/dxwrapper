@@ -588,6 +588,7 @@ cmd /q /c "cd /D ""$(ProjectDir)d3d8\"" &amp;&amp; del build.bat"</Command>
     <ClInclude Include="ddraw\IDirectDrawGammaControl.h" />
     <ClInclude Include="ddraw\IDirectDrawPalette.h" />
     <ClInclude Include="ddraw\IDirectDrawX.h" />
+    <ClInclude Include="ddraw\RenderData.h" />
     <ClInclude Include="ddraw\Versions\IDirect3D.h" />
     <ClInclude Include="ddraw\Versions\IDirect3D2.h" />
     <ClInclude Include="ddraw\Versions\IDirect3D3.h" />
