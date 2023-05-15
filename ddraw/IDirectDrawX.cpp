@@ -1512,19 +1512,16 @@ HRESULT m_IDirectDrawX::SetCooperativeLevel(HWND hWnd, DWORD dwFlags, DWORD Dire
 	if (Config.Dd7to9)
 	{
 		// Check for valid parameters
+		// Note: real DirectDraw will allow both DDSCL_NORMAL and DDSCL_FULLSCREEN in some cases
 		if (!(dwFlags & (DDSCL_EXCLUSIVE | DDSCL_NORMAL)) ||																			// An application must set either the DDSCL_EXCLUSIVE or the DDSCL_NORMAL flag
-			((dwFlags & DDSCL_NORMAL) && (dwFlags & (DDSCL_ALLOWMODEX | DDSCL_EXCLUSIVE | DDSCL_FULLSCREEN))) ||						// Normal flag cannot be used with Modex, Exclusive or Fullscreen flags
+			((dwFlags & DDSCL_NORMAL) && (dwFlags & (DDSCL_ALLOWMODEX | DDSCL_EXCLUSIVE))) ||											// Normal flag cannot be used with Modex, Exclusive or Fullscreen flags
 			((dwFlags & DDSCL_EXCLUSIVE) && !(dwFlags & DDSCL_FULLSCREEN)) ||															// If Exclusive flag is set then Fullscreen flag must be set
 			((dwFlags & DDSCL_FULLSCREEN) && !(dwFlags & DDSCL_EXCLUSIVE)) ||															// If Fullscreen flag is set then Exclusive flag must be set
 			((dwFlags & DDSCL_ALLOWMODEX) && (!(dwFlags & DDSCL_EXCLUSIVE) || !(dwFlags & DDSCL_FULLSCREEN))) ||						// If AllowModeX is set then Exclusive and Fullscreen flags must be set
 			((dwFlags & DDSCL_SETDEVICEWINDOW) && (dwFlags & DDSCL_SETFOCUSWINDOW)) ||													// SetDeviceWindow flag cannot be used with SetFocusWindow flag
-			(!hWnd && !(dwFlags & DDSCL_NORMAL)) ||																						// hWnd can only be null if normal flag is set
-			((dwFlags & DDSCL_EXCLUSIVE) && !IsWindow(hWnd)) ||																			// When using Exclusive mode the hwnd must be valid
-			(((dwFlags & DDSCL_EXCLUSIVE) || ExclusiveMode) &&
-				GetWindowThreadProcessId((hWnd) ? hWnd : MainhWnd, nullptr) != GetCurrentThreadId()))									// This method must be called by the same thread that created the application window.
+			((dwFlags & DDSCL_EXCLUSIVE) && !IsWindow(hWnd)))																			// When using Exclusive mode the hwnd must be valid
 		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error: Invalid parameters. dwFlags: " << Logging::hex(dwFlags) << " " << hWnd <<
-			" Thread ID: " << GetWindowThreadProcessId((hWnd) ? hWnd : MainhWnd, nullptr));
+			LOG_LIMIT(100, __FUNCTION__ << " Error: Invalid parameters. dwFlags: " << Logging::hex(dwFlags) << " " << hWnd);
 			return DDERR_INVALIDPARAMS;
 		}
 
@@ -1532,6 +1529,12 @@ HRESULT m_IDirectDrawX::SetCooperativeLevel(HWND hWnd, DWORD dwFlags, DWORD Dire
 		if (dwFlags & (DDSCL_CREATEDEVICEWINDOW | DDSCL_SETDEVICEWINDOW | DDSCL_SETFOCUSWINDOW))
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Warning: Flags not supported. dwFlags: " << Logging::hex(dwFlags) << " " << hWnd);
+		}
+
+		// Check window handle thread
+		if ((((dwFlags & DDSCL_EXCLUSIVE) || ExclusiveMode) && GetWindowThreadProcessId((hWnd) ? hWnd : MainhWnd, nullptr) != GetCurrentThreadId()))
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Warning: attempt to set exclusive mode from a different thread than the hwnd was created from! dwFlags: " << Logging::hex(dwFlags) << " " << hWnd);
 		}
 
 		HWND LastMainhWnd = MainhWnd;
@@ -1704,11 +1707,16 @@ HRESULT m_IDirectDrawX::SetDisplayMode(DWORD dwWidth, DWORD dwHeight, DWORD dwBP
 
 	if (Config.Dd7to9)
 	{
-		if (!dwWidth || !dwHeight || (dwBPP != 8 && dwBPP != 16 && dwBPP != 24 && dwBPP != 32) ||
-			(ExclusiveMode && MainhWnd && GetWindowThreadProcessId(MainhWnd, nullptr) != GetCurrentThreadId()))
+		if (!dwWidth || !dwHeight || (dwBPP != 8 && dwBPP != 16 && dwBPP != 24 && dwBPP != 32))
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Error: Invalid parameters. " << dwWidth << "x" << dwHeight << " " << dwBPP);
 			return DDERR_INVALIDPARAMS;
+		}
+
+		// Check window handle thread
+		if (ExclusiveMode && IsWindow(MainhWnd) && GetWindowThreadProcessId(MainhWnd, nullptr) != GetCurrentThreadId())
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Warning: set exclusive display from a different thread than the hwnd was created from! " << dwWidth << "x" << dwHeight << " " << dwBPP);
 		}
 
 		bool ChangeMode = false;
@@ -1958,7 +1966,7 @@ HRESULT m_IDirectDrawX::GetAvailableVidMem2(LPDDSCAPS2 lpDDSCaps2, LPDWORD lpdwT
 		DWORD AvailableMemory = 0;
 
 		// Get texture/surface memory
-		if (lpDDSCaps2 && ((lpDDSCaps2->dwCaps & DDSCAPS_TEXTURE) || (lpDDSCaps2->dwCaps & DDSCAPS_OFFSCREENPLAIN)))
+		if (lpDDSCaps2 && (lpDDSCaps2->dwCaps & (DDSCAPS_TEXTURE | DDSCAPS_OFFSCREENPLAIN)))
 		{
 			if (d3d9Device)
 			{
@@ -1966,7 +1974,7 @@ HRESULT m_IDirectDrawX::GetAvailableVidMem2(LPDDSCAPS2 lpDDSCaps2, LPDWORD lpdwT
 			}
 		}
 		// Get video memory
-		else if (lpDDSCaps2 && ((lpDDSCaps2->dwCaps & DDSCAPS_VIDEOMEMORY) || (lpDDSCaps2->dwCaps & DDSCAPS_LOCALVIDMEM)))
+		else if (lpDDSCaps2 && (lpDDSCaps2->dwCaps & (DDSCAPS_VIDEOMEMORY | DDSCAPS_LOCALVIDMEM | DDSCAPS_3DDEVICE)))
 		{
 			// Open the first adapter in the system
 			if (OpenD3DDDI(GetDC()) && D3DDDIGetVideoMemory(TotalMemory, AvailableMemory))
@@ -2698,6 +2706,12 @@ HRESULT m_IDirectDrawX::CreateD3D9Device()
 
 		// Store new focus window
 		hFocusWindow = hWnd;
+
+		// Check window handle thread
+		if (IsWindow(hWnd) && GetWindowThreadProcessId(hWnd, nullptr) != GetCurrentThreadId())
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Warning: trying to create Direct3D9 device from a different thread than the hwnd was created from!");
+		}
 
 		// Get current resolution
 		DWORD CurrentWidth, CurrentHeight;

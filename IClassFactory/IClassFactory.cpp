@@ -225,6 +225,8 @@ HRESULT WINAPI CoCreateInstanceHandle(REFCLSID rclsid, LPUNKNOWN pUnkOuter, DWOR
 		return E_POINTER;
 	}
 
+	*ppv = nullptr;
+
 	// IDirectDraw wrapper
 	if (Config.EnableDdrawWrapper)
 	{
