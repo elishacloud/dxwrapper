@@ -372,6 +372,21 @@ HRESULT m_IDirect3DDeviceX::SetTransform(D3DTRANSFORMSTATETYPE dtstTransformStat
 					}
 					else
 					{
+						DirectX::XMVECTOR position, direction;
+						if(Config.DdrawConvertHomogeneousToWorldUseGameCamera)
+						{
+							// To reconstruct the 3D world, we need to know where the camera is and where it is looking
+							position = DirectX::XMVectorSet(lpD3DMatrix->_41, lpD3DMatrix->_42, lpD3DMatrix->_43, lpD3DMatrix->_44);
+							direction = DirectX::XMVectorSet(lpD3DMatrix->_31, lpD3DMatrix->_32, lpD3DMatrix->_33, lpD3DMatrix->_34);
+						}
+						else
+						{
+							const float cameradir = 1.0f;
+
+							position = DirectX::XMVectorSet(0.0f, 0.0f, -cameradir, 0.0f);
+							DirectX::XMVectorSet(0.0f, 0.0f, cameradir, 0.0f);
+						}
+
 						// Override the original matrix
 						std::memcpy(lpD3DMatrix, &view, sizeof(_D3DMATRIX));
 
@@ -387,25 +402,7 @@ HRESULT m_IDirect3DDeviceX::SetTransform(D3DTRANSFORMSTATETYPE dtstTransformStat
 						DirectX::XMStoreFloat4x4((DirectX::XMFLOAT4X4*)&RenderData.DdrawConvertHomogeneousToWorld_ProjectionMatrix, proj);
 
 						DirectX::XMVECTOR up = DirectX::XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f);
-
-						DirectX::XMMATRIX viewMatrix;
-						if(Config.DdrawConvertHomogeneousToWorldUseGameCamera)
-						{
-							// To reconstruct the 3D world, we need to know where the camera is and where it is looking
-							DirectX::XMVECTOR position = DirectX::XMVectorSet(lpD3DMatrix->_41, lpD3DMatrix->_42, lpD3DMatrix->_43, lpD3DMatrix->_44);
-							DirectX::XMVECTOR direction = DirectX::XMVectorSet(lpD3DMatrix->_31, lpD3DMatrix->_32, lpD3DMatrix->_33, lpD3DMatrix->_34);
-
-							viewMatrix = DirectX::XMMatrixLookToLH(position, direction, up);
-						}
-						else
-						{
-							const float cameradir = 1.0f;
-
-							DirectX::XMVECTOR pos = DirectX::XMVectorSet(0.0f, 0.0f, -cameradir, 0.0f);
-							DirectX::XMVECTOR direction = DirectX::XMVectorSet(0.0f, 0.0f, cameradir, 0.0f);
-
-							viewMatrix = DirectX::XMMatrixLookToLH(pos, direction, up);
-						}
+						DirectX::XMMATRIX viewMatrix = DirectX::XMMatrixLookToLH(position, direction, up);
 
 						// Store the 3D view matrix so it can be set later
 						DirectX::XMStoreFloat4x4((DirectX::XMFLOAT4X4*)&RenderData.DdrawConvertHomogeneousToWorld_ViewMatrix, viewMatrix);
@@ -2139,6 +2136,12 @@ HRESULT m_IDirect3DDeviceX::SetRenderState(D3DRENDERSTATETYPE dwRenderStateType,
 			dwRenderStateType = D3DRS_DEPTHBIAS;
 			break;
 		}
+		case D3DRS_LIGHTING:
+			if(Config.DdrawDisableLighting)
+			{
+				dwRenderState = FALSE;
+			}
+			break;
 		case D3DRENDERSTATE_TEXTUREPERSPECTIVE:
 			return D3D_OK;		// As long as the device's D3DPTEXTURECAPS_PERSPECTIVE is enabled, the correction will be applied automatically.
 		case D3DRENDERSTATE_LINEPATTERN:
@@ -2549,7 +2552,7 @@ HRESULT m_IDirect3DDeviceX::DrawIndexedPrimitive(D3DPRIMITIVETYPE dptPrimitiveTy
 			{
 				if(!Config.DdrawConvertHomogeneousToWorld)
 				{
-					UINT8 *vertex = (UINT8*)lpVertices;
+					/*UINT8 *vertex = (UINT8*)lpVertices;
 
 					for (UINT x = 0; x < dwVertexCount; x++)
 					{
@@ -2558,17 +2561,17 @@ HRESULT m_IDirect3DDeviceX::DrawIndexedPrimitive(D3DPRIMITIVETYPE dptPrimitiveTy
 						pos[3] = 1.0f;
 
 						vertex += stride;
-					}
+					}*/
 
 					// Update the FVF
 					dwVertexTypeDesc = (dwVertexTypeDesc & ~D3DFVF_XYZRHW) | D3DFVF_XYZW;
 				}
 				else
 				{
-					const UINT newstride = stride - sizeof(float);
+					const UINT targetStride = stride - sizeof(float);
 					const UINT restSize = stride - sizeof(float) * 4;
 
-					RenderData.DdrawConvertHomogeneousToWorld_IntermediateGeometry.resize(newstride * dwVertexCount);
+					RenderData.DdrawConvertHomogeneousToWorld_IntermediateGeometry.resize(targetStride * dwVertexCount);
 
 					UINT8 *sourceVertex = (UINT8*)lpVertices;
 					UINT8 *targetVertex = (UINT8*)RenderData.DdrawConvertHomogeneousToWorld_IntermediateGeometry.data();
@@ -2596,7 +2599,7 @@ HRESULT m_IDirect3DDeviceX::DrawIndexedPrimitive(D3DPRIMITIVETYPE dptPrimitiveTy
 
 						// Move to next vertex
 						sourceVertex += stride;
-						targetVertex += newstride;
+						targetVertex += targetStride;
 					}
 
 					// Set transform
@@ -2610,7 +2613,7 @@ HRESULT m_IDirect3DDeviceX::DrawIndexedPrimitive(D3DPRIMITIVETYPE dptPrimitiveTy
 					(*d3d9Device)->SetFVF(newVertexTypeDesc);
 
 					// Draw indexed primitive UP
-					hr = (*d3d9Device)->DrawIndexedPrimitiveUP(dptPrimitiveType, 0, dwVertexCount, GetNumberOfPrimitives(dptPrimitiveType, dwIndexCount), lpIndices, D3DFMT_INDEX16, lpVertices, newstride);
+					hr = (*d3d9Device)->DrawIndexedPrimitiveUP(dptPrimitiveType, 0, dwVertexCount, GetNumberOfPrimitives(dptPrimitiveType, dwIndexCount), lpIndices, D3DFMT_INDEX16, lpVertices, targetStride);
 
 					// Restore transform
 					_D3DMATRIX identityMatrix;
