@@ -449,12 +449,14 @@ void Settings::SetDefaultConfigSettings()
 	Config.FixSpeakerConfigType = true;
 
 	// Set other default values
-	Config.LoopSleepTime = 120;
 	Config.WindowSleepTime = 500;
 	Config.PrimaryBufferBits = 16;
 	Config.PrimaryBufferSamples = 44100;
 	Config.PrimaryBufferChannels = 2;
 	Config.AudioFadeOutDelayMS = 20;
+	Config.DdrawConvertHomogeneousToWorldFOV = 90.0f;
+	Config.DdrawConvertHomogeneousToWorldNearPlane = 1.0f;
+	Config.DdrawConvertHomogeneousToWorldFarPlane = 1000.0f;
 	SetValue("ExcludeProcess", "dxwnd.exe", &Config.ExcludeProcess);
 	SetValue("ExcludeProcess", "dgVoodooSetup.exe", &Config.ExcludeProcess);
 }

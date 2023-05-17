@@ -2552,6 +2552,13 @@ HRESULT m_IDirect3DDeviceX::DrawIndexedPrimitive(D3DPRIMITIVETYPE dptPrimitiveTy
 			// Handle PositionT
 			if (Config.DdrawConvertHomogeneousW && (dwVertexTypeDesc & 0x0E) == D3DFVF_XYZRHW)
 			{
+				if (!ConvertHomogeneous.IsTransformViewSet)
+				{
+					D3DMATRIX Matrix = {};
+					GetTransform(D3DTS_VIEW, &Matrix);
+					SetTransform(D3DTS_VIEW, &Matrix);
+				}
+
 				if (!Config.DdrawConvertHomogeneousToWorld)
 				{
 					/*UINT8 *vertex = (UINT8*)lpVertices;
@@ -2564,13 +2571,6 @@ HRESULT m_IDirect3DDeviceX::DrawIndexedPrimitive(D3DPRIMITIVETYPE dptPrimitiveTy
 
 						vertex += stride;
 					}*/
-
-					if (!ConvertHomogeneous.IsTransformViewSet)
-					{
-						D3DMATRIX Matrix = {};
-						GetTransform(D3DTS_VIEW, &Matrix);
-						SetTransform(D3DTS_VIEW, &Matrix);
-					}
 
 					// Update the FVF
 					dwVertexTypeDesc = (dwVertexTypeDesc & ~D3DFVF_XYZRHW) | D3DFVF_XYZW;
