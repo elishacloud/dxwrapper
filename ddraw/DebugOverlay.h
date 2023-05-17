@@ -48,7 +48,7 @@ public:
 
 	// Frame functions
 	void BeginScene();
-	void EndScene(const class RenderData &RenderData);
+	void EndScene();
 
 	// Functions
 	void SetTransform(D3DTRANSFORMSTATETYPE dtstTransformStateType, LPD3DMATRIX lpD3DMatrix);

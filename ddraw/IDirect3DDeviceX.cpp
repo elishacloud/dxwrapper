@@ -19,7 +19,7 @@
 #include <DirectXMath.h>
 
 // Enable for testing only
-#define ENABLE_DEBUGOVERLAY
+//#define ENABLE_DEBUGOVERLAY
 
 #ifdef ENABLE_DEBUGOVERLAY
 #include "DebugOverlay.h"
@@ -339,17 +339,17 @@ HRESULT m_IDirect3DDeviceX::SetTransform(D3DTRANSFORMSTATETYPE dtstTransformStat
 			break;
 		}
 
-		if(Config.DdrawConvertHomogeneousW)
+		if (Config.DdrawConvertHomogeneousW)
 		{
 #ifdef ENABLE_DEBUGOVERLAY
 			// Set the original matrix
 			DOverlay.SetTransform(dtstTransformStateType, lpD3DMatrix);
 #endif
 
-			if(dtstTransformStateType == D3DTS_VIEW)
+			if (dtstTransformStateType == D3DTS_VIEW)
 			{
 				D3DVIEWPORT9 Viewport9;
-				if(SUCCEEDED((*d3d9Device)->GetViewport(&Viewport9)))
+				if (SUCCEEDED((*d3d9Device)->GetViewport(&Viewport9)))
 				{
 					const float width = (float)Viewport9.Width;
 					const float height = (float)Viewport9.Height;
@@ -365,15 +365,13 @@ HRESULT m_IDirect3DDeviceX::SetTransform(D3DTRANSFORMSTATETYPE dtstTransformStat
 					view._42 = 1.0f;   // translate Y
 					view._44 = 1.0f;
 
-					if(!Config.DdrawConvertHomogeneousToWorld)
-					{
-						// Override the original matrix
-						std::memcpy(lpD3DMatrix, &view, sizeof(_D3DMATRIX));
-					}
-					else
+					// Override the original matrix
+					std::memcpy(lpD3DMatrix, &view, sizeof(_D3DMATRIX));
+
+					if (Config.DdrawConvertHomogeneousToWorld)
 					{
 						DirectX::XMVECTOR position, direction;
-						if(Config.DdrawConvertHomogeneousToWorldUseGameCamera)
+						if (Config.DdrawConvertHomogeneousToWorldUseGameCamera)
 						{
 							// To reconstruct the 3D world, we need to know where the camera is and where it is looking
 							position = DirectX::XMVectorSet(lpD3DMatrix->_41, lpD3DMatrix->_42, lpD3DMatrix->_43, lpD3DMatrix->_44);
@@ -384,11 +382,8 @@ HRESULT m_IDirect3DDeviceX::SetTransform(D3DTRANSFORMSTATETYPE dtstTransformStat
 							const float cameradir = 1.0f;
 
 							position = DirectX::XMVectorSet(0.0f, 0.0f, -cameradir, 0.0f);
-							DirectX::XMVectorSet(0.0f, 0.0f, cameradir, 0.0f);
+							direction = DirectX::XMVectorSet(0.0f, 0.0f, cameradir, 0.0f);
 						}
-
-						// Override the original matrix
-						std::memcpy(lpD3DMatrix, &view, sizeof(_D3DMATRIX));
 
 						// Store the original matrix so it can be restored
 						std::memcpy(&RenderData.DdrawConvertHomogeneousToWorld_ViewMatrixOriginal, &view, sizeof(_D3DMATRIX));
@@ -1703,7 +1698,7 @@ HRESULT m_IDirect3DDeviceX::EndScene()
 		}
 
 #ifdef ENABLE_DEBUGOVERLAY
-		DOverlay.EndScene(RenderData);
+		DOverlay.EndScene();
 #endif
 
 		// The IDirect3DDevice7::EndScene method ends a scene that was begun by calling the IDirect3DDevice7::BeginScene method.
@@ -2137,7 +2132,7 @@ HRESULT m_IDirect3DDeviceX::SetRenderState(D3DRENDERSTATETYPE dwRenderStateType,
 			break;
 		}
 		case D3DRS_LIGHTING:
-			if(Config.DdrawDisableLighting)
+			if (Config.DdrawDisableLighting)
 			{
 				dwRenderState = FALSE;
 			}
@@ -2548,9 +2543,10 @@ HRESULT m_IDirect3DDeviceX::DrawIndexedPrimitive(D3DPRIMITIVETYPE dptPrimitiveTy
 			const UINT stride = GetVertexStride(dwVertexTypeDesc);
 
 			// Handle PositionT
-			if((dwVertexTypeDesc & D3DFVF_XYZRHW) != 0 && Config.DdrawConvertHomogeneousW)
+			if (Config.DdrawConvertHomogeneousW && (dwVertexTypeDesc & 0x0E) == D3DFVF_XYZRHW)
 			{
-				if(!Config.DdrawConvertHomogeneousToWorld)
+				D3DFVF_XYZB1;
+				if (!Config.DdrawConvertHomogeneousToWorld)
 				{
 					/*UINT8 *vertex = (UINT8*)lpVertices;
 
