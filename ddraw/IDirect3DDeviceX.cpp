@@ -368,6 +368,9 @@ HRESULT m_IDirect3DDeviceX::SetTransform(D3DTRANSFORMSTATETYPE dtstTransformStat
 					// Override original matrix pointer
 					lpD3DMatrix = &view;
 
+					// Set flag
+					RenderData.IsDdrawConvertHomogeneousTransformViewSet = true;
+
 					if (Config.DdrawConvertHomogeneousToWorld)
 					{
 						DirectX::XMVECTOR position, direction;
@@ -2563,6 +2566,13 @@ HRESULT m_IDirect3DDeviceX::DrawIndexedPrimitive(D3DPRIMITIVETYPE dptPrimitiveTy
 						vertex += stride;
 					}*/
 
+					if (!RenderData.IsDdrawConvertHomogeneousTransformViewSet)
+					{
+						D3DMATRIX Matrix = {};
+						GetTransform(D3DTS_VIEW, &Matrix);
+						SetTransform(D3DTS_VIEW, &Matrix);
+					}
+
 					// Update the FVF
 					dwVertexTypeDesc = (dwVertexTypeDesc & ~D3DFVF_XYZRHW) | D3DFVF_XYZW;
 				}
@@ -3083,6 +3093,9 @@ HRESULT m_IDirect3DDeviceX::CheckInterface(char *FunctionName, bool CheckD3DDevi
 
 void m_IDirect3DDeviceX::ResetDevice()
 {
+	// Reset flags
+	RenderData.IsDdrawConvertHomogeneousTransformViewSet = false;
+
 	// Reset textures after device reset
 	for (UINT x = 0; x < 8; x++)
 	{

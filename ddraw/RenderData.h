@@ -8,6 +8,9 @@ class RenderData
 {
 public:
 
+	// Flags
+	bool IsDdrawConvertHomogeneousTransformViewSet = false;
+
 	// Store the projection matrix used to transform the geometry on the gpu
 	D3DMATRIX DdrawConvertHomogeneousToWorld_ProjectionMatrix;
 
