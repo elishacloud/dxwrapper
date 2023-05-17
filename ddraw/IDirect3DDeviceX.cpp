@@ -339,7 +339,7 @@ HRESULT m_IDirect3DDeviceX::SetTransform(D3DTRANSFORMSTATETYPE dtstTransformStat
 			break;
 		}
 
-		_D3DMATRIX view;
+		D3DMATRIX view;
 		if (Config.DdrawConvertHomogeneousW)
 		{
 #ifdef ENABLE_DEBUGOVERLAY
@@ -357,7 +357,7 @@ HRESULT m_IDirect3DDeviceX::SetTransform(D3DTRANSFORMSTATETYPE dtstTransformStat
 					const float ratio = width / height;
 
 					// Replace the matrix with one that handles D3DFVF_XYZRHW geometry
-					ZeroMemory(&view, sizeof(_D3DMATRIX));
+					ZeroMemory(&view, sizeof(D3DMATRIX));
 					view._11 = 2.0f / width;
 					view._22 = -2.0f / height;
 					view._33 = 1.0f;
@@ -386,7 +386,7 @@ HRESULT m_IDirect3DDeviceX::SetTransform(D3DTRANSFORMSTATETYPE dtstTransformStat
 						}
 
 						// Store the original matrix so it can be restored
-						std::memcpy(&RenderData.DdrawConvertHomogeneousToWorld_ViewMatrixOriginal, &view, sizeof(_D3DMATRIX));
+						std::memcpy(&RenderData.DdrawConvertHomogeneousToWorld_ViewMatrixOriginal, &view, sizeof(D3DMATRIX));
 
 						// The Black & White matrix is an ortho camera, so create a perspective one matching the game
 						const float fov = Config.DdrawConvertHomogeneousToWorldFOV;
@@ -1665,6 +1665,11 @@ HRESULT m_IDirect3DDeviceX::BeginScene()
 		DOverlay.BeginScene();
 #endif
 
+		if (Config.DdrawDisableLighting)
+		{
+			(*d3d9Device)->SetRenderState(D3DRS_LIGHTING, FALSE);
+		}
+
 		return hr;
 	}
 
@@ -2545,7 +2550,6 @@ HRESULT m_IDirect3DDeviceX::DrawIndexedPrimitive(D3DPRIMITIVETYPE dptPrimitiveTy
 			// Handle PositionT
 			if (Config.DdrawConvertHomogeneousW && (dwVertexTypeDesc & 0x0E) == D3DFVF_XYZRHW)
 			{
-				D3DFVF_XYZB1;
 				if (!Config.DdrawConvertHomogeneousToWorld)
 				{
 					/*UINT8 *vertex = (UINT8*)lpVertices;
@@ -2612,8 +2616,8 @@ HRESULT m_IDirect3DDeviceX::DrawIndexedPrimitive(D3DPRIMITIVETYPE dptPrimitiveTy
 					hr = (*d3d9Device)->DrawIndexedPrimitiveUP(dptPrimitiveType, 0, dwVertexCount, GetNumberOfPrimitives(dptPrimitiveType, dwIndexCount), lpIndices, D3DFMT_INDEX16, lpVertices, targetStride);
 
 					// Restore transform
-					_D3DMATRIX identityMatrix;
-					ZeroMemory(&identityMatrix, sizeof(_D3DMATRIX));
+					D3DMATRIX identityMatrix;
+					ZeroMemory(&identityMatrix, sizeof(D3DMATRIX));
 					identityMatrix._11 = 1.0f;
 					identityMatrix._22 = 1.0f;
 					identityMatrix._33 = 1.0f;
