@@ -1,7 +1,17 @@
 #pragma once
 
 #include "IDirectDrawX.h"
-#include "RenderData.h"
+#include <DirectXMath.h>
+
+struct CONVERTHOMOGENEOUS
+{
+	bool IsTransformViewSet = false;					// Remembers if game sets the view matrix
+	D3DMATRIX ToWorld_ProjectionMatrix;					// Store the projection matrix used to transform the geometry on the gpu
+	D3DMATRIX ToWorld_ViewMatrix;						// Store the view matrix used to transform the geometry on the gpu
+	D3DMATRIX ToWorld_ViewMatrixOriginal;				// Store the original view matrix, so we can restore it
+	DirectX::XMMATRIX ToWorld_ViewMatrixInverse;		// Store the inverse view matrix to transform the geometry on the cpu
+	std::vector<uint8_t> ToWorld_IntermediateGeometry;	// Intermediate buffer for the geometry conversion
+};
 
 class m_IDirect3DDeviceX : public IUnknown, public AddressLookupTableDdrawObject
 {
@@ -28,8 +38,8 @@ private:
 	// SetTexture array
 	LPDIRECTDRAWSURFACE7 AttachedTexture[8] = {};
 
-	// The data used for rendering
-	RenderData RenderData;
+	// The data used for rendering Homogeneous
+	CONVERTHOMOGENEOUS ConvertHomogeneous;
 
 	// Wrapper interface functions
 	inline REFIID GetWrapperType(DWORD DirectXVersion)

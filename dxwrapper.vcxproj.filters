@@ -1868,9 +1868,6 @@
     <ClInclude Include="ddraw\DebugOverlay.h">
       <Filter>ddraw</Filter>
     </ClInclude>
-    <ClInclude Include="ddraw\RenderData.h">
-      <Filter>ddraw</Filter>
-    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="Dllmain\BuildNo.rc">
