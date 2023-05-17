@@ -339,6 +339,7 @@ HRESULT m_IDirect3DDeviceX::SetTransform(D3DTRANSFORMSTATETYPE dtstTransformStat
 			break;
 		}
 
+		_D3DMATRIX view;
 		if (Config.DdrawConvertHomogeneousW)
 		{
 #ifdef ENABLE_DEBUGOVERLAY
@@ -356,7 +357,6 @@ HRESULT m_IDirect3DDeviceX::SetTransform(D3DTRANSFORMSTATETYPE dtstTransformStat
 					const float ratio = width / height;
 
 					// Replace the matrix with one that handles D3DFVF_XYZRHW geometry
-					_D3DMATRIX view;
 					ZeroMemory(&view, sizeof(_D3DMATRIX));
 					view._11 = 2.0f / width;
 					view._22 = -2.0f / height;
@@ -365,8 +365,8 @@ HRESULT m_IDirect3DDeviceX::SetTransform(D3DTRANSFORMSTATETYPE dtstTransformStat
 					view._42 = 1.0f;   // translate Y
 					view._44 = 1.0f;
 
-					// Override the original matrix
-					std::memcpy(lpD3DMatrix, &view, sizeof(_D3DMATRIX));
+					// Override original matrix pointer
+					lpD3DMatrix = &view;
 
 					if (Config.DdrawConvertHomogeneousToWorld)
 					{
