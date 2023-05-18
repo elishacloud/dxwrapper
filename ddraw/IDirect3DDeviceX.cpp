@@ -369,12 +369,7 @@ HRESULT m_IDirect3DDeviceX::SetTransform(D3DTRANSFORMSTATETYPE dtstTransformStat
 					// Set flag
 					ConvertHomogeneous.IsTransformViewSet = true;
 
-					if (!Config.DdrawConvertHomogeneousToWorld)
-					{
-						// Override original matrix pointer
-						lpD3DMatrix = &view;
-					}
-					else
+					if (Config.DdrawConvertHomogeneousToWorld)
 					{
 						DirectX::XMVECTOR position, direction;
 						if (Config.DdrawConvertHomogeneousToWorldUseGameCamera)
@@ -388,9 +383,6 @@ HRESULT m_IDirect3DDeviceX::SetTransform(D3DTRANSFORMSTATETYPE dtstTransformStat
 							position = DirectX::XMVectorSet(0.0f, 0.0f, 0.0f, 0.0f);
 							direction = DirectX::XMVectorSet(0.0f, 0.0f, 1.0f, 0.0f);
 						}
-
-						// Override original matrix pointer
-						lpD3DMatrix = &view;
 
 						// Store the original matrix so it can be restored
 						ConvertHomogeneous.ToWorld_ViewMatrixOriginal = view;
