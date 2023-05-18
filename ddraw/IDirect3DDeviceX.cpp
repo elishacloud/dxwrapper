@@ -363,7 +363,8 @@ HRESULT m_IDirect3DDeviceX::SetTransform(D3DTRANSFORMSTATETYPE dtstTransformStat
 					view._42 = 1.0f;   // translate Y
 					view._44 = 1.0f;
 
-					// Override original matrix pointer
+					// Backup pointer before overriding original matrix pointer
+					LPD3DMATRIX lpOriginalD3DMatrix = lpD3DMatrix;
 					lpD3DMatrix = &view;
 
 					// Set flag
@@ -375,8 +376,8 @@ HRESULT m_IDirect3DDeviceX::SetTransform(D3DTRANSFORMSTATETYPE dtstTransformStat
 						if (Config.DdrawConvertHomogeneousToWorldUseGameCamera)
 						{
 							// To reconstruct the 3D world, we need to know where the camera is and where it is looking
-							position = DirectX::XMVectorSet(lpD3DMatrix->_41, lpD3DMatrix->_42, lpD3DMatrix->_43, lpD3DMatrix->_44);
-							direction = DirectX::XMVectorSet(lpD3DMatrix->_31, lpD3DMatrix->_32, lpD3DMatrix->_33, lpD3DMatrix->_34);
+							position = DirectX::XMVectorSet(lpOriginalD3DMatrix->_41, lpOriginalD3DMatrix->_42, lpOriginalD3DMatrix->_43, lpOriginalD3DMatrix->_44);
+							direction = DirectX::XMVectorSet(lpOriginalD3DMatrix->_31, lpOriginalD3DMatrix->_32, lpOriginalD3DMatrix->_33, lpOriginalD3DMatrix->_34);
 						}
 						else
 						{
