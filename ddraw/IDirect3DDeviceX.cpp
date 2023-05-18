@@ -363,10 +363,6 @@ HRESULT m_IDirect3DDeviceX::SetTransform(D3DTRANSFORMSTATETYPE dtstTransformStat
 					view._42 = 1.0f;   // translate Y
 					view._44 = 1.0f;
 
-					// Backup pointer before overriding original matrix pointer
-					LPD3DMATRIX lpOriginalD3DMatrix = lpD3DMatrix;
-					lpD3DMatrix = &view;
-
 					// Set flag
 					ConvertHomogeneous.IsTransformViewSet = true;
 
@@ -376,8 +372,8 @@ HRESULT m_IDirect3DDeviceX::SetTransform(D3DTRANSFORMSTATETYPE dtstTransformStat
 						if (Config.DdrawConvertHomogeneousToWorldUseGameCamera)
 						{
 							// To reconstruct the 3D world, we need to know where the camera is and where it is looking
-							position = DirectX::XMVectorSet(lpOriginalD3DMatrix->_41, lpOriginalD3DMatrix->_42, lpOriginalD3DMatrix->_43, lpOriginalD3DMatrix->_44);
-							direction = DirectX::XMVectorSet(lpOriginalD3DMatrix->_31, lpOriginalD3DMatrix->_32, lpOriginalD3DMatrix->_33, lpOriginalD3DMatrix->_34);
+							position = DirectX::XMVectorSet(lpD3DMatrix->_41, lpD3DMatrix->_42, lpD3DMatrix->_43, lpD3DMatrix->_44);
+							direction = DirectX::XMVectorSet(lpD3DMatrix->_31, lpD3DMatrix->_32, lpD3DMatrix->_33, lpD3DMatrix->_34);
 						}
 						else
 						{
@@ -404,7 +400,7 @@ HRESULT m_IDirect3DDeviceX::SetTransform(D3DTRANSFORMSTATETYPE dtstTransformStat
 						DirectX::XMStoreFloat4x4((DirectX::XMFLOAT4X4*)&ConvertHomogeneous.ToWorld_ViewMatrix, viewMatrix);
 
 						// Store the view inverse matrix of the game, so we can transform the geometry with it
-						DirectX::XMMATRIX toViewSpace = DirectX::XMLoadFloat4x4((DirectX::XMFLOAT4X4*)lpD3DMatrix);
+						DirectX::XMMATRIX toViewSpace = DirectX::XMLoadFloat4x4((DirectX::XMFLOAT4X4*)&view);
 						DirectX::XMMATRIX vp = DirectX::XMMatrixMultiply(viewMatrix, proj);
 						DirectX::XMMATRIX vpinv = DirectX::XMMatrixInverse(nullptr, vp);
 
@@ -412,6 +408,9 @@ HRESULT m_IDirect3DDeviceX::SetTransform(D3DTRANSFORMSTATETYPE dtstTransformStat
 
 						ConvertHomogeneous.ToWorld_ViewMatrixInverse = DirectX::XMMatrixMultiply(depthoffset, DirectX::XMMatrixMultiply(toViewSpace, vpinv));
 					}
+
+					// Override original matrix pointer
+					lpD3DMatrix = &view;
 				}
 			}
 			else
