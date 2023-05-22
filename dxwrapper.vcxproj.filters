@@ -886,6 +886,9 @@
     <ClCompile Include="ddraw\DebugOverlay.cpp">
       <Filter>ddraw</Filter>
     </ClCompile>
+    <ClCompile Include="Utils\Disasm.cpp">
+      <Filter>Utils</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="Settings\AllSettings.ini">

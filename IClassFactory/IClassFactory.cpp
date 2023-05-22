@@ -19,32 +19,55 @@
 #include <ddraw.h>
 #include <ddrawex.h>
 #include "IClassFactory.h"
+#ifdef DDRAW
 #include "ddraw\ddrawExternal.h"
+#endif
+#ifdef DINPUT
 #include "dinput\dinputExternal.h"
+#endif
+#ifdef DINPUT8
 #include "dinput8\dinput8External.h"
+#endif
 
 CoCreateInstanceHandleProc p_CoCreateInstance = nullptr;
 
+#ifdef DDRAW
 namespace DdrawWrapper
 {
 	REFIID ConvertREFIID(REFIID riid);
 }
+#endif
 
+#ifdef DINPUT8
 namespace dinputto8
 {
 	REFIID ConvertREFIID(REFIID riid);
 }
+#endif
 
 REFIID ConvertAllREFIID(REFIID riid)
 {
+#ifdef DINPUT8
+#ifdef DDRAW
 	if (Config.Dinputto8)
 	{
 		return DdrawWrapper::ConvertREFIID(dinputto8::ConvertREFIID(riid));
 	}
-	else
+#endif
+#endif
+#ifdef DINPUT8
+	if (Config.Dinputto8)
+	{
+		return dinputto8::ConvertREFIID(riid);
+	}
+#endif
+#ifdef DDRAW
+	if (Config.Dd7to9)
 	{
 		return DdrawWrapper::ConvertREFIID(riid);
 	}
+#endif
+	return riid;
 }
 
 /************************/
@@ -227,6 +250,7 @@ HRESULT WINAPI CoCreateInstanceHandle(REFCLSID rclsid, LPUNKNOWN pUnkOuter, DWOR
 
 	*ppv = nullptr;
 
+#ifdef DDRAW
 	// IDirectDraw wrapper
 	if (Config.EnableDdrawWrapper)
 	{
@@ -292,7 +316,9 @@ HRESULT WINAPI CoCreateInstanceHandle(REFCLSID rclsid, LPUNKNOWN pUnkOuter, DWOR
 			return dd_DirectDrawCreateClipper(0, (LPDIRECTDRAWCLIPPER*)ppv, pUnkOuter);
 		}
 	}
+#endif
 
+#ifdef DINPUT
 	// DirectInput wrapper
 	if (Config.Dinputto8)
 	{
@@ -337,7 +363,9 @@ HRESULT WINAPI CoCreateInstanceHandle(REFCLSID rclsid, LPUNKNOWN pUnkOuter, DWOR
 			return hr;
 		}
 	}
+#endif
 
+#ifdef DINPUT8
 	// DirectInput8 wrapper
 	if (Config.EnableDinput8Wrapper)
 	{
@@ -374,6 +402,7 @@ HRESULT WINAPI CoCreateInstanceHandle(REFCLSID rclsid, LPUNKNOWN pUnkOuter, DWOR
 			return hr;
 		}
 	}
+#endif
 
 	return p_CoCreateInstance(rclsid, pUnkOuter, dwClsContext, riid, ppv);
 }

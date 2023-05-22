@@ -50,7 +50,7 @@
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
-      <PreprocessorDefinitions>WIN32;_DEBUG;_WINDOWS;_USRDLL;FULLSCREENLOG;WRAPPERLOGGING;DISABLE_COMMON_LOGGING;DDRAWCOMPATLOG;_NO_DDRAWINT_NO_COM;DDRAWCOMPAT_EXPORTS;ENABLE_DEBUGOVERLAY;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32;_DEBUG;_WINDOWS;_USRDLL;FULLSCREENLOG;WRAPPERLOGGING;DISABLE_COMMON_LOGGING;_NO_DDRAWINT_NO_COM;DDRAW;DINPUT;DINPUT8;DDRAWCOMPATLOG;DDRAWCOMPAT;DDRAWCOMPAT_EXPORTS;DXWND;ENABLE_DEBUGOVERLAY;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
       <ObjectFileName>$(SolutionDir)bin\Intermediate\$(Configuration)\Object\%(RelativeDir)</ObjectFileName>
       <WarningLevel>Level4</WarningLevel>
@@ -78,7 +78,7 @@ copy /Y "$(ProjectDir)Resources\dxwnd.exe" "$(TargetDir)Build\" &gt;nul</Command
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
-      <PreprocessorDefinitions>WIN32;NDEBUG;_WINDOWS;_USRDLL;DISABLE_COMMON_LOGGING;_NO_DDRAWINT_NO_COM;DDRAWCOMPAT_EXPORTS;D3D8TO9NOLOG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32;NDEBUG;_WINDOWS;_USRDLL;DISABLE_COMMON_LOGGING;_NO_DDRAWINT_NO_COM;DDRAW;DINPUT;DINPUT8;DDRAWCOMPAT;DDRAWCOMPAT_EXPORTS;DXWND;D3D8TO9NOLOG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
       <ObjectFileName>$(SolutionDir)bin\Intermediate\$(Configuration)\Object\%(RelativeDir)</ObjectFileName>
       <WarningLevel>Level4</WarningLevel>
@@ -377,6 +377,7 @@ cmd /q /c "cd /D ""$(ProjectDir)d3d8\"" &amp;&amp; del build.bat"</Command>
     <ClCompile Include="Logging\Logging.cpp" />
     <ClCompile Include="Settings\ReadParse.cpp" />
     <ClCompile Include="Settings\Settings.cpp" />
+    <ClCompile Include="Utils\Disasm.cpp" />
     <ClCompile Include="Utils\Fullscreen.cpp" />
     <ClCompile Include="Utils\MyStrings.cpp" />
     <ClCompile Include="Utils\Utils.cpp" />
