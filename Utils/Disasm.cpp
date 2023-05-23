@@ -46,7 +46,6 @@ LONG WINAPI Utils::myUnhandledExceptionFilter(LPEXCEPTION_POINTERS ExceptionInfo
 		" flags=" << ExceptionInfo->ExceptionRecord->ExceptionFlags << std::showbase << std::hex <<
 		" addr=" << ExceptionInfo->ExceptionRecord->ExceptionAddress << std::dec << std::noshowbase;
 	DWORD oldprot;
-	static HMODULE disasmlib = nullptr;
 	PVOID target = ExceptionInfo->ExceptionRecord->ExceptionAddress;
 	switch (ExceptionInfo->ExceptionRecord->ExceptionCode)
 	{
