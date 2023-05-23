@@ -1879,8 +1879,5 @@
     <ResourceCompile Include="Dllmain\dxwrapper.rc">
       <Filter>Dllmain</Filter>
     </ResourceCompile>
-    <ResourceCompile Include="Dllmain\UALx86.rc">
-      <Filter>Dllmain</Filter>
-    </ResourceCompile>
   </ItemGroup>
 </Project>

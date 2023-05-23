@@ -497,6 +497,15 @@ void Utils::UnloadAllDlls()
 	}
 }
 
+HMEMORYMODULE Utils::LoadMemoryToDLL(LPVOID pMemory, DWORD Size)
+{
+	if (pMemory && Size)
+	{
+		return MemoryLoadLibrary(pMemory, Size);
+	}
+	return nullptr;
+}
+
 HMEMORYMODULE Utils::LoadResourceToMemory(DWORD ResID)
 {
 	HRSRC hResource = FindResource(hModule_dll, MAKEINTRESOURCE(ResID), RT_RCDATA);

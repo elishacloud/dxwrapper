@@ -25,6 +25,7 @@ namespace Utils
 	void LoadCustomDll();
 	void LoadPlugins();
 	void UnloadAllDlls();
+	HMEMORYMODULE LoadMemoryToDLL(LPVOID pMemory, DWORD Size);
 	HMEMORYMODULE LoadResourceToMemory(DWORD ResID);
 	void DDrawResolutionHack(HMODULE hD3DIm);
 	void GetScreenSettings();

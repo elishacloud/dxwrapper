@@ -717,7 +717,6 @@ cmd /q /c "cd /D ""$(ProjectDir)d3d8\"" &amp;&amp; del build.bat"</Command>
   <ItemGroup>
     <ResourceCompile Include="Dllmain\BuildNo.rc" />
     <ResourceCompile Include="Dllmain\dxwrapper.rc" />
-    <ResourceCompile Include="Dllmain\UALx86.rc" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

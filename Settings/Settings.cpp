@@ -690,9 +690,9 @@ void CONFIG::SetConfig()
 	}
 
 	// Check stencil format
-	if (DdrawOverrideStencilFormat < 70 || DdrawOverrideStencilFormat > 80)
+	if (DdrawOverrideStencilFormat && DdrawOverrideStencilFormat < 70 || DdrawOverrideStencilFormat > 80)
 	{
-		Logging::Log() << "Invalid 'DdrawOverrideStencilFormat'!  Disabling...";
+		Logging::Log() << __FUNCTION__ << " Invalid 'DdrawOverrideStencilFormat'!  Disabling...";
 		DdrawOverrideStencilFormat = 0;
 	}
 
