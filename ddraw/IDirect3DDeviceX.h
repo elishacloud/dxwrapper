@@ -11,6 +11,8 @@ struct CONVERTHOMOGENEOUS
 	D3DMATRIX ToWorld_ViewMatrixOriginal;				// Store the original view matrix, so we can restore it
 	DirectX::XMMATRIX ToWorld_ViewMatrixInverse;		// Store the inverse view matrix to transform the geometry on the cpu
 	std::vector<uint8_t> ToWorld_IntermediateGeometry;	// Intermediate buffer for the geometry conversion
+	float ToWorld_GameCameraYaw = 0.0f;
+	float ToWorld_GameCameraPitch = 0.0f;
 };
 
 class m_IDirect3DDeviceX : public IUnknown, public AddressLookupTableDdrawObject
