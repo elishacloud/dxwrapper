@@ -89,6 +89,8 @@
 	visit(HandleExceptions) \
 	visit(IgnoreWindowName) \
 	visit(IncludeProcess) \
+	visit(InitialWindowPositionLeft) \
+	visit(InitialWindowPositionTop) \
 	visit(isAppCompatDataSet) \
 	visit(LoadCustomDllPath) \
 	visit(LoadFromScriptsOnly) \
@@ -106,6 +108,7 @@
 	visit(RunProcess) \
 	visit(SendAltEnter) \
 	visit(SetFullScreenLayer) \
+	visit(SetInitialWindowPosition) \
 	visit(SetNamedLayer) \
 	visit(SingleProcAffinity) \
 	visit(StoppedDriverWorkaround) \
@@ -260,6 +263,9 @@ struct CONFIG
 	bool WaitForProcess = false;				// Waits for process to end before continuing, requires FullScreen
 	bool WaitForWindowChanges = false;			// Waits for window handle to stabilize before setting fullsreen, requires FullScreen
 	bool WindowModeBorder = false;				// Enables the window border when EnableWindowMode is set, requires EnableWindowMode
+	bool SetInitialWindowPosition = false;		// Enable initual window position
+	DWORD InitialWindowPositionLeft;			// Initual left window position for application
+	DWORD InitialWindowPositionTop;				// Initual top window position for application
 	DWORD LoopSleepTime = 0;					// Time to sleep between each window handle check loop, requires FullScreen
 	DWORD ResetMemoryAfter = 0;					// Undo hot patch after this amount of time
 	DWORD WindowSleepTime = 0;					// Time to wait (sleep) for window handle and screen updates to finish, requires FullScreen
