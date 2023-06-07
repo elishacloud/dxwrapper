@@ -587,6 +587,13 @@ void Utils::DDrawResolutionHack(HMODULE hD3DIm)
 	}
 }
 
+void Utils::CheckMessageQueue(HWND hwnd)
+{
+	// Peek messages to help prevent a "Not Responding" window
+	MSG msg = {};
+	if (PeekMessage(&msg, hwnd, 0, 0, PM_NOREMOVE)) { Sleep(0); };
+}
+
 void Utils::GetScreenSettings()
 {
 	// Store screen settings

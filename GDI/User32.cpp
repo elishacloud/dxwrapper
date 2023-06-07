@@ -18,6 +18,7 @@
 #include <Windows.h>
 #include "ddraw\ddrawExternal.h"
 #include "GDI.h"
+#include "Utils\Utils.h"
 #include "Settings\Settings.h"
 #include "Logging\Logging.h"
 
@@ -109,8 +110,7 @@ BOOL WINAPI user_DestroyWindow(HWND hWnd)
 		RedrawWindow(ownd, NULL, NULL, RDW_ERASE | RDW_INVALIDATE | RDW_ALLCHILDREN);
 
 		// Peek messages to help prevent a "Not Responding" window
-		MSG msg;
-		PeekMessage(&msg, ownd, 0, 0, PM_NOREMOVE);
+		Utils::CheckMessageQueue(ownd);
 	}
 
 	return result;

@@ -1680,21 +1680,12 @@ HRESULT m_IDirectDrawX::SetCooperativeLevel(HWND hWnd, DWORD dwFlags, DWORD Dire
 		{
 			LOG_LIMIT(3, __FUNCTION__ << " Removing window WS_CAPTION!");
 
-			// Attach thread input
-			DWORD dwMyID = GetCurrentThreadId();
-			DWORD dwCurID = GetWindowThreadProcessId(hWnd, nullptr);
-			AttachThreadInput(dwCurID, dwMyID, TRUE);
-
 			// Removing WS_CAPTION
 			SetWindowLong(hWnd, GWL_STYLE, lStyle & ~WS_CAPTION);
 			SetWindowPos(hWnd, HWND_TOP, 0, 0, 0, 0, SWP_FRAMECHANGED | SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_NOSENDCHANGING);
 
 			// Peek messages to help prevent a "Not Responding" window
-			MSG msg;
-			PeekMessage(&msg, hWnd, 0, 0, PM_NOREMOVE);
-
-			// Detach thread input
-			AttachThreadInput(dwCurID, dwMyID, FALSE);
+			Utils::CheckMessageQueue(hWnd);
 		}
 	}
 
@@ -2893,11 +2884,6 @@ HRESULT m_IDirectDrawX::CreateD3D9Device()
 		// Set window pos
 		if (IsWindow(hWnd))
 		{
-			// Attach thread input
-			DWORD dwMyID = GetCurrentThreadId();
-			DWORD dwCurID = GetWindowThreadProcessId(hWnd, nullptr);
-			AttachThreadInput(dwCurID, dwMyID, TRUE);
-
 			// Get new resolution
 			DWORD NewWidth, NewHeight;
 			Utils::GetScreenSize(hWnd, NewWidth, NewHeight);
@@ -2920,11 +2906,7 @@ HRESULT m_IDirectDrawX::CreateD3D9Device()
 			SendMessage(hWnd, WM_WINDOWPOSCHANGED, (WPARAM)TRUE, (LPARAM)&winpos);
 
 			// Peek messages to help prevent a "Not Responding" window
-			MSG msg;
-			PeekMessage(&msg, hWnd, 0, 0, PM_NOREMOVE);
-
-			// Detach thread input
-			AttachThreadInput(dwCurID, dwMyID, FALSE);
+			Utils::CheckMessageQueue(hWnd);
 		}
 
 		// Store display frequency

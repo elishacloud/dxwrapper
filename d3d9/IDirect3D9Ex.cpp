@@ -513,8 +513,7 @@ void UpdatePresentParameter(D3DPRESENT_PARAMETERS* pPresentationParameters, HWND
 				ChangeDisplaySettingsEx(bRet ? infoex.szDevice : nullptr, &newSettings, nullptr, CDS_FULLSCREEN, nullptr);
 
 				// Peek messages to help prevent a "Not Responding" window
-				MSG msg;
-				PeekMessage(&msg, DeviceWindow, 0, 0, PM_NOREMOVE);
+				Utils::CheckMessageQueue(DeviceWindow);
 			}
 		}
 	}
@@ -552,10 +551,7 @@ void AdjustWindow(HWND MainhWnd, LONG displayWidth, LONG displayHeight)
 		return;
 	}
 
-	// Attach thread input and set window active and focus
-	DWORD dwMyID = GetCurrentThreadId();
-	DWORD dwCurID = GetWindowThreadProcessId(MainhWnd, nullptr);
-	AttachThreadInput(dwCurID, dwMyID, TRUE);
+	// Set window active and focus
 	if ((GetWindowLong(MainhWnd, GWL_EXSTYLE) & WS_EX_TOPMOST) == 0)
 	{
 		SetWindowPos(MainhWnd, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOSIZE | SWP_NOMOVE);
@@ -606,9 +602,5 @@ void AdjustWindow(HWND MainhWnd, LONG displayWidth, LONG displayHeight)
 	SetWindowPos(MainhWnd, HWND_TOP, xLoc, yLoc, Rect.right, Rect.bottom, SWP_SHOWWINDOW | SWP_NOZORDER | SWP_NOSENDCHANGING);
 
 	// Peek messages to help prevent a "Not Responding" window
-	MSG msg;
-	PeekMessage(&msg, MainhWnd, 0, 0, PM_NOREMOVE);
-
-	// Detach thread input
-	AttachThreadInput(dwCurID, dwMyID, FALSE);
+	Utils::CheckMessageQueue(MainhWnd);
 }
