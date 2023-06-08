@@ -2820,8 +2820,10 @@ HRESULT m_IDirect3DDeviceX::GetInfo(DWORD dwDevInfoID, LPVOID pDevInfoStruct, DW
 
 	if (Config.Dd7to9)
 	{
-		LOG_LIMIT(100, __FUNCTION__ << " Not Implemented");
-		return DDERR_UNSUPPORTED;
+		// This method is intended to be used for performance tracking and debugging during product development (on the debug version of DirectX). 
+		// The method can succeed, returning S_FALSE, without retrieving device data.
+		// This occurs when the retail version of the DirectX runtime is installed on the host system.
+		return S_FALSE;
 	}
 
 	return GetProxyInterfaceV7()->GetInfo(dwDevInfoID, pDevInfoStruct, dwSize);
