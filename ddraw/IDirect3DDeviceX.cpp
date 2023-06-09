@@ -1730,15 +1730,42 @@ HRESULT m_IDirect3DDeviceX::Clear(DWORD dwCount, LPD3DRECT lpRects, DWORD dwFlag
 	return GetProxyInterfaceV7()->Clear(dwCount, lpRects, dwFlags, dwColor, dvZ, dwStencil);
 }
 
-HRESULT m_IDirect3DDeviceX::GetDirect3D(LPDIRECT3D7 * lplpD3D, DWORD DirectXVersion)
+HRESULT m_IDirect3DDeviceX::GetDirect3D(LPDIRECT3D7* lplpD3D, DWORD DirectXVersion)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
 	if (Config.Dd7to9)
 	{
-		// Increment Direct3D ref count
-		LOG_LIMIT(100, __FUNCTION__ << " Not Implemented");
-		return DDERR_UNSUPPORTED;
+		if (!lplpD3D)
+		{
+			return DDERR_INVALIDPARAMS;
+		}
+
+		*lplpD3D = nullptr;
+
+		// Check for device interface
+		if (FAILED(CheckInterface(__FUNCTION__, false)))
+		{
+			return DDERR_GENERIC;
+		}
+
+		m_IDirect3DX** lplpD3DX = ddrawParent->GetCurrentD3D();
+
+		if (!(*lplpD3DX))
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: missing Direct3D wrapper!");
+			return DDERR_GENERIC;
+		}
+
+		*lplpD3D = (LPDIRECT3D7)(*lplpD3DX)->GetWrapperInterfaceX(DirectXVersion);
+
+		if (!(*lplpD3D))
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: could not get Direct3D interface!");
+			return DDERR_GENERIC;
+		}
+
+		return D3D_OK;
 	}
 
 	HRESULT hr = DDERR_GENERIC;
