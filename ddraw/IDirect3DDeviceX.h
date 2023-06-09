@@ -15,7 +15,7 @@ private:
 
 	// Convert Device
 	m_IDirectDrawX *ddrawParent = nullptr;
-	m_IDirect3DViewportX *lpCurrentViewport = nullptr;
+	LPDIRECT3DVIEWPORT3 lpCurrentViewport = nullptr;
 	LPDIRECT3DDEVICE9 *d3d9Device = nullptr;
 
 	// Store d3d device version wrappers
@@ -26,6 +26,34 @@ private:
 
 	// SetTexture array
 	LPDIRECTDRAWSURFACE7 AttachedTexture[8] = {};
+
+	// Viewport array
+	std::vector<LPDIRECT3DVIEWPORT3> AttachedViewports;
+
+	bool IsViewportAttached(LPDIRECT3DVIEWPORT3 ViewportX)
+	{
+		auto it = std::find_if(AttachedViewports.begin(), AttachedViewports.end(),
+			[=](auto pViewport) -> bool { return pViewport == ViewportX; });
+
+		if (it != std::end(AttachedViewports))
+		{
+			return true;
+		}
+		return false;
+	}
+
+	bool DeleteAttachedViewport(LPDIRECT3DVIEWPORT3 ViewportX)
+	{
+		auto it = std::find_if(AttachedViewports.begin(), AttachedViewports.end(),
+			[=](auto pViewport) -> bool { return pViewport == ViewportX; });
+
+		if (it != std::end(AttachedViewports))
+		{
+			AttachedViewports.erase(it);
+			return true;
+		}
+		return false;
+	}
 
 	// Wrapper interface functions
 	inline REFIID GetWrapperType(DWORD DirectXVersion)

@@ -166,24 +166,20 @@ HRESULT m_IDirect3DViewportX::GetViewport(LPD3DVIEWPORT lpData)
 
 	if (!ProxyInterface)
 	{
-		if (!lpData)
+		if (!lpData || lpData->dwSize != sizeof(D3DVIEWPORT))
 		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: Incorrect dwSize: " << ((lpData) ? lpData->dwSize : -1));
 			return DDERR_INVALIDPARAMS;
 		}
 
-		if (!D3DDeviceInterface || !*D3DDeviceInterface)
+		if (!IsDataSet)
 		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error: no D3DirectDevice interface!");
-			return DDERR_GENERIC;
+			LOG_LIMIT(100, __FUNCTION__ << " Warning: Viewport not set!");
 		}
 
-		D3DVIEWPORT7 ViewPort7;
+		ConvertViewport(*lpData, ViewportData);
 
-		HRESULT hr = (*D3DDeviceInterface)->GetViewport(&ViewPort7);
-
-		ConvertViewport(*lpData, ViewPort7);
-
-		return hr;
+		return D3D_OK;
 	}
 
 	return ProxyInterface->GetViewport(lpData);
@@ -201,22 +197,18 @@ HRESULT m_IDirect3DViewportX::SetViewport(LPD3DVIEWPORT lpData)
 			return DDERR_INVALIDPARAMS;
 		}
 
-		if (!D3DDeviceInterface || !*D3DDeviceInterface)
+		if (lpData->dvScaleX != 0 || lpData->dvScaleY != 0 || lpData->dvMaxX != 0 || lpData->dvMaxY != 0)
 		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error: no D3DirectDevice interface!");
-			return DDERR_GENERIC;
+			LOG_LIMIT(100, __FUNCTION__ << " Warning: 'Scale homogeneous' Not Implemented: " <<
+				" ScaleX: " << lpData->dvScaleX << " ScaleY: " << lpData->dvScaleY << " MaxX: " << lpData->dvMaxX << " MaxY: " << lpData->dvMaxY);
 		}
 
-		if (lpData->dwSize > 44 && (lpData->dvScaleX != 0 || lpData->dvScaleY != 0))
-		{
-			LOG_LIMIT(100, __FUNCTION__ << " 'Scale homogeneous' Not Implemented");
-		}
+		ConvertViewport(ViewportData, *lpData);
+		ConvertViewport(ViewportData2, *lpData);
 
-		D3DVIEWPORT7 ViewPort7;
+		IsDataSet = true;
 
-		ConvertViewport(ViewPort7, *lpData);		
-
-		return (*D3DDeviceInterface)->SetViewport(&ViewPort7);
+		return D3D_OK;
 	}
 
 	if (Config.DdrawUseNativeResolution && lpData)
@@ -399,24 +391,20 @@ HRESULT m_IDirect3DViewportX::GetViewport2(LPD3DVIEWPORT2 lpData)
 
 	if (!ProxyInterface)
 	{
-		if (!lpData)
+		if (!lpData || lpData->dwSize != sizeof(D3DVIEWPORT2))
 		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: Incorrect dwSize: " << ((lpData) ? lpData->dwSize : -1));
 			return DDERR_INVALIDPARAMS;
 		}
 
-		if (!D3DDeviceInterface || !*D3DDeviceInterface)
+		if (!IsDataSet)
 		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error: no D3DirectDevice interface!");
-			return DDERR_GENERIC;
+			LOG_LIMIT(100, __FUNCTION__ << " Warning: Viewport not set!");
 		}
 
-		D3DVIEWPORT7 ViewPort7;
+		ConvertViewport(*lpData, ViewportData2);
 
-		HRESULT hr = (*D3DDeviceInterface)->GetViewport(&ViewPort7);
-
-		ConvertViewport(*lpData, ViewPort7);
-
-		return hr;
+		return D3D_OK;
 	}
 
 	return ProxyInterface->GetViewport2(lpData);
@@ -434,22 +422,18 @@ HRESULT m_IDirect3DViewportX::SetViewport2(LPD3DVIEWPORT2 lpData)
 			return DDERR_INVALIDPARAMS;
 		}
 
-		if (!D3DDeviceInterface || !*D3DDeviceInterface)
+		if (lpData->dvClipWidth != 0 || lpData->dvClipHeight != 0 || lpData->dvClipX != 0 || lpData->dvClipY != 0)
 		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error: no D3DirectDevice interface!");
-			return DDERR_GENERIC;
+			LOG_LIMIT(100, __FUNCTION__ << " Warning: 'clip volume' Not Implemented: " <<
+				lpData->dvClipWidth << "x" << lpData->dvClipHeight << " X: " << lpData->dvClipX << " Y: " << lpData->dvClipY);
 		}
 
-		if (lpData->dwSize > 44 && (lpData->dvClipX != 0 || lpData->dvClipY != 0))
-		{
-			LOG_LIMIT(100, __FUNCTION__ << " 'clip volume' Not Implemented");
-		}
+		ConvertViewport(ViewportData, *lpData);
+		ConvertViewport(ViewportData2, *lpData);
 
-		D3DVIEWPORT7 ViewPort7;
+		IsDataSet = true;
 
-		ConvertViewport(ViewPort7, *lpData);
-
-		return (*D3DDeviceInterface)->SetViewport(&ViewPort7);
+		return D3D_OK;
 	}
 
 	if (Config.DdrawUseNativeResolution && lpData)
@@ -533,6 +517,10 @@ void m_IDirect3DViewportX::InitViewport(DWORD DirectXVersion)
 	{
 		return;
 	}
+
+	// ToDo: set default viewport data
+	ViewportData.dwSize = sizeof(D3DVIEWPORT);
+	ViewportData2.dwSize = sizeof(D3DVIEWPORT2);
 
 	AddRef(DirectXVersion);
 }

@@ -900,7 +900,7 @@ HRESULT m_IDirect3DDeviceX::SetRenderTarget(LPDIRECTDRAWSURFACE7 lpNewRenderTarg
 
 		if (!lpDDSrcSurfaceX)
 		{
-			Logging::Log() << __FUNCTION__ " Error: surface does not exist! " << lpDDSrcSurfaceX;
+			LOG_LIMIT(100, __FUNCTION__ << " Error: could not get surface wrapper!");
 			return DDERR_GENERIC;
 		}
 
@@ -1215,28 +1215,18 @@ HRESULT m_IDirect3DDeviceX::AddViewport(LPDIRECT3DVIEWPORT3 lpDirect3DViewport)
 
 	if (Config.Dd7to9 || ProxyDirectXVersion == 7)
 	{
-		if (!lpDirect3DViewport)
+		// This method will fail, returning DDERR_INVALIDPARAMS, if you attempt to add a viewport that has already been assigned to the device.
+		if (!lpDirect3DViewport || IsViewportAttached(lpDirect3DViewport))
 		{
 			return DDERR_INVALIDPARAMS;
 		}
 
-		D3DVIEWPORT Viewport;
-		Viewport.dwSize = sizeof(D3DVIEWPORT);
-
 		// ToDo: Validate Viewport address
-		// ToDo: Increment Viewport ref count
-		HRESULT hr = lpDirect3DViewport->GetViewport(&Viewport);
+		AttachedViewports.push_back(lpDirect3DViewport);
 
-		if (SUCCEEDED(hr))
-		{
-			D3DVIEWPORT7 Viewport7;
+		lpDirect3DViewport->AddRef();
 
-			ConvertViewport(Viewport7, Viewport);
-
-			hr = SetViewport(&Viewport7);
-		}
-
-		return hr;
+		return D3D_OK;
 	}
 
 	if (lpDirect3DViewport)
@@ -1263,8 +1253,23 @@ HRESULT m_IDirect3DDeviceX::DeleteViewport(LPDIRECT3DVIEWPORT3 lpDirect3DViewpor
 
 	if (ProxyDirectXVersion > 3)
 	{
-		LOG_LIMIT(100, __FUNCTION__ << " Not Implemented");
-		return DDERR_UNSUPPORTED;
+		if (!lpDirect3DViewport)
+		{
+			return DDERR_INVALIDPARAMS;
+		}
+
+		// ToDo: Figure out what to do if an attempting to delete the SetCurrentViewport
+		bool ret = DeleteAttachedViewport(lpDirect3DViewport);
+
+		if (!ret)
+		{
+			return DDERR_INVALIDPARAMS;
+		}
+
+		// ToDo: Validate Viewport address
+		lpDirect3DViewport->Release();
+
+		return D3D_OK;
 	}
 
 	if (lpDirect3DViewport)
@@ -1291,8 +1296,47 @@ HRESULT m_IDirect3DDeviceX::NextViewport(LPDIRECT3DVIEWPORT3 lpDirect3DViewport,
 
 	if (ProxyDirectXVersion > 3)
 	{
-		LOG_LIMIT(100, __FUNCTION__ << " Not Implemented");
-		return DDERR_UNSUPPORTED;
+		if (!lplpDirect3DViewport || (dwFlags == D3DNEXT_NEXT && !lpDirect3DViewport))
+		{
+			return DDERR_INVALIDPARAMS;
+		}
+
+		*lplpDirect3DViewport = nullptr;
+
+		if (AttachedViewports.size() == 0)
+		{
+			return D3DERR_NOVIEWPORTS;
+		}
+
+		switch (dwFlags)
+		{
+		case D3DNEXT_HEAD:
+			// Retrieve the item at the beginning of the list.
+			*lplpDirect3DViewport = AttachedViewports.front();
+			break;
+		case D3DNEXT_TAIL:
+			// Retrieve the item at the end of the list.
+			*lplpDirect3DViewport = AttachedViewports.back();
+			break;
+		case D3DNEXT_NEXT:
+			// Retrieve the next item in the list.
+			// If you attempt to retrieve the next viewport in the list when you are at the end of the list, this method returns D3D_OK but lplpAnotherViewport is NULL.
+			for (UINT x = 1; x < AttachedViewports.size(); x++)
+			{
+				if (AttachedViewports[x - 1] == lpDirect3DViewport)
+				{
+					*lplpDirect3DViewport = AttachedViewports[x];
+					break;
+				}
+			}
+			break;
+		default:
+			return DDERR_INVALIDPARAMS;
+			break;
+		}
+
+		// ToDo: Validate return Viewport address
+		return D3D_OK;
 	}
 
 	if (lpDirect3DViewport)
@@ -1329,11 +1373,35 @@ HRESULT m_IDirect3DDeviceX::SetCurrentViewport(LPDIRECT3DVIEWPORT3 lpd3dViewport
 
 	if (Config.Dd7to9 || ProxyDirectXVersion == 7)
 	{
-		// ToDo: Validate Viewport address
-		// ToDo: Increment Viewport ref count
-		lpCurrentViewport = (m_IDirect3DViewportX*)lpd3dViewport;
+		// Before calling this method, applications must have already called the AddViewport method to add the viewport to the device.
+		if (!lpd3dViewport || !IsViewportAttached(lpd3dViewport))
+		{
+			return DDERR_INVALIDPARAMS;
+		}
 
-		return D3D_OK;
+		D3DVIEWPORT Viewport = {};
+		Viewport.dwSize = sizeof(D3DVIEWPORT);
+
+		// ToDo: Validate Viewport address
+		HRESULT hr = lpd3dViewport->GetViewport(&Viewport);
+
+		if (SUCCEEDED(hr))
+		{
+			D3DVIEWPORT7 Viewport7;
+
+			ConvertViewport(Viewport7, Viewport);
+
+			hr = SetViewport(&Viewport7);
+
+			if (SUCCEEDED(hr))
+			{
+				lpCurrentViewport = lpd3dViewport;
+
+				lpCurrentViewport->AddRef();
+			}
+		}
+
+		return hr;
 	}
 
 	if (lpd3dViewport)
@@ -1370,8 +1438,9 @@ HRESULT m_IDirect3DDeviceX::GetCurrentViewport(LPDIRECT3DVIEWPORT3* lplpd3dViewp
 		}
 
 		// ToDo: Validate Viewport address
-		// ToDo: Increment Viewport ref count
-		*lplpd3dViewport = (LPDIRECT3DVIEWPORT3)lpCurrentViewport;
+		*lplpd3dViewport = lpCurrentViewport;
+
+		lpCurrentViewport->AddRef();
 
 		return D3D_OK;
 	}
