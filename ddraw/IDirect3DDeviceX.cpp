@@ -2694,8 +2694,20 @@ HRESULT m_IDirect3DDeviceX::ComputeSphereVisibility(LPD3DVECTOR lpCenters, LPD3D
 
 	if (Config.Dd7to9)
 	{
-		LOG_LIMIT(100, __FUNCTION__ << " Not Implemented");
-		return DDERR_UNSUPPORTED;
+		if (!lpCenters || !lpRadii || !dwNumSpheres || !lpdwReturnValues)
+		{
+			return DDERR_INVALIDPARAMS;
+		}
+
+		// Sphere visibility is computed by back-transforming the viewing frustum to the model space, using the inverse of the combined world, view, or projection matrices.
+		// If the combined matrix can't be inverted (if the determinant is 0), the method will fail, returning D3DERR_INVALIDMATRIX.
+		for (UINT x = 0; x < dwNumSpheres; x++)
+		{
+			// If a sphere is completely visible, the corresponding entry in lpdwReturnValues is 0.
+			lpdwReturnValues[x] = 0;	// Just return all is visible for now
+		}
+
+		return D3D_OK;
 	}
 
 	switch (ProxyDirectXVersion)
