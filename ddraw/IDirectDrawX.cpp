@@ -106,7 +106,6 @@ DWORD monitorRefreshRate;
 DWORD monitorHeight;
 
 // Direct3D9 flags
-bool IsInScene;
 bool EnableWaitVsync;
 
 // Direct3D9 Objects
@@ -607,12 +606,6 @@ HRESULT m_IDirectDrawX::CreateSurface2(LPDDSURFACEDESC2 lpDDSurfaceDesc2, LPDIRE
 		else
 		{
 			lpDDSurfaceDesc2->dwBackBufferCount = 0;
-		}
-
-		// Add flag for 3D device
-		if ((DirectXVersion < 4) && (lpDDSurfaceDesc2->ddsCaps.dwCaps & DDSCAPS_PRIMARYSURFACE))
-		{
-			lpDDSurfaceDesc2->ddsCaps.dwCaps |= DDSCAPS_3DDEVICE;
 		}
 
 		// Remove unused flags
@@ -2273,7 +2266,6 @@ void m_IDirectDrawX::InitDdraw(DWORD DirectXVersion)
 		monitorHeight = 0;
 
 		// Direct3D9 flags
-		IsInScene = false;
 		EnableWaitVsync = false;
 
 		// Direct3D9 Objects
@@ -2816,13 +2808,6 @@ HRESULT m_IDirectDrawX::CreateD3D9Device()
 			// Try to reset existing device
 			if (LastHWnd == hWnd && LastWindowedMode == presParams.Windowed && LastBehaviorFlags == BehaviorFlags)
 			{
-				// EndScene before resetting
-				if (IsInScene)
-				{
-					d3d9Device->EndScene();
-					IsInScene = false;
-				}
-
 				// Prepare for reset
 				ReleaseAllD9Surfaces(true);
 				D3DPRESENT_PARAMETERS newParams = presParams;
@@ -2863,13 +2848,6 @@ HRESULT m_IDirectDrawX::CreateD3D9Device()
 				presParams.BackBufferWidth << "x" << presParams.BackBufferHeight << " refresh: " << presParams.FullScreen_RefreshRateInHz <<
 				" format: " << presParams.BackBufferFormat << " wnd: " << hWnd << " params: " << presParams << " flags: " << Logging::hex(BehaviorFlags));
 			break;
-		}
-
-		// EndScene after creating device
-		if (!IsInScene)
-		{
-			d3d9Device->BeginScene();
-			IsInScene = true;
 		}
 
 		// Reset flags after creating device
@@ -3003,7 +2981,6 @@ HRESULT m_IDirectDrawX::ReinitDevice()
 		}
 
 		// Reset flags after resetting device
-		IsInScene = false;
 		EnableWaitVsync = false;
 
 	} while (false);
@@ -3036,11 +3013,6 @@ void m_IDirectDrawX::ReleaseD3D9Device()
 	// Release device
 	if (d3d9Device)
 	{
-		if (IsInScene)
-		{
-			d3d9Device->EndScene();
-			IsInScene = false;
-		}
 		ULONG ref = d3d9Device->Release();
 		if (ref)
 		{
@@ -3393,25 +3365,6 @@ HRESULT m_IDirectDrawX::Present()
 		return DDERR_GENERIC;
 	}
 
-	// Begine scene
-	if (!IsInScene)
-	{
-		if (FAILED(d3d9Device->BeginScene()))
-		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error: failed to begin scene");
-			d3d9Device->EndScene();
-			return DDERR_GENERIC;
-		}
-	}
-	IsInScene = true;
-
-	// Draw primitive
-	if (FAILED(d3d9Device->DrawPrimitive(D3DPT_TRIANGLEFAN, 0, 2)))
-	{
-		LOG_LIMIT(100, __FUNCTION__ << " Error: failed to draw primitive");
-		return DDERR_GENERIC;
-	}
-
 	const bool UseVSync = (EnableWaitVsync && !Config.EnableVSync);
 
 	// Skip frame if time lapse is too small
@@ -3441,14 +3394,6 @@ HRESULT m_IDirectDrawX::Present()
 			Logging::LogDebug() << __FUNCTION__ << " Drawing frame " << deltaPresentMS << "ms screen frequancy " << MaxScreenTimer;
 		}
 	}
-
-	// End scene
-	if (FAILED(d3d9Device->EndScene()))
-	{
-		LOG_LIMIT(100, __FUNCTION__ << " Error: failed to end scene");
-		return DDERR_GENERIC;
-	}
-	IsInScene = false;
 
 	// Use WaitForVerticalBlank for wait timer
 	if (UseVSync)
@@ -3481,17 +3426,6 @@ HRESULT m_IDirectDrawX::Present()
 			FrameCounter = 0;
 		}
 	}
-
-	// Clear device before BeginScene
-	d3d9Device->Clear(0, nullptr, D3DCLEAR_TARGET, 0, 0.0f, 0);
-
-	// BeginScene after present is done
-	if (FAILED(d3d9Device->BeginScene()))
-	{
-		LOG_LIMIT(100, __FUNCTION__ << " Error: failed to begin scene");
-		return DDERR_GENERIC;
-	}
-	IsInScene = true;
 
 	return hr;
 }

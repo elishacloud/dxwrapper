@@ -390,6 +390,9 @@ public:
 	inline void ClearTexture() { attachedTexture = nullptr; }
 	inline void SetWrapperSurfaceSize(DWORD Width, DWORD Height) { DsWrapper.Width = Width; DsWrapper.Height = Height; }
 
+	// Draw 2D DirectDraw surface
+	HRESULT Draw2DSurface();
+
 	// Attached surfaces
 	void SetDirtyFlipFlag();
 	void RemoveAttachedSurfaceFromMap(m_IDirectDrawSurfaceX* lpSurfaceX);

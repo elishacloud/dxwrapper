@@ -1685,6 +1685,33 @@ HRESULT m_IDirect3DDeviceX::EndScene()
 			return DDERR_GENERIC;
 		}
 
+		// Draw 2D DirectDraw surface
+		/*m_IDirectDrawSurfaceX* PrimarySurface = ddrawParent->GetPrimarySurface();
+		if (PrimarySurface && !PrimarySurface->IsSurface3D())
+		{
+			DWORD SRCBLEND = 0, DESTBLEND = 0, ALPHABLENDENABLE = 0;
+			(*d3d9Device)->GetRenderState(D3DRS_SRCBLEND, &SRCBLEND);
+			(*d3d9Device)->GetRenderState(D3DRS_DESTBLEND, &DESTBLEND);
+			(*d3d9Device)->GetRenderState(D3DRS_ALPHABLENDENABLE, &ALPHABLENDENABLE);
+
+			(*d3d9Device)->SetRenderState(D3DRS_SRCBLEND, D3DBLEND_ONE);
+			(*d3d9Device)->SetRenderState(D3DRS_DESTBLEND, D3DBLEND_ONE);
+			(*d3d9Device)->SetRenderState(D3DRS_ALPHABLENDENABLE, TRUE);
+
+			DWORD LIGHTING = 0, MAGFILTER = 0;
+			(*d3d9Device)->GetRenderState(D3DRS_LIGHTING, &LIGHTING);
+			(*d3d9Device)->GetSamplerState(0, D3DSAMP_MAGFILTER, &MAGFILTER);
+
+			PrimarySurface->Draw2DSurface();
+
+			(*d3d9Device)->SetRenderState(D3DRS_LIGHTING, LIGHTING);
+			(*d3d9Device)->SetSamplerState(0, D3DSAMP_MAGFILTER, MAGFILTER);
+
+			(*d3d9Device)->SetRenderState(D3DRS_SRCBLEND, SRCBLEND);
+			(*d3d9Device)->SetRenderState(D3DRS_DESTBLEND, DESTBLEND);
+			(*d3d9Device)->SetRenderState(D3DRS_ALPHABLENDENABLE, ALPHABLENDENABLE);
+		}*/
+
 #ifdef ENABLE_DEBUGOVERLAY
 		DOverlay.EndScene();
 #endif
@@ -1692,9 +1719,15 @@ HRESULT m_IDirect3DDeviceX::EndScene()
 		// The IDirect3DDevice7::EndScene method ends a scene that was begun by calling the IDirect3DDevice7::BeginScene method.
 		// When this method succeeds, the scene has been rendered, and the device surface holds the rendered scene.
 
-		(*d3d9Device)->EndScene();
+		HRESULT hr = (*d3d9Device)->EndScene();
 
-		return (*d3d9Device)->Present(nullptr, nullptr, nullptr, nullptr);
+		// Present surface after end scene
+		if (SUCCEEDED(hr))
+		{
+			hr = ddrawParent->Present();
+		}
+
+		return hr;
 	}
 
 	switch (ProxyDirectXVersion)
