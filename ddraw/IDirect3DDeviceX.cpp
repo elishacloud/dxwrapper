@@ -884,8 +884,7 @@ HRESULT m_IDirect3DDeviceX::SetRenderTarget(LPDIRECTDRAWSURFACE7 lpNewRenderTarg
 	{
 		if (!lpNewRenderTarget)
 		{
-			Logging::Log() << __FUNCTION__ " Error: nullptr";
-			return DDERR_GENERIC;
+			return DDERR_INVALIDPARAMS;
 		}
 
 		// Check for device interface
