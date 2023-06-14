@@ -221,7 +221,7 @@ struct CONFIG
 	DWORD DdrawOverrideHeight = 0;				// Force Direct3d9 to use this height when using Dd7to9
 	DWORD DdrawOverrideRefreshRate = 0;			// Force Direct3d9 to use this refresh rate when using Dd7to9
 	DWORD DdrawOverrideStencilFormat = 0;		// Force Direct3d9 to use this AutoStencilFormat when using Dd7to9
-	bool DdrawEnableMouseHook = true;			// Allow to hook into mouse to limit it to the chosen resolution
+	bool DdrawEnableMouseHook = false;			// Allow to hook into mouse to limit it to the chosen resolution
 	DWORD DdrawHookSystem32 = 0;				// Hooks the ddraw.dll file in the Windows System32 folder
 	DWORD D3d8HookSystem32 = 0;					// Hooks the d3d8.dll file in the Windows System32 folder
 	DWORD D3d9HookSystem32 = 0;					// Hooks the d3d9.dll file in the Windows System32 folder

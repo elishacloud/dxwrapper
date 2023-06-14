@@ -45,3 +45,5 @@ void ConvertDeviceDescSoft(D3DDEVICEDESC &Desc);
 void ConvertDeviceDesc(D3DDEVICEDESC7 &Desc7, D3DCAPS9 &Caps9);
 bool CheckTextureStageStateType(D3DTEXTURESTAGESTATETYPE dwState);
 bool CheckRenderStateType(D3DRENDERSTATETYPE dwRenderStateType);
+UINT GetVertexStride(DWORD dwVertexTypeDesc);
+UINT GetNumberOfPrimitives(D3DPRIMITIVETYPE dptPrimitiveType, DWORD dwVertexCount);

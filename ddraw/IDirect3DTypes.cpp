@@ -561,3 +561,61 @@ bool CheckRenderStateType(D3DRENDERSTATETYPE dwRenderStateType)
 		return false;
 	}
 }
+
+UINT GetVertexStride(DWORD dwVertexTypeDesc)
+{
+	// Reserved:
+	// #define D3DFVF_RESERVED0        0x001  // (DX7)
+	// #define D3DFVF_RESERVED0        0x001  // (DX9)
+
+	// #define D3DFVF_RESERVED1        0x020  // (DX7)
+	// #define D3DFVF_PSIZE            0x020  // (DX9)
+
+	// #define D3DFVF_RESERVED2        0xf000  // 4 reserved bits (DX7)
+	// #define D3DFVF_RESERVED2        0x6000  // 2 reserved bits (DX9)
+
+	// Check for unsupported vertex types
+	DWORD UnSupportedVertexTypes = dwVertexTypeDesc & ~(D3DFVF_POSITION_MASK | D3DFVF_NORMAL | D3DFVF_DIFFUSE | D3DFVF_SPECULAR | D3DFVF_TEXCOUNT_MASK);
+	if (UnSupportedVertexTypes)
+	{
+		LOG_LIMIT(100, __FUNCTION__ " Warning: Unsupported FVF type: " << Logging::hex(UnSupportedVertexTypes));
+	}
+
+	return
+		(((dwVertexTypeDesc & D3DFVF_POSITION_MASK) == D3DFVF_XYZ) ? sizeof(float) * 3 : 0) +
+		(((dwVertexTypeDesc & D3DFVF_POSITION_MASK) == D3DFVF_XYZRHW) ? sizeof(float) * 4 : 0) +
+		(((dwVertexTypeDesc & D3DFVF_POSITION_MASK) == D3DFVF_XYZB1) ? sizeof(float) * 4 : 0) +
+		(((dwVertexTypeDesc & D3DFVF_POSITION_MASK) == D3DFVF_XYZB2) ? sizeof(float) * 5 : 0) +
+		(((dwVertexTypeDesc & D3DFVF_POSITION_MASK) == D3DFVF_XYZB3) ? sizeof(float) * 6 : 0) +
+		(((dwVertexTypeDesc & D3DFVF_POSITION_MASK) == D3DFVF_XYZB4) ? sizeof(float) * 6 + sizeof(DWORD) : 0) +
+		(((dwVertexTypeDesc & D3DFVF_POSITION_MASK) == D3DFVF_XYZB5) ? sizeof(float) * 7 + sizeof(DWORD) : 0) +
+		((dwVertexTypeDesc & D3DFVF_NORMAL) ? sizeof(float) * 3 : 0) +
+		((dwVertexTypeDesc & D3DFVF_DIFFUSE) ? sizeof(D3DCOLOR) : 0) +
+		((dwVertexTypeDesc & D3DFVF_SPECULAR) ? sizeof(D3DCOLOR) : 0) +
+		(((dwVertexTypeDesc & D3DFVF_TEXCOUNT_MASK) == D3DFVF_TEX1) ? sizeof(float) * 2 : 0) +
+		(((dwVertexTypeDesc & D3DFVF_TEXCOUNT_MASK) == D3DFVF_TEX2) ? sizeof(float) * 4 : 0) +
+		(((dwVertexTypeDesc & D3DFVF_TEXCOUNT_MASK) == D3DFVF_TEX3) ? sizeof(float) * 6 : 0) +
+		(((dwVertexTypeDesc & D3DFVF_TEXCOUNT_MASK) == D3DFVF_TEX4) ? sizeof(float) * 8 : 0) +
+		(((dwVertexTypeDesc & D3DFVF_TEXCOUNT_MASK) == D3DFVF_TEX5) ? sizeof(float) * 10 : 0) +
+		(((dwVertexTypeDesc & D3DFVF_TEXCOUNT_MASK) == D3DFVF_TEX6) ? sizeof(float) * 12 : 0) +
+		(((dwVertexTypeDesc & D3DFVF_TEXCOUNT_MASK) == D3DFVF_TEX7) ? sizeof(float) * 14 : 0) +
+		(((dwVertexTypeDesc & D3DFVF_TEXCOUNT_MASK) == D3DFVF_TEX8) ? sizeof(float) * 16 : 0) +
+		0;
+}
+
+UINT GetNumberOfPrimitives(D3DPRIMITIVETYPE dptPrimitiveType, DWORD dwVertexCount)
+{
+	if (!dptPrimitiveType || dptPrimitiveType > 6)
+	{
+		LOG_LIMIT(100, __FUNCTION__ " Warning: Unsupported primitive type: " << dptPrimitiveType);
+	}
+
+	return
+		(dptPrimitiveType == D3DPT_POINTLIST) ? dwVertexCount :
+		(dptPrimitiveType == D3DPT_LINELIST) ? dwVertexCount / 2 :
+		(dptPrimitiveType == D3DPT_LINESTRIP) ? dwVertexCount - 1 :
+		(dptPrimitiveType == D3DPT_TRIANGLELIST) ? dwVertexCount / 3 :
+		(dptPrimitiveType == D3DPT_TRIANGLESTRIP) ? dwVertexCount - 2 :
+		(dptPrimitiveType == D3DPT_TRIANGLEFAN) ? dwVertexCount - 2 :
+		0;
+}

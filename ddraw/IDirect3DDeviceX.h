@@ -27,6 +27,9 @@ private:
 	// SetTexture array
 	LPDIRECTDRAWSURFACE7 AttachedTexture[8] = {};
 
+	// Vector temporary buffer cache
+	std::vector<BYTE> VertexCache;
+
 	// Viewport array
 	std::vector<LPDIRECT3DVIEWPORT3> AttachedViewports;
 
@@ -221,7 +224,6 @@ public:
 	void ResetDevice();
 	void SetDrawFlags(DWORD &rsClipping, DWORD &rsLighting, DWORD &rsExtents, DWORD dwVertexTypeDesc, DWORD dwFlags, DWORD DirectXVersion);
 	void UnSetDrawFlags(DWORD rsClipping, DWORD rsLighting, DWORD rsExtents, DWORD dwVertexTypeDesc, DWORD dwFlags, DWORD DirectXVersion);
-	void CopyScaleVertex(LPVOID lpVertices, std::vector<D3DTLVERTEX> &pVert, DWORD dwVertexCount);
-	UINT GetNumberOfPrimitives(D3DPRIMITIVETYPE dptPrimitiveType, DWORD dwVertexCount);
-	UINT GetVertexStride(DWORD dwVertexTypeDesc);
+	void ScaleVertices(DWORD dwVertexTypeDesc, LPVOID& lpVertices, DWORD dwVertexCount);
+	void UpdateVertices(DWORD& dwVertexTypeDesc, LPVOID& lpVertices, DWORD dwVertexCount);
 };
