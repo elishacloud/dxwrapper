@@ -600,7 +600,7 @@ HRESULT m_IDirect3DDeviceX::EnumTextureFormats(LPD3DENUMPIXELFORMATSCALLBACK lpd
 	{
 		if (!lpd3dEnumPixelProc)
 		{
-			return DDERR_GENERIC;
+			return DDERR_INVALIDPARAMS;
 		}
 
 		// Check for device interface
@@ -2711,15 +2711,13 @@ HRESULT m_IDirect3DDeviceX::ValidateDevice(LPDWORD lpdwPasses)
 
 	if (Config.Dd7to9)
 	{
-		if (!lpdwPasses)
+		// Check for device interface
+		if (FAILED(CheckInterface(__FUNCTION__, true)))
 		{
-			return DDERR_INVALIDPARAMS;
+			return DDERR_GENERIC;
 		}
 
-		// Address to be filled with the number of rendering passes to complete the desired effect through multipass rendering.
-		*lpdwPasses = 1;
-
-		return DD_OK;
+		return (*d3d9Device)->ValidateDevice(lpdwPasses);
 	}
 
 	switch (ProxyDirectXVersion)
