@@ -89,7 +89,7 @@ HRESULT m_IDirect3DExecuteBuffer::Initialize(LPDIRECT3DDEVICE lpDirect3DDevice, 
 
 	if (!ProxyInterface)
 	{
-		LOG_LIMIT(100, __FUNCTION__ << " Not Implemented");
+		LOG_LIMIT(100, __FUNCTION__ << " Error: Not Implemented");
 		return DDERR_UNSUPPORTED;
 	}
 
@@ -107,7 +107,7 @@ HRESULT m_IDirect3DExecuteBuffer::Lock(LPD3DEXECUTEBUFFERDESC lpDesc)
 
 	if (!ProxyInterface)
 	{
-		LOG_LIMIT(100, __FUNCTION__ << " Not Implemented");
+		LOG_LIMIT(100, __FUNCTION__ << " Error: Not Implemented");
 		return DDERR_UNSUPPORTED;
 	}
 
@@ -120,7 +120,7 @@ HRESULT m_IDirect3DExecuteBuffer::Unlock()
 
 	if (!ProxyInterface)
 	{
-		LOG_LIMIT(100, __FUNCTION__ << " Not Implemented");
+		LOG_LIMIT(100, __FUNCTION__ << " Error: Not Implemented");
 		return DDERR_UNSUPPORTED;
 	}
 
@@ -133,7 +133,7 @@ HRESULT m_IDirect3DExecuteBuffer::SetExecuteData(LPD3DEXECUTEDATA lpData)
 
 	if (!ProxyInterface)
 	{
-		LOG_LIMIT(100, __FUNCTION__ << " Not Implemented");
+		LOG_LIMIT(100, __FUNCTION__ << " Error: Not Implemented");
 		return DDERR_UNSUPPORTED;
 	}
 
@@ -146,7 +146,7 @@ HRESULT m_IDirect3DExecuteBuffer::GetExecuteData(LPD3DEXECUTEDATA lpData)
 
 	if (!ProxyInterface)
 	{
-		LOG_LIMIT(100, __FUNCTION__ << " Not Implemented");
+		LOG_LIMIT(100, __FUNCTION__ << " Error: Not Implemented");
 		return DDERR_UNSUPPORTED;
 	}
 
@@ -159,7 +159,7 @@ HRESULT m_IDirect3DExecuteBuffer::Validate(LPDWORD lpdwOffset, LPD3DVALIDATECALL
 
 	if (!ProxyInterface)
 	{
-		LOG_LIMIT(100, __FUNCTION__ << " Not Implemented");
+		LOG_LIMIT(100, __FUNCTION__ << " Error: Not Implemented");
 		return DDERR_UNSUPPORTED;
 	}
 
@@ -172,7 +172,7 @@ HRESULT m_IDirect3DExecuteBuffer::Optimize(DWORD dwDummy)
 
 	if (!ProxyInterface)
 	{
-		LOG_LIMIT(100, __FUNCTION__ << " Not Implemented");
+		LOG_LIMIT(100, __FUNCTION__ << " Error: Not Implemented");
 		return DDERR_UNSUPPORTED;
 	}
 

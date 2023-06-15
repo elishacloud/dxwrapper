@@ -11,6 +11,8 @@
 #define D3DTSS_ADDRESS 12
 #endif
 
+#define LVERTEX_SIZE 32
+
 #undef D3DFVF_RESERVED2
 #define D3DFVF_RESERVED2        0xf000  // 4 reserved bits
 #define D3DFVF_RESERVED2_9      0x6000  // 2 reserved bits
@@ -43,6 +45,8 @@ void ConvertCaps(D3DPRIMCAPS &PrimCaps, D3DPRIMCAPS &PrimCaps2);
 void ConvertDeviceDesc(D3DDEVICEDESC &Desc, D3DDEVICEDESC7 &Desc7);
 void ConvertDeviceDescSoft(D3DDEVICEDESC &Desc);
 void ConvertDeviceDesc(D3DDEVICEDESC7 &Desc7, D3DCAPS9 &Caps9);
+void ConvertVertices(D3DLVERTEX* lFVF, D3DLVERTEX9* lFVF9, DWORD NumVertices);
+void ConvertVertices(D3DLVERTEX9* lFVF9, D3DLVERTEX* lFVF, DWORD NumVertices);
 bool CheckTextureStageStateType(D3DTEXTURESTAGESTATETYPE dwState);
 bool CheckRenderStateType(D3DRENDERSTATETYPE dwRenderStateType);
 UINT GetVertexStride(DWORD dwVertexTypeDesc);

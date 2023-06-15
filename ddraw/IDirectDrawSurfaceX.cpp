@@ -352,7 +352,7 @@ HRESULT m_IDirectDrawSurfaceX::AddOverlayDirtyRect(LPRECT lpRect)
 
 	if (Config.Dd7to9)
 	{
-		LOG_LIMIT(100, __FUNCTION__ << " Not Implemented");
+		LOG_LIMIT(100, __FUNCTION__ << " Error: Not Implemented");
 		return DDERR_UNSUPPORTED;
 	}
 
@@ -949,7 +949,7 @@ HRESULT m_IDirectDrawSurfaceX::EnumOverlayZOrders2(DWORD dwFlags, LPVOID lpConte
 
 	if (Config.Dd7to9)
 	{
-		LOG_LIMIT(100, __FUNCTION__ << " Not Implemented");
+		LOG_LIMIT(100, __FUNCTION__ << " Error: Not Implemented");
 		return DDERR_UNSUPPORTED;
 	}
 
@@ -2622,7 +2622,7 @@ HRESULT m_IDirectDrawSurfaceX::UpdateOverlayZOrder(DWORD dwFlags, LPDIRECTDRAWSU
 
 	if (Config.Dd7to9)
 	{
-		LOG_LIMIT(100, __FUNCTION__ << " Not Implemented");
+		LOG_LIMIT(100, __FUNCTION__ << " Error: Not Implemented");
 		return DDERR_UNSUPPORTED;
 	}
 

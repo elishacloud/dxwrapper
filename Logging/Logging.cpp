@@ -598,6 +598,7 @@ std::ostream& operator<<(std::ostream& os, const D3DSTATUS& data)
 std::ostream& operator<<(std::ostream& os, const D3DVERTEXBUFFERDESC& data)
 {
 	return Logging::LogStruct(os)
+		<< data.dwSize
 		<< Logging::hex(data.dwCaps)
 		<< Logging::hex(data.dwFVF)
 		<< data.dwNumVertices;

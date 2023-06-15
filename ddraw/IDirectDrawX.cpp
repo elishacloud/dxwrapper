@@ -347,8 +347,6 @@ HRESULT m_IDirectDrawX::CreateClipper(DWORD dwFlags, LPDIRECTDRAWCLIPPER FAR * l
 
 		m_IDirectDrawClipper* ClipperX = new m_IDirectDrawClipper(this, dwFlags);
 
-		AddClipperToVector(ClipperX);
-
 		*lplpDDClipper = ClipperX;
 
 		return DD_OK;
@@ -376,8 +374,6 @@ HRESULT m_IDirectDrawX::CreatePalette(DWORD dwFlags, LPPALETTEENTRY lpDDColorArr
 		}
 
 		m_IDirectDrawPalette *PaletteX = new m_IDirectDrawPalette(this, dwFlags, lpDDColorArray);
-
-		AddPaletteToVector(PaletteX);
 
 		*lplpDDPalette = PaletteX;
 
@@ -1261,7 +1257,7 @@ HRESULT m_IDirectDrawX::GetDisplayMode2(LPDDSURFACEDESC2 lpDDSurfaceDesc2)
 		}
 		else if (FAILED(SetDisplayFormat(lpDDSurfaceDesc2->ddpfPixelFormat, displayModeBits)))
 		{
-			LOG_LIMIT(100, __FUNCTION__ << " Not implemented bit count " << displayModeBits);
+			LOG_LIMIT(100, __FUNCTION__ << " Error: Not implemented bit count " << displayModeBits);
 			return DDERR_UNSUPPORTED;
 		}
 
@@ -2020,7 +2016,7 @@ HRESULT m_IDirectDrawX::GetSurfaceFromDC(HDC hdc, LPDIRECTDRAWSURFACE7 * lpDDS, 
 
 	if (Config.Dd7to9)
 	{
-		LOG_LIMIT(100, __FUNCTION__ << " Not Implemented");
+		LOG_LIMIT(100, __FUNCTION__ << " Error: Not Implemented");
 		return DDERR_UNSUPPORTED;
 	}
 
@@ -2168,7 +2164,7 @@ HRESULT m_IDirectDrawX::StartModeTest(LPSIZE lpModesToTest, DWORD dwNumEntries, 
 
 	if (Config.Dd7to9)
 	{
-		LOG_LIMIT(100, __FUNCTION__ << " Not Implemented");
+		LOG_LIMIT(100, __FUNCTION__ << " Error: Not Implemented");
 		return DDERR_UNSUPPORTED;
 	}
 
@@ -2181,7 +2177,7 @@ HRESULT m_IDirectDrawX::EvaluateMode(DWORD dwFlags, DWORD * pSecondsUntilTimeout
 
 	if (Config.Dd7to9)
 	{
-		LOG_LIMIT(100, __FUNCTION__ << " Not Implemented");
+		LOG_LIMIT(100, __FUNCTION__ << " Error: Not Implemented");
 		return DDERR_UNSUPPORTED;
 	}
 
@@ -2453,6 +2449,14 @@ void m_IDirectDrawX::ReleaseDdraw()
 		pPalette->ClearDdraw();
 	}
 	PaletteVector.clear();
+
+	// Release vertex buffers
+	for (m_IDirect3DVertexBufferX* pVertexBuffer : VertexBufferVector)
+	{
+		pVertexBuffer->ClearDdraw();
+		pVertexBuffer->ReleaseD9Buffers(false);
+	}
+	VertexBufferVector.clear();
 
 	// Release color control
 	if (ColorControlInterface)
@@ -2809,10 +2813,11 @@ HRESULT m_IDirectDrawX::CreateD3D9Device()
 			if (LastHWnd == hWnd && LastWindowedMode == presParams.Windowed && LastBehaviorFlags == BehaviorFlags)
 			{
 				// Prepare for reset
+				ReleaseAllD9Buffers(true);
 				ReleaseAllD9Surfaces(true);
-				D3DPRESENT_PARAMETERS newParams = presParams;
 
 				// Reset device. When this method returns: BackBufferCount, BackBufferWidth, and BackBufferHeight are set to zero.
+				D3DPRESENT_PARAMETERS newParams = presParams;
 				hr = d3d9Device->Reset(&newParams);
 
 				// Resetting the device failed
@@ -2832,6 +2837,7 @@ HRESULT m_IDirectDrawX::CreateD3D9Device()
 					" Windowed: " << LastWindowedMode << "->" << presParams.Windowed << " " <<
 					Logging::hex(LastBehaviorFlags) << "->" << Logging::hex(BehaviorFlags);
 
+				ReleaseAllD9Buffers(true);
 				ReleaseAllD9Surfaces(true);
 				ReleaseD3D9Device();
 			}
@@ -2959,10 +2965,11 @@ HRESULT m_IDirectDrawX::ReinitDevice()
 
 	do {
 		// Prepare for reset
+		ReleaseAllD9Buffers(true);
 		ReleaseAllD9Surfaces(true);
-		D3DPRESENT_PARAMETERS newParams = presParams;
 
 		// Reset device. When this method returns: BackBufferCount, BackBufferWidth, and BackBufferHeight are set to zero.
+		D3DPRESENT_PARAMETERS newParams = presParams;
 		hr = d3d9Device->Reset(&newParams);
 		if (hr == D3DERR_DEVICEREMOVED || hr == D3DERR_DRIVERINTERNALERROR)
 		{
@@ -3001,6 +3008,22 @@ void m_IDirectDrawX::ReleaseAllD9Surfaces(bool BackupData)
 		for (m_IDirectDrawSurfaceX* pSurface : pDDraw->SurfaceVector)
 		{
 			pSurface->ReleaseD9Surface(BackupData);
+		}
+	}
+
+	ReleaseCriticalSection();
+}
+
+// Release all buffers from all ddraw devices
+void m_IDirectDrawX::ReleaseAllD9Buffers(bool BackupData)
+{
+	SetCriticalSection();
+
+	for (m_IDirectDrawX* pDDraw : DDrawVector)
+	{
+		for (m_IDirect3DVertexBufferX* pBuffer : pDDraw->VertexBufferVector)
+		{
+			pBuffer->ReleaseD9Buffers(BackupData);
 		}
 	}
 
@@ -3211,7 +3234,7 @@ bool m_IDirectDrawX::DoesClipperExist(m_IDirectDrawClipper* lpClipper)
 	SetCriticalSection();
 
 	auto it = std::find_if(ClipperVector.begin(), ClipperVector.end(),
-		[=](auto pSurface) -> bool { return pSurface == lpClipper; });
+		[=](auto pClipper) -> bool { return pClipper == lpClipper; });
 
 	if (it != std::end(ClipperVector))
 	{
@@ -3283,9 +3306,69 @@ bool m_IDirectDrawX::DoesPaletteExist(m_IDirectDrawPalette* lpPalette)
 	SetCriticalSection();
 
 	auto it = std::find_if(PaletteVector.begin(), PaletteVector.end(),
-		[=](auto pSurface) -> bool { return pSurface == lpPalette; });
+		[=](auto pPalette) -> bool { return pPalette == lpPalette; });
 
 	if (it != std::end(PaletteVector))
+	{
+		hr = true;
+	}
+
+	ReleaseCriticalSection();
+
+	return hr;
+}
+
+void m_IDirectDrawX::AddVertexBufferToVector(m_IDirect3DVertexBufferX* lpVertexBuffer)
+{
+	if (!lpVertexBuffer || DoesVertexBufferExist(lpVertexBuffer))
+	{
+		return;
+	}
+
+	SetCriticalSection();
+
+	// Store vertex buffer
+	VertexBufferVector.push_back(lpVertexBuffer);
+
+	ReleaseCriticalSection();
+}
+
+void m_IDirectDrawX::RemoveVertexBufferFromVector(m_IDirect3DVertexBufferX* lpVertexBuffer)
+{
+	if (!lpVertexBuffer)
+	{
+		return;
+	}
+
+	SetCriticalSection();
+
+	auto it = std::find_if(VertexBufferVector.begin(), VertexBufferVector.end(),
+		[=](auto pVertexBuffer) -> bool { return pVertexBuffer == lpVertexBuffer; });
+
+	// Remove vertex buffer from vector
+	if (it != std::end(VertexBufferVector))
+	{
+		VertexBufferVector.erase(it);
+	}
+
+	ReleaseCriticalSection();
+}
+
+bool m_IDirectDrawX::DoesVertexBufferExist(m_IDirect3DVertexBufferX* lpVertexBuffer)
+{
+	if (!lpVertexBuffer)
+	{
+		return false;
+	}
+
+	bool hr = false;
+
+	SetCriticalSection();
+
+	auto it = std::find_if(VertexBufferVector.begin(), VertexBufferVector.end(),
+		[=](auto pVertexBuffer) -> bool { return pVertexBuffer == lpVertexBuffer; });
+
+	if (it != std::end(VertexBufferVector))
 	{
 		hr = true;
 	}

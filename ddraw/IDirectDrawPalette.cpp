@@ -263,6 +263,11 @@ void m_IDirectDrawPalette::InitPalette()
 		rgbPalette[255].pe.green = 0xFF;
 		rgbPalette[255].pe.red = 0xFF;
 	}
+
+	if (ddrawParent)
+	{
+		ddrawParent->AddPaletteToVector(this);
+	}
 }
 
 void m_IDirectDrawPalette::ReleasePalette()

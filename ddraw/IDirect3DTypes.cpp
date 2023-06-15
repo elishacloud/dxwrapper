@@ -421,6 +421,34 @@ void ConvertDeviceDesc(D3DDEVICEDESC7 &Desc7, D3DCAPS9 &Caps9)
 	Desc7.dwReserved4 = 0;
 }
 
+void ConvertVertices(D3DLVERTEX* lFVF, D3DLVERTEX9* lFVF9, DWORD NumVertices)
+{
+	for (UINT x = 0; x < NumVertices; x++)
+	{
+		lFVF[x].x = lFVF9[x].x;
+		lFVF[x].y = lFVF9[x].y;
+		lFVF[x].z = lFVF9[x].z;
+		lFVF[x].color = lFVF9[x].diffuse;
+		lFVF[x].specular = lFVF9[x].specular;
+		lFVF[x].tu = lFVF9[x].tu;
+		lFVF[x].tv = lFVF9[x].tv;
+	}
+}
+
+void ConvertVertices(D3DLVERTEX9* lFVF9, D3DLVERTEX* lFVF, DWORD NumVertices)
+{
+	for (UINT x = 0; x < NumVertices; x++)
+	{
+		lFVF9[x].x = lFVF[x].x;
+		lFVF9[x].y = lFVF[x].y;
+		lFVF9[x].z = lFVF[x].z;
+		lFVF9[x].diffuse = lFVF[x].color;
+		lFVF9[x].specular = lFVF[x].specular;
+		lFVF9[x].tu = lFVF[x].tu;
+		lFVF9[x].tv = lFVF[x].tv;
+	}
+}
+
 bool CheckTextureStageStateType(D3DTEXTURESTAGESTATETYPE dwState)
 {
 	switch (dwState)

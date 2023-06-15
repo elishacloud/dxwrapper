@@ -37,6 +37,9 @@ private:
 	// Store a list of palettes
 	std::vector<m_IDirectDrawPalette*> PaletteVector;
 
+	// Store a list of vertex buffers
+	std::vector<m_IDirect3DVertexBufferX*> VertexBufferVector;
+
 	// Store color control interface
 	m_IDirectDrawColorControl *ColorControlInterface = nullptr;
 
@@ -78,6 +81,7 @@ private:
 	HRESULT CheckInterface(char *FunctionName, bool CheckD3DDevice);
 	HRESULT CreateD3D9Object();
 	void ReleaseAllD9Surfaces(bool BackupData);
+	void ReleaseAllD9Buffers(bool BackupData);
 	void ReleaseD3D9Device();
 	void ReleaseD3D9Object();
 
@@ -206,6 +210,11 @@ public:
 	void AddPaletteToVector(m_IDirectDrawPalette* lpPalette);
 	void RemovePaletteFromVector(m_IDirectDrawPalette* lpPalette);
 	bool DoesPaletteExist(m_IDirectDrawPalette* lpPalette);
+
+	// Vertex buffer vector functions
+	void AddVertexBufferToVector(m_IDirect3DVertexBufferX* lpVertexBuffer);
+	void RemoveVertexBufferFromVector(m_IDirect3DVertexBufferX* lpVertexBuffer);
+	bool DoesVertexBufferExist(m_IDirect3DVertexBufferX* lpVertexBuffer);
 
 	// Color and gamma control
 	HRESULT CreateColorInterface(LPVOID *ppvObj);

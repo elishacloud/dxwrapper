@@ -253,7 +253,10 @@ HRESULT m_IDirectDrawClipper::SetHWnd(DWORD dwFlags, HWND hWnd)
 
 void m_IDirectDrawClipper::InitClipper()
 {
-	// To add later
+	if (ddrawParent)
+	{
+		ddrawParent->AddClipperToVector(this);
+	}
 }
 
 void m_IDirectDrawClipper::ReleaseClipper()

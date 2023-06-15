@@ -181,12 +181,12 @@ HRESULT m_IDirect3DMaterialX::SetMaterial(LPD3DMATERIAL lpMat)
 
 		if (lpMat->hTexture)
 		{
-			LOG_LIMIT(100, __FUNCTION__ << " D3DTEXTUREHANDLE Not Implemented: " << lpMat->hTexture);
+			LOG_LIMIT(100, __FUNCTION__ << " Warning: D3DTEXTUREHANDLE Not Implemented: " << lpMat->hTexture);
 		}
 
 		if (lpMat->dwRampSize)
 		{
-			LOG_LIMIT(100, __FUNCTION__ << " RampSize Not Implemented: " << lpMat->dwRampSize);
+			LOG_LIMIT(100, __FUNCTION__ << " Warning: RampSize Not Implemented: " << lpMat->dwRampSize);
 		}
 
 		D3DMATERIAL7 Material7;

@@ -7,10 +7,23 @@ private:
 	DWORD ProxyDirectXVersion;
 	ULONG RefCount1 = 0;
 	ULONG RefCount7 = 0;
+	m_IDirectDrawX* ddrawParent = nullptr;
 
-	// Convert Material
-	m_IDirect3DDeviceX **D3DDeviceInterface = nullptr;
+	// Vertex buffer desc
 	D3DVERTEXBUFFERDESC VBDesc = {};
+	D3DVERTEXBUFFER_DESC d3d9VBDesc = {};
+
+	// Vector buffer data
+	std::vector<BYTE> VertexData;
+	void* LastLockAddr = nullptr;
+	DWORD LastLockFlags = 0;
+
+	// Index buffer data
+	DWORD IndexBufferSize = 0;
+
+	// Store d3d interface
+	LPDIRECT3DVERTEXBUFFER9 d3d9VertexBuffer = nullptr;
+	LPDIRECT3DINDEXBUFFER9 d3d9IndexBuffer = nullptr;
 
 	// Store version wrappers
 	m_IDirect3DVertexBuffer *WrapperInterface;
@@ -34,6 +47,14 @@ private:
 	void InitVertexBuffer(DWORD DirectXVersion);
 	void ReleaseVertexBuffer();
 
+	// Check interfaces
+	HRESULT CheckInterface(char* FunctionName, bool CheckD3DVertexBuffer);
+
+	// Direct3D9 interface functions
+	HRESULT CreateD3D9VertexBuffer();
+	void ReleaseD3D9VertexBuffer();
+	void ReleaseD3D9IndexBuffer();
+
 public:
 	m_IDirect3DVertexBufferX(IDirect3DVertexBuffer7 *aOriginal, DWORD DirectXVersion) : ProxyInterface(aOriginal)
 	{
@@ -50,7 +71,7 @@ public:
 
 		InitVertexBuffer(DirectXVersion);
 	}
-	m_IDirect3DVertexBufferX(m_IDirect3DDeviceX **D3DDInterface, LPD3DVERTEXBUFFERDESC lpVBDesc, DWORD DirectXVersion) : D3DDeviceInterface(D3DDInterface)
+	m_IDirect3DVertexBufferX(m_IDirectDrawX* lpDdraw, LPD3DVERTEXBUFFERDESC lpVBDesc, DWORD DirectXVersion) : ddrawParent(lpDdraw)
 	{
 		ProxyDirectXVersion = 9;
 
@@ -63,6 +84,7 @@ public:
 			VBDesc.dwFVF = lpVBDesc->dwFVF;
 			VBDesc.dwNumVertices = lpVBDesc->dwNumVertices;
 		}
+		d3d9VBDesc.Type = D3DRTYPE_VERTEXBUFFER;
 
 		InitVertexBuffer(DirectXVersion);
 	}
@@ -93,4 +115,15 @@ public:
 	void *GetWrapperInterfaceX(DWORD DirectXVersion);
 	ULONG AddRef(DWORD DirectXVersion);
 	ULONG Release(DWORD DirectXVersion);
+
+	// Functions handling the ddraw parent interface
+	void SetDdrawParent(m_IDirectDrawX* ddraw) { ddrawParent = ddraw; }
+	void ClearDdraw() { ddrawParent = nullptr; }
+
+	// Direct3D9 interfaces
+	LPDIRECT3DVERTEXBUFFER9 GetCurrentD9VertexBuffer() { return d3d9VertexBuffer; };
+	LPDIRECT3DINDEXBUFFER9 SetupIndexBuffer(LPWORD lpwIndices, DWORD dwIndexCount);
+	void ReleaseD9Buffers(bool BackupData);
+
+	DWORD GetFVF9() { return d3d9VBDesc.FVF; };
 };
