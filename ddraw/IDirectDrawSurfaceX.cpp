@@ -1267,7 +1267,8 @@ HRESULT m_IDirectDrawSurfaceX::GetAttachedSurface2(LPDDSCAPS2 lpDDSCaps2, LPDIRE
 		// No attached surface found
 		if (!lpFoundSurface)
 		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error: failed to find attached surface that matches the capabilities requested: " << *lpDDSCaps2);
+			LOG_LIMIT(100, __FUNCTION__ << " Error: failed to find attached surface that matches the capabilities requested: " << *lpDDSCaps2 <<
+				" Attached number of surfaces: " << AttachedSurfaceMap.size());
 			return DDERR_NOTFOUND;
 		}
 
