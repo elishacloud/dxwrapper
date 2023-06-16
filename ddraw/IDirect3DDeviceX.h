@@ -24,6 +24,9 @@ private:
 	m_IDirect3DDevice3 *WrapperInterface3;
 	m_IDirect3DDevice7 *WrapperInterface7;
 
+	// Last clip status
+	D3DCLIPSTATUS D3DClipStatus = {};
+
 	// SetTexture array
 	LPDIRECTDRAWSURFACE7 AttachedTexture[8] = {};
 
