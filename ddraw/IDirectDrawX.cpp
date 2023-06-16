@@ -1012,18 +1012,6 @@ HRESULT m_IDirectDrawX::EnumSurfaces2(DWORD dwFlags, LPDDSURFACEDESC2 lpDDSurfac
 		return DDERR_INVALIDPARAMS;
 	}
 
-	if (Config.Dd7to9)
-	{
-		if ((lpDDSurfaceDesc2 && lpDDSurfaceDesc2->dwSize != sizeof(DDSURFACEDESC2)) || (!lpDDSurfaceDesc2 && !(dwFlags & DDENUMSURFACES_ALL)))
-		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error: Invalid parameters. dwSize: " << ((lpDDSurfaceDesc2) ? lpDDSurfaceDesc2->dwSize : -1));
-			return DDERR_INVALIDPARAMS;
-		}
-
-		LOG_LIMIT(100, __FUNCTION__ << " Error: Not Implemented");
-		return DDERR_UNSUPPORTED;
-	}
-
 	struct EnumSurface
 	{
 		LPVOID lpContext;
@@ -1033,7 +1021,7 @@ HRESULT m_IDirectDrawX::EnumSurfaces2(DWORD dwFlags, LPDDSURFACEDESC2 lpDDSurfac
 
 		static HRESULT CALLBACK ConvertCallback(LPDIRECTDRAWSURFACE7 lpDDSurface, LPDDSURFACEDESC2 lpDDSurfaceDesc2, LPVOID lpContext)
 		{
-			EnumSurface *self = (EnumSurface*)lpContext;
+			EnumSurface* self = (EnumSurface*)lpContext;
 
 			if (lpDDSurface)
 			{
@@ -1057,6 +1045,52 @@ HRESULT m_IDirectDrawX::EnumSurfaces2(DWORD dwFlags, LPDDSURFACEDESC2 lpDDSurfac
 	CallbackContext.lpCallback = lpEnumSurfacesCallback7;
 	CallbackContext.DirectXVersion = DirectXVersion;
 	CallbackContext.ConvertSurfaceDescTo2 = (ProxyDirectXVersion > 3 && DirectXVersion < 4);
+
+	if (Config.Dd7to9)
+	{
+		if ((lpDDSurfaceDesc2 && lpDDSurfaceDesc2->dwSize != sizeof(DDSURFACEDESC2)) || (!lpDDSurfaceDesc2 && !(dwFlags & DDENUMSURFACES_ALL)))
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: Invalid parameters. dwSize: " << ((lpDDSurfaceDesc2) ? lpDDSurfaceDesc2->dwSize : -1) << " dwFlags: " << Logging::hex(dwFlags));
+			return DDERR_INVALIDPARAMS;
+		}
+
+		switch (dwFlags)
+		{
+		default:
+			LOG_LIMIT(100, __FUNCTION__ << " Error: Invalid dwFlags. dwFlags: " << Logging::hex(dwFlags));
+			return DDERR_INVALIDPARAMS;
+
+		case (DDENUMSURFACES_DOESEXIST | DDENUMSURFACES_ALL):
+			for (m_IDirectDrawSurfaceX* pSurfaceX : SurfaceVector)
+			{
+				LPDIRECTDRAWSURFACE7 pSurface7 = (LPDIRECTDRAWSURFACE7)pSurfaceX->GetWrapperInterfaceX(DirectXVersion);
+
+				if (pSurface7)
+				{
+					DDSURFACEDESC2 Desc2 = {};
+					Desc2.dwSize = sizeof(DDSURFACEDESC2);
+					pSurfaceX->GetSurfaceDesc2(&Desc2);
+
+					// When using the DDENUMSURFACES_DOESEXIST flag, an enumerated surface's reference count is incremented
+					pSurface7->AddRef();
+
+					EnumSurface::ConvertCallback(pSurface7, &Desc2, &CallbackContext);
+				}
+			}
+			break;
+
+		case (DDENUMSURFACES_DOESEXIST | DDENUMSURFACES_MATCH):
+		case (DDENUMSURFACES_DOESEXIST | DDENUMSURFACES_NOMATCH):
+			LOG_LIMIT(100, __FUNCTION__ << " Error: surface matching Not Implemented!");
+			return DDERR_UNSUPPORTED;
+
+		case (DDENUMSURFACES_CANBECREATED | DDENUMSURFACES_MATCH):
+			LOG_LIMIT(100, __FUNCTION__ << " Error: creating enumerated surface Not Implemented!");
+			return DDERR_UNSUPPORTED;
+		}
+
+		return DD_OK;
+	}
 
 	return ProxyInterface->EnumSurfaces(dwFlags, lpDDSurfaceDesc2, &CallbackContext, EnumSurface::ConvertCallback);
 }
