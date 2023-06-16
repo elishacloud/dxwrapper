@@ -2517,7 +2517,7 @@ HRESULT m_IDirect3DDeviceX::DrawPrimitiveVB(D3DPRIMITIVETYPE dptPrimitiveType, L
 		SetDrawFlags(rsClipping, rsLighting, rsExtents, FVF, dwFlags, DirectXVersion);
 
 		// Draw primitive
-		HRESULT hr = (*d3d9Device)->DrawPrimitive(dptPrimitiveType, dwStartVertex, dwNumVertices);
+		HRESULT hr = (*d3d9Device)->DrawPrimitive(dptPrimitiveType, dwStartVertex, GetNumberOfPrimitives(dptPrimitiveType, dwNumVertices));
 
 		// Handle dwFlags
 		UnSetDrawFlags(rsClipping, rsLighting, rsExtents, FVF, dwFlags, DirectXVersion);
@@ -2752,7 +2752,7 @@ HRESULT m_IDirect3DDeviceX::DrawIndexedPrimitiveVB(D3DPRIMITIVETYPE dptPrimitive
 		SetDrawFlags(rsClipping, rsLighting, rsExtents, FVF, dwFlags, DirectXVersion);
 
 		// Draw primitive
-		HRESULT hr = (*d3d9Device)->DrawIndexedPrimitive(dptPrimitiveType, dwStartVertex, 0, dwNumVertices, dwIndexCount, GetNumberOfPrimitives(dptPrimitiveType, dwIndexCount));
+		HRESULT hr = (*d3d9Device)->DrawIndexedPrimitive(dptPrimitiveType, dwStartVertex, 0, dwNumVertices, 0, GetNumberOfPrimitives(dptPrimitiveType, dwIndexCount));
 
 		// Handle dwFlags
 		UnSetDrawFlags(rsClipping, rsLighting, rsExtents, FVF, dwFlags, DirectXVersion);
