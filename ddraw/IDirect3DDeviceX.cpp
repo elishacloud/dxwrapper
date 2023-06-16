@@ -2954,8 +2954,71 @@ HRESULT m_IDirect3DDeviceX::SetClipStatus(LPD3DCLIPSTATUS lpD3DClipStatus)
 
 	if (Config.Dd7to9)
 	{
-		LOG_LIMIT(100, __FUNCTION__ << " Error: Not Implemented");
-		return DDERR_UNSUPPORTED;
+		// D3DCLIPSTATUS_EXTENTS2 flag cannot be combined with D3DCLIPSTATUS_EXTENTS3.
+		if (!lpD3DClipStatus || (lpD3DClipStatus->dwFlags & (D3DCLIPSTATUS_EXTENTS2 | D3DCLIPSTATUS_EXTENTS3)) == (D3DCLIPSTATUS_EXTENTS2 | D3DCLIPSTATUS_EXTENTS3))
+		{
+			return DDERR_INVALIDPARAMS;
+		}
+
+		// Check for device interface
+		if (FAILED(CheckInterface(__FUNCTION__, true)))
+		{
+			return DDERR_GENERIC;
+		}
+
+		// D3DCLIPSTATUS_EXTENTS3 is Not currently implemented in DirectDraw.
+		if (lpD3DClipStatus->dwFlags & D3DCLIPSTATUS_EXTENTS2)
+		{
+			// To enable a clipping plane, set the corresponding bit in the DWORD value applied to the D3DRS_CLIPPLANEENABLE render state.
+			LOG_LIMIT(100, __FUNCTION__ << " Warning: Not Implemented: " << *lpD3DClipStatus);
+		}
+
+		if (!(lpD3DClipStatus->dwFlags & D3DCLIPSTATUS_STATUS))
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: only clip status flag is supported.  Using unsupported dwFlags: " << Logging::hex(lpD3DClipStatus->dwFlags));
+			return DDERR_UNSUPPORTED;
+		}
+
+		// Calculate the center of the bounding box using the min and max values for each axis
+		float centerX = (lpD3DClipStatus->minx + lpD3DClipStatus->maxx) * 0.5f;
+		float centerY = (lpD3DClipStatus->miny + lpD3DClipStatus->maxy) * 0.5f;
+		float centerZ = (lpD3DClipStatus->minz + lpD3DClipStatus->maxz) * 0.5f;
+
+		// Calculate the extents (half-width, half-height, and half-depth) of the bounding box
+		float halfWidth = (lpD3DClipStatus->maxx - lpD3DClipStatus->minx) * 0.5f;
+		float halfHeight = (lpD3DClipStatus->maxy - lpD3DClipStatus->miny) * 0.5f;
+		float halfDepth = (lpD3DClipStatus->maxz - lpD3DClipStatus->minz) * 0.5f;
+
+		// Normalize the extents by dividing them by the length of the vector (halfWidth, halfHeight, halfDepth)
+		float length = sqrt(halfWidth * halfWidth + halfHeight * halfHeight + halfDepth * halfDepth);
+		if (!length)
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: divide by zero!");
+			return DDERR_GENERIC;
+		}
+		float invLength = 1.0f / length;
+		float normalX = halfWidth * invLength;
+		float normalY = halfHeight * invLength;
+		float normalZ = halfDepth * invLength;
+
+		// Calculate the distance from the origin to the plane using the dot product of the center and the normal
+		float distance = centerX * normalX + centerY * normalY + centerZ * normalZ;
+
+		// The coefficients for the clip plane in Direct3D9 are (X, Y, Z, W), where (X, Y, Z) represent the normal of the plane,
+		// and W represents the distance from the origin to the plane. Assign the calculated values accordingly
+		float clipPlane[4] = { normalX, normalY, normalZ, distance };
+
+		// Set the clip plane
+		(*d3d9Device)->SetRenderState(D3DRS_CLIPPLANEENABLE, D3DCLIPPLANE0);
+		HRESULT hr = (*d3d9Device)->SetClipPlane(0, clipPlane);
+
+		if (FAILED(hr))
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: 'SetClipPlane' call failed: " << (D3DERR)hr <<
+				" call: { " << clipPlane[0] << ", " << clipPlane[1] << ", " << clipPlane[2] << ", " << clipPlane[3] << "}");
+		}
+
+		return hr;
 	}
 
 	switch (ProxyDirectXVersion)

@@ -595,6 +595,19 @@ std::ostream& operator<<(std::ostream& os, const D3DSTATUS& data)
 		<< data.drExtent;
 }
 
+std::ostream& operator<<(std::ostream& os, const D3DCLIPSTATUS& data)
+{
+	return Logging::LogStruct(os)
+		<< Logging::hex(data.dwFlags)
+		<< Logging::hex(data.dwStatus)
+		<< data.minx
+		<< data.maxx
+		<< data.miny
+		<< data.maxy
+		<< data.minz
+		<< data.maxz;
+}
+
 std::ostream& operator<<(std::ostream& os, const D3DVERTEXBUFFERDESC& data)
 {
 	return Logging::LogStruct(os)
