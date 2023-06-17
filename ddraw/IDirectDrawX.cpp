@@ -1023,7 +1023,7 @@ HRESULT m_IDirectDrawX::EnumSurfaces2(DWORD dwFlags, LPDDSURFACEDESC2 lpDDSurfac
 		{
 			EnumSurface* self = (EnumSurface*)lpContext;
 
-			if (lpDDSurface)
+			if (!Config.Dd7to9 && lpDDSurface)
 			{
 				lpDDSurface = ProxyAddressLookupTable.FindAddress<m_IDirectDrawSurface7>(lpDDSurface, self->DirectXVersion);
 			}
