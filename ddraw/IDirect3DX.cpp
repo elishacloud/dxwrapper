@@ -660,9 +660,9 @@ HRESULT m_IDirect3DX::CreateVertexBuffer(LPD3DVERTEXBUFFERDESC lpVBDesc, LPDIREC
 			return DDERR_INVALIDPARAMS;
 		}
 
-		if (lpVBDesc->dwSize != sizeof(D3DVERTEXBUFFERDESC) || !lpVBDesc->dwNumVertices)
+		if (!lpVBDesc->dwNumVertices)
 		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error: invalid vertex buffer desc: " << *lpVBDesc);
+			LOG_LIMIT(100, __FUNCTION__ << " Error: invalid number of vertices: " << *lpVBDesc);
 			return DDERR_INVALIDPARAMS;
 		}
 

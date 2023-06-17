@@ -77,7 +77,7 @@ public:
 
 		LOG_LIMIT(3, "Creating interface " << __FUNCTION__ << " (" << this << ")" << " converting interface from v" << DirectXVersion << " to v" << ProxyDirectXVersion);
 
-		if (lpVBDesc && lpVBDesc->dwSize)
+		if (lpVBDesc)
 		{
 			VBDesc.dwSize = sizeof(D3DVERTEXBUFFERDESC);
 			VBDesc.dwCaps = lpVBDesc->dwCaps;
