@@ -3192,7 +3192,7 @@ HRESULT m_IDirectDrawSurfaceX::CheckInterface(char *FunctionName, bool CheckD3DD
 		IsDirect3DSurface = ddrawParent->IsUsing3D();
 
 		// Make sure surface exists, if not then create it
-		if ((!surfaceTexture && !surface3D) || (IsDirect3DSurface && !IsTexture() && !surface3D && !(IsPrimarySurface() || IsBackBuffer())))
+		if (!surfaceTexture && !surface3D)
 		{
 			if (FAILED(CreateD3d9Surface()))
 			{
@@ -3230,7 +3230,8 @@ HRESULT m_IDirectDrawSurfaceX::CreateD3d9Surface()
 	// Get texture data
 	surfaceFormat = GetDisplayFormat(surfaceDesc2.ddpfPixelFormat);
 	surfaceBitCount = GetBitCount(surfaceFormat);
-	const bool IsSurfaceEmulated = (((Config.DdrawEmulateSurface || (surfaceDesc2.ddsCaps.dwCaps & DDSCAPS_OWNDC) ||
+	const bool IsRenderTarget = (IsSurface3D() && !IsDepthBuffer());
+	const bool IsSurfaceEmulated = (((Config.DdrawEmulateSurface || (surfaceDesc2.ddsCaps.dwCaps & DDSCAPS_OWNDC) || IsRenderTarget ||
 		((IsPrimarySurface() || IsBackBuffer()) && (Config.DdrawWriteToGDI || Config.DdrawReadFromGDI || Config.DdrawRemoveScanlines))) &&
 		!(surfaceFormat & 0xFF000000 /*FOURCC or D3DFMT_DXTx*/)) ||
 		surfaceFormat == D3DFMT_A8B8G8R8 || surfaceFormat == D3DFMT_X8B8G8R8 || surfaceFormat == D3DFMT_B8G8R8 || surfaceFormat == D3DFMT_R8G8B8);
@@ -3247,29 +3248,25 @@ HRESULT m_IDirectDrawSurfaceX::CreateD3d9Surface()
 
 	HRESULT hr = DD_OK;
 
-	// Create surface texture
 	do {
-		// Create primary surface texture
-		if (IsPrimarySurface() || IsBackBuffer())
+		// Create render target texture
+		if (IsRenderTarget)
 		{
-			// Create primary texture
+			if (FAILED((*d3d9Device)->CreateTexture(Width, Height, 1, D3DUSAGE_RENDERTARGET, TextureFormat, D3DPOOL_DEFAULT, &surfaceTexture, nullptr)))
+			{
+				LOG_LIMIT(100, __FUNCTION__ << " Error: failed to create render target texture. Size: " << Width << "x" << Height << " Format: " << surfaceFormat << " dwCaps: " << Logging::hex(surfaceDesc2.ddsCaps.dwCaps));
+				hr = DDERR_GENERIC;
+				break;
+			}
+		}
+		// Create primary surface texture
+		else if (IsPrimarySurface() || IsBackBuffer())
+		{
 			if (FAILED((*d3d9Device)->CreateTexture(Width, Height, 1, 0, TextureFormat, D3DPOOL_MANAGED, &surfaceTexture, nullptr)))
 			{
 				LOG_LIMIT(100, __FUNCTION__ << " Error: failed to create primary surface texture. Size: " << Width << "x" << Height << " Format: " << surfaceFormat << " dwCaps: " << Logging::hex(surfaceDesc2.ddsCaps.dwCaps));
 				hr = DDERR_GENERIC;
 				break;
-			}
-
-			// Create palette surface
-			if (IsPrimarySurface() && surfaceFormat == D3DFMT_P8)
-			{
-				if (FAILED(((*d3d9Device)->CreateTexture(256, 256, 1, 0, D3DFMT_X8R8G8B8, D3DPOOL_MANAGED, &paletteTexture, nullptr))) ||
-					FAILED((*d3d9Device)->CreatePixelShader((DWORD*)PalettePixelShaderSrc, &pixelShader)))
-				{
-					LOG_LIMIT(100, __FUNCTION__ << " Error: failed to create palette surface texture");
-					hr = DDERR_GENERIC;
-					break;
-				}
 			}
 		}
 		// Create depth buffer
@@ -3284,7 +3281,7 @@ HRESULT m_IDirectDrawSurfaceX::CreateD3d9Surface()
 			}
 		}
 		// Create texture
-		else if (IsTexture() || !IsDirect3DSurface)
+		else
 		{
 			const D3DPOOL Pool = (surfaceDesc2.ddsCaps.dwCaps & DDSCAPS_SYSTEMMEMORY) ? D3DPOOL_SYSTEMMEM : D3DPOOL_MANAGED;
 			if (FAILED(((*d3d9Device)->CreateTexture(Width, Height, 1, 0, TextureFormat, Pool, &surfaceTexture, nullptr))))
@@ -3294,13 +3291,14 @@ HRESULT m_IDirectDrawSurfaceX::CreateD3d9Surface()
 				break;
 			}
 		}
-		// Create offplain surface
-		else
+
+		// Create palette surface
+		if (IsPrimarySurface() && surfaceFormat == D3DFMT_P8)
 		{
-			const D3DPOOL Pool = (surfaceDesc2.ddsCaps.dwCaps & DDSCAPS_SYSTEMMEMORY) ? D3DPOOL_SYSTEMMEM : D3DPOOL_DEFAULT;
-			if (FAILED((*d3d9Device)->CreateOffscreenPlainSurface(Width, Height, Format, Pool, &surface3D, nullptr)))
+			if (FAILED(((*d3d9Device)->CreateTexture(256, 256, 1, 0, D3DFMT_X8R8G8B8, D3DPOOL_MANAGED, &paletteTexture, nullptr))) ||
+				FAILED((*d3d9Device)->CreatePixelShader((DWORD*)PalettePixelShaderSrc, &pixelShader)))
 			{
-				LOG_LIMIT(100, __FUNCTION__ << " Error: failed to create surface. Size: " << Width << "x" << Height << " Format: " << surfaceFormat << " dwCaps: " << Logging::hex(surfaceDesc2.ddsCaps.dwCaps));
+				LOG_LIMIT(100, __FUNCTION__ << " Error: failed to create palette surface texture");
 				hr = DDERR_GENERIC;
 				break;
 			}
@@ -3368,7 +3366,7 @@ HRESULT m_IDirectDrawSurfaceX::CreateD3d9Surface()
 	}
 
 	// Create vertex buffer
-	if (FAILED((*d3d9Device)->CreateVertexBuffer(sizeof(TLVERTEX) * 4, D3DUSAGE_WRITEONLY, TLVERTEXFVF, D3DPOOL_MANAGED, &vertexBuffer, nullptr)))
+	if (FAILED((*d3d9Device)->CreateVertexBuffer(sizeof(TLVERTEX) * 4, D3DUSAGE_WRITEONLY, TLVERTEXFVF, D3DPOOL_DEFAULT, &vertexBuffer, nullptr)))
 	{
 		LOG_LIMIT(100, __FUNCTION__ << " Error: failed to create vertex buffer");
 		return DDERR_GENERIC;

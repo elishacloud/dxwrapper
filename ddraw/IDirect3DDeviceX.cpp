@@ -165,6 +165,7 @@ HRESULT m_IDirect3DDeviceX::Initialize(LPDIRECT3D lpd3d, LPGUID lpGUID, LPD3DDEV
 
 	if (ProxyDirectXVersion != 1)
 	{
+		// The IDirect3DDevice::Initialize method is not implemented in Windows.
 		return D3D_OK;
 	}
 
@@ -887,6 +888,8 @@ HRESULT m_IDirect3DDeviceX::SetRenderTarget(LPDIRECTDRAWSURFACE7 lpNewRenderTarg
 			return DDERR_INVALIDPARAMS;
 		}
 
+		// dwFlags: Not currently used; set to 0.
+
 		// Check for device interface
 		if (FAILED(CheckInterface(__FUNCTION__, true)))
 		{
@@ -911,7 +914,26 @@ HRESULT m_IDirect3DDeviceX::SetRenderTarget(LPDIRECTDRAWSURFACE7 lpNewRenderTarg
 			return DDERR_GENERIC;
 		}
 
-		return (*d3d9Device)->SetRenderTarget(0, pRenderTarget9);
+		HRESULT hr = (*d3d9Device)->SetRenderTarget(0, pRenderTarget9);
+
+		if (FAILED(hr))
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: 'SetRenderTarget' call failed: " << (D3DERR)hr);
+			return hr;
+		}
+
+		// ToDo: if DirectXVersion < 7 then invalidate the current material and viewport:
+		// Unlike this method's implementation in previous interfaces, IDirect3DDevice7::SetRenderTarget does not invalidate the current material or viewport for the device.
+
+		// ToDo: check depth buffer and update it as needed:
+		// Do not use this method to set a new render target surface with a depth buffer if the current render target does not have a depth buffer. Likewise, you cannot use
+		// this method to switch from a nondepth-buffered render target to a depth-buffered render target. Attempts to do this fail in debug builds and can exhibit
+		// unreliable behavior in retail builds. Since both the new and the old render targets use depth buffers, the depth buffer attached to the new render target replaces
+		// the previous depth buffer for the context.
+
+		CurrentRenderTarget = lpNewRenderTarget;
+
+		return D3D_OK;
 	}
 
 	if (lpNewRenderTarget)
@@ -933,14 +955,27 @@ HRESULT m_IDirect3DDeviceX::SetRenderTarget(LPDIRECTDRAWSURFACE7 lpNewRenderTarg
 	}
 }
 
-HRESULT m_IDirect3DDeviceX::GetRenderTarget(LPDIRECTDRAWSURFACE7 * lplpRenderTarget, DWORD DirectXVersion)
+HRESULT m_IDirect3DDeviceX::GetRenderTarget(LPDIRECTDRAWSURFACE7* lplpRenderTarget, DWORD DirectXVersion)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
 	if (Config.Dd7to9)
 	{
-		LOG_LIMIT(100, __FUNCTION__ << " Error: Not Implemented");
-		return DDERR_UNSUPPORTED;
+		if (!lplpRenderTarget)
+		{
+			return DDERR_INVALIDPARAMS;
+		}
+
+		if (!CurrentRenderTarget)
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: render target not yet set.");
+			return DDERR_GENERIC;
+		}
+
+		// ToDo: Validate RenderTarget address
+		*lplpRenderTarget = CurrentRenderTarget;
+
+		return D3D_OK;
 	}
 
 	HRESULT hr = DDERR_GENERIC;
@@ -2181,23 +2216,41 @@ HRESULT m_IDirect3DDeviceX::SetRenderState(D3DRENDERSTATETYPE dwRenderStateType,
 		case D3DRENDERSTATE_TEXTUREPERSPECTIVE:
 			return D3D_OK;		// As long as the device's D3DPTEXTURECAPS_PERSPECTIVE is enabled, the correction will be applied automatically.
 		case D3DRENDERSTATE_LINEPATTERN:
-			LOG_LIMIT(100, __FUNCTION__ << " Warning: 'D3DRENDERSTATE_LINEPATTERN' not implemented!");
+			if (dwRenderState)
+			{
+				LOG_LIMIT(100, __FUNCTION__ << " Warning: 'D3DRENDERSTATE_LINEPATTERN' not implemented!");
+			}
 			return D3D_OK;
 		case D3DRENDERSTATE_ZVISIBLE:
-			LOG_LIMIT(100, __FUNCTION__ << " Warning: 'D3DRENDERSTATE_ZVISIBLE' not implemented!");
+			if (dwRenderState)
+			{
+				LOG_LIMIT(100, __FUNCTION__ << " Warning: 'D3DRENDERSTATE_ZVISIBLE' not implemented!");
+			}
 			return D3D_OK;
 		case D3DRENDERSTATE_STIPPLEDALPHA:
-			LOG_LIMIT(100, __FUNCTION__ << " Warning: 'D3DRENDERSTATE_STIPPLEDALPHA' not implemented!");
+			if (dwRenderState)
+			{
+				LOG_LIMIT(100, __FUNCTION__ << " Warning: 'D3DRENDERSTATE_STIPPLEDALPHA' not implemented!");
+			}
 			return D3D_OK;
 		case D3DRENDERSTATE_EXTENTS:
 			// ToDo: use this to enable/disable clip plane extents set by SetClipStatus()
-			LOG_LIMIT(100, __FUNCTION__ << " Warning: 'D3DRENDERSTATE_EXTENTS' not implemented!");
+			if (dwRenderState)
+			{
+				LOG_LIMIT(100, __FUNCTION__ << " Warning: 'D3DRENDERSTATE_EXTENTS' not implemented!");
+			}
 			return D3D_OK;
 		case D3DRENDERSTATE_COLORKEYENABLE:
-			LOG_LIMIT(100, __FUNCTION__ << " Warning: 'D3DRENDERSTATE_COLORKEYENABLE' not implemented!");
+			if (dwRenderState)
+			{
+				LOG_LIMIT(100, __FUNCTION__ << " Warning: 'D3DRENDERSTATE_COLORKEYENABLE' not implemented!");
+			}
 			return D3D_OK;
 		case D3DRENDERSTATE_COLORKEYBLENDENABLE:
-			LOG_LIMIT(100, __FUNCTION__ << " Warning: 'D3DRENDERSTATE_COLORKEYBLENDENABLE' not implemented!");
+			if (dwRenderState)
+			{
+				LOG_LIMIT(100, __FUNCTION__ << " Warning: 'D3DRENDERSTATE_COLORKEYBLENDENABLE' not implemented!");
+			}
 			return D3D_OK;
 		}
 
@@ -2258,28 +2311,28 @@ HRESULT m_IDirect3DDeviceX::GetRenderState(D3DRENDERSTATETYPE dwRenderStateType,
 			*lpdwRenderState = TRUE;	// As long as the device's D3DPTEXTURECAPS_PERSPECTIVE is enabled, the correction will be applied automatically.
 			return D3D_OK;
 		case D3DRENDERSTATE_LINEPATTERN:
-			LOG_LIMIT(100, __FUNCTION__ << " Warning: 'D3DRENDERSTATE_LINEPATTERN' not implemented!");
+			//LOG_LIMIT(100, __FUNCTION__ << " Warning: 'D3DRENDERSTATE_LINEPATTERN' not implemented!");
 			*lpdwRenderState = 0;
 			return D3D_OK;
 		case D3DRENDERSTATE_ZVISIBLE:
-			LOG_LIMIT(100, __FUNCTION__ << " Warning: 'D3DRENDERSTATE_ZVISIBLE' not implemented!");
+			//LOG_LIMIT(100, __FUNCTION__ << " Warning: 'D3DRENDERSTATE_ZVISIBLE' not implemented!");
 			*lpdwRenderState = FALSE;
 			return D3D_OK;
 		case D3DRENDERSTATE_STIPPLEDALPHA:
-			LOG_LIMIT(100, __FUNCTION__ << " Warning: 'D3DRENDERSTATE_STIPPLEDALPHA' not implemented!");
+			//LOG_LIMIT(100, __FUNCTION__ << " Warning: 'D3DRENDERSTATE_STIPPLEDALPHA' not implemented!");
 			*lpdwRenderState = FALSE;
 			return D3D_OK;
 		case D3DRENDERSTATE_EXTENTS:
 			// ToDo: use this to report on clip plane extents set by SetClipStatus()
-			LOG_LIMIT(100, __FUNCTION__ << " Warning: 'D3DRENDERSTATE_EXTENTS' not implemented!");
+			//LOG_LIMIT(100, __FUNCTION__ << " Warning: 'D3DRENDERSTATE_EXTENTS' not implemented!");
 			*lpdwRenderState = FALSE;
 			return D3D_OK;
 		case D3DRENDERSTATE_COLORKEYENABLE:
-			LOG_LIMIT(100, __FUNCTION__ << " Warning: 'D3DRENDERSTATE_COLORKEYENABLE' not implemented!");
+			//LOG_LIMIT(100, __FUNCTION__ << " Warning: 'D3DRENDERSTATE_COLORKEYENABLE' not implemented!");
 			*lpdwRenderState = FALSE;
 			return D3D_OK;
 		case D3DRENDERSTATE_COLORKEYBLENDENABLE:
-			LOG_LIMIT(100, __FUNCTION__ << " Warning: 'D3DRENDERSTATE_COLORKEYBLENDENABLE' not implemented!");
+			//LOG_LIMIT(100, __FUNCTION__ << " Warning: 'D3DRENDERSTATE_COLORKEYBLENDENABLE' not implemented!");
 			*lpdwRenderState = FALSE;
 			return D3D_OK;
 		}

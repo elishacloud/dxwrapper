@@ -29,6 +29,7 @@ private:
 
 	// SetTexture array
 	LPDIRECTDRAWSURFACE7 AttachedTexture[8] = {};
+	LPDIRECTDRAWSURFACE7 CurrentRenderTarget = nullptr;
 
 	// Vector temporary buffer cache
 	std::vector<BYTE> VertexCache;

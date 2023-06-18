@@ -89,8 +89,8 @@ HRESULT m_IDirect3DLight::Initialize(LPDIRECT3D lpDirect3D)
 
 	if (!ProxyInterface)
 	{
-		LOG_LIMIT(100, __FUNCTION__ << " Error: Not Implemented");
-		return DDERR_UNSUPPORTED;
+		// The method returns DDERR_ALREADYINITIALIZED because the Direct3DLight object is initialized when it is created.
+		return DDERR_ALREADYINITIALIZED;
 	}
 
 	if (lpDirect3D)

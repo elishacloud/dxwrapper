@@ -138,9 +138,10 @@ HRESULT m_IDirectDrawPalette::Initialize(LPDIRECTDRAW lpDD, DWORD dwFlags, LPPAL
 
 	if (!ProxyInterface)
 	{
-		return DD_OK;
+		// Because the DirectDrawPalette object is initialized when it is created, this method always returns DDERR_ALREADYINITIALIZED.
+		return DDERR_ALREADYINITIALIZED;
 	}
-	
+
 	if (lpDD)
 	{
 		lpDD->QueryInterface(IID_GetRealInterface, (LPVOID*)&lpDD);
