@@ -154,7 +154,7 @@ HRESULT m_IDirect3DVertexBufferX::Lock(DWORD dwFlags, LPVOID* lplpData, LPDWORD 
 		}
 
 		// Check for device interface
-		if (FAILED(CheckInterface(__FUNCTION__, true)))
+		if (FAILED(CheckInterface(__FUNCTION__, true, false)))
 		{
 			return DDERR_GENERIC;
 		}
@@ -213,7 +213,7 @@ HRESULT m_IDirect3DVertexBufferX::Unlock()
 	if (Config.Dd7to9)
 	{
 		// Check for device interface
-		if (FAILED(CheckInterface(__FUNCTION__, true)))
+		if (FAILED(CheckInterface(__FUNCTION__, true, false)))
 		{
 			return DDERR_GENERIC;
 		}
@@ -253,16 +253,8 @@ HRESULT m_IDirect3DVertexBufferX::ProcessVertices(DWORD dwVertexOp, DWORD dwDest
 		}
 
 		// Check for device interface
-		if (FAILED(CheckInterface(__FUNCTION__, false)))
+		if (FAILED(CheckInterface(__FUNCTION__, true, true)))
 		{
-			return DDERR_GENERIC;
-		}
-
-		LPDIRECT3DDEVICE9* d3d9Device = ddrawParent->GetDirect3D9Device();
-
-		if (!d3d9Device || !*d3d9Device)
-		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error: d3d9 device not setup!");
 			return DDERR_GENERIC;
 		}
 
@@ -422,6 +414,8 @@ void m_IDirect3DVertexBufferX::InitVertexBuffer(DWORD DirectXVersion)
 	if (ddrawParent)
 	{
 		ddrawParent->AddVertexBufferToVector(this);
+
+		d3d9Device = ddrawParent->GetDirect3D9Device();
 	}
 
 	AddRef(DirectXVersion);
@@ -440,9 +434,9 @@ void m_IDirect3DVertexBufferX::ReleaseVertexBuffer()
 	}
 }
 
-HRESULT m_IDirect3DVertexBufferX::CheckInterface(char* FunctionName, bool CheckD3DVertexBuffer)
+HRESULT m_IDirect3DVertexBufferX::CheckInterface(char* FunctionName, bool CheckD3DVertexBuffer, bool CheckD3DDevice)
 {
-	// Check for device
+	// Check for ddraw parent
 	if (!ddrawParent)
 	{
 		LOG_LIMIT(100, FunctionName << " Error: no ddraw parent!");
@@ -460,6 +454,13 @@ HRESULT m_IDirect3DVertexBufferX::CheckInterface(char* FunctionName, bool CheckD
 		}
 	}
 
+	// Check for device
+	if (CheckD3DDevice && (!d3d9Device || !*d3d9Device))
+	{
+		LOG_LIMIT(100, FunctionName << " Error: d3d9 device not setup!");
+		return DDERR_GENERIC;
+	}
+
 	return DD_OK;
 }
 
@@ -469,16 +470,8 @@ HRESULT m_IDirect3DVertexBufferX::CreateD3D9VertexBuffer()
 	ReleaseD3D9VertexBuffer();
 
 	// Check for device interface
-	if (FAILED(CheckInterface(__FUNCTION__, false)))
+	if (FAILED(CheckInterface(__FUNCTION__, false, true)))
 	{
-		return DDERR_GENERIC;
-	}
-
-	LPDIRECT3DDEVICE9* d3d9Device = ddrawParent->GetDirect3D9Device();
-
-	if (!d3d9Device || !*d3d9Device)
-	{
-		LOG_LIMIT(100, __FUNCTION__ << " Error: d3d9 device not setup!");
 		return DDERR_GENERIC;
 	}
 
@@ -537,16 +530,8 @@ LPDIRECT3DINDEXBUFFER9 m_IDirect3DVertexBufferX::SetupIndexBuffer(LPWORD lpwIndi
 	}
 
 	// Check for device interface
-	if (FAILED(CheckInterface(__FUNCTION__, false)))
+	if (FAILED(CheckInterface(__FUNCTION__, false, true)))
 	{
-		return nullptr;
-	}
-
-	LPDIRECT3DDEVICE9* d3d9Device = ddrawParent->GetDirect3D9Device();
-
-	if (!d3d9Device || !*d3d9Device)
-	{
-		LOG_LIMIT(100, __FUNCTION__ << " Error: d3d9 device not setup!");
 		return nullptr;
 	}
 

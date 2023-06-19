@@ -8,6 +8,7 @@ private:
 	ULONG RefCount1 = 0;
 	ULONG RefCount7 = 0;
 	m_IDirectDrawX* ddrawParent = nullptr;
+	LPDIRECT3DDEVICE9* d3d9Device = nullptr;
 
 	// Vertex buffer desc
 	D3DVERTEXBUFFERDESC VBDesc = {};
@@ -48,7 +49,7 @@ private:
 	void ReleaseVertexBuffer();
 
 	// Check interfaces
-	HRESULT CheckInterface(char* FunctionName, bool CheckD3DVertexBuffer);
+	HRESULT CheckInterface(char* FunctionName, bool CheckD3DVertexBuffer, bool CheckD3DDevice);
 
 	// Direct3D9 interface functions
 	HRESULT CreateD3D9VertexBuffer();
