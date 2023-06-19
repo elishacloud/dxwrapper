@@ -274,9 +274,9 @@ HRESULT m_IDirect3DTextureX::Unload()
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	// Former stub method. This method was never implemented and is not supported in any interface.
 	if (ProxyDirectXVersion != 1)
 	{
+		// Former stub method. This method was never implemented and is not supported in any interface.
 		return DD_OK;
 	}
 

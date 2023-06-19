@@ -3230,8 +3230,7 @@ HRESULT m_IDirectDrawSurfaceX::CreateD3d9Surface()
 	// Get texture data
 	surfaceFormat = GetDisplayFormat(surfaceDesc2.ddpfPixelFormat);
 	surfaceBitCount = GetBitCount(surfaceFormat);
-	const bool IsRenderTarget = (IsSurface3D() && !IsDepthBuffer());
-	const bool IsSurfaceEmulated = (((Config.DdrawEmulateSurface || (surfaceDesc2.ddsCaps.dwCaps & DDSCAPS_OWNDC) || IsRenderTarget ||
+	const bool IsSurfaceEmulated = (((Config.DdrawEmulateSurface || (surfaceDesc2.ddsCaps.dwCaps & DDSCAPS_OWNDC) ||
 		((IsPrimarySurface() || IsBackBuffer()) && (Config.DdrawWriteToGDI || Config.DdrawReadFromGDI || Config.DdrawRemoveScanlines))) &&
 		!(surfaceFormat & 0xFF000000 /*FOURCC or D3DFMT_DXTx*/)) ||
 		surfaceFormat == D3DFMT_A8B8G8R8 || surfaceFormat == D3DFMT_X8B8G8R8 || surfaceFormat == D3DFMT_B8G8R8 || surfaceFormat == D3DFMT_R8G8B8);
@@ -3249,18 +3248,8 @@ HRESULT m_IDirectDrawSurfaceX::CreateD3d9Surface()
 	HRESULT hr = DD_OK;
 
 	do {
-		// Create render target texture
-		if (IsRenderTarget)
-		{
-			if (FAILED((*d3d9Device)->CreateTexture(Width, Height, 1, D3DUSAGE_RENDERTARGET, TextureFormat, D3DPOOL_DEFAULT, &surfaceTexture, nullptr)))
-			{
-				LOG_LIMIT(100, __FUNCTION__ << " Error: failed to create render target texture. Size: " << Width << "x" << Height << " Format: " << surfaceFormat << " dwCaps: " << Logging::hex(surfaceDesc2.ddsCaps.dwCaps));
-				hr = DDERR_GENERIC;
-				break;
-			}
-		}
 		// Create primary surface texture
-		else if (IsPrimarySurface() || IsBackBuffer())
+		if (IsPrimarySurface() || IsBackBuffer())
 		{
 			if (FAILED((*d3d9Device)->CreateTexture(Width, Height, 1, 0, TextureFormat, D3DPOOL_MANAGED, &surfaceTexture, nullptr)))
 			{

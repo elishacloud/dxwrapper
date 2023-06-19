@@ -38,7 +38,7 @@ HRESULT m_IDirect3DDevice3::GetCaps(LPD3DDEVICEDESC a, LPD3DDEVICEDESC b)
 
 HRESULT m_IDirect3DDevice3::GetStats(LPD3DSTATS a)
 {
-	return ProxyInterface->GetStats(a);
+	return ProxyInterface->GetStats(a, DirectXVersion);
 }
 
 HRESULT m_IDirect3DDevice3::AddViewport(LPDIRECT3DVIEWPORT3 a)

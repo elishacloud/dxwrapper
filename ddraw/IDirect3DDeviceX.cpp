@@ -1225,7 +1225,7 @@ HRESULT m_IDirect3DDeviceX::GetCaps(LPD3DDEVICEDESC7 lpD3DDevDesc)
 	return GetProxyInterfaceV7()->GetCaps(lpD3DDevDesc);
 }
 
-HRESULT m_IDirect3DDeviceX::GetStats(LPD3DSTATS lpD3DStats)
+HRESULT m_IDirect3DDeviceX::GetStats(LPD3DSTATS lpD3DStats, DWORD DirectXVersion)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
@@ -1238,6 +1238,13 @@ HRESULT m_IDirect3DDeviceX::GetStats(LPD3DSTATS lpD3DStats)
 	case 3:
 		return GetProxyInterfaceV3()->GetStats(lpD3DStats);
 	default:
+
+		if (DirectXVersion == 3)
+		{
+			// The method returns E_NOTIMPL / DDERR_UNSUPPORTED.
+			return DDERR_UNSUPPORTED;
+		}
+
 		LOG_LIMIT(100, __FUNCTION__ << " Error: Not Implemented");
 		return DDERR_UNSUPPORTED;
 	}
