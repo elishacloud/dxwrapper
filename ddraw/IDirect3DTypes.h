@@ -28,6 +28,10 @@ typedef struct _D3DLVERTEX9 {
 	FLOAT    tu, tv;
 } D3DLVERTEX9, *LPD3DLVERTEX9;
 
+void ConvertLight(D3DLIGHT& Light, D3DLIGHT& Light2);
+void ConvertLight(D3DLIGHT7& Light, D3DLIGHT7& Light2);
+void ConvertLight(D3DLIGHT& Light, D3DLIGHT7& Light7);
+void ConvertLight(D3DLIGHT7& Light7, D3DLIGHT& Light);
 void ConvertMaterial(D3DMATERIAL &Material, D3DMATERIAL &Material2);
 void ConvertMaterial(D3DMATERIAL7 &Material, D3DMATERIAL7 &Material2);
 void ConvertMaterial(D3DMATERIAL &Material, D3DMATERIAL7 &Material7);

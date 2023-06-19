@@ -1995,6 +1995,12 @@ HRESULT m_IDirect3DDeviceX::SetLight(DWORD dwLightIndex, LPD3DLIGHT7 lpLight)
 			return DDERR_INVALIDPARAMS;
 		}
 
+		if (lpLight->dltType == D3DLIGHT_PARALLELPOINT || lpLight->dltType == D3DLIGHT_GLSPOT)
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: Light Type: " << lpLight->dltType << " Not Implemented");
+			return DDERR_UNSUPPORTED;
+		}
+
 		// Check for device interface
 		if (FAILED(CheckInterface(__FUNCTION__, true)))
 		{

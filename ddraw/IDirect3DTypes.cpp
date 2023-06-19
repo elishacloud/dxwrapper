@@ -16,6 +16,63 @@
 
 #include "ddraw.h"
 
+void ConvertLight(D3DLIGHT& Light, D3DLIGHT& Light2)
+{
+	if (Light.dwSize != sizeof(D3DLIGHT) || Light2.dwSize != sizeof(D3DLIGHT))
+	{
+		LOG_LIMIT(100, __FUNCTION__ << " Error: Incorrect dwSize: " << Light.dwSize << " " << Light2.dwSize);
+		return;
+	}
+	CopyMemory(&Light, &Light2, sizeof(D3DLIGHT));
+}
+
+void ConvertLight(D3DLIGHT7& Light, D3DLIGHT7& Light2)
+{
+	CopyMemory(&Light, &Light2, sizeof(D3DLIGHT7));
+}
+
+void ConvertLight(D3DLIGHT& Light, D3DLIGHT7& Light7)
+{
+	if (Light.dwSize != sizeof(D3DLIGHT))
+	{
+		LOG_LIMIT(100, __FUNCTION__ << " Error: Incorrect dwSize: " << Light.dwSize);
+		return;
+	}
+	Light.dltType = Light7.dltType;
+	Light.dcvColor = Light7.dcvDiffuse;
+	Light.dvPosition = Light7.dvPosition;
+	Light.dvDirection = Light7.dvDirection;
+	Light.dvRange = Light7.dvRange;
+	Light.dvFalloff = Light7.dvFalloff;
+	Light.dvAttenuation0 = Light7.dvAttenuation0;
+	Light.dvAttenuation1 = Light7.dvAttenuation1;
+	Light.dvAttenuation2 = Light7.dvAttenuation2;
+	Light.dvTheta = Light7.dvTheta;
+	Light.dvPhi = Light7.dvPhi;
+}
+
+void ConvertLight(D3DLIGHT7& Light7, D3DLIGHT& Light)
+{
+	if (Light.dwSize != sizeof(D3DLIGHT))
+	{
+		LOG_LIMIT(100, __FUNCTION__ << " Error: Incorrect dwSize: " << Light.dwSize);
+		return;
+	}
+	Light7.dltType = Light.dltType;
+	Light7.dcvDiffuse = Light.dcvColor;
+	Light7.dcvSpecular = Light.dcvColor;
+	Light7.dcvAmbient = Light.dcvColor;
+	Light7.dvPosition = Light.dvPosition;
+	Light7.dvDirection = Light.dvDirection;
+	Light7.dvRange = Light.dvRange;
+	Light7.dvFalloff = Light.dvFalloff;
+	Light7.dvAttenuation0 = Light.dvAttenuation0;
+	Light7.dvAttenuation1 = Light.dvAttenuation1;
+	Light7.dvAttenuation2 = Light.dvAttenuation2;
+	Light7.dvTheta = Light.dvTheta;
+	Light7.dvPhi = Light.dvPhi;
+}
+
 void ConvertMaterial(D3DMATERIAL &Material, D3DMATERIAL &Material2)
 {
 	if (Material.dwSize != sizeof(D3DMATERIAL) || Material2.dwSize != sizeof(D3DMATERIAL))

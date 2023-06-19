@@ -174,11 +174,6 @@ HRESULT m_IDirect3DMaterialX::SetMaterial(LPD3DMATERIAL lpMat)
 			return DDERR_GENERIC;
 		}
 
-		MaterialSet = true;
-
-		Material.dwSize = sizeof(D3DMATERIAL);
-		ConvertMaterial(Material, *lpMat);
-
 		if (lpMat->hTexture)
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Warning: D3DTEXTUREHANDLE Not Implemented: " << lpMat->hTexture);
@@ -193,7 +188,19 @@ HRESULT m_IDirect3DMaterialX::SetMaterial(LPD3DMATERIAL lpMat)
 
 		ConvertMaterial(Material7, *lpMat);
 
-		return (*D3DDeviceInterface)->SetMaterial(&Material7);
+		HRESULT hr = (*D3DDeviceInterface)->SetMaterial(&Material7);
+
+		if (FAILED(hr))
+		{
+			return D3DERR_MATERIAL_SETDATA_FAILED;
+		}
+
+		MaterialSet = true;
+
+		Material.dwSize = sizeof(D3DMATERIAL);
+		ConvertMaterial(Material, *lpMat);
+
+		return D3D_OK;;
 	}
 
 	switch (ProxyDirectXVersion)

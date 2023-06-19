@@ -7,8 +7,10 @@ private:
 	REFIID WrapperID = IID_IDirect3DLight;
 	ULONG RefCount = 1;
 
-	// Convert Material
+	// Convert Light
 	m_IDirect3DDeviceX **D3DDeviceInterface = nullptr;
+	D3DLIGHT Light;
+	bool LightSet = false;
 
 	// Interface initialization functions
 	void InitLight();
