@@ -2779,102 +2779,102 @@ HRESULT m_IDirect3DDeviceX::DrawIndexedPrimitive(D3DPRIMITIVETYPE dptPrimitiveTy
 			return DDERR_GENERIC;
 		}
 
-    // Handle PositionT
-    if (Config.DdrawConvertHomogeneousW && (dwVertexTypeDesc & 0x0E) == D3DFVF_XYZRHW)
-    {
-      if (!ConvertHomogeneous.IsTransformViewSet)
-      {
-        D3DMATRIX Matrix = {};
-        GetTransform(D3DTS_VIEW, &Matrix);
-        SetTransform(D3DTS_VIEW, &Matrix);
-      }
+		const UINT stride = GetVertexStride(dwVertexTypeDesc);
 
-      const UINT stride = GetVertexStride(dwVertexTypeDesc);
+		// Handle PositionT
+		if (Config.DdrawConvertHomogeneousW && (dwVertexTypeDesc & 0x0E) == D3DFVF_XYZRHW)
+		{
+			if (!ConvertHomogeneous.IsTransformViewSet)
+			{
+				D3DMATRIX Matrix = {};
+				GetTransform(D3DTS_VIEW, &Matrix);
+				SetTransform(D3DTS_VIEW, &Matrix);
+			}
 
-      if (!Config.DdrawConvertHomogeneousToWorld)
-      {
-        /*UINT8 *vertex = (UINT8*)lpVertices;
+			if (!Config.DdrawConvertHomogeneousToWorld)
+			{
+				/*UINT8 *vertex = (UINT8*)lpVertices;
 
-        for (UINT x = 0; x < dwVertexCount; x++)
-        {
-          float *pos = (float*) vertex;
+				for (UINT x = 0; x < dwVertexCount; x++)
+				{
+				  float *pos = (float*) vertex;
 
-          pos[3] = 1.0f;
+				  pos[3] = 1.0f;
 
-          vertex += stride;
-        }*/
+				  vertex += stride;
+				}*/
 
-        // Update the FVF
-        dwVertexTypeDesc = (dwVertexTypeDesc & ~D3DFVF_XYZRHW) | D3DFVF_XYZW;
-      }
-      else
-      {
-        const UINT targetStride = stride - sizeof(float);
-        const UINT restSize = stride - sizeof(float) * 4;
+				// Update the FVF
+				dwVertexTypeDesc = (dwVertexTypeDesc & ~D3DFVF_XYZRHW) | D3DFVF_XYZW;
+			}
+			else
+			{
+				const UINT targetStride = stride - sizeof(float);
+				const UINT restSize = stride - sizeof(float) * 4;
 
-        ConvertHomogeneous.ToWorld_IntermediateGeometry.resize(targetStride * dwVertexCount);
+				ConvertHomogeneous.ToWorld_IntermediateGeometry.resize(targetStride * dwVertexCount);
 
-        UINT8 *sourceVertex = (UINT8*)lpVertices;
-        UINT8 *targetVertex = (UINT8*)ConvertHomogeneous.ToWorld_IntermediateGeometry.data();
+				UINT8* sourceVertex = (UINT8*)lpVertices;
+				UINT8* targetVertex = (UINT8*)ConvertHomogeneous.ToWorld_IntermediateGeometry.data();
 
-        lpVertices = targetVertex;
+				lpVertices = targetVertex;
 
-        for (UINT x = 0; x < dwVertexCount; x++)
-        {
-          // Transform the vertices into world space
-          float *srcpos = (float*) sourceVertex;
-          float *trgtpos = (float*) targetVertex;
+				for (UINT x = 0; x < dwVertexCount; x++)
+				{
+					// Transform the vertices into world space
+					float* srcpos = (float*)sourceVertex;
+					float* trgtpos = (float*)targetVertex;
 
-          DirectX::XMVECTOR xpos = DirectX::XMVectorSet(srcpos[0], srcpos[1], srcpos[2], srcpos[3]);
+					DirectX::XMVECTOR xpos = DirectX::XMVectorSet(srcpos[0], srcpos[1], srcpos[2], srcpos[3]);
 
-          DirectX::XMVECTOR xpos_global = DirectX::XMVector3TransformCoord(xpos, ConvertHomogeneous.ToWorld_ViewMatrixInverse);
+					DirectX::XMVECTOR xpos_global = DirectX::XMVector3TransformCoord(xpos, ConvertHomogeneous.ToWorld_ViewMatrixInverse);
 
-          xpos_global = DirectX::XMVectorDivide(xpos_global, DirectX::XMVectorSplatW(xpos_global));
+					xpos_global = DirectX::XMVectorDivide(xpos_global, DirectX::XMVectorSplatW(xpos_global));
 
-          trgtpos[0] = DirectX::XMVectorGetX(xpos_global);
-          trgtpos[1] = DirectX::XMVectorGetY(xpos_global);
-          trgtpos[2] = DirectX::XMVectorGetZ(xpos_global);
+					trgtpos[0] = DirectX::XMVectorGetX(xpos_global);
+					trgtpos[1] = DirectX::XMVectorGetY(xpos_global);
+					trgtpos[2] = DirectX::XMVectorGetZ(xpos_global);
 
-          // Copy the rest
-          std::memcpy(targetVertex + sizeof(float) * 3, sourceVertex + sizeof(float) * 4, restSize);
+					// Copy the rest
+					std::memcpy(targetVertex + sizeof(float) * 3, sourceVertex + sizeof(float) * 4, restSize);
 
-          // Move to next vertex
-          sourceVertex += stride;
-          targetVertex += targetStride;
-        }
+					// Move to next vertex
+					sourceVertex += stride;
+					targetVertex += targetStride;
+				}
 
-        // Handle dwFlags
-        DWORD rsClipping = 0, rsLighting = 0, rsExtents = 0;
-        SetDrawFlags(rsClipping, rsLighting, rsExtents, dwVertexTypeDesc, dwFlags, DirectXVersion);
+				// Handle dwFlags
+				DWORD rsClipping = 0, rsLighting = 0, rsExtents = 0;
+				SetDrawFlags(rsClipping, rsLighting, rsExtents, dwVertexTypeDesc, dwFlags, DirectXVersion);
 
-        // Set transform
-        (*d3d9Device)->SetTransform(D3DTS_VIEW, &ConvertHomogeneous.ToWorld_ViewMatrix);
-        (*d3d9Device)->SetTransform(D3DTS_PROJECTION, &ConvertHomogeneous.ToWorld_ProjectionMatrix);
+				// Set transform
+				(*d3d9Device)->SetTransform(D3DTS_VIEW, &ConvertHomogeneous.ToWorld_ViewMatrix);
+				(*d3d9Device)->SetTransform(D3DTS_PROJECTION, &ConvertHomogeneous.ToWorld_ProjectionMatrix);
 
-        // Update the FVF
-        const DWORD newVertexTypeDesc = (dwVertexTypeDesc & ~D3DFVF_XYZRHW) | D3DFVF_XYZ;
+				// Update the FVF
+				const DWORD newVertexTypeDesc = (dwVertexTypeDesc & ~D3DFVF_XYZRHW) | D3DFVF_XYZ;
 
-        // Set fixed function vertex type
-        (*d3d9Device)->SetFVF(newVertexTypeDesc);
+				// Set fixed function vertex type
+				(*d3d9Device)->SetFVF(newVertexTypeDesc);
 
-        // Draw indexed primitive UP
-        hr = (*d3d9Device)->DrawIndexedPrimitiveUP(dptPrimitiveType, 0, dwVertexCount, GetNumberOfPrimitives(dptPrimitiveType, dwIndexCount), lpIndices, D3DFMT_INDEX16, lpVertices, targetStride);
+				// Draw indexed primitive UP
+				HRESULT hr = (*d3d9Device)->DrawIndexedPrimitiveUP(dptPrimitiveType, 0, dwVertexCount, GetNumberOfPrimitives(dptPrimitiveType, dwIndexCount), lpIndices, D3DFMT_INDEX16, lpVertices, targetStride);
 
-        // Restore transform
-        D3DMATRIX identityMatrix = {};
-        identityMatrix._11 = 1.0f;
-        identityMatrix._22 = 1.0f;
-        identityMatrix._33 = 1.0f;
+				// Restore transform
+				D3DMATRIX identityMatrix = {};
+				identityMatrix._11 = 1.0f;
+				identityMatrix._22 = 1.0f;
+				identityMatrix._33 = 1.0f;
 
-        (*d3d9Device)->SetTransform(D3DTS_VIEW, &ConvertHomogeneous.ToWorld_ViewMatrixOriginal);
-        (*d3d9Device)->SetTransform(D3DTS_PROJECTION, &identityMatrix);
+				(*d3d9Device)->SetTransform(D3DTS_VIEW, &ConvertHomogeneous.ToWorld_ViewMatrixOriginal);
+				(*d3d9Device)->SetTransform(D3DTS_PROJECTION, &identityMatrix);
 
-        // Handle dwFlags
-        UnSetDrawFlags(rsClipping, rsLighting, rsExtents, newVertexTypeDesc, dwFlags, DirectXVersion);
+				// Handle dwFlags
+				UnSetDrawFlags(rsClipping, rsLighting, rsExtents, newVertexTypeDesc, dwFlags, DirectXVersion);
 
-        return hr;
-      }
-    }
+				return hr;
+			}
+		}
 
 		// Update vertices for Direct3D9 (needs to be first)
 		UpdateVertices(dwVertexTypeDesc, lpVertices, dwVertexCount);
@@ -2896,13 +2896,7 @@ HRESULT m_IDirect3DDeviceX::DrawIndexedPrimitive(D3DPRIMITIVETYPE dptPrimitiveTy
 		// Handle dwFlags
 		UnSetDrawFlags(rsClipping, rsLighting, rsExtents, dwVertexTypeDesc, dwFlags, DirectXVersion);
 
-    // Set fixed function vertex type
-    (*d3d9Device)->SetFVF(dwVertexTypeDesc);
-
-    // Draw indexed primitive UP
-    hr = (*d3d9Device)->DrawIndexedPrimitiveUP(dptPrimitiveType, 0, dwVertexCount, GetNumberOfPrimitives(dptPrimitiveType, dwIndexCount), lpIndices, D3DFMT_INDEX16, lpVertices, stride);
-
-    if (FAILED(hr))
+		if (FAILED(hr))
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Error: 'DrawIndexedPrimitiveUP' call failed: " << (D3DERR)hr);
 		}
