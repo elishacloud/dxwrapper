@@ -1153,17 +1153,8 @@ HRESULT m_IDirect3DDevice9Ex::Clear(DWORD Count, CONST D3DRECT *pRects, DWORD Fl
 
 	if (IsWindow(DeviceWindow) && (Config.FullscreenWindowMode || Config.EnableWindowMode))
 	{
-		// Attach thread input
-		DWORD dwMyID = GetCurrentThreadId();
-		DWORD dwCurID = GetWindowThreadProcessId(DeviceWindow, nullptr);
-		AttachThreadInput(dwCurID, dwMyID, TRUE);
-
 		// Peek messages to help prevent a "Not Responding" window
-		MSG msg;
-		PeekMessage(&msg, DeviceWindow, 0, 0, PM_NOREMOVE);
-
-		// Detach thread input
-		AttachThreadInput(dwCurID, dwMyID, FALSE);
+		Utils::CheckMessageQueue(DeviceWindow);
 	}
 
 	return ProxyInterface->Clear(Count, pRects, Flags, Color, Z, Stencil);

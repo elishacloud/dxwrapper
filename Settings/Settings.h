@@ -97,6 +97,8 @@
 	visit(HandleExceptions) \
 	visit(IgnoreWindowName) \
 	visit(IncludeProcess) \
+	visit(InitialWindowPositionLeft) \
+	visit(InitialWindowPositionTop) \
 	visit(isAppCompatDataSet) \
 	visit(LoadCustomDllPath) \
 	visit(LoadFromScriptsOnly) \
@@ -114,6 +116,7 @@
 	visit(RunProcess) \
 	visit(SendAltEnter) \
 	visit(SetFullScreenLayer) \
+	visit(SetInitialWindowPosition) \
 	visit(SetNamedLayer) \
 	visit(SingleProcAffinity) \
 	visit(StoppedDriverWorkaround) \
@@ -233,7 +236,7 @@ struct CONFIG
 	DWORD DdrawOverrideHeight = 0;				// Force Direct3d9 to use this height when using Dd7to9
 	DWORD DdrawOverrideRefreshRate = 0;			// Force Direct3d9 to use this refresh rate when using Dd7to9
 	DWORD DdrawOverrideStencilFormat = 0;		// Force Direct3d9 to use this AutoStencilFormat when using Dd7to9
-	bool DdrawEnableMouseHook = true;			// Allow to hook into mouse to limit it to the chosen resolution
+	bool DdrawEnableMouseHook = false;			// Allow to hook into mouse to limit it to the chosen resolution
 	bool DdrawDisableLighting = false;			// Allow to disable lighting
 	DWORD DdrawHookSystem32 = 0;				// Hooks the ddraw.dll file in the Windows System32 folder
 	DWORD D3d8HookSystem32 = 0;					// Hooks the d3d8.dll file in the Windows System32 folder
@@ -276,6 +279,9 @@ struct CONFIG
 	bool WaitForProcess = false;				// Waits for process to end before continuing, requires FullScreen
 	bool WaitForWindowChanges = false;			// Waits for window handle to stabilize before setting fullsreen, requires FullScreen
 	bool WindowModeBorder = false;				// Enables the window border when EnableWindowMode is set, requires EnableWindowMode
+	bool SetInitialWindowPosition = false;		// Enable initual window position
+	DWORD InitialWindowPositionLeft;			// Initual left window position for application
+	DWORD InitialWindowPositionTop;				// Initual top window position for application
 	DWORD LoopSleepTime = 0;					// Time to sleep between each window handle check loop, requires FullScreen
 	DWORD ResetMemoryAfter = 0;					// Undo hot patch after this amount of time
 	DWORD WindowSleepTime = 0;					// Time to wait (sleep) for window handle and screen updates to finish, requires FullScreen

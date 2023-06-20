@@ -43,7 +43,7 @@ HRESULT m_IDirect3DDevice2::SwapTextureHandles(LPDIRECT3DTEXTURE2 a, LPDIRECT3DT
 
 HRESULT m_IDirect3DDevice2::GetStats(LPD3DSTATS a)
 {
-	return ProxyInterface->GetStats(a);
+	return ProxyInterface->GetStats(a, DirectXVersion);
 }
 
 HRESULT m_IDirect3DDevice2::AddViewport(LPDIRECT3DVIEWPORT2 a)

@@ -23,10 +23,14 @@
 #include "ddraw.h"
 #include "d3dhal.h"
 #include "ddrawExternal.h"
+#ifdef DDRAWCOMPAT
 #include "DDrawCompat\DDrawCompatExternal.h"
+#endif
 #include "Dllmain\Dllmain.h"
 #include "IClassFactory\IClassFactory.h"
 #include "d3d9\d3d9External.h"
+#include "GDI\GDI.h"
+#include "External\Hooking\Hook.h"
 
 AddressLookupTableDdraw<void> ProxyAddressLookupTable = AddressLookupTableDdraw<void>();
 
@@ -60,6 +64,19 @@ void InitDDraw()
 	{
 		InitializeCriticalSection(&ddcs);
 		IsInitialized = true;
+	}
+
+	// Hook other gdi32 and user32 APIs
+	static bool RunOnce = true;
+	if (RunOnce)
+	{
+		RunOnce = false;
+		using namespace GdiWrapper;
+		GetDeviceCaps_out = (FARPROC)Hook::HotPatch(Hook::GetProcAddress(LoadLibrary("gdi32.dll"), "GetDeviceCaps"), "GetDeviceCaps", gdi_GetDeviceCaps);
+		CreateWindowExA_out = (FARPROC)Hook::HotPatch(Hook::GetProcAddress(LoadLibrary("user32.dll"), "CreateWindowExA"), "CreateWindowExA", user_CreateWindowExA);
+		CreateWindowExW_out = (FARPROC)Hook::HotPatch(Hook::GetProcAddress(LoadLibrary("user32.dll"), "CreateWindowExW"), "CreateWindowExW", user_CreateWindowExW);
+		DestroyWindow_out = (FARPROC)Hook::HotPatch(Hook::GetProcAddress(LoadLibrary("user32.dll"), "DestroyWindow"), "DestroyWindow", user_DestroyWindow);
+		GetSystemMetrics_out = (FARPROC)Hook::HotPatch(Hook::GetProcAddress(LoadLibrary("user32.dll"), "GetSystemMetrics"), "GetSystemMetrics", user_GetSystemMetrics);
 	}
 }
 
@@ -394,11 +411,13 @@ HRESULT WINAPI dd_DirectDrawCreateEx(GUID FAR *lpGUID, LPVOID *lplpDD, REFIID ri
 			return DDERR_INVALIDPARAMS;
 		}
 
+#ifdef DDRAWCOMPAT
 		// Install DDrawCompat hooks
 		if (Config.DDrawCompat)
 		{
 			DDrawCompat::InstallHooks();
 		}
+#endif
 
 		DWORD DxVersion = GetGUIDVersion(riid);
 

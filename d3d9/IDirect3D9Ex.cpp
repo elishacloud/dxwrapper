@@ -472,6 +472,17 @@ void UpdatePresentParameter(D3DPRESENT_PARAMETERS* pPresentationParameters, HWND
 		DeviceWindow = (IsWindow(hFocusWindow)) ? hFocusWindow :
 			(IsWindow(pPresentationParameters->hDeviceWindow)) ? pPresentationParameters->hDeviceWindow :
 			DeviceWindow;
+
+		// Check if window is minimized
+		if (IsIconic(DeviceWindow))
+		{
+			ShowWindow(DeviceWindow, SW_RESTORE);
+
+			// Peek messages to help prevent a "Not Responding" window
+			Utils::CheckMessageQueue(DeviceWindow);
+		}
+
+		// Get window width and height
 		if (!BufferWidth || !BufferHeight)
 		{
 			RECT tempRect;
@@ -482,7 +493,7 @@ void UpdatePresentParameter(D3DPRESENT_PARAMETERS* pPresentationParameters, HWND
 	}
 
 	// Set window size
-	if (SetWindow && Config.EnableWindowMode && IsWindow(DeviceWindow))
+	if (SetWindow && pPresentationParameters->Windowed && IsWindow(DeviceWindow))
 	{
 		bool AnyChange = (LastBufferWidth != BufferWidth || LastBufferHeight != BufferHeight || LastDeviceWindow != DeviceWindow);
 
@@ -513,8 +524,7 @@ void UpdatePresentParameter(D3DPRESENT_PARAMETERS* pPresentationParameters, HWND
 				ChangeDisplaySettingsEx(bRet ? infoex.szDevice : nullptr, &newSettings, nullptr, CDS_FULLSCREEN, nullptr);
 
 				// Peek messages to help prevent a "Not Responding" window
-				MSG msg;
-				PeekMessage(&msg, DeviceWindow, 0, 0, PM_NOREMOVE);
+				Utils::CheckMessageQueue(DeviceWindow);
 			}
 		}
 	}
@@ -552,18 +562,18 @@ void AdjustWindow(HWND MainhWnd, LONG displayWidth, LONG displayHeight)
 		return;
 	}
 
-	// Attach thread input and set window active and focus
-	DWORD dwMyID = GetCurrentThreadId();
-	DWORD dwCurID = GetWindowThreadProcessId(MainhWnd, nullptr);
-	AttachThreadInput(dwCurID, dwMyID, TRUE);
-	if ((GetWindowLong(MainhWnd, GWL_EXSTYLE) & WS_EX_TOPMOST) == 0)
+	// Set window active and focus
+	if (Config.EnableWindowMode)
 	{
-		SetWindowPos(MainhWnd, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOSIZE | SWP_NOMOVE);
-		SetWindowPos(MainhWnd, HWND_NOTOPMOST, 0, 0, 0, 0, SWP_SHOWWINDOW | SWP_NOSIZE | SWP_NOMOVE);
+		if ((GetWindowLong(MainhWnd, GWL_EXSTYLE) & WS_EX_TOPMOST) == 0)
+		{
+			SetWindowPos(MainhWnd, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOSIZE | SWP_NOMOVE);
+			SetWindowPos(MainhWnd, HWND_NOTOPMOST, 0, 0, 0, 0, SWP_SHOWWINDOW | SWP_NOSIZE | SWP_NOMOVE);
+		}
+		SetForegroundWindow(MainhWnd);
+		SetFocus(MainhWnd);
+		SetActiveWindow(MainhWnd);
 	}
-	SetForegroundWindow(MainhWnd);
-	SetFocus(MainhWnd);
-	SetActiveWindow(MainhWnd);
 
 	// Get screen width and height
 	LONG screenWidth = 0, screenHeight = 0;
@@ -572,13 +582,14 @@ void AdjustWindow(HWND MainhWnd, LONG displayWidth, LONG displayHeight)
 	Utils::GetDesktopRect(MainhWnd, screenRect);
 
 	// Get window style
-	LONG lStyle = GetWindowLong(MainhWnd, GWL_STYLE) | WS_VISIBLE;
+	LONG lOriginalStyle = GetWindowLong(MainhWnd, GWL_STYLE);
+	LONG lStyle = lOriginalStyle | WS_VISIBLE;
 	LONG lExStyle = GetWindowLong(MainhWnd, GWL_EXSTYLE);
 
 	// Get new style
 	RECT Rect = { 0, 0, displayWidth, displayHeight };
 	AdjustWindowRectEx(&Rect, (lStyle | WS_OVERLAPPEDWINDOW) & ~(WS_MAXIMIZEBOX | WS_THICKFRAME), GetMenu(MainhWnd) != NULL, lExStyle);
-	if (!Config.FullscreenWindowMode && Config.WindowModeBorder && screenWidth > Rect.right - Rect.left && screenHeight > Rect.bottom - Rect.top)
+	if (Config.WindowModeBorder && !Config.FullscreenWindowMode && screenWidth > Rect.right - Rect.left && screenHeight > Rect.bottom - Rect.top)
 	{
 		lStyle = (lStyle | WS_OVERLAPPEDWINDOW) & ~(WS_MAXIMIZEBOX | WS_THICKFRAME);
 	}
@@ -588,27 +599,54 @@ void AdjustWindow(HWND MainhWnd, LONG displayWidth, LONG displayHeight)
 	}
 
 	// Set window style
-	SetWindowLong(MainhWnd, GWL_STYLE, lStyle);
-	SetWindowPos(MainhWnd, HWND_TOP, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_FRAMECHANGED | SWP_NOSENDCHANGING);
+	if (Config.EnableWindowMode || (lOriginalStyle & WS_VISIBLE) == NULL)
+	{
+		lStyle = (Config.EnableWindowMode) ? lStyle : (lOriginalStyle | WS_VISIBLE);
+		SetWindowLong(MainhWnd, GWL_STYLE, lStyle);
+		SetWindowPos(MainhWnd, HWND_TOP, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_FRAMECHANGED | SWP_NOSENDCHANGING);
+	}
 
 	// Get new window rect
 	Rect = { 0, 0, displayWidth, displayHeight };
-	AdjustWindowRectEx(&Rect, lStyle, GetMenu(MainhWnd) != NULL, lExStyle);
+	AdjustWindowRectEx(&Rect, GetWindowLong(MainhWnd, GWL_STYLE), GetMenu(MainhWnd) != NULL, lExStyle);
 	Rect = { 0, 0, Rect.right - Rect.left, Rect.bottom - Rect.top };
 
-	// Move window to center and adjust size
+	// Get upper left window position
+	bool SetWindowPositionFlag = Config.FullscreenWindowMode;
 	LONG xLoc = 0, yLoc = 0;
-	if (!Config.FullscreenWindowMode && Config.EnableWindowMode && screenWidth >= Rect.right && screenHeight >= Rect.bottom)
+	if (Config.SetInitialWindowPosition && !Config.FullscreenWindowMode &&
+		(Config.InitialWindowPositionLeft == 0 || Rect.right + (LONG)Config.InitialWindowPositionLeft <= screenWidth) &&
+		(Config.InitialWindowPositionTop == 0 || Rect.bottom + (LONG)Config.InitialWindowPositionTop <= screenHeight))
 	{
+		SetWindowPositionFlag = true;
+		xLoc = Config.InitialWindowPositionLeft;
+		yLoc = Config.InitialWindowPositionTop;
+	}
+	else if (Config.EnableWindowMode && !Config.FullscreenWindowMode && screenWidth >= Rect.right && screenHeight >= Rect.bottom)
+	{
+		SetWindowPositionFlag = true;
 		xLoc = (screenWidth - Rect.right) / 2;
 		yLoc = (screenHeight - Rect.bottom) / 2;
 	}
-	SetWindowPos(MainhWnd, HWND_TOP, xLoc, yLoc, Rect.right, Rect.bottom, SWP_SHOWWINDOW | SWP_NOZORDER | SWP_NOSENDCHANGING);
+
+	// Center and adjust size of window
+	if (SetWindowPositionFlag)
+	{
+		// Use SetWindowPlacement to center and adjust size
+		WINDOWPLACEMENT wndpl = {};
+		wndpl.length = sizeof(WINDOWPLACEMENT);
+		if (GetWindowPlacement(MainhWnd, &wndpl))
+		{
+			wndpl.rcNormalPosition = { xLoc, yLoc, Rect.right + xLoc, Rect.bottom + yLoc };
+			SetWindowPlacement(MainhWnd, &wndpl);
+		}
+		// Use SetWindowPos to center and adjust size
+		else
+		{
+			SetWindowPos(MainhWnd, HWND_TOP, xLoc, yLoc, Rect.right, Rect.bottom, SWP_SHOWWINDOW | SWP_NOZORDER | SWP_NOSENDCHANGING);
+		}
+	}
 
 	// Peek messages to help prevent a "Not Responding" window
-	MSG msg;
-	PeekMessage(&msg, MainhWnd, 0, 0, PM_NOREMOVE);
-
-	// Detach thread input
-	AttachThreadInput(dwCurID, dwMyID, FALSE);
+	Utils::CheckMessageQueue(MainhWnd);
 }

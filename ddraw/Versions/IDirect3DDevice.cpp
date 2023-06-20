@@ -53,7 +53,7 @@ HRESULT m_IDirect3DDevice::CreateExecuteBuffer(LPD3DEXECUTEBUFFERDESC a, LPDIREC
 
 HRESULT m_IDirect3DDevice::GetStats(LPD3DSTATS a)
 {
-	return ProxyInterface->GetStats(a);
+	return ProxyInterface->GetStats(a, DirectXVersion);
 }
 
 HRESULT m_IDirect3DDevice::Execute(LPDIRECT3DEXECUTEBUFFER a, LPDIRECT3DVIEWPORT b, DWORD c)

@@ -89,8 +89,8 @@ HRESULT m_IDirect3DLight::Initialize(LPDIRECT3D lpDirect3D)
 
 	if (!ProxyInterface)
 	{
-		LOG_LIMIT(100, __FUNCTION__ << " Not Implemented");
-		return DDERR_UNSUPPORTED;
+		// The method returns DDERR_ALREADYINITIALIZED because the Direct3DLight object is initialized when it is created.
+		return DDERR_ALREADYINITIALIZED;
 	}
 
 	if (lpDirect3D)
@@ -107,8 +107,35 @@ HRESULT m_IDirect3DLight::SetLight(LPD3DLIGHT lpLight)
 
 	if (!ProxyInterface)
 	{
-		LOG_LIMIT(100, __FUNCTION__ << " Not Implemented");
-		return DDERR_UNSUPPORTED;
+		if (!lpLight || lpLight->dwSize != sizeof(D3DLIGHT))
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: Incorrect dwSize: " << ((lpLight) ? lpLight->dwSize : -1));
+			return DDERR_INVALIDPARAMS;
+		}
+
+		if (!D3DDeviceInterface || !*D3DDeviceInterface)
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: no D3DirectDevice interface!");
+			return DDERR_GENERIC;
+		}
+
+		D3DLIGHT7 Light7;
+
+		ConvertLight(Light7, *lpLight);
+
+		HRESULT hr = (*D3DDeviceInterface)->SetLight(0, &Light7);
+
+		if (FAILED(hr))
+		{
+			return D3DERR_LIGHT_SET_FAILED;
+		}
+
+		LightSet = true;
+
+		Light.dwSize = sizeof(D3DLIGHT);
+		ConvertLight(Light, *lpLight);
+
+		return D3D_OK;
 	}
 
 	return ProxyInterface->SetLight(lpLight);
@@ -120,8 +147,21 @@ HRESULT m_IDirect3DLight::GetLight(LPD3DLIGHT lpLight)
 
 	if (!ProxyInterface)
 	{
-		LOG_LIMIT(100, __FUNCTION__ << " Not Implemented");
-		return DDERR_UNSUPPORTED;
+		if (!lpLight)
+		{
+			return DDERR_INVALIDPARAMS;
+		}
+
+		if (LightSet)
+		{
+			lpLight->dwSize = sizeof(D3DLIGHT);
+
+			ConvertLight(*lpLight, Light);
+
+			return D3D_OK;
+		}
+
+		return DDERR_GENERIC;
 	}
 
 	return ProxyInterface->GetLight(lpLight);

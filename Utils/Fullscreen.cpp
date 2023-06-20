@@ -569,11 +569,6 @@ void Fullscreen::SendAltEnter(HWND& hwnd)
 // Sets the window to fullscreen
 void Fullscreen::SetFullScreen(HWND& hwnd, const MONITORINFO& mi)
 {
-	// Attach to window thread
-	DWORD dwMyID = GetCurrentThreadId();
-	DWORD dwCurID = GetWindowThreadProcessId(hwnd, nullptr);
-	AttachThreadInput(dwCurID, dwMyID, TRUE);
-
 	// Try restoring the window to normal
 	PostMessage(hwnd, WM_SYSCOMMAND, SW_SHOWNORMAL, 0);
 
@@ -607,11 +602,7 @@ void Fullscreen::SetFullScreen(HWND& hwnd, const MONITORINFO& mi)
 	SetActiveWindow(hwnd);
 
 	// Peek messages to help prevent a "Not Responding" window
-	MSG msg;
-	PeekMessage(&msg, hwnd, 0, 0, PM_NOREMOVE);
-
-	// Dettach from window thread
-	AttachThreadInput(dwCurID, dwMyID, FALSE);
+	Utils::CheckMessageQueue(hwnd);
 }
 
 
@@ -979,8 +970,7 @@ void Fullscreen::MainFunc()
 					LastFullscreenLoop = CurrentLoop;
 
 					// Peek messages to help prevent a "Not Responding" window
-					MSG msg;
-					PeekMessage(&msg, CurrentLoop.hwnd, 0, 0, PM_NOREMOVE);
+					Utils::CheckMessageQueue(CurrentLoop.hwnd);
 				} // Window is too small
 
 			} // Change detected in screen resolution or window

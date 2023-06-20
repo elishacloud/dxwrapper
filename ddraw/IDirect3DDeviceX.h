@@ -28,7 +28,7 @@ private:
 
 	// Convert Device
 	m_IDirectDrawX *ddrawParent = nullptr;
-	m_IDirect3DViewportX *lpCurrentViewport = nullptr;
+	LPDIRECT3DVIEWPORT3 lpCurrentViewport = nullptr;
 	LPDIRECT3DDEVICE9 *d3d9Device = nullptr;
 
 	// Store d3d device version wrappers
@@ -37,8 +37,43 @@ private:
 	m_IDirect3DDevice3 *WrapperInterface3;
 	m_IDirect3DDevice7 *WrapperInterface7;
 
+	// Last clip status
+	D3DCLIPSTATUS D3DClipStatus = {};
+
 	// SetTexture array
 	LPDIRECTDRAWSURFACE7 AttachedTexture[8] = {};
+	LPDIRECTDRAWSURFACE7 CurrentRenderTarget = nullptr;
+
+	// Vector temporary buffer cache
+	std::vector<BYTE> VertexCache;
+
+	// Viewport array
+	std::vector<LPDIRECT3DVIEWPORT3> AttachedViewports;
+
+	bool IsViewportAttached(LPDIRECT3DVIEWPORT3 ViewportX)
+	{
+		auto it = std::find_if(AttachedViewports.begin(), AttachedViewports.end(),
+			[=](auto pViewport) -> bool { return pViewport == ViewportX; });
+
+		if (it != std::end(AttachedViewports))
+		{
+			return true;
+		}
+		return false;
+	}
+
+	bool DeleteAttachedViewport(LPDIRECT3DVIEWPORT3 ViewportX)
+	{
+		auto it = std::find_if(AttachedViewports.begin(), AttachedViewports.end(),
+			[=](auto pViewport) -> bool { return pViewport == ViewportX; });
+
+		if (it != std::end(AttachedViewports))
+		{
+			AttachedViewports.erase(it);
+			return true;
+		}
+		return false;
+	}
 
 	// The data used for rendering Homogeneous
 	CONVERTHOMOGENEOUS ConvertHomogeneous;
@@ -141,7 +176,7 @@ public:
 	STDMETHOD(SetTextureStageState)(THIS_ DWORD, D3DTEXTURESTAGESTATETYPE, DWORD);
 	STDMETHOD(GetCaps)(THIS_ LPD3DDEVICEDESC, LPD3DDEVICEDESC);
 	STDMETHOD(GetCaps)(THIS_ LPD3DDEVICEDESC7);
-	STDMETHOD(GetStats)(THIS_ LPD3DSTATS);
+	STDMETHOD(GetStats)(THIS_ LPD3DSTATS, DWORD);
 	STDMETHOD(AddViewport)(THIS_ LPDIRECT3DVIEWPORT3);
 	STDMETHOD(DeleteViewport)(THIS_ LPDIRECT3DVIEWPORT3);
 	STDMETHOD(NextViewport)(THIS_ LPDIRECT3DVIEWPORT3, LPDIRECT3DVIEWPORT3*, DWORD, DWORD);
@@ -209,7 +244,6 @@ public:
 	void ResetDevice();
 	void SetDrawFlags(DWORD &rsClipping, DWORD &rsLighting, DWORD &rsExtents, DWORD dwVertexTypeDesc, DWORD dwFlags, DWORD DirectXVersion);
 	void UnSetDrawFlags(DWORD rsClipping, DWORD rsLighting, DWORD rsExtents, DWORD dwVertexTypeDesc, DWORD dwFlags, DWORD DirectXVersion);
-	void CopyScaleVertex(LPVOID lpVertices, std::vector<D3DTLVERTEX> &pVert, DWORD dwVertexCount);
-	UINT GetNumberOfPrimitives(D3DPRIMITIVETYPE dptPrimitiveType, DWORD dwVertexCount);
-	UINT GetVertexStride(DWORD dwVertexTypeDesc);
+	void ScaleVertices(DWORD dwVertexTypeDesc, LPVOID& lpVertices, DWORD dwVertexCount);
+	void UpdateVertices(DWORD& dwVertexTypeDesc, LPVOID& lpVertices, DWORD dwVertexCount);
 };

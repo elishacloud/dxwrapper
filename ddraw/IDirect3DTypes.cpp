@@ -16,6 +16,63 @@
 
 #include "ddraw.h"
 
+void ConvertLight(D3DLIGHT& Light, D3DLIGHT& Light2)
+{
+	if (Light.dwSize != sizeof(D3DLIGHT) || Light2.dwSize != sizeof(D3DLIGHT))
+	{
+		LOG_LIMIT(100, __FUNCTION__ << " Error: Incorrect dwSize: " << Light.dwSize << " " << Light2.dwSize);
+		return;
+	}
+	CopyMemory(&Light, &Light2, sizeof(D3DLIGHT));
+}
+
+void ConvertLight(D3DLIGHT7& Light, D3DLIGHT7& Light2)
+{
+	CopyMemory(&Light, &Light2, sizeof(D3DLIGHT7));
+}
+
+void ConvertLight(D3DLIGHT& Light, D3DLIGHT7& Light7)
+{
+	if (Light.dwSize != sizeof(D3DLIGHT))
+	{
+		LOG_LIMIT(100, __FUNCTION__ << " Error: Incorrect dwSize: " << Light.dwSize);
+		return;
+	}
+	Light.dltType = Light7.dltType;
+	Light.dcvColor = Light7.dcvDiffuse;
+	Light.dvPosition = Light7.dvPosition;
+	Light.dvDirection = Light7.dvDirection;
+	Light.dvRange = Light7.dvRange;
+	Light.dvFalloff = Light7.dvFalloff;
+	Light.dvAttenuation0 = Light7.dvAttenuation0;
+	Light.dvAttenuation1 = Light7.dvAttenuation1;
+	Light.dvAttenuation2 = Light7.dvAttenuation2;
+	Light.dvTheta = Light7.dvTheta;
+	Light.dvPhi = Light7.dvPhi;
+}
+
+void ConvertLight(D3DLIGHT7& Light7, D3DLIGHT& Light)
+{
+	if (Light.dwSize != sizeof(D3DLIGHT))
+	{
+		LOG_LIMIT(100, __FUNCTION__ << " Error: Incorrect dwSize: " << Light.dwSize);
+		return;
+	}
+	Light7.dltType = Light.dltType;
+	Light7.dcvDiffuse = Light.dcvColor;
+	Light7.dcvSpecular = Light.dcvColor;
+	Light7.dcvAmbient = Light.dcvColor;
+	Light7.dvPosition = Light.dvPosition;
+	Light7.dvDirection = Light.dvDirection;
+	Light7.dvRange = Light.dvRange;
+	Light7.dvFalloff = Light.dvFalloff;
+	Light7.dvAttenuation0 = Light.dvAttenuation0;
+	Light7.dvAttenuation1 = Light.dvAttenuation1;
+	Light7.dvAttenuation2 = Light.dvAttenuation2;
+	Light7.dvTheta = Light.dvTheta;
+	Light7.dvPhi = Light.dvPhi;
+}
+
 void ConvertMaterial(D3DMATERIAL &Material, D3DMATERIAL &Material2)
 {
 	if (Material.dwSize != sizeof(D3DMATERIAL) || Material2.dwSize != sizeof(D3DMATERIAL))
@@ -421,6 +478,34 @@ void ConvertDeviceDesc(D3DDEVICEDESC7 &Desc7, D3DCAPS9 &Caps9)
 	Desc7.dwReserved4 = 0;
 }
 
+void ConvertVertices(D3DLVERTEX* lFVF, D3DLVERTEX9* lFVF9, DWORD NumVertices)
+{
+	for (UINT x = 0; x < NumVertices; x++)
+	{
+		lFVF[x].x = lFVF9[x].x;
+		lFVF[x].y = lFVF9[x].y;
+		lFVF[x].z = lFVF9[x].z;
+		lFVF[x].color = lFVF9[x].diffuse;
+		lFVF[x].specular = lFVF9[x].specular;
+		lFVF[x].tu = lFVF9[x].tu;
+		lFVF[x].tv = lFVF9[x].tv;
+	}
+}
+
+void ConvertVertices(D3DLVERTEX9* lFVF9, D3DLVERTEX* lFVF, DWORD NumVertices)
+{
+	for (UINT x = 0; x < NumVertices; x++)
+	{
+		lFVF9[x].x = lFVF[x].x;
+		lFVF9[x].y = lFVF[x].y;
+		lFVF9[x].z = lFVF[x].z;
+		lFVF9[x].diffuse = lFVF[x].color;
+		lFVF9[x].specular = lFVF[x].specular;
+		lFVF9[x].tu = lFVF[x].tu;
+		lFVF9[x].tv = lFVF[x].tv;
+	}
+}
+
 bool CheckTextureStageStateType(D3DTEXTURESTAGESTATETYPE dwState)
 {
 	switch (dwState)
@@ -560,4 +645,62 @@ bool CheckRenderStateType(D3DRENDERSTATETYPE dwRenderStateType)
 	default:
 		return false;
 	}
+}
+
+UINT GetVertexStride(DWORD dwVertexTypeDesc)
+{
+	// Reserved:
+	// #define D3DFVF_RESERVED0        0x001  // (DX7)
+	// #define D3DFVF_RESERVED0        0x001  // (DX9)
+
+	// #define D3DFVF_RESERVED1        0x020  // (DX7)
+	// #define D3DFVF_PSIZE            0x020  // (DX9)
+
+	// #define D3DFVF_RESERVED2        0xf000  // 4 reserved bits (DX7)
+	// #define D3DFVF_RESERVED2        0x6000  // 2 reserved bits (DX9)
+
+	// Check for unsupported vertex types
+	DWORD UnSupportedVertexTypes = dwVertexTypeDesc & ~(D3DFVF_POSITION_MASK | D3DFVF_NORMAL | D3DFVF_DIFFUSE | D3DFVF_SPECULAR | D3DFVF_TEXCOUNT_MASK);
+	if (UnSupportedVertexTypes)
+	{
+		LOG_LIMIT(100, __FUNCTION__ " Warning: Unsupported FVF type: " << Logging::hex(UnSupportedVertexTypes));
+	}
+
+	return
+		(((dwVertexTypeDesc & D3DFVF_POSITION_MASK) == D3DFVF_XYZ) ? sizeof(float) * 3 : 0) +
+		(((dwVertexTypeDesc & D3DFVF_POSITION_MASK) == D3DFVF_XYZRHW) ? sizeof(float) * 4 : 0) +
+		(((dwVertexTypeDesc & D3DFVF_POSITION_MASK) == D3DFVF_XYZB1) ? sizeof(float) * 4 : 0) +
+		(((dwVertexTypeDesc & D3DFVF_POSITION_MASK) == D3DFVF_XYZB2) ? sizeof(float) * 5 : 0) +
+		(((dwVertexTypeDesc & D3DFVF_POSITION_MASK) == D3DFVF_XYZB3) ? sizeof(float) * 6 : 0) +
+		(((dwVertexTypeDesc & D3DFVF_POSITION_MASK) == D3DFVF_XYZB4) ? sizeof(float) * 6 + sizeof(DWORD) : 0) +
+		(((dwVertexTypeDesc & D3DFVF_POSITION_MASK) == D3DFVF_XYZB5) ? sizeof(float) * 7 + sizeof(DWORD) : 0) +
+		((dwVertexTypeDesc & D3DFVF_NORMAL) ? sizeof(float) * 3 : 0) +
+		((dwVertexTypeDesc & D3DFVF_DIFFUSE) ? sizeof(D3DCOLOR) : 0) +
+		((dwVertexTypeDesc & D3DFVF_SPECULAR) ? sizeof(D3DCOLOR) : 0) +
+		(((dwVertexTypeDesc & D3DFVF_TEXCOUNT_MASK) == D3DFVF_TEX1) ? sizeof(float) * 2 : 0) +
+		(((dwVertexTypeDesc & D3DFVF_TEXCOUNT_MASK) == D3DFVF_TEX2) ? sizeof(float) * 4 : 0) +
+		(((dwVertexTypeDesc & D3DFVF_TEXCOUNT_MASK) == D3DFVF_TEX3) ? sizeof(float) * 6 : 0) +
+		(((dwVertexTypeDesc & D3DFVF_TEXCOUNT_MASK) == D3DFVF_TEX4) ? sizeof(float) * 8 : 0) +
+		(((dwVertexTypeDesc & D3DFVF_TEXCOUNT_MASK) == D3DFVF_TEX5) ? sizeof(float) * 10 : 0) +
+		(((dwVertexTypeDesc & D3DFVF_TEXCOUNT_MASK) == D3DFVF_TEX6) ? sizeof(float) * 12 : 0) +
+		(((dwVertexTypeDesc & D3DFVF_TEXCOUNT_MASK) == D3DFVF_TEX7) ? sizeof(float) * 14 : 0) +
+		(((dwVertexTypeDesc & D3DFVF_TEXCOUNT_MASK) == D3DFVF_TEX8) ? sizeof(float) * 16 : 0) +
+		0;
+}
+
+UINT GetNumberOfPrimitives(D3DPRIMITIVETYPE dptPrimitiveType, DWORD dwVertexCount)
+{
+	if (!dptPrimitiveType || dptPrimitiveType > 6)
+	{
+		LOG_LIMIT(100, __FUNCTION__ " Warning: Unsupported primitive type: " << dptPrimitiveType);
+	}
+
+	return
+		(dptPrimitiveType == D3DPT_POINTLIST) ? dwVertexCount :
+		(dptPrimitiveType == D3DPT_LINELIST) ? dwVertexCount / 2 :
+		(dptPrimitiveType == D3DPT_LINESTRIP) ? dwVertexCount - 1 :
+		(dptPrimitiveType == D3DPT_TRIANGLELIST) ? dwVertexCount / 3 :
+		(dptPrimitiveType == D3DPT_TRIANGLESTRIP) ? dwVertexCount - 2 :
+		(dptPrimitiveType == D3DPT_TRIANGLEFAN) ? dwVertexCount - 2 :
+		0;
 }

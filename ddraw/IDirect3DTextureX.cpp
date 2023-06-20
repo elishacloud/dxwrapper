@@ -134,9 +134,9 @@ HRESULT m_IDirect3DTextureX::Initialize(LPDIRECT3DDEVICE lpDirect3DDevice, LPDIR
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	// Former stub method. This method was never implemented and is not supported in any interface.
 	if (ProxyDirectXVersion != 1)
 	{
+		// Former stub method. This method was never implemented and is not supported in any interface.
 		return D3D_OK;
 	}
 
@@ -187,7 +187,7 @@ HRESULT m_IDirect3DTextureX::PaletteChanged(DWORD dwStart, DWORD dwCount)
 
 	if (!ProxyInterface)
 	{
-		LOG_LIMIT(100, __FUNCTION__ << " Not Implemented");
+		LOG_LIMIT(100, __FUNCTION__ << " Error: Not Implemented");
 		return DDERR_UNSUPPORTED;
 	}
 
@@ -274,9 +274,9 @@ HRESULT m_IDirect3DTextureX::Unload()
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	// Former stub method. This method was never implemented and is not supported in any interface.
 	if (ProxyDirectXVersion != 1)
 	{
+		// Former stub method. This method was never implemented and is not supported in any interface.
 		return DD_OK;
 	}
 

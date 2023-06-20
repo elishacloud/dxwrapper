@@ -447,6 +447,7 @@ void Settings::SetDefaultConfigSettings()
 	Config.DisableHighDPIScaling = true;
 	Config.ResetScreenRes = true;
 	Config.FixSpeakerConfigType = true;
+	Config.DdrawEnableMouseHook = true;
 
 	// Set other default values
 	Config.WindowSleepTime = 500;
@@ -692,9 +693,9 @@ void CONFIG::SetConfig()
 	}
 
 	// Check stencil format
-	if (DdrawOverrideStencilFormat < 70 || DdrawOverrideStencilFormat > 80)
+	if (DdrawOverrideStencilFormat && DdrawOverrideStencilFormat < 70 || DdrawOverrideStencilFormat > 80)
 	{
-		Logging::Log() << "Invalid 'DdrawOverrideStencilFormat'!  Disabling...";
+		Logging::Log() << __FUNCTION__ << " Invalid 'DdrawOverrideStencilFormat'!  Disabling...";
 		DdrawOverrideStencilFormat = 0;
 	}
 

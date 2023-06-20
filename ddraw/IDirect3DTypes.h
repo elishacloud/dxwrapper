@@ -11,6 +11,8 @@
 #define D3DTSS_ADDRESS 12
 #endif
 
+#define LVERTEX_SIZE 32
+
 #undef D3DFVF_RESERVED2
 #define D3DFVF_RESERVED2        0xf000  // 4 reserved bits
 #define D3DFVF_RESERVED2_9      0x6000  // 2 reserved bits
@@ -26,6 +28,10 @@ typedef struct _D3DLVERTEX9 {
 	FLOAT    tu, tv;
 } D3DLVERTEX9, *LPD3DLVERTEX9;
 
+void ConvertLight(D3DLIGHT& Light, D3DLIGHT& Light2);
+void ConvertLight(D3DLIGHT7& Light, D3DLIGHT7& Light2);
+void ConvertLight(D3DLIGHT& Light, D3DLIGHT7& Light7);
+void ConvertLight(D3DLIGHT7& Light7, D3DLIGHT& Light);
 void ConvertMaterial(D3DMATERIAL &Material, D3DMATERIAL &Material2);
 void ConvertMaterial(D3DMATERIAL7 &Material, D3DMATERIAL7 &Material2);
 void ConvertMaterial(D3DMATERIAL &Material, D3DMATERIAL7 &Material7);
@@ -43,5 +49,9 @@ void ConvertCaps(D3DPRIMCAPS &PrimCaps, D3DPRIMCAPS &PrimCaps2);
 void ConvertDeviceDesc(D3DDEVICEDESC &Desc, D3DDEVICEDESC7 &Desc7);
 void ConvertDeviceDescSoft(D3DDEVICEDESC &Desc);
 void ConvertDeviceDesc(D3DDEVICEDESC7 &Desc7, D3DCAPS9 &Caps9);
+void ConvertVertices(D3DLVERTEX* lFVF, D3DLVERTEX9* lFVF9, DWORD NumVertices);
+void ConvertVertices(D3DLVERTEX9* lFVF9, D3DLVERTEX* lFVF, DWORD NumVertices);
 bool CheckTextureStageStateType(D3DTEXTURESTAGESTATETYPE dwState);
 bool CheckRenderStateType(D3DRENDERSTATETYPE dwRenderStateType);
+UINT GetVertexStride(DWORD dwVertexTypeDesc);
+UINT GetNumberOfPrimitives(D3DPRIMITIVETYPE dptPrimitiveType, DWORD dwVertexCount);

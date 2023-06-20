@@ -165,6 +165,7 @@ HRESULT m_IDirect3DDeviceX::Initialize(LPDIRECT3D lpd3d, LPGUID lpGUID, LPD3DDEV
 
 	if (ProxyDirectXVersion != 1)
 	{
+		// The IDirect3DDevice::Initialize method is not implemented in Windows.
 		return D3D_OK;
 	}
 
@@ -182,7 +183,7 @@ HRESULT m_IDirect3DDeviceX::CreateExecuteBuffer(LPD3DEXECUTEBUFFERDESC lpDesc, L
 
 	if (ProxyDirectXVersion != 1)
 	{
-		LOG_LIMIT(100, __FUNCTION__ << " Not Implemented");
+		LOG_LIMIT(100, __FUNCTION__ << " Error: Not Implemented");
 		return DDERR_UNSUPPORTED;
 	}
 
@@ -202,7 +203,7 @@ HRESULT m_IDirect3DDeviceX::Execute(LPDIRECT3DEXECUTEBUFFER lpDirect3DExecuteBuf
 
 	if (ProxyDirectXVersion != 1)
 	{
-		LOG_LIMIT(100, __FUNCTION__ << " Not Implemented");
+		LOG_LIMIT(100, __FUNCTION__ << " Error: Not Implemented");
 		return DDERR_UNSUPPORTED;
 	}
 
@@ -224,7 +225,7 @@ HRESULT m_IDirect3DDeviceX::Pick(LPDIRECT3DEXECUTEBUFFER lpDirect3DExecuteBuffer
 
 	if (ProxyDirectXVersion != 1)
 	{
-		LOG_LIMIT(100, __FUNCTION__ << " Not Implemented");
+		LOG_LIMIT(100, __FUNCTION__ << " Error: Not Implemented");
 		return DDERR_UNSUPPORTED;
 	}
 
@@ -246,7 +247,7 @@ HRESULT m_IDirect3DDeviceX::GetPickRecords(LPDWORD lpCount, LPD3DPICKRECORD lpD3
 
 	if (ProxyDirectXVersion != 1)
 	{
-		LOG_LIMIT(100, __FUNCTION__ << " Not Implemented");
+		LOG_LIMIT(100, __FUNCTION__ << " Error: Not Implemented");
 		return DDERR_UNSUPPORTED;
 	}
 
@@ -259,7 +260,7 @@ HRESULT m_IDirect3DDeviceX::CreateMatrix(LPD3DMATRIXHANDLE lpD3DMatHandle)
 
 	if (ProxyDirectXVersion != 1)
 	{
-		LOG_LIMIT(100, __FUNCTION__ << " Not Implemented");
+		LOG_LIMIT(100, __FUNCTION__ << " Error: Not Implemented");
 		return DDERR_UNSUPPORTED;
 	}
 
@@ -272,7 +273,7 @@ HRESULT m_IDirect3DDeviceX::SetMatrix(D3DMATRIXHANDLE d3dMatHandle, const LPD3DM
 
 	if (ProxyDirectXVersion != 1)
 	{
-		LOG_LIMIT(100, __FUNCTION__ << " Not Implemented");
+		LOG_LIMIT(100, __FUNCTION__ << " Error: Not Implemented");
 		return DDERR_UNSUPPORTED;
 	}
 
@@ -285,7 +286,7 @@ HRESULT m_IDirect3DDeviceX::GetMatrix(D3DMATRIXHANDLE lpD3DMatHandle, LPD3DMATRI
 
 	if (ProxyDirectXVersion != 1)
 	{
-		LOG_LIMIT(100, __FUNCTION__ << " Not Implemented");
+		LOG_LIMIT(100, __FUNCTION__ << " Error: Not Implemented");
 		return DDERR_UNSUPPORTED;
 	}
 
@@ -298,7 +299,7 @@ HRESULT m_IDirect3DDeviceX::DeleteMatrix(D3DMATRIXHANDLE d3dMatHandle)
 
 	if (ProxyDirectXVersion != 1)
 	{
-		LOG_LIMIT(100, __FUNCTION__ << " Not Implemented");
+		LOG_LIMIT(100, __FUNCTION__ << " Error: Not Implemented");
 		return DDERR_UNSUPPORTED;
 	}
 
@@ -634,7 +635,7 @@ HRESULT m_IDirect3DDeviceX::SwapTextureHandles(LPDIRECT3DTEXTURE2 lpD3DTex1, LPD
 
 	if (ProxyDirectXVersion > 2)
 	{
-		LOG_LIMIT(100, __FUNCTION__ << " Not Implemented");
+		LOG_LIMIT(100, __FUNCTION__ << " Error: Not Implemented");
 		return DDERR_UNSUPPORTED;
 	}
 
@@ -713,7 +714,7 @@ HRESULT m_IDirect3DDeviceX::EnumTextureFormats(LPD3DENUMPIXELFORMATSCALLBACK lpd
 	{
 		if (!lpd3dEnumPixelProc)
 		{
-			return DDERR_GENERIC;
+			return DDERR_INVALIDPARAMS;
 		}
 
 		// Check for device interface
@@ -997,9 +998,10 @@ HRESULT m_IDirect3DDeviceX::SetRenderTarget(LPDIRECTDRAWSURFACE7 lpNewRenderTarg
 	{
 		if (!lpNewRenderTarget)
 		{
-			Logging::Log() << __FUNCTION__ " Error: nullptr";
-			return DDERR_GENERIC;
+			return DDERR_INVALIDPARAMS;
 		}
+
+		// dwFlags: Not currently used; set to 0.
 
 		// Check for device interface
 		if (FAILED(CheckInterface(__FUNCTION__, true)))
@@ -1013,7 +1015,7 @@ HRESULT m_IDirect3DDeviceX::SetRenderTarget(LPDIRECTDRAWSURFACE7 lpNewRenderTarg
 
 		if (!lpDDSrcSurfaceX)
 		{
-			Logging::Log() << __FUNCTION__ " Error: surface does not exist! " << lpDDSrcSurfaceX;
+			LOG_LIMIT(100, __FUNCTION__ << " Error: could not get surface wrapper!");
 			return DDERR_GENERIC;
 		}
 
@@ -1025,7 +1027,26 @@ HRESULT m_IDirect3DDeviceX::SetRenderTarget(LPDIRECTDRAWSURFACE7 lpNewRenderTarg
 			return DDERR_GENERIC;
 		}
 
-		return (*d3d9Device)->SetRenderTarget(0, pRenderTarget9);
+		HRESULT hr = (*d3d9Device)->SetRenderTarget(0, pRenderTarget9);
+
+		if (FAILED(hr))
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: 'SetRenderTarget' call failed: " << (D3DERR)hr);
+			return hr;
+		}
+
+		// ToDo: if DirectXVersion < 7 then invalidate the current material and viewport:
+		// Unlike this method's implementation in previous interfaces, IDirect3DDevice7::SetRenderTarget does not invalidate the current material or viewport for the device.
+
+		// ToDo: check depth buffer and update it as needed:
+		// Do not use this method to set a new render target surface with a depth buffer if the current render target does not have a depth buffer. Likewise, you cannot use
+		// this method to switch from a nondepth-buffered render target to a depth-buffered render target. Attempts to do this fail in debug builds and can exhibit
+		// unreliable behavior in retail builds. Since both the new and the old render targets use depth buffers, the depth buffer attached to the new render target replaces
+		// the previous depth buffer for the context.
+
+		CurrentRenderTarget = lpNewRenderTarget;
+
+		return D3D_OK;
 	}
 
 	if (lpNewRenderTarget)
@@ -1047,14 +1068,27 @@ HRESULT m_IDirect3DDeviceX::SetRenderTarget(LPDIRECTDRAWSURFACE7 lpNewRenderTarg
 	}
 }
 
-HRESULT m_IDirect3DDeviceX::GetRenderTarget(LPDIRECTDRAWSURFACE7 * lplpRenderTarget, DWORD DirectXVersion)
+HRESULT m_IDirect3DDeviceX::GetRenderTarget(LPDIRECTDRAWSURFACE7* lplpRenderTarget, DWORD DirectXVersion)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
 	if (Config.Dd7to9)
 	{
-		LOG_LIMIT(100, __FUNCTION__ << " Not Implemented");
-		return DDERR_UNSUPPORTED;
+		if (!lplpRenderTarget)
+		{
+			return DDERR_INVALIDPARAMS;
+		}
+
+		if (!CurrentRenderTarget)
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: render target not yet set.");
+			return DDERR_GENERIC;
+		}
+
+		// ToDo: Validate RenderTarget address
+		*lplpRenderTarget = CurrentRenderTarget;
+
+		return D3D_OK;
 	}
 
 	HRESULT hr = DDERR_GENERIC;
@@ -1304,7 +1338,7 @@ HRESULT m_IDirect3DDeviceX::GetCaps(LPD3DDEVICEDESC7 lpD3DDevDesc)
 	return GetProxyInterfaceV7()->GetCaps(lpD3DDevDesc);
 }
 
-HRESULT m_IDirect3DDeviceX::GetStats(LPD3DSTATS lpD3DStats)
+HRESULT m_IDirect3DDeviceX::GetStats(LPD3DSTATS lpD3DStats, DWORD DirectXVersion)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
@@ -1317,7 +1351,14 @@ HRESULT m_IDirect3DDeviceX::GetStats(LPD3DSTATS lpD3DStats)
 	case 3:
 		return GetProxyInterfaceV3()->GetStats(lpD3DStats);
 	default:
-		LOG_LIMIT(100, __FUNCTION__ << " Not Implemented");
+
+		if (DirectXVersion == 3)
+		{
+			// The method returns E_NOTIMPL / DDERR_UNSUPPORTED.
+			return DDERR_UNSUPPORTED;
+		}
+
+		LOG_LIMIT(100, __FUNCTION__ << " Error: Not Implemented");
 		return DDERR_UNSUPPORTED;
 	}
 }
@@ -1328,28 +1369,18 @@ HRESULT m_IDirect3DDeviceX::AddViewport(LPDIRECT3DVIEWPORT3 lpDirect3DViewport)
 
 	if (Config.Dd7to9 || ProxyDirectXVersion == 7)
 	{
-		if (!lpDirect3DViewport)
+		// This method will fail, returning DDERR_INVALIDPARAMS, if you attempt to add a viewport that has already been assigned to the device.
+		if (!lpDirect3DViewport || IsViewportAttached(lpDirect3DViewport))
 		{
 			return DDERR_INVALIDPARAMS;
 		}
 
-		D3DVIEWPORT Viewport;
-		Viewport.dwSize = sizeof(D3DVIEWPORT);
-
 		// ToDo: Validate Viewport address
-		// ToDo: Increment Viewport ref count
-		HRESULT hr = lpDirect3DViewport->GetViewport(&Viewport);
+		AttachedViewports.push_back(lpDirect3DViewport);
 
-		if (SUCCEEDED(hr))
-		{
-			D3DVIEWPORT7 Viewport7;
+		lpDirect3DViewport->AddRef();
 
-			ConvertViewport(Viewport7, Viewport);
-
-			hr = SetViewport(&Viewport7);
-		}
-
-		return hr;
+		return D3D_OK;
 	}
 
 	if (lpDirect3DViewport)
@@ -1376,8 +1407,23 @@ HRESULT m_IDirect3DDeviceX::DeleteViewport(LPDIRECT3DVIEWPORT3 lpDirect3DViewpor
 
 	if (ProxyDirectXVersion > 3)
 	{
-		LOG_LIMIT(100, __FUNCTION__ << " Not Implemented");
-		return DDERR_UNSUPPORTED;
+		if (!lpDirect3DViewport)
+		{
+			return DDERR_INVALIDPARAMS;
+		}
+
+		// ToDo: Figure out what to do if an attempting to delete the SetCurrentViewport
+		bool ret = DeleteAttachedViewport(lpDirect3DViewport);
+
+		if (!ret)
+		{
+			return DDERR_INVALIDPARAMS;
+		}
+
+		// ToDo: Validate Viewport address
+		lpDirect3DViewport->Release();
+
+		return D3D_OK;
 	}
 
 	if (lpDirect3DViewport)
@@ -1404,8 +1450,47 @@ HRESULT m_IDirect3DDeviceX::NextViewport(LPDIRECT3DVIEWPORT3 lpDirect3DViewport,
 
 	if (ProxyDirectXVersion > 3)
 	{
-		LOG_LIMIT(100, __FUNCTION__ << " Not Implemented");
-		return DDERR_UNSUPPORTED;
+		if (!lplpDirect3DViewport || (dwFlags == D3DNEXT_NEXT && !lpDirect3DViewport))
+		{
+			return DDERR_INVALIDPARAMS;
+		}
+
+		*lplpDirect3DViewport = nullptr;
+
+		if (AttachedViewports.size() == 0)
+		{
+			return D3DERR_NOVIEWPORTS;
+		}
+
+		switch (dwFlags)
+		{
+		case D3DNEXT_HEAD:
+			// Retrieve the item at the beginning of the list.
+			*lplpDirect3DViewport = AttachedViewports.front();
+			break;
+		case D3DNEXT_TAIL:
+			// Retrieve the item at the end of the list.
+			*lplpDirect3DViewport = AttachedViewports.back();
+			break;
+		case D3DNEXT_NEXT:
+			// Retrieve the next item in the list.
+			// If you attempt to retrieve the next viewport in the list when you are at the end of the list, this method returns D3D_OK but lplpAnotherViewport is NULL.
+			for (UINT x = 1; x < AttachedViewports.size(); x++)
+			{
+				if (AttachedViewports[x - 1] == lpDirect3DViewport)
+				{
+					*lplpDirect3DViewport = AttachedViewports[x];
+					break;
+				}
+			}
+			break;
+		default:
+			return DDERR_INVALIDPARAMS;
+			break;
+		}
+
+		// ToDo: Validate return Viewport address
+		return D3D_OK;
 	}
 
 	if (lpDirect3DViewport)
@@ -1442,11 +1527,35 @@ HRESULT m_IDirect3DDeviceX::SetCurrentViewport(LPDIRECT3DVIEWPORT3 lpd3dViewport
 
 	if (Config.Dd7to9 || ProxyDirectXVersion == 7)
 	{
-		// ToDo: Validate Viewport address
-		// ToDo: Increment Viewport ref count
-		lpCurrentViewport = (m_IDirect3DViewportX*)lpd3dViewport;
+		// Before calling this method, applications must have already called the AddViewport method to add the viewport to the device.
+		if (!lpd3dViewport || !IsViewportAttached(lpd3dViewport))
+		{
+			return DDERR_INVALIDPARAMS;
+		}
 
-		return D3D_OK;
+		D3DVIEWPORT Viewport = {};
+		Viewport.dwSize = sizeof(D3DVIEWPORT);
+
+		// ToDo: Validate Viewport address
+		HRESULT hr = lpd3dViewport->GetViewport(&Viewport);
+
+		if (SUCCEEDED(hr))
+		{
+			D3DVIEWPORT7 Viewport7;
+
+			ConvertViewport(Viewport7, Viewport);
+
+			hr = SetViewport(&Viewport7);
+
+			if (SUCCEEDED(hr))
+			{
+				lpCurrentViewport = lpd3dViewport;
+
+				lpCurrentViewport->AddRef();
+			}
+		}
+
+		return hr;
 	}
 
 	if (lpd3dViewport)
@@ -1483,8 +1592,9 @@ HRESULT m_IDirect3DDeviceX::GetCurrentViewport(LPDIRECT3DVIEWPORT3* lplpd3dViewp
 		}
 
 		// ToDo: Validate Viewport address
-		// ToDo: Increment Viewport ref count
-		*lplpd3dViewport = (LPDIRECT3DVIEWPORT3)lpCurrentViewport;
+		*lplpd3dViewport = lpCurrentViewport;
+
+		lpCurrentViewport->AddRef();
 
 		return D3D_OK;
 	}
@@ -1572,7 +1682,7 @@ HRESULT m_IDirect3DDeviceX::Begin(D3DPRIMITIVETYPE d3dpt, DWORD d3dvt, DWORD dwF
 
 	if (ProxyDirectXVersion > 3)
 	{
-		LOG_LIMIT(100, __FUNCTION__ << " Not Implemented");
+		LOG_LIMIT(100, __FUNCTION__ << " Error: Not Implemented");
 		return DDERR_UNSUPPORTED;
 	}
 
@@ -1594,7 +1704,7 @@ HRESULT m_IDirect3DDeviceX::BeginIndexed(D3DPRIMITIVETYPE dptPrimitiveType, DWOR
 
 	if (ProxyDirectXVersion > 3)
 	{
-		LOG_LIMIT(100, __FUNCTION__ << " Not Implemented");
+		LOG_LIMIT(100, __FUNCTION__ << " Error: Not Implemented");
 		return DDERR_UNSUPPORTED;
 	}
 
@@ -1616,7 +1726,7 @@ HRESULT m_IDirect3DDeviceX::Vertex(LPVOID lpVertexType)
 
 	if (ProxyDirectXVersion > 3)
 	{
-		LOG_LIMIT(100, __FUNCTION__ << " Not Implemented");
+		LOG_LIMIT(100, __FUNCTION__ << " Error: Not Implemented");
 		return DDERR_UNSUPPORTED;
 	}
 
@@ -1638,7 +1748,7 @@ HRESULT m_IDirect3DDeviceX::Index(WORD wVertexIndex)
 
 	if (ProxyDirectXVersion > 3)
 	{
-		LOG_LIMIT(100, __FUNCTION__ << " Not Implemented");
+		LOG_LIMIT(100, __FUNCTION__ << " Error: Not Implemented");
 		return DDERR_UNSUPPORTED;
 	}
 
@@ -1660,7 +1770,7 @@ HRESULT m_IDirect3DDeviceX::End(DWORD dwFlags)
 
 	if (ProxyDirectXVersion > 3)
 	{
-		LOG_LIMIT(100, __FUNCTION__ << " Not Implemented");
+		LOG_LIMIT(100, __FUNCTION__ << " Error: Not Implemented");
 		return DDERR_UNSUPPORTED;
 	}
 
@@ -1734,6 +1844,33 @@ HRESULT m_IDirect3DDeviceX::EndScene()
 			return DDERR_GENERIC;
 		}
 
+		// Draw 2D DirectDraw surface
+		/*m_IDirectDrawSurfaceX* PrimarySurface = ddrawParent->GetPrimarySurface();
+		if (PrimarySurface && !PrimarySurface->IsSurface3D())
+		{
+			DWORD SRCBLEND = 0, DESTBLEND = 0, ALPHABLENDENABLE = 0;
+			(*d3d9Device)->GetRenderState(D3DRS_SRCBLEND, &SRCBLEND);
+			(*d3d9Device)->GetRenderState(D3DRS_DESTBLEND, &DESTBLEND);
+			(*d3d9Device)->GetRenderState(D3DRS_ALPHABLENDENABLE, &ALPHABLENDENABLE);
+
+			(*d3d9Device)->SetRenderState(D3DRS_SRCBLEND, D3DBLEND_ONE);
+			(*d3d9Device)->SetRenderState(D3DRS_DESTBLEND, D3DBLEND_ONE);
+			(*d3d9Device)->SetRenderState(D3DRS_ALPHABLENDENABLE, TRUE);
+
+			DWORD LIGHTING = 0, MAGFILTER = 0;
+			(*d3d9Device)->GetRenderState(D3DRS_LIGHTING, &LIGHTING);
+			(*d3d9Device)->GetSamplerState(0, D3DSAMP_MAGFILTER, &MAGFILTER);
+
+			PrimarySurface->Draw2DSurface();
+
+			(*d3d9Device)->SetRenderState(D3DRS_LIGHTING, LIGHTING);
+			(*d3d9Device)->SetSamplerState(0, D3DSAMP_MAGFILTER, MAGFILTER);
+
+			(*d3d9Device)->SetRenderState(D3DRS_SRCBLEND, SRCBLEND);
+			(*d3d9Device)->SetRenderState(D3DRS_DESTBLEND, DESTBLEND);
+			(*d3d9Device)->SetRenderState(D3DRS_ALPHABLENDENABLE, ALPHABLENDENABLE);
+		}*/
+
 #ifdef ENABLE_DEBUGOVERLAY
 		DOverlay.EndScene();
 #endif
@@ -1741,9 +1878,15 @@ HRESULT m_IDirect3DDeviceX::EndScene()
 		// The IDirect3DDevice7::EndScene method ends a scene that was begun by calling the IDirect3DDevice7::BeginScene method.
 		// When this method succeeds, the scene has been rendered, and the device surface holds the rendered scene.
 
-		(*d3d9Device)->EndScene();
+		HRESULT hr = (*d3d9Device)->EndScene();
 
-		return (*d3d9Device)->Present(nullptr, nullptr, nullptr, nullptr);
+		// Present surface after end scene
+		if (SUCCEEDED(hr))
+		{
+			hr = ddrawParent->Present();
+		}
+
+		return hr;
 	}
 
 	switch (ProxyDirectXVersion)
@@ -1779,15 +1922,42 @@ HRESULT m_IDirect3DDeviceX::Clear(DWORD dwCount, LPD3DRECT lpRects, DWORD dwFlag
 	return GetProxyInterfaceV7()->Clear(dwCount, lpRects, dwFlags, dwColor, dvZ, dwStencil);
 }
 
-HRESULT m_IDirect3DDeviceX::GetDirect3D(LPDIRECT3D7 * lplpD3D, DWORD DirectXVersion)
+HRESULT m_IDirect3DDeviceX::GetDirect3D(LPDIRECT3D7* lplpD3D, DWORD DirectXVersion)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
 	if (Config.Dd7to9)
 	{
-		// Increment Direct3D ref count
-		LOG_LIMIT(100, __FUNCTION__ << " Not Implemented");
-		return DDERR_UNSUPPORTED;
+		if (!lplpD3D)
+		{
+			return DDERR_INVALIDPARAMS;
+		}
+
+		*lplpD3D = nullptr;
+
+		// Check for device interface
+		if (FAILED(CheckInterface(__FUNCTION__, false)))
+		{
+			return DDERR_GENERIC;
+		}
+
+		m_IDirect3DX** lplpD3DX = ddrawParent->GetCurrentD3D();
+
+		if (!(*lplpD3DX))
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: missing Direct3D wrapper!");
+			return DDERR_GENERIC;
+		}
+
+		*lplpD3D = (LPDIRECT3D7)(*lplpD3DX)->GetWrapperInterfaceX(DirectXVersion);
+
+		if (!(*lplpD3D))
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: could not get Direct3D interface!");
+			return DDERR_GENERIC;
+		}
+
+		return D3D_OK;
 	}
 
 	HRESULT hr = DDERR_GENERIC;
@@ -1824,7 +1994,7 @@ HRESULT m_IDirect3DDeviceX::GetLightState(D3DLIGHTSTATETYPE dwLightStateType, LP
 	{
 		if (dwLightStateType == D3DLIGHTSTATE_MATERIAL || dwLightStateType == D3DLIGHTSTATE_COLORMODEL)
 		{
-			LOG_LIMIT(100, __FUNCTION__ << " LightStateType: " << dwLightStateType << " Not Implemented");
+			LOG_LIMIT(100, __FUNCTION__ << " Error: LightStateType: " << dwLightStateType << " Not Implemented");
 			return DDERR_UNSUPPORTED;
 		}
 
@@ -1882,7 +2052,7 @@ HRESULT m_IDirect3DDeviceX::SetLightState(D3DLIGHTSTATETYPE dwLightStateType, DW
 	{
 		if (dwLightStateType == D3DLIGHTSTATE_MATERIAL || dwLightStateType == D3DLIGHTSTATE_COLORMODEL)
 		{
-			LOG_LIMIT(100, __FUNCTION__ << " LightStateType: " << dwLightStateType << " Not Implemented");
+			LOG_LIMIT(100, __FUNCTION__ << " Error: LightStateType: " << dwLightStateType << " Not Implemented");
 			return DDERR_UNSUPPORTED;
 		}
 
@@ -1941,6 +2111,12 @@ HRESULT m_IDirect3DDeviceX::SetLight(DWORD dwLightIndex, LPD3DLIGHT7 lpLight)
 		if (!lpLight)
 		{
 			return DDERR_INVALIDPARAMS;
+		}
+
+		if (lpLight->dltType == D3DLIGHT_PARALLELPOINT || lpLight->dltType == D3DLIGHT_GLSPOT)
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: Light Type: " << lpLight->dltType << " Not Implemented");
+			return DDERR_UNSUPPORTED;
 		}
 
 		// Check for device interface
@@ -2177,22 +2353,41 @@ HRESULT m_IDirect3DDeviceX::SetRenderState(D3DRENDERSTATETYPE dwRenderStateType,
 		case D3DRENDERSTATE_TEXTUREPERSPECTIVE:
 			return D3D_OK;		// As long as the device's D3DPTEXTURECAPS_PERSPECTIVE is enabled, the correction will be applied automatically.
 		case D3DRENDERSTATE_LINEPATTERN:
-			LOG_LIMIT(100, __FUNCTION__ << " Warning: 'D3DRENDERSTATE_LINEPATTERN' not implemented!");
+			if (dwRenderState)
+			{
+				LOG_LIMIT(100, __FUNCTION__ << " Warning: 'D3DRENDERSTATE_LINEPATTERN' not implemented!");
+			}
 			return D3D_OK;
 		case D3DRENDERSTATE_ZVISIBLE:
-			LOG_LIMIT(100, __FUNCTION__ << " Warning: 'D3DRENDERSTATE_ZVISIBLE' not implemented!");
+			if (dwRenderState)
+			{
+				LOG_LIMIT(100, __FUNCTION__ << " Warning: 'D3DRENDERSTATE_ZVISIBLE' not implemented!");
+			}
 			return D3D_OK;
 		case D3DRENDERSTATE_STIPPLEDALPHA:
-			LOG_LIMIT(100, __FUNCTION__ << " Warning: 'D3DRENDERSTATE_STIPPLEDALPHA' not implemented!");
+			if (dwRenderState)
+			{
+				LOG_LIMIT(100, __FUNCTION__ << " Warning: 'D3DRENDERSTATE_STIPPLEDALPHA' not implemented!");
+			}
 			return D3D_OK;
 		case D3DRENDERSTATE_EXTENTS:
-			LOG_LIMIT(100, __FUNCTION__ << " Warning: 'D3DRENDERSTATE_EXTENTS' not implemented!");
+			// ToDo: use this to enable/disable clip plane extents set by SetClipStatus()
+			if (dwRenderState)
+			{
+				LOG_LIMIT(100, __FUNCTION__ << " Warning: 'D3DRENDERSTATE_EXTENTS' not implemented!");
+			}
 			return D3D_OK;
 		case D3DRENDERSTATE_COLORKEYENABLE:
-			LOG_LIMIT(100, __FUNCTION__ << " Warning: 'D3DRENDERSTATE_COLORKEYENABLE' not implemented!");
+			if (dwRenderState)
+			{
+				LOG_LIMIT(100, __FUNCTION__ << " Warning: 'D3DRENDERSTATE_COLORKEYENABLE' not implemented!");
+			}
 			return D3D_OK;
 		case D3DRENDERSTATE_COLORKEYBLENDENABLE:
-			LOG_LIMIT(100, __FUNCTION__ << " Warning: 'D3DRENDERSTATE_COLORKEYBLENDENABLE' not implemented!");
+			if (dwRenderState)
+			{
+				LOG_LIMIT(100, __FUNCTION__ << " Warning: 'D3DRENDERSTATE_COLORKEYBLENDENABLE' not implemented!");
+			}
 			return D3D_OK;
 		}
 
@@ -2253,27 +2448,28 @@ HRESULT m_IDirect3DDeviceX::GetRenderState(D3DRENDERSTATETYPE dwRenderStateType,
 			*lpdwRenderState = TRUE;	// As long as the device's D3DPTEXTURECAPS_PERSPECTIVE is enabled, the correction will be applied automatically.
 			return D3D_OK;
 		case D3DRENDERSTATE_LINEPATTERN:
-			LOG_LIMIT(100, __FUNCTION__ << " Warning: 'D3DRENDERSTATE_LINEPATTERN' not implemented!");
+			//LOG_LIMIT(100, __FUNCTION__ << " Warning: 'D3DRENDERSTATE_LINEPATTERN' not implemented!");
 			*lpdwRenderState = 0;
 			return D3D_OK;
 		case D3DRENDERSTATE_ZVISIBLE:
-			LOG_LIMIT(100, __FUNCTION__ << " Warning: 'D3DRENDERSTATE_ZVISIBLE' not implemented!");
+			//LOG_LIMIT(100, __FUNCTION__ << " Warning: 'D3DRENDERSTATE_ZVISIBLE' not implemented!");
 			*lpdwRenderState = FALSE;
 			return D3D_OK;
 		case D3DRENDERSTATE_STIPPLEDALPHA:
-			LOG_LIMIT(100, __FUNCTION__ << " Warning: 'D3DRENDERSTATE_STIPPLEDALPHA' not implemented!");
+			//LOG_LIMIT(100, __FUNCTION__ << " Warning: 'D3DRENDERSTATE_STIPPLEDALPHA' not implemented!");
 			*lpdwRenderState = FALSE;
 			return D3D_OK;
 		case D3DRENDERSTATE_EXTENTS:
-			LOG_LIMIT(100, __FUNCTION__ << " Warning: 'D3DRENDERSTATE_EXTENTS' not implemented!");
+			// ToDo: use this to report on clip plane extents set by SetClipStatus()
+			//LOG_LIMIT(100, __FUNCTION__ << " Warning: 'D3DRENDERSTATE_EXTENTS' not implemented!");
 			*lpdwRenderState = FALSE;
 			return D3D_OK;
 		case D3DRENDERSTATE_COLORKEYENABLE:
-			LOG_LIMIT(100, __FUNCTION__ << " Warning: 'D3DRENDERSTATE_COLORKEYENABLE' not implemented!");
+			//LOG_LIMIT(100, __FUNCTION__ << " Warning: 'D3DRENDERSTATE_COLORKEYENABLE' not implemented!");
 			*lpdwRenderState = FALSE;
 			return D3D_OK;
 		case D3DRENDERSTATE_COLORKEYBLENDENABLE:
-			LOG_LIMIT(100, __FUNCTION__ << " Warning: 'D3DRENDERSTATE_COLORKEYBLENDENABLE' not implemented!");
+			//LOG_LIMIT(100, __FUNCTION__ << " Warning: 'D3DRENDERSTATE_COLORKEYBLENDENABLE' not implemented!");
 			*lpdwRenderState = FALSE;
 			return D3D_OK;
 		}
@@ -2359,55 +2555,37 @@ HRESULT m_IDirect3DDeviceX::DrawPrimitive(D3DPRIMITIVETYPE dptPrimitiveType, DWO
 			return DDERR_GENERIC;
 		}
 
-		// dwFlags (D3DDP_WAIT) can be ignored safely
+		// Update vertices for Direct3D9 (needs to be first)
+		UpdateVertices(dwVertexTypeDesc, lpVertices, dwVertexCount);
+
+		// Set fixed function vertex type
+		if (FAILED((*d3d9Device)->SetFVF(dwVertexTypeDesc)))
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: invalid FVF type: " << Logging::hex(dwVertexTypeDesc));
+			return D3DERR_INVALIDVERTEXTYPE;
+		}
 
 		// Handle dwFlags
 		DWORD rsClipping = 0, rsLighting = 0, rsExtents = 0;
 		SetDrawFlags(rsClipping, rsLighting, rsExtents, dwVertexTypeDesc, dwFlags, DirectXVersion);
 
-		HRESULT hr;
-		if (D3DFVF_LVERTEX == dwVertexTypeDesc)
-		{
-			D3DLVERTEX *lFVF = (D3DLVERTEX*)lpVertices;
-			std::vector<D3DLVERTEX9> lFVF9(dwVertexCount);
-
-			for (UINT x = 0; x < dwVertexCount; x++)
-			{
-				lFVF9[x].x = lFVF[x].x;
-				lFVF9[x].y = lFVF[x].y;
-				lFVF9[x].z = lFVF[x].z;
-				lFVF9[x].diffuse = lFVF[x].color;
-				lFVF9[x].specular = lFVF[x].specular;
-				lFVF9[x].tu = lFVF[x].tu;
-				lFVF9[x].tv = lFVF[x].tv;
-			}
-
-			// Set fixed function vertex type
-			(*d3d9Device)->SetFVF(D3DFVF_LVERTEX9);
-
-			// Draw primitive UP
-			hr = (*d3d9Device)->DrawPrimitiveUP(dptPrimitiveType, GetNumberOfPrimitives(dptPrimitiveType, dwVertexCount), &lFVF9[0], sizeof(D3DLVERTEX9));
-		}
-		else
-		{
-			// Set fixed function vertex type
-			(*d3d9Device)->SetFVF(dwVertexTypeDesc);
-
-			// Draw primitive UP
-			hr = (*d3d9Device)->DrawPrimitiveUP(dptPrimitiveType, GetNumberOfPrimitives(dptPrimitiveType, dwVertexCount), lpVertices, GetVertexStride(dwVertexTypeDesc));
-		}
+		// Draw primitive UP
+		HRESULT hr = (*d3d9Device)->DrawPrimitiveUP(dptPrimitiveType, GetNumberOfPrimitives(dptPrimitiveType, dwVertexCount), lpVertices, GetVertexStride(dwVertexTypeDesc));
 
 		// Handle dwFlags
 		UnSetDrawFlags(rsClipping, rsLighting, rsExtents, dwVertexTypeDesc, dwFlags, DirectXVersion);
 
+		if (FAILED(hr))
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: 'DrawPrimitiveUP' call failed: " << (D3DERR)hr);
+		}
+
 		return hr;
 	}
 
-	std::vector<D3DTLVERTEX> pVert;
-	if (Config.DdrawUseNativeResolution && dwVertexTypeDesc == 3)
+	if (Config.DdrawUseNativeResolution)
 	{
-		CopyScaleVertex(lpVertices, pVert, dwVertexCount);
-		lpVertices = &pVert[0];
+		ScaleVertices(dwVertexTypeDesc, lpVertices, dwVertexCount);
 	}
 
 	switch (ProxyDirectXVersion)
@@ -2446,7 +2624,7 @@ HRESULT m_IDirect3DDeviceX::DrawPrimitiveStrided(D3DPRIMITIVETYPE dptPrimitiveTy
 
 	if (Config.Dd7to9)
 	{
-		LOG_LIMIT(100, __FUNCTION__ << " Not Implemented");
+		LOG_LIMIT(100, __FUNCTION__ << " Error: Not Implemented");
 		return DDERR_UNSUPPORTED;
 	}
 
@@ -2479,14 +2657,69 @@ HRESULT m_IDirect3DDeviceX::DrawPrimitiveStrided(D3DPRIMITIVETYPE dptPrimitiveTy
 	}
 }
 
-HRESULT m_IDirect3DDeviceX::DrawPrimitiveVB(D3DPRIMITIVETYPE d3dptPrimitiveType, LPDIRECT3DVERTEXBUFFER7 lpd3dVertexBuffer, DWORD dwStartVertex, DWORD dwNumVertices, DWORD dwFlags, DWORD DirectXVersion)
+HRESULT m_IDirect3DDeviceX::DrawPrimitiveVB(D3DPRIMITIVETYPE dptPrimitiveType, LPDIRECT3DVERTEXBUFFER7 lpd3dVertexBuffer, DWORD dwStartVertex, DWORD dwNumVertices, DWORD dwFlags, DWORD DirectXVersion)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
 	if (Config.Dd7to9)
 	{
-		LOG_LIMIT(100, __FUNCTION__ << " Not Implemented");
-		return DDERR_UNSUPPORTED;
+		if (!lpd3dVertexBuffer)
+		{
+			return DDERR_INVALIDPARAMS;
+		}
+
+		// Check for device interface
+		if (FAILED(CheckInterface(__FUNCTION__, true)))
+		{
+			return DDERR_GENERIC;
+		}
+
+		// ToDo: Validate vertex buffer
+		m_IDirect3DVertexBufferX* pVertexBufferX = nullptr;
+		lpd3dVertexBuffer->QueryInterface(IID_GetInterfaceX, (LPVOID*)&pVertexBufferX);
+
+		if (!pVertexBufferX)
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: could not get vertex buffer wrapper!");
+			return DDERR_GENERIC;
+		}
+
+		LPDIRECT3DVERTEXBUFFER9 d3d9VertexBuffer = pVertexBufferX->GetCurrentD9VertexBuffer();
+
+		if (!d3d9VertexBuffer)
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: could not get d3d9 vertex buffer!");
+			return DDERR_GENERIC;
+		}
+
+		DWORD FVF = pVertexBufferX->GetFVF9();
+
+		// Set fixed function vertex type
+		if (FAILED((*d3d9Device)->SetFVF(FVF)))
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: invalid FVF type: " << Logging::hex(FVF));
+			return D3DERR_INVALIDVERTEXTYPE;
+		}
+
+		// Set stream source
+		(*d3d9Device)->SetStreamSource(0, d3d9VertexBuffer, 0, GetVertexStride(FVF));
+
+		// Handle dwFlags
+		DWORD rsClipping = 0, rsLighting = 0, rsExtents = 0;
+		SetDrawFlags(rsClipping, rsLighting, rsExtents, FVF, dwFlags, DirectXVersion);
+
+		// Draw primitive
+		HRESULT hr = (*d3d9Device)->DrawPrimitive(dptPrimitiveType, dwStartVertex, GetNumberOfPrimitives(dptPrimitiveType, dwNumVertices));
+
+		// Handle dwFlags
+		UnSetDrawFlags(rsClipping, rsLighting, rsExtents, FVF, dwFlags, DirectXVersion);
+
+		if (FAILED(hr))
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: 'DrawPrimitive' call failed: " << (D3DERR)hr);
+		}
+
+		return hr;
 	}
 
 	if (lpd3dVertexBuffer)
@@ -2501,7 +2734,7 @@ HRESULT m_IDirect3DDeviceX::DrawPrimitiveVB(D3DPRIMITIVETYPE d3dptPrimitiveType,
 	default:
 		return DDERR_GENERIC;
 	case 3:
-		return GetProxyInterfaceV3()->DrawPrimitiveVB(d3dptPrimitiveType, (LPDIRECT3DVERTEXBUFFER)lpd3dVertexBuffer, dwStartVertex, dwNumVertices, dwFlags);
+		return GetProxyInterfaceV3()->DrawPrimitiveVB(dptPrimitiveType, (LPDIRECT3DVERTEXBUFFER)lpd3dVertexBuffer, dwStartVertex, dwNumVertices, dwFlags);
 	case 7:
 		if (DirectXVersion != 7)
 		{
@@ -2515,7 +2748,7 @@ HRESULT m_IDirect3DDeviceX::DrawPrimitiveVB(D3DPRIMITIVETYPE d3dptPrimitiveType,
 			DWORD rsClipping = 0, rsLighting = 0, rsExtents = 0;
 			SetDrawFlags(rsClipping, rsLighting, rsExtents, BufferDesc.dwFVF, dwFlags, DirectXVersion);
 
-			HRESULT hr = GetProxyInterfaceV7()->DrawPrimitiveVB(d3dptPrimitiveType, lpd3dVertexBuffer, dwStartVertex, dwNumVertices, dwFlags);
+			HRESULT hr = GetProxyInterfaceV7()->DrawPrimitiveVB(dptPrimitiveType, lpd3dVertexBuffer, dwStartVertex, dwNumVertices, dwFlags);
 
 			// Handle dwFlags
 			UnSetDrawFlags(rsClipping, rsLighting, rsExtents, BufferDesc.dwFVF, dwFlags, DirectXVersion);
@@ -2524,7 +2757,7 @@ HRESULT m_IDirect3DDeviceX::DrawPrimitiveVB(D3DPRIMITIVETYPE d3dptPrimitiveType,
 		}
 		else
 		{
-			return GetProxyInterfaceV7()->DrawPrimitiveVB(d3dptPrimitiveType, lpd3dVertexBuffer, dwStartVertex, dwNumVertices, dwFlags);
+			return GetProxyInterfaceV7()->DrawPrimitiveVB(dptPrimitiveType, lpd3dVertexBuffer, dwStartVertex, dwNumVertices, dwFlags);
 		}
 	}
 }
@@ -2535,7 +2768,7 @@ HRESULT m_IDirect3DDeviceX::DrawIndexedPrimitive(D3DPRIMITIVETYPE dptPrimitiveTy
 
 	if (Config.Dd7to9)
 	{
-		if (!lpVertices)
+		if (!lpVertices || !lpIndices)
 		{
 			return DDERR_INVALIDPARAMS;
 		}
@@ -2546,148 +2779,140 @@ HRESULT m_IDirect3DDeviceX::DrawIndexedPrimitive(D3DPRIMITIVETYPE dptPrimitiveTy
 			return DDERR_GENERIC;
 		}
 
-		// dwFlags (D3DDP_WAIT) can be ignored safely
+    // Handle PositionT
+    if (Config.DdrawConvertHomogeneousW && (dwVertexTypeDesc & 0x0E) == D3DFVF_XYZRHW)
+    {
+      if (!ConvertHomogeneous.IsTransformViewSet)
+      {
+        D3DMATRIX Matrix = {};
+        GetTransform(D3DTS_VIEW, &Matrix);
+        SetTransform(D3DTS_VIEW, &Matrix);
+      }
+
+      const UINT stride = GetVertexStride(dwVertexTypeDesc);
+
+      if (!Config.DdrawConvertHomogeneousToWorld)
+      {
+        /*UINT8 *vertex = (UINT8*)lpVertices;
+
+        for (UINT x = 0; x < dwVertexCount; x++)
+        {
+          float *pos = (float*) vertex;
+
+          pos[3] = 1.0f;
+
+          vertex += stride;
+        }*/
+
+        // Update the FVF
+        dwVertexTypeDesc = (dwVertexTypeDesc & ~D3DFVF_XYZRHW) | D3DFVF_XYZW;
+      }
+      else
+      {
+        const UINT targetStride = stride - sizeof(float);
+        const UINT restSize = stride - sizeof(float) * 4;
+
+        ConvertHomogeneous.ToWorld_IntermediateGeometry.resize(targetStride * dwVertexCount);
+
+        UINT8 *sourceVertex = (UINT8*)lpVertices;
+        UINT8 *targetVertex = (UINT8*)ConvertHomogeneous.ToWorld_IntermediateGeometry.data();
+
+        lpVertices = targetVertex;
+
+        for (UINT x = 0; x < dwVertexCount; x++)
+        {
+          // Transform the vertices into world space
+          float *srcpos = (float*) sourceVertex;
+          float *trgtpos = (float*) targetVertex;
+
+          DirectX::XMVECTOR xpos = DirectX::XMVectorSet(srcpos[0], srcpos[1], srcpos[2], srcpos[3]);
+
+          DirectX::XMVECTOR xpos_global = DirectX::XMVector3TransformCoord(xpos, ConvertHomogeneous.ToWorld_ViewMatrixInverse);
+
+          xpos_global = DirectX::XMVectorDivide(xpos_global, DirectX::XMVectorSplatW(xpos_global));
+
+          trgtpos[0] = DirectX::XMVectorGetX(xpos_global);
+          trgtpos[1] = DirectX::XMVectorGetY(xpos_global);
+          trgtpos[2] = DirectX::XMVectorGetZ(xpos_global);
+
+          // Copy the rest
+          std::memcpy(targetVertex + sizeof(float) * 3, sourceVertex + sizeof(float) * 4, restSize);
+
+          // Move to next vertex
+          sourceVertex += stride;
+          targetVertex += targetStride;
+        }
+
+        // Handle dwFlags
+        DWORD rsClipping = 0, rsLighting = 0, rsExtents = 0;
+        SetDrawFlags(rsClipping, rsLighting, rsExtents, dwVertexTypeDesc, dwFlags, DirectXVersion);
+
+        // Set transform
+        (*d3d9Device)->SetTransform(D3DTS_VIEW, &ConvertHomogeneous.ToWorld_ViewMatrix);
+        (*d3d9Device)->SetTransform(D3DTS_PROJECTION, &ConvertHomogeneous.ToWorld_ProjectionMatrix);
+
+        // Update the FVF
+        const DWORD newVertexTypeDesc = (dwVertexTypeDesc & ~D3DFVF_XYZRHW) | D3DFVF_XYZ;
+
+        // Set fixed function vertex type
+        (*d3d9Device)->SetFVF(newVertexTypeDesc);
+
+        // Draw indexed primitive UP
+        hr = (*d3d9Device)->DrawIndexedPrimitiveUP(dptPrimitiveType, 0, dwVertexCount, GetNumberOfPrimitives(dptPrimitiveType, dwIndexCount), lpIndices, D3DFMT_INDEX16, lpVertices, targetStride);
+
+        // Restore transform
+        D3DMATRIX identityMatrix = {};
+        identityMatrix._11 = 1.0f;
+        identityMatrix._22 = 1.0f;
+        identityMatrix._33 = 1.0f;
+
+        (*d3d9Device)->SetTransform(D3DTS_VIEW, &ConvertHomogeneous.ToWorld_ViewMatrixOriginal);
+        (*d3d9Device)->SetTransform(D3DTS_PROJECTION, &identityMatrix);
+
+        // Handle dwFlags
+        UnSetDrawFlags(rsClipping, rsLighting, rsExtents, newVertexTypeDesc, dwFlags, DirectXVersion);
+
+        return hr;
+      }
+    }
+
+		// Update vertices for Direct3D9 (needs to be first)
+		UpdateVertices(dwVertexTypeDesc, lpVertices, dwVertexCount);
+
+		// Set fixed function vertex type
+		if (FAILED((*d3d9Device)->SetFVF(dwVertexTypeDesc)))
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: invalid FVF type: " << Logging::hex(dwVertexTypeDesc));
+			return D3DERR_INVALIDVERTEXTYPE;
+		}
 
 		// Handle dwFlags
 		DWORD rsClipping = 0, rsLighting = 0, rsExtents = 0;
 		SetDrawFlags(rsClipping, rsLighting, rsExtents, dwVertexTypeDesc, dwFlags, DirectXVersion);
 
-		HRESULT hr;
-		if (D3DFVF_LVERTEX == dwVertexTypeDesc)
-		{
-			D3DLVERTEX *lFVF = (D3DLVERTEX*)lpVertices;
-			std::vector<D3DLVERTEX9> lFVF9(dwVertexCount);
-
-			for (UINT x = 0; x < dwVertexCount; x++)
-			{
-				lFVF9[x].x = lFVF[x].x;
-				lFVF9[x].y = lFVF[x].y;
-				lFVF9[x].z = lFVF[x].z;
-				lFVF9[x].diffuse = lFVF[x].color;
-				lFVF9[x].specular = lFVF[x].specular;
-				lFVF9[x].tu = lFVF[x].tu;
-				lFVF9[x].tv = lFVF[x].tv;
-			}
-
-			// Set fixed function vertex type
-			(*d3d9Device)->SetFVF(D3DFVF_LVERTEX9);
-
-			// Draw indexed primitive UP
-			hr = (*d3d9Device)->DrawIndexedPrimitiveUP(dptPrimitiveType, 0, dwVertexCount, GetNumberOfPrimitives(dptPrimitiveType, dwIndexCount), lpIndices, D3DFMT_INDEX16, &lFVF9[0], sizeof(D3DLVERTEX9));
-		}
-		else
-		{
-			const UINT stride = GetVertexStride(dwVertexTypeDesc);
-
-			// Handle PositionT
-			if (Config.DdrawConvertHomogeneousW && (dwVertexTypeDesc & 0x0E) == D3DFVF_XYZRHW)
-			{
-				if (!ConvertHomogeneous.IsTransformViewSet)
-				{
-					D3DMATRIX Matrix = {};
-					GetTransform(D3DTS_VIEW, &Matrix);
-					SetTransform(D3DTS_VIEW, &Matrix);
-				}
-
-				if (!Config.DdrawConvertHomogeneousToWorld)
-				{
-					/*UINT8 *vertex = (UINT8*)lpVertices;
-
-					for (UINT x = 0; x < dwVertexCount; x++)
-					{
-						float *pos = (float*) vertex;
-
-						pos[3] = 1.0f;
-
-						vertex += stride;
-					}*/
-
-					// Update the FVF
-					dwVertexTypeDesc = (dwVertexTypeDesc & ~D3DFVF_XYZRHW) | D3DFVF_XYZW;
-				}
-				else
-				{
-					const UINT targetStride = stride - sizeof(float);
-					const UINT restSize = stride - sizeof(float) * 4;
-
-					ConvertHomogeneous.ToWorld_IntermediateGeometry.resize(targetStride * dwVertexCount);
-
-					UINT8 *sourceVertex = (UINT8*)lpVertices;
-					UINT8 *targetVertex = (UINT8*)ConvertHomogeneous.ToWorld_IntermediateGeometry.data();
-
-					lpVertices = targetVertex;
-
-					for (UINT x = 0; x < dwVertexCount; x++)
-					{
-						// Transform the vertices into world space
-						float *srcpos = (float*) sourceVertex;
-						float *trgtpos = (float*) targetVertex;
-
-						DirectX::XMVECTOR xpos = DirectX::XMVectorSet(srcpos[0], srcpos[1], srcpos[2], srcpos[3]);
-
-						DirectX::XMVECTOR xpos_global = DirectX::XMVector3TransformCoord(xpos, ConvertHomogeneous.ToWorld_ViewMatrixInverse);
-
-						xpos_global = DirectX::XMVectorDivide(xpos_global, DirectX::XMVectorSplatW(xpos_global));
-
-						trgtpos[0] = DirectX::XMVectorGetX(xpos_global);
-						trgtpos[1] = DirectX::XMVectorGetY(xpos_global);
-						trgtpos[2] = DirectX::XMVectorGetZ(xpos_global);
-
-						// Copy the rest
-						std::memcpy(targetVertex + sizeof(float) * 3, sourceVertex + sizeof(float) * 4, restSize);
-
-						// Move to next vertex
-						sourceVertex += stride;
-						targetVertex += targetStride;
-					}
-
-					// Set transform
-					(*d3d9Device)->SetTransform(D3DTS_VIEW, &ConvertHomogeneous.ToWorld_ViewMatrix);
-					(*d3d9Device)->SetTransform(D3DTS_PROJECTION, &ConvertHomogeneous.ToWorld_ProjectionMatrix);
-
-					// Update the FVF
-					const DWORD newVertexTypeDesc = (dwVertexTypeDesc & ~D3DFVF_XYZRHW) | D3DFVF_XYZ;
-
-					// Set fixed function vertex type
-					(*d3d9Device)->SetFVF(newVertexTypeDesc);
-
-					// Draw indexed primitive UP
-					hr = (*d3d9Device)->DrawIndexedPrimitiveUP(dptPrimitiveType, 0, dwVertexCount, GetNumberOfPrimitives(dptPrimitiveType, dwIndexCount), lpIndices, D3DFMT_INDEX16, lpVertices, targetStride);
-
-					// Restore transform
-					D3DMATRIX identityMatrix = {};
-					identityMatrix._11 = 1.0f;
-					identityMatrix._22 = 1.0f;
-					identityMatrix._33 = 1.0f;
-
-					(*d3d9Device)->SetTransform(D3DTS_VIEW, &ConvertHomogeneous.ToWorld_ViewMatrixOriginal);
-					(*d3d9Device)->SetTransform(D3DTS_PROJECTION, &identityMatrix);
-
-					// Handle dwFlags
-					UnSetDrawFlags(rsClipping, rsLighting, rsExtents, newVertexTypeDesc, dwFlags, DirectXVersion);
-
-					return hr;
-				}
-			}
-
-			// Set fixed function vertex type
-			(*d3d9Device)->SetFVF(dwVertexTypeDesc);
-
-			// Draw indexed primitive UP
-			hr = (*d3d9Device)->DrawIndexedPrimitiveUP(dptPrimitiveType, 0, dwVertexCount, GetNumberOfPrimitives(dptPrimitiveType, dwIndexCount), lpIndices, D3DFMT_INDEX16, lpVertices, stride);
-		}
+		// Draw indexed primitive UP
+		HRESULT hr = (*d3d9Device)->DrawIndexedPrimitiveUP(dptPrimitiveType, 0, dwVertexCount, GetNumberOfPrimitives(dptPrimitiveType, dwIndexCount), lpIndices, D3DFMT_INDEX16, lpVertices, GetVertexStride(dwVertexTypeDesc));
 
 		// Handle dwFlags
 		UnSetDrawFlags(rsClipping, rsLighting, rsExtents, dwVertexTypeDesc, dwFlags, DirectXVersion);
 
+    // Set fixed function vertex type
+    (*d3d9Device)->SetFVF(dwVertexTypeDesc);
+
+    // Draw indexed primitive UP
+    hr = (*d3d9Device)->DrawIndexedPrimitiveUP(dptPrimitiveType, 0, dwVertexCount, GetNumberOfPrimitives(dptPrimitiveType, dwIndexCount), lpIndices, D3DFMT_INDEX16, lpVertices, stride);
+
+    if (FAILED(hr))
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: 'DrawIndexedPrimitiveUP' call failed: " << (D3DERR)hr);
+		}
+
 		return hr;
 	}
 
-	std::vector<D3DTLVERTEX> pVert;
-	if (Config.DdrawUseNativeResolution && dwVertexTypeDesc == 3)
+	if (Config.DdrawUseNativeResolution)
 	{
-		CopyScaleVertex(lpVertices, pVert, dwVertexCount);
-		lpVertices = &pVert[0];
+		ScaleVertices(dwVertexTypeDesc, lpVertices, dwVertexCount);
 	}
 
 	switch (ProxyDirectXVersion)
@@ -2720,13 +2945,13 @@ HRESULT m_IDirect3DDeviceX::DrawIndexedPrimitive(D3DPRIMITIVETYPE dptPrimitiveTy
 	}
 }
 
-HRESULT m_IDirect3DDeviceX::DrawIndexedPrimitiveStrided(D3DPRIMITIVETYPE d3dptPrimitiveType, DWORD dwVertexTypeDesc, LPD3DDRAWPRIMITIVESTRIDEDDATA lpVertexArray, DWORD dwVertexCount, LPWORD lpwIndices, DWORD dwIndexCount, DWORD dwFlags, DWORD DirectXVersion)
+HRESULT m_IDirect3DDeviceX::DrawIndexedPrimitiveStrided(D3DPRIMITIVETYPE dptPrimitiveType, DWORD dwVertexTypeDesc, LPD3DDRAWPRIMITIVESTRIDEDDATA lpVertexArray, DWORD dwVertexCount, LPWORD lpwIndices, DWORD dwIndexCount, DWORD dwFlags, DWORD DirectXVersion)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
 	if (Config.Dd7to9)
 	{
-		LOG_LIMIT(100, __FUNCTION__ << " Not Implemented");
+		LOG_LIMIT(100, __FUNCTION__ << " Error: Not Implemented");
 		return DDERR_UNSUPPORTED;
 	}
 
@@ -2737,7 +2962,7 @@ HRESULT m_IDirect3DDeviceX::DrawIndexedPrimitiveStrided(D3DPRIMITIVETYPE d3dptPr
 	default:
 		return DDERR_GENERIC;
 	case 3:
-		return GetProxyInterfaceV3()->DrawIndexedPrimitiveStrided(d3dptPrimitiveType, dwVertexTypeDesc, lpVertexArray, dwVertexCount, lpwIndices, dwIndexCount, dwFlags);
+		return GetProxyInterfaceV3()->DrawIndexedPrimitiveStrided(dptPrimitiveType, dwVertexTypeDesc, lpVertexArray, dwVertexCount, lpwIndices, dwIndexCount, dwFlags);
 	case 7:
 		if (DirectXVersion != 7)
 		{
@@ -2745,7 +2970,7 @@ HRESULT m_IDirect3DDeviceX::DrawIndexedPrimitiveStrided(D3DPRIMITIVETYPE d3dptPr
 			DWORD rsClipping = 0, rsLighting = 0, rsExtents = 0;
 			SetDrawFlags(rsClipping, rsLighting, rsExtents, dwVertexTypeDesc, dwFlags, DirectXVersion);
 
-			HRESULT hr = GetProxyInterfaceV7()->DrawIndexedPrimitiveStrided(d3dptPrimitiveType, dwVertexTypeDesc, lpVertexArray, dwVertexCount, lpwIndices, dwIndexCount, dwFlags);
+			HRESULT hr = GetProxyInterfaceV7()->DrawIndexedPrimitiveStrided(dptPrimitiveType, dwVertexTypeDesc, lpVertexArray, dwVertexCount, lpwIndices, dwIndexCount, dwFlags);
 
 			// Handle dwFlags
 			UnSetDrawFlags(rsClipping, rsLighting, rsExtents, dwVertexTypeDesc, dwFlags, DirectXVersion);
@@ -2754,19 +2979,85 @@ HRESULT m_IDirect3DDeviceX::DrawIndexedPrimitiveStrided(D3DPRIMITIVETYPE d3dptPr
 		}
 		else
 		{
-			return GetProxyInterfaceV7()->DrawIndexedPrimitiveStrided(d3dptPrimitiveType, dwVertexTypeDesc, lpVertexArray, dwVertexCount, lpwIndices, dwIndexCount, dwFlags);
+			return GetProxyInterfaceV7()->DrawIndexedPrimitiveStrided(dptPrimitiveType, dwVertexTypeDesc, lpVertexArray, dwVertexCount, lpwIndices, dwIndexCount, dwFlags);
 		}
 	}
 }
 
-HRESULT m_IDirect3DDeviceX::DrawIndexedPrimitiveVB(D3DPRIMITIVETYPE d3dptPrimitiveType, LPDIRECT3DVERTEXBUFFER7 lpd3dVertexBuffer, DWORD dwStartVertex, DWORD dwNumVertices, LPWORD lpwIndices, DWORD dwIndexCount, DWORD dwFlags, DWORD DirectXVersion)
+HRESULT m_IDirect3DDeviceX::DrawIndexedPrimitiveVB(D3DPRIMITIVETYPE dptPrimitiveType, LPDIRECT3DVERTEXBUFFER7 lpd3dVertexBuffer, DWORD dwStartVertex, DWORD dwNumVertices, LPWORD lpwIndices, DWORD dwIndexCount, DWORD dwFlags, DWORD DirectXVersion)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
 	if (Config.Dd7to9)
 	{
-		LOG_LIMIT(100, __FUNCTION__ << " Not Implemented");
-		return DDERR_UNSUPPORTED;
+		if (!lpd3dVertexBuffer || !lpwIndices)
+		{
+			return DDERR_INVALIDPARAMS;
+		}
+
+		// Check for device interface
+		if (FAILED(CheckInterface(__FUNCTION__, true)))
+		{
+			return DDERR_GENERIC;
+		}
+
+		// ToDo: Validate vertex buffer
+		m_IDirect3DVertexBufferX* pVertexBufferX = nullptr;
+		lpd3dVertexBuffer->QueryInterface(IID_GetInterfaceX, (LPVOID*)&pVertexBufferX);
+
+		if (!pVertexBufferX)
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: could not get vertex buffer wrapper!");
+			return DDERR_GENERIC;
+		}
+
+		LPDIRECT3DVERTEXBUFFER9 d3d9VertexBuffer = pVertexBufferX->GetCurrentD9VertexBuffer();
+
+		if (!d3d9VertexBuffer)
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: could not get d3d9 vertex buffer!");
+			return DDERR_GENERIC;
+		}
+
+		LPDIRECT3DINDEXBUFFER9 d3d9IndexBuffer = pVertexBufferX->SetupIndexBuffer(lpwIndices, dwIndexCount);
+
+		if (!d3d9IndexBuffer)
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: could not get d3d9 index buffer!");
+			return DDERR_GENERIC;
+		}
+
+		DWORD FVF = pVertexBufferX->GetFVF9();
+
+		// Set fixed function vertex type
+		if (FAILED((*d3d9Device)->SetFVF(FVF)))
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: invalid FVF type: " << Logging::hex(FVF));
+			return D3DERR_INVALIDVERTEXTYPE;
+		}
+
+		// Set stream source
+		(*d3d9Device)->SetStreamSource(0, d3d9VertexBuffer, 0, GetVertexStride(FVF));
+
+		// Set Index data
+		(*d3d9Device)->SetIndices(d3d9IndexBuffer);
+
+		// Handle dwFlags
+		DWORD rsClipping = 0, rsLighting = 0, rsExtents = 0;
+		SetDrawFlags(rsClipping, rsLighting, rsExtents, FVF, dwFlags, DirectXVersion);
+
+		// Draw primitive
+		HRESULT hr = (*d3d9Device)->DrawIndexedPrimitive(dptPrimitiveType, dwStartVertex, 0, dwNumVertices, 0, GetNumberOfPrimitives(dptPrimitiveType, dwIndexCount));
+
+		// Handle dwFlags
+		UnSetDrawFlags(rsClipping, rsLighting, rsExtents, FVF, dwFlags, DirectXVersion);
+
+		if (FAILED(hr))
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: 'DrawIndexedPrimitive' call failed: " << (D3DERR)hr);
+		}
+
+		return hr;
 	}
 
 	if (lpd3dVertexBuffer)
@@ -2781,7 +3072,7 @@ HRESULT m_IDirect3DDeviceX::DrawIndexedPrimitiveVB(D3DPRIMITIVETYPE d3dptPrimiti
 	default:
 		return DDERR_GENERIC;
 	case 3:
-		return GetProxyInterfaceV3()->DrawIndexedPrimitiveVB(d3dptPrimitiveType, (LPDIRECT3DVERTEXBUFFER)lpd3dVertexBuffer, lpwIndices, dwIndexCount, dwFlags);
+		return GetProxyInterfaceV3()->DrawIndexedPrimitiveVB(dptPrimitiveType, (LPDIRECT3DVERTEXBUFFER)lpd3dVertexBuffer, lpwIndices, dwIndexCount, dwFlags);
 	case 7:
 		if (DirectXVersion != 7)
 		{
@@ -2795,7 +3086,7 @@ HRESULT m_IDirect3DDeviceX::DrawIndexedPrimitiveVB(D3DPRIMITIVETYPE d3dptPrimiti
 			DWORD rsClipping = 0, rsLighting = 0, rsExtents = 0;
 			SetDrawFlags(rsClipping, rsLighting, rsExtents, BufferDesc.dwFVF, dwFlags, DirectXVersion);
 
-			HRESULT hr = GetProxyInterfaceV7()->DrawIndexedPrimitiveVB(d3dptPrimitiveType, lpd3dVertexBuffer, dwStartVertex, dwNumVertices, lpwIndices, dwIndexCount, dwFlags);
+			HRESULT hr = GetProxyInterfaceV7()->DrawIndexedPrimitiveVB(dptPrimitiveType, lpd3dVertexBuffer, dwStartVertex, dwNumVertices, lpwIndices, dwIndexCount, dwFlags);
 
 			// Handle dwFlags
 			UnSetDrawFlags(rsClipping, rsLighting, rsExtents, BufferDesc.dwFVF, dwFlags, DirectXVersion);
@@ -2804,7 +3095,7 @@ HRESULT m_IDirect3DDeviceX::DrawIndexedPrimitiveVB(D3DPRIMITIVETYPE d3dptPrimiti
 		}
 		else
 		{
-			return GetProxyInterfaceV7()->DrawIndexedPrimitiveVB(d3dptPrimitiveType, lpd3dVertexBuffer, dwStartVertex, dwNumVertices, lpwIndices, dwIndexCount, dwFlags);
+			return GetProxyInterfaceV7()->DrawIndexedPrimitiveVB(dptPrimitiveType, lpd3dVertexBuffer, dwStartVertex, dwNumVertices, lpwIndices, dwIndexCount, dwFlags);
 		}
 	}
 }
@@ -2815,8 +3106,22 @@ HRESULT m_IDirect3DDeviceX::ComputeSphereVisibility(LPD3DVECTOR lpCenters, LPD3D
 
 	if (Config.Dd7to9)
 	{
-		LOG_LIMIT(100, __FUNCTION__ << " Not Implemented");
-		return DDERR_UNSUPPORTED;
+		if (!lpCenters || !lpRadii || !dwNumSpheres || !lpdwReturnValues)
+		{
+			return DDERR_INVALIDPARAMS;
+		}
+
+		LOG_LIMIT(100, __FUNCTION__ << " Warning: function not fully implemented");
+
+		// Sphere visibility is computed by back-transforming the viewing frustum to the model space, using the inverse of the combined world, view, or projection matrices.
+		// If the combined matrix can't be inverted (if the determinant is 0), the method will fail, returning D3DERR_INVALIDMATRIX.
+		for (UINT x = 0; x < dwNumSpheres; x++)
+		{
+			// If a sphere is completely visible, the corresponding entry in lpdwReturnValues is 0.
+			lpdwReturnValues[x] = 0;	// Just return all is visible for now
+		}
+
+		return D3D_OK;
 	}
 
 	switch (ProxyDirectXVersion)
@@ -2838,15 +3143,13 @@ HRESULT m_IDirect3DDeviceX::ValidateDevice(LPDWORD lpdwPasses)
 
 	if (Config.Dd7to9)
 	{
-		if (!lpdwPasses)
+		// Check for device interface
+		if (FAILED(CheckInterface(__FUNCTION__, true)))
 		{
-			return DDERR_INVALIDPARAMS;
+			return DDERR_GENERIC;
 		}
 
-		// Address to be filled with the number of rendering passes to complete the desired effect through multipass rendering.
-		*lpdwPasses = 1;
-
-		return DD_OK;
+		return (*d3d9Device)->ValidateDevice(lpdwPasses);
 	}
 
 	switch (ProxyDirectXVersion)
@@ -2948,8 +3251,121 @@ HRESULT m_IDirect3DDeviceX::SetClipStatus(LPD3DCLIPSTATUS lpD3DClipStatus)
 
 	if (Config.Dd7to9)
 	{
-		LOG_LIMIT(100, __FUNCTION__ << " Not Implemented");
-		return DDERR_UNSUPPORTED;
+		// D3DCLIPSTATUS_EXTENTS2 flag cannot be combined with D3DCLIPSTATUS_EXTENTS3.
+		if (!lpD3DClipStatus || (lpD3DClipStatus->dwFlags & (D3DCLIPSTATUS_EXTENTS2 | D3DCLIPSTATUS_EXTENTS3)) == (D3DCLIPSTATUS_EXTENTS2 | D3DCLIPSTATUS_EXTENTS3))
+		{
+			return DDERR_INVALIDPARAMS;
+		}
+
+		// D3DCLIPSTATUS_EXTENTS3 is Not currently implemented in DirectDraw.
+		if (!(lpD3DClipStatus->dwFlags & D3DCLIPSTATUS_STATUS))
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: only clip status flag is supported. Using unsupported dwFlags combination: " << Logging::hex(lpD3DClipStatus->dwFlags));
+			return DDERR_UNSUPPORTED;
+		}
+		else if (lpD3DClipStatus->dwFlags & D3DCLIPSTATUS_EXTENTS2)
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Warning: Extents 2D flag Not Implemented: " << *lpD3DClipStatus);
+		}
+
+		// For now just save clip status
+		if (lpD3DClipStatus->dwFlags & D3DCLIPSTATUS_STATUS)
+		{
+			D3DClipStatus = *lpD3DClipStatus;
+			D3DClipStatus.dwFlags = D3DCLIPSTATUS_STATUS;
+			D3DClipStatus.dwStatus = 0;
+			return D3D_OK;
+		}
+
+		// ToDo: set clip status from dwStatus
+
+		// ToDo: check the D3DRENDERSTATE_EXTENTS flag and use that to enable or disable extents clip planes
+		// The default setting for this state, FALSE, disables extent updates. Applications that intend to use the
+		// IDirect3DDevice7::GetClipStatus and IDirect3DDevice7::SetClipStatus methods to manipulate the viewport extents
+		// can enable extents updates by setting D3DRENDERSTATE_EXTENTS to TRUE.
+
+		// Check for device interface
+		/*if (FAILED(CheckInterface(__FUNCTION__, true)))
+		{
+			return DDERR_GENERIC;
+		}
+
+		// Calculate the center of the bounding box
+		float centerX = (lpD3DClipStatus->minx + lpD3DClipStatus->maxx) * 0.5f;
+		float centerY = (lpD3DClipStatus->miny + lpD3DClipStatus->maxy) * 0.5f;
+		float centerZ = (lpD3DClipStatus->minz + lpD3DClipStatus->maxz) * 0.5f;
+
+		// Calculate the extents (half-width, half-height, and half-depth) of the bounding box
+		float halfWidth = (lpD3DClipStatus->maxx - lpD3DClipStatus->minx) * 0.5f;
+		float halfHeight = (lpD3DClipStatus->maxy - lpD3DClipStatus->miny) * 0.5f;
+		float halfDepth = (lpD3DClipStatus->maxz - lpD3DClipStatus->minz) * 0.5f;
+
+		// Calculate the front clipping plane coefficients
+		float frontNormalX = -1.0f; // Clipping towards the negative X direction
+		float frontNormalY = 0.0f;
+		float frontNormalZ = 0.0f;
+		float frontDistance = centerX - halfWidth;
+
+		float frontClipPlane[4] = { frontNormalX, frontNormalY, frontNormalZ, frontDistance };
+
+		// Calculate the back clipping plane coefficients
+		float backNormalX = 1.0f; // Clipping towards the positive X direction
+		float backNormalY = 0.0f;
+		float backNormalZ = 0.0f;
+		float backDistance = -(centerX + halfWidth);
+
+		float backClipPlane[4] = { backNormalX, backNormalY, backNormalZ, backDistance };
+
+		// Calculate the top clipping plane coefficients
+		float topNormalX = 0.0f;
+		float topNormalY = 1.0f; // Clipping towards the positive Y direction
+		float topNormalZ = 0.0f;
+		float topDistance = -(centerY + halfHeight);
+
+		float topClipPlane[4] = { topNormalX, topNormalY, topNormalZ, topDistance };
+
+		// Calculate the bottom clipping plane coefficients
+		float bottomNormalX = 0.0f;
+		float bottomNormalY = -1.0f; // Clipping towards the negative Y direction
+		float bottomNormalZ = 0.0f;
+		float bottomDistance = centerY - halfHeight;
+
+		float bottomClipPlane[4] = { bottomNormalX, bottomNormalY, bottomNormalZ, bottomDistance };
+
+		// Calculate the near clipping plane coefficients
+		float nearNormalX = 0.0f;
+		float nearNormalY = 0.0f;
+		float nearNormalZ = -1.0f; // Clipping towards the negative Z direction
+		float nearDistance = centerZ - halfDepth;
+
+		float nearClipPlane[4] = { nearNormalX, nearNormalY, nearNormalZ, nearDistance };
+
+		// Calculate the far clipping plane coefficients
+		float farNormalX = 0.0f;
+		float farNormalY = 0.0f;
+		float farNormalZ = 1.0f; // Clipping towards the positive Z direction
+		float farDistance = -(centerZ + halfDepth);
+
+		float farClipPlane[4] = { farNormalX, farNormalY, farNormalZ, farDistance };
+
+		// Set the clip planes
+		int x = 0;
+		for (auto clipPlane : { frontClipPlane, backClipPlane, topClipPlane, bottomClipPlane, nearClipPlane, farClipPlane })
+		{
+			HRESULT hr = (*d3d9Device)->SetClipPlane(x, clipPlane);
+			if (FAILED(hr))
+			{
+				LOG_LIMIT(100, __FUNCTION__ << " Error: 'SetClipPlane' call failed: " << (D3DERR)hr <<
+					" call: { " << clipPlane[0] << ", " << clipPlane[1] << ", " << clipPlane[2] << ", " << clipPlane[3] << "}");
+				return hr;
+			}
+			x++;
+		}
+
+		// To enable a clipping plane, set the corresponding bit in the DWORD value applied to the D3DRS_CLIPPLANEENABLE render state.
+		(*d3d9Device)->SetRenderState(D3DRS_CLIPPLANEENABLE, D3DCLIPPLANE0 | D3DCLIPPLANE1 | D3DCLIPPLANE2 | D3DCLIPPLANE3 | D3DCLIPPLANE4 | D3DCLIPPLANE5);*/
+
+		return DD_OK;
 	}
 
 	switch (ProxyDirectXVersion)
@@ -2972,8 +3388,16 @@ HRESULT m_IDirect3DDeviceX::GetClipStatus(LPD3DCLIPSTATUS lpD3DClipStatus)
 
 	if (Config.Dd7to9)
 	{
-		LOG_LIMIT(100, __FUNCTION__ << " Not Implemented");
-		return DDERR_UNSUPPORTED;
+		if (!lpD3DClipStatus)
+		{
+			return DDERR_INVALIDPARAMS;
+		}
+
+		// ToDo: get clip status from Direct3D9
+
+		*lpD3DClipStatus = D3DClipStatus;
+
+		return D3D_OK;
 	}
 
 	switch (ProxyDirectXVersion)
@@ -3037,8 +3461,10 @@ HRESULT m_IDirect3DDeviceX::GetInfo(DWORD dwDevInfoID, LPVOID pDevInfoStruct, DW
 
 	if (Config.Dd7to9)
 	{
-		LOG_LIMIT(100, __FUNCTION__ << " Not Implemented");
-		return DDERR_UNSUPPORTED;
+		// This method is intended to be used for performance tracking and debugging during product development (on the debug version of DirectX). 
+		// The method can succeed, returning S_FALSE, without retrieving device data.
+		// This occurs when the retail version of the DirectX runtime is installed on the host system.
+		return S_FALSE;
 	}
 
 	return GetProxyInterfaceV7()->GetInfo(dwDevInfoID, pDevInfoStruct, dwSize);
@@ -3151,12 +3577,16 @@ void m_IDirect3DDeviceX::ResetDevice()
 			}
 		}
 	}
+	// Reset clip status
+	ZeroMemory(&D3DClipStatus, sizeof(D3DCLIPSTATUS));
 }
 
 void m_IDirect3DDeviceX::SetDrawFlags(DWORD &rsClipping, DWORD &rsLighting, DWORD &rsExtents, DWORD dwVertexTypeDesc, DWORD dwFlags, DWORD DirectXVersion)
 {
 	if (DirectXVersion != 7)
 	{
+		// dwFlags (D3DDP_WAIT) can be ignored safely
+
 		// Handle dwFlags
 		if (dwFlags & D3DDP_DONOTCLIP)
 		{
@@ -3196,70 +3626,32 @@ void m_IDirect3DDeviceX::UnSetDrawFlags(DWORD rsClipping, DWORD rsLighting, DWOR
 	}
 }
 
-void m_IDirect3DDeviceX::CopyScaleVertex(LPVOID lpVertices, std::vector<D3DTLVERTEX>& pVert, DWORD dwVertexCount)
+void m_IDirect3DDeviceX::ScaleVertices(DWORD dwVertexTypeDesc, LPVOID& lpVertices, DWORD dwVertexCount)
 {
-	if (!lpVertices)
+	if (dwVertexTypeDesc == 3)
 	{
-		return;
-	}
-	pVert.resize(dwVertexCount);
-	memcpy(&pVert[0], lpVertices, sizeof(D3DTLVERTEX) * dwVertexCount);
-	for (DWORD x = 0; x < dwVertexCount; x++)
-	{
-		pVert[x].sx = (D3DVALUE)(pVert[x].sx * ScaleDDWidthRatio) + ScaleDDPadX;
-		pVert[x].sy = (D3DVALUE)(pVert[x].sy * ScaleDDHeightRatio) + ScaleDDPadY;
+		VertexCache.resize(dwVertexCount * sizeof(D3DTLVERTEX));
+		memcpy(&VertexCache[0], lpVertices, dwVertexCount * sizeof(D3DTLVERTEX));
+		D3DTLVERTEX* pVert = (D3DTLVERTEX*)&VertexCache[0];
+
+		for (DWORD x = 0; x < dwVertexCount; x++)
+		{
+			pVert[x].sx = (D3DVALUE)(pVert[x].sx * ScaleDDWidthRatio) + ScaleDDPadX;
+			pVert[x].sy = (D3DVALUE)(pVert[x].sy * ScaleDDHeightRatio) + ScaleDDPadY;
+		}
+
+		lpVertices = pVert;
 	}
 }
 
-UINT m_IDirect3DDeviceX::GetNumberOfPrimitives(D3DPRIMITIVETYPE dptPrimitiveType, DWORD dwVertexCount)
+void m_IDirect3DDeviceX::UpdateVertices(DWORD& dwVertexTypeDesc, LPVOID& lpVertices, DWORD dwVertexCount)
 {
-	return
-		(dptPrimitiveType == D3DPT_POINTLIST) ? dwVertexCount :
-		(dptPrimitiveType == D3DPT_LINELIST) ? dwVertexCount / 2 :
-		(dptPrimitiveType == D3DPT_LINESTRIP) ? dwVertexCount - 1 :
-		(dptPrimitiveType == D3DPT_TRIANGLELIST) ? dwVertexCount / 3 :
-		(dptPrimitiveType == D3DPT_TRIANGLESTRIP) ? dwVertexCount - 2 :
-		(dptPrimitiveType == D3DPT_TRIANGLEFAN) ? dwVertexCount - 2 :
-		0;
-}
-
-UINT m_IDirect3DDeviceX::GetVertexStride(DWORD dwVertexTypeDesc)
-{
-	// Reserved:
-	// #define D3DFVF_RESERVED0        0x001  // (DX7)
-	// #define D3DFVF_RESERVED0        0x001  // (DX9)
-
-	// #define D3DFVF_RESERVED1        0x020  // (DX7)
-	// #define D3DFVF_PSIZE            0x020  // (DX9)
-
-	// #define D3DFVF_RESERVED2        0xf000  // 4 reserved bits (DX7)
-	// #define D3DFVF_RESERVED2        0x6000  // 2 reserved bits (DX9)
-
-	// Check for unsupported vertex types
-	DWORD UnSupportedVertexTypes = dwVertexTypeDesc & ~(D3DFVF_POSITION_MASK | D3DFVF_NORMAL | D3DFVF_DIFFUSE | D3DFVF_SPECULAR | D3DFVF_TEXCOUNT_MASK);
-	if (UnSupportedVertexTypes)
+	if (dwVertexTypeDesc == D3DFVF_LVERTEX)
 	{
-		LOG_LIMIT(100, __FUNCTION__ " Warning: Unsupported FVF type: " << Logging::hex(UnSupportedVertexTypes));
-	}
+		VertexCache.resize(dwVertexCount * sizeof(D3DLVERTEX9));
+		ConvertVertices((D3DLVERTEX9*)&VertexCache[0], (D3DLVERTEX*)lpVertices, dwVertexCount);
 
-	return
-		(((dwVertexTypeDesc & D3DFVF_POSITION_MASK) == D3DFVF_XYZ) ? sizeof(float) * 3 : 0) +
-		(((dwVertexTypeDesc & D3DFVF_POSITION_MASK) == D3DFVF_XYZRHW) ? sizeof(float) * 4 : 0) +
-		(((dwVertexTypeDesc & D3DFVF_POSITION_MASK) == D3DFVF_XYZB1) ? sizeof(float) * 4 : 0) +
-		(((dwVertexTypeDesc & D3DFVF_POSITION_MASK) == D3DFVF_XYZB2) ? sizeof(float) * 5 : 0) +
-		(((dwVertexTypeDesc & D3DFVF_POSITION_MASK) == D3DFVF_XYZB3) ? sizeof(float) * 6 : 0) +
-		(((dwVertexTypeDesc & D3DFVF_POSITION_MASK) == D3DFVF_XYZB4) ? sizeof(float) * 6 + sizeof(DWORD) : 0) +
-		(((dwVertexTypeDesc & D3DFVF_POSITION_MASK) == D3DFVF_XYZB5) ? sizeof(float) * 7 + sizeof(DWORD) : 0) +
-		((dwVertexTypeDesc & D3DFVF_NORMAL) ? sizeof(float) * 3 : 0) +
-		((dwVertexTypeDesc & D3DFVF_DIFFUSE) ? sizeof(D3DCOLOR) : 0) +
-		((dwVertexTypeDesc & D3DFVF_SPECULAR) ? sizeof(D3DCOLOR) : 0) +
-		(((dwVertexTypeDesc & D3DFVF_TEXCOUNT_MASK) == D3DFVF_TEX1) ? sizeof(float) * 2 : 0) +
-		(((dwVertexTypeDesc & D3DFVF_TEXCOUNT_MASK) == D3DFVF_TEX2) ? sizeof(float) * 4 : 0) +
-		(((dwVertexTypeDesc & D3DFVF_TEXCOUNT_MASK) == D3DFVF_TEX3) ? sizeof(float) * 6 : 0) +
-		(((dwVertexTypeDesc & D3DFVF_TEXCOUNT_MASK) == D3DFVF_TEX4) ? sizeof(float) * 8 : 0) +
-		(((dwVertexTypeDesc & D3DFVF_TEXCOUNT_MASK) == D3DFVF_TEX5) ? sizeof(float) * 10 : 0) +
-		(((dwVertexTypeDesc & D3DFVF_TEXCOUNT_MASK) == D3DFVF_TEX6) ? sizeof(float) * 12 : 0) +
-		(((dwVertexTypeDesc & D3DFVF_TEXCOUNT_MASK) == D3DFVF_TEX7) ? sizeof(float) * 14 : 0) +
-		(((dwVertexTypeDesc & D3DFVF_TEXCOUNT_MASK) == D3DFVF_TEX8) ? sizeof(float) * 16 : 0) +
-		0;
+		dwVertexTypeDesc = D3DFVF_LVERTEX9;
+		lpVertices = &VertexCache[0];
+	}
 }

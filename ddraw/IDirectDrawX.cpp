@@ -106,7 +106,6 @@ DWORD monitorRefreshRate;
 DWORD monitorHeight;
 
 // Direct3D9 flags
-bool IsInScene;
 bool EnableWaitVsync;
 
 // Direct3D9 Objects
@@ -348,8 +347,6 @@ HRESULT m_IDirectDrawX::CreateClipper(DWORD dwFlags, LPDIRECTDRAWCLIPPER FAR * l
 
 		m_IDirectDrawClipper* ClipperX = new m_IDirectDrawClipper(this, dwFlags);
 
-		AddClipperToVector(ClipperX);
-
 		*lplpDDClipper = ClipperX;
 
 		return DD_OK;
@@ -377,8 +374,6 @@ HRESULT m_IDirectDrawX::CreatePalette(DWORD dwFlags, LPPALETTEENTRY lpDDColorArr
 		}
 
 		m_IDirectDrawPalette *PaletteX = new m_IDirectDrawPalette(this, dwFlags, lpDDColorArray);
-
-		AddPaletteToVector(PaletteX);
 
 		*lplpDDPalette = PaletteX;
 
@@ -516,10 +511,13 @@ HRESULT m_IDirectDrawX::CreateSurface2(LPDDSURFACEDESC2 lpDDSurfaceDesc2, LPDIRE
 		}
 
 		// Check for MipMap
-		if (((lpDDSurfaceDesc2->dwFlags & DDSD_MIPMAPCOUNT) && (lpDDSurfaceDesc2->dwMipMapCount != 1)) ||
+		// DDSCAPS_MIPMAP Indicates surface is one level of a mip-map. This surface will be attached to other DDSCAPS_MIPMAP surfaces to form the mip-map.
+		// This can be done explicitly, by creating a number of surfaces and attaching them with AddAttachedSurface or by implicitly by CreateSurface.
+		// If this bit is set then DDSCAPS_TEXTURE must also be set.
+		if (((lpDDSurfaceDesc2->dwFlags & DDSD_MIPMAPCOUNT) && (lpDDSurfaceDesc2->dwMipMapCount != 1)) &&
 			(lpDDSurfaceDesc2->ddsCaps.dwCaps & DDSCAPS_MIPMAP))
 		{
-			LOG_LIMIT(100, __FUNCTION__ << " Warning: MipMap not Implemented.");
+			LOG_LIMIT(100, __FUNCTION__ << " Warning: MipMap not Implemented. Count: " << lpDDSurfaceDesc2->dwMipMapCount);
 		}
 
 		// Check for Overlay
@@ -607,12 +605,6 @@ HRESULT m_IDirectDrawX::CreateSurface2(LPDDSURFACEDESC2 lpDDSurfaceDesc2, LPDIRE
 		else
 		{
 			lpDDSurfaceDesc2->dwBackBufferCount = 0;
-		}
-
-		// Add flag for 3D device
-		if ((DirectXVersion < 4) && (lpDDSurfaceDesc2->ddsCaps.dwCaps & DDSCAPS_PRIMARYSURFACE))
-		{
-			lpDDSurfaceDesc2->ddsCaps.dwCaps |= DDSCAPS_3DDEVICE;
 		}
 
 		// Remove unused flags
@@ -1023,18 +1015,6 @@ HRESULT m_IDirectDrawX::EnumSurfaces2(DWORD dwFlags, LPDDSURFACEDESC2 lpDDSurfac
 		return DDERR_INVALIDPARAMS;
 	}
 
-	if (Config.Dd7to9)
-	{
-		if ((lpDDSurfaceDesc2 && lpDDSurfaceDesc2->dwSize != sizeof(DDSURFACEDESC2)) || (!lpDDSurfaceDesc2 && !(dwFlags & DDENUMSURFACES_ALL)))
-		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error: Invalid parameters. dwSize: " << ((lpDDSurfaceDesc2) ? lpDDSurfaceDesc2->dwSize : -1));
-			return DDERR_INVALIDPARAMS;
-		}
-
-		LOG_LIMIT(100, __FUNCTION__ << " Error: Not Implemented");
-		return DDERR_UNSUPPORTED;
-	}
-
 	struct EnumSurface
 	{
 		LPVOID lpContext;
@@ -1044,9 +1024,9 @@ HRESULT m_IDirectDrawX::EnumSurfaces2(DWORD dwFlags, LPDDSURFACEDESC2 lpDDSurfac
 
 		static HRESULT CALLBACK ConvertCallback(LPDIRECTDRAWSURFACE7 lpDDSurface, LPDDSURFACEDESC2 lpDDSurfaceDesc2, LPVOID lpContext)
 		{
-			EnumSurface *self = (EnumSurface*)lpContext;
+			EnumSurface* self = (EnumSurface*)lpContext;
 
-			if (lpDDSurface)
+			if (!Config.Dd7to9 && lpDDSurface)
 			{
 				lpDDSurface = ProxyAddressLookupTable.FindAddress<m_IDirectDrawSurface7>(lpDDSurface, self->DirectXVersion);
 			}
@@ -1068,6 +1048,52 @@ HRESULT m_IDirectDrawX::EnumSurfaces2(DWORD dwFlags, LPDDSURFACEDESC2 lpDDSurfac
 	CallbackContext.lpCallback = lpEnumSurfacesCallback7;
 	CallbackContext.DirectXVersion = DirectXVersion;
 	CallbackContext.ConvertSurfaceDescTo2 = (ProxyDirectXVersion > 3 && DirectXVersion < 4);
+
+	if (Config.Dd7to9)
+	{
+		if ((lpDDSurfaceDesc2 && lpDDSurfaceDesc2->dwSize != sizeof(DDSURFACEDESC2)) || (!lpDDSurfaceDesc2 && !(dwFlags & DDENUMSURFACES_ALL)))
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: Invalid parameters. dwSize: " << ((lpDDSurfaceDesc2) ? lpDDSurfaceDesc2->dwSize : -1) << " dwFlags: " << Logging::hex(dwFlags));
+			return DDERR_INVALIDPARAMS;
+		}
+
+		switch (dwFlags)
+		{
+		default:
+			LOG_LIMIT(100, __FUNCTION__ << " Error: Invalid dwFlags. dwFlags: " << Logging::hex(dwFlags));
+			return DDERR_INVALIDPARAMS;
+
+		case (DDENUMSURFACES_DOESEXIST | DDENUMSURFACES_ALL):
+			for (m_IDirectDrawSurfaceX* pSurfaceX : SurfaceVector)
+			{
+				LPDIRECTDRAWSURFACE7 pSurface7 = (LPDIRECTDRAWSURFACE7)pSurfaceX->GetWrapperInterfaceX(DirectXVersion);
+
+				if (pSurface7)
+				{
+					DDSURFACEDESC2 Desc2 = {};
+					Desc2.dwSize = sizeof(DDSURFACEDESC2);
+					pSurfaceX->GetSurfaceDesc2(&Desc2);
+
+					// When using the DDENUMSURFACES_DOESEXIST flag, an enumerated surface's reference count is incremented
+					pSurface7->AddRef();
+
+					EnumSurface::ConvertCallback(pSurface7, &Desc2, &CallbackContext);
+				}
+			}
+			break;
+
+		case (DDENUMSURFACES_DOESEXIST | DDENUMSURFACES_MATCH):
+		case (DDENUMSURFACES_DOESEXIST | DDENUMSURFACES_NOMATCH):
+			LOG_LIMIT(100, __FUNCTION__ << " Error: surface matching Not Implemented!");
+			return DDERR_UNSUPPORTED;
+
+		case (DDENUMSURFACES_CANBECREATED | DDENUMSURFACES_MATCH):
+			LOG_LIMIT(100, __FUNCTION__ << " Error: creating enumerated surface Not Implemented!");
+			return DDERR_UNSUPPORTED;
+		}
+
+		return DD_OK;
+	}
 
 	return ProxyInterface->EnumSurfaces(dwFlags, lpDDSurfaceDesc2, &CallbackContext, EnumSurface::ConvertCallback);
 }
@@ -1268,7 +1294,7 @@ HRESULT m_IDirectDrawX::GetDisplayMode2(LPDDSURFACEDESC2 lpDDSurfaceDesc2)
 		}
 		else if (FAILED(SetDisplayFormat(lpDDSurfaceDesc2->ddpfPixelFormat, displayModeBits)))
 		{
-			LOG_LIMIT(100, __FUNCTION__ << " Not implemented bit count " << displayModeBits);
+			LOG_LIMIT(100, __FUNCTION__ << " Error: Not implemented bit count " << displayModeBits);
 			return DDERR_UNSUPPORTED;
 		}
 
@@ -1512,19 +1538,16 @@ HRESULT m_IDirectDrawX::SetCooperativeLevel(HWND hWnd, DWORD dwFlags, DWORD Dire
 	if (Config.Dd7to9)
 	{
 		// Check for valid parameters
+		// Note: real DirectDraw will allow both DDSCL_NORMAL and DDSCL_FULLSCREEN in some cases
 		if (!(dwFlags & (DDSCL_EXCLUSIVE | DDSCL_NORMAL)) ||																			// An application must set either the DDSCL_EXCLUSIVE or the DDSCL_NORMAL flag
-			((dwFlags & DDSCL_NORMAL) && (dwFlags & (DDSCL_ALLOWMODEX | DDSCL_EXCLUSIVE | DDSCL_FULLSCREEN))) ||						// Normal flag cannot be used with Modex, Exclusive or Fullscreen flags
+			((dwFlags & DDSCL_NORMAL) && (dwFlags & (DDSCL_ALLOWMODEX | DDSCL_EXCLUSIVE))) ||											// Normal flag cannot be used with Modex, Exclusive or Fullscreen flags
 			((dwFlags & DDSCL_EXCLUSIVE) && !(dwFlags & DDSCL_FULLSCREEN)) ||															// If Exclusive flag is set then Fullscreen flag must be set
 			((dwFlags & DDSCL_FULLSCREEN) && !(dwFlags & DDSCL_EXCLUSIVE)) ||															// If Fullscreen flag is set then Exclusive flag must be set
 			((dwFlags & DDSCL_ALLOWMODEX) && (!(dwFlags & DDSCL_EXCLUSIVE) || !(dwFlags & DDSCL_FULLSCREEN))) ||						// If AllowModeX is set then Exclusive and Fullscreen flags must be set
 			((dwFlags & DDSCL_SETDEVICEWINDOW) && (dwFlags & DDSCL_SETFOCUSWINDOW)) ||													// SetDeviceWindow flag cannot be used with SetFocusWindow flag
-			(!hWnd && !(dwFlags & DDSCL_NORMAL)) ||																						// hWnd can only be null if normal flag is set
-			((dwFlags & DDSCL_EXCLUSIVE) && !IsWindow(hWnd)) ||																			// When using Exclusive mode the hwnd must be valid
-			(((dwFlags & DDSCL_EXCLUSIVE) || ExclusiveMode) &&
-				GetWindowThreadProcessId((hWnd) ? hWnd : MainhWnd, nullptr) != GetCurrentThreadId()))									// This method must be called by the same thread that created the application window.
+			((dwFlags & DDSCL_EXCLUSIVE) && !IsWindow(hWnd)))																			// When using Exclusive mode the hwnd must be valid
 		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error: Invalid parameters. dwFlags: " << Logging::hex(dwFlags) << " " << hWnd <<
-			" Thread ID: " << GetWindowThreadProcessId((hWnd) ? hWnd : MainhWnd, nullptr));
+			LOG_LIMIT(100, __FUNCTION__ << " Error: Invalid parameters. dwFlags: " << Logging::hex(dwFlags) << " " << hWnd);
 			return DDERR_INVALIDPARAMS;
 		}
 
@@ -1532,6 +1555,12 @@ HRESULT m_IDirectDrawX::SetCooperativeLevel(HWND hWnd, DWORD dwFlags, DWORD Dire
 		if (dwFlags & (DDSCL_CREATEDEVICEWINDOW | DDSCL_SETDEVICEWINDOW | DDSCL_SETFOCUSWINDOW))
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Warning: Flags not supported. dwFlags: " << Logging::hex(dwFlags) << " " << hWnd);
+		}
+
+		// Check window handle thread
+		if ((((dwFlags & DDSCL_EXCLUSIVE) || ExclusiveMode) && GetWindowThreadProcessId((hWnd) ? hWnd : MainhWnd, nullptr) != GetCurrentThreadId()))
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Warning: attempt to set exclusive mode from a different thread than the hwnd was created from! dwFlags: " << Logging::hex(dwFlags) << " " << hWnd);
 		}
 
 		HWND LastMainhWnd = MainhWnd;
@@ -1677,21 +1706,12 @@ HRESULT m_IDirectDrawX::SetCooperativeLevel(HWND hWnd, DWORD dwFlags, DWORD Dire
 		{
 			LOG_LIMIT(3, __FUNCTION__ << " Removing window WS_CAPTION!");
 
-			// Attach thread input
-			DWORD dwMyID = GetCurrentThreadId();
-			DWORD dwCurID = GetWindowThreadProcessId(hWnd, nullptr);
-			AttachThreadInput(dwCurID, dwMyID, TRUE);
-
 			// Removing WS_CAPTION
 			SetWindowLong(hWnd, GWL_STYLE, lStyle & ~WS_CAPTION);
 			SetWindowPos(hWnd, HWND_TOP, 0, 0, 0, 0, SWP_FRAMECHANGED | SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_NOSENDCHANGING);
 
 			// Peek messages to help prevent a "Not Responding" window
-			MSG msg;
-			PeekMessage(&msg, hWnd, 0, 0, PM_NOREMOVE);
-
-			// Detach thread input
-			AttachThreadInput(dwCurID, dwMyID, FALSE);
+			Utils::CheckMessageQueue(hWnd);
 		}
 	}
 
@@ -1704,11 +1724,16 @@ HRESULT m_IDirectDrawX::SetDisplayMode(DWORD dwWidth, DWORD dwHeight, DWORD dwBP
 
 	if (Config.Dd7to9)
 	{
-		if (!dwWidth || !dwHeight || (dwBPP != 8 && dwBPP != 16 && dwBPP != 24 && dwBPP != 32) ||
-			(ExclusiveMode && MainhWnd && GetWindowThreadProcessId(MainhWnd, nullptr) != GetCurrentThreadId()))
+		if (!dwWidth || !dwHeight || (dwBPP != 8 && dwBPP != 16 && dwBPP != 24 && dwBPP != 32))
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Error: Invalid parameters. " << dwWidth << "x" << dwHeight << " " << dwBPP);
 			return DDERR_INVALIDPARAMS;
+		}
+
+		// Check window handle thread
+		if (ExclusiveMode && IsWindow(MainhWnd) && GetWindowThreadProcessId(MainhWnd, nullptr) != GetCurrentThreadId())
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Warning: set exclusive display from a different thread than the hwnd was created from! " << dwWidth << "x" << dwHeight << " " << dwBPP);
 		}
 
 		bool ChangeMode = false;
@@ -1958,7 +1983,7 @@ HRESULT m_IDirectDrawX::GetAvailableVidMem2(LPDDSCAPS2 lpDDSCaps2, LPDWORD lpdwT
 		DWORD AvailableMemory = 0;
 
 		// Get texture/surface memory
-		if (lpDDSCaps2 && ((lpDDSCaps2->dwCaps & DDSCAPS_TEXTURE) || (lpDDSCaps2->dwCaps & DDSCAPS_OFFSCREENPLAIN)))
+		if (lpDDSCaps2 && (lpDDSCaps2->dwCaps & (DDSCAPS_TEXTURE | DDSCAPS_OFFSCREENPLAIN)))
 		{
 			if (d3d9Device)
 			{
@@ -1966,7 +1991,7 @@ HRESULT m_IDirectDrawX::GetAvailableVidMem2(LPDDSCAPS2 lpDDSCaps2, LPDWORD lpdwT
 			}
 		}
 		// Get video memory
-		else if (lpDDSCaps2 && ((lpDDSCaps2->dwCaps & DDSCAPS_VIDEOMEMORY) || (lpDDSCaps2->dwCaps & DDSCAPS_LOCALVIDMEM)))
+		else if (lpDDSCaps2 && (lpDDSCaps2->dwCaps & (DDSCAPS_VIDEOMEMORY | DDSCAPS_LOCALVIDMEM | DDSCAPS_3DDEVICE)))
 		{
 			// Open the first adapter in the system
 			if (OpenD3DDDI(GetDC()) && D3DDDIGetVideoMemory(TotalMemory, AvailableMemory))
@@ -2028,7 +2053,7 @@ HRESULT m_IDirectDrawX::GetSurfaceFromDC(HDC hdc, LPDIRECTDRAWSURFACE7 * lpDDS, 
 
 	if (Config.Dd7to9)
 	{
-		LOG_LIMIT(100, __FUNCTION__ << " Not Implemented");
+		LOG_LIMIT(100, __FUNCTION__ << " Error: Not Implemented");
 		return DDERR_UNSUPPORTED;
 	}
 
@@ -2176,7 +2201,7 @@ HRESULT m_IDirectDrawX::StartModeTest(LPSIZE lpModesToTest, DWORD dwNumEntries, 
 
 	if (Config.Dd7to9)
 	{
-		LOG_LIMIT(100, __FUNCTION__ << " Not Implemented");
+		LOG_LIMIT(100, __FUNCTION__ << " Error: Not Implemented");
 		return DDERR_UNSUPPORTED;
 	}
 
@@ -2189,7 +2214,7 @@ HRESULT m_IDirectDrawX::EvaluateMode(DWORD dwFlags, DWORD * pSecondsUntilTimeout
 
 	if (Config.Dd7to9)
 	{
-		LOG_LIMIT(100, __FUNCTION__ << " Not Implemented");
+		LOG_LIMIT(100, __FUNCTION__ << " Error: Not Implemented");
 		return DDERR_UNSUPPORTED;
 	}
 
@@ -2274,7 +2299,6 @@ void m_IDirectDrawX::InitDdraw(DWORD DirectXVersion)
 		monitorHeight = 0;
 
 		// Direct3D9 flags
-		IsInScene = false;
 		EnableWaitVsync = false;
 
 		// Direct3D9 Objects
@@ -2462,6 +2486,14 @@ void m_IDirectDrawX::ReleaseDdraw()
 		pPalette->ClearDdraw();
 	}
 	PaletteVector.clear();
+
+	// Release vertex buffers
+	for (m_IDirect3DVertexBufferX* pVertexBuffer : VertexBufferVector)
+	{
+		pVertexBuffer->ClearDdraw();
+		pVertexBuffer->ReleaseD9Buffers(false);
+	}
+	VertexBufferVector.clear();
 
 	// Release color control
 	if (ColorControlInterface)
@@ -2699,6 +2731,12 @@ HRESULT m_IDirectDrawX::CreateD3D9Device()
 		// Store new focus window
 		hFocusWindow = hWnd;
 
+		// Check window handle thread
+		if (IsWindow(hWnd) && GetWindowThreadProcessId(hWnd, nullptr) != GetCurrentThreadId())
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Warning: trying to create Direct3D9 device from a different thread than the hwnd was created from!");
+		}
+
 		// Get current resolution
 		DWORD CurrentWidth, CurrentHeight;
 		Utils::GetScreenSize(hWnd, CurrentWidth, CurrentHeight);
@@ -2801,12 +2839,6 @@ HRESULT m_IDirectDrawX::CreateD3D9Device()
 			((FPUPreserve) ? D3DCREATE_FPU_PRESERVE : 0) |
 			((NoWindowChanges) ? D3DCREATE_NOWINDOWCHANGES : 0);
 
-		// Check if window is minimized
-		if (IsIconic(hWnd))
-		{
-			ShowWindow(hWnd, SW_RESTORE);
-		}
-
 		Logging::Log() << __FUNCTION__ << " Direct3D9 device! " <<
 			presParams.BackBufferWidth << "x" << presParams.BackBufferHeight << " refresh: " << presParams.FullScreen_RefreshRateInHz <<
 			" format: " << presParams.BackBufferFormat << " wnd: " << hWnd << " params: " << presParams << " flags: " << Logging::hex(BehaviorFlags);
@@ -2817,18 +2849,12 @@ HRESULT m_IDirectDrawX::CreateD3D9Device()
 			// Try to reset existing device
 			if (LastHWnd == hWnd && LastWindowedMode == presParams.Windowed && LastBehaviorFlags == BehaviorFlags)
 			{
-				// EndScene before resetting
-				if (IsInScene)
-				{
-					d3d9Device->EndScene();
-					IsInScene = false;
-				}
-
 				// Prepare for reset
+				ReleaseAllD9Buffers(true);
 				ReleaseAllD9Surfaces(true);
-				D3DPRESENT_PARAMETERS newParams = presParams;
 
 				// Reset device. When this method returns: BackBufferCount, BackBufferWidth, and BackBufferHeight are set to zero.
+				D3DPRESENT_PARAMETERS newParams = presParams;
 				hr = d3d9Device->Reset(&newParams);
 
 				// Resetting the device failed
@@ -2848,6 +2874,7 @@ HRESULT m_IDirectDrawX::CreateD3D9Device()
 					" Windowed: " << LastWindowedMode << "->" << presParams.Windowed << " " <<
 					Logging::hex(LastBehaviorFlags) << "->" << Logging::hex(BehaviorFlags);
 
+				ReleaseAllD9Buffers(true);
 				ReleaseAllD9Surfaces(true);
 				ReleaseD3D9Device();
 			}
@@ -2866,24 +2893,12 @@ HRESULT m_IDirectDrawX::CreateD3D9Device()
 			break;
 		}
 
-		// EndScene after creating device
-		if (!IsInScene)
-		{
-			d3d9Device->BeginScene();
-			IsInScene = true;
-		}
-
 		// Reset flags after creating device
 		EnableWaitVsync = false;
 
 		// Set window pos
 		if (IsWindow(hWnd))
 		{
-			// Attach thread input
-			DWORD dwMyID = GetCurrentThreadId();
-			DWORD dwCurID = GetWindowThreadProcessId(hWnd, nullptr);
-			AttachThreadInput(dwCurID, dwMyID, TRUE);
-
 			// Get new resolution
 			DWORD NewWidth, NewHeight;
 			Utils::GetScreenSize(hWnd, NewWidth, NewHeight);
@@ -2906,11 +2921,7 @@ HRESULT m_IDirectDrawX::CreateD3D9Device()
 			SendMessage(hWnd, WM_WINDOWPOSCHANGED, (WPARAM)TRUE, (LPARAM)&winpos);
 
 			// Peek messages to help prevent a "Not Responding" window
-			MSG msg;
-			PeekMessage(&msg, hWnd, 0, 0, PM_NOREMOVE);
-
-			// Detach thread input
-			AttachThreadInput(dwCurID, dwMyID, FALSE);
+			Utils::CheckMessageQueue(hWnd);
 		}
 
 		// Store display frequency
@@ -2991,10 +3002,11 @@ HRESULT m_IDirectDrawX::ReinitDevice()
 
 	do {
 		// Prepare for reset
+		ReleaseAllD9Buffers(true);
 		ReleaseAllD9Surfaces(true);
-		D3DPRESENT_PARAMETERS newParams = presParams;
 
 		// Reset device. When this method returns: BackBufferCount, BackBufferWidth, and BackBufferHeight are set to zero.
+		D3DPRESENT_PARAMETERS newParams = presParams;
 		hr = d3d9Device->Reset(&newParams);
 		if (hr == D3DERR_DEVICEREMOVED || hr == D3DERR_DRIVERINTERNALERROR)
 		{
@@ -3013,7 +3025,6 @@ HRESULT m_IDirectDrawX::ReinitDevice()
 		}
 
 		// Reset flags after resetting device
-		IsInScene = false;
 		EnableWaitVsync = false;
 
 	} while (false);
@@ -3040,17 +3051,28 @@ void m_IDirectDrawX::ReleaseAllD9Surfaces(bool BackupData)
 	ReleaseCriticalSection();
 }
 
+// Release all buffers from all ddraw devices
+void m_IDirectDrawX::ReleaseAllD9Buffers(bool BackupData)
+{
+	SetCriticalSection();
+
+	for (m_IDirectDrawX* pDDraw : DDrawVector)
+	{
+		for (m_IDirect3DVertexBufferX* pBuffer : pDDraw->VertexBufferVector)
+		{
+			pBuffer->ReleaseD9Buffers(BackupData);
+		}
+	}
+
+	ReleaseCriticalSection();
+}
+
 // Release all d3d9 device
 void m_IDirectDrawX::ReleaseD3D9Device()
 {
 	// Release device
 	if (d3d9Device)
 	{
-		if (IsInScene)
-		{
-			d3d9Device->EndScene();
-			IsInScene = false;
-		}
 		ULONG ref = d3d9Device->Release();
 		if (ref)
 		{
@@ -3249,7 +3271,7 @@ bool m_IDirectDrawX::DoesClipperExist(m_IDirectDrawClipper* lpClipper)
 	SetCriticalSection();
 
 	auto it = std::find_if(ClipperVector.begin(), ClipperVector.end(),
-		[=](auto pSurface) -> bool { return pSurface == lpClipper; });
+		[=](auto pClipper) -> bool { return pClipper == lpClipper; });
 
 	if (it != std::end(ClipperVector))
 	{
@@ -3321,9 +3343,69 @@ bool m_IDirectDrawX::DoesPaletteExist(m_IDirectDrawPalette* lpPalette)
 	SetCriticalSection();
 
 	auto it = std::find_if(PaletteVector.begin(), PaletteVector.end(),
-		[=](auto pSurface) -> bool { return pSurface == lpPalette; });
+		[=](auto pPalette) -> bool { return pPalette == lpPalette; });
 
 	if (it != std::end(PaletteVector))
+	{
+		hr = true;
+	}
+
+	ReleaseCriticalSection();
+
+	return hr;
+}
+
+void m_IDirectDrawX::AddVertexBufferToVector(m_IDirect3DVertexBufferX* lpVertexBuffer)
+{
+	if (!lpVertexBuffer || DoesVertexBufferExist(lpVertexBuffer))
+	{
+		return;
+	}
+
+	SetCriticalSection();
+
+	// Store vertex buffer
+	VertexBufferVector.push_back(lpVertexBuffer);
+
+	ReleaseCriticalSection();
+}
+
+void m_IDirectDrawX::RemoveVertexBufferFromVector(m_IDirect3DVertexBufferX* lpVertexBuffer)
+{
+	if (!lpVertexBuffer)
+	{
+		return;
+	}
+
+	SetCriticalSection();
+
+	auto it = std::find_if(VertexBufferVector.begin(), VertexBufferVector.end(),
+		[=](auto pVertexBuffer) -> bool { return pVertexBuffer == lpVertexBuffer; });
+
+	// Remove vertex buffer from vector
+	if (it != std::end(VertexBufferVector))
+	{
+		VertexBufferVector.erase(it);
+	}
+
+	ReleaseCriticalSection();
+}
+
+bool m_IDirectDrawX::DoesVertexBufferExist(m_IDirect3DVertexBufferX* lpVertexBuffer)
+{
+	if (!lpVertexBuffer)
+	{
+		return false;
+	}
+
+	bool hr = false;
+
+	SetCriticalSection();
+
+	auto it = std::find_if(VertexBufferVector.begin(), VertexBufferVector.end(),
+		[=](auto pVertexBuffer) -> bool { return pVertexBuffer == lpVertexBuffer; });
+
+	if (it != std::end(VertexBufferVector))
 	{
 		hr = true;
 	}
@@ -3403,25 +3485,6 @@ HRESULT m_IDirectDrawX::Present()
 		return DDERR_GENERIC;
 	}
 
-	// Begine scene
-	if (!IsInScene)
-	{
-		if (FAILED(d3d9Device->BeginScene()))
-		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error: failed to begin scene");
-			d3d9Device->EndScene();
-			return DDERR_GENERIC;
-		}
-	}
-	IsInScene = true;
-
-	// Draw primitive
-	if (FAILED(d3d9Device->DrawPrimitive(D3DPT_TRIANGLEFAN, 0, 2)))
-	{
-		LOG_LIMIT(100, __FUNCTION__ << " Error: failed to draw primitive");
-		return DDERR_GENERIC;
-	}
-
 	const bool UseVSync = (EnableWaitVsync && !Config.EnableVSync);
 
 	// Skip frame if time lapse is too small
@@ -3451,14 +3514,6 @@ HRESULT m_IDirectDrawX::Present()
 			Logging::LogDebug() << __FUNCTION__ << " Drawing frame " << deltaPresentMS << "ms screen frequancy " << MaxScreenTimer;
 		}
 	}
-
-	// End scene
-	if (FAILED(d3d9Device->EndScene()))
-	{
-		LOG_LIMIT(100, __FUNCTION__ << " Error: failed to end scene");
-		return DDERR_GENERIC;
-	}
-	IsInScene = false;
 
 	// Use WaitForVerticalBlank for wait timer
 	if (UseVSync)
@@ -3491,17 +3546,6 @@ HRESULT m_IDirectDrawX::Present()
 			FrameCounter = 0;
 		}
 	}
-
-	// Clear device before BeginScene
-	d3d9Device->Clear(0, nullptr, D3DCLEAR_TARGET, 0, 0.0f, 0);
-
-	// BeginScene after present is done
-	if (FAILED(d3d9Device->BeginScene()))
-	{
-		LOG_LIMIT(100, __FUNCTION__ << " Error: failed to begin scene");
-		return DDERR_GENERIC;
-	}
-	IsInScene = true;
 
 	return hr;
 }

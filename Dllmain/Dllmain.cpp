@@ -496,17 +496,6 @@ bool APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 			VISIT_PROCS_D3D9(SHIM_WRAPPED_PROC);
 		}
 
-		// Hook other gdi32 and user32 APIs
-		if (Config.Dd7to9)
-		{
-			using namespace GdiWrapper;
-			GetDeviceCaps_out = (FARPROC)Hook::HotPatch(Hook::GetProcAddress(LoadLibrary("gdi32.dll"), "GetDeviceCaps"), "GetDeviceCaps", gdi_GetDeviceCaps);
-			CreateWindowExA_out = (FARPROC)Hook::HotPatch(Hook::GetProcAddress(LoadLibrary("user32.dll"), "CreateWindowExA"), "CreateWindowExA", user_CreateWindowExA);
-			CreateWindowExW_out = (FARPROC)Hook::HotPatch(Hook::GetProcAddress(LoadLibrary("user32.dll"), "CreateWindowExW"), "CreateWindowExW", user_CreateWindowExW);
-			DestroyWindow_out = (FARPROC)Hook::HotPatch(Hook::GetProcAddress(LoadLibrary("user32.dll"), "DestroyWindow"), "DestroyWindow", user_DestroyWindow);
-			GetSystemMetrics_out = (FARPROC)Hook::HotPatch(Hook::GetProcAddress(LoadLibrary("user32.dll"), "GetSystemMetrics"), "GetSystemMetrics", user_GetSystemMetrics);
-		}
-
 		// Start DxWnd module
 		if (Config.DxWnd)
 		{

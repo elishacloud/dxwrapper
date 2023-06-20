@@ -156,9 +156,9 @@ HRESULT m_IDirect3DX::Initialize(REFCLSID rclsid)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	// Former stub method. This method was never implemented and is not supported in any interface.
 	if (ProxyDirectXVersion != 1)
 	{
+		// Former stub method. This method was never implemented and is not supported in any interface.
 		return D3D_OK;
 	}
 
@@ -633,7 +633,7 @@ HRESULT m_IDirect3DX::CreateDevice(REFCLSID rclsid, LPDIRECTDRAWSURFACE7 lpDDS, 
 	return hr;
 }
 
-HRESULT m_IDirect3DX::CreateVertexBuffer(LPD3DVERTEXBUFFERDESC lpVBDesc, LPDIRECT3DVERTEXBUFFER7 * lplpD3DVertexBuffer, DWORD dwFlags, LPUNKNOWN pUnkOuter, DWORD DirectXVersion)
+HRESULT m_IDirect3DX::CreateVertexBuffer(LPD3DVERTEXBUFFERDESC lpVBDesc, LPDIRECT3DVERTEXBUFFER7* lplpD3DVertexBuffer, DWORD dwFlags, LPUNKNOWN pUnkOuter, DWORD DirectXVersion)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
@@ -655,9 +655,22 @@ HRESULT m_IDirect3DX::CreateVertexBuffer(LPD3DVERTEXBUFFERDESC lpVBDesc, LPDIREC
 		break;
 	case 9:
 	{
-		if (!lplpD3DVertexBuffer || dwFlags)
+		if (!lplpD3DVertexBuffer || !lpVBDesc)
 		{
 			return DDERR_INVALIDPARAMS;
+		}
+
+		if (!lpVBDesc->dwNumVertices)
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: invalid number of vertices: " << *lpVBDesc);
+			return DDERR_INVALIDPARAMS;
+		}
+
+		// Check FVF format
+		if (!lpVBDesc->dwFVF || (lpVBDesc->dwFVF != D3DFVF_LVERTEX && (lpVBDesc->dwFVF & ~(D3DFVF_POSITION_MASK | D3DFVF_NORMAL | D3DFVF_DIFFUSE | D3DFVF_SPECULAR | D3DFVF_TEXCOUNT_MASK))))
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: invalid or unsupported vertex buffer FVF: " << Logging::hex(lpVBDesc->dwFVF));
+			return D3DERR_INVALIDVERTEXFORMAT;
 		}
 
 		// Check for device
@@ -667,7 +680,7 @@ HRESULT m_IDirect3DX::CreateVertexBuffer(LPD3DVERTEXBUFFERDESC lpVBDesc, LPDIREC
 			return DDERR_GENERIC;
 		}
 
-		m_IDirect3DVertexBufferX *Interface = new m_IDirect3DVertexBufferX(ddrawParent->GetCurrentD3DDevice(), lpVBDesc, DirectXVersion);
+		m_IDirect3DVertexBufferX *Interface = new m_IDirect3DVertexBufferX(ddrawParent, lpVBDesc, DirectXVersion);
 
 		*lplpD3DVertexBuffer = (LPDIRECT3DVERTEXBUFFER7)Interface->GetWrapperInterfaceX(DirectXVersion);
 
@@ -795,7 +808,7 @@ HRESULT m_IDirect3DX::EnumZBufferFormats(REFCLSID riidDevice, LPD3DENUMPIXELFORM
 		}
 		else
 		{
-			LOG_LIMIT(100, __FUNCTION__ << " Not Implemented " << riidDevice);
+			LOG_LIMIT(100, __FUNCTION__ << " Error: Not Implemented " << riidDevice);
 			return DDERR_NOZBUFFERHW;
 		}
 	}

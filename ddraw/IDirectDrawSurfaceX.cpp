@@ -352,7 +352,7 @@ HRESULT m_IDirectDrawSurfaceX::AddOverlayDirtyRect(LPRECT lpRect)
 
 	if (Config.Dd7to9)
 	{
-		LOG_LIMIT(100, __FUNCTION__ << " Not Implemented");
+		LOG_LIMIT(100, __FUNCTION__ << " Error: Not Implemented");
 		return DDERR_UNSUPPORTED;
 	}
 
@@ -949,7 +949,7 @@ HRESULT m_IDirectDrawSurfaceX::EnumOverlayZOrders2(DWORD dwFlags, LPVOID lpConte
 
 	if (Config.Dd7to9)
 	{
-		LOG_LIMIT(100, __FUNCTION__ << " Not Implemented");
+		LOG_LIMIT(100, __FUNCTION__ << " Error: Not Implemented");
 		return DDERR_UNSUPPORTED;
 	}
 
@@ -1267,7 +1267,8 @@ HRESULT m_IDirectDrawSurfaceX::GetAttachedSurface2(LPDDSCAPS2 lpDDSCaps2, LPDIRE
 		// No attached surface found
 		if (!lpFoundSurface)
 		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error: failed to find attached surface that matches the capabilities requested: " << *lpDDSCaps2);
+			LOG_LIMIT(100, __FUNCTION__ << " Error: failed to find attached surface that matches the capabilities requested: " << *lpDDSCaps2 <<
+				" Attached number of surfaces: " << AttachedSurfaceMap.size());
 			return DDERR_NOTFOUND;
 		}
 
@@ -2622,7 +2623,7 @@ HRESULT m_IDirectDrawSurfaceX::UpdateOverlayZOrder(DWORD dwFlags, LPDIRECTDRAWSU
 
 	if (Config.Dd7to9)
 	{
-		LOG_LIMIT(100, __FUNCTION__ << " Not Implemented");
+		LOG_LIMIT(100, __FUNCTION__ << " Error: Not Implemented");
 		return DDERR_UNSUPPORTED;
 	}
 
@@ -3102,7 +3103,7 @@ LPDIRECT3DSURFACE9 m_IDirectDrawSurfaceX::Get3DSurface()
 		return nullptr;
 	}
 
-	return surface3D;
+	return GetD3D9Surface();
 }
 
 LPDIRECT3DTEXTURE9 m_IDirectDrawSurfaceX::Get3DTexture()
@@ -3191,7 +3192,7 @@ HRESULT m_IDirectDrawSurfaceX::CheckInterface(char *FunctionName, bool CheckD3DD
 		IsDirect3DSurface = ddrawParent->IsUsing3D();
 
 		// Make sure surface exists, if not then create it
-		if ((!surfaceTexture && !surface3D) || (IsDirect3DSurface && !IsTexture() && !surface3D))
+		if (!surfaceTexture && !surface3D)
 		{
 			if (FAILED(CreateD3d9Surface()))
 			{
@@ -3246,37 +3247,13 @@ HRESULT m_IDirectDrawSurfaceX::CreateD3d9Surface()
 
 	HRESULT hr = DD_OK;
 
-	// Create surface texture
 	do {
-		if (!IsDirect3DSurface && (IsPrimarySurface() || IsBackBuffer()))
+		// Create primary surface texture
+		if (IsPrimarySurface() || IsBackBuffer())
 		{
-			// Create primary texture
 			if (FAILED((*d3d9Device)->CreateTexture(Width, Height, 1, 0, TextureFormat, D3DPOOL_MANAGED, &surfaceTexture, nullptr)))
 			{
 				LOG_LIMIT(100, __FUNCTION__ << " Error: failed to create primary surface texture. Size: " << Width << "x" << Height << " Format: " << surfaceFormat << " dwCaps: " << Logging::hex(surfaceDesc2.ddsCaps.dwCaps));
-				hr = DDERR_GENERIC;
-				break;
-			}
-
-			// Create palette surface
-			if (IsPrimarySurface() && surfaceFormat == D3DFMT_P8)
-			{
-				if (FAILED(((*d3d9Device)->CreateTexture(256, 256, 1, 0, D3DFMT_X8R8G8B8, D3DPOOL_MANAGED, &paletteTexture, nullptr))) ||
-					FAILED((*d3d9Device)->CreatePixelShader((DWORD*)PalettePixelShaderSrc, &pixelShader)))
-				{
-					LOG_LIMIT(100, __FUNCTION__ << " Error: failed to create palette surface texture");
-					hr = DDERR_GENERIC;
-					break;
-				}
-			}
-		}
-		// Create texture
-		else if (IsTexture() || !IsDirect3DSurface)
-		{
-			const D3DPOOL Pool = (surfaceDesc2.ddsCaps.dwCaps & DDSCAPS_SYSTEMMEMORY) ? D3DPOOL_SYSTEMMEM : D3DPOOL_MANAGED;
-			if (FAILED(((*d3d9Device)->CreateTexture(Width, Height, 1, 0, TextureFormat, Pool, &surfaceTexture, nullptr))))
-			{
-				LOG_LIMIT(100, __FUNCTION__ << " Error: failed to create surface texture. Size: " << Width << "x" << Height << " Format: " << surfaceFormat << " dwCaps: " << Logging::hex(surfaceDesc2.ddsCaps.dwCaps));
 				hr = DDERR_GENERIC;
 				break;
 			}
@@ -3292,13 +3269,25 @@ HRESULT m_IDirectDrawSurfaceX::CreateD3d9Surface()
 				break;
 			}
 		}
-		// Create offplain surface
+		// Create texture
 		else
 		{
-			const D3DPOOL Pool = (surfaceDesc2.ddsCaps.dwCaps & DDSCAPS_SYSTEMMEMORY) ? D3DPOOL_SYSTEMMEM : D3DPOOL_DEFAULT;
-			if (FAILED((*d3d9Device)->CreateOffscreenPlainSurface(Width, Height, Format, Pool, &surface3D, nullptr)))
+			const D3DPOOL Pool = (surfaceDesc2.ddsCaps.dwCaps & DDSCAPS_SYSTEMMEMORY) ? D3DPOOL_SYSTEMMEM : D3DPOOL_MANAGED;
+			if (FAILED(((*d3d9Device)->CreateTexture(Width, Height, 1, 0, TextureFormat, Pool, &surfaceTexture, nullptr))))
 			{
-				LOG_LIMIT(100, __FUNCTION__ << " Error: failed to create surface. Size: " << Width << "x" << Height << " Format: " << surfaceFormat << " dwCaps: " << Logging::hex(surfaceDesc2.ddsCaps.dwCaps));
+				LOG_LIMIT(100, __FUNCTION__ << " Error: failed to create surface texture. Size: " << Width << "x" << Height << " Format: " << surfaceFormat << " dwCaps: " << Logging::hex(surfaceDesc2.ddsCaps.dwCaps));
+				hr = DDERR_GENERIC;
+				break;
+			}
+		}
+
+		// Create palette surface
+		if (IsPrimarySurface() && surfaceFormat == D3DFMT_P8)
+		{
+			if (FAILED(((*d3d9Device)->CreateTexture(256, 256, 1, 0, D3DFMT_X8R8G8B8, D3DPOOL_MANAGED, &paletteTexture, nullptr))) ||
+				FAILED((*d3d9Device)->CreatePixelShader((DWORD*)PalettePixelShaderSrc, &pixelShader)))
+			{
+				LOG_LIMIT(100, __FUNCTION__ << " Error: failed to create palette surface texture");
 				hr = DDERR_GENERIC;
 				break;
 			}
@@ -3360,13 +3349,13 @@ HRESULT m_IDirectDrawSurfaceX::CreateD3d9Surface()
 	PaletteUSN++;
 
 	// Only need to create vertex buffer for primary surface when using DirectDraw and not writing to GDI
-	if (!IsPrimarySurface() || IsDirect3DSurface || Config.DdrawWriteToGDI)
+	if (!IsPrimarySurface() || Config.DdrawWriteToGDI)
 	{
 		return hr;
 	}
 
 	// Create vertex buffer
-	if (FAILED((*d3d9Device)->CreateVertexBuffer(sizeof(TLVERTEX) * 4, D3DUSAGE_WRITEONLY, TLVERTEXFVF, D3DPOOL_MANAGED, &vertexBuffer, nullptr)))
+	if (FAILED((*d3d9Device)->CreateVertexBuffer(sizeof(TLVERTEX) * 4, D3DUSAGE_WRITEONLY, TLVERTEXFVF, D3DPOOL_DEFAULT, &vertexBuffer, nullptr)))
 	{
 		LOG_LIMIT(100, __FUNCTION__ << " Error: failed to create vertex buffer");
 		return DDERR_GENERIC;
@@ -3866,6 +3855,93 @@ void m_IDirectDrawSurfaceX::ReleaseD9Surface(bool BackupData)
 	}
 }
 
+HRESULT m_IDirectDrawSurfaceX::Draw2DSurface()
+{
+	Logging::LogDebug() << __FUNCTION__ << " (" << this << ") ";
+
+	// If there is no surface texture than nothing to draw
+	if (!surfaceTexture)
+	{
+		return DD_OK;
+	}
+
+	// Set texture
+	if (surfaceTexture)
+	{
+		if (FAILED((*d3d9Device)->SetTexture(0, surfaceTexture)))
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: failed to set surface texture");
+			return DDERR_GENERIC;
+		}
+	}
+
+	// Set vertex buffer and lighting
+	if (vertexBuffer)
+	{
+		// Set vertex shader
+		if (FAILED((*d3d9Device)->SetVertexShader(nullptr)))
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: failed to set vertex shader");
+			return DDERR_GENERIC;
+		}
+
+		// Set vertex format
+		if (FAILED((*d3d9Device)->SetFVF(TLVERTEXFVF)))
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: failed to set the current vertex stream format");
+			return DDERR_GENERIC;
+		}
+
+		// Set stream source
+		if (FAILED((*d3d9Device)->SetStreamSource(0, vertexBuffer, 0, sizeof(TLVERTEX))))
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: failed to set vertex buffer stream source");
+			return DDERR_GENERIC;
+		}
+
+		// Set render states (no lighting)
+		if (FAILED((*d3d9Device)->SetRenderState(D3DRS_LIGHTING, FALSE)))
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: failed to set device render state(no lighting)");
+			return DDERR_GENERIC;
+		}
+
+		// Set scale mode to linear
+		if (FAILED((*d3d9Device)->SetSamplerState(0, D3DSAMP_MAGFILTER, D3DTEXF_POINT)))
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Warning: failed to set D3D device to LINEAR sampling");
+		}
+	}
+
+	// Handle palette surfaces
+	if (paletteTexture && pixelShader)
+	{
+		// Set palette texture
+		UpdatePaletteData();
+		if (FAILED((*d3d9Device)->SetTexture(1, paletteTexture)))
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: failed to lock palette texture!");
+			return DDERR_GENERIC;
+		}
+
+		// Set pixel shader
+		if (FAILED((*d3d9Device)->SetPixelShader(pixelShader)))
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: failed to set pixel shader");
+			return DDERR_GENERIC;
+		}
+	}
+
+	// Draw primitive
+	if (FAILED((*d3d9Device)->DrawPrimitive(D3DPT_TRIANGLEFAN, 0, 2)))
+	{
+		LOG_LIMIT(100, __FUNCTION__ << " Error: failed to draw primitive");
+		return DDERR_GENERIC;
+	}
+
+	return DD_OK;
+}
+
 // Present surface
 HRESULT m_IDirectDrawSurfaceX::PresentSurface(bool isSkipScene)
 {
@@ -3915,86 +3991,36 @@ HRESULT m_IDirectDrawSurfaceX::PresentSurface(bool isSkipScene)
 
 	HRESULT hr = DD_OK;
 
-	Logging::LogDebug() << __FUNCTION__ << " (" << this << ") ";
 	// Preset surface
 	do {
-		// Set texture
-		if (surfaceTexture)
+		// Begin scene
+		if (FAILED((*d3d9Device)->BeginScene()))
 		{
-			if (FAILED((*d3d9Device)->SetTexture(0, surfaceTexture)))
-			{
-				LOG_LIMIT(100, __FUNCTION__ << " Error: failed to set surface texture");
-				hr = DDERR_GENERIC;
-				break;
-			}
+			LOG_LIMIT(100, __FUNCTION__ << " Error: failed to begin scene!");
+			hr = DDERR_GENERIC;
+			break;
 		}
 
-		// Set vertex buffer and lighting
-		if (vertexBuffer)
+		// Draw 2D surface before presenting
+		if (FAILED(Draw2DSurface()))
 		{
-			// Set vertex shader
-			if (FAILED((*d3d9Device)->SetVertexShader(nullptr)))
-			{
-				LOG_LIMIT(100, __FUNCTION__ << " Error: failed to set vertex shader");
-				hr = DDERR_GENERIC;
-				break;
-			}
-
-			// Set vertex format
-			if (FAILED((*d3d9Device)->SetFVF(TLVERTEXFVF)))
-			{
-				LOG_LIMIT(100, __FUNCTION__ << " Error: failed to set the current vertex stream format");
-				hr = DDERR_GENERIC;
-				break;
-			}
-
-			// Set stream source
-			if (FAILED((*d3d9Device)->SetStreamSource(0, vertexBuffer, 0, sizeof(TLVERTEX))))
-			{
-				LOG_LIMIT(100, __FUNCTION__ << " Error: failed to set vertex buffer stream source");
-				hr = DDERR_GENERIC;
-				break;
-			}
-
-			// Set render states(no lighting)
-			if (FAILED((*d3d9Device)->SetRenderState(D3DRS_LIGHTING, FALSE)))
-			{
-				LOG_LIMIT(100, __FUNCTION__ << " Error: failed to set device render state(no lighting)");
-				hr = DDERR_GENERIC;
-				break;
-			}
-
-			// Set scale mode to linear
-			if (FAILED((*d3d9Device)->SetSamplerState(0, D3DSAMP_MAGFILTER, D3DTEXF_POINT)))
-			{
-				LOG_LIMIT(100, __FUNCTION__ << " Warning: failed to set D3D device to LINEAR sampling");
-			}
+			LOG_LIMIT(100, __FUNCTION__ << " Error: failed to draw 2D surface!");
+			hr = DDERR_GENERIC;
+			break;
 		}
 
-		// Handle palette surfaces
-		if (paletteTexture && pixelShader)
+		// End scene
+		if (FAILED((*d3d9Device)->EndScene()))
 		{
-			// Set palette texture
-			UpdatePaletteData();
-			if (FAILED((*d3d9Device)->SetTexture(1, paletteTexture)))
-			{
-				LOG_LIMIT(100, __FUNCTION__ << " Error: failed to lock palette texture!");
-				hr = DDERR_GENERIC;
-				break;
-			}
-
-			// Set pixel shader
-			if (FAILED((*d3d9Device)->SetPixelShader(pixelShader)))
-			{
-				LOG_LIMIT(100, __FUNCTION__ << " Error: failed to set pixel shader");
-				hr = DDERR_GENERIC;
-				break;
-			}
+			LOG_LIMIT(100, __FUNCTION__ << " Error: failed to end scene!");
+			hr = DDERR_GENERIC;
+			break;
 		}
 
 		// Present to d3d9
 		if (FAILED(ddrawParent->Present()))
 		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: failed to present 2D scene!");
 			hr = DDERR_GENERIC;
 			break;
 		}

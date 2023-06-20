@@ -16,6 +16,7 @@
 
 #define WIN32_LEAN_AND_MEAN
 #include "d3dx9.h"
+#include "d3dx9_data.h"
 #include "External\MemoryModule\MemoryModule.h"
 #include "Utils\Utils.h"
 #include "Logging\Logging.h"
@@ -34,7 +35,6 @@ typedef HRESULT(WINAPI* PFN_D3DCompile)(LPCVOID pSrcData, SIZE_T SrcDataSize, LP
 typedef HRESULT(WINAPI* PFN_D3DDisassemble)(LPCVOID pSrcData, SIZE_T SrcDataSize, UINT Flags, LPCSTR szComments, ID3DBlob** ppDisassembly);
 
 HMEMORYMODULE d3dx9Module = nullptr;
-HMEMORYMODULE d3dCompile43Module = nullptr;
 HMEMORYMODULE d3dCompileModule = nullptr;
 
 PFN_D3DXCreateTexture p_D3DXCreateTexture = nullptr;
@@ -56,33 +56,34 @@ FARPROC f_D3DXLoadSurfaceFromSurface = (FARPROC)*D3DXLoadSurfaceFromSurface;
 void LoadD3dx9()
 {
 	static bool RunOnce = true;
-	if (RunOnce)
+	if (!RunOnce)
 	{
-		RunOnce = false;
+		return;
+	}
+	RunOnce = false;
 
-		d3dx9Module = Utils::LoadResourceToMemory(IDR_D3DX9_DLL);
-		d3dCompileModule = Utils::LoadResourceToMemory(IDR_D3DCOMPILE_DLL);
+	d3dx9Module = Utils::LoadMemoryToDLL((LPVOID)D3DX9_43, sizeof(D3DX9_43));
+	d3dCompileModule = Utils::LoadMemoryToDLL((LPVOID)D3DCompiler_47, sizeof(D3DCompiler_47));
 
-		if (!d3dx9Module || !d3dCompileModule)
-		{
-			Logging::Log() << __FUNCTION__ << "Error: failed to load d3dx9 modules!";
-		}
-		if (d3dx9Module)
-		{
-			p_D3DXCreateTexture = reinterpret_cast<PFN_D3DXCreateTexture>(MemoryGetProcAddress(d3dx9Module, "D3DXCreateTexture"));
-			p_D3DXLoadSurfaceFromMemory = reinterpret_cast<PFN_D3DXLoadSurfaceFromMemory>(MemoryGetProcAddress(d3dx9Module, "D3DXLoadSurfaceFromMemory"));
-			p_D3DXLoadSurfaceFromSurface = reinterpret_cast<PFN_D3DXLoadSurfaceFromSurface>(MemoryGetProcAddress(d3dx9Module, "D3DXLoadSurfaceFromSurface"));
-			p_D3DXSaveSurfaceToFileInMemory = reinterpret_cast<PFN_D3DXSaveSurfaceToFileInMemory>(MemoryGetProcAddress(d3dx9Module, "D3DXSaveSurfaceToFileInMemory"));
-			p_D3DXSaveTextureToFileInMemory = reinterpret_cast<PFN_D3DXSaveTextureToFileInMemory>(MemoryGetProcAddress(d3dx9Module, "D3DXSaveTextureToFileInMemory"));
-			p_D3DXAssembleShader = reinterpret_cast<PFN_D3DXAssembleShader>(MemoryGetProcAddress(d3dx9Module, "D3DXAssembleShader"));
-			p_D3DXDisassembleShader = reinterpret_cast<PFN_D3DXDisassembleShader>(MemoryGetProcAddress(d3dx9Module, "D3DXDisassembleShader"));
-		}
-		if (d3dCompileModule)
-		{
-			p_D3DAssemble = reinterpret_cast<PFN_D3DAssemble>(MemoryGetProcAddress(d3dCompileModule, "D3DAssemble"));
-			p_D3DCompile = reinterpret_cast<PFN_D3DCompile>(MemoryGetProcAddress(d3dCompileModule, "D3DCompile"));
-			p_D3DDisassemble = reinterpret_cast<PFN_D3DDisassemble>(MemoryGetProcAddress(d3dCompileModule, "D3DDisassemble"));
-		}
+	if (!d3dx9Module || !d3dCompileModule)
+	{
+		Logging::Log() << __FUNCTION__ << "Error: failed to load d3dx9 modules!";
+	}
+	if (d3dx9Module)
+	{
+		p_D3DXCreateTexture = reinterpret_cast<PFN_D3DXCreateTexture>(MemoryGetProcAddress(d3dx9Module, "D3DXCreateTexture"));
+		p_D3DXLoadSurfaceFromMemory = reinterpret_cast<PFN_D3DXLoadSurfaceFromMemory>(MemoryGetProcAddress(d3dx9Module, "D3DXLoadSurfaceFromMemory"));
+		p_D3DXLoadSurfaceFromSurface = reinterpret_cast<PFN_D3DXLoadSurfaceFromSurface>(MemoryGetProcAddress(d3dx9Module, "D3DXLoadSurfaceFromSurface"));
+		p_D3DXSaveSurfaceToFileInMemory = reinterpret_cast<PFN_D3DXSaveSurfaceToFileInMemory>(MemoryGetProcAddress(d3dx9Module, "D3DXSaveSurfaceToFileInMemory"));
+		p_D3DXSaveTextureToFileInMemory = reinterpret_cast<PFN_D3DXSaveTextureToFileInMemory>(MemoryGetProcAddress(d3dx9Module, "D3DXSaveTextureToFileInMemory"));
+		p_D3DXAssembleShader = reinterpret_cast<PFN_D3DXAssembleShader>(MemoryGetProcAddress(d3dx9Module, "D3DXAssembleShader"));
+		p_D3DXDisassembleShader = reinterpret_cast<PFN_D3DXDisassembleShader>(MemoryGetProcAddress(d3dx9Module, "D3DXDisassembleShader"));
+	}
+	if (d3dCompileModule)
+	{
+		p_D3DAssemble = reinterpret_cast<PFN_D3DAssemble>(MemoryGetProcAddress(d3dCompileModule, "D3DAssemble"));
+		p_D3DCompile = reinterpret_cast<PFN_D3DCompile>(MemoryGetProcAddress(d3dCompileModule, "D3DCompile"));
+		p_D3DDisassemble = reinterpret_cast<PFN_D3DDisassemble>(MemoryGetProcAddress(d3dCompileModule, "D3DDisassemble"));
 	}
 }
 

@@ -13,9 +13,6 @@
 *      being the original software.
 *   3. This notice may not be removed or altered from any source distribution.
 *
-* Exception handling code taken from source code found in DxWnd v2.03.99
-* https://sourceforge.net/projects/dxwnd/
-*
 * ASI plugin loader taken from source code found in Ultimate ASI Loader
 * https://github.com/ThirteenAG/Ultimate-ASI-Loader
 *
@@ -38,10 +35,6 @@
 #include "Wrappers\wrapper.h"
 #include "d3d8\d3d8External.h"
 #include "d3d9\d3d9External.h"
-extern "C"
-{
-#include "Disasm\disasm.h"
-}
 #include "External\Hooking\Hook.h"
 #include "Utils.h"
 #include "Logging\Logging.h"
@@ -60,7 +53,6 @@ typedef BOOL(WINAPI *SetProcessDpiAwarenessContextProc)(DPI_AWARENESS_CONTEXT va
 typedef FARPROC(WINAPI *GetProcAddressProc)(HMODULE, LPSTR);
 typedef DWORD(WINAPI *GetModuleFileNameAProc)(HMODULE, LPSTR, DWORD);
 typedef DWORD(WINAPI *GetModuleFileNameWProc)(HMODULE, LPWSTR, DWORD);
-typedef LPTOP_LEVEL_EXCEPTION_FILTER(WINAPI *PFN_SetUnhandledExceptionFilter)(LPTOP_LEVEL_EXCEPTION_FILTER);
 typedef BOOL(WINAPI *CreateProcessAFunc)(LPCSTR lpApplicationName, LPSTR lpCommandLine, LPSECURITY_ATTRIBUTES lpProcessAttributes, LPSECURITY_ATTRIBUTES lpThreadAttributes, BOOL bInheritHandles, DWORD dwCreationFlags,
 	LPVOID lpEnvironment, LPCSTR lpCurrentDirectory, LPSTARTUPINFOA lpStartupInfo, LPPROCESS_INFORMATION lpProcessInformation);
 typedef BOOL(WINAPI *CreateProcessWFunc)(LPCWSTR lpApplicationName, LPWSTR lpCommandLine, LPSECURITY_ATTRIBUTES lpProcessAttributes, LPSECURITY_ATTRIBUTES lpThreadAttributes, BOOL bInheritHandles, DWORD dwCreationFlags,
@@ -97,15 +89,11 @@ namespace Utils
 	FARPROC p_CreateProcessA = nullptr;
 	FARPROC p_CreateProcessW = nullptr;
 	std::vector<type_dll> custom_dll;		// Used for custom dll's and asi plugins
-	LPTOP_LEVEL_EXCEPTION_FILTER pOriginalSetUnhandledExceptionFilter = SetUnhandledExceptionFilter((LPTOP_LEVEL_EXCEPTION_FILTER)EXCEPTION_CONTINUE_EXECUTION);
-	PFN_SetUnhandledExceptionFilter pSetUnhandledExceptionFilter = reinterpret_cast<PFN_SetUnhandledExceptionFilter>(SetUnhandledExceptionFilter);
 
 	// Function declarations
 	DWORD_PTR GetProcessMask();
 	void InitializeASI(HMODULE hModule);
 	void FindFiles(WIN32_FIND_DATA*);
-	LONG WINAPI myUnhandledExceptionFilter(LPEXCEPTION_POINTERS);
-	LPTOP_LEVEL_EXCEPTION_FILTER WINAPI extSetUnhandledExceptionFilter(LPTOP_LEVEL_EXCEPTION_FILTER);
 	void *memmem(const void *l, size_t l_len, const void *s, size_t s_len);
 }
 
@@ -314,98 +302,6 @@ DWORD WINAPI Utils::GetModuleFileNameWHandler(HMODULE hModule, LPWSTR lpFilename
 	return 0;
 }
 
-// Add filter for UnhandledExceptionFilter used by the exception handler to catch exceptions
-LONG WINAPI Utils::myUnhandledExceptionFilter(LPEXCEPTION_POINTERS ExceptionInfo)
-{
-	Logging::Log() << "UnhandledExceptionFilter: exception code=" << ExceptionInfo->ExceptionRecord->ExceptionCode <<
-		" flags=" << ExceptionInfo->ExceptionRecord->ExceptionFlags << std::showbase << std::hex <<
-		" addr=" << ExceptionInfo->ExceptionRecord->ExceptionAddress << std::dec << std::noshowbase;
-	DWORD oldprot;
-	static HMODULE disasmlib = nullptr;
-	PVOID target = ExceptionInfo->ExceptionRecord->ExceptionAddress;
-	switch (ExceptionInfo->ExceptionRecord->ExceptionCode)
-	{
-	case 0xc0000094: // IDIV reg (Ultim@te Race Pro)
-	case 0xc0000095: // DIV by 0 (divide overflow) exception (SonicR)
-	case 0xc0000096: // CLI Priviliged instruction exception (Resident Evil), FB (Asterix & Obelix)
-	case 0xc000001d: // FEMMS (eXpendable)
-	case 0xc0000005: // Memory exception (Tie Fighter)
-	{
-		int cmdlen;
-		t_disasm da;
-		Preparedisasm();
-		if (!VirtualProtect(target, 10, PAGE_READWRITE, &oldprot))
-		{
-			return EXCEPTION_CONTINUE_SEARCH; // error condition
-		}
-		cmdlen = Disasm((BYTE *)target, 10, 0, &da, 0, nullptr, nullptr);
-		Logging::Log() << "UnhandledExceptionFilter: NOP opcode=" << std::showbase << std::hex << *(BYTE *)target << std::dec << std::noshowbase << " len=" << cmdlen;
-		memset((BYTE *)target, 0x90, cmdlen);
-		VirtualProtect(target, 10, oldprot, &oldprot);
-		HANDLE hCurrentProcess = GetCurrentProcess();
-		if (!FlushInstructionCache(hCurrentProcess, target, cmdlen))
-		{
-			Logging::Log() << "UnhandledExceptionFilter: FlushInstructionCache ERROR target=" << std::showbase << std::hex << target << std::dec << std::noshowbase << ", err=" << GetLastError();
-		}
-		CloseHandle(hCurrentProcess);
-		// skip replaced opcode
-		ExceptionInfo->ContextRecord->Eip += cmdlen; // skip ahead op-code length
-		return EXCEPTION_CONTINUE_EXECUTION;
-	}
-	break;
-	default:
-		return EXCEPTION_CONTINUE_SEARCH;
-	}
-}
-
-// Add filter for SetUnhandledExceptionFilter used by the exception handler to catch exceptions
-LPTOP_LEVEL_EXCEPTION_FILTER WINAPI Utils::extSetUnhandledExceptionFilter(LPTOP_LEVEL_EXCEPTION_FILTER lpTopLevelExceptionFilter)
-{
-#ifdef _DEBUG
-	Logging::Log() << "SetUnhandledExceptionFilter: lpExceptionFilter=" << lpTopLevelExceptionFilter;
-#else
-	UNREFERENCED_PARAMETER(lpTopLevelExceptionFilter);
-#endif
-	extern LONG WINAPI myUnhandledExceptionFilter(LPEXCEPTION_POINTERS);
-	return pSetUnhandledExceptionFilter(myUnhandledExceptionFilter);
-}
-
-// Sets the exception handler by hooking UnhandledExceptionFilter
-void Utils::HookExceptionHandler(void)
-{
-	void *tmp;
-
-	Logging::Log() << "Set exception handler";
-	HMODULE dll = LoadLibrary("kernel32.dll");
-	if (!dll)
-	{
-		Logging::Log() << "Failed to load kernel32.dll!";
-		return;
-	}
-	// override default exception handler, if any....
-	LONG WINAPI myUnhandledExceptionFilter(LPEXCEPTION_POINTERS);
-	tmp = Hook::HookAPI(dll, "kernel32.dll", UnhandledExceptionFilter, "UnhandledExceptionFilter", myUnhandledExceptionFilter);
-	// so far, no need to save the previous handler, but anyway...
-	tmp = Hook::HookAPI(dll, "kernel32.dll", SetUnhandledExceptionFilter, "SetUnhandledExceptionFilter", extSetUnhandledExceptionFilter);
-	if (tmp)
-	{
-		pSetUnhandledExceptionFilter = reinterpret_cast<PFN_SetUnhandledExceptionFilter>(tmp);
-	}
-
-	SetErrorMode(SEM_NOGPFAULTERRORBOX | SEM_NOOPENFILEERRORBOX | SEM_FAILCRITICALERRORS);
-	pSetUnhandledExceptionFilter((LPTOP_LEVEL_EXCEPTION_FILTER)myUnhandledExceptionFilter);
-	Logging::Log() << "Finished setting exception handler";
-}
-
-// Unhooks the exception handler
-void Utils::UnHookExceptionHandler(void)
-{
-	Logging::Log() << "Unloading exception handlers";
-	SetErrorMode(0);
-	SetUnhandledExceptionFilter(pOriginalSetUnhandledExceptionFilter);
-	Finishdisasm();
-}
-
 // Add HMODULE to vector
 void Utils::AddHandleToVector(HMODULE dll, const char *name)
 {
@@ -563,9 +459,7 @@ void Utils::LoadPlugins()
 	GetCurrentDirectory(MAX_PATH, oldDir);
 
 	char selfPath[MAX_PATH] = { 0 };
-	HMODULE hModule = NULL;
-	GetModuleHandleEx(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT, (LPCTSTR)Utils::LoadPlugins, &hModule);
-	GetModuleFileName(hModule, selfPath, MAX_PATH);
+	GetModuleFileName(hModule_dll, selfPath, MAX_PATH);
 	*strrchr(selfPath, '\\') = '\0';
 	SetCurrentDirectory(selfPath);
 
@@ -599,6 +493,15 @@ void Utils::UnloadAllDlls()
 		FreeLibrary(custom_dll.back().dll);
 		custom_dll.pop_back();
 	}
+}
+
+HMEMORYMODULE Utils::LoadMemoryToDLL(LPVOID pMemory, DWORD Size)
+{
+	if (pMemory && Size)
+	{
+		return MemoryLoadLibrary(pMemory, Size);
+	}
+	return nullptr;
 }
 
 HMEMORYMODULE Utils::LoadResourceToMemory(DWORD ResID)
@@ -682,6 +585,13 @@ void Utils::DDrawResolutionHack(HMODULE hD3DIm)
 		*(DWORD *)dwPatchBase = (DWORD)-1;
 		VirtualProtect((LPVOID)dwPatchBase, 4, dwOldProtect, &dwOldProtect);
 	}
+}
+
+void Utils::CheckMessageQueue(HWND hwnd)
+{
+	// Peek messages to help prevent a "Not Responding" window
+	MSG msg = {};
+	if (PeekMessage(&msg, hwnd, 0, 0, PM_NOREMOVE)) { Sleep(0); };
 }
 
 void Utils::GetScreenSettings()

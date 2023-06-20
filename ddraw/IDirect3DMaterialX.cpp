@@ -142,9 +142,9 @@ HRESULT m_IDirect3DMaterialX::Initialize(LPDIRECT3D lplpD3D)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	// Former stub method. This method was never implemented and is not supported in any interface.
 	if (ProxyDirectXVersion != 1)
 	{
+		// Former stub method. This method was never implemented and is not supported in any interface.
 		return D3D_OK;
 	}
 
@@ -174,26 +174,33 @@ HRESULT m_IDirect3DMaterialX::SetMaterial(LPD3DMATERIAL lpMat)
 			return DDERR_GENERIC;
 		}
 
-		MaterialSet = true;
-
-		Material.dwSize = sizeof(D3DMATERIAL);
-		ConvertMaterial(Material, *lpMat);
-
 		if (lpMat->hTexture)
 		{
-			LOG_LIMIT(100, __FUNCTION__ << " D3DTEXTUREHANDLE Not Implemented: " << lpMat->hTexture);
+			LOG_LIMIT(100, __FUNCTION__ << " Warning: D3DTEXTUREHANDLE Not Implemented: " << lpMat->hTexture);
 		}
 
 		if (lpMat->dwRampSize)
 		{
-			LOG_LIMIT(100, __FUNCTION__ << " RampSize Not Implemented: " << lpMat->dwRampSize);
+			LOG_LIMIT(100, __FUNCTION__ << " Warning: RampSize Not Implemented: " << lpMat->dwRampSize);
 		}
 
 		D3DMATERIAL7 Material7;
 
 		ConvertMaterial(Material7, *lpMat);
 
-		return (*D3DDeviceInterface)->SetMaterial(&Material7);
+		HRESULT hr = (*D3DDeviceInterface)->SetMaterial(&Material7);
+
+		if (FAILED(hr))
+		{
+			return D3DERR_MATERIAL_SETDATA_FAILED;
+		}
+
+		MaterialSet = true;
+
+		Material.dwSize = sizeof(D3DMATERIAL);
+		ConvertMaterial(Material, *lpMat);
+
+		return D3D_OK;;
 	}
 
 	switch (ProxyDirectXVersion)
@@ -280,9 +287,9 @@ HRESULT m_IDirect3DMaterialX::Reserve()
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	// Former stub method. This method was never implemented and is not supported in any interface.
 	if (ProxyDirectXVersion != 1)
 	{
+		// Former stub method. This method was never implemented and is not supported in any interface.
 		return DD_OK;
 	}
 
@@ -293,9 +300,9 @@ HRESULT m_IDirect3DMaterialX::Unreserve()
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	// Former stub method. This method was never implemented and is not supported in any interface.
 	if (ProxyDirectXVersion != 1)
 	{
+		// Former stub method. This method was never implemented and is not supported in any interface.
 		return DD_OK;
 	}
 
