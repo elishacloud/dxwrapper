@@ -2779,8 +2779,6 @@ HRESULT m_IDirect3DDeviceX::DrawIndexedPrimitive(D3DPRIMITIVETYPE dptPrimitiveTy
 			return DDERR_GENERIC;
 		}
 
-		const UINT stride = GetVertexStride(dwVertexTypeDesc);
-
 		// Handle PositionT
 		if (Config.DdrawConvertHomogeneousW && (dwVertexTypeDesc & 0x0E) == D3DFVF_XYZRHW)
 		{
@@ -2809,6 +2807,8 @@ HRESULT m_IDirect3DDeviceX::DrawIndexedPrimitive(D3DPRIMITIVETYPE dptPrimitiveTy
 			}
 			else
 			{
+				const UINT stride = GetVertexStride(dwVertexTypeDesc);
+
 				const UINT targetStride = stride - sizeof(float);
 				const UINT restSize = stride - sizeof(float) * 4;
 
