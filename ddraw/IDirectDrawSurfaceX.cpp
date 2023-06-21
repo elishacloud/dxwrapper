@@ -2643,13 +2643,14 @@ HRESULT m_IDirectDrawSurfaceX::GetDDInterface(LPVOID FAR * lplpDD, DWORD DirectX
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
+	if (!lplpDD)
+	{
+		return DDERR_INVALIDPARAMS;
+	}
+	*lplpDD = nullptr;
+
 	if (Config.Dd7to9)
 	{
-		if (!lplpDD)
-		{
-			return DDERR_INVALIDPARAMS;
-		}
-
 		// Check for device interface
 		if (FAILED(CheckInterface(__FUNCTION__, false, false)))
 		{
@@ -2664,9 +2665,10 @@ HRESULT m_IDirectDrawSurfaceX::GetDDInterface(LPVOID FAR * lplpDD, DWORD DirectX
 		return DD_OK;
 	}
 
-	HRESULT hr = ProxyInterface->GetDDInterface(lplpDD);
+	LPVOID NewDD = nullptr;
+	HRESULT hr = ProxyInterface->GetDDInterface(&NewDD);
 
-	if (SUCCEEDED(hr) && lplpDD)
+	if (SUCCEEDED(hr))
 	{
 		// Calling the GetDDInterface method from any surface created under DirectDrawEx will return a pointer to the 
 		// IUnknown interface instead of a pointer to an IDirectDraw interface. Applications must use the
@@ -2677,14 +2679,17 @@ HRESULT m_IDirectDrawSurfaceX::GetDDInterface(LPVOID FAR * lplpDD, DWORD DirectX
 			(DirectXVersion == 4) ? IID_IDirectDraw4 :
 			(DirectXVersion == 7) ? IID_IDirectDraw7 : IID_IDirectDraw7;
 
-		IUnknown *lpDD = (IUnknown*)*lplpDD;
 
-		hr = lpDD->QueryInterface(tmpID, lplpDD);
-		if (SUCCEEDED(hr))
+		hr = ((IUnknown*)NewDD)->QueryInterface(tmpID, lplpDD);
+		if (FAILED(hr))
 		{
-			*lplpDD = ProxyAddressLookupTable.FindAddress<m_IDirectDraw7>(*lplpDD, DirectXVersion);
-			((IUnknown*)*lplpDD)->Release();
+			LOG_LIMIT(100, __FUNCTION__ << " Error: failed to get DirectDraw interface: " << (DDERR)hr);
+			return hr;
 		}
+
+		((IUnknown*)NewDD)->Release();
+
+		*lplpDD = ProxyAddressLookupTable.FindAddress<m_IDirectDraw7>(*lplpDD, DirectXVersion);
 	}
 
 	return hr;
