@@ -408,7 +408,7 @@ HRESULT m_IDirectDrawX::CreateSurface(LPDDSURFACEDESC lpDDSurfaceDesc, LPDIRECTD
 			return DDERR_INVALIDPARAMS;
 		}
 
-		DDSURFACEDESC2 Desc2;
+		DDSURFACEDESC2 Desc2 = {};
 		Desc2.dwSize = sizeof(DDSURFACEDESC2);
 		ConvertSurfaceDesc(Desc2, *lpDDSurfaceDesc);
 
@@ -564,9 +564,9 @@ HRESULT m_IDirectDrawX::CreateSurface2(LPDDSURFACEDESC2 lpDDSurfaceDesc2, LPDIRE
 			Format = (Format == D3DFMT_X4R4G4B4 || Format == D3DFMT_R8G8B8 || Format == D3DFMT_B8G8R8 || Format == D3DFMT_X8B8G8R8) ? D3DFMT_X8R8G8B8 :
 				(Format == D3DFMT_A4R4G4B4 || Format == D3DFMT_A8B8G8R8) ? D3DFMT_A8R8G8B8 : Format;
 			DWORD Usage = (lpDDSurfaceDesc2->ddsCaps.dwCaps & DDSCAPS_PRIMARYSURFACE) ? D3DUSAGE_RENDERTARGET :
-				((lpDDSurfaceDesc2->dwFlags & DDSD_MIPMAPCOUNT) || ((lpDDSurfaceDesc2->ddsCaps.dwCaps & DDSCAPS_MIPMAP))) ? D3DUSAGE_AUTOGENMIPMAP :
+				((lpDDSurfaceDesc2->dwFlags & DDSD_MIPMAPCOUNT) || (lpDDSurfaceDesc2->ddsCaps.dwCaps & DDSCAPS_MIPMAP)) ? D3DUSAGE_AUTOGENMIPMAP :
 				(ddpfPixelFormat.dwFlags & (DDPF_ZBUFFER | DDPF_STENCILBUFFER)) ? D3DUSAGE_DEPTHSTENCIL : 0;
-			D3DRESOURCETYPE Resource = ((lpDDSurfaceDesc2->ddsCaps.dwCaps & DDSCAPS_TEXTURE)) ? D3DRTYPE_TEXTURE : D3DRTYPE_SURFACE;
+			D3DRESOURCETYPE Resource = (lpDDSurfaceDesc2->ddsCaps.dwCaps & DDSCAPS_TEXTURE) ? D3DRTYPE_SURFACE : D3DRTYPE_TEXTURE;
 
 			if (FAILED(d3d9Object->CheckDeviceFormat(D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, D9DisplayFormat, Usage, Resource, Format)))
 			{
@@ -750,7 +750,7 @@ HRESULT m_IDirectDrawX::DuplicateSurface(LPDIRECTDRAWSURFACE7 lpDDSurface, LPDIR
 			return DDERR_INVALIDPARAMS;
 		}
 
-		DDSURFACEDESC2 Desc2;
+		DDSURFACEDESC2 Desc2 = {};
 		Desc2.dwSize = sizeof(DDSURFACEDESC2);
 		lpDDSurfaceX->GetSurfaceDesc2(&Desc2);
 		Desc2.ddsCaps.dwCaps &= ~DDSCAPS_PRIMARYSURFACE;		// Remove Primary surface flag
@@ -806,17 +806,17 @@ HRESULT m_IDirectDrawX::EnumDisplayModes(DWORD dwFlags, LPDDSURFACEDESC lpDDSurf
 			{
 				EnumDisplay *self = (EnumDisplay*)lpContext;
 
-				DDSURFACEDESC Desc;
+				DDSURFACEDESC Desc = {};
 				Desc.dwSize = sizeof(DDSURFACEDESC);
 				ConvertSurfaceDesc(Desc, *lpDDSurfaceDesc2);
 
 				return self->lpCallback(&Desc, self->lpContext);
 			}
-		} CallbackContext;
+		} CallbackContext = {};
 		CallbackContext.lpContext = lpContext;
 		CallbackContext.lpCallback = lpEnumModesCallback;
 
-		DDSURFACEDESC2 Desc2;
+		DDSURFACEDESC2 Desc2 = {};
 		Desc2.dwSize = sizeof(DDSURFACEDESC2);
 		if (lpDDSurfaceDesc)
 		{
@@ -971,7 +971,7 @@ HRESULT m_IDirectDrawX::EnumSurfaces(DWORD dwFlags, LPDDSURFACEDESC lpDDSurfaceD
 			return DDERR_INVALIDPARAMS;
 		}
 
-		DDSURFACEDESC2 Desc2;
+		DDSURFACEDESC2 Desc2 = {};
 		Desc2.dwSize = sizeof(DDSURFACEDESC2);
 		if (lpDDSurfaceDesc)
 		{
@@ -998,7 +998,7 @@ HRESULT m_IDirectDrawX::EnumSurfaces(DWORD dwFlags, LPDDSURFACEDESC lpDDSurfaceD
 
 			return self->lpCallback(lpDDSurface, lpDDSurfaceDesc, self->lpContext);
 		}
-	} CallbackContext;
+	} CallbackContext = {};
 	CallbackContext.lpContext = lpContext;
 	CallbackContext.lpCallback = lpEnumSurfacesCallback;
 	CallbackContext.DirectXVersion = DirectXVersion;
@@ -1034,7 +1034,7 @@ HRESULT m_IDirectDrawX::EnumSurfaces2(DWORD dwFlags, LPDDSURFACEDESC2 lpDDSurfac
 			// Game using old DirectX, Convert back to LPDDSURFACEDESC
 			if (self->ConvertSurfaceDescTo2)
 			{
-				DDSURFACEDESC Desc;
+				DDSURFACEDESC Desc = {};
 				Desc.dwSize = sizeof(DDSURFACEDESC);
 				ConvertSurfaceDesc(Desc, *lpDDSurfaceDesc2);
 
@@ -1043,7 +1043,7 @@ HRESULT m_IDirectDrawX::EnumSurfaces2(DWORD dwFlags, LPDDSURFACEDESC2 lpDDSurfac
 
 			return self->lpCallback(lpDDSurface, lpDDSurfaceDesc2, self->lpContext);
 		}
-	} CallbackContext;
+	} CallbackContext = {};
 	CallbackContext.lpContext = lpContext;
 	CallbackContext.lpCallback = lpEnumSurfacesCallback7;
 	CallbackContext.DirectXVersion = DirectXVersion;
@@ -1242,7 +1242,7 @@ HRESULT m_IDirectDrawX::GetDisplayMode(LPDDSURFACEDESC lpDDSurfaceDesc)
 			return DDERR_INVALIDPARAMS;
 		}
 
-		DDSURFACEDESC2 Desc2;
+		DDSURFACEDESC2 Desc2 = {};
 		Desc2.dwSize = sizeof(DDSURFACEDESC2);
 
 		HRESULT hr = GetDisplayMode2(&Desc2);

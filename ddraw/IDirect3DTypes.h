@@ -22,7 +22,7 @@
 
 #define D3DFVF_LVERTEX9 (D3DFVF_XYZ | D3DFVF_DIFFUSE | D3DFVF_SPECULAR | D3DFVF_TEX1)
 
-typedef struct _D3DLVERTEX9 {
+typedef struct {
 	FLOAT    x, y, z;
 	D3DCOLOR diffuse, specular;
 	FLOAT    tu, tv;

@@ -46,7 +46,7 @@ static constexpr D3DFORMAT FourCCTypes[] =
 	(D3DFORMAT)MAKEFOURCC('3', 'x', '1', '6')
 };
 
-struct DDS_PIXELFORMAT {
+typedef struct {
 	DWORD dwSize;
 	DWORD dwFlags;
 	DWORD dwFourCC;
@@ -55,7 +55,7 @@ struct DDS_PIXELFORMAT {
 	DWORD dwGBitMask;
 	DWORD dwBBitMask;
 	DWORD dwABitMask;
-};
+} DDS_PIXELFORMAT;
 
 typedef struct {
 	DWORD           dwSize;
@@ -74,13 +74,12 @@ typedef struct {
 	DWORD           dwReserved2;
 } DDS_HEADER;
 
-struct DDS_BUFFER
-{
+typedef struct {
 	DWORD               dwMagic;
 	DDS_HEADER          header;
 #pragma warning (suppress : 4200)
 	BYTE bdata[];
-};
+} DDS_BUFFER;
 
 static constexpr DWORD DDS_MAGIC				= 0x20534444; // "DDS "
 static constexpr DWORD DDS_HEADER_SIZE			= sizeof(DWORD) + sizeof(DDS_HEADER);

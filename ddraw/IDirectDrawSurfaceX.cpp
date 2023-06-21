@@ -829,7 +829,7 @@ HRESULT m_IDirectDrawSurfaceX::EnumAttachedSurfaces(LPVOID lpContext, LPDDENUMSU
 
 			return self->lpCallback(lpDDSurface, lpDDSurfaceDesc, self->lpContext);
 		}
-	} CallbackContext;
+	} CallbackContext = {};
 	CallbackContext.lpContext = lpContext;
 	CallbackContext.lpCallback = lpEnumSurfacesCallback;
 	CallbackContext.DirectXVersion = DirectXVersion;
@@ -850,7 +850,7 @@ HRESULT m_IDirectDrawSurfaceX::EnumAttachedSurfaces2(LPVOID lpContext, LPDDENUMS
 	{
 		for (auto& it : AttachedSurfaceMap)
 		{
-			DDSURFACEDESC2 Desc2;
+			DDSURFACEDESC2 Desc2 = {};
 			Desc2.dwSize = sizeof(DDSURFACEDESC2);
 			it.second.pSurface->GetSurfaceDesc2(&Desc2);
 			if (lpEnumSurfacesCallback7((LPDIRECTDRAWSURFACE7)it.second.pSurface->GetWrapperInterfaceX(DirectXVersion), &Desc2, lpContext) == DDENUMRET_CANCEL)
@@ -881,7 +881,7 @@ HRESULT m_IDirectDrawSurfaceX::EnumAttachedSurfaces2(LPVOID lpContext, LPDDENUMS
 			// Game using old DirectX, Convert back to LPDDSURFACEDESC
 			if (self->ConvertSurfaceDescTo2)
 			{
-				DDSURFACEDESC Desc;
+				DDSURFACEDESC Desc = {};
 				Desc.dwSize = sizeof(DDSURFACEDESC);
 				ConvertSurfaceDesc(Desc, *lpDDSurfaceDesc2);
 
@@ -890,7 +890,7 @@ HRESULT m_IDirectDrawSurfaceX::EnumAttachedSurfaces2(LPVOID lpContext, LPDDENUMS
 
 			return self->lpCallback(lpDDSurface, lpDDSurfaceDesc2, self->lpContext);
 		}
-	} CallbackContext;
+	} CallbackContext = {};
 	CallbackContext.lpContext = lpContext;
 	CallbackContext.lpCallback = lpEnumSurfacesCallback7;
 	CallbackContext.DirectXVersion = DirectXVersion;
@@ -930,7 +930,7 @@ HRESULT m_IDirectDrawSurfaceX::EnumOverlayZOrders(DWORD dwFlags, LPVOID lpContex
 
 			return self->lpCallback(lpDDSurface, lpDDSurfaceDesc, self->lpContext);
 		}
-	} CallbackContext;
+	} CallbackContext = {};
 	CallbackContext.lpContext = lpContext;
 	CallbackContext.lpCallback = lpfnCallback;
 	CallbackContext.DirectXVersion = DirectXVersion;
@@ -972,7 +972,7 @@ HRESULT m_IDirectDrawSurfaceX::EnumOverlayZOrders2(DWORD dwFlags, LPVOID lpConte
 			// Game using old DirectX, Convert back to LPDDSURFACEDESC
 			if (self->ConvertSurfaceDescTo2)
 			{
-				DDSURFACEDESC Desc;
+				DDSURFACEDESC Desc = {};
 				Desc.dwSize = sizeof(DDSURFACEDESC);
 				ConvertSurfaceDesc(Desc, *lpDDSurfaceDesc2);
 
@@ -981,7 +981,7 @@ HRESULT m_IDirectDrawSurfaceX::EnumOverlayZOrders2(DWORD dwFlags, LPVOID lpConte
 
 			return self->lpCallback(lpDDSurface, lpDDSurfaceDesc2, self->lpContext);
 		}
-	} CallbackContext;
+	} CallbackContext = {};
 	CallbackContext.lpContext = lpContext;
 	CallbackContext.lpCallback = lpfnCallback7;
 	CallbackContext.DirectXVersion = DirectXVersion;
@@ -1741,7 +1741,7 @@ HRESULT m_IDirectDrawSurfaceX::GetSurfaceDesc(LPDDSURFACEDESC lpDDSurfaceDesc)
 			return DDERR_INVALIDPARAMS;
 		}
 
-		DDSURFACEDESC2 Desc2;
+		DDSURFACEDESC2 Desc2 = {};
 		Desc2.dwSize = sizeof(DDSURFACEDESC2);
 
 		HRESULT hr = GetSurfaceDesc2(&Desc2);
@@ -1807,7 +1807,7 @@ HRESULT m_IDirectDrawSurfaceX::Initialize(LPDIRECTDRAW lpDD, LPDDSURFACEDESC lpD
 			LOG_LIMIT(100, __FUNCTION__ << " Warning: Invalid parameters. dwSize: " << ((lpDDSurfaceDesc) ? lpDDSurfaceDesc->dwSize : -1));
 		}
 
-		DDSURFACEDESC2 Desc2;
+		DDSURFACEDESC2 Desc2 = {};
 		Desc2.dwSize = sizeof(DDSURFACEDESC2);
 		if (lpDDSurfaceDesc)
 		{
@@ -1887,7 +1887,7 @@ HRESULT m_IDirectDrawSurfaceX::Lock(LPRECT lpDestRect, LPDDSURFACEDESC lpDDSurfa
 			return DDERR_INVALIDPARAMS;
 		}
 
-		DDSURFACEDESC2 Desc2;
+		DDSURFACEDESC2 Desc2 = {};
 		Desc2.dwSize = sizeof(DDSURFACEDESC2);
 
 		HRESULT hr = Lock2(lpDestRect, &Desc2, dwFlags, hEvent, DirectXVersion);
@@ -2313,7 +2313,7 @@ HRESULT m_IDirectDrawSurfaceX::SetColorKey(DWORD dwFlags, LPDDCOLORKEY lpDDColor
 			surfaceDesc2.ddsCaps.dwCaps |= dds;
 
 			// Get ColorKey
-			DDCOLORKEY ColorKey;
+			DDCOLORKEY ColorKey = {};
 			if (!(dwFlags & DDCKEY_COLORSPACE))
 			{
 				// You must add the flag DDCKEY_COLORSPACE, otherwise DirectDraw will collapse the range to one value
@@ -2737,7 +2737,7 @@ HRESULT m_IDirectDrawSurfaceX::SetSurfaceDesc(LPDDSURFACEDESC lpDDSurfaceDesc, D
 			return DDERR_INVALIDPARAMS;
 		}
 
-		DDSURFACEDESC2 Desc2;
+		DDSURFACEDESC2 Desc2 = {};
 		Desc2.dwSize = sizeof(DDSURFACEDESC2);
 		ConvertSurfaceDesc(Desc2, *lpDDSurfaceDesc);
 
@@ -3366,7 +3366,7 @@ HRESULT m_IDirectDrawSurfaceX::CreateD3d9Surface()
 	}
 
 	// Setup verticies (0, 0, currentWidth, currentHeight)
-	TLVERTEX* vertices;
+	TLVERTEX* vertices = nullptr;
 
 	// Lock vertex buffer
 	if (FAILED(vertexBuffer->Lock(0, 0, (void**)&vertices, 0)))
@@ -4414,7 +4414,7 @@ void m_IDirectDrawSurfaceX::InitSurfaceDesc(DWORD DirectXVersion)
 	// Create backbuffers
 	if (surfaceDesc2.dwBackBufferCount)
 	{
-		DDSURFACEDESC2 Desc2;
+		DDSURFACEDESC2 Desc2 = {};
 		Desc2.dwSize = sizeof(DDSURFACEDESC2);
 		ConvertSurfaceDesc(Desc2, surfaceDesc2);
 		Desc2.ddsCaps.dwCaps4 &= ~(DDSCAPS4_CREATESURFACE);	// Clear surface creation flag
