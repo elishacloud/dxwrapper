@@ -582,7 +582,7 @@ HRESULT m_IDirect3DDeviceX::EnumTextureFormats(LPD3DENUMTEXTUREFORMATSCALLBACK l
 
 				return self->lpCallback(&Desc, self->lpContext);
 			}
-		} CallbackContext;
+		} CallbackContext = {};
 		CallbackContext.lpContext = lpArg;
 		CallbackContext.lpCallback = lpd3dEnumTextureProc;
 
@@ -618,14 +618,13 @@ HRESULT m_IDirect3DDeviceX::EnumTextureFormats(LPD3DENUMPIXELFORMATSCALLBACK lpd
 			return DDERR_GENERIC;
 		}
 
-		DDPIXELFORMAT ddpfPixelFormat;
-		ddpfPixelFormat.dwSize = sizeof(DDPIXELFORMAT);
-
-		for (D3DFORMAT format : {
+		// Get texture list
+		std::vector<D3DFORMAT> TextureList = {
 			D3DFMT_X1R5G5B5,
 			D3DFMT_A1R5G5B5,
 			D3DFMT_A4R4G4B4,
 			D3DFMT_R5G6B5,
+			D3DFMT_R8G8B8,
 			D3DFMT_X8R8G8B8,
 			D3DFMT_A8R8G8B8,
 			D3DFMT_V8U8,
@@ -635,28 +634,29 @@ HRESULT m_IDirect3DDeviceX::EnumTextureFormats(LPD3DENUMPIXELFORMATSCALLBACK lpd
 			D3DFMT_DXT3,
 			D3DFMT_DXT4,
 			D3DFMT_DXT5,
-			(D3DFORMAT)MAKEFOURCC('N', 'V', 'C', 'S'),
-			(D3DFORMAT)MAKEFOURCC('N', 'V', 'H', 'U'),
-			(D3DFORMAT)MAKEFOURCC('N', 'V', 'H', 'S'),
+			D3DFMT_P8,
 			D3DFMT_L8,
 			D3DFMT_A8,
-			D3DFMT_A8L8,
-			(D3DFORMAT)MAKEFOURCC('N', 'U', 'L', 'L'),
-			(D3DFORMAT)MAKEFOURCC('A', 'T', 'I', '1'),
-			(D3DFORMAT)MAKEFOURCC('A', 'T', 'I', '2'),
-			(D3DFORMAT)MAKEFOURCC('I', 'N', 'T', 'Z'),
-			(D3DFORMAT)MAKEFOURCC('3', 'x', '1', '1'),
-			(D3DFORMAT)MAKEFOURCC('3', 'x', '1', '6')})
+			D3DFMT_A8L8 };
+
+		// Add FourCCs to texture list
+		for (D3DFORMAT format : FourCCTypes)
 		{
-			HRESULT hr = d3d9Object->CheckDeviceFormat(D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, D3DFMT_X8R8G8B8, 0, D3DRTYPE_TEXTURE, format);
+			TextureList.push_back(format);
+		}
+
+		// Check for supported textures
+		DDPIXELFORMAT ddpfPixelFormat = {};
+		ddpfPixelFormat.dwSize = sizeof(DDPIXELFORMAT);
+
+		for (D3DFORMAT format : TextureList)
+		{
+			D3DFORMAT TestFormat = (format == D3DFMT_R8G8B8) ? D3DFMT_X8R8G8B8 : (format == D3DFMT_P8) ? D3DFMT_L8 : format;
+			HRESULT hr = d3d9Object->CheckDeviceFormat(D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, D3DFMT_X8R8G8B8, 0, D3DRTYPE_TEXTURE, TestFormat);
 			if (SUCCEEDED(hr))
 			{
 				SetPixelDisplayFormat(format, ddpfPixelFormat);
 				lpd3dEnumPixelProc(&ddpfPixelFormat, lpArg);
-			}
-			else
-			{
-				Logging::LogDebug() << __FUNCTION__ << " " << format << " " << (DDERR)hr;
 			}
 		}
 
@@ -2216,7 +2216,7 @@ HRESULT m_IDirect3DDeviceX::SetRenderState(D3DRENDERSTATETYPE dwRenderStateType,
 		{
 		case D3DRENDERSTATE_ANTIALIAS:
 			dwRenderStateType = D3DRS_MULTISAMPLEANTIALIAS;
-			dwRenderState = (dwRenderState == D3DANTIALIAS_SORTDEPENDENT || dwRenderState == D3DANTIALIAS_SORTINDEPENDENT);
+			dwRenderState = ((dwRenderState == D3DANTIALIAS_SORTDEPENDENT) || (dwRenderState == D3DANTIALIAS_SORTINDEPENDENT));
 			break;
 		case D3DRENDERSTATE_EDGEANTIALIAS:
 			dwRenderStateType = D3DRS_ANTIALIASEDLINEENABLE;

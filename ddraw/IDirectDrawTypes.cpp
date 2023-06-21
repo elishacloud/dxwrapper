@@ -298,12 +298,6 @@ void ConvertCaps(DDCAPS &Caps7, D3DCAPS9 &Caps9)
 	Caps7.ddsCaps.dwVolumeDepth = 0;						// Not used
 	Caps7.ddsOldCaps.dwCaps = Caps7.ddsCaps.dwCaps;
 
-	// FourCCs
-	if (Caps7.dwCaps & DDCAPS_BLTFOURCC)
-	{
-		Caps7.dwNumFourCCCodes = NumFourCCs;
-	}
-
 	// Overlay
 	if (Caps7.dwCaps & DDCAPS_OVERLAY)
 	{

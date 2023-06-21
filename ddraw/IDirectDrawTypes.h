@@ -5,7 +5,7 @@
 #define ISDXTEX(tex) (tex == D3DFMT_DXT1 || tex == D3DFMT_DXT2 || tex == D3DFMT_DXT3 || tex == D3DFMT_DXT4 || tex == D3DFMT_DXT5)
 
 #define D3DFMT_B8G8R8 (D3DFORMAT)19
-#define D3DFMT_YV12   MAKEFOURCC('Y','V','1','2')
+#define D3DFMT_YV12   (D3DFORMAT)MAKEFOURCC('Y','V','1','2')
 
 #define D3DFMT_R5G6B5_TO_X8R8G8B8(w) \
 	((((DWORD)((w>>11)&0x1f)*8)<<16)+(((DWORD)((w>>5)&0x3f)*4)<<8)+((DWORD)(w&0x1f)*8))
@@ -16,28 +16,35 @@
 #define D3DFMT_A8R8G8B8_TO_A8B8G8R8(w) \
 	((w&0xFF000000)+((w&0xFF)<<16)+(w&0xFF00)+((w&0xFF0000)>>16))
 
-static constexpr DWORD FourCCTypes[] =
+static constexpr D3DFORMAT FourCCTypes[] =
 {
-	//0x026CFB68, // MAKEFOURCC('N', 'V', '1', '2')
-	//0x026CFB6C, // MAKEFOURCC('P', '0', '1', '0')
-	//0x026CFB70, // MAKEFOURCC('N', 'V', '2', '4')
-	0x026CFB74, // MAKEFOURCC('Y', 'V', '1', '2')
-	0x026CFB78, // MAKEFOURCC('U', 'Y', 'V', 'Y')
-	0x026CFB7C, // MAKEFOURCC('Y', 'U', 'Y', '2')
-	//0x026CFB80, // MAKEFOURCC('A', 'I', '4', '4')
-	//0x026CFB84, // MAKEFOURCC('A', 'Y', 'U', 'V')
-	//0x026CFB88, // MAKEFOURCC('A', 'I', 'P', '8')
-	//0x026CFB8C, // MAKEFOURCC('A', 'V', '1', '2')
-	//0x026CFB90, // MAKEFOURCC('P', 'L', 'F', 'F')
-	//0x026CFB94, // MAKEFOURCC('N', 'V', 'M', 'D')
-	//0x026CFB98, // MAKEFOURCC('N', 'V', 'D', 'P')
-	//0x026CFB9C, // MAKEFOURCC('N', 'V', 'D', 'B')
-	//0x026CFBA0, // MAKEFOURCC('S', 'S', 'A', 'A')
-	//0x026CFBA4, // MAKEFOURCC('A', 'T', 'O', 'C')
-	//0x026CFBA8, // MAKEFOURCC('3', 'x', '1', '1')
-	//0x026CFBAC, // MAKEFOURCC('3', 'x', '1', '6')
+	(D3DFORMAT)MAKEFOURCC('N', 'V', '1', '2'),
+	(D3DFORMAT)MAKEFOURCC('P', '0', '1', '0'),
+	(D3DFORMAT)MAKEFOURCC('N', 'V', '2', '4'),
+	(D3DFORMAT)MAKEFOURCC('Y', 'V', '1', '2'),
+	(D3DFORMAT)MAKEFOURCC('U', 'Y', 'V', 'Y'),
+	(D3DFORMAT)MAKEFOURCC('Y', 'U', 'Y', '2'),
+	(D3DFORMAT)MAKEFOURCC('A', 'I', '4', '4'),
+	(D3DFORMAT)MAKEFOURCC('A', 'Y', 'U', 'V'),
+	(D3DFORMAT)MAKEFOURCC('A', 'I', 'P', '8'),
+	(D3DFORMAT)MAKEFOURCC('A', 'V', '1', '2'),
+	(D3DFORMAT)MAKEFOURCC('P', 'V', 'R', 'C'),
+	(D3DFORMAT)MAKEFOURCC('P', 'L', 'F', 'F'),
+	(D3DFORMAT)MAKEFOURCC('N', 'V', 'M', 'D'),
+	(D3DFORMAT)MAKEFOURCC('N', 'V', 'D', 'P'),
+	(D3DFORMAT)MAKEFOURCC('N', 'V', 'D', 'B'),
+	(D3DFORMAT)MAKEFOURCC('N', 'V', 'C', 'S'),
+	(D3DFORMAT)MAKEFOURCC('N', 'V', 'H', 'U'),
+	(D3DFORMAT)MAKEFOURCC('N', 'V', 'H', 'S'),
+	(D3DFORMAT)MAKEFOURCC('N', 'U', 'L', 'L'),
+	(D3DFORMAT)MAKEFOURCC('I', 'N', 'T', 'Z'),
+	(D3DFORMAT)MAKEFOURCC('S', 'S', 'A', 'A'),
+	(D3DFORMAT)MAKEFOURCC('A', 'T', 'O', 'C'),
+	(D3DFORMAT)MAKEFOURCC('A', 'T', 'I', '1'),
+	(D3DFORMAT)MAKEFOURCC('A', 'T', 'I', '2'),
+	(D3DFORMAT)MAKEFOURCC('3', 'x', '1', '1'),
+	(D3DFORMAT)MAKEFOURCC('3', 'x', '1', '6')
 };
-static constexpr int NumFourCCs = (sizeof(FourCCTypes) / sizeof(*FourCCTypes));
 
 struct DDS_PIXELFORMAT {
 	DWORD dwSize;

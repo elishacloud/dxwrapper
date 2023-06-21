@@ -14,6 +14,8 @@ private:
 	bool IsInitialize = false;
 	bool Using3D = false;
 
+	std::vector<D3DFORMAT> FourCCsList;
+
 	// Fix exclusive mode issue
 	HHOOK g_hook = nullptr;
 	HWND chWnd = nullptr;

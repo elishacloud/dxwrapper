@@ -1150,7 +1150,7 @@ HRESULT m_IDirectDrawX::GetCaps(LPDDCAPS lpDDDriverCaps, LPDDCAPS lpDDHELCaps)
 			sizeof(DDCAPS_DX1);
 	}
 
-	DDCAPS DriverCaps, HELCaps;
+	DDCAPS DriverCaps = {}, HELCaps = {};
 	DriverCaps.dwSize = sizeof(DDCAPS);
 	HELCaps.dwSize = sizeof(DDCAPS);
 
@@ -1185,6 +1185,15 @@ HRESULT m_IDirectDrawX::GetCaps(LPDDCAPS lpDDDriverCaps, LPDDCAPS lpDDHELCaps)
 			ConvertCaps(HELCaps, Caps9);
 			HELCaps.dwVidMemTotal = dwVidTotal;
 			HELCaps.dwVidMemFree = dwVidFree;
+		}
+
+		// Get FourCCs count
+		if ((DriverCaps.dwCaps & DDCAPS_BLTFOURCC) || (HELCaps.dwCaps & DDCAPS_BLTFOURCC))
+		{
+			DWORD dwNumFourCCCodes = 0;
+			GetFourCCCodes(&dwNumFourCCCodes, nullptr);
+			DriverCaps.dwNumFourCCCodes = dwNumFourCCCodes;
+			HELCaps.dwNumFourCCCodes = dwNumFourCCCodes;
 		}
 	}
 	else
@@ -1316,16 +1325,40 @@ HRESULT m_IDirectDrawX::GetFourCCCodes(LPDWORD lpNumCodes, LPDWORD lpCodes)
 			return DDERR_INVALIDPARAMS;
 		}
 
-		// Cpoy data to array
-		if (lpCodes)
+		// Get FourCC list
+		if (FourCCsList.size() == 0)
 		{
-			DWORD SizeToCopy = min(NumFourCCs, *lpNumCodes);
-			memcpy(lpCodes, FourCCTypes, SizeToCopy * sizeof(DWORD));
+			// Check for device interface
+			if (FAILED(CheckInterface(__FUNCTION__, false)))
+			{
+				return DDERR_GENERIC;
+			}
+
+			// Test FourCCs that are supported
+			for (D3DFORMAT format : FourCCTypes)
+			{
+				if (SUCCEEDED(d3d9Object->CheckDeviceFormat(D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, D3DFMT_X8R8G8B8, 0, D3DRTYPE_SURFACE, format)) ||
+					SUCCEEDED(d3d9Object->CheckDeviceFormat(D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, D3DFMT_X8R8G8B8, 0, D3DRTYPE_TEXTURE, format)))
+				{
+					FourCCsList.push_back(format);
+				}
+			}
 		}
 
+		// If the number of entries is too small to accommodate all the codes, lpNumCodes is set to the required number,
+		// and the array specified by lpCodes is filled with all that fits.
+		if (lpCodes)
+		{
+			// Copy data to array
+			DWORD SizeToCopy = min(FourCCsList.size(), *lpNumCodes);
+			memcpy(lpCodes, &FourCCsList[0], SizeToCopy * sizeof(DWORD));
+		}
+
+		// Set total number of FourCCs
+		*lpNumCodes = FourCCsList.size();
+
 		// Return value
-		*lpNumCodes = NumFourCCs;
-		return DDERR_INVALIDOBJECT;
+		return DD_OK;
 	}
 
 	return ProxyInterface->GetFourCCCodes(lpNumCodes, lpCodes);
@@ -2895,6 +2928,7 @@ HRESULT m_IDirectDrawX::CreateD3D9Device()
 
 		// Reset flags after creating device
 		EnableWaitVsync = false;
+		FourCCsList.clear();
 
 		// Set window pos
 		if (IsWindow(hWnd))
@@ -3083,6 +3117,7 @@ void m_IDirectDrawX::ReleaseD3D9Device()
 
 	// Reset flags
 	EnableWaitVsync = false;
+	FourCCsList.clear();
 }
 
 // Release d3d9 object
