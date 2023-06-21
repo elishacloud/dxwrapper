@@ -236,7 +236,7 @@ HRESULT m_IClassFactory::LockServer(BOOL fLock)
 
 HRESULT WINAPI CoCreateInstanceHandle(REFCLSID rclsid, LPUNKNOWN pUnkOuter, DWORD dwClsContext, REFIID riid, LPVOID *ppv)
 {
-	Logging::LogDebug() << __FUNCTION__ " " << riid;
+	Logging::LogDebug() << __FUNCTION__ " " << rclsid << " -> " << riid;
 
 	if (!p_CoCreateInstance)
 	{
@@ -263,7 +263,7 @@ HRESULT WINAPI CoCreateInstanceHandle(REFCLSID rclsid, LPUNKNOWN pUnkOuter, DWOR
 				riid != IID_IDirectDraw4 &&
 				riid != IID_IDirectDraw7)
 			{
-				LOG_LIMIT(100, __FUNCTION__ << " Error: invalid IID " << riid);
+				LOG_LIMIT(100, __FUNCTION__ << " Error: invalid IID: " << riid << " from: " << rclsid);
 				return E_NOINTERFACE;
 			}
 
@@ -297,7 +297,7 @@ HRESULT WINAPI CoCreateInstanceHandle(REFCLSID rclsid, LPUNKNOWN pUnkOuter, DWOR
 		{
 			if (riid != IID_IDirectDraw7)
 			{
-				LOG_LIMIT(100, __FUNCTION__ << " Error: invalid IID " << riid);
+				LOG_LIMIT(100, __FUNCTION__ << " Error: invalid IID: " << riid << " from: " << rclsid);
 				return E_NOINTERFACE;
 			}
 
@@ -309,7 +309,7 @@ HRESULT WINAPI CoCreateInstanceHandle(REFCLSID rclsid, LPUNKNOWN pUnkOuter, DWOR
 		{
 			if (riid != IID_IDirectDrawClipper)
 			{
-				LOG_LIMIT(100, __FUNCTION__ << " Error: invalid IID " << riid);
+				LOG_LIMIT(100, __FUNCTION__ << " Error: invalid IID: " << riid << " from: " << rclsid);
 				return E_NOINTERFACE;
 			}
 
@@ -329,7 +329,7 @@ HRESULT WINAPI CoCreateInstanceHandle(REFCLSID rclsid, LPUNKNOWN pUnkOuter, DWOR
 				riid != IID_IDirectInput2A && riid != IID_IDirectInput2W && 
 				riid != IID_IDirectInput7A && riid != IID_IDirectInput7W)
 			{
-				LOG_LIMIT(100, __FUNCTION__ << " Error: invalid IID " << riid);
+				LOG_LIMIT(100, __FUNCTION__ << " Error: invalid IID: " << riid << " from: " << rclsid);
 				return E_NOINTERFACE;
 			}
 
@@ -343,7 +343,7 @@ HRESULT WINAPI CoCreateInstanceHandle(REFCLSID rclsid, LPUNKNOWN pUnkOuter, DWOR
 				riid != IID_IDirectInputDevice2A && riid != IID_IDirectInputDevice2W &&
 				riid != IID_IDirectInputDevice7A && riid != IID_IDirectInputDevice7W)
 			{
-				LOG_LIMIT(100, __FUNCTION__ << " Error: invalid IID " << riid);
+				LOG_LIMIT(100, __FUNCTION__ << " Error: invalid IID: " << riid << " from: " << rclsid);
 				return E_NOINTERFACE;
 			}
 
@@ -374,7 +374,7 @@ HRESULT WINAPI CoCreateInstanceHandle(REFCLSID rclsid, LPUNKNOWN pUnkOuter, DWOR
 		{
 			if (riid != IID_IDirectInput8A && riid != IID_IDirectInput8W)
 			{
-				LOG_LIMIT(100, __FUNCTION__ << " Error: invalid IID " << riid);
+				LOG_LIMIT(100, __FUNCTION__ << " Error: invalid IID: " << riid << " from: " << rclsid);
 				return E_NOINTERFACE;
 			}
 
@@ -386,7 +386,7 @@ HRESULT WINAPI CoCreateInstanceHandle(REFCLSID rclsid, LPUNKNOWN pUnkOuter, DWOR
 		{
 			if (riid != IID_IDirectInputDevice8A && riid != IID_IDirectInputDevice8W)
 			{
-				LOG_LIMIT(100, __FUNCTION__ << " Error: invalid IID " << riid);
+				LOG_LIMIT(100, __FUNCTION__ << " Error: invalid IID: " << riid << " from: " << rclsid);
 				return E_NOINTERFACE;
 			}
 
