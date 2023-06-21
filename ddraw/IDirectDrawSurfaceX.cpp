@@ -2660,7 +2660,6 @@ HRESULT m_IDirectDrawSurfaceX::GetDDInterface(LPVOID FAR * lplpDD, DWORD DirectX
 		*lplpDD = ddrawParent->GetWrapperInterfaceX(DirectXVersion);
 
 		ddrawParent->AddRef(DirectXVersion);
-		AddRef(DirectXVersion);		// Some games expect the ref count to be increased here.
 
 		return DD_OK;
 	}
@@ -2678,7 +2677,6 @@ HRESULT m_IDirectDrawSurfaceX::GetDDInterface(LPVOID FAR * lplpDD, DWORD DirectX
 			(DirectXVersion == 3) ? IID_IDirectDraw3 :
 			(DirectXVersion == 4) ? IID_IDirectDraw4 :
 			(DirectXVersion == 7) ? IID_IDirectDraw7 : IID_IDirectDraw7;
-
 
 		hr = ((IUnknown*)NewDD)->QueryInterface(tmpID, lplpDD);
 		if (FAILED(hr))

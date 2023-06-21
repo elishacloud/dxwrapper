@@ -968,12 +968,14 @@ HRESULT m_IDirect3DDeviceX::GetRenderTarget(LPDIRECTDRAWSURFACE7* lplpRenderTarg
 
 		if (!CurrentRenderTarget)
 		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error: render target not yet set.");
+			LOG_LIMIT(100, __FUNCTION__ << " Error: render target not set.");
 			return DDERR_GENERIC;
 		}
 
 		// ToDo: Validate RenderTarget address
 		*lplpRenderTarget = CurrentRenderTarget;
+
+		CurrentRenderTarget->AddRef();
 
 		return D3D_OK;
 	}
