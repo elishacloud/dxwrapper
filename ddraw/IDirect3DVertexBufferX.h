@@ -49,7 +49,7 @@ private:
 	void ReleaseVertexBuffer();
 
 	// Check interfaces
-	HRESULT CheckInterface(char* FunctionName, bool CheckD3DVertexBuffer, bool CheckD3DDevice);
+	HRESULT CheckInterface(char* FunctionName, bool CheckD3DDevice, bool CheckD3DVertexBuffer);
 
 	// Direct3D9 interface functions
 	HRESULT CreateD3D9VertexBuffer();

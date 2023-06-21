@@ -3047,6 +3047,8 @@ void m_IDirectDrawSurfaceX::InitSurface(DWORD DirectXVersion)
 	if (ddrawParent)
 	{
 		ddrawParent->AddSurfaceToVector(this);
+
+		d3d9Device = ddrawParent->GetDirect3D9Device();
 	}
 
 	// Set Uniqueness Value
@@ -3140,25 +3142,17 @@ LPDIRECT3DSURFACE9 m_IDirectDrawSurfaceX::GetD3D9Surface()
 
 HRESULT m_IDirectDrawSurfaceX::CheckInterface(char *FunctionName, bool CheckD3DDevice, bool CheckD3DSurface)
 {
-	// Check for device
+	// Check ddrawParent device
 	if (!ddrawParent)
 	{
 		LOG_LIMIT(100, FunctionName << " Error: no ddraw parent!");
 		return DDERR_GENERIC;
 	}
 
-	// Check for device, if not then create it
-	if (CheckD3DDevice && (!d3d9Device || !*d3d9Device))
+	// Check d3d9 device
+	if (CheckD3DDevice)
 	{
-		d3d9Device = ddrawParent->GetDirect3D9Device();
-
-		// For concurrency
-		SetCriticalSection();
-		bool flag = (!d3d9Device || !*d3d9Device);
-		ReleaseCriticalSection();
-
-		// Create d3d9 device
-		if (flag && FAILED(ddrawParent->CreateD3D9Device()))
+		if (!ddrawParent->CheckD3D9Device() || !d3d9Device || !*d3d9Device)
 		{
 			LOG_LIMIT(100, FunctionName << " Error: d3d9 device not setup!");
 			return DDERR_GENERIC;

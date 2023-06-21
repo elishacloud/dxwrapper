@@ -2216,7 +2216,7 @@ HRESULT m_IDirect3DDeviceX::SetRenderState(D3DRENDERSTATETYPE dwRenderStateType,
 		{
 		case D3DRENDERSTATE_ANTIALIAS:
 			dwRenderStateType = D3DRS_MULTISAMPLEANTIALIAS;
-			dwRenderState = ((dwRenderState == (DWORD)D3DANTIALIAS_SORTDEPENDENT) || (dwRenderState == (DWORD)D3DANTIALIAS_SORTINDEPENDENT)) ? TRUE : FALSE;
+			dwRenderState = (((D3DANTIALIASMODE)dwRenderState == D3DANTIALIAS_SORTDEPENDENT) || ((D3DANTIALIASMODE)dwRenderState == D3DANTIALIAS_SORTINDEPENDENT));
 			break;
 		case D3DRENDERSTATE_EDGEANTIALIAS:
 			dwRenderStateType = D3DRS_ANTIALIASEDLINEENABLE;
@@ -3261,6 +3261,11 @@ void m_IDirect3DDeviceX::InitDevice(DWORD DirectXVersion)
 		return;
 	}
 
+	if (ddrawParent)
+	{
+		d3d9Device = ddrawParent->GetDirect3D9Device();
+	}
+
 	AddRef(DirectXVersion);
 }
 
@@ -3288,25 +3293,17 @@ void m_IDirect3DDeviceX::ReleaseDevice()
 
 HRESULT m_IDirect3DDeviceX::CheckInterface(char *FunctionName, bool CheckD3DDevice)
 {
-	// Check for device
+	// Check ddrawParent device
 	if (!ddrawParent)
 	{
 		LOG_LIMIT(100, FunctionName << " Error: no ddraw parent!");
 		return DDERR_GENERIC;
 	}
 
-	// Check for device, if not then create it
-	if (CheckD3DDevice && (!d3d9Device || !*d3d9Device))
+	// Check d3d9 device
+	if (CheckD3DDevice)
 	{
-		d3d9Device = ddrawParent->GetDirect3D9Device();
-
-		// For concurrency
-		SetCriticalSection();
-		bool flag = (!d3d9Device || !*d3d9Device);
-		ReleaseCriticalSection();
-
-		// Create d3d9 device
-		if (flag && FAILED(ddrawParent->CreateD3D9Device()))
+		if (!ddrawParent->CheckD3D9Device() || !d3d9Device || !*d3d9Device)
 		{
 			LOG_LIMIT(100, FunctionName << " Error: d3d9 device not setup!");
 			return DDERR_GENERIC;

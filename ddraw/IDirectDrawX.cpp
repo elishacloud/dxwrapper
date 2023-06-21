@@ -109,6 +109,7 @@ DWORD monitorHeight;
 bool EnableWaitVsync;
 
 // Direct3D9 Objects
+bool ReCreateD3D9Device;
 LPDIRECT3D9 d3d9Object;
 LPDIRECT3DDEVICE9 d3d9Device;
 D3DPRESENT_PARAMETERS presParams;
@@ -631,12 +632,7 @@ HRESULT m_IDirectDrawX::CreateSurface2(LPDDSURFACEDESC2 lpDDSurfaceDesc2, LPDIRE
 				}
 				DepthStencilSurface = NewDepthStencilSurface;
 
-				// Check if there is a change in the present parameters
-				if (d3d9Device)
-				{
-					// Recreate d3d9 device
-					CreateD3D9Device();
-				}
+				ReCreateD3D9Device = true;
 			}
 		}
 
@@ -648,10 +644,9 @@ HRESULT m_IDirectDrawX::CreateSurface2(LPDDSURFACEDESC2 lpDDSurfaceDesc2, LPDIRE
 			surfaceHeight = lpDDSurfaceDesc2->dwHeight;
 
 			// Check if there is a change in the present parameters
-			if (d3d9Device && (surfaceWidth != presParams.BackBufferWidth || surfaceHeight != presParams.BackBufferHeight))
+			if (surfaceWidth != presParams.BackBufferWidth || surfaceHeight != presParams.BackBufferHeight)
 			{
-				// Recreate d3d9 device
-				CreateD3D9Device();
+				ReCreateD3D9Device = true;
 			}
 		}
 
@@ -668,10 +663,9 @@ HRESULT m_IDirectDrawX::CreateSurface2(LPDDSURFACEDESC2 lpDDSurfaceDesc2, LPDIRE
 				AntiAliasing = ((lpDDSurfaceDesc2->ddsCaps.dwCaps2 & DDSCAPS2_HINTANTIALIASING) && (lpDDSurfaceDesc2->ddsCaps.dwCaps & DDSCAPS_3DDEVICE));
 
 				// Check if there is a change in the present parameters
-				if (d3d9Device && AntiAliasing != OldAntiAliasing)
+				if (AntiAliasing != OldAntiAliasing)
 				{
-					// Recreate d3d9 device
-					CreateD3D9Device();
+					ReCreateD3D9Device = true;
 				}
 			}
 		}
@@ -1657,14 +1651,13 @@ HRESULT m_IDirectDrawX::SetCooperativeLevel(HWND hWnd, DWORD dwFlags, DWORD Dire
 		}
 
 		// Reset if mode was changed
-		if (d3d9Device && MainhWnd && hWnd && (
+		if (MainhWnd && hWnd && (
 			LastMainhWnd != MainhWnd ||
 			LastMultiThreaded != MultiThreaded ||
 			LastFPUPreserve != FPUPreserve ||
 			LastNoWindowChanges != NoWindowChanges))
 		{
-			// Recreate d3d9 device
-			CreateD3D9Device();
+			ReCreateD3D9Device = true;
 		}
 
 		return DD_OK;
@@ -1866,7 +1859,11 @@ HRESULT m_IDirectDrawX::SetDisplayMode(DWORD dwWidth, DWORD dwHeight, DWORD dwBP
 			SetResolution = ExclusiveMode;
 
 			// Recreate d3d9 device
-			CreateD3D9Device();
+			if (d3d9Device)
+			{
+				// Need to recreate the device as soon as possible after getting new display settings
+				CreateD3D9Device();
+			}
 		}
 		else if (ChangeBPP)
 		{
@@ -2717,7 +2714,7 @@ HRESULT m_IDirectDrawX::CheckInterface(char *FunctionName, bool CheckD3DDevice)
 	}
 
 	// Check for device, if not then create it
-	if (CheckD3DDevice && !d3d9Device)
+	if (CheckD3DDevice && (!d3d9Device || ReCreateD3D9Device))
 	{
 		// Create d3d9 device
 		if (FAILED(CreateD3D9Device()))
@@ -2728,6 +2725,19 @@ HRESULT m_IDirectDrawX::CheckInterface(char *FunctionName, bool CheckD3DDevice)
 	}
 
 	return DD_OK;
+}
+
+bool m_IDirectDrawX::CheckD3D9Device()
+{
+	if (!d3d9Device || ReCreateD3D9Device)
+	{
+		// Create d3d9 device
+		if (FAILED(CreateD3D9Device()))
+		{
+			return false;
+		}
+	}
+	return true;
 }
 
 LPDIRECT3D9 m_IDirectDrawX::GetDirect3D9Object()
@@ -2927,6 +2937,7 @@ HRESULT m_IDirectDrawX::CreateD3D9Device()
 		}
 
 		// Reset flags after creating device
+		ReCreateD3D9Device = false;
 		EnableWaitVsync = false;
 		FourCCsList.clear();
 

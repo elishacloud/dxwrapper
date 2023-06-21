@@ -154,7 +154,7 @@ HRESULT m_IDirect3DVertexBufferX::Lock(DWORD dwFlags, LPVOID* lplpData, LPDWORD 
 		}
 
 		// Check for device interface
-		if (FAILED(CheckInterface(__FUNCTION__, true, false)))
+		if (FAILED(CheckInterface(__FUNCTION__, false, true)))
 		{
 			return DDERR_GENERIC;
 		}
@@ -213,7 +213,7 @@ HRESULT m_IDirect3DVertexBufferX::Unlock()
 	if (Config.Dd7to9)
 	{
 		// Check for device interface
-		if (FAILED(CheckInterface(__FUNCTION__, true, false)))
+		if (FAILED(CheckInterface(__FUNCTION__, false, true)))
 		{
 			return DDERR_GENERIC;
 		}
@@ -434,7 +434,7 @@ void m_IDirect3DVertexBufferX::ReleaseVertexBuffer()
 	}
 }
 
-HRESULT m_IDirect3DVertexBufferX::CheckInterface(char* FunctionName, bool CheckD3DVertexBuffer, bool CheckD3DDevice)
+HRESULT m_IDirect3DVertexBufferX::CheckInterface(char* FunctionName, bool CheckD3DDevice, bool CheckD3DVertexBuffer)
 {
 	// Check for ddraw parent
 	if (!ddrawParent)
@@ -443,22 +443,25 @@ HRESULT m_IDirect3DVertexBufferX::CheckInterface(char* FunctionName, bool CheckD
 		return DDERR_GENERIC;
 	}
 
+	// Check d3d9 device
+	if (CheckD3DDevice)
+	{
+		if (!ddrawParent->CheckD3D9Device() || !d3d9Device || !*d3d9Device)
+		{
+			LOG_LIMIT(100, FunctionName << " Error: d3d9 device not setup!");
+			return DDERR_GENERIC;
+		}
+	}
+
 	// Check for vertex buffer, if not then create it
 	if (CheckD3DVertexBuffer && !d3d9VertexBuffer)
 	{
-		// Create d3d9 device
+		// Create d3d9 vertex buffer
 		if (FAILED(CreateD3D9VertexBuffer()))
 		{
 			LOG_LIMIT(100, FunctionName << " Error: could not create d3d9 vertex buffer!");
 			return DDERR_GENERIC;
 		}
-	}
-
-	// Check for device
-	if (CheckD3DDevice && (!d3d9Device || !*d3d9Device))
-	{
-		LOG_LIMIT(100, FunctionName << " Error: d3d9 device not setup!");
-		return DDERR_GENERIC;
 	}
 
 	return DD_OK;
@@ -470,7 +473,7 @@ HRESULT m_IDirect3DVertexBufferX::CreateD3D9VertexBuffer()
 	ReleaseD3D9VertexBuffer();
 
 	// Check for device interface
-	if (FAILED(CheckInterface(__FUNCTION__, false, true)))
+	if (FAILED(CheckInterface(__FUNCTION__, true, false)))
 	{
 		return DDERR_GENERIC;
 	}
@@ -530,7 +533,7 @@ LPDIRECT3DINDEXBUFFER9 m_IDirect3DVertexBufferX::SetupIndexBuffer(LPWORD lpwIndi
 	}
 
 	// Check for device interface
-	if (FAILED(CheckInterface(__FUNCTION__, false, true)))
+	if (FAILED(CheckInterface(__FUNCTION__, true, false)))
 	{
 		return nullptr;
 	}

@@ -180,6 +180,7 @@ public:
 	void Enable3D() { Using3D = true; }
 
 	// Direct3D9 interfaces
+	bool CheckD3D9Device();
 	LPDIRECT3D9 GetDirect3D9Object();
 	LPDIRECT3DDEVICE9 *GetDirect3D9Device();
 	HRESULT CreateD3D9Device();
