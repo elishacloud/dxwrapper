@@ -888,39 +888,13 @@ HRESULT m_IDirect3DDeviceX::SetRenderTarget(LPDIRECTDRAWSURFACE7 lpNewRenderTarg
 			return DDERR_INVALIDPARAMS;
 		}
 
+		// Don't reset existing render target
+		if (CurrentRenderTarget == lpNewRenderTarget)
+		{
+			return D3D_OK;
+		}
+
 		// dwFlags: Not currently used; set to 0.
-
-		// Check for device interface
-		if (FAILED(CheckInterface(__FUNCTION__, true)))
-		{
-			return DDERR_GENERIC;
-		}
-
-		m_IDirectDrawSurfaceX *lpDDSrcSurfaceX = nullptr;
-
-		lpNewRenderTarget->QueryInterface(IID_GetInterfaceX, (LPVOID*)&lpDDSrcSurfaceX);
-
-		if (!lpDDSrcSurfaceX)
-		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error: could not get surface wrapper!");
-			return DDERR_GENERIC;
-		}
-
-		IDirect3DSurface9* pRenderTarget9 = lpDDSrcSurfaceX->Get3DSurface();
-
-		if (!pRenderTarget9)
-		{
-			Logging::Log() << __FUNCTION__ " Error: d3d9 surface does not exist!";
-			return DDERR_GENERIC;
-		}
-
-		HRESULT hr = (*d3d9Device)->SetRenderTarget(0, pRenderTarget9);
-
-		if (FAILED(hr))
-		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error: 'SetRenderTarget' call failed: " << (D3DERR)hr);
-			return hr;
-		}
 
 		// ToDo: if DirectXVersion < 7 then invalidate the current material and viewport:
 		// Unlike this method's implementation in previous interfaces, IDirect3DDevice7::SetRenderTarget does not invalidate the current material or viewport for the device.
@@ -931,9 +905,8 @@ HRESULT m_IDirect3DDeviceX::SetRenderTarget(LPDIRECTDRAWSURFACE7 lpNewRenderTarg
 		// unreliable behavior in retail builds. Since both the new and the old render targets use depth buffers, the depth buffer attached to the new render target replaces
 		// the previous depth buffer for the context.
 
-		CurrentRenderTarget = lpNewRenderTarget;
-
-		return D3D_OK;
+		LOG_LIMIT(100, __FUNCTION__ << " Error: Not Implemented");
+		return DDERR_UNSUPPORTED;
 	}
 
 	if (lpNewRenderTarget)
