@@ -1703,7 +1703,7 @@ HRESULT m_IDirect3DDeviceX::EndScene()
 
 		// Draw 2D DirectDraw surface
 		/*m_IDirectDrawSurfaceX* PrimarySurface = ddrawParent->GetPrimarySurface();
-		if (PrimarySurface && !PrimarySurface->IsSurface3D())
+		if (PrimarySurface)
 		{
 			DWORD SRCBLEND = 0, DESTBLEND = 0, ALPHABLENDENABLE = 0;
 			(*d3d9Device)->GetRenderState(D3DRS_SRCBLEND, &SRCBLEND);
