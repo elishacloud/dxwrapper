@@ -386,8 +386,8 @@ public:
 	inline bool IsSurfaceManaged() { return (surfaceDesc2.ddsCaps.dwCaps2 & (DDSCAPS2_TEXTUREMANAGE | DDSCAPS2_D3DTEXTUREMANAGE)) != 0; }
 	inline bool IsUsingEmulation() { return (emu && emu->surfaceDC && emu->surfacepBits); }
 	inline bool IsSurface3DDevice() { return Surface3DDeviceFlag; }
-	inline void AttachD3D9BackBuffer() { Surface3DDeviceFlag = true; }
-	inline void Detach9BackBuffer() { Surface3DDeviceFlag = false; }
+	inline void AttachD9BackBuffer() { Surface3DDeviceFlag = true; }
+	inline void DetachD9BackBuffer() { Surface3DDeviceFlag = false; }
 	LPDIRECT3DSURFACE9 Get3DSurface();
 	LPDIRECT3DTEXTURE9 Get3DTexture();
 	LPDIRECT3DSURFACE9 GetD3D9Surface();

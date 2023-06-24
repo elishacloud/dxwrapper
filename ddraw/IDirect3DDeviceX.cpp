@@ -3246,7 +3246,7 @@ void m_IDirect3DDeviceX::InitDevice(DWORD DirectXVersion)
 
 		if (DeviceSurface)
 		{
-			DeviceSurface->AttachD3D9BackBuffer();
+			DeviceSurface->AttachD9BackBuffer();
 		}
 	}
 
@@ -3276,7 +3276,7 @@ void m_IDirect3DDeviceX::ReleaseDevice()
 		// Clear device surface interface
 		if (DeviceSurface && ddrawParent->DoesSurfaceExist(DeviceSurface))
 		{
-			DeviceSurface->Detach9BackBuffer();
+			DeviceSurface->DetachD9BackBuffer();
 		}
 	}
 }
