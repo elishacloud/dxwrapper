@@ -3239,6 +3239,17 @@ void m_IDirect3DDeviceX::InitDevice(DWORD DirectXVersion)
 		d3d9Device = ddrawParent->GetDirect3D9Device();
 	}
 
+	// Get device surface interface
+	if (CurrentRenderTarget)
+	{
+		CurrentRenderTarget->QueryInterface(IID_GetInterfaceX, (LPVOID*)&DeviceSurface);
+
+		if (DeviceSurface)
+		{
+			DeviceSurface->AttachD3D9BackBuffer();
+		}
+	}
+
 	AddRef(DirectXVersion);
 }
 
@@ -3261,6 +3272,12 @@ void m_IDirect3DDeviceX::ReleaseDevice()
 	if (ddrawParent && !Config.Exiting)
 	{
 		ddrawParent->ClearD3DDevice();
+
+		// Clear device surface interface
+		if (DeviceSurface && ddrawParent->DoesSurfaceExist(DeviceSurface))
+		{
+			DeviceSurface->Detach9BackBuffer();
+		}
 	}
 }
 

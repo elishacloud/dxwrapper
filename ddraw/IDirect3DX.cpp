@@ -562,7 +562,7 @@ HRESULT m_IDirect3DX::CreateDevice(REFCLSID rclsid, LPDIRECTDRAWSURFACE7 lpDDS, 
 
 	if (Config.Dd7to9)
 	{
-		if (!lplpD3DDevice)
+		if (!lplpD3DDevice || !lpDDS)
 		{
 			return DDERR_INVALIDPARAMS;
 		}
@@ -574,8 +574,12 @@ HRESULT m_IDirect3DX::CreateDevice(REFCLSID rclsid, LPDIRECTDRAWSURFACE7 lpDDS, 
 			return DDERR_GENERIC;
 		}
 
+		// Get surfaceX
 		m_IDirectDrawSurfaceX *DdrawSurface3D = nullptr;
-		if (lpDDS && SUCCEEDED(lpDDS->QueryInterface(IID_GetInterfaceX, (LPVOID*)&DdrawSurface3D)) && DdrawSurface3D && !DdrawSurface3D->IsSurface3D())
+		lpDDS->QueryInterface(IID_GetInterfaceX, (LPVOID*)&DdrawSurface3D);
+
+		// Check for Direct3D surface
+		if (!DdrawSurface3D || !DdrawSurface3D->IsSurface3D())
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Error: surface is not a Direct3D surface!");
 			return DDERR_GENERIC;
