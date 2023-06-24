@@ -3132,6 +3132,7 @@ LPDIRECT3DTEXTURE9 m_IDirectDrawSurfaceX::Get3DTexture()
 
 LPDIRECT3DSURFACE9 m_IDirectDrawSurfaceX::GetD3D9Surface()
 {
+	// Get d3d9 device buffer
 	/*if (IsDirect3DSurface && IsSurface3DDevice())
 	{
 		if (!pBackBuffer3D && SUCCEEDED(CheckInterface(__FUNCTION__, true, false)))
