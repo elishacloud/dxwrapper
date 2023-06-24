@@ -3132,20 +3132,6 @@ LPDIRECT3DTEXTURE9 m_IDirectDrawSurfaceX::Get3DTexture()
 
 LPDIRECT3DSURFACE9 m_IDirectDrawSurfaceX::GetD3D9Surface()
 {
-	// Get d3d9 device buffer
-	/*if (IsDirect3DSurface && IsSurface3DDevice())
-	{
-		if (!pBackBuffer3D && SUCCEEDED(CheckInterface(__FUNCTION__, true, false)))
-		{
-			(*d3d9Device)->GetBackBuffer(0, 0, D3DBACKBUFFER_TYPE_MONO, &pBackBuffer3D);
-		}
-		if (pBackBuffer3D)
-		{
-			return pBackBuffer3D;
-		}
-		return nullptr;
-	}*/
-
 	if (surfaceTexture)
 	{
 		if (contextSurface || (!contextSurface && SUCCEEDED(surfaceTexture->GetSurfaceLevel(0, &contextSurface))))
@@ -3250,7 +3236,7 @@ HRESULT m_IDirectDrawSurfaceX::CreateD3d9Surface()
 	surfaceBitCount = GetBitCount(surfaceFormat);
 	const bool IsSurfaceEmulated = (((Config.DdrawEmulateSurface || (surfaceDesc2.ddsCaps.dwCaps & DDSCAPS_OWNDC) ||
 		((IsPrimarySurface() || IsBackBuffer()) && (Config.DdrawWriteToGDI || Config.DdrawReadFromGDI || Config.DdrawRemoveScanlines))) &&
-		!IsSurface3DDevice() && !IsDepthBuffer() && !(surfaceFormat & 0xFF000000 /*FOURCC or D3DFMT_DXTx*/)) ||
+		!IsDepthBuffer() && !(surfaceFormat & 0xFF000000 /*FOURCC or D3DFMT_DXTx*/)) ||
 		surfaceFormat == D3DFMT_A8B8G8R8 || surfaceFormat == D3DFMT_X8B8G8R8 || surfaceFormat == D3DFMT_B8G8R8 || surfaceFormat == D3DFMT_R8G8B8);
 	DCRequiresEmulation = (surfaceFormat != D3DFMT_R5G6B5 && surfaceFormat != D3DFMT_X1R5G5B5 && surfaceFormat != D3DFMT_R8G8B8 && surfaceFormat != D3DFMT_X8R8G8B8);
 	const D3DFORMAT Format = (surfaceFormat == D3DFMT_X8B8G8R8 || surfaceFormat == D3DFMT_B8G8R8 || surfaceFormat == D3DFMT_R8G8B8) ? D3DFMT_X8R8G8B8 :
@@ -3769,13 +3755,6 @@ void m_IDirectDrawSurfaceX::ReleaseD9Surface(bool BackupData)
 		}
 	}
 
-	// Release d3d9 back buffer
-	if (pBackBuffer3D)
-	{
-		pBackBuffer3D->Release();
-		pBackBuffer3D = nullptr;
-	}
-
 	// Release d3d9 3D surface
 	if (surface3D)
 	{
@@ -3955,6 +3934,9 @@ HRESULT m_IDirectDrawSurfaceX::Draw2DSurface()
 		return DDERR_GENERIC;
 	}
 
+	// Reset dirty flags
+	ClearDirtyFlags();
+
 	return DD_OK;
 }
 
@@ -4040,12 +4022,6 @@ HRESULT m_IDirectDrawSurfaceX::PresentSurface(bool isSkipScene)
 			hr = DDERR_GENERIC;
 			break;
 		}
-
-		// Reset dirty flag
-		dirtyFlag = false;
-
-		// Reset scene ready
-		SceneReady = false;
 
 	} while (false);
 
@@ -4357,6 +4333,7 @@ inline void m_IDirectDrawSurfaceX::SetDirtyFlag()
 	if (IsPrimarySurface())
 	{
 		dirtyFlag = true;
+		IsDirtyFlag = true;
 	}
 
 	// Update Uniqueness Value
@@ -4374,6 +4351,16 @@ void m_IDirectDrawSurfaceX::SetDirtyFlipFlag()
 			it.second.pSurface->SetDirtyFlipFlag();
 		}
 	}
+}
+
+void m_IDirectDrawSurfaceX::ClearDirtyFlags()
+{
+	// Reset dirty flag
+	dirtyFlag = false;
+	IsDirtyFlag = false;
+
+	// Reset scene ready
+	SceneReady = false;
 }
 
 // Check if rect is a single line and should be skipped

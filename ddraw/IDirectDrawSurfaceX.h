@@ -97,6 +97,7 @@ private:
 	DWORD Priority = 0;
 	DWORD MaxLOD = 0;
 	DWORD UniquenessValue = 0;
+	bool IsDirtyFlag = false;
 	bool Surface3DDeviceFlag = false;
 	bool DCRequiresEmulation = false;
 	bool ComplexRoot = false;
@@ -115,7 +116,6 @@ private:
 
 	// Direct3D9 vars
 	LPDIRECT3DDEVICE9 *d3d9Device = nullptr;			// Direct3D9 Device
-	LPDIRECT3DSURFACE9 pBackBuffer3D = nullptr;			// Back buffer surface used for Direct3D
 	LPDIRECT3DSURFACE9 surface3D = nullptr;				// Surface used for Direct3D
 	LPDIRECT3DTEXTURE9 surfaceTexture = nullptr;		// Main surface texture used for locks, Blts and Flips
 	LPDIRECT3DSURFACE9 contextSurface = nullptr;		// Main surface texture used for locks, Blts and Flips
@@ -386,8 +386,10 @@ public:
 	inline bool IsSurfaceManaged() { return (surfaceDesc2.ddsCaps.dwCaps2 & (DDSCAPS2_TEXTUREMANAGE | DDSCAPS2_D3DTEXTUREMANAGE)) != 0; }
 	inline bool IsUsingEmulation() { return (emu && emu->surfaceDC && emu->surfacepBits); }
 	inline bool IsSurface3DDevice() { return Surface3DDeviceFlag; }
+	inline bool IsSurfaceDirty() { return IsDirtyFlag; }
 	inline void AttachD9BackBuffer() { Surface3DDeviceFlag = true; }
 	inline void DetachD9BackBuffer() { Surface3DDeviceFlag = false; }
+	inline void ClearDirtyFlags();
 	LPDIRECT3DSURFACE9 Get3DSurface();
 	LPDIRECT3DTEXTURE9 Get3DTexture();
 	LPDIRECT3DSURFACE9 GetD3D9Surface();

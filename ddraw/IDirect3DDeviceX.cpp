@@ -1702,8 +1702,8 @@ HRESULT m_IDirect3DDeviceX::EndScene()
 		}
 
 		// Draw 2D DirectDraw surface
-		/*m_IDirectDrawSurfaceX* PrimarySurface = ddrawParent->GetPrimarySurface();
-		if (PrimarySurface)
+		m_IDirectDrawSurfaceX* PrimarySurface = ddrawParent->GetPrimarySurface();
+		if (PrimarySurface && PrimarySurface->IsSurfaceDirty())
 		{
 			DWORD SRCBLEND = 0, DESTBLEND = 0, ALPHABLENDENABLE = 0;
 			(*d3d9Device)->GetRenderState(D3DRS_SRCBLEND, &SRCBLEND);
@@ -1726,7 +1726,20 @@ HRESULT m_IDirect3DDeviceX::EndScene()
 			(*d3d9Device)->SetRenderState(D3DRS_SRCBLEND, SRCBLEND);
 			(*d3d9Device)->SetRenderState(D3DRS_DESTBLEND, DESTBLEND);
 			(*d3d9Device)->SetRenderState(D3DRS_ALPHABLENDENABLE, ALPHABLENDENABLE);
-		}*/
+
+			SetTexture(0, AttachedTexture[0]);
+			SetTexture(1, AttachedTexture[1]);
+
+			// Clear primary surface
+			PrimarySurface->Get3DSurface();
+			DDBLTFX DDBltFx = {};
+			DDBltFx.dwSize = sizeof(DDBLTFX);
+			DDBltFx.dwFillColor = 0x00000000;
+			PrimarySurface->Blt(nullptr, nullptr, nullptr, DDBLT_COLORFILL, &DDBltFx);
+
+			// Reset dirty flags
+			PrimarySurface->ClearDirtyFlags();
+		}
 
 #ifdef ENABLE_DEBUGOVERLAY
 		DOverlay.EndScene();
