@@ -3474,7 +3474,7 @@ void m_IDirect3DDeviceX::InitDevice(DWORD DirectXVersion)
 		return;
 	}
 
-  if (ddrawParent)
+	if (ddrawParent)
 	{
 		d3d9Device = ddrawParent->GetDirect3D9Device();
 	}
@@ -3500,9 +3500,9 @@ void m_IDirect3DDeviceX::InitDevice(DWORD DirectXVersion)
 
 		ConvertHomogeneous.ToWorld_ProjectionMatrix = ConvertHomogeneous.ToWorld_ViewMatrix;
 		ConvertHomogeneous.ToWorld_ViewMatrixOriginal = ConvertHomogeneous.ToWorld_ViewMatrix;
-  }
+	}
 
-  AddRef(DirectXVersion);
+	AddRef(DirectXVersion);
 }
 
 void m_IDirect3DDeviceX::ReleaseDevice()
