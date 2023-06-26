@@ -16,41 +16,6 @@
 
 #include "ddraw.h"
 
-void ConvertColorControl(DDCOLORCONTROL &ColorControl, DDCOLORCONTROL &ColorControl2)
-{
-	if (ColorControl.dwSize != sizeof(DDCOLORCONTROL) || ColorControl2.dwSize != sizeof(DDCOLORCONTROL))
-	{
-		LOG_LIMIT(100, __FUNCTION__ << " Error: Incorrect dwSize: " << ColorControl.dwSize << " " << ColorControl.dwSize);
-		return;
-	}
-	CopyMemory(&ColorControl, &ColorControl2, sizeof(DDCOLORCONTROL));
-}
-
-void ConvertGammaRamp(DDGAMMARAMP &RampData, DDGAMMARAMP &RampData2)
-{
-	CopyMemory(&RampData, &RampData2, sizeof(DDGAMMARAMP));
-}
-
-void ConvertSurfaceDesc(DDSURFACEDESC &Desc, DDSURFACEDESC &Desc2)
-{
-	if (Desc.dwSize != sizeof(DDSURFACEDESC) || Desc2.dwSize != sizeof(DDSURFACEDESC))
-	{
-		LOG_LIMIT(100, __FUNCTION__ << " Error: Incorrect dwSize: " << Desc.dwSize << " " << Desc2.dwSize);
-		return;
-	}
-	CopyMemory(&Desc, &Desc2, sizeof(DDSURFACEDESC));
-}
-
-void ConvertSurfaceDesc(DDSURFACEDESC2 &Desc, DDSURFACEDESC2 &Desc2)
-{
-	if (Desc.dwSize != sizeof(DDSURFACEDESC2) || Desc2.dwSize != sizeof(DDSURFACEDESC2))
-	{
-		LOG_LIMIT(100, __FUNCTION__ << " Error: Incorrect dwSize: " << Desc.dwSize << " " << Desc2.dwSize);
-		return;
-	}
-	CopyMemory(&Desc, &Desc2, sizeof(DDSURFACEDESC2));
-}
-
 void ConvertSurfaceDesc(DDSURFACEDESC &Desc, DDSURFACEDESC2 &Desc2)
 {
 	// Check for supported dwSize
@@ -172,21 +137,6 @@ void ConvertPixelFormat(DDPIXELFORMAT& Format, DDS_PIXELFORMAT& Format2)
 	Format.dwRGBAlphaBitMask = Format2.dwABitMask;
 }
 
-void ConvertPixelFormat(DDPIXELFORMAT &Format, DDPIXELFORMAT &Format2)
-{
-	if (Format.dwSize != sizeof(DDPIXELFORMAT) || Format2.dwSize != sizeof(DDPIXELFORMAT))
-	{
-		LOG_LIMIT(100, __FUNCTION__ << " Error: Incorrect dwSize: " << Format.dwSize << " " << Format2.dwSize);
-		return;
-	}
-	CopyMemory(&Format, &Format2, sizeof(DDPIXELFORMAT));
-}
-
-void ConvertDeviceIdentifier(DDDEVICEIDENTIFIER2 &DeviceID, DDDEVICEIDENTIFIER2 &DeviceID2)
-{
-	CopyMemory(&DeviceID, &DeviceID2, sizeof(DDDEVICEIDENTIFIER2));
-}
-
 void ConvertDeviceIdentifier(DDDEVICEIDENTIFIER &DeviceID, DDDEVICEIDENTIFIER2 &DeviceID2)
 {
 	CopyMemory(&DeviceID, &DeviceID2, sizeof(DDDEVICEIDENTIFIER));
@@ -211,15 +161,6 @@ void ConvertDeviceIdentifier(DDDEVICEIDENTIFIER2 &DeviceID2, D3DADAPTER_IDENTIFI
 	DeviceID2.dwSubSysId = Identifier9.SubSysId;
 	DeviceID2.dwVendorId = Identifier9.VendorId;
 	DeviceID2.dwWHQLLevel = Identifier9.WHQLLevel;
-}
-
-void ConvertCaps(DDSCAPS2 &Caps, DDSCAPS2 &Caps2)
-{
-	Caps.dwCaps = Caps2.dwCaps;
-	Caps.dwCaps2 = Caps2.dwCaps2;
-	Caps.dwCaps3 = Caps2.dwCaps3;
-	Caps.dwCaps4 = Caps2.dwCaps4;
-	Caps.dwVolumeDepth = Caps2.dwVolumeDepth;
 }
 
 void ConvertCaps(DDSCAPS &Caps, DDSCAPS2 &Caps2)

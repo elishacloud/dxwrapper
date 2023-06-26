@@ -196,9 +196,7 @@ HRESULT m_IDirect3DMaterialX::SetMaterial(LPD3DMATERIAL lpMat)
 		}
 
 		MaterialSet = true;
-
-		Material.dwSize = sizeof(D3DMATERIAL);
-		ConvertMaterial(Material, *lpMat);
+		Material = *lpMat;
 
 		return D3D_OK;;
 	}
@@ -229,9 +227,7 @@ HRESULT m_IDirect3DMaterialX::GetMaterial(LPD3DMATERIAL lpMat)
 
 		if (MaterialSet)
 		{
-			lpMat->dwSize = sizeof(D3DMATERIAL);
-
-			ConvertMaterial(*lpMat, Material);
+			*lpMat = Material;
 
 			return D3D_OK;
 		}

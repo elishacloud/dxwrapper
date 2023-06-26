@@ -203,15 +203,15 @@ void DebugOverlay::SetTransform(D3DTRANSFORMSTATETYPE dtstTransformStateType, LP
 	{
 	case D3DTRANSFORMSTATE_WORLD:
 	case D3DTS_WORLD:
-		std::memcpy(&worldMatrix, lpD3DMatrix, sizeof(D3DMATRIX));
+		worldMatrix = *lpD3DMatrix;
 		break;
 
 	case D3DTS_VIEW:
-		std::memcpy(&viewMatrix, lpD3DMatrix, sizeof(D3DMATRIX));
+		viewMatrix = *lpD3DMatrix;
 		break;
 
 	case D3DTS_PROJECTION:
-		std::memcpy(&projectionMatrix, lpD3DMatrix, sizeof(D3DMATRIX));
+		projectionMatrix = *lpD3DMatrix;
 		break;
 
 	default:

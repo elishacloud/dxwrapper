@@ -99,7 +99,7 @@ HRESULT m_IDirectDrawGammaControl::GetGammaRamp(DWORD dwFlags, LPDDGAMMARAMP lpR
 			LOG_LIMIT(100, __FUNCTION__ << " Warning: Calibrating gamma ramps is not Implemented");
 		}
 
-		ConvertGammaRamp(*lpRampData, RampData);
+		*lpRampData = RampData;
 
 		return DD_OK;
 	}
@@ -118,7 +118,7 @@ HRESULT m_IDirectDrawGammaControl::SetGammaRamp(DWORD dwFlags, LPDDGAMMARAMP lpR
 			return DDERR_INVALIDPARAMS;
 		}
 
-		ConvertGammaRamp(RampData, *lpRampData);
+		RampData = *lpRampData;
 
 		// Present new gamma setting
 		if (ddrawParent)

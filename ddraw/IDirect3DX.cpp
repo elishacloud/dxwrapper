@@ -523,7 +523,7 @@ HRESULT m_IDirect3DX::FindDevice(LPD3DFINDDEVICESEARCH lpD3DFDS, LPD3DFINDDEVICE
 				if (lpDeviceDesc7->deviceGUID == self->guid)
 				{
 					self->Found = true;
-					memcpy(&self->DeviceDesc7, lpDeviceDesc7, sizeof(D3DDEVICEDESC7));
+					self->DeviceDesc7 = *lpDeviceDesc7;
 
 					return DDENUMRET_CANCEL;
 				}

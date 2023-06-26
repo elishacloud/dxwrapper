@@ -272,8 +272,7 @@ public:
 		// Copy surface description, needs to run before InitSurface()
 		if (lpDDSurfaceDesc2)
 		{
-			surfaceDesc2.dwSize = sizeof(DDSURFACEDESC2);
-			ConvertSurfaceDesc(surfaceDesc2, *lpDDSurfaceDesc2);
+			surfaceDesc2 = *lpDDSurfaceDesc2;
 		}
 
 		InitSurface(DirectXVersion);

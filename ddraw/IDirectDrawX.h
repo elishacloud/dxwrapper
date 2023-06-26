@@ -196,6 +196,7 @@ public:
 	void GetFullDisplay(DWORD &Width, DWORD &Height, DWORD& BPP, DWORD &RefreshRate);
 	void GetDisplayPixelFormat(DDPIXELFORMAT& ddpfPixelFormat, DWORD BPP);
 	void GetDisplay(DWORD &Width, DWORD &Height);
+	void SetNewViewport(DWORD Width, DWORD Height);
 
 	// Surface vector functions
 	void AddSurfaceToVector(m_IDirectDrawSurfaceX* lpSurfaceX);

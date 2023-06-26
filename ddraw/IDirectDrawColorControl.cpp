@@ -94,7 +94,7 @@ HRESULT m_IDirectDrawColorControl::GetColorControls(LPDDCOLORCONTROL lpColorCont
 			return DDERR_INVALIDPARAMS;
 		}
 
-		ConvertColorControl(*lpColorControl, ColorControl);
+		*lpColorControl = ColorControl;
 
 		return DD_OK;
 	}
@@ -113,7 +113,7 @@ HRESULT m_IDirectDrawColorControl::SetColorControls(LPDDCOLORCONTROL lpColorCont
 			return DDERR_INVALIDPARAMS;
 		}
 
-		ConvertColorControl(ColorControl, *lpColorControl);
+		ColorControl = *lpColorControl;
 
 		// Present new color setting
 		if (ddrawParent)

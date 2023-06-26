@@ -593,14 +593,14 @@ HRESULT m_IDirectDrawSurfaceX::Blt(LPRECT lpDestRect, LPDIRECTDRAWSURFACE7 lpDDS
 		RECT SrcRect, DestRect;
 		if (lpSrcRect)
 		{
-			memcpy(&SrcRect, lpSrcRect, sizeof(RECT));
+			SrcRect = *lpSrcRect;
 			SrcRect.left -= 1;
 			SrcRect.bottom -= 1;
 			lpSrcRect = &SrcRect;
 		}
 		if (lpDestRect)
 		{
-			memcpy(&DestRect, lpDestRect, sizeof(RECT));
+			DestRect = *lpDestRect;
 			DestRect.left -= 1;
 			DestRect.bottom -= 1;
 			lpDestRect = &DestRect;
@@ -745,8 +745,7 @@ HRESULT m_IDirectDrawSurfaceX::BltFast(DWORD dwX, DWORD dwY, LPDIRECTDRAWSURFACE
 	// Fix for some games that calculate the rect incorrectly
 	if (lpSrcRect && hr == DDERR_INVALIDRECT)
 	{
-		RECT SrcRect;
-		memcpy(&SrcRect, lpSrcRect, sizeof(RECT));
+		RECT SrcRect = *lpSrcRect;
 		SrcRect.left -= 1;
 		SrcRect.bottom -= 1;
 		hr = ProxyInterface->BltFast(dwX, dwY, lpDDSrcSurface, &SrcRect, dwFlags);
@@ -1285,7 +1284,7 @@ HRESULT m_IDirectDrawSurfaceX::GetAttachedSurface2(LPDDSCAPS2 lpDDSCaps2, LPDIRE
 	
 	if (lpDDSCaps2)
 	{
-		memcpy(&DDSCaps2, lpDDSCaps2, sizeof(DDSCAPS2));
+		DDSCaps2 = *lpDDSCaps2;
 
 		lpDDSCaps2 = &DDSCaps2;
 
@@ -1389,7 +1388,7 @@ HRESULT m_IDirectDrawSurfaceX::GetCaps2(LPDDSCAPS2 lpDDSCaps2)
 			return DDERR_INVALIDPARAMS;
 		}
 
-		ConvertCaps(*lpDDSCaps2, surfaceDesc2.ddsCaps);
+		*lpDDSCaps2 = surfaceDesc2.ddsCaps;
 
 		return DD_OK;
 	}
@@ -1720,7 +1719,7 @@ HRESULT m_IDirectDrawSurfaceX::GetPixelFormat(LPDDPIXELFORMAT lpDDPixelFormat)
 		UpdateSurfaceDesc();
 
 		// Copy pixel format to lpDDPixelFormat
-		ConvertPixelFormat(*lpDDPixelFormat, surfaceDesc2.ddpfPixelFormat);
+		*lpDDPixelFormat = surfaceDesc2.ddpfPixelFormat;
 
 		return DD_OK;
 	}
@@ -1774,7 +1773,7 @@ HRESULT m_IDirectDrawSurfaceX::GetSurfaceDesc2(LPDDSURFACEDESC2 lpDDSurfaceDesc2
 		UpdateSurfaceDesc();
 
 		// Copy surfacedesc to lpDDSurfaceDesc2
-		ConvertSurfaceDesc(*lpDDSurfaceDesc2, surfaceDesc2);
+		*lpDDSurfaceDesc2 = surfaceDesc2;
 
 		// Set lPitch
 		if ((lpDDSurfaceDesc2->dwFlags & (DDSD_WIDTH | DDSD_HEIGHT | DDSD_PIXELFORMAT)) == (DDSD_WIDTH | DDSD_HEIGHT | DDSD_PIXELFORMAT) &&
@@ -1935,10 +1934,7 @@ HRESULT m_IDirectDrawSurfaceX::Lock2(LPRECT lpDestRect, LPDDSURFACEDESC2 lpDDSur
 		HRESULT c_hr = CheckInterface(__FUNCTION__, true, true);
 
 		// Prepare surfaceDesc
-		ZeroMemory(lpDDSurfaceDesc2, sizeof(DDSURFACEDESC2));
-		lpDDSurfaceDesc2->dwSize = sizeof(DDSURFACEDESC2);
-
-		ConvertSurfaceDesc(*lpDDSurfaceDesc2, surfaceDesc2);
+		*lpDDSurfaceDesc2 = surfaceDesc2;
 		if (!(lpDDSurfaceDesc2->dwFlags & DDSD_LPSURFACE))
 		{
 			lpDDSurfaceDesc2->lpSurface = nullptr;
@@ -4413,9 +4409,7 @@ void m_IDirectDrawSurfaceX::InitSurfaceDesc(DWORD DirectXVersion)
 	// Create backbuffers
 	if (surfaceDesc2.dwBackBufferCount)
 	{
-		DDSURFACEDESC2 Desc2 = {};
-		Desc2.dwSize = sizeof(DDSURFACEDESC2);
-		ConvertSurfaceDesc(Desc2, surfaceDesc2);
+		DDSURFACEDESC2 Desc2 = surfaceDesc2;
 		Desc2.ddsCaps.dwCaps4 &= ~(DDSCAPS4_CREATESURFACE);	// Clear surface creation flag
 		Desc2.dwBackBufferCount--;
 		if (Desc2.ddsCaps.dwCaps & DDSCAPS_FRONTBUFFER)

@@ -131,9 +131,7 @@ HRESULT m_IDirect3DLight::SetLight(LPD3DLIGHT lpLight)
 		}
 
 		LightSet = true;
-
-		Light.dwSize = sizeof(D3DLIGHT);
-		ConvertLight(Light, *lpLight);
+		Light = *lpLight;
 
 		return D3D_OK;
 	}
@@ -154,9 +152,7 @@ HRESULT m_IDirect3DLight::GetLight(LPD3DLIGHT lpLight)
 
 		if (LightSet)
 		{
-			lpLight->dwSize = sizeof(D3DLIGHT);
-
-			ConvertLight(*lpLight, Light);
+			*lpLight = Light;
 
 			return D3D_OK;
 		}

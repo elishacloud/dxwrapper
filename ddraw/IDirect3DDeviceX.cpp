@@ -577,8 +577,7 @@ HRESULT m_IDirect3DDeviceX::EnumTextureFormats(LPD3DENUMTEXTUREFORMATSCALLBACK l
 				DDSURFACEDESC Desc = {};
 				Desc.dwSize = sizeof(DDSURFACEDESC);
 				Desc.dwFlags = DDSD_PIXELFORMAT;
-				Desc.ddpfPixelFormat.dwSize = sizeof(DDPIXELFORMAT);
-				ConvertPixelFormat(Desc.ddpfPixelFormat, *lpDDPixFmt);
+				Desc.ddpfPixelFormat = *lpDDPixFmt;
 
 				return self->lpCallback(&Desc, self->lpContext);
 			}
@@ -1498,7 +1497,14 @@ HRESULT m_IDirect3DDeviceX::SetViewport(LPD3DVIEWPORT7 lpViewport)
 			return DDERR_GENERIC;
 		}
 
-		return (*d3d9Device)->SetViewport((D3DVIEWPORT9*)lpViewport);
+		HRESULT hr = (*d3d9Device)->SetViewport((D3DVIEWPORT9*)lpViewport);
+
+		if (SUCCEEDED(hr))
+		{
+			ddrawParent->SetNewViewport(lpViewport->dwWidth, lpViewport->dwHeight);
+		}
+
+		return hr;
 	}
 
 	D3DVIEWPORT7 Viewport7;
