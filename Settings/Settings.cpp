@@ -450,6 +450,7 @@ void Settings::SetDefaultConfigSettings()
 	Config.DdrawEnableMouseHook = true;
 
 	// Set other default values
+	Config.LoopSleepTime = 120;
 	Config.WindowSleepTime = 500;
 	Config.PrimaryBufferBits = 16;
 	Config.PrimaryBufferSamples = 44100;
