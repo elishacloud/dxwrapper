@@ -593,14 +593,14 @@ HRESULT m_IDirectDrawSurfaceX::Blt(LPRECT lpDestRect, LPDIRECTDRAWSURFACE7 lpDDS
 		RECT SrcRect, DestRect;
 		if (lpSrcRect)
 		{
-			memcpy(&SrcRect, lpSrcRect, sizeof(RECT));
+			SrcRect = *lpSrcRect;
 			SrcRect.left -= 1;
 			SrcRect.bottom -= 1;
 			lpSrcRect = &SrcRect;
 		}
 		if (lpDestRect)
 		{
-			memcpy(&DestRect, lpDestRect, sizeof(RECT));
+			DestRect = *lpDestRect;
 			DestRect.left -= 1;
 			DestRect.bottom -= 1;
 			lpDestRect = &DestRect;
@@ -745,8 +745,7 @@ HRESULT m_IDirectDrawSurfaceX::BltFast(DWORD dwX, DWORD dwY, LPDIRECTDRAWSURFACE
 	// Fix for some games that calculate the rect incorrectly
 	if (lpSrcRect && hr == DDERR_INVALIDRECT)
 	{
-		RECT SrcRect;
-		memcpy(&SrcRect, lpSrcRect, sizeof(RECT));
+		RECT SrcRect = *lpSrcRect;
 		SrcRect.left -= 1;
 		SrcRect.bottom -= 1;
 		hr = ProxyInterface->BltFast(dwX, dwY, lpDDSrcSurface, &SrcRect, dwFlags);
@@ -829,7 +828,7 @@ HRESULT m_IDirectDrawSurfaceX::EnumAttachedSurfaces(LPVOID lpContext, LPDDENUMSU
 
 			return self->lpCallback(lpDDSurface, lpDDSurfaceDesc, self->lpContext);
 		}
-	} CallbackContext;
+	} CallbackContext = {};
 	CallbackContext.lpContext = lpContext;
 	CallbackContext.lpCallback = lpEnumSurfacesCallback;
 	CallbackContext.DirectXVersion = DirectXVersion;
@@ -850,7 +849,7 @@ HRESULT m_IDirectDrawSurfaceX::EnumAttachedSurfaces2(LPVOID lpContext, LPDDENUMS
 	{
 		for (auto& it : AttachedSurfaceMap)
 		{
-			DDSURFACEDESC2 Desc2;
+			DDSURFACEDESC2 Desc2 = {};
 			Desc2.dwSize = sizeof(DDSURFACEDESC2);
 			it.second.pSurface->GetSurfaceDesc2(&Desc2);
 			if (lpEnumSurfacesCallback7((LPDIRECTDRAWSURFACE7)it.second.pSurface->GetWrapperInterfaceX(DirectXVersion), &Desc2, lpContext) == DDENUMRET_CANCEL)
@@ -881,7 +880,7 @@ HRESULT m_IDirectDrawSurfaceX::EnumAttachedSurfaces2(LPVOID lpContext, LPDDENUMS
 			// Game using old DirectX, Convert back to LPDDSURFACEDESC
 			if (self->ConvertSurfaceDescTo2)
 			{
-				DDSURFACEDESC Desc;
+				DDSURFACEDESC Desc = {};
 				Desc.dwSize = sizeof(DDSURFACEDESC);
 				ConvertSurfaceDesc(Desc, *lpDDSurfaceDesc2);
 
@@ -890,7 +889,7 @@ HRESULT m_IDirectDrawSurfaceX::EnumAttachedSurfaces2(LPVOID lpContext, LPDDENUMS
 
 			return self->lpCallback(lpDDSurface, lpDDSurfaceDesc2, self->lpContext);
 		}
-	} CallbackContext;
+	} CallbackContext = {};
 	CallbackContext.lpContext = lpContext;
 	CallbackContext.lpCallback = lpEnumSurfacesCallback7;
 	CallbackContext.DirectXVersion = DirectXVersion;
@@ -930,7 +929,7 @@ HRESULT m_IDirectDrawSurfaceX::EnumOverlayZOrders(DWORD dwFlags, LPVOID lpContex
 
 			return self->lpCallback(lpDDSurface, lpDDSurfaceDesc, self->lpContext);
 		}
-	} CallbackContext;
+	} CallbackContext = {};
 	CallbackContext.lpContext = lpContext;
 	CallbackContext.lpCallback = lpfnCallback;
 	CallbackContext.DirectXVersion = DirectXVersion;
@@ -972,7 +971,7 @@ HRESULT m_IDirectDrawSurfaceX::EnumOverlayZOrders2(DWORD dwFlags, LPVOID lpConte
 			// Game using old DirectX, Convert back to LPDDSURFACEDESC
 			if (self->ConvertSurfaceDescTo2)
 			{
-				DDSURFACEDESC Desc;
+				DDSURFACEDESC Desc = {};
 				Desc.dwSize = sizeof(DDSURFACEDESC);
 				ConvertSurfaceDesc(Desc, *lpDDSurfaceDesc2);
 
@@ -981,7 +980,7 @@ HRESULT m_IDirectDrawSurfaceX::EnumOverlayZOrders2(DWORD dwFlags, LPVOID lpConte
 
 			return self->lpCallback(lpDDSurface, lpDDSurfaceDesc2, self->lpContext);
 		}
-	} CallbackContext;
+	} CallbackContext = {};
 	CallbackContext.lpContext = lpContext;
 	CallbackContext.lpCallback = lpfnCallback7;
 	CallbackContext.DirectXVersion = DirectXVersion;
@@ -1285,7 +1284,7 @@ HRESULT m_IDirectDrawSurfaceX::GetAttachedSurface2(LPDDSCAPS2 lpDDSCaps2, LPDIRE
 	
 	if (lpDDSCaps2)
 	{
-		memcpy(&DDSCaps2, lpDDSCaps2, sizeof(DDSCAPS2));
+		DDSCaps2 = *lpDDSCaps2;
 
 		lpDDSCaps2 = &DDSCaps2;
 
@@ -1389,7 +1388,7 @@ HRESULT m_IDirectDrawSurfaceX::GetCaps2(LPDDSCAPS2 lpDDSCaps2)
 			return DDERR_INVALIDPARAMS;
 		}
 
-		ConvertCaps(*lpDDSCaps2, surfaceDesc2.ddsCaps);
+		*lpDDSCaps2 = surfaceDesc2.ddsCaps;
 
 		return DD_OK;
 	}
@@ -1720,7 +1719,7 @@ HRESULT m_IDirectDrawSurfaceX::GetPixelFormat(LPDDPIXELFORMAT lpDDPixelFormat)
 		UpdateSurfaceDesc();
 
 		// Copy pixel format to lpDDPixelFormat
-		ConvertPixelFormat(*lpDDPixelFormat, surfaceDesc2.ddpfPixelFormat);
+		*lpDDPixelFormat = surfaceDesc2.ddpfPixelFormat;
 
 		return DD_OK;
 	}
@@ -1741,7 +1740,7 @@ HRESULT m_IDirectDrawSurfaceX::GetSurfaceDesc(LPDDSURFACEDESC lpDDSurfaceDesc)
 			return DDERR_INVALIDPARAMS;
 		}
 
-		DDSURFACEDESC2 Desc2;
+		DDSURFACEDESC2 Desc2 = {};
 		Desc2.dwSize = sizeof(DDSURFACEDESC2);
 
 		HRESULT hr = GetSurfaceDesc2(&Desc2);
@@ -1774,7 +1773,7 @@ HRESULT m_IDirectDrawSurfaceX::GetSurfaceDesc2(LPDDSURFACEDESC2 lpDDSurfaceDesc2
 		UpdateSurfaceDesc();
 
 		// Copy surfacedesc to lpDDSurfaceDesc2
-		ConvertSurfaceDesc(*lpDDSurfaceDesc2, surfaceDesc2);
+		*lpDDSurfaceDesc2 = surfaceDesc2;
 
 		// Set lPitch
 		if ((lpDDSurfaceDesc2->dwFlags & (DDSD_WIDTH | DDSD_HEIGHT | DDSD_PIXELFORMAT)) == (DDSD_WIDTH | DDSD_HEIGHT | DDSD_PIXELFORMAT) &&
@@ -1807,7 +1806,7 @@ HRESULT m_IDirectDrawSurfaceX::Initialize(LPDIRECTDRAW lpDD, LPDDSURFACEDESC lpD
 			LOG_LIMIT(100, __FUNCTION__ << " Warning: Invalid parameters. dwSize: " << ((lpDDSurfaceDesc) ? lpDDSurfaceDesc->dwSize : -1));
 		}
 
-		DDSURFACEDESC2 Desc2;
+		DDSURFACEDESC2 Desc2 = {};
 		Desc2.dwSize = sizeof(DDSURFACEDESC2);
 		if (lpDDSurfaceDesc)
 		{
@@ -1887,7 +1886,7 @@ HRESULT m_IDirectDrawSurfaceX::Lock(LPRECT lpDestRect, LPDDSURFACEDESC lpDDSurfa
 			return DDERR_INVALIDPARAMS;
 		}
 
-		DDSURFACEDESC2 Desc2;
+		DDSURFACEDESC2 Desc2 = {};
 		Desc2.dwSize = sizeof(DDSURFACEDESC2);
 
 		HRESULT hr = Lock2(lpDestRect, &Desc2, dwFlags, hEvent, DirectXVersion);
@@ -1935,10 +1934,7 @@ HRESULT m_IDirectDrawSurfaceX::Lock2(LPRECT lpDestRect, LPDDSURFACEDESC2 lpDDSur
 		HRESULT c_hr = CheckInterface(__FUNCTION__, true, true);
 
 		// Prepare surfaceDesc
-		ZeroMemory(lpDDSurfaceDesc2, sizeof(DDSURFACEDESC2));
-		lpDDSurfaceDesc2->dwSize = sizeof(DDSURFACEDESC2);
-
-		ConvertSurfaceDesc(*lpDDSurfaceDesc2, surfaceDesc2);
+		*lpDDSurfaceDesc2 = surfaceDesc2;
 		if (!(lpDDSurfaceDesc2->dwFlags & DDSD_LPSURFACE))
 		{
 			lpDDSurfaceDesc2->lpSurface = nullptr;
@@ -2013,6 +2009,12 @@ HRESULT m_IDirectDrawSurfaceX::Lock2(LPRECT lpDestRect, LPDDSURFACEDESC2 lpDDSur
 					}
 				}
 				hr = LockD39Surface(&LockedRect, &DestRect, Flags);
+				if (FAILED(hr) && IsLocked)
+				{
+					LOG_LIMIT(100, __FUNCTION__ << " Warning: attempting to lock surface when it is already locked!");
+					UnlockD39Surface();
+					hr = LockD39Surface(&LockedRect, &DestRect, Flags);
+				}
 				if (FAILED(hr))
 				{
 					LOG_LIMIT(100, __FUNCTION__ << " Error: failed to lock surface texture." << (surface3D ? " is 3DSurface" : " is Texture") <<
@@ -2313,7 +2315,7 @@ HRESULT m_IDirectDrawSurfaceX::SetColorKey(DWORD dwFlags, LPDDCOLORKEY lpDDColor
 			surfaceDesc2.ddsCaps.dwCaps |= dds;
 
 			// Get ColorKey
-			DDCOLORKEY ColorKey;
+			DDCOLORKEY ColorKey = {};
 			if (!(dwFlags & DDCKEY_COLORSPACE))
 			{
 				// You must add the flag DDCKEY_COLORSPACE, otherwise DirectDraw will collapse the range to one value
@@ -2643,13 +2645,14 @@ HRESULT m_IDirectDrawSurfaceX::GetDDInterface(LPVOID FAR * lplpDD, DWORD DirectX
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
+	if (!lplpDD)
+	{
+		return DDERR_INVALIDPARAMS;
+	}
+	*lplpDD = nullptr;
+
 	if (Config.Dd7to9)
 	{
-		if (!lplpDD)
-		{
-			return DDERR_INVALIDPARAMS;
-		}
-
 		// Check for device interface
 		if (FAILED(CheckInterface(__FUNCTION__, false, false)))
 		{
@@ -2663,9 +2666,10 @@ HRESULT m_IDirectDrawSurfaceX::GetDDInterface(LPVOID FAR * lplpDD, DWORD DirectX
 		return DD_OK;
 	}
 
-	HRESULT hr = ProxyInterface->GetDDInterface(lplpDD);
+	LPVOID NewDD = nullptr;
+	HRESULT hr = ProxyInterface->GetDDInterface(&NewDD);
 
-	if (SUCCEEDED(hr) && lplpDD)
+	if (SUCCEEDED(hr))
 	{
 		// Calling the GetDDInterface method from any surface created under DirectDrawEx will return a pointer to the 
 		// IUnknown interface instead of a pointer to an IDirectDraw interface. Applications must use the
@@ -2676,14 +2680,16 @@ HRESULT m_IDirectDrawSurfaceX::GetDDInterface(LPVOID FAR * lplpDD, DWORD DirectX
 			(DirectXVersion == 4) ? IID_IDirectDraw4 :
 			(DirectXVersion == 7) ? IID_IDirectDraw7 : IID_IDirectDraw7;
 
-		IUnknown *lpDD = (IUnknown*)*lplpDD;
-
-		hr = lpDD->QueryInterface(tmpID, lplpDD);
-		if (SUCCEEDED(hr))
+		hr = ((IUnknown*)NewDD)->QueryInterface(tmpID, lplpDD);
+		if (FAILED(hr))
 		{
-			*lplpDD = ProxyAddressLookupTable.FindAddress<m_IDirectDraw7>(*lplpDD, DirectXVersion);
-			((IUnknown*)*lplpDD)->Release();
+			LOG_LIMIT(100, __FUNCTION__ << " Error: failed to get DirectDraw interface: " << (DDERR)hr);
+			return hr;
 		}
+
+		((IUnknown*)NewDD)->Release();
+
+		*lplpDD = ProxyAddressLookupTable.FindAddress<m_IDirectDraw7>(*lplpDD, DirectXVersion);
 	}
 
 	return hr;
@@ -2733,7 +2739,7 @@ HRESULT m_IDirectDrawSurfaceX::SetSurfaceDesc(LPDDSURFACEDESC lpDDSurfaceDesc, D
 			return DDERR_INVALIDPARAMS;
 		}
 
-		DDSURFACEDESC2 Desc2;
+		DDSURFACEDESC2 Desc2 = {};
 		Desc2.dwSize = sizeof(DDSURFACEDESC2);
 		ConvertSurfaceDesc(Desc2, *lpDDSurfaceDesc);
 
@@ -3043,6 +3049,8 @@ void m_IDirectDrawSurfaceX::InitSurface(DWORD DirectXVersion)
 	if (ddrawParent)
 	{
 		ddrawParent->AddSurfaceToVector(this);
+
+		d3d9Device = ddrawParent->GetDirect3D9Device();
 	}
 
 	// Set Uniqueness Value
@@ -3136,25 +3144,17 @@ LPDIRECT3DSURFACE9 m_IDirectDrawSurfaceX::GetD3D9Surface()
 
 HRESULT m_IDirectDrawSurfaceX::CheckInterface(char *FunctionName, bool CheckD3DDevice, bool CheckD3DSurface)
 {
-	// Check for device
+	// Check ddrawParent device
 	if (!ddrawParent)
 	{
 		LOG_LIMIT(100, FunctionName << " Error: no ddraw parent!");
 		return DDERR_GENERIC;
 	}
 
-	// Check for device, if not then create it
-	if (CheckD3DDevice && (!d3d9Device || !*d3d9Device))
+	// Check d3d9 device
+	if (CheckD3DDevice)
 	{
-		d3d9Device = ddrawParent->GetDirect3D9Device();
-
-		// For concurrency
-		SetCriticalSection();
-		bool flag = (!d3d9Device || !*d3d9Device);
-		ReleaseCriticalSection();
-
-		// Create d3d9 device
-		if (flag && FAILED(ddrawParent->CreateD3D9Device()))
+		if (!ddrawParent->CheckD3D9Device() || !d3d9Device || !*d3d9Device)
 		{
 			LOG_LIMIT(100, FunctionName << " Error: d3d9 device not setup!");
 			return DDERR_GENERIC;
@@ -3232,7 +3232,7 @@ HRESULT m_IDirectDrawSurfaceX::CreateD3d9Surface()
 	surfaceBitCount = GetBitCount(surfaceFormat);
 	const bool IsSurfaceEmulated = (((Config.DdrawEmulateSurface || (surfaceDesc2.ddsCaps.dwCaps & DDSCAPS_OWNDC) ||
 		((IsPrimarySurface() || IsBackBuffer()) && (Config.DdrawWriteToGDI || Config.DdrawReadFromGDI || Config.DdrawRemoveScanlines))) &&
-		!(surfaceFormat & 0xFF000000 /*FOURCC or D3DFMT_DXTx*/)) ||
+		!IsDepthBuffer() && !(surfaceFormat & 0xFF000000 /*FOURCC or D3DFMT_DXTx*/)) ||
 		surfaceFormat == D3DFMT_A8B8G8R8 || surfaceFormat == D3DFMT_X8B8G8R8 || surfaceFormat == D3DFMT_B8G8R8 || surfaceFormat == D3DFMT_R8G8B8);
 	DCRequiresEmulation = (surfaceFormat != D3DFMT_R5G6B5 && surfaceFormat != D3DFMT_X1R5G5B5 && surfaceFormat != D3DFMT_R8G8B8 && surfaceFormat != D3DFMT_X8R8G8B8);
 	const D3DFORMAT Format = (surfaceFormat == D3DFMT_X8B8G8R8 || surfaceFormat == D3DFMT_B8G8R8 || surfaceFormat == D3DFMT_R8G8B8) ? D3DFMT_X8R8G8B8 :
@@ -3248,21 +3248,11 @@ HRESULT m_IDirectDrawSurfaceX::CreateD3d9Surface()
 	HRESULT hr = DD_OK;
 
 	do {
-		// Create primary surface texture
-		if (IsPrimarySurface() || IsBackBuffer())
-		{
-			if (FAILED((*d3d9Device)->CreateTexture(Width, Height, 1, 0, TextureFormat, D3DPOOL_MANAGED, &surfaceTexture, nullptr)))
-			{
-				LOG_LIMIT(100, __FUNCTION__ << " Error: failed to create primary surface texture. Size: " << Width << "x" << Height << " Format: " << surfaceFormat << " dwCaps: " << Logging::hex(surfaceDesc2.ddsCaps.dwCaps));
-				hr = DDERR_GENERIC;
-				break;
-			}
-		}
 		// Create depth buffer
-		else if (IsDepthBuffer())
+		if (IsDepthBuffer())
 		{
 			// ToDo: Get existing stencil surface rather than creating a new one
-			if (FAILED(((*d3d9Device)->CreateDepthStencilSurface(Width, Height, Format, ddrawParent->GetMultiSampleType(), ddrawParent->GetMultiSampleQuality(), TRUE, &surface3D, nullptr))))
+			if (FAILED(((*d3d9Device)->CreateDepthStencilSurface(Width, Height, Format, ddrawParent->GetMultiSampleType(), ddrawParent->GetMultiSampleQuality(), FALSE, &surface3D, nullptr))))
 			{
 				LOG_LIMIT(100, __FUNCTION__ << " Error: failed to create depth buffer surface. Size: " << Width << "x" << Height << " Format: " << surfaceFormat << " dwCaps: " << Logging::hex(surfaceDesc2.ddsCaps.dwCaps));
 				hr = DDERR_GENERIC;
@@ -3272,7 +3262,8 @@ HRESULT m_IDirectDrawSurfaceX::CreateD3d9Surface()
 		// Create texture
 		else
 		{
-			const D3DPOOL Pool = (surfaceDesc2.ddsCaps.dwCaps & DDSCAPS_SYSTEMMEMORY) ? D3DPOOL_SYSTEMMEM : D3DPOOL_MANAGED;
+			const D3DPOOL Pool = (IsPrimarySurface() || IsBackBuffer()) ? D3DPOOL_MANAGED :
+				(surfaceDesc2.ddsCaps.dwCaps & DDSCAPS_SYSTEMMEMORY) ? D3DPOOL_SYSTEMMEM : D3DPOOL_MANAGED;
 			if (FAILED(((*d3d9Device)->CreateTexture(Width, Height, 1, 0, TextureFormat, Pool, &surfaceTexture, nullptr))))
 			{
 				LOG_LIMIT(100, __FUNCTION__ << " Error: failed to create surface texture. Size: " << Width << "x" << Height << " Format: " << surfaceFormat << " dwCaps: " << Logging::hex(surfaceDesc2.ddsCaps.dwCaps));
@@ -3362,7 +3353,7 @@ HRESULT m_IDirectDrawSurfaceX::CreateD3d9Surface()
 	}
 
 	// Setup verticies (0, 0, currentWidth, currentHeight)
-	TLVERTEX* vertices;
+	TLVERTEX* vertices = nullptr;
 
 	// Lock vertex buffer
 	if (FAILED(vertexBuffer->Lock(0, 0, (void**)&vertices, 0)))
@@ -3939,6 +3930,9 @@ HRESULT m_IDirectDrawSurfaceX::Draw2DSurface()
 		return DDERR_GENERIC;
 	}
 
+	// Reset dirty flags
+	ClearDirtyFlags();
+
 	return DD_OK;
 }
 
@@ -4024,12 +4018,6 @@ HRESULT m_IDirectDrawSurfaceX::PresentSurface(bool isSkipScene)
 			hr = DDERR_GENERIC;
 			break;
 		}
-
-		// Reset dirty flag
-		dirtyFlag = false;
-
-		// Reset scene ready
-		SceneReady = false;
 
 	} while (false);
 
@@ -4341,6 +4329,7 @@ inline void m_IDirectDrawSurfaceX::SetDirtyFlag()
 	if (IsPrimarySurface())
 	{
 		dirtyFlag = true;
+		IsDirtyFlag = true;
 	}
 
 	// Update Uniqueness Value
@@ -4358,6 +4347,16 @@ void m_IDirectDrawSurfaceX::SetDirtyFlipFlag()
 			it.second.pSurface->SetDirtyFlipFlag();
 		}
 	}
+}
+
+void m_IDirectDrawSurfaceX::ClearDirtyFlags()
+{
+	// Reset dirty flag
+	dirtyFlag = false;
+	IsDirtyFlag = false;
+
+	// Reset scene ready
+	SceneReady = false;
 }
 
 // Check if rect is a single line and should be skipped
@@ -4410,9 +4409,7 @@ void m_IDirectDrawSurfaceX::InitSurfaceDesc(DWORD DirectXVersion)
 	// Create backbuffers
 	if (surfaceDesc2.dwBackBufferCount)
 	{
-		DDSURFACEDESC2 Desc2;
-		Desc2.dwSize = sizeof(DDSURFACEDESC2);
-		ConvertSurfaceDesc(Desc2, surfaceDesc2);
+		DDSURFACEDESC2 Desc2 = surfaceDesc2;
 		Desc2.ddsCaps.dwCaps4 &= ~(DDSCAPS4_CREATESURFACE);	// Clear surface creation flag
 		Desc2.dwBackBufferCount--;
 		if (Desc2.ddsCaps.dwCaps & DDSCAPS_FRONTBUFFER)

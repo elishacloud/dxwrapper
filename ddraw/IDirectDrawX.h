@@ -14,6 +14,8 @@ private:
 	bool IsInitialize = false;
 	bool Using3D = false;
 
+	std::vector<D3DFORMAT> FourCCsList;
+
 	// Fix exclusive mode issue
 	HHOOK g_hook = nullptr;
 	HWND chWnd = nullptr;
@@ -178,6 +180,7 @@ public:
 	void Enable3D() { Using3D = true; }
 
 	// Direct3D9 interfaces
+	bool CheckD3D9Device();
 	LPDIRECT3D9 GetDirect3D9Object();
 	LPDIRECT3DDEVICE9 *GetDirect3D9Device();
 	HRESULT CreateD3D9Device();
@@ -193,6 +196,7 @@ public:
 	void GetFullDisplay(DWORD &Width, DWORD &Height, DWORD& BPP, DWORD &RefreshRate);
 	void GetDisplayPixelFormat(DDPIXELFORMAT& ddpfPixelFormat, DWORD BPP);
 	void GetDisplay(DWORD &Width, DWORD &Height);
+	void SetNewViewport(DWORD Width, DWORD Height);
 
 	// Surface vector functions
 	void AddSurfaceToVector(m_IDirectDrawSurfaceX* lpSurfaceX);

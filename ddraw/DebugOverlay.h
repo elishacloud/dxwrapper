@@ -22,8 +22,7 @@ private:
 			g((uint8_t)(color.g * 255.0f)),
 			b((uint8_t)(color.b * 255.0f)),
 			a((uint8_t)(color.a * 255.0f))
-		{
-		}
+		{}
 	};
 
 	struct LightDebugInfo

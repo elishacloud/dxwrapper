@@ -28,8 +28,9 @@ private:
 
 	// Convert Device
 	m_IDirectDrawX *ddrawParent = nullptr;
-	LPDIRECT3DVIEWPORT3 lpCurrentViewport = nullptr;
+	m_IDirectDrawSurfaceX* DeviceSurface = nullptr;
 	LPDIRECT3DDEVICE9 *d3d9Device = nullptr;
+	LPDIRECT3DVIEWPORT3 lpCurrentViewport = nullptr;
 
 	// Store d3d device version wrappers
 	m_IDirect3DDevice *WrapperInterface;
@@ -128,7 +129,7 @@ public:
 
 		InitDevice(DirectXVersion);
 	}
-	m_IDirect3DDeviceX(m_IDirectDrawX *lpDdraw, REFCLSID rclsid, DWORD DirectXVersion) : ddrawParent(lpDdraw), ClassID(rclsid)
+	m_IDirect3DDeviceX(m_IDirectDrawX *lpDdraw, LPDIRECTDRAWSURFACE7 pRenderTarget, REFCLSID rclsid, DWORD DirectXVersion) : ddrawParent(lpDdraw), CurrentRenderTarget(pRenderTarget), ClassID(rclsid)
 	{
 		ProxyDirectXVersion = 9;
 

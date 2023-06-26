@@ -97,6 +97,8 @@ private:
 	DWORD Priority = 0;
 	DWORD MaxLOD = 0;
 	DWORD UniquenessValue = 0;
+	bool IsDirtyFlag = false;
+	bool Surface3DDeviceFlag = false;
 	bool DCRequiresEmulation = false;
 	bool ComplexRoot = false;
 	bool PresentOnUnlock = false;
@@ -270,8 +272,7 @@ public:
 		// Copy surface description, needs to run before InitSurface()
 		if (lpDDSurfaceDesc2)
 		{
-			surfaceDesc2.dwSize = sizeof(DDSURFACEDESC2);
-			ConvertSurfaceDesc(surfaceDesc2, *lpDDSurfaceDesc2);
+			surfaceDesc2 = *lpDDSurfaceDesc2;
 		}
 
 		InitSurface(DirectXVersion);
@@ -383,10 +384,15 @@ public:
 	inline bool IsDepthBuffer() { return (surfaceDesc2.ddpfPixelFormat.dwFlags & (DDPF_ZBUFFER | DDPF_STENCILBUFFER)) != 0; }
 	inline bool IsSurfaceManaged() { return (surfaceDesc2.ddsCaps.dwCaps2 & (DDSCAPS2_TEXTUREMANAGE | DDSCAPS2_D3DTEXTUREMANAGE)) != 0; }
 	inline bool IsUsingEmulation() { return (emu && emu->surfaceDC && emu->surfacepBits); }
+	inline bool IsSurface3DDevice() { return Surface3DDeviceFlag; }
+	inline bool IsSurfaceDirty() { return IsDirtyFlag; }
+	inline void AttachD9BackBuffer() { Surface3DDeviceFlag = true; }
+	inline void DetachD9BackBuffer() { Surface3DDeviceFlag = false; }
+	inline void ClearDirtyFlags();
 	LPDIRECT3DSURFACE9 Get3DSurface();
 	LPDIRECT3DTEXTURE9 Get3DTexture();
 	LPDIRECT3DSURFACE9 GetD3D9Surface();
-	m_IDirect3DTextureX* GetAttachedTexture() { return attachedTexture;	}
+	inline m_IDirect3DTextureX* GetAttachedTexture() { return attachedTexture; }
 	inline void ClearTexture() { attachedTexture = nullptr; }
 	inline void SetWrapperSurfaceSize(DWORD Width, DWORD Height) { DsWrapper.Width = Width; DsWrapper.Height = Height; }
 

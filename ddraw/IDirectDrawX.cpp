@@ -76,6 +76,10 @@ DWORD displayWidth;
 DWORD displayHeight;
 DWORD displayRefreshRate;			// Refresh rate for fullscreen
 
+// Viewport resolution
+DWORD viewportWidth;
+DWORD viewportHeight;
+
 // Surface resolution
 DWORD surfaceWidth;
 DWORD surfaceHeight;
@@ -340,7 +344,7 @@ HRESULT m_IDirectDrawX::CreateClipper(DWORD dwFlags, LPDIRECTDRAWCLIPPER FAR * l
 
 	if (Config.Dd7to9)
 	{
-		if (!lplpDDClipper || pUnkOuter)
+		if (!lplpDDClipper)
 		{
 			return DDERR_INVALIDPARAMS;
 		}
@@ -368,7 +372,7 @@ HRESULT m_IDirectDrawX::CreatePalette(DWORD dwFlags, LPPALETTEENTRY lpDDColorArr
 
 	if (Config.Dd7to9)
 	{
-		if (!lplpDDPalette || !lpDDColorArray || pUnkOuter)
+		if (!lplpDDPalette || !lpDDColorArray)
 		{
 			return DDERR_INVALIDPARAMS;
 		}
@@ -394,7 +398,7 @@ HRESULT m_IDirectDrawX::CreateSurface(LPDDSURFACEDESC lpDDSurfaceDesc, LPDIRECTD
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	if (!lplpDDSurface || !lpDDSurfaceDesc || pUnkOuter)
+	if (!lplpDDSurface || !lpDDSurfaceDesc)
 	{
 		return DDERR_INVALIDPARAMS;
 	}
@@ -408,7 +412,7 @@ HRESULT m_IDirectDrawX::CreateSurface(LPDDSURFACEDESC lpDDSurfaceDesc, LPDIRECTD
 			return DDERR_INVALIDPARAMS;
 		}
 
-		DDSURFACEDESC2 Desc2;
+		DDSURFACEDESC2 Desc2 = {};
 		Desc2.dwSize = sizeof(DDSURFACEDESC2);
 		ConvertSurfaceDesc(Desc2, *lpDDSurfaceDesc);
 
@@ -421,19 +425,21 @@ HRESULT m_IDirectDrawX::CreateSurface(LPDDSURFACEDESC lpDDSurfaceDesc, LPDIRECTD
 		return hr;
 	}
 
+	DDSURFACEDESC Desc = *lpDDSurfaceDesc;
+
 	// Adjust Height and Width
 	DWORD Width = 0;
 	DWORD Height = 0;
-	if (lpDDSurfaceDesc && (lpDDSurfaceDesc->dwFlags & DDSD_WIDTH) && (lpDDSurfaceDesc->dwFlags & DDSD_HEIGHT))
+	if ((Desc.dwFlags & DDSD_WIDTH) && (Desc.dwFlags & DDSD_HEIGHT))
 	{
-		Width = lpDDSurfaceDesc->dwWidth;
-		Height = lpDDSurfaceDesc->dwHeight;
-		lpDDSurfaceDesc->dwWidth += lpDDSurfaceDesc->dwWidth % 2;
+		Width = Desc.dwWidth;
+		Height = Desc.dwHeight;
+		Desc.dwWidth += Desc.dwWidth % 2;
 	}
 
-	HRESULT hr = GetProxyInterfaceV3()->CreateSurface(lpDDSurfaceDesc, (LPDIRECTDRAWSURFACE*)lplpDDSurface, pUnkOuter);
+	HRESULT hr = GetProxyInterfaceV3()->CreateSurface(&Desc, (LPDIRECTDRAWSURFACE*)lplpDDSurface, pUnkOuter);
 
-	if (SUCCEEDED(hr) && lplpDDSurface)
+	if (SUCCEEDED(hr))
 	{
 		m_IDirectDrawSurfaceX *D3DSurfaceDevice = new m_IDirectDrawSurfaceX((IDirectDrawSurface7*)*lplpDDSurface, DirectXVersion);
 
@@ -453,7 +459,7 @@ HRESULT m_IDirectDrawX::CreateSurface2(LPDDSURFACEDESC2 lpDDSurfaceDesc2, LPDIRE
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	if (!lplpDDSurface || !lpDDSurfaceDesc2 || pUnkOuter)
+	if (!lplpDDSurface || !lpDDSurfaceDesc2)
 	{
 		return DDERR_INVALIDPARAMS;
 	}
@@ -548,80 +554,77 @@ HRESULT m_IDirectDrawX::CreateSurface2(LPDDSURFACEDESC2 lpDDSurfaceDesc2, LPDIRE
 			return DDERR_GENERIC;
 		}
 
+		bool ReCreateD3D9Device = false;
+
+		DDSURFACEDESC2 Desc2 = *lpDDSurfaceDesc2;
+
 		// Check pixel format flag
-		if ((lpDDSurfaceDesc2->dwFlags & DDSD_PIXELFORMAT) && !lpDDSurfaceDesc2->ddpfPixelFormat.dwFlags)
+		if ((Desc2.dwFlags & DDSD_PIXELFORMAT) && !Desc2.ddpfPixelFormat.dwFlags)
 		{
-			lpDDSurfaceDesc2->dwFlags &= ~DDSD_PIXELFORMAT;
+			Desc2.dwFlags &= ~DDSD_PIXELFORMAT;
 		}
 
 		// Check pixel format
-		if (lpDDSurfaceDesc2->dwFlags & DDSD_PIXELFORMAT)
+		if (Desc2.dwFlags & DDSD_PIXELFORMAT)
 		{
-			DDPIXELFORMAT ddpfPixelFormat;
-			memcpy(&ddpfPixelFormat, &lpDDSurfaceDesc2->ddpfPixelFormat, sizeof(DDPIXELFORMAT));
-			ddpfPixelFormat.dwSize = sizeof(DDPIXELFORMAT);
-			D3DFORMAT Format = GetDisplayFormat(ddpfPixelFormat);
+			D3DFORMAT Format = GetDisplayFormat(Desc2.ddpfPixelFormat);
 			Format = (Format == D3DFMT_X4R4G4B4 || Format == D3DFMT_R8G8B8 || Format == D3DFMT_B8G8R8 || Format == D3DFMT_X8B8G8R8) ? D3DFMT_X8R8G8B8 :
 				(Format == D3DFMT_A4R4G4B4 || Format == D3DFMT_A8B8G8R8) ? D3DFMT_A8R8G8B8 : Format;
-			DWORD Usage = (lpDDSurfaceDesc2->ddsCaps.dwCaps & DDSCAPS_PRIMARYSURFACE) ? D3DUSAGE_RENDERTARGET :
-				((lpDDSurfaceDesc2->dwFlags & DDSD_MIPMAPCOUNT) || ((lpDDSurfaceDesc2->ddsCaps.dwCaps & DDSCAPS_MIPMAP))) ? D3DUSAGE_AUTOGENMIPMAP :
-				(ddpfPixelFormat.dwFlags & (DDPF_ZBUFFER | DDPF_STENCILBUFFER)) ? D3DUSAGE_DEPTHSTENCIL : 0;
-			D3DRESOURCETYPE Resource = ((lpDDSurfaceDesc2->ddsCaps.dwCaps & DDSCAPS_TEXTURE)) ? D3DRTYPE_TEXTURE : D3DRTYPE_SURFACE;
+			DWORD Usage = (Desc2.ddsCaps.dwCaps & DDSCAPS_PRIMARYSURFACE) ? D3DUSAGE_RENDERTARGET :
+				((Desc2.dwFlags & DDSD_MIPMAPCOUNT) || (Desc2.ddsCaps.dwCaps & DDSCAPS_MIPMAP)) ? D3DUSAGE_AUTOGENMIPMAP :
+				(Desc2.ddpfPixelFormat.dwFlags & (DDPF_ZBUFFER | DDPF_STENCILBUFFER)) ? D3DUSAGE_DEPTHSTENCIL : 0;
 
-			if (FAILED(d3d9Object->CheckDeviceFormat(D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, D9DisplayFormat, Usage, Resource, Format)))
+			if (FAILED(d3d9Object->CheckDeviceFormat(D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, D9DisplayFormat, Usage, D3DRTYPE_SURFACE, Format)) &&
+				FAILED(d3d9Object->CheckDeviceFormat(D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, D9DisplayFormat, Usage, D3DRTYPE_TEXTURE, Format)))
 			{
-				LOG_LIMIT(100, __FUNCTION__ << " Error: non-supported pixel format! " << Usage << " " << Resource << " " << Format << " " << lpDDSurfaceDesc2->ddpfPixelFormat);
+				LOG_LIMIT(100, __FUNCTION__ << " Error: non-supported pixel format! " << Usage << " " << Format << " " << Desc2.ddpfPixelFormat);
 				return DDERR_INVALIDPIXELFORMAT;
 			}
 
-			if (lpDDSurfaceDesc2->ddsCaps.dwCaps & DDSCAPS_PRIMARYSURFACE)
+			if (Desc2.ddsCaps.dwCaps & DDSCAPS_PRIMARYSURFACE)
 			{
-				memcpy(&DisplayPixelFormat, &lpDDSurfaceDesc2->ddpfPixelFormat, sizeof(DDPIXELFORMAT));
+				DisplayPixelFormat = Desc2.ddpfPixelFormat;
 			}
-		}
-		else if (lpDDSurfaceDesc2->ddsCaps.dwCaps & DDSCAPS_PRIMARYSURFACE)
-		{
-			ZeroMemory(&DisplayPixelFormat, sizeof(DDPIXELFORMAT));
 		}
 
 		// Updates for surface description
-		lpDDSurfaceDesc2->dwFlags |= DDSD_CAPS;
-		lpDDSurfaceDesc2->ddsCaps.dwCaps4 = DDSCAPS4_CREATESURFACE |											// Indicates surface was created using CreateSurface()
-			((lpDDSurfaceDesc2->ddsCaps.dwCaps & DDSCAPS_PRIMARYSURFACE) ? DDSCAPS4_PRIMARYSURFACE : NULL);		// Indicates surface is a primary surface or a backbuffer of a primary surface
-		if (lpDDSurfaceDesc2->ddsCaps.dwCaps & DDSCAPS_FLIP)
+		Desc2.dwFlags |= DDSD_CAPS;
+		Desc2.ddsCaps.dwCaps4 = DDSCAPS4_CREATESURFACE |											// Indicates surface was created using CreateSurface()
+			((Desc2.ddsCaps.dwCaps & DDSCAPS_PRIMARYSURFACE) ? DDSCAPS4_PRIMARYSURFACE : NULL);		// Indicates surface is a primary surface or a backbuffer of a primary surface
+		if (Desc2.ddsCaps.dwCaps & DDSCAPS_FLIP)
 		{
-			lpDDSurfaceDesc2->ddsCaps.dwCaps |= DDSCAPS_FRONTBUFFER;
+			Desc2.ddsCaps.dwCaps |= DDSCAPS_FRONTBUFFER;
 		}
-		lpDDSurfaceDesc2->dwReserved = 0;
+		Desc2.dwReserved = 0;
 
 		// BackBufferCount must be at least 1
-		if (lpDDSurfaceDesc2->dwFlags & DDSD_BACKBUFFERCOUNT)
+		if (Desc2.dwFlags & DDSD_BACKBUFFERCOUNT)
 		{
-			if (!lpDDSurfaceDesc2->dwBackBufferCount)
+			if (!Desc2.dwBackBufferCount)
 			{
-				lpDDSurfaceDesc2->dwBackBufferCount = 1;
+				Desc2.dwBackBufferCount = 1;
 			}
 		}
 		else
 		{
-			lpDDSurfaceDesc2->dwBackBufferCount = 0;
+			Desc2.dwBackBufferCount = 0;
 		}
 
 		// Remove unused flags
-		if (!lpDDSurfaceDesc2->dwWidth || !lpDDSurfaceDesc2->dwHeight)
+		if (!Desc2.dwWidth || !Desc2.dwHeight)
 		{
-			lpDDSurfaceDesc2->dwFlags &= ~(DDSD_WIDTH | DDSD_HEIGHT | DDSD_PITCH);
+			Desc2.dwFlags &= ~(DDSD_WIDTH | DDSD_HEIGHT | DDSD_PITCH);
 		}
-		if (!lpDDSurfaceDesc2->dwRefreshRate)
+		if (!Desc2.dwRefreshRate)
 		{
-			lpDDSurfaceDesc2->dwFlags &= ~DDSD_REFRESHRATE;
+			Desc2.dwFlags &= ~DDSD_REFRESHRATE;
 		}
 
 		// Check for depth stencil surface
-		if (!Config.DdrawOverrideStencilFormat && (lpDDSurfaceDesc2->dwFlags & DDSD_PIXELFORMAT) && (lpDDSurfaceDesc2->ddpfPixelFormat.dwFlags & (DDPF_ZBUFFER | DDPF_STENCILBUFFER)))
+		if (!Config.DdrawOverrideStencilFormat && (Desc2.dwFlags & DDSD_PIXELFORMAT) && (Desc2.ddpfPixelFormat.dwFlags & (DDPF_ZBUFFER | DDPF_STENCILBUFFER)))
 		{
-			D3DFORMAT NewDepthStencilSurface = GetDisplayFormat(lpDDSurfaceDesc2->ddpfPixelFormat);
-			const bool IsDepthStencilSurface = (lpDDSurfaceDesc2->ddpfPixelFormat.dwFlags & (DDPF_ZBUFFER | DDPF_STENCILBUFFER));
+			D3DFORMAT NewDepthStencilSurface = GetDisplayFormat(Desc2.ddpfPixelFormat);
+			const bool IsDepthStencilSurface = (Desc2.ddpfPixelFormat.dwFlags & (DDPF_ZBUFFER | DDPF_STENCILBUFFER));
 
 			if (IsDepthStencilSurface && NewDepthStencilSurface != DepthStencilSurface)
 			{
@@ -631,91 +634,92 @@ HRESULT m_IDirectDrawX::CreateSurface2(LPDDSURFACEDESC2 lpDDSurfaceDesc2, LPDIRE
 				}
 				DepthStencilSurface = NewDepthStencilSurface;
 
-				// Check if there is a change in the present parameters
-				if (d3d9Device)
-				{
-					// Recreate d3d9 device
-					CreateD3D9Device();
-				}
+				ReCreateD3D9Device = true;
 			}
 		}
 
 		// Get surface size
-		if (!displayWidth && !displayHeight && (lpDDSurfaceDesc2->dwFlags & (DDSD_WIDTH | DDSD_HEIGHT)) == (DDSD_WIDTH | DDSD_HEIGHT) &&
-			(lpDDSurfaceDesc2->ddsCaps.dwCaps & (DDSCAPS_PRIMARYSURFACE | DDSCAPS_3DDEVICE)))
+		if (!displayWidth && !displayHeight && (Desc2.dwFlags & (DDSD_WIDTH | DDSD_HEIGHT)) == (DDSD_WIDTH | DDSD_HEIGHT) &&
+			(Desc2.ddsCaps.dwCaps & (DDSCAPS_PRIMARYSURFACE | DDSCAPS_3DDEVICE)))
 		{
-			surfaceWidth = lpDDSurfaceDesc2->dwWidth;
-			surfaceHeight = lpDDSurfaceDesc2->dwHeight;
+			surfaceWidth = Desc2.dwWidth;
+			surfaceHeight = Desc2.dwHeight;
 
 			// Check if there is a change in the present parameters
-			if (d3d9Device && (surfaceWidth != presParams.BackBufferWidth || surfaceHeight != presParams.BackBufferHeight))
+			if (surfaceWidth != presParams.BackBufferWidth || surfaceHeight != presParams.BackBufferHeight)
 			{
-				// Recreate d3d9 device
-				CreateD3D9Device();
+				ReCreateD3D9Device = true;
 			}
 		}
 
 		// Get present parameters
-		if (lpDDSurfaceDesc2->ddsCaps.dwCaps & DDSCAPS_PRIMARYSURFACE)
+		if (Desc2.ddsCaps.dwCaps & DDSCAPS_PRIMARYSURFACE)
 		{
-			Logging::LogDebug() << __FUNCTION__ << " Primary surface " << lpDDSurfaceDesc2->dwWidth << "x" << lpDDSurfaceDesc2->dwHeight << " ddsCaps: " << Logging::hex(lpDDSurfaceDesc2->ddsCaps.dwCaps) << " " <<
-				Logging::hex(lpDDSurfaceDesc2->ddsCaps.dwCaps2) << " " << LOWORD(lpDDSurfaceDesc2->ddsCaps.dwVolumeDepth);
+			Logging::LogDebug() << __FUNCTION__ << " Primary surface " << Desc2.dwWidth << "x" << Desc2.dwHeight << " ddsCaps: " << Logging::hex(Desc2.ddsCaps.dwCaps) << " " <<
+				Logging::hex(Desc2.ddsCaps.dwCaps2) << " " << LOWORD(Desc2.ddsCaps.dwVolumeDepth);
 
 			// Anti-aliasing
 			if (!Config.AntiAliasing)
 			{
 				bool OldAntiAliasing = AntiAliasing;
-				AntiAliasing = ((lpDDSurfaceDesc2->ddsCaps.dwCaps2 & DDSCAPS2_HINTANTIALIASING) && (lpDDSurfaceDesc2->ddsCaps.dwCaps & DDSCAPS_3DDEVICE));
+				AntiAliasing = ((Desc2.ddsCaps.dwCaps2 & DDSCAPS2_HINTANTIALIASING) && (Desc2.ddsCaps.dwCaps & DDSCAPS_3DDEVICE));
 
 				// Check if there is a change in the present parameters
-				if (d3d9Device && AntiAliasing != OldAntiAliasing)
+				if (AntiAliasing != OldAntiAliasing)
 				{
-					// Recreate d3d9 device
-					CreateD3D9Device();
+					ReCreateD3D9Device = true;
 				}
 			}
 		}
 
-		m_IDirectDrawSurfaceX *p_IDirectDrawSurfaceX = new m_IDirectDrawSurfaceX(this, DirectXVersion, lpDDSurfaceDesc2);
+		// Recreate d3d9 device
+		if (ReCreateD3D9Device)
+		{
+			CreateD3D9Device();
+		}
+
+		m_IDirectDrawSurfaceX *p_IDirectDrawSurfaceX = new m_IDirectDrawSurfaceX(this, DirectXVersion, &Desc2);
 
 		*lplpDDSurface = (LPDIRECTDRAWSURFACE7)p_IDirectDrawSurfaceX->GetWrapperInterfaceX(DirectXVersion);
 
 		return DD_OK;
 	}
 
-	if (ProxyDirectXVersion != DirectXVersion && lpDDSurfaceDesc2)
+	DDSURFACEDESC2 Desc2 = *lpDDSurfaceDesc2;
+
+	if (ProxyDirectXVersion != DirectXVersion)
 	{
 		// BackBufferCount must be at least 1
-		if (lpDDSurfaceDesc2->dwFlags & DDSD_BACKBUFFERCOUNT)
+		if (Desc2.dwFlags & DDSD_BACKBUFFERCOUNT)
 		{
-			if (!lpDDSurfaceDesc2->dwBackBufferCount)
+			if (!Desc2.dwBackBufferCount)
 			{
-				lpDDSurfaceDesc2->dwBackBufferCount = 1;
+				Desc2.dwBackBufferCount = 1;
 			}
 		}
 		else
 		{
-			lpDDSurfaceDesc2->dwBackBufferCount = 0;
+			Desc2.dwBackBufferCount = 0;
 		}
 
 		// Add flag for 3D device
-		if ((DirectXVersion < 4) && (lpDDSurfaceDesc2->ddsCaps.dwCaps & DDSCAPS_PRIMARYSURFACE))
+		if ((DirectXVersion < 4) && (Desc2.ddsCaps.dwCaps & DDSCAPS_PRIMARYSURFACE))
 		{
-			lpDDSurfaceDesc2->ddsCaps.dwCaps |= DDSCAPS_3DDEVICE;
+			Desc2.ddsCaps.dwCaps |= DDSCAPS_3DDEVICE;
 		}
 	}
 
 	// Adjust Height and Width
 	DWORD Width = 0;
 	DWORD Height = 0;
-	if (lpDDSurfaceDesc2 && (lpDDSurfaceDesc2->dwFlags & DDSD_WIDTH) && (lpDDSurfaceDesc2->dwFlags & DDSD_HEIGHT))
+	if ((Desc2.dwFlags & DDSD_WIDTH) && (Desc2.dwFlags & DDSD_HEIGHT))
 	{
-		Width = lpDDSurfaceDesc2->dwWidth;
-		Height = lpDDSurfaceDesc2->dwHeight;
-		lpDDSurfaceDesc2->dwWidth += lpDDSurfaceDesc2->dwWidth % 2;
+		Width = Desc2.dwWidth;
+		Height = Desc2.dwHeight;
+		Desc2.dwWidth += Desc2.dwWidth % 2;
 	}
 
-	HRESULT hr = ProxyInterface->CreateSurface(lpDDSurfaceDesc2, lplpDDSurface, pUnkOuter);
+	HRESULT hr = ProxyInterface->CreateSurface(&Desc2, lplpDDSurface, pUnkOuter);
 
 	if (SUCCEEDED(hr) && lplpDDSurface)
 	{
@@ -750,7 +754,7 @@ HRESULT m_IDirectDrawX::DuplicateSurface(LPDIRECTDRAWSURFACE7 lpDDSurface, LPDIR
 			return DDERR_INVALIDPARAMS;
 		}
 
-		DDSURFACEDESC2 Desc2;
+		DDSURFACEDESC2 Desc2 = {};
 		Desc2.dwSize = sizeof(DDSURFACEDESC2);
 		lpDDSurfaceX->GetSurfaceDesc2(&Desc2);
 		Desc2.ddsCaps.dwCaps &= ~DDSCAPS_PRIMARYSURFACE;		// Remove Primary surface flag
@@ -806,17 +810,17 @@ HRESULT m_IDirectDrawX::EnumDisplayModes(DWORD dwFlags, LPDDSURFACEDESC lpDDSurf
 			{
 				EnumDisplay *self = (EnumDisplay*)lpContext;
 
-				DDSURFACEDESC Desc;
+				DDSURFACEDESC Desc = {};
 				Desc.dwSize = sizeof(DDSURFACEDESC);
 				ConvertSurfaceDesc(Desc, *lpDDSurfaceDesc2);
 
 				return self->lpCallback(&Desc, self->lpContext);
 			}
-		} CallbackContext;
+		} CallbackContext = {};
 		CallbackContext.lpContext = lpContext;
 		CallbackContext.lpCallback = lpEnumModesCallback;
 
-		DDSURFACEDESC2 Desc2;
+		DDSURFACEDESC2 Desc2 = {};
 		Desc2.dwSize = sizeof(DDSURFACEDESC2);
 		if (lpDDSurfaceDesc)
 		{
@@ -971,7 +975,7 @@ HRESULT m_IDirectDrawX::EnumSurfaces(DWORD dwFlags, LPDDSURFACEDESC lpDDSurfaceD
 			return DDERR_INVALIDPARAMS;
 		}
 
-		DDSURFACEDESC2 Desc2;
+		DDSURFACEDESC2 Desc2 = {};
 		Desc2.dwSize = sizeof(DDSURFACEDESC2);
 		if (lpDDSurfaceDesc)
 		{
@@ -998,7 +1002,7 @@ HRESULT m_IDirectDrawX::EnumSurfaces(DWORD dwFlags, LPDDSURFACEDESC lpDDSurfaceD
 
 			return self->lpCallback(lpDDSurface, lpDDSurfaceDesc, self->lpContext);
 		}
-	} CallbackContext;
+	} CallbackContext = {};
 	CallbackContext.lpContext = lpContext;
 	CallbackContext.lpCallback = lpEnumSurfacesCallback;
 	CallbackContext.DirectXVersion = DirectXVersion;
@@ -1034,7 +1038,7 @@ HRESULT m_IDirectDrawX::EnumSurfaces2(DWORD dwFlags, LPDDSURFACEDESC2 lpDDSurfac
 			// Game using old DirectX, Convert back to LPDDSURFACEDESC
 			if (self->ConvertSurfaceDescTo2)
 			{
-				DDSURFACEDESC Desc;
+				DDSURFACEDESC Desc = {};
 				Desc.dwSize = sizeof(DDSURFACEDESC);
 				ConvertSurfaceDesc(Desc, *lpDDSurfaceDesc2);
 
@@ -1043,7 +1047,7 @@ HRESULT m_IDirectDrawX::EnumSurfaces2(DWORD dwFlags, LPDDSURFACEDESC2 lpDDSurfac
 
 			return self->lpCallback(lpDDSurface, lpDDSurfaceDesc2, self->lpContext);
 		}
-	} CallbackContext;
+	} CallbackContext = {};
 	CallbackContext.lpContext = lpContext;
 	CallbackContext.lpCallback = lpEnumSurfacesCallback7;
 	CallbackContext.DirectXVersion = DirectXVersion;
@@ -1150,7 +1154,7 @@ HRESULT m_IDirectDrawX::GetCaps(LPDDCAPS lpDDDriverCaps, LPDDCAPS lpDDHELCaps)
 			sizeof(DDCAPS_DX1);
 	}
 
-	DDCAPS DriverCaps, HELCaps;
+	DDCAPS DriverCaps = {}, HELCaps = {};
 	DriverCaps.dwSize = sizeof(DDCAPS);
 	HELCaps.dwSize = sizeof(DDCAPS);
 
@@ -1185,6 +1189,15 @@ HRESULT m_IDirectDrawX::GetCaps(LPDDCAPS lpDDDriverCaps, LPDDCAPS lpDDHELCaps)
 			ConvertCaps(HELCaps, Caps9);
 			HELCaps.dwVidMemTotal = dwVidTotal;
 			HELCaps.dwVidMemFree = dwVidFree;
+		}
+
+		// Get FourCCs count
+		if ((DriverCaps.dwCaps & DDCAPS_BLTFOURCC) || (HELCaps.dwCaps & DDCAPS_BLTFOURCC))
+		{
+			DWORD dwNumFourCCCodes = 0;
+			GetFourCCCodes(&dwNumFourCCCodes, nullptr);
+			DriverCaps.dwNumFourCCCodes = dwNumFourCCCodes;
+			HELCaps.dwNumFourCCCodes = dwNumFourCCCodes;
 		}
 	}
 	else
@@ -1233,7 +1246,7 @@ HRESULT m_IDirectDrawX::GetDisplayMode(LPDDSURFACEDESC lpDDSurfaceDesc)
 			return DDERR_INVALIDPARAMS;
 		}
 
-		DDSURFACEDESC2 Desc2;
+		DDSURFACEDESC2 Desc2 = {};
 		Desc2.dwSize = sizeof(DDSURFACEDESC2);
 
 		HRESULT hr = GetDisplayMode2(&Desc2);
@@ -1290,7 +1303,7 @@ HRESULT m_IDirectDrawX::GetDisplayMode2(LPDDSURFACEDESC2 lpDDSurfaceDesc2)
 		lpDDSurfaceDesc2->ddpfPixelFormat.dwSize = sizeof(DDPIXELFORMAT);
 		if (displayModeBits == DisplayPixelFormat.dwRGBBitCount)
 		{
-			memcpy(&lpDDSurfaceDesc2->ddpfPixelFormat, &DisplayPixelFormat, sizeof(DDPIXELFORMAT));
+			lpDDSurfaceDesc2->ddpfPixelFormat = DisplayPixelFormat;
 		}
 		else if (FAILED(SetDisplayFormat(lpDDSurfaceDesc2->ddpfPixelFormat, displayModeBits)))
 		{
@@ -1316,16 +1329,40 @@ HRESULT m_IDirectDrawX::GetFourCCCodes(LPDWORD lpNumCodes, LPDWORD lpCodes)
 			return DDERR_INVALIDPARAMS;
 		}
 
-		// Cpoy data to array
-		if (lpCodes)
+		// Get FourCC list
+		if (FourCCsList.size() == 0)
 		{
-			DWORD SizeToCopy = min(NumFourCCs, *lpNumCodes);
-			memcpy(lpCodes, FourCCTypes, SizeToCopy * sizeof(DWORD));
+			// Check for device interface
+			if (FAILED(CheckInterface(__FUNCTION__, false)))
+			{
+				return DDERR_GENERIC;
+			}
+
+			// Test FourCCs that are supported
+			for (D3DFORMAT format : FourCCTypes)
+			{
+				if (SUCCEEDED(d3d9Object->CheckDeviceFormat(D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, D3DFMT_X8R8G8B8, 0, D3DRTYPE_SURFACE, format)) ||
+					SUCCEEDED(d3d9Object->CheckDeviceFormat(D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, D3DFMT_X8R8G8B8, 0, D3DRTYPE_TEXTURE, format)))
+				{
+					FourCCsList.push_back(format);
+				}
+			}
 		}
 
+		// If the number of entries is too small to accommodate all the codes, lpNumCodes is set to the required number,
+		// and the array specified by lpCodes is filled with all that fits.
+		if (lpCodes)
+		{
+			// Copy data to array
+			DWORD SizeToCopy = min(FourCCsList.size(), *lpNumCodes);
+			memcpy(lpCodes, &FourCCsList[0], SizeToCopy * sizeof(DWORD));
+		}
+
+		// Set total number of FourCCs
+		*lpNumCodes = FourCCsList.size();
+
 		// Return value
-		*lpNumCodes = NumFourCCs;
-		return DDERR_INVALIDOBJECT;
+		return DD_OK;
 	}
 
 	return ProxyInterface->GetFourCCCodes(lpNumCodes, lpCodes);
@@ -1515,6 +1552,8 @@ HRESULT m_IDirectDrawX::RestoreDisplayMode()
 		displayModeHeight = 0;
 		displayModeBPP = 0;
 		displayModeRefreshRate = 0;
+		viewportWidth = 0;
+		viewportHeight = 0;
 		surfaceWidth = 0;
 		surfaceHeight = 0;
 		isWindowed = true;
@@ -1823,6 +1862,10 @@ HRESULT m_IDirectDrawX::SetDisplayMode(DWORD dwWidth, DWORD dwHeight, DWORD dwBP
 			ExclusiveRefreshRate = dwRefreshRate;
 		}
 
+		// Reset viewport resolution
+		viewportWidth = 0;
+		viewportHeight = 0;
+
 		// Reset surface resolution
 		surfaceWidth = 0;
 		surfaceHeight = 0;
@@ -1833,7 +1876,10 @@ HRESULT m_IDirectDrawX::SetDisplayMode(DWORD dwWidth, DWORD dwHeight, DWORD dwBP
 			SetResolution = ExclusiveMode;
 
 			// Recreate d3d9 device
-			CreateD3D9Device();
+			if (d3d9Device)
+			{
+				CreateD3D9Device();
+			}
 		}
 		else if (ChangeBPP)
 		{
@@ -2323,6 +2369,8 @@ void m_IDirectDrawX::InitDdraw(DWORD DirectXVersion)
 		SetDefaultDisplayMode = (!displayWidth || !displayHeight || !displayRefreshRate);
 		SetResolution = false;
 
+		viewportWidth = 0;
+		viewportHeight = 0;
 		surfaceWidth = 0;
 		surfaceHeight = 0;
 
@@ -2600,6 +2648,12 @@ void m_IDirectDrawX::GetFullDisplay(DWORD &Width, DWORD &Height, DWORD& BPP, DWO
 		Height = presParams.BackBufferHeight;
 		BPP = Utils::GetBitCount(hWnd);
 	}
+	else if (viewportWidth && viewportHeight)
+	{
+		Width = viewportWidth;
+		Height = viewportHeight;
+		BPP = Utils::GetBitCount(hWnd);
+	}
 	else if (surfaceWidth && surfaceHeight)
 	{
 		Width = surfaceWidth;
@@ -2647,7 +2701,7 @@ void m_IDirectDrawX::GetDisplayPixelFormat(DDPIXELFORMAT &ddpfPixelFormat, DWORD
 	ddpfPixelFormat.dwSize = sizeof(DDPIXELFORMAT);
 	if (BPP == DisplayPixelFormat.dwRGBBitCount)
 	{
-		memcpy(&ddpfPixelFormat, &DisplayPixelFormat, sizeof(DDPIXELFORMAT));
+		ddpfPixelFormat = DisplayPixelFormat;
 	}
 	else
 	{
@@ -2668,6 +2722,22 @@ void m_IDirectDrawX::SetD3DDevice(m_IDirect3DDeviceX *D3DDevice)
 		ReleaseAllD9Surfaces(true);
 	}
 	D3DDeviceInterface = D3DDevice;
+}
+
+void m_IDirectDrawX::SetNewViewport(DWORD Width, DWORD Height)
+{
+	if (Width && Height && !displayWidth && !displayHeight)
+	{
+		viewportWidth = Width;
+		viewportHeight = Height;
+
+		// Check if there is a change in the present parameters
+		if (d3d9Device && (viewportWidth != presParams.BackBufferWidth || viewportHeight != presParams.BackBufferHeight))
+		{
+			// Recreate d3d9 device
+			CreateD3D9Device();
+		}
+	}
 }
 
 HRESULT m_IDirectDrawX::CheckInterface(char *FunctionName, bool CheckD3DDevice)
@@ -2695,6 +2765,15 @@ HRESULT m_IDirectDrawX::CheckInterface(char *FunctionName, bool CheckD3DDevice)
 	}
 
 	return DD_OK;
+}
+
+bool m_IDirectDrawX::CheckD3D9Device()
+{
+	if (!d3d9Device && FAILED(CreateD3D9Device()))
+	{
+		return false;
+	}
+	return true;
 }
 
 LPDIRECT3D9 m_IDirectDrawX::GetDirect3D9Object()
@@ -2746,7 +2825,12 @@ HRESULT m_IDirectDrawX::CreateD3D9Device()
 		DWORD BackBufferHeight = displayHeight;
 		if (!BackBufferWidth || !BackBufferHeight)
 		{
-			if (surfaceWidth && surfaceHeight)
+			if (viewportWidth && viewportHeight)
+			{
+				BackBufferWidth = viewportWidth;
+				BackBufferHeight = viewportHeight;
+			}
+			else if (surfaceWidth && surfaceHeight)
 			{
 				BackBufferWidth = surfaceWidth;
 				BackBufferHeight = surfaceHeight;
@@ -2895,6 +2979,7 @@ HRESULT m_IDirectDrawX::CreateD3D9Device()
 
 		// Reset flags after creating device
 		EnableWaitVsync = false;
+		FourCCsList.clear();
 
 		// Set window pos
 		if (IsWindow(hWnd))
@@ -3083,6 +3168,7 @@ void m_IDirectDrawX::ReleaseD3D9Device()
 
 	// Reset flags
 	EnableWaitVsync = false;
+	FourCCsList.clear();
 }
 
 // Release d3d9 object

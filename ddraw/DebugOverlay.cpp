@@ -20,10 +20,10 @@
 #define IMGUI_DEFINE_MATH_OPERATORS
 #define IMGUI_DISABLE_OBSOLETE_KEYIO
 
+typedef struct { DWORD dwFlags; BOOL fEnable; HRGN hRgnBlur; BOOL fTransitionOnMaximized; } DWM_BLURBEHIND;
 HRESULT DwmIsCompositionEnabled(BOOL* enabled) { *enabled = FALSE; return E_NOTIMPL; }
 HRESULT DwmGetColorizationColor(DWORD* colorization, BOOL* opaqueBlend) { *colorization = 0; *opaqueBlend = FALSE; return E_NOTIMPL; }
-HRESULT DwmEnableBlurBehindWindow(HWND, const struct DWM_BLURBEHIND*) { return E_NOTIMPL; }
-struct DWM_BLURBEHIND { DWORD dwFlags; BOOL fEnable; HRGN hRgnBlur; BOOL fTransitionOnMaximized; };
+HRESULT DwmEnableBlurBehindWindow(HWND, const DWM_BLURBEHIND*) { return E_NOTIMPL; }
 #define DWM_BB_ENABLE 0x00000001
 #define DWM_BB_BLURREGION 0x00000002
 
@@ -203,15 +203,15 @@ void DebugOverlay::SetTransform(D3DTRANSFORMSTATETYPE dtstTransformStateType, LP
 	{
 	case D3DTRANSFORMSTATE_WORLD:
 	case D3DTS_WORLD:
-		std::memcpy(&worldMatrix, lpD3DMatrix, sizeof(D3DMATRIX));
+		worldMatrix = *lpD3DMatrix;
 		break;
 
 	case D3DTS_VIEW:
-		std::memcpy(&viewMatrix, lpD3DMatrix, sizeof(D3DMATRIX));
+		viewMatrix = *lpD3DMatrix;
 		break;
 
 	case D3DTS_PROJECTION:
-		std::memcpy(&projectionMatrix, lpD3DMatrix, sizeof(D3DMATRIX));
+		projectionMatrix = *lpD3DMatrix;
 		break;
 
 	default:

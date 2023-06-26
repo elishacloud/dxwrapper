@@ -193,7 +193,7 @@ HRESULT m_IDirect3DX::EnumDevices(LPD3DENUMDEVICESCALLBACK lpEnumDevicesCallback
 			{
 				EnumDevices *self = (EnumDevices*)lpContext;
 
-				D3DDEVICEDESC D3DHWDevDesc, D3DHELDevDesc;
+				D3DDEVICEDESC D3DHWDevDesc = {}, D3DHELDevDesc = {};
 				D3DHWDevDesc.dwSize = sizeof(D3DDEVICEDESC);
 				D3DHELDevDesc.dwSize = sizeof(D3DDEVICEDESC);
 				ConvertDeviceDesc(D3DHWDevDesc, *lpDeviceDesc);
@@ -201,7 +201,7 @@ HRESULT m_IDirect3DX::EnumDevices(LPD3DENUMDEVICESCALLBACK lpEnumDevicesCallback
 
 				return self->lpCallback(&lpDeviceDesc->deviceGUID, lpDeviceDescription, lpDeviceName, &D3DHWDevDesc, &D3DHELDevDesc, self->lpContext);
 			}
-		} CallbackContext;
+		} CallbackContext = {};
 		CallbackContext.lpContext = lpUserArg;
 		CallbackContext.lpCallback = lpEnumDevicesCallback;
 
@@ -256,7 +256,7 @@ HRESULT m_IDirect3DX::EnumDevices7(LPD3DENUMDEVICESCALLBACK7 lpEnumDevicesCallba
 					ConvertDeviceDesc(DeviceDesc7, Caps9);
 
 					GUID deviceGUID = DeviceDesc7.deviceGUID;
-					D3DDEVICEDESC D3DSWDevDesc, D3DHELDevDesc;
+					D3DDEVICEDESC D3DSWDevDesc = {}, D3DHELDevDesc = {};
 					D3DSWDevDesc.dwSize = sizeof(D3DDEVICEDESC);
 					D3DHELDevDesc.dwSize = sizeof(D3DDEVICEDESC);
 
@@ -510,7 +510,7 @@ HRESULT m_IDirect3DX::FindDevice(LPD3DFINDDEVICESEARCH lpD3DFDS, LPD3DFINDDEVICE
 		struct EnumFindDevice
 		{
 			bool Found = false;
-			GUID guid;
+			GUID guid = IID_IUnknown;
 			D3DDEVICEDESC7 DeviceDesc7 = {};
 
 			static HRESULT CALLBACK ConvertCallback(LPSTR lpDeviceDescription, LPSTR lpDeviceName, LPD3DDEVICEDESC7 lpDeviceDesc7, LPVOID lpContext)
@@ -518,12 +518,12 @@ HRESULT m_IDirect3DX::FindDevice(LPD3DFINDDEVICESEARCH lpD3DFDS, LPD3DFINDDEVICE
 				UNREFERENCED_PARAMETER(lpDeviceDescription);
 				UNREFERENCED_PARAMETER(lpDeviceName);
 
-				EnumFindDevice *self = (EnumFindDevice*)lpContext;
+				EnumFindDevice* self = (EnumFindDevice*)lpContext;
 
 				if (lpDeviceDesc7->deviceGUID == self->guid)
 				{
 					self->Found = true;
-					memcpy(&self->DeviceDesc7, lpDeviceDesc7, sizeof(D3DDEVICEDESC7));
+					self->DeviceDesc7 = *lpDeviceDesc7;
 
 					return DDENUMRET_CANCEL;
 				}
@@ -562,7 +562,7 @@ HRESULT m_IDirect3DX::CreateDevice(REFCLSID rclsid, LPDIRECTDRAWSURFACE7 lpDDS, 
 
 	if (Config.Dd7to9)
 	{
-		if (!lplpD3DDevice)
+		if (!lplpD3DDevice || !lpDDS)
 		{
 			return DDERR_INVALIDPARAMS;
 		}
@@ -574,14 +574,18 @@ HRESULT m_IDirect3DX::CreateDevice(REFCLSID rclsid, LPDIRECTDRAWSURFACE7 lpDDS, 
 			return DDERR_GENERIC;
 		}
 
+		// Get surfaceX
 		m_IDirectDrawSurfaceX *DdrawSurface3D = nullptr;
-		if (lpDDS && SUCCEEDED(lpDDS->QueryInterface(IID_GetInterfaceX, (LPVOID*)&DdrawSurface3D)) && DdrawSurface3D && !DdrawSurface3D->IsSurface3D())
+		lpDDS->QueryInterface(IID_GetInterfaceX, (LPVOID*)&DdrawSurface3D);
+
+		// Check for Direct3D surface
+		if (!DdrawSurface3D || !DdrawSurface3D->IsSurface3D())
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Error: surface is not a Direct3D surface!");
 			return DDERR_GENERIC;
 		}
 
-		m_IDirect3DDeviceX *p_IDirect3DDeviceX = new m_IDirect3DDeviceX(ddrawParent, riid, DirectXVersion);
+		m_IDirect3DDeviceX *p_IDirect3DDeviceX = new m_IDirect3DDeviceX(ddrawParent, lpDDS, riid, DirectXVersion);
 
 		*lplpD3DDevice = (LPDIRECT3DDEVICE7)p_IDirect3DDeviceX->GetWrapperInterfaceX(DirectXVersion);
 

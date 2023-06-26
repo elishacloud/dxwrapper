@@ -178,7 +178,7 @@ HRESULT m_IDirect3DViewportX::GetViewport(LPD3DVIEWPORT lpData)
 			LOG_LIMIT(100, __FUNCTION__ << " Warning: Viewport not set!");
 		}
 
-		ConvertViewport(*lpData, ViewportData);
+		*lpData = ViewportData;
 
 		return D3D_OK;
 	}
@@ -204,10 +204,9 @@ HRESULT m_IDirect3DViewportX::SetViewport(LPD3DVIEWPORT lpData)
 				" ScaleX: " << lpData->dvScaleX << " ScaleY: " << lpData->dvScaleY << " MaxX: " << lpData->dvMaxX << " MaxY: " << lpData->dvMaxY);
 		}
 
-		ConvertViewport(ViewportData, *lpData);
-		ConvertViewport(ViewportData2, *lpData);
-
 		IsDataSet = true;
+		ViewportData = *lpData;
+		ConvertViewport(ViewportData2, *lpData);
 
 		return D3D_OK;
 	}
@@ -403,7 +402,7 @@ HRESULT m_IDirect3DViewportX::GetViewport2(LPD3DVIEWPORT2 lpData)
 			LOG_LIMIT(100, __FUNCTION__ << " Warning: Viewport not set!");
 		}
 
-		ConvertViewport(*lpData, ViewportData2);
+		*lpData = ViewportData2;
 
 		return D3D_OK;
 	}
@@ -429,10 +428,9 @@ HRESULT m_IDirect3DViewportX::SetViewport2(LPD3DVIEWPORT2 lpData)
 				lpData->dvClipWidth << "x" << lpData->dvClipHeight << " X: " << lpData->dvClipX << " Y: " << lpData->dvClipY);
 		}
 
-		ConvertViewport(ViewportData, *lpData);
-		ConvertViewport(ViewportData2, *lpData);
-
 		IsDataSet = true;
+		ViewportData2 = *lpData;
+		ConvertViewport(ViewportData, *lpData);
 
 		return D3D_OK;
 	}

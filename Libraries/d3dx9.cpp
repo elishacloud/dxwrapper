@@ -20,7 +20,6 @@
 #include "External\MemoryModule\MemoryModule.h"
 #include "Utils\Utils.h"
 #include "Logging\Logging.h"
-#include "Dllmain\dxwrapper.h"
 
 typedef HRESULT(WINAPI* PFN_D3DXCreateTexture)(LPDIRECT3DDEVICE9 pDevice, UINT Width, UINT Height, UINT MipLevels, DWORD Usage, D3DFORMAT Format, D3DPOOL Pool, LPDIRECT3DTEXTURE9* ppTexture);
 typedef HRESULT(WINAPI* PFN_D3DXLoadSurfaceFromMemory)(LPDIRECT3DSURFACE9 pDestSurface, const PALETTEENTRY* pDestPalette, const RECT* pDestRect, LPCVOID pSrcMemory, D3DFORMAT SrcFormat, UINT SrcPitch, const PALETTEENTRY* pSrcPalette, const RECT* pSrcRect, DWORD Filter, D3DCOLOR ColorKey);

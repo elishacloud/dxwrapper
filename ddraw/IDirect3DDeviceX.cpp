@@ -690,12 +690,11 @@ HRESULT m_IDirect3DDeviceX::EnumTextureFormats(LPD3DENUMTEXTUREFORMATSCALLBACK l
 				DDSURFACEDESC Desc = {};
 				Desc.dwSize = sizeof(DDSURFACEDESC);
 				Desc.dwFlags = DDSD_PIXELFORMAT;
-				Desc.ddpfPixelFormat.dwSize = sizeof(DDPIXELFORMAT);
-				ConvertPixelFormat(Desc.ddpfPixelFormat, *lpDDPixFmt);
+				Desc.ddpfPixelFormat = *lpDDPixFmt;
 
 				return self->lpCallback(&Desc, self->lpContext);
 			}
-		} CallbackContext;
+		} CallbackContext = {};
 		CallbackContext.lpContext = lpArg;
 		CallbackContext.lpCallback = lpd3dEnumTextureProc;
 
@@ -731,14 +730,13 @@ HRESULT m_IDirect3DDeviceX::EnumTextureFormats(LPD3DENUMPIXELFORMATSCALLBACK lpd
 			return DDERR_GENERIC;
 		}
 
-		DDPIXELFORMAT ddpfPixelFormat;
-		ddpfPixelFormat.dwSize = sizeof(DDPIXELFORMAT);
-
-		for (D3DFORMAT format : {
+		// Get texture list
+		std::vector<D3DFORMAT> TextureList = {
 			D3DFMT_X1R5G5B5,
 			D3DFMT_A1R5G5B5,
 			D3DFMT_A4R4G4B4,
 			D3DFMT_R5G6B5,
+			D3DFMT_R8G8B8,
 			D3DFMT_X8R8G8B8,
 			D3DFMT_A8R8G8B8,
 			D3DFMT_V8U8,
@@ -748,28 +746,29 @@ HRESULT m_IDirect3DDeviceX::EnumTextureFormats(LPD3DENUMPIXELFORMATSCALLBACK lpd
 			D3DFMT_DXT3,
 			D3DFMT_DXT4,
 			D3DFMT_DXT5,
-			(D3DFORMAT)MAKEFOURCC('N', 'V', 'C', 'S'),
-			(D3DFORMAT)MAKEFOURCC('N', 'V', 'H', 'U'),
-			(D3DFORMAT)MAKEFOURCC('N', 'V', 'H', 'S'),
+			D3DFMT_P8,
 			D3DFMT_L8,
 			D3DFMT_A8,
-			D3DFMT_A8L8,
-			(D3DFORMAT)MAKEFOURCC('N', 'U', 'L', 'L'),
-			(D3DFORMAT)MAKEFOURCC('A', 'T', 'I', '1'),
-			(D3DFORMAT)MAKEFOURCC('A', 'T', 'I', '2'),
-			(D3DFORMAT)MAKEFOURCC('I', 'N', 'T', 'Z'),
-			(D3DFORMAT)MAKEFOURCC('3', 'x', '1', '1'),
-			(D3DFORMAT)MAKEFOURCC('3', 'x', '1', '6')})
+			D3DFMT_A8L8 };
+
+		// Add FourCCs to texture list
+		for (D3DFORMAT format : FourCCTypes)
 		{
-			HRESULT hr = d3d9Object->CheckDeviceFormat(D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, D3DFMT_X8R8G8B8, 0, D3DRTYPE_TEXTURE, format);
+			TextureList.push_back(format);
+		}
+
+		// Check for supported textures
+		DDPIXELFORMAT ddpfPixelFormat = {};
+		ddpfPixelFormat.dwSize = sizeof(DDPIXELFORMAT);
+
+		for (D3DFORMAT format : TextureList)
+		{
+			D3DFORMAT TestFormat = (format == D3DFMT_R8G8B8) ? D3DFMT_X8R8G8B8 : (format == D3DFMT_P8) ? D3DFMT_L8 : format;
+			HRESULT hr = d3d9Object->CheckDeviceFormat(D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, D3DFMT_X8R8G8B8, 0, D3DRTYPE_TEXTURE, TestFormat);
 			if (SUCCEEDED(hr))
 			{
 				SetPixelDisplayFormat(format, ddpfPixelFormat);
 				lpd3dEnumPixelProc(&ddpfPixelFormat, lpArg);
-			}
-			else
-			{
-				Logging::LogDebug() << __FUNCTION__ << " " << format << " " << (DDERR)hr;
 			}
 		}
 
@@ -1001,39 +1000,13 @@ HRESULT m_IDirect3DDeviceX::SetRenderTarget(LPDIRECTDRAWSURFACE7 lpNewRenderTarg
 			return DDERR_INVALIDPARAMS;
 		}
 
+		// Don't reset existing render target
+		if (CurrentRenderTarget == lpNewRenderTarget)
+		{
+			return D3D_OK;
+		}
+
 		// dwFlags: Not currently used; set to 0.
-
-		// Check for device interface
-		if (FAILED(CheckInterface(__FUNCTION__, true)))
-		{
-			return DDERR_GENERIC;
-		}
-
-		m_IDirectDrawSurfaceX *lpDDSrcSurfaceX = nullptr;
-
-		lpNewRenderTarget->QueryInterface(IID_GetInterfaceX, (LPVOID*)&lpDDSrcSurfaceX);
-
-		if (!lpDDSrcSurfaceX)
-		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error: could not get surface wrapper!");
-			return DDERR_GENERIC;
-		}
-
-		IDirect3DSurface9* pRenderTarget9 = lpDDSrcSurfaceX->Get3DSurface();
-
-		if (!pRenderTarget9)
-		{
-			Logging::Log() << __FUNCTION__ " Error: d3d9 surface does not exist!";
-			return DDERR_GENERIC;
-		}
-
-		HRESULT hr = (*d3d9Device)->SetRenderTarget(0, pRenderTarget9);
-
-		if (FAILED(hr))
-		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error: 'SetRenderTarget' call failed: " << (D3DERR)hr);
-			return hr;
-		}
 
 		// ToDo: if DirectXVersion < 7 then invalidate the current material and viewport:
 		// Unlike this method's implementation in previous interfaces, IDirect3DDevice7::SetRenderTarget does not invalidate the current material or viewport for the device.
@@ -1044,9 +1017,8 @@ HRESULT m_IDirect3DDeviceX::SetRenderTarget(LPDIRECTDRAWSURFACE7 lpNewRenderTarg
 		// unreliable behavior in retail builds. Since both the new and the old render targets use depth buffers, the depth buffer attached to the new render target replaces
 		// the previous depth buffer for the context.
 
-		CurrentRenderTarget = lpNewRenderTarget;
-
-		return D3D_OK;
+		LOG_LIMIT(100, __FUNCTION__ << " Error: Not Implemented");
+		return DDERR_UNSUPPORTED;
 	}
 
 	if (lpNewRenderTarget)
@@ -1081,12 +1053,14 @@ HRESULT m_IDirect3DDeviceX::GetRenderTarget(LPDIRECTDRAWSURFACE7* lplpRenderTarg
 
 		if (!CurrentRenderTarget)
 		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error: render target not yet set.");
+			LOG_LIMIT(100, __FUNCTION__ << " Error: render target not set.");
 			return DDERR_GENERIC;
 		}
 
 		// ToDo: Validate RenderTarget address
 		*lplpRenderTarget = CurrentRenderTarget;
+
+		CurrentRenderTarget->AddRef();
 
 		return D3D_OK;
 	}
@@ -1636,7 +1610,14 @@ HRESULT m_IDirect3DDeviceX::SetViewport(LPD3DVIEWPORT7 lpViewport)
 			return DDERR_GENERIC;
 		}
 
-		return (*d3d9Device)->SetViewport((D3DVIEWPORT9*)lpViewport);
+		HRESULT hr = (*d3d9Device)->SetViewport((D3DVIEWPORT9*)lpViewport);
+
+		if (SUCCEEDED(hr))
+		{
+			ddrawParent->SetNewViewport(lpViewport->dwWidth, lpViewport->dwHeight);
+		}
+
+		return hr;
 	}
 
 	D3DVIEWPORT7 Viewport7;
@@ -1845,8 +1826,8 @@ HRESULT m_IDirect3DDeviceX::EndScene()
 		}
 
 		// Draw 2D DirectDraw surface
-		/*m_IDirectDrawSurfaceX* PrimarySurface = ddrawParent->GetPrimarySurface();
-		if (PrimarySurface && !PrimarySurface->IsSurface3D())
+		m_IDirectDrawSurfaceX* PrimarySurface = ddrawParent->GetPrimarySurface();
+		if (PrimarySurface && PrimarySurface->IsSurfaceDirty())
 		{
 			DWORD SRCBLEND = 0, DESTBLEND = 0, ALPHABLENDENABLE = 0;
 			(*d3d9Device)->GetRenderState(D3DRS_SRCBLEND, &SRCBLEND);
@@ -1869,7 +1850,20 @@ HRESULT m_IDirect3DDeviceX::EndScene()
 			(*d3d9Device)->SetRenderState(D3DRS_SRCBLEND, SRCBLEND);
 			(*d3d9Device)->SetRenderState(D3DRS_DESTBLEND, DESTBLEND);
 			(*d3d9Device)->SetRenderState(D3DRS_ALPHABLENDENABLE, ALPHABLENDENABLE);
-		}*/
+
+			SetTexture(0, AttachedTexture[0]);
+			SetTexture(1, AttachedTexture[1]);
+
+			// Clear primary surface
+			PrimarySurface->Get3DSurface();
+			DDBLTFX DDBltFx = {};
+			DDBltFx.dwSize = sizeof(DDBLTFX);
+			DDBltFx.dwFillColor = 0x00000000;
+			PrimarySurface->Blt(nullptr, nullptr, nullptr, DDBLT_COLORFILL, &DDBltFx);
+
+			// Reset dirty flags
+			PrimarySurface->ClearDirtyFlags();
+		}
 
 #ifdef ENABLE_DEBUGOVERLAY
 		DOverlay.EndScene();
@@ -2332,7 +2326,7 @@ HRESULT m_IDirect3DDeviceX::SetRenderState(D3DRENDERSTATETYPE dwRenderStateType,
 		{
 		case D3DRENDERSTATE_ANTIALIAS:
 			dwRenderStateType = D3DRS_MULTISAMPLEANTIALIAS;
-			dwRenderState = (dwRenderState == D3DANTIALIAS_SORTDEPENDENT || dwRenderState == D3DANTIALIAS_SORTINDEPENDENT);
+			dwRenderState = (((D3DANTIALIASMODE)dwRenderState == D3DANTIALIAS_SORTDEPENDENT) || ((D3DANTIALIASMODE)dwRenderState == D3DANTIALIAS_SORTINDEPENDENT));
 			break;
 		case D3DRENDERSTATE_EDGEANTIALIAS:
 			dwRenderStateType = D3DRS_ANTIALIASEDLINEENABLE;
@@ -3480,6 +3474,22 @@ void m_IDirect3DDeviceX::InitDevice(DWORD DirectXVersion)
 		return;
 	}
 
+  if (ddrawParent)
+	{
+		d3d9Device = ddrawParent->GetDirect3D9Device();
+	}
+
+	// Get device surface interface
+	if (CurrentRenderTarget)
+	{
+		CurrentRenderTarget->QueryInterface(IID_GetInterfaceX, (LPVOID*)&DeviceSurface);
+
+		if (DeviceSurface)
+		{
+			DeviceSurface->AttachD9BackBuffer();
+		}
+	}
+
 	if (Config.DdrawConvertHomogeneousW)
 	{
 		ZeroMemory(&ConvertHomogeneous.ToWorld_ViewMatrix, sizeof(D3DMATRIX));
@@ -3490,9 +3500,9 @@ void m_IDirect3DDeviceX::InitDevice(DWORD DirectXVersion)
 
 		ConvertHomogeneous.ToWorld_ProjectionMatrix = ConvertHomogeneous.ToWorld_ViewMatrix;
 		ConvertHomogeneous.ToWorld_ViewMatrixOriginal = ConvertHomogeneous.ToWorld_ViewMatrix;
-	}
+  }
 
-	AddRef(DirectXVersion);
+  AddRef(DirectXVersion);
 }
 
 void m_IDirect3DDeviceX::ReleaseDevice()
@@ -3514,30 +3524,28 @@ void m_IDirect3DDeviceX::ReleaseDevice()
 	if (ddrawParent && !Config.Exiting)
 	{
 		ddrawParent->ClearD3DDevice();
+
+		// Clear device surface interface
+		if (DeviceSurface && ddrawParent->DoesSurfaceExist(DeviceSurface))
+		{
+			DeviceSurface->DetachD9BackBuffer();
+		}
 	}
 }
 
 HRESULT m_IDirect3DDeviceX::CheckInterface(char *FunctionName, bool CheckD3DDevice)
 {
-	// Check for device
+	// Check ddrawParent device
 	if (!ddrawParent)
 	{
 		LOG_LIMIT(100, FunctionName << " Error: no ddraw parent!");
 		return DDERR_GENERIC;
 	}
 
-	// Check for device, if not then create it
-	if (CheckD3DDevice && (!d3d9Device || !*d3d9Device))
+	// Check d3d9 device
+	if (CheckD3DDevice)
 	{
-		d3d9Device = ddrawParent->GetDirect3D9Device();
-
-		// For concurrency
-		SetCriticalSection();
-		bool flag = (!d3d9Device || !*d3d9Device);
-		ReleaseCriticalSection();
-
-		// Create d3d9 device
-		if (flag && FAILED(ddrawParent->CreateD3D9Device()))
+		if (!ddrawParent->CheckD3D9Device() || !d3d9Device || !*d3d9Device)
 		{
 			LOG_LIMIT(100, FunctionName << " Error: d3d9 device not setup!");
 			return DDERR_GENERIC;

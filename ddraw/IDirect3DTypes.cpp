@@ -16,21 +16,6 @@
 
 #include "ddraw.h"
 
-void ConvertLight(D3DLIGHT& Light, D3DLIGHT& Light2)
-{
-	if (Light.dwSize != sizeof(D3DLIGHT) || Light2.dwSize != sizeof(D3DLIGHT))
-	{
-		LOG_LIMIT(100, __FUNCTION__ << " Error: Incorrect dwSize: " << Light.dwSize << " " << Light2.dwSize);
-		return;
-	}
-	CopyMemory(&Light, &Light2, sizeof(D3DLIGHT));
-}
-
-void ConvertLight(D3DLIGHT7& Light, D3DLIGHT7& Light2)
-{
-	CopyMemory(&Light, &Light2, sizeof(D3DLIGHT7));
-}
-
 void ConvertLight(D3DLIGHT& Light, D3DLIGHT7& Light7)
 {
 	if (Light.dwSize != sizeof(D3DLIGHT))
@@ -73,21 +58,6 @@ void ConvertLight(D3DLIGHT7& Light7, D3DLIGHT& Light)
 	Light7.dvPhi = Light.dvPhi;
 }
 
-void ConvertMaterial(D3DMATERIAL &Material, D3DMATERIAL &Material2)
-{
-	if (Material.dwSize != sizeof(D3DMATERIAL) || Material2.dwSize != sizeof(D3DMATERIAL))
-	{
-		LOG_LIMIT(100, __FUNCTION__ << " Error: Incorrect dwSize: " << Material.dwSize << " " << Material2.dwSize);
-		return;
-	}
-	CopyMemory(&Material, &Material2, sizeof(D3DMATERIAL));
-}
-
-void ConvertMaterial(D3DMATERIAL7 &Material, D3DMATERIAL7 &Material2)
-{
-	CopyMemory(&Material, &Material2, sizeof(D3DMATERIAL7));
-}
-
 void ConvertMaterial(D3DMATERIAL &Material, D3DMATERIAL7 &Material7)
 {
 	if (Material.dwSize != sizeof(D3DMATERIAL))
@@ -117,26 +87,6 @@ void ConvertMaterial(D3DMATERIAL7 &Material7, D3DMATERIAL &Material)
 	Material7.dcvSpecular = Material.dcvSpecular;
 	Material7.dcvEmissive = Material.dcvEmissive;
 	Material7.dvPower = Material.dvPower;
-}
-
-void ConvertViewport(D3DVIEWPORT &ViewPort, D3DVIEWPORT &ViewPort2)
-{
-	if (ViewPort.dwSize != sizeof(D3DVIEWPORT) || ViewPort2.dwSize != sizeof(D3DVIEWPORT))
-	{
-		LOG_LIMIT(100, __FUNCTION__ << " Error: Incorrect dwSize: " << ViewPort.dwSize << " " << ViewPort2.dwSize);
-		return;
-	}
-	memcpy(&ViewPort, &ViewPort2, sizeof(D3DVIEWPORT));
-}
-
-void ConvertViewport(D3DVIEWPORT2 &ViewPort, D3DVIEWPORT2 &ViewPort2)
-{
-	if (ViewPort.dwSize != sizeof(D3DVIEWPORT2) || ViewPort2.dwSize != sizeof(D3DVIEWPORT2))
-	{
-		LOG_LIMIT(100, __FUNCTION__ << " Error: Incorrect dwSize: " << ViewPort.dwSize << " " << ViewPort2.dwSize);
-		return;
-	}
-	memcpy(&ViewPort, &ViewPort2, sizeof(D3DVIEWPORT2));
 }
 
 void ConvertViewport(D3DVIEWPORT &ViewPort, D3DVIEWPORT2 &ViewPort2)
@@ -265,17 +215,6 @@ void ConvertViewport(D3DVIEWPORT7 &ViewPort, D3DVIEWPORT7 &ViewPort7)
 	ViewPort.dvMaxZ = ViewPort7.dvMaxZ;
 }
 
-void ConvertCaps(D3DPRIMCAPS &PrimCaps, D3DPRIMCAPS &PrimCaps2)
-{
-	if (PrimCaps.dwSize != sizeof(D3DPRIMCAPS) || PrimCaps2.dwSize != sizeof(D3DPRIMCAPS))
-	{
-		LOG_LIMIT(100, __FUNCTION__ << " Error: Incorrect dwSize: " << PrimCaps.dwSize << " " << PrimCaps2.dwSize);
-		return;
-	}
-	// Convert variables
-	memcpy(&PrimCaps, &PrimCaps2, sizeof(D3DPRIMCAPS));
-}
-
 void ConvertDeviceDesc(D3DDEVICEDESC &Desc, D3DDEVICEDESC7 &Desc7)
 {
 	if (Desc.dwSize != D3DDEVICEDESC1_SIZE && Desc.dwSize != D3DDEVICEDESC5_SIZE && Desc.dwSize != D3DDEVICEDESC6_SIZE)
@@ -294,10 +233,8 @@ void ConvertDeviceDesc(D3DDEVICEDESC &Desc, D3DDEVICEDESC7 &Desc7)
 	Desc.dlcLightingCaps.dwCaps = D3DLIGHTCAPS_POINT | D3DLIGHTCAPS_SPOT | D3DLIGHTCAPS_DIRECTIONAL;
 	Desc.dlcLightingCaps.dwLightingModel = 1;
 	Desc.dlcLightingCaps.dwNumLights = 8;
-	Desc.dpcLineCaps.dwSize = sizeof(D3DPRIMCAPS);
-	ConvertCaps(Desc.dpcLineCaps, Desc7.dpcLineCaps);
-	Desc.dpcTriCaps.dwSize = sizeof(D3DPRIMCAPS);
-	ConvertCaps(Desc.dpcTriCaps, Desc7.dpcTriCaps);
+	Desc.dpcLineCaps = Desc7.dpcLineCaps;
+	Desc.dpcTriCaps = Desc7.dpcTriCaps;
 	Desc.dwDeviceRenderBitDepth = Desc7.dwDeviceRenderBitDepth;
 	Desc.dwDeviceZBufferBitDepth = Desc7.dwDeviceZBufferBitDepth;
 	Desc.dwMaxBufferSize = 0;
@@ -444,7 +381,7 @@ void ConvertDeviceDesc(D3DDEVICEDESC7 &Desc7, D3DCAPS9 &Caps9)
 	Desc7.dpcLineCaps.dwStippleWidth = 0;
 	Desc7.dpcLineCaps.dwStippleHeight = 0;
 	// Tri Caps same as Line Caps
-	memcpy(&Desc7.dpcTriCaps, &Desc7.dpcLineCaps, sizeof(D3DPRIMCAPS));
+	Desc7.dpcTriCaps = Desc7.dpcLineCaps;
 	// Specific settings
 	if (Caps9.DeviceType == D3DDEVTYPE_REF)
 	{
