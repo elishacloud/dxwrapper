@@ -3676,6 +3676,13 @@ void m_IDirectDrawSurfaceX::UpdateSurfaceDesc()
 			ddrawParent->GetDisplayPixelFormat(surfaceDesc2.ddpfPixelFormat, BPP);
 		}
 	}
+	// Overwrite primary surface
+	if ((IsPrimarySurface() || IsBackBuffer()) && Config.DdrawOverridePrimaryWidth && Config.DdrawOverridePrimaryHeight)
+	{
+		surfaceDesc2.dwFlags |= DDSD_WIDTH | DDSD_HEIGHT;
+		surfaceDesc2.dwWidth = Config.DdrawOverridePrimaryWidth;
+		surfaceDesc2.dwHeight = Config.DdrawOverridePrimaryHeight;
+	}
 	// Unset lPitch
 	if ((surfaceDesc2.dwFlags & (DDSD_WIDTH | DDSD_HEIGHT | DDSD_PIXELFORMAT)) != (DDSD_WIDTH | DDSD_HEIGHT | DDSD_PIXELFORMAT) || !surfaceDesc2.lPitch)
 	{
