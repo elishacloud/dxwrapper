@@ -207,7 +207,7 @@ private:
 	inline HRESULT UnlockD39Surface();
 
 	// Locking rect coordinates
-	bool CheckCoordinates(LPRECT lpOutRect, LPRECT lpInRect);
+	bool CheckCoordinates(RECT& OutRect, LPRECT lpInRect);
 	HRESULT LockEmulatedSurface(D3DLOCKED_RECT* pLockedRect, LPRECT lpDestRect);
 	void SetDirtyFlag();
 	bool CheckRectforSkipScene(RECT& DestRect);

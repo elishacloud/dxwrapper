@@ -677,7 +677,10 @@ HRESULT m_IDirectDrawSurfaceX::BltFast(DWORD dwX, DWORD dwY, LPDIRECTDRAWSURFACE
 
 		// Get SrcRect
 		RECT SrcRect = {};
-		lpDDSrcSurfaceX->CheckCoordinates(&SrcRect, lpSrcRect);
+		if (!lpDDSrcSurfaceX->CheckCoordinates(SrcRect, lpSrcRect))
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Warning: Invalid rect: " << lpSrcRect);
+		}
 
 		// Create DestRect
 		RECT DestRect = { (LONG)dwX, (LONG)dwY, SrcRect.right - SrcRect.left + (LONG)dwX , SrcRect.bottom - SrcRect.top + (LONG)dwY };
@@ -1955,7 +1958,7 @@ HRESULT m_IDirectDrawSurfaceX::Lock2(LPRECT lpDestRect, LPDDSURFACEDESC2 lpDDSur
 
 		// Update rect
 		RECT DestRect = {};
-		if (!CheckCoordinates(&DestRect, lpDestRect) || (lpDestRect && (lpDestRect->left < 0 || lpDestRect->top < 0 ||
+		if (!CheckCoordinates(DestRect, lpDestRect) || (lpDestRect && (lpDestRect->left < 0 || lpDestRect->top < 0 ||
 			lpDestRect->right <= lpDestRect->left || lpDestRect->bottom <= lpDestRect->top ||
 			lpDestRect->right >(LONG)surfaceDesc2.dwWidth || lpDestRect->bottom >(LONG)surfaceDesc2.dwHeight)))
 		{
@@ -4068,65 +4071,71 @@ void m_IDirectDrawSurfaceX::SwapSurface(m_IDirectDrawSurfaceX *lpTargetSurface1,
 }
 
 // Check surface reck dimensions and copy rect to new rect
-bool m_IDirectDrawSurfaceX::CheckCoordinates(LPRECT lpOutRect, LPRECT lpInRect)
+bool m_IDirectDrawSurfaceX::CheckCoordinates(RECT& OutRect, LPRECT lpInRect)
 {
-	if (!lpOutRect)
-	{
-		return false;
-	}
-
 	// Check device coordinates
 	if (!surfaceDesc2.dwWidth || !surfaceDesc2.dwHeight)
 	{
+		LOG_LIMIT(100, __FUNCTION__ << " Error: surface has no size!");
 		return false;
 	}
 
 	if (lpInRect)
 	{
-		lpOutRect->left = lpInRect->left;
-		lpOutRect->top = lpInRect->top;
-		lpOutRect->right = lpInRect->right;
-		lpOutRect->bottom = lpInRect->bottom;
+		OutRect.left = lpInRect->left;
+		OutRect.top = lpInRect->top;
+		OutRect.right = lpInRect->right;
+		OutRect.bottom = lpInRect->bottom;
 	}
 	else
 	{
-		lpOutRect->left = 0;
-		lpOutRect->top = 0;
-		lpOutRect->right = surfaceDesc2.dwWidth;
-		lpOutRect->bottom = surfaceDesc2.dwHeight;
+		OutRect.left = 0;
+		OutRect.top = 0;
+		OutRect.right = surfaceDesc2.dwWidth;
+		OutRect.bottom = surfaceDesc2.dwHeight;
 	}
 
-	if (lpOutRect->left < 0)
+	if (OutRect.left < 0)
 	{
-		lpOutRect->left = 0;
+		OutRect.left = 0;
 	}
 
-	if (lpOutRect->top < 0)
+	if (OutRect.right < 0)
 	{
-		lpOutRect->top = 0;
+		OutRect.right = 0;
 	}
 
-	if (lpOutRect->left > (LONG)surfaceDesc2.dwWidth)
+	if (OutRect.top < 0)
 	{
-		lpOutRect->left = surfaceDesc2.dwWidth;
+		OutRect.top = 0;
 	}
 
-	if (lpOutRect->right > (LONG)surfaceDesc2.dwWidth)
+	if (OutRect.bottom < 0)
 	{
-		lpOutRect->right = surfaceDesc2.dwWidth;
+		OutRect.bottom = 0;
 	}
 
-	if (lpOutRect->top > (LONG)surfaceDesc2.dwHeight)
+	if (OutRect.left > (LONG)surfaceDesc2.dwWidth)
 	{
-		lpOutRect->top = surfaceDesc2.dwHeight;
+		OutRect.left = surfaceDesc2.dwWidth;
 	}
 
-	if (lpOutRect->bottom > (LONG)surfaceDesc2.dwHeight)
+	if (OutRect.right > (LONG)surfaceDesc2.dwWidth)
 	{
-		lpOutRect->bottom = surfaceDesc2.dwHeight;
+		OutRect.right = surfaceDesc2.dwWidth;
 	}
 
-	return lpOutRect->left < lpOutRect->right && lpOutRect->top < lpOutRect->bottom;
+	if (OutRect.top > (LONG)surfaceDesc2.dwHeight)
+	{
+		OutRect.top = surfaceDesc2.dwHeight;
+	}
+
+	if (OutRect.bottom > (LONG)surfaceDesc2.dwHeight)
+	{
+		OutRect.bottom = surfaceDesc2.dwHeight;
+	}
+
+	return OutRect.left < OutRect.right && OutRect.top < OutRect.bottom;
 }
 
 // Fix issue with some games that ignore the pitch size
@@ -4603,9 +4612,9 @@ HRESULT m_IDirectDrawSurfaceX::ColorFill(RECT* pRect, D3DCOLOR dwFillColor)
 
 	// Check and copy rect
 	RECT DestRect = {};
-	if (!CheckCoordinates(&DestRect, pRect))
+	if (!CheckCoordinates(DestRect, pRect))
 	{
-		LOG_LIMIT(100, __FUNCTION__ << " Error: invalid rect!");
+		LOG_LIMIT(100, __FUNCTION__ << " Error: invalid rect: " << pRect);
 		return DDERR_INVALIDRECT;
 	}
 
@@ -4830,9 +4839,9 @@ HRESULT m_IDirectDrawSurfaceX::CopySurface(m_IDirectDrawSurfaceX* pSourceSurface
 
 	// Check and copy rect and do clipping
 	RECT SrcRect = {}, DestRect = {};
-	if (!pSourceSurface->CheckCoordinates(&SrcRect, pSourceRect) || !CheckCoordinates(&DestRect, pDestRect))
+	if (!pSourceSurface->CheckCoordinates(SrcRect, pSourceRect) || !CheckCoordinates(DestRect, pDestRect))
 	{
-		LOG_LIMIT(100, __FUNCTION__ << " Error: invalid rect!");
+		LOG_LIMIT(100, __FUNCTION__ << " Error: Invalid rect: " << pSourceRect << " -> " << pDestRect);
 		return DDERR_INVALIDRECT;
 	}
 
@@ -5279,9 +5288,9 @@ HRESULT m_IDirectDrawSurfaceX::CopyFromEmulatedSurface(LPRECT lpDestRect)
 
 	// Update rect
 	RECT DestRect = {};
-	if (!CheckCoordinates(&DestRect, lpDestRect))
+	if (!CheckCoordinates(DestRect, lpDestRect))
 	{
-		LOG_LIMIT(100, __FUNCTION__ << " Error: invalid rect!");
+		LOG_LIMIT(100, __FUNCTION__ << " Error: Invalid rect: " << lpDestRect);
 		return DDERR_INVALIDRECT;
 	}
 
@@ -5321,9 +5330,9 @@ HRESULT m_IDirectDrawSurfaceX::CopyToEmulatedSurface(LPRECT lpDestRect)
 
 	// Update rect
 	RECT DestRect = {};
-	if (!CheckCoordinates(&DestRect, lpDestRect))
+	if (!CheckCoordinates(DestRect, lpDestRect))
 	{
-		LOG_LIMIT(100, __FUNCTION__ << " Error: invalid rect!");
+		LOG_LIMIT(100, __FUNCTION__ << " Error: Invalid rect: " << lpDestRect);
 		return DDERR_INVALIDRECT;
 	}
 
