@@ -567,15 +567,16 @@ HRESULT m_IDirectDrawX::CreateSurface2(LPDDSURFACEDESC2 lpDDSurfaceDesc2, LPDIRE
 		// Check pixel format
 		if (Desc2.dwFlags & DDSD_PIXELFORMAT)
 		{
-			D3DFORMAT Format = GetDisplayFormat(Desc2.ddpfPixelFormat);
-			Format = (Format == D3DFMT_X4R4G4B4 || Format == D3DFMT_R8G8B8 || Format == D3DFMT_B8G8R8 || Format == D3DFMT_X8B8G8R8) ? D3DFMT_X8R8G8B8 :
-				(Format == D3DFMT_A4R4G4B4 || Format == D3DFMT_A8B8G8R8) ? D3DFMT_A8R8G8B8 : Format;
-			DWORD Usage = (Desc2.ddsCaps.dwCaps & DDSCAPS_PRIMARYSURFACE) ? D3DUSAGE_RENDERTARGET :
+			const DWORD Usage = (Desc2.ddsCaps.dwCaps & DDSCAPS_PRIMARYSURFACE) ? D3DUSAGE_RENDERTARGET :
 				((Desc2.dwFlags & DDSD_MIPMAPCOUNT) || (Desc2.ddsCaps.dwCaps & DDSCAPS_MIPMAP)) ? D3DUSAGE_AUTOGENMIPMAP :
 				(Desc2.ddpfPixelFormat.dwFlags & (DDPF_ZBUFFER | DDPF_STENCILBUFFER)) ? D3DUSAGE_DEPTHSTENCIL : 0;
+			const D3DRESOURCETYPE Resource = (Desc2.ddpfPixelFormat.dwFlags & (DDPF_ZBUFFER | DDPF_STENCILBUFFER)) ? D3DRTYPE_SURFACE : D3DRTYPE_TEXTURE;
+			D3DFORMAT tmpFormat = GetDisplayFormat(Desc2.ddpfPixelFormat);
+			const D3DFORMAT Format = (tmpFormat == D3DFMT_X8B8G8R8 || tmpFormat == D3DFMT_B8G8R8 || tmpFormat == D3DFMT_R8G8B8) ? D3DFMT_X8R8G8B8 :
+				(tmpFormat == D3DFMT_A8B8G8R8) ? D3DFMT_A8R8G8B8 :
+				(Resource == D3DRTYPE_TEXTURE && tmpFormat == D3DFMT_P8) ? D3DFMT_L8 : tmpFormat;
 
-			if (FAILED(d3d9Object->CheckDeviceFormat(D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, D9DisplayFormat, Usage, D3DRTYPE_SURFACE, Format)) &&
-				FAILED(d3d9Object->CheckDeviceFormat(D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, D9DisplayFormat, Usage, D3DRTYPE_TEXTURE, Format)))
+			if (FAILED(d3d9Object->CheckDeviceFormat(D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, D9DisplayFormat, Usage, Resource, Format)))
 			{
 				LOG_LIMIT(100, __FUNCTION__ << " Error: non-supported pixel format! " << Usage << " " << Format << " " << Desc2.ddpfPixelFormat);
 				return DDERR_INVALIDPIXELFORMAT;
