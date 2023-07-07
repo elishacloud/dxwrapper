@@ -3129,7 +3129,7 @@ LPDIRECT3DTEXTURE9 m_IDirectDrawSurfaceX::Get3DTexture()
 	return surfaceTexture;
 }
 
-LPDIRECT3DSURFACE9 m_IDirectDrawSurfaceX::GetD3D9Surface()
+inline LPDIRECT3DSURFACE9 m_IDirectDrawSurfaceX::GetD3D9Surface()
 {
 	if (surfaceTexture)
 	{
@@ -3474,7 +3474,7 @@ HRESULT m_IDirectDrawSurfaceX::CreateD3d9Surface()
 	return hr;
 }
 
-bool m_IDirectDrawSurfaceX::DoesDCMatch(EMUSURFACE* pEmuSurface)
+inline bool m_IDirectDrawSurfaceX::DoesDCMatch(EMUSURFACE* pEmuSurface)
 {
 	if (!pEmuSurface || !pEmuSurface->surfaceDC || !pEmuSurface->surfacepBits)
 	{
@@ -4047,7 +4047,7 @@ void m_IDirectDrawSurfaceX::ResetSurfaceDisplay()
 }
 
 // Swap surface addresses for Flip
-void m_IDirectDrawSurfaceX::SwapSurface(m_IDirectDrawSurfaceX *lpTargetSurface1, m_IDirectDrawSurfaceX *lpTargetSurface2)
+inline void m_IDirectDrawSurfaceX::SwapSurface(m_IDirectDrawSurfaceX *lpTargetSurface1, m_IDirectDrawSurfaceX *lpTargetSurface2)
 {
 	if (!lpTargetSurface1 || !lpTargetSurface2 || lpTargetSurface1 == lpTargetSurface2)
 	{
@@ -4071,7 +4071,7 @@ void m_IDirectDrawSurfaceX::SwapSurface(m_IDirectDrawSurfaceX *lpTargetSurface1,
 }
 
 // Check surface reck dimensions and copy rect to new rect
-bool m_IDirectDrawSurfaceX::CheckCoordinates(RECT& OutRect, LPRECT lpInRect)
+inline bool m_IDirectDrawSurfaceX::CheckCoordinates(RECT& OutRect, LPRECT lpInRect)
 {
 	// Check device coordinates
 	if (!surfaceDesc2.dwWidth || !surfaceDesc2.dwHeight)
@@ -4320,7 +4320,7 @@ void m_IDirectDrawSurfaceX::RemoveScanlines(LASTLOCK& LLock)
 	}
 }
 
-HRESULT m_IDirectDrawSurfaceX::LockEmulatedSurface(D3DLOCKED_RECT* pLockedRect, LPRECT lpDestRect)
+inline HRESULT m_IDirectDrawSurfaceX::LockEmulatedSurface(D3DLOCKED_RECT* pLockedRect, LPRECT lpDestRect)
 {
 	if (!pLockedRect)
 	{

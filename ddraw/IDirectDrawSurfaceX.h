@@ -388,7 +388,7 @@ public:
 	inline bool IsSurfaceDirty() { return IsDirtyFlag; }
 	inline void AttachD9BackBuffer() { Surface3DDeviceFlag = true; }
 	inline void DetachD9BackBuffer() { Surface3DDeviceFlag = false; }
-	inline void ClearDirtyFlags();
+	void ClearDirtyFlags();
 	LPDIRECT3DSURFACE9 Get3DSurface();
 	LPDIRECT3DTEXTURE9 Get3DTexture();
 	LPDIRECT3DSURFACE9 GetD3D9Surface();
