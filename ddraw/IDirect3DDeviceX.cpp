@@ -1708,6 +1708,7 @@ HRESULT m_IDirect3DDeviceX::EndScene()
 		}
 
 		// Draw 2D DirectDraw surface
+		bool PrimarySurfaceFlag = false;
 		m_IDirectDrawSurfaceX* PrimarySurface = ddrawParent->GetPrimarySurface();
 		if (PrimarySurface && PrimarySurface->IsSurfaceDirty())
 		{
@@ -1736,15 +1737,7 @@ HRESULT m_IDirect3DDeviceX::EndScene()
 			SetTexture(0, AttachedTexture[0]);
 			SetTexture(1, AttachedTexture[1]);
 
-			// Clear primary surface
-			PrimarySurface->Get3DSurface();
-			DDBLTFX DDBltFx = {};
-			DDBltFx.dwSize = sizeof(DDBLTFX);
-			DDBltFx.dwFillColor = 0x00000000;
-			PrimarySurface->Blt(nullptr, nullptr, nullptr, DDBLT_COLORFILL, &DDBltFx);
-
-			// Reset dirty flags
-			PrimarySurface->ClearDirtyFlags();
+			PrimarySurfaceFlag = true;
 		}
 
 #ifdef ENABLE_DEBUGOVERLAY
@@ -1759,7 +1752,17 @@ HRESULT m_IDirect3DDeviceX::EndScene()
 		// Present surface after end scene
 		if (SUCCEEDED(hr))
 		{
-			hr = ddrawParent->Present();
+			hr = (*d3d9Device)->Present(nullptr, nullptr, nullptr, nullptr);
+
+			// Reset primary surface
+			if (PrimarySurfaceFlag)
+			{
+				// Clear surface
+				PrimarySurface->ClearSurface();
+
+				// Reset dirty flags
+				PrimarySurface->ClearDirtyFlags();
+			}
 		}
 
 		return hr;

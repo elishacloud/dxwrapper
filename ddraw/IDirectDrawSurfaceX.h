@@ -397,6 +397,7 @@ public:
 	inline void SetWrapperSurfaceSize(DWORD Width, DWORD Height) { DsWrapper.Width = Width; DsWrapper.Height = Height; }
 
 	// Draw 2D DirectDraw surface
+	void ClearSurface();
 	HRESULT Draw2DSurface();
 
 	// Attached surfaces

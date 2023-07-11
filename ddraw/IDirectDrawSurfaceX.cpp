@@ -1181,9 +1181,6 @@ HRESULT m_IDirectDrawSurfaceX::Flip(LPDIRECTDRAWSURFACE7 lpDDSurfaceTargetOverri
 		// Present surface
 		if (SUCCEEDED(hr))
 		{
-			// Set dirty flag
-			SetDirtyFlag();
-
 			// Set vertical sync wait timer
 			if ((dwFlags & DDFLIP_NOVSYNC) == 0)
 			{
@@ -3859,6 +3856,15 @@ void m_IDirectDrawSurfaceX::ReleaseD9Surface(bool BackupData)
 	}
 }
 
+void m_IDirectDrawSurfaceX::ClearSurface()
+{
+	// Clear surface
+	DDBLTFX DDBltFx = {};
+	DDBltFx.dwSize = sizeof(DDBLTFX);
+	DDBltFx.dwFillColor = 0x00000000;
+	Blt(nullptr, nullptr, nullptr, DDBLT_COLORFILL, &DDBltFx);
+}
+
 HRESULT m_IDirectDrawSurfaceX::Draw2DSurface()
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ") ";
@@ -3942,9 +3948,6 @@ HRESULT m_IDirectDrawSurfaceX::Draw2DSurface()
 		LOG_LIMIT(100, __FUNCTION__ << " Error: failed to draw primitive");
 		return DDERR_GENERIC;
 	}
-
-	// Reset dirty flags
-	ClearDirtyFlags();
 
 	return DD_OK;
 }
@@ -4032,6 +4035,9 @@ HRESULT m_IDirectDrawSurfaceX::PresentSurface(bool isSkipScene)
 			break;
 		}
 
+		// Reset dirty flags
+		ClearDirtyFlags();
+
 	} while (false);
 
 	// Reset present flag
@@ -4059,6 +4065,9 @@ inline void m_IDirectDrawSurfaceX::SwapSurface(m_IDirectDrawSurfaceX *lpTargetSu
 
 	// Swap dirty flip flag
 	SwapAddresses(&lpTargetSurface1->DirtyFlip, &lpTargetSurface2->DirtyFlip);
+
+	// Swap dirty flag
+	SwapAddresses(&lpTargetSurface1->IsDirtyFlag, &lpTargetSurface2->IsDirtyFlag);
 
 	// Swap 3D surface
 	SwapAddresses(lpTargetSurface1->GetSurface3D(), lpTargetSurface2->GetSurface3D());
@@ -4348,8 +4357,8 @@ inline void m_IDirectDrawSurfaceX::SetDirtyFlag()
 	if (IsPrimarySurface())
 	{
 		dirtyFlag = true;
-		IsDirtyFlag = true;
 	}
+	IsDirtyFlag = true;
 
 	// Update Uniqueness Value
 	ChangeUniquenessValue();
