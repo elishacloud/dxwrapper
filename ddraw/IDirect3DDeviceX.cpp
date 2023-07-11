@@ -1707,9 +1707,11 @@ HRESULT m_IDirect3DDeviceX::EndScene()
 			return DDERR_GENERIC;
 		}
 
-		// Draw 2D DirectDraw surface
+		// Get primary surface
 		bool PrimarySurfaceFlag = false;
 		m_IDirectDrawSurfaceX* PrimarySurface = ddrawParent->GetPrimarySurface();
+
+		// Draw 2D DirectDraw surface
 		if (PrimarySurface && PrimarySurface->IsSurfaceDirty())
 		{
 			DWORD SRCBLEND = 0, DESTBLEND = 0, ALPHABLENDENABLE = 0;
