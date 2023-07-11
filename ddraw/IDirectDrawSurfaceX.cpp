@@ -359,7 +359,7 @@ HRESULT m_IDirectDrawSurfaceX::AddOverlayDirtyRect(LPRECT lpRect)
 	return ProxyInterface->AddOverlayDirtyRect(lpRect);
 }
 
-HRESULT m_IDirectDrawSurfaceX::Blt(LPRECT lpDestRect, LPDIRECTDRAWSURFACE7 lpDDSrcSurface, LPRECT lpSrcRect, DWORD dwFlags, LPDDBLTFX lpDDBltFx, bool isSkipScene)
+HRESULT m_IDirectDrawSurfaceX::Blt(LPRECT lpDestRect, LPDIRECTDRAWSURFACE7 lpDDSrcSurface, LPRECT lpSrcRect, DWORD dwFlags, LPDDBLTFX lpDDBltFx, bool DontPresentBlt)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
@@ -428,13 +428,14 @@ HRESULT m_IDirectDrawSurfaceX::Blt(LPRECT lpDestRect, LPDIRECTDRAWSURFACE7 lpDDS
 		}
 
 		// ToDo: add support for waiting when surface is busy because of another thread
+		// Typically, Blt returns immediately with an error if the bitbltter is busy and the bitblt could not be set up. Specify the DDBLT_WAIT flag to request a synchronous bitblt.
 		const bool BltWait = ((dwFlags & DDBLT_WAIT) && (dwFlags & DDBLT_DONOTWAIT) == 0);
 
 		// Other flags, not yet implemented in dxwrapper
 		// DDBLT_ASYNC - Current dxwrapper implementation always allows async if calling from multiple threads
 
 		// Check if the scene needs to be presented
-		isSkipScene = isSkipScene || ((lpDestRect) ? CheckRectforSkipScene(*lpDestRect) : false);
+		bool isSkipScene = (lpDestRect) ? CheckRectforSkipScene(*lpDestRect) : false;
 
 		// Present before write if needed
 		BeginWritePresent(isSkipScene);
@@ -539,7 +540,10 @@ HRESULT m_IDirectDrawSurfaceX::Blt(LPRECT lpDestRect, LPDIRECTDRAWSURFACE7 lpDDS
 			}
 
 			// Present surface
-			EndWritePresent(isSkipScene);
+			if (!DontPresentBlt)
+			{
+				EndWritePresent(isSkipScene);
+			}
 		}
 
 		// Check if surface was busy
@@ -622,13 +626,12 @@ HRESULT m_IDirectDrawSurfaceX::BltBatch(LPDDBLTBATCH lpDDBltBatch, DWORD dwCount
 		return DDERR_INVALIDPARAMS;
 	}
 
-	HRESULT hr;
-
 	for (DWORD x = 0; x < dwCount; x++)
 	{
-		hr = Blt(lpDDBltBatch[x].lprDest, (LPDIRECTDRAWSURFACE7)lpDDBltBatch[x].lpDDSSrc, lpDDBltBatch[x].lprSrc, lpDDBltBatch[x].dwFlags, lpDDBltBatch[x].lpDDBltFx, (x != dwCount - 1));
+		HRESULT hr = Blt(lpDDBltBatch[x].lprDest, (LPDIRECTDRAWSURFACE7)lpDDBltBatch[x].lpDDSSrc, lpDDBltBatch[x].lprSrc, lpDDBltBatch[x].dwFlags, lpDDBltBatch[x].lpDDBltFx, (x != dwCount - 1));
 		if (FAILED(hr))
 		{
+			LOG_LIMIT(100, __FUNCTION__ << " Warning: BltBatch failed before the end! " << x << " of " << dwCount << " " << (DDERR)hr);
 			return hr;
 		}
 	}
@@ -650,7 +653,7 @@ HRESULT m_IDirectDrawSurfaceX::BltFast(DWORD dwX, DWORD dwY, LPDIRECTDRAWSURFACE
 	if (Config.Dd7to9)
 	{
 		// Convert BltFast flags into Blt flags
-		DWORD Flags = 0;
+		DWORD Flags = DDBLT_ASYNC;
 		if (dwFlags & DDBLTFAST_SRCCOLORKEY)
 		{
 			Flags |= DDBLT_KEYSRC;
