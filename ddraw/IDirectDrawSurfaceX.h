@@ -143,12 +143,8 @@ private:
 	// Custom vertex
 	struct TLVERTEX
 	{
-		float x;
-		float y;
-		float z;
-		float rhw;
-		float u;
-		float v;
+		float x, y, z, rhw;
+		float u, v;
 	};
 
 	const DWORD TLVERTEXFVF = (D3DFVF_XYZRHW | D3DFVF_TEX1);

@@ -3261,7 +3261,7 @@ HRESULT m_IDirectDrawSurfaceX::CreateD3d9Surface()
 		// Create blank surface
 		if (IsPrimarySurface() && !IsSurfaceEmulated && surfaceFormat != D3DFMT_P8)
 		{
-			if (FAILED(((*d3d9Device)->CreateOffscreenPlainSurface(Width, Height, TextureFormat,D3DPOOL_DEFAULT, &blankSurface, nullptr))))
+			if (FAILED(((*d3d9Device)->CreateOffscreenPlainSurface(Width, Height, Format, D3DPOOL_DEFAULT, &blankSurface, nullptr))))
 			{
 				LOG_LIMIT(100, __FUNCTION__ << " Error: failed to create blank surface. Size: " << Width << "x" << Height << " Format: " << surfaceFormat << " dwCaps: " << Logging::hex(surfaceDesc2.ddsCaps.dwCaps));
 				hr = DDERR_GENERIC;
