@@ -1707,11 +1707,8 @@ HRESULT m_IDirect3DDeviceX::EndScene()
 			return DDERR_GENERIC;
 		}
 
-		// Get primary surface
-		bool PrimarySurfaceFlag = false;
-		m_IDirectDrawSurfaceX* PrimarySurface = ddrawParent->GetPrimarySurface();
-
 		// Draw 2D DirectDraw surface
+		m_IDirectDrawSurfaceX* PrimarySurface = ddrawParent->GetPrimarySurface();
 		if (PrimarySurface && PrimarySurface->IsSurfaceDirty())
 		{
 			DWORD SRCBLEND = 0, DESTBLEND = 0, ALPHABLENDENABLE = 0;
@@ -1738,8 +1735,6 @@ HRESULT m_IDirect3DDeviceX::EndScene()
 
 			SetTexture(0, AttachedTexture[0]);
 			SetTexture(1, AttachedTexture[1]);
-
-			PrimarySurfaceFlag = true;
 		}
 
 #ifdef ENABLE_DEBUGOVERLAY
@@ -1755,16 +1750,6 @@ HRESULT m_IDirect3DDeviceX::EndScene()
 		if (SUCCEEDED(hr))
 		{
 			hr = (*d3d9Device)->Present(nullptr, nullptr, nullptr, nullptr);
-
-			// Reset primary surface
-			if (PrimarySurfaceFlag)
-			{
-				// Clear surface
-				PrimarySurface->ClearSurface();
-
-				// Reset dirty flags
-				PrimarySurface->ClearDirtyFlags();
-			}
 		}
 
 		return hr;

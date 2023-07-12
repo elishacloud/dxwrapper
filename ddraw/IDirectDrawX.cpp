@@ -1110,17 +1110,6 @@ HRESULT m_IDirectDrawX::FlipToGDISurface()
 	if (Config.Dd7to9)
 	{
 		// ToDo: Do proper implementation here
-
-		SetCriticalSection();
-
-		m_IDirectDrawSurfaceX* lpDDSrcSurfaceX = GetPrimarySurface();
-		if (lpDDSrcSurfaceX)
-		{
-			lpDDSrcSurfaceX->SetDirtyFlipFlag();
-		}
-
-		ReleaseCriticalSection();
-
 		return DD_OK;
 	}
 

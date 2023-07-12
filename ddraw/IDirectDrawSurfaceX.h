@@ -108,7 +108,6 @@ private:
 	HDC LastDC = nullptr;
 	bool IsInBlt = false;
 	bool IsInFlip = false;
-	bool DirtyFlip = false;								// Dirty flip flag indicates that surface needs to be cleared before flipping
 	DWORD PaletteUSN = (DWORD)this;						// The USN thats used to see if the palette data was updated
 	DWORD LastPaletteUSN = 0;							// The USN that was used last time the palette was updated
 	bool PaletteFirstRun = true;
@@ -118,7 +117,8 @@ private:
 	LPDIRECT3DDEVICE9 *d3d9Device = nullptr;			// Direct3D9 Device
 	LPDIRECT3DSURFACE9 surface3D = nullptr;				// Surface used for Direct3D
 	LPDIRECT3DTEXTURE9 surfaceTexture = nullptr;		// Main surface texture used for locks, Blts and Flips
-	LPDIRECT3DSURFACE9 contextSurface = nullptr;		// Main surface texture used for locks, Blts and Flips
+	LPDIRECT3DSURFACE9 contextSurface = nullptr;		// Context of the main surface texture
+	LPDIRECT3DSURFACE9 blankSurface = nullptr;			// Blank surface used for clearing main surface
 	LPDIRECT3DTEXTURE9 paletteTexture = nullptr;		// Extra surface texture used for storing palette entries for the pixel shader
 	LPDIRECT3DPIXELSHADER9 pixelShader = nullptr;		// Used with palette surfaces to display proper palette data on the surface texture
 	LPDIRECT3DVERTEXBUFFER9 vertexBuffer = nullptr;		// Vertex buffer used to stretch the texture accross the screen
@@ -246,6 +246,10 @@ private:
 	HRESULT CopyToEmulatedSurface(LPRECT lpDestRect);
 	HRESULT CopyEmulatedSurfaceFromGDI(RECT Rect);
 	HRESULT CopyEmulatedSurfaceToGDI(RECT Rect);
+
+	// Surface functions
+	void ClearDirtyFlags();
+	HRESULT ClearPrimarySurface();
 
 public:
 	m_IDirectDrawSurfaceX(IDirectDrawSurface7 *pOriginal, DWORD DirectXVersion) : ProxyInterface(pOriginal)
@@ -388,7 +392,6 @@ public:
 	inline bool IsSurfaceDirty() { return IsDirtyFlag; }
 	inline void AttachD9BackBuffer() { Surface3DDeviceFlag = true; }
 	inline void DetachD9BackBuffer() { Surface3DDeviceFlag = false; }
-	void ClearDirtyFlags();
 	LPDIRECT3DSURFACE9 Get3DSurface();
 	LPDIRECT3DTEXTURE9 Get3DTexture();
 	LPDIRECT3DSURFACE9 GetD3D9Surface();
@@ -397,11 +400,9 @@ public:
 	inline void SetWrapperSurfaceSize(DWORD Width, DWORD Height) { DsWrapper.Width = Width; DsWrapper.Height = Height; }
 
 	// Draw 2D DirectDraw surface
-	void ClearSurface();
 	HRESULT Draw2DSurface();
 
 	// Attached surfaces
-	void SetDirtyFlipFlag();
 	void RemoveAttachedSurfaceFromMap(m_IDirectDrawSurfaceX* lpSurfaceX);
 
 	// For clipper

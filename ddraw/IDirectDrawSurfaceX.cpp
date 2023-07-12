@@ -1007,23 +1007,15 @@ HRESULT m_IDirectDrawSurfaceX::FlipBackBuffer()
 		if (dwCaps & DDSCAPS_FLIP)
 		{
 			lpTargetSurface = it.second.pSurface;
-
 			break;
 		}
 	}
 
 	// Check if backbuffer was found
-	if (!lpTargetSurface)
+	if (!lpTargetSurface || lpTargetSurface == this || !DoesFlipBackBufferExist(lpTargetSurface))
 	{
-		LOG_LIMIT(100, __FUNCTION__ << " Error: Could not find backbuffer!");
+		LOG_LIMIT(100, __FUNCTION__ << " Error: Could not find backbuffer or invalid backbuffer!");
 		return DDERR_GENERIC;
-	}
-
-	// Check for device interface
-	HRESULT c_hr = CheckInterface(__FUNCTION__, true, true);
-	if (FAILED(c_hr))
-	{
-		return c_hr;
 	}
 
 	// Check if surface is busy
@@ -1105,17 +1097,10 @@ HRESULT m_IDirectDrawSurfaceX::Flip(LPDIRECTDRAWSURFACE7 lpDDSurfaceTargetOverri
 				lpDDSurfaceTargetOverride->QueryInterface(IID_GetInterfaceX, (LPVOID*)&lpTargetSurface);
 
 				// Check if target surface exists
-				if (!DoesFlipBackBufferExist(lpTargetSurface) || lpTargetSurface == this)
+				if (lpTargetSurface == this || !DoesFlipBackBufferExist(lpTargetSurface))
 				{
 					LOG_LIMIT(100, __FUNCTION__ << " Error: invalid surface!");
 					hr = DDERR_INVALIDPARAMS;
-					break;
-				}
-
-				// Check for device interface
-				if (FAILED(lpTargetSurface->CheckInterface(__FUNCTION__, true, true)))
-				{
-					hr = DDERR_SURFACEBUSY;
 					break;
 				}
 
@@ -1127,11 +1112,10 @@ HRESULT m_IDirectDrawSurfaceX::Flip(LPDIRECTDRAWSURFACE7 lpDDSurfaceTargetOverri
 					break;
 				}
 
-				// Clear dirty surface before flip
-				if (DirtyFlip)
+				// Clear dirty surface before flip if system memory or 3D device
+				if ((surfaceDesc2.ddsCaps.dwCaps & (DDSCAPS_SYSTEMMEMORY | DDSCAPS_3DDEVICE)))
 				{
-					DirtyFlip = false;
-					ColorFill(nullptr, 0x00000000);
+					ClearPrimarySurface();
 				}
 
 				// Swap surface
@@ -1162,11 +1146,10 @@ HRESULT m_IDirectDrawSurfaceX::Flip(LPDIRECTDRAWSURFACE7 lpDDSurfaceTargetOverri
 					break;
 				}
 
-				// Clear dirty surface before flip
-				if (DirtyFlip)
+				// Clear dirty surface before flip if system memory or 3D device
+				if ((surfaceDesc2.ddsCaps.dwCaps & (DDSCAPS_SYSTEMMEMORY | DDSCAPS_3DDEVICE)))
 				{
-					DirtyFlip = false;
-					ColorFill(nullptr, 0x00000000);
+					ClearPrimarySurface();
 				}
 
 				// Flip surface
@@ -3230,7 +3213,7 @@ HRESULT m_IDirectDrawSurfaceX::CreateD3d9Surface()
 	// Update surface description
 	UpdateSurfaceDesc();
 
-	// Get texture data
+	// Get texture format
 	surfaceFormat = GetDisplayFormat(surfaceDesc2.ddpfPixelFormat);
 	surfaceBitCount = GetBitCount(surfaceFormat);
 	const bool IsSurfaceEmulated = (((Config.DdrawEmulateSurface || (surfaceDesc2.ddsCaps.dwCaps & DDSCAPS_OWNDC) ||
@@ -3270,6 +3253,17 @@ HRESULT m_IDirectDrawSurfaceX::CreateD3d9Surface()
 			if (FAILED(((*d3d9Device)->CreateTexture(Width, Height, 1, 0, TextureFormat, Pool, &surfaceTexture, nullptr))))
 			{
 				LOG_LIMIT(100, __FUNCTION__ << " Error: failed to create surface texture. Size: " << Width << "x" << Height << " Format: " << surfaceFormat << " dwCaps: " << Logging::hex(surfaceDesc2.ddsCaps.dwCaps));
+				hr = DDERR_GENERIC;
+				break;
+			}
+		}
+
+		// Create blank surface
+		if (IsPrimarySurface() && !IsSurfaceEmulated && surfaceFormat != D3DFMT_P8)
+		{
+			if (FAILED(((*d3d9Device)->CreateOffscreenPlainSurface(Width, Height, TextureFormat,D3DPOOL_DEFAULT, &blankSurface, nullptr))))
+			{
+				LOG_LIMIT(100, __FUNCTION__ << " Error: failed to create blank surface. Size: " << Width << "x" << Height << " Format: " << surfaceFormat << " dwCaps: " << Logging::hex(surfaceDesc2.ddsCaps.dwCaps));
 				hr = DDERR_GENERIC;
 				break;
 			}
@@ -3797,6 +3791,18 @@ void m_IDirectDrawSurfaceX::ReleaseD9Surface(bool BackupData)
 		surfaceTexture = nullptr;
 	}
 
+	// Release blank surface
+	if (blankSurface)
+	{
+		Logging::LogDebug() << __FUNCTION__ << " Releasing Direct3D9 blank surface";
+		ULONG ref = blankSurface->Release();
+		if (ref)
+		{
+			Logging::Log() << __FUNCTION__ << " Error: there is still a reference to 'blankSurface' " << ref;
+		}
+		blankSurface = nullptr;
+	}
+
 	// Release d3d9 palette surface texture
 	if (paletteTexture)
 	{
@@ -3856,13 +3862,41 @@ void m_IDirectDrawSurfaceX::ReleaseD9Surface(bool BackupData)
 	}
 }
 
-void m_IDirectDrawSurfaceX::ClearSurface()
+HRESULT m_IDirectDrawSurfaceX::ClearPrimarySurface()
 {
-	// Clear surface
-	DDBLTFX DDBltFx = {};
-	DDBltFx.dwSize = sizeof(DDBLTFX);
-	DDBltFx.dwFillColor = 0x00000000;
-	Blt(nullptr, nullptr, nullptr, DDBLT_COLORFILL, &DDBltFx);
+	if (!IsPrimarySurface())
+	{
+		return DDERR_GENERIC;
+	}
+
+	if (IsUsingEmulation() || surfaceFormat == D3DFMT_P8)
+	{
+		HRESULT hr = ColorFill(nullptr, 0x00000000);
+
+		if (FAILED(hr))
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: could not color fill surface. " << (D3DERR)hr);
+		}
+
+		return hr;
+	}
+
+	IDirect3DSurface9* pDestSurfaceD9 = GetD3D9Surface();
+
+	if (!blankSurface || !pDestSurfaceD9)
+	{
+		LOG_LIMIT(100, __FUNCTION__ << " Error: could not get surface. " << blankSurface << "->" << pDestSurfaceD9);
+		return DDERR_GENERIC;
+	}
+
+	HRESULT hr = D3DXLoadSurfaceFromSurface(pDestSurfaceD9, nullptr, nullptr, blankSurface, nullptr, nullptr, D3DX_FILTER_POINT, 0);
+
+	if (FAILED(hr))
+	{
+		LOG_LIMIT(100, __FUNCTION__ << " Error: could not load source from surface. " << (D3DERR)hr);
+	}
+
+	return hr;
 }
 
 HRESULT m_IDirectDrawSurfaceX::Draw2DSurface()
@@ -3948,6 +3982,9 @@ HRESULT m_IDirectDrawSurfaceX::Draw2DSurface()
 		LOG_LIMIT(100, __FUNCTION__ << " Error: failed to draw primitive");
 		return DDERR_GENERIC;
 	}
+
+	// Reset dirty flags
+	ClearDirtyFlags();
 
 	return DD_OK;
 }
@@ -4035,9 +4072,6 @@ HRESULT m_IDirectDrawSurfaceX::PresentSurface(bool isSkipScene)
 			break;
 		}
 
-		// Reset dirty flags
-		ClearDirtyFlags();
-
 	} while (false);
 
 	// Reset present flag
@@ -4062,9 +4096,6 @@ inline void m_IDirectDrawSurfaceX::SwapSurface(m_IDirectDrawSurfaceX *lpTargetSu
 	{
 		return;
 	}
-
-	// Swap dirty flip flag
-	SwapAddresses(&lpTargetSurface1->DirtyFlip, &lpTargetSurface2->DirtyFlip);
 
 	// Swap dirty flag
 	SwapAddresses(&lpTargetSurface1->IsDirtyFlag, &lpTargetSurface2->IsDirtyFlag);
@@ -4364,20 +4395,7 @@ inline void m_IDirectDrawSurfaceX::SetDirtyFlag()
 	ChangeUniquenessValue();
 }
 
-// Set dirty flip flag
-void m_IDirectDrawSurfaceX::SetDirtyFlipFlag()
-{
-	if (!DirtyFlip)
-	{
-		DirtyFlip = true;
-		for (auto& it : AttachedSurfaceMap)
-		{
-			it.second.pSurface->SetDirtyFlipFlag();
-		}
-	}
-}
-
-void m_IDirectDrawSurfaceX::ClearDirtyFlags()
+inline void m_IDirectDrawSurfaceX::ClearDirtyFlags()
 {
 	// Reset dirty flag
 	dirtyFlag = false;
