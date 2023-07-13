@@ -98,6 +98,9 @@
     <Filter Include="d3dddi">
       <UniqueIdentifier>{120d0136-d207-48f0-b78f-8f22921a8836}</UniqueIdentifier>
     </Filter>
+    <Filter Include="ddraw\Shaders">
+      <UniqueIdentifier>{6679859a-ec10-4d1f-9fc3-7426d4436a23}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="libraries\dwmapi.cpp">
@@ -1529,9 +1532,6 @@
     <ClInclude Include="IClassFactory\IClassFactory.h">
       <Filter>IClassFactory</Filter>
     </ClInclude>
-    <ClInclude Include="ddraw\d3d9ShaderPalette.h">
-      <Filter>ddraw</Filter>
-    </ClInclude>
     <ClInclude Include="Wrappers\dwmapi.h">
       <Filter>Wrappers</Filter>
     </ClInclude>
@@ -1870,6 +1870,12 @@
     </ClInclude>
     <ClInclude Include="ddraw\DebugOverlay.h">
       <Filter>ddraw</Filter>
+    </ClInclude>
+    <ClInclude Include="ddraw\Shaders\PaletteShader.h">
+      <Filter>ddraw\Shaders</Filter>
+    </ClInclude>
+    <ClInclude Include="ddraw\Shaders\ColorKeyShader.h">
+      <Filter>ddraw\Shaders</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

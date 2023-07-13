@@ -855,7 +855,7 @@ HRESULT m_IDirect3DDeviceX::GetTexture(DWORD dwStage, LPDIRECTDRAWSURFACE7* lplp
 
 	if (Config.Dd7to9)
 	{
-		if (!lplpTexture || dwStage > 7)
+		if (!lplpTexture || dwStage > MaxTextureLevel)
 		{
 			return DDERR_INVALIDPARAMS;
 		}
@@ -944,6 +944,8 @@ HRESULT m_IDirect3DDeviceX::SetTexture(DWORD dwStage, LPDIRECTDRAWSURFACE7 lpSur
 			return DDERR_GENERIC;
 		}
 
+		m_IDirectDrawSurfaceX* lpDDSrcSurfaceX = nullptr;
+
 		HRESULT hr;
 
 		if (!lpSurface)
@@ -952,7 +954,7 @@ HRESULT m_IDirect3DDeviceX::SetTexture(DWORD dwStage, LPDIRECTDRAWSURFACE7 lpSur
 		}
 		else
 		{
-			m_IDirectDrawSurfaceX* lpDDSrcSurfaceX = nullptr;
+			lpDDSrcSurfaceX = nullptr;
 
 			lpSurface->QueryInterface(IID_GetInterfaceX, (LPVOID*)&lpDDSrcSurfaceX);
 
@@ -973,9 +975,13 @@ HRESULT m_IDirect3DDeviceX::SetTexture(DWORD dwStage, LPDIRECTDRAWSURFACE7 lpSur
 			hr = (*d3d9Device)->SetTexture(dwStage, pTexture9);
 		}
 
-		if (SUCCEEDED(hr) && dwStage < 8)
+		if (SUCCEEDED(hr) && dwStage < MaxTextureLevel+1)
 		{
 			AttachedTexture[dwStage] = lpSurface;
+			if (dwStage == 0)
+			{
+				CurrentTextureSurfaceX = lpDDSrcSurfaceX;
+			}
 		}
 
 		return hr;
@@ -1829,40 +1835,11 @@ HRESULT m_IDirect3DDeviceX::EndScene()
 		m_IDirectDrawSurfaceX* PrimarySurface = ddrawParent->GetPrimarySurface();
 		if (PrimarySurface && PrimarySurface->IsSurfaceDirty())
 		{
-			DWORD SRCBLEND = 0, DESTBLEND = 0, ALPHABLENDENABLE = 0;
-			(*d3d9Device)->GetRenderState(D3DRS_SRCBLEND, &SRCBLEND);
-			(*d3d9Device)->GetRenderState(D3DRS_DESTBLEND, &DESTBLEND);
-			(*d3d9Device)->GetRenderState(D3DRS_ALPHABLENDENABLE, &ALPHABLENDENABLE);
-
-			(*d3d9Device)->SetRenderState(D3DRS_SRCBLEND, D3DBLEND_ONE);
-			(*d3d9Device)->SetRenderState(D3DRS_DESTBLEND, D3DBLEND_ONE);
-			(*d3d9Device)->SetRenderState(D3DRS_ALPHABLENDENABLE, TRUE);
-
-			DWORD LIGHTING = 0, MAGFILTER = 0;
-			(*d3d9Device)->GetRenderState(D3DRS_LIGHTING, &LIGHTING);
-			(*d3d9Device)->GetSamplerState(0, D3DSAMP_MAGFILTER, &MAGFILTER);
+			SetDrawStates(0, D3DDP_DXW_DRAW2DSURFACE, 9);
 
 			PrimarySurface->Draw2DSurface();
 
-			(*d3d9Device)->SetRenderState(D3DRS_LIGHTING, LIGHTING);
-			(*d3d9Device)->SetSamplerState(0, D3DSAMP_MAGFILTER, MAGFILTER);
-
-			(*d3d9Device)->SetRenderState(D3DRS_SRCBLEND, SRCBLEND);
-			(*d3d9Device)->SetRenderState(D3DRS_DESTBLEND, DESTBLEND);
-			(*d3d9Device)->SetRenderState(D3DRS_ALPHABLENDENABLE, ALPHABLENDENABLE);
-
-			SetTexture(0, AttachedTexture[0]);
-			SetTexture(1, AttachedTexture[1]);
-
-			// Clear primary surface
-			PrimarySurface->Get3DSurface();
-			DDBLTFX DDBltFx = {};
-			DDBltFx.dwSize = sizeof(DDBLTFX);
-			DDBltFx.dwFillColor = 0x00000000;
-			PrimarySurface->Blt(nullptr, nullptr, nullptr, DDBLT_COLORFILL, &DDBltFx);
-
-			// Reset dirty flags
-			PrimarySurface->ClearDirtyFlags();
+			RestoreDrawStates(0, D3DDP_DXW_DRAW2DSURFACE, 9);
 		}
 
 #ifdef ENABLE_DEBUGOVERLAY
@@ -1877,7 +1854,7 @@ HRESULT m_IDirect3DDeviceX::EndScene()
 		// Present surface after end scene
 		if (SUCCEEDED(hr))
 		{
-			hr = ddrawParent->Present();
+			hr = (*d3d9Device)->Present(nullptr, nullptr, nullptr, nullptr);
 		}
 
 		return hr;
@@ -2346,6 +2323,15 @@ HRESULT m_IDirect3DDeviceX::SetRenderState(D3DRENDERSTATETYPE dwRenderStateType,
 			break;
 		case D3DRENDERSTATE_TEXTUREPERSPECTIVE:
 			return D3D_OK;		// As long as the device's D3DPTEXTURECAPS_PERSPECTIVE is enabled, the correction will be applied automatically.
+		case D3DRENDERSTATE_COLORKEYENABLE:
+			rsColorKeyEnabled = dwRenderState;
+			return D3D_OK;
+		case D3DRENDERSTATE_COLORKEYBLENDENABLE:
+			if (dwRenderState)
+			{
+				LOG_LIMIT(100, __FUNCTION__ << " Warning: 'D3DRENDERSTATE_COLORKEYBLENDENABLE' not implemented!");
+			}
+			return D3D_OK;
 		case D3DRENDERSTATE_LINEPATTERN:
 			if (dwRenderState)
 			{
@@ -2369,18 +2355,6 @@ HRESULT m_IDirect3DDeviceX::SetRenderState(D3DRENDERSTATETYPE dwRenderStateType,
 			if (dwRenderState)
 			{
 				LOG_LIMIT(100, __FUNCTION__ << " Warning: 'D3DRENDERSTATE_EXTENTS' not implemented!");
-			}
-			return D3D_OK;
-		case D3DRENDERSTATE_COLORKEYENABLE:
-			if (dwRenderState)
-			{
-				LOG_LIMIT(100, __FUNCTION__ << " Warning: 'D3DRENDERSTATE_COLORKEYENABLE' not implemented!");
-			}
-			return D3D_OK;
-		case D3DRENDERSTATE_COLORKEYBLENDENABLE:
-			if (dwRenderState)
-			{
-				LOG_LIMIT(100, __FUNCTION__ << " Warning: 'D3DRENDERSTATE_COLORKEYBLENDENABLE' not implemented!");
 			}
 			return D3D_OK;
 		}
@@ -2441,6 +2415,13 @@ HRESULT m_IDirect3DDeviceX::GetRenderState(D3DRENDERSTATETYPE dwRenderStateType,
 		case D3DRENDERSTATE_TEXTUREPERSPECTIVE:
 			*lpdwRenderState = TRUE;	// As long as the device's D3DPTEXTURECAPS_PERSPECTIVE is enabled, the correction will be applied automatically.
 			return D3D_OK;
+		case D3DRENDERSTATE_COLORKEYENABLE:
+			*lpdwRenderState = rsColorKeyEnabled;
+			return D3D_OK;
+		case D3DRENDERSTATE_COLORKEYBLENDENABLE:
+			//LOG_LIMIT(100, __FUNCTION__ << " Warning: 'D3DRENDERSTATE_COLORKEYBLENDENABLE' not implemented!");
+			*lpdwRenderState = FALSE;
+			return D3D_OK;
 		case D3DRENDERSTATE_LINEPATTERN:
 			//LOG_LIMIT(100, __FUNCTION__ << " Warning: 'D3DRENDERSTATE_LINEPATTERN' not implemented!");
 			*lpdwRenderState = 0;
@@ -2456,14 +2437,6 @@ HRESULT m_IDirect3DDeviceX::GetRenderState(D3DRENDERSTATETYPE dwRenderStateType,
 		case D3DRENDERSTATE_EXTENTS:
 			// ToDo: use this to report on clip plane extents set by SetClipStatus()
 			//LOG_LIMIT(100, __FUNCTION__ << " Warning: 'D3DRENDERSTATE_EXTENTS' not implemented!");
-			*lpdwRenderState = FALSE;
-			return D3D_OK;
-		case D3DRENDERSTATE_COLORKEYENABLE:
-			//LOG_LIMIT(100, __FUNCTION__ << " Warning: 'D3DRENDERSTATE_COLORKEYENABLE' not implemented!");
-			*lpdwRenderState = FALSE;
-			return D3D_OK;
-		case D3DRENDERSTATE_COLORKEYBLENDENABLE:
-			//LOG_LIMIT(100, __FUNCTION__ << " Warning: 'D3DRENDERSTATE_COLORKEYBLENDENABLE' not implemented!");
 			*lpdwRenderState = FALSE;
 			return D3D_OK;
 		}
@@ -2536,6 +2509,8 @@ HRESULT m_IDirect3DDeviceX::DrawPrimitive(D3DPRIMITIVETYPE dptPrimitiveType, DWO
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
+	dwFlags &= D3DDP_FORCE_DWORD;
+
 	if (Config.Dd7to9)
 	{
 		if (!lpVertices)
@@ -2559,15 +2534,17 @@ HRESULT m_IDirect3DDeviceX::DrawPrimitive(D3DPRIMITIVETYPE dptPrimitiveType, DWO
 			return D3DERR_INVALIDVERTEXTYPE;
 		}
 
+		// Check for color key
+		UpdateDrawFlags(dwFlags);
+
 		// Handle dwFlags
-		DWORD rsClipping = 0, rsLighting = 0, rsExtents = 0;
-		SetDrawFlags(rsClipping, rsLighting, rsExtents, dwVertexTypeDesc, dwFlags, DirectXVersion);
+		SetDrawStates(dwVertexTypeDesc, dwFlags, DirectXVersion);
 
 		// Draw primitive UP
 		HRESULT hr = (*d3d9Device)->DrawPrimitiveUP(dptPrimitiveType, GetNumberOfPrimitives(dptPrimitiveType, dwVertexCount), lpVertices, GetVertexStride(dwVertexTypeDesc));
 
 		// Handle dwFlags
-		UnSetDrawFlags(rsClipping, rsLighting, rsExtents, dwVertexTypeDesc, dwFlags, DirectXVersion);
+		RestoreDrawStates(dwVertexTypeDesc, dwFlags, DirectXVersion);
 
 		if (FAILED(hr))
 		{
@@ -2595,13 +2572,12 @@ HRESULT m_IDirect3DDeviceX::DrawPrimitive(D3DPRIMITIVETYPE dptPrimitiveType, DWO
 		if (DirectXVersion != 7)
 		{
 			// Handle dwFlags
-			DWORD rsClipping = 0, rsLighting = 0, rsExtents = 0;
-			SetDrawFlags(rsClipping, rsLighting, rsExtents, dwVertexTypeDesc, dwFlags, DirectXVersion);
+			SetDrawStates(dwVertexTypeDesc, dwFlags, DirectXVersion);
 
 			HRESULT hr = GetProxyInterfaceV7()->DrawPrimitive(dptPrimitiveType, dwVertexTypeDesc, lpVertices, dwVertexCount, dwFlags);
 
 			// Handle dwFlags
-			UnSetDrawFlags(rsClipping, rsLighting, rsExtents, dwVertexTypeDesc, dwFlags, DirectXVersion);
+			RestoreDrawStates(dwVertexTypeDesc, dwFlags, DirectXVersion);
 
 			return hr;
 		}
@@ -2615,6 +2591,8 @@ HRESULT m_IDirect3DDeviceX::DrawPrimitive(D3DPRIMITIVETYPE dptPrimitiveType, DWO
 HRESULT m_IDirect3DDeviceX::DrawPrimitiveStrided(D3DPRIMITIVETYPE dptPrimitiveType, DWORD dwVertexTypeDesc, LPD3DDRAWPRIMITIVESTRIDEDDATA lpVertexArray, DWORD dwVertexCount, DWORD dwFlags, DWORD DirectXVersion)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
+
+	dwFlags &= D3DDP_FORCE_DWORD;
 
 	if (Config.Dd7to9)
 	{
@@ -2634,13 +2612,12 @@ HRESULT m_IDirect3DDeviceX::DrawPrimitiveStrided(D3DPRIMITIVETYPE dptPrimitiveTy
 		if (DirectXVersion != 7)
 		{
 			// Handle dwFlags
-			DWORD rsClipping = 0, rsLighting = 0, rsExtents = 0;
-			SetDrawFlags(rsClipping, rsLighting, rsExtents, dwVertexTypeDesc, dwFlags, DirectXVersion);
+			SetDrawStates(dwVertexTypeDesc, dwFlags, DirectXVersion);
 
 			HRESULT hr = GetProxyInterfaceV7()->DrawPrimitiveStrided(dptPrimitiveType, dwVertexTypeDesc, lpVertexArray, dwVertexCount, dwFlags);
 
 			// Handle dwFlags
-			UnSetDrawFlags(rsClipping, rsLighting, rsExtents, dwVertexTypeDesc, dwFlags, DirectXVersion);
+			RestoreDrawStates(dwVertexTypeDesc, dwFlags, DirectXVersion);
 
 			return hr;
 		}
@@ -2654,6 +2631,8 @@ HRESULT m_IDirect3DDeviceX::DrawPrimitiveStrided(D3DPRIMITIVETYPE dptPrimitiveTy
 HRESULT m_IDirect3DDeviceX::DrawPrimitiveVB(D3DPRIMITIVETYPE dptPrimitiveType, LPDIRECT3DVERTEXBUFFER7 lpd3dVertexBuffer, DWORD dwStartVertex, DWORD dwNumVertices, DWORD dwFlags, DWORD DirectXVersion)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
+
+	dwFlags &= D3DDP_FORCE_DWORD;
 
 	if (Config.Dd7to9)
 	{
@@ -2698,15 +2677,17 @@ HRESULT m_IDirect3DDeviceX::DrawPrimitiveVB(D3DPRIMITIVETYPE dptPrimitiveType, L
 		// Set stream source
 		(*d3d9Device)->SetStreamSource(0, d3d9VertexBuffer, 0, GetVertexStride(FVF));
 
+		// Check for color key
+		UpdateDrawFlags(dwFlags);
+
 		// Handle dwFlags
-		DWORD rsClipping = 0, rsLighting = 0, rsExtents = 0;
-		SetDrawFlags(rsClipping, rsLighting, rsExtents, FVF, dwFlags, DirectXVersion);
+		SetDrawStates(FVF, dwFlags, DirectXVersion);
 
 		// Draw primitive
 		HRESULT hr = (*d3d9Device)->DrawPrimitive(dptPrimitiveType, dwStartVertex, GetNumberOfPrimitives(dptPrimitiveType, dwNumVertices));
 
 		// Handle dwFlags
-		UnSetDrawFlags(rsClipping, rsLighting, rsExtents, FVF, dwFlags, DirectXVersion);
+		RestoreDrawStates(FVF, dwFlags, DirectXVersion);
 
 		if (FAILED(hr))
 		{
@@ -2739,13 +2720,12 @@ HRESULT m_IDirect3DDeviceX::DrawPrimitiveVB(D3DPRIMITIVETYPE dptPrimitiveType, L
 			}
 
 			// Handle dwFlags
-			DWORD rsClipping = 0, rsLighting = 0, rsExtents = 0;
-			SetDrawFlags(rsClipping, rsLighting, rsExtents, BufferDesc.dwFVF, dwFlags, DirectXVersion);
+			SetDrawStates(BufferDesc.dwFVF, dwFlags, DirectXVersion);
 
 			HRESULT hr = GetProxyInterfaceV7()->DrawPrimitiveVB(dptPrimitiveType, lpd3dVertexBuffer, dwStartVertex, dwNumVertices, dwFlags);
 
 			// Handle dwFlags
-			UnSetDrawFlags(rsClipping, rsLighting, rsExtents, BufferDesc.dwFVF, dwFlags, DirectXVersion);
+			RestoreDrawStates(BufferDesc.dwFVF, dwFlags, DirectXVersion);
 
 			return hr;
 		}
@@ -2759,6 +2739,8 @@ HRESULT m_IDirect3DDeviceX::DrawPrimitiveVB(D3DPRIMITIVETYPE dptPrimitiveType, L
 HRESULT m_IDirect3DDeviceX::DrawIndexedPrimitive(D3DPRIMITIVETYPE dptPrimitiveType, DWORD dwVertexTypeDesc, LPVOID lpVertices, DWORD dwVertexCount, LPWORD lpIndices, DWORD dwIndexCount, DWORD dwFlags, DWORD DirectXVersion)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
+
+	dwFlags &= D3DDP_FORCE_DWORD;
 
 	if (Config.Dd7to9)
 	{
@@ -2880,15 +2862,17 @@ HRESULT m_IDirect3DDeviceX::DrawIndexedPrimitive(D3DPRIMITIVETYPE dptPrimitiveTy
 			return D3DERR_INVALIDVERTEXTYPE;
 		}
 
+		// Check for color key
+		UpdateDrawFlags(dwFlags);
+
 		// Handle dwFlags
-		DWORD rsClipping = 0, rsLighting = 0, rsExtents = 0;
-		SetDrawFlags(rsClipping, rsLighting, rsExtents, dwVertexTypeDesc, dwFlags, DirectXVersion);
+		SetDrawStates(dwVertexTypeDesc, dwFlags, DirectXVersion);
 
 		// Draw indexed primitive UP
 		HRESULT hr = (*d3d9Device)->DrawIndexedPrimitiveUP(dptPrimitiveType, 0, dwVertexCount, GetNumberOfPrimitives(dptPrimitiveType, dwIndexCount), lpIndices, D3DFMT_INDEX16, lpVertices, GetVertexStride(dwVertexTypeDesc));
 
 		// Handle dwFlags
-		UnSetDrawFlags(rsClipping, rsLighting, rsExtents, dwVertexTypeDesc, dwFlags, DirectXVersion);
+		RestoreDrawStates(dwVertexTypeDesc, dwFlags, DirectXVersion);
 
 		if (FAILED(hr))
 		{
@@ -2916,13 +2900,12 @@ HRESULT m_IDirect3DDeviceX::DrawIndexedPrimitive(D3DPRIMITIVETYPE dptPrimitiveTy
 		if (DirectXVersion != 7)
 		{
 			// Handle dwFlags
-			DWORD rsClipping = 0, rsLighting = 0, rsExtents = 0;
-			SetDrawFlags(rsClipping, rsLighting, rsExtents, dwVertexTypeDesc, dwFlags, DirectXVersion);
+			SetDrawStates(dwVertexTypeDesc, dwFlags, DirectXVersion);
 
 			HRESULT hr = GetProxyInterfaceV7()->DrawIndexedPrimitive(dptPrimitiveType, dwVertexTypeDesc, lpVertices, dwVertexCount, lpIndices, dwIndexCount, dwFlags);
 
 			// Handle dwFlags
-			UnSetDrawFlags(rsClipping, rsLighting, rsExtents, dwVertexTypeDesc, dwFlags, DirectXVersion);
+			RestoreDrawStates(dwVertexTypeDesc, dwFlags, DirectXVersion);
 
 			return hr;
 		}
@@ -2936,6 +2919,8 @@ HRESULT m_IDirect3DDeviceX::DrawIndexedPrimitive(D3DPRIMITIVETYPE dptPrimitiveTy
 HRESULT m_IDirect3DDeviceX::DrawIndexedPrimitiveStrided(D3DPRIMITIVETYPE dptPrimitiveType, DWORD dwVertexTypeDesc, LPD3DDRAWPRIMITIVESTRIDEDDATA lpVertexArray, DWORD dwVertexCount, LPWORD lpwIndices, DWORD dwIndexCount, DWORD dwFlags, DWORD DirectXVersion)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
+
+	dwFlags &= D3DDP_FORCE_DWORD;
 
 	if (Config.Dd7to9)
 	{
@@ -2955,13 +2940,12 @@ HRESULT m_IDirect3DDeviceX::DrawIndexedPrimitiveStrided(D3DPRIMITIVETYPE dptPrim
 		if (DirectXVersion != 7)
 		{
 			// Handle dwFlags
-			DWORD rsClipping = 0, rsLighting = 0, rsExtents = 0;
-			SetDrawFlags(rsClipping, rsLighting, rsExtents, dwVertexTypeDesc, dwFlags, DirectXVersion);
+			SetDrawStates(dwVertexTypeDesc, dwFlags, DirectXVersion);
 
 			HRESULT hr = GetProxyInterfaceV7()->DrawIndexedPrimitiveStrided(dptPrimitiveType, dwVertexTypeDesc, lpVertexArray, dwVertexCount, lpwIndices, dwIndexCount, dwFlags);
 
 			// Handle dwFlags
-			UnSetDrawFlags(rsClipping, rsLighting, rsExtents, dwVertexTypeDesc, dwFlags, DirectXVersion);
+			RestoreDrawStates(dwVertexTypeDesc, dwFlags, DirectXVersion);
 
 			return hr;
 		}
@@ -2975,6 +2959,8 @@ HRESULT m_IDirect3DDeviceX::DrawIndexedPrimitiveStrided(D3DPRIMITIVETYPE dptPrim
 HRESULT m_IDirect3DDeviceX::DrawIndexedPrimitiveVB(D3DPRIMITIVETYPE dptPrimitiveType, LPDIRECT3DVERTEXBUFFER7 lpd3dVertexBuffer, DWORD dwStartVertex, DWORD dwNumVertices, LPWORD lpwIndices, DWORD dwIndexCount, DWORD dwFlags, DWORD DirectXVersion)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
+
+	dwFlags &= D3DDP_FORCE_DWORD;
 
 	if (Config.Dd7to9)
 	{
@@ -3030,15 +3016,17 @@ HRESULT m_IDirect3DDeviceX::DrawIndexedPrimitiveVB(D3DPRIMITIVETYPE dptPrimitive
 		// Set Index data
 		(*d3d9Device)->SetIndices(d3d9IndexBuffer);
 
+		// Check for color key
+		UpdateDrawFlags(dwFlags);
+
 		// Handle dwFlags
-		DWORD rsClipping = 0, rsLighting = 0, rsExtents = 0;
-		SetDrawFlags(rsClipping, rsLighting, rsExtents, FVF, dwFlags, DirectXVersion);
+		SetDrawStates(FVF, dwFlags, DirectXVersion);
 
 		// Draw primitive
 		HRESULT hr = (*d3d9Device)->DrawIndexedPrimitive(dptPrimitiveType, dwStartVertex, 0, dwNumVertices, 0, GetNumberOfPrimitives(dptPrimitiveType, dwIndexCount));
 
 		// Handle dwFlags
-		UnSetDrawFlags(rsClipping, rsLighting, rsExtents, FVF, dwFlags, DirectXVersion);
+		RestoreDrawStates(FVF, dwFlags, DirectXVersion);
 
 		if (FAILED(hr))
 		{
@@ -3071,13 +3059,12 @@ HRESULT m_IDirect3DDeviceX::DrawIndexedPrimitiveVB(D3DPRIMITIVETYPE dptPrimitive
 			}
 
 			// Handle dwFlags
-			DWORD rsClipping = 0, rsLighting = 0, rsExtents = 0;
-			SetDrawFlags(rsClipping, rsLighting, rsExtents, BufferDesc.dwFVF, dwFlags, DirectXVersion);
+			SetDrawStates(BufferDesc.dwFVF, dwFlags, DirectXVersion);
 
 			HRESULT hr = GetProxyInterfaceV7()->DrawIndexedPrimitiveVB(dptPrimitiveType, lpd3dVertexBuffer, dwStartVertex, dwNumVertices, lpwIndices, dwIndexCount, dwFlags);
 
 			// Handle dwFlags
-			UnSetDrawFlags(rsClipping, rsLighting, rsExtents, BufferDesc.dwFVF, dwFlags, DirectXVersion);
+			RestoreDrawStates(BufferDesc.dwFVF, dwFlags, DirectXVersion);
 
 			return hr;
 		}
@@ -3565,7 +3552,7 @@ void m_IDirect3DDeviceX::ResetDevice()
 	ConvertHomogeneous.IsTransformViewSet = false;
 
 	// Reset textures after device reset
-	for (UINT x = 0; x < 8; x++)
+	for (UINT x = 0; x < MaxTextureLevel+1; x++)
 	{
 		if (AttachedTexture[x])
 		{
@@ -3583,52 +3570,115 @@ void m_IDirect3DDeviceX::ResetDevice()
 	ZeroMemory(&D3DClipStatus, sizeof(D3DCLIPSTATUS));
 }
 
-void m_IDirect3DDeviceX::SetDrawFlags(DWORD &rsClipping, DWORD &rsLighting, DWORD &rsExtents, DWORD dwVertexTypeDesc, DWORD dwFlags, DWORD DirectXVersion)
+inline void m_IDirect3DDeviceX::UpdateDrawFlags(DWORD& dwFlags)
 {
-	if (DirectXVersion != 7)
+	// Check for color key
+	if (rsColorKeyEnabled && CurrentTextureSurfaceX && CurrentTextureSurfaceX->GetColorKey(DrawStates.dwColorSpaceLowValue, DrawStates.dwColorSpaceHighValue))
+	{
+		dwFlags |= D3DDP_DXW_COLORKEYENABLE;
+	}
+}
+
+inline void m_IDirect3DDeviceX::SetDrawStates(DWORD dwVertexTypeDesc, DWORD dwFlags, DWORD DirectXVersion)
+{
+	if (DirectXVersion < 7)
 	{
 		// dwFlags (D3DDP_WAIT) can be ignored safely
 
 		// Handle dwFlags
 		if (dwFlags & D3DDP_DONOTCLIP)
 		{
-			GetRenderState(D3DRENDERSTATE_CLIPPING, &rsClipping);
+			GetRenderState(D3DRENDERSTATE_CLIPPING, &DrawStates.rsClipping);
 			SetRenderState(D3DRENDERSTATE_CLIPPING, FALSE);
 		}
 		if ((dwFlags & D3DDP_DONOTLIGHT) || !(dwVertexTypeDesc & D3DFVF_NORMAL))
 		{
-			GetRenderState(D3DRENDERSTATE_LIGHTING, &rsLighting);
+			GetRenderState(D3DRENDERSTATE_LIGHTING, &DrawStates.rsLighting);
 			SetRenderState(D3DRENDERSTATE_LIGHTING, FALSE);
 		}
 		if (dwFlags & D3DDP_DONOTUPDATEEXTENTS)
 		{
-			GetRenderState(D3DRENDERSTATE_EXTENTS, &rsExtents);
+			GetRenderState(D3DRENDERSTATE_EXTENTS, &DrawStates.rsExtents);
 			SetRenderState(D3DRENDERSTATE_EXTENTS, FALSE);
 		}
 	}
+	if (dwFlags & D3DDP_DXW_COLORKEYENABLE)
+	{
+		if (!colorkeyPixelShader || !*colorkeyPixelShader)
+		{
+			colorkeyPixelShader = ddrawParent->GetColorKeyShader();
+		}
+		if (colorkeyPixelShader && *colorkeyPixelShader)
+		{
+			(*d3d9Device)->SetPixelShader(*colorkeyPixelShader);
+
+			// Set the low color key
+			float lowRed = (float)D3DCOLOR_GETRED(DrawStates.dwColorSpaceLowValue),
+				lowGreen = (float)D3DCOLOR_GETGREEN(DrawStates.dwColorSpaceLowValue),
+				lowBlue = (float)D3DCOLOR_GETBLUE(DrawStates.dwColorSpaceLowValue);
+			float lowColorKey[4] = { lowRed, lowGreen, lowBlue, 0.0f };
+			(*d3d9Device)->SetPixelShaderConstantF(0, lowColorKey, 1);
+
+			// Set the high color key
+			float highRed = (float)D3DCOLOR_GETRED(DrawStates.dwColorSpaceHighValue),
+				highGreen = (float)D3DCOLOR_GETGREEN(DrawStates.dwColorSpaceHighValue),
+				highBlue = (float)D3DCOLOR_GETBLUE(DrawStates.dwColorSpaceHighValue);
+			float highColorKey[4] = { highRed, highGreen, highBlue, 0.0f };
+			(*d3d9Device)->SetPixelShaderConstantF(1, highColorKey, 1);
+		}
+	}
+	if (dwFlags & D3DDP_DXW_DRAW2DSURFACE)
+	{
+		(*d3d9Device)->GetRenderState(D3DRS_LIGHTING, &DrawStates.rsLighting);
+		(*d3d9Device)->GetSamplerState(0, D3DSAMP_MAGFILTER, &DrawStates.ssMagFilter);
+
+		(*d3d9Device)->GetRenderState(D3DRS_ALPHABLENDENABLE, &DrawStates.rsAlphaBlendEnable);
+		(*d3d9Device)->GetRenderState(D3DRS_SRCBLEND, &DrawStates.rsSrcBlend);
+		(*d3d9Device)->GetRenderState(D3DRS_DESTBLEND, &DrawStates.rsDestBlend);
+
+		(*d3d9Device)->SetRenderState(D3DRS_ALPHABLENDENABLE, TRUE);
+		(*d3d9Device)->SetRenderState(D3DRS_SRCBLEND, D3DBLEND_ONE);
+		(*d3d9Device)->SetRenderState(D3DRS_DESTBLEND, D3DBLEND_ONE);
+	}
 }
 
-void m_IDirect3DDeviceX::UnSetDrawFlags(DWORD rsClipping, DWORD rsLighting, DWORD rsExtents, DWORD dwVertexTypeDesc, DWORD dwFlags, DWORD DirectXVersion)
+inline void m_IDirect3DDeviceX::RestoreDrawStates(DWORD dwVertexTypeDesc, DWORD dwFlags, DWORD DirectXVersion)
 {
-	if (DirectXVersion != 7)
+	if (DirectXVersion < 7)
 	{
 		// Handle dwFlags
 		if (dwFlags & D3DDP_DONOTCLIP)
 		{
-			SetRenderState(D3DRENDERSTATE_CLIPPING, rsClipping);
+			SetRenderState(D3DRENDERSTATE_CLIPPING, DrawStates.rsClipping);
 		}
 		if ((dwFlags & D3DDP_DONOTLIGHT) || !(dwVertexTypeDesc & D3DFVF_NORMAL))
 		{
-			SetRenderState(D3DRENDERSTATE_LIGHTING, rsLighting);
+			SetRenderState(D3DRENDERSTATE_LIGHTING, DrawStates.rsLighting);
 		}
 		if (dwFlags & D3DDP_DONOTUPDATEEXTENTS)
 		{
-			SetRenderState(D3DRENDERSTATE_EXTENTS, rsExtents);
+			SetRenderState(D3DRENDERSTATE_EXTENTS, DrawStates.rsExtents);
 		}
+	}
+	if (dwFlags & D3DDP_DXW_COLORKEYENABLE)
+	{
+		(*d3d9Device)->SetPixelShader(nullptr);
+	}
+	if (dwFlags & D3DDP_DXW_DRAW2DSURFACE)
+	{
+		(*d3d9Device)->SetRenderState(D3DRS_ALPHABLENDENABLE, DrawStates.rsAlphaBlendEnable);
+		(*d3d9Device)->SetRenderState(D3DRS_SRCBLEND, DrawStates.rsSrcBlend);
+		(*d3d9Device)->SetRenderState(D3DRS_DESTBLEND, DrawStates.rsDestBlend);
+
+		(*d3d9Device)->SetRenderState(D3DRS_LIGHTING, DrawStates.rsLighting);
+		(*d3d9Device)->SetSamplerState(0, D3DSAMP_MAGFILTER, DrawStates.ssMagFilter);
+
+		SetTexture(0, AttachedTexture[0]);
+		SetTexture(1, AttachedTexture[1]);
 	}
 }
 
-void m_IDirect3DDeviceX::ScaleVertices(DWORD dwVertexTypeDesc, LPVOID& lpVertices, DWORD dwVertexCount)
+inline void m_IDirect3DDeviceX::ScaleVertices(DWORD dwVertexTypeDesc, LPVOID& lpVertices, DWORD dwVertexCount)
 {
 	if (dwVertexTypeDesc == 3)
 	{
@@ -3646,7 +3696,7 @@ void m_IDirect3DDeviceX::ScaleVertices(DWORD dwVertexTypeDesc, LPVOID& lpVertice
 	}
 }
 
-void m_IDirect3DDeviceX::UpdateVertices(DWORD& dwVertexTypeDesc, LPVOID& lpVertices, DWORD dwVertexCount)
+inline void m_IDirect3DDeviceX::UpdateVertices(DWORD& dwVertexTypeDesc, LPVOID& lpVertices, DWORD dwVertexCount)
 {
 	if (dwVertexTypeDesc == D3DFVF_LVERTEX)
 	{

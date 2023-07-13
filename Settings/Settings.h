@@ -39,6 +39,8 @@
 	visit(DdrawOverrideBitMode) \
 	visit(DdrawOverrideWidth) \
 	visit(DdrawOverrideHeight) \
+	visit(DdrawOverridePrimaryWidth) \
+	visit(DdrawOverridePrimaryHeight) \
 	visit(DdrawOverrideRefreshRate) \
 	visit(DdrawOverrideStencilFormat) \
 	visit(DdrawResolutionHack) \
@@ -234,6 +236,8 @@ struct CONFIG
 	DWORD DdrawOverrideBitMode = 0;				// Forces DirectX to use specified bit mode: 8, 16, 24, 32
 	DWORD DdrawOverrideWidth = 0;				// Force Direct3d9 to use this width when using Dd7to9
 	DWORD DdrawOverrideHeight = 0;				// Force Direct3d9 to use this height when using Dd7to9
+	DWORD DdrawOverridePrimaryWidth = 0;		// Force Dd7to9 to use this width for the primary/backbuffer surface
+	DWORD DdrawOverridePrimaryHeight = 0;		// Force Dd7to9 to use this height for the primary/backbuffer surface
 	DWORD DdrawOverrideRefreshRate = 0;			// Force Direct3d9 to use this refresh rate when using Dd7to9
 	DWORD DdrawOverrideStencilFormat = 0;		// Force Direct3d9 to use this AutoStencilFormat when using Dd7to9
 	bool DdrawEnableMouseHook = false;			// Allow to hook into mouse to limit it to the chosen resolution

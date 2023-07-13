@@ -32,14 +32,6 @@ private:
 	ULONG RefCount4 = 0;
 	ULONG RefCount7 = 0;
 
-	// Color Key Structure
-	struct CKEYS
-	{
-		DDCOLORKEY Key = { 0, 0 };
-		bool IsSet = false;
-		bool IsColorSpace = false;
-	};
-
 	// Used for 24-bit surfaces
 	struct TRIBYTE
 	{
@@ -108,19 +100,19 @@ private:
 	HDC LastDC = nullptr;
 	bool IsInBlt = false;
 	bool IsInFlip = false;
-	bool DirtyFlip = false;								// Dirty flip flag indicates that surface needs to be cleared before flipping
 	DWORD PaletteUSN = (DWORD)this;						// The USN thats used to see if the palette data was updated
 	DWORD LastPaletteUSN = 0;							// The USN that was used last time the palette was updated
 	bool PaletteFirstRun = true;
 	bool ClipperFirstRun = true;
 
 	// Direct3D9 vars
-	LPDIRECT3DDEVICE9 *d3d9Device = nullptr;			// Direct3D9 Device
+	LPDIRECT3DDEVICE9* d3d9Device = nullptr;			// Direct3D9 Device
+	LPDIRECT3DPIXELSHADER9* palettePixelShader = nullptr;		// Used with palette surfaces to display proper palette data on the surface texture
 	LPDIRECT3DSURFACE9 surface3D = nullptr;				// Surface used for Direct3D
 	LPDIRECT3DTEXTURE9 surfaceTexture = nullptr;		// Main surface texture used for locks, Blts and Flips
-	LPDIRECT3DSURFACE9 contextSurface = nullptr;		// Main surface texture used for locks, Blts and Flips
+	LPDIRECT3DSURFACE9 contextSurface = nullptr;		// Context of the main surface texture
+	LPDIRECT3DSURFACE9 blankSurface = nullptr;			// Blank surface used for clearing main surface
 	LPDIRECT3DTEXTURE9 paletteTexture = nullptr;		// Extra surface texture used for storing palette entries for the pixel shader
-	LPDIRECT3DPIXELSHADER9 pixelShader = nullptr;		// Used with palette surfaces to display proper palette data on the surface texture
 	LPDIRECT3DVERTEXBUFFER9 vertexBuffer = nullptr;		// Vertex buffer used to stretch the texture accross the screen
 
 	// Store ddraw surface version wrappers
@@ -143,12 +135,8 @@ private:
 	// Custom vertex
 	struct TLVERTEX
 	{
-		float x;
-		float y;
-		float z;
-		float rhw;
-		float u;
-		float v;
+		float x, y, z, rhw;
+		float u, v;
 	};
 
 	const DWORD TLVERTEXFVF = (D3DFVF_XYZRHW | D3DFVF_TEX1);
@@ -207,7 +195,7 @@ private:
 	inline HRESULT UnlockD39Surface();
 
 	// Locking rect coordinates
-	bool CheckCoordinates(LPRECT lpOutRect, LPRECT lpInRect);
+	bool CheckCoordinates(RECT& OutRect, LPRECT lpInRect);
 	HRESULT LockEmulatedSurface(D3DLOCKED_RECT* pLockedRect, LPRECT lpDestRect);
 	void SetDirtyFlag();
 	bool CheckRectforSkipScene(RECT& DestRect);
@@ -246,6 +234,10 @@ private:
 	HRESULT CopyToEmulatedSurface(LPRECT lpDestRect);
 	HRESULT CopyEmulatedSurfaceFromGDI(RECT Rect);
 	HRESULT CopyEmulatedSurfaceToGDI(RECT Rect);
+
+	// Surface functions
+	void ClearDirtyFlags();
+	HRESULT ClearPrimarySurface();
 
 public:
 	m_IDirectDrawSurfaceX(IDirectDrawSurface7 *pOriginal, DWORD DirectXVersion) : ProxyInterface(pOriginal)
@@ -292,7 +284,7 @@ public:
 	/*** IDirectDrawSurface methods ***/
 	STDMETHOD(AddAttachedSurface)(THIS_ LPDIRECTDRAWSURFACE7);
 	STDMETHOD(AddOverlayDirtyRect)(THIS_ LPRECT);
-	HRESULT Blt(LPRECT, LPDIRECTDRAWSURFACE7, LPRECT, DWORD, LPDDBLTFX, bool isSkipScene = false);
+	HRESULT Blt(LPRECT, LPDIRECTDRAWSURFACE7, LPRECT, DWORD, LPDDBLTFX, bool DontPresentBlt = false);
 	STDMETHOD(BltBatch)(THIS_ LPDDBLTBATCH, DWORD, DWORD);
 	STDMETHOD(BltFast)(THIS_ DWORD, DWORD, LPDIRECTDRAWSURFACE7, LPRECT, DWORD);
 	STDMETHOD(DeleteAttachedSurface)(THIS_ DWORD, LPDIRECTDRAWSURFACE7);
@@ -369,7 +361,7 @@ public:
 
 	// Functions handling the ddraw parent interface
 	inline void SetDdrawParent(m_IDirectDrawX *ddraw) { ddrawParent = ddraw; }
-	inline void ClearDdraw() { ddrawParent = nullptr; }
+	inline void ClearDdraw() { ddrawParent = nullptr; palettePixelShader = nullptr; }
 
 	// Direct3D9 interface functions
 	void ReleaseD9Surface(bool BackupData);
@@ -383,12 +375,12 @@ public:
 	inline bool IsTexture() { return (surfaceDesc2.ddsCaps.dwCaps & DDSCAPS_TEXTURE) != 0; }
 	inline bool IsDepthBuffer() { return (surfaceDesc2.ddpfPixelFormat.dwFlags & (DDPF_ZBUFFER | DDPF_STENCILBUFFER)) != 0; }
 	inline bool IsSurfaceManaged() { return (surfaceDesc2.ddsCaps.dwCaps2 & (DDSCAPS2_TEXTUREMANAGE | DDSCAPS2_D3DTEXTUREMANAGE)) != 0; }
+	bool GetColorKey(DWORD& ColorSpaceLowValue, DWORD& ColorSpaceHighValue);
 	inline bool IsUsingEmulation() { return (emu && emu->surfaceDC && emu->surfacepBits); }
 	inline bool IsSurface3DDevice() { return Surface3DDeviceFlag; }
 	inline bool IsSurfaceDirty() { return IsDirtyFlag; }
 	inline void AttachD9BackBuffer() { Surface3DDeviceFlag = true; }
 	inline void DetachD9BackBuffer() { Surface3DDeviceFlag = false; }
-	inline void ClearDirtyFlags();
 	LPDIRECT3DSURFACE9 Get3DSurface();
 	LPDIRECT3DTEXTURE9 Get3DTexture();
 	LPDIRECT3DSURFACE9 GetD3D9Surface();
@@ -400,7 +392,6 @@ public:
 	HRESULT Draw2DSurface();
 
 	// Attached surfaces
-	void SetDirtyFlipFlag();
 	void RemoveAttachedSurfaceFromMap(m_IDirectDrawSurfaceX* lpSurfaceX);
 
 	// For clipper

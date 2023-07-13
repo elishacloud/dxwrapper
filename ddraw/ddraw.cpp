@@ -858,20 +858,8 @@ HRESULT WINAPI dd_SetAppCompatData(DWORD Type, DWORD Value)
 
 	if (Config.Dd7to9)
 	{
-		if (Type == AppCompatDataType.DisableMaxWindowedMode)
-		{
-			if (Direct3D9DisableMaximizedWindowedMode())
-			{
-				return DD_OK;
-			}
-			else
-			{
-				return DDERR_GENERIC;
-			}
-		}
-
-		LOG_LIMIT(100, __FUNCTION__ << " Not Implemented: " << Type << " " << Value);
-		return DDERR_UNSUPPORTED;
+		LOG_LIMIT(100, __FUNCTION__ << " Skipping compatibility flags: " << Type << " " << Value);
+		return DD_OK;
 	}
 
 	static SetAppCompatDataProc m_pSetAppCompatData = (Wrapper::ValidProcAddress(SetAppCompatData_out)) ? (SetAppCompatDataProc)SetAppCompatData_out : nullptr;
