@@ -4,6 +4,11 @@
 
 #define ISDXTEX(tex) (tex == D3DFMT_DXT1 || tex == D3DFMT_DXT2 || tex == D3DFMT_DXT3 || tex == D3DFMT_DXT4 || tex == D3DFMT_DXT5)
 
+#define D3DCOLOR_GETALPHA(c)      (((c) >> 24) & 0xFF)
+#define D3DCOLOR_GETRED(c)        (((c) >> 16) & 0xFF)
+#define D3DCOLOR_GETGREEN(c)      (((c) >> 8) & 0xFF)
+#define D3DCOLOR_GETBLUE(c)       ((c) & 0xFF)
+
 #define D3DFMT_B8G8R8 (D3DFORMAT)19
 #define D3DFMT_YV12   (D3DFORMAT)MAKEFOURCC('Y','V','1','2')
 

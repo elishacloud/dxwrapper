@@ -82,8 +82,10 @@ private:
 	// Direct3D9 interface functions
 	HRESULT CheckInterface(char *FunctionName, bool CheckD3DDevice);
 	HRESULT CreateD3D9Object();
+	void ReleaseAllD9Resources(bool BackupData);
 	void ReleaseAllD9Surfaces(bool BackupData);
 	void ReleaseAllD9Buffers(bool BackupData);
+	void ReleaseAllD9Shaders();
 	void ReleaseD3D9Device();
 	void ReleaseD3D9Object();
 
@@ -171,18 +173,20 @@ public:
 	ULONG Release(DWORD DirectXVersion);
 
 	// Direct3D interfaces
-	m_IDirect3DX **GetCurrentD3D() { return &D3DInterface; }
-	void ClearD3D() { D3DInterface = nullptr; }
-	void SetD3DDevice(m_IDirect3DDeviceX *D3DDevice);
-	m_IDirect3DDeviceX **GetCurrentD3DDevice() { return &D3DDeviceInterface; }
-	void ClearD3DDevice() { D3DDeviceInterface = nullptr; Using3D = false; }
-	bool IsUsing3D() { return Using3D; }
-	void Enable3D() { Using3D = true; }
+	inline m_IDirect3DX** GetCurrentD3D() { return &D3DInterface; }
+	inline void ClearD3D() { D3DInterface = nullptr; }
+	inline void SetD3DDevice(m_IDirect3DDeviceX* D3DDevice) { D3DDeviceInterface = D3DDevice; }
+	inline m_IDirect3DDeviceX** GetCurrentD3DDevice() { return &D3DDeviceInterface; }
+	inline void ClearD3DDevice() { D3DDeviceInterface = nullptr; Using3D = false; }
+	inline void Enable3D() { Using3D = true; }
+	inline bool IsUsing3D() { return Using3D; }
 
 	// Direct3D9 interfaces
 	bool CheckD3D9Device();
 	LPDIRECT3D9 GetDirect3D9Object();
 	LPDIRECT3DDEVICE9 *GetDirect3D9Device();
+	LPDIRECT3DPIXELSHADER9* GetPaletteShader();
+	LPDIRECT3DPIXELSHADER9* GetColorKeyShader();
 	HRESULT CreateD3D9Device();
 	HRESULT ReinitDevice();
 
@@ -223,8 +227,8 @@ public:
 	// Color and gamma control
 	HRESULT CreateColorInterface(LPVOID *ppvObj);
 	HRESULT CreateGammaInterface(LPVOID *ppvObj);
-	void ClearColorInterface() { ColorControlInterface = nullptr;  };
-	void ClearGammaInterface() { GammaControlInterface = nullptr; };
+	inline void ClearColorInterface() { ColorControlInterface = nullptr;  };
+	inline void ClearGammaInterface() { GammaControlInterface = nullptr; };
 
 	// Video memory size
 	static void AdjustVidMemory(LPDWORD lpdwTotal, LPDWORD lpdwFree);

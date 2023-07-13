@@ -2,6 +2,8 @@
 
 #include "IDirectDrawX.h"
 
+constexpr UINT MaxTextureLevel = 7;
+
 class m_IDirect3DDeviceX : public IUnknown, public AddressLookupTableDdrawObject
 {
 private:
@@ -17,7 +19,20 @@ private:
 	m_IDirectDrawX *ddrawParent = nullptr;
 	m_IDirectDrawSurfaceX* DeviceSurface = nullptr;
 	LPDIRECT3DDEVICE9 *d3d9Device = nullptr;
+	LPDIRECT3DPIXELSHADER9* colorkeyPixelShader = nullptr;
 	LPDIRECT3DVIEWPORT3 lpCurrentViewport = nullptr;
+
+	struct {
+		DWORD rsClipping = 0;
+		DWORD rsLighting = 0;
+		DWORD rsExtents = 0;
+		DWORD rsAlphaBlendEnable = 0;
+		DWORD rsSrcBlend = 0;
+		DWORD rsDestBlend = 0;
+		DWORD ssMagFilter = 0;
+		DWORD dwColorSpaceLowValue = 0;
+		DWORD dwColorSpaceHighValue = 0;
+	} DrawStates;
 
 	// Store d3d device version wrappers
 	m_IDirect3DDevice *WrapperInterface;
@@ -28,9 +43,13 @@ private:
 	// Last clip status
 	D3DCLIPSTATUS D3DClipStatus = {};
 
+	// Render states
+	DWORD rsColorKeyEnabled = FALSE;
+
 	// SetTexture array
-	LPDIRECTDRAWSURFACE7 AttachedTexture[8] = {};
 	LPDIRECTDRAWSURFACE7 CurrentRenderTarget = nullptr;
+	m_IDirectDrawSurfaceX* CurrentTextureSurfaceX = nullptr;
+	LPDIRECTDRAWSURFACE7 AttachedTexture[MaxTextureLevel+1] = {};
 
 	// Vector temporary buffer cache
 	std::vector<BYTE> VertexCache;
@@ -96,6 +115,13 @@ private:
 
 	// Check interfaces
 	HRESULT CheckInterface(char *FunctionName, bool CheckD3DDevice);
+
+	// Helper functions
+	void m_IDirect3DDeviceX::UpdateDrawFlags(DWORD& dwFlags);
+	void SetDrawStates(DWORD dwVertexTypeDesc, DWORD dwFlags, DWORD DirectXVersion);
+	void RestoreDrawStates(DWORD dwVertexTypeDesc, DWORD dwFlags, DWORD DirectXVersion);
+	void ScaleVertices(DWORD dwVertexTypeDesc, LPVOID& lpVertices, DWORD dwVertexCount);
+	void UpdateVertices(DWORD& dwVertexTypeDesc, LPVOID& lpVertices, DWORD dwVertexCount);
 
 public:
 	m_IDirect3DDeviceX(IDirect3DDevice7 *aOriginal, DWORD DirectXVersion) : ProxyInterface(aOriginal), ClassID(IID_IDirect3DHALDevice)
@@ -225,10 +251,6 @@ public:
 			ddrawParent->SetD3DDevice(this);
 		}
 	}
-	void ClearDdraw() { ddrawParent = nullptr; }
+	void ClearDdraw() { ddrawParent = nullptr; colorkeyPixelShader = nullptr; }
 	void ResetDevice();
-	void SetDrawFlags(DWORD &rsClipping, DWORD &rsLighting, DWORD &rsExtents, DWORD dwVertexTypeDesc, DWORD dwFlags, DWORD DirectXVersion);
-	void UnSetDrawFlags(DWORD rsClipping, DWORD rsLighting, DWORD rsExtents, DWORD dwVertexTypeDesc, DWORD dwFlags, DWORD DirectXVersion);
-	void ScaleVertices(DWORD dwVertexTypeDesc, LPVOID& lpVertices, DWORD dwVertexCount);
-	void UpdateVertices(DWORD& dwVertexTypeDesc, LPVOID& lpVertices, DWORD dwVertexCount);
 };

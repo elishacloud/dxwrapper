@@ -32,14 +32,6 @@ private:
 	ULONG RefCount4 = 0;
 	ULONG RefCount7 = 0;
 
-	// Color Key Structure
-	struct CKEYS
-	{
-		DDCOLORKEY Key = { 0, 0 };
-		bool IsSet = false;
-		bool IsColorSpace = false;
-	};
-
 	// Used for 24-bit surfaces
 	struct TRIBYTE
 	{
@@ -114,13 +106,13 @@ private:
 	bool ClipperFirstRun = true;
 
 	// Direct3D9 vars
-	LPDIRECT3DDEVICE9 *d3d9Device = nullptr;			// Direct3D9 Device
+	LPDIRECT3DDEVICE9* d3d9Device = nullptr;			// Direct3D9 Device
+	LPDIRECT3DPIXELSHADER9* palettePixelShader = nullptr;		// Used with palette surfaces to display proper palette data on the surface texture
 	LPDIRECT3DSURFACE9 surface3D = nullptr;				// Surface used for Direct3D
 	LPDIRECT3DTEXTURE9 surfaceTexture = nullptr;		// Main surface texture used for locks, Blts and Flips
 	LPDIRECT3DSURFACE9 contextSurface = nullptr;		// Context of the main surface texture
 	LPDIRECT3DSURFACE9 blankSurface = nullptr;			// Blank surface used for clearing main surface
 	LPDIRECT3DTEXTURE9 paletteTexture = nullptr;		// Extra surface texture used for storing palette entries for the pixel shader
-	LPDIRECT3DPIXELSHADER9 pixelShader = nullptr;		// Used with palette surfaces to display proper palette data on the surface texture
 	LPDIRECT3DVERTEXBUFFER9 vertexBuffer = nullptr;		// Vertex buffer used to stretch the texture accross the screen
 
 	// Store ddraw surface version wrappers
@@ -369,7 +361,7 @@ public:
 
 	// Functions handling the ddraw parent interface
 	inline void SetDdrawParent(m_IDirectDrawX *ddraw) { ddrawParent = ddraw; }
-	inline void ClearDdraw() { ddrawParent = nullptr; }
+	inline void ClearDdraw() { ddrawParent = nullptr; palettePixelShader = nullptr; }
 
 	// Direct3D9 interface functions
 	void ReleaseD9Surface(bool BackupData);
@@ -383,6 +375,7 @@ public:
 	inline bool IsTexture() { return (surfaceDesc2.ddsCaps.dwCaps & DDSCAPS_TEXTURE) != 0; }
 	inline bool IsDepthBuffer() { return (surfaceDesc2.ddpfPixelFormat.dwFlags & (DDPF_ZBUFFER | DDPF_STENCILBUFFER)) != 0; }
 	inline bool IsSurfaceManaged() { return (surfaceDesc2.ddsCaps.dwCaps2 & (DDSCAPS2_TEXTUREMANAGE | DDSCAPS2_D3DTEXTUREMANAGE)) != 0; }
+	bool GetColorKey(DWORD& dwColorSpaceLowValue, DWORD& dwColorSpaceHighValue);
 	inline bool IsUsingEmulation() { return (emu && emu->surfaceDC && emu->surfacepBits); }
 	inline bool IsSurface3DDevice() { return Surface3DDeviceFlag; }
 	inline bool IsSurfaceDirty() { return IsDirtyFlag; }

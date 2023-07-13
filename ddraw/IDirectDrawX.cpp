@@ -22,6 +22,8 @@
 #include "Dllmain\DllMain.h"
 #include "d3d9\d3d9External.h"
 #include "d3dddi\d3dddiExternal.h"
+#include "Shaders\PaletteShader.h"
+#include "Shaders\ColorKeyShader.h"
 
 constexpr DWORD MaxVidMemory		= 0x20000000;	// 512 MBs
 constexpr DWORD MinUsedVidMemory	= 0x00100000;	// 1 MB
@@ -116,6 +118,8 @@ bool EnableWaitVsync;
 LPDIRECT3D9 d3d9Object;
 LPDIRECT3DDEVICE9 d3d9Device;
 D3DPRESENT_PARAMETERS presParams;
+LPDIRECT3DPIXELSHADER9 palettePixelShader = nullptr;
+LPDIRECT3DPIXELSHADER9 colorkeyPixelShader = nullptr;
 DWORD BehaviorFlags;
 HWND hFocusWindow;
 
@@ -2547,6 +2551,9 @@ void m_IDirectDrawX::ReleaseDdraw()
 
 	if (ddref == 0)
 	{
+		// Release all resources
+		ReleaseAllD9Resources(false);
+
 		// Release d3d9device
 		if (d3d9Device)
 		{
@@ -2705,15 +2712,6 @@ void m_IDirectDrawX::GetDisplay(DWORD &Width, DWORD &Height)
 	Height = presParams.BackBufferHeight;
 }
 
-void m_IDirectDrawX::SetD3DDevice(m_IDirect3DDeviceX *D3DDevice)
-{
-	if (!D3DDeviceInterface)
-	{
-		ReleaseAllD9Surfaces(true);
-	}
-	D3DDeviceInterface = D3DDevice;
-}
-
 void m_IDirectDrawX::SetNewViewport(DWORD Width, DWORD Height)
 {
 	if (Width && Height && !displayWidth && !displayHeight)
@@ -2771,9 +2769,29 @@ LPDIRECT3D9 m_IDirectDrawX::GetDirect3D9Object()
 	return d3d9Object;
 }
 
-LPDIRECT3DDEVICE9 *m_IDirectDrawX::GetDirect3D9Device()
+LPDIRECT3DDEVICE9* m_IDirectDrawX::GetDirect3D9Device()
 {
 	return &d3d9Device;
+}
+
+LPDIRECT3DPIXELSHADER9* m_IDirectDrawX::GetPaletteShader()
+{
+	// Create pixel shaders
+	if (d3d9Device && !palettePixelShader)
+	{
+		d3d9Device->CreatePixelShader((DWORD*)PalettePixelShaderSrc, &palettePixelShader);
+	}
+	return &palettePixelShader;
+}
+
+LPDIRECT3DPIXELSHADER9* m_IDirectDrawX::GetColorKeyShader()
+{
+	// Create pixel shaders
+	if (d3d9Device && !colorkeyPixelShader)
+	{
+		d3d9Device->CreatePixelShader((DWORD*)ColorKeyPixelShaderSrc, &colorkeyPixelShader);
+	}
+	return &colorkeyPixelShader;
 }
 
 // Creates d3d9 device, destroying the old one if exists
@@ -2924,8 +2942,7 @@ HRESULT m_IDirectDrawX::CreateD3D9Device()
 			if (LastHWnd == hWnd && LastWindowedMode == presParams.Windowed && LastBehaviorFlags == BehaviorFlags)
 			{
 				// Prepare for reset
-				ReleaseAllD9Buffers(true);
-				ReleaseAllD9Surfaces(true);
+				ReleaseAllD9Resources(true);
 
 				// Reset device. When this method returns: BackBufferCount, BackBufferWidth, and BackBufferHeight are set to zero.
 				D3DPRESENT_PARAMETERS newParams = presParams;
@@ -2948,8 +2965,7 @@ HRESULT m_IDirectDrawX::CreateD3D9Device()
 					" Windowed: " << LastWindowedMode << "->" << presParams.Windowed << " " <<
 					Logging::hex(LastBehaviorFlags) << "->" << Logging::hex(BehaviorFlags);
 
-				ReleaseAllD9Buffers(true);
-				ReleaseAllD9Surfaces(true);
+				ReleaseAllD9Resources(true);
 				ReleaseD3D9Device();
 			}
 		}
@@ -3077,8 +3093,7 @@ HRESULT m_IDirectDrawX::ReinitDevice()
 
 	do {
 		// Prepare for reset
-		ReleaseAllD9Buffers(true);
-		ReleaseAllD9Surfaces(true);
+		ReleaseAllD9Resources(true);
 
 		// Reset device. When this method returns: BackBufferCount, BackBufferWidth, and BackBufferHeight are set to zero.
 		D3DPRESENT_PARAMETERS newParams = presParams;
@@ -3110,8 +3125,16 @@ HRESULT m_IDirectDrawX::ReinitDevice()
 	return hr;
 }
 
+// Release all dd9 resources
+inline void m_IDirectDrawX::ReleaseAllD9Resources(bool BackupData)
+{
+	ReleaseAllD9Buffers(BackupData);
+	ReleaseAllD9Surfaces(BackupData);
+	ReleaseAllD9Shaders();
+}
+
 // Release all surfaces from all ddraw devices
-void m_IDirectDrawX::ReleaseAllD9Surfaces(bool BackupData)
+inline void m_IDirectDrawX::ReleaseAllD9Surfaces(bool BackupData)
 {
 	SetCriticalSection();
 
@@ -3127,7 +3150,7 @@ void m_IDirectDrawX::ReleaseAllD9Surfaces(bool BackupData)
 }
 
 // Release all buffers from all ddraw devices
-void m_IDirectDrawX::ReleaseAllD9Buffers(bool BackupData)
+inline void m_IDirectDrawX::ReleaseAllD9Buffers(bool BackupData)
 {
 	SetCriticalSection();
 
@@ -3140,6 +3163,38 @@ void m_IDirectDrawX::ReleaseAllD9Buffers(bool BackupData)
 	}
 
 	ReleaseCriticalSection();
+}
+
+// Release all shaders
+inline void m_IDirectDrawX::ReleaseAllD9Shaders()
+{
+	// Release palette pixel shader
+	if (palettePixelShader)
+	{
+		Logging::LogDebug() << __FUNCTION__ << " Releasing Direct3D9 palette pixel shader";
+		if (d3d9Device)
+		{
+			d3d9Device->SetPixelShader(nullptr);
+		}
+		ULONG ref = palettePixelShader->Release();
+		if (ref)
+		{
+			Logging::Log() << __FUNCTION__ << " Error: there is still a reference to 'palettePixelShader' " << ref;
+		}
+		palettePixelShader = nullptr;
+	}
+
+	// Release color key pixel shader
+	if (colorkeyPixelShader)
+	{
+		Logging::LogDebug() << __FUNCTION__ << " Releasing Direct3D9 color key pixel shader";
+		ULONG ref = colorkeyPixelShader->Release();
+		if (ref)
+		{
+			Logging::Log() << __FUNCTION__ << " Error: there is still a reference to 'colorkeyPixelShader' " << ref;
+		}
+		colorkeyPixelShader = nullptr;
+	}
 }
 
 // Release all d3d9 device

@@ -277,7 +277,14 @@ HRESULT WINAPI D3DAssemble(const void* pSrcData, SIZE_T SrcDataSize, const char*
 
 	if (FAILED(hr))
 	{
-		Logging::Log() << __FUNCTION__ << " Warning: Failed to Assemble shader!";
+		if (ppErrorMsgs && *ppErrorMsgs)
+		{
+			Logging::Log() << __FUNCTION__ << " Warning: Failed to Assemble shader! " << static_cast<const char*>((*ppErrorMsgs)->GetBufferPointer());
+		}
+		else
+		{
+			Logging::Log() << __FUNCTION__ << " Warning: Failed to Assemble shader!";
+		}
 	}
 
 	return hr;
@@ -299,7 +306,14 @@ HRESULT WINAPI D3DCompile(LPCVOID pSrcData, SIZE_T SrcDataSize, LPCSTR pSourceNa
 
 	if (FAILED(hr))
 	{
-		Logging::Log() << __FUNCTION__ << " Warning: Failed to Compile shader!";
+		if (ppErrorMsgs && *ppErrorMsgs)
+		{
+			Logging::Log() << __FUNCTION__ << " Warning: Failed to Compile shader! " << static_cast<const char*>((*ppErrorMsgs)->GetBufferPointer());
+		}
+		else
+		{
+			Logging::Log() << __FUNCTION__ << " Warning: Failed to Compile shader!";
+		}
 	}
 
 	return hr;
