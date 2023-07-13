@@ -2263,18 +2263,18 @@ HRESULT m_IDirectDrawSurfaceX::SetClipper(LPDIRECTDRAWCLIPPER lpDDClipper)
 	return ProxyInterface->SetClipper(lpDDClipper);
 }
 
-bool m_IDirectDrawSurfaceX::GetColorKey(DWORD& dwColorSpaceLowValue, DWORD& dwColorSpaceHighValue)
+bool m_IDirectDrawSurfaceX::GetColorKey(DWORD& ColorSpaceLowValue, DWORD& ColorSpaceHighValue)
 {
 	if (surfaceDesc2.ddsCaps.dwCaps & DDSD_CKSRCBLT)
 	{
-		dwColorSpaceLowValue = surfaceDesc2.ddckCKSrcBlt.dwColorSpaceLowValue;
-		dwColorSpaceHighValue = surfaceDesc2.ddckCKSrcBlt.dwColorSpaceHighValue;
+		ColorSpaceLowValue = surfaceDesc2.ddckCKSrcBlt.dwColorSpaceLowValue;
+		ColorSpaceHighValue = surfaceDesc2.ddckCKSrcBlt.dwColorSpaceHighValue;
 		return true;
 	}
 	else if (surfaceDesc2.ddsCaps.dwCaps & DDCKEY_SRCOVERLAY)
 	{
-		dwColorSpaceLowValue = surfaceDesc2.ddckCKSrcOverlay.dwColorSpaceLowValue;
-		dwColorSpaceHighValue = surfaceDesc2.ddckCKSrcOverlay.dwColorSpaceHighValue;
+		ColorSpaceLowValue = surfaceDesc2.ddckCKSrcOverlay.dwColorSpaceLowValue;
+		ColorSpaceHighValue = surfaceDesc2.ddckCKSrcOverlay.dwColorSpaceHighValue;
 		return true;
 	}
 	return false;
@@ -3285,10 +3285,12 @@ HRESULT m_IDirectDrawSurfaceX::CreateD3d9Surface()
 			}
 		}
 
-		// Create palette surface
+		// Create palette texture
 		if (IsPrimarySurface() && surfaceFormat == D3DFMT_P8)
 		{
-			if (FAILED(((*d3d9Device)->CreateTexture(256, 256, 1, 0, D3DFMT_X8R8G8B8, D3DPOOL_MANAGED, &paletteTexture, nullptr))))
+			palettePixelShader = ddrawParent->GetPaletteShader();
+			if (!palettePixelShader || !*palettePixelShader ||
+				FAILED(((*d3d9Device)->CreateTexture(256, 256, 1, 0, D3DFMT_X8R8G8B8, D3DPOOL_MANAGED, &paletteTexture, nullptr))))
 			{
 				LOG_LIMIT(100, __FUNCTION__ << " Error: failed to create palette surface texture.");
 				hr = DDERR_GENERIC;
@@ -3957,29 +3959,21 @@ HRESULT m_IDirectDrawSurfaceX::Draw2DSurface()
 	}
 
 	// Handle palette surfaces
-	if (paletteTexture)
+	if (paletteTexture && palettePixelShader && *palettePixelShader)
 	{
-		// Check for pixel shader
-		if (!palettePixelShader || !*palettePixelShader)
+		// Set palette texture
+		UpdatePaletteData();
+		if (FAILED((*d3d9Device)->SetTexture(1, paletteTexture)))
 		{
-			palettePixelShader = ddrawParent->GetPaletteShader();
+			LOG_LIMIT(100, __FUNCTION__ << " Error: failed to lock palette texture!");
+			return DDERR_GENERIC;
 		}
-		if (palettePixelShader && *palettePixelShader)
-		{
-			// Set palette texture
-			UpdatePaletteData();
-			if (FAILED((*d3d9Device)->SetTexture(1, paletteTexture)))
-			{
-				LOG_LIMIT(100, __FUNCTION__ << " Error: failed to lock palette texture!");
-				return DDERR_GENERIC;
-			}
 
-			// Set pixel shader
-			if (FAILED((*d3d9Device)->SetPixelShader(*palettePixelShader)))
-			{
-				LOG_LIMIT(100, __FUNCTION__ << " Error: failed to set pixel shader");
-				return DDERR_GENERIC;
-			}
+		// Set pixel shader
+		if (FAILED((*d3d9Device)->SetPixelShader(*palettePixelShader)))
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: failed to set pixel shader");
+			return DDERR_GENERIC;
 		}
 	}
 
