@@ -2819,12 +2819,6 @@ HRESULT m_IDirect3DDeviceX::DrawIndexedPrimitive(D3DPRIMITIVETYPE dptPrimitiveTy
 					targetVertex += targetStride;
 				}
 
-				// Check for color key
-				UpdateDrawFlags(dwFlags);
-
-				// Handle dwFlags
-				SetDrawStates(dwVertexTypeDesc, dwFlags, DirectXVersion);
-
 				// Set transform
 				(*d3d9Device)->SetTransform(D3DTS_VIEW, &ConvertHomogeneous.ToWorld_ViewMatrix);
 				(*d3d9Device)->SetTransform(D3DTS_PROJECTION, &ConvertHomogeneous.ToWorld_ProjectionMatrix);
@@ -2833,10 +2827,23 @@ HRESULT m_IDirect3DDeviceX::DrawIndexedPrimitive(D3DPRIMITIVETYPE dptPrimitiveTy
 				const DWORD newVertexTypeDesc = (dwVertexTypeDesc & ~D3DFVF_XYZRHW) | D3DFVF_XYZ;
 
 				// Set fixed function vertex type
-				(*d3d9Device)->SetFVF(newVertexTypeDesc);
+				if (FAILED((*d3d9Device)->SetFVF(newVertexTypeDesc)))
+				{
+					LOG_LIMIT(100, __FUNCTION__ << " Error: invalid FVF type: " << Logging::hex(dwVertexTypeDesc));
+					return D3DERR_INVALIDVERTEXTYPE;
+				}
+
+				// Check for color key
+				UpdateDrawFlags(dwFlags);
+
+				// Handle dwFlags
+				SetDrawStates(newVertexTypeDesc, dwFlags, DirectXVersion);
 
 				// Draw indexed primitive UP
 				HRESULT hr = (*d3d9Device)->DrawIndexedPrimitiveUP(dptPrimitiveType, 0, dwVertexCount, GetNumberOfPrimitives(dptPrimitiveType, dwIndexCount), lpIndices, D3DFMT_INDEX16, lpVertices, targetStride);
+
+				// Handle dwFlags
+				RestoreDrawStates(newVertexTypeDesc, dwFlags, DirectXVersion);
 
 				// Restore transform
 				D3DMATRIX identityMatrix = {};
@@ -2846,9 +2853,6 @@ HRESULT m_IDirect3DDeviceX::DrawIndexedPrimitive(D3DPRIMITIVETYPE dptPrimitiveTy
 
 				(*d3d9Device)->SetTransform(D3DTS_VIEW, &ConvertHomogeneous.ToWorld_ViewMatrixOriginal);
 				(*d3d9Device)->SetTransform(D3DTS_PROJECTION, &identityMatrix);
-
-				// Handle dwFlags
-				RestoreDrawStates(newVertexTypeDesc, dwFlags, DirectXVersion);
 
 				return hr;
 			}
