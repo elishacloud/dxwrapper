@@ -2819,9 +2819,11 @@ HRESULT m_IDirect3DDeviceX::DrawIndexedPrimitive(D3DPRIMITIVETYPE dptPrimitiveTy
 					targetVertex += targetStride;
 				}
 
+				// Check for color key
+				UpdateDrawFlags(dwFlags);
+
 				// Handle dwFlags
-				DWORD rsClipping = 0, rsLighting = 0, rsExtents = 0;
-				SetDrawFlags(rsClipping, rsLighting, rsExtents, dwVertexTypeDesc, dwFlags, DirectXVersion);
+				SetDrawStates(dwVertexTypeDesc, dwFlags, DirectXVersion);
 
 				// Set transform
 				(*d3d9Device)->SetTransform(D3DTS_VIEW, &ConvertHomogeneous.ToWorld_ViewMatrix);
@@ -2846,7 +2848,7 @@ HRESULT m_IDirect3DDeviceX::DrawIndexedPrimitive(D3DPRIMITIVETYPE dptPrimitiveTy
 				(*d3d9Device)->SetTransform(D3DTS_PROJECTION, &identityMatrix);
 
 				// Handle dwFlags
-				UnSetDrawFlags(rsClipping, rsLighting, rsExtents, newVertexTypeDesc, dwFlags, DirectXVersion);
+				RestoreDrawStates(newVertexTypeDesc, dwFlags, DirectXVersion);
 
 				return hr;
 			}
