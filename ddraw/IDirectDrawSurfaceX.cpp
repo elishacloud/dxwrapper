@@ -3275,7 +3275,7 @@ HRESULT m_IDirectDrawSurfaceX::CreateD3d9Surface()
 		}
 
 		// Create blank surface
-		if (IsPrimarySurface() && !IsSurfaceEmulated && surfaceFormat != D3DFMT_P8)
+		if (IsPrimarySurface() && !IsSurfaceEmulated && !IsPalette())
 		{
 			if (FAILED(((*d3d9Device)->CreateOffscreenPlainSurface(Width, Height, Format, D3DPOOL_DEFAULT, &blankSurface, nullptr))))
 			{
@@ -3286,7 +3286,7 @@ HRESULT m_IDirectDrawSurfaceX::CreateD3d9Surface()
 		}
 
 		// Create palette texture
-		if (IsPrimarySurface() && surfaceFormat == D3DFMT_P8)
+		if (IsPrimarySurface() && IsPalette())
 		{
 			palettePixelShader = ddrawParent->GetPaletteShader();
 			if (!palettePixelShader || !*palettePixelShader ||
@@ -3826,6 +3826,7 @@ void m_IDirectDrawSurfaceX::ReleaseD9Surface(bool BackupData)
 		if (d3d9Device && *d3d9Device)
 		{
 			(*d3d9Device)->SetTexture(1, nullptr);
+			(*d3d9Device)->SetPixelShader(nullptr);
 		}
 		ULONG ref = paletteTexture->Release();
 		if (ref)
@@ -3869,7 +3870,7 @@ HRESULT m_IDirectDrawSurfaceX::ClearPrimarySurface()
 		return DDERR_GENERIC;
 	}
 
-	if (IsUsingEmulation() || surfaceFormat == D3DFMT_P8)
+	if (IsUsingEmulation() || IsPalette())
 	{
 		HRESULT hr = ColorFill(nullptr, 0x00000000);
 
@@ -4889,7 +4890,7 @@ HRESULT m_IDirectDrawSurfaceX::CopySurface(m_IDirectDrawSurfaceX* pSourceSurface
 	const bool IsMirrorLeftRight = ((dwFlags & BLT_MIRRORLEFTRIGHT) != 0);
 	const bool IsMirrorUpDown = ((dwFlags & BLT_MIRRORUPDOWN) != 0);
 	const DWORD D3DXFilter =
-		(IsStretchRect && DestFormat == D3DFMT_P8) || (Filter & D3DTEXF_POINT) ? D3DX_FILTER_POINT :	// Force palette surfaces to use point filtering to prevent color banding
+		(IsStretchRect && IsPalette()) || (Filter & D3DTEXF_POINT) ? D3DX_FILTER_POINT :				// Force palette surfaces to use point filtering to prevent color banding
 		(Filter & D3DTEXF_LINEAR) ? D3DX_FILTER_LINEAR :												// Use linear filtering when requested by the application
 		(IsStretchRect) ? D3DX_FILTER_POINT :															// Default to point filtering when stretching the rect, same as DirectDraw
 		D3DX_FILTER_NONE;
@@ -5010,7 +5011,7 @@ HRESULT m_IDirectDrawSurfaceX::CopySurface(m_IDirectDrawSurfaceX* pSourceSurface
 
 		// Use D3DXLoadSurfaceFromSurface to copy the surface
 		if (!IsUsingEmulation() && !IsColorKey && !IsMirrorLeftRight && !IsMirrorUpDown &&
-			((SrcFormat != D3DFMT_P8 && DestFormat != D3DFMT_P8) || (SrcFormat == D3DFMT_P8 && DestFormat == D3DFMT_P8)))
+			((!pSourceSurface->IsPalette() && !IsPalette()) || (pSourceSurface->IsPalette() && IsPalette())))
 		{
 			IDirect3DSurface9* pSourceSurfaceD9 = pSourceSurface->GetD3D9Surface();
 			IDirect3DSurface9* pDestSurfaceD9 = GetD3D9Surface();
@@ -5564,7 +5565,7 @@ void m_IDirectDrawSurfaceX::RemovePalette(m_IDirectDrawPalette* PaletteToRemove)
 void m_IDirectDrawSurfaceX::UpdatePaletteData()
 {
 	// Check surface format
-	if (surfaceFormat != D3DFMT_P8)
+	if (!IsPalette())
 	{
 		return;
 	}
