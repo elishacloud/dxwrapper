@@ -3676,9 +3676,8 @@ void m_IDirectDrawSurfaceX::UpdateSurfaceDesc()
 			surfaceDesc2.lPitch = 0;
 		}
 		// Set Refresh Rate
-		if (RefreshRate && !(surfaceDesc2.dwFlags & DDSD_REFRESHRATE))
+		if (RefreshRate && ((surfaceDesc2.dwFlags & DDSD_REFRESHRATE) || (IsPrimarySurface() || IsBackBuffer())))
 		{
-			ResetDisplayFlags |= DDSD_REFRESHRATE;
 			surfaceDesc2.dwFlags |= DDSD_REFRESHRATE;
 			surfaceDesc2.dwRefreshRate = RefreshRate;
 		}

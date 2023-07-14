@@ -1871,10 +1871,7 @@ HRESULT m_IDirectDrawX::SetDisplayMode(DWORD dwWidth, DWORD dwHeight, DWORD dwBP
 			SetResolution = ExclusiveMode;
 
 			// Recreate d3d9 device
-			if (d3d9Device)
-			{
-				CreateD3D9Device();
-			}
+			CreateD3D9Device();
 		}
 		else if (ChangeBPP)
 		{
@@ -2680,14 +2677,7 @@ void m_IDirectDrawX::GetFullDisplay(DWORD &Width, DWORD &Height, DWORD& BPP, DWO
 	if ((LastWidth && LastHeight && Width && Height && LastWidth != Width && LastHeight != Height) ||
 		LastBPP && BPP && LastBPP != BPP)
 	{
-		SetCriticalSection();
-
-		for (m_IDirectDrawSurfaceX *pSurface : SurfaceVector)
-		{
-			pSurface->ResetSurfaceDisplay();
-		}
-
-		ReleaseCriticalSection();
+		RestoreAllSurfaces();
 	}
 	LastWidth = Width;
 	LastHeight = Height;
