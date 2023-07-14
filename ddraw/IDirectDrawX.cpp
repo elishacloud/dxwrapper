@@ -348,7 +348,7 @@ HRESULT m_IDirectDrawX::CreateClipper(DWORD dwFlags, LPDIRECTDRAWCLIPPER FAR * l
 
 	if (Config.Dd7to9)
 	{
-		if (!lplpDDClipper)
+		if (!lplpDDClipper || pUnkOuter)
 		{
 			return DDERR_INVALIDPARAMS;
 		}
@@ -376,7 +376,7 @@ HRESULT m_IDirectDrawX::CreatePalette(DWORD dwFlags, LPPALETTEENTRY lpDDColorArr
 
 	if (Config.Dd7to9)
 	{
-		if (!lplpDDPalette || !lpDDColorArray)
+		if (!lplpDDPalette || !lpDDColorArray || pUnkOuter)
 		{
 			return DDERR_INVALIDPARAMS;
 		}
@@ -402,7 +402,7 @@ HRESULT m_IDirectDrawX::CreateSurface(LPDDSURFACEDESC lpDDSurfaceDesc, LPDIRECTD
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	if (!lplpDDSurface || !lpDDSurfaceDesc)
+	if (!lplpDDSurface || !lpDDSurfaceDesc || pUnkOuter)
 	{
 		return DDERR_INVALIDPARAMS;
 	}
@@ -463,7 +463,7 @@ HRESULT m_IDirectDrawX::CreateSurface2(LPDDSURFACEDESC2 lpDDSurfaceDesc2, LPDIRE
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	if (!lplpDDSurface || !lpDDSurfaceDesc2)
+	if (!lplpDDSurface || !lpDDSurfaceDesc2 || pUnkOuter)
 	{
 		return DDERR_INVALIDPARAMS;
 	}
@@ -571,6 +571,7 @@ HRESULT m_IDirectDrawX::CreateSurface2(LPDDSURFACEDESC2 lpDDSurfaceDesc2, LPDIRE
 		// Check pixel format
 		if (Desc2.dwFlags & DDSD_PIXELFORMAT)
 		{
+			Desc2.ddpfPixelFormat.dwSize = sizeof(DDPIXELFORMAT);
 			const DWORD Usage = (Desc2.ddsCaps.dwCaps & DDSCAPS_PRIMARYSURFACE) ? D3DUSAGE_RENDERTARGET :
 				((Desc2.dwFlags & DDSD_MIPMAPCOUNT) || (Desc2.ddsCaps.dwCaps & DDSCAPS_MIPMAP)) ? D3DUSAGE_AUTOGENMIPMAP :
 				(Desc2.ddpfPixelFormat.dwFlags & (DDPF_ZBUFFER | DDPF_STENCILBUFFER)) ? D3DUSAGE_DEPTHSTENCIL : 0;
@@ -2510,8 +2511,8 @@ void m_IDirectDrawX::ReleaseDdraw()
 	// Release surfaces
 	for (m_IDirectDrawSurfaceX *pSurface : SurfaceVector)
 	{
-		pSurface->ClearDdraw();
 		pSurface->ReleaseD9Surface(false);
+		pSurface->ClearDdraw();
 	}
 	SurfaceVector.clear();
 
@@ -2532,8 +2533,8 @@ void m_IDirectDrawX::ReleaseDdraw()
 	// Release vertex buffers
 	for (m_IDirect3DVertexBufferX* pVertexBuffer : VertexBufferVector)
 	{
-		pVertexBuffer->ClearDdraw();
 		pVertexBuffer->ReleaseD9Buffers(false);
+		pVertexBuffer->ClearDdraw();
 	}
 	VertexBufferVector.clear();
 
