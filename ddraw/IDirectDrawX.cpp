@@ -1780,7 +1780,7 @@ HRESULT m_IDirectDrawX::SetDisplayMode(DWORD dwWidth, DWORD dwHeight, DWORD dwBP
 			DWORD FoundHeight = dwHeight;
 
 			// Check if it is a supported resolution
-			if (ExclusiveMode && (!Config.EnableWindowMode || Config.FullscreenWindowMode))
+			if ((ExclusiveMode && !Config.EnableWindowMode) || Config.FullscreenWindowMode)
 			{
 				// Check for device interface
 				if (FAILED(CheckInterface(__FUNCTION__, false)))
