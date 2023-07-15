@@ -850,22 +850,6 @@ HRESULT m_IDirectDrawSurfaceX::EnumAttachedSurfaces2(LPVOID lpContext, LPDDENUMS
 		return DDERR_INVALIDPARAMS;
 	}
 
-	if (Config.Dd7to9)
-	{
-		for (auto& it : AttachedSurfaceMap)
-		{
-			DDSURFACEDESC2 Desc2 = {};
-			Desc2.dwSize = sizeof(DDSURFACEDESC2);
-			it.second.pSurface->GetSurfaceDesc2(&Desc2);
-			if (lpEnumSurfacesCallback7((LPDIRECTDRAWSURFACE7)it.second.pSurface->GetWrapperInterfaceX(DirectXVersion), &Desc2, lpContext) == DDENUMRET_CANCEL)
-			{
-				return DD_OK;
-			}
-		}
-
-		return DD_OK;
-	}
-
 	struct EnumSurface
 	{
 		LPVOID lpContext;
@@ -875,9 +859,9 @@ HRESULT m_IDirectDrawSurfaceX::EnumAttachedSurfaces2(LPVOID lpContext, LPDDENUMS
 
 		static HRESULT CALLBACK ConvertCallback(LPDIRECTDRAWSURFACE7 lpDDSurface, LPDDSURFACEDESC2 lpDDSurfaceDesc2, LPVOID lpContext)
 		{
-			EnumSurface *self = (EnumSurface*)lpContext;
+			EnumSurface* self = (EnumSurface*)lpContext;
 
-			if (lpDDSurface)
+			if (!Config.Dd7to9 && lpDDSurface)
 			{
 				lpDDSurface = ProxyAddressLookupTable.FindAddress<m_IDirectDrawSurface7>(lpDDSurface, self->DirectXVersion);
 			}
@@ -899,6 +883,22 @@ HRESULT m_IDirectDrawSurfaceX::EnumAttachedSurfaces2(LPVOID lpContext, LPDDENUMS
 	CallbackContext.lpCallback = lpEnumSurfacesCallback7;
 	CallbackContext.DirectXVersion = DirectXVersion;
 	CallbackContext.ConvertSurfaceDescTo2 = (ProxyDirectXVersion > 3 && DirectXVersion < 4);
+
+	if (Config.Dd7to9)
+	{
+		for (auto& it : AttachedSurfaceMap)
+		{
+			DDSURFACEDESC2 Desc2 = {};
+			Desc2.dwSize = sizeof(DDSURFACEDESC2);
+			it.second.pSurface->GetSurfaceDesc2(&Desc2);
+			if (EnumSurface::ConvertCallback((LPDIRECTDRAWSURFACE7)it.second.pSurface->GetWrapperInterfaceX(DirectXVersion), &Desc2, &CallbackContext) == DDENUMRET_CANCEL)
+			{
+				return DD_OK;
+			}
+		}
+
+		return DD_OK;
+	}
 
 	return ProxyInterface->EnumAttachedSurfaces(&CallbackContext, EnumSurface::ConvertCallback);
 }
@@ -951,12 +951,6 @@ HRESULT m_IDirectDrawSurfaceX::EnumOverlayZOrders2(DWORD dwFlags, LPVOID lpConte
 		return DDERR_INVALIDPARAMS;
 	}
 
-	if (Config.Dd7to9)
-	{
-		LOG_LIMIT(100, __FUNCTION__ << " Error: Not Implemented");
-		return DDERR_UNSUPPORTED;
-	}
-
 	struct EnumSurface
 	{
 		LPVOID lpContext;
@@ -968,7 +962,7 @@ HRESULT m_IDirectDrawSurfaceX::EnumOverlayZOrders2(DWORD dwFlags, LPVOID lpConte
 		{
 			EnumSurface *self = (EnumSurface*)lpContext;
 
-			if (lpDDSurface)
+			if (!Config.Dd7to9 && lpDDSurface)
 			{
 				lpDDSurface = ProxyAddressLookupTable.FindAddress<m_IDirectDrawSurface7>(lpDDSurface, self->DirectXVersion);
 			}
@@ -990,6 +984,12 @@ HRESULT m_IDirectDrawSurfaceX::EnumOverlayZOrders2(DWORD dwFlags, LPVOID lpConte
 	CallbackContext.lpCallback = lpfnCallback7;
 	CallbackContext.DirectXVersion = DirectXVersion;
 	CallbackContext.ConvertSurfaceDescTo2 = (ProxyDirectXVersion > 3 && DirectXVersion < 4);
+
+	if (Config.Dd7to9)
+	{
+		LOG_LIMIT(100, __FUNCTION__ << " Error: Not Implemented");
+		return DDERR_UNSUPPORTED;
+	}
 
 	return ProxyInterface->EnumOverlayZOrders(dwFlags, &CallbackContext, EnumSurface::ConvertCallback);
 }

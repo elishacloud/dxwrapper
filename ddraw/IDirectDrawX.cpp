@@ -1083,7 +1083,10 @@ HRESULT m_IDirectDrawX::EnumSurfaces2(DWORD dwFlags, LPDDSURFACEDESC2 lpDDSurfac
 					// When using the DDENUMSURFACES_DOESEXIST flag, an enumerated surface's reference count is incremented
 					pSurface7->AddRef();
 
-					EnumSurface::ConvertCallback(pSurface7, &Desc2, &CallbackContext);
+					if (EnumSurface::ConvertCallback(pSurface7, &Desc2, &CallbackContext) == DDENUMRET_CANCEL)
+					{
+						return DD_OK;
+					}
 				}
 			}
 			break;
