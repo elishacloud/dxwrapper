@@ -1054,7 +1054,7 @@ HRESULT m_IDirectDrawSurfaceX::Flip(LPDIRECTDRAWSURFACE7 lpDDSurfaceTargetOverri
 		if ((surfaceDesc2.ddsCaps.dwCaps & (DDSCAPS_FLIP | DDSCAPS_FRONTBUFFER)) != (DDSCAPS_FLIP | DDSCAPS_FRONTBUFFER))
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Error: This surface cannot be flipped");
-			return DDERR_INVALIDOBJECT;
+			return DDERR_NOTFLIPPABLE;
 		}
 
 		// Check if surface is locked or has an open DC
@@ -1309,12 +1309,23 @@ HRESULT m_IDirectDrawSurfaceX::GetBltStatus(DWORD dwFlags)
 
 	if (Config.Dd7to9)
 	{
+		// Check if device interface is lost
+		HRESULT c_hr = CheckInterface(__FUNCTION__, true, false);
+		if (FAILED(c_hr) && !IsUsingEmulation())
+		{
+			return c_hr;
+		}
+
 		// Inquires whether a blit involving this surface can occur immediately, and returns DD_OK if the blit can be completed.
 		if (dwFlags == DDGBS_CANBLT)
 		{
 			if (IsInBlt)
 			{
 				return DDERR_WASSTILLDRAWING;
+			}
+			if (IsLocked || IsInDC)
+			{
+				return DDERR_SURFACEBUSY;
 			}
 			return DD_OK;
 		}
@@ -1590,24 +1601,44 @@ HRESULT m_IDirectDrawSurfaceX::GetFlipStatus(DWORD dwFlags)
 
 	if (Config.Dd7to9)
 	{
-		// Get backbuffer
-		m_IDirectDrawSurfaceX *lpBackBuffer = this;
-		for (auto& it : AttachedSurfaceMap)
+		// Flip can be called only for a surface that has the DDSCAPS_FLIP and DDSCAPS_FRONTBUFFER capabilities
+		if ((surfaceDesc2.ddsCaps.dwCaps & (DDSCAPS_FLIP | DDSCAPS_FRONTBUFFER)) != (DDSCAPS_FLIP | DDSCAPS_FRONTBUFFER))
 		{
-			if (!(it.second.pSurface->GetSurfaceCaps().dwCaps & DDSCAPS_BACKBUFFER))
-			{
-				lpBackBuffer = it.second.pSurface;
+			LOG_LIMIT(100, __FUNCTION__ << " Error: This surface cannot be flipped");
+			return DDERR_INVALIDSURFACETYPE;
+		}
 
-				break;
-			}
+		// Check if device interface is lost
+		HRESULT c_hr = CheckInterface(__FUNCTION__, true, false);
+		if (FAILED(c_hr) && !IsUsingEmulation())
+		{
+			return c_hr;
 		}
 
 		// Queries whether the surface can flip now. The method returns DD_OK if the flip can be completed.
 		if ((dwFlags == DDGFS_CANFLIP))
 		{
-			if (IsInFlip || IsSurfaceLocked() || IsSurfaceInDC() || lpBackBuffer->IsSurfaceLocked() || lpBackBuffer->IsSurfaceInDC())
+			// Check if flip is still happening
+			if (IsInFlip)
 			{
 				return DDERR_WASSTILLDRAWING;
+			}
+
+			// Get backbuffer
+			m_IDirectDrawSurfaceX* lpBackBuffer = this;
+			for (auto& it : AttachedSurfaceMap)
+			{
+				if (it.second.pSurface->GetSurfaceCaps().dwCaps & DDSCAPS_BACKBUFFER)
+				{
+					lpBackBuffer = it.second.pSurface;
+					break;
+				}
+			}
+
+			// Check if surface is busy
+			if (IsSurfaceLocked() || IsSurfaceInDC() || lpBackBuffer->IsSurfaceLocked() || lpBackBuffer->IsSurfaceInDC())
+			{
+				return DDERR_SURFACEBUSY;
 			}
 			return DD_OK;
 		}
@@ -2216,44 +2247,36 @@ HRESULT m_IDirectDrawSurfaceX::SetClipper(LPDIRECTDRAWCLIPPER lpDDClipper)
 
 	if (Config.Dd7to9)
 	{
-		// If lpDDClipper is nullptr then detach the current clipper if it exists
-		if (!lpDDClipper)
+		if (!lpDDClipper && !attachedClipper)
 		{
-			if (!attachedClipper)
-			{
-				return DDERR_NOCLIPPERATTACHED;
-			}
-
-			// Decrement ref count
-			attachedClipper->Release();
-
-			// Detach
-			attachedClipper = nullptr;
-
-			// Reset FirstRun
-			ClipperFirstRun = true;
+			return DDERR_NOCLIPPERATTACHED;
 		}
-		else
+
+		if (lpDDClipper == attachedClipper)
 		{
-			// Check if palette exists
+			return DD_OK;
+		}
+
+		// If clipper exists increament ref
+		if (lpDDClipper)
+		{
 			if (!ddrawParent || !ddrawParent->DoesClipperExist((m_IDirectDrawClipper*)lpDDClipper))
 			{
 				LOG_LIMIT(100, __FUNCTION__ << " Error: could not find clipper");
 				return DDERR_INVALIDOBJECT;
 			}
 
-			// Set clipper address
-			attachedClipper = (m_IDirectDrawClipper*)lpDDClipper;
-
-			// When you call SetClipper to set a clipper to a surface for the first time, 
-			// SetClipper increments the clipper's reference count; subsequent calls to 
-			// SetClipper do not affect the clipper's reference count.
-			if (ClipperFirstRun)
-			{
-				attachedClipper->AddRef();
-				ClipperFirstRun = false;
-			}
+			lpDDClipper->AddRef();
 		}
+
+		// Decrement ref count
+		if (attachedClipper && ddrawParent && ddrawParent->DoesClipperExist(attachedClipper))
+		{
+			attachedClipper->Release();
+		}
+
+		// Set clipper address
+		attachedClipper = (m_IDirectDrawClipper*)lpDDClipper;
 
 		return DD_OK;
 	}
@@ -2387,51 +2410,36 @@ HRESULT m_IDirectDrawSurfaceX::SetPalette(LPDIRECTDRAWPALETTE lpDDPalette)
 
 	if (Config.Dd7to9)
 	{
-		// If lpDDPalette is nullptr then detach the current palette if it exists
-		if (!lpDDPalette)
+		if (!lpDDPalette && !attachedPalette)
 		{
-			if (!attachedPalette)
-			{
-				return DDERR_NOPALETTEATTACHED;
-			}
-
-			// Decrement ref count
-			attachedPalette->Release();
-
-			// Detach
-			attachedPalette = nullptr;
-
-			// Reset FirstRun
-			PaletteFirstRun = true;
+			return DDERR_NOPALETTEATTACHED;
 		}
-		// If lpDDPalette is not null
-		else
+
+		if (lpDDPalette == attachedPalette)
 		{
-			// Check if palette exists
+			return DD_OK;
+		}
+
+		// If palette exists increament ref
+		if (lpDDPalette)
+		{
 			if (!ddrawParent || !ddrawParent->DoesPaletteExist((m_IDirectDrawPalette*)lpDDPalette))
 			{
 				LOG_LIMIT(100, __FUNCTION__ << " Error: could not find palette");
 				return DDERR_INVALIDOBJECT;
 			}
 
-			// Set palette address
-			attachedPalette = (m_IDirectDrawPalette*)lpDDPalette;
-
-			// When you call SetPalette to set a palette to a surface for the first time, 
-			// SetPalette increments the palette's reference count; subsequent calls to 
-			// SetPalette do not affect the palette's reference count.
-			if (PaletteFirstRun)
-			{
-				attachedPalette->AddRef();
-				PaletteFirstRun = false;
-			}
-
-			// Set primary
-			if (IsPrimarySurface())
-			{
-				attachedPalette->SetPrimary();
-			}
+			lpDDPalette->AddRef();
 		}
+
+		// Decrement ref count
+		if (attachedPalette && ddrawParent && ddrawParent->DoesPaletteExist(attachedPalette))
+		{
+			attachedPalette->Release();
+		}
+
+		// Set palette address
+		attachedPalette = (m_IDirectDrawPalette*)lpDDPalette;
 
 		// If new palette is set
 		PaletteUSN++;
@@ -5551,8 +5559,7 @@ void m_IDirectDrawSurfaceX::RemoveClipper(m_IDirectDrawClipper* ClipperToRemove)
 {
 	if (ClipperToRemove == attachedClipper)
 	{
-		attachedClipper = nullptr;
-		ClipperFirstRun = true;
+		SetClipper(nullptr);
 	}
 }
 
@@ -5560,8 +5567,7 @@ void m_IDirectDrawSurfaceX::RemovePalette(m_IDirectDrawPalette* PaletteToRemove)
 {
 	if (PaletteToRemove == attachedPalette)
 	{
-		attachedPalette = nullptr;
-		PaletteFirstRun = true;
+		SetPalette(nullptr);
 	}
 }
 

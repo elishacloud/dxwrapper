@@ -102,8 +102,6 @@ private:
 	bool IsInFlip = false;
 	DWORD PaletteUSN = (DWORD)this;						// The USN thats used to see if the palette data was updated
 	DWORD LastPaletteUSN = 0;							// The USN that was used last time the palette was updated
-	bool PaletteFirstRun = true;
-	bool ClipperFirstRun = true;
 
 	// Direct3D9 vars
 	LPDIRECT3DDEVICE9* d3d9Device = nullptr;			// Direct3D9 Device

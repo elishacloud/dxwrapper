@@ -2953,7 +2953,7 @@ HRESULT m_IDirectDrawX::CreateD3D9Device()
 				// Resetting the device failed
 				if (FAILED(hr))
 				{
-					Logging::Log() << __FUNCTION__ << " Failed to reset device! Last create: " << (D3DERR)hr << " " << LastHWnd << "->" << hWnd << " " <<
+					Logging::Log() << __FUNCTION__ << " Failed to reset device! " << (D3DERR)hr << " Last create: " << LastHWnd << "->" << hWnd << " " <<
 						" Windowed: " << LastWindowedMode << "->" << presParams.Windowed <<
 						Logging::hex(LastBehaviorFlags) << "->" << Logging::hex(BehaviorFlags);
 
