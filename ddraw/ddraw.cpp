@@ -359,7 +359,7 @@ HRESULT WINAPI dd_DirectDrawCreateClipper(DWORD dwFlags, LPDIRECTDRAWCLIPPER *lp
 
 	if (Config.Dd7to9)
 	{
-		if (!lplpDDClipper)
+		if (!lplpDDClipper || pUnkOuter)
 		{
 			return DDERR_INVALIDPARAMS;
 		}
@@ -396,7 +396,7 @@ HRESULT WINAPI dd_DirectDrawCreateEx(GUID FAR *lpGUID, LPVOID *lplpDD, REFIID ri
 
 	if (Config.Dd7to9)
 	{
-		if (!lplpDD)
+		if (!lplpDD || pUnkOuter)
 		{
 			return DDERR_INVALIDPARAMS;
 		}

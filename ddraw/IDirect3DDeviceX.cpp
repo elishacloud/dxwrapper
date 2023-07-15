@@ -977,6 +977,11 @@ HRESULT m_IDirect3DDeviceX::SetTexture(DWORD dwStage, LPDIRECTDRAWSURFACE7 lpSur
 
 		if (SUCCEEDED(hr) && dwStage < MaxTextureLevel+1)
 		{
+			if (lpDDSrcSurfaceX && lpDDSrcSurfaceX->IsPalette())
+			{
+				LOG_LIMIT(100, __FUNCTION__ << " Warning: setting palette texture not implemented!");
+			}
+
 			AttachedTexture[dwStage] = lpSurface;
 			if (dwStage == 0)
 			{

@@ -41,11 +41,12 @@ HANDLE ghWriteEvent = nullptr;
 HANDLE threadID = nullptr;
 HHOOK m_hook = nullptr;
 bool bMouseChange = false;
-POINT mousePos;
+POINT mousePos = {};
 
 // Cooperative level settings
-HWND MainhWnd = nullptr;
-HDC MainhDC = nullptr;
+HWND MainhWnd;
+HDC MainhDC;
+m_IDirectDrawX* MainSetBy;
 
 // Exclusive mode
 bool ExclusiveMode;
@@ -304,11 +305,6 @@ ULONG m_IDirectDrawX::Release(DWORD DirectXVersion)
 			InterlockedCompareExchange(&RefCount3, 0, 0) + InterlockedCompareExchange(&RefCount4, 0, 0) +
 			InterlockedCompareExchange(&RefCount7, 0, 0) == 0)
 		{
-			if (ExclusiveSetBy == this)
-			{
-				ExclusiveSetBy = nullptr;
-			}
-
 			delete this;
 		}
 	}
@@ -348,7 +344,7 @@ HRESULT m_IDirectDrawX::CreateClipper(DWORD dwFlags, LPDIRECTDRAWCLIPPER FAR * l
 
 	if (Config.Dd7to9)
 	{
-		if (!lplpDDClipper)
+		if (!lplpDDClipper || pUnkOuter)
 		{
 			return DDERR_INVALIDPARAMS;
 		}
@@ -376,7 +372,7 @@ HRESULT m_IDirectDrawX::CreatePalette(DWORD dwFlags, LPPALETTEENTRY lpDDColorArr
 
 	if (Config.Dd7to9)
 	{
-		if (!lplpDDPalette || !lpDDColorArray)
+		if (!lplpDDPalette || !lpDDColorArray || pUnkOuter)
 		{
 			return DDERR_INVALIDPARAMS;
 		}
@@ -402,7 +398,7 @@ HRESULT m_IDirectDrawX::CreateSurface(LPDDSURFACEDESC lpDDSurfaceDesc, LPDIRECTD
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	if (!lplpDDSurface || !lpDDSurfaceDesc)
+	if (!lplpDDSurface || !lpDDSurfaceDesc || pUnkOuter)
 	{
 		return DDERR_INVALIDPARAMS;
 	}
@@ -463,7 +459,7 @@ HRESULT m_IDirectDrawX::CreateSurface2(LPDDSURFACEDESC2 lpDDSurfaceDesc2, LPDIRE
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	if (!lplpDDSurface || !lpDDSurfaceDesc2)
+	if (!lplpDDSurface || !lpDDSurfaceDesc2 || pUnkOuter)
 	{
 		return DDERR_INVALIDPARAMS;
 	}
@@ -571,6 +567,7 @@ HRESULT m_IDirectDrawX::CreateSurface2(LPDDSURFACEDESC2 lpDDSurfaceDesc2, LPDIRE
 		// Check pixel format
 		if (Desc2.dwFlags & DDSD_PIXELFORMAT)
 		{
+			Desc2.ddpfPixelFormat.dwSize = sizeof(DDPIXELFORMAT);
 			const DWORD Usage = (Desc2.ddsCaps.dwCaps & DDSCAPS_PRIMARYSURFACE) ? D3DUSAGE_RENDERTARGET :
 				((Desc2.dwFlags & DDSD_MIPMAPCOUNT) || (Desc2.ddsCaps.dwCaps & DDSCAPS_MIPMAP)) ? D3DUSAGE_AUTOGENMIPMAP :
 				(Desc2.ddpfPixelFormat.dwFlags & (DDPF_ZBUFFER | DDPF_STENCILBUFFER)) ? D3DUSAGE_DEPTHSTENCIL : 0;
@@ -1348,8 +1345,8 @@ HRESULT m_IDirectDrawX::GetFourCCCodes(LPDWORD lpNumCodes, LPDWORD lpCodes)
 		if (lpCodes)
 		{
 			// Copy data to array
-			DWORD SizeToCopy = min(FourCCsList.size(), *lpNumCodes);
-			memcpy(lpCodes, &FourCCsList[0], SizeToCopy * sizeof(DWORD));
+			const DWORD SizeToCopy = min(FourCCsList.size(), *lpNumCodes);
+			memcpy(lpCodes, FourCCsList.data(), SizeToCopy * sizeof(D3DFORMAT));
 		}
 
 		// Set total number of FourCCs
@@ -1638,7 +1635,7 @@ HRESULT m_IDirectDrawX::SetCooperativeLevel(HWND hWnd, DWORD dwFlags, DWORD Dire
 		NoWindowChanges = ((dwFlags & DDSCL_NOWINDOWCHANGES) != 0);
 
 		// Check window handle
-		if (hWnd && ((!ExclusiveMode || ExclusiveHwnd == hWnd) || !IsWindow(MainhWnd)))
+		if (hWnd && (((!ExclusiveMode || ExclusiveHwnd == hWnd) && (!MainhWnd || !MainSetBy || MainSetBy == this)) || !IsWindow(MainhWnd)))
 		{
 			// Check if DC needs to be released
 			if (MainhWnd && MainhDC && (MainhWnd != hWnd))
@@ -1649,6 +1646,7 @@ HRESULT m_IDirectDrawX::SetCooperativeLevel(HWND hWnd, DWORD dwFlags, DWORD Dire
 			}
 
 			MainhWnd = hWnd;
+			MainSetBy = this;
 
 			if (MainhWnd && !MainhDC)
 			{
@@ -1870,10 +1868,7 @@ HRESULT m_IDirectDrawX::SetDisplayMode(DWORD dwWidth, DWORD dwHeight, DWORD dwBP
 			SetResolution = ExclusiveMode;
 
 			// Recreate d3d9 device
-			if (d3d9Device)
-			{
-				CreateD3D9Device();
-			}
+			CreateD3D9Device();
 		}
 		else if (ChangeBPP)
 		{
@@ -2296,6 +2291,7 @@ void m_IDirectDrawX::InitDdraw(DWORD DirectXVersion)
 		}
 		MainhWnd = nullptr;
 		MainhDC = nullptr;
+		MainSetBy = nullptr;
 
 		// Exclusive mode
 		ExclusiveMode = false;
@@ -2484,6 +2480,16 @@ void m_IDirectDrawX::ReleaseDdraw()
 
 	SetCriticalSection();
 
+	// Clear SetBy handles
+	if (MainSetBy == this)
+	{
+		MainSetBy = nullptr;
+	}
+	if (ExclusiveSetBy == this)
+	{
+		ExclusiveSetBy = nullptr;
+	}
+
 	// Remove ddraw device from vector
 	auto it = std::find_if(DDrawVector.begin(), DDrawVector.end(),
 		[=](auto pDDraw) -> bool { return pDDraw == this; });
@@ -2510,8 +2516,8 @@ void m_IDirectDrawX::ReleaseDdraw()
 	// Release surfaces
 	for (m_IDirectDrawSurfaceX *pSurface : SurfaceVector)
 	{
-		pSurface->ClearDdraw();
 		pSurface->ReleaseD9Surface(false);
+		pSurface->ClearDdraw();
 	}
 	SurfaceVector.clear();
 
@@ -2532,8 +2538,8 @@ void m_IDirectDrawX::ReleaseDdraw()
 	// Release vertex buffers
 	for (m_IDirect3DVertexBufferX* pVertexBuffer : VertexBufferVector)
 	{
-		pVertexBuffer->ClearDdraw();
 		pVertexBuffer->ReleaseD9Buffers(false);
+		pVertexBuffer->ClearDdraw();
 	}
 	VertexBufferVector.clear();
 
@@ -2679,14 +2685,7 @@ void m_IDirectDrawX::GetFullDisplay(DWORD &Width, DWORD &Height, DWORD& BPP, DWO
 	if ((LastWidth && LastHeight && Width && Height && LastWidth != Width && LastHeight != Height) ||
 		LastBPP && BPP && LastBPP != BPP)
 	{
-		SetCriticalSection();
-
-		for (m_IDirectDrawSurfaceX *pSurface : SurfaceVector)
-		{
-			pSurface->ResetSurfaceDisplay();
-		}
-
-		ReleaseCriticalSection();
+		RestoreAllSurfaces();
 	}
 	LastWidth = Width;
 	LastHeight = Height;
