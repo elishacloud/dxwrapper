@@ -2042,7 +2042,10 @@ HRESULT m_IDirectDrawSurfaceX::Lock2(LPRECT lpDestRect, LPDDSURFACEDESC2 lpDDSur
 			lpDDSurfaceDesc2->lpSurface = LockedRect.pBits;
 			lpDDSurfaceDesc2->dwFlags |= DDSD_LPSURFACE;
 		}
-		lpDDSurfaceDesc2->lPitch = LockedRect.Pitch * (ISDXTEX(surfaceFormat) ? 64 : 1);
+		LockedRect.Pitch = ISDXTEX(surfaceFormat) ? LockedRect.Pitch * 64 :
+			(surfaceFormat == MAKEFOURCC('Y', 'V', '1', '2')) ? lpDDSurfaceDesc2->dwWidth :
+			LockedRect.Pitch;
+		lpDDSurfaceDesc2->lPitch = LockedRect.Pitch;
 		lpDDSurfaceDesc2->dwFlags |= DDSD_PITCH;
 
 		// Fix misaligned bytes

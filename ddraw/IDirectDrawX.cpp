@@ -41,11 +41,12 @@ HANDLE ghWriteEvent = nullptr;
 HANDLE threadID = nullptr;
 HHOOK m_hook = nullptr;
 bool bMouseChange = false;
-POINT mousePos;
+POINT mousePos = {};
 
 // Cooperative level settings
-HWND MainhWnd = nullptr;
-HDC MainhDC = nullptr;
+HWND MainhWnd;
+HDC MainhDC;
+m_IDirectDrawX* MainSetBy;
 
 // Exclusive mode
 bool ExclusiveMode;
@@ -304,11 +305,6 @@ ULONG m_IDirectDrawX::Release(DWORD DirectXVersion)
 			InterlockedCompareExchange(&RefCount3, 0, 0) + InterlockedCompareExchange(&RefCount4, 0, 0) +
 			InterlockedCompareExchange(&RefCount7, 0, 0) == 0)
 		{
-			if (ExclusiveSetBy == this)
-			{
-				ExclusiveSetBy = nullptr;
-			}
-
 			delete this;
 		}
 	}
@@ -1349,8 +1345,8 @@ HRESULT m_IDirectDrawX::GetFourCCCodes(LPDWORD lpNumCodes, LPDWORD lpCodes)
 		if (lpCodes)
 		{
 			// Copy data to array
-			DWORD SizeToCopy = min(FourCCsList.size(), *lpNumCodes);
-			memcpy(lpCodes, &FourCCsList[0], SizeToCopy * sizeof(DWORD));
+			const DWORD SizeToCopy = min(FourCCsList.size(), *lpNumCodes);
+			memcpy(lpCodes, FourCCsList.data(), SizeToCopy * sizeof(D3DFORMAT));
 		}
 
 		// Set total number of FourCCs
@@ -1639,7 +1635,7 @@ HRESULT m_IDirectDrawX::SetCooperativeLevel(HWND hWnd, DWORD dwFlags, DWORD Dire
 		NoWindowChanges = ((dwFlags & DDSCL_NOWINDOWCHANGES) != 0);
 
 		// Check window handle
-		if (hWnd && ((!ExclusiveMode || ExclusiveHwnd == hWnd) || !IsWindow(MainhWnd)))
+		if (hWnd && (((!ExclusiveMode || ExclusiveHwnd == hWnd) && (!MainhWnd || !MainSetBy || MainSetBy == this)) || !IsWindow(MainhWnd)))
 		{
 			// Check if DC needs to be released
 			if (MainhWnd && MainhDC && (MainhWnd != hWnd))
@@ -1650,6 +1646,7 @@ HRESULT m_IDirectDrawX::SetCooperativeLevel(HWND hWnd, DWORD dwFlags, DWORD Dire
 			}
 
 			MainhWnd = hWnd;
+			MainSetBy = this;
 
 			if (MainhWnd && !MainhDC)
 			{
@@ -2294,6 +2291,7 @@ void m_IDirectDrawX::InitDdraw(DWORD DirectXVersion)
 		}
 		MainhWnd = nullptr;
 		MainhDC = nullptr;
+		MainSetBy = nullptr;
 
 		// Exclusive mode
 		ExclusiveMode = false;
@@ -2481,6 +2479,16 @@ void m_IDirectDrawX::ReleaseDdraw()
 	DWORD ddref = InterlockedDecrement(&ddrawRefCount);
 
 	SetCriticalSection();
+
+	// Clear SetBy handles
+	if (MainSetBy == this)
+	{
+		MainSetBy = nullptr;
+	}
+	if (ExclusiveSetBy == this)
+	{
+		ExclusiveSetBy = nullptr;
+	}
 
 	// Remove ddraw device from vector
 	auto it = std::find_if(DDrawVector.begin(), DDrawVector.end(),
