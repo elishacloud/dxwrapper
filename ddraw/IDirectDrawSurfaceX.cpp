@@ -1796,7 +1796,8 @@ HRESULT m_IDirectDrawSurfaceX::GetSurfaceDesc2(LPDDSURFACEDESC2 lpDDSurfaceDesc2
 			(lpDDSurfaceDesc2->ddpfPixelFormat.dwFlags & DDPF_RGB) && !(lpDDSurfaceDesc2->dwFlags & DDSD_PITCH) && !(lpDDSurfaceDesc2->dwFlags & DDSD_LINEARSIZE))
 		{
 			lpDDSurfaceDesc2->dwFlags |= DDSD_PITCH;
-			lpDDSurfaceDesc2->lPitch = ComputePitch(GetByteAlignedWidth(surfaceDesc2.dwWidth, surfaceBitCount), GetBitCount(lpDDSurfaceDesc2->ddpfPixelFormat));
+			DWORD BitCount = BitCount = GetBitCount(lpDDSurfaceDesc2->ddpfPixelFormat);
+			lpDDSurfaceDesc2->lPitch = ComputePitch(GetByteAlignedWidth(surfaceDesc2.dwWidth, BitCount), BitCount);
 		}
 
 		if (!(surfaceDesc2.dwFlags & DDSD_LPSURFACE))
@@ -2074,7 +2075,7 @@ HRESULT m_IDirectDrawSurfaceX::Lock2(LPRECT lpDestRect, LPDDSURFACEDESC2 lpDDSur
 			lpDDSurfaceDesc2->dwFlags |= DDSD_LPSURFACE;
 		}
 		LockedRect.Pitch = ISDXTEX(surfaceFormat) ? LockedRect.Pitch * 64 :
-			(surfaceFormat == MAKEFOURCC('Y', 'V', '1', '2')) ? lpDDSurfaceDesc2->dwWidth :
+			(surfaceFormat == D3DFMT_YV12) ? GetByteAlignedWidth(surfaceDesc2.dwWidth, surfaceBitCount) :
 			LockedRect.Pitch;
 		lpDDSurfaceDesc2->lPitch = LockedRect.Pitch;
 		lpDDSurfaceDesc2->dwFlags |= DDSD_PITCH;
@@ -4728,7 +4729,7 @@ HRESULT m_IDirectDrawSurfaceX::ColorFill(RECT* pRect, D3DCOLOR dwFillColor)
 		LONG FillWidth = DestRect.right - DestRect.left;
 		LONG FillHeight = DestRect.bottom - DestRect.top;
 
-		if ((LONG)ComputePitch(FillWidth, ByteCount) == DestLockRect.Pitch && ByteCount != 3)
+		if ((LONG)ComputePitch(FillWidth, surfaceBitCount) == DestLockRect.Pitch && ByteCount != 3)
 		{
 			DWORD Color =
 				(ByteCount == 1) ? ((dwFillColor & 0xFF) << 24) + ((dwFillColor & 0xFF) << 16) +

@@ -496,8 +496,7 @@ D3DFORMAT GetDisplayFormat(DDPIXELFORMAT ddpfPixelFormat)
 
 	if (ddpfPixelFormat.dwFlags & (DDPF_RGB | DDPF_PALETTEINDEXED8 | DDPF_LUMINANCE | DDPF_ALPHA))
 	{
-		DWORD BitCount = GetBitCount(ddpfPixelFormat);
-		switch (BitCount)
+		switch (GetBitCount(ddpfPixelFormat))
 		{
 		case 8:
 			if ((ddpfPixelFormat.dwFlags & DDPF_ALPHAPIXELS) && (ddpfPixelFormat.dwLuminanceAlphaBitMask == 0xF0) &&
