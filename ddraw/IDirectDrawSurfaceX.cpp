@@ -1791,15 +1791,7 @@ HRESULT m_IDirectDrawSurfaceX::GetSurfaceDesc2(LPDDSURFACEDESC2 lpDDSurfaceDesc2
 		// Copy surfacedesc to lpDDSurfaceDesc2
 		*lpDDSurfaceDesc2 = surfaceDesc2;
 
-		// Set lPitch
-		if ((lpDDSurfaceDesc2->dwFlags & (DDSD_WIDTH | DDSD_HEIGHT | DDSD_PIXELFORMAT)) == (DDSD_WIDTH | DDSD_HEIGHT | DDSD_PIXELFORMAT) &&
-			(lpDDSurfaceDesc2->ddpfPixelFormat.dwFlags & DDPF_RGB) && !(lpDDSurfaceDesc2->dwFlags & DDSD_PITCH) && !(lpDDSurfaceDesc2->dwFlags & DDSD_LINEARSIZE))
-		{
-			lpDDSurfaceDesc2->dwFlags |= DDSD_PITCH;
-			DWORD BitCount = BitCount = GetBitCount(lpDDSurfaceDesc2->ddpfPixelFormat);
-			lpDDSurfaceDesc2->lPitch = ComputePitch(GetByteAlignedWidth(surfaceDesc2.dwWidth, BitCount), BitCount);
-		}
-
+		// Remove surface memory pointer
 		if (!(surfaceDesc2.dwFlags & DDSD_LPSURFACE))
 		{
 			lpDDSurfaceDesc2->lpSurface = nullptr;
@@ -2079,6 +2071,15 @@ HRESULT m_IDirectDrawSurfaceX::Lock2(LPRECT lpDestRect, LPDDSURFACEDESC2 lpDDSur
 			LockedRect.Pitch;
 		lpDDSurfaceDesc2->lPitch = LockedRect.Pitch;
 		lpDDSurfaceDesc2->dwFlags |= DDSD_PITCH;
+
+		// Set surface pitch
+		if ((surfaceDesc2.dwFlags & DDSD_PITCH) && surfaceDesc2.lPitch != LockedRect.Pitch)
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Warning: surface pitch does not match locked pitch! Format: " << surfaceFormat <<
+				" Width: " << surfaceDesc2.dwWidth << " Pitch: " << surfaceDesc2.lPitch << "->" << LockedRect.Pitch);
+		}
+		surfaceDesc2.lPitch = LockedRect.Pitch;
+		surfaceDesc2.dwFlags |= DDSD_PITCH;
 
 		// Fix misaligned bytes
 		if (Config.DdrawFixByteAlignment)
@@ -3333,9 +3334,7 @@ HRESULT m_IDirectDrawSurfaceX::CreateD3d9Surface()
 		}
 		else if (!surfaceBackup.empty())
 		{
-			DWORD Bytes = surfaceBitCount / 8;
-			DWORD Pitch = surfaceBackup.size() / surfaceDesc2.dwHeight;
-			if (Bytes && Pitch / Bytes >= surfaceDesc2.dwWidth)
+			if (surfaceBackup.size() / surfaceDesc2.dwHeight == (DWORD)surfaceDesc2.lPitch)
 			{
 				IDirect3DSurface9* pDestSurfaceD9 = GetD3D9Surface();
 
@@ -3343,7 +3342,7 @@ HRESULT m_IDirectDrawSurfaceX::CreateD3d9Surface()
 				{
 					RECT Rect = { 0, 0, (LONG)surfaceDesc2.dwWidth, (LONG)surfaceDesc2.dwHeight };
 
-					if (SUCCEEDED(D3DXLoadSurfaceFromMemory(pDestSurfaceD9, nullptr, &Rect, &surfaceBackup[0], (surfaceFormat == D3DFMT_P8) ? D3DFMT_L8 : surfaceFormat, Pitch, nullptr, &Rect, D3DX_FILTER_NONE, 0)))
+					if (SUCCEEDED(D3DXLoadSurfaceFromMemory(pDestSurfaceD9, nullptr, &Rect, &surfaceBackup[0], (surfaceFormat == D3DFMT_P8) ? D3DFMT_L8 : surfaceFormat, surfaceDesc2.lPitch, nullptr, &Rect, D3DX_FILTER_NONE, 0)))
 					{
 						if (IsUsingEmulation())
 						{
@@ -3355,6 +3354,11 @@ HRESULT m_IDirectDrawSurfaceX::CreateD3d9Surface()
 						LOG_LIMIT(100, __FUNCTION__ << " Error: failed to restore surface data!");
 					}
 				}
+			}
+			else
+			{
+				LOG_LIMIT(100, __FUNCTION__ << " Warning: could not retstore backup surface data! Data size: " << surfaceBackup.size() <<
+					" Surface pitch: " << surfaceDesc2.lPitch << " " << surfaceDesc2.dwWidth << "x" << surfaceDesc2.dwHeight);
 			}
 		}
 	}
@@ -3699,6 +3703,7 @@ void m_IDirectDrawSurfaceX::UpdateSurfaceDesc()
 			ResetDisplayFlags |= DDSD_PIXELFORMAT | DDSD_PITCH;
 			surfaceDesc2.dwFlags |= DDSD_PIXELFORMAT;
 			ddrawParent->GetDisplayPixelFormat(surfaceDesc2.ddpfPixelFormat, BPP);
+			surfaceDesc2.lPitch = 0;
 		}
 	}
 	// Overwrite primary surface
@@ -3709,10 +3714,19 @@ void m_IDirectDrawSurfaceX::UpdateSurfaceDesc()
 		surfaceDesc2.dwHeight = Config.DdrawOverridePrimaryHeight;
 	}
 	// Unset lPitch
-	if ((surfaceDesc2.dwFlags & (DDSD_WIDTH | DDSD_HEIGHT | DDSD_PIXELFORMAT)) != (DDSD_WIDTH | DDSD_HEIGHT | DDSD_PIXELFORMAT) || !surfaceDesc2.lPitch)
+	if ((surfaceDesc2.dwFlags & (DDSD_WIDTH | DDSD_HEIGHT | DDSD_PIXELFORMAT)) != (DDSD_WIDTH | DDSD_HEIGHT | DDSD_PIXELFORMAT) ||
+		!surfaceDesc2.lPitch || !(surfaceDesc2.dwFlags & DDSD_PITCH))
 	{
 		surfaceDesc2.dwFlags &= ~DDSD_PITCH;
 		surfaceDesc2.lPitch = 0;
+	}
+	// Set lPitch
+	if ((surfaceDesc2.dwFlags & (DDSD_WIDTH | DDSD_HEIGHT | DDSD_PIXELFORMAT)) == (DDSD_WIDTH | DDSD_HEIGHT | DDSD_PIXELFORMAT) &&
+		(surfaceDesc2.ddpfPixelFormat.dwFlags & DDPF_RGB) && !(surfaceDesc2.dwFlags & DDSD_LINEARSIZE) && !(surfaceDesc2.dwFlags & DDSD_PITCH))
+	{
+		surfaceDesc2.dwFlags |= DDSD_PITCH;
+		DWORD BitCount = BitCount = GetBitCount(surfaceDesc2.ddpfPixelFormat);
+		surfaceDesc2.lPitch = ComputePitch(GetByteAlignedWidth(surfaceDesc2.dwWidth, BitCount), BitCount);
 	}
 }
 
@@ -4729,7 +4743,7 @@ HRESULT m_IDirectDrawSurfaceX::ColorFill(RECT* pRect, D3DCOLOR dwFillColor)
 		LONG FillWidth = DestRect.right - DestRect.left;
 		LONG FillHeight = DestRect.bottom - DestRect.top;
 
-		if ((LONG)ComputePitch(FillWidth, surfaceBitCount) == DestLockRect.Pitch && ByteCount != 3)
+		if ((DWORD)FillWidth == surfaceDesc2.dwWidth && ByteCount != 3)
 		{
 			DWORD Color =
 				(ByteCount == 1) ? ((dwFillColor & 0xFF) << 24) + ((dwFillColor & 0xFF) << 16) +
@@ -4764,15 +4778,15 @@ HRESULT m_IDirectDrawSurfaceX::ColorFill(RECT* pRect, D3DCOLOR dwFillColor)
 				memcpy(DestBuffer, SrcBuffer, size);
 				DestBuffer += DestLockRect.Pitch;
 			}
-		}
 
-		// Copy emulated surface to real texture
-		CopyFromEmulatedSurface(&DestRect);
+			// Copy emulated surface to real texture
+			CopyFromEmulatedSurface(&DestRect);
 
-		// Blt surface directly to GDI
-		if (Config.DdrawWriteToGDI && (IsPrimarySurface() || IsBackBuffer()))
-		{
-			CopyEmulatedSurfaceToGDI(DestRect);
+			// Blt surface directly to GDI
+			if (Config.DdrawWriteToGDI && (IsPrimarySurface() || IsBackBuffer()))
+			{
+				CopyEmulatedSurfaceToGDI(DestRect);
+			}
 		}
 	}
 
@@ -5128,7 +5142,7 @@ HRESULT m_IDirectDrawSurfaceX::CopySurface(m_IDirectDrawSurfaceX* pSourceSurface
 		// Simple memory copy (QuickCopy)
 		if (!IsStretchRect && !IsColorKey && !IsMirrorLeftRight && !FormatMismatch)
 		{
-			if (!IsMirrorUpDown && SrcLockRect.Pitch == DestLockRect.Pitch && (LONG)ComputePitch(DestRectWidth, DestBitCount) == DestPitch)
+			if (!IsMirrorUpDown && SrcLockRect.Pitch == DestLockRect.Pitch && (DWORD)DestRectWidth == surfaceDesc2.dwWidth)
 			{
 				memcpy(DestBuffer, SrcBuffer, DestRectHeight * DestPitch);
 			}
@@ -5471,7 +5485,7 @@ HRESULT m_IDirectDrawSurfaceX::CopyToEmulatedSurface(LPRECT lpDestRect)
 		}
 		break;
 	default:
-		if (SrcLockRect.Pitch == EmulatedLockRect.Pitch && (LONG)ComputePitch((DWORD)(DestRect.right - DestRect.left), emu->bmi->bmiHeader.biBitCount) == EmulatedLockRect.Pitch)
+		if (SrcLockRect.Pitch == EmulatedLockRect.Pitch && (DWORD)(DestRect.right - DestRect.left) == surfaceDesc2.dwWidth)
 		{
 			memcpy(EmulatedBuffer, SurfaceBuffer, SrcLockRect.Pitch * Height);
 		}
