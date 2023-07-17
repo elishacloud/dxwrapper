@@ -2432,11 +2432,23 @@ HRESULT m_IDirectDrawSurfaceX::SetPalette(LPDIRECTDRAWPALETTE lpDDPalette)
 			}
 
 			lpDDPalette->AddRef();
+
+			// Set primary flag
+			if (IsPrimarySurface())
+			{
+				((m_IDirectDrawPalette*)lpDDPalette)->SetPrimary();
+			}
 		}
 
 		// Decrement ref count
 		if (attachedPalette && ddrawParent && ddrawParent->DoesPaletteExist(attachedPalette))
 		{
+			// Remove primary flag
+			if (IsPrimarySurface() && attachedPalette != lpDDPalette)
+			{
+				attachedPalette->RemovePrimary();
+			}
+
 			attachedPalette->Release();
 		}
 

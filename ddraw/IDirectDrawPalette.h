@@ -72,12 +72,13 @@ public:
 	STDMETHOD(SetEntries)(THIS_ DWORD, DWORD, DWORD, LPPALETTEENTRY);
 
 	// Functions handling the ddraw parent interface
-	void SetDdrawParent(m_IDirectDrawX *ddraw) { ddrawParent = ddraw; }
-	void ClearDdraw() { ddrawParent = nullptr; }
+	inline void SetDdrawParent(m_IDirectDrawX *ddraw) { ddrawParent = ddraw; }
+	inline void ClearDdraw() { ddrawParent = nullptr; }
 
 	// Helper functions
-	RGBDWORD *GetRgbPalette() { return rgbPalette; }
-	DWORD GetPaletteUSN() { return PaletteUSN; }
-	DWORD GetEntryCount() { return entryCount; }
-	void SetPrimary() { paletteCaps |= DDPCAPS_PRIMARYSURFACE; }
+	inline RGBDWORD *GetRgbPalette() { return rgbPalette; }
+	inline DWORD GetPaletteUSN() { return PaletteUSN; }
+	inline DWORD GetEntryCount() { return entryCount; }
+	inline void SetPrimary() { paletteCaps |= DDPCAPS_PRIMARYSURFACE; }
+	inline void RemovePrimary() { paletteCaps &= ~DDPCAPS_PRIMARYSURFACE; }
 };
