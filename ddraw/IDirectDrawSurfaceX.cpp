@@ -3357,7 +3357,7 @@ HRESULT m_IDirectDrawSurfaceX::CreateD3d9Surface()
 			}
 			else
 			{
-				LOG_LIMIT(100, __FUNCTION__ << " Warning: could not retstore backup surface data! Data size: " << surfaceBackup.size() <<
+				LOG_LIMIT(100, __FUNCTION__ << " Warning: restore backup surface data size mismatch! Size: " << surfaceBackup.size() <<
 					" Surface pitch: " << surfaceDesc2.lPitch << " " << surfaceDesc2.dwWidth << "x" << surfaceDesc2.dwHeight);
 			}
 		}
