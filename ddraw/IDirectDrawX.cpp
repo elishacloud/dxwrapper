@@ -937,7 +937,7 @@ HRESULT m_IDirectDrawX::EnumDisplayModes2(DWORD dwFlags, LPDDSURFACEDESC2 lpDDSu
 
 					// Set pitch
 					Desc2.dwFlags |= DDSD_PITCH;
-					Desc2.lPitch = (Desc2.ddpfPixelFormat.dwRGBBitCount / 8) * Desc2.dwWidth;
+					Desc2.lPitch = ComputePitch(GetByteAlignedWidth(d3ddispmode.Width, DisplayBitCount), DisplayBitCount);
 
 					if (lpEnumModesCallback2(&Desc2, lpContext) == DDENUMRET_CANCEL)
 					{
