@@ -117,6 +117,13 @@ enum DirectDrawEnumerateTypes
 	DDET_ENUMCALLBACKW,
 };
 
+extern float ScaleDDWidthRatio;
+extern float ScaleDDHeightRatio;
+extern DWORD ScaleDDCurrentWidth;
+extern DWORD ScaleDDCurrentHeight;
+extern DWORD ScaleDDPadX;
+extern DWORD ScaleDDPadY;
+
 extern bool IsGameNox;
 
 using namespace DdrawWrapper;

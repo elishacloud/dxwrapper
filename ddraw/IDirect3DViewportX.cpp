@@ -16,11 +16,6 @@
 
 #include "ddraw.h"
 
-extern float ScaleDDWidthRatio;
-extern float ScaleDDHeightRatio;
-extern DWORD ScaleDDPadX;
-extern DWORD ScaleDDPadY;
-
 HRESULT m_IDirect3DViewportX::QueryInterface(REFIID riid, LPVOID FAR * ppvObj, DWORD DirectXVersion)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ") " << riid;

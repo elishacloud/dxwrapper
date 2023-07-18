@@ -23,13 +23,6 @@
 #include "d3dx9.h"
 #include "Utils\Utils.h"
 
-extern float ScaleDDWidthRatio;
-extern float ScaleDDHeightRatio;
-extern DWORD ScaleDDCurrentWidth;
-extern DWORD ScaleDDCurrentHeight;
-extern DWORD ScaleDDPadX;
-extern DWORD ScaleDDPadY;
-
 // Used to allow presenting non-primary surfaces in case the primary surface present fails
 bool dirtyFlag = false;
 bool SceneReady = false;
