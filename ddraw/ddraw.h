@@ -124,8 +124,6 @@ extern DWORD ScaleDDCurrentHeight;
 extern DWORD ScaleDDPadX;
 extern DWORD ScaleDDPadY;
 
-extern bool IsGameNox;
-
 using namespace DdrawWrapper;
 
 // Direct3D Version Wrappers

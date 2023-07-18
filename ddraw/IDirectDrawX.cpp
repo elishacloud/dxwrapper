@@ -124,9 +124,6 @@ LPDIRECT3DPIXELSHADER9 colorkeyPixelShader = nullptr;
 DWORD BehaviorFlags;
 HWND hFocusWindow;
 
-// Custom game settings
-bool IsGameNox = false;
-
 std::unordered_map<HWND, m_IDirectDrawX*> g_hookmap;
 
 /************************/
@@ -1570,16 +1567,6 @@ HRESULT m_IDirectDrawX::RestoreDisplayMode()
 HRESULT m_IDirectDrawX::SetCooperativeLevel(HWND hWnd, DWORD dwFlags, DWORD DirectXVersion)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ") " << hWnd << " " << Logging::hex(dwFlags);
-
-	// Check for Nox
-	if (IsWindow(hWnd))
-	{
-		char name[256] = {};
-		if (GetClassNameA(hWnd, name, sizeof(name)) && strcmp(name, "Nox Game Window") == S_OK)
-		{
-			IsGameNox = true;
-		}
-	}
 
 	if (Config.Dd7to9)
 	{
@@ -3221,7 +3208,8 @@ void m_IDirectDrawX::ReleaseD3D9Device()
 		ULONG ref = d3d9Device->Release();
 		if (ref)
 		{
-			Logging::Log() << __FUNCTION__ << " Error: there is still a reference to 'd3d9Device' " << ref;
+			Logging::Log() << __FUNCTION__ << " Warning: there is still a reference to 'd3d9Device' " << ref;
+			while (d3d9Device->Release()) {};
 		}
 		d3d9Device = nullptr;
 	}
@@ -3287,13 +3275,17 @@ void m_IDirectDrawX::RemoveSurfaceFromVector(m_IDirectDrawSurfaceX* lpSurfaceX)
 
 	if (it != std::end(SurfaceVector))
 	{
+		lpSurfaceX->ClearDdraw();
 		SurfaceVector.erase(it);
 
 		// Clear primary surface
-		if (lpSurfaceX == PrimarySurface)
+		for (auto pDDraw : DDrawVector)
 		{
-			PrimarySurface = nullptr;
-			ZeroMemory(&DisplayPixelFormat, sizeof(DDPIXELFORMAT));
+			if (lpSurfaceX == pDDraw->PrimarySurface)
+			{
+				pDDraw->PrimarySurface = nullptr;
+				ZeroMemory(&DisplayPixelFormat, sizeof(DDPIXELFORMAT));
+			}
 		}
 	}
 
@@ -3383,6 +3375,7 @@ void m_IDirectDrawX::RemoveClipperFromVector(m_IDirectDrawClipper* lpClipper)
 	// Remove clipper from vector
 	if (it != std::end(ClipperVector))
 	{
+		lpClipper->ClearDdraw();
 		ClipperVector.erase(it);
 	}
 
@@ -3461,6 +3454,7 @@ void m_IDirectDrawX::RemovePaletteFromVector(m_IDirectDrawPalette* lpPalette)
 	// Remove palette from vector
 	if (it != std::end(PaletteVector))
 	{
+		lpPalette->ClearDdraw();
 		PaletteVector.erase(it);
 	}
 
@@ -3531,6 +3525,7 @@ void m_IDirectDrawX::RemoveVertexBufferFromVector(m_IDirect3DVertexBufferX* lpVe
 	// Remove vertex buffer from vector
 	if (it != std::end(VertexBufferVector))
 	{
+		lpVertexBuffer->ClearDdraw();
 		VertexBufferVector.erase(it);
 	}
 

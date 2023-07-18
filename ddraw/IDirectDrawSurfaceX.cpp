@@ -249,7 +249,16 @@ ULONG m_IDirectDrawSurfaceX::Release(DWORD DirectXVersion)
 		{
 			if (CanSurfaceBeDeleted())
 			{
-				delete this;
+				// Handle cases where games use surface addresses after the surface is released (Final Liberation: Warhammer Epic 40,000)
+				if (IsLocked || IsInDC)
+				{
+					Logging::Log() << __FUNCTION__ << " Warning: surface still in use! Locked: " << IsLocked << " DC: " << IsInDC;
+					ReleaseDirectDrawResources();
+				}
+				else
+				{
+					delete this;
+				}
 			}
 			else
 			{
@@ -1740,8 +1749,6 @@ HRESULT m_IDirectDrawSurfaceX::GetSurfaceDesc(LPDDSURFACEDESC lpDDSurfaceDesc)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	HRESULT hr = DDERR_GENERIC;
-
 	// Game using old DirectX, Convert to LPDDSURFACEDESC2
 	if (ProxyDirectXVersion > 3)
 	{
@@ -1754,26 +1761,18 @@ HRESULT m_IDirectDrawSurfaceX::GetSurfaceDesc(LPDDSURFACEDESC lpDDSurfaceDesc)
 		DDSURFACEDESC2 Desc2 = {};
 		Desc2.dwSize = sizeof(DDSURFACEDESC2);
 
-		hr = GetSurfaceDesc2(&Desc2);
+		HRESULT hr = hr = GetSurfaceDesc2(&Desc2);
 
 		// Convert back to LPDDSURFACEDESC
 		if (SUCCEEDED(hr))
 		{
 			ConvertSurfaceDesc(*lpDDSurfaceDesc, Desc2);
 		}
-	}
-	else
-	{
-		hr = GetProxyInterfaceV3()->GetSurfaceDesc(lpDDSurfaceDesc);
+
+		return hr;
 	}
 
-	// Remove the flip flag from Nox
-	if (IsGameNox && lpDDSurfaceDesc)
-	{
-		lpDDSurfaceDesc->ddsCaps.dwCaps &= ~DDSCAPS_FLIP;
-	}
-
-	return hr;
+	return GetProxyInterfaceV3()->GetSurfaceDesc(lpDDSurfaceDesc);
 }
 
 HRESULT m_IDirectDrawSurfaceX::GetSurfaceDesc2(LPDDSURFACEDESC2 lpDDSurfaceDesc2)
@@ -3090,19 +3089,8 @@ void m_IDirectDrawSurfaceX::InitSurface(DWORD DirectXVersion)
 	InitSurfaceDesc(DirectXVersion);
 }
 
-void m_IDirectDrawSurfaceX::ReleaseSurface()
+inline void m_IDirectDrawSurfaceX::ReleaseDirectDrawResources()
 {
-	WrapperInterface->DeleteMe();
-	WrapperInterface2->DeleteMe();
-	WrapperInterface3->DeleteMe();
-	WrapperInterface4->DeleteMe();
-	WrapperInterface7->DeleteMe();
-
-	if (!Config.Dd7to9 || Config.Exiting)
-	{
-		return;
-	}
-
 	if (attachedClipper)
 	{
 		attachedClipper->Release();
@@ -3128,6 +3116,22 @@ void m_IDirectDrawSurfaceX::ReleaseSurface()
 			ddrawParent->ClearDepthStencilSurface();
 		}
 	}
+}
+
+void m_IDirectDrawSurfaceX::ReleaseSurface()
+{
+	WrapperInterface->DeleteMe();
+	WrapperInterface2->DeleteMe();
+	WrapperInterface3->DeleteMe();
+	WrapperInterface4->DeleteMe();
+	WrapperInterface7->DeleteMe();
+
+	if (!Config.Dd7to9 || Config.Exiting)
+	{
+		return;
+	}
+
+	ReleaseDirectDrawResources();
 
 	ReleaseD9Surface(false);
 }
@@ -3951,14 +3955,21 @@ HRESULT m_IDirectDrawSurfaceX::Draw2DSurface()
 		return DD_OK;
 	}
 
-	// Set texture
-	if (surfaceTexture)
+	// If texture is not dirty then mark it as dirty in case the game wrote to the memory directly (Nox does this)
+	if (!IsDirtyFlag)
 	{
-		if (FAILED((*d3d9Device)->SetTexture(0, surfaceTexture)))
+		if (IsUsingEmulation())
 		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error: failed to set surface texture");
-			return DDERR_GENERIC;
+			CopyFromEmulatedSurface(nullptr);
 		}
+		surfaceTexture->AddDirtyRect(nullptr);
+	}
+
+	// Set texture
+	if (FAILED((*d3d9Device)->SetTexture(0, surfaceTexture)))
+	{
+		LOG_LIMIT(100, __FUNCTION__ << " Error: failed to set surface texture");
+		return DDERR_GENERIC;
 	}
 
 	// Set vertex buffer and lighting
@@ -4480,7 +4491,7 @@ inline void m_IDirectDrawSurfaceX::EndWritePresent(bool isSkipScene)
 }
 
 // Update surface description and create backbuffers
-void m_IDirectDrawSurfaceX::InitSurfaceDesc(DWORD DirectXVersion)
+inline void m_IDirectDrawSurfaceX::InitSurfaceDesc(DWORD DirectXVersion)
 {
 	// Update dds caps flags
 	surfaceDesc2.dwFlags |= DDSD_CAPS;

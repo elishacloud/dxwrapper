@@ -164,6 +164,7 @@ private:
 
 	// Interface initialization functions
 	void InitSurface(DWORD DirectXVersion);
+	void ReleaseDirectDrawResources();
 	void ReleaseSurface();
 
 	// Swap surface addresses for Flip
