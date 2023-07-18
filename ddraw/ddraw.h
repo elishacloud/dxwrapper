@@ -117,6 +117,8 @@ enum DirectDrawEnumerateTypes
 	DDET_ENUMCALLBACKW,
 };
 
+extern bool IsGameNox;
+
 using namespace DdrawWrapper;
 
 // Direct3D Version Wrappers

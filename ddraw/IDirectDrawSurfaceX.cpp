@@ -1747,6 +1747,8 @@ HRESULT m_IDirectDrawSurfaceX::GetSurfaceDesc(LPDDSURFACEDESC lpDDSurfaceDesc)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
+	HRESULT hr = DDERR_GENERIC;
+
 	// Game using old DirectX, Convert to LPDDSURFACEDESC2
 	if (ProxyDirectXVersion > 3)
 	{
@@ -1759,18 +1761,26 @@ HRESULT m_IDirectDrawSurfaceX::GetSurfaceDesc(LPDDSURFACEDESC lpDDSurfaceDesc)
 		DDSURFACEDESC2 Desc2 = {};
 		Desc2.dwSize = sizeof(DDSURFACEDESC2);
 
-		HRESULT hr = GetSurfaceDesc2(&Desc2);
+		hr = GetSurfaceDesc2(&Desc2);
 
 		// Convert back to LPDDSURFACEDESC
 		if (SUCCEEDED(hr))
 		{
 			ConvertSurfaceDesc(*lpDDSurfaceDesc, Desc2);
 		}
-
-		return hr;
+	}
+	else
+	{
+		hr = GetProxyInterfaceV3()->GetSurfaceDesc(lpDDSurfaceDesc);
 	}
 
-	return GetProxyInterfaceV3()->GetSurfaceDesc(lpDDSurfaceDesc);
+	// Remove the flip flag from Nox
+	if (IsGameNox && lpDDSurfaceDesc)
+	{
+		lpDDSurfaceDesc->ddsCaps.dwCaps &= ~DDSCAPS_FLIP;
+	}
+
+	return hr;
 }
 
 HRESULT m_IDirectDrawSurfaceX::GetSurfaceDesc2(LPDDSURFACEDESC2 lpDDSurfaceDesc2)

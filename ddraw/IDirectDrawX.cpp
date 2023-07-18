@@ -124,6 +124,9 @@ LPDIRECT3DPIXELSHADER9 colorkeyPixelShader = nullptr;
 DWORD BehaviorFlags;
 HWND hFocusWindow;
 
+// Custom game settings
+bool IsGameNox = false;
+
 std::unordered_map<HWND, m_IDirectDrawX*> g_hookmap;
 
 /************************/
@@ -1567,6 +1570,16 @@ HRESULT m_IDirectDrawX::RestoreDisplayMode()
 HRESULT m_IDirectDrawX::SetCooperativeLevel(HWND hWnd, DWORD dwFlags, DWORD DirectXVersion)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ") " << hWnd << " " << Logging::hex(dwFlags);
+
+	// Check for Nox
+	if (IsWindow(hWnd))
+	{
+		char name[256] = {};
+		if (GetClassNameA(hWnd, name, sizeof(name)) && strcmp(name, "Nox Game Window") == S_OK)
+		{
+			IsGameNox = true;
+		}
+	}
 
 	if (Config.Dd7to9)
 	{
