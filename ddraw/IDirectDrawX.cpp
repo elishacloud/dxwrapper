@@ -532,6 +532,12 @@ HRESULT m_IDirectDrawX::CreateSurface2(LPDDSURFACEDESC2 lpDDSurfaceDesc2, LPDIRE
 			LOG_LIMIT(100, __FUNCTION__ << " Warning: Overlay not Implemented.");
 		}
 
+		// Check for own dc
+		if (lpDDSurfaceDesc2->ddsCaps.dwCaps & DDSCAPS_OWNDC)
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Warning: DDSCAPS_OWNDC not Implemented.");
+		}
+
 		// Check for unsupported flags
 		DWORD UnsupportedDDSDFlags = (DDSD_ALPHABITDEPTH | DDSD_LPSURFACE | DDSD_LINEARSIZE | DDSD_FVF | DDSD_SRCVBHANDLE | DDSD_DEPTH);
 		if (lpDDSurfaceDesc2->dwFlags & UnsupportedDDSDFlags)

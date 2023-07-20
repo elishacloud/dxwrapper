@@ -92,6 +92,7 @@ private:
 	bool IsDirtyFlag = false;
 	bool Surface3DDeviceFlag = false;
 	bool DCRequiresEmulation = false;
+	bool SurfaceRequiresEmulation = false;
 	bool ComplexRoot = false;
 	bool PresentOnUnlock = false;
 	bool IsLocked = false;
@@ -183,6 +184,7 @@ private:
 	HRESULT CreateD3d9Surface();
 	bool DoesDCMatch(EMUSURFACE* emu);
 	HRESULT CreateDCSurface();
+	void ReleaseDCSurface();
 	void UpdateSurfaceDesc();
 
 	// Direct3D9 interfaces

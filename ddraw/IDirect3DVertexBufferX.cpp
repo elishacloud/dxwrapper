@@ -440,7 +440,7 @@ HRESULT m_IDirect3DVertexBufferX::CheckInterface(char* FunctionName, bool CheckD
 	if (!ddrawParent)
 	{
 		LOG_LIMIT(100, FunctionName << " Error: no ddraw parent!");
-		return DDERR_GENERIC;
+		return DDERR_INVALIDOBJECT;
 	}
 
 	// Check d3d9 device
@@ -449,7 +449,7 @@ HRESULT m_IDirect3DVertexBufferX::CheckInterface(char* FunctionName, bool CheckD
 		if (!ddrawParent->CheckD3D9Device() || !d3d9Device || !*d3d9Device)
 		{
 			LOG_LIMIT(100, FunctionName << " Error: d3d9 device not setup!");
-			return DDERR_GENERIC;
+			return DDERR_INVALIDOBJECT;
 		}
 	}
 

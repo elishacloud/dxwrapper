@@ -109,6 +109,8 @@ extern const D3DFORMAT D9DisplayFormat;
 
 extern AddressLookupTableDdraw<void> ProxyAddressLookupTable;
 
+extern std::vector<m_IDirectDrawX*> DDrawVector;
+
 enum DirectDrawEnumerateTypes
 {
 	DDET_ENUMCALLBACKA,

@@ -31,6 +31,8 @@ namespace Utils
 	void CheckMessageQueue(HWND hwnd);
 	void GetScreenSettings();
 	void ResetScreenSettings();
+	bool IsWindowRectEqualOrLarger(HWND srchWnd, HWND desthWnd);
+	HWND GetTopLevelWindowOfCurrentProcess();
 	HMONITOR GetMonitorHandle(HWND hWnd);
 	DWORD GetRefreshRate(HWND hWnd);
 	DWORD GetBitCount(HWND hWnd);

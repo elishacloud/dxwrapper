@@ -229,7 +229,7 @@ HRESULT m_IDirect3DX::EnumDevices7(LPD3DENUMDEVICESCALLBACK7 lpEnumDevicesCallba
 		if (!ddrawParent)
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Error: no ddraw parent!");
-			return DDERR_GENERIC;
+			return DDERR_INVALIDOBJECT;
 		}
 
 		// Get d3d9Object
@@ -365,7 +365,7 @@ HRESULT m_IDirect3DX::CreateLight(LPDIRECT3DLIGHT * lplpDirect3DLight, LPUNKNOWN
 		if (!ddrawParent)
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Error: no ddraw parent!");
-			return DDERR_GENERIC;
+			return DDERR_INVALIDOBJECT;
 		}
 
 		*lplpDirect3DLight = (LPDIRECT3DLIGHT)new m_IDirect3DLight(ddrawParent->GetCurrentD3DDevice());
@@ -415,7 +415,7 @@ HRESULT m_IDirect3DX::CreateMaterial(LPDIRECT3DMATERIAL3 * lplpDirect3DMaterial,
 		if (!ddrawParent)
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Error: no ddraw parent!");
-			return DDERR_GENERIC;
+			return DDERR_INVALIDOBJECT;
 		}
 
 		m_IDirect3DMaterialX *Interface = new m_IDirect3DMaterialX(ddrawParent->GetCurrentD3DDevice(), DirectXVersion);
@@ -469,7 +469,7 @@ HRESULT m_IDirect3DX::CreateViewport(LPDIRECT3DVIEWPORT3 * lplpD3DViewport, LPUN
 		if (!ddrawParent)
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Error: no ddraw parent!");
-			return DDERR_GENERIC;
+			return DDERR_INVALIDOBJECT;
 		}
 
 		m_IDirect3DViewportX *Interface = new m_IDirect3DViewportX(ddrawParent->GetCurrentD3DDevice(), DirectXVersion);
@@ -571,7 +571,7 @@ HRESULT m_IDirect3DX::CreateDevice(REFCLSID rclsid, LPDIRECTDRAWSURFACE7 lpDDS, 
 		if (!ddrawParent)
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Error: no ddraw parent!");
-			return DDERR_GENERIC;
+			return DDERR_INVALIDOBJECT;
 		}
 
 		// Get surfaceX
@@ -681,7 +681,7 @@ HRESULT m_IDirect3DX::CreateVertexBuffer(LPD3DVERTEXBUFFERDESC lpVBDesc, LPDIREC
 		if (!ddrawParent)
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Error: no ddraw parent!");
-			return DDERR_GENERIC;
+			return DDERR_INVALIDOBJECT;
 		}
 
 		m_IDirect3DVertexBufferX *Interface = new m_IDirect3DVertexBufferX(ddrawParent, lpVBDesc, DirectXVersion);
@@ -726,7 +726,7 @@ HRESULT m_IDirect3DX::EnumZBufferFormats(REFCLSID riidDevice, LPD3DENUMPIXELFORM
 		if (!ddrawParent)
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Error: no ddraw parent!");
-			return DDERR_GENERIC;
+			return DDERR_INVALIDOBJECT;
 		}
 
 		// Get d3d9Object
@@ -837,7 +837,7 @@ HRESULT m_IDirect3DX::EvictManagedTextures()
 		if (!ddrawParent)
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Error: no ddraw parent!");
-			return DDERR_GENERIC;
+			return DDERR_INVALIDOBJECT;
 		}
 
 		// Evict managed texture surfaces

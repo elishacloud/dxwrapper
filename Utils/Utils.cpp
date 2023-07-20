@@ -660,6 +660,45 @@ void Utils::ResetScreenSettings()
 	RedrawWindow(nullptr, nullptr, nullptr, RDW_INVALIDATE | RDW_ALLCHILDREN | RDW_UPDATENOW);
 }
 
+HWND Utils::GetTopLevelWindowOfCurrentProcess()
+{
+	HWND foregroundWindow = GetForegroundWindow();
+
+	if (foregroundWindow)
+	{
+		DWORD foregroundProcessId;
+		GetWindowThreadProcessId(foregroundWindow, &foregroundProcessId);
+
+		DWORD currentProcessId = GetCurrentProcessId();
+
+		if (foregroundProcessId == currentProcessId)
+		{
+			return foregroundWindow;
+		}
+	}
+
+	return nullptr; // No top-level window found for the current process.
+}
+
+bool Utils::IsWindowRectEqualOrLarger(HWND srchWnd, HWND desthWnd)
+{
+	RECT rect1, rect2;
+
+	if (GetWindowRect(srchWnd, &rect1) && GetWindowRect(desthWnd, &rect2))
+	{
+		int width1 = rect1.right - rect1.left;
+		int height1 = rect1.bottom - rect1.top;
+
+		int width2 = rect2.right - rect2.left;
+		int height2 = rect2.bottom - rect2.top;
+
+		return (width1 >= width2) && (height1 >= height2);
+	}
+
+	// If GetWindowRect fails for either window, return false.
+	return false;
+}
+
 BOOL WINAPI CreateProcessAHandler(LPCSTR lpApplicationName, LPSTR lpCommandLine, LPSECURITY_ATTRIBUTES lpProcessAttributes, LPSECURITY_ATTRIBUTES lpThreadAttributes, BOOL bInheritHandles, DWORD dwCreationFlags,
 	LPVOID lpEnvironment, LPCSTR lpCurrentDirectory, LPSTARTUPINFOA lpStartupInfo, LPPROCESS_INFORMATION lpProcessInformation)
 {
