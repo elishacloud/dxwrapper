@@ -4804,15 +4804,15 @@ HRESULT m_IDirectDrawSurfaceX::ColorFill(RECT* pRect, D3DCOLOR dwFillColor)
 				memcpy(DestBuffer, SrcBuffer, size);
 				DestBuffer += DestLockRect.Pitch;
 			}
+		}
 
-			// Copy emulated surface to real texture
-			CopyFromEmulatedSurface(&DestRect);
+		// Copy emulated surface to real texture
+		CopyFromEmulatedSurface(&DestRect);
 
-			// Blt surface directly to GDI
-			if (Config.DdrawWriteToGDI && (IsPrimarySurface() || IsBackBuffer()))
-			{
-				CopyEmulatedSurfaceToGDI(DestRect);
-			}
+		// Blt surface directly to GDI
+		if (Config.DdrawWriteToGDI && (IsPrimarySurface() || IsBackBuffer()))
+		{
+			CopyEmulatedSurfaceToGDI(DestRect);
 		}
 	}
 
