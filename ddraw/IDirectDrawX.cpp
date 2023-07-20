@@ -2955,7 +2955,7 @@ HRESULT m_IDirectDrawX::CreateD3D9Device()
 				{
 					Logging::Log() << __FUNCTION__ << " Failed to reset device! " << (D3DERR)hr << " Last create: " << LastHWnd << "->" << hWnd << " " <<
 						" Windowed: " << LastWindowedMode << "->" << presParams.Windowed <<
-						Logging::hex(LastBehaviorFlags) << "->" << Logging::hex(BehaviorFlags);
+						" BehaviorFlags: " << Logging::hex(LastBehaviorFlags) << "->" << Logging::hex(BehaviorFlags);
 
 					ReleaseD3D9Device();
 				}
