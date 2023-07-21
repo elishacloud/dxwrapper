@@ -737,7 +737,7 @@ HRESULT m_IDirect3DDeviceX::GetTexture(DWORD dwStage, LPDIRECTDRAWSURFACE7* lplp
 
 	if (Config.Dd7to9)
 	{
-		if (!lplpTexture || dwStage > MaxTextureLevel)
+		if (!lplpTexture || dwStage >= MaxTextureBlendStages)
 		{
 			return DDERR_INVALIDPARAMS;
 		}
@@ -820,6 +820,11 @@ HRESULT m_IDirect3DDeviceX::SetTexture(DWORD dwStage, LPDIRECTDRAWSURFACE7 lpSur
 
 	if (Config.Dd7to9)
 	{
+		if (dwStage >= MaxTextureBlendStages)
+		{
+			return DDERR_INVALIDPARAMS;
+		}
+
 		// Check for device interface
 		if (FAILED(CheckInterface(__FUNCTION__, true)))
 		{
@@ -857,11 +862,11 @@ HRESULT m_IDirect3DDeviceX::SetTexture(DWORD dwStage, LPDIRECTDRAWSURFACE7 lpSur
 			hr = (*d3d9Device)->SetTexture(dwStage, pTexture9);
 		}
 
-		if (SUCCEEDED(hr) && dwStage < MaxTextureLevel+1)
+		if (SUCCEEDED(hr) && dwStage < MaxTextureBlendStages)
 		{
 			if (lpDDSrcSurfaceX && lpDDSrcSurfaceX->IsPalette())
 			{
-				LOG_LIMIT(100, __FUNCTION__ << " Warning: setting palette texture not implemented!");
+				LOG_LIMIT(100, __FUNCTION__ << " Warning: setting palette texture not implemented! Stage: " << dwStage);
 			}
 
 			AttachedTexture[dwStage] = lpSurface;
@@ -3316,7 +3321,7 @@ HRESULT m_IDirect3DDeviceX::CheckInterface(char *FunctionName, bool CheckD3DDevi
 void m_IDirect3DDeviceX::ResetDevice()
 {
 	// Reset textures after device reset
-	for (UINT x = 0; x < MaxTextureLevel+1; x++)
+	for (UINT x = 0; x < MaxTextureBlendStages; x++)
 	{
 		if (AttachedTexture[x])
 		{

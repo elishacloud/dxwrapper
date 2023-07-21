@@ -2,7 +2,7 @@
 
 #include "IDirectDrawX.h"
 
-constexpr UINT MaxTextureLevel = 7;
+constexpr UINT MaxTextureBlendStages = 8;	// Devices can have up to eight set textures.
 
 class m_IDirect3DDeviceX : public IUnknown, public AddressLookupTableDdrawObject
 {
@@ -49,7 +49,7 @@ private:
 	// SetTexture array
 	LPDIRECTDRAWSURFACE7 CurrentRenderTarget = nullptr;
 	m_IDirectDrawSurfaceX* CurrentTextureSurfaceX = nullptr;
-	LPDIRECTDRAWSURFACE7 AttachedTexture[MaxTextureLevel+1] = {};
+	LPDIRECTDRAWSURFACE7 AttachedTexture[MaxTextureBlendStages] = {};
 
 	// Vector temporary buffer cache
 	std::vector<BYTE> VertexCache;
