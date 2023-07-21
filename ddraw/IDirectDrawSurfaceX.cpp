@@ -4741,15 +4741,23 @@ HRESULT m_IDirectDrawSurfaceX::ColorFill(RECT* pRect, D3DCOLOR dwFillColor)
 		D3DSURFACE_DESC Desc = {};
 		pDestSurfaceD9->GetDesc(&Desc);
 
-		DWORD ByteCount = GetBitCount(Desc.Format) / 8;
+		DWORD BitCount = GetBitCount(Desc.Format);
+		DWORD ByteCount = BitCount / 8;
 
-		if (!ByteCount || ByteCount > 4)
+		if (BitCount != 8 && BitCount != 12 && BitCount != 16 && BitCount != 24 && BitCount == 32)
 		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error: invalid byte count: " << ByteCount);
+			LOG_LIMIT(100, __FUNCTION__ << " Error: invalid bit count: " << BitCount);
 			return DDERR_GENERIC;
 		}
 
-		D3DCOLOR ColorSurface[9] = {};	// Nine DOUBLE WORDs for a byte aligned 3x3 surface
+		// Handle 12-bit surface
+		if (BitCount == 12)
+		{
+			ByteCount = 3;
+			dwFillColor = (dwFillColor & 0xFFF) + ((dwFillColor & 0xFFF) << 12);
+		}
+
+		D3DCOLOR ColorSurface[9] = {};	// Nine DOUBLE WORDs for a byte aligned 3x3 surface (can handle all bit counts)
 
 		BYTE* Buffer = (BYTE*)ColorSurface;
 		BYTE* SrcBuffer = (BYTE*)&dwFillColor;
@@ -4765,11 +4773,12 @@ HRESULT m_IDirectDrawSurfaceX::ColorFill(RECT* pRect, D3DCOLOR dwFillColor)
 			}
 		}
 
-		RECT SrcRect = { 0, 0, 12 / (LONG)ByteCount, 3 };
+		DWORD Pitch = 12;
+		RECT SrcRect = { 0, 0, (BitCount == 12) ? 8 : Pitch / (LONG)ByteCount, 3 };
 
-		if (FAILED(D3DXLoadSurfaceFromMemory(pDestSurfaceD9, nullptr, &DestRect, ColorSurface, Desc.Format, 12, nullptr, &SrcRect, D3DX_FILTER_POINT, 0)))
+		if (FAILED(D3DXLoadSurfaceFromMemory(pDestSurfaceD9, nullptr, &DestRect, ColorSurface, Desc.Format, Pitch, nullptr, &SrcRect, D3DX_FILTER_POINT, 0)))
 		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error: could not color fill surface!");
+			LOG_LIMIT(100, __FUNCTION__ << " Error: could not color fill surface! " << Desc.Format);
 			return DDERR_GENERIC;
 		}
 	}
@@ -5140,7 +5149,7 @@ HRESULT m_IDirectDrawSurfaceX::CopySurface(m_IDirectDrawSurfaceX* pSourceSurface
 		// Get byte count
 		DWORD DestBitCount = surfaceBitCount;
 		DWORD ByteCount = DestBitCount / 8;
-		if (!ByteCount || ByteCount > 4)
+		if (!ByteCount || ByteCount > 4 || DestBitCount % 8 != 0)
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Error: wrong bit count " << DestBitCount);
 			hr = DDERR_GENERIC;
