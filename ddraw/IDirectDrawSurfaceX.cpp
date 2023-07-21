@@ -4783,33 +4783,41 @@ HRESULT m_IDirectDrawSurfaceX::ColorFill(RECT* pRect, D3DCOLOR dwFillColor)
 			return DDERR_GENERIC;
 		}
 
-		// Get byte count
-		DWORD ByteCount = surfaceBitCount / 8;
-		if (!ByteCount || ByteCount > 4)
-		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error: could not find correct fill color for ByteCount " << ByteCount);
-			return DDERR_GENERIC;
-		}
-
 		// Get width and height of rect
 		LONG FillWidth = DestRect.right - DestRect.left;
 		LONG FillHeight = DestRect.bottom - DestRect.top;
 
-		if ((DWORD)FillWidth == surfaceDesc2.dwWidth && ByteCount != 3)
+		if ((DWORD)FillWidth == surfaceDesc2.dwWidth && surfaceBitCount == 8)
 		{
-			DWORD Color =
-				(ByteCount == 1) ? ((dwFillColor & 0xFF) << 24) + ((dwFillColor & 0xFF) << 16) +
-				((dwFillColor & 0xFF) << 8) + (dwFillColor & 0xFF) :
-				(ByteCount == 2) ? ((dwFillColor & 0xFFFF) << 16) + (dwFillColor & 0xFFFF) :
-				(ByteCount == 4) ? dwFillColor : 0;
-
-			memset(DestLockRect.pBits, Color, DestLockRect.Pitch * FillHeight);
+			memset(DestLockRect.pBits, dwFillColor, DestLockRect.Pitch * FillHeight);
 		}
-		else
+		else if ((DWORD)FillWidth == surfaceDesc2.dwWidth && (surfaceBitCount == 16 || surfaceBitCount == 32) && (DestLockRect.Pitch * FillHeight) % 4 == 0)
+		{
+			const DWORD Color = (surfaceBitCount == 16) ? ((dwFillColor & 0xFFFF) << 16) + (dwFillColor & 0xFFFF) : dwFillColor;
+			const DWORD size = (DestLockRect.Pitch * FillHeight) / 4;
+
+			DWORD* DestBuffer = (DWORD*)DestLockRect.pBits;
+			for (UINT x = 0; x < size; x++)
+			{
+				DestBuffer[x] = Color;
+			}
+		}
+		else if (surfaceBitCount == 8 || (surfaceBitCount == 12 && FillWidth % 2 == 0) || surfaceBitCount == 16 || surfaceBitCount == 24 || surfaceBitCount == 32)
 		{
 			// Set memory address
 			BYTE* SrcBuffer = (BYTE*)&dwFillColor;
 			BYTE* DestBuffer = (BYTE*)DestLockRect.pBits;
+
+			// Get byte count
+			DWORD ByteCount = surfaceBitCount / 8;
+
+			// Handle 12-bit surface
+			if (surfaceBitCount == 12)
+			{
+				ByteCount = 3;
+				dwFillColor = (dwFillColor & 0xFFF) + ((dwFillColor & 0xFFF) << 12);
+				FillWidth /= 2;
+			}
 
 			// Fill first line memory
 			for (LONG x = 0; x < FillWidth; x++)
@@ -4830,6 +4838,11 @@ HRESULT m_IDirectDrawSurfaceX::ColorFill(RECT* pRect, D3DCOLOR dwFillColor)
 				memcpy(DestBuffer, SrcBuffer, size);
 				DestBuffer += DestLockRect.Pitch;
 			}
+		}
+		else
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: invalid bit count: " << surfaceBitCount << " Width: " << FillWidth);
+			return DDERR_GENERIC;
 		}
 
 		// Blt surface directly to GDI
