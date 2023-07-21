@@ -4744,7 +4744,7 @@ HRESULT m_IDirectDrawSurfaceX::ColorFill(RECT* pRect, D3DCOLOR dwFillColor)
 		DWORD BitCount = GetBitCount(Desc.Format);
 		DWORD ByteCount = BitCount / 8;
 
-		if (BitCount != 8 && BitCount != 12 && BitCount != 16 && BitCount != 24 && BitCount == 32)
+		if (BitCount != 8 && BitCount != 12 && BitCount != 16 && BitCount != 24 && BitCount != 32)
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Error: invalid bit count: " << BitCount);
 			return DDERR_GENERIC;
