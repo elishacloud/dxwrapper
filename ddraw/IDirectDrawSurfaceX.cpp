@@ -4773,7 +4773,7 @@ HRESULT m_IDirectDrawSurfaceX::ColorFill(RECT* pRect, D3DCOLOR dwFillColor)
 			}
 		}
 
-		DWORD Pitch = 12;
+		LONG Pitch = 12;
 		RECT SrcRect = { 0, 0, (BitCount == 12) ? 8 : Pitch / (LONG)ByteCount, 3 };
 
 		if (FAILED(D3DXLoadSurfaceFromMemory(pDestSurfaceD9, nullptr, &DestRect, ColorSurface, Desc.Format, Pitch, nullptr, &SrcRect, D3DX_FILTER_POINT, 0)))
