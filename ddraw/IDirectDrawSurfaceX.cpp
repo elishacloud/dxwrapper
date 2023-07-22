@@ -3362,7 +3362,7 @@ HRESULT m_IDirectDrawSurfaceX::CreateD3d9Surface()
 	bool EmuSurfaceCreated = false;
 
 	// Create emulated surface using device context for creation
-	if (IsSurfaceEmulated || (emu && !DoesDCMatch(emu)))
+	if (IsSurfaceEmulated || (IsUsingEmulation() && !DoesDCMatch(emu)))
 	{
 		if (!DoesDCMatch(emu))
 		{
@@ -3831,7 +3831,7 @@ void m_IDirectDrawSurfaceX::ReleaseD9Surface(bool BackupData)
 		}
 	}
 	// Emulated surface
-	else if (emu)
+	else if (IsUsingEmulation())
 	{
 		ReleaseDCSurface();
 	}
