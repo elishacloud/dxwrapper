@@ -1588,9 +1588,6 @@ HRESULT m_IDirectDrawSurfaceX::GetDC(HDC FAR * lphDC)
 		// Set LastDC
 		LastDC = *lphDC;
 
-		// Set dirty flag
-		SetDirtyFlag();
-
 		return DD_OK;
 	}
 
@@ -2102,12 +2099,6 @@ HRESULT m_IDirectDrawSurfaceX::Lock2(LPRECT lpDestRect, LPDDSURFACEDESC2 lpDDSur
 			RestoreScanlines(LastLock);
 		}
 
-		// Set dirty flag
-		if (!(Flags & D3DLOCK_READONLY))
-		{
-			SetDirtyFlag();
-		}
-
 		return DD_OK;
 	}
 
@@ -2201,6 +2192,9 @@ HRESULT m_IDirectDrawSurfaceX::ReleaseDC(HDC hDC)
 
 		// Set LastDC
 		LastDC = nullptr;
+
+		// Set dirty flag
+		SetDirtyFlag();
 
 		// Present surface
 		EndWritePresent(false);
@@ -2589,6 +2583,12 @@ HRESULT m_IDirectDrawSurfaceX::Unlock(LPRECT lpRect)
 
 		// Reset locked flag
 		IsLocked = false;
+
+		// Set dirty flag
+		if (!LastLock.ReadOnly)
+		{
+			SetDirtyFlag();
+		}
 
 		// Present surface
 		EndWritePresent(LastLock.isSkipScene);
@@ -3165,23 +3165,15 @@ LPDIRECT3DTEXTURE9 m_IDirectDrawSurfaceX::Get3DTexture()
 
 inline LPDIRECT3DTEXTURE9 m_IDirectDrawSurfaceX::GetD3D9Texture()
 {
-	// Create emulated texture for palettes
-	if (IsPalette() && IsPaletteSurfaceDirty && !paletteDisplayTexture)
+	// Prepare paletted surface for display
+	if (IsPaletteSurfaceDirty)
 	{
-		const D3DPOOL TexturePool = IsPrimaryOrBackBuffer() ? D3DPOOL_MANAGED :
-			(surfaceDesc2.ddsCaps.dwCaps & DDSCAPS_SYSTEMMEMORY) ? D3DPOOL_SYSTEMMEM : D3DPOOL_MANAGED;
-		const DWORD Width = GetByteAlignedWidth(surfaceDesc2.dwWidth, surfaceBitCount);
-		const DWORD Height = surfaceDesc2.dwHeight;
-		if (FAILED(((*d3d9Device)->CreateTexture(Width, Height, 1, 0, D3DFMT_X8R8G8B8, TexturePool, &paletteDisplayTexture, nullptr))))
-		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error: failed to create palette display surface texture. Size: " << Width << "x" << Height << " Format: " << D3DFMT_X8R8G8B8 << " dwCaps: " << Logging::hex(surfaceDesc2.ddsCaps.dwCaps));
-		}
+		CopyEmulatedPaletteSurface(nullptr);
 	}
 
 	// Return palette display texture
 	if (paletteDisplayTexture)
 	{
-		CopyEmulatedPaletteSurface(nullptr);
 		return paletteDisplayTexture;
 	}
 
@@ -4491,7 +4483,7 @@ inline void m_IDirectDrawSurfaceX::SetDirtyFlag()
 	// Don't set dirty on primary or back buffer, already handled by emulated surface copy functions
 	if (!IsPrimaryOrBackBuffer())
 	{
-		IsPaletteSurfaceDirty = true;
+		IsPaletteSurfaceDirty = IsPalette();
 	}
 
 	// Update Uniqueness Value
@@ -5477,7 +5469,7 @@ HRESULT m_IDirectDrawSurfaceX::CopyFromEmulatedSurface(LPRECT lpDestRect)
 	}
 	
 	// Prepare primary surface
-	if (IsPrimaryOrBackBuffer() && !IsPaletteSurfaceDirty)
+	if (IsPrimaryOrBackBuffer())
 	{
 		CopyEmulatedPaletteSurface(&DestRect);
 	}
@@ -5619,7 +5611,7 @@ HRESULT m_IDirectDrawSurfaceX::CopyToEmulatedSurface(LPRECT lpDestRect)
 	if (SUCCEEDED(hr))
 	{
 		// Prepare primary surface
-		if (IsPrimaryOrBackBuffer() && !IsPaletteSurfaceDirty)
+		if (IsPrimaryOrBackBuffer())
 		{
 			CopyEmulatedPaletteSurface(&DestRect);
 		}
@@ -5631,46 +5623,72 @@ HRESULT m_IDirectDrawSurfaceX::CopyToEmulatedSurface(LPRECT lpDestRect)
 inline HRESULT m_IDirectDrawSurfaceX::CopyEmulatedPaletteSurface(LPRECT lpDestRect)
 {
 	// Use D3DXLoadSurfaceFromMemory to copy to the surface
-	if (IsUsingEmulation() && paletteDisplayTexture)
+	if (!IsUsingEmulation() || !IsPalette())
 	{
-		UpdatePaletteData();
+		return DDERR_GENERIC;
+	}
 
-		if (paletteEntryArray.size() == MaxPaletteSize)
+	// Create palette arrays
+	if (paletteEntryArray.size() < MaxPaletteSize)
+	{
+		// Trigger new palette data
+		PaletteUSN++;
+
+		// Create palette arrays
+		LastPaletteData.resize(MaxPaletteSize);
+		paletteEntryArray.resize(MaxPaletteSize);
+	}
+
+	// Create emulated texture for palettes
+	if (!paletteDisplayTexture)
+	{
+		const D3DPOOL TexturePool = IsPrimaryOrBackBuffer() ? D3DPOOL_MANAGED :
+			(surfaceDesc2.ddsCaps.dwCaps & DDSCAPS_SYSTEMMEMORY) ? D3DPOOL_SYSTEMMEM : D3DPOOL_MANAGED;
+		const DWORD Width = GetByteAlignedWidth(surfaceDesc2.dwWidth, surfaceBitCount);
+		const DWORD Height = surfaceDesc2.dwHeight;
+		if (FAILED(((*d3d9Device)->CreateTexture(Width, Height, 1, 0, D3DFMT_X8R8G8B8, TexturePool, &paletteDisplayTexture, nullptr))))
 		{
-			// Update rect
-			RECT DestRect = {};
-			if (!CheckCoordinates(DestRect, lpDestRect))
-			{
-				LOG_LIMIT(100, __FUNCTION__ << " Error: Invalid rect: " << lpDestRect);
-				return DDERR_INVALIDRECT;
-			}
-
-			// Get lock for emulated surface
-			D3DLOCKED_RECT EmulatedLockRect = {};
-			if (FAILED(LockEmulatedSurface(&EmulatedLockRect, &DestRect)))
-			{
-				LOG_LIMIT(100, __FUNCTION__ << " Error: could not get emulated surface lock!");
-				return DDERR_GENERIC;
-			}
-
-			// Get palette display context surface
-			if (!paletteDisplaySurface && FAILED(paletteDisplayTexture->GetSurfaceLevel(0, &paletteDisplaySurface)))
-			{
-				LOG_LIMIT(100, __FUNCTION__ << " Error: could not get palette display context surface!");
-				return DDERR_GENERIC;
-			}
-
-			// Use D3DXLoadSurfaceFromMemory to copy to the surface
-			if (FAILED(D3DXLoadSurfaceFromMemory(paletteDisplaySurface, nullptr, &DestRect, emu->surfacepBits, D3DFMT_P8, EmulatedLockRect.Pitch, paletteEntryArray.data(), &DestRect, D3DX_FILTER_NONE, 0)))
-			{
-				LOG_LIMIT(100, __FUNCTION__ << " Warning: could not copy palette display texture: " << surfaceFormat);
-				return DDERR_GENERIC;
-			}
-
-			// Reset palette display dirty flag
-			IsPaletteSurfaceDirty = false;
+			LOG_LIMIT(100, __FUNCTION__ << " Error: failed to create palette display surface texture. Size: " << Width << "x" << Height << " Format: " << D3DFMT_X8R8G8B8 << " dwCaps: " << Logging::hex(surfaceDesc2.ddsCaps.dwCaps));
+			return DDERR_GENERIC;
 		}
 	}
+
+	// Update rect
+	RECT DestRect = {};
+	if (!CheckCoordinates(DestRect, IsPaletteSurfaceDirty ? nullptr : lpDestRect))
+	{
+		LOG_LIMIT(100, __FUNCTION__ << " Error: Invalid rect: " << lpDestRect);
+		return DDERR_INVALIDRECT;
+	}
+
+	// Get lock for emulated surface
+	D3DLOCKED_RECT EmulatedLockRect = {};
+	if (FAILED(LockEmulatedSurface(&EmulatedLockRect, &DestRect)))
+	{
+		LOG_LIMIT(100, __FUNCTION__ << " Error: could not get emulated surface lock!");
+		return DDERR_GENERIC;
+	}
+
+	// Get palette display context surface
+	if (!paletteDisplaySurface && FAILED(paletteDisplayTexture->GetSurfaceLevel(0, &paletteDisplaySurface)))
+	{
+		LOG_LIMIT(100, __FUNCTION__ << " Error: could not get palette display context surface!");
+		return DDERR_GENERIC;
+	}
+
+	// Set new palette data
+	UpdatePaletteData();
+
+	// Use D3DXLoadSurfaceFromMemory to copy to the surface
+	if (FAILED(D3DXLoadSurfaceFromMemory(paletteDisplaySurface, nullptr, &DestRect, emu->surfacepBits, D3DFMT_P8, EmulatedLockRect.Pitch, paletteEntryArray.data(), &DestRect, D3DX_FILTER_NONE, 0)))
+	{
+		LOG_LIMIT(100, __FUNCTION__ << " Warning: could not copy palette display texture: " << surfaceFormat);
+		return DDERR_GENERIC;
+	}
+
+	// Reset palette texture dirty flag
+	IsPaletteSurfaceDirty = false;
+
 	return DD_OK;
 }
 
@@ -5857,14 +5875,22 @@ void m_IDirectDrawSurfaceX::UpdatePaletteData()
 		LOG_LIMIT(100, __FUNCTION__ << " Warning: unsupported palette count: " << entryCount);
 	}
 
-	// Set palette entries data
-	paletteEntryArray.resize(MaxPaletteSize);
-	PALETTEENTRY* PaletteData = paletteEntryArray.data();
-	for (UINT x = 0; x < PaletteCount; x++)
+	// Update last palette data vector
+	if (LastPaletteData.size() >= PaletteCount)
 	{
-		PaletteData[x].peRed = D3DCOLOR_GETRED(rgbPalette[x]);
-		PaletteData[x].peGreen = D3DCOLOR_GETGREEN(rgbPalette[x]);
-		PaletteData[x].peBlue = D3DCOLOR_GETBLUE(rgbPalette[x]);
+		memcpy(LastPaletteData.data(), rgbPalette, PaletteCount * sizeof(D3DCOLOR));
+	}
+
+	// Set palette entries data
+	if (paletteEntryArray.size() >= PaletteCount)
+	{
+		PALETTEENTRY* PaletteData = paletteEntryArray.data();
+		for (UINT x = 0; x < PaletteCount; x++)
+		{
+			PaletteData[x].peRed = D3DCOLOR_GETRED(rgbPalette[x]);
+			PaletteData[x].peGreen = D3DCOLOR_GETGREEN(rgbPalette[x]);
+			PaletteData[x].peBlue = D3DCOLOR_GETBLUE(rgbPalette[x]);
+		}
 	}
 
 	// Set color palette for device context
@@ -5873,10 +5899,6 @@ void m_IDirectDrawSurfaceX::UpdatePaletteData()
 		SetDIBColorTable(emu->surfaceDC, 0, PaletteCount, (RGBQUAD*)rgbPalette);
 		emu->LastPaletteUSN = CurrentPaletteUSN;
 	}
-
-	// Update last palette data vector
-	LastPaletteData.resize(MaxPaletteSize);
-	memcpy(LastPaletteData.data(), rgbPalette, PaletteCount * sizeof(D3DCOLOR));
 
 	// Set palette flags
 	LastPaletteUSN = CurrentPaletteUSN;
