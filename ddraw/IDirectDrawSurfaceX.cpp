@@ -5468,8 +5468,8 @@ HRESULT m_IDirectDrawSurfaceX::CopyFromEmulatedSurface(LPRECT lpDestRect)
 		return DDERR_GENERIC;
 	}
 	
-	// Prepare primary surface
-	if (IsPrimaryOrBackBuffer())
+	// Prepare primary surface if not already dirty
+	if (IsPrimaryOrBackBuffer() && !IsPaletteSurfaceDirty)
 	{
 		CopyEmulatedPaletteSurface(&DestRect);
 	}
@@ -5610,8 +5610,8 @@ HRESULT m_IDirectDrawSurfaceX::CopyToEmulatedSurface(LPRECT lpDestRect)
 
 	if (SUCCEEDED(hr))
 	{
-		// Prepare primary surface
-		if (IsPrimaryOrBackBuffer())
+		// Prepare primary surface if not already dirty
+		if (IsPrimaryOrBackBuffer() && !IsPaletteSurfaceDirty)
 		{
 			CopyEmulatedPaletteSurface(&DestRect);
 		}
@@ -5655,7 +5655,7 @@ inline HRESULT m_IDirectDrawSurfaceX::CopyEmulatedPaletteSurface(LPRECT lpDestRe
 
 	// Update rect
 	RECT DestRect = {};
-	if (!CheckCoordinates(DestRect, IsPaletteSurfaceDirty ? nullptr : lpDestRect))
+	if (!CheckCoordinates(DestRect, lpDestRect))
 	{
 		LOG_LIMIT(100, __FUNCTION__ << " Error: Invalid rect: " << lpDestRect);
 		return DDERR_INVALIDRECT;
