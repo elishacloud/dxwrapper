@@ -5653,9 +5653,9 @@ inline HRESULT m_IDirectDrawSurfaceX::CopyEmulatedPaletteSurface(LPRECT lpDestRe
 		}
 	}
 
-	// Update rect
+	// Update rect, if palette surface is dirty then update the whole surface
 	RECT DestRect = {};
-	if (!CheckCoordinates(DestRect, lpDestRect))
+	if (!CheckCoordinates(DestRect, (IsPaletteSurfaceDirty ? nullptr : lpDestRect)))
 	{
 		LOG_LIMIT(100, __FUNCTION__ << " Error: Invalid rect: " << lpDestRect);
 		return DDERR_INVALIDRECT;
