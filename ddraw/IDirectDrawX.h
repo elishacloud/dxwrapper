@@ -185,7 +185,6 @@ public:
 	bool CheckD3D9Device();
 	LPDIRECT3D9 GetDirect3D9Object();
 	LPDIRECT3DDEVICE9 *GetDirect3D9Device();
-	LPDIRECT3DPIXELSHADER9* GetPaletteShader();
 	LPDIRECT3DPIXELSHADER9* GetColorKeyShader();
 	HRESULT CreateD3D9Device();
 	HRESULT ReinitDevice();

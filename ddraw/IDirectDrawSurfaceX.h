@@ -7,6 +7,8 @@
 #define BLT_MIRRORUPDOWN		0x00000004l
 #define BLT_COLORKEY			0x00002000l
 
+constexpr DWORD MaxPaletteSize = 256;
+
 // Emulated surface
 struct EMUSURFACE
 {
@@ -101,17 +103,20 @@ private:
 	HDC LastDC = nullptr;
 	bool IsInBlt = false;
 	bool IsInFlip = false;
+	bool IsPaletteSurfaceDirty = false;					// Used to detect if the palette surface needs to be updated
 	DWORD PaletteUSN = (DWORD)this;						// The USN thats used to see if the palette data was updated
 	DWORD LastPaletteUSN = 0;							// The USN that was used last time the palette was updated
+	std::vector<D3DCOLOR> LastPaletteData;				// Used to store palette data
+	std::vector<PALETTEENTRY> paletteEntryArray;		// Used to store palette data
 
 	// Direct3D9 vars
 	LPDIRECT3DDEVICE9* d3d9Device = nullptr;			// Direct3D9 Device
-	LPDIRECT3DPIXELSHADER9* palettePixelShader = nullptr;		// Used with palette surfaces to display proper palette data on the surface texture
 	LPDIRECT3DSURFACE9 surface3D = nullptr;				// Surface used for Direct3D
 	LPDIRECT3DTEXTURE9 surfaceTexture = nullptr;		// Main surface texture used for locks, Blts and Flips
 	LPDIRECT3DSURFACE9 contextSurface = nullptr;		// Context of the main surface texture
+	LPDIRECT3DTEXTURE9 paletteDisplayTexture = nullptr;	// Used to convert palette texture into a texture that can be displayed
+	LPDIRECT3DSURFACE9 paletteDisplaySurface = nullptr;	// Context for the palette display texture
 	LPDIRECT3DSURFACE9 blankSurface = nullptr;			// Blank surface used for clearing main surface
-	LPDIRECT3DTEXTURE9 paletteTexture = nullptr;		// Extra surface texture used for storing palette entries for the pixel shader
 	LPDIRECT3DVERTEXBUFFER9 vertexBuffer = nullptr;		// Vertex buffer used to stretch the texture accross the screen
 
 	// Store ddraw surface version wrappers
@@ -188,10 +193,6 @@ private:
 	void UpdateSurfaceDesc();
 
 	// Direct3D9 interfaces
-	inline EMUSURFACE **GetEmulatedSurface() { return &emu; }
-	inline LPDIRECT3DSURFACE9 *GetSurface3D() { return &surface3D; }
-	inline LPDIRECT3DTEXTURE9 *GetSurfaceTexture() { return &surfaceTexture; }
-	inline LPDIRECT3DSURFACE9 *GetContextSurface() { return &contextSurface; }
 	inline HRESULT LockD39Surface(D3DLOCKED_RECT* pLockedRect, RECT* pRect, DWORD Flags);
 	inline HRESULT UnlockD39Surface();
 
@@ -233,6 +234,7 @@ private:
 	HRESULT CopySurface(m_IDirectDrawSurfaceX* pSourceSurface, RECT* pSourceRect, RECT* pDestRect, D3DTEXTUREFILTERTYPE Filter, DDCOLORKEY ColorKey, DWORD dwFlags);
 	HRESULT CopyFromEmulatedSurface(LPRECT lpDestRect);
 	HRESULT CopyToEmulatedSurface(LPRECT lpDestRect);
+	HRESULT CopyEmulatedPaletteSurface(LPRECT lpDestRect);
 	HRESULT CopyEmulatedSurfaceFromGDI(RECT Rect);
 	HRESULT CopyEmulatedSurfaceToGDI(RECT Rect);
 
@@ -362,7 +364,7 @@ public:
 
 	// Functions handling the ddraw parent interface
 	inline void SetDdrawParent(m_IDirectDrawX *ddraw) { ddrawParent = ddraw; }
-	inline void ClearDdraw() { ddrawParent = nullptr; palettePixelShader = nullptr; }
+	inline void ClearDdraw() { ddrawParent = nullptr; }
 
 	// Direct3D9 interface functions
 	void ReleaseD9Surface(bool BackupData);
@@ -386,6 +388,7 @@ public:
 	LPDIRECT3DSURFACE9 Get3DSurface();
 	LPDIRECT3DTEXTURE9 Get3DTexture();
 	LPDIRECT3DSURFACE9 GetD3D9Surface();
+	LPDIRECT3DTEXTURE9 GetD3D9Texture();
 	inline m_IDirect3DTextureX* GetAttachedTexture() { return attachedTexture; }
 	inline void ClearTexture() { attachedTexture = nullptr; }
 	inline void SetWrapperSurfaceSize(DWORD Width, DWORD Height) { DsWrapper.Width = Width; DsWrapper.Height = Height; }

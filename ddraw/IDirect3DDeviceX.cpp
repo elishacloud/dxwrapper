@@ -864,11 +864,6 @@ HRESULT m_IDirect3DDeviceX::SetTexture(DWORD dwStage, LPDIRECTDRAWSURFACE7 lpSur
 
 		if (SUCCEEDED(hr) && dwStage < MaxTextureBlendStages)
 		{
-			if (lpDDSrcSurfaceX && lpDDSrcSurfaceX->IsPalette())
-			{
-				LOG_LIMIT(100, __FUNCTION__ << " Warning: setting palette texture not implemented! Stage: " << dwStage);
-			}
-
 			AttachedTexture[dwStage] = lpSurface;
 			if (dwStage == 0)
 			{
@@ -3443,7 +3438,6 @@ inline void m_IDirect3DDeviceX::RestoreDrawStates(DWORD dwVertexTypeDesc, DWORD 
 		(*d3d9Device)->SetSamplerState(0, D3DSAMP_MAGFILTER, DrawStates.ssMagFilter);
 
 		SetTexture(0, AttachedTexture[0]);
-		SetTexture(1, AttachedTexture[1]);
 	}
 }
 
