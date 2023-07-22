@@ -3165,15 +3165,27 @@ LPDIRECT3DTEXTURE9 m_IDirectDrawSurfaceX::Get3DTexture()
 
 inline LPDIRECT3DTEXTURE9 m_IDirectDrawSurfaceX::GetD3D9Texture()
 {
+	// Create emulated texture for palettes
+	if (IsPalette() && IsPaletteSurfaceDirty && !paletteDisplayTexture)
+	{
+		const D3DPOOL TexturePool = IsPrimaryOrBackBuffer() ? D3DPOOL_MANAGED :
+			(surfaceDesc2.ddsCaps.dwCaps & DDSCAPS_SYSTEMMEMORY) ? D3DPOOL_SYSTEMMEM : D3DPOOL_MANAGED;
+		const DWORD Width = GetByteAlignedWidth(surfaceDesc2.dwWidth, surfaceBitCount);
+		const DWORD Height = surfaceDesc2.dwHeight;
+		if (FAILED(((*d3d9Device)->CreateTexture(Width, Height, 1, 0, D3DFMT_X8R8G8B8, TexturePool, &paletteDisplayTexture, nullptr))))
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: failed to create palette display surface texture. Size: " << Width << "x" << Height << " Format: " << D3DFMT_X8R8G8B8 << " dwCaps: " << Logging::hex(surfaceDesc2.ddsCaps.dwCaps));
+		}
+	}
+
+	// Return palette display texture
 	if (paletteDisplayTexture)
 	{
-		if (IsPaletteSurfaceDirty)
-		{
-			CopyEmulatedPaletteSurface(nullptr);
-		}
+		CopyEmulatedPaletteSurface(nullptr);
 		return paletteDisplayTexture;
 	}
 
+	// Return surface texture
 	return surfaceTexture;
 }
 
@@ -3346,17 +3358,8 @@ HRESULT m_IDirectDrawSurfaceX::CreateD3d9Surface()
 			}
 		}
 
-		// Create emulated texture for palettes
-		if (IsPalette())
-		{
-			if (FAILED(((*d3d9Device)->CreateTexture(Width, Height, 1, 0, D3DFMT_X8R8G8B8, TexturePool, &paletteDisplayTexture, nullptr))))
-			{
-				LOG_LIMIT(100, __FUNCTION__ << " Error: failed to create palette display surface texture. Size: " << Width << "x" << Height << " Format: " << D3DFMT_X8R8G8B8 << " dwCaps: " << Logging::hex(surfaceDesc2.ddsCaps.dwCaps));
-				hr = DDERR_GENERIC;
-				break;
-			}
-			IsPaletteSurfaceDirty = true;
-		}
+		IsPaletteSurfaceDirty = IsPalette();
+
 	} while (false);
 
 	bool EmuSurfaceCreated = false;
