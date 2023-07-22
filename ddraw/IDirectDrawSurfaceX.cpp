@@ -1546,7 +1546,7 @@ HRESULT m_IDirectDrawSurfaceX::GetDC(HDC FAR * lphDC)
 			UpdatePaletteData();
 
 			// Read surface from GDI
-			if (Config.DdrawReadFromGDI && (IsPrimarySurface() || IsBackBuffer()) && !IsDirect3DSurface)
+			if (Config.DdrawReadFromGDI && IsPrimaryOrBackBuffer() && !IsDirect3DSurface)
 			{
 				RECT Rect = { 0, 0, (LONG)surfaceDesc2.dwWidth, (LONG)surfaceDesc2.dwHeight };
 				CopyEmulatedSurfaceFromGDI(Rect);
@@ -1998,7 +1998,7 @@ HRESULT m_IDirectDrawSurfaceX::Lock2(LPRECT lpDestRect, LPDDSURFACEDESC2 lpDDSur
 			}
 
 			// Read surface from GDI
-			if (Config.DdrawReadFromGDI && (IsPrimarySurface() || IsBackBuffer()) && !IsDirect3DSurface)
+			if (Config.DdrawReadFromGDI && IsPrimaryOrBackBuffer() && !IsDirect3DSurface)
 			{
 				CopyEmulatedSurfaceFromGDI(DestRect);
 			}
@@ -2097,7 +2097,7 @@ HRESULT m_IDirectDrawSurfaceX::Lock2(LPRECT lpDestRect, LPDDSURFACEDESC2 lpDDSur
 		LastLock.LockedRect.Pitch = LockedRect.Pitch;
 
 		// Restore scanlines before returing surface memory
-		if (Config.DdrawRemoveScanlines && (IsPrimarySurface() || IsBackBuffer()))
+		if (Config.DdrawRemoveScanlines && IsPrimaryOrBackBuffer())
 		{
 			RestoreScanlines(LastLock);
 		}
@@ -2163,7 +2163,7 @@ HRESULT m_IDirectDrawSurfaceX::ReleaseDC(HDC hDC)
 		if (IsUsingEmulation() || DCRequiresEmulation)
 		{
 			// Blt surface directly to GDI
-			if (Config.DdrawWriteToGDI && (IsPrimarySurface() || IsBackBuffer()) && !IsDirect3DSurface)
+			if (Config.DdrawWriteToGDI && IsPrimaryOrBackBuffer() && !IsDirect3DSurface)
 			{
 				RECT Rect = { 0, 0, (LONG)surfaceDesc2.dwWidth, (LONG)surfaceDesc2.dwHeight };
 				CopyEmulatedSurfaceToGDI(Rect);
@@ -2538,7 +2538,7 @@ HRESULT m_IDirectDrawSurfaceX::Unlock(LPRECT lpRect)
 		}
 
 		// Remove scanlines before unlocking surface
-		if (Config.DdrawRemoveScanlines && (IsPrimarySurface() || IsBackBuffer()))
+		if (Config.DdrawRemoveScanlines && IsPrimaryOrBackBuffer())
 		{
 			RemoveScanlines(LastLock);
 		}
@@ -2549,7 +2549,7 @@ HRESULT m_IDirectDrawSurfaceX::Unlock(LPRECT lpRect)
 			if (!LastLock.ReadOnly)
 			{
 				// Blt surface directly to GDI
-				if (Config.DdrawWriteToGDI && (IsPrimarySurface() || IsBackBuffer()) && !IsDirect3DSurface)
+				if (Config.DdrawWriteToGDI && IsPrimaryOrBackBuffer() && !IsDirect3DSurface)
 				{
 					CopyEmulatedSurfaceToGDI(LastLock.Rect);
 				}
@@ -3293,15 +3293,15 @@ HRESULT m_IDirectDrawSurfaceX::CreateD3d9Surface()
 	surfaceBitCount = GetBitCount(surfaceFormat);
 	SurfaceRequiresEmulation = (surfaceFormat == D3DFMT_A8B8G8R8 || surfaceFormat == D3DFMT_X8B8G8R8 || surfaceFormat == D3DFMT_B8G8R8 ||
 		surfaceFormat == D3DFMT_R8G8B8 || surfaceFormat == D3DFMT_P8 ||
-		((Config.DdrawEmulateSurface || (Config.DdrawRemoveScanlines && (IsPrimarySurface() || IsBackBuffer()))) &&
+		((Config.DdrawEmulateSurface || (Config.DdrawRemoveScanlines && IsPrimaryOrBackBuffer())) &&
 			!IsDepthBuffer() && !(surfaceFormat & 0xFF000000 /*FOURCC or D3DFMT_DXTx*/)));
-	const bool IsSurfaceEmulated = (SurfaceRequiresEmulation || ((IsPrimarySurface() || IsBackBuffer()) && (Config.DdrawWriteToGDI || Config.DdrawReadFromGDI) && !IsDirect3DSurface));
+	const bool IsSurfaceEmulated = (SurfaceRequiresEmulation || (IsPrimaryOrBackBuffer() && (Config.DdrawWriteToGDI || Config.DdrawReadFromGDI) && !IsDirect3DSurface));
 	DCRequiresEmulation = (surfaceFormat != D3DFMT_R5G6B5 && surfaceFormat != D3DFMT_X1R5G5B5 && surfaceFormat != D3DFMT_R8G8B8 && surfaceFormat != D3DFMT_X8R8G8B8);
 	const D3DFORMAT Format = (surfaceFormat == D3DFMT_X8B8G8R8 || surfaceFormat == D3DFMT_B8G8R8 || surfaceFormat == D3DFMT_R8G8B8) ? D3DFMT_X8R8G8B8 :
 		(surfaceFormat == D3DFMT_A8B8G8R8) ? D3DFMT_A8R8G8B8 : surfaceFormat;
 	const D3DFORMAT TextureFormat = (surfaceFormat == D3DFMT_P8) ? D3DFMT_L8 : Format;
 
-	const D3DPOOL TexturePool = (IsPrimarySurface() || IsBackBuffer()) ? D3DPOOL_MANAGED :
+	const D3DPOOL TexturePool = IsPrimaryOrBackBuffer() ? D3DPOOL_MANAGED :
 		(surfaceDesc2.ddsCaps.dwCaps & DDSCAPS_SYSTEMMEMORY) ? D3DPOOL_SYSTEMMEM : D3DPOOL_MANAGED;
 
 	// Adjust Width to be byte-aligned
@@ -3739,7 +3739,7 @@ void m_IDirectDrawSurfaceX::UpdateSurfaceDesc()
 			surfaceDesc2.lPitch = 0;
 		}
 		// Set Refresh Rate
-		if (RefreshRate && ((surfaceDesc2.dwFlags & DDSD_REFRESHRATE) || (IsPrimarySurface() || IsBackBuffer())))
+		if (RefreshRate && ((surfaceDesc2.dwFlags & DDSD_REFRESHRATE) || IsPrimaryOrBackBuffer()))
 		{
 			surfaceDesc2.dwFlags |= DDSD_REFRESHRATE;
 			surfaceDesc2.dwRefreshRate = RefreshRate;
@@ -3754,7 +3754,7 @@ void m_IDirectDrawSurfaceX::UpdateSurfaceDesc()
 		}
 	}
 	// Overwrite primary surface
-	if ((IsPrimarySurface() || IsBackBuffer()) && Config.DdrawOverridePrimaryWidth && Config.DdrawOverridePrimaryHeight)
+	if (IsPrimaryOrBackBuffer() && Config.DdrawOverridePrimaryWidth && Config.DdrawOverridePrimaryHeight)
 	{
 		surfaceDesc2.dwFlags |= DDSD_WIDTH | DDSD_HEIGHT;
 		surfaceDesc2.dwWidth = Config.DdrawOverridePrimaryWidth;
@@ -4319,7 +4319,7 @@ void m_IDirectDrawSurfaceX::RestoreScanlines(LASTLOCK& LLock)
 	DWORD RectWidth = LLock.Rect.right - LLock.Rect.left;
 	DWORD RectHeight = LLock.Rect.bottom - LLock.Rect.top;
 
-	if ((!IsPrimarySurface() && !IsBackBuffer()) || !LLock.LockedRect.pBits ||
+	if (!IsPrimaryOrBackBuffer() || !LLock.LockedRect.pBits ||
 		!ByteCount || ByteCount > 4 || RectWidth != LLock.ScanlineWidth)
 	{
 		return;
@@ -4366,7 +4366,7 @@ void m_IDirectDrawSurfaceX::RemoveScanlines(LASTLOCK& LLock)
 	LLock.bOddScanlines = false;
 	LLock.bEvenScanlines = false;
 
-	if ((!IsPrimarySurface() && !IsBackBuffer()) || !LLock.LockedRect.pBits ||
+	if (!IsPrimaryOrBackBuffer() || !LLock.LockedRect.pBits ||
 		!ByteCount || ByteCount > 4 || RectHeight < 100)
 	{
 		return;
@@ -4482,7 +4482,12 @@ inline void m_IDirectDrawSurfaceX::SetDirtyFlag()
 		dirtyFlag = true;
 	}
 	IsDirtyFlag = true;
-	IsPaletteSurfaceDirty = true;
+
+	// Don't set dirty on primary or back buffer, already handled by emulated surface copy functions
+	if (!IsPrimaryOrBackBuffer())
+	{
+		IsPaletteSurfaceDirty = true;
+	}
 
 	// Update Uniqueness Value
 	ChangeUniquenessValue();
@@ -4869,7 +4874,7 @@ HRESULT m_IDirectDrawSurfaceX::ColorFill(RECT* pRect, D3DCOLOR dwFillColor)
 		}
 
 		// Blt surface directly to GDI
-		if (Config.DdrawWriteToGDI && (IsPrimarySurface() || IsBackBuffer()) && !IsDirect3DSurface)
+		if (Config.DdrawWriteToGDI && IsPrimaryOrBackBuffer() && !IsDirect3DSurface)
 		{
 			CopyEmulatedSurfaceToGDI(DestRect);
 		}
@@ -5030,7 +5035,7 @@ HRESULT m_IDirectDrawSurfaceX::CopySurface(m_IDirectDrawSurfaceX* pSourceSurface
 	}
 
 	// Read surface from GDI
-	if (Config.DdrawReadFromGDI && (IsPrimarySurface() || IsBackBuffer()) && !IsDirect3DSurface)
+	if (Config.DdrawReadFromGDI && IsPrimaryOrBackBuffer() && !IsDirect3DSurface)
 	{
 		CopyEmulatedSurfaceFromGDI(DestRect);
 	}
@@ -5380,7 +5385,7 @@ HRESULT m_IDirectDrawSurfaceX::CopySurface(m_IDirectDrawSurfaceX* pSourceSurface
 	} while (false);
 
 	// Remove scanlines before unlocking surface
-	if (SUCCEEDED(hr) && Config.DdrawRemoveScanlines && (IsPrimarySurface() || IsBackBuffer()))
+	if (SUCCEEDED(hr) && Config.DdrawRemoveScanlines && IsPrimaryOrBackBuffer())
 	{
 		// Set last rect before removing scanlines
 		LASTLOCK LLock;
@@ -5412,7 +5417,7 @@ HRESULT m_IDirectDrawSurfaceX::CopySurface(m_IDirectDrawSurfaceX* pSourceSurface
 	if (SUCCEEDED(hr) && IsUsingEmulation())
 	{
 		// Blt surface directly to GDI
-		if (Config.DdrawWriteToGDI && (IsPrimarySurface() || IsBackBuffer()) && !IsDirect3DSurface)
+		if (Config.DdrawWriteToGDI && IsPrimaryOrBackBuffer() && !IsDirect3DSurface)
 		{
 			CopyEmulatedSurfaceToGDI(DestRect);
 		}
@@ -5464,6 +5469,12 @@ HRESULT m_IDirectDrawSurfaceX::CopyFromEmulatedSurface(LPRECT lpDestRect)
 	{
 		LOG_LIMIT(100, __FUNCTION__ << " Error: could not copy emulated surface: " << surfaceFormat);
 		return DDERR_GENERIC;
+	}
+	
+	// Prepare primary surface
+	if (IsPrimaryOrBackBuffer() && !IsPaletteSurfaceDirty)
+	{
+		CopyEmulatedPaletteSurface(&DestRect);
 	}
 
 	return DD_OK;
@@ -5599,6 +5610,15 @@ HRESULT m_IDirectDrawSurfaceX::CopyToEmulatedSurface(LPRECT lpDestRect)
 
 	// Unlock surface
 	UnlockD39Surface();
+
+	if (SUCCEEDED(hr))
+	{
+		// Prepare primary surface
+		if (IsPrimaryOrBackBuffer() && !IsPaletteSurfaceDirty)
+		{
+			CopyEmulatedPaletteSurface(&DestRect);
+		}
+	}
 
 	return hr;
 }
