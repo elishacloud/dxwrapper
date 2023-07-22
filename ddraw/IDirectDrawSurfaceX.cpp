@@ -3558,12 +3558,13 @@ inline bool m_IDirectDrawSurfaceX::DoesDCMatch(EMUSURFACE* pEmuSurface)
 	// Adjust Width to be byte-aligned
 	DWORD Width = GetByteAlignedWidth(surfaceDesc2.dwWidth, surfaceBitCount);
 	DWORD Height = surfaceDesc2.dwHeight;
+	DWORD Pitch = ComputePitch(Width, surfaceBitCount);
 
-	if (pEmuSurface->bmi->bmiHeader.biWidth == (LONG)Width && -pEmuSurface->bmi->bmiHeader.biHeight == (LONG)Height &&
-		pEmuSurface->bmi->bmiHeader.biBitCount == surfaceBitCount && (
-			((DWORD*)pEmuSurface->bmi->bmiColors)[0] == surfaceDesc2.ddpfPixelFormat.dwRBitMask &&
-			((DWORD*)pEmuSurface->bmi->bmiColors)[1] == surfaceDesc2.ddpfPixelFormat.dwGBitMask &&
-			((DWORD*)pEmuSurface->bmi->bmiColors)[2] == surfaceDesc2.ddpfPixelFormat.dwBBitMask))
+	if (pEmuSurface->bmi->bmiHeader.biWidth == (LONG)Width &&
+		pEmuSurface->bmi->bmiHeader.biHeight == -(LONG)Height &&
+		pEmuSurface->bmi->bmiHeader.biBitCount == surfaceBitCount &&
+		pEmuSurface->surfaceFormat == surfaceFormat &&
+		pEmuSurface->surfacePitch == Pitch)
 	{
 		return true;
 	}
@@ -3705,6 +3706,7 @@ HRESULT m_IDirectDrawSurfaceX::CreateDCSurface()
 		return DDERR_GENERIC;
 	}
 	emu->bmi->bmiHeader.biHeight = -(LONG)Height;
+	emu->surfaceFormat = surfaceFormat;
 	emu->surfacePitch = ComputePitch(emu->bmi->bmiHeader.biWidth, emu->bmi->bmiHeader.biBitCount);
 	emu->surfaceSize = Height * emu->surfacePitch;
 

@@ -14,6 +14,7 @@ struct EMUSURFACE
 {
 	HDC surfaceDC = nullptr;
 	DWORD surfaceSize = 0;
+	D3DFORMAT surfaceFormat = D3DFMT_UNKNOWN;
 	void *surfacepBits = nullptr;
 	DWORD surfacePitch = 0;
 	HBITMAP bitmap = nullptr;
