@@ -18,11 +18,11 @@ private:
 
 	// Convert to Direct3D9
 	m_IDirectDrawX *ddrawParent = nullptr;
-	DWORD paletteCaps = 0;						// Palette flags
-	LPPALETTEENTRY rawPalette = nullptr;		// Raw palette data
-	RGBDWORD *rgbPalette = nullptr;				// Rgb translated palette
-	DWORD PaletteUSN = (DWORD)this;				// The USN that's used to see if the palette data was updated
-	DWORD entryCount = 256;						// Number of palette entries (Default to 256 entries)
+	DWORD paletteCaps = 0;							// Palette flags
+	PALETTEENTRY rawPalette[MaxPaletteSize] = {};	// Raw palette data
+	RGBDWORD rgbPalette[MaxPaletteSize] = {};		// Rgb translated palette
+	DWORD PaletteUSN = (DWORD)this;					// The USN that's used to see if the palette data was updated
+	DWORD entryCount = 256;							// Number of palette entries (Default to 256 entries)
 
 	// Interface initialization functions
 	void InitPalette();
@@ -76,7 +76,8 @@ public:
 	inline void ClearDdraw() { ddrawParent = nullptr; }
 
 	// Helper functions
-	inline RGBDWORD *GetRgbPalette() { return rgbPalette; }
+	inline LPPALETTEENTRY GetPaletteEntries() { return rawPalette; }
+	inline D3DCOLOR* GetRGBPalette() { return (D3DCOLOR*)rgbPalette; }
 	inline DWORD GetPaletteUSN() { return PaletteUSN; }
 	inline DWORD GetEntryCount() { return entryCount; }
 	inline void SetPrimary() { paletteCaps |= DDPCAPS_PRIMARYSURFACE; }

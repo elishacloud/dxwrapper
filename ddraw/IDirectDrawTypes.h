@@ -91,6 +91,8 @@ static constexpr DWORD DDS_HEADER_SIZE			= sizeof(DWORD) + sizeof(DDS_HEADER);
 static constexpr DWORD DDS_HEADER_FLAGS_TEXTURE	= 0x00001007; // DDSD_CAPS | DDSD_HEIGHT | DDSD_WIDTH | DDSD_PIXELFORMAT 
 static constexpr DWORD DDS_HEADER_FLAGS_PITCH	= 0x00000008;
 
+static constexpr DWORD MaxPaletteSize = 256;
+
 inline DWORD ComputePitch(DWORD Width, DWORD BitCount)
 {
 	return ((((Width * BitCount) + 31) & ~31) >> 3);	// Use Surface Stride for pitch

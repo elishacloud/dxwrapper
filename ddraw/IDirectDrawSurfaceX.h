@@ -7,8 +7,6 @@
 #define BLT_MIRRORUPDOWN		0x00000004l
 #define BLT_COLORKEY			0x00002000l
 
-constexpr DWORD MaxPaletteSize = 256;
-
 // Emulated surface
 struct EMUSURFACE
 {
@@ -22,6 +20,7 @@ struct EMUSURFACE
 	PBITMAPINFO bmi = (PBITMAPINFO)bmiMemory;
 	HGDIOBJ OldDCObject = nullptr;
 	DWORD LastPaletteUSN = 0;
+	D3DCOLOR* LastRGBPalette = nullptr;
 };
 
 class m_IDirectDrawSurfaceX : public IUnknown, public AddressLookupTableDdrawObject
@@ -105,10 +104,8 @@ private:
 	bool IsInBlt = false;
 	bool IsInFlip = false;
 	bool IsPaletteSurfaceDirty = false;					// Used to detect if the palette surface needs to be updated
-	DWORD PaletteUSN = (DWORD)this;						// The USN thats used to see if the palette data was updated
+	LPPALETTEENTRY paletteEntryArray = nullptr;			// Used to store palette data address
 	DWORD LastPaletteUSN = 0;							// The USN that was used last time the palette was updated
-	std::vector<D3DCOLOR> LastPaletteData;				// Used to store palette data
-	std::vector<PALETTEENTRY> paletteEntryArray;		// Used to store palette data
 
 	// Direct3D9 vars
 	LPDIRECT3DDEVICE9* d3d9Device = nullptr;			// Direct3D9 Device
@@ -406,7 +403,6 @@ public:
 
 	// For palettes
 	inline m_IDirectDrawPalette *GetAttachedPalette() { return attachedPalette; }
-	inline DWORD GetPaletteUSN() { return PaletteUSN; }
 	void RemovePalette(m_IDirectDrawPalette* PaletteToRemove);
 	void UpdatePaletteData();
 
