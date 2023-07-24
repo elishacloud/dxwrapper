@@ -20,7 +20,6 @@ struct EMUSURFACE
 	PBITMAPINFO bmi = (PBITMAPINFO)bmiMemory;
 	HGDIOBJ OldDCObject = nullptr;
 	DWORD LastPaletteUSN = 0;
-	D3DCOLOR* LastRGBPalette = nullptr;
 };
 
 class m_IDirectDrawSurfaceX : public IUnknown, public AddressLookupTableDdrawObject

@@ -5847,6 +5847,8 @@ void m_IDirectDrawSurfaceX::UpdatePaletteData()
 	LPPALETTEENTRY NewPaletteEntry = nullptr;
 	D3DCOLOR* NewRGBPalette = nullptr;
 
+	SetCriticalSection();
+
 	// Get palette data
 	if (attachedPalette)
 	{
@@ -5871,24 +5873,21 @@ void m_IDirectDrawSurfaceX::UpdatePaletteData()
 	}
 
 	// Set color palette for emulation device context
-	if (IsUsingEmulation() && NewRGBPalette && (emu->LastPaletteUSN != NewPaletteUSN || emu->LastRGBPalette != NewRGBPalette))
+	if (IsUsingEmulation() && NewRGBPalette && emu->LastPaletteUSN != NewPaletteUSN)
 	{
-		SetCriticalSection();
 		SetDIBColorTable(emu->surfaceDC, 0, MaxPaletteSize, (RGBQUAD*)NewRGBPalette);
 		emu->LastPaletteUSN = NewPaletteUSN;
-		emu->LastRGBPalette = NewRGBPalette;
-		ReleaseCriticalSection();
 	}
 
 	// Set new palette data
-	if (NewPaletteEntry && (LastPaletteUSN != NewPaletteUSN || paletteEntryArray != NewPaletteEntry))
+	if (NewPaletteEntry && LastPaletteUSN != NewPaletteUSN)
 	{
-		SetCriticalSection();
 		IsPaletteSurfaceDirty = true;
 		LastPaletteUSN = NewPaletteUSN;
 		paletteEntryArray = NewPaletteEntry;
-		ReleaseCriticalSection();
 	}
+
+	ReleaseCriticalSection();
 }
 
 void m_IDirectDrawSurfaceX::StartSharedEmulatedMemory()
