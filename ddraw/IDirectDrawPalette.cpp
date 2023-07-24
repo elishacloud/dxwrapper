@@ -197,10 +197,10 @@ HRESULT m_IDirectDrawPalette::SetEntries(DWORD dwFlags, DWORD dwStartingEntry, D
 			rawPalette[i].peGreen = lpEntries[x].peGreen;
 			rawPalette[i].peBlue = lpEntries[x].peBlue;
 			// RGB palette
-			rgbPalette[i].pe.blue = lpEntries[x].peBlue;
-			rgbPalette[i].pe.green = lpEntries[x].peGreen;
-			rgbPalette[i].pe.red = lpEntries[x].peRed;
-			rgbPalette[i].pe.alpha = alpha;
+			rgbPalette[i].rgbBlue = lpEntries[x].peBlue;
+			rgbPalette[i].rgbGreen = lpEntries[x].peGreen;
+			rgbPalette[i].rgbRed = lpEntries[x].peRed;
+			rgbPalette[i].rgbReserved = alpha;
 		}
 
 		// Note that there is new palette data
@@ -293,9 +293,9 @@ void m_IDirectDrawPalette::InitPalette()
 		rawPalette[255].peGreen = 0xFF;
 		rawPalette[255].peBlue = 0xFF;
 		// RGB palette
-		rgbPalette[255].pe.blue = 0xFF;
-		rgbPalette[255].pe.green = 0xFF;
-		rgbPalette[255].pe.red = 0xFF;
+		rgbPalette[255].rgbBlue = 0xFF;
+		rgbPalette[255].rgbGreen = 0xFF;
+		rgbPalette[255].rgbRed = 0xFF;
 	}
 
 	if (ddrawParent)

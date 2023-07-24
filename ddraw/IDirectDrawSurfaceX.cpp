@@ -5845,7 +5845,7 @@ void m_IDirectDrawSurfaceX::UpdatePaletteData()
 
 	DWORD NewPaletteUSN = 0;
 	LPPALETTEENTRY NewPaletteEntry = nullptr;
-	D3DCOLOR* NewRGBPalette = nullptr;
+	RGBQUAD* NewRGBPalette = nullptr;
 
 	SetCriticalSection();
 
@@ -5875,7 +5875,7 @@ void m_IDirectDrawSurfaceX::UpdatePaletteData()
 	// Set color palette for emulation device context
 	if (IsUsingEmulation() && NewRGBPalette && emu->LastPaletteUSN != NewPaletteUSN)
 	{
-		SetDIBColorTable(emu->surfaceDC, 0, MaxPaletteSize, (RGBQUAD*)NewRGBPalette);
+		SetDIBColorTable(emu->surfaceDC, 0, MaxPaletteSize, NewRGBPalette);
 		emu->LastPaletteUSN = NewPaletteUSN;
 	}
 
