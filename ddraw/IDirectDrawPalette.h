@@ -22,7 +22,7 @@ private:
 	PALETTEENTRY rawPalette[MaxPaletteSize] = {};	// Raw palette data
 	RGBDWORD rgbPalette[MaxPaletteSize] = {};		// Rgb translated palette
 	DWORD PaletteUSN;								// The USN that's used to see if the palette data was updated
-	DWORD entryCount = 256;							// Number of palette entries (Default to 256 entries)
+	DWORD entryCount = MaxPaletteSize;				// Number of palette entries (Default to 256 entries)
 
 	// Interface initialization functions
 	void InitPalette();

@@ -112,14 +112,14 @@ HRESULT m_IDirectDrawPalette::GetEntries(DWORD dwFlags, DWORD dwBase, DWORD dwNu
 	if (!ProxyInterface)
 	{
 		// Do some error checking
-		if (!lpEntries || !rawPalette || dwBase > entryCount)
+		if (!lpEntries || dwBase > entryCount)
 		{
 			return DDERR_INVALIDPARAMS;
 		}
 		dwNumEntries = min(dwNumEntries, entryCount - dwBase);
 
 		// Copy raw palette entries to lpEntries(size dwNumEntries) starting at dwBase
-		memcpy(lpEntries, &(rawPalette[dwBase]), sizeof(PALETTEENTRY) * dwNumEntries);
+		memcpy(lpEntries, &(rawPalette[dwBase]), dwNumEntries * sizeof(PALETTEENTRY));
 
 		// dwNumEntries is the number of palette entries that can fit in the array that lpEntries 
 		// specifies. The colors of the palette entries are returned in sequence, from the value
@@ -156,39 +156,51 @@ HRESULT m_IDirectDrawPalette::SetEntries(DWORD dwFlags, DWORD dwStartingEntry, D
 
 	if (!ProxyInterface)
 	{
-		// Handle DDPCAPS_ALLOW256
-		DWORD MaxCount = (paletteCaps & DDPCAPS_ALLOW256) ? entryCount : min(255, entryCount);
-
 		// Do some error checking
-		if (!lpEntries || dwStartingEntry > MaxCount)
+		if (!lpEntries || dwStartingEntry > entryCount)
 		{
 			return DDERR_INVALIDPARAMS;
 		}
 
 		// Get new entry count
-		dwCount = min(dwCount, MaxCount - dwStartingEntry);
+		dwCount = min(dwCount, entryCount - dwStartingEntry);
 
-		// Get starting entry address
-		LPPALETTEENTRY paletteAddr = &(rawPalette[dwStartingEntry]);
+		// Set start and end entries
+		DWORD Start = max(0, dwStartingEntry);
+		DWORD End = min(entryCount, dwStartingEntry + dwCount);
+
+		// Handle DDPCAPS_ALLOW256
+		if (!(paletteCaps & DDPCAPS_ALLOW256))
+		{
+			Start = max(1, Start);
+			End = min(255, End);
+		}
+
+		// lpEntries array location
+		DWORD x = (Start - dwStartingEntry);
 
 		// Check if new palette data found
-		if (memcmp(paletteAddr, lpEntries, dwCount * sizeof(PALETTEENTRY)) == S_OK)
+		if (memcmp(&(rawPalette[Start]), &lpEntries[x], (End - Start) * sizeof(PALETTEENTRY)) == S_OK)
 		{
 			return DD_OK;	// No new data found
 		}
 
 		SetCriticalSection();
 
-		// Copy palette entries from dwStartingEntry and of count dwCount
-		memcpy(paletteAddr, lpEntries, dwCount * sizeof(PALETTEENTRY));
-
-		// Translate raw pallete entries to RGB
-		for (UINT i = dwStartingEntry; i < dwStartingEntry + dwCount; i++)
+		// Translate new raw pallete entries to RGB
+		for (UINT i = Start; i < End; i++, x++)
 		{
-			rgbPalette[i].pe.blue = rawPalette[i].peBlue;
-			rgbPalette[i].pe.green = rawPalette[i].peGreen;
-			rgbPalette[i].pe.red = rawPalette[i].peRed;
-			rgbPalette[i].pe.alpha = (paletteCaps & DDPCAPS_ALPHA) ? rawPalette[i].peFlags : 0x00;
+			BYTE alpha = (paletteCaps & DDPCAPS_ALPHA) ? lpEntries[x].peFlags : 0x00;
+			// Palette entry
+			rawPalette[i].peFlags = alpha;
+			rawPalette[i].peRed = lpEntries[x].peRed;
+			rawPalette[i].peGreen = lpEntries[x].peGreen;
+			rawPalette[i].peBlue = lpEntries[x].peBlue;
+			// RGB palette
+			rgbPalette[i].pe.blue = lpEntries[x].peBlue;
+			rgbPalette[i].pe.green = lpEntries[x].peGreen;
+			rgbPalette[i].pe.red = lpEntries[x].peRed;
+			rgbPalette[i].pe.alpha = alpha;
 		}
 
 		// Note that there is new palette data
@@ -233,8 +245,7 @@ void m_IDirectDrawPalette::InitPalette()
 	PaletteUSN += (DWORD)this + (PerformanceCount.HighPart ^ PerformanceCount.LowPart);
 
 	// Create palette of requested bit size
-	if ((paletteCaps & DDPCAPS_8BIT) || (paletteCaps & DDPCAPS_ALLOW256) ||
-		((paletteCaps & DDPCAPS_8BITENTRIES) && (paletteCaps & (DDPCAPS_1BIT | DDPCAPS_2BIT | DDPCAPS_4BIT))))
+	if ((paletteCaps & DDPCAPS_8BIT) || (paletteCaps & DDPCAPS_ALLOW256))
 	{
 		entryCount = 256;
 	}
@@ -255,6 +266,23 @@ void m_IDirectDrawPalette::InitPalette()
 	if (paletteCaps & DDPCAPS_PRIMARYSURFACELEFT)
 	{
 		Logging::Log() << __FUNCTION__ << " Warning: Primary surface left is not implemented.";
+	}
+
+	// The palette entries are 1 byte each if the DDPCAPS_8BITENTRIES flag is set, and 4 bytes otherwise.
+	if (paletteCaps & DDPCAPS_ALPHA)
+	{
+		Logging::Log() << __FUNCTION__ << " Warning: alpha palette entries are not implemented.";
+	}
+
+	// The palette entries are 1 byte each if the DDPCAPS_8BITENTRIES flag is set, and 4 bytes otherwise.
+	// This flag is valid only when used with the DDPCAPS_1BIT, DDPCAPS_2BIT, or DDPCAPS_4BIT flag, and when the target surface is 8 bpp.
+	if ((paletteCaps & DDPCAPS_8BITENTRIES) && (paletteCaps & (DDPCAPS_1BIT | DDPCAPS_2BIT | DDPCAPS_4BIT)))
+	{
+		Logging::Log() << __FUNCTION__ << " Warning: DDPCAPS_8BITENTRIES is not implemented.";
+	}
+	else
+	{
+		paletteCaps &= ~DDPCAPS_8BITENTRIES;
 	}
 
 	// Init palette entry 255 to white to simulate ddraw functionality
