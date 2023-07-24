@@ -227,6 +227,11 @@ void m_IDirectDrawPalette::InitPalette()
 		return;
 	}
 
+	// Compute new USN number
+	LARGE_INTEGER PerformanceCount = {};
+	QueryPerformanceCounter(&PerformanceCount);
+	PaletteUSN += (DWORD)this + PerformanceCount.LowPart;
+
 	// Create palette of requested bit size
 	if ((paletteCaps & DDPCAPS_8BIT) || (paletteCaps & DDPCAPS_ALLOW256) ||
 		((paletteCaps & DDPCAPS_8BITENTRIES) && (paletteCaps & (DDPCAPS_1BIT | DDPCAPS_2BIT | DDPCAPS_4BIT))))
