@@ -30,7 +30,6 @@ bool IsPresentRunning = false;
 
 // Used for sharing emulated memory
 bool ShareEmulatedMemory = false;
-CRITICAL_SECTION smcs;
 std::vector<EMUSURFACE*> memorySurfaces;
 
 /************************/
@@ -3599,10 +3598,10 @@ HRESULT m_IDirectDrawSurfaceX::CreateDCSurface()
 			// Save current emulated surface and prepare for creating a new one.
 			if (ShareEmulatedMemory)
 			{
-				EnterCriticalSection(&smcs);
+				SetCriticalSection();
 				memorySurfaces.push_back(emu);
 				emu = nullptr;
-				LeaveCriticalSection(&smcs);
+				ReleaseCriticalSection();
 			}
 			else
 			{
@@ -3614,7 +3613,7 @@ HRESULT m_IDirectDrawSurfaceX::CreateDCSurface()
 	// If sharing memory than check the shared memory vector for a surface that matches
 	if (ShareEmulatedMemory)
 	{
-		EnterCriticalSection(&smcs);
+		SetCriticalSection();
 		for (auto it = memorySurfaces.begin(); it != memorySurfaces.end(); it++)
 		{
 			EMUSURFACE* pEmuSurface = *it;
@@ -3628,7 +3627,7 @@ HRESULT m_IDirectDrawSurfaceX::CreateDCSurface()
 				break;
 			}
 		}
-		LeaveCriticalSection(&smcs);
+		ReleaseCriticalSection();
 
 		if (emu && emu->surfacepBits)
 		{
@@ -3939,10 +3938,10 @@ inline void m_IDirectDrawSurfaceX::ReleaseDCSurface()
 		}
 		else
 		{
-			EnterCriticalSection(&smcs);
+			SetCriticalSection();
 			memorySurfaces.push_back(emu);
 			emu = nullptr;
-			LeaveCriticalSection(&smcs);
+			ReleaseCriticalSection();
 		}
 	}
 }
@@ -5895,7 +5894,6 @@ void m_IDirectDrawSurfaceX::UpdatePaletteData()
 void m_IDirectDrawSurfaceX::StartSharedEmulatedMemory()
 {
 	ShareEmulatedMemory = true;
-	InitializeCriticalSection(&smcs);
 }
 
 void m_IDirectDrawSurfaceX::DeleteEmulatedMemory(EMUSURFACE **ppEmuSurface)
@@ -5932,12 +5930,7 @@ void m_IDirectDrawSurfaceX::CleanupSharedEmulatedMemory()
 	// Disable shared memory
 	ShareEmulatedMemory = false;
 	
-	// Make sure that vector is not in use
-	EnterCriticalSection(&smcs);
-	LeaveCriticalSection(&smcs);
-
-	// Deleted critical section
-	DeleteCriticalSection(&smcs);
+	SetCriticalSection();
 
 	LOG_LIMIT(100, __FUNCTION__ << " Deleting " << memorySurfaces.size() << " emulated surface" << ((memorySurfaces.size() != 1) ? "s" : "") << "!");
 
@@ -5947,4 +5940,6 @@ void m_IDirectDrawSurfaceX::CleanupSharedEmulatedMemory()
 		DeleteEmulatedMemory(&pEmuSurface);
 	}
 	memorySurfaces.clear();
+
+	ReleaseCriticalSection();
 }
