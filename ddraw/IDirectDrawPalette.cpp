@@ -17,6 +17,7 @@
 */
 
 #include "ddraw.h"
+#include "Utils\Utils.h"
 
 HRESULT m_IDirectDrawPalette::QueryInterface(REFIID riid, LPVOID FAR * ppvObj)
 {
@@ -242,7 +243,8 @@ void m_IDirectDrawPalette::InitPalette()
 	// Compute new USN number
 	LARGE_INTEGER PerformanceCount = {};
 	QueryPerformanceCounter(&PerformanceCount);
-	PaletteUSN += (DWORD)this + (PerformanceCount.HighPart ^ PerformanceCount.LowPart);
+	DWORD Seed = PerformanceCount.HighPart ^ PerformanceCount.LowPart;
+	PaletteUSN = (PaletteUSN ^ Seed) + ((DWORD)this ^ ((Seed << 16) + (Seed >> 16))) + Utils::ReverseBits(Seed);
 
 	// Create palette of requested bit size
 	if ((paletteCaps & DDPCAPS_8BIT) || (paletteCaps & DDPCAPS_ALLOW256))

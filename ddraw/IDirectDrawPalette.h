@@ -12,7 +12,7 @@ private:
 	DWORD paletteCaps = 0;							// Palette flags
 	PALETTEENTRY rawPalette[MaxPaletteSize] = {};	// Raw palette data
 	RGBQUAD rgbPalette[MaxPaletteSize] = {};		// Rgb translated palette
-	DWORD PaletteUSN;								// The USN that's used to see if the palette data was updated
+	DWORD PaletteUSN;								// The USN that's used to see if the palette data was updated (don't initialize)
 	DWORD entryCount = MaxPaletteSize;				// Number of palette entries (Default to 256 entries)
 
 	// Interface initialization functions

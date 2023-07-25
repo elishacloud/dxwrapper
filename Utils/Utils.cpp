@@ -21,6 +21,9 @@
 *
 * GetVideoRam taken from source code found in doom3.gpl
 * https://github.com/TTimo/doom3.gpl
+* 
+* ReverseBits code taken from stanford.edu
+* http://graphics.stanford.edu/~seander/bithacks.html#ReverseParallel
 */
 
 #define WIN32_LEAN_AND_MEAN
@@ -563,6 +566,16 @@ void *Utils::memmem(const void *l, size_t l_len, const void *s, size_t s_len)
 	}
 
 	return nullptr;
+}
+
+// Swap bits of a number
+DWORD Utils::ReverseBits(DWORD v)
+{
+	v = ((v >> 1) & 0x55555555) | ((v & 0x55555555) << 1);	// swap odd and even bits
+	v = ((v >> 2) & 0x33333333) | ((v & 0x33333333) << 2);	// swap consecutive pairs
+	v = ((v >> 4) & 0x0F0F0F0F) | ((v & 0x0F0F0F0F) << 4);	// swap nibbles ... 
+	v = ((v >> 8) & 0x00FF00FF) | ((v & 0x00FF00FF) << 8);	// swap bytes
+	return (v >> 16) | (v << 16);							// swap 2-byte long pairs
 }
 
 // Removes the artificial resolution limit from Direct3D7 and below
