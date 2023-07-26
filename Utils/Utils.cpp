@@ -568,12 +568,12 @@ void *Utils::memmem(const void *l, size_t l_len, const void *s, size_t s_len)
 	return nullptr;
 }
 
-// Swap bits of a number
+// Reverse bit order
 DWORD Utils::ReverseBits(DWORD v)
 {
 	v = ((v >> 1) & 0x55555555) | ((v & 0x55555555) << 1);	// swap odd and even bits
 	v = ((v >> 2) & 0x33333333) | ((v & 0x33333333) << 2);	// swap consecutive pairs
-	v = ((v >> 4) & 0x0F0F0F0F) | ((v & 0x0F0F0F0F) << 4);	// swap nibbles ... 
+	v = ((v >> 4) & 0x0F0F0F0F) | ((v & 0x0F0F0F0F) << 4);	// swap nibbles
 	v = ((v >> 8) & 0x00FF00FF) | ((v & 0x00FF00FF) << 8);	// swap bytes
 	return (v >> 16) | (v << 16);							// swap 2-byte long pairs
 }
