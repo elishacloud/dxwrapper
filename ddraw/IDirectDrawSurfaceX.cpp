@@ -30,7 +30,6 @@ bool IsPresentRunning = false;
 
 // Used for sharing emulated memory
 bool ShareEmulatedMemory = false;
-CRITICAL_SECTION smcs;
 std::vector<EMUSURFACE*> memorySurfaces;
 
 /************************/
@@ -1546,7 +1545,7 @@ HRESULT m_IDirectDrawSurfaceX::GetDC(HDC FAR * lphDC)
 			UpdatePaletteData();
 
 			// Read surface from GDI
-			if (Config.DdrawReadFromGDI && (IsPrimarySurface() || IsBackBuffer()) && !IsDirect3DSurface)
+			if (Config.DdrawReadFromGDI && IsPrimaryOrBackBuffer() && !IsDirect3DSurface)
 			{
 				RECT Rect = { 0, 0, (LONG)surfaceDesc2.dwWidth, (LONG)surfaceDesc2.dwHeight };
 				CopyEmulatedSurfaceFromGDI(Rect);
@@ -1587,9 +1586,6 @@ HRESULT m_IDirectDrawSurfaceX::GetDC(HDC FAR * lphDC)
 
 		// Set LastDC
 		LastDC = *lphDC;
-
-		// Set dirty flag
-		SetDirtyFlag();
 
 		return DD_OK;
 	}
@@ -1998,7 +1994,7 @@ HRESULT m_IDirectDrawSurfaceX::Lock2(LPRECT lpDestRect, LPDDSURFACEDESC2 lpDDSur
 			}
 
 			// Read surface from GDI
-			if (Config.DdrawReadFromGDI && (IsPrimarySurface() || IsBackBuffer()) && !IsDirect3DSurface)
+			if (Config.DdrawReadFromGDI && IsPrimaryOrBackBuffer() && !IsDirect3DSurface)
 			{
 				CopyEmulatedSurfaceFromGDI(DestRect);
 			}
@@ -2097,15 +2093,9 @@ HRESULT m_IDirectDrawSurfaceX::Lock2(LPRECT lpDestRect, LPDDSURFACEDESC2 lpDDSur
 		LastLock.LockedRect.Pitch = LockedRect.Pitch;
 
 		// Restore scanlines before returing surface memory
-		if (Config.DdrawRemoveScanlines && (IsPrimarySurface() || IsBackBuffer()))
+		if (Config.DdrawRemoveScanlines && IsPrimaryOrBackBuffer())
 		{
 			RestoreScanlines(LastLock);
-		}
-
-		// Set dirty flag
-		if (!(Flags & D3DLOCK_READONLY))
-		{
-			SetDirtyFlag();
 		}
 
 		return DD_OK;
@@ -2163,7 +2153,7 @@ HRESULT m_IDirectDrawSurfaceX::ReleaseDC(HDC hDC)
 		if (IsUsingEmulation() || DCRequiresEmulation)
 		{
 			// Blt surface directly to GDI
-			if (Config.DdrawWriteToGDI && (IsPrimarySurface() || IsBackBuffer()) && !IsDirect3DSurface)
+			if (Config.DdrawWriteToGDI && IsPrimaryOrBackBuffer() && !IsDirect3DSurface)
 			{
 				RECT Rect = { 0, 0, (LONG)surfaceDesc2.dwWidth, (LONG)surfaceDesc2.dwHeight };
 				CopyEmulatedSurfaceToGDI(Rect);
@@ -2201,6 +2191,9 @@ HRESULT m_IDirectDrawSurfaceX::ReleaseDC(HDC hDC)
 
 		// Set LastDC
 		LastDC = nullptr;
+
+		// Set dirty flag
+		SetDirtyFlag();
 
 		// Present surface
 		EndWritePresent(false);
@@ -2459,11 +2452,16 @@ HRESULT m_IDirectDrawSurfaceX::SetPalette(LPDIRECTDRAWPALETTE lpDDPalette)
 		// Set palette address
 		attachedPalette = (m_IDirectDrawPalette*)lpDDPalette;
 
-		// If new palette is set
-		PaletteUSN++;
+		SetCriticalSection();
+
+		// Reset data for new palette
+		paletteEntryArray = nullptr;
+		LastPaletteUSN = 0;
 
 		// Set new palette data
 		UpdatePaletteData();
+
+		ReleaseCriticalSection();
 
 		return DD_OK;
 	}
@@ -2538,7 +2536,7 @@ HRESULT m_IDirectDrawSurfaceX::Unlock(LPRECT lpRect)
 		}
 
 		// Remove scanlines before unlocking surface
-		if (Config.DdrawRemoveScanlines && (IsPrimarySurface() || IsBackBuffer()))
+		if (Config.DdrawRemoveScanlines && IsPrimaryOrBackBuffer())
 		{
 			RemoveScanlines(LastLock);
 		}
@@ -2549,7 +2547,7 @@ HRESULT m_IDirectDrawSurfaceX::Unlock(LPRECT lpRect)
 			if (!LastLock.ReadOnly)
 			{
 				// Blt surface directly to GDI
-				if (Config.DdrawWriteToGDI && (IsPrimarySurface() || IsBackBuffer()) && !IsDirect3DSurface)
+				if (Config.DdrawWriteToGDI && IsPrimaryOrBackBuffer() && !IsDirect3DSurface)
 				{
 					CopyEmulatedSurfaceToGDI(LastLock.Rect);
 				}
@@ -2589,6 +2587,12 @@ HRESULT m_IDirectDrawSurfaceX::Unlock(LPRECT lpRect)
 
 		// Reset locked flag
 		IsLocked = false;
+
+		// Set dirty flag
+		if (!LastLock.ReadOnly)
+		{
+			SetDirtyFlag();
+		}
 
 		// Present surface
 		EndWritePresent(LastLock.isSkipScene);
@@ -3160,7 +3164,24 @@ LPDIRECT3DTEXTURE9 m_IDirectDrawSurfaceX::Get3DTexture()
 		LOG_LIMIT(100, __FUNCTION__ << " Error: texture not setup!");
 		return nullptr;
 	}
+	return GetD3D9Texture();
+}
 
+inline LPDIRECT3DTEXTURE9 m_IDirectDrawSurfaceX::GetD3D9Texture()
+{
+	// Prepare paletted surface for display
+	if (IsPaletteSurfaceDirty)
+	{
+		CopyEmulatedPaletteSurface(nullptr);
+	}
+
+	// Return palette display texture
+	if (paletteDisplayTexture)
+	{
+		return paletteDisplayTexture;
+	}
+
+	// Return surface texture
 	return surfaceTexture;
 }
 
@@ -3278,14 +3299,18 @@ HRESULT m_IDirectDrawSurfaceX::CreateD3d9Surface()
 	// Get texture format
 	surfaceFormat = GetDisplayFormat(surfaceDesc2.ddpfPixelFormat);
 	surfaceBitCount = GetBitCount(surfaceFormat);
-	SurfaceRequiresEmulation = (surfaceFormat == D3DFMT_A8B8G8R8 || surfaceFormat == D3DFMT_X8B8G8R8 || surfaceFormat == D3DFMT_B8G8R8 || surfaceFormat == D3DFMT_R8G8B8 ||
-		((Config.DdrawEmulateSurface || (Config.DdrawRemoveScanlines && (IsPrimarySurface() || IsBackBuffer()))) &&
+	SurfaceRequiresEmulation = (surfaceFormat == D3DFMT_A8B8G8R8 || surfaceFormat == D3DFMT_X8B8G8R8 || surfaceFormat == D3DFMT_B8G8R8 ||
+		surfaceFormat == D3DFMT_R8G8B8 || surfaceFormat == D3DFMT_P8 ||
+		((Config.DdrawEmulateSurface || (Config.DdrawRemoveScanlines && IsPrimaryOrBackBuffer())) &&
 			!IsDepthBuffer() && !(surfaceFormat & 0xFF000000 /*FOURCC or D3DFMT_DXTx*/)));
-	const bool IsSurfaceEmulated = (SurfaceRequiresEmulation || ((IsPrimarySurface() || IsBackBuffer()) && (Config.DdrawWriteToGDI || Config.DdrawReadFromGDI) && !IsDirect3DSurface));
+	const bool IsSurfaceEmulated = (SurfaceRequiresEmulation || (IsPrimaryOrBackBuffer() && (Config.DdrawWriteToGDI || Config.DdrawReadFromGDI) && !IsDirect3DSurface));
 	DCRequiresEmulation = (surfaceFormat != D3DFMT_R5G6B5 && surfaceFormat != D3DFMT_X1R5G5B5 && surfaceFormat != D3DFMT_R8G8B8 && surfaceFormat != D3DFMT_X8R8G8B8);
 	const D3DFORMAT Format = (surfaceFormat == D3DFMT_X8B8G8R8 || surfaceFormat == D3DFMT_B8G8R8 || surfaceFormat == D3DFMT_R8G8B8) ? D3DFMT_X8R8G8B8 :
 		(surfaceFormat == D3DFMT_A8B8G8R8) ? D3DFMT_A8R8G8B8 : surfaceFormat;
 	const D3DFORMAT TextureFormat = (surfaceFormat == D3DFMT_P8) ? D3DFMT_L8 : Format;
+
+	const D3DPOOL TexturePool = IsPrimaryOrBackBuffer() ? D3DPOOL_MANAGED :
+		(surfaceDesc2.ddsCaps.dwCaps & DDSCAPS_SYSTEMMEMORY) ? D3DPOOL_SYSTEMMEM : D3DPOOL_MANAGED;
 
 	// Adjust Width to be byte-aligned
 	const DWORD Width = GetByteAlignedWidth(surfaceDesc2.dwWidth, surfaceBitCount);
@@ -3310,9 +3335,7 @@ HRESULT m_IDirectDrawSurfaceX::CreateD3d9Surface()
 		// Create texture
 		else
 		{
-			const D3DPOOL Pool = (IsPrimarySurface() || IsBackBuffer()) ? D3DPOOL_MANAGED :
-				(surfaceDesc2.ddsCaps.dwCaps & DDSCAPS_SYSTEMMEMORY) ? D3DPOOL_SYSTEMMEM : D3DPOOL_MANAGED;
-			if (FAILED(((*d3d9Device)->CreateTexture(Width, Height, 1, 0, TextureFormat, Pool, &surfaceTexture, nullptr))))
+			if (FAILED(((*d3d9Device)->CreateTexture(Width, Height, 1, 0, TextureFormat, TexturePool, &surfaceTexture, nullptr))))
 			{
 				LOG_LIMIT(100, __FUNCTION__ << " Error: failed to create surface texture. Size: " << Width << "x" << Height << " Format: " << surfaceFormat << " dwCaps: " << Logging::hex(surfaceDesc2.ddsCaps.dwCaps));
 				hr = DDERR_GENERIC;
@@ -3331,24 +3354,14 @@ HRESULT m_IDirectDrawSurfaceX::CreateD3d9Surface()
 			}
 		}
 
-		// Create palette texture
-		if (IsPrimarySurface() && IsPalette())
-		{
-			palettePixelShader = ddrawParent->GetPaletteShader();
-			if (!palettePixelShader || !*palettePixelShader ||
-				FAILED(((*d3d9Device)->CreateTexture(256, 256, 1, 0, D3DFMT_X8R8G8B8, D3DPOOL_MANAGED, &paletteTexture, nullptr))))
-			{
-				LOG_LIMIT(100, __FUNCTION__ << " Error: failed to create palette surface texture.");
-				hr = DDERR_GENERIC;
-				break;
-			}
-		}
+		IsPaletteSurfaceDirty = IsPalette();
+
 	} while (false);
 
 	bool EmuSurfaceCreated = false;
 
 	// Create emulated surface using device context for creation
-	if (IsSurfaceEmulated || (emu && !DoesDCMatch(emu)))
+	if (IsSurfaceEmulated || (IsUsingEmulation() && !DoesDCMatch(emu)))
 	{
 		if (!DoesDCMatch(emu))
 		{
@@ -3398,9 +3411,6 @@ HRESULT m_IDirectDrawSurfaceX::CreateD3d9Surface()
 
 	// Data is no longer needed
 	surfaceBackup.clear();
-
-	// Mark palette as updated
-	PaletteUSN++;
 
 	// Only need to create vertex buffer for primary surface when using DirectDraw and not writing to GDI
 	if (!IsPrimarySurface())
@@ -3544,12 +3554,13 @@ inline bool m_IDirectDrawSurfaceX::DoesDCMatch(EMUSURFACE* pEmuSurface)
 	// Adjust Width to be byte-aligned
 	DWORD Width = GetByteAlignedWidth(surfaceDesc2.dwWidth, surfaceBitCount);
 	DWORD Height = surfaceDesc2.dwHeight;
+	DWORD Pitch = ComputePitch(Width, surfaceBitCount);
 
-	if (pEmuSurface->bmi->bmiHeader.biWidth == (LONG)Width && -pEmuSurface->bmi->bmiHeader.biHeight == (LONG)Height &&
-		pEmuSurface->bmi->bmiHeader.biBitCount == surfaceBitCount && (
-			((DWORD*)pEmuSurface->bmi->bmiColors)[0] == surfaceDesc2.ddpfPixelFormat.dwRBitMask &&
-			((DWORD*)pEmuSurface->bmi->bmiColors)[1] == surfaceDesc2.ddpfPixelFormat.dwGBitMask &&
-			((DWORD*)pEmuSurface->bmi->bmiColors)[2] == surfaceDesc2.ddpfPixelFormat.dwBBitMask))
+	if (pEmuSurface->bmi->bmiHeader.biWidth == (LONG)Width &&
+		pEmuSurface->bmi->bmiHeader.biHeight == -(LONG)Height &&
+		pEmuSurface->bmi->bmiHeader.biBitCount == surfaceBitCount &&
+		pEmuSurface->surfaceFormat == surfaceFormat &&
+		pEmuSurface->surfacePitch == Pitch)
 	{
 		return true;
 	}
@@ -3587,10 +3598,10 @@ HRESULT m_IDirectDrawSurfaceX::CreateDCSurface()
 			// Save current emulated surface and prepare for creating a new one.
 			if (ShareEmulatedMemory)
 			{
-				EnterCriticalSection(&smcs);
+				SetCriticalSection();
 				memorySurfaces.push_back(emu);
 				emu = nullptr;
-				LeaveCriticalSection(&smcs);
+				ReleaseCriticalSection();
 			}
 			else
 			{
@@ -3602,7 +3613,7 @@ HRESULT m_IDirectDrawSurfaceX::CreateDCSurface()
 	// If sharing memory than check the shared memory vector for a surface that matches
 	if (ShareEmulatedMemory)
 	{
-		EnterCriticalSection(&smcs);
+		SetCriticalSection();
 		for (auto it = memorySurfaces.begin(); it != memorySurfaces.end(); it++)
 		{
 			EMUSURFACE* pEmuSurface = *it;
@@ -3616,13 +3627,11 @@ HRESULT m_IDirectDrawSurfaceX::CreateDCSurface()
 				break;
 			}
 		}
-		LeaveCriticalSection(&smcs);
+		ReleaseCriticalSection();
 
 		if (emu && emu->surfacepBits)
 		{
 			ZeroMemory(emu->surfacepBits, emu->surfaceSize);
-
-			PaletteUSN++;
 
 			return DD_OK;
 		}
@@ -3691,10 +3700,9 @@ HRESULT m_IDirectDrawSurfaceX::CreateDCSurface()
 		return DDERR_GENERIC;
 	}
 	emu->bmi->bmiHeader.biHeight = -(LONG)Height;
+	emu->surfaceFormat = surfaceFormat;
 	emu->surfacePitch = ComputePitch(emu->bmi->bmiHeader.biWidth, emu->bmi->bmiHeader.biBitCount);
 	emu->surfaceSize = Height * emu->surfacePitch;
-
-	PaletteUSN++;
 
 	return DD_OK;
 }
@@ -3725,7 +3733,7 @@ void m_IDirectDrawSurfaceX::UpdateSurfaceDesc()
 			surfaceDesc2.lPitch = 0;
 		}
 		// Set Refresh Rate
-		if (RefreshRate && ((surfaceDesc2.dwFlags & DDSD_REFRESHRATE) || (IsPrimarySurface() || IsBackBuffer())))
+		if (RefreshRate && ((surfaceDesc2.dwFlags & DDSD_REFRESHRATE) || IsPrimaryOrBackBuffer()))
 		{
 			surfaceDesc2.dwFlags |= DDSD_REFRESHRATE;
 			surfaceDesc2.dwRefreshRate = RefreshRate;
@@ -3740,7 +3748,7 @@ void m_IDirectDrawSurfaceX::UpdateSurfaceDesc()
 		}
 	}
 	// Overwrite primary surface
-	if ((IsPrimarySurface() || IsBackBuffer()) && Config.DdrawOverridePrimaryWidth && Config.DdrawOverridePrimaryHeight)
+	if (IsPrimaryOrBackBuffer() && Config.DdrawOverridePrimaryWidth && Config.DdrawOverridePrimaryHeight)
 	{
 		surfaceDesc2.dwFlags |= DDSD_WIDTH | DDSD_HEIGHT;
 		surfaceDesc2.dwWidth = Config.DdrawOverridePrimaryWidth;
@@ -3815,7 +3823,7 @@ void m_IDirectDrawSurfaceX::ReleaseD9Surface(bool BackupData)
 		}
 	}
 	// Emulated surface
-	else if (emu)
+	else if (IsUsingEmulation())
 	{
 		ReleaseDCSurface();
 	}
@@ -3856,6 +3864,30 @@ void m_IDirectDrawSurfaceX::ReleaseD9Surface(bool BackupData)
 		surfaceTexture = nullptr;
 	}
 
+	// Release d3d9 palette context texture
+	if (paletteDisplaySurface)
+	{
+		Logging::LogDebug() << __FUNCTION__ << " Releasing Direct3D9 palette context texture";
+		ULONG ref = paletteDisplaySurface->Release();
+		if (ref > 1)
+		{
+			Logging::Log() << __FUNCTION__ << " Error: there is still a reference to 'paletteDisplaySurface' " << ref;
+		}
+		paletteDisplaySurface = nullptr;
+	}
+
+	// Release d3d9 palette display texture
+	if (paletteDisplayTexture)
+	{
+		Logging::LogDebug() << __FUNCTION__ << " Releasing Direct3D9 palette display texture";
+		ULONG ref = paletteDisplayTexture->Release();
+		if (ref)
+		{
+			Logging::Log() << __FUNCTION__ << " Error: there is still a reference to 'paletteDisplayTexture' " << ref;
+		}
+		paletteDisplayTexture = nullptr;
+	}
+
 	// Release blank surface
 	if (blankSurface)
 	{
@@ -3866,23 +3898,6 @@ void m_IDirectDrawSurfaceX::ReleaseD9Surface(bool BackupData)
 			Logging::Log() << __FUNCTION__ << " Error: there is still a reference to 'blankSurface' " << ref;
 		}
 		blankSurface = nullptr;
-	}
-
-	// Release d3d9 palette surface texture
-	if (paletteTexture)
-	{
-		Logging::LogDebug() << __FUNCTION__ << " Releasing Direct3D9 palette texture surface";
-		if (d3d9Device && *d3d9Device)
-		{
-			(*d3d9Device)->SetTexture(1, nullptr);
-			(*d3d9Device)->SetPixelShader(nullptr);
-		}
-		ULONG ref = paletteTexture->Release();
-		if (ref)
-		{
-			Logging::Log() << __FUNCTION__ << " Error: there is still a reference to 'paletteTexture' " << ref;
-		}
-		paletteTexture = nullptr;
 	}
 
 	// Release d3d9 vertex buffer
@@ -3923,10 +3938,10 @@ inline void m_IDirectDrawSurfaceX::ReleaseDCSurface()
 		}
 		else
 		{
-			EnterCriticalSection(&smcs);
+			SetCriticalSection();
 			memorySurfaces.push_back(emu);
 			emu = nullptr;
-			LeaveCriticalSection(&smcs);
+			ReleaseCriticalSection();
 		}
 	}
 }
@@ -3972,8 +3987,10 @@ HRESULT m_IDirectDrawSurfaceX::Draw2DSurface()
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ") ";
 
+	LPDIRECT3DTEXTURE9 displayTexture = GetD3D9Texture();
+
 	// If there is no surface texture than nothing to draw
-	if (!surfaceTexture)
+	if (!displayTexture)
 	{
 		return DD_OK;
 	}
@@ -3985,11 +4002,14 @@ HRESULT m_IDirectDrawSurfaceX::Draw2DSurface()
 		{
 			CopyFromEmulatedSurface(nullptr);
 		}
-		surfaceTexture->AddDirtyRect(nullptr);
+		else
+		{
+			displayTexture->AddDirtyRect(nullptr);
+		}
 	}
 
 	// Set texture
-	if (FAILED((*d3d9Device)->SetTexture(0, surfaceTexture)))
+	if (FAILED((*d3d9Device)->SetTexture(0, displayTexture)))
 	{
 		LOG_LIMIT(100, __FUNCTION__ << " Error: failed to set surface texture");
 		return DDERR_GENERIC;
@@ -4026,29 +4046,10 @@ HRESULT m_IDirectDrawSurfaceX::Draw2DSurface()
 			return DDERR_GENERIC;
 		}
 
-		// Set scale mode to linear
+		// Set scale mode to point
 		if (FAILED((*d3d9Device)->SetSamplerState(0, D3DSAMP_MAGFILTER, D3DTEXF_POINT)))
 		{
-			LOG_LIMIT(100, __FUNCTION__ << " Warning: failed to set D3D device to LINEAR sampling");
-		}
-	}
-
-	// Handle palette surfaces
-	if (paletteTexture && palettePixelShader && *palettePixelShader)
-	{
-		// Set palette texture
-		UpdatePaletteData();
-		if (FAILED((*d3d9Device)->SetTexture(1, paletteTexture)))
-		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error: failed to lock palette texture!");
-			return DDERR_GENERIC;
-		}
-
-		// Set pixel shader
-		if (FAILED((*d3d9Device)->SetPixelShader(*palettePixelShader)))
-		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error: failed to set pixel shader");
-			return DDERR_GENERIC;
+			LOG_LIMIT(100, __FUNCTION__ << " Warning: failed to set D3D device to POINT sampling");
 		}
 	}
 
@@ -4173,23 +4174,32 @@ inline void m_IDirectDrawSurfaceX::SwapSurface(m_IDirectDrawSurfaceX *lpTargetSu
 		return;
 	}
 
-	// Swap 3D surface flag
-	SwapAddresses(&lpTargetSurface1->IsDirect3DSurface, &lpTargetSurface2->IsDirect3DSurface);
+	// Swap palette dirty flag
+	SwapAddresses(&lpTargetSurface1->IsPaletteSurfaceDirty, &lpTargetSurface2->IsPaletteSurfaceDirty);
 
 	// Swap dirty flag
 	SwapAddresses(&lpTargetSurface1->IsDirtyFlag, &lpTargetSurface2->IsDirtyFlag);
 
+	// Swap 3D surface flag
+	SwapAddresses(&lpTargetSurface1->IsDirect3DSurface, &lpTargetSurface2->IsDirect3DSurface);
+
 	// Swap 3D surface
-	SwapAddresses(lpTargetSurface1->GetSurface3D(), lpTargetSurface2->GetSurface3D());
+	SwapAddresses(&lpTargetSurface1->surface3D, &lpTargetSurface2->surface3D);
 
 	// Swap surface textures
-	SwapAddresses(lpTargetSurface1->GetSurfaceTexture(), lpTargetSurface2->GetSurfaceTexture());
+	SwapAddresses(&lpTargetSurface1->surfaceTexture, &lpTargetSurface2->surfaceTexture);
 
 	// Swap context surfaces
-	SwapAddresses(lpTargetSurface1->GetContextSurface(), lpTargetSurface2->GetContextSurface());
+	SwapAddresses(&lpTargetSurface1->contextSurface, &lpTargetSurface2->contextSurface);
+
+	// Swap palette display textures
+	SwapAddresses(&lpTargetSurface1->paletteDisplayTexture, &lpTargetSurface2->paletteDisplayTexture);
+
+	// Swap palette context surfaces
+	SwapAddresses(&lpTargetSurface1->paletteDisplaySurface, &lpTargetSurface2->paletteDisplaySurface);
 
 	// Swap emulated surfaces
-	SwapAddresses(lpTargetSurface1->GetEmulatedSurface(), lpTargetSurface2->GetEmulatedSurface());
+	SwapAddresses(&lpTargetSurface1->emu, &lpTargetSurface2->emu);
 }
 
 // Check surface reck dimensions and copy rect to new rect
@@ -4306,7 +4316,7 @@ void m_IDirectDrawSurfaceX::RestoreScanlines(LASTLOCK& LLock)
 	DWORD RectWidth = LLock.Rect.right - LLock.Rect.left;
 	DWORD RectHeight = LLock.Rect.bottom - LLock.Rect.top;
 
-	if ((!IsPrimarySurface() && !IsBackBuffer()) || !LLock.LockedRect.pBits ||
+	if (!IsPrimaryOrBackBuffer() || !LLock.LockedRect.pBits ||
 		!ByteCount || ByteCount > 4 || RectWidth != LLock.ScanlineWidth)
 	{
 		return;
@@ -4353,7 +4363,7 @@ void m_IDirectDrawSurfaceX::RemoveScanlines(LASTLOCK& LLock)
 	LLock.bOddScanlines = false;
 	LLock.bEvenScanlines = false;
 
-	if ((!IsPrimarySurface() && !IsBackBuffer()) || !LLock.LockedRect.pBits ||
+	if (!IsPrimaryOrBackBuffer() || !LLock.LockedRect.pBits ||
 		!ByteCount || ByteCount > 4 || RectHeight < 100)
 	{
 		return;
@@ -4469,6 +4479,12 @@ inline void m_IDirectDrawSurfaceX::SetDirtyFlag()
 		dirtyFlag = true;
 	}
 	IsDirtyFlag = true;
+
+	// Don't set dirty on primary or back buffer, already handled by emulated surface copy functions
+	if (!IsPrimaryOrBackBuffer())
+	{
+		IsPaletteSurfaceDirty = IsPalette();
+	}
 
 	// Update Uniqueness Value
 	ChangeUniquenessValue();
@@ -4855,7 +4871,7 @@ HRESULT m_IDirectDrawSurfaceX::ColorFill(RECT* pRect, D3DCOLOR dwFillColor)
 		}
 
 		// Blt surface directly to GDI
-		if (Config.DdrawWriteToGDI && (IsPrimarySurface() || IsBackBuffer()) && !IsDirect3DSurface)
+		if (Config.DdrawWriteToGDI && IsPrimaryOrBackBuffer() && !IsDirect3DSurface)
 		{
 			CopyEmulatedSurfaceToGDI(DestRect);
 		}
@@ -5016,7 +5032,7 @@ HRESULT m_IDirectDrawSurfaceX::CopySurface(m_IDirectDrawSurfaceX* pSourceSurface
 	}
 
 	// Read surface from GDI
-	if (Config.DdrawReadFromGDI && (IsPrimarySurface() || IsBackBuffer()) && !IsDirect3DSurface)
+	if (Config.DdrawReadFromGDI && IsPrimaryOrBackBuffer() && !IsDirect3DSurface)
 	{
 		CopyEmulatedSurfaceFromGDI(DestRect);
 	}
@@ -5366,7 +5382,7 @@ HRESULT m_IDirectDrawSurfaceX::CopySurface(m_IDirectDrawSurfaceX* pSourceSurface
 	} while (false);
 
 	// Remove scanlines before unlocking surface
-	if (SUCCEEDED(hr) && Config.DdrawRemoveScanlines && (IsPrimarySurface() || IsBackBuffer()))
+	if (SUCCEEDED(hr) && Config.DdrawRemoveScanlines && IsPrimaryOrBackBuffer())
 	{
 		// Set last rect before removing scanlines
 		LASTLOCK LLock;
@@ -5398,7 +5414,7 @@ HRESULT m_IDirectDrawSurfaceX::CopySurface(m_IDirectDrawSurfaceX* pSourceSurface
 	if (SUCCEEDED(hr) && IsUsingEmulation())
 	{
 		// Blt surface directly to GDI
-		if (Config.DdrawWriteToGDI && (IsPrimarySurface() || IsBackBuffer()) && !IsDirect3DSurface)
+		if (Config.DdrawWriteToGDI && IsPrimaryOrBackBuffer() && !IsDirect3DSurface)
 		{
 			CopyEmulatedSurfaceToGDI(DestRect);
 		}
@@ -5450,6 +5466,12 @@ HRESULT m_IDirectDrawSurfaceX::CopyFromEmulatedSurface(LPRECT lpDestRect)
 	{
 		LOG_LIMIT(100, __FUNCTION__ << " Error: could not copy emulated surface: " << surfaceFormat);
 		return DDERR_GENERIC;
+	}
+	
+	// Prepare primary surface if not already dirty
+	if (IsPrimaryOrBackBuffer() && !IsPaletteSurfaceDirty)
+	{
+		CopyEmulatedPaletteSurface(&DestRect);
 	}
 
 	return DD_OK;
@@ -5585,6 +5607,103 @@ HRESULT m_IDirectDrawSurfaceX::CopyToEmulatedSurface(LPRECT lpDestRect)
 
 	// Unlock surface
 	UnlockD39Surface();
+
+	if (SUCCEEDED(hr))
+	{
+		// Prepare primary surface if not already dirty
+		if (IsPrimaryOrBackBuffer() && !IsPaletteSurfaceDirty)
+		{
+			CopyEmulatedPaletteSurface(&DestRect);
+		}
+	}
+
+	return hr;
+}
+
+inline HRESULT m_IDirectDrawSurfaceX::CopyEmulatedPaletteSurface(LPRECT lpDestRect)
+{
+	if (!IsPalette())
+	{
+		return DDERR_GENERIC;
+	}
+
+	if (!IsUsingEmulation())
+	{
+		LOG_LIMIT(100, __FUNCTION__ << " Error: palette surface is not using emulation!");
+		return DDERR_GENERIC;
+	}
+
+	SetCriticalSection();
+
+	HRESULT hr = DD_OK;
+
+	do {
+		// Set new palette data
+		UpdatePaletteData();
+
+		// Check for palette entry data
+		if (!paletteEntryArray)
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: could not get palette data!");
+			hr = DDERR_GENERIC;
+			break;
+		}
+
+		// Create emulated texture for palettes
+		if (!paletteDisplayTexture)
+		{
+			const D3DPOOL TexturePool = IsPrimaryOrBackBuffer() ? D3DPOOL_MANAGED :
+				(surfaceDesc2.ddsCaps.dwCaps & DDSCAPS_SYSTEMMEMORY) ? D3DPOOL_SYSTEMMEM : D3DPOOL_MANAGED;
+			const DWORD Width = GetByteAlignedWidth(surfaceDesc2.dwWidth, surfaceBitCount);
+			const DWORD Height = surfaceDesc2.dwHeight;
+			if (FAILED(((*d3d9Device)->CreateTexture(Width, Height, 1, 0, D3DFMT_X8R8G8B8, TexturePool, &paletteDisplayTexture, nullptr))))
+			{
+				LOG_LIMIT(100, __FUNCTION__ << " Error: failed to create palette display surface texture. Size: " << Width << "x" << Height << " Format: " << D3DFMT_X8R8G8B8 << " dwCaps: " << Logging::hex(surfaceDesc2.ddsCaps.dwCaps));
+				hr = DDERR_GENERIC;
+				break;
+			}
+		}
+
+		// Update rect, if palette surface is dirty then update the whole surface
+		RECT DestRect = {};
+		if (!CheckCoordinates(DestRect, (IsPaletteSurfaceDirty ? nullptr : lpDestRect)))
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: Invalid rect: " << lpDestRect);
+			hr = DDERR_INVALIDRECT;
+			break;
+		}
+
+		// Get lock for emulated surface
+		D3DLOCKED_RECT EmulatedLockRect = {};
+		if (FAILED(LockEmulatedSurface(&EmulatedLockRect, &DestRect)))
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: could not get emulated surface lock!");
+			hr = DDERR_GENERIC;
+			break;
+		}
+
+		// Get palette display context surface
+		if (FAILED(paletteDisplayTexture->GetSurfaceLevel(0, &paletteDisplaySurface)))
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: could not get palette display context surface!");
+			hr = DDERR_GENERIC;
+			break;
+		}
+
+		// Use D3DXLoadSurfaceFromMemory to copy to the surface
+		if (FAILED(D3DXLoadSurfaceFromMemory(paletteDisplaySurface, nullptr, &DestRect, emu->surfacepBits, D3DFMT_P8, EmulatedLockRect.Pitch, paletteEntryArray, &DestRect, D3DX_FILTER_NONE, 0)))
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Warning: could not copy palette display texture: " << surfaceFormat);
+			hr = DDERR_GENERIC;
+			break;
+		}
+
+		// Reset palette texture dirty flag
+		IsPaletteSurfaceDirty = false;
+
+	} while (false);
+
+	ReleaseCriticalSection();
 
 	return hr;
 }
@@ -5724,85 +5843,56 @@ void m_IDirectDrawSurfaceX::UpdatePaletteData()
 		return;
 	}
 
-	DWORD CurrentPaletteUSN = 0;
-	DWORD entryCount = 0;
-	D3DCOLOR *rgbPalette = nullptr;
+	DWORD NewPaletteUSN = 0;
+	LPPALETTEENTRY NewPaletteEntry = nullptr;
+	RGBQUAD* NewRGBPalette = nullptr;
+
+	SetCriticalSection();
 
 	// Get palette data
-	if (attachedPalette && attachedPalette->GetRgbPalette())
+	if (attachedPalette)
 	{
-		CurrentPaletteUSN = PaletteUSN + attachedPalette->GetPaletteUSN();
-		if (CurrentPaletteUSN && 
-			(CurrentPaletteUSN != LastPaletteUSN || (IsUsingEmulation() && CurrentPaletteUSN != emu->LastPaletteUSN)))
-		{
-			rgbPalette = (D3DCOLOR*)attachedPalette->GetRgbPalette();
-			entryCount = attachedPalette->GetEntryCount();
-		}
+		NewPaletteUSN = attachedPalette->GetPaletteUSN();
+		NewPaletteEntry = attachedPalette->GetPaletteEntries();
+		NewRGBPalette = attachedPalette->GetRGBPalette();
 	}
 	// Get palette from primary surface if this is not primary
 	else if (!IsPrimarySurface())
 	{
-		m_IDirectDrawSurfaceX *lpPrimarySurface = ddrawParent->GetPrimarySurface();
+		m_IDirectDrawSurfaceX* lpPrimarySurface = ddrawParent->GetPrimarySurface();
 		if (lpPrimarySurface)
 		{
-			m_IDirectDrawPalette *lpPalette = lpPrimarySurface->GetAttachedPalette();
-			if (lpPalette && lpPalette->GetRgbPalette())
+			m_IDirectDrawPalette* lpPalette = lpPrimarySurface->GetAttachedPalette();
+			if (lpPalette)
 			{
-				CurrentPaletteUSN = lpPrimarySurface->GetPaletteUSN() + lpPalette->GetPaletteUSN();
-				if (CurrentPaletteUSN &&
-					(CurrentPaletteUSN != LastPaletteUSN || (IsUsingEmulation() && CurrentPaletteUSN != emu->LastPaletteUSN)))
-				{
-					rgbPalette = (D3DCOLOR*)lpPalette->GetRgbPalette();
-					entryCount = lpPalette->GetEntryCount();
-				}
+				NewPaletteUSN = lpPalette->GetPaletteUSN();
+				NewPaletteEntry = lpPalette->GetPaletteEntries();
+				NewRGBPalette = lpPalette->GetRGBPalette();
 			}
 		}
 	}
 
-	// No new palette data found
-	if (!rgbPalette)
+	// Set color palette for emulation device context
+	if (IsUsingEmulation() && NewRGBPalette && emu->LastPaletteUSN != NewPaletteUSN)
 	{
-		return;
+		SetDIBColorTable(emu->surfaceDC, 0, MaxPaletteSize, NewRGBPalette);
+		emu->LastPaletteUSN = NewPaletteUSN;
 	}
 
-	// Set color palette for device context
-	if (IsUsingEmulation())
+	// Set new palette data
+	if (NewPaletteEntry && LastPaletteUSN != NewPaletteUSN)
 	{
-		SetDIBColorTable(emu->surfaceDC, 0, entryCount, (RGBQUAD*)rgbPalette);
-
-		emu->LastPaletteUSN = CurrentPaletteUSN;
+		IsPaletteSurfaceDirty = true;
+		LastPaletteUSN = NewPaletteUSN;
+		paletteEntryArray = NewPaletteEntry;
 	}
 
-	// If new palette data then write it to texture
-	if (paletteTexture)
-	{
-		do {
-			LPDIRECT3DSURFACE9 paletteSurface = nullptr;
-			if (FAILED(paletteTexture->GetSurfaceLevel(0, &paletteSurface)))
-			{
-				LOG_LIMIT(100, __FUNCTION__ << " Error: could not get palette surface!");
-				break;
-			}
-
-			// Use D3DXLoadSurfaceFromMemory to copy to the surface
-			RECT Rect = { 0, 0, (LONG)entryCount, 1 };
-			if (FAILED(D3DXLoadSurfaceFromMemory(paletteSurface, nullptr, &Rect, rgbPalette, D3DFMT_X8R8G8B8, 256 * 4, nullptr, &Rect, D3DX_FILTER_NONE, 0)))
-			{
-				LOG_LIMIT(100, __FUNCTION__ << " Error: could not update palette surface!");
-			}
-
-			paletteSurface->Release();
-
-			LastPaletteUSN = CurrentPaletteUSN;
-
-		} while (false);
-	}
+	ReleaseCriticalSection();
 }
 
 void m_IDirectDrawSurfaceX::StartSharedEmulatedMemory()
 {
 	ShareEmulatedMemory = true;
-	InitializeCriticalSection(&smcs);
 }
 
 void m_IDirectDrawSurfaceX::DeleteEmulatedMemory(EMUSURFACE **ppEmuSurface)
@@ -5839,12 +5929,7 @@ void m_IDirectDrawSurfaceX::CleanupSharedEmulatedMemory()
 	// Disable shared memory
 	ShareEmulatedMemory = false;
 	
-	// Make sure that vector is not in use
-	EnterCriticalSection(&smcs);
-	LeaveCriticalSection(&smcs);
-
-	// Deleted critical section
-	DeleteCriticalSection(&smcs);
+	SetCriticalSection();
 
 	LOG_LIMIT(100, __FUNCTION__ << " Deleting " << memorySurfaces.size() << " emulated surface" << ((memorySurfaces.size() != 1) ? "s" : "") << "!");
 
@@ -5854,4 +5939,6 @@ void m_IDirectDrawSurfaceX::CleanupSharedEmulatedMemory()
 		DeleteEmulatedMemory(&pEmuSurface);
 	}
 	memorySurfaces.clear();
+
+	ReleaseCriticalSection();
 }

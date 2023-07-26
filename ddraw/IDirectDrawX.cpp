@@ -22,7 +22,6 @@
 #include "Dllmain\DllMain.h"
 #include "d3d9\d3d9External.h"
 #include "d3dddi\d3dddiExternal.h"
-#include "Shaders\PaletteShader.h"
 #include "Shaders\ColorKeyShader.h"
 
 constexpr DWORD MaxVidMemory		= 0x20000000;	// 512 MBs
@@ -119,7 +118,6 @@ bool EnableWaitVsync;
 LPDIRECT3D9 d3d9Object;
 LPDIRECT3DDEVICE9 d3d9Device;
 D3DPRESENT_PARAMETERS presParams;
-LPDIRECT3DPIXELSHADER9 palettePixelShader = nullptr;
 LPDIRECT3DPIXELSHADER9 colorkeyPixelShader = nullptr;
 DWORD BehaviorFlags;
 HWND hFocusWindow;
@@ -2782,16 +2780,6 @@ LPDIRECT3DDEVICE9* m_IDirectDrawX::GetDirect3D9Device()
 	return &d3d9Device;
 }
 
-LPDIRECT3DPIXELSHADER9* m_IDirectDrawX::GetPaletteShader()
-{
-	// Create pixel shaders
-	if (d3d9Device && !palettePixelShader)
-	{
-		d3d9Device->CreatePixelShader((DWORD*)PalettePixelShaderSrc, &palettePixelShader);
-	}
-	return &palettePixelShader;
-}
-
 LPDIRECT3DPIXELSHADER9* m_IDirectDrawX::GetColorKeyShader()
 {
 	// Create pixel shaders
@@ -3176,22 +3164,6 @@ inline void m_IDirectDrawX::ReleaseAllD9Buffers(bool BackupData)
 // Release all shaders
 inline void m_IDirectDrawX::ReleaseAllD9Shaders()
 {
-	// Release palette pixel shader
-	if (palettePixelShader)
-	{
-		Logging::LogDebug() << __FUNCTION__ << " Releasing Direct3D9 palette pixel shader";
-		if (d3d9Device)
-		{
-			d3d9Device->SetPixelShader(nullptr);
-		}
-		ULONG ref = palettePixelShader->Release();
-		if (ref)
-		{
-			Logging::Log() << __FUNCTION__ << " Error: there is still a reference to 'palettePixelShader' " << ref;
-		}
-		palettePixelShader = nullptr;
-	}
-
 	// Release color key pixel shader
 	if (colorkeyPixelShader)
 	{

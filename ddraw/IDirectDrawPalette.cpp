@@ -17,6 +17,7 @@
 */
 
 #include "ddraw.h"
+#include "Utils\Utils.h"
 
 HRESULT m_IDirectDrawPalette::QueryInterface(REFIID riid, LPVOID FAR * ppvObj)
 {
@@ -112,14 +113,14 @@ HRESULT m_IDirectDrawPalette::GetEntries(DWORD dwFlags, DWORD dwBase, DWORD dwNu
 	if (!ProxyInterface)
 	{
 		// Do some error checking
-		if (!lpEntries || !rawPalette || dwBase > entryCount)
+		if (!lpEntries || dwBase > entryCount)
 		{
 			return DDERR_INVALIDPARAMS;
 		}
 		dwNumEntries = min(dwNumEntries, entryCount - dwBase);
 
 		// Copy raw palette entries to lpEntries(size dwNumEntries) starting at dwBase
-		memcpy(lpEntries, &(rawPalette[dwBase]), sizeof(PALETTEENTRY) * dwNumEntries);
+		memcpy(lpEntries, &(rawPalette[dwBase]), dwNumEntries * sizeof(PALETTEENTRY));
 
 		// dwNumEntries is the number of palette entries that can fit in the array that lpEntries 
 		// specifies. The colors of the palette entries are returned in sequence, from the value
@@ -157,16 +158,13 @@ HRESULT m_IDirectDrawPalette::SetEntries(DWORD dwFlags, DWORD dwStartingEntry, D
 	if (!ProxyInterface)
 	{
 		// Do some error checking
-		if (!lpEntries || !rawPalette || !rgbPalette || dwStartingEntry > entryCount)
+		if (!lpEntries || dwStartingEntry > entryCount)
 		{
 			return DDERR_INVALIDPARAMS;
 		}
 
 		// Get new entry count
 		dwCount = min(dwCount, entryCount - dwStartingEntry);
-
-		// Copy raw palette entries from dwStartingEntry and of count dwCount
-		memcpy(&(rawPalette[dwStartingEntry]), lpEntries, sizeof(PALETTEENTRY) * dwCount);
 
 		// Set start and end entries
 		DWORD Start = max(0, dwStartingEntry);
@@ -179,13 +177,31 @@ HRESULT m_IDirectDrawPalette::SetEntries(DWORD dwFlags, DWORD dwStartingEntry, D
 			End = min(255, End);
 		}
 
-		// Translate new raw pallete entries to RGB
-		for (UINT i = Start; i < End; i++)
+		// lpEntries array location
+		DWORD x = (Start - dwStartingEntry);
+
+		// Check if new palette data found
+		if (!(Start < End) || memcmp(&(rawPalette[Start]), &lpEntries[x], (End - Start) * sizeof(PALETTEENTRY)) == S_OK)
 		{
-			rgbPalette[i].pe.blue = rawPalette[i].peBlue;
-			rgbPalette[i].pe.green = rawPalette[i].peGreen;
-			rgbPalette[i].pe.red = rawPalette[i].peRed;
-			rgbPalette[i].pe.alpha = (paletteCaps & DDPCAPS_ALPHA) ? rawPalette[i].peFlags : 0x00;
+			return DD_OK;	// No new data found
+		}
+
+		SetCriticalSection();
+
+		// Translate new raw pallete entries to RGB
+		for (UINT i = Start; i < End; i++, x++)
+		{
+			BYTE alpha = (paletteCaps & DDPCAPS_ALPHA) ? lpEntries[x].peFlags : 0x00;
+			// Palette entry
+			rawPalette[i].peFlags = alpha;
+			rawPalette[i].peRed = lpEntries[x].peRed;
+			rawPalette[i].peGreen = lpEntries[x].peGreen;
+			rawPalette[i].peBlue = lpEntries[x].peBlue;
+			// RGB palette
+			rgbPalette[i].rgbBlue = lpEntries[x].peBlue;
+			rgbPalette[i].rgbGreen = lpEntries[x].peGreen;
+			rgbPalette[i].rgbRed = lpEntries[x].peRed;
+			rgbPalette[i].rgbReserved = alpha;
 		}
 
 		// Note that there is new palette data
@@ -201,17 +217,15 @@ HRESULT m_IDirectDrawPalette::SetEntries(DWORD dwFlags, DWORD dwStartingEntry, D
 					ddrawParent->SetVsync();
 				}
 
-				SetCriticalSection();
-
 				m_IDirectDrawSurfaceX *lpDDSrcSurfaceX = ddrawParent->GetPrimarySurface();
 				if (lpDDSrcSurfaceX)
 				{
 					lpDDSrcSurfaceX->PresentSurface(false);
 				}
-
-				ReleaseCriticalSection();
 			}
 		}
+
+		ReleaseCriticalSection();
 
 		return DD_OK;
 	}
@@ -226,9 +240,14 @@ void m_IDirectDrawPalette::InitPalette()
 		return;
 	}
 
+	// Compute new USN number
+	LARGE_INTEGER PerformanceCount = {};
+	QueryPerformanceCounter(&PerformanceCount);
+	DWORD Seed = PerformanceCount.HighPart ^ PerformanceCount.LowPart;
+	PaletteUSN = (PaletteUSN ^ Seed) + ((DWORD)this ^ ((Seed << 16) + (Seed >> 16))) + Utils::ReverseBits(Seed);
+
 	// Create palette of requested bit size
-	if ((paletteCaps & DDPCAPS_8BIT) || (paletteCaps & DDPCAPS_ALLOW256) ||
-		((paletteCaps & DDPCAPS_8BITENTRIES) && (paletteCaps & (DDPCAPS_1BIT | DDPCAPS_2BIT | DDPCAPS_4BIT))))
+	if ((paletteCaps & DDPCAPS_8BIT) || (paletteCaps & DDPCAPS_ALLOW256))
 	{
 		entryCount = 256;
 	}
@@ -251,18 +270,34 @@ void m_IDirectDrawPalette::InitPalette()
 		Logging::Log() << __FUNCTION__ << " Warning: Primary surface left is not implemented.";
 	}
 
-	// Allocate raw ddraw palette
-	rawPalette = new PALETTEENTRY[entryCount];
+	// The palette entries are 1 byte each if the DDPCAPS_8BITENTRIES flag is set, and 4 bytes otherwise.
+	if (paletteCaps & DDPCAPS_ALPHA)
+	{
+		Logging::Log() << __FUNCTION__ << " Warning: alpha palette entries are not implemented.";
+	}
 
-	// Allocate rgb palette
-	rgbPalette = new RGBDWORD[entryCount];
+	// The palette entries are 1 byte each if the DDPCAPS_8BITENTRIES flag is set, and 4 bytes otherwise.
+	// This flag is valid only when used with the DDPCAPS_1BIT, DDPCAPS_2BIT, or DDPCAPS_4BIT flag, and when the target surface is 8 bpp.
+	if ((paletteCaps & DDPCAPS_8BITENTRIES) && (paletteCaps & (DDPCAPS_1BIT | DDPCAPS_2BIT | DDPCAPS_4BIT)))
+	{
+		Logging::Log() << __FUNCTION__ << " Warning: DDPCAPS_8BITENTRIES is not implemented.";
+	}
+	else
+	{
+		paletteCaps &= ~DDPCAPS_8BITENTRIES;
+	}
 
 	// Init palette entry 255 to white to simulate ddraw functionality
 	if (entryCount == 256)
 	{
-		rgbPalette[255].pe.blue = 0xFF;
-		rgbPalette[255].pe.green = 0xFF;
-		rgbPalette[255].pe.red = 0xFF;
+		// Palette entry
+		rawPalette[255].peRed = 0xFF;
+		rawPalette[255].peGreen = 0xFF;
+		rawPalette[255].peBlue = 0xFF;
+		// RGB palette
+		rgbPalette[255].rgbBlue = 0xFF;
+		rgbPalette[255].rgbGreen = 0xFF;
+		rgbPalette[255].rgbRed = 0xFF;
 	}
 
 	if (ddrawParent)
@@ -276,14 +311,5 @@ void m_IDirectDrawPalette::ReleasePalette()
 	if (ddrawParent && !Config.Exiting)
 	{
 		ddrawParent->RemovePaletteFromVector(this);
-	}
-
-	if (rawPalette)
-	{
-		delete rawPalette;
-	}
-	if (rgbPalette)
-	{
-		delete rgbPalette;
 	}
 }
