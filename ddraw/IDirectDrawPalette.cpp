@@ -181,7 +181,7 @@ HRESULT m_IDirectDrawPalette::SetEntries(DWORD dwFlags, DWORD dwStartingEntry, D
 		DWORD x = (Start - dwStartingEntry);
 
 		// Check if new palette data found
-		if (memcmp(&(rawPalette[Start]), &lpEntries[x], (End - Start) * sizeof(PALETTEENTRY)) == S_OK)
+		if (!(Start < End) || memcmp(&(rawPalette[Start]), &lpEntries[x], (End - Start) * sizeof(PALETTEENTRY)) == S_OK)
 		{
 			return DD_OK;	// No new data found
 		}
