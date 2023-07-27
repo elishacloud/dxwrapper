@@ -5683,11 +5683,14 @@ inline HRESULT m_IDirectDrawSurfaceX::CopyEmulatedPaletteSurface(LPRECT lpDestRe
 		}
 
 		// Get palette display context surface
-		if (FAILED(paletteDisplayTexture->GetSurfaceLevel(0, &paletteDisplaySurface)))
+		if (!paletteDisplaySurface)
 		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error: could not get palette display context surface!");
-			hr = DDERR_GENERIC;
-			break;
+			if (FAILED(paletteDisplayTexture->GetSurfaceLevel(0, &paletteDisplaySurface)))
+			{
+				LOG_LIMIT(100, __FUNCTION__ << " Error: could not get palette display context surface!");
+				hr = DDERR_GENERIC;
+				break;
+			}
 		}
 
 		// Use D3DXLoadSurfaceFromMemory to copy to the surface
