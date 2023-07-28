@@ -5615,14 +5615,6 @@ HRESULT m_IDirectDrawSurfaceX::CopyFromEmulatedSurface(LPRECT lpDestRect)
 		return DDERR_INVALIDRECT;
 	}
 
-	// Get lock for emulated surface
-	D3DLOCKED_RECT EmulatedLockRect;
-	if (FAILED(LockEmulatedSurface(&EmulatedLockRect, &DestRect)))
-	{
-		LOG_LIMIT(100, __FUNCTION__ << " Error: could not get emulated surface lock!");
-		return DDERR_GENERIC;
-	}
-
 	// Get real d3d9 surface
 	IDirect3DSurface9* pDestSurfaceD9 = GetD3D9Surface();
 	if (!pDestSurfaceD9)
@@ -5632,7 +5624,7 @@ HRESULT m_IDirectDrawSurfaceX::CopyFromEmulatedSurface(LPRECT lpDestRect)
 	}
 
 	// Use D3DXLoadSurfaceFromMemory to copy to the surface
-	if (FAILED(D3DXLoadSurfaceFromMemory(pDestSurfaceD9, nullptr, &DestRect, emu->surfacepBits, (surfaceFormat == D3DFMT_P8) ? D3DFMT_L8 : surfaceFormat, EmulatedLockRect.Pitch, nullptr, &DestRect, D3DX_FILTER_NONE, 0)))
+	if (FAILED(D3DXLoadSurfaceFromMemory(pDestSurfaceD9, nullptr, &DestRect, emu->surfacepBits, (surfaceFormat == D3DFMT_P8) ? D3DFMT_L8 : surfaceFormat, emu->surfacePitch, nullptr, &DestRect, D3DX_FILTER_NONE, 0)))
 	{
 		LOG_LIMIT(100, __FUNCTION__ << " Error: could not copy emulated surface: " << surfaceFormat);
 		return DDERR_GENERIC;
@@ -5843,15 +5835,6 @@ inline HRESULT m_IDirectDrawSurfaceX::CopyEmulatedPaletteSurface(LPRECT lpDestRe
 			break;
 		}
 
-		// Get lock for emulated surface
-		D3DLOCKED_RECT EmulatedLockRect = {};
-		if (FAILED(LockEmulatedSurface(&EmulatedLockRect, &DestRect)))
-		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error: could not get emulated surface lock!");
-			hr = DDERR_GENERIC;
-			break;
-		}
-
 		// Get palette display context surface
 		if (!paletteDisplaySurface)
 		{
@@ -5864,7 +5847,7 @@ inline HRESULT m_IDirectDrawSurfaceX::CopyEmulatedPaletteSurface(LPRECT lpDestRe
 		}
 
 		// Use D3DXLoadSurfaceFromMemory to copy to the surface
-		if (FAILED(D3DXLoadSurfaceFromMemory(paletteDisplaySurface, nullptr, &DestRect, emu->surfacepBits, D3DFMT_P8, EmulatedLockRect.Pitch, paletteEntryArray, &DestRect, D3DX_FILTER_NONE, 0)))
+		if (FAILED(D3DXLoadSurfaceFromMemory(paletteDisplaySurface, nullptr, &DestRect, emu->surfacepBits, D3DFMT_P8, emu->surfacePitch, paletteEntryArray, &DestRect, D3DX_FILTER_NONE, 0)))
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Warning: could not copy palette display texture: " << surfaceFormat);
 			hr = DDERR_GENERIC;
