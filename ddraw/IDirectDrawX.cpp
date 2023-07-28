@@ -1758,7 +1758,7 @@ HRESULT m_IDirectDrawX::SetCooperativeLevel(HWND hWnd, DWORD dwFlags, DWORD Dire
 
 HRESULT m_IDirectDrawX::SetDisplayMode(DWORD dwWidth, DWORD dwHeight, DWORD dwBPP, DWORD dwRefreshRate, DWORD dwFlags)
 {
-	Logging::LogDebug() << __FUNCTION__ << " (" << this << ") " << dwWidth << "x" << dwHeight << " " << dwBPP << " " << dwRefreshRate << Logging::hex(dwFlags);
+	Logging::LogDebug() << __FUNCTION__ << " (" << this << ") " << dwWidth << "x" << dwHeight << " " << dwBPP << " " << dwRefreshRate << " " << Logging::hex(dwFlags);
 
 	if (Config.Dd7to9)
 	{
@@ -3598,12 +3598,6 @@ HRESULT m_IDirectDrawX::Present()
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	// Check for device interface
-	if (FAILED(CheckInterface(__FUNCTION__, true)))
-	{
-		return DDERR_GENERIC;
-	}
-
 	const bool UseVSync = (EnableWaitVsync && !Config.EnableVSync);
 
 	// Skip frame if time lapse is too small
@@ -3639,6 +3633,12 @@ HRESULT m_IDirectDrawX::Present()
 	{
 		WaitForVerticalBlank(DDWAITVB_BLOCKBEGIN, nullptr);
 		EnableWaitVsync = false;
+	}
+
+	// Check for device interface
+	if (FAILED(CheckInterface(__FUNCTION__, true)))
+	{
+		return DDERR_GENERIC;
 	}
 
 	// Present everthing, skip Preset when using DdrawWriteToGDI

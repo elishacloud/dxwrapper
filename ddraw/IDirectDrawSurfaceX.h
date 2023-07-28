@@ -72,6 +72,7 @@ private:
 	} LastLock;
 
 	// Convert to Direct3D9
+	CRITICAL_SECTION ddscs;
 	bool IsDirect3DSurface = false;
 	m_IDirectDrawX *ddrawParent = nullptr;
 	m_IDirectDrawPalette *attachedPalette = nullptr;	// Associated palette
@@ -101,6 +102,7 @@ private:
 	bool IsInDC = false;
 	HDC LastDC = nullptr;
 	bool IsInBlt = false;
+	bool IsInBltBatch = false;
 	bool IsInFlip = false;
 	bool IsPaletteSurfaceDirty = false;					// Used to detect if the palette surface needs to be updated
 	LPPALETTEENTRY paletteEntryArray = nullptr;			// Used to store palette data address
@@ -203,7 +205,10 @@ private:
 
 	// Surface information functions
 	inline bool IsSurfaceLocked() { return IsLocked; }
+	inline bool IsSurfaceBlitting() { return (IsInBlt || IsInBltBatch); }
 	inline bool IsSurfaceInDC() { return IsInDC; }
+	inline bool IsSurfaceBusy() { return (IsSurfaceBlitting() || IsSurfaceLocked() || IsSurfaceInDC()); }
+	inline bool IsLockedFromOtherThread() { return (IsSurfaceBlitting() || IsSurfaceLocked()) && LockedWithID && LockedWithID != GetCurrentThreadId(); }
 	inline bool CanSurfaceBeDeleted() { return (ComplexRoot || (surfaceDesc2.ddsCaps.dwCaps & DDSCAPS_COMPLEX) == 0); }
 	inline DWORD GetWidth() { return surfaceDesc2.dwWidth; }
 	inline DWORD GetHeight() { return surfaceDesc2.dwHeight; }
@@ -350,6 +355,8 @@ public:
 	void *GetWrapperInterfaceX(DWORD DirectXVersion);
 	ULONG AddRef(DWORD DirectXVersion);
 	ULONG Release(DWORD DirectXVersion);
+	void SetCS() { EnterCriticalSection(&ddscs); }
+	void ReleaseCS() { LeaveCriticalSection(&ddscs); }
 
 	// Fix byte alignment issue
 	template <class T>
