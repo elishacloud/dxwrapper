@@ -678,6 +678,12 @@ HRESULT m_IDirectDrawX::CreateSurface2(LPDDSURFACEDESC2 lpDDSurfaceDesc2, LPDIRE
 					ReCreateD3D9Device = true;
 				}
 			}
+
+			// If device not created
+			if (!d3d9Device && MainhWnd && displayModeWidth && displayModeHeight)
+			{
+				ReCreateD3D9Device = true;
+			}
 		}
 
 		// Recreate d3d9 device
@@ -1871,11 +1877,15 @@ HRESULT m_IDirectDrawX::SetDisplayMode(DWORD dwWidth, DWORD dwHeight, DWORD dwBP
 		surfaceWidth = 0;
 		surfaceHeight = 0;
 
-		// Update the d3d9 device to use new display mode
+		// Mark flag that resolution has changed
 		if (ChangeMode)
 		{
 			SetResolution = ExclusiveMode;
+		}
 
+		// Update the d3d9 device to use new display mode if already created
+		if (ChangeMode && (d3d9Device || PrimarySurface))
+		{
 			// Recreate d3d9 device
 			CreateD3D9Device();
 		}

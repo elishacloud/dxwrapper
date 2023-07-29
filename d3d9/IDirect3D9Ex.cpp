@@ -194,9 +194,7 @@ HRESULT m_IDirect3D9Ex::CreateDeviceT(D3DPRESENT_PARAMETERS& d3dpp, bool& MultiS
 		return D3DERR_INVALIDCALL;
 	}
 
-	bool IsWindowed = (pPresentationParameters->Windowed != FALSE);
-
-	BehaviorFlags = UpdateBehaviorFlags(BehaviorFlags, IsWindowed);
+	BehaviorFlags = UpdateBehaviorFlags(BehaviorFlags);
 
 	// Create new d3d9 device
 	HRESULT hr = D3DERR_INVALIDCALL;
@@ -392,13 +390,8 @@ bool m_IDirect3D9Ex::TestResolution(UINT Adapter, DWORD BackBufferWidth, DWORD B
 	return false;
 }
 
-DWORD UpdateBehaviorFlags(DWORD BehaviorFlags, bool IsWindowed)
+DWORD UpdateBehaviorFlags(DWORD BehaviorFlags)
 {
-	if (!IsWindowed && (Config.EnableWindowMode || Config.FullscreenWindowMode))
-	{
-		BehaviorFlags |= D3DCREATE_NOWINDOWCHANGES;
-	}
-
 	if (Config.ForceMixedVertexProcessing)
 	{
 		BehaviorFlags &= ~(D3DCREATE_PUREDEVICE | D3DCREATE_HARDWARE_VERTEXPROCESSING | D3DCREATE_SOFTWARE_VERTEXPROCESSING);
