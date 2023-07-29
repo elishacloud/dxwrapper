@@ -3437,7 +3437,10 @@ inline void m_IDirect3DDeviceX::RestoreDrawStates(DWORD dwVertexTypeDesc, DWORD 
 		(*d3d9Device)->SetRenderState(D3DRS_LIGHTING, DrawStates.rsLighting);
 		(*d3d9Device)->SetSamplerState(0, D3DSAMP_MAGFILTER, DrawStates.ssMagFilter);
 
+		(*d3d9Device)->SetPixelShader(nullptr);
+
 		SetTexture(0, AttachedTexture[0]);
+		SetTexture(1, AttachedTexture[1]);
 	}
 }
 

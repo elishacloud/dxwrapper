@@ -125,9 +125,17 @@ HRESULT WINAPI D3DXLoadSurfaceFromMemory(LPDIRECT3DSURFACE9 pDestSurface, const 
 	if (FAILED(hr))
 	{
 		Logging::Log() << __FUNCTION__ << " Warning: Failed to Copy surface from memory!";
+		return hr;
 	}
 
-	return hr;
+	LPDIRECT3DTEXTURE9 pDestTexture = nullptr;
+	if (SUCCEEDED(pDestSurface->GetContainer(IID_IDirect3DTexture9, (void**)&pDestTexture)))
+	{
+		pDestTexture->AddDirtyRect(pDestRect);
+		pDestTexture->Release();
+	}
+
+	return D3D_OK;
 }
 
 HRESULT WINAPI D3DXLoadSurfaceFromSurface(LPDIRECT3DSURFACE9 pDestSurface, const PALETTEENTRY* pDestPalette, const RECT* pDestRect, LPDIRECT3DSURFACE9 pSrcSurface, const PALETTEENTRY* pSrcPalette, const RECT* pSrcRect, DWORD Filter, D3DCOLOR ColorKey)
@@ -147,9 +155,17 @@ HRESULT WINAPI D3DXLoadSurfaceFromSurface(LPDIRECT3DSURFACE9 pDestSurface, const
 	if (FAILED(hr))
 	{
 		Logging::Log() << __FUNCTION__ << " Warning: Failed to Copy surface!";
+		return hr;
 	}
 
-	return hr;
+	LPDIRECT3DTEXTURE9 pDestTexture = nullptr;
+	if (SUCCEEDED(pDestSurface->GetContainer(IID_IDirect3DTexture9, (void**)&pDestTexture)))
+	{
+		pDestTexture->AddDirtyRect(pDestRect);
+		pDestTexture->Release();
+	}
+
+	return D3D_OK;
 }
 
 HRESULT WINAPI D3DXSaveSurfaceToFileInMemory(LPD3DXBUFFER* ppDestBuf, D3DXIMAGE_FILEFORMAT DestFormat, LPDIRECT3DSURFACE9 pSrcSurface, const PALETTEENTRY* pSrcPalette, const RECT* SrcRect)

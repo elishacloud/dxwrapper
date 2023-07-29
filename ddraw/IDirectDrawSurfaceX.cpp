@@ -569,7 +569,7 @@ HRESULT m_IDirectDrawSurfaceX::Blt(LPRECT lpDestRect, LPDIRECTDRAWSURFACE7 lpDDS
 		IsInBlt = false;
 		lpDDSrcSurfaceX->IsInBlt = false;
 
-		// Reset locked ID
+		// Reset locked thread ID
 		if (!IsSurfaceBlitting() && !IsSurfaceLocked())
 		{
 			LockedWithID = 0;
@@ -2648,6 +2648,7 @@ HRESULT m_IDirectDrawSurfaceX::Unlock(LPRECT lpRect)
 					// Unlock once all rects have been unlocked
 					if (!surfaceLockRectList.empty())
 					{
+						LOG_LIMIT(100, __FUNCTION__ << " Warning: multiple locked rects found: " << surfaceLockRectList.size());
 						hr = DD_OK;
 						break;
 					}
@@ -2720,6 +2721,7 @@ HRESULT m_IDirectDrawSurfaceX::Unlock(LPRECT lpRect)
 			// Reset locked flag
 			IsLocked = false;
 
+			// Reset locked thread ID
 			if (!IsSurfaceBlitting() && !IsSurfaceLocked())
 			{
 				LockedWithID = 0;
@@ -3316,7 +3318,7 @@ LPDIRECT3DTEXTURE9 m_IDirectDrawSurfaceX::Get3DTexture()
 inline LPDIRECT3DTEXTURE9 m_IDirectDrawSurfaceX::GetD3D9Texture()
 {
 	// Prepare paletted surface for display
-	if (IsPaletteSurfaceDirty)
+	if (IsPaletteSurfaceDirty && !paletteTexture)
 	{
 		CopyEmulatedPaletteSurface(nullptr);
 	}
@@ -3504,6 +3506,19 @@ HRESULT m_IDirectDrawSurfaceX::CreateD3d9Surface()
 		}
 
 		IsPaletteSurfaceDirty = IsPalette();
+
+		// Create palette surface
+		if (IsPrimarySurface() && surfaceFormat == D3DFMT_P8)
+		{
+			palettePixelShader = ddrawParent->GetPaletteShader();
+			if (!palettePixelShader || !*palettePixelShader ||
+				FAILED(((*d3d9Device)->CreateTexture(MaxPaletteSize, MaxPaletteSize, 1, 0, D3DFMT_X8R8G8B8, D3DPOOL_MANAGED, &paletteTexture, nullptr))))
+			{
+				LOG_LIMIT(100, __FUNCTION__ << " Error: failed to create palette surface texture");
+				hr = DDERR_GENERIC;
+				break;
+			}
+		}
 
 	} while (false);
 
@@ -4051,6 +4066,23 @@ void m_IDirectDrawSurfaceX::ReleaseD9Surface(bool BackupData)
 		blankSurface = nullptr;
 	}
 
+	// Release d3d9 palette surface texture
+	if (paletteTexture)
+	{
+		Logging::LogDebug() << __FUNCTION__ << " Releasing Direct3D9 palette texture surface";
+		if (d3d9Device && *d3d9Device)
+		{
+			(*d3d9Device)->SetTexture(1, nullptr);
+			(*d3d9Device)->SetPixelShader(nullptr);
+		}
+		ULONG ref = paletteTexture->Release();
+		if (ref)
+		{
+			Logging::Log() << __FUNCTION__ << " Error: there is still a reference to 'paletteTexture' " << ref;
+		}
+		paletteTexture = nullptr;
+	}
+
 	// Release d3d9 vertex buffer
 	if (vertexBuffer)
 	{
@@ -4177,6 +4209,25 @@ HRESULT m_IDirectDrawSurfaceX::Draw2DSurface()
 	{
 		LOG_LIMIT(100, __FUNCTION__ << " Error: failed to set surface texture");
 		return DDERR_GENERIC;
+	}
+
+	// Handle palette surfaces
+	if (paletteTexture && palettePixelShader && *palettePixelShader)
+	{
+		// Set palette texture
+		UpdatePaletteData();
+		if (FAILED((*d3d9Device)->SetTexture(1, paletteTexture)))
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: failed to lock palette texture!");
+			return DDERR_GENERIC;
+		}
+
+		// Set pixel shader
+		if (FAILED((*d3d9Device)->SetPixelShader(*palettePixelShader)))
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: failed to set pixel shader");
+			return DDERR_GENERIC;
+		}
 	}
 
 	// Set vertex buffer and lighting
@@ -4649,12 +4700,6 @@ inline void m_IDirectDrawSurfaceX::SetDirtyFlag()
 		dirtyFlag = true;
 	}
 	IsDirtyFlag = true;
-
-	// Don't set dirty on primary or back buffer, already handled by emulated surface copy functions
-	if (!IsPrimaryOrBackBuffer())
-	{
-		IsPaletteSurfaceDirty = IsPalette();
-	}
 
 	// Update Uniqueness Value
 	ChangeUniquenessValue();
@@ -5629,11 +5674,11 @@ HRESULT m_IDirectDrawSurfaceX::CopyFromEmulatedSurface(LPRECT lpDestRect)
 		LOG_LIMIT(100, __FUNCTION__ << " Error: could not copy emulated surface: " << surfaceFormat);
 		return DDERR_GENERIC;
 	}
-	
-	// Prepare primary surface if not already dirty
-	if (IsPrimaryOrBackBuffer() && !IsPaletteSurfaceDirty)
+
+	// Update palette surface data
+	if (!paletteDisplayTexture || FAILED(CopyEmulatedPaletteSurface(&DestRect)))
 	{
-		CopyEmulatedPaletteSurface(&DestRect);
+		IsPaletteSurfaceDirty = IsPalette();
 	}
 
 	return DD_OK;
@@ -5770,13 +5815,10 @@ HRESULT m_IDirectDrawSurfaceX::CopyToEmulatedSurface(LPRECT lpDestRect)
 	// Unlock surface
 	UnlockD39Surface();
 
-	if (SUCCEEDED(hr))
+	// Update palette surface data
+	if (!paletteDisplayTexture || FAILED(CopyEmulatedPaletteSurface(&DestRect)))
 	{
-		// Prepare primary surface if not already dirty
-		if (IsPrimaryOrBackBuffer() && !IsPaletteSurfaceDirty)
-		{
-			CopyEmulatedPaletteSurface(&DestRect);
-		}
+		IsPaletteSurfaceDirty = IsPalette();
 	}
 
 	return hr;
@@ -6041,6 +6083,24 @@ void m_IDirectDrawSurfaceX::UpdatePaletteData()
 		IsPaletteSurfaceDirty = true;
 		LastPaletteUSN = NewPaletteUSN;
 		paletteEntryArray = NewPaletteEntry;
+
+		// Add palette data to texture
+		if (paletteTexture)
+		{
+			// Get palette display context surface
+			LPDIRECT3DSURFACE9 paletteSurface = nullptr;
+			if (SUCCEEDED(paletteTexture->GetSurfaceLevel(0, &paletteSurface)))
+			{
+				// Use D3DXLoadSurfaceFromMemory to copy to the surface
+				RECT Rect = { 0, 0, MaxPaletteSize, 1 };
+				if (FAILED(D3DXLoadSurfaceFromMemory(paletteSurface, nullptr, &Rect, NewRGBPalette, D3DFMT_X8R8G8B8, MaxPaletteSize * sizeof(D3DCOLOR), nullptr, &Rect, D3DX_FILTER_NONE, 0)))
+				{
+					LOG_LIMIT(100, __FUNCTION__ << " Warning: could not full palette textur!");
+				}
+
+				paletteSurface->Release();
+			}
+		}
 	}
 
 	ReleaseCriticalSection();

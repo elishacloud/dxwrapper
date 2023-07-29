@@ -116,6 +116,8 @@ private:
 	LPDIRECT3DTEXTURE9 paletteDisplayTexture = nullptr;	// Used to convert palette texture into a texture that can be displayed
 	LPDIRECT3DSURFACE9 paletteDisplaySurface = nullptr;	// Context for the palette display texture
 	LPDIRECT3DSURFACE9 blankSurface = nullptr;			// Blank surface used for clearing main surface
+	LPDIRECT3DTEXTURE9 paletteTexture = nullptr;		// Extra surface texture used for storing palette entries for the pixel shader
+	LPDIRECT3DPIXELSHADER9* palettePixelShader = nullptr;		// Used with palette surfaces to display proper palette data on the surface texture
 	LPDIRECT3DVERTEXBUFFER9 vertexBuffer = nullptr;		// Vertex buffer used to stretch the texture accross the screen
 
 	// Store ddraw surface version wrappers
@@ -368,7 +370,7 @@ public:
 
 	// Functions handling the ddraw parent interface
 	inline void SetDdrawParent(m_IDirectDrawX *ddraw) { ddrawParent = ddraw; }
-	inline void ClearDdraw() { ddrawParent = nullptr; }
+	inline void ClearDdraw() { ddrawParent = nullptr; palettePixelShader = nullptr; }
 
 	// Direct3D9 interface functions
 	void ReleaseD9Surface(bool BackupData);
