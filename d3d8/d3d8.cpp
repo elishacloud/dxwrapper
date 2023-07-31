@@ -14,7 +14,7 @@
 *   3. This notice may not be removed or altered from any source distribution.
 *
 * ValidatePixelShader and ValidateVertexShader created from source code found in Wine
-* https://github.com/alexhenrie/wine/tree/master/dlls/d3d8
+* https://gitlab.winehq.org/wine/wine/-/tree/master/dlls/d3d8
 */
 
 #include "d3d8External.h"
