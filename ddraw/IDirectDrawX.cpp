@@ -2510,13 +2510,7 @@ void m_IDirectDrawX::ReleaseDdraw()
 	}
 
 	// Remove ddraw device from vector
-	auto it = std::find_if(DDrawVector.begin(), DDrawVector.end(),
-		[=](auto pDDraw) -> bool { return pDDraw == this; });
-
-	if (it != std::end(DDrawVector))
-	{
-		DDrawVector.erase(it);
-	}
+	DDrawVector.erase(std::remove(DDrawVector.begin(), DDrawVector.end(), this), DDrawVector.end());
 
 	// Release Direct3DDevice interfaces
 	if (D3DDeviceInterface)
@@ -3275,7 +3269,6 @@ void m_IDirectDrawX::AddSurfaceToVector(m_IDirectDrawSurfaceX* lpSurfaceX)
 		PrimarySurface = lpSurfaceX;
 	}
 
-	// Store surface
 	SurfaceVector.push_back(lpSurfaceX);
 
 	ReleaseCriticalSection();
@@ -3291,35 +3284,25 @@ void m_IDirectDrawX::RemoveSurfaceFromVector(m_IDirectDrawSurfaceX* lpSurfaceX)
 
 	SetCriticalSection();
 
-	if (lpSurfaceX == PrimarySurface)
-	{
-		PrimarySurface = nullptr;
-		ZeroMemory(&DisplayPixelFormat, sizeof(DDPIXELFORMAT));
-	}
+	lpSurfaceX->ClearDdraw();
 
-	auto it = std::find_if(SurfaceVector.begin(), SurfaceVector.end(),
-		[=](auto pSurface) -> bool { return pSurface == lpSurfaceX; });
-
-	if (it != std::end(SurfaceVector))
+	for (m_IDirectDrawX* pDDraw : DDrawVector)
 	{
-		lpSurfaceX->ClearDdraw();
-		SurfaceVector.erase(it);
+		// Remove surface from vector
+		pDDraw->SurfaceVector.erase(std::remove(pDDraw->SurfaceVector.begin(), pDDraw->SurfaceVector.end(), lpSurfaceX), pDDraw->SurfaceVector.end());
 
 		// Clear primary surface
-		for (auto pDDraw : DDrawVector)
+		if (lpSurfaceX == pDDraw->PrimarySurface)
 		{
-			if (lpSurfaceX == pDDraw->PrimarySurface)
-			{
-				pDDraw->PrimarySurface = nullptr;
-				ZeroMemory(&DisplayPixelFormat, sizeof(DDPIXELFORMAT));
-			}
+			pDDraw->PrimarySurface = nullptr;
+			ZeroMemory(&DisplayPixelFormat, sizeof(DDPIXELFORMAT));
 		}
-	}
 
-	// Remove attached surface from map
-	for (m_IDirectDrawSurfaceX *pSurface : SurfaceVector)
-	{
-		pSurface->RemoveAttachedSurfaceFromMap(lpSurfaceX);
+		// Remove attached surface from map
+		for (m_IDirectDrawSurfaceX* pSurface : pDDraw->SurfaceVector)
+		{
+			pSurface->RemoveAttachedSurfaceFromMap(lpSurfaceX);
+		}
 	}
 
 	ReleaseCriticalSection();
@@ -3333,24 +3316,27 @@ bool m_IDirectDrawX::DoesSurfaceExist(m_IDirectDrawSurfaceX* lpSurfaceX)
 		return false;
 	}
 
-	bool hr = false;
-
 	SetCriticalSection();
 
-	auto it = std::find_if(SurfaceVector.begin(), SurfaceVector.end(),
-		[=](auto pSurface) -> bool { return pSurface == lpSurfaceX; });
-
-	if (it != std::end(SurfaceVector))
+	for (m_IDirectDrawX* pDDraw : DDrawVector)
 	{
-		hr = true;
+		for (m_IDirectDrawSurfaceX* pSurface : pDDraw->SurfaceVector)
+		{
+			if (pSurface == lpSurfaceX)
+			{
+				ReleaseCriticalSection();
+
+				return true;
+			}
+		}
 	}
 
 	ReleaseCriticalSection();
 
-	return hr;
+	return false;
 }
 
-// This method removes any texture surfaces created with the DDSCAPS2_TEXTUREMANAGE or DDSCAPS2_D3DTEXTUREMANAGE flags
+// This method evicts all texture surfaces created with the DDSCAPS2_TEXTUREMANAGE or DDSCAPS2_D3DTEXTUREMANAGE flags from local or nonlocal video memory.
 void m_IDirectDrawX::EvictManagedTextures()
 {
 	SetCriticalSection();
@@ -3377,7 +3363,6 @@ void m_IDirectDrawX::AddClipperToVector(m_IDirectDrawClipper* lpClipper)
 
 	SetCriticalSection();
 
-	// Store clipper
 	ClipperVector.push_back(lpClipper);
 
 	ReleaseCriticalSection();
@@ -3396,19 +3381,14 @@ void m_IDirectDrawX::RemoveClipperFromVector(m_IDirectDrawClipper* lpClipper)
 
 	SetCriticalSection();
 
-	auto it = std::find_if(ClipperVector.begin(), ClipperVector.end(),
-		[=](auto pClipper) -> bool { return pClipper == lpClipper; });
+	lpClipper->ClearDdraw();
 
-	// Remove clipper from vector
-	if (it != std::end(ClipperVector))
-	{
-		lpClipper->ClearDdraw();
-		ClipperVector.erase(it);
-	}
-
-	// Remove clipper from attached surface
 	for (m_IDirectDrawX* pDDraw : DDrawVector)
 	{
+		// Remove clipper from vector
+		pDDraw->ClipperVector.erase(std::remove(pDDraw->ClipperVector.begin(), pDDraw->ClipperVector.end(), lpClipper), pDDraw->ClipperVector.end());
+
+		// Remove attached clipper from surface
 		for (m_IDirectDrawSurfaceX* pSurface : pDDraw->SurfaceVector)
 		{
 			pSurface->RemoveClipper(lpClipper);
@@ -3432,21 +3412,24 @@ bool m_IDirectDrawX::DoesClipperExist(m_IDirectDrawClipper* lpClipper)
 		return true;
 	}
 
-	bool hr = false;
-
 	SetCriticalSection();
 
-	auto it = std::find_if(ClipperVector.begin(), ClipperVector.end(),
-		[=](auto pClipper) -> bool { return pClipper == lpClipper; });
-
-	if (it != std::end(ClipperVector))
+	for (m_IDirectDrawX* pDDraw : DDrawVector)
 	{
-		hr = true;
+		for (m_IDirectDrawClipper* pClipper : pDDraw->ClipperVector)
+		{
+			if (pClipper == lpClipper)
+			{
+				ReleaseCriticalSection();
+
+				return true;
+			}
+		}
 	}
 
 	ReleaseCriticalSection();
 
-	return hr;
+	return false;
 }
 
 // Add palette wrapper to vector
@@ -3459,7 +3442,6 @@ void m_IDirectDrawX::AddPaletteToVector(m_IDirectDrawPalette* lpPalette)
 
 	SetCriticalSection();
 
-	// Store palette
 	PaletteVector.push_back(lpPalette);
 
 	ReleaseCriticalSection();
@@ -3475,19 +3457,14 @@ void m_IDirectDrawX::RemovePaletteFromVector(m_IDirectDrawPalette* lpPalette)
 
 	SetCriticalSection();
 
-	auto it = std::find_if(PaletteVector.begin(), PaletteVector.end(),
-		[=](auto pPalette) -> bool { return pPalette == lpPalette; });
+	lpPalette->ClearDdraw();
 
-	// Remove palette from vector
-	if (it != std::end(PaletteVector))
-	{
-		lpPalette->ClearDdraw();
-		PaletteVector.erase(it);
-	}
-
-	// Remove palette from attached surface
 	for (m_IDirectDrawX* pDDraw : DDrawVector)
 	{
+		// Remove palette from vector
+		pDDraw->PaletteVector.erase(std::remove(pDDraw->PaletteVector.begin(), pDDraw->PaletteVector.end(), lpPalette), pDDraw->PaletteVector.end());
+
+		// Remove attached palette from surface
 		for (m_IDirectDrawSurfaceX* pSurface : pDDraw->SurfaceVector)
 		{
 			pSurface->RemovePalette(lpPalette);
@@ -3505,21 +3482,24 @@ bool m_IDirectDrawX::DoesPaletteExist(m_IDirectDrawPalette* lpPalette)
 		return false;
 	}
 
-	bool hr = false;
-
 	SetCriticalSection();
 
-	auto it = std::find_if(PaletteVector.begin(), PaletteVector.end(),
-		[=](auto pPalette) -> bool { return pPalette == lpPalette; });
-
-	if (it != std::end(PaletteVector))
+	for (m_IDirectDrawX* pDDraw : DDrawVector)
 	{
-		hr = true;
+		for (m_IDirectDrawPalette* pPalette : pDDraw->PaletteVector)
+		{
+			if (pPalette == lpPalette)
+			{
+				ReleaseCriticalSection();
+
+				return true;
+			}
+		}
 	}
 
 	ReleaseCriticalSection();
 
-	return hr;
+	return false;
 }
 
 void m_IDirectDrawX::AddVertexBufferToVector(m_IDirect3DVertexBufferX* lpVertexBuffer)
@@ -3531,7 +3511,6 @@ void m_IDirectDrawX::AddVertexBufferToVector(m_IDirect3DVertexBufferX* lpVertexB
 
 	SetCriticalSection();
 
-	// Store vertex buffer
 	VertexBufferVector.push_back(lpVertexBuffer);
 
 	ReleaseCriticalSection();
@@ -3546,14 +3525,11 @@ void m_IDirectDrawX::RemoveVertexBufferFromVector(m_IDirect3DVertexBufferX* lpVe
 
 	SetCriticalSection();
 
-	auto it = std::find_if(VertexBufferVector.begin(), VertexBufferVector.end(),
-		[=](auto pVertexBuffer) -> bool { return pVertexBuffer == lpVertexBuffer; });
+	lpVertexBuffer->ClearDdraw();
 
-	// Remove vertex buffer from vector
-	if (it != std::end(VertexBufferVector))
+	for (m_IDirectDrawX* pDDraw : DDrawVector)
 	{
-		lpVertexBuffer->ClearDdraw();
-		VertexBufferVector.erase(it);
+		pDDraw->VertexBufferVector.erase(std::remove(pDDraw->VertexBufferVector.begin(), pDDraw->VertexBufferVector.end(), lpVertexBuffer), pDDraw->VertexBufferVector.end());
 	}
 
 	ReleaseCriticalSection();
@@ -3566,21 +3542,24 @@ bool m_IDirectDrawX::DoesVertexBufferExist(m_IDirect3DVertexBufferX* lpVertexBuf
 		return false;
 	}
 
-	bool hr = false;
-
 	SetCriticalSection();
 
-	auto it = std::find_if(VertexBufferVector.begin(), VertexBufferVector.end(),
-		[=](auto pVertexBuffer) -> bool { return pVertexBuffer == lpVertexBuffer; });
-
-	if (it != std::end(VertexBufferVector))
+	for (m_IDirectDrawX* pDDraw : DDrawVector)
 	{
-		hr = true;
+		for (m_IDirect3DVertexBufferX* pBuffer : pDDraw->VertexBufferVector)
+		{
+			if (pBuffer == lpVertexBuffer)
+			{
+				ReleaseCriticalSection();
+
+				return true;
+			}
+		}
 	}
 
 	ReleaseCriticalSection();
 
-	return hr;
+	return false;
 }
 
 HRESULT m_IDirectDrawX::CreateColorInterface(LPVOID *ppvObj)
