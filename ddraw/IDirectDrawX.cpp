@@ -2842,6 +2842,17 @@ HRESULT m_IDirectDrawX::CreateD3D9Device()
 			LOG_LIMIT(100, __FUNCTION__ << " Warning: trying to create Direct3D9 device from a different thread than the hwnd was created from!");
 		}
 
+		// Remove tool window
+		if (IsWindow(hWnd) && hWnd != LastHWnd)
+		{
+			LONG ExStyle = GetWindowLong(hWnd, GWL_EXSTYLE);
+
+			if ((ExStyle & WS_EX_TOOLWINDOW))
+			{
+				SetWindowLong(hWnd, GWL_EXSTYLE, ExStyle & ~(WS_EX_TOOLWINDOW));
+			}
+		}
+
 		// Get current resolution
 		DWORD CurrentWidth, CurrentHeight;
 		Utils::GetScreenSize(hWnd, CurrentWidth, CurrentHeight);
