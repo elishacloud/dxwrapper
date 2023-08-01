@@ -558,11 +558,6 @@ void AdjustWindow(HWND MainhWnd, LONG displayWidth, LONG displayHeight)
 	// Set window active and focus
 	if (Config.EnableWindowMode)
 	{
-		if ((GetWindowLong(MainhWnd, GWL_EXSTYLE) & WS_EX_TOPMOST) == 0)
-		{
-			SetWindowPos(MainhWnd, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOSIZE | SWP_NOMOVE);
-			SetWindowPos(MainhWnd, HWND_NOTOPMOST, 0, 0, 0, 0, SWP_SHOWWINDOW | SWP_NOSIZE | SWP_NOMOVE);
-		}
 		SetForegroundWindow(MainhWnd);
 		SetFocus(MainhWnd);
 		SetActiveWindow(MainhWnd);

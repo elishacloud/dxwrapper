@@ -678,12 +678,6 @@ HRESULT m_IDirectDrawX::CreateSurface2(LPDDSURFACEDESC2 lpDDSurfaceDesc2, LPDIRE
 					ReCreateD3D9Device = true;
 				}
 			}
-
-			// If device not created
-			if (!d3d9Device && MainhWnd && displayModeWidth && displayModeHeight)
-			{
-				ReCreateD3D9Device = true;
-			}
 		}
 
 		// Recreate d3d9 device
@@ -1609,9 +1603,7 @@ HRESULT m_IDirectDrawX::SetCooperativeLevel(HWND hWnd, DWORD dwFlags, DWORD Dire
 		}
 
 		HWND LastMainhWnd = MainhWnd;
-		bool LastMultiThreaded = MultiThreaded;
 		bool LastFPUPreserve = FPUPreserve;
-		bool LastNoWindowChanges = NoWindowChanges;
 
 		// Set windowed mode
 		if (dwFlags & DDSCL_NORMAL)
@@ -1642,16 +1634,17 @@ HRESULT m_IDirectDrawX::SetCooperativeLevel(HWND hWnd, DWORD dwFlags, DWORD Dire
 			ExclusiveSetBy = this;
 		}
 
-		// Set device flags
-		AllowModeX = ((dwFlags & DDSCL_ALLOWMODEX) != 0);
-		MultiThreaded = ((dwFlags & DDSCL_MULTITHREADED) != 0);
-		// The flag (DDSCL_FPUPRESERVE) is assumed by default in DirectX 6 and earlier.
-		FPUPreserve = (((dwFlags & DDSCL_FPUPRESERVE) || DirectXVersion <= 6) && (dwFlags & DDSCL_FPUSETUP) == 0);
-		NoWindowChanges = ((dwFlags & DDSCL_NOWINDOWCHANGES) != 0);
-
 		// Check window handle
-		if (hWnd && (((!ExclusiveMode || ExclusiveHwnd == hWnd) && (!MainhWnd || !MainSetBy || MainSetBy == this)) || !IsWindow(MainhWnd)))
+		if (IsWindow(hWnd) && (((!ExclusiveMode || ExclusiveHwnd == hWnd) && (!MainhWnd || !MainSetBy || MainSetBy == this)) || !IsWindow(MainhWnd)))
 		{
+			// Set device flags
+			AllowModeX = ((dwFlags & DDSCL_ALLOWMODEX) != 0);
+			MultiThreaded = ((dwFlags & DDSCL_MULTITHREADED) != 0);
+			// The flag (DDSCL_FPUPRESERVE) is assumed by default in DirectX 6 and earlier.
+			FPUPreserve = (((dwFlags & DDSCL_FPUPRESERVE) || DirectXVersion <= 6) && (dwFlags & DDSCL_FPUSETUP) == 0);
+			// The flag (DDSCL_NOWINDOWCHANGES) means DirectDraw is not allowed to minimize or restore the application window on activation.
+			NoWindowChanges = ((dwFlags & DDSCL_NOWINDOWCHANGES) != 0);
+
 			// Check if DC needs to be released
 			if (MainhWnd && MainhDC && (MainhWnd != hWnd))
 			{
@@ -1670,11 +1663,7 @@ HRESULT m_IDirectDrawX::SetCooperativeLevel(HWND hWnd, DWORD dwFlags, DWORD Dire
 		}
 
 		// Reset if mode was changed
-		if (d3d9Device && MainhWnd && hWnd && (
-			LastMainhWnd != MainhWnd ||
-			LastMultiThreaded != MultiThreaded ||
-			LastFPUPreserve != FPUPreserve ||
-			LastNoWindowChanges != NoWindowChanges))
+		if (IsWindow(MainhWnd) && (!d3d9Device || (d3d9Device && IsWindow(hWnd) && (LastMainhWnd != MainhWnd || LastFPUPreserve != FPUPreserve))))
 		{
 			// Recreate d3d9 device
 			CreateD3D9Device();
@@ -1884,7 +1873,7 @@ HRESULT m_IDirectDrawX::SetDisplayMode(DWORD dwWidth, DWORD dwHeight, DWORD dwBP
 		}
 
 		// Update the d3d9 device to use new display mode if already created
-		if (ChangeMode && (d3d9Device || PrimarySurface))
+		if (ChangeMode)
 		{
 			// Recreate d3d9 device
 			CreateD3D9Device();
@@ -2604,12 +2593,12 @@ void m_IDirectDrawX::ReleaseDdraw()
 
 HWND m_IDirectDrawX::GetHwnd()
 {
-	return MainhWnd;
+	return IsWindow(MainhWnd) ? MainhWnd : nullptr;
 }
 
 HDC m_IDirectDrawX::GetDC()
 {
-	return MainhDC;
+	return WindowFromDC(MainhDC) ? MainhDC : nullptr;
 }
 
 void m_IDirectDrawX::ClearDepthStencilSurface()
@@ -2831,13 +2820,13 @@ HRESULT m_IDirectDrawX::CreateD3D9Device()
 		hFocusWindow = hWnd;
 
 		// Check window handle thread
-		if (IsWindow(hWnd) && GetWindowThreadProcessId(hWnd, nullptr) != GetCurrentThreadId())
+		if (hWnd && GetWindowThreadProcessId(hWnd, nullptr) != GetCurrentThreadId())
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Warning: trying to create Direct3D9 device from a different thread than the hwnd was created from!");
 		}
 
 		// Remove tool window
-		if (IsWindow(hWnd) && hWnd != LastHWnd)
+		if (hWnd && hWnd != LastHWnd)
 		{
 			LONG ExStyle = GetWindowLong(hWnd, GWL_EXSTYLE);
 
@@ -2901,6 +2890,8 @@ HRESULT m_IDirectDrawX::CreateD3D9Device()
 		presParams.MultiSampleQuality = 0;
 		// Present flags
 		presParams.Flags = 0;
+		// Window handle
+		presParams.hDeviceWindow = hWnd;
 
 		// Set parameters for the current display mode
 		if (isWindowed || !hWnd)
@@ -2911,8 +2902,6 @@ HRESULT m_IDirectDrawX::CreateD3D9Device()
 			presParams.BackBufferFormat = D3DFMT_UNKNOWN;
 			// Display mode refresh
 			presParams.FullScreen_RefreshRateInHz = 0;
-			// Window handle
-			presParams.hDeviceWindow = hWnd;
 		}
 		else
 		{
@@ -2922,8 +2911,6 @@ HRESULT m_IDirectDrawX::CreateD3D9Device()
 			presParams.BackBufferFormat = D9DisplayFormat;
 			// Display mode refresh
 			presParams.FullScreen_RefreshRateInHz = displayRefreshRate;
-			// Window handle
-			presParams.hDeviceWindow = nullptr;
 		}
 
 		// Enable antialiasing
@@ -2950,9 +2937,9 @@ HRESULT m_IDirectDrawX::CreateD3D9Device()
 
 		// Set behavior flags
 		BehaviorFlags = ((d3dcaps.VertexProcessingCaps) ? D3DCREATE_HARDWARE_VERTEXPROCESSING : D3DCREATE_SOFTWARE_VERTEXPROCESSING) |
-			((MultiThreaded || !Config.SingleProcAffinity) ? D3DCREATE_MULTITHREADED : 0) |
-			((FPUPreserve) ? D3DCREATE_FPU_PRESERVE : 0) |
-			((NoWindowChanges) ? D3DCREATE_NOWINDOWCHANGES : 0);
+			(!Config.SingleProcAffinity ? D3DCREATE_MULTITHREADED : 0) |
+			(FPUPreserve ? D3DCREATE_FPU_PRESERVE : 0) |
+			D3DCREATE_NOWINDOWCHANGES;
 
 		Logging::Log() << __FUNCTION__ << " Direct3D9 device! " <<
 			presParams.BackBufferWidth << "x" << presParams.BackBufferHeight << " refresh: " << presParams.FullScreen_RefreshRateInHz <<
@@ -2962,7 +2949,7 @@ HRESULT m_IDirectDrawX::CreateD3D9Device()
 		if (d3d9Device)
 		{
 			// Try to reset existing device
-			if (LastHWnd == hWnd && LastWindowedMode == presParams.Windowed && LastBehaviorFlags == BehaviorFlags)
+			if (LastHWnd == hWnd && LastBehaviorFlags == BehaviorFlags)
 			{
 				// Prepare for reset
 				ReleaseAllD9Resources(true);
@@ -3011,7 +2998,7 @@ HRESULT m_IDirectDrawX::CreateD3D9Device()
 		FourCCsList.clear();
 
 		// Set window pos
-		if (IsWindow(hWnd))
+		if (hWnd)
 		{
 			// Get new resolution
 			DWORD NewWidth, NewHeight;
