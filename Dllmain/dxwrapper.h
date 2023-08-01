@@ -17,7 +17,7 @@
 #define APP_REVISION			21
 #define APP_COMPANYNAME			"Sadrate Presents"
 #define APP_DESCRPTION			"Wraps or hooks DirectX files to fix compatibility issues in older games. Also allows code to be executed from inside the application."
-#define APP_COPYRIGHT			"Copyright (C) 2022 Elisha Riedlinger"
+#define APP_COPYRIGHT			"Copyright (C) 2023 Elisha Riedlinger"
 #define APP_ORIGINALVERSION		"dxwrapper.dll"
 #define APP_INTERNALNAME		"DxWrapper"
 
