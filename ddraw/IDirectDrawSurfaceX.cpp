@@ -3462,10 +3462,9 @@ HRESULT m_IDirectDrawSurfaceX::CreateD3d9Surface()
 	// Get texture format
 	surfaceFormat = GetDisplayFormat(surfaceDesc2.ddpfPixelFormat);
 	surfaceBitCount = GetBitCount(surfaceFormat);
-	SurfaceRequiresEmulation = (surfaceFormat == D3DFMT_A8B8G8R8 || surfaceFormat == D3DFMT_X8B8G8R8 || surfaceFormat == D3DFMT_B8G8R8 ||
-		surfaceFormat == D3DFMT_R8G8B8 || surfaceFormat == D3DFMT_P8 ||
-		((Config.DdrawEmulateSurface || (Config.DdrawRemoveScanlines && IsPrimaryOrBackBuffer())) &&
-			!IsDepthBuffer() && !(surfaceFormat & 0xFF000000 /*FOURCC or D3DFMT_DXTx*/)));
+	SurfaceRequiresEmulation = ((surfaceFormat == D3DFMT_A8B8G8R8 || surfaceFormat == D3DFMT_X8B8G8R8 || surfaceFormat == D3DFMT_B8G8R8 ||
+		surfaceFormat == D3DFMT_R8G8B8 || surfaceFormat == D3DFMT_P8 || Config.DdrawEmulateSurface || (Config.DdrawRemoveScanlines && IsPrimaryOrBackBuffer())) &&
+			!IsDepthBuffer() && !(surfaceFormat & 0xFF000000 /*FOURCC or D3DFMT_DXTx*/));
 	const bool IsSurfaceEmulated = (SurfaceRequiresEmulation || (IsPrimaryOrBackBuffer() && (Config.DdrawWriteToGDI || Config.DdrawReadFromGDI) && !IsDirect3DSurface));
 	DCRequiresEmulation = (surfaceFormat != D3DFMT_R5G6B5 && surfaceFormat != D3DFMT_X1R5G5B5 && surfaceFormat != D3DFMT_R8G8B8 && surfaceFormat != D3DFMT_X8R8G8B8);
 	const D3DFORMAT Format = (surfaceFormat == D3DFMT_X8B8G8R8 || surfaceFormat == D3DFMT_B8G8R8 || surfaceFormat == D3DFMT_R8G8B8) ? D3DFMT_X8R8G8B8 :
@@ -5858,6 +5857,7 @@ inline HRESULT m_IDirectDrawSurfaceX::CopyEmulatedPaletteSurface(LPRECT lpDestRe
 				(surfaceDesc2.ddsCaps.dwCaps & DDSCAPS_SYSTEMMEMORY) ? D3DPOOL_SYSTEMMEM : D3DPOOL_MANAGED;
 			const DWORD Width = GetByteAlignedWidth(surfaceDesc2.dwWidth, surfaceBitCount);
 			const DWORD Height = surfaceDesc2.dwHeight;
+			LOG_LIMIT(3, __FUNCTION__ << " Creating palette display surface texture. Size: " << Width << "x" << Height << " dwCaps: " << Logging::hex(surfaceDesc2.ddsCaps.dwCaps));
 			if (FAILED(((*d3d9Device)->CreateTexture(Width, Height, 1, 0, D3DFMT_X8R8G8B8, TexturePool, &paletteDisplayTexture, nullptr))))
 			{
 				LOG_LIMIT(100, __FUNCTION__ << " Error: failed to create palette display surface texture. Size: " << Width << "x" << Height << " Format: " << D3DFMT_X8R8G8B8 << " dwCaps: " << Logging::hex(surfaceDesc2.ddsCaps.dwCaps));
