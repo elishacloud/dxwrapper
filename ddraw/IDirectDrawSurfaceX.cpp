@@ -590,12 +590,16 @@ HRESULT m_IDirectDrawSurfaceX::Blt(LPRECT lpDestRect, LPDIRECTDRAWSURFACE7 lpDDS
 			{
 				ddrawParent->SetVsync();
 			}
+		}
 
-			// Present surface
-			if (!DontPresentBlt)
-			{
-				EndWritePresent(isSkipScene);
-			}
+		// Release critical section
+		lpDDSrcSurfaceX->ReleaseCS();
+		ReleaseCS();
+
+		// Present surface
+		if (!DontPresentBlt && SUCCEEDED(hr))
+		{
+			EndWritePresent(isSkipScene);
 		}
 
 		// Check if surface was busy
@@ -603,10 +607,6 @@ HRESULT m_IDirectDrawSurfaceX::Blt(LPRECT lpDestRect, LPDIRECTDRAWSURFACE7 lpDDS
 		{
 			hr = D3DERR_WASSTILLDRAWING;
 		}
-
-		// Release critical section
-		ReleaseCS();
-		lpDDSrcSurfaceX->ReleaseCS();
 
 		// Return
 		return hr;
@@ -682,15 +682,19 @@ HRESULT m_IDirectDrawSurfaceX::BltBatch(LPDDBLTBATCH lpDDBltBatch, DWORD dwCount
 		return DDERR_INVALIDPARAMS;
 	}
 
+	HRESULT hr = DD_OK;
+
+	bool isSkipScene = false;
+
 	SetCS();
 
 	IsInBltBatch = true;
 
-	HRESULT hr = DD_OK;
-
 	for (DWORD x = 0; x < dwCount; x++)
 	{
-		hr = Blt(lpDDBltBatch[x].lprDest, (LPDIRECTDRAWSURFACE7)lpDDBltBatch[x].lpDDSSrc, lpDDBltBatch[x].lprSrc, lpDDBltBatch[x].dwFlags, lpDDBltBatch[x].lpDDBltFx, (x != dwCount - 1));
+		isSkipScene |= (lpDDBltBatch[x].lprDest) ? CheckRectforSkipScene(*lpDDBltBatch[x].lprDest) : false;
+
+		hr = Blt(lpDDBltBatch[x].lprDest, (LPDIRECTDRAWSURFACE7)lpDDBltBatch[x].lpDDSSrc, lpDDBltBatch[x].lprSrc, lpDDBltBatch[x].dwFlags, lpDDBltBatch[x].lpDDBltFx, true);
 		if (FAILED(hr))
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Warning: BltBatch failed before the end! " << x << " of " << dwCount << " " << (DDERR)hr);
@@ -706,6 +710,11 @@ HRESULT m_IDirectDrawSurfaceX::BltBatch(LPDDBLTBATCH lpDDBltBatch, DWORD dwCount
 	}
 
 	ReleaseCS();
+
+	if (SUCCEEDED(hr))
+	{
+		EndWritePresent(isSkipScene);
+	}
 
 	return hr;
 }
@@ -2315,12 +2324,15 @@ HRESULT m_IDirectDrawSurfaceX::ReleaseDC(HDC hDC)
 			// Set dirty flag
 			SetDirtyFlag();
 
-			// Present surface
-			EndWritePresent(false);
-
 		} while (false);
 
 		ReleaseCS();
+
+		// Present surface
+		if (SUCCEEDED(hr))
+		{
+			EndWritePresent(false);
+		}
 
 		return hr;
 	}
@@ -2733,12 +2745,15 @@ HRESULT m_IDirectDrawSurfaceX::Unlock(LPRECT lpRect)
 				SetDirtyFlag();
 			}
 
-			// Present surface
-			EndWritePresent(LastLock.isSkipScene);
-
 		} while (false);
 
 		ReleaseCS();
+
+		// Present surface
+		if (SUCCEEDED(hr))
+		{
+			EndWritePresent(LastLock.isSkipScene);
+		}
 
 		return hr;
 	}
@@ -3411,10 +3426,7 @@ HRESULT m_IDirectDrawSurfaceX::CheckInterface(char *FunctionName, bool CheckD3DD
 		// Make sure surface exists, if not then create it
 		if (!surfaceTexture && !surface3D)
 		{
-			SetCS();
-			HRESULT hr = CreateD3d9Surface();
-			ReleaseCS();
-			if (FAILED(hr))
+			if (FAILED(CreateD3d9Surface()))
 			{
 				LOG_LIMIT(100, FunctionName << " Error: d3d9 surface texture not setup!");
 				return DDERR_GENERIC;
@@ -3938,12 +3950,12 @@ void m_IDirectDrawSurfaceX::UpdateSurfaceDesc()
 // Release surface and vertext buffer
 void m_IDirectDrawSurfaceX::ReleaseD9Surface(bool BackupData)
 {
-	SetCS();
-
 	if (IsSurfaceBusy())
 	{
 		Logging::Log() << __FUNCTION__ << " Warning: surface still in use! Locked: " << IsSurfaceLocked() << " DC: " << IsSurfaceInDC() << " Blt: " << IsSurfaceBlitting();
 	}
+
+	SetCS();
 
 	// Release DC (before releasing surface)
 	if (IsSurfaceInDC() || LastDC)
@@ -4872,15 +4884,8 @@ bool m_IDirectDrawSurfaceX::DoesAttachedSurfaceExist(m_IDirectDrawSurfaceX* lpSu
 		return false;
 	}
 
-	auto it = std::find_if(AttachedSurfaceMap.begin(), AttachedSurfaceMap.end(),
-		[=](auto Map) -> bool { return Map.second.pSurface == lpSurfaceX; });
-
-	if (it == std::end(AttachedSurfaceMap))
-	{
-		return false;
-	}
-
-	return true;
+	return (std::find_if(AttachedSurfaceMap.begin(), AttachedSurfaceMap.end(),
+		[=](auto Map) -> bool { return Map.second.pSurface == lpSurfaceX; }) != std::end(AttachedSurfaceMap));
 }
 
 bool m_IDirectDrawSurfaceX::WasAttachedSurfaceAdded(m_IDirectDrawSurfaceX* lpSurfaceX)
@@ -4890,15 +4895,8 @@ bool m_IDirectDrawSurfaceX::WasAttachedSurfaceAdded(m_IDirectDrawSurfaceX* lpSur
 		return false;
 	}
 
-	auto it = std::find_if(AttachedSurfaceMap.begin(), AttachedSurfaceMap.end(),
-		[=](auto Map) -> bool { return (Map.second.pSurface == lpSurfaceX) && Map.second.isAttachedSurfaceAdded; });
-
-	if (it == std::end(AttachedSurfaceMap))
-	{
-		return false;
-	}
-
-	return true;
+	return (std::find_if(AttachedSurfaceMap.begin(), AttachedSurfaceMap.end(),
+		[=](auto Map) -> bool { return (Map.second.pSurface == lpSurfaceX) && Map.second.isAttachedSurfaceAdded; }) != std::end(AttachedSurfaceMap));
 }
 
 // Check if backbuffer surface exists
