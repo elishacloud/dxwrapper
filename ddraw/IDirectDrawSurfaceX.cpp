@@ -4445,19 +4445,19 @@ inline bool m_IDirectDrawSurfaceX::CheckCoordinates(RECT& OutRect, LPRECT lpInRe
 		return false;
 	}
 
-	if (!lpInRect || (lpInRect->left == 0 && lpInRect->top == 0 && lpInRect->right == 0 && lpInRect->bottom == 0))
-	{
-		OutRect.left = 0;
-		OutRect.top = 0;
-		OutRect.right = surfaceDesc2.dwWidth;
-		OutRect.bottom = surfaceDesc2.dwHeight;
-	}
-	else
+	if (lpInRect)
 	{
 		OutRect.left = lpInRect->left;
 		OutRect.top = lpInRect->top;
 		OutRect.right = lpInRect->right;
 		OutRect.bottom = lpInRect->bottom;
+	}
+	else
+	{
+		OutRect.left = 0;
+		OutRect.top = 0;
+		OutRect.right = surfaceDesc2.dwWidth;
+		OutRect.bottom = surfaceDesc2.dwHeight;
 	}
 
 	if (OutRect.left < 0)
