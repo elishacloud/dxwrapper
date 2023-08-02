@@ -1637,14 +1637,6 @@ HRESULT m_IDirectDrawX::SetCooperativeLevel(HWND hWnd, DWORD dwFlags, DWORD Dire
 		// Check window handle
 		if (IsWindow(hWnd) && (((!ExclusiveMode || ExclusiveHwnd == hWnd) && (!MainhWnd || !MainSetBy || MainSetBy == this)) || !IsWindow(MainhWnd)))
 		{
-			// Set device flags
-			AllowModeX = ((dwFlags & DDSCL_ALLOWMODEX) != 0);
-			MultiThreaded = ((dwFlags & DDSCL_MULTITHREADED) != 0);
-			// The flag (DDSCL_FPUPRESERVE) is assumed by default in DirectX 6 and earlier.
-			FPUPreserve = (((dwFlags & DDSCL_FPUPRESERVE) || DirectXVersion <= 6) && (dwFlags & DDSCL_FPUSETUP) == 0);
-			// The flag (DDSCL_NOWINDOWCHANGES) means DirectDraw is not allowed to minimize or restore the application window on activation.
-			NoWindowChanges = ((dwFlags & DDSCL_NOWINDOWCHANGES) != 0);
-
 			// Check if DC needs to be released
 			if (MainhWnd && MainhDC && (MainhWnd != hWnd))
 			{
@@ -1660,6 +1652,17 @@ HRESULT m_IDirectDrawX::SetCooperativeLevel(HWND hWnd, DWORD dwFlags, DWORD Dire
 			{
 				MainhDC = ::GetDC(MainhWnd);
 			}
+		}
+
+		// Set device flags
+		if (IsWindow(MainhWnd) && MainhWnd == hWnd)
+		{
+			AllowModeX = ((dwFlags & DDSCL_ALLOWMODEX) != 0);
+			MultiThreaded = ((dwFlags & DDSCL_MULTITHREADED) != 0);
+			// The flag (DDSCL_FPUPRESERVE) is assumed by default in DirectX 6 and earlier.
+			FPUPreserve = (((dwFlags & DDSCL_FPUPRESERVE) || DirectXVersion <= 6) && (dwFlags & DDSCL_FPUSETUP) == 0);
+			// The flag (DDSCL_NOWINDOWCHANGES) means DirectDraw is not allowed to minimize or restore the application window on activation.
+			NoWindowChanges = (((dwFlags & DDSCL_NOWINDOWCHANGES) != 0) || (GetWindowLong(MainhWnd, GWL_STYLE) & WS_OVERLAPPEDWINDOW) == WS_OVERLAPPEDWINDOW);
 		}
 
 		// Reset if mode was changed
@@ -1866,15 +1869,12 @@ HRESULT m_IDirectDrawX::SetDisplayMode(DWORD dwWidth, DWORD dwHeight, DWORD dwBP
 		surfaceWidth = 0;
 		surfaceHeight = 0;
 
-		// Mark flag that resolution has changed
-		if (ChangeMode)
-		{
-			SetResolution = ExclusiveMode;
-		}
-
 		// Update the d3d9 device to use new display mode if already created
 		if (ChangeMode)
 		{
+			// Mark flag that resolution has changed
+			SetResolution = ExclusiveMode;
+
 			// Recreate d3d9 device
 			CreateD3D9Device();
 		}
@@ -2939,7 +2939,7 @@ HRESULT m_IDirectDrawX::CreateD3D9Device()
 		BehaviorFlags = ((d3dcaps.VertexProcessingCaps) ? D3DCREATE_HARDWARE_VERTEXPROCESSING : D3DCREATE_SOFTWARE_VERTEXPROCESSING) |
 			(!Config.SingleProcAffinity ? D3DCREATE_MULTITHREADED : 0) |
 			(FPUPreserve ? D3DCREATE_FPU_PRESERVE : 0) |
-			D3DCREATE_NOWINDOWCHANGES;
+			((NoWindowChanges) ? D3DCREATE_NOWINDOWCHANGES : 0);
 
 		Logging::Log() << __FUNCTION__ << " Direct3D9 device! " <<
 			presParams.BackBufferWidth << "x" << presParams.BackBufferHeight << " refresh: " << presParams.FullScreen_RefreshRateInHz <<
