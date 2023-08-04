@@ -2832,9 +2832,9 @@ HRESULT m_IDirectDrawX::CreateD3D9Device()
 		{
 			LONG ExStyle = GetWindowLong(hWnd, GWL_EXSTYLE);
 
-			if ((ExStyle & WS_EX_TOOLWINDOW))
+			if (ExStyle & WS_EX_TOOLWINDOW)
 			{
-				SetWindowLong(hWnd, GWL_EXSTYLE, ExStyle & ~(WS_EX_TOOLWINDOW));
+				SetWindowLong(hWnd, GWL_EXSTYLE, ExStyle & ~WS_EX_TOOLWINDOW);
 			}
 		}
 
