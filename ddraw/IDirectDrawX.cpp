@@ -560,7 +560,7 @@ HRESULT m_IDirectDrawX::CreateSurface2(LPDDSURFACEDESC2 lpDDSurfaceDesc2, LPDIRE
 			return DDERR_GENERIC;
 		}
 
-		bool ReCreateD3D9Device = false;
+		bool ResetD3D9Device = false;
 
 		DDSURFACEDESC2 Desc2 = *lpDDSurfaceDesc2;
 
@@ -642,7 +642,7 @@ HRESULT m_IDirectDrawX::CreateSurface2(LPDDSURFACEDESC2 lpDDSurfaceDesc2, LPDIRE
 				}
 				DepthStencilSurface = NewDepthStencilSurface;
 
-				ReCreateD3D9Device = true;
+				ResetD3D9Device = true;
 			}
 		}
 
@@ -656,7 +656,7 @@ HRESULT m_IDirectDrawX::CreateSurface2(LPDDSURFACEDESC2 lpDDSurfaceDesc2, LPDIRE
 			// Check if there is a change in the present parameters
 			if (surfaceWidth != presParams.BackBufferWidth || surfaceHeight != presParams.BackBufferHeight)
 			{
-				ReCreateD3D9Device = true;
+				ResetD3D9Device = true;
 			}
 		}
 
@@ -675,13 +675,13 @@ HRESULT m_IDirectDrawX::CreateSurface2(LPDDSURFACEDESC2 lpDDSurfaceDesc2, LPDIRE
 				// Check if there is a change in the present parameters
 				if (AntiAliasing != OldAntiAliasing)
 				{
-					ReCreateD3D9Device = true;
+					ResetD3D9Device = true;
 				}
 			}
 		}
 
-		// Recreate d3d9 device
-		if (ReCreateD3D9Device)
+		// Reset d3d9 device
+		if (ResetD3D9Device)
 		{
 			CreateD3D9Device();
 		}
@@ -1604,6 +1604,7 @@ HRESULT m_IDirectDrawX::SetCooperativeLevel(HWND hWnd, DWORD dwFlags, DWORD Dire
 
 		HWND LastMainhWnd = MainhWnd;
 		bool LastFPUPreserve = FPUPreserve;
+		bool LastNoWindowChanges = NoWindowChanges;
 
 		// Set windowed mode
 		if (dwFlags & DDSCL_NORMAL)
@@ -1662,13 +1663,14 @@ HRESULT m_IDirectDrawX::SetCooperativeLevel(HWND hWnd, DWORD dwFlags, DWORD Dire
 			// The flag (DDSCL_FPUPRESERVE) is assumed by default in DirectX 6 and earlier.
 			FPUPreserve = (((dwFlags & DDSCL_FPUPRESERVE) || DirectXVersion <= 6) && (dwFlags & DDSCL_FPUSETUP) == 0);
 			// The flag (DDSCL_NOWINDOWCHANGES) means DirectDraw is not allowed to minimize or restore the application window on activation.
-			NoWindowChanges = (((dwFlags & DDSCL_NOWINDOWCHANGES) != 0) || (GetWindowLong(MainhWnd, GWL_STYLE) & WS_OVERLAPPEDWINDOW) == WS_OVERLAPPEDWINDOW);
+			NoWindowChanges = ((dwFlags & DDSCL_NOWINDOWCHANGES) != 0);
 		}
 
 		// Reset if mode was changed
-		if (IsWindow(MainhWnd) && (!d3d9Device || (d3d9Device && IsWindow(hWnd) && (LastMainhWnd != MainhWnd || LastFPUPreserve != FPUPreserve))))
+		if (IsWindow(MainhWnd) && MainhWnd == hWnd &&
+			(LastMainhWnd != MainhWnd || LastFPUPreserve != FPUPreserve || LastNoWindowChanges != NoWindowChanges))
 		{
-			// Recreate d3d9 device
+			// Create d3d9 device
 			CreateD3D9Device();
 		}
 
@@ -1869,13 +1871,13 @@ HRESULT m_IDirectDrawX::SetDisplayMode(DWORD dwWidth, DWORD dwHeight, DWORD dwBP
 		surfaceWidth = 0;
 		surfaceHeight = 0;
 
-		// Update the d3d9 device to use new display mode if already created
+		// Update the d3d9 device to use new display mode
 		if (ChangeMode)
 		{
 			// Mark flag that resolution has changed
 			SetResolution = ExclusiveMode;
 
-			// Recreate d3d9 device
+			// Reset d3d9 device
 			CreateD3D9Device();
 		}
 		else if (ChangeBPP)
@@ -2723,7 +2725,7 @@ void m_IDirectDrawX::SetNewViewport(DWORD Width, DWORD Height)
 		// Check if there is a change in the present parameters
 		if (d3d9Device && (viewportWidth != presParams.BackBufferWidth || viewportHeight != presParams.BackBufferHeight))
 		{
-			// Recreate d3d9 device
+			// Reset d3d9 device
 			CreateD3D9Device();
 		}
 	}
@@ -2939,7 +2941,7 @@ HRESULT m_IDirectDrawX::CreateD3D9Device()
 		BehaviorFlags = ((d3dcaps.VertexProcessingCaps) ? D3DCREATE_HARDWARE_VERTEXPROCESSING : D3DCREATE_SOFTWARE_VERTEXPROCESSING) |
 			(!Config.SingleProcAffinity ? D3DCREATE_MULTITHREADED : 0) |
 			(FPUPreserve ? D3DCREATE_FPU_PRESERVE : 0) |
-			((NoWindowChanges) ? D3DCREATE_NOWINDOWCHANGES : 0);
+			(NoWindowChanges ? D3DCREATE_NOWINDOWCHANGES : 0);
 
 		Logging::Log() << __FUNCTION__ << " Direct3D9 device! " <<
 			presParams.BackBufferWidth << "x" << presParams.BackBufferHeight << " refresh: " << presParams.FullScreen_RefreshRateInHz <<
@@ -2997,7 +2999,7 @@ HRESULT m_IDirectDrawX::CreateD3D9Device()
 		EnableWaitVsync = false;
 		FourCCsList.clear();
 
-		// Set window pos
+		// Send display change messages
 		if (hWnd)
 		{
 			// Get new resolution
@@ -3018,8 +3020,9 @@ HRESULT m_IDirectDrawX::CreateD3D9Device()
 			GetWindowRect(hWnd, &NewRect);
 
 			// Send message about window changes
-			WINDOWPOS winpos = { hWnd, HWND_TOP, NewRect.left, NewRect.top, NewRect.right - NewRect.left, NewRect.bottom - NewRect.top, WM_NULL };
-			SendMessage(hWnd, WM_WINDOWPOSCHANGED, (WPARAM)TRUE, (LPARAM)&winpos);
+			static WINDOWPOS winpos;
+			winpos = { hWnd, HWND_TOP, NewRect.left, NewRect.top, NewRect.right - NewRect.left, NewRect.bottom - NewRect.top, WM_NULL };
+			SendMessage(hWnd, WM_WINDOWPOSCHANGED, 0, (LPARAM)&winpos);
 
 			// Peek messages to help prevent a "Not Responding" window
 			Utils::CheckMessageQueue(hWnd);
