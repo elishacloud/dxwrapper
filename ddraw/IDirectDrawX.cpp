@@ -1748,7 +1748,7 @@ HRESULT m_IDirectDrawX::SetCooperativeLevel(HWND hWnd, DWORD dwFlags, DWORD Dire
 
 			// Removing WS_CAPTION
 			SetWindowLong(hWnd, GWL_STYLE, lStyle & ~WS_CAPTION);
-			SetWindowPos(hWnd, HWND_TOP, 0, 0, 0, 0, SWP_FRAMECHANGED | SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_NOSENDCHANGING);
+			SetWindowPos(hWnd, HWND_TOP, 0, 0, 0, 0, SWP_FRAMECHANGED | SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER);
 
 			// Peek messages to help prevent a "Not Responding" window
 			Utils::CheckMessageQueue(hWnd);
@@ -2797,7 +2797,7 @@ LPDIRECT3DPIXELSHADER9* m_IDirectDrawX::GetColorKeyShader()
 	return &colorkeyPixelShader;
 }
 
-// Creates d3d9 device, destroying the old one if exists
+// Creates or resets the d3d9 device
 HRESULT m_IDirectDrawX::CreateD3D9Device()
 {
 	// Check for device interface
@@ -2999,30 +2999,40 @@ HRESULT m_IDirectDrawX::CreateD3D9Device()
 		EnableWaitVsync = false;
 		FourCCsList.clear();
 
-		// Send display change messages
+		// Send window and display change messages
 		if (hWnd)
 		{
 			// Get new resolution
-			DWORD NewWidth, NewHeight;
-			Utils::GetScreenSize(hWnd, NewWidth, NewHeight);
+			DWORD NewWidth = presParams.BackBufferWidth, NewHeight = presParams.BackBufferHeight;
+			if (presParams.Windowed && !Config.FullscreenWindowMode)
+			{
+				Utils::GetScreenSize(hWnd, NewWidth, NewHeight);
+			}
 
 			// Send display change message
 			if ((SetResolution || NewWidth != CurrentWidth || NewHeight != CurrentHeight) && NewWidth && NewHeight)
 			{
 				SetResolution = false;
-				DWORD bpp = (displayModeBPP) ? displayModeBPP : 32;
-				DWORD res = (WORD)NewWidth | ((WORD)NewHeight << 16);
-				SendMessage(hWnd, WM_DISPLAYCHANGE, (WPARAM)bpp, (LPARAM)res);
+				SendMessage(hWnd, WM_DISPLAYCHANGE, displayModeBPP ? displayModeBPP : 32, MAKELPARAM(NewWidth, NewHeight));
 			}
 
 			// Get window size
-			RECT NewRect = {};
-			GetWindowRect(hWnd, &NewRect);
+			RECT NewRect = { 0, 0, (LONG)presParams.BackBufferWidth, (LONG)presParams.BackBufferHeight };
+			if (presParams.Windowed && !Config.FullscreenWindowMode)
+			{
+				GetWindowRect(hWnd, &NewRect);
+			}
 
-			// Send message about window changes
+			// Send messages about window changes
 			static WINDOWPOS winpos;
 			winpos = { hWnd, HWND_TOP, NewRect.left, NewRect.top, NewRect.right - NewRect.left, NewRect.bottom - NewRect.top, WM_NULL };
+			SendMessage(hWnd, WM_WINDOWPOSCHANGING, 0, (LPARAM)&winpos);
+			SendMessage(hWnd, WM_MOVE, 0, MAKELPARAM(NewRect.left, NewRect.top));
+			SendMessage(hWnd, WM_SIZE, SIZE_RESTORED, MAKELPARAM(NewRect.right - NewRect.left, NewRect.bottom - NewRect.top));
 			SendMessage(hWnd, WM_WINDOWPOSCHANGED, 0, (LPARAM)&winpos);
+			SendMessage(hWnd, WM_ACTIVATEAPP, TRUE, GetWindowThreadProcessId(hWnd, nullptr));
+			SendMessage(hWnd, WM_ACTIVATE, MAKEWPARAM(WA_ACTIVE, WM_NULL), WM_NULL);
+			SendMessage(hWnd, WM_SETFOCUS, WM_NULL, 0);
 
 			// Peek messages to help prevent a "Not Responding" window
 			Utils::CheckMessageQueue(hWnd);
@@ -3657,6 +3667,10 @@ HRESULT m_IDirectDrawX::Present()
 
 DWORD GetDDrawBitsPixel()
 {
+	if (Config.DdrawOverrideBitMode)
+	{
+		return Config.DdrawOverrideBitMode;
+	}
 	if (ddrawRefCount && MainhWnd)
 	{
 		return (ExclusiveBPP) ? ExclusiveBPP : (displayModeBPP) ? displayModeBPP : 0;

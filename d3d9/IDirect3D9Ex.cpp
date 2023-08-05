@@ -591,7 +591,7 @@ void AdjustWindow(HWND MainhWnd, LONG displayWidth, LONG displayHeight)
 	{
 		lStyle = (Config.EnableWindowMode) ? lStyle : (lOriginalStyle | WS_VISIBLE);
 		SetWindowLong(MainhWnd, GWL_STYLE, lStyle);
-		SetWindowPos(MainhWnd, HWND_TOP, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_FRAMECHANGED | SWP_NOSENDCHANGING);
+		SetWindowPos(MainhWnd, HWND_TOP, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_FRAMECHANGED);
 	}
 
 	// Get new window rect
@@ -631,7 +631,7 @@ void AdjustWindow(HWND MainhWnd, LONG displayWidth, LONG displayHeight)
 		// Use SetWindowPos to center and adjust size
 		else
 		{
-			SetWindowPos(MainhWnd, HWND_TOP, xLoc, yLoc, Rect.right, Rect.bottom, SWP_SHOWWINDOW | SWP_NOZORDER | SWP_NOSENDCHANGING);
+			SetWindowPos(MainhWnd, HWND_TOP, xLoc, yLoc, Rect.right, Rect.bottom, SWP_SHOWWINDOW | SWP_NOZORDER);
 		}
 	}
 
