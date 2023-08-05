@@ -2838,10 +2838,6 @@ HRESULT m_IDirectDrawX::CreateD3D9Device()
 			}
 		}
 
-		// Get last rect
-		RECT LastRect = {};
-		GetWindowRect(hWnd, &LastRect);
-
 		// Get current resolution
 		DWORD CurrentWidth, CurrentHeight;
 		Utils::GetScreenSize(hWnd, CurrentWidth, CurrentHeight);
@@ -3028,16 +3024,13 @@ HRESULT m_IDirectDrawX::CreateD3D9Device()
 			}
 
 			// Send messages about window changes
-			if (NewRect.left != LastRect.left || NewRect.top != LastRect.top || NewRect.right != LastRect.right || NewRect.bottom != LastRect.bottom)
-			{
-				static WINDOWPOS winpos;
-				HWND WindowInsert = GetWindowLong(MainhWnd, GWL_EXSTYLE) & WS_EX_TOPMOST ? HWND_TOPMOST : HWND_TOP;
-				winpos = { hWnd, WindowInsert, NewRect.left, NewRect.top, NewRect.right - NewRect.left, NewRect.bottom - NewRect.top, WM_NULL };
-				SendMessage(hWnd, WM_WINDOWPOSCHANGING, 0, (LPARAM)&winpos);
-				SendMessage(hWnd, WM_MOVE, 0, MAKELPARAM(NewRect.left, NewRect.top));
-				SendMessage(hWnd, WM_SIZE, SIZE_RESTORED, MAKELPARAM(NewRect.right - NewRect.left, NewRect.bottom - NewRect.top));
-				SendMessage(hWnd, WM_WINDOWPOSCHANGED, 0, (LPARAM)&winpos);
-			}
+			static WINDOWPOS winpos;
+			HWND WindowInsert = GetWindowLong(MainhWnd, GWL_EXSTYLE) & WS_EX_TOPMOST ? HWND_TOPMOST : HWND_TOP;
+			winpos = { hWnd, WindowInsert, NewRect.left, NewRect.top, NewRect.right - NewRect.left, NewRect.bottom - NewRect.top, WM_NULL };
+			SendMessage(hWnd, WM_WINDOWPOSCHANGING, 0, (LPARAM)&winpos);
+			SendMessage(hWnd, WM_MOVE, 0, MAKELPARAM(NewRect.left, NewRect.top));
+			SendMessage(hWnd, WM_SIZE, SIZE_RESTORED, MAKELPARAM(NewRect.right - NewRect.left, NewRect.bottom - NewRect.top));
+			SendMessage(hWnd, WM_WINDOWPOSCHANGED, 0, (LPARAM)&winpos);
 			SendMessage(hWnd, WM_ACTIVATE, MAKEWPARAM(WA_ACTIVE, WM_NULL), (LPARAM)hWnd);
 			SendMessage(hWnd, WM_SETFOCUS, WM_NULL, 0);
 
