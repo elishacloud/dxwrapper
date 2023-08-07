@@ -2134,9 +2134,15 @@ HRESULT m_IDirectDrawSurfaceX::Lock2(LPRECT lpDestRect, LPDDSURFACEDESC2 lpDDSur
 			{
 				// Lock surface
 				HRESULT ret = LockD39Surface(&LockedRect, &DestRect, Flags);
+				if (FAILED(ret) && IsSurfaceLocked())
+				{
+					LOG_LIMIT(100, __FUNCTION__ << " Warning: attempting to lock surface twice!");
+					UnlockD39Surface();
+					ret = LockD39Surface(&LockedRect, &DestRect, Flags);
+				}
 				if (FAILED(ret))
 				{
-					LOG_LIMIT(100, __FUNCTION__ << " Error: failed to lock surface texture." << (surface3D ? " is 3DSurface" : " is Texture") <<
+					LOG_LIMIT(100, __FUNCTION__ << " Error: failed to lock surface texture." << (surface3D ? " Is 3DSurface." : " Is Texture.") <<
 						" Size: " << surfaceDesc2.dwWidth << "x" << surfaceDesc2.dwHeight << " Format: " << surfaceFormat <<
 						" Flags: " << Logging::hex(Flags) << " Locked: " << IsSurfaceLocked() << " DC: " << IsSurfaceInDC() << " Blt: " << IsSurfaceBlitting() << " hr: " << (D3DERR)ret);
 					hr = (ret == D3DERR_WASSTILLDRAWING || (!LockWait && IsSurfaceBusy())) ? DDERR_WASSTILLDRAWING : DDERR_GENERIC;
