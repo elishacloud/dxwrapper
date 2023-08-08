@@ -73,6 +73,7 @@ private:
 	struct D9PRIMARY
 	{
 		const DWORD TLVERTEXFVF = (D3DFVF_XYZRHW | D3DFVF_TEX1);
+		DWORD LastPaletteUSN = 0;								// The USN that was used last time the palette was updated
 		LPDIRECT3DSURFACE9 BlankSurface = nullptr;				// Blank surface used for clearing main surface
 		LPDIRECT3DTEXTURE9 PaletteTexture = nullptr;			// Extra surface texture used for storing palette entries for the pixel shader
 		LPDIRECT3DPIXELSHADER9* PalettePixelShader = nullptr;	// Used with palette surfaces to display proper palette data on the surface texture

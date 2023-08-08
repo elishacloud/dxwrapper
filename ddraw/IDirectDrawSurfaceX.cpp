@@ -3878,7 +3878,7 @@ void m_IDirectDrawSurfaceX::UpdateSurfaceDesc()
 
 		// Get resolution
 		DWORD Width, Height, RefreshRate, BPP;
-		ddrawParent->GetFullDisplay(Width, Height, BPP, RefreshRate);
+		ddrawParent->GetSurfaceDisplay(Width, Height, BPP, RefreshRate);
 
 		// Set Height and Width
 		if (Width && Height &&
@@ -6005,6 +6005,24 @@ void m_IDirectDrawSurfaceX::UpdatePaletteData()
 		}
 	}
 
+	// Add palette data to texture
+	if (primary.PaletteTexture && NewPaletteEntry && primary.LastPaletteUSN != NewPaletteUSN)
+	{
+		// Get palette display context surface
+		LPDIRECT3DSURFACE9 paletteSurface = nullptr;
+		if (SUCCEEDED(primary.PaletteTexture->GetSurfaceLevel(0, &paletteSurface)))
+		{
+			// Use D3DXLoadSurfaceFromMemory to copy to the surface
+			RECT Rect = { 0, 0, MaxPaletteSize, 1 };
+			if (FAILED(D3DXLoadSurfaceFromMemory(paletteSurface, nullptr, &Rect, NewRGBPalette, D3DFMT_X8R8G8B8, MaxPaletteSize * sizeof(D3DCOLOR), nullptr, &Rect, D3DX_FILTER_NONE, 0)))
+			{
+				LOG_LIMIT(100, __FUNCTION__ << " Warning: could not full palette textur!");
+			}
+			paletteSurface->Release();
+			primary.LastPaletteUSN = NewPaletteUSN;
+		}
+	}
+
 	// Set color palette for emulation device context
 	if (IsUsingEmulation() && NewRGBPalette && surface.emu->LastPaletteUSN != NewPaletteUSN)
 	{
@@ -6018,24 +6036,6 @@ void m_IDirectDrawSurfaceX::UpdatePaletteData()
 		surface.IsPaletteDirty = true;
 		surface.LastPaletteUSN = NewPaletteUSN;
 		surface.PaletteEntryArray = NewPaletteEntry;
-
-		// Add palette data to texture
-		if (primary.PaletteTexture)
-		{
-			// Get palette display context surface
-			LPDIRECT3DSURFACE9 paletteSurface = nullptr;
-			if (SUCCEEDED(primary.PaletteTexture->GetSurfaceLevel(0, &paletteSurface)))
-			{
-				// Use D3DXLoadSurfaceFromMemory to copy to the surface
-				RECT Rect = { 0, 0, MaxPaletteSize, 1 };
-				if (FAILED(D3DXLoadSurfaceFromMemory(paletteSurface, nullptr, &Rect, NewRGBPalette, D3DFMT_X8R8G8B8, MaxPaletteSize * sizeof(D3DCOLOR), nullptr, &Rect, D3DX_FILTER_NONE, 0)))
-				{
-					LOG_LIMIT(100, __FUNCTION__ << " Warning: could not full palette textur!");
-				}
-
-				paletteSurface->Release();
-			}
-		}
 	}
 
 	ReleaseCriticalSection();
