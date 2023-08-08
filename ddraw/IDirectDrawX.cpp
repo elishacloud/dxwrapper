@@ -425,31 +425,13 @@ HRESULT m_IDirectDrawX::CreateSurface(LPDDSURFACEDESC lpDDSurfaceDesc, LPDIRECTD
 		return hr;
 	}
 
-	DDSURFACEDESC Desc = *lpDDSurfaceDesc;
-
-	// Adjust Height and Width
-	DWORD Width = 0;
-	DWORD Height = 0;
-	if ((Desc.dwFlags & DDSD_WIDTH) && (Desc.dwFlags & DDSD_HEIGHT))
-	{
-		Width = Desc.dwWidth;
-		Height = Desc.dwHeight;
-		Desc.dwWidth += Desc.dwWidth % 2;
-	}
-
-	HRESULT hr = GetProxyInterfaceV3()->CreateSurface(&Desc, (LPDIRECTDRAWSURFACE*)lplpDDSurface, pUnkOuter);
+	HRESULT hr = GetProxyInterfaceV3()->CreateSurface(lpDDSurfaceDesc, (LPDIRECTDRAWSURFACE*)lplpDDSurface, pUnkOuter);
 
 	if (SUCCEEDED(hr))
 	{
 		m_IDirectDrawSurfaceX *D3DSurfaceDevice = new m_IDirectDrawSurfaceX((IDirectDrawSurface7*)*lplpDDSurface, DirectXVersion);
 
 		*lplpDDSurface = (LPDIRECTDRAWSURFACE7)D3DSurfaceDevice->GetWrapperInterfaceX(DirectXVersion);
-
-		// Set original Height and Width
-		if (Height && Width)
-		{
-			D3DSurfaceDevice->SetWrapperSurfaceSize(Height, Width);
-		}
 	}
 
 	return hr;
@@ -717,16 +699,6 @@ HRESULT m_IDirectDrawX::CreateSurface2(LPDDSURFACEDESC2 lpDDSurfaceDesc2, LPDIRE
 		}
 	}
 
-	// Adjust Height and Width
-	DWORD Width = 0;
-	DWORD Height = 0;
-	if ((Desc2.dwFlags & DDSD_WIDTH) && (Desc2.dwFlags & DDSD_HEIGHT))
-	{
-		Width = Desc2.dwWidth;
-		Height = Desc2.dwHeight;
-		Desc2.dwWidth += Desc2.dwWidth % 2;
-	}
-
 	HRESULT hr = ProxyInterface->CreateSurface(&Desc2, lplpDDSurface, pUnkOuter);
 
 	if (SUCCEEDED(hr) && lplpDDSurface)
@@ -734,12 +706,6 @@ HRESULT m_IDirectDrawX::CreateSurface2(LPDDSURFACEDESC2 lpDDSurfaceDesc2, LPDIRE
 		m_IDirectDrawSurfaceX *D3DSurfaceDevice = new m_IDirectDrawSurfaceX((IDirectDrawSurface7*)*lplpDDSurface, DirectXVersion);
 
 		*lplpDDSurface = (LPDIRECTDRAWSURFACE7)D3DSurfaceDevice->GetWrapperInterfaceX(DirectXVersion);
-
-		// Set original Height and Width
-		if (Height && Width)
-		{
-			D3DSurfaceDevice->SetWrapperSurfaceSize(Height, Width);
-		}
 
 		if (Config.ConvertToDirectDraw7)
 		{

@@ -2,6 +2,10 @@
 
 #include <ddraw.h>
 
+#define BLT_MIRRORLEFTRIGHT		0x00000002l
+#define BLT_MIRRORUPDOWN		0x00000004l
+#define BLT_COLORKEY			0x00002000l
+
 #define ISDXTEX(tex) (tex == D3DFMT_DXT1 || tex == D3DFMT_DXT2 || tex == D3DFMT_DXT3 || tex == D3DFMT_DXT4 || tex == D3DFMT_DXT5)
 
 #define D3DCOLOR_GETALPHA(c)      (((c) >> 24) & 0xFF)
@@ -85,6 +89,14 @@ typedef struct {
 #pragma warning (suppress : 4200)
 	BYTE bdata[];
 } DDS_BUFFER;
+
+// Used for 24-bit surfaces
+struct TRIBYTE
+{
+	BYTE first;
+	BYTE second;
+	BYTE third;
+};
 
 static constexpr DWORD DDS_MAGIC				= 0x20534444; // "DDS "
 static constexpr DWORD DDS_HEADER_SIZE			= sizeof(DWORD) + sizeof(DDS_HEADER);

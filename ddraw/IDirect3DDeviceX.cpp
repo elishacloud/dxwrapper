@@ -3449,8 +3449,8 @@ inline void m_IDirect3DDeviceX::ScaleVertices(DWORD dwVertexTypeDesc, LPVOID& lp
 	if (dwVertexTypeDesc == 3)
 	{
 		VertexCache.resize(dwVertexCount * sizeof(D3DTLVERTEX));
-		memcpy(&VertexCache[0], lpVertices, dwVertexCount * sizeof(D3DTLVERTEX));
-		D3DTLVERTEX* pVert = (D3DTLVERTEX*)&VertexCache[0];
+		memcpy(VertexCache.data(), lpVertices, dwVertexCount * sizeof(D3DTLVERTEX));
+		D3DTLVERTEX* pVert = (D3DTLVERTEX*)VertexCache.data();
 
 		for (DWORD x = 0; x < dwVertexCount; x++)
 		{
@@ -3467,9 +3467,9 @@ inline void m_IDirect3DDeviceX::UpdateVertices(DWORD& dwVertexTypeDesc, LPVOID& 
 	if (dwVertexTypeDesc == D3DFVF_LVERTEX)
 	{
 		VertexCache.resize(dwVertexCount * sizeof(D3DLVERTEX9));
-		ConvertVertices((D3DLVERTEX9*)&VertexCache[0], (D3DLVERTEX*)lpVertices, dwVertexCount);
+		ConvertVertices((D3DLVERTEX9*)VertexCache.data(), (D3DLVERTEX*)lpVertices, dwVertexCount);
 
 		dwVertexTypeDesc = D3DFVF_LVERTEX9;
-		lpVertices = &VertexCache[0];
+		lpVertices = VertexCache.data();
 	}
 }

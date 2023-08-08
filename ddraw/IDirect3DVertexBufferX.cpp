@@ -180,7 +180,7 @@ HRESULT m_IDirect3DVertexBufferX::Lock(DWORD dwFlags, LPVOID* lplpData, LPDWORD 
 		// Handle D3DFVF_LVERTEX
 		if (VBDesc.dwFVF == D3DFVF_LVERTEX)
 		{
-			*lplpData = &VertexData[0];
+			*lplpData = VertexData.data();
 
 			if (lpdwSize)
 			{
@@ -188,7 +188,7 @@ HRESULT m_IDirect3DVertexBufferX::Lock(DWORD dwFlags, LPVOID* lplpData, LPDWORD 
 			}
 
 			// Should not need to copy from vertex buffer??
-			//ConvertVertices((D3DLVERTEX*)&VertexData[0], (D3DLVERTEX9*)pData, VBDesc.dwNumVertices);
+			//ConvertVertices((D3DLVERTEX*)VertexData.data(), (D3DLVERTEX9*)pData, VBDesc.dwNumVertices);
 		}
 		else
 		{
@@ -221,7 +221,7 @@ HRESULT m_IDirect3DVertexBufferX::Unlock()
 		// Handle D3DFVF_LVERTEX
 		if (VBDesc.dwFVF == D3DFVF_LVERTEX && LastLockAddr && !(LastLockFlags & DDLOCK_READONLY))
 		{
-			ConvertVertices((D3DLVERTEX9*)LastLockAddr, (D3DLVERTEX*)&VertexData[0], VBDesc.dwNumVertices);
+			ConvertVertices((D3DLVERTEX9*)LastLockAddr, (D3DLVERTEX*)VertexData.data(), VBDesc.dwNumVertices);
 		}
 
 		HRESULT hr = d3d9VertexBuffer->Unlock();

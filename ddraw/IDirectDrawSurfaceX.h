@@ -3,18 +3,14 @@
 #include <map>
 #include "d3dx9.h"
 
-#define BLT_MIRRORLEFTRIGHT		0x00000002l
-#define BLT_MIRRORUPDOWN		0x00000004l
-#define BLT_COLORKEY			0x00002000l
-
 // Emulated surface
 struct EMUSURFACE
 {
-	HDC surfaceDC = nullptr;
-	DWORD surfaceSize = 0;
-	D3DFORMAT surfaceFormat = D3DFMT_UNKNOWN;
-	void *surfacepBits = nullptr;
-	DWORD surfacePitch = 0;
+	HDC DC = nullptr;
+	DWORD Size = 0;
+	D3DFORMAT Format = D3DFMT_UNKNOWN;
+	void *pBits = nullptr;
+	DWORD Pitch = 0;
 	HBITMAP bitmap = nullptr;
 	BYTE bmiMemory[(sizeof(BITMAPINFOHEADER) + sizeof(RGBQUAD) * 256)] = {};
 	PBITMAPINFO bmi = (PBITMAPINFO)bmiMemory;
@@ -33,48 +29,86 @@ private:
 	ULONG RefCount4 = 0;
 	ULONG RefCount7 = 0;
 
-	// Used for 24-bit surfaces
-	struct TRIBYTE
-	{
-		BYTE first;
-		BYTE second;
-		BYTE third;
-	};
-
-	struct DDRAWEMULATELOCK
-	{
-		bool Locked = false;
-		std::vector<byte> surfaceMem;
-		void *Addr = nullptr;
-		DWORD Pitch = 0;
-		DWORD BBP = 0;
-		DWORD Height = 0;
-		DWORD Width = 0;
-	} EmuLock;
-
-	struct DSWRAPPER
-	{
-		DWORD Height = 0;
-		DWORD Width = 0;
-	} DsWrapper;
-
+	// Remember the last lock info
 	struct LASTLOCK
 	{
 		bool bEvenScanlines = false;
 		bool bOddScanlines = false;
 		bool ReadOnly = false;
-		bool isSkipScene = false;
+		bool IsSkipScene = false;
 		DWORD ScanlineWidth = 0;
 		std::vector<BYTE> EvenScanLine;
 		std::vector<BYTE> OddScanLine;
 		RECT Rect = {};
 		D3DLOCKED_RECT LockedRect = {};
-	} LastLock;
+	};
+
+	// For aligning bits after a lock for games that hard code the pitch
+	struct DDRAWEMULATELOCK
+	{
+		bool Locked = false;
+		std::vector<byte> Mem;
+		void* Addr = nullptr;
+		DWORD Pitch = 0;
+		DWORD BBP = 0;
+		DWORD Height = 0;
+		DWORD Width = 0;
+	};
+
+	// Store a list of attached surfaces
+	struct ATTACHEDMAP
+	{
+		m_IDirectDrawSurfaceX* pSurface = nullptr;
+		bool isAttachedSurfaceAdded = false;
+	};
+
+	// Custom vertex
+	struct TLVERTEX
+	{
+		float x, y, z, rhw;
+		float u, v;
+	};
+
+	// Extra Direct3D9 devices used in the primary surface
+	struct D9PRIMARY
+	{
+		const DWORD TLVERTEXFVF = (D3DFVF_XYZRHW | D3DFVF_TEX1);
+		LPDIRECT3DSURFACE9 BlankSurface = nullptr;				// Blank surface used for clearing main surface
+		LPDIRECT3DTEXTURE9 PaletteTexture = nullptr;			// Extra surface texture used for storing palette entries for the pixel shader
+		LPDIRECT3DPIXELSHADER9* PalettePixelShader = nullptr;	// Used with palette surfaces to display proper palette data on the surface texture
+		LPDIRECT3DVERTEXBUFFER9 VertexBuffer = nullptr;			// Vertex buffer used to stretch the texture accross the screen
+	};
+
+	// Real surface and surface data using Direct3D9 devices
+	struct D9SURFACE
+	{
+		DWORD UniquenessValue = 0;
+		bool IsDirtyFlag = false;
+		bool IsPaletteDirty = false;						// Used to detect if the palette surface needs to be updated
+		bool IsInDC = false;
+		HDC LastDC = nullptr;
+		bool IsInBlt = false;
+		bool IsInBltBatch = false;
+		bool IsLocked = false;
+		DWORD LockedWithID = 0;
+		LASTLOCK LastLock;									// Remember the last lock info
+		std::vector<RECT> LockRectList;						// Rects used to lock the surface
+		DDRAWEMULATELOCK EmuLock;							// For aligning bits after a lock for games that hard code the pitch
+		std::vector<byte> ByteArray;						// Memory used for coping from one surface to the same surface
+		std::vector<byte> Backup;							// Memory used for backing up the surfaceTexture
+		EMUSURFACE* emu = nullptr;							// Emulated surface using device context
+		DWORD LastPaletteUSN = 0;							// The USN that was used last time the palette was updated
+		LPPALETTEENTRY PaletteEntryArray = nullptr;			// Used to store palette data address
+		LPDIRECT3DSURFACE9 Surface = nullptr;				// Surface used for Direct3D
+		LPDIRECT3DTEXTURE9 Texture = nullptr;				// Main surface texture used for locks, Blts and Flips
+		LPDIRECT3DSURFACE9 Context = nullptr;				// Context of the main surface texture
+		LPDIRECT3DTEXTURE9 DisplayTexture = nullptr;		// Used to convert palette texture into a texture that can be displayed
+		LPDIRECT3DSURFACE9 DisplayContext = nullptr;		// Context for the palette display texture
+	};
 
 	// Convert to Direct3D9
-	CRITICAL_SECTION ddscs;
-	bool IsDirect3DSurface = false;
-	m_IDirectDrawX *ddrawParent = nullptr;
+	CRITICAL_SECTION ddscs = {};
+	m_IDirectDrawX *ddrawParent = nullptr;				// DirectDraw parent device
 	m_IDirectDrawPalette *attachedPalette = nullptr;	// Associated palette
 	m_IDirectDrawClipper *attachedClipper = nullptr;	// Associated clipper
 	m_IDirect3DTextureX *attachedTexture = nullptr;		// Associated texture
@@ -82,43 +116,27 @@ private:
 	D3DFORMAT surfaceFormat = D3DFMT_UNKNOWN;			// Format for this surface
 	DWORD surfaceBitCount = 0;							// Bit count for this surface
 	DWORD ResetDisplayFlags = 0;						// Flags that need to be reset when display mode changes
-	std::vector<byte> surfaceArray;						// Memory used for coping from one surface to the same surface
-	std::vector<byte> surfaceBackup;					// Memory used for backing up the surfaceTexture
-	std::vector<RECT> surfaceLockRectList;				// Rects used to lock the surface
-	EMUSURFACE *emu = nullptr;
 	LONG overlayX = 0;
 	LONG overlayY = 0;
 	DWORD Priority = 0;
 	DWORD MaxLOD = 0;
-	DWORD UniquenessValue = 0;
-	bool IsDirtyFlag = false;
-	bool Surface3DDeviceFlag = false;
+
+	bool Is3DRenderingTarget = false;					// Surface used for Direct3D rendering target, called from m_IDirect3DX::CreateDevice()
+	bool IsDirect3DEnabled = false;						// Direct3D is being used on top of DirectDraw
 	bool DCRequiresEmulation = false;
 	bool SurfaceRequiresEmulation = false;
 	bool ComplexRoot = false;
-	bool PresentOnUnlock = false;
-	bool IsLocked = false;
-	DWORD LockedWithID = 0;
-	bool IsInDC = false;
-	HDC LastDC = nullptr;
-	bool IsInBlt = false;
-	bool IsInBltBatch = false;
 	bool IsInFlip = false;
-	bool IsPaletteSurfaceDirty = false;					// Used to detect if the palette surface needs to be updated
-	LPPALETTEENTRY paletteEntryArray = nullptr;			// Used to store palette data address
-	DWORD LastPaletteUSN = 0;							// The USN that was used last time the palette was updated
+	bool PresentOnUnlock = false;
 
-	// Direct3D9 vars
-	LPDIRECT3DDEVICE9* d3d9Device = nullptr;			// Direct3D9 Device
-	LPDIRECT3DSURFACE9 surface3D = nullptr;				// Surface used for Direct3D
-	LPDIRECT3DTEXTURE9 surfaceTexture = nullptr;		// Main surface texture used for locks, Blts and Flips
-	LPDIRECT3DSURFACE9 contextSurface = nullptr;		// Context of the main surface texture
-	LPDIRECT3DTEXTURE9 paletteDisplayTexture = nullptr;	// Used to convert palette texture into a texture that can be displayed
-	LPDIRECT3DSURFACE9 paletteDisplaySurface = nullptr;	// Context for the palette display texture
-	LPDIRECT3DSURFACE9 blankSurface = nullptr;			// Blank surface used for clearing main surface
-	LPDIRECT3DTEXTURE9 paletteTexture = nullptr;		// Extra surface texture used for storing palette entries for the pixel shader
-	LPDIRECT3DPIXELSHADER9* palettePixelShader = nullptr;		// Used with palette surfaces to display proper palette data on the surface texture
-	LPDIRECT3DVERTEXBUFFER9 vertexBuffer = nullptr;		// Vertex buffer used to stretch the texture accross the screen
+	// Extra Direct3D9 devices used in the primary surface
+	D9PRIMARY primary;
+
+	// Real surface and surface data using Direct3D9 devices
+	D9SURFACE surface;
+
+	// Direct3D9 device address
+	LPDIRECT3DDEVICE9* d3d9Device = nullptr;
 
 	// Store ddraw surface version wrappers
 	m_IDirectDrawSurface *WrapperInterface;
@@ -129,22 +147,8 @@ private:
 
 	// Store a list of attached surfaces
 	std::unique_ptr<m_IDirectDrawSurfaceX> BackBufferInterface;
-	struct ATTACHEDMAP
-	{
-		m_IDirectDrawSurfaceX* pSurface = nullptr;
-		bool isAttachedSurfaceAdded = false;
-	};
 	std::map<DWORD, ATTACHEDMAP> AttachedSurfaceMap;
 	DWORD MapKey = 0;
-
-	// Custom vertex
-	struct TLVERTEX
-	{
-		float x, y, z, rhw;
-		float u, v;
-	};
-
-	const DWORD TLVERTEXFVF = (D3DFVF_XYZRHW | D3DFVF_TEX1);
 
 	// Wrapper interface functions
 	inline REFIID GetWrapperType(DWORD DirectXVersion)
@@ -188,7 +192,7 @@ private:
 	// Direct3D9 interface functions
 	HRESULT CheckInterface(char *FunctionName, bool CheckD3DDevice, bool CheckD3DSurface);
 	HRESULT CreateD3d9Surface();
-	bool DoesDCMatch(EMUSURFACE* emu);
+	bool DoesDCMatch(EMUSURFACE* pEmuSurface);
 	HRESULT CreateDCSurface();
 	void ReleaseDCSurface();
 	void UpdateSurfaceDesc();
@@ -206,11 +210,11 @@ private:
 	void EndWritePresent(bool isSkipScene);
 
 	// Surface information functions
-	inline bool IsSurfaceLocked() { return IsLocked; }
-	inline bool IsSurfaceBlitting() { return (IsInBlt || IsInBltBatch); }
-	inline bool IsSurfaceInDC() { return IsInDC; }
+	inline bool IsSurfaceLocked() { return surface.IsLocked; }
+	inline bool IsSurfaceBlitting() { return (surface.IsInBlt || surface.IsInBltBatch); }
+	inline bool IsSurfaceInDC() { return surface.IsInDC; }
 	inline bool IsSurfaceBusy() { return (IsSurfaceBlitting() || IsSurfaceLocked() || IsSurfaceInDC()); }
-	inline bool IsLockedFromOtherThread() { return (IsSurfaceBlitting() || IsSurfaceLocked()) && LockedWithID && LockedWithID != GetCurrentThreadId(); }
+	inline bool IsLockedFromOtherThread() { return (IsSurfaceBlitting() || IsSurfaceLocked()) && surface.LockedWithID && surface.LockedWithID != GetCurrentThreadId(); }
 	inline bool CanSurfaceBeDeleted() { return (ComplexRoot || (surfaceDesc2.ddsCaps.dwCaps & DDSCAPS_COMPLEX) == 0); }
 	inline DWORD GetWidth() { return surfaceDesc2.dwWidth; }
 	inline DWORD GetHeight() { return surfaceDesc2.dwHeight; }
@@ -361,8 +365,7 @@ public:
 	void ReleaseCS() { LeaveCriticalSection(&ddscs); }
 
 	// Fix byte alignment issue
-	template <class T>
-	void LockBitAlign(LPRECT lpDestRect, T lpDDSurfaceDesc);
+	void LockBitAlign(LPRECT lpDestRect, LPDDSURFACEDESC2 lpDDSurfaceDesc);
 
 	// For removing scanlines
 	void RestoreScanlines(LASTLOCK &LLock);
@@ -370,7 +373,7 @@ public:
 
 	// Functions handling the ddraw parent interface
 	inline void SetDdrawParent(m_IDirectDrawX *ddraw) { ddrawParent = ddraw; }
-	inline void ClearDdraw() { ddrawParent = nullptr; palettePixelShader = nullptr; }
+	inline void ClearDdraw() { ddrawParent = nullptr; primary.PalettePixelShader = nullptr; }
 
 	// Direct3D9 interface functions
 	void ReleaseD9Surface(bool BackupData);
@@ -387,18 +390,17 @@ public:
 	inline bool IsDepthBuffer() { return (surfaceDesc2.ddpfPixelFormat.dwFlags & (DDPF_ZBUFFER | DDPF_STENCILBUFFER)) != 0; }
 	inline bool IsSurfaceManaged() { return (surfaceDesc2.ddsCaps.dwCaps2 & (DDSCAPS2_TEXTUREMANAGE | DDSCAPS2_D3DTEXTUREMANAGE)) != 0; }
 	bool GetColorKey(DWORD& ColorSpaceLowValue, DWORD& ColorSpaceHighValue);
-	inline bool IsUsingEmulation() { return (emu && emu->surfaceDC && emu->surfacepBits); }
-	inline bool IsSurface3DDevice() { return Surface3DDeviceFlag; }
-	inline bool IsSurfaceDirty() { return IsDirtyFlag; }
-	inline void AttachD9BackBuffer() { Surface3DDeviceFlag = true; }
-	inline void DetachD9BackBuffer() { Surface3DDeviceFlag = false; }
+	inline bool IsUsingEmulation() { return (surface.emu && surface.emu->DC && surface.emu->pBits); }
+	inline bool IsSurface3DDevice() { return Is3DRenderingTarget; }
+	inline bool IsSurfaceDirty() { return surface.IsDirtyFlag; }
+	inline void AttachD9BackBuffer() { Is3DRenderingTarget = true; }
+	inline void DetachD9BackBuffer() { Is3DRenderingTarget = false; }
 	LPDIRECT3DSURFACE9 Get3DSurface();
 	LPDIRECT3DTEXTURE9 Get3DTexture();
 	LPDIRECT3DSURFACE9 GetD3D9Surface();
 	LPDIRECT3DTEXTURE9 GetD3D9Texture();
 	inline m_IDirect3DTextureX* GetAttachedTexture() { return attachedTexture; }
 	inline void ClearTexture() { attachedTexture = nullptr; }
-	inline void SetWrapperSurfaceSize(DWORD Width, DWORD Height) { DsWrapper.Width = Width; DsWrapper.Height = Height; }
 
 	// Draw 2D DirectDraw surface
 	HRESULT Draw2DSurface();
