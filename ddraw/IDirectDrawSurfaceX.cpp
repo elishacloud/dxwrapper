@@ -1081,18 +1081,49 @@ HRESULT m_IDirectDrawSurfaceX::EnumOverlayZOrders2(DWORD dwFlags, LPVOID lpConte
 }
 
 // Swap surfaces
-inline void m_IDirectDrawSurfaceX::SwapSurface(m_IDirectDrawSurfaceX* lpTargetSurface1, m_IDirectDrawSurfaceX* lpTargetSurface2)
+inline void m_IDirectDrawSurfaceX::SwapTargetSurface(m_IDirectDrawSurfaceX* lpTargetSurface)
 {
-	if (lpTargetSurface1 && lpTargetSurface2 && lpTargetSurface1 != lpTargetSurface2)
+	SetCS();
+	lpTargetSurface->SetCS();
+	SwapAddresses(&surface, &lpTargetSurface->surface);
+	lpTargetSurface->ReleaseCS();
+	ReleaseCS();
+}
+
+// Check if backbuffer can flip with current surface
+inline HRESULT m_IDirectDrawSurfaceX::CheckBackBufferForFlip(m_IDirectDrawSurfaceX* lpTargetSurface)
+{
+	// Check if target surface exists
+	if (!lpTargetSurface || lpTargetSurface == this || !DoesFlipBackBufferExist(lpTargetSurface))
 	{
-		lpTargetSurface1->SetCS();
-		lpTargetSurface2->SetCS();
-		SwapAddresses(&lpTargetSurface1->surface, &lpTargetSurface2->surface);
-		lpTargetSurface2->ReleaseCS();
-		lpTargetSurface1->ReleaseCS();
+		LOG_LIMIT(100, __FUNCTION__ << " Error: invalid surface!");
+		return DDERR_INVALIDPARAMS;
+	}
+
+	// Check if surface is locked or has an open DC
+	if (lpTargetSurface->IsSurfaceBusy())
+	{
+		LOG_LIMIT(100, __FUNCTION__ << " Error: backbuffer surface is busy!");
+		return DDERR_SURFACEBUSY;
+	}
+
+	// Make sure that surface description on target is updated
+	lpTargetSurface->UpdateSurfaceDesc();
+
+	// Check if surface format and size matches
+	if (surfaceFormat != lpTargetSurface->surfaceFormat ||
+		surfaceDesc2.dwWidth != lpTargetSurface->surfaceDesc2.dwWidth ||
+		surfaceDesc2.dwHeight != lpTargetSurface->surfaceDesc2.dwHeight)
+	{
+		LOG_LIMIT(100, __FUNCTION__ << " Error: backbuffer surface does not match: " <<
+			surfaceFormat << " -> " << lpTargetSurface->surfaceFormat <<
+			surfaceDesc2.dwWidth << "x" << surfaceDesc2.dwHeight << " -> " <<
+			lpTargetSurface->surfaceDesc2.dwWidth << "x" << lpTargetSurface->surfaceDesc2.dwHeight);
+		return DDERR_GENERIC;
 	}
 }
 
+// Flip all backbuffer surfaces
 HRESULT m_IDirectDrawSurfaceX::FlipBackBuffer()
 {
 	DWORD dwCaps = 0;
@@ -1109,18 +1140,11 @@ HRESULT m_IDirectDrawSurfaceX::FlipBackBuffer()
 		}
 	}
 
-	// Check if backbuffer was found
-	if (!lpTargetSurface || lpTargetSurface == this || !DoesFlipBackBufferExist(lpTargetSurface))
+	// Check backbuffer surface
+	HRESULT hr = CheckBackBufferForFlip(lpTargetSurface);
+	if (FAILED(hr))
 	{
-		LOG_LIMIT(100, __FUNCTION__ << " Error: Could not find backbuffer or invalid backbuffer!");
-		return DDERR_GENERIC;
-	}
-
-	// Check if surface is busy
-	if (lpTargetSurface->IsSurfaceBusy())
-	{
-		LOG_LIMIT(100, __FUNCTION__ << " Error: backbuffer surface is busy!");
-		return DDERR_SURFACEBUSY;
+		return hr;
 	}
 
 	// Stop flipping when frontbuffer is found
@@ -1130,7 +1154,7 @@ HRESULT m_IDirectDrawSurfaceX::FlipBackBuffer()
 	}
 
 	// Swap surface
-	SwapSurface(this, lpTargetSurface);
+	SwapTargetSurface(lpTargetSurface);
 
 	// Flip next surface
 	return lpTargetSurface->FlipBackBuffer();
@@ -1194,19 +1218,10 @@ HRESULT m_IDirectDrawSurfaceX::Flip(LPDIRECTDRAWSURFACE7 lpDDSurfaceTargetOverri
 
 				lpDDSurfaceTargetOverride->QueryInterface(IID_GetInterfaceX, (LPVOID*)&lpTargetSurface);
 
-				// Check if target surface exists
-				if (lpTargetSurface == this || !DoesFlipBackBufferExist(lpTargetSurface))
+				// Check backbuffer surface
+				hr = CheckBackBufferForFlip(lpTargetSurface);
+				if (FAILED(hr))
 				{
-					LOG_LIMIT(100, __FUNCTION__ << " Error: invalid surface!");
-					hr = DDERR_INVALIDPARAMS;
-					break;
-				}
-
-				// Check if surface is locked or has an open DC
-				if (lpTargetSurface->IsSurfaceBusy())
-				{
-					LOG_LIMIT(100, __FUNCTION__ << " Error: backbuffer surface is busy!");
-					hr = DDERR_SURFACEBUSY;
 					break;
 				}
 
@@ -1217,7 +1232,7 @@ HRESULT m_IDirectDrawSurfaceX::Flip(LPDIRECTDRAWSURFACE7 lpDDSurfaceTargetOverri
 				}
 
 				// Swap surface
-				SwapSurface(this, lpTargetSurface);
+				SwapTargetSurface(lpTargetSurface);
 			}
 
 			// Execute flip for all attached surfaces
@@ -3926,6 +3941,11 @@ void m_IDirectDrawSurfaceX::UpdateSurfaceDesc()
 		surfaceDesc2.dwFlags |= DDSD_PITCH;
 		DWORD BitCount = BitCount = GetBitCount(surfaceDesc2.ddpfPixelFormat);
 		surfaceDesc2.lPitch = ComputePitch(GetByteAlignedWidth(surfaceDesc2.dwWidth, BitCount), BitCount);
+	}
+	// Set surface format
+	if (surfaceFormat == D3DFMT_UNKNOWN)
+	{
+		surfaceFormat = GetDisplayFormat(surfaceDesc2.ddpfPixelFormat);
 	}
 }
 
