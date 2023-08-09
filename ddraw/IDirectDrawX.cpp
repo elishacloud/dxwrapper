@@ -1919,27 +1919,33 @@ HRESULT m_IDirectDrawX::WaitForVerticalBlank(DWORD dwFlags, HANDLE hEvent)
 		switch (dwFlags)
 		{
 		case DDWAITVB_BLOCKBEGIN:
+			// Check if already in vertical blank
+			if (SUCCEEDED(d3d9Device->GetRasterStatus(0, &RasterStatus)) && RasterStatus.InVBlank)
+			{
+				return DD_OK;
+			}
+			[[fallthrough]];
 		case DDWAITVB_BLOCKEND:
-			// Get vertical blank begin first, then get vertical blank end if requested
-			// Use D3DKMT for vertical blank begin
+			// Use D3DKMTWaitForVerticalBlankEvent for vertical blank begin
 			if (OpenD3DDDI(GetDC()) && D3DDDIWaitForVsync())
 			{
-				if (dwFlags == DDWAITVB_BLOCKBEGIN)
-				{
-					return DD_OK;
-				}
+				// Success using D3DKMTWaitForVerticalBlankEvent
 			}
 			// Use raster status for vertical blank begin (uses high CPU)
-			else if (SUCCEEDED(d3d9Device->GetRasterStatus(0, &RasterStatus)))
+			else while (SUCCEEDED(d3d9Device->GetRasterStatus(0, &RasterStatus)) && !RasterStatus.InVBlank)
 			{
-				while (SUCCEEDED(d3d9Device->GetRasterStatus(0, &RasterStatus)) && !RasterStatus.InVBlank) { Sleep(0); };
-				if (dwFlags == DDWAITVB_BLOCKBEGIN)
-				{
-					return DD_OK;
-				}
+				Sleep(0);
+			}
+			// Exit if just waiting for vertical blank begin
+			if (dwFlags == DDWAITVB_BLOCKBEGIN)
+			{
+				return DD_OK;
 			}
 			// Use raster status for vertical blank end (uses high CPU)
-			while (SUCCEEDED(d3d9Device->GetRasterStatus(0, &RasterStatus)) && RasterStatus.InVBlank) { Sleep(0); };
+			while (SUCCEEDED(d3d9Device->GetRasterStatus(0, &RasterStatus)) && RasterStatus.InVBlank)
+			{
+				Sleep(0);
+			}
 			return DD_OK;
 		case DDWAITVB_BLOCKBEGINEVENT:
 			// Triggers an event when the vertical blank begins. This value is not supported.
@@ -3563,17 +3569,17 @@ HRESULT m_IDirectDrawX::Present()
 		}
 	}
 
+	// Check for device interface
+	if (FAILED(CheckInterface(__FUNCTION__, true)))
+	{
+		return DDERR_GENERIC;
+	}
+
 	// Use WaitForVerticalBlank for wait timer
 	if (UseVSync)
 	{
 		WaitForVerticalBlank(DDWAITVB_BLOCKBEGIN, nullptr);
 		EnableWaitVsync = false;
-	}
-
-	// Check for device interface
-	if (FAILED(CheckInterface(__FUNCTION__, true)))
-	{
-		return DDERR_GENERIC;
 	}
 
 	// Present everthing, skip Preset when using DdrawWriteToGDI
