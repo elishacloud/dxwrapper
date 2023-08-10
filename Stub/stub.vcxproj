@@ -109,6 +109,7 @@ cmd /c "@echo off &amp;&amp; cd /D ""$(ProjectDir)"" &amp;&amp; type BuildNo.rc"
 IF NOT EXIST "$(TargetDir)Build\Stub" mkdir "$(TargetDir)Build\Stub" &gt;nul
 copy /Y "$(SolutionDir)Settings\Stub.ini" "$(TargetDir)Build\Stub" &gt;nul
 copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\Stub\bcrypt.dll" &gt;nul
+copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\Stub\cryptbase.dll" &gt;nul
 copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\Stub\cryptsp.dll" &gt;nul
 copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\Stub\d2d1.dll" &gt;nul
 copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\Stub\d3d8.dll" &gt;nul
@@ -126,6 +127,7 @@ copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\Stub\version.dll" &gt
 copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\Stub\wininet.dll" &gt;nul
 copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\Stub\winmm.dll" &gt;nul
 copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\Stub\winmmbase.dll" &gt;nul
+copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\Stub\winspool.drv" &gt;nul
 copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\Stub\wsock32.dll" &gt;nul</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
@@ -154,6 +156,7 @@ copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\Stub\wsock32.dll" &gt
     <ClInclude Include="..\External\Hooking\Hook.h" />
     <ClInclude Include="..\External\MemoryModule\MemoryModule.h" />
     <ClInclude Include="..\Wrappers\bcrypt.h" />
+    <ClInclude Include="..\Wrappers\cryptbase.h" />
     <ClInclude Include="..\Wrappers\cryptsp.h" />
     <ClInclude Include="..\Wrappers\d2d1.h" />
     <ClInclude Include="..\Wrappers\d3d8.h" />
@@ -171,6 +174,7 @@ copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\Stub\wsock32.dll" &gt
     <ClInclude Include="..\Wrappers\version.h" />
     <ClInclude Include="..\Wrappers\wininet.h" />
     <ClInclude Include="..\Wrappers\winmm.h" />
+    <ClInclude Include="..\Wrappers\winspool.h" />
     <ClInclude Include="..\Wrappers\wrapper.h" />
     <ClInclude Include="..\Wrappers\wsock32.h" />
     <ClInclude Include="Logging\Logging.h" />
