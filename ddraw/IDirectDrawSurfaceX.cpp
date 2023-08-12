@@ -463,24 +463,17 @@ HRESULT m_IDirectDrawSurfaceX::Blt(LPRECT lpDestRect, LPDIRECTDRAWSURFACE7 lpDDS
 		BeginWritePresent(IsSkipScene);
 
 		// Check if locked from other thread
-		if (IsLockedFromOtherThread() || lpDDSrcSurfaceX->IsLockedFromOtherThread())
+		if (BltWait && (IsLockedFromOtherThread() || lpDDSrcSurfaceX->IsLockedFromOtherThread()))
 		{
-			if (BltWait)
+			// Wait for lock from other thread
+			while (IsLockedFromOtherThread() || lpDDSrcSurfaceX->IsLockedFromOtherThread())
 			{
-				// Wait for lock from other thread
-				while (IsLockedFromOtherThread() || lpDDSrcSurfaceX->IsLockedFromOtherThread())
+				Sleep(0);
+				if (!surface.Texture && !surface.Surface)
 				{
-					Sleep(0);
-					if (!surface.Texture && !surface.Surface)
-					{
-						LOG_LIMIT(100, __FUNCTION__ << " Error: surface texture missing!");
-						return DDERR_SURFACELOST;
-					}
+					LOG_LIMIT(100, __FUNCTION__ << " Error: surface texture missing!");
+					return DDERR_SURFACELOST;
 				}
-			}
-			else
-			{
-				return D3DERR_WASSTILLDRAWING;
 			}
 		}
 
@@ -603,7 +596,7 @@ HRESULT m_IDirectDrawSurfaceX::Blt(LPRECT lpDestRect, LPDIRECTDRAWSURFACE7 lpDDS
 		}
 
 		// Check if surface was busy
-		if (!BltWait && hr == DDERR_SURFACEBUSY)
+		if (!BltWait && (hr == DDERR_SURFACEBUSY || IsLockedFromOtherThread() || lpDDSrcSurfaceX->IsLockedFromOtherThread()))
 		{
 			hr = D3DERR_WASSTILLDRAWING;
 		}
@@ -1121,6 +1114,8 @@ inline HRESULT m_IDirectDrawSurfaceX::CheckBackBufferForFlip(m_IDirectDrawSurfac
 			lpTargetSurface->surfaceDesc2.dwWidth << "x" << lpTargetSurface->surfaceDesc2.dwHeight);
 		return DDERR_GENERIC;
 	}
+
+	return DD_OK;
 }
 
 // Flip all backbuffer surfaces
@@ -2102,24 +2097,17 @@ HRESULT m_IDirectDrawSurfaceX::Lock2(LPRECT lpDestRect, LPDDSURFACEDESC2 lpDDSur
 		BeginWritePresent(IsSkipScene);
 
 		// Check if locked from other thread
-		if (IsLockedFromOtherThread())
+		if (LockWait && IsLockedFromOtherThread())
 		{
-			if (LockWait)
+			// Wait for lock from other thread
+			while (IsLockedFromOtherThread())
 			{
-				// Wait for lock from other thread
-				while (IsLockedFromOtherThread())
+				Sleep(0);
+				if (!surface.Texture && !surface.Surface)
 				{
-					Sleep(0);
-					if (!surface.Texture && !surface.Surface)
-					{
-						LOG_LIMIT(100, __FUNCTION__ << " Error: surface texture missing!");
-						return DDERR_SURFACELOST;
-					}
+					LOG_LIMIT(100, __FUNCTION__ << " Error: surface texture missing!");
+					return DDERR_SURFACELOST;
 				}
-			}
-			else
-			{
-				return D3DERR_WASSTILLDRAWING;
 			}
 		}
 
@@ -2151,7 +2139,7 @@ HRESULT m_IDirectDrawSurfaceX::Lock2(LPRECT lpDestRect, LPDDSURFACEDESC2 lpDDSur
 			{
 				// Lock surface
 				HRESULT ret = LockD39Surface(&LockedRect, &DestRect, Flags);
-				if (FAILED(ret) && IsSurfaceLocked())
+				if (FAILED(ret) && IsSurfaceLocked() && !IsLockedFromOtherThread())
 				{
 					LOG_LIMIT(100, __FUNCTION__ << " Warning: attempting to lock surface twice!");
 					UnlockD39Surface();
@@ -2203,7 +2191,10 @@ HRESULT m_IDirectDrawSurfaceX::Lock2(LPRECT lpDestRect, LPDDSURFACEDESC2 lpDDSur
 				lpDDSurfaceDesc2->lpSurface = LockedRect.pBits;
 				lpDDSurfaceDesc2->dwFlags |= DDSD_LPSURFACE;
 			}
-			LockedRect.Pitch = ISDXTEX(surfaceFormat) ? LockedRect.Pitch * 64 :
+			// Pitch for DXT surfaces in DirectDraw is the full surface byte size
+			LockedRect.Pitch =
+				(surfaceFormat == D3DFMT_DXT1) ? ((GetByteAlignedWidth(surfaceDesc2.dwWidth, surfaceBitCount) + 3) / 4) * ((surfaceDesc2.dwHeight + 3) / 4) * 8 :
+				ISDXTEX(surfaceFormat) ? ((GetByteAlignedWidth(surfaceDesc2.dwWidth, surfaceBitCount) + 3) / 4) * ((surfaceDesc2.dwHeight + 3) / 4) * 16 :
 				(surfaceFormat == D3DFMT_YV12) ? GetByteAlignedWidth(surfaceDesc2.dwWidth, surfaceBitCount) :
 				LockedRect.Pitch;
 			lpDDSurfaceDesc2->lPitch = LockedRect.Pitch;
