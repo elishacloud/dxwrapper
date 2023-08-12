@@ -51,8 +51,10 @@ namespace {
 	}
 }
 
-void DebugOverlay::Setup(HWND hwnd, LPDIRECT3DDEVICE9 d3d9Device)
+void DebugOverlay::Setup(HWND hwnd, LPDIRECT3DDEVICE9 Device)
 {
+	d3d9Device = Device;
+
 	if (IsContextSetup)
 	{
 		Shutdown();

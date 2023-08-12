@@ -3306,7 +3306,10 @@ HRESULT m_IDirect3DDeviceX::CheckInterface(char *FunctionName, bool CheckD3DDevi
 		}
 
 #ifdef ENABLE_DEBUGOVERLAY
-		DOverlay.Setup(ddrawParent->GetHwnd(), *d3d9Device);
+		if (DOverlay.Getd3d9Device() != *d3d9Device)
+		{
+			DOverlay.Setup(ddrawParent->GetHwnd(), *d3d9Device);
+		}
 #endif
 	}
 
