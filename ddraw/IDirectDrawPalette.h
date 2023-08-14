@@ -7,22 +7,13 @@ private:
 	REFIID WrapperID = IID_IDirectDrawPalette;
 	ULONG RefCount = 1;
 
-	// Used for RGB palette
-	struct RGBDWORD {
-		union
-		{
-			D3DCOLOR PaletteColor = NULL;
-			DDARGB pe;
-		};
-	};
-
 	// Convert to Direct3D9
 	m_IDirectDrawX *ddrawParent = nullptr;
-	DWORD paletteCaps = 0;						// Palette flags
-	LPPALETTEENTRY rawPalette = nullptr;		// Raw palette data
-	RGBDWORD *rgbPalette = nullptr;				// Rgb translated palette
-	DWORD PaletteUSN = (DWORD)this;				// The USN that's used to see if the palette data was updated
-	DWORD entryCount = 256;						// Number of palette entries (Default to 256 entries)
+	DWORD paletteCaps = 0;							// Palette flags
+	PALETTEENTRY rawPalette[MaxPaletteSize] = {};	// Raw palette data
+	RGBQUAD rgbPalette[MaxPaletteSize] = {};		// Rgb translated palette
+	DWORD PaletteUSN;								// The USN that's used to see if the palette data was updated (don't initialize)
+	DWORD entryCount = MaxPaletteSize;				// Number of palette entries (Default to 256 entries)
 
 	// Interface initialization functions
 	void InitPalette();
@@ -72,12 +63,14 @@ public:
 	STDMETHOD(SetEntries)(THIS_ DWORD, DWORD, DWORD, LPPALETTEENTRY);
 
 	// Functions handling the ddraw parent interface
-	void SetDdrawParent(m_IDirectDrawX *ddraw) { ddrawParent = ddraw; }
-	void ClearDdraw() { ddrawParent = nullptr; }
+	inline void SetDdrawParent(m_IDirectDrawX *ddraw) { ddrawParent = ddraw; }
+	inline void ClearDdraw() { ddrawParent = nullptr; }
 
 	// Helper functions
-	RGBDWORD *GetRgbPalette() { return rgbPalette; }
-	DWORD GetPaletteUSN() { return PaletteUSN; }
-	DWORD GetEntryCount() { return entryCount; }
-	void SetPrimary() { paletteCaps |= DDPCAPS_PRIMARYSURFACE; }
+	inline LPPALETTEENTRY GetPaletteEntries() { return rawPalette; }
+	inline RGBQUAD* GetRGBPalette() { return rgbPalette; }
+	inline DWORD GetPaletteUSN() { return PaletteUSN; }
+	inline DWORD GetEntryCount() { return entryCount; }
+	inline void SetPrimary() { paletteCaps |= DDPCAPS_PRIMARYSURFACE; }
+	inline void RemovePrimary() { paletteCaps &= ~DDPCAPS_PRIMARYSURFACE; }
 };

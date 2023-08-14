@@ -1,5 +1,5 @@
 /**
-* Copyright (C) 2022 Elisha Riedlinger
+* Copyright (C) 2023 Elisha Riedlinger
 *
 * This software is  provided 'as-is', without any express  or implied  warranty. In no event will the
 * authors be held liable for any damages arising from the use of this software.
@@ -193,19 +193,19 @@ HRESULT m_IDirect3DX::EnumDevices(LPD3DENUMDEVICESCALLBACK lpEnumDevicesCallback
 			{
 				EnumDevices *self = (EnumDevices*)lpContext;
 
-				D3DDEVICEDESC D3DHWDevDesc = {}, D3DHELDevDesc = {};
-				D3DHWDevDesc.dwSize = sizeof(D3DDEVICEDESC);
-				D3DHELDevDesc.dwSize = sizeof(D3DDEVICEDESC);
-				ConvertDeviceDesc(D3DHWDevDesc, *lpDeviceDesc);
-				ConvertDeviceDesc(D3DHELDevDesc, *lpDeviceDesc);
+				D3DDEVICEDESC D3DDRVDevDesc = {}, D3DSWDevDesc = {};
+				D3DDRVDevDesc.dwSize = sizeof(D3DDEVICEDESC);
+				D3DSWDevDesc.dwSize = sizeof(D3DDEVICEDESC);
+				ConvertDeviceDesc(D3DDRVDevDesc, *lpDeviceDesc);
+				ConvertDeviceDesc(D3DSWDevDesc, *lpDeviceDesc);
 
-				return self->lpCallback(&lpDeviceDesc->deviceGUID, lpDeviceDescription, lpDeviceName, &D3DHWDevDesc, &D3DHELDevDesc, self->lpContext);
+				return self->lpCallback(&lpDeviceDesc->deviceGUID, lpDeviceDescription, lpDeviceName, &D3DDRVDevDesc, &D3DSWDevDesc, self->lpContext);
 			}
 		} CallbackContext = {};
 		CallbackContext.lpContext = lpUserArg;
 		CallbackContext.lpCallback = lpEnumDevicesCallback;
 
-		return EnumDevices7(EnumDevices::ConvertCallback, &CallbackContext);
+		return EnumDevices7(EnumDevices::ConvertCallback, &CallbackContext, false);
 	}
 	case 9:
 		return EnumDevices7((LPD3DENUMDEVICESCALLBACK7)lpEnumDevicesCallback, lpUserArg, true);
@@ -229,7 +229,7 @@ HRESULT m_IDirect3DX::EnumDevices7(LPD3DENUMDEVICESCALLBACK7 lpEnumDevicesCallba
 		if (!ddrawParent)
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Error: no ddraw parent!");
-			return DDERR_GENERIC;
+			return DDERR_INVALIDOBJECT;
 		}
 
 		// Get d3d9Object
@@ -256,11 +256,12 @@ HRESULT m_IDirect3DX::EnumDevices7(LPD3DENUMDEVICESCALLBACK7 lpEnumDevicesCallba
 					ConvertDeviceDesc(DeviceDesc7, Caps9);
 
 					GUID deviceGUID = DeviceDesc7.deviceGUID;
-					D3DDEVICEDESC D3DSWDevDesc = {}, D3DHELDevDesc = {};
-					D3DSWDevDesc.dwSize = sizeof(D3DDEVICEDESC);
-					D3DHELDevDesc.dwSize = sizeof(D3DDEVICEDESC);
-
 					LPSTR lpDescription, lpName;
+
+					// For conversion
+					D3DDEVICEDESC D3DDRVDevDesc = {}, D3DSWDevDesc = {};
+					D3DDRVDevDesc.dwSize = sizeof(D3DDEVICEDESC);
+					D3DSWDevDesc.dwSize = sizeof(D3DDEVICEDESC);
 
 					switch ((DWORD)Type)
 					{
@@ -269,17 +270,17 @@ HRESULT m_IDirect3DX::EnumDevices7(LPD3DENUMDEVICESCALLBACK7 lpEnumDevicesCallba
 						lpName = "RGB Emulation";
 						if (ConvertCallback)
 						{
-							// Get Device Caps D3DDEVTYPE_REF
+							// Get D3DSWDevDesc data (D3DDEVTYPE_REF)
 							ConvertDeviceDesc(D3DSWDevDesc, DeviceDesc7);
 
-							// Get Device Caps D3DDEVTYPE_HAL
+							// Get D3DDRVDevDesc data (D3DDEVTYPE_HAL)
 							if (SUCCEEDED(d3d9Object->GetDeviceCaps(i, D3DDEVTYPE_HAL, &Caps9)))
 							{
 								Caps9.DeviceType = D3DDEVTYPE_HAL;
 								ConvertDeviceDesc(DeviceDesc7, Caps9);
-								ConvertDeviceDesc(D3DHELDevDesc, DeviceDesc7);
+								ConvertDeviceDesc(D3DDRVDevDesc, DeviceDesc7);
 
-								if (lpEnumDevicesCallback(&deviceGUID, lpDescription, lpName, &D3DSWDevDesc, &D3DHELDevDesc, lpUserArg) == DDENUMRET_CANCEL)
+								if (lpEnumDevicesCallback(&deviceGUID, lpDescription, lpName, &D3DDRVDevDesc, &D3DSWDevDesc, lpUserArg) == DDENUMRET_CANCEL)
 								{
 									return D3D_OK;
 								}
@@ -291,17 +292,17 @@ HRESULT m_IDirect3DX::EnumDevices7(LPD3DENUMDEVICESCALLBACK7 lpEnumDevicesCallba
 						lpName = "Direct3D HAL";
 						if (ConvertCallback)
 						{
-							// Get Device Caps D3DDEVTYPE_HAL
-							ConvertDeviceDesc(D3DHELDevDesc, DeviceDesc7);
+							// Get D3DDRVDevDesc data (D3DDEVTYPE_HAL)
+							ConvertDeviceDesc(D3DDRVDevDesc, DeviceDesc7);
 
-							// Get Device Caps D3DDEVTYPE_REF
+							// Get D3DSWDevDesc data (D3DDEVTYPE_REF)
 							if (SUCCEEDED(d3d9Object->GetDeviceCaps(i, D3DDEVTYPE_REF, &Caps9)))
 							{
 								Caps9.DeviceType = D3DDEVTYPE_REF;
 								ConvertDeviceDesc(DeviceDesc7, Caps9);
 								ConvertDeviceDesc(D3DSWDevDesc, DeviceDesc7);
 
-								if (lpEnumDevicesCallback(&deviceGUID, lpDescription, lpName, &D3DSWDevDesc, &D3DHELDevDesc, lpUserArg) == DDENUMRET_CANCEL)
+								if (lpEnumDevicesCallback(&deviceGUID, lpDescription, lpName, &D3DDRVDevDesc, &D3DSWDevDesc, lpUserArg) == DDENUMRET_CANCEL)
 								{
 									return D3D_OK;
 								}
@@ -365,7 +366,7 @@ HRESULT m_IDirect3DX::CreateLight(LPDIRECT3DLIGHT * lplpDirect3DLight, LPUNKNOWN
 		if (!ddrawParent)
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Error: no ddraw parent!");
-			return DDERR_GENERIC;
+			return DDERR_INVALIDOBJECT;
 		}
 
 		*lplpDirect3DLight = (LPDIRECT3DLIGHT)new m_IDirect3DLight(ddrawParent->GetCurrentD3DDevice());
@@ -415,7 +416,7 @@ HRESULT m_IDirect3DX::CreateMaterial(LPDIRECT3DMATERIAL3 * lplpDirect3DMaterial,
 		if (!ddrawParent)
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Error: no ddraw parent!");
-			return DDERR_GENERIC;
+			return DDERR_INVALIDOBJECT;
 		}
 
 		m_IDirect3DMaterialX *Interface = new m_IDirect3DMaterialX(ddrawParent->GetCurrentD3DDevice(), DirectXVersion);
@@ -469,7 +470,7 @@ HRESULT m_IDirect3DX::CreateViewport(LPDIRECT3DVIEWPORT3 * lplpD3DViewport, LPUN
 		if (!ddrawParent)
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Error: no ddraw parent!");
-			return DDERR_GENERIC;
+			return DDERR_INVALIDOBJECT;
 		}
 
 		m_IDirect3DViewportX *Interface = new m_IDirect3DViewportX(ddrawParent->GetCurrentD3DDevice(), DirectXVersion);
@@ -571,7 +572,7 @@ HRESULT m_IDirect3DX::CreateDevice(REFCLSID rclsid, LPDIRECTDRAWSURFACE7 lpDDS, 
 		if (!ddrawParent)
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Error: no ddraw parent!");
-			return DDERR_GENERIC;
+			return DDERR_INVALIDOBJECT;
 		}
 
 		// Get surfaceX
@@ -681,7 +682,7 @@ HRESULT m_IDirect3DX::CreateVertexBuffer(LPD3DVERTEXBUFFERDESC lpVBDesc, LPDIREC
 		if (!ddrawParent)
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Error: no ddraw parent!");
-			return DDERR_GENERIC;
+			return DDERR_INVALIDOBJECT;
 		}
 
 		m_IDirect3DVertexBufferX *Interface = new m_IDirect3DVertexBufferX(ddrawParent, lpVBDesc, DirectXVersion);
@@ -726,7 +727,7 @@ HRESULT m_IDirect3DX::EnumZBufferFormats(REFCLSID riidDevice, LPD3DENUMPIXELFORM
 		if (!ddrawParent)
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Error: no ddraw parent!");
-			return DDERR_GENERIC;
+			return DDERR_INVALIDOBJECT;
 		}
 
 		// Get d3d9Object
@@ -837,7 +838,7 @@ HRESULT m_IDirect3DX::EvictManagedTextures()
 		if (!ddrawParent)
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Error: no ddraw parent!");
-			return DDERR_GENERIC;
+			return DDERR_INVALIDOBJECT;
 		}
 
 		// Evict managed texture surfaces

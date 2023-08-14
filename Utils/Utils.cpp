@@ -1,5 +1,5 @@
 /**
-* Copyright (C) 2022 Elisha Riedlinger
+* Copyright (C) 2023 Elisha Riedlinger
 *
 * This software is  provided 'as-is', without any express  or implied  warranty. In no event will the
 * authors be held liable for any damages arising from the use of this software.
@@ -21,6 +21,9 @@
 *
 * GetVideoRam taken from source code found in doom3.gpl
 * https://github.com/TTimo/doom3.gpl
+* 
+* ReverseBits code taken from stanford.edu
+* http://graphics.stanford.edu/~seander/bithacks.html#ReverseParallel
 */
 
 #define WIN32_LEAN_AND_MEAN
@@ -565,6 +568,16 @@ void *Utils::memmem(const void *l, size_t l_len, const void *s, size_t s_len)
 	return nullptr;
 }
 
+// Reverse bit order
+DWORD Utils::ReverseBits(DWORD v)
+{
+	v = ((v >> 1) & 0x55555555) | ((v & 0x55555555) << 1);	// swap odd and even bits
+	v = ((v >> 2) & 0x33333333) | ((v & 0x33333333) << 2);	// swap consecutive pairs
+	v = ((v >> 4) & 0x0F0F0F0F) | ((v & 0x0F0F0F0F) << 4);	// swap nibbles
+	v = ((v >> 8) & 0x00FF00FF) | ((v & 0x00FF00FF) << 8);	// swap bytes
+	return (v >> 16) | (v << 16);							// swap 2-byte long pairs
+}
+
 // Removes the artificial resolution limit from Direct3D7 and below
 void Utils::DDrawResolutionHack(HMODULE hD3DIm)
 {
@@ -658,6 +671,45 @@ void Utils::ResetScreenSettings()
 
 	// Redraw desktop window
 	RedrawWindow(nullptr, nullptr, nullptr, RDW_INVALIDATE | RDW_ALLCHILDREN | RDW_UPDATENOW);
+}
+
+HWND Utils::GetTopLevelWindowOfCurrentProcess()
+{
+	HWND foregroundWindow = GetForegroundWindow();
+
+	if (foregroundWindow)
+	{
+		DWORD foregroundProcessId;
+		GetWindowThreadProcessId(foregroundWindow, &foregroundProcessId);
+
+		DWORD currentProcessId = GetCurrentProcessId();
+
+		if (foregroundProcessId == currentProcessId)
+		{
+			return foregroundWindow;
+		}
+	}
+
+	return nullptr; // No top-level window found for the current process.
+}
+
+bool Utils::IsWindowRectEqualOrLarger(HWND srchWnd, HWND desthWnd)
+{
+	RECT rect1, rect2;
+
+	if (GetWindowRect(srchWnd, &rect1) && GetWindowRect(desthWnd, &rect2))
+	{
+		int width1 = rect1.right - rect1.left;
+		int height1 = rect1.bottom - rect1.top;
+
+		int width2 = rect2.right - rect2.left;
+		int height2 = rect2.bottom - rect2.top;
+
+		return (width1 >= width2) && (height1 >= height2);
+	}
+
+	// If GetWindowRect fails for either window, return false.
+	return false;
 }
 
 BOOL WINAPI CreateProcessAHandler(LPCSTR lpApplicationName, LPSTR lpCommandLine, LPSECURITY_ATTRIBUTES lpProcessAttributes, LPSECURITY_ATTRIBUTES lpThreadAttributes, BOOL bInheritHandles, DWORD dwCreationFlags,

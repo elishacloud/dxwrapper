@@ -1,5 +1,5 @@
 /**
-* Copyright (C) 2022 Elisha Riedlinger
+* Copyright (C) 2023 Elisha Riedlinger
 *
 * This software is  provided 'as-is', without any express  or implied  warranty. In no event will the
 * authors be held liable for any damages arising from the use of this software.
@@ -180,7 +180,7 @@ HRESULT m_IDirect3DVertexBufferX::Lock(DWORD dwFlags, LPVOID* lplpData, LPDWORD 
 		// Handle D3DFVF_LVERTEX
 		if (VBDesc.dwFVF == D3DFVF_LVERTEX)
 		{
-			*lplpData = &VertexData[0];
+			*lplpData = VertexData.data();
 
 			if (lpdwSize)
 			{
@@ -188,7 +188,7 @@ HRESULT m_IDirect3DVertexBufferX::Lock(DWORD dwFlags, LPVOID* lplpData, LPDWORD 
 			}
 
 			// Should not need to copy from vertex buffer??
-			//ConvertVertices((D3DLVERTEX*)&VertexData[0], (D3DLVERTEX9*)pData, VBDesc.dwNumVertices);
+			//ConvertVertices((D3DLVERTEX*)VertexData.data(), (D3DLVERTEX9*)pData, VBDesc.dwNumVertices);
 		}
 		else
 		{
@@ -221,7 +221,7 @@ HRESULT m_IDirect3DVertexBufferX::Unlock()
 		// Handle D3DFVF_LVERTEX
 		if (VBDesc.dwFVF == D3DFVF_LVERTEX && LastLockAddr && !(LastLockFlags & DDLOCK_READONLY))
 		{
-			ConvertVertices((D3DLVERTEX9*)LastLockAddr, (D3DLVERTEX*)&VertexData[0], VBDesc.dwNumVertices);
+			ConvertVertices((D3DLVERTEX9*)LastLockAddr, (D3DLVERTEX*)VertexData.data(), VBDesc.dwNumVertices);
 		}
 
 		HRESULT hr = d3d9VertexBuffer->Unlock();
@@ -440,7 +440,7 @@ HRESULT m_IDirect3DVertexBufferX::CheckInterface(char* FunctionName, bool CheckD
 	if (!ddrawParent)
 	{
 		LOG_LIMIT(100, FunctionName << " Error: no ddraw parent!");
-		return DDERR_GENERIC;
+		return DDERR_INVALIDOBJECT;
 	}
 
 	// Check d3d9 device
@@ -449,7 +449,7 @@ HRESULT m_IDirect3DVertexBufferX::CheckInterface(char* FunctionName, bool CheckD
 		if (!ddrawParent->CheckD3D9Device() || !d3d9Device || !*d3d9Device)
 		{
 			LOG_LIMIT(100, FunctionName << " Error: d3d9 device not setup!");
-			return DDERR_GENERIC;
+			return DDERR_INVALIDOBJECT;
 		}
 	}
 

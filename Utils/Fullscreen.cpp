@@ -1,5 +1,5 @@
 /**
-* Copyright (C) 2022 Elisha Riedlinger
+* Copyright (C) 2023 Elisha Riedlinger
 *
 * This software is  provided 'as-is', without any express  or implied  warranty. In no event will the
 * authors be held liable for any damages arising from the use of this software.
@@ -589,13 +589,13 @@ void Fullscreen::SetFullScreen(HWND& hwnd, const MONITORINFO& mi)
 		mi.rcMonitor.left, mi.rcMonitor.top,
 		mi.rcMonitor.right - mi.rcMonitor.left,
 		mi.rcMonitor.bottom - mi.rcMonitor.top,
-		SWP_NOSENDCHANGING | SWP_FRAMECHANGED);
+		SWP_FRAMECHANGED);
 
 	// Set focus and activate
 	if ((dwStyle & WS_EX_TOPMOST) == 0)
 	{
-		SetWindowPos(hwnd, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOSENDCHANGING | SWP_NOSIZE | SWP_NOMOVE);
-		SetWindowPos(hwnd, HWND_NOTOPMOST, 0, 0, 0, 0, SWP_NOSENDCHANGING | SWP_SHOWWINDOW | SWP_NOSIZE | SWP_NOMOVE);
+		SetWindowPos(hwnd, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOSIZE | SWP_NOMOVE);
+		SetWindowPos(hwnd, HWND_NOTOPMOST, 0, 0, 0, 0, SWP_SHOWWINDOW | SWP_NOSIZE | SWP_NOMOVE);
 	}
 	SetForegroundWindow(hwnd);
 	SetFocus(hwnd);
@@ -882,7 +882,7 @@ void Fullscreen::MainFunc()
 				if (Config.ForceWindowResize || !IsWindowTooSmall(WindowSize))
 				{
 					// Update screen when change detected
-					SetWindowPos(CurrentLoop.hwnd, HWND_TOP, 0, 0, 0, 0, SWP_NOSENDCHANGING | SWP_FRAMECHANGED | SWP_NOSIZE);
+					SetWindowPos(CurrentLoop.hwnd, HWND_TOP, 0, 0, 0, 0, SWP_FRAMECHANGED | SWP_NOSIZE);
 
 					// Change resolution if not fullscreen and ignore certian windows
 					if (IsNotFullScreenFlag &&																								// Check if it is already fullscreen

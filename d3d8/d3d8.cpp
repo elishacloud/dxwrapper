@@ -1,5 +1,5 @@
 /**
-* Copyright (C) 2022 Elisha Riedlinger
+* Copyright (C) 2023 Elisha Riedlinger
 *
 * This software is  provided 'as-is', without any express  or implied  warranty. In no event will the
 * authors be held liable for any damages arising from the use of this software.
@@ -14,7 +14,7 @@
 *   3. This notice may not be removed or altered from any source distribution.
 *
 * ValidatePixelShader and ValidateVertexShader created from source code found in Wine
-* https://github.com/alexhenrie/wine/tree/master/dlls/d3d8
+* https://gitlab.winehq.org/wine/wine/-/tree/master/dlls/d3d8
 */
 
 #include "d3d8External.h"
@@ -62,59 +62,103 @@ HMODULE GetSystemD3d8()
 	return h_d3d8;
 }
 
-HRESULT WINAPI d8_ValidatePixelShader(DWORD* pixelshader, DWORD* reserved1, BOOL flag, DWORD* toto)
+HRESULT WINAPI d8_ValidatePixelShader(const DWORD* pPixelShader, const D3DCAPS8* pCaps, BOOL ErrorsFlag, char** Errors)
 {
-	UNREFERENCED_PARAMETER(flag);
-	UNREFERENCED_PARAMETER(toto);
-
 	LOG_LIMIT(1, __FUNCTION__);
 
-	if (!pixelshader)
+	HRESULT hr = E_FAIL;
+	char* message = "";
+
+	if (!pPixelShader)
 	{
-		return D3DERR_INVALIDCALL;
+		message = "Invalid code pointer.\n";
 	}
-	if (reserved1)
+	else
 	{
-		return D3DERR_INVALIDCALL;
+		switch (*pPixelShader)
+		{
+		case D3DPS_VERSION(1, 0):
+		case D3DPS_VERSION(1, 1):
+		case D3DPS_VERSION(1, 2):
+		case D3DPS_VERSION(1, 3):
+		case D3DPS_VERSION(1, 4):
+			if (pCaps && *pPixelShader > pCaps->PixelShaderVersion)
+			{
+				message = "Shader version not supported by caps.\n";
+				break;
+			}
+			hr = D3D_OK;
+			break;
+		default:
+			message = "Unsupported shader version.\n";
+		}
 	}
-	switch (*pixelshader)
+
+	if (!ErrorsFlag)
 	{
-	case 0xFFFF0100:
-	case 0xFFFF0101:
-	case 0xFFFF0102:
-	case 0xFFFF0103:
-	case 0xFFFF0104:
-		return D3D_OK;
-		break;
-	default:
-		return D3DERR_INVALIDCALL;
+		message = "";
 	}
+
+	const size_t size = strlen(message) + 1;
+	if (Errors)
+	{
+		*Errors = (char*)HeapAlloc(GetProcessHeap(), 0, size);
+		if (*Errors)
+		{
+			memcpy(*Errors, message, size);
+		}
+	}
+
+	return hr;
 }
 
-HRESULT WINAPI d8_ValidateVertexShader(DWORD* vertexshader, DWORD* reserved1, DWORD* reserved2, BOOL flag, DWORD* toto)
+HRESULT WINAPI d8_ValidateVertexShader(const DWORD* pVertexShader, const DWORD* pDeclaration, const D3DCAPS8* pCaps, BOOL ErrorsFlag, char** Errors)
 {
-	UNREFERENCED_PARAMETER(flag);
-	UNREFERENCED_PARAMETER(toto);
-
 	LOG_LIMIT(1, __FUNCTION__);
 
-	if (!vertexshader)
+	UNREFERENCED_PARAMETER(pDeclaration);
+
+	HRESULT hr = E_FAIL;
+	char* message = "";
+
+	if (!pVertexShader)
 	{
-		return D3DERR_INVALIDCALL;
+		message = "Invalid code pointer.\n";
 	}
-	if (reserved1 || reserved2)
+	else
 	{
-		return D3DERR_INVALIDCALL;
+		switch (*pVertexShader)
+		{
+		case D3DVS_VERSION(1, 0):
+		case D3DVS_VERSION(1, 1):
+			if (pCaps && *pVertexShader > pCaps->VertexShaderVersion)
+			{
+				message = "Shader version not supported by caps.\n";
+				break;
+			}
+			hr = D3D_OK;
+			break;
+		default:
+			message = "Unsupported shader version.\n";
+		}
 	}
-	switch (*vertexshader)
+
+	if (!ErrorsFlag)
 	{
-	case 0xFFFE0100:
-	case 0xFFFE0101:
-		return D3D_OK;
-		break;
-	default:
-		return D3DERR_INVALIDCALL;
+		message = "";
 	}
+
+	const size_t size = strlen(message) + 1;
+	if (Errors)
+	{
+		*Errors = (char*)HeapAlloc(GetProcessHeap(), 0, size);
+		if (*Errors)
+		{
+			memcpy(*Errors, message, size);
+		}
+	}
+
+	return hr;
 }
 
 BOOL Direct3D8DisableMaximizedWindowedMode()

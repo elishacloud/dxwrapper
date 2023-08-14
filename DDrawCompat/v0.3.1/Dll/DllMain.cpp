@@ -81,6 +81,7 @@ namespace Compat31
 					Win32::Registry::installHooks();
 				}
 				//********** End Edit ***************
+
 				Compat31::Log() << "Installing Direct3D driver hooks";
 				D3dDdi::installHooks();
 				Compat31::Log() << "Installing Win32 hooks";
@@ -127,11 +128,16 @@ namespace Compat31
 					Gdi::installHooks();
 				}
 				//********** End Edit ***************
+
 				Compat31::closeDbgEng();
+
+				//********** Begin Edit *************
 				if (!Config.Dd7to9)
 				{
 					Gdi::PresentationWindow::startThread();
 				}
+				//********** End Edit ***************
+
 				Compat31::Log() << "Finished installing hooks";
 				isAlreadyInstalled = true;
 			}
@@ -297,8 +303,10 @@ namespace Compat31
 			setDpiAwareness();
 			SetThemeAppProperties(0);
 
-			Win32::MemoryManagement::installHooks();
-			Win32::MsgHooks::installHooks();
+			//***** Hooks Hang on Windows 11 ****
+			//Win32::MemoryManagement::installHooks();
+			//Win32::MsgHooks::installHooks();
+			//***********************************
 			Time::init();
 			Compat31::closeDbgEng();
 

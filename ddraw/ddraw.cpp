@@ -1,5 +1,5 @@
 /**
-* Copyright (C) 2022 Elisha Riedlinger
+* Copyright (C) 2023 Elisha Riedlinger
 *
 * This software is  provided 'as-is', without any express  or implied  warranty. In no event will the
 * authors be held liable for any damages arising from the use of this software.
@@ -879,12 +879,7 @@ void AddBaseClipperToVetor(m_IDirectDrawClipper* lpClipper)
 		return;
 	}
 
-	SetCriticalSection();
-
-	// Store clipper
 	BaseClipperVector.push_back(lpClipper);
-
-	ReleaseCriticalSection();
 }
 
 void RemoveBaseClipperFromVector(m_IDirectDrawClipper* lpClipper)
@@ -894,18 +889,7 @@ void RemoveBaseClipperFromVector(m_IDirectDrawClipper* lpClipper)
 		return;
 	}
 
-	SetCriticalSection();
-
-	auto it = std::find_if(BaseClipperVector.begin(), BaseClipperVector.end(),
-		[=](auto pClipper) -> bool { return pClipper == lpClipper; });
-
-	// Remove clipper from vector
-	if (it != std::end(BaseClipperVector))
-	{
-		BaseClipperVector.erase(it);
-	}
-
-	ReleaseCriticalSection();
+	BaseClipperVector.erase(std::remove(BaseClipperVector.begin(), BaseClipperVector.end(), lpClipper), BaseClipperVector.end());
 }
 
 bool DoesBaseClipperExist(m_IDirectDrawClipper* lpClipper)
@@ -915,21 +899,7 @@ bool DoesBaseClipperExist(m_IDirectDrawClipper* lpClipper)
 		return false;
 	}
 
-	bool hr = false;
-
-	SetCriticalSection();
-
-	auto it = std::find_if(BaseClipperVector.begin(), BaseClipperVector.end(),
-		[=](auto pSurface) -> bool { return pSurface == lpClipper; });
-
-	if (it != std::end(BaseClipperVector))
-	{
-		hr = true;
-	}
-
-	ReleaseCriticalSection();
-
-	return hr;
+	return (std::find(BaseClipperVector.begin(), BaseClipperVector.end(), lpClipper) != std::end(BaseClipperVector));
 }
 
 HRESULT DdrawWrapper::SetCriticalSection()

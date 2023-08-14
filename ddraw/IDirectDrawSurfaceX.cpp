@@ -1,5 +1,5 @@
 /**
-* Copyright (C) 2022 Elisha Riedlinger
+* Copyright (C) 2023 Elisha Riedlinger
 *
 * This software is  provided 'as-is', without any express  or implied  warranty. In no event will the
 * authors be held liable for any damages arising from the use of this software.
@@ -23,13 +23,6 @@
 #include "d3dx9.h"
 #include "Utils\Utils.h"
 
-extern float ScaleDDWidthRatio;
-extern float ScaleDDHeightRatio;
-extern DWORD ScaleDDCurrentWidth;
-extern DWORD ScaleDDCurrentHeight;
-extern DWORD ScaleDDPadX;
-extern DWORD ScaleDDPadY;
-
 // Used to allow presenting non-primary surfaces in case the primary surface present fails
 bool dirtyFlag = false;
 bool SceneReady = false;
@@ -37,7 +30,6 @@ bool IsPresentRunning = false;
 
 // Used for sharing emulated memory
 bool ShareEmulatedMemory = false;
-CRITICAL_SECTION smcs;
 std::vector<EMUSURFACE*> memorySurfaces;
 
 /************************/
@@ -256,7 +248,16 @@ ULONG m_IDirectDrawSurfaceX::Release(DWORD DirectXVersion)
 		{
 			if (CanSurfaceBeDeleted())
 			{
-				delete this;
+				// Handle cases where games use surface addresses after the surface is released (Final Liberation: Warhammer Epic 40,000)
+				if (IsSurfaceBusy())
+				{
+					Logging::Log() << __FUNCTION__ << " Warning: surface still in use! Locked: " << IsSurfaceLocked() << " DC: " << IsSurfaceInDC() << " Blt: " << IsSurfaceBlitting();
+					ReleaseDirectDrawResources();
+				}
+				else
+				{
+					delete this;
+				}
 			}
 			else
 			{
@@ -426,7 +427,29 @@ HRESULT m_IDirectDrawSurfaceX::Blt(LPRECT lpDestRect, LPDIRECTDRAWSURFACE7 lpDDS
 			return DDERR_NOROTATIONHW;
 		}
 
-		// ToDo: add support for waiting when surface is busy because of another thread
+		// Do supported raster operations
+		if ((dwFlags & DDBLT_ROP) && (lpDDBltFx->dwROP != SRCCOPY && lpDDBltFx->dwROP != BLACKNESS && lpDDBltFx->dwROP == WHITENESS))
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: Raster operation Not Implemented " << Logging::hex(lpDDBltFx->dwROP));
+			return DDERR_NORASTEROPHW;
+		}
+
+		// Get source surface
+		m_IDirectDrawSurfaceX* lpDDSrcSurfaceX = nullptr;
+		if (lpDDSrcSurface)
+		{
+			lpDDSrcSurface->QueryInterface(IID_GetInterfaceX, (LPVOID*)&lpDDSrcSurfaceX);
+			if (!lpDDSrcSurfaceX)
+			{
+				LOG_LIMIT(100, __FUNCTION__ << " Error: could not get surfaceX!");
+				return DDERR_GENERIC;
+			}
+		}
+		else
+		{
+			lpDDSrcSurfaceX = this;
+		}
+
 		// Typically, Blt returns immediately with an error if the bitbltter is busy and the bitblt could not be set up. Specify the DDBLT_WAIT flag to request a synchronous bitblt.
 		const bool BltWait = ((dwFlags & DDBLT_WAIT) && (dwFlags & DDBLT_DONOTWAIT) == 0);
 
@@ -434,12 +457,41 @@ HRESULT m_IDirectDrawSurfaceX::Blt(LPRECT lpDestRect, LPDIRECTDRAWSURFACE7 lpDDS
 		// DDBLT_ASYNC - Current dxwrapper implementation always allows async if calling from multiple threads
 
 		// Check if the scene needs to be presented
-		bool isSkipScene = (lpDestRect) ? CheckRectforSkipScene(*lpDestRect) : false;
+		bool IsSkipScene = (lpDestRect) ? CheckRectforSkipScene(*lpDestRect) : false;
 
 		// Present before write if needed
-		BeginWritePresent(isSkipScene);
+		BeginWritePresent(IsSkipScene);
 
-		IsInBlt = true;
+		// Check if locked from other thread
+		if (BltWait && (IsLockedFromOtherThread() || lpDDSrcSurfaceX->IsLockedFromOtherThread()))
+		{
+			// Wait for lock from other thread
+			while (IsLockedFromOtherThread() || lpDDSrcSurfaceX->IsLockedFromOtherThread())
+			{
+				Sleep(0);
+				if (!surface.Texture && !surface.Surface)
+				{
+					LOG_LIMIT(100, __FUNCTION__ << " Error: surface texture missing!");
+					return DDERR_SURFACELOST;
+				}
+			}
+		}
+
+		// Set critical section
+		SetCS();
+		lpDDSrcSurfaceX->SetCS();
+
+		// Set blt flag
+		surface.IsInBlt = true;
+		lpDDSrcSurfaceX->surface.IsInBlt = true;
+
+		// Set locked ID
+		if (surface.LockedWithID || lpDDSrcSurfaceX->surface.LockedWithID)
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Warning: surface locked thread ID set! " << surface.LockedWithID << " " << lpDDSrcSurfaceX->surface.LockedWithID);
+		}
+		surface.LockedWithID = GetCurrentThreadId();
+		lpDDSrcSurfaceX->surface.LockedWithID = GetCurrentThreadId();
 
 		HRESULT hr = DD_OK;
 
@@ -468,23 +520,6 @@ HRESULT m_IDirectDrawSurfaceX::Blt(LPRECT lpDestRect, LPDIRECTDRAWSURFACE7 lpDDS
 					hr = ColorFill(lpDestRect, 0xFFFFFFFF);
 					break;
 				}
-				else
-				{
-					LOG_LIMIT(100, __FUNCTION__ << " Error: Raster operation Not Implemented " << Logging::hex(lpDDBltFx->dwROP));
-					hr = DDERR_NORASTEROPHW;
-					break;
-				}
-			}
-
-			// Get source surface
-			m_IDirectDrawSurfaceX* lpDDSrcSurfaceX = (m_IDirectDrawSurfaceX*)lpDDSrcSurface;
-			if (!lpDDSrcSurfaceX)
-			{
-				lpDDSrcSurfaceX = this;
-			}
-			else
-			{
-				lpDDSrcSurfaceX->QueryInterface(IID_GetInterfaceX, (LPVOID*)&lpDDSrcSurfaceX);
 			}
 
 			// Get surface copy flags
@@ -524,7 +559,18 @@ HRESULT m_IDirectDrawSurfaceX::Blt(LPRECT lpDestRect, LPDIRECTDRAWSURFACE7 lpDDS
 		} while (false);
 
 		// Reset Blt flag
-		IsInBlt = false;
+		lpDDSrcSurfaceX->surface.IsInBlt = false;
+		surface.IsInBlt = false;
+
+		// Reset locked thread ID
+		if (!IsSurfaceBlitting() && !IsSurfaceLocked())
+		{
+			surface.LockedWithID = 0;
+		}
+		if (!lpDDSrcSurfaceX->IsSurfaceBlitting() && !lpDDSrcSurfaceX->IsSurfaceLocked())
+		{
+			lpDDSrcSurfaceX->surface.LockedWithID = 0;
+		}
 
 		// If successful
 		if (SUCCEEDED(hr))
@@ -537,18 +583,22 @@ HRESULT m_IDirectDrawSurfaceX::Blt(LPRECT lpDestRect, LPDIRECTDRAWSURFACE7 lpDDS
 			{
 				ddrawParent->SetVsync();
 			}
+		}
 
-			// Present surface
-			if (!DontPresentBlt)
-			{
-				EndWritePresent(isSkipScene);
-			}
+		// Release critical section
+		lpDDSrcSurfaceX->ReleaseCS();
+		ReleaseCS();
+
+		// Present surface
+		if (!DontPresentBlt && SUCCEEDED(hr))
+		{
+			EndWritePresent(IsSkipScene);
 		}
 
 		// Check if surface was busy
-		if (!BltWait && hr == DDERR_SURFACEBUSY && LockedWithID && LockedWithID != GetCurrentThreadId())
+		if (!BltWait && (hr == DDERR_SURFACEBUSY || IsLockedFromOtherThread() || lpDDSrcSurfaceX->IsLockedFromOtherThread()))
 		{
-			return D3DERR_WASSTILLDRAWING;
+			hr = D3DERR_WASSTILLDRAWING;
 		}
 
 		// Return
@@ -625,17 +675,41 @@ HRESULT m_IDirectDrawSurfaceX::BltBatch(LPDDBLTBATCH lpDDBltBatch, DWORD dwCount
 		return DDERR_INVALIDPARAMS;
 	}
 
+	HRESULT hr = DD_OK;
+
+	bool IsSkipScene = false;
+
+	SetCS();
+
+	surface.IsInBltBatch = true;
+
 	for (DWORD x = 0; x < dwCount; x++)
 	{
-		HRESULT hr = Blt(lpDDBltBatch[x].lprDest, (LPDIRECTDRAWSURFACE7)lpDDBltBatch[x].lpDDSSrc, lpDDBltBatch[x].lprSrc, lpDDBltBatch[x].dwFlags, lpDDBltBatch[x].lpDDBltFx, (x != dwCount - 1));
+		IsSkipScene |= (lpDDBltBatch[x].lprDest) ? CheckRectforSkipScene(*lpDDBltBatch[x].lprDest) : false;
+
+		hr = Blt(lpDDBltBatch[x].lprDest, (LPDIRECTDRAWSURFACE7)lpDDBltBatch[x].lpDDSSrc, lpDDBltBatch[x].lprSrc, lpDDBltBatch[x].dwFlags, lpDDBltBatch[x].lpDDBltFx, true);
 		if (FAILED(hr))
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Warning: BltBatch failed before the end! " << x << " of " << dwCount << " " << (DDERR)hr);
-			return hr;
+			break;
 		}
 	}
 
-	return DD_OK;
+	surface.IsInBltBatch = false;
+
+	if (!IsSurfaceBlitting() && !IsSurfaceLocked())
+	{
+		surface.LockedWithID = 0;
+	}
+
+	ReleaseCS();
+
+	if (SUCCEEDED(hr))
+	{
+		EndWritePresent(IsSkipScene);
+	}
+
+	return hr;
 }
 
 HRESULT m_IDirectDrawSurfaceX::BltFast(DWORD dwX, DWORD dwY, LPDIRECTDRAWSURFACE7 lpDDSrcSurface, LPRECT lpSrcRect, DWORD dwFlags)
@@ -666,15 +740,20 @@ HRESULT m_IDirectDrawSurfaceX::BltFast(DWORD dwX, DWORD dwY, LPDIRECTDRAWSURFACE
 			Flags |= DDBLT_WAIT;
 		}
 
-		// Get SurfaceX
-		m_IDirectDrawSurfaceX *lpDDSrcSurfaceX = (m_IDirectDrawSurfaceX*)lpDDSrcSurface;
-		if (!lpDDSrcSurfaceX)
+		// Get source surface
+		m_IDirectDrawSurfaceX* lpDDSrcSurfaceX = nullptr;
+		if (lpDDSrcSurface)
 		{
-			lpDDSrcSurfaceX = this;
+			lpDDSrcSurface->QueryInterface(IID_GetInterfaceX, (LPVOID*)&lpDDSrcSurfaceX);
+			if (!lpDDSrcSurfaceX)
+			{
+				LOG_LIMIT(100, __FUNCTION__ << " Error: could not get surfaceX!");
+				return DDERR_GENERIC;
+			}
 		}
 		else
 		{
-			lpDDSrcSurfaceX->QueryInterface(IID_GetInterfaceX, (LPVOID*)&lpDDSrcSurfaceX);
+			lpDDSrcSurfaceX = this;
 		}
 
 		// Get SrcRect
@@ -850,22 +929,6 @@ HRESULT m_IDirectDrawSurfaceX::EnumAttachedSurfaces2(LPVOID lpContext, LPDDENUMS
 		return DDERR_INVALIDPARAMS;
 	}
 
-	if (Config.Dd7to9)
-	{
-		for (auto& it : AttachedSurfaceMap)
-		{
-			DDSURFACEDESC2 Desc2 = {};
-			Desc2.dwSize = sizeof(DDSURFACEDESC2);
-			it.second.pSurface->GetSurfaceDesc2(&Desc2);
-			if (lpEnumSurfacesCallback7((LPDIRECTDRAWSURFACE7)it.second.pSurface->GetWrapperInterfaceX(DirectXVersion), &Desc2, lpContext) == DDENUMRET_CANCEL)
-			{
-				return DD_OK;
-			}
-		}
-
-		return DD_OK;
-	}
-
 	struct EnumSurface
 	{
 		LPVOID lpContext;
@@ -875,9 +938,9 @@ HRESULT m_IDirectDrawSurfaceX::EnumAttachedSurfaces2(LPVOID lpContext, LPDDENUMS
 
 		static HRESULT CALLBACK ConvertCallback(LPDIRECTDRAWSURFACE7 lpDDSurface, LPDDSURFACEDESC2 lpDDSurfaceDesc2, LPVOID lpContext)
 		{
-			EnumSurface *self = (EnumSurface*)lpContext;
+			EnumSurface* self = (EnumSurface*)lpContext;
 
-			if (lpDDSurface)
+			if (!Config.Dd7to9 && lpDDSurface)
 			{
 				lpDDSurface = ProxyAddressLookupTable.FindAddress<m_IDirectDrawSurface7>(lpDDSurface, self->DirectXVersion);
 			}
@@ -899,6 +962,22 @@ HRESULT m_IDirectDrawSurfaceX::EnumAttachedSurfaces2(LPVOID lpContext, LPDDENUMS
 	CallbackContext.lpCallback = lpEnumSurfacesCallback7;
 	CallbackContext.DirectXVersion = DirectXVersion;
 	CallbackContext.ConvertSurfaceDescTo2 = (ProxyDirectXVersion > 3 && DirectXVersion < 4);
+
+	if (Config.Dd7to9)
+	{
+		for (auto& it : AttachedSurfaceMap)
+		{
+			DDSURFACEDESC2 Desc2 = {};
+			Desc2.dwSize = sizeof(DDSURFACEDESC2);
+			it.second.pSurface->GetSurfaceDesc2(&Desc2);
+			if (EnumSurface::ConvertCallback((LPDIRECTDRAWSURFACE7)it.second.pSurface->GetWrapperInterfaceX(DirectXVersion), &Desc2, &CallbackContext) == DDENUMRET_CANCEL)
+			{
+				return DD_OK;
+			}
+		}
+
+		return DD_OK;
+	}
 
 	return ProxyInterface->EnumAttachedSurfaces(&CallbackContext, EnumSurface::ConvertCallback);
 }
@@ -951,12 +1030,6 @@ HRESULT m_IDirectDrawSurfaceX::EnumOverlayZOrders2(DWORD dwFlags, LPVOID lpConte
 		return DDERR_INVALIDPARAMS;
 	}
 
-	if (Config.Dd7to9)
-	{
-		LOG_LIMIT(100, __FUNCTION__ << " Error: Not Implemented");
-		return DDERR_UNSUPPORTED;
-	}
-
 	struct EnumSurface
 	{
 		LPVOID lpContext;
@@ -968,7 +1041,7 @@ HRESULT m_IDirectDrawSurfaceX::EnumOverlayZOrders2(DWORD dwFlags, LPVOID lpConte
 		{
 			EnumSurface *self = (EnumSurface*)lpContext;
 
-			if (lpDDSurface)
+			if (!Config.Dd7to9 && lpDDSurface)
 			{
 				lpDDSurface = ProxyAddressLookupTable.FindAddress<m_IDirectDrawSurface7>(lpDDSurface, self->DirectXVersion);
 			}
@@ -991,9 +1064,61 @@ HRESULT m_IDirectDrawSurfaceX::EnumOverlayZOrders2(DWORD dwFlags, LPVOID lpConte
 	CallbackContext.DirectXVersion = DirectXVersion;
 	CallbackContext.ConvertSurfaceDescTo2 = (ProxyDirectXVersion > 3 && DirectXVersion < 4);
 
+	if (Config.Dd7to9)
+	{
+		LOG_LIMIT(100, __FUNCTION__ << " Error: Not Implemented");
+		return DDERR_UNSUPPORTED;
+	}
+
 	return ProxyInterface->EnumOverlayZOrders(dwFlags, &CallbackContext, EnumSurface::ConvertCallback);
 }
 
+// Swap surfaces
+inline void m_IDirectDrawSurfaceX::SwapTargetSurface(m_IDirectDrawSurfaceX* lpTargetSurface)
+{
+	SetCS();
+	lpTargetSurface->SetCS();
+	SwapAddresses(&surface, &lpTargetSurface->surface);
+	lpTargetSurface->ReleaseCS();
+	ReleaseCS();
+}
+
+// Check if backbuffer can flip with current surface
+inline HRESULT m_IDirectDrawSurfaceX::CheckBackBufferForFlip(m_IDirectDrawSurfaceX* lpTargetSurface)
+{
+	// Check if target surface exists
+	if (!lpTargetSurface || lpTargetSurface == this || !DoesFlipBackBufferExist(lpTargetSurface))
+	{
+		LOG_LIMIT(100, __FUNCTION__ << " Error: invalid surface!");
+		return DDERR_INVALIDPARAMS;
+	}
+
+	// Check if surface is locked or has an open DC
+	if (lpTargetSurface->IsSurfaceBusy())
+	{
+		LOG_LIMIT(100, __FUNCTION__ << " Error: backbuffer surface is busy!");
+		return DDERR_SURFACEBUSY;
+	}
+
+	// Make sure that surface description on target is updated
+	lpTargetSurface->UpdateSurfaceDesc();
+
+	// Check if surface format and size matches
+	if (surfaceFormat != lpTargetSurface->surfaceFormat ||
+		surfaceDesc2.dwWidth != lpTargetSurface->surfaceDesc2.dwWidth ||
+		surfaceDesc2.dwHeight != lpTargetSurface->surfaceDesc2.dwHeight)
+	{
+		LOG_LIMIT(100, __FUNCTION__ << " Error: backbuffer surface does not match: " <<
+			surfaceFormat << " -> " << lpTargetSurface->surfaceFormat <<
+			surfaceDesc2.dwWidth << "x" << surfaceDesc2.dwHeight << " -> " <<
+			lpTargetSurface->surfaceDesc2.dwWidth << "x" << lpTargetSurface->surfaceDesc2.dwHeight);
+		return DDERR_GENERIC;
+	}
+
+	return DD_OK;
+}
+
+// Flip all backbuffer surfaces
 HRESULT m_IDirectDrawSurfaceX::FlipBackBuffer()
 {
 	DWORD dwCaps = 0;
@@ -1010,18 +1135,11 @@ HRESULT m_IDirectDrawSurfaceX::FlipBackBuffer()
 		}
 	}
 
-	// Check if backbuffer was found
-	if (!lpTargetSurface || lpTargetSurface == this || !DoesFlipBackBufferExist(lpTargetSurface))
+	// Check backbuffer surface
+	HRESULT hr = CheckBackBufferForFlip(lpTargetSurface);
+	if (FAILED(hr))
 	{
-		LOG_LIMIT(100, __FUNCTION__ << " Error: Could not find backbuffer or invalid backbuffer!");
-		return DDERR_GENERIC;
-	}
-
-	// Check if surface is busy
-	if (lpTargetSurface->IsSurfaceLocked() || lpTargetSurface->IsSurfaceInDC())
-	{
-		LOG_LIMIT(100, __FUNCTION__ << " Error: backbuffer surface is busy!");
-		return DDERR_SURFACEBUSY;
+		return hr;
 	}
 
 	// Stop flipping when frontbuffer is found
@@ -1031,7 +1149,7 @@ HRESULT m_IDirectDrawSurfaceX::FlipBackBuffer()
 	}
 
 	// Swap surface
-	SwapSurface(this, lpTargetSurface);
+	SwapTargetSurface(lpTargetSurface);
 
 	// Flip next surface
 	return lpTargetSurface->FlipBackBuffer();
@@ -1054,11 +1172,11 @@ HRESULT m_IDirectDrawSurfaceX::Flip(LPDIRECTDRAWSURFACE7 lpDDSurfaceTargetOverri
 		if ((surfaceDesc2.ddsCaps.dwCaps & (DDSCAPS_FLIP | DDSCAPS_FRONTBUFFER)) != (DDSCAPS_FLIP | DDSCAPS_FRONTBUFFER))
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Error: This surface cannot be flipped");
-			return DDERR_INVALIDOBJECT;
+			return DDERR_NOTFLIPPABLE;
 		}
 
 		// Check if surface is locked or has an open DC
-		if (IsSurfaceLocked() || IsSurfaceInDC())
+		if (IsSurfaceBusy())
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Error: surface is busy!");
 
@@ -1091,23 +1209,14 @@ HRESULT m_IDirectDrawSurfaceX::Flip(LPDIRECTDRAWSURFACE7 lpDDSurfaceTargetOverri
 			// If SurfaceTargetOverride then use that surface
 			if (lpDDSurfaceTargetOverride)
 			{
-				m_IDirectDrawSurfaceX *lpTargetSurface = nullptr;
+				m_IDirectDrawSurfaceX* lpTargetSurface = nullptr;
 
 				lpDDSurfaceTargetOverride->QueryInterface(IID_GetInterfaceX, (LPVOID*)&lpTargetSurface);
 
-				// Check if target surface exists
-				if (lpTargetSurface == this || !DoesFlipBackBufferExist(lpTargetSurface))
+				// Check backbuffer surface
+				hr = CheckBackBufferForFlip(lpTargetSurface);
+				if (FAILED(hr))
 				{
-					LOG_LIMIT(100, __FUNCTION__ << " Error: invalid surface!");
-					hr = DDERR_INVALIDPARAMS;
-					break;
-				}
-
-				// Check if surface is locked or has an open DC
-				if (lpTargetSurface->IsSurfaceLocked() || lpTargetSurface->IsSurfaceInDC())
-				{
-					LOG_LIMIT(100, __FUNCTION__ << " Error: backbuffer surface is busy!");
-					hr = DDERR_SURFACEBUSY;
 					break;
 				}
 
@@ -1118,7 +1227,7 @@ HRESULT m_IDirectDrawSurfaceX::Flip(LPDIRECTDRAWSURFACE7 lpDDSurfaceTargetOverri
 				}
 
 				// Swap surface
-				SwapSurface(this, lpTargetSurface);
+				SwapTargetSurface(lpTargetSurface);
 			}
 
 			// Execute flip for all attached surfaces
@@ -1309,19 +1418,30 @@ HRESULT m_IDirectDrawSurfaceX::GetBltStatus(DWORD dwFlags)
 
 	if (Config.Dd7to9)
 	{
+		// Check if device interface is lost
+		HRESULT c_hr = CheckInterface(__FUNCTION__, true, false);
+		if (FAILED(c_hr) && !IsUsingEmulation())
+		{
+			return c_hr;
+		}
+
 		// Inquires whether a blit involving this surface can occur immediately, and returns DD_OK if the blit can be completed.
 		if (dwFlags == DDGBS_CANBLT)
 		{
-			if (IsInBlt)
+			if (IsSurfaceBlitting())
 			{
 				return DDERR_WASSTILLDRAWING;
+			}
+			if (IsSurfaceBusy())
+			{
+				return DDERR_SURFACEBUSY;
 			}
 			return DD_OK;
 		}
 		// Inquires whether the blit is done, and returns DD_OK if the last blit on this surface has completed.
 		else if (dwFlags == DDGBS_ISBLTDONE)
 		{
-			if (IsInBlt)
+			if (IsSurfaceBlitting())
 			{
 				return DDERR_WASSTILLDRAWING;
 			}
@@ -1501,9 +1621,9 @@ HRESULT m_IDirectDrawSurfaceX::GetDC(HDC FAR * lphDC)
 			return c_hr;
 		}
 
-		if (LastDC && IsSurfaceInDC())
+		if (surface.LastDC && IsSurfaceInDC())
 		{
-			*lphDC = LastDC;
+			*lphDC = surface.LastDC;
 			return DD_OK;
 		}
 
@@ -1516,69 +1636,81 @@ HRESULT m_IDirectDrawSurfaceX::GetDC(HDC FAR * lphDC)
 		// Present before write if needed
 		BeginWritePresent(false);
 
-		if (IsUsingEmulation() || DCRequiresEmulation)
-		{
-			if (!IsUsingEmulation())
+		SetCS();
+
+		HRESULT hr = DD_OK;
+
+		do {
+
+			if (IsUsingEmulation() || DCRequiresEmulation)
 			{
-				if (FAILED(CreateDCSurface()))
+				if (!IsUsingEmulation())
 				{
-					LOG_LIMIT(100, __FUNCTION__ << " Error: could not create DC!");
-					return DDERR_GENERIC;
+					if (FAILED(CreateDCSurface()))
+					{
+						LOG_LIMIT(100, __FUNCTION__ << " Error: could not create DC!");
+						hr = DDERR_GENERIC;
+						break;
+					}
+
+					CopyToEmulatedSurface(nullptr);
 				}
 
-				CopyToEmulatedSurface(nullptr);
+				// Set new palette data
+				UpdatePaletteData();
+
+				// Read surface from GDI
+				if (Config.DdrawReadFromGDI && IsPrimaryOrBackBuffer() && !IsDirect3DEnabled)
+				{
+					RECT Rect = { 0, 0, (LONG)surfaceDesc2.dwWidth, (LONG)surfaceDesc2.dwHeight };
+					CopyEmulatedSurfaceFromGDI(Rect);
+				}
+
+				*lphDC = surface.emu->DC;
 			}
-
-			// Set new palette data
-			UpdatePaletteData();
-
-			// Read surface from GDI
-			if (Config.DdrawReadFromGDI && (IsPrimarySurface() || IsBackBuffer()))
+			else if (surface.Texture)
 			{
-				RECT Rect = { 0, 0, (LONG)surfaceDesc2.dwWidth, (LONG)surfaceDesc2.dwHeight };
-				CopyEmulatedSurfaceFromGDI(Rect);
-			}
+				if (!surface.Context && FAILED(surface.Texture->GetSurfaceLevel(0, &surface.Context)))
+				{
+					LOG_LIMIT(100, __FUNCTION__ << " Error: could not get surface level!");
+					hr = DDERR_GENERIC;
+					break;
+				}
 
-			*lphDC = emu->surfaceDC;
-		}
-		else if (surfaceTexture)
-		{
-			if (!contextSurface && FAILED(surfaceTexture->GetSurfaceLevel(0, &contextSurface)))
+				if (FAILED(surface.Context->GetDC(lphDC)))
+				{
+					LOG_LIMIT(100, __FUNCTION__ << " Error: could not get device context!");
+					hr = DDERR_GENERIC;
+					break;
+				}
+			}
+			else if (surface.Surface)
 			{
-				LOG_LIMIT(100, __FUNCTION__ << " Error: could not get surface level!");
-				return DDERR_GENERIC;
+				if (FAILED(surface.Surface->GetDC(lphDC)))
+				{
+					LOG_LIMIT(100, __FUNCTION__ << " Error: could not get device context!");
+					hr = DDERR_GENERIC;
+					break;
+				}
 			}
-
-			if (FAILED(contextSurface->GetDC(lphDC)))
+			else
 			{
-				LOG_LIMIT(100, __FUNCTION__ << " Error: could not get device context!");
-				return DDERR_GENERIC;
+				LOG_LIMIT(100, __FUNCTION__ << " Error: could not find surface!");
+				hr = DDERR_GENERIC;
+				break;
 			}
-		}
-		else if (surface3D)
-		{
-			if (FAILED(surface3D->GetDC(lphDC)))
-			{
-				LOG_LIMIT(100, __FUNCTION__ << " Error: could not get device context!");
-				return DDERR_GENERIC;
-			}
-		}
-		else
-		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error: could not find surface!");
-			return DDERR_GENERIC;
-		}
 
-		// Set DC flag
-		IsInDC = true;
+			// Set DC flag
+			surface.IsInDC = true;
 
-		// Set LastDC
-		LastDC = *lphDC;
+			// Set LastDC
+			surface.LastDC = *lphDC;
 
-		// Set dirty flag
-		SetDirtyFlag();
+		} while (false);
 
-		return DD_OK;
+		ReleaseCS();
+
+		return hr;
 	}
 
 	return ProxyInterface->GetDC(lphDC);
@@ -1590,24 +1722,44 @@ HRESULT m_IDirectDrawSurfaceX::GetFlipStatus(DWORD dwFlags)
 
 	if (Config.Dd7to9)
 	{
-		// Get backbuffer
-		m_IDirectDrawSurfaceX *lpBackBuffer = this;
-		for (auto& it : AttachedSurfaceMap)
+		// Flip can be called only for a surface that has the DDSCAPS_FLIP and DDSCAPS_FRONTBUFFER capabilities
+		if ((surfaceDesc2.ddsCaps.dwCaps & (DDSCAPS_FLIP | DDSCAPS_FRONTBUFFER)) != (DDSCAPS_FLIP | DDSCAPS_FRONTBUFFER))
 		{
-			if (!(it.second.pSurface->GetSurfaceCaps().dwCaps & DDSCAPS_BACKBUFFER))
-			{
-				lpBackBuffer = it.second.pSurface;
+			LOG_LIMIT(100, __FUNCTION__ << " Error: This surface cannot be flipped");
+			return DDERR_INVALIDSURFACETYPE;
+		}
 
-				break;
-			}
+		// Check if device interface is lost
+		HRESULT c_hr = CheckInterface(__FUNCTION__, true, false);
+		if (FAILED(c_hr) && !IsUsingEmulation())
+		{
+			return c_hr;
 		}
 
 		// Queries whether the surface can flip now. The method returns DD_OK if the flip can be completed.
 		if ((dwFlags == DDGFS_CANFLIP))
 		{
-			if (IsInFlip || IsSurfaceLocked() || IsSurfaceInDC() || lpBackBuffer->IsSurfaceLocked() || lpBackBuffer->IsSurfaceInDC())
+			// Check if flip is still happening
+			if (IsInFlip)
 			{
 				return DDERR_WASSTILLDRAWING;
+			}
+
+			// Get backbuffer
+			m_IDirectDrawSurfaceX* lpBackBuffer = this;
+			for (auto& it : AttachedSurfaceMap)
+			{
+				if (it.second.pSurface->GetSurfaceCaps().dwCaps & DDSCAPS_BACKBUFFER)
+				{
+					lpBackBuffer = it.second.pSurface;
+					break;
+				}
+			}
+
+			// Check if surface is busy
+			if (IsSurfaceBusy() || lpBackBuffer->IsSurfaceBusy())
+			{
+				return DDERR_SURFACEBUSY;
 			}
 			return DD_OK;
 		}
@@ -1728,7 +1880,7 @@ HRESULT m_IDirectDrawSurfaceX::GetSurfaceDesc(LPDDSURFACEDESC lpDDSurfaceDesc)
 		DDSURFACEDESC2 Desc2 = {};
 		Desc2.dwSize = sizeof(DDSURFACEDESC2);
 
-		HRESULT hr = GetSurfaceDesc2(&Desc2);
+		HRESULT hr = hr = GetSurfaceDesc2(&Desc2);
 
 		// Convert back to LPDDSURFACEDESC
 		if (SUCCEEDED(hr))
@@ -1760,14 +1912,7 @@ HRESULT m_IDirectDrawSurfaceX::GetSurfaceDesc2(LPDDSURFACEDESC2 lpDDSurfaceDesc2
 		// Copy surfacedesc to lpDDSurfaceDesc2
 		*lpDDSurfaceDesc2 = surfaceDesc2;
 
-		// Set lPitch
-		if ((lpDDSurfaceDesc2->dwFlags & (DDSD_WIDTH | DDSD_HEIGHT | DDSD_PIXELFORMAT)) == (DDSD_WIDTH | DDSD_HEIGHT | DDSD_PIXELFORMAT) &&
-			(lpDDSurfaceDesc2->ddpfPixelFormat.dwFlags & DDPF_RGB) && !(lpDDSurfaceDesc2->dwFlags & DDSD_PITCH) && !(lpDDSurfaceDesc2->dwFlags & DDSD_LINEARSIZE))
-		{
-			lpDDSurfaceDesc2->dwFlags |= DDSD_PITCH;
-			lpDDSurfaceDesc2->lPitch = ComputePitch(GetByteAlignedWidth(surfaceDesc2.dwWidth, surfaceBitCount), GetBitCount(lpDDSurfaceDesc2->ddpfPixelFormat));
-		}
-
+		// Remove surface memory pointer
 		if (!(surfaceDesc2.dwFlags & DDSD_LPSURFACE))
 		{
 			lpDDSurfaceDesc2->lpSurface = nullptr;
@@ -1882,18 +2027,7 @@ HRESULT m_IDirectDrawSurfaceX::Lock(LPRECT lpDestRect, LPDDSURFACEDESC lpDDSurfa
 		return hr;
 	}
 
-	HRESULT hr = GetProxyInterfaceV3()->Lock(lpDestRect, lpDDSurfaceDesc, dwFlags, hEvent);
-
-	if (SUCCEEDED(hr))
-	{
-		// Fix misaligned bytes
-		if (Config.DdrawFixByteAlignment)
-		{
-			LockBitAlign<LPDDSURFACEDESC>(lpDestRect, lpDDSurfaceDesc);
-		}
-	}
-
-	return hr;
+	return GetProxyInterfaceV3()->Lock(lpDestRect, lpDDSurfaceDesc, dwFlags, hEvent);
 }
 
 HRESULT m_IDirectDrawSurfaceX::Lock2(LPRECT lpDestRect, LPDDSURFACEDESC2 lpDDSurfaceDesc2, DWORD dwFlags, HANDLE hEvent, DWORD DirectXVersion)
@@ -1932,7 +2066,7 @@ HRESULT m_IDirectDrawSurfaceX::Lock2(LPRECT lpDestRect, LPDDSURFACEDESC2 lpDDSur
 		}
 
 		// Check for already locked state
-		if (!lpDestRect && !surfaceLockRectList.empty())
+		if (!lpDestRect && !surface.LockRectList.empty())
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Error: locking surface with NULL rect when surface is already locked!");
 			return DDERR_INVALIDRECT;
@@ -1948,159 +2082,173 @@ HRESULT m_IDirectDrawSurfaceX::Lock2(LPRECT lpDestRect, LPDDSURFACEDESC2 lpDDSur
 			return DDERR_INVALIDRECT;
 		}
 
-		// Convert flags to d3d9
+		// Set to indicate that Lock should wait until it can obtain a valid memory pointer before returning.
 		const bool LockWait = (((dwFlags & DDLOCK_WAIT) || DirectXVersion == 7) && (dwFlags & DDLOCK_DONOTWAIT) == 0);
+
+		// Convert flags to d3d9
 		DWORD Flags = (dwFlags & (D3DLOCK_READONLY | D3DLOCK_NOOVERWRITE | (!IsPrimarySurface() ? D3DLOCK_NOSYSLOCK : 0))) |
 			(!LockWait ? D3DLOCK_DONOTWAIT : 0) |
 			((dwFlags & DDLOCK_NODIRTYUPDATE) ? D3DLOCK_NO_DIRTY_UPDATE : 0);
 
 		// Check if the scene needs to be presented
-		bool isSkipScene = (CheckRectforSkipScene(DestRect) || (Flags & D3DLOCK_READONLY));
+		bool IsSkipScene = (CheckRectforSkipScene(DestRect) || (Flags & D3DLOCK_READONLY));
 
 		// Present before write if needed
-		BeginWritePresent(isSkipScene);
+		BeginWritePresent(IsSkipScene);
 
-		// Emulated surface
-		D3DLOCKED_RECT LockedRect = {};
-		if (IsUsingEmulation())
+		// Check if locked from other thread
+		if (LockWait && IsLockedFromOtherThread())
 		{
-			// Set locked rect
-			if (FAILED(LockEmulatedSurface(&LockedRect, &DestRect)))
+			// Wait for lock from other thread
+			while (IsLockedFromOtherThread())
 			{
-				LOG_LIMIT(100, __FUNCTION__ << " Error: failed to lock emulated surface!");
-				return DDERR_GENERIC;
-			}
-
-			// Read surface from GDI
-			if (Config.DdrawReadFromGDI && (IsPrimarySurface() || IsBackBuffer()))
-			{
-				CopyEmulatedSurfaceFromGDI(DestRect);
+				Sleep(0);
+				if (!surface.Texture && !surface.Surface)
+				{
+					LOG_LIMIT(100, __FUNCTION__ << " Error: surface texture missing!");
+					return DDERR_SURFACELOST;
+				}
 			}
 		}
-		// Lock surface
-		else if (surfaceTexture || surface3D)
-		{
-			// Try to lock the rect
-			HRESULT hr = LockD39Surface(&LockedRect, &DestRect, Flags);
-			if (FAILED(hr))
+
+		SetCS();
+
+		HRESULT hr = DD_OK;
+
+		do {
+			// Emulated surface
+			D3DLOCKED_RECT LockedRect = {};
+			if (IsUsingEmulation())
 			{
-				while (LockWait && LockedWithID && LockedWithID != GetCurrentThreadId())
+				// Set locked rect
+				if (FAILED(LockEmulatedSurface(&LockedRect, &DestRect)))
 				{
-					Sleep(0);
-					if (!surfaceTexture && !surface3D)
-					{
-						LOG_LIMIT(100, __FUNCTION__ << " Error: surface texture missing!");
-						return DDERR_SURFACELOST;
-					}
+					LOG_LIMIT(100, __FUNCTION__ << " Error: failed to lock emulated surface!");
+					hr = DDERR_GENERIC;
+					break;
 				}
-				hr = LockD39Surface(&LockedRect, &DestRect, Flags);
-				if (FAILED(hr) && IsLocked)
+
+				// Read surface from GDI
+				if (Config.DdrawReadFromGDI && IsPrimaryOrBackBuffer() && !IsDirect3DEnabled)
 				{
-					LOG_LIMIT(100, __FUNCTION__ << " Warning: attempting to lock surface when it is already locked!");
+					CopyEmulatedSurfaceFromGDI(DestRect);
+				}
+			}
+			// Lock surface
+			else if (surface.Texture || surface.Surface)
+			{
+				// Lock surface
+				HRESULT ret = LockD39Surface(&LockedRect, &DestRect, Flags);
+				if (FAILED(ret) && IsSurfaceLocked() && !IsLockedFromOtherThread())
+				{
+					LOG_LIMIT(100, __FUNCTION__ << " Warning: attempting to lock surface twice!");
 					UnlockD39Surface();
-					hr = LockD39Surface(&LockedRect, &DestRect, Flags);
+					ret = LockD39Surface(&LockedRect, &DestRect, Flags);
 				}
-				if (FAILED(hr))
+				if (FAILED(ret))
 				{
-					LOG_LIMIT(100, __FUNCTION__ << " Error: failed to lock surface texture." << (surface3D ? " is 3DSurface" : " is Texture") <<
+					LOG_LIMIT(100, __FUNCTION__ << " Error: failed to lock surface texture." << (surface.Surface ? " Is 3DSurface." : " Is Texture.") <<
 						" Size: " << surfaceDesc2.dwWidth << "x" << surfaceDesc2.dwHeight << " Format: " << surfaceFormat <<
-						" dwCaps: " << Logging::hex(surfaceDesc2.ddsCaps.dwCaps) << " IsLocked: " << IsLocked << " IsInDC: " << IsInDC);
-					return (hr == D3DERR_WASSTILLDRAWING || (LockedWithID && !LockWait)) ? DDERR_WASSTILLDRAWING :
-						DDERR_GENERIC;
+						" Flags: " << Logging::hex(Flags) << " Locked: " << IsSurfaceLocked() << " DC: " << IsSurfaceInDC() << " Blt: " << IsSurfaceBlitting() << " hr: " << (D3DERR)ret);
+					hr = (ret == D3DERR_WASSTILLDRAWING || (!LockWait && IsSurfaceBusy())) ? DDERR_WASSTILLDRAWING : DDERR_GENERIC;
+					break;
 				}
 			}
-		}
-		else
-		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error: could not find surface!");
-			return DDERR_GENERIC;
-		}
+			else
+			{
+				LOG_LIMIT(100, __FUNCTION__ << " Error: could not find surface!");
+				hr = DDERR_GENERIC;
+				break;
+			}
 
-		// Check pointer and pitch
-		if (!LockedRect.pBits || !LockedRect.Pitch)
-		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error: failed to get surface address or pitch!");
-			return DDERR_GENERIC;
-		}
+			// Check pointer and pitch
+			if (!LockedRect.pBits || !LockedRect.Pitch)
+			{
+				LOG_LIMIT(100, __FUNCTION__ << " Error: failed to get surface address or pitch!");
+				hr = DDERR_GENERIC;
+				break;
+			}
 
-		// Set locked ID
-		LockedWithID = GetCurrentThreadId();
+			// Set lock flag
+			surface.IsLocked = true;
 
-		// Set lock flag
-		IsLocked = true;
+			if (surface.LockedWithID)
+			{
+				LOG_LIMIT(100, __FUNCTION__ << " Warning: surface locked thread ID set! " << surface.LockedWithID);
+			}
+			surface.LockedWithID = GetCurrentThreadId();
 
-		// Store locked rect
-		if (lpDestRect)
-		{
-			RECT lRect = { lpDestRect->left, lpDestRect->top, lpDestRect->right, lpDestRect->bottom };
-			surfaceLockRectList.push_back(lRect);
-		}
+			// Store locked rect
+			if (lpDestRect)
+			{
+				RECT lRect = { lpDestRect->left, lpDestRect->top, lpDestRect->right, lpDestRect->bottom };
+				surface.LockRectList.push_back(lRect);
+			}
 
-		// Set surfaceDesc
-		if (!(lpDDSurfaceDesc2->dwFlags & DDSD_LPSURFACE))
-		{
-			lpDDSurfaceDesc2->lpSurface = LockedRect.pBits;
-			lpDDSurfaceDesc2->dwFlags |= DDSD_LPSURFACE;
-		}
-		LockedRect.Pitch = ISDXTEX(surfaceFormat) ? LockedRect.Pitch * 64 :
-			(surfaceFormat == MAKEFOURCC('Y', 'V', '1', '2')) ? lpDDSurfaceDesc2->dwWidth :
-			LockedRect.Pitch;
-		lpDDSurfaceDesc2->lPitch = LockedRect.Pitch;
-		lpDDSurfaceDesc2->dwFlags |= DDSD_PITCH;
+			// Set surfaceDesc
+			if (!(lpDDSurfaceDesc2->dwFlags & DDSD_LPSURFACE))
+			{
+				lpDDSurfaceDesc2->lpSurface = LockedRect.pBits;
+				lpDDSurfaceDesc2->dwFlags |= DDSD_LPSURFACE;
+			}
+			// Pitch for DXT surfaces in DirectDraw is the full surface byte size
+			LockedRect.Pitch =
+				(surfaceFormat == D3DFMT_DXT1) ? ((GetByteAlignedWidth(surfaceDesc2.dwWidth, surfaceBitCount) + 3) / 4) * ((surfaceDesc2.dwHeight + 3) / 4) * 8 :
+				ISDXTEX(surfaceFormat) ? ((GetByteAlignedWidth(surfaceDesc2.dwWidth, surfaceBitCount) + 3) / 4) * ((surfaceDesc2.dwHeight + 3) / 4) * 16 :
+				(surfaceFormat == D3DFMT_YV12) ? GetByteAlignedWidth(surfaceDesc2.dwWidth, surfaceBitCount) :
+				LockedRect.Pitch;
+			lpDDSurfaceDesc2->lPitch = LockedRect.Pitch;
+			lpDDSurfaceDesc2->dwFlags |= DDSD_PITCH;
 
-		// Fix misaligned bytes
-		if (Config.DdrawFixByteAlignment)
-		{
-			LockBitAlign<LPDDSURFACEDESC2>(lpDestRect, lpDDSurfaceDesc2);
-		}
+			// Set surface pitch
+			if ((surfaceDesc2.dwFlags & DDSD_PITCH) && surfaceDesc2.lPitch != LockedRect.Pitch)
+			{
+				LOG_LIMIT(100, __FUNCTION__ << " Warning: surface pitch does not match locked pitch! Format: " << surfaceFormat <<
+					" Width: " << surfaceDesc2.dwWidth << " Pitch: " << surfaceDesc2.lPitch << "->" << LockedRect.Pitch);
+			}
+			surfaceDesc2.lPitch = LockedRect.Pitch;
+			surfaceDesc2.dwFlags |= DDSD_PITCH;
 
-		// Backup last rect before removing scanlines
-		LastLock.ReadOnly = ((Flags & D3DLOCK_READONLY) != 0);
-		LastLock.isSkipScene = isSkipScene;
-		LastLock.Rect = DestRect;
-		LastLock.LockedRect.pBits = LockedRect.pBits;
-		LastLock.LockedRect.Pitch = LockedRect.Pitch;
+			// Fix misaligned bytes
+			if (Config.DdrawFixByteAlignment)
+			{
+				LockBitAlign(lpDestRect, lpDDSurfaceDesc2);
+			}
 
-		// Restore scanlines before returing surface memory
-		if (Config.DdrawRemoveScanlines)
-		{
-			RestoreScanlines(LastLock);
-		}
+			// Backup last rect before removing scanlines
+			surface.LastLock.ReadOnly = ((Flags & D3DLOCK_READONLY) != 0);
+			surface.LastLock.IsSkipScene = IsSkipScene;
+			surface.LastLock.Rect = DestRect;
+			surface.LastLock.LockedRect.pBits = LockedRect.pBits;
+			surface.LastLock.LockedRect.Pitch = LockedRect.Pitch;
 
-		// Set dirty flag
-		if (!(Flags & D3DLOCK_READONLY))
-		{
-			SetDirtyFlag();
-		}
+			// Restore scanlines before returing surface memory
+			if (Config.DdrawRemoveScanlines && IsPrimaryOrBackBuffer())
+			{
+				RestoreScanlines(surface.LastLock);
+			}
 
-		return DD_OK;
+		} while (false);
+
+		ReleaseCS();
+
+		return hr;
 	}
 
-	HRESULT hr = ProxyInterface->Lock(lpDestRect, lpDDSurfaceDesc2, dwFlags, hEvent);
-
-	if (SUCCEEDED(hr))
-	{
-		// Fix misaligned bytes
-		if (Config.DdrawFixByteAlignment)
-		{
-			LockBitAlign<LPDDSURFACEDESC2>(lpDestRect, lpDDSurfaceDesc2);
-		}
-	}
-
-	return hr;
+	return ProxyInterface->Lock(lpDestRect, lpDDSurfaceDesc2, dwFlags, hEvent);
 }
 
 inline HRESULT m_IDirectDrawSurfaceX::LockD39Surface(D3DLOCKED_RECT* pLockedRect, RECT* pRect, DWORD Flags)
 {
 	// Lock surface texture
-	if (surfaceTexture)
+	if (surface.Texture)
 	{
-		return surfaceTexture->LockRect(0, pLockedRect, pRect, Flags);
+		return surface.Texture->LockRect(0, pLockedRect, pRect, Flags);
 	}
 	// Lock 3D surface
-	else if (surface3D)
+	else if (surface.Surface)
 	{
-		return surface3D->LockRect(pLockedRect, pRect, Flags);
+		return surface.Surface->LockRect(pLockedRect, pRect, Flags);
 	}
 
 	return DDERR_GENERIC;
@@ -2125,50 +2273,71 @@ HRESULT m_IDirectDrawSurfaceX::ReleaseDC(HDC hDC)
 			return DDERR_GENERIC;
 		}
 
-		if (IsUsingEmulation() || DCRequiresEmulation)
-		{
-			// Copy emulated surface to real texture
-			CopyFromEmulatedSurface(nullptr);
+		SetCS();
 
-			// Blt surface directly to GDI
-			if (Config.DdrawWriteToGDI && (IsPrimarySurface() || IsBackBuffer()))
-			{
-				RECT Rect = { 0, 0, (LONG)surfaceDesc2.dwWidth, (LONG)surfaceDesc2.dwHeight };
-				CopyEmulatedSurfaceToGDI(Rect);
-			}
-		}
-		else if (surfaceTexture)
-		{
-			if (!contextSurface || FAILED(contextSurface->ReleaseDC(hDC)))
-			{
-				LOG_LIMIT(100, __FUNCTION__ << " Error: failed to release surface DC!");
-				return DDERR_GENERIC;
-			}
-		}
-		else if (surface3D)
-		{
-			if (FAILED(surface3D->ReleaseDC(hDC)))
-			{
-				LOG_LIMIT(100, __FUNCTION__ << " Error: failed to release surface DC!");
-				return DDERR_GENERIC;
-			}
-		}
-		else
-		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error: could not find surface!");
-			return DDERR_GENERIC;
-		}
+		HRESULT hr = DD_OK;
 
-		// Reset DC flag
-		IsInDC = false;
+		do {
 
-		// Set LastDC
-		LastDC = nullptr;
+			if (IsUsingEmulation() || DCRequiresEmulation)
+			{
+				// Blt surface directly to GDI
+				if (Config.DdrawWriteToGDI && IsPrimaryOrBackBuffer() && !IsDirect3DEnabled)
+				{
+					RECT Rect = { 0, 0, (LONG)surfaceDesc2.dwWidth, (LONG)surfaceDesc2.dwHeight };
+					CopyEmulatedSurfaceToGDI(Rect);
+				}
+				// Copy emulated surface to real texture
+				else
+				{
+					CopyFromEmulatedSurface(nullptr);
+				}
+			}
+			else if (surface.Texture)
+			{
+				if (!surface.Context || FAILED(surface.Context->ReleaseDC(hDC)))
+				{
+					LOG_LIMIT(100, __FUNCTION__ << " Error: failed to release surface DC!");
+					hr = DDERR_GENERIC;
+					break;
+				}
+			}
+			else if (surface.Surface)
+			{
+				if (FAILED(surface.Surface->ReleaseDC(hDC)))
+				{
+					LOG_LIMIT(100, __FUNCTION__ << " Error: failed to release surface DC!");
+					hr = DDERR_GENERIC;
+					break;
+				}
+			}
+			else
+			{
+				LOG_LIMIT(100, __FUNCTION__ << " Error: could not find surface!");
+				hr = DDERR_GENERIC;
+				break;
+			}
+
+			// Reset DC flag
+			surface.IsInDC = false;
+
+			// Set LastDC
+			surface.LastDC = nullptr;
+
+			// Set dirty flag
+			SetDirtyFlag();
+
+		} while (false);
+
+		ReleaseCS();
 
 		// Present surface
-		EndWritePresent(false);
+		if (SUCCEEDED(hr))
+		{
+			EndWritePresent(false);
+		}
 
-		return DD_OK;
+		return hr;
 	}
 
 	return ProxyInterface->ReleaseDC(hDC);
@@ -2216,44 +2385,36 @@ HRESULT m_IDirectDrawSurfaceX::SetClipper(LPDIRECTDRAWCLIPPER lpDDClipper)
 
 	if (Config.Dd7to9)
 	{
-		// If lpDDClipper is nullptr then detach the current clipper if it exists
-		if (!lpDDClipper)
+		if (!lpDDClipper && !attachedClipper)
 		{
-			if (!attachedClipper)
-			{
-				return DDERR_NOCLIPPERATTACHED;
-			}
-
-			// Decrement ref count
-			attachedClipper->Release();
-
-			// Detach
-			attachedClipper = nullptr;
-
-			// Reset FirstRun
-			ClipperFirstRun = true;
+			return DDERR_NOCLIPPERATTACHED;
 		}
-		else
+
+		if (lpDDClipper == attachedClipper)
 		{
-			// Check if palette exists
+			return DD_OK;
+		}
+
+		// If clipper exists increament ref
+		if (lpDDClipper)
+		{
 			if (!ddrawParent || !ddrawParent->DoesClipperExist((m_IDirectDrawClipper*)lpDDClipper))
 			{
 				LOG_LIMIT(100, __FUNCTION__ << " Error: could not find clipper");
 				return DDERR_INVALIDOBJECT;
 			}
 
-			// Set clipper address
-			attachedClipper = (m_IDirectDrawClipper*)lpDDClipper;
-
-			// When you call SetClipper to set a clipper to a surface for the first time, 
-			// SetClipper increments the clipper's reference count; subsequent calls to 
-			// SetClipper do not affect the clipper's reference count.
-			if (ClipperFirstRun)
-			{
-				attachedClipper->AddRef();
-				ClipperFirstRun = false;
-			}
+			lpDDClipper->AddRef();
 		}
+
+		// Decrement ref count
+		if (attachedClipper && ddrawParent && ddrawParent->DoesClipperExist(attachedClipper))
+		{
+			attachedClipper->Release();
+		}
+
+		// Set clipper address
+		attachedClipper = (m_IDirectDrawClipper*)lpDDClipper;
 
 		return DD_OK;
 	}
@@ -2387,57 +2548,59 @@ HRESULT m_IDirectDrawSurfaceX::SetPalette(LPDIRECTDRAWPALETTE lpDDPalette)
 
 	if (Config.Dd7to9)
 	{
-		// If lpDDPalette is nullptr then detach the current palette if it exists
-		if (!lpDDPalette)
+		if (!lpDDPalette && !attachedPalette)
 		{
-			if (!attachedPalette)
-			{
-				return DDERR_NOPALETTEATTACHED;
-			}
-
-			// Decrement ref count
-			attachedPalette->Release();
-
-			// Detach
-			attachedPalette = nullptr;
-
-			// Reset FirstRun
-			PaletteFirstRun = true;
+			return DDERR_NOPALETTEATTACHED;
 		}
-		// If lpDDPalette is not null
-		else
+
+		if (lpDDPalette == attachedPalette)
 		{
-			// Check if palette exists
+			return DD_OK;
+		}
+
+		// If palette exists increament ref
+		if (lpDDPalette)
+		{
 			if (!ddrawParent || !ddrawParent->DoesPaletteExist((m_IDirectDrawPalette*)lpDDPalette))
 			{
 				LOG_LIMIT(100, __FUNCTION__ << " Error: could not find palette");
 				return DDERR_INVALIDOBJECT;
 			}
 
-			// Set palette address
-			attachedPalette = (m_IDirectDrawPalette*)lpDDPalette;
+			lpDDPalette->AddRef();
 
-			// When you call SetPalette to set a palette to a surface for the first time, 
-			// SetPalette increments the palette's reference count; subsequent calls to 
-			// SetPalette do not affect the palette's reference count.
-			if (PaletteFirstRun)
-			{
-				attachedPalette->AddRef();
-				PaletteFirstRun = false;
-			}
-
-			// Set primary
+			// Set primary flag
 			if (IsPrimarySurface())
 			{
-				attachedPalette->SetPrimary();
+				((m_IDirectDrawPalette*)lpDDPalette)->SetPrimary();
 			}
 		}
 
-		// If new palette is set
-		PaletteUSN++;
+		// Decrement ref count
+		if (attachedPalette && ddrawParent && ddrawParent->DoesPaletteExist(attachedPalette))
+		{
+			// Remove primary flag
+			if (IsPrimarySurface() && attachedPalette != lpDDPalette)
+			{
+				attachedPalette->RemovePrimary();
+			}
+
+			attachedPalette->Release();
+		}
+
+		// Set palette address
+		attachedPalette = (m_IDirectDrawPalette*)lpDDPalette;
+
+		SetCriticalSection();
+
+		// Reset data for new palette
+		surface.LastPaletteUSN = 0;
+		surface.PaletteEntryArray = nullptr;
 
 		// Set new palette data
 		UpdatePaletteData();
+
+		ReleaseCriticalSection();
 
 		return DD_OK;
 	}
@@ -2454,118 +2617,148 @@ HRESULT m_IDirectDrawSurfaceX::Unlock(LPRECT lpRect)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	// Fix issue with some games that ignore the pitch size
-	if (EmuLock.Locked && EmuLock.Addr)
-	{
-		BYTE* InAddr = &EmuLock.surfaceMem[0];
-		DWORD InPitch = (EmuLock.BBP / 8) * EmuLock.Width;
-		BYTE* OutAddr = (BYTE*)EmuLock.Addr;
-		DWORD OutPitch = EmuLock.Pitch;
-		for (DWORD x = 0; x < EmuLock.Height; x++)
-		{
-			memcpy(OutAddr, InAddr, InPitch);
-			InAddr += InPitch;
-			OutAddr += OutPitch;
-		}
-
-		EmuLock.Locked = false;
-		EmuLock.Addr = nullptr;
-	}
-
 	if (Config.Dd7to9)
 	{
-		// Check rect
-		if (!lpRect && surfaceLockRectList.size() > 1)
+		SetCS();
+
+		// Fix issue with some games that ignore the pitch size
+		if (surface.EmuLock.Locked && surface.EmuLock.Addr)
 		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error: Rect cannot be NULL when locked with a specific rect!");
-			return DDERR_INVALIDRECT;
+			BYTE* InAddr = surface.EmuLock.Mem.data();
+			DWORD InPitch = (surface.EmuLock.BBP / 8) * surface.EmuLock.Width;
+			BYTE* OutAddr = (BYTE*)surface.EmuLock.Addr;
+			DWORD OutPitch = surface.EmuLock.Pitch;
+			for (DWORD x = 0; x < surface.EmuLock.Height; x++)
+			{
+				memcpy(OutAddr, InAddr, InPitch);
+				InAddr += InPitch;
+				OutAddr += OutPitch;
+			}
+
+			surface.EmuLock.Locked = false;
+			surface.EmuLock.Addr = nullptr;
 		}
 
-		// Check stored rect
-		if (lpRect && surfaceLockRectList.size() > 1)
-		{
-			auto it = std::find_if(surfaceLockRectList.begin(), surfaceLockRectList.end(),
-				[=](auto Rect) -> bool { return (Rect.left == lpRect->left && Rect.top == lpRect->top && Rect.right == lpRect->right && Rect.bottom == lpRect->bottom); });
+		HRESULT hr = DD_OK;
 
-			if (it != std::end(surfaceLockRectList))
+		do {
+			// Check rect
+			if (!lpRect && surface.LockRectList.size() > 1)
 			{
-				surfaceLockRectList.erase(it);
+				LOG_LIMIT(100, __FUNCTION__ << " Error: Rect cannot be NULL when locked with a specific rect!");
+				hr = DDERR_INVALIDRECT;
+				break;
+			}
 
-				// Unlock once all rects have been unlocked
-				if (!surfaceLockRectList.empty())
+			// Check stored rect
+			if (lpRect && surface.LockRectList.size() > 1)
+			{
+				auto it = std::find_if(surface.LockRectList.begin(), surface.LockRectList.end(),
+					[=](auto Rect) -> bool { return (Rect.left == lpRect->left && Rect.top == lpRect->top && Rect.right == lpRect->right && Rect.bottom == lpRect->bottom); });
+
+				if (it != std::end(surface.LockRectList))
 				{
-					return DD_OK;
+					surface.LockRectList.erase(it);
+
+					// Unlock once all rects have been unlocked
+					if (!surface.LockRectList.empty())
+					{
+						LOG_LIMIT(100, __FUNCTION__ << " Warning: multiple locked rects found: " << surface.LockRectList.size());
+						hr = DD_OK;
+						break;
+					}
+				}
+				else
+				{
+					LOG_LIMIT(100, __FUNCTION__ << " Error: Rect does not match locked rect: " << lpRect);
+					hr = DDERR_INVALIDRECT;
+					break;
+				}
+			}
+
+			// Check for device interface
+			HRESULT c_hr = CheckInterface(__FUNCTION__, true, true);
+			if (FAILED(c_hr) && !IsUsingEmulation())
+			{
+				hr = c_hr;
+				break;
+			}
+
+			// Remove scanlines before unlocking surface
+			if (Config.DdrawRemoveScanlines && IsPrimaryOrBackBuffer())
+			{
+				RemoveScanlines(surface.LastLock);
+			}
+
+			// Emulated surface
+			if (IsUsingEmulation())
+			{
+				if (!surface.LastLock.ReadOnly)
+				{
+					// Blt surface directly to GDI
+					if (Config.DdrawWriteToGDI && IsPrimaryOrBackBuffer() && !IsDirect3DEnabled)
+					{
+						CopyEmulatedSurfaceToGDI(surface.LastLock.Rect);
+					}
+					// Copy emulated surface to real texture
+					else
+					{
+						CopyFromEmulatedSurface(&surface.LastLock.Rect);
+					}
+				}
+			}
+			// Lock surface
+			else if (surface.Texture || surface.Surface)
+			{
+				HRESULT ret = UnlockD39Surface();
+				if (FAILED(ret))
+				{
+					LOG_LIMIT(100, __FUNCTION__ << " Error: failed to unlock surface texture");
+					hr = (ret == D3DERR_INVALIDCALL) ? DDERR_GENERIC :
+						(ret == D3DERR_WASSTILLDRAWING) ? DDERR_WASSTILLDRAWING :
+						DDERR_SURFACELOST;
+					break;
 				}
 			}
 			else
 			{
-				LOG_LIMIT(100, __FUNCTION__ << " Error: Rect does not match locked rect: " << lpRect);
-				return DDERR_INVALIDRECT;
+				LOG_LIMIT(100, __FUNCTION__ << " Error: could not find surface!");
+				hr = DDERR_GENERIC;
+				break;
 			}
-		}
 
-		// Check for device interface
-		HRESULT c_hr = CheckInterface(__FUNCTION__, true, true);
-		if (FAILED(c_hr) && !IsUsingEmulation())
-		{
-			return c_hr;
-		}
+			// Clear memory pointer
+			surface.LastLock.LockedRect.pBits = nullptr;
 
-		// Remove scanlines before unlocking surface
-		if (Config.DdrawRemoveScanlines)
-		{
-			RemoveScanlines(LastLock);
-		}
+			// Clear vector
+			surface.LockRectList.clear();
 
-		// Emulated surface
-		if (IsUsingEmulation())
-		{
-			if (!LastLock.ReadOnly)
+			// Reset locked flag
+			surface.IsLocked = false;
+
+			// Reset locked thread ID
+			if (!IsSurfaceBlitting() && !IsSurfaceLocked())
 			{
-				// Copy emulated surface to real texture
-				CopyFromEmulatedSurface(&LastLock.Rect);
-
-				// Blt surface directly to GDI
-				if (Config.DdrawWriteToGDI && (IsPrimarySurface() || IsBackBuffer()))
-				{
-					CopyEmulatedSurfaceToGDI(LastLock.Rect);
-				}
+				surface.LockedWithID = 0;
 			}
-		}
-		// Lock surface
-		else if (surfaceTexture || surface3D)
-		{
-			HRESULT hr = UnlockD39Surface();
-			if (FAILED(hr))
+
+			// Set dirty flag
+			if (!surface.LastLock.ReadOnly)
 			{
-				LOG_LIMIT(100, __FUNCTION__ << " Error: failed to unlock surface texture");
-				return (hr == D3DERR_INVALIDCALL) ? DDERR_GENERIC :
-					(hr == D3DERR_WASSTILLDRAWING) ? DDERR_WASSTILLDRAWING :
-					DDERR_SURFACELOST;
+				SetDirtyFlag();
 			}
-		}
-		else
-		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error: could not find surface!");
-			return DDERR_GENERIC;
-		}
 
-		// Reset locked ID
-		LockedWithID = 0;
+		} while (false);
 
-		// Clear memory pointer
-		LastLock.LockedRect.pBits = nullptr;
-
-		// Clear vector
-		surfaceLockRectList.clear();
-
-		// Reset locked flag
-		IsLocked = false;
+		ReleaseCS();
 
 		// Present surface
-		EndWritePresent(LastLock.isSkipScene);
+		if (SUCCEEDED(hr))
+		{
+			EndWritePresent(surface.LastLock.IsSkipScene);
+		}
 
-		return DD_OK;
+		return hr;
 	}
 
 	return ProxyInterface->Unlock(lpRect);
@@ -2574,14 +2767,14 @@ HRESULT m_IDirectDrawSurfaceX::Unlock(LPRECT lpRect)
 inline HRESULT m_IDirectDrawSurfaceX::UnlockD39Surface()
 {
 	// Lock surface texture
-	if (surfaceTexture)
+	if (surface.Texture)
 	{
-		return surfaceTexture->UnlockRect(0);
+		return surface.Texture->UnlockRect(0);
 	}
 	// Lock 3D surface
-	else if (surface3D)
+	else if (surface.Surface)
 	{
-		return surface3D->UnlockRect();
+		return surface.Surface->UnlockRect();
 	}
 
 	return DDERR_GENERIC;
@@ -2751,13 +2944,6 @@ HRESULT m_IDirectDrawSurfaceX::SetSurfaceDesc(LPDDSURFACEDESC lpDDSurfaceDesc, D
 		return SetSurfaceDesc2(&Desc2, dwFlags);
 	}
 
-	// Adjust Height and Width
-	if (lpDDSurfaceDesc && (lpDDSurfaceDesc->dwFlags & DDSD_WIDTH) && (lpDDSurfaceDesc->dwFlags & DDSD_HEIGHT))
-	{
-		SetWrapperSurfaceSize(lpDDSurfaceDesc->dwWidth, lpDDSurfaceDesc->dwHeight);
-		lpDDSurfaceDesc->dwWidth += lpDDSurfaceDesc->dwWidth % 2;
-	}
-
 	return GetProxyInterfaceV3()->SetSurfaceDesc(lpDDSurfaceDesc, dwFlags);
 }
 
@@ -2790,13 +2976,6 @@ HRESULT m_IDirectDrawSurfaceX::SetSurfaceDesc2(LPDDSURFACEDESC2 lpDDSurfaceDesc2
 		return DD_OK;
 	}
 
-	// Adjust Height and Width
-	if (lpDDSurfaceDesc2 && (lpDDSurfaceDesc2->dwFlags & DDSD_WIDTH) && (lpDDSurfaceDesc2->dwFlags & DDSD_HEIGHT))
-	{
-		SetWrapperSurfaceSize(lpDDSurfaceDesc2->dwWidth, lpDDSurfaceDesc2->dwHeight);
-		lpDDSurfaceDesc2->dwWidth += lpDDSurfaceDesc2->dwWidth % 2;
-	}
-
 	return ProxyInterface->SetSurfaceDesc(lpDDSurfaceDesc2, dwFlags);
 }
 
@@ -2817,13 +2996,13 @@ HRESULT m_IDirectDrawSurfaceX::SetPrivateData(REFGUID guidTag, LPVOID lpData, DW
 			return c_hr;
 		}
 
-		if (surfaceTexture)
+		if (surface.Texture)
 		{
-			return surfaceTexture->SetPrivateData(guidTag, lpData, cbSize, dwFlags);
+			return surface.Texture->SetPrivateData(guidTag, lpData, cbSize, dwFlags);
 		}
-		else if (surface3D)
+		else if (surface.Surface)
 		{
-			return surface3D->SetPrivateData(guidTag, lpData, cbSize, dwFlags);
+			return surface.Surface->SetPrivateData(guidTag, lpData, cbSize, dwFlags);
 		}
 		else
 		{
@@ -2848,13 +3027,13 @@ HRESULT m_IDirectDrawSurfaceX::GetPrivateData(REFGUID guidTag, LPVOID lpBuffer, 
 			return c_hr;
 		}
 
-		if (surfaceTexture)
+		if (surface.Texture)
 		{
-			return surfaceTexture->GetPrivateData(guidTag, lpBuffer, lpcbBufferSize);
+			return surface.Texture->GetPrivateData(guidTag, lpBuffer, lpcbBufferSize);
 		}
-		else if (surface3D)
+		else if (surface.Surface)
 		{
-			return surface3D->GetPrivateData(guidTag, lpBuffer, lpcbBufferSize);
+			return surface.Surface->GetPrivateData(guidTag, lpBuffer, lpcbBufferSize);
 		}
 		else
 		{
@@ -2879,13 +3058,13 @@ HRESULT m_IDirectDrawSurfaceX::FreePrivateData(REFGUID guidTag)
 			return c_hr;
 		}
 
-		if (surfaceTexture)
+		if (surface.Texture)
 		{
-			return surfaceTexture->FreePrivateData(guidTag);
+			return surface.Texture->FreePrivateData(guidTag);
 		}
-		else if (surface3D)
+		else if (surface.Surface)
 		{
-			return surface3D->FreePrivateData(guidTag);
+			return surface.Surface->FreePrivateData(guidTag);
 		}
 		else
 		{
@@ -2908,14 +3087,14 @@ HRESULT m_IDirectDrawSurfaceX::GetUniquenessValue(LPDWORD lpValue)
 			return DDERR_INVALIDPARAMS;
 		}
 
-		if (IsSurfaceLocked() || IsSurfaceInDC())
+		if (IsSurfaceBusy())
 		{
 			// The only defined uniqueness value is 0, which indicates that the surface is likely to be changing beyond the control of DirectDraw.
 			*lpValue = 0;
 		}
 		else
 		{
-			*lpValue = UniquenessValue;
+			*lpValue = surface.UniquenessValue;
 		}
 		return DD_OK;
 	}
@@ -2930,7 +3109,7 @@ HRESULT m_IDirectDrawSurfaceX::ChangeUniquenessValue()
 	if (Config.Dd7to9)
 	{
 		// Manually updates the uniqueness value for this surface.
-		UniquenessValue += 1;
+		surface.UniquenessValue++;
 		return DD_OK;
 	}
 
@@ -3050,6 +3229,8 @@ void m_IDirectDrawSurfaceX::InitSurface(DWORD DirectXVersion)
 
 	AddRef(DirectXVersion);
 
+	InitializeCriticalSection(&ddscs);
+
 	// Store surface, needs to run before InitSurfaceDesc()
 	if (ddrawParent)
 	{
@@ -3059,25 +3240,14 @@ void m_IDirectDrawSurfaceX::InitSurface(DWORD DirectXVersion)
 	}
 
 	// Set Uniqueness Value
-	UniquenessValue = 1;
+	surface.UniquenessValue = 1;
 
 	// Update surface description and create backbuffers
 	InitSurfaceDesc(DirectXVersion);
 }
 
-void m_IDirectDrawSurfaceX::ReleaseSurface()
+inline void m_IDirectDrawSurfaceX::ReleaseDirectDrawResources()
 {
-	WrapperInterface->DeleteMe();
-	WrapperInterface2->DeleteMe();
-	WrapperInterface3->DeleteMe();
-	WrapperInterface4->DeleteMe();
-	WrapperInterface7->DeleteMe();
-
-	if (!Config.Dd7to9 || Config.Exiting)
-	{
-		return;
-	}
-
 	if (attachedClipper)
 	{
 		attachedClipper->Release();
@@ -3103,8 +3273,27 @@ void m_IDirectDrawSurfaceX::ReleaseSurface()
 			ddrawParent->ClearDepthStencilSurface();
 		}
 	}
+}
+
+void m_IDirectDrawSurfaceX::ReleaseSurface()
+{
+	WrapperInterface->DeleteMe();
+	WrapperInterface2->DeleteMe();
+	WrapperInterface3->DeleteMe();
+	WrapperInterface4->DeleteMe();
+	WrapperInterface7->DeleteMe();
+
+	if (!Config.Dd7to9 || Config.Exiting)
+	{
+		return;
+	}
+
+	ReleaseDirectDrawResources();
 
 	ReleaseD9Surface(false);
+
+	// Delete critical section last
+	DeleteCriticalSection(&ddscs);
 }
 
 LPDIRECT3DSURFACE9 m_IDirectDrawSurfaceX::Get3DSurface()
@@ -3127,22 +3316,39 @@ LPDIRECT3DTEXTURE9 m_IDirectDrawSurfaceX::Get3DTexture()
 		LOG_LIMIT(100, __FUNCTION__ << " Error: texture not setup!");
 		return nullptr;
 	}
+	return GetD3D9Texture();
+}
 
-	return surfaceTexture;
+inline LPDIRECT3DTEXTURE9 m_IDirectDrawSurfaceX::GetD3D9Texture()
+{
+	// Prepare paletted surface for display
+	if (surface.IsPaletteDirty && !primary.PaletteTexture)
+	{
+		CopyEmulatedPaletteSurface(nullptr);
+	}
+
+	// Return palette display texture
+	if (surface.DisplayTexture)
+	{
+		return surface.DisplayTexture;
+	}
+
+	// Return surface texture
+	return surface.Texture;
 }
 
 inline LPDIRECT3DSURFACE9 m_IDirectDrawSurfaceX::GetD3D9Surface()
 {
-	if (surfaceTexture)
+	if (surface.Texture)
 	{
-		if (contextSurface || (!contextSurface && SUCCEEDED(surfaceTexture->GetSurfaceLevel(0, &contextSurface))))
+		if (surface.Context || (!surface.Context && SUCCEEDED(surface.Texture->GetSurfaceLevel(0, &surface.Context))))
 		{
-			return contextSurface;
+			return surface.Context;
 		}
 	}
-	else if (surface3D)
+	else if (surface.Surface)
 	{
-		return surface3D;
+		return surface.Surface;
 	}
 	return nullptr;
 }
@@ -3152,8 +3358,13 @@ HRESULT m_IDirectDrawSurfaceX::CheckInterface(char *FunctionName, bool CheckD3DD
 	// Check ddrawParent device
 	if (!ddrawParent)
 	{
-		LOG_LIMIT(100, FunctionName << " Error: no ddraw parent!");
-		return DDERR_GENERIC;
+		if (DDrawVector.empty())
+		{
+			LOG_LIMIT(100, FunctionName << " Error: no ddraw parent!");
+			return DDERR_INVALIDOBJECT;
+		}
+		ddrawParent = DDrawVector[0];
+		ddrawParent->AddSurfaceToVector(this);
 	}
 
 	// Check d3d9 device
@@ -3162,13 +3373,21 @@ HRESULT m_IDirectDrawSurfaceX::CheckInterface(char *FunctionName, bool CheckD3DD
 		if (!ddrawParent->CheckD3D9Device() || !d3d9Device || !*d3d9Device)
 		{
 			LOG_LIMIT(100, FunctionName << " Error: d3d9 device not setup!");
-			return DDERR_GENERIC;
+			return DDERR_INVALIDOBJECT;
 		}
 	}
 
 	// Check surface
 	if (CheckD3DSurface)
 	{
+		// Check if using Direct3D
+		bool LastIsDirect3DSurface = IsDirect3DEnabled;
+		IsDirect3DEnabled = ddrawParent->IsUsing3D();
+		if (IsDirect3DEnabled && !LastIsDirect3DSurface && IsUsingEmulation() && !SurfaceRequiresEmulation && !IsSurfaceBusy())
+		{
+			ReleaseDCSurface();
+		}
+
 		// Check if device is lost
 		if (!IsUsingEmulation() && CheckD3DDevice)
 		{
@@ -3193,11 +3412,8 @@ HRESULT m_IDirectDrawSurfaceX::CheckInterface(char *FunctionName, bool CheckD3DD
 			}
 		}
 
-		// Check if using Direct3D
-		IsDirect3DSurface = ddrawParent->IsUsing3D();
-
 		// Make sure surface exists, if not then create it
-		if (!surfaceTexture && !surface3D)
+		if (!surface.Texture && !surface.Surface)
 		{
 			if (FAILED(CreateD3d9Surface()))
 			{
@@ -3214,9 +3430,9 @@ HRESULT m_IDirectDrawSurfaceX::CheckInterface(char *FunctionName, bool CheckD3DD
 HRESULT m_IDirectDrawSurfaceX::CreateD3d9Surface()
 {
 	// Don't recreate surface while it is locked
-	if ((surfaceTexture || surface3D) && IsLocked)
+	if ((surface.Texture || surface.Surface) && IsSurfaceBusy())
 	{
-		LOG_LIMIT(100, __FUNCTION__ << " Error: surface is locked!");
+		LOG_LIMIT(100, __FUNCTION__ << " Error: surface is busy! Locked: " << IsSurfaceLocked() << " DC: " << IsSurfaceInDC() << " Blt: " << IsSurfaceBlitting());
 		return DDERR_GENERIC;
 	}
 
@@ -3235,14 +3451,17 @@ HRESULT m_IDirectDrawSurfaceX::CreateD3d9Surface()
 	// Get texture format
 	surfaceFormat = GetDisplayFormat(surfaceDesc2.ddpfPixelFormat);
 	surfaceBitCount = GetBitCount(surfaceFormat);
-	const bool IsSurfaceEmulated = (((Config.DdrawEmulateSurface || (surfaceDesc2.ddsCaps.dwCaps & DDSCAPS_OWNDC) ||
-		((IsPrimarySurface() || IsBackBuffer()) && (Config.DdrawWriteToGDI || Config.DdrawReadFromGDI || Config.DdrawRemoveScanlines))) &&
-		!IsDepthBuffer() && !(surfaceFormat & 0xFF000000 /*FOURCC or D3DFMT_DXTx*/)) ||
-		surfaceFormat == D3DFMT_A8B8G8R8 || surfaceFormat == D3DFMT_X8B8G8R8 || surfaceFormat == D3DFMT_B8G8R8 || surfaceFormat == D3DFMT_R8G8B8);
+	SurfaceRequiresEmulation = ((surfaceFormat == D3DFMT_A8B8G8R8 || surfaceFormat == D3DFMT_X8B8G8R8 || surfaceFormat == D3DFMT_B8G8R8 ||
+		surfaceFormat == D3DFMT_R8G8B8 || surfaceFormat == D3DFMT_P8 || Config.DdrawEmulateSurface || (Config.DdrawRemoveScanlines && IsPrimaryOrBackBuffer())) &&
+			!IsDepthBuffer() && !(surfaceFormat & 0xFF000000 /*FOURCC or D3DFMT_DXTx*/));
+	const bool IsSurfaceEmulated = (SurfaceRequiresEmulation || (IsPrimaryOrBackBuffer() && (Config.DdrawWriteToGDI || Config.DdrawReadFromGDI) && !IsDirect3DEnabled));
 	DCRequiresEmulation = (surfaceFormat != D3DFMT_R5G6B5 && surfaceFormat != D3DFMT_X1R5G5B5 && surfaceFormat != D3DFMT_R8G8B8 && surfaceFormat != D3DFMT_X8R8G8B8);
 	const D3DFORMAT Format = (surfaceFormat == D3DFMT_X8B8G8R8 || surfaceFormat == D3DFMT_B8G8R8 || surfaceFormat == D3DFMT_R8G8B8) ? D3DFMT_X8R8G8B8 :
 		(surfaceFormat == D3DFMT_A8B8G8R8) ? D3DFMT_A8R8G8B8 : surfaceFormat;
 	const D3DFORMAT TextureFormat = (surfaceFormat == D3DFMT_P8) ? D3DFMT_L8 : Format;
+
+	const D3DPOOL TexturePool = IsPrimaryOrBackBuffer() ? D3DPOOL_MANAGED :
+		(surfaceDesc2.ddsCaps.dwCaps & DDSCAPS_SYSTEMMEMORY) ? D3DPOOL_SYSTEMMEM : D3DPOOL_MANAGED;
 
 	// Adjust Width to be byte-aligned
 	const DWORD Width = GetByteAlignedWidth(surfaceDesc2.dwWidth, surfaceBitCount);
@@ -3257,7 +3476,7 @@ HRESULT m_IDirectDrawSurfaceX::CreateD3d9Surface()
 		if (IsDepthBuffer())
 		{
 			// ToDo: Get existing stencil surface rather than creating a new one
-			if (FAILED(((*d3d9Device)->CreateDepthStencilSurface(Width, Height, Format, ddrawParent->GetMultiSampleType(), ddrawParent->GetMultiSampleQuality(), FALSE, &surface3D, nullptr))))
+			if (FAILED(((*d3d9Device)->CreateDepthStencilSurface(Width, Height, Format, ddrawParent->GetMultiSampleType(), ddrawParent->GetMultiSampleQuality(), FALSE, &surface.Surface, nullptr))))
 			{
 				LOG_LIMIT(100, __FUNCTION__ << " Error: failed to create depth buffer surface. Size: " << Width << "x" << Height << " Format: " << surfaceFormat << " dwCaps: " << Logging::hex(surfaceDesc2.ddsCaps.dwCaps));
 				hr = DDERR_GENERIC;
@@ -3267,9 +3486,7 @@ HRESULT m_IDirectDrawSurfaceX::CreateD3d9Surface()
 		// Create texture
 		else
 		{
-			const D3DPOOL Pool = (IsPrimarySurface() || IsBackBuffer()) ? D3DPOOL_MANAGED :
-				(surfaceDesc2.ddsCaps.dwCaps & DDSCAPS_SYSTEMMEMORY) ? D3DPOOL_SYSTEMMEM : D3DPOOL_MANAGED;
-			if (FAILED(((*d3d9Device)->CreateTexture(Width, Height, 1, 0, TextureFormat, Pool, &surfaceTexture, nullptr))))
+			if (FAILED(((*d3d9Device)->CreateTexture(Width, Height, 1, 0, TextureFormat, TexturePool, &surface.Texture, nullptr))))
 			{
 				LOG_LIMIT(100, __FUNCTION__ << " Error: failed to create surface texture. Size: " << Width << "x" << Height << " Format: " << surfaceFormat << " dwCaps: " << Logging::hex(surfaceDesc2.ddsCaps.dwCaps));
 				hr = DDERR_GENERIC;
@@ -3278,9 +3495,9 @@ HRESULT m_IDirectDrawSurfaceX::CreateD3d9Surface()
 		}
 
 		// Create blank surface
-		if (IsPrimarySurface() && !IsSurfaceEmulated && !IsPalette())
+		if (IsPrimarySurface() && !IsPalette())
 		{
-			if (FAILED(((*d3d9Device)->CreateOffscreenPlainSurface(Width, Height, Format, D3DPOOL_DEFAULT, &blankSurface, nullptr))))
+			if (FAILED(((*d3d9Device)->CreateOffscreenPlainSurface(Width, Height, Format, D3DPOOL_DEFAULT, &primary.BlankSurface, nullptr))))
 			{
 				LOG_LIMIT(100, __FUNCTION__ << " Error: failed to create blank surface. Size: " << Width << "x" << Height << " Format: " << surfaceFormat << " dwCaps: " << Logging::hex(surfaceDesc2.ddsCaps.dwCaps));
 				hr = DDERR_GENERIC;
@@ -3288,26 +3505,29 @@ HRESULT m_IDirectDrawSurfaceX::CreateD3d9Surface()
 			}
 		}
 
-		// Create palette texture
-		if (IsPrimarySurface() && IsPalette())
+		surface.IsPaletteDirty = IsPalette();
+
+		// Create palette surface
+		if (IsPrimarySurface() && surfaceFormat == D3DFMT_P8)
 		{
-			palettePixelShader = ddrawParent->GetPaletteShader();
-			if (!palettePixelShader || !*palettePixelShader ||
-				FAILED(((*d3d9Device)->CreateTexture(256, 256, 1, 0, D3DFMT_X8R8G8B8, D3DPOOL_MANAGED, &paletteTexture, nullptr))))
+			primary.PalettePixelShader = ddrawParent->GetPaletteShader();
+			if (!primary.PalettePixelShader || !*primary.PalettePixelShader ||
+				FAILED(((*d3d9Device)->CreateTexture(MaxPaletteSize, MaxPaletteSize, 1, 0, D3DFMT_X8R8G8B8, D3DPOOL_MANAGED, &primary.PaletteTexture, nullptr))))
 			{
-				LOG_LIMIT(100, __FUNCTION__ << " Error: failed to create palette surface texture.");
+				LOG_LIMIT(100, __FUNCTION__ << " Error: failed to create palette surface texture");
 				hr = DDERR_GENERIC;
 				break;
 			}
 		}
+
 	} while (false);
 
 	bool EmuSurfaceCreated = false;
 
 	// Create emulated surface using device context for creation
-	if (IsSurfaceEmulated || Config.DdrawWriteToGDI || (emu && !DoesDCMatch(emu)))
+	if (IsSurfaceEmulated || (IsUsingEmulation() && !DoesDCMatch(surface.emu)))
 	{
-		if (!DoesDCMatch(emu))
+		if (!DoesDCMatch(surface.emu))
 		{
 			EmuSurfaceCreated = true;
 
@@ -3316,17 +3536,15 @@ HRESULT m_IDirectDrawSurfaceX::CreateD3d9Surface()
 	}
 
 	// Restore d3d9 surface texture data
-	if (surfaceTexture || surface3D)
+	if (surface.Texture || surface.Surface)
 	{
-		if (DoesDCMatch(emu) && !EmuSurfaceCreated)
+		if (DoesDCMatch(surface.emu) && !EmuSurfaceCreated)
 		{
 			CopyFromEmulatedSurface(nullptr);
 		}
-		else if (!surfaceBackup.empty())
+		else if (!surface.Backup.empty())
 		{
-			DWORD Bytes = surfaceBitCount / 8;
-			DWORD Pitch = surfaceBackup.size() / surfaceDesc2.dwHeight;
-			if (Bytes && Pitch / Bytes >= surfaceDesc2.dwWidth)
+			if (surface.Backup.size() / surfaceDesc2.dwHeight == (DWORD)surfaceDesc2.lPitch)
 			{
 				IDirect3DSurface9* pDestSurfaceD9 = GetD3D9Surface();
 
@@ -3334,7 +3552,7 @@ HRESULT m_IDirectDrawSurfaceX::CreateD3d9Surface()
 				{
 					RECT Rect = { 0, 0, (LONG)surfaceDesc2.dwWidth, (LONG)surfaceDesc2.dwHeight };
 
-					if (SUCCEEDED(D3DXLoadSurfaceFromMemory(pDestSurfaceD9, nullptr, &Rect, &surfaceBackup[0], (surfaceFormat == D3DFMT_P8) ? D3DFMT_L8 : surfaceFormat, Pitch, nullptr, &Rect, D3DX_FILTER_NONE, 0)))
+					if (SUCCEEDED(D3DXLoadSurfaceFromMemory(pDestSurfaceD9, nullptr, &Rect, surface.Backup.data(), (surfaceFormat == D3DFMT_P8) ? D3DFMT_L8 : surfaceFormat, surfaceDesc2.lPitch, nullptr, &Rect, D3DX_FILTER_NONE, 0)))
 					{
 						if (IsUsingEmulation())
 						{
@@ -3347,23 +3565,25 @@ HRESULT m_IDirectDrawSurfaceX::CreateD3d9Surface()
 					}
 				}
 			}
+			else
+			{
+				LOG_LIMIT(100, __FUNCTION__ << " Warning: restore backup surface data size mismatch! Size: " << surface.Backup.size() <<
+					" Surface pitch: " << surfaceDesc2.lPitch << " " << surfaceDesc2.dwWidth << "x" << surfaceDesc2.dwHeight);
+			}
 		}
 	}
 
 	// Data is no longer needed
-	surfaceBackup.clear();
-
-	// Mark palette as updated
-	PaletteUSN++;
+	surface.Backup.clear();
 
 	// Only need to create vertex buffer for primary surface when using DirectDraw and not writing to GDI
-	if (!IsPrimarySurface() || Config.DdrawWriteToGDI)
+	if (!IsPrimarySurface())
 	{
 		return hr;
 	}
 
 	// Create vertex buffer
-	if (FAILED((*d3d9Device)->CreateVertexBuffer(sizeof(TLVERTEX) * 4, D3DUSAGE_WRITEONLY, TLVERTEXFVF, D3DPOOL_DEFAULT, &vertexBuffer, nullptr)))
+	if (FAILED((*d3d9Device)->CreateVertexBuffer(sizeof(TLVERTEX) * 4, D3DUSAGE_WRITEONLY, primary.TLVERTEXFVF, D3DPOOL_DEFAULT, &primary.VertexBuffer, nullptr)))
 	{
 		LOG_LIMIT(100, __FUNCTION__ << " Error: failed to create vertex buffer");
 		return DDERR_GENERIC;
@@ -3373,7 +3593,7 @@ HRESULT m_IDirectDrawSurfaceX::CreateD3d9Surface()
 	TLVERTEX* vertices = nullptr;
 
 	// Lock vertex buffer
-	if (FAILED(vertexBuffer->Lock(0, 0, (void**)&vertices, 0)))
+	if (FAILED(primary.VertexBuffer->Lock(0, 0, (void**)&vertices, 0)))
 	{
 		LOG_LIMIT(100, __FUNCTION__ << " Error: failed to lock vertex buffer");
 		return DDERR_GENERIC;
@@ -3479,7 +3699,7 @@ HRESULT m_IDirectDrawSurfaceX::CreateD3d9Surface()
 	vertices[3].v = v1tex;
 
 	// Unlock vertex buffer
-	if (FAILED(vertexBuffer->Unlock()))
+	if (FAILED(primary.VertexBuffer->Unlock()))
 	{
 		LOG_LIMIT(100, __FUNCTION__ << " Error: failed to unlock vertex buffer");
 		return DDERR_GENERIC;
@@ -3490,7 +3710,7 @@ HRESULT m_IDirectDrawSurfaceX::CreateD3d9Surface()
 
 inline bool m_IDirectDrawSurfaceX::DoesDCMatch(EMUSURFACE* pEmuSurface)
 {
-	if (!pEmuSurface || !pEmuSurface->surfaceDC || !pEmuSurface->surfacepBits)
+	if (!pEmuSurface || !pEmuSurface->DC || !pEmuSurface->pBits)
 	{
 		return false;
 	}
@@ -3498,12 +3718,13 @@ inline bool m_IDirectDrawSurfaceX::DoesDCMatch(EMUSURFACE* pEmuSurface)
 	// Adjust Width to be byte-aligned
 	DWORD Width = GetByteAlignedWidth(surfaceDesc2.dwWidth, surfaceBitCount);
 	DWORD Height = surfaceDesc2.dwHeight;
+	DWORD Pitch = ComputePitch(Width, surfaceBitCount);
 
-	if (pEmuSurface->bmi->bmiHeader.biWidth == (LONG)Width && -pEmuSurface->bmi->bmiHeader.biHeight == (LONG)Height &&
-		pEmuSurface->bmi->bmiHeader.biBitCount == surfaceBitCount && (
-			((DWORD*)pEmuSurface->bmi->bmiColors)[0] == surfaceDesc2.ddpfPixelFormat.dwRBitMask &&
-			((DWORD*)pEmuSurface->bmi->bmiColors)[1] == surfaceDesc2.ddpfPixelFormat.dwGBitMask &&
-			((DWORD*)pEmuSurface->bmi->bmiColors)[2] == surfaceDesc2.ddpfPixelFormat.dwBBitMask))
+	if (pEmuSurface->bmi->bmiHeader.biWidth == (LONG)Width &&
+		pEmuSurface->bmi->bmiHeader.biHeight == -(LONG)Height &&
+		pEmuSurface->bmi->bmiHeader.biBitCount == surfaceBitCount &&
+		pEmuSurface->Format == surfaceFormat &&
+		pEmuSurface->Pitch == Pitch)
 	{
 		return true;
 	}
@@ -3523,17 +3744,17 @@ HRESULT m_IDirectDrawSurfaceX::CreateDCSurface()
 	DWORD Height = surfaceDesc2.dwHeight;
 
 	// Check if emulated surface already exists
-	if (emu)
+	if (surface.emu)
 	{
 		// Check if emulated memory is good
-		if (!emu->surfaceDC || !emu->surfacepBits)
+		if (!surface.emu->DC || !surface.emu->pBits)
 		{
-			DeleteEmulatedMemory(&emu);
+			DeleteEmulatedMemory(&surface.emu);
 		}
 		else
 		{
 			// Check if current emulated surface is still ok
-			if (DoesDCMatch(emu))
+			if (DoesDCMatch(surface.emu))
 			{
 				return DD_OK;
 			}
@@ -3541,14 +3762,14 @@ HRESULT m_IDirectDrawSurfaceX::CreateDCSurface()
 			// Save current emulated surface and prepare for creating a new one.
 			if (ShareEmulatedMemory)
 			{
-				EnterCriticalSection(&smcs);
-				memorySurfaces.push_back(emu);
-				emu = nullptr;
-				LeaveCriticalSection(&smcs);
+				SetCriticalSection();
+				memorySurfaces.push_back(surface.emu);
+				surface.emu = nullptr;
+				ReleaseCriticalSection();
 			}
 			else
 			{
-				DeleteEmulatedMemory(&emu);
+				DeleteEmulatedMemory(&surface.emu);
 			}
 		}
 	}
@@ -3556,27 +3777,25 @@ HRESULT m_IDirectDrawSurfaceX::CreateDCSurface()
 	// If sharing memory than check the shared memory vector for a surface that matches
 	if (ShareEmulatedMemory)
 	{
-		EnterCriticalSection(&smcs);
+		SetCriticalSection();
 		for (auto it = memorySurfaces.begin(); it != memorySurfaces.end(); it++)
 		{
 			EMUSURFACE* pEmuSurface = *it;
 
 			if (DoesDCMatch(pEmuSurface))
 			{
-				emu = pEmuSurface;
+				surface.emu = pEmuSurface;
 
 				it = memorySurfaces.erase(it);
 
 				break;
 			}
 		}
-		LeaveCriticalSection(&smcs);
+		ReleaseCriticalSection();
 
-		if (emu && emu->surfacepBits)
+		if (surface.emu && surface.emu->pBits)
 		{
-			ZeroMemory(emu->surfacepBits, emu->surfaceSize);
-
-			PaletteUSN++;
+			ZeroMemory(surface.emu->pBits, surface.emu->Size);
 
 			return DD_OK;
 		}
@@ -3585,70 +3804,69 @@ HRESULT m_IDirectDrawSurfaceX::CreateDCSurface()
 	Logging::LogDebug() << __FUNCTION__ " (" << this << ") creating emulated surface. Size: " << Width << "x" << Height << " Format: " << surfaceFormat << " dwCaps: " << Logging::hex(surfaceDesc2.ddsCaps.dwCaps);
 
 	// Create new emulated surface structure
-	emu = new EMUSURFACE;
+	surface.emu = new EMUSURFACE;
 
 	// Create device context memory
-	ZeroMemory(emu->bmiMemory, sizeof(emu->bmiMemory));
-	emu->bmi->bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
-	emu->bmi->bmiHeader.biWidth = Width;
-	emu->bmi->bmiHeader.biHeight = -((LONG)Height + 200);
-	emu->bmi->bmiHeader.biPlanes = 1;
-	emu->bmi->bmiHeader.biBitCount = (WORD)surfaceBitCount;
-	emu->bmi->bmiHeader.biCompression =
+	ZeroMemory(surface.emu->bmiMemory, sizeof(surface.emu->bmiMemory));
+	surface.emu->bmi->bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
+	surface.emu->bmi->bmiHeader.biWidth = Width;
+	surface.emu->bmi->bmiHeader.biHeight = -((LONG)Height + 200);
+	surface.emu->bmi->bmiHeader.biPlanes = 1;
+	surface.emu->bmi->bmiHeader.biBitCount = (WORD)surfaceBitCount;
+	surface.emu->bmi->bmiHeader.biCompression =
 		(surfaceBitCount == 8 || surfaceBitCount == 24) ? BI_RGB :
 		(ColorMaskReq) ? BI_BITFIELDS : 0;	// BI_BITFIELDS is only valid for 16-bpp and 32-bpp bitmaps.
-	emu->bmi->bmiHeader.biSizeImage = ((Width * surfaceBitCount + 31) & ~31) / 8 * Height;
+	surface.emu->bmi->bmiHeader.biSizeImage = ((Width * surfaceBitCount + 31) & ~31) / 8 * Height;
 
 	if (surfaceBitCount == 8)
 	{
 		for (int i = 0; i < 256; i++)
 		{
-			emu->bmi->bmiColors[i].rgbRed = (byte)i;
-			emu->bmi->bmiColors[i].rgbGreen = (byte)i;
-			emu->bmi->bmiColors[i].rgbBlue = (byte)i;
-			emu->bmi->bmiColors[i].rgbReserved = 0;
+			surface.emu->bmi->bmiColors[i].rgbRed = (byte)i;
+			surface.emu->bmi->bmiColors[i].rgbGreen = (byte)i;
+			surface.emu->bmi->bmiColors[i].rgbBlue = (byte)i;
+			surface.emu->bmi->bmiColors[i].rgbReserved = 0;
 		}
 	}
 	else if (ColorMaskReq)
 	{
-		((DWORD*)emu->bmi->bmiColors)[0] = surfaceDesc2.ddpfPixelFormat.dwRBitMask;
-		((DWORD*)emu->bmi->bmiColors)[1] = surfaceDesc2.ddpfPixelFormat.dwGBitMask;
-		((DWORD*)emu->bmi->bmiColors)[2] = surfaceDesc2.ddpfPixelFormat.dwBBitMask;
-		((DWORD*)emu->bmi->bmiColors)[3] = surfaceDesc2.ddpfPixelFormat.dwRGBAlphaBitMask;
+		((DWORD*)surface.emu->bmi->bmiColors)[0] = surfaceDesc2.ddpfPixelFormat.dwRBitMask;
+		((DWORD*)surface.emu->bmi->bmiColors)[1] = surfaceDesc2.ddpfPixelFormat.dwGBitMask;
+		((DWORD*)surface.emu->bmi->bmiColors)[2] = surfaceDesc2.ddpfPixelFormat.dwBBitMask;
+		((DWORD*)surface.emu->bmi->bmiColors)[3] = surfaceDesc2.ddpfPixelFormat.dwRGBAlphaBitMask;
 	}
 	else
 	{
 		LOG_LIMIT(100, __FUNCTION__ << " Error: failed to set bmi colors! " << surfaceBitCount);
-		DeleteEmulatedMemory(&emu);
+		DeleteEmulatedMemory(&surface.emu);
 		return DDERR_GENERIC;
 	}
 
-	emu->surfaceDC = CreateCompatibleDC(ddrawParent->GetDC());
-	if (!emu->surfaceDC)
+	surface.emu->DC = CreateCompatibleDC(ddrawParent->GetDC());
+	if (!surface.emu->DC)
 	{
 		LOG_LIMIT(100, __FUNCTION__ << " Error: failed to create compatible DC!");
-		DeleteEmulatedMemory(&emu);
+		DeleteEmulatedMemory(&surface.emu);
 		return DDERR_GENERIC;
 	}
-	emu->bitmap = CreateDIBSection(emu->surfaceDC, emu->bmi, (surfaceBitCount == 8) ? DIB_PAL_COLORS : DIB_RGB_COLORS, (void**)&emu->surfacepBits, nullptr, 0);
-	if (!emu->bitmap)
+	surface.emu->bitmap = CreateDIBSection(surface.emu->DC, surface.emu->bmi, (surfaceBitCount == 8) ? DIB_PAL_COLORS : DIB_RGB_COLORS, (void**)&surface.emu->pBits, nullptr, 0);
+	if (!surface.emu->bitmap)
 	{
 		LOG_LIMIT(100, __FUNCTION__ << " Error: failed to create bitmap!");
-		DeleteEmulatedMemory(&emu);
+		DeleteEmulatedMemory(&surface.emu);
 		return DDERR_GENERIC;
 	}
-	emu->OldDCObject = SelectObject(emu->surfaceDC, emu->bitmap);
-	if (!emu->OldDCObject)
+	surface.emu->OldDCObject = SelectObject(surface.emu->DC, surface.emu->bitmap);
+	if (!surface.emu->OldDCObject)
 	{
 		LOG_LIMIT(100, __FUNCTION__ << " Error: failed to replace object in DC!");
-		DeleteEmulatedMemory(&emu);
+		DeleteEmulatedMemory(&surface.emu);
 		return DDERR_GENERIC;
 	}
-	emu->bmi->bmiHeader.biHeight = -(LONG)Height;
-	emu->surfacePitch = ComputePitch(emu->bmi->bmiHeader.biWidth, emu->bmi->bmiHeader.biBitCount);
-	emu->surfaceSize = Height * emu->surfacePitch;
-
-	PaletteUSN++;
+	surface.emu->bmi->bmiHeader.biHeight = -(LONG)Height;
+	surface.emu->Format = surfaceFormat;
+	surface.emu->Pitch = ComputePitch(surface.emu->bmi->bmiHeader.biWidth, surface.emu->bmi->bmiHeader.biBitCount);
+	surface.emu->Size = Height * surface.emu->Pitch;
 
 	return DD_OK;
 }
@@ -3666,7 +3884,7 @@ void m_IDirectDrawSurfaceX::UpdateSurfaceDesc()
 
 		// Get resolution
 		DWORD Width, Height, RefreshRate, BPP;
-		ddrawParent->GetFullDisplay(Width, Height, BPP, RefreshRate);
+		ddrawParent->GetSurfaceDisplay(Width, Height, BPP, RefreshRate);
 
 		// Set Height and Width
 		if (Width && Height &&
@@ -3679,7 +3897,7 @@ void m_IDirectDrawSurfaceX::UpdateSurfaceDesc()
 			surfaceDesc2.lPitch = 0;
 		}
 		// Set Refresh Rate
-		if (RefreshRate && ((surfaceDesc2.dwFlags & DDSD_REFRESHRATE) || (IsPrimarySurface() || IsBackBuffer())))
+		if (RefreshRate && ((surfaceDesc2.dwFlags & DDSD_REFRESHRATE) || IsPrimaryOrBackBuffer()))
 		{
 			surfaceDesc2.dwFlags |= DDSD_REFRESHRATE;
 			surfaceDesc2.dwRefreshRate = RefreshRate;
@@ -3690,54 +3908,71 @@ void m_IDirectDrawSurfaceX::UpdateSurfaceDesc()
 			ResetDisplayFlags |= DDSD_PIXELFORMAT | DDSD_PITCH;
 			surfaceDesc2.dwFlags |= DDSD_PIXELFORMAT;
 			ddrawParent->GetDisplayPixelFormat(surfaceDesc2.ddpfPixelFormat, BPP);
+			surfaceDesc2.lPitch = 0;
 		}
 	}
 	// Overwrite primary surface
-	if ((IsPrimarySurface() || IsBackBuffer()) && Config.DdrawOverridePrimaryWidth && Config.DdrawOverridePrimaryHeight)
+	if (IsPrimaryOrBackBuffer() && Config.DdrawOverridePrimaryWidth && Config.DdrawOverridePrimaryHeight)
 	{
 		surfaceDesc2.dwFlags |= DDSD_WIDTH | DDSD_HEIGHT;
 		surfaceDesc2.dwWidth = Config.DdrawOverridePrimaryWidth;
 		surfaceDesc2.dwHeight = Config.DdrawOverridePrimaryHeight;
 	}
 	// Unset lPitch
-	if ((surfaceDesc2.dwFlags & (DDSD_WIDTH | DDSD_HEIGHT | DDSD_PIXELFORMAT)) != (DDSD_WIDTH | DDSD_HEIGHT | DDSD_PIXELFORMAT) || !surfaceDesc2.lPitch)
+	if ((surfaceDesc2.dwFlags & (DDSD_WIDTH | DDSD_HEIGHT | DDSD_PIXELFORMAT)) != (DDSD_WIDTH | DDSD_HEIGHT | DDSD_PIXELFORMAT) ||
+		!surfaceDesc2.lPitch || !(surfaceDesc2.dwFlags & DDSD_PITCH))
 	{
 		surfaceDesc2.dwFlags &= ~DDSD_PITCH;
 		surfaceDesc2.lPitch = 0;
+	}
+	// Set lPitch
+	if ((surfaceDesc2.dwFlags & (DDSD_WIDTH | DDSD_HEIGHT | DDSD_PIXELFORMAT)) == (DDSD_WIDTH | DDSD_HEIGHT | DDSD_PIXELFORMAT) &&
+		(surfaceDesc2.ddpfPixelFormat.dwFlags & DDPF_RGB) && !(surfaceDesc2.dwFlags & DDSD_LINEARSIZE) && !(surfaceDesc2.dwFlags & DDSD_PITCH))
+	{
+		surfaceDesc2.dwFlags |= DDSD_PITCH;
+		DWORD BitCount = BitCount = GetBitCount(surfaceDesc2.ddpfPixelFormat);
+		surfaceDesc2.lPitch = ComputePitch(GetByteAlignedWidth(surfaceDesc2.dwWidth, BitCount), BitCount);
+	}
+	// Set surface format
+	if (surfaceFormat == D3DFMT_UNKNOWN)
+	{
+		surfaceFormat = GetDisplayFormat(surfaceDesc2.ddpfPixelFormat);
 	}
 }
 
 // Release surface and vertext buffer
 void m_IDirectDrawSurfaceX::ReleaseD9Surface(bool BackupData)
 {
-	if (IsLocked || IsInDC)
+	if (IsSurfaceBusy())
 	{
-		Logging::Log() << __FUNCTION__ << " Warning: surface still in use! Locked: " << IsLocked << " DC: " << IsInDC;
+		Logging::Log() << __FUNCTION__ << " Warning: surface still in use! Locked: " << IsSurfaceLocked() << " DC: " << IsSurfaceInDC() << " Blt: " << IsSurfaceBlitting();
 	}
 
+	SetCS();
+
 	// Release DC (before releasing surface)
-	if (IsInDC || LastDC)
+	if (IsSurfaceInDC() || surface.LastDC)
 	{
-		if (LastDC)
+		if (surface.LastDC)
 		{
-			ReleaseDC(LastDC);
-			LastDC = nullptr;
+			ReleaseDC(surface.LastDC);
+			surface.LastDC = nullptr;
 		}
-		IsInDC = false;
+		surface.IsInDC = false;
 	}
 
 	// Unlock surface (before releasing)
-	if (IsLocked)
+	if (IsSurfaceLocked())
 	{
 		UnlockD39Surface();
-		IsLocked = false;
-		LockedWithID = 0;
+		surface.IsLocked = false;
 	}
+	surface.LockedWithID = 0;
 
 	// Backup d3d9 surface texture
 	if (BackupData)
 	{
-		if (!IsUsingEmulation() && (surfaceTexture || surface3D))
+		if (!IsUsingEmulation() && (surface.Texture || surface.Surface))
 		{
 			D3DLOCKED_RECT LockRect = {};
 			if (SUCCEEDED(LockD39Surface(&LockRect, nullptr, 0)))
@@ -3746,9 +3981,9 @@ void m_IDirectDrawSurfaceX::ReleaseD9Surface(bool BackupData)
 
 				size_t size = surfaceDesc2.dwHeight * LockRect.Pitch;
 
-				surfaceBackup.resize(size);
+				surface.Backup.resize(size);
 
-				memcpy(&surfaceBackup[0], LockRect.pBits, size);
+				memcpy(surface.Backup.data(), LockRect.pBits, size);
 
 				UnlockD39Surface();
 			}
@@ -3759,71 +3994,85 @@ void m_IDirectDrawSurfaceX::ReleaseD9Surface(bool BackupData)
 		}
 	}
 	// Emulated surface
-	else if (emu)
+	else if (IsUsingEmulation())
 	{
-		if (!ShareEmulatedMemory || !emu->surfaceDC || !emu->surfacepBits)
-		{
-			DeleteEmulatedMemory(&emu);
-		}
-		else
-		{
-			EnterCriticalSection(&smcs);
-			memorySurfaces.push_back(emu);
-			emu = nullptr;
-			LeaveCriticalSection(&smcs);
-		}
+		ReleaseDCSurface();
 	}
 
 	// Release d3d9 3D surface
-	if (surface3D)
+	if (surface.Surface)
 	{
 		Logging::LogDebug() << __FUNCTION__ << " Releasing Direct3D9 surface";
-		ULONG ref = surface3D->Release();
+		ULONG ref = surface.Surface->Release();
 		if (ref)
 		{
 			Logging::Log() << __FUNCTION__ << " Error: there is still a reference to 'surface3D' " << ref;
 		}
-		surface3D = nullptr;
+		surface.Surface = nullptr;
 	}
 
 	// Release d3d9 context surface
-	if (contextSurface)
+	if (surface.Context)
 	{
 		Logging::LogDebug() << __FUNCTION__ << " Releasing Direct3D9 context surface";
-		ULONG ref = contextSurface->Release();
+		ULONG ref = surface.Context->Release();
 		if (ref > 1)	// Ref count is higher becasue it is a surface of 'surfaceTexture'
 		{
 			Logging::Log() << __FUNCTION__ << " Error: there is still a reference to 'contextSurface' " << ref;
 		}
-		contextSurface = nullptr;
+		surface.Context = nullptr;
 	}
 
 	// Release d3d9 surface texture
-	if (surfaceTexture)
+	if (surface.Texture)
 	{
 		Logging::LogDebug() << __FUNCTION__ << " Releasing Direct3D9 texture surface";
-		ULONG ref = surfaceTexture->Release();
+		ULONG ref = surface.Texture->Release();
 		if (ref)
 		{
 			Logging::Log() << __FUNCTION__ << " Error: there is still a reference to 'surfaceTexture' " << ref;
 		}
-		surfaceTexture = nullptr;
+		surface.Texture = nullptr;
+	}
+
+	// Release d3d9 palette context texture
+	if (surface.DisplayContext)
+	{
+		Logging::LogDebug() << __FUNCTION__ << " Releasing Direct3D9 palette context texture";
+		ULONG ref = surface.DisplayContext->Release();
+		if (ref > 1)
+		{
+			Logging::Log() << __FUNCTION__ << " Error: there is still a reference to 'paletteDisplaySurface' " << ref;
+		}
+		surface.DisplayContext = nullptr;
+	}
+
+	// Release d3d9 palette display texture
+	if (surface.DisplayTexture)
+	{
+		Logging::LogDebug() << __FUNCTION__ << " Releasing Direct3D9 palette display texture";
+		ULONG ref = surface.DisplayTexture->Release();
+		if (ref)
+		{
+			Logging::Log() << __FUNCTION__ << " Error: there is still a reference to 'paletteDisplayTexture' " << ref;
+		}
+		surface.DisplayTexture = nullptr;
 	}
 
 	// Release blank surface
-	if (blankSurface)
+	if (primary.BlankSurface)
 	{
 		Logging::LogDebug() << __FUNCTION__ << " Releasing Direct3D9 blank surface";
-		ULONG ref = blankSurface->Release();
+		ULONG ref = primary.BlankSurface->Release();
 		if (ref)
 		{
 			Logging::Log() << __FUNCTION__ << " Error: there is still a reference to 'blankSurface' " << ref;
 		}
-		blankSurface = nullptr;
+		primary.BlankSurface = nullptr;
 	}
 
 	// Release d3d9 palette surface texture
-	if (paletteTexture)
+	if (primary.PaletteTexture)
 	{
 		Logging::LogDebug() << __FUNCTION__ << " Releasing Direct3D9 palette texture surface";
 		if (d3d9Device && *d3d9Device)
@@ -3831,38 +4080,59 @@ void m_IDirectDrawSurfaceX::ReleaseD9Surface(bool BackupData)
 			(*d3d9Device)->SetTexture(1, nullptr);
 			(*d3d9Device)->SetPixelShader(nullptr);
 		}
-		ULONG ref = paletteTexture->Release();
+		ULONG ref = primary.PaletteTexture->Release();
 		if (ref)
 		{
 			Logging::Log() << __FUNCTION__ << " Error: there is still a reference to 'paletteTexture' " << ref;
 		}
-		paletteTexture = nullptr;
+		primary.PaletteTexture = nullptr;
 	}
 
 	// Release d3d9 vertex buffer
-	if (vertexBuffer)
+	if (primary.VertexBuffer)
 	{
 		Logging::LogDebug() << __FUNCTION__ << " Releasing Direct3D9 vertext buffer";
-		ULONG ref = vertexBuffer->Release();
+		ULONG ref = primary.VertexBuffer->Release();
 		if (ref)
 		{
 			Logging::Log() << __FUNCTION__ << " Error: there is still a reference to 'vertexBuffer' " << ref;
 		}
-		vertexBuffer = nullptr;
+		primary.VertexBuffer = nullptr;
 	}
 
 	// Clear locked rects
-	surfaceLockRectList.clear();
+	surface.LockRectList.clear();
 
 	// Reset scanline flags
-	LastLock.LockedRect.pBits = nullptr;
-	LastLock.bEvenScanlines = false;
-	LastLock.bOddScanlines = false;
+	surface.LastLock.LockedRect.pBits = nullptr;
+	surface.LastLock.bEvenScanlines = false;
+	surface.LastLock.bOddScanlines = false;
 
 	// Reset display flags
 	if (ResetDisplayFlags)
 	{
 		surfaceDesc2.dwFlags &= ~ResetDisplayFlags;
+	}
+
+	ReleaseCS();
+}
+
+// Release emulated surface
+inline void m_IDirectDrawSurfaceX::ReleaseDCSurface()
+{
+	if (surface.emu)
+	{
+		if (!ShareEmulatedMemory || !surface.emu->DC || !surface.emu->pBits)
+		{
+			DeleteEmulatedMemory(&surface.emu);
+		}
+		else
+		{
+			SetCriticalSection();
+			memorySurfaces.push_back(surface.emu);
+			surface.emu = nullptr;
+			ReleaseCriticalSection();
+		}
 	}
 }
 
@@ -3873,32 +4143,43 @@ HRESULT m_IDirectDrawSurfaceX::ClearPrimarySurface()
 		return DDERR_GENERIC;
 	}
 
-	if (IsUsingEmulation() || IsPalette())
-	{
-		HRESULT hr = ColorFill(nullptr, 0x00000000);
+	SetCS();
+
+	HRESULT hr = DD_OK;
+
+	do {
+
+		if (IsUsingEmulation() || IsPalette())
+		{
+			hr = ColorFill(nullptr, 0x00000000);
+
+			if (FAILED(hr))
+			{
+				LOG_LIMIT(100, __FUNCTION__ << " Error: could not color fill surface. " << (D3DERR)hr);
+			}
+
+			break;
+		}
+
+		IDirect3DSurface9* pDestSurfaceD9 = GetD3D9Surface();
+
+		if (!primary.BlankSurface || !pDestSurfaceD9)
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: could not get surface. " << primary.BlankSurface << "->" << pDestSurfaceD9);
+			hr = DDERR_GENERIC;
+			break;
+		}
+
+		hr = D3DXLoadSurfaceFromSurface(pDestSurfaceD9, nullptr, nullptr, primary.BlankSurface, nullptr, nullptr, D3DX_FILTER_POINT, 0);
 
 		if (FAILED(hr))
 		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error: could not color fill surface. " << (D3DERR)hr);
+			LOG_LIMIT(100, __FUNCTION__ << " Error: could not load source from surface. " << (D3DERR)hr);
 		}
 
-		return hr;
-	}
+	} while (false);
 
-	IDirect3DSurface9* pDestSurfaceD9 = GetD3D9Surface();
-
-	if (!blankSurface || !pDestSurfaceD9)
-	{
-		LOG_LIMIT(100, __FUNCTION__ << " Error: could not get surface. " << blankSurface << "->" << pDestSurfaceD9);
-		return DDERR_GENERIC;
-	}
-
-	HRESULT hr = D3DXLoadSurfaceFromSurface(pDestSurfaceD9, nullptr, nullptr, blankSurface, nullptr, nullptr, D3DX_FILTER_POINT, 0);
-
-	if (FAILED(hr))
-	{
-		LOG_LIMIT(100, __FUNCTION__ << " Error: could not load source from surface. " << (D3DERR)hr);
-	}
+	ReleaseCS();
 
 	return hr;
 }
@@ -3907,24 +4188,55 @@ HRESULT m_IDirectDrawSurfaceX::Draw2DSurface()
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ") ";
 
+	LPDIRECT3DTEXTURE9 displayTexture = GetD3D9Texture();
+
 	// If there is no surface texture than nothing to draw
-	if (!surfaceTexture)
+	if (!displayTexture)
 	{
 		return DD_OK;
 	}
 
-	// Set texture
-	if (surfaceTexture)
+	// If texture is not dirty then mark it as dirty in case the game wrote to the memory directly (Nox does this)
+	if (!surface.IsDirtyFlag)
 	{
-		if (FAILED((*d3d9Device)->SetTexture(0, surfaceTexture)))
+		if (IsUsingEmulation())
 		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error: failed to set surface texture");
+			CopyFromEmulatedSurface(nullptr);
+		}
+		else
+		{
+			displayTexture->AddDirtyRect(nullptr);
+		}
+	}
+
+	// Set texture
+	if (FAILED((*d3d9Device)->SetTexture(0, displayTexture)))
+	{
+		LOG_LIMIT(100, __FUNCTION__ << " Error: failed to set surface texture");
+		return DDERR_GENERIC;
+	}
+
+	// Handle palette surfaces
+	if (primary.PaletteTexture && primary.PalettePixelShader && *primary.PalettePixelShader)
+	{
+		// Set palette texture
+		UpdatePaletteData();
+		if (FAILED((*d3d9Device)->SetTexture(1, primary.PaletteTexture)))
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: failed to lock palette texture!");
+			return DDERR_GENERIC;
+		}
+
+		// Set pixel shader
+		if (FAILED((*d3d9Device)->SetPixelShader(*primary.PalettePixelShader)))
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: failed to set pixel shader");
 			return DDERR_GENERIC;
 		}
 	}
 
 	// Set vertex buffer and lighting
-	if (vertexBuffer)
+	if (primary.VertexBuffer)
 	{
 		// Set vertex shader
 		if (FAILED((*d3d9Device)->SetVertexShader(nullptr)))
@@ -3934,14 +4246,14 @@ HRESULT m_IDirectDrawSurfaceX::Draw2DSurface()
 		}
 
 		// Set vertex format
-		if (FAILED((*d3d9Device)->SetFVF(TLVERTEXFVF)))
+		if (FAILED((*d3d9Device)->SetFVF(primary.TLVERTEXFVF)))
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Error: failed to set the current vertex stream format");
 			return DDERR_GENERIC;
 		}
 
 		// Set stream source
-		if (FAILED((*d3d9Device)->SetStreamSource(0, vertexBuffer, 0, sizeof(TLVERTEX))))
+		if (FAILED((*d3d9Device)->SetStreamSource(0, primary.VertexBuffer, 0, sizeof(TLVERTEX))))
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Error: failed to set vertex buffer stream source");
 			return DDERR_GENERIC;
@@ -3954,29 +4266,10 @@ HRESULT m_IDirectDrawSurfaceX::Draw2DSurface()
 			return DDERR_GENERIC;
 		}
 
-		// Set scale mode to linear
+		// Set scale mode to point
 		if (FAILED((*d3d9Device)->SetSamplerState(0, D3DSAMP_MAGFILTER, D3DTEXF_POINT)))
 		{
-			LOG_LIMIT(100, __FUNCTION__ << " Warning: failed to set D3D device to LINEAR sampling");
-		}
-	}
-
-	// Handle palette surfaces
-	if (paletteTexture && palettePixelShader && *palettePixelShader)
-	{
-		// Set palette texture
-		UpdatePaletteData();
-		if (FAILED((*d3d9Device)->SetTexture(1, paletteTexture)))
-		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error: failed to lock palette texture!");
-			return DDERR_GENERIC;
-		}
-
-		// Set pixel shader
-		if (FAILED((*d3d9Device)->SetPixelShader(*palettePixelShader)))
-		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error: failed to set pixel shader");
-			return DDERR_GENERIC;
+			LOG_LIMIT(100, __FUNCTION__ << " Warning: failed to set D3D device to POINT sampling");
 		}
 	}
 
@@ -3994,7 +4287,7 @@ HRESULT m_IDirectDrawSurfaceX::Draw2DSurface()
 }
 
 // Present surface
-HRESULT m_IDirectDrawSurfaceX::PresentSurface(bool isSkipScene)
+HRESULT m_IDirectDrawSurfaceX::PresentSurface(bool IsSkipScene)
 {
 	// Check for device interface
 	HRESULT c_hr = CheckInterface(__FUNCTION__, true, true);
@@ -4004,7 +4297,7 @@ HRESULT m_IDirectDrawSurfaceX::PresentSurface(bool isSkipScene)
 	}
 
 	// Check if is not primary surface or if scene should be skipped
-	if (Config.DdrawWriteToGDI || IsDirect3DSurface)
+	if (Config.DdrawWriteToGDI || IsDirect3DEnabled)
 	{
 		// Never present when using Direct3D or when writing to GDI
 		return DD_OK;
@@ -4016,12 +4309,12 @@ HRESULT m_IDirectDrawSurfaceX::PresentSurface(bool isSkipScene)
 			m_IDirectDrawSurfaceX *lpDDSrcSurfaceX = ddrawParent->GetPrimarySurface();
 			if (lpDDSrcSurfaceX)
 			{
-				return lpDDSrcSurfaceX->PresentSurface(isSkipScene);
+				return lpDDSrcSurfaceX->PresentSurface(IsSkipScene);
 			}
 		}
 		return DDERR_GENERIC;
 	}
-	else if ((isSkipScene && !SceneReady) || IsPresentRunning)
+	else if ((IsSkipScene && !SceneReady) || IsPresentRunning)
 	{
 		Logging::LogDebug() << __FUNCTION__ << " Skipping scene!";
 		return DDERR_GENERIC;
@@ -4031,7 +4324,7 @@ HRESULT m_IDirectDrawSurfaceX::PresentSurface(bool isSkipScene)
 	SceneReady = true;
 
 	// Check if surface is locked or has an open DC
-	if (IsSurfaceLocked() || IsSurfaceInDC())
+	if (IsSurfaceBusy())
 	{
 		Logging::LogDebug() << __FUNCTION__ << " Surface is busy!";
 		return DDERR_SURFACEBUSY;
@@ -4091,30 +4384,6 @@ void m_IDirectDrawSurfaceX::ResetSurfaceDisplay()
 	{
 		ReleaseD9Surface(true);
 	}
-}
-
-// Swap surface addresses for Flip
-inline void m_IDirectDrawSurfaceX::SwapSurface(m_IDirectDrawSurfaceX *lpTargetSurface1, m_IDirectDrawSurfaceX *lpTargetSurface2)
-{
-	if (!lpTargetSurface1 || !lpTargetSurface2 || lpTargetSurface1 == lpTargetSurface2)
-	{
-		return;
-	}
-
-	// Swap dirty flag
-	SwapAddresses(&lpTargetSurface1->IsDirtyFlag, &lpTargetSurface2->IsDirtyFlag);
-
-	// Swap 3D surface
-	SwapAddresses(lpTargetSurface1->GetSurface3D(), lpTargetSurface2->GetSurface3D());
-
-	// Swap surface textures
-	SwapAddresses(lpTargetSurface1->GetSurfaceTexture(), lpTargetSurface2->GetSurfaceTexture());
-
-	// Swap context surfaces
-	SwapAddresses(lpTargetSurface1->GetContextSurface(), lpTargetSurface2->GetContextSurface());
-
-	// Swap emulated surfaces
-	SwapAddresses(lpTargetSurface1->GetEmulatedSurface(), lpTargetSurface2->GetEmulatedSurface());
 }
 
 // Check surface reck dimensions and copy rect to new rect
@@ -4186,40 +4455,36 @@ inline bool m_IDirectDrawSurfaceX::CheckCoordinates(RECT& OutRect, LPRECT lpInRe
 }
 
 // Fix issue with some games that ignore the pitch size
-template <class T>
-void m_IDirectDrawSurfaceX::LockBitAlign(LPRECT lpDestRect, T lpDDSurfaceDesc)
+void m_IDirectDrawSurfaceX::LockBitAlign(LPRECT lpDestRect, LPDDSURFACEDESC2 lpDDSurfaceDesc)
 {
 	if (!lpDDSurfaceDesc || lpDestRect)
 	{
 		return;
 	}
 
-	DWORD Width = (DsWrapper.Width) ? DsWrapper.Width : lpDDSurfaceDesc->dwWidth;
-	DWORD Height = (DsWrapper.Height) ? DsWrapper.Height : lpDDSurfaceDesc->dwHeight;
-
 	DWORD BBP = GetBitCount(lpDDSurfaceDesc->ddpfPixelFormat);
-	LONG NewPitch = (BBP / 8) * Width;
+	LONG NewPitch = (BBP / 8) * lpDDSurfaceDesc->dwWidth;
 
 	// Check if surface needs to be fixed
-	if (Width && Height &&
+	if (lpDDSurfaceDesc->dwWidth && lpDDSurfaceDesc->dwHeight &&
 		(BBP == 8 || BBP == 16 || BBP == 24 || BBP == 32) &&
 		lpDDSurfaceDesc->lPitch != NewPitch)
 	{
 		// Store old variables
-		EmuLock.Locked = true;
-		EmuLock.Addr = lpDDSurfaceDesc->lpSurface;
-		EmuLock.Pitch = lpDDSurfaceDesc->lPitch;
-		EmuLock.BBP = BBP;
-		EmuLock.Height = Height;
-		EmuLock.Width = Width;
+		surface.EmuLock.Locked = true;
+		surface.EmuLock.Addr = lpDDSurfaceDesc->lpSurface;
+		surface.EmuLock.Pitch = lpDDSurfaceDesc->lPitch;
+		surface.EmuLock.BBP = BBP;
+		surface.EmuLock.Width = lpDDSurfaceDesc->dwWidth;
+		surface.EmuLock.Height = lpDDSurfaceDesc->dwHeight;
 
 		// Update surface memory and pitch
-		DWORD Size = NewPitch * Height;
-		if (EmuLock.surfaceMem.size() < Size)
+		DWORD Size = NewPitch * lpDDSurfaceDesc->dwHeight;
+		if (surface.EmuLock.Mem.size() < Size)
 		{
-			EmuLock.surfaceMem.resize(Size);
+			surface.EmuLock.Mem.resize(Size);
 		}
-		lpDDSurfaceDesc->lpSurface = &EmuLock.surfaceMem[0];
+		lpDDSurfaceDesc->lpSurface = surface.EmuLock.Mem.data();
 		lpDDSurfaceDesc->lPitch = NewPitch;
 	}
 }
@@ -4231,7 +4496,7 @@ void m_IDirectDrawSurfaceX::RestoreScanlines(LASTLOCK& LLock)
 	DWORD RectWidth = LLock.Rect.right - LLock.Rect.left;
 	DWORD RectHeight = LLock.Rect.bottom - LLock.Rect.top;
 
-	if ((!IsPrimarySurface() && !IsBackBuffer()) || !LLock.LockedRect.pBits ||
+	if (!IsPrimaryOrBackBuffer() || !LLock.LockedRect.pBits ||
 		!ByteCount || ByteCount > 4 || RectWidth != LLock.ScanlineWidth)
 	{
 		return;
@@ -4248,7 +4513,7 @@ void m_IDirectDrawSurfaceX::RestoreScanlines(LASTLOCK& LLock)
 
 		for (DWORD y = Starting; y < RectHeight; y = y + 2)
 		{
-			memcpy(DestBuffer, &LLock.EvenScanLine[0], size);
+			memcpy(DestBuffer, LLock.EvenScanLine.data(), size);
 			DestBuffer += LLock.LockedRect.Pitch * 2;
 		}
 	}
@@ -4260,7 +4525,7 @@ void m_IDirectDrawSurfaceX::RestoreScanlines(LASTLOCK& LLock)
 
 		for (DWORD y = Starting; y < RectHeight; y = y + 2)
 		{
-			memcpy(DestBuffer, &LLock.OddScanLine[0], size);
+			memcpy(DestBuffer, LLock.OddScanLine.data(), size);
 			DestBuffer += LLock.LockedRect.Pitch * 2;
 		}
 	}
@@ -4278,7 +4543,7 @@ void m_IDirectDrawSurfaceX::RemoveScanlines(LASTLOCK& LLock)
 	LLock.bOddScanlines = false;
 	LLock.bEvenScanlines = false;
 
-	if ((!IsPrimarySurface() && !IsBackBuffer()) || !LLock.LockedRect.pBits ||
+	if (!IsPrimaryOrBackBuffer() || !LLock.LockedRect.pBits ||
 		!ByteCount || ByteCount > 4 || RectHeight < 100)
 	{
 		return;
@@ -4303,11 +4568,11 @@ void m_IDirectDrawSurfaceX::RemoveScanlines(LASTLOCK& LLock)
 			if (y == 0)
 			{
 				LLock.bEvenScanlines = true;
-				memcpy(&LLock.EvenScanLine[0], DestBuffer, size);
+				memcpy(LLock.EvenScanLine.data(), DestBuffer, size);
 			}
 			else if (LLock.bEvenScanlines)
 			{
-				LLock.bEvenScanlines = (memcmp(&LLock.EvenScanLine[0], DestBuffer, size) == 0);
+				LLock.bEvenScanlines = (memcmp(LLock.EvenScanLine.data(), DestBuffer, size) == 0);
 			}
 		}
 		// Check for odd scanlines
@@ -4316,11 +4581,11 @@ void m_IDirectDrawSurfaceX::RemoveScanlines(LASTLOCK& LLock)
 			if (y == 1)
 			{
 				LLock.bOddScanlines = true;
-				memcpy(&LLock.OddScanLine[0], DestBuffer, size);
+				memcpy(LLock.OddScanLine.data(), DestBuffer, size);
 			}
 			else if (LLock.bOddScanlines)
 			{
-				LLock.bOddScanlines = (memcmp(&LLock.OddScanLine[0], DestBuffer, size) == 0);
+				LLock.bOddScanlines = (memcmp(LLock.OddScanLine.data(), DestBuffer, size) == 0);
 			}
 		}
 		// Exit if no scanlines found
@@ -4380,8 +4645,8 @@ inline HRESULT m_IDirectDrawSurfaceX::LockEmulatedSurface(D3DLOCKED_RECT* pLocke
 		return DDERR_GENERIC;
 	}
 
-	pLockedRect->Pitch = emu->surfacePitch;
-	pLockedRect->pBits = (lpDestRect) ? (void*)((DWORD)emu->surfacepBits + ((lpDestRect->top * pLockedRect->Pitch) + (lpDestRect->left * (surfaceBitCount / 8)))) : emu->surfacepBits;
+	pLockedRect->Pitch = surface.emu->Pitch;
+	pLockedRect->pBits = (lpDestRect) ? (void*)((DWORD)surface.emu->pBits + ((lpDestRect->top * pLockedRect->Pitch) + (lpDestRect->left * (surfaceBitCount / 8)))) : surface.emu->pBits;
 
 	return DD_OK;
 }
@@ -4393,7 +4658,7 @@ inline void m_IDirectDrawSurfaceX::SetDirtyFlag()
 	{
 		dirtyFlag = true;
 	}
-	IsDirtyFlag = true;
+	surface.IsDirtyFlag = true;
 
 	// Update Uniqueness Value
 	ChangeUniquenessValue();
@@ -4403,7 +4668,7 @@ inline void m_IDirectDrawSurfaceX::ClearDirtyFlags()
 {
 	// Reset dirty flag
 	dirtyFlag = false;
-	IsDirtyFlag = false;
+	surface.IsDirtyFlag = false;
 
 	// Reset scene ready
 	SceneReady = false;
@@ -4417,24 +4682,24 @@ inline bool m_IDirectDrawSurfaceX::CheckRectforSkipScene(RECT& DestRect)
 	return Config.DdrawRemoveInterlacing ? isSingleLine : false;
 }
 
-inline void m_IDirectDrawSurfaceX::BeginWritePresent(bool isSkipScene)
+inline void m_IDirectDrawSurfaceX::BeginWritePresent(bool IsSkipScene)
 {
 	// Check if data needs to be presented before write
 	if (dirtyFlag)
 	{
-		if (FAILED(PresentSurface(isSkipScene)))
+		if (FAILED(PresentSurface(IsSkipScene)))
 		{
 			PresentOnUnlock = true;
 		}
 	}
 }
 
-inline void m_IDirectDrawSurfaceX::EndWritePresent(bool isSkipScene)
+inline void m_IDirectDrawSurfaceX::EndWritePresent(bool IsSkipScene)
 {
 	// Present surface after each draw unless removing interlacing
 	if (PresentOnUnlock || !Config.DdrawRemoveInterlacing)
 	{
-		PresentSurface(isSkipScene);
+		PresentSurface(IsSkipScene);
 	}
 
 	// Reset endscene lock
@@ -4442,7 +4707,7 @@ inline void m_IDirectDrawSurfaceX::EndWritePresent(bool isSkipScene)
 }
 
 // Update surface description and create backbuffers
-void m_IDirectDrawSurfaceX::InitSurfaceDesc(DWORD DirectXVersion)
+inline void m_IDirectDrawSurfaceX::InitSurfaceDesc(DWORD DirectXVersion)
 {
 	// Update dds caps flags
 	surfaceDesc2.dwFlags |= DDSD_CAPS;
@@ -4566,15 +4831,8 @@ bool m_IDirectDrawSurfaceX::DoesAttachedSurfaceExist(m_IDirectDrawSurfaceX* lpSu
 		return false;
 	}
 
-	auto it = std::find_if(AttachedSurfaceMap.begin(), AttachedSurfaceMap.end(),
-		[=](auto Map) -> bool { return Map.second.pSurface == lpSurfaceX; });
-
-	if (it == std::end(AttachedSurfaceMap))
-	{
-		return false;
-	}
-
-	return true;
+	return (std::find_if(AttachedSurfaceMap.begin(), AttachedSurfaceMap.end(),
+		[=](auto Map) -> bool { return Map.second.pSurface == lpSurfaceX; }) != std::end(AttachedSurfaceMap));
 }
 
 bool m_IDirectDrawSurfaceX::WasAttachedSurfaceAdded(m_IDirectDrawSurfaceX* lpSurfaceX)
@@ -4584,15 +4842,8 @@ bool m_IDirectDrawSurfaceX::WasAttachedSurfaceAdded(m_IDirectDrawSurfaceX* lpSur
 		return false;
 	}
 
-	auto it = std::find_if(AttachedSurfaceMap.begin(), AttachedSurfaceMap.end(),
-		[=](auto Map) -> bool { return (Map.second.pSurface == lpSurfaceX) && Map.second.isAttachedSurfaceAdded; });
-
-	if (it == std::end(AttachedSurfaceMap))
-	{
-		return false;
-	}
-
-	return true;
+	return (std::find_if(AttachedSurfaceMap.begin(), AttachedSurfaceMap.end(),
+		[=](auto Map) -> bool { return (Map.second.pSurface == lpSurfaceX) && Map.second.isAttachedSurfaceAdded; }) != std::end(AttachedSurfaceMap));
 }
 
 // Check if backbuffer surface exists
@@ -4666,15 +4917,23 @@ HRESULT m_IDirectDrawSurfaceX::ColorFill(RECT* pRect, D3DCOLOR dwFillColor)
 		D3DSURFACE_DESC Desc = {};
 		pDestSurfaceD9->GetDesc(&Desc);
 
-		DWORD ByteCount = GetBitCount(Desc.Format) / 8;
+		DWORD BitCount = GetBitCount(Desc.Format);
+		DWORD ByteCount = BitCount / 8;
 
-		if (!ByteCount || ByteCount > 4)
+		if (BitCount != 8 && BitCount != 12 && BitCount != 16 && BitCount != 24 && BitCount != 32)
 		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error: invalid byte count: " << ByteCount);
+			LOG_LIMIT(100, __FUNCTION__ << " Error: invalid bit count: " << BitCount);
 			return DDERR_GENERIC;
 		}
 
-		D3DCOLOR ColorSurface[9] = {};	// Nine DOUBLE WORDs for a byte aligned 3x3 surface
+		// Handle 12-bit surface
+		if (BitCount == 12)
+		{
+			ByteCount = 3;
+			dwFillColor = (dwFillColor & 0xFFF) + ((dwFillColor & 0xFFF) << 12);
+		}
+
+		D3DCOLOR ColorSurface[9] = {};	// Nine DOUBLE WORDs for a byte aligned 3x3 surface (can handle all bit counts)
 
 		BYTE* Buffer = (BYTE*)ColorSurface;
 		BYTE* SrcBuffer = (BYTE*)&dwFillColor;
@@ -4690,11 +4949,12 @@ HRESULT m_IDirectDrawSurfaceX::ColorFill(RECT* pRect, D3DCOLOR dwFillColor)
 			}
 		}
 
-		RECT SrcRect = { 0, 0, 12 / (LONG)ByteCount, 3 };
+		LONG Pitch = 12;
+		RECT SrcRect = { 0, 0, (BitCount == 12) ? 8 : Pitch / (LONG)ByteCount, 3 };
 
-		if (FAILED(D3DXLoadSurfaceFromMemory(pDestSurfaceD9, nullptr, &DestRect, ColorSurface, Desc.Format, 12, nullptr, &SrcRect, D3DX_FILTER_POINT, 0)))
+		if (FAILED(D3DXLoadSurfaceFromMemory(pDestSurfaceD9, nullptr, &DestRect, ColorSurface, Desc.Format, Pitch, nullptr, &SrcRect, D3DX_FILTER_POINT, 0)))
 		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error: could not color fill surface!");
+			LOG_LIMIT(100, __FUNCTION__ << " Error: could not color fill surface! " << Desc.Format);
 			return DDERR_GENERIC;
 		}
 	}
@@ -4708,33 +4968,41 @@ HRESULT m_IDirectDrawSurfaceX::ColorFill(RECT* pRect, D3DCOLOR dwFillColor)
 			return DDERR_GENERIC;
 		}
 
-		// Get byte count
-		DWORD ByteCount = surfaceBitCount / 8;
-		if (!ByteCount || ByteCount > 4)
-		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error: could not find correct fill color for ByteCount " << ByteCount);
-			return DDERR_GENERIC;
-		}
-
 		// Get width and height of rect
 		LONG FillWidth = DestRect.right - DestRect.left;
 		LONG FillHeight = DestRect.bottom - DestRect.top;
 
-		if ((LONG)ComputePitch(FillWidth, ByteCount) == DestLockRect.Pitch && ByteCount != 3)
+		if ((DWORD)FillWidth == surfaceDesc2.dwWidth && surfaceBitCount == 8)
 		{
-			DWORD Color =
-				(ByteCount == 1) ? ((dwFillColor & 0xFF) << 24) + ((dwFillColor & 0xFF) << 16) +
-				((dwFillColor & 0xFF) << 8) + (dwFillColor & 0xFF) :
-				(ByteCount == 2) ? ((dwFillColor & 0xFFFF) << 16) + (dwFillColor & 0xFFFF) :
-				(ByteCount == 4) ? dwFillColor : 0;
-
-			memset(DestLockRect.pBits, Color, DestLockRect.Pitch * FillHeight);
+			memset(DestLockRect.pBits, dwFillColor, DestLockRect.Pitch * FillHeight);
 		}
-		else
+		else if ((DWORD)FillWidth == surfaceDesc2.dwWidth && (surfaceBitCount == 16 || surfaceBitCount == 32) && (DestLockRect.Pitch * FillHeight) % 4 == 0)
+		{
+			const DWORD Color = (surfaceBitCount == 16) ? ((dwFillColor & 0xFFFF) << 16) + (dwFillColor & 0xFFFF) : dwFillColor;
+			const DWORD size = (DestLockRect.Pitch * FillHeight) / 4;
+
+			DWORD* DestBuffer = (DWORD*)DestLockRect.pBits;
+			for (UINT x = 0; x < size; x++)
+			{
+				DestBuffer[x] = Color;
+			}
+		}
+		else if (surfaceBitCount == 8 || (surfaceBitCount == 12 && FillWidth % 2 == 0) || surfaceBitCount == 16 || surfaceBitCount == 24 || surfaceBitCount == 32)
 		{
 			// Set memory address
 			BYTE* SrcBuffer = (BYTE*)&dwFillColor;
 			BYTE* DestBuffer = (BYTE*)DestLockRect.pBits;
+
+			// Get byte count
+			DWORD ByteCount = surfaceBitCount / 8;
+
+			// Handle 12-bit surface
+			if (surfaceBitCount == 12)
+			{
+				ByteCount = 3;
+				dwFillColor = (dwFillColor & 0xFFF) + ((dwFillColor & 0xFFF) << 12);
+				FillWidth /= 2;
+			}
 
 			// Fill first line memory
 			for (LONG x = 0; x < FillWidth; x++)
@@ -4756,14 +5024,21 @@ HRESULT m_IDirectDrawSurfaceX::ColorFill(RECT* pRect, D3DCOLOR dwFillColor)
 				DestBuffer += DestLockRect.Pitch;
 			}
 		}
-
-		// Copy emulated surface to real texture
-		CopyFromEmulatedSurface(&DestRect);
+		else
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: invalid bit count: " << surfaceBitCount << " Width: " << FillWidth);
+			return DDERR_GENERIC;
+		}
 
 		// Blt surface directly to GDI
-		if (Config.DdrawWriteToGDI && (IsPrimarySurface() || IsBackBuffer()))
+		if (Config.DdrawWriteToGDI && IsPrimaryOrBackBuffer() && !IsDirect3DEnabled)
 		{
 			CopyEmulatedSurfaceToGDI(DestRect);
+		}
+		// Copy emulated surface to real texture
+		else
+		{
+			CopyFromEmulatedSurface(&DestRect);
 		}
 	}
 
@@ -4917,7 +5192,7 @@ HRESULT m_IDirectDrawSurfaceX::CopySurface(m_IDirectDrawSurfaceX* pSourceSurface
 	}
 
 	// Read surface from GDI
-	if (IsColorKey && Config.DdrawReadFromGDI && (IsPrimarySurface() || IsBackBuffer()))
+	if (Config.DdrawReadFromGDI && IsPrimaryOrBackBuffer() && !IsDirect3DEnabled)
 	{
 		CopyEmulatedSurfaceFromGDI(DestRect);
 	}
@@ -4997,16 +5272,16 @@ HRESULT m_IDirectDrawSurfaceX::CopySurface(m_IDirectDrawSurfaceX* pSourceSurface
 				// After setting the HALFTONE stretching mode, an application must call the SetBrushOrgEx
 				// function to set the brush origin. If it fails to do so, brush misalignment occurs.
 				POINT org;
-				GetBrushOrgEx(emu->surfaceDC, &org);
-				SetStretchBltMode(emu->surfaceDC, (Filter & D3DTEXF_LINEAR) ? HALFTONE : COLORONCOLOR);
-				SetBrushOrgEx(emu->surfaceDC, org.x, org.y, nullptr);
+				GetBrushOrgEx(surface.emu->DC, &org);
+				SetStretchBltMode(surface.emu->DC, (Filter & D3DTEXF_LINEAR) ? HALFTONE : COLORONCOLOR);
+				SetBrushOrgEx(surface.emu->DC, org.x, org.y, nullptr);
 			}
 
 			if ((IsStretchRect || IsMirrorLeftRight || IsMirrorUpDown) ?
-				StretchBlt(emu->surfaceDC, DestLeft, DestTop, DestWidth, DestHeight,
-					pSourceSurface->emu->surfaceDC, SrcRect.left, SrcRect.top, SrcRect.right - SrcRect.left, SrcRect.bottom - SrcRect.top, SRCCOPY) :
-				BitBlt(emu->surfaceDC, DestRect.left, DestRect.top, DestRectWidth, DestRectHeight,
-					pSourceSurface->emu->surfaceDC, SrcRect.left, SrcRect.top, SRCCOPY))
+				StretchBlt(surface.emu->DC, DestLeft, DestTop, DestWidth, DestHeight,
+					pSourceSurface->surface.emu->DC, SrcRect.left, SrcRect.top, SrcRect.right - SrcRect.left, SrcRect.bottom - SrcRect.top, SRCCOPY) :
+				BitBlt(surface.emu->DC, DestRect.left, DestRect.top, DestRectWidth, DestRectHeight,
+					pSourceSurface->surface.emu->DC, SrcRect.left, SrcRect.top, SRCCOPY))
 			{
 				break;
 			}
@@ -5050,7 +5325,7 @@ HRESULT m_IDirectDrawSurfaceX::CopySurface(m_IDirectDrawSurfaceX* pSourceSurface
 		// Get byte count
 		DWORD DestBitCount = surfaceBitCount;
 		DWORD ByteCount = DestBitCount / 8;
-		if (!ByteCount || ByteCount > 4)
+		if (!ByteCount || ByteCount > 4 || DestBitCount % 8 != 0)
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Error: wrong bit count " << DestBitCount);
 			hr = DDERR_GENERIC;
@@ -5063,7 +5338,7 @@ HRESULT m_IDirectDrawSurfaceX::CopySurface(m_IDirectDrawSurfaceX* pSourceSurface
 			pSourceSurface->LockD39Surface(&SrcLockRect, &SrcRect, D3DLOCK_READONLY)))
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Error: could not lock source surface " << SrcRect);
-			hr = (pSourceSurface->IsSurfaceLocked()) ? DDERR_SURFACEBUSY : DDERR_GENERIC;
+			hr = (pSourceSurface->IsSurfaceBusy()) ? DDERR_SURFACEBUSY : DDERR_GENERIC;
 			break;
 		}
 		UnlockSrc = true;
@@ -5072,12 +5347,12 @@ HRESULT m_IDirectDrawSurfaceX::CopySurface(m_IDirectDrawSurfaceX* pSourceSurface
 		if (this == pSourceSurface)
 		{
 			size_t size = SrcRectWidth * ByteCount * SrcRectHeight;
-			if (size > surfaceArray.size())
+			if (size > surface.ByteArray.size())
 			{
-				surfaceArray.resize(size);
+				surface.ByteArray.resize(size);
 			}
 			BYTE* SrcBuffer = (BYTE*)SrcLockRect.pBits;
-			BYTE* DestBuffer = (BYTE*)&surfaceArray[0];
+			BYTE* DestBuffer = (BYTE*)surface.ByteArray.data();
 			INT DestPitch = SrcRectWidth * ByteCount;
 			for (LONG y = 0; y < SrcRectHeight; y++)
 			{
@@ -5085,7 +5360,7 @@ HRESULT m_IDirectDrawSurfaceX::CopySurface(m_IDirectDrawSurfaceX* pSourceSurface
 				SrcBuffer += SrcLockRect.Pitch;
 				DestBuffer += DestPitch;
 			}
-			SrcLockRect.pBits = &surfaceArray[0];
+			SrcLockRect.pBits = surface.ByteArray.data();
 			SrcLockRect.Pitch = DestPitch;
 			if (UnlockSrc)
 			{
@@ -5099,7 +5374,7 @@ HRESULT m_IDirectDrawSurfaceX::CopySurface(m_IDirectDrawSurfaceX* pSourceSurface
 			LockD39Surface(&DestLockRect, &DestRect, 0)))
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Error: could not lock destination surface " << DestRect);
-			hr = (IsLocked) ? DDERR_SURFACEBUSY : DDERR_GENERIC;
+			hr = (IsSurfaceLocked()) ? DDERR_SURFACEBUSY : DDERR_GENERIC;
 			break;
 		}
 		UnlockDest = true;
@@ -5119,7 +5394,7 @@ HRESULT m_IDirectDrawSurfaceX::CopySurface(m_IDirectDrawSurfaceX* pSourceSurface
 		// Simple memory copy (QuickCopy)
 		if (!IsStretchRect && !IsColorKey && !IsMirrorLeftRight && !FormatMismatch)
 		{
-			if (!IsMirrorUpDown && SrcLockRect.Pitch == DestLockRect.Pitch && (LONG)ComputePitch(DestRectWidth, DestBitCount) == DestPitch)
+			if (!IsMirrorUpDown && SrcLockRect.Pitch == DestLockRect.Pitch && (DWORD)DestRectWidth == surfaceDesc2.dwWidth)
 			{
 				memcpy(DestBuffer, SrcBuffer, DestRectHeight * DestPitch);
 			}
@@ -5267,7 +5542,7 @@ HRESULT m_IDirectDrawSurfaceX::CopySurface(m_IDirectDrawSurfaceX* pSourceSurface
 	} while (false);
 
 	// Remove scanlines before unlocking surface
-	if (SUCCEEDED(hr) && Config.DdrawRemoveScanlines)
+	if (SUCCEEDED(hr) && Config.DdrawRemoveScanlines && IsPrimaryOrBackBuffer())
 	{
 		// Set last rect before removing scanlines
 		LASTLOCK LLock;
@@ -5298,13 +5573,15 @@ HRESULT m_IDirectDrawSurfaceX::CopySurface(m_IDirectDrawSurfaceX* pSourceSurface
 	// Update for emulated surface
 	if (SUCCEEDED(hr) && IsUsingEmulation())
 	{
-		// Copy emulated surface to real texture
-		CopyFromEmulatedSurface(&DestRect);
-
 		// Blt surface directly to GDI
-		if (Config.DdrawWriteToGDI && (IsPrimarySurface() || IsBackBuffer()))
+		if (Config.DdrawWriteToGDI && IsPrimaryOrBackBuffer() && !IsDirect3DEnabled)
 		{
 			CopyEmulatedSurfaceToGDI(DestRect);
+		}
+		// Copy emulated surface to real texture
+		else
+		{
+			CopyFromEmulatedSurface(&DestRect);
 		}
 	}
 
@@ -5315,7 +5592,7 @@ HRESULT m_IDirectDrawSurfaceX::CopySurface(m_IDirectDrawSurfaceX* pSourceSurface
 // Copy from emulated surface to real surface
 HRESULT m_IDirectDrawSurfaceX::CopyFromEmulatedSurface(LPRECT lpDestRect)
 {
-	if (!IsUsingEmulation() || Config.DdrawWriteToGDI)
+	if (!IsUsingEmulation())
 	{
 		return DDERR_GENERIC;
 	}
@@ -5328,14 +5605,6 @@ HRESULT m_IDirectDrawSurfaceX::CopyFromEmulatedSurface(LPRECT lpDestRect)
 		return DDERR_INVALIDRECT;
 	}
 
-	// Get lock for emulated surface
-	D3DLOCKED_RECT EmulatedLockRect;
-	if (FAILED(LockEmulatedSurface(&EmulatedLockRect, &DestRect)))
-	{
-		LOG_LIMIT(100, __FUNCTION__ << " Error: could not get emulated surface lock!");
-		return DDERR_GENERIC;
-	}
-
 	// Get real d3d9 surface
 	IDirect3DSurface9* pDestSurfaceD9 = GetD3D9Surface();
 	if (!pDestSurfaceD9)
@@ -5345,10 +5614,16 @@ HRESULT m_IDirectDrawSurfaceX::CopyFromEmulatedSurface(LPRECT lpDestRect)
 	}
 
 	// Use D3DXLoadSurfaceFromMemory to copy to the surface
-	if (FAILED(D3DXLoadSurfaceFromMemory(pDestSurfaceD9, nullptr, &DestRect, emu->surfacepBits, (surfaceFormat == D3DFMT_P8) ? D3DFMT_L8 : surfaceFormat, EmulatedLockRect.Pitch, nullptr, &DestRect, D3DX_FILTER_NONE, 0)))
+	if (FAILED(D3DXLoadSurfaceFromMemory(pDestSurfaceD9, nullptr, &DestRect, surface.emu->pBits, (surfaceFormat == D3DFMT_P8) ? D3DFMT_L8 : surfaceFormat, surface.emu->Pitch, nullptr, &DestRect, D3DX_FILTER_NONE, 0)))
 	{
 		LOG_LIMIT(100, __FUNCTION__ << " Error: could not copy emulated surface: " << surfaceFormat);
 		return DDERR_GENERIC;
+	}
+
+	// Update palette surface data
+	if (!surface.DisplayTexture || FAILED(CopyEmulatedPaletteSurface(&DestRect)))
+	{
+		surface.IsPaletteDirty = IsPalette();
 	}
 
 	return DD_OK;
@@ -5357,7 +5632,7 @@ HRESULT m_IDirectDrawSurfaceX::CopyFromEmulatedSurface(LPRECT lpDestRect)
 // Copy from real surface to emulated surface
 HRESULT m_IDirectDrawSurfaceX::CopyToEmulatedSurface(LPRECT lpDestRect)
 {
-	if (!IsUsingEmulation() || Config.DdrawWriteToGDI)
+	if (!IsUsingEmulation())
 	{
 		return DDERR_GENERIC;
 	}
@@ -5383,7 +5658,7 @@ HRESULT m_IDirectDrawSurfaceX::CopyToEmulatedSurface(LPRECT lpDestRect)
 	if (FAILED(LockD39Surface(&SrcLockRect, &DestRect, 0)))
 	{
 		LOG_LIMIT(100, __FUNCTION__ << " Error: could not lock destination surface " << DestRect);
-		return (IsLocked) ? DDERR_SURFACEBUSY : DDERR_GENERIC;
+		return (IsSurfaceLocked()) ? DDERR_SURFACEBUSY : DDERR_GENERIC;
 	}
 
 	// Create buffer variables
@@ -5462,11 +5737,11 @@ HRESULT m_IDirectDrawSurfaceX::CopyToEmulatedSurface(LPRECT lpDestRect)
 		}
 		break;
 	default:
-		if (SrcLockRect.Pitch == EmulatedLockRect.Pitch && (LONG)ComputePitch((DWORD)(DestRect.right - DestRect.left), emu->bmi->bmiHeader.biBitCount) == EmulatedLockRect.Pitch)
+		if (SrcLockRect.Pitch == EmulatedLockRect.Pitch && (DWORD)(DestRect.right - DestRect.left) == surfaceDesc2.dwWidth)
 		{
 			memcpy(EmulatedBuffer, SurfaceBuffer, SrcLockRect.Pitch * Height);
 		}
-		else if (emu->bmi->bmiHeader.biBitCount == surfaceBitCount)
+		else if (surface.emu->bmi->bmiHeader.biBitCount == surfaceBitCount)
 		{
 			for (UINT x = 0; x < Height; x++)
 			{
@@ -5485,27 +5760,135 @@ HRESULT m_IDirectDrawSurfaceX::CopyToEmulatedSurface(LPRECT lpDestRect)
 	// Unlock surface
 	UnlockD39Surface();
 
+	// Update palette surface data
+	if (!surface.DisplayTexture || FAILED(CopyEmulatedPaletteSurface(&DestRect)))
+	{
+		surface.IsPaletteDirty = IsPalette();
+	}
+
+	return hr;
+}
+
+inline HRESULT m_IDirectDrawSurfaceX::CopyEmulatedPaletteSurface(LPRECT lpDestRect)
+{
+	if (!IsPalette())
+	{
+		return DDERR_GENERIC;
+	}
+
+	if (!IsUsingEmulation())
+	{
+		LOG_LIMIT(100, __FUNCTION__ << " Error: palette surface is not using emulation!");
+		return DDERR_GENERIC;
+	}
+
+	SetCriticalSection();
+
+	HRESULT hr = DD_OK;
+
+	do {
+		// Set new palette data
+		UpdatePaletteData();
+
+		// Check for palette entry data
+		if (!surface.PaletteEntryArray)
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: could not get palette data!");
+			hr = DDERR_GENERIC;
+			break;
+		}
+
+		// Create emulated texture for palettes
+		if (!surface.DisplayTexture)
+		{
+			const D3DPOOL TexturePool = IsPrimaryOrBackBuffer() ? D3DPOOL_MANAGED :
+				(surfaceDesc2.ddsCaps.dwCaps & DDSCAPS_SYSTEMMEMORY) ? D3DPOOL_SYSTEMMEM : D3DPOOL_MANAGED;
+			const DWORD Width = GetByteAlignedWidth(surfaceDesc2.dwWidth, surfaceBitCount);
+			const DWORD Height = surfaceDesc2.dwHeight;
+			LOG_LIMIT(3, __FUNCTION__ << " Creating palette display surface texture. Size: " << Width << "x" << Height << " dwCaps: " << Logging::hex(surfaceDesc2.ddsCaps.dwCaps));
+			if (FAILED(((*d3d9Device)->CreateTexture(Width, Height, 1, 0, D3DFMT_X8R8G8B8, TexturePool, &surface.DisplayTexture, nullptr))))
+			{
+				LOG_LIMIT(100, __FUNCTION__ << " Error: failed to create palette display surface texture. Size: " << Width << "x" << Height << " Format: " << D3DFMT_X8R8G8B8 << " dwCaps: " << Logging::hex(surfaceDesc2.ddsCaps.dwCaps));
+				hr = DDERR_GENERIC;
+				break;
+			}
+		}
+
+		// Update rect, if palette surface is dirty then update the whole surface
+		RECT DestRect = {};
+		if (!CheckCoordinates(DestRect, (surface.IsPaletteDirty ? nullptr : lpDestRect)))
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: Invalid rect: " << lpDestRect);
+			hr = DDERR_INVALIDRECT;
+			break;
+		}
+
+		// Get palette display context surface
+		if (!surface.DisplayContext)
+		{
+			if (FAILED(surface.DisplayTexture->GetSurfaceLevel(0, &surface.DisplayContext)))
+			{
+				LOG_LIMIT(100, __FUNCTION__ << " Error: could not get palette display context surface!");
+				hr = DDERR_GENERIC;
+				break;
+			}
+		}
+
+		// Use D3DXLoadSurfaceFromMemory to copy to the surface
+		if (FAILED(D3DXLoadSurfaceFromMemory(surface.DisplayContext, nullptr, &DestRect, surface.emu->pBits, D3DFMT_P8, surface.emu->Pitch, surface.PaletteEntryArray, &DestRect, D3DX_FILTER_NONE, 0)))
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Warning: could not copy palette display texture: " << surfaceFormat);
+			hr = DDERR_GENERIC;
+			break;
+		}
+
+		// Reset palette texture dirty flag
+		surface.IsPaletteDirty = false;
+
+	} while (false);
+
+	ReleaseCriticalSection();
+
 	return hr;
 }
 
 HRESULT m_IDirectDrawSurfaceX::CopyEmulatedSurfaceFromGDI(RECT Rect)
 {
-	if (!IsUsingEmulation() || !ddrawParent->GetDC())
+	if (!IsUsingEmulation())
 	{
 		return DDERR_GENERIC;
 	}
 
+	// Check for forground window
+	HWND DDraw_hWnd = ddrawParent->GetHwnd();
+	HWND Forground_hWnd = Utils::GetTopLevelWindowOfCurrentProcess();
+	bool UsingForgroundWindow = (DDraw_hWnd != Forground_hWnd) && Utils::IsWindowRectEqualOrLarger(Forground_hWnd, DDraw_hWnd);
+
+	// Get hWnd
+	HWND hWnd = (UsingForgroundWindow) ? Forground_hWnd : DDraw_hWnd;
+	if (!hWnd)
+	{
+		return DDERR_GENERIC;
+	}
+
+	// Get rect size
 	RECT WindowRect = {};
-	GetClientRect(ddrawParent->GetHwnd(), &WindowRect);
-	MapWindowPoints(ddrawParent->GetHwnd(), HWND_DESKTOP, (LPPOINT)&WindowRect, 2);
+	GetClientRect(hWnd, &WindowRect);
+	MapWindowPoints(hWnd, HWND_DESKTOP, (LPPOINT)&WindowRect, 2);
 	LONG XOffset = WindowRect.left;
 	LONG YOffset = WindowRect.top;
 	LONG Left = Rect.left + XOffset;
 	LONG Top = Rect.top + YOffset;
 	LONG Width = Rect.right - Rect.left;
 	LONG Height = Rect.bottom - Rect.top;
-
 	if (Rect.left + Width > WindowRect.right || Rect.top + Height > WindowRect.bottom)
+	{
+		return DDERR_GENERIC;
+	}
+
+	// Get hdc
+	HDC hdc = (UsingForgroundWindow) ? ::GetDC(hWnd) : ddrawParent->GetDC();
+	if (!hdc)
 	{
 		return DDERR_GENERIC;
 	}
@@ -5513,28 +5896,54 @@ HRESULT m_IDirectDrawSurfaceX::CopyEmulatedSurfaceFromGDI(RECT Rect)
 	// Set new palette data
 	UpdatePaletteData();
 
-	BitBlt(emu->surfaceDC, Left, Top, Width, Height, ddrawParent->GetDC(), Rect.left, Rect.top, SRCCOPY);
+	// Blt to GDI
+	BitBlt(surface.emu->DC, Left, Top, Width, Height, hdc, Rect.left, Rect.top, SRCCOPY);
+
+	// Release DC
+	if (UsingForgroundWindow)
+	{
+		::ReleaseDC(hWnd, hdc);
+	}
 
 	return DD_OK;
 }
 
 HRESULT m_IDirectDrawSurfaceX::CopyEmulatedSurfaceToGDI(RECT Rect)
 {
-	if (!IsUsingEmulation() || !ddrawParent->GetDC())
+	if (!IsUsingEmulation())
 	{
 		return DDERR_GENERIC;
 	}
 
+	// Check for forground window
+	HWND DDraw_hWnd = ddrawParent->GetHwnd();
+	HWND Forground_hWnd = Utils::GetTopLevelWindowOfCurrentProcess();
+	bool UsingForgroundWindow = (DDraw_hWnd != Forground_hWnd) && Utils::IsWindowRectEqualOrLarger(Forground_hWnd, DDraw_hWnd);
+
+	// Get hWnd
+	HWND hWnd = (UsingForgroundWindow) ? Forground_hWnd: DDraw_hWnd;
+	if (!hWnd)
+	{
+		return DDERR_GENERIC;
+	}
+
+	// Get rect size
 	RECT WindowRect = {};
-	MapWindowPoints(ddrawParent->GetHwnd(), HWND_DESKTOP, (LPPOINT)&WindowRect, 2);
+	MapWindowPoints(hWnd, HWND_DESKTOP, (LPPOINT)&WindowRect, 2);
 	LONG XOffset = WindowRect.left;
 	LONG YOffset = WindowRect.top;
 	LONG Left = (Rect.left >= XOffset) ? Rect.left - XOffset : Rect.left;
 	LONG Top = (Rect.top >= YOffset) ? Rect.top - YOffset : Rect.top;
 	LONG Width = Rect.right - Rect.left;
 	LONG Height = Rect.bottom - Rect.top;
-
 	if (Rect.left + Width > (LONG)surfaceDesc2.dwWidth || Rect.top + Height > (LONG)surfaceDesc2.dwHeight)
+	{
+		return DDERR_GENERIC;
+	}
+
+	// Get hdc
+	HDC hdc = (UsingForgroundWindow) ? ::GetDC(hWnd) : ddrawParent->GetDC();
+	if (!hdc)
 	{
 		return DDERR_GENERIC;
 	}
@@ -5542,7 +5951,14 @@ HRESULT m_IDirectDrawSurfaceX::CopyEmulatedSurfaceToGDI(RECT Rect)
 	// Set new palette data
 	UpdatePaletteData();
 
-	BitBlt(ddrawParent->GetDC(), Left, Top, Width, Height, emu->surfaceDC, Rect.left, Rect.top, SRCCOPY);
+	// Blt to GDI
+	BitBlt(hdc, Left, Top, Width, Height, surface.emu->DC, Rect.left, Rect.top, SRCCOPY);
+
+	// Release DC
+	if (UsingForgroundWindow)
+	{
+		::ReleaseDC(hWnd, hdc);
+	}
 
 	return DD_OK;
 }
@@ -5551,8 +5967,7 @@ void m_IDirectDrawSurfaceX::RemoveClipper(m_IDirectDrawClipper* ClipperToRemove)
 {
 	if (ClipperToRemove == attachedClipper)
 	{
-		attachedClipper = nullptr;
-		ClipperFirstRun = true;
+		SetClipper(nullptr);
 	}
 }
 
@@ -5560,8 +5975,7 @@ void m_IDirectDrawSurfaceX::RemovePalette(m_IDirectDrawPalette* PaletteToRemove)
 {
 	if (PaletteToRemove == attachedPalette)
 	{
-		attachedPalette = nullptr;
-		PaletteFirstRun = true;
+		SetPalette(nullptr);
 	}
 }
 
@@ -5573,85 +5987,74 @@ void m_IDirectDrawSurfaceX::UpdatePaletteData()
 		return;
 	}
 
-	DWORD CurrentPaletteUSN = 0;
-	DWORD entryCount = 0;
-	D3DCOLOR *rgbPalette = nullptr;
+	DWORD NewPaletteUSN = 0;
+	LPPALETTEENTRY NewPaletteEntry = nullptr;
+	RGBQUAD* NewRGBPalette = nullptr;
+
+	SetCriticalSection();
 
 	// Get palette data
-	if (attachedPalette && attachedPalette->GetRgbPalette())
+	if (attachedPalette)
 	{
-		CurrentPaletteUSN = PaletteUSN + attachedPalette->GetPaletteUSN();
-		if (CurrentPaletteUSN && 
-			(CurrentPaletteUSN != LastPaletteUSN || (IsUsingEmulation() && CurrentPaletteUSN != emu->LastPaletteUSN)))
-		{
-			rgbPalette = (D3DCOLOR*)attachedPalette->GetRgbPalette();
-			entryCount = attachedPalette->GetEntryCount();
-		}
+		NewPaletteUSN = attachedPalette->GetPaletteUSN();
+		NewPaletteEntry = attachedPalette->GetPaletteEntries();
+		NewRGBPalette = attachedPalette->GetRGBPalette();
 	}
 	// Get palette from primary surface if this is not primary
 	else if (!IsPrimarySurface())
 	{
-		m_IDirectDrawSurfaceX *lpPrimarySurface = ddrawParent->GetPrimarySurface();
+		m_IDirectDrawSurfaceX* lpPrimarySurface = ddrawParent->GetPrimarySurface();
 		if (lpPrimarySurface)
 		{
-			m_IDirectDrawPalette *lpPalette = lpPrimarySurface->GetAttachedPalette();
-			if (lpPalette && lpPalette->GetRgbPalette())
+			m_IDirectDrawPalette* lpPalette = lpPrimarySurface->GetAttachedPalette();
+			if (lpPalette)
 			{
-				CurrentPaletteUSN = lpPrimarySurface->GetPaletteUSN() + lpPalette->GetPaletteUSN();
-				if (CurrentPaletteUSN &&
-					(CurrentPaletteUSN != LastPaletteUSN || (IsUsingEmulation() && CurrentPaletteUSN != emu->LastPaletteUSN)))
-				{
-					rgbPalette = (D3DCOLOR*)lpPalette->GetRgbPalette();
-					entryCount = lpPalette->GetEntryCount();
-				}
+				NewPaletteUSN = lpPalette->GetPaletteUSN();
+				NewPaletteEntry = lpPalette->GetPaletteEntries();
+				NewRGBPalette = lpPalette->GetRGBPalette();
 			}
 		}
 	}
 
-	// No new palette data found
-	if (!rgbPalette)
+	// Add palette data to texture
+	if (primary.PaletteTexture && NewPaletteEntry && primary.LastPaletteUSN != NewPaletteUSN)
 	{
-		return;
-	}
-
-	// Set color palette for device context
-	if (IsUsingEmulation())
-	{
-		SetDIBColorTable(emu->surfaceDC, 0, entryCount, (RGBQUAD*)rgbPalette);
-
-		emu->LastPaletteUSN = CurrentPaletteUSN;
-	}
-
-	// If new palette data then write it to texture
-	if (paletteTexture)
-	{
-		do {
-			LPDIRECT3DSURFACE9 paletteSurface = nullptr;
-			if (FAILED(paletteTexture->GetSurfaceLevel(0, &paletteSurface)))
-			{
-				LOG_LIMIT(100, __FUNCTION__ << " Error: could not get palette surface!");
-				break;
-			}
-
+		// Get palette display context surface
+		LPDIRECT3DSURFACE9 paletteSurface = nullptr;
+		if (SUCCEEDED(primary.PaletteTexture->GetSurfaceLevel(0, &paletteSurface)))
+		{
 			// Use D3DXLoadSurfaceFromMemory to copy to the surface
-			RECT Rect = { 0, 0, (LONG)entryCount, 1 };
-			if (FAILED(D3DXLoadSurfaceFromMemory(paletteSurface, nullptr, &Rect, rgbPalette, D3DFMT_X8R8G8B8, 256 * 4, nullptr, &Rect, D3DX_FILTER_NONE, 0)))
+			RECT Rect = { 0, 0, MaxPaletteSize, 1 };
+			if (FAILED(D3DXLoadSurfaceFromMemory(paletteSurface, nullptr, &Rect, NewRGBPalette, D3DFMT_X8R8G8B8, MaxPaletteSize * sizeof(D3DCOLOR), nullptr, &Rect, D3DX_FILTER_NONE, 0)))
 			{
-				LOG_LIMIT(100, __FUNCTION__ << " Error: could not update palette surface!");
+				LOG_LIMIT(100, __FUNCTION__ << " Warning: could not full palette textur!");
 			}
-
 			paletteSurface->Release();
-
-			LastPaletteUSN = CurrentPaletteUSN;
-
-		} while (false);
+			primary.LastPaletteUSN = NewPaletteUSN;
+		}
 	}
+
+	// Set color palette for emulation device context
+	if (IsUsingEmulation() && NewRGBPalette && surface.emu->LastPaletteUSN != NewPaletteUSN)
+	{
+		SetDIBColorTable(surface.emu->DC, 0, MaxPaletteSize, NewRGBPalette);
+		surface.emu->LastPaletteUSN = NewPaletteUSN;
+	}
+
+	// Set new palette data
+	if (NewPaletteEntry && surface.LastPaletteUSN != NewPaletteUSN)
+	{
+		surface.IsPaletteDirty = true;
+		surface.LastPaletteUSN = NewPaletteUSN;
+		surface.PaletteEntryArray = NewPaletteEntry;
+	}
+
+	ReleaseCriticalSection();
 }
 
 void m_IDirectDrawSurfaceX::StartSharedEmulatedMemory()
 {
 	ShareEmulatedMemory = true;
-	InitializeCriticalSection(&smcs);
 }
 
 void m_IDirectDrawSurfaceX::DeleteEmulatedMemory(EMUSURFACE **ppEmuSurface)
@@ -5663,24 +6066,28 @@ void m_IDirectDrawSurfaceX::DeleteEmulatedMemory(EMUSURFACE **ppEmuSurface)
 
 	LOG_LIMIT(100, __FUNCTION__ << " Deleting emulated surface (" << *ppEmuSurface << ")");
 
+	SetCriticalSection();
+
 	// Release device context memory
-	if ((*ppEmuSurface)->surfaceDC)
+	if ((*ppEmuSurface)->DC)
 	{
-		SelectObject((*ppEmuSurface)->surfaceDC, (*ppEmuSurface)->OldDCObject);
-		DeleteDC((*ppEmuSurface)->surfaceDC);
+		SelectObject((*ppEmuSurface)->DC, (*ppEmuSurface)->OldDCObject);
+		DeleteDC((*ppEmuSurface)->DC);
 	}
 	if ((*ppEmuSurface)->bitmap)
 	{
 		DeleteObject((*ppEmuSurface)->bitmap);
-		(*ppEmuSurface)->surfacepBits = nullptr;
+		(*ppEmuSurface)->pBits = nullptr;
 	}
-	if ((*ppEmuSurface)->surfacepBits)
+	if ((*ppEmuSurface)->pBits)
 	{
-		HeapFree(GetProcessHeap(), NULL, (*ppEmuSurface)->surfacepBits);
-		(*ppEmuSurface)->surfacepBits = nullptr;
+		HeapFree(GetProcessHeap(), NULL, (*ppEmuSurface)->pBits);
+		(*ppEmuSurface)->pBits = nullptr;
 	}
 	delete (*ppEmuSurface);
 	*ppEmuSurface = nullptr;
+
+	ReleaseCriticalSection();
 }
 
 void m_IDirectDrawSurfaceX::CleanupSharedEmulatedMemory()
@@ -5688,12 +6095,7 @@ void m_IDirectDrawSurfaceX::CleanupSharedEmulatedMemory()
 	// Disable shared memory
 	ShareEmulatedMemory = false;
 	
-	// Make sure that vector is not in use
-	EnterCriticalSection(&smcs);
-	LeaveCriticalSection(&smcs);
-
-	// Deleted critical section
-	DeleteCriticalSection(&smcs);
+	SetCriticalSection();
 
 	LOG_LIMIT(100, __FUNCTION__ << " Deleting " << memorySurfaces.size() << " emulated surface" << ((memorySurfaces.size() != 1) ? "s" : "") << "!");
 
@@ -5703,4 +6105,6 @@ void m_IDirectDrawSurfaceX::CleanupSharedEmulatedMemory()
 		DeleteEmulatedMemory(&pEmuSurface);
 	}
 	memorySurfaces.clear();
+
+	ReleaseCriticalSection();
 }

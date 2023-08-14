@@ -1,0 +1,36 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+    branches: [ "master" ]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  UseMultiToolTask: true
+
+jobs:
+  build:
+    runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        config: [Debug, Release]
+        platform: [Win32]
+
+    steps:
+    - uses: actions/checkout@v3
+      with:
+        submodules: true
+    - uses: microsoft/setup-msbuild@v1
+    - uses: Trass3r/setup-cpp@master
+    - name: Build
+      run: msbuild /m /p:Configuration=${{ matrix.config }} /p:Platform=${{ matrix.platform }} dxwrapper.sln
+    - uses: actions/upload-artifact@v3
+      with:
+        name: ${{ matrix.config }} binaries
+        path: |
+          bin/${{ matrix.config }}/*

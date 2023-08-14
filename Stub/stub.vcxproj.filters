@@ -98,6 +98,12 @@
     <ClInclude Include="..\External\MemoryModule\MemoryModule.h">
       <Filter>External\MemoryModule</Filter>
     </ClInclude>
+    <ClInclude Include="..\Wrappers\cryptbase.h">
+      <Filter>Wrappers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Wrappers\winspool.h">
+      <Filter>Wrappers</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="BuildNo.rc" />

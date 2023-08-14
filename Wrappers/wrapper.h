@@ -23,6 +23,7 @@ typedef void(WINAPI *DxWrapperSettingsProc)(DXWAPPERSETTINGS *DxSettings);
 
 #define VISIT_DLLS(visit) \
 	visit(bcrypt) \
+	visit(cryptbase) \
 	visit(cryptsp) \
 	visit(d2d1) \
 	visit(d3d8) \
@@ -39,10 +40,12 @@ typedef void(WINAPI *DxWrapperSettingsProc)(DXWAPPERSETTINGS *DxSettings);
 	visit(version) \
 	visit(wininet) \
 	visit(winmm) \
+	visit(winspool) \
 	visit(wsock32)
 
 // Wrappers
 #include "bcrypt.h"
+#include "cryptbase.h"
 #include "cryptsp.h"
 #include "d2d1.h"
 #include "d3d8.h"
@@ -59,6 +62,7 @@ typedef void(WINAPI *DxWrapperSettingsProc)(DXWAPPERSETTINGS *DxSettings);
 #include "version.h"
 #include "wininet.h"
 #include "winmm.h"
+#include "winspool.h"
 #include "wsock32.h"
 
 #define DECLARE_PROC_VARIABLES(procName, unused) \

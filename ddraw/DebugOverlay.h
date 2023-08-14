@@ -7,6 +7,9 @@ class DebugOverlay
 private:
 	bool IsContextSetup = false;
 
+	// Store current device
+	LPDIRECT3DDEVICE9 d3d9Device = nullptr;
+
 	// Store debug matrix information
 	D3DMATRIX worldMatrix = {}, viewMatrix = {}, projectionMatrix = {};
 
@@ -42,7 +45,7 @@ private:
 
 public:
 	// Initialize
-	void Setup(HWND hwnd, LPDIRECT3DDEVICE9 d3d9Device);
+	void Setup(HWND hwnd, LPDIRECT3DDEVICE9 Device);
 	void Shutdown();
 
 	// Frame functions
@@ -50,6 +53,7 @@ public:
 	void EndScene();
 
 	// Functions
+	LPDIRECT3DDEVICE9 Getd3d9Device() { return d3d9Device; }
 	void SetTransform(D3DTRANSFORMSTATETYPE dtstTransformStateType, LPD3DMATRIX lpD3DMatrix);
 	void SetLight(DWORD dwLightIndex, LPD3DLIGHT7 lpLight);
 	void LightEnable(DWORD dwLightIndex, BOOL bEnable);

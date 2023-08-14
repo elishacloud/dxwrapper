@@ -25,11 +25,6 @@
 DebugOverlay DOverlay;
 #endif
 
-extern float ScaleDDWidthRatio;
-extern float ScaleDDHeightRatio;
-extern DWORD ScaleDDPadX;
-extern DWORD ScaleDDPadY;
-
 HRESULT m_IDirect3DDeviceX::QueryInterface(REFIID riid, LPVOID FAR * ppvObj, DWORD DirectXVersion)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ") " << riid;
@@ -855,7 +850,7 @@ HRESULT m_IDirect3DDeviceX::GetTexture(DWORD dwStage, LPDIRECTDRAWSURFACE7* lplp
 
 	if (Config.Dd7to9)
 	{
-		if (!lplpTexture || dwStage > MaxTextureLevel)
+		if (!lplpTexture || dwStage >= MaxTextureBlendStages)
 		{
 			return DDERR_INVALIDPARAMS;
 		}
@@ -938,6 +933,11 @@ HRESULT m_IDirect3DDeviceX::SetTexture(DWORD dwStage, LPDIRECTDRAWSURFACE7 lpSur
 
 	if (Config.Dd7to9)
 	{
+		if (dwStage >= MaxTextureBlendStages)
+		{
+			return DDERR_INVALIDPARAMS;
+		}
+
 		// Check for device interface
 		if (FAILED(CheckInterface(__FUNCTION__, true)))
 		{
@@ -975,13 +975,8 @@ HRESULT m_IDirect3DDeviceX::SetTexture(DWORD dwStage, LPDIRECTDRAWSURFACE7 lpSur
 			hr = (*d3d9Device)->SetTexture(dwStage, pTexture9);
 		}
 
-		if (SUCCEEDED(hr) && dwStage < MaxTextureLevel+1)
+		if (SUCCEEDED(hr) && dwStage < MaxTextureBlendStages)
 		{
-			if (lpDDSrcSurfaceX && lpDDSrcSurfaceX->IsPalette())
-			{
-				LOG_LIMIT(100, __FUNCTION__ << " Warning: setting palette texture not implemented!");
-			}
-
 			AttachedTexture[dwStage] = lpSurface;
 			if (dwStage == 0)
 			{
@@ -3537,7 +3532,7 @@ HRESULT m_IDirect3DDeviceX::CheckInterface(char *FunctionName, bool CheckD3DDevi
 	if (!ddrawParent)
 	{
 		LOG_LIMIT(100, FunctionName << " Error: no ddraw parent!");
-		return DDERR_GENERIC;
+		return DDERR_INVALIDOBJECT;
 	}
 
 	// Check d3d9 device
@@ -3546,11 +3541,14 @@ HRESULT m_IDirect3DDeviceX::CheckInterface(char *FunctionName, bool CheckD3DDevi
 		if (!ddrawParent->CheckD3D9Device() || !d3d9Device || !*d3d9Device)
 		{
 			LOG_LIMIT(100, FunctionName << " Error: d3d9 device not setup!");
-			return DDERR_GENERIC;
+			return DDERR_INVALIDOBJECT;
 		}
 
 #ifdef ENABLE_DEBUGOVERLAY
-		DOverlay.Setup(ddrawParent->GetHwnd(), *d3d9Device);
+		if (DOverlay.Getd3d9Device() != *d3d9Device)
+		{
+			DOverlay.Setup(ddrawParent->GetHwnd(), *d3d9Device);
+		}
 #endif
 	}
 
@@ -3563,7 +3561,7 @@ void m_IDirect3DDeviceX::ResetDevice()
 	ConvertHomogeneous.IsTransformViewSet = false;
 
 	// Reset textures after device reset
-	for (UINT x = 0; x < MaxTextureLevel+1; x++)
+	for (UINT x = 0; x < MaxTextureBlendStages; x++)
 	{
 		if (AttachedTexture[x])
 		{
@@ -3684,6 +3682,8 @@ inline void m_IDirect3DDeviceX::RestoreDrawStates(DWORD dwVertexTypeDesc, DWORD 
 		(*d3d9Device)->SetRenderState(D3DRS_LIGHTING, DrawStates.rsLighting);
 		(*d3d9Device)->SetSamplerState(0, D3DSAMP_MAGFILTER, DrawStates.ssMagFilter);
 
+		(*d3d9Device)->SetPixelShader(nullptr);
+
 		SetTexture(0, AttachedTexture[0]);
 		SetTexture(1, AttachedTexture[1]);
 	}
@@ -3694,8 +3694,8 @@ inline void m_IDirect3DDeviceX::ScaleVertices(DWORD dwVertexTypeDesc, LPVOID& lp
 	if (dwVertexTypeDesc == 3)
 	{
 		VertexCache.resize(dwVertexCount * sizeof(D3DTLVERTEX));
-		memcpy(&VertexCache[0], lpVertices, dwVertexCount * sizeof(D3DTLVERTEX));
-		D3DTLVERTEX* pVert = (D3DTLVERTEX*)&VertexCache[0];
+		memcpy(VertexCache.data(), lpVertices, dwVertexCount * sizeof(D3DTLVERTEX));
+		D3DTLVERTEX* pVert = (D3DTLVERTEX*)VertexCache.data();
 
 		for (DWORD x = 0; x < dwVertexCount; x++)
 		{
@@ -3712,9 +3712,9 @@ inline void m_IDirect3DDeviceX::UpdateVertices(DWORD& dwVertexTypeDesc, LPVOID& 
 	if (dwVertexTypeDesc == D3DFVF_LVERTEX)
 	{
 		VertexCache.resize(dwVertexCount * sizeof(D3DLVERTEX9));
-		ConvertVertices((D3DLVERTEX9*)&VertexCache[0], (D3DLVERTEX*)lpVertices, dwVertexCount);
+		ConvertVertices((D3DLVERTEX9*)VertexCache.data(), (D3DLVERTEX*)lpVertices, dwVertexCount);
 
 		dwVertexTypeDesc = D3DFVF_LVERTEX9;
-		lpVertices = &VertexCache[0];
+		lpVertices = VertexCache.data();
 	}
 }

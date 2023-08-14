@@ -1,5 +1,5 @@
 /**
-* Copyright (C) 2022 Elisha Riedlinger
+* Copyright (C) 2023 Elisha Riedlinger
 *
 * This software is  provided 'as-is', without any express  or implied  warranty. In no event will the
 * authors be held liable for any damages arising from the use of this software.
@@ -194,9 +194,7 @@ HRESULT m_IDirect3D9Ex::CreateDeviceT(D3DPRESENT_PARAMETERS& d3dpp, bool& MultiS
 		return D3DERR_INVALIDCALL;
 	}
 
-	bool IsWindowed = (pPresentationParameters->Windowed != FALSE);
-
-	BehaviorFlags = UpdateBehaviorFlags(BehaviorFlags, IsWindowed);
+	BehaviorFlags = UpdateBehaviorFlags(BehaviorFlags);
 
 	// Create new d3d9 device
 	HRESULT hr = D3DERR_INVALIDCALL;
@@ -392,13 +390,8 @@ bool m_IDirect3D9Ex::TestResolution(UINT Adapter, DWORD BackBufferWidth, DWORD B
 	return false;
 }
 
-DWORD UpdateBehaviorFlags(DWORD BehaviorFlags, bool IsWindowed)
+DWORD UpdateBehaviorFlags(DWORD BehaviorFlags)
 {
-	if (!IsWindowed && (Config.EnableWindowMode || Config.FullscreenWindowMode))
-	{
-		BehaviorFlags |= D3DCREATE_NOWINDOWCHANGES;
-	}
-
 	if (Config.ForceMixedVertexProcessing)
 	{
 		BehaviorFlags &= ~(D3DCREATE_PUREDEVICE | D3DCREATE_HARDWARE_VERTEXPROCESSING | D3DCREATE_SOFTWARE_VERTEXPROCESSING);
@@ -565,11 +558,6 @@ void AdjustWindow(HWND MainhWnd, LONG displayWidth, LONG displayHeight)
 	// Set window active and focus
 	if (Config.EnableWindowMode)
 	{
-		if ((GetWindowLong(MainhWnd, GWL_EXSTYLE) & WS_EX_TOPMOST) == 0)
-		{
-			SetWindowPos(MainhWnd, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOSIZE | SWP_NOMOVE);
-			SetWindowPos(MainhWnd, HWND_NOTOPMOST, 0, 0, 0, 0, SWP_SHOWWINDOW | SWP_NOSIZE | SWP_NOMOVE);
-		}
 		SetForegroundWindow(MainhWnd);
 		SetFocus(MainhWnd);
 		SetActiveWindow(MainhWnd);
@@ -603,7 +591,7 @@ void AdjustWindow(HWND MainhWnd, LONG displayWidth, LONG displayHeight)
 	{
 		lStyle = (Config.EnableWindowMode) ? lStyle : (lOriginalStyle | WS_VISIBLE);
 		SetWindowLong(MainhWnd, GWL_STYLE, lStyle);
-		SetWindowPos(MainhWnd, HWND_TOP, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_FRAMECHANGED | SWP_NOSENDCHANGING);
+		SetWindowPos(MainhWnd, HWND_TOP, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_FRAMECHANGED);
 	}
 
 	// Get new window rect
@@ -643,7 +631,7 @@ void AdjustWindow(HWND MainhWnd, LONG displayWidth, LONG displayHeight)
 		// Use SetWindowPos to center and adjust size
 		else
 		{
-			SetWindowPos(MainhWnd, HWND_TOP, xLoc, yLoc, Rect.right, Rect.bottom, SWP_SHOWWINDOW | SWP_NOZORDER | SWP_NOSENDCHANGING);
+			SetWindowPos(MainhWnd, HWND_TOP, xLoc, yLoc, Rect.right, Rect.bottom, SWP_SHOWWINDOW | SWP_NOZORDER);
 		}
 	}
 

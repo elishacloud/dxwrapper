@@ -14,8 +14,6 @@ private:
 	bool IsInitialize = false;
 	bool Using3D = false;
 
-	std::vector<D3DFORMAT> FourCCsList;
-
 	// Fix exclusive mode issue
 	HHOOK g_hook = nullptr;
 	HWND chWnd = nullptr;
@@ -197,7 +195,7 @@ public:
 	D3DMULTISAMPLE_TYPE GetMultiSampleType();
 	DWORD GetMultiSampleQuality();
 	bool IsExclusiveMode();
-	void GetFullDisplay(DWORD &Width, DWORD &Height, DWORD& BPP, DWORD &RefreshRate);
+	void GetSurfaceDisplay(DWORD& Width, DWORD& Height, DWORD& BPP, DWORD& RefreshRate);
 	void GetDisplayPixelFormat(DDPIXELFORMAT& ddpfPixelFormat, DWORD BPP);
 	void GetDisplay(DWORD &Width, DWORD &Height);
 	void SetNewViewport(DWORD Width, DWORD Height);

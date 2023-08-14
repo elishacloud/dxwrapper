@@ -86,7 +86,7 @@ DxWrapper can wrap the following dlls:
 All my work here is free and can be freely used.  For more details on how you can use this module see the [license](#license) section below.  However, if you would like to donate then check out my [donations page](https://PayPal.me/elishacloud).  All donations are for work already completed!  Please don't donate for future work or to try and increase my development speed.  Thanks!
 
 ### License
-Copyright (C) 2022 Elisha Riedlinger
+Copyright (C) 2023 Elisha Riedlinger
 
 This software is provided 'as-is', without any express or implied warranty. In no event will the author(s) be held liable for any damages arising from the use of this software. Permission is granted to anyone to use this software for any purpose, including commercial applications, and to alter it and redistribute it freely, subject to the following restrictions:
 
@@ -116,7 +116,7 @@ DxWrapper uses code from several other projects. So to give credit where credit 
  - [PixelShaderPalette](https://github.com/CnCNet/cnc-ddraw): Includes code from ddraw-cnc for a PixelShader that is used to view DirectDraw palette surfaces properly.
  - [SilentPatchFarCry](https://github.com/CookiePLMonster/SilentPatchFarCry): Includes code from SilentPatchFarCry to cache the clip plane in Direct3D 9.
  - [Ultimate ASI Loader](https://github.com/ThirteenAG/Ultimate-ASI-Loader): Includes code for loading ASI plugins.
- - [WineD3D d3d8.dll](https://github.com/alexhenrie/wine/tree/master/dlls/d3d8): Includes functions ValidatePixelShader and ValidateVertexShader.
+ - [WineD3D d3d8.dll](https://gitlab.winehq.org/wine/wine/-/tree/master/dlls/d3d8): Includes functions ValidatePixelShader and ValidateVertexShader.
 
 ### Development
 DxWrapper is written mostly in C++ using Microsoft Visual Studio 2022.
