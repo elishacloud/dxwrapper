@@ -618,7 +618,7 @@ HRESULT m_IDirect3DDeviceX::EnumTextureFormats(LPD3DENUMPIXELFORMATSCALLBACK lpd
 			D3DFMT_A1R5G5B5,
 			D3DFMT_A4R4G4B4,
 			D3DFMT_R5G6B5,
-			D3DFMT_R8G8B8,
+			//D3DFMT_R8G8B8,	// Requires emulation
 			D3DFMT_X8R8G8B8,
 			D3DFMT_A8R8G8B8,
 			D3DFMT_V8U8,
@@ -628,7 +628,7 @@ HRESULT m_IDirect3DDeviceX::EnumTextureFormats(LPD3DENUMPIXELFORMATSCALLBACK lpd
 			D3DFMT_DXT3,
 			D3DFMT_DXT4,
 			D3DFMT_DXT5,
-			D3DFMT_P8,
+			//D3DFMT_P8,	// Requires emulation
 			D3DFMT_L8,
 			D3DFMT_A8,
 			D3DFMT_A8L8 };
@@ -645,8 +645,7 @@ HRESULT m_IDirect3DDeviceX::EnumTextureFormats(LPD3DENUMPIXELFORMATSCALLBACK lpd
 
 		for (D3DFORMAT format : TextureList)
 		{
-			D3DFORMAT TestFormat = (format == D3DFMT_R8G8B8) ? D3DFMT_X8R8G8B8 : (format == D3DFMT_P8) ? D3DFMT_L8 : format;
-			HRESULT hr = d3d9Object->CheckDeviceFormat(D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, D3DFMT_X8R8G8B8, 0, D3DRTYPE_TEXTURE, TestFormat);
+			HRESULT hr = d3d9Object->CheckDeviceFormat(D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, D3DFMT_X8R8G8B8, 0, D3DRTYPE_TEXTURE, format);
 			if (SUCCEEDED(hr))
 			{
 				SetPixelDisplayFormat(format, ddpfPixelFormat);

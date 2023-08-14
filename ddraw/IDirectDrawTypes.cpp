@@ -443,6 +443,12 @@ DWORD GetBitCount(D3DFORMAT Format)
 	};
 }
 
+D3DFORMAT ConvertSurfaceFormat(D3DFORMAT Format)
+{
+	return (Format == D3DFMT_X8B8G8R8 || Format == D3DFMT_B8G8R8 || Format == D3DFMT_R8G8B8) ? D3DFMT_X8R8G8B8 :
+		(Format == D3DFMT_A8B8G8R8) ? D3DFMT_A8R8G8B8 : Format;
+}
+
 D3DFORMAT GetDisplayFormat(DDPIXELFORMAT ddpfPixelFormat)
 {
 	if (ddpfPixelFormat.dwSize != sizeof(DDPIXELFORMAT))

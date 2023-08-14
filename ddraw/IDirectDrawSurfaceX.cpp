@@ -3456,8 +3456,7 @@ HRESULT m_IDirectDrawSurfaceX::CreateD3d9Surface()
 			!IsDepthBuffer() && !(surfaceFormat & 0xFF000000 /*FOURCC or D3DFMT_DXTx*/));
 	const bool IsSurfaceEmulated = (SurfaceRequiresEmulation || (IsPrimaryOrBackBuffer() && (Config.DdrawWriteToGDI || Config.DdrawReadFromGDI) && !IsDirect3DEnabled));
 	DCRequiresEmulation = (surfaceFormat != D3DFMT_R5G6B5 && surfaceFormat != D3DFMT_X1R5G5B5 && surfaceFormat != D3DFMT_R8G8B8 && surfaceFormat != D3DFMT_X8R8G8B8);
-	const D3DFORMAT Format = (surfaceFormat == D3DFMT_X8B8G8R8 || surfaceFormat == D3DFMT_B8G8R8 || surfaceFormat == D3DFMT_R8G8B8) ? D3DFMT_X8R8G8B8 :
-		(surfaceFormat == D3DFMT_A8B8G8R8) ? D3DFMT_A8R8G8B8 : surfaceFormat;
+	const D3DFORMAT Format = ConvertSurfaceFormat(surfaceFormat);
 	const D3DFORMAT TextureFormat = (surfaceFormat == D3DFMT_P8) ? D3DFMT_L8 : Format;
 
 	const D3DPOOL TexturePool = IsPrimaryOrBackBuffer() ? D3DPOOL_MANAGED :

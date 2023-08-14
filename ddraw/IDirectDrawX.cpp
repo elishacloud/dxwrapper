@@ -570,13 +570,11 @@ HRESULT m_IDirectDrawX::CreateSurface2(LPDDSURFACEDESC2 lpDDSurfaceDesc2, LPDIRE
 			const DWORD Usage = (Desc2.ddsCaps.dwCaps & DDSCAPS_PRIMARYSURFACE) ? D3DUSAGE_RENDERTARGET :
 				((Desc2.dwFlags & DDSD_MIPMAPCOUNT) || (Desc2.ddsCaps.dwCaps & DDSCAPS_MIPMAP)) ? D3DUSAGE_AUTOGENMIPMAP :
 				(Desc2.ddpfPixelFormat.dwFlags & (DDPF_ZBUFFER | DDPF_STENCILBUFFER)) ? D3DUSAGE_DEPTHSTENCIL : 0;
-			const D3DRESOURCETYPE Resource = (Desc2.ddpfPixelFormat.dwFlags & (DDPF_ZBUFFER | DDPF_STENCILBUFFER)) ? D3DRTYPE_SURFACE : D3DRTYPE_TEXTURE;
-			D3DFORMAT tmpFormat = GetDisplayFormat(Desc2.ddpfPixelFormat);
-			const D3DFORMAT Format = (tmpFormat == D3DFMT_X8B8G8R8 || tmpFormat == D3DFMT_B8G8R8 || tmpFormat == D3DFMT_R8G8B8) ? D3DFMT_X8R8G8B8 :
-				(tmpFormat == D3DFMT_A8B8G8R8) ? D3DFMT_A8R8G8B8 :
-				(Resource == D3DRTYPE_TEXTURE && tmpFormat == D3DFMT_P8) ? D3DFMT_L8 : tmpFormat;
+			const D3DRESOURCETYPE Resource = ((lpDDSurfaceDesc2->ddsCaps.dwCaps & DDSCAPS_TEXTURE)) ? D3DRTYPE_TEXTURE : D3DRTYPE_SURFACE;
+			const D3DFORMAT Format = GetDisplayFormat(Desc2.ddpfPixelFormat);
+			const D3DFORMAT TestFormat = ConvertSurfaceFormat(Format);
 
-			if (FAILED(d3d9Object->CheckDeviceFormat(D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, D9DisplayFormat, Usage, Resource, Format)))
+			if (FAILED(d3d9Object->CheckDeviceFormat(D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, D9DisplayFormat, Usage, Resource, TestFormat)))
 			{
 				LOG_LIMIT(100, __FUNCTION__ << " Error: non-supported pixel format! " << Usage << " " << Format << " " << Desc2.ddpfPixelFormat);
 				return DDERR_INVALIDPIXELFORMAT;
@@ -1318,8 +1316,7 @@ HRESULT m_IDirectDrawX::GetFourCCCodes(LPDWORD lpNumCodes, LPDWORD lpCodes)
 			// Test FourCCs that are supported
 			for (D3DFORMAT format : FourCCTypes)
 			{
-				if (SUCCEEDED(d3d9Object->CheckDeviceFormat(D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, D3DFMT_X8R8G8B8, 0, D3DRTYPE_SURFACE, format)) ||
-					SUCCEEDED(d3d9Object->CheckDeviceFormat(D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, D3DFMT_X8R8G8B8, 0, D3DRTYPE_TEXTURE, format)))
+				if (SUCCEEDED(d3d9Object->CheckDeviceFormat(D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, D3DFMT_X8R8G8B8, 0, D3DRTYPE_SURFACE, format)))
 				{
 					FourCCsList.push_back(format);
 				}
