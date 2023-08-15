@@ -15,6 +15,7 @@
 
 #define D3DFMT_B8G8R8 (D3DFORMAT)19
 #define D3DFMT_YV12   (D3DFORMAT)MAKEFOURCC('Y','V','1','2')
+#define D3DFMT_AYUV   (D3DFORMAT)MAKEFOURCC('A', 'Y', 'U', 'V')
 
 #define D3DFMT_R5G6B5_TO_X8R8G8B8(w) \
 	((((DWORD)((w>>11)&0x1f)*8)<<16)+(((DWORD)((w>>5)&0x3f)*4)<<8)+((DWORD)(w&0x1f)*8))

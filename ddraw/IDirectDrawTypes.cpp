@@ -377,6 +377,7 @@ DWORD GetBitCount(D3DFORMAT Format)
 	case D3DFMT_D32:
 	case D3DFMT_D24S8:
 	case D3DFMT_S8D24:
+	case D3DFMT_AYUV:
 	case D3DFMT_X8L8V8U8:
 	case D3DFMT_X4S4D24:
 	case D3DFMT_D24X4S4:
@@ -470,9 +471,10 @@ D3DFORMAT GetDisplayFormat(DDPIXELFORMAT ddpfPixelFormat)
 		case D3DFMT_DXT3:
 		case D3DFMT_DXT4:
 		case D3DFMT_DXT5:
-		case D3DFMT_YV12:
+		case D3DFMT_AYUV:
 		case D3DFMT_UYVY:
 		case D3DFMT_YUY2:
+		case D3DFMT_YV12:
 		case D3DFMT_MULTI2_ARGB8:
 		case D3DFMT_G8R8_G8B8:
 		case D3DFMT_R8G8_B8G8:
@@ -510,7 +512,7 @@ D3DFORMAT GetDisplayFormat(DDPIXELFORMAT ddpfPixelFormat)
 			{
 				return D3DFMT_A4L4;
 			}
-			if ((ddpfPixelFormat.dwFlags & DDPF_ALPHA) && (ddpfPixelFormat.dwRGBAlphaBitMask == 0xFF))
+			if (ddpfPixelFormat.dwFlags & DDPF_ALPHA)
 			{
 				return D3DFMT_A8;
 			}
@@ -828,7 +830,6 @@ void SetPixelDisplayFormat(D3DFORMAT Format, DDPIXELFORMAT &ddpfPixelFormat)
 	case D3DFMT_A8:
 		ddpfPixelFormat.dwFlags = DDPF_ALPHA;
 		ddpfPixelFormat.dwAlphaBitDepth = 8;
-		ddpfPixelFormat.dwRGBAlphaBitMask = 0xFF;
 		break;
 
 	// Luminance
@@ -891,15 +892,11 @@ void SetPixelDisplayFormat(D3DFORMAT Format, DDPIXELFORMAT &ddpfPixelFormat)
 		break;
 
 	// FourCC
+	case D3DFMT_AYUV:
 	case D3DFMT_UYVY:
 	case D3DFMT_YUY2:
-		ddpfPixelFormat.dwFlags = DDPF_FOURCC;
-		ddpfPixelFormat.dwYUVBitCount = 16;
-		ddpfPixelFormat.dwFourCC = Format;
-		break;
 	case D3DFMT_YV12:
 		ddpfPixelFormat.dwFlags = DDPF_FOURCC;
-		ddpfPixelFormat.dwYUVBitCount = 12;
 		ddpfPixelFormat.dwFourCC = Format;
 		break;
 	default:

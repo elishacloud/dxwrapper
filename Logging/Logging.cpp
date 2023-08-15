@@ -146,6 +146,10 @@ std::ostream& operator<<(std::ostream& os, const D3DFORMAT& format)
 		return os << "D3DFMT_R8G8_B8G8";
 	case MAKEFOURCC('Y', 'U', 'Y', '2'):
 		return os << "D3DFMT_YUY2";
+	case MAKEFOURCC('Y', 'V', '1', '2'):
+		return os << "D3DFMT_YV12";
+	case MAKEFOURCC('A', 'Y', 'U', 'V'):
+		return os << "D3DFMT_AYUV";
 	case MAKEFOURCC('G', 'R', 'G', 'B'):
 		return os << "D3DFMT_G8R8_G8B8";
 	case MAKEFOURCC('D', 'X', 'T', '1'):
