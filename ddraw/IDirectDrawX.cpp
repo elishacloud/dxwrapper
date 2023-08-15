@@ -890,7 +890,7 @@ HRESULT m_IDirectDrawX::EnumDisplayModes2(DWORD dwFlags, LPDDSURFACEDESC2 lpDDSu
 					DisplayBitCount = bpMode;
 				}
 
-				// Check refresh mode
+				// Check mode
 				if ((!EnumWidth || d3ddispmode.Width == EnumWidth) &&
 					(!EnumHeight || d3ddispmode.Height == EnumHeight) &&
 					(!EnumRefreshRate || d3ddispmode.RefreshRate == EnumRefreshRate))
