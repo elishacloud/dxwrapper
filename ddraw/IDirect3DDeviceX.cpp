@@ -1773,6 +1773,26 @@ HRESULT m_IDirect3DDeviceX::Clear(DWORD dwCount, LPD3DRECT lpRects, DWORD dwFlag
 			return DDERR_GENERIC;
 		}
 
+		// Clear primary surface
+		if (dwFlags & D3DCLEAR_TARGET)
+		{
+			m_IDirectDrawSurfaceX* PrimarySurface = ddrawParent->GetPrimarySurface();
+			if (PrimarySurface)
+			{
+				if (dwCount && lpRects)
+				{
+					for (UINT x = 0; x < dwCount; x++)
+					{
+						PrimarySurface->ColorFill((RECT*)&lpRects[x], dwColor);
+					}
+				}
+				else
+				{
+					PrimarySurface->ColorFill(nullptr, dwColor);
+				}
+			}
+		}
+
 		return (*d3d9Device)->Clear(dwCount, lpRects, dwFlags, dwColor, dvZ, dwStencil);
 	}
 

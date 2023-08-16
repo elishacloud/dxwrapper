@@ -238,7 +238,6 @@ private:
 	bool DoesFlipBackBufferExist(m_IDirectDrawSurfaceX* lpSurfaceX);
 
 	// Copying surface textures
-	HRESULT ColorFill(RECT* pRect, D3DCOLOR dwFillColor);
 	HRESULT SaveDXTDataToDDS(const void* data, size_t dataSize, const char* filename, int dxtVersion) const;
 	HRESULT SaveSurfaceToFile(const char* filename, D3DXIMAGE_FILEFORMAT format);
 	HRESULT CopySurface(m_IDirectDrawSurfaceX* pSourceSurface, RECT* pSourceRect, RECT* pDestRect, D3DTEXTUREFILTERTYPE Filter, DDCOLORKEY ColorKey, DWORD dwFlags);
@@ -406,6 +405,7 @@ public:
 
 	// Draw 2D DirectDraw surface
 	HRESULT Draw2DSurface();
+	HRESULT ColorFill(RECT* pRect, D3DCOLOR dwFillColor);
 
 	// Attached surfaces
 	void RemoveAttachedSurfaceFromMap(m_IDirectDrawSurfaceX* lpSurfaceX);
