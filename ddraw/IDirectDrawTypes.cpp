@@ -507,7 +507,7 @@ D3DFORMAT GetDisplayFormat(DDPIXELFORMAT ddpfPixelFormat)
 		switch (GetBitCount(ddpfPixelFormat))
 		{
 		case 8:
-			if ((ddpfPixelFormat.dwFlags & DDPF_ALPHAPIXELS) && (ddpfPixelFormat.dwLuminanceAlphaBitMask == 0xF0) &&
+			if (((ddpfPixelFormat.dwFlags & DDPF_ALPHAPIXELS) || (ddpfPixelFormat.dwLuminanceAlphaBitMask == 0xF0)) &&
 				(ddpfPixelFormat.dwFlags & DDPF_LUMINANCE) && (ddpfPixelFormat.dwLuminanceBitMask == 0x0F))
 			{
 				return D3DFMT_A4L4;
@@ -530,14 +530,14 @@ D3DFORMAT GetDisplayFormat(DDPIXELFORMAT ddpfPixelFormat)
 			}
 			break;
 		case 16:
-			if ((ddpfPixelFormat.dwFlags & DDPF_ALPHAPIXELS) && (ddpfPixelFormat.dwLuminanceAlphaBitMask == 0xFF00) &&
+			if (((ddpfPixelFormat.dwFlags & DDPF_ALPHAPIXELS) || (ddpfPixelFormat.dwLuminanceAlphaBitMask == 0xFF00)) &&
 				(ddpfPixelFormat.dwFlags & DDPF_LUMINANCE) && (ddpfPixelFormat.dwLuminanceBitMask == 0x00FF))
 			{
 				return D3DFMT_A8L8;
 			}
 			if ((ddpfPixelFormat.dwRBitMask == 0x7C00) && (ddpfPixelFormat.dwGBitMask == 0x03E0) && (ddpfPixelFormat.dwBBitMask == 0x001F))
 			{
-				if ((ddpfPixelFormat.dwFlags & DDPF_ALPHAPIXELS) && (ddpfPixelFormat.dwRGBAlphaBitMask == 0x8000))
+				if ((ddpfPixelFormat.dwFlags & DDPF_ALPHAPIXELS) || (ddpfPixelFormat.dwRGBAlphaBitMask == 0x8000))
 				{
 					return D3DFMT_A1R5G5B5;
 				}
@@ -551,11 +551,11 @@ D3DFORMAT GetDisplayFormat(DDPIXELFORMAT ddpfPixelFormat)
 				return D3DFMT_R5G6B5;
 			}
 			if ((ddpfPixelFormat.dwRBitMask == 0x0F00) && (ddpfPixelFormat.dwGBitMask == 0x00F0) && (ddpfPixelFormat.dwBBitMask == 0x000F) &&
-				(ddpfPixelFormat.dwFlags & DDPF_ALPHAPIXELS) && (ddpfPixelFormat.dwRGBAlphaBitMask == 0xF000))
+				((ddpfPixelFormat.dwFlags & DDPF_ALPHAPIXELS) || (ddpfPixelFormat.dwRGBAlphaBitMask == 0xF000)))
 			{
 				return D3DFMT_A4R4G4B4;
 			}
-			if (ddpfPixelFormat.dwFlags & DDPF_ALPHAPIXELS && ddpfPixelFormat.dwRGBAlphaBitMask == 0xFF00 &&
+			if (((ddpfPixelFormat.dwFlags & DDPF_ALPHAPIXELS) || ddpfPixelFormat.dwRGBAlphaBitMask == 0xFF00) &&
 				ddpfPixelFormat.dwRBitMask == 0x00E0 && ddpfPixelFormat.dwGBitMask == 0x001C && ddpfPixelFormat.dwBBitMask == 0x0003)
 			{
 				return D3DFMT_A8R3G3B2;
@@ -574,7 +574,7 @@ D3DFORMAT GetDisplayFormat(DDPIXELFORMAT ddpfPixelFormat)
 		case 32:
 			if ((ddpfPixelFormat.dwRBitMask == 0xFF0000) && (ddpfPixelFormat.dwGBitMask == 0x00FF00) && (ddpfPixelFormat.dwBBitMask == 0x0000FF))
 			{
-				if ((ddpfPixelFormat.dwFlags & DDPF_ALPHAPIXELS) && (ddpfPixelFormat.dwRGBAlphaBitMask == 0xFF000000))
+				if ((ddpfPixelFormat.dwFlags & DDPF_ALPHAPIXELS) || (ddpfPixelFormat.dwRGBAlphaBitMask == 0xFF000000))
 				{
 					return D3DFMT_A8R8G8B8;
 				}
@@ -585,7 +585,7 @@ D3DFORMAT GetDisplayFormat(DDPIXELFORMAT ddpfPixelFormat)
 			}
 			if ((ddpfPixelFormat.dwRBitMask == 0x0000FF) && (ddpfPixelFormat.dwGBitMask == 0x00FF00) && (ddpfPixelFormat.dwBBitMask == 0xFF0000))
 			{
-				if ((ddpfPixelFormat.dwFlags & DDPF_ALPHAPIXELS) && (ddpfPixelFormat.dwRGBAlphaBitMask == 0xFF000000))
+				if ((ddpfPixelFormat.dwFlags & DDPF_ALPHAPIXELS) || (ddpfPixelFormat.dwRGBAlphaBitMask == 0xFF000000))
 				{
 					return D3DFMT_A8B8G8R8;
 				}
@@ -595,7 +595,7 @@ D3DFORMAT GetDisplayFormat(DDPIXELFORMAT ddpfPixelFormat)
 				}
 			}
 			if ((ddpfPixelFormat.dwRBitMask == 0x3FF00000) && (ddpfPixelFormat.dwGBitMask == 0x0000FFC00) && (ddpfPixelFormat.dwBBitMask == 0x000003FF) &&
-				(ddpfPixelFormat.dwFlags & DDPF_ALPHAPIXELS) && (ddpfPixelFormat.dwRGBAlphaBitMask == 0xC0000000))
+				((ddpfPixelFormat.dwFlags & DDPF_ALPHAPIXELS) || (ddpfPixelFormat.dwRGBAlphaBitMask == 0xC0000000)))
 			{
 				return D3DFMT_A2R10G10B10;
 			}
