@@ -1740,7 +1740,7 @@ HRESULT m_IDirect3DDeviceX::EndScene()
 		// Present surface after end scene
 		if (SUCCEEDED(hr))
 		{
-			hr = (*d3d9Device)->Present(nullptr, nullptr, nullptr, nullptr);
+			hr = ddrawParent->Present();
 		}
 
 		return hr;

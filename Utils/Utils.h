@@ -10,6 +10,7 @@ namespace Utils
 {
 	void Shell(const char*);
 	void DisableHighDPIScaling();
+	DWORD GetCoresUsedByProcess();
 	void SetProcessAffinity();
 	FARPROC GetProcAddress(HMODULE hModule, LPCSTR FunctionName, FARPROC SetReturnValue);
 	extern FARPROC pGetProcAddress;

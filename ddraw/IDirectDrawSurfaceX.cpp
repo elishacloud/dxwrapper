@@ -1989,6 +1989,7 @@ HRESULT m_IDirectDrawSurfaceX::IsLost()
 		switch ((*d3d9Device)->TestCooperativeLevel())
 		{
 		case D3D_OK:
+		case DDERR_NOEXCLUSIVEMODE:
 			return DD_OK;
 		case D3DERR_DEVICELOST:
 		case D3DERR_DEVICENOTRESET:
@@ -2360,6 +2361,7 @@ HRESULT m_IDirectDrawSurfaceX::Restore()
 		switch ((*d3d9Device)->TestCooperativeLevel())
 		{
 		case D3D_OK:
+		case DDERR_NOEXCLUSIVEMODE:
 			return DD_OK;
 		case D3DERR_DEVICENOTRESET:
 			if (SUCCEEDED(ddrawParent->ReinitDevice()))
@@ -3405,7 +3407,7 @@ HRESULT m_IDirectDrawSurfaceX::CheckInterface(char *FunctionName, bool CheckD3DD
 				LOG_LIMIT(100, FunctionName << " Error: Surface lost! = " << (D3DERR)hr);
 				return DDERR_SURFACELOST;
 			}
-			else if (FAILED(hr))
+			else if (hr != DDERR_NOEXCLUSIVEMODE && FAILED(hr))
 			{
 				LOG_LIMIT(100, FunctionName << " Error: TestCooperativeLevel = " << (D3DERR)hr);
 				return DDERR_GENERIC;
@@ -3452,7 +3454,7 @@ HRESULT m_IDirectDrawSurfaceX::CreateD3d9Surface()
 	surfaceFormat = GetDisplayFormat(surfaceDesc2.ddpfPixelFormat);
 	surfaceBitCount = GetBitCount(surfaceFormat);
 	SurfaceRequiresEmulation = ((surfaceFormat == D3DFMT_A8B8G8R8 || surfaceFormat == D3DFMT_X8B8G8R8 || surfaceFormat == D3DFMT_B8G8R8 ||
-		surfaceFormat == D3DFMT_R8G8B8 || surfaceFormat == D3DFMT_P8 || Config.DdrawEmulateSurface || (Config.DdrawRemoveScanlines && IsPrimaryOrBackBuffer())) &&
+		surfaceFormat == D3DFMT_R8G8B8 || Config.DdrawEmulateSurface || (Config.DdrawRemoveScanlines && IsPrimaryOrBackBuffer())) &&
 			!IsDepthBuffer() && !(surfaceFormat & 0xFF000000 /*FOURCC or D3DFMT_DXTx*/));
 	const bool IsSurfaceEmulated = (SurfaceRequiresEmulation || (IsPrimaryOrBackBuffer() && (Config.DdrawWriteToGDI || Config.DdrawReadFromGDI) && !IsDirect3DEnabled));
 	DCRequiresEmulation = (surfaceFormat != D3DFMT_R5G6B5 && surfaceFormat != D3DFMT_X1R5G5B5 && surfaceFormat != D3DFMT_R8G8B8 && surfaceFormat != D3DFMT_X8R8G8B8);

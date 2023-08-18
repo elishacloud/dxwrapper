@@ -134,6 +134,25 @@ void Utils::Shell(const char* fileName)
 	return;
 }
 
+// Check the number CPU cores is being used by the process
+DWORD Utils::GetCoresUsedByProcess()
+{
+	int numCores = 0;
+	DWORD_PTR ProcessAffinityMask, SystemAffinityMask;
+	if (GetProcessAffinityMask(GetCurrentProcess(), &ProcessAffinityMask, &SystemAffinityMask))
+	{
+		while (ProcessAffinityMask)
+		{
+			if (ProcessAffinityMask & 1)
+			{
+				++numCores;
+			}
+			ProcessAffinityMask >>= 1;
+		}
+	}
+	return numCores;
+}
+
 // Get processor mask
 DWORD_PTR Utils::GetProcessMask()
 {

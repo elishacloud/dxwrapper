@@ -25,6 +25,8 @@
 #include "Shaders\PaletteShader.h"
 #include "Shaders\ColorKeyShader.h"
 
+DWORD WINAPI PresentThreadFunction(LPVOID lpParam);
+
 constexpr DWORD MaxVidMemory		= 0x20000000;	// 512 MBs
 constexpr DWORD MinUsedVidMemory	= 0x00100000;	// 1 MB
 
@@ -80,8 +82,18 @@ struct HIGHRESCOUNTER
 	LARGE_INTEGER Frequency, ClickTime, LastPresentTime;
 	LONGLONG LastFrameTime;
 	DWORD FrameCounter;
+	DWORD FrameSkipCounter;
 	DWORD RefreshRate;
 	DWORD Height;
+};
+
+struct PRESENTTHREAD
+{
+	bool UsingMultpleCores = false;
+	CRITICAL_SECTION ddpt = {};
+	HANDLE workerEvent = {};
+	HANDLE workerThread = {};
+	bool EndPresentThread = false;
 };
 
 // Store a list of ddraw devices
@@ -122,6 +134,9 @@ MOUSEHOOK MouseHook;
 
 // High resolution counter used for auto frame skipping
 HIGHRESCOUNTER Counter;
+
+// To allow the Preset() to be run from another thread
+PRESENTTHREAD PresentThread;
 
 // Direct3D9 flags
 bool EnableWaitVsync;
@@ -2293,7 +2308,7 @@ void m_IDirectDrawX::InitDdraw(DWORD DirectXVersion)
 
 		// High resolution counter
 		Counter = {};
-		Counter.FrequencyFlag = (QueryPerformanceFrequency(&Counter.Frequency) != 0);
+		Counter.FrequencyFlag = (QueryPerformanceFrequency(&Counter.Frequency) != FALSE);
 
 		// Direct3D9 flags
 		EnableWaitVsync = false;
@@ -2325,6 +2340,13 @@ void m_IDirectDrawX::InitDdraw(DWORD DirectXVersion)
 		surfaceWidth = 0;
 		surfaceHeight = 0;
 
+		// Prepare for present from another thread
+		PresentThread.EndPresentThread = false;
+		InitializeCriticalSection(&PresentThread.ddpt);
+		PresentThread.workerEvent = CreateEvent(NULL, FALSE, FALSE, NULL);
+		PresentThread.workerThread = CreateThread(NULL, 0, PresentThreadFunction, NULL, 0, NULL);
+
+		// Mouse hook
 		static bool EnableMouseHook = Config.DdrawEnableMouseHook &&
 			((Config.DdrawUseNativeResolution || Config.DdrawOverrideWidth || Config.DdrawOverrideHeight) &&
 			(!Config.EnableWindowMode || (Config.EnableWindowMode && Config.FullscreenWindowMode)));
@@ -2537,6 +2559,16 @@ void m_IDirectDrawX::ReleaseDdraw()
 
 		// Clean up shared memory
 		m_IDirectDrawSurfaceX::CleanupSharedEmulatedMemory();
+
+		// Close present thread
+		PresentThread.EndPresentThread = true;						// Tell thread to exit
+		EnterCriticalSection(&PresentThread.ddpt);					// Ensure thread is not running present
+		SetEvent(PresentThread.workerEvent);						// Trigger thread
+		LeaveCriticalSection(&PresentThread.ddpt);
+		WaitForSingleObject(PresentThread.workerThread, INFINITE);	// Wait for thread to finish
+		CloseHandle(PresentThread.workerThread);					// Close thread handle
+		CloseHandle(PresentThread.workerEvent);						// Close event handle
+		DeleteCriticalSection(&PresentThread.ddpt);					// Delete critical section
 	}
 
 	ReleaseCriticalSection();
@@ -2757,6 +2789,7 @@ HRESULT m_IDirectDrawX::CreateD3D9Device()
 	}
 
 	SetCriticalSection();
+	EnterCriticalSection(&PresentThread.ddpt);
 
 	HRESULT hr = DD_OK;
 	do {
@@ -2992,6 +3025,9 @@ HRESULT m_IDirectDrawX::CreateD3D9Device()
 		DWORD tmpWidth = 0;
 		Utils::GetScreenSize(hWnd, tmpWidth, Counter.Height);
 
+		// Check if more than one process core is being used
+		PresentThread.UsingMultpleCores = (Utils::GetCoresUsedByProcess() > 1);
+
 	} while (false);
 
 	// Reset D3D device settings
@@ -3001,6 +3037,7 @@ HRESULT m_IDirectDrawX::CreateD3D9Device()
 	}
 
 	ReleaseCriticalSection();
+	LeaveCriticalSection(&PresentThread.ddpt);
 
 	// Return result
 	return hr;
@@ -3047,7 +3084,7 @@ HRESULT m_IDirectDrawX::ReinitDevice()
 
 	// Check if device is ready to be restored
 	HRESULT hr = d3d9Device->TestCooperativeLevel();
-	if (SUCCEEDED(hr))
+	if (SUCCEEDED(hr) || hr == DDERR_NOEXCLUSIVEMODE)
 	{
 		return DD_OK;
 	}
@@ -3061,6 +3098,7 @@ HRESULT m_IDirectDrawX::ReinitDevice()
 		return DDERR_GENERIC;
 	}
 
+	EnterCriticalSection(&PresentThread.ddpt);
 	SetCriticalSection();
 
 	do {
@@ -3089,6 +3127,7 @@ HRESULT m_IDirectDrawX::ReinitDevice()
 	} while (false);
 
 	ReleaseCriticalSection();
+	LeaveCriticalSection(&PresentThread.ddpt);
 
 	// Success
 	return hr;
@@ -3169,6 +3208,8 @@ inline void m_IDirectDrawX::ReleaseAllD9Shaders()
 // Release all d3d9 device
 void m_IDirectDrawX::ReleaseD3D9Device()
 {
+	EnterCriticalSection(&PresentThread.ddpt);
+
 	// Release device
 	if (d3d9Device)
 	{
@@ -3180,6 +3221,8 @@ void m_IDirectDrawX::ReleaseD3D9Device()
 		}
 		d3d9Device = nullptr;
 	}
+
+	LeaveCriticalSection(&PresentThread.ddpt);
 }
 
 // Release d3d9 object
@@ -3531,6 +3574,27 @@ void m_IDirectDrawX::SetVsync()
 	}
 }
 
+// Present Thread: Wait for the event
+DWORD WINAPI PresentThreadFunction(LPVOID)
+{
+	while (!PresentThread.EndPresentThread)
+	{
+		WaitForSingleObject(PresentThread.workerEvent, INFINITE);
+		ResetEvent(PresentThread.workerEvent);
+		if (PresentThread.EndPresentThread)
+		{
+			break;
+		}
+		EnterCriticalSection(&PresentThread.ddpt);
+		if (d3d9Device)
+		{
+			d3d9Device->Present(nullptr, nullptr, nullptr, nullptr);
+		}
+		LeaveCriticalSection(&PresentThread.ddpt);
+	}
+	return S_OK;
+}
+
 // Do d3d9 Present
 HRESULT m_IDirectDrawX::Present()
 {
@@ -3543,7 +3607,7 @@ HRESULT m_IDirectDrawX::Present()
 	{
 		if (Counter.FrequencyFlag)
 		{
-			Counter.FrameCounter++;
+			Counter.FrameSkipCounter++;
 
 			// Get screen frequency timer
 			float MaxScreenTimer = (1000.0f / Counter.RefreshRate);
@@ -3557,7 +3621,7 @@ HRESULT m_IDirectDrawX::Present()
 			Counter.LastFrameTime = Counter.ClickTime.QuadPart;
 
 			// Use last frame time and average frame time to decide if next frame will be less than the screen frequency timer
-			if (CounterFlag && (deltaPresentMS + (deltaFrameMS * 1.1f) < MaxScreenTimer) && (deltaPresentMS + ((deltaPresentMS / Counter.FrameCounter) * 1.1f) < MaxScreenTimer))
+			if (CounterFlag && (deltaPresentMS + (deltaFrameMS * 1.1f) < MaxScreenTimer) && (deltaPresentMS + ((deltaPresentMS / Counter.FrameSkipCounter) * 1.1f) < MaxScreenTimer))
 			{
 				Logging::LogDebug() << __FUNCTION__ << " Skipping frame " << deltaPresentMS << "ms screen frequancy " << MaxScreenTimer;
 				return D3D_OK;
@@ -3575,12 +3639,38 @@ HRESULT m_IDirectDrawX::Present()
 	// Use WaitForVerticalBlank for wait timer
 	if (UseVSync)
 	{
-		WaitForVerticalBlank(DDWAITVB_BLOCKBEGIN, nullptr);
+		// Check how long since the last successful present
+		bool IsLongDelay = false;
+		if (Counter.FrequencyFlag && QueryPerformanceCounter(&Counter.ClickTime))
+		{
+			float deltaPresentMS = ((Counter.ClickTime.QuadPart - Counter.LastPresentTime.QuadPart) * 1000.0f) / Counter.Frequency.QuadPart;
+			IsLongDelay = (deltaPresentMS > 1000.f / Counter.RefreshRate);
+		}
+		// Don't wait for vsync if the last frame was too long ago
+		if (!IsLongDelay)
+		{
+			WaitForVerticalBlank(DDWAITVB_BLOCKBEGIN, nullptr);
+		}
 		EnableWaitVsync = false;
 	}
 
 	// Present everthing, skip Preset when using DdrawWriteToGDI
-	HRESULT hr = d3d9Device->Present(nullptr, nullptr, nullptr, nullptr);
+	HRESULT hr;
+	EnterCriticalSection(&PresentThread.ddpt);
+	if ((EnableWaitVsync && Config.EnableVSync) || !PresentThread.UsingMultpleCores)
+	{
+		hr = d3d9Device->Present(nullptr, nullptr, nullptr, nullptr);
+	}
+	else
+	{
+		HRESULT ret = TestCooperativeLevel();
+		hr = (ret == D3DERR_DEVICELOST || ret == D3DERR_DEVICENOTRESET || ret == D3DERR_DRIVERINTERNALERROR || ret == D3DERR_INVALIDCALL) ? ret : DD_OK;
+		if (SUCCEEDED(hr))
+		{
+			SetEvent(PresentThread.workerEvent);		// Trigger thread to present
+		}
+	}
+	LeaveCriticalSection(&PresentThread.ddpt);
 
 	// Device lost
 	if (hr == D3DERR_DEVICELOST)
@@ -3594,13 +3684,14 @@ HRESULT m_IDirectDrawX::Present()
 	}
 
 	// Store new click time after frame draw is complete
-	if (SUCCEEDED(hr) && Config.AutoFrameSkip)
+	if (SUCCEEDED(hr) && Counter.FrequencyFlag && QueryPerformanceCounter(&Counter.ClickTime))
 	{
-		if (QueryPerformanceCounter(&Counter.ClickTime))
+		Counter.LastPresentTime.QuadPart = Counter.ClickTime.QuadPart;
+		Counter.LastFrameTime = 0;
+		Counter.FrameSkipCounter = 0;
+		if (++Counter.FrameCounter % Counter.RefreshRate == 0)
 		{
-			Counter.LastPresentTime.QuadPart = Counter.ClickTime.QuadPart;
-			Counter.LastFrameTime = 0;
-			Counter.FrameCounter = 0;
+			QueryPerformanceFrequency(&Counter.Frequency);
 		}
 	}
 
