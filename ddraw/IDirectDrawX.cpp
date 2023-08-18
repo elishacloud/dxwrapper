@@ -93,7 +93,7 @@ struct PRESENTTHREAD
 	CRITICAL_SECTION ddpt = {};
 	HANDLE workerEvent = {};
 	HANDLE workerThread = {};
-	bool EndPresentThread = false;
+	bool EndPresentThread = true;
 };
 
 // Store a list of ddraw devices
@@ -2341,7 +2341,6 @@ void m_IDirectDrawX::InitDdraw(DWORD DirectXVersion)
 		surfaceHeight = 0;
 
 		// Prepare for present from another thread
-		PresentThread.EndPresentThread = false;
 		InitializeCriticalSection(&PresentThread.ddpt);
 		PresentThread.workerEvent = CreateEvent(NULL, FALSE, FALSE, NULL);
 		PresentThread.workerThread = CreateThread(NULL, 0, PresentThreadFunction, NULL, 0, NULL);
@@ -3577,6 +3576,7 @@ void m_IDirectDrawX::SetVsync()
 // Present Thread: Wait for the event
 DWORD WINAPI PresentThreadFunction(LPVOID)
 {
+	PresentThread.EndPresentThread = false;
 	while (!PresentThread.EndPresentThread)
 	{
 		WaitForSingleObject(PresentThread.workerEvent, INFINITE);
@@ -3600,10 +3600,8 @@ HRESULT m_IDirectDrawX::Present()
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	const bool UseVSync = (EnableWaitVsync && !Config.EnableVSync);
-
 	// Skip frame if time lapse is too small
-	if (Config.AutoFrameSkip && !UseVSync)
+	if (Config.AutoFrameSkip && !EnableWaitVsync)
 	{
 		if (Counter.FrequencyFlag)
 		{
@@ -3636,8 +3634,27 @@ HRESULT m_IDirectDrawX::Present()
 		return DDERR_GENERIC;
 	}
 
+	// Present everthing, skip Preset when using DdrawWriteToGDI
+	HRESULT hr;
+	EnterCriticalSection(&PresentThread.ddpt);
+	if ((EnableWaitVsync && Config.EnableVSync) || !PresentThread.UsingMultpleCores)
+	{
+		hr = d3d9Device->Present(nullptr, nullptr, nullptr, nullptr);
+		EnableWaitVsync = (EnableWaitVsync && !Config.EnableVSync);
+	}
+	else
+	{
+		HRESULT ret = TestCooperativeLevel();
+		hr = (ret == D3DERR_DEVICELOST || ret == D3DERR_DEVICENOTRESET || ret == D3DERR_DRIVERINTERNALERROR || ret == D3DERR_INVALIDCALL) ? ret : DD_OK;
+		if (SUCCEEDED(hr))
+		{
+			SetEvent(PresentThread.workerEvent);		// Trigger thread to present
+		}
+	}
+	LeaveCriticalSection(&PresentThread.ddpt);
+
 	// Use WaitForVerticalBlank for wait timer
-	if (UseVSync)
+	if (EnableWaitVsync)
 	{
 		// Check how long since the last successful present
 		bool IsLongDelay = false;
@@ -3653,24 +3670,6 @@ HRESULT m_IDirectDrawX::Present()
 		}
 		EnableWaitVsync = false;
 	}
-
-	// Present everthing, skip Preset when using DdrawWriteToGDI
-	HRESULT hr;
-	EnterCriticalSection(&PresentThread.ddpt);
-	if ((EnableWaitVsync && Config.EnableVSync) || !PresentThread.UsingMultpleCores)
-	{
-		hr = d3d9Device->Present(nullptr, nullptr, nullptr, nullptr);
-	}
-	else
-	{
-		HRESULT ret = TestCooperativeLevel();
-		hr = (ret == D3DERR_DEVICELOST || ret == D3DERR_DEVICENOTRESET || ret == D3DERR_DRIVERINTERNALERROR || ret == D3DERR_INVALIDCALL) ? ret : DD_OK;
-		if (SUCCEEDED(hr))
-		{
-			SetEvent(PresentThread.workerEvent);		// Trigger thread to present
-		}
-	}
-	LeaveCriticalSection(&PresentThread.ddpt);
 
 	// Device lost
 	if (hr == D3DERR_DEVICELOST)
