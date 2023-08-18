@@ -56,7 +56,7 @@ namespace
 
 			HWND owner = reinterpret_cast<HWND>(wParam);
 			HWND presentationWindow = origCreateWindowExA(
-				WS_EX_LAYERED | WS_EX_TRANSPARENT | WS_EX_NOPARENTNOTIFY | WS_EX_TOOLWINDOW,
+				WS_EX_LAYERED | WS_EX_TRANSPARENT | WS_EX_NOPARENTNOTIFY,
 				"DDrawCompatPresentationWindow",
 				nullptr,
 				WS_DISABLED | WS_POPUP,
