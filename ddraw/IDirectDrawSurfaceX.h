@@ -83,22 +83,10 @@ private:
 	// Real surface and surface data using Direct3D9 devices
 	struct D9SURFACE
 	{
-		DWORD UniquenessValue = 0;
 		bool IsDirtyFlag = false;
 		bool IsPaletteDirty = false;						// Used to detect if the palette surface needs to be updated
-		bool IsInDC = false;
-		HDC LastDC = nullptr;
-		bool IsInBlt = false;
-		bool IsInBltBatch = false;
-		bool IsLocked = false;
-		DWORD LockedWithID = 0;
-		LASTLOCK LastLock;									// Remember the last lock info
-		std::vector<RECT> LockRectList;						// Rects used to lock the surface
-		DDRAWEMULATELOCK EmuLock;							// For aligning bits after a lock for games that hard code the pitch
-		std::vector<byte> ByteArray;						// Memory used for coping from one surface to the same surface
-		std::vector<byte> Backup;							// Memory used for backing up the surfaceTexture
-		EMUSURFACE* emu = nullptr;							// Emulated surface using device context
 		DWORD LastPaletteUSN = 0;							// The USN that was used last time the palette was updated
+		EMUSURFACE* emu = nullptr;							// Emulated surface using device context
 		LPPALETTEENTRY PaletteEntryArray = nullptr;			// Used to store palette data address
 		LPDIRECT3DSURFACE9 Surface = nullptr;				// Surface used for Direct3D
 		LPDIRECT3DTEXTURE9 Texture = nullptr;				// Main surface texture used for locks, Blts and Flips
@@ -117,6 +105,7 @@ private:
 	D3DFORMAT surfaceFormat = D3DFMT_UNKNOWN;			// Format for this surface
 	DWORD surfaceBitCount = 0;							// Bit count for this surface
 	DWORD ResetDisplayFlags = 0;						// Flags that need to be reset when display mode changes
+	DWORD UniquenessValue = 0;
 	LONG overlayX = 0;
 	LONG overlayY = 0;
 	DWORD Priority = 0;
@@ -129,6 +118,17 @@ private:
 	bool ComplexRoot = false;
 	bool IsInFlip = false;
 	bool PresentOnUnlock = false;
+	bool IsInDC = false;
+	HDC LastDC = nullptr;
+	bool IsInBlt = false;
+	bool IsInBltBatch = false;
+	bool IsLocked = false;
+	DWORD LockedWithID = 0;
+	LASTLOCK LastLock;									// Remember the last lock info
+	std::vector<RECT> LockRectList;						// Rects used to lock the surface
+	DDRAWEMULATELOCK EmuLock;							// For aligning bits after a lock for games that hard code the pitch
+	std::vector<byte> ByteArray;						// Memory used for coping from one surface to the same surface
+	std::vector<byte> Backup;							// Memory used for backing up the surfaceTexture
 
 	// Extra Direct3D9 devices used in the primary surface
 	D9PRIMARY primary;
@@ -212,11 +212,11 @@ private:
 	void EndWritePresent(bool isSkipScene);
 
 	// Surface information functions
-	inline bool IsSurfaceLocked() { return surface.IsLocked; }
-	inline bool IsSurfaceBlitting() { return (surface.IsInBlt || surface.IsInBltBatch); }
-	inline bool IsSurfaceInDC() { return surface.IsInDC; }
+	inline bool IsSurfaceLocked() { return IsLocked; }
+	inline bool IsSurfaceBlitting() { return (IsInBlt || IsInBltBatch); }
+	inline bool IsSurfaceInDC() { return IsInDC; }
 	inline bool IsSurfaceBusy() { return (IsSurfaceBlitting() || IsSurfaceLocked() || IsSurfaceInDC()); }
-	inline bool IsLockedFromOtherThread() { return (IsSurfaceBlitting() || IsSurfaceLocked()) && surface.LockedWithID && surface.LockedWithID != GetCurrentThreadId(); }
+	inline bool IsLockedFromOtherThread() { return (IsSurfaceBlitting() || IsSurfaceLocked()) && LockedWithID && LockedWithID != GetCurrentThreadId(); }
 	inline bool CanSurfaceBeDeleted() { return (ComplexRoot || (surfaceDesc2.ddsCaps.dwCaps & DDSCAPS_COMPLEX) == 0); }
 	inline DWORD GetWidth() { return surfaceDesc2.dwWidth; }
 	inline DWORD GetHeight() { return surfaceDesc2.dwHeight; }

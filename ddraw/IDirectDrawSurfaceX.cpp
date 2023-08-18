@@ -372,13 +372,6 @@ HRESULT m_IDirectDrawSurfaceX::Blt(LPRECT lpDestRect, LPDIRECTDRAWSURFACE7 lpDDS
 
 	if (Config.Dd7to9)
 	{
-		// Check for device interface
-		HRESULT c_hr = CheckInterface(__FUNCTION__, true, true);
-		if (FAILED(c_hr) && !IsUsingEmulation())
-		{
-			return c_hr;
-		}
-
 		// All DDBLT_ALPHA flag values, Not currently implemented in DirectDraw.
 		if (dwFlags & (DDBLT_ALPHADEST | DDBLT_ALPHADESTCONSTOVERRIDE | DDBLT_ALPHADESTNEG | DDBLT_ALPHADESTSURFACEOVERRIDE | DDBLT_ALPHAEDGEBLEND |
 			DDBLT_ALPHASRC | DDBLT_ALPHASRCCONSTOVERRIDE | DDBLT_ALPHASRCNEG | DDBLT_ALPHASRCSURFACEOVERRIDE))
@@ -477,21 +470,28 @@ HRESULT m_IDirectDrawSurfaceX::Blt(LPRECT lpDestRect, LPDIRECTDRAWSURFACE7 lpDDS
 			}
 		}
 
+		// Check for device interface
+		HRESULT c_hr = CheckInterface(__FUNCTION__, true, true);
+		if ((FAILED(c_hr) && !IsUsingEmulation()) || (FAILED(lpDDSrcSurfaceX->CheckInterface(__FUNCTION__, true, true)) && !lpDDSrcSurfaceX->IsUsingEmulation()))
+		{
+			return FAILED(c_hr) ? c_hr : DDERR_GENERIC;
+		}
+
 		// Set critical section
 		SetCS();
 		lpDDSrcSurfaceX->SetCS();
 
 		// Set blt flag
-		surface.IsInBlt = true;
-		lpDDSrcSurfaceX->surface.IsInBlt = true;
+		IsInBlt = true;
+		lpDDSrcSurfaceX->IsInBlt = true;
 
 		// Set locked ID
-		if (surface.LockedWithID || lpDDSrcSurfaceX->surface.LockedWithID)
+		if (LockedWithID || lpDDSrcSurfaceX->LockedWithID)
 		{
-			LOG_LIMIT(100, __FUNCTION__ << " Warning: surface locked thread ID set! " << surface.LockedWithID << " " << lpDDSrcSurfaceX->surface.LockedWithID);
+			LOG_LIMIT(100, __FUNCTION__ << " Warning: surface locked thread ID set! " << LockedWithID << " " << lpDDSrcSurfaceX->LockedWithID);
 		}
-		surface.LockedWithID = GetCurrentThreadId();
-		lpDDSrcSurfaceX->surface.LockedWithID = GetCurrentThreadId();
+		LockedWithID = GetCurrentThreadId();
+		lpDDSrcSurfaceX->LockedWithID = GetCurrentThreadId();
 
 		HRESULT hr = DD_OK;
 
@@ -559,17 +559,17 @@ HRESULT m_IDirectDrawSurfaceX::Blt(LPRECT lpDestRect, LPDIRECTDRAWSURFACE7 lpDDS
 		} while (false);
 
 		// Reset Blt flag
-		lpDDSrcSurfaceX->surface.IsInBlt = false;
-		surface.IsInBlt = false;
+		lpDDSrcSurfaceX->IsInBlt = false;
+		IsInBlt = false;
 
 		// Reset locked thread ID
 		if (!IsSurfaceBlitting() && !IsSurfaceLocked())
 		{
-			surface.LockedWithID = 0;
+			LockedWithID = 0;
 		}
 		if (!lpDDSrcSurfaceX->IsSurfaceBlitting() && !lpDDSrcSurfaceX->IsSurfaceLocked())
 		{
-			lpDDSrcSurfaceX->surface.LockedWithID = 0;
+			lpDDSrcSurfaceX->LockedWithID = 0;
 		}
 
 		// If successful
@@ -681,7 +681,7 @@ HRESULT m_IDirectDrawSurfaceX::BltBatch(LPDDBLTBATCH lpDDBltBatch, DWORD dwCount
 
 	SetCS();
 
-	surface.IsInBltBatch = true;
+	IsInBltBatch = true;
 
 	for (DWORD x = 0; x < dwCount; x++)
 	{
@@ -695,11 +695,11 @@ HRESULT m_IDirectDrawSurfaceX::BltBatch(LPDDBLTBATCH lpDDBltBatch, DWORD dwCount
 		}
 	}
 
-	surface.IsInBltBatch = false;
+	IsInBltBatch = false;
 
 	if (!IsSurfaceBlitting() && !IsSurfaceLocked())
 	{
-		surface.LockedWithID = 0;
+		LockedWithID = 0;
 	}
 
 	ReleaseCS();
@@ -1621,9 +1621,9 @@ HRESULT m_IDirectDrawSurfaceX::GetDC(HDC FAR * lphDC)
 			return c_hr;
 		}
 
-		if (surface.LastDC && IsSurfaceInDC())
+		if (LastDC && IsSurfaceInDC())
 		{
-			*lphDC = surface.LastDC;
+			*lphDC = LastDC;
 			return DD_OK;
 		}
 
@@ -1701,10 +1701,10 @@ HRESULT m_IDirectDrawSurfaceX::GetDC(HDC FAR * lphDC)
 			}
 
 			// Set DC flag
-			surface.IsInDC = true;
+			IsInDC = true;
 
 			// Set LastDC
-			surface.LastDC = *lphDC;
+			LastDC = *lphDC;
 
 		} while (false);
 
@@ -2067,7 +2067,7 @@ HRESULT m_IDirectDrawSurfaceX::Lock2(LPRECT lpDestRect, LPDDSURFACEDESC2 lpDDSur
 		}
 
 		// Check for already locked state
-		if (!lpDestRect && !surface.LockRectList.empty())
+		if (!lpDestRect && !LockRectList.empty())
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Error: locking surface with NULL rect when surface is already locked!");
 			return DDERR_INVALIDRECT;
@@ -2171,19 +2171,19 @@ HRESULT m_IDirectDrawSurfaceX::Lock2(LPRECT lpDestRect, LPDDSURFACEDESC2 lpDDSur
 			}
 
 			// Set lock flag
-			surface.IsLocked = true;
+			IsLocked = true;
 
-			if (surface.LockedWithID)
+			if (LockedWithID)
 			{
-				LOG_LIMIT(100, __FUNCTION__ << " Warning: surface locked thread ID set! " << surface.LockedWithID);
+				LOG_LIMIT(100, __FUNCTION__ << " Warning: surface locked thread ID set! " << LockedWithID);
 			}
-			surface.LockedWithID = GetCurrentThreadId();
+			LockedWithID = GetCurrentThreadId();
 
 			// Store locked rect
 			if (lpDestRect)
 			{
 				RECT lRect = { lpDestRect->left, lpDestRect->top, lpDestRect->right, lpDestRect->bottom };
-				surface.LockRectList.push_back(lRect);
+				LockRectList.push_back(lRect);
 			}
 
 			// Set surfaceDesc
@@ -2217,16 +2217,16 @@ HRESULT m_IDirectDrawSurfaceX::Lock2(LPRECT lpDestRect, LPDDSURFACEDESC2 lpDDSur
 			}
 
 			// Backup last rect before removing scanlines
-			surface.LastLock.ReadOnly = ((Flags & D3DLOCK_READONLY) != 0);
-			surface.LastLock.IsSkipScene = IsSkipScene;
-			surface.LastLock.Rect = DestRect;
-			surface.LastLock.LockedRect.pBits = LockedRect.pBits;
-			surface.LastLock.LockedRect.Pitch = LockedRect.Pitch;
+			LastLock.ReadOnly = ((Flags & D3DLOCK_READONLY) != 0);
+			LastLock.IsSkipScene = IsSkipScene;
+			LastLock.Rect = DestRect;
+			LastLock.LockedRect.pBits = LockedRect.pBits;
+			LastLock.LockedRect.Pitch = LockedRect.Pitch;
 
 			// Restore scanlines before returing surface memory
 			if (Config.DdrawRemoveScanlines && IsPrimaryOrBackBuffer())
 			{
-				RestoreScanlines(surface.LastLock);
+				RestoreScanlines(LastLock);
 			}
 
 		} while (false);
@@ -2320,10 +2320,10 @@ HRESULT m_IDirectDrawSurfaceX::ReleaseDC(HDC hDC)
 			}
 
 			// Reset DC flag
-			surface.IsInDC = false;
+			IsInDC = false;
 
 			// Set LastDC
-			surface.LastDC = nullptr;
+			LastDC = nullptr;
 
 			// Set dirty flag
 			SetDirtyFlag();
@@ -2624,28 +2624,28 @@ HRESULT m_IDirectDrawSurfaceX::Unlock(LPRECT lpRect)
 		SetCS();
 
 		// Fix issue with some games that ignore the pitch size
-		if (surface.EmuLock.Locked && surface.EmuLock.Addr)
+		if (EmuLock.Locked && EmuLock.Addr)
 		{
-			BYTE* InAddr = surface.EmuLock.Mem.data();
-			DWORD InPitch = (surface.EmuLock.BBP / 8) * surface.EmuLock.Width;
-			BYTE* OutAddr = (BYTE*)surface.EmuLock.Addr;
-			DWORD OutPitch = surface.EmuLock.Pitch;
-			for (DWORD x = 0; x < surface.EmuLock.Height; x++)
+			BYTE* InAddr = EmuLock.Mem.data();
+			DWORD InPitch = (EmuLock.BBP / 8) * EmuLock.Width;
+			BYTE* OutAddr = (BYTE*)EmuLock.Addr;
+			DWORD OutPitch = EmuLock.Pitch;
+			for (DWORD x = 0; x < EmuLock.Height; x++)
 			{
 				memcpy(OutAddr, InAddr, InPitch);
 				InAddr += InPitch;
 				OutAddr += OutPitch;
 			}
 
-			surface.EmuLock.Locked = false;
-			surface.EmuLock.Addr = nullptr;
+			EmuLock.Locked = false;
+			EmuLock.Addr = nullptr;
 		}
 
 		HRESULT hr = DD_OK;
 
 		do {
 			// Check rect
-			if (!lpRect && surface.LockRectList.size() > 1)
+			if (!lpRect && LockRectList.size() > 1)
 			{
 				LOG_LIMIT(100, __FUNCTION__ << " Error: Rect cannot be NULL when locked with a specific rect!");
 				hr = DDERR_INVALIDRECT;
@@ -2653,19 +2653,19 @@ HRESULT m_IDirectDrawSurfaceX::Unlock(LPRECT lpRect)
 			}
 
 			// Check stored rect
-			if (lpRect && surface.LockRectList.size() > 1)
+			if (lpRect && LockRectList.size() > 1)
 			{
-				auto it = std::find_if(surface.LockRectList.begin(), surface.LockRectList.end(),
+				auto it = std::find_if(LockRectList.begin(), LockRectList.end(),
 					[=](auto Rect) -> bool { return (Rect.left == lpRect->left && Rect.top == lpRect->top && Rect.right == lpRect->right && Rect.bottom == lpRect->bottom); });
 
-				if (it != std::end(surface.LockRectList))
+				if (it != std::end(LockRectList))
 				{
-					surface.LockRectList.erase(it);
+					LockRectList.erase(it);
 
 					// Unlock once all rects have been unlocked
-					if (!surface.LockRectList.empty())
+					if (!LockRectList.empty())
 					{
-						LOG_LIMIT(100, __FUNCTION__ << " Warning: multiple locked rects found: " << surface.LockRectList.size());
+						LOG_LIMIT(100, __FUNCTION__ << " Warning: multiple locked rects found: " << LockRectList.size());
 						hr = DD_OK;
 						break;
 					}
@@ -2689,23 +2689,23 @@ HRESULT m_IDirectDrawSurfaceX::Unlock(LPRECT lpRect)
 			// Remove scanlines before unlocking surface
 			if (Config.DdrawRemoveScanlines && IsPrimaryOrBackBuffer())
 			{
-				RemoveScanlines(surface.LastLock);
+				RemoveScanlines(LastLock);
 			}
 
 			// Emulated surface
 			if (IsUsingEmulation())
 			{
-				if (!surface.LastLock.ReadOnly)
+				if (!LastLock.ReadOnly)
 				{
 					// Blt surface directly to GDI
 					if (Config.DdrawWriteToGDI && IsPrimaryOrBackBuffer() && !IsDirect3DEnabled)
 					{
-						CopyEmulatedSurfaceToGDI(surface.LastLock.Rect);
+						CopyEmulatedSurfaceToGDI(LastLock.Rect);
 					}
 					// Copy emulated surface to real texture
 					else
 					{
-						CopyFromEmulatedSurface(&surface.LastLock.Rect);
+						CopyFromEmulatedSurface(&LastLock.Rect);
 					}
 				}
 			}
@@ -2730,22 +2730,22 @@ HRESULT m_IDirectDrawSurfaceX::Unlock(LPRECT lpRect)
 			}
 
 			// Clear memory pointer
-			surface.LastLock.LockedRect.pBits = nullptr;
+			LastLock.LockedRect.pBits = nullptr;
 
 			// Clear vector
-			surface.LockRectList.clear();
+			LockRectList.clear();
 
 			// Reset locked flag
-			surface.IsLocked = false;
+			IsLocked = false;
 
 			// Reset locked thread ID
 			if (!IsSurfaceBlitting() && !IsSurfaceLocked())
 			{
-				surface.LockedWithID = 0;
+				LockedWithID = 0;
 			}
 
 			// Set dirty flag
-			if (!surface.LastLock.ReadOnly)
+			if (!LastLock.ReadOnly)
 			{
 				SetDirtyFlag();
 			}
@@ -2757,7 +2757,7 @@ HRESULT m_IDirectDrawSurfaceX::Unlock(LPRECT lpRect)
 		// Present surface
 		if (SUCCEEDED(hr))
 		{
-			EndWritePresent(surface.LastLock.IsSkipScene);
+			EndWritePresent(LastLock.IsSkipScene);
 		}
 
 		return hr;
@@ -3096,7 +3096,7 @@ HRESULT m_IDirectDrawSurfaceX::GetUniquenessValue(LPDWORD lpValue)
 		}
 		else
 		{
-			*lpValue = surface.UniquenessValue;
+			*lpValue = UniquenessValue;
 		}
 		return DD_OK;
 	}
@@ -3111,7 +3111,7 @@ HRESULT m_IDirectDrawSurfaceX::ChangeUniquenessValue()
 	if (Config.Dd7to9)
 	{
 		// Manually updates the uniqueness value for this surface.
-		surface.UniquenessValue++;
+		UniquenessValue++;
 		return DD_OK;
 	}
 
@@ -3242,7 +3242,7 @@ void m_IDirectDrawSurfaceX::InitSurface(DWORD DirectXVersion)
 	}
 
 	// Set Uniqueness Value
-	surface.UniquenessValue = 1;
+	UniquenessValue = 1;
 
 	// Update surface description and create backbuffers
 	InitSurfaceDesc(DirectXVersion);
@@ -3543,9 +3543,9 @@ HRESULT m_IDirectDrawSurfaceX::CreateD3d9Surface()
 		{
 			CopyFromEmulatedSurface(nullptr);
 		}
-		else if (!surface.Backup.empty())
+		else if (!Backup.empty())
 		{
-			if (surface.Backup.size() / surfaceDesc2.dwHeight == (DWORD)surfaceDesc2.lPitch)
+			if (Backup.size() / surfaceDesc2.dwHeight == (DWORD)surfaceDesc2.lPitch)
 			{
 				IDirect3DSurface9* pDestSurfaceD9 = GetD3D9Surface();
 
@@ -3553,7 +3553,7 @@ HRESULT m_IDirectDrawSurfaceX::CreateD3d9Surface()
 				{
 					RECT Rect = { 0, 0, (LONG)surfaceDesc2.dwWidth, (LONG)surfaceDesc2.dwHeight };
 
-					if (SUCCEEDED(D3DXLoadSurfaceFromMemory(pDestSurfaceD9, nullptr, &Rect, surface.Backup.data(), (surfaceFormat == D3DFMT_P8) ? D3DFMT_L8 : surfaceFormat, surfaceDesc2.lPitch, nullptr, &Rect, D3DX_FILTER_NONE, 0)))
+					if (SUCCEEDED(D3DXLoadSurfaceFromMemory(pDestSurfaceD9, nullptr, &Rect, Backup.data(), (surfaceFormat == D3DFMT_P8) ? D3DFMT_L8 : surfaceFormat, surfaceDesc2.lPitch, nullptr, &Rect, D3DX_FILTER_NONE, 0)))
 					{
 						if (IsUsingEmulation())
 						{
@@ -3568,14 +3568,14 @@ HRESULT m_IDirectDrawSurfaceX::CreateD3d9Surface()
 			}
 			else
 			{
-				LOG_LIMIT(100, __FUNCTION__ << " Warning: restore backup surface data size mismatch! Size: " << surface.Backup.size() <<
+				LOG_LIMIT(100, __FUNCTION__ << " Warning: restore backup surface data size mismatch! Size: " << Backup.size() <<
 					" Surface pitch: " << surfaceDesc2.lPitch << " " << surfaceDesc2.dwWidth << "x" << surfaceDesc2.dwHeight);
 			}
 		}
 	}
 
 	// Data is no longer needed
-	surface.Backup.clear();
+	Backup.clear();
 
 	// Only need to create vertex buffer for primary surface when using DirectDraw and not writing to GDI
 	if (!IsPrimarySurface())
@@ -3944,31 +3944,32 @@ void m_IDirectDrawSurfaceX::UpdateSurfaceDesc()
 // Release surface and vertext buffer
 void m_IDirectDrawSurfaceX::ReleaseD9Surface(bool BackupData)
 {
+	SetCS();
+
+	// Check if surface is busy
 	if (IsSurfaceBusy())
 	{
 		Logging::Log() << __FUNCTION__ << " Warning: surface still in use! Locked: " << IsSurfaceLocked() << " DC: " << IsSurfaceInDC() << " Blt: " << IsSurfaceBlitting();
 	}
 
-	SetCS();
-
 	// Release DC (before releasing surface)
-	if (IsSurfaceInDC() || surface.LastDC)
+	if (IsSurfaceInDC() || LastDC)
 	{
-		if (surface.LastDC)
+		if (LastDC)
 		{
-			ReleaseDC(surface.LastDC);
-			surface.LastDC = nullptr;
+			ReleaseDC(LastDC);
+			LastDC = nullptr;
 		}
-		surface.IsInDC = false;
+		IsInDC = false;
 	}
 
 	// Unlock surface (before releasing)
 	if (IsSurfaceLocked())
 	{
 		UnlockD39Surface();
-		surface.IsLocked = false;
+		IsLocked = false;
 	}
-	surface.LockedWithID = 0;
+	LockedWithID = 0;
 
 	// Backup d3d9 surface texture
 	if (BackupData)
@@ -3982,9 +3983,9 @@ void m_IDirectDrawSurfaceX::ReleaseD9Surface(bool BackupData)
 
 				size_t size = surfaceDesc2.dwHeight * LockRect.Pitch;
 
-				surface.Backup.resize(size);
+				Backup.resize(size);
 
-				memcpy(surface.Backup.data(), LockRect.pBits, size);
+				memcpy(Backup.data(), LockRect.pBits, size);
 
 				UnlockD39Surface();
 			}
@@ -4102,12 +4103,12 @@ void m_IDirectDrawSurfaceX::ReleaseD9Surface(bool BackupData)
 	}
 
 	// Clear locked rects
-	surface.LockRectList.clear();
+	LockRectList.clear();
 
 	// Reset scanline flags
-	surface.LastLock.LockedRect.pBits = nullptr;
-	surface.LastLock.bEvenScanlines = false;
-	surface.LastLock.bOddScanlines = false;
+	LastLock.LockedRect.pBits = nullptr;
+	LastLock.bEvenScanlines = false;
+	LastLock.bOddScanlines = false;
 
 	// Reset display flags
 	if (ResetDisplayFlags)
@@ -4472,20 +4473,20 @@ void m_IDirectDrawSurfaceX::LockBitAlign(LPRECT lpDestRect, LPDDSURFACEDESC2 lpD
 		lpDDSurfaceDesc->lPitch != NewPitch)
 	{
 		// Store old variables
-		surface.EmuLock.Locked = true;
-		surface.EmuLock.Addr = lpDDSurfaceDesc->lpSurface;
-		surface.EmuLock.Pitch = lpDDSurfaceDesc->lPitch;
-		surface.EmuLock.BBP = BBP;
-		surface.EmuLock.Width = lpDDSurfaceDesc->dwWidth;
-		surface.EmuLock.Height = lpDDSurfaceDesc->dwHeight;
+		EmuLock.Locked = true;
+		EmuLock.Addr = lpDDSurfaceDesc->lpSurface;
+		EmuLock.Pitch = lpDDSurfaceDesc->lPitch;
+		EmuLock.BBP = BBP;
+		EmuLock.Width = lpDDSurfaceDesc->dwWidth;
+		EmuLock.Height = lpDDSurfaceDesc->dwHeight;
 
 		// Update surface memory and pitch
 		DWORD Size = NewPitch * lpDDSurfaceDesc->dwHeight;
-		if (surface.EmuLock.Mem.size() < Size)
+		if (EmuLock.Mem.size() < Size)
 		{
-			surface.EmuLock.Mem.resize(Size);
+			EmuLock.Mem.resize(Size);
 		}
-		lpDDSurfaceDesc->lpSurface = surface.EmuLock.Mem.data();
+		lpDDSurfaceDesc->lpSurface = EmuLock.Mem.data();
 		lpDDSurfaceDesc->lPitch = NewPitch;
 	}
 }
@@ -5348,12 +5349,12 @@ HRESULT m_IDirectDrawSurfaceX::CopySurface(m_IDirectDrawSurfaceX* pSourceSurface
 		if (this == pSourceSurface)
 		{
 			size_t size = SrcRectWidth * ByteCount * SrcRectHeight;
-			if (size > surface.ByteArray.size())
+			if (size > ByteArray.size())
 			{
-				surface.ByteArray.resize(size);
+				ByteArray.resize(size);
 			}
 			BYTE* SrcBuffer = (BYTE*)SrcLockRect.pBits;
-			BYTE* DestBuffer = (BYTE*)surface.ByteArray.data();
+			BYTE* DestBuffer = (BYTE*)ByteArray.data();
 			INT DestPitch = SrcRectWidth * ByteCount;
 			for (LONG y = 0; y < SrcRectHeight; y++)
 			{
@@ -5361,7 +5362,7 @@ HRESULT m_IDirectDrawSurfaceX::CopySurface(m_IDirectDrawSurfaceX* pSourceSurface
 				SrcBuffer += SrcLockRect.Pitch;
 				DestBuffer += DestPitch;
 			}
-			SrcLockRect.pBits = surface.ByteArray.data();
+			SrcLockRect.pBits = ByteArray.data();
 			SrcLockRect.Pitch = DestPitch;
 			if (UnlockSrc)
 			{
