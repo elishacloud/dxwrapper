@@ -1096,7 +1096,8 @@ inline HRESULT m_IDirectDrawSurfaceX::CheckBackBufferForFlip(m_IDirectDrawSurfac
 	// Check if surface is locked or has an open DC
 	if (lpTargetSurface->IsSurfaceBusy())
 	{
-		LOG_LIMIT(100, __FUNCTION__ << " Error: backbuffer surface is busy!");
+		LOG_LIMIT(100, __FUNCTION__ << " Error: backbuffer surface is busy: " <<
+			lpTargetSurface->IsSurfaceLocked() << " DC: " << lpTargetSurface->IsSurfaceInDC() << " Blt: " << lpTargetSurface->IsSurfaceBlitting());
 		return DDERR_SURFACEBUSY;
 	}
 
@@ -1178,7 +1179,7 @@ HRESULT m_IDirectDrawSurfaceX::Flip(LPDIRECTDRAWSURFACE7 lpDDSurfaceTargetOverri
 		// Check if surface is locked or has an open DC
 		if (IsSurfaceBusy())
 		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error: surface is busy!");
+			LOG_LIMIT(100, __FUNCTION__ << " Error: surface is busy: " << IsSurfaceLocked() << " DC: " << IsSurfaceInDC() << " Blt: " << IsSurfaceBlitting());
 
 			// On IDirectDrawSurface7 and higher interfaces, the default is DDFLIP_WAIT.
 			if (((dwFlags & DDFLIP_WAIT) || DirectXVersion == 7) && (dwFlags & DDFLIP_DONOTWAIT) == 0)
