@@ -1679,7 +1679,7 @@ HRESULT m_IDirectDrawSurfaceX::GetDC(HDC FAR * lphDC)
 					CopyEmulatedSurfaceFromGDI(Rect);
 				}
 
-				*lphDC = surface.emu->GameDC;
+				*lphDC = surface.emu->DC;
 			}
 			else if (surface.Texture)
 			{
@@ -3886,22 +3886,6 @@ HRESULT m_IDirectDrawSurfaceX::CreateDCSurface()
 		DeleteEmulatedMemory(&surface.emu);
 		return DDERR_GENERIC;
 	}
-	// Create DC for game to use in GetDC()
-	surface.emu->GameDC = CreateCompatibleDC(surface.emu->DC);
-	if (!surface.emu->GameDC)
-	{
-		LOG_LIMIT(100, __FUNCTION__ << " Error: failed to create compatible GameDC: " << hDC << " " << surfaceFormat);
-		DeleteEmulatedMemory(&surface.emu);
-		return DDERR_GENERIC;
-	}
-	surface.emu->OldGameDCObject = SelectObject(surface.emu->GameDC, surface.emu->bitmap);
-	if (!surface.emu->OldGameDCObject)
-	{
-		LOG_LIMIT(100, __FUNCTION__ << " Error: failed to replace object in GameDC!");
-		DeleteEmulatedMemory(&surface.emu);
-		return DDERR_GENERIC;
-	}
-	// Set emulated surface details
 	surface.emu->bmi->bmiHeader.biHeight = -(LONG)Height;
 	surface.emu->Format = surfaceFormat;
 	surface.emu->Pitch = ComputePitch(surface.emu->bmi->bmiHeader.biWidth, surface.emu->bmi->bmiHeader.biBitCount);
@@ -6109,11 +6093,6 @@ void m_IDirectDrawSurfaceX::DeleteEmulatedMemory(EMUSURFACE **ppEmuSurface)
 	SetCriticalSection();
 
 	// Release device context memory
-	if ((*ppEmuSurface)->GameDC)
-	{
-		SelectObject((*ppEmuSurface)->GameDC, (*ppEmuSurface)->OldGameDCObject);
-		DeleteDC((*ppEmuSurface)->GameDC);
-	}
 	if ((*ppEmuSurface)->DC)
 	{
 		SelectObject((*ppEmuSurface)->DC, (*ppEmuSurface)->OldDCObject);
