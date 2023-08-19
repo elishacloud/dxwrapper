@@ -187,9 +187,7 @@ private:
 		*Address1 = *Address2;
 		*Address2 = tmpAddr;
 	}
-	void SwapTargetSurface(m_IDirectDrawSurfaceX* lpTargetSurface);
 	HRESULT CheckBackBufferForFlip(m_IDirectDrawSurfaceX* lpTargetSurface);
-	HRESULT FlipBackBuffer();
 
 	// Direct3D9 interface functions
 	HRESULT CheckInterface(char *FunctionName, bool CheckD3DDevice, bool CheckD3DSurface);

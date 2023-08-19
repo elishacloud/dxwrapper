@@ -1066,7 +1066,7 @@ HRESULT m_IDirectDrawX::EnumSurfaces2(DWORD dwFlags, LPDDSURFACEDESC2 lpDDSurfac
 			return DDERR_INVALIDPARAMS;
 
 		case (DDENUMSURFACES_DOESEXIST | DDENUMSURFACES_ALL):
-			for (m_IDirectDrawSurfaceX* pSurfaceX : SurfaceVector)
+			for (m_IDirectDrawSurfaceX*& pSurfaceX : SurfaceVector)
 			{
 				LPDIRECTDRAWSURFACE7 pSurface7 = (LPDIRECTDRAWSURFACE7)pSurfaceX->GetWrapperInterfaceX(DirectXVersion);
 
@@ -2115,9 +2115,9 @@ HRESULT m_IDirectDrawX::RestoreAllSurfaces()
 		{
 			SetCriticalSection();
 
-			for (m_IDirectDrawX* pDDraw : DDrawVector)
+			for (m_IDirectDrawX*& pDDraw : DDrawVector)
 			{
-				for (m_IDirectDrawSurfaceX* pSurface : pDDraw->SurfaceVector)
+				for (m_IDirectDrawSurfaceX*& pSurface : pDDraw->SurfaceVector)
 				{
 					pSurface->ResetSurfaceDisplay();
 				}
@@ -2488,7 +2488,7 @@ void m_IDirectDrawX::ReleaseDdraw()
 	}
 
 	// Release surfaces
-	for (m_IDirectDrawSurfaceX *pSurface : SurfaceVector)
+	for (m_IDirectDrawSurfaceX*& pSurface : SurfaceVector)
 	{
 		pSurface->ReleaseD9Surface(false);
 		pSurface->ClearDdraw();
@@ -2496,21 +2496,21 @@ void m_IDirectDrawX::ReleaseDdraw()
 	SurfaceVector.clear();
 
 	// Release Clippers
-	for (m_IDirectDrawClipper* pClipper : ClipperVector)
+	for (m_IDirectDrawClipper*& pClipper : ClipperVector)
 	{
 		pClipper->ClearDdraw();
 	}
 	ClipperVector.clear();
 
 	// Release palettes
-	for (m_IDirectDrawPalette *pPalette : PaletteVector)
+	for (m_IDirectDrawPalette*& pPalette : PaletteVector)
 	{
 		pPalette->ClearDdraw();
 	}
 	PaletteVector.clear();
 
 	// Release vertex buffers
-	for (m_IDirect3DVertexBufferX* pVertexBuffer : VertexBufferVector)
+	for (m_IDirect3DVertexBufferX*& pVertexBuffer : VertexBufferVector)
 	{
 		pVertexBuffer->ReleaseD9Buffers(false);
 		pVertexBuffer->ClearDdraw();
@@ -3145,9 +3145,9 @@ inline void m_IDirectDrawX::ReleaseAllD9Surfaces(bool BackupData)
 {
 	SetCriticalSection();
 
-	for (m_IDirectDrawX *pDDraw : DDrawVector)
+	for (m_IDirectDrawX*& pDDraw : DDrawVector)
 	{
-		for (m_IDirectDrawSurfaceX* pSurface : pDDraw->SurfaceVector)
+		for (m_IDirectDrawSurfaceX*& pSurface : pDDraw->SurfaceVector)
 		{
 			pSurface->ReleaseD9Surface(BackupData);
 		}
@@ -3161,9 +3161,9 @@ inline void m_IDirectDrawX::ReleaseAllD9Buffers(bool BackupData)
 {
 	SetCriticalSection();
 
-	for (m_IDirectDrawX* pDDraw : DDrawVector)
+	for (m_IDirectDrawX*& pDDraw : DDrawVector)
 	{
-		for (m_IDirect3DVertexBufferX* pBuffer : pDDraw->VertexBufferVector)
+		for (m_IDirect3DVertexBufferX*& pBuffer : pDDraw->VertexBufferVector)
 		{
 			pBuffer->ReleaseD9Buffers(BackupData);
 		}
@@ -3244,7 +3244,7 @@ void m_IDirectDrawX::EvictManagedTextures()
 	SetCriticalSection();
 
 	// Check if any surfaces are locked
-	for (m_IDirectDrawSurfaceX* pSurface : SurfaceVector)
+	for (m_IDirectDrawSurfaceX*& pSurface : SurfaceVector)
 	{
 		if (pSurface->IsSurfaceManaged())
 		{
@@ -3300,9 +3300,9 @@ void m_IDirectDrawX::RemoveSurfaceFromVector(m_IDirectDrawSurfaceX* lpSurfaceX)
 	}
 
 	// Remove attached surface from map
-	for (m_IDirectDrawX* pDDraw : DDrawVector)
+	for (m_IDirectDrawX*& pDDraw : DDrawVector)
 	{
-		for (m_IDirectDrawSurfaceX* pSurface : pDDraw->SurfaceVector)
+		for (m_IDirectDrawSurfaceX*& pSurface : pDDraw->SurfaceVector)
 		{
 			pSurface->RemoveAttachedSurfaceFromMap(lpSurfaceX);
 		}
@@ -3366,9 +3366,9 @@ void m_IDirectDrawX::RemoveClipperFromVector(m_IDirectDrawClipper* lpClipper)
 	}
 
 	// Remove clipper from attached surface
-	for (m_IDirectDrawX* pDDraw : DDrawVector)
+	for (m_IDirectDrawX*& pDDraw : DDrawVector)
 	{
-		for (m_IDirectDrawSurfaceX* pSurface : pDDraw->SurfaceVector)
+		for (m_IDirectDrawSurfaceX*& pSurface : pDDraw->SurfaceVector)
 		{
 			pSurface->RemoveClipper(lpClipper);
 		}
@@ -3435,9 +3435,9 @@ void m_IDirectDrawX::RemovePaletteFromVector(m_IDirectDrawPalette* lpPalette)
 	}
 
 	// Remove palette from attached surface
-	for (m_IDirectDrawX* pDDraw : DDrawVector)
+	for (m_IDirectDrawX*& pDDraw : DDrawVector)
 	{
-		for (m_IDirectDrawSurfaceX* pSurface : pDDraw->SurfaceVector)
+		for (m_IDirectDrawSurfaceX*& pSurface : pDDraw->SurfaceVector)
 		{
 			pSurface->RemovePalette(lpPalette);
 		}

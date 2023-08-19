@@ -450,7 +450,7 @@ HRESULT m_IDirectDrawSurfaceX::Blt(LPRECT lpDestRect, LPDIRECTDRAWSURFACE7 lpDDS
 		// DDBLT_ASYNC - Current dxwrapper implementation always allows async if calling from multiple threads
 
 		// Check if the scene needs to be presented
-		bool IsSkipScene = (lpDestRect) ? CheckRectforSkipScene(*lpDestRect) : false;
+		const bool IsSkipScene = (lpDestRect) ? CheckRectforSkipScene(*lpDestRect) : false;
 
 		// Present before write if needed
 		BeginWritePresent(IsSkipScene);
@@ -462,12 +462,20 @@ HRESULT m_IDirectDrawSurfaceX::Blt(LPRECT lpDestRect, LPDIRECTDRAWSURFACE7 lpDDS
 			while (IsLockedFromOtherThread() || lpDDSrcSurfaceX->IsLockedFromOtherThread())
 			{
 				Sleep(0);
-				if (!surface.Texture && !surface.Surface)
-				{
-					LOG_LIMIT(100, __FUNCTION__ << " Error: surface texture missing!");
-					return DDERR_SURFACELOST;
-				}
 			}
+		}
+
+		// Check if surface is busy
+		if (IsSurfaceBusy() || lpDDSrcSurfaceX->IsSurfaceBusy())
+		{
+			if (BltWait)
+			{
+				LOG_LIMIT(100, __FUNCTION__ << " Error: surface is busy: " <<
+					lpDDSrcSurfaceX->IsSurfaceLocked() << " DC: " << lpDDSrcSurfaceX->IsSurfaceInDC() << " Blt: " << lpDDSrcSurfaceX->IsSurfaceBlitting() << " -> " <<
+					IsSurfaceLocked() << " DC: " << IsSurfaceInDC() << " Blt: " << IsSurfaceBlitting());
+				return DDERR_WASSTILLDRAWING;
+			}
+			return DDERR_SURFACEBUSY;
 		}
 
 		// Check for device interface
@@ -1073,16 +1081,6 @@ HRESULT m_IDirectDrawSurfaceX::EnumOverlayZOrders2(DWORD dwFlags, LPVOID lpConte
 	return ProxyInterface->EnumOverlayZOrders(dwFlags, &CallbackContext, EnumSurface::ConvertCallback);
 }
 
-// Swap surfaces
-inline void m_IDirectDrawSurfaceX::SwapTargetSurface(m_IDirectDrawSurfaceX* lpTargetSurface)
-{
-	SetCS();
-	lpTargetSurface->SetCS();
-	SwapAddresses(&surface, &lpTargetSurface->surface);
-	lpTargetSurface->ReleaseCS();
-	ReleaseCS();
-}
-
 // Check if backbuffer can flip with current surface
 inline HRESULT m_IDirectDrawSurfaceX::CheckBackBufferForFlip(m_IDirectDrawSurfaceX* lpTargetSurface)
 {
@@ -1091,14 +1089,6 @@ inline HRESULT m_IDirectDrawSurfaceX::CheckBackBufferForFlip(m_IDirectDrawSurfac
 	{
 		LOG_LIMIT(100, __FUNCTION__ << " Error: invalid surface!");
 		return DDERR_INVALIDPARAMS;
-	}
-
-	// Check if surface is locked or has an open DC
-	if (lpTargetSurface->IsSurfaceBusy())
-	{
-		LOG_LIMIT(100, __FUNCTION__ << " Error: backbuffer surface is busy: " <<
-			lpTargetSurface->IsSurfaceLocked() << " DC: " << lpTargetSurface->IsSurfaceInDC() << " Blt: " << lpTargetSurface->IsSurfaceBlitting());
-		return DDERR_SURFACEBUSY;
 	}
 
 	// Make sure that surface description on target is updated
@@ -1116,44 +1106,14 @@ inline HRESULT m_IDirectDrawSurfaceX::CheckBackBufferForFlip(m_IDirectDrawSurfac
 		return DDERR_GENERIC;
 	}
 
+	// Check for device interface
+	HRESULT c_hr = lpTargetSurface->CheckInterface(__FUNCTION__, true, true);
+	if (FAILED(c_hr))
+	{
+		return c_hr;
+	}
+
 	return DD_OK;
-}
-
-// Flip all backbuffer surfaces
-HRESULT m_IDirectDrawSurfaceX::FlipBackBuffer()
-{
-	DWORD dwCaps = 0;
-	m_IDirectDrawSurfaceX *lpTargetSurface = nullptr;
-
-	// Loop through each surface
-	for (auto& it : AttachedSurfaceMap)
-	{
-		dwCaps = it.second.pSurface->GetSurfaceCaps().dwCaps;
-		if (dwCaps & DDSCAPS_FLIP)
-		{
-			lpTargetSurface = it.second.pSurface;
-			break;
-		}
-	}
-
-	// Check backbuffer surface
-	HRESULT hr = CheckBackBufferForFlip(lpTargetSurface);
-	if (FAILED(hr))
-	{
-		return hr;
-	}
-
-	// Stop flipping when frontbuffer is found
-	if (dwCaps & DDSCAPS_FRONTBUFFER)
-	{
-		return DD_OK;
-	}
-
-	// Swap surface
-	SwapTargetSurface(lpTargetSurface);
-
-	// Flip next surface
-	return lpTargetSurface->FlipBackBuffer();
 }
 
 HRESULT m_IDirectDrawSurfaceX::Flip(LPDIRECTDRAWSURFACE7 lpDDSurfaceTargetOverride, DWORD dwFlags, DWORD DirectXVersion)
@@ -1162,11 +1122,10 @@ HRESULT m_IDirectDrawSurfaceX::Flip(LPDIRECTDRAWSURFACE7 lpDDSurfaceTargetOverri
 
 	if (Config.Dd7to9)
 	{
-		// Check for device interface
-		HRESULT c_hr = CheckInterface(__FUNCTION__, true, true);
-		if (FAILED(c_hr))
+		if ((dwFlags & (DDFLIP_EVEN | DDFLIP_ODD)) == (DDFLIP_EVEN | DDFLIP_ODD))
 		{
-			return c_hr;
+			LOG_LIMIT(100, __FUNCTION__ << " Error: invalid flags!");
+			return DDERR_INVALIDPARAMS;
 		}
 
 		// Flip can be called only for a surface that has the DDSCAPS_FLIP and DDSCAPS_FRONTBUFFER capabilities
@@ -1176,114 +1135,168 @@ HRESULT m_IDirectDrawSurfaceX::Flip(LPDIRECTDRAWSURFACE7 lpDDSurfaceTargetOverri
 			return DDERR_NOTFLIPPABLE;
 		}
 
-		// Check if surface is locked or has an open DC
-		if (IsSurfaceBusy())
+		if (dwFlags & DDFLIP_STEREO)
 		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error: surface is busy: " << IsSurfaceLocked() << " DC: " << IsSurfaceInDC() << " Blt: " << IsSurfaceBlitting());
-
-			// On IDirectDrawSurface7 and higher interfaces, the default is DDFLIP_WAIT.
-			if (((dwFlags & DDFLIP_WAIT) || DirectXVersion == 7) && (dwFlags & DDFLIP_DONOTWAIT) == 0)
-			{
-				// ToDo: if surface is busy on another thread then wait for it here.
-				return DDERR_SURFACEBUSY;
-			}
-			else
-			{
-				return DDERR_WASSTILLDRAWING;
-			}
+			LOG_LIMIT(100, __FUNCTION__ << " Error: Stereo flipping not implemented");
+			return DDERR_NOSTEREOHARDWARE;
 		}
 
 		if ((dwFlags & (DDFLIP_INTERVAL2 | DDFLIP_INTERVAL3 | DDFLIP_INTERVAL4)) && (surfaceDesc2.ddsCaps.dwCaps2 & DDCAPS2_FLIPINTERVAL))
 		{
-			LOG_LIMIT(100, __FUNCTION__ << " Interval flipping not fully implemented");
+			LOG_LIMIT(100, __FUNCTION__ << " Error: Interval flipping not implemented");
+			return DDERR_UNSUPPORTED;
+		}
+
+		if (dwFlags & (DDFLIP_ODD | DDFLIP_EVEN))
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: Even and odd flipping not implemented");
+			return DDERR_UNSUPPORTED;
+		}
+
+		const bool FlipWait = (((dwFlags & DDFLIP_WAIT) || DirectXVersion == 7) && (dwFlags & DDFLIP_DONOTWAIT) == 0);
+
+		// Create flip list
+		std::vector<m_IDirectDrawSurfaceX*> FlipList;
+		FlipList.push_back(this);
+
+		// If SurfaceTargetOverride then use that surface
+		if (lpDDSurfaceTargetOverride)
+		{
+			m_IDirectDrawSurfaceX* lpTargetSurface = nullptr;
+
+			lpDDSurfaceTargetOverride->QueryInterface(IID_GetInterfaceX, (LPVOID*)&lpTargetSurface);
+
+			if (FAILED(CheckBackBufferForFlip(lpTargetSurface)))
+			{
+				return DDERR_INVALIDPARAMS;
+			}
+
+			FlipList.push_back(lpTargetSurface);
+		}
+		// Get list for all attached surfaces
+		else
+		{
+			m_IDirectDrawSurfaceX* lpTargetSurface = this;
+			do {
+				DWORD dwCaps = 0;
+				m_IDirectDrawSurfaceX* lpNewTargetSurface = nullptr;
+
+				// Loop through each surface
+				for (auto& it : lpTargetSurface->AttachedSurfaceMap)
+				{
+					dwCaps = it.second.pSurface->GetSurfaceCaps().dwCaps;
+					if (dwCaps & DDSCAPS_FLIP)
+					{
+						lpNewTargetSurface = it.second.pSurface;
+						break;
+					}
+				}
+				lpTargetSurface = lpNewTargetSurface;
+
+				// Stop looping when frontbuffer is found
+				if (lpTargetSurface == this || dwCaps & DDSCAPS_FRONTBUFFER)
+				{
+					break;
+				}
+
+				// Check backbuffer
+				if (FAILED(CheckBackBufferForFlip(lpTargetSurface)))
+				{
+					return DDERR_GENERIC;
+				}
+
+				// Add target surface to list
+				FlipList.push_back(lpTargetSurface);
+
+			} while (true);
 		}
 
 		// Present before write if needed
 		BeginWritePresent(false);
 
+		// Check if locked from other thread
+		if (FlipWait)
+		{
+			// Lambda function to check if any surface is busy
+			auto FlipSurfacesAreLockedFromOtherThread = [&FlipList]() {
+				for (m_IDirectDrawSurfaceX*& pSurfaceX : FlipList)
+				{
+					if (pSurfaceX->IsLockedFromOtherThread())
+					{
+						return true;
+					}
+				}
+				return false; };
+
+			// Wait for locks from other threads
+			while (FlipSurfacesAreLockedFromOtherThread())
+			{
+				Sleep(0);
+			}
+		}
+
+		// Check if any surface is busy
+		for (m_IDirectDrawSurfaceX*& pSurfaceX : FlipList)
+		{
+			if (pSurfaceX->IsSurfaceBusy())
+			{
+				if (FlipWait)
+				{
+					LOG_LIMIT(100, __FUNCTION__ << " Error: surface is busy: " <<
+						pSurfaceX->IsSurfaceLocked() << " DC: " << pSurfaceX->IsSurfaceInDC() << " Blt: " << pSurfaceX->IsSurfaceBlitting());
+					return DDERR_WASSTILLDRAWING;
+				}
+				return DDERR_SURFACEBUSY;
+			}
+		}
+
+		// Check for device interface
+		HRESULT c_hr = CheckInterface(__FUNCTION__, true, true);
+		if (FAILED(c_hr))
+		{
+			return c_hr;
+		}
+
+		// Set critical section for each surface
+		for (m_IDirectDrawSurfaceX*& pSurfaceX : FlipList)
+		{
+			pSurfaceX->SetCS();
+		}
+
 		// Set flip flag
 		IsInFlip = true;
 
-		HRESULT hr = DD_OK;
+		// Clear dirty surface before flip if system memory or 3D device
+		if (surfaceDesc2.ddsCaps.dwCaps & (DDSCAPS_SYSTEMMEMORY | DDSCAPS_3DDEVICE))
+		{
+			ClearPrimarySurface();
+		}
 
-		do {
-			// If SurfaceTargetOverride then use that surface
-			if (lpDDSurfaceTargetOverride)
-			{
-				m_IDirectDrawSurfaceX* lpTargetSurface = nullptr;
-
-				lpDDSurfaceTargetOverride->QueryInterface(IID_GetInterfaceX, (LPVOID*)&lpTargetSurface);
-
-				// Check backbuffer surface
-				hr = CheckBackBufferForFlip(lpTargetSurface);
-				if (FAILED(hr))
-				{
-					break;
-				}
-
-				// Clear dirty surface before flip if system memory or 3D device
-				if (surfaceDesc2.ddsCaps.dwCaps & (DDSCAPS_SYSTEMMEMORY | DDSCAPS_3DDEVICE))
-				{
-					ClearPrimarySurface();
-				}
-
-				// Swap surface
-				SwapTargetSurface(lpTargetSurface);
-			}
-
-			// Execute flip for all attached surfaces
-			else
-			{
-				if ((dwFlags & (DDFLIP_EVEN | DDFLIP_ODD)) == (DDFLIP_EVEN | DDFLIP_ODD))
-				{
-					LOG_LIMIT(100, __FUNCTION__ << " Error: invalid flags!");
-					hr = DDERR_INVALIDPARAMS;
-					break;
-				}
-
-				if (dwFlags & DDFLIP_STEREO)
-				{
-					LOG_LIMIT(100, __FUNCTION__ << " Error: Stereo flipping not implemented");
-					hr = DDERR_NOSTEREOHARDWARE;
-					break;
-				}
-
-				if (dwFlags & (DDFLIP_ODD | DDFLIP_EVEN))
-				{
-					LOG_LIMIT(100, __FUNCTION__ << " Error: Even and odd flipping not implemented");
-					hr = DDERR_UNSUPPORTED;
-					break;
-				}
-
-				// Clear dirty surface before flip if system memory or 3D device
-				if (surfaceDesc2.ddsCaps.dwCaps & (DDSCAPS_SYSTEMMEMORY | DDSCAPS_3DDEVICE))
-				{
-					ClearPrimarySurface();
-				}
-
-				// Flip surface
-				hr = FlipBackBuffer();
-			}
-
-		} while (false);
+		// Execute flip
+		for (size_t x = 0; x < FlipList.size() - 1; x++)
+		{
+			SwapAddresses(&FlipList[x]->surface, &FlipList[x + 1]->surface);
+		}
 
 		// Reset flip flag
 		IsInFlip = false;
 
-		// Present surface
-		if (SUCCEEDED(hr))
+		// Set vertical sync wait timer
+		if ((dwFlags & DDFLIP_NOVSYNC) == 0)
 		{
-			// Set vertical sync wait timer
-			if ((dwFlags & DDFLIP_NOVSYNC) == 0)
-			{
-				ddrawParent->SetVsync();
-			}
-
-			// Present surface
-			EndWritePresent(false);
+			ddrawParent->SetVsync();
 		}
 
-		return hr;
+		// Release critical section for each surface
+		for (m_IDirectDrawSurfaceX*& pSurfaceX : FlipList)
+		{
+			pSurfaceX->ReleaseCS();
+		}
+
+		// Present surface
+		EndWritePresent(false);
+
+		return DD_OK;
 	}
 
 	if (lpDDSurfaceTargetOverride)
@@ -1649,7 +1662,6 @@ HRESULT m_IDirectDrawSurfaceX::GetDC(HDC FAR * lphDC)
 				{
 					if (FAILED(CreateDCSurface()))
 					{
-						LOG_LIMIT(100, __FUNCTION__ << " Error: could not create DC!");
 						hr = DDERR_GENERIC;
 						break;
 					}
@@ -2051,9 +2063,6 @@ HRESULT m_IDirectDrawSurfaceX::Lock2(LPRECT lpDestRect, LPDDSURFACEDESC2 lpDDSur
 			return DDERR_INVALIDPARAMS;
 		}
 
-		// Check for device interface
-		HRESULT c_hr = CheckInterface(__FUNCTION__, true, true);
-
 		// Prepare surfaceDesc
 		*lpDDSurfaceDesc2 = surfaceDesc2;
 		if (!(lpDDSurfaceDesc2->dwFlags & DDSD_LPSURFACE))
@@ -2061,17 +2070,18 @@ HRESULT m_IDirectDrawSurfaceX::Lock2(LPRECT lpDestRect, LPDDSURFACEDESC2 lpDDSur
 			lpDDSurfaceDesc2->lpSurface = nullptr;
 		}
 
-		// Return error for CheckInterface after preparing surfaceDesc
-		if (FAILED(c_hr) && !IsUsingEmulation())
-		{
-			return c_hr;
-		}
-
 		// Check for already locked state
 		if (!lpDestRect && !LockRectList.empty())
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Error: locking surface with NULL rect when surface is already locked!");
 			return DDERR_INVALIDRECT;
+		}
+
+		// Check for device interface
+		HRESULT c_hr = CheckInterface(__FUNCTION__, true, true);
+		if (FAILED(c_hr) && !IsUsingEmulation())
+		{
+			return c_hr;
 		}
 
 		// Update rect
@@ -2093,7 +2103,7 @@ HRESULT m_IDirectDrawSurfaceX::Lock2(LPRECT lpDestRect, LPDDSURFACEDESC2 lpDDSur
 			((dwFlags & DDLOCK_NODIRTYUPDATE) ? D3DLOCK_NO_DIRTY_UPDATE : 0);
 
 		// Check if the scene needs to be presented
-		bool IsSkipScene = (CheckRectforSkipScene(DestRect) || (Flags & D3DLOCK_READONLY));
+		const bool IsSkipScene = (CheckRectforSkipScene(DestRect) || (Flags & D3DLOCK_READONLY));
 
 		// Present before write if needed
 		BeginWritePresent(IsSkipScene);
@@ -2111,6 +2121,17 @@ HRESULT m_IDirectDrawSurfaceX::Lock2(LPRECT lpDestRect, LPDDSURFACEDESC2 lpDDSur
 					return DDERR_SURFACELOST;
 				}
 			}
+		}
+
+		// Check if surface is busy
+		if (IsSurfaceBusy())
+		{
+			if (LockWait)
+			{
+				LOG_LIMIT(100, __FUNCTION__ << " Error: surface is busy: " << IsSurfaceLocked() << " DC: " << IsSurfaceInDC() << " Blt: " << IsSurfaceBlitting());
+				return DDERR_WASSTILLDRAWING;
+			}
+			return DDERR_SURFACEBUSY;
 		}
 
 		SetCS();
@@ -2283,6 +2304,11 @@ HRESULT m_IDirectDrawSurfaceX::ReleaseDC(HDC hDC)
 
 			if (IsUsingEmulation() || DCRequiresEmulation)
 			{
+				if (!IsUsingEmulation())
+				{
+					LOG_LIMIT(100, __FUNCTION__ << " Error: surface not using emulated DC!");
+					break;
+				}
 				// Blt surface directly to GDI
 				if (Config.DdrawWriteToGDI && IsPrimaryOrBackBuffer() && !IsDirect3DEnabled)
 				{
@@ -3843,11 +3869,11 @@ HRESULT m_IDirectDrawSurfaceX::CreateDCSurface()
 		DeleteEmulatedMemory(&surface.emu);
 		return DDERR_GENERIC;
 	}
-
-	surface.emu->DC = CreateCompatibleDC(ddrawParent->GetDC());
+	HDC hDC = ddrawParent->GetDC();
+	surface.emu->DC = CreateCompatibleDC(hDC);
 	if (!surface.emu->DC)
 	{
-		LOG_LIMIT(100, __FUNCTION__ << " Error: failed to create compatible DC!");
+		LOG_LIMIT(100, __FUNCTION__ << " Error: failed to create compatible DC: " << hDC << " " << surfaceFormat);
 		DeleteEmulatedMemory(&surface.emu);
 		return DDERR_GENERIC;
 	}
