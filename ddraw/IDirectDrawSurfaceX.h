@@ -7,6 +7,7 @@
 struct EMUSURFACE
 {
 	HDC DC = nullptr;
+	HDC GameDC = nullptr;
 	DWORD Size = 0;
 	D3DFORMAT Format = D3DFMT_UNKNOWN;
 	void *pBits = nullptr;
@@ -15,6 +16,7 @@ struct EMUSURFACE
 	BYTE bmiMemory[(sizeof(BITMAPINFOHEADER) + sizeof(RGBQUAD) * 256)] = {};
 	PBITMAPINFO bmi = (PBITMAPINFO)bmiMemory;
 	HGDIOBJ OldDCObject = nullptr;
+	HGDIOBJ OldGameDCObject = nullptr;
 	DWORD LastPaletteUSN = 0;
 };
 
@@ -389,7 +391,7 @@ public:
 	inline bool IsDepthBuffer() { return (surfaceDesc2.ddpfPixelFormat.dwFlags & (DDPF_ZBUFFER | DDPF_STENCILBUFFER)) != 0; }
 	inline bool IsSurfaceManaged() { return (surfaceDesc2.ddsCaps.dwCaps2 & (DDSCAPS2_TEXTUREMANAGE | DDSCAPS2_D3DTEXTUREMANAGE)) != 0; }
 	bool GetColorKey(DWORD& ColorSpaceLowValue, DWORD& ColorSpaceHighValue);
-	inline bool IsUsingEmulation() { return (surface.emu && surface.emu->DC && surface.emu->pBits); }
+	inline bool IsUsingEmulation() { return (surface.emu && surface.emu->DC && surface.emu->GameDC && surface.emu->pBits); }
 	inline bool IsSurface3DDevice() { return Is3DRenderingTarget; }
 	inline bool IsSurfaceDirty() { return surface.IsDirtyFlag; }
 	inline void AttachD9BackBuffer() { Is3DRenderingTarget = true; }

@@ -1094,23 +1094,23 @@ inline HRESULT m_IDirectDrawSurfaceX::CheckBackBufferForFlip(m_IDirectDrawSurfac
 	// Make sure that surface description on target is updated
 	lpTargetSurface->UpdateSurfaceDesc();
 
+	// Check for device interface
+	HRESULT c_hr = lpTargetSurface->CheckInterface(__FUNCTION__, true, true);
+	if (FAILED(c_hr))
+	{
+		return c_hr;
+	}
+
 	// Check if surface format and size matches
 	if (surfaceFormat != lpTargetSurface->surfaceFormat ||
 		surfaceDesc2.dwWidth != lpTargetSurface->surfaceDesc2.dwWidth ||
 		surfaceDesc2.dwHeight != lpTargetSurface->surfaceDesc2.dwHeight)
 	{
 		LOG_LIMIT(100, __FUNCTION__ << " Error: backbuffer surface does not match: " <<
-			surfaceFormat << " -> " << lpTargetSurface->surfaceFormat <<
+			surfaceFormat << " -> " << lpTargetSurface->surfaceFormat << " " <<
 			surfaceDesc2.dwWidth << "x" << surfaceDesc2.dwHeight << " -> " <<
 			lpTargetSurface->surfaceDesc2.dwWidth << "x" << lpTargetSurface->surfaceDesc2.dwHeight);
 		return DDERR_GENERIC;
-	}
-
-	// Check for device interface
-	HRESULT c_hr = lpTargetSurface->CheckInterface(__FUNCTION__, true, true);
-	if (FAILED(c_hr))
-	{
-		return c_hr;
 	}
 
 	return DD_OK;
@@ -1154,6 +1154,13 @@ HRESULT m_IDirectDrawSurfaceX::Flip(LPDIRECTDRAWSURFACE7 lpDDSurfaceTargetOverri
 		}
 
 		const bool FlipWait = (((dwFlags & DDFLIP_WAIT) || DirectXVersion == 7) && (dwFlags & DDFLIP_DONOTWAIT) == 0);
+
+		// Check for device interface
+		HRESULT c_hr = CheckInterface(__FUNCTION__, true, true);
+		if (FAILED(c_hr))
+		{
+			return c_hr;
+		}
 
 		// Create flip list
 		std::vector<m_IDirectDrawSurfaceX*> FlipList;
@@ -1248,13 +1255,6 @@ HRESULT m_IDirectDrawSurfaceX::Flip(LPDIRECTDRAWSURFACE7 lpDDSurfaceTargetOverri
 				}
 				return DDERR_SURFACEBUSY;
 			}
-		}
-
-		// Check for device interface
-		HRESULT c_hr = CheckInterface(__FUNCTION__, true, true);
-		if (FAILED(c_hr))
-		{
-			return c_hr;
 		}
 
 		// Set critical section for each surface
@@ -1679,7 +1679,7 @@ HRESULT m_IDirectDrawSurfaceX::GetDC(HDC FAR * lphDC)
 					CopyEmulatedSurfaceFromGDI(Rect);
 				}
 
-				*lphDC = surface.emu->DC;
+				*lphDC = surface.emu->GameDC;
 			}
 			else if (surface.Texture)
 			{
@@ -2115,11 +2115,6 @@ HRESULT m_IDirectDrawSurfaceX::Lock2(LPRECT lpDestRect, LPDDSURFACEDESC2 lpDDSur
 			while (IsLockedFromOtherThread())
 			{
 				Sleep(0);
-				if (!surface.Texture && !surface.Surface)
-				{
-					LOG_LIMIT(100, __FUNCTION__ << " Error: surface texture missing!");
-					return DDERR_SURFACELOST;
-				}
 			}
 		}
 
@@ -3775,7 +3770,7 @@ HRESULT m_IDirectDrawSurfaceX::CreateDCSurface()
 	if (surface.emu)
 	{
 		// Check if emulated memory is good
-		if (!surface.emu->DC || !surface.emu->pBits)
+		if (!IsUsingEmulation())
 		{
 			DeleteEmulatedMemory(&surface.emu);
 		}
@@ -3891,6 +3886,22 @@ HRESULT m_IDirectDrawSurfaceX::CreateDCSurface()
 		DeleteEmulatedMemory(&surface.emu);
 		return DDERR_GENERIC;
 	}
+	// Create DC for game to use in GetDC()
+	surface.emu->GameDC = CreateCompatibleDC(surface.emu->DC);
+	if (!surface.emu->GameDC)
+	{
+		LOG_LIMIT(100, __FUNCTION__ << " Error: failed to create compatible GameDC: " << hDC << " " << surfaceFormat);
+		DeleteEmulatedMemory(&surface.emu);
+		return DDERR_GENERIC;
+	}
+	surface.emu->OldGameDCObject = SelectObject(surface.emu->GameDC, surface.emu->bitmap);
+	if (!surface.emu->OldGameDCObject)
+	{
+		LOG_LIMIT(100, __FUNCTION__ << " Error: failed to replace object in GameDC!");
+		DeleteEmulatedMemory(&surface.emu);
+		return DDERR_GENERIC;
+	}
+	// Set emulated surface details
 	surface.emu->bmi->bmiHeader.biHeight = -(LONG)Height;
 	surface.emu->Format = surfaceFormat;
 	surface.emu->Pitch = ComputePitch(surface.emu->bmi->bmiHeader.biWidth, surface.emu->bmi->bmiHeader.biBitCount);
@@ -4151,7 +4162,7 @@ inline void m_IDirectDrawSurfaceX::ReleaseDCSurface()
 {
 	if (surface.emu)
 	{
-		if (!ShareEmulatedMemory || !surface.emu->DC || !surface.emu->pBits)
+		if (!ShareEmulatedMemory || !IsUsingEmulation())
 		{
 			DeleteEmulatedMemory(&surface.emu);
 		}
@@ -6098,6 +6109,11 @@ void m_IDirectDrawSurfaceX::DeleteEmulatedMemory(EMUSURFACE **ppEmuSurface)
 	SetCriticalSection();
 
 	// Release device context memory
+	if ((*ppEmuSurface)->GameDC)
+	{
+		SelectObject((*ppEmuSurface)->GameDC, (*ppEmuSurface)->OldGameDCObject);
+		DeleteDC((*ppEmuSurface)->GameDC);
+	}
 	if ((*ppEmuSurface)->DC)
 	{
 		SelectObject((*ppEmuSurface)->DC, (*ppEmuSurface)->OldDCObject);
