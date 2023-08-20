@@ -967,12 +967,20 @@ HRESULT m_IDirectDrawSurfaceX::EnumAttachedSurfaces2(LPVOID lpContext, LPDDENUMS
 	{
 		for (auto& it : AttachedSurfaceMap)
 		{
-			DDSURFACEDESC2 Desc2 = {};
-			Desc2.dwSize = sizeof(DDSURFACEDESC2);
-			it.second.pSurface->GetSurfaceDesc2(&Desc2);
-			if (EnumSurface::ConvertCallback((LPDIRECTDRAWSURFACE7)it.second.pSurface->GetWrapperInterfaceX(DirectXVersion), &Desc2, &CallbackContext) == DDENUMRET_CANCEL)
+			// This method enumerates all the surfaces attached to a given surface.
+			// In a flipping chain of three or more surfaces, only one surface is enumerated because each surface is attached only to the next surface in the flipping chain.
+			// In such a configuration, you can call EnumAttachedSurfaces on each successive surface to walk the entire flipping chain.
+			// The front buffer should not be returned as attached.
+			if (!(it.second.pSurface->surfaceDesc2.ddsCaps.dwCaps & DDSCAPS_FRONTBUFFER))
 			{
-				return DD_OK;
+				DDSURFACEDESC2 Desc2 = {};
+				Desc2.dwSize = sizeof(DDSURFACEDESC2);
+				it.second.pSurface->GetSurfaceDesc2(&Desc2);
+				LPDIRECTDRAWSURFACE7 lpSurface = (LPDIRECTDRAWSURFACE7)it.second.pSurface->GetWrapperInterfaceX(DirectXVersion);
+				if (EnumSurface::ConvertCallback(lpSurface, &Desc2, &CallbackContext) == DDENUMRET_CANCEL)
+				{
+					return DD_OK;
+				}
 			}
 		}
 
