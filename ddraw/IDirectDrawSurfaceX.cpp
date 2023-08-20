@@ -462,20 +462,12 @@ HRESULT m_IDirectDrawSurfaceX::Blt(LPRECT lpDestRect, LPDIRECTDRAWSURFACE7 lpDDS
 			while (IsLockedFromOtherThread() || lpDDSrcSurfaceX->IsLockedFromOtherThread())
 			{
 				Sleep(0);
+				if (!surface.Texture && !surface.Surface)
+				{
+					LOG_LIMIT(100, __FUNCTION__ << " Error: surface texture missing!");
+					return DDERR_SURFACELOST;
+				}
 			}
-		}
-
-		// Check if surface is busy
-		if (IsSurfaceBusy() || lpDDSrcSurfaceX->IsSurfaceBusy())
-		{
-			if (BltWait)
-			{
-				LOG_LIMIT(100, __FUNCTION__ << " Error: surface is busy: " <<
-					lpDDSrcSurfaceX->IsSurfaceLocked() << " DC: " << lpDDSrcSurfaceX->IsSurfaceInDC() << " Blt: " << lpDDSrcSurfaceX->IsSurfaceBlitting() << " -> " <<
-					IsSurfaceLocked() << " DC: " << IsSurfaceInDC() << " Blt: " << IsSurfaceBlitting());
-				return DDERR_WASSTILLDRAWING;
-			}
-			return DDERR_SURFACEBUSY;
 		}
 
 		// Check for device interface
@@ -2063,6 +2055,9 @@ HRESULT m_IDirectDrawSurfaceX::Lock2(LPRECT lpDestRect, LPDDSURFACEDESC2 lpDDSur
 			return DDERR_INVALIDPARAMS;
 		}
 
+		// Check for device interface
+		HRESULT c_hr = CheckInterface(__FUNCTION__, true, true);
+
 		// Prepare surfaceDesc
 		*lpDDSurfaceDesc2 = surfaceDesc2;
 		if (!(lpDDSurfaceDesc2->dwFlags & DDSD_LPSURFACE))
@@ -2070,18 +2065,17 @@ HRESULT m_IDirectDrawSurfaceX::Lock2(LPRECT lpDestRect, LPDDSURFACEDESC2 lpDDSur
 			lpDDSurfaceDesc2->lpSurface = nullptr;
 		}
 
+		// Return error for CheckInterface after preparing surfaceDesc
+		if (FAILED(c_hr) && !IsUsingEmulation())
+		{
+			return c_hr;
+		}
+
 		// Check for already locked state
 		if (!lpDestRect && !LockRectList.empty())
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Error: locking surface with NULL rect when surface is already locked!");
 			return DDERR_INVALIDRECT;
-		}
-
-		// Check for device interface
-		HRESULT c_hr = CheckInterface(__FUNCTION__, true, true);
-		if (FAILED(c_hr) && !IsUsingEmulation())
-		{
-			return c_hr;
 		}
 
 		// Update rect
@@ -2115,18 +2109,12 @@ HRESULT m_IDirectDrawSurfaceX::Lock2(LPRECT lpDestRect, LPDDSURFACEDESC2 lpDDSur
 			while (IsLockedFromOtherThread())
 			{
 				Sleep(0);
+				if (!surface.Texture && !surface.Surface)
+				{
+					LOG_LIMIT(100, __FUNCTION__ << " Error: surface texture missing!");
+					return DDERR_SURFACELOST;
+				}
 			}
-		}
-
-		// Check if surface is busy
-		if (IsSurfaceBusy())
-		{
-			if (LockWait)
-			{
-				LOG_LIMIT(100, __FUNCTION__ << " Error: surface is busy: " << IsSurfaceLocked() << " DC: " << IsSurfaceInDC() << " Blt: " << IsSurfaceBlitting());
-				return DDERR_WASSTILLDRAWING;
-			}
-			return DDERR_SURFACEBUSY;
 		}
 
 		SetCS();

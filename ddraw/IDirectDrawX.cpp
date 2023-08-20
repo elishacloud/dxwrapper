@@ -3634,6 +3634,24 @@ HRESULT m_IDirectDrawX::Present()
 		return DDERR_GENERIC;
 	}
 
+	// Use WaitForVerticalBlank for wait timer
+	if (EnableWaitVsync && !Config.EnableVSync)
+	{
+		// Check how long since the last successful present
+		bool IsLongDelay = false;
+		if (Counter.FrequencyFlag && QueryPerformanceCounter(&Counter.ClickTime))
+		{
+			float deltaPresentMS = ((Counter.ClickTime.QuadPart - Counter.LastPresentTime.QuadPart) * 1000.0f) / Counter.Frequency.QuadPart;
+			IsLongDelay = (deltaPresentMS > 1000.f / Counter.RefreshRate);
+		}
+		// Don't wait for vsync if the last frame was too long ago
+		if (!IsLongDelay)
+		{
+			WaitForVerticalBlank(DDWAITVB_BLOCKBEGIN, nullptr);
+		}
+		EnableWaitVsync = false;
+	}
+
 	// Present everthing, skip Preset when using DdrawWriteToGDI
 	HRESULT hr;
 	EnterCriticalSection(&PresentThread.ddpt);
@@ -3652,24 +3670,6 @@ HRESULT m_IDirectDrawX::Present()
 		}
 	}
 	LeaveCriticalSection(&PresentThread.ddpt);
-
-	// Use WaitForVerticalBlank for wait timer
-	if (EnableWaitVsync)
-	{
-		// Check how long since the last successful present
-		bool IsLongDelay = false;
-		if (Counter.FrequencyFlag && QueryPerformanceCounter(&Counter.ClickTime))
-		{
-			float deltaPresentMS = ((Counter.ClickTime.QuadPart - Counter.LastPresentTime.QuadPart) * 1000.0f) / Counter.Frequency.QuadPart;
-			IsLongDelay = (deltaPresentMS > 1000.f / Counter.RefreshRate);
-		}
-		// Don't wait for vsync if the last frame was too long ago
-		if (!IsLongDelay)
-		{
-			WaitForVerticalBlank(DDWAITVB_BLOCKBEGIN, nullptr);
-		}
-		EnableWaitVsync = false;
-	}
 
 	// Device lost
 	if (hr == D3DERR_DEVICELOST)
