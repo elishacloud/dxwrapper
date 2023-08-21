@@ -97,6 +97,7 @@ private:
 
 	// Convert to Direct3D9
 	CRITICAL_SECTION ddscs = {};
+	CRITICAL_SECTION ddlcs = {};
 	m_IDirectDrawX *ddrawParent = nullptr;				// DirectDraw parent device
 	m_IDirectDrawPalette *attachedPalette = nullptr;	// Associated palette
 	m_IDirectDrawClipper *attachedClipper = nullptr;	// Associated clipper
@@ -360,8 +361,10 @@ public:
 	void *GetWrapperInterfaceX(DWORD DirectXVersion);
 	ULONG AddRef(DWORD DirectXVersion);
 	ULONG Release(DWORD DirectXVersion);
-	void SetCS() { EnterCriticalSection(&ddscs); }
-	void ReleaseCS() { LeaveCriticalSection(&ddscs); }
+	void SetSurfaceCriticalSection() { EnterCriticalSection(&ddscs); }
+	void ReleaseSurfaceCriticalSection() { LeaveCriticalSection(&ddscs); }
+	void SetLockCriticalSection() { EnterCriticalSection(&ddlcs); }
+	void ReleaseLockCriticalSection() { LeaveCriticalSection(&ddlcs); }
 
 	// Fix byte alignment issue
 	void LockBitAlign(LPRECT lpDestRect, LPDDSURFACEDESC2 lpDDSurfaceDesc);

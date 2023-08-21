@@ -427,6 +427,15 @@ HRESULT m_IDirectDrawSurfaceX::Blt(LPRECT lpDestRect, LPDIRECTDRAWSURFACE7 lpDDS
 			return DDERR_NORASTEROPHW;
 		}
 
+		// Typically, Blt returns immediately with an error if the bitbltter is busy and the bitblt could not be set up. Specify the DDBLT_WAIT flag to request a synchronous bitblt.
+		const bool BltWait = ((dwFlags & DDBLT_WAIT) && (dwFlags & DDBLT_DONOTWAIT) == 0);
+
+		// Check if the scene needs to be presented
+		const bool IsSkipScene = (lpDestRect) ? CheckRectforSkipScene(*lpDestRect) : false;
+
+		// Other flags, not yet implemented in dxwrapper
+		// DDBLT_ASYNC - Current dxwrapper implementation never does async if calling from multiple threads
+
 		// Get source surface
 		m_IDirectDrawSurfaceX* lpDDSrcSurfaceX = nullptr;
 		if (lpDDSrcSurface)
@@ -443,33 +452,6 @@ HRESULT m_IDirectDrawSurfaceX::Blt(LPRECT lpDestRect, LPDIRECTDRAWSURFACE7 lpDDS
 			lpDDSrcSurfaceX = this;
 		}
 
-		// Typically, Blt returns immediately with an error if the bitbltter is busy and the bitblt could not be set up. Specify the DDBLT_WAIT flag to request a synchronous bitblt.
-		const bool BltWait = ((dwFlags & DDBLT_WAIT) && (dwFlags & DDBLT_DONOTWAIT) == 0);
-
-		// Other flags, not yet implemented in dxwrapper
-		// DDBLT_ASYNC - Current dxwrapper implementation always allows async if calling from multiple threads
-
-		// Check if the scene needs to be presented
-		const bool IsSkipScene = (lpDestRect) ? CheckRectforSkipScene(*lpDestRect) : false;
-
-		// Present before write if needed
-		BeginWritePresent(IsSkipScene);
-
-		// Check if locked from other thread
-		if (BltWait && (IsLockedFromOtherThread() || lpDDSrcSurfaceX->IsLockedFromOtherThread()))
-		{
-			// Wait for lock from other thread
-			while (IsLockedFromOtherThread() || lpDDSrcSurfaceX->IsLockedFromOtherThread())
-			{
-				Sleep(0);
-				if (!surface.Texture && !surface.Surface)
-				{
-					LOG_LIMIT(100, __FUNCTION__ << " Error: surface texture missing!");
-					return DDERR_SURFACELOST;
-				}
-			}
-		}
-
 		// Check for device interface
 		HRESULT c_hr = CheckInterface(__FUNCTION__, true, true);
 		if ((FAILED(c_hr) && !IsUsingEmulation()) || (FAILED(lpDDSrcSurfaceX->CheckInterface(__FUNCTION__, true, true)) && !lpDDSrcSurfaceX->IsUsingEmulation()))
@@ -477,128 +459,154 @@ HRESULT m_IDirectDrawSurfaceX::Blt(LPRECT lpDestRect, LPDIRECTDRAWSURFACE7 lpDDS
 			return FAILED(c_hr) ? c_hr : DDERR_GENERIC;
 		}
 
+		// Present before write if needed
+		BeginWritePresent(IsSkipScene);
+
 		// Set critical section
-		SetCS();
-		lpDDSrcSurfaceX->SetCS();
-
-		// Set blt flag
-		IsInBlt = true;
-		lpDDSrcSurfaceX->IsInBlt = true;
-
-		// Set locked ID
-		if (LockedWithID || lpDDSrcSurfaceX->LockedWithID)
-		{
-			LOG_LIMIT(100, __FUNCTION__ << " Warning: surface locked thread ID set! " << LockedWithID << " " << lpDDSrcSurfaceX->LockedWithID);
-		}
-		LockedWithID = GetCurrentThreadId();
-		lpDDSrcSurfaceX->LockedWithID = GetCurrentThreadId();
+		SetLockCriticalSection();
+		lpDDSrcSurfaceX->SetLockCriticalSection();
 
 		HRESULT hr = DD_OK;
 
 		do {
-			// Do color fill
-			if (dwFlags & DDBLT_COLORFILL)
+			// Check if locked from other thread
+			if (BltWait && (IsLockedFromOtherThread() || lpDDSrcSurfaceX->IsLockedFromOtherThread()))
 			{
-				hr = ColorFill(lpDestRect, lpDDBltFx->dwFillColor);
-				break;
-			}
-
-			// Do supported raster operations
-			if (dwFlags & DDBLT_ROP)
-			{
-				if (lpDDBltFx->dwROP == SRCCOPY)
+				// Wait for lock from other thread
+				while (IsLockedFromOtherThread() || lpDDSrcSurfaceX->IsLockedFromOtherThread())
 				{
-					// Do nothing
+					Sleep(0);
+					if (!surface.Texture && !surface.Surface)
+					{
+						break;
+					}
 				}
-				else if (lpDDBltFx->dwROP == BLACKNESS)
+				if (!surface.Texture && !surface.Surface)
 				{
-					hr = ColorFill(lpDestRect, 0x00000000);
-					break;
-				}
-				else if (lpDDBltFx->dwROP == WHITENESS)
-				{
-					hr = ColorFill(lpDestRect, 0xFFFFFFFF);
+					LOG_LIMIT(100, __FUNCTION__ << " Error: surface texture missing!");
+					hr = DDERR_SURFACELOST;
 					break;
 				}
 			}
 
-			// Get surface copy flags
-			DWORD Flags =
-				(dwFlags & (DDBLT_KEYDESTOVERRIDE | DDBLT_KEYSRCOVERRIDE | DDBLT_KEYDEST | DDBLT_KEYSRC) ? BLT_COLORKEY : 0) |
-				((dwFlags & DDBLT_DDFX) && (lpDDBltFx->dwDDFX & DDBLTFX_MIRRORLEFTRIGHT) ? BLT_MIRRORLEFTRIGHT : 0) |
-				((dwFlags & DDBLT_DDFX) && (lpDDBltFx->dwDDFX & DDBLTFX_MIRRORUPDOWN) ? BLT_MIRRORUPDOWN : 0);
+			// Set blt flag
+			IsInBlt = true;
+			lpDDSrcSurfaceX->IsInBlt = true;
 
-			// Get color key
-			DDCOLORKEY ColorKey = {};
-			if (dwFlags & DDBLT_KEYDESTOVERRIDE)
+			// Set locked ID
+			if (LockedWithID || lpDDSrcSurfaceX->LockedWithID)
 			{
-				ColorKey = lpDDBltFx->ddckDestColorkey;
+				LOG_LIMIT(100, __FUNCTION__ << " Warning: surface locked thread ID set! " << LockedWithID << " " << lpDDSrcSurfaceX->LockedWithID);
 			}
-			else if (dwFlags & DDBLT_KEYSRCOVERRIDE)
+			LockedWithID = GetCurrentThreadId();
+			lpDDSrcSurfaceX->LockedWithID = GetCurrentThreadId();
+
+			do {
+				// Do color fill
+				if (dwFlags & DDBLT_COLORFILL)
+				{
+					hr = ColorFill(lpDestRect, lpDDBltFx->dwFillColor);
+					break;
+				}
+
+				// Do supported raster operations
+				if (dwFlags & DDBLT_ROP)
+				{
+					if (lpDDBltFx->dwROP == SRCCOPY)
+					{
+						// Do nothing
+					}
+					else if (lpDDBltFx->dwROP == BLACKNESS)
+					{
+						hr = ColorFill(lpDestRect, 0x00000000);
+						break;
+					}
+					else if (lpDDBltFx->dwROP == WHITENESS)
+					{
+						hr = ColorFill(lpDestRect, 0xFFFFFFFF);
+						break;
+					}
+				}
+
+				// Get surface copy flags
+				DWORD Flags =
+					(dwFlags & (DDBLT_KEYDESTOVERRIDE | DDBLT_KEYSRCOVERRIDE | DDBLT_KEYDEST | DDBLT_KEYSRC) ? BLT_COLORKEY : 0) |
+					((dwFlags & DDBLT_DDFX) && (lpDDBltFx->dwDDFX & DDBLTFX_MIRRORLEFTRIGHT) ? BLT_MIRRORLEFTRIGHT : 0) |
+					((dwFlags & DDBLT_DDFX) && (lpDDBltFx->dwDDFX & DDBLTFX_MIRRORUPDOWN) ? BLT_MIRRORUPDOWN : 0);
+
+				// Get color key
+				DDCOLORKEY ColorKey = {};
+				if (dwFlags & DDBLT_KEYDESTOVERRIDE)
+				{
+					ColorKey = lpDDBltFx->ddckDestColorkey;
+				}
+				else if (dwFlags & DDBLT_KEYSRCOVERRIDE)
+				{
+					ColorKey = lpDDBltFx->ddckSrcColorkey;
+				}
+				else if ((dwFlags & DDBLT_KEYDEST) && (surfaceDesc2.ddsCaps.dwCaps & DDSD_CKDESTBLT))
+				{
+					ColorKey = surfaceDesc2.ddckCKDestBlt;
+				}
+				else if ((dwFlags & DDBLT_KEYSRC) && (lpDDSrcSurfaceX->surfaceDesc2.ddsCaps.dwCaps & DDSD_CKSRCBLT))
+				{
+					ColorKey = lpDDSrcSurfaceX->surfaceDesc2.ddckCKSrcBlt;
+				}
+				else if (dwFlags & (DDBLT_KEYDEST | DDBLT_KEYSRC))
+				{
+					LOG_LIMIT(100, __FUNCTION__ << " Error: color key not found!");
+					Flags &= ~BLT_COLORKEY;
+				}
+
+				D3DTEXTUREFILTERTYPE Filter = ((dwFlags & DDBLT_DDFX) && (lpDDBltFx->dwDDFX & DDBLTFX_ARITHSTRETCHY)) ? D3DTEXF_LINEAR : D3DTEXF_NONE;
+
+				hr = CopySurface(lpDDSrcSurfaceX, lpSrcRect, lpDestRect, Filter, ColorKey, Flags);
+
+			} while (false);
+
+			// Reset Blt flag
+			lpDDSrcSurfaceX->IsInBlt = false;
+			IsInBlt = false;
+
+			// Reset locked thread ID
+			if (!IsSurfaceBlitting() && !IsSurfaceLocked())
 			{
-				ColorKey = lpDDBltFx->ddckSrcColorkey;
+				LockedWithID = 0;
 			}
-			else if ((dwFlags & DDBLT_KEYDEST) && (surfaceDesc2.ddsCaps.dwCaps & DDSD_CKDESTBLT))
+			if (!lpDDSrcSurfaceX->IsSurfaceBlitting() && !lpDDSrcSurfaceX->IsSurfaceLocked())
 			{
-				ColorKey = surfaceDesc2.ddckCKDestBlt;
-			}
-			else if ((dwFlags & DDBLT_KEYSRC) && (lpDDSrcSurfaceX->surfaceDesc2.ddsCaps.dwCaps & DDSD_CKSRCBLT))
-			{
-				ColorKey = lpDDSrcSurfaceX->surfaceDesc2.ddckCKSrcBlt;
-			}
-			else if (dwFlags & (DDBLT_KEYDEST | DDBLT_KEYSRC))
-			{
-				LOG_LIMIT(100, __FUNCTION__ << " Error: color key not found!");
-				Flags &= ~BLT_COLORKEY;
+				lpDDSrcSurfaceX->LockedWithID = 0;
 			}
 
-			D3DTEXTUREFILTERTYPE Filter = ((dwFlags & DDBLT_DDFX) && (lpDDBltFx->dwDDFX & DDBLTFX_ARITHSTRETCHY)) ? D3DTEXF_LINEAR : D3DTEXF_NONE;
+			// If successful
+			if (SUCCEEDED(hr))
+			{
+				// Set dirty flag
+				SetDirtyFlag();
 
-			hr = CopySurface(lpDDSrcSurfaceX, lpSrcRect, lpDestRect, Filter, ColorKey, Flags);
+				// Set vertical sync wait timer
+				if (SUCCEEDED(c_hr) && (dwFlags & DDBLT_DDFX) && (lpDDBltFx->dwDDFX & DDBLTFX_NOTEARING))
+				{
+					ddrawParent->SetVsync();
+				}
+			}
 
 		} while (false);
 
-		// Reset Blt flag
-		lpDDSrcSurfaceX->IsInBlt = false;
-		IsInBlt = false;
-
-		// Reset locked thread ID
-		if (!IsSurfaceBlitting() && !IsSurfaceLocked())
-		{
-			LockedWithID = 0;
-		}
-		if (!lpDDSrcSurfaceX->IsSurfaceBlitting() && !lpDDSrcSurfaceX->IsSurfaceLocked())
-		{
-			lpDDSrcSurfaceX->LockedWithID = 0;
-		}
-
-		// If successful
-		if (SUCCEEDED(hr))
-		{
-			// Set dirty flag
-			SetDirtyFlag();
-
-			// Set vertical sync wait timer
-			if (SUCCEEDED(c_hr) && (dwFlags & DDBLT_DDFX) && (lpDDBltFx->dwDDFX & DDBLTFX_NOTEARING))
-			{
-				ddrawParent->SetVsync();
-			}
-		}
-
 		// Release critical section
-		lpDDSrcSurfaceX->ReleaseCS();
-		ReleaseCS();
-
-		// Present surface
-		if (!DontPresentBlt && SUCCEEDED(hr))
-		{
-			EndWritePresent(IsSkipScene);
-		}
+		lpDDSrcSurfaceX->ReleaseLockCriticalSection();
+		ReleaseLockCriticalSection();
 
 		// Check if surface was busy
 		if (!BltWait && (hr == DDERR_SURFACEBUSY || IsLockedFromOtherThread() || lpDDSrcSurfaceX->IsLockedFromOtherThread()))
 		{
 			hr = D3DERR_WASSTILLDRAWING;
+		}
+
+		// Present surface
+		if (!DontPresentBlt && SUCCEEDED(hr))
+		{
+			EndWritePresent(IsSkipScene);
 		}
 
 		// Return
@@ -679,7 +687,7 @@ HRESULT m_IDirectDrawSurfaceX::BltBatch(LPDDBLTBATCH lpDDBltBatch, DWORD dwCount
 
 	bool IsSkipScene = false;
 
-	SetCS();
+	SetLockCriticalSection();
 
 	IsInBltBatch = true;
 
@@ -702,7 +710,7 @@ HRESULT m_IDirectDrawSurfaceX::BltBatch(LPDDBLTBATCH lpDDBltBatch, DWORD dwCount
 		LockedWithID = 0;
 	}
 
-	ReleaseCS();
+	ReleaseLockCriticalSection();
 
 	if (SUCCEEDED(hr))
 	{
@@ -1218,85 +1226,95 @@ HRESULT m_IDirectDrawSurfaceX::Flip(LPDIRECTDRAWSURFACE7 lpDDSurfaceTargetOverri
 			} while (true);
 		}
 
+		// Lambda function to check if any surface is busy
+		auto FlipSurfacesAreLockedFromOtherThread = [&FlipList]() {
+			for (m_IDirectDrawSurfaceX*& pSurfaceX : FlipList)
+			{
+				if (pSurfaceX->IsLockedFromOtherThread())
+				{
+					return true;
+				}
+			}
+			return false; };
+
 		// Present before write if needed
 		BeginWritePresent(false);
-
-		// Check if locked from other thread
-		if (FlipWait)
-		{
-			// Lambda function to check if any surface is busy
-			auto FlipSurfacesAreLockedFromOtherThread = [&FlipList]() {
-				for (m_IDirectDrawSurfaceX*& pSurfaceX : FlipList)
-				{
-					if (pSurfaceX->IsLockedFromOtherThread())
-					{
-						return true;
-					}
-				}
-				return false; };
-
-			// Wait for locks from other threads
-			while (FlipSurfacesAreLockedFromOtherThread())
-			{
-				Sleep(0);
-			}
-		}
-
-		// Check if any surface is busy
-		for (m_IDirectDrawSurfaceX*& pSurfaceX : FlipList)
-		{
-			if (pSurfaceX->IsSurfaceBusy())
-			{
-				if (FlipWait)
-				{
-					LOG_LIMIT(100, __FUNCTION__ << " Error: surface is busy: " <<
-						pSurfaceX->IsSurfaceLocked() << " DC: " << pSurfaceX->IsSurfaceInDC() << " Blt: " << pSurfaceX->IsSurfaceBlitting());
-					return DDERR_WASSTILLDRAWING;
-				}
-				return DDERR_SURFACEBUSY;
-			}
-		}
 
 		// Set critical section for each surface
 		for (m_IDirectDrawSurfaceX*& pSurfaceX : FlipList)
 		{
-			pSurfaceX->SetCS();
+			pSurfaceX->SetLockCriticalSection();
 		}
 
-		// Set flip flag
-		IsInFlip = true;
+		HRESULT hr = DD_OK;
 
-		// Clear dirty surface before flip if system memory or 3D device
-		if (surfaceDesc2.ddsCaps.dwCaps & (DDSCAPS_SYSTEMMEMORY | DDSCAPS_3DDEVICE))
-		{
-			ClearPrimarySurface();
-		}
+		do {
+			// Check if locked from other thread
+			if (FlipWait)
+			{
+				// Wait for locks from other threads
+				while (FlipSurfacesAreLockedFromOtherThread())
+				{
+					Sleep(0);
+				}
+			}
 
-		// Execute flip
-		for (size_t x = 0; x < FlipList.size() - 1; x++)
-		{
-			SwapAddresses(&FlipList[x]->surface, &FlipList[x + 1]->surface);
-		}
+			// Check if any surface is busy
+			for (m_IDirectDrawSurfaceX*& pSurfaceX : FlipList)
+			{
+				if (pSurfaceX->IsSurfaceBusy())
+				{
+					if (FlipWait)
+					{
+						LOG_LIMIT(100, __FUNCTION__ << " Error: surface is busy: " <<
+							pSurfaceX->IsSurfaceLocked() << " DC: " << pSurfaceX->IsSurfaceInDC() << " Blt: " << pSurfaceX->IsSurfaceBlitting());
+						hr = DDERR_WASSTILLDRAWING;
+						break;
+					}
+					hr = DDERR_SURFACEBUSY;
+					break;
+				}
+			}
 
-		// Reset flip flag
-		IsInFlip = false;
+			// Set flip flag
+			IsInFlip = true;
 
-		// Set vertical sync wait timer
-		if ((dwFlags & DDFLIP_NOVSYNC) == 0)
-		{
-			ddrawParent->SetVsync();
-		}
+			// Clear dirty surface before flip if system memory or 3D device
+			if (surfaceDesc2.ddsCaps.dwCaps & (DDSCAPS_SYSTEMMEMORY | DDSCAPS_3DDEVICE))
+			{
+				ClearPrimarySurface();
+			}
+
+			// Execute flip
+			for (size_t x = 0; x < FlipList.size() - 1; x++)
+			{
+				SwapAddresses(&FlipList[x]->surface, &FlipList[x + 1]->surface);
+			}
+
+			// Reset flip flag
+			IsInFlip = false;
+
+			// Set vertical sync wait timer
+			if ((dwFlags & DDFLIP_NOVSYNC) == 0)
+			{
+				ddrawParent->SetVsync();
+			}
+
+		} while (false);
 
 		// Release critical section for each surface
 		for (m_IDirectDrawSurfaceX*& pSurfaceX : FlipList)
 		{
-			pSurfaceX->ReleaseCS();
+			pSurfaceX->ReleaseLockCriticalSection();
 		}
 
 		// Present surface
-		EndWritePresent(false);
+		if (SUCCEEDED(hr))
+		{
+			EndWritePresent(false);
+		}
 
-		return DD_OK;
+		return hr;
 	}
 
 	if (lpDDSurfaceTargetOverride)
@@ -1650,7 +1668,7 @@ HRESULT m_IDirectDrawSurfaceX::GetDC(HDC FAR * lphDC)
 		// Present before write if needed
 		BeginWritePresent(false);
 
-		SetCS();
+		SetLockCriticalSection();
 
 		HRESULT hr = DD_OK;
 
@@ -1721,7 +1739,7 @@ HRESULT m_IDirectDrawSurfaceX::GetDC(HDC FAR * lphDC)
 
 		} while (false);
 
-		ReleaseCS();
+		ReleaseLockCriticalSection();
 
 		return hr;
 	}
@@ -2110,26 +2128,31 @@ HRESULT m_IDirectDrawSurfaceX::Lock2(LPRECT lpDestRect, LPDDSURFACEDESC2 lpDDSur
 		// Present before write if needed
 		BeginWritePresent(IsSkipScene);
 
-		// Check if locked from other thread
-		if (LockWait && IsLockedFromOtherThread())
-		{
-			// Wait for lock from other thread
-			while (IsLockedFromOtherThread())
-			{
-				Sleep(0);
-				if (!surface.Texture && !surface.Surface)
-				{
-					LOG_LIMIT(100, __FUNCTION__ << " Error: surface texture missing!");
-					return DDERR_SURFACELOST;
-				}
-			}
-		}
-
-		SetCS();
+		SetLockCriticalSection();
 
 		HRESULT hr = DD_OK;
 
 		do {
+			// Check if locked from other thread
+			if (LockWait && IsLockedFromOtherThread())
+			{
+				// Wait for lock from other thread
+				while (IsLockedFromOtherThread())
+				{
+					Sleep(0);
+					if (!surface.Texture && !surface.Surface)
+					{
+						break;
+					}
+				}
+				if (!surface.Texture && !surface.Surface)
+				{
+					LOG_LIMIT(100, __FUNCTION__ << " Error: surface texture missing!");
+					hr = DDERR_SURFACELOST;
+					break;
+				}
+			}
+
 			// Emulated surface
 			D3DLOCKED_RECT LockedRect = {};
 			if (IsUsingEmulation())
@@ -2244,7 +2267,7 @@ HRESULT m_IDirectDrawSurfaceX::Lock2(LPRECT lpDestRect, LPDDSURFACEDESC2 lpDDSur
 
 		} while (false);
 
-		ReleaseCS();
+		ReleaseLockCriticalSection();
 
 		return hr;
 	}
@@ -2287,7 +2310,7 @@ HRESULT m_IDirectDrawSurfaceX::ReleaseDC(HDC hDC)
 			return DDERR_GENERIC;
 		}
 
-		SetCS();
+		SetSurfaceCriticalSection();
 
 		HRESULT hr = DD_OK;
 
@@ -2348,7 +2371,7 @@ HRESULT m_IDirectDrawSurfaceX::ReleaseDC(HDC hDC)
 
 		} while (false);
 
-		ReleaseCS();
+		ReleaseSurfaceCriticalSection();
 
 		// Present surface
 		if (SUCCEEDED(hr))
@@ -2639,7 +2662,7 @@ HRESULT m_IDirectDrawSurfaceX::Unlock(LPRECT lpRect)
 
 	if (Config.Dd7to9)
 	{
-		SetCS();
+		SetSurfaceCriticalSection();
 
 		// Fix issue with some games that ignore the pitch size
 		if (EmuLock.Locked && EmuLock.Addr)
@@ -2770,7 +2793,7 @@ HRESULT m_IDirectDrawSurfaceX::Unlock(LPRECT lpRect)
 
 		} while (false);
 
-		ReleaseCS();
+		ReleaseSurfaceCriticalSection();
 
 		// Present surface
 		if (SUCCEEDED(hr))
@@ -3250,6 +3273,7 @@ void m_IDirectDrawSurfaceX::InitSurface(DWORD DirectXVersion)
 	AddRef(DirectXVersion);
 
 	InitializeCriticalSection(&ddscs);
+	InitializeCriticalSection(&ddlcs);
 
 	// Store surface, needs to run before InitSurfaceDesc()
 	if (ddrawParent)
@@ -3314,6 +3338,7 @@ void m_IDirectDrawSurfaceX::ReleaseSurface()
 
 	// Delete critical section last
 	DeleteCriticalSection(&ddscs);
+	DeleteCriticalSection(&ddlcs);
 }
 
 LPDIRECT3DSURFACE9 m_IDirectDrawSurfaceX::Get3DSurface()
@@ -3962,7 +3987,7 @@ void m_IDirectDrawSurfaceX::UpdateSurfaceDesc()
 // Release surface and vertext buffer
 void m_IDirectDrawSurfaceX::ReleaseD9Surface(bool BackupData)
 {
-	SetCS();
+	SetLockCriticalSection();
 
 	// Check if surface is busy
 	if (IsSurfaceBusy())
@@ -4134,7 +4159,7 @@ void m_IDirectDrawSurfaceX::ReleaseD9Surface(bool BackupData)
 		surfaceDesc2.dwFlags &= ~ResetDisplayFlags;
 	}
 
-	ReleaseCS();
+	ReleaseLockCriticalSection();
 }
 
 // Release emulated surface
@@ -4163,7 +4188,7 @@ HRESULT m_IDirectDrawSurfaceX::ClearPrimarySurface()
 		return DDERR_GENERIC;
 	}
 
-	SetCS();
+	SetLockCriticalSection();
 
 	HRESULT hr = DD_OK;
 
@@ -4199,7 +4224,7 @@ HRESULT m_IDirectDrawSurfaceX::ClearPrimarySurface()
 
 	} while (false);
 
-	ReleaseCS();
+	ReleaseLockCriticalSection();
 
 	return hr;
 }
