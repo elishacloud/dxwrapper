@@ -2176,9 +2176,12 @@ HRESULT m_IDirectDrawSurfaceX::Lock2(LPRECT lpDestRect, LPDDSURFACEDESC2 lpDDSur
 			{
 				// Lock surface
 				HRESULT ret = LockD39Surface(&LockedRect, &DestRect, Flags);
-				if (FAILED(ret) && IsSurfaceLocked() && !IsLockedFromOtherThread())
+				if (FAILED(ret))
 				{
-					LOG_LIMIT(100, __FUNCTION__ << " Warning: attempting to lock surface twice!");
+					if (IsSurfaceLocked())
+					{
+						LOG_LIMIT(100, __FUNCTION__ << " Warning: attempting to lock surface twice!");
+					}
 					UnlockD39Surface();
 					ret = LockD39Surface(&LockedRect, &DestRect, Flags);
 				}
