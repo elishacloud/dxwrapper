@@ -5474,7 +5474,7 @@ HRESULT m_IDirectDrawSurfaceX::CopySurface(m_IDirectDrawSurfaceX* pSourceSurface
 				{
 					for (LONG x = 0; x < DestRectWidth; x++)
 					{
-						BYTE PixelColor = SrcBufferLoop[IsMirrorLeftRight ? DestRectWidth - x : x];
+						BYTE PixelColor = SrcBufferLoop[IsMirrorLeftRight ? DestRectWidth - x - 1 : x];
 						if (!IsColorKey || PixelColor < ColorKeyLow || PixelColor > ColorKeyHigh)
 						{
 							DestBufferLoop[x] = PixelColor;
@@ -5493,7 +5493,7 @@ HRESULT m_IDirectDrawSurfaceX::CopySurface(m_IDirectDrawSurfaceX* pSourceSurface
 				{
 					for (LONG x = 0; x < DestRectWidth; x++)
 					{
-						WORD PixelColor = SrcBufferLoop[IsMirrorLeftRight ? DestRectWidth - x : x];
+						WORD PixelColor = SrcBufferLoop[IsMirrorLeftRight ? DestRectWidth - x - 1 : x];
 						if (!IsColorKey || PixelColor < ColorKeyLow || PixelColor > ColorKeyHigh)
 						{
 							DestBufferLoop[x] = PixelColor;
@@ -5512,7 +5512,7 @@ HRESULT m_IDirectDrawSurfaceX::CopySurface(m_IDirectDrawSurfaceX* pSourceSurface
 				{
 					for (LONG x = 0; x < DestRectWidth; x++)
 					{
-						LONG w = IsMirrorLeftRight ? DestRectWidth - x : x;
+						LONG w = IsMirrorLeftRight ? DestRectWidth - x - 1 : x;
 						DWORD PixelColor = (*(DWORD*)(SrcBufferLoop + w)) & ByteMask;
 						if (!IsColorKey || PixelColor < ColorKeyLow || PixelColor > ColorKeyHigh)
 						{
@@ -5532,7 +5532,7 @@ HRESULT m_IDirectDrawSurfaceX::CopySurface(m_IDirectDrawSurfaceX* pSourceSurface
 				{
 					for (LONG x = 0; x < DestRectWidth; x++)
 					{
-						DWORD PixelColor = SrcBufferLoop[IsMirrorLeftRight ? DestRectWidth - x : x];
+						DWORD PixelColor = SrcBufferLoop[IsMirrorLeftRight ? DestRectWidth - x - 1 : x];
 						if (!IsColorKey || PixelColor < ColorKeyLow || PixelColor > ColorKeyHigh)
 						{
 							DestBufferLoop[x] = PixelColor;
