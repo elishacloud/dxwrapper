@@ -2138,11 +2138,6 @@ HRESULT m_IDirectDrawX::TestCooperativeLevel()
 
 	if (Config.Dd7to9)
 	{
-		if (!ExclusiveMode)
-		{
-			return DDERR_NOEXCLUSIVEMODE;
-		}
-
 		if (!d3d9Device)
 		{
 			// Just return OK until device is setup
@@ -2151,13 +2146,14 @@ HRESULT m_IDirectDrawX::TestCooperativeLevel()
 
 		switch (d3d9Device->TestCooperativeLevel())
 		{
-		case D3DERR_DRIVERINTERNALERROR:
 		case D3DERR_INVALIDCALL:
 			return DDERR_WRONGMODE;
 		case D3DERR_DEVICENOTRESET:
 			ReinitDevice();
 			[[fallthrough]];
+		case D3DERR_DRIVERINTERNALERROR:
 		case D3DERR_DEVICELOST:
+		case DDERR_NOEXCLUSIVEMODE:
 		case D3D_OK:
 		default:
 			return DD_OK;
