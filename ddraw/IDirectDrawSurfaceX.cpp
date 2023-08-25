@@ -5178,8 +5178,6 @@ HRESULT m_IDirectDrawSurfaceX::SaveSurfaceToFile(const char *filename, D3DXIMAGE
 // Copy surface
 HRESULT m_IDirectDrawSurfaceX::CopySurface(m_IDirectDrawSurfaceX* pSourceSurface, RECT* pSourceRect, RECT* pDestRect, D3DTEXTUREFILTERTYPE Filter, DDCOLORKEY ColorKey, DWORD dwFlags)
 {
-	UNREFERENCED_PARAMETER(Filter);
-
 	// Check parameters
 	if (!pSourceSurface)
 	{
