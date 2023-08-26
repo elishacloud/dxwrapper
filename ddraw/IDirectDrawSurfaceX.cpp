@@ -1697,7 +1697,10 @@ HRESULT m_IDirectDrawSurfaceX::GetDC(HDC FAR * lphDC)
 					CopyEmulatedSurfaceFromGDI(Rect);
 				}
 
-				*lphDC = surface.emu->DC;
+				// Prepare GameDC
+				SetEmulationGameDC();
+
+				*lphDC = surface.emu->GameDC;
 			}
 			else if (surface.Texture)
 			{
@@ -2326,6 +2329,8 @@ HRESULT m_IDirectDrawSurfaceX::ReleaseDC(HDC hDC)
 					LOG_LIMIT(100, __FUNCTION__ << " Error: surface not using emulated DC!");
 					break;
 				}
+				// Restore DC
+				UnsetEmulationGameDC();
 				// Blt surface directly to GDI
 				if (Config.DdrawWriteToGDI && IsPrimaryOrBackBuffer() && !IsDirect3DEnabled)
 				{
@@ -3779,6 +3784,52 @@ inline bool m_IDirectDrawSurfaceX::DoesDCMatch(EMUSURFACE* pEmuSurface)
 	return false;
 }
 
+inline void m_IDirectDrawSurfaceX::SetEmulationGameDC()
+{
+	if (IsUsingEmulation() && !surface.emu->UsingGameDC)
+	{
+		// Restore old object into DC
+		HGDIOBJ NewObject = SelectObject(surface.emu->DC, surface.emu->OldDCObject);
+		if (!NewObject || NewObject == HGDI_ERROR)
+		{
+			Logging::Log() << __FUNCTION__ << " Error: failed to select old object into DC!";
+			return;
+		}
+		// Select bitmap into GameDC
+		surface.emu->OldGameDCObject = SelectObject(surface.emu->GameDC, surface.emu->bitmap);
+		if (!surface.emu->OldGameDCObject || surface.emu->OldGameDCObject == HGDI_ERROR)
+		{
+			Logging::Log() << __FUNCTION__ << " Error: failed to select bitmap into GameDC!";
+			return;
+		}
+		// Set DC flag
+		surface.emu->UsingGameDC = true;
+	}
+}
+
+inline void m_IDirectDrawSurfaceX::UnsetEmulationGameDC()
+{
+	if (IsUsingEmulation() && surface.emu->UsingGameDC)
+	{
+		// Restore old object into GameDC
+		HGDIOBJ NewObject = SelectObject(surface.emu->GameDC, surface.emu->OldGameDCObject);
+		if (!NewObject || NewObject == HGDI_ERROR)
+		{
+			Logging::Log() << __FUNCTION__ << " Error: failed to select old object into GameDC!";
+			return;
+		}
+		// Select bitmap into DC
+		surface.emu->OldDCObject = SelectObject(surface.emu->DC, surface.emu->bitmap);
+		if (!surface.emu->OldDCObject || surface.emu->OldDCObject == HGDI_ERROR)
+		{
+			Logging::Log() << __FUNCTION__ << " Error: failed to select bitmap into GameDC!";
+			return;
+		}
+		// Unset DC flag
+		surface.emu->UsingGameDC = false;
+	}
+}
+
 HRESULT m_IDirectDrawSurfaceX::CreateDCSurface()
 {
 	// Check if color masks are needed
@@ -3793,6 +3844,9 @@ HRESULT m_IDirectDrawSurfaceX::CreateDCSurface()
 	// Check if emulated surface already exists
 	if (surface.emu)
 	{
+		// Restore DC
+		UnsetEmulationGameDC();
+
 		// Check if emulated memory is good
 		if (!IsUsingEmulation())
 		{
@@ -3890,7 +3944,8 @@ HRESULT m_IDirectDrawSurfaceX::CreateDCSurface()
 	}
 	HDC hDC = ddrawParent->GetDC();
 	surface.emu->DC = CreateCompatibleDC(hDC);
-	if (!surface.emu->DC)
+	surface.emu->GameDC = CreateCompatibleDC(hDC);
+	if (!surface.emu->DC || !surface.emu->GameDC)
 	{
 		LOG_LIMIT(100, __FUNCTION__ << " Error: failed to create compatible DC: " << hDC << " " << surfaceFormat);
 		DeleteEmulatedMemory(&surface.emu);
@@ -3904,7 +3959,7 @@ HRESULT m_IDirectDrawSurfaceX::CreateDCSurface()
 		return DDERR_GENERIC;
 	}
 	surface.emu->OldDCObject = SelectObject(surface.emu->DC, surface.emu->bitmap);
-	if (!surface.emu->OldDCObject)
+	if (!surface.emu->OldDCObject || surface.emu->OldDCObject == HGDI_ERROR)
 	{
 		LOG_LIMIT(100, __FUNCTION__ << " Error: failed to replace object in DC!");
 		DeleteEmulatedMemory(&surface.emu);
@@ -4008,6 +4063,9 @@ void m_IDirectDrawSurfaceX::ReleaseD9Surface(bool BackupData)
 		}
 		IsInDC = false;
 	}
+
+	// Restore DC
+	UnsetEmulationGameDC();
 
 	// Unlock surface (before releasing)
 	if (IsSurfaceLocked())
@@ -5290,7 +5348,7 @@ HRESULT m_IDirectDrawSurfaceX::CopySurface(m_IDirectDrawSurfaceX* pSourceSurface
 		}
 
 		// Use BitBlt/StretchBlt to copy the surface
-		if (IsUsingEmulation() && pSourceSurface->IsUsingEmulation() && !IsColorKey)
+		if (IsEmulationDCReady() && pSourceSurface->IsEmulationDCReady() && !IsColorKey)
 		{
 			LONG DestLeft = DestRect.left;
 			LONG DestTop = DestRect.top;
@@ -6119,6 +6177,14 @@ void m_IDirectDrawSurfaceX::DeleteEmulatedMemory(EMUSURFACE **ppEmuSurface)
 	{
 		SelectObject((*ppEmuSurface)->DC, (*ppEmuSurface)->OldDCObject);
 		DeleteDC((*ppEmuSurface)->DC);
+	}
+	if ((*ppEmuSurface)->GameDC)
+	{
+		if ((*ppEmuSurface)->OldGameDCObject)
+		{
+			SelectObject((*ppEmuSurface)->GameDC, (*ppEmuSurface)->OldGameDCObject);
+		}
+		DeleteDC((*ppEmuSurface)->GameDC);
 	}
 	if ((*ppEmuSurface)->bitmap)
 	{
