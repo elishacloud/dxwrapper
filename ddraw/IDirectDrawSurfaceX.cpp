@@ -367,7 +367,7 @@ HRESULT m_IDirectDrawSurfaceX::Blt(LPRECT lpDestRect, LPDIRECTDRAWSURFACE7 lpDDS
 	if (lpDDSrcSurface && !CheckSurfaceExists(lpDDSrcSurface))
 	{
 		LOG_LIMIT(100, __FUNCTION__ << " Error: could not find source surface! " << Logging::hex(lpDDSrcSurface));
-		return DD_OK;	// Just return OK
+		return DDERR_INVALIDRECT;	// Just return invalid rect
 	}
 
 	if (Config.Dd7to9)
@@ -444,7 +444,7 @@ HRESULT m_IDirectDrawSurfaceX::Blt(LPRECT lpDestRect, LPDIRECTDRAWSURFACE7 lpDDS
 			if (!lpDDSrcSurfaceX)
 			{
 				LOG_LIMIT(100, __FUNCTION__ << " Error: could not get surfaceX!");
-				return DDERR_GENERIC;
+				return DDERR_INVALIDPARAMS;
 			}
 		}
 		else
@@ -3329,7 +3329,7 @@ inline void m_IDirectDrawSurfaceX::ReleaseDirectDrawResources()
 
 void m_IDirectDrawSurfaceX::ReleaseSurface()
 {
-	WrapperInterface->DeleteMe();
+	WrapperInterface->ClearProxy();	// Don't delete surface wrapper v1 interface
 	WrapperInterface2->DeleteMe();
 	WrapperInterface3->DeleteMe();
 	WrapperInterface4->DeleteMe();
