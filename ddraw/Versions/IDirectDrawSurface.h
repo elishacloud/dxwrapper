@@ -58,5 +58,5 @@ public:
 	STDMETHOD(UpdateOverlayDisplay)(THIS_ DWORD);
 	STDMETHOD(UpdateOverlayZOrder)(THIS_ DWORD, LPDIRECTDRAWSURFACE);
 
-	void ClearProxy() { ProxyInterface = nullptr; }
+	void SetProxy(m_IDirectDrawSurfaceX* NewProxyInterface) { ProxyInterface = NewProxyInterface; }
 };

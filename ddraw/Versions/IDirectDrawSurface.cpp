@@ -69,7 +69,7 @@ HRESULT m_IDirectDrawSurface::Blt(LPRECT a, LPDIRECTDRAWSURFACE b, LPRECT c, DWO
 {
 	if (!ProxyInterface)
 	{
-		return DDERR_INVALIDRECT;	// Just return invalid rect
+		return DDERR_INVALIDOBJECT;
 	}
 	return ProxyInterface->Blt(a, (LPDIRECTDRAWSURFACE7)b, c, d, e);
 }

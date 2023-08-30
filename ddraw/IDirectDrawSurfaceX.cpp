@@ -28,6 +28,9 @@ bool dirtyFlag = false;
 bool SceneReady = false;
 bool IsPresentRunning = false;
 
+// Cached surface wrapper interface v1 list
+std::vector<m_IDirectDrawSurface*> SurfaceWrapperListV1;
+
 // Used for sharing emulated memory
 bool ShareEmulatedMemory = false;
 std::vector<EMUSURFACE*> memorySurfaces;
@@ -366,7 +369,7 @@ HRESULT m_IDirectDrawSurfaceX::Blt(LPRECT lpDestRect, LPDIRECTDRAWSURFACE7 lpDDS
 	// Check if source Surface exists
 	if (lpDDSrcSurface && !CheckSurfaceExists(lpDDSrcSurface))
 	{
-		LOG_LIMIT(100, __FUNCTION__ << " Error: could not find source surface! " << Logging::hex(lpDDSrcSurface));
+		LOG_LIMIT(100, __FUNCTION__ << " Error: could not find source surface! " << lpDDSrcSurface);
 		return DDERR_INVALIDRECT;	// Just return invalid rect
 	}
 
@@ -3267,7 +3270,18 @@ HRESULT m_IDirectDrawSurfaceX::GetLOD(LPDWORD lpdwMaxLOD)
 
 void m_IDirectDrawSurfaceX::InitSurface(DWORD DirectXVersion)
 {
-	WrapperInterface = new m_IDirectDrawSurface((LPDIRECTDRAWSURFACE)ProxyInterface, this);
+	SetCriticalSection();
+	if (SurfaceWrapperListV1.size())
+	{
+		WrapperInterface = SurfaceWrapperListV1.back();
+		SurfaceWrapperListV1.pop_back();
+		WrapperInterface->SetProxy(this);
+	}
+	else
+	{
+		WrapperInterface = new m_IDirectDrawSurface((LPDIRECTDRAWSURFACE)ProxyInterface, this);
+	}
+	ReleaseCriticalSection();
 	WrapperInterface2 = new m_IDirectDrawSurface2((LPDIRECTDRAWSURFACE2)ProxyInterface, this);
 	WrapperInterface3 = new m_IDirectDrawSurface3((LPDIRECTDRAWSURFACE3)ProxyInterface, this);
 	WrapperInterface4 = new m_IDirectDrawSurface4((LPDIRECTDRAWSURFACE4)ProxyInterface, this);
@@ -3329,7 +3343,11 @@ inline void m_IDirectDrawSurfaceX::ReleaseDirectDrawResources()
 
 void m_IDirectDrawSurfaceX::ReleaseSurface()
 {
-	WrapperInterface->ClearProxy();	// Don't delete surface wrapper v1 interface
+	// Don't delete surface wrapper v1 interface
+	SetCriticalSection();
+	WrapperInterface->SetProxy(nullptr);
+	SurfaceWrapperListV1.push_back(WrapperInterface);
+	ReleaseCriticalSection();
 	WrapperInterface2->DeleteMe();
 	WrapperInterface3->DeleteMe();
 	WrapperInterface4->DeleteMe();
