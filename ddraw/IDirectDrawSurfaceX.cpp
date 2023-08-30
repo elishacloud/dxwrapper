@@ -5698,6 +5698,7 @@ HRESULT m_IDirectDrawSurfaceX::CopyFromEmulatedSurface(LPRECT lpDestRect)
 {
 	if (!IsUsingEmulation())
 	{
+		LOG_LIMIT(100, __FUNCTION__ << " Error: surface is not using emulation!");
 		return DDERR_GENERIC;
 	}
 
@@ -5738,6 +5739,7 @@ HRESULT m_IDirectDrawSurfaceX::CopyToEmulatedSurface(LPRECT lpDestRect)
 {
 	if (!IsUsingEmulation())
 	{
+		LOG_LIMIT(100, __FUNCTION__ << " Error: surface is not using emulation!");
 		return DDERR_GENERIC;
 	}
 
@@ -5882,7 +5884,7 @@ inline HRESULT m_IDirectDrawSurfaceX::CopyEmulatedPaletteSurface(LPRECT lpDestRe
 
 	if (!IsUsingEmulation())
 	{
-		LOG_LIMIT(100, __FUNCTION__ << " Error: palette surface is not using emulation!");
+		LOG_LIMIT(100, __FUNCTION__ << " Error: surface is not using emulation!");
 		return DDERR_GENERIC;
 	}
 
@@ -5960,6 +5962,7 @@ HRESULT m_IDirectDrawSurfaceX::CopyEmulatedSurfaceFromGDI(RECT Rect)
 {
 	if (!IsUsingEmulation())
 	{
+		LOG_LIMIT(100, __FUNCTION__ << " Error: surface is not using emulation!");
 		return DDERR_GENERIC;
 	}
 
@@ -5972,6 +5975,7 @@ HRESULT m_IDirectDrawSurfaceX::CopyEmulatedSurfaceFromGDI(RECT Rect)
 	HWND hWnd = (UsingForgroundWindow) ? Forground_hWnd : DDraw_hWnd;
 	if (!hWnd)
 	{
+		Logging::Log() << __FUNCTION__ << " Error: Cannot get window handle!";
 		return DDERR_GENERIC;
 	}
 
@@ -5985,15 +5989,12 @@ HRESULT m_IDirectDrawSurfaceX::CopyEmulatedSurfaceFromGDI(RECT Rect)
 	LONG Top = Rect.top + YOffset;
 	LONG Width = Rect.right - Rect.left;
 	LONG Height = Rect.bottom - Rect.top;
-	if (Rect.left + Width > WindowRect.right || Rect.top + Height > WindowRect.bottom)
-	{
-		return DDERR_GENERIC;
-	}
 
 	// Get hdc
 	HDC hdc = (UsingForgroundWindow) ? ::GetDC(hWnd) : ddrawParent->GetDC();
 	if (!hdc)
 	{
+		Logging::Log() << __FUNCTION__ << " Error: Cannot get window DC!";
 		return DDERR_GENERIC;
 	}
 
@@ -6016,6 +6017,7 @@ HRESULT m_IDirectDrawSurfaceX::CopyEmulatedSurfaceToGDI(RECT Rect)
 {
 	if (!IsUsingEmulation())
 	{
+		LOG_LIMIT(100, __FUNCTION__ << " Error: surface is not using emulation!");
 		return DDERR_GENERIC;
 	}
 
@@ -6025,9 +6027,10 @@ HRESULT m_IDirectDrawSurfaceX::CopyEmulatedSurfaceToGDI(RECT Rect)
 	bool UsingForgroundWindow = (DDraw_hWnd != Forground_hWnd) && Utils::IsWindowRectEqualOrLarger(Forground_hWnd, DDraw_hWnd);
 
 	// Get hWnd
-	HWND hWnd = (UsingForgroundWindow) ? Forground_hWnd: DDraw_hWnd;
+	HWND hWnd = (UsingForgroundWindow) ? Forground_hWnd : DDraw_hWnd;
 	if (!hWnd)
 	{
+		Logging::Log() << __FUNCTION__ << " Error: Cannot get window handle!";
 		return DDERR_GENERIC;
 	}
 
@@ -6035,6 +6038,7 @@ HRESULT m_IDirectDrawSurfaceX::CopyEmulatedSurfaceToGDI(RECT Rect)
 	POINT WindowPoint = {};
 	if (MapWindowPoints(hWnd, HWND_DESKTOP, &WindowPoint, 1) == FALSE)
 	{
+		Logging::Log() << __FUNCTION__ << " Error: Cannot get window map points!";
 		return DDERR_GENERIC;
 	}
 	LONG XOffset = WindowPoint.x;
@@ -6043,22 +6047,12 @@ HRESULT m_IDirectDrawSurfaceX::CopyEmulatedSurfaceToGDI(RECT Rect)
 	LONG Top = (Rect.top >= YOffset) ? Rect.top - YOffset : Rect.top;
 	LONG Width = Rect.right - Rect.left;
 	LONG Height = Rect.bottom - Rect.top;
-	RECT ClientRect = {};
-	if (GetClientRect(hWnd, &ClientRect) == FALSE)
-	{
-		return DDERR_GENERIC;
-	}
-	Width = min(Width, ClientRect.right - ClientRect.left);
-	Height = min(Height, ClientRect.bottom - ClientRect.top);
-	if (Rect.left + Width > (LONG)surfaceDesc2.dwWidth || Rect.top + Height > (LONG)surfaceDesc2.dwHeight)
-	{
-		return DDERR_GENERIC;
-	}
 
 	// Get hdc
 	HDC hdc = (UsingForgroundWindow) ? ::GetDC(hWnd) : ddrawParent->GetDC();
 	if (!hdc)
 	{
+		Logging::Log() << __FUNCTION__ << " Error: Cannot get window DC!";
 		return DDERR_GENERIC;
 	}
 
