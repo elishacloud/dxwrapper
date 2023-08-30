@@ -6032,14 +6032,24 @@ HRESULT m_IDirectDrawSurfaceX::CopyEmulatedSurfaceToGDI(RECT Rect)
 	}
 
 	// Get rect size
-	RECT WindowRect = {};
-	MapWindowPoints(hWnd, HWND_DESKTOP, (LPPOINT)&WindowRect, 2);
-	LONG XOffset = WindowRect.left;
-	LONG YOffset = WindowRect.top;
+	POINT WindowPoint = {};
+	if (MapWindowPoints(hWnd, HWND_DESKTOP, &WindowPoint, 1) == FALSE)
+	{
+		return DDERR_GENERIC;
+	}
+	LONG XOffset = WindowPoint.x;
+	LONG YOffset = WindowPoint.y;
 	LONG Left = (Rect.left >= XOffset) ? Rect.left - XOffset : Rect.left;
 	LONG Top = (Rect.top >= YOffset) ? Rect.top - YOffset : Rect.top;
 	LONG Width = Rect.right - Rect.left;
 	LONG Height = Rect.bottom - Rect.top;
+	RECT ClientRect = {};
+	if (GetClientRect(hWnd, &ClientRect) == FALSE)
+	{
+		return DDERR_GENERIC;
+	}
+	Width = min(Width, ClientRect.right - ClientRect.left);
+	Height = min(Height, ClientRect.bottom - ClientRect.top);
 	if (Rect.left + Width > (LONG)surfaceDesc2.dwWidth || Rect.top + Height > (LONG)surfaceDesc2.dwHeight)
 	{
 		return DDERR_GENERIC;
