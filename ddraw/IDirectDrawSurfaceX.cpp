@@ -1324,7 +1324,7 @@ HRESULT m_IDirectDrawSurfaceX::Flip(LPDIRECTDRAWSURFACE7 lpDDSurfaceTargetOverri
 			// Handle windowed mode
 			else if (IsUsingWindowedMode)
 			{
-				PresentWindowedSurface(Rect);
+				PresentSurfaceToWindow(Rect);
 			}
 		}
 
@@ -2394,7 +2394,7 @@ HRESULT m_IDirectDrawSurfaceX::ReleaseDC(HDC hDC)
 			if (IsUsingWindowedMode && IsPrimarySurface() && !Config.DdrawWriteToGDI && !IsDirect3DEnabled)
 			{
 				RECT Rect = { 0, 0, (LONG)surfaceDesc2.dwWidth, (LONG)surfaceDesc2.dwHeight };
-				PresentWindowedSurface(Rect);
+				PresentSurfaceToWindow(Rect);
 			}
 
 			// Reset DC flag
@@ -2810,7 +2810,7 @@ HRESULT m_IDirectDrawSurfaceX::Unlock(LPRECT lpRect)
 			// Preset surface to window
 			if (IsUsingWindowedMode && IsPrimarySurface() && !Config.DdrawWriteToGDI && !IsDirect3DEnabled)
 			{
-				PresentWindowedSurface(LastLock.Rect);
+				PresentSurfaceToWindow(LastLock.Rect);
 			}
 
 			// Clear memory pointer
@@ -5204,7 +5204,7 @@ HRESULT m_IDirectDrawSurfaceX::ColorFill(RECT* pRect, D3DCOLOR dwFillColor)
 	// Preset surface to window
 	if (IsUsingWindowedMode && IsPrimarySurface() && !Config.DdrawWriteToGDI && !IsDirect3DEnabled)
 	{
-		PresentWindowedSurface(DestRect);
+		PresentSurfaceToWindow(DestRect);
 	}
 
 	return DD_OK;
@@ -5753,7 +5753,7 @@ HRESULT m_IDirectDrawSurfaceX::CopySurface(m_IDirectDrawSurfaceX* pSourceSurface
 		// Preset surface to window
 		if (IsUsingWindowedMode && IsPrimarySurface() && !Config.DdrawWriteToGDI && !IsDirect3DEnabled)
 		{
-			PresentWindowedSurface(DestRect);
+			PresentSurfaceToWindow(DestRect);
 		}
 	}
 
@@ -6037,13 +6037,30 @@ HRESULT m_IDirectDrawSurfaceX::CopyEmulatedSurfaceFromGDI(RECT Rect)
 	// Check for forground window
 	HWND DDraw_hWnd = ddrawParent->GetHwnd();
 	HWND Forground_hWnd = Utils::GetTopLevelWindowOfCurrentProcess();
-	bool UsingForgroundWindow = (DDraw_hWnd != Forground_hWnd) && Utils::IsWindowRectEqualOrLarger(Forground_hWnd, DDraw_hWnd);
+	bool UsingForgroundWindow = (DDraw_hWnd != Forground_hWnd && Utils::IsWindowRectEqualOrLarger(Forground_hWnd, DDraw_hWnd));
 
 	// Get hWnd
 	HWND hWnd = (UsingForgroundWindow) ? Forground_hWnd : DDraw_hWnd;
-	if (!hWnd)
+	if (!hWnd || !DDraw_hWnd)
 	{
 		LOG_LIMIT(100, __FUNCTION__ << " Error: Cannot get window handle!");
+		return DDERR_GENERIC;
+	}
+
+	// Clip rect
+	RECT ClientRect = {};
+	if (GetClientRect(DDraw_hWnd, &ClientRect) && MapWindowPoints(DDraw_hWnd, HWND_DESKTOP, (LPPOINT)&ClientRect, 2))
+	{
+		Rect.left = max(Rect.left, ClientRect.left);
+		Rect.top = max(Rect.top, ClientRect.top);
+		Rect.right = min(Rect.right, ClientRect.right);
+		Rect.bottom = min(Rect.bottom, ClientRect.bottom);
+	}
+
+	// Validate rect
+	if (Rect.left >= Rect.right || Rect.top >= Rect.bottom)
+	{
+		LOG_LIMIT(100, __FUNCTION__ << " Error: Invalid rect: " << Rect);
 		return DDERR_GENERIC;
 	}
 
@@ -6085,13 +6102,30 @@ HRESULT m_IDirectDrawSurfaceX::CopyEmulatedSurfaceToGDI(RECT Rect)
 	// Check for forground window
 	HWND DDraw_hWnd = ddrawParent->GetHwnd();
 	HWND Forground_hWnd = Utils::GetTopLevelWindowOfCurrentProcess();
-	bool UsingForgroundWindow = (DDraw_hWnd != Forground_hWnd) && Utils::IsWindowRectEqualOrLarger(Forground_hWnd, DDraw_hWnd);
+	bool UsingForgroundWindow = (DDraw_hWnd != Forground_hWnd && Utils::IsWindowRectEqualOrLarger(Forground_hWnd, DDraw_hWnd));
 
 	// Get hWnd
 	HWND hWnd = (UsingForgroundWindow) ? Forground_hWnd : DDraw_hWnd;
-	if (!hWnd)
+	if (!hWnd || !DDraw_hWnd)
 	{
 		LOG_LIMIT(100, __FUNCTION__ << " Error: Cannot get window handle!");
+		return DDERR_GENERIC;
+	}
+
+	// Clip rect
+	RECT ClientRect = {};
+	if (GetClientRect(DDraw_hWnd, &ClientRect) && MapWindowPoints(DDraw_hWnd, HWND_DESKTOP, (LPPOINT)&ClientRect, 2))
+	{
+		Rect.left = max(Rect.left, ClientRect.left);
+		Rect.top = max(Rect.top, ClientRect.top);
+		Rect.right = min(Rect.right, ClientRect.right);
+		Rect.bottom = min(Rect.bottom, ClientRect.bottom);
+	}
+
+	// Validate rect
+	if (Rect.left >= Rect.right || Rect.top >= Rect.bottom)
+	{
+		LOG_LIMIT(100, __FUNCTION__ << " Error: Invalid rect: " << Rect);
 		return DDERR_GENERIC;
 	}
 
@@ -6122,18 +6156,30 @@ HRESULT m_IDirectDrawSurfaceX::CopyEmulatedSurfaceToGDI(RECT Rect)
 	return DD_OK;
 }
 
-HRESULT m_IDirectDrawSurfaceX::PresentWindowedSurface(RECT Rect)
+HRESULT m_IDirectDrawSurfaceX::PresentSurfaceToWindow(RECT Rect)
 {
-	// Check for forground window
-	HWND DDraw_hWnd = ddrawParent->GetHwnd();
-	HWND Forground_hWnd = Utils::GetTopLevelWindowOfCurrentProcess();
-	bool UsingForgroundWindow = (DDraw_hWnd != Forground_hWnd) && Utils::IsWindowRectEqualOrLarger(Forground_hWnd, DDraw_hWnd);
-
 	// Get hWnd
-	HWND hWnd = (UsingForgroundWindow) ? Forground_hWnd : DDraw_hWnd;
+	HWND hWnd = ddrawParent->GetHwnd();
 	if (!hWnd)
 	{
 		LOG_LIMIT(100, __FUNCTION__ << " Error: Cannot get window handle!");
+		return DDERR_GENERIC;
+	}
+
+	// Clip rect
+	RECT ClientRect = {};
+	if (GetClientRect(hWnd, &ClientRect) && MapWindowPoints(hWnd, HWND_DESKTOP, (LPPOINT)&ClientRect, 2))
+	{
+		Rect.left = max(Rect.left, ClientRect.left);
+		Rect.top = max(Rect.top, ClientRect.top);
+		Rect.right = min(Rect.right, ClientRect.right);
+		Rect.bottom = min(Rect.bottom, ClientRect.bottom);
+	}
+
+	// Validate rect
+	if (Rect.left >= Rect.right || Rect.top >= Rect.bottom)
+	{
+		LOG_LIMIT(100, __FUNCTION__ << " Error: Invalid rect: " << Rect);
 		return DDERR_GENERIC;
 	}
 

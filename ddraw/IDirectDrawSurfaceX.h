@@ -251,7 +251,7 @@ private:
 	HRESULT CopyEmulatedPaletteSurface(LPRECT lpDestRect);
 	HRESULT CopyEmulatedSurfaceFromGDI(RECT Rect);
 	HRESULT CopyEmulatedSurfaceToGDI(RECT Rect);
-	HRESULT PresentWindowedSurface(RECT Rect);
+	HRESULT PresentSurfaceToWindow(RECT Rect);
 
 	// Surface functions
 	void ClearDirtyFlags();
