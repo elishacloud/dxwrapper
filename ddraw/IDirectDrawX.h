@@ -233,5 +233,5 @@ public:
 
 	// Begin & end scene
 	void SetVsync();
-	HRESULT Present();
+	HRESULT Present(RECT* pSourceRect, RECT* pDestRect);
 };

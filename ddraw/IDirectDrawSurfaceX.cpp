@@ -1311,6 +1311,23 @@ HRESULT m_IDirectDrawSurfaceX::Flip(LPDIRECTDRAWSURFACE7 lpDDSurfaceTargetOverri
 			pSurfaceX->ReleaseLockCriticalSection();
 		}
 
+		// Preset surface to window
+		if (!IsDirect3DEnabled)
+		{
+			RECT Rect = { 0, 0, (LONG)surfaceDesc2.dwWidth, (LONG)surfaceDesc2.dwHeight };
+
+			// Blt surface directly to GDI
+			if (Config.DdrawWriteToGDI)
+			{
+				CopyEmulatedSurfaceToGDI(Rect);
+			}
+			// Handle windowed mode
+			else if (IsUsingWindowedMode)
+			{
+				PresentWindowedSurface(Rect);
+			}
+		}
+
 		// Present surface
 		if (SUCCEEDED(hr))
 		{
@@ -2332,10 +2349,12 @@ HRESULT m_IDirectDrawSurfaceX::ReleaseDC(HDC hDC)
 					LOG_LIMIT(100, __FUNCTION__ << " Error: surface not using emulated DC!");
 					break;
 				}
+
 				// Restore DC
 				UnsetEmulationGameDC();
+
 				// Blt surface directly to GDI
-				if (Config.DdrawWriteToGDI && IsPrimaryOrBackBuffer() && !IsDirect3DEnabled)
+				if (Config.DdrawWriteToGDI && IsPrimarySurface() && !IsDirect3DEnabled)
 				{
 					RECT Rect = { 0, 0, (LONG)surfaceDesc2.dwWidth, (LONG)surfaceDesc2.dwHeight };
 					CopyEmulatedSurfaceToGDI(Rect);
@@ -2369,6 +2388,13 @@ HRESULT m_IDirectDrawSurfaceX::ReleaseDC(HDC hDC)
 				LOG_LIMIT(100, __FUNCTION__ << " Error: could not find surface!");
 				hr = DDERR_GENERIC;
 				break;
+			}
+
+			// Preset surface to window
+			if (IsUsingWindowedMode && IsPrimarySurface() && !Config.DdrawWriteToGDI && !IsDirect3DEnabled)
+			{
+				RECT Rect = { 0, 0, (LONG)surfaceDesc2.dwWidth, (LONG)surfaceDesc2.dwHeight };
+				PresentWindowedSurface(Rect);
 			}
 
 			// Reset DC flag
@@ -2750,7 +2776,7 @@ HRESULT m_IDirectDrawSurfaceX::Unlock(LPRECT lpRect)
 				if (!LastLock.ReadOnly)
 				{
 					// Blt surface directly to GDI
-					if (Config.DdrawWriteToGDI && IsPrimaryOrBackBuffer() && !IsDirect3DEnabled)
+					if (Config.DdrawWriteToGDI && IsPrimarySurface() && !IsDirect3DEnabled)
 					{
 						CopyEmulatedSurfaceToGDI(LastLock.Rect);
 					}
@@ -2779,6 +2805,12 @@ HRESULT m_IDirectDrawSurfaceX::Unlock(LPRECT lpRect)
 				LOG_LIMIT(100, __FUNCTION__ << " Error: could not find surface!");
 				hr = DDERR_GENERIC;
 				break;
+			}
+
+			// Preset surface to window
+			if (IsUsingWindowedMode && IsPrimarySurface() && !Config.DdrawWriteToGDI && !IsDirect3DEnabled)
+			{
+				PresentWindowedSurface(LastLock.Rect);
 			}
 
 			// Clear memory pointer
@@ -3458,6 +3490,9 @@ HRESULT m_IDirectDrawSurfaceX::CheckInterface(char *FunctionName, bool CheckD3DD
 		{
 			ReleaseDCSurface();
 		}
+
+		// Check if using windowed mode
+		IsUsingWindowedMode = !ddrawParent->IsExclusiveMode();
 
 		// Check if device is lost
 		if (!IsUsingEmulation() && CheckD3DDevice)
@@ -4421,7 +4456,7 @@ HRESULT m_IDirectDrawSurfaceX::PresentSurface(bool IsSkipScene)
 	}
 
 	// Check if is not primary surface or if scene should be skipped
-	if (Config.DdrawWriteToGDI || IsDirect3DEnabled)
+	if (Config.DdrawWriteToGDI || IsUsingWindowedMode || IsDirect3DEnabled)
 	{
 		// Never present when using Direct3D or when writing to GDI
 		return DD_OK;
@@ -4486,7 +4521,7 @@ HRESULT m_IDirectDrawSurfaceX::PresentSurface(bool IsSkipScene)
 		}
 
 		// Present to d3d9
-		if (FAILED(ddrawParent->Present()))
+		if (FAILED(ddrawParent->Present(nullptr, nullptr)))
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Error: failed to present 2D scene!");
 			hr = DDERR_GENERIC;
@@ -5155,7 +5190,7 @@ HRESULT m_IDirectDrawSurfaceX::ColorFill(RECT* pRect, D3DCOLOR dwFillColor)
 		}
 
 		// Blt surface directly to GDI
-		if (Config.DdrawWriteToGDI && IsPrimaryOrBackBuffer() && !IsDirect3DEnabled)
+		if (Config.DdrawWriteToGDI && IsPrimarySurface() && !IsDirect3DEnabled)
 		{
 			CopyEmulatedSurfaceToGDI(DestRect);
 		}
@@ -5164,6 +5199,12 @@ HRESULT m_IDirectDrawSurfaceX::ColorFill(RECT* pRect, D3DCOLOR dwFillColor)
 		{
 			CopyFromEmulatedSurface(&DestRect);
 		}
+	}
+
+	// Preset surface to window
+	if (IsUsingWindowedMode && IsPrimarySurface() && !Config.DdrawWriteToGDI && !IsDirect3DEnabled)
+	{
+		PresentWindowedSurface(DestRect);
 	}
 
 	return DD_OK;
@@ -5693,17 +5734,26 @@ HRESULT m_IDirectDrawSurfaceX::CopySurface(m_IDirectDrawSurfaceX* pSourceSurface
 	}
 
 	// Update for emulated surface
-	if (SUCCEEDED(hr) && IsUsingEmulation())
+	if (SUCCEEDED(hr))
 	{
-		// Blt surface directly to GDI
-		if (Config.DdrawWriteToGDI && IsPrimaryOrBackBuffer() && !IsDirect3DEnabled)
+		if (IsUsingEmulation())
 		{
-			CopyEmulatedSurfaceToGDI(DestRect);
+			// Blt surface directly to GDI
+			if (Config.DdrawWriteToGDI && IsPrimarySurface() && !IsDirect3DEnabled)
+			{
+				CopyEmulatedSurfaceToGDI(DestRect);
+			}
+			// Copy emulated surface to real texture
+			else
+			{
+				CopyFromEmulatedSurface(&DestRect);
+			}
 		}
-		// Copy emulated surface to real texture
-		else
+
+		// Preset surface to window
+		if (IsUsingWindowedMode && IsPrimarySurface() && !Config.DdrawWriteToGDI && !IsDirect3DEnabled)
 		{
-			CopyFromEmulatedSurface(&DestRect);
+			PresentWindowedSurface(DestRect);
 		}
 	}
 
@@ -5993,26 +6043,19 @@ HRESULT m_IDirectDrawSurfaceX::CopyEmulatedSurfaceFromGDI(RECT Rect)
 	HWND hWnd = (UsingForgroundWindow) ? Forground_hWnd : DDraw_hWnd;
 	if (!hWnd)
 	{
-		Logging::Log() << __FUNCTION__ << " Error: Cannot get window handle!";
+		LOG_LIMIT(100, __FUNCTION__ << " Error: Cannot get window handle!");
 		return DDERR_GENERIC;
 	}
 
 	// Get rect size
-	RECT WindowRect = {};
-	GetClientRect(hWnd, &WindowRect);
-	MapWindowPoints(hWnd, HWND_DESKTOP, (LPPOINT)&WindowRect, 2);
-	LONG XOffset = WindowRect.left;
-	LONG YOffset = WindowRect.top;
-	LONG Left = Rect.left + XOffset;
-	LONG Top = Rect.top + YOffset;
-	LONG Width = Rect.right - Rect.left;
-	LONG Height = Rect.bottom - Rect.top;
+	RECT MapRect = Rect;
+	MapWindowPoints(hWnd, HWND_DESKTOP, (LPPOINT)&MapRect, 2);
 
 	// Get hdc
 	HDC hdc = (UsingForgroundWindow) ? ::GetDC(hWnd) : ddrawParent->GetDC();
 	if (!hdc)
 	{
-		Logging::Log() << __FUNCTION__ << " Error: Cannot get window DC!";
+		LOG_LIMIT(100, __FUNCTION__ << " Error: Cannot get window DC!");
 		return DDERR_GENERIC;
 	}
 
@@ -6020,7 +6063,7 @@ HRESULT m_IDirectDrawSurfaceX::CopyEmulatedSurfaceFromGDI(RECT Rect)
 	UpdatePaletteData();
 
 	// Blt to GDI
-	BitBlt(surface.emu->DC, Left, Top, Width, Height, hdc, Rect.left, Rect.top, SRCCOPY);
+	BitBlt(surface.emu->DC, MapRect.left, MapRect.top, MapRect.right - MapRect.left, MapRect.bottom - MapRect.top, hdc, Rect.left, Rect.top, SRCCOPY);
 
 	// Release DC
 	if (UsingForgroundWindow)
@@ -6048,29 +6091,19 @@ HRESULT m_IDirectDrawSurfaceX::CopyEmulatedSurfaceToGDI(RECT Rect)
 	HWND hWnd = (UsingForgroundWindow) ? Forground_hWnd : DDraw_hWnd;
 	if (!hWnd)
 	{
-		Logging::Log() << __FUNCTION__ << " Error: Cannot get window handle!";
+		LOG_LIMIT(100, __FUNCTION__ << " Error: Cannot get window handle!");
 		return DDERR_GENERIC;
 	}
 
 	// Get rect size
-	POINT WindowPoint = {};
-	if (MapWindowPoints(hWnd, HWND_DESKTOP, &WindowPoint, 1) == FALSE)
-	{
-		Logging::Log() << __FUNCTION__ << " Error: Cannot get window map points!";
-		return DDERR_GENERIC;
-	}
-	LONG XOffset = WindowPoint.x;
-	LONG YOffset = WindowPoint.y;
-	LONG Left = (Rect.left >= XOffset) ? Rect.left - XOffset : Rect.left;
-	LONG Top = (Rect.top >= YOffset) ? Rect.top - YOffset : Rect.top;
-	LONG Width = Rect.right - Rect.left;
-	LONG Height = Rect.bottom - Rect.top;
+	RECT MapRect = Rect;
+	MapWindowPoints(HWND_DESKTOP, hWnd, (LPPOINT)&MapRect, 2);
 
 	// Get hdc
 	HDC hdc = (UsingForgroundWindow) ? ::GetDC(hWnd) : ddrawParent->GetDC();
 	if (!hdc)
 	{
-		Logging::Log() << __FUNCTION__ << " Error: Cannot get window DC!";
+		LOG_LIMIT(100, __FUNCTION__ << " Error: Cannot get window DC!");
 		return DDERR_GENERIC;
 	}
 
@@ -6078,12 +6111,62 @@ HRESULT m_IDirectDrawSurfaceX::CopyEmulatedSurfaceToGDI(RECT Rect)
 	UpdatePaletteData();
 
 	// Blt to GDI
-	BitBlt(hdc, Left, Top, Width, Height, surface.emu->DC, Rect.left, Rect.top, SRCCOPY);
+	BitBlt(hdc, MapRect.left, MapRect.top, MapRect.right - MapRect.left, MapRect.bottom - MapRect.top, surface.emu->DC, Rect.left, Rect.top, SRCCOPY);
 
 	// Release DC
 	if (UsingForgroundWindow)
 	{
 		::ReleaseDC(hWnd, hdc);
+	}
+
+	return DD_OK;
+}
+
+HRESULT m_IDirectDrawSurfaceX::PresentWindowedSurface(RECT Rect)
+{
+	// Check for forground window
+	HWND DDraw_hWnd = ddrawParent->GetHwnd();
+	HWND Forground_hWnd = Utils::GetTopLevelWindowOfCurrentProcess();
+	bool UsingForgroundWindow = (DDraw_hWnd != Forground_hWnd) && Utils::IsWindowRectEqualOrLarger(Forground_hWnd, DDraw_hWnd);
+
+	// Get hWnd
+	HWND hWnd = (UsingForgroundWindow) ? Forground_hWnd : DDraw_hWnd;
+	if (!hWnd)
+	{
+		LOG_LIMIT(100, __FUNCTION__ << " Error: Cannot get window handle!");
+		return DDERR_GENERIC;
+	}
+
+	// Get rect size
+	RECT MapRect = Rect;
+	MapWindowPoints(HWND_DESKTOP, hWnd, (LPPOINT)&MapRect, 2);
+
+	// Begin scene
+	if (FAILED((*d3d9Device)->BeginScene()))
+	{
+		LOG_LIMIT(100, __FUNCTION__ << " Error: failed to begin scene!");
+		return DDERR_GENERIC;
+	}
+
+	// Draw 2D surface before presenting
+	if (FAILED(Draw2DSurface()))
+	{
+		LOG_LIMIT(100, __FUNCTION__ << " Error: failed to draw 2D surface!");
+		return DDERR_GENERIC;
+	}
+
+	// End scene
+	if (FAILED((*d3d9Device)->EndScene()))
+	{
+		LOG_LIMIT(100, __FUNCTION__ << " Error: failed to end scene!");
+		return DDERR_GENERIC;
+	}
+
+	// Present to d3d9
+	if (FAILED(ddrawParent->Present(&Rect, &MapRect)))
+	{
+		LOG_LIMIT(100, __FUNCTION__ << " Error: failed to present 2D scene!");
+		return DDERR_GENERIC;
 	}
 
 	return DD_OK;

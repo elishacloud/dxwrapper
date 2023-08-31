@@ -115,6 +115,7 @@ private:
 	DWORD Priority = 0;
 	DWORD MaxLOD = 0;
 
+	bool IsUsingWindowedMode = false;
 	bool Is3DRenderingTarget = false;					// Surface used for Direct3D rendering target, called from m_IDirect3DX::CreateDevice()
 	bool IsDirect3DEnabled = false;						// Direct3D is being used on top of DirectDraw
 	bool DCRequiresEmulation = false;
@@ -250,6 +251,7 @@ private:
 	HRESULT CopyEmulatedPaletteSurface(LPRECT lpDestRect);
 	HRESULT CopyEmulatedSurfaceFromGDI(RECT Rect);
 	HRESULT CopyEmulatedSurfaceToGDI(RECT Rect);
+	HRESULT PresentWindowedSurface(RECT Rect);
 
 	// Surface functions
 	void ClearDirtyFlags();

@@ -2625,7 +2625,7 @@ void m_IDirectDrawX::GetSurfaceDisplay(DWORD& Width, DWORD& Height, DWORD& BPP, 
 		RefreshRate = DisplayMode.RefreshRate;
 		BPP = DisplayMode.BPP;
 	}
-	else if (d3d9Device && !(Device.IsWindowed && Config.DdrawWriteToGDI))
+	else if (d3d9Device)
 	{
 		Width = presParams.BackBufferWidth;
 		Height = presParams.BackBufferHeight;
@@ -2643,7 +2643,7 @@ void m_IDirectDrawX::GetSurfaceDisplay(DWORD& Width, DWORD& Height, DWORD& BPP, 
 		Height = surfaceHeight;
 		BPP = Utils::GetBitCount(hWnd);
 	}
-	else if (Device.IsWindowed && IsWindow(hWnd) && !Config.DdrawWriteToGDI)
+	else if (Device.IsWindowed && IsWindow(hWnd))
 	{
 		RECT Rect = {};
 		GetClientRect(hWnd, &Rect);
@@ -3592,7 +3592,7 @@ DWORD WINAPI PresentThreadFunction(LPVOID)
 }
 
 // Do d3d9 Present
-HRESULT m_IDirectDrawX::Present()
+HRESULT m_IDirectDrawX::Present(RECT* pSourceRect, RECT* pDestRect)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
@@ -3651,9 +3651,9 @@ HRESULT m_IDirectDrawX::Present()
 	// Present everthing, skip Preset when using DdrawWriteToGDI
 	HRESULT hr;
 	EnterCriticalSection(&PresentThread.ddpt);
-	if ((EnableWaitVsync && Config.EnableVSync) || !PresentThread.UsingMultpleCores)
+	if (pSourceRect || pDestRect || (EnableWaitVsync && Config.EnableVSync) || !PresentThread.UsingMultpleCores)
 	{
-		hr = d3d9Device->Present(nullptr, nullptr, nullptr, nullptr);
+		hr = d3d9Device->Present(pSourceRect, pDestRect, nullptr, nullptr);
 		EnableWaitVsync = (EnableWaitVsync && !Config.EnableVSync);
 	}
 	else
