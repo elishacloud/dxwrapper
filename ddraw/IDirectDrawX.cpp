@@ -2916,7 +2916,7 @@ HRESULT m_IDirectDrawX::CreateD3D9Device()
 
 		// Set behavior flags
 		BehaviorFlags = (d3dcaps.VertexProcessingCaps ? D3DCREATE_HARDWARE_VERTEXPROCESSING : D3DCREATE_SOFTWARE_VERTEXPROCESSING) |
-			(!Config.SingleProcAffinity ? D3DCREATE_MULTITHREADED : 0) |
+			D3DCREATE_MULTITHREADED |
 			(Device.FPUPreserve ? D3DCREATE_FPU_PRESERVE : 0) |
 			(Device.NoWindowChanges ? D3DCREATE_NOWINDOWCHANGES : 0);
 
@@ -3093,8 +3093,8 @@ HRESULT m_IDirectDrawX::ReinitDevice()
 		return DDERR_GENERIC;
 	}
 
-	EnterCriticalSection(&PresentThread.ddpt);
 	SetCriticalSection();
+	EnterCriticalSection(&PresentThread.ddpt);
 
 	do {
 		// Prepare for reset
@@ -3121,8 +3121,8 @@ HRESULT m_IDirectDrawX::ReinitDevice()
 
 	} while (false);
 
-	ReleaseCriticalSection();
 	LeaveCriticalSection(&PresentThread.ddpt);
+	ReleaseCriticalSection();
 
 	// Success
 	return hr;
