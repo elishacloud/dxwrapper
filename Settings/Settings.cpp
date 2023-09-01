@@ -447,7 +447,6 @@ void Settings::SetDefaultConfigSettings()
 	Config.DisableHighDPIScaling = true;
 	Config.ResetScreenRes = true;
 	Config.FixSpeakerConfigType = true;
-	Config.DdrawEnableMouseHook = true;
 
 	// Set other default values
 	Config.LoopSleepTime = 120;
