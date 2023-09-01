@@ -2025,6 +2025,19 @@ HRESULT m_IDirectDrawX::GetAvailableVidMem2(LPDDSCAPS2 lpDDSCaps2, LPDWORD lpdwT
 				TotalMemory = Utils::GetVideoRam(1);
 			}
 		}
+		// Get non-local video memory
+		else if (lpDDSCaps2 && (lpDDSCaps2->dwCaps & DDSCAPS_NONLOCALVIDMEM))
+		{
+			if (lpdwTotal)
+			{
+				*lpdwTotal = 0;
+			}
+			if (lpdwFree)
+			{
+				*lpdwFree = 0;
+			}
+			return DD_OK;
+		}
 		// Unknown memory type request
 		else
 		{
