@@ -87,14 +87,6 @@ struct HIGHRESCOUNTER
 	DWORD Height;
 };
 
-struct PRESENTTHREAD
-{
-	CRITICAL_SECTION ddpt = {};
-	HANDLE workerEvent = {};
-	HANDLE workerThread = {};
-	bool EndPresentThread = true;
-};
-
 // Store a list of ddraw devices
 std::vector<m_IDirectDrawX*> DDrawVector;
 
@@ -133,9 +125,6 @@ MOUSEHOOK MouseHook;
 
 // High resolution counter used for auto frame skipping
 HIGHRESCOUNTER Counter;
-
-// To allow the Preset() to be run from another thread
-PRESENTTHREAD PresentThread;
 
 // Direct3D9 flags
 bool EnableWaitVsync;
@@ -2335,11 +2324,6 @@ void m_IDirectDrawX::InitDdraw(DWORD DirectXVersion)
 		surfaceWidth = 0;
 		surfaceHeight = 0;
 
-		// Prepare for present from another thread
-		InitializeCriticalSection(&PresentThread.ddpt);
-		PresentThread.workerEvent = CreateEvent(NULL, FALSE, FALSE, NULL);
-		PresentThread.workerThread = CreateThread(NULL, 0, PresentThreadFunction, NULL, 0, NULL);
-
 		// Mouse hook
 		static bool EnableMouseHook = Config.DdrawEnableMouseHook &&
 			((Config.DdrawUseNativeResolution || Config.DdrawOverrideWidth || Config.DdrawOverrideHeight) &&
@@ -2553,16 +2537,6 @@ void m_IDirectDrawX::ReleaseDdraw()
 
 		// Clean up shared memory
 		m_IDirectDrawSurfaceX::CleanupSharedEmulatedMemory();
-
-		// Close present thread
-		PresentThread.EndPresentThread = true;						// Tell thread to exit
-		EnterCriticalSection(&PresentThread.ddpt);					// Ensure thread is not running present
-		SetEvent(PresentThread.workerEvent);						// Trigger thread
-		LeaveCriticalSection(&PresentThread.ddpt);
-		WaitForSingleObject(PresentThread.workerThread, INFINITE);	// Wait for thread to finish
-		CloseHandle(PresentThread.workerThread);					// Close thread handle
-		CloseHandle(PresentThread.workerEvent);						// Close event handle
-		DeleteCriticalSection(&PresentThread.ddpt);					// Delete critical section
 	}
 
 	ReleaseCriticalSection();
@@ -2783,7 +2757,6 @@ HRESULT m_IDirectDrawX::CreateD3D9Device()
 	}
 
 	SetCriticalSection();
-	EnterCriticalSection(&PresentThread.ddpt);
 
 	HRESULT hr = DD_OK;
 	do {
@@ -3027,7 +3000,6 @@ HRESULT m_IDirectDrawX::CreateD3D9Device()
 		D3DDeviceInterface->ResetDevice();
 	}
 
-	LeaveCriticalSection(&PresentThread.ddpt);
 	ReleaseCriticalSection();
 
 	// Return result
@@ -3090,7 +3062,6 @@ HRESULT m_IDirectDrawX::ReinitDevice()
 	}
 
 	SetCriticalSection();
-	EnterCriticalSection(&PresentThread.ddpt);
 
 	do {
 		// Prepare for reset
@@ -3117,7 +3088,6 @@ HRESULT m_IDirectDrawX::ReinitDevice()
 
 	} while (false);
 
-	LeaveCriticalSection(&PresentThread.ddpt);
 	ReleaseCriticalSection();
 
 	// Success
@@ -3199,9 +3169,6 @@ inline void m_IDirectDrawX::ReleaseAllD9Shaders()
 // Release all d3d9 device
 void m_IDirectDrawX::ReleaseD3D9Device()
 {
-	EnterCriticalSection(&PresentThread.ddpt);
-
-	// Release device
 	if (d3d9Device)
 	{
 		ULONG ref = d3d9Device->Release();
@@ -3212,8 +3179,6 @@ void m_IDirectDrawX::ReleaseD3D9Device()
 		}
 		d3d9Device = nullptr;
 	}
-
-	LeaveCriticalSection(&PresentThread.ddpt);
 }
 
 // Release d3d9 object
@@ -3565,28 +3530,6 @@ void m_IDirectDrawX::SetVsync()
 	}
 }
 
-// Present Thread: Wait for the event
-DWORD WINAPI PresentThreadFunction(LPVOID)
-{
-	PresentThread.EndPresentThread = false;
-	while (!PresentThread.EndPresentThread)
-	{
-		WaitForSingleObject(PresentThread.workerEvent, INFINITE);
-		ResetEvent(PresentThread.workerEvent);
-		if (PresentThread.EndPresentThread)
-		{
-			break;
-		}
-		EnterCriticalSection(&PresentThread.ddpt);
-		if (d3d9Device)
-		{
-			d3d9Device->Present(nullptr, nullptr, nullptr, nullptr);
-		}
-		LeaveCriticalSection(&PresentThread.ddpt);
-	}
-	return S_OK;
-}
-
 // Do d3d9 Present
 HRESULT m_IDirectDrawX::Present(RECT* pSourceRect, RECT* pDestRect)
 {
@@ -3645,23 +3588,7 @@ HRESULT m_IDirectDrawX::Present(RECT* pSourceRect, RECT* pDestRect)
 	}
 
 	// Present everthing, skip Preset when using DdrawWriteToGDI
-	HRESULT hr;
-	EnterCriticalSection(&PresentThread.ddpt);
-	if (pSourceRect || pDestRect || (EnableWaitVsync && Config.EnableVSync))
-	{
-		hr = d3d9Device->Present(pSourceRect, pDestRect, nullptr, nullptr);
-		EnableWaitVsync = (EnableWaitVsync && !Config.EnableVSync);
-	}
-	else
-	{
-		HRESULT ret = TestCooperativeLevel();
-		hr = (ret == D3DERR_DEVICELOST || ret == D3DERR_DEVICENOTRESET || ret == D3DERR_DRIVERINTERNALERROR || ret == D3DERR_INVALIDCALL) ? ret : DD_OK;
-		if (SUCCEEDED(hr))
-		{
-			SetEvent(PresentThread.workerEvent);		// Trigger thread to present
-		}
-	}
-	LeaveCriticalSection(&PresentThread.ddpt);
+	HRESULT hr = d3d9Device->Present(pSourceRect, pDestRect, nullptr, nullptr);
 
 	// Device lost
 	if (hr == D3DERR_DEVICELOST)
