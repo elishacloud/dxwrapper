@@ -6293,6 +6293,7 @@ void m_IDirectDrawSurfaceX::UpdatePaletteData()
 	if (IsUsingEmulation() && NewRGBPalette && surface.emu->LastPaletteUSN != NewPaletteUSN)
 	{
 		SetDIBColorTable(surface.emu->DC, 0, MaxPaletteSize, NewRGBPalette);
+		SetDIBColorTable(surface.emu->GameDC, 0, MaxPaletteSize, NewRGBPalette);
 		surface.emu->LastPaletteUSN = NewPaletteUSN;
 	}
 

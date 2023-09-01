@@ -89,7 +89,6 @@ struct HIGHRESCOUNTER
 
 struct PRESENTTHREAD
 {
-	bool UsingMultpleCores = false;
 	CRITICAL_SECTION ddpt = {};
 	HANDLE workerEvent = {};
 	HANDLE workerThread = {};
@@ -3020,9 +3019,6 @@ HRESULT m_IDirectDrawX::CreateD3D9Device()
 		DWORD tmpWidth = 0;
 		Utils::GetScreenSize(hWnd, tmpWidth, Counter.Height);
 
-		// Check if more than one process core is being used
-		PresentThread.UsingMultpleCores = (Utils::GetCoresUsedByProcess() > 1);
-
 	} while (false);
 
 	// Reset D3D device settings
@@ -3031,8 +3027,8 @@ HRESULT m_IDirectDrawX::CreateD3D9Device()
 		D3DDeviceInterface->ResetDevice();
 	}
 
-	ReleaseCriticalSection();
 	LeaveCriticalSection(&PresentThread.ddpt);
+	ReleaseCriticalSection();
 
 	// Return result
 	return hr;
@@ -3651,7 +3647,7 @@ HRESULT m_IDirectDrawX::Present(RECT* pSourceRect, RECT* pDestRect)
 	// Present everthing, skip Preset when using DdrawWriteToGDI
 	HRESULT hr;
 	EnterCriticalSection(&PresentThread.ddpt);
-	if (pSourceRect || pDestRect || (EnableWaitVsync && Config.EnableVSync) || !PresentThread.UsingMultpleCores)
+	if (pSourceRect || pDestRect || (EnableWaitVsync && Config.EnableVSync))
 	{
 		hr = d3d9Device->Present(pSourceRect, pDestRect, nullptr, nullptr);
 		EnableWaitVsync = (EnableWaitVsync && !Config.EnableVSync);
