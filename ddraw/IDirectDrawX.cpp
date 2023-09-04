@@ -1738,7 +1738,7 @@ HRESULT m_IDirectDrawX::SetDisplayMode(DWORD dwWidth, DWORD dwHeight, DWORD dwBP
 	{
 		if (!dwWidth || !dwHeight || (dwBPP != 8 && dwBPP != 16 && dwBPP != 24 && dwBPP != 32))
 		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error: Invalid parameters. " << dwWidth << "x" << dwHeight << " " << dwBPP);
+			LOG_LIMIT(100, __FUNCTION__ << " Error: Invalid parameters: " << dwWidth << "x" << dwHeight << " " << dwBPP);
 			return DDERR_INVALIDPARAMS;
 		}
 
@@ -1808,6 +1808,7 @@ HRESULT m_IDirectDrawX::SetDisplayMode(DWORD dwWidth, DWORD dwHeight, DWORD dwBP
 				// Mode not found
 				if (!modeFound)
 				{
+					LOG_LIMIT(100, __FUNCTION__ << " Error: Mode not found: " << dwWidth << "x" << dwHeight);
 					return DDERR_INVALIDMODE;
 				}
 			}
