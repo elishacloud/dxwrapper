@@ -1582,6 +1582,7 @@ HRESULT m_IDirectDrawX::SetCooperativeLevel(HWND hWnd, DWORD dwFlags, DWORD Dire
 		HWND LasthWnd = DisplayMode.hWnd;
 		bool LastFPUPreserve = Device.FPUPreserve;
 		bool LastNoWindowChanges = Device.NoWindowChanges;
+		bool RemoveExclusiveMode = false;
 
 		// Set windowed mode
 		if (dwFlags & DDSCL_NORMAL)
@@ -1589,6 +1590,7 @@ HRESULT m_IDirectDrawX::SetCooperativeLevel(HWND hWnd, DWORD dwFlags, DWORD Dire
 			// Check for exclusive mode
 			if ((ExclusiveMode && hWnd && Exclusive.hWnd == hWnd && Exclusive.SetBy == this) || !IsWindow(Exclusive.hWnd))
 			{
+				RemoveExclusiveMode = ExclusiveMode;
 				ExclusiveMode = false;
 				Exclusive = {};
 			}
@@ -1642,8 +1644,13 @@ HRESULT m_IDirectDrawX::SetCooperativeLevel(HWND hWnd, DWORD dwFlags, DWORD Dire
 		if (IsWindow(DisplayMode.hWnd) && DisplayMode.hWnd == hWnd &&
 			(LasthWnd != DisplayMode.hWnd || LastFPUPreserve != Device.FPUPreserve || LastNoWindowChanges != Device.NoWindowChanges))
 		{
-			// Create d3d9 device
 			CreateD3D9Device();
+		}
+		// If exclusive mode is being removed then release device
+		else if (RemoveExclusiveMode)
+		{
+			ReleaseAllD9Resources(false);
+			ReleaseD3D9Device();
 		}
 
 		return DD_OK;
