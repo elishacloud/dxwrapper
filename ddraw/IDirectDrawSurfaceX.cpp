@@ -2353,16 +2353,14 @@ HRESULT m_IDirectDrawSurfaceX::ReleaseDC(HDC hDC)
 				// Restore DC
 				UnsetEmulationGameDC();
 
+				// Copy emulated surface to real texture
+				CopyFromEmulatedSurface(nullptr);
+
 				// Blt surface directly to GDI
 				if (Config.DdrawWriteToGDI && IsPrimarySurface() && !IsDirect3DEnabled)
 				{
 					RECT Rect = { 0, 0, (LONG)surfaceDesc2.dwWidth, (LONG)surfaceDesc2.dwHeight };
 					CopyEmulatedSurfaceToGDI(Rect);
-				}
-				// Copy emulated surface to real texture
-				else
-				{
-					CopyFromEmulatedSurface(nullptr);
 				}
 			}
 			else if (surface.Texture)
@@ -2775,15 +2773,13 @@ HRESULT m_IDirectDrawSurfaceX::Unlock(LPRECT lpRect)
 			{
 				if (!LastLock.ReadOnly)
 				{
+					// Copy emulated surface to real texture
+					CopyFromEmulatedSurface(&LastLock.Rect);
+
 					// Blt surface directly to GDI
 					if (Config.DdrawWriteToGDI && IsPrimarySurface() && !IsDirect3DEnabled)
 					{
 						CopyEmulatedSurfaceToGDI(LastLock.Rect);
-					}
-					// Copy emulated surface to real texture
-					else
-					{
-						CopyFromEmulatedSurface(&LastLock.Rect);
 					}
 				}
 			}
@@ -5189,15 +5185,13 @@ HRESULT m_IDirectDrawSurfaceX::ColorFill(RECT* pRect, D3DCOLOR dwFillColor)
 			return DDERR_GENERIC;
 		}
 
+		// Copy emulated surface to real texture
+		CopyFromEmulatedSurface(&DestRect);
+
 		// Blt surface directly to GDI
 		if (Config.DdrawWriteToGDI && IsPrimarySurface() && !IsDirect3DEnabled)
 		{
 			CopyEmulatedSurfaceToGDI(DestRect);
-		}
-		// Copy emulated surface to real texture
-		else
-		{
-			CopyFromEmulatedSurface(&DestRect);
 		}
 	}
 
@@ -5738,15 +5732,13 @@ HRESULT m_IDirectDrawSurfaceX::CopySurface(m_IDirectDrawSurfaceX* pSourceSurface
 	{
 		if (IsUsingEmulation())
 		{
+			// Copy emulated surface to real texture
+			CopyFromEmulatedSurface(&DestRect);
+
 			// Blt surface directly to GDI
 			if (Config.DdrawWriteToGDI && IsPrimarySurface() && !IsDirect3DEnabled)
 			{
 				CopyEmulatedSurfaceToGDI(DestRect);
-			}
-			// Copy emulated surface to real texture
-			else
-			{
-				CopyFromEmulatedSurface(&DestRect);
 			}
 		}
 
