@@ -2608,8 +2608,15 @@ void m_IDirectDrawX::GetSurfaceDisplay(DWORD& Width, DWORD& Height, DWORD& BPP, 
 	}
 	else
 	{
-		Utils::GetScreenSize(hWnd, Width, Height);
-		RefreshRate = Utils::GetRefreshRate(hWnd);
+		if (ExclusiveMode)
+		{
+			Utils::GetScreenSize(hWnd, Width, Height);
+		}
+		else
+		{
+			Width = GetSystemMetrics(SM_CXVIRTUALSCREEN);
+			Height = GetSystemMetrics(SM_CYVIRTUALSCREEN);
+		}
 		BPP = Utils::GetBitCount(hWnd);
 	}
 
@@ -2795,8 +2802,16 @@ HRESULT m_IDirectDrawX::CreateD3D9Device()
 			}
 			if (!BackBufferWidth || !BackBufferHeight)
 			{
-				BackBufferWidth = CurrentWidth;
-				BackBufferHeight = CurrentHeight;
+				if (ExclusiveMode)
+				{
+					BackBufferWidth = CurrentWidth;
+					BackBufferHeight = CurrentHeight;
+				}
+				else
+				{
+					BackBufferWidth = GetSystemMetrics(SM_CXVIRTUALSCREEN);
+					BackBufferHeight = GetSystemMetrics(SM_CYVIRTUALSCREEN);
+				}
 			}
 		}
 
