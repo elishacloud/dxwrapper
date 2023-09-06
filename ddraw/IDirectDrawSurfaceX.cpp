@@ -3423,7 +3423,7 @@ inline LPDIRECT3DTEXTURE9 m_IDirectDrawSurfaceX::GetD3D9Texture()
 	// Primary display texture
 	if (PrimaryDisplayTexture)
 	{
-		if (IsPrimarySurface() && surface.IsUsingWindowedMode && IsPalette() && (surface.DisplayTexture || !primary.PaletteTexture))
+		if (IsPalette() && surface.IsUsingWindowedMode && (surface.DisplayTexture || !primary.PaletteTexture))
 		{
 			Logging::Log() << __FUNCTION__ << " Error: using non-shader palette surface on window mode not supported!";
 		}
@@ -3526,7 +3526,8 @@ HRESULT m_IDirectDrawSurfaceX::CheckInterface(char *FunctionName, bool CheckD3DD
 		surface.IsUsingWindowedMode = !ddrawParent->IsExclusiveMode();
 
 		// Make sure surface exists, if not then create it
-		if ((!surface.Texture && !surface.Surface) || (IsPrimaryOrBackBuffer() && LastWindowedMode != surface.IsUsingWindowedMode))
+		if ((!surface.Texture && !surface.Surface) || (IsPrimaryOrBackBuffer() && LastWindowedMode != surface.IsUsingWindowedMode) ||
+			(IsDirect3DEnabled && PrimaryDisplayTexture))
 		{
 			if (FAILED(CreateD3d9Surface()))
 			{
@@ -3572,7 +3573,7 @@ HRESULT m_IDirectDrawSurfaceX::CreateD3d9Surface()
 	const D3DFORMAT Format = ConvertSurfaceFormat(surfaceFormat);
 	const D3DFORMAT TextureFormat = (surfaceFormat == D3DFMT_P8) ? D3DFMT_L8 : Format;
 
-	const D3DPOOL TexturePool = (IsPrimaryOrBackBuffer() && surface.IsUsingWindowedMode) ? D3DPOOL_SYSTEMMEM : IsPrimaryOrBackBuffer() ? D3DPOOL_MANAGED :
+	const D3DPOOL TexturePool = (IsPrimaryOrBackBuffer() && surface.IsUsingWindowedMode && !IsDirect3DEnabled) ? D3DPOOL_SYSTEMMEM : IsPrimaryOrBackBuffer() ? D3DPOOL_MANAGED :
 		(surfaceDesc2.ddsCaps.dwCaps & DDSCAPS_SYSTEMMEMORY) ? D3DPOOL_SYSTEMMEM : D3DPOOL_MANAGED;
 
 	// Adjust Width to be byte-aligned
@@ -3618,7 +3619,7 @@ HRESULT m_IDirectDrawSurfaceX::CreateD3d9Surface()
 		}
 
 		// Create primary surface texture
-		if (IsPrimarySurface() && surface.IsUsingWindowedMode)
+		if (IsPrimarySurface() && surface.IsUsingWindowedMode && !IsDirect3DEnabled)
 		{
 			if (FAILED(((*d3d9Device)->CreateTexture(Width, Height, 1, 0, TextureFormat, D3DPOOL_DEFAULT, &PrimaryDisplayTexture, nullptr))))
 			{
