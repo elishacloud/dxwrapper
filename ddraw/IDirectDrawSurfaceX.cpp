@@ -160,7 +160,7 @@ HRESULT m_IDirectDrawSurfaceX::QueryInterface(REFIID riid, LPVOID FAR * ppvObj, 
 			{
 				lpD3DDeviceX->SetDdrawParent(ddrawParent);
 
-				ddrawParent->SetD3DDevice(lpD3DDeviceX);
+				ddrawParent->SetD3DDevice(lpD3DDeviceX, this);
 			}
 		}
 	}

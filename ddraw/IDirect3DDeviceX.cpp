@@ -1507,14 +1507,7 @@ HRESULT m_IDirect3DDeviceX::SetViewport(LPD3DVIEWPORT7 lpViewport)
 			return DDERR_GENERIC;
 		}
 
-		HRESULT hr = (*d3d9Device)->SetViewport((D3DVIEWPORT9*)lpViewport);
-
-		if (SUCCEEDED(hr))
-		{
-			ddrawParent->SetNewViewport(lpViewport->dwWidth, lpViewport->dwHeight);
-		}
-
-		return hr;
+		return (*d3d9Device)->SetViewport((D3DVIEWPORT9*)lpViewport);
 	}
 
 	D3DVIEWPORT7 Viewport7;

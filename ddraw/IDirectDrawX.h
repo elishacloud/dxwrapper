@@ -27,6 +27,7 @@ private:
 
 	// Store primary surface
 	m_IDirectDrawSurfaceX *PrimarySurface = nullptr;
+	m_IDirectDrawSurfaceX *Direct3DSurface = nullptr;
 
 	// Store a list of surfaces
 	std::vector<m_IDirectDrawSurfaceX*> SurfaceVector;
@@ -173,9 +174,9 @@ public:
 	// Direct3D interfaces
 	inline m_IDirect3DX** GetCurrentD3D() { return &D3DInterface; }
 	inline void ClearD3D() { D3DInterface = nullptr; }
-	inline void SetD3DDevice(m_IDirect3DDeviceX* D3DDevice) { D3DDeviceInterface = D3DDevice; }
+	void SetD3DDevice(m_IDirect3DDeviceX* D3DDevice, m_IDirectDrawSurfaceX* D3DSurface);
 	inline m_IDirect3DDeviceX** GetCurrentD3DDevice() { return &D3DDeviceInterface; }
-	inline void ClearD3DDevice() { D3DDeviceInterface = nullptr; Using3D = false; }
+	inline void ClearD3DDevice() { D3DDeviceInterface = nullptr; Direct3DSurface = nullptr; Using3D = false; }
 	inline void Enable3D() { Using3D = true; }
 	inline bool IsUsing3D() { return Using3D; }
 
@@ -198,7 +199,6 @@ public:
 	void GetSurfaceDisplay(DWORD& Width, DWORD& Height, DWORD& BPP, DWORD& RefreshRate);
 	void GetDisplayPixelFormat(DDPIXELFORMAT& ddpfPixelFormat, DWORD BPP);
 	void GetDisplay(DWORD &Width, DWORD &Height);
-	void SetNewViewport(DWORD Width, DWORD Height);
 
 	// Surface vector functions
 	void AddSurfaceToVector(m_IDirectDrawSurfaceX* lpSurfaceX);

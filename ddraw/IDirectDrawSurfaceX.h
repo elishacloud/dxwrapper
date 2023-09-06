@@ -225,8 +225,6 @@ private:
 	inline bool IsLockedFromOtherThread() { return (IsSurfaceBlitting() || IsSurfaceLocked()) && LockedWithID && LockedWithID != GetCurrentThreadId(); }
 	inline RECT GetSurfaceRect() { return { 0, 0, (LONG)surfaceDesc2.dwWidth, (LONG)surfaceDesc2.dwHeight }; }
 	inline bool CanSurfaceBeDeleted() { return (ComplexRoot || (surfaceDesc2.ddsCaps.dwCaps & DDSCAPS_COMPLEX) == 0); }
-	inline DWORD GetWidth() { return surfaceDesc2.dwWidth; }
-	inline DWORD GetHeight() { return surfaceDesc2.dwHeight; }
 	inline DDSCAPS2 GetSurfaceCaps() { return surfaceDesc2.ddsCaps; }
 	inline D3DFORMAT GetSurfaceFormat() { return surfaceFormat; }
 	inline bool CheckSurfaceExists(LPDIRECTDRAWSURFACE7 lpDDSrcSurface) { return
@@ -400,6 +398,8 @@ public:
 	inline bool IsPalette() { return (surfaceFormat == D3DFMT_P8); }
 	inline bool IsDepthBuffer() { return (surfaceDesc2.ddpfPixelFormat.dwFlags & (DDPF_ZBUFFER | DDPF_STENCILBUFFER)) != 0; }
 	inline bool IsSurfaceManaged() { return (surfaceDesc2.ddsCaps.dwCaps2 & (DDSCAPS2_TEXTUREMANAGE | DDSCAPS2_D3DTEXTUREMANAGE)) != 0; }
+	inline DWORD GetWidth() { return surfaceDesc2.dwWidth; }
+	inline DWORD GetHeight() { return surfaceDesc2.dwHeight; }
 	bool GetColorKey(DWORD& ColorSpaceLowValue, DWORD& ColorSpaceHighValue);
 	inline bool IsUsingEmulation() { return (surface.emu && surface.emu->DC && surface.emu->GameDC && surface.emu->pBits); }
 	inline bool IsEmulationDCReady() { return (IsUsingEmulation() && !surface.emu->UsingGameDC); }

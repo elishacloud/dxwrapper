@@ -593,7 +593,7 @@ HRESULT m_IDirect3DX::CreateDevice(REFCLSID rclsid, LPDIRECTDRAWSURFACE7 lpDDS, 
 		SetCriticalSection();
 		if (ddrawParent)
 		{
-			ddrawParent->SetD3DDevice(p_IDirect3DDeviceX);
+			ddrawParent->SetD3DDevice(p_IDirect3DDeviceX, DdrawSurface3D);
 		}
 		ReleaseCriticalSection();
 

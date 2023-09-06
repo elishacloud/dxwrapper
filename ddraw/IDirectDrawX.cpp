@@ -101,14 +101,6 @@ DISPLAYSETTINGS DisplayMode;
 // Device settings
 DEVICESETTINGS Device;
 
-// Viewport resolution
-DWORD viewportWidth;
-DWORD viewportHeight;
-
-// Surface resolution
-DWORD surfaceWidth;
-DWORD surfaceHeight;
-
 // Display pixel format
 DDPIXELFORMAT DisplayPixelFormat;
 
@@ -640,18 +632,12 @@ HRESULT m_IDirectDrawX::CreateSurface2(LPDDSURFACEDESC2 lpDDSurfaceDesc2, LPDIRE
 			}
 		}
 
-		// Get surface size
-		if (!Device.Width && !Device.Height && (Desc2.dwFlags & (DDSD_WIDTH | DDSD_HEIGHT)) == (DDSD_WIDTH | DDSD_HEIGHT) &&
-			(Desc2.ddsCaps.dwCaps & (DDSCAPS_PRIMARYSURFACE | DDSCAPS_3DDEVICE)))
+		// Check if there is a change in the present parameters
+		if ((Desc2.ddsCaps.dwCaps & DDSCAPS_PRIMARYSURFACE) && !Device.Width && !Device.Height &&
+			(Desc2.dwFlags & (DDSD_WIDTH | DDSD_HEIGHT)) == (DDSD_WIDTH | DDSD_HEIGHT) &&
+			(Desc2.dwWidth != presParams.BackBufferWidth || Desc2.dwHeight != presParams.BackBufferHeight))
 		{
-			surfaceWidth = Desc2.dwWidth;
-			surfaceHeight = Desc2.dwHeight;
-
-			// Check if there is a change in the present parameters
-			if (surfaceWidth != presParams.BackBufferWidth || surfaceHeight != presParams.BackBufferHeight)
-			{
-				ResetD3D9Device = true;
-			}
+			ResetD3D9Device = true;
 		}
 
 		// Get present parameters
@@ -674,15 +660,15 @@ HRESULT m_IDirectDrawX::CreateSurface2(LPDDSURFACEDESC2 lpDDSurfaceDesc2, LPDIRE
 			}
 		}
 
-		// Reset d3d9 device
-		if (ResetD3D9Device)
+		// Create interface
+		m_IDirectDrawSurfaceX *p_IDirectDrawSurfaceX = new m_IDirectDrawSurfaceX(this, DirectXVersion, &Desc2);
+		*lplpDDSurface = (LPDIRECTDRAWSURFACE7)p_IDirectDrawSurfaceX->GetWrapperInterfaceX(DirectXVersion);
+
+		// Reset d3d9 device after creating interface if needed
+		if (ResetD3D9Device && d3d9Device)
 		{
 			CreateD3D9Device();
 		}
-
-		m_IDirectDrawSurfaceX *p_IDirectDrawSurfaceX = new m_IDirectDrawSurfaceX(this, DirectXVersion, &Desc2);
-
-		*lplpDDSurface = (LPDIRECTDRAWSURFACE7)p_IDirectDrawSurfaceX->GetWrapperInterfaceX(DirectXVersion);
 
 		return DD_OK;
 	}
@@ -1530,10 +1516,6 @@ HRESULT m_IDirectDrawX::RestoreDisplayMode()
 		DisplayMode.Height = 0;
 		DisplayMode.BPP = 0;
 		DisplayMode.RefreshRate = 0;
-		viewportWidth = 0;
-		viewportHeight = 0;
-		surfaceWidth = 0;
-		surfaceHeight = 0;
 
 		// Restore all existing surfaces
 		if (d3d9Device)
@@ -1840,14 +1822,6 @@ HRESULT m_IDirectDrawX::SetDisplayMode(DWORD dwWidth, DWORD dwHeight, DWORD dwBP
 			Exclusive.BPP = NewBPP;
 			Exclusive.RefreshRate = dwRefreshRate;
 		}
-
-		// Reset viewport resolution
-		viewportWidth = 0;
-		viewportHeight = 0;
-
-		// Reset surface resolution
-		surfaceWidth = 0;
-		surfaceHeight = 0;
 
 		// Update the d3d9 device to use new display mode
 		if (LastWidth != Device.Width || LastHeight != Device.Height || (!Device.IsWindowed && LastRefreshRate != DisplayMode.RefreshRate))
@@ -2340,11 +2314,6 @@ void m_IDirectDrawX::InitDdraw(DWORD DirectXVersion)
 		}
 		Device.RefreshRate = (Config.DdrawOverrideRefreshRate) ? Config.DdrawOverrideRefreshRate : 0;
 
-		viewportWidth = 0;
-		viewportHeight = 0;
-		surfaceWidth = 0;
-		surfaceHeight = 0;
-
 		// Mouse hook
 		static bool EnableMouseHook = Config.DdrawEnableMouseHook &&
 			((Config.DdrawUseNativeResolution || Config.DdrawOverrideWidth || Config.DdrawOverrideHeight) &&
@@ -2625,24 +2594,16 @@ void m_IDirectDrawX::GetSurfaceDisplay(DWORD& Width, DWORD& Height, DWORD& BPP, 
 		Height = presParams.BackBufferHeight;
 		BPP = Utils::GetBitCount(hWnd);
 	}
-	else if (viewportWidth && viewportHeight)
+	else if (Direct3DSurface)
 	{
-		Width = viewportWidth;
-		Height = viewportHeight;
+		Width = Direct3DSurface->GetWidth();
+		Height = Direct3DSurface->GetHeight();
 		BPP = Utils::GetBitCount(hWnd);
 	}
-	else if (surfaceWidth && surfaceHeight)
+	else if (PrimarySurface)
 	{
-		Width = surfaceWidth;
-		Height = surfaceHeight;
-		BPP = Utils::GetBitCount(hWnd);
-	}
-	else if (Device.IsWindowed && IsWindow(hWnd))
-	{
-		RECT Rect = {};
-		GetClientRect(hWnd, &Rect);
-		Width = Rect.right - Rect.left;
-		Height = Rect.bottom - Rect.top;
+		Width = PrimarySurface->GetWidth();
+		Height = PrimarySurface->GetHeight();
 		BPP = Utils::GetBitCount(hWnd);
 	}
 	else
@@ -2686,22 +2647,6 @@ void m_IDirectDrawX::GetDisplay(DWORD &Width, DWORD &Height)
 	Height = presParams.BackBufferHeight;
 }
 
-void m_IDirectDrawX::SetNewViewport(DWORD Width, DWORD Height)
-{
-	if (Width && Height && !Device.Width && !Device.Height)
-	{
-		viewportWidth = Width;
-		viewportHeight = Height;
-
-		// Check if there is a change in the present parameters
-		if (d3d9Device && (viewportWidth != presParams.BackBufferWidth || viewportHeight != presParams.BackBufferHeight))
-		{
-			// Reset d3d9 device
-			CreateD3D9Device();
-		}
-	}
-}
-
 HRESULT m_IDirectDrawX::CheckInterface(char *FunctionName, bool CheckD3DDevice)
 {
 	// Check for object, if not then create it
@@ -2727,6 +2672,26 @@ HRESULT m_IDirectDrawX::CheckInterface(char *FunctionName, bool CheckD3DDevice)
 	}
 
 	return DD_OK;
+}
+
+void m_IDirectDrawX::SetD3DDevice(m_IDirect3DDeviceX* D3DDevice, m_IDirectDrawSurfaceX* D3DSurface)
+{
+	D3DDeviceInterface = D3DDevice;
+
+	if (!DoesSurfaceExist(D3DSurface))
+	{
+		LOG_LIMIT(100, __FUNCTION__ << " Error: Direct3D surface does not exist!");
+		return;
+	}
+
+	Direct3DSurface = D3DSurface;
+
+	// Recreate Direct3D9 device
+	if (d3d9Device && !Device.Width && !Device.Height &&
+		Direct3DSurface->GetWidth() != presParams.BackBufferWidth || Direct3DSurface->GetHeight() != presParams.BackBufferHeight)
+	{
+		CreateD3D9Device();
+	}
 }
 
 bool m_IDirectDrawX::CheckD3D9Device()
@@ -2818,22 +2783,15 @@ HRESULT m_IDirectDrawX::CreateD3D9Device()
 		DWORD BackBufferHeight = Device.Height;
 		if (!BackBufferWidth || !BackBufferHeight)
 		{
-			if (viewportWidth && viewportHeight)
+			if (Direct3DSurface)
 			{
-				BackBufferWidth = viewportWidth;
-				BackBufferHeight = viewportHeight;
+				BackBufferWidth = Direct3DSurface->GetWidth();
+				BackBufferHeight = Direct3DSurface->GetHeight();
 			}
-			else if (surfaceWidth && surfaceHeight)
+			else if (PrimarySurface)
 			{
-				BackBufferWidth = surfaceWidth;
-				BackBufferHeight = surfaceHeight;
-			}
-			else if (Device.IsWindowed && IsWindow(hWnd))
-			{
-				RECT Rect = {};
-				GetClientRect(hWnd, &Rect);
-				BackBufferWidth = Rect.right - Rect.left;
-				BackBufferHeight = Rect.bottom - Rect.top;
+				BackBufferWidth = PrimarySurface->GetWidth();
+				BackBufferHeight = PrimarySurface->GetHeight();
 			}
 			if (!BackBufferWidth || !BackBufferHeight)
 			{
@@ -3267,6 +3225,10 @@ void m_IDirectDrawX::RemoveSurfaceFromVector(m_IDirectDrawSurfaceX* lpSurfaceX)
 	{
 		PrimarySurface = nullptr;
 		DisplayPixelFormat = {};
+	}
+	if (lpSurfaceX == Direct3DSurface)
+	{
+		Direct3DSurface = nullptr;
 	}
 
 	auto it = std::find(SurfaceVector.begin(), SurfaceVector.end(), lpSurfaceX);
