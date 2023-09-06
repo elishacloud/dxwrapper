@@ -3423,6 +3423,10 @@ inline LPDIRECT3DTEXTURE9 m_IDirectDrawSurfaceX::GetD3D9Texture()
 	// Primary display texture
 	if (PrimaryDisplayTexture)
 	{
+		if (IsPrimarySurface() && surface.IsUsingWindowedMode && IsPalette() && (surface.DisplayTexture || !primary.PaletteTexture))
+		{
+			Logging::Log() << __FUNCTION__ << " Error: using non-shader palette surface on window mode not supported!";
+		}
 		return PrimaryDisplayTexture;
 	}
 
