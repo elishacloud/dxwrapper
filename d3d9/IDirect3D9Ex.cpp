@@ -452,6 +452,12 @@ void UpdatePresentParameter(D3DPRESENT_PARAMETERS* pPresentationParameters, HWND
 		pPresentationParameters->FullScreen_RefreshRateInHz = 0;
 	}
 
+	// Set refresh rate if using exclusive fullscreen mode
+	if (Config.OverrideRefreshRate && !pPresentationParameters->Windowed)
+	{
+		pPresentationParameters->FullScreen_RefreshRateInHz = Config.OverrideRefreshRate;
+	}
+
 	// Store last window data
 	LONG LastBufferWidth = BufferWidth;
 	LONG LastBufferHeight = BufferHeight;

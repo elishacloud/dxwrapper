@@ -1811,7 +1811,7 @@ HRESULT m_IDirectDrawX::SetDisplayMode(DWORD dwWidth, DWORD dwHeight, DWORD dwBP
 			// Display resolution
 			Device.Width = (Config.DdrawUseNativeResolution || Config.DdrawOverrideWidth) ? Device.Width : FoundWidth;
 			Device.Height = (Config.DdrawUseNativeResolution || Config.DdrawOverrideHeight) ? Device.Height : FoundHeight;
-			Device.RefreshRate = (Config.DdrawOverrideRefreshRate) ? Device.RefreshRate : DisplayMode.RefreshRate;
+			Device.RefreshRate = DisplayMode.RefreshRate;
 		}
 
 		// Set exclusive mode resolution
@@ -2312,7 +2312,7 @@ void m_IDirectDrawX::InitDdraw(DWORD DirectXVersion)
 			Device.Width = (Config.DdrawOverrideWidth) ? Config.DdrawOverrideWidth : 0;
 			Device.Height = (Config.DdrawOverrideHeight) ? Config.DdrawOverrideHeight : 0;
 		}
-		Device.RefreshRate = (Config.DdrawOverrideRefreshRate) ? Config.DdrawOverrideRefreshRate : 0;
+		Device.RefreshRate = 0;
 
 		// Mouse hook
 		static bool EnableMouseHook = Config.DdrawEnableMouseHook &&

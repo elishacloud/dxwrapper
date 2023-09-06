@@ -36,6 +36,7 @@ namespace Settings
 	size_t BytesToWriteCount = 0;				// Count of bytes to hot patch
 	bool Force16bitColor;						// Forces DirectX to use 16bit color
 	bool Force32bitColor;						// Forces DirectX to use 32bit color
+	DWORD DdrawOverrideRefreshRate = 0;			// Legacy setting
 
 	// Function declarations
 	bool IsValueEnabled(char*);
@@ -278,6 +279,8 @@ void __stdcall Settings::ParseCallback(char* name, char* value)
 	{
 		Config.DisableMaxWindowedModeNotSet = false;
 	}
+
+	SET_LOCAL_VALUE(DdrawOverrideRefreshRate);
 
 	// Set Value of local settings
 	VISIT_LOCAL_SETTINGS(SET_LOCAL_VALUE);
@@ -636,10 +639,11 @@ void CONFIG::SetConfig()
 	}
 
 	// Check anti-aliasing value
-	if (AntiAliasing == 1)
-	{
-		AntiAliasing = 16;
-	}
+	AntiAliasing = (AntiAliasing == 1) ? 16 : AntiAliasing;
+
+	// Enable refresh rate
+	OverrideRefreshRate = (DdrawOverrideRefreshRate && !OverrideRefreshRate) ? DdrawOverrideRefreshRate : OverrideRefreshRate;
+	DdrawOverrideRefreshRate = 0;
 
 	// Enable wrapper settings
 	Dinputto8 = (Dinputto8 || IsSet(Dinput8HookSystem32));
