@@ -795,7 +795,14 @@ HRESULT m_IDirect3DDevice9Ex::Present(CONST RECT *pSourceRect, CONST RECT *pDest
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	return ProxyInterface->Present(pSourceRect, pDestRect, hDestWindowOverride, pDirtyRegion);
+	HRESULT hr = ProxyInterface->Present(pSourceRect, pDestRect, hDestWindowOverride, pDirtyRegion);
+
+	if (Config.LimitPerFrameFPS && SUCCEEDED(hr))
+	{
+		LimitFrameRate();
+	}
+
+	return hr;
 }
 
 HRESULT m_IDirect3DDevice9Ex::DrawIndexedPrimitive(THIS_ D3DPRIMITIVETYPE Type, INT BaseVertexIndex, UINT MinVertexIndex, UINT NumVertices, UINT startIndex, UINT primCount)
@@ -2051,7 +2058,14 @@ HRESULT m_IDirect3DDevice9Ex::PresentEx(THIS_ CONST RECT* pSourceRect, CONST REC
 		return D3DERR_INVALIDCALL;
 	}
 
-	return ProxyInterfaceEx->PresentEx(pSourceRect, pDestRect, hDestWindowOverride, pDirtyRegion, dwFlags);
+	HRESULT hr = ProxyInterfaceEx->PresentEx(pSourceRect, pDestRect, hDestWindowOverride, pDirtyRegion, dwFlags);
+
+	if (Config.LimitPerFrameFPS && SUCCEEDED(hr))
+	{
+		LimitFrameRate();
+	}
+
+	return hr;
 }
 
 HRESULT m_IDirect3DDevice9Ex::GetGPUThreadPriority(THIS_ INT* pPriority)
@@ -2299,4 +2313,37 @@ HRESULT m_IDirect3DDevice9Ex::GetDisplayModeEx(THIS_ UINT iSwapChain, D3DDISPLAY
 	}
 
 	return ProxyInterfaceEx->GetDisplayModeEx(iSwapChain, pMode, pRotation);
+}
+
+void m_IDirect3DDevice9Ex::LimitFrameRate()
+{
+	// Count number of frames
+	Counter.FrameCounter++;
+
+	// Get performance frequancy
+	if (!Counter.FrequencyFlag || Counter.FrameCounter % Config.LimitPerFrameFPS == 0)
+	{
+		Counter.FrequencyFlag = QueryPerformanceFrequency(&Counter.Frequency);
+	}
+
+	// Get milliseconds for each frame
+	LONGLONG DelayTimeMS = 1000LL / Config.LimitPerFrameFPS;
+
+	// Wait for time to expire
+	bool DoLoop;
+	do {
+		QueryPerformanceCounter(&Counter.ClickTime);
+		LONGLONG deltaPresentMS = ((Counter.ClickTime.QuadPart - Counter.LastPresentTime.QuadPart) * 1000LL) / Counter.Frequency.QuadPart;
+
+		DoLoop = false;
+		if (Counter.FrequencyFlag && deltaPresentMS < DelayTimeMS)
+		{
+			DoLoop = true;
+			Sleep(0);
+		}
+
+	} while (DoLoop);
+
+	// Get new counter time
+	QueryPerformanceCounter(&Counter.LastPresentTime);
 }
