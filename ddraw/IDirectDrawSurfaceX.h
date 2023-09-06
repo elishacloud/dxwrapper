@@ -86,6 +86,7 @@ private:
 	// Real surface and surface data using Direct3D9 devices
 	struct D9SURFACE
 	{
+		bool IsUsingWindowedMode = false;
 		bool IsDirtyFlag = false;
 		bool IsPaletteDirty = false;						// Used to detect if the palette surface needs to be updated
 		DWORD LastPaletteUSN = 0;							// The USN that was used last time the palette was updated
@@ -102,6 +103,7 @@ private:
 	CRITICAL_SECTION ddscs = {};
 	CRITICAL_SECTION ddlcs = {};
 	m_IDirectDrawX *ddrawParent = nullptr;				// DirectDraw parent device
+	LPDIRECT3DTEXTURE9 PrimaryDisplayTexture = nullptr;	// Used for the texture surface for the primary surface
 	m_IDirectDrawPalette *attachedPalette = nullptr;	// Associated palette
 	m_IDirectDrawClipper *attachedClipper = nullptr;	// Associated clipper
 	m_IDirect3DTextureX *attachedTexture = nullptr;		// Associated texture
@@ -115,7 +117,6 @@ private:
 	DWORD Priority = 0;
 	DWORD MaxLOD = 0;
 
-	bool IsUsingWindowedMode = false;
 	bool Is3DRenderingTarget = false;					// Surface used for Direct3D rendering target, called from m_IDirect3DX::CreateDevice()
 	bool IsDirect3DEnabled = false;						// Direct3D is being used on top of DirectDraw
 	bool DCRequiresEmulation = false;
@@ -222,6 +223,7 @@ private:
 	inline bool IsSurfaceInDC() { return IsInDC; }
 	inline bool IsSurfaceBusy() { return (IsSurfaceBlitting() || IsSurfaceLocked() || IsSurfaceInDC()); }
 	inline bool IsLockedFromOtherThread() { return (IsSurfaceBlitting() || IsSurfaceLocked()) && LockedWithID && LockedWithID != GetCurrentThreadId(); }
+	inline RECT GetSurfaceRect() { return { 0, 0, (LONG)surfaceDesc2.dwWidth, (LONG)surfaceDesc2.dwHeight }; }
 	inline bool CanSurfaceBeDeleted() { return (ComplexRoot || (surfaceDesc2.ddsCaps.dwCaps & DDSCAPS_COMPLEX) == 0); }
 	inline DWORD GetWidth() { return surfaceDesc2.dwWidth; }
 	inline DWORD GetHeight() { return surfaceDesc2.dwHeight; }

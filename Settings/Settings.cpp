@@ -445,7 +445,6 @@ void Settings::SetDefaultConfigSettings()
 
 	// Set defaults
 	Config.DisableHighDPIScaling = true;
-	Config.ResetScreenRes = true;
 	Config.FixSpeakerConfigType = true;
 
 	// Set other default values

@@ -370,7 +370,7 @@ HRESULT m_IDirectDrawSurfaceX::Blt(LPRECT lpDestRect, LPDIRECTDRAWSURFACE7 lpDDS
 	if (lpDDSrcSurface && !CheckSurfaceExists(lpDDSrcSurface))
 	{
 		LOG_LIMIT(100, __FUNCTION__ << " Error: could not find source surface! " << lpDDSrcSurface);
-		return DDERR_INVALIDRECT;	// Just return invalid rect
+		return DDERR_INVALIDPARAMS;
 	}
 
 	if (Config.Dd7to9)
@@ -731,7 +731,7 @@ HRESULT m_IDirectDrawSurfaceX::BltFast(DWORD dwX, DWORD dwY, LPDIRECTDRAWSURFACE
 	if (lpDDSrcSurface && !CheckSurfaceExists(lpDDSrcSurface))
 	{
 		LOG_LIMIT(100, __FUNCTION__ << " Error: could not find source surface! " << Logging::hex(lpDDSrcSurface));
-		return DD_OK;	// Just return OK
+		return DDERR_INVALIDPARAMS;
 	}
 
 	if (Config.Dd7to9)
@@ -1322,7 +1322,7 @@ HRESULT m_IDirectDrawSurfaceX::Flip(LPDIRECTDRAWSURFACE7 lpDDSurfaceTargetOverri
 				CopyEmulatedSurfaceToGDI(Rect);
 			}
 			// Handle windowed mode
-			else if (IsUsingWindowedMode)
+			else if (surface.IsUsingWindowedMode)
 			{
 				PresentSurfaceToWindow(Rect);
 			}
@@ -2389,7 +2389,7 @@ HRESULT m_IDirectDrawSurfaceX::ReleaseDC(HDC hDC)
 			}
 
 			// Preset surface to window
-			if (IsUsingWindowedMode && IsPrimarySurface() && !Config.DdrawWriteToGDI && !IsDirect3DEnabled)
+			if (surface.IsUsingWindowedMode && IsPrimarySurface() && !Config.DdrawWriteToGDI && !IsDirect3DEnabled)
 			{
 				RECT Rect = { 0, 0, (LONG)surfaceDesc2.dwWidth, (LONG)surfaceDesc2.dwHeight };
 				PresentSurfaceToWindow(Rect);
@@ -2804,7 +2804,7 @@ HRESULT m_IDirectDrawSurfaceX::Unlock(LPRECT lpRect)
 			}
 
 			// Preset surface to window
-			if (IsUsingWindowedMode && IsPrimarySurface() && !Config.DdrawWriteToGDI && !IsDirect3DEnabled)
+			if (surface.IsUsingWindowedMode && IsPrimarySurface() && !Config.DdrawWriteToGDI && !IsDirect3DEnabled)
 			{
 				PresentSurfaceToWindow(LastLock.Rect);
 			}
@@ -3420,6 +3420,12 @@ LPDIRECT3DTEXTURE9 m_IDirectDrawSurfaceX::Get3DTexture()
 
 inline LPDIRECT3DTEXTURE9 m_IDirectDrawSurfaceX::GetD3D9Texture()
 {
+	// Primary display texture
+	if (PrimaryDisplayTexture)
+	{
+		return PrimaryDisplayTexture;
+	}
+
 	// Prepare paletted surface for display
 	if (surface.IsPaletteDirty && !primary.PaletteTexture)
 	{
@@ -3487,9 +3493,6 @@ HRESULT m_IDirectDrawSurfaceX::CheckInterface(char *FunctionName, bool CheckD3DD
 			ReleaseDCSurface();
 		}
 
-		// Check if using windowed mode
-		IsUsingWindowedMode = !ddrawParent->IsExclusiveMode();
-
 		// Check if device is lost
 		if (!IsUsingEmulation() && CheckD3DDevice)
 		{
@@ -3514,8 +3517,12 @@ HRESULT m_IDirectDrawSurfaceX::CheckInterface(char *FunctionName, bool CheckD3DD
 			}
 		}
 
+		// Check if using windowed mode
+		bool LastWindowedMode = surface.IsUsingWindowedMode;
+		surface.IsUsingWindowedMode = !ddrawParent->IsExclusiveMode();
+
 		// Make sure surface exists, if not then create it
-		if (!surface.Texture && !surface.Surface)
+		if ((!surface.Texture && !surface.Surface) || (IsPrimaryOrBackBuffer() && LastWindowedMode != surface.IsUsingWindowedMode))
 		{
 			if (FAILED(CreateD3d9Surface()))
 			{
@@ -3561,7 +3568,7 @@ HRESULT m_IDirectDrawSurfaceX::CreateD3d9Surface()
 	const D3DFORMAT Format = ConvertSurfaceFormat(surfaceFormat);
 	const D3DFORMAT TextureFormat = (surfaceFormat == D3DFMT_P8) ? D3DFMT_L8 : Format;
 
-	const D3DPOOL TexturePool = IsPrimaryOrBackBuffer() ? D3DPOOL_MANAGED :
+	const D3DPOOL TexturePool = (IsPrimaryOrBackBuffer() && surface.IsUsingWindowedMode) ? D3DPOOL_SYSTEMMEM : IsPrimaryOrBackBuffer() ? D3DPOOL_MANAGED :
 		(surfaceDesc2.ddsCaps.dwCaps & DDSCAPS_SYSTEMMEMORY) ? D3DPOOL_SYSTEMMEM : D3DPOOL_MANAGED;
 
 	// Adjust Width to be byte-aligned
@@ -3606,7 +3613,16 @@ HRESULT m_IDirectDrawSurfaceX::CreateD3d9Surface()
 			}
 		}
 
-		surface.IsPaletteDirty = IsPalette();
+		// Create primary surface texture
+		if (IsPrimarySurface() && surface.IsUsingWindowedMode)
+		{
+			if (FAILED(((*d3d9Device)->CreateTexture(Width, Height, 1, 0, TextureFormat, D3DPOOL_DEFAULT, &PrimaryDisplayTexture, nullptr))))
+			{
+				LOG_LIMIT(100, __FUNCTION__ << " Error: failed to create primary surface texture. Size: " << Width << "x" << Height << " Format: " << surfaceFormat << " dwCaps: " << Logging::hex(surfaceDesc2.ddsCaps.dwCaps));
+				hr = DDERR_GENERIC;
+				break;
+			}
+		}
 
 		// Create palette surface
 		if (IsPrimarySurface() && surfaceFormat == D3DFMT_P8)
@@ -3620,6 +3636,8 @@ HRESULT m_IDirectDrawSurfaceX::CreateD3d9Surface()
 				break;
 			}
 		}
+
+		surface.IsPaletteDirty = IsPalette();
 
 	} while (false);
 
@@ -4154,6 +4172,18 @@ void m_IDirectDrawSurfaceX::ReleaseD9Surface(bool BackupData)
 		ReleaseDCSurface();
 	}
 
+	// Release primary display texture
+	if (PrimaryDisplayTexture)
+	{
+		Logging::LogDebug() << __FUNCTION__ << " Releasing Direct3D9 primary display texture";
+		ULONG ref = PrimaryDisplayTexture->Release();
+		if (ref)
+		{
+			Logging::Log() << __FUNCTION__ << " Error: there is still a reference to 'PrimaryDisplayTexture' " << ref;
+		}
+		PrimaryDisplayTexture = nullptr;
+	}
+
 	// Release d3d9 3D surface
 	if (surface.Surface)
 	{
@@ -4452,7 +4482,7 @@ HRESULT m_IDirectDrawSurfaceX::PresentSurface(bool IsSkipScene)
 	}
 
 	// Check if is not primary surface or if scene should be skipped
-	if (Config.DdrawWriteToGDI || IsUsingWindowedMode || IsDirect3DEnabled)
+	if (Config.DdrawWriteToGDI || surface.IsUsingWindowedMode || IsDirect3DEnabled)
 	{
 		// Never present when using Direct3D or when writing to GDI
 		return DD_OK;
@@ -5196,7 +5226,7 @@ HRESULT m_IDirectDrawSurfaceX::ColorFill(RECT* pRect, D3DCOLOR dwFillColor)
 	}
 
 	// Preset surface to window
-	if (IsUsingWindowedMode && IsPrimarySurface() && !Config.DdrawWriteToGDI && !IsDirect3DEnabled)
+	if (surface.IsUsingWindowedMode && IsPrimarySurface() && !Config.DdrawWriteToGDI && !IsDirect3DEnabled)
 	{
 		PresentSurfaceToWindow(DestRect);
 	}
@@ -5303,12 +5333,20 @@ HRESULT m_IDirectDrawSurfaceX::CopySurface(m_IDirectDrawSurfaceX* pSourceSurface
 		return FAILED(c_hr) ? c_hr : DDERR_GENERIC;
 	}
 
-	// Check and copy rect and do clipping
-	RECT SrcRect = {}, DestRect = {};
-	if (!pSourceSurface->CheckCoordinates(SrcRect, pSourceRect) || !CheckCoordinates(DestRect, pDestRect))
+	// Copy rect and do clipping
+	RECT SrcRect = (pSourceRect) ? *pSourceRect : pSourceSurface->GetSurfaceRect();
+	RECT DestRect = (pDestRect) ? *pDestRect : GetSurfaceRect();
+	LONG Left = min(SrcRect.left, DestRect.left);
+	if (Left < 0)
 	{
-		LOG_LIMIT(100, __FUNCTION__ << " Error: Invalid rect: " << pSourceRect << " -> " << pDestRect);
-		return DDERR_INVALIDRECT;
+		SrcRect.left -= Left;
+		DestRect.left -= Left;
+	}
+	LONG Top = min(SrcRect.top, DestRect.top);
+	if (Top < 0)
+	{
+		SrcRect.top -= Top;
+		DestRect.top -= Top;
 	}
 
 	// Get source and dest format
@@ -5317,18 +5355,23 @@ HRESULT m_IDirectDrawSurfaceX::CopySurface(m_IDirectDrawSurfaceX* pSourceSurface
 
 	// Get copy flags
 	const bool IsStretchRect =
-		abs((pSourceRect ? pSourceRect->right - pSourceRect->left : SrcRect.right - SrcRect.left) -		// SrcWidth
-			(pDestRect ? pDestRect->right - pDestRect->left : DestRect.right - DestRect.left)) > 1 ||	// DestWidth
-		abs((pSourceRect ? pSourceRect->bottom - pSourceRect->top : SrcRect.bottom - SrcRect.top) -		// SrcHeight
-			(pDestRect ? pDestRect->bottom - pDestRect->top : DestRect.bottom - DestRect.top)) > 1;		// DestHeight
+		abs((SrcRect.right - SrcRect.left) - (DestRect.right - DestRect.left)) > 1 ||		// Width size
+		abs((SrcRect.bottom - SrcRect.top) - (DestRect.bottom - DestRect.top)) > 1;			// Height size
 	const bool IsColorKey = ((dwFlags & BLT_COLORKEY) != 0);
 	const bool IsMirrorLeftRight = ((dwFlags & BLT_MIRRORLEFTRIGHT) != 0);
 	const bool IsMirrorUpDown = ((dwFlags & BLT_MIRRORUPDOWN) != 0);
 	const DWORD D3DXFilter =
-		(IsStretchRect && IsPalette()) || (Filter & D3DTEXF_POINT) ? D3DX_FILTER_POINT :				// Force palette surfaces to use point filtering to prevent color banding
-		(Filter & D3DTEXF_LINEAR) ? D3DX_FILTER_LINEAR :												// Use linear filtering when requested by the application
-		(IsStretchRect) ? D3DX_FILTER_POINT :															// Default to point filtering when stretching the rect, same as DirectDraw
+		(IsStretchRect && IsPalette()) || (Filter & D3DTEXF_POINT) ? D3DX_FILTER_POINT :	// Force palette surfaces to use point filtering to prevent color banding
+		(Filter & D3DTEXF_LINEAR) ? D3DX_FILTER_LINEAR :									// Use linear filtering when requested by the application
+		(IsStretchRect) ? D3DX_FILTER_POINT :												// Default to point filtering when stretching the rect, same as DirectDraw
 		D3DX_FILTER_NONE;
+
+	// Check rect and do clipping
+	if (!pSourceSurface->CheckCoordinates(SrcRect, &SrcRect) || !CheckCoordinates(DestRect, &DestRect))
+	{
+		LOG_LIMIT(100, __FUNCTION__ << " Error: Invalid rect: " << pSourceRect << " -> " << pDestRect);
+		return DDERR_INVALIDRECT;
+	}
 
 	// Get width and height of rect
 	LONG SrcRectWidth = SrcRect.right - SrcRect.left;
@@ -5743,7 +5786,7 @@ HRESULT m_IDirectDrawSurfaceX::CopySurface(m_IDirectDrawSurfaceX* pSourceSurface
 		}
 
 		// Preset surface to window
-		if (IsUsingWindowedMode && IsPrimarySurface() && !Config.DdrawWriteToGDI && !IsDirect3DEnabled)
+		if (surface.IsUsingWindowedMode && IsPrimarySurface() && !Config.DdrawWriteToGDI && !IsDirect3DEnabled)
 		{
 			PresentSurfaceToWindow(DestRect);
 		}
@@ -6150,6 +6193,12 @@ HRESULT m_IDirectDrawSurfaceX::CopyEmulatedSurfaceToGDI(RECT Rect)
 
 HRESULT m_IDirectDrawSurfaceX::PresentSurfaceToWindow(RECT Rect)
 {
+	if (!PrimaryDisplayTexture)
+	{
+		LOG_LIMIT(100, __FUNCTION__ << " Error: Primary display texture missing!");
+		return DDERR_GENERIC;
+	}
+
 	// Get hWnd
 	HWND hWnd = ddrawParent->GetHwnd();
 	if (!hWnd)
@@ -6175,9 +6224,38 @@ HRESULT m_IDirectDrawSurfaceX::PresentSurfaceToWindow(RECT Rect)
 		return DDERR_GENERIC;
 	}
 
-	// Get rect size
-	RECT MapRect = Rect;
-	MapWindowPoints(HWND_DESKTOP, hWnd, (LPPOINT)&MapRect, 2);
+	// Get map points
+	RECT MapClient = Rect;
+	if (MapWindowPoints(HWND_DESKTOP, hWnd, (LPPOINT)&MapClient, 2))
+	{
+		MapClient.right = min((LONG)surfaceDesc2.dwWidth, MapClient.right);
+		MapClient.bottom = min((LONG)surfaceDesc2.dwHeight, MapClient.bottom);
+	}
+
+	// Get source surface
+	IDirect3DSurface9* pSourceSurfaceD9 = GetD3D9Surface();
+	if (!pSourceSurfaceD9)
+	{
+		LOG_LIMIT(100, __FUNCTION__ << " Error: Failed to get source surface!");
+		return DDERR_GENERIC;
+	}
+
+	// Get destination surface
+	IDirect3DSurface9* pDestSurfaceD9 = nullptr;
+	if (FAILED(PrimaryDisplayTexture->GetSurfaceLevel(0, &pDestSurfaceD9)))
+	{
+		LOG_LIMIT(100, __FUNCTION__ << " Error: Failed to get destination surface!");
+		return DDERR_GENERIC;
+	}
+
+	// Copy surface
+	HRESULT hr = (*d3d9Device)->UpdateSurface(pSourceSurfaceD9, &Rect, pDestSurfaceD9, (LPPOINT)&MapClient);
+	pDestSurfaceD9->Release();
+	if (FAILED(hr))
+	{
+		LOG_LIMIT(100, __FUNCTION__ << " Error: Failed to copy surface: " << Rect << " -> " << MapClient);
+		return DDERR_GENERIC;
+	}
 
 	// Begin scene
 	if (FAILED((*d3d9Device)->BeginScene()))
@@ -6201,7 +6279,7 @@ HRESULT m_IDirectDrawSurfaceX::PresentSurfaceToWindow(RECT Rect)
 	}
 
 	// Present to d3d9
-	if (FAILED(ddrawParent->Present(&Rect, &MapRect)))
+	if (FAILED(ddrawParent->Present(&MapClient, &MapClient)))
 	{
 		LOG_LIMIT(100, __FUNCTION__ << " Error: failed to present 2D scene!");
 		return DDERR_GENERIC;
