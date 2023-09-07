@@ -2333,7 +2333,7 @@ void m_IDirect3DDevice9Ex::LimitFrameRate()
 	bool DoLoop;
 	do {
 		QueryPerformanceCounter(&Counter.ClickTime);
-		float DeltaPresentMS = ((Counter.ClickTime.QuadPart - Counter.LastPresentTime.QuadPart) * 10000.0f) / Counter.Frequency.QuadPart;
+		float DeltaPresentMS = ((Counter.ClickTime.QuadPart - Counter.LastPresentTime.QuadPart) * 1000.0f) / Counter.Frequency.QuadPart;
 
 		DoLoop = false;
 		if (Counter.FrequencyFlag && DeltaPresentMS < DelayTimeMS)
