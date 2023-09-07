@@ -16,15 +16,11 @@ private:
 
 	bool SetSSAA = false;
 
-	struct HIGHRESCOUNTER
-	{
-		bool FrequencyFlag = false;
-		LARGE_INTEGER Frequency = {}, ClickTime = {}, LastPresentTime = {};
-		DWORD FrameCounter = 0;
-	};
-
 	// Limit frame rate
-	HIGHRESCOUNTER Counter;
+	struct {
+		DWORD FrameCounter = 0;
+		LARGE_INTEGER Frequency = {}, ClickTime = {}, LastPresentTime = {};
+	} Counter;
 	void LimitFrameRate();
 
 	// Anisotropic Filtering

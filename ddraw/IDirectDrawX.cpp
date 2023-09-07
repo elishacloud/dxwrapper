@@ -76,7 +76,6 @@ struct DEVICESETTINGS
 
 struct HIGHRESCOUNTER
 {
-	bool FrequencyFlag;
 	LARGE_INTEGER Frequency, ClickTime, LastPresentTime;
 	LONGLONG LastFrameTime;
 	DWORD FrameCounter;
@@ -2285,7 +2284,7 @@ void m_IDirectDrawX::InitDdraw(DWORD DirectXVersion)
 
 		// High resolution counter
 		Counter = {};
-		Counter.FrequencyFlag = (QueryPerformanceFrequency(&Counter.Frequency) != FALSE);
+		QueryPerformanceFrequency(&Counter.Frequency);
 
 		// Direct3D9 flags
 		EnableWaitVsync = false;
@@ -3534,28 +3533,25 @@ HRESULT m_IDirectDrawX::Present(RECT* pSourceRect, RECT* pDestRect)
 	// Skip frame if time lapse is too small
 	if (Config.AutoFrameSkip && !EnableWaitVsync)
 	{
-		if (Counter.FrequencyFlag)
+		Counter.FrameSkipCounter++;
+
+		// Get screen frequency timer
+		double MaxScreenTimer = 1000.0 / Counter.RefreshRate;
+
+		// Get time since last successful endscene
+		QueryPerformanceCounter(&Counter.ClickTime);
+		double deltaPresentMS = ((Counter.ClickTime.QuadPart - Counter.LastPresentTime.QuadPart) * 1000.0) / Counter.Frequency.QuadPart;
+
+		// Get time since last skipped frame
+		double deltaFrameMS = (Counter.LastFrameTime) ? ((Counter.ClickTime.QuadPart - Counter.LastFrameTime) * 1000.0) / Counter.Frequency.QuadPart : deltaPresentMS;
+		Counter.LastFrameTime = Counter.ClickTime.QuadPart;
+
+		// Use last frame time and average frame time to decide if next frame will be less than the screen frequency timer
+		if ((deltaPresentMS + (deltaFrameMS * 1.1) < MaxScreenTimer) && (deltaPresentMS + ((deltaPresentMS / Counter.FrameSkipCounter) * 1.1) < MaxScreenTimer) &&
+			deltaPresentMS > 0 && deltaFrameMS > 0)
 		{
-			Counter.FrameSkipCounter++;
-
-			// Get screen frequency timer
-			float MaxScreenTimer = (1000.0f / Counter.RefreshRate);
-
-			// Get time since last successful endscene
-			bool CounterFlag = (QueryPerformanceCounter(&Counter.ClickTime) != 0);
-			float deltaPresentMS = ((Counter.ClickTime.QuadPart - Counter.LastPresentTime.QuadPart) * 1000.0f) / Counter.Frequency.QuadPart;
-
-			// Get time since last skipped frame
-			float deltaFrameMS = (Counter.LastFrameTime) ? ((Counter.ClickTime.QuadPart - Counter.LastFrameTime) * 1000.0f) / Counter.Frequency.QuadPart : deltaPresentMS;
-			Counter.LastFrameTime = Counter.ClickTime.QuadPart;
-
-			// Use last frame time and average frame time to decide if next frame will be less than the screen frequency timer
-			if (CounterFlag && (deltaPresentMS + (deltaFrameMS * 1.1f) < MaxScreenTimer) && (deltaPresentMS + ((deltaPresentMS / Counter.FrameSkipCounter) * 1.1f) < MaxScreenTimer))
-			{
-				Logging::LogDebug() << __FUNCTION__ << " Skipping frame " << deltaPresentMS << "ms screen frequancy " << MaxScreenTimer;
-				return D3D_OK;
-			}
-			Logging::LogDebug() << __FUNCTION__ << " Drawing frame " << deltaPresentMS << "ms screen frequancy " << MaxScreenTimer;
+			Logging::LogDebug() << __FUNCTION__ << " Skipping frame " << deltaPresentMS << "ms screen frequancy " << MaxScreenTimer;
+			return D3D_OK;
 		}
 	}
 
@@ -3569,14 +3565,11 @@ HRESULT m_IDirectDrawX::Present(RECT* pSourceRect, RECT* pDestRect)
 	if (EnableWaitVsync && !Config.EnableVSync)
 	{
 		// Check how long since the last successful present
-		bool IsLongDelay = false;
-		if (Counter.FrequencyFlag && QueryPerformanceCounter(&Counter.ClickTime))
-		{
-			float DeltaPresentMS = ((Counter.ClickTime.QuadPart - Counter.LastPresentTime.QuadPart) * 1000.0f) / Counter.Frequency.QuadPart;
-			IsLongDelay = (DeltaPresentMS > 1000.f / Counter.RefreshRate);
-		}
+		QueryPerformanceCounter(&Counter.ClickTime);
+		double DeltaPresentMS = ((Counter.ClickTime.QuadPart - Counter.LastPresentTime.QuadPart) * 1000.0) / Counter.Frequency.QuadPart;
+
 		// Don't wait for vsync if the last frame was too long ago
-		if (!IsLongDelay)
+		if (DeltaPresentMS < 1000.0 / Counter.RefreshRate)
 		{
 			WaitForVerticalBlank(DDWAITVB_BLOCKBEGIN, nullptr);
 		}
@@ -3598,15 +3591,11 @@ HRESULT m_IDirectDrawX::Present(RECT* pSourceRect, RECT* pDestRect)
 	}
 
 	// Store new click time after frame draw is complete
-	if (SUCCEEDED(hr) && Counter.FrequencyFlag && QueryPerformanceCounter(&Counter.ClickTime))
+	if (SUCCEEDED(hr))
 	{
-		Counter.LastPresentTime.QuadPart = Counter.ClickTime.QuadPart;
+		QueryPerformanceCounter(&Counter.LastPresentTime);
 		Counter.LastFrameTime = 0;
 		Counter.FrameSkipCounter = 0;
-		if (++Counter.FrameCounter % Counter.RefreshRate == 0)
-		{
-			QueryPerformanceFrequency(&Counter.Frequency);
-		}
 	}
 
 	return hr;

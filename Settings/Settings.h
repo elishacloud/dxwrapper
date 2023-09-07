@@ -260,7 +260,7 @@ struct CONFIG
 	DWORD GraphicsHybridAdapter = 0;			// Sets the Direct3D9 Hybrid Enumeration Mode to allow using a secondary display adapter
 	bool HandleExceptions = false;				// Handles unhandled exceptions in the application
 	bool isAppCompatDataSet = false;			// Flag that holds tells whether any of the AppCompatData flags are set
-	DWORD LimitPerFrameFPS = 0;					// Limits each frame by adding a delay if the frame is to fast
+	float LimitPerFrameFPS = 0;					// Limits each frame by adding a delay if the frame is to fast
 	bool LoadPlugins = false;					// Loads ASI plugins
 	bool LoadFromScriptsOnly = false;			// Loads ASI plugins from 'scripts' and 'plugins' folder only
 	bool ProcessExcluded = false;				// Set if this process is excluded from dxwrapper functions

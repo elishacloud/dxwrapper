@@ -2321,22 +2321,22 @@ void m_IDirect3DDevice9Ex::LimitFrameRate()
 	Counter.FrameCounter++;
 
 	// Get performance frequancy
-	if (!Counter.FrequencyFlag || Counter.FrameCounter % Config.LimitPerFrameFPS == 0)
+	if (!Counter.Frequency.QuadPart)
 	{
-		Counter.FrequencyFlag = QueryPerformanceFrequency(&Counter.Frequency);
+		QueryPerformanceFrequency(&Counter.Frequency);
 	}
 
 	// Get milliseconds for each frame
-	float DelayTimeMS = 1000.0f / Config.LimitPerFrameFPS;
+	double DelayTimeMS = 1000.0 / Config.LimitPerFrameFPS;
 
 	// Wait for time to expire
 	bool DoLoop;
 	do {
 		QueryPerformanceCounter(&Counter.ClickTime);
-		float DeltaPresentMS = ((Counter.ClickTime.QuadPart - Counter.LastPresentTime.QuadPart) * 1000.0f) / Counter.Frequency.QuadPart;
+		double DeltaPresentMS = ((Counter.ClickTime.QuadPart - Counter.LastPresentTime.QuadPart) * 1000.0) / Counter.Frequency.QuadPart;
 
 		DoLoop = false;
-		if (Counter.FrequencyFlag && DeltaPresentMS < DelayTimeMS)
+		if (DeltaPresentMS < DelayTimeMS && DeltaPresentMS > 0)
 		{
 			DoLoop = true;
 			Sleep(0);
