@@ -223,6 +223,8 @@ private:
 	inline bool IsSurfaceInDC() { return IsInDC; }
 	inline bool IsSurfaceBusy() { return (IsSurfaceBlitting() || IsSurfaceLocked() || IsSurfaceInDC()); }
 	inline bool IsLockedFromOtherThread() { return (IsSurfaceBlitting() || IsSurfaceLocked()) && LockedWithID && LockedWithID != GetCurrentThreadId(); }
+	inline DWORD GetWidth() { return surfaceDesc2.dwWidth; }
+	inline DWORD GetHeight() { return surfaceDesc2.dwHeight; }
 	inline RECT GetSurfaceRect() { return { 0, 0, (LONG)surfaceDesc2.dwWidth, (LONG)surfaceDesc2.dwHeight }; }
 	inline bool CanSurfaceBeDeleted() { return (ComplexRoot || (surfaceDesc2.ddsCaps.dwCaps & DDSCAPS_COMPLEX) == 0); }
 	inline DDSCAPS2 GetSurfaceCaps() { return surfaceDesc2.ddsCaps; }
@@ -398,13 +400,36 @@ public:
 	inline bool IsPalette() { return (surfaceFormat == D3DFMT_P8); }
 	inline bool IsDepthBuffer() { return (surfaceDesc2.ddpfPixelFormat.dwFlags & (DDPF_ZBUFFER | DDPF_STENCILBUFFER)) != 0; }
 	inline bool IsSurfaceManaged() { return (surfaceDesc2.ddsCaps.dwCaps2 & (DDSCAPS2_TEXTUREMANAGE | DDSCAPS2_D3DTEXTUREMANAGE)) != 0; }
-	inline DWORD GetWidth() { return surfaceDesc2.dwWidth; }
-	inline DWORD GetHeight() { return surfaceDesc2.dwHeight; }
-	bool GetColorKey(DWORD& ColorSpaceLowValue, DWORD& ColorSpaceHighValue);
 	inline bool IsUsingEmulation() { return (surface.emu && surface.emu->DC && surface.emu->GameDC && surface.emu->pBits); }
 	inline bool IsEmulationDCReady() { return (IsUsingEmulation() && !surface.emu->UsingGameDC); }
 	inline bool IsSurface3DDevice() { return Is3DRenderingTarget; }
 	inline bool IsSurfaceDirty() { return surface.IsDirtyFlag; }
+	inline bool GetColorKey(DWORD& ColorSpaceLowValue, DWORD& ColorSpaceHighValue)
+	{
+		if (surfaceDesc2.ddsCaps.dwCaps & DDSD_CKSRCBLT)
+		{
+			ColorSpaceLowValue = surfaceDesc2.ddckCKSrcBlt.dwColorSpaceLowValue;
+			ColorSpaceHighValue = surfaceDesc2.ddckCKSrcBlt.dwColorSpaceHighValue;
+			return true;
+		}
+		else if (surfaceDesc2.ddsCaps.dwCaps & DDCKEY_SRCOVERLAY)
+		{
+			ColorSpaceLowValue = surfaceDesc2.ddckCKSrcOverlay.dwColorSpaceLowValue;
+			ColorSpaceHighValue = surfaceDesc2.ddckCKSrcOverlay.dwColorSpaceHighValue;
+			return true;
+		}
+		return false;
+	}
+	inline bool GetSurfaceSetSize(DWORD& Width, DWORD& Height)
+	{
+		if ((ResetDisplayFlags & (DDSD_WIDTH | DDSD_HEIGHT)) == 0 && surfaceDesc2.dwWidth && surfaceDesc2.dwHeight)
+		{
+			Width = surfaceDesc2.dwWidth;
+			Height = surfaceDesc2.dwHeight;
+			return true;
+		}
+		return false;
+	}
 	inline void AttachD9BackBuffer() { Is3DRenderingTarget = true; }
 	inline void DetachD9BackBuffer() { Is3DRenderingTarget = false; }
 	LPDIRECT3DSURFACE9 Get3DSurface();
@@ -412,7 +437,7 @@ public:
 	LPDIRECT3DSURFACE9 GetD3D9Surface();
 	LPDIRECT3DTEXTURE9 GetD3D9Texture();
 	inline m_IDirect3DTextureX* GetAttachedTexture() { return attachedTexture; }
-	inline void ClearTexture() { attachedTexture = nullptr; }
+	inline void ClearAttachedTexture() { attachedTexture = nullptr; }
 
 	// Draw 2D DirectDraw surface
 	HRESULT Draw2DSurface();

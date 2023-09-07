@@ -2591,16 +2591,14 @@ void m_IDirectDrawX::GetSurfaceDisplay(DWORD& Width, DWORD& Height, DWORD& BPP, 
 		Height = presParams.BackBufferHeight;
 		BPP = Utils::GetBitCount(hWnd);
 	}
-	else if (Direct3DSurface)
+	else if (Direct3DSurface && Direct3DSurface->GetSurfaceSetSize(Width, Height))
 	{
-		Width = Direct3DSurface->GetWidth();
-		Height = Direct3DSurface->GetHeight();
+		// Width and Height set by 3D surface
 		BPP = Utils::GetBitCount(hWnd);
 	}
-	else if (PrimarySurface)
+	else if (PrimarySurface && PrimarySurface->GetSurfaceSetSize(Width, Height))
 	{
-		Width = PrimarySurface->GetWidth();
-		Height = PrimarySurface->GetHeight();
+		// Width and Height set by primary surface
 		BPP = Utils::GetBitCount(hWnd);
 	}
 	else
@@ -2691,8 +2689,9 @@ void m_IDirectDrawX::SetD3DDevice(m_IDirect3DDeviceX* D3DDevice, m_IDirectDrawSu
 	Direct3DSurface = D3DSurface;
 
 	// Recreate Direct3D9 device
-	if (d3d9Device && !Device.Width && !Device.Height &&
-		Direct3DSurface->GetWidth() != presParams.BackBufferWidth || Direct3DSurface->GetHeight() != presParams.BackBufferHeight)
+	DWORD Width = 0, Height = 0;
+	if (d3d9Device && (!Device.Width || !Device.Height) && Direct3DSurface->GetSurfaceSetSize(Width, Height) &&
+		(Width != presParams.BackBufferWidth || Height != presParams.BackBufferHeight))
 	{
 		CreateD3D9Device();
 	}
@@ -2787,17 +2786,15 @@ HRESULT m_IDirectDrawX::CreateD3D9Device()
 		DWORD BackBufferHeight = Device.Height;
 		if (!BackBufferWidth || !BackBufferHeight)
 		{
-			if (Direct3DSurface)
+			if (Direct3DSurface && Direct3DSurface->GetSurfaceSetSize(BackBufferWidth, BackBufferHeight))
 			{
-				BackBufferWidth = Direct3DSurface->GetWidth();
-				BackBufferHeight = Direct3DSurface->GetHeight();
+				// Width and Height set by 3D surface
 			}
-			else if (PrimarySurface)
+			else if (PrimarySurface && PrimarySurface->GetSurfaceSetSize(BackBufferWidth, BackBufferHeight))
 			{
-				BackBufferWidth = PrimarySurface->GetWidth();
-				BackBufferHeight = PrimarySurface->GetHeight();
+				// Width and Height set by primary surface
 			}
-			if (!BackBufferWidth || !BackBufferHeight)
+			else
 			{
 				if (ExclusiveMode)
 				{

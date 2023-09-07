@@ -2505,23 +2505,6 @@ HRESULT m_IDirectDrawSurfaceX::SetClipper(LPDIRECTDRAWCLIPPER lpDDClipper)
 	return ProxyInterface->SetClipper(lpDDClipper);
 }
 
-bool m_IDirectDrawSurfaceX::GetColorKey(DWORD& ColorSpaceLowValue, DWORD& ColorSpaceHighValue)
-{
-	if (surfaceDesc2.ddsCaps.dwCaps & DDSD_CKSRCBLT)
-	{
-		ColorSpaceLowValue = surfaceDesc2.ddckCKSrcBlt.dwColorSpaceLowValue;
-		ColorSpaceHighValue = surfaceDesc2.ddckCKSrcBlt.dwColorSpaceHighValue;
-		return true;
-	}
-	else if (surfaceDesc2.ddsCaps.dwCaps & DDCKEY_SRCOVERLAY)
-	{
-		ColorSpaceLowValue = surfaceDesc2.ddckCKSrcOverlay.dwColorSpaceLowValue;
-		ColorSpaceHighValue = surfaceDesc2.ddckCKSrcOverlay.dwColorSpaceHighValue;
-		return true;
-	}
-	return false;
-}
-
 HRESULT m_IDirectDrawSurfaceX::SetColorKey(DWORD dwFlags, LPDDCOLORKEY lpDDColorKey)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
