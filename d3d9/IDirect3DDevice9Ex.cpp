@@ -2327,16 +2327,16 @@ void m_IDirect3DDevice9Ex::LimitFrameRate()
 	}
 
 	// Get milliseconds for each frame
-	LONGLONG DelayTimeMS = 1000LL / Config.LimitPerFrameFPS;
+	float DelayTimeMS = 1000.0f / Config.LimitPerFrameFPS;
 
 	// Wait for time to expire
 	bool DoLoop;
 	do {
 		QueryPerformanceCounter(&Counter.ClickTime);
-		LONGLONG deltaPresentMS = ((Counter.ClickTime.QuadPart - Counter.LastPresentTime.QuadPart) * 1000LL) / Counter.Frequency.QuadPart;
+		float DeltaPresentMS = ((Counter.ClickTime.QuadPart - Counter.LastPresentTime.QuadPart) * 10000.0f) / Counter.Frequency.QuadPart;
 
 		DoLoop = false;
-		if (Counter.FrequencyFlag && deltaPresentMS < DelayTimeMS)
+		if (Counter.FrequencyFlag && DeltaPresentMS < DelayTimeMS)
 		{
 			DoLoop = true;
 			Sleep(0);

@@ -25,8 +25,6 @@
 #include "Shaders\PaletteShader.h"
 #include "Shaders\ColorKeyShader.h"
 
-DWORD WINAPI PresentThreadFunction(LPVOID lpParam);
-
 constexpr DWORD MaxVidMemory		= 0x20000000;	// 512 MBs
 constexpr DWORD MinUsedVidMemory	= 0x00100000;	// 1 MB
 
@@ -3574,8 +3572,8 @@ HRESULT m_IDirectDrawX::Present(RECT* pSourceRect, RECT* pDestRect)
 		bool IsLongDelay = false;
 		if (Counter.FrequencyFlag && QueryPerformanceCounter(&Counter.ClickTime))
 		{
-			float deltaPresentMS = ((Counter.ClickTime.QuadPart - Counter.LastPresentTime.QuadPart) * 1000.0f) / Counter.Frequency.QuadPart;
-			IsLongDelay = (deltaPresentMS > 1000.f / Counter.RefreshRate);
+			float DeltaPresentMS = ((Counter.ClickTime.QuadPart - Counter.LastPresentTime.QuadPart) * 1000.0f) / Counter.Frequency.QuadPart;
+			IsLongDelay = (DeltaPresentMS > 1000.f / Counter.RefreshRate);
 		}
 		// Don't wait for vsync if the last frame was too long ago
 		if (!IsLongDelay)
