@@ -742,6 +742,12 @@ HRESULT m_IDirectDrawSurfaceX::BltFast(DWORD dwX, DWORD dwY, LPDIRECTDRAWSURFACE
 
 	if (Config.Dd7to9)
 	{
+		// NOTE: If you call IDirectDrawSurface7::BltFast on a surface with an attached clipper, it returns DDERR_UNSUPPORTED.
+		if (attachedClipper)
+		{
+			return DDERR_UNSUPPORTED;
+		}
+
 		// Convert BltFast flags into Blt flags
 		DWORD Flags = DDBLT_ASYNC;
 		if (dwFlags & DDBLTFAST_SRCCOLORKEY)

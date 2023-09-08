@@ -91,23 +91,23 @@ HRESULT m_IDirectDrawClipper::GetClipList(LPRECT lpRect, LPRGNDATA lpClipList, L
 
 	if (!ProxyInterface)
 	{
-		// When lpClipList is NULL, the variable at lpdwSize receives the required size of the buffer, in bytes.
-		if (!lpClipList)
+		if (!lpdwSize)
 		{
-			if (lpdwSize)
-			{
-				*lpdwSize = sizeof(RGNDATA);
-				return DD_OK;
-			}
 			return DDERR_INVALIDPARAMS;
 		}
+
 		if (IsClipListSet)
 		{
 			// ToDo: add support for lpRect
 			// A pointer to a RECT structure that GetClipList uses to clip the clip list. Set this parameter to NULL to retrieve the entire clip list.
 
 			// ToDo: fix sizeof(RGNDATA) to be the atual size of the data
-			if (lpdwSize && *lpdwSize <= sizeof(RGNDATA))
+			if (!lpClipList)
+			{
+				*lpdwSize = ClipList.size();
+				return DD_OK;
+			}
+			else if (*lpdwSize == ClipList.size())
 			{
 				IsClipListChangedFlag = false;				// Just set this to false for now
 				memcpy(lpClipList, &ClipList, *lpdwSize);
@@ -118,9 +118,65 @@ HRESULT m_IDirectDrawClipper::GetClipList(LPRECT lpRect, LPRGNDATA lpClipList, L
 				return DDERR_REGIONTOOSMALL;
 			}
 		}
+		// Get default clip area
 		else
 		{
-			return DDERR_NOCLIPLIST;
+			// ToDo: add support for lpRect
+			// A pointer to a RECT structure that GetClipList uses to clip the clip list. Set this parameter to NULL to retrieve the entire clip list.
+
+			HRESULT hr = DD_OK;
+
+			// Get the HWND of the window
+			HWND hWnd = (cliphWnd) ? cliphWnd : (ddrawParent) ? ddrawParent->GetHwnd() : nullptr;
+
+			if (!hWnd)
+			{
+				LOG_LIMIT(100, __FUNCTION__ << " Error: Could not get window handle!");
+				return DDERR_GENERIC;
+			}
+
+			// Get the client area rectangle
+			RECT clientRect = {};
+			GetClientRect(hWnd, &clientRect);
+
+			// Map the client area coordinates to screen coordinates
+			MapWindowPoints(hWnd, HWND_DESKTOP, (LPPOINT)&clientRect, 2);
+
+			// Create a region from the client rectangle
+			HRGN hRgn = CreateRectRgn(clientRect.left, clientRect.top, clientRect.right, clientRect.bottom);
+
+			if (!hRgn)
+			{
+				return DDERR_GENERIC;
+			}
+
+			// Get region data
+			*lpdwSize = GetRegionData(hRgn, *lpdwSize, lpClipList);
+
+			// Check region data
+			if (!*lpdwSize)
+			{
+				if (lpClipList)
+				{
+					*lpdwSize = GetRegionData(hRgn, 0, nullptr);
+					hr = DDERR_REGIONTOOSMALL;
+				}
+				else
+				{
+					hr = DDERR_GENERIC;
+				}
+			}
+
+			// Get region data size
+			if (*lpdwSize && *lpdwSize != ClipList.size())
+			{
+				ClipList.resize(*lpdwSize);
+			}
+
+			// Release the region
+			DeleteObject(hRgn);
+
+			return hr;
 		}
 
 		return DDERR_GENERIC;
@@ -220,7 +276,6 @@ HRESULT m_IDirectDrawClipper::SetClipList(LPRGNDATA lpClipList, DWORD dwFlags)
 			return DDERR_CLIPPERISUSINGHWND;
 		}
 
-		// **NOTE:  If you call IDirectDrawSurface7::BltFast on a surface with an attached clipper, it returns DDERR_UNSUPPORTED.
 		if (!lpClipList)
 		{
 			// Delete associated clip list if it exists
@@ -231,8 +286,12 @@ HRESULT m_IDirectDrawClipper::SetClipList(LPRGNDATA lpClipList, DWORD dwFlags)
 			// Set clip list to lpClipList
 			IsClipListSet = true;
 			IsClipListChangedFlag = true;
+			if (ClipList.empty())
+			{
+				ClipList.resize(sizeof(RGNDATA));
+			}
 			// ToDo: Fix this to get correct size of ClipList
-			memcpy(&ClipList, lpClipList, sizeof(RGNDATA));
+			memcpy(ClipList.data(), lpClipList, ClipList.size());
 		}
 
 		return DD_OK;

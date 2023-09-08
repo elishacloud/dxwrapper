@@ -9,7 +9,7 @@ private:
 	bool IsInitialize = false;
 	DWORD clipperCaps = 0;						// Clipper flags
 	HWND cliphWnd = nullptr;
-	RGNDATA ClipList;
+	std::vector<BYTE> ClipList;
 	bool IsClipListSet = false;
 	bool IsClipListChangedFlag = false;
 
