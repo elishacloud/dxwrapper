@@ -595,6 +595,12 @@ HRESULT m_IDirectDrawSurfaceX::Blt(LPRECT lpDestRect, LPDIRECTDRAWSURFACE7 lpDDS
 				{
 					ddrawParent->SetVsync();
 				}
+
+				// Present surface
+				if (!DontPresentBlt)
+				{
+					EndWritePresent(IsSkipScene);
+				}
 			}
 
 		} while (false);
@@ -603,12 +609,6 @@ HRESULT m_IDirectDrawSurfaceX::Blt(LPRECT lpDestRect, LPDIRECTDRAWSURFACE7 lpDDS
 		if (!BltWait && (hr == DDERR_SURFACEBUSY || IsLockedFromOtherThread() || lpDDSrcSurfaceX->IsLockedFromOtherThread()))
 		{
 			hr = D3DERR_WASSTILLDRAWING;
-		}
-
-		// Present surface
-		if (!DontPresentBlt && SUCCEEDED(hr))
-		{
-			EndWritePresent(IsSkipScene);
 		}
 
 		// Release critical section
@@ -1309,30 +1309,27 @@ HRESULT m_IDirectDrawSurfaceX::Flip(LPDIRECTDRAWSURFACE7 lpDDSurfaceTargetOverri
 				ddrawParent->SetVsync();
 			}
 
-		} while (false);
-
-		// Preset surface to window
-		if (!IsDirect3DEnabled)
-		{
-			RECT Rect = { 0, 0, (LONG)surfaceDesc2.dwWidth, (LONG)surfaceDesc2.dwHeight };
-
-			// Blt surface directly to GDI
-			if (Config.DdrawWriteToGDI)
+			// Preset surface to window
+			if (!IsDirect3DEnabled)
 			{
-				CopyEmulatedSurfaceToGDI(Rect);
-			}
-			// Handle windowed mode
-			else if (surface.IsUsingWindowedMode)
-			{
-				PresentSurfaceToWindow(Rect);
-			}
-		}
+				RECT Rect = { 0, 0, (LONG)surfaceDesc2.dwWidth, (LONG)surfaceDesc2.dwHeight };
 
-		// Present surface
-		if (SUCCEEDED(hr))
-		{
+				// Blt surface directly to GDI
+				if (Config.DdrawWriteToGDI)
+				{
+					CopyEmulatedSurfaceToGDI(Rect);
+				}
+				// Handle windowed mode
+				else if (surface.IsUsingWindowedMode)
+				{
+					PresentSurfaceToWindow(Rect);
+				}
+			}
+
+			// Present surface
 			EndWritePresent(false);
-		}
+
+		} while (false);
 
 		// Release critical section for each surface
 		for (m_IDirectDrawSurfaceX*& pSurfaceX : FlipList)
@@ -2394,13 +2391,6 @@ HRESULT m_IDirectDrawSurfaceX::ReleaseDC(HDC hDC)
 				break;
 			}
 
-			// Preset surface to window
-			if (surface.IsUsingWindowedMode && IsPrimarySurface() && !Config.DdrawWriteToGDI && !IsDirect3DEnabled)
-			{
-				RECT Rect = { 0, 0, (LONG)surfaceDesc2.dwWidth, (LONG)surfaceDesc2.dwHeight };
-				PresentSurfaceToWindow(Rect);
-			}
-
 			// Reset DC flag
 			IsInDC = false;
 
@@ -2410,13 +2400,17 @@ HRESULT m_IDirectDrawSurfaceX::ReleaseDC(HDC hDC)
 			// Set dirty flag
 			SetDirtyFlag();
 
-		} while (false);
+			// Preset surface to window
+			if (surface.IsUsingWindowedMode && IsPrimarySurface() && !Config.DdrawWriteToGDI && !IsDirect3DEnabled)
+			{
+				RECT Rect = { 0, 0, (LONG)surfaceDesc2.dwWidth, (LONG)surfaceDesc2.dwHeight };
+				PresentSurfaceToWindow(Rect);
+			}
 
-		// Present surface
-		if (SUCCEEDED(hr))
-		{
+			// Present surface
 			EndWritePresent(false);
-		}
+
+		} while (false);
 
 		ReleaseSurfaceCriticalSection();
 
@@ -2792,12 +2786,6 @@ HRESULT m_IDirectDrawSurfaceX::Unlock(LPRECT lpRect)
 				break;
 			}
 
-			// Preset surface to window
-			if (surface.IsUsingWindowedMode && IsPrimarySurface() && !Config.DdrawWriteToGDI && !IsDirect3DEnabled)
-			{
-				PresentSurfaceToWindow(LastLock.Rect);
-			}
-
 			// Clear memory pointer
 			LastLock.LockedRect.pBits = nullptr;
 
@@ -2819,13 +2807,16 @@ HRESULT m_IDirectDrawSurfaceX::Unlock(LPRECT lpRect)
 				SetDirtyFlag();
 			}
 
-		} while (false);
+			// Preset surface to window
+			if (surface.IsUsingWindowedMode && IsPrimarySurface() && !Config.DdrawWriteToGDI && !IsDirect3DEnabled)
+			{
+				PresentSurfaceToWindow(LastLock.Rect);
+			}
 
-		// Present surface
-		if (SUCCEEDED(hr))
-		{
+			// Present surface
 			EndWritePresent(LastLock.IsSkipScene);
-		}
+
+		} while (false);
 
 		ReleaseSurfaceCriticalSection();
 
