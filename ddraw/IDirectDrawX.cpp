@@ -1561,7 +1561,7 @@ HRESULT m_IDirectDrawX::SetCooperativeLevel(HWND hWnd, DWORD dwFlags, DWORD Dire
 		HWND LasthWnd = DisplayMode.hWnd;
 		bool LastFPUPreserve = Device.FPUPreserve;
 		bool LastNoWindowChanges = Device.NoWindowChanges;
-		bool RemoveExclusiveMode = false;
+		bool LastExclusiveMode = ExclusiveMode;
 
 		// Set windowed mode
 		if (dwFlags & DDSCL_NORMAL)
@@ -1569,7 +1569,6 @@ HRESULT m_IDirectDrawX::SetCooperativeLevel(HWND hWnd, DWORD dwFlags, DWORD Dire
 			// Check for exclusive mode
 			if ((ExclusiveMode && hWnd && Exclusive.hWnd == hWnd && Exclusive.SetBy == this) || !IsWindow(Exclusive.hWnd))
 			{
-				RemoveExclusiveMode = ExclusiveMode;
 				ExclusiveMode = false;
 				Exclusive = {};
 			}
@@ -1611,6 +1610,7 @@ HRESULT m_IDirectDrawX::SetCooperativeLevel(HWND hWnd, DWORD dwFlags, DWORD Dire
 		// Set device flags
 		if (IsWindow(DisplayMode.hWnd) && DisplayMode.hWnd == hWnd)
 		{
+			Device.IsWindowed = (!ExclusiveMode || Config.EnableWindowMode || Config.FullscreenWindowMode);
 			Device.AllowModeX = ((dwFlags & DDSCL_ALLOWMODEX) != 0);
 			Device.MultiThreaded = ((dwFlags & DDSCL_MULTITHREADED) != 0);
 			// The flag (DDSCL_FPUPRESERVE) is assumed by default in DirectX 6 and earlier.
@@ -1621,15 +1621,9 @@ HRESULT m_IDirectDrawX::SetCooperativeLevel(HWND hWnd, DWORD dwFlags, DWORD Dire
 
 		// Reset if mode was changed
 		if (IsWindow(DisplayMode.hWnd) && DisplayMode.hWnd == hWnd &&
-			(LasthWnd != DisplayMode.hWnd || LastFPUPreserve != Device.FPUPreserve || LastNoWindowChanges != Device.NoWindowChanges))
+			(LastExclusiveMode != ExclusiveMode || LasthWnd != DisplayMode.hWnd || LastFPUPreserve != Device.FPUPreserve || LastNoWindowChanges != Device.NoWindowChanges))
 		{
 			CreateD3D9Device();
-		}
-		// If exclusive mode is being removed then release device
-		else if (RemoveExclusiveMode)
-		{
-			ReleaseAllD9Resources(false);
-			ReleaseD3D9Device();
 		}
 
 		return DD_OK;
@@ -1803,7 +1797,6 @@ HRESULT m_IDirectDrawX::SetDisplayMode(DWORD dwWidth, DWORD dwHeight, DWORD dwBP
 			DisplayMode.Height = dwHeight;
 			DisplayMode.BPP = NewBPP;
 			DisplayMode.RefreshRate = dwRefreshRate;
-			Device.IsWindowed = (!ExclusiveMode || Config.EnableWindowMode || Config.FullscreenWindowMode);
 
 			// Display resolution
 			Device.Width = (Config.DdrawUseNativeResolution || Config.DdrawOverrideWidth) ? Device.Width : FoundWidth;
