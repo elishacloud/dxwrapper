@@ -4903,10 +4903,6 @@ inline void m_IDirectDrawSurfaceX::InitSurfaceDesc(DWORD DirectXVersion)
 			Desc2.ddsCaps.dwCaps |= DDSCAPS_BACKBUFFER;
 			Desc2.dwReserved = (DWORD)this;
 		}
-		else if (Desc2.ddsCaps.dwCaps & DDSCAPS_BACKBUFFER)
-		{
-			Desc2.ddsCaps.dwCaps &= ~DDSCAPS_BACKBUFFER;
-		}
 
 		// Create complex surfaces
 		if (Desc2.ddsCaps.dwCaps & DDSCAPS_COMPLEX)
