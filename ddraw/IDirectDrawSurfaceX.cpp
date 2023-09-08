@@ -462,12 +462,15 @@ HRESULT m_IDirectDrawSurfaceX::Blt(LPRECT lpDestRect, LPDIRECTDRAWSURFACE7 lpDDS
 			return FAILED(c_hr) ? c_hr : DDERR_GENERIC;
 		}
 
-		// Present before write if needed
-		BeginWritePresent(IsSkipScene);
-
 		// Set critical section
 		SetLockCriticalSection();
 		lpDDSrcSurfaceX->SetLockCriticalSection();
+
+		// Present before write if needed
+		if (!DontPresentBlt)
+		{
+			BeginWritePresent(IsSkipScene);
+		}
 
 		HRESULT hr = DD_OK;
 
@@ -596,10 +599,6 @@ HRESULT m_IDirectDrawSurfaceX::Blt(LPRECT lpDestRect, LPDIRECTDRAWSURFACE7 lpDDS
 
 		} while (false);
 
-		// Release critical section
-		lpDDSrcSurfaceX->ReleaseLockCriticalSection();
-		ReleaseLockCriticalSection();
-
 		// Check if surface was busy
 		if (!BltWait && (hr == DDERR_SURFACEBUSY || IsLockedFromOtherThread() || lpDDSrcSurfaceX->IsLockedFromOtherThread()))
 		{
@@ -611,6 +610,10 @@ HRESULT m_IDirectDrawSurfaceX::Blt(LPRECT lpDestRect, LPDIRECTDRAWSURFACE7 lpDDS
 		{
 			EndWritePresent(IsSkipScene);
 		}
+
+		// Release critical section
+		lpDDSrcSurfaceX->ReleaseLockCriticalSection();
+		ReleaseLockCriticalSection();
 
 		// Return
 		return hr;
@@ -691,6 +694,9 @@ HRESULT m_IDirectDrawSurfaceX::BltBatch(LPDDBLTBATCH lpDDBltBatch, DWORD dwCount
 	bool IsSkipScene = false;
 
 	SetLockCriticalSection();
+
+	// Present before write if needed
+	BeginWritePresent(IsSkipScene);
 
 	IsInBltBatch = true;
 
@@ -1240,14 +1246,14 @@ HRESULT m_IDirectDrawSurfaceX::Flip(LPDIRECTDRAWSURFACE7 lpDDSurfaceTargetOverri
 			}
 			return false; };
 
-		// Present before write if needed
-		BeginWritePresent(false);
-
 		// Set critical section for each surface
 		for (m_IDirectDrawSurfaceX*& pSurfaceX : FlipList)
 		{
 			pSurfaceX->SetLockCriticalSection();
 		}
+
+		// Present before write if needed
+		BeginWritePresent(false);
 
 		HRESULT hr = DD_OK;
 
@@ -1305,12 +1311,6 @@ HRESULT m_IDirectDrawSurfaceX::Flip(LPDIRECTDRAWSURFACE7 lpDDSurfaceTargetOverri
 
 		} while (false);
 
-		// Release critical section for each surface
-		for (m_IDirectDrawSurfaceX*& pSurfaceX : FlipList)
-		{
-			pSurfaceX->ReleaseLockCriticalSection();
-		}
-
 		// Preset surface to window
 		if (!IsDirect3DEnabled)
 		{
@@ -1332,6 +1332,12 @@ HRESULT m_IDirectDrawSurfaceX::Flip(LPDIRECTDRAWSURFACE7 lpDDSurfaceTargetOverri
 		if (SUCCEEDED(hr))
 		{
 			EndWritePresent(false);
+		}
+
+		// Release critical section for each surface
+		for (m_IDirectDrawSurfaceX*& pSurfaceX : FlipList)
+		{
+			pSurfaceX->ReleaseLockCriticalSection();
 		}
 
 		return hr;
@@ -1685,10 +1691,10 @@ HRESULT m_IDirectDrawSurfaceX::GetDC(HDC FAR * lphDC)
 			return DDERR_GENERIC;
 		}
 
+		SetLockCriticalSection();
+
 		// Present before write if needed
 		BeginWritePresent(false);
-
-		SetLockCriticalSection();
 
 		HRESULT hr = DD_OK;
 
@@ -2148,10 +2154,10 @@ HRESULT m_IDirectDrawSurfaceX::Lock2(LPRECT lpDestRect, LPDDSURFACEDESC2 lpDDSur
 		// Check if the scene needs to be presented
 		const bool IsSkipScene = (CheckRectforSkipScene(DestRect) || (Flags & D3DLOCK_READONLY));
 
+		SetLockCriticalSection();
+
 		// Present before write if needed
 		BeginWritePresent(IsSkipScene);
-
-		SetLockCriticalSection();
 
 		HRESULT hr = DD_OK;
 
@@ -2406,13 +2412,13 @@ HRESULT m_IDirectDrawSurfaceX::ReleaseDC(HDC hDC)
 
 		} while (false);
 
-		ReleaseSurfaceCriticalSection();
-
 		// Present surface
 		if (SUCCEEDED(hr))
 		{
 			EndWritePresent(false);
 		}
+
+		ReleaseSurfaceCriticalSection();
 
 		return hr;
 	}
@@ -2815,13 +2821,13 @@ HRESULT m_IDirectDrawSurfaceX::Unlock(LPRECT lpRect)
 
 		} while (false);
 
-		ReleaseSurfaceCriticalSection();
-
 		// Present surface
 		if (SUCCEEDED(hr))
 		{
 			EndWritePresent(LastLock.IsSkipScene);
 		}
+
+		ReleaseSurfaceCriticalSection();
 
 		return hr;
 	}
