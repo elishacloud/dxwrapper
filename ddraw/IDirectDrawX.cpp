@@ -1513,6 +1513,9 @@ HRESULT m_IDirectDrawX::RestoreDisplayMode()
 		DisplayMode.Height = 0;
 		DisplayMode.BPP = 0;
 		DisplayMode.RefreshRate = 0;
+		Device.Width = (Config.DdrawUseNativeResolution || Config.DdrawOverrideWidth) ? Device.Width : 0;
+		Device.Height = (Config.DdrawUseNativeResolution || Config.DdrawOverrideHeight) ? Device.Height : 0;
+		Device.RefreshRate = 0;
 
 		// Restore all existing surfaces
 		if (d3d9Device)
@@ -1607,9 +1610,10 @@ HRESULT m_IDirectDrawX::SetCooperativeLevel(HWND hWnd, DWORD dwFlags, DWORD Dire
 			}
 		}
 
-		// Set device flags
+		// Check if handle is valid
 		if (IsWindow(DisplayMode.hWnd) && DisplayMode.hWnd == hWnd)
 		{
+			// Set device flags
 			Device.IsWindowed = (!ExclusiveMode || Config.EnableWindowMode || Config.FullscreenWindowMode);
 			Device.AllowModeX = ((dwFlags & DDSCL_ALLOWMODEX) != 0);
 			Device.MultiThreaded = ((dwFlags & DDSCL_MULTITHREADED) != 0);
@@ -1617,13 +1621,22 @@ HRESULT m_IDirectDrawX::SetCooperativeLevel(HWND hWnd, DWORD dwFlags, DWORD Dire
 			Device.FPUPreserve = (((dwFlags & DDSCL_FPUPRESERVE) || DirectXVersion <= 6) && (dwFlags & DDSCL_FPUSETUP) == 0);
 			// The flag (DDSCL_NOWINDOWCHANGES) means DirectDraw is not allowed to minimize or restore the application window on activation.
 			Device.NoWindowChanges = ((dwFlags & DDSCL_NOWINDOWCHANGES) != 0);
-		}
 
-		// Reset if mode was changed
-		if (IsWindow(DisplayMode.hWnd) && DisplayMode.hWnd == hWnd &&
-			(LastExclusiveMode != ExclusiveMode || LasthWnd != DisplayMode.hWnd || LastFPUPreserve != Device.FPUPreserve || LastNoWindowChanges != Device.NoWindowChanges))
-		{
-			CreateD3D9Device();
+			// Reset if mode was changed
+			if (LastExclusiveMode != ExclusiveMode || LasthWnd != DisplayMode.hWnd || LastFPUPreserve != Device.FPUPreserve || LastNoWindowChanges != Device.NoWindowChanges)
+			{
+				if (!ExclusiveMode)
+				{
+					DisplayMode.Width = 0;
+					DisplayMode.Height = 0;
+					DisplayMode.BPP = 0;
+					DisplayMode.RefreshRate = 0;
+					Device.Width = (Config.DdrawUseNativeResolution || Config.DdrawOverrideWidth) ? Device.Width : 0;
+					Device.Height = (Config.DdrawUseNativeResolution || Config.DdrawOverrideHeight) ? Device.Height : 0;
+					Device.RefreshRate = 0;
+				}
+				CreateD3D9Device();
+			}
 		}
 
 		return DD_OK;
@@ -2770,9 +2783,14 @@ HRESULT m_IDirectDrawX::CreateD3D9Device()
 			}
 		}
 
-		// Get current resolution
+		// Get current resolution and rect
 		DWORD CurrentWidth, CurrentHeight;
 		Utils::GetScreenSize(hWnd, CurrentWidth, CurrentHeight);
+		RECT LastRect = {};
+		if (hWnd)
+		{
+			GetWindowRect(hWnd, &LastRect);
+		}
 
 		// Get width and height
 		DWORD BackBufferWidth = Device.Width;
@@ -2796,6 +2814,11 @@ HRESULT m_IDirectDrawX::CreateD3D9Device()
 				}
 				else
 				{
+					// Reset display to get proper screen size
+					if (!Config.FullscreenWindowMode)
+					{
+						ChangeDisplaySettingsEx(nullptr, nullptr, nullptr, CDS_RESET, nullptr);
+					}
 					BackBufferWidth = GetSystemMetrics(SM_CXVIRTUALSCREEN);
 					BackBufferHeight = GetSystemMetrics(SM_CYVIRTUALSCREEN);
 				}
@@ -2957,12 +2980,24 @@ HRESULT m_IDirectDrawX::CreateD3D9Device()
 			static WINDOWPOS winpos;
 			HWND WindowInsert = GetWindowLong(DisplayMode.hWnd, GWL_EXSTYLE) & WS_EX_TOPMOST ? HWND_TOPMOST : HWND_TOP;
 			winpos = { hWnd, WindowInsert, NewRect.left, NewRect.top, NewRect.right - NewRect.left, NewRect.bottom - NewRect.top, WM_NULL };
-			SendMessage(hWnd, WM_WINDOWPOSCHANGING, 0, (LPARAM)&winpos);
-			SendMessage(hWnd, WM_MOVE, 0, MAKELPARAM(NewRect.left, NewRect.top));
-			SendMessage(hWnd, WM_SIZE, SIZE_RESTORED, MAKELPARAM(NewRect.right - NewRect.left, NewRect.bottom - NewRect.top));
-			SendMessage(hWnd, WM_WINDOWPOSCHANGED, 0, (LPARAM)&winpos);
-			SendMessage(hWnd, WM_ACTIVATE, MAKEWPARAM(WA_ACTIVE, WM_NULL), (LPARAM)hWnd);
-			SendMessage(hWnd, WM_SETFOCUS, WM_NULL, 0);
+			if (NewRect.left != LastRect.left || NewRect.top != LastRect.top || NewRect.right != LastRect.right || 	NewRect.bottom != LastRect.bottom)
+			{
+				SendMessage(hWnd, WM_WINDOWPOSCHANGING, 0, (LPARAM)&winpos);
+				if (NewRect.left != LastRect.left || NewRect.top != LastRect.top)
+				{
+					SendMessage(hWnd, WM_MOVE, 0, MAKELPARAM(NewRect.left, NewRect.top));
+				}
+				if (NewRect.right - NewRect.left != LastRect.right - LastRect.left || NewRect.bottom - NewRect.top != LastRect.bottom - LastRect.top)
+				{
+					SendMessage(hWnd, WM_SIZE, SIZE_RESTORED, MAKELPARAM(NewRect.right - NewRect.left, NewRect.bottom - NewRect.top));
+				}
+				SendMessage(hWnd, WM_WINDOWPOSCHANGED, 0, (LPARAM)&winpos);
+			}
+			if (GetActiveWindow() == hWnd)
+			{
+				SendMessage(hWnd, WM_ACTIVATE, MAKEWPARAM(WA_ACTIVE, WM_NULL), (LPARAM)hWnd);
+				SendMessage(hWnd, WM_SETFOCUS, WM_NULL, 0);
+			}
 
 			// Peek messages to help prevent a "Not Responding" window
 			Utils::CheckMessageQueue(hWnd);
