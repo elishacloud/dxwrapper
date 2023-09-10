@@ -162,7 +162,8 @@ DWORD Utils::GetRefreshRate(HWND hWnd)
 {
 	if (IsWindow(hWnd))
 	{
-		MONITORINFOEX mi;
+		// Get display bit count
+		MONITORINFOEX mi = {};
 		mi.cbSize = sizeof(MONITORINFOEX);
 		bool DeviceNameFlag = (GetMonitorInfoA(MonitorFromWindow(hWnd, MONITOR_DEFAULTTONEAREST), &mi) != 0);
 		if (!DeviceNameFlag)
@@ -178,18 +179,28 @@ DWORD Utils::GetRefreshRate(HWND hWnd)
 		}
 	}
 
-	HDC hdc = GetDC(nullptr);
-	DWORD RefreshRate = GetDeviceCaps(hdc, VREFRESH);
-	ReleaseDC(nullptr, hdc);
+	// Get desktop bit count
+	HDC hDC = GetDC(nullptr);
+	if (hDC)
+	{
+		DWORD RefreshRate = GetDeviceCaps(hDC, VREFRESH);
+		ReleaseDC(nullptr, hDC);
+		if (RefreshRate)
+		{
+			return RefreshRate;
+		}
+	}
 
-	return RefreshRate;
+	// Default to 60
+	return 60;
 }
 
 DWORD Utils::GetBitCount(HWND hWnd)
 {
 	if (IsWindow(hWnd))
 	{
-		MONITORINFOEX mi;
+		// Get display bit count
+		MONITORINFOEX mi = {};
 		mi.cbSize = sizeof(MONITORINFOEX);
 		bool DeviceNameFlag = (GetMonitorInfoA(MonitorFromWindow(hWnd, MONITOR_DEFAULTTONEAREST), &mi) != 0);
 		if (!DeviceNameFlag)
@@ -205,11 +216,20 @@ DWORD Utils::GetBitCount(HWND hWnd)
 		}
 	}
 
-	HDC hdc = GetDC(nullptr);
-	DWORD BPP = GetDeviceCaps(hdc, BITSPIXEL);
-	ReleaseDC(nullptr, hdc);
+	// Get desktop bit count
+	HDC hDC = GetDC(nullptr);
+	if (hDC)
+	{
+		int bpp = GetDeviceCaps(hDC, BITSPIXEL);
+		ReleaseDC(nullptr, hDC);
+		if (bpp)
+		{
+			return bpp;
+		}
+	}
 
-	return BPP;
+	// Default to 32
+	return 32;
 }
 
 DWORD Utils::GetWindowHeight(HWND hWnd)
@@ -334,11 +354,14 @@ void Fullscreen::ResetScreen()
 	Logging::Log() << "Reseting screen resolution...";
 	std::string lpRamp((3 * 256 * 2), '\0');
 	HDC hDC = GetDC(nullptr);
-	GetDeviceGammaRamp(hDC, &lpRamp[0]);
-	Sleep(1);
-	SetDeviceGammaRamp(hDC, &lpRamp[0]);
-	ReleaseDC(nullptr, hDC);
-	Sleep(1);
+	if (hDC)
+	{
+		GetDeviceGammaRamp(hDC, &lpRamp[0]);
+		Sleep(1);
+		SetDeviceGammaRamp(hDC, &lpRamp[0]);
+		ReleaseDC(nullptr, hDC);
+		Sleep(1);
+	}
 	ChangeDisplaySettings(nullptr, 0);
 }
 
@@ -573,7 +596,7 @@ void Fullscreen::SetFullScreen(HWND& hwnd, const MONITORINFO& mi)
 	PostMessage(hwnd, WM_SYSCOMMAND, SW_SHOWNORMAL, 0);
 
 	// Window placement helps ensure the window can be seen (sometimes windows appear as minimized)
-	WINDOWPLACEMENT wp;
+	WINDOWPLACEMENT wp = {};
 	wp.length = sizeof(wp);
 	GetWindowPlacement(hwnd, &wp);
 	wp.showCmd = SW_MAXIMIZE | SW_RESTORE | SW_SHOW | SW_SHOWMAXIMIZED | SW_SHOWNORMAL;
