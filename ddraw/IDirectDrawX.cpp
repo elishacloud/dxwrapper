@@ -1520,7 +1520,7 @@ HRESULT m_IDirectDrawX::RestoreDisplayMode()
 		// Restore all existing surfaces
 		if (d3d9Device)
 		{
-			RestoreAllSurfaces();
+			CreateD3D9Device();
 		}
 
 		return DD_OK;
@@ -1613,6 +1613,14 @@ HRESULT m_IDirectDrawX::SetCooperativeLevel(HWND hWnd, DWORD dwFlags, DWORD Dire
 		// Check if handle is valid
 		if (IsWindow(DisplayMode.hWnd) && DisplayMode.hWnd == hWnd)
 		{
+			// Set exclusive mode resolution
+			if (ExclusiveMode && DisplayMode.Width && DisplayMode.Height && DisplayMode.BPP)
+			{
+				Exclusive.Width = DisplayMode.Width;
+				Exclusive.Height = DisplayMode.Height;
+				Exclusive.BPP = DisplayMode.BPP;
+				Exclusive.RefreshRate = DisplayMode.RefreshRate;
+			}
 			// Set device flags
 			Device.IsWindowed = (!ExclusiveMode || Config.EnableWindowMode || Config.FullscreenWindowMode);
 			Device.AllowModeX = ((dwFlags & DDSCL_ALLOWMODEX) != 0);
@@ -1625,16 +1633,6 @@ HRESULT m_IDirectDrawX::SetCooperativeLevel(HWND hWnd, DWORD dwFlags, DWORD Dire
 			// Reset if mode was changed
 			if (LastExclusiveMode != ExclusiveMode || LasthWnd != DisplayMode.hWnd || LastFPUPreserve != Device.FPUPreserve || LastNoWindowChanges != Device.NoWindowChanges)
 			{
-				if (!ExclusiveMode)
-				{
-					DisplayMode.Width = 0;
-					DisplayMode.Height = 0;
-					DisplayMode.BPP = 0;
-					DisplayMode.RefreshRate = 0;
-					Device.Width = (Config.DdrawUseNativeResolution || Config.DdrawOverrideWidth) ? Device.Width : 0;
-					Device.Height = (Config.DdrawUseNativeResolution || Config.DdrawOverrideHeight) ? Device.Height : 0;
-					Device.RefreshRate = 0;
-				}
 				CreateD3D9Device();
 			}
 		}
@@ -2584,41 +2582,11 @@ void m_IDirectDrawX::GetSurfaceDisplay(DWORD& Width, DWORD& Height, DWORD& BPP, 
 		RefreshRate = Exclusive.RefreshRate;
 		BPP = Exclusive.BPP;
 	}
-	else if (DisplayMode.Width && DisplayMode.Height && DisplayMode.BPP)
-	{
-		Width = DisplayMode.Width;
-		Height = DisplayMode.Height;
-		RefreshRate = DisplayMode.RefreshRate;
-		BPP = DisplayMode.BPP;
-	}
 	else if (d3d9Device)
 	{
 		Width = presParams.BackBufferWidth;
 		Height = presParams.BackBufferHeight;
-		BPP = Utils::GetBitCount(hWnd);
-	}
-	else if (Direct3DSurface && Direct3DSurface->GetSurfaceSetSize(Width, Height))
-	{
-		// Width and Height set by 3D surface
-		BPP = Utils::GetBitCount(hWnd);
-	}
-	else if (PrimarySurface && PrimarySurface->GetSurfaceSetSize(Width, Height))
-	{
-		// Width and Height set by primary surface
-		BPP = Utils::GetBitCount(hWnd);
-	}
-	else
-	{
-		if (ExclusiveMode)
-		{
-			Utils::GetScreenSize(hWnd, Width, Height);
-		}
-		else
-		{
-			Width = GetSystemMetrics(SM_CXVIRTUALSCREEN);
-			Height = GetSystemMetrics(SM_CYVIRTUALSCREEN);
-		}
-		BPP = Utils::GetBitCount(hWnd);
+		BPP = (DisplayMode.BPP) ? DisplayMode.BPP : Utils::GetBitCount(hWnd);
 	}
 
 	// Force color mode
@@ -2793,8 +2761,8 @@ HRESULT m_IDirectDrawX::CreateD3D9Device()
 		}
 
 		// Get width and height
-		DWORD BackBufferWidth = Device.Width;
-		DWORD BackBufferHeight = Device.Height;
+		DWORD BackBufferWidth = Exclusive.Width;
+		DWORD BackBufferHeight = Exclusive.Height;
 		if (!BackBufferWidth || !BackBufferHeight)
 		{
 			if (Direct3DSurface && Direct3DSurface->GetSurfaceSetSize(BackBufferWidth, BackBufferHeight))
@@ -2807,7 +2775,7 @@ HRESULT m_IDirectDrawX::CreateD3D9Device()
 			}
 			else
 			{
-				if (ExclusiveMode)
+				if (ExclusiveMode || Config.FullscreenWindowMode)
 				{
 					BackBufferWidth = CurrentWidth;
 					BackBufferHeight = CurrentHeight;
@@ -2815,10 +2783,7 @@ HRESULT m_IDirectDrawX::CreateD3D9Device()
 				else
 				{
 					// Reset display to get proper screen size
-					if (!Config.FullscreenWindowMode)
-					{
-						ChangeDisplaySettingsEx(nullptr, nullptr, nullptr, CDS_RESET, nullptr);
-					}
+					ChangeDisplaySettingsEx(nullptr, nullptr, nullptr, CDS_RESET, nullptr);
 					BackBufferWidth = GetSystemMetrics(SM_CXVIRTUALSCREEN);
 					BackBufferHeight = GetSystemMetrics(SM_CYVIRTUALSCREEN);
 				}
@@ -2957,7 +2922,7 @@ HRESULT m_IDirectDrawX::CreateD3D9Device()
 		{
 			// Get new resolution
 			DWORD NewWidth = presParams.BackBufferWidth, NewHeight = presParams.BackBufferHeight;
-			if (presParams.Windowed && !Config.FullscreenWindowMode)
+			if (!ExclusiveMode)
 			{
 				Utils::GetScreenSize(hWnd, NewWidth, NewHeight);
 			}
@@ -2971,7 +2936,7 @@ HRESULT m_IDirectDrawX::CreateD3D9Device()
 
 			// Get window size
 			RECT NewRect = { 0, 0, (LONG)presParams.BackBufferWidth, (LONG)presParams.BackBufferHeight };
-			if (presParams.Windowed && !Config.FullscreenWindowMode)
+			if (!ExclusiveMode)
 			{
 				GetWindowRect(hWnd, &NewRect);
 			}
@@ -2980,7 +2945,7 @@ HRESULT m_IDirectDrawX::CreateD3D9Device()
 			static WINDOWPOS winpos;
 			HWND WindowInsert = GetWindowLong(DisplayMode.hWnd, GWL_EXSTYLE) & WS_EX_TOPMOST ? HWND_TOPMOST : HWND_TOP;
 			winpos = { hWnd, WindowInsert, NewRect.left, NewRect.top, NewRect.right - NewRect.left, NewRect.bottom - NewRect.top, WM_NULL };
-			if (NewRect.left != LastRect.left || NewRect.top != LastRect.top || NewRect.right != LastRect.right || 	NewRect.bottom != LastRect.bottom)
+			if (NewRect.left != LastRect.left || NewRect.top != LastRect.top || NewRect.right != LastRect.right || NewRect.bottom != LastRect.bottom)
 			{
 				SendMessage(hWnd, WM_WINDOWPOSCHANGING, 0, (LPARAM)&winpos);
 				if (NewRect.left != LastRect.left || NewRect.top != LastRect.top)
@@ -3643,7 +3608,7 @@ DWORD GetDDrawWidth()
 {
 	if (DDrawVector.size() && DisplayMode.hWnd)
 	{
-		return Exclusive.Width ? Exclusive.Width : DisplayMode.Width;
+		return Exclusive.Width ? Exclusive.Width : 0;
 	}
 	return 0;
 }
@@ -3652,7 +3617,7 @@ DWORD GetDDrawHeight()
 {
 	if (DDrawVector.size() && DisplayMode.hWnd)
 	{
-		return Exclusive.Height ? Exclusive.Height : DisplayMode.Height;
+		return Exclusive.Height ? Exclusive.Height : 0;
 	}
 	return 0;
 }
