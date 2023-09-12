@@ -2775,7 +2775,7 @@ HRESULT m_IDirectDrawX::CreateD3D9Device()
 			}
 			else
 			{
-				if (ExclusiveMode || Config.FullscreenWindowMode)
+				if (ExclusiveMode || Config.FullscreenWindowMode || Config.ForceExclusiveFullscreen)
 				{
 					BackBufferWidth = CurrentWidth;
 					BackBufferHeight = CurrentHeight;
@@ -3516,7 +3516,7 @@ HRESULT m_IDirectDrawX::Present(RECT* pSourceRect, RECT* pDestRect)
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
 	// Skip frame if time lapse is too small
-	if (Config.AutoFrameSkip && !EnableWaitVsync)
+	if (Config.DdrawAutoFrameSkip && !EnableWaitVsync)
 	{
 		Counter.FrameSkipCounter++;
 

@@ -13,7 +13,6 @@
 	visit(AntiAliasing) \
 	visit(AudioClipDetection) \
 	visit(AudioFadeOutDelayMS) \
-	visit(AutoFrameSkip) \
 	visit(Dd7to9) \
 	visit(D3d8to9) \
 	visit(Dinputto8) \
@@ -25,6 +24,7 @@
 	visit(DDrawCompat31) \
 	visit(DDrawCompatDisableGDIHook) \
 	visit(DDrawCompatNoProcAffinity) \
+	visit(DdrawAutoFrameSkip) \
 	visit(DdrawClippedWidth) \
 	visit(DdrawClippedHeight) \
 	visit(DdrawRemoveScanlines) \
@@ -56,7 +56,6 @@
 	visit(DisableHighDPIScaling) \
 	visit(DisableLogging) \
 	visit(DirectShowEmulation) \
-	visit(DSoundCtrl) \
 	visit(DxWnd) \
 	visit(CacheClipPlane) \
 	visit(ConvertToDirectDraw7) \
@@ -193,7 +192,6 @@ struct CONFIG
 	void SetConfig();							// Set additional settings
 	bool IsSet(DWORD Value);					// Check if a value is set
 	bool Exiting = false;						// Dxwrapper is being unloaded
-	bool AutoFrameSkip = false;					// Automatically skips frames to reduce input lag
 	bool Dd7to9 = false;						// Converts DirectDraw/Direct3D (ddraw.dll) to Direct3D9 (d3d9.dll)
 	bool D3d8to9 = false;						// Converts Direct3D8 (d3d8.dll) to Direct3D9 (d3d9.dll) https://github.com/crosire/d3d8to9
 	bool Dinputto8 = false;						// Converts DirectInput (dinput.dll) to DirectInput8 (dinput8.dll)
@@ -205,6 +203,7 @@ struct CONFIG
 	bool DDrawCompat31 = false;					// Enables DDrawCompat v0.3.1
 	bool DDrawCompatDisableGDIHook = false;		// Disables DDrawCompat GDI hooks
 	bool DDrawCompatNoProcAffinity = false;		// Disables DDrawCompat single processor affinity
+	bool DdrawAutoFrameSkip = false;			// Automatically skips frames to reduce input lag
 	bool DdrawFixByteAlignment = false;			// Fixes lock with surfaces that have unaligned byte sizes
 	DWORD DdrawResolutionHack = 0;				// Removes the artificial resolution limit from Direct3D7 and below https://github.com/UCyborg/LegacyD3DResolutionHack
 	bool DdrawRemoveScanlines = 0;				// Experimental feature to removing interlaced black lines in a single frame
@@ -237,7 +236,6 @@ struct CONFIG
 	bool DisableGameUX = false;					// Disables the Microsoft Game Explorer which can sometimes cause high CPU in rundll32.exe and hang the game process
 	bool DisableHighDPIScaling = false;			// Disables display scaling on high DPI settings
 	bool DisableLogging = false;				// Disables the logging file
-	bool DSoundCtrl = false;					// Enables DirectSoundControl https://github.com/nRaecheR/DirectSoundControl
 	bool DxWnd = false;							// Enables DxWnd https://sourceforge.net/projects/dxwnd/
 	DWORD CacheClipPlane = 0;					// Caches the ClipPlane for Direct3D9 to fix an issue in d3d9 on Windows 8 and newer
 	bool ConvertToDirectDraw7 = false;			// Converts DirectDraw 1-6 to DirectDraw 7
@@ -300,7 +298,7 @@ struct CONFIG
 	DWORD LockColorkey = 0;						// DXPrimaryEmulation option that needs a second parameter
 	bool DisableMaxWindowedModeNotSet = false;	// If the DisableMaxWindowedMode option exists in the config file
 
-	// DSoundCtrl
+	// DirectSoundControl https://github.com/nRaecheR/DirectSoundControl
 	DWORD Num2DBuffers = 0;
 	DWORD Num3DBuffers = 0;
 	bool ForceCertification = false;

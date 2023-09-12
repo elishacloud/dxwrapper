@@ -36,7 +36,11 @@ namespace Settings
 	size_t BytesToWriteCount = 0;				// Count of bytes to hot patch
 	bool Force16bitColor;						// Forces DirectX to use 16bit color
 	bool Force32bitColor;						// Forces DirectX to use 32bit color
-	DWORD DdrawOverrideRefreshRate = 0;			// Legacy setting
+
+	// Legacy settings
+	DWORD AutoFrameSkip = 0;
+	DWORD DdrawOverrideRefreshRate = 0;
+	bool DSoundCtrl = false;
 
 	// Function declarations
 	bool IsValueEnabled(char*);
@@ -280,7 +284,10 @@ void __stdcall Settings::ParseCallback(char* name, char* value)
 		Config.DisableMaxWindowedModeNotSet = false;
 	}
 
+	// For legacy settings
+	SET_LOCAL_VALUE(AutoFrameSkip);
 	SET_LOCAL_VALUE(DdrawOverrideRefreshRate);
+	SET_LOCAL_VALUE(DSoundCtrl);
 
 	// Set Value of local settings
 	VISIT_LOCAL_SETTINGS(SET_LOCAL_VALUE);
@@ -605,7 +612,7 @@ void CONFIG::SetConfig()
 		LoopSleepTime = 30;
 	}
 
-	// Verify DSoundCtrl options
+	// Verify DirectSoundControl options
 	EnableDsoundWrapper = (EnableDsoundWrapper || DSoundCtrl || IsSet(DsoundHookSystem32));
 	if (EnableDsoundWrapper)
 	{
@@ -659,6 +666,7 @@ void CONFIG::SetConfig()
 	DDrawCompat = (DDrawCompat || DDrawCompat20 || DDrawCompat21 || DDrawCompat31);
 	EnableDdrawWrapper = (EnableDdrawWrapper || IsSet(DdrawHookSystem32) || ConvertToDirectDraw7 || ConvertToDirect3D7 || IsSet(DdrawResolutionHack));
 	D3d8to9 = (D3d8to9 || IsSet(D3d8HookSystem32));
+	DdrawAutoFrameSkip = (AutoFrameSkip || DdrawAutoFrameSkip);																	// For legacy purposes
 	EnableWindowMode = (FullscreenWindowMode) ? true : EnableWindowMode;
 	EnableD3d9Wrapper = (IsSet(EnableD3d9Wrapper) || IsSet(D3d9HookSystem32) ||
 		(EnableD3d9Wrapper == NOT_EXIST && (AnisotropicFiltering || AntiAliasing || IsSet(CacheClipPlane) || EnableVSync ||		// For legacy purposes

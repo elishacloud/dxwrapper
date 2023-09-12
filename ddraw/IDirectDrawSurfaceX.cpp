@@ -4094,7 +4094,7 @@ void m_IDirectDrawSurfaceX::UpdateSurfaceDesc()
 		surfaceDesc2.lPitch = ComputePitch(GetByteAlignedWidth(surfaceDesc2.dwWidth, BitCount), BitCount);
 	}
 	// Set surface format
-	if (surfaceFormat == D3DFMT_UNKNOWN)
+	if (surfaceFormat == D3DFMT_UNKNOWN && (surfaceDesc2.dwFlags & DDSD_PIXELFORMAT))
 	{
 		surfaceFormat = GetDisplayFormat(surfaceDesc2.ddpfPixelFormat);
 	}

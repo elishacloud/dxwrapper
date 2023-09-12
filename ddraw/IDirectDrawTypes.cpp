@@ -97,7 +97,7 @@ void ConvertSurfaceDesc(DDSURFACEDESC2 &Desc2, DDSURFACEDESC &Desc)
 	{
 		if ((Desc.dwFlags & DDSD_PIXELFORMAT) && Desc.ddpfPixelFormat.dwFlags)
 		{
-			D3DFORMAT Format = GetDisplayFormat(Desc.ddpfPixelFormat);
+			D3DFORMAT Format = GetDisplayFormat(Desc2.ddpfPixelFormat);
 			if (Format != D3DFMT_UNKNOWN)
 			{
 				LOG_LIMIT(100, __FUNCTION__ << " Warning: overwritting existing pixel format: " << Format << " with zbuffer depth: " << Desc.dwZBufferBitDepth);
