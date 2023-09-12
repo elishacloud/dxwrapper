@@ -2948,20 +2948,15 @@ HRESULT m_IDirectDrawX::CreateD3D9Device()
 			if (NewRect.left != LastRect.left || NewRect.top != LastRect.top || NewRect.right != LastRect.right || NewRect.bottom != LastRect.bottom)
 			{
 				SendMessage(hWnd, WM_WINDOWPOSCHANGING, 0, (LPARAM)&winpos);
-				if (NewRect.left != LastRect.left || NewRect.top != LastRect.top)
-				{
-					SendMessage(hWnd, WM_MOVE, 0, MAKELPARAM(NewRect.left, NewRect.top));
-				}
-				if (NewRect.right - NewRect.left != LastRect.right - LastRect.left || NewRect.bottom - NewRect.top != LastRect.bottom - LastRect.top)
-				{
-					SendMessage(hWnd, WM_SIZE, SIZE_RESTORED, MAKELPARAM(NewRect.right - NewRect.left, NewRect.bottom - NewRect.top));
-				}
 				SendMessage(hWnd, WM_WINDOWPOSCHANGED, 0, (LPARAM)&winpos);
 			}
-			if (GetActiveWindow() == hWnd)
+			if (NewRect.left != LastRect.left || NewRect.top != LastRect.top)
 			{
-				SendMessage(hWnd, WM_ACTIVATE, MAKEWPARAM(WA_ACTIVE, WM_NULL), (LPARAM)hWnd);
-				SendMessage(hWnd, WM_SETFOCUS, WM_NULL, 0);
+				SendMessage(hWnd, WM_MOVE, 0, MAKELPARAM(NewRect.left, NewRect.top));
+			}
+			if (NewRect.right - NewRect.left != LastRect.right - LastRect.left || NewRect.bottom - NewRect.top != LastRect.bottom - LastRect.top)
+			{
+				SendMessage(hWnd, WM_SIZE, SIZE_RESTORED, MAKELPARAM(NewRect.right - NewRect.left, NewRect.bottom - NewRect.top));
 			}
 
 			// Peek messages to help prevent a "Not Responding" window
