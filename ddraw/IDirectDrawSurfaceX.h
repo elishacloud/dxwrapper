@@ -422,7 +422,9 @@ public:
 	}
 	inline bool GetSurfaceSetSize(DWORD& Width, DWORD& Height)
 	{
-		if ((ResetDisplayFlags & (DDSD_WIDTH | DDSD_HEIGHT)) == 0 && surfaceDesc2.dwWidth && surfaceDesc2.dwHeight)
+		if ((surfaceDesc2.dwFlags & (DDSD_WIDTH | DDSD_HEIGHT)) == (DDSD_WIDTH | DDSD_HEIGHT) &&
+			(ResetDisplayFlags & (DDSD_WIDTH | DDSD_HEIGHT)) == 0 &&
+			surfaceDesc2.dwWidth && surfaceDesc2.dwHeight)
 		{
 			Width = surfaceDesc2.dwWidth;
 			Height = surfaceDesc2.dwHeight;

@@ -640,8 +640,9 @@ HRESULT m_IDirectDrawX::CreateSurface2(LPDDSURFACEDESC2 lpDDSurfaceDesc2, LPDIRE
 		// Get present parameters
 		if (Desc2.ddsCaps.dwCaps & DDSCAPS_PRIMARYSURFACE)
 		{
-			Logging::LogDebug() << __FUNCTION__ << " Primary surface " << Desc2.dwWidth << "x" << Desc2.dwHeight << " ddsCaps: " << Logging::hex(Desc2.ddsCaps.dwCaps) << " " <<
-				Logging::hex(Desc2.ddsCaps.dwCaps2) << " " << LOWORD(Desc2.ddsCaps.dwVolumeDepth);
+			Logging::Log() << __FUNCTION__ << " Primary surface " << Desc2.dwWidth << "x" << Desc2.dwHeight <<
+				" dwFlags: " << Logging::hex(Desc2.dwFlags) <<
+				" ddsCaps: " << Logging::hex(Desc2.ddsCaps.dwCaps) << ", " << Logging::hex(Desc2.ddsCaps.dwCaps2) << ", " << LOWORD(Desc2.ddsCaps.dwVolumeDepth);
 
 			// Anti-aliasing
 			if (!Config.AntiAliasing)
@@ -1631,7 +1632,7 @@ HRESULT m_IDirectDrawX::SetCooperativeLevel(HWND hWnd, DWORD dwFlags, DWORD Dire
 			Device.NoWindowChanges = ((dwFlags & DDSCL_NOWINDOWCHANGES) != 0);
 
 			// Reset if mode was changed
-			if (LastExclusiveMode != ExclusiveMode || LasthWnd != DisplayMode.hWnd || LastFPUPreserve != Device.FPUPreserve || LastNoWindowChanges != Device.NoWindowChanges)
+			if (d3d9Device && (LastExclusiveMode != ExclusiveMode || LasthWnd != DisplayMode.hWnd || LastFPUPreserve != Device.FPUPreserve || LastNoWindowChanges != Device.NoWindowChanges))
 			{
 				CreateD3D9Device();
 			}
@@ -2761,8 +2762,8 @@ HRESULT m_IDirectDrawX::CreateD3D9Device()
 		}
 
 		// Get width and height
-		DWORD BackBufferWidth = Exclusive.Width;
-		DWORD BackBufferHeight = Exclusive.Height;
+		DWORD BackBufferWidth = Device.Width;
+		DWORD BackBufferHeight = Device.Height;
 		if (!BackBufferWidth || !BackBufferHeight)
 		{
 			if (Direct3DSurface && Direct3DSurface->GetSurfaceSetSize(BackBufferWidth, BackBufferHeight))
@@ -2783,7 +2784,10 @@ HRESULT m_IDirectDrawX::CreateD3D9Device()
 				else
 				{
 					// Reset display to get proper screen size
-					ChangeDisplaySettingsEx(nullptr, nullptr, nullptr, CDS_RESET, nullptr);
+					if (d3d9Device && !LastWindowedMode)
+					{
+						ChangeDisplaySettingsEx(nullptr, nullptr, nullptr, CDS_RESET, nullptr);
+					}
 					BackBufferWidth = GetSystemMetrics(SM_CXVIRTUALSCREEN);
 					BackBufferHeight = GetSystemMetrics(SM_CYVIRTUALSCREEN);
 				}
