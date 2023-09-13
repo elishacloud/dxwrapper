@@ -65,15 +65,18 @@ HRESULT WINAPI di_DirectInputCreateEx(HINSTANCE hinst, DWORD dwVersion, REFIID r
 
 	LOG_LIMIT(3, "Redirecting 'DirectInputCreate' " << riid << " version " << Logging::hex(dwVersion) << " to --> 'DirectInput8Create'");
 
-	HRESULT hr = m_pDirectInput8Create(hinst, 0x0800, dinputto8::ConvertREFIID(riid), lplpDD, punkOuter);
-
-	if (SUCCEEDED(hr) && lplpDD)
+	HRESULT hr = hresValidInstanceAndVersion(hinst, dwVersion);
+	if (SUCCEEDED(hr))
 	{
-		diVersion = dwVersion;
+		hr = m_pDirectInput8Create(hinst, 0x0800, ConvertREFIID(riid), lplpDD, punkOuter);
 
-		m_IDirectInputX *Interface = new m_IDirectInputX((IDirectInput8W*)*lplpDD, riid);
+		if (SUCCEEDED(hr) && lplpDD)
+		{
+			m_IDirectInputX* Interface = new m_IDirectInputX((IDirectInput8W*)*lplpDD, riid);
+			Interface->SetVersion(dwVersion);
 
-		*lplpDD = Interface->GetWrapperInterfaceX(GetGUIDVersion(riid));
+			*lplpDD = Interface->GetWrapperInterfaceX(GetGUIDVersion(riid));
+		}
 	}
 
 	return hr;
