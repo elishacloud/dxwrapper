@@ -1623,6 +1623,7 @@ HRESULT m_IDirectDrawX::SetCooperativeLevel(HWND hWnd, DWORD dwFlags, DWORD Dire
 				Exclusive.RefreshRate = DisplayMode.RefreshRate;
 			}
 			// Set device flags
+			Device.IsWindowed = (!ExclusiveMode || Config.EnableWindowMode || Config.FullscreenWindowMode);
 			Device.AllowModeX = ((dwFlags & DDSCL_ALLOWMODEX) != 0);
 			Device.MultiThreaded = ((dwFlags & DDSCL_MULTITHREADED) != 0);
 			// The flag (DDSCL_FPUPRESERVE) is assumed by default in DirectX 6 and earlier.
@@ -1631,7 +1632,8 @@ HRESULT m_IDirectDrawX::SetCooperativeLevel(HWND hWnd, DWORD dwFlags, DWORD Dire
 			Device.NoWindowChanges = ((dwFlags & DDSCL_NOWINDOWCHANGES) != 0);
 
 			// Reset if mode was changed
-			if (LastExclusiveMode != ExclusiveMode || LasthWnd != DisplayMode.hWnd || LastFPUPreserve != Device.FPUPreserve || LastNoWindowChanges != Device.NoWindowChanges)
+			if ((d3d9Device || !ExclusiveMode || PrimarySurface) &&
+				(LastExclusiveMode != ExclusiveMode || LasthWnd != DisplayMode.hWnd || LastFPUPreserve != Device.FPUPreserve || LastNoWindowChanges != Device.NoWindowChanges))
 			{
 				CreateD3D9Device();
 			}
@@ -1810,7 +1812,6 @@ HRESULT m_IDirectDrawX::SetDisplayMode(DWORD dwWidth, DWORD dwHeight, DWORD dwBP
 			DisplayMode.RefreshRate = dwRefreshRate;
 
 			// Display resolution
-			Device.IsWindowed = (!ExclusiveMode || Config.EnableWindowMode || Config.FullscreenWindowMode);
 			Device.Width = (Config.DdrawUseNativeResolution || Config.DdrawOverrideWidth) ? Device.Width : FoundWidth;
 			Device.Height = (Config.DdrawUseNativeResolution || Config.DdrawOverrideHeight) ? Device.Height : FoundHeight;
 			Device.RefreshRate = DisplayMode.RefreshRate;
