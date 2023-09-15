@@ -2776,8 +2776,18 @@ HRESULT m_IDirectDrawX::CreateD3D9Device()
 		{
 			if (ExclusiveMode || Config.FullscreenWindowMode || Config.ForceExclusiveFullscreen)
 			{
-				BackBufferWidth = CurrentWidth;
-				BackBufferHeight = CurrentHeight;
+				// Use resolution set by game 
+				if (Device.Width && Device.Height)
+				{
+					BackBufferWidth = Device.Width;
+					BackBufferHeight = Device.Height;
+				}
+				// Use current desktop resolution
+				else
+				{
+					BackBufferWidth = CurrentWidth;
+					BackBufferHeight = CurrentHeight;
+				}
 			}
 			else
 			{
