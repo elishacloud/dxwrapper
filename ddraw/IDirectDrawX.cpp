@@ -1623,7 +1623,6 @@ HRESULT m_IDirectDrawX::SetCooperativeLevel(HWND hWnd, DWORD dwFlags, DWORD Dire
 				Exclusive.RefreshRate = DisplayMode.RefreshRate;
 			}
 			// Set device flags
-			Device.IsWindowed = (!ExclusiveMode || Config.EnableWindowMode || Config.FullscreenWindowMode);
 			Device.AllowModeX = ((dwFlags & DDSCL_ALLOWMODEX) != 0);
 			Device.MultiThreaded = ((dwFlags & DDSCL_MULTITHREADED) != 0);
 			// The flag (DDSCL_FPUPRESERVE) is assumed by default in DirectX 6 and earlier.
@@ -1811,6 +1810,7 @@ HRESULT m_IDirectDrawX::SetDisplayMode(DWORD dwWidth, DWORD dwHeight, DWORD dwBP
 			DisplayMode.RefreshRate = dwRefreshRate;
 
 			// Display resolution
+			Device.IsWindowed = (!ExclusiveMode || Config.EnableWindowMode || Config.FullscreenWindowMode);
 			Device.Width = (Config.DdrawUseNativeResolution || Config.DdrawOverrideWidth) ? Device.Width : FoundWidth;
 			Device.Height = (Config.DdrawUseNativeResolution || Config.DdrawOverrideHeight) ? Device.Height : FoundHeight;
 			Device.RefreshRate = DisplayMode.RefreshRate;
@@ -2755,11 +2755,6 @@ HRESULT m_IDirectDrawX::CreateD3D9Device()
 		// Get current resolution and rect
 		DWORD CurrentWidth, CurrentHeight;
 		Utils::GetScreenSize(hWnd, CurrentWidth, CurrentHeight);
-		RECT LastRect = {};
-		if (hWnd)
-		{
-			GetWindowRect(hWnd, &LastRect);
-		}
 
 		// Get width and height
 		DWORD BackBufferWidth = Device.Width;
