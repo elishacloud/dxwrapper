@@ -49,6 +49,14 @@ struct MOUSEHOOK
 	POINT Pos = {};
 };
 
+// Custom vertex
+const DWORD TLVERTEXFVF = (D3DFVF_XYZRHW | D3DFVF_TEX1);
+struct TLVERTEX
+{
+	float x, y, z, rhw;
+	float u, v;
+};
+
 struct DISPLAYSETTINGS
 {
 	HWND hWnd;
@@ -124,6 +132,7 @@ LPDIRECT3DDEVICE9 d3d9Device;
 D3DPRESENT_PARAMETERS presParams;
 LPDIRECT3DPIXELSHADER9 palettePixelShader;
 LPDIRECT3DPIXELSHADER9 colorkeyPixelShader;
+LPDIRECT3DVERTEXBUFFER9 VertexBuffer;
 DWORD BehaviorFlags;
 HWND hFocusWindow;
 
@@ -2299,6 +2308,7 @@ void m_IDirectDrawX::InitDdraw(DWORD DirectXVersion)
 		d3d9Device = nullptr;
 		palettePixelShader = nullptr;
 		colorkeyPixelShader = nullptr;
+		VertexBuffer = nullptr;
 
 		presParams = {};
 		BehaviorFlags = 0;
@@ -2691,14 +2701,14 @@ LPDIRECT3DDEVICE9* m_IDirectDrawX::GetDirect3D9Device()
 	return &d3d9Device;
 }
 
-LPDIRECT3DPIXELSHADER9* m_IDirectDrawX::GetPaletteShader()
+bool m_IDirectDrawX::CreatePaletteShader()
 {
 	// Create pixel shaders
 	if (d3d9Device && !palettePixelShader)
 	{
 		d3d9Device->CreatePixelShader((DWORD*)PalettePixelShaderSrc, &palettePixelShader);
 	}
-	return &palettePixelShader;
+	return (palettePixelShader != nullptr);
 }
 
 LPDIRECT3DPIXELSHADER9* m_IDirectDrawX::GetColorKeyShader()
@@ -2978,6 +2988,141 @@ HRESULT m_IDirectDrawX::CreateD3D9Device()
 	return hr;
 }
 
+HRESULT m_IDirectDrawX::CreateVertexBuffer(DWORD Width, DWORD Height)
+{
+	// Check if vertex buffer is already created
+	if (VertexBuffer)
+	{
+		LOG_LIMIT(100, __FUNCTION__ << " Error: vertex buffer already created!");
+		return DDERR_GENERIC;
+	}
+
+	// Create vertex buffer
+	if (FAILED(d3d9Device->CreateVertexBuffer(sizeof(TLVERTEX) * 4, D3DUSAGE_WRITEONLY, TLVERTEXFVF, D3DPOOL_DEFAULT, &VertexBuffer, nullptr)))
+	{
+		LOG_LIMIT(100, __FUNCTION__ << " Error: failed to create vertex buffer!");
+		return DDERR_GENERIC;
+	}
+
+	// Setup verticies (0, 0, currentWidth, currentHeight)
+	TLVERTEX* vertices = nullptr;
+
+	// Lock vertex buffer
+	if (FAILED(VertexBuffer->Lock(0, 0, (void**)&vertices, 0)))
+	{
+		LOG_LIMIT(100, __FUNCTION__ << " Error: failed to lock vertex buffer!");
+		return DDERR_GENERIC;
+	}
+
+	// Get width and height
+	DWORD displayWidth, displayHeight;
+	GetDisplay(displayWidth, displayHeight);
+	bool displayflag = (Width < displayWidth) && (Height < displayHeight);
+	DWORD BackBufferWidth = (displayflag) ? displayWidth : Width;
+	DWORD BackBufferHeight = (displayflag) ? displayHeight : Height;
+	if (!BackBufferWidth || !BackBufferHeight)
+	{
+		Utils::GetScreenSize(GetHwnd(), BackBufferWidth, BackBufferHeight);
+	}
+
+	// Calculate width and height with original aspect ratio
+	int xpad = 0, ypad = 0;
+	float u0tex = 0.0f, u1tex = 1.0f, v0tex = 0.0f, v1tex = 1.0f;
+	DWORD DisplayBufferWidth = (displayWidth > BackBufferWidth) ? displayWidth : BackBufferWidth;
+	DWORD DisplayBufferHeight = (displayHeight > BackBufferHeight) ? displayHeight : BackBufferHeight;
+	DWORD TexWidth = Width;
+	DWORD TexHeight = Height;
+	if (Config.DdrawClippedWidth && Config.DdrawClippedWidth <= TexWidth &&
+		Config.DdrawClippedHeight && Config.DdrawClippedHeight <= TexHeight)
+	{
+		u0tex = (((TexWidth - Config.DdrawClippedWidth) / 2.0f)) / TexWidth;
+		u1tex = u0tex + ((float)Config.DdrawClippedWidth / TexWidth);
+
+		v0tex = (((TexHeight - Config.DdrawClippedHeight) / 2.0f)) / TexHeight;
+		v1tex = v0tex + ((float)Config.DdrawClippedHeight / TexHeight);
+
+		TexWidth = Config.DdrawClippedWidth;
+		TexHeight = Config.DdrawClippedHeight;
+	}
+	if (Config.DdrawIntegerScalingClamp)
+	{
+		DWORD xScaleRatio = DisplayBufferWidth / TexWidth;
+		DWORD yScaleRatio = DisplayBufferHeight / TexHeight;
+
+		if (Config.DdrawMaintainAspectRatio)
+		{
+			xScaleRatio = min(xScaleRatio, yScaleRatio);
+			yScaleRatio = min(xScaleRatio, yScaleRatio);
+		}
+
+		BackBufferWidth = xScaleRatio * TexWidth;
+		BackBufferHeight = yScaleRatio * TexHeight;
+
+		xpad = (DisplayBufferWidth - BackBufferWidth) / 2;
+		ypad = (DisplayBufferHeight - BackBufferHeight) / 2;
+	}
+	else if (Config.DdrawMaintainAspectRatio)
+	{
+		if (TexWidth * DisplayBufferHeight < TexHeight * DisplayBufferWidth)
+		{
+			// 4:3 displayed on 16:9
+			BackBufferWidth = DisplayBufferHeight * TexWidth / TexHeight;
+		}
+		else
+		{
+			// 16:9 displayed on 4:3
+			BackBufferHeight = DisplayBufferWidth * TexHeight / TexWidth;
+		}
+		xpad = (DisplayBufferWidth - BackBufferWidth) / 2;
+		ypad = (DisplayBufferHeight - BackBufferHeight) / 2;
+	}
+
+	Logging::LogDebug() << __FUNCTION__ << " D3d9 Vertex size: " << BackBufferWidth << "x" << BackBufferHeight <<
+		" pad: " << xpad << "x" << ypad;
+
+	// Set vertex points
+	// 0, 0
+	vertices[0].x = -0.5f + xpad;
+	vertices[0].y = -0.5f + ypad;
+	vertices[0].z = 0.0f;
+	vertices[0].rhw = 1.0f;
+	vertices[0].u = u0tex;
+	vertices[0].v = v0tex;
+
+	// scaledWidth, 0
+	vertices[1].x = -0.5f + xpad + BackBufferWidth;
+	vertices[1].y = vertices[0].y;
+	vertices[1].z = 0.0f;
+	vertices[1].rhw = 1.0f;
+	vertices[1].u = u1tex;
+	vertices[1].v = v0tex;
+
+	// scaledWidth, scaledHeight
+	vertices[2].x = vertices[1].x;
+	vertices[2].y = -0.5f + ypad + BackBufferHeight;
+	vertices[2].z = 0.0f;
+	vertices[2].rhw = 1.0f;
+	vertices[2].u = u1tex;
+	vertices[2].v = v1tex;
+
+	// 0, scaledHeight
+	vertices[3].x = vertices[0].x;
+	vertices[3].y = vertices[2].y;
+	vertices[3].z = 0.0f;
+	vertices[3].rhw = 1.0f;
+	vertices[3].u = u0tex;
+	vertices[3].v = v1tex;
+
+	// Unlock vertex buffer
+	if (FAILED(VertexBuffer->Unlock()))
+	{
+		LOG_LIMIT(100, __FUNCTION__ << " Error: failed to unlock vertex buffer!");
+		return DDERR_GENERIC;
+	}
+	
+	return DD_OK;
+}
+
 // Creates d3d9 object
 HRESULT m_IDirectDrawX::CreateD3D9Object()
 {
@@ -3104,6 +3249,18 @@ inline void m_IDirectDrawX::ReleaseAllD9Buffers(bool BackupData)
 	}
 
 	ReleaseCriticalSection();
+
+	// Release d3d9 vertex buffer
+	if (VertexBuffer)
+	{
+		Logging::LogDebug() << __FUNCTION__ << " Releasing Direct3D9 vertext buffer";
+		ULONG ref = VertexBuffer->Release();
+		if (ref)
+		{
+			Logging::Log() << __FUNCTION__ << " Error: there is still a reference to 'vertexBuffer' " << ref;
+		}
+		VertexBuffer = nullptr;
+	}
 }
 
 // Release all shaders
@@ -3504,6 +3661,162 @@ void m_IDirectDrawX::SetVsync()
 	{
 		EnableWaitVsync = true;
 	}
+}
+
+HRESULT m_IDirectDrawX::Draw2DSurface(m_IDirectDrawSurfaceX* DrawSurface)
+{
+	Logging::LogDebug() << __FUNCTION__ << " (" << this << ") ";
+
+	// Check draw surface
+	if (!DrawSurface)
+	{
+		LOG_LIMIT(100, __FUNCTION__ << " Error: bad draw surface!");
+		return DDERR_GENERIC;
+	}
+
+	// Get surface texture
+	LPDIRECT3DTEXTURE9 displayTexture = DrawSurface->GetD3D9Texture();
+	if (!displayTexture)
+	{
+		LOG_LIMIT(100, __FUNCTION__ << " Error: failed to get surface texture!");
+		return DDERR_GENERIC;
+	}
+
+	// Create vertex buffer
+	if (!VertexBuffer)
+	{
+		D3DSURFACE_DESC Desc = {};
+		if (FAILED(displayTexture->GetLevelDesc(0, &Desc)))
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: failed to get texture size!");
+			return DDERR_GENERIC;
+		}
+		CreateVertexBuffer(Desc.Width, Desc.Height);
+	}
+
+	// Set texture
+	if (FAILED(d3d9Device->SetTexture(0, displayTexture)))
+	{
+		LOG_LIMIT(100, __FUNCTION__ << " Error: failed to set surface texture!");
+		return DDERR_GENERIC;
+	}
+
+	// Handle palette surfaces
+	if (DrawSurface->IsPalette())
+	{
+		// Get palette texture
+		LPDIRECT3DTEXTURE9 PaletteTexture = DrawSurface->Get3DPaletteTexture();
+		if (!PaletteTexture)
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: failed to get palette texture!");
+			return DDERR_GENERIC;
+		}
+
+		// Setup shaders
+		if (!CreatePaletteShader())
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: failed to create palette shader!");
+			return DDERR_GENERIC;
+		}
+
+		// Set palette texture
+		DrawSurface->UpdatePaletteData();
+		if (FAILED(d3d9Device->SetTexture(1, PaletteTexture)))
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: failed to lock palette texture!");
+			return DDERR_GENERIC;
+		}
+
+		// Set pixel shader
+		if (FAILED(d3d9Device->SetPixelShader(palettePixelShader)))
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: failed to set pixel shader!");
+			return DDERR_GENERIC;
+		}
+	}
+
+	// Set vertex buffer and lighting
+	if (VertexBuffer)
+	{
+		// Set vertex shader
+		if (FAILED(d3d9Device->SetVertexShader(nullptr)))
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: failed to set vertex shader!");
+			return DDERR_GENERIC;
+		}
+
+		// Set vertex format
+		if (FAILED(d3d9Device->SetFVF(TLVERTEXFVF)))
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: failed to set the current vertex stream format");
+			return DDERR_GENERIC;
+		}
+
+		// Set stream source
+		if (FAILED(d3d9Device->SetStreamSource(0, VertexBuffer, 0, sizeof(TLVERTEX))))
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: failed to set vertex buffer stream source");
+			return DDERR_GENERIC;
+		}
+
+		// Set render states (no lighting)
+		if (FAILED(d3d9Device->SetRenderState(D3DRS_LIGHTING, FALSE)))
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: failed to set device render state(no lighting)");
+			return DDERR_GENERIC;
+		}
+
+		// Set scale mode to point
+		if (FAILED(d3d9Device->SetSamplerState(0, D3DSAMP_MAGFILTER, D3DTEXF_POINT)))
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Warning: failed to set D3D device to POINT sampling");
+		}
+	}
+
+	// Draw primitive
+	if (FAILED(d3d9Device->DrawPrimitive(D3DPT_TRIANGLEFAN, 0, 2)))
+	{
+		LOG_LIMIT(100, __FUNCTION__ << " Error: failed to draw primitive");
+		return DDERR_GENERIC;
+	}
+
+	// Reset dirty flags
+	DrawSurface->ClearDirtyFlags();
+
+	return DD_OK;
+}
+
+HRESULT m_IDirectDrawX::Present2DScene(m_IDirectDrawSurfaceX* DrawSurface, RECT* pSourceRect, RECT* pDestRect)
+{
+	// Begin scene
+	if (FAILED(d3d9Device->BeginScene()))
+	{
+		LOG_LIMIT(100, __FUNCTION__ << " Error: failed to begin scene!");
+		return DDERR_GENERIC;
+	}
+
+	// Draw 2D surface before presenting
+	if (FAILED(Draw2DSurface(DrawSurface)))
+	{
+		LOG_LIMIT(100, __FUNCTION__ << " Error: failed to draw 2D surface!");
+		return DDERR_GENERIC;
+	}
+
+	// End scene
+	if (FAILED(d3d9Device->EndScene()))
+	{
+		LOG_LIMIT(100, __FUNCTION__ << " Error: failed to end scene!");
+		return DDERR_GENERIC;
+	}
+
+	// Present to d3d9
+	if (FAILED(Present(pSourceRect, pDestRect)))
+	{
+		LOG_LIMIT(100, __FUNCTION__ << " Error: failed to present 2D scene!");
+		return DDERR_GENERIC;
+	}
+
+	return DD_OK;
 }
 
 // Do d3d9 Present

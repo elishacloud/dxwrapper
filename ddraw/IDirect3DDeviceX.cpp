@@ -1716,7 +1716,7 @@ HRESULT m_IDirect3DDeviceX::EndScene()
 		{
 			SetDrawStates(0, D3DDP_DXW_DRAW2DSURFACE, 9);
 
-			PrimarySurface->Draw2DSurface();
+			ddrawParent->Draw2DSurface(PrimarySurface);
 
 			RestoreDrawStates(0, D3DDP_DXW_DRAW2DSURFACE, 9);
 		}

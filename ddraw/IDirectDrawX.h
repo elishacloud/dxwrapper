@@ -1,5 +1,7 @@
 #pragma once
 
+class m_IDirectDrawSurfaceX;
+
 class m_IDirectDrawX : public IUnknown, public AddressLookupTableDdrawObject
 {
 private:
@@ -184,9 +186,10 @@ public:
 	bool CheckD3D9Device();
 	LPDIRECT3D9 GetDirect3D9Object();
 	LPDIRECT3DDEVICE9 *GetDirect3D9Device();
-	LPDIRECT3DPIXELSHADER9* GetPaletteShader();
+	bool CreatePaletteShader();
 	LPDIRECT3DPIXELSHADER9* GetColorKeyShader();
 	HRESULT CreateD3D9Device();
+	HRESULT CreateVertexBuffer(DWORD Width, DWORD Height);
 	HRESULT ReinitDevice();
 
 	// Device information functions
@@ -233,5 +236,7 @@ public:
 
 	// Begin & end scene
 	void SetVsync();
+	HRESULT Draw2DSurface(m_IDirectDrawSurfaceX* DrawSurface);
+	HRESULT Present2DScene(m_IDirectDrawSurfaceX* DrawSurface, RECT* pSourceRect, RECT* pDestRect);
 	HRESULT Present(RECT* pSourceRect, RECT* pDestRect);
 };

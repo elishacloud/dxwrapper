@@ -65,22 +65,12 @@ private:
 		bool isAttachedSurfaceAdded = false;
 	};
 
-	// Custom vertex
-	struct TLVERTEX
-	{
-		float x, y, z, rhw;
-		float u, v;
-	};
-
 	// Extra Direct3D9 devices used in the primary surface
 	struct D9PRIMARY
 	{
-		const DWORD TLVERTEXFVF = (D3DFVF_XYZRHW | D3DFVF_TEX1);
 		DWORD LastPaletteUSN = 0;								// The USN that was used last time the palette was updated
 		LPDIRECT3DSURFACE9 BlankSurface = nullptr;				// Blank surface used for clearing main surface
 		LPDIRECT3DTEXTURE9 PaletteTexture = nullptr;			// Extra surface texture used for storing palette entries for the pixel shader
-		LPDIRECT3DPIXELSHADER9* PalettePixelShader = nullptr;	// Used with palette surfaces to display proper palette data on the surface texture
-		LPDIRECT3DVERTEXBUFFER9 VertexBuffer = nullptr;			// Vertex buffer used to stretch the texture accross the screen
 	};
 
 	// Real surface and surface data using Direct3D9 devices
@@ -256,7 +246,6 @@ private:
 	HRESULT PresentSurfaceToWindow(RECT Rect);
 
 	// Surface functions
-	void ClearDirtyFlags();
 	HRESULT ClearPrimarySurface();
 
 public:
@@ -384,7 +373,7 @@ public:
 
 	// Functions handling the ddraw parent interface
 	inline void SetDdrawParent(m_IDirectDrawX *ddraw) { ddrawParent = ddraw; }
-	inline void ClearDdraw() { ddrawParent = nullptr; primary.PalettePixelShader = nullptr; }
+	inline void ClearDdraw() { ddrawParent = nullptr; }
 
 	// Direct3D9 interface functions
 	void ReleaseD9Surface(bool BackupData);
@@ -436,13 +425,14 @@ public:
 	inline void DetachD9BackBuffer() { Is3DRenderingTarget = false; }
 	LPDIRECT3DSURFACE9 Get3DSurface();
 	LPDIRECT3DTEXTURE9 Get3DTexture();
+	LPDIRECT3DTEXTURE9 Get3DPaletteTexture() { return primary.PaletteTexture; }
 	LPDIRECT3DSURFACE9 GetD3D9Surface();
 	LPDIRECT3DTEXTURE9 GetD3D9Texture();
 	inline m_IDirect3DTextureX* GetAttachedTexture() { return attachedTexture; }
 	inline void ClearAttachedTexture() { attachedTexture = nullptr; }
+	void ClearDirtyFlags();
 
 	// Draw 2D DirectDraw surface
-	HRESULT Draw2DSurface();
 	HRESULT ColorFill(RECT* pRect, D3DCOLOR dwFillColor);
 
 	// Attached surfaces

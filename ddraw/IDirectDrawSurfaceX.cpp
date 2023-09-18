@@ -3559,6 +3559,7 @@ HRESULT m_IDirectDrawSurfaceX::CreateD3d9Surface()
 	const D3DFORMAT Format = ConvertSurfaceFormat(surfaceFormat);
 	const D3DFORMAT TextureFormat = (surfaceFormat == D3DFMT_P8) ? D3DFMT_L8 : Format;
 
+	// Get texture memory pool
 	const D3DPOOL TexturePool = (IsPrimaryOrBackBuffer() && surface.IsUsingWindowedMode && !IsDirect3DEnabled) ? D3DPOOL_SYSTEMMEM : IsPrimaryOrBackBuffer() ? D3DPOOL_MANAGED :
 		(surfaceDesc2.ddsCaps.dwCaps & DDSCAPS_SYSTEMMEMORY) ? D3DPOOL_SYSTEMMEM : D3DPOOL_MANAGED;
 
@@ -3618,9 +3619,7 @@ HRESULT m_IDirectDrawSurfaceX::CreateD3d9Surface()
 		// Create palette surface
 		if (IsPrimarySurface() && surfaceFormat == D3DFMT_P8)
 		{
-			primary.PalettePixelShader = ddrawParent->GetPaletteShader();
-			if (!primary.PalettePixelShader || !*primary.PalettePixelShader ||
-				FAILED(((*d3d9Device)->CreateTexture(MaxPaletteSize, MaxPaletteSize, 1, 0, D3DFMT_X8R8G8B8, D3DPOOL_MANAGED, &primary.PaletteTexture, nullptr))))
+			if (FAILED(((*d3d9Device)->CreateTexture(MaxPaletteSize, MaxPaletteSize, 1, 0, D3DFMT_X8R8G8B8, D3DPOOL_MANAGED, &primary.PaletteTexture, nullptr))))
 			{
 				LOG_LIMIT(100, __FUNCTION__ << " Error: failed to create palette surface texture");
 				hr = DDERR_GENERIC;
@@ -3632,42 +3631,41 @@ HRESULT m_IDirectDrawSurfaceX::CreateD3d9Surface()
 
 	} while (false);
 
-	bool EmuSurfaceCreated = false;
-
 	// Create emulated surface using device context for creation
-	if (IsSurfaceEmulated || (IsUsingEmulation() && !DoesDCMatch(surface.emu)))
+	bool EmuSurfaceCreated = false;
+	if ((IsSurfaceEmulated || IsUsingEmulation()) && !DoesDCMatch(surface.emu))
 	{
-		if (!DoesDCMatch(surface.emu))
-		{
-			EmuSurfaceCreated = true;
-
-			CreateDCSurface();
-		}
+		EmuSurfaceCreated = true;
+		CreateDCSurface();
 	}
 
 	// Restore d3d9 surface texture data
 	if (surface.Texture || surface.Surface)
 	{
-		if (DoesDCMatch(surface.emu) && !EmuSurfaceCreated)
+		bool RestoreData = false;
+		if (IsUsingEmulation() && !EmuSurfaceCreated)
 		{
+			// Copy surface to emulated surface
 			CopyFromEmulatedSurface(nullptr);
+			RestoreData = true;
 		}
 		else if (!Backup.empty())
 		{
 			if (Backup.size() / surfaceDesc2.dwHeight == (DWORD)surfaceDesc2.lPitch)
 			{
 				IDirect3DSurface9* pDestSurfaceD9 = GetD3D9Surface();
-
 				if (pDestSurfaceD9)
 				{
+					// Copy backup data to surface
 					RECT Rect = { 0, 0, (LONG)surfaceDesc2.dwWidth, (LONG)surfaceDesc2.dwHeight };
-
 					if (SUCCEEDED(D3DXLoadSurfaceFromMemory(pDestSurfaceD9, nullptr, &Rect, Backup.data(), (surfaceFormat == D3DFMT_P8) ? D3DFMT_L8 : surfaceFormat, surfaceDesc2.lPitch, nullptr, &Rect, D3DX_FILTER_NONE, 0)))
 					{
+						// Copy surface to emulated surface
 						if (IsUsingEmulation())
 						{
 							CopyToEmulatedSurface(&Rect);
 						}
+						RestoreData = true;
 					}
 					else
 					{
@@ -3681,138 +3679,24 @@ HRESULT m_IDirectDrawSurfaceX::CreateD3d9Surface()
 					" Surface pitch: " << surfaceDesc2.lPitch << " " << surfaceDesc2.dwWidth << "x" << surfaceDesc2.dwHeight);
 			}
 		}
-	}
 
-	// Data is no longer needed
-	Backup.clear();
-
-	// Only need to create vertex buffer for primary surface when using DirectDraw and not writing to GDI
-	if (!IsPrimarySurface())
-	{
-		return hr;
-	}
-
-	// Create vertex buffer
-	if (FAILED((*d3d9Device)->CreateVertexBuffer(sizeof(TLVERTEX) * 4, D3DUSAGE_WRITEONLY, primary.TLVERTEXFVF, D3DPOOL_DEFAULT, &primary.VertexBuffer, nullptr)))
-	{
-		LOG_LIMIT(100, __FUNCTION__ << " Error: failed to create vertex buffer");
-		return DDERR_GENERIC;
-	}
-
-	// Setup verticies (0, 0, currentWidth, currentHeight)
-	TLVERTEX* vertices = nullptr;
-
-	// Lock vertex buffer
-	if (FAILED(primary.VertexBuffer->Lock(0, 0, (void**)&vertices, 0)))
-	{
-		LOG_LIMIT(100, __FUNCTION__ << " Error: failed to lock vertex buffer");
-		return DDERR_GENERIC;
-	}
-
-	// Get width and height
-	DWORD displayWidth, displayHeight;
-	ddrawParent->GetDisplay(displayWidth, displayHeight);
-	bool displayflag = (Width < displayWidth) && (Height < displayHeight);
-	DWORD BackBufferWidth = (displayflag) ? displayWidth : Width;
-	DWORD BackBufferHeight = (displayflag) ? displayHeight : Height;
-	if (!BackBufferWidth || !BackBufferHeight)
-	{
-		Utils::GetScreenSize(ddrawParent->GetHwnd(), BackBufferWidth, BackBufferHeight);
-	}
-
-	// Calculate width and height with original aspect ratio
-	int xpad = 0, ypad = 0;
-	float u0tex = 0.0f, u1tex = 1.0f, v0tex = 0.0f, v1tex = 1.0f;
-	DWORD DisplayBufferWidth = (displayWidth > BackBufferWidth) ? displayWidth : BackBufferWidth;
-	DWORD DisplayBufferHeight = (displayHeight > BackBufferHeight) ? displayHeight : BackBufferHeight;
-	DWORD TexWidth = Width;
-	DWORD TexHeight = Height;
-	if (Config.DdrawClippedWidth && Config.DdrawClippedWidth <= TexWidth &&
-		Config.DdrawClippedHeight && Config.DdrawClippedHeight <= TexHeight)
-	{
-		u0tex = (((TexWidth - Config.DdrawClippedWidth) / 2.0f)) / TexWidth;
-		u1tex = u0tex + ((float)Config.DdrawClippedWidth / TexWidth);
-
-		v0tex = (((TexHeight - Config.DdrawClippedHeight) / 2.0f)) / TexHeight;
-		v1tex = v0tex + ((float)Config.DdrawClippedHeight / TexHeight);
-
-		TexWidth = Config.DdrawClippedWidth;
-		TexHeight = Config.DdrawClippedHeight;
-	}
-	if (Config.DdrawIntegerScalingClamp)
-	{
-		DWORD xScaleRatio = DisplayBufferWidth / TexWidth;
-		DWORD yScaleRatio = DisplayBufferHeight / TexHeight;
-
-		if (Config.DdrawMaintainAspectRatio)
+		// Copy surface to display texture
+		if (RestoreData && PrimaryDisplayTexture)
 		{
-			xScaleRatio = min(xScaleRatio, yScaleRatio);
-			yScaleRatio = min(xScaleRatio, yScaleRatio);
+			IDirect3DSurface9* pSrcSurfaceD9 = GetD3D9Surface();
+			if (pSrcSurfaceD9)
+			{
+				IDirect3DSurface9* pPrimaryDisplaySurfaceD9 = nullptr;
+				if (SUCCEEDED(PrimaryDisplayTexture->GetSurfaceLevel(0, &pPrimaryDisplaySurfaceD9)))
+				{
+					D3DXLoadSurfaceFromSurface(pPrimaryDisplaySurfaceD9, nullptr, nullptr, pSrcSurfaceD9, nullptr, nullptr, D3DX_FILTER_NONE, 0);
+					pPrimaryDisplaySurfaceD9->Release();
+				}
+			}
 		}
 
-		BackBufferWidth = xScaleRatio * TexWidth;
-		BackBufferHeight = yScaleRatio * TexHeight;
-
-		xpad = (DisplayBufferWidth - BackBufferWidth) / 2;
-		ypad = (DisplayBufferHeight - BackBufferHeight) / 2;
-	}
-	else if (Config.DdrawMaintainAspectRatio)
-	{
-		if (TexWidth * DisplayBufferHeight < TexHeight * DisplayBufferWidth)
-		{
-			// 4:3 displayed on 16:9
-			BackBufferWidth = DisplayBufferHeight * TexWidth / TexHeight;
-		}
-		else
-		{
-			// 16:9 displayed on 4:3
-			BackBufferHeight = DisplayBufferWidth * TexHeight / TexWidth;
-		}
-		xpad = (DisplayBufferWidth - BackBufferWidth) / 2;
-		ypad = (DisplayBufferHeight - BackBufferHeight) / 2;
-	}
-
-	Logging::LogDebug() << __FUNCTION__ << " D3d9 Vertex size: " << BackBufferWidth << "x" << BackBufferHeight <<
-		" pad: " << xpad << "x" << ypad;
-
-	// Set vertex points
-	// 0, 0
-	vertices[0].x = -0.5f + xpad;
-	vertices[0].y = -0.5f + ypad;
-	vertices[0].z = 0.0f;
-	vertices[0].rhw = 1.0f;
-	vertices[0].u = u0tex;
-	vertices[0].v = v0tex;
-
-	// scaledWidth, 0
-	vertices[1].x = -0.5f + xpad + BackBufferWidth;
-	vertices[1].y = vertices[0].y;
-	vertices[1].z = 0.0f;
-	vertices[1].rhw = 1.0f;
-	vertices[1].u = u1tex;
-	vertices[1].v = v0tex;
-
-	// scaledWidth, scaledHeight
-	vertices[2].x = vertices[1].x;
-	vertices[2].y = -0.5f + ypad + BackBufferHeight;
-	vertices[2].z = 0.0f;
-	vertices[2].rhw = 1.0f;
-	vertices[2].u = u1tex;
-	vertices[2].v = v1tex;
-
-	// 0, scaledHeight
-	vertices[3].x = vertices[0].x;
-	vertices[3].y = vertices[2].y;
-	vertices[3].z = 0.0f;
-	vertices[3].rhw = 1.0f;
-	vertices[3].u = u0tex;
-	vertices[3].v = v1tex;
-
-	// Unlock vertex buffer
-	if (FAILED(primary.VertexBuffer->Unlock()))
-	{
-		LOG_LIMIT(100, __FUNCTION__ << " Error: failed to unlock vertex buffer");
-		return DDERR_GENERIC;
+		// Data is no longer needed
+		Backup.clear();
 	}
 
 	return hr;
@@ -4264,18 +4148,6 @@ void m_IDirectDrawSurfaceX::ReleaseD9Surface(bool BackupData)
 		primary.PaletteTexture = nullptr;
 	}
 
-	// Release d3d9 vertex buffer
-	if (primary.VertexBuffer)
-	{
-		Logging::LogDebug() << __FUNCTION__ << " Releasing Direct3D9 vertext buffer";
-		ULONG ref = primary.VertexBuffer->Release();
-		if (ref)
-		{
-			Logging::Log() << __FUNCTION__ << " Error: there is still a reference to 'vertexBuffer' " << ref;
-		}
-		primary.VertexBuffer = nullptr;
-	}
-
 	// Clear locked rects
 	LockRectList.clear();
 
@@ -4360,108 +4232,6 @@ HRESULT m_IDirectDrawSurfaceX::ClearPrimarySurface()
 	return hr;
 }
 
-HRESULT m_IDirectDrawSurfaceX::Draw2DSurface()
-{
-	Logging::LogDebug() << __FUNCTION__ << " (" << this << ") ";
-
-	LPDIRECT3DTEXTURE9 displayTexture = GetD3D9Texture();
-
-	// If there is no surface texture than nothing to draw
-	if (!displayTexture)
-	{
-		return DD_OK;
-	}
-
-	// If texture is not dirty then mark it as dirty in case the game wrote to the memory directly (Nox does this)
-	if (!surface.IsDirtyFlag)
-	{
-		if (IsUsingEmulation())
-		{
-			CopyFromEmulatedSurface(nullptr);
-		}
-		else
-		{
-			displayTexture->AddDirtyRect(nullptr);
-		}
-	}
-
-	// Set texture
-	if (FAILED((*d3d9Device)->SetTexture(0, displayTexture)))
-	{
-		LOG_LIMIT(100, __FUNCTION__ << " Error: failed to set surface texture");
-		return DDERR_GENERIC;
-	}
-
-	// Handle palette surfaces
-	if (primary.PaletteTexture && primary.PalettePixelShader && *primary.PalettePixelShader)
-	{
-		// Set palette texture
-		UpdatePaletteData();
-		if (FAILED((*d3d9Device)->SetTexture(1, primary.PaletteTexture)))
-		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error: failed to lock palette texture!");
-			return DDERR_GENERIC;
-		}
-
-		// Set pixel shader
-		if (FAILED((*d3d9Device)->SetPixelShader(*primary.PalettePixelShader)))
-		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error: failed to set pixel shader");
-			return DDERR_GENERIC;
-		}
-	}
-
-	// Set vertex buffer and lighting
-	if (primary.VertexBuffer)
-	{
-		// Set vertex shader
-		if (FAILED((*d3d9Device)->SetVertexShader(nullptr)))
-		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error: failed to set vertex shader");
-			return DDERR_GENERIC;
-		}
-
-		// Set vertex format
-		if (FAILED((*d3d9Device)->SetFVF(primary.TLVERTEXFVF)))
-		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error: failed to set the current vertex stream format");
-			return DDERR_GENERIC;
-		}
-
-		// Set stream source
-		if (FAILED((*d3d9Device)->SetStreamSource(0, primary.VertexBuffer, 0, sizeof(TLVERTEX))))
-		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error: failed to set vertex buffer stream source");
-			return DDERR_GENERIC;
-		}
-
-		// Set render states (no lighting)
-		if (FAILED((*d3d9Device)->SetRenderState(D3DRS_LIGHTING, FALSE)))
-		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error: failed to set device render state(no lighting)");
-			return DDERR_GENERIC;
-		}
-
-		// Set scale mode to point
-		if (FAILED((*d3d9Device)->SetSamplerState(0, D3DSAMP_MAGFILTER, D3DTEXF_POINT)))
-		{
-			LOG_LIMIT(100, __FUNCTION__ << " Warning: failed to set D3D device to POINT sampling");
-		}
-	}
-
-	// Draw primitive
-	if (FAILED((*d3d9Device)->DrawPrimitive(D3DPT_TRIANGLEFAN, 0, 2)))
-	{
-		LOG_LIMIT(100, __FUNCTION__ << " Error: failed to draw primitive");
-		return DDERR_GENERIC;
-	}
-
-	// Reset dirty flags
-	ClearDirtyFlags();
-
-	return DD_OK;
-}
-
 // Present surface
 HRESULT m_IDirectDrawSurfaceX::PresentSurface(bool IsSkipScene)
 {
@@ -4482,7 +4252,7 @@ HRESULT m_IDirectDrawSurfaceX::PresentSurface(bool IsSkipScene)
 	{
 		if (SceneReady && !IsPresentRunning)
 		{
-			m_IDirectDrawSurfaceX *lpDDSrcSurfaceX = ddrawParent->GetPrimarySurface();
+			m_IDirectDrawSurfaceX* lpDDSrcSurfaceX = ddrawParent->GetPrimarySurface();
 			if (lpDDSrcSurfaceX)
 			{
 				return lpDDSrcSurfaceX->PresentSurface(IsSkipScene);
@@ -4509,43 +4279,30 @@ HRESULT m_IDirectDrawSurfaceX::PresentSurface(bool IsSkipScene)
 	// Set present flag
 	IsPresentRunning = true;
 
+	// If texture is not dirty then mark it as dirty in case the game wrote to the memory directly (Nox does this)
+	if (!surface.IsDirtyFlag)
+	{
+		if (IsUsingEmulation())
+		{
+			CopyFromEmulatedSurface(nullptr);
+		}
+		else
+		{
+			LPDIRECT3DTEXTURE9 displayTexture = GetD3D9Texture();
+			if (displayTexture)
+			{
+				displayTexture->AddDirtyRect(nullptr);
+			}
+		}
+	}
+
+	// Present to d3d9
 	HRESULT hr = DD_OK;
-
-	// Preset surface
-	do {
-		// Begin scene
-		if (FAILED((*d3d9Device)->BeginScene()))
-		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error: failed to begin scene!");
-			hr = DDERR_GENERIC;
-			break;
-		}
-
-		// Draw 2D surface before presenting
-		if (FAILED(Draw2DSurface()))
-		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error: failed to draw 2D surface!");
-			hr = DDERR_GENERIC;
-			break;
-		}
-
-		// End scene
-		if (FAILED((*d3d9Device)->EndScene()))
-		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error: failed to end scene!");
-			hr = DDERR_GENERIC;
-			break;
-		}
-
-		// Present to d3d9
-		if (FAILED(ddrawParent->Present(nullptr, nullptr)))
-		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error: failed to present 2D scene!");
-			hr = DDERR_GENERIC;
-			break;
-		}
-
-	} while (false);
+	if (FAILED(ddrawParent->Present2DScene(this, nullptr, nullptr)))
+	{
+		LOG_LIMIT(100, __FUNCTION__ << " Error: failed to present 2D scene!");
+		hr = DDERR_GENERIC;
+	}
 
 	// Reset present flag
 	IsPresentRunning = false;
@@ -4840,7 +4597,7 @@ inline void m_IDirectDrawSurfaceX::SetDirtyFlag()
 	ChangeUniquenessValue();
 }
 
-inline void m_IDirectDrawSurfaceX::ClearDirtyFlags()
+void m_IDirectDrawSurfaceX::ClearDirtyFlags()
 {
 	// Reset dirty flag
 	dirtyFlag = false;
@@ -6244,29 +6001,8 @@ HRESULT m_IDirectDrawSurfaceX::PresentSurfaceToWindow(RECT Rect)
 		return DDERR_GENERIC;
 	}
 
-	// Begin scene
-	if (FAILED((*d3d9Device)->BeginScene()))
-	{
-		LOG_LIMIT(100, __FUNCTION__ << " Error: failed to begin scene!");
-		return DDERR_GENERIC;
-	}
-
-	// Draw 2D surface before presenting
-	if (FAILED(Draw2DSurface()))
-	{
-		LOG_LIMIT(100, __FUNCTION__ << " Error: failed to draw 2D surface!");
-		return DDERR_GENERIC;
-	}
-
-	// End scene
-	if (FAILED((*d3d9Device)->EndScene()))
-	{
-		LOG_LIMIT(100, __FUNCTION__ << " Error: failed to end scene!");
-		return DDERR_GENERIC;
-	}
-
 	// Present to d3d9
-	if (FAILED(ddrawParent->Present(&MapClient, &MapClient)))
+	if (FAILED(ddrawParent->Present2DScene(this, &MapClient, &MapClient)))
 	{
 		LOG_LIMIT(100, __FUNCTION__ << " Error: failed to present 2D scene!");
 		return DDERR_GENERIC;
