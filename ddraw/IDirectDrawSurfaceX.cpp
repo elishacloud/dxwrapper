@@ -1662,7 +1662,7 @@ HRESULT m_IDirectDrawSurfaceX::GetColorKey(DWORD dwFlags, LPDDCOLORKEY lpDDColor
 	return ProxyInterface->GetColorKey(dwFlags, lpDDColorKey);
 }
 
-HRESULT m_IDirectDrawSurfaceX::GetDC(HDC FAR * lphDC)
+HRESULT m_IDirectDrawSurfaceX::GetDC(HDC FAR* lphDC)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
@@ -1731,36 +1731,24 @@ HRESULT m_IDirectDrawSurfaceX::GetDC(HDC FAR * lphDC)
 
 				*lphDC = surface.emu->GameDC;
 			}
-			else if (surface.Texture)
+			else
 			{
-				if (!surface.Context && FAILED(surface.Texture->GetSurfaceLevel(0, &surface.Context)))
+				// Get surface
+				IDirect3DSurface9* pSurfaceD9 = GetD3D9Surface();
+				if (!pSurfaceD9)
 				{
-					LOG_LIMIT(100, __FUNCTION__ << " Error: could not get surface level!");
+					LOG_LIMIT(100, __FUNCTION__ << " Error: could not find surface!");
 					hr = DDERR_GENERIC;
 					break;
 				}
 
-				if (FAILED(surface.Context->GetDC(lphDC)))
+				// Get device context
+				if (FAILED(pSurfaceD9->GetDC(lphDC)))
 				{
 					LOG_LIMIT(100, __FUNCTION__ << " Error: could not get device context!");
 					hr = DDERR_GENERIC;
 					break;
 				}
-			}
-			else if (surface.Surface)
-			{
-				if (FAILED(surface.Surface->GetDC(lphDC)))
-				{
-					LOG_LIMIT(100, __FUNCTION__ << " Error: could not get device context!");
-					hr = DDERR_GENERIC;
-					break;
-				}
-			}
-			else
-			{
-				LOG_LIMIT(100, __FUNCTION__ << " Error: could not find surface!");
-				hr = DDERR_GENERIC;
-				break;
 			}
 
 			// Set DC flag
@@ -2372,29 +2360,24 @@ HRESULT m_IDirectDrawSurfaceX::ReleaseDC(HDC hDC)
 					CopyEmulatedSurfaceToGDI(Rect);
 				}
 			}
-			else if (surface.Texture)
-			{
-				if (!surface.Context || FAILED(surface.Context->ReleaseDC(hDC)))
-				{
-					LOG_LIMIT(100, __FUNCTION__ << " Error: failed to release surface DC!");
-					hr = DDERR_GENERIC;
-					break;
-				}
-			}
-			else if (surface.Surface)
-			{
-				if (FAILED(surface.Surface->ReleaseDC(hDC)))
-				{
-					LOG_LIMIT(100, __FUNCTION__ << " Error: failed to release surface DC!");
-					hr = DDERR_GENERIC;
-					break;
-				}
-			}
 			else
 			{
-				LOG_LIMIT(100, __FUNCTION__ << " Error: could not find surface!");
-				hr = DDERR_GENERIC;
-				break;
+				// Get surface
+				IDirect3DSurface9* pSurfaceD9 = GetD3D9Surface();
+				if (!pSurfaceD9)
+				{
+					LOG_LIMIT(100, __FUNCTION__ << " Error: could not find surface!");
+					hr = DDERR_GENERIC;
+					break;
+				}
+
+				// Release device context
+				if (FAILED(pSurfaceD9->ReleaseDC(hDC)))
+				{
+					LOG_LIMIT(100, __FUNCTION__ << " Error: failed to release surface DC!");
+					hr = DDERR_GENERIC;
+					break;
+				}
 			}
 
 			// Reset DC flag
