@@ -105,6 +105,9 @@ namespace DdrawWrapper
 	void WINAPI genericQueryInterface(REFIID riid, LPVOID *ppvObj);
 }
 
+bool AddWndProc(HWND hWnd);
+void RemoveWndProc(HWND hWnd);
+
 extern const D3DFORMAT D9DisplayFormat;
 
 extern AddressLookupTableDdraw<void> ProxyAddressLookupTable;

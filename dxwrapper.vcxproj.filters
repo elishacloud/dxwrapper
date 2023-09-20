@@ -892,6 +892,9 @@
     <ClCompile Include="Utils\Disasm.cpp">
       <Filter>Utils</Filter>
     </ClCompile>
+    <ClCompile Include="ddraw\WndProc.cpp">
+      <Filter>ddraw</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="Settings\AllSettings.ini">

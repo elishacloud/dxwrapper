@@ -1620,6 +1620,12 @@ HRESULT m_IDirectDrawX::SetCooperativeLevel(HWND hWnd, DWORD dwFlags, DWORD Dire
 			}
 		}
 
+		// Add WndProc before creating d3d9 device
+		if (LasthWnd != DisplayMode.hWnd)
+		{
+			AddWndProc(DisplayMode.hWnd);
+		}
+
 		// Check if handle is valid
 		if (IsWindow(DisplayMode.hWnd) && DisplayMode.hWnd == hWnd)
 		{
@@ -1645,6 +1651,12 @@ HRESULT m_IDirectDrawX::SetCooperativeLevel(HWND hWnd, DWORD dwFlags, DWORD Dire
 			{
 				CreateD3D9Device();
 			}
+		}
+
+		// Remove WndProc after creating d3d9 device
+		if (LasthWnd != DisplayMode.hWnd)
+		{
+			RemoveWndProc(LasthWnd);
 		}
 
 		return DD_OK;
