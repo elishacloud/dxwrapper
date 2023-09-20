@@ -62,6 +62,10 @@ public:
 	}
 	~WNDPROCSTRUCT()
 	{
+		if (Config.Exiting)
+		{
+			return;
+		}
 		// Restore the memory proetction
 		if (MyWndProc)
 		{

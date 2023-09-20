@@ -2816,7 +2816,7 @@ HRESULT m_IDirectDrawX::CreateD3D9Device()
 			else
 			{
 				// Reset display to get proper screen size
-				if (d3d9Device && !LastWindowedMode)
+				if (d3d9Device && !LastWindowedMode && !Config.EnableWindowMode)
 				{
 					ChangeDisplaySettingsEx(nullptr, nullptr, nullptr, CDS_RESET, nullptr);
 				}
