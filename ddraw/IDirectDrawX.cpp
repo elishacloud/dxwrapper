@@ -611,9 +611,11 @@ HRESULT m_IDirectDrawX::CreateSurface2(LPDDSURFACEDESC2 lpDDSurfaceDesc2, LPDIRE
 		}
 
 		// Remove unused flags
-		if (!Desc2.dwWidth || !Desc2.dwHeight)
+		if (!Desc2.dwWidth || !Desc2.dwHeight || !(Desc2.dwFlags & DDSD_WIDTH) || !(Desc2.dwFlags & DDSD_HEIGHT))
 		{
 			Desc2.dwFlags &= ~(DDSD_WIDTH | DDSD_HEIGHT | DDSD_PITCH);
+			Desc2.dwWidth = 0;
+			Desc2.dwHeight = 0;
 		}
 		if (!Desc2.dwRefreshRate)
 		{
