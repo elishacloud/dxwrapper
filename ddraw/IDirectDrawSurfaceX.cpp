@@ -719,12 +719,12 @@ HRESULT m_IDirectDrawSurfaceX::BltBatch(LPDDBLTBATCH lpDDBltBatch, DWORD dwCount
 		LockedWithID = 0;
 	}
 
-	ReleaseLockCriticalSection();
-
 	if (SUCCEEDED(hr))
 	{
 		EndWritePresent(IsSkipScene);
 	}
+
+	ReleaseLockCriticalSection();
 
 	return hr;
 }
@@ -3458,10 +3458,10 @@ HRESULT m_IDirectDrawSurfaceX::CheckInterface(char *FunctionName, bool CheckD3DD
 	// Check surface
 	if (CheckD3DSurface)
 	{
-		// Check if using Direct3D
+		// Check if using Direct3D and remove emulated surface if not needed
 		bool LastIsDirect3DSurface = IsDirect3DEnabled;
 		IsDirect3DEnabled = ddrawParent->IsUsing3D();
-		if (IsDirect3DEnabled && !LastIsDirect3DSurface && IsUsingEmulation() && !SurfaceRequiresEmulation && !IsSurfaceBusy())
+		if (IsDirect3DEnabled && !LastIsDirect3DSurface && IsUsingEmulation() && !Config.DdrawEmulateSurface && !SurfaceRequiresEmulation && !IsSurfaceBusy())
 		{
 			ReleaseDCSurface();
 		}
@@ -3495,7 +3495,8 @@ HRESULT m_IDirectDrawSurfaceX::CheckInterface(char *FunctionName, bool CheckD3DD
 		surface.IsUsingWindowedMode = !ddrawParent->IsExclusiveMode();
 
 		// Make sure surface exists, if not then create it
-		if ((!surface.Texture && !surface.Surface) || (IsPrimaryOrBackBuffer() && LastWindowedMode != surface.IsUsingWindowedMode) ||
+		if ((!surface.Texture && !surface.Surface) ||
+			(IsPrimaryOrBackBuffer() && LastWindowedMode != surface.IsUsingWindowedMode) ||
 			(IsDirect3DEnabled && PrimaryDisplayTexture))
 		{
 			if (FAILED(CreateD3d9Surface()))
@@ -3519,14 +3520,16 @@ HRESULT m_IDirectDrawSurfaceX::CreateD3d9Surface()
 		return DDERR_GENERIC;
 	}
 
-	// Release existing surface
-	ReleaseD9Surface(true);
-
 	// Check for device interface
 	if (FAILED(CheckInterface(__FUNCTION__, true, false)))
 	{
 		return DDERR_GENERIC;
 	}
+
+	SetLockCriticalSection();
+
+	// Release existing surface
+	ReleaseD9Surface(true);
 
 	// Update surface description
 	UpdateSurfaceDesc();
@@ -3681,6 +3684,8 @@ HRESULT m_IDirectDrawSurfaceX::CreateD3d9Surface()
 		// Data is no longer needed
 		Backup.clear();
 	}
+
+	ReleaseLockCriticalSection();
 
 	return hr;
 }
@@ -4277,6 +4282,7 @@ HRESULT m_IDirectDrawSurfaceX::PresentSurface(bool IsSkipScene)
 				displayTexture->AddDirtyRect(nullptr);
 			}
 		}
+		SetDirtyFlag();
 	}
 
 	// Present to d3d9

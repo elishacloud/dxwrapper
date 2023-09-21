@@ -237,6 +237,7 @@ public:
 	// Begin & end scene
 	void SetVsync();
 	HRESULT Draw2DSurface(m_IDirectDrawSurfaceX* DrawSurface);
+	bool IsUsingThreadPresent();
 	HRESULT Present2DScene(m_IDirectDrawSurfaceX* DrawSurface, RECT* pSourceRect, RECT* pDestRect);
 	HRESULT Present(RECT* pSourceRect, RECT* pDestRect);
 };

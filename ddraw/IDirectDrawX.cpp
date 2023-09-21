@@ -30,6 +30,8 @@ constexpr DWORD MinUsedVidMemory	= 0x00100000;	// 1 MB
 
 const D3DFORMAT D9DisplayFormat = D3DFMT_X8R8G8B8;
 
+DWORD WINAPI PresentThreadFunction(LPVOID);
+
 float ScaleDDWidthRatio = 1.0f;
 float ScaleDDHeightRatio = 1.0f;
 DWORD ScaleDDLastWidth = 0;
@@ -84,16 +86,29 @@ struct DEVICESETTINGS
 
 struct HIGHRESCOUNTER
 {
-	LARGE_INTEGER Frequency, ClickTime, LastPresentTime;
-	LONGLONG LastFrameTime;
-	DWORD FrameCounter;
-	DWORD FrameSkipCounter;
-	DWORD RefreshRate;
-	DWORD Height;
+	LARGE_INTEGER Frequency = {};
+	LARGE_INTEGER LastPresentTime = {};
+	LONGLONG LastFrameTime = 0;
+	DWORD FrameCounter = 0;
+	DWORD FrameSkipCounter = 0;
+	double PerFrameMS = 1000.0 / 60.0;
+};
+
+struct PRESENTTHREAD
+{
+	bool IsInitialized = false;
+	CRITICAL_SECTION ddpt = {};
+	HANDLE workerEvent = {};
+	HANDLE workerThread = {};
+	LARGE_INTEGER LastPresentTime = {};
+	bool EnableThreadFlag = false;
 };
 
 // Store a list of ddraw devices
 std::vector<m_IDirectDrawX*> DDrawVector;
+
+// WndProc hook
+bool EnableWndProcHook = false;
 
 // Exclusive mode settings
 bool SetResolution;
@@ -122,6 +137,25 @@ MOUSEHOOK MouseHook;
 
 // High resolution counter used for auto frame skipping
 HIGHRESCOUNTER Counter;
+
+// Preset from another thread
+PRESENTTHREAD PresentThread;
+
+inline void SetPTCriticalSection()
+{
+	if (PresentThread.IsInitialized)
+	{
+		EnterCriticalSection(&PresentThread.ddpt);
+	}
+}
+
+inline void ReleasePTCriticalSection()
+{
+	if (PresentThread.IsInitialized)
+	{
+		LeaveCriticalSection(&PresentThread.ddpt);
+	}
+}
 
 // Direct3D9 flags
 bool EnableWaitVsync;
@@ -1623,7 +1657,7 @@ HRESULT m_IDirectDrawX::SetCooperativeLevel(HWND hWnd, DWORD dwFlags, DWORD Dire
 		}
 
 		// Add WndProc before creating d3d9 device
-		if (LasthWnd != DisplayMode.hWnd)
+		if (EnableWndProcHook && LasthWnd != DisplayMode.hWnd)
 		{
 			AddWndProc(DisplayMode.hWnd);
 		}
@@ -1656,7 +1690,7 @@ HRESULT m_IDirectDrawX::SetCooperativeLevel(HWND hWnd, DWORD dwFlags, DWORD Dire
 		}
 
 		// Remove WndProc after creating d3d9 device
-		if (LasthWnd != DisplayMode.hWnd)
+		if (EnableWndProcHook && LasthWnd != DisplayMode.hWnd)
 		{
 			RemoveWndProc(LasthWnd);
 		}
@@ -2340,6 +2374,15 @@ void m_IDirectDrawX::InitDdraw(DWORD DirectXVersion)
 		}
 		Device.RefreshRate = 0;
 
+		// Prepare for present from another thread
+		if (Config.DdrawAutoFrameSkip)
+		{
+			PresentThread.IsInitialized = true;
+			InitializeCriticalSection(&PresentThread.ddpt);
+			PresentThread.workerEvent = CreateEvent(NULL, FALSE, FALSE, NULL);
+			PresentThread.workerThread = CreateThread(NULL, 0, PresentThreadFunction, NULL, 0, NULL);
+		}
+
 		// Mouse hook
 		static bool EnableMouseHook = Config.DdrawEnableMouseHook &&
 			((Config.DdrawUseNativeResolution || Config.DdrawOverrideWidth || Config.DdrawOverrideHeight) &&
@@ -2454,6 +2497,7 @@ void m_IDirectDrawX::ReleaseDdraw()
 	}
 
 	SetCriticalSection();
+	SetPTCriticalSection();
 
 	// Clear SetBy handles
 	if (DisplayMode.SetBy == this)
@@ -2524,8 +2568,23 @@ void m_IDirectDrawX::ReleaseDdraw()
 		GammaControlInterface->ClearDdraw();
 	}
 
+	ReleasePTCriticalSection();
+
 	if (DDrawVector.size() == 0)
 	{
+		// Close present thread first
+		if (PresentThread.IsInitialized)
+		{
+			PresentThread.EnableThreadFlag = false;						// Tell thread to exit
+			EnterCriticalSection(&PresentThread.ddpt);					// Ensure thread is not running present
+			SetEvent(PresentThread.workerEvent);						// Trigger thread
+			LeaveCriticalSection(&PresentThread.ddpt);
+			WaitForSingleObject(PresentThread.workerThread, INFINITE);	// Wait for thread to finish
+			CloseHandle(PresentThread.workerThread);					// Close thread handle
+			CloseHandle(PresentThread.workerEvent);						// Close event handle
+			PresentThread.IsInitialized = false;
+		}
+
 		// Release all resources
 		ReleaseAllD9Resources(false);
 
@@ -2559,6 +2618,12 @@ void m_IDirectDrawX::ReleaseDdraw()
 
 		// Clean up shared memory
 		m_IDirectDrawSurfaceX::CleanupSharedEmulatedMemory();
+
+		// Delete critical section
+		if (PresentThread.IsInitialized)
+		{
+			DeleteCriticalSection(&PresentThread.ddpt);
+		}
 	}
 
 	ReleaseCriticalSection();
@@ -2751,6 +2816,7 @@ HRESULT m_IDirectDrawX::CreateD3D9Device()
 	}
 
 	SetCriticalSection();
+	SetPTCriticalSection();
 
 	HRESULT hr = DD_OK;
 	do {
@@ -2990,9 +3056,8 @@ HRESULT m_IDirectDrawX::CreateD3D9Device()
 		}
 
 		// Store display frequency
-		Counter.RefreshRate = (presParams.FullScreen_RefreshRateInHz) ? presParams.FullScreen_RefreshRateInHz : Utils::GetRefreshRate(hWnd);
-		DWORD tmpWidth = 0;
-		Utils::GetScreenSize(hWnd, tmpWidth, Counter.Height);
+		DWORD RefreshRate = (presParams.FullScreen_RefreshRateInHz) ? presParams.FullScreen_RefreshRateInHz : Utils::GetRefreshRate(hWnd);
+		Counter.PerFrameMS = 1000.0 / (RefreshRate ? RefreshRate : 60);
 
 	} while (false);
 
@@ -3002,6 +3067,7 @@ HRESULT m_IDirectDrawX::CreateD3D9Device()
 		D3DDeviceInterface->ResetDevice();
 	}
 
+	ReleasePTCriticalSection();
 	ReleaseCriticalSection();
 
 	// Return result
@@ -3199,6 +3265,7 @@ HRESULT m_IDirectDrawX::ReinitDevice()
 	}
 
 	SetCriticalSection();
+	SetPTCriticalSection();
 
 	do {
 		// Prepare for reset
@@ -3225,6 +3292,7 @@ HRESULT m_IDirectDrawX::ReinitDevice()
 
 	} while (false);
 
+	ReleasePTCriticalSection();
 	ReleaseCriticalSection();
 
 	// Success
@@ -3234,16 +3302,20 @@ HRESULT m_IDirectDrawX::ReinitDevice()
 // Release all dd9 resources
 inline void m_IDirectDrawX::ReleaseAllD9Resources(bool BackupData)
 {
+	SetCriticalSection();
+	SetPTCriticalSection();
+
 	ReleaseAllD9Buffers(BackupData);
 	ReleaseAllD9Surfaces(BackupData);
 	ReleaseAllD9Shaders();
+
+	ReleasePTCriticalSection();
+	ReleaseCriticalSection();
 }
 
 // Release all surfaces from all ddraw devices
 inline void m_IDirectDrawX::ReleaseAllD9Surfaces(bool BackupData)
 {
-	SetCriticalSection();
-
 	for (m_IDirectDrawX*& pDDraw : DDrawVector)
 	{
 		for (m_IDirectDrawSurfaceX*& pSurface : pDDraw->SurfaceVector)
@@ -3251,15 +3323,11 @@ inline void m_IDirectDrawX::ReleaseAllD9Surfaces(bool BackupData)
 			pSurface->ReleaseD9Surface(BackupData);
 		}
 	}
-
-	ReleaseCriticalSection();
 }
 
 // Release all buffers from all ddraw devices
 inline void m_IDirectDrawX::ReleaseAllD9Buffers(bool BackupData)
 {
-	SetCriticalSection();
-
 	for (m_IDirectDrawX*& pDDraw : DDrawVector)
 	{
 		for (m_IDirect3DVertexBufferX*& pBuffer : pDDraw->VertexBufferVector)
@@ -3267,8 +3335,6 @@ inline void m_IDirectDrawX::ReleaseAllD9Buffers(bool BackupData)
 			pBuffer->ReleaseD9Buffers(BackupData);
 		}
 	}
-
-	ReleaseCriticalSection();
 
 	// Release d3d9 vertex buffer
 	if (VertexBuffer)
@@ -3315,9 +3381,12 @@ inline void m_IDirectDrawX::ReleaseAllD9Shaders()
 	}
 }
 
-// Release all d3d9 device
+// Release d3d9 device
 void m_IDirectDrawX::ReleaseD3D9Device()
 {
+	SetCriticalSection();
+	SetPTCriticalSection();
+
 	if (d3d9Device)
 	{
 		ULONG ref = d3d9Device->Release();
@@ -3328,6 +3397,9 @@ void m_IDirectDrawX::ReleaseD3D9Device()
 		}
 		d3d9Device = nullptr;
 	}
+
+	ReleasePTCriticalSection();
+	ReleaseCriticalSection();
 }
 
 // Release d3d9 object
@@ -3808,35 +3880,150 @@ HRESULT m_IDirectDrawX::Draw2DSurface(m_IDirectDrawSurfaceX* DrawSurface)
 
 HRESULT m_IDirectDrawX::Present2DScene(m_IDirectDrawSurfaceX* DrawSurface, RECT* pSourceRect, RECT* pDestRect)
 {
-	// Begin scene
-	if (FAILED(d3d9Device->BeginScene()))
+	HRESULT hr = DD_OK;
+
+	if (IsUsingThreadPresent())
 	{
-		LOG_LIMIT(100, __FUNCTION__ << " Error: failed to begin scene!");
-		return DDERR_GENERIC;
+		return hr;
 	}
 
-	// Draw 2D surface before presenting
-	if (FAILED(Draw2DSurface(DrawSurface)))
+	do {
+		// Begin scene
+		if (FAILED(d3d9Device->BeginScene()))
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: failed to begin scene!");
+			hr = DDERR_GENERIC;
+			break;
+		}
+
+		// Draw 2D surface before presenting
+		HRESULT DrawRet = Draw2DSurface(DrawSurface);
+		if (FAILED(DrawRet))
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: failed to draw 2D surface!");
+			hr = DrawRet;
+		}
+
+		// End scene
+		if (FAILED(d3d9Device->EndScene()))
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: failed to end scene!");
+			hr = DDERR_GENERIC;
+			break;
+		}
+
+		// Present to d3d9
+		if (SUCCEEDED(DrawRet))
+		{
+			if (FAILED(Present(pSourceRect, pDestRect)))
+			{
+				LOG_LIMIT(100, __FUNCTION__ << " Error: failed to present 2D scene!");
+				hr = DDERR_GENERIC;
+				break;
+			}
+		}
+
+	} while (false);
+
+	return hr;
+}
+
+bool m_IDirectDrawX::IsUsingThreadPresent()
+{
+	return (PresentThread.IsInitialized && ExclusiveMode && !IsUsing3D());
+}
+
+// Present Thread: Wait for the event
+DWORD WINAPI PresentThreadFunction(LPVOID)
+{
+	LOG_LIMIT(100, __FUNCTION__ << " Creating thread!");
+
+	PresentThread.EnableThreadFlag = true;
+	while (PresentThread.EnableThreadFlag)
 	{
-		LOG_LIMIT(100, __FUNCTION__ << " Error: failed to draw 2D surface!");
-		return DDERR_GENERIC;
+		// Check how long since the last successful present
+		LARGE_INTEGER ClickTime = {};
+		QueryPerformanceCounter(&ClickTime);
+		double DeltaPresentMS = ((ClickTime.QuadPart - PresentThread.LastPresentTime.QuadPart) * 1000.0) / Counter.Frequency.QuadPart;
+
+		DWORD timeout = (DWORD)(Counter.PerFrameMS - DeltaPresentMS < 0.0 ? 0.0 : Counter.PerFrameMS - DeltaPresentMS);
+
+		WaitForSingleObject(PresentThread.workerEvent, timeout);
+		ResetEvent(PresentThread.workerEvent);
+
+		if (!PresentThread.EnableThreadFlag)
+		{
+			break;
+		}
+
+		SetPTCriticalSection();
+
+		if (d3d9Device)
+		{
+			m_IDirectDrawX* pDDraw = nullptr;
+			m_IDirectDrawSurfaceX* pPrimarySurface = nullptr;
+			for (m_IDirectDrawX* instance : DDrawVector)
+			{
+				pPrimarySurface = instance->GetPrimarySurface();
+				if (pPrimarySurface)
+				{
+					pDDraw = instance;
+					break;
+				}
+			}
+			if (pDDraw && pDDraw->IsUsingThreadPresent() && pPrimarySurface && pPrimarySurface->GetD3D9Texture())
+			{
+				pPrimarySurface->SetLockCriticalSection();
+				pPrimarySurface->SetSurfaceCriticalSection();
+
+				do {
+					// Begin scene
+					if (FAILED(d3d9Device->BeginScene()))
+					{
+						LOG_LIMIT(100, __FUNCTION__ << " Error: failed to begin scene!");
+						break;
+					}
+
+					// Draw 2D surface before presenting
+					HRESULT DrawRet = pDDraw->Draw2DSurface(pPrimarySurface);
+					if (FAILED(DrawRet))
+					{
+						LOG_LIMIT(100, __FUNCTION__ << " Error: failed to draw 2D surface!");
+					}
+
+					// End scene
+					if (FAILED(d3d9Device->EndScene()))
+					{
+						LOG_LIMIT(100, __FUNCTION__ << " Error: failed to end scene!");
+						break;
+					}
+
+					// Present to d3d9
+					if (SUCCEEDED(DrawRet))
+					{
+						if (FAILED(d3d9Device->Present(nullptr, nullptr, nullptr, nullptr)))
+						{
+							LOG_LIMIT(100, __FUNCTION__ << " Error: failed to present 2D scene!");
+							break;
+						}
+
+						// Store last successful present time
+						QueryPerformanceCounter(&PresentThread.LastPresentTime);
+					}
+
+				} while (false);
+
+				pPrimarySurface->ReleaseSurfaceCriticalSection();
+				pPrimarySurface->ReleaseLockCriticalSection();
+			}
+		}
+
+		ReleasePTCriticalSection();
 	}
 
-	// End scene
-	if (FAILED(d3d9Device->EndScene()))
-	{
-		LOG_LIMIT(100, __FUNCTION__ << " Error: failed to end scene!");
-		return DDERR_GENERIC;
-	}
+	LOG_LIMIT(100, __FUNCTION__ << " Closing thread!");
 
-	// Present to d3d9
-	if (FAILED(Present(pSourceRect, pDestRect)))
-	{
-		LOG_LIMIT(100, __FUNCTION__ << " Error: failed to present 2D scene!");
-		return DDERR_GENERIC;
-	}
-
-	return DD_OK;
+	return S_OK;
 }
 
 // Do d3d9 Present
@@ -3845,26 +4032,25 @@ HRESULT m_IDirectDrawX::Present(RECT* pSourceRect, RECT* pDestRect)
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
 	// Skip frame if time lapse is too small
-	if (Config.DdrawAutoFrameSkip && !EnableWaitVsync)
+	if (Config.DdrawAutoFrameSkip && !EnableWaitVsync && !IsUsingThreadPresent())
 	{
 		Counter.FrameSkipCounter++;
 
-		// Get screen frequency timer
-		double MaxScreenTimer = 1000.0 / Counter.RefreshRate;
-
 		// Get time since last successful endscene
-		QueryPerformanceCounter(&Counter.ClickTime);
-		double deltaPresentMS = ((Counter.ClickTime.QuadPart - Counter.LastPresentTime.QuadPart) * 1000.0) / Counter.Frequency.QuadPart;
+		LARGE_INTEGER ClickTime = {};
+		QueryPerformanceCounter(&ClickTime);
+		double deltaPresentMS = ((ClickTime.QuadPart - Counter.LastPresentTime.QuadPart) * 1000.0) / Counter.Frequency.QuadPart;
 
 		// Get time since last skipped frame
-		double deltaFrameMS = (Counter.LastFrameTime) ? ((Counter.ClickTime.QuadPart - Counter.LastFrameTime) * 1000.0) / Counter.Frequency.QuadPart : deltaPresentMS;
-		Counter.LastFrameTime = Counter.ClickTime.QuadPart;
+		double deltaFrameMS = (Counter.LastFrameTime) ? ((ClickTime.QuadPart - Counter.LastFrameTime) * 1000.0) / Counter.Frequency.QuadPart : deltaPresentMS;
+		Counter.LastFrameTime = ClickTime.QuadPart;
 
 		// Use last frame time and average frame time to decide if next frame will be less than the screen frequency timer
-		if ((deltaPresentMS + (deltaFrameMS * 1.1) < MaxScreenTimer) && (deltaPresentMS + ((deltaPresentMS / Counter.FrameSkipCounter) * 1.1) < MaxScreenTimer) &&
+		if ((deltaPresentMS + (deltaFrameMS * 1.1) < Counter.PerFrameMS) &&
+			(deltaPresentMS + ((deltaPresentMS / Counter.FrameSkipCounter) * 1.1) < Counter.PerFrameMS) &&
 			deltaPresentMS > 0 && deltaFrameMS > 0)
 		{
-			Logging::LogDebug() << __FUNCTION__ << " Skipping frame " << deltaPresentMS << "ms screen frequancy " << MaxScreenTimer;
+			Logging::LogDebug() << __FUNCTION__ << " Skipping frame " << deltaPresentMS << "ms screen frequancy " << Counter.PerFrameMS;
 			return D3D_OK;
 		}
 	}
@@ -3879,11 +4065,12 @@ HRESULT m_IDirectDrawX::Present(RECT* pSourceRect, RECT* pDestRect)
 	if (EnableWaitVsync && !Config.EnableVSync)
 	{
 		// Check how long since the last successful present
-		QueryPerformanceCounter(&Counter.ClickTime);
-		double DeltaPresentMS = ((Counter.ClickTime.QuadPart - Counter.LastPresentTime.QuadPart) * 1000.0) / Counter.Frequency.QuadPart;
+		LARGE_INTEGER ClickTime = {};
+		QueryPerformanceCounter(&ClickTime);
+		double DeltaPresentMS = ((ClickTime.QuadPart - Counter.LastPresentTime.QuadPart) * 1000.0) / Counter.Frequency.QuadPart;
 
 		// Don't wait for vsync if the last frame was too long ago
-		if (DeltaPresentMS < 1000.0 / Counter.RefreshRate)
+		if (DeltaPresentMS < Counter.PerFrameMS)
 		{
 			WaitForVerticalBlank(DDWAITVB_BLOCKBEGIN, nullptr);
 		}
@@ -3891,7 +4078,16 @@ HRESULT m_IDirectDrawX::Present(RECT* pSourceRect, RECT* pDestRect)
 	}
 
 	// Present everthing, skip Preset when using DdrawWriteToGDI
-	HRESULT hr = d3d9Device->Present(pSourceRect, pDestRect, nullptr, nullptr);
+	HRESULT hr;
+	if (!IsUsingThreadPresent())
+	{
+		hr = d3d9Device->Present(pSourceRect, pDestRect, nullptr, nullptr);
+	}
+	else
+	{
+		HRESULT ret = TestCooperativeLevel();
+		hr = (ret == D3DERR_DEVICELOST || ret == D3DERR_DEVICENOTRESET || ret == D3DERR_DRIVERINTERNALERROR || ret == D3DERR_INVALIDCALL) ? ret : DD_OK;
+	}
 
 	// Device lost
 	if (hr == D3DERR_DEVICELOST)
@@ -3908,8 +4104,6 @@ HRESULT m_IDirectDrawX::Present(RECT* pSourceRect, RECT* pDestRect)
 	if (SUCCEEDED(hr))
 	{
 		QueryPerformanceCounter(&Counter.LastPresentTime);
-		Counter.LastFrameTime = 0;
-		Counter.FrameSkipCounter = 0;
 	}
 
 	return hr;
