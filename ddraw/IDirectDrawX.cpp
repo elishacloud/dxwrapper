@@ -891,13 +891,6 @@ HRESULT m_IDirectDrawX::EnumDisplayModes2(DWORD dwFlags, LPDDSURFACEDESC2 lpDDSu
 		}
 		bool DisplayAllModes = (DisplayBitCount != 8 && DisplayBitCount != 16 && DisplayBitCount != 24 && DisplayBitCount != 32);
 
-		// Setup surface desc
-		DDSURFACEDESC2 Desc2 = {};
-		Desc2.dwSize = sizeof(DDSURFACEDESC2);
-
-		// Setup display mode
-		D3DDISPLAYMODE d3ddispmode;
-
 		// Enumerate modes for format XRGB
 		UINT modeCount = d3d9Object->GetAdapterModeCount(D3DADAPTER_DEFAULT, D9DisplayFormat);
 
@@ -906,7 +899,7 @@ HRESULT m_IDirectDrawX::EnumDisplayModes2(DWORD dwFlags, LPDDSURFACEDESC2 lpDDSu
 		for (UINT i = 0; i < modeCount; i++)
 		{
 			// Get display modes
-			d3ddispmode = {};
+			D3DDISPLAYMODE d3ddispmode = {};
 			if (FAILED(d3d9Object->EnumAdapterModes(D3DADAPTER_DEFAULT, D9DisplayFormat, i, &d3ddispmode)))
 			{
 				LOG_LIMIT(100, __FUNCTION__ << " Error: EnumAdapterModes failed");
@@ -933,6 +926,7 @@ HRESULT m_IDirectDrawX::EnumDisplayModes2(DWORD dwFlags, LPDDSURFACEDESC2 lpDDSu
 					}
 
 					// Set surface desc options
+					DDSURFACEDESC2 Desc2 = {};
 					Desc2.dwSize = sizeof(DDSURFACEDESC2);
 					Desc2.dwFlags = DDSD_WIDTH | DDSD_HEIGHT | DDSD_REFRESHRATE;
 					Desc2.dwWidth = d3ddispmode.Width;
