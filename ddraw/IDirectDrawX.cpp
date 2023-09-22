@@ -1554,7 +1554,6 @@ HRESULT m_IDirectDrawX::RestoreDisplayMode()
 		}
 
 		// Reset mode
-		Device.IsWindowed = true;
 		DisplayMode.Width = 0;
 		DisplayMode.Height = 0;
 		DisplayMode.BPP = 0;
@@ -1562,12 +1561,6 @@ HRESULT m_IDirectDrawX::RestoreDisplayMode()
 		Device.Width = (Config.DdrawUseNativeResolution || Config.DdrawOverrideWidth) ? Device.Width : 0;
 		Device.Height = (Config.DdrawUseNativeResolution || Config.DdrawOverrideHeight) ? Device.Height : 0;
 		Device.RefreshRate = 0;
-
-		// Restore all existing surfaces
-		if (d3d9Device)
-		{
-			CreateD3D9Device();
-		}
 
 		return DD_OK;
 	}
