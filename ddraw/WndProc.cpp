@@ -83,6 +83,26 @@ public:
 
 std::vector<std::shared_ptr<WNDPROCSTRUCT>> WndProcList;
 
+// Function to get the WndProc address for a given window
+WNDPROC GetWndProc(HWND hWnd)
+{
+	// Check if the window supports Unicode
+	bool isUnicode = IsWindowUnicode(hWnd);
+
+	// Select the appropriate GetWindowLong function based on encoding
+	DWORD_PTR dwProcAddress;
+	if (isUnicode)
+	{
+		dwProcAddress = GetWindowLongPtrW(hWnd, GWL_WNDPROC);
+	}
+	else
+	{
+		dwProcAddress = GetWindowLongPtrA(hWnd, GWL_WNDPROC);
+	}
+
+	return reinterpret_cast<WNDPROC>(dwProcAddress);
+}
+
 bool AddWndProc(HWND hWnd)
 {
 	// Validate window handle
@@ -105,7 +125,7 @@ bool AddWndProc(HWND hWnd)
 	NewEntry->hWnd = hWnd;
 
 	// Get existing WndProc and give it to struct
-	NewEntry->MyAppWndProc = (WNDPROC)GetWindowLongPtr(hWnd, GWLP_WNDPROC);
+	NewEntry->MyAppWndProc = GetWndProc(hWnd);
 	if (!NewEntry->MyAppWndProc)
 	{
 		LOG_LIMIT(100, __FUNCTION__ << " Error: could not get wndproc window pointer!");
