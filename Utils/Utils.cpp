@@ -39,7 +39,6 @@
 #include "d3d8\d3d8External.h"
 #include "d3d9\d3d9External.h"
 #include "External\Hooking\Hook.h"
-#include "Utils.h"
 #include "Logging\Logging.h"
 
 #undef LoadLibrary

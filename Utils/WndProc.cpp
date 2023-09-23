@@ -14,77 +14,90 @@
 *   3. This notice may not be removed or altered from any source distribution.
 */
 
-#include "ddraw.h"
+#define WIN32_LEAN_AND_MEAN
+#include <Windows.h>
+#include "Utils.h"
+#include "Settings\Settings.h"
+#include "Logging\Logging.h"
 
-struct WNDPROCSTRUCT;
-
-LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam, WNDPROCSTRUCT* AppWndProcInstance);
-
-struct WNDPROCSTRUCT
+namespace Utils
 {
-private:
-	BYTE FunctCode[38] = {
-		/* LRESULT CALLBACK MyWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
-		*  {
-		*      WndProc(hwnd, msg, wParam, lParam, this);
-		*  } */
-		0x55,								// PUSH EBP
-		0x8B, 0xEC,							// MOV EBP,ESP
-		0x51,								// PUSH ECX
-		0x68, 0x00,0x00,0x00,0x00,			// PUSH DWORD 0x00000000[this]
-		0xFF,0x75, 0x14,					// PUSH DWORD PTR SS:[EBP+14]
-		0xFF,0x75, 0x10,					// PUSH DWORD PTR SS:[EBP+10]
-		0xFF,0x75, 0x0C,					// PUSH DWORD PTR SS:[EBP+0C]
-		0xFF,0x75, 0x08,					// PUSH DWORD PTR SS:[EBP+08]
-		0xE8, 0x00,0x00,0x00,0x00,			// CALL dxwrapper.WndProc
-		0x89,0x45, 0xFC,					// MOV DWORD PTR SS:[EBP-4],EAX
-		0x8B,0x45, 0xFC,					// MOV EAX,DWORD PTR SS:[EBP-4]
-		0x8B,0xE5,							// MOV ESP,EBP
-		0x5D,								// POP EBP
-		0xC2, 0x10,0x00						// RETN
-	};
-	LONG* pFunctVar = (LONG*)&FunctCode[5];
-	int* pFunctCall = (int*)&FunctCode[22];
-	DWORD oldProtect = 0;
-public:
-	HWND hWnd = nullptr;
-	WNDPROC MyWndProc = 0;
-	WNDPROC MyAppWndProc = 0;
-	WNDPROCSTRUCT()
+	namespace WndProc
 	{
-		// Set memory protection to make it executable
-		if (VirtualProtect(FunctCode, sizeof(FunctCode), PAGE_EXECUTE_READWRITE, &oldProtect))
-		{
-			*pFunctVar = (LONG)this;
-			*pFunctCall = (int)&WndProc - ((int)pFunctCall + 4);
-			MyWndProc = reinterpret_cast<WNDPROC>((LONG)FunctCode);
-		}
-	}
-	~WNDPROCSTRUCT()
-	{
-		if (Config.Exiting)
-		{
-			return;
-		}
-		// Restore the memory proetction
-		if (MyWndProc)
-		{
-			DWORD tmpProtect = 0;
-			VirtualProtect(FunctCode, sizeof(FunctCode), oldProtect, &tmpProtect);
-		}
-		// Restore WndProc
-		if (hWnd && MyAppWndProc)
-		{
-			LOG_LIMIT(100, __FUNCTION__ << " Deleting WndProc instance! " << hWnd);
-			SetWindowLongPtr(hWnd, GWLP_WNDPROC, (LONG)MyAppWndProc);
-		}
-	}
-};
+		struct WNDPROCSTRUCT;
 
-std::vector<std::shared_ptr<WNDPROCSTRUCT>> WndProcList;
+		LRESULT CALLBACK Handler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam, WNDPROCSTRUCT* AppWndProcInstance);
+		WNDPROC GetWndProc(HWND hWnd);
+
+		struct WNDPROCSTRUCT
+		{
+		private:
+			BYTE FunctCode[38] = {
+				/* LRESULT CALLBACK MyWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
+				*  {
+				*      WndProc(hwnd, msg, wParam, lParam, this);
+				*  } */
+				0x55,								// PUSH EBP
+				0x8B, 0xEC,							// MOV EBP,ESP
+				0x51,								// PUSH ECX
+				0x68, 0x00,0x00,0x00,0x00,			// PUSH DWORD 0x00000000[this]
+				0xFF,0x75, 0x14,					// PUSH DWORD PTR SS:[EBP+14]
+				0xFF,0x75, 0x10,					// PUSH DWORD PTR SS:[EBP+10]
+				0xFF,0x75, 0x0C,					// PUSH DWORD PTR SS:[EBP+0C]
+				0xFF,0x75, 0x08,					// PUSH DWORD PTR SS:[EBP+08]
+				0xE8, 0x00,0x00,0x00,0x00,			// CALL dxwrapper.WndProc
+				0x89,0x45, 0xFC,					// MOV DWORD PTR SS:[EBP-4],EAX
+				0x8B,0x45, 0xFC,					// MOV EAX,DWORD PTR SS:[EBP-4]
+				0x8B,0xE5,							// MOV ESP,EBP
+				0x5D,								// POP EBP
+				0xC2, 0x10,0x00						// RETN
+			};
+			LONG* pFunctVar = (LONG*)&FunctCode[5];
+			int* pFunctCall = (int*)&FunctCode[22];
+			DWORD oldProtect = 0;
+		public:
+			HWND hWnd = nullptr;
+			WNDPROC MyWndProc = 0;
+			WNDPROC MyAppWndProc = 0;
+			WNDPROCSTRUCT()
+			{
+				// Set memory protection to make it executable
+				if (VirtualProtect(FunctCode, sizeof(FunctCode), PAGE_EXECUTE_READWRITE, &oldProtect))
+				{
+					*pFunctVar = (LONG)this;
+					*pFunctCall = (int)&Handler - ((int)pFunctCall + 4);
+					MyWndProc = reinterpret_cast<WNDPROC>((LONG)FunctCode);
+				}
+			}
+			~WNDPROCSTRUCT()
+			{
+				if (Config.Exiting)
+				{
+					return;
+				}
+				// Restore the memory proetction
+				if (MyWndProc)
+				{
+					DWORD tmpProtect = 0;
+					VirtualProtect(FunctCode, sizeof(FunctCode), oldProtect, &tmpProtect);
+				}
+				// Restore WndProc
+				if (hWnd && MyAppWndProc)
+				{
+					LOG_LIMIT(100, __FUNCTION__ << " Deleting WndProc instance! " << hWnd);
+					SetWindowLongPtr(hWnd, GWLP_WNDPROC, (LONG)MyAppWndProc);
+				}
+			}
+		};
+
+		std::vector<std::shared_ptr<WNDPROCSTRUCT>> WndProcList;
+	}
+}
+
+using namespace Utils;
 
 // Function to get the WndProc address for a given window
-WNDPROC GetWndProc(HWND hWnd)
+WNDPROC WndProc::GetWndProc(HWND hWnd)
 {
 	// Check if the window supports Unicode
 	bool isUnicode = IsWindowUnicode(hWnd);
@@ -103,7 +116,7 @@ WNDPROC GetWndProc(HWND hWnd)
 	return reinterpret_cast<WNDPROC>(dwProcAddress);
 }
 
-bool AddWndProc(HWND hWnd)
+bool WndProc::AddWndProc(HWND hWnd)
 {
 	// Validate window handle
 	if (!IsWindow(hWnd))
@@ -147,7 +160,7 @@ bool AddWndProc(HWND hWnd)
 	return true;
 }
 
-void RemoveWndProc(HWND hWnd)
+void WndProc::RemoveWndProc(HWND hWnd)
 {
 	// Remove instances from the vector
 	auto newEnd = std::remove_if(WndProcList.begin(), WndProcList.end(), [hWnd](const std::shared_ptr<WNDPROCSTRUCT>& AppWndProcInstance) -> bool
@@ -159,7 +172,7 @@ void RemoveWndProc(HWND hWnd)
 	WndProcList.erase(newEnd, WndProcList.end());
 }
 
-LRESULT CALLBACK WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam, WNDPROCSTRUCT* AppWndProcInstance)
+LRESULT CALLBACK WndProc::Handler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam, WNDPROCSTRUCT* AppWndProcInstance)
 {
 	const WNDPROC pWndProc = (AppWndProcInstance) ? AppWndProcInstance->MyAppWndProc : DefWindowProc;
 	const HWND hWndInstance = (AppWndProcInstance) ? AppWndProcInstance->hWnd : nullptr;

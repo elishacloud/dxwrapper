@@ -298,7 +298,6 @@ cmd /q /c "cd /D ""$(ProjectDir)d3d8\"" &amp;&amp; del build.bat"</Command>
     <ClCompile Include="ddraw\Versions\IDirectDrawSurface3.cpp" />
     <ClCompile Include="ddraw\Versions\IDirectDrawSurface4.cpp" />
     <ClCompile Include="ddraw\Versions\IDirectDrawSurface7.cpp" />
-    <ClCompile Include="ddraw\WndProc.cpp" />
     <ClCompile Include="dinput8\dinput8.cpp" />
     <ClCompile Include="dinput8\dinput8External.h" />
     <ClCompile Include="dinput8\IDirectInput8A.cpp" />
@@ -382,6 +381,7 @@ cmd /q /c "cd /D ""$(ProjectDir)d3d8\"" &amp;&amp; del build.bat"</Command>
     <ClCompile Include="Utils\Fullscreen.cpp" />
     <ClCompile Include="Utils\MyStrings.cpp" />
     <ClCompile Include="Utils\Utils.cpp" />
+    <ClCompile Include="Utils\WndProc.cpp" />
     <ClCompile Include="Utils\WriteMemory.cpp" />
     <ClCompile Include="Wrappers\wrapper.cpp" />
   </ItemGroup>

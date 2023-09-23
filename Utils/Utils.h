@@ -60,6 +60,12 @@ namespace Utils
 		void StopThread();
 		void ResetScreen();
 	}
+
+	namespace WndProc
+	{
+		bool AddWndProc(HWND hWnd);
+		void RemoveWndProc(HWND hWnd);
+	}
 }
 
 bool stristr(LPCSTR strCheck, LPCSTR str, size_t size);

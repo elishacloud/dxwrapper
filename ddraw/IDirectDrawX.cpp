@@ -1645,7 +1645,7 @@ HRESULT m_IDirectDrawX::SetCooperativeLevel(HWND hWnd, DWORD dwFlags, DWORD Dire
 		// Add WndProc before creating d3d9 device
 		if (EnableWndProcHook && LasthWnd != DisplayMode.hWnd)
 		{
-			AddWndProc(DisplayMode.hWnd);
+			Utils::WndProc::AddWndProc(DisplayMode.hWnd);
 		}
 
 		// Check if handle is valid
@@ -1678,7 +1678,7 @@ HRESULT m_IDirectDrawX::SetCooperativeLevel(HWND hWnd, DWORD dwFlags, DWORD Dire
 		// Remove WndProc after creating d3d9 device
 		if (EnableWndProcHook && LasthWnd != DisplayMode.hWnd)
 		{
-			RemoveWndProc(LasthWnd);
+			Utils::WndProc::RemoveWndProc(LasthWnd);
 		}
 
 		return DD_OK;
@@ -2599,7 +2599,7 @@ void m_IDirectDrawX::ReleaseDdraw()
 		// Release WndProc
 		if (DisplayMode.hWnd)
 		{
-			RemoveWndProc(DisplayMode.hWnd);
+			Utils::WndProc::RemoveWndProc(DisplayMode.hWnd);
 		}
 
 		// Clean up shared memory

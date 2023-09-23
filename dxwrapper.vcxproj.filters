@@ -892,8 +892,8 @@
     <ClCompile Include="Utils\Disasm.cpp">
       <Filter>Utils</Filter>
     </ClCompile>
-    <ClCompile Include="ddraw\WndProc.cpp">
-      <Filter>ddraw</Filter>
+    <ClCompile Include="Utils\WndProc.cpp">
+      <Filter>Utils</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
