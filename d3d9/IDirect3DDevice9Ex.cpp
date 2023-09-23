@@ -95,13 +95,13 @@ HRESULT m_IDirect3DDevice9Ex::ResetT(T func, D3DPRESENT_PARAMETERS &d3dpp, D3DPR
 
 	// Setup presentation parameters
 	CopyMemory(&d3dpp, pPresentationParameters, sizeof(D3DPRESENT_PARAMETERS));
-	UpdatePresentParameter(&d3dpp, DeviceWindow, ForceFullscreen, true);
+	UpdatePresentParameter(&d3dpp, DeviceDetails.DeviceWindow, DeviceDetails, ForceFullscreen, true);
 
 	// Test for Multisample
-	if (DeviceMultiSampleFlag)
+	if (DeviceDetails.DeviceMultiSampleFlag)
 	{
 		// Update Present Parameter for Multisample
-		UpdatePresentParameterForMultisample(&d3dpp, DeviceMultiSampleType, DeviceMultiSampleQuality);
+		UpdatePresentParameterForMultisample(&d3dpp, DeviceDetails.DeviceMultiSampleType, DeviceDetails.DeviceMultiSampleQuality);
 
 		// Reset device
 		hr = ResetT(func, &d3dpp, pFullscreenDisplayMode);
@@ -114,7 +114,7 @@ HRESULT m_IDirect3DDevice9Ex::ResetT(T func, D3DPRESENT_PARAMETERS &d3dpp, D3DPR
 
 		// Reset presentation parameters
 		CopyMemory(&d3dpp, pPresentationParameters, sizeof(D3DPRESENT_PARAMETERS));
-		UpdatePresentParameter(&d3dpp, DeviceWindow, ForceFullscreen, false);
+		UpdatePresentParameter(&d3dpp, DeviceDetails.DeviceWindow, DeviceDetails, ForceFullscreen, false);
 
 		// Reset device
 		hr = ResetT(func, &d3dpp, pFullscreenDisplayMode);
@@ -122,9 +122,9 @@ HRESULT m_IDirect3DDevice9Ex::ResetT(T func, D3DPRESENT_PARAMETERS &d3dpp, D3DPR
 		if (SUCCEEDED(hr))
 		{
 			LOG_LIMIT(3, __FUNCTION__ << " Disabling AntiAliasing...");
-			DeviceMultiSampleFlag = false;
-			DeviceMultiSampleType = D3DMULTISAMPLE_NONE;
-			DeviceMultiSampleQuality = 0;
+			DeviceDetails.DeviceMultiSampleFlag = false;
+			DeviceDetails.DeviceMultiSampleType = D3DMULTISAMPLE_NONE;
+			DeviceDetails.DeviceMultiSampleQuality = 0;
 			SetSSAA = false;
 		}
 
@@ -155,7 +155,7 @@ HRESULT m_IDirect3DDevice9Ex::Reset(D3DPRESENT_PARAMETERS *pPresentationParamete
 		ClearVars(pPresentationParameters);
 
 		// Get screen size
-		Utils::GetScreenSize(DeviceWindow, screenWidth, screenHeight);
+		Utils::GetScreenSize(DeviceDetails.DeviceWindow, screenWidth, screenHeight);
 	}
 
 	return hr;
@@ -215,13 +215,13 @@ HRESULT m_IDirect3DDevice9Ex::CreateAdditionalSwapChain(D3DPRESENT_PARAMETERS *p
 	// Setup presentation parameters
 	D3DPRESENT_PARAMETERS d3dpp;
 	CopyMemory(&d3dpp, pPresentationParameters, sizeof(D3DPRESENT_PARAMETERS));
-	UpdatePresentParameter(&d3dpp, DeviceWindow, ForceFullscreen, false);
+	UpdatePresentParameter(&d3dpp, DeviceDetails.DeviceWindow, DeviceDetails, ForceFullscreen, false);
 
 	// Test for Multisample
-	if (DeviceMultiSampleFlag)
+	if (DeviceDetails.DeviceMultiSampleFlag)
 	{
 		// Update Present Parameter for Multisample
-		UpdatePresentParameterForMultisample(&d3dpp, DeviceMultiSampleType, DeviceMultiSampleQuality);
+		UpdatePresentParameterForMultisample(&d3dpp, DeviceDetails.DeviceMultiSampleType, DeviceDetails.DeviceMultiSampleQuality);
 
 		// Create CwapChain
 		hr = ProxyInterface->CreateAdditionalSwapChain(&d3dpp, ppSwapChain);
@@ -230,12 +230,12 @@ HRESULT m_IDirect3DDevice9Ex::CreateAdditionalSwapChain(D3DPRESENT_PARAMETERS *p
 	if (FAILED(hr))
 	{
 		CopyMemory(&d3dpp, pPresentationParameters, sizeof(D3DPRESENT_PARAMETERS));
-		UpdatePresentParameter(&d3dpp, DeviceWindow, ForceFullscreen, false);
+		UpdatePresentParameter(&d3dpp, DeviceDetails.DeviceWindow, DeviceDetails, ForceFullscreen, false);
 
 		// Create CwapChain
 		hr = ProxyInterface->CreateAdditionalSwapChain(&d3dpp, ppSwapChain);
 
-		if (SUCCEEDED(hr) && DeviceMultiSampleFlag)
+		if (SUCCEEDED(hr) && DeviceDetails.DeviceMultiSampleFlag)
 		{
 			LOG_LIMIT(3, __FUNCTION__ <<" Disabling AntiAliasing for SwapChain...");
 		}
@@ -502,7 +502,7 @@ HRESULT m_IDirect3DDevice9Ex::SetRenderState(D3DRENDERSTATETYPE State, DWORD Val
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
 	// Set for Multisample
-	if (DeviceMultiSampleFlag && State == D3DRS_MULTISAMPLEANTIALIAS)
+	if (DeviceDetails.DeviceMultiSampleFlag && State == D3DRS_MULTISAMPLEANTIALIAS)
 	{
 		Value = TRUE;
 	}
@@ -903,7 +903,7 @@ HRESULT m_IDirect3DDevice9Ex::BeginScene()
 	}
 
 	// Set for Multisample
-	if (DeviceMultiSampleFlag)
+	if (DeviceDetails.DeviceMultiSampleFlag)
 	{
 		ProxyInterface->SetRenderState(D3DRS_MULTISAMPLEANTIALIAS, TRUE);
 		if (SetSSAA)
@@ -1158,10 +1158,10 @@ HRESULT m_IDirect3DDevice9Ex::Clear(DWORD Count, CONST D3DRECT *pRects, DWORD Fl
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	if (IsWindow(DeviceWindow) && (Config.FullscreenWindowMode || Config.EnableWindowMode))
+	if (IsWindow(DeviceDetails.DeviceWindow) && (Config.FullscreenWindowMode || Config.EnableWindowMode))
 	{
 		// Peek messages to help prevent a "Not Responding" window
-		Utils::CheckMessageQueue(DeviceWindow);
+		Utils::CheckMessageQueue(DeviceDetails.DeviceWindow);
 	}
 
 	return ProxyInterface->Clear(Count, pRects, Flags, Color, Z, Stencil);
@@ -1837,7 +1837,7 @@ HRESULT m_IDirect3DDevice9Ex::GetFrontBufferData(THIS_ UINT iSwapChain, IDirect3
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	if (Config.EnableWindowMode && (BufferWidth != screenWidth || BufferHeight != screenHeight))
+	if (Config.EnableWindowMode && (DeviceDetails.BufferWidth != screenWidth || DeviceDetails.BufferHeight != screenHeight))
 	{
 		return FakeGetFrontBufferData(iSwapChain, pDestSurface);
 	}
@@ -1867,9 +1867,9 @@ HRESULT m_IDirect3DDevice9Ex::FakeGetFrontBufferData(THIS_ UINT iSwapChain, IDir
 	}
 
 	// Get location of client window
-	RECT RectSrc = { 0, 0, BufferWidth , BufferHeight };
-	RECT rcClient = { 0, 0, BufferWidth , BufferHeight };
-	if (Config.EnableWindowMode && DeviceWindow && (!GetWindowRect(DeviceWindow, &RectSrc) || !GetClientRect(DeviceWindow, &rcClient)))
+	RECT RectSrc = { 0, 0, DeviceDetails.BufferWidth , DeviceDetails.BufferHeight };
+	RECT rcClient = { 0, 0, DeviceDetails.BufferWidth , DeviceDetails.BufferHeight };
+	if (Config.EnableWindowMode && DeviceDetails.DeviceWindow && (!GetWindowRect(DeviceDetails.DeviceWindow, &RectSrc) || !GetClientRect(DeviceDetails.DeviceWindow, &rcClient)))
 	{
 		return D3DERR_INVALIDCALL;
 	}
@@ -2296,7 +2296,7 @@ HRESULT m_IDirect3DDevice9Ex::ResetEx(THIS_ D3DPRESENT_PARAMETERS* pPresentation
 		ClearVars(pPresentationParameters);
 
 		// Get screen size
-		Utils::GetScreenSize(DeviceWindow, screenWidth, screenHeight);
+		Utils::GetScreenSize(DeviceDetails.DeviceWindow, screenWidth, screenHeight);
 	}
 
 	return hr;

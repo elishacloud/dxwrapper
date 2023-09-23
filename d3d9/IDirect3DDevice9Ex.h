@@ -12,6 +12,8 @@ private:
 
 	D3DCAPS9 Caps = {};
 
+	DEVICEDETAILS DeviceDetails;
+
 	LONG screenWidth, screenHeight;
 
 	bool SetSSAA = false;
@@ -61,12 +63,12 @@ public:
 	{
 		InitDirect3DDevice(pDevice);
 
-		DeviceMultiSampleFlag = MultiSampleFlag;
-		DeviceMultiSampleType = MultiSampleType;
-		DeviceMultiSampleQuality = MultiSampleQuality;
+		DeviceDetails.DeviceMultiSampleFlag = MultiSampleFlag;
+		DeviceDetails.DeviceMultiSampleType = MultiSampleType;
+		DeviceDetails.DeviceMultiSampleQuality = MultiSampleQuality;
 
 		// Check for SSAA
-		if (DeviceMultiSampleType && m_pD3DEx &&
+		if (DeviceDetails.DeviceMultiSampleType && m_pD3DEx &&
 			m_pD3DEx->CheckDeviceFormat(D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, D3DFMT_X8R8G8B8, 0, D3DRTYPE_SURFACE, (D3DFORMAT)MAKEFOURCC('S', 'S', 'A', 'A')) == S_OK)
 		{
 			SetSSAA = true;
@@ -82,13 +84,19 @@ public:
 		}
 
 		// Get screen size
-		Utils::GetScreenSize(DeviceWindow, screenWidth, screenHeight);
+		Utils::GetScreenSize(DeviceDetails.DeviceWindow, screenWidth, screenHeight);
 
 		ProxyAddressLookupTable = new AddressLookupTableD3d9<m_IDirect3DDevice9Ex>(this);
 	}
 	~m_IDirect3DDevice9Ex()
 	{
 		LOG_LIMIT(3, __FUNCTION__ << " (" << this << ")" << " deleting interface!");
+
+		// Remove WndProc after releasing d3d9 device
+		if (EnableWndProcHook)
+		{
+			Utils::WndProc::RemoveWndProc(DeviceDetails.DeviceWindow);
+		}
 
 		delete ProxyAddressLookupTable;
 	}
@@ -240,5 +248,7 @@ public:
 	STDMETHOD(GetDisplayModeEx)(THIS_ UINT iSwapChain, D3DDISPLAYMODEEX* pMode, D3DDISPLAYROTATION* pRotation);
 
 	// Helper functions
-	LPDIRECT3DDEVICE9 GetProxyInterface() { return ProxyInterface; }
+	inline LPDIRECT3DDEVICE9 GetProxyInterface() { return ProxyInterface; }
+	inline void SetDeviceDetails(DEVICEDETAILS& NewDeviceDetails) { DeviceDetails = NewDeviceDetails; }
+	inline D3DMULTISAMPLE_TYPE GetMultiSampleType() { return DeviceDetails.DeviceMultiSampleType; }
 };

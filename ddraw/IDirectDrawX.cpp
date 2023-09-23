@@ -107,9 +107,6 @@ struct PRESENTTHREAD
 // Store a list of ddraw devices
 std::vector<m_IDirectDrawX*> DDrawVector;
 
-// WndProc hook
-bool EnableWndProcHook = false;
-
 // Exclusive mode settings
 bool SetResolution;
 bool ExclusiveMode;
@@ -1642,12 +1639,6 @@ HRESULT m_IDirectDrawX::SetCooperativeLevel(HWND hWnd, DWORD dwFlags, DWORD Dire
 			}
 		}
 
-		// Add WndProc before creating d3d9 device
-		if (EnableWndProcHook && LasthWnd != DisplayMode.hWnd)
-		{
-			Utils::WndProc::AddWndProc(DisplayMode.hWnd);
-		}
-
 		// Check if handle is valid
 		if (IsWindow(DisplayMode.hWnd) && DisplayMode.hWnd == hWnd)
 		{
@@ -1673,12 +1664,6 @@ HRESULT m_IDirectDrawX::SetCooperativeLevel(HWND hWnd, DWORD dwFlags, DWORD Dire
 			{
 				CreateD3D9Device();
 			}
-		}
-
-		// Remove WndProc after creating d3d9 device
-		if (EnableWndProcHook && LasthWnd != DisplayMode.hWnd)
-		{
-			Utils::WndProc::RemoveWndProc(LasthWnd);
 		}
 
 		return DD_OK;
