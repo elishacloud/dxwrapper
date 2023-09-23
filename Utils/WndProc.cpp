@@ -75,7 +75,7 @@ namespace Utils
 				{
 					return;
 				}
-				// Restore the memory proetction
+				// Restore the memory protection
 				if (MyWndProc)
 				{
 					DWORD tmpProtect = 0;
