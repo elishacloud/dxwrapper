@@ -58,7 +58,7 @@ namespace Utils
 		public:
 			HWND hWnd = nullptr;
 			WNDPROC MyWndProc = 0;
-			WNDPROC MyAppWndProc = 0;
+			WNDPROC AppWndProc = 0;
 			WNDPROCSTRUCT()
 			{
 				// Set memory protection to make it executable
@@ -82,10 +82,10 @@ namespace Utils
 					VirtualProtect(FunctCode, sizeof(FunctCode), oldProtect, &tmpProtect);
 				}
 				// Restore WndProc
-				if (hWnd && MyAppWndProc)
+				if (hWnd && AppWndProc)
 				{
 					LOG_LIMIT(100, __FUNCTION__ << " Deleting WndProc instance! " << hWnd);
-					SetWindowLongPtr(hWnd, GWLP_WNDPROC, (LONG)MyAppWndProc);
+					SetWindowLongPtr(hWnd, GWLP_WNDPROC, (LONG)AppWndProc);
 				}
 			}
 		};
@@ -138,8 +138,8 @@ bool WndProc::AddWndProc(HWND hWnd)
 	NewEntry->hWnd = hWnd;
 
 	// Get existing WndProc and give it to struct
-	NewEntry->MyAppWndProc = GetWndProc(hWnd);
-	if (!NewEntry->MyAppWndProc)
+	NewEntry->AppWndProc = GetWndProc(hWnd);
+	if (!NewEntry->AppWndProc)
 	{
 		LOG_LIMIT(100, __FUNCTION__ << " Error: could not get wndproc window pointer!");
 		return false;
@@ -155,7 +155,7 @@ bool WndProc::AddWndProc(HWND hWnd)
 
 	// Set new window pointer and store struct address
 	LOG_LIMIT(100, __FUNCTION__ << " Creating WndProc instance! " << hWnd);
-	SetWindowLongPtr(hWnd, GWLP_WNDPROC, (LONG)NewWndProc);
+	SetWindowLongPtr(hWnd, GWLP_WNDPROC, NewWndProc);
 	WndProcList.push_back(NewEntry);
 	return true;
 }
@@ -174,7 +174,7 @@ void WndProc::RemoveWndProc(HWND hWnd)
 
 LRESULT CALLBACK WndProc::Handler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam, WNDPROCSTRUCT* AppWndProcInstance)
 {
-	const WNDPROC pWndProc = (AppWndProcInstance) ? AppWndProcInstance->MyAppWndProc : DefWindowProc;
+	const WNDPROC pWndProc = (AppWndProcInstance) ? AppWndProcInstance->AppWndProc : DefWindowProc;
 	const HWND hWndInstance = (AppWndProcInstance) ? AppWndProcInstance->hWnd : nullptr;
 
 	Logging::LogDebug() << __FUNCTION__ << " " << hWnd << " " << Logging::hex(msg);
