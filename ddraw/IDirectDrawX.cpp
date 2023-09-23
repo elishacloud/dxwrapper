@@ -1659,8 +1659,22 @@ HRESULT m_IDirectDrawX::SetCooperativeLevel(HWND hWnd, DWORD dwFlags, DWORD Dire
 			// The flag (DDSCL_NOWINDOWCHANGES) means DirectDraw is not allowed to minimize or restore the application window on activation.
 			Device.NoWindowChanges = ((dwFlags & DDSCL_NOWINDOWCHANGES) != 0);
 
+			// Restore display mode
+			if (Config.DdrawDelayDeviceCreation && LastExclusiveMode != ExclusiveMode)
+			{
+				// Send message about activate
+				if (d3d9Device && IsWindow(DisplayMode.hWnd))
+				{
+					SendMessage(DisplayMode.hWnd, WM_ACTIVATE, WA_ACTIVE, WM_NULL);
+				}
+				ReleaseAllD9Resources(true);
+				ReleaseD3D9Device();
+				RestoreDisplayMode();
+			}
+
 			// Reset if mode was changed
-			if (LastExclusiveMode != ExclusiveMode || LasthWnd != DisplayMode.hWnd || LastFPUPreserve != Device.FPUPreserve || LastNoWindowChanges != Device.NoWindowChanges)
+			if ((d3d9Device || (!d3d9Device && !Config.DdrawDelayDeviceCreation)) &&
+				(LastExclusiveMode != ExclusiveMode || LasthWnd != DisplayMode.hWnd || LastFPUPreserve != Device.FPUPreserve || LastNoWindowChanges != Device.NoWindowChanges))
 			{
 				CreateD3D9Device();
 			}

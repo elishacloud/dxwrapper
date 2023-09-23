@@ -27,6 +27,7 @@
 	visit(DdrawAutoFrameSkip) \
 	visit(DdrawClippedWidth) \
 	visit(DdrawClippedHeight) \
+	visit(DdrawDelayDeviceCreation) \
 	visit(DdrawRemoveScanlines) \
 	visit(DdrawRemoveInterlacing) \
 	visit(DdrawFixByteAlignment) \
@@ -217,6 +218,7 @@ struct CONFIG
 	bool DdrawUseNativeResolution = false;		// Uses the current screen resolution for Dd7to9
 	DWORD DdrawClippedWidth = 0;				// Used to scaled Direct3d9 to use this width when using Dd7to9
 	DWORD DdrawClippedHeight = 0;				// Used to scaled Direct3d9 to use this height when using Dd7to9
+	bool DdrawDelayDeviceCreation = false;		// Delays the Direct3D9 device creation until either SetDisplayMode() or the device is needed
 	DWORD DdrawLimitDisplayModeCount = 0;		// Limits the number of display modes sent to program, some games crash when you feed them with too many resolutions
 	DWORD DdrawOverrideBitMode = 0;				// Forces DirectX to use specified bit mode: 8, 16, 24, 32
 	DWORD DdrawOverrideWidth = 0;				// Force Direct3d9 to use this width when using Dd7to9
