@@ -2581,12 +2581,6 @@ void m_IDirectDrawX::ReleaseDdraw()
 			DisplayMode.DC = nullptr;
 		}
 
-		// Release WndProc
-		if (DisplayMode.hWnd)
-		{
-			Utils::WndProc::RemoveWndProc(DisplayMode.hWnd);
-		}
-
 		// Clean up shared memory
 		m_IDirectDrawSurfaceX::CleanupSharedEmulatedMemory();
 
