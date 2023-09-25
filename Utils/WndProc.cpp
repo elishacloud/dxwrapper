@@ -28,6 +28,7 @@ namespace Utils
 
 		LRESULT CALLBACK Handler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam, WNDPROCSTRUCT* AppWndProcInstance);
 		WNDPROC GetWndProc(HWND hWnd);
+		LONG_PTR SetWndProc(HWND hWnd, WNDPROC ProcAddress);
 
 		struct WNDPROCSTRUCT
 		{
@@ -85,7 +86,7 @@ namespace Utils
 				if (hWnd && AppWndProc)
 				{
 					LOG_LIMIT(100, __FUNCTION__ << " Deleting WndProc instance! " << hWnd);
-					SetWindowLongPtr(hWnd, GWLP_WNDPROC, (LONG)AppWndProc);
+					SetWndProc(hWnd, AppWndProc);
 				}
 			}
 		};
@@ -96,24 +97,18 @@ namespace Utils
 
 using namespace Utils;
 
-// Function to get the WndProc address for a given window
 WNDPROC WndProc::GetWndProc(HWND hWnd)
 {
-	// Check if the window supports Unicode
-	bool isUnicode = IsWindowUnicode(hWnd);
+	return reinterpret_cast<WNDPROC>(IsWindowUnicode(hWnd) ?
+		GetWindowLongPtrW(hWnd, GWL_WNDPROC) :
+		GetWindowLongPtrA(hWnd, GWL_WNDPROC));
+}
 
-	// Select the appropriate GetWindowLong function based on encoding
-	DWORD_PTR dwProcAddress;
-	if (isUnicode)
-	{
-		dwProcAddress = GetWindowLongPtrW(hWnd, GWL_WNDPROC);
-	}
-	else
-	{
-		dwProcAddress = GetWindowLongPtrA(hWnd, GWL_WNDPROC);
-	}
-
-	return reinterpret_cast<WNDPROC>(dwProcAddress);
+LONG_PTR WndProc::SetWndProc(HWND hWnd, WNDPROC ProcAddress)
+{
+	return (IsWindowUnicode(hWnd) ?
+		SetWindowLongPtrW(hWnd, GWL_WNDPROC, (LONG)ProcAddress) :
+		SetWindowLongPtrA(hWnd, GWL_WNDPROC, (LONG)ProcAddress));
 }
 
 bool WndProc::AddWndProc(HWND hWnd)
@@ -146,7 +141,7 @@ bool WndProc::AddWndProc(HWND hWnd)
 	}
 
 	// Get new WndProc
-	LONG NewWndProc = (LONG)NewEntry->MyWndProc;
+	WNDPROC NewWndProc = NewEntry->MyWndProc;
 	if (!NewWndProc)
 	{
 		LOG_LIMIT(100, __FUNCTION__ << " Error: could not get function target!");
@@ -155,7 +150,7 @@ bool WndProc::AddWndProc(HWND hWnd)
 
 	// Set new window pointer and store struct address
 	LOG_LIMIT(100, __FUNCTION__ << " Creating WndProc instance! " << hWnd);
-	SetWindowLongPtr(hWnd, GWLP_WNDPROC, NewWndProc);
+	SetWndProc(hWnd, NewWndProc);
 	WndProcList.push_back(NewEntry);
 	return true;
 }
