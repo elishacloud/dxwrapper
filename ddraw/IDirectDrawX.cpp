@@ -4100,7 +4100,7 @@ HRESULT m_IDirectDrawX::Present(RECT* pSourceRect, RECT* pDestRect)
 	return hr;
 }
 
-DWORD GetDDrawBitsPixel()
+DWORD GetDDrawBitsPixel(HWND hWnd)
 {
 	if (Config.DdrawOverrideBitMode)
 	{
@@ -4108,7 +4108,17 @@ DWORD GetDDrawBitsPixel()
 	}
 	if (DDrawVector.size() && DisplayMode.hWnd)
 	{
-		return Exclusive.BPP ? Exclusive.BPP : DisplayMode.BPP;
+		bool isMenu = false;
+		if (hWnd)
+		{
+			char name[256] = {};
+			GetClassNameA(hWnd, name, sizeof(name));
+			isMenu = ((DWORD)hWnd == 0x00010010 || strcmp(name, "#32769") == S_OK);
+		}
+		if (!isMenu)
+		{
+			return Exclusive.BPP ? Exclusive.BPP : DisplayMode.BPP;
+		}
 	}
 	return 0;
 }

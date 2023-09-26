@@ -30,13 +30,13 @@ using namespace GdiWrapper;
 
 int WINAPI gdi_GetDeviceCaps(HDC hdc, int index)
 {
-	Logging::LogDebug() << __FUNCTION__ << " " << hdc << " " << index;
+	Logging::LogDebug() << __FUNCTION__ << " " << WindowFromDC(hdc) << " " << index;
 
 	static GetDeviceCapsProc m_pGetDeviceCaps = (Wrapper::ValidProcAddress(GetDeviceCaps_out)) ? (GetDeviceCapsProc)GetDeviceCaps_out : nullptr;
 
 	if (index == BITSPIXEL)
 	{
-		switch (GetDDrawBitsPixel())
+		switch (GetDDrawBitsPixel(WindowFromDC(hdc)))
 		{
 		case 8:
 			return 8;

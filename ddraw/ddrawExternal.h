@@ -32,7 +32,7 @@ void AddBaseClipperToVetor(m_IDirectDrawClipper* lpClipper);
 void RemoveBaseClipperFromVector(m_IDirectDrawClipper* lpClipper);
 bool DoesBaseClipperExist(m_IDirectDrawClipper* lpClipper);
 
-DWORD GetDDrawBitsPixel();
+DWORD GetDDrawBitsPixel(HWND hWnd);
 DWORD GetDDrawWidth();
 DWORD GetDDrawHeight();
 
