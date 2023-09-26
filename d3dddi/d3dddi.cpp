@@ -10,13 +10,16 @@ typedef NTSTATUS(WINAPI* D3DKMTQueryVideoMemoryInfoProc)(D3DKMT_QUERYVIDEOMEMORY
 
 #define STATUS_SUCCESS 0
 
-bool IsD3DDDILoaded = false;
-D3DKMT_OPENADAPTERFROMHDC openAdapter = {};
-
-HMODULE GetGDIHandle()
+namespace
 {
-	static HMODULE gdi_dll = LoadLibrary("gdi32.dll");
-	return gdi_dll;
+	bool IsD3DDDILoaded = false;
+	D3DKMT_OPENADAPTERFROMHDC openAdapter = {};
+
+	HMODULE GetGDIHandle()
+	{
+		static HMODULE gdi_dll = LoadLibrary("gdi32.dll");
+		return gdi_dll;
+	}
 }
 
 bool OpenD3DDDI(HDC hDC)

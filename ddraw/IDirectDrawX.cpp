@@ -2811,7 +2811,7 @@ HRESULT m_IDirectDrawX::CreateD3D9Device()
 		hFocusWindow = hWnd;
 
 		// Check window handle thread
-		if (hWnd && GetWindowThreadProcessId(hWnd, nullptr) != GetCurrentThreadId())
+		if (IsWindow(hWnd) && GetWindowThreadProcessId(hWnd, nullptr) != GetCurrentThreadId())
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Warning: trying to create Direct3D9 device from a different thread than the hwnd was created from!");
 		}
@@ -3247,6 +3247,12 @@ HRESULT m_IDirectDrawX::ReinitDevice()
 	SetPTCriticalSection();
 
 	do {
+		// Check window handle thread
+		if (IsWindow(presParams.hDeviceWindow) && GetWindowThreadProcessId(presParams.hDeviceWindow, nullptr) != GetCurrentThreadId())
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Warning: trying to reset Direct3D9 device from a different thread than the hwnd was created from!");
+		}
+
 		// Prepare for reset
 		ReleaseAllD9Resources(true);
 
@@ -3368,6 +3374,12 @@ void m_IDirectDrawX::ReleaseD3D9Device()
 
 	if (d3d9Device)
 	{
+		// Check window handle thread
+		if (IsWindow(presParams.hDeviceWindow) && GetWindowThreadProcessId(presParams.hDeviceWindow, nullptr) != GetCurrentThreadId())
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Warning: trying to release Direct3D9 device from a different thread than the hwnd was created from!");
+		}
+
 		ULONG ref = d3d9Device->Release();
 		if (ref)
 		{
