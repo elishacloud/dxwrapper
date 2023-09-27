@@ -654,7 +654,10 @@ HRESULT m_IDirect3DDeviceX::EnumTextureFormats(LPD3DENUMPIXELFORMATSCALLBACK lpd
 			if (SUCCEEDED(hr))
 			{
 				SetPixelDisplayFormat(format, ddpfPixelFormat);
-				lpd3dEnumPixelProc(&ddpfPixelFormat, lpArg);
+				if (lpd3dEnumPixelProc(&ddpfPixelFormat, lpArg) == DDENUMRET_CANCEL)
+				{
+					return DD_OK;
+				}
 			}
 		}
 

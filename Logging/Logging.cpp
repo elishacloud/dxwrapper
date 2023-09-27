@@ -624,6 +624,7 @@ std::ostream& operator<<(std::ostream& os, const D3DVERTEXBUFFERDESC& data)
 std::ostream& operator<<(std::ostream& os, const D3DPRIMCAPS& dpc)
 {
 	return Logging::LogStruct(os)
+		<< dpc.dwSize
 		<< Logging::hex(dpc.dwMiscCaps)
 		<< Logging::hex(dpc.dwRasterCaps)
 		<< Logging::hex(dpc.dwZCmpCaps)
@@ -637,6 +638,61 @@ std::ostream& operator<<(std::ostream& os, const D3DPRIMCAPS& dpc)
 		<< Logging::hex(dpc.dwTextureAddressCaps)
 		<< dpc.dwStippleWidth
 		<< dpc.dwStippleHeight;
+}
+
+std::ostream& operator<<(std::ostream& os, const D3DTRANSFORMCAPS& tc)
+{
+	return Logging::LogStruct(os)
+		<< tc.dwSize
+		<< Logging::hex(tc.dwCaps);
+}
+
+std::ostream& operator<<(std::ostream& os, const D3DLIGHTINGCAPS& lc)
+{
+	return Logging::LogStruct(os)
+		<< lc.dwSize
+		<< Logging::hex(lc.dwCaps)
+		<< lc.dwLightingModel
+		<< lc.dwNumLights;
+}
+
+std::ostream& operator<<(std::ostream& os, const D3DDEVICEDESC& dd)
+{
+	return Logging::LogStruct(os)
+		<< dd.dwSize
+		<< Logging::hex(dd.dwFlags)
+		<< dd.dcmColorModel
+		<< Logging::hex(dd.dwDevCaps)
+		<< dd.dtcTransformCaps
+		<< dd.bClipping
+		<< dd.dlcLightingCaps
+		<< dd.dpcLineCaps
+		<< dd.dpcTriCaps
+		<< dd.dwDeviceRenderBitDepth
+		<< dd.dwDeviceZBufferBitDepth
+		<< dd.dwMaxBufferSize
+		<< dd.dwMaxVertexCount
+		<< dd.dwMinTextureWidth
+		<< dd.dwMinTextureHeight
+		<< dd.dwMaxTextureWidth
+		<< dd.dwMaxTextureHeight
+		<< dd.dwMinStippleWidth
+		<< dd.dwMinStippleHeight
+		<< dd.dwMaxStippleWidth
+		<< dd.dwMaxStippleHeight
+		<< dd.dwMaxTextureRepeat
+		<< dd.dwMaxTextureAspectRatio
+		<< dd.dwMaxAnisotropy
+		<< dd.dvGuardBandLeft
+		<< dd.dvGuardBandTop
+		<< dd.dvGuardBandRight
+		<< dd.dvGuardBandBottom
+		<< dd.dvExtentsAdjust
+		<< Logging::hex(dd.dwStencilCaps)
+		<< Logging::hex(dd.dwFVFCaps)
+		<< Logging::hex(dd.dwTextureOpCaps)
+		<< dd.wMaxTextureBlendStages
+		<< dd.wMaxSimultaneousTextures;
 }
 
 std::ostream& operator<<(std::ostream& os, const D3DDEVICEDESC7& dd)

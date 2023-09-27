@@ -52,6 +52,9 @@ std::ostream& operator<<(std::ostream& os, const D3DSTATUS& data);
 std::ostream& operator<<(std::ostream& os, const D3DCLIPSTATUS& data);
 std::ostream& operator<<(std::ostream& os, const D3DVERTEXBUFFERDESC& data);
 std::ostream& operator<<(std::ostream& os, const D3DPRIMCAPS& pc);
+std::ostream& operator<<(std::ostream& os, const D3DTRANSFORMCAPS& tc);
+std::ostream& operator<<(std::ostream& os, const D3DLIGHTINGCAPS& lc);
+std::ostream& operator<<(std::ostream& os, const D3DDEVICEDESC& dd);
 std::ostream& operator<<(std::ostream& os, const D3DDEVICEDESC7& dd);
 #endif
 #ifdef _d3d9TYPES_H_

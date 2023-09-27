@@ -38,7 +38,7 @@ HRESULT m_IDirect3D::Initialize(REFCLSID a)
 
 HRESULT m_IDirect3D::EnumDevices(LPD3DENUMDEVICESCALLBACK a, LPVOID b)
 {
-	return ProxyInterface->EnumDevices(a, b);
+	return ProxyInterface->EnumDevices(a, b, DirectXVersion);
 }
 
 HRESULT m_IDirect3D::CreateLight(LPDIRECT3DLIGHT * a, IUnknown * b)
