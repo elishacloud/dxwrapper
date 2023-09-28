@@ -39,7 +39,7 @@ std::vector<EMUSURFACE*> memorySurfaces;
 /*** IUnknown methods ***/
 /************************/
 
-HRESULT m_IDirectDrawSurfaceX::QueryInterface(REFIID riid, LPVOID FAR * ppvObj, DWORD DirectXVersion)
+HRESULT m_IDirectDrawSurfaceX::QueryInterface(REFIID riid, LPVOID FAR* ppvObj, DWORD DirectXVersion)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ") " << riid;
 
@@ -47,6 +47,7 @@ HRESULT m_IDirectDrawSurfaceX::QueryInterface(REFIID riid, LPVOID FAR * ppvObj, 
 	{
 		return E_POINTER;
 	}
+	*ppvObj = nullptr;
 
 	if (riid == IID_GetRealInterface)
 	{
@@ -67,6 +68,10 @@ HRESULT m_IDirectDrawSurfaceX::QueryInterface(REFIID riid, LPVOID FAR * ppvObj, 
 
 	DWORD DxVersion = (CheckWrapperType(riid) && (Config.Dd7to9 || Config.ConvertToDirectDraw7)) ? GetGUIDVersion(riid) : DirectXVersion;
 
+	bool IsD3DDevice = (riid == IID_IDirect3DHALDevice || riid == IID_IDirect3DTnLHalDevice ||
+		riid == IID_IDirect3DRGBDevice || riid == IID_IDirect3DRampDevice || riid == IID_IDirect3DMMXDevice ||
+		riid == IID_IDirect3DRefDevice || riid == IID_IDirect3DNullDevice);
+
 	if (riid == GetWrapperType(DxVersion) || riid == IID_IUnknown)
 	{
 		*ppvObj = GetWrapperInterfaceX(DxVersion);
@@ -84,11 +89,11 @@ HRESULT m_IDirectDrawSurfaceX::QueryInterface(REFIID riid, LPVOID FAR * ppvObj, 
 			return DDERR_GENERIC;
 		}
 
-		if (riid == IID_IDirect3DHALDevice || riid == IID_IDirect3DRGBDevice || riid == IID_IDirect3DRampDevice || riid == IID_IDirect3DNullDevice)
+		if (IsD3DDevice)
 		{
 			DxVersion = (DxVersion == 4) ? 3 : DxVersion;
 
-			m_IDirect3DDeviceX *D3DDeviceX = *ddrawParent->GetCurrentD3DDevice();
+			m_IDirect3DDeviceX* D3DDeviceX = *ddrawParent->GetCurrentD3DDevice();
 
 			if (D3DDeviceX)
 			{
@@ -99,7 +104,7 @@ HRESULT m_IDirectDrawSurfaceX::QueryInterface(REFIID riid, LPVOID FAR * ppvObj, 
 				return DD_OK;
 			}
 
-			m_IDirect3DX *D3DX = *ddrawParent->GetCurrentD3D();
+			m_IDirect3DX* D3DX = *ddrawParent->GetCurrentD3D();
 
 			if (D3DX)
 			{
@@ -124,12 +129,12 @@ HRESULT m_IDirectDrawSurfaceX::QueryInterface(REFIID riid, LPVOID FAR * ppvObj, 
 		}
 	}
 
-	if (Config.ConvertToDirect3D7 && (riid == IID_IDirect3DTexture || riid == IID_IDirect3DTexture2))
+	if (Config.ConvertToDirect3D7 && (riid == IID_IDirect3DTexture || riid == IID_IDirect3DTexture2) && ddrawParent)
 	{
 		DxVersion = GetGUIDVersion(riid);
 
-		m_IDirect3DTextureX *InterfaceX = nullptr;
-		
+		m_IDirect3DTextureX* InterfaceX = nullptr;
+
 		if (attachedTexture)
 		{
 			InterfaceX = attachedTexture;
@@ -146,13 +151,33 @@ HRESULT m_IDirectDrawSurfaceX::QueryInterface(REFIID riid, LPVOID FAR * ppvObj, 
 		return DD_OK;
 	}
 
-	HRESULT hr = ProxyQueryInterface(ProxyInterface, (IID_IDirect3DRampDevice == riid ? IID_IDirect3DRGBDevice : riid), ppvObj, GetWrapperType(DxVersion));
-
-	if (SUCCEEDED(hr) && Config.ConvertToDirect3D7 && ddrawParent)
+	if (Config.ConvertToDirect3D7 && IsD3DDevice && ddrawParent)
 	{
-		if (riid == IID_IDirect3DHALDevice || riid == IID_IDirect3DRGBDevice || riid == IID_IDirect3DRampDevice || riid == IID_IDirect3DNullDevice)
+		HRESULT hr = E_NOINTERFACE;
+
+		m_IDirect3DDeviceX** lplpD3DDevice = ddrawParent->GetCurrentD3DDevice();
+		if (lplpD3DDevice && *lplpD3DDevice)
 		{
-			m_IDirect3DDeviceX *lpD3DDeviceX = nullptr;
+			hr = DD_OK;
+		}
+
+		if (FAILED(hr))
+		{
+			m_IDirect3DX** lplpD3D = ddrawParent->GetCurrentD3D();
+			if (lplpD3D && *lplpD3D)
+			{
+
+				hr = (*lplpD3D)->CreateDevice(IID_IDirect3DHALDevice,
+					(LPDIRECTDRAWSURFACE7)GetWrapperInterfaceX(DirectXVersion),
+					(LPDIRECT3DDEVICE7*)ppvObj,
+					nullptr,
+					(DirectXVersion != 4) ? DirectXVersion : 3);
+			}
+		}
+
+		if (SUCCEEDED(hr))
+		{
+			m_IDirect3DDeviceX* lpD3DDeviceX = nullptr;
 
 			((IDirect3DDevice7*)*ppvObj)->QueryInterface(IID_GetInterfaceX, (LPVOID*)&lpD3DDeviceX);
 
@@ -160,8 +185,34 @@ HRESULT m_IDirectDrawSurfaceX::QueryInterface(REFIID riid, LPVOID FAR * ppvObj, 
 			{
 				lpD3DDeviceX->SetDdrawParent(ddrawParent);
 
+				SetCriticalSection();
 				ddrawParent->SetD3DDevice(lpD3DDeviceX, this);
+				ReleaseCriticalSection();
 			}
+		}
+
+		return hr;
+	}
+
+	HRESULT hr = ProxyQueryInterface(ProxyInterface, riid, ppvObj, GetWrapperType(DxVersion));
+
+	if (IsD3DDevice && SUCCEEDED(hr))
+	{
+		if (DirectXVersion == 1)
+		{
+			*ppvObj = ProxyAddressLookupTable.FindAddress<m_IDirect3DDevice>(*ppvObj);
+		}
+		else if (DirectXVersion == 2)
+		{
+			*ppvObj = ProxyAddressLookupTable.FindAddress<m_IDirect3DDevice2>(*ppvObj);
+		}
+		else if (DirectXVersion == 3 || DirectXVersion == 4)
+		{
+			*ppvObj = ProxyAddressLookupTable.FindAddress<m_IDirect3DDevice3>(*ppvObj);
+		}
+		else
+		{
+			*ppvObj = ProxyAddressLookupTable.FindAddress<m_IDirect3DDevice7>(*ppvObj);
 		}
 	}
 

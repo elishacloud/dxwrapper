@@ -2729,6 +2729,11 @@ void m_IDirectDrawX::SetD3DDevice(m_IDirect3DDeviceX* D3DDevice, m_IDirectDrawSu
 {
 	D3DDeviceInterface = D3DDevice;
 
+	if (!Config.Dd7to9)
+	{
+		return;
+	}
+
 	if (!DoesSurfaceExist(D3DSurface))
 	{
 		LOG_LIMIT(100, __FUNCTION__ << " Error: Direct3D surface does not exist!");
