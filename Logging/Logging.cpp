@@ -1239,7 +1239,7 @@ std::ostream& operator<<(std::ostream& os, const DDERR& ErrCode)
 
 	VISIT_DDERR_CODES(VISIT_DDERR_RETURN);
 
-	return os << Logging::hex(ErrCode);
+	return os << Logging::hex((DWORD)ErrCode);
 }
 
 std::ostream& operator<<(std::ostream& os, const D3DERR& ErrCode)
@@ -1278,7 +1278,6 @@ std::ostream& operator<<(std::ostream& os, const DIERR& ErrCode)
 	visit(DIERR_NOTACQUIRED) \
 	visit(DIERR_READONLY) \
 	visit(DIERR_HANDLEEXISTS) \
-	visit(E_PENDING) \
 	visit(DIERR_INSUFFICIENTPRIVS) \
 	visit(DIERR_DEVICEFULL) \
 	visit(DIERR_MOREDATA) \
@@ -1291,8 +1290,10 @@ std::ostream& operator<<(std::ostream& os, const DIERR& ErrCode)
 	visit(DIERR_UNPLUGGED) \
 	visit(DIERR_REPORTFULL) \
 	visit(DIERR_MAPFILEFAIL) \
+	visit(E_PENDING) \
 	visit(E_NOINTERFACE) \
-	visit(E_POINTER)
+	visit(E_POINTER) \
+	visit(E_HANDLE)
 
 #define VISIT_DIERR_RETURN(x) \
 	if (ErrCode == x) \
@@ -1307,7 +1308,7 @@ std::ostream& operator<<(std::ostream& os, const DIERR& ErrCode)
 
 	VISIT_DIERR_CODES(VISIT_DIERR_RETURN);
 
-	return os << Logging::hex(ErrCode);
+	return os << Logging::hex((DWORD)ErrCode);
 }
 
 std::ostream& operator<<(std::ostream& os, const DSERR& ErrCode)
@@ -1349,7 +1350,7 @@ std::ostream& operator<<(std::ostream& os, const DSERR& ErrCode)
 
 	VISIT_DSERR_CODES(VISIT_DSERR_RETURN);
 
-	return os << Logging::hex(ErrCode);
+	return os << Logging::hex((DWORD)ErrCode);
 }
 
 std::ostream& operator<<(std::ostream& os, const WMMSG& Id)

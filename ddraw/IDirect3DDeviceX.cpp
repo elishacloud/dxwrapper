@@ -567,12 +567,19 @@ HRESULT m_IDirect3DDeviceX::EnumTextureFormats(LPD3DENUMTEXTUREFORMATSCALLBACK l
 
 			static HRESULT CALLBACK ConvertCallback(LPDDPIXELFORMAT lpDDPixFmt, LPVOID lpContext)
 			{
-				EnumPixelFormat *self = (EnumPixelFormat*)lpContext;
+				EnumPixelFormat* self = (EnumPixelFormat*)lpContext;
+
+				// Only RGB formats are supported
+				if ((lpDDPixFmt->dwFlags & DDPF_RGB) == NULL)
+				{
+					return DDENUMRET_OK;
+				}
 
 				DDSURFACEDESC Desc = {};
 				Desc.dwSize = sizeof(DDSURFACEDESC);
-				Desc.dwFlags = DDSD_PIXELFORMAT;
+				Desc.dwFlags = DDSD_CAPS | DDSD_PIXELFORMAT;
 				Desc.ddpfPixelFormat = *lpDDPixFmt;
+				Desc.ddsCaps.dwCaps = DDSCAPS_TEXTURE;
 
 				return self->lpCallback(&Desc, self->lpContext);
 			}
@@ -614,10 +621,10 @@ HRESULT m_IDirect3DDeviceX::EnumTextureFormats(LPD3DENUMPIXELFORMATSCALLBACK lpd
 
 		// Get texture list
 		std::vector<D3DFORMAT> TextureList = {
+			D3DFMT_R5G6B5,
 			D3DFMT_X1R5G5B5,
 			D3DFMT_A1R5G5B5,
 			D3DFMT_A4R4G4B4,
-			D3DFMT_R5G6B5,
 			//D3DFMT_R8G8B8,	// Requires emulation
 			D3DFMT_X8R8G8B8,
 			D3DFMT_A8R8G8B8,
