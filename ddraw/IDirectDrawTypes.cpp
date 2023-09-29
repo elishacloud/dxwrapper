@@ -217,7 +217,7 @@ void ConvertCaps(DDCAPS &Caps7, D3DCAPS9 &Caps9)
 		(DDCAPS_BLT | /*DDCAPS_BLTQUEUE |*/ DDCAPS_BLTFOURCC | DDCAPS_BLTSTRETCH | DDCAPS_GDI /*| DDCAPS_OVERLAYCANTCLIP | DDCAPS_OVERLAYFOURCC |
 			DDCAPS_OVERLAYSTRETCH*/ | DDCAPS_PALETTE | DDCAPS_PALETTEVSYNC | DDCAPS_VBI | DDCAPS_COLORKEY | /*DDCAPS_ALPHA | DDCAPS_COLORKEYHWASSIST |*/
 			DDCAPS_BLTCOLORFILL | DDCAPS_CANCLIP | DDCAPS_CANCLIPSTRETCHED | DDCAPS_CANBLTSYSMEM) |
-			(!Config.DdrawDisableDirect3DCaps ? DDCAPS_3D /*| DDCAPS_BLTDEPTHFILL | DDCAPS_ZBLTS | DDCAPS_ZOVERLAYS*/ : 0);
+		(!Config.DdrawDisableDirect3DCaps ? DDCAPS_3D /*| DDCAPS_BLTDEPTHFILL | DDCAPS_ZBLTS | DDCAPS_ZOVERLAYS*/ : 0);
 	Caps7.dwCaps2 = (Caps9.Caps2 & (D3DCAPS2_FULLSCREENGAMMA /*| D3DCAPS2_CANCALIBRATEGAMMA*/ | D3DCAPS2_CANMANAGERESOURCE | D3DCAPS2_DYNAMICTEXTURES /*| D3DCAPS2_CANAUTOGENMIPMAP | D3DCAPS2_CANSHARERESOURCE*/)) |
 		(/*DDCAPS2_CANBOBINTERLEAVED | DDCAPS2_CANBOBNONINTERLEAVED | DDCAPS2_NONLOCALVIDMEM |*/ DDCAPS2_WIDESURFACES | /*DDCAPS2_CANFLIPODDEVEN |*/ DDCAPS2_COPYFOURCC | DDCAPS2_NOPAGELOCKREQUIRED |
 			DDCAPS2_PRIMARYGAMMA | DDCAPS2_CANRENDERWINDOWED /*| DDCAPS2_FLIPINTERVAL*/ | DDCAPS2_FLIPNOVSYNC);
@@ -235,7 +235,7 @@ void ConvertCaps(DDCAPS &Caps7, D3DCAPS9 &Caps9)
 	Caps7.ddsCaps.dwCaps = (DDSCAPS_BACKBUFFER | DDSCAPS_COMPLEX | DDSCAPS_FLIP | DDSCAPS_FRONTBUFFER | DDSCAPS_LOCALVIDMEM | /*DDSCAPS_NONLOCALVIDMEM |*/
 		DDSCAPS_OFFSCREENPLAIN | /*DDSCAPS_OVERLAY | DDSCAPS_OWNDC |*/ DDSCAPS_PRIMARYSURFACE | DDSCAPS_VIDEOMEMORY) |
 		(!Config.DdrawDisableDirect3DCaps ? DDSCAPS_3DDEVICE | DDSCAPS_TEXTURE | DDSCAPS_ZBUFFER /*| DDSCAPS_MIPMAP*/ : 0);
-	Caps7.ddsCaps.dwCaps2 =	(!Config.DdrawDisableDirect3DCaps ? /*DDSCAPS2_CUBEMAP*/ 0 : 0);	// Additional surface capabilities
+	Caps7.ddsCaps.dwCaps2 = (!Config.DdrawDisableDirect3DCaps ? /*DDSCAPS2_CUBEMAP*/ 0 : 0);	// Additional surface capabilities
 	Caps7.ddsCaps.dwCaps3 = 0;								// Not used
 	Caps7.ddsCaps.dwCaps4 = 0;								// Not used
 	Caps7.ddsCaps.dwVolumeDepth = 0;						// Not used
@@ -244,19 +244,23 @@ void ConvertCaps(DDCAPS &Caps7, D3DCAPS9 &Caps9)
 	// Overlay
 	if (Caps7.dwCaps & DDCAPS_OVERLAY)
 	{
-		Caps7.dwMaxVisibleOverlays = 0x1;
-		Caps7.dwMinOverlayStretch = 0x1;
-		Caps7.dwMaxOverlayStretch = 0x4e20;
+		Caps7.dwMaxVisibleOverlays = 1;
+		Caps7.dwMinOverlayStretch = 1;
+		Caps7.dwMaxOverlayStretch = 20000;
 	}
 
 	// Raster Operations
-	Caps7.dwRops[6] = 0x1000;
-	Caps7.dwSSBRops[6] = Caps7.dwRops[6];
-	Caps7.dwVSBRops[6] = Caps7.dwRops[6];
-	Caps7.dwSVBRops[6] = Caps7.dwRops[6];
-	if (Caps7.dwCaps2 & DDCAPS2_NONLOCALVIDMEM)
+	for (DWORD rop : { SRCCOPY, /*SRCPAINT, SRCAND, SRCINVERT, SRCERASE, NOTSRCCOPY, NOTSRCERASE, MERGECOPY, MERGEPAINT, PATCOPY, PATPAINT, PATINVERT, DSTINVERT,*/ BLACKNESS, WHITENESS })
 	{
-		Caps7.dwNLVBRops[6] = Caps7.dwRops[6];
+		const DWORD x = ((rop >> 16) & 0xFF) / 32;
+		Caps7.dwRops[x] |= static_cast<DWORD>(1 << ((rop >> 16) & 0xFF) % 32);
+		Caps7.dwSSBRops[x] = Caps7.dwRops[x];
+		Caps7.dwVSBRops[x] = Caps7.dwRops[x];
+		Caps7.dwSVBRops[x] = Caps7.dwRops[x];
+		if (Caps7.dwCaps2 & DDCAPS2_NONLOCALVIDMEM)
+		{
+			Caps7.dwNLVBRops[x] = Caps7.dwRops[x];
+		}
 	}
 
 	// Bit Blt Caps
