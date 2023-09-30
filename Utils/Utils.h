@@ -40,6 +40,8 @@ namespace Utils
 	DWORD GetBitCount(HWND hWnd);
 	DWORD GetWindowHeight(HWND hWnd);
 	void DisableGameUX();
+	bool SetWndProcFilter(HWND hWnd);
+	bool RestoreWndProcFilter(HWND hWnd);
 	void GetScreenSize(HWND hwnd, LONG &screenWidth, LONG &screenHeight);
 	void GetScreenSize(HWND hwnd, DWORD &screenWidth, DWORD &screenHeight);
 	void GetDesktopRect(HWND hWnd, RECT& screenRect);

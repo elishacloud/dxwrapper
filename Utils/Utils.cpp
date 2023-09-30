@@ -90,6 +90,7 @@ namespace Utils
 	FARPROC pGetModuleFileNameW = nullptr;
 	FARPROC p_CreateProcessA = nullptr;
 	FARPROC p_CreateProcessW = nullptr;
+	WNDPROC OriginalWndProc = nullptr;
 	std::vector<type_dll> custom_dll;		// Used for custom dll's and asi plugins
 
 	// Function declarations
@@ -97,6 +98,7 @@ namespace Utils
 	void InitializeASI(HMODULE hModule);
 	void FindFiles(WIN32_FIND_DATA*);
 	void *memmem(const void *l, size_t l_len, const void *s, size_t s_len);
+	LRESULT CALLBACK WndProcFilter(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 }
 
 // Execute a specified string
@@ -925,4 +927,79 @@ DWORD Utils::GetVideoRam(UINT AdapterNo)
 	CoUninitialize();
 
 	return retSize;
+}
+bool Utils::SetWndProcFilter(HWND hWnd)
+{
+	// Check window handle
+	if (!IsWindow(hWnd))
+	{
+		Logging::Log() << __FUNCTION__ << " Error: hWnd invalid!";
+		return false;
+	}
+
+	// Check if WndProc is already overloaded
+	if (OriginalWndProc)
+	{
+		Logging::Log() << __FUNCTION__ << " Error: WndProc already overloaded!";
+		return false;
+	}
+
+	LOG_LIMIT(3, __FUNCTION__ << " Setting new WndProc " << hWnd);
+
+	// Store existing WndProc
+	OriginalWndProc = (WNDPROC)GetWindowLong(hWnd, GWL_WNDPROC);
+
+	// Set new WndProc
+	if (!OriginalWndProc || !SetWindowLong(hWnd, GWL_WNDPROC, (LONG)WndProcFilter))
+	{
+		Logging::Log() << __FUNCTION__ << " Failed to overload WndProc!";
+		OriginalWndProc = nullptr;
+		return false;
+	}
+
+	return true;
+}
+
+bool Utils::RestoreWndProcFilter(HWND hWnd)
+{
+	// Check window handle
+	if (!IsWindow(hWnd))
+	{
+		Logging::Log() << __FUNCTION__ << " Error: hWnd invalid!";
+		return false;
+	}
+
+	// Check if WndProc is overloaded
+	if (!OriginalWndProc)
+	{
+		Logging::Log() << __FUNCTION__ << " Error: WndProc is not yet overloaded!";
+		return false;
+	}
+
+	// Get current WndProc
+	WNDPROC CurrentWndProc = (WNDPROC)GetWindowLong(hWnd, GWL_WNDPROC);
+
+	// Check if WndProc is overloaded
+	if (CurrentWndProc != WndProcFilter)
+	{
+		Logging::Log() << __FUNCTION__ << " Error: WndProc does not match!";
+		return false;
+	}
+
+	// Resetting WndProc
+	if (!SetWindowLong(hWnd, GWL_WNDPROC, (LONG)OriginalWndProc))
+	{
+		Logging::Log() << __FUNCTION__ << " Failed to reset WndProc";
+		return false;
+	}
+
+	OriginalWndProc = nullptr;
+	return true;
+}
+
+LRESULT CALLBACK Utils::WndProcFilter(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
+{
+	Logging::LogDebug() << __FUNCTION__ << " " << Logging::hex(uMsg);
+
+	return DefWindowProc(hWnd, uMsg, wParam, lParam);
 }

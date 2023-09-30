@@ -1158,7 +1158,7 @@ HRESULT m_IDirect3DDevice9Ex::Clear(DWORD Count, CONST D3DRECT *pRects, DWORD Fl
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	if (IsWindow(DeviceDetails.DeviceWindow) && (Config.FullscreenWindowMode || Config.EnableWindowMode))
+	if (IsWindow(DeviceDetails.DeviceWindow) && Config.FullscreenWindowMode)
 	{
 		// Peek messages to help prevent a "Not Responding" window
 		Utils::CheckMessageQueue(DeviceDetails.DeviceWindow);

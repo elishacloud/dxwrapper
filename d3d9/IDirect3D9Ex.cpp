@@ -503,6 +503,12 @@ void UpdatePresentParameter(D3DPRESENT_PARAMETERS* pPresentationParameters, HWND
 	{
 		bool AnyChange = (LastBufferWidth != DeviceDetails.BufferWidth || LastBufferHeight != DeviceDetails.BufferHeight || LastDeviceWindow != DeviceDetails.DeviceWindow);
 
+		// Overload WndProc
+		if (Config.EnableWindowMode)
+		{
+			Utils::SetWndProcFilter(DeviceDetails.DeviceWindow);
+		}
+
 		// Adjust window
 		RECT Rect;
 		GetClientRect(DeviceDetails.DeviceWindow, &Rect);
@@ -512,7 +518,7 @@ void UpdatePresentParameter(D3DPRESENT_PARAMETERS* pPresentationParameters, HWND
 		}
 
 		// Set fullscreen resolution
-		if (Config.FullscreenWindowMode && AnyChange)
+		if (AnyChange && Config.FullscreenWindowMode)
 		{
 			// Get monitor info
 			MONITORINFOEX infoex = {};
@@ -528,10 +534,16 @@ void UpdatePresentParameter(D3DPRESENT_PARAMETERS* pPresentationParameters, HWND
 				newSettings.dmPelsHeight = DeviceDetails.BufferHeight;
 				newSettings.dmFields = DM_PELSWIDTH | DM_PELSHEIGHT;
 				ChangeDisplaySettingsEx(bRet ? infoex.szDevice : nullptr, &newSettings, nullptr, CDS_FULLSCREEN, nullptr);
-
-				// Peek messages to help prevent a "Not Responding" window
-				Utils::CheckMessageQueue(DeviceDetails.DeviceWindow);
 			}
+		}
+
+		if (Config.EnableWindowMode)
+		{
+			// Resetting WndProc
+			Utils::RestoreWndProcFilter(DeviceDetails.DeviceWindow);
+
+			// Peek messages to help prevent a "Not Responding" window
+			Utils::CheckMessageQueue(DeviceDetails.DeviceWindow);
 		}
 	}
 }
@@ -646,7 +658,4 @@ void AdjustWindow(HWND MainhWnd, LONG displayWidth, LONG displayHeight)
 			SetWindowPos(MainhWnd, HWND_TOP, xLoc, yLoc, Rect.right, Rect.bottom, SWP_SHOWWINDOW | SWP_NOZORDER);
 		}
 	}
-
-	// Peek messages to help prevent a "Not Responding" window
-	Utils::CheckMessageQueue(MainhWnd);
 }

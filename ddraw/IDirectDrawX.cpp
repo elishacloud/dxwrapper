@@ -1652,7 +1652,7 @@ HRESULT m_IDirectDrawX::SetCooperativeLevel(HWND hWnd, DWORD dwFlags, DWORD Dire
 				Exclusive.RefreshRate = DisplayMode.RefreshRate;
 			}
 			// Set device flags
-			Device.IsWindowed = (!ExclusiveMode || Config.EnableWindowMode || Config.FullscreenWindowMode);
+			Device.IsWindowed = (!ExclusiveMode || Config.EnableWindowMode);
 			Device.AllowModeX = ((dwFlags & DDSCL_ALLOWMODEX) != 0);
 			Device.MultiThreaded = ((dwFlags & DDSCL_MULTITHREADED) != 0);
 			// The flag (DDSCL_FPUPRESERVE) is assumed by default in DirectX 6 and earlier.
@@ -1743,9 +1743,6 @@ HRESULT m_IDirectDrawX::SetCooperativeLevel(HWND hWnd, DWORD dwFlags, DWORD Dire
 			// Removing WS_CAPTION
 			SetWindowLong(hWnd, GWL_STYLE, lStyle & ~WS_CAPTION);
 			SetWindowPos(hWnd, HWND_TOP, 0, 0, 0, 0, SWP_FRAMECHANGED | SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER);
-
-			// Peek messages to help prevent a "Not Responding" window
-			Utils::CheckMessageQueue(hWnd);
 		}
 	}
 
@@ -2359,7 +2356,7 @@ void m_IDirectDrawX::InitDdraw(DWORD DirectXVersion)
 		// Mouse hook
 		static bool EnableMouseHook = Config.DdrawEnableMouseHook &&
 			((Config.DdrawUseNativeResolution || Config.DdrawOverrideWidth || Config.DdrawOverrideHeight) &&
-			(!Config.EnableWindowMode || (Config.EnableWindowMode && Config.FullscreenWindowMode)));
+			(!Config.EnableWindowMode || Config.FullscreenWindowMode));
 
 		// Set mouse hook
 		if (!MouseHook.m_hook && EnableMouseHook)
@@ -3023,9 +3020,6 @@ HRESULT m_IDirectDrawX::CreateD3D9Device()
 			SendMessage(hWnd, WM_WINDOWPOSCHANGED, 0, (LPARAM)&winpos);
 			SendMessage(hWnd, WM_MOVE, 0, MAKELPARAM(NewRect.left, NewRect.top));
 			SendMessage(hWnd, WM_SIZE, SIZE_RESTORED, MAKELPARAM(NewRect.right - NewRect.left, NewRect.bottom - NewRect.top));
-
-			// Peek messages to help prevent a "Not Responding" window
-			Utils::CheckMessageQueue(hWnd);
 		}
 
 		// Store display frequency
