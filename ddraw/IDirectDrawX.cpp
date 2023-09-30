@@ -111,6 +111,7 @@ std::vector<m_IDirectDrawX*> DDrawVector;
 bool SetResolution;
 bool ExclusiveMode;
 DISPLAYSETTINGS Exclusive;
+HWND LastUsedHWnd = nullptr;
 
 // Display mode settings
 DISPLAYSETTINGS DisplayMode;
@@ -1660,7 +1661,7 @@ HRESULT m_IDirectDrawX::SetCooperativeLevel(HWND hWnd, DWORD dwFlags, DWORD Dire
 			Device.NoWindowChanges = ((dwFlags & DDSCL_NOWINDOWCHANGES) != 0);
 
 			// Reset if mode was changed
-			if ((d3d9Device || Config.DdrawCreateDeviceEarly) &&
+			if ((d3d9Device || LastUsedHWnd == DisplayMode.hWnd || Config.DdrawCreateDeviceEarly) &&
 				(LastExclusiveMode != ExclusiveMode || LasthWnd != DisplayMode.hWnd || LastFPUPreserve != Device.FPUPreserve || LastNoWindowChanges != Device.NoWindowChanges))
 			{
 				CreateD3D9Device();
@@ -2992,6 +2993,7 @@ HRESULT m_IDirectDrawX::CreateD3D9Device()
 		}
 
 		// Reset flags after creating device
+		LastUsedHWnd = hWnd;
 		EnableWaitVsync = false;
 		FourCCsList.clear();
 
