@@ -122,28 +122,28 @@ int WINAPI user_GetSystemMetrics(int nIndex)
 
 	static GetSystemMetricsProc m_pGetSystemMetrics = (Wrapper::ValidProcAddress(GetSystemMetrics_out)) ? (GetSystemMetricsProc)GetSystemMetrics_out : nullptr;
 
-		if (nIndex == SM_CXSCREEN)
+	if (nIndex == SM_CXSCREEN)
+	{
+		int Width = GetDDrawWidth();
+		if (Width)
 		{
-			int Width = GetDDrawWidth();
-			if (Width)
-			{
-				return Width;
-			}
+			return Width;
 		}
+	}
 
-		if (nIndex == SM_CYSCREEN)
+	if (nIndex == SM_CYSCREEN)
+	{
+		int Height = GetDDrawHeight();
+		if (Height)
 		{
-			int Height = GetDDrawHeight();
-			if (Height)
-			{
-				return Height;
-			}
+			return Height;
 		}
+	}
 
-		if (!m_pGetSystemMetrics)
-		{
-			return 0;
-		}
+	if (!m_pGetSystemMetrics)
+	{
+		return 0;
+	}
 
 	return m_pGetSystemMetrics(nIndex);
 }

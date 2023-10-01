@@ -4090,20 +4090,20 @@ HRESULT m_IDirectDrawX::Present(RECT* pSourceRect, RECT* pDestRect)
 
 DWORD GetDDrawBitsPixel(HWND hWnd)
 {
-	if (Config.DdrawOverrideBitMode)
+	bool isMenu = false;
+	if (hWnd)
 	{
-		return Config.DdrawOverrideBitMode;
+		char name[256] = {};
+		GetClassNameA(hWnd, name, sizeof(name));
+		isMenu = ((DWORD)hWnd == 0x00010010 || strcmp(name, "#32769") == S_OK);
 	}
-	if (DDrawVector.size() && DisplayMode.hWnd)
+	if (!isMenu)
 	{
-		bool isMenu = false;
-		if (hWnd)
+		if (Config.DdrawOverrideBitMode)
 		{
-			char name[256] = {};
-			GetClassNameA(hWnd, name, sizeof(name));
-			isMenu = ((DWORD)hWnd == 0x00010010 || strcmp(name, "#32769") == S_OK);
+			return Config.DdrawOverrideBitMode;
 		}
-		if (!isMenu)
+		if (DDrawVector.size() && DisplayMode.hWnd)
 		{
 			return Exclusive.BPP ? Exclusive.BPP : DisplayMode.BPP;
 		}
