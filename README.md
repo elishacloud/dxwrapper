@@ -11,15 +11,22 @@ DxWrapper has many features including:
  - Conversion of DirectDraw 1-6 to DirectDraw 7
  - Conversion of Direct3D 1-6 to Direct3D 7
  - Conversion of DirectDraw 1-7 (ddraw.dll) to Direct3D 9 (d3d9.dll) using [Dd7to9](https://github.com/elishacloud/dxwrapper/wiki/DirectDraw-to-Direct3D9-Conversion)
+ - Conversion of Direct3D 1-7 (ddraw.dll) to Direct3D 9 (d3d9.dll) using [Dd7to9](https://github.com/elishacloud/dxwrapper/wiki/DirectDraw-to-Direct3D9-Conversion)
  - Conversion of Direct3D 8 (d3d8.dll) to Direct3D 9 (d3d9.dll) using [d3d8to9](https://github.com/crosire/d3d8to9)
  - Conversion of DirectInput 1-7 (dinput.dll) to DirectInput 8 (dinput8.dll) using [dinputto8](https://github.com/elishacloud/dinputto8)
  - Includes [LegacyD3DResolutionHack](https://github.com/UCyborg/LegacyD3DResolutionHack) to remove the artificial resolution limit from Direct3D 1-7, which allows DirectDraw games to play at 4K resolution
  - Tweaking of Microsoft DirectSound function calls using [DSoundCtrl](http://www.bockholdt.com/dsc/)
  - Can cause DirectDraw 1-7, Direct3D 8 and Direct3D 9 games to run in windowed mode
- - Can set vertex processing and cache modes to fix perfromance in some Direct3D 9 games
+ - Can limit frame rate of games using or converted to Direct3D 9
+ - Can enable or disable vertical sync on games using or converted to Direct3D 9
+ - Can set GraphicsHybridAdapter for Direct3D 9 on laptops with multiple graphics cards
+ - Can enable Direct3D9On12 for Direct3D 9
+ - Can set vertex processing and cache modes to fix performance in some Direct3D 9 games
  - Can remove scanlines from DirectDraw 1-7 games
+ - Can disable MaximizedWindowedMode (fullscreen optimizations) for Direct3D 8 and 9 games
  - Can disable High DPI scaling to solve issues with some games
  - Can disable Microsoft Game Explorer (GameUX) to prevent rundll32.exe high CPU
+ - Can disable audio pops and clicks caused by games clipping audio while sound is playing
  - ASI loader to load custom libraries with the file extension .asi into game processes using [Ultimate ASI Loader](https://github.com/ThirteenAG/Ultimate-ASI-Loader)
  - Supports being loaded as an ASI plug-in
  - Adding AntiAliasing support into Direct3D 8 or 9 games even if the game does not support it
@@ -62,6 +69,7 @@ The log file will be created in the same folder where the game executable is loc
 
 DxWrapper can wrap the following dlls:
  - bcrypt.dll
+ - cryptbase.dll
  - cryptsp.dll
  - d2d1.dll
  - d3d8.dll
@@ -79,6 +87,7 @@ DxWrapper can wrap the following dlls:
  - wininet.dll
  - winmm.dll
  - winmmbase.dll
+ - winspool.drv
  - wsock32.dll
 
 ### Donations
