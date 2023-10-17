@@ -28,7 +28,8 @@ namespace Utils
 
 		LRESULT CALLBACK Handler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam, WNDPROCSTRUCT* AppWndProcInstance);
 		WNDPROC GetWndProc(HWND hWnd);
-		LONG_PTR SetWndProc(HWND hWnd, WNDPROC ProcAddress);
+		LONG SetWndProc(HWND hWnd, WNDPROC ProcAddress);
+		LRESULT CallWndProc(WNDPROC lpPrevWndFunc, HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lParam);
 
 		struct WNDPROCSTRUCT
 		{
@@ -100,15 +101,26 @@ using namespace Utils;
 WNDPROC WndProc::GetWndProc(HWND hWnd)
 {
 	return reinterpret_cast<WNDPROC>(IsWindowUnicode(hWnd) ?
-		GetWindowLongPtrW(hWnd, GWL_WNDPROC) :
-		GetWindowLongPtrA(hWnd, GWL_WNDPROC));
+		GetWindowLongW(hWnd, GWL_WNDPROC) :
+		GetWindowLongA(hWnd, GWL_WNDPROC));
 }
 
-LONG_PTR WndProc::SetWndProc(HWND hWnd, WNDPROC ProcAddress)
+LONG WndProc::SetWndProc(HWND hWnd, WNDPROC ProcAddress)
 {
 	return (IsWindowUnicode(hWnd) ?
-		SetWindowLongPtrW(hWnd, GWL_WNDPROC, (LONG)ProcAddress) :
-		SetWindowLongPtrA(hWnd, GWL_WNDPROC, (LONG)ProcAddress));
+		SetWindowLongW(hWnd, GWL_WNDPROC, (LONG)ProcAddress) :
+		SetWindowLongA(hWnd, GWL_WNDPROC, (LONG)ProcAddress));
+}
+
+LRESULT WndProc::CallWndProc(WNDPROC lpPrevWndFunc, HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lParam)
+{
+	return (IsWindowUnicode(hWnd) ?
+		(lpPrevWndFunc ?
+			CallWindowProcW(lpPrevWndFunc, hWnd, Msg, wParam, lParam) :
+			DefWindowProcW(hWnd, Msg, wParam, lParam)) :
+		(lpPrevWndFunc ?
+			CallWindowProcA(lpPrevWndFunc, hWnd, Msg, wParam, lParam) :
+			DefWindowProcA(hWnd, Msg, wParam, lParam)));
 }
 
 bool WndProc::AddWndProc(HWND hWnd)
@@ -167,12 +179,12 @@ void WndProc::RemoveWndProc(HWND hWnd)
 	WndProcList.erase(newEnd, WndProcList.end());
 }
 
-LRESULT CALLBACK WndProc::Handler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam, WNDPROCSTRUCT* AppWndProcInstance)
+LRESULT CALLBACK WndProc::Handler(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lParam, WNDPROCSTRUCT* AppWndProcInstance)
 {
-	const WNDPROC pWndProc = (AppWndProcInstance) ? AppWndProcInstance->AppWndProc : DefWindowProc;
+	const WNDPROC pWndProc = (AppWndProcInstance) ? AppWndProcInstance->AppWndProc : nullptr;
 	const HWND hWndInstance = (AppWndProcInstance) ? AppWndProcInstance->hWnd : nullptr;
 
-	Logging::LogDebug() << __FUNCTION__ << " " << hWnd << " " << Logging::hex(msg);
+	Logging::LogDebug() << __FUNCTION__ << " " << hWnd << " " << Logging::hex(Msg);
 
 	if (!AppWndProcInstance)
 	{
@@ -180,10 +192,10 @@ LRESULT CALLBACK WndProc::Handler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lPa
 	}
 
 	// Clean up instance when window closes
-	if ((msg == WM_CLOSE || msg == WM_DESTROY || msg == WM_NCDESTROY || (msg == WM_SYSCOMMAND && wParam == SC_CLOSE)) && hWnd == hWndInstance)
+	if ((Msg == WM_CLOSE || Msg == WM_DESTROY || Msg == WM_NCDESTROY || (Msg == WM_SYSCOMMAND && wParam == SC_CLOSE)) && hWnd == hWndInstance)
 	{
 		RemoveWndProc(hWnd);
 	}
 
-	return pWndProc(hWnd, msg, wParam, lParam);
+	return CallWndProc(pWndProc, hWnd, Msg, wParam, lParam);
 }
