@@ -77,6 +77,11 @@ void InitDDraw()
 		CreateWindowExW_out = (FARPROC)Hook::HotPatch(Hook::GetProcAddress(LoadLibrary("user32.dll"), "CreateWindowExW"), "CreateWindowExW", user_CreateWindowExW);
 		DestroyWindow_out = (FARPROC)Hook::HotPatch(Hook::GetProcAddress(LoadLibrary("user32.dll"), "DestroyWindow"), "DestroyWindow", user_DestroyWindow);
 		GetSystemMetrics_out = (FARPROC)Hook::HotPatch(Hook::GetProcAddress(LoadLibrary("user32.dll"), "GetSystemMetrics"), "GetSystemMetrics", user_GetSystemMetrics);
+		if (EnableWndProcHook)
+		{
+			SetWindowLongA_out = (FARPROC)Hook::HotPatch(Hook::GetProcAddress(LoadLibrary("user32.dll"), "SetWindowLongA"), "SetWindowLongA", user_SetWindowLongA);
+			SetWindowLongW_out = (FARPROC)Hook::HotPatch(Hook::GetProcAddress(LoadLibrary("user32.dll"), "SetWindowLongW"), "SetWindowLongW", user_SetWindowLongW);
+		}
 	}
 }
 

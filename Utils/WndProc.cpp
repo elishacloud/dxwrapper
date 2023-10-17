@@ -57,11 +57,12 @@ namespace Utils
 			LONG* pFunctVar = (LONG*)&FunctCode[5];
 			int* pFunctCall = (int*)&FunctCode[22];
 			DWORD oldProtect = 0;
-		public:
 			HWND hWnd = nullptr;
 			WNDPROC MyWndProc = 0;
 			WNDPROC AppWndProc = 0;
-			WNDPROCSTRUCT()
+			bool Exiting = false;
+		public:
+			WNDPROCSTRUCT(HWND p_hWnd, WNDPROC p_AppWndProc) : hWnd(p_hWnd), AppWndProc(p_AppWndProc)
 			{
 				// Set memory protection to make it executable
 				if (VirtualProtect(FunctCode, sizeof(FunctCode), PAGE_EXECUTE_READWRITE, &oldProtect))
@@ -73,6 +74,7 @@ namespace Utils
 			}
 			~WNDPROCSTRUCT()
 			{
+				Exiting = true;
 				if (Config.Exiting)
 				{
 					return;
@@ -90,6 +92,10 @@ namespace Utils
 					SetWndProc(hWnd, AppWndProc);
 				}
 			}
+			HWND GetHWnd() { return hWnd; }
+			WNDPROC GetMyWndProc() { return MyWndProc; }
+			WNDPROC GetAppWndProc() { return AppWndProc; }
+			bool IsExiting() { return Exiting; }
 		};
 
 		std::vector<std::shared_ptr<WNDPROCSTRUCT>> WndProcList;
@@ -97,6 +103,18 @@ namespace Utils
 }
 
 using namespace Utils;
+
+WNDPROC WndProc::CheckWndProc(HWND hWnd, LONG dwNewLong)
+{
+	for (auto& entry : WndProcList)
+	{
+		if (entry->GetHWnd() == hWnd && !(entry->IsExiting() && (LONG)entry->GetAppWndProc() == dwNewLong))
+		{
+			return entry->GetMyWndProc();
+		}
+	}
+	return nullptr;
+}
 
 WNDPROC WndProc::GetWndProc(HWND hWnd)
 {
@@ -134,26 +152,25 @@ bool WndProc::AddWndProc(HWND hWnd)
 	// Check if window is already hooked
 	for (auto& entry : WndProcList)
 	{
-		if (entry->hWnd == hWnd)
+		if (entry->GetHWnd() == hWnd)
 		{
-			return false;
+			return true;
 		}
 	}
 
-	// Create new struct
-	auto NewEntry = std::make_shared<WNDPROCSTRUCT>();
-	NewEntry->hWnd = hWnd;
-
-	// Get existing WndProc and give it to struct
-	NewEntry->AppWndProc = GetWndProc(hWnd);
-	if (!NewEntry->AppWndProc)
+	// Check WndProc in struct
+	WNDPROC NewAppWndProc = GetWndProc(hWnd);
+	if (!NewAppWndProc)
 	{
 		LOG_LIMIT(100, __FUNCTION__ << " Error: could not get wndproc window pointer!");
 		return false;
 	}
 
+	// Create new struct
+	auto NewEntry = std::make_shared<WNDPROCSTRUCT>(hWnd, NewAppWndProc);
+
 	// Get new WndProc
-	WNDPROC NewWndProc = NewEntry->MyWndProc;
+	WNDPROC NewWndProc = NewEntry->GetMyWndProc();
 	if (!NewWndProc)
 	{
 		LOG_LIMIT(100, __FUNCTION__ << " Error: could not get function target!");
@@ -172,7 +189,7 @@ void WndProc::RemoveWndProc(HWND hWnd)
 	// Remove instances from the vector
 	auto newEnd = std::remove_if(WndProcList.begin(), WndProcList.end(), [hWnd](const std::shared_ptr<WNDPROCSTRUCT>& AppWndProcInstance) -> bool
 		{
-			return (AppWndProcInstance->hWnd == hWnd);
+			return (AppWndProcInstance->GetHWnd() == hWnd);
 		});
 
 	// Erase removed instances from the vector
@@ -181,8 +198,8 @@ void WndProc::RemoveWndProc(HWND hWnd)
 
 LRESULT CALLBACK WndProc::Handler(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lParam, WNDPROCSTRUCT* AppWndProcInstance)
 {
-	const WNDPROC pWndProc = (AppWndProcInstance) ? AppWndProcInstance->AppWndProc : nullptr;
-	const HWND hWndInstance = (AppWndProcInstance) ? AppWndProcInstance->hWnd : nullptr;
+	const WNDPROC pWndProc = (AppWndProcInstance) ? AppWndProcInstance->GetAppWndProc() : nullptr;
+	const HWND hWndInstance = (AppWndProcInstance) ? AppWndProcInstance->GetHWnd() : nullptr;
 
 	Logging::LogDebug() << __FUNCTION__ << " " << hWnd << " " << Logging::hex(Msg);
 

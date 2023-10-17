@@ -28,6 +28,8 @@ namespace GdiWrapper
 	FARPROC CreateWindowExW_out = nullptr;
 	FARPROC DestroyWindow_out = nullptr;
 	FARPROC GetSystemMetrics_out = nullptr;
+	FARPROC SetWindowLongA_out = nullptr;
+	FARPROC SetWindowLongW_out = nullptr;
 }
 
 using namespace GdiWrapper;
@@ -146,4 +148,39 @@ int WINAPI user_GetSystemMetrics(int nIndex)
 	}
 
 	return m_pGetSystemMetrics(nIndex);
+}
+
+LONG WINAPI SetWindowLongT(SetWindowLongProc m_pSetWindowLong, HWND hWnd, int nIndex, LONG dwNewLong)
+{
+	Logging::LogDebug() << __FUNCTION__ << " " << hWnd << " " << nIndex << " " << Logging::hex(dwNewLong);
+
+	if (nIndex == GWL_WNDPROC)
+	{
+		LONG DDrawLong = (LONG)Utils::WndProc::CheckWndProc(hWnd, dwNewLong);
+		if (DDrawLong)
+		{
+			return DDrawLong;
+		}
+	}
+
+	if (!m_pSetWindowLong)
+	{
+		return NULL;
+	}
+
+	return m_pSetWindowLong(hWnd, nIndex, dwNewLong);
+}
+
+LONG WINAPI user_SetWindowLongA(HWND hWnd, int nIndex, LONG dwNewLong)
+{
+	static SetWindowLongProc m_pSetWindowLongA = (Wrapper::ValidProcAddress(SetWindowLongA_out)) ? (SetWindowLongProc)SetWindowLongA_out : nullptr;
+
+	return SetWindowLongT(m_pSetWindowLongA, hWnd, nIndex, dwNewLong);
+}
+
+LONG WINAPI user_SetWindowLongW(HWND hWnd, int nIndex, LONG dwNewLong)
+{
+	static SetWindowLongProc m_pSetWindowLongW = (Wrapper::ValidProcAddress(SetWindowLongW_out)) ? (SetWindowLongProc)SetWindowLongW_out : nullptr;
+
+	return SetWindowLongT(m_pSetWindowLongW, hWnd, nIndex, dwNewLong);
 }

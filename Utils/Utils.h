@@ -65,6 +65,7 @@ namespace Utils
 
 	namespace WndProc
 	{
+		WNDPROC CheckWndProc(HWND hWnd, LONG dwNewLong);
 		bool AddWndProc(HWND hWnd);
 		void RemoveWndProc(HWND hWnd);
 	}

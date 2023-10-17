@@ -4,11 +4,14 @@ typedef HWND(WINAPI* CreateWindowExAProc)(DWORD dwExStyle, LPCSTR lpClassName, L
 typedef HWND(WINAPI* CreateWindowExWProc)(DWORD dwExStyle, LPCWSTR lpClassName, LPCWSTR lpWindowName, DWORD dwStyle, int X, int Y, int nWidth, int nHeight, HWND hWndParent, HMENU hMenu, HINSTANCE hInstance, LPVOID lpParam);
 typedef BOOL(WINAPI* DestroyWindowProc)(HWND hWnd);
 typedef int(WINAPI* GetSystemMetricsProc)(int nIndex);
+typedef LONG(WINAPI* SetWindowLongProc)(HWND hWnd, int nIndex, LONG dwNewLong);
 
 HWND WINAPI user_CreateWindowExA(DWORD dwExStyle, LPCSTR lpClassName, LPCSTR lpWindowName, DWORD dwStyle, int X, int Y, int nWidth, int nHeight, HWND hWndParent, HMENU hMenu, HINSTANCE hInstance, LPVOID lpParam);
 HWND WINAPI user_CreateWindowExW(DWORD dwExStyle, LPCWSTR lpClassName, LPCWSTR lpWindowName, DWORD dwStyle, int X, int Y, int nWidth, int nHeight, HWND hWndParent, HMENU hMenu, HINSTANCE hInstance, LPVOID lpParam);
 BOOL WINAPI user_DestroyWindow(HWND hWnd);
 int WINAPI user_GetSystemMetrics(int nIndex);
+LONG WINAPI user_SetWindowLongA(HWND hWnd, int nIndex, LONG dwNewLong);
+LONG WINAPI user_SetWindowLongW(HWND hWnd, int nIndex, LONG dwNewLong);
 
 namespace GdiWrapper
 {
@@ -16,4 +19,6 @@ namespace GdiWrapper
 	extern FARPROC CreateWindowExW_out;
 	extern FARPROC DestroyWindow_out;
 	extern FARPROC GetSystemMetrics_out;
+	extern FARPROC SetWindowLongA_out;
+	extern FARPROC SetWindowLongW_out;
 }

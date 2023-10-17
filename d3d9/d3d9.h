@@ -57,8 +57,6 @@ namespace D3d9Wrapper
 	void WINAPI genericQueryInterface(REFIID riid, LPVOID* ppvObj, m_IDirect3DDevice9Ex* m_pDeviceEx);
 }
 
-extern bool EnableWndProcHook;
-
 #include "IDirect3D9Ex.h"
 #include "IDirect3DDevice9Ex.h"
 #include "IDirect3DCubeTexture9.h"
