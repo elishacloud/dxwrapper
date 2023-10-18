@@ -1,6 +1,11 @@
 #pragma once
 
-#include "ddraw.h"
+#define WIN32_LEAN_AND_MEAN
+#include <windows.h>
+#include <vector>
+#include <d3d9.h>
+#include <ddraw.h>
+#include <d3dtypes.h>
 
 class DebugOverlay
 {
@@ -45,7 +50,7 @@ private:
 
 public:
 	// Initialize
-	void Setup(HWND hwnd, LPDIRECT3DDEVICE9 Device);
+	void Setup(HWND hWnd, LPDIRECT3DDEVICE9 Device);
 	void Shutdown();
 
 	// Frame functions

@@ -122,6 +122,7 @@ cmd /q /c "cd /D ""$(ProjectDir)d3d8\"" &amp;&amp; del build.bat"</Command>
   <ItemGroup>
     <ClCompile Include="d3d8\d3d8.cpp" />
     <ClCompile Include="d3d9\d3d9.cpp" />
+    <ClCompile Include="d3d9\DebugOverlay.cpp" />
     <ClCompile Include="d3d9\IDirect3D9Ex.cpp" />
     <ClCompile Include="d3d9\IDirect3DCubeTexture9.cpp" />
     <ClCompile Include="d3d9\IDirect3DDevice9Ex.cpp" />
@@ -251,7 +252,6 @@ cmd /q /c "cd /D ""$(ProjectDir)d3d8\"" &amp;&amp; del build.bat"</Command>
     <ClCompile Include="DDrawCompat\v0.3.1\Win32\Registry.cpp" />
     <ClCompile Include="DDrawCompat\v0.3.1\Win32\WaitFunctions.cpp" />
     <ClCompile Include="ddraw\ddraw.cpp" />
-    <ClCompile Include="ddraw\DebugOverlay.cpp" />
     <ClCompile Include="ddraw\IDirect3DDeviceX.cpp" />
     <ClCompile Include="ddraw\IDirect3DMaterialX.cpp" />
     <ClCompile Include="ddraw\IDirect3DTextureX.cpp" />
@@ -395,6 +395,7 @@ cmd /q /c "cd /D ""$(ProjectDir)d3d8\"" &amp;&amp; del build.bat"</Command>
     <ClInclude Include="d3d9\AddressLookupTable.h" />
     <ClInclude Include="d3d9\d3d9.h" />
     <ClInclude Include="d3d9\d3d9External.h" />
+    <ClInclude Include="d3d9\DebugOverlay.h" />
     <ClInclude Include="d3d9\IDirect3D9Ex.h" />
     <ClInclude Include="d3d9\IDirect3DCubeTexture9.h" />
     <ClInclude Include="d3d9\IDirect3DDevice9Ex.h" />
@@ -571,7 +572,6 @@ cmd /q /c "cd /D ""$(ProjectDir)d3d8\"" &amp;&amp; del build.bat"</Command>
     <ClInclude Include="ddraw\AddressLookupTable.h" />
     <ClInclude Include="ddraw\ddraw.h" />
     <ClInclude Include="ddraw\ddrawExternal.h" />
-    <ClInclude Include="ddraw\DebugOverlay.h" />
     <ClInclude Include="ddraw\IDirect3DDeviceX.h" />
     <ClInclude Include="ddraw\IDirect3DMaterialX.h" />
     <ClInclude Include="ddraw\IDirect3DTextureX.h" />

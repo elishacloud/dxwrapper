@@ -16,14 +16,7 @@
 
 #include "ddraw.h"
 #include <d3dhal.h>
-
-// Enable for testing only
-//#define ENABLE_DEBUGOVERLAY
-
-#ifdef ENABLE_DEBUGOVERLAY
-#include "DebugOverlay.h"
-DebugOverlay DOverlay;
-#endif
+#include "d3d9\d3d9External.h"
 
 HRESULT m_IDirect3DDeviceX::QueryInterface(REFIID riid, LPVOID FAR * ppvObj, DWORD DirectXVersion)
 {
@@ -1682,13 +1675,7 @@ HRESULT m_IDirect3DDeviceX::BeginScene()
 		// Set 3D Enabled
 		ddrawParent->Enable3D();
 
-		HRESULT hr = (*d3d9Device)->BeginScene();
-
-#ifdef ENABLE_DEBUGOVERLAY
-		DOverlay.BeginScene();
-#endif
-
-		return hr;
+		return (*d3d9Device)->BeginScene();
 	}
 
 	switch (ProxyDirectXVersion)
@@ -1730,10 +1717,6 @@ HRESULT m_IDirect3DDeviceX::EndScene()
 
 			RestoreDrawStates(0, D3DDP_DXW_DRAW2DSURFACE, 9);
 		}
-
-#ifdef ENABLE_DEBUGOVERLAY
-		DOverlay.EndScene();
-#endif
 
 		// The IDirect3DDevice7::EndScene method ends a scene that was begun by calling the IDirect3DDevice7::BeginScene method.
 		// When this method succeeds, the scene has been rendered, and the device surface holds the rendered scene.
@@ -3294,14 +3277,6 @@ void m_IDirect3DDeviceX::ReleaseDevice()
 	WrapperInterface3->DeleteMe();
 	WrapperInterface7->DeleteMe();
 
-	// Teardown debug overlay
-	if (Config.Dd7to9)
-	{
-#ifdef ENABLE_DEBUGOVERLAY
-		DOverlay.Shutdown();
-#endif
-	}
-
 	if (ddrawParent && !Config.Exiting)
 	{
 		ddrawParent->ClearD3DDevice();
@@ -3331,13 +3306,6 @@ HRESULT m_IDirect3DDeviceX::CheckInterface(char *FunctionName, bool CheckD3DDevi
 			LOG_LIMIT(100, FunctionName << " Error: d3d9 device not setup!");
 			return DDERR_INVALIDOBJECT;
 		}
-
-#ifdef ENABLE_DEBUGOVERLAY
-		if (DOverlay.Getd3d9Device() != *d3d9Device)
-		{
-			DOverlay.Setup(ddrawParent->GetHwnd(), *d3d9Device);
-		}
-#endif
 	}
 
 	return DD_OK;

@@ -886,14 +886,14 @@
     <ClCompile Include="D3DDDI\d3dddi.cpp">
       <Filter>d3dddi</Filter>
     </ClCompile>
-    <ClCompile Include="ddraw\DebugOverlay.cpp">
-      <Filter>ddraw</Filter>
-    </ClCompile>
     <ClCompile Include="Utils\Disasm.cpp">
       <Filter>Utils</Filter>
     </ClCompile>
     <ClCompile Include="Utils\WndProc.cpp">
       <Filter>Utils</Filter>
+    </ClCompile>
+    <ClCompile Include="d3d9\DebugOverlay.cpp">
+      <Filter>d3d9</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -1871,9 +1871,6 @@
     <ClInclude Include="D3DDDI\d3dddiExternal.h">
       <Filter>d3dddi</Filter>
     </ClInclude>
-    <ClInclude Include="ddraw\DebugOverlay.h">
-      <Filter>ddraw</Filter>
-    </ClInclude>
     <ClInclude Include="ddraw\Shaders\PaletteShader.h">
       <Filter>ddraw\Shaders</Filter>
     </ClInclude>
@@ -1885,6 +1882,9 @@
     </ClInclude>
     <ClInclude Include="Wrappers\winspool.h">
       <Filter>Wrappers</Filter>
+    </ClInclude>
+    <ClInclude Include="d3d9\DebugOverlay.h">
+      <Filter>d3d9</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

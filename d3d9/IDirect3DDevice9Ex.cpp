@@ -19,6 +19,10 @@
 #include "Utils\Utils.h"
 #include <intrin.h>
 
+#ifdef ENABLE_DEBUGOVERLAY
+DebugOverlay DOverlay;
+#endif
+
 HRESULT m_IDirect3DDevice9Ex::QueryInterface(REFIID riid, void** ppvObj)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
@@ -53,6 +57,14 @@ ULONG m_IDirect3DDevice9Ex::Release()
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
+	// Teardown debug overlay before destroying device
+#ifdef ENABLE_DEBUGOVERLAY
+	if (ProxyInterface->AddRef() && ProxyInterface->Release() == 1)
+	{
+		DOverlay.Shutdown();
+	}
+#endif
+
 	ULONG ref = ProxyInterface->Release();
 
 	if (ref == 0)
@@ -83,6 +95,11 @@ HRESULT m_IDirect3DDevice9Ex::ResetT(T func, D3DPRESENT_PARAMETERS &d3dpp, D3DPR
 	{
 		return D3DERR_INVALIDCALL;
 	}
+
+	// Teardown debug overlay before reset
+#ifdef ENABLE_DEBUGOVERLAY
+	DOverlay.Shutdown();
+#endif
 
 	HRESULT hr;
 
@@ -154,8 +171,7 @@ HRESULT m_IDirect3DDevice9Ex::Reset(D3DPRESENT_PARAMETERS *pPresentationParamete
 
 		ClearVars(pPresentationParameters);
 
-		// Get screen size
-		Utils::GetScreenSize(DeviceDetails.DeviceWindow, screenWidth, screenHeight);
+		ReInitDevice();
 	}
 
 	return hr;
@@ -164,6 +180,10 @@ HRESULT m_IDirect3DDevice9Ex::Reset(D3DPRESENT_PARAMETERS *pPresentationParamete
 HRESULT m_IDirect3DDevice9Ex::EndScene()
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
+
+#ifdef ENABLE_DEBUGOVERLAY
+	DOverlay.EndScene();
+#endif
 
 	return ProxyInterface->EndScene();
 }
@@ -886,6 +906,10 @@ HRESULT m_IDirect3DDevice9Ex::BeginScene()
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
 	HRESULT hr = ProxyInterface->BeginScene();
+
+#ifdef ENABLE_DEBUGOVERLAY
+	DOverlay.BeginScene();
+#endif
 
 	// Get DeviceCaps
 	if (Caps.DeviceType == NULL)
@@ -1642,7 +1666,7 @@ HRESULT m_IDirect3DDevice9Ex::CopyRects(THIS_ IDirect3DSurface9 *pSourceSurface,
 
 	for (UINT i = 0; i < cRects; i++)
 	{
-		RECT SourceRect, DestinationRect;
+		RECT SourceRect = {}, DestinationRect = {};
 
 		if (pSourceRectsArray != nullptr)
 		{
@@ -1746,7 +1770,7 @@ HRESULT m_IDirect3DDevice9Ex::StretchRectFake(THIS_ IDirect3DSurface9* pSourceSu
 	}
 
 	// Check rects
-	RECT SrcRect, DestRect;
+	RECT SrcRect = {}, DestRect = {};
 	if (!pSourceRect)
 	{
 		SrcRect.left = 0;
@@ -2295,8 +2319,7 @@ HRESULT m_IDirect3DDevice9Ex::ResetEx(THIS_ D3DPRESENT_PARAMETERS* pPresentation
 
 		ClearVars(pPresentationParameters);
 
-		// Get screen size
-		Utils::GetScreenSize(DeviceDetails.DeviceWindow, screenWidth, screenHeight);
+		ReInitDevice();
 	}
 
 	return hr;
@@ -2313,6 +2336,17 @@ HRESULT m_IDirect3DDevice9Ex::GetDisplayModeEx(THIS_ UINT iSwapChain, D3DDISPLAY
 	}
 
 	return ProxyInterfaceEx->GetDisplayModeEx(iSwapChain, pMode, pRotation);
+}
+
+// Runs when device is created and on every successful Reset()
+void m_IDirect3DDevice9Ex::ReInitDevice()
+{
+#ifdef ENABLE_DEBUGOVERLAY
+	DOverlay.Setup(DeviceDetails.DeviceWindow, ProxyInterface);
+#endif
+
+	// Get screen size
+	Utils::GetScreenSize(DeviceDetails.DeviceWindow, screenWidth, screenHeight);
 }
 
 void m_IDirect3DDevice9Ex::LimitFrameRate()

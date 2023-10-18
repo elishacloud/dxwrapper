@@ -276,9 +276,11 @@ HRESULT m_IDirect3D9Ex::CreateDevice(UINT Adapter, D3DDEVTYPE DeviceType, HWND h
 	{
 		CopyMemory(pPresentationParameters, &d3dpp, sizeof(D3DPRESENT_PARAMETERS));
 
-		*ppReturnedDeviceInterface = new m_IDirect3DDevice9Ex((LPDIRECT3DDEVICE9EX)*ppReturnedDeviceInterface, this, IID_IDirect3DDevice9, pPresentationParameters->MultiSampleType, pPresentationParameters->MultiSampleQuality, MultiSampleFlag);
+		DeviceDetails.DeviceMultiSampleFlag = MultiSampleFlag;
+		DeviceDetails.DeviceMultiSampleType = pPresentationParameters->MultiSampleType;
+		DeviceDetails.DeviceMultiSampleQuality = pPresentationParameters->MultiSampleQuality;
 
-		((m_IDirect3DDevice9Ex*)*ppReturnedDeviceInterface)->SetDeviceDetails(DeviceDetails);
+		*ppReturnedDeviceInterface = new m_IDirect3DDevice9Ex((LPDIRECT3DDEVICE9EX)*ppReturnedDeviceInterface, this, IID_IDirect3DDevice9, DeviceDetails);
 
 		return D3D_OK;
 	}
@@ -344,9 +346,11 @@ HRESULT m_IDirect3D9Ex::CreateDeviceEx(THIS_ UINT Adapter, D3DDEVTYPE DeviceType
 	{
 		CopyMemory(pPresentationParameters, &d3dpp, sizeof(D3DPRESENT_PARAMETERS));
 
-		*ppReturnedDeviceInterface = new m_IDirect3DDevice9Ex(*ppReturnedDeviceInterface, this, IID_IDirect3DDevice9Ex, pPresentationParameters->MultiSampleType, pPresentationParameters->MultiSampleQuality, MultiSampleFlag);
+		DeviceDetails.DeviceMultiSampleFlag = MultiSampleFlag;
+		DeviceDetails.DeviceMultiSampleType = pPresentationParameters->MultiSampleType;
+		DeviceDetails.DeviceMultiSampleQuality = pPresentationParameters->MultiSampleQuality;
 
-		((m_IDirect3DDevice9Ex*)*ppReturnedDeviceInterface)->SetDeviceDetails(DeviceDetails);
+		*ppReturnedDeviceInterface = new m_IDirect3DDevice9Ex(*ppReturnedDeviceInterface, this, IID_IDirect3DDevice9Ex, DeviceDetails);
 
 		return D3D_OK;
 	}

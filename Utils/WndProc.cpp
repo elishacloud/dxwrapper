@@ -16,6 +16,7 @@
 
 #define WIN32_LEAN_AND_MEAN
 #include <Windows.h>
+#include "d3d9\d3d9External.h"
 #include "Utils.h"
 #include "Settings\Settings.h"
 #include "Logging\Logging.h"
@@ -207,6 +208,11 @@ LRESULT CALLBACK WndProc::Handler(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lPa
 	{
 		LOG_LIMIT(100, __FUNCTION__ << " Error: invalid pointer!");
 	}
+
+	// Handle debug overlay
+#ifdef ENABLE_DEBUGOVERLAY
+	ImGuiWndProc(hWnd, Msg, wParam, lParam);
+#endif
 
 	// Clean up instance when window closes
 	if ((Msg == WM_CLOSE || Msg == WM_DESTROY || Msg == WM_NCDESTROY || (Msg == WM_SYSCOMMAND && wParam == SC_CLOSE)) && hWnd == hWndInstance)

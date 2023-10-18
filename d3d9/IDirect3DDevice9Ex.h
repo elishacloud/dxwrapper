@@ -39,6 +39,7 @@ private:
 	float m_storedClipPlanes[MAX_CLIP_PLANES][4];
 
 	// For Reset & ResetEx
+	void ReInitDevice();
 	void ClearVars(D3DPRESENT_PARAMETERS* pPresentationParameters);
 	typedef HRESULT(WINAPI* fReset)(D3DPRESENT_PARAMETERS* pPresentationParameters);
 	typedef HRESULT(WINAPI* fResetEx)(D3DPRESENT_PARAMETERS* pPresentationParameters, D3DDISPLAYMODEEX* pFullscreenDisplayMode);
@@ -58,14 +59,10 @@ public:
 		}
 		InitDirect3DDevice(pDevice);
 	}
-	m_IDirect3DDevice9Ex(LPDIRECT3DDEVICE9EX pDevice, m_IDirect3D9Ex* pD3D, REFIID DeviceID, D3DMULTISAMPLE_TYPE MultiSampleType, DWORD MultiSampleQuality, bool MultiSampleFlag) :
-		ProxyInterface(pDevice), m_pD3DEx(pD3D), WrapperID(DeviceID)
+	m_IDirect3DDevice9Ex(LPDIRECT3DDEVICE9EX pDevice, m_IDirect3D9Ex* pD3D, REFIID DeviceID, DEVICEDETAILS NewDeviceDetails) :
+		ProxyInterface(pDevice), m_pD3DEx(pD3D), WrapperID(DeviceID), DeviceDetails(NewDeviceDetails)
 	{
 		InitDirect3DDevice(pDevice);
-
-		DeviceDetails.DeviceMultiSampleFlag = MultiSampleFlag;
-		DeviceDetails.DeviceMultiSampleType = MultiSampleType;
-		DeviceDetails.DeviceMultiSampleQuality = MultiSampleQuality;
 
 		// Check for SSAA
 		if (DeviceDetails.DeviceMultiSampleType && m_pD3DEx &&
@@ -83,8 +80,7 @@ public:
 			ProxyInterfaceEx = pDevice;
 		}
 
-		// Get screen size
-		Utils::GetScreenSize(DeviceDetails.DeviceWindow, screenWidth, screenHeight);
+		ReInitDevice();
 
 		ProxyAddressLookupTable = new AddressLookupTableD3d9<m_IDirect3DDevice9Ex>(this);
 	}
@@ -249,6 +245,5 @@ public:
 
 	// Helper functions
 	inline LPDIRECT3DDEVICE9 GetProxyInterface() { return ProxyInterface; }
-	inline void SetDeviceDetails(DEVICEDETAILS& NewDeviceDetails) { DeviceDetails = NewDeviceDetails; }
 	inline D3DMULTISAMPLE_TYPE GetMultiSampleType() { return DeviceDetails.DeviceMultiSampleType; }
 };
