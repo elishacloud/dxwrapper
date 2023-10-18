@@ -43,7 +43,7 @@ namespace {
 	WNDPROC OverrideWndProc_OriginalWndProc = nullptr;
 	LRESULT CALLBACK OverrideWndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 	{
-		LRESULT res = OverrideWndProc_OriginalWndProc(hwnd, uMsg, wParam, lParam);
+		LRESULT res = CallWindowProc(OverrideWndProc_OriginalWndProc, hwnd, uMsg, wParam, lParam);
 
 		ImGui_ImplWin32_WndProcHandler(hwnd, uMsg, wParam, lParam);
 
