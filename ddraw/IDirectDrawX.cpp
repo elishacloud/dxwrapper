@@ -864,30 +864,26 @@ HRESULT m_IDirectDrawX::EnumDisplayModes2(DWORD dwFlags, LPDDSURFACEDESC2 lpDDSu
 			return DDERR_GENERIC;
 		}
 
-		// Save width, height and refresh rate
-		bool SetRefreshRate = true;
-		DWORD EnumWidth = 0;
-		DWORD EnumHeight = 0;
-		DWORD EnumRefreshRate = 0;
-		if (lpDDSurfaceDesc2)
-		{
-			EnumWidth = (lpDDSurfaceDesc2->dwFlags & DDSD_WIDTH) ? lpDDSurfaceDesc2->dwWidth : 0;
-			EnumHeight = (lpDDSurfaceDesc2->dwFlags & DDSD_HEIGHT) ? lpDDSurfaceDesc2->dwHeight : 0;
-			EnumRefreshRate = (lpDDSurfaceDesc2->dwFlags & DDSD_REFRESHRATE) ? lpDDSurfaceDesc2->dwRefreshRate : 0;
-		}
-		if (!(dwFlags & DDEDM_REFRESHRATES) && !EnumRefreshRate)
-		{
-			SetRefreshRate = false;
-			EnumRefreshRate = Utils::GetRefreshRate(GetHwnd());
-		}
+		// ToDo: need to support DDEDM_STANDARDVGAMODES
+		//bool UseStandardVGAModes = ((dwFlags & DDEDM_STANDARDVGAMODES) || Device.AllowModeX);
+
+		// Save width and height
+		DWORD EnumWidth = (lpDDSurfaceDesc2 && (lpDDSurfaceDesc2->dwFlags & DDSD_WIDTH)) ? lpDDSurfaceDesc2->dwWidth : 0;
+		DWORD EnumHeight = (lpDDSurfaceDesc2 && (lpDDSurfaceDesc2->dwFlags & DDSD_HEIGHT)) ? lpDDSurfaceDesc2->dwHeight : 0;
 
 		// Get display modes to enum
-		DWORD DisplayBitCount = (DisplayMode.BPP) ? DisplayMode.BPP : 0;
-		if (lpDDSurfaceDesc2 && (lpDDSurfaceDesc2->dwFlags & DDSD_PIXELFORMAT))
-		{
-			DisplayBitCount = GetBitCount(lpDDSurfaceDesc2->ddpfPixelFormat);
-		}
+		DWORD DisplayBitCount = (DisplayMode.BPP) ? DisplayMode.BPP :
+			(lpDDSurfaceDesc2 && (lpDDSurfaceDesc2->dwFlags & DDSD_PIXELFORMAT)) ? GetBitCount(lpDDSurfaceDesc2->ddpfPixelFormat) : 0;
 		bool DisplayAllModes = (DisplayBitCount != 8 && DisplayBitCount != 16 && DisplayBitCount != 24 && DisplayBitCount != 32);
+
+		// For deduplicating resolutions
+		struct RESLIST {
+			DWORD Width = 0;
+			DWORD Height = 0;
+			DWORD RefreshRate = 0;
+			DWORD BitCount = 0;
+		};
+		std::vector<RESLIST> ResolutionList;
 
 		// Enumerate modes for format XRGB
 		UINT modeCount = d3d9Object->GetAdapterModeCount(D3DADAPTER_DEFAULT, D9DisplayFormat);
@@ -913,15 +909,27 @@ HRESULT m_IDirectDrawX::EnumDisplayModes2(DWORD dwFlags, LPDDSURFACEDESC2 lpDDSu
 					DisplayBitCount = bpMode;
 				}
 
+				// Set display refresh rate
+				DWORD RefreshRate = (dwFlags & DDEDM_REFRESHRATES) ? d3ddispmode.RefreshRate : 0;
+
+				// Check if resolution is already sent
+				bool ResolutionAlreadySent = std::any_of(ResolutionList.begin(), ResolutionList.end(),
+					[=](const RESLIST& Entry) {
+						return (Entry.Width == d3ddispmode.Width && Entry.Height == d3ddispmode.Height && Entry.RefreshRate == RefreshRate && Entry.BitCount == DisplayBitCount);
+					});
+
 				// Check mode
-				if ((!EnumWidth || d3ddispmode.Width == EnumWidth) &&
-					(!EnumHeight || d3ddispmode.Height == EnumHeight) &&
-					(!EnumRefreshRate || d3ddispmode.RefreshRate == EnumRefreshRate))
+				if (!ResolutionAlreadySent &&
+					(!EnumWidth || d3ddispmode.Width == EnumWidth) &&
+					(!EnumHeight || d3ddispmode.Height == EnumHeight))
 				{
 					if (++Loop > Config.DdrawLimitDisplayModeCount && Config.DdrawLimitDisplayModeCount)
 					{
 						return DD_OK;
 					}
+
+					// Store resolution
+					ResolutionList.push_back({ d3ddispmode.Width, d3ddispmode.Height, RefreshRate, DisplayBitCount });
 
 					// Set surface desc options
 					DDSURFACEDESC2 Desc2 = {};
@@ -929,10 +937,7 @@ HRESULT m_IDirectDrawX::EnumDisplayModes2(DWORD dwFlags, LPDDSURFACEDESC2 lpDDSu
 					Desc2.dwFlags = DDSD_WIDTH | DDSD_HEIGHT | DDSD_REFRESHRATE;
 					Desc2.dwWidth = d3ddispmode.Width;
 					Desc2.dwHeight = d3ddispmode.Height;
-					if (SetRefreshRate)
-					{
-						Desc2.dwRefreshRate = d3ddispmode.RefreshRate;
-					}
+					Desc2.dwRefreshRate = RefreshRate;
 
 					// Set adapter pixel format
 					Desc2.dwFlags |= DDSD_PIXELFORMAT;
@@ -947,12 +952,6 @@ HRESULT m_IDirectDrawX::EnumDisplayModes2(DWORD dwFlags, LPDDSURFACEDESC2 lpDDSu
 					{
 						return DD_OK;
 					}
-				}
-
-				// Break if not displaying all modes
-				if (!DisplayAllModes)
-				{
-					break;
 				}
 			}
 		}
@@ -1651,6 +1650,7 @@ HRESULT m_IDirectDrawX::SetCooperativeLevel(HWND hWnd, DWORD dwFlags, DWORD Dire
 				Exclusive.BPP = DisplayMode.BPP;
 				Exclusive.RefreshRate = DisplayMode.RefreshRate;
 			}
+
 			// Set device flags
 			Device.IsWindowed = (!ExclusiveMode || Config.EnableWindowMode);
 			Device.AllowModeX = ((dwFlags & DDSCL_ALLOWMODEX) != 0);
