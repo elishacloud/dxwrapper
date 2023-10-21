@@ -38,25 +38,14 @@
   </ImportGroup>
   <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="PropertySheets">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
-    <Import Project="$(VCTargetsPath)Microsoft.CPP.UpgradeFromVC60.props" />
   </ImportGroup>
   <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'" Label="PropertySheets">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
-    <Import Project="$(VCTargetsPath)Microsoft.CPP.UpgradeFromVC60.props" />
   </ImportGroup>
   <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="PropertySheets">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
-    <Import Project="$(VCTargetsPath)Microsoft.CPP.UpgradeFromVC60.props" />
   </ImportGroup>
-  <PropertyGroup Label="UserMacros" />
-  <PropertyGroup>
-    <_ProjectFileVersion>14.0.25431.1</_ProjectFileVersion>
-  </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
-    <OutDir>$(SolutionDir)bin\$(Configuration)\</OutDir>
-    <IntDir>$(SolutionDir)bin\Intermediate\$(Configuration)\$(ProjectName)\</IntDir>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <OutDir>$(SolutionDir)bin\$(Configuration)\</OutDir>
     <IntDir>$(SolutionDir)bin\Intermediate\$(Configuration)\$(ProjectName)\</IntDir>
   </PropertyGroup>
@@ -64,34 +53,10 @@
     <OutDir>$(SolutionDir)bin\$(Configuration)\</OutDir>
     <IntDir>$(SolutionDir)bin\Intermediate\$(Configuration)\$(ProjectName)\</IntDir>
   </PropertyGroup>
-  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
-    <ClCompile>
-      <PreprocessorDefinitions>WIN32;_DEBUG;_WINDOWS;_USRDLL;FULLSCREENLOG;WRAPPERLOGGING;DISABLE_COMMON_LOGGING;_NO_DDRAWINT_NO_COM;DDRAW;DINPUT;DINPUT8;DDRAWCOMPATLOG;DDRAWCOMPAT;DDRAWCOMPAT_EXPORTS;DXWND;ENABLE_DEBUGOVERLAY;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
-      <ObjectFileName>$(SolutionDir)bin\Intermediate\$(Configuration)\Object\%(RelativeDir)</ObjectFileName>
-      <WarningLevel>Level4</WarningLevel>
-      <AdditionalIncludeDirectories>$(ProjectDir);Libraries;Libraries\DirectX81SDK\include;External\imgui</AdditionalIncludeDirectories>
-      <LanguageStandard>stdcpp17</LanguageStandard>
-      <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
-      <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
-    </ClCompile>
-    <Link>
-      <AdditionalDependencies>detours.lib;dxguid.lib;msimg32.lib;oleacc.lib;uxtheme.lib;dwmapi.lib;wbemuuid.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <ModuleDefinitionFile>Wrappers\wrapper.def</ModuleDefinitionFile>
-      <AdditionalLibraryDirectories>Libraries\detours\lib</AdditionalLibraryDirectories>
-      <OptimizeReferences>true</OptimizeReferences>
-      <EnableCOMDATFolding>true</EnableCOMDATFolding>
-    </Link>
-    <PostBuildEvent>
-      <Command>IF NOT EXIST "$(TargetDir)Build" mkdir "$(TargetDir)Build" &gt;nul
-copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\" &gt;nul
-copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\$(TargetName).asi" &gt;nul
-copy /Y "$(ProjectDir)Settings\AllSettings.ini" "$(TargetDir)Build\" &gt;nul
-copy /Y "$(ProjectDir)Settings\Settings.ini" "$(TargetDir)Build\dxwrapper.ini" &gt;nul
-copy /Y "$(ProjectDir)Resources\dxwnd.dll" "$(TargetDir)Build\" &gt;nul
-copy /Y "$(ProjectDir)Resources\dxwnd.exe" "$(TargetDir)Build\" &gt;nul</Command>
-    </PostBuildEvent>
-  </ItemDefinitionGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <OutDir>$(SolutionDir)bin\$(Configuration)\</OutDir>
+    <IntDir>$(SolutionDir)bin\Intermediate\$(Configuration)\$(ProjectName)\</IntDir>
+  </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
       <PreprocessorDefinitions>WIN32;NDEBUG;_WINDOWS;_USRDLL;DISABLE_COMMON_LOGGING;_NO_DDRAWINT_NO_COM;DDRAW;DINPUT;DINPUT8;DDRAWCOMPAT;DDRAWCOMPAT_EXPORTS;DXWND;D3D8TO9NOLOG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
@@ -104,11 +69,13 @@ copy /Y "$(ProjectDir)Resources\dxwnd.exe" "$(TargetDir)Build\" &gt;nul</Command
       <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
     </ClCompile>
     <Link>
+      <SubSystem>Windows</SubSystem>
       <AdditionalDependencies>detours.lib;dxguid.lib;msimg32.lib;oleacc.lib;uxtheme.lib;dwmapi.lib;wbemuuid.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <ModuleDefinitionFile>Wrappers\wrapper.def</ModuleDefinitionFile>
       <AdditionalLibraryDirectories>Libraries\detours\lib</AdditionalLibraryDirectories>
       <OptimizeReferences>true</OptimizeReferences>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <ImageHasSafeExceptionHandlers>false</ImageHasSafeExceptionHandlers>
     </Link>
     <PostBuildEvent>
       <Command>IF NOT EXIST "$(TargetDir)Build" mkdir "$(TargetDir)Build" &gt;nul
@@ -147,12 +114,13 @@ cmd /q /c "cd /D ""$(ProjectDir)d3d8\"" &amp;&amp; del build.bat"</Command>
       <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
     </ClCompile>
     <Link>
+      <SubSystem>Windows</SubSystem>
       <AdditionalDependencies>Psapi.lib;Shlwapi.lib;detours.lib;msimg32.lib;oleacc.lib;uxtheme.lib;dwmapi.lib;wbemuuid.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <ModuleDefinitionFile>Wrappers\wrapper.def</ModuleDefinitionFile>
       <AdditionalLibraryDirectories>Libraries\detours\lib</AdditionalLibraryDirectories>
       <OptimizeReferences>true</OptimizeReferences>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
-      <SubSystem>Windows</SubSystem>
+      <ImageHasSafeExceptionHandlers>false</ImageHasSafeExceptionHandlers>
     </Link>
     <PostBuildEvent>
       <Command>IF NOT EXIST "$(TargetDir)Build" mkdir "$(TargetDir)Build" &gt;nul
@@ -164,6 +132,36 @@ copy /Y "$(ProjectDir)Resources\dxwnd.dll" "$(TargetDir)Build\" &gt;nul
 copy /Y "$(ProjectDir)Resources\dxwnd.exe" "$(TargetDir)Build\" &gt;nul</Command>
     </PostBuildEvent>
     <PreBuildEvent />
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <ClCompile>
+      <PreprocessorDefinitions>WIN32;_DEBUG;_WINDOWS;_USRDLL;FULLSCREENLOG;WRAPPERLOGGING;DISABLE_COMMON_LOGGING;_NO_DDRAWINT_NO_COM;DDRAW;DINPUT;DINPUT8;DDRAWCOMPATLOG;DDRAWCOMPAT;DDRAWCOMPAT_EXPORTS;DXWND;ENABLE_DEBUGOVERLAY;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
+      <ObjectFileName>$(SolutionDir)bin\Intermediate\$(Configuration)\Object\%(RelativeDir)</ObjectFileName>
+      <WarningLevel>Level4</WarningLevel>
+      <AdditionalIncludeDirectories>$(ProjectDir);Libraries;Libraries\DirectX81SDK\include;External\imgui</AdditionalIncludeDirectories>
+      <LanguageStandard>stdcpp17</LanguageStandard>
+      <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
+      <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
+    </ClCompile>
+    <Link>
+      <SubSystem>Windows</SubSystem>
+      <AdditionalDependencies>detours.lib;dxguid.lib;msimg32.lib;oleacc.lib;uxtheme.lib;dwmapi.lib;wbemuuid.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <ModuleDefinitionFile>Wrappers\wrapper.def</ModuleDefinitionFile>
+      <AdditionalLibraryDirectories>Libraries\detours\lib</AdditionalLibraryDirectories>
+      <OptimizeReferences>true</OptimizeReferences>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <ImageHasSafeExceptionHandlers>false</ImageHasSafeExceptionHandlers>
+    </Link>
+    <PostBuildEvent>
+      <Command>IF NOT EXIST "$(TargetDir)Build" mkdir "$(TargetDir)Build" &gt;nul
+copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\" &gt;nul
+copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\$(TargetName).asi" &gt;nul
+copy /Y "$(ProjectDir)Settings\AllSettings.ini" "$(TargetDir)Build\" &gt;nul
+copy /Y "$(ProjectDir)Settings\Settings.ini" "$(TargetDir)Build\dxwrapper.ini" &gt;nul
+copy /Y "$(ProjectDir)Resources\dxwnd.dll" "$(TargetDir)Build\" &gt;nul
+copy /Y "$(ProjectDir)Resources\dxwnd.exe" "$(TargetDir)Build\" &gt;nul</Command>
+    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="d3d8\d3d8.cpp" />
