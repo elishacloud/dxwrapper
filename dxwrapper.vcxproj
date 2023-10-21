@@ -9,16 +9,24 @@
       <Configuration>Release</Configuration>
       <Platform>Win32</Platform>
     </ProjectConfiguration>
+    <ProjectConfiguration Include="Release_xp|Win32">
+      <Configuration>Release_xp</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{579E7FE7-2745-4100-A802-23511711FCDE}</ProjectGuid>
     <RootNamespace>dxwrapper</RootNamespace>
-    <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
     <ConfigurationType>DynamicLibrary</ConfigurationType>
     <PlatformToolset>v143</PlatformToolset>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'" Label="Configuration">
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
+    <PlatformToolset>v141_xp</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
@@ -29,6 +37,10 @@
   <ImportGroup Label="ExtensionSettings">
   </ImportGroup>
   <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+    <Import Project="$(VCTargetsPath)Microsoft.CPP.UpgradeFromVC60.props" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'" Label="PropertySheets">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
     <Import Project="$(VCTargetsPath)Microsoft.CPP.UpgradeFromVC60.props" />
   </ImportGroup>
@@ -45,6 +57,10 @@
     <IntDir>$(SolutionDir)bin\Intermediate\$(Configuration)\$(ProjectName)\</IntDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <OutDir>$(SolutionDir)bin\$(Configuration)\</OutDir>
+    <IntDir>$(SolutionDir)bin\Intermediate\$(Configuration)\$(ProjectName)\</IntDir>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">
     <OutDir>$(SolutionDir)bin\$(Configuration)\</OutDir>
     <IntDir>$(SolutionDir)bin\Intermediate\$(Configuration)\$(ProjectName)\</IntDir>
   </PropertyGroup>
@@ -119,6 +135,36 @@ cmd /q /c "cd /D ""$(ProjectDir)d3d8\"" &amp;&amp; call build.bat"
 cmd /q /c "cd /D ""$(ProjectDir)d3d8\"" &amp;&amp; del build.bat"</Command>
     </PreBuildEvent>
   </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">
+    <ClCompile>
+      <PreprocessorDefinitions>WIN32;NDEBUG;_WINDOWS;_WIN32_WINNT=0x0501;_USRDLL;DISABLE_COMMON_LOGGING;_NO_DDRAWINT_NO_COM;DDRAW;DINPUT;DINPUT8;DXWND;D3D8TO9NOLOG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
+      <ObjectFileName>$(SolutionDir)bin\Intermediate\$(Configuration)\Object\%(RelativeDir)</ObjectFileName>
+      <WarningLevel>Level4</WarningLevel>
+      <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
+      <AdditionalIncludeDirectories>$(ProjectDir);Libraries;Libraries\DirectX81SDK\include;External\imgui</AdditionalIncludeDirectories>
+      <LanguageStandard>stdcpp17</LanguageStandard>
+      <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
+    </ClCompile>
+    <Link>
+      <AdditionalDependencies>Psapi.lib;Shlwapi.lib;detours.lib;msimg32.lib;oleacc.lib;uxtheme.lib;dwmapi.lib;wbemuuid.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <ModuleDefinitionFile>Wrappers\wrapper.def</ModuleDefinitionFile>
+      <AdditionalLibraryDirectories>Libraries\detours\lib</AdditionalLibraryDirectories>
+      <OptimizeReferences>true</OptimizeReferences>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <SubSystem>Windows</SubSystem>
+    </Link>
+    <PostBuildEvent>
+      <Command>IF NOT EXIST "$(TargetDir)Build" mkdir "$(TargetDir)Build" &gt;nul
+copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\" &gt;nul
+copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\$(TargetName).asi" &gt;nul
+copy /Y "$(ProjectDir)Settings\AllSettings.ini" "$(TargetDir)Build\" &gt;nul
+copy /Y "$(ProjectDir)Settings\Settings.ini" "$(TargetDir)Build\dxwrapper.ini" &gt;nul
+copy /Y "$(ProjectDir)Resources\dxwnd.dll" "$(TargetDir)Build\" &gt;nul
+copy /Y "$(ProjectDir)Resources\dxwnd.exe" "$(TargetDir)Build\" &gt;nul</Command>
+    </PostBuildEvent>
+    <PreBuildEvent />
+  </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="d3d8\d3d8.cpp" />
     <ClCompile Include="d3d9\d3d9.cpp" />
@@ -140,117 +186,339 @@ cmd /q /c "cd /D ""$(ProjectDir)d3d8\"" &amp;&amp; del build.bat"</Command>
     <ClCompile Include="d3d9\IDirect3DVolumeTexture9.cpp" />
     <ClCompile Include="d3d9\InterfaceQuery.cpp" />
     <ClCompile Include="D3DDDI\d3dddi.cpp" />
-    <ClCompile Include="DDrawCompat\DDrawCompatExternal.cpp" />
-    <ClCompile Include="DDrawCompat\v0.2.0b\CompatDirectDraw.cpp" />
-    <ClCompile Include="DDrawCompat\v0.2.0b\CompatDirectDrawPalette.cpp" />
-    <ClCompile Include="DDrawCompat\v0.2.0b\CompatDirectDrawSurface.cpp" />
-    <ClCompile Include="DDrawCompat\v0.2.0b\CompatGdi.cpp" />
-    <ClCompile Include="DDrawCompat\v0.2.0b\CompatGdiCaret.cpp" />
-    <ClCompile Include="DDrawCompat\v0.2.0b\CompatGdiDc.cpp" />
-    <ClCompile Include="DDrawCompat\v0.2.0b\CompatGdiDcCache.cpp" />
-    <ClCompile Include="DDrawCompat\v0.2.0b\CompatGdiFunctions.cpp" />
-    <ClCompile Include="DDrawCompat\v0.2.0b\CompatGdiWinProc.cpp" />
-    <ClCompile Include="DDrawCompat\v0.2.0b\CompatPrimarySurface.cpp" />
-    <ClCompile Include="DDrawCompat\v0.2.0b\CompatVtable.cpp" />
-    <ClCompile Include="DDrawCompat\v0.2.0b\DDrawProcs.cpp" />
-    <ClCompile Include="DDrawCompat\v0.2.0b\DllMain.cpp" />
-    <ClCompile Include="DDrawCompat\v0.2.0b\IReleaseNotifier.cpp" />
-    <ClCompile Include="DDrawCompat\v0.2.0b\RealPrimarySurface.cpp" />
-    <ClCompile Include="DDrawCompat\v0.2.0b\UnmodifiedDDrawProcs.cpp" />
-    <ClCompile Include="DDrawCompat\v0.2.1\CompatActivateAppHandler.cpp" />
-    <ClCompile Include="DDrawCompat\v0.2.1\CompatDirectDraw.cpp" />
-    <ClCompile Include="DDrawCompat\v0.2.1\CompatDirectDrawPalette.cpp" />
-    <ClCompile Include="DDrawCompat\v0.2.1\CompatDirectDrawSurface.cpp" />
-    <ClCompile Include="DDrawCompat\v0.2.1\CompatGdi.cpp" />
-    <ClCompile Include="DDrawCompat\v0.2.1\CompatGdiCaret.cpp" />
-    <ClCompile Include="DDrawCompat\v0.2.1\CompatGdiDc.cpp" />
-    <ClCompile Include="DDrawCompat\v0.2.1\CompatGdiDcCache.cpp" />
-    <ClCompile Include="DDrawCompat\v0.2.1\CompatGdiDcFunctions.cpp" />
-    <ClCompile Include="DDrawCompat\v0.2.1\CompatGdiPaintHandlers.cpp" />
-    <ClCompile Include="DDrawCompat\v0.2.1\CompatGdiScrollBar.cpp" />
-    <ClCompile Include="DDrawCompat\v0.2.1\CompatGdiScrollFunctions.cpp" />
-    <ClCompile Include="DDrawCompat\v0.2.1\CompatGdiTitleBar.cpp" />
-    <ClCompile Include="DDrawCompat\v0.2.1\CompatGdiWinProc.cpp" />
-    <ClCompile Include="DDrawCompat\v0.2.1\CompatPaletteConverter.cpp" />
-    <ClCompile Include="DDrawCompat\v0.2.1\CompatPrimarySurface.cpp" />
-    <ClCompile Include="DDrawCompat\v0.2.1\CompatRegistry.cpp" />
-    <ClCompile Include="DDrawCompat\v0.2.1\DDrawProcs.cpp" />
-    <ClCompile Include="DDrawCompat\v0.2.1\DDrawRepository.cpp" />
-    <ClCompile Include="DDrawCompat\v0.2.1\DllMain.cpp" />
-    <ClCompile Include="DDrawCompat\v0.2.1\Hook.cpp" />
-    <ClCompile Include="DDrawCompat\v0.2.1\IReleaseNotifier.cpp" />
-    <ClCompile Include="DDrawCompat\v0.2.1\RealPrimarySurface.cpp" />
-    <ClCompile Include="DDrawCompat\v0.2.1\Time.cpp" />
-    <ClCompile Include="DDrawCompat\v0.2.1\UnmodifiedDDrawProcs.cpp" />
-    <ClCompile Include="DDrawCompat\v0.3.1\Common\Hook.cpp" />
-    <ClCompile Include="DDrawCompat\v0.3.1\Common\Path.cpp" />
-    <ClCompile Include="DDrawCompat\v0.3.1\Common\Time.cpp" />
-    <ClCompile Include="DDrawCompat\v0.3.1\D3dDdi\Adapter.cpp" />
-    <ClCompile Include="DDrawCompat\v0.3.1\D3dDdi\AdapterCallbacks.cpp" />
-    <ClCompile Include="DDrawCompat\v0.3.1\D3dDdi\AdapterFuncs.cpp" />
-    <ClCompile Include="DDrawCompat\v0.3.1\D3dDdi\Device.cpp" />
-    <ClCompile Include="DDrawCompat\v0.3.1\D3dDdi\DeviceCallbacks.cpp" />
-    <ClCompile Include="DDrawCompat\v0.3.1\D3dDdi\DeviceFuncs.cpp" />
-    <ClCompile Include="DDrawCompat\v0.3.1\D3dDdi\DeviceState.cpp" />
-    <ClCompile Include="DDrawCompat\v0.3.1\D3dDdi\DrawPrimitive.cpp" />
-    <ClCompile Include="DDrawCompat\v0.3.1\D3dDdi\DynamicBuffer.cpp" />
-    <ClCompile Include="DDrawCompat\v0.3.1\D3dDdi\FormatInfo.cpp" />
-    <ClCompile Include="DDrawCompat\v0.3.1\D3dDdi\Hooks.cpp" />
-    <ClCompile Include="DDrawCompat\v0.3.1\D3dDdi\KernelModeThunks.cpp" />
-    <ClCompile Include="DDrawCompat\v0.3.1\D3dDdi\Log\AdapterFuncsLog.cpp" />
-    <ClCompile Include="DDrawCompat\v0.3.1\D3dDdi\Log\CommonLog.cpp" />
-    <ClCompile Include="DDrawCompat\v0.3.1\D3dDdi\Log\DeviceCallbacksLog.cpp" />
-    <ClCompile Include="DDrawCompat\v0.3.1\D3dDdi\Log\DeviceFuncsLog.cpp" />
-    <ClCompile Include="DDrawCompat\v0.3.1\D3dDdi\Log\KernelModeThunksLog.cpp" />
-    <ClCompile Include="DDrawCompat\v0.3.1\D3dDdi\Resource.cpp" />
-    <ClCompile Include="DDrawCompat\v0.3.1\D3dDdi\ScopedCriticalSection.cpp" />
-    <ClCompile Include="DDrawCompat\v0.3.1\DDraw\Blitter.cpp" />
-    <ClCompile Include="DDrawCompat\v0.3.1\DDraw\DirectDraw.cpp" />
-    <ClCompile Include="DDrawCompat\v0.3.1\DDraw\DirectDrawClipper.cpp" />
-    <ClCompile Include="DDrawCompat\v0.3.1\DDraw\DirectDrawGammaControl.cpp" />
-    <ClCompile Include="DDrawCompat\v0.3.1\DDraw\DirectDrawPalette.cpp" />
-    <ClCompile Include="DDrawCompat\v0.3.1\DDraw\DirectDrawSurface.cpp" />
-    <ClCompile Include="DDrawCompat\v0.3.1\DDraw\Hooks.cpp" />
-    <ClCompile Include="DDrawCompat\v0.3.1\DDraw\IReleaseNotifier.cpp" />
-    <ClCompile Include="DDrawCompat\v0.3.1\DDraw\RealPrimarySurface.cpp" />
-    <ClCompile Include="DDrawCompat\v0.3.1\DDraw\Surfaces\PrimarySurface.cpp" />
-    <ClCompile Include="DDrawCompat\v0.3.1\DDraw\Surfaces\PrimarySurfaceImpl.cpp" />
-    <ClCompile Include="DDrawCompat\v0.3.1\DDraw\Surfaces\Surface.cpp" />
-    <ClCompile Include="DDrawCompat\v0.3.1\DDraw\Surfaces\SurfaceImpl.cpp" />
-    <ClCompile Include="DDrawCompat\v0.3.1\Direct3d\Direct3d.cpp" />
-    <ClCompile Include="DDrawCompat\v0.3.1\Direct3d\Direct3dDevice.cpp" />
-    <ClCompile Include="DDrawCompat\v0.3.1\Direct3d\Direct3dExecuteBuffer.cpp" />
-    <ClCompile Include="DDrawCompat\v0.3.1\Direct3d\Direct3dLight.cpp" />
-    <ClCompile Include="DDrawCompat\v0.3.1\Direct3d\Direct3dMaterial.cpp" />
-    <ClCompile Include="DDrawCompat\v0.3.1\Direct3d\Direct3dTexture.cpp" />
-    <ClCompile Include="DDrawCompat\v0.3.1\Direct3d\Direct3dVertexBuffer.cpp" />
-    <ClCompile Include="DDrawCompat\v0.3.1\Direct3d\Direct3dViewport.cpp" />
-    <ClCompile Include="DDrawCompat\v0.3.1\Direct3d\Hooks.cpp" />
-    <ClCompile Include="DDrawCompat\v0.3.1\Dll\Dll.cpp" />
-    <ClCompile Include="DDrawCompat\v0.3.1\Dll\DllMain.cpp" />
-    <ClCompile Include="DDrawCompat\v0.3.1\Gdi\Caret.cpp" />
-    <ClCompile Include="DDrawCompat\v0.3.1\Gdi\CompatDc.cpp" />
-    <ClCompile Include="DDrawCompat\v0.3.1\Gdi\Dc.cpp" />
-    <ClCompile Include="DDrawCompat\v0.3.1\Gdi\DcFunctions.cpp" />
-    <ClCompile Include="DDrawCompat\v0.3.1\Gdi\Font.cpp" />
-    <ClCompile Include="DDrawCompat\v0.3.1\Gdi\Gdi.cpp" />
-    <ClCompile Include="DDrawCompat\v0.3.1\Gdi\Icon.cpp" />
-    <ClCompile Include="DDrawCompat\v0.3.1\Gdi\Metrics.cpp" />
-    <ClCompile Include="DDrawCompat\v0.3.1\Gdi\Palette.cpp" />
-    <ClCompile Include="DDrawCompat\v0.3.1\Gdi\PresentationWindow.cpp" />
-    <ClCompile Include="DDrawCompat\v0.3.1\Gdi\Region.cpp" />
-    <ClCompile Include="DDrawCompat\v0.3.1\Gdi\ScrollBar.cpp" />
-    <ClCompile Include="DDrawCompat\v0.3.1\Gdi\ScrollFunctions.cpp" />
-    <ClCompile Include="DDrawCompat\v0.3.1\Gdi\TitleBar.cpp" />
-    <ClCompile Include="DDrawCompat\v0.3.1\Gdi\User32WndProcs.cpp" />
-    <ClCompile Include="DDrawCompat\v0.3.1\Gdi\VirtualScreen.cpp" />
-    <ClCompile Include="DDrawCompat\v0.3.1\Gdi\Window.cpp" />
-    <ClCompile Include="DDrawCompat\v0.3.1\Gdi\WinProc.cpp" />
-    <ClCompile Include="DDrawCompat\v0.3.1\Win32\DisplayMode.cpp" />
-    <ClCompile Include="DDrawCompat\v0.3.1\Win32\MemoryManagement.cpp" />
-    <ClCompile Include="DDrawCompat\v0.3.1\Win32\MsgHooks.cpp" />
-    <ClCompile Include="DDrawCompat\v0.3.1\Win32\Registry.cpp" />
-    <ClCompile Include="DDrawCompat\v0.3.1\Win32\WaitFunctions.cpp" />
+    <ClCompile Include="DDrawCompat\DDrawCompatExternal.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="DDrawCompat\v0.2.0b\CompatDirectDraw.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="DDrawCompat\v0.2.0b\CompatDirectDrawPalette.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="DDrawCompat\v0.2.0b\CompatDirectDrawSurface.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="DDrawCompat\v0.2.0b\CompatGdi.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="DDrawCompat\v0.2.0b\CompatGdiCaret.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="DDrawCompat\v0.2.0b\CompatGdiDc.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="DDrawCompat\v0.2.0b\CompatGdiDcCache.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="DDrawCompat\v0.2.0b\CompatGdiFunctions.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="DDrawCompat\v0.2.0b\CompatGdiWinProc.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="DDrawCompat\v0.2.0b\CompatPrimarySurface.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="DDrawCompat\v0.2.0b\CompatVtable.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="DDrawCompat\v0.2.0b\DDrawProcs.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="DDrawCompat\v0.2.0b\DllMain.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="DDrawCompat\v0.2.0b\IReleaseNotifier.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="DDrawCompat\v0.2.0b\RealPrimarySurface.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="DDrawCompat\v0.2.0b\UnmodifiedDDrawProcs.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="DDrawCompat\v0.2.1\CompatActivateAppHandler.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="DDrawCompat\v0.2.1\CompatDirectDraw.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="DDrawCompat\v0.2.1\CompatDirectDrawPalette.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="DDrawCompat\v0.2.1\CompatDirectDrawSurface.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="DDrawCompat\v0.2.1\CompatGdi.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="DDrawCompat\v0.2.1\CompatGdiCaret.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="DDrawCompat\v0.2.1\CompatGdiDc.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="DDrawCompat\v0.2.1\CompatGdiDcCache.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="DDrawCompat\v0.2.1\CompatGdiDcFunctions.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="DDrawCompat\v0.2.1\CompatGdiPaintHandlers.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="DDrawCompat\v0.2.1\CompatGdiScrollBar.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="DDrawCompat\v0.2.1\CompatGdiScrollFunctions.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="DDrawCompat\v0.2.1\CompatGdiTitleBar.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="DDrawCompat\v0.2.1\CompatGdiWinProc.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="DDrawCompat\v0.2.1\CompatPaletteConverter.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="DDrawCompat\v0.2.1\CompatPrimarySurface.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="DDrawCompat\v0.2.1\CompatRegistry.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="DDrawCompat\v0.2.1\DDrawProcs.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="DDrawCompat\v0.2.1\DDrawRepository.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="DDrawCompat\v0.2.1\DllMain.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="DDrawCompat\v0.2.1\Hook.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="DDrawCompat\v0.2.1\IReleaseNotifier.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="DDrawCompat\v0.2.1\RealPrimarySurface.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="DDrawCompat\v0.2.1\Time.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="DDrawCompat\v0.2.1\UnmodifiedDDrawProcs.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="DDrawCompat\v0.3.1\Common\Hook.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="DDrawCompat\v0.3.1\Common\Path.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="DDrawCompat\v0.3.1\Common\Time.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="DDrawCompat\v0.3.1\D3dDdi\Adapter.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="DDrawCompat\v0.3.1\D3dDdi\AdapterCallbacks.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="DDrawCompat\v0.3.1\D3dDdi\AdapterFuncs.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="DDrawCompat\v0.3.1\D3dDdi\Device.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="DDrawCompat\v0.3.1\D3dDdi\DeviceCallbacks.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="DDrawCompat\v0.3.1\D3dDdi\DeviceFuncs.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="DDrawCompat\v0.3.1\D3dDdi\DeviceState.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="DDrawCompat\v0.3.1\D3dDdi\DrawPrimitive.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="DDrawCompat\v0.3.1\D3dDdi\DynamicBuffer.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="DDrawCompat\v0.3.1\D3dDdi\FormatInfo.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="DDrawCompat\v0.3.1\D3dDdi\Hooks.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="DDrawCompat\v0.3.1\D3dDdi\KernelModeThunks.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="DDrawCompat\v0.3.1\D3dDdi\Log\AdapterFuncsLog.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="DDrawCompat\v0.3.1\D3dDdi\Log\CommonLog.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="DDrawCompat\v0.3.1\D3dDdi\Log\DeviceCallbacksLog.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="DDrawCompat\v0.3.1\D3dDdi\Log\DeviceFuncsLog.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="DDrawCompat\v0.3.1\D3dDdi\Log\KernelModeThunksLog.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="DDrawCompat\v0.3.1\D3dDdi\Resource.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="DDrawCompat\v0.3.1\D3dDdi\ScopedCriticalSection.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="DDrawCompat\v0.3.1\DDraw\Blitter.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="DDrawCompat\v0.3.1\DDraw\DirectDraw.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="DDrawCompat\v0.3.1\DDraw\DirectDrawClipper.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="DDrawCompat\v0.3.1\DDraw\DirectDrawGammaControl.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="DDrawCompat\v0.3.1\DDraw\DirectDrawPalette.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="DDrawCompat\v0.3.1\DDraw\DirectDrawSurface.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="DDrawCompat\v0.3.1\DDraw\Hooks.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="DDrawCompat\v0.3.1\DDraw\IReleaseNotifier.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="DDrawCompat\v0.3.1\DDraw\RealPrimarySurface.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="DDrawCompat\v0.3.1\DDraw\Surfaces\PrimarySurface.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="DDrawCompat\v0.3.1\DDraw\Surfaces\PrimarySurfaceImpl.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="DDrawCompat\v0.3.1\DDraw\Surfaces\Surface.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="DDrawCompat\v0.3.1\DDraw\Surfaces\SurfaceImpl.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="DDrawCompat\v0.3.1\Direct3d\Direct3d.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="DDrawCompat\v0.3.1\Direct3d\Direct3dDevice.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="DDrawCompat\v0.3.1\Direct3d\Direct3dExecuteBuffer.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="DDrawCompat\v0.3.1\Direct3d\Direct3dLight.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="DDrawCompat\v0.3.1\Direct3d\Direct3dMaterial.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="DDrawCompat\v0.3.1\Direct3d\Direct3dTexture.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="DDrawCompat\v0.3.1\Direct3d\Direct3dVertexBuffer.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="DDrawCompat\v0.3.1\Direct3d\Direct3dViewport.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="DDrawCompat\v0.3.1\Direct3d\Hooks.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="DDrawCompat\v0.3.1\Dll\Dll.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="DDrawCompat\v0.3.1\Dll\DllMain.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="DDrawCompat\v0.3.1\Gdi\Caret.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="DDrawCompat\v0.3.1\Gdi\CompatDc.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="DDrawCompat\v0.3.1\Gdi\Dc.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="DDrawCompat\v0.3.1\Gdi\DcFunctions.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="DDrawCompat\v0.3.1\Gdi\Font.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="DDrawCompat\v0.3.1\Gdi\Gdi.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="DDrawCompat\v0.3.1\Gdi\Icon.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="DDrawCompat\v0.3.1\Gdi\Metrics.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="DDrawCompat\v0.3.1\Gdi\Palette.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="DDrawCompat\v0.3.1\Gdi\PresentationWindow.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="DDrawCompat\v0.3.1\Gdi\Region.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="DDrawCompat\v0.3.1\Gdi\ScrollBar.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="DDrawCompat\v0.3.1\Gdi\ScrollFunctions.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="DDrawCompat\v0.3.1\Gdi\TitleBar.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="DDrawCompat\v0.3.1\Gdi\User32WndProcs.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="DDrawCompat\v0.3.1\Gdi\VirtualScreen.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="DDrawCompat\v0.3.1\Gdi\Window.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="DDrawCompat\v0.3.1\Gdi\WinProc.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="DDrawCompat\v0.3.1\Win32\DisplayMode.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="DDrawCompat\v0.3.1\Win32\MemoryManagement.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="DDrawCompat\v0.3.1\Win32\MsgHooks.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="DDrawCompat\v0.3.1\Win32\Registry.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="DDrawCompat\v0.3.1\Win32\WaitFunctions.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
     <ClCompile Include="ddraw\ddraw.cpp" />
     <ClCompile Include="ddraw\IDirect3DDeviceX.cpp" />
     <ClCompile Include="ddraw\IDirect3DMaterialX.cpp" />
@@ -412,163 +680,477 @@ cmd /q /c "cd /D ""$(ProjectDir)d3d8\"" &amp;&amp; del build.bat"</Command>
     <ClInclude Include="d3d9\IDirect3DVolume9.h" />
     <ClInclude Include="d3d9\IDirect3DVolumeTexture9.h" />
     <ClInclude Include="D3DDDI\d3dddiExternal.h" />
-    <ClInclude Include="DDrawCompat\DDrawCompatExternal.h" />
-    <ClInclude Include="DDrawCompat\DDrawLog.h" />
-    <ClInclude Include="DDrawCompat\v0.2.0b\CompatDirectDraw.h" />
-    <ClInclude Include="DDrawCompat\v0.2.0b\CompatDirectDrawPalette.h" />
-    <ClInclude Include="DDrawCompat\v0.2.0b\CompatDirectDrawSurface.h" />
-    <ClInclude Include="DDrawCompat\v0.2.0b\CompatGdi.h" />
-    <ClInclude Include="DDrawCompat\v0.2.0b\CompatGdiCaret.h" />
-    <ClInclude Include="DDrawCompat\v0.2.0b\CompatGdiDc.h" />
-    <ClInclude Include="DDrawCompat\v0.2.0b\CompatGdiDcCache.h" />
-    <ClInclude Include="DDrawCompat\v0.2.0b\CompatGdiFunctions.h" />
-    <ClInclude Include="DDrawCompat\v0.2.0b\CompatGdiWinProc.h" />
-    <ClInclude Include="DDrawCompat\v0.2.0b\CompatPrimarySurface.h" />
-    <ClInclude Include="DDrawCompat\v0.2.0b\CompatVtable.h" />
-    <ClInclude Include="DDrawCompat\v0.2.0b\Config.h" />
-    <ClInclude Include="DDrawCompat\v0.2.0b\DDrawProcs.h" />
-    <ClInclude Include="DDrawCompat\v0.2.0b\DDrawScopedThreadLock.h" />
-    <ClInclude Include="DDrawCompat\v0.2.0b\DDrawTypes.h" />
-    <ClInclude Include="DDrawCompat\v0.2.0b\DDrawVtableVisitor.h" />
-    <ClInclude Include="DDrawCompat\v0.2.0b\DirectDrawPaletteVtblVisitor.h" />
-    <ClInclude Include="DDrawCompat\v0.2.0b\DirectDrawSurfaceVtblVisitor.h" />
-    <ClInclude Include="DDrawCompat\v0.2.0b\DirectDrawVtblVisitor.h" />
-    <ClInclude Include="DDrawCompat\v0.2.0b\DllMain.h" />
-    <ClInclude Include="DDrawCompat\v0.2.0b\IReleaseNotifier.h" />
-    <ClInclude Include="DDrawCompat\v0.2.0b\RealPrimarySurface.h" />
-    <ClInclude Include="DDrawCompat\v0.2.1\CompatActivateAppHandler.h" />
-    <ClInclude Include="DDrawCompat\v0.2.1\CompatDirectDraw.h" />
-    <ClInclude Include="DDrawCompat\v0.2.1\CompatDirectDrawPalette.h" />
-    <ClInclude Include="DDrawCompat\v0.2.1\CompatDirectDrawSurface.h" />
-    <ClInclude Include="DDrawCompat\v0.2.1\CompatGdi.h" />
-    <ClInclude Include="DDrawCompat\v0.2.1\CompatGdiCaret.h" />
-    <ClInclude Include="DDrawCompat\v0.2.1\CompatGdiDc.h" />
-    <ClInclude Include="DDrawCompat\v0.2.1\CompatGdiDcCache.h" />
-    <ClInclude Include="DDrawCompat\v0.2.1\CompatGdiDcFunctions.h" />
-    <ClInclude Include="DDrawCompat\v0.2.1\CompatGdiPaintHandlers.h" />
-    <ClInclude Include="DDrawCompat\v0.2.1\CompatGdiScrollBar.h" />
-    <ClInclude Include="DDrawCompat\v0.2.1\CompatGdiScrollFunctions.h" />
-    <ClInclude Include="DDrawCompat\v0.2.1\CompatGdiTitleBar.h" />
-    <ClInclude Include="DDrawCompat\v0.2.1\CompatGdiWinProc.h" />
-    <ClInclude Include="DDrawCompat\v0.2.1\CompatPaletteConverter.h" />
-    <ClInclude Include="DDrawCompat\v0.2.1\CompatPrimarySurface.h" />
-    <ClInclude Include="DDrawCompat\v0.2.1\CompatRegistry.h" />
-    <ClInclude Include="DDrawCompat\v0.2.1\CompatVtable.h" />
-    <ClInclude Include="DDrawCompat\v0.2.1\Config.h" />
-    <ClInclude Include="DDrawCompat\v0.2.1\DDrawProcs.h" />
-    <ClInclude Include="DDrawCompat\v0.2.1\DDrawRepository.h" />
-    <ClInclude Include="DDrawCompat\v0.2.1\DDrawScopedThreadLock.h" />
-    <ClInclude Include="DDrawCompat\v0.2.1\DDrawTypes.h" />
-    <ClInclude Include="DDrawCompat\v0.2.1\DDrawVtableVisitor.h" />
-    <ClInclude Include="DDrawCompat\v0.2.1\DirectDrawPaletteVtblVisitor.h" />
-    <ClInclude Include="DDrawCompat\v0.2.1\DirectDrawSurfaceVtblVisitor.h" />
-    <ClInclude Include="DDrawCompat\v0.2.1\DirectDrawVtblVisitor.h" />
-    <ClInclude Include="DDrawCompat\v0.2.1\DllMain.h" />
-    <ClInclude Include="DDrawCompat\v0.2.1\Hook.h" />
-    <ClInclude Include="DDrawCompat\v0.2.1\IReleaseNotifier.h" />
-    <ClInclude Include="DDrawCompat\v0.2.1\RealPrimarySurface.h" />
-    <ClInclude Include="DDrawCompat\v0.2.1\ScopedCriticalSection.h" />
-    <ClInclude Include="DDrawCompat\v0.2.1\Time.h" />
-    <ClInclude Include="DDrawCompat\v0.3.1\Common\CompatPtr.h" />
-    <ClInclude Include="DDrawCompat\v0.3.1\Common\CompatQueryInterface.h" />
-    <ClInclude Include="DDrawCompat\v0.3.1\Common\CompatRef.h" />
-    <ClInclude Include="DDrawCompat\v0.3.1\Common\CompatVtable.h" />
-    <ClInclude Include="DDrawCompat\v0.3.1\Common\CompatWeakPtr.h" />
-    <ClInclude Include="DDrawCompat\v0.3.1\Common\Hook.h" />
-    <ClInclude Include="DDrawCompat\v0.3.1\Common\HResultException.h" />
-    <ClInclude Include="DDrawCompat\v0.3.1\Common\Path.h" />
-    <ClInclude Include="DDrawCompat\v0.3.1\Common\ScopedCriticalSection.h" />
-    <ClInclude Include="DDrawCompat\v0.3.1\Common\ScopedSrwLock.h" />
-    <ClInclude Include="DDrawCompat\v0.3.1\Common\Time.h" />
-    <ClInclude Include="DDrawCompat\v0.3.1\Common\VtableHookVisitor.h" />
-    <ClInclude Include="DDrawCompat\v0.3.1\Common\VtableSizeVisitor.h" />
-    <ClInclude Include="DDrawCompat\v0.3.1\Common\VtableVisitor.h" />
-    <ClInclude Include="DDrawCompat\v0.3.1\Config\Config.h" />
-    <ClInclude Include="DDrawCompat\v0.3.1\D3dDdi\Adapter.h" />
-    <ClInclude Include="DDrawCompat\v0.3.1\D3dDdi\AdapterCallbacks.h" />
-    <ClInclude Include="DDrawCompat\v0.3.1\D3dDdi\AdapterFuncs.h" />
-    <ClInclude Include="DDrawCompat\v0.3.1\D3dDdi\Device.h" />
-    <ClInclude Include="DDrawCompat\v0.3.1\D3dDdi\DeviceCallbacks.h" />
-    <ClInclude Include="DDrawCompat\v0.3.1\D3dDdi\DeviceFuncs.h" />
-    <ClInclude Include="DDrawCompat\v0.3.1\D3dDdi\DeviceState.h" />
-    <ClInclude Include="DDrawCompat\v0.3.1\D3dDdi\DrawPrimitive.h" />
-    <ClInclude Include="DDrawCompat\v0.3.1\D3dDdi\DynamicBuffer.h" />
-    <ClInclude Include="DDrawCompat\v0.3.1\D3dDdi\FormatInfo.h" />
-    <ClInclude Include="DDrawCompat\v0.3.1\D3dDdi\Hooks.h" />
-    <ClInclude Include="DDrawCompat\v0.3.1\D3dDdi\KernelModeThunks.h" />
-    <ClInclude Include="DDrawCompat\v0.3.1\D3dDdi\Log\AdapterFuncsLog.h" />
-    <ClInclude Include="DDrawCompat\v0.3.1\D3dDdi\Log\CommonLog.h" />
-    <ClInclude Include="DDrawCompat\v0.3.1\D3dDdi\Log\DeviceCallbacksLog.h" />
-    <ClInclude Include="DDrawCompat\v0.3.1\D3dDdi\Log\DeviceFuncsLog.h" />
-    <ClInclude Include="DDrawCompat\v0.3.1\D3dDdi\Log\KernelModeThunksLog.h" />
-    <ClInclude Include="DDrawCompat\v0.3.1\D3dDdi\Resource.h" />
-    <ClInclude Include="DDrawCompat\v0.3.1\D3dDdi\ScopedCriticalSection.h" />
-    <ClInclude Include="DDrawCompat\v0.3.1\D3dDdi\Visitors\AdapterCallbacksVisitor.h" />
-    <ClInclude Include="DDrawCompat\v0.3.1\D3dDdi\Visitors\AdapterFuncsVisitor.h" />
-    <ClInclude Include="DDrawCompat\v0.3.1\D3dDdi\Visitors\DeviceCallbacksVisitor.h" />
-    <ClInclude Include="DDrawCompat\v0.3.1\D3dDdi\Visitors\DeviceFuncsVisitor.h" />
-    <ClInclude Include="DDrawCompat\v0.3.1\DDraw\Blitter.h" />
-    <ClInclude Include="DDrawCompat\v0.3.1\DDraw\DirectDraw.h" />
-    <ClInclude Include="DDrawCompat\v0.3.1\DDraw\DirectDrawClipper.h" />
-    <ClInclude Include="DDrawCompat\v0.3.1\DDraw\DirectDrawGammaControl.h" />
-    <ClInclude Include="DDrawCompat\v0.3.1\DDraw\DirectDrawPalette.h" />
-    <ClInclude Include="DDrawCompat\v0.3.1\DDraw\DirectDrawSurface.h" />
-    <ClInclude Include="DDrawCompat\v0.3.1\DDraw\Hooks.h" />
-    <ClInclude Include="DDrawCompat\v0.3.1\DDraw\IReleaseNotifier.h" />
-    <ClInclude Include="DDrawCompat\v0.3.1\DDraw\RealPrimarySurface.h" />
-    <ClInclude Include="DDrawCompat\v0.3.1\DDraw\ScopedThreadLock.h" />
-    <ClInclude Include="DDrawCompat\v0.3.1\DDraw\Surfaces\PrimarySurface.h" />
-    <ClInclude Include="DDrawCompat\v0.3.1\DDraw\Surfaces\PrimarySurfaceImpl.h" />
-    <ClInclude Include="DDrawCompat\v0.3.1\DDraw\Surfaces\Surface.h" />
-    <ClInclude Include="DDrawCompat\v0.3.1\DDraw\Surfaces\SurfaceImpl.h" />
-    <ClInclude Include="DDrawCompat\v0.3.1\DDraw\Types.h" />
-    <ClInclude Include="DDrawCompat\v0.3.1\DDraw\Visitors\DirectDrawClipperVtblVisitor.h" />
-    <ClInclude Include="DDrawCompat\v0.3.1\DDraw\Visitors\DirectDrawGammaControlVtblVisitor.h" />
-    <ClInclude Include="DDrawCompat\v0.3.1\DDraw\Visitors\DirectDrawPaletteVtblVisitor.h" />
-    <ClInclude Include="DDrawCompat\v0.3.1\DDraw\Visitors\DirectDrawSurfaceVtblVisitor.h" />
-    <ClInclude Include="DDrawCompat\v0.3.1\DDraw\Visitors\DirectDrawVtblVisitor.h" />
-    <ClInclude Include="DDrawCompat\v0.3.1\Direct3d\Direct3d.h" />
-    <ClInclude Include="DDrawCompat\v0.3.1\Direct3d\Direct3dDevice.h" />
-    <ClInclude Include="DDrawCompat\v0.3.1\Direct3d\Direct3dExecuteBuffer.h" />
-    <ClInclude Include="DDrawCompat\v0.3.1\Direct3d\Direct3dLight.h" />
-    <ClInclude Include="DDrawCompat\v0.3.1\Direct3d\Direct3dMaterial.h" />
-    <ClInclude Include="DDrawCompat\v0.3.1\Direct3d\Direct3dTexture.h" />
-    <ClInclude Include="DDrawCompat\v0.3.1\Direct3d\Direct3dVertexBuffer.h" />
-    <ClInclude Include="DDrawCompat\v0.3.1\Direct3d\Direct3dViewport.h" />
-    <ClInclude Include="DDrawCompat\v0.3.1\Direct3d\Hooks.h" />
-    <ClInclude Include="DDrawCompat\v0.3.1\Direct3d\Visitors\Direct3dDeviceVtblVisitor.h" />
-    <ClInclude Include="DDrawCompat\v0.3.1\Direct3d\Visitors\Direct3dExecuteBufferVtblVisitor.h" />
-    <ClInclude Include="DDrawCompat\v0.3.1\Direct3d\Visitors\Direct3dLightVtblVisitor.h" />
-    <ClInclude Include="DDrawCompat\v0.3.1\Direct3d\Visitors\Direct3dMaterialVtblVisitor.h" />
-    <ClInclude Include="DDrawCompat\v0.3.1\Direct3d\Visitors\Direct3dTextureVtblVisitor.h" />
-    <ClInclude Include="DDrawCompat\v0.3.1\Direct3d\Visitors\Direct3dVertexBufferVtblVisitor.h" />
-    <ClInclude Include="DDrawCompat\v0.3.1\Direct3d\Visitors\Direct3dViewportVtblVisitor.h" />
-    <ClInclude Include="DDrawCompat\v0.3.1\Direct3d\Visitors\Direct3dVtblVisitor.h" />
-    <ClInclude Include="DDrawCompat\v0.3.1\Dll\Dll.h" />
-    <ClInclude Include="DDrawCompat\v0.3.1\Dll\DllMain.h" />
-    <ClInclude Include="DDrawCompat\v0.3.1\Gdi\Caret.h" />
-    <ClInclude Include="DDrawCompat\v0.3.1\Gdi\CompatDc.h" />
-    <ClInclude Include="DDrawCompat\v0.3.1\Gdi\Dc.h" />
-    <ClInclude Include="DDrawCompat\v0.3.1\Gdi\DcFunctions.h" />
-    <ClInclude Include="DDrawCompat\v0.3.1\Gdi\Font.h" />
-    <ClInclude Include="DDrawCompat\v0.3.1\Gdi\Gdi.h" />
-    <ClInclude Include="DDrawCompat\v0.3.1\Gdi\Icon.h" />
-    <ClInclude Include="DDrawCompat\v0.3.1\Gdi\Metrics.h" />
-    <ClInclude Include="DDrawCompat\v0.3.1\Gdi\Palette.h" />
-    <ClInclude Include="DDrawCompat\v0.3.1\Gdi\PresentationWindow.h" />
-    <ClInclude Include="DDrawCompat\v0.3.1\Gdi\Region.h" />
-    <ClInclude Include="DDrawCompat\v0.3.1\Gdi\ScrollBar.h" />
-    <ClInclude Include="DDrawCompat\v0.3.1\Gdi\ScrollFunctions.h" />
-    <ClInclude Include="DDrawCompat\v0.3.1\Gdi\TitleBar.h" />
-    <ClInclude Include="DDrawCompat\v0.3.1\Gdi\User32WndProcs.h" />
-    <ClInclude Include="DDrawCompat\v0.3.1\Gdi\VirtualScreen.h" />
-    <ClInclude Include="DDrawCompat\v0.3.1\Gdi\Window.h" />
-    <ClInclude Include="DDrawCompat\v0.3.1\Gdi\WinProc.h" />
-    <ClInclude Include="DDrawCompat\v0.3.1\Win32\DisplayMode.h" />
-    <ClInclude Include="DDrawCompat\v0.3.1\Win32\MemoryManagement.h" />
-    <ClInclude Include="DDrawCompat\v0.3.1\Win32\MsgHooks.h" />
-    <ClInclude Include="DDrawCompat\v0.3.1\Win32\Registry.h" />
-    <ClInclude Include="DDrawCompat\v0.3.1\Win32\WaitFunctions.h" />
+    <ClInclude Include="DDrawCompat\DDrawCompatExternal.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">true</ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="DDrawCompat\DDrawLog.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">true</ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="DDrawCompat\v0.2.0b\CompatDirectDraw.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">true</ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="DDrawCompat\v0.2.0b\CompatDirectDrawPalette.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">true</ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="DDrawCompat\v0.2.0b\CompatDirectDrawSurface.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">true</ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="DDrawCompat\v0.2.0b\CompatGdi.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">true</ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="DDrawCompat\v0.2.0b\CompatGdiCaret.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">true</ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="DDrawCompat\v0.2.0b\CompatGdiDc.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">true</ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="DDrawCompat\v0.2.0b\CompatGdiDcCache.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">true</ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="DDrawCompat\v0.2.0b\CompatGdiFunctions.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">true</ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="DDrawCompat\v0.2.0b\CompatGdiWinProc.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">true</ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="DDrawCompat\v0.2.0b\CompatPrimarySurface.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">true</ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="DDrawCompat\v0.2.0b\CompatVtable.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">true</ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="DDrawCompat\v0.2.0b\Config.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">true</ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="DDrawCompat\v0.2.0b\DDrawProcs.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">true</ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="DDrawCompat\v0.2.0b\DDrawScopedThreadLock.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">true</ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="DDrawCompat\v0.2.0b\DDrawTypes.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">true</ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="DDrawCompat\v0.2.0b\DDrawVtableVisitor.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">true</ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="DDrawCompat\v0.2.0b\DirectDrawPaletteVtblVisitor.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">true</ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="DDrawCompat\v0.2.0b\DirectDrawSurfaceVtblVisitor.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">true</ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="DDrawCompat\v0.2.0b\DirectDrawVtblVisitor.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">true</ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="DDrawCompat\v0.2.0b\DllMain.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">true</ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="DDrawCompat\v0.2.0b\IReleaseNotifier.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">true</ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="DDrawCompat\v0.2.0b\RealPrimarySurface.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">true</ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="DDrawCompat\v0.2.1\CompatActivateAppHandler.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">true</ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="DDrawCompat\v0.2.1\CompatDirectDraw.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">true</ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="DDrawCompat\v0.2.1\CompatDirectDrawPalette.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">true</ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="DDrawCompat\v0.2.1\CompatDirectDrawSurface.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">true</ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="DDrawCompat\v0.2.1\CompatGdi.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">true</ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="DDrawCompat\v0.2.1\CompatGdiCaret.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">true</ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="DDrawCompat\v0.2.1\CompatGdiDc.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">true</ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="DDrawCompat\v0.2.1\CompatGdiDcCache.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">true</ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="DDrawCompat\v0.2.1\CompatGdiDcFunctions.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">true</ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="DDrawCompat\v0.2.1\CompatGdiPaintHandlers.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">true</ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="DDrawCompat\v0.2.1\CompatGdiScrollBar.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">true</ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="DDrawCompat\v0.2.1\CompatGdiScrollFunctions.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">true</ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="DDrawCompat\v0.2.1\CompatGdiTitleBar.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">true</ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="DDrawCompat\v0.2.1\CompatGdiWinProc.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">true</ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="DDrawCompat\v0.2.1\CompatPaletteConverter.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">true</ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="DDrawCompat\v0.2.1\CompatPrimarySurface.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">true</ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="DDrawCompat\v0.2.1\CompatRegistry.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">true</ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="DDrawCompat\v0.2.1\CompatVtable.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">true</ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="DDrawCompat\v0.2.1\Config.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">true</ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="DDrawCompat\v0.2.1\DDrawProcs.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">true</ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="DDrawCompat\v0.2.1\DDrawRepository.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">true</ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="DDrawCompat\v0.2.1\DDrawScopedThreadLock.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">true</ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="DDrawCompat\v0.2.1\DDrawTypes.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">true</ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="DDrawCompat\v0.2.1\DDrawVtableVisitor.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">true</ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="DDrawCompat\v0.2.1\DirectDrawPaletteVtblVisitor.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">true</ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="DDrawCompat\v0.2.1\DirectDrawSurfaceVtblVisitor.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">true</ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="DDrawCompat\v0.2.1\DirectDrawVtblVisitor.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">true</ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="DDrawCompat\v0.2.1\DllMain.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">true</ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="DDrawCompat\v0.2.1\Hook.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">true</ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="DDrawCompat\v0.2.1\IReleaseNotifier.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">true</ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="DDrawCompat\v0.2.1\RealPrimarySurface.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">true</ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="DDrawCompat\v0.2.1\ScopedCriticalSection.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">true</ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="DDrawCompat\v0.2.1\Time.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">true</ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="DDrawCompat\v0.3.1\Common\CompatPtr.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">true</ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="DDrawCompat\v0.3.1\Common\CompatQueryInterface.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">true</ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="DDrawCompat\v0.3.1\Common\CompatRef.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">true</ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="DDrawCompat\v0.3.1\Common\CompatVtable.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">true</ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="DDrawCompat\v0.3.1\Common\CompatWeakPtr.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">true</ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="DDrawCompat\v0.3.1\Common\Hook.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">true</ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="DDrawCompat\v0.3.1\Common\HResultException.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">true</ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="DDrawCompat\v0.3.1\Common\Path.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">true</ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="DDrawCompat\v0.3.1\Common\ScopedCriticalSection.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">true</ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="DDrawCompat\v0.3.1\Common\ScopedSrwLock.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">true</ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="DDrawCompat\v0.3.1\Common\Time.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">true</ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="DDrawCompat\v0.3.1\Common\VtableHookVisitor.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">true</ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="DDrawCompat\v0.3.1\Common\VtableSizeVisitor.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">true</ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="DDrawCompat\v0.3.1\Common\VtableVisitor.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">true</ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="DDrawCompat\v0.3.1\Config\Config.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">true</ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="DDrawCompat\v0.3.1\D3dDdi\Adapter.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">true</ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="DDrawCompat\v0.3.1\D3dDdi\AdapterCallbacks.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">true</ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="DDrawCompat\v0.3.1\D3dDdi\AdapterFuncs.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">true</ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="DDrawCompat\v0.3.1\D3dDdi\Device.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">true</ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="DDrawCompat\v0.3.1\D3dDdi\DeviceCallbacks.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">true</ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="DDrawCompat\v0.3.1\D3dDdi\DeviceFuncs.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">true</ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="DDrawCompat\v0.3.1\D3dDdi\DeviceState.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">true</ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="DDrawCompat\v0.3.1\D3dDdi\DrawPrimitive.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">true</ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="DDrawCompat\v0.3.1\D3dDdi\DynamicBuffer.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">true</ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="DDrawCompat\v0.3.1\D3dDdi\FormatInfo.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">true</ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="DDrawCompat\v0.3.1\D3dDdi\Hooks.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">true</ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="DDrawCompat\v0.3.1\D3dDdi\KernelModeThunks.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">true</ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="DDrawCompat\v0.3.1\D3dDdi\Log\AdapterFuncsLog.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">true</ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="DDrawCompat\v0.3.1\D3dDdi\Log\CommonLog.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">true</ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="DDrawCompat\v0.3.1\D3dDdi\Log\DeviceCallbacksLog.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">true</ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="DDrawCompat\v0.3.1\D3dDdi\Log\DeviceFuncsLog.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">true</ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="DDrawCompat\v0.3.1\D3dDdi\Log\KernelModeThunksLog.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">true</ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="DDrawCompat\v0.3.1\D3dDdi\Resource.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">true</ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="DDrawCompat\v0.3.1\D3dDdi\ScopedCriticalSection.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">true</ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="DDrawCompat\v0.3.1\D3dDdi\Visitors\AdapterCallbacksVisitor.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">true</ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="DDrawCompat\v0.3.1\D3dDdi\Visitors\AdapterFuncsVisitor.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">true</ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="DDrawCompat\v0.3.1\D3dDdi\Visitors\DeviceCallbacksVisitor.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">true</ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="DDrawCompat\v0.3.1\D3dDdi\Visitors\DeviceFuncsVisitor.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">true</ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="DDrawCompat\v0.3.1\DDraw\Blitter.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">true</ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="DDrawCompat\v0.3.1\DDraw\DirectDraw.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">true</ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="DDrawCompat\v0.3.1\DDraw\DirectDrawClipper.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">true</ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="DDrawCompat\v0.3.1\DDraw\DirectDrawGammaControl.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">true</ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="DDrawCompat\v0.3.1\DDraw\DirectDrawPalette.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">true</ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="DDrawCompat\v0.3.1\DDraw\DirectDrawSurface.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">true</ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="DDrawCompat\v0.3.1\DDraw\Hooks.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">true</ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="DDrawCompat\v0.3.1\DDraw\IReleaseNotifier.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">true</ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="DDrawCompat\v0.3.1\DDraw\RealPrimarySurface.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">true</ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="DDrawCompat\v0.3.1\DDraw\ScopedThreadLock.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">true</ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="DDrawCompat\v0.3.1\DDraw\Surfaces\PrimarySurface.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">true</ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="DDrawCompat\v0.3.1\DDraw\Surfaces\PrimarySurfaceImpl.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">true</ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="DDrawCompat\v0.3.1\DDraw\Surfaces\Surface.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">true</ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="DDrawCompat\v0.3.1\DDraw\Surfaces\SurfaceImpl.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">true</ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="DDrawCompat\v0.3.1\DDraw\Types.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">true</ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="DDrawCompat\v0.3.1\DDraw\Visitors\DirectDrawClipperVtblVisitor.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">true</ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="DDrawCompat\v0.3.1\DDraw\Visitors\DirectDrawGammaControlVtblVisitor.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">true</ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="DDrawCompat\v0.3.1\DDraw\Visitors\DirectDrawPaletteVtblVisitor.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">true</ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="DDrawCompat\v0.3.1\DDraw\Visitors\DirectDrawSurfaceVtblVisitor.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">true</ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="DDrawCompat\v0.3.1\DDraw\Visitors\DirectDrawVtblVisitor.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">true</ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="DDrawCompat\v0.3.1\Direct3d\Direct3d.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">true</ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="DDrawCompat\v0.3.1\Direct3d\Direct3dDevice.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">true</ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="DDrawCompat\v0.3.1\Direct3d\Direct3dExecuteBuffer.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">true</ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="DDrawCompat\v0.3.1\Direct3d\Direct3dLight.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">true</ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="DDrawCompat\v0.3.1\Direct3d\Direct3dMaterial.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">true</ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="DDrawCompat\v0.3.1\Direct3d\Direct3dTexture.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">true</ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="DDrawCompat\v0.3.1\Direct3d\Direct3dVertexBuffer.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">true</ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="DDrawCompat\v0.3.1\Direct3d\Direct3dViewport.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">true</ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="DDrawCompat\v0.3.1\Direct3d\Hooks.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">true</ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="DDrawCompat\v0.3.1\Direct3d\Visitors\Direct3dDeviceVtblVisitor.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">true</ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="DDrawCompat\v0.3.1\Direct3d\Visitors\Direct3dExecuteBufferVtblVisitor.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">true</ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="DDrawCompat\v0.3.1\Direct3d\Visitors\Direct3dLightVtblVisitor.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">true</ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="DDrawCompat\v0.3.1\Direct3d\Visitors\Direct3dMaterialVtblVisitor.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">true</ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="DDrawCompat\v0.3.1\Direct3d\Visitors\Direct3dTextureVtblVisitor.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">true</ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="DDrawCompat\v0.3.1\Direct3d\Visitors\Direct3dVertexBufferVtblVisitor.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">true</ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="DDrawCompat\v0.3.1\Direct3d\Visitors\Direct3dViewportVtblVisitor.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">true</ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="DDrawCompat\v0.3.1\Direct3d\Visitors\Direct3dVtblVisitor.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">true</ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="DDrawCompat\v0.3.1\Dll\Dll.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">true</ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="DDrawCompat\v0.3.1\Dll\DllMain.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">true</ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="DDrawCompat\v0.3.1\Gdi\Caret.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">true</ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="DDrawCompat\v0.3.1\Gdi\CompatDc.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">true</ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="DDrawCompat\v0.3.1\Gdi\Dc.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">true</ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="DDrawCompat\v0.3.1\Gdi\DcFunctions.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">true</ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="DDrawCompat\v0.3.1\Gdi\Font.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">true</ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="DDrawCompat\v0.3.1\Gdi\Gdi.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">true</ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="DDrawCompat\v0.3.1\Gdi\Icon.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">true</ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="DDrawCompat\v0.3.1\Gdi\Metrics.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">true</ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="DDrawCompat\v0.3.1\Gdi\Palette.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">true</ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="DDrawCompat\v0.3.1\Gdi\PresentationWindow.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">true</ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="DDrawCompat\v0.3.1\Gdi\Region.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">true</ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="DDrawCompat\v0.3.1\Gdi\ScrollBar.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">true</ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="DDrawCompat\v0.3.1\Gdi\ScrollFunctions.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">true</ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="DDrawCompat\v0.3.1\Gdi\TitleBar.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">true</ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="DDrawCompat\v0.3.1\Gdi\User32WndProcs.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">true</ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="DDrawCompat\v0.3.1\Gdi\VirtualScreen.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">true</ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="DDrawCompat\v0.3.1\Gdi\Window.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">true</ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="DDrawCompat\v0.3.1\Gdi\WinProc.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">true</ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="DDrawCompat\v0.3.1\Win32\DisplayMode.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">true</ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="DDrawCompat\v0.3.1\Win32\MemoryManagement.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">true</ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="DDrawCompat\v0.3.1\Win32\MsgHooks.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">true</ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="DDrawCompat\v0.3.1\Win32\Registry.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">true</ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="DDrawCompat\v0.3.1\Win32\WaitFunctions.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">true</ExcludedFromBuild>
+    </ClInclude>
     <ClInclude Include="ddraw\AddressLookupTable.h" />
     <ClInclude Include="ddraw\ddraw.h" />
     <ClInclude Include="ddraw\ddrawExternal.h" />
@@ -690,6 +1272,7 @@ cmd /q /c "cd /D ""$(ProjectDir)d3d8\"" &amp;&amp; del build.bat"</Command>
     <ClInclude Include="Libraries\d3dx9.h" />
     <ClInclude Include="libraries\dwmapi.h" />
     <ClInclude Include="libraries\uxtheme.h" />
+    <ClInclude Include="Libraries\VersionHelpers.h" />
     <ClInclude Include="libraries\winmm.h" />
     <ClInclude Include="Logging\Logging.h" />
     <ClInclude Include="Settings\ReadParse.h" />

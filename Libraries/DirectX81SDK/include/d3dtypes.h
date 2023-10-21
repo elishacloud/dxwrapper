@@ -7,11 +7,6 @@
  *
  ***************************************************************************/
 
-#include <winapifamily.h>
-
-#pragma region Desktop Family
-#if WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP)
-
 #ifndef _D3DTYPES_H_
 #define _D3DTYPES_H_
 
@@ -2124,7 +2119,4 @@ typedef enum _D3DVERTEXBLENDFLAGS D3DVERTEXBLENDFLAGS;
 #pragma warning(pop)
 
 #endif /* _D3DTYPES_H_ */
-
-#endif /* WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP) */
-#pragma endregion
 

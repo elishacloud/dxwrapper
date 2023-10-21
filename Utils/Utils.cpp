@@ -28,6 +28,7 @@
 
 #define WIN32_LEAN_AND_MEAN
 #include <Windows.h>
+#include <tlhelp32.h>
 #include <atlbase.h>
 #include <comdef.h>
 #include <comutil.h>
@@ -43,15 +44,18 @@
 
 #undef LoadLibrary
 
+#ifdef _DPI_AWARENESS_CONTEXTS_
 typedef enum PROCESS_DPI_AWARENESS {
 	PROCESS_DPI_UNAWARE = 0,
 	PROCESS_SYSTEM_DPI_AWARE = 1,
 	PROCESS_PER_MONITOR_DPI_AWARE = 2
 } PROCESS_DPI_AWARENESS;
-typedef void(WINAPI *PFN_InitializeASI)(void);
 typedef HRESULT(WINAPI *SetProcessDpiAwarenessProc)(PROCESS_DPI_AWARENESS value);
 typedef BOOL(WINAPI *SetProcessDPIAwareProc)();
 typedef BOOL(WINAPI *SetProcessDpiAwarenessContextProc)(DPI_AWARENESS_CONTEXT value);
+#endif // _DPI_AWARENESS_CONTEXTS_
+typedef void(WINAPI* PFN_InitializeASI)(void);
+typedef DWORD(WINAPI* GetThreadIdProc)(HANDLE Thread);
 typedef FARPROC(WINAPI *GetProcAddressProc)(HMODULE, LPSTR);
 typedef DWORD(WINAPI *GetModuleFileNameAProc)(HMODULE, LPSTR, DWORD);
 typedef DWORD(WINAPI *GetModuleFileNameWProc)(HMODULE, LPWSTR, DWORD);
@@ -191,6 +195,7 @@ void Utils::SetProcessAffinity()
 // Sets application DPI aware which disables DPI virtulization/High DPI scaling for this process
 void Utils::DisableHighDPIScaling()
 {
+#ifdef _DPI_AWARENESS_CONTEXTS_
 	Logging::Log() << "Disabling High DPI Scaling...";
 
 	BOOL setDpiAware = FALSE;
@@ -230,6 +235,7 @@ void Utils::DisableHighDPIScaling()
 	{
 		Logging::Log() << "Failed to disable High DPI Scaling!";
 	}
+#endif // _DPI_AWARENESS_CONTEXTS_
 }
 
 FARPROC Utils::GetProcAddress(HMODULE hModule, LPCSTR lpProcName, FARPROC SetReturnValue)
@@ -633,6 +639,7 @@ void Utils::GetScreenSettings()
 	//hDC = GetDC(nullptr);
 	//GetDeviceGammaRamp(hDC, lpRamp);  // <-- Hangs on this line starting in Windows 10 update 1903
 
+#if (_WIN32_WINNT >= 0x0502)
 	// Read values from the registry if they exist
 	DWORD Size = sizeof(int);
 	if (RegGetValue(HKEY_CURRENT_USER, "Volatile Environment", "DxWrapper_Font_Enabled", RRF_RT_REG_DWORD, nullptr, (PVOID)&fontSystemSettings.enabled, &Size) == ERROR_SUCCESS &&
@@ -656,6 +663,7 @@ void Utils::GetScreenSettings()
 		RegSetKeyValue(HKEY_CURRENT_USER, "Volatile Environment", "DxWrapper_Font_Contrast", REG_DWORD, (PVOID)&fontSystemSettings.contrast, Size);
 		RegSetKeyValue(HKEY_CURRENT_USER, "Volatile Environment", "DxWrapper_Font_Orientation", REG_DWORD, (PVOID)&fontSystemSettings.orientation, Size);
 	}
+#endif // _WIN32_WINNT >= 0x0502
 }
 
 void Utils::ResetScreenSettings()
@@ -672,6 +680,7 @@ void Utils::ResetScreenSettings()
 	// Reset screen settings
 	ChangeDisplaySettingsEx(nullptr, nullptr, nullptr, CDS_RESET, nullptr);
 
+#if (_WIN32_WINNT >= 0x0502)
 	// Reset font settings
 	if (fontSystemSettings.isSet)
 	{
@@ -688,6 +697,7 @@ void Utils::ResetScreenSettings()
 			RegDeleteKeyValueA(HKEY_CURRENT_USER, "Volatile Environment", "DxWrapper_Font_Orientation");
 		}
 	}
+#endif // _WIN32_WINNT >= 0x0502
 
 	// Redraw desktop window
 	RedrawWindow(nullptr, nullptr, nullptr, RDW_INVALIDATE | RDW_ALLCHILDREN | RDW_UPDATENOW);
@@ -808,6 +818,50 @@ BOOL WINAPI CreateProcessWHandler(LPCWSTR lpApplicationName, LPWSTR lpCommandLin
 
 	return org_CreateProcess(lpApplicationName, lpCommandLine, lpProcessAttributes, lpThreadAttributes, bInheritHandles, dwCreationFlags,
 		lpEnvironment, lpCurrentDirectory, lpStartupInfo, lpProcessInformation);
+}
+
+DWORD Utils::GetThreadIDByHandle(HANDLE hThread)
+{
+	GetThreadIdProc pGetThreadId = (GetThreadIdProc)GetProcAddress(LoadLibrary("kernel32.dll"), "GetThreadId");
+
+	if (pGetThreadId)
+	{
+		return pGetThreadId(hThread);
+	}
+	else
+	{
+		// Create a snapshot of the system's current processes and threads.
+		HANDLE hThreadSnapshot = CreateToolhelp32Snapshot(TH32CS_SNAPTHREAD, 0);
+
+		if (hThreadSnapshot != INVALID_HANDLE_VALUE)
+		{
+			THREADENTRY32 te32 = {};
+			te32.dwSize = sizeof(THREADENTRY32);
+
+			// Iterate through the thread list to find the thread with the specified handle.
+			if (Thread32First(hThreadSnapshot, &te32))
+			{
+				do
+				{
+					HANDLE hThreadSnapshotHandle = OpenThread(THREAD_QUERY_INFORMATION, FALSE, te32.th32ThreadID);
+					if (hThreadSnapshotHandle != NULL)
+					{
+						if (hThreadSnapshotHandle == hThread)
+						{
+							CloseHandle(hThreadSnapshot);
+							CloseHandle(hThreadSnapshotHandle);
+							return te32.th32ThreadID;
+						}
+						CloseHandle(hThreadSnapshotHandle);
+					}
+				} while (Thread32Next(hThreadSnapshot, &te32));
+			}
+			CloseHandle(hThreadSnapshot);
+		}
+
+		// Thread not found.
+		return 0;
+	}
 }
 
 void Utils::DisableGameUX()

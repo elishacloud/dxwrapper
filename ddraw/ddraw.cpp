@@ -21,7 +21,6 @@
 */
 
 #include "ddraw.h"
-#include "d3dhal.h"
 #include "ddrawExternal.h"
 #ifdef DDRAWCOMPAT
 #include "DDrawCompat\DDrawCompatExternal.h"

@@ -38,7 +38,7 @@ namespace Utils
 	HMONITOR GetMonitorHandle(HWND hWnd);
 	DWORD GetRefreshRate(HWND hWnd);
 	DWORD GetBitCount(HWND hWnd);
-	DWORD GetWindowHeight(HWND hWnd);
+	DWORD GetThreadIDByHandle(HANDLE hThread);
 	void DisableGameUX();
 	bool SetWndProcFilter(HWND hWnd);
 	bool RestoreWndProcFilter(HWND hWnd);

@@ -1,6 +1,6 @@
 #pragma once
 
-#include <mmeapi.h>
+#include <MMSystem.h>
 #include <dsound.h>
 #include "Wrappers\wrapper.h"
 

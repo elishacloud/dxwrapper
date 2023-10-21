@@ -1,7 +1,6 @@
 #pragma once
 
 #define WIN32_LEAN_AND_MEAN
-#include <Unknwnbase.h>
 #include "Settings\Settings.h"
 #include "Logging\Logging.h"
 

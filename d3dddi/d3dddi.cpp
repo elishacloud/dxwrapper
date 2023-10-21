@@ -1,3 +1,23 @@
+#if (_WIN32_WINNT < 0x0502) // Using Windows XP
+
+#include "d3dddiExternal.h"
+
+bool OpenD3DDDI(HDC hDC)
+{
+	UNREFERENCED_PARAMETER(hDC);
+	return false;
+}
+bool CloseD3DDDI() { return false; }
+bool D3DDDIWaitForVsync() { return false; }
+bool D3DDDIGetVideoMemory(DWORD& TotalMemory, DWORD& AvailableMemory)
+{
+	UNREFERENCED_PARAMETER(TotalMemory);
+	UNREFERENCED_PARAMETER(AvailableMemory);
+	return false;
+}
+
+#else // Not using Windows XP
+
 #include <d3d.h>
 #include <d3dkmthk.h>
 #include "d3dddiExternal.h"
@@ -112,3 +132,5 @@ bool D3DDDIGetVideoMemory(DWORD& TotalMemory, DWORD& AvailableMemory)
 	}
 	return false;
 }
+
+#endif

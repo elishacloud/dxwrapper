@@ -20,7 +20,9 @@
 #include "Settings\Settings.h"
 #include "Wrappers\wrapper.h"
 #include "External\Hooking\Hook.h"
+#ifdef DDRAWCOMPAT
 #include "DDrawCompat\DDrawCompatExternal.h"
+#endif // DDRAWCOMPAT
 #include "DxWnd\DxWndExternal.h"
 #include "Utils\Utils.h"
 #include "Logging\Logging.h"
@@ -403,6 +405,7 @@ bool APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 			}
 
 			// Add DDrawCompat to the chain
+#ifdef DDRAWCOMPAT
 			if (Config.DDrawCompat)
 			{
 				Logging::Log() << "Enabling DDrawCompat";
@@ -412,6 +415,7 @@ bool APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 				VISIT_PROCS_DDRAW(SHIM_WRAPPED_PROC);
 				VISIT_PROCS_DDRAW_SHARED(SHIM_WRAPPED_PROC);
 			}
+#endif // DDRAWCOMPAT
 
 			// Add DdrawWrapper to the chain
 			if (Config.EnableDdrawWrapper)
@@ -424,10 +428,12 @@ bool APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 			}
 
 			// Start DDrawCompat
+#ifdef DDRAWCOMPAT
 			if (Config.DDrawCompat)
 			{
 				Config.DDrawCompat = DDrawCompat::Start(hModule_dll, DLL_PROCESS_ATTACH);
 			}
+#endif // DDRAWCOMPAT
 		}
 
 		// Start d3d8.dll module
@@ -585,10 +591,12 @@ bool APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 		}
 
 		// Unload and Unhook DDrawCompat
+#ifdef DDRAWCOMPAT
 		if (Config.DDrawCompat)
 		{
 			DDrawCompat::Start(nullptr, DLL_PROCESS_DETACH);
 		}
+#endif // DDRAWCOMPAT
 
 		// Unload DdrawWrapper
 		if (Config.Dd7to9)
