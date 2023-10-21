@@ -551,7 +551,7 @@ HRESULT DirectDrawEnumerateHandler(LPVOID lpCallback, LPVOID lpContext, DWORD dw
 
 			if (DDETType == DDET_ENUMCALLBACKEXA || DDETType == DDET_ENUMCALLBACKEXW)
 			{
-				ENUMMONITORS Monitors;
+				ENUMMONITORS Monitors = {};
 				Monitors.lpName = lpName;
 				Monitors.hm = nullptr;
 				EnumDisplayMonitors(nullptr, nullptr, DispayEnumeratorProc, (LPARAM)&Monitors);
