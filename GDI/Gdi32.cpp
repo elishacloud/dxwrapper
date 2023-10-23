@@ -23,7 +23,7 @@
 
 namespace GdiWrapper
 {
-	FARPROC GetDeviceCaps_out = nullptr;
+	INITIALIZE_OUT_WRAPPED_PROC(GetDeviceCaps, unused);
 }
 
 using namespace GdiWrapper;
@@ -32,7 +32,7 @@ int WINAPI gdi_GetDeviceCaps(HDC hdc, int index)
 {
 	Logging::LogDebug() << __FUNCTION__ << " " << WindowFromDC(hdc) << " " << index;
 
-	static GetDeviceCapsProc m_pGetDeviceCaps = (Wrapper::ValidProcAddress(GetDeviceCaps_out)) ? (GetDeviceCapsProc)GetDeviceCaps_out : nullptr;
+	DEFINE_STATIC_PROC_ADDRESS(GetDeviceCapsProc, GetDeviceCaps, GetDeviceCaps_out);
 
 	if (index == BITSPIXEL)
 	{
@@ -50,10 +50,10 @@ int WINAPI gdi_GetDeviceCaps(HDC hdc, int index)
 		}
 	}
 
-	if (!m_pGetDeviceCaps)
+	if (!GetDeviceCaps)
 	{
 		return 0;
 	}
 
-	return m_pGetDeviceCaps(hdc, index);
+	return GetDeviceCaps(hdc, index);
 }

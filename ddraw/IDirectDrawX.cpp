@@ -1677,7 +1677,7 @@ HRESULT m_IDirectDrawX::SetCooperativeLevel(HWND hWnd, DWORD dwFlags, DWORD Dire
 	// Hook window message to get notified when the window is about to exit to remove the exclusive flag
 	if (SUCCEEDED(hr) && (dwFlags & DDSCL_EXCLUSIVE) && IsWindow(hWnd) && hWnd != chWnd)
 	{
-		static DWORD WindowsGDIHook_DirectXVersion = DirectXVersion;
+		static DWORD WindowsGDIHook_DirectXVersion = 0;
 
 		// Fixes a bug in ddraw in Windows 8 and 10 where the exclusive flag remains even after the window (hWnd) closes
 		struct WindowsGDIHook
@@ -2354,7 +2354,7 @@ void m_IDirectDrawX::InitDdraw(DWORD DirectXVersion)
 		}
 
 		// Mouse hook
-		static bool EnableMouseHook = Config.DdrawEnableMouseHook &&
+		bool EnableMouseHook = Config.DdrawEnableMouseHook &&
 			((Config.DdrawUseNativeResolution || Config.DdrawOverrideWidth || Config.DdrawOverrideHeight) &&
 			(!Config.EnableWindowMode || Config.FullscreenWindowMode));
 
@@ -3013,8 +3013,8 @@ HRESULT m_IDirectDrawX::CreateD3D9Device()
 			GetWindowRect(hWnd, &NewRect);
 
 			// Send messages about window changes
-			static WINDOWPOS winpos;
 			HWND WindowInsert = GetWindowLong(DisplayMode.hWnd, GWL_EXSTYLE) & WS_EX_TOPMOST ? HWND_TOPMOST : HWND_TOP;
+			static WINDOWPOS winpos;
 			winpos = { hWnd, WindowInsert, NewRect.left, NewRect.top, NewRect.right - NewRect.left, NewRect.bottom - NewRect.top, WM_NULL };
 			SendMessage(hWnd, WM_WINDOWPOSCHANGING, 0, (LPARAM)&winpos);
 			SendMessage(hWnd, WM_WINDOWPOSCHANGED, 0, (LPARAM)&winpos);
@@ -3183,7 +3183,7 @@ HRESULT m_IDirectDrawX::CreateD3D9Object()
 	if (!d3d9Object)
 	{
 		// Declare Direct3DCreate9
-		static Direct3DCreate9Proc Direct3DCreate9 = reinterpret_cast<Direct3DCreate9Proc>(Direct3DCreate9_out);
+		DEFINE_STATIC_PROC_ADDRESS(Direct3DCreate9Proc, Direct3DCreate9, Direct3DCreate9_out);
 
 		if (!Direct3DCreate9)
 		{

@@ -89,9 +89,10 @@ namespace Utils
 	WORD lpRamp[3 * 256] = {};
 
 	// Declare variables
-	FARPROC pGetProcAddress = nullptr;
-	FARPROC pGetModuleFileNameA = nullptr;
-	FARPROC pGetModuleFileNameW = nullptr;
+	INITIALIZE_OUT_WRAPPED_PROC(GetProcAddress, unused);
+	INITIALIZE_OUT_WRAPPED_PROC(GetModuleFileNameA, unused);
+	INITIALIZE_OUT_WRAPPED_PROC(GetModuleFileNameW, unused);
+
 	FARPROC p_CreateProcessA = nullptr;
 	FARPROC p_CreateProcessW = nullptr;
 	WNDPROC OriginalWndProc = nullptr;
@@ -258,11 +259,13 @@ FARPROC Utils::GetProcAddress(HMODULE hModule, LPCSTR lpProcName, FARPROC SetRet
 // Update GetProcAddress to check for bad addresses
 FARPROC WINAPI Utils::GetProcAddressHandler(HMODULE hModule, LPSTR lpProcName)
 {
+	DEFINE_STATIC_PROC_ADDRESS(GetProcAddressProc, GetProcAddress, GetProcAddress_out);
+
 	FARPROC ProAddr = nullptr;
 
-	if (InterlockedCompareExchangePointer((PVOID*)&pGetProcAddress, nullptr, nullptr))
+	if (GetProcAddress)
 	{
-		ProAddr = ((GetProcAddressProc)InterlockedCompareExchangePointer((PVOID*)&pGetProcAddress, nullptr, nullptr))(hModule, lpProcName);
+		ProAddr = GetProcAddress(hModule, lpProcName);
 	}
 	if (!(Wrapper::ValidProcAddress(ProAddr)))
 	{
@@ -276,15 +279,15 @@ FARPROC WINAPI Utils::GetProcAddressHandler(HMODULE hModule, LPSTR lpProcName)
 // Update GetModuleFileNameA to fix module name
 DWORD WINAPI Utils::GetModuleFileNameAHandler(HMODULE hModule, LPSTR lpFilename, DWORD nSize)
 {
-	GetModuleFileNameAProc org_GetModuleFileName = (GetModuleFileNameAProc)InterlockedCompareExchangePointer((PVOID*)&pGetModuleFileNameA, nullptr, nullptr);
+	DEFINE_STATIC_PROC_ADDRESS(GetModuleFileNameAProc, GetModuleFileNameA, GetModuleFileNameA_out);
 
-	if (org_GetModuleFileName)
+	if (GetModuleFileNameA)
 	{
-		DWORD ret = org_GetModuleFileName(hModule, lpFilename, nSize);
+		DWORD ret = GetModuleFileNameA(hModule, lpFilename, nSize);
 
 		if (lpFilename[0] != '\\' && lpFilename[1] != '\\' && lpFilename[2] != '\\' && lpFilename[3] != '\\')
 		{
-			DWORD lSize = org_GetModuleFileName(nullptr, lpFilename, nSize);
+			DWORD lSize = GetModuleFileNameA(nullptr, lpFilename, nSize);
 			char *pdest = strrchr(lpFilename, '\\');
 			if (pdest && lSize > 0 && nSize - lSize + strlen(dtypename[dtype.dxwrapper]) > 0)
 			{
@@ -304,15 +307,15 @@ DWORD WINAPI Utils::GetModuleFileNameAHandler(HMODULE hModule, LPSTR lpFilename,
 // Update GetModuleFileNameW to fix module name
 DWORD WINAPI Utils::GetModuleFileNameWHandler(HMODULE hModule, LPWSTR lpFilename, DWORD nSize)
 {
-	GetModuleFileNameWProc org_GetModuleFileName = (GetModuleFileNameWProc)InterlockedCompareExchangePointer((PVOID*)&pGetModuleFileNameW, nullptr, nullptr);
+	DEFINE_STATIC_PROC_ADDRESS(GetModuleFileNameWProc, GetModuleFileNameW, GetModuleFileNameW_out);
 
-	if (org_GetModuleFileName)
+	if (GetModuleFileNameW)
 	{
-		DWORD ret = org_GetModuleFileName(hModule, lpFilename, nSize);
+		DWORD ret = GetModuleFileNameW(hModule, lpFilename, nSize);
 
 		if (lpFilename[0] != '\\' && lpFilename[1] != '\\' && lpFilename[2] != '\\' && lpFilename[3] != '\\')
 		{
-			DWORD lSize = org_GetModuleFileName(nullptr, lpFilename, nSize);
+			DWORD lSize = GetModuleFileNameW(nullptr, lpFilename, nSize);
 			wchar_t *pdest = wcsrchr(lpFilename, '\\');
 			std::string str(dtypename[dtype.dxwrapper]);
 			std::wstring wrappername(str.begin(), str.end());
@@ -745,9 +748,9 @@ bool Utils::IsWindowRectEqualOrLarger(HWND srchWnd, HWND desthWnd)
 BOOL WINAPI CreateProcessAHandler(LPCSTR lpApplicationName, LPSTR lpCommandLine, LPSECURITY_ATTRIBUTES lpProcessAttributes, LPSECURITY_ATTRIBUTES lpThreadAttributes, BOOL bInheritHandles, DWORD dwCreationFlags,
 	LPVOID lpEnvironment, LPCSTR lpCurrentDirectory, LPSTARTUPINFOA lpStartupInfo, LPPROCESS_INFORMATION lpProcessInformation)
 {
-	static CreateProcessAFunc org_CreateProcess = (CreateProcessAFunc)InterlockedCompareExchangePointer((PVOID*)&Utils::p_CreateProcessA, nullptr, nullptr);
+	DEFINE_STATIC_PROC_ADDRESS(CreateProcessAFunc, CreateProcessA, Utils::p_CreateProcessA);
 
-	if (!org_CreateProcess)
+	if (!CreateProcessA)
 	{
 		Logging::Log() << __FUNCTION__ << " Error: invalid proc address!";
 
@@ -773,20 +776,20 @@ BOOL WINAPI CreateProcessAHandler(LPCSTR lpApplicationName, LPSTR lpCommandLine,
 			CommandLine[x] = lpCommandLine[x];
 		}
 
-		return org_CreateProcess(lpApplicationName, CommandLine, lpProcessAttributes, lpThreadAttributes, bInheritHandles, dwCreationFlags,
+		return CreateProcessA(lpApplicationName, CommandLine, lpProcessAttributes, lpThreadAttributes, bInheritHandles, dwCreationFlags,
 			lpEnvironment, lpCurrentDirectory, lpStartupInfo, lpProcessInformation);
 	}
 
-	return org_CreateProcess(lpApplicationName, lpCommandLine, lpProcessAttributes, lpThreadAttributes, bInheritHandles, dwCreationFlags,
+	return CreateProcessA(lpApplicationName, lpCommandLine, lpProcessAttributes, lpThreadAttributes, bInheritHandles, dwCreationFlags,
 		lpEnvironment, lpCurrentDirectory, lpStartupInfo, lpProcessInformation);
 }
 
 BOOL WINAPI CreateProcessWHandler(LPCWSTR lpApplicationName, LPWSTR lpCommandLine, LPSECURITY_ATTRIBUTES lpProcessAttributes, LPSECURITY_ATTRIBUTES lpThreadAttributes, BOOL bInheritHandles, DWORD dwCreationFlags,
 	LPVOID lpEnvironment, LPCWSTR lpCurrentDirectory, LPSTARTUPINFOW lpStartupInfo, LPPROCESS_INFORMATION lpProcessInformation)
 {
-	static CreateProcessWFunc org_CreateProcess = (CreateProcessWFunc)InterlockedCompareExchangePointer((PVOID*)&Utils::p_CreateProcessW, nullptr, nullptr);
+	DEFINE_STATIC_PROC_ADDRESS(CreateProcessWFunc, CreateProcessW, Utils::p_CreateProcessW);
 
-	if (!org_CreateProcess)
+	if (!CreateProcessW)
 	{
 		Logging::Log() << __FUNCTION__ << " Error: invalid proc address!";
 
@@ -812,11 +815,11 @@ BOOL WINAPI CreateProcessWHandler(LPCWSTR lpApplicationName, LPWSTR lpCommandLin
 			CommandLine[x] = lpCommandLine[x];
 		}
 
-		return org_CreateProcess(lpApplicationName, CommandLine, lpProcessAttributes, lpThreadAttributes, bInheritHandles, dwCreationFlags,
+		return CreateProcessW(lpApplicationName, CommandLine, lpProcessAttributes, lpThreadAttributes, bInheritHandles, dwCreationFlags,
 			lpEnvironment, lpCurrentDirectory, lpStartupInfo, lpProcessInformation);
 	}
 
-	return org_CreateProcess(lpApplicationName, lpCommandLine, lpProcessAttributes, lpThreadAttributes, bInheritHandles, dwCreationFlags,
+	return CreateProcessW(lpApplicationName, lpCommandLine, lpProcessAttributes, lpThreadAttributes, bInheritHandles, dwCreationFlags,
 		lpEnvironment, lpCurrentDirectory, lpStartupInfo, lpProcessInformation);
 }
 

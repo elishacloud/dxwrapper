@@ -10,8 +10,8 @@
 #define DDrawCompatForDd7to9 Compat31
 
 #define INITIALIZE_WRAPPED_PROC(procName) \
-	FARPROC procName ## _in = nullptr; \
-	FARPROC procName ## _out = nullptr;
+	volatile FARPROC procName ## _in = nullptr; \
+	volatile FARPROC procName ## _out = nullptr;
 
 #define ASSIGN_WRAPPED_PROC(procName) \
 	procName ## _in = procName ## _proc;

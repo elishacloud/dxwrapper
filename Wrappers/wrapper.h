@@ -3,7 +3,7 @@
 namespace Wrapper
 {
 	bool ValidProcAddress(FARPROC ProcAddress);
-	void ShimProc(FARPROC &var, FARPROC in, FARPROC &out);
+	void ShimProc(volatile FARPROC &var, FARPROC in, volatile FARPROC &out);
 	const char *GetWrapperName(const char *WrapperMode);
 	bool CheckWrapperName(const char *WrapperMode);
 	HMODULE CreateWrapper(const char *ProxyDll, const char *WrapperMode, const char *MyDllName);
@@ -65,13 +65,26 @@ typedef void(WINAPI *DxWrapperSettingsProc)(DXWAPPERSETTINGS *DxSettings);
 #include "winspool.h"
 #include "wsock32.h"
 
+#define EXPORT_OUT_WRAPPED_PROC(procName, unused) \
+	extern volatile FARPROC procName ## _out;
+
+#define INITIALIZE_OUT_WRAPPED_PROC(procName, unused) \
+	volatile FARPROC procName ## _out = nullptr;
+
+#define DEFINE_STATIC_PROC_ADDRESS(VarType, VarName, VarAddress) \
+	static VarType VarName = (VarType)0xFFFFFFFF; \
+	if ((DWORD)VarName == 0xFFFFFFFF) \
+	{ \
+		VarName = Wrapper::ValidProcAddress(VarAddress) ? reinterpret_cast<VarType>(VarAddress) : nullptr; \
+	}
+
 #define DECLARE_PROC_VARIABLES(procName, unused) \
-	extern FARPROC procName ## _funct; \
-	extern FARPROC procName ## _var;
+	volatile extern FARPROC procName ## _funct; \
+	volatile extern FARPROC procName ## _var;
 
 #define	DECLARE_PROC_VARIABLES_SHARED(procName, procName_shared, unused) \
-	extern FARPROC procName ## _funct; \
-	extern FARPROC procName ## _var;
+	volatile extern FARPROC procName ## _funct; \
+	volatile extern FARPROC procName ## _var;
 
 namespace ddraw
 {
