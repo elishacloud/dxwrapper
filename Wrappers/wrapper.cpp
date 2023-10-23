@@ -24,22 +24,22 @@
 #define VISIT_PROCS_BLANK(visit)
 
 #define CREATE_PROC_STUB(procName, prodAddr) \
-	FARPROC procName ## _var = prodAddr; \
+	volatile FARPROC procName ## _var = prodAddr; \
 	extern "C" __declspec(naked) void __stdcall procName() \
 	{ \
 		__asm mov edi, edi \
 		__asm jmp procName ## _var \
 	} \
-	FARPROC procName ## _funct = (FARPROC)*procName;
+	volatile FARPROC procName ## _funct = (FARPROC)*procName;
 
 #define CREATE_PROC_STUB_SHARED(procName, procName_shared, prodAddr) \
-	FARPROC procName ## _var = prodAddr; \
+	volatile FARPROC procName ## _var = prodAddr; \
 	extern "C" __declspec(naked) void __stdcall procName_shared() \
 	{ \
 		__asm mov edi, edi \
 		__asm jmp procName ## _var \
 	} \
-	FARPROC procName ## _funct = (FARPROC)*procName_shared;
+	volatile FARPROC procName ## _funct = (FARPROC)*procName_shared;
 
 #define	LOAD_ORIGINAL_PROC(procName, unused) \
 	{ \
@@ -118,8 +118,8 @@ namespace Wrapper
 {
 	struct wrapper_map
 	{
-		FARPROC Proc;
-		FARPROC *val;
+		volatile FARPROC Proc;
+		volatile FARPROC *val;
 	};
 
 	// Forward function declaration
@@ -169,7 +169,7 @@ bool Wrapper::ValidProcAddress(FARPROC ProcAddress)
 		ProcAddress != jmpaddrvoid);
 }
 
-void Wrapper::ShimProc(FARPROC &var, FARPROC in, FARPROC &out)
+void Wrapper::ShimProc(volatile FARPROC &var, FARPROC in, volatile FARPROC &out)
 {
 	if (ValidProcAddress(var) && var != in)
 	{

@@ -5,7 +5,46 @@
 #endif
 
 #include <d3d9.h>
-#include "d3dcommon.h"
+#include <d3dcommon.h>
+
+#ifndef __ID3D10Blob_FWD_DEFINED__
+typedef struct _D3D_SHADER_MACRO
+{
+	LPCSTR Name;
+	LPCSTR Definition;
+} 	D3D_SHADER_MACRO;
+typedef struct _D3D_SHADER_MACRO* LPD3D_SHADER_MACRO;
+
+MIDL_INTERFACE("8BA5FB08-5195-40e2-AC58-0D989C3A0102")
+ID3DBlob : public IUnknown
+{
+public:
+	virtual LPVOID STDMETHODCALLTYPE GetBufferPointer(void) = 0;
+
+	virtual SIZE_T STDMETHODCALLTYPE GetBufferSize(void) = 0;
+
+};
+
+typedef
+enum _D3D_INCLUDE_TYPE
+{
+	D3D_INCLUDE_LOCAL = 0,
+	D3D_INCLUDE_SYSTEM = (D3D_INCLUDE_LOCAL + 1),
+	D3D10_INCLUDE_LOCAL = D3D_INCLUDE_LOCAL,
+	D3D10_INCLUDE_SYSTEM = D3D_INCLUDE_SYSTEM,
+	D3D_INCLUDE_FORCE_DWORD = 0x7fffffff
+} 	D3D_INCLUDE_TYPE;
+
+typedef interface ID3DInclude ID3DInclude;
+#undef INTERFACE
+#define INTERFACE ID3DInclude
+DECLARE_INTERFACE(ID3DInclude)
+{
+	STDMETHOD(Open)(THIS_ D3D_INCLUDE_TYPE IncludeType, LPCSTR pFileName, LPCVOID pParentData, LPCVOID * ppData, UINT * pBytes) PURE;
+	STDMETHOD(Close)(THIS_ LPCVOID pData) PURE;
+};
+typedef ID3DInclude* LPD3DINCLUDE;
+#endif // !__ID3D10Blob_FWD_DEFINED__
 
 #define D3DX_FILTER_NONE             (1 << 0)
 #define D3DX_FILTER_POINT            (2 << 0)

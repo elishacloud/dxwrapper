@@ -5,7 +5,6 @@
 #include <mmstream.h>    // multimedia stream interfaces
 #include <amstream.h>    // DirectShow multimedia stream interfaces
 #include <ddstream.h>    // DirectDraw multimedia stream interfaces
-#include <mmdeviceapi.h> // Media device enumerator
 #include "Logging\Logging.h"
 
 class m_IAMMediaStream : public IAMMediaStream

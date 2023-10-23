@@ -2,7 +2,7 @@
 
 #define WIN32_LEAN_AND_MEAN
 #include <Windows.h>
-#include "Wrappers\d3d8.h"
+#include "Wrappers\wrapper.h"
 
 struct D3DCAPS8;
 class Direct3D8;
@@ -18,7 +18,7 @@ namespace D3d8Wrapper
 {
 	VISIT_PROCS_D3D8(DECLARE_IN_WRAPPED_PROC);
 
-	extern FARPROC Direct3DCreate9_out;
+	EXPORT_OUT_WRAPPED_PROC(Direct3DCreate9, unused);
 }
 
 #undef DECLARE_IN_WRAPPED_PROC

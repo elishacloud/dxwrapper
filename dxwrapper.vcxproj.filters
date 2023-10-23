@@ -1886,6 +1886,9 @@
     <ClInclude Include="d3d9\DebugOverlay.h">
       <Filter>d3d9</Filter>
     </ClInclude>
+    <ClInclude Include="Libraries\VersionHelpers.h">
+      <Filter>Libraries</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="Dllmain\BuildNo.rc">

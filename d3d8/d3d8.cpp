@@ -41,7 +41,7 @@ PFN_D3DXLoadSurfaceFromSurface D3DXLoadSurfaceFromSurface = (PFN_D3DXLoadSurface
 
 namespace D3d8Wrapper
 {
-	FARPROC Direct3DCreate9_out = nullptr;
+	INITIALIZE_OUT_WRAPPED_PROC(Direct3DCreate9, unused);
 }
 
 using namespace D3d8Wrapper;
@@ -163,12 +163,12 @@ HRESULT WINAPI d8_ValidateVertexShader(const DWORD* pVertexShader, const DWORD* 
 
 BOOL Direct3D8DisableMaximizedWindowedMode()
 {
-	static Direct3D8EnableMaximizedWindowedModeShimProc d8_Direct3D8EnableMaximizedWindowedModeShim = nullptr;
+	static Direct3D8EnableMaximizedWindowedModeShimProc Direct3D8EnableMaximizedWindowedModeShim = nullptr;
 
-	if (!d8_Direct3D8EnableMaximizedWindowedModeShim)
+	if (!Direct3D8EnableMaximizedWindowedModeShim)
 	{
 		// Load d3d8.dll from System32
-		static HMODULE dll = GetSystemD3d8();
+		HMODULE dll = GetSystemD3d8();
 
 		if (!dll)
 		{
@@ -203,11 +203,11 @@ BOOL Direct3D8DisableMaximizedWindowedMode()
 		VirtualProtect((LPVOID)(addr + 6), 4, Protect, &Protect);
 
 		// Set function address
-		d8_Direct3D8EnableMaximizedWindowedModeShim = (Direct3D8EnableMaximizedWindowedModeShimProc)addr;
+		Direct3D8EnableMaximizedWindowedModeShim = (Direct3D8EnableMaximizedWindowedModeShimProc)addr;
 	}
 
 	// Launch function to disable Maximized Windowed Mode
-	Logging::Log() << __FUNCTION__ << " Disabling MaximizedWindowedMode for Direct3D8! Ret = " << (void*)d8_Direct3D8EnableMaximizedWindowedModeShim(0);
+	Logging::Log() << __FUNCTION__ << " Disabling MaximizedWindowedMode for Direct3D8! Ret = " << (void*)Direct3D8EnableMaximizedWindowedModeShim(0);
 	return TRUE;
 }
 
@@ -225,7 +225,8 @@ Direct3D8 *WINAPI d8_Direct3DCreate8(UINT SDKVersion)
 	LOG_LIMIT(3, "Redirecting 'Direct3DCreate8' to --> 'Direct3DCreate9' (" << SDKVersion << ")");
 
 	// Declare Direct3DCreate9
-	static Direct3DCreate9Proc Direct3DCreate9 = reinterpret_cast<Direct3DCreate9Proc>(Direct3DCreate9_out);
+	DEFINE_STATIC_PROC_ADDRESS(Direct3DCreate9Proc, Direct3DCreate9, Direct3DCreate9_out);
+
 	if (!Direct3DCreate9)
 	{
 		LOG_LIMIT(100, "Failed to get 'Direct3DCreate9' ProcAddress of d3d9.dll!");

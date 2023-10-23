@@ -16,6 +16,7 @@
 
 #define WIN32_LEAN_AND_MEAN
 #include <Windows.h>
+#include <algorithm>
 #include "d3d9\d3d9External.h"
 #include "Utils.h"
 #include "Settings\Settings.h"

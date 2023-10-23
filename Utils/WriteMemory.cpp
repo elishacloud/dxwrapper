@@ -208,7 +208,7 @@ void WriteMemory::WriteMemory()
 // Is thread running
 bool WriteMemory::IsThreadRunning()
 {
-	return m_ThreadRunningFlag && InterlockedCompareExchange(&m_dwThreadID, 0, 0) && GetThreadId(InterlockedCompareExchangePointer(&m_hThread, nullptr, nullptr)) == InterlockedCompareExchange(&m_dwThreadID, 0, 0);
+	return m_ThreadRunningFlag && InterlockedCompareExchange(&m_dwThreadID, 0, 0) && GetThreadIDByHandle(InterlockedCompareExchangePointer(&m_hThread, nullptr, nullptr)) == InterlockedCompareExchange(&m_dwThreadID, 0, 0);
 }
 
 // Stop thread

@@ -15,6 +15,7 @@
 */
 
 #define WIN32_LEAN_AND_MEAN
+#include <windows.h>
 #include <fstream>
 #include "stub.h"
 #include "..\Settings\ReadParse.h"

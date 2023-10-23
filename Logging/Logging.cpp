@@ -2165,16 +2165,6 @@ std::ostream& operator<<(std::ostream& os, const DRAWITEMSTRUCT& dis)
 		<< Logging::hex(dis.itemData);
 }
 
-std::ostream& operator<<(std::ostream& os, const GESTURENOTIFYSTRUCT& gns)
-{
-	return Logging::LogStruct(os)
-		<< gns.cbSize
-		<< Logging::hex(gns.dwFlags)
-		<< gns.hwndTarget
-		<< gns.ptsLocation
-		<< gns.dwInstanceID;
-}
-
 std::ostream& operator<<(std::ostream& os, HDC__& dc)
 {
 	return os << "DC(" << static_cast<void*>(&dc) << ',' << WindowFromDC(&dc) << ')';
@@ -2387,6 +2377,29 @@ std::ostream& operator<<(std::ostream& os, const STYLESTRUCT& ss)
 		<< Logging::hex(ss.styleNew);
 }
 
+std::ostream& operator<<(std::ostream& os, const WINDOWPOS& wp)
+{
+	return Logging::LogStruct(os)
+		<< wp.hwnd
+		<< wp.hwndInsertAfter
+		<< wp.x
+		<< wp.y
+		<< wp.cx
+		<< wp.cy
+		<< Logging::hex(wp.flags);
+}
+
+#ifdef DDRAWCOMPAT
+std::ostream& operator<<(std::ostream& os, const GESTURENOTIFYSTRUCT& gns)
+{
+	return Logging::LogStruct(os)
+		<< gns.cbSize
+		<< Logging::hex(gns.dwFlags)
+		<< gns.hwndTarget
+		<< gns.ptsLocation
+		<< gns.dwInstanceID;
+}
+
 std::ostream& operator<<(std::ostream& os, const TITLEBARINFOEX& tbi)
 {
 	return Logging::LogStruct(os)
@@ -2405,15 +2418,4 @@ std::ostream& operator<<(std::ostream& os, const TOUCH_HIT_TESTING_INPUT& thti)
 		<< thti.nonOccludedBoundingBox
 		<< thti.orientation;
 }
-
-std::ostream& operator<<(std::ostream& os, const WINDOWPOS& wp)
-{
-	return Logging::LogStruct(os)
-		<< wp.hwnd
-		<< wp.hwndInsertAfter
-		<< wp.x
-		<< wp.y
-		<< wp.cx
-		<< wp.cy
-		<< Logging::hex(wp.flags);
-}
+#endif // DDRAWCOMPAT

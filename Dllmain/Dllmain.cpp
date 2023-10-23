@@ -20,7 +20,9 @@
 #include "Settings\Settings.h"
 #include "Wrappers\wrapper.h"
 #include "External\Hooking\Hook.h"
+#ifdef DDRAWCOMPAT
 #include "DDrawCompat\DDrawCompatExternal.h"
+#endif // DDRAWCOMPAT
 #include "DxWnd\DxWndExternal.h"
 #include "Utils\Utils.h"
 #include "Logging\Logging.h"
@@ -196,8 +198,8 @@ bool APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 				if (dll)
 				{
 					Logging::Log() << "Hooking 'GetModuleFileName' API...";
-					InterlockedExchangePointer((PVOID*)&Utils::pGetModuleFileNameA, Hook::HookAPI(dll, "kernel32.dll", Hook::GetProcAddress(dll, "GetModuleFileNameA"), "GetModuleFileNameA", Utils::GetModuleFileNameAHandler));
-					InterlockedExchangePointer((PVOID*)&Utils::pGetModuleFileNameW, Hook::HookAPI(dll, "kernel32.dll", Hook::GetProcAddress(dll, "GetModuleFileNameW"), "GetModuleFileNameW", Utils::GetModuleFileNameWHandler));
+					InterlockedExchangePointer((PVOID*)&Utils::GetModuleFileNameA_out, Hook::HookAPI(dll, "kernel32.dll", Hook::GetProcAddress(dll, "GetModuleFileNameA"), "GetModuleFileNameA", Utils::GetModuleFileNameAHandler));
+					InterlockedExchangePointer((PVOID*)&Utils::GetModuleFileNameW_out, Hook::HookAPI(dll, "kernel32.dll", Hook::GetProcAddress(dll, "GetModuleFileNameW"), "GetModuleFileNameW", Utils::GetModuleFileNameWHandler));
 				}
 			}
 		}
@@ -214,7 +216,7 @@ bool APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 				if (dll)
 				{
 					Logging::Log() << "Hooking 'GetProcAddress' API...";
-					InterlockedExchangePointer((PVOID*)&Utils::pGetProcAddress, Hook::HookAPI(dll, "kernel32.dll", Hook::GetProcAddress(dll, "GetProcAddress"), "GetProcAddress", Utils::GetProcAddressHandler));
+					InterlockedExchangePointer((PVOID*)&Utils::GetProcAddress_out, Hook::HookAPI(dll, "kernel32.dll", Hook::GetProcAddress(dll, "GetProcAddress"), "GetProcAddress", Utils::GetProcAddressHandler));
 				}
 			}
 		}
@@ -254,7 +256,7 @@ bool APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 		// Hook CoCreateInstance
 		if (Config.EnableDdrawWrapper || Config.Dd7to9 || Config.EnableDinput8Wrapper || Config.Dinputto8)
 		{
-			InterlockedExchangePointer((PVOID*)&p_CoCreateInstance, Hook::HotPatch(GetProcAddress(LoadLibraryA("ole32.dll"), "CoCreateInstance"), "CoCreateInstance", *CoCreateInstanceHandle));
+			InterlockedExchangePointer((PVOID*)&CoCreateInstance_out, Hook::HotPatch(GetProcAddress(LoadLibraryA("ole32.dll"), "CoCreateInstance"), "CoCreateInstance", *CoCreateInstanceHandle));
 		}
 
 		// Start dsound.dll module
@@ -403,6 +405,7 @@ bool APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 			}
 
 			// Add DDrawCompat to the chain
+#ifdef DDRAWCOMPAT
 			if (Config.DDrawCompat)
 			{
 				Logging::Log() << "Enabling DDrawCompat";
@@ -412,6 +415,7 @@ bool APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 				VISIT_PROCS_DDRAW(SHIM_WRAPPED_PROC);
 				VISIT_PROCS_DDRAW_SHARED(SHIM_WRAPPED_PROC);
 			}
+#endif // DDRAWCOMPAT
 
 			// Add DdrawWrapper to the chain
 			if (Config.EnableDdrawWrapper)
@@ -424,10 +428,12 @@ bool APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 			}
 
 			// Start DDrawCompat
+#ifdef DDRAWCOMPAT
 			if (Config.DDrawCompat)
 			{
 				Config.DDrawCompat = DDrawCompat::Start(hModule_dll, DLL_PROCESS_ATTACH);
 			}
+#endif // DDRAWCOMPAT
 		}
 
 		// Start d3d8.dll module
@@ -585,10 +591,12 @@ bool APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 		}
 
 		// Unload and Unhook DDrawCompat
+#ifdef DDRAWCOMPAT
 		if (Config.DDrawCompat)
 		{
 			DDrawCompat::Start(nullptr, DLL_PROCESS_DETACH);
 		}
+#endif // DDRAWCOMPAT
 
 		// Unload DdrawWrapper
 		if (Config.Dd7to9)

@@ -21,7 +21,6 @@
 */
 
 #include "ddraw.h"
-#include "d3dhal.h"
 #include "ddrawExternal.h"
 #ifdef DDRAWCOMPAT
 #include "DDrawCompat\DDrawCompatExternal.h"
@@ -46,14 +45,11 @@ struct ENUMMONITORS
 	HMONITOR hm;
 };
 
-#define INITIALIZE_WRAPPED_PROC(procName, unused) \
-	FARPROC procName ## _out = nullptr;
-
 namespace DdrawWrapper
 {
-	VISIT_PROCS_DDRAW(INITIALIZE_WRAPPED_PROC);
-	VISIT_PROCS_DDRAW_SHARED(INITIALIZE_WRAPPED_PROC);
-	FARPROC Direct3DCreate9_out = nullptr;
+	VISIT_PROCS_DDRAW(INITIALIZE_OUT_WRAPPED_PROC);
+	VISIT_PROCS_DDRAW_SHARED(INITIALIZE_OUT_WRAPPED_PROC);
+	INITIALIZE_OUT_WRAPPED_PROC(Direct3DCreate9, unused);
 }
 
 using namespace DdrawWrapper;
@@ -98,9 +94,9 @@ void ExitDDraw()
 // http://web.archive.org/web/20170418171908/http://www.blitzbasic.com/Community/posts.php?topic=99477
 void SetAllAppCompatData()
 {
-	static SetAppCompatDataProc m_pSetAppCompatData = (Wrapper::ValidProcAddress(SetAppCompatData_out)) ? (SetAppCompatDataProc)SetAppCompatData_out : nullptr;
+	DEFINE_STATIC_PROC_ADDRESS(SetAppCompatDataProc, SetAppCompatData, SetAppCompatData_out);
 
-	if (!m_pSetAppCompatData)
+	if (!SetAppCompatData)
 	{
 		Logging::Log() << __FUNCTION__ << " Error: Failed to get `SetAppCompatData` address!";
 		return;
@@ -116,12 +112,12 @@ void SetAllAppCompatData()
 			// For LockColorkey, this one uses the second parameter
 			if (x == AppCompatDataType.LockColorkey)
 			{
-				m_pSetAppCompatData(x, Config.LockColorkey);
+				SetAppCompatData(x, Config.LockColorkey);
 			}
 			// For all the other items
 			else
 			{
-				m_pSetAppCompatData(x, 0);
+				SetAppCompatData(x, 0);
 			}
 		}
 	}
@@ -137,14 +133,14 @@ HRESULT WINAPI dd_AcquireDDThreadLock()
 		return SetCriticalSection();
 	}
 
-	static AcquireDDThreadLockProc m_pAcquireDDThreadLock = (Wrapper::ValidProcAddress(AcquireDDThreadLock_out)) ? (AcquireDDThreadLockProc)AcquireDDThreadLock_out : nullptr;
+	DEFINE_STATIC_PROC_ADDRESS(AcquireDDThreadLockProc, AcquireDDThreadLock, AcquireDDThreadLock_out);
 
-	if (!m_pAcquireDDThreadLock)
+	if (!AcquireDDThreadLock)
 	{
 		return DDERR_UNSUPPORTED;
 	}
 
-	return m_pAcquireDDThreadLock();
+	return AcquireDDThreadLock();
 }
 
 DWORD WINAPI dd_CompleteCreateSysmemSurface(DWORD arg)
@@ -157,14 +153,14 @@ DWORD WINAPI dd_CompleteCreateSysmemSurface(DWORD arg)
 		return NULL;
 	}
 
-	static CompleteCreateSysmemSurfaceProc m_pCompleteCreateSysmemSurface = (Wrapper::ValidProcAddress(CompleteCreateSysmemSurface_out)) ? (CompleteCreateSysmemSurfaceProc)CompleteCreateSysmemSurface_out : nullptr;
+	DEFINE_STATIC_PROC_ADDRESS(CompleteCreateSysmemSurfaceProc, CompleteCreateSysmemSurface, CompleteCreateSysmemSurface_out);
 
-	if (!m_pCompleteCreateSysmemSurface)
+	if (!CompleteCreateSysmemSurface)
 	{
 		return NULL;
 	}
 
-	return m_pCompleteCreateSysmemSurface(arg);
+	return CompleteCreateSysmemSurface(arg);
 }
 
 HRESULT WINAPI dd_D3DParseUnknownCommand(LPVOID lpCmd, LPVOID *lpRetCmd)
@@ -213,14 +209,14 @@ HRESULT WINAPI dd_D3DParseUnknownCommand(LPVOID lpCmd, LPVOID *lpRetCmd)
 		return DD_OK;
 	}
 
-	static D3DParseUnknownCommandProc m_pD3DParseUnknownCommand = (Wrapper::ValidProcAddress(D3DParseUnknownCommand_out)) ? (D3DParseUnknownCommandProc)D3DParseUnknownCommand_out : nullptr;
+	DEFINE_STATIC_PROC_ADDRESS(D3DParseUnknownCommandProc, D3DParseUnknownCommand, D3DParseUnknownCommand_out);
 
-	if (!m_pD3DParseUnknownCommand)
+	if (!D3DParseUnknownCommand)
 	{
 		return D3DERR_COMMAND_UNPARSED;
 	}
 
-	return m_pD3DParseUnknownCommand(lpCmd, lpRetCmd);
+	return D3DParseUnknownCommand(lpCmd, lpRetCmd);
 }
 
 HRESULT WINAPI dd_DDGetAttachedSurfaceLcl(DWORD arg1, DWORD arg2, DWORD arg3)
@@ -233,14 +229,14 @@ HRESULT WINAPI dd_DDGetAttachedSurfaceLcl(DWORD arg1, DWORD arg2, DWORD arg3)
 		return DDERR_UNSUPPORTED;
 	}
 
-	static DDGetAttachedSurfaceLclProc m_pDDGetAttachedSurfaceLcl = (Wrapper::ValidProcAddress(DDGetAttachedSurfaceLcl_out)) ? (DDGetAttachedSurfaceLclProc)DDGetAttachedSurfaceLcl_out : nullptr;
+	DEFINE_STATIC_PROC_ADDRESS(DDGetAttachedSurfaceLclProc, DDGetAttachedSurfaceLcl, DDGetAttachedSurfaceLcl_out);
 
-	if (!m_pDDGetAttachedSurfaceLcl)
+	if (!DDGetAttachedSurfaceLcl)
 	{
 		return DDERR_UNSUPPORTED;
 	}
 
-	return m_pDDGetAttachedSurfaceLcl(arg1, arg2, arg3);
+	return DDGetAttachedSurfaceLcl(arg1, arg2, arg3);
 }
 
 DWORD WINAPI dd_DDInternalLock(DWORD arg1, DWORD arg2)
@@ -253,14 +249,14 @@ DWORD WINAPI dd_DDInternalLock(DWORD arg1, DWORD arg2)
 		return 0xFFFFFFFF;
 	}
 
-	static DDInternalLockProc m_pDDInternalLock = (Wrapper::ValidProcAddress(DDInternalLock_out)) ? (DDInternalLockProc)DDInternalLock_out : nullptr;
+	DEFINE_STATIC_PROC_ADDRESS(DDInternalLockProc, DDInternalLock, DDInternalLock_out);
 
-	if (!m_pDDInternalLock)
+	if (!DDInternalLock)
 	{
 		return 0xFFFFFFFF;
 	}
 
-	return m_pDDInternalLock(arg1, arg2);
+	return DDInternalLock(arg1, arg2);
 }
 
 DWORD WINAPI dd_DDInternalUnlock(DWORD arg)
@@ -273,14 +269,14 @@ DWORD WINAPI dd_DDInternalUnlock(DWORD arg)
 		return 0xFFFFFFFF;
 	}
 
-	static DDInternalUnlockProc m_pDDInternalUnlock = (Wrapper::ValidProcAddress(DDInternalUnlock_out)) ? (DDInternalUnlockProc)DDInternalUnlock_out : nullptr;
+	DEFINE_STATIC_PROC_ADDRESS(DDInternalUnlockProc, DDInternalUnlock, DDInternalUnlock_out);
 
-	if (!m_pDDInternalUnlock)
+	if (!DDInternalUnlock)
 	{
 		return 0xFFFFFFFF;
 	}
 
-	return m_pDDInternalUnlock(arg);
+	return DDInternalUnlock(arg);
 }
 
 HRESULT WINAPI dd_DSoundHelp(DWORD arg1, DWORD arg2, DWORD arg3)
@@ -293,14 +289,14 @@ HRESULT WINAPI dd_DSoundHelp(DWORD arg1, DWORD arg2, DWORD arg3)
 		return DDERR_UNSUPPORTED;
 	}
 
-	static DSoundHelpProc m_pDSoundHelp = (Wrapper::ValidProcAddress(DSoundHelp_out)) ? (DSoundHelpProc)DSoundHelp_out : nullptr;
+	DEFINE_STATIC_PROC_ADDRESS(DSoundHelpProc, DSoundHelp, DSoundHelp_out);
 
-	if (!m_pDSoundHelp)
+	if (!DSoundHelp)
 	{
 		return DDERR_UNSUPPORTED;
 	}
 
-	return m_pDSoundHelp(arg1, arg2, arg3);
+	return DSoundHelp(arg1, arg2, arg3);
 }
 
 HRESULT WINAPI dd_DirectDrawCreate(GUID FAR *lpGUID, LPDIRECTDRAW FAR *lplpDD, IUnknown FAR *pUnkOuter)
@@ -312,9 +308,9 @@ HRESULT WINAPI dd_DirectDrawCreate(GUID FAR *lpGUID, LPDIRECTDRAW FAR *lplpDD, I
 		return dd_DirectDrawCreateEx(lpGUID, (LPVOID*)lplpDD, IID_IDirectDraw, pUnkOuter);
 	}
 
-	static DirectDrawCreateProc m_pDirectDrawCreate = (Wrapper::ValidProcAddress(DirectDrawCreate_out)) ? (DirectDrawCreateProc)DirectDrawCreate_out : nullptr;
+	DEFINE_STATIC_PROC_ADDRESS(DirectDrawCreateProc, DirectDrawCreate, DirectDrawCreate_out);
 
-	if (!m_pDirectDrawCreate)
+	if (!DirectDrawCreate)
 	{
 		return DDERR_UNSUPPORTED;
 	}
@@ -327,7 +323,7 @@ HRESULT WINAPI dd_DirectDrawCreate(GUID FAR *lpGUID, LPDIRECTDRAW FAR *lplpDD, I
 
 	LOG_LIMIT(3, "Redirecting 'DirectDrawCreate' ...");
 
-	HRESULT hr = m_pDirectDrawCreate(lpGUID, lplpDD, pUnkOuter);
+	HRESULT hr = DirectDrawCreate(lpGUID, lplpDD, pUnkOuter);
 
 	if (SUCCEEDED(hr) && lplpDD && *lplpDD)
 	{
@@ -378,14 +374,14 @@ HRESULT WINAPI dd_DirectDrawCreateClipper(DWORD dwFlags, LPDIRECTDRAWCLIPPER *lp
 		return DD_OK;
 	}
 
-	static DirectDrawCreateClipperProc m_pDirectDrawCreateClipper = (Wrapper::ValidProcAddress(DirectDrawCreateClipper_out)) ? (DirectDrawCreateClipperProc)DirectDrawCreateClipper_out : nullptr;
+	DEFINE_STATIC_PROC_ADDRESS(DirectDrawCreateClipperProc, DirectDrawCreateClipper, DirectDrawCreateClipper_out);
 
-	if (!m_pDirectDrawCreateClipper)
+	if (!DirectDrawCreateClipper)
 	{
 		return DDERR_UNSUPPORTED;
 	}
 
-	HRESULT hr = m_pDirectDrawCreateClipper(dwFlags, lplpDDClipper, pUnkOuter);
+	HRESULT hr = DirectDrawCreateClipper(dwFlags, lplpDDClipper, pUnkOuter);
 
 	if (SUCCEEDED(hr) && lplpDDClipper)
 	{
@@ -436,9 +432,9 @@ HRESULT WINAPI dd_DirectDrawCreateEx(GUID FAR *lpGUID, LPVOID *lplpDD, REFIID ri
 		return DD_OK;
 	}
 
-	static DirectDrawCreateExProc m_pDirectDrawCreateEx = (Wrapper::ValidProcAddress(DirectDrawCreateEx_out)) ? (DirectDrawCreateExProc)DirectDrawCreateEx_out : nullptr;
+	DEFINE_STATIC_PROC_ADDRESS(DirectDrawCreateExProc, DirectDrawCreateEx, DirectDrawCreateEx_out);
 
-	if (!m_pDirectDrawCreateEx)
+	if (!DirectDrawCreateEx)
 	{
 		return DDERR_UNSUPPORTED;
 	}
@@ -451,7 +447,7 @@ HRESULT WINAPI dd_DirectDrawCreateEx(GUID FAR *lpGUID, LPVOID *lplpDD, REFIID ri
 
 	LOG_LIMIT(3, "Redirecting 'DirectDrawCreateEx' ...");
 
-	HRESULT hr = m_pDirectDrawCreateEx(lpGUID, lplpDD, IID_IDirectDraw7, pUnkOuter);
+	HRESULT hr = DirectDrawCreateEx(lpGUID, lplpDD, IID_IDirectDraw7, pUnkOuter);
 
 	if (SUCCEEDED(hr))
 	{
@@ -504,7 +500,7 @@ HRESULT DirectDrawEnumerateHandler(LPVOID lpCallback, LPVOID lpContext, DWORD dw
 	}
 
 	// Declare Direct3DCreate9
-	static Direct3DCreate9Proc Direct3DCreate9 = reinterpret_cast<Direct3DCreate9Proc>(Direct3DCreate9_out);
+	DEFINE_STATIC_PROC_ADDRESS(Direct3DCreate9Proc, Direct3DCreate9, Direct3DCreate9_out);
 
 	if (!Direct3DCreate9)
 	{
@@ -552,7 +548,7 @@ HRESULT DirectDrawEnumerateHandler(LPVOID lpCallback, LPVOID lpContext, DWORD dw
 
 			if (DDETType == DDET_ENUMCALLBACKEXA || DDETType == DDET_ENUMCALLBACKEXW)
 			{
-				ENUMMONITORS Monitors;
+				ENUMMONITORS Monitors = {};
 				Monitors.lpName = lpName;
 				Monitors.hm = nullptr;
 				EnumDisplayMonitors(nullptr, nullptr, DispayEnumeratorProc, (LPARAM)&Monitors);
@@ -610,14 +606,14 @@ HRESULT WINAPI dd_DirectDrawEnumerateA(LPDDENUMCALLBACKA lpCallback, LPVOID lpCo
 		return DirectDrawEnumerateHandler(lpCallback, lpContext, 0, DDET_ENUMCALLBACKA);
 	}
 
-	static DirectDrawEnumerateAProc m_pDirectDrawEnumerateA = (Wrapper::ValidProcAddress(DirectDrawEnumerateA_out)) ? (DirectDrawEnumerateAProc)DirectDrawEnumerateA_out : nullptr;
+	DEFINE_STATIC_PROC_ADDRESS(DirectDrawEnumerateAProc, DirectDrawEnumerateA, DirectDrawEnumerateA_out);
 
-	if (!m_pDirectDrawEnumerateA)
+	if (!DirectDrawEnumerateA)
 	{
 		return DDERR_UNSUPPORTED;
 	}
 
-	return m_pDirectDrawEnumerateA(lpCallback, lpContext);
+	return DirectDrawEnumerateA(lpCallback, lpContext);
 }
 
 HRESULT WINAPI dd_DirectDrawEnumerateExA(LPDDENUMCALLBACKEXA lpCallback, LPVOID lpContext, DWORD dwFlags)
@@ -629,14 +625,14 @@ HRESULT WINAPI dd_DirectDrawEnumerateExA(LPDDENUMCALLBACKEXA lpCallback, LPVOID 
 		return DirectDrawEnumerateHandler(lpCallback, lpContext, dwFlags, DDET_ENUMCALLBACKEXA);
 	}
 
-	static DirectDrawEnumerateExAProc m_pDirectDrawEnumerateExA = (Wrapper::ValidProcAddress(DirectDrawEnumerateExA_out)) ? (DirectDrawEnumerateExAProc)DirectDrawEnumerateExA_out : nullptr;
+	DEFINE_STATIC_PROC_ADDRESS(DirectDrawEnumerateExAProc, DirectDrawEnumerateExA, DirectDrawEnumerateExA_out);
 
-	if (!m_pDirectDrawEnumerateExA)
+	if (!DirectDrawEnumerateExA)
 	{
 		return DDERR_UNSUPPORTED;
 	}
 
-	return m_pDirectDrawEnumerateExA(lpCallback, lpContext, dwFlags);
+	return DirectDrawEnumerateExA(lpCallback, lpContext, dwFlags);
 }
 
 HRESULT WINAPI dd_DirectDrawEnumerateExW(LPDDENUMCALLBACKEXW lpCallback, LPVOID lpContext, DWORD dwFlags)
@@ -648,14 +644,14 @@ HRESULT WINAPI dd_DirectDrawEnumerateExW(LPDDENUMCALLBACKEXW lpCallback, LPVOID 
 		return DirectDrawEnumerateHandler(lpCallback, lpContext, dwFlags, DDET_ENUMCALLBACKEXW);
 	}
 
-	static DirectDrawEnumerateExWProc m_pDirectDrawEnumerateExW = (Wrapper::ValidProcAddress(DirectDrawEnumerateExW_out)) ? (DirectDrawEnumerateExWProc)DirectDrawEnumerateExW_out : nullptr;
+	DEFINE_STATIC_PROC_ADDRESS(DirectDrawEnumerateExWProc, DirectDrawEnumerateExW, DirectDrawEnumerateExW_out);
 
-	if (!m_pDirectDrawEnumerateExW)
+	if (!DirectDrawEnumerateExW)
 	{
 		return DDERR_UNSUPPORTED;
 	}
 
-	return m_pDirectDrawEnumerateExW(lpCallback, lpContext, dwFlags);
+	return DirectDrawEnumerateExW(lpCallback, lpContext, dwFlags);
 }
 
 HRESULT WINAPI dd_DirectDrawEnumerateW(LPDDENUMCALLBACKW lpCallback, LPVOID lpContext)
@@ -667,14 +663,14 @@ HRESULT WINAPI dd_DirectDrawEnumerateW(LPDDENUMCALLBACKW lpCallback, LPVOID lpCo
 		return DirectDrawEnumerateHandler(lpCallback, lpContext, 0, DDET_ENUMCALLBACKW);
 	}
 
-	static DirectDrawEnumerateWProc m_pDirectDrawEnumerateW = (Wrapper::ValidProcAddress(DirectDrawEnumerateW_out)) ? (DirectDrawEnumerateWProc)DirectDrawEnumerateW_out : nullptr;
+	DEFINE_STATIC_PROC_ADDRESS(DirectDrawEnumerateWProc, DirectDrawEnumerateW, DirectDrawEnumerateW_out);
 
-	if (!m_pDirectDrawEnumerateW)
+	if (!DirectDrawEnumerateW)
 	{
 		return DDERR_UNSUPPORTED;
 	}
 
-	return m_pDirectDrawEnumerateW(lpCallback, lpContext);
+	return DirectDrawEnumerateW(lpCallback, lpContext);
 }
 
 HRESULT WINAPI dd_DllCanUnloadNow()
@@ -687,14 +683,14 @@ HRESULT WINAPI dd_DllCanUnloadNow()
 		return DDERR_UNSUPPORTED;
 	}
 
-	static DllCanUnloadNowProc m_pDllCanUnloadNow = (Wrapper::ValidProcAddress(DllCanUnloadNow_out)) ? (DllCanUnloadNowProc)DllCanUnloadNow_out : nullptr;
+	DEFINE_STATIC_PROC_ADDRESS(DllCanUnloadNowProc, DllCanUnloadNow, DllCanUnloadNow_out);
 
-	if (!m_pDllCanUnloadNow)
+	if (!DllCanUnloadNow)
 	{
 		return DDERR_UNSUPPORTED;
 	}
 
-	return m_pDllCanUnloadNow();
+	return DllCanUnloadNow();
 }
 
 HRESULT WINAPI dd_DllGetClassObject(REFCLSID rclsid, REFIID riid, LPVOID *ppv)
@@ -722,14 +718,14 @@ HRESULT WINAPI dd_DllGetClassObject(REFCLSID rclsid, REFIID riid, LPVOID *ppv)
 		return hr;
 	}
 
-	static DllGetClassObjectProc m_pDllGetClassObject = (Wrapper::ValidProcAddress(DllGetClassObject_out)) ? (DllGetClassObjectProc)DllGetClassObject_out : nullptr;
+	DEFINE_STATIC_PROC_ADDRESS(DllGetClassObjectProc, DllGetClassObject, DllGetClassObject_out);
 
-	if (!m_pDllGetClassObject)
+	if (!DllGetClassObject)
 	{
 		return DDERR_UNSUPPORTED;
 	}
 
-	HRESULT hr = m_pDllGetClassObject(ConvertREFCLSID(rclsid), ConvertREFIID(riid), ppv);
+	HRESULT hr = DllGetClassObject(ConvertREFCLSID(rclsid), ConvertREFIID(riid), ppv);
 
 	if (SUCCEEDED(hr) && ppv)
 	{
@@ -758,14 +754,14 @@ HRESULT WINAPI dd_GetDDSurfaceLocal(DWORD arg1, DWORD arg2, DWORD arg3)
 		return DDERR_UNSUPPORTED;
 	}
 
-	static GetDDSurfaceLocalProc m_pGetDDSurfaceLocal = (Wrapper::ValidProcAddress(GetDDSurfaceLocal_out)) ? (GetDDSurfaceLocalProc)GetDDSurfaceLocal_out : nullptr;
+	DEFINE_STATIC_PROC_ADDRESS(GetDDSurfaceLocalProc, GetDDSurfaceLocal, GetDDSurfaceLocal_out);
 
-	if (!m_pGetDDSurfaceLocal)
+	if (!GetDDSurfaceLocal)
 	{
 		return DDERR_UNSUPPORTED;
 	}
 
-	return m_pGetDDSurfaceLocal(arg1, arg2, arg3);
+	return GetDDSurfaceLocal(arg1, arg2, arg3);
 }
 
 DWORD WINAPI dd_GetOLEThunkData(DWORD index)
@@ -788,14 +784,14 @@ DWORD WINAPI dd_GetOLEThunkData(DWORD index)
 	//		case 6: return 0; // ReleaseExclusiveModeMutex
 	//	}
 
-	static GetOLEThunkDataProc m_pGetOLEThunkData = (Wrapper::ValidProcAddress(GetOLEThunkData_out)) ? (GetOLEThunkDataProc)GetOLEThunkData_out : nullptr;
+	DEFINE_STATIC_PROC_ADDRESS(GetOLEThunkDataProc, GetOLEThunkData, GetOLEThunkData_out);
 
-	if (!m_pGetOLEThunkData)
+	if (!GetOLEThunkData)
 	{
 		return NULL;
 	}
 
-	return m_pGetOLEThunkData(index);
+	return GetOLEThunkData(index);
 }
 
 HRESULT WINAPI dd_GetSurfaceFromDC(HDC hdc, LPDIRECTDRAWSURFACE7 *lpDDS, DWORD arg)
@@ -808,14 +804,14 @@ HRESULT WINAPI dd_GetSurfaceFromDC(HDC hdc, LPDIRECTDRAWSURFACE7 *lpDDS, DWORD a
 		return DDERR_UNSUPPORTED;
 	}
 
-	static GetSurfaceFromDCProc m_pGetSurfaceFromDC = (Wrapper::ValidProcAddress(GetSurfaceFromDC_out)) ? (GetSurfaceFromDCProc)GetSurfaceFromDC_out : nullptr;
+	DEFINE_STATIC_PROC_ADDRESS(GetSurfaceFromDCProc, GetSurfaceFromDC, GetSurfaceFromDC_out);
 
-	if (!m_pGetSurfaceFromDC)
+	if (!GetSurfaceFromDC)
 	{
 		return DDERR_UNSUPPORTED;
 	}
 
-	return m_pGetSurfaceFromDC(hdc, lpDDS, arg);
+	return GetSurfaceFromDC(hdc, lpDDS, arg);
 }
 
 HRESULT WINAPI dd_RegisterSpecialCase(DWORD arg1, DWORD arg2, DWORD arg3, DWORD arg4)
@@ -828,14 +824,14 @@ HRESULT WINAPI dd_RegisterSpecialCase(DWORD arg1, DWORD arg2, DWORD arg3, DWORD 
 		return DDERR_UNSUPPORTED;
 	}
 
-	static RegisterSpecialCaseProc m_pRegisterSpecialCase = (Wrapper::ValidProcAddress(RegisterSpecialCase_out)) ? (RegisterSpecialCaseProc)RegisterSpecialCase_out : nullptr;
+	DEFINE_STATIC_PROC_ADDRESS(RegisterSpecialCaseProc, RegisterSpecialCase, RegisterSpecialCase_out);
 
-	if (!m_pRegisterSpecialCase)
+	if (!RegisterSpecialCase)
 	{
 		return DDERR_UNSUPPORTED;
 	}
 
-	return m_pRegisterSpecialCase(arg1, arg2, arg3, arg4);
+	return RegisterSpecialCase(arg1, arg2, arg3, arg4);
 }
 
 HRESULT WINAPI dd_ReleaseDDThreadLock()
@@ -847,14 +843,14 @@ HRESULT WINAPI dd_ReleaseDDThreadLock()
 		return ReleaseCriticalSection();
 	}
 
-	static ReleaseDDThreadLockProc m_pReleaseDDThreadLock = (Wrapper::ValidProcAddress(ReleaseDDThreadLock_out)) ? (ReleaseDDThreadLockProc)ReleaseDDThreadLock_out : nullptr;
+	DEFINE_STATIC_PROC_ADDRESS(ReleaseDDThreadLockProc, ReleaseDDThreadLock, ReleaseDDThreadLock_out);
 
-	if (!m_pReleaseDDThreadLock)
+	if (!ReleaseDDThreadLock)
 	{
 		return DDERR_UNSUPPORTED;
 	}
 
-	return m_pReleaseDDThreadLock();
+	return ReleaseDDThreadLock();
 }
 
 HRESULT WINAPI dd_SetAppCompatData(DWORD Type, DWORD Value)
@@ -867,14 +863,14 @@ HRESULT WINAPI dd_SetAppCompatData(DWORD Type, DWORD Value)
 		return DD_OK;
 	}
 
-	static SetAppCompatDataProc m_pSetAppCompatData = (Wrapper::ValidProcAddress(SetAppCompatData_out)) ? (SetAppCompatDataProc)SetAppCompatData_out : nullptr;
+	DEFINE_STATIC_PROC_ADDRESS(SetAppCompatDataProc, SetAppCompatData, SetAppCompatData_out);
 
-	if (!m_pSetAppCompatData)
+	if (!SetAppCompatData)
 	{
 		return DDERR_GENERIC;
 	}
 
-	return m_pSetAppCompatData(Type, Value);
+	return SetAppCompatData(Type, Value);
 }
 
 void AddBaseClipperToVetor(m_IDirectDrawClipper* lpClipper)

@@ -48,9 +48,6 @@ HRESULT WINAPI d9_Direct3DCreate9On12Ex(UINT SDKVersion, D3D9ON12_ARGS* pOverrid
 #define DECLARE_IN_WRAPPED_PROC(procName, unused) \
 	const FARPROC procName ## _in = (FARPROC)*d9_ ## procName;
 
-#define EXPORT_OUT_WRAPPED_PROC(procName, unused) \
-	extern FARPROC procName ## _out;
-
 extern bool EnableWndProcHook;
 
 namespace D3d9Wrapper
@@ -61,4 +58,3 @@ namespace D3d9Wrapper
 }
 
 #undef DECLARE_IN_WRAPPED_PROC
-#undef EXPORT_OUT_WRAPPED_PROC

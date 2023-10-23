@@ -42,8 +42,9 @@ namespace Utils
 // Add filter for UnhandledExceptionFilter used by the exception handler to catch exceptions
 LONG WINAPI Utils::myUnhandledExceptionFilter(LPEXCEPTION_POINTERS ExceptionInfo)
 {
-	Logging::Log() << "UnhandledExceptionFilter: exception code=" << ExceptionInfo->ExceptionRecord->ExceptionCode <<
-		" flags=" << ExceptionInfo->ExceptionRecord->ExceptionFlags << std::showbase << std::hex <<
+	Logging::Log() << "UnhandledExceptionFilter: exception" << std::showbase << std::hex <<
+		" code=" << ExceptionInfo->ExceptionRecord->ExceptionCode <<
+		" flags=" << ExceptionInfo->ExceptionRecord->ExceptionFlags <<
 		" addr=" << ExceptionInfo->ExceptionRecord->ExceptionAddress << std::dec << std::noshowbase;
 	DWORD oldprot;
 	PVOID target = ExceptionInfo->ExceptionRecord->ExceptionAddress;

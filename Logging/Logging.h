@@ -75,7 +75,6 @@ std::ostream& operator<<(std::ostream& os, const DELETEITEMSTRUCT& dis);
 std::ostream& operator<<(std::ostream& os, const DEVMODEA& dm);
 std::ostream& operator<<(std::ostream& os, const DEVMODEW& dm);
 std::ostream& operator<<(std::ostream& os, const DRAWITEMSTRUCT& dis);
-std::ostream& operator<<(std::ostream& os, const GESTURENOTIFYSTRUCT& gns);
 std::ostream& operator<<(std::ostream& os, HDC__& dc);
 std::ostream& operator<<(std::ostream& os, const HELPINFO& hi);
 std::ostream& operator<<(std::ostream& os, HFONT font);
@@ -97,6 +96,9 @@ std::ostream& operator<<(std::ostream& os, const POINTS& p);
 std::ostream& operator<<(std::ostream& os, const RECT& rect);
 std::ostream& operator<<(std::ostream& os, const SIZE& size);
 std::ostream& operator<<(std::ostream& os, const STYLESTRUCT& ss);
-std::ostream& operator<<(std::ostream& os, const TITLEBARINFOEX& tbi);
-std::ostream& operator<<(std::ostream& os, const TOUCH_HIT_TESTING_INPUT& thti);
 std::ostream& operator<<(std::ostream& os, const WINDOWPOS& wp);
+#ifdef DDRAWCOMPAT
+std::ostream& operator<<(std::ostream& os, const TITLEBARINFOEX& tbi);
+std::ostream& operator<<(std::ostream& os, const GESTURENOTIFYSTRUCT& gns);
+std::ostream& operator<<(std::ostream& os, const TOUCH_HIT_TESTING_INPUT& thti);
+#endif // DDRAWCOMPAT

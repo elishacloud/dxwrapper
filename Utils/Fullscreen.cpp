@@ -232,26 +232,6 @@ DWORD Utils::GetBitCount(HWND hWnd)
 	return 32;
 }
 
-DWORD Utils::GetWindowHeight(HWND hWnd)
-{
-	if (IsWindow(hWnd))
-	{
-		RECT rect = {};
-		GetWindowRect(hWnd, &rect);
-		DWORD Height = abs(rect.right - rect.left);
-		if (GetWindowLong(hWnd, GWL_STYLE) & WS_CAPTION)
-		{
-			DWORD FrameSize = GetSystemMetrics(SM_CXPADDEDBORDER) + GetSystemMetrics(SM_CXSIZEFRAME);
-			Height = (Height > FrameSize) ? Height - FrameSize : Height;
-		}
-		return Height;
-	}
-
-	LONG screenWidth, screenHeight;
-	Utils::GetScreenSize(nullptr, screenWidth, screenHeight);
-	return screenHeight;
-}
-
 // Gets the screen size from a wnd handle
 void Fullscreen::GetScreenSize(HWND hwnd, screen_res& Res, MONITORINFO& mi)
 {
@@ -756,7 +736,7 @@ void Fullscreen::StartThread()
 // Is thread running
 bool Fullscreen::IsThreadRunning()
 {
-	return m_ThreadRunningFlag && InterlockedCompareExchange(&m_dwThreadID, 0, 0) && GetThreadId(InterlockedCompareExchangePointer(&m_hThread, nullptr, nullptr)) == InterlockedCompareExchange(&m_dwThreadID, 0, 0);
+	return m_ThreadRunningFlag && InterlockedCompareExchange(&m_dwThreadID, 0, 0) && GetThreadIDByHandle(InterlockedCompareExchangePointer(&m_hThread, nullptr, nullptr)) == InterlockedCompareExchange(&m_dwThreadID, 0, 0);
 }
 
 // Stop thread

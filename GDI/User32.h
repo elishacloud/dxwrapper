@@ -15,10 +15,10 @@ LONG WINAPI user_SetWindowLongW(HWND hWnd, int nIndex, LONG dwNewLong);
 
 namespace GdiWrapper
 {
-	extern FARPROC CreateWindowExA_out;
-	extern FARPROC CreateWindowExW_out;
-	extern FARPROC DestroyWindow_out;
-	extern FARPROC GetSystemMetrics_out;
-	extern FARPROC SetWindowLongA_out;
-	extern FARPROC SetWindowLongW_out;
+	EXPORT_OUT_WRAPPED_PROC(CreateWindowExA, unused);
+	EXPORT_OUT_WRAPPED_PROC(CreateWindowExW, unused);
+	EXPORT_OUT_WRAPPED_PROC(DestroyWindow, unused);
+	EXPORT_OUT_WRAPPED_PROC(GetSystemMetrics, unused);
+	EXPORT_OUT_WRAPPED_PROC(SetWindowLongA, unused);
+	EXPORT_OUT_WRAPPED_PROC(SetWindowLongW, unused);
 }

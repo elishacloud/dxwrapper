@@ -15,7 +15,6 @@
 */
 
 #include "ddraw.h"
-#include <d3dhal.h>
 #include "d3d9\d3d9External.h"
 
 HRESULT m_IDirect3DDeviceX::QueryInterface(REFIID riid, LPVOID FAR * ppvObj, DWORD DirectXVersion)
