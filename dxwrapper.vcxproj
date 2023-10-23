@@ -70,7 +70,7 @@
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
-      <AdditionalDependencies>detours.lib;dxguid.lib;msimg32.lib;oleacc.lib;uxtheme.lib;dwmapi.lib;wbemuuid.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>detours.lib;msimg32.lib;oleacc.lib;wbemuuid.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <ModuleDefinitionFile>Wrappers\wrapper.def</ModuleDefinitionFile>
       <AdditionalLibraryDirectories>Libraries\detours\lib</AdditionalLibraryDirectories>
       <OptimizeReferences>true</OptimizeReferences>
@@ -104,7 +104,7 @@ cmd /q /c "cd /D ""$(ProjectDir)d3d8\"" &amp;&amp; del build.bat"</Command>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">
     <ClCompile>
-      <PreprocessorDefinitions>WIN32;NDEBUG;_WINDOWS;_WIN32_WINNT=0x0501;_USRDLL;DISABLE_COMMON_LOGGING;_NO_DDRAWINT_NO_COM;DDRAW;DINPUT;DINPUT8;DXWND;D3D8TO9NOLOG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32;NDEBUG;_WINDOWS;_WIN32_WINNT=0x0501;_USRDLL;_USING_V110_SDK71_;DISABLE_COMMON_LOGGING;_NO_DDRAWINT_NO_COM;DDRAW;DINPUT;DINPUT8;DXWND;D3D8TO9NOLOG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
       <ObjectFileName>$(SolutionDir)bin\Intermediate\$(Configuration)\Object\%(RelativeDir)</ObjectFileName>
       <WarningLevel>Level4</WarningLevel>
@@ -115,7 +115,7 @@ cmd /q /c "cd /D ""$(ProjectDir)d3d8\"" &amp;&amp; del build.bat"</Command>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
-      <AdditionalDependencies>Psapi.lib;Shlwapi.lib;detours.lib;msimg32.lib;oleacc.lib;uxtheme.lib;dwmapi.lib;wbemuuid.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>Psapi.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <ModuleDefinitionFile>Wrappers\wrapper.def</ModuleDefinitionFile>
       <AdditionalLibraryDirectories>Libraries\detours\lib</AdditionalLibraryDirectories>
       <OptimizeReferences>true</OptimizeReferences>
@@ -146,7 +146,7 @@ copy /Y "$(ProjectDir)Resources\dxwnd.exe" "$(TargetDir)Build\" &gt;nul</Command
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
-      <AdditionalDependencies>detours.lib;dxguid.lib;msimg32.lib;oleacc.lib;uxtheme.lib;dwmapi.lib;wbemuuid.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>detours.lib;msimg32.lib;oleacc.lib;wbemuuid.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <ModuleDefinitionFile>Wrappers\wrapper.def</ModuleDefinitionFile>
       <AdditionalLibraryDirectories>Libraries\detours\lib</AdditionalLibraryDirectories>
       <OptimizeReferences>true</OptimizeReferences>

@@ -898,8 +898,11 @@ inline UINT GetValueFromString(wchar_t* str)
 
 DWORD Utils::GetVideoRam(UINT AdapterNo)
 {
+	UNREFERENCED_PARAMETER(AdapterNo);
+
 	DWORD retSize = 0;
 
+#if (_WIN32_WINNT >= 0x0502)
 	// Initialize COM
 	HRESULT hr = CoInitialize(nullptr);
 	if (FAILED(hr))
@@ -982,6 +985,7 @@ DWORD Utils::GetVideoRam(UINT AdapterNo)
 	} while (false);
 
 	CoUninitialize();
+#endif // _WIN32_WINNT >= 0x0502
 
 	return retSize;
 }
