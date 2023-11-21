@@ -303,10 +303,8 @@ namespace Compat31
 			setDpiAwareness();
 			SetThemeAppProperties(0);
 
-			//***** Hooks Hang on Windows 11 ****
-			//Win32::MemoryManagement::installHooks();
-			//Win32::MsgHooks::installHooks();
-			//***********************************
+			Win32::MemoryManagement::installHooks();
+			Win32::MsgHooks::installHooks();
 			Time::init();
 			Compat31::closeDbgEng();
 
