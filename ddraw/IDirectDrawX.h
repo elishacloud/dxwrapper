@@ -195,6 +195,7 @@ public:
 	// Device information functions
 	HWND GetHwnd();
 	HDC GetDC();
+	DWORD GetDisplayBPP(HWND hWnd);
 	void ClearDepthStencilSurface();
 	D3DMULTISAMPLE_TYPE GetMultiSampleType();
 	DWORD GetMultiSampleQuality();

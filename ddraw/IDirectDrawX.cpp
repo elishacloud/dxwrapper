@@ -1289,7 +1289,7 @@ HRESULT m_IDirectDrawX::GetDisplayMode2(LPDDSURFACEDESC2 lpDDSurfaceDesc2)
 			HWND hWnd = GetHwnd();
 			Utils::GetScreenSize(hWnd, lpDDSurfaceDesc2->dwWidth, lpDDSurfaceDesc2->dwHeight);
 			lpDDSurfaceDesc2->dwRefreshRate = Utils::GetRefreshRate(hWnd);
-			displayModeBits = Utils::GetBitCount(hWnd);
+			displayModeBits = GetDisplayBPP(hWnd);
 		}
 
 		// Force color mode
@@ -1538,7 +1538,7 @@ HRESULT m_IDirectDrawX::RestoreDisplayMode()
 	if (Config.Dd7to9)
 	{
 		// Exclusive-level access is required to use this method.
-		if (DisplayMode.Width && DisplayMode.Height && DisplayMode.BPP && !ExclusiveMode)
+		if (!ExclusiveMode && DisplayMode.Width && DisplayMode.Height && DisplayMode.BPP)
 		{
 			return DDERR_NOEXCLUSIVEMODE;
 		}
@@ -2603,6 +2603,12 @@ HDC m_IDirectDrawX::GetDC()
 	return WindowFromDC(DisplayMode.DC) ? DisplayMode.DC : nullptr;
 }
 
+DWORD m_IDirectDrawX::GetDisplayBPP(HWND hWnd)
+{
+	// Default to 16 bit if SetDisplayMode() has not been called
+	return (ExclusiveMode && Exclusive.BPP) ? Exclusive.BPP : (!DisplayMode.BPP) ? 16 : Utils::GetBitCount(hWnd);
+}
+
 void m_IDirectDrawX::ClearDepthStencilSurface()
 {
 	Device.DepthStencilSurface = D3DFMT_UNKNOWN;
@@ -2642,11 +2648,14 @@ void m_IDirectDrawX::GetSurfaceDisplay(DWORD& Width, DWORD& Height, DWORD& BPP, 
 		RefreshRate = Exclusive.RefreshRate;
 		BPP = Exclusive.BPP;
 	}
-	else if (d3d9Device)
+	else
 	{
-		Width = presParams.BackBufferWidth;
-		Height = presParams.BackBufferHeight;
-		BPP = (DisplayMode.BPP) ? DisplayMode.BPP : Utils::GetBitCount(hWnd);
+		if (d3d9Device)
+		{
+			Width = presParams.BackBufferWidth;
+			Height = presParams.BackBufferHeight;
+		}
+		BPP = (DisplayMode.BPP) ? DisplayMode.BPP : GetDisplayBPP(hWnd);
 	}
 
 	// Force color mode
@@ -3005,7 +3014,7 @@ HRESULT m_IDirectDrawX::CreateD3D9Device()
 			if ((SetResolution || NewWidth != CurrentWidth || NewHeight != CurrentHeight) && NewWidth && NewHeight)
 			{
 				SetResolution = false;
-				SendMessage(hWnd, WM_DISPLAYCHANGE, DisplayMode.BPP ? DisplayMode.BPP : 32, MAKELPARAM(NewWidth, NewHeight));
+				SendMessage(hWnd, WM_DISPLAYCHANGE, GetDisplayBPP(hWnd), MAKELPARAM(NewWidth, NewHeight));
 			}
 
 			// Get window size
@@ -4103,9 +4112,9 @@ DWORD GetDDrawBitsPixel(HWND hWnd)
 		{
 			return Config.DdrawOverrideBitMode;
 		}
-		if (DDrawVector.size() && DisplayMode.hWnd)
+		if (!DDrawVector.empty() && DisplayMode.hWnd)
 		{
-			return Exclusive.BPP ? Exclusive.BPP : DisplayMode.BPP;
+			return (Exclusive.BPP) ? Exclusive.BPP : (DisplayMode.BPP) ? DisplayMode.BPP : DDrawVector.data()[0]->GetDisplayBPP(hWnd);
 		}
 	}
 	return 0;
