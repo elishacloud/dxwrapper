@@ -2,6 +2,9 @@
 
 #include "Settings\Settings.h"
 #include "Wrappers\Wrapper.h"
+#ifdef DDRAWCOMPAT
+#include"v0.3.1/Win32/DisplayMode.h"
+#endif
 
 namespace DDrawCompat
 {

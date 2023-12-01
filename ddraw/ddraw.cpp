@@ -66,7 +66,9 @@ void InitDDraw()
 	static bool RunOnce = true;
 	if (RunOnce)
 	{
-		RunOnce = false;
+#ifdef DDRAWCOMPAT
+		Win32::DisplayMode::CallDisableDwm8And16BitMitigation();
+#endif
 		using namespace GdiWrapper;
 		GetDeviceCaps_out = (FARPROC)Hook::HotPatch(Hook::GetProcAddress(LoadLibrary("gdi32.dll"), "GetDeviceCaps"), "GetDeviceCaps", gdi_GetDeviceCaps);
 		CreateWindowExA_out = (FARPROC)Hook::HotPatch(Hook::GetProcAddress(LoadLibrary("user32.dll"), "CreateWindowExA"), "CreateWindowExA", user_CreateWindowExA);
@@ -78,6 +80,7 @@ void InitDDraw()
 			SetWindowLongA_out = (FARPROC)Hook::HotPatch(Hook::GetProcAddress(LoadLibrary("user32.dll"), "SetWindowLongA"), "SetWindowLongA", user_SetWindowLongA);
 			SetWindowLongW_out = (FARPROC)Hook::HotPatch(Hook::GetProcAddress(LoadLibrary("user32.dll"), "SetWindowLongW"), "SetWindowLongW", user_SetWindowLongW);
 		}
+		RunOnce = false;
 	}
 }
 

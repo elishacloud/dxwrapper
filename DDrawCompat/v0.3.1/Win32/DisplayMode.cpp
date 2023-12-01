@@ -312,5 +312,10 @@ namespace Win32
 
 			disableDwm8And16BitMitigation();
 		}
+
+		void CallDisableDwm8And16BitMitigation()
+		{
+			disableDwm8And16BitMitigation();
+		}
 	}
 }

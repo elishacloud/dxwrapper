@@ -10,5 +10,6 @@ namespace Win32
 		ULONG queryDisplaySettingsUniqueness();
 
 		void installHooks();
+		void CallDisableDwm8And16BitMitigation();
 	}
 }
