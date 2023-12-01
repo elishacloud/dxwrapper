@@ -2822,6 +2822,8 @@ HRESULT m_IDirectDrawX::CreateD3D9Device()
 
 			if (ExStyle & WS_EX_TOOLWINDOW)
 			{
+				LOG_LIMIT(3, __FUNCTION__ << " Removing window WS_EX_TOOLWINDOW!");
+
 				SetWindowLong(hWnd, GWL_EXSTYLE, ExStyle & ~WS_EX_TOOLWINDOW);
 			}
 		}
