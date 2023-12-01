@@ -1661,7 +1661,7 @@ HRESULT m_IDirectDrawX::SetCooperativeLevel(HWND hWnd, DWORD dwFlags, DWORD Dire
 			Device.NoWindowChanges = ((dwFlags & DDSCL_NOWINDOWCHANGES) != 0);
 
 			// Reset if mode was changed
-			if ((d3d9Device || LastUsedHWnd == DisplayMode.hWnd || Config.DdrawCreateDeviceEarly) &&
+			if ((d3d9Device || LastUsedHWnd == DisplayMode.hWnd) &&
 				(LastExclusiveMode != ExclusiveMode || LasthWnd != DisplayMode.hWnd || LastFPUPreserve != Device.FPUPreserve || LastNoWindowChanges != Device.NoWindowChanges))
 			{
 				CreateD3D9Device();
