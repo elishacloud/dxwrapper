@@ -16,6 +16,7 @@
 
 #include "d3d9.h"
 #include "d3dx9.h"
+#include "d3d9\d3d9External.h"
 #include "Utils\Utils.h"
 #include <intrin.h>
 
@@ -57,15 +58,16 @@ ULONG m_IDirect3DDevice9Ex::Release()
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
+	ULONG ref = ProxyInterface->Release();
+
 	// Teardown debug overlay before destroying device
 #ifdef ENABLE_DEBUGOVERLAY
-	if (ProxyInterface->AddRef() && ProxyInterface->Release() == 1)
+	if (DOverlay.IsSetup() && ref == 1)
 	{
 		DOverlay.Shutdown();
+		ref = 0;
 	}
 #endif
-
-	ULONG ref = ProxyInterface->Release();
 
 	if (ref == 0)
 	{

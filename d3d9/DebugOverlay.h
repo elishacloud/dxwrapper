@@ -58,6 +58,7 @@ public:
 	void EndScene();
 
 	// Functions
+	bool IsSetup() { return IsContextSetup; }
 	LPDIRECT3DDEVICE9 Getd3d9Device() { return d3d9Device; }
 	void SetTransform(D3DTRANSFORMSTATETYPE dtstTransformStateType, LPD3DMATRIX lpD3DMatrix);
 	void SetLight(DWORD dwLightIndex, LPD3DLIGHT7 lpLight);
