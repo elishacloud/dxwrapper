@@ -911,7 +911,6 @@ HRESULT m_IDirectDrawX::EnumDisplayModes2(DWORD dwFlags, LPDDSURFACEDESC2 lpDDSu
 		UINT modeCount = d3d9Object->GetAdapterModeCount(D3DADAPTER_DEFAULT, D9DisplayFormat);
 
 		// Loop through all modes
-		DWORD Loop = 0;
 		for (UINT i = 0; i < modeCount; i++)
 		{
 			// Get display modes
@@ -935,16 +934,15 @@ HRESULT m_IDirectDrawX::EnumDisplayModes2(DWORD dwFlags, LPDDSURFACEDESC2 lpDDSu
 				DWORD RefreshRate = (dwFlags & DDEDM_REFRESHRATES) ? d3ddispmode.RefreshRate : 0;
 
 				// Check if the resolution is on the LimitedResolutionList
-				bool ResolutionOkToUse = (Config.DdrawLimitDisplayModeCount != 1 || [&]() {
-					return std::any_of(std::begin(LimitedResolutionList), std::end(LimitedResolutionList),
+				bool ResolutionOkToUse = (!Config.DdrawLimitDisplayModeCount ||
+					std::any_of(std::begin(LimitedResolutionList), std::end(LimitedResolutionList),
 						[&](const SIZE& entry) {
 							return ((DWORD)entry.cx == d3ddispmode.Width && (DWORD)entry.cy == d3ddispmode.Height);
-						});
-					}());
+						}));
 
-				// Check if resolution is already sent
+				// Check if resolution has already been sent
 				bool ResolutionAlreadySent = std::any_of(ResolutionList.begin(), ResolutionList.end(),
-					[=](const RESLIST& Entry) {
+					[&](const RESLIST& Entry) {
 						return (Entry.Width == d3ddispmode.Width && Entry.Height == d3ddispmode.Height && Entry.RefreshRate == RefreshRate && Entry.BitCount == DisplayBitCount);
 					});
 
@@ -953,11 +951,6 @@ HRESULT m_IDirectDrawX::EnumDisplayModes2(DWORD dwFlags, LPDDSURFACEDESC2 lpDDSu
 					(!EnumWidth || d3ddispmode.Width == EnumWidth) &&
 					(!EnumHeight || d3ddispmode.Height == EnumHeight))
 				{
-					if (++Loop > Config.DdrawLimitDisplayModeCount && Config.DdrawLimitDisplayModeCount > 1)
-					{
-						return DD_OK;
-					}
-
 					// Store resolution
 					ResolutionList.push_back({ d3ddispmode.Width, d3ddispmode.Height, RefreshRate, DisplayBitCount });
 
