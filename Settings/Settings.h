@@ -27,6 +27,8 @@
 	visit(DdrawAutoFrameSkip) \
 	visit(DdrawClippedWidth) \
 	visit(DdrawClippedHeight) \
+	visit(DdrawCustomWidth) \
+	visit(DdrawCustomHeight) \
 	visit(DdrawDisableDirect3DCaps) \
 	visit(DdrawRemoveScanlines) \
 	visit(DdrawRemoveInterlacing) \
@@ -40,8 +42,6 @@
 	visit(DdrawOverrideBitMode) \
 	visit(DdrawOverrideWidth) \
 	visit(DdrawOverrideHeight) \
-	visit(DdrawOverridePrimaryWidth) \
-	visit(DdrawOverridePrimaryHeight) \
 	visit(DdrawOverrideStencilFormat) \
 	visit(DdrawResolutionHack) \
 	visit(DdrawUseDirect3D9Ex) \
@@ -218,13 +218,13 @@ struct CONFIG
 	bool DdrawUseNativeResolution = false;		// Uses the current screen resolution for Dd7to9
 	DWORD DdrawClippedWidth = 0;				// Used to scaled Direct3d9 to use this width when using Dd7to9
 	DWORD DdrawClippedHeight = 0;				// Used to scaled Direct3d9 to use this height when using Dd7to9
+	DWORD DdrawCustomWidth = 0;					// Custom resolution width for Dd7to9 when using DdrawLimitDisplayModeCount, resolution must be supported by video card and monitor
+	DWORD DdrawCustomHeight = 0;				// Custom resolution height for Dd7to9 when using DdrawLimitDisplayModeCount, resolution must be supported by video card and monitor
 	bool DdrawDisableDirect3DCaps = false;		// Disable caps for Direct3D to try and force the game to use DirectDraw instaed of Direct3D
 	DWORD DdrawLimitDisplayModeCount = 0;		// Limits the number of display modes sent to program, some games crash when you feed them with too many resolutions
 	DWORD DdrawOverrideBitMode = 0;				// Forces DirectX to use specified bit mode: 8, 16, 24, 32
 	DWORD DdrawOverrideWidth = 0;				// Force Direct3d9 to use this width when using Dd7to9
 	DWORD DdrawOverrideHeight = 0;				// Force Direct3d9 to use this height when using Dd7to9
-	DWORD DdrawOverridePrimaryWidth = 0;		// Force Dd7to9 to use this width for the primary/backbuffer surface
-	DWORD DdrawOverridePrimaryHeight = 0;		// Force Dd7to9 to use this height for the primary/backbuffer surface
 	DWORD OverrideRefreshRate = 0;				// Force Direct3d9 to use this refresh rate, only works in exclusive fullscreen mode
 	DWORD DdrawOverrideStencilFormat = 0;		// Force Direct3d9 to use this AutoStencilFormat when using Dd7to9
 	bool DdrawEnableMouseHook = false;			// Allow to hook into mouse to limit it to the chosen resolution
@@ -269,9 +269,9 @@ struct CONFIG
 	bool WaitForProcess = false;				// Waits for process to end before continuing, requires FullScreen
 	bool WaitForWindowChanges = false;			// Waits for window handle to stabilize before setting fullsreen, requires FullScreen
 	bool WindowModeBorder = false;				// Enables the window border when EnableWindowMode is set, requires EnableWindowMode
-	bool SetInitialWindowPosition = false;		// Enable initual window position
-	DWORD InitialWindowPositionLeft;			// Initual left window position for application
-	DWORD InitialWindowPositionTop;				// Initual top window position for application
+	bool SetInitialWindowPosition = false;		// Enable Initial window position
+	DWORD InitialWindowPositionLeft;			// Initial left window position for application
+	DWORD InitialWindowPositionTop;				// Initial top window position for application
 	DWORD LoopSleepTime = 0;					// Time to sleep between each window handle check loop, requires FullScreen
 	DWORD ResetMemoryAfter = 0;					// Undo hot patch after this amount of time
 	DWORD WindowSleepTime = 0;					// Time to wait (sleep) for window handle and screen updates to finish, requires FullScreen

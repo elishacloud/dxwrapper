@@ -127,6 +127,10 @@ DWORD LastSetWidth;
 DWORD LastSetHeight;
 DWORD LastSetBPP;
 
+// Initial screen resolution
+DWORD InitWidth;
+DWORD InitHeight;
+
 // Cached FourCC list
 std::vector<D3DFORMAT> FourCCsList;
 
@@ -885,6 +889,24 @@ HRESULT m_IDirectDrawX::EnumDisplayModes2(DWORD dwFlags, LPDDSURFACEDESC2 lpDDSu
 		};
 		std::vector<RESLIST> ResolutionList;
 
+		// For games that require limited resolution return
+		SIZE LimitedResolutionList[] =
+		{
+			{ 320, 200 },
+			{ 320, 240 },
+			{ 512, 384 },
+			{ 640, 400 },
+			{ 640, 480 },
+			{ 800, 600 },
+			{ 1024, 768 },
+			{ 1152, 864 },
+			{ 1280, 720 },
+			{ 1280, 1024 },
+			{ 1600, 1200 },
+			{ (LONG)InitWidth, (LONG)InitHeight },
+			{ (LONG)Config.DdrawCustomWidth, (LONG)Config.DdrawCustomHeight },
+		};
+
 		// Enumerate modes for format XRGB
 		UINT modeCount = d3d9Object->GetAdapterModeCount(D3DADAPTER_DEFAULT, D9DisplayFormat);
 
@@ -912,6 +934,14 @@ HRESULT m_IDirectDrawX::EnumDisplayModes2(DWORD dwFlags, LPDDSURFACEDESC2 lpDDSu
 				// Set display refresh rate
 				DWORD RefreshRate = (dwFlags & DDEDM_REFRESHRATES) ? d3ddispmode.RefreshRate : 0;
 
+				// Check if the resolution is on the LimitedResolutionList
+				bool ResolutionOkToUse = (Config.DdrawLimitDisplayModeCount != 1 || [&]() {
+					return std::any_of(std::begin(LimitedResolutionList), std::end(LimitedResolutionList),
+						[&](const SIZE& entry) {
+							return ((DWORD)entry.cx == d3ddispmode.Width && (DWORD)entry.cy == d3ddispmode.Height);
+						});
+					}());
+
 				// Check if resolution is already sent
 				bool ResolutionAlreadySent = std::any_of(ResolutionList.begin(), ResolutionList.end(),
 					[=](const RESLIST& Entry) {
@@ -919,11 +949,11 @@ HRESULT m_IDirectDrawX::EnumDisplayModes2(DWORD dwFlags, LPDDSURFACEDESC2 lpDDSu
 					});
 
 				// Check mode
-				if (!ResolutionAlreadySent &&
+				if (ResolutionOkToUse && !ResolutionAlreadySent &&
 					(!EnumWidth || d3ddispmode.Width == EnumWidth) &&
 					(!EnumHeight || d3ddispmode.Height == EnumHeight))
 				{
-					if (++Loop > Config.DdrawLimitDisplayModeCount && Config.DdrawLimitDisplayModeCount)
+					if (++Loop > Config.DdrawLimitDisplayModeCount && Config.DdrawLimitDisplayModeCount > 1)
 					{
 						return DD_OK;
 					}
@@ -2333,9 +2363,11 @@ void m_IDirectDrawX::InitDdraw(DWORD DirectXVersion)
 		hFocusWindow = nullptr;
 
 		// Display resolution
+		Utils::GetScreenSize(GetHwnd(), InitWidth, InitHeight);
 		if (Config.DdrawUseNativeResolution)
 		{
-			Utils::GetScreenSize(GetHwnd(), Device.Width, Device.Height);
+			Device.Width = InitWidth;
+			Device.Height = InitHeight;
 		}
 		else
 		{
