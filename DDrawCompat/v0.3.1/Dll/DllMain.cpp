@@ -72,20 +72,20 @@ namespace Compat31
 			static bool isAlreadyInstalled = false;
 			if (!isAlreadyInstalled)
 			{
+				Compat31::Log() << "Installing display mode hooks";
+				Win32::DisplayMode::installHooks();
+
 				//********** Begin Edit *************
-				if (!Config.Dd7to9)
+				if (Config.DDrawCompat)
 				{
-					Compat31::Log() << "Installing display mode hooks";
-					Win32::DisplayMode::installHooks();
 					Compat31::Log() << "Installing registry hooks";
 					Win32::Registry::installHooks();
+					Compat31::Log() << "Installing Direct3D driver hooks";
+					D3dDdi::installHooks();
+					Compat31::Log() << "Installing Win32 hooks";
+					Win32::WaitFunctions::installHooks();
 				}
 				//********** End Edit ***************
-
-				Compat31::Log() << "Installing Direct3D driver hooks";
-				D3dDdi::installHooks();
-				Compat31::Log() << "Installing Win32 hooks";
-				Win32::WaitFunctions::installHooks();
 
 				//********** Begin Edit *************
 				if (!Config.Dd7to9)
@@ -224,6 +224,7 @@ namespace Compat31
 		static bool skipDllMain = false;
 		if (skipDllMain)
 		{
+			skipDllMain = true;
 			return TRUE;
 		}
 
@@ -257,7 +258,16 @@ namespace Compat31
 				return FALSE;
 			}
 
-			Dll::g_origDDrawModule = LoadLibraryW((systemPath / "ddraw.dll").c_str());
+			//********** Begin Edit *************
+			if (Config.DDrawCompat)
+			{
+				Dll::g_origDDrawModule = LoadLibraryW((systemPath / "ddraw.dll").c_str());
+			}
+			else
+			{
+				Dll::g_origDDrawModule = LoadLibraryW(L"ddraw.dll");
+			}
+
 			if (!Dll::g_origDDrawModule)
 			{
 				Compat::Log() << "ERROR: Failed to load system ddraw.dll from " << systemPath.u8string();
@@ -299,22 +309,28 @@ namespace Compat31
 			//********** Begin Edit *************
 			if (!Config.DDrawCompatNoProcAffinity && !Config.Dd7to9) SetProcessAffinityMask(GetCurrentProcess(), 1);
 			//********** End Edit ***************
-			timeBeginPeriod(1);
-			setDpiAwareness();
-			SetThemeAppProperties(0);
 
-			Win32::MemoryManagement::installHooks();
-			Win32::MsgHooks::installHooks();
-			Time::init();
-			Compat31::closeDbgEng();
+			timeBeginPeriod(1);
 
 			//********** Begin Edit *************
-			if (Config.DisableMaxWindowedModeNotSet)
+			if (Config.DDrawCompat)
 			{
-				const DWORD disableMaxWindowedMode = 12;
-				CALL_ORIG_PROC(SetAppCompatData)(disableMaxWindowedMode, 0);
+				setDpiAwareness();
+				SetThemeAppProperties(0);
+
+				Win32::MemoryManagement::installHooks();
+				Win32::MsgHooks::installHooks();
+				Time::init();
+				Compat31::closeDbgEng();
+
+				if (Config.DisableMaxWindowedModeNotSet)
+				{
+					const DWORD disableMaxWindowedMode = 12;
+					CALL_ORIG_PROC(SetAppCompatData)(disableMaxWindowedMode, 0);
+				}
 			}
 			//********** End Edit ***************
+			
 			Compat31::Log() << "DDrawCompat v0.3.1 version loaded successfully";
 		}
 		else if (fdwReason == DLL_PROCESS_DETACH)

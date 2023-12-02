@@ -66,9 +66,6 @@ void InitDDraw()
 	static bool RunOnce = true;
 	if (RunOnce)
 	{
-#ifdef DDRAWCOMPAT
-		Win32::DisplayMode::CallDisableDwm8And16BitMitigation();
-#endif
 		using namespace GdiWrapper;
 		GetDeviceCaps_out = (FARPROC)Hook::HotPatch(Hook::GetProcAddress(LoadLibrary("gdi32.dll"), "GetDeviceCaps"), "GetDeviceCaps", gdi_GetDeviceCaps);
 		CreateWindowExA_out = (FARPROC)Hook::HotPatch(Hook::GetProcAddress(LoadLibrary("user32.dll"), "CreateWindowExA"), "CreateWindowExA", user_CreateWindowExA);
@@ -417,9 +414,11 @@ HRESULT WINAPI dd_DirectDrawCreateEx(GUID FAR *lpGUID, LPVOID *lplpDD, REFIID ri
 
 #ifdef DDRAWCOMPAT
 		// Install DDrawCompat hooks
-		if (Config.DDrawCompat)
+		static bool RunOnce = true;
+		if (RunOnce)
 		{
 			DDrawCompat::InstallHooks();
+			RunOnce = false;
 		}
 #endif
 

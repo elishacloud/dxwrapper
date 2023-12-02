@@ -308,13 +308,13 @@ namespace Win32
 			HOOK_FUNCTION(user32, ChangeDisplaySettingsExW, changeDisplaySettingsExW);
 			HOOK_FUNCTION(user32, EnumDisplaySettingsExA, enumDisplaySettingsExA);
 			HOOK_FUNCTION(user32, EnumDisplaySettingsExW, enumDisplaySettingsExW);
-			HOOK_FUNCTION(gdi32, GetDeviceCaps, getDeviceCaps);
+			//********** Begin Edit *************
+			if (Config.DDrawCompat)
+			{
+				HOOK_FUNCTION(gdi32, GetDeviceCaps, getDeviceCaps);
+			}
+			//********** End Edit ***************
 
-			disableDwm8And16BitMitigation();
-		}
-
-		void CallDisableDwm8And16BitMitigation()
-		{
 			disableDwm8And16BitMitigation();
 		}
 	}

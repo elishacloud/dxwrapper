@@ -429,7 +429,7 @@ bool APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 
 			// Start DDrawCompat
 #ifdef DDRAWCOMPAT
-			if (Config.DDrawCompat)
+			if (Config.DDrawCompat || Config.Dd7to9)
 			{
 				Config.DDrawCompat = DDrawCompat::Start(hModule_dll, DLL_PROCESS_ATTACH);
 			}
