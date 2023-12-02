@@ -89,6 +89,12 @@ private:
 		LPDIRECT3DSURFACE9 DisplayContext = nullptr;		// Context for the palette display texture
 	};
 
+	typedef enum _SURFACECREATE {
+		SC_NOT_CREATED = 0,
+		SC_CREATED_BY_LOCK = 1,
+		SC_CREATED_SEPERATLY = 2,
+	} SURFACECREATE;
+
 	// Convert to Direct3D9
 	CRITICAL_SECTION ddscs = {};
 	CRITICAL_SECTION ddlcs = {};
@@ -125,6 +131,7 @@ private:
 	DDRAWEMULATELOCK EmuLock;							// For aligning bits after a lock for games that hard code the pitch
 	std::vector<byte> ByteArray;						// Memory used for coping from one surface to the same surface
 	std::vector<byte> Backup;							// Memory used for backing up the surfaceTexture
+	SURFACECREATE CreatedBy = SC_NOT_CREATED;			// Used to help determine if surface should be emulated
 
 	// Extra Direct3D9 devices used in the primary surface
 	D9PRIMARY primary;

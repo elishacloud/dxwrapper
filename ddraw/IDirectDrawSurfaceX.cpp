@@ -2152,6 +2152,18 @@ HRESULT m_IDirectDrawSurfaceX::Lock2(LPRECT lpDestRect, LPDDSURFACEDESC2 lpDDSur
 			return DDERR_INVALIDPARAMS;
 		}
 
+		// If primary surface and palette surface and created via Lock() then mark as created by lock to emulate surface (eg. Diablo)
+		if (IsPrimarySurface() && CreatedBy == SC_NOT_CREATED && surfaceDesc2.dwFlags == DDSD_CAPS)
+		{
+			UpdateSurfaceDesc();
+
+			if (surfaceDesc2.ddpfPixelFormat.dwRGBBitCount == 8 && (surfaceDesc2.ddsCaps.dwCaps & DDSCAPS_VIDEOMEMORY) &&
+				surfaceDesc2.dwBackBufferCount == 0 && (surfaceDesc2.ddsCaps.dwCaps & DDSCAPS_FLIP) == 0)
+			{
+				CreatedBy = SC_CREATED_BY_LOCK;
+			}
+		}
+
 		// Check for device interface
 		HRESULT c_hr = CheckInterface(__FUNCTION__, true, true);
 
@@ -3588,8 +3600,8 @@ HRESULT m_IDirectDrawSurfaceX::CreateD3d9Surface()
 	// Get texture format
 	surfaceFormat = GetDisplayFormat(surfaceDesc2.ddpfPixelFormat);
 	surfaceBitCount = GetBitCount(surfaceFormat);
-	SurfaceRequiresEmulation = ((surfaceFormat == D3DFMT_A8B8G8R8 || surfaceFormat == D3DFMT_X8B8G8R8 || surfaceFormat == D3DFMT_B8G8R8 ||
-		surfaceFormat == D3DFMT_R8G8B8 || Config.DdrawEmulateSurface || (Config.DdrawRemoveScanlines && IsPrimaryOrBackBuffer())) &&
+	SurfaceRequiresEmulation = ((surfaceFormat == D3DFMT_A8B8G8R8 || surfaceFormat == D3DFMT_X8B8G8R8 || surfaceFormat == D3DFMT_B8G8R8 || surfaceFormat == D3DFMT_R8G8B8 ||
+		Config.DdrawEmulateSurface || (Config.DdrawRemoveScanlines && IsPrimaryOrBackBuffer()) || CreatedBy == SC_CREATED_BY_LOCK) &&
 			!IsDepthBuffer() && !(surfaceFormat & 0xFF000000 /*FOURCC or D3DFMT_DXTx*/));
 	const bool IsSurfaceEmulated = (SurfaceRequiresEmulation || (IsPrimaryOrBackBuffer() && (Config.DdrawWriteToGDI || Config.DdrawReadFromGDI) && !IsDirect3DEnabled));
 	DCRequiresEmulation = (surfaceFormat != D3DFMT_R5G6B5 && surfaceFormat != D3DFMT_X1R5G5B5 && surfaceFormat != D3DFMT_R8G8B8 && surfaceFormat != D3DFMT_X8R8G8B8);
@@ -3603,6 +3615,12 @@ HRESULT m_IDirectDrawSurfaceX::CreateD3d9Surface()
 	// Adjust Width to be byte-aligned
 	const DWORD Width = GetByteAlignedWidth(surfaceDesc2.dwWidth, surfaceBitCount);
 	const DWORD Height = surfaceDesc2.dwHeight;
+
+	// Set created by
+	if (CreatedBy == SC_NOT_CREATED)
+	{
+		CreatedBy = SC_CREATED_SEPERATLY;
+	}
 
 	Logging::LogDebug() << __FUNCTION__ " (" << this << ") D3d9 Surface. Size: " << Width << "x" << Height << " Format: " << surfaceFormat << " dwCaps: " << Logging::hex(surfaceDesc2.ddsCaps.dwCaps);
 
