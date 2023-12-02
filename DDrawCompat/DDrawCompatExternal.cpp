@@ -57,7 +57,7 @@ namespace DDrawCompat
 		return;
 	}
 
-	bool Start(HINSTANCE hinstDLL, DWORD fdwReason)
+	bool RunStart(HINSTANCE hinstDLL, DWORD fdwReason)
 	{
 		// Dd7to9 DDrawCompat version
 		if (Config.Dd7to9)
@@ -82,6 +82,18 @@ namespace DDrawCompat
 
 		// Default DDrawCompat version
 		return (DDrawCompatDefault::DllMain_DDrawCompat(hinstDLL, fdwReason, nullptr) == TRUE);
+	}
+
+	bool IsDDrawEnabled = false;
+
+	void Start(HINSTANCE hinstDLL, DWORD fdwReason)
+	{
+		IsDDrawEnabled = RunStart(hinstDLL, fdwReason);
+	}
+
+	bool IsEnabled()
+	{
+		return IsDDrawEnabled;
 	}
 
 	// Used for hooking with dd7to9

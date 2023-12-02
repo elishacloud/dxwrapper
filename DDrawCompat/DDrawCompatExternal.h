@@ -17,6 +17,7 @@ namespace DDrawCompat
 #undef INITIALIZE_WRAPPED_PROC
 
 	void Prepare();
-	bool Start(HINSTANCE, DWORD);
+	void Start(HINSTANCE, DWORD);
+	bool IsEnabled();
 	void InstallHooks();
 }

@@ -431,7 +431,7 @@ bool APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 #ifdef DDRAWCOMPAT
 			if (Config.DDrawCompat || Config.Dd7to9)
 			{
-				Config.DDrawCompat = DDrawCompat::Start(hModule_dll, DLL_PROCESS_ATTACH);
+				DDrawCompat::Start(hModule_dll, DLL_PROCESS_ATTACH);
 			}
 #endif // DDRAWCOMPAT
 		}
@@ -592,7 +592,7 @@ bool APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 
 		// Unload and Unhook DDrawCompat
 #ifdef DDRAWCOMPAT
-		if (Config.DDrawCompat)
+		if (DDrawCompat::IsEnabled())
 		{
 			DDrawCompat::Start(nullptr, DLL_PROCESS_DETACH);
 		}

@@ -308,6 +308,7 @@ namespace Win32
 			HOOK_FUNCTION(user32, ChangeDisplaySettingsExW, changeDisplaySettingsExW);
 			HOOK_FUNCTION(user32, EnumDisplaySettingsExA, enumDisplaySettingsExA);
 			HOOK_FUNCTION(user32, EnumDisplaySettingsExW, enumDisplaySettingsExW);
+
 			//********** Begin Edit *************
 			if (Config.DDrawCompat)
 			{
