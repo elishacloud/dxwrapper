@@ -1,7 +1,8 @@
 #pragma once
 
 #define WIN32_LEAN_AND_MEAN
-#include <Unknwnbase.h>
+#include <windows.h>
+#include "Wrappers\wrapper.h"
 #include "Settings\Settings.h"
 #include "Logging\Logging.h"
 
@@ -11,7 +12,7 @@ DEFINE_GUID(IID_GetInterfaceX, 0x254e1ffd, 0x10f9, 0x10c0, 0xc1, 0xb8, 0x21, 0x7
 typedef void(WINAPI *IQueryInterfaceProc)(REFIID, LPVOID *);
 typedef HRESULT(WINAPI *CoCreateInstanceHandleProc)(REFCLSID rclsid, LPUNKNOWN pUnkOuter, DWORD dwClsContext, REFIID riid, LPVOID *ppv);
 
-extern CoCreateInstanceHandleProc p_CoCreateInstance;
+EXPORT_OUT_WRAPPED_PROC(CoCreateInstance, unused);
 
 HRESULT WINAPI CoCreateInstanceHandle(REFCLSID rclsid, LPUNKNOWN pUnkOuter, DWORD dwClsContext, REFIID riid, LPVOID *ppv);
 

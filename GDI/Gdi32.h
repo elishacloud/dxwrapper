@@ -6,5 +6,5 @@ int WINAPI gdi_GetDeviceCaps(HDC hdc, int index);
 
 namespace GdiWrapper
 {
-	extern FARPROC GetDeviceCaps_out;
+	EXPORT_OUT_WRAPPED_PROC(GetDeviceCaps, unused);
 }

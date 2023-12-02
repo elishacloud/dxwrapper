@@ -5,6 +5,15 @@
 #include <d3d9.h>
 #include "Wrappers\wrapper.h"
 
+// Enable for testing only
+//#define ENABLE_DEBUGOVERLAY
+
+#ifdef ENABLE_DEBUGOVERLAY
+#include "DebugOverlay.h"
+extern DebugOverlay DOverlay;
+LRESULT WINAPI ImGuiWndProc(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lParam);
+#endif
+
 typedef DWORD D3DCOLOR;
 struct __declspec(uuid("81BDCBCA-64D4-426d-AE8D-AD0147F4275C")) IDirect3D9;
 struct __declspec(uuid("02177241-69FC-400C-8FF1-93A44DF6861D")) IDirect3D9Ex;
@@ -39,8 +48,7 @@ HRESULT WINAPI d9_Direct3DCreate9On12Ex(UINT SDKVersion, D3D9ON12_ARGS* pOverrid
 #define DECLARE_IN_WRAPPED_PROC(procName, unused) \
 	const FARPROC procName ## _in = (FARPROC)*d9_ ## procName;
 
-#define EXPORT_OUT_WRAPPED_PROC(procName, unused) \
-	extern FARPROC procName ## _out;
+extern bool EnableWndProcHook;
 
 namespace D3d9Wrapper
 {
@@ -50,4 +58,3 @@ namespace D3d9Wrapper
 }
 
 #undef DECLARE_IN_WRAPPED_PROC
-#undef EXPORT_OUT_WRAPPED_PROC

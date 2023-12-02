@@ -25,8 +25,28 @@ namespace
 	ULONG64 g_debugBase = 0;
 	bool g_isDbgEngInitialized = false;
 
+	LONG WINAPI dbgEngWinVerifyTrust(HWND hwnd, GUID* pgActionID, LPVOID pWVTData);
 	PIMAGE_NT_HEADERS getImageNtHeaders(HMODULE module);
 	bool initDbgEng();
+
+	FARPROC WINAPI dbgEngGetProcAddress(HMODULE hModule, LPCSTR lpProcName)
+	{
+		LOG_FUNC("dbgEngGetProcAddress", hModule, lpProcName);
+		if (0 == strcmp(lpProcName, "WinVerifyTrust"))
+		{
+			return LOG_RESULT(reinterpret_cast<FARPROC>(&dbgEngWinVerifyTrust));
+		}
+		return LOG_RESULT(GetProcAddress(hModule, lpProcName));
+	}
+
+	LONG WINAPI dbgEngWinVerifyTrust(
+		[[maybe_unused]] HWND hwnd,
+		[[maybe_unused]] GUID* pgActionID,
+		[[maybe_unused]] LPVOID pWVTData)
+	{
+		LOG_FUNC("dbgEngWinVerifyTrust", hwnd, pgActionID, pWVTData);
+		return LOG_RESULT(0);
+	}
 
 	FARPROC* findProcAddressInIat(HMODULE module, const char* procName)
 	{
@@ -236,22 +256,22 @@ namespace
 			strcpy_s(path, MAX_PATH, syspath);
 			PathAppend(path, "dbgeng.dll");
 			dll = LoadLibrary(path);
-			if (dll)
-			{
-				pDebugCreate = (PFN_DebugCreate)GetProcAddress(dll, "DebugCreate");
-			}
 
 			// Try loading dbgeng.dll from local path
-			if (!pDebugCreate)
+			if (!dll || !GetProcAddress(dll, "DebugCreate"))
 			{
 				dll = LoadLibrary("dbgeng.dll");
-				if (dll)
-				{
-					pDebugCreate = (PFN_DebugCreate)GetProcAddress(dll, "DebugCreate");
-				}
 			}
+
+			// Hook function and get process address
+			if (dll && GetProcAddress(dll, "DebugCreate"))
+			{
+				Compat31::hookIatFunction(dll, "GetProcAddress", dbgEngGetProcAddress);
+
+				pDebugCreate = (PFN_DebugCreate)GetProcAddress(dll, "DebugCreate");
+			}
+			RunOnce = false;
 		}
-		RunOnce = false;
 		if (!pDebugCreate)
 		{
 			Compat31::Log() << "ERROR: DbgEng: failed to get proc address!";

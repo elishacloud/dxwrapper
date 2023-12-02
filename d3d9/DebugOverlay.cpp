@@ -16,6 +16,7 @@
 
 #include "DebugOverlay.h"
 #include <sstream>
+#include "d3d9\d3d9External.h"
 
 #define IMGUI_DEFINE_MATH_OPERATORS
 #define IMGUI_DISABLE_OBSOLETE_KEYIO
@@ -38,20 +39,53 @@ HRESULT DwmEnableBlurBehindWindow(HWND, const DWM_BLURBEHIND*) { return E_NOTIMP
 #include "External/imgui/backends/imgui_impl_win32.cpp"
 #include "External/imgui/backends/imgui_impl_dx9.cpp"
 
+LRESULT WINAPI ImGuiWndProc(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lParam)
+{
+#ifdef ENABLE_DEBUGOVERLAY
+	return ImGui_ImplWin32_WndProcHandler(hWnd, Msg, wParam, lParam);
+#else
+	UNREFERENCED_PARAMETER(hWnd);
+	UNREFERENCED_PARAMETER(Msg);
+	UNREFERENCED_PARAMETER(wParam);
+	UNREFERENCED_PARAMETER(lParam);
+	return S_OK;
+#endif
+}
+
 namespace {
 	HWND OriginalHwnd = nullptr;
 	WNDPROC OverrideWndProc_OriginalWndProc = nullptr;
-	LRESULT CALLBACK OverrideWndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
-	{
-		LRESULT res = OverrideWndProc_OriginalWndProc(hwnd, uMsg, wParam, lParam);
 
-		ImGui_ImplWin32_WndProcHandler(hwnd, uMsg, wParam, lParam);
+	LRESULT WINAPI DebugOverlayWndProc(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lParam)
+	{
+		LRESULT res = CallWindowProc(OverrideWndProc_OriginalWndProc, hWnd, Msg, wParam, lParam);
+
+		ImGuiWndProc(hWnd, Msg, wParam, lParam);
 
 		return res;
 	}
+
+	void OverrideWndProc(HWND hWnd)
+	{
+		// Restore WndProc if hWnd changes
+		if (IsWindow(OriginalHwnd) && OriginalHwnd != hWnd)
+		{
+			SetWindowLongPtr(OriginalHwnd, GWLP_WNDPROC, (LONG_PTR)OverrideWndProc_OriginalWndProc);
+			OverrideWndProc_OriginalWndProc = nullptr;
+			OriginalHwnd = nullptr;
+		}
+
+		// Override WndProc if not already overridden
+		if (OriginalHwnd != hWnd)
+		{
+			OriginalHwnd = hWnd;
+			OverrideWndProc_OriginalWndProc = (WNDPROC)GetWindowLongPtr(hWnd, GWLP_WNDPROC);
+			SetWindowLongPtr(hWnd, GWLP_WNDPROC, (LONG_PTR)DebugOverlayWndProc);
+		}
+	}
 }
 
-void DebugOverlay::Setup(HWND hwnd, LPDIRECT3DDEVICE9 Device)
+void DebugOverlay::Setup(HWND hWnd, LPDIRECT3DDEVICE9 Device)
 {
 	d3d9Device = Device;
 
@@ -62,23 +96,12 @@ void DebugOverlay::Setup(HWND hwnd, LPDIRECT3DDEVICE9 Device)
 
 	IMGUI_CHECKVERSION();
 	ImGui::CreateContext();
-	ImGui_ImplWin32_Init(hwnd);
+	ImGui_ImplWin32_Init(hWnd);
 	ImGui_ImplDX9_Init(d3d9Device);
 
-	// Restore WndProc if hwnd changes
-	if (IsWindow(OriginalHwnd) && OriginalHwnd != hwnd)
+	if (!EnableWndProcHook)
 	{
-		SetWindowLongPtr(OriginalHwnd, GWLP_WNDPROC, (LONG_PTR)OverrideWndProc_OriginalWndProc);
-		OverrideWndProc_OriginalWndProc = nullptr;
-		OriginalHwnd = nullptr;
-	}
-
-	// Override WndProc if not already overridden
-	if (OriginalHwnd != hwnd)
-	{
-		OriginalHwnd = hwnd;
-		OverrideWndProc_OriginalWndProc = (WNDPROC)GetWindowLongPtr(hwnd, GWLP_WNDPROC);
-		SetWindowLongPtr(hwnd, GWLP_WNDPROC, (LONG_PTR)OverrideWndProc);
+		OverrideWndProc(hWnd);
 	}
 
 	// Context is setup
@@ -87,10 +110,13 @@ void DebugOverlay::Setup(HWND hwnd, LPDIRECT3DDEVICE9 Device)
 
 void DebugOverlay::Shutdown()
 {
-	ImGui_ImplDX9_Shutdown();
-	ImGui_ImplWin32_Shutdown();
-	ImGui::DestroyContext();
-	IsContextSetup = false;
+	if (IsContextSetup)
+	{
+		ImGui_ImplDX9_Shutdown();
+		ImGui_ImplWin32_Shutdown();
+		ImGui::DestroyContext();
+		IsContextSetup = false;
+	}
 }
 
 void DebugOverlay::BeginScene()

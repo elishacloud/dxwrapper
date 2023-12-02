@@ -25,10 +25,10 @@
 #define DLL_NAME "\\ddraw.dll"
 
 #define CREATE_WRAPPED_PROC(procName, unused) \
-	FARPROC m_p ## procName = nullptr;
+	volatile FARPROC m_p ## procName = nullptr;
 
-#define INITIALIZE_WRAPPED_PROC(procName, unused) \
-	m_p ## procName = (FARPROC)GetProcAddress(dll, #procName); \
+#define INITIALIZE_STUB_WRAPPED_PROC(procName, unused) \
+	m_p ## procName = GetProcAddress(dll, #procName); \
 	ddraw::procName ## _var = m_p ## procName;
 
 #define REDIRECT_WRAPPED_PROC(procName, unused) \
@@ -69,7 +69,7 @@ namespace DdrawWrapper
 		}
 
 		// Get function addresses
-		VISIT_ALL_PROCS(INITIALIZE_WRAPPED_PROC);
+		VISIT_ALL_PROCS(INITIALIZE_STUB_WRAPPED_PROC);
 
 		// Mark ddraw as loaded
 		IsLoaded = true;

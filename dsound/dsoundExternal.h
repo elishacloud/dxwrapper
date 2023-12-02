@@ -1,6 +1,6 @@
 #pragma once
 
-#include <mmeapi.h>
+#include <MMSystem.h>
 #include <dsound.h>
 #include "Wrappers\wrapper.h"
 
@@ -23,9 +23,6 @@ HRESULT WINAPI ds_DllCanUnloadNow();
 #define DECLARE_IN_WRAPPED_PROC(procName, unused) \
 	const FARPROC procName ## _in = (FARPROC)*ds_ ## procName;
 
-#define EXPORT_OUT_WRAPPED_PROC(procName, unused) \
-	extern FARPROC procName ## _out;
-
 namespace DsoundWrapper
 {
 	VISIT_PROCS_DSOUND(DECLARE_IN_WRAPPED_PROC);
@@ -36,4 +33,3 @@ namespace DsoundWrapper
 }
 
 #undef DECLARE_IN_WRAPPED_PROC
-#undef EXPORT_OUT_WRAPPED_PROC

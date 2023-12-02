@@ -199,7 +199,9 @@ namespace
 		if (result && !bForceBackground)
 		{
 			HWND dcWindow = CALL_ORIG_FUNC(WindowFromDC)(hdc);
-			if (dcWindow && !(GetWindowLong(dcWindow, GWL_EXSTYLE) & WS_EX_TOOLWINDOW))
+			char name[256] = {};
+			bool IsDDrawCompatWindow = (GetClassNameA(dcWindow, name, sizeof(name)) != FALSE && strcmp(name, "DDrawCompatPresentationWindow") == S_OK);
+			if (dcWindow && !IsDDrawCompatWindow && !(GetWindowLong(dcWindow, GWL_EXSTYLE) & WS_EX_TOOLWINDOW))
 			{
 				HWND activeWindow = GetActiveWindow();
 				if (activeWindow == dcWindow || IsChild(activeWindow, dcWindow))

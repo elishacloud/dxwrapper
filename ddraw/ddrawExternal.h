@@ -32,7 +32,7 @@ void AddBaseClipperToVetor(m_IDirectDrawClipper* lpClipper);
 void RemoveBaseClipperFromVector(m_IDirectDrawClipper* lpClipper);
 bool DoesBaseClipperExist(m_IDirectDrawClipper* lpClipper);
 
-DWORD GetDDrawBitsPixel();
+DWORD GetDDrawBitsPixel(HWND hWnd);
 DWORD GetDDrawWidth();
 DWORD GetDDrawHeight();
 
@@ -42,9 +42,6 @@ void ExitDDraw();
 #define DECLARE_IN_WRAPPED_PROC(procName, unused) \
 	const FARPROC procName ## _in = (FARPROC)*dd_ ## procName;
 
-#define EXPORT_OUT_WRAPPED_PROC(procName, unused) \
-	extern FARPROC procName ## _out;
-
 namespace DdrawWrapper
 {
 	VISIT_PROCS_DDRAW(DECLARE_IN_WRAPPED_PROC);
@@ -52,8 +49,7 @@ namespace DdrawWrapper
 
 	VISIT_PROCS_DDRAW(EXPORT_OUT_WRAPPED_PROC);
 	VISIT_PROCS_DDRAW_SHARED(EXPORT_OUT_WRAPPED_PROC);
-	extern FARPROC Direct3DCreate9_out;
+	EXPORT_OUT_WRAPPED_PROC(Direct3DCreate9, unused);
 }
 
 #undef DECLARE_IN_WRAPPED_PROC
-#undef EXPORT_OUT_WRAPPED_PROC

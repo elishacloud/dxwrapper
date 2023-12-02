@@ -165,7 +165,7 @@ HRESULT m_IDirect3DX::Initialize(REFCLSID rclsid)
 	return GetProxyInterfaceV1()->Initialize(rclsid);
 }
 
-HRESULT m_IDirect3DX::EnumDevices(LPD3DENUMDEVICESCALLBACK lpEnumDevicesCallback, LPVOID lpUserArg)
+HRESULT m_IDirect3DX::EnumDevices(LPD3DENUMDEVICESCALLBACK lpEnumDevicesCallback, LPVOID lpUserArg, DWORD DirectXVersion)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
@@ -184,14 +184,14 @@ HRESULT m_IDirect3DX::EnumDevices(LPD3DENUMDEVICESCALLBACK lpEnumDevicesCallback
 			return DDERR_INVALIDPARAMS;
 		}
 
-		struct EnumDevices
+		struct EnumDevicesStruct7
 		{
 			LPVOID lpContext;
 			LPD3DENUMDEVICESCALLBACK lpCallback;
 
 			static HRESULT CALLBACK ConvertCallback(LPSTR lpDeviceDescription, LPSTR lpDeviceName, LPD3DDEVICEDESC7 lpDeviceDesc, LPVOID lpContext)
 			{
-				EnumDevices *self = (EnumDevices*)lpContext;
+				EnumDevicesStruct7* self = (EnumDevicesStruct7*)lpContext;
 
 				D3DDEVICEDESC D3DDRVDevDesc = {}, D3DSWDevDesc = {};
 				D3DDRVDevDesc.dwSize = sizeof(D3DDEVICEDESC);
@@ -201,20 +201,20 @@ HRESULT m_IDirect3DX::EnumDevices(LPD3DENUMDEVICESCALLBACK lpEnumDevicesCallback
 
 				return self->lpCallback(&lpDeviceDesc->deviceGUID, lpDeviceDescription, lpDeviceName, &D3DDRVDevDesc, &D3DSWDevDesc, self->lpContext);
 			}
-		} CallbackContext = {};
-		CallbackContext.lpContext = lpUserArg;
-		CallbackContext.lpCallback = lpEnumDevicesCallback;
+		} CallbackContext7 = {};
+		CallbackContext7.lpContext = lpUserArg;
+		CallbackContext7.lpCallback = lpEnumDevicesCallback;
 
-		return EnumDevices7(EnumDevices::ConvertCallback, &CallbackContext, false);
+		return EnumDevices7(EnumDevicesStruct7::ConvertCallback, &CallbackContext7, false);
 	}
 	case 9:
-		return EnumDevices7((LPD3DENUMDEVICESCALLBACK7)lpEnumDevicesCallback, lpUserArg, true);
+		return EnumDevices7((LPD3DENUMDEVICESCALLBACK7)lpEnumDevicesCallback, lpUserArg, DirectXVersion);
 	default:
 		return DDERR_GENERIC;
 	}
 }
 
-HRESULT m_IDirect3DX::EnumDevices7(LPD3DENUMDEVICESCALLBACK7 lpEnumDevicesCallback7, LPVOID lpUserArg, bool ConvertCallback)
+HRESULT m_IDirect3DX::EnumDevices7(LPD3DENUMDEVICESCALLBACK7 lpEnumDevicesCallback7, LPVOID lpUserArg, DWORD DirectXVersion)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
@@ -256,19 +256,22 @@ HRESULT m_IDirect3DX::EnumDevices7(LPD3DENUMDEVICESCALLBACK7 lpEnumDevicesCallba
 					ConvertDeviceDesc(DeviceDesc7, Caps9);
 
 					GUID deviceGUID = DeviceDesc7.deviceGUID;
-					LPSTR lpDescription, lpName;
+					char lpName[MAX_PATH] = {}, lpDescription[MAX_PATH] = {};
 
 					// For conversion
 					D3DDEVICEDESC D3DDRVDevDesc = {}, D3DSWDevDesc = {};
-					D3DDRVDevDesc.dwSize = sizeof(D3DDEVICEDESC);
-					D3DSWDevDesc.dwSize = sizeof(D3DDEVICEDESC);
+					DWORD DevSize = (DirectXVersion == 1) ? D3DDEVICEDESC1_SIZE :
+						(DirectXVersion == 2) ? D3DDEVICEDESC5_SIZE :
+						(DirectXVersion == 3) ? D3DDEVICEDESC6_SIZE : sizeof(D3DDEVICEDESC);
+					D3DDRVDevDesc.dwSize = DevSize;
+					D3DSWDevDesc.dwSize = DevSize;
 
 					switch ((DWORD)Type)
 					{
 					case D3DDEVTYPE_REF:
-						lpDescription = "Microsoft Direct3D RGB Software Emulation";
-						lpName = "RGB Emulation";
-						if (ConvertCallback)
+						strcpy_s(lpName, "RGB Emulation");
+						strcpy_s(lpDescription, "Microsoft Direct3D RGB Software Emulation");
+						if (DirectXVersion < 7)
 						{
 							// Get D3DSWDevDesc data (D3DDEVTYPE_REF)
 							ConvertDeviceDesc(D3DSWDevDesc, DeviceDesc7);
@@ -288,9 +291,9 @@ HRESULT m_IDirect3DX::EnumDevices7(LPD3DENUMDEVICESCALLBACK7 lpEnumDevicesCallba
 						}
 						break;
 					case D3DDEVTYPE_HAL:
-						lpDescription = "Microsoft Direct3D Hardware acceleration through Direct3D HAL";
-						lpName = "Direct3D HAL";
-						if (ConvertCallback)
+						strcpy_s(lpName, "Direct3D HAL");
+						strcpy_s(lpDescription, "Microsoft Direct3D Hardware acceleration through Direct3D HAL");
+						if (DirectXVersion < 7)
 						{
 							// Get D3DDRVDevDesc data (D3DDEVTYPE_HAL)
 							ConvertDeviceDesc(D3DDRVDevDesc, DeviceDesc7);
@@ -311,12 +314,12 @@ HRESULT m_IDirect3DX::EnumDevices7(LPD3DENUMDEVICESCALLBACK7 lpEnumDevicesCallba
 						break;
 					default:
 					case D3DDEVTYPE_HAL + 0x10:
-						lpDescription = "Microsoft Direct3D Hardware Transform and Lighting acceleration capable device";
-						lpName = "Direct3D T&L HAL";
+						strcpy_s(lpName, "Direct3D T&L HAL");
+						strcpy_s(lpDescription, "Microsoft Direct3D Hardware Transform and Lighting acceleration capable device");
 						break;
 					}
 
-					if (!ConvertCallback)
+					if (DirectXVersion == 7)
 					{
 						if (lpEnumDevicesCallback7(lpDescription, lpName, &DeviceDesc7, lpUserArg) == DDENUMRET_CANCEL)
 						{
@@ -593,7 +596,7 @@ HRESULT m_IDirect3DX::CreateDevice(REFCLSID rclsid, LPDIRECTDRAWSURFACE7 lpDDS, 
 		SetCriticalSection();
 		if (ddrawParent)
 		{
-			ddrawParent->SetD3DDevice(p_IDirect3DDeviceX);
+			ddrawParent->SetD3DDevice(p_IDirect3DDeviceX, DdrawSurface3D);
 		}
 		ReleaseCriticalSection();
 

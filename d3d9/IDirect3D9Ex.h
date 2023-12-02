@@ -7,6 +7,8 @@ private:
 	LPDIRECT3D9EX ProxyInterfaceEx = nullptr;
 	REFIID WrapperID;
 
+	DEVICEDETAILS DeviceDetails;
+
 	// For Create & CreateEx
 	template <typename T>
 	HRESULT CreateDeviceT(D3DPRESENT_PARAMETERS& d3dpp, bool& MultiSampleFlag, UINT Adapter, D3DDEVTYPE DeviceType, HWND hFocusWindow, DWORD BehaviorFlags, D3DPRESENT_PARAMETERS* pPresentationParameters, D3DDISPLAYMODEEX* pFullscreenDisplayMode, T ppReturnedDeviceInterface);
@@ -33,10 +35,6 @@ public:
 	~m_IDirect3D9Ex()
 	{
 		LOG_LIMIT(3, __FUNCTION__ << " (" << this << ")" << " deleting interface!");
-
-		DeviceWindow = nullptr;
-		BufferWidth = 0;
-		BufferHeight = 0;
 	}
 
 	/*** IUnknown methods ***/

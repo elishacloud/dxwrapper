@@ -19,13 +19,10 @@
 #include "External\dinputto8\dinputto8.h"
 #include "IClassFactory\IClassFactory.h"
 
-#define INITIALIZE_WRAPPED_PROC(procName, unused) \
-	FARPROC procName ## _out = nullptr;
-
 namespace DinputWrapper
 {
-	FARPROC DirectInput8Create_out = nullptr;
-	VISIT_PROCS_DINPUT_SHARED(INITIALIZE_WRAPPED_PROC);
+	VISIT_PROCS_DINPUT_SHARED(INITIALIZE_OUT_WRAPPED_PROC);
+	INITIALIZE_OUT_WRAPPED_PROC(DirectInput8Create, unused);
 }
 
 using namespace DinputWrapper;
@@ -54,9 +51,9 @@ HRESULT WINAPI di_DirectInputCreateEx(HINSTANCE hinst, DWORD dwVersion, REFIID r
 {
 	LOG_LIMIT(1, __FUNCTION__);
 
-	static DirectInput8CreateProc m_pDirectInput8Create = (Wrapper::ValidProcAddress(DirectInput8Create_out)) ? (DirectInput8CreateProc)DirectInput8Create_out : nullptr;
+	DEFINE_STATIC_PROC_ADDRESS(DirectInput8CreateProc, DirectInput8Create, DirectInput8Create_out);
 
-	if (!m_pDirectInput8Create)
+	if (!DirectInput8Create)
 	{
 		return DIERR_GENERIC;
 	}
@@ -65,15 +62,18 @@ HRESULT WINAPI di_DirectInputCreateEx(HINSTANCE hinst, DWORD dwVersion, REFIID r
 
 	LOG_LIMIT(3, "Redirecting 'DirectInputCreate' " << riid << " version " << Logging::hex(dwVersion) << " to --> 'DirectInput8Create'");
 
-	HRESULT hr = m_pDirectInput8Create(hinst, 0x0800, dinputto8::ConvertREFIID(riid), lplpDD, punkOuter);
-
-	if (SUCCEEDED(hr) && lplpDD)
+	HRESULT hr = hresValidInstanceAndVersion(hinst, dwVersion);
+	if (SUCCEEDED(hr))
 	{
-		diVersion = dwVersion;
+		hr = DirectInput8Create(hinst, 0x0800, ConvertREFIID(riid), lplpDD, punkOuter);
 
-		m_IDirectInputX *Interface = new m_IDirectInputX((IDirectInput8W*)*lplpDD, riid);
+		if (SUCCEEDED(hr) && lplpDD)
+		{
+			m_IDirectInputX* Interface = new m_IDirectInputX((IDirectInput8W*)*lplpDD, riid);
+			Interface->SetVersion(dwVersion);
 
-		*lplpDD = Interface->GetWrapperInterfaceX(GetGUIDVersion(riid));
+			*lplpDD = Interface->GetWrapperInterfaceX(GetGUIDVersion(riid));
+		}
 	}
 
 	return hr;
@@ -83,28 +83,28 @@ HRESULT WINAPI di_DllCanUnloadNow()
 {
 	LOG_LIMIT(1, __FUNCTION__);
 
-	static DllCanUnloadNowProc m_pDllCanUnloadNow = (Wrapper::ValidProcAddress(DllCanUnloadNow_out)) ? (DllCanUnloadNowProc)DllCanUnloadNow_out : nullptr;
+	DEFINE_STATIC_PROC_ADDRESS(DllCanUnloadNowProc, DllCanUnloadNow, DllCanUnloadNow_out);
 
-	if (!m_pDllCanUnloadNow)
+	if (!DllCanUnloadNow)
 	{
 		return DIERR_GENERIC;
 	}
 
-	return m_pDllCanUnloadNow();
+	return DllCanUnloadNow();
 }
 
 HRESULT WINAPI di_DllGetClassObject(IN REFCLSID rclsid, IN REFIID riid, OUT LPVOID FAR* ppv)
 {
 	LOG_LIMIT(1, __FUNCTION__);
 
-	static DllGetClassObjectProc m_pDllGetClassObject = (Wrapper::ValidProcAddress(DllGetClassObject_out)) ? (DllGetClassObjectProc)DllGetClassObject_out : nullptr;
+	DEFINE_STATIC_PROC_ADDRESS(DllGetClassObjectProc, DllGetClassObject, DllGetClassObject_out);
 
-	if (!m_pDllGetClassObject)
+	if (!DllGetClassObject)
 	{
 		return DIERR_GENERIC;
 	}
 
-	HRESULT hr = m_pDllGetClassObject(dinputto8::ConvertREFCLSID(rclsid), dinputto8::ConvertREFIID(riid), ppv);
+	HRESULT hr = DllGetClassObject(dinputto8::ConvertREFCLSID(rclsid), dinputto8::ConvertREFIID(riid), ppv);
 
 	if (SUCCEEDED(hr) && ppv)
 	{
@@ -127,26 +127,26 @@ HRESULT WINAPI di_DllRegisterServer()
 {
 	LOG_LIMIT(1, __FUNCTION__);
 
-	static DllRegisterServerProc m_pDllRegisterServer = (Wrapper::ValidProcAddress(DllRegisterServer_out)) ? (DllRegisterServerProc)DllRegisterServer_out : nullptr;
+	DEFINE_STATIC_PROC_ADDRESS(DllRegisterServerProc, DllRegisterServer, DllRegisterServer_out);
 
-	if (!m_pDllRegisterServer)
+	if (!DllRegisterServer)
 	{
 		return DIERR_GENERIC;
 	}
 
-	return m_pDllRegisterServer();
+	return DllRegisterServer();
 }
 
 HRESULT WINAPI di_DllUnregisterServer()
 {
 	LOG_LIMIT(1, __FUNCTION__);
 
-	static DllUnregisterServerProc m_pDllUnregisterServer = (Wrapper::ValidProcAddress(DllUnregisterServer_out)) ? (DllUnregisterServerProc)DllUnregisterServer_out : nullptr;
+	DEFINE_STATIC_PROC_ADDRESS(DllUnregisterServerProc, DllUnregisterServer, DllUnregisterServer_out);
 
-	if (!m_pDllUnregisterServer)
+	if (!DllUnregisterServer)
 	{
 		return DIERR_GENERIC;
 	}
 
-	return m_pDllUnregisterServer();
+	return DllUnregisterServer();
 }

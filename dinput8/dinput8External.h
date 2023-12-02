@@ -16,9 +16,6 @@ LPCDIDATAFORMAT WINAPI di8_GetdfDIJoystick();
 #define DECLARE_IN_WRAPPED_PROC(procName, unused) \
 	const FARPROC procName ## _in = (FARPROC)*di8_ ## procName;
 
-#define EXPORT_OUT_WRAPPED_PROC(procName, unused) \
-	extern FARPROC procName ## _out;
-
 namespace Dinput8Wrapper
 {
 	VISIT_PROCS_DINPUT8(DECLARE_IN_WRAPPED_PROC);
@@ -29,4 +26,3 @@ namespace Dinput8Wrapper
 }
 
 #undef DECLARE_IN_WRAPPED_PROC
-#undef EXPORT_OUT_WRAPPED_PROC

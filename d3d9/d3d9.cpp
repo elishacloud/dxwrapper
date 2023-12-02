@@ -17,12 +17,9 @@
 #include "d3d9.h"
 #include "d3d9External.h"
 
-#define INITIALIZE_WRAPPED_PROC(procName, unused) \
-	FARPROC procName ## _out = nullptr;
-
 namespace D3d9Wrapper
 {
-	VISIT_PROCS_D3D9(INITIALIZE_WRAPPED_PROC);
+	VISIT_PROCS_D3D9(INITIALIZE_OUT_WRAPPED_PROC);
 }
 
 using namespace D3d9Wrapper;
@@ -47,105 +44,105 @@ int WINAPI d9_D3DPERF_BeginEvent(D3DCOLOR col, LPCWSTR wszName)
 {
 	LOG_LIMIT(1, __FUNCTION__);
 
-	static D3DPERF_BeginEventProc m_pD3DPERF_BeginEvent = (Wrapper::ValidProcAddress(D3DPERF_BeginEvent_out)) ? (D3DPERF_BeginEventProc)D3DPERF_BeginEvent_out : nullptr;
+	DEFINE_STATIC_PROC_ADDRESS(D3DPERF_BeginEventProc, D3DPERF_BeginEvent, D3DPERF_BeginEvent_out);
 
-	if (!m_pD3DPERF_BeginEvent)
+	if (!D3DPERF_BeginEvent)
 	{
 		return NULL;
 	}
 
-	return m_pD3DPERF_BeginEvent(col, wszName);
+	return D3DPERF_BeginEvent(col, wszName);
 }
 
 int WINAPI d9_D3DPERF_EndEvent()
 {
 	LOG_LIMIT(1, __FUNCTION__);
 
-	static D3DPERF_EndEventProc m_pD3DPERF_EndEvent = (Wrapper::ValidProcAddress(D3DPERF_EndEvent_out)) ? (D3DPERF_EndEventProc)D3DPERF_EndEvent_out : nullptr;
+	DEFINE_STATIC_PROC_ADDRESS(D3DPERF_EndEventProc, D3DPERF_EndEvent, D3DPERF_EndEvent_out);
 
-	if (!m_pD3DPERF_EndEvent)
+	if (!D3DPERF_EndEvent)
 	{
 		return NULL;
 	}
 
-	return m_pD3DPERF_EndEvent();
+	return D3DPERF_EndEvent();
 }
 
 DWORD WINAPI d9_D3DPERF_GetStatus()
 {
 	LOG_LIMIT(1, __FUNCTION__);
 
-	static D3DPERF_GetStatusProc m_pD3DPERF_GetStatus = (Wrapper::ValidProcAddress(D3DPERF_GetStatus_out)) ? (D3DPERF_GetStatusProc)D3DPERF_GetStatus_out : nullptr;
+	DEFINE_STATIC_PROC_ADDRESS(D3DPERF_GetStatusProc, D3DPERF_GetStatus, D3DPERF_GetStatus_out);
 
-	if (!m_pD3DPERF_GetStatus)
+	if (!D3DPERF_GetStatus)
 	{
 		return NULL;
 	}
 
-	return m_pD3DPERF_GetStatus();
+	return D3DPERF_GetStatus();
 }
 
 BOOL WINAPI d9_D3DPERF_QueryRepeatFrame()
 {
 	LOG_LIMIT(1, __FUNCTION__);
 
-	static D3DPERF_QueryRepeatFrameProc m_pD3DPERF_QueryRepeatFrame = (Wrapper::ValidProcAddress(D3DPERF_QueryRepeatFrame_out)) ? (D3DPERF_QueryRepeatFrameProc)D3DPERF_QueryRepeatFrame_out : nullptr;
+	DEFINE_STATIC_PROC_ADDRESS(D3DPERF_QueryRepeatFrameProc, D3DPERF_QueryRepeatFrame, D3DPERF_QueryRepeatFrame_out);
 
-	if (!m_pD3DPERF_QueryRepeatFrame)
+	if (!D3DPERF_QueryRepeatFrame)
 	{
 		return FALSE;
 	}
 
-	return m_pD3DPERF_QueryRepeatFrame();
+	return D3DPERF_QueryRepeatFrame();
 }
 
 void WINAPI d9_D3DPERF_SetMarker(D3DCOLOR col, LPCWSTR wszName)
 {
 	LOG_LIMIT(1, __FUNCTION__);
 
-	static D3DPERF_SetMarkerProc m_pD3DPERF_SetMarker = (Wrapper::ValidProcAddress(D3DPERF_SetMarker_out)) ? (D3DPERF_SetMarkerProc)D3DPERF_SetMarker_out : nullptr;
+	DEFINE_STATIC_PROC_ADDRESS(D3DPERF_SetMarkerProc, D3DPERF_SetMarker, D3DPERF_SetMarker_out);
 
-	if (!m_pD3DPERF_SetMarker)
+	if (!D3DPERF_SetMarker)
 	{
 		return;
 	}
 
-	return m_pD3DPERF_SetMarker(col, wszName);
+	return D3DPERF_SetMarker(col, wszName);
 }
 
 void WINAPI d9_D3DPERF_SetOptions(DWORD dwOptions)
 {
 	LOG_LIMIT(1, __FUNCTION__);
 
-	static D3DPERF_SetOptionsProc m_pD3DPERF_SetOptions = (Wrapper::ValidProcAddress(D3DPERF_SetOptions_out)) ? (D3DPERF_SetOptionsProc)D3DPERF_SetOptions_out : nullptr;
+	DEFINE_STATIC_PROC_ADDRESS(D3DPERF_SetOptionsProc, D3DPERF_SetOptions, D3DPERF_SetOptions_out);
 
-	if (!m_pD3DPERF_SetOptions)
+	if (!D3DPERF_SetOptions)
 	{
 		return;
 	}
 
-	return m_pD3DPERF_SetOptions(dwOptions);
+	return D3DPERF_SetOptions(dwOptions);
 }
 
 void WINAPI d9_D3DPERF_SetRegion(D3DCOLOR col, LPCWSTR wszName)
 {
 	LOG_LIMIT(1, __FUNCTION__);
 
-	static D3DPERF_SetRegionProc m_pD3DPERF_SetRegion = (Wrapper::ValidProcAddress(D3DPERF_SetRegion_out)) ? (D3DPERF_SetRegionProc)D3DPERF_SetRegion_out : nullptr;
+	DEFINE_STATIC_PROC_ADDRESS(D3DPERF_SetRegionProc, D3DPERF_SetRegion, D3DPERF_SetRegion_out);
 
-	if (!m_pD3DPERF_SetRegion)
+	if (!D3DPERF_SetRegion)
 	{
 		return;
 	}
 
-	return m_pD3DPERF_SetRegion(col, wszName);
+	return D3DPERF_SetRegion(col, wszName);
 }
 
 void SetGraphicsHybridAdapter(UINT Mode)
 {
-	static Direct3D9ForceHybridEnumerationProc m_pDirect3D9ForceHybridEnumeration = nullptr;
+	static Direct3D9ForceHybridEnumerationProc Direct3D9ForceHybridEnumeration = nullptr;
 
-	if (!m_pDirect3D9ForceHybridEnumeration)
+	if (!Direct3D9ForceHybridEnumeration)
 	{
 		HMODULE dll = GetSystemD3d9();
 
@@ -156,9 +153,9 @@ void SetGraphicsHybridAdapter(UINT Mode)
 		}
 
 		// Get Direct3D9ForceHybridEnumeration address
-		m_pDirect3D9ForceHybridEnumeration = (Direct3D9ForceHybridEnumerationProc)GetProcAddress(dll, reinterpret_cast<LPCSTR>(16));
+		Direct3D9ForceHybridEnumeration = (Direct3D9ForceHybridEnumerationProc)GetProcAddress(dll, reinterpret_cast<LPCSTR>(16));
 
-		if (!m_pDirect3D9ForceHybridEnumeration)
+		if (!Direct3D9ForceHybridEnumeration)
 		{
 			Logging::Log() << __FUNCTION__ << " Error: Failed to get `Direct3D9ForceHybridEnumeration` address!";
 			return;
@@ -166,14 +163,14 @@ void SetGraphicsHybridAdapter(UINT Mode)
 	}
 
 	Logging::Log() << __FUNCTION__ << " Calling 'Direct3D9ForceHybridEnumeration' ... " << Mode;
-	m_pDirect3D9ForceHybridEnumeration(Mode);
+	Direct3D9ForceHybridEnumeration(Mode);
 }
 
 bool Direct3D9DisableMaximizedWindowedMode()
 {
-	static Direct3D9EnableMaximizedWindowedModeShimProc m_pDirect3D9EnableMaximizedWindowedModeShim = nullptr;
+	static Direct3D9EnableMaximizedWindowedModeShimProc Direct3D9EnableMaximizedWindowedModeShim = nullptr;
 
-	if (!m_pDirect3D9EnableMaximizedWindowedModeShim)
+	if (!Direct3D9EnableMaximizedWindowedModeShim)
 	{
 		// Load d3d9.dll from System32
 		HMODULE dll = GetSystemD3d9();
@@ -211,11 +208,11 @@ bool Direct3D9DisableMaximizedWindowedMode()
 		VirtualProtect((LPVOID)(addr + 6), 1, Protect, &Protect);
 
 		// Set function address
-		m_pDirect3D9EnableMaximizedWindowedModeShim = (Direct3D9EnableMaximizedWindowedModeShimProc)addr;
+		Direct3D9EnableMaximizedWindowedModeShim = (Direct3D9EnableMaximizedWindowedModeShimProc)addr;
 	}
 
 	// Launch function to disable Maximized Windowed Mode
-	Logging::Log() << __FUNCTION__ << " Disabling MaximizedWindowedMode for Direct3D9! Ret = " << (void*)m_pDirect3D9EnableMaximizedWindowedModeShim(0);
+	Logging::Log() << __FUNCTION__ << " Disabling MaximizedWindowedMode for Direct3D9! Ret = " << (void*)Direct3D9EnableMaximizedWindowedModeShim(0);
 	return true;
 }
 
@@ -223,9 +220,9 @@ IDirect3D9* WINAPI d9_Direct3DCreate9(UINT SDKVersion)
 {
 	LOG_LIMIT(1, __FUNCTION__);
 
-	static Direct3DCreate9Proc m_pDirect3DCreate9 = (Wrapper::ValidProcAddress(Direct3DCreate9_out)) ? (Direct3DCreate9Proc)Direct3DCreate9_out : nullptr;
+	DEFINE_STATIC_PROC_ADDRESS(Direct3DCreate9Proc, Direct3DCreate9, Direct3DCreate9_out);
 
-	if (!m_pDirect3DCreate9)
+	if (!Direct3DCreate9)
 	{
 		return nullptr;
 	}
@@ -255,7 +252,7 @@ IDirect3D9* WINAPI d9_Direct3DCreate9(UINT SDKVersion)
 	LOG_LIMIT(3, "Redirecting 'Direct3DCreate9' ...");
 
 	// Create new d3d9 object
-	IDirect3D9* pD3D9 = m_pDirect3DCreate9(SDKVersion);
+	IDirect3D9* pD3D9 = Direct3DCreate9(SDKVersion);
 
 	if (pD3D9)
 	{
@@ -269,9 +266,9 @@ HRESULT WINAPI d9_Direct3DCreate9Ex(UINT SDKVersion, IDirect3D9Ex** ppD3D)
 {
 	LOG_LIMIT(1, __FUNCTION__);
 
-	static Direct3DCreate9ExProc m_pDirect3DCreate9Ex = (Wrapper::ValidProcAddress(Direct3DCreate9Ex_out)) ? (Direct3DCreate9ExProc)Direct3DCreate9Ex_out : nullptr;
+	DEFINE_STATIC_PROC_ADDRESS(Direct3DCreate9ExProc, Direct3DCreate9Ex, Direct3DCreate9Ex_out);
 
-	if (!m_pDirect3DCreate9Ex)
+	if (!Direct3DCreate9Ex)
 	{
 		return D3DERR_INVALIDCALL;
 	}
@@ -300,7 +297,7 @@ HRESULT WINAPI d9_Direct3DCreate9Ex(UINT SDKVersion, IDirect3D9Ex** ppD3D)
 
 	LOG_LIMIT(3, "Redirecting 'Direct3DCreate9Ex' ...");
 
-	HRESULT hr = m_pDirect3DCreate9Ex(SDKVersion, ppD3D);
+	HRESULT hr = Direct3DCreate9Ex(SDKVersion, ppD3D);
 
 	if (SUCCEEDED(hr) && ppD3D)
 	{
@@ -314,9 +311,9 @@ IDirect3D9* WINAPI d9_Direct3DCreate9On12(UINT SDKVersion, D3D9ON12_ARGS* pOverr
 {
 	LOG_LIMIT(1, __FUNCTION__);
 
-	static Direct3DCreate9On12Proc m_pDirect3DCreate9On12 = (Wrapper::ValidProcAddress(Direct3DCreate9On12_out)) ? (Direct3DCreate9On12Proc)Direct3DCreate9On12_out : nullptr;
+	DEFINE_STATIC_PROC_ADDRESS(Direct3DCreate9On12Proc, Direct3DCreate9On12, Direct3DCreate9On12_out);
 
-	if (!m_pDirect3DCreate9On12)
+	if (!Direct3DCreate9On12)
 	{
 		return d9_Direct3DCreate9(SDKVersion);
 	}
@@ -340,7 +337,7 @@ IDirect3D9* WINAPI d9_Direct3DCreate9On12(UINT SDKVersion, D3D9ON12_ARGS* pOverr
 	}
 
 	// Create new d3d9 object
-	IDirect3D9* pD3D9 = m_pDirect3DCreate9On12(SDKVersion, pOverrideList, NumOverrideEntries);
+	IDirect3D9* pD3D9 = Direct3DCreate9On12(SDKVersion, pOverrideList, NumOverrideEntries);
 
 	if (pD3D9)
 	{
@@ -354,9 +351,9 @@ HRESULT WINAPI d9_Direct3DCreate9On12Ex(UINT SDKVersion, D3D9ON12_ARGS* pOverrid
 {
 	LOG_LIMIT(1, __FUNCTION__);
 
-	static Direct3DCreate9On12ExProc m_pDirect3DCreate9On12Ex = (Wrapper::ValidProcAddress(Direct3DCreate9On12Ex_out)) ? (Direct3DCreate9On12ExProc)Direct3DCreate9On12Ex_out : nullptr;
+	DEFINE_STATIC_PROC_ADDRESS(Direct3DCreate9On12ExProc, Direct3DCreate9On12Ex, Direct3DCreate9On12Ex_out);
 
-	if (!m_pDirect3DCreate9On12Ex)
+	if (!Direct3DCreate9On12Ex)
 	{
 		return d9_Direct3DCreate9Ex(SDKVersion, ppOutputInterface);
 	}
@@ -379,7 +376,7 @@ HRESULT WINAPI d9_Direct3DCreate9On12Ex(UINT SDKVersion, D3D9ON12_ARGS* pOverrid
 		pOverrideList->Enable9On12 = TRUE;
 	}
 
-	HRESULT hr = m_pDirect3DCreate9On12Ex(SDKVersion, pOverrideList, NumOverrideEntries, ppOutputInterface);
+	HRESULT hr = Direct3DCreate9On12Ex(SDKVersion, pOverrideList, NumOverrideEntries, ppOutputInterface);
 
 	if (SUCCEEDED(hr) && ppOutputInterface)
 	{

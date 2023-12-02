@@ -2,20 +2,23 @@
 
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
+#include "Wrappers\wrapper.h"
 #include "External\MemoryModule\MemoryModule.h"
 
 #undef LoadLibrary
 
 namespace Utils
 {
+	EXPORT_OUT_WRAPPED_PROC(GetProcAddress, unused);
+	EXPORT_OUT_WRAPPED_PROC(GetModuleFileNameA, unused);
+	EXPORT_OUT_WRAPPED_PROC(GetModuleFileNameW, unused);
+
 	void Shell(const char*);
 	void DisableHighDPIScaling();
+	DWORD GetCoresUsedByProcess();
 	void SetProcessAffinity();
 	FARPROC GetProcAddress(HMODULE hModule, LPCSTR FunctionName, FARPROC SetReturnValue);
-	extern FARPROC pGetProcAddress;
 	FARPROC WINAPI GetProcAddressHandler(HMODULE hModule, LPSTR lpProcName);
-	extern FARPROC pGetModuleFileNameA;
-	extern FARPROC pGetModuleFileNameW;
 	DWORD WINAPI GetModuleFileNameAHandler(HMODULE hModule, LPSTR lpFilename, DWORD nSize);
 	DWORD WINAPI GetModuleFileNameWHandler(HMODULE hModule, LPWSTR lpFilename, DWORD nSize);
 	void HookExceptionHandler();
@@ -37,8 +40,10 @@ namespace Utils
 	HMONITOR GetMonitorHandle(HWND hWnd);
 	DWORD GetRefreshRate(HWND hWnd);
 	DWORD GetBitCount(HWND hWnd);
-	DWORD GetWindowHeight(HWND hWnd);
+	DWORD GetThreadIDByHandle(HANDLE hThread);
 	void DisableGameUX();
+	bool SetWndProcFilter(HWND hWnd);
+	bool RestoreWndProcFilter(HWND hWnd);
 	void GetScreenSize(HWND hwnd, LONG &screenWidth, LONG &screenHeight);
 	void GetScreenSize(HWND hwnd, DWORD &screenWidth, DWORD &screenHeight);
 	void GetDesktopRect(HWND hWnd, RECT& screenRect);
@@ -58,6 +63,13 @@ namespace Utils
 		bool IsThreadRunning();
 		void StopThread();
 		void ResetScreen();
+	}
+
+	namespace WndProc
+	{
+		WNDPROC CheckWndProc(HWND hWnd, LONG dwNewLong);
+		bool AddWndProc(HWND hWnd);
+		void RemoveWndProc(HWND hWnd);
 	}
 }
 

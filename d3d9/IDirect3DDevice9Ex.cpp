@@ -16,8 +16,13 @@
 
 #include "d3d9.h"
 #include "d3dx9.h"
+#include "d3d9\d3d9External.h"
 #include "Utils\Utils.h"
 #include <intrin.h>
+
+#ifdef ENABLE_DEBUGOVERLAY
+DebugOverlay DOverlay;
+#endif
 
 HRESULT m_IDirect3DDevice9Ex::QueryInterface(REFIID riid, void** ppvObj)
 {
@@ -55,6 +60,15 @@ ULONG m_IDirect3DDevice9Ex::Release()
 
 	ULONG ref = ProxyInterface->Release();
 
+	// Teardown debug overlay before destroying device
+#ifdef ENABLE_DEBUGOVERLAY
+	if (DOverlay.IsSetup() && ref == 1)
+	{
+		DOverlay.Shutdown();
+		ref = 0;
+	}
+#endif
+
 	if (ref == 0)
 	{
 		delete this;
@@ -84,6 +98,11 @@ HRESULT m_IDirect3DDevice9Ex::ResetT(T func, D3DPRESENT_PARAMETERS &d3dpp, D3DPR
 		return D3DERR_INVALIDCALL;
 	}
 
+	// Teardown debug overlay before reset
+#ifdef ENABLE_DEBUGOVERLAY
+	DOverlay.Shutdown();
+#endif
+
 	HRESULT hr;
 
 	// Check fullscreen
@@ -95,13 +114,13 @@ HRESULT m_IDirect3DDevice9Ex::ResetT(T func, D3DPRESENT_PARAMETERS &d3dpp, D3DPR
 
 	// Setup presentation parameters
 	CopyMemory(&d3dpp, pPresentationParameters, sizeof(D3DPRESENT_PARAMETERS));
-	UpdatePresentParameter(&d3dpp, DeviceWindow, ForceFullscreen, true);
+	UpdatePresentParameter(&d3dpp, DeviceDetails.DeviceWindow, DeviceDetails, ForceFullscreen, true);
 
 	// Test for Multisample
-	if (DeviceMultiSampleFlag)
+	if (DeviceDetails.DeviceMultiSampleFlag)
 	{
 		// Update Present Parameter for Multisample
-		UpdatePresentParameterForMultisample(&d3dpp, DeviceMultiSampleType, DeviceMultiSampleQuality);
+		UpdatePresentParameterForMultisample(&d3dpp, DeviceDetails.DeviceMultiSampleType, DeviceDetails.DeviceMultiSampleQuality);
 
 		// Reset device
 		hr = ResetT(func, &d3dpp, pFullscreenDisplayMode);
@@ -114,7 +133,7 @@ HRESULT m_IDirect3DDevice9Ex::ResetT(T func, D3DPRESENT_PARAMETERS &d3dpp, D3DPR
 
 		// Reset presentation parameters
 		CopyMemory(&d3dpp, pPresentationParameters, sizeof(D3DPRESENT_PARAMETERS));
-		UpdatePresentParameter(&d3dpp, DeviceWindow, ForceFullscreen, false);
+		UpdatePresentParameter(&d3dpp, DeviceDetails.DeviceWindow, DeviceDetails, ForceFullscreen, false);
 
 		// Reset device
 		hr = ResetT(func, &d3dpp, pFullscreenDisplayMode);
@@ -122,9 +141,9 @@ HRESULT m_IDirect3DDevice9Ex::ResetT(T func, D3DPRESENT_PARAMETERS &d3dpp, D3DPR
 		if (SUCCEEDED(hr))
 		{
 			LOG_LIMIT(3, __FUNCTION__ << " Disabling AntiAliasing...");
-			DeviceMultiSampleFlag = false;
-			DeviceMultiSampleType = D3DMULTISAMPLE_NONE;
-			DeviceMultiSampleQuality = 0;
+			DeviceDetails.DeviceMultiSampleFlag = false;
+			DeviceDetails.DeviceMultiSampleType = D3DMULTISAMPLE_NONE;
+			DeviceDetails.DeviceMultiSampleQuality = 0;
 			SetSSAA = false;
 		}
 
@@ -154,8 +173,7 @@ HRESULT m_IDirect3DDevice9Ex::Reset(D3DPRESENT_PARAMETERS *pPresentationParamete
 
 		ClearVars(pPresentationParameters);
 
-		// Get screen size
-		Utils::GetScreenSize(DeviceWindow, screenWidth, screenHeight);
+		ReInitDevice();
 	}
 
 	return hr;
@@ -164,6 +182,10 @@ HRESULT m_IDirect3DDevice9Ex::Reset(D3DPRESENT_PARAMETERS *pPresentationParamete
 HRESULT m_IDirect3DDevice9Ex::EndScene()
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
+
+#ifdef ENABLE_DEBUGOVERLAY
+	DOverlay.EndScene();
+#endif
 
 	return ProxyInterface->EndScene();
 }
@@ -215,13 +237,13 @@ HRESULT m_IDirect3DDevice9Ex::CreateAdditionalSwapChain(D3DPRESENT_PARAMETERS *p
 	// Setup presentation parameters
 	D3DPRESENT_PARAMETERS d3dpp;
 	CopyMemory(&d3dpp, pPresentationParameters, sizeof(D3DPRESENT_PARAMETERS));
-	UpdatePresentParameter(&d3dpp, DeviceWindow, ForceFullscreen, false);
+	UpdatePresentParameter(&d3dpp, DeviceDetails.DeviceWindow, DeviceDetails, ForceFullscreen, false);
 
 	// Test for Multisample
-	if (DeviceMultiSampleFlag)
+	if (DeviceDetails.DeviceMultiSampleFlag)
 	{
 		// Update Present Parameter for Multisample
-		UpdatePresentParameterForMultisample(&d3dpp, DeviceMultiSampleType, DeviceMultiSampleQuality);
+		UpdatePresentParameterForMultisample(&d3dpp, DeviceDetails.DeviceMultiSampleType, DeviceDetails.DeviceMultiSampleQuality);
 
 		// Create CwapChain
 		hr = ProxyInterface->CreateAdditionalSwapChain(&d3dpp, ppSwapChain);
@@ -230,12 +252,12 @@ HRESULT m_IDirect3DDevice9Ex::CreateAdditionalSwapChain(D3DPRESENT_PARAMETERS *p
 	if (FAILED(hr))
 	{
 		CopyMemory(&d3dpp, pPresentationParameters, sizeof(D3DPRESENT_PARAMETERS));
-		UpdatePresentParameter(&d3dpp, DeviceWindow, ForceFullscreen, false);
+		UpdatePresentParameter(&d3dpp, DeviceDetails.DeviceWindow, DeviceDetails, ForceFullscreen, false);
 
 		// Create CwapChain
 		hr = ProxyInterface->CreateAdditionalSwapChain(&d3dpp, ppSwapChain);
 
-		if (SUCCEEDED(hr) && DeviceMultiSampleFlag)
+		if (SUCCEEDED(hr) && DeviceDetails.DeviceMultiSampleFlag)
 		{
 			LOG_LIMIT(3, __FUNCTION__ <<" Disabling AntiAliasing for SwapChain...");
 		}
@@ -502,7 +524,7 @@ HRESULT m_IDirect3DDevice9Ex::SetRenderState(D3DRENDERSTATETYPE State, DWORD Val
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
 	// Set for Multisample
-	if (DeviceMultiSampleFlag && State == D3DRS_MULTISAMPLEANTIALIAS)
+	if (DeviceDetails.DeviceMultiSampleFlag && State == D3DRS_MULTISAMPLEANTIALIAS)
 	{
 		Value = TRUE;
 	}
@@ -795,7 +817,14 @@ HRESULT m_IDirect3DDevice9Ex::Present(CONST RECT *pSourceRect, CONST RECT *pDest
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	return ProxyInterface->Present(pSourceRect, pDestRect, hDestWindowOverride, pDirtyRegion);
+	HRESULT hr = ProxyInterface->Present(pSourceRect, pDestRect, hDestWindowOverride, pDirtyRegion);
+
+	if (Config.LimitPerFrameFPS && SUCCEEDED(hr))
+	{
+		LimitFrameRate();
+	}
+
+	return hr;
 }
 
 HRESULT m_IDirect3DDevice9Ex::DrawIndexedPrimitive(THIS_ D3DPRIMITIVETYPE Type, INT BaseVertexIndex, UINT MinVertexIndex, UINT NumVertices, UINT startIndex, UINT primCount)
@@ -880,6 +909,10 @@ HRESULT m_IDirect3DDevice9Ex::BeginScene()
 
 	HRESULT hr = ProxyInterface->BeginScene();
 
+#ifdef ENABLE_DEBUGOVERLAY
+	DOverlay.BeginScene();
+#endif
+
 	// Get DeviceCaps
 	if (Caps.DeviceType == NULL)
 	{
@@ -896,7 +929,7 @@ HRESULT m_IDirect3DDevice9Ex::BeginScene()
 	}
 
 	// Set for Multisample
-	if (DeviceMultiSampleFlag)
+	if (DeviceDetails.DeviceMultiSampleFlag)
 	{
 		ProxyInterface->SetRenderState(D3DRS_MULTISAMPLEANTIALIAS, TRUE);
 		if (SetSSAA)
@@ -1151,10 +1184,10 @@ HRESULT m_IDirect3DDevice9Ex::Clear(DWORD Count, CONST D3DRECT *pRects, DWORD Fl
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	if (IsWindow(DeviceWindow) && (Config.FullscreenWindowMode || Config.EnableWindowMode))
+	if (IsWindow(DeviceDetails.DeviceWindow) && Config.FullscreenWindowMode)
 	{
 		// Peek messages to help prevent a "Not Responding" window
-		Utils::CheckMessageQueue(DeviceWindow);
+		Utils::CheckMessageQueue(DeviceDetails.DeviceWindow);
 	}
 
 	return ProxyInterface->Clear(Count, pRects, Flags, Color, Z, Stencil);
@@ -1635,7 +1668,7 @@ HRESULT m_IDirect3DDevice9Ex::CopyRects(THIS_ IDirect3DSurface9 *pSourceSurface,
 
 	for (UINT i = 0; i < cRects; i++)
 	{
-		RECT SourceRect, DestinationRect;
+		RECT SourceRect = {}, DestinationRect = {};
 
 		if (pSourceRectsArray != nullptr)
 		{
@@ -1739,7 +1772,7 @@ HRESULT m_IDirect3DDevice9Ex::StretchRectFake(THIS_ IDirect3DSurface9* pSourceSu
 	}
 
 	// Check rects
-	RECT SrcRect, DestRect;
+	RECT SrcRect = {}, DestRect = {};
 	if (!pSourceRect)
 	{
 		SrcRect.left = 0;
@@ -1830,7 +1863,7 @@ HRESULT m_IDirect3DDevice9Ex::GetFrontBufferData(THIS_ UINT iSwapChain, IDirect3
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	if (Config.EnableWindowMode && (BufferWidth != screenWidth || BufferHeight != screenHeight))
+	if (Config.EnableWindowMode && (DeviceDetails.BufferWidth != screenWidth || DeviceDetails.BufferHeight != screenHeight))
 	{
 		return FakeGetFrontBufferData(iSwapChain, pDestSurface);
 	}
@@ -1860,9 +1893,9 @@ HRESULT m_IDirect3DDevice9Ex::FakeGetFrontBufferData(THIS_ UINT iSwapChain, IDir
 	}
 
 	// Get location of client window
-	RECT RectSrc = { 0, 0, BufferWidth , BufferHeight };
-	RECT rcClient = { 0, 0, BufferWidth , BufferHeight };
-	if (Config.EnableWindowMode && DeviceWindow && (!GetWindowRect(DeviceWindow, &RectSrc) || !GetClientRect(DeviceWindow, &rcClient)))
+	RECT RectSrc = { 0, 0, DeviceDetails.BufferWidth , DeviceDetails.BufferHeight };
+	RECT rcClient = { 0, 0, DeviceDetails.BufferWidth , DeviceDetails.BufferHeight };
+	if (Config.EnableWindowMode && DeviceDetails.DeviceWindow && (!GetWindowRect(DeviceDetails.DeviceWindow, &RectSrc) || !GetClientRect(DeviceDetails.DeviceWindow, &rcClient)))
 	{
 		return D3DERR_INVALIDCALL;
 	}
@@ -2051,7 +2084,14 @@ HRESULT m_IDirect3DDevice9Ex::PresentEx(THIS_ CONST RECT* pSourceRect, CONST REC
 		return D3DERR_INVALIDCALL;
 	}
 
-	return ProxyInterfaceEx->PresentEx(pSourceRect, pDestRect, hDestWindowOverride, pDirtyRegion, dwFlags);
+	HRESULT hr = ProxyInterfaceEx->PresentEx(pSourceRect, pDestRect, hDestWindowOverride, pDirtyRegion, dwFlags);
+
+	if (Config.LimitPerFrameFPS && SUCCEEDED(hr))
+	{
+		LimitFrameRate();
+	}
+
+	return hr;
 }
 
 HRESULT m_IDirect3DDevice9Ex::GetGPUThreadPriority(THIS_ INT* pPriority)
@@ -2281,8 +2321,7 @@ HRESULT m_IDirect3DDevice9Ex::ResetEx(THIS_ D3DPRESENT_PARAMETERS* pPresentation
 
 		ClearVars(pPresentationParameters);
 
-		// Get screen size
-		Utils::GetScreenSize(DeviceWindow, screenWidth, screenHeight);
+		ReInitDevice();
 	}
 
 	return hr;
@@ -2299,4 +2338,48 @@ HRESULT m_IDirect3DDevice9Ex::GetDisplayModeEx(THIS_ UINT iSwapChain, D3DDISPLAY
 	}
 
 	return ProxyInterfaceEx->GetDisplayModeEx(iSwapChain, pMode, pRotation);
+}
+
+// Runs when device is created and on every successful Reset()
+void m_IDirect3DDevice9Ex::ReInitDevice()
+{
+#ifdef ENABLE_DEBUGOVERLAY
+	DOverlay.Setup(DeviceDetails.DeviceWindow, ProxyInterface);
+#endif
+
+	// Get screen size
+	Utils::GetScreenSize(DeviceDetails.DeviceWindow, screenWidth, screenHeight);
+}
+
+void m_IDirect3DDevice9Ex::LimitFrameRate()
+{
+	// Count number of frames
+	Counter.FrameCounter++;
+
+	// Get performance frequancy
+	if (!Counter.Frequency.QuadPart)
+	{
+		QueryPerformanceFrequency(&Counter.Frequency);
+	}
+
+	// Get milliseconds for each frame
+	double DelayTimeMS = 1000.0 / Config.LimitPerFrameFPS;
+
+	// Wait for time to expire
+	bool DoLoop;
+	do {
+		QueryPerformanceCounter(&Counter.ClickTime);
+		double DeltaPresentMS = ((Counter.ClickTime.QuadPart - Counter.LastPresentTime.QuadPart) * 1000.0) / Counter.Frequency.QuadPart;
+
+		DoLoop = false;
+		if (DeltaPresentMS < DelayTimeMS && DeltaPresentMS > 0)
+		{
+			DoLoop = true;
+			Sleep(0);
+		}
+
+	} while (DoLoop);
+
+	// Get new counter time
+	QueryPerformanceCounter(&Counter.LastPresentTime);
 }

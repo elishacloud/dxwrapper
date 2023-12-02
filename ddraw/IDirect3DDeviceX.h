@@ -262,9 +262,9 @@ public:
 		ddrawParent = ddraw;
 
 		// Store D3DDevice
-		if (ddrawParent)
+		if (ddrawParent && DeviceSurface)
 		{
-			ddrawParent->SetD3DDevice(this);
+			ddrawParent->SetD3DDevice(this, DeviceSurface);
 		}
 	}
 	void ClearDdraw() { ddrawParent = nullptr; colorkeyPixelShader = nullptr; }

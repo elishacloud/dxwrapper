@@ -12,9 +12,18 @@ private:
 
 	D3DCAPS9 Caps = {};
 
+	DEVICEDETAILS DeviceDetails;
+
 	LONG screenWidth, screenHeight;
 
 	bool SetSSAA = false;
+
+	// Limit frame rate
+	struct {
+		DWORD FrameCounter = 0;
+		LARGE_INTEGER Frequency = {}, ClickTime = {}, LastPresentTime = {};
+	} Counter;
+	void LimitFrameRate();
 
 	// Anisotropic Filtering
 	DWORD MaxAnisotropy = 0;
@@ -30,6 +39,7 @@ private:
 	float m_storedClipPlanes[MAX_CLIP_PLANES][4];
 
 	// For Reset & ResetEx
+	void ReInitDevice();
 	void ClearVars(D3DPRESENT_PARAMETERS* pPresentationParameters);
 	typedef HRESULT(WINAPI* fReset)(D3DPRESENT_PARAMETERS* pPresentationParameters);
 	typedef HRESULT(WINAPI* fResetEx)(D3DPRESENT_PARAMETERS* pPresentationParameters, D3DDISPLAYMODEEX* pFullscreenDisplayMode);
@@ -49,17 +59,13 @@ public:
 		}
 		InitDirect3DDevice(pDevice);
 	}
-	m_IDirect3DDevice9Ex(LPDIRECT3DDEVICE9EX pDevice, m_IDirect3D9Ex* pD3D, REFIID DeviceID, D3DMULTISAMPLE_TYPE MultiSampleType, DWORD MultiSampleQuality, bool MultiSampleFlag) :
-		ProxyInterface(pDevice), m_pD3DEx(pD3D), WrapperID(DeviceID)
+	m_IDirect3DDevice9Ex(LPDIRECT3DDEVICE9EX pDevice, m_IDirect3D9Ex* pD3D, REFIID DeviceID, DEVICEDETAILS NewDeviceDetails) :
+		ProxyInterface(pDevice), m_pD3DEx(pD3D), WrapperID(DeviceID), DeviceDetails(NewDeviceDetails)
 	{
 		InitDirect3DDevice(pDevice);
 
-		DeviceMultiSampleFlag = MultiSampleFlag;
-		DeviceMultiSampleType = MultiSampleType;
-		DeviceMultiSampleQuality = MultiSampleQuality;
-
 		// Check for SSAA
-		if (DeviceMultiSampleType && m_pD3DEx &&
+		if (DeviceDetails.DeviceMultiSampleType && m_pD3DEx &&
 			m_pD3DEx->CheckDeviceFormat(D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, D3DFMT_X8R8G8B8, 0, D3DRTYPE_SURFACE, (D3DFORMAT)MAKEFOURCC('S', 'S', 'A', 'A')) == S_OK)
 		{
 			SetSSAA = true;
@@ -74,14 +80,19 @@ public:
 			ProxyInterfaceEx = pDevice;
 		}
 
-		// Get screen size
-		Utils::GetScreenSize(DeviceWindow, screenWidth, screenHeight);
+		ReInitDevice();
 
 		ProxyAddressLookupTable = new AddressLookupTableD3d9<m_IDirect3DDevice9Ex>(this);
 	}
 	~m_IDirect3DDevice9Ex()
 	{
 		LOG_LIMIT(3, __FUNCTION__ << " (" << this << ")" << " deleting interface!");
+
+		// Remove WndProc after releasing d3d9 device
+		if (EnableWndProcHook)
+		{
+			Utils::WndProc::RemoveWndProc(DeviceDetails.DeviceWindow);
+		}
 
 		delete ProxyAddressLookupTable;
 	}
@@ -233,5 +244,6 @@ public:
 	STDMETHOD(GetDisplayModeEx)(THIS_ UINT iSwapChain, D3DDISPLAYMODEEX* pMode, D3DDISPLAYROTATION* pRotation);
 
 	// Helper functions
-	LPDIRECT3DDEVICE9 GetProxyInterface() { return ProxyInterface; }
+	inline LPDIRECT3DDEVICE9 GetProxyInterface() { return ProxyInterface; }
+	inline D3DMULTISAMPLE_TYPE GetMultiSampleType() { return DeviceDetails.DeviceMultiSampleType; }
 };

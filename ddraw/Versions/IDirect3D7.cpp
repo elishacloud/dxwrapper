@@ -33,7 +33,7 @@ ULONG m_IDirect3D7::Release()
 
 HRESULT m_IDirect3D7::EnumDevices(LPD3DENUMDEVICESCALLBACK7 a, LPVOID b)
 {
-	return ProxyInterface->EnumDevices7(a, b, false);
+	return ProxyInterface->EnumDevices7(a, b, DirectXVersion);
 }
 
 HRESULT m_IDirect3D7::CreateDevice(REFCLSID a, LPDIRECTDRAWSURFACE7 b, LPDIRECT3DDEVICE7 * c)

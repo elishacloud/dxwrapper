@@ -1,5 +1,7 @@
 #pragma once
 
+class m_IDirectDrawSurfaceX;
+
 class m_IDirectDrawX : public IUnknown, public AddressLookupTableDdrawObject
 {
 private:
@@ -27,6 +29,7 @@ private:
 
 	// Store primary surface
 	m_IDirectDrawSurfaceX *PrimarySurface = nullptr;
+	m_IDirectDrawSurfaceX *Direct3DSurface = nullptr;
 
 	// Store a list of surfaces
 	std::vector<m_IDirectDrawSurfaceX*> SurfaceVector;
@@ -173,9 +176,9 @@ public:
 	// Direct3D interfaces
 	inline m_IDirect3DX** GetCurrentD3D() { return &D3DInterface; }
 	inline void ClearD3D() { D3DInterface = nullptr; }
-	inline void SetD3DDevice(m_IDirect3DDeviceX* D3DDevice) { D3DDeviceInterface = D3DDevice; }
+	void SetD3DDevice(m_IDirect3DDeviceX* D3DDevice, m_IDirectDrawSurfaceX* D3DSurface);
 	inline m_IDirect3DDeviceX** GetCurrentD3DDevice() { return &D3DDeviceInterface; }
-	inline void ClearD3DDevice() { D3DDeviceInterface = nullptr; Using3D = false; }
+	inline void ClearD3DDevice() { D3DDeviceInterface = nullptr; Direct3DSurface = nullptr; Using3D = false; }
 	inline void Enable3D() { Using3D = true; }
 	inline bool IsUsing3D() { return Using3D; }
 
@@ -183,14 +186,16 @@ public:
 	bool CheckD3D9Device();
 	LPDIRECT3D9 GetDirect3D9Object();
 	LPDIRECT3DDEVICE9 *GetDirect3D9Device();
-	LPDIRECT3DPIXELSHADER9* GetPaletteShader();
+	bool CreatePaletteShader();
 	LPDIRECT3DPIXELSHADER9* GetColorKeyShader();
 	HRESULT CreateD3D9Device();
+	HRESULT CreateVertexBuffer(DWORD Width, DWORD Height);
 	HRESULT ReinitDevice();
 
 	// Device information functions
 	HWND GetHwnd();
 	HDC GetDC();
+	DWORD GetDisplayBPP(HWND hWnd);
 	void ClearDepthStencilSurface();
 	D3DMULTISAMPLE_TYPE GetMultiSampleType();
 	DWORD GetMultiSampleQuality();
@@ -198,7 +203,6 @@ public:
 	void GetSurfaceDisplay(DWORD& Width, DWORD& Height, DWORD& BPP, DWORD& RefreshRate);
 	void GetDisplayPixelFormat(DDPIXELFORMAT& ddpfPixelFormat, DWORD BPP);
 	void GetDisplay(DWORD &Width, DWORD &Height);
-	void SetNewViewport(DWORD Width, DWORD Height);
 
 	// Surface vector functions
 	void AddSurfaceToVector(m_IDirectDrawSurfaceX* lpSurfaceX);
@@ -233,5 +237,8 @@ public:
 
 	// Begin & end scene
 	void SetVsync();
-	HRESULT Present();
+	HRESULT Draw2DSurface(m_IDirectDrawSurfaceX* DrawSurface);
+	bool IsUsingThreadPresent();
+	HRESULT Present2DScene(m_IDirectDrawSurfaceX* DrawSurface, RECT* pSourceRect, RECT* pDestRect);
+	HRESULT Present(RECT* pSourceRect, RECT* pDestRect);
 };

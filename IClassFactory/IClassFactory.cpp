@@ -29,7 +29,7 @@
 #include "dinput8\dinput8External.h"
 #endif
 
-CoCreateInstanceHandleProc p_CoCreateInstance = nullptr;
+INITIALIZE_OUT_WRAPPED_PROC(CoCreateInstance, unused);
 
 #ifdef DDRAW
 namespace DdrawWrapper
@@ -238,7 +238,9 @@ HRESULT WINAPI CoCreateInstanceHandle(REFCLSID rclsid, LPUNKNOWN pUnkOuter, DWOR
 {
 	Logging::LogDebug() << __FUNCTION__ " " << rclsid << " -> " << riid;
 
-	if (!p_CoCreateInstance)
+	DEFINE_STATIC_PROC_ADDRESS(CoCreateInstanceHandleProc, CoCreateInstance, CoCreateInstance_out);
+
+	if (!CoCreateInstance)
 	{
 		return E_FAIL;
 	}
@@ -406,5 +408,5 @@ HRESULT WINAPI CoCreateInstanceHandle(REFCLSID rclsid, LPUNKNOWN pUnkOuter, DWOR
 	}
 #endif
 
-	return p_CoCreateInstance(rclsid, pUnkOuter, dwClsContext, riid, ppv);
+	return CoCreateInstance(rclsid, pUnkOuter, dwClsContext, riid, ppv);
 }

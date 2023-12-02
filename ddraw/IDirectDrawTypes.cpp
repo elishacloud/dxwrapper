@@ -97,7 +97,7 @@ void ConvertSurfaceDesc(DDSURFACEDESC2 &Desc2, DDSURFACEDESC &Desc)
 	{
 		if ((Desc.dwFlags & DDSD_PIXELFORMAT) && Desc.ddpfPixelFormat.dwFlags)
 		{
-			D3DFORMAT Format = GetDisplayFormat(Desc.ddpfPixelFormat);
+			D3DFORMAT Format = GetDisplayFormat(Desc2.ddpfPixelFormat);
 			if (Format != D3DFMT_UNKNOWN)
 			{
 				LOG_LIMIT(100, __FUNCTION__ << " Warning: overwritting existing pixel format: " << Format << " with zbuffer depth: " << Desc.dwZBufferBitDepth);
@@ -214,9 +214,10 @@ void ConvertCaps(DDCAPS &Caps7, D3DCAPS9 &Caps9)
 
 	// Caps
 	Caps7.dwCaps = (Caps9.Caps & (/*D3DCAPS_OVERLAY |*/ D3DCAPS_READ_SCANLINE)) |
-		(DDCAPS_3D | DDCAPS_BLT | /*DDCAPS_BLTQUEUE |*/ DDCAPS_BLTFOURCC | DDCAPS_BLTSTRETCH | DDCAPS_GDI /*| DDCAPS_OVERLAYCANTCLIP | DDCAPS_OVERLAYFOURCC |
-			DDCAPS_OVERLAYSTRETCH*/ | DDCAPS_PALETTE | DDCAPS_PALETTEVSYNC | DDCAPS_VBI /*| DDCAPS_ZBLTS | DDCAPS_ZOVERLAYS*/ | DDCAPS_COLORKEY | /*DDCAPS_ALPHA | DDCAPS_COLORKEYHWASSIST |*/
-			DDCAPS_BLTCOLORFILL | /*DDCAPS_BLTDEPTHFILL |*/ DDCAPS_CANCLIP | DDCAPS_CANCLIPSTRETCHED | DDCAPS_CANBLTSYSMEM);
+		(DDCAPS_BLT | /*DDCAPS_BLTQUEUE |*/ DDCAPS_BLTFOURCC | DDCAPS_BLTSTRETCH | DDCAPS_GDI /*| DDCAPS_OVERLAYCANTCLIP | DDCAPS_OVERLAYFOURCC |
+			DDCAPS_OVERLAYSTRETCH*/ | DDCAPS_PALETTE | DDCAPS_PALETTEVSYNC | DDCAPS_VBI | DDCAPS_COLORKEY | /*DDCAPS_ALPHA | DDCAPS_COLORKEYHWASSIST |*/
+			DDCAPS_BLTCOLORFILL | DDCAPS_CANCLIP | DDCAPS_CANCLIPSTRETCHED | DDCAPS_CANBLTSYSMEM) |
+		(!Config.DdrawDisableDirect3DCaps ? DDCAPS_3D /*| DDCAPS_BLTDEPTHFILL | DDCAPS_ZBLTS | DDCAPS_ZOVERLAYS*/ : 0);
 	Caps7.dwCaps2 = (Caps9.Caps2 & (D3DCAPS2_FULLSCREENGAMMA /*| D3DCAPS2_CANCALIBRATEGAMMA*/ | D3DCAPS2_CANMANAGERESOURCE | D3DCAPS2_DYNAMICTEXTURES /*| D3DCAPS2_CANAUTOGENMIPMAP | D3DCAPS2_CANSHARERESOURCE*/)) |
 		(/*DDCAPS2_CANBOBINTERLEAVED | DDCAPS2_CANBOBNONINTERLEAVED | DDCAPS2_NONLOCALVIDMEM |*/ DDCAPS2_WIDESURFACES | /*DDCAPS2_CANFLIPODDEVEN |*/ DDCAPS2_COPYFOURCC | DDCAPS2_NOPAGELOCKREQUIRED |
 			DDCAPS2_PRIMARYGAMMA | DDCAPS2_CANRENDERWINDOWED /*| DDCAPS2_FLIPINTERVAL*/ | DDCAPS2_FLIPNOVSYNC);
@@ -231,9 +232,10 @@ void ConvertCaps(DDCAPS &Caps7, D3DCAPS9 &Caps9)
 	Caps7.dwSVCaps = 0 /*DDSVCAPS_STEREOSEQUENTIAL*/;
 
 	// ddsCaps
-	Caps7.ddsCaps.dwCaps = (DDSCAPS_3DDEVICE | DDSCAPS_BACKBUFFER | DDSCAPS_COMPLEX | DDSCAPS_FLIP | DDSCAPS_FRONTBUFFER | DDSCAPS_LOCALVIDMEM | /*DDSCAPS_MIPMAP | DDSCAPS_NONLOCALVIDMEM |*/
-		DDSCAPS_OFFSCREENPLAIN | /*DDSCAPS_OVERLAY | DDSCAPS_OWNDC |*/ DDSCAPS_PRIMARYSURFACE | DDSCAPS_TEXTURE | DDSCAPS_VIDEOMEMORY | DDSCAPS_ZBUFFER);
-	Caps7.ddsCaps.dwCaps2 = 0 /*DDSCAPS2_CUBEMAP*/;			// Additional surface capabilities
+	Caps7.ddsCaps.dwCaps = (DDSCAPS_BACKBUFFER | DDSCAPS_COMPLEX | DDSCAPS_FLIP | DDSCAPS_FRONTBUFFER | DDSCAPS_LOCALVIDMEM | /*DDSCAPS_NONLOCALVIDMEM |*/
+		DDSCAPS_OFFSCREENPLAIN | /*DDSCAPS_OVERLAY | DDSCAPS_OWNDC |*/ DDSCAPS_PRIMARYSURFACE | DDSCAPS_VIDEOMEMORY) |
+		(!Config.DdrawDisableDirect3DCaps ? DDSCAPS_3DDEVICE | DDSCAPS_TEXTURE | DDSCAPS_ZBUFFER /*| DDSCAPS_MIPMAP*/ : 0);
+	Caps7.ddsCaps.dwCaps2 = (!Config.DdrawDisableDirect3DCaps ? /*DDSCAPS2_CUBEMAP*/ 0 : 0);	// Additional surface capabilities
 	Caps7.ddsCaps.dwCaps3 = 0;								// Not used
 	Caps7.ddsCaps.dwCaps4 = 0;								// Not used
 	Caps7.ddsCaps.dwVolumeDepth = 0;						// Not used
@@ -242,19 +244,23 @@ void ConvertCaps(DDCAPS &Caps7, D3DCAPS9 &Caps9)
 	// Overlay
 	if (Caps7.dwCaps & DDCAPS_OVERLAY)
 	{
-		Caps7.dwMaxVisibleOverlays = 0x1;
-		Caps7.dwMinOverlayStretch = 0x1;
-		Caps7.dwMaxOverlayStretch = 0x4e20;
+		Caps7.dwMaxVisibleOverlays = 1;
+		Caps7.dwMinOverlayStretch = 1;
+		Caps7.dwMaxOverlayStretch = 20000;
 	}
 
 	// Raster Operations
-	Caps7.dwRops[6] = 4096;
-	Caps7.dwSSBRops[6] = Caps7.dwRops[6];
-	Caps7.dwVSBRops[6] = Caps7.dwRops[6];
-	Caps7.dwSVBRops[6] = Caps7.dwRops[6];
-	if (Caps7.dwCaps2 & DDCAPS2_NONLOCALVIDMEM)
+	for (DWORD rop : { SRCCOPY, /*SRCPAINT, SRCAND, SRCINVERT, SRCERASE, NOTSRCCOPY, NOTSRCERASE, MERGECOPY, MERGEPAINT, PATCOPY, PATPAINT, PATINVERT, DSTINVERT,*/ BLACKNESS, WHITENESS })
 	{
-		Caps7.dwNLVBRops[6] = Caps7.dwRops[6];
+		const DWORD x = ((rop >> 16) & 0xFF) / 32;
+		Caps7.dwRops[x] |= static_cast<DWORD>(1 << ((rop >> 16) & 0xFF) % 32);
+		Caps7.dwSSBRops[x] = Caps7.dwRops[x];
+		Caps7.dwVSBRops[x] = Caps7.dwRops[x];
+		Caps7.dwSVBRops[x] = Caps7.dwRops[x];
+		if (Caps7.dwCaps2 & DDCAPS2_NONLOCALVIDMEM)
+		{
+			Caps7.dwNLVBRops[x] = Caps7.dwRops[x];
+		}
 	}
 
 	// Bit Blt Caps
@@ -377,6 +383,7 @@ DWORD GetBitCount(D3DFORMAT Format)
 	case D3DFMT_D32:
 	case D3DFMT_D24S8:
 	case D3DFMT_S8D24:
+	case D3DFMT_AYUV:
 	case D3DFMT_X8L8V8U8:
 	case D3DFMT_X4S4D24:
 	case D3DFMT_D24X4S4:
@@ -443,6 +450,12 @@ DWORD GetBitCount(D3DFORMAT Format)
 	};
 }
 
+D3DFORMAT ConvertSurfaceFormat(D3DFORMAT Format)
+{
+	return (Format == D3DFMT_X8B8G8R8 || Format == D3DFMT_B8G8R8 || Format == D3DFMT_R8G8B8) ? D3DFMT_X8R8G8B8 :
+		(Format == D3DFMT_A8B8G8R8) ? D3DFMT_A8R8G8B8 : Format;
+}
+
 D3DFORMAT GetDisplayFormat(DDPIXELFORMAT ddpfPixelFormat)
 {
 	if (ddpfPixelFormat.dwSize != sizeof(DDPIXELFORMAT))
@@ -464,9 +477,10 @@ D3DFORMAT GetDisplayFormat(DDPIXELFORMAT ddpfPixelFormat)
 		case D3DFMT_DXT3:
 		case D3DFMT_DXT4:
 		case D3DFMT_DXT5:
-		case D3DFMT_YV12:
+		case D3DFMT_AYUV:
 		case D3DFMT_UYVY:
 		case D3DFMT_YUY2:
+		case D3DFMT_YV12:
 		case D3DFMT_MULTI2_ARGB8:
 		case D3DFMT_G8R8_G8B8:
 		case D3DFMT_R8G8_B8G8:
@@ -499,12 +513,12 @@ D3DFORMAT GetDisplayFormat(DDPIXELFORMAT ddpfPixelFormat)
 		switch (GetBitCount(ddpfPixelFormat))
 		{
 		case 8:
-			if ((ddpfPixelFormat.dwFlags & DDPF_ALPHAPIXELS) && (ddpfPixelFormat.dwLuminanceAlphaBitMask == 0xF0) &&
+			if (((ddpfPixelFormat.dwFlags & DDPF_ALPHAPIXELS) || (ddpfPixelFormat.dwLuminanceAlphaBitMask == 0xF0)) &&
 				(ddpfPixelFormat.dwFlags & DDPF_LUMINANCE) && (ddpfPixelFormat.dwLuminanceBitMask == 0x0F))
 			{
 				return D3DFMT_A4L4;
 			}
-			if ((ddpfPixelFormat.dwFlags & DDPF_ALPHA) && (ddpfPixelFormat.dwRGBAlphaBitMask == 0xFF))
+			if (ddpfPixelFormat.dwFlags & DDPF_ALPHA)
 			{
 				return D3DFMT_A8;
 			}
@@ -522,14 +536,14 @@ D3DFORMAT GetDisplayFormat(DDPIXELFORMAT ddpfPixelFormat)
 			}
 			break;
 		case 16:
-			if ((ddpfPixelFormat.dwFlags & DDPF_ALPHAPIXELS) && (ddpfPixelFormat.dwLuminanceAlphaBitMask == 0xFF00) &&
+			if (((ddpfPixelFormat.dwFlags & DDPF_ALPHAPIXELS) || (ddpfPixelFormat.dwLuminanceAlphaBitMask == 0xFF00)) &&
 				(ddpfPixelFormat.dwFlags & DDPF_LUMINANCE) && (ddpfPixelFormat.dwLuminanceBitMask == 0x00FF))
 			{
 				return D3DFMT_A8L8;
 			}
 			if ((ddpfPixelFormat.dwRBitMask == 0x7C00) && (ddpfPixelFormat.dwGBitMask == 0x03E0) && (ddpfPixelFormat.dwBBitMask == 0x001F))
 			{
-				if ((ddpfPixelFormat.dwFlags & DDPF_ALPHAPIXELS) && (ddpfPixelFormat.dwRGBAlphaBitMask == 0x8000))
+				if ((ddpfPixelFormat.dwFlags & DDPF_ALPHAPIXELS) || (ddpfPixelFormat.dwRGBAlphaBitMask == 0x8000))
 				{
 					return D3DFMT_A1R5G5B5;
 				}
@@ -543,11 +557,11 @@ D3DFORMAT GetDisplayFormat(DDPIXELFORMAT ddpfPixelFormat)
 				return D3DFMT_R5G6B5;
 			}
 			if ((ddpfPixelFormat.dwRBitMask == 0x0F00) && (ddpfPixelFormat.dwGBitMask == 0x00F0) && (ddpfPixelFormat.dwBBitMask == 0x000F) &&
-				(ddpfPixelFormat.dwFlags & DDPF_ALPHAPIXELS) && (ddpfPixelFormat.dwRGBAlphaBitMask == 0xF000))
+				((ddpfPixelFormat.dwFlags & DDPF_ALPHAPIXELS) || (ddpfPixelFormat.dwRGBAlphaBitMask == 0xF000)))
 			{
 				return D3DFMT_A4R4G4B4;
 			}
-			if (ddpfPixelFormat.dwFlags & DDPF_ALPHAPIXELS && ddpfPixelFormat.dwRGBAlphaBitMask == 0xFF00 &&
+			if (((ddpfPixelFormat.dwFlags & DDPF_ALPHAPIXELS) || ddpfPixelFormat.dwRGBAlphaBitMask == 0xFF00) &&
 				ddpfPixelFormat.dwRBitMask == 0x00E0 && ddpfPixelFormat.dwGBitMask == 0x001C && ddpfPixelFormat.dwBBitMask == 0x0003)
 			{
 				return D3DFMT_A8R3G3B2;
@@ -566,7 +580,7 @@ D3DFORMAT GetDisplayFormat(DDPIXELFORMAT ddpfPixelFormat)
 		case 32:
 			if ((ddpfPixelFormat.dwRBitMask == 0xFF0000) && (ddpfPixelFormat.dwGBitMask == 0x00FF00) && (ddpfPixelFormat.dwBBitMask == 0x0000FF))
 			{
-				if ((ddpfPixelFormat.dwFlags & DDPF_ALPHAPIXELS) && (ddpfPixelFormat.dwRGBAlphaBitMask == 0xFF000000))
+				if ((ddpfPixelFormat.dwFlags & DDPF_ALPHAPIXELS) || (ddpfPixelFormat.dwRGBAlphaBitMask == 0xFF000000))
 				{
 					return D3DFMT_A8R8G8B8;
 				}
@@ -577,7 +591,7 @@ D3DFORMAT GetDisplayFormat(DDPIXELFORMAT ddpfPixelFormat)
 			}
 			if ((ddpfPixelFormat.dwRBitMask == 0x0000FF) && (ddpfPixelFormat.dwGBitMask == 0x00FF00) && (ddpfPixelFormat.dwBBitMask == 0xFF0000))
 			{
-				if ((ddpfPixelFormat.dwFlags & DDPF_ALPHAPIXELS) && (ddpfPixelFormat.dwRGBAlphaBitMask == 0xFF000000))
+				if ((ddpfPixelFormat.dwFlags & DDPF_ALPHAPIXELS) || (ddpfPixelFormat.dwRGBAlphaBitMask == 0xFF000000))
 				{
 					return D3DFMT_A8B8G8R8;
 				}
@@ -587,7 +601,7 @@ D3DFORMAT GetDisplayFormat(DDPIXELFORMAT ddpfPixelFormat)
 				}
 			}
 			if ((ddpfPixelFormat.dwRBitMask == 0x3FF00000) && (ddpfPixelFormat.dwGBitMask == 0x0000FFC00) && (ddpfPixelFormat.dwBBitMask == 0x000003FF) &&
-				(ddpfPixelFormat.dwFlags & DDPF_ALPHAPIXELS) && (ddpfPixelFormat.dwRGBAlphaBitMask == 0xC0000000))
+				((ddpfPixelFormat.dwFlags & DDPF_ALPHAPIXELS) || (ddpfPixelFormat.dwRGBAlphaBitMask == 0xC0000000)))
 			{
 				return D3DFMT_A2R10G10B10;
 			}
@@ -822,7 +836,6 @@ void SetPixelDisplayFormat(D3DFORMAT Format, DDPIXELFORMAT &ddpfPixelFormat)
 	case D3DFMT_A8:
 		ddpfPixelFormat.dwFlags = DDPF_ALPHA;
 		ddpfPixelFormat.dwAlphaBitDepth = 8;
-		ddpfPixelFormat.dwRGBAlphaBitMask = 0xFF;
 		break;
 
 	// Luminance
@@ -885,15 +898,11 @@ void SetPixelDisplayFormat(D3DFORMAT Format, DDPIXELFORMAT &ddpfPixelFormat)
 		break;
 
 	// FourCC
+	case D3DFMT_AYUV:
 	case D3DFMT_UYVY:
 	case D3DFMT_YUY2:
-		ddpfPixelFormat.dwFlags = DDPF_FOURCC;
-		ddpfPixelFormat.dwYUVBitCount = 16;
-		ddpfPixelFormat.dwFourCC = Format;
-		break;
 	case D3DFMT_YV12:
 		ddpfPixelFormat.dwFlags = DDPF_FOURCC;
-		ddpfPixelFormat.dwYUVBitCount = 12;
 		ddpfPixelFormat.dwFourCC = Format;
 		break;
 	default:

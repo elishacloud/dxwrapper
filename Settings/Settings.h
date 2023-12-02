@@ -13,7 +13,6 @@
 	visit(AntiAliasing) \
 	visit(AudioClipDetection) \
 	visit(AudioFadeOutDelayMS) \
-	visit(AutoFrameSkip) \
 	visit(Dd7to9) \
 	visit(D3d8to9) \
 	visit(Dinputto8) \
@@ -25,8 +24,12 @@
 	visit(DDrawCompat31) \
 	visit(DDrawCompatDisableGDIHook) \
 	visit(DDrawCompatNoProcAffinity) \
+	visit(DdrawAutoFrameSkip) \
 	visit(DdrawClippedWidth) \
 	visit(DdrawClippedHeight) \
+	visit(DdrawCustomWidth) \
+	visit(DdrawCustomHeight) \
+	visit(DdrawDisableDirect3DCaps) \
 	visit(DdrawRemoveScanlines) \
 	visit(DdrawRemoveInterlacing) \
 	visit(DdrawFixByteAlignment) \
@@ -39,9 +42,6 @@
 	visit(DdrawOverrideBitMode) \
 	visit(DdrawOverrideWidth) \
 	visit(DdrawOverrideHeight) \
-	visit(DdrawOverridePrimaryWidth) \
-	visit(DdrawOverridePrimaryHeight) \
-	visit(DdrawOverrideRefreshRate) \
 	visit(DdrawOverrideStencilFormat) \
 	visit(DdrawResolutionHack) \
 	visit(DdrawUseDirect3D9Ex) \
@@ -65,7 +65,6 @@
 	visit(DisableHighDPIScaling) \
 	visit(DisableLogging) \
 	visit(DirectShowEmulation) \
-	visit(DSoundCtrl) \
 	visit(DxWnd) \
 	visit(CacheClipPlane) \
 	visit(ConvertToDirectDraw7) \
@@ -102,6 +101,7 @@
 	visit(InitialWindowPositionLeft) \
 	visit(InitialWindowPositionTop) \
 	visit(isAppCompatDataSet) \
+	visit(LimitPerFrameFPS) \
 	visit(LoadCustomDllPath) \
 	visit(LoadFromScriptsOnly) \
 	visit(LoadPlugins) \
@@ -109,6 +109,7 @@
 	visit(LoopSleepTime) \
 	visit(Num2DBuffers) \
 	visit(Num3DBuffers) \
+	visit(OverrideRefreshRate) \
 	visit(PrimaryBufferBits) \
 	visit(PrimaryBufferChannels) \
 	visit(PrimaryBufferSamples) \
@@ -200,7 +201,6 @@ struct CONFIG
 	void SetConfig();							// Set additional settings
 	bool IsSet(DWORD Value);					// Check if a value is set
 	bool Exiting = false;						// Dxwrapper is being unloaded
-	bool AutoFrameSkip = false;					// Automatically skips frames to reduce input lag
 	bool Dd7to9 = false;						// Converts DirectDraw/Direct3D (ddraw.dll) to Direct3D9 (d3d9.dll)
 	bool D3d8to9 = false;						// Converts Direct3D8 (d3d8.dll) to Direct3D9 (d3d9.dll) https://github.com/crosire/d3d8to9
 	bool Dinputto8 = false;						// Converts DirectInput (dinput.dll) to DirectInput8 (dinput8.dll)
@@ -212,6 +212,7 @@ struct CONFIG
 	bool DDrawCompat31 = false;					// Enables DDrawCompat v0.3.1
 	bool DDrawCompatDisableGDIHook = false;		// Disables DDrawCompat GDI hooks
 	bool DDrawCompatNoProcAffinity = false;		// Disables DDrawCompat single processor affinity
+	bool DdrawAutoFrameSkip = false;			// Automatically skips frames to reduce input lag
 	bool DdrawFixByteAlignment = false;			// Fixes lock with surfaces that have unaligned byte sizes
 	DWORD DdrawResolutionHack = 0;				// Removes the artificial resolution limit from Direct3D7 and below https://github.com/UCyborg/LegacyD3DResolutionHack
 	bool DdrawRemoveScanlines = 0;				// Experimental feature to removing interlaced black lines in a single frame
@@ -232,13 +233,14 @@ struct CONFIG
 	bool DdrawUseNativeResolution = false;		// Uses the current screen resolution for Dd7to9
 	DWORD DdrawClippedWidth = 0;				// Used to scaled Direct3d9 to use this width when using Dd7to9
 	DWORD DdrawClippedHeight = 0;				// Used to scaled Direct3d9 to use this height when using Dd7to9
-	DWORD DdrawLimitDisplayModeCount = 0;		// Limits the number of display modes sent to program, some games crash when you feed them with too many resolutions
+	DWORD DdrawCustomWidth = 0;					// Custom resolution width for Dd7to9 when using DdrawLimitDisplayModeCount, resolution must be supported by video card and monitor
+	DWORD DdrawCustomHeight = 0;				// Custom resolution height for Dd7to9 when using DdrawLimitDisplayModeCount, resolution must be supported by video card and monitor
+	bool DdrawDisableDirect3DCaps = false;		// Disable caps for Direct3D to try and force the game to use DirectDraw instaed of Direct3D
+	bool DdrawLimitDisplayModeCount = false;	// Limits the number of display modes sent to program, some games crash when you feed them with too many resolutions
 	DWORD DdrawOverrideBitMode = 0;				// Forces DirectX to use specified bit mode: 8, 16, 24, 32
 	DWORD DdrawOverrideWidth = 0;				// Force Direct3d9 to use this width when using Dd7to9
 	DWORD DdrawOverrideHeight = 0;				// Force Direct3d9 to use this height when using Dd7to9
-	DWORD DdrawOverridePrimaryWidth = 0;		// Force Dd7to9 to use this width for the primary/backbuffer surface
-	DWORD DdrawOverridePrimaryHeight = 0;		// Force Dd7to9 to use this height for the primary/backbuffer surface
-	DWORD DdrawOverrideRefreshRate = 0;			// Force Direct3d9 to use this refresh rate when using Dd7to9
+	DWORD OverrideRefreshRate = 0;				// Force Direct3d9 to use this refresh rate, only works in exclusive fullscreen mode
 	DWORD DdrawOverrideStencilFormat = 0;		// Force Direct3d9 to use this AutoStencilFormat when using Dd7to9
 	bool DdrawEnableMouseHook = false;			// Allow to hook into mouse to limit it to the chosen resolution
 	bool DdrawDisableLighting = false;			// Allow to disable lighting
@@ -252,7 +254,6 @@ struct CONFIG
 	bool DisableGameUX = false;					// Disables the Microsoft Game Explorer which can sometimes cause high CPU in rundll32.exe and hang the game process
 	bool DisableHighDPIScaling = false;			// Disables display scaling on high DPI settings
 	bool DisableLogging = false;				// Disables the logging file
-	bool DSoundCtrl = false;					// Enables DirectSoundControl https://github.com/nRaecheR/DirectSoundControl
 	bool DxWnd = false;							// Enables DxWnd https://sourceforge.net/projects/dxwnd/
 	DWORD CacheClipPlane = 0;					// Caches the ClipPlane for Direct3D9 to fix an issue in d3d9 on Windows 8 and newer
 	bool ConvertToDirectDraw7 = false;			// Converts DirectDraw 1-6 to DirectDraw 7
@@ -275,6 +276,7 @@ struct CONFIG
 	DWORD GraphicsHybridAdapter = 0;			// Sets the Direct3D9 Hybrid Enumeration Mode to allow using a secondary display adapter
 	bool HandleExceptions = false;				// Handles unhandled exceptions in the application
 	bool isAppCompatDataSet = false;			// Flag that holds tells whether any of the AppCompatData flags are set
+	float LimitPerFrameFPS = 0;					// Limits each frame by adding a delay if the frame is to fast
 	bool LoadPlugins = false;					// Loads ASI plugins
 	bool LoadFromScriptsOnly = false;			// Loads ASI plugins from 'scripts' and 'plugins' folder only
 	bool ProcessExcluded = false;				// Set if this process is excluded from dxwrapper functions
@@ -283,9 +285,9 @@ struct CONFIG
 	bool WaitForProcess = false;				// Waits for process to end before continuing, requires FullScreen
 	bool WaitForWindowChanges = false;			// Waits for window handle to stabilize before setting fullsreen, requires FullScreen
 	bool WindowModeBorder = false;				// Enables the window border when EnableWindowMode is set, requires EnableWindowMode
-	bool SetInitialWindowPosition = false;		// Enable initual window position
-	DWORD InitialWindowPositionLeft;			// Initual left window position for application
-	DWORD InitialWindowPositionTop;				// Initual top window position for application
+	bool SetInitialWindowPosition = false;		// Enable Initial window position
+	DWORD InitialWindowPositionLeft;			// Initial left window position for application
+	DWORD InitialWindowPositionTop;				// Initial top window position for application
 	DWORD LoopSleepTime = 0;					// Time to sleep between each window handle check loop, requires FullScreen
 	DWORD ResetMemoryAfter = 0;					// Undo hot patch after this amount of time
 	DWORD WindowSleepTime = 0;					// Time to wait (sleep) for window handle and screen updates to finish, requires FullScreen
@@ -314,7 +316,7 @@ struct CONFIG
 	DWORD LockColorkey = 0;						// DXPrimaryEmulation option that needs a second parameter
 	bool DisableMaxWindowedModeNotSet = false;	// If the DisableMaxWindowedMode option exists in the config file
 
-	// DSoundCtrl
+	// DirectSoundControl https://github.com/nRaecheR/DirectSoundControl
 	DWORD Num2DBuffers = 0;
 	DWORD Num3DBuffers = 0;
 	bool ForceCertification = false;

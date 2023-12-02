@@ -24,10 +24,12 @@
 
 namespace GdiWrapper
 {
-	FARPROC CreateWindowExA_out = nullptr;
-	FARPROC CreateWindowExW_out = nullptr;
-	FARPROC DestroyWindow_out = nullptr;
-	FARPROC GetSystemMetrics_out = nullptr;
+	INITIALIZE_OUT_WRAPPED_PROC(CreateWindowExA, unused);
+	INITIALIZE_OUT_WRAPPED_PROC(CreateWindowExW, unused);
+	INITIALIZE_OUT_WRAPPED_PROC(DestroyWindow, unused);
+	INITIALIZE_OUT_WRAPPED_PROC(GetSystemMetrics, unused);
+	INITIALIZE_OUT_WRAPPED_PROC(SetWindowLongA, unused);
+	INITIALIZE_OUT_WRAPPED_PROC(SetWindowLongW, unused);
 }
 
 using namespace GdiWrapper;
@@ -37,13 +39,13 @@ LPCSTR GetClassName(LPCSTR lpClassName) { return ((DWORD)lpClassName > 0xFFFF) ?
 LPCWSTR GetClassName(LPCWSTR lpClassName) { return ((DWORD)lpClassName > 0xFFFF) ? lpClassName : L"ClassName"; }
 
 template <class D, class T>
-HWND WINAPI user_CreateWindowExT(D m_pCreateWindowEx, DWORD dwExStyle, T lpClassName, T lpWindowName, DWORD dwStyle, int X, int Y, int nWidth, int nHeight, HWND hWndParent, HMENU hMenu, HINSTANCE hInstance, LPVOID lpParam)
+HWND WINAPI user_CreateWindowExT(D CreateWindowExT, DWORD dwExStyle, T lpClassName, T lpWindowName, DWORD dwStyle, int X, int Y, int nWidth, int nHeight, HWND hWndParent, HMENU hMenu, HINSTANCE hInstance, LPVOID lpParam)
 {
 	// lpClassName: A null-terminated string or a class atom created by a previous call to the RegisterClass or RegisterClassEx function.
 
 	Logging::LogDebug() << __FUNCTION__ << " " << GetClassName(lpClassName) << " " << lpWindowName << " " << Logging::hex(dwExStyle) << " " << Logging::hex(dwStyle) << " " << X << "x" << Y << " " << nWidth << "x" << nHeight << " " << Logging::hex((DWORD)hWndParent) << " " << hWndParent << " " << hMenu << " " << hInstance;
 
-	if (!m_pCreateWindowEx)
+	if (!CreateWindowExT)
 	{
 		return nullptr;
 	}
@@ -56,7 +58,7 @@ HWND WINAPI user_CreateWindowExT(D m_pCreateWindowEx, DWORD dwExStyle, T lpClass
 		// Remove popup style
 		dwNewStyle = dwStyle & ~WS_POPUP;
 
-		HWND hwnd = m_pCreateWindowEx(dwExStyle, lpClassName, lpWindowName, dwNewStyle, X, Y, nWidth, nHeight, hWndParent, hMenu, hInstance, lpParam);
+		HWND hwnd = CreateWindowExT(dwExStyle, lpClassName, lpWindowName, dwNewStyle, X, Y, nWidth, nHeight, hWndParent, hMenu, hInstance, lpParam);
 
 		if (hwnd)
 		{
@@ -68,30 +70,30 @@ HWND WINAPI user_CreateWindowExT(D m_pCreateWindowEx, DWORD dwExStyle, T lpClass
 		}
 	}
 
-	return m_pCreateWindowEx(dwExStyle, lpClassName, lpWindowName, dwStyle, X, Y, nWidth, nHeight, hWndParent, hMenu, hInstance, lpParam);
+	return CreateWindowExT(dwExStyle, lpClassName, lpWindowName, dwStyle, X, Y, nWidth, nHeight, hWndParent, hMenu, hInstance, lpParam);
 }
 
 HWND WINAPI user_CreateWindowExA(DWORD dwExStyle, LPCSTR lpClassName, LPCSTR lpWindowName, DWORD dwStyle, int X, int Y, int nWidth, int nHeight, HWND hWndParent, HMENU hMenu, HINSTANCE hInstance, LPVOID lpParam)
 {
-	static CreateWindowExAProc m_pCreateWindowExA = (Wrapper::ValidProcAddress(CreateWindowExA_out)) ? (CreateWindowExAProc)CreateWindowExA_out : nullptr;
+	DEFINE_STATIC_PROC_ADDRESS(CreateWindowExAProc, CreateWindowExA, CreateWindowExA_out);
 
-	return user_CreateWindowExT<CreateWindowExAProc, LPCSTR>(m_pCreateWindowExA, dwExStyle, lpClassName, lpWindowName, dwStyle, X, Y, nWidth, nHeight, hWndParent, hMenu, hInstance, lpParam);
+	return user_CreateWindowExT<CreateWindowExAProc, LPCSTR>(CreateWindowExA, dwExStyle, lpClassName, lpWindowName, dwStyle, X, Y, nWidth, nHeight, hWndParent, hMenu, hInstance, lpParam);
 }
 
 HWND WINAPI user_CreateWindowExW(DWORD dwExStyle, LPCWSTR lpClassName, LPCWSTR lpWindowName, DWORD dwStyle, int X, int Y, int nWidth, int nHeight, HWND hWndParent, HMENU hMenu, HINSTANCE hInstance, LPVOID lpParam)
 {
-	static CreateWindowExWProc m_pCreateWindowExW = (Wrapper::ValidProcAddress(CreateWindowExW_out)) ? (CreateWindowExWProc)CreateWindowExW_out : nullptr;
+	DEFINE_STATIC_PROC_ADDRESS(CreateWindowExWProc, CreateWindowExW, CreateWindowExW_out);
 
-	return user_CreateWindowExT<CreateWindowExWProc, LPCWSTR>(m_pCreateWindowExW, dwExStyle, lpClassName, lpWindowName, dwStyle, X, Y, nWidth, nHeight, hWndParent, hMenu, hInstance, lpParam);
+	return user_CreateWindowExT<CreateWindowExWProc, LPCWSTR>(CreateWindowExW, dwExStyle, lpClassName, lpWindowName, dwStyle, X, Y, nWidth, nHeight, hWndParent, hMenu, hInstance, lpParam);
 }
 
 BOOL WINAPI user_DestroyWindow(HWND hWnd)
 {
 	Logging::LogDebug() << __FUNCTION__ << " " << hWnd;
 
-	static DestroyWindowProc m_pDestroyWindow = (Wrapper::ValidProcAddress(DestroyWindow_out)) ? (DestroyWindowProc)DestroyWindow_out : nullptr;
+	DEFINE_STATIC_PROC_ADDRESS(DestroyWindowProc, DestroyWindow, DestroyWindow_out);
 
-	if (!m_pDestroyWindow)
+	if (!DestroyWindow)
 	{
 		return NULL;
 	}
@@ -103,7 +105,7 @@ BOOL WINAPI user_DestroyWindow(HWND hWnd)
 		ownd = GetWindow(hWnd, GW_OWNER);
 	}
 
-	BOOL result = m_pDestroyWindow(hWnd);
+	BOOL result = DestroyWindow(hWnd);
 
 	if (result && ownd)
 	{
@@ -120,30 +122,65 @@ int WINAPI user_GetSystemMetrics(int nIndex)
 {
 	Logging::LogDebug() << __FUNCTION__ << " " << nIndex;
 
-	static GetSystemMetricsProc m_pGetSystemMetrics = (Wrapper::ValidProcAddress(GetSystemMetrics_out)) ? (GetSystemMetricsProc)GetSystemMetrics_out : nullptr;
+	DEFINE_STATIC_PROC_ADDRESS(GetSystemMetricsProc, GetSystemMetrics, GetSystemMetrics_out);
 
-		if (nIndex == SM_CXSCREEN)
+	if (nIndex == SM_CXSCREEN)
+	{
+		int Width = GetDDrawWidth();
+		if (Width)
 		{
-			int Width = GetDDrawWidth();
-			if (Width)
-			{
-				return Width;
-			}
+			return Width;
 		}
+	}
 
-		if (nIndex == SM_CYSCREEN)
+	if (nIndex == SM_CYSCREEN)
+	{
+		int Height = GetDDrawHeight();
+		if (Height)
 		{
-			int Height = GetDDrawHeight();
-			if (Height)
-			{
-				return Height;
-			}
+			return Height;
 		}
+	}
 
-		if (!m_pGetSystemMetrics)
+	if (!GetSystemMetrics)
+	{
+		return 0;
+	}
+
+	return GetSystemMetrics(nIndex);
+}
+
+LONG WINAPI SetWindowLongT(SetWindowLongProc SetWindowLongT, HWND hWnd, int nIndex, LONG dwNewLong)
+{
+	Logging::LogDebug() << __FUNCTION__ << " " << hWnd << " " << nIndex << " " << Logging::hex(dwNewLong);
+
+	if (nIndex == GWL_WNDPROC)
+	{
+		LONG DDrawLong = (LONG)Utils::WndProc::CheckWndProc(hWnd, dwNewLong);
+		if (DDrawLong)
 		{
-			return 0;
+			return DDrawLong;
 		}
+	}
 
-	return m_pGetSystemMetrics(nIndex);
+	if (!SetWindowLongT)
+	{
+		return NULL;
+	}
+
+	return SetWindowLongT(hWnd, nIndex, dwNewLong);
+}
+
+LONG WINAPI user_SetWindowLongA(HWND hWnd, int nIndex, LONG dwNewLong)
+{
+	DEFINE_STATIC_PROC_ADDRESS(SetWindowLongProc, SetWindowLongA, SetWindowLongA_out);
+
+	return SetWindowLongT(SetWindowLongA, hWnd, nIndex, dwNewLong);
+}
+
+LONG WINAPI user_SetWindowLongW(HWND hWnd, int nIndex, LONG dwNewLong)
+{
+	DEFINE_STATIC_PROC_ADDRESS(SetWindowLongProc, SetWindowLongW, SetWindowLongW_out);
+
+	return SetWindowLongT(SetWindowLongW, hWnd, nIndex, dwNewLong);
 }

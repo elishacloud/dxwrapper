@@ -146,6 +146,10 @@ std::ostream& operator<<(std::ostream& os, const D3DFORMAT& format)
 		return os << "D3DFMT_R8G8_B8G8";
 	case MAKEFOURCC('Y', 'U', 'Y', '2'):
 		return os << "D3DFMT_YUY2";
+	case MAKEFOURCC('Y', 'V', '1', '2'):
+		return os << "D3DFMT_YV12";
+	case MAKEFOURCC('A', 'Y', 'U', 'V'):
+		return os << "D3DFMT_AYUV";
 	case MAKEFOURCC('G', 'R', 'G', 'B'):
 		return os << "D3DFMT_G8R8_G8B8";
 	case MAKEFOURCC('D', 'X', 'T', '1'):
@@ -620,6 +624,7 @@ std::ostream& operator<<(std::ostream& os, const D3DVERTEXBUFFERDESC& data)
 std::ostream& operator<<(std::ostream& os, const D3DPRIMCAPS& dpc)
 {
 	return Logging::LogStruct(os)
+		<< dpc.dwSize
 		<< Logging::hex(dpc.dwMiscCaps)
 		<< Logging::hex(dpc.dwRasterCaps)
 		<< Logging::hex(dpc.dwZCmpCaps)
@@ -633,6 +638,61 @@ std::ostream& operator<<(std::ostream& os, const D3DPRIMCAPS& dpc)
 		<< Logging::hex(dpc.dwTextureAddressCaps)
 		<< dpc.dwStippleWidth
 		<< dpc.dwStippleHeight;
+}
+
+std::ostream& operator<<(std::ostream& os, const D3DTRANSFORMCAPS& tc)
+{
+	return Logging::LogStruct(os)
+		<< tc.dwSize
+		<< Logging::hex(tc.dwCaps);
+}
+
+std::ostream& operator<<(std::ostream& os, const D3DLIGHTINGCAPS& lc)
+{
+	return Logging::LogStruct(os)
+		<< lc.dwSize
+		<< Logging::hex(lc.dwCaps)
+		<< lc.dwLightingModel
+		<< lc.dwNumLights;
+}
+
+std::ostream& operator<<(std::ostream& os, const D3DDEVICEDESC& dd)
+{
+	return Logging::LogStruct(os)
+		<< dd.dwSize
+		<< Logging::hex(dd.dwFlags)
+		<< dd.dcmColorModel
+		<< Logging::hex(dd.dwDevCaps)
+		<< dd.dtcTransformCaps
+		<< dd.bClipping
+		<< dd.dlcLightingCaps
+		<< dd.dpcLineCaps
+		<< dd.dpcTriCaps
+		<< dd.dwDeviceRenderBitDepth
+		<< dd.dwDeviceZBufferBitDepth
+		<< dd.dwMaxBufferSize
+		<< dd.dwMaxVertexCount
+		<< dd.dwMinTextureWidth
+		<< dd.dwMinTextureHeight
+		<< dd.dwMaxTextureWidth
+		<< dd.dwMaxTextureHeight
+		<< dd.dwMinStippleWidth
+		<< dd.dwMinStippleHeight
+		<< dd.dwMaxStippleWidth
+		<< dd.dwMaxStippleHeight
+		<< dd.dwMaxTextureRepeat
+		<< dd.dwMaxTextureAspectRatio
+		<< dd.dwMaxAnisotropy
+		<< dd.dvGuardBandLeft
+		<< dd.dvGuardBandTop
+		<< dd.dvGuardBandRight
+		<< dd.dvGuardBandBottom
+		<< dd.dvExtentsAdjust
+		<< Logging::hex(dd.dwStencilCaps)
+		<< Logging::hex(dd.dwFVFCaps)
+		<< Logging::hex(dd.dwTextureOpCaps)
+		<< dd.wMaxTextureBlendStages
+		<< dd.wMaxSimultaneousTextures;
 }
 
 std::ostream& operator<<(std::ostream& os, const D3DDEVICEDESC7& dd)
@@ -1179,7 +1239,7 @@ std::ostream& operator<<(std::ostream& os, const DDERR& ErrCode)
 
 	VISIT_DDERR_CODES(VISIT_DDERR_RETURN);
 
-	return os << Logging::hex(ErrCode);
+	return os << Logging::hex((DWORD)ErrCode);
 }
 
 std::ostream& operator<<(std::ostream& os, const D3DERR& ErrCode)
@@ -1218,7 +1278,6 @@ std::ostream& operator<<(std::ostream& os, const DIERR& ErrCode)
 	visit(DIERR_NOTACQUIRED) \
 	visit(DIERR_READONLY) \
 	visit(DIERR_HANDLEEXISTS) \
-	visit(E_PENDING) \
 	visit(DIERR_INSUFFICIENTPRIVS) \
 	visit(DIERR_DEVICEFULL) \
 	visit(DIERR_MOREDATA) \
@@ -1231,8 +1290,10 @@ std::ostream& operator<<(std::ostream& os, const DIERR& ErrCode)
 	visit(DIERR_UNPLUGGED) \
 	visit(DIERR_REPORTFULL) \
 	visit(DIERR_MAPFILEFAIL) \
+	visit(E_PENDING) \
 	visit(E_NOINTERFACE) \
-	visit(E_POINTER)
+	visit(E_POINTER) \
+	visit(E_HANDLE)
 
 #define VISIT_DIERR_RETURN(x) \
 	if (ErrCode == x) \
@@ -1247,7 +1308,7 @@ std::ostream& operator<<(std::ostream& os, const DIERR& ErrCode)
 
 	VISIT_DIERR_CODES(VISIT_DIERR_RETURN);
 
-	return os << Logging::hex(ErrCode);
+	return os << Logging::hex((DWORD)ErrCode);
 }
 
 std::ostream& operator<<(std::ostream& os, const DSERR& ErrCode)
@@ -1289,7 +1350,7 @@ std::ostream& operator<<(std::ostream& os, const DSERR& ErrCode)
 
 	VISIT_DSERR_CODES(VISIT_DSERR_RETURN);
 
-	return os << Logging::hex(ErrCode);
+	return os << Logging::hex((DWORD)ErrCode);
 }
 
 std::ostream& operator<<(std::ostream& os, const WMMSG& Id)
@@ -2104,16 +2165,6 @@ std::ostream& operator<<(std::ostream& os, const DRAWITEMSTRUCT& dis)
 		<< Logging::hex(dis.itemData);
 }
 
-std::ostream& operator<<(std::ostream& os, const GESTURENOTIFYSTRUCT& gns)
-{
-	return Logging::LogStruct(os)
-		<< gns.cbSize
-		<< Logging::hex(gns.dwFlags)
-		<< gns.hwndTarget
-		<< gns.ptsLocation
-		<< gns.dwInstanceID;
-}
-
 std::ostream& operator<<(std::ostream& os, HDC__& dc)
 {
 	return os << "DC(" << static_cast<void*>(&dc) << ',' << WindowFromDC(&dc) << ')';
@@ -2326,6 +2377,29 @@ std::ostream& operator<<(std::ostream& os, const STYLESTRUCT& ss)
 		<< Logging::hex(ss.styleNew);
 }
 
+std::ostream& operator<<(std::ostream& os, const WINDOWPOS& wp)
+{
+	return Logging::LogStruct(os)
+		<< wp.hwnd
+		<< wp.hwndInsertAfter
+		<< wp.x
+		<< wp.y
+		<< wp.cx
+		<< wp.cy
+		<< Logging::hex(wp.flags);
+}
+
+#ifdef DDRAWCOMPAT
+std::ostream& operator<<(std::ostream& os, const GESTURENOTIFYSTRUCT& gns)
+{
+	return Logging::LogStruct(os)
+		<< gns.cbSize
+		<< Logging::hex(gns.dwFlags)
+		<< gns.hwndTarget
+		<< gns.ptsLocation
+		<< gns.dwInstanceID;
+}
+
 std::ostream& operator<<(std::ostream& os, const TITLEBARINFOEX& tbi)
 {
 	return Logging::LogStruct(os)
@@ -2344,15 +2418,4 @@ std::ostream& operator<<(std::ostream& os, const TOUCH_HIT_TESTING_INPUT& thti)
 		<< thti.nonOccludedBoundingBox
 		<< thti.orientation;
 }
-
-std::ostream& operator<<(std::ostream& os, const WINDOWPOS& wp)
-{
-	return Logging::LogStruct(os)
-		<< wp.hwnd
-		<< wp.hwndInsertAfter
-		<< wp.x
-		<< wp.y
-		<< wp.cx
-		<< wp.cy
-		<< Logging::hex(wp.flags);
-}
+#endif // DDRAWCOMPAT

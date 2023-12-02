@@ -15,15 +15,7 @@
 */
 
 #include "ddraw.h"
-#include <d3dhal.h>
-
-// Enable for testing only
-//#define ENABLE_DEBUGOVERLAY
-
-#ifdef ENABLE_DEBUGOVERLAY
-#include "DebugOverlay.h"
-DebugOverlay DOverlay;
-#endif
+#include "d3d9\d3d9External.h"
 
 HRESULT m_IDirect3DDeviceX::QueryInterface(REFIID riid, LPVOID FAR * ppvObj, DWORD DirectXVersion)
 {
@@ -680,12 +672,19 @@ HRESULT m_IDirect3DDeviceX::EnumTextureFormats(LPD3DENUMTEXTUREFORMATSCALLBACK l
 
 			static HRESULT CALLBACK ConvertCallback(LPDDPIXELFORMAT lpDDPixFmt, LPVOID lpContext)
 			{
-				EnumPixelFormat *self = (EnumPixelFormat*)lpContext;
+				EnumPixelFormat* self = (EnumPixelFormat*)lpContext;
+
+				// Only RGB formats are supported
+				if ((lpDDPixFmt->dwFlags & DDPF_RGB) == NULL)
+				{
+					return DDENUMRET_OK;
+				}
 
 				DDSURFACEDESC Desc = {};
 				Desc.dwSize = sizeof(DDSURFACEDESC);
-				Desc.dwFlags = DDSD_PIXELFORMAT;
+				Desc.dwFlags = DDSD_CAPS | DDSD_PIXELFORMAT;
 				Desc.ddpfPixelFormat = *lpDDPixFmt;
+				Desc.ddsCaps.dwCaps = DDSCAPS_TEXTURE;
 
 				return self->lpCallback(&Desc, self->lpContext);
 			}
@@ -727,23 +726,28 @@ HRESULT m_IDirect3DDeviceX::EnumTextureFormats(LPD3DENUMPIXELFORMATSCALLBACK lpd
 
 		// Get texture list
 		std::vector<D3DFORMAT> TextureList = {
+			D3DFMT_R5G6B5,
 			D3DFMT_X1R5G5B5,
 			D3DFMT_A1R5G5B5,
 			D3DFMT_A4R4G4B4,
-			D3DFMT_R5G6B5,
-			D3DFMT_R8G8B8,
+			//D3DFMT_R8G8B8,	// Requires emulation
 			D3DFMT_X8R8G8B8,
 			D3DFMT_A8R8G8B8,
 			D3DFMT_V8U8,
 			D3DFMT_X8L8V8U8,
+			D3DFMT_L6V5U5,
+			D3DFMT_YUY2,
+			D3DFMT_UYVY,
+			D3DFMT_AYUV,
 			D3DFMT_DXT1,
 			D3DFMT_DXT2,
 			D3DFMT_DXT3,
 			D3DFMT_DXT4,
 			D3DFMT_DXT5,
-			D3DFMT_P8,
+			//D3DFMT_P8,	// Requires emulation
 			D3DFMT_L8,
 			D3DFMT_A8,
+			D3DFMT_A4L4,
 			D3DFMT_A8L8 };
 
 		// Add FourCCs to texture list
@@ -758,12 +762,14 @@ HRESULT m_IDirect3DDeviceX::EnumTextureFormats(LPD3DENUMPIXELFORMATSCALLBACK lpd
 
 		for (D3DFORMAT format : TextureList)
 		{
-			D3DFORMAT TestFormat = (format == D3DFMT_R8G8B8) ? D3DFMT_X8R8G8B8 : (format == D3DFMT_P8) ? D3DFMT_L8 : format;
-			HRESULT hr = d3d9Object->CheckDeviceFormat(D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, D3DFMT_X8R8G8B8, 0, D3DRTYPE_TEXTURE, TestFormat);
+			HRESULT hr = d3d9Object->CheckDeviceFormat(D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, D3DFMT_X8R8G8B8, 0, D3DRTYPE_TEXTURE, format);
 			if (SUCCEEDED(hr))
 			{
 				SetPixelDisplayFormat(format, ddpfPixelFormat);
-				lpd3dEnumPixelProc(&ddpfPixelFormat, lpArg);
+				if (lpd3dEnumPixelProc(&ddpfPixelFormat, lpArg) == DDENUMRET_CANCEL)
+				{
+					return DD_OK;
+				}
 			}
 		}
 
@@ -1616,14 +1622,7 @@ HRESULT m_IDirect3DDeviceX::SetViewport(LPD3DVIEWPORT7 lpViewport)
 			return DDERR_GENERIC;
 		}
 
-		HRESULT hr = (*d3d9Device)->SetViewport((D3DVIEWPORT9*)lpViewport);
-
-		if (SUCCEEDED(hr))
-		{
-			ddrawParent->SetNewViewport(lpViewport->dwWidth, lpViewport->dwHeight);
-		}
-
-		return hr;
+		return (*d3d9Device)->SetViewport((D3DVIEWPORT9*)lpViewport);
 	}
 
 	D3DVIEWPORT7 Viewport7;
@@ -1790,10 +1789,6 @@ HRESULT m_IDirect3DDeviceX::BeginScene()
 
 		HRESULT hr = (*d3d9Device)->BeginScene();
 
-#ifdef ENABLE_DEBUGOVERLAY
-		DOverlay.BeginScene();
-#endif
-
 		if (Config.DdrawDisableLighting)
 		{
 			(*d3d9Device)->SetRenderState(D3DRS_LIGHTING, FALSE);
@@ -1837,14 +1832,10 @@ HRESULT m_IDirect3DDeviceX::EndScene()
 		{
 			SetDrawStates(0, D3DDP_DXW_DRAW2DSURFACE, 9);
 
-			PrimarySurface->Draw2DSurface();
+			ddrawParent->Draw2DSurface(PrimarySurface);
 
 			RestoreDrawStates(0, D3DDP_DXW_DRAW2DSURFACE, 9);
 		}
-
-#ifdef ENABLE_DEBUGOVERLAY
-		DOverlay.EndScene();
-#endif
 
 		// The IDirect3DDevice7::EndScene method ends a scene that was begun by calling the IDirect3DDevice7::BeginScene method.
 		// When this method succeeds, the scene has been rendered, and the device surface holds the rendered scene.
@@ -1854,7 +1845,7 @@ HRESULT m_IDirect3DDeviceX::EndScene()
 		// Present surface after end scene
 		if (SUCCEEDED(hr))
 		{
-			hr = (*d3d9Device)->Present(nullptr, nullptr, nullptr, nullptr);
+			hr = ddrawParent->Present(nullptr, nullptr);
 		}
 
 		return hr;
@@ -1886,6 +1877,26 @@ HRESULT m_IDirect3DDeviceX::Clear(DWORD dwCount, LPD3DRECT lpRects, DWORD dwFlag
 		{
 			return DDERR_GENERIC;
 		}
+
+		// Clear primary surface
+		/*if (dwFlags & D3DCLEAR_TARGET)
+		{
+			m_IDirectDrawSurfaceX* PrimarySurface = ddrawParent->GetPrimarySurface();
+			if (PrimarySurface)
+			{
+				if (dwCount && lpRects)
+				{
+					for (UINT x = 0; x < dwCount; x++)
+					{
+						PrimarySurface->ColorFill((RECT*)&lpRects[x], dwColor);
+					}
+				}
+				else
+				{
+					PrimarySurface->ColorFill(nullptr, dwColor);
+				}
+			}
+		}*/
 
 		return (*d3d9Device)->Clear(dwCount, lpRects, dwFlags, dwColor, dvZ, dwStencil);
 	}
@@ -3506,14 +3517,6 @@ void m_IDirect3DDeviceX::ReleaseDevice()
 	WrapperInterface3->DeleteMe();
 	WrapperInterface7->DeleteMe();
 
-	// Teardown debug overlay
-	if (Config.Dd7to9)
-	{
-#ifdef ENABLE_DEBUGOVERLAY
-		DOverlay.Shutdown();
-#endif
-	}
-
 	if (ddrawParent && !Config.Exiting)
 	{
 		ddrawParent->ClearD3DDevice();
@@ -3543,13 +3546,6 @@ HRESULT m_IDirect3DDeviceX::CheckInterface(char *FunctionName, bool CheckD3DDevi
 			LOG_LIMIT(100, FunctionName << " Error: d3d9 device not setup!");
 			return DDERR_INVALIDOBJECT;
 		}
-
-#ifdef ENABLE_DEBUGOVERLAY
-		if (DOverlay.Getd3d9Device() != *d3d9Device)
-		{
-			DOverlay.Setup(ddrawParent->GetHwnd(), *d3d9Device);
-		}
-#endif
 	}
 
 	return DD_OK;
