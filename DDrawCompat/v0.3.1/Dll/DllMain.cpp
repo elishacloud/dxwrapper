@@ -304,8 +304,11 @@ namespace Compat31
 			//VISIT_PUBLIC_DDRAW_PROCS(HOOK_DDRAW_PROC);
 			//********** End Edit ***************
 
-			const BOOL disablePriorityBoost = TRUE;
-			SetProcessPriorityBoost(GetCurrentProcess(), disablePriorityBoost);
+			if (!Config.Dd7to9)
+			{
+				const BOOL disablePriorityBoost = TRUE;
+				SetProcessPriorityBoost(GetCurrentProcess(), disablePriorityBoost);
+			}
 			//********** Begin Edit *************
 			if (!Config.DDrawCompatNoProcAffinity && !Config.Dd7to9) SetProcessAffinityMask(GetCurrentProcess(), 1);
 			//********** End Edit ***************
