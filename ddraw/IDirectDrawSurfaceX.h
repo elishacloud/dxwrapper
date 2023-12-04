@@ -91,8 +91,8 @@ private:
 
 	typedef enum _SURFACECREATE {
 		SC_NOT_CREATED = 0,
-		SC_CREATED_BY_LOCK = 1,
-		SC_CREATED_SEPERATLY = 2,
+		SC_FORCE_EMULATED = 1,
+		SC_DONT_FORCE = 2,
 	} SURFACECREATE;
 
 	// Convert to Direct3D9

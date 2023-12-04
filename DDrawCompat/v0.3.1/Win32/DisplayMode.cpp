@@ -310,7 +310,7 @@ namespace Win32
 			HOOK_FUNCTION(user32, EnumDisplaySettingsExW, enumDisplaySettingsExW);
 
 			//********** Begin Edit *************
-			if (Config.DDrawCompat)
+			if (!Config.Dd7to9)
 			{
 				HOOK_FUNCTION(gdi32, GetDeviceCaps, getDeviceCaps);
 			}

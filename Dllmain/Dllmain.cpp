@@ -406,7 +406,15 @@ bool APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 
 			// Add DDrawCompat to the chain
 #ifdef DDRAWCOMPAT
-			if (Config.DDrawCompat)
+			if (Config.Dd7to9)
+			{
+				using namespace ddraw;
+				using namespace DDrawCompat;
+				DDrawCompat::Prepare();
+				VISIT_PROCS_DDRAW(SHIM_WRAPPED_PROC);
+				VISIT_PROCS_DDRAW_SHARED(SHIM_WRAPPED_PROC);
+			}
+			else if (Config.DDrawCompat)
 			{
 				Logging::Log() << "Enabling DDrawCompat";
 				using namespace ddraw;
@@ -429,7 +437,11 @@ bool APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 
 			// Start DDrawCompat
 #ifdef DDRAWCOMPAT
-			if (Config.DDrawCompat || Config.Dd7to9)
+			if (Config.Dd7to9)
+			{
+				DDrawCompat::InstallDd7to9Hooks();
+			}
+			else if (Config.DDrawCompat)
 			{
 				DDrawCompat::Start(hModule_dll, DLL_PROCESS_ATTACH);
 			}

@@ -97,9 +97,9 @@ namespace DDrawCompat
 	}
 
 	// Used for hooking with dd7to9
-	void InstallHooks()
+	void InstallDd7to9Hooks()
 	{
 		// Dd7to9 DDrawCompat version
-		return DDrawCompatForDd7to9::InstallHooks();
+		return DDrawCompatForDd7to9::InstallDd7to9Hooks();
 	}
 }

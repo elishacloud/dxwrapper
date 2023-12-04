@@ -8,7 +8,7 @@ namespace Compat31
 {
 	BOOL WINAPI DllMain_DDrawCompat(HINSTANCE, DWORD, LPVOID);
 
-	void InstallHooks();
+	void InstallDd7to9Hooks();
 
 #define EXTERN_PROC_STUB(procName) extern "C" __declspec(dllexport) void DC31_ ## procName();
 	VISIT_ALL_DDRAW_PROCS(EXTERN_PROC_STUB);

@@ -412,16 +412,6 @@ HRESULT WINAPI dd_DirectDrawCreateEx(GUID FAR *lpGUID, LPVOID *lplpDD, REFIID ri
 			return DDERR_INVALIDPARAMS;
 		}
 
-#ifdef DDRAWCOMPAT
-		// Install DDrawCompat hooks
-		static bool RunOnce = true;
-		if (RunOnce)
-		{
-			DDrawCompat::InstallHooks();
-			RunOnce = false;
-		}
-#endif
-
 		DWORD DxVersion = GetGUIDVersion(riid);
 
 		LOG_LIMIT(3, "Redirecting 'DirectDrawCreate' " << riid << " to --> 'Direct3DCreate9'");
