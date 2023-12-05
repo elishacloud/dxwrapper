@@ -2485,31 +2485,28 @@ HRESULT m_IDirectDrawSurfaceX::Restore()
 			return c_hr;
 		}
 
-		// Check device status
-		switch ((*d3d9Device)->TestCooperativeLevel())
+		// ToDo: A single call to this method will restore a DirectDrawSurface object's associated implicit surfaces (back buffers, and so on). 
+
+		HRESULT hr = ddrawParent->ReinitDevice();
+		switch (hr)
 		{
 		case D3D_OK:
 		case DDERR_NOEXCLUSIVEMODE:
+			if (FAILED(CheckInterface(__FUNCTION__, true, true, false)))
+			{
+				return DDERR_WRONGMODE;
+			}
 			if (surface.IsSurfaceLost)
 			{
 				surface.IsSurfaceLost = false;
 				surface.SurfaceHasData = false;
 			}
-			return DD_OK;
-		case D3DERR_DEVICENOTRESET:
-			if (SUCCEEDED(ddrawParent->ReinitDevice()))
-			{
-				surface.IsSurfaceLost = false;
-				surface.SurfaceHasData = false;
-				return DD_OK;
-			}
-			[[fallthrough]];
-		case D3DERR_DEVICELOST:
-			return DDERR_WRONGMODE;
-		case D3DERR_DRIVERINTERNALERROR:
-		case D3DERR_INVALIDCALL:
+			return hr;
+		case DDERR_SURFACELOST:
+			surface.IsSurfaceLost = true;
+			return DDERR_SURFACELOST;
 		default:
-			return DDERR_GENERIC;
+			return DDERR_WRONGMODE;
 		}
 	}
 
@@ -3527,26 +3524,34 @@ HRESULT m_IDirectDrawSurfaceX::CheckInterface(char *FunctionName, bool CheckD3DD
 	}
 
 	// Check if device is lost
-	if (CheckLostSurface && CheckD3DDevice)
+	if (CheckLostSurface)
 	{
-		HRESULT hr = (*d3d9Device)->TestCooperativeLevel();
-		if (hr == D3DERR_DEVICENOTRESET)
+		if (d3d9Device && *d3d9Device)
 		{
-			if (FAILED(ddrawParent->ReinitDevice()))
+			HRESULT hr = (*d3d9Device)->TestCooperativeLevel();
+			switch (hr)
 			{
-				LOG_LIMIT(100, FunctionName << " Error: Failed to reinitialize the Driect3D device!");
+			case DD_OK:
+			case DDERR_NOEXCLUSIVEMODE:
+				break;
+			case D3DERR_DEVICENOTRESET:
+				if (SUCCEEDED(ddrawParent->ReinitDevice()))
+				{
+					return DDERR_SURFACELOST;
+				}
+				[[fallthrough]];
+			case D3DERR_DEVICELOST:
+				surface.IsSurfaceLost = true;
 				return DDERR_SURFACELOST;
+			default:
+				LOG_LIMIT(100, FunctionName << " Error: TestCooperativeLevel = " << (D3DERR)hr);
+				return DDERR_WRONGMODE;
 			}
 		}
-		else if (hr == D3DERR_DEVICELOST)
+		if (surface.IsSurfaceLost)
 		{
-			LOG_LIMIT(100, FunctionName << " Error: Surface lost! = " << (D3DERR)hr);
+			LOG_LIMIT(100, FunctionName << " Warning: surface lost!");
 			return DDERR_SURFACELOST;
-		}
-		else if (hr != DDERR_NOEXCLUSIVEMODE && FAILED(hr))
-		{
-			LOG_LIMIT(100, FunctionName << " Error: TestCooperativeLevel = " << (D3DERR)hr);
-			return DDERR_GENERIC;
 		}
 	}
 
@@ -3573,7 +3578,7 @@ HRESULT m_IDirectDrawSurfaceX::CheckInterface(char *FunctionName, bool CheckD3DD
 			if (FAILED(CreateD3d9Surface()))
 			{
 				LOG_LIMIT(100, FunctionName << " Error: d3d9 surface texture not setup!");
-				return DDERR_GENERIC;
+				return DDERR_WRONGMODE;
 			}
 		}
 	}

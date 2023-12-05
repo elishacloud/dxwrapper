@@ -2148,6 +2148,7 @@ HRESULT m_IDirectDrawX::RestoreAllSurfaces()
 			return DDERR_WRONGMODE;
 		}
 
+		// Check device state
 		HRESULT hr = d3d9Device->TestCooperativeLevel();
 		if (hr == D3DERR_DEVICENOTRESET)
 		{
@@ -2168,8 +2169,6 @@ HRESULT m_IDirectDrawX::RestoreAllSurfaces()
 			}
 
 			ReleaseCriticalSection();
-
-			return DD_OK;
 		}
 
 		return hr;
@@ -3260,7 +3259,7 @@ HRESULT m_IDirectDrawX::ReinitDevice()
 	// Check for device interface
 	if (FAILED(CheckInterface(__FUNCTION__, true)))
 	{
-		return DDERR_GENERIC;
+		return DDERR_WRONGMODE;
 	}
 
 	// Check if device is ready to be restored
@@ -3271,12 +3270,20 @@ HRESULT m_IDirectDrawX::ReinitDevice()
 	}
 	else if (hr == D3DERR_DEVICELOST)
 	{
-		return DDERR_SURFACELOST;
+		HWND hWnd = GetHwnd();
+		if (!IsIconic(hWnd) && hWnd == GetForegroundWindow())
+		{
+			return DDERR_WRONGMODE;
+		}
+		else
+		{
+			return DDERR_SURFACELOST;
+		}
 	}
 	else if (hr != D3DERR_DEVICENOTRESET)
 	{
 		LOG_LIMIT(100, __FUNCTION__ << " Error: TestCooperativeLevel = " << (D3DERR)hr);
-		return DDERR_GENERIC;
+		return DDERR_WRONGMODE;
 	}
 
 	IsDeviceLost = true;
@@ -3309,7 +3316,7 @@ HRESULT m_IDirectDrawX::ReinitDevice()
 		if (FAILED(hr))
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Error: failed to reset Direct3D9 device: " << (D3DERR)hr);
-			hr = DDERR_GENERIC;
+			hr = DDERR_WRONGMODE;
 			break;
 		}
 
