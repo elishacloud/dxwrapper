@@ -1186,7 +1186,7 @@ inline HRESULT m_IDirectDrawSurfaceX::CheckBackBufferForFlip(m_IDirectDrawSurfac
 			surfaceFormat << " -> " << lpTargetSurface->surfaceFormat << " " <<
 			surfaceDesc2.dwWidth << "x" << surfaceDesc2.dwHeight << " -> " <<
 			lpTargetSurface->surfaceDesc2.dwWidth << "x" << lpTargetSurface->surfaceDesc2.dwHeight);
-		return DDERR_GENERIC;
+		return DDERR_INVALIDPARAMS;
 	}
 
 	return DD_OK;
@@ -1249,9 +1249,11 @@ HRESULT m_IDirectDrawSurfaceX::Flip(LPDIRECTDRAWSURFACE7 lpDDSurfaceTargetOverri
 
 			lpDDSurfaceTargetOverride->QueryInterface(IID_GetInterfaceX, (LPVOID*)&lpTargetSurface);
 
-			if (FAILED(CheckBackBufferForFlip(lpTargetSurface)))
+			// Check backbuffer
+			HRESULT hr = CheckBackBufferForFlip(lpTargetSurface);
+			if (FAILED(hr))
 			{
-				return DDERR_INVALIDPARAMS;
+				return hr;
 			}
 
 			FlipList.push_back(lpTargetSurface);
@@ -1283,9 +1285,10 @@ HRESULT m_IDirectDrawSurfaceX::Flip(LPDIRECTDRAWSURFACE7 lpDDSurfaceTargetOverri
 				}
 
 				// Check backbuffer
-				if (FAILED(CheckBackBufferForFlip(lpTargetSurface)))
+				HRESULT hr = CheckBackBufferForFlip(lpTargetSurface);
+				if (FAILED(hr))
 				{
-					return DDERR_GENERIC;
+					return hr;
 				}
 
 				// Add target surface to list

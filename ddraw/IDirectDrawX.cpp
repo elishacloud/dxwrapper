@@ -1888,7 +1888,7 @@ HRESULT m_IDirectDrawX::SetDisplayMode(DWORD dwWidth, DWORD dwHeight, DWORD dwBP
 		else if (LastBPP != DisplayMode.BPP)
 		{
 			// Reset all surfaces
-			RestoreAllSurfaces();
+			ResetAllSurfaceDisplay();
 		}
 
 		return DD_OK;
@@ -2142,12 +2142,20 @@ HRESULT m_IDirectDrawX::RestoreAllSurfaces()
 
 	if (Config.Dd7to9)
 	{
-		// Check device status
-		if (d3d9Device && d3d9Device->TestCooperativeLevel() == D3DERR_DEVICENOTRESET)
+		// Check for device interface
+		if (FAILED(CheckInterface(__FUNCTION__, true)))
 		{
-			ReinitDevice();
+			return DDERR_WRONGMODE;
 		}
-		else
+
+		HRESULT hr = d3d9Device->TestCooperativeLevel();
+		if (hr == D3DERR_DEVICENOTRESET)
+		{
+			hr = ReinitDevice();
+		}
+
+		// Check device status
+		if (hr == DD_OK || hr == DDERR_NOEXCLUSIVEMODE)
 		{
 			SetCriticalSection();
 
@@ -2155,14 +2163,16 @@ HRESULT m_IDirectDrawX::RestoreAllSurfaces()
 			{
 				for (m_IDirectDrawSurfaceX*& pSurface : pDDraw->SurfaceVector)
 				{
-					pSurface->ResetSurfaceDisplay();
+					pSurface->Restore();
 				}
 			}
 
 			ReleaseCriticalSection();
+
+			return DD_OK;
 		}
 
-		return DD_OK;
+		return hr;
 	}
 
 	return ProxyInterface->RestoreAllSurfaces();
@@ -2183,13 +2193,12 @@ HRESULT m_IDirectDrawX::TestCooperativeLevel()
 		switch (d3d9Device->TestCooperativeLevel())
 		{
 		case D3DERR_INVALIDCALL:
-			return DDERR_WRONGMODE;
-		case D3DERR_DEVICENOTRESET:
-			ReinitDevice();
-			[[fallthrough]];
 		case D3DERR_DRIVERINTERNALERROR:
-		case D3DERR_DEVICELOST:
+			return DDERR_WRONGMODE;
 		case DDERR_NOEXCLUSIVEMODE:
+			return DDERR_NOEXCLUSIVEMODE;
+		case D3DERR_DEVICENOTRESET:
+		case D3DERR_DEVICELOST:
 		case D3D_OK:
 		default:
 			return DD_OK;
@@ -2693,7 +2702,7 @@ void m_IDirectDrawX::GetSurfaceDisplay(DWORD& Width, DWORD& Height, DWORD& BPP, 
 		(LastSetHeight && Height && LastSetHeight != Height) ||
 		(LastSetBPP && BPP && LastSetBPP != BPP))
 	{
-		RestoreAllSurfaces();
+		ResetAllSurfaceDisplay();
 	}
 	LastSetWidth = Width;
 	LastSetHeight = Height;
@@ -3258,13 +3267,13 @@ HRESULT m_IDirectDrawX::ReinitDevice()
 	HRESULT hr = d3d9Device->TestCooperativeLevel();
 	if (SUCCEEDED(hr) || hr == DDERR_NOEXCLUSIVEMODE)
 	{
-		return DD_OK;
+		return hr;
 	}
 	else if (hr == D3DERR_DEVICELOST)
 	{
 		return DDERR_SURFACELOST;
 	}
-	else if (hr != D3DERR_DEVICENOTRESET && hr != D3DERR_DRIVERINTERNALERROR)
+	else if (hr != D3DERR_DEVICENOTRESET)
 	{
 		LOG_LIMIT(100, __FUNCTION__ << " Error: TestCooperativeLevel = " << (D3DERR)hr);
 		return DDERR_GENERIC;
@@ -3309,8 +3318,23 @@ HRESULT m_IDirectDrawX::ReinitDevice()
 	ReleasePTCriticalSection();
 	ReleaseCriticalSection();
 
-	// Success
+	// Return
 	return hr;
+}
+
+inline void m_IDirectDrawX::ResetAllSurfaceDisplay()
+{
+	SetCriticalSection();
+
+	for (m_IDirectDrawX*& pDDraw : DDrawVector)
+	{
+		for (m_IDirectDrawSurfaceX*& pSurface : pDDraw->SurfaceVector)
+		{
+			pSurface->ResetSurfaceDisplay();
+		}
+	}
+
+	ReleaseCriticalSection();
 }
 
 // Release all dd9 resources
@@ -4102,31 +4126,32 @@ HRESULT m_IDirectDrawX::Present(RECT* pSourceRect, RECT* pDestRect)
 	if (!IsUsingThreadPresent())
 	{
 		hr = d3d9Device->Present(pSourceRect, pDestRect, nullptr, nullptr);
+		hr = (hr == D3DERR_DEVICELOST) ? D3DERR_DEVICENOTRESET : hr;
 	}
 	else
 	{
-		HRESULT ret = TestCooperativeLevel();
-		hr = (ret == D3DERR_DEVICELOST || ret == D3DERR_DEVICENOTRESET || ret == D3DERR_DRIVERINTERNALERROR || ret == D3DERR_INVALIDCALL) ? ret : DD_OK;
+		hr = d3d9Device->TestCooperativeLevel();
+		hr = (hr == DDERR_NOEXCLUSIVEMODE) ? DD_OK : hr;
 	}
 
 	// Device lost
-	if (hr == D3DERR_DEVICELOST)
+	if (hr == D3DERR_DEVICENOTRESET)
 	{
 		// Attempt to reinit device
 		hr = ReinitDevice();
 	}
-	else if (FAILED(hr))
+
+	// Present failure
+	if (FAILED(hr))
 	{
-		LOG_LIMIT(100, __FUNCTION__ << " Error: failed to present scene");
+		LOG_LIMIT(100, __FUNCTION__ << " Error: failed to present scene: " << (DDERR)hr);
+		return hr;
 	}
 
 	// Store new click time after frame draw is complete
-	if (SUCCEEDED(hr))
-	{
-		QueryPerformanceCounter(&Counter.LastPresentTime);
-	}
+	QueryPerformanceCounter(&Counter.LastPresentTime);
 
-	return hr;
+	return DD_OK;
 }
 
 DWORD GetDDrawBitsPixel(HWND hWnd)
