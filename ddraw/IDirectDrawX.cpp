@@ -1616,7 +1616,6 @@ HRESULT m_IDirectDrawX::SetCooperativeLevel(HWND hWnd, DWORD dwFlags, DWORD Dire
 
 		HWND LasthWnd = DisplayMode.hWnd;
 		bool LastFPUPreserve = Device.FPUPreserve;
-		bool LastNoWindowChanges = Device.NoWindowChanges;
 		bool LastExclusiveMode = ExclusiveMode;
 
 		// Set windowed mode
@@ -1686,7 +1685,7 @@ HRESULT m_IDirectDrawX::SetCooperativeLevel(HWND hWnd, DWORD dwFlags, DWORD Dire
 
 			// Reset if mode was changed
 			if ((d3d9Device || LastUsedHWnd == DisplayMode.hWnd) &&
-				(LastExclusiveMode != ExclusiveMode || LasthWnd != DisplayMode.hWnd || LastFPUPreserve != Device.FPUPreserve || LastNoWindowChanges != Device.NoWindowChanges))
+				(LastExclusiveMode != ExclusiveMode || LasthWnd != DisplayMode.hWnd || LastFPUPreserve != Device.FPUPreserve))
 			{
 				CreateD3D9Device();
 			}
@@ -2980,8 +2979,7 @@ HRESULT m_IDirectDrawX::CreateD3D9Device()
 		// Set behavior flags
 		BehaviorFlags = (d3dcaps.VertexProcessingCaps ? D3DCREATE_HARDWARE_VERTEXPROCESSING : D3DCREATE_SOFTWARE_VERTEXPROCESSING) |
 			D3DCREATE_MULTITHREADED |
-			(Device.FPUPreserve ? D3DCREATE_FPU_PRESERVE : 0) |
-			(Device.NoWindowChanges ? D3DCREATE_NOWINDOWCHANGES : 0);
+			(Device.FPUPreserve ? D3DCREATE_FPU_PRESERVE : 0);
 
 		Logging::Log() << __FUNCTION__ << " Direct3D9 device! " <<
 			presParams.BackBufferWidth << "x" << presParams.BackBufferHeight << " refresh: " << presParams.FullScreen_RefreshRateInHz <<
