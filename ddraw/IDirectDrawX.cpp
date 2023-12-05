@@ -201,7 +201,7 @@ HRESULT m_IDirectDrawX::QueryInterface(REFIID riid, LPVOID FAR * ppvObj, DWORD D
 	if (DirectXVersion != 1 && DirectXVersion != 2 && DirectXVersion != 3 && DirectXVersion != 4 && DirectXVersion != 7)
 	{
 		LOG_LIMIT(100, __FUNCTION__ << " Error: wrapper interface version not found: " << DirectXVersion);
-		return DDERR_GENERIC;
+		return E_NOINTERFACE;
 	}
 
 	DWORD DxVersion = (CheckWrapperType(riid) && (Config.Dd7to9 || Config.ConvertToDirectDraw7)) ? GetGUIDVersion(riid) : DirectXVersion;
@@ -242,11 +242,11 @@ HRESULT m_IDirectDrawX::QueryInterface(REFIID riid, LPVOID FAR * ppvObj, DWORD D
 		}
 		if (riid == IID_IDirectDrawColorControl)
 		{
-			return CreateColorInterface(ppvObj);
+			return SUCCEEDED(CreateColorInterface(ppvObj)) ? DD_OK : E_NOINTERFACE;
 		}
 		if (riid == IID_IDirectDrawGammaControl)
 		{
-			return CreateGammaInterface(ppvObj);
+			return SUCCEEDED(CreateGammaInterface(ppvObj)) ? DD_OK : E_NOINTERFACE;
 		}
 	}
 
