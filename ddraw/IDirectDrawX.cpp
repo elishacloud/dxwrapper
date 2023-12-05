@@ -160,6 +160,7 @@ inline void ReleasePTCriticalSection()
 }
 
 // Direct3D9 flags
+bool IsDeviceLost;
 bool EnableWaitVsync;
 
 // Direct3D9 Objects
@@ -2342,6 +2343,7 @@ void m_IDirectDrawX::InitDdraw(DWORD DirectXVersion)
 		QueryPerformanceFrequency(&Counter.Frequency);
 
 		// Direct3D9 flags
+		IsDeviceLost = false;
 		EnableWaitVsync = false;
 
 		// Direct3D9 Objects
@@ -2524,7 +2526,7 @@ void m_IDirectDrawX::ReleaseDdraw()
 	// Release surfaces
 	for (m_IDirectDrawSurfaceX*& pSurface : SurfaceVector)
 	{
-		pSurface->ReleaseD9Surface(false);
+		pSurface->ReleaseD9Surface(false, false);
 		pSurface->ClearDdraw();
 	}
 	SurfaceVector.clear();
@@ -3027,6 +3029,7 @@ HRESULT m_IDirectDrawX::CreateD3D9Device()
 
 		// Reset flags after creating device
 		LastUsedHWnd = hWnd;
+		IsDeviceLost = false;
 		EnableWaitVsync = false;
 		FourCCsList.clear();
 
@@ -3267,6 +3270,8 @@ HRESULT m_IDirectDrawX::ReinitDevice()
 		return DDERR_GENERIC;
 	}
 
+	IsDeviceLost = true;
+
 	SetCriticalSection();
 	SetPTCriticalSection();
 
@@ -3329,7 +3334,7 @@ inline void m_IDirectDrawX::ReleaseAllD9Surfaces(bool BackupData)
 	{
 		for (m_IDirectDrawSurfaceX*& pSurface : pDDraw->SurfaceVector)
 		{
-			pSurface->ReleaseD9Surface(BackupData);
+			pSurface->ReleaseD9Surface(BackupData, IsDeviceLost);
 		}
 	}
 }
@@ -3441,7 +3446,7 @@ void m_IDirectDrawX::EvictManagedTextures()
 	{
 		if (pSurface->IsSurfaceManaged())
 		{
-			pSurface->ReleaseD9Surface(true);
+			pSurface->ReleaseD9Surface(true, false);
 		}
 	}
 

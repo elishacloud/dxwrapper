@@ -77,6 +77,8 @@ private:
 	struct D9SURFACE
 	{
 		bool IsUsingWindowedMode = false;
+		bool IsSurfaceLost = false;
+		bool SurfaceHasData = false;
 		bool IsDirtyFlag = false;
 		bool IsPaletteDirty = false;						// Used to detect if the palette surface needs to be updated
 		DWORD LastPaletteUSN = 0;							// The USN that was used last time the palette was updated
@@ -193,7 +195,7 @@ private:
 	HRESULT CheckBackBufferForFlip(m_IDirectDrawSurfaceX* lpTargetSurface);
 
 	// Direct3D9 interface functions
-	HRESULT CheckInterface(char *FunctionName, bool CheckD3DDevice, bool CheckD3DSurface);
+	HRESULT CheckInterface(char* FunctionName, bool CheckD3DDevice, bool CheckD3DSurface, bool CheckLostSurface);
 	HRESULT CreateD3d9Surface();
 	bool DoesDCMatch(EMUSURFACE* pEmuSurface);
 	void SetEmulationGameDC();
@@ -383,7 +385,7 @@ public:
 	inline void ClearDdraw() { ddrawParent = nullptr; }
 
 	// Direct3D9 interface functions
-	void ReleaseD9Surface(bool BackupData);
+	void ReleaseD9Surface(bool BackupData, bool DeviceLost);
 	HRESULT PresentSurface(bool isSkipScene);
 	void ResetSurfaceDisplay();
 
