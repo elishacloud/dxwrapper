@@ -2156,14 +2156,14 @@ HRESULT m_IDirectDrawSurfaceX::Lock2(LPRECT lpDestRect, LPDDSURFACEDESC2 lpDDSur
 		}
 
 		// If primary surface and palette surface and created via Lock() then mark as created by lock to emulate surface (eg. Diablo)
-		if (IsPrimarySurface() && CreatedBy == SC_NOT_CREATED && surfaceDesc2.dwFlags == DDSD_CAPS)
+		if (IsPrimarySurface() && ShouldEmulate == SC_NOT_CREATED && surfaceDesc2.dwFlags == DDSD_CAPS)
 		{
 			UpdateSurfaceDesc();
 
 			if (surfaceDesc2.ddpfPixelFormat.dwRGBBitCount == 8 && (surfaceDesc2.ddsCaps.dwCaps & DDSCAPS_VIDEOMEMORY) &&
 				surfaceDesc2.dwBackBufferCount == 0 && (surfaceDesc2.ddsCaps.dwCaps & DDSCAPS_FLIP) == 0)
 			{
-				CreatedBy = SC_FORCE_EMULATED;
+				ShouldEmulate = SC_FORCE_EMULATED;
 			}
 		}
 
@@ -2178,7 +2178,7 @@ HRESULT m_IDirectDrawSurfaceX::Lock2(LPRECT lpDestRect, LPDDSURFACEDESC2 lpDDSur
 		}
 
 		// Return error for CheckInterface after preparing surfaceDesc
-		if (FAILED(c_hr) && !IsUsingEmulation())
+		if (FAILED(c_hr))
 		{
 			return c_hr;
 		}
@@ -3605,7 +3605,7 @@ HRESULT m_IDirectDrawSurfaceX::CreateD3d9Surface()
 	surfaceFormat = GetDisplayFormat(surfaceDesc2.ddpfPixelFormat);
 	surfaceBitCount = GetBitCount(surfaceFormat);
 	SurfaceRequiresEmulation = ((surfaceFormat == D3DFMT_A8B8G8R8 || surfaceFormat == D3DFMT_X8B8G8R8 || surfaceFormat == D3DFMT_B8G8R8 || surfaceFormat == D3DFMT_R8G8B8 ||
-		Config.DdrawEmulateSurface || (Config.DdrawRemoveScanlines && IsPrimaryOrBackBuffer()) || CreatedBy == SC_FORCE_EMULATED) &&
+		Config.DdrawEmulateSurface || (Config.DdrawRemoveScanlines && IsPrimaryOrBackBuffer()) || ShouldEmulate == SC_FORCE_EMULATED) &&
 			!IsDepthBuffer() && !(surfaceFormat & 0xFF000000 /*FOURCC or D3DFMT_DXTx*/));
 	const bool IsSurfaceEmulated = (SurfaceRequiresEmulation || (IsPrimaryOrBackBuffer() && (Config.DdrawWriteToGDI || Config.DdrawReadFromGDI) && !IsDirect3DEnabled));
 	DCRequiresEmulation = (surfaceFormat != D3DFMT_R5G6B5 && surfaceFormat != D3DFMT_X1R5G5B5 && surfaceFormat != D3DFMT_R8G8B8 && surfaceFormat != D3DFMT_X8R8G8B8);
@@ -3621,7 +3621,7 @@ HRESULT m_IDirectDrawSurfaceX::CreateD3d9Surface()
 	const DWORD Height = surfaceDesc2.dwHeight;
 
 	// Set created by
-	CreatedBy = (CreatedBy == SC_NOT_CREATED) ? SC_DONT_FORCE : CreatedBy;
+	ShouldEmulate = (ShouldEmulate == SC_NOT_CREATED) ? SC_DONT_FORCE : ShouldEmulate;
 
 	Logging::LogDebug() << __FUNCTION__ " (" << this << ") D3d9 Surface. Size: " << Width << "x" << Height << " Format: " << surfaceFormat << " dwCaps: " << Logging::hex(surfaceDesc2.ddsCaps.dwCaps);
 

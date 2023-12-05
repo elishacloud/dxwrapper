@@ -133,7 +133,7 @@ private:
 	DDRAWEMULATELOCK EmuLock;							// For aligning bits after a lock for games that hard code the pitch
 	std::vector<byte> ByteArray;						// Memory used for coping from one surface to the same surface
 	std::vector<byte> Backup;							// Memory used for backing up the surfaceTexture
-	SURFACECREATE CreatedBy = SC_NOT_CREATED;			// Used to help determine if surface should be emulated
+	SURFACECREATE ShouldEmulate = SC_NOT_CREATED;		// Used to help determine if surface should be emulated
 
 	// Extra Direct3D9 devices used in the primary surface
 	D9PRIMARY primary;
