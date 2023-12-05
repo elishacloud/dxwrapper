@@ -2086,6 +2086,12 @@ HRESULT m_IDirectDrawSurfaceX::IsLost()
 
 	if (Config.Dd7to9)
 	{
+		// Check surface lost flag
+		if (surface.IsSurfaceLost)
+		{
+			return DDERR_SURFACELOST;
+		}
+
 		// Check for device interface
 		HRESULT c_hr = CheckInterface(__FUNCTION__, true, false, true);
 		if (FAILED(c_hr))
@@ -2093,20 +2099,8 @@ HRESULT m_IDirectDrawSurfaceX::IsLost()
 			return c_hr;
 		}
 
-		// Check device status
-		switch ((*d3d9Device)->TestCooperativeLevel())
-		{
-		case D3D_OK:
-		case DDERR_NOEXCLUSIVEMODE:
-			return DD_OK;
-		case D3DERR_DEVICELOST:
-		case D3DERR_DEVICENOTRESET:
-			return DDERR_SURFACELOST;
-		case D3DERR_DRIVERINTERNALERROR:
-		case D3DERR_INVALIDCALL:
-		default:
-			return DDERR_GENERIC;
-		}
+		// Return
+		return DD_OK;
 	}
 
 	return ProxyInterface->IsLost();
@@ -2496,10 +2490,17 @@ HRESULT m_IDirectDrawSurfaceX::Restore()
 		{
 		case D3D_OK:
 		case DDERR_NOEXCLUSIVEMODE:
+			if (surface.IsSurfaceLost)
+			{
+				surface.IsSurfaceLost = false;
+				surface.SurfaceHasData = false;
+			}
 			return DD_OK;
 		case D3DERR_DEVICENOTRESET:
 			if (SUCCEEDED(ddrawParent->ReinitDevice()))
 			{
+				surface.IsSurfaceLost = false;
+				surface.SurfaceHasData = false;
 				return DD_OK;
 			}
 			[[fallthrough]];
