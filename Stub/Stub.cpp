@@ -160,6 +160,7 @@ inline void LoadDxWrapper(HMODULE hModule)
 
 void LoadRealDLL()
 {
+#if (_WIN32_WINNT >= 0x0502)
 	// Get wrapper mode
 	const char *RealWrapperMode = Wrapper::GetWrapperName((WrapperMode.size()) ? WrapperMode.c_str() : WrapperName.c_str());
 
@@ -178,6 +179,7 @@ void LoadRealDLL()
 	}
 	// Start normal wrapper
 	else
+#endif
 	{
 		proxy_dll = Wrapper::CreateWrapper((RealDllPath.size()) ? RealDllPath.c_str() : nullptr, (WrapperMode.size()) ? WrapperMode.c_str() : nullptr, WrapperName.c_str());
 	}
