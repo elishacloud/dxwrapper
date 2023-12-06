@@ -15,8 +15,8 @@
 #include "winmm.h"
 #include "DllMain.h"
 #include "Dllmain\Dllmain.h"
-//#include <timeapi.h>
 //********** End Edit ***************
+#include <timeapi.h>
 #include <ShellScalingApi.h>
 #include <Uxtheme.h>
 

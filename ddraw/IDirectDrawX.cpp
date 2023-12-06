@@ -1968,7 +1968,7 @@ HRESULT m_IDirectDrawX::WaitForVerticalBlank(DWORD dwFlags, HANDLE hEvent)
 			// Use raster status for vertical blank begin (uses high CPU)
 			else while (SUCCEEDED(d3d9Device->GetRasterStatus(0, &RasterStatus)) && !RasterStatus.InVBlank)
 			{
-				Sleep(0);
+				Utils::BusyWaitYield();
 			}
 			// Exit if just waiting for vertical blank begin
 			if (dwFlags == DDWAITVB_BLOCKBEGIN)
@@ -1978,7 +1978,7 @@ HRESULT m_IDirectDrawX::WaitForVerticalBlank(DWORD dwFlags, HANDLE hEvent)
 			// Use raster status for vertical blank end (uses high CPU)
 			while (SUCCEEDED(d3d9Device->GetRasterStatus(0, &RasterStatus)) && RasterStatus.InVBlank)
 			{
-				Sleep(0);
+				Utils::BusyWaitYield();
 			}
 			return DD_OK;
 		case DDWAITVB_BLOCKBEGINEVENT:

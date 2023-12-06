@@ -19,6 +19,7 @@
 #include <Shlwapi.h>
 #include "Settings\Settings.h"
 #include "Wrappers\wrapper.h"
+#include "winmm.h"
 #include "External\Hooking\Hook.h"
 #ifdef DDRAWCOMPAT
 #include "DDrawCompat\DDrawCompatExternal.h"
@@ -537,6 +538,12 @@ bool APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 		if (Config.LoadPlugins)
 		{
 			Utils::LoadPlugins();
+		}
+
+		// Set timer
+		if (!Config.Dd7to9 && !Config.DDrawCompat)
+		{
+			timeBeginPeriod(1);
 		}
 
 		// Start fullscreen thread

@@ -1,6 +1,28 @@
 #pragma once
 
-#include <MMSystem.h>
+#define WIN32_LEAN_AND_MEAN
+#include <Windows.h>
+
+#ifndef _INC_MMSYSTEM
+#define _INC_MMSYSTEM
+#endif
+
+#ifndef _LPCWAVEFORMATEX_DEFINED
+#define _LPCWAVEFORMATEX_DEFINED
+typedef struct tWAVEFORMATEX
+{
+	WORD        wFormatTag;         /* format type */
+	WORD        nChannels;          /* number of channels (i.e. mono, stereo...) */
+	DWORD       nSamplesPerSec;     /* sample rate */
+	DWORD       nAvgBytesPerSec;    /* for buffer estimation */
+	WORD        nBlockAlign;        /* block size of data */
+	WORD        wBitsPerSample;     /* number of bits per sample of mono data */
+	WORD        cbSize;             /* the count in bytes of the size of */
+	/* extra information (after cbSize) */
+} WAVEFORMATEX, * PWAVEFORMATEX, NEAR* NPWAVEFORMATEX, FAR* LPWAVEFORMATEX;
+typedef const WAVEFORMATEX FAR* LPCWAVEFORMATEX;
+#endif
+
 #include <dsound.h>
 #include "Wrappers\wrapper.h"
 

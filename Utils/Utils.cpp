@@ -629,11 +629,20 @@ void Utils::DDrawResolutionHack(HMODULE hD3DIm)
 	}
 }
 
+void Utils::BusyWaitYield()
+{
+#if (_WIN32_WINNT >= 0x0502)
+	YieldProcessor();
+#else
+	Sleep(0);
+#endif
+}
+
 void Utils::CheckMessageQueue(HWND hwnd)
 {
 	// Peek messages to help prevent a "Not Responding" window
 	MSG msg = {};
-	if (PeekMessage(&msg, hwnd, 0, 0, PM_NOREMOVE)) { Sleep(0); };
+	if (PeekMessage(&msg, hwnd, 0, 0, PM_NOREMOVE)) { BusyWaitYield(); };
 }
 
 void Utils::GetScreenSettings()

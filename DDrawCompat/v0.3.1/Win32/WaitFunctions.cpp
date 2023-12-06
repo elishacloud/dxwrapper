@@ -2,9 +2,7 @@
 #define CINTERFACE
 
 #include <Windows.h>
-//********** Begin Edit *************
-//#include <timeapi.h>
-//********** End Edit ***************
+#include <timeapi.h>
 
 #include <DDrawCompat/v0.3.1/Common/Hook.h>
 #include <DDrawCompat/v0.3.1/Common/Time.h>

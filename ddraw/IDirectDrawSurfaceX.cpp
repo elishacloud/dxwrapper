@@ -534,7 +534,7 @@ HRESULT m_IDirectDrawSurfaceX::Blt(LPRECT lpDestRect, LPDIRECTDRAWSURFACE7 lpDDS
 				// Wait for lock from other thread
 				while (IsLockedFromOtherThread() || lpDDSrcSurfaceX->IsLockedFromOtherThread())
 				{
-					Sleep(0);
+					Utils::BusyWaitYield();
 					if (!surface.Texture && !surface.Surface)
 					{
 						break;
@@ -1326,7 +1326,7 @@ HRESULT m_IDirectDrawSurfaceX::Flip(LPDIRECTDRAWSURFACE7 lpDDSurfaceTargetOverri
 				// Wait for locks from other threads
 				while (FlipSurfacesAreLockedFromOtherThread())
 				{
-					Sleep(0);
+					Utils::BusyWaitYield();
 				}
 			}
 
@@ -2222,7 +2222,7 @@ HRESULT m_IDirectDrawSurfaceX::Lock2(LPRECT lpDestRect, LPDDSURFACEDESC2 lpDDSur
 				// Wait for lock from other thread
 				while (IsLockedFromOtherThread())
 				{
-					Sleep(0);
+					Utils::BusyWaitYield();
 					if (!surface.Texture && !surface.Surface)
 					{
 						break;
