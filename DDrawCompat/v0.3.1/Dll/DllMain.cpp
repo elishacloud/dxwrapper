@@ -197,42 +197,9 @@ namespace Compat31
 		static_cast<decltype(&proc)>(&directDrawFunc<&Dll::Procs::proc, decltype(&proc)>), \
 		#proc);
 
+	//********** Begin Edit *************
 	void InstallDd7to9Hooks()
 	{
-		Dll::g_currentModule = hModule_dll;
-
-		auto processPath(Compat31::getModulePath(nullptr));
-
-		auto currentDllPath(Compat31::getModulePath(hModule_dll));
-
-		auto systemPath(Compat31::getSystemPath());
-
-		Dll::g_origDDrawModule = LoadLibraryW(L"ddraw.dll");
-
-		Dll::pinModule(Dll::g_origDDrawModule);
-		Dll::pinModule(Dll::g_currentModule);
-
-		HMODULE hModule = nullptr;
-		GetModuleHandleEx(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT, (LPCTSTR)DDrawCompat::DirectDrawCreate_out, &hModule);
-		if (hModule == Dll::g_origDDrawModule)
-		{
-			VISIT_DDRAW_PROCS(LOAD_NEW_PROC);
-		}
-		else
-		{
-			HMODULE origModule = Dll::g_origDDrawModule;
-			VISIT_DDRAW_PROCS(LOAD_ORIG_PROC);
-		}
-
-		Dll::g_origDciman32Module = LoadLibraryW((systemPath / "dciman32.dll").c_str());
-		if (Dll::g_origDciman32Module)
-		{
-			HMODULE origModule = Dll::g_origDciman32Module;
-			VISIT_DCIMAN32_PROCS(LOAD_ORIG_PROC);
-		}
-
-		Dll::g_jmpTargetProcs = Dll::g_origProcs;
-
 		timeBeginPeriod(1);
 		Win32::MemoryManagement::installHooks();
 		Win32::MsgHooks::installHooks();
@@ -245,6 +212,7 @@ namespace Compat31
 		Win32::WaitFunctions::installHooks();
 		Compat31::closeDbgEng();
 	}
+	//********** End Edit ***************
 
 	BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpvReserved)
 	{

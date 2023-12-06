@@ -47,7 +47,13 @@ namespace
 		EnumDisplaySettingsExFunc origEnumDisplaySettingsEx,
 		CStr lpszDeviceName, DevMode* lpDevMode, HWND hwnd, DWORD dwflags, LPVOID lParam)
 	{
-		DDraw::ScopedThreadLock lock;
+		//********** Begin Edit *************
+		if (!Config.Dd7to9)
+		{
+			DDraw::ScopedThreadLock lock;
+		}
+		//********** End Edit ***************
+
 		DevMode prevDevMode = {};
 		if (!(dwflags & CDS_TEST))
 		{
@@ -96,7 +102,12 @@ namespace
 				CloseHandle(dwmDxFullScreenTransitionEvent);
 			}
 
-			Gdi::VirtualScreen::update();
+			//********** Begin Edit *************
+			if (!Config.Dd7to9)
+			{
+				Gdi::VirtualScreen::update();
+			}
+			//********** End Edit ***************
 		}
 
 		return result;

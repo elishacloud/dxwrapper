@@ -404,15 +404,11 @@ bool APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 				DdrawWrapper::Direct3DCreate9_out = GetProcAddress(d3d9_dll, "Direct3DCreate9");
 			}
 
-			// Add DDrawCompat to the chain
 #ifdef DDRAWCOMPAT
+			// Add DDrawCompat to the chain
 			if (Config.Dd7to9)
 			{
-				using namespace ddraw;
-				using namespace DDrawCompat;
-				DDrawCompat::Prepare();
-				VISIT_PROCS_DDRAW(SHIM_WRAPPED_PROC);
-				VISIT_PROCS_DDRAW_SHARED(SHIM_WRAPPED_PROC);
+				// Skip loading DDrawCompat procs
 			}
 			else if (Config.DDrawCompat)
 			{
@@ -435,8 +431,8 @@ bool APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 				VISIT_PROCS_DDRAW_SHARED(SHIM_WRAPPED_PROC);
 			}
 
-			// Start DDrawCompat
 #ifdef DDRAWCOMPAT
+			// Start DDrawCompat
 			if (Config.Dd7to9)
 			{
 				DDrawCompat::InstallDd7to9Hooks();
@@ -602,8 +598,8 @@ bool APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 			DxWndEndHook();
 		}
 
-		// Unload and Unhook DDrawCompat
 #ifdef DDRAWCOMPAT
+		// Unload and Unhook DDrawCompat
 		if (DDrawCompat::IsEnabled())
 		{
 			DDrawCompat::Start(nullptr, DLL_PROCESS_DETACH);

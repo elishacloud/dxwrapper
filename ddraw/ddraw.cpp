@@ -22,9 +22,6 @@
 
 #include "ddraw.h"
 #include "ddrawExternal.h"
-#ifdef DDRAWCOMPAT
-#include "DDrawCompat\DDrawCompatExternal.h"
-#endif
 #include "Dllmain\Dllmain.h"
 #include "IClassFactory\IClassFactory.h"
 #include "d3d9\d3d9External.h"
