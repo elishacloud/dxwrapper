@@ -48,7 +48,7 @@ namespace
 		CStr lpszDeviceName, DevMode* lpDevMode, HWND hwnd, DWORD dwflags, LPVOID lParam)
 	{
 		//********** Begin Edit *************
-		if (!Config.Dd7to9)
+		if (DDrawCompat::IsEnabled())
 		{
 			DDraw::ScopedThreadLock lock;
 		}
@@ -103,7 +103,7 @@ namespace
 			}
 
 			//********** Begin Edit *************
-			if (!Config.Dd7to9)
+			if (DDrawCompat::IsEnabled())
 			{
 				Gdi::VirtualScreen::update();
 			}
@@ -321,7 +321,7 @@ namespace Win32
 			HOOK_FUNCTION(user32, EnumDisplaySettingsExW, enumDisplaySettingsExW);
 
 			//********** Begin Edit *************
-			if (!Config.Dd7to9)
+			if (DDrawCompat::IsEnabled())
 			{
 				HOOK_FUNCTION(gdi32, GetDeviceCaps, getDeviceCaps);
 			}

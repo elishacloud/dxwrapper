@@ -200,17 +200,23 @@ namespace Compat31
 	//********** Begin Edit *************
 	void InstallDd7to9Hooks()
 	{
-		timeBeginPeriod(1);
-		Win32::MemoryManagement::installHooks();
-		Win32::MsgHooks::installHooks();
-		Time::init();
-		Compat31::Log() << "Installing display mode hooks";
-		Win32::DisplayMode::installHooks();
-		Compat31::Log() << "Installing registry hooks";
-		Win32::Registry::installHooks();
-		Compat31::Log() << "Installing Win32 hooks";
-		Win32::WaitFunctions::installHooks();
-		Compat31::closeDbgEng();
+		static bool RunOnce = true;
+		if (RunOnce && !DDrawCompat::IsEnabled())
+		{
+			Time::init();
+			Compat31::Log() << "Installing memory management hooks";
+			Win32::MemoryManagement::installHooks();
+			Compat31::Log() << "Installing messaging hooks";
+			Win32::MsgHooks::installHooks();
+			Compat31::Log() << "Installing display mode hooks";
+			Win32::DisplayMode::installHooks();
+			Compat31::Log() << "Installing registry hooks";
+			Win32::Registry::installHooks();
+			Compat31::Log() << "Installing Win32 hooks";
+			Win32::WaitFunctions::installHooks();
+			Compat31::closeDbgEng();
+			RunOnce = false;
+		}
 	}
 	//********** End Edit ***************
 

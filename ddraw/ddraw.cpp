@@ -63,6 +63,7 @@ void InitDDraw()
 	static bool RunOnce = true;
 	if (RunOnce)
 	{
+		Logging::Log() << "Installing GDI & User32 hooks";
 		using namespace GdiWrapper;
 		GetDeviceCaps_out = (FARPROC)Hook::HotPatch(Hook::GetProcAddress(LoadLibrary("gdi32.dll"), "GetDeviceCaps"), "GetDeviceCaps", gdi_GetDeviceCaps);
 		CreateWindowExA_out = (FARPROC)Hook::HotPatch(Hook::GetProcAddress(LoadLibrary("user32.dll"), "CreateWindowExA"), "CreateWindowExA", user_CreateWindowExA);
