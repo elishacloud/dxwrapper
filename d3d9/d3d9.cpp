@@ -12,10 +12,13 @@
 *   2. Altered source versions must  be plainly  marked as such, and  must not be  misrepresented  as
 *      being the original software.
 *   3. This notice may not be removed or altered from any source distribution.
+* 
+* Code for 'Direct3D9SetSwapEffectUpgradeShim' taken from here:  https://github.com/crosire/reshade/commit/3fe0b050706fb9f3510ed48d619cad71f7cb28f2
 */
 
 #include "d3d9.h"
 #include "d3d9External.h"
+#include "External\Hooking\Hook.h"
 
 namespace D3d9Wrapper
 {
@@ -38,6 +41,30 @@ HMODULE GetSystemD3d9()
 	}
 
 	return h_d3d9;
+}
+
+FARPROC GetD3d9UnnamedOrdinal(WORD Ordinal)
+{
+	FARPROC proc = nullptr;
+
+	HMODULE dll = GetSystemD3d9();
+	if (!dll)
+	{
+		Logging::Log() << __FUNCTION__ << " System32 d3d9.dll is not loaded!";
+		return nullptr;
+	}
+
+	proc = GetProcAddress(dll, reinterpret_cast<LPCSTR>(Ordinal));
+
+	bool FuncNameExists = Hook::CheckExportAddress(dll, proc);
+
+	if (!proc || FuncNameExists)
+	{
+		Logging::Log() << __FUNCTION__ << " cannot find unnamed ordinal '" << Ordinal << "' in System32 d3d9.dll!";
+		return nullptr;
+	}
+
+	return proc;
 }
 
 int WINAPI d9_D3DPERF_BeginEvent(D3DCOLOR col, LPCWSTR wszName)
@@ -138,32 +165,44 @@ void WINAPI d9_D3DPERF_SetRegion(D3DCOLOR col, LPCWSTR wszName)
 	return D3DPERF_SetRegion(col, wszName);
 }
 
-void SetGraphicsHybridAdapter(UINT Mode)
+void WINAPI Direct3D9ForceHybridEnumeration(UINT Mode)
 {
-	static Direct3D9ForceHybridEnumerationProc Direct3D9ForceHybridEnumeration = nullptr;
+	const WORD Ordinal = 16;
 
-	if (!Direct3D9ForceHybridEnumeration)
+	static FARPROC proc = nullptr;
+	if (!proc)
 	{
-		HMODULE dll = GetSystemD3d9();
+		proc = GetD3d9UnnamedOrdinal(Ordinal);
 
-		if (!dll)
+		if (!proc)
 		{
-			Logging::Log() << __FUNCTION__ << " d3d9.dll is not loaded!";
-			return;
-		}
-
-		// Get Direct3D9ForceHybridEnumeration address
-		Direct3D9ForceHybridEnumeration = (Direct3D9ForceHybridEnumerationProc)GetProcAddress(dll, reinterpret_cast<LPCSTR>(16));
-
-		if (!Direct3D9ForceHybridEnumeration)
-		{
-			Logging::Log() << __FUNCTION__ << " Error: Failed to get `Direct3D9ForceHybridEnumeration` address!";
 			return;
 		}
 	}
 
 	Logging::Log() << __FUNCTION__ << " Calling 'Direct3D9ForceHybridEnumeration' ... " << Mode;
-	Direct3D9ForceHybridEnumeration(Mode);
+
+	reinterpret_cast<decltype(&Direct3D9ForceHybridEnumeration)>(proc)(Mode);
+}
+
+void WINAPI Direct3D9SetSwapEffectUpgradeShim(int Unknown)
+{
+	const WORD Ordinal = 18;
+
+	static FARPROC proc = nullptr;
+	if (!proc)
+	{
+		proc = GetD3d9UnnamedOrdinal(Ordinal);
+
+		if (!proc)
+		{
+			return;
+		}
+	}
+
+	Logging::Log() << __FUNCTION__ << " Calling 'Direct3D9SetSwapEffectUpgradeShim' ... " << Unknown;
+
+	reinterpret_cast<decltype(&Direct3D9SetSwapEffectUpgradeShim)>(proc)(Unknown);
 }
 
 bool Direct3D9DisableMaximizedWindowedMode()
@@ -213,6 +252,7 @@ bool Direct3D9DisableMaximizedWindowedMode()
 
 	// Launch function to disable Maximized Windowed Mode
 	Logging::Log() << __FUNCTION__ << " Disabling MaximizedWindowedMode for Direct3D9! Ret = " << (void*)Direct3D9EnableMaximizedWindowedModeShim(0);
+
 	return true;
 }
 
@@ -240,7 +280,7 @@ IDirect3D9* WINAPI d9_Direct3DCreate9(UINT SDKVersion)
 
 	if (Config.GraphicsHybridAdapter)
 	{
-		SetGraphicsHybridAdapter(Config.GraphicsHybridAdapter);
+		Direct3D9ForceHybridEnumeration(Config.GraphicsHybridAdapter);
 	}
 
 	// Disable MaxWindowedMode
@@ -286,7 +326,7 @@ HRESULT WINAPI d9_Direct3DCreate9Ex(UINT SDKVersion, IDirect3D9Ex** ppD3D)
 
 	if (Config.GraphicsHybridAdapter)
 	{
-		SetGraphicsHybridAdapter(Config.GraphicsHybridAdapter);
+		Direct3D9ForceHybridEnumeration(Config.GraphicsHybridAdapter);
 	}
 
 	// Disable MaxWindowedMode
@@ -320,7 +360,7 @@ IDirect3D9* WINAPI d9_Direct3DCreate9On12(UINT SDKVersion, D3D9ON12_ARGS* pOverr
 
 	if (Config.GraphicsHybridAdapter)
 	{
-		SetGraphicsHybridAdapter(Config.GraphicsHybridAdapter);
+		Direct3D9ForceHybridEnumeration(Config.GraphicsHybridAdapter);
 	}
 
 	// Disable MaxWindowedMode
@@ -360,7 +400,7 @@ HRESULT WINAPI d9_Direct3DCreate9On12Ex(UINT SDKVersion, D3D9ON12_ARGS* pOverrid
 
 	if (Config.GraphicsHybridAdapter)
 	{
-		SetGraphicsHybridAdapter(Config.GraphicsHybridAdapter);
+		Direct3D9ForceHybridEnumeration(Config.GraphicsHybridAdapter);
 	}
 
 	// Disable MaxWindowedMode

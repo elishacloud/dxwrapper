@@ -29,7 +29,6 @@ typedef BOOL(WINAPI* D3DPERF_QueryRepeatFrameProc)();
 typedef void(WINAPI* D3DPERF_SetMarkerProc)(D3DCOLOR, LPCWSTR);
 typedef void(WINAPI* D3DPERF_SetOptionsProc)(DWORD);
 typedef void(WINAPI* D3DPERF_SetRegionProc)(D3DCOLOR, LPCWSTR);
-typedef void(WINAPI* Direct3D9ForceHybridEnumerationProc)(UINT Mode);
 typedef int(WINAPI* Direct3D9EnableMaximizedWindowedModeShimProc)(BOOL);
 typedef IDirect3D9* (WINAPI* Direct3DCreate9Proc)(UINT);
 typedef HRESULT(WINAPI* Direct3DCreate9ExProc)(UINT, IDirect3D9Ex**);

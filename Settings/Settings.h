@@ -53,6 +53,7 @@
 	visit(DinputHookSystem32) \
 	visit(Dinput8HookSystem32) \
 	visit(DsoundHookSystem32) \
+	visit(D3d9DisableSwapEffectShim) \
 	visit(DisableGameUX) \
 	visit(DisableHighDPIScaling) \
 	visit(DisableLogging) \
@@ -238,6 +239,7 @@ struct CONFIG
 	bool DisableGameUX = false;					// Disables the Microsoft Game Explorer which can sometimes cause high CPU in rundll32.exe and hang the game process
 	bool DisableHighDPIScaling = false;			// Disables display scaling on high DPI settings
 	bool DisableLogging = false;				// Disables the logging file
+	bool D3d9DisableSwapEffectShim = false;		// Disables the call to d3d9.dll 'Direct3D9SetSwapEffectUpgradeShim' to switch present mode
 	bool DxWnd = false;							// Enables DxWnd https://sourceforge.net/projects/dxwnd/
 	DWORD CacheClipPlane = 0;					// Caches the ClipPlane for Direct3D9 to fix an issue in d3d9 on Windows 8 and newer
 	bool ConvertToDirectDraw7 = false;			// Converts DirectDraw 1-6 to DirectDraw 7

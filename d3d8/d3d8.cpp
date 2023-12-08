@@ -161,7 +161,7 @@ HRESULT WINAPI d8_ValidateVertexShader(const DWORD* pVertexShader, const DWORD* 
 	return hr;
 }
 
-BOOL Direct3D8DisableMaximizedWindowedMode()
+bool Direct3D8DisableMaximizedWindowedMode()
 {
 	static Direct3D8EnableMaximizedWindowedModeShimProc Direct3D8EnableMaximizedWindowedModeShim = nullptr;
 
@@ -173,7 +173,7 @@ BOOL Direct3D8DisableMaximizedWindowedMode()
 		if (!dll)
 		{
 			Logging::Log() << __FUNCTION__ << " d3d8.dll is not loaded!";
-			return FALSE;
+			return false;
 		}
 
 		// Get function address
@@ -181,14 +181,14 @@ BOOL Direct3D8DisableMaximizedWindowedMode()
 		if (!addr)
 		{
 			Logging::Log() << __FUNCTION__ << " Error: Failed to get `Direct3D8EnableMaximizedWindowedModeShim` address!";
-			return FALSE;
+			return false;
 		}
 
 		// Check memory address
 		if (addr[0] != 0xC7 || addr[1] != 0x05 || *(DWORD*)(addr + 6) != 1)
 		{
 			Logging::Log() << __FUNCTION__ << " Error: Failed to vaidate memory address!";
-			return FALSE;
+			return false;
 		}
 
 		// Update function to disable Maximized Windowed Mode
@@ -197,7 +197,7 @@ BOOL Direct3D8DisableMaximizedWindowedMode()
 		if (ret == 0)
 		{
 			Logging::Log() << __FUNCTION__ << " Error: Failed to VirtualProtect memory!";
-			return FALSE;
+			return false;
 		}
 		*(DWORD*)(addr + 6) = 0;
 		VirtualProtect((LPVOID)(addr + 6), 4, Protect, &Protect);
@@ -208,7 +208,8 @@ BOOL Direct3D8DisableMaximizedWindowedMode()
 
 	// Launch function to disable Maximized Windowed Mode
 	Logging::Log() << __FUNCTION__ << " Disabling MaximizedWindowedMode for Direct3D8! Ret = " << (void*)Direct3D8EnableMaximizedWindowedModeShim(0);
-	return TRUE;
+
+	return true;
 }
 
 Direct3D8 *WINAPI d8_Direct3DCreate8(UINT SDKVersion)
@@ -218,6 +219,11 @@ Direct3D8 *WINAPI d8_Direct3DCreate8(UINT SDKVersion)
 	if (!Config.D3d8to9)
 	{
 		return nullptr;
+	}
+	
+	if (!Config.D3d9DisableSwapEffectShim)
+	{
+		Direct3D9SetSwapEffectUpgradeShim(0);
 	}
 
 	LOG_ONCE("Starting D3d8to9 v" << APP_VERSION);
