@@ -2503,7 +2503,6 @@ HRESULT m_IDirectDrawSurfaceX::Restore()
 			}
 			return hr;
 		case DDERR_SURFACELOST:
-			surface.IsSurfaceLost = true;
 			return DDERR_SURFACELOST;
 		default:
 			return DDERR_WRONGMODE;
@@ -3537,11 +3536,10 @@ HRESULT m_IDirectDrawSurfaceX::CheckInterface(char *FunctionName, bool CheckD3DD
 			case D3DERR_DEVICENOTRESET:
 				if (SUCCEEDED(ddrawParent->ReinitDevice()))
 				{
-					return DDERR_SURFACELOST;
+					break;
 				}
 				[[fallthrough]];
 			case D3DERR_DEVICELOST:
-				surface.IsSurfaceLost = true;
 				return DDERR_SURFACELOST;
 			default:
 				LOG_LIMIT(100, FunctionName << " Error: TestCooperativeLevel = " << (D3DERR)hr);
