@@ -197,14 +197,14 @@ bool APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 		// Get config settings
 		GetConfig(hModule);
 
+		// Load the real dll
+		LoadRealDLL();
+
 		// Load DxWrapper
 		if (!StubOnly)
 		{
 			LoadDxWrapper(hModule);
 		}
-
-		// Load the real dll
-		LoadRealDLL();
 	}
 	break;
 	case DLL_PROCESS_DETACH:
