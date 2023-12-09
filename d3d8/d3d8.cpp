@@ -221,9 +221,9 @@ Direct3D8 *WINAPI d8_Direct3DCreate8(UINT SDKVersion)
 		return nullptr;
 	}
 	
-	if (!Config.D3d9DisableSwapEffectShim)
+	if (Config.SetSwapEffectShim < 2)
 	{
-		Direct3D9SetSwapEffectUpgradeShim(0);
+		Direct3D9SetSwapEffectUpgradeShim(Config.SetSwapEffectShim);
 	}
 
 	LOG_ONCE("Starting D3d8to9 v" << APP_VERSION);

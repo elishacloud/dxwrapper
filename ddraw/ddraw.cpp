@@ -410,9 +410,9 @@ HRESULT WINAPI dd_DirectDrawCreateEx(GUID FAR *lpGUID, LPVOID *lplpDD, REFIID ri
 			return DDERR_INVALIDPARAMS;
 		}
 
-		if (!Config.D3d9DisableSwapEffectShim)
+		if (Config.SetSwapEffectShim < 2)
 		{
-			Direct3D9SetSwapEffectUpgradeShim(0);
+			Direct3D9SetSwapEffectUpgradeShim(Config.SetSwapEffectShim);
 		}
 
 		DWORD DxVersion = GetGUIDVersion(riid);
