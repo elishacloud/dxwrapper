@@ -532,13 +532,13 @@ bool APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 			Utils::LoadPlugins();
 		}
 
-#ifdef DDRAWCOMPAT
 		// Set timer
-		if (!DDrawCompat::IsEnabled())
+		if (!Config.DDrawCompat)
 		{
 			timeBeginPeriod(1);
 		}
 
+#ifdef DDRAWCOMPAT
 		// Extra compatibility hooks from DDrawCompat
 		if (!DDrawCompat::IsEnabled() && (Config.Dd7to9 || Config.D3d8to9))
 		{
