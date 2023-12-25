@@ -44,7 +44,7 @@ So far I have tested this with hundreds of games (many of which  don't otherwise
 ### Installation
 
 1. Download the latest binary release from the repository's [Release](https://github.com/elishacloud/dxwrapper/releases) page and unzip it to a folder.
-2. Determine which .dll file is needed for the game.  This depends on many factors which will be explained on page created later.  Most commonly it is `ddraw.dll`, `dsound.dll` or `winmm.dll`.
+2. Determine which stub .dll file is needed for the game.  This depends on many factors which will be explained on page created later.  Common stub dll's to use are `ddraw.dll`, `d3d8.dll`, `d3d9.dll`, `dsound.dll` or `winmm.dll`.  You only need to choose one stub file to load dxwrapper into the game.
 3. Copy this .dll file from the 'Stub' folder plus the `dxwrapper.dll` and `dxwrapper.ini` files into the game's installation directory, next to the main executable file.  For some games the main executable is in a subdirectory (like 'Bin', 'Exe' or 'App') so the files will need to be copied it into that directory.  Overwriting of any existing game files is not recommended.
 4. Open up the `dxwrapper.ini` file in a text editor and enable the settings needed for the game.
 
