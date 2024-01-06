@@ -14,5 +14,5 @@
 	visit(SystemFunction041, jmpaddr)
 
 #ifdef PROC_CLASS
-PROC_CLASS(cryptbase, dll, VISIT_PROCS_CRYPTBASE, VISIT_PROCS_BLANK)
+PROC_CLASS(cryptbase, dll, VISIT_PROCS_CRYPTBASE, VISIT_PROCS_BLANK, VISIT_PROCS_BLANK)
 #endif

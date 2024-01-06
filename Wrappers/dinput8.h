@@ -17,5 +17,5 @@
 	visit(DllUnregisterServer, DllUnregisterServer_dinput8, jmpaddr)
 
 #ifdef PROC_CLASS
-PROC_CLASS(dinput8, dll, VISIT_PROCS_DINPUT8, VISIT_SHARED_DINPUT8_PROCS)
+PROC_CLASS(dinput8, dll, VISIT_PROCS_DINPUT8, VISIT_SHARED_DINPUT8_PROCS, VISIT_PROCS_BLANK)
 #endif

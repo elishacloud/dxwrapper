@@ -41,6 +41,9 @@
 	} \
 	volatile FARPROC procName ## _funct = (FARPROC)*procName_shared;
 
+#define	CREATE_PROC_STUB_ORDINALS(procName, num, prodAddr) \
+	CREATE_PROC_STUB(procName, prodAddr)
+
 #define	LOAD_ORIGINAL_PROC(procName, unused) \
 	{ \
 		FARPROC prodAddr = GetProcAddress(dll, #procName); \
@@ -61,13 +64,25 @@
 #define	STORE_ORIGINAL_PROC_SHARED(procName, unused, unused_2) \
 	STORE_ORIGINAL_PROC(procName, unused)
 
-#define PROC_CLASS(className, Extension, VISIT_PROCS, VISIT_PROCS_SHARED) \
+#define	LOAD_PROC_ORDINALS(procName, num) \
+	{ \
+		FARPROC prodAddr = GetProcAddress(dll, reinterpret_cast<LPCSTR>(num)); \
+		if (prodAddr) \
+		{ \
+			procName ## _var = prodAddr; \
+		} \
+	}
+#define	LOAD_PROC_STUB_ORDINALS(procName, num, prodAddr) \
+	LOAD_PROC_ORDINALS(procName, num)
+
+#define PROC_CLASS(className, Extension, VISIT_PROCS, VISIT_PROCS_SHARED, VISIT_PROCS_ORDINALS) \
 	namespace className \
 	{ \
 		using namespace Wrapper; \
 		char *Name = #className ## "." ## #Extension; \
 		VISIT_PROCS(CREATE_PROC_STUB); \
 		VISIT_PROCS_SHARED(CREATE_PROC_STUB_SHARED); \
+		VISIT_PROCS_ORDINALS(CREATE_PROC_STUB_ORDINALS); \
 		HMODULE Load(const char *ProxyDll, const char *MyDllName) \
 		{ \
 			char path[MAX_PATH]; \
@@ -99,6 +114,7 @@
 			{ \
 				VISIT_PROCS(LOAD_ORIGINAL_PROC); \
 				VISIT_PROCS_SHARED(LOAD_ORIGINAL_PROC_SHARED); \
+				VISIT_PROCS_ORDINALS(LOAD_PROC_STUB_ORDINALS); \
 			} \
 			else \
 			{ \
@@ -111,6 +127,7 @@
 			wrapper_map tmpMap; \
 			VISIT_PROCS(STORE_ORIGINAL_PROC); \
 			VISIT_PROCS_SHARED(STORE_ORIGINAL_PROC_SHARED); \
+			VISIT_PROCS_ORDINALS(STORE_ORIGINAL_PROC_SHARED); \
 		} \
 	}
 
@@ -221,7 +238,13 @@ bool Wrapper::CheckWrapperName(const char *WrapperMode)
 
 HMODULE Wrapper::CreateWrapper(const char *ProxyDll, const char *WrapperMode, const char *MyDllName)
 {
+#ifdef XLIVE_STUB
+	UNREFERENCED_PARAMETER(WrapperMode);
+	using namespace xlive;
+	HMODULE dll = Load(ProxyDll, MyDllName);
+#else
 	HMODULE dll = GetWrapperType(ProxyDll, WrapperMode, MyDllName);
+#endif
 
 	if (dll)
 	{
