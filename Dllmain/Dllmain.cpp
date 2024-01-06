@@ -130,11 +130,32 @@ bool APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 		// Init logs
 		Logging::EnableLogging = !Config.DisableLogging;
 		Logging::InitLog();
+		bool IsRunningFromMemory = false;
 		Logging::Log() << "Starting DxWrapper v" << APP_VERSION;
 		{
-			char path[MAX_PATH];
-			GetModuleFileName(hModule, path, MAX_PATH);
-			Logging::Log() << "Running from: " << path;
+			char path[MAX_PATH] = {};
+			SetLastError(0);
+			DWORD size = GetModuleFileName(hModule, path, MAX_PATH);
+			DWORD errorCode = GetLastError();
+			if (errorCode == ERROR_INSUFFICIENT_BUFFER)
+			{
+				Logging::Log() << "Warning: folder path is too long!";
+			}
+			else if (errorCode != ERROR_SUCCESS || size == NULL)
+			{
+				Logging::Log() << "Error: getting module name!";
+			}
+
+			// Check if it is loading from a file
+			if (PathFileExists(path))
+			{
+				Logging::Log() << "Running from: " << path;
+			}
+			else
+			{
+				IsRunningFromMemory = true;
+				Logging::Log() << "Module is running from MEMORY!";
+			}
 		}
 		Config.SetConfig();			// Finish setting up config
 		Logging::LogComputerManufacturer();
@@ -189,11 +210,8 @@ bool APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 		// Attach real dll
 		if (Config.RealWrapperMode == dtype.dxwrapper)
 		{
-			char path[MAX_PATH] = { 0 };
-			GetModuleFileName(hModule, path, MAX_PATH);
-
 			// Hook GetModuleFileName to fix module name in modules loaded from memory
-			if (!PathFileExists(path))
+			if (IsRunningFromMemory)
 			{
 				HMODULE dll = LoadLibrary("kernel32.dll");
 				if (dll)

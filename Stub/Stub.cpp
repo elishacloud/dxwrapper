@@ -19,7 +19,9 @@
 #include <fstream>
 #include "stub.h"
 #include "..\Settings\ReadParse.h"
+#if (_WIN32_WINNT >= 0x0502)
 #include "..\External\MemoryModule\MemoryModule.h"
+#endif
 #include "..\Wrappers\wrapper.h"
 #include "..\External\Hooking\Hook.h"
 
@@ -29,7 +31,6 @@ std::string RealDllPath;			// Manually set Dll to wrap
 std::string WrapperMode;			// Name of dxwrapper
 
 std::string WrapperName;
-HMEMORYMODULE m_wrapper_dll = nullptr;
 HMODULE wrapper_dll = nullptr;
 HMODULE proxy_dll = nullptr;
 
@@ -113,6 +114,7 @@ inline void LoadDxWrapper(HMODULE hModule)
 	{
 		// Already loaded
 	}
+#if (_WIN32_WINNT >= 0x0502)
 	// Use MemoryModule to load dxwrapper
 	else if (LoadFromMemory)
 	{
@@ -129,24 +131,23 @@ inline void LoadDxWrapper(HMODULE hModule)
 			myfile.read(&memblock[0], size);
 
 			// Load library into memory
-			m_wrapper_dll = MemoryLoadLibrary(&memblock[0], size);
+			wrapper_dll = (HMODULE)MemoryLoadLibrary(&memblock[0], size);
 		}
 
 		// Close the file
 		myfile.close();
 	}
+#endif
 	// Load dxwrapper normally
 	else
 	{
 		wrapper_dll = LoadLibrary(path);
 	}
 
-	HMODULE DxWrapperDll = (wrapper_dll) ? wrapper_dll : (HMODULE)m_wrapper_dll;
-
 	// Check if DxWrapper is loaded
-	if (DxWrapperDll)
+	if (wrapper_dll)
 	{
-		DxWrapperSettingsProc DxWrapperSettings = (DxWrapperSettingsProc)Hook::GetProcAddress(DxWrapperDll, "DxWrapperSettings");
+		DxWrapperSettingsProc DxWrapperSettings = (DxWrapperSettingsProc)Hook::GetProcAddress(wrapper_dll, "DxWrapperSettings");
 		if (DxWrapperSettings)
 		{
 			DxWrapperSettings(&DxSettings);
@@ -160,7 +161,6 @@ inline void LoadDxWrapper(HMODULE hModule)
 
 void LoadRealDLL()
 {
-#if (_WIN32_WINNT >= 0x0502)
 	// Get wrapper mode
 	const char *RealWrapperMode = Wrapper::GetWrapperName((WrapperMode.size()) ? WrapperMode.c_str() : WrapperName.c_str());
 
@@ -179,7 +179,6 @@ void LoadRealDLL()
 	}
 	// Start normal wrapper
 	else
-#endif
 	{
 		proxy_dll = Wrapper::CreateWrapper((RealDllPath.size()) ? RealDllPath.c_str() : nullptr, (WrapperMode.size()) ? WrapperMode.c_str() : nullptr, WrapperName.c_str());
 	}
