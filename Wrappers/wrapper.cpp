@@ -23,8 +23,8 @@
 
 #define VISIT_PROCS_BLANK(visit)
 
-#define CREATE_PROC_STUB(procName, prodAddr) \
-	volatile FARPROC procName ## _var = prodAddr; \
+#define CREATE_PROC_STUB(procName, unused) \
+	volatile FARPROC procName ## _var = nullptr; \
 	extern "C" __declspec(naked) void __stdcall procName() \
 	{ \
 		__asm mov edi, edi \
@@ -32,8 +32,8 @@
 	} \
 	volatile FARPROC procName ## _funct = (FARPROC)*procName;
 
-#define CREATE_PROC_STUB_SHARED(procName, procName_shared, prodAddr) \
-	volatile FARPROC procName ## _var = prodAddr; \
+#define CREATE_PROC_STUB_SHARED(procName, procName_shared, unused) \
+	volatile FARPROC procName ## _var = nullptr; \
 	extern "C" __declspec(naked) void __stdcall procName_shared() \
 	{ \
 		__asm mov edi, edi \
@@ -44,17 +44,21 @@
 #define	CREATE_PROC_STUB_ORDINALS(procName, num, prodAddr) \
 	CREATE_PROC_STUB(procName, prodAddr)
 
-#define	LOAD_ORIGINAL_PROC(procName, unused) \
+#define	LOAD_ORIGINAL_PROC(procName, prodAddr) \
 	{ \
-		FARPROC prodAddr = GetProcAddress(dll, #procName); \
-		if (prodAddr) \
+		FARPROC pAddr = GetProcAddress(dll, #procName); \
+		if (pAddr) \
+		{ \
+			procName ## _var = pAddr; \
+		} \
+		else \
 		{ \
 			procName ## _var = prodAddr; \
 		} \
 	}
 
-#define	LOAD_ORIGINAL_PROC_SHARED(procName, unused, unused_2) \
-	LOAD_ORIGINAL_PROC(procName, unused)
+#define	LOAD_ORIGINAL_PROC_SHARED(procName, unused, prodAddr) \
+	LOAD_ORIGINAL_PROC(procName, prodAddr)
 
 #define	STORE_ORIGINAL_PROC(procName, unused) \
 	tmpMap.Proc = procName ## _funct; \
