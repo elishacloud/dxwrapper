@@ -7,11 +7,6 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "dxwrapper", "dxwrapper.vcxp
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "stub", "Stub\stub.vcxproj", "{E204DCB3-D122-4F2E-88A8-89AC22CE3274}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "XLive", "Stub\XLive.vcxproj", "{15B74C45-107B-4A31-A452-888A582F93A8}"
-	ProjectSection(ProjectDependencies) = postProject
-		{E204DCB3-D122-4F2E-88A8-89AC22CE3274} = {E204DCB3-D122-4F2E-88A8-89AC22CE3274}
-	EndProjectSection
-EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Win32 = Debug|Win32
@@ -31,12 +26,6 @@ Global
 		{E204DCB3-D122-4F2E-88A8-89AC22CE3274}.Release_xp|Win32.Build.0 = Release_xp|Win32
 		{E204DCB3-D122-4F2E-88A8-89AC22CE3274}.Release|Win32.ActiveCfg = Release|Win32
 		{E204DCB3-D122-4F2E-88A8-89AC22CE3274}.Release|Win32.Build.0 = Release|Win32
-		{15B74C45-107B-4A31-A452-888A582F93A8}.Debug|Win32.ActiveCfg = Debug|Win32
-		{15B74C45-107B-4A31-A452-888A582F93A8}.Debug|Win32.Build.0 = Debug|Win32
-		{15B74C45-107B-4A31-A452-888A582F93A8}.Release_xp|Win32.ActiveCfg = Release_xp|Win32
-		{15B74C45-107B-4A31-A452-888A582F93A8}.Release_xp|Win32.Build.0 = Release_xp|Win32
-		{15B74C45-107B-4A31-A452-888A582F93A8}.Release|Win32.ActiveCfg = Release|Win32
-		{15B74C45-107B-4A31-A452-888A582F93A8}.Release|Win32.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

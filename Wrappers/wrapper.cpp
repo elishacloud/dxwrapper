@@ -238,13 +238,7 @@ bool Wrapper::CheckWrapperName(const char *WrapperMode)
 
 HMODULE Wrapper::CreateWrapper(const char *ProxyDll, const char *WrapperMode, const char *MyDllName)
 {
-#ifdef XLIVE_STUB
-	UNREFERENCED_PARAMETER(WrapperMode);
-	using namespace xlive;
-	HMODULE dll = Load(ProxyDll, MyDllName);
-#else
 	HMODULE dll = GetWrapperType(ProxyDll, WrapperMode, MyDllName);
-#endif
 
 	if (dll)
 	{

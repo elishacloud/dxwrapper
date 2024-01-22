@@ -86,15 +86,6 @@ typedef void(WINAPI *DxWrapperSettingsProc)(DXWAPPERSETTINGS *DxSettings);
 	volatile extern FARPROC procName ## _funct; \
 	volatile extern FARPROC procName ## _var;
 
-#ifdef XLIVE_STUB
-#include "XLive.h"
-namespace xlive
-{
-	VISIT_PROCS_XLIVE_ORDINALS(DECLARE_PROC_VARIABLES_SHARED);
-	HMODULE Load(const char* ProxyDll, const char* MyDllName);
-}
-#endif
-
 namespace ddraw
 {
 	VISIT_PROCS_DDRAW(DECLARE_PROC_VARIABLES);
