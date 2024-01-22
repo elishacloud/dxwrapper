@@ -21,6 +21,16 @@
 #include <fstream>
 #include "Logging\Logging.h"
 
+namespace dsound
+{
+	extern volatile FARPROC GetDeviceID_var;
+}
+namespace ddraw
+{
+	extern volatile FARPROC DirectDrawCreate_var;
+	extern "C" void __stdcall DirectDrawCreate();
+}
+
 #define VISIT_PROCS_BLANK(visit)
 
 #define CREATE_PROC_STUB(procName, unused) \
@@ -116,9 +126,15 @@
 			} \
 			if (dll) \
 			{ \
+				FARPROC DirectDrawCreate_tmp = ddraw::DirectDrawCreate_var; \
 				VISIT_PROCS(LOAD_ORIGINAL_PROC); \
 				VISIT_PROCS_SHARED(LOAD_ORIGINAL_PROC_SHARED); \
 				VISIT_PROCS_ORDINALS(LOAD_PROC_STUB_ORDINALS); \
+				/* Some games hard code ordinal to 9 for DirectDrawCreate */ \
+				if (DirectDrawCreate_tmp != ddraw::DirectDrawCreate_var) \
+				{ \
+					dsound::GetDeviceID_var = (FARPROC)ddraw::DirectDrawCreate; \
+				} \
 			} \
 			else \
 			{ \
