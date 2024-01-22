@@ -15,12 +15,12 @@
 
 std::ostream& operator<<(std::ostream& os, const D3DDDIARG_OPENADAPTER& data)
 {
-	return Compat31::LogStruct(os)
+	return Compat32::LogStruct(os)
 		<< data.hAdapter
 		<< data.Interface
 		<< data.Version
 		<< data.pAdapterCallbacks
-		<< Compat31::out(data.pAdapterFuncs)
+		<< Compat32::out(data.pAdapterFuncs)
 		<< data.DriverVersion;
 }
 
@@ -41,7 +41,7 @@ namespace
 				static std::set<HMODULE> hookedModules;
 				if (hookedModules.find(hModule) == hookedModules.end())
 				{
-					Compat31::Log() << "Hooking user mode display driver: " << Compat31::funcPtrToStr(g_origOpenAdapter);
+					Compat32::Log() << "Hooking user mode display driver: " << Compat32::funcPtrToStr(g_origOpenAdapter);
 					Dll::pinModule(hModule);
 					hookedModules.insert(hModule);
 				}
@@ -70,7 +70,7 @@ namespace D3dDdi
 {
 	void installHooks()
 	{
-		Compat31::hookIatFunction(Dll::g_origDDrawModule, "GetProcAddress", getProcAddress);
+		Compat32::hookIatFunction(Dll::g_origDDrawModule, "GetProcAddress", getProcAddress);
 
 		KernelModeThunks::installHooks();
 	}

@@ -102,7 +102,7 @@ namespace
 		if (hasDisplayDcArg(hdc, params...))
 		{
 			Gdi::CompatDc compatDc(hdc, isReadOnly<origFunc>());
-			Result result = Compat31::g_origFuncPtr<origFunc>(compatDc, replaceDc(params)...);
+			Result result = Compat32::g_origFuncPtr<origFunc>(compatDc, replaceDc(params)...);
 			if (isPositionUpdated<origFunc>() && result)
 			{
 				POINT currentPos = {};
@@ -112,7 +112,7 @@ namespace
 			return LOG_RESULT(result);
 		}
 
-		return LOG_RESULT(Compat31::g_origFuncPtr<origFunc>(hdc, params...));
+		return LOG_RESULT(Compat32::g_origFuncPtr<origFunc>(hdc, params...));
 	}
 
 	template <>
@@ -227,7 +227,7 @@ namespace
 		g_funcName<origFunc> = funcName;
 #endif
 
-		Compat31::hookFunction<origFunc>(moduleName, funcName, &compatGdiDcFunc<origFunc>);
+		Compat32::hookFunction<origFunc>(moduleName, funcName, &compatGdiDcFunc<origFunc>);
 	}
 
 	template <auto origFunc>
@@ -237,7 +237,7 @@ namespace
 		g_funcName<origFunc> = funcName;
 #endif
 
-		Compat31::hookFunction<origFunc>(moduleName, funcName, &compatGdiTextDcFunc<origFunc>);
+		Compat32::hookFunction<origFunc>(moduleName, funcName, &compatGdiTextDcFunc<origFunc>);
 	}
 
 	HWND WINAPI windowFromDc(HDC dc)

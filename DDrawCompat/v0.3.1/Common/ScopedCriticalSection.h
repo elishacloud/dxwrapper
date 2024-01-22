@@ -2,7 +2,7 @@
 
 #include <Windows.h>
 
-namespace Compat31
+namespace Compat32
 {
 	class CriticalSection : public CRITICAL_SECTION
 	{

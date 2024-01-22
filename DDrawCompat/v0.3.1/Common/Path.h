@@ -4,7 +4,7 @@
 
 #include <Windows.h>
 
-namespace Compat31
+namespace Compat32
 {
 	std::filesystem::path getModulePath(HMODULE module);
 	std::filesystem::path getSystemPath();

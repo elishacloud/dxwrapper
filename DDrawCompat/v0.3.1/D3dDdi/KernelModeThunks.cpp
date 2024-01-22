@@ -32,19 +32,19 @@ namespace
 	bool g_dcPaletteOverride = false;
 	AdapterInfo g_gdiAdapterInfo = {};
 	AdapterInfo g_lastOpenAdapterInfo = {};
-	Compat31::SrwLock g_lastOpenAdapterInfoSrwLock;
+	Compat32::SrwLock g_lastOpenAdapterInfoSrwLock;
 	std::string g_lastDDrawCreateDcDevice;
 
 	std::atomic<long long> g_qpcLastVsync = 0;
 	UINT g_vsyncCounter = 0;
 	CONDITION_VARIABLE g_vsyncCounterCv = CONDITION_VARIABLE_INIT;
-	Compat31::SrwLock g_vsyncCounterSrwLock;
+	Compat32::SrwLock g_vsyncCounterSrwLock;
 
 	void waitForVerticalBlank();
 
 	NTSTATUS APIENTRY closeAdapter(const D3DKMT_CLOSEADAPTER* pData)
 	{
-		Compat31::ScopedSrwLockExclusive lock(g_lastOpenAdapterInfoSrwLock);
+		Compat32::ScopedSrwLockExclusive lock(g_lastOpenAdapterInfoSrwLock);
 		if (pData && pData->hAdapter == g_lastOpenAdapterInfo.adapter)
 		{
 			g_lastOpenAdapterInfo = {};
@@ -155,7 +155,7 @@ namespace
 		NTSTATUS result = D3DKMTOpenAdapterFromHdc(pData);
 		if (SUCCEEDED(result))
 		{
-			Compat31::ScopedSrwLockExclusive lock(g_lastOpenAdapterInfoSrwLock);
+			Compat32::ScopedSrwLockExclusive lock(g_lastOpenAdapterInfoSrwLock);
 			g_lastOpenAdapterInfo = getAdapterInfo(*pData);
 		}
 		return LOG_RESULT(result);
@@ -243,7 +243,7 @@ namespace
 			g_qpcLastVsync = Time::queryPerformanceCounter();
 
 			{
-				Compat31::ScopedSrwLockExclusive lock(g_vsyncCounterSrwLock);
+				Compat32::ScopedSrwLockExclusive lock(g_vsyncCounterSrwLock);
 				++g_vsyncCounter;
 			}
 
@@ -257,7 +257,7 @@ namespace
 		D3DKMT_WAITFORVERTICALBLANKEVENT data = {};
 
 		{
-			Compat31::ScopedSrwLockShared lock(g_lastOpenAdapterInfoSrwLock);
+			Compat32::ScopedSrwLockShared lock(g_lastOpenAdapterInfoSrwLock);
 			data.hAdapter = g_lastOpenAdapterInfo.adapter;
 			data.VidPnSourceId = g_lastOpenAdapterInfo.vidPnSourceId;
 		}
@@ -311,18 +311,18 @@ namespace D3dDdi
 
 		UINT getVsyncCounter()
 		{
-			Compat31::ScopedSrwLockShared lock(g_vsyncCounterSrwLock);
+			Compat32::ScopedSrwLockShared lock(g_vsyncCounterSrwLock);
 			return g_vsyncCounter;
 		}
 
 		void installHooks()
 		{
-			Compat31::hookIatFunction(Dll::g_origDDrawModule, "CreateDCA", ddrawCreateDcA);
-			Compat31::hookIatFunction(Dll::g_origDDrawModule, "D3DKMTCloseAdapter", closeAdapter);
-			Compat31::hookIatFunction(Dll::g_origDDrawModule, "D3DKMTCreateDCFromMemory", createDcFromMemory);
-			Compat31::hookIatFunction(Dll::g_origDDrawModule, "D3DKMTOpenAdapterFromHdc", openAdapterFromHdc);
-			Compat31::hookIatFunction(Dll::g_origDDrawModule, "D3DKMTQueryAdapterInfo", queryAdapterInfo);
-			Compat31::hookIatFunction(Dll::g_origDDrawModule, "D3DKMTSetGammaRamp", setGammaRamp);
+			Compat32::hookIatFunction(Dll::g_origDDrawModule, "CreateDCA", ddrawCreateDcA);
+			Compat32::hookIatFunction(Dll::g_origDDrawModule, "D3DKMTCloseAdapter", closeAdapter);
+			Compat32::hookIatFunction(Dll::g_origDDrawModule, "D3DKMTCreateDCFromMemory", createDcFromMemory);
+			Compat32::hookIatFunction(Dll::g_origDDrawModule, "D3DKMTOpenAdapterFromHdc", openAdapterFromHdc);
+			Compat32::hookIatFunction(Dll::g_origDDrawModule, "D3DKMTQueryAdapterInfo", queryAdapterInfo);
+			Compat32::hookIatFunction(Dll::g_origDDrawModule, "D3DKMTSetGammaRamp", setGammaRamp);
 
 			Dll::createThread(&vsyncThreadProc, nullptr, THREAD_PRIORITY_TIME_CRITICAL);
 		}
@@ -345,7 +345,7 @@ namespace D3dDdi
 		bool waitForVsyncCounter(UINT counter)
 		{
 			bool waited = false;
-			Compat31::ScopedSrwLockShared lock(g_vsyncCounterSrwLock);
+			Compat32::ScopedSrwLockShared lock(g_vsyncCounterSrwLock);
 			while (static_cast<INT>(g_vsyncCounter - counter) < 0)
 			{
 				SleepConditionVariableSRW(&g_vsyncCounterCv, &g_vsyncCounterSrwLock, INFINITE,

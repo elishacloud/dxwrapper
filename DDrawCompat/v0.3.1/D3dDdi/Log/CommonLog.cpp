@@ -8,7 +8,7 @@
 
 std::ostream& operator<<(std::ostream& os, const D3DDDI_RATIONAL& val)
 {
-	return Compat31::LogStruct(os)
+	return Compat32::LogStruct(os)
 		<< val.Numerator
 		<< val.Denominator;
 }

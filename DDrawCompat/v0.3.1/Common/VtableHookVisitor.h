@@ -58,8 +58,8 @@ public:
 			{
 #ifdef DEBUGLOGS
 				s_funcName<memberPtr> = s_vtableTypeName + "::" + funcName;
-				Compat31::Log() << "Hooking function: " << s_funcName<memberPtr>
-					<< " (" << Compat31::funcPtrToStr(m_vtable.*memberPtr) << ')';
+				Compat32::Log() << "Hooking function: " << s_funcName<memberPtr>
+					<< " (" << Compat32::funcPtrToStr(m_vtable.*memberPtr) << ')';
 #endif
 				m_vtable.*memberPtr = &hookFunc<memberPtr>;
 			}

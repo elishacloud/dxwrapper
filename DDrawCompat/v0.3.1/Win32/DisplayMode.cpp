@@ -136,14 +136,14 @@ namespace
 	void disableDwm8And16BitMitigation()
 	{
 		auto user32 = GetModuleHandle("user32");
-		Compat31::removeShim(user32, "ChangeDisplaySettingsA");
-		Compat31::removeShim(user32, "ChangeDisplaySettingsW");
-		Compat31::removeShim(user32, "ChangeDisplaySettingsExA");
-		Compat31::removeShim(user32, "ChangeDisplaySettingsExW");
-		Compat31::removeShim(user32, "EnumDisplaySettingsA");
-		Compat31::removeShim(user32, "EnumDisplaySettingsW");
-		Compat31::removeShim(user32, "EnumDisplaySettingsExA");
-		Compat31::removeShim(user32, "EnumDisplaySettingsExW");
+		Compat32::removeShim(user32, "ChangeDisplaySettingsA");
+		Compat32::removeShim(user32, "ChangeDisplaySettingsW");
+		Compat32::removeShim(user32, "ChangeDisplaySettingsExA");
+		Compat32::removeShim(user32, "ChangeDisplaySettingsExW");
+		Compat32::removeShim(user32, "EnumDisplaySettingsA");
+		Compat32::removeShim(user32, "EnumDisplaySettingsW");
+		Compat32::removeShim(user32, "EnumDisplaySettingsExA");
+		Compat32::removeShim(user32, "EnumDisplaySettingsExW");
 
 		HOOK_FUNCTION(apphelp, DWM8And16Bit_IsShimApplied_CallOut, dwm8And16BitIsShimAppliedCallOut);
 		HOOK_FUNCTION(apphelp, SE_COM_HookInterface, seComHookInterface);

@@ -25,7 +25,7 @@ namespace
 		}
 	};
 
-	Compat31::SrwLock g_srwLock;
+	Compat32::SrwLock g_srwLock;
 	PALETTEENTRY g_defaultPalette[256] = {};
 	PALETTEENTRY g_hardwarePalette[256] = {};
 	PALETTEENTRY g_systemPalette[256] = {};
@@ -83,7 +83,7 @@ namespace
 		BOOL result = CALL_ORIG_FUNC(DeleteObject)(ho);
 		if (result && OBJ_PAL == GetObjectType(ho))
 		{
-			Compat31::ScopedSrwLockExclusive lock(g_srwLock);
+			Compat32::ScopedSrwLockExclusive lock(g_srwLock);
 			g_paletteInfo.erase(static_cast<HPALETTE>(ho));
 		}
 		return result;
@@ -112,7 +112,7 @@ namespace
 			nEntries = 256 - iStartIndex;
 		}
 
-		Compat31::ScopedSrwLockShared lock(g_srwLock);
+		Compat32::ScopedSrwLockShared lock(g_srwLock);
 		std::memcpy(lppe, &g_systemPalette[iStartIndex], nEntries * sizeof(PALETTEENTRY));
 
 		return LOG_RESULT(nEntries);
@@ -125,7 +125,7 @@ namespace
 		{
 			return LOG_RESULT(SYSPAL_ERROR);
 		}
-		Compat31::ScopedSrwLockShared lock(g_srwLock);
+		Compat32::ScopedSrwLockShared lock(g_srwLock);
 		return LOG_RESULT(g_systemPaletteUse);
 	}
 
@@ -143,7 +143,7 @@ namespace
 			PALETTEENTRY entries[256] = {};
 			const UINT count = GetPaletteEntries(palette, 0, 256, entries);
 
-			Compat31::ScopedSrwLockExclusive lock(g_srwLock);
+			Compat32::ScopedSrwLockExclusive lock(g_srwLock);
 			auto& paletteInfo = g_paletteInfo[palette];
 			if (paletteInfo.isRealized)
 			{
@@ -186,7 +186,7 @@ namespace
 		BOOL result = CALL_ORIG_FUNC(ResizePalette)(hpal, n);
 		if (result)
 		{
-			Compat31::ScopedSrwLockExclusive lock(g_srwLock);
+			Compat32::ScopedSrwLockExclusive lock(g_srwLock);
 			g_paletteInfo[hpal].isRealized = false;
 		}
 		return LOG_RESULT(result);
@@ -206,7 +206,7 @@ namespace
 				HWND activeWindow = GetActiveWindow();
 				if (activeWindow == dcWindow || IsChild(activeWindow, dcWindow))
 				{
-					Compat31::ScopedSrwLockExclusive lock(g_srwLock);
+					Compat32::ScopedSrwLockExclusive lock(g_srwLock);
 					g_paletteInfo[hpal].isForeground = true;
 					g_paletteInfo[hpal].isRealized = false;
 				}
@@ -221,7 +221,7 @@ namespace
 		UINT result = CALL_ORIG_FUNC(SetPaletteEntries)(hpal, iStart, cEntries, pPalEntries);
 		if (result)
 		{
-			Compat31::ScopedSrwLockExclusive lock(g_srwLock);
+			Compat32::ScopedSrwLockExclusive lock(g_srwLock);
 			g_paletteInfo[hpal].isRealized = false;
 		}
 		return LOG_RESULT(result);
@@ -235,7 +235,7 @@ namespace
 			return LOG_RESULT(SYSPAL_ERROR);
 		}
 
-		Compat31::ScopedSrwLockExclusive lock(g_srwLock);
+		Compat32::ScopedSrwLockExclusive lock(g_srwLock);
 		if (uUsage == g_systemPaletteUse)
 		{
 			return LOG_RESULT(g_systemPaletteUse);
@@ -274,7 +274,7 @@ namespace
 		BOOL result = CALL_ORIG_FUNC(UnrealizeObject)(h);
 		if (result && OBJ_PAL == GetObjectType(h))
 		{
-			Compat31::ScopedSrwLockExclusive lock(g_srwLock);
+			Compat32::ScopedSrwLockExclusive lock(g_srwLock);
 			g_paletteInfo[static_cast<HPALETTE>(h)].isRealized = false;
 		}
 		return LOG_RESULT(result);
@@ -292,13 +292,13 @@ namespace Gdi
 
 		std::vector<PALETTEENTRY> getHardwarePalette()
 		{
-			Compat31::ScopedSrwLockShared lock(g_srwLock);
+			Compat32::ScopedSrwLockShared lock(g_srwLock);
 			return std::vector<PALETTEENTRY>(g_hardwarePalette, g_hardwarePalette + 256);
 		}
 
 		std::vector<PALETTEENTRY> getSystemPalette()
 		{
-			Compat31::ScopedSrwLockShared lock(g_srwLock);
+			Compat32::ScopedSrwLockShared lock(g_srwLock);
 			return std::vector<PALETTEENTRY>(g_systemPalette, g_systemPalette + 256);
 		}
 
@@ -323,7 +323,7 @@ namespace Gdi
 
 		void setHardwarePalette(PALETTEENTRY* entries)
 		{
-			Compat31::ScopedSrwLockExclusive lock(g_srwLock);
+			Compat32::ScopedSrwLockExclusive lock(g_srwLock);
 			std::memcpy(g_hardwarePalette, entries, sizeof(g_hardwarePalette));
 		}
 	}

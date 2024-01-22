@@ -4,7 +4,7 @@
 
 #define DDRAWCOMPAT_31
 
-namespace Compat31
+namespace Compat32
 {
 	BOOL WINAPI DllMain_DDrawCompat(HINSTANCE, DWORD, LPVOID);
 

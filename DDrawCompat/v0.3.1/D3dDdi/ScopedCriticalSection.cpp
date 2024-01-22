@@ -5,5 +5,5 @@
 
 namespace D3dDdi
 {
-	Compat31::CriticalSection ScopedCriticalSection::s_cs;
+	Compat32::CriticalSection ScopedCriticalSection::s_cs;
 }

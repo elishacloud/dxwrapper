@@ -1,6 +1,6 @@
 #include <DDrawCompat/v0.3.1/Common/Path.h>
 
-namespace Compat31
+namespace Compat32
 {
 	std::filesystem::path getModulePath(HMODULE module)
 	{

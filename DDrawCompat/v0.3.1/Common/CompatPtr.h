@@ -12,7 +12,7 @@ public:
 	template <typename OtherIntf>
 	static CompatPtr from(OtherIntf* other)
 	{
-		return CompatPtr(Compat31::queryInterface<Intf>(other));
+		return CompatPtr(Compat32::queryInterface<Intf>(other));
 	}
 
 	CompatPtr(std::nullptr_t = nullptr)
@@ -25,13 +25,13 @@ public:
 
 	CompatPtr(const CompatPtr& other)
 	{
-		m_intf = Compat31::queryInterface<Intf>(other.get());
+		m_intf = Compat32::queryInterface<Intf>(other.get());
 	}
 
 	template <typename OtherIntf>
 	CompatPtr(const CompatPtr<OtherIntf>& other)
 	{
-		m_intf = Compat31::queryInterface<Intf>(other.get());
+		m_intf = Compat32::queryInterface<Intf>(other.get());
 	}
 
 	~CompatPtr()

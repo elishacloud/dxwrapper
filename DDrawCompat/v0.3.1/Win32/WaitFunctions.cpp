@@ -26,12 +26,12 @@ namespace
 	Result WINAPI mitigatedBusyWaitingFunc(Params... params)
 	{
 		mitigateBusyWaiting();
-		return Compat31::g_origFuncPtr<func>(params...);
+		return Compat32::g_origFuncPtr<func>(params...);
 	}
 }
 
 #define MITIGATE_BUSY_WAITING(module, func) \
-		Compat31::hookFunction<&func>(#module, #func, &mitigatedBusyWaitingFunc<&func>)
+		Compat32::hookFunction<&func>(#module, #func, &mitigatedBusyWaitingFunc<&func>)
 
 namespace Win32
 {
@@ -59,8 +59,8 @@ namespace Win32
 			//MITIGATE_BUSY_WAITING(winmm, timeGetTime);
 			typedef DWORD(WINAPI* PFN_timeGetTime)();
 			HMODULE dll = LoadLibrary("winmm.dll");
-			Compat31::g_origFuncPtr<timeGetTime> = (PFN_timeGetTime)GetProcAddress(dll, "timeGetTime");
-			Compat31::hookFunction(dll, "timeGetTime", reinterpret_cast<void*&>(Compat31::g_origFuncPtr<timeGetTime>), &mitigatedBusyWaitingFunc<&timeGetTime, DWORD>);
+			Compat32::g_origFuncPtr<timeGetTime> = (PFN_timeGetTime)GetProcAddress(dll, "timeGetTime");
+			Compat32::hookFunction(dll, "timeGetTime", reinterpret_cast<void*&>(Compat32::g_origFuncPtr<timeGetTime>), &mitigatedBusyWaitingFunc<&timeGetTime, DWORD>);
 			//********** End Edit ***************
 
 			MITIGATE_BUSY_WAITING(kernel32, WaitForSingleObjectEx);

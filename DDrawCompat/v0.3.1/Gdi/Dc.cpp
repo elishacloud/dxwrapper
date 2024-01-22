@@ -35,7 +35,7 @@ namespace
 
 	typedef std::map<HDC, CompatDc> CompatDcMap;
 
-	Compat31::CriticalSection g_cs;
+	Compat32::CriticalSection g_cs;
 	CompatDcMap g_origDcToCompatDc;
 	std::map<DWORD, Cache> g_threadIdToDcCache;
 
@@ -135,7 +135,7 @@ namespace Gdi
 	{
 		void dllThreadDetach()
 		{
-			Compat31::ScopedCriticalSection lock(g_cs);
+			Compat32::ScopedCriticalSection lock(g_cs);
 			const DWORD threadId = GetCurrentThreadId();
 			auto it = g_origDcToCompatDc.begin();
 			while (it != g_origDcToCompatDc.end())
@@ -164,7 +164,7 @@ namespace Gdi
 			RECT virtualScreenBounds = Gdi::VirtualScreen::getBounds();
 
 			D3dDdi::ScopedCriticalSection driverLock;
-			Compat31::ScopedCriticalSection lock(g_cs);
+			Compat32::ScopedCriticalSection lock(g_cs);
 			auto it = g_origDcToCompatDc.find(origDc);
 			if (it != g_origDcToCompatDc.end())
 			{
@@ -221,7 +221,7 @@ namespace Gdi
 
 		HDC getOrigDc(HDC dc)
 		{
-			Compat31::ScopedCriticalSection lock(g_cs);
+			Compat32::ScopedCriticalSection lock(g_cs);
 			const auto it = std::find_if(g_origDcToCompatDc.begin(), g_origDcToCompatDc.end(),
 				[dc](const CompatDcMap::value_type& compatDc) { return compatDc.second.dc == dc; });
 			return it != g_origDcToCompatDc.end() ? it->first : dc;
@@ -229,7 +229,7 @@ namespace Gdi
 
 		void releaseDc(HDC origDc)
 		{
-			Compat31::ScopedCriticalSection lock(g_cs);
+			Compat32::ScopedCriticalSection lock(g_cs);
 			auto it = g_origDcToCompatDc.find(origDc);
 			if (it == g_origDcToCompatDc.end())
 			{

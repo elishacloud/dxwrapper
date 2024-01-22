@@ -70,7 +70,7 @@ namespace DDraw
 		result = Surface::create(dd, desc, surface, std::move(privateData));
 		if (FAILED(result))
 		{
-			Compat31::Log() << "ERROR: Failed to create the compat primary surface: " << Compat31::hex(result);
+			Compat32::Log() << "ERROR: Failed to create the compat primary surface: " << Compat32::hex(result);
 			RealPrimarySurface::release();
 			return result;
 		}

@@ -43,7 +43,7 @@
 
 HRESULT WINAPI SetAppCompatData(DWORD, DWORD);
 
-namespace Compat31
+namespace Compat32
 {
 	namespace
 	{
@@ -73,13 +73,13 @@ namespace Compat31
 			static bool isAlreadyInstalled = false;
 			if (!isAlreadyInstalled)
 			{
-				Compat31::Log() << "Installing display mode hooks";
+				Compat32::Log() << "Installing display mode hooks";
 				Win32::DisplayMode::installHooks();
-				Compat31::Log() << "Installing registry hooks";
+				Compat32::Log() << "Installing registry hooks";
 				Win32::Registry::installHooks();
-				Compat31::Log() << "Installing Direct3D driver hooks";
+				Compat32::Log() << "Installing Direct3D driver hooks";
 				D3dDdi::installHooks();
-				Compat31::Log() << "Installing Win32 hooks";
+				Compat32::Log() << "Installing Win32 hooks";
 				Win32::WaitFunctions::installHooks();
 
 				Gdi::VirtualScreen::init();
@@ -89,7 +89,7 @@ namespace Compat31
 				CALL_ORIG_PROC(DirectDrawCreateEx)(nullptr, reinterpret_cast<void**>(&dd7.getRef()), IID_IDirectDraw7, nullptr);
 				if (!dd || !dd7)
 				{
-					Compat31::Log() << "ERROR: Failed to create a DirectDraw object for hooking";
+					Compat32::Log() << "ERROR: Failed to create a DirectDraw object for hooking";
 					return;
 				}
 
@@ -102,38 +102,38 @@ namespace Compat31
 				}
 				if (FAILED(result))
 				{
-					Compat31::Log() << "ERROR: Failed to set the cooperative level for hooking: " << Compat31::hex(result);
+					Compat32::Log() << "ERROR: Failed to set the cooperative level for hooking: " << Compat32::hex(result);
 					return;
 				}
 
-				Compat31::Log() << "Installing DirectDraw hooks";
+				Compat32::Log() << "Installing DirectDraw hooks";
 				DDraw::installHooks(dd7);
-				Compat31::Log() << "Installing Direct3D hooks";
+				Compat32::Log() << "Installing Direct3D hooks";
 				Direct3d::installHooks(dd, dd7);
 
 				//********** Begin Edit *************
 				if (!Config.DDrawCompatDisableGDIHook)
 				{
-					Compat31::Log() << "Installing GDI hooks";
+					Compat32::Log() << "Installing GDI hooks";
 					Gdi::installHooks();
 				}
 				//********** End Edit ***************
 
-				Compat31::closeDbgEng();
+				Compat32::closeDbgEng();
 				Gdi::PresentationWindow::startThread();
-				Compat31::Log() << "Finished installing hooks";
+				Compat32::Log() << "Finished installing hooks";
 				isAlreadyInstalled = true;
 			}
 		}
 
 		bool isOtherDDrawWrapperLoaded()
 		{
-			const auto currentDllPath(Compat31::getModulePath(Dll::g_currentModule));
-			const auto ddrawDllPath(Compat31::replaceFilename(currentDllPath, "ddraw.dll"));
-			const auto dciman32DllPath(Compat31::replaceFilename(currentDllPath, "dciman32.dll"));
+			const auto currentDllPath(Compat32::getModulePath(Dll::g_currentModule));
+			const auto ddrawDllPath(Compat32::replaceFilename(currentDllPath, "ddraw.dll"));
+			const auto dciman32DllPath(Compat32::replaceFilename(currentDllPath, "dciman32.dll"));
 
-			return (!Compat31::isEqual(currentDllPath, ddrawDllPath) && GetModuleHandleW(ddrawDllPath.c_str())) ||
-				(!Compat31::isEqual(currentDllPath, dciman32DllPath) && GetModuleHandleW(dciman32DllPath.c_str()));
+			return (!Compat32::isEqual(currentDllPath, ddrawDllPath) && GetModuleHandleW(ddrawDllPath.c_str())) ||
+				(!Compat32::isEqual(currentDllPath, dciman32DllPath) && GetModuleHandleW(dciman32DllPath.c_str()));
 		}
 
 		void printEnvironmentVariable(const char* var)
@@ -145,7 +145,7 @@ namespace Compat31
 				GetEnvironmentVariable(var, &value.front(), size);
 				value.pop_back();
 			}
-			Compat31::Log() << "Environment variable " << var << " = \"" << value << '"';
+			Compat32::Log() << "Environment variable " << var << " = \"" << value << '"';
 		}
 
 		void setDpiAwareness()
@@ -154,7 +154,7 @@ namespace Compat31
 			if (shcore)
 			{
 				auto setProcessDpiAwareness = reinterpret_cast<decltype(&SetProcessDpiAwareness)>(
-					Compat31::getProcAddress(shcore, "SetProcessDpiAwareness"));
+					Compat32::getProcAddress(shcore, "SetProcessDpiAwareness"));
 				if (setProcessDpiAwareness && SUCCEEDED(setProcessDpiAwareness(PROCESS_PER_MONITOR_DPI_AWARE)))
 				{
 					return;
@@ -189,10 +189,10 @@ namespace Compat31
 	//********** End Edit ***************
 
 #define	LOAD_ORIG_PROC(proc) \
-	Dll::g_origProcs.proc = Compat31::getProcAddress(origModule, #proc);
+	Dll::g_origProcs.proc = Compat32::getProcAddress(origModule, #proc);
 
 #define HOOK_DDRAW_PROC(proc) \
-	Compat31::hookFunction( \
+	Compat32::hookFunction( \
 		reinterpret_cast<void*&>(Dll::g_origProcs.proc), \
 		static_cast<decltype(&proc)>(&directDrawFunc<&Dll::Procs::proc, decltype(&proc)>), \
 		#proc);
@@ -204,17 +204,17 @@ namespace Compat31
 		if (RunOnce && !DDrawCompat::IsEnabled())
 		{
 			Time::init();
-			Compat31::Log() << "Installing memory management hooks";
+			Compat32::Log() << "Installing memory management hooks";
 			Win32::MemoryManagement::installHooks();
-			Compat31::Log() << "Installing messaging hooks";
+			Compat32::Log() << "Installing messaging hooks";
 			Win32::MsgHooks::installHooks();
-			Compat31::Log() << "Installing display mode hooks";
+			Compat32::Log() << "Installing display mode hooks";
 			Win32::DisplayMode::installHooks();
-			Compat31::Log() << "Installing registry hooks";
+			Compat32::Log() << "Installing registry hooks";
 			Win32::Registry::installHooks();
-			Compat31::Log() << "Installing Win32 hooks";
+			Compat32::Log() << "Installing Win32 hooks";
 			Win32::WaitFunctions::installHooks();
-			Compat31::closeDbgEng();
+			Compat32::closeDbgEng();
 			RunOnce = false;
 		}
 	}
@@ -240,22 +240,22 @@ namespace Compat31
 			}*/
 			//********** End Edit ***************
 
-			auto processPath(Compat31::getModulePath(nullptr));
+			auto processPath(Compat32::getModulePath(nullptr));
 			//********** Begin Edit *************
-			//Compat31::Log::initLogging(processPath);
+			//Compat32::Log::initLogging(processPath);
 			//********** End Edit ***************
 
-			Compat31::Log() << "Process path: " << processPath.u8string();
+			Compat32::Log() << "Process path: " << processPath.u8string();
 			//********** Begin Edit *************
 			//printEnvironmentVariable("__COMPAT_LAYER");
 			//********** End Edit ***************
-			auto currentDllPath(Compat31::getModulePath(hinstDLL));
-			Compat31::Log() << "Loading DDrawCompat " << (lpvReserved ? "statically" : "dynamically") << " from " << currentDllPath.u8string();
+			auto currentDllPath(Compat32::getModulePath(hinstDLL));
+			Compat32::Log() << "Loading DDrawCompat " << (lpvReserved ? "statically" : "dynamically") << " from " << currentDllPath.u8string();
 
-			auto systemPath(Compat31::getSystemPath());
-			if (Compat31::isEqual(currentDllPath.parent_path(), systemPath))
+			auto systemPath(Compat32::getSystemPath());
+			if (Compat32::isEqual(currentDllPath.parent_path(), systemPath))
 			{
-				Compat31::Log() << "DDrawCompat cannot be installed in the Windows system directory";
+				Compat32::Log() << "DDrawCompat cannot be installed in the Windows system directory";
 				return FALSE;
 			}
 
@@ -310,7 +310,7 @@ namespace Compat31
 			Win32::MemoryManagement::installHooks();
 			Win32::MsgHooks::installHooks();
 			Time::init();
-			Compat31::closeDbgEng();
+			Compat32::closeDbgEng();
 
 			//********** Begin Edit *************
 			if (Config.DisableMaxWindowedModeNotSet)
@@ -320,11 +320,11 @@ namespace Compat31
 			}
 			//********** End Edit ***************
 
-			Compat31::Log() << "DDrawCompat v0.3.1 version loaded successfully";
+			Compat32::Log() << "DDrawCompat v0.3.1 version loaded successfully";
 		}
 		else if (fdwReason == DLL_PROCESS_DETACH)
 		{
-			Compat31::Log() << "DDrawCompat detached successfully";
+			Compat32::Log() << "DDrawCompat detached successfully";
 		}
 		else if (fdwReason == DLL_THREAD_DETACH)
 		{

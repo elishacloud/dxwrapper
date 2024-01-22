@@ -27,7 +27,7 @@ namespace
 		oss << "Checking source color key support: failed (" << reason;
 		if (resultCode)
 		{
-			oss << ": " << Compat31::hex(resultCode);
+			oss << ": " << Compat32::hex(resultCode);
 		}
 		oss << ')';
 

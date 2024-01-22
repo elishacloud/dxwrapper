@@ -60,7 +60,7 @@ namespace Compat21
 	}
 }
 
-namespace Compat31
+namespace Compat32
 {
 	using namespace Logging;
 }
