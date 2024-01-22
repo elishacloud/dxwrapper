@@ -108,7 +108,7 @@ static constexpr DWORD MaxPaletteSize = 256;
 
 inline DWORD ComputePitch(DWORD Width, DWORD BitCount)
 {
-	return ((((Width * BitCount) + 31) & ~31) >> 3);	// Use Surface Stride for pitch
+	return ((((Width * BitCount) + 63) & ~63) >> 3);	// Use Surface Stride for pitch
 }
 
 void ConvertSurfaceDesc(DDSURFACEDESC &Desc, DDSURFACEDESC2 &Desc2);
