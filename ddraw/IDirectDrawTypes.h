@@ -125,6 +125,7 @@ DWORD GetByteAlignedWidth(DWORD Width, DWORD BitCount);
 DWORD GetBitCount(DDPIXELFORMAT ddpfPixelFormat);
 DWORD GetBitCount(D3DFORMAT Format);
 D3DFORMAT ConvertSurfaceFormat(D3DFORMAT Format);
+D3DFORMAT GetFailoverFormat(D3DFORMAT Format);
 D3DFORMAT GetDisplayFormat(DDPIXELFORMAT ddpfPixelFormat);
 void SetPixelDisplayFormat(D3DFORMAT Format, DDPIXELFORMAT &lpPixelFormat);
 HRESULT SetDisplayFormat(DDPIXELFORMAT &ddpfPixelFormat, DWORD BPP);

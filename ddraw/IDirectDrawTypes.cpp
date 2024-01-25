@@ -456,6 +456,27 @@ D3DFORMAT ConvertSurfaceFormat(D3DFORMAT Format)
 		(Format == D3DFMT_A8B8G8R8) ? D3DFMT_A8R8G8B8 : Format;
 }
 
+D3DFORMAT GetFailoverFormat(D3DFORMAT Format)
+{
+	std::vector<std::pair<D3DFORMAT, D3DFORMAT>> FormatVector =
+	{
+		{D3DFMT_X1R5G5B5, D3DFMT_A1R5G5B5},
+		{D3DFMT_X4R4G4B4, D3DFMT_A4R4G4B4},
+		{D3DFMT_X8R8G8B8, D3DFMT_A8R8G8B8},
+		{D3DFMT_X8B8G8R8, D3DFMT_A8B8G8R8},
+	};
+
+	for (const auto& FormatPair : FormatVector)
+	{
+		if (Format == FormatPair.first)
+		{
+			return FormatPair.second;
+		}
+	}
+
+	return Format;
+}
+
 D3DFORMAT GetDisplayFormat(DDPIXELFORMAT ddpfPixelFormat)
 {
 	if (ddpfPixelFormat.dwSize != sizeof(DDPIXELFORMAT))
