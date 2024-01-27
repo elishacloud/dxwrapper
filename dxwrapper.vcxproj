@@ -635,6 +635,7 @@ copy /Y "$(ProjectDir)Resources\dxwnd.exe" "$(TargetDir)Build\" &gt;nul</Command
     <ClCompile Include="External\MemoryModule\MemoryModule.c" />
     <ClCompile Include="GDI\Gdi32.cpp" />
     <ClCompile Include="GDI\User32.cpp" />
+    <ClCompile Include="GDI\WndProc.cpp" />
     <ClCompile Include="IClassFactory\IClassFactory.cpp" />
     <ClCompile Include="Libraries\d3dx9.cpp" />
     <ClCompile Include="libraries\dwmapi.cpp" />
@@ -647,7 +648,6 @@ copy /Y "$(ProjectDir)Resources\dxwnd.exe" "$(TargetDir)Build\" &gt;nul</Command
     <ClCompile Include="Utils\Fullscreen.cpp" />
     <ClCompile Include="Utils\MyStrings.cpp" />
     <ClCompile Include="Utils\Utils.cpp" />
-    <ClCompile Include="Utils\WndProc.cpp" />
     <ClCompile Include="Utils\WriteMemory.cpp" />
     <ClCompile Include="Wrappers\wrapper.cpp" />
   </ItemGroup>

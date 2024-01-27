@@ -204,7 +204,7 @@ HRESULT m_IDirect3D9Ex::CreateDeviceT(D3DPRESENT_PARAMETERS& d3dpp, bool& MultiS
 	// Add WndProc before creating d3d9 device
 	if (EnableWndProcHook)
 	{
-		Utils::WndProc::AddWndProc(DeviceDetails.DeviceWindow);
+		WndProc::AddWndProc(DeviceDetails.DeviceWindow);
 	}
 
 	// Check for AntiAliasing

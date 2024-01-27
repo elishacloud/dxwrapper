@@ -253,7 +253,7 @@ bool APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 		}
 		if (Config.MemoryInfo.size() != 0)
 		{
-			Utils::WriteMemory::WriteMemory();
+			WriteMemory::WriteMemory();
 		}
 		if (Config.DisableHighDPIScaling)
 		{
@@ -567,7 +567,7 @@ bool APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 		// Start fullscreen thread
 		if (Config.FullScreen || Config.ForceTermination)
 		{
-			Utils::Fullscreen::StartThread();
+			Fullscreen::StartThread();
 		}
 
 		// Loaded
@@ -576,7 +576,7 @@ bool APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 	break;
 	case DLL_THREAD_ATTACH:
 		// Check if thread has started
-		if (Config.ForceTermination && Utils::Fullscreen::IsThreadRunning())
+		if (Config.ForceTermination && Fullscreen::IsThreadRunning())
 		{
 			FullscreenThreadStartedFlag = true;
 		}
@@ -585,13 +585,13 @@ bool APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 		if (Config.ForceTermination)
 		{
 			// Check if thread has started
-			if (Utils::Fullscreen::IsThreadRunning())
+			if (Fullscreen::IsThreadRunning())
 			{
 				FullscreenThreadStartedFlag = true;
 			}
 
 			// Check if thread has stopped
-			if (FullscreenThreadStartedFlag && !Utils::Fullscreen::IsThreadRunning())
+			if (FullscreenThreadStartedFlag && !Fullscreen::IsThreadRunning())
 			{
 				Logging::Log() << "Process not exiting, attempting to terminate process...";
 
@@ -613,8 +613,8 @@ bool APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 		Logging::Log() << "Quiting DxWrapper";
 
 		// Stop threads
-		Utils::Fullscreen::StopThread();
-		Utils::WriteMemory::StopThread();
+		Fullscreen::StopThread();
+		WriteMemory::StopThread();
 
 		// Unload and Unhook DxWnd
 		if (Config.DxWnd)

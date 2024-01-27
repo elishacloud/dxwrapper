@@ -18,93 +18,88 @@
 #include <Windows.h>
 #include <algorithm>
 #include "d3d9\d3d9External.h"
-#include "Utils.h"
+#include "GDI.h"
 #include "Settings\Settings.h"
 #include "Logging\Logging.h"
 
-namespace Utils
+namespace WndProc
 {
-	namespace WndProc
+	struct WNDPROCSTRUCT;
+
+	LRESULT CALLBACK Handler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam, WNDPROCSTRUCT* AppWndProcInstance);
+	WNDPROC GetWndProc(HWND hWnd);
+	LONG SetWndProc(HWND hWnd, WNDPROC ProcAddress);
+	LRESULT CallWndProc(WNDPROC lpPrevWndFunc, HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lParam);
+
+	struct WNDPROCSTRUCT
 	{
-		struct WNDPROCSTRUCT;
-
-		LRESULT CALLBACK Handler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam, WNDPROCSTRUCT* AppWndProcInstance);
-		WNDPROC GetWndProc(HWND hWnd);
-		LONG SetWndProc(HWND hWnd, WNDPROC ProcAddress);
-		LRESULT CallWndProc(WNDPROC lpPrevWndFunc, HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lParam);
-
-		struct WNDPROCSTRUCT
-		{
-		private:
-			BYTE FunctCode[38] = {
-				/* LRESULT CALLBACK MyWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
-				*  {
-				*      WndProc(hwnd, msg, wParam, lParam, this);
-				*  } */
-				0x55,								// PUSH EBP
-				0x8B, 0xEC,							// MOV EBP,ESP
-				0x51,								// PUSH ECX
-				0x68, 0x00,0x00,0x00,0x00,			// PUSH DWORD 0x00000000[this]
-				0xFF,0x75, 0x14,					// PUSH DWORD PTR SS:[EBP+14]
-				0xFF,0x75, 0x10,					// PUSH DWORD PTR SS:[EBP+10]
-				0xFF,0x75, 0x0C,					// PUSH DWORD PTR SS:[EBP+0C]
-				0xFF,0x75, 0x08,					// PUSH DWORD PTR SS:[EBP+08]
-				0xE8, 0x00,0x00,0x00,0x00,			// CALL dxwrapper.WndProc
-				0x89,0x45, 0xFC,					// MOV DWORD PTR SS:[EBP-4],EAX
-				0x8B,0x45, 0xFC,					// MOV EAX,DWORD PTR SS:[EBP-4]
-				0x8B,0xE5,							// MOV ESP,EBP
-				0x5D,								// POP EBP
-				0xC2, 0x10,0x00						// RETN
-			};
-			LONG* pFunctVar = (LONG*)&FunctCode[5];
-			int* pFunctCall = (int*)&FunctCode[22];
-			DWORD oldProtect = 0;
-			HWND hWnd = nullptr;
-			WNDPROC MyWndProc = 0;
-			WNDPROC AppWndProc = 0;
-			bool Exiting = false;
-		public:
-			WNDPROCSTRUCT(HWND p_hWnd, WNDPROC p_AppWndProc) : hWnd(p_hWnd), AppWndProc(p_AppWndProc)
-			{
-				// Set memory protection to make it executable
-				if (VirtualProtect(FunctCode, sizeof(FunctCode), PAGE_EXECUTE_READWRITE, &oldProtect))
-				{
-					*pFunctVar = (LONG)this;
-					*pFunctCall = (int)&Handler - ((int)pFunctCall + 4);
-					MyWndProc = reinterpret_cast<WNDPROC>((LONG)FunctCode);
-				}
-			}
-			~WNDPROCSTRUCT()
-			{
-				Exiting = true;
-				if (Config.Exiting)
-				{
-					return;
-				}
-				// Restore the memory protection
-				if (MyWndProc)
-				{
-					DWORD tmpProtect = 0;
-					VirtualProtect(FunctCode, sizeof(FunctCode), oldProtect, &tmpProtect);
-				}
-				// Restore WndProc
-				if (hWnd && AppWndProc)
-				{
-					LOG_LIMIT(100, __FUNCTION__ << " Deleting WndProc instance! " << hWnd);
-					SetWndProc(hWnd, AppWndProc);
-				}
-			}
-			HWND GetHWnd() { return hWnd; }
-			WNDPROC GetMyWndProc() { return MyWndProc; }
-			WNDPROC GetAppWndProc() { return AppWndProc; }
-			bool IsExiting() { return Exiting; }
+	private:
+		BYTE FunctCode[38] = {
+			/* LRESULT CALLBACK MyWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
+			*  {
+			*      WndProc(hwnd, msg, wParam, lParam, this);
+			*  } */
+			0x55,								// PUSH EBP
+			0x8B, 0xEC,							// MOV EBP,ESP
+			0x51,								// PUSH ECX
+			0x68, 0x00,0x00,0x00,0x00,			// PUSH DWORD 0x00000000[this]
+			0xFF,0x75, 0x14,					// PUSH DWORD PTR SS:[EBP+14]
+			0xFF,0x75, 0x10,					// PUSH DWORD PTR SS:[EBP+10]
+			0xFF,0x75, 0x0C,					// PUSH DWORD PTR SS:[EBP+0C]
+			0xFF,0x75, 0x08,					// PUSH DWORD PTR SS:[EBP+08]
+			0xE8, 0x00,0x00,0x00,0x00,			// CALL dxwrapper.WndProc
+			0x89,0x45, 0xFC,					// MOV DWORD PTR SS:[EBP-4],EAX
+			0x8B,0x45, 0xFC,					// MOV EAX,DWORD PTR SS:[EBP-4]
+			0x8B,0xE5,							// MOV ESP,EBP
+			0x5D,								// POP EBP
+			0xC2, 0x10,0x00						// RETN
 		};
+		LONG* pFunctVar = (LONG*)&FunctCode[5];
+		int* pFunctCall = (int*)&FunctCode[22];
+		DWORD oldProtect = 0;
+		HWND hWnd = nullptr;
+		WNDPROC MyWndProc = 0;
+		WNDPROC AppWndProc = 0;
+		bool Exiting = false;
+	public:
+		WNDPROCSTRUCT(HWND p_hWnd, WNDPROC p_AppWndProc) : hWnd(p_hWnd), AppWndProc(p_AppWndProc)
+		{
+			// Set memory protection to make it executable
+			if (VirtualProtect(FunctCode, sizeof(FunctCode), PAGE_EXECUTE_READWRITE, &oldProtect))
+			{
+				*pFunctVar = (LONG)this;
+				*pFunctCall = (int)&Handler - ((int)pFunctCall + 4);
+				MyWndProc = reinterpret_cast<WNDPROC>((LONG)FunctCode);
+			}
+		}
+		~WNDPROCSTRUCT()
+		{
+			Exiting = true;
+			if (Config.Exiting)
+			{
+				return;
+			}
+			// Restore the memory protection
+			if (MyWndProc)
+			{
+				DWORD tmpProtect = 0;
+				VirtualProtect(FunctCode, sizeof(FunctCode), oldProtect, &tmpProtect);
+			}
+			// Restore WndProc
+			if (hWnd && AppWndProc)
+			{
+				LOG_LIMIT(100, __FUNCTION__ << " Deleting WndProc instance! " << hWnd);
+				SetWndProc(hWnd, AppWndProc);
+			}
+		}
+		HWND GetHWnd() { return hWnd; }
+		WNDPROC GetMyWndProc() { return MyWndProc; }
+		WNDPROC GetAppWndProc() { return AppWndProc; }
+		bool IsExiting() { return Exiting; }
+	};
 
-		std::vector<std::shared_ptr<WNDPROCSTRUCT>> WndProcList;
-	}
+	std::vector<std::shared_ptr<WNDPROCSTRUCT>> WndProcList;
 }
-
-using namespace Utils;
 
 WNDPROC WndProc::CheckWndProc(HWND hWnd, LONG dwNewLong)
 {
