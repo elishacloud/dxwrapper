@@ -306,7 +306,7 @@ void ConvertCaps(DDCAPS &Caps7, D3DCAPS9 &Caps9)
 
 DWORD GetByteAlignedWidth(DWORD Width, DWORD BitCount)
 {
-	while ((Width * BitCount) % ((BitCount < 32) ? 32 : 64))
+	while ((Width * BitCount) % 64)
 	{
 		Width++;
 	}
