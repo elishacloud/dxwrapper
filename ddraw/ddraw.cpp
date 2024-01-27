@@ -25,6 +25,7 @@
 #include "Dllmain\Dllmain.h"
 #include "IClassFactory\IClassFactory.h"
 #include "d3d9\d3d9External.h"
+#include "Utils\Utils.h"
 #include "GDI\GDI.h"
 #include "External\Hooking\Hook.h"
 
@@ -70,6 +71,7 @@ void InitDDraw()
 		CreateWindowExW_out = (FARPROC)Hook::HotPatch(Hook::GetProcAddress(LoadLibrary("user32.dll"), "CreateWindowExW"), "CreateWindowExW", user_CreateWindowExW);
 		DestroyWindow_out = (FARPROC)Hook::HotPatch(Hook::GetProcAddress(LoadLibrary("user32.dll"), "DestroyWindow"), "DestroyWindow", user_DestroyWindow);
 		GetSystemMetrics_out = (FARPROC)Hook::HotPatch(Hook::GetProcAddress(LoadLibrary("user32.dll"), "GetSystemMetrics"), "GetSystemMetrics", user_GetSystemMetrics);
+		Utils::GetDiskFreeSpaceA_out = (FARPROC)Hook::HotPatch(Hook::GetProcAddress(LoadLibrary("kernel32.dll"), "GetDiskFreeSpaceA"), "GetDiskFreeSpaceA", Utils::kernel_GetDiskFreeSpaceA);
 		if (EnableWndProcHook)
 		{
 			SetWindowLongA_out = (FARPROC)Hook::HotPatch(Hook::GetProcAddress(LoadLibrary("user32.dll"), "SetWindowLongA"), "SetWindowLongA", user_SetWindowLongA);
