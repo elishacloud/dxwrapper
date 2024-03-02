@@ -1,7 +1,7 @@
 #pragma once
 
 #include "IDirectDrawX.h"
-#include <DirectXMath.h>
+#include "External\DirectXMath\Inc\DirectXMath.h"
 
 struct CONVERTHOMOGENEOUS
 {
