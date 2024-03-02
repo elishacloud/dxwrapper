@@ -156,7 +156,7 @@ LONG WINAPI SetWindowLongT(SetWindowLongProc SetWindowLongT, HWND hWnd, int nInd
 
 	if (nIndex == GWL_WNDPROC)
 	{
-		LONG DDrawLong = (LONG)Utils::WndProc::CheckWndProc(hWnd, dwNewLong);
+		LONG DDrawLong = (LONG)WndProc::CheckWndProc(hWnd, dwNewLong);
 		if (DDrawLong)
 		{
 			return DDrawLong;

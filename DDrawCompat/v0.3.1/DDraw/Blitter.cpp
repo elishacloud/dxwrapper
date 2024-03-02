@@ -14,7 +14,7 @@
 
 namespace
 {
-	Compat31::CriticalSection g_overlappingBltCs;
+	Compat32::CriticalSection g_overlappingBltCs;
 
 #pragma pack(1)
 	class UInt24
@@ -572,7 +572,7 @@ namespace
 			}
 		}
 
-		Compat31::ScopedCriticalSection lock(g_overlappingBltCs);
+		Compat32::ScopedCriticalSection lock(g_overlappingBltCs);
 		static std::vector<BYTE> tmpSurface;
 		const LONG srcByteWidth = absSrcWidth * bytesPerPixel;
 		if (tmpSurface.size() < absSrcHeight * srcByteWidth)

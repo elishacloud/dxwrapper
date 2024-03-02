@@ -41,6 +41,9 @@ namespace Settings
 	DWORD AutoFrameSkip = 0;
 	DWORD DdrawOverrideRefreshRate = 0;
 	bool DSoundCtrl = false;
+	bool DDrawCompatExperimental = false;
+	bool DDrawCompat30 = false;
+	bool DDrawCompat31 = false;
 
 	// Function declarations
 	bool IsValueEnabled(char*);
@@ -288,6 +291,9 @@ void __stdcall Settings::ParseCallback(char* name, char* value)
 	SET_LOCAL_VALUE(AutoFrameSkip);
 	SET_LOCAL_VALUE(DdrawOverrideRefreshRate);
 	SET_LOCAL_VALUE(DSoundCtrl);
+	SET_LOCAL_VALUE(DDrawCompatExperimental);
+	SET_LOCAL_VALUE(DDrawCompat30);
+	SET_LOCAL_VALUE(DDrawCompat31);
 
 	// Set Value of local settings
 	VISIT_LOCAL_SETTINGS(SET_LOCAL_VALUE);
@@ -665,8 +671,8 @@ void CONFIG::SetConfig()
 		ConvertToDirect3D7 = true;
 	}
 
-	DDrawCompat31 = (DDrawCompat30 || DDrawCompat31 || DDrawCompatExperimental);
-	DDrawCompat = (DDrawCompat || DDrawCompat20 || DDrawCompat21 || DDrawCompat31);
+	DDrawCompat32 = (DDrawCompat30 || DDrawCompat31 || DDrawCompat32 || DDrawCompatExperimental);
+	DDrawCompat = (DDrawCompat || DDrawCompat20 || DDrawCompat21 || DDrawCompat32);
 	EnableDdrawWrapper = (EnableDdrawWrapper || IsSet(DdrawHookSystem32) || ConvertToDirectDraw7 || ConvertToDirect3D7 || IsSet(DdrawResolutionHack));
 	D3d8to9 = (D3d8to9 || IsSet(D3d8HookSystem32));
 	DdrawAutoFrameSkip = (AutoFrameSkip || DdrawAutoFrameSkip);																	// For legacy purposes

@@ -274,7 +274,7 @@ namespace DDraw
 
 		if (FAILED(result))
 		{
-			Compat31::Log() << "ERROR: Failed to create the real primary surface: " << Compat31::hex(result);
+			Compat32::Log() << "ERROR: Failed to create the real primary surface: " << Compat32::hex(result);
 			return result;
 		}
 

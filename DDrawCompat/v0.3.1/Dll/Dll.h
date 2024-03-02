@@ -5,7 +5,7 @@
 #include "DDrawCompat\DDrawCompatExternal.h"
 
 #undef DDrawCompatDefault
-#define DDrawCompatDefault Compat31
+#define DDrawCompatDefault Compat32
 
 #define DDRAWCOMPAT_31
 

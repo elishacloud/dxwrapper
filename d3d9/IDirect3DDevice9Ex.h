@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Utils\Utils.h"
+#include "GDI\GDI.h"
 
 class m_IDirect3DDevice9Ex : public IDirect3DDevice9Ex
 {
@@ -91,7 +91,7 @@ public:
 		// Remove WndProc after releasing d3d9 device
 		if (EnableWndProcHook)
 		{
-			Utils::WndProc::RemoveWndProc(DeviceDetails.DeviceWindow);
+			WndProc::RemoveWndProc(DeviceDetails.DeviceWindow);
 		}
 
 		delete ProxyAddressLookupTable;

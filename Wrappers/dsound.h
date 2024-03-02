@@ -21,5 +21,5 @@
 	visit(DllGetClassObject, DllGetClassObject_dsound, jmpaddr)
 
 #ifdef PROC_CLASS
-PROC_CLASS(dsound, dll, VISIT_PROCS_DSOUND, VISIT_SHARED_DSOUND_PROCS)
+PROC_CLASS(dsound, dll, VISIT_PROCS_DSOUND, VISIT_SHARED_DSOUND_PROCS, VISIT_PROCS_BLANK)
 #endif

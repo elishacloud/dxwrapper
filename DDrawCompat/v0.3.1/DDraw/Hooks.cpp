@@ -33,7 +33,7 @@ namespace
 		}
 		else
 		{
-			Compat31::Log() << "ERROR: Failed to create a DirectDraw clipper for hooking: " << result;
+			Compat32::Log() << "ERROR: Failed to create a DirectDraw clipper for hooking: " << result;
 		}
 	}
 
@@ -48,7 +48,7 @@ namespace
 		}
 		else
 		{
-			Compat31::Log() << "ERROR: Failed to create a DirectDraw palette for hooking: " << result;
+			Compat32::Log() << "ERROR: Failed to create a DirectDraw palette for hooking: " << result;
 		}
 	}
 
@@ -77,7 +77,7 @@ namespace
 		}
 		else
 		{
-			Compat31::Log() << "ERROR: Failed to create a DirectDraw surface for hooking: " << result;
+			Compat32::Log() << "ERROR: Failed to create a DirectDraw surface for hooking: " << result;
 		}
 	}
 }

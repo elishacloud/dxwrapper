@@ -113,7 +113,7 @@ namespace
 		HRESULT result = g_debugDataSpaces->WriteVirtual(g_debugBase, instruction, MAX_INSTRUCTION_SIZE, nullptr);
 		if (FAILED(result))
 		{
-			LOG_ONCE("ERROR: DbgEng: WriteVirtual failed: " << Compat31::hex(result));
+			LOG_ONCE("ERROR: DbgEng: WriteVirtual failed: " << Compat32::hex(result));
 			return 0;
 		}
 
@@ -121,8 +121,8 @@ namespace
 		result = g_debugControl->Disassemble(g_debugBase, 0, nullptr, 0, nullptr, &endOffset);
 		if (FAILED(result))
 		{
-			LOG_ONCE("ERROR: DbgEng: Disassemble failed: " << Compat31::hex(result) << " "
-				<< Compat31::hexDump(instruction, MAX_INSTRUCTION_SIZE));
+			LOG_ONCE("ERROR: DbgEng: Disassemble failed: " << Compat32::hex(result) << " "
+				<< Compat32::hexDump(instruction, MAX_INSTRUCTION_SIZE));
 			return 0;
 		}
 
@@ -135,7 +135,7 @@ namespace
 
 		std::ostringstream oss;
 #ifdef DEBUGLOGS
-		oss << Compat31::funcPtrToStr(targetFunc) << ' ';
+		oss << Compat32::funcPtrToStr(targetFunc) << ' ';
 
 		char origFuncPtrStr[20] = {};
 		if (!funcName)
@@ -164,7 +164,7 @@ namespace
 			{
 				instructionSize = 6;
 				auto candidateTargetFunc = **reinterpret_cast<BYTE***>(targetFunc + 2);
-				if (Compat31::getModuleHandleFromAddress(candidateTargetFunc) == Compat31::getModuleHandleFromAddress(targetFunc))
+				if (Compat32::getModuleHandleFromAddress(candidateTargetFunc) == Compat32::getModuleHandleFromAddress(targetFunc))
 				{
 					break;
 				}
@@ -175,14 +175,14 @@ namespace
 				break;
 			}
 #ifdef DEBUGLOGS
-			oss << Compat31::hexDump(prevTargetFunc, instructionSize) << " -> " << Compat31::funcPtrToStr(targetFunc) << ' ';
+			oss << Compat32::hexDump(prevTargetFunc, instructionSize) << " -> " << Compat32::funcPtrToStr(targetFunc) << ' ';
 			prevTargetFunc = targetFunc;
 #endif
 		}
 
-		if (Compat31::getModuleHandleFromAddress(targetFunc) == Dll::g_currentModule)
+		if (Compat32::getModuleHandleFromAddress(targetFunc) == Dll::g_currentModule)
 		{
-			Compat31::Log() << "ERROR: Target function is already hooked: " << funcName;
+			Compat32::Log() << "ERROR: Target function is already hooked: " << funcName;
 			return;
 		}
 
@@ -203,7 +203,7 @@ namespace
 		}
 
 		LOG_DEBUG << "Hooking function: " << funcName
-			<< " (" << oss.str() << Compat31::hexDump(targetFunc, totalInstructionSize) << ')';
+			<< " (" << oss.str() << Compat32::hexDump(targetFunc, totalInstructionSize) << ')';
 
 		BYTE* trampoline = static_cast<BYTE*>(
 			VirtualAlloc(nullptr, totalInstructionSize + 5, MEM_COMMIT | MEM_RESERVE, PAGE_EXECUTE_READWRITE));
@@ -266,7 +266,7 @@ namespace
 			// Hook function and get process address
 			if (dll && GetProcAddress(dll, "DebugCreate"))
 			{
-				Compat31::hookIatFunction(dll, "GetProcAddress", dbgEngGetProcAddress);
+				Compat32::hookIatFunction(dll, "GetProcAddress", dbgEngGetProcAddress);
 
 				pDebugCreate = (PFN_DebugCreate)GetProcAddress(dll, "DebugCreate");
 			}
@@ -274,7 +274,7 @@ namespace
 		}
 		if (!pDebugCreate)
 		{
-			Compat31::Log() << "ERROR: DbgEng: failed to get proc address!";
+			Compat32::Log() << "ERROR: DbgEng: failed to get proc address!";
 			return false;
 		}
 		//********** End Edit ***************
@@ -285,14 +285,14 @@ namespace
 			FAILED(result = g_debugClient->QueryInterface(IID_IDebugSymbols, reinterpret_cast<void**>(&g_debugSymbols))) ||
 			FAILED(result = g_debugClient->QueryInterface(IID_IDebugDataSpaces4, reinterpret_cast<void**>(&g_debugDataSpaces))))
 		{
-			Compat31::Log() << "ERROR: DbgEng: object creation failed: " << Compat31::hex(result);
+			Compat32::Log() << "ERROR: DbgEng: object creation failed: " << Compat32::hex(result);
 			return false;
 		}
 
-		result = g_debugClient->OpenDumpFileWide(Compat31::getModulePath(Dll::g_currentModule).c_str(), 0);
+		result = g_debugClient->OpenDumpFileWide(Compat32::getModulePath(Dll::g_currentModule).c_str(), 0);
 		if (FAILED(result))
 		{
-			Compat31::Log() << "ERROR: DbgEng: OpenDumpFile failed: " << Compat31::hex(result);
+			Compat32::Log() << "ERROR: DbgEng: OpenDumpFile failed: " << Compat32::hex(result);
 			return false;
 		}
 
@@ -300,7 +300,7 @@ namespace
 		result = g_debugControl->WaitForEvent(0, INFINITE);
 		if (FAILED(result))
 		{
-			Compat31::Log() << "ERROR: DbgEng: WaitForEvent failed: " << Compat31::hex(result);
+			Compat32::Log() << "ERROR: DbgEng: WaitForEvent failed: " << Compat32::hex(result);
 			return false;
 		}
 
@@ -308,7 +308,7 @@ namespace
 		result = g_debugSymbols->GetModuleParameters(1, 0, 0, &dmp);
 		if (FAILED(result))
 		{
-			Compat31::Log() << "ERROR: DbgEng: GetModuleParameters failed: " << Compat31::hex(result);
+			Compat32::Log() << "ERROR: DbgEng: GetModuleParameters failed: " << Compat32::hex(result);
 			return false;
 		}
 
@@ -316,7 +316,7 @@ namespace
 		result = g_debugDataSpaces->GetValidRegionVirtual(dmp.Base, dmp.Size, &g_debugBase, &size);
 		if (FAILED(result) || 0 == g_debugBase)
 		{
-			Compat31::Log() << "ERROR: DbgEng: GetValidRegionVirtual failed: " << Compat31::hex(result);
+			Compat32::Log() << "ERROR: DbgEng: GetValidRegionVirtual failed: " << Compat32::hex(result);
 			return false;
 		}
 
@@ -324,7 +324,7 @@ namespace
 	}
 }
 
-namespace Compat31
+namespace Compat32
 {
 	void closeDbgEng()
 	{
@@ -360,10 +360,10 @@ namespace Compat31
 	std::string funcPtrToStr(void* funcPtr)
 	{
 		std::ostringstream oss;
-		HMODULE module = Compat31::getModuleHandleFromAddress(funcPtr);
+		HMODULE module = Compat32::getModuleHandleFromAddress(funcPtr);
 		if (module)
 		{
-			oss << Compat31::getModulePath(module).u8string() << "+0x" << std::hex <<
+			oss << Compat32::getModulePath(module).u8string() << "+0x" << std::hex <<
 				reinterpret_cast<DWORD>(funcPtr) - reinterpret_cast<DWORD>(module);
 		}
 		else

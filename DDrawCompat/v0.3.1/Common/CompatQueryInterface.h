@@ -6,7 +6,7 @@
 
 #include <DDrawCompat/v0.3.1/Common/CompatVtable.h>
 
-namespace Compat31
+namespace Compat32
 {
 	template <typename Intf>
 	struct GetBaseIntf

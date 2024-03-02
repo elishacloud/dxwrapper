@@ -55,5 +55,5 @@
 	visit(DllGetClassObject, DllGetClassObject_dwmapi, jmpaddr)
 
 #ifdef PROC_CLASS
-PROC_CLASS(dwmapi, dll, VISIT_PROCS_DWMAPI, VISIT_SHARED_DWMAPI_PROCS)
+PROC_CLASS(dwmapi, dll, VISIT_PROCS_DWMAPI, VISIT_SHARED_DWMAPI_PROCS, VISIT_PROCS_BLANK)
 #endif

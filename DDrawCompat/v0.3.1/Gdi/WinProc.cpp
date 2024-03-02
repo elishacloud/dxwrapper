@@ -29,7 +29,7 @@ namespace
 
 	std::set<Gdi::WindowPosChangeNotifyFunc> g_windowPosChangeNotifyFuncs;
 
-	Compat31::SrwLock g_windowProcSrwLock;
+	Compat32::SrwLock g_windowProcSrwLock;
 	std::map<HWND, WindowProc> g_windowProc;
 
 	WindowProc getWindowProc(HWND hwnd);
@@ -44,7 +44,7 @@ namespace
 	LRESULT CALLBACK ddcWindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam,
 		decltype(&CallWindowProcA) callWindowProc, WNDPROC wndProc)
 	{
-		LOG_FUNC("ddcWindowProc", Compat31::WindowMessageStruct(hwnd, uMsg, wParam, lParam));
+		LOG_FUNC("ddcWindowProc", Compat32::WindowMessageStruct(hwnd, uMsg, wParam, lParam));
 
 		switch (uMsg)
 		{
@@ -107,7 +107,7 @@ namespace
 	{
 		if (GWL_WNDPROC == nIndex)
 		{
-			Compat31::ScopedSrwLockExclusive lock(g_windowProcSrwLock);
+			Compat32::ScopedSrwLockExclusive lock(g_windowProcSrwLock);
 			auto it = g_windowProc.find(hWnd);
 			if (it != g_windowProc.end())
 			{
@@ -131,7 +131,7 @@ namespace
 
 	WindowProc getWindowProc(HWND hwnd)
 	{
-		Compat31::ScopedSrwLockExclusive lock(g_windowProcSrwLock);
+		Compat32::ScopedSrwLockExclusive lock(g_windowProcSrwLock);
 		return g_windowProc[hwnd];
 	}
 
@@ -155,7 +155,7 @@ namespace
 			return false;
 		}
 
-		return GetModuleHandle("comctl32") != Compat31::getModuleHandleFromAddress(
+		return GetModuleHandle("comctl32") != Compat32::getModuleHandleFromAddress(
 			IsWindowUnicode(hwnd) ? it->second.wndProcW : it->second.wndProcA);
 	}
 
@@ -223,7 +223,7 @@ namespace
 		LOG_FUNC("onCreateWindow", hwnd);
 
 		{
-			Compat31::ScopedSrwLockExclusive lock(g_windowProcSrwLock);
+			Compat32::ScopedSrwLockExclusive lock(g_windowProcSrwLock);
 			if (g_windowProc.find(hwnd) != g_windowProc.end())
 			{
 				return;
@@ -260,7 +260,7 @@ namespace
 			return;
 		}
 
-		Compat31::ScopedSrwLockExclusive lock(g_windowProcSrwLock);
+		Compat32::ScopedSrwLockExclusive lock(g_windowProcSrwLock);
 		auto it = g_windowProc.find(hwnd);
 		if (it != g_windowProc.end())
 		{
@@ -318,7 +318,7 @@ namespace
 	{
 		if (GWL_WNDPROC == nIndex)
 		{
-			Compat31::ScopedSrwLockExclusive lock(g_windowProcSrwLock);
+			Compat32::ScopedSrwLockExclusive lock(g_windowProcSrwLock);
 			auto it = g_windowProc.find(hWnd);
 			if (it != g_windowProc.end() && 0 != origSetWindowLong(hWnd, nIndex, dwNewLong))
 			{
@@ -347,7 +347,7 @@ namespace
 
 	BOOL WINAPI setWindowPos(HWND hWnd, HWND hWndInsertAfter, int X, int Y, int cx, int cy, UINT uFlags)
 	{
-		LOG_FUNC("SetWindowPos", hWnd, hWndInsertAfter, X, Y, cx, cy, Compat31::hex(uFlags));
+		LOG_FUNC("SetWindowPos", hWnd, hWndInsertAfter, X, Y, cx, cy, Compat32::hex(uFlags));
 		if (uFlags & SWP_NOSENDCHANGING)
 		{
 			WINDOWPOS wp = {};
@@ -412,7 +412,7 @@ namespace Gdi
 		void dllThreadDetach()
 		{
 			auto threadId = GetCurrentThreadId();
-			Compat31::ScopedSrwLockExclusive lock(g_windowProcSrwLock);
+			Compat32::ScopedSrwLockExclusive lock(g_windowProcSrwLock);
 			auto it = g_windowProc.begin();
 			while (it != g_windowProc.end())
 			{

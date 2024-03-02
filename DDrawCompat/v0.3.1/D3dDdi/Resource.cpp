@@ -326,7 +326,7 @@ namespace D3dDdi
 		HRESULT result = m_device.getOrigVtable().pfnBlt(m_device, &data);
 		if (FAILED(result))
 		{
-			LOG_ONCE("ERROR: Resource::copySubResource failed: " << Compat31::hex(result));
+			LOG_ONCE("ERROR: Resource::copySubResource failed: " << Compat32::hex(result));
 		}
 
 		D3DDDIARG_LOCK lock = {};
@@ -433,7 +433,7 @@ namespace D3dDdi
 
 	void Resource::createSysMemResource(const std::vector<D3DDDI_SURFACEINFO>& surfaceInfo)
 	{
-		LOG_FUNC("Resource::createSysMemResource", Compat31::array(surfaceInfo.data(), surfaceInfo.size()));
+		LOG_FUNC("Resource::createSysMemResource", Compat32::array(surfaceInfo.data(), surfaceInfo.size()));
 		D3DDDIARG_CREATERESOURCE2 data = {};
 		data.Format = m_fixedData.Format;
 		data.Pool = D3DDDIPOOL_SYSTEMMEM;

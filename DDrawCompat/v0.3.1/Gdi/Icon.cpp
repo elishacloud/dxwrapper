@@ -42,11 +42,11 @@ namespace
 
 		if (isDibRedirectionEnabled<origFunc>(params...))
 		{
-			return LOG_RESULT(Compat31::g_origFuncPtr<origFunc>(params...));
+			return LOG_RESULT(Compat32::g_origFuncPtr<origFunc>(params...));
 		}
 
 		Gdi::DcFunctions::disableDibRedirection(true);
-		Result result = Compat31::g_origFuncPtr<origFunc>(params...);
+		Result result = Compat32::g_origFuncPtr<origFunc>(params...);
 		Gdi::DcFunctions::disableDibRedirection(false);
 		return LOG_RESULT(result);
 	}
@@ -58,7 +58,7 @@ namespace
 		g_funcName<origFunc> = funcName;
 #endif
 
-		Compat31::hookFunction<origFunc>(moduleName, funcName, &iconFunc<origFunc>);
+		Compat32::hookFunction<origFunc>(moduleName, funcName, &iconFunc<origFunc>);
 	}
 
 	template <typename WndClass, typename WndClassEx>

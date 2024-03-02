@@ -77,6 +77,8 @@ private:
 	struct D9SURFACE
 	{
 		bool IsUsingWindowedMode = false;
+		bool IsSurfaceLost = false;
+		bool SurfaceHasData = false;
 		bool IsDirtyFlag = false;
 		bool IsPaletteDirty = false;						// Used to detect if the palette surface needs to be updated
 		DWORD LastPaletteUSN = 0;							// The USN that was used last time the palette was updated
@@ -91,8 +93,8 @@ private:
 
 	typedef enum _SURFACECREATE {
 		SC_NOT_CREATED = 0,
-		SC_CREATED_BY_LOCK = 1,
-		SC_CREATED_SEPERATLY = 2,
+		SC_FORCE_EMULATED = 1,
+		SC_DONT_FORCE = 2,
 	} SURFACECREATE;
 
 	// Convert to Direct3D9
@@ -131,7 +133,7 @@ private:
 	DDRAWEMULATELOCK EmuLock;							// For aligning bits after a lock for games that hard code the pitch
 	std::vector<byte> ByteArray;						// Memory used for coping from one surface to the same surface
 	std::vector<byte> Backup;							// Memory used for backing up the surfaceTexture
-	SURFACECREATE CreatedBy = SC_NOT_CREATED;			// Used to help determine if surface should be emulated
+	SURFACECREATE ShouldEmulate = SC_NOT_CREATED;		// Used to help determine if surface should be emulated
 
 	// Extra Direct3D9 devices used in the primary surface
 	D9PRIMARY primary;
@@ -193,7 +195,7 @@ private:
 	HRESULT CheckBackBufferForFlip(m_IDirectDrawSurfaceX* lpTargetSurface);
 
 	// Direct3D9 interface functions
-	HRESULT CheckInterface(char *FunctionName, bool CheckD3DDevice, bool CheckD3DSurface);
+	HRESULT CheckInterface(char* FunctionName, bool CheckD3DDevice, bool CheckD3DSurface, bool CheckLostSurface);
 	HRESULT CreateD3d9Surface();
 	bool DoesDCMatch(EMUSURFACE* pEmuSurface);
 	void SetEmulationGameDC();
@@ -383,7 +385,7 @@ public:
 	inline void ClearDdraw() { ddrawParent = nullptr; }
 
 	// Direct3D9 interface functions
-	void ReleaseD9Surface(bool BackupData);
+	void ReleaseD9Surface(bool BackupData, bool DeviceLost);
 	HRESULT PresentSurface(bool isSkipScene);
 	void ResetSurfaceDisplay();
 

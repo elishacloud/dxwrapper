@@ -6,8 +6,8 @@
 #include "v0.2.1\DllMain.h"
 #include "v0.3.1\Dll\DllMain.h"
 
-#define DDrawCompatDefault Compat31
-#define DDrawCompatForDd7to9 Compat31
+#define DDrawCompatDefault Compat32
+#define DDrawCompatForDd7to9 Compat32
 
 #define INITIALIZE_WRAPPED_PROC(procName) \
 	volatile FARPROC procName ## _in = nullptr; \
@@ -38,7 +38,7 @@ namespace DDrawCompat
 	{
 		// DDrawCompat v0.3.1
 #ifdef DDRAWCOMPAT_31
-		PREPARE_DDRAWCOMPAT(Compat31);
+		PREPARE_DDRAWCOMPAT(Compat32);
 #endif
 
 		// DDrawCompat v0.2.1
@@ -67,7 +67,7 @@ namespace DDrawCompat
 
 		// DDrawCompat v0.3.1
 #ifdef DDRAWCOMPAT_31
-		START_DDRAWCOMPAT(Compat31);
+		START_DDRAWCOMPAT(Compat32);
 #endif
 
 		// DDrawCompat v0.2.1
@@ -97,9 +97,9 @@ namespace DDrawCompat
 	}
 
 	// Used for hooking with dd7to9
-	void InstallHooks()
+	void InstallDd7to9Hooks()
 	{
 		// Dd7to9 DDrawCompat version
-		return DDrawCompatForDd7to9::InstallHooks();
+		return DDrawCompatForDd7to9::InstallDd7to9Hooks();
 	}
 }

@@ -59,6 +59,7 @@ typedef DWORD(WINAPI* GetThreadIdProc)(HANDLE Thread);
 typedef FARPROC(WINAPI *GetProcAddressProc)(HMODULE, LPSTR);
 typedef DWORD(WINAPI *GetModuleFileNameAProc)(HMODULE, LPSTR, DWORD);
 typedef DWORD(WINAPI *GetModuleFileNameWProc)(HMODULE, LPWSTR, DWORD);
+typedef BOOL(WINAPI* GetDiskFreeSpaceAProc)(LPCSTR lpRootPathName, LPDWORD lpSectorsPerCluster, LPDWORD lpBytesPerSector, LPDWORD lpNumberOfFreeClusters, LPDWORD lpTotalNumberOfClusters);
 typedef BOOL(WINAPI *CreateProcessAFunc)(LPCSTR lpApplicationName, LPSTR lpCommandLine, LPSECURITY_ATTRIBUTES lpProcessAttributes, LPSECURITY_ATTRIBUTES lpThreadAttributes, BOOL bInheritHandles, DWORD dwCreationFlags,
 	LPVOID lpEnvironment, LPCSTR lpCurrentDirectory, LPSTARTUPINFOA lpStartupInfo, LPPROCESS_INFORMATION lpProcessInformation);
 typedef BOOL(WINAPI *CreateProcessWFunc)(LPCWSTR lpApplicationName, LPWSTR lpCommandLine, LPSECURITY_ATTRIBUTES lpProcessAttributes, LPSECURITY_ATTRIBUTES lpThreadAttributes, BOOL bInheritHandles, DWORD dwCreationFlags,
@@ -92,6 +93,7 @@ namespace Utils
 	INITIALIZE_OUT_WRAPPED_PROC(GetProcAddress, unused);
 	INITIALIZE_OUT_WRAPPED_PROC(GetModuleFileNameA, unused);
 	INITIALIZE_OUT_WRAPPED_PROC(GetModuleFileNameW, unused);
+	INITIALIZE_OUT_WRAPPED_PROC(GetDiskFreeSpaceA, unused);
 
 	FARPROC p_CreateProcessA = nullptr;
 	FARPROC p_CreateProcessW = nullptr;
@@ -332,6 +334,40 @@ DWORD WINAPI Utils::GetModuleFileNameWHandler(HMODULE hModule, LPWSTR lpFilename
 
 	SetLastError(5);
 	return 0;
+}
+
+BOOL WINAPI Utils::kernel_GetDiskFreeSpaceA(LPCSTR lpRootPathName, LPDWORD lpSectorsPerCluster, LPDWORD lpBytesPerSector, LPDWORD lpNumberOfFreeClusters, LPDWORD lpTotalNumberOfClusters)
+{
+	Logging::LogDebug() << __FUNCTION__;
+
+	DEFINE_STATIC_PROC_ADDRESS(GetDiskFreeSpaceAProc, GetDiskFreeSpaceA, GetDiskFreeSpaceA_out);
+
+	if (!GetDiskFreeSpaceA)
+	{
+		return FALSE;
+	}
+
+	BOOL result = GetDiskFreeSpaceA(lpRootPathName, lpSectorsPerCluster, lpBytesPerSector, lpNumberOfFreeClusters, lpTotalNumberOfClusters);
+
+	// Limit the reported disk space
+	if (lpSectorsPerCluster)
+	{
+		*lpSectorsPerCluster = min(0x00000040, *lpSectorsPerCluster);
+	}
+	if (lpBytesPerSector)
+	{
+		*lpBytesPerSector = min(0x00000200, *lpBytesPerSector);
+	}
+	if (lpNumberOfFreeClusters)
+	{
+		*lpNumberOfFreeClusters = min(0x0000F000, *lpNumberOfFreeClusters);
+	}
+	if (lpTotalNumberOfClusters)
+	{
+		*lpTotalNumberOfClusters = min(0x0000FFF6, *lpTotalNumberOfClusters);
+	}
+
+	return result;
 }
 
 // Add HMODULE to vector
@@ -629,11 +665,20 @@ void Utils::DDrawResolutionHack(HMODULE hD3DIm)
 	}
 }
 
+void Utils::BusyWaitYield()
+{
+#if (_WIN32_WINNT >= 0x0502)
+	YieldProcessor();
+#else
+	Sleep(0);
+#endif
+}
+
 void Utils::CheckMessageQueue(HWND hwnd)
 {
 	// Peek messages to help prevent a "Not Responding" window
 	MSG msg = {};
-	if (PeekMessage(&msg, hwnd, 0, 0, PM_NOREMOVE)) { Sleep(0); };
+	if (PeekMessage(&msg, hwnd, 0, 0, PM_NOREMOVE)) { BusyWaitYield(); };
 }
 
 void Utils::GetScreenSettings()

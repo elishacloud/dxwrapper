@@ -44,7 +44,7 @@ namespace
 
 	LRESULT CALLBACK messageWindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 	{
-		LOG_FUNC("messageWindowProc", Compat31::WindowMessageStruct(hwnd, uMsg, wParam, lParam));
+		LOG_FUNC("messageWindowProc", Compat32::WindowMessageStruct(hwnd, uMsg, wParam, lParam));
 
 		switch (uMsg)
 		{
@@ -52,7 +52,7 @@ namespace
 		{
 			// Workaround for ForceSimpleWindow shim
 			static auto origCreateWindowExA = reinterpret_cast<decltype(&CreateWindowExA)>(
-				Compat31::getProcAddress(GetModuleHandle("user32"), "CreateWindowExA"));
+				Compat32::getProcAddress(GetModuleHandle("user32"), "CreateWindowExA"));
 
 			HWND owner = reinterpret_cast<HWND>(wParam);
 			HWND presentationWindow = origCreateWindowExA(
@@ -84,7 +84,7 @@ namespace
 
 	LRESULT CALLBACK presentationWindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 	{
-		LOG_FUNC("presentationWindowProc", Compat31::WindowMessageStruct(hwnd, uMsg, wParam, lParam));
+		LOG_FUNC("presentationWindowProc", Compat32::WindowMessageStruct(hwnd, uMsg, wParam, lParam));
 
 		switch (uMsg)
 		{
@@ -121,7 +121,7 @@ namespace
 			"DDrawCompatMessageWindow", nullptr, 0, 0, 0, 0, 0, HWND_MESSAGE, nullptr, nullptr, nullptr);
 		if (!g_messageWindow)
 		{
-			Compat31::Log() << "ERROR: Failed to create a message-only window";
+			Compat32::Log() << "ERROR: Failed to create a message-only window";
 			return 0;
 		}
 
@@ -132,7 +132,7 @@ namespace
 			EnumWindows(initTopLevelWindow, 0);
 		}
 
-		Compat31::closeDbgEng();
+		Compat32::closeDbgEng();
 
 		MSG msg = {};
 		while (GetMessage(&msg, nullptr, 0, 0))

@@ -4,14 +4,14 @@
 
 #include <Windows.h>
 
-#define CALL_ORIG_FUNC(func) Compat31::g_origFuncPtr<&func>
+#define CALL_ORIG_FUNC(func) Compat32::g_origFuncPtr<&func>
 
 #define HOOK_FUNCTION(module, func, newFunc) \
-	Compat31::hookFunction<&func>(#module, #func, &newFunc)
+	Compat32::hookFunction<&func>(#module, #func, &newFunc)
 #define HOOK_SHIM_FUNCTION(func, newFunc) \
-	Compat31::hookFunction(reinterpret_cast<void*&>(Compat31::g_origFuncPtr<&func>), newFunc, #func)
+	Compat32::hookFunction(reinterpret_cast<void*&>(Compat32::g_origFuncPtr<&func>), newFunc, #func)
 
-namespace Compat31
+namespace Compat32
 {
 	void closeDbgEng();
 	std::string funcPtrToStr(void* funcPtr);

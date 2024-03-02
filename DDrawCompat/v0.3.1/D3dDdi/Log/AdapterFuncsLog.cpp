@@ -6,36 +6,36 @@
 
 std::ostream& operator<<(std::ostream& os, const D3DDDI_ALLOCATIONLIST& data)
 {
-	return Compat31::LogStruct(os)
-		<< Compat31::hex(data.hAllocation)
-		<< Compat31::hex(data.Value);
+	return Compat32::LogStruct(os)
+		<< Compat32::hex(data.hAllocation)
+		<< Compat32::hex(data.Value);
 }
 
 std::ostream& operator<<(std::ostream& os, const D3DDDI_PATCHLOCATIONLIST& data)
 {
-	return Compat31::LogStruct(os)
+	return Compat32::LogStruct(os)
 		<< data.AllocationIndex
-		<< Compat31::hex(data.Value)
-		<< Compat31::hex(data.DriverId)
-		<< Compat31::hex(data.AllocationOffset)
-		<< Compat31::hex(data.PatchOffset)
-		<< Compat31::hex(data.SplitOffset);
+		<< Compat32::hex(data.Value)
+		<< Compat32::hex(data.DriverId)
+		<< Compat32::hex(data.AllocationOffset)
+		<< Compat32::hex(data.PatchOffset)
+		<< Compat32::hex(data.SplitOffset);
 }
 
 std::ostream& operator<<(std::ostream& os, const D3DDDIARG_CREATEDEVICE& data)
 {
-	return Compat31::LogStruct(os)
+	return Compat32::LogStruct(os)
 		<< data.hDevice
 		<< data.Interface
 		<< data.Version
 		<< data.pCallbacks
 		<< data.pCommandBuffer
 		<< data.CommandBufferSize
-		<< Compat31::out(Compat31::array(data.pAllocationList, data.AllocationListSize))
+		<< Compat32::out(Compat32::array(data.pAllocationList, data.AllocationListSize))
 		<< data.AllocationListSize
-		<< Compat31::out(Compat31::array(data.pPatchLocationList, data.PatchLocationListSize))
+		<< Compat32::out(Compat32::array(data.pPatchLocationList, data.PatchLocationListSize))
 		<< data.PatchLocationListSize
-		<< Compat31::out(data.pDeviceFuncs)
-		<< Compat31::hex(data.Flags.Value)
-		<< Compat31::hex(data.CommandBuffer);
+		<< Compat32::out(data.pDeviceFuncs)
+		<< Compat32::hex(data.Flags.Value)
+		<< Compat32::hex(data.CommandBuffer);
 }

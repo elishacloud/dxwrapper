@@ -2375,7 +2375,7 @@ void m_IDirect3DDevice9Ex::LimitFrameRate()
 		if (DeltaPresentMS < DelayTimeMS && DeltaPresentMS > 0)
 		{
 			DoLoop = true;
-			Sleep(0);
+			Utils::BusyWaitYield();
 		}
 
 	} while (DoLoop);

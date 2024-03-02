@@ -24,7 +24,7 @@ namespace
 		bool useDefaultPalette;
 	};
 
-	Compat31::CriticalSection g_cs;
+	Compat32::CriticalSection g_cs;
 	Gdi::Region g_region;
 	RECT g_bounds = {};
 	DWORD g_bpp = 0;
@@ -102,7 +102,7 @@ namespace Gdi
 	{
 		HDC createDc(bool useDefaultPalette)
 		{
-			Compat31::ScopedCriticalSection lock(g_cs);
+			Compat32::ScopedCriticalSection lock(g_cs);
 			std::unique_ptr<void, decltype(&DeleteObject)> dib(createDib(useDefaultPalette), DeleteObject);
 			if (!dib)
 			{
@@ -130,7 +130,7 @@ namespace Gdi
 
 		HBITMAP createDib(bool useDefaultPalette)
 		{
-			Compat31::ScopedCriticalSection lock(g_cs);
+			Compat32::ScopedCriticalSection lock(g_cs);
 			if (!g_surfaceFileMapping)
 			{
 				return nullptr;
@@ -140,7 +140,7 @@ namespace Gdi
 
 		HBITMAP createOffScreenDib(LONG width, LONG height, bool useDefaultPalette)
 		{
-			Compat31::ScopedCriticalSection lock(g_cs);
+			Compat32::ScopedCriticalSection lock(g_cs);
 			return createDibSection(width, height, nullptr, useDefaultPalette);
 		}
 
@@ -148,7 +148,7 @@ namespace Gdi
 		{
 			DDraw::ScopedThreadLock ddLock;
 			D3dDdi::ScopedCriticalSection driverLock;
-			Compat31::ScopedCriticalSection lock(g_cs);
+			Compat32::ScopedCriticalSection lock(g_cs);
 
 			auto desc = getSurfaceDesc(rect);
 			if (!desc.lpSurface)
@@ -173,7 +173,7 @@ namespace Gdi
 				return;
 			}
 
-			Compat31::ScopedCriticalSection lock(g_cs);
+			Compat32::ScopedCriticalSection lock(g_cs);
 			DeleteObject(SelectObject(dc, g_stockBitmap));
 			DeleteDC(dc);
 			g_dcs.erase(dc);
@@ -181,19 +181,19 @@ namespace Gdi
 
 		RECT getBounds()
 		{
-			Compat31::ScopedCriticalSection lock(g_cs);
+			Compat32::ScopedCriticalSection lock(g_cs);
 			return g_bounds;
 		}
 
 		Region getRegion()
 		{
-			Compat31::ScopedCriticalSection lock(g_cs);
+			Compat32::ScopedCriticalSection lock(g_cs);
 			return g_region;
 		}
 
 		DDSURFACEDESC2 getSurfaceDesc(const RECT& rect)
 		{
-			Compat31::ScopedCriticalSection lock(g_cs);
+			Compat32::ScopedCriticalSection lock(g_cs);
 			if (rect.left < g_bounds.left || rect.top < g_bounds.top ||
 				rect.right > g_bounds.right || rect.bottom > g_bounds.bottom)
 			{
@@ -235,7 +235,7 @@ namespace Gdi
 			static auto prevDisplaySettingsUniqueness = Win32::DisplayMode::queryDisplaySettingsUniqueness() - 1;
 
 			{
-				Compat31::ScopedCriticalSection lock(g_cs);
+				Compat32::ScopedCriticalSection lock(g_cs);
 				if (Win32::DisplayMode::queryDisplaySettingsUniqueness() == prevDisplaySettingsUniqueness &&
 					Win32::DisplayMode::getBpp() == g_bpp)
 				{
@@ -245,7 +245,7 @@ namespace Gdi
 
 			{
 				D3dDdi::ScopedCriticalSection driverLock;
-				Compat31::ScopedCriticalSection lock(g_cs);
+				Compat32::ScopedCriticalSection lock(g_cs);
 
 				prevDisplaySettingsUniqueness = Win32::DisplayMode::queryDisplaySettingsUniqueness();
 				D3dDdi::Device::setGdiResourceHandle(nullptr);
@@ -286,7 +286,7 @@ namespace Gdi
 
 		void updatePalette(PALETTEENTRY(&palette)[256])
 		{
-			Compat31::ScopedCriticalSection lock(g_cs);
+			Compat32::ScopedCriticalSection lock(g_cs);
 
 			RGBQUAD systemPalette[256] = {};
 			for (int i = 0; i < 256; ++i)

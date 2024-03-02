@@ -39,7 +39,7 @@ BOOL WINAPI d9_D3DPERF_QueryRepeatFrame();
 void WINAPI d9_D3DPERF_SetMarker(D3DCOLOR col, LPCWSTR wszName);
 void WINAPI d9_D3DPERF_SetOptions(DWORD dwOptions);
 void WINAPI d9_D3DPERF_SetRegion(D3DCOLOR col, LPCWSTR wszName);
-bool Direct3D9DisableMaximizedWindowedMode();
+void WINAPI Direct3D9SetSwapEffectUpgradeShim(int Unknown);
 IDirect3D9* WINAPI d9_Direct3DCreate9(UINT SDKVersion);
 HRESULT WINAPI d9_Direct3DCreate9Ex(UINT SDKVersion, IDirect3D9Ex** ppD3D);
 IDirect3D9* WINAPI d9_Direct3DCreate9On12(UINT SDKVersion, D3D9ON12_ARGS* pOverrideList, UINT NumOverrideEntries);

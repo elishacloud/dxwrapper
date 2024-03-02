@@ -20,7 +20,7 @@ std::ostream& operator<<(std::ostream& os, D3DDDI_POOL val)
 
 std::ostream& operator<<(std::ostream& os, const D3DDDI_SURFACEINFO& val)
 {
-	return Compat31::LogStruct(os)
+	return Compat32::LogStruct(os)
 		<< val.Width
 		<< val.Height
 		<< val.Depth
@@ -31,83 +31,83 @@ std::ostream& operator<<(std::ostream& os, const D3DDDI_SURFACEINFO& val)
 
 std::ostream& operator<<(std::ostream& os, const D3DDDIARG_BLT& val)
 {
-	return Compat31::LogStruct(os)
+	return Compat32::LogStruct(os)
 		<< val.hSrcResource
 		<< val.SrcSubResourceIndex
 		<< val.SrcRect
 		<< val.hDstResource
 		<< val.DstSubResourceIndex
 		<< val.DstRect
-		<< Compat31::hex(val.ColorKey)
-		<< Compat31::hex(val.Flags.Value);
+		<< Compat32::hex(val.ColorKey)
+		<< Compat32::hex(val.Flags.Value);
 }
 
 std::ostream& operator<<(std::ostream& os, const D3DDDIARG_CLEAR& val)
 {
-	return Compat31::LogStruct(os)
-		<< Compat31::hex(val.Flags)
-		<< Compat31::hex(val.FillColor)
+	return Compat32::LogStruct(os)
+		<< Compat32::hex(val.Flags)
+		<< Compat32::hex(val.FillColor)
 		<< val.FillDepth
-		<< Compat31::hex(val.FillStencil);
+		<< Compat32::hex(val.FillStencil);
 }
 
 std::ostream& operator<<(std::ostream& os, const D3DDDIARG_COLORFILL& val)
 {
-	return Compat31::LogStruct(os)
+	return Compat32::LogStruct(os)
 		<< val.hResource
 		<< val.SubResourceIndex
 		<< val.DstRect
-		<< Compat31::hex(val.Color)
-		<< Compat31::hex(val.Flags.Value);
+		<< Compat32::hex(val.Color)
+		<< Compat32::hex(val.Flags.Value);
 }
 
 std::ostream& operator<<(std::ostream& os, const D3DDDIARG_CREATERESOURCE& val)
 {
-	return Compat31::LogStruct(os)
+	return Compat32::LogStruct(os)
 		<< val.Format
 		<< val.Pool
 		<< val.MultisampleType
 		<< val.MultisampleQuality
-		<< Compat31::array(val.pSurfList, val.SurfCount)
+		<< Compat32::array(val.pSurfList, val.SurfCount)
 		<< val.SurfCount
 		<< val.MipLevels
 		<< val.Fvf
 		<< val.VidPnSourceId
 		<< val.RefreshRate
 		<< val.hResource
-		<< Compat31::hex(val.Flags.Value)
+		<< Compat32::hex(val.Flags.Value)
 		<< val.Rotation;
 }
 
 std::ostream& operator<<(std::ostream& os, const D3DDDIARG_CREATERESOURCE2& val)
 {
-	return Compat31::LogStruct(os)
+	return Compat32::LogStruct(os)
 		<< val.Format
 		<< val.Pool
 		<< val.MultisampleType
 		<< val.MultisampleQuality
-		<< Compat31::array(val.pSurfList, val.SurfCount)
+		<< Compat32::array(val.pSurfList, val.SurfCount)
 		<< val.SurfCount
 		<< val.MipLevels
 		<< val.Fvf
 		<< val.VidPnSourceId
 		<< val.RefreshRate
 		<< val.hResource
-		<< Compat31::hex(val.Flags.Value)
+		<< Compat32::hex(val.Flags.Value)
 		<< val.Rotation
-		<< Compat31::hex(val.Flags2.Value);
+		<< Compat32::hex(val.Flags2.Value);
 }
 
 std::ostream& operator<<(std::ostream& os, const D3DDDIARG_CREATEVERTEXSHADERDECL& val)
 {
-	return Compat31::LogStruct(os)
+	return Compat32::LogStruct(os)
 		<< val.NumVertexElements
 		<< val.ShaderHandle;
 }
 
 std::ostream& operator<<(std::ostream& os, const D3DDDIARG_DRAWINDEXEDPRIMITIVE& val)
 {
-	return Compat31::LogStruct(os)
+	return Compat32::LogStruct(os)
 		<< val.PrimitiveType
 		<< val.BaseVertexIndex
 		<< val.MinIndex
@@ -118,7 +118,7 @@ std::ostream& operator<<(std::ostream& os, const D3DDDIARG_DRAWINDEXEDPRIMITIVE&
 
 std::ostream& operator<<(std::ostream& os, const D3DDDIARG_DRAWINDEXEDPRIMITIVE2& val)
 {
-	return Compat31::LogStruct(os)
+	return Compat32::LogStruct(os)
 		<< val.PrimitiveType
 		<< val.BaseVertexOffset
 		<< val.MinIndex
@@ -129,7 +129,7 @@ std::ostream& operator<<(std::ostream& os, const D3DDDIARG_DRAWINDEXEDPRIMITIVE2
 
 std::ostream& operator<<(std::ostream& os, const D3DDDIARG_DRAWPRIMITIVE& val)
 {
-	return Compat31::LogStruct(os)
+	return Compat32::LogStruct(os)
 		<< val.PrimitiveType
 		<< val.VStart
 		<< val.PrimitiveCount;
@@ -137,7 +137,7 @@ std::ostream& operator<<(std::ostream& os, const D3DDDIARG_DRAWPRIMITIVE& val)
 
 std::ostream& operator<<(std::ostream& os, const D3DDDIARG_DRAWPRIMITIVE2& val)
 {
-	return Compat31::LogStruct(os)
+	return Compat32::LogStruct(os)
 		<< val.PrimitiveType
 		<< val.FirstVertexOffset
 		<< val.PrimitiveCount;
@@ -145,78 +145,78 @@ std::ostream& operator<<(std::ostream& os, const D3DDDIARG_DRAWPRIMITIVE2& val)
 
 std::ostream& operator<<(std::ostream& os, const D3DDDIARG_LOCK& val)
 {
-	return Compat31::LogStruct(os)
+	return Compat32::LogStruct(os)
 		<< val.hResource
 		<< val.SubResourceIndex
 		<< val.Box
 		<< val.pSurfData
 		<< val.Pitch
 		<< val.SlicePitch
-		<< Compat31::hex(val.Flags.Value);
+		<< Compat32::hex(val.Flags.Value);
 }
 
 std::ostream& operator<<(std::ostream& os, const D3DDDIARG_OPENRESOURCE& val)
 {
-	return Compat31::LogStruct(os)
+	return Compat32::LogStruct(os)
 		<< val.NumAllocations
-		<< Compat31::array(val.pOpenAllocationInfo, val.NumAllocations)
-		<< Compat31::hex(val.hKMResource)
+		<< Compat32::array(val.pOpenAllocationInfo, val.NumAllocations)
+		<< Compat32::hex(val.hKMResource)
 		<< val.pPrivateDriverData
 		<< val.PrivateDriverDataSize
 		<< val.hResource
 		<< val.Rotation
-		<< Compat31::hex(val.Flags.Value);
+		<< Compat32::hex(val.Flags.Value);
 }
 
 std::ostream& operator<<(std::ostream& os, const D3DDDIARG_PRESENT& val)
 {
-	return Compat31::LogStruct(os)
+	return Compat32::LogStruct(os)
 		<< val.hSrcResource
 		<< val.SrcSubResourceIndex
 		<< val.hDstResource
 		<< val.DstSubResourceIndex
-		<< Compat31::hex(val.Flags.Value)
+		<< Compat32::hex(val.Flags.Value)
 		<< val.FlipInterval;
 }
 
 std::ostream& operator<<(std::ostream& os, const D3DDDIARG_PRESENT1& val)
 {
-	return Compat31::LogStruct(os)
-		<< Compat31::array(val.phSrcResources, val.SrcResources)
+	return Compat32::LogStruct(os)
+		<< Compat32::array(val.phSrcResources, val.SrcResources)
 		<< val.SrcResources
 		<< val.hDstResource
 		<< val.DstSubResourceIndex
-		<< Compat31::hex(val.Flags.Value)
+		<< Compat32::hex(val.Flags.Value)
 		<< val.FlipInterval
 		<< val.Reserved
-		<< Compat31::array(val.pDirtyRects, val.DirtyRects)
+		<< Compat32::array(val.pDirtyRects, val.DirtyRects)
 		<< val.DirtyRects;
 }
 
 std::ostream& operator<<(std::ostream& os, const D3DDDIARG_PRESENTSURFACE& val)
 {
-	return Compat31::LogStruct(os)
+	return Compat32::LogStruct(os)
 		<< val.hResource
 		<< val.SubResourceIndex;
 }
 
 std::ostream& operator<<(std::ostream& os, const D3DDDIARG_RENDERSTATE& val)
 {
-	return Compat31::LogStruct(os)
+	return Compat32::LogStruct(os)
 		<< val.State
 		<< val.Value;
 }
 
 std::ostream& operator<<(std::ostream& os, const D3DDDIARG_SETPIXELSHADERCONST& val)
 {
-	return Compat31::LogStruct(os)
+	return Compat32::LogStruct(os)
 		<< val.Register
 		<< val.Count;
 }
 
 std::ostream& operator<<(std::ostream& os, const D3DDDIARG_SETRENDERTARGET& val)
 {
-	return Compat31::LogStruct(os)
+	return Compat32::LogStruct(os)
 		<< val.RenderTargetIndex
 		<< val.hRenderTarget
 		<< val.SubResourceIndex;
@@ -224,7 +224,7 @@ std::ostream& operator<<(std::ostream& os, const D3DDDIARG_SETRENDERTARGET& val)
 
 std::ostream& operator<<(std::ostream& os, const D3DDDIARG_SETSTREAMSOURCE& val)
 {
-	return Compat31::LogStruct(os)
+	return Compat32::LogStruct(os)
 		<< val.Stream
 		<< val.hVertexBuffer
 		<< val.Offset
@@ -233,21 +233,21 @@ std::ostream& operator<<(std::ostream& os, const D3DDDIARG_SETSTREAMSOURCE& val)
 
 std::ostream& operator<<(std::ostream& os, const D3DDDIARG_SETSTREAMSOURCEUM& val)
 {
-	return Compat31::LogStruct(os)
+	return Compat32::LogStruct(os)
 		<< val.Stream
 		<< val.Stride;
 }
 
 std::ostream& operator<<(std::ostream& os, const D3DDDIARG_SETVERTEXSHADERCONST& val)
 {
-	return Compat31::LogStruct(os)
+	return Compat32::LogStruct(os)
 		<< val.Register
 		<< val.Count;
 }
 
 std::ostream& operator<<(std::ostream& os, const D3DDDIARG_TEXTURESTAGESTATE& val)
 {
-	return Compat31::LogStruct(os)
+	return Compat32::LogStruct(os)
 		<< val.Stage
 		<< val.State
 		<< val.Value;
@@ -255,29 +255,29 @@ std::ostream& operator<<(std::ostream& os, const D3DDDIARG_TEXTURESTAGESTATE& va
 
 std::ostream& operator<<(std::ostream& os, const D3DDDIARG_UNLOCK& val)
 {
-	return Compat31::LogStruct(os)
+	return Compat32::LogStruct(os)
 		<< val.hResource
 		<< val.SubResourceIndex
-		<< Compat31::hex(val.Flags.Value);
+		<< Compat32::hex(val.Flags.Value);
 }
 
 std::ostream& operator<<(std::ostream& os, const D3DDDIARG_WINFO& val)
 {
-	return Compat31::LogStruct(os)
+	return Compat32::LogStruct(os)
 		<< val.WNear
 		<< val.WFar;
 }
 
 std::ostream& operator<<(std::ostream& os, const D3DDDIARG_ZRANGE& val)
 {
-	return Compat31::LogStruct(os)
+	return Compat32::LogStruct(os)
 		<< val.MinZ
 		<< val.MaxZ;
 }
 
 std::ostream& operator<<(std::ostream& os, const D3DDDIBOX& box)
 {
-	return Compat31::LogStruct(os)
+	return Compat32::LogStruct(os)
 		<< box.Left
 		<< box.Top
 		<< box.Right
@@ -487,7 +487,7 @@ std::ostream& operator<<(std::ostream& os, D3DDDITEXTURESTAGESTATETYPE val)
 
 std::ostream& operator<<(std::ostream& os, const D3DDDIVERTEXELEMENT& val)
 {
-	return Compat31::LogStruct(os)
+	return Compat32::LogStruct(os)
 		<< val.Stream
 		<< val.Offset
 		<< static_cast<UINT>(val.Type)

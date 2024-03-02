@@ -19,6 +19,7 @@
 #include <Shlwapi.h>
 #include "Settings\Settings.h"
 #include "Wrappers\wrapper.h"
+#include "winmm.h"
 #include "External\Hooking\Hook.h"
 #ifdef DDRAWCOMPAT
 #include "DDrawCompat\DDrawCompatExternal.h"
@@ -129,11 +130,32 @@ bool APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 		// Init logs
 		Logging::EnableLogging = !Config.DisableLogging;
 		Logging::InitLog();
+		bool IsRunningFromMemory = false;
 		Logging::Log() << "Starting DxWrapper v" << APP_VERSION;
 		{
-			char path[MAX_PATH];
-			GetModuleFileName(hModule, path, MAX_PATH);
-			Logging::Log() << "Running from: " << path;
+			char path[MAX_PATH] = {};
+			SetLastError(0);
+			DWORD size = GetModuleFileName(hModule, path, MAX_PATH);
+			DWORD errorCode = GetLastError();
+			if (errorCode == ERROR_INSUFFICIENT_BUFFER)
+			{
+				Logging::Log() << "Warning: folder path is too long!";
+			}
+			else if (errorCode != ERROR_SUCCESS || size == NULL)
+			{
+				Logging::Log() << "Error: getting module name!";
+			}
+
+			// Check if it is loading from a file
+			if (PathFileExists(path))
+			{
+				Logging::Log() << "Running from: " << path;
+			}
+			else
+			{
+				IsRunningFromMemory = true;
+				Logging::Log() << "Module is running from MEMORY!";
+			}
 		}
 		Config.SetConfig();			// Finish setting up config
 		Logging::LogComputerManufacturer();
@@ -188,11 +210,8 @@ bool APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 		// Attach real dll
 		if (Config.RealWrapperMode == dtype.dxwrapper)
 		{
-			char path[MAX_PATH] = { 0 };
-			GetModuleFileName(hModule, path, MAX_PATH);
-
 			// Hook GetModuleFileName to fix module name in modules loaded from memory
-			if (!PathFileExists(path))
+			if (IsRunningFromMemory)
 			{
 				HMODULE dll = LoadLibrary("kernel32.dll");
 				if (dll)
@@ -234,7 +253,7 @@ bool APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 		}
 		if (Config.MemoryInfo.size() != 0)
 		{
-			Utils::WriteMemory::WriteMemory();
+			WriteMemory::WriteMemory();
 		}
 		if (Config.DisableHighDPIScaling)
 		{
@@ -404,8 +423,8 @@ bool APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 				DdrawWrapper::Direct3DCreate9_out = GetProcAddress(d3d9_dll, "Direct3DCreate9");
 			}
 
-			// Add DDrawCompat to the chain
 #ifdef DDRAWCOMPAT
+			// Add DDrawCompat to the chain
 			if (Config.DDrawCompat)
 			{
 				Logging::Log() << "Enabling DDrawCompat";
@@ -427,9 +446,9 @@ bool APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 				VISIT_PROCS_DDRAW_SHARED(SHIM_WRAPPED_PROC);
 			}
 
-			// Start DDrawCompat
 #ifdef DDRAWCOMPAT
-			if (Config.DDrawCompat || Config.Dd7to9)
+			// Start DDrawCompat
+			if (Config.DDrawCompat)
 			{
 				DDrawCompat::Start(hModule_dll, DLL_PROCESS_ATTACH);
 			}
@@ -531,10 +550,24 @@ bool APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 			Utils::LoadPlugins();
 		}
 
+		// Set timer
+		if (!Config.DDrawCompat)
+		{
+			timeBeginPeriod(1);
+		}
+
+#ifdef DDRAWCOMPAT
+		// Extra compatibility hooks from DDrawCompat
+		if (!DDrawCompat::IsEnabled() && (Config.Dd7to9 || Config.D3d8to9))
+		{
+			DDrawCompat::InstallDd7to9Hooks();
+		}
+#endif // DDRAWCOMPAT
+
 		// Start fullscreen thread
 		if (Config.FullScreen || Config.ForceTermination)
 		{
-			Utils::Fullscreen::StartThread();
+			Fullscreen::StartThread();
 		}
 
 		// Loaded
@@ -543,7 +576,7 @@ bool APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 	break;
 	case DLL_THREAD_ATTACH:
 		// Check if thread has started
-		if (Config.ForceTermination && Utils::Fullscreen::IsThreadRunning())
+		if (Config.ForceTermination && Fullscreen::IsThreadRunning())
 		{
 			FullscreenThreadStartedFlag = true;
 		}
@@ -552,13 +585,13 @@ bool APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 		if (Config.ForceTermination)
 		{
 			// Check if thread has started
-			if (Utils::Fullscreen::IsThreadRunning())
+			if (Fullscreen::IsThreadRunning())
 			{
 				FullscreenThreadStartedFlag = true;
 			}
 
 			// Check if thread has stopped
-			if (FullscreenThreadStartedFlag && !Utils::Fullscreen::IsThreadRunning())
+			if (FullscreenThreadStartedFlag && !Fullscreen::IsThreadRunning())
 			{
 				Logging::Log() << "Process not exiting, attempting to terminate process...";
 
@@ -580,8 +613,8 @@ bool APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 		Logging::Log() << "Quiting DxWrapper";
 
 		// Stop threads
-		Utils::Fullscreen::StopThread();
-		Utils::WriteMemory::StopThread();
+		Fullscreen::StopThread();
+		WriteMemory::StopThread();
 
 		// Unload and Unhook DxWnd
 		if (Config.DxWnd)
@@ -590,8 +623,8 @@ bool APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 			DxWndEndHook();
 		}
 
-		// Unload and Unhook DDrawCompat
 #ifdef DDRAWCOMPAT
+		// Unload and Unhook DDrawCompat
 		if (DDrawCompat::IsEnabled())
 		{
 			DDrawCompat::Start(nullptr, DLL_PROCESS_DETACH);

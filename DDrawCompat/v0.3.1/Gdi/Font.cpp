@@ -12,7 +12,7 @@ namespace
 	BOOL WINAPI systemParametersInfo(UINT uiAction, UINT uiParam, PVOID pvParam, UINT fWinIni,
 		decltype(&SystemParametersInfoA) origSystemParametersInfo, [[maybe_unused]] const char* origFuncName)
 	{
-		LOG_FUNC(origFuncName, Compat31::hex(uiAction), uiParam, pvParam, fWinIni);
+		LOG_FUNC(origFuncName, Compat32::hex(uiAction), uiParam, pvParam, fWinIni);
 		switch (uiAction)
 		{
 		case SPI_GETFONTSMOOTHING:

@@ -889,11 +889,11 @@
     <ClCompile Include="Utils\Disasm.cpp">
       <Filter>Utils</Filter>
     </ClCompile>
-    <ClCompile Include="Utils\WndProc.cpp">
-      <Filter>Utils</Filter>
-    </ClCompile>
     <ClCompile Include="d3d9\DebugOverlay.cpp">
       <Filter>d3d9</Filter>
+    </ClCompile>
+    <ClCompile Include="GDI\WndProc.cpp">
+      <Filter>GDI</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

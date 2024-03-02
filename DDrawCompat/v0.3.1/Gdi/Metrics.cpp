@@ -39,7 +39,7 @@ namespace Gdi
 		void installHooks()
 		{
 			HOOK_FUNCTION(user32, GetSystemMetrics, getSystemMetrics);
-			Compat31::hookFunction("user32", "GetSystemMetricsForDpi",
+			Compat32::hookFunction("user32", "GetSystemMetricsForDpi",
 				reinterpret_cast<void*&>(g_origGetSystemMetricsForDpi), getSystemMetricsForDpi);
 		}
 	}

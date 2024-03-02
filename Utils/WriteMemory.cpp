@@ -18,21 +18,18 @@
 #include "Utils.h"
 #include "Logging\Logging.h"
 
-namespace Utils
+namespace WriteMemory
 {
-	namespace WriteMemory
-	{
-		// Declare variables
-		bool m_StopThreadFlag = false;
-		bool m_ThreadRunningFlag = false;
-		HANDLE m_hThread = nullptr;
-		DWORD m_dwThreadID = 0;
+	// Declare variables
+	bool m_StopThreadFlag = false;
+	bool m_ThreadRunningFlag = false;
+	HANDLE m_hThread = nullptr;
+	DWORD m_dwThreadID = 0;
 
-		// Function declarations
-		bool WriteAllByteMemory();
-		DWORD WINAPI StartThreadFunc(LPVOID);
-		bool IsThreadRunning();
-	}
+	// Function declarations
+	bool WriteAllByteMemory();
+	DWORD WINAPI StartThreadFunc(LPVOID);
+	bool IsThreadRunning();
 }
 
 using namespace Utils;

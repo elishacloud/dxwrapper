@@ -47,7 +47,13 @@ namespace
 		EnumDisplaySettingsExFunc origEnumDisplaySettingsEx,
 		CStr lpszDeviceName, DevMode* lpDevMode, HWND hwnd, DWORD dwflags, LPVOID lParam)
 	{
-		DDraw::ScopedThreadLock lock;
+		//********** Begin Edit *************
+		if (DDrawCompat::IsEnabled())
+		{
+			DDraw::ScopedThreadLock lock;
+		}
+		//********** End Edit ***************
+
 		DevMode prevDevMode = {};
 		if (!(dwflags & CDS_TEST))
 		{
@@ -96,7 +102,12 @@ namespace
 				CloseHandle(dwmDxFullScreenTransitionEvent);
 			}
 
-			Gdi::VirtualScreen::update();
+			//********** Begin Edit *************
+			if (DDrawCompat::IsEnabled())
+			{
+				Gdi::VirtualScreen::update();
+			}
+			//********** End Edit ***************
 		}
 
 		return result;
@@ -125,14 +136,14 @@ namespace
 	void disableDwm8And16BitMitigation()
 	{
 		auto user32 = GetModuleHandle("user32");
-		Compat31::removeShim(user32, "ChangeDisplaySettingsA");
-		Compat31::removeShim(user32, "ChangeDisplaySettingsW");
-		Compat31::removeShim(user32, "ChangeDisplaySettingsExA");
-		Compat31::removeShim(user32, "ChangeDisplaySettingsExW");
-		Compat31::removeShim(user32, "EnumDisplaySettingsA");
-		Compat31::removeShim(user32, "EnumDisplaySettingsW");
-		Compat31::removeShim(user32, "EnumDisplaySettingsExA");
-		Compat31::removeShim(user32, "EnumDisplaySettingsExW");
+		Compat32::removeShim(user32, "ChangeDisplaySettingsA");
+		Compat32::removeShim(user32, "ChangeDisplaySettingsW");
+		Compat32::removeShim(user32, "ChangeDisplaySettingsExA");
+		Compat32::removeShim(user32, "ChangeDisplaySettingsExW");
+		Compat32::removeShim(user32, "EnumDisplaySettingsA");
+		Compat32::removeShim(user32, "EnumDisplaySettingsW");
+		Compat32::removeShim(user32, "EnumDisplaySettingsExA");
+		Compat32::removeShim(user32, "EnumDisplaySettingsExW");
 
 		HOOK_FUNCTION(apphelp, DWM8And16Bit_IsShimApplied_CallOut, dwm8And16BitIsShimAppliedCallOut);
 		HOOK_FUNCTION(apphelp, SE_COM_HookInterface, seComHookInterface);
@@ -310,7 +321,7 @@ namespace Win32
 			HOOK_FUNCTION(user32, EnumDisplaySettingsExW, enumDisplaySettingsExW);
 
 			//********** Begin Edit *************
-			if (Config.DDrawCompat)
+			if (DDrawCompat::IsEnabled())
 			{
 				HOOK_FUNCTION(gdi32, GetDeviceCaps, getDeviceCaps);
 			}

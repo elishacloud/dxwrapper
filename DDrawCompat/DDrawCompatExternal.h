@@ -19,5 +19,5 @@ namespace DDrawCompat
 	void Prepare();
 	void Start(HINSTANCE, DWORD);
 	bool IsEnabled();
-	void InstallHooks();
+	void InstallDd7to9Hooks();
 }

@@ -22,12 +22,10 @@
 
 #include "ddraw.h"
 #include "ddrawExternal.h"
-#ifdef DDRAWCOMPAT
-#include "DDrawCompat\DDrawCompatExternal.h"
-#endif
 #include "Dllmain\Dllmain.h"
 #include "IClassFactory\IClassFactory.h"
 #include "d3d9\d3d9External.h"
+#include "Utils\Utils.h"
 #include "GDI\GDI.h"
 #include "External\Hooking\Hook.h"
 
@@ -66,12 +64,14 @@ void InitDDraw()
 	static bool RunOnce = true;
 	if (RunOnce)
 	{
+		Logging::Log() << "Installing GDI & User32 hooks";
 		using namespace GdiWrapper;
 		GetDeviceCaps_out = (FARPROC)Hook::HotPatch(Hook::GetProcAddress(LoadLibrary("gdi32.dll"), "GetDeviceCaps"), "GetDeviceCaps", gdi_GetDeviceCaps);
 		CreateWindowExA_out = (FARPROC)Hook::HotPatch(Hook::GetProcAddress(LoadLibrary("user32.dll"), "CreateWindowExA"), "CreateWindowExA", user_CreateWindowExA);
 		CreateWindowExW_out = (FARPROC)Hook::HotPatch(Hook::GetProcAddress(LoadLibrary("user32.dll"), "CreateWindowExW"), "CreateWindowExW", user_CreateWindowExW);
 		DestroyWindow_out = (FARPROC)Hook::HotPatch(Hook::GetProcAddress(LoadLibrary("user32.dll"), "DestroyWindow"), "DestroyWindow", user_DestroyWindow);
 		GetSystemMetrics_out = (FARPROC)Hook::HotPatch(Hook::GetProcAddress(LoadLibrary("user32.dll"), "GetSystemMetrics"), "GetSystemMetrics", user_GetSystemMetrics);
+		Utils::GetDiskFreeSpaceA_out = (FARPROC)Hook::HotPatch(Hook::GetProcAddress(LoadLibrary("kernel32.dll"), "GetDiskFreeSpaceA"), "GetDiskFreeSpaceA", Utils::kernel_GetDiskFreeSpaceA);
 		if (EnableWndProcHook)
 		{
 			SetWindowLongA_out = (FARPROC)Hook::HotPatch(Hook::GetProcAddress(LoadLibrary("user32.dll"), "SetWindowLongA"), "SetWindowLongA", user_SetWindowLongA);
@@ -412,15 +412,10 @@ HRESULT WINAPI dd_DirectDrawCreateEx(GUID FAR *lpGUID, LPVOID *lplpDD, REFIID ri
 			return DDERR_INVALIDPARAMS;
 		}
 
-#ifdef DDRAWCOMPAT
-		// Install DDrawCompat hooks
-		static bool RunOnce = true;
-		if (RunOnce)
+		if (Config.SetSwapEffectShim < 2)
 		{
-			DDrawCompat::InstallHooks();
-			RunOnce = false;
+			Direct3D9SetSwapEffectUpgradeShim(Config.SetSwapEffectShim);
 		}
-#endif
 
 		DWORD DxVersion = GetGUIDVersion(riid);
 

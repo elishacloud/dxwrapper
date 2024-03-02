@@ -12,16 +12,16 @@
 
 std::ostream& operator<<(std::ostream& os, const MENUITEMINFOW& val)
 {
-	return Compat31::LogStruct(os)
+	return Compat32::LogStruct(os)
 		<< val.cbSize
-		<< Compat31::hex(val.fMask)
-		<< Compat31::hex(val.fType)
-		<< Compat31::hex(val.fState)
+		<< Compat32::hex(val.fMask)
+		<< Compat32::hex(val.fType)
+		<< Compat32::hex(val.fState)
 		<< val.wID
 		<< val.hSubMenu
 		<< val.hbmpChecked
 		<< val.hbmpUnchecked
-		<< Compat31::hex(val.dwItemData)
+		<< Compat32::hex(val.dwItemData)
 		<< val.dwTypeData
 		<< val.cch
 		<< (val.cbSize > offsetof(MENUITEMINFOW, hbmpItem) ? val.hbmpItem : nullptr);
@@ -132,7 +132,7 @@ namespace
 	LRESULT defPaintProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam, WNDPROC origWndProc,
 		[[maybe_unused]] const char* origWndProcName)
 	{
-		LOG_FUNC(origWndProcName, Compat31::WindowMessageStruct(hwnd, msg, wParam, lParam));
+		LOG_FUNC(origWndProcName, Compat32::WindowMessageStruct(hwnd, msg, wParam, lParam));
 		return LOG_RESULT(defPaintProc(hwnd, msg, wParam, lParam, origWndProc));
 	}
 
@@ -204,13 +204,13 @@ namespace
 
 	LRESULT WINAPI defWindowProcA(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 	{
-		LOG_FUNC("DefWindowProcA", Compat31::WindowMessageStruct(hwnd, msg, wParam, lParam));
+		LOG_FUNC("DefWindowProcA", Compat32::WindowMessageStruct(hwnd, msg, wParam, lParam));
 		return LOG_RESULT(defWindowProc(hwnd, msg, wParam, lParam, CALL_ORIG_FUNC(DefWindowProcA)));
 	}
 
 	LRESULT WINAPI defWindowProcW(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 	{
-		LOG_FUNC("DefWindowProcW", Compat31::WindowMessageStruct(hwnd, msg, wParam, lParam));
+		LOG_FUNC("DefWindowProcW", Compat32::WindowMessageStruct(hwnd, msg, wParam, lParam));
 		return LOG_RESULT(defWindowProc(hwnd, msg, wParam, lParam, CALL_ORIG_FUNC(DefWindowProcW)));
 	}
 
@@ -264,10 +264,10 @@ namespace
 			wndProc = wc.lpfnWndProc;
 		}
 
-		HMODULE module = Compat31::getModuleHandleFromAddress(wndProc);
+		HMODULE module = Compat32::getModuleHandleFromAddress(wndProc);
 		if (module != GetModuleHandle("ntdll") && module != GetModuleHandle("user32"))
 		{
-			Compat31::Log() << "Failed to hook a user32 window procedure: " << className;
+			Compat32::Log() << "Failed to hook a user32 window procedure: " << className;
 			return;
 		}
 
@@ -278,7 +278,7 @@ namespace
 		user32WndProc.className = className;
 		user32WndProc.isUnicode = isUnicode;
 
-		Compat31::hookFunction(reinterpret_cast<void*&>(user32WndProc.oldWndProcTrampoline),
+		Compat32::hookFunction(reinterpret_cast<void*&>(user32WndProc.oldWndProcTrampoline),
 			user32WndProc.newWndProc, procName.c_str());
 	}
 
@@ -468,7 +468,7 @@ namespace
 	LRESULT CALLBACK user32WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam,
 		[[maybe_unused]] const std::string& procName, WndProcHook wndProcHook, WNDPROC oldWndProcTrampoline)
 	{
-		LOG_FUNC(procName.c_str(), Compat31::WindowMessageStruct(hwnd, uMsg, wParam, lParam));
+		LOG_FUNC(procName.c_str(), Compat32::WindowMessageStruct(hwnd, uMsg, wParam, lParam));
 		LRESULT result = wndProcHook(hwnd, uMsg, wParam, lParam, oldWndProcTrampoline);
 		if (WM_CREATE == uMsg && -1 != result)
 		{

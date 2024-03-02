@@ -15,6 +15,7 @@
 */
 
 #include "dsound.h"
+#include "Utils\Utils.h"
 
 DWORD WINAPI ResetPending(LPVOID pvParam);
 
@@ -395,7 +396,7 @@ void m_IDirectSoundBuffer8::StopThread()
 	bool flag = false;
 	do {
 
-		Sleep(0);
+		Utils::BusyWaitYield();
 
 		EnterCriticalSection(&AudioClip.dics);
 

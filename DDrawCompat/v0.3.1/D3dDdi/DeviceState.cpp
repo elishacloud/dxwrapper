@@ -45,7 +45,7 @@ namespace D3dDdi
 		D3DDDIARG_CREATEVERTEXSHADERDECL* data,
 		const D3DDDIVERTEXELEMENT* vertexElements)
 	{
-		LOG_DEBUG << Compat31::array(vertexElements, data->NumVertexElements);
+		LOG_DEBUG << Compat32::array(vertexElements, data->NumVertexElements);
 		HRESULT result = m_device.getOrigVtable().pfnCreateVertexShaderDecl(m_device, data, vertexElements);
 		if (SUCCEEDED(result))
 		{

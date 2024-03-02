@@ -12,6 +12,7 @@ namespace Utils
 	EXPORT_OUT_WRAPPED_PROC(GetProcAddress, unused);
 	EXPORT_OUT_WRAPPED_PROC(GetModuleFileNameA, unused);
 	EXPORT_OUT_WRAPPED_PROC(GetModuleFileNameW, unused);
+	EXPORT_OUT_WRAPPED_PROC(GetDiskFreeSpaceA, unused);
 
 	void Shell(const char*);
 	void DisableHighDPIScaling();
@@ -21,6 +22,7 @@ namespace Utils
 	FARPROC WINAPI GetProcAddressHandler(HMODULE hModule, LPSTR lpProcName);
 	DWORD WINAPI GetModuleFileNameAHandler(HMODULE hModule, LPSTR lpFilename, DWORD nSize);
 	DWORD WINAPI GetModuleFileNameWHandler(HMODULE hModule, LPWSTR lpFilename, DWORD nSize);
+	BOOL WINAPI kernel_GetDiskFreeSpaceA(LPCSTR lpRootPathName, LPDWORD lpSectorsPerCluster, LPDWORD lpBytesPerSector, LPDWORD lpNumberOfFreeClusters, LPDWORD lpTotalNumberOfClusters);
 	void HookExceptionHandler();
 	void UnHookExceptionHandler();
 	void AddHandleToVector(HMODULE dll, const char *name);
@@ -32,6 +34,7 @@ namespace Utils
 	HMEMORYMODULE LoadResourceToMemory(DWORD ResID);
 	DWORD ReverseBits(DWORD v);
 	void DDrawResolutionHack(HMODULE hD3DIm);
+	void BusyWaitYield();
 	void CheckMessageQueue(HWND hwnd);
 	void GetScreenSettings();
 	void ResetScreenSettings();
@@ -48,29 +51,22 @@ namespace Utils
 	void GetScreenSize(HWND hwnd, DWORD &screenWidth, DWORD &screenHeight);
 	void GetDesktopRect(HWND hWnd, RECT& screenRect);
 	DWORD GetVideoRam(UINT AdapterNo);	// Adapters start numbering from '1', based on "Win32_VideoController" WMI class and "DeviceID" property.
+}
 
-	namespace WriteMemory
-	{
-		bool CheckMemoryAddress(void *dataAddr, void *dataBytes, size_t dataSize);
-		bool UpdateMemoryAddress(void *dataAddr, void *dataBytes, size_t dataSize);
-		void WriteMemory();
-		void StopThread();
-	}
+namespace WriteMemory
+{
+	bool CheckMemoryAddress(void* dataAddr, void* dataBytes, size_t dataSize);
+	bool UpdateMemoryAddress(void* dataAddr, void* dataBytes, size_t dataSize);
+	void WriteMemory();
+	void StopThread();
+}
 
-	namespace Fullscreen
-	{
-		void StartThread();
-		bool IsThreadRunning();
-		void StopThread();
-		void ResetScreen();
-	}
-
-	namespace WndProc
-	{
-		WNDPROC CheckWndProc(HWND hWnd, LONG dwNewLong);
-		bool AddWndProc(HWND hWnd);
-		void RemoveWndProc(HWND hWnd);
-	}
+namespace Fullscreen
+{
+	void StartThread();
+	bool IsThreadRunning();
+	void StopThread();
+	void ResetScreen();
 }
 
 bool stristr(LPCSTR strCheck, LPCSTR str, size_t size);

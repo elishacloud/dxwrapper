@@ -160,6 +160,7 @@ inline void ReleasePTCriticalSection()
 }
 
 // Direct3D9 flags
+bool IsDeviceLost;
 bool EnableWaitVsync;
 
 // Direct3D9 Objects
@@ -201,7 +202,7 @@ HRESULT m_IDirectDrawX::QueryInterface(REFIID riid, LPVOID FAR * ppvObj, DWORD D
 	if (DirectXVersion != 1 && DirectXVersion != 2 && DirectXVersion != 3 && DirectXVersion != 4 && DirectXVersion != 7)
 	{
 		LOG_LIMIT(100, __FUNCTION__ << " Error: wrapper interface version not found: " << DirectXVersion);
-		return DDERR_GENERIC;
+		return E_NOINTERFACE;
 	}
 
 	DWORD DxVersion = (CheckWrapperType(riid) && (Config.Dd7to9 || Config.ConvertToDirectDraw7)) ? GetGUIDVersion(riid) : DirectXVersion;
@@ -242,11 +243,11 @@ HRESULT m_IDirectDrawX::QueryInterface(REFIID riid, LPVOID FAR * ppvObj, DWORD D
 		}
 		if (riid == IID_IDirectDrawColorControl)
 		{
-			return CreateColorInterface(ppvObj);
+			return SUCCEEDED(CreateColorInterface(ppvObj)) ? DD_OK : E_NOINTERFACE;
 		}
 		if (riid == IID_IDirectDrawGammaControl)
 		{
-			return CreateGammaInterface(ppvObj);
+			return SUCCEEDED(CreateGammaInterface(ppvObj)) ? DD_OK : E_NOINTERFACE;
 		}
 	}
 
@@ -1615,7 +1616,6 @@ HRESULT m_IDirectDrawX::SetCooperativeLevel(HWND hWnd, DWORD dwFlags, DWORD Dire
 
 		HWND LasthWnd = DisplayMode.hWnd;
 		bool LastFPUPreserve = Device.FPUPreserve;
-		bool LastNoWindowChanges = Device.NoWindowChanges;
 		bool LastExclusiveMode = ExclusiveMode;
 
 		// Set windowed mode
@@ -1685,7 +1685,7 @@ HRESULT m_IDirectDrawX::SetCooperativeLevel(HWND hWnd, DWORD dwFlags, DWORD Dire
 
 			// Reset if mode was changed
 			if ((d3d9Device || LastUsedHWnd == DisplayMode.hWnd) &&
-				(LastExclusiveMode != ExclusiveMode || LasthWnd != DisplayMode.hWnd || LastFPUPreserve != Device.FPUPreserve || LastNoWindowChanges != Device.NoWindowChanges))
+				(LastExclusiveMode != ExclusiveMode || LasthWnd != DisplayMode.hWnd || LastFPUPreserve != Device.FPUPreserve))
 			{
 				CreateD3D9Device();
 			}
@@ -1887,7 +1887,7 @@ HRESULT m_IDirectDrawX::SetDisplayMode(DWORD dwWidth, DWORD dwHeight, DWORD dwBP
 		else if (LastBPP != DisplayMode.BPP)
 		{
 			// Reset all surfaces
-			RestoreAllSurfaces();
+			ResetAllSurfaceDisplay();
 		}
 
 		return DD_OK;
@@ -1968,7 +1968,7 @@ HRESULT m_IDirectDrawX::WaitForVerticalBlank(DWORD dwFlags, HANDLE hEvent)
 			// Use raster status for vertical blank begin (uses high CPU)
 			else while (SUCCEEDED(d3d9Device->GetRasterStatus(0, &RasterStatus)) && !RasterStatus.InVBlank)
 			{
-				Sleep(0);
+				Utils::BusyWaitYield();
 			}
 			// Exit if just waiting for vertical blank begin
 			if (dwFlags == DDWAITVB_BLOCKBEGIN)
@@ -1978,7 +1978,7 @@ HRESULT m_IDirectDrawX::WaitForVerticalBlank(DWORD dwFlags, HANDLE hEvent)
 			// Use raster status for vertical blank end (uses high CPU)
 			while (SUCCEEDED(d3d9Device->GetRasterStatus(0, &RasterStatus)) && RasterStatus.InVBlank)
 			{
-				Sleep(0);
+				Utils::BusyWaitYield();
 			}
 			return DD_OK;
 		case DDWAITVB_BLOCKBEGINEVENT:
@@ -2141,12 +2141,21 @@ HRESULT m_IDirectDrawX::RestoreAllSurfaces()
 
 	if (Config.Dd7to9)
 	{
-		// Check device status
-		if (d3d9Device && d3d9Device->TestCooperativeLevel() == D3DERR_DEVICENOTRESET)
+		// Check for device interface
+		if (FAILED(CheckInterface(__FUNCTION__, true)))
 		{
-			ReinitDevice();
+			return DDERR_WRONGMODE;
 		}
-		else
+
+		// Check device state
+		HRESULT hr = d3d9Device->TestCooperativeLevel();
+		if (hr == D3DERR_DEVICENOTRESET)
+		{
+			hr = ReinitDevice();
+		}
+
+		// Check device status
+		if (hr == DD_OK || hr == DDERR_NOEXCLUSIVEMODE)
 		{
 			SetCriticalSection();
 
@@ -2154,14 +2163,14 @@ HRESULT m_IDirectDrawX::RestoreAllSurfaces()
 			{
 				for (m_IDirectDrawSurfaceX*& pSurface : pDDraw->SurfaceVector)
 				{
-					pSurface->ResetSurfaceDisplay();
+					pSurface->Restore();
 				}
 			}
 
 			ReleaseCriticalSection();
 		}
 
-		return DD_OK;
+		return hr;
 	}
 
 	return ProxyInterface->RestoreAllSurfaces();
@@ -2182,13 +2191,12 @@ HRESULT m_IDirectDrawX::TestCooperativeLevel()
 		switch (d3d9Device->TestCooperativeLevel())
 		{
 		case D3DERR_INVALIDCALL:
-			return DDERR_WRONGMODE;
-		case D3DERR_DEVICENOTRESET:
-			ReinitDevice();
-			[[fallthrough]];
 		case D3DERR_DRIVERINTERNALERROR:
-		case D3DERR_DEVICELOST:
+			return DDERR_WRONGMODE;
 		case DDERR_NOEXCLUSIVEMODE:
+			return DDERR_NOEXCLUSIVEMODE;
+		case D3DERR_DEVICENOTRESET:
+		case D3DERR_DEVICELOST:
 		case D3D_OK:
 		default:
 			return DD_OK;
@@ -2342,6 +2350,7 @@ void m_IDirectDrawX::InitDdraw(DWORD DirectXVersion)
 		QueryPerformanceFrequency(&Counter.Frequency);
 
 		// Direct3D9 flags
+		IsDeviceLost = false;
 		EnableWaitVsync = false;
 
 		// Direct3D9 Objects
@@ -2524,7 +2533,7 @@ void m_IDirectDrawX::ReleaseDdraw()
 	// Release surfaces
 	for (m_IDirectDrawSurfaceX*& pSurface : SurfaceVector)
 	{
-		pSurface->ReleaseD9Surface(false);
+		pSurface->ReleaseD9Surface(false, false);
 		pSurface->ClearDdraw();
 	}
 	SurfaceVector.clear();
@@ -2691,7 +2700,7 @@ void m_IDirectDrawX::GetSurfaceDisplay(DWORD& Width, DWORD& Height, DWORD& BPP, 
 		(LastSetHeight && Height && LastSetHeight != Height) ||
 		(LastSetBPP && BPP && LastSetBPP != BPP))
 	{
-		RestoreAllSurfaces();
+		ResetAllSurfaceDisplay();
 	}
 	LastSetWidth = Width;
 	LastSetHeight = Height;
@@ -2970,8 +2979,7 @@ HRESULT m_IDirectDrawX::CreateD3D9Device()
 		// Set behavior flags
 		BehaviorFlags = (d3dcaps.VertexProcessingCaps ? D3DCREATE_HARDWARE_VERTEXPROCESSING : D3DCREATE_SOFTWARE_VERTEXPROCESSING) |
 			D3DCREATE_MULTITHREADED |
-			(Device.FPUPreserve ? D3DCREATE_FPU_PRESERVE : 0) |
-			(Device.NoWindowChanges ? D3DCREATE_NOWINDOWCHANGES : 0);
+			(Device.FPUPreserve ? D3DCREATE_FPU_PRESERVE : 0);
 
 		Logging::Log() << __FUNCTION__ << " Direct3D9 device! " <<
 			presParams.BackBufferWidth << "x" << presParams.BackBufferHeight << " refresh: " << presParams.FullScreen_RefreshRateInHz <<
@@ -3027,6 +3035,7 @@ HRESULT m_IDirectDrawX::CreateD3D9Device()
 
 		// Reset flags after creating device
 		LastUsedHWnd = hWnd;
+		IsDeviceLost = false;
 		EnableWaitVsync = false;
 		FourCCsList.clear();
 
@@ -3248,24 +3257,34 @@ HRESULT m_IDirectDrawX::ReinitDevice()
 	// Check for device interface
 	if (FAILED(CheckInterface(__FUNCTION__, true)))
 	{
-		return DDERR_GENERIC;
+		return DDERR_WRONGMODE;
 	}
 
 	// Check if device is ready to be restored
 	HRESULT hr = d3d9Device->TestCooperativeLevel();
 	if (SUCCEEDED(hr) || hr == DDERR_NOEXCLUSIVEMODE)
 	{
-		return DD_OK;
+		return hr;
 	}
 	else if (hr == D3DERR_DEVICELOST)
 	{
-		return DDERR_SURFACELOST;
+		HWND hWnd = GetHwnd();
+		if (!IsIconic(hWnd) && hWnd == GetForegroundWindow())
+		{
+			return DDERR_WRONGMODE;
+		}
+		else
+		{
+			return DDERR_SURFACELOST;
+		}
 	}
-	else if (hr != D3DERR_DEVICENOTRESET && hr != D3DERR_DRIVERINTERNALERROR)
+	else if (hr != D3DERR_DEVICENOTRESET)
 	{
 		LOG_LIMIT(100, __FUNCTION__ << " Error: TestCooperativeLevel = " << (D3DERR)hr);
-		return DDERR_GENERIC;
+		return DDERR_WRONGMODE;
 	}
+
+	IsDeviceLost = true;
 
 	SetCriticalSection();
 	SetPTCriticalSection();
@@ -3295,7 +3314,7 @@ HRESULT m_IDirectDrawX::ReinitDevice()
 		if (FAILED(hr))
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Error: failed to reset Direct3D9 device: " << (D3DERR)hr);
-			hr = DDERR_GENERIC;
+			hr = DDERR_WRONGMODE;
 			break;
 		}
 
@@ -3304,8 +3323,23 @@ HRESULT m_IDirectDrawX::ReinitDevice()
 	ReleasePTCriticalSection();
 	ReleaseCriticalSection();
 
-	// Success
+	// Return
 	return hr;
+}
+
+inline void m_IDirectDrawX::ResetAllSurfaceDisplay()
+{
+	SetCriticalSection();
+
+	for (m_IDirectDrawX*& pDDraw : DDrawVector)
+	{
+		for (m_IDirectDrawSurfaceX*& pSurface : pDDraw->SurfaceVector)
+		{
+			pSurface->ResetSurfaceDisplay();
+		}
+	}
+
+	ReleaseCriticalSection();
 }
 
 // Release all dd9 resources
@@ -3329,7 +3363,7 @@ inline void m_IDirectDrawX::ReleaseAllD9Surfaces(bool BackupData)
 	{
 		for (m_IDirectDrawSurfaceX*& pSurface : pDDraw->SurfaceVector)
 		{
-			pSurface->ReleaseD9Surface(BackupData);
+			pSurface->ReleaseD9Surface(BackupData, IsDeviceLost);
 		}
 	}
 }
@@ -3441,7 +3475,7 @@ void m_IDirectDrawX::EvictManagedTextures()
 	{
 		if (pSurface->IsSurfaceManaged())
 		{
-			pSurface->ReleaseD9Surface(true);
+			pSurface->ReleaseD9Surface(true, false);
 		}
 	}
 
@@ -4097,31 +4131,32 @@ HRESULT m_IDirectDrawX::Present(RECT* pSourceRect, RECT* pDestRect)
 	if (!IsUsingThreadPresent())
 	{
 		hr = d3d9Device->Present(pSourceRect, pDestRect, nullptr, nullptr);
+		hr = (hr == D3DERR_DEVICELOST) ? D3DERR_DEVICENOTRESET : hr;
 	}
 	else
 	{
-		HRESULT ret = TestCooperativeLevel();
-		hr = (ret == D3DERR_DEVICELOST || ret == D3DERR_DEVICENOTRESET || ret == D3DERR_DRIVERINTERNALERROR || ret == D3DERR_INVALIDCALL) ? ret : DD_OK;
+		hr = d3d9Device->TestCooperativeLevel();
+		hr = (hr == DDERR_NOEXCLUSIVEMODE) ? DD_OK : hr;
 	}
 
 	// Device lost
-	if (hr == D3DERR_DEVICELOST)
+	if (hr == D3DERR_DEVICENOTRESET)
 	{
 		// Attempt to reinit device
 		hr = ReinitDevice();
 	}
-	else if (FAILED(hr))
+
+	// Present failure
+	if (FAILED(hr))
 	{
-		LOG_LIMIT(100, __FUNCTION__ << " Error: failed to present scene");
+		LOG_LIMIT(100, __FUNCTION__ << " Error: failed to present scene: " << (DDERR)hr);
+		return hr;
 	}
 
 	// Store new click time after frame draw is complete
-	if (SUCCEEDED(hr))
-	{
-		QueryPerformanceCounter(&Counter.LastPresentTime);
-	}
+	QueryPerformanceCounter(&Counter.LastPresentTime);
 
-	return hr;
+	return DD_OK;
 }
 
 DWORD GetDDrawBitsPixel(HWND hWnd)
