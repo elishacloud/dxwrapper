@@ -19,6 +19,13 @@ private:
 	m_IDirect3D3 *WrapperInterface3;
 	m_IDirect3D7 *WrapperInterface7;
 
+	// Cache Cap9
+	struct DUALCAP9 {
+		D3DCAPS9 REF = {};
+		D3DCAPS9 HAL = {};
+	};
+	std::vector<DUALCAP9> Cap9Cache;
+
 	// Wrapper interface functions
 	inline REFIID GetWrapperType(DWORD DirectXVersion)
 	{
@@ -43,7 +50,8 @@ private:
 	void InitDirect3D(DWORD DirectXVersion);
 	void ReleaseDirect3D();
 
-	// Resolution hack
+	// Helper functions
+	void GetCap9Cache();
 	void ResolutionHack();
 
 public:
@@ -102,6 +110,6 @@ public:
 	ULONG Release(DWORD DirectXVersion);
 
 	// Functions handling the ddraw parent interface
-	void SetDdrawParent(m_IDirectDrawX *ddraw) { ddrawParent = ddraw; }
+	void SetDdrawParent(m_IDirectDrawX *ddraw) { ddrawParent = ddraw; GetCap9Cache(); }
 	void ClearDdraw() { ddrawParent = nullptr; }
 };
