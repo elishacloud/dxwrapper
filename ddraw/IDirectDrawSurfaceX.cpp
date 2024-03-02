@@ -306,6 +306,11 @@ ULONG m_IDirectDrawSurfaceX::Release(DWORD DirectXVersion)
 				if (IsSurfaceBusy())
 				{
 					Logging::Log() << __FUNCTION__ << " Warning: surface still in use! Locked: " << IsSurfaceLocked() << " DC: " << IsSurfaceInDC() << " Blt: " << IsSurfaceBlitting();
+					if (ddrawParent)
+					{
+						ddrawParent->AddReleasedSurfaceToVector(this);
+					}
+					ReleaseD9ContextSurface();
 					ReleaseDirectDrawResources();
 				}
 				else
@@ -4059,6 +4064,87 @@ void m_IDirectDrawSurfaceX::UpdateSurfaceDesc()
 }
 
 // Release surface and vertext buffer
+void m_IDirectDrawSurfaceX::ReleaseD9ContextSurface()
+{
+	// Release primary display texture
+	if (PrimaryDisplayTexture)
+	{
+		Logging::LogDebug() << __FUNCTION__ << " Releasing Direct3D9 primary display texture";
+		ULONG ref = PrimaryDisplayTexture->Release();
+		if (ref)
+		{
+			Logging::Log() << __FUNCTION__ << " Error: there is still a reference to 'PrimaryDisplayTexture' " << ref;
+		}
+		PrimaryDisplayTexture = nullptr;
+	}
+
+	// Release d3d9 context surface
+	if (surface.Context)
+	{
+		Logging::LogDebug() << __FUNCTION__ << " Releasing Direct3D9 context surface";
+		ULONG ref = surface.Context->Release();
+		if (ref > 1)	// Ref count is higher becasue it is a surface of 'surfaceTexture'
+		{
+			Logging::Log() << __FUNCTION__ << " Error: there is still a reference to 'contextSurface' " << ref;
+		}
+		surface.Context = nullptr;
+	}
+
+	// Release d3d9 palette context texture
+	if (surface.DisplayContext)
+	{
+		Logging::LogDebug() << __FUNCTION__ << " Releasing Direct3D9 palette context texture";
+		ULONG ref = surface.DisplayContext->Release();
+		if (ref > 1)
+		{
+			Logging::Log() << __FUNCTION__ << " Error: there is still a reference to 'paletteDisplaySurface' " << ref;
+		}
+		surface.DisplayContext = nullptr;
+	}
+
+	// Release d3d9 palette display texture
+	if (surface.DisplayTexture)
+	{
+		Logging::LogDebug() << __FUNCTION__ << " Releasing Direct3D9 palette display texture";
+		ULONG ref = surface.DisplayTexture->Release();
+		if (ref)
+		{
+			Logging::Log() << __FUNCTION__ << " Error: there is still a reference to 'paletteDisplayTexture' " << ref;
+		}
+		surface.DisplayTexture = nullptr;
+	}
+
+	// Release blank surface
+	if (primary.BlankSurface)
+	{
+		Logging::LogDebug() << __FUNCTION__ << " Releasing Direct3D9 blank surface";
+		ULONG ref = primary.BlankSurface->Release();
+		if (ref)
+		{
+			Logging::Log() << __FUNCTION__ << " Error: there is still a reference to 'blankSurface' " << ref;
+		}
+		primary.BlankSurface = nullptr;
+	}
+
+	// Release d3d9 palette surface texture
+	if (primary.PaletteTexture)
+	{
+		Logging::LogDebug() << __FUNCTION__ << " Releasing Direct3D9 palette texture surface";
+		if (d3d9Device && *d3d9Device)
+		{
+			(*d3d9Device)->SetTexture(1, nullptr);
+			(*d3d9Device)->SetPixelShader(nullptr);
+		}
+		ULONG ref = primary.PaletteTexture->Release();
+		if (ref)
+		{
+			Logging::Log() << __FUNCTION__ << " Error: there is still a reference to 'paletteTexture' " << ref;
+		}
+		primary.PaletteTexture = nullptr;
+	}
+}
+
+// Release surface and vertext buffer
 void m_IDirectDrawSurfaceX::ReleaseD9Surface(bool BackupData, bool DeviceLost)
 {
 	SetLockCriticalSection();
@@ -4128,17 +4214,7 @@ void m_IDirectDrawSurfaceX::ReleaseD9Surface(bool BackupData, bool DeviceLost)
 		ReleaseDCSurface();
 	}
 
-	// Release primary display texture
-	if (PrimaryDisplayTexture)
-	{
-		Logging::LogDebug() << __FUNCTION__ << " Releasing Direct3D9 primary display texture";
-		ULONG ref = PrimaryDisplayTexture->Release();
-		if (ref)
-		{
-			Logging::Log() << __FUNCTION__ << " Error: there is still a reference to 'PrimaryDisplayTexture' " << ref;
-		}
-		PrimaryDisplayTexture = nullptr;
-	}
+	ReleaseD9ContextSurface();
 
 	// Release d3d9 3D surface
 	if (surface.Surface)
@@ -4152,18 +4228,6 @@ void m_IDirectDrawSurfaceX::ReleaseD9Surface(bool BackupData, bool DeviceLost)
 		surface.Surface = nullptr;
 	}
 
-	// Release d3d9 context surface
-	if (surface.Context)
-	{
-		Logging::LogDebug() << __FUNCTION__ << " Releasing Direct3D9 context surface";
-		ULONG ref = surface.Context->Release();
-		if (ref > 1)	// Ref count is higher becasue it is a surface of 'surfaceTexture'
-		{
-			Logging::Log() << __FUNCTION__ << " Error: there is still a reference to 'contextSurface' " << ref;
-		}
-		surface.Context = nullptr;
-	}
-
 	// Release d3d9 surface texture
 	if (surface.Texture)
 	{
@@ -4174,59 +4238,6 @@ void m_IDirectDrawSurfaceX::ReleaseD9Surface(bool BackupData, bool DeviceLost)
 			Logging::Log() << __FUNCTION__ << " Error: there is still a reference to 'surfaceTexture' " << ref;
 		}
 		surface.Texture = nullptr;
-	}
-
-	// Release d3d9 palette context texture
-	if (surface.DisplayContext)
-	{
-		Logging::LogDebug() << __FUNCTION__ << " Releasing Direct3D9 palette context texture";
-		ULONG ref = surface.DisplayContext->Release();
-		if (ref > 1)
-		{
-			Logging::Log() << __FUNCTION__ << " Error: there is still a reference to 'paletteDisplaySurface' " << ref;
-		}
-		surface.DisplayContext = nullptr;
-	}
-
-	// Release d3d9 palette display texture
-	if (surface.DisplayTexture)
-	{
-		Logging::LogDebug() << __FUNCTION__ << " Releasing Direct3D9 palette display texture";
-		ULONG ref = surface.DisplayTexture->Release();
-		if (ref)
-		{
-			Logging::Log() << __FUNCTION__ << " Error: there is still a reference to 'paletteDisplayTexture' " << ref;
-		}
-		surface.DisplayTexture = nullptr;
-	}
-
-	// Release blank surface
-	if (primary.BlankSurface)
-	{
-		Logging::LogDebug() << __FUNCTION__ << " Releasing Direct3D9 blank surface";
-		ULONG ref = primary.BlankSurface->Release();
-		if (ref)
-		{
-			Logging::Log() << __FUNCTION__ << " Error: there is still a reference to 'blankSurface' " << ref;
-		}
-		primary.BlankSurface = nullptr;
-	}
-
-	// Release d3d9 palette surface texture
-	if (primary.PaletteTexture)
-	{
-		Logging::LogDebug() << __FUNCTION__ << " Releasing Direct3D9 palette texture surface";
-		if (d3d9Device && *d3d9Device)
-		{
-			(*d3d9Device)->SetTexture(1, nullptr);
-			(*d3d9Device)->SetPixelShader(nullptr);
-		}
-		ULONG ref = primary.PaletteTexture->Release();
-		if (ref)
-		{
-			Logging::Log() << __FUNCTION__ << " Error: there is still a reference to 'paletteTexture' " << ref;
-		}
-		primary.PaletteTexture = nullptr;
 	}
 
 	// Clear locked rects

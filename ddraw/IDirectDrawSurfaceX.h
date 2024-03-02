@@ -385,6 +385,7 @@ public:
 	inline void ClearDdraw() { ddrawParent = nullptr; }
 
 	// Direct3D9 interface functions
+	void ReleaseD9ContextSurface();
 	void ReleaseD9Surface(bool BackupData, bool DeviceLost);
 	HRESULT PresentSurface(bool isSkipScene);
 	void ResetSurfaceDisplay();

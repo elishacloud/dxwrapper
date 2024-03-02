@@ -33,6 +33,7 @@ private:
 
 	// Store a list of surfaces
 	std::vector<m_IDirectDrawSurfaceX*> SurfaceVector;
+	std::vector<m_IDirectDrawSurfaceX*> ReleasedSurfaceVector;
 
 	// Store a list of clippers
 	std::vector<m_IDirectDrawClipper*> ClipperVector;
@@ -83,11 +84,8 @@ private:
 	// Direct3D9 interface functions
 	HRESULT CheckInterface(char *FunctionName, bool CheckD3DDevice);
 	HRESULT CreateD3D9Object();
-	void m_IDirectDrawX::ResetAllSurfaceDisplay();
+	void ResetAllSurfaceDisplay();
 	void ReleaseAllD9Resources(bool BackupData);
-	void ReleaseAllD9Surfaces(bool BackupData);
-	void ReleaseAllD9Buffers(bool BackupData);
-	void ReleaseAllD9Shaders();
 	void ReleaseD3D9Device();
 	void ReleaseD3D9Object();
 
@@ -207,6 +205,7 @@ public:
 
 	// Surface vector functions
 	void AddSurfaceToVector(m_IDirectDrawSurfaceX* lpSurfaceX);
+	void AddReleasedSurfaceToVector(m_IDirectDrawSurfaceX* lpSurfaceX);
 	void RemoveSurfaceFromVector(m_IDirectDrawSurfaceX* lpSurfaceX);
 	bool DoesSurfaceExist(m_IDirectDrawSurfaceX* lpSurfaceX);
 	m_IDirectDrawSurfaceX *GetPrimarySurface() { return PrimarySurface; }

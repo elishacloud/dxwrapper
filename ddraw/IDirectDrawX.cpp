@@ -3348,29 +3348,21 @@ inline void m_IDirectDrawX::ReleaseAllD9Resources(bool BackupData)
 	SetCriticalSection();
 	SetPTCriticalSection();
 
-	ReleaseAllD9Buffers(BackupData);
-	ReleaseAllD9Surfaces(BackupData);
-	ReleaseAllD9Shaders();
-
-	ReleasePTCriticalSection();
-	ReleaseCriticalSection();
-}
-
-// Release all surfaces from all ddraw devices
-inline void m_IDirectDrawX::ReleaseAllD9Surfaces(bool BackupData)
-{
+	// Release all surfaces from all ddraw devices
 	for (m_IDirectDrawX*& pDDraw : DDrawVector)
 	{
 		for (m_IDirectDrawSurfaceX*& pSurface : pDDraw->SurfaceVector)
 		{
 			pSurface->ReleaseD9Surface(BackupData, IsDeviceLost);
 		}
+		for (m_IDirectDrawSurfaceX*& pSurface : pDDraw->ReleasedSurfaceVector)
+		{
+			pSurface->DeleteMe();
+		}
+		pDDraw->ReleasedSurfaceVector.clear();
 	}
-}
 
-// Release all buffers from all ddraw devices
-inline void m_IDirectDrawX::ReleaseAllD9Buffers(bool BackupData)
-{
+	// Release all buffers from all ddraw devices
 	for (m_IDirectDrawX*& pDDraw : DDrawVector)
 	{
 		for (m_IDirect3DVertexBufferX*& pBuffer : pDDraw->VertexBufferVector)
@@ -3390,11 +3382,7 @@ inline void m_IDirectDrawX::ReleaseAllD9Buffers(bool BackupData)
 		}
 		VertexBuffer = nullptr;
 	}
-}
 
-// Release all shaders
-inline void m_IDirectDrawX::ReleaseAllD9Shaders()
-{
 	// Release palette pixel shader
 	if (palettePixelShader)
 	{
@@ -3422,7 +3410,11 @@ inline void m_IDirectDrawX::ReleaseAllD9Shaders()
 		}
 		colorkeyPixelShader = nullptr;
 	}
+
+	ReleasePTCriticalSection();
+	ReleaseCriticalSection();
 }
+
 
 // Release d3d9 device
 void m_IDirectDrawX::ReleaseD3D9Device()
@@ -3485,19 +3477,30 @@ void m_IDirectDrawX::EvictManagedTextures()
 // Add surface wrapper to vector
 void m_IDirectDrawX::AddSurfaceToVector(m_IDirectDrawSurfaceX* lpSurfaceX)
 {
-	if (!lpSurfaceX || DoesSurfaceExist(lpSurfaceX))
-	{
-		return;
-	}
-
 	SetCriticalSection();
 
-	if (lpSurfaceX->IsPrimarySurface())
+	if (lpSurfaceX && !DoesSurfaceExist(lpSurfaceX))
 	{
-		PrimarySurface = lpSurfaceX;
+		if (lpSurfaceX->IsPrimarySurface())
+		{
+			PrimarySurface = lpSurfaceX;
+		}
+
+		SurfaceVector.push_back(lpSurfaceX);
 	}
 
-	SurfaceVector.push_back(lpSurfaceX);
+	ReleaseCriticalSection();
+}
+
+// Add released surface wrapper to vector
+void m_IDirectDrawX::AddReleasedSurfaceToVector(m_IDirectDrawSurfaceX* lpSurfaceX)
+{
+	SetCriticalSection();
+
+	if (lpSurfaceX && std::find(ReleasedSurfaceVector.begin(), ReleasedSurfaceVector.end(), lpSurfaceX) == std::end(ReleasedSurfaceVector))
+	{
+		ReleasedSurfaceVector.push_back(lpSurfaceX);
+	}
 
 	ReleaseCriticalSection();
 }
@@ -3562,14 +3565,12 @@ bool m_IDirectDrawX::DoesSurfaceExist(m_IDirectDrawSurfaceX* lpSurfaceX)
 // Add clipper wrapper to vector
 void m_IDirectDrawX::AddClipperToVector(m_IDirectDrawClipper* lpClipper)
 {
-	if (!lpClipper || DoesClipperExist(lpClipper))
-	{
-		return;
-	}
-
 	SetCriticalSection();
 
-	ClipperVector.push_back(lpClipper);
+	if (lpClipper && !DoesClipperExist(lpClipper))
+	{
+		ClipperVector.push_back(lpClipper);
+	}
 
 	ReleaseCriticalSection();
 }
@@ -3634,14 +3635,12 @@ bool m_IDirectDrawX::DoesClipperExist(m_IDirectDrawClipper* lpClipper)
 // Add palette wrapper to vector
 void m_IDirectDrawX::AddPaletteToVector(m_IDirectDrawPalette* lpPalette)
 {
-	if (!lpPalette || DoesPaletteExist(lpPalette))
-	{
-		return;
-	}
-
 	SetCriticalSection();
 
-	PaletteVector.push_back(lpPalette);
+	if (lpPalette && !DoesPaletteExist(lpPalette))
+	{
+		PaletteVector.push_back(lpPalette);
+	}
 
 	ReleaseCriticalSection();
 }
@@ -3696,14 +3695,12 @@ bool m_IDirectDrawX::DoesPaletteExist(m_IDirectDrawPalette* lpPalette)
 
 void m_IDirectDrawX::AddVertexBufferToVector(m_IDirect3DVertexBufferX* lpVertexBuffer)
 {
-	if (!lpVertexBuffer || DoesVertexBufferExist(lpVertexBuffer))
-	{
-		return;
-	}
-
 	SetCriticalSection();
 
-	VertexBufferVector.push_back(lpVertexBuffer);
+	if (lpVertexBuffer && !DoesVertexBufferExist(lpVertexBuffer))
+	{
+		VertexBufferVector.push_back(lpVertexBuffer);
+	}
 
 	ReleaseCriticalSection();
 }
