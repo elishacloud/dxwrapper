@@ -1756,6 +1756,11 @@ HRESULT m_IDirectDrawSurfaceX::GetDC(HDC FAR* lphDC)
 			return DDERR_GENERIC;
 		}
 
+		if (EmuLock.Locked && EmuLock.Addr)
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Warning: does not support device context with bit alignment!");
+		}
+
 		SetLockCriticalSection();
 
 		// Present before write if needed
@@ -2742,22 +2747,10 @@ HRESULT m_IDirectDrawSurfaceX::Unlock(LPRECT lpRect)
 	{
 		SetSurfaceCriticalSection();
 
-		// Fix issue with some games that ignore the pitch size
-		if (EmuLock.Locked && EmuLock.Addr)
+		// Fix misaligned bytes
+		if (Config.DdrawFixByteAlignment)
 		{
-			BYTE* InAddr = EmuLock.Mem.data();
-			DWORD InPitch = (EmuLock.BBP / 8) * EmuLock.Width;
-			BYTE* OutAddr = (BYTE*)EmuLock.Addr;
-			DWORD OutPitch = EmuLock.Pitch;
-			for (DWORD x = 0; x < EmuLock.Height; x++)
-			{
-				memcpy(OutAddr, InAddr, InPitch);
-				InAddr += InPitch;
-				OutAddr += OutPitch;
-			}
-
-			EmuLock.Locked = false;
-			EmuLock.Addr = nullptr;
+			UnlockBitAlign();
 		}
 
 		HRESULT hr = DD_OK;
@@ -4512,6 +4505,40 @@ void m_IDirectDrawSurfaceX::LockBitAlign(LPRECT lpDestRect, LPDDSURFACEDESC2 lpD
 		}
 		lpDDSurfaceDesc->lpSurface = EmuLock.Mem.data();
 		lpDDSurfaceDesc->lPitch = NewPitch;
+
+		// Copy surface data to memory
+		BYTE* InAddr = (BYTE*)EmuLock.Addr;
+		DWORD InPitch = EmuLock.Pitch;
+		BYTE* OutAddr = EmuLock.Mem.data();
+		DWORD OutPitch = NewPitch;
+		for (DWORD x = 0; x < EmuLock.Height; x++)
+		{
+			memcpy(OutAddr, InAddr, OutPitch);
+			InAddr += InPitch;
+			OutAddr += OutPitch;
+		}
+	}
+}
+
+// Fix issue with some games that ignore the pitch size
+void m_IDirectDrawSurfaceX::UnlockBitAlign()
+{
+	if (EmuLock.Locked && EmuLock.Addr)
+	{
+		// Copy memory back to surface
+		BYTE* InAddr = EmuLock.Mem.data();
+		DWORD InPitch = (EmuLock.BBP / 8) * EmuLock.Width;
+		BYTE* OutAddr = (BYTE*)EmuLock.Addr;
+		DWORD OutPitch = EmuLock.Pitch;
+		for (DWORD x = 0; x < EmuLock.Height; x++)
+		{
+			memcpy(OutAddr, InAddr, InPitch);
+			InAddr += InPitch;
+			OutAddr += OutPitch;
+		}
+
+		EmuLock.Locked = false;
+		EmuLock.Addr = nullptr;
 	}
 }
 

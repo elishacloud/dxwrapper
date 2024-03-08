@@ -375,6 +375,7 @@ public:
 
 	// Fix byte alignment issue
 	void LockBitAlign(LPRECT lpDestRect, LPDDSURFACEDESC2 lpDDSurfaceDesc);
+	void UnlockBitAlign();
 
 	// For removing scanlines
 	void RestoreScanlines(LASTLOCK &LLock);
