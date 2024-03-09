@@ -57,7 +57,7 @@ void ConvertSurfaceDesc(DDSURFACEDESC &Desc, DDSURFACEDESC2 &Desc2)
 	}
 	ConvertCaps(Desc.ddsCaps, Desc2.ddsCaps);
 	// Check for dwFlags that did not get converted
-	if ((Desc.dwFlags & ~DDSD_ZBUFFERBITDEPTH) != Desc2.dwFlags)
+	if (Desc.dwFlags != Desc2.dwFlags && (Desc.dwFlags - Desc2.dwFlags) != (DDSD_ZBUFFERBITDEPTH - DDSD_PIXELFORMAT))
 	{
 		LOG_LIMIT(100, __FUNCTION__ << " Warning: (Desc2->Desc) Removing unsupported flags: " << Logging::hex(Desc2.dwFlags & ~Desc.dwFlags));
 	}
@@ -114,8 +114,8 @@ void ConvertSurfaceDesc(DDSURFACEDESC2 &Desc2, DDSURFACEDESC &Desc)
 	ConvertCaps(Desc2.ddsCaps, Desc.ddsCaps);
 	// Extra parameters
 	Desc2.dwTextureStage = 0;			// Stage identifier that is used to bind a texture to a specific stage
-										// Check for dwFlags that did not get converted
-	if (Desc2.dwFlags != (Desc.dwFlags & ~DDSD_ZBUFFERBITDEPTH))
+	// Check for dwFlags that did not get converted
+	if (Desc.dwFlags != Desc2.dwFlags && (Desc.dwFlags - Desc2.dwFlags) != (DDSD_ZBUFFERBITDEPTH - DDSD_PIXELFORMAT))
 	{
 		LOG_LIMIT(100, __FUNCTION__ << " Warning: (Desc->Desc2) Removing unsupported flags: " << Logging::hex(Desc.dwFlags & ~Desc2.dwFlags));
 	}
