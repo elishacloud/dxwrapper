@@ -205,7 +205,7 @@ HRESULT m_IDirect3DX::EnumDevices(LPD3DENUMDEVICESCALLBACK lpEnumDevicesCallback
 		CallbackContext7.lpContext = lpUserArg;
 		CallbackContext7.lpCallback = lpEnumDevicesCallback;
 
-		return EnumDevices7(EnumDevicesStruct7::ConvertCallback, &CallbackContext7, false);
+		return EnumDevices7(EnumDevicesStruct7::ConvertCallback, &CallbackContext7, 7);
 	}
 	case 9:
 		return EnumDevices7((LPD3DENUMDEVICESCALLBACK7)lpEnumDevicesCallback, lpUserArg, DirectXVersion);
@@ -282,7 +282,7 @@ HRESULT m_IDirect3DX::EnumDevices7(LPD3DENUMDEVICESCALLBACK7 lpEnumDevicesCallba
 				ConvertDeviceDesc(DeviceDesc7, Caps9);
 
 				GUID deviceGUID = DeviceDesc7.deviceGUID;
-				char lpName[MAX_PATH] = {}, lpDescription[MAX_PATH] = {};
+				LPSTR lpDescription = nullptr, lpName = nullptr;
 
 				// For conversion
 				D3DDEVICEDESC D3DDRVDevDesc = {}, D3DSWDevDesc = {};
@@ -295,8 +295,8 @@ HRESULT m_IDirect3DX::EnumDevices7(LPD3DENUMDEVICESCALLBACK7 lpEnumDevicesCallba
 				switch ((DWORD)Type)
 				{
 				case D3DDEVTYPE_REF:
-					strcpy_s(lpName, "RGB Emulation");
-					strcpy_s(lpDescription, "Microsoft Direct3D RGB Software Emulation");
+					lpName = "RGB Emulation";
+					lpDescription = "Microsoft Direct3D RGB Software Emulation";
 					if (DirectXVersion < 7)
 					{
 						// Get D3DSWDevDesc data (D3DDEVTYPE_REF)
@@ -315,8 +315,8 @@ HRESULT m_IDirect3DX::EnumDevices7(LPD3DENUMDEVICESCALLBACK7 lpEnumDevicesCallba
 					}
 					break;
 				case D3DDEVTYPE_HAL:
-					strcpy_s(lpName, "Direct3D HAL");
-					strcpy_s(lpDescription, "Microsoft Direct3D Hardware acceleration through Direct3D HAL");
+					lpName = "Direct3D HAL";
+					lpDescription = "Microsoft Direct3D Hardware acceleration through Direct3D HAL";
 					if (DirectXVersion < 7)
 					{
 						// Get D3DDRVDevDesc data (D3DDEVTYPE_HAL)
@@ -336,8 +336,8 @@ HRESULT m_IDirect3DX::EnumDevices7(LPD3DENUMDEVICESCALLBACK7 lpEnumDevicesCallba
 					break;
 				default:
 				case D3DDEVTYPE_HAL + 0x10:
-					strcpy_s(lpName, "Direct3D T&L HAL");
-					strcpy_s(lpDescription, "Microsoft Direct3D Hardware Transform and Lighting acceleration capable device");
+					lpName = "Direct3D T&L HAL";
+					lpDescription = "Microsoft Direct3D Hardware Transform and Lighting acceleration capable device";
 					break;
 				}
 
@@ -554,7 +554,7 @@ HRESULT m_IDirect3DX::FindDevice(LPD3DFINDDEVICESEARCH lpD3DFDS, LPD3DFINDDEVICE
 		} CallbackContext;
 		CallbackContext.guid = lpD3DFDS->guid;
 
-		EnumDevices7(EnumFindDevice::ConvertCallback, &CallbackContext, false);
+		EnumDevices7(EnumFindDevice::ConvertCallback, &CallbackContext, 7);
 
 		if (CallbackContext.Found)
 		{
