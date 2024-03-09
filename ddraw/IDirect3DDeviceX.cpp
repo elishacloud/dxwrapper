@@ -1115,6 +1115,7 @@ HRESULT m_IDirect3DDeviceX::SetTextureStageState(DWORD dwStage, D3DTEXTURESTAGES
 		if (!CheckTextureStageStateType(dwState))
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Warning: Texture state type not implemented: " << dwState);
+			return DD_OK;	// Just return OK for now!
 		}
 
 		return (*d3d9Device)->SetTextureStageState(dwStage, dwState, dwValue);
@@ -2247,6 +2248,7 @@ HRESULT m_IDirect3DDeviceX::SetRenderState(D3DRENDERSTATETYPE dwRenderStateType,
 		if (!CheckRenderStateType(dwRenderStateType))
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Warning: Render state type not implemented: " << dwRenderStateType);
+			return DD_OK;	// Just return OK for now!
 		}
 
 		return (*d3d9Device)->SetRenderState(dwRenderStateType, dwRenderState);
@@ -3390,16 +3392,26 @@ inline void m_IDirect3DDeviceX::SetDrawStates(DWORD dwVertexTypeDesc, DWORD dwFl
 	}
 	if (dwFlags & D3DDP_DXW_DRAW2DSURFACE)
 	{
+		// Set by DirectDrawSurface
 		(*d3d9Device)->GetRenderState(D3DRS_LIGHTING, &DrawStates.rsLighting);
 		(*d3d9Device)->GetSamplerState(0, D3DSAMP_MAGFILTER, &DrawStates.ssMagFilter);
 
+		// Other states
+		(*d3d9Device)->GetTextureStageState(0, D3DTSS_COLOROP, &DrawStates.tsColorOP);
 		(*d3d9Device)->GetRenderState(D3DRS_ALPHABLENDENABLE, &DrawStates.rsAlphaBlendEnable);
+		(*d3d9Device)->GetRenderState(D3DRS_ALPHAREF, &DrawStates.rsAlphaRef);
+		(*d3d9Device)->GetRenderState(D3DRS_ALPHAFUNC, &DrawStates.rsAlphaFunc);
 		(*d3d9Device)->GetRenderState(D3DRS_SRCBLEND, &DrawStates.rsSrcBlend);
 		(*d3d9Device)->GetRenderState(D3DRS_DESTBLEND, &DrawStates.rsDestBlend);
+		(*d3d9Device)->GetRenderState(D3DRS_FOGENABLE, &DrawStates.rsFogEnable);
 
+		(*d3d9Device)->SetTextureStageState(0, D3DTSS_COLOROP, D3DTOP_MODULATE);
 		(*d3d9Device)->SetRenderState(D3DRS_ALPHABLENDENABLE, TRUE);
+		(*d3d9Device)->SetRenderState(D3DRS_ALPHAREF, 0x00000000);
+		(*d3d9Device)->SetRenderState(D3DRS_ALPHAFUNC, D3DCMP_ALWAYS);
 		(*d3d9Device)->SetRenderState(D3DRS_SRCBLEND, D3DBLEND_ONE);
 		(*d3d9Device)->SetRenderState(D3DRS_DESTBLEND, D3DBLEND_ONE);
+		(*d3d9Device)->SetRenderState(D3DRS_FOGENABLE, FALSE);
 	}
 }
 
@@ -3427,10 +3439,16 @@ inline void m_IDirect3DDeviceX::RestoreDrawStates(DWORD dwVertexTypeDesc, DWORD 
 	}
 	if (dwFlags & D3DDP_DXW_DRAW2DSURFACE)
 	{
+		// Other states
+		(*d3d9Device)->SetTextureStageState(0, D3DTSS_COLOROP, DrawStates.tsColorOP);
 		(*d3d9Device)->SetRenderState(D3DRS_ALPHABLENDENABLE, DrawStates.rsAlphaBlendEnable);
+		(*d3d9Device)->SetRenderState(D3DRS_ALPHAREF, DrawStates.rsAlphaRef);
+		(*d3d9Device)->SetRenderState(D3DRS_ALPHAFUNC, DrawStates.rsAlphaFunc);
 		(*d3d9Device)->SetRenderState(D3DRS_SRCBLEND, DrawStates.rsSrcBlend);
 		(*d3d9Device)->SetRenderState(D3DRS_DESTBLEND, DrawStates.rsDestBlend);
+		(*d3d9Device)->SetRenderState(D3DRS_FOGENABLE, DrawStates.rsFogEnable);
 
+		// Set by DirectDrawSurface
 		(*d3d9Device)->SetRenderState(D3DRS_LIGHTING, DrawStates.rsLighting);
 		(*d3d9Device)->SetSamplerState(0, D3DSAMP_MAGFILTER, DrawStates.ssMagFilter);
 
