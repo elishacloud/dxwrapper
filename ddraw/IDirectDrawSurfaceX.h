@@ -116,7 +116,7 @@ private:
 	DWORD MaxLOD = 0;
 
 	bool Is3DRenderingTarget = false;					// Surface used for Direct3D rendering target, called from m_IDirect3DX::CreateDevice()
-	bool IsDirect3DEnabled = false;						// Direct3D is being used on top of DirectDraw
+	bool Using3D = false;						// Direct3D is being used on top of DirectDraw
 	bool DCRequiresEmulation = false;
 	bool SurfaceRequiresEmulation = false;
 	bool ComplexRoot = false;
