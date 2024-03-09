@@ -2771,6 +2771,8 @@ void m_IDirectDrawX::SetD3DDevice(m_IDirect3DDeviceX* D3DDevice, m_IDirectDrawSu
 
 	Direct3DSurface = D3DSurface;
 
+	LOG_LIMIT(100, __FUNCTION__ " Setting 3D Device Surface: " << Direct3DSurface);
+
 	// Recreate Direct3D9 device
 	DWORD Width = 0, Height = 0;
 	if (d3d9Device && (!Device.Width || !Device.Height) && Direct3DSurface->GetSurfaceSetSize(Width, Height) &&
