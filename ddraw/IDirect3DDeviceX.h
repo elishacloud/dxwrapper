@@ -28,10 +28,7 @@ private:
 		DWORD rsExtents = 0;
 		DWORD tsColorOP = 0;
 		DWORD rsAlphaBlendEnable = 0;
-		DWORD rsAlphaRef = 0;
-		DWORD rsAlphaFunc = 0;
-		DWORD rsSrcBlend = 0;
-		DWORD rsDestBlend = 0;
+		DWORD rsAlphaTestEnable = 0;
 		DWORD rsFogEnable = 0;
 		DWORD ssMagFilter = 0;
 		DWORD dwColorSpaceLowValue = 0;

@@ -3398,20 +3398,26 @@ inline void m_IDirect3DDeviceX::SetDrawStates(DWORD dwVertexTypeDesc, DWORD dwFl
 
 		// Other states
 		(*d3d9Device)->GetTextureStageState(0, D3DTSS_COLOROP, &DrawStates.tsColorOP);
+		(*d3d9Device)->GetRenderState(D3DRS_ALPHATESTENABLE, &DrawStates.rsAlphaTestEnable);
 		(*d3d9Device)->GetRenderState(D3DRS_ALPHABLENDENABLE, &DrawStates.rsAlphaBlendEnable);
-		(*d3d9Device)->GetRenderState(D3DRS_ALPHAREF, &DrawStates.rsAlphaRef);
-		(*d3d9Device)->GetRenderState(D3DRS_ALPHAFUNC, &DrawStates.rsAlphaFunc);
-		(*d3d9Device)->GetRenderState(D3DRS_SRCBLEND, &DrawStates.rsSrcBlend);
-		(*d3d9Device)->GetRenderState(D3DRS_DESTBLEND, &DrawStates.rsDestBlend);
 		(*d3d9Device)->GetRenderState(D3DRS_FOGENABLE, &DrawStates.rsFogEnable);
 
 		(*d3d9Device)->SetTextureStageState(0, D3DTSS_COLOROP, D3DTOP_MODULATE);
-		(*d3d9Device)->SetRenderState(D3DRS_ALPHABLENDENABLE, TRUE);
-		(*d3d9Device)->SetRenderState(D3DRS_ALPHAREF, 0x00000000);
-		(*d3d9Device)->SetRenderState(D3DRS_ALPHAFUNC, D3DCMP_ALWAYS);
-		(*d3d9Device)->SetRenderState(D3DRS_SRCBLEND, D3DBLEND_ONE);
-		(*d3d9Device)->SetRenderState(D3DRS_DESTBLEND, D3DBLEND_ONE);
+		(*d3d9Device)->SetRenderState(D3DRS_ALPHATESTENABLE, FALSE);
+		(*d3d9Device)->SetRenderState(D3DRS_ALPHABLENDENABLE, FALSE);
 		(*d3d9Device)->SetRenderState(D3DRS_FOGENABLE, FALSE);
+
+		if (!colorkeyPixelShader || !*colorkeyPixelShader)
+		{
+			colorkeyPixelShader = ddrawParent->GetColorKeyShader();
+		}
+		if (colorkeyPixelShader && *colorkeyPixelShader)
+		{
+			(*d3d9Device)->SetPixelShader(*colorkeyPixelShader);
+			float ColorKey[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
+			(*d3d9Device)->SetPixelShaderConstantF(0, ColorKey, 1);
+			(*d3d9Device)->SetPixelShaderConstantF(1, ColorKey, 1);
+		}
 	}
 }
 
@@ -3441,12 +3447,11 @@ inline void m_IDirect3DDeviceX::RestoreDrawStates(DWORD dwVertexTypeDesc, DWORD 
 	{
 		// Other states
 		(*d3d9Device)->SetTextureStageState(0, D3DTSS_COLOROP, DrawStates.tsColorOP);
+		(*d3d9Device)->SetRenderState(D3DRS_ALPHATESTENABLE, DrawStates.rsAlphaTestEnable);
 		(*d3d9Device)->SetRenderState(D3DRS_ALPHABLENDENABLE, DrawStates.rsAlphaBlendEnable);
-		(*d3d9Device)->SetRenderState(D3DRS_ALPHAREF, DrawStates.rsAlphaRef);
-		(*d3d9Device)->SetRenderState(D3DRS_ALPHAFUNC, DrawStates.rsAlphaFunc);
-		(*d3d9Device)->SetRenderState(D3DRS_SRCBLEND, DrawStates.rsSrcBlend);
-		(*d3d9Device)->SetRenderState(D3DRS_DESTBLEND, DrawStates.rsDestBlend);
 		(*d3d9Device)->SetRenderState(D3DRS_FOGENABLE, DrawStates.rsFogEnable);
+
+		(*d3d9Device)->SetPixelShader(nullptr);
 
 		// Set by DirectDrawSurface
 		(*d3d9Device)->SetRenderState(D3DRS_LIGHTING, DrawStates.rsLighting);

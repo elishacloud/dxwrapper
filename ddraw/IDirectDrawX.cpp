@@ -3406,6 +3406,10 @@ inline void m_IDirectDrawX::ReleaseAllD9Resources(bool BackupData)
 	if (colorkeyPixelShader)
 	{
 		Logging::LogDebug() << __FUNCTION__ << " Releasing Direct3D9 color key pixel shader";
+		if (d3d9Device)
+		{
+			d3d9Device->SetPixelShader(nullptr);
+		}
 		ULONG ref = colorkeyPixelShader->Release();
 		if (ref)
 		{
