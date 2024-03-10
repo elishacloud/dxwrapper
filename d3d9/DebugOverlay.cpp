@@ -129,8 +129,7 @@ void DebugOverlay::BeginScene()
 void DebugOverlay::EndScene()
 {
 	static bool ShowDebugUI = false;
-	if (ImGui::IsKeyDown(ImGui::GetKeyIndex(ImGuiKey_LeftAlt)) &&
-		ImGui::IsKeyPressed(ImGui::GetKeyIndex(ImGuiKey_D), false))
+	if (ImGui::IsKeyDown(ImGuiKey_LeftAlt) && ImGui::IsKeyPressed(ImGuiKey_D, false))
 	{
 		ShowDebugUI = !ShowDebugUI;
 	}
