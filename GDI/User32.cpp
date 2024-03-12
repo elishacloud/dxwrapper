@@ -50,6 +50,11 @@ HWND WINAPI user_CreateWindowExT(D CreateWindowExT, DWORD dwExStyle, T lpClassNa
 		return nullptr;
 	}
 
+	if (dwStyle == 0x80080000)
+	{
+		dwStyle = WS_OVERLAPPEDWINDOW;
+	}
+
 	// Handle popup window type
 	if ((dwStyle & WS_POPUP) && (dwStyle & WS_VISIBLE) && !(dwStyle & WS_CLIPSIBLINGS) && !hWndParent)
 	{

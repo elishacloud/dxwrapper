@@ -2830,6 +2830,12 @@ HRESULT m_IDirectDrawX::CreateD3D9Device()
 		return DDERR_GENERIC;
 	}
 
+	// Only reset device on hwnd change
+	if (d3d9Device && hFocusWindow == GetHwnd())
+	{
+		return DD_OK;
+	}
+
 	SetCriticalSection();
 	SetPTCriticalSection();
 
@@ -2981,7 +2987,7 @@ HRESULT m_IDirectDrawX::CreateD3D9Device()
 
 		// Set behavior flags
 		BehaviorFlags = (d3dcaps.VertexProcessingCaps ? D3DCREATE_HARDWARE_VERTEXPROCESSING : D3DCREATE_SOFTWARE_VERTEXPROCESSING) |
-			D3DCREATE_MULTITHREADED |
+			D3DCREATE_MULTITHREADED | D3DCREATE_FPU_PRESERVE |
 			(Device.FPUPreserve ? D3DCREATE_FPU_PRESERVE : 0);
 
 		Logging::Log() << __FUNCTION__ << " Direct3D9 device! " <<
