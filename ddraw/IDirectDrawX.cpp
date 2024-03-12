@@ -3812,6 +3812,40 @@ void m_IDirectDrawX::SetVsync()
 	}
 }
 
+HRESULT m_IDirectDrawX::GetD9Gamma(DWORD dwFlags, LPDDGAMMARAMP lpRampData)
+{
+	// Check for device interface
+	if (FAILED(CheckInterface(__FUNCTION__, true)))
+	{
+		return DDERR_GENERIC;
+	}
+
+	if (!presParams.Windowed)
+	{
+		d3d9Device->GetGammaRamp(dwFlags, (D3DGAMMARAMP*)lpRampData);
+		return DD_OK;
+	}
+
+	return D3DERR_INVALIDCALL;
+}
+
+HRESULT m_IDirectDrawX::SetD9Gamma(DWORD dwFlags, LPDDGAMMARAMP lpRampData)
+{
+	// Check for device interface
+	if (FAILED(CheckInterface(__FUNCTION__, true)))
+	{
+		return DDERR_GENERIC;
+	}
+
+	if (!presParams.Windowed)
+	{
+		d3d9Device->SetGammaRamp(0, dwFlags, (D3DGAMMARAMP*)lpRampData);
+		return DD_OK;
+	}
+
+	return D3DERR_INVALIDCALL;
+}
+
 HRESULT m_IDirectDrawX::Draw2DSurface(m_IDirectDrawSurfaceX* DrawSurface)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ") ";
