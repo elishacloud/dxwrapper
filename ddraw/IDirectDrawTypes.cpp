@@ -450,6 +450,27 @@ DWORD GetBitCount(D3DFORMAT Format)
 	};
 }
 
+DWORD GetSurfaceSize(D3DFORMAT Format, DWORD Width, DWORD Height, INT Pitch)
+{
+	if (ISDXTEX(Format))
+	{
+		return ((GetByteAlignedWidth(Width, GetBitCount(Format)) + 3) / 4) * ((Height + 3) / 4) * (Format == D3DFMT_DXT1 ? 8 : 16);
+	}
+	else if (Format == D3DFMT_YV12)
+	{
+		return GetByteAlignedWidth(Width, GetBitCount(Format)) * Height;
+	}
+	else if (Format & 0xFF000000)
+	{
+		LOG_LIMIT(100, __FUNCTION__ << " Error: Surface size for surface format not Implemented: " << Format);
+		return 0;
+	}
+	else
+	{
+		return Pitch * Height;
+	}
+}
+
 D3DFORMAT ConvertSurfaceFormat(D3DFORMAT Format)
 {
 	return (Format == D3DFMT_X8B8G8R8 || Format == D3DFMT_B8G8R8 || Format == D3DFMT_R8G8B8) ? D3DFMT_X8R8G8B8 :
