@@ -1210,7 +1210,7 @@ HRESULT m_IDirectDrawSurfaceX::Flip(LPDIRECTDRAWSURFACE7 lpDDSurfaceTargetOverri
 		}
 
 		// Flip can be called only for a surface that has the DDSCAPS_FLIP and DDSCAPS_FRONTBUFFER capabilities
-		if ((surfaceDesc2.ddsCaps.dwCaps & (DDSCAPS_FLIP | DDSCAPS_FRONTBUFFER)) != (DDSCAPS_FLIP | DDSCAPS_FRONTBUFFER))
+		if (!isFlipSurface())
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Error: This surface cannot be flipped");
 			return DDERR_NOTFLIPPABLE;
@@ -1394,7 +1394,14 @@ HRESULT m_IDirectDrawSurfaceX::Flip(LPDIRECTDRAWSURFACE7 lpDDSurfaceTargetOverri
 			}
 
 			// Present surface
-			EndWritePresent(false);
+			if (!Using3D)
+			{
+				EndWritePresent(false);
+			}
+			else
+			{
+				ddrawParent->Present(nullptr, nullptr);
+			}
 
 		} while (false);
 
@@ -1841,7 +1848,7 @@ HRESULT m_IDirectDrawSurfaceX::GetFlipStatus(DWORD dwFlags)
 	if (Config.Dd7to9)
 	{
 		// Flip can be called only for a surface that has the DDSCAPS_FLIP and DDSCAPS_FRONTBUFFER capabilities
-		if ((surfaceDesc2.ddsCaps.dwCaps & (DDSCAPS_FLIP | DDSCAPS_FRONTBUFFER)) != (DDSCAPS_FLIP | DDSCAPS_FRONTBUFFER))
+		if (!isFlipSurface())
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Error: This surface cannot be flipped");
 			return DDERR_INVALIDSURFACETYPE;
@@ -1864,7 +1871,7 @@ HRESULT m_IDirectDrawSurfaceX::GetFlipStatus(DWORD dwFlags)
 			}
 
 			// Get backbuffer
-			m_IDirectDrawSurfaceX* lpBackBuffer = this;
+			m_IDirectDrawSurfaceX* lpBackBuffer = nullptr;
 			for (auto& it : AttachedSurfaceMap)
 			{
 				if (it.second.pSurface->GetSurfaceCaps().dwCaps & DDSCAPS_BACKBUFFER)
@@ -1872,6 +1879,12 @@ HRESULT m_IDirectDrawSurfaceX::GetFlipStatus(DWORD dwFlags)
 					lpBackBuffer = it.second.pSurface;
 					break;
 				}
+			}
+
+			// Check if there is a backbuffer
+			if (!lpBackBuffer)
+			{
+				return DDERR_INVALIDSURFACETYPE;
 			}
 
 			// Check if surface is busy

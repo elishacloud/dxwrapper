@@ -1707,15 +1707,22 @@ HRESULT m_IDirect3DDeviceX::EndScene()
 			return DDERR_GENERIC;
 		}
 
+		bool FlipSurface = false;
+
 		// Draw 2D DirectDraw surface
 		m_IDirectDrawSurfaceX* PrimarySurface = ddrawParent->GetPrimarySurface();
-		if (PrimarySurface && PrimarySurface->IsSurfaceDirty())
+		if (PrimarySurface)
 		{
-			SetDrawStates(0, D3DDP_DXW_DRAW2DSURFACE, 9);
+			FlipSurface = (PrimarySurface->isFlipSurface() && SUCCEEDED(PrimarySurface->GetFlipStatus(DDGFS_CANFLIP)));
 
-			ddrawParent->Draw2DSurface(PrimarySurface);
+			if (PrimarySurface->IsSurfaceDirty())
+			{
+				SetDrawStates(0, D3DDP_DXW_DRAW2DSURFACE, 9);
 
-			RestoreDrawStates(0, D3DDP_DXW_DRAW2DSURFACE, 9);
+				ddrawParent->Draw2DSurface(PrimarySurface);
+
+				RestoreDrawStates(0, D3DDP_DXW_DRAW2DSURFACE, 9);
+			}
 		}
 
 		// The IDirect3DDevice7::EndScene method ends a scene that was begun by calling the IDirect3DDevice7::BeginScene method.
@@ -1724,9 +1731,9 @@ HRESULT m_IDirect3DDeviceX::EndScene()
 		HRESULT hr = (*d3d9Device)->EndScene();
 
 		// Present surface after end scene
-		if (SUCCEEDED(hr))
+		if (SUCCEEDED(hr) && !FlipSurface)
 		{
-			hr = ddrawParent->Present(nullptr, nullptr);
+			ddrawParent->Present(nullptr, nullptr);
 		}
 
 		return hr;
