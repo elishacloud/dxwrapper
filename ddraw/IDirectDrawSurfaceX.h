@@ -53,6 +53,7 @@ private:
 		std::vector<byte> Mem;
 		void* Addr = nullptr;
 		DWORD Pitch = 0;
+		DWORD NewPitch = 0;
 		DWORD BBP = 0;
 		DWORD Height = 0;
 		DWORD Width = 0;
@@ -374,8 +375,8 @@ public:
 	void ReleaseLockCriticalSection() { LeaveCriticalSection(&ddlcs); }
 
 	// Fix byte alignment issue
-	void LockBitAlign(LPRECT lpDestRect, LPDDSURFACEDESC2 lpDDSurfaceDesc);
-	void UnlockBitAlign();
+	void LockEmuLock(LPRECT lpDestRect, LPDDSURFACEDESC2 lpDDSurfaceDesc);
+	void UnlockEmuLock();
 
 	// For removing scanlines
 	void RestoreScanlines(LASTLOCK &LLock);

@@ -28,6 +28,7 @@
 	visit(DdrawCustomWidth) \
 	visit(DdrawCustomHeight) \
 	visit(DdrawDisableDirect3DCaps) \
+	visit(DdrawEmulateLock) \
 	visit(DdrawRemoveScanlines) \
 	visit(DdrawRemoveInterlacing) \
 	visit(DdrawFixByteAlignment) \
@@ -209,6 +210,7 @@ struct CONFIG
 	bool DdrawRemoveScanlines = 0;				// Experimental feature to removing interlaced black lines in a single frame
 	bool DdrawRemoveInterlacing = 0;			// Experimental feature to removing interlacing between frames
 	bool DdrawEmulateSurface = false;			// Emulates the ddraw surface using device context for Dd7to9
+	bool DdrawEmulateLock = false;				// Emulates the lock to prevent crashes when an application tries to read data outside Lock/Unlock pair
 	bool DdrawReadFromGDI = false;				// Read from GDI bfore passing surface to program
 	bool DdrawWriteToGDI = false;				// Blt surface directly to GDI rather than Direct3D9
 	bool DdrawIntegerScalingClamp = false;		// Scales the screen by an integer value to help preserve video quality

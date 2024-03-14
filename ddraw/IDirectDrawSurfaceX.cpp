@@ -2354,21 +2354,21 @@ HRESULT m_IDirectDrawSurfaceX::Lock2(LPRECT lpDestRect, LPDDSURFACEDESC2 lpDDSur
 			surfaceDesc2.lPitch = LockedRect.Pitch;
 			surfaceDesc2.dwFlags |= DDSD_PITCH;
 
-			// Fix misaligned bytes
-			if (Config.DdrawFixByteAlignment)
+			// Emulate lock
+			if (!(Flags & D3DLOCK_READONLY) && (Config.DdrawEmulateLock || Config.DdrawFixByteAlignment))
 			{
-				LockBitAlign(lpDestRect, lpDDSurfaceDesc2);
+				LockEmuLock(lpDestRect, lpDDSurfaceDesc2);
 			}
 
 			// Backup last rect before removing scanlines
-			LastLock.ReadOnly = ((Flags & D3DLOCK_READONLY) != 0);
+			LastLock.ReadOnly = (Flags & D3DLOCK_READONLY);
 			LastLock.IsSkipScene = IsSkipScene;
 			LastLock.Rect = DestRect;
 			LastLock.LockedRect.pBits = LockedRect.pBits;
 			LastLock.LockedRect.Pitch = LockedRect.Pitch;
 
 			// Restore scanlines before returing surface memory
-			if (Config.DdrawRemoveScanlines && IsPrimaryOrBackBuffer())
+			if (Config.DdrawRemoveScanlines && IsPrimaryOrBackBuffer() && !(Flags & D3DLOCK_READONLY))
 			{
 				RestoreScanlines(LastLock);
 			}
@@ -2759,10 +2759,10 @@ HRESULT m_IDirectDrawSurfaceX::Unlock(LPRECT lpRect)
 	{
 		SetSurfaceCriticalSection();
 
-		// Fix misaligned bytes
-		if (Config.DdrawFixByteAlignment)
+		// Emulate unlock
+		if (EmuLock.Locked)
 		{
-			UnlockBitAlign();
+			UnlockEmuLock();
 		}
 
 		HRESULT hr = DD_OK;
@@ -4489,9 +4489,10 @@ inline bool m_IDirectDrawSurfaceX::CheckCoordinates(RECT& OutRect, LPRECT lpInRe
 }
 
 // Fix issue with some games that ignore the pitch size
-void m_IDirectDrawSurfaceX::LockBitAlign(LPRECT lpDestRect, LPDDSURFACEDESC2 lpDDSurfaceDesc)
+void m_IDirectDrawSurfaceX::LockEmuLock(LPRECT lpDestRect, LPDDSURFACEDESC2 lpDDSurfaceDesc)
 {
-	if (!lpDDSurfaceDesc || lpDestRect)
+	// Only works if entire surface is locked
+	if (!lpDDSurfaceDesc || !lpDDSurfaceDesc->lPitch || lpDestRect)
 	{
 		return;
 	}
@@ -4499,21 +4500,26 @@ void m_IDirectDrawSurfaceX::LockBitAlign(LPRECT lpDestRect, LPDDSURFACEDESC2 lpD
 	DWORD BBP = GetBitCount(lpDDSurfaceDesc->ddpfPixelFormat);
 	LONG NewPitch = (BBP / 8) * lpDDSurfaceDesc->dwWidth;
 
-	// Check if surface needs to be fixed
-	if (lpDDSurfaceDesc->dwWidth && lpDDSurfaceDesc->dwHeight &&
-		(BBP == 8 || BBP == 16 || BBP == 24 || BBP == 32) &&
-		lpDDSurfaceDesc->lPitch != NewPitch)
+	bool LockOffPlain = (Config.DdrawEmulateLock && (lpDDSurfaceDesc->ddsCaps.dwCaps & DDSCAPS_OFFSCREENPLAIN));
+	bool LockByteAlign = (Config.DdrawFixByteAlignment && lpDDSurfaceDesc->lPitch != NewPitch);
+
+	// Emulate lock for offscreen surfaces
+	if ((BBP == 8 || BBP == 16 || BBP == 24 || BBP == 32) && (LockOffPlain || LockByteAlign))
 	{
+		// Set correct pitch
+		NewPitch = LockByteAlign ? NewPitch : lpDDSurfaceDesc->lPitch;
+
 		// Store old variables
 		EmuLock.Locked = true;
 		EmuLock.Addr = lpDDSurfaceDesc->lpSurface;
 		EmuLock.Pitch = lpDDSurfaceDesc->lPitch;
+		EmuLock.NewPitch = NewPitch;
 		EmuLock.BBP = BBP;
 		EmuLock.Width = lpDDSurfaceDesc->dwWidth;
 		EmuLock.Height = lpDDSurfaceDesc->dwHeight;
 
 		// Update surface memory and pitch
-		DWORD Size = NewPitch * lpDDSurfaceDesc->dwHeight;
+		size_t Size = NewPitch * lpDDSurfaceDesc->dwHeight;
 		if (EmuLock.Mem.size() < Size)
 		{
 			EmuLock.Mem.resize(Size);
@@ -4525,31 +4531,45 @@ void m_IDirectDrawSurfaceX::LockBitAlign(LPRECT lpDestRect, LPDDSURFACEDESC2 lpD
 		BYTE* InAddr = (BYTE*)EmuLock.Addr;
 		DWORD InPitch = EmuLock.Pitch;
 		BYTE* OutAddr = EmuLock.Mem.data();
-		DWORD OutPitch = NewPitch;
-		for (DWORD x = 0; x < EmuLock.Height; x++)
+		DWORD OutPitch = EmuLock.NewPitch;
+		if (InPitch == OutPitch)
 		{
-			memcpy(OutAddr, InAddr, OutPitch);
-			InAddr += InPitch;
-			OutAddr += OutPitch;
+			memcpy(OutAddr, InAddr, OutPitch * EmuLock.Height);
+		}
+		else
+		{
+			for (DWORD x = 0; x < EmuLock.Height; x++)
+			{
+				memcpy(OutAddr, InAddr, OutPitch);
+				InAddr += InPitch;
+				OutAddr += OutPitch;
+			}
 		}
 	}
 }
 
 // Fix issue with some games that ignore the pitch size
-void m_IDirectDrawSurfaceX::UnlockBitAlign()
+void m_IDirectDrawSurfaceX::UnlockEmuLock()
 {
 	if (EmuLock.Locked && EmuLock.Addr)
 	{
 		// Copy memory back to surface
 		BYTE* InAddr = EmuLock.Mem.data();
-		DWORD InPitch = (EmuLock.BBP / 8) * EmuLock.Width;
+		DWORD InPitch = EmuLock.NewPitch;
 		BYTE* OutAddr = (BYTE*)EmuLock.Addr;
 		DWORD OutPitch = EmuLock.Pitch;
-		for (DWORD x = 0; x < EmuLock.Height; x++)
+		if (InPitch == OutPitch)
 		{
-			memcpy(OutAddr, InAddr, InPitch);
-			InAddr += InPitch;
-			OutAddr += OutPitch;
+			memcpy(OutAddr, InAddr, OutPitch * EmuLock.Height);
+		}
+		else
+		{
+			for (DWORD x = 0; x < EmuLock.Height; x++)
+			{
+				memcpy(OutAddr, InAddr, OutPitch);
+				InAddr += InPitch;
+				OutAddr += OutPitch;
+			}
 		}
 
 		EmuLock.Locked = false;
