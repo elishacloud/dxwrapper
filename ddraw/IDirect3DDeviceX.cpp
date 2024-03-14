@@ -3458,8 +3458,6 @@ inline void m_IDirect3DDeviceX::RestoreDrawStates(DWORD dwVertexTypeDesc, DWORD 
 		(*d3d9Device)->SetRenderState(D3DRS_ALPHABLENDENABLE, DrawStates.rsAlphaBlendEnable);
 		(*d3d9Device)->SetRenderState(D3DRS_FOGENABLE, DrawStates.rsFogEnable);
 
-		(*d3d9Device)->SetPixelShader(nullptr);
-
 		// Set by DirectDrawSurface
 		(*d3d9Device)->SetRenderState(D3DRS_LIGHTING, DrawStates.rsLighting);
 		(*d3d9Device)->SetSamplerState(0, D3DSAMP_MAGFILTER, DrawStates.ssMagFilter);
