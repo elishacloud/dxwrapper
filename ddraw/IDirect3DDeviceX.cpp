@@ -3419,10 +3419,10 @@ inline void m_IDirect3DDeviceX::SetDrawStates(DWORD dwVertexTypeDesc, DWORD dwFl
 		if (colorkeyPixelShader && *colorkeyPixelShader)
 		{
 			(*d3d9Device)->SetPixelShader(*colorkeyPixelShader);
-			float ColorKey[4];
-			GetColorKeyArray(ColorKey, ColorKey, 0x00000000, 0x00000000, DrawStates.ddpfPixelFormat);
-			(*d3d9Device)->SetPixelShaderConstantF(0, ColorKey, 1);
-			(*d3d9Device)->SetPixelShaderConstantF(1, ColorKey, 1);
+			float highColorKey[4], lowColorKey[4];
+			GetColorKeyArray(lowColorKey, highColorKey, 0x00000000, 0x00000000, DrawStates.ddpfPixelFormat);
+			(*d3d9Device)->SetPixelShaderConstantF(0, lowColorKey, 1);
+			(*d3d9Device)->SetPixelShaderConstantF(1, highColorKey, 1);
 		}
 	}
 }

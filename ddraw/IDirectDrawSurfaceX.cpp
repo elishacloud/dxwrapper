@@ -5018,7 +5018,7 @@ HRESULT m_IDirectDrawSurfaceX::ColorFill(RECT* pRect, D3DCOLOR dwFillColor)
 			dwFillColor = (dwFillColor & 0xFFF) + ((dwFillColor & 0xFFF) << 12);
 		}
 
-		D3DCOLOR ColorSurface[9] = {};	// Nine DOUBLE WORDs for a byte aligned 3x3 surface (can handle all bit counts)
+		D3DCOLOR ColorSurface[9] = {};	// Nine DWORDs for a byte aligned 3x3 surface (can handle all bit counts)
 
 		BYTE* Buffer = (BYTE*)ColorSurface;
 		BYTE* SrcBuffer = (BYTE*)&dwFillColor;

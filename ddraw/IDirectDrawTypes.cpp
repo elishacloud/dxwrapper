@@ -511,10 +511,16 @@ void GetColorKeyArray(float(&lowColorKey)[4], float(&highColorKey)[4], DWORD low
 	BYTE g = (BYTE)((lowColorSpace & pixelFormat.dwGBitMask) >> gShift);
 	BYTE b = (BYTE)((lowColorSpace & pixelFormat.dwBBitMask) >> bShift);
 
+	// Allow some range for padding (one quarter of a pixel's color range)
+	constexpr float Padding = (1.0f / 255.0f) * (1.0f / 4.0f);
+
 	// Convert to float and normalize to range [0, 1] for low color key
-	lowColorKey[0] = static_cast<float>(r) / ((1 << dwRBitCount) - 1);
-	lowColorKey[1] = static_cast<float>(g) / ((1 << dwGBitCount) - 1);
-	lowColorKey[2] = static_cast<float>(b) / ((1 << dwBBitCount) - 1);
+	lowColorKey[0] = (static_cast<float>(r) / ((1 << dwRBitCount) - 1)) - Padding;
+	lowColorKey[0] = lowColorKey[0] < 0.0f ? 0.0f : lowColorKey[0];
+	lowColorKey[1] = (static_cast<float>(g) / ((1 << dwGBitCount) - 1)) - Padding;
+	lowColorKey[1] = lowColorKey[1] < 0.0f ? 0.0f : lowColorKey[1];
+	lowColorKey[2] = (static_cast<float>(b) / ((1 << dwBBitCount) - 1)) - Padding;
+	lowColorKey[2] = lowColorKey[2] < 0.0f ? 0.0f : lowColorKey[2];
 	lowColorKey[3] = 0.0f;
 
 	// Extract individual components according to pixel format for high color key
@@ -523,9 +529,12 @@ void GetColorKeyArray(float(&lowColorKey)[4], float(&highColorKey)[4], DWORD low
 	b = (BYTE)((highColorSpace & pixelFormat.dwBBitMask) >> bShift);
 
 	// Convert to float and normalize to range [0, 1] for high color key
-	highColorKey[0] = static_cast<float>(r) / ((1 << dwRBitCount) - 1);
-	highColorKey[1] = static_cast<float>(g) / ((1 << dwGBitCount) - 1);
-	highColorKey[2] = static_cast<float>(b) / ((1 << dwBBitCount) - 1);
+	highColorKey[0] = (static_cast<float>(r) / ((1 << dwRBitCount) - 1)) + Padding;
+	highColorKey[0] = highColorKey[0] > 1.0f ? 1.0f : highColorKey[0];
+	highColorKey[1] = (static_cast<float>(g) / ((1 << dwGBitCount) - 1)) + Padding;
+	highColorKey[1] = highColorKey[1] > 1.0f ? 1.0f : highColorKey[1];
+	highColorKey[2] = (static_cast<float>(b) / ((1 << dwBBitCount) - 1)) + Padding;
+	highColorKey[2] = highColorKey[2] > 1.0f ? 1.0f : highColorKey[2];
 	highColorKey[3] = 0.0f;
 }
 
