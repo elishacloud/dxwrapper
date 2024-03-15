@@ -31,9 +31,8 @@ private:
 		DWORD rsAlphaTestEnable = 0;
 		DWORD rsFogEnable = 0;
 		DWORD ssMagFilter = 0;
-		DWORD dwColorSpaceLowValue = 0;
-		DWORD dwColorSpaceHighValue = 0;
-		DDPIXELFORMAT ddpfPixelFormat = {};
+		float lowColorKey[4] = {};
+		float highColorKey[4] = {};
 	} DrawStates;
 
 	// Store d3d device version wrappers

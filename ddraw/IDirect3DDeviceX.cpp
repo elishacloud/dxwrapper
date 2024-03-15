@@ -1717,14 +1717,13 @@ HRESULT m_IDirect3DDeviceX::EndScene()
 
 			if (PrimarySurface->IsSurfaceDirty())
 			{
-				DrawStates.ddpfPixelFormat.dwSize = sizeof(DDPIXELFORMAT);
-				PrimarySurface->GetPixelFormat(&DrawStates.ddpfPixelFormat);
+				PrimarySurface->GetColorKeyForShader(DrawStates.lowColorKey, DrawStates.highColorKey, true);
 
-				SetDrawStates(0, D3DDP_DXW_DRAW2DSURFACE, 9);
+				SetDrawStates(0, D3DDP_DXW_DRAW2DSURFACE | D3DDP_DXW_COLORKEYENABLE, 9);
 
 				ddrawParent->Draw2DSurface(PrimarySurface);
 
-				RestoreDrawStates(0, D3DDP_DXW_DRAW2DSURFACE, 9);
+				RestoreDrawStates(0, D3DDP_DXW_DRAW2DSURFACE | D3DDP_DXW_COLORKEYENABLE, 9);
 			}
 		}
 
@@ -3346,10 +3345,7 @@ void m_IDirect3DDeviceX::ResetDevice()
 inline void m_IDirect3DDeviceX::UpdateDrawFlags(DWORD& dwFlags)
 {
 	// Check for color key
-	DrawStates.ddpfPixelFormat.dwSize = sizeof(DDPIXELFORMAT);
-	if (rsColorKeyEnabled && CurrentTextureSurfaceX &&
-		CurrentTextureSurfaceX->GetColorKey(DrawStates.dwColorSpaceLowValue, DrawStates.dwColorSpaceHighValue) &&
-		SUCCEEDED(CurrentTextureSurfaceX->GetPixelFormat(&DrawStates.ddpfPixelFormat)))
+	if (rsColorKeyEnabled && CurrentTextureSurfaceX && CurrentTextureSurfaceX->GetColorKeyForShader(DrawStates.lowColorKey, DrawStates.highColorKey, false))
 	{
 		dwFlags |= D3DDP_DXW_COLORKEYENABLE;
 	}
@@ -3387,12 +3383,8 @@ inline void m_IDirect3DDeviceX::SetDrawStates(DWORD dwVertexTypeDesc, DWORD dwFl
 		if (colorkeyPixelShader && *colorkeyPixelShader)
 		{
 			(*d3d9Device)->SetPixelShader(*colorkeyPixelShader);
-
-			// Set color key
-			float highColorKey[4], lowColorKey[4];
-			GetColorKeyArray(lowColorKey, highColorKey, DrawStates.dwColorSpaceLowValue, DrawStates.dwColorSpaceHighValue, DrawStates.ddpfPixelFormat);
-			(*d3d9Device)->SetPixelShaderConstantF(0, lowColorKey, 1);
-			(*d3d9Device)->SetPixelShaderConstantF(1, highColorKey, 1);
+			(*d3d9Device)->SetPixelShaderConstantF(0, DrawStates.lowColorKey, 1);
+			(*d3d9Device)->SetPixelShaderConstantF(1, DrawStates.highColorKey, 1);
 		}
 	}
 	if (dwFlags & D3DDP_DXW_DRAW2DSURFACE)
@@ -3411,19 +3403,6 @@ inline void m_IDirect3DDeviceX::SetDrawStates(DWORD dwVertexTypeDesc, DWORD dwFl
 		(*d3d9Device)->SetRenderState(D3DRS_ALPHATESTENABLE, FALSE);
 		(*d3d9Device)->SetRenderState(D3DRS_ALPHABLENDENABLE, FALSE);
 		(*d3d9Device)->SetRenderState(D3DRS_FOGENABLE, FALSE);
-
-		if (!colorkeyPixelShader || !*colorkeyPixelShader)
-		{
-			colorkeyPixelShader = ddrawParent->GetColorKeyShader();
-		}
-		if (colorkeyPixelShader && *colorkeyPixelShader)
-		{
-			(*d3d9Device)->SetPixelShader(*colorkeyPixelShader);
-			float highColorKey[4], lowColorKey[4];
-			GetColorKeyArray(lowColorKey, highColorKey, 0x00000000, 0x00000000, DrawStates.ddpfPixelFormat);
-			(*d3d9Device)->SetPixelShaderConstantF(0, lowColorKey, 1);
-			(*d3d9Device)->SetPixelShaderConstantF(1, highColorKey, 1);
-		}
 	}
 }
 
@@ -3460,8 +3439,6 @@ inline void m_IDirect3DDeviceX::RestoreDrawStates(DWORD dwVertexTypeDesc, DWORD 
 		// Set by DirectDrawSurface
 		(*d3d9Device)->SetRenderState(D3DRS_LIGHTING, DrawStates.rsLighting);
 		(*d3d9Device)->SetSamplerState(0, D3DSAMP_MAGFILTER, DrawStates.ssMagFilter);
-
-		(*d3d9Device)->SetPixelShader(nullptr);
 
 		SetTexture(0, AttachedTexture[0]);
 		SetTexture(1, AttachedTexture[1]);

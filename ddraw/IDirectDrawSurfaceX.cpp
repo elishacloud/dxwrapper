@@ -1681,6 +1681,9 @@ HRESULT m_IDirectDrawSurfaceX::GetColorKey(DWORD dwFlags, LPDDCOLORKEY lpDDColor
 			return DDERR_INVALIDPARAMS;
 		}
 
+		// Reset shader flag
+		ShaderColorKey.IsSet = false;
+
 		// Get color key index
 		DWORD dds = 0;
 		switch (dwFlags)
@@ -1729,6 +1732,58 @@ HRESULT m_IDirectDrawSurfaceX::GetColorKey(DWORD dwFlags, LPDDCOLORKEY lpDDColor
 	}
 
 	return ProxyInterface->GetColorKey(dwFlags, lpDDColorKey);
+}
+
+bool m_IDirectDrawSurfaceX::GetColorKeyForShader(float(&lowColorKey)[4], float(&highColorKey)[4], bool PrimarySurface)
+{
+	// Primary 2D surface background color
+	if (PrimarySurface && IsPrimarySurface())
+	{
+		if (!primary.ShaderColorKey.IsSet)
+		{
+			GetColorKeyArray(primary.ShaderColorKey.lowColorKey, primary.ShaderColorKey.highColorKey, 0x00000000, 0x00000000, surfaceDesc2.ddpfPixelFormat);
+			primary.ShaderColorKey.IsSet = true;
+		}
+		lowColorKey[0] = primary.ShaderColorKey.lowColorKey[0];
+		lowColorKey[1] = primary.ShaderColorKey.lowColorKey[1];
+		lowColorKey[2] = primary.ShaderColorKey.lowColorKey[2];
+		lowColorKey[3] = primary.ShaderColorKey.lowColorKey[3];
+		highColorKey[0] = primary.ShaderColorKey.highColorKey[0];
+		highColorKey[1] = primary.ShaderColorKey.highColorKey[1];
+		highColorKey[2] = primary.ShaderColorKey.highColorKey[2];
+		highColorKey[3] = primary.ShaderColorKey.highColorKey[3];
+		return true;
+	}
+
+	// Surface low and high color space
+	if (!ShaderColorKey.IsSet)
+	{
+		if (surfaceDesc2.ddsCaps.dwCaps & DDSD_CKSRCBLT)
+		{
+			GetColorKeyArray(ShaderColorKey.lowColorKey, ShaderColorKey.highColorKey,
+				surfaceDesc2.ddckCKSrcBlt.dwColorSpaceLowValue, surfaceDesc2.ddckCKSrcBlt.dwColorSpaceHighValue, surfaceDesc2.ddpfPixelFormat);
+			ShaderColorKey.IsSet = true;
+		}
+		else if (surfaceDesc2.ddsCaps.dwCaps & DDCKEY_SRCOVERLAY)
+		{
+			GetColorKeyArray(ShaderColorKey.lowColorKey, ShaderColorKey.highColorKey,
+				surfaceDesc2.ddckCKSrcOverlay.dwColorSpaceLowValue, surfaceDesc2.ddckCKSrcOverlay.dwColorSpaceHighValue, surfaceDesc2.ddpfPixelFormat);
+			ShaderColorKey.IsSet = true;
+		}
+		else
+		{
+			return false;
+		}
+	}
+	lowColorKey[0] = ShaderColorKey.lowColorKey[0];
+	lowColorKey[1] = ShaderColorKey.lowColorKey[1];
+	lowColorKey[2] = ShaderColorKey.lowColorKey[2];
+	lowColorKey[3] = ShaderColorKey.lowColorKey[3];
+	highColorKey[0] = ShaderColorKey.highColorKey[0];
+	highColorKey[1] = ShaderColorKey.highColorKey[1];
+	highColorKey[2] = ShaderColorKey.highColorKey[2];
+	highColorKey[3] = ShaderColorKey.highColorKey[3];
+	return true;
 }
 
 HRESULT m_IDirectDrawSurfaceX::GetDC(HDC FAR* lphDC)
@@ -4255,6 +4310,10 @@ void m_IDirectDrawSurfaceX::ReleaseD9Surface(bool BackupData, bool DeviceLost)
 	LastLock.LockedRect.pBits = nullptr;
 	LastLock.bEvenScanlines = false;
 	LastLock.bOddScanlines = false;
+
+	// Reset shader flag
+	ShaderColorKey.IsSet = false;
+	primary.ShaderColorKey.IsSet = false;
 
 	// Reset display flags
 	if (ResetDisplayFlags)

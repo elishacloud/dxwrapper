@@ -66,10 +66,18 @@ private:
 		bool isAttachedSurfaceAdded = false;
 	};
 
+	struct COLORKEY
+	{
+		bool IsSet = false;
+		float lowColorKey[4] = {};
+		float highColorKey[4] = {};
+	};
+
 	// Extra Direct3D9 devices used in the primary surface
 	struct D9PRIMARY
 	{
 		DWORD LastPaletteUSN = 0;								// The USN that was used last time the palette was updated
+		COLORKEY ShaderColorKey;								// Used to store color key array for shader
 		LPDIRECT3DSURFACE9 BlankSurface = nullptr;				// Blank surface used for clearing main surface
 		LPDIRECT3DTEXTURE9 PaletteTexture = nullptr;			// Extra surface texture used for storing palette entries for the pixel shader
 	};
@@ -134,6 +142,7 @@ private:
 	DDRAWEMULATELOCK EmuLock;							// For aligning bits after a lock for games that hard code the pitch
 	std::vector<byte> ByteArray;						// Memory used for coping from one surface to the same surface
 	std::vector<byte> Backup;							// Memory used for backing up the surfaceTexture
+	COLORKEY ShaderColorKey;							// Used to store color key array for shader
 	SURFACECREATE ShouldEmulate = SC_NOT_CREATED;		// Used to help determine if surface should be emulated
 
 	// Extra Direct3D9 devices used in the primary surface
@@ -406,22 +415,7 @@ public:
 	inline bool IsEmulationDCReady() { return (IsUsingEmulation() && !surface.emu->UsingGameDC); }
 	inline bool IsSurface3DDevice() { return Is3DRenderingTarget; }
 	inline bool IsSurfaceDirty() { return surface.IsDirtyFlag; }
-	inline bool GetColorKey(DWORD& ColorSpaceLowValue, DWORD& ColorSpaceHighValue)
-	{
-		if (surfaceDesc2.ddsCaps.dwCaps & DDSD_CKSRCBLT)
-		{
-			ColorSpaceLowValue = surfaceDesc2.ddckCKSrcBlt.dwColorSpaceLowValue;
-			ColorSpaceHighValue = surfaceDesc2.ddckCKSrcBlt.dwColorSpaceHighValue;
-			return true;
-		}
-		else if (surfaceDesc2.ddsCaps.dwCaps & DDCKEY_SRCOVERLAY)
-		{
-			ColorSpaceLowValue = surfaceDesc2.ddckCKSrcOverlay.dwColorSpaceLowValue;
-			ColorSpaceHighValue = surfaceDesc2.ddckCKSrcOverlay.dwColorSpaceHighValue;
-			return true;
-		}
-		return false;
-	}
+	bool GetColorKeyForShader(float(&lowColorKey)[4], float(&highColorKey)[4], bool PrimarySurface);
 	inline bool GetSurfaceSetSize(DWORD& Width, DWORD& Height)
 	{
 		if ((surfaceDesc2.dwFlags & (DDSD_WIDTH | DDSD_HEIGHT)) == (DDSD_WIDTH | DDSD_HEIGHT) &&
