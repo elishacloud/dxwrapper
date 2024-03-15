@@ -33,6 +33,7 @@ private:
 		DWORD ssMagFilter = 0;
 		DWORD dwColorSpaceLowValue = 0;
 		DWORD dwColorSpaceHighValue = 0;
+		DDPIXELFORMAT ddpfPixelFormat = {};
 	} DrawStates;
 
 	// Store d3d device version wrappers

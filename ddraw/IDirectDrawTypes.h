@@ -125,6 +125,7 @@ DWORD GetByteAlignedWidth(DWORD Width, DWORD BitCount);
 DWORD GetBitCount(DDPIXELFORMAT ddpfPixelFormat);
 DWORD GetBitCount(D3DFORMAT Format);
 DWORD GetSurfaceSize(D3DFORMAT Format, DWORD Width, DWORD Height, INT Pitch);
+void GetColorKeyArray(float(&lowColorKey)[4], float(&highColorKey)[4], DWORD lowColorSpace, DWORD highColorSpace, DDPIXELFORMAT& pixelFormat);
 D3DFORMAT ConvertSurfaceFormat(D3DFORMAT Format);
 D3DFORMAT GetFailoverFormat(D3DFORMAT Format);
 D3DFORMAT GetDisplayFormat(DDPIXELFORMAT ddpfPixelFormat);

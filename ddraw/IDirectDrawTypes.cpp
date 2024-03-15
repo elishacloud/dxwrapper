@@ -471,6 +471,64 @@ DWORD GetSurfaceSize(D3DFORMAT Format, DWORD Width, DWORD Height, INT Pitch)
 	}
 }
 
+// Function to count the number of set bits in a DWORD
+inline BYTE CountBitsSet(DWORD value)
+{
+	BYTE count = 0;
+	while (value)
+	{
+		count += value & 1;
+		value >>= 1;
+	}
+	return count;
+}
+
+// Count the number of bits before the first set bit
+inline BYTE CountBitsShift(DWORD value)
+{
+	BYTE count = 0;
+	while (value && !(value & 1))
+	{
+		count++;
+		value >>= 1;
+	}
+	return count;
+}
+
+void GetColorKeyArray(float(&lowColorKey)[4], float(&highColorKey)[4], DWORD lowColorSpace, DWORD highColorSpace, DDPIXELFORMAT& pixelFormat)
+{
+	DWORD dwRBitCount = CountBitsSet(pixelFormat.dwRBitMask);
+	DWORD dwGBitCount = CountBitsSet(pixelFormat.dwGBitMask);
+	DWORD dwBBitCount = CountBitsSet(pixelFormat.dwBBitMask);
+
+	// Calculate shifts for each color component
+	int rShift = CountBitsShift(pixelFormat.dwRBitMask);
+	int gShift = CountBitsShift(pixelFormat.dwGBitMask);
+	int bShift = CountBitsShift(pixelFormat.dwBBitMask);
+
+	// Extract individual components according to pixel format for low color key
+	BYTE r = (BYTE)((lowColorSpace & pixelFormat.dwRBitMask) >> rShift);
+	BYTE g = (BYTE)((lowColorSpace & pixelFormat.dwGBitMask) >> gShift);
+	BYTE b = (BYTE)((lowColorSpace & pixelFormat.dwBBitMask) >> bShift);
+
+	// Convert to float and normalize to range [0, 1] for low color key
+	lowColorKey[0] = static_cast<float>(r) / ((1 << dwRBitCount) - 1);
+	lowColorKey[1] = static_cast<float>(g) / ((1 << dwGBitCount) - 1);
+	lowColorKey[2] = static_cast<float>(b) / ((1 << dwBBitCount) - 1);
+	lowColorKey[3] = 0.0f;
+
+	// Extract individual components according to pixel format for high color key
+	r = (BYTE)((highColorSpace & pixelFormat.dwRBitMask) >> rShift);
+	g = (BYTE)((highColorSpace & pixelFormat.dwGBitMask) >> gShift);
+	b = (BYTE)((highColorSpace & pixelFormat.dwBBitMask) >> bShift);
+
+	// Convert to float and normalize to range [0, 1] for high color key
+	highColorKey[0] = static_cast<float>(r) / ((1 << dwRBitCount) - 1);
+	highColorKey[1] = static_cast<float>(g) / ((1 << dwGBitCount) - 1);
+	highColorKey[2] = static_cast<float>(b) / ((1 << dwBBitCount) - 1);
+	highColorKey[3] = 0.0f;
+}
+
 D3DFORMAT ConvertSurfaceFormat(D3DFORMAT Format)
 {
 	return (Format == D3DFMT_X8B8G8R8 || Format == D3DFMT_B8G8R8 || Format == D3DFMT_R8G8B8) ? D3DFMT_X8R8G8B8 :

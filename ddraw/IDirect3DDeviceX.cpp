@@ -1717,6 +1717,9 @@ HRESULT m_IDirect3DDeviceX::EndScene()
 
 			if (PrimarySurface->IsSurfaceDirty())
 			{
+				DrawStates.ddpfPixelFormat.dwSize = sizeof(DDPIXELFORMAT);
+				PrimarySurface->GetPixelFormat(&DrawStates.ddpfPixelFormat);
+
 				SetDrawStates(0, D3DDP_DXW_DRAW2DSURFACE, 9);
 
 				ddrawParent->Draw2DSurface(PrimarySurface);
@@ -3343,7 +3346,10 @@ void m_IDirect3DDeviceX::ResetDevice()
 inline void m_IDirect3DDeviceX::UpdateDrawFlags(DWORD& dwFlags)
 {
 	// Check for color key
-	if (rsColorKeyEnabled && CurrentTextureSurfaceX && CurrentTextureSurfaceX->GetColorKey(DrawStates.dwColorSpaceLowValue, DrawStates.dwColorSpaceHighValue))
+	DrawStates.ddpfPixelFormat.dwSize = sizeof(DDPIXELFORMAT);
+	if (rsColorKeyEnabled && CurrentTextureSurfaceX &&
+		CurrentTextureSurfaceX->GetColorKey(DrawStates.dwColorSpaceLowValue, DrawStates.dwColorSpaceHighValue) &&
+		SUCCEEDED(CurrentTextureSurfaceX->GetPixelFormat(&DrawStates.ddpfPixelFormat)))
 	{
 		dwFlags |= D3DDP_DXW_COLORKEYENABLE;
 	}
@@ -3382,18 +3388,10 @@ inline void m_IDirect3DDeviceX::SetDrawStates(DWORD dwVertexTypeDesc, DWORD dwFl
 		{
 			(*d3d9Device)->SetPixelShader(*colorkeyPixelShader);
 
-			// Set the low color key
-			float lowRed = (float)D3DCOLOR_GETRED(DrawStates.dwColorSpaceLowValue),
-				lowGreen = (float)D3DCOLOR_GETGREEN(DrawStates.dwColorSpaceLowValue),
-				lowBlue = (float)D3DCOLOR_GETBLUE(DrawStates.dwColorSpaceLowValue);
-			float lowColorKey[4] = { lowRed, lowGreen, lowBlue, 0.0f };
+			// Set color key
+			float highColorKey[4], lowColorKey[4];
+			GetColorKeyArray(lowColorKey, highColorKey, DrawStates.dwColorSpaceLowValue, DrawStates.dwColorSpaceHighValue, DrawStates.ddpfPixelFormat);
 			(*d3d9Device)->SetPixelShaderConstantF(0, lowColorKey, 1);
-
-			// Set the high color key
-			float highRed = (float)D3DCOLOR_GETRED(DrawStates.dwColorSpaceHighValue),
-				highGreen = (float)D3DCOLOR_GETGREEN(DrawStates.dwColorSpaceHighValue),
-				highBlue = (float)D3DCOLOR_GETBLUE(DrawStates.dwColorSpaceHighValue);
-			float highColorKey[4] = { highRed, highGreen, highBlue, 0.0f };
 			(*d3d9Device)->SetPixelShaderConstantF(1, highColorKey, 1);
 		}
 	}
@@ -3421,7 +3419,8 @@ inline void m_IDirect3DDeviceX::SetDrawStates(DWORD dwVertexTypeDesc, DWORD dwFl
 		if (colorkeyPixelShader && *colorkeyPixelShader)
 		{
 			(*d3d9Device)->SetPixelShader(*colorkeyPixelShader);
-			float ColorKey[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
+			float ColorKey[4];
+			GetColorKeyArray(ColorKey, ColorKey, 0x00000000, 0x00000000, DrawStates.ddpfPixelFormat);
 			(*d3d9Device)->SetPixelShaderConstantF(0, ColorKey, 1);
 			(*d3d9Device)->SetPixelShaderConstantF(1, ColorKey, 1);
 		}
