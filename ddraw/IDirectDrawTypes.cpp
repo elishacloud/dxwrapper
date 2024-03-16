@@ -495,6 +495,29 @@ inline BYTE CountBitsShift(DWORD value)
 	return count;
 }
 
+void GetColorArray(float(&colorArray)[4], DWORD colorValue, DDPIXELFORMAT& pixelFormat)
+{
+	DWORD dwRBitCount = CountBitsSet(pixelFormat.dwRBitMask);
+	DWORD dwGBitCount = CountBitsSet(pixelFormat.dwGBitMask);
+	DWORD dwBBitCount = CountBitsSet(pixelFormat.dwBBitMask);
+
+	// Calculate shifts for each color component
+	int rShift = CountBitsShift(pixelFormat.dwRBitMask);
+	int gShift = CountBitsShift(pixelFormat.dwGBitMask);
+	int bShift = CountBitsShift(pixelFormat.dwBBitMask);
+
+	// Extract individual components according to pixel format for low color key
+	BYTE r = (BYTE)((colorValue & pixelFormat.dwRBitMask) >> rShift);
+	BYTE g = (BYTE)((colorValue & pixelFormat.dwGBitMask) >> gShift);
+	BYTE b = (BYTE)((colorValue & pixelFormat.dwBBitMask) >> bShift);
+
+	// Convert to float and normalize to range [0, 1] for low color key
+	colorArray[0] = static_cast<float>(r) / ((1 << dwRBitCount) - 1);
+	colorArray[1] = static_cast<float>(g) / ((1 << dwGBitCount) - 1);
+	colorArray[2] = static_cast<float>(b) / ((1 << dwBBitCount) - 1);
+	colorArray[3] = 0.0f;
+}
+
 void GetColorKeyArray(float(&lowColorKey)[4], float(&highColorKey)[4], DWORD lowColorSpace, DWORD highColorSpace, DDPIXELFORMAT& pixelFormat)
 {
 	DWORD dwRBitCount = CountBitsSet(pixelFormat.dwRBitMask);

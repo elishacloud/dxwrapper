@@ -78,7 +78,6 @@ private:
 	{
 		DWORD LastPaletteUSN = 0;								// The USN that was used last time the palette was updated
 		COLORKEY ShaderColorKey;								// Used to store color key array for shader
-		LPDIRECT3DSURFACE9 BlankSurface = nullptr;				// Blank surface used for clearing main surface
 		LPDIRECT3DTEXTURE9 PaletteTexture = nullptr;			// Extra surface texture used for storing palette entries for the pixel shader
 	};
 
@@ -264,8 +263,6 @@ private:
 	HRESULT CopyEmulatedSurfaceToGDI(RECT Rect);
 	HRESULT PresentSurfaceToWindow(RECT Rect);
 
-	// Surface functions
-	HRESULT ClearPrimarySurface();
 
 public:
 	m_IDirectDrawSurfaceX(IDirectDrawSurface7 *pOriginal, DWORD DirectXVersion) : ProxyInterface(pOriginal)

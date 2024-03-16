@@ -28,6 +28,8 @@ bool dirtyFlag = false;
 bool SceneReady = false;
 bool IsPresentRunning = false;
 
+const DWORD PrimarySurfaceFillColor = 0x00000000;
+
 // Cached surface wrapper interface v1 list
 std::vector<m_IDirectDrawSurface*> SurfaceWrapperListV1;
 
@@ -1358,7 +1360,12 @@ HRESULT m_IDirectDrawSurfaceX::Flip(LPDIRECTDRAWSURFACE7 lpDDSurfaceTargetOverri
 			// Clear dirty surface before flip if system memory or 3D device
 			if (surfaceDesc2.ddsCaps.dwCaps & (DDSCAPS_SYSTEMMEMORY | DDSCAPS_3DDEVICE))
 			{
-				ClearPrimarySurface();
+				HRESULT hr_c = ColorFill(nullptr, PrimarySurfaceFillColor);
+
+				if (FAILED(hr_c))
+				{
+					LOG_LIMIT(100, __FUNCTION__ << " Error: could not color fill surface. " << (D3DERR)hr_c);
+				}
 			}
 
 			// Execute flip
@@ -1741,7 +1748,7 @@ bool m_IDirectDrawSurfaceX::GetColorKeyForShader(float(&lowColorKey)[4], float(&
 	{
 		if (!primary.ShaderColorKey.IsSet)
 		{
-			GetColorKeyArray(primary.ShaderColorKey.lowColorKey, primary.ShaderColorKey.highColorKey, 0x00000000, 0x00000000, surfaceDesc2.ddpfPixelFormat);
+			GetColorKeyArray(primary.ShaderColorKey.lowColorKey, primary.ShaderColorKey.highColorKey, PrimarySurfaceFillColor, PrimarySurfaceFillColor, surfaceDesc2.ddpfPixelFormat);
 			primary.ShaderColorKey.IsSet = true;
 		}
 		lowColorKey[0] = primary.ShaderColorKey.lowColorKey[0];
@@ -3726,21 +3733,6 @@ HRESULT m_IDirectDrawSurfaceX::CreateD3d9Surface()
 			}
 		}
 
-		// Create blank surface
-		if (IsPrimarySurface() && !IsPalette())
-		{
-			if (FAILED(((*d3d9Device)->CreateOffscreenPlainSurface(Width, Height, Format, D3DPOOL_DEFAULT, &primary.BlankSurface, nullptr))))
-			{
-				// Try failover format
-				if (FAILED(((*d3d9Device)->CreateOffscreenPlainSurface(Width, Height, GetFailoverFormat(Format), D3DPOOL_DEFAULT, &primary.BlankSurface, nullptr))))
-				{
-					LOG_LIMIT(100, __FUNCTION__ << " Error: failed to create blank surface. Size: " << Width << "x" << Height << " Format: " << surfaceFormat << " dwCaps: " << Logging::hex(surfaceDesc2.ddsCaps.dwCaps));
-					hr = DDERR_GENERIC;
-					break;
-				}
-			}
-		}
-
 		// Create primary surface texture
 		if (IsPrimarySurface() && surface.IsUsingWindowedMode && !Using3D)
 		{
@@ -4174,18 +4166,6 @@ void m_IDirectDrawSurfaceX::ReleaseD9ContextSurface()
 		surface.DisplayTexture = nullptr;
 	}
 
-	// Release blank surface
-	if (primary.BlankSurface)
-	{
-		Logging::LogDebug() << __FUNCTION__ << " Releasing Direct3D9 blank surface";
-		ULONG ref = primary.BlankSurface->Release();
-		if (ref)
-		{
-			Logging::Log() << __FUNCTION__ << " Error: there is still a reference to 'blankSurface' " << ref;
-		}
-		primary.BlankSurface = nullptr;
-	}
-
 	// Release d3d9 palette surface texture
 	if (primary.PaletteTexture)
 	{
@@ -4341,54 +4321,6 @@ inline void m_IDirectDrawSurfaceX::ReleaseDCSurface()
 			ReleaseCriticalSection();
 		}
 	}
-}
-
-HRESULT m_IDirectDrawSurfaceX::ClearPrimarySurface()
-{
-	if (!IsPrimarySurface())
-	{
-		return DDERR_GENERIC;
-	}
-
-	SetLockCriticalSection();
-
-	HRESULT hr = DD_OK;
-
-	do {
-
-		if (IsUsingEmulation() || IsPalette())
-		{
-			hr = ColorFill(nullptr, 0x00000000);
-
-			if (FAILED(hr))
-			{
-				LOG_LIMIT(100, __FUNCTION__ << " Error: could not color fill surface. " << (D3DERR)hr);
-			}
-
-			break;
-		}
-
-		IDirect3DSurface9* pDestSurfaceD9 = GetD3D9Surface();
-
-		if (!primary.BlankSurface || !pDestSurfaceD9)
-		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error: could not get surface. " << primary.BlankSurface << "->" << pDestSurfaceD9);
-			hr = DDERR_GENERIC;
-			break;
-		}
-
-		hr = D3DXLoadSurfaceFromSurface(pDestSurfaceD9, nullptr, nullptr, primary.BlankSurface, nullptr, nullptr, D3DX_FILTER_POINT, 0);
-
-		if (FAILED(hr))
-		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error: could not load source from surface. " << (D3DERR)hr);
-		}
-
-	} while (false);
-
-	ReleaseLockCriticalSection();
-
-	return hr;
 }
 
 // Present surface
@@ -5047,133 +4979,117 @@ HRESULT m_IDirectDrawSurfaceX::ColorFill(RECT* pRect, D3DCOLOR dwFillColor)
 		return DDERR_INVALIDRECT;
 	}
 
-	// Use D3DXLoadSurfaceFromMemory to color fill the surface
-	if (!IsUsingEmulation())
+	// Get width and height of rect
+	LONG FillWidth = DestRect.right - DestRect.left;
+	LONG FillHeight = DestRect.bottom - DestRect.top;
+
+	// Check bit count
+	if (surfaceBitCount != 8 && surfaceBitCount != 12 && surfaceBitCount != 16 && surfaceBitCount != 24 && surfaceBitCount != 32)
 	{
-		IDirect3DSurface9* pDestSurfaceD9 = GetD3D9Surface();
+		LOG_LIMIT(100, __FUNCTION__ << " Error: invalid bit count: " << surfaceBitCount << " Width: " << FillWidth);
+		return DDERR_GENERIC;
+	}
 
-		if (!pDestSurfaceD9)
+	// ** Using D3DX proved to be too slow on my laptop, maybe test other systems **
+	// Use D3DX for color fill when rect is nullptr and there is no emulated surface
+	/*if (surface.Texture && !IsUsingEmulation() && !pRect)
+	{
+		struct ColorFillStruct {
+			// Define a function that matches the prototype of LPD3DXFILL3D
+			static HRESULT WINAPI DXColorFill(D3DXVECTOR4* pOut, const D3DXVECTOR2* pTexCoord,
+				const D3DXVECTOR2* pTexelSize, LPVOID pData)
+			{
+				UNREFERENCED_PARAMETER(pTexCoord);
+				UNREFERENCED_PARAMETER(pTexelSize);
+
+				// pData now represents the color to be used for filling
+				float* array = (float*)pData; // Cast pData to float*
+
+				// Set the output color to the specified color
+				*pOut = D3DXVECTOR4(array[0], array[1], array[2], array[3]);
+
+				return D3D_OK;
+			}
+		};
+
+		// Fill the texture using D3DXFillTexture
+		float colorArray[4] = {};
+		GetColorArray(colorArray, dwFillColor, surfaceDesc2.ddpfPixelFormat);
+		if (SUCCEEDED(D3DXFillTexture(surface.Texture, ColorFillStruct::DXColorFill, (LPVOID)colorArray)))
 		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error: could not get texture surface!");
-			return DDERR_GENERIC;
+			return DD_OK;
 		}
+	}*/
 
-		D3DSURFACE_DESC Desc = {};
-		pDestSurfaceD9->GetDesc(&Desc);
+	// Check if surface is not locked then lock it
+	D3DLOCKED_RECT DestLockRect = {};
+	if (FAILED(IsUsingEmulation() ? LockEmulatedSurface(&DestLockRect, &DestRect) :
+		LockD39Surface(&DestLockRect, &DestRect, 0)))
+	{
+		LOG_LIMIT(100, __FUNCTION__ << " Error: could not lock destination surface " << DestRect);
+		return (IsSurfaceLocked()) ? DDERR_SURFACEBUSY : DDERR_GENERIC;
+	}
 
-		DWORD BitCount = GetBitCount(Desc.Format);
-		DWORD ByteCount = BitCount / 8;
+	if ((DWORD)FillWidth == surfaceDesc2.dwWidth && surfaceBitCount == 8)
+	{
+		memset(DestLockRect.pBits, dwFillColor, DestLockRect.Pitch * FillHeight);
+	}
+	else if (FillWidth * FillHeight < (1024 * 768) && (DWORD)FillWidth == surfaceDesc2.dwWidth && (surfaceBitCount == 16 || surfaceBitCount == 32) && (DestLockRect.Pitch * FillHeight) % 4 == 0)
+	{
+		const DWORD Color = (surfaceBitCount == 16) ? ((dwFillColor & 0xFFFF) << 16) + (dwFillColor & 0xFFFF) : dwFillColor;
+		const DWORD size = (DestLockRect.Pitch * FillHeight) / 4;
 
-		if (BitCount != 8 && BitCount != 12 && BitCount != 16 && BitCount != 24 && BitCount != 32)
+		DWORD* DestBuffer = (DWORD*)DestLockRect.pBits;
+		for (UINT x = 0; x < size; x++)
 		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error: invalid bit count: " << BitCount);
-			return DDERR_GENERIC;
+			DestBuffer[x] = Color;
 		}
+	}
+	else if (surfaceBitCount == 8 || (surfaceBitCount == 12 && FillWidth % 2 == 0) || surfaceBitCount == 16 || surfaceBitCount == 24 || surfaceBitCount == 32)
+	{
+		// Set memory address
+		BYTE* SrcBuffer = (BYTE*)&dwFillColor;
+		BYTE* DestBuffer = (BYTE*)DestLockRect.pBits;
+
+		// Get byte count
+		DWORD ByteCount = surfaceBitCount / 8;
 
 		// Handle 12-bit surface
-		if (BitCount == 12)
+		if (surfaceBitCount == 12)
 		{
 			ByteCount = 3;
 			dwFillColor = (dwFillColor & 0xFFF) + ((dwFillColor & 0xFFF) << 12);
+			FillWidth /= 2;
 		}
 
-		D3DCOLOR ColorSurface[9] = {};	// Nine DWORDs for a byte aligned 3x3 surface (can handle all bit counts)
-
-		BYTE* Buffer = (BYTE*)ColorSurface;
-		BYTE* SrcBuffer = (BYTE*)&dwFillColor;
-
-		// Fill 3x3 surface with correct color
-		DWORD Count = 36 / ByteCount;
-		for (UINT x = 0; x < Count; x++)
+		// Fill first line memory
+		for (LONG x = 0; x < FillWidth; x++)
 		{
-			for (UINT c = 0; c < ByteCount; c++)
+			for (DWORD y = 0; y < ByteCount; y++)
 			{
-				*Buffer = SrcBuffer[c];
-				Buffer++;
+				*DestBuffer = SrcBuffer[y];
+				DestBuffer++;
 			}
 		}
 
-		LONG Pitch = 12;
-		RECT SrcRect = { 0, 0, (BitCount == 12) ? 8 : Pitch / (LONG)ByteCount, 3 };
-
-		if (FAILED(D3DXLoadSurfaceFromMemory(pDestSurfaceD9, nullptr, &DestRect, ColorSurface, Desc.Format, Pitch, nullptr, &SrcRect, D3DX_FILTER_POINT, 0)))
+		// Fill rest of surface rect using the first line as a template
+		SrcBuffer = (BYTE*)DestLockRect.pBits;
+		DestBuffer = (BYTE*)DestLockRect.pBits + DestLockRect.Pitch;
+		size_t size = FillWidth * ByteCount;
+		for (LONG y = 1; y < FillHeight; y++)
 		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error: could not color fill surface! " << Desc.Format);
-			return DDERR_GENERIC;
+			memcpy(DestBuffer, SrcBuffer, size);
+			DestBuffer += DestLockRect.Pitch;
 		}
 	}
 	else
 	{
-		// Check if surface is not locked then lock it
-		D3DLOCKED_RECT DestLockRect = {};
-		if (FAILED(LockEmulatedSurface(&DestLockRect, &DestRect)))
-		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error: could not get emulated surface lock!");
-			return DDERR_GENERIC;
-		}
+		LOG_LIMIT(100, __FUNCTION__ << " Error: invalid bit count: " << surfaceBitCount << " Width: " << FillWidth);
+	}
 
-		// Get width and height of rect
-		LONG FillWidth = DestRect.right - DestRect.left;
-		LONG FillHeight = DestRect.bottom - DestRect.top;
-
-		if ((DWORD)FillWidth == surfaceDesc2.dwWidth && surfaceBitCount == 8)
-		{
-			memset(DestLockRect.pBits, dwFillColor, DestLockRect.Pitch * FillHeight);
-		}
-		else if ((DWORD)FillWidth == surfaceDesc2.dwWidth && (surfaceBitCount == 16 || surfaceBitCount == 32) && (DestLockRect.Pitch * FillHeight) % 4 == 0)
-		{
-			const DWORD Color = (surfaceBitCount == 16) ? ((dwFillColor & 0xFFFF) << 16) + (dwFillColor & 0xFFFF) : dwFillColor;
-			const DWORD size = (DestLockRect.Pitch * FillHeight) / 4;
-
-			DWORD* DestBuffer = (DWORD*)DestLockRect.pBits;
-			for (UINT x = 0; x < size; x++)
-			{
-				DestBuffer[x] = Color;
-			}
-		}
-		else if (surfaceBitCount == 8 || (surfaceBitCount == 12 && FillWidth % 2 == 0) || surfaceBitCount == 16 || surfaceBitCount == 24 || surfaceBitCount == 32)
-		{
-			// Set memory address
-			BYTE* SrcBuffer = (BYTE*)&dwFillColor;
-			BYTE* DestBuffer = (BYTE*)DestLockRect.pBits;
-
-			// Get byte count
-			DWORD ByteCount = surfaceBitCount / 8;
-
-			// Handle 12-bit surface
-			if (surfaceBitCount == 12)
-			{
-				ByteCount = 3;
-				dwFillColor = (dwFillColor & 0xFFF) + ((dwFillColor & 0xFFF) << 12);
-				FillWidth /= 2;
-			}
-
-			// Fill first line memory
-			for (LONG x = 0; x < FillWidth; x++)
-			{
-				for (DWORD y = 0; y < ByteCount; y++)
-				{
-					*DestBuffer = SrcBuffer[y];
-					DestBuffer++;
-				}
-			}
-
-			// Fill rest of surface rect using the first line as a template
-			SrcBuffer = (BYTE*)DestLockRect.pBits;
-			DestBuffer = (BYTE*)DestLockRect.pBits + DestLockRect.Pitch;
-			size_t size = FillWidth * ByteCount;
-			for (LONG y = 1; y < FillHeight; y++)
-			{
-				memcpy(DestBuffer, SrcBuffer, size);
-				DestBuffer += DestLockRect.Pitch;
-			}
-		}
-		else
-		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error: invalid bit count: " << surfaceBitCount << " Width: " << FillWidth);
-			return DDERR_GENERIC;
-		}
-
+	// Unlock surface
+	if (IsUsingEmulation())
+	{
 		// Copy emulated surface to real texture
 		CopyFromEmulatedSurface(&DestRect);
 
@@ -5182,6 +5098,11 @@ HRESULT m_IDirectDrawSurfaceX::ColorFill(RECT* pRect, D3DCOLOR dwFillColor)
 		{
 			CopyEmulatedSurfaceToGDI(DestRect);
 		}
+	}
+	else
+	{
+		UnlockD39Surface();
+
 	}
 
 	// Preset surface to window

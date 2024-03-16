@@ -83,6 +83,27 @@ typedef enum D3DXIMAGE_FILEFORMAT {
 	D3DXIFF_PFM = 8,
 	D3DXIFF_FORCE_DWORD = 0x7fffffff
 } D3DXIMAGE_FILEFORMAT, * LPD3DXIMAGE_FILEFORMAT;
+// Define the D3DXVECTOR4 structure
+struct D3DXVECTOR4
+{
+	float x, y, z, w;
+
+	D3DXVECTOR4() : x(0), y(0), z(0), w(0) {}
+	D3DXVECTOR4(float x_, float y_, float z_, float w_) : x(x_), y(y_), z(z_), w(w_) {}
+};
+
+// Define the D3DXVECTOR2 structure
+struct D3DXVECTOR2
+{
+	float x, y;
+
+	D3DXVECTOR2() : x(0), y(0) {}
+	D3DXVECTOR2(float x_, float y_) : x(x_), y(y_) {}
+};
+
+// Define the D3DXFillTexture function prototype
+typedef HRESULT(WINAPI* LPD3DXFILL3D)(D3DXVECTOR4* pOut, const D3DXVECTOR2* pTexCoord,
+	const D3DXVECTOR2* pTexelSize, LPVOID pData);
 
 #ifdef NDEBUG
 #define D3DXASM_FLAGS  0
@@ -109,3 +130,5 @@ HRESULT WINAPI D3DXDisassembleShader(const DWORD* pShader, BOOL EnableColorCode,
 HRESULT WINAPI D3DAssemble(const void* pSrcData, SIZE_T SrcDataSize, const char* pFileName, const D3D_SHADER_MACRO* pDefines, ID3DInclude* pInclude, UINT Flags, ID3DBlob** ppShader, ID3DBlob** ppErrorMsgs);
 HRESULT WINAPI D3DCompile(LPCVOID pSrcData, SIZE_T SrcDataSize, LPCSTR pSourceName, const D3D_SHADER_MACRO* pDefines, ID3DInclude* pInclude, LPCSTR pEntrypoint, LPCSTR pTarget, UINT Flags1, UINT Flags2, ID3DBlob** ppCode, ID3DBlob** ppErrorMsgs);
 HRESULT WINAPI D3DDisassemble(LPCVOID pSrcData, SIZE_T SrcDataSize, UINT Flags, LPCSTR szComments, ID3DBlob** ppDisassembly);
+
+HRESULT WINAPI D3DXFillTexture(LPVOID pTexture, LPD3DXFILL3D pFunction, LPVOID pData);
