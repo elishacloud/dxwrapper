@@ -5063,12 +5063,34 @@ HRESULT m_IDirectDrawSurfaceX::ColorFill(RECT* pRect, D3DCOLOR dwFillColor)
 		}
 
 		// Fill first line memory
-		for (LONG x = 0; x < FillWidth; x++)
+		if (surfaceBitCount == 32)
 		{
-			for (DWORD y = 0; y < ByteCount; y++)
+			for (LONG x = 0; x < FillWidth; x++)
 			{
-				*DestBuffer = SrcBuffer[y];
-				DestBuffer++;
+				*(DWORD*)DestBuffer = dwFillColor;
+				DestBuffer += sizeof(DWORD);
+			}
+		}
+		else if ((surfaceBitCount == 8 || surfaceBitCount == 16) && DestLockRect.Pitch % 4 == 0)
+		{
+			DWORD Color = (surfaceBitCount == 8) ? (dwFillColor & 0xFF) + ((dwFillColor & 0xFF) << 8) + ((dwFillColor & 0xFF) << 16) + ((dwFillColor & 0xFF) << 24) :
+				(dwFillColor & 0xFFFF) + ((dwFillColor & 0xFFFF) << 16);
+			LONG Iterations = (surfaceBitCount == 8) ? (FillWidth / 4) : (FillWidth / 2);
+			for (LONG x = 0; x < Iterations; x++)
+			{
+				*(DWORD*)DestBuffer = Color;
+				DestBuffer += sizeof(DWORD);
+			}
+		}
+		else
+		{
+			for (LONG x = 0; x < FillWidth; x++)
+			{
+				for (DWORD y = 0; y < ByteCount; y++)
+				{
+					*DestBuffer = SrcBuffer[y];
+					DestBuffer++;
+				}
 			}
 		}
 
