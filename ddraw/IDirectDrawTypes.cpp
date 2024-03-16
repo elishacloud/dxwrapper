@@ -503,16 +503,17 @@ void GetColorArray(float(&colorArray)[4], DWORD colorValue, DDPIXELFORMAT& pixel
 	CountBits(pixelFormat.dwGBitMask, gShift, dwGBitCount);
 	CountBits(pixelFormat.dwBBitMask, bShift, dwBBitCount);
 
-	float rColorRange = 255.0f / (pixelFormat.dwRBitMask >> rShift);
-	float gColorRange = 255.0f / (pixelFormat.dwGBitMask >> gShift);
-	float bColorRange = 255.0f / (pixelFormat.dwBBitMask >> bShift);
+	// Calculate size of color space for bit depth
+	const float rColorRange = 255.0f / (pixelFormat.dwRBitMask >> rShift);
+	const float gColorRange = 255.0f / (pixelFormat.dwGBitMask >> gShift);
+	const float bColorRange = 255.0f / (pixelFormat.dwBBitMask >> bShift);
 
-	// Extract individual components according to pixel format for low color key
+	// Extract individual components according to pixel format for each color component
 	BYTE r = (BYTE)((colorValue & pixelFormat.dwRBitMask) >> rShift);
 	BYTE g = (BYTE)((colorValue & pixelFormat.dwGBitMask) >> gShift);
 	BYTE b = (BYTE)((colorValue & pixelFormat.dwBBitMask) >> bShift);
 
-	// Convert to float and normalize to range [0, 1] for low color key
+	// Convert to float and normalize to range [0, 1] for each color component
 	colorArray[0] = r * rColorRange / 255.0f;
 	colorArray[1] = g * gColorRange / 255.0f;
 	colorArray[2] = b * bColorRange / 255.0f;
@@ -534,19 +535,20 @@ void GetColorKeyArray(float(&lowColorKey)[4], float(&highColorKey)[4], DWORD low
 	CountBits(pixelFormat.dwGBitMask, gShift, dwGBitCount);
 	CountBits(pixelFormat.dwBBitMask, bShift, dwBBitCount);
 
-	float rColorRange = 255.0f / (pixelFormat.dwRBitMask >> rShift);
-	float gColorRange = 255.0f / (pixelFormat.dwGBitMask >> gShift);
-	float bColorRange = 255.0f / (pixelFormat.dwBBitMask >> bShift);
-
-	// Extract individual components according to pixel format for low color key
-	BYTE r = (BYTE)((lowColorSpace & pixelFormat.dwRBitMask) >> rShift);
-	BYTE g = (BYTE)((lowColorSpace & pixelFormat.dwGBitMask) >> gShift);
-	BYTE b = (BYTE)((lowColorSpace & pixelFormat.dwBBitMask) >> bShift);
+	// Calculate size of color space for bit depth
+	const float rColorRange = 255.0f / (pixelFormat.dwRBitMask >> rShift);
+	const float gColorRange = 255.0f / (pixelFormat.dwGBitMask >> gShift);
+	const float bColorRange = 255.0f / (pixelFormat.dwBBitMask >> bShift);
 
 	// Allow some range for padding (half of a pixel's color range)
 	const float rPadding = (rColorRange / 255.0f) * 0.5f;
 	const float gPadding = (gColorRange / 255.0f) * 0.5f;
 	const float bPadding = (bColorRange / 255.0f) * 0.5f;
+
+	// Extract individual components according to pixel format for low color key
+	BYTE r = (BYTE)((lowColorSpace & pixelFormat.dwRBitMask) >> rShift);
+	BYTE g = (BYTE)((lowColorSpace & pixelFormat.dwGBitMask) >> gShift);
+	BYTE b = (BYTE)((lowColorSpace & pixelFormat.dwBBitMask) >> bShift);
 
 	// Convert to float and normalize to range [0, 1] for low color key
 	lowColorKey[0] = (r * rColorRange / 255.0f) - rPadding;
