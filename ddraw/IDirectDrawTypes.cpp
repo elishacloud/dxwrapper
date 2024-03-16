@@ -471,40 +471,41 @@ DWORD GetSurfaceSize(D3DFORMAT Format, DWORD Width, DWORD Height, INT Pitch)
 	}
 }
 
-// Function to count the number of set bits in a DWORD
-inline BYTE CountBitsSet(DWORD value)
+// Count leading zeros and total number of bits
+inline void CountBits(DWORD value, DWORD& LeadingZeros, DWORD& TotalBits)
 {
-	BYTE count = 0;
-	while (value)
-	{
-		count += value & 1;
-		value >>= 1;
-	}
-	return count;
-}
-
-// Count the number of bits before the first set bit
-inline BYTE CountBitsShift(DWORD value)
-{
-	BYTE count = 0;
+	LeadingZeros = 0;
 	while (value && !(value & 1))
 	{
-		count++;
+		LeadingZeros++;
 		value >>= 1;
 	}
-	return count;
+	TotalBits = 0;
+	while (value)
+	{
+		TotalBits += value & 1;
+		value >>= 1;
+	}
 }
 
 void GetColorArray(float(&colorArray)[4], DWORD colorValue, DDPIXELFORMAT& pixelFormat)
 {
-	DWORD dwRBitCount = CountBitsSet(pixelFormat.dwRBitMask);
-	DWORD dwGBitCount = CountBitsSet(pixelFormat.dwGBitMask);
-	DWORD dwBBitCount = CountBitsSet(pixelFormat.dwBBitMask);
+	if (!pixelFormat.dwRBitMask || !pixelFormat.dwGBitMask || !pixelFormat.dwBBitMask)
+	{
+		LOG_LIMIT(100, __FUNCTION__ << " Error: pixel format not Implemented: " << pixelFormat);
+		return;
+	}
 
-	// Calculate shifts for each color component
-	int rShift = CountBitsShift(pixelFormat.dwRBitMask);
-	int gShift = CountBitsShift(pixelFormat.dwGBitMask);
-	int bShift = CountBitsShift(pixelFormat.dwBBitMask);
+	DWORD dwRBitCount, dwGBitCount, dwBBitCount, rShift, gShift, bShift;
+
+	// Calculate bits for each color component
+	CountBits(pixelFormat.dwRBitMask, rShift, dwRBitCount);
+	CountBits(pixelFormat.dwGBitMask, gShift, dwGBitCount);
+	CountBits(pixelFormat.dwBBitMask, bShift, dwBBitCount);
+
+	float rColorRange = 255.0f / (pixelFormat.dwRBitMask >> rShift);
+	float gColorRange = 255.0f / (pixelFormat.dwGBitMask >> gShift);
+	float bColorRange = 255.0f / (pixelFormat.dwBBitMask >> bShift);
 
 	// Extract individual components according to pixel format for low color key
 	BYTE r = (BYTE)((colorValue & pixelFormat.dwRBitMask) >> rShift);
@@ -512,37 +513,47 @@ void GetColorArray(float(&colorArray)[4], DWORD colorValue, DDPIXELFORMAT& pixel
 	BYTE b = (BYTE)((colorValue & pixelFormat.dwBBitMask) >> bShift);
 
 	// Convert to float and normalize to range [0, 1] for low color key
-	colorArray[0] = static_cast<float>(r) / ((1 << dwRBitCount) - 1);
-	colorArray[1] = static_cast<float>(g) / ((1 << dwGBitCount) - 1);
-	colorArray[2] = static_cast<float>(b) / ((1 << dwBBitCount) - 1);
+	colorArray[0] = r * rColorRange / 255.0f;
+	colorArray[1] = g * gColorRange / 255.0f;
+	colorArray[2] = b * bColorRange / 255.0f;
 	colorArray[3] = 0.0f;
 }
 
 void GetColorKeyArray(float(&lowColorKey)[4], float(&highColorKey)[4], DWORD lowColorSpace, DWORD highColorSpace, DDPIXELFORMAT& pixelFormat)
 {
-	DWORD dwRBitCount = CountBitsSet(pixelFormat.dwRBitMask);
-	DWORD dwGBitCount = CountBitsSet(pixelFormat.dwGBitMask);
-	DWORD dwBBitCount = CountBitsSet(pixelFormat.dwBBitMask);
+	if (!pixelFormat.dwRBitMask || !pixelFormat.dwGBitMask || !pixelFormat.dwBBitMask)
+	{
+		LOG_LIMIT(100, __FUNCTION__ << " Error: pixel format not Implemented: " << pixelFormat);
+		return;
+	}
 
-	// Calculate shifts for each color component
-	int rShift = CountBitsShift(pixelFormat.dwRBitMask);
-	int gShift = CountBitsShift(pixelFormat.dwGBitMask);
-	int bShift = CountBitsShift(pixelFormat.dwBBitMask);
+	DWORD dwRBitCount, dwGBitCount, dwBBitCount, rShift, gShift, bShift;
+
+	// Calculate bits for each color component
+	CountBits(pixelFormat.dwRBitMask, rShift, dwRBitCount);
+	CountBits(pixelFormat.dwGBitMask, gShift, dwGBitCount);
+	CountBits(pixelFormat.dwBBitMask, bShift, dwBBitCount);
+
+	float rColorRange = 255.0f / (pixelFormat.dwRBitMask >> rShift);
+	float gColorRange = 255.0f / (pixelFormat.dwGBitMask >> gShift);
+	float bColorRange = 255.0f / (pixelFormat.dwBBitMask >> bShift);
 
 	// Extract individual components according to pixel format for low color key
 	BYTE r = (BYTE)((lowColorSpace & pixelFormat.dwRBitMask) >> rShift);
 	BYTE g = (BYTE)((lowColorSpace & pixelFormat.dwGBitMask) >> gShift);
 	BYTE b = (BYTE)((lowColorSpace & pixelFormat.dwBBitMask) >> bShift);
 
-	// Allow some range for padding (one quarter of a pixel's color range)
-	constexpr float Padding = (1.0f / 255.0f) * (1.0f / 4.0f);
+	// Allow some range for padding (half of a pixel's color range)
+	const float rPadding = (rColorRange / 255.0f) * 0.5f;
+	const float gPadding = (gColorRange / 255.0f) * 0.5f;
+	const float bPadding = (bColorRange / 255.0f) * 0.5f;
 
 	// Convert to float and normalize to range [0, 1] for low color key
-	lowColorKey[0] = (static_cast<float>(r) / ((1 << dwRBitCount) - 1)) - Padding;
+	lowColorKey[0] = (r * rColorRange / 255.0f) - rPadding;
 	lowColorKey[0] = lowColorKey[0] < 0.0f ? 0.0f : lowColorKey[0];
-	lowColorKey[1] = (static_cast<float>(g) / ((1 << dwGBitCount) - 1)) - Padding;
+	lowColorKey[1] = (g * gColorRange / 255.0f) - gPadding;
 	lowColorKey[1] = lowColorKey[1] < 0.0f ? 0.0f : lowColorKey[1];
-	lowColorKey[2] = (static_cast<float>(b) / ((1 << dwBBitCount) - 1)) - Padding;
+	lowColorKey[2] = (b * bColorRange / 255.0f) - bPadding;
 	lowColorKey[2] = lowColorKey[2] < 0.0f ? 0.0f : lowColorKey[2];
 	lowColorKey[3] = 0.0f;
 
@@ -552,11 +563,11 @@ void GetColorKeyArray(float(&lowColorKey)[4], float(&highColorKey)[4], DWORD low
 	b = (BYTE)((highColorSpace & pixelFormat.dwBBitMask) >> bShift);
 
 	// Convert to float and normalize to range [0, 1] for high color key
-	highColorKey[0] = (static_cast<float>(r) / ((1 << dwRBitCount) - 1)) + Padding;
+	highColorKey[0] = (r * rColorRange / 255.0f) + rPadding;
 	highColorKey[0] = highColorKey[0] > 1.0f ? 1.0f : highColorKey[0];
-	highColorKey[1] = (static_cast<float>(g) / ((1 << dwGBitCount) - 1)) + Padding;
+	highColorKey[1] = (g * gColorRange / 255.0f) + gPadding;
 	highColorKey[1] = highColorKey[1] > 1.0f ? 1.0f : highColorKey[1];
-	highColorKey[2] = (static_cast<float>(b) / ((1 << dwBBitCount) - 1)) + Padding;
+	highColorKey[2] = (b * bColorRange / 255.0f) + bPadding;
 	highColorKey[2] = highColorKey[2] > 1.0f ? 1.0f : highColorKey[2];
 	highColorKey[3] = 0.0f;
 }
