@@ -28,8 +28,6 @@ bool dirtyFlag = false;
 bool SceneReady = false;
 bool IsPresentRunning = false;
 
-const DWORD PrimarySurfaceFillColor = 0x00000000;
-
 // Cached surface wrapper interface v1 list
 std::vector<m_IDirectDrawSurface*> SurfaceWrapperListV1;
 
@@ -1360,7 +1358,7 @@ HRESULT m_IDirectDrawSurfaceX::Flip(LPDIRECTDRAWSURFACE7 lpDDSurfaceTargetOverri
 			// Clear dirty surface before flip if system memory or 3D device
 			if (surfaceDesc2.ddsCaps.dwCaps & (DDSCAPS_SYSTEMMEMORY | DDSCAPS_3DDEVICE))
 			{
-				HRESULT hr_c = ColorFill(nullptr, PrimarySurfaceFillColor);
+				HRESULT hr_c = ColorFill(nullptr, Config.DdrawFlipFillColor);
 
 				if (FAILED(hr_c))
 				{
@@ -1748,7 +1746,7 @@ bool m_IDirectDrawSurfaceX::GetColorKeyForShader(float(&lowColorKey)[4], float(&
 	{
 		if (!primary.ShaderColorKey.IsSet)
 		{
-			GetColorKeyArray(primary.ShaderColorKey.lowColorKey, primary.ShaderColorKey.highColorKey, PrimarySurfaceFillColor, PrimarySurfaceFillColor, surfaceDesc2.ddpfPixelFormat);
+			GetColorKeyArray(primary.ShaderColorKey.lowColorKey, primary.ShaderColorKey.highColorKey, Config.DdrawFlipFillColor, Config.DdrawFlipFillColor, surfaceDesc2.ddpfPixelFormat);
 			primary.ShaderColorKey.IsSet = true;
 		}
 		lowColorKey[0] = primary.ShaderColorKey.lowColorKey[0];
