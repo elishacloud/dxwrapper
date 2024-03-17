@@ -4988,37 +4988,6 @@ HRESULT m_IDirectDrawSurfaceX::ColorFill(RECT* pRect, D3DCOLOR dwFillColor)
 		return DDERR_GENERIC;
 	}
 
-	// ** Using D3DX proved to be too slow on my laptop, maybe test other systems **
-	// Use D3DX for color fill when rect is nullptr and there is no emulated surface
-	/*if (surface.Texture && !IsUsingEmulation() && !pRect)
-	{
-		struct ColorFillStruct {
-			// Define a function that matches the prototype of LPD3DXFILL3D
-			static HRESULT WINAPI DXColorFill(D3DXVECTOR4* pOut, const D3DXVECTOR2* pTexCoord,
-				const D3DXVECTOR2* pTexelSize, LPVOID pData)
-			{
-				UNREFERENCED_PARAMETER(pTexCoord);
-				UNREFERENCED_PARAMETER(pTexelSize);
-
-				// pData now represents the color to be used for filling
-				float* array = (float*)pData; // Cast pData to float*
-
-				// Set the output color to the specified color
-				*pOut = D3DXVECTOR4(array[0], array[1], array[2], array[3]);
-
-				return D3D_OK;
-			}
-		};
-
-		// Fill the texture using D3DXFillTexture
-		float colorArray[4] = {};
-		GetColorArray(colorArray, dwFillColor, surfaceDesc2.ddpfPixelFormat);
-		if (SUCCEEDED(D3DXFillTexture(surface.Texture, ColorFillStruct::DXColorFill, (LPVOID)colorArray)))
-		{
-			return DD_OK;
-		}
-	}*/
-
 	// Check if surface is not locked then lock it
 	D3DLOCKED_RECT DestLockRect = {};
 	if (FAILED(IsUsingEmulation() ? LockEmulatedSurface(&DestLockRect, &DestRect) :
@@ -5028,17 +4997,17 @@ HRESULT m_IDirectDrawSurfaceX::ColorFill(RECT* pRect, D3DCOLOR dwFillColor)
 		return (IsSurfaceLocked()) ? DDERR_SURFACEBUSY : DDERR_GENERIC;
 	}
 
-	if ((DWORD)FillWidth == surfaceDesc2.dwWidth && surfaceBitCount == 8)
+	if (FillWidth == (LONG)surfaceDesc2.dwWidth && surfaceBitCount == 8)
 	{
 		memset(DestLockRect.pBits, dwFillColor, DestLockRect.Pitch * FillHeight);
 	}
-	else if (FillWidth * FillHeight < (1024 * 768) && (DWORD)FillWidth == surfaceDesc2.dwWidth && (surfaceBitCount == 16 || surfaceBitCount == 32) && (DestLockRect.Pitch * FillHeight) % 4 == 0)
+	else if ((FillWidth * FillHeight < 640 * 480) && FillWidth == (LONG)surfaceDesc2.dwWidth && (surfaceBitCount == 16 || surfaceBitCount == 32) && (DestLockRect.Pitch * FillHeight) % 4 == 0)
 	{
 		const DWORD Color = (surfaceBitCount == 16) ? ((dwFillColor & 0xFFFF) << 16) + (dwFillColor & 0xFFFF) : dwFillColor;
-		const DWORD size = (DestLockRect.Pitch * FillHeight) / 4;
+		const DWORD Size = (DestLockRect.Pitch * FillHeight) / 4;
 
 		DWORD* DestBuffer = (DWORD*)DestLockRect.pBits;
-		for (UINT x = 0; x < size; x++)
+		for (UINT x = 0; x < Size; x++)
 		{
 			DestBuffer[x] = Color;
 		}
@@ -5061,19 +5030,11 @@ HRESULT m_IDirectDrawSurfaceX::ColorFill(RECT* pRect, D3DCOLOR dwFillColor)
 		}
 
 		// Fill first line memory
-		if (surfaceBitCount == 32)
-		{
-			for (LONG x = 0; x < FillWidth; x++)
-			{
-				*(DWORD*)DestBuffer = dwFillColor;
-				DestBuffer += sizeof(DWORD);
-			}
-		}
-		else if ((surfaceBitCount == 8 || surfaceBitCount == 16) && DestLockRect.Pitch % 4 == 0)
+		if ((surfaceBitCount == 8 || surfaceBitCount == 16 || surfaceBitCount == 32) && (FillWidth % (4 / ByteCount) == 0))
 		{
 			DWORD Color = (surfaceBitCount == 8) ? (dwFillColor & 0xFF) + ((dwFillColor & 0xFF) << 8) + ((dwFillColor & 0xFF) << 16) + ((dwFillColor & 0xFF) << 24) :
-				(dwFillColor & 0xFFFF) + ((dwFillColor & 0xFFFF) << 16);
-			LONG Iterations = (surfaceBitCount == 8) ? (FillWidth / 4) : (FillWidth / 2);
+				(surfaceBitCount == 16) ? (dwFillColor & 0xFFFF) + ((dwFillColor & 0xFFFF) << 16) : dwFillColor;
+			LONG Iterations = FillWidth / (4 / ByteCount);
 			for (LONG x = 0; x < Iterations; x++)
 			{
 				*(DWORD*)DestBuffer = Color;
@@ -5095,10 +5056,10 @@ HRESULT m_IDirectDrawSurfaceX::ColorFill(RECT* pRect, D3DCOLOR dwFillColor)
 		// Fill rest of surface rect using the first line as a template
 		SrcBuffer = (BYTE*)DestLockRect.pBits;
 		DestBuffer = (BYTE*)DestLockRect.pBits + DestLockRect.Pitch;
-		size_t size = FillWidth * ByteCount;
+		size_t Size = FillWidth * ByteCount;
 		for (LONG y = 1; y < FillHeight; y++)
 		{
-			memcpy(DestBuffer, SrcBuffer, size);
+			memcpy(DestBuffer, SrcBuffer, Size);
 			DestBuffer += DestLockRect.Pitch;
 		}
 	}

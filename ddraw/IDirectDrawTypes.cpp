@@ -488,38 +488,6 @@ inline void CountBits(DWORD value, DWORD& LeadingZeros, DWORD& TotalBits)
 	}
 }
 
-void GetColorArray(float(&colorArray)[4], DWORD colorValue, DDPIXELFORMAT& pixelFormat)
-{
-	if (!pixelFormat.dwRBitMask || !pixelFormat.dwGBitMask || !pixelFormat.dwBBitMask)
-	{
-		LOG_LIMIT(100, __FUNCTION__ << " Error: pixel format not Implemented: " << pixelFormat);
-		return;
-	}
-
-	DWORD dwRBitCount, dwGBitCount, dwBBitCount, rShift, gShift, bShift;
-
-	// Calculate bits for each color component
-	CountBits(pixelFormat.dwRBitMask, rShift, dwRBitCount);
-	CountBits(pixelFormat.dwGBitMask, gShift, dwGBitCount);
-	CountBits(pixelFormat.dwBBitMask, bShift, dwBBitCount);
-
-	// Calculate size of color space for bit depth
-	const float rColorRange = 255.0f / (pixelFormat.dwRBitMask >> rShift);
-	const float gColorRange = 255.0f / (pixelFormat.dwGBitMask >> gShift);
-	const float bColorRange = 255.0f / (pixelFormat.dwBBitMask >> bShift);
-
-	// Extract individual components according to pixel format for each color component
-	BYTE r = (BYTE)((colorValue & pixelFormat.dwRBitMask) >> rShift);
-	BYTE g = (BYTE)((colorValue & pixelFormat.dwGBitMask) >> gShift);
-	BYTE b = (BYTE)((colorValue & pixelFormat.dwBBitMask) >> bShift);
-
-	// Convert to float and normalize to range [0, 1] for each color component
-	colorArray[0] = r * rColorRange / 255.0f;
-	colorArray[1] = g * gColorRange / 255.0f;
-	colorArray[2] = b * bColorRange / 255.0f;
-	colorArray[3] = 0.0f;
-}
-
 void GetColorKeyArray(float(&lowColorKey)[4], float(&highColorKey)[4], DWORD lowColorSpace, DWORD highColorSpace, DDPIXELFORMAT& pixelFormat)
 {
 	if (!pixelFormat.dwRBitMask || !pixelFormat.dwGBitMask || !pixelFormat.dwBBitMask)
