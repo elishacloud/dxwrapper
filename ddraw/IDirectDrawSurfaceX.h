@@ -255,7 +255,7 @@ private:
 	// Copying surface textures
 	HRESULT SaveDXTDataToDDS(const void* data, size_t dataSize, const char* filename, int dxtVersion) const;
 	HRESULT SaveSurfaceToFile(const char* filename, D3DXIMAGE_FILEFORMAT format);
-	HRESULT CopySurface(m_IDirectDrawSurfaceX* pSourceSurface, RECT* pSourceRect, RECT* pDestRect, D3DTEXTUREFILTERTYPE Filter, DDCOLORKEY ColorKey, DWORD dwFlags);
+	HRESULT CopySurface(m_IDirectDrawSurfaceX* pSourceSurface, RECT* pSourceRect, RECT* pDestRect, D3DTEXTUREFILTERTYPE Filter, D3DCOLOR ColorKey, DWORD dwFlags);
 	HRESULT CopyFromEmulatedSurface(LPRECT lpDestRect);
 	HRESULT CopyToEmulatedSurface(LPRECT lpDestRect);
 	HRESULT CopyEmulatedPaletteSurface(LPRECT lpDestRect);

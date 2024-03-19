@@ -619,12 +619,13 @@ HRESULT m_IDirectDrawSurfaceX::Blt(LPRECT lpDestRect, LPDIRECTDRAWSURFACE7 lpDDS
 				else if (dwFlags & (DDBLT_KEYDEST | DDBLT_KEYSRC))
 				{
 					LOG_LIMIT(100, __FUNCTION__ << " Error: color key not found!");
-					Flags &= ~BLT_COLORKEY;
+					hr = DDERR_INVALIDPARAMS;
+					break;
 				}
 
 				D3DTEXTUREFILTERTYPE Filter = ((dwFlags & DDBLT_DDFX) && (lpDDBltFx->dwDDFX & DDBLTFX_ARITHSTRETCHY)) ? D3DTEXF_LINEAR : D3DTEXF_NONE;
 
-				hr = CopySurface(lpDDSrcSurfaceX, lpSrcRect, lpDestRect, Filter, ColorKey, Flags);
+				hr = CopySurface(lpDDSrcSurfaceX, lpSrcRect, lpDestRect, Filter, ColorKey.dwColorSpaceLowValue, Flags);
 
 			} while (false);
 
@@ -2668,6 +2669,13 @@ HRESULT m_IDirectDrawSurfaceX::SetColorKey(DWORD dwFlags, LPDDCOLORKEY lpDDColor
 			return DDERR_INVALIDPARAMS;
 		}
 
+		// Check for color space
+		if (lpDDColorKey && (dwFlags & DDCKEY_COLORSPACE) && lpDDColorKey->dwColorSpaceLowValue != lpDDColorKey->dwColorSpaceHighValue)
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: color space not supported!");
+			return DDERR_NOCOLORKEYHW;
+		}
+
 		// Set color key
 		if (!lpDDColorKey)
 		{
@@ -2675,27 +2683,11 @@ HRESULT m_IDirectDrawSurfaceX::SetColorKey(DWORD dwFlags, LPDDCOLORKEY lpDDColor
 		}
 		else
 		{
+			// You must add the flag DDCKEY_COLORSPACE, otherwise DirectDraw will collapse the range to one value
+			DDCOLORKEY ColorKey = { lpDDColorKey->dwColorSpaceLowValue, lpDDColorKey->dwColorSpaceLowValue };
+
 			// Set color key flag
 			surfaceDesc2.ddsCaps.dwCaps |= dds;
-
-			// Get ColorKey
-			DDCOLORKEY ColorKey = {};
-			if (!(dwFlags & DDCKEY_COLORSPACE))
-			{
-				// You must add the flag DDCKEY_COLORSPACE, otherwise DirectDraw will collapse the range to one value
-				ColorKey.dwColorSpaceLowValue = *(DWORD*)lpDDColorKey;
-				ColorKey.dwColorSpaceHighValue = *(DWORD*)lpDDColorKey;
-			}
-			else
-			{
-				ColorKey = *lpDDColorKey;
-			}
-
-			// Make sure HighValue is not lower than LowValue 
-			if (ColorKey.dwColorSpaceHighValue < ColorKey.dwColorSpaceLowValue)
-			{
-				ColorKey.dwColorSpaceHighValue = ColorKey.dwColorSpaceLowValue;
-			}
 
 			// Set color key
 			switch (dds)
@@ -5178,7 +5170,7 @@ HRESULT m_IDirectDrawSurfaceX::SaveSurfaceToFile(const char *filename, D3DXIMAGE
 }
 
 // Copy surface
-HRESULT m_IDirectDrawSurfaceX::CopySurface(m_IDirectDrawSurfaceX* pSourceSurface, RECT* pSourceRect, RECT* pDestRect, D3DTEXTUREFILTERTYPE Filter, DDCOLORKEY ColorKey, DWORD dwFlags)
+HRESULT m_IDirectDrawSurfaceX::CopySurface(m_IDirectDrawSurfaceX* pSourceSurface, RECT* pSourceRect, RECT* pDestRect, D3DTEXTUREFILTERTYPE Filter, D3DCOLOR ColorKey, DWORD dwFlags)
 {
 	// Check parameters
 	if (!pSourceSurface)
@@ -5474,8 +5466,6 @@ HRESULT m_IDirectDrawSurfaceX::CopySurface(m_IDirectDrawSurfaceX* pSourceSurface
 
 		// Set color variables
 		DWORD ByteMask = (ByteCount == 1) ? 0x000000FF : (ByteCount == 2) ? 0x0000FFFF : (ByteCount == 3) ? 0x00FFFFFF : 0xFFFFFFFF;
-		DWORD ColorKeyLow = ColorKey.dwColorSpaceLowValue & ByteMask;
-		DWORD ColorKeyHigh = ColorKey.dwColorSpaceHighValue & ByteMask;
 
 		// Simple copy with ColorKey and Mirroring
 		if (!IsStretchRect && !FormatMismatch)
@@ -5489,7 +5479,7 @@ HRESULT m_IDirectDrawSurfaceX::CopySurface(m_IDirectDrawSurfaceX* pSourceSurface
 					for (LONG x = 0; x < DestRectWidth; x++)
 					{
 						BYTE PixelColor = SrcBufferLoop[IsMirrorLeftRight ? DestRectWidth - x - 1 : x];
-						if (!IsColorKey || PixelColor < ColorKeyLow || PixelColor > ColorKeyHigh)
+						if (!IsColorKey || PixelColor != ColorKey)
 						{
 							DestBufferLoop[x] = PixelColor;
 						}
@@ -5508,7 +5498,7 @@ HRESULT m_IDirectDrawSurfaceX::CopySurface(m_IDirectDrawSurfaceX* pSourceSurface
 					for (LONG x = 0; x < DestRectWidth; x++)
 					{
 						WORD PixelColor = SrcBufferLoop[IsMirrorLeftRight ? DestRectWidth - x - 1 : x];
-						if (!IsColorKey || PixelColor < ColorKeyLow || PixelColor > ColorKeyHigh)
+						if (!IsColorKey || PixelColor != ColorKey)
 						{
 							DestBufferLoop[x] = PixelColor;
 						}
@@ -5528,7 +5518,7 @@ HRESULT m_IDirectDrawSurfaceX::CopySurface(m_IDirectDrawSurfaceX* pSourceSurface
 					{
 						LONG w = IsMirrorLeftRight ? DestRectWidth - x - 1 : x;
 						DWORD PixelColor = (*(DWORD*)(SrcBufferLoop + w)) & ByteMask;
-						if (!IsColorKey || PixelColor < ColorKeyLow || PixelColor > ColorKeyHigh)
+						if (!IsColorKey || PixelColor != ColorKey)
 						{
 							DestBufferLoop[x] = SrcBufferLoop[w];
 						}
@@ -5547,7 +5537,7 @@ HRESULT m_IDirectDrawSurfaceX::CopySurface(m_IDirectDrawSurfaceX* pSourceSurface
 					for (LONG x = 0; x < DestRectWidth; x++)
 					{
 						DWORD PixelColor = SrcBufferLoop[IsMirrorLeftRight ? DestRectWidth - x - 1 : x];
-						if (!IsColorKey || PixelColor < ColorKeyLow || PixelColor > ColorKeyHigh)
+						if (!IsColorKey || PixelColor != ColorKey)
 						{
 							DestBufferLoop[x] = PixelColor;
 						}
@@ -5576,7 +5566,7 @@ HRESULT m_IDirectDrawSurfaceX::CopySurface(m_IDirectDrawSurfaceX* pSourceSurface
 				BYTE* NewPixel = (IsMirrorLeftRight) ? SrcBuffer + ((SrcRectWidth - r - 1) * SrcByteCount) : SrcBuffer + (r * SrcByteCount);
 				DWORD PixelColor = (*(DWORD*)NewPixel) & ByteMask;
 
-				if (!IsColorKey || PixelColor < ColorKeyLow || PixelColor > ColorKeyHigh)
+				if (!IsColorKey || PixelColor != ColorKey)
 				{
 					if (FormatR5G6B5toX8R8G8B8)
 					{
