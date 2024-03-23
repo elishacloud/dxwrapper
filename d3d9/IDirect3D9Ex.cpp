@@ -627,8 +627,12 @@ void AdjustWindow(HWND MainhWnd, LONG displayWidth, LONG displayHeight)
 	Rect = { 0, 0, displayWidth, displayHeight };
 	AdjustWindowRectEx(&Rect, GetWindowLong(MainhWnd, GWL_STYLE), GetMenu(MainhWnd) != NULL, lExStyle);
 
+	// Check if window should be positioned
+	RECT cRect = {};
+	bool SetWindowPositionFlag = Config.FullscreenWindowMode ||
+		(GetClientRect(MainhWnd, &cRect) && (cRect.right - cRect.left < displayWidth || cRect.bottom - cRect.top < displayHeight));
+
 	// Get upper left window position
-	bool SetWindowPositionFlag = Config.FullscreenWindowMode;
 	LONG xLoc = 0, yLoc = 0;
 	if (Config.SetInitialWindowPosition && !Config.FullscreenWindowMode &&
 		(Config.InitialWindowPositionLeft == 0 || Rect.right + (LONG)Config.InitialWindowPositionLeft <= screenWidth) &&
