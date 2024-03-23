@@ -46,6 +46,7 @@ private:
 
 	// Render states
 	DWORD rsAlphaBlendEnabled = FALSE;
+	DWORD rsSrcBlend = 0;
 	DWORD rsColorKeyEnabled = FALSE;
 
 	// SetTexture array
