@@ -2218,6 +2218,9 @@ HRESULT m_IDirect3DDeviceX::SetRenderState(D3DRENDERSTATETYPE dwRenderStateType,
 		}
 		case D3DRENDERSTATE_TEXTUREPERSPECTIVE:
 			return D3D_OK;		// As long as the device's D3DPTEXTURECAPS_PERSPECTIVE is enabled, the correction will be applied automatically.
+		case D3DRENDERSTATE_ALPHABLENDENABLE:
+			rsAlphaBlendEnabled = dwRenderState;
+			break;
 		case D3DRENDERSTATE_COLORKEYENABLE:
 			rsColorKeyEnabled = dwRenderState;
 			return D3D_OK;
@@ -3344,8 +3347,13 @@ void m_IDirect3DDeviceX::ResetDevice()
 
 inline void m_IDirect3DDeviceX::UpdateDrawFlags(DWORD& dwFlags)
 {
+	// You can use D3DRENDERSTATE_COLORKEYENABLE render state with D3DRENDERSTATE_ALPHABLENDENABLE to implement fine blending control. 
+	if (rsColorKeyEnabled && rsAlphaBlendEnabled)
+	{
+		LOG_LIMIT(100, __FUNCTION__ << " Warning: mixing color keying with alpha blending is not implemented!");
+	}
 	// Check for color key
-	if (rsColorKeyEnabled && CurrentTextureSurfaceX && CurrentTextureSurfaceX->GetColorKeyForShader(DrawStates.lowColorKey, DrawStates.highColorKey))
+	else if (rsColorKeyEnabled && CurrentTextureSurfaceX && CurrentTextureSurfaceX->GetColorKeyForShader(DrawStates.lowColorKey, DrawStates.highColorKey))
 	{
 		dwFlags |= D3DDP_DXW_COLORKEYENABLE;
 	}

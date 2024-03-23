@@ -45,6 +45,7 @@ private:
 	D3DCLIPSTATUS D3DClipStatus = {};
 
 	// Render states
+	DWORD rsAlphaBlendEnabled = FALSE;
 	DWORD rsColorKeyEnabled = FALSE;
 
 	// SetTexture array

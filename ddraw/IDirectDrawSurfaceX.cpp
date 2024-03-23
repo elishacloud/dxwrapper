@@ -1762,6 +1762,11 @@ bool m_IDirectDrawSurfaceX::GetColorKeyForPrimaryShader(float(&lowColorKey)[4], 
 
 bool m_IDirectDrawSurfaceX::GetColorKeyForShader(float(&lowColorKey)[4], float(&highColorKey)[4])
 {
+	if (!ShaderColorKey.IsCreatedWithColorKey)
+	{
+		return false;
+	}
+
 	// Surface low and high color space
 	if (!ShaderColorKey.IsSet)
 	{
@@ -2674,7 +2679,10 @@ HRESULT m_IDirectDrawSurfaceX::SetColorKey(DWORD dwFlags, LPDDCOLORKEY lpDDColor
 		}
 
 		// Reset shader flag
-		ShaderColorKey.IsSet = false;
+		if (dds == DDSD_CKSRCBLT)
+		{
+			ShaderColorKey.IsSet = false;
+		}
 
 		// Set color key
 		if (!lpDDColorKey)
@@ -4789,6 +4797,12 @@ inline void m_IDirectDrawSurfaceX::InitSurfaceDesc(DWORD DirectXVersion)
 	{
 		surfaceDesc2.ddsCaps.dwCaps |= DDSCAPS_LOCALVIDMEM | DDSCAPS_VIDEOMEMORY;
 		surfaceDesc2.ddsCaps.dwCaps &= ~DDSCAPS_NONLOCALVIDMEM;
+	}
+
+	// Note: any textures that were not created with the DDSD_CKSRCBLT flag will not display color-key effects, even if they contain the color key
+	if (surfaceDesc2.dwFlags & DDSD_CKSRCBLT)
+	{
+		ShaderColorKey.IsCreatedWithColorKey = true;
 	}
 
 	// Create backbuffers

@@ -69,6 +69,7 @@ private:
 	struct COLORKEY
 	{
 		bool IsSet = false;
+		bool IsCreatedWithColorKey = false;
 		float lowColorKey[4] = {};
 		float highColorKey[4] = {};
 	};
