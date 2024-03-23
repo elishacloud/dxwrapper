@@ -125,7 +125,7 @@ private:
 	DWORD MaxLOD = 0;
 
 	bool Is3DRenderingTarget = false;					// Surface used for Direct3D rendering target, called from m_IDirect3DX::CreateDevice()
-	bool Using3D = false;						// Direct3D is being used on top of DirectDraw
+	bool Using3D = false;								// Direct3D is being used on top of DirectDraw
 	bool DCRequiresEmulation = false;
 	bool SurfaceRequiresEmulation = false;
 	bool ComplexRoot = false;
@@ -136,7 +136,8 @@ private:
 	bool IsInBlt = false;
 	bool IsInBltBatch = false;
 	bool IsLocked = false;
-	DWORD LockedWithID = 0;
+	DWORD LockedCount = 0;								// Counts the number of null rect locks happen
+	DWORD LockedWithID = 0;								// Thread ID of the current lock
 	LASTLOCK LastLock;									// Remember the last lock info
 	std::vector<RECT> LockRectList;						// Rects used to lock the surface
 	DDRAWEMULATELOCK EmuLock;							// For aligning bits after a lock for games that hard code the pitch

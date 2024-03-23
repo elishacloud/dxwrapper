@@ -2345,12 +2345,27 @@ HRESULT m_IDirectDrawSurfaceX::Lock2(LPRECT lpDestRect, LPDDSURFACEDESC2 lpDDSur
 				HRESULT ret = LockD39Surface(&LockedRect, &DestRect, Flags);
 				if (FAILED(ret))
 				{
-					if (IsSurfaceLocked())
+					// If surface is locked already with null rect
+					if (IsSurfaceLocked() && LockRectList.empty())
 					{
-						LOG_LIMIT(100, __FUNCTION__ << " Warning: attempting to lock surface twice!");
+						if (!LastLock.LockedRect.pBits || !LastLock.LockedRect.Pitch)
+						{
+							LOG_LIMIT(100, __FUNCTION__ << " Error: could not get last lock data!");
+						}
+						LockedRect.pBits = LastLock.LockedRect.pBits;
+						LockedRect.Pitch = LastLock.LockedRect.Pitch;
+						ret = DD_OK;
 					}
-					UnlockD39Surface();
-					ret = LockD39Surface(&LockedRect, &DestRect, Flags);
+					// If surface is locked with specific rect
+					else
+					{
+						if (IsSurfaceLocked())
+						{
+							LOG_LIMIT(100, __FUNCTION__ << " Warning: attempting to lock surface twice!");
+						}
+						UnlockD39Surface();
+						ret = LockD39Surface(&LockedRect, &DestRect, Flags);
+					}
 				}
 				if (FAILED(ret))
 				{
@@ -2379,6 +2394,7 @@ HRESULT m_IDirectDrawSurfaceX::Lock2(LPRECT lpDestRect, LPDDSURFACEDESC2 lpDDSur
 			// Set lock flag
 			IsLocked = true;
 
+			// Set thread ID
 			if (LockedWithID)
 			{
 				LOG_LIMIT(100, __FUNCTION__ << " Warning: surface locked thread ID set! " << LockedWithID);
@@ -2390,6 +2406,10 @@ HRESULT m_IDirectDrawSurfaceX::Lock2(LPRECT lpDestRect, LPDDSURFACEDESC2 lpDDSur
 			{
 				RECT lRect = { lpDestRect->left, lpDestRect->top, lpDestRect->right, lpDestRect->bottom };
 				LockRectList.push_back(lRect);
+			}
+			else
+			{
+				LockedCount++;
 			}
 
 			// Set surfaceDesc
@@ -2819,12 +2839,6 @@ HRESULT m_IDirectDrawSurfaceX::Unlock(LPRECT lpRect)
 	{
 		SetSurfaceCriticalSection();
 
-		// Emulate unlock
-		if (EmuLock.Locked)
-		{
-			UnlockEmuLock();
-		}
-
 		HRESULT hr = DD_OK;
 
 		do {
@@ -2862,12 +2876,26 @@ HRESULT m_IDirectDrawSurfaceX::Unlock(LPRECT lpRect)
 				}
 			}
 
+			// Check if locked more than once with null rect
+			if (LockedCount > 1)
+			{
+				LockedCount--;
+				hr = DD_OK;
+				break;
+			}
+
 			// Check for device interface
 			HRESULT c_hr = CheckInterface(__FUNCTION__, true, true, true);
 			if (FAILED(c_hr))
 			{
 				hr = c_hr;
 				break;
+			}
+
+			// Emulate unlock
+			if (EmuLock.Locked)
+			{
+				UnlockEmuLock();
 			}
 
 			// Remove scanlines before unlocking surface

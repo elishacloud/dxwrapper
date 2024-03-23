@@ -849,6 +849,12 @@ HRESULT m_IDirect3DDeviceX::SetTexture(DWORD dwStage, LPDIRECTDRAWSURFACE7 lpSur
 		{
 			lpDDSrcSurfaceX = nullptr;
 
+			if (!CheckSurfaceExists(lpSurface))
+			{
+				LOG_LIMIT(100, __FUNCTION__ << " Error: could not find source surface! " << lpSurface);
+				return DDERR_INVALIDPARAMS;
+			}
+
 			lpSurface->QueryInterface(IID_GetInterfaceX, (LPVOID*)&lpDDSrcSurfaceX);
 
 			if (!lpDDSrcSurfaceX)
