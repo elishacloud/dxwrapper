@@ -412,7 +412,8 @@ public:
 	inline bool IsEmulationDCReady() { return (IsUsingEmulation() && !surface.emu->UsingGameDC); }
 	inline bool IsSurface3DDevice() { return Is3DRenderingTarget; }
 	inline bool IsSurfaceDirty() { return surface.IsDirtyFlag; }
-	bool GetColorKeyForShader(float(&lowColorKey)[4], float(&highColorKey)[4], bool PrimarySurface);
+	bool GetColorKeyForShader(float(&lowColorKey)[4], float(&highColorKey)[4]);
+	bool GetColorKeyForPrimaryShader(float(&lowColorKey)[4], float(&highColorKey)[4]);
 	inline bool GetSurfaceSetSize(DWORD& Width, DWORD& Height)
 	{
 		if ((surfaceDesc2.dwFlags & (DDSD_WIDTH | DDSD_HEIGHT)) == (DDSD_WIDTH | DDSD_HEIGHT) &&

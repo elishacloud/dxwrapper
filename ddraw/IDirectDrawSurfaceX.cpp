@@ -608,11 +608,11 @@ HRESULT m_IDirectDrawSurfaceX::Blt(LPRECT lpDestRect, LPDIRECTDRAWSURFACE7 lpDDS
 				{
 					ColorKey = lpDDBltFx->ddckSrcColorkey;
 				}
-				else if ((dwFlags & DDBLT_KEYDEST) && (surfaceDesc2.ddsCaps.dwCaps & DDSD_CKDESTBLT))
+				else if ((dwFlags & DDBLT_KEYDEST) && (surfaceDesc2.dwFlags & DDSD_CKDESTBLT))
 				{
 					ColorKey = surfaceDesc2.ddckCKDestBlt;
 				}
-				else if ((dwFlags & DDBLT_KEYSRC) && (lpDDSrcSurfaceX->surfaceDesc2.ddsCaps.dwCaps & DDSD_CKSRCBLT))
+				else if ((dwFlags & DDBLT_KEYSRC) && (lpDDSrcSurfaceX->surfaceDesc2.dwFlags & DDSD_CKSRCBLT))
 				{
 					ColorKey = lpDDSrcSurfaceX->surfaceDesc2.ddckCKSrcBlt;
 				}
@@ -1687,9 +1687,6 @@ HRESULT m_IDirectDrawSurfaceX::GetColorKey(DWORD dwFlags, LPDDCOLORKEY lpDDColor
 			return DDERR_INVALIDPARAMS;
 		}
 
-		// Reset shader flag
-		ShaderColorKey.IsSet = false;
-
 		// Get color key index
 		DWORD dds = 0;
 		switch (dwFlags)
@@ -1711,7 +1708,7 @@ HRESULT m_IDirectDrawSurfaceX::GetColorKey(DWORD dwFlags, LPDDCOLORKEY lpDDColor
 		}
 
 		// Check if color key is set
-		if (!(surfaceDesc2.ddsCaps.dwCaps & dds))
+		if (!(surfaceDesc2.dwFlags & dds))
 		{
 			return DDERR_NOCOLORKEY;
 		}
@@ -1740,10 +1737,10 @@ HRESULT m_IDirectDrawSurfaceX::GetColorKey(DWORD dwFlags, LPDDCOLORKEY lpDDColor
 	return ProxyInterface->GetColorKey(dwFlags, lpDDColorKey);
 }
 
-bool m_IDirectDrawSurfaceX::GetColorKeyForShader(float(&lowColorKey)[4], float(&highColorKey)[4], bool PrimarySurface)
+bool m_IDirectDrawSurfaceX::GetColorKeyForPrimaryShader(float(&lowColorKey)[4], float(&highColorKey)[4])
 {
 	// Primary 2D surface background color
-	if (PrimarySurface && IsPrimarySurface())
+	if (IsPrimarySurface())
 	{
 		if (!primary.ShaderColorKey.IsSet)
 		{
@@ -1760,20 +1757,18 @@ bool m_IDirectDrawSurfaceX::GetColorKeyForShader(float(&lowColorKey)[4], float(&
 		highColorKey[3] = primary.ShaderColorKey.highColorKey[3];
 		return true;
 	}
+	return false;
+}
 
+bool m_IDirectDrawSurfaceX::GetColorKeyForShader(float(&lowColorKey)[4], float(&highColorKey)[4])
+{
 	// Surface low and high color space
 	if (!ShaderColorKey.IsSet)
 	{
-		if (surfaceDesc2.ddsCaps.dwCaps & DDSD_CKSRCBLT)
+		if (surfaceDesc2.dwFlags & DDSD_CKSRCBLT)
 		{
 			GetColorKeyArray(ShaderColorKey.lowColorKey, ShaderColorKey.highColorKey,
 				surfaceDesc2.ddckCKSrcBlt.dwColorSpaceLowValue, surfaceDesc2.ddckCKSrcBlt.dwColorSpaceHighValue, surfaceDesc2.ddpfPixelFormat);
-			ShaderColorKey.IsSet = true;
-		}
-		else if (surfaceDesc2.ddsCaps.dwCaps & DDCKEY_SRCOVERLAY)
-		{
-			GetColorKeyArray(ShaderColorKey.lowColorKey, ShaderColorKey.highColorKey,
-				surfaceDesc2.ddckCKSrcOverlay.dwColorSpaceLowValue, surfaceDesc2.ddckCKSrcOverlay.dwColorSpaceHighValue, surfaceDesc2.ddpfPixelFormat);
 			ShaderColorKey.IsSet = true;
 		}
 		else
@@ -2658,12 +2653,14 @@ HRESULT m_IDirectDrawSurfaceX::SetColorKey(DWORD dwFlags, LPDDCOLORKEY lpDDColor
 			break;
 		case DDCKEY_DESTOVERLAY:
 			dds = DDSD_CKDESTOVERLAY;
+			LOG_LIMIT(100, __FUNCTION__ << " Warning: color key overlay not supported!");
 			break;
 		case DDCKEY_SRCBLT:
 			dds = DDSD_CKSRCBLT;
 			break;
 		case DDCKEY_SRCOVERLAY:
 			dds = DDSD_CKSRCOVERLAY;
+			LOG_LIMIT(100, __FUNCTION__ << " Warning: color key overlay not supported!");
 			break;
 		default:
 			return DDERR_INVALIDPARAMS;
@@ -2676,10 +2673,13 @@ HRESULT m_IDirectDrawSurfaceX::SetColorKey(DWORD dwFlags, LPDDCOLORKEY lpDDColor
 			return DDERR_NOCOLORKEYHW;
 		}
 
+		// Reset shader flag
+		ShaderColorKey.IsSet = false;
+
 		// Set color key
 		if (!lpDDColorKey)
 		{
-			surfaceDesc2.ddsCaps.dwCaps &= ~dds;
+			surfaceDesc2.dwFlags &= ~dds;
 		}
 		else
 		{
@@ -2687,7 +2687,7 @@ HRESULT m_IDirectDrawSurfaceX::SetColorKey(DWORD dwFlags, LPDDCOLORKEY lpDDColor
 			DDCOLORKEY ColorKey = { lpDDColorKey->dwColorSpaceLowValue, lpDDColorKey->dwColorSpaceLowValue };
 
 			// Set color key flag
-			surfaceDesc2.ddsCaps.dwCaps |= dds;
+			surfaceDesc2.dwFlags |= dds;
 
 			// Set color key
 			switch (dds)

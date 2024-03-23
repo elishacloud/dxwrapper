@@ -1717,7 +1717,7 @@ HRESULT m_IDirect3DDeviceX::EndScene()
 
 			if (PrimarySurface->IsSurfaceDirty())
 			{
-				PrimarySurface->GetColorKeyForShader(DrawStates.lowColorKey, DrawStates.highColorKey, true);
+				PrimarySurface->GetColorKeyForPrimaryShader(DrawStates.lowColorKey, DrawStates.highColorKey);
 
 				SetDrawStates(0, D3DDP_DXW_DRAW2DSURFACE | D3DDP_DXW_COLORKEYENABLE, 9);
 
@@ -3345,7 +3345,7 @@ void m_IDirect3DDeviceX::ResetDevice()
 inline void m_IDirect3DDeviceX::UpdateDrawFlags(DWORD& dwFlags)
 {
 	// Check for color key
-	if (rsColorKeyEnabled && CurrentTextureSurfaceX && CurrentTextureSurfaceX->GetColorKeyForShader(DrawStates.lowColorKey, DrawStates.highColorKey, false))
+	if (rsColorKeyEnabled && CurrentTextureSurfaceX && CurrentTextureSurfaceX->GetColorKeyForShader(DrawStates.lowColorKey, DrawStates.highColorKey))
 	{
 		dwFlags |= D3DDP_DXW_COLORKEYENABLE;
 	}
