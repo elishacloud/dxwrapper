@@ -2230,6 +2230,9 @@ HRESULT m_IDirect3DDeviceX::SetRenderState(D3DRENDERSTATETYPE dwRenderStateType,
 		case D3DRENDERSTATE_SRCBLEND:
 			rsSrcBlend = dwRenderState;
 			break;
+		case D3DRENDERSTATE_DESTBLEND:
+			rsDestBlend = dwRenderState;
+			break;
 		case D3DRENDERSTATE_COLORKEYENABLE:
 			rsColorKeyEnabled = dwRenderState;
 			return D3D_OK;
@@ -3359,11 +3362,11 @@ inline void m_IDirect3DDeviceX::UpdateDrawFlags(DWORD& dwFlags)
 	// You can use D3DRENDERSTATE_COLORKEYENABLE render state with D3DRENDERSTATE_ALPHABLENDENABLE to implement fine blending control. 
 	if (rsColorKeyEnabled && rsAlphaBlendEnabled)
 	{
-		LOG_LIMIT(100, __FUNCTION__ << " Warning: mixing color keying with alpha blending is not implemented: " << rsSrcBlend);
+		LOG_LIMIT(100, __FUNCTION__ << " Warning: mixing color keying with alpha blending is not implemented: " << rsSrcBlend << " " << rsDestBlend);
 	}
 
 	// Check for color key
-	if (rsColorKeyEnabled && !(rsAlphaBlendEnabled && rsSrcBlend == D3DBLEND_ONE) &&
+	if (rsColorKeyEnabled && !(rsAlphaBlendEnabled && (rsSrcBlend == D3DBLEND_ONE || rsSrcBlend == D3DBLEND_SRCALPHA)) &&
 		CurrentTextureSurfaceX && CurrentTextureSurfaceX->GetColorKeyForShader(DrawStates.lowColorKey, DrawStates.highColorKey))
 	{
 		dwFlags |= D3DDP_DXW_COLORKEYENABLE;

@@ -1762,11 +1762,6 @@ bool m_IDirectDrawSurfaceX::GetColorKeyForPrimaryShader(float(&lowColorKey)[4], 
 
 bool m_IDirectDrawSurfaceX::GetColorKeyForShader(float(&lowColorKey)[4], float(&highColorKey)[4])
 {
-	if (!ShaderColorKey.IsCreatedWithColorKey)
-	{
-		return false;
-	}
-
 	// Surface low and high color space
 	if (!ShaderColorKey.IsSet)
 	{
@@ -2345,27 +2340,12 @@ HRESULT m_IDirectDrawSurfaceX::Lock2(LPRECT lpDestRect, LPDDSURFACEDESC2 lpDDSur
 				HRESULT ret = LockD39Surface(&LockedRect, &DestRect, Flags);
 				if (FAILED(ret))
 				{
-					// If surface is locked already with null rect
-					if (IsSurfaceLocked() && LockRectList.empty())
+					if (IsSurfaceLocked())
 					{
-						if (!LastLock.LockedRect.pBits || !LastLock.LockedRect.Pitch)
-						{
-							LOG_LIMIT(100, __FUNCTION__ << " Error: could not get last lock data!");
-						}
-						LockedRect.pBits = LastLock.LockedRect.pBits;
-						LockedRect.Pitch = LastLock.LockedRect.Pitch;
-						ret = DD_OK;
+						LOG_LIMIT(100, __FUNCTION__ << " Warning: attempting to lock surface twice!");
 					}
-					// If surface is locked with specific rect
-					else
-					{
-						if (IsSurfaceLocked())
-						{
-							LOG_LIMIT(100, __FUNCTION__ << " Warning: attempting to lock surface twice!");
-						}
-						UnlockD39Surface();
-						ret = LockD39Surface(&LockedRect, &DestRect, Flags);
-					}
+					UnlockD39Surface();
+					ret = LockD39Surface(&LockedRect, &DestRect, Flags);
 				}
 				if (FAILED(ret))
 				{
@@ -2406,10 +2386,6 @@ HRESULT m_IDirectDrawSurfaceX::Lock2(LPRECT lpDestRect, LPDDSURFACEDESC2 lpDDSur
 			{
 				RECT lRect = { lpDestRect->left, lpDestRect->top, lpDestRect->right, lpDestRect->bottom };
 				LockRectList.push_back(lRect);
-			}
-			else
-			{
-				LockedCount++;
 			}
 
 			// Set surfaceDesc
@@ -2874,14 +2850,6 @@ HRESULT m_IDirectDrawSurfaceX::Unlock(LPRECT lpRect)
 					hr = DDERR_INVALIDRECT;
 					break;
 				}
-			}
-
-			// Check if locked more than once with null rect
-			if (LockedCount > 1)
-			{
-				LockedCount--;
-				hr = DD_OK;
-				break;
 			}
 
 			// Check for device interface
@@ -4825,12 +4793,6 @@ inline void m_IDirectDrawSurfaceX::InitSurfaceDesc(DWORD DirectXVersion)
 	{
 		surfaceDesc2.ddsCaps.dwCaps |= DDSCAPS_LOCALVIDMEM | DDSCAPS_VIDEOMEMORY;
 		surfaceDesc2.ddsCaps.dwCaps &= ~DDSCAPS_NONLOCALVIDMEM;
-	}
-
-	// Note: any textures that were not created with the DDSD_CKSRCBLT flag will not display color-key effects, even if they contain the color key
-	if (surfaceDesc2.dwFlags & DDSD_CKSRCBLT)
-	{
-		ShaderColorKey.IsCreatedWithColorKey = true;
 	}
 
 	// Create backbuffers

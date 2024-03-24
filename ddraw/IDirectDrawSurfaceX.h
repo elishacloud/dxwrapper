@@ -69,7 +69,6 @@ private:
 	struct COLORKEY
 	{
 		bool IsSet = false;
-		bool IsCreatedWithColorKey = false;
 		float lowColorKey[4] = {};
 		float highColorKey[4] = {};
 	};
@@ -136,7 +135,6 @@ private:
 	bool IsInBlt = false;
 	bool IsInBltBatch = false;
 	bool IsLocked = false;
-	DWORD LockedCount = 0;								// Counts the number of null rect locks happen
 	DWORD LockedWithID = 0;								// Thread ID of the current lock
 	LASTLOCK LastLock;									// Remember the last lock info
 	std::vector<RECT> LockRectList;						// Rects used to lock the surface
