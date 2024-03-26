@@ -28,12 +28,12 @@ HRESULT m_IDirect3DViewportX::QueryInterface(REFIID riid, LPVOID FAR * ppvObj, D
 	if (riid == IID_GetRealInterface)
 	{
 		*ppvObj = ProxyInterface;
-		return DD_OK;
+		return D3D_OK;
 	}
 	if (riid == IID_GetInterfaceX)
 	{
 		*ppvObj = this;
-		return DD_OK;
+		return D3D_OK;
 	}
 
 	if (DirectXVersion != 1 && DirectXVersion != 2 && DirectXVersion != 3)
@@ -50,7 +50,7 @@ HRESULT m_IDirect3DViewportX::QueryInterface(REFIID riid, LPVOID FAR * ppvObj, D
 
 		AddRef(DxVersion);
 
-		return DD_OK;
+		return D3D_OK;
 	}
 
 	return ProxyQueryInterface(ProxyInterface, riid, ppvObj, GetWrapperType(DxVersion));

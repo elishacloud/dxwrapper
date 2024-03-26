@@ -28,12 +28,12 @@ HRESULT m_IDirect3DLight::QueryInterface(REFIID riid, LPVOID FAR * ppvObj)
 	if (riid == IID_GetRealInterface)
 	{
 		*ppvObj = ProxyInterface;
-		return DD_OK;
+		return D3D_OK;
 	}
 	if (riid == IID_GetInterfaceX)
 	{
 		*ppvObj = this;
-		return DD_OK;
+		return D3D_OK;
 	}
 
 	if (riid == IID_IDirect3DLight || riid == IID_IUnknown)

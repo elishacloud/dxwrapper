@@ -28,12 +28,12 @@ HRESULT m_IDirect3DVertexBufferX::QueryInterface(REFIID riid, LPVOID FAR * ppvOb
 	if (riid == IID_GetRealInterface)
 	{
 		*ppvObj = ProxyInterface;
-		return DD_OK;
+		return D3D_OK;
 	}
 	if (riid == IID_GetInterfaceX)
 	{
 		*ppvObj = this;
-		return DD_OK;
+		return D3D_OK;
 	}
 
 	if (DirectXVersion != 1 && DirectXVersion != 7)
@@ -50,7 +50,7 @@ HRESULT m_IDirect3DVertexBufferX::QueryInterface(REFIID riid, LPVOID FAR * ppvOb
 
 		AddRef(DxVersion);
 
-		return DD_OK;
+		return D3D_OK;
 	}
 
 	return ProxyQueryInterface(ProxyInterface, riid, ppvObj, GetWrapperType(DxVersion));
@@ -464,7 +464,7 @@ HRESULT m_IDirect3DVertexBufferX::CheckInterface(char* FunctionName, bool CheckD
 		}
 	}
 
-	return DD_OK;
+	return D3D_OK;
 }
 
 HRESULT m_IDirect3DVertexBufferX::CreateD3D9VertexBuffer()
@@ -540,7 +540,7 @@ LPDIRECT3DINDEXBUFFER9 m_IDirect3DVertexBufferX::SetupIndexBuffer(LPWORD lpwIndi
 
 	DWORD NewIndexSize = dwIndexCount * sizeof(WORD);
 
-	HRESULT hr = DD_OK;
+	HRESULT hr = D3D_OK;
 	if (!d3d9IndexBuffer || NewIndexSize > IndexBufferSize)
 	{
 		ReleaseD3D9IndexBuffer();

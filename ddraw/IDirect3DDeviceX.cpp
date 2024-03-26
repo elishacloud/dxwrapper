@@ -29,12 +29,12 @@ HRESULT m_IDirect3DDeviceX::QueryInterface(REFIID riid, LPVOID FAR * ppvObj, DWO
 	if (riid == IID_GetRealInterface)
 	{
 		*ppvObj = ProxyInterface;
-		return DD_OK;
+		return D3D_OK;
 	}
 	if (riid == IID_GetInterfaceX)
 	{
 		*ppvObj = this;
-		return DD_OK;
+		return D3D_OK;
 	}
 
 	if (DirectXVersion != 1 && DirectXVersion != 2 && DirectXVersion != 3 && DirectXVersion != 7)
@@ -51,7 +51,7 @@ HRESULT m_IDirect3DDeviceX::QueryInterface(REFIID riid, LPVOID FAR * ppvObj, DWO
 
 		AddRef(DxVersion);
 
-		return DD_OK;
+		return D3D_OK;
 	}
 
 	return ProxyQueryInterface(ProxyInterface, riid, ppvObj, GetWrapperType(DxVersion));
@@ -655,12 +655,12 @@ HRESULT m_IDirect3DDeviceX::EnumTextureFormats(LPD3DENUMPIXELFORMATSCALLBACK lpd
 				SetPixelDisplayFormat(format, ddpfPixelFormat);
 				if (lpd3dEnumPixelProc(&ddpfPixelFormat, lpArg) == DDENUMRET_CANCEL)
 				{
-					return DD_OK;
+					return D3D_OK;
 				}
 			}
 		}
 
-		return DD_OK;
+		return D3D_OK;
 	}
 
 	switch (ProxyDirectXVersion)
@@ -724,7 +724,7 @@ HRESULT m_IDirect3DDeviceX::GetTexture(DWORD dwStage, LPDIRECT3DTEXTURE2* lplpTe
 
 		*lplpTexture = (LPDIRECT3DTEXTURE2)pTextureX->GetWrapperInterfaceX(2);
 
-		return DD_OK;
+		return D3D_OK;
 	}
 
 	HRESULT hr = GetProxyInterfaceV3()->GetTexture(dwStage, lplpTexture);
@@ -760,7 +760,7 @@ HRESULT m_IDirect3DDeviceX::GetTexture(DWORD dwStage, LPDIRECTDRAWSURFACE7* lplp
 
 				*lplpTexture = AttachedTexture[dwStage];
 
-				hr = DD_OK;
+				hr = D3D_OK;
 			}
 			else
 			{
@@ -1121,7 +1121,7 @@ HRESULT m_IDirect3DDeviceX::SetTextureStageState(DWORD dwStage, D3DTEXTURESTAGES
 		if (!CheckTextureStageStateType(dwState))
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Warning: Texture state type not implemented: " << dwState);
-			return DD_OK;	// Just return OK for now!
+			return D3D_OK;	// Just return OK for now!
 		}
 
 		return (*d3d9Device)->SetTextureStageState(dwStage, dwState, dwValue);
@@ -2272,7 +2272,7 @@ HRESULT m_IDirect3DDeviceX::SetRenderState(D3DRENDERSTATETYPE dwRenderStateType,
 		if (!CheckRenderStateType(dwRenderStateType))
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Warning: Render state type not implemented: " << dwRenderStateType);
-			return DD_OK;	// Just return OK for now!
+			return D3D_OK;	// Just return OK for now!
 		}
 
 		return (*d3d9Device)->SetRenderState(dwRenderStateType, dwRenderState);
@@ -3004,7 +3004,7 @@ HRESULT m_IDirect3DDeviceX::DeleteStateBlock(DWORD dwBlockHandle)
 		// ToDo: Validate BlockHandle
 		reinterpret_cast<IDirect3DStateBlock9*>(dwBlockHandle)->Release();
 
-		return DD_OK;
+		return D3D_OK;
 	}
 
 	return GetProxyInterfaceV7()->DeleteStateBlock(dwBlockHandle);
@@ -3154,7 +3154,7 @@ HRESULT m_IDirect3DDeviceX::SetClipStatus(LPD3DCLIPSTATUS lpD3DClipStatus)
 		// To enable a clipping plane, set the corresponding bit in the DWORD value applied to the D3DRS_CLIPPLANEENABLE render state.
 		(*d3d9Device)->SetRenderState(D3DRS_CLIPPLANEENABLE, D3DCLIPPLANE0 | D3DCLIPPLANE1 | D3DCLIPPLANE2 | D3DCLIPPLANE3 | D3DCLIPPLANE4 | D3DCLIPPLANE5);*/
 
-		return DD_OK;
+		return D3D_OK;
 	}
 
 	switch (ProxyDirectXVersion)
@@ -3333,7 +3333,7 @@ HRESULT m_IDirect3DDeviceX::CheckInterface(char *FunctionName, bool CheckD3DDevi
 		}
 	}
 
-	return DD_OK;
+	return D3D_OK;
 }
 
 void m_IDirect3DDeviceX::ResetDevice()
