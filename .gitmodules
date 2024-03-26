@@ -20,3 +20,6 @@
 [submodule "External/imgui"]
 	path = External/imgui
 	url = https://github.com/ocornut/imgui
+[submodule "External/DirectXMath"]
+	path = External/DirectXMath
+	url = https://github.com/microsoft/DirectXMath
