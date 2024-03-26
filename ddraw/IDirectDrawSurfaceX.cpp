@@ -3786,9 +3786,14 @@ HRESULT m_IDirectDrawSurfaceX::CreateD3d9Surface()
 				IDirect3DSurface9* pDestSurfaceD9 = GetD3D9Surface();
 				if (pDestSurfaceD9)
 				{
+					// Get pitch
+					LONG Pitch = (Format == D3DFMT_DXT1 || Format == D3DFMT_YV12) ? surfaceDesc2.dwWidth * 2 :
+						(ISDXTEX(Format)) ? surfaceDesc2.dwWidth * 4 :
+						surfaceDesc2.lPitch;
+
 					// Copy backup data to surface
 					RECT Rect = { 0, 0, (LONG)surfaceDesc2.dwWidth, (LONG)surfaceDesc2.dwHeight };
-					if (SUCCEEDED(D3DXLoadSurfaceFromMemory(pDestSurfaceD9, nullptr, &Rect, Backup.data(), (surfaceFormat == D3DFMT_P8) ? D3DFMT_L8 : surfaceFormat, surfaceDesc2.lPitch, nullptr, &Rect, D3DX_FILTER_NONE, 0)))
+					if (SUCCEEDED(D3DXLoadSurfaceFromMemory(pDestSurfaceD9, nullptr, &Rect, Backup.data(), (surfaceFormat == D3DFMT_P8) ? D3DFMT_L8 : surfaceFormat, Pitch, nullptr, &Rect, D3DX_FILTER_NONE, 0)))
 					{
 						// Copy surface to emulated surface
 						if (IsUsingEmulation())
