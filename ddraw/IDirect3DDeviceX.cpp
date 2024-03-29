@@ -2208,6 +2208,166 @@ HRESULT m_IDirect3DDeviceX::SetRenderState(D3DRENDERSTATETYPE dwRenderStateType,
 
 		switch ((DWORD)dwRenderStateType)
 		{
+		case D3DRENDERSTATE_TEXTUREADDRESS:
+			return SetTextureStageState(0, (D3DTEXTURESTAGESTATETYPE)D3DTSS_ADDRESS, dwRenderState);
+		case D3DRENDERSTATE_TEXTUREMAG:
+			// Only the first two (D3DFILTER_NEAREST and D3DFILTER_LINEAR) are valid with D3DRENDERSTATE_TEXTUREMAG.
+			switch (dwRenderState)
+			{
+			case D3DFILTER_NEAREST:
+			case D3DFILTER_LINEAR:
+				return (*d3d9Device)->SetSamplerState(0, D3DSAMP_MAGFILTER, dwRenderState);
+			default:
+				return DDERR_INVALIDPARAMS;
+			}
+		case D3DRENDERSTATE_TEXTUREMIN:
+			switch (dwRenderState)
+			{
+			case D3DFILTER_NEAREST:
+			case D3DFILTER_LINEAR:
+				rsTextureMin = dwRenderState;
+				(*d3d9Device)->SetSamplerState(0, D3DSAMP_MIPFILTER, D3DTEXF_NONE);
+				return (*d3d9Device)->SetSamplerState(0, D3DSAMP_MINFILTER, dwRenderState);
+			case D3DFILTER_MIPNEAREST:
+			case D3DFILTER_LINEARMIPNEAREST:
+				rsTextureMin = dwRenderState;
+				(*d3d9Device)->SetSamplerState(0, D3DSAMP_MINFILTER, D3DTEXF_POINT);
+				return (*d3d9Device)->SetSamplerState(0, D3DSAMP_MIPFILTER, D3DTEXF_POINT);
+			case D3DFILTER_MIPLINEAR:
+			case D3DFILTER_LINEARMIPLINEAR:
+				rsTextureMin = dwRenderState;
+				(*d3d9Device)->SetSamplerState(0, D3DSAMP_MINFILTER, D3DTEXF_LINEAR);
+				return (*d3d9Device)->SetSamplerState(0, D3DSAMP_MIPFILTER, D3DTEXF_LINEAR);
+			default:
+				return DDERR_INVALIDPARAMS;
+			}
+		case D3DRENDERSTATE_TEXTUREMAPBLEND:
+			switch (dwRenderState)
+			{
+			case D3DTBLEND_COPY:
+			case D3DTBLEND_DECAL:
+				// Reset states
+				(*d3d9Device)->SetTextureStageState(0, D3DTSS_ALPHAOP, D3DTOP_DISABLE);
+				(*d3d9Device)->SetRenderState(D3DRS_ALPHABLENDENABLE, FALSE);
+				(*d3d9Device)->SetRenderState(D3DRS_ALPHATESTENABLE, FALSE);
+				(*d3d9Device)->SetRenderState(D3DRS_SRCBLEND, D3DBLEND_ONE);
+				(*d3d9Device)->SetRenderState(D3DRS_DESTBLEND, D3DBLEND_ZERO);
+				(*d3d9Device)->SetRenderState(D3DRS_ALPHAREF, 0);
+				(*d3d9Device)->SetRenderState(D3DRS_ALPHAFUNC, D3DCMP_ALWAYS);
+
+				// Set texture stage states for texture blending
+				(*d3d9Device)->SetTextureStageState(0, D3DTSS_COLOROP, D3DTOP_SELECTARG1);
+
+				// Save state
+				rsTextureMapBlend = dwRenderState;
+				return DD_OK;
+			case D3DTBLEND_DECALALPHA:
+				// Reset states
+				(*d3d9Device)->SetRenderState(D3DRS_ALPHATESTENABLE, FALSE);
+				(*d3d9Device)->SetRenderState(D3DRS_ALPHAREF, 0);
+				(*d3d9Device)->SetRenderState(D3DRS_ALPHAFUNC, D3DCMP_ALWAYS);
+
+				// Set texture stage states for texture blending
+				(*d3d9Device)->SetTextureStageState(0, D3DTSS_COLOROP, D3DTOP_SELECTARG1);
+				(*d3d9Device)->SetTextureStageState(0, D3DTSS_ALPHAOP, D3DTOP_SELECTARG1);
+
+				// Enable alpha blending
+				(*d3d9Device)->SetRenderState(D3DRS_ALPHABLENDENABLE, TRUE);
+				(*d3d9Device)->SetRenderState(D3DRS_SRCBLEND, D3DBLEND_SRCALPHA);
+				(*d3d9Device)->SetRenderState(D3DRS_DESTBLEND, D3DBLEND_INVSRCALPHA);
+
+				// Save state
+				rsTextureMapBlend = dwRenderState;
+				return DD_OK;
+			case D3DTBLEND_DECALMASK:
+				// Reset states
+				(*d3d9Device)->SetTextureStageState(0, D3DTSS_ALPHAOP, D3DTOP_DISABLE);
+				(*d3d9Device)->SetRenderState(D3DRS_ALPHABLENDENABLE, FALSE);
+				(*d3d9Device)->SetRenderState(D3DRS_SRCBLEND, D3DBLEND_ONE);
+				(*d3d9Device)->SetRenderState(D3DRS_DESTBLEND, D3DBLEND_ZERO);
+
+				// Set texture stage states for texture blending
+				(*d3d9Device)->SetTextureStageState(0, D3DTSS_COLOROP, D3DTOP_MODULATE);
+
+				// Set texture stage states for alpha testing
+				(*d3d9Device)->SetRenderState(D3DRS_ALPHATESTENABLE, TRUE);
+				(*d3d9Device)->SetRenderState(D3DRS_ALPHAREF, 128); // Adjust as needed
+				(*d3d9Device)->SetRenderState(D3DRS_ALPHAFUNC, D3DCMP_GREATEREQUAL);
+
+				// Save state
+				rsTextureMapBlend = dwRenderState;
+				return DD_OK;
+			case D3DTBLEND_MODULATE:
+				// Reset states
+				(*d3d9Device)->SetTextureStageState(0, D3DTSS_ALPHAOP, D3DTOP_DISABLE);
+				(*d3d9Device)->SetRenderState(D3DRS_ALPHABLENDENABLE, FALSE);
+				(*d3d9Device)->SetRenderState(D3DRS_ALPHATESTENABLE, FALSE);
+				(*d3d9Device)->SetRenderState(D3DRS_SRCBLEND, D3DBLEND_ONE);
+				(*d3d9Device)->SetRenderState(D3DRS_DESTBLEND, D3DBLEND_ZERO);
+				(*d3d9Device)->SetRenderState(D3DRS_ALPHAREF, 0);
+				(*d3d9Device)->SetRenderState(D3DRS_ALPHAFUNC, D3DCMP_ALWAYS);
+
+				// Set texture stage states for texture blending
+				(*d3d9Device)->SetTextureStageState(0, D3DTSS_COLOROP, D3DTOP_MODULATE);
+
+				// Save state
+				rsTextureMapBlend = dwRenderState;
+				return DD_OK;
+			case D3DTBLEND_MODULATEALPHA:
+				// Reset states
+				(*d3d9Device)->SetRenderState(D3DRS_ALPHABLENDENABLE, FALSE);
+				(*d3d9Device)->SetRenderState(D3DRS_ALPHATESTENABLE, FALSE);
+				(*d3d9Device)->SetRenderState(D3DRS_SRCBLEND, D3DBLEND_ONE);
+				(*d3d9Device)->SetRenderState(D3DRS_DESTBLEND, D3DBLEND_ZERO);
+				(*d3d9Device)->SetRenderState(D3DRS_ALPHAREF, 0);
+				(*d3d9Device)->SetRenderState(D3DRS_ALPHAFUNC, D3DCMP_ALWAYS);
+
+				// Set texture stage states for texture blending
+				(*d3d9Device)->SetTextureStageState(0, D3DTSS_COLOROP, D3DTOP_MODULATE);
+
+				// Set texture stage states for texture alpha operation
+				(*d3d9Device)->SetTextureStageState(0, D3DTSS_ALPHAOP, D3DTOP_MODULATE);
+
+				// Save state
+				rsTextureMapBlend = dwRenderState;
+				return DD_OK;
+			case D3DTBLEND_MODULATEMASK:
+				// Reset states
+				(*d3d9Device)->SetTextureStageState(0, D3DTSS_ALPHAOP, D3DTOP_DISABLE);
+				(*d3d9Device)->SetRenderState(D3DRS_ALPHABLENDENABLE, FALSE);
+				(*d3d9Device)->SetRenderState(D3DRS_SRCBLEND, D3DBLEND_ONE);
+				(*d3d9Device)->SetRenderState(D3DRS_DESTBLEND, D3DBLEND_ZERO);
+
+				// Set texture stage states for texture blending
+				(*d3d9Device)->SetTextureStageState(0, D3DTSS_COLOROP, D3DTOP_MODULATE);
+
+				// Set texture stage states for alpha testing
+				(*d3d9Device)->SetRenderState(D3DRS_ALPHATESTENABLE, TRUE);
+				(*d3d9Device)->SetRenderState(D3DRS_ALPHAREF, 128); // Adjust as needed
+				(*d3d9Device)->SetRenderState(D3DRS_ALPHAFUNC, D3DCMP_GREATEREQUAL);
+
+				// Save state
+				rsTextureMapBlend = dwRenderState;
+				return DD_OK;
+			case D3DTBLEND_ADD:
+				// Reset states
+				(*d3d9Device)->SetTextureStageState(0, D3DTSS_ALPHAOP, D3DTOP_DISABLE);
+				(*d3d9Device)->SetRenderState(D3DRS_ALPHABLENDENABLE, FALSE);
+				(*d3d9Device)->SetRenderState(D3DRS_ALPHATESTENABLE, FALSE);
+				(*d3d9Device)->SetRenderState(D3DRS_SRCBLEND, D3DBLEND_ONE);
+				(*d3d9Device)->SetRenderState(D3DRS_DESTBLEND, D3DBLEND_ZERO);
+				(*d3d9Device)->SetRenderState(D3DRS_ALPHAREF, 0);
+				(*d3d9Device)->SetRenderState(D3DRS_ALPHAFUNC, D3DCMP_ALWAYS);
+
+				// Set texture stage states for texture blending
+				(*d3d9Device)->SetTextureStageState(0, D3DTSS_COLOROP, D3DTOP_ADD);
+
+				// Save state
+				rsTextureMapBlend = dwRenderState;
+				return DD_OK;
+			default:
+				return DDERR_INVALIDPARAMS;
+			}
 		case D3DRENDERSTATE_ANTIALIAS:
 			dwRenderStateType = D3DRS_MULTISAMPLEANTIALIAS;
 			dwRenderState = (((D3DANTIALIASMODE)dwRenderState == D3DANTIALIAS_SORTDEPENDENT) || ((D3DANTIALIASMODE)dwRenderState == D3DANTIALIAS_SORTINDEPENDENT));
@@ -2271,7 +2431,7 @@ HRESULT m_IDirect3DDeviceX::SetRenderState(D3DRENDERSTATETYPE dwRenderStateType,
 
 		if (!CheckRenderStateType(dwRenderStateType))
 		{
-			LOG_LIMIT(100, __FUNCTION__ << " Warning: Render state type not implemented: " << dwRenderStateType);
+			LOG_LIMIT(100, __FUNCTION__ << " Warning: Render state type not implemented: " << dwRenderStateType << " " << dwRenderState);
 			return D3D_OK;	// Just return OK for now!
 		}
 
@@ -2311,6 +2471,16 @@ HRESULT m_IDirect3DDeviceX::GetRenderState(D3DRENDERSTATETYPE dwRenderStateType,
 
 		switch ((DWORD)dwRenderStateType)
 		{
+		case D3DRENDERSTATE_TEXTUREADDRESS:
+			return GetTextureStageState(0, (D3DTEXTURESTAGESTATETYPE)D3DTSS_ADDRESS, lpdwRenderState);
+		case D3DRENDERSTATE_TEXTUREMAPBLEND:
+			*lpdwRenderState = rsTextureMapBlend;
+			return D3D_OK;
+		case D3DRENDERSTATE_TEXTUREMAG:
+			return (*d3d9Device)->GetSamplerState(0, D3DSAMP_MAGFILTER, lpdwRenderState);
+		case D3DRENDERSTATE_TEXTUREMIN:
+			*lpdwRenderState = rsTextureMin;
+			return D3D_OK;
 		case D3DRENDERSTATE_ANTIALIAS:
 			dwRenderStateType = D3DRS_MULTISAMPLEANTIALIAS;
 			break;

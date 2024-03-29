@@ -45,6 +45,8 @@ private:
 	D3DCLIPSTATUS D3DClipStatus = {};
 
 	// Render states
+	DWORD rsTextureMin = D3DFILTER_NEAREST;
+	DWORD rsTextureMapBlend = D3DTBLEND_MODULATE;
 	DWORD rsAlphaBlendEnabled = FALSE;
 	DWORD rsSrcBlend = 0;
 	DWORD rsDestBlend = 0;
