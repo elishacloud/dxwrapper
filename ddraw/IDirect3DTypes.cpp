@@ -584,6 +584,20 @@ bool CheckRenderStateType(D3DRENDERSTATETYPE dwRenderStateType)
 	}
 }
 
+DWORD ConvertVertexTypeToFVF(D3DVERTEXTYPE d3dVertexType)
+{
+	switch (d3dVertexType)
+	{
+	case D3DVT_VERTEX:
+		return D3DFVF_VERTEX;
+	case D3DVT_LVERTEX:
+		return D3DFVF_LVERTEX;
+	case D3DVT_TLVERTEX:
+		return D3DFVF_TLVERTEX;
+	}
+	return 0;
+}
+
 UINT GetVertexStride(DWORD dwVertexTypeDesc)
 {
 	// Reserved:

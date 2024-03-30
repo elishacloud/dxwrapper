@@ -158,10 +158,35 @@ HRESULT m_IDirect3DTextureX::GetHandle(LPDIRECT3DDEVICE2 lpDirect3DDevice2, LPD3
 
 	if (!ProxyInterface)
 	{
-		if (lpHandle)
+		if (!lpDirect3DDevice2 || !lpHandle)
 		{
-			*lpHandle = tHandle;
+			return DDERR_INVALIDPARAMS;
 		}
+
+		if (!D3DDeviceInterface || !*D3DDeviceInterface)
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: D3DDevice does not exist!");
+			return DDERR_GENERIC;
+		}
+
+		// ToDo: Validate Direct3D Device
+		m_IDirect3DDeviceX* pDirect3DDeviceX = nullptr;
+		lpDirect3DDevice2->QueryInterface(IID_GetInterfaceX, (LPVOID*)&pDirect3DDeviceX);
+		if (!pDirect3DDeviceX)
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: could not get Direct3D Device wrapper!");
+			return DDERR_INVALIDPARAMS;
+		}
+
+		if (*D3DDeviceInterface != pDirect3DDeviceX)
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Warning: Direct3D Device wrapper does not match! " << *D3DDeviceInterface << "->" << pDirect3DDeviceX);
+		}
+
+		(*D3DDeviceInterface)->SetTextureHandle(tHandle, this);
+
+		*lpHandle = tHandle;
+
 		return D3D_OK;
 	}
 
@@ -179,6 +204,19 @@ HRESULT m_IDirect3DTextureX::GetHandle(LPDIRECT3DDEVICE2 lpDirect3DDevice2, LPD3
 	default:
 		return DDERR_GENERIC;
 	}
+}
+
+HRESULT m_IDirect3DTextureX::SetHandle(DWORD dwHandle)
+{
+	if (!dwHandle)
+	{
+		LOG_LIMIT(100, __FUNCTION__ << " Error: NULL pointer found!");
+		return DDERR_GENERIC;
+	}
+
+	tHandle = dwHandle;
+
+	return D3D_OK;
 }
 
 HRESULT m_IDirect3DTextureX::PaletteChanged(DWORD dwStart, DWORD dwCount)
@@ -213,7 +251,7 @@ HRESULT m_IDirect3DTextureX::Load(LPDIRECT3DTEXTURE2 lpD3DTexture2)
 			return DDERR_INVALIDPARAMS;
 		}
 
-		if (!D3DDeviceInterface)
+		if (!D3DDeviceInterface || !*D3DDeviceInterface)
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Error: D3DDevice does not exist!");
 			return DDERR_GENERIC;
@@ -306,6 +344,11 @@ void m_IDirect3DTextureX::ReleaseTexture()
 {
 	WrapperInterface->DeleteMe();
 	WrapperInterface2->DeleteMe();
+
+	if (D3DDeviceInterface && *D3DDeviceInterface)
+	{
+		(*D3DDeviceInterface)->ReleaseTextureHandle(this);
+	}
 
 	if (DDrawSurface)
 	{

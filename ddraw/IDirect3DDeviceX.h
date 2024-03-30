@@ -1,6 +1,7 @@
 #pragma once
 
 #include "IDirectDrawX.h"
+#include <unordered_map>
 
 constexpr UINT MaxTextureBlendStages = 8;	// Devices can have up to eight set textures.
 
@@ -45,6 +46,7 @@ private:
 	D3DCLIPSTATUS D3DClipStatus = {};
 
 	// Render states
+	DWORD rsTextureHandle = NULL;
 	DWORD rsTextureMin = D3DFILTER_NEAREST;
 	DWORD rsTextureMapBlend = D3DTBLEND_MODULATE;
 	DWORD rsAlphaBlendEnabled = FALSE;
@@ -56,6 +58,9 @@ private:
 	LPDIRECTDRAWSURFACE7 CurrentRenderTarget = nullptr;
 	m_IDirectDrawSurfaceX* CurrentTextureSurfaceX = nullptr;
 	LPDIRECTDRAWSURFACE7 AttachedTexture[MaxTextureBlendStages] = {};
+
+	// Texture handle map
+	std::unordered_map<DWORD, m_IDirect3DTextureX*> TextureHandleMap;
 
 	// Vector temporary buffer cache
 	std::vector<BYTE> VertexCache;
@@ -245,6 +250,10 @@ public:
 	void *GetWrapperInterfaceX(DWORD DirectXVersion);
 	ULONG AddRef(DWORD DirectXVersion);
 	ULONG Release(DWORD DirectXVersion);
+
+	// Texture handle function
+	HRESULT ReleaseTextureHandle(m_IDirect3DTextureX* lpTexture);
+	HRESULT SetTextureHandle(DWORD tHandle, m_IDirect3DTextureX* lpTexture);
 
 	// Functions handling the ddraw parent interface
 	void SetDdrawParent(m_IDirectDrawX *ddraw)

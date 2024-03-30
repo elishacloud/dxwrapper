@@ -509,8 +509,49 @@ HRESULT m_IDirect3DDeviceX::SwapTextureHandles(LPDIRECT3DTEXTURE2 lpD3DTex1, LPD
 
 	if (ProxyDirectXVersion > 2)
 	{
-		LOG_LIMIT(100, __FUNCTION__ << " Error: Not Implemented");
-		return DDERR_UNSUPPORTED;
+
+		if (!lpD3DTex1 || !lpD3DTex2)
+		{
+			return DDERR_INVALIDPARAMS;
+		}
+
+		m_IDirect3DTextureX* pTextureX1 = nullptr;
+		lpD3DTex1->QueryInterface(IID_GetInterfaceX, (LPVOID*)&pTextureX1);
+
+		m_IDirect3DTextureX* pTextureX2 = nullptr;
+		lpD3DTex2->QueryInterface(IID_GetInterfaceX, (LPVOID*)&pTextureX2);
+
+		if (!pTextureX1 || !pTextureX2)
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: could not get texture wrapper!");
+			return DDERR_INVALIDPARAMS;
+		}
+
+		// Find handle associated with texture1
+		auto it1 = std::find_if(TextureHandleMap.begin(), TextureHandleMap.end(), [&](const auto& pair) {
+			return pair.second == pTextureX1;
+			});
+
+		// Find handle associated with texture2
+		auto it2 = std::find_if(TextureHandleMap.begin(), TextureHandleMap.end(), [&](const auto& pair) {
+			return pair.second == pTextureX2;
+			});
+
+		// Check if handles are found
+		if (it1 == TextureHandleMap.end() || it2 == TextureHandleMap.end())
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: could not find texture handles!");
+			return DDERR_INVALIDPARAMS;
+		}
+
+		// If handles are found, swap them
+		std::swap(it1->second, it2->second);
+
+		// Update handles associated with textures
+		pTextureX1->SetHandle(it1->first);
+		pTextureX2->SetHandle(it2->first);
+
+		return D3D_OK;
 	}
 
 	if (lpD3DTex1)
@@ -704,11 +745,10 @@ HRESULT m_IDirect3DDeviceX::GetTexture(DWORD dwStage, LPDIRECT3DTEXTURE2* lplpTe
 		// Get surface wrapper
 		m_IDirectDrawSurfaceX* pSurfaceX = nullptr;
 		pSurface->QueryInterface(IID_GetInterfaceX, (LPVOID*)&pSurfaceX);
-
 		if (!pSurfaceX)
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Error: could not get surface wrapper!");
-			return DDERR_GENERIC;
+			return DDERR_INVALIDPARAMS;
 		}
 
 		// Get attached texture from surface
@@ -781,6 +821,38 @@ HRESULT m_IDirect3DDeviceX::GetTexture(DWORD dwStage, LPDIRECTDRAWSURFACE7* lplp
 	return hr;
 }
 
+HRESULT m_IDirect3DDeviceX::ReleaseTextureHandle(m_IDirect3DTextureX* lpTexture)
+{
+	// Find handle associated with texture2
+	auto it = std::find_if(TextureHandleMap.begin(), TextureHandleMap.end(), [&](const auto& pair) {
+		return pair.second == lpTexture;
+		});
+
+	// Check if handles are found
+	if (it == TextureHandleMap.end())
+	{
+		LOG_LIMIT(100, __FUNCTION__ << " Error: could not find surface in map!");
+		return DDERR_GENERIC;
+	}
+
+	TextureHandleMap.erase(it);
+
+	return D3D_OK;
+}
+
+HRESULT m_IDirect3DDeviceX::SetTextureHandle(DWORD tHandle, m_IDirect3DTextureX* lpTexture)
+{
+	if (!tHandle || !lpTexture)
+	{
+		LOG_LIMIT(100, __FUNCTION__ << " Error: NULL pointer found! " << lpTexture << " -> " << tHandle);
+		return DDERR_GENERIC;
+	}
+
+	TextureHandleMap[tHandle] = lpTexture;
+
+	return D3D_OK;
+}
+
 HRESULT m_IDirect3DDeviceX::SetTexture(DWORD dwStage, LPDIRECT3DTEXTURE2 lpTexture)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
@@ -794,15 +866,13 @@ HRESULT m_IDirect3DDeviceX::SetTexture(DWORD dwStage, LPDIRECT3DTEXTURE2 lpTextu
 
 		m_IDirect3DTextureX *pTextureX = nullptr;
 		lpTexture->QueryInterface(IID_GetInterfaceX, (LPVOID*)&pTextureX);
-
 		if (!pTextureX)
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Error: could not get texture wrapper!");
-			return DDERR_GENERIC;
+			return DDERR_INVALIDPARAMS;
 		}
 
 		m_IDirectDrawSurfaceX *pSurfaceX = pTextureX->GetSurface();
-
 		if (!pSurfaceX)
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Error: could not get surface!");
@@ -856,15 +926,13 @@ HRESULT m_IDirect3DDeviceX::SetTexture(DWORD dwStage, LPDIRECTDRAWSURFACE7 lpSur
 			}
 
 			lpSurface->QueryInterface(IID_GetInterfaceX, (LPVOID*)&lpDDSrcSurfaceX);
-
 			if (!lpDDSrcSurfaceX)
 			{
 				LOG_LIMIT(100, __FUNCTION__ << " Error: could not get surface wrapper!");
-				return DDERR_GENERIC;
+				return DDERR_INVALIDPARAMS;
 			}
 
 			IDirect3DTexture9* pTexture9 = lpDDSrcSurfaceX->Get3DTexture();
-
 			if (!pTexture9)
 			{
 				LOG_LIMIT(100, __FUNCTION__ << " Error: could not get texture!");
@@ -2196,7 +2264,7 @@ HRESULT m_IDirect3DDeviceX::GetMaterial(LPD3DMATERIAL7 lpMaterial)
 
 HRESULT m_IDirect3DDeviceX::SetRenderState(D3DRENDERSTATETYPE dwRenderStateType, DWORD dwRenderState)
 {
-	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
+	Logging::LogDebug() << __FUNCTION__ << " (" << this << ") " << dwRenderStateType << " " << dwRenderState;
 
 	if (Config.Dd7to9)
 	{
@@ -2208,6 +2276,33 @@ HRESULT m_IDirect3DDeviceX::SetRenderState(D3DRENDERSTATETYPE dwRenderStateType,
 
 		switch ((DWORD)dwRenderStateType)
 		{
+		case D3DRENDERSTATE_TEXTUREHANDLE:
+			if (dwRenderState == NULL)
+			{
+				rsTextureHandle = dwRenderState;
+				return SetTexture(0, (LPDIRECT3DTEXTURE2)nullptr);
+			}
+			else if (TextureHandleMap.find(dwRenderState) != TextureHandleMap.end())
+			{
+				// ToDo: Validate texture address
+				m_IDirect3DTextureX* pTextureX = TextureHandleMap[dwRenderState];
+				if (!pTextureX)
+				{
+					LOG_LIMIT(100, __FUNCTION__ << " Error: could not get texture wrapper!");
+					return DDERR_GENERIC;
+				}
+
+				IDirect3DTexture2* lpTexture = (IDirect3DTexture2*)pTextureX->GetWrapperInterfaceX(2);
+				if (!lpTexture)
+				{
+					LOG_LIMIT(100, __FUNCTION__ << " Error: could not get texture address!");
+					return DDERR_GENERIC;
+				}
+
+				rsTextureHandle = dwRenderState;
+				return SetTexture(0, lpTexture);
+			}
+			return D3D_OK;
 		case D3DRENDERSTATE_TEXTUREADDRESS:
 			return SetTextureStageState(0, (D3DTEXTURESTAGESTATETYPE)D3DTSS_ADDRESS, dwRenderState);
 		case D3DRENDERSTATE_TEXTUREMAG:
@@ -2454,7 +2549,7 @@ HRESULT m_IDirect3DDeviceX::SetRenderState(D3DRENDERSTATETYPE dwRenderStateType,
 
 HRESULT m_IDirect3DDeviceX::GetRenderState(D3DRENDERSTATETYPE dwRenderStateType, LPDWORD lpdwRenderState)
 {
-	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
+	Logging::LogDebug() << __FUNCTION__ << " (" << this << ") " << dwRenderStateType;
 
 	if (Config.Dd7to9)
 	{
@@ -2471,6 +2566,9 @@ HRESULT m_IDirect3DDeviceX::GetRenderState(D3DRENDERSTATETYPE dwRenderStateType,
 
 		switch ((DWORD)dwRenderStateType)
 		{
+		case D3DRENDERSTATE_TEXTUREHANDLE:
+			*lpdwRenderState = rsTextureHandle;
+			return D3D_OK;
 		case D3DRENDERSTATE_TEXTUREADDRESS:
 			return GetTextureStageState(0, (D3DTEXTURESTAGESTATETYPE)D3DTSS_ADDRESS, lpdwRenderState);
 		case D3DRENDERSTATE_TEXTUREMAPBLEND:
@@ -2590,10 +2688,24 @@ HRESULT m_IDirect3DDeviceX::DrawPrimitive(D3DPRIMITIVETYPE dptPrimitiveType, DWO
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	dwFlags &= D3DDP_FORCE_DWORD;
+	if (DirectXVersion == 2 && ProxyDirectXVersion > 2)
+	{
+		if (dwVertexTypeDesc != D3DVT_VERTEX && dwVertexTypeDesc != D3DVT_LVERTEX && dwVertexTypeDesc != D3DVT_TLVERTEX)
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: invalid Vertex type: " << dwVertexTypeDesc);
+			return D3DERR_INVALIDVERTEXTYPE;
+		}
+		dwVertexTypeDesc = ConvertVertexTypeToFVF((D3DVERTEXTYPE)dwVertexTypeDesc);
+	}
 
 	if (Config.Dd7to9)
 	{
+		if (DirectXVersion == 2)
+		{
+			// ToDo: fix me. Just return ok for now until function is fixed to work on Direct3D2.
+			return D3D_OK;
+		}
+
 		if (!lpVertices)
 		{
 			return DDERR_INVALIDPARAMS;
@@ -2605,6 +2717,8 @@ HRESULT m_IDirect3DDeviceX::DrawPrimitive(D3DPRIMITIVETYPE dptPrimitiveType, DWO
 			return DDERR_GENERIC;
 		}
 
+		dwFlags &= D3DDP_FORCE_DWORD;
+
 		// Update vertices for Direct3D9 (needs to be first)
 		UpdateVertices(dwVertexTypeDesc, lpVertices, dwVertexCount);
 
@@ -2612,7 +2726,7 @@ HRESULT m_IDirect3DDeviceX::DrawPrimitive(D3DPRIMITIVETYPE dptPrimitiveType, DWO
 		if (FAILED((*d3d9Device)->SetFVF(dwVertexTypeDesc)))
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Error: invalid FVF type: " << Logging::hex(dwVertexTypeDesc));
-			return D3DERR_INVALIDVERTEXTYPE;
+			return DDERR_INVALIDPARAMS;
 		}
 
 		// Check for color key
@@ -2655,7 +2769,8 @@ HRESULT m_IDirect3DDeviceX::DrawPrimitive(D3DPRIMITIVETYPE dptPrimitiveType, DWO
 			// Handle dwFlags
 			SetDrawStates(dwVertexTypeDesc, dwFlags, DirectXVersion);
 
-			HRESULT hr = GetProxyInterfaceV7()->DrawPrimitive(dptPrimitiveType, dwVertexTypeDesc, lpVertices, dwVertexCount, dwFlags);
+			DWORD Flags = dwFlags & ~(D3DDP_DONOTCLIP | D3DDP_DONOTLIGHT | D3DDP_DONOTUPDATEEXTENTS);
+			HRESULT hr = GetProxyInterfaceV7()->DrawPrimitive(dptPrimitiveType, dwVertexTypeDesc, lpVertices, dwVertexCount, Flags);
 
 			// Handle dwFlags
 			RestoreDrawStates(dwVertexTypeDesc, dwFlags, DirectXVersion);
@@ -2672,8 +2787,6 @@ HRESULT m_IDirect3DDeviceX::DrawPrimitive(D3DPRIMITIVETYPE dptPrimitiveType, DWO
 HRESULT m_IDirect3DDeviceX::DrawPrimitiveStrided(D3DPRIMITIVETYPE dptPrimitiveType, DWORD dwVertexTypeDesc, LPD3DDRAWPRIMITIVESTRIDEDDATA lpVertexArray, DWORD dwVertexCount, DWORD dwFlags, DWORD DirectXVersion)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
-
-	dwFlags &= D3DDP_FORCE_DWORD;
 
 	if (Config.Dd7to9)
 	{
@@ -2695,7 +2808,8 @@ HRESULT m_IDirect3DDeviceX::DrawPrimitiveStrided(D3DPRIMITIVETYPE dptPrimitiveTy
 			// Handle dwFlags
 			SetDrawStates(dwVertexTypeDesc, dwFlags, DirectXVersion);
 
-			HRESULT hr = GetProxyInterfaceV7()->DrawPrimitiveStrided(dptPrimitiveType, dwVertexTypeDesc, lpVertexArray, dwVertexCount, dwFlags);
+			DWORD Flags = dwFlags & ~(D3DDP_DONOTCLIP | D3DDP_DONOTLIGHT | D3DDP_DONOTUPDATEEXTENTS);
+			HRESULT hr = GetProxyInterfaceV7()->DrawPrimitiveStrided(dptPrimitiveType, dwVertexTypeDesc, lpVertexArray, dwVertexCount, Flags);
 
 			// Handle dwFlags
 			RestoreDrawStates(dwVertexTypeDesc, dwFlags, DirectXVersion);
@@ -2713,8 +2827,6 @@ HRESULT m_IDirect3DDeviceX::DrawPrimitiveVB(D3DPRIMITIVETYPE dptPrimitiveType, L
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	dwFlags &= D3DDP_FORCE_DWORD;
-
 	if (Config.Dd7to9)
 	{
 		if (!lpd3dVertexBuffer)
@@ -2728,10 +2840,11 @@ HRESULT m_IDirect3DDeviceX::DrawPrimitiveVB(D3DPRIMITIVETYPE dptPrimitiveType, L
 			return DDERR_GENERIC;
 		}
 
+		dwFlags &= D3DDP_FORCE_DWORD;
+
 		// ToDo: Validate vertex buffer
 		m_IDirect3DVertexBufferX* pVertexBufferX = nullptr;
 		lpd3dVertexBuffer->QueryInterface(IID_GetInterfaceX, (LPVOID*)&pVertexBufferX);
-
 		if (!pVertexBufferX)
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Error: could not get vertex buffer wrapper!");
@@ -2739,7 +2852,6 @@ HRESULT m_IDirect3DDeviceX::DrawPrimitiveVB(D3DPRIMITIVETYPE dptPrimitiveType, L
 		}
 
 		LPDIRECT3DVERTEXBUFFER9 d3d9VertexBuffer = pVertexBufferX->GetCurrentD9VertexBuffer();
-
 		if (!d3d9VertexBuffer)
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Error: could not get d3d9 vertex buffer!");
@@ -2752,7 +2864,7 @@ HRESULT m_IDirect3DDeviceX::DrawPrimitiveVB(D3DPRIMITIVETYPE dptPrimitiveType, L
 		if (FAILED((*d3d9Device)->SetFVF(FVF)))
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Error: invalid FVF type: " << Logging::hex(FVF));
-			return D3DERR_INVALIDVERTEXTYPE;
+			return DDERR_INVALIDPARAMS;
 		}
 
 		// Set stream source
@@ -2803,7 +2915,8 @@ HRESULT m_IDirect3DDeviceX::DrawPrimitiveVB(D3DPRIMITIVETYPE dptPrimitiveType, L
 			// Handle dwFlags
 			SetDrawStates(BufferDesc.dwFVF, dwFlags, DirectXVersion);
 
-			HRESULT hr = GetProxyInterfaceV7()->DrawPrimitiveVB(dptPrimitiveType, lpd3dVertexBuffer, dwStartVertex, dwNumVertices, dwFlags);
+			DWORD Flags = dwFlags & ~(D3DDP_DONOTCLIP | D3DDP_DONOTLIGHT | D3DDP_DONOTUPDATEEXTENTS);
+			HRESULT hr = GetProxyInterfaceV7()->DrawPrimitiveVB(dptPrimitiveType, lpd3dVertexBuffer, dwStartVertex, dwNumVertices, Flags);
 
 			// Handle dwFlags
 			RestoreDrawStates(BufferDesc.dwFVF, dwFlags, DirectXVersion);
@@ -2821,10 +2934,24 @@ HRESULT m_IDirect3DDeviceX::DrawIndexedPrimitive(D3DPRIMITIVETYPE dptPrimitiveTy
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	dwFlags &= D3DDP_FORCE_DWORD;
+	if (DirectXVersion == 2 && ProxyDirectXVersion > 2)
+	{
+		if (dwVertexTypeDesc != D3DVT_VERTEX && dwVertexTypeDesc != D3DVT_LVERTEX && dwVertexTypeDesc != D3DVT_TLVERTEX)
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: invalid Vertex type: " << dwVertexTypeDesc);
+			return D3DERR_INVALIDVERTEXTYPE;
+		}
+		dwVertexTypeDesc = ConvertVertexTypeToFVF((D3DVERTEXTYPE)dwVertexTypeDesc);
+	}
 
 	if (Config.Dd7to9)
 	{
+		if (DirectXVersion == 2)
+		{
+			// ToDo: fix me. Just return ok for now until function is fixed to work on Direct3D2.
+			return D3D_OK;
+		}
+
 		if (!lpVertices || !lpIndices)
 		{
 			return DDERR_INVALIDPARAMS;
@@ -2836,6 +2963,8 @@ HRESULT m_IDirect3DDeviceX::DrawIndexedPrimitive(D3DPRIMITIVETYPE dptPrimitiveTy
 			return DDERR_GENERIC;
 		}
 
+		dwFlags &= D3DDP_FORCE_DWORD;
+
 		// Update vertices for Direct3D9 (needs to be first)
 		UpdateVertices(dwVertexTypeDesc, lpVertices, dwVertexCount);
 
@@ -2843,7 +2972,7 @@ HRESULT m_IDirect3DDeviceX::DrawIndexedPrimitive(D3DPRIMITIVETYPE dptPrimitiveTy
 		if (FAILED((*d3d9Device)->SetFVF(dwVertexTypeDesc)))
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Error: invalid FVF type: " << Logging::hex(dwVertexTypeDesc));
-			return D3DERR_INVALIDVERTEXTYPE;
+			return DDERR_INVALIDPARAMS;
 		}
 
 		// Check for color key
@@ -2886,7 +3015,8 @@ HRESULT m_IDirect3DDeviceX::DrawIndexedPrimitive(D3DPRIMITIVETYPE dptPrimitiveTy
 			// Handle dwFlags
 			SetDrawStates(dwVertexTypeDesc, dwFlags, DirectXVersion);
 
-			HRESULT hr = GetProxyInterfaceV7()->DrawIndexedPrimitive(dptPrimitiveType, dwVertexTypeDesc, lpVertices, dwVertexCount, lpIndices, dwIndexCount, dwFlags);
+			DWORD Flags = dwFlags & ~(D3DDP_DONOTCLIP | D3DDP_DONOTLIGHT | D3DDP_DONOTUPDATEEXTENTS);
+			HRESULT hr = GetProxyInterfaceV7()->DrawIndexedPrimitive(dptPrimitiveType, dwVertexTypeDesc, lpVertices, dwVertexCount, lpIndices, dwIndexCount, Flags);
 
 			// Handle dwFlags
 			RestoreDrawStates(dwVertexTypeDesc, dwFlags, DirectXVersion);
@@ -2903,8 +3033,6 @@ HRESULT m_IDirect3DDeviceX::DrawIndexedPrimitive(D3DPRIMITIVETYPE dptPrimitiveTy
 HRESULT m_IDirect3DDeviceX::DrawIndexedPrimitiveStrided(D3DPRIMITIVETYPE dptPrimitiveType, DWORD dwVertexTypeDesc, LPD3DDRAWPRIMITIVESTRIDEDDATA lpVertexArray, DWORD dwVertexCount, LPWORD lpwIndices, DWORD dwIndexCount, DWORD dwFlags, DWORD DirectXVersion)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
-
-	dwFlags &= D3DDP_FORCE_DWORD;
 
 	if (Config.Dd7to9)
 	{
@@ -2926,7 +3054,8 @@ HRESULT m_IDirect3DDeviceX::DrawIndexedPrimitiveStrided(D3DPRIMITIVETYPE dptPrim
 			// Handle dwFlags
 			SetDrawStates(dwVertexTypeDesc, dwFlags, DirectXVersion);
 
-			HRESULT hr = GetProxyInterfaceV7()->DrawIndexedPrimitiveStrided(dptPrimitiveType, dwVertexTypeDesc, lpVertexArray, dwVertexCount, lpwIndices, dwIndexCount, dwFlags);
+			DWORD Flags = dwFlags & ~(D3DDP_DONOTCLIP | D3DDP_DONOTLIGHT | D3DDP_DONOTUPDATEEXTENTS);
+			HRESULT hr = GetProxyInterfaceV7()->DrawIndexedPrimitiveStrided(dptPrimitiveType, dwVertexTypeDesc, lpVertexArray, dwVertexCount, lpwIndices, dwIndexCount, Flags);
 
 			// Handle dwFlags
 			RestoreDrawStates(dwVertexTypeDesc, dwFlags, DirectXVersion);
@@ -2944,8 +3073,6 @@ HRESULT m_IDirect3DDeviceX::DrawIndexedPrimitiveVB(D3DPRIMITIVETYPE dptPrimitive
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	dwFlags &= D3DDP_FORCE_DWORD;
-
 	if (Config.Dd7to9)
 	{
 		if (!lpd3dVertexBuffer || !lpwIndices)
@@ -2959,18 +3086,18 @@ HRESULT m_IDirect3DDeviceX::DrawIndexedPrimitiveVB(D3DPRIMITIVETYPE dptPrimitive
 			return DDERR_GENERIC;
 		}
 
+		dwFlags &= D3DDP_FORCE_DWORD;
+
 		// ToDo: Validate vertex buffer
 		m_IDirect3DVertexBufferX* pVertexBufferX = nullptr;
 		lpd3dVertexBuffer->QueryInterface(IID_GetInterfaceX, (LPVOID*)&pVertexBufferX);
-
 		if (!pVertexBufferX)
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Error: could not get vertex buffer wrapper!");
-			return DDERR_GENERIC;
+			return DDERR_INVALIDPARAMS;
 		}
 
 		LPDIRECT3DVERTEXBUFFER9 d3d9VertexBuffer = pVertexBufferX->GetCurrentD9VertexBuffer();
-
 		if (!d3d9VertexBuffer)
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Error: could not get d3d9 vertex buffer!");
@@ -2978,7 +3105,6 @@ HRESULT m_IDirect3DDeviceX::DrawIndexedPrimitiveVB(D3DPRIMITIVETYPE dptPrimitive
 		}
 
 		LPDIRECT3DINDEXBUFFER9 d3d9IndexBuffer = pVertexBufferX->SetupIndexBuffer(lpwIndices, dwIndexCount);
-
 		if (!d3d9IndexBuffer)
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Error: could not get d3d9 index buffer!");
@@ -2991,7 +3117,7 @@ HRESULT m_IDirect3DDeviceX::DrawIndexedPrimitiveVB(D3DPRIMITIVETYPE dptPrimitive
 		if (FAILED((*d3d9Device)->SetFVF(FVF)))
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Error: invalid FVF type: " << Logging::hex(FVF));
-			return D3DERR_INVALIDVERTEXTYPE;
+			return DDERR_INVALIDPARAMS;
 		}
 
 		// Set stream source
@@ -3045,7 +3171,8 @@ HRESULT m_IDirect3DDeviceX::DrawIndexedPrimitiveVB(D3DPRIMITIVETYPE dptPrimitive
 			// Handle dwFlags
 			SetDrawStates(BufferDesc.dwFVF, dwFlags, DirectXVersion);
 
-			HRESULT hr = GetProxyInterfaceV7()->DrawIndexedPrimitiveVB(dptPrimitiveType, lpd3dVertexBuffer, dwStartVertex, dwNumVertices, lpwIndices, dwIndexCount, dwFlags);
+			DWORD Flags = dwFlags & ~(D3DDP_DONOTCLIP | D3DDP_DONOTLIGHT | D3DDP_DONOTUPDATEEXTENTS);
+			HRESULT hr = GetProxyInterfaceV7()->DrawIndexedPrimitiveVB(dptPrimitiveType, lpd3dVertexBuffer, dwStartVertex, dwNumVertices, lpwIndices, dwIndexCount, Flags);
 
 			// Handle dwFlags
 			RestoreDrawStates(BufferDesc.dwFVF, dwFlags, DirectXVersion);
