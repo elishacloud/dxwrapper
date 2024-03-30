@@ -2700,12 +2700,6 @@ HRESULT m_IDirect3DDeviceX::DrawPrimitive(D3DPRIMITIVETYPE dptPrimitiveType, DWO
 
 	if (Config.Dd7to9)
 	{
-		if (DirectXVersion == 2)
-		{
-			// ToDo: fix me. Just return ok for now until function is fixed to work on Direct3D2.
-			return D3D_OK;
-		}
-
 		if (!lpVertices)
 		{
 			return DDERR_INVALIDPARAMS;
@@ -2946,12 +2940,6 @@ HRESULT m_IDirect3DDeviceX::DrawIndexedPrimitive(D3DPRIMITIVETYPE dptPrimitiveTy
 
 	if (Config.Dd7to9)
 	{
-		if (DirectXVersion == 2)
-		{
-			// ToDo: fix me. Just return ok for now until function is fixed to work on Direct3D2.
-			return D3D_OK;
-		}
-
 		if (!lpVertices || !lpIndices)
 		{
 			return DDERR_INVALIDPARAMS;

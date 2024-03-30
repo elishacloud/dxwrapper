@@ -90,6 +90,7 @@ private:
 		bool IsDirtyFlag = false;
 		bool IsPaletteDirty = false;						// Used to detect if the palette surface needs to be updated
 		DWORD LastPaletteUSN = 0;							// The USN that was used last time the palette was updated
+		D3DPOOL TexturePool = D3DPOOL_DEFAULT;				// Memory pool used for textures
 		EMUSURFACE* emu = nullptr;							// Emulated surface using device context
 		LPPALETTEENTRY PaletteEntryArray = nullptr;			// Used to store palette data address
 		LPDIRECT3DSURFACE9 Surface = nullptr;				// Surface used for Direct3D
