@@ -183,6 +183,11 @@ HRESULT m_IDirect3DTextureX::GetHandle(LPDIRECT3DDEVICE2 lpDirect3DDevice2, LPD3
 			LOG_LIMIT(100, __FUNCTION__ << " Warning: Direct3D Device wrapper does not match! " << *D3DDeviceInterface << "->" << pDirect3DDeviceX);
 		}
 
+		if (!tHandle)
+		{
+			tHandle = (DWORD)this + 32;
+		}
+
 		(*D3DDeviceInterface)->SetTextureHandle(tHandle, this);
 
 		*lpHandle = tHandle;
@@ -336,8 +341,6 @@ void m_IDirect3DTextureX::InitTexture(DWORD DirectXVersion)
 	}
 
 	AddRef(DirectXVersion);
-
-	tHandle = (DWORD)this + 32;
 }
 
 void m_IDirect3DTextureX::ReleaseTexture()
@@ -345,7 +348,7 @@ void m_IDirect3DTextureX::ReleaseTexture()
 	WrapperInterface->DeleteMe();
 	WrapperInterface2->DeleteMe();
 
-	if (D3DDeviceInterface && *D3DDeviceInterface)
+	if (tHandle && D3DDeviceInterface && *D3DDeviceInterface)
 	{
 		(*D3DDeviceInterface)->ReleaseTextureHandle(this);
 	}

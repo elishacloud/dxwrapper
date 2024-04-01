@@ -821,23 +821,22 @@ HRESULT m_IDirect3DDeviceX::GetTexture(DWORD dwStage, LPDIRECTDRAWSURFACE7* lplp
 	return hr;
 }
 
-HRESULT m_IDirect3DDeviceX::ReleaseTextureHandle(m_IDirect3DTextureX* lpTexture)
+void m_IDirect3DDeviceX::ReleaseTextureHandle(m_IDirect3DTextureX* lpTexture)
 {
-	// Find handle associated with texture2
-	auto it = std::find_if(TextureHandleMap.begin(), TextureHandleMap.end(), [&](const auto& pair) {
-		return pair.second == lpTexture;
-		});
-
-	// Check if handles are found
-	if (it == TextureHandleMap.end())
+	// Find handle associated with texture
+	auto it = TextureHandleMap.begin();
+	while (it != TextureHandleMap.end())
 	{
-		LOG_LIMIT(100, __FUNCTION__ << " Error: could not find surface in map!");
-		return DDERR_GENERIC;
+		if (it->second == lpTexture)
+		{
+			// Remove entry from map
+			it = TextureHandleMap.erase(it);
+		}
+		else
+		{
+			++it;
+		}
 	}
-
-	TextureHandleMap.erase(it);
-
-	return D3D_OK;
 }
 
 HRESULT m_IDirect3DDeviceX::SetTextureHandle(DWORD tHandle, m_IDirect3DTextureX* lpTexture)

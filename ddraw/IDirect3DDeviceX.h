@@ -252,7 +252,7 @@ public:
 	ULONG Release(DWORD DirectXVersion);
 
 	// Texture handle function
-	HRESULT ReleaseTextureHandle(m_IDirect3DTextureX* lpTexture);
+	void ReleaseTextureHandle(m_IDirect3DTextureX* lpTexture);
 	HRESULT SetTextureHandle(DWORD tHandle, m_IDirect3DTextureX* lpTexture);
 
 	// Functions handling the ddraw parent interface
