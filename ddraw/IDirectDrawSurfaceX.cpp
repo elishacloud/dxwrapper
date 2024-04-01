@@ -135,15 +135,15 @@ HRESULT m_IDirectDrawSurfaceX::QueryInterface(REFIID riid, LPVOID FAR* ppvObj, D
 
 		m_IDirect3DTextureX* InterfaceX = nullptr;
 
-		if (attachedTexture)
+		if (attached3DTexture)
 		{
-			InterfaceX = attachedTexture;
+			InterfaceX = attached3DTexture;
 			InterfaceX->AddRef(DxVersion);
 		}
 		else
 		{
 			InterfaceX = new m_IDirect3DTextureX(ddrawParent->GetCurrentD3DDevice(), DxVersion, this);
-			attachedTexture = InterfaceX;
+			attached3DTexture = InterfaceX;
 		}
 
 		*ppvObj = InterfaceX->GetWrapperInterfaceX(DxVersion);
@@ -3454,9 +3454,9 @@ inline void m_IDirectDrawSurfaceX::ReleaseDirectDrawResources()
 		attachedPalette->Release();
 	}
 
-	if (attachedTexture)
+	if (attached3DTexture)
 	{
-		attachedTexture->ClearSurface();
+		attached3DTexture->ClearSurface();
 	}
 
 	if (ddrawParent)
@@ -3519,9 +3519,10 @@ LPDIRECT3DTEXTURE9 m_IDirectDrawSurfaceX::Get3DTexture()
 	}
 
 	// Check texture pool
-	if (surface.TexturePool == D3DPOOL_SCRATCH || surface.TexturePool == D3DPOOL_SYSTEMMEM)
+	if (surface.TexturePool == D3DPOOL_SYSTEMMEM || surface.TexturePool == D3DPOOL_SCRATCH)
 	{
-		LOG_LIMIT(100, __FUNCTION__ << " Error: texture pool does not support Driect3D: " << surfaceFormat << " " << surface.TexturePool << " " << Logging::hex(surfaceDesc2.ddsCaps.dwCaps));
+		LOG_LIMIT(100, __FUNCTION__ << " Error: texture pool does not support Driect3D: " << surfaceFormat << " Pool: " << surface.TexturePool <<
+			" Caps: " << Logging::hex(surfaceDesc2.ddsCaps.dwCaps) << " Attached: " << attached3DTexture);
 		return nullptr;
 	}
 
@@ -3630,18 +3631,23 @@ HRESULT m_IDirectDrawSurfaceX::CheckInterface(char *FunctionName, bool CheckD3DD
 	// Check surface
 	if (CheckD3DSurface)
 	{
-		// Check if using Direct3D and remove emulated surface if not needed or texture pool is wrong
+		// Check if using windowed mode
+		bool LastWindowedMode = surface.IsUsingWindowedMode;
+		surface.IsUsingWindowedMode = !ddrawParent->IsExclusiveMode();
+
+		// Check if using Direct3D and remove emulated surface if not needed
 		bool LastUsing3D = Using3D;
 		Using3D = ddrawParent->IsUsing3D();
-		if ((attachedTexture && surface.TexturePool != D3DPOOL_MANAGED) ||
-			(Using3D && !LastUsing3D && IsUsingEmulation() && !Config.DdrawEmulateSurface && !SurfaceRequiresEmulation && !IsSurfaceBusy()))
+		if (Using3D && !LastUsing3D && IsUsingEmulation() && !Config.DdrawEmulateSurface && !SurfaceRequiresEmulation && !IsSurfaceBusy())
 		{
 			ReleaseDCSurface();
 		}
 
-		// Check if using windowed mode
-		bool LastWindowedMode = surface.IsUsingWindowedMode;
-		surface.IsUsingWindowedMode = !ddrawParent->IsExclusiveMode();
+		// Check if texture pool is wrong
+		if (attached3DTexture && surface.TexturePool != D3DPOOL_MANAGED)
+		{
+			ReleaseD9Surface(true, false);
+		}
 
 		// Make sure surface exists, if not then create it
 		if ((!surface.Texture && !surface.Surface) ||
@@ -3695,7 +3701,8 @@ HRESULT m_IDirectDrawSurfaceX::CreateD3d9Surface()
 	const D3DFORMAT TextureFormat = (surfaceFormat == D3DFMT_P8) ? D3DFMT_L8 : Format;
 
 	// Get texture memory pool
-	surface.TexturePool = (IsPrimaryOrBackBuffer() || attachedTexture) ? D3DPOOL_MANAGED : (surfaceDesc2.ddsCaps.dwCaps & DDSCAPS_SYSTEMMEMORY) ? D3DPOOL_SYSTEMMEM : D3DPOOL_MANAGED;
+	surface.TexturePool = (IsPrimaryOrBackBuffer() || (surfaceDesc2.ddsCaps.dwCaps & DDSCAPS_ALLOCONLOAD) || attached3DTexture) ? D3DPOOL_MANAGED :
+		(surfaceDesc2.ddsCaps.dwCaps & DDSCAPS_SYSTEMMEMORY) ? D3DPOOL_SYSTEMMEM : D3DPOOL_MANAGED;
 
 	// Adjust Width to be byte-aligned
 	const DWORD Width = GetByteAlignedWidth(surfaceDesc2.dwWidth, surfaceBitCount);

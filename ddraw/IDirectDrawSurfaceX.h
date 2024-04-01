@@ -113,7 +113,7 @@ private:
 	LPDIRECT3DTEXTURE9 PrimaryDisplayTexture = nullptr;	// Used for the texture surface for the primary surface
 	m_IDirectDrawPalette *attachedPalette = nullptr;	// Associated palette
 	m_IDirectDrawClipper *attachedClipper = nullptr;	// Associated clipper
-	m_IDirect3DTextureX *attachedTexture = nullptr;		// Associated texture
+	m_IDirect3DTextureX *attached3DTexture = nullptr;		// Associated texture
 	DDSURFACEDESC2 surfaceDesc2 = {};					// Surface description for this surface
 	D3DFORMAT surfaceFormat = D3DFMT_UNKNOWN;			// Format for this surface
 	DWORD surfaceBitCount = 0;							// Bit count for this surface
@@ -434,8 +434,8 @@ public:
 	LPDIRECT3DTEXTURE9 Get3DPaletteTexture() { return primary.PaletteTexture; }
 	LPDIRECT3DSURFACE9 GetD3D9Surface();
 	LPDIRECT3DTEXTURE9 GetD3D9Texture();
-	inline m_IDirect3DTextureX* GetAttachedTexture() { return attachedTexture; }
-	inline void ClearAttachedTexture() { attachedTexture = nullptr; }
+	inline m_IDirect3DTextureX* GetAttachedTexture() { return attached3DTexture; }
+	inline void ClearAttachedTexture() { attached3DTexture = nullptr; }
 	void ClearDirtyFlags();
 
 	// Draw 2D DirectDraw surface
