@@ -230,8 +230,9 @@ HRESULT m_IDirect3DTextureX::PaletteChanged(DWORD dwStart, DWORD dwCount)
 
 	if (!ProxyInterface)
 	{
-		LOG_LIMIT(100, __FUNCTION__ << " Error: Not Implemented");
-		return DDERR_UNSUPPORTED;
+		// This method informs the driver that the palette has changed on a texture surface.
+		// Only affects the legacy ramp device. For all other devices, this method takes no action and returns D3D_OK.
+		return DD_OK;
 	}
 
 	switch (ProxyDirectXVersion)
