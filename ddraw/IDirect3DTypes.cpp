@@ -30,7 +30,7 @@ D3DMATERIAL defaultMaterial = {
 
 void ConvertLight(D3DLIGHT& Light, D3DLIGHT7& Light7)
 {
-	if (Light.dwSize != sizeof(D3DLIGHT))
+	if (Light.dwSize != sizeof(D3DLIGHT) && Light.dwSize != sizeof(D3DLIGHT2))
 	{
 		LOG_LIMIT(100, __FUNCTION__ << " Error: Incorrect dwSize: " << Light.dwSize);
 		return;
@@ -50,7 +50,7 @@ void ConvertLight(D3DLIGHT& Light, D3DLIGHT7& Light7)
 
 void ConvertLight(D3DLIGHT7& Light7, D3DLIGHT& Light)
 {
-	if (Light.dwSize != sizeof(D3DLIGHT))
+	if (Light.dwSize != sizeof(D3DLIGHT) && Light.dwSize != sizeof(D3DLIGHT2))
 	{
 		LOG_LIMIT(100, __FUNCTION__ << " Error: Incorrect dwSize: " << Light.dwSize);
 		return;

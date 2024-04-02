@@ -107,7 +107,10 @@ HRESULT m_IDirect3DLight::SetLight(LPD3DLIGHT lpLight)
 
 	if (!ProxyInterface)
 	{
-		if (!lpLight || lpLight->dwSize != sizeof(D3DLIGHT))
+		// Although this method's declaration specifies the lpLight parameter as being the address of a D3DLIGHT structure, that structure is not normally used.
+		// Rather, the D3DLIGHT2 structure is recommended to achieve the best lighting effects.
+
+		if (!lpLight || (lpLight->dwSize != sizeof(D3DLIGHT) && lpLight->dwSize != sizeof(D3DLIGHT2)))
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Error: Incorrect dwSize: " << ((lpLight) ? lpLight->dwSize : -1));
 			return DDERR_INVALIDPARAMS;
@@ -131,7 +134,21 @@ HRESULT m_IDirect3DLight::SetLight(LPD3DLIGHT lpLight)
 		}
 
 		LightSet = true;
-		Light = *lpLight;
+
+		// D3DLIGHT
+		if (lpLight->dwSize != sizeof(D3DLIGHT))
+		{
+			*lpLight = *(LPD3DLIGHT)&Light;
+		}
+		// D3DLIGHT2
+		else
+		{
+			*(LPD3DLIGHT2)lpLight = Light;
+			if (Light.dwFlags)
+			{
+				LOG_LIMIT(100, __FUNCTION__ << " Warning: light flags not Implemented: " << Logging::hex(Light.dwFlags));
+			}
+		}
 
 		return D3D_OK;
 	}
@@ -145,19 +162,36 @@ HRESULT m_IDirect3DLight::GetLight(LPD3DLIGHT lpLight)
 
 	if (!ProxyInterface)
 	{
-		if (!lpLight)
+		// Although this method's declaration specifies the lpLight parameter as being the address of a D3DLIGHT structure, that structure is not normally used.
+		// Rather, the D3DLIGHT2 structure is recommended to achieve the best lighting effects.
+
+		if (!lpLight || (lpLight->dwSize != sizeof(D3DLIGHT) && lpLight->dwSize != sizeof(D3DLIGHT2)))
 		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: Incorrect dwSize: " << ((lpLight) ? lpLight->dwSize : -1));
 			return DDERR_INVALIDPARAMS;
 		}
 
-		if (LightSet)
+		if (!LightSet)
 		{
-			*lpLight = Light;
-
-			return D3D_OK;
+			return DDERR_GENERIC;
 		}
 
-		return DDERR_GENERIC;
+		// D3DLIGHT
+		if (lpLight->dwSize != sizeof(D3DLIGHT))
+		{
+			*lpLight = *(LPD3DLIGHT)&Light;
+		}
+		// D3DLIGHT2
+		else
+		{
+			*(LPD3DLIGHT2)lpLight = Light;
+			if (Light.dwSize != sizeof(D3DLIGHT2))
+			{
+				LOG_LIMIT(100, __FUNCTION__ << " Warning: dwSize mismatch: " << sizeof(D3DLIGHT2) << "->" << lpLight->dwSize);
+			}
+		}
+
+		return D3D_OK;
 	}
 
 	return ProxyInterface->GetLight(lpLight);
