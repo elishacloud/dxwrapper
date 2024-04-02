@@ -32,6 +32,8 @@ typedef struct {
 	FLOAT    tu, tv;
 } D3DLVERTEX9, *LPD3DLVERTEX9;
 
+extern D3DMATERIAL defaultMaterial;
+
 void ConvertLight(D3DLIGHT& Light, D3DLIGHT7& Light7);
 void ConvertLight(D3DLIGHT7& Light7, D3DLIGHT& Light);
 void ConvertMaterial(D3DMATERIAL &Material, D3DMATERIAL7 &Material7);

@@ -1995,15 +1995,32 @@ HRESULT m_IDirect3DDeviceX::SetLightState(D3DLIGHTSTATETYPE dwLightStateType, DW
 
 	if (ProxyDirectXVersion > 3)
 	{
-		if (dwLightStateType == D3DLIGHTSTATE_MATERIAL || dwLightStateType == D3DLIGHTSTATE_COLORMODEL)
+		if (dwLightStateType == D3DLIGHTSTATE_COLORMODEL)
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Error: LightStateType: " << dwLightStateType << " Not Implemented");
-			return DDERR_UNSUPPORTED;
+			return D3D_OK;
 		}
 
 		DWORD RenderState = 0;
 		switch (dwLightStateType)
 		{
+		case D3DLIGHTSTATE_MATERIAL:
+		{
+			D3DMATERIAL* lpMaterial = dwLightState ? &currentMaterial : &defaultMaterial;
+
+			D3DMATERIAL7 Material7;
+
+			ConvertMaterial(Material7, *lpMaterial);
+
+			SetMaterial(&Material7);
+
+			if (lpMaterial->hTexture)
+			{
+				SetRenderState(D3DRENDERSTATE_TEXTUREHANDLE, lpMaterial->hTexture);
+			}
+
+			return D3D_OK;
+		}
 		case D3DLIGHTSTATE_AMBIENT:
 			RenderState = D3DRENDERSTATE_AMBIENT;
 			break;
@@ -2215,6 +2232,36 @@ HRESULT m_IDirect3DDeviceX::MultiplyTransform(D3DTRANSFORMSTATETYPE dtstTransfor
 	}
 }
 
+HRESULT m_IDirect3DDeviceX::SetMaterial(LPD3DMATERIAL lpMaterial)
+{
+	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
+
+	if (!lpMaterial)
+	{
+		return DDERR_INVALIDPARAMS;
+	}
+
+	D3DMATERIAL7 Material7;
+
+	ConvertMaterial(Material7, *lpMaterial);
+
+	HRESULT hr = SetMaterial(&Material7);
+
+	if (FAILED(hr))
+	{
+		return D3DERR_MATERIAL_SETDATA_FAILED;
+	}
+
+	if (lpMaterial->hTexture)
+	{
+		SetRenderState(D3DRENDERSTATE_TEXTUREHANDLE, lpMaterial->hTexture);
+	}
+
+	currentMaterial = *lpMaterial;
+
+	return D3D_OK;
+}
+
 HRESULT m_IDirect3DDeviceX::SetMaterial(LPD3DMATERIAL7 lpMaterial)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
@@ -2354,7 +2401,7 @@ HRESULT m_IDirect3DDeviceX::SetRenderState(D3DRENDERSTATETYPE dwRenderStateType,
 
 				// Save state
 				rsTextureMapBlend = dwRenderState;
-				return DD_OK;
+				return D3D_OK;
 			case D3DTBLEND_DECALALPHA:
 				// Reset states
 				(*d3d9Device)->SetRenderState(D3DRS_ALPHATESTENABLE, FALSE);
@@ -2372,7 +2419,7 @@ HRESULT m_IDirect3DDeviceX::SetRenderState(D3DRENDERSTATETYPE dwRenderStateType,
 
 				// Save state
 				rsTextureMapBlend = dwRenderState;
-				return DD_OK;
+				return D3D_OK;
 			case D3DTBLEND_DECALMASK:
 				// Reset states
 				(*d3d9Device)->SetTextureStageState(0, D3DTSS_ALPHAOP, D3DTOP_DISABLE);
@@ -2390,7 +2437,7 @@ HRESULT m_IDirect3DDeviceX::SetRenderState(D3DRENDERSTATETYPE dwRenderStateType,
 
 				// Save state
 				rsTextureMapBlend = dwRenderState;
-				return DD_OK;
+				return D3D_OK;
 			case D3DTBLEND_MODULATE:
 				// Reset states
 				(*d3d9Device)->SetTextureStageState(0, D3DTSS_ALPHAOP, D3DTOP_DISABLE);
@@ -2406,7 +2453,7 @@ HRESULT m_IDirect3DDeviceX::SetRenderState(D3DRENDERSTATETYPE dwRenderStateType,
 
 				// Save state
 				rsTextureMapBlend = dwRenderState;
-				return DD_OK;
+				return D3D_OK;
 			case D3DTBLEND_MODULATEALPHA:
 				// Reset states
 				(*d3d9Device)->SetRenderState(D3DRS_ALPHABLENDENABLE, FALSE);
@@ -2424,7 +2471,7 @@ HRESULT m_IDirect3DDeviceX::SetRenderState(D3DRENDERSTATETYPE dwRenderStateType,
 
 				// Save state
 				rsTextureMapBlend = dwRenderState;
-				return DD_OK;
+				return D3D_OK;
 			case D3DTBLEND_MODULATEMASK:
 				// Reset states
 				(*d3d9Device)->SetTextureStageState(0, D3DTSS_ALPHAOP, D3DTOP_DISABLE);
@@ -2442,7 +2489,7 @@ HRESULT m_IDirect3DDeviceX::SetRenderState(D3DRENDERSTATETYPE dwRenderStateType,
 
 				// Save state
 				rsTextureMapBlend = dwRenderState;
-				return DD_OK;
+				return D3D_OK;
 			case D3DTBLEND_ADD:
 				// Reset states
 				(*d3d9Device)->SetTextureStageState(0, D3DTSS_ALPHAOP, D3DTOP_DISABLE);
@@ -2458,7 +2505,7 @@ HRESULT m_IDirect3DDeviceX::SetRenderState(D3DRENDERSTATETYPE dwRenderStateType,
 
 				// Save state
 				rsTextureMapBlend = dwRenderState;
-				return DD_OK;
+				return D3D_OK;
 			default:
 				return DDERR_INVALIDPARAMS;
 			}

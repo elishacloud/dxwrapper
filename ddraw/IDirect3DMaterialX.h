@@ -11,8 +11,7 @@ private:
 
 	// Convert Material
 	m_IDirect3DDeviceX **D3DDeviceInterface = nullptr;
-	D3DMATERIAL Material;
-	bool MaterialSet = false;
+	D3DMATERIAL Material = defaultMaterial;
 	DWORD mHandle = 0;
 
 	// Store d3d material version wrappers

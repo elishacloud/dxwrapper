@@ -174,31 +174,21 @@ HRESULT m_IDirect3DMaterialX::SetMaterial(LPD3DMATERIAL lpMat)
 			return DDERR_GENERIC;
 		}
 
-		if (lpMat->hTexture)
-		{
-			LOG_LIMIT(100, __FUNCTION__ << " Warning: D3DTEXTUREHANDLE Not Implemented: " << lpMat->hTexture);
-		}
-
 		if (lpMat->dwRampSize)
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Warning: RampSize Not Implemented: " << lpMat->dwRampSize);
 		}
 
-		D3DMATERIAL7 Material7;
-
-		ConvertMaterial(Material7, *lpMat);
-
-		HRESULT hr = (*D3DDeviceInterface)->SetMaterial(&Material7);
+		HRESULT hr = (*D3DDeviceInterface)->SetMaterial(lpMat);
 
 		if (FAILED(hr))
 		{
-			return D3DERR_MATERIAL_SETDATA_FAILED;
+			return hr;
 		}
 
-		MaterialSet = true;
 		Material = *lpMat;
 
-		return D3D_OK;;
+		return D3D_OK;
 	}
 
 	switch (ProxyDirectXVersion)
@@ -225,14 +215,9 @@ HRESULT m_IDirect3DMaterialX::GetMaterial(LPD3DMATERIAL lpMat)
 			return DDERR_INVALIDPARAMS;
 		}
 
-		if (MaterialSet)
-		{
-			*lpMat = Material;
+		*lpMat = Material;
 
-			return D3D_OK;
-		}
-
-		return D3DERR_MATERIAL_GETDATA_FAILED;
+		return D3D_OK;
 	}
 
 	switch (ProxyDirectXVersion)
@@ -254,10 +239,18 @@ HRESULT m_IDirect3DMaterialX::GetHandle(LPDIRECT3DDEVICE3 lpDirect3DDevice, LPD3
 
 	if (!ProxyInterface)
 	{
-		if (lpHandle)
+		if (!lpHandle)
 		{
-			*lpHandle = mHandle;
+			return DDERR_INVALIDPARAMS;
 		}
+
+		if (!mHandle)
+		{
+			mHandle = (DWORD)this + 32;
+		}
+
+		*lpHandle = mHandle;
+
 		return D3D_OK;
 	}
 
@@ -321,8 +314,6 @@ void m_IDirect3DMaterialX::InitMaterial(DWORD DirectXVersion)
 	}
 
 	AddRef(DirectXVersion);
-
-	mHandle = (DWORD)this + 32;
 }
 
 void m_IDirect3DMaterialX::ReleaseMaterial()

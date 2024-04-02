@@ -36,6 +36,8 @@ private:
 		float highColorKey[4] = {};
 	} DrawStates;
 
+	D3DMATERIAL currentMaterial = defaultMaterial;
+
 	// Store d3d device version wrappers
 	m_IDirect3DDevice *WrapperInterface;
 	m_IDirect3DDevice2 *WrapperInterface2;
@@ -221,6 +223,7 @@ public:
 	STDMETHOD(GetLight)(THIS_ DWORD, LPD3DLIGHT7);
 	STDMETHOD(LightEnable)(THIS_ DWORD, BOOL);
 	STDMETHOD(GetLightEnable)(THIS_ DWORD, BOOL*);
+	STDMETHOD(SetMaterial)(THIS_ LPD3DMATERIAL);
 	STDMETHOD(SetMaterial)(THIS_ LPD3DMATERIAL7);
 	STDMETHOD(GetMaterial)(THIS_ LPD3DMATERIAL7);
 	STDMETHOD(SetRenderState)(THIS_ D3DRENDERSTATETYPE, DWORD);

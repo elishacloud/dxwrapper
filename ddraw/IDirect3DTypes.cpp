@@ -16,6 +16,18 @@
 
 #include "ddraw.h"
 
+// Define a default material with neutral properties
+D3DMATERIAL defaultMaterial = {
+	sizeof(D3DMATERIAL),
+	{ 0.0f, 0.0f, 0.0f, 1.0f },	// Diffuse color (black)
+	{ 0.0f, 0.0f, 0.0f, 1.0f },	// Ambient color (black)
+	{ 0.0f, 0.0f, 0.0f, 1.0f },	// Specular color (black)
+	{ 0.0f, 0.0f, 0.0f, 1.0f },	// Emissive color (black)
+	0.0f,						// Power (shininess)
+	0,							// Texture handle
+	0							// Ramp size
+};
+
 void ConvertLight(D3DLIGHT& Light, D3DLIGHT7& Light7)
 {
 	if (Light.dwSize != sizeof(D3DLIGHT))
