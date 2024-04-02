@@ -2327,6 +2327,14 @@ HRESULT m_IDirect3DDeviceX::SetRenderState(D3DRENDERSTATETYPE dwRenderStateType,
 
 		switch ((DWORD)dwRenderStateType)
 		{
+		case D3DRENDERSTATE_WRAPU:
+			TextureWrappingState.isChanged = true;
+			TextureWrappingState.Warp_U = dwRenderState;
+			return D3D_OK;
+		case D3DRENDERSTATE_WRAPV:
+			TextureWrappingState.isChanged = true;
+			TextureWrappingState.Warp_V = dwRenderState;
+			return D3D_OK;
 		case D3DRENDERSTATE_TEXTUREHANDLE:
 			if (dwRenderState == NULL)
 			{
@@ -2617,6 +2625,12 @@ HRESULT m_IDirect3DDeviceX::GetRenderState(D3DRENDERSTATETYPE dwRenderStateType,
 
 		switch ((DWORD)dwRenderStateType)
 		{
+		case D3DRENDERSTATE_WRAPU:
+			*lpdwRenderState = TextureWrappingState.Warp_U;
+			return D3D_OK;
+		case D3DRENDERSTATE_WRAPV:
+			*lpdwRenderState = TextureWrappingState.Warp_V;
+			return D3D_OK;
 		case D3DRENDERSTATE_TEXTUREHANDLE:
 			*lpdwRenderState = rsTextureHandle;
 			return D3D_OK;
@@ -3714,6 +3728,13 @@ inline void m_IDirect3DDeviceX::SetDrawStates(DWORD dwVertexTypeDesc, DWORD dwFl
 	if (DirectXVersion < 7)
 	{
 		// dwFlags (D3DDP_WAIT) can be ignored safely
+
+		// Handle texture wrapping
+		if (TextureWrappingState.isChanged)
+		{
+			DWORD RenderState = (TextureWrappingState.Warp_U ? D3DWRAP_U : 0) | (TextureWrappingState.Warp_V ? D3DWRAP_V : 0);
+			SetRenderState(D3DRENDERSTATE_WRAP0, RenderState);
+		}
 
 		// Handle dwFlags
 		if (dwFlags & D3DDP_DONOTCLIP)

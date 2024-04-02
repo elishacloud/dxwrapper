@@ -36,6 +36,12 @@ private:
 		float highColorKey[4] = {};
 	} DrawStates;
 
+	struct {
+		bool isChanged = false;
+		BOOL Warp_U = FALSE;
+		BOOL Warp_V = FALSE;
+	} TextureWrappingState;
+
 	D3DMATERIAL currentMaterial = defaultMaterial;
 
 	// Store d3d device version wrappers
