@@ -2252,6 +2252,11 @@ HRESULT m_IDirect3DDeviceX::SetMaterial(LPD3DMATERIAL lpMaterial)
 		return D3DERR_MATERIAL_SETDATA_FAILED;
 	}
 
+	if (lpMaterial->dwRampSize)
+	{
+		LOG_LIMIT(100, __FUNCTION__ << " Warning: RampSize Not Implemented: " << lpMaterial->dwRampSize);
+	}
+
 	if (lpMaterial->hTexture)
 	{
 		SetRenderState(D3DRENDERSTATE_TEXTUREHANDLE, lpMaterial->hTexture);

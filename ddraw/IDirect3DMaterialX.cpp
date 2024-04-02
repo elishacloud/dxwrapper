@@ -174,11 +174,6 @@ HRESULT m_IDirect3DMaterialX::SetMaterial(LPD3DMATERIAL lpMat)
 			return DDERR_GENERIC;
 		}
 
-		if (lpMat->dwRampSize)
-		{
-			LOG_LIMIT(100, __FUNCTION__ << " Warning: RampSize Not Implemented: " << lpMat->dwRampSize);
-		}
-
 		HRESULT hr = (*D3DDeviceInterface)->SetMaterial(lpMat);
 
 		if (FAILED(hr))
