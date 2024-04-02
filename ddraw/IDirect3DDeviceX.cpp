@@ -1792,11 +1792,12 @@ HRESULT m_IDirect3DDeviceX::EndScene()
 			{
 				PrimarySurface->GetColorKeyForPrimaryShader(DrawStates.lowColorKey, DrawStates.highColorKey);
 
-				SetDrawStates(0, D3DDP_DXW_DRAW2DSURFACE | D3DDP_DXW_COLORKEYENABLE, 9);
+				DWORD Flags = D3DDP_DXW_DRAW2DSURFACE | D3DDP_DXW_COLORKEYENABLE;
+				SetDrawStates(0, Flags, 9);
 
 				ddrawParent->Draw2DSurface(PrimarySurface);
 
-				RestoreDrawStates(0, D3DDP_DXW_DRAW2DSURFACE | D3DDP_DXW_COLORKEYENABLE, 9);
+				RestoreDrawStates(0, Flags, 9);
 			}
 		}
 
@@ -2776,7 +2777,7 @@ HRESULT m_IDirect3DDeviceX::DrawPrimitive(D3DPRIMITIVETYPE dptPrimitiveType, DWO
 			return DDERR_GENERIC;
 		}
 
-		dwFlags &= D3DDP_FORCE_DWORD;
+		dwFlags = (dwFlags & D3DDP_FORCE_DWORD) | D3DDP_DXW_CHECKCOLORKEY;
 
 		// Update vertices for Direct3D9 (needs to be first)
 		UpdateVertices(dwVertexTypeDesc, lpVertices, dwVertexCount);
@@ -2787,9 +2788,6 @@ HRESULT m_IDirect3DDeviceX::DrawPrimitive(D3DPRIMITIVETYPE dptPrimitiveType, DWO
 			LOG_LIMIT(100, __FUNCTION__ << " Error: invalid FVF type: " << Logging::hex(dwVertexTypeDesc));
 			return DDERR_INVALIDPARAMS;
 		}
-
-		// Check for color key
-		UpdateDrawFlags(dwFlags);
 
 		// Handle dwFlags
 		SetDrawStates(dwVertexTypeDesc, dwFlags, DirectXVersion);
@@ -2899,7 +2897,7 @@ HRESULT m_IDirect3DDeviceX::DrawPrimitiveVB(D3DPRIMITIVETYPE dptPrimitiveType, L
 			return DDERR_GENERIC;
 		}
 
-		dwFlags &= D3DDP_FORCE_DWORD;
+		dwFlags = (dwFlags & D3DDP_FORCE_DWORD) | D3DDP_DXW_CHECKCOLORKEY;
 
 		// ToDo: Validate vertex buffer
 		m_IDirect3DVertexBufferX* pVertexBufferX = nullptr;
@@ -2928,9 +2926,6 @@ HRESULT m_IDirect3DDeviceX::DrawPrimitiveVB(D3DPRIMITIVETYPE dptPrimitiveType, L
 
 		// Set stream source
 		(*d3d9Device)->SetStreamSource(0, d3d9VertexBuffer, 0, GetVertexStride(FVF));
-
-		// Check for color key
-		UpdateDrawFlags(dwFlags);
 
 		// Handle dwFlags
 		SetDrawStates(FVF, dwFlags, DirectXVersion);
@@ -3016,7 +3011,7 @@ HRESULT m_IDirect3DDeviceX::DrawIndexedPrimitive(D3DPRIMITIVETYPE dptPrimitiveTy
 			return DDERR_GENERIC;
 		}
 
-		dwFlags &= D3DDP_FORCE_DWORD;
+		dwFlags = (dwFlags & D3DDP_FORCE_DWORD) | D3DDP_DXW_CHECKCOLORKEY;
 
 		// Update vertices for Direct3D9 (needs to be first)
 		UpdateVertices(dwVertexTypeDesc, lpVertices, dwVertexCount);
@@ -3027,9 +3022,6 @@ HRESULT m_IDirect3DDeviceX::DrawIndexedPrimitive(D3DPRIMITIVETYPE dptPrimitiveTy
 			LOG_LIMIT(100, __FUNCTION__ << " Error: invalid FVF type: " << Logging::hex(dwVertexTypeDesc));
 			return DDERR_INVALIDPARAMS;
 		}
-
-		// Check for color key
-		UpdateDrawFlags(dwFlags);
 
 		// Handle dwFlags
 		SetDrawStates(dwVertexTypeDesc, dwFlags, DirectXVersion);
@@ -3139,7 +3131,7 @@ HRESULT m_IDirect3DDeviceX::DrawIndexedPrimitiveVB(D3DPRIMITIVETYPE dptPrimitive
 			return DDERR_GENERIC;
 		}
 
-		dwFlags &= D3DDP_FORCE_DWORD;
+		dwFlags = (dwFlags & D3DDP_FORCE_DWORD) | D3DDP_DXW_CHECKCOLORKEY;
 
 		// ToDo: Validate vertex buffer
 		m_IDirect3DVertexBufferX* pVertexBufferX = nullptr;
@@ -3178,9 +3170,6 @@ HRESULT m_IDirect3DDeviceX::DrawIndexedPrimitiveVB(D3DPRIMITIVETYPE dptPrimitive
 
 		// Set Index data
 		(*d3d9Device)->SetIndices(d3d9IndexBuffer);
-
-		// Check for color key
-		UpdateDrawFlags(dwFlags);
 
 		// Handle dwFlags
 		SetDrawStates(FVF, dwFlags, DirectXVersion);
@@ -3707,23 +3696,7 @@ void m_IDirect3DDeviceX::ResetDevice()
 	ZeroMemory(&D3DClipStatus, sizeof(D3DCLIPSTATUS));
 }
 
-inline void m_IDirect3DDeviceX::UpdateDrawFlags(DWORD& dwFlags)
-{
-	// You can use D3DRENDERSTATE_COLORKEYENABLE render state with D3DRENDERSTATE_ALPHABLENDENABLE to implement fine blending control. 
-	if (rsColorKeyEnabled && rsAlphaBlendEnabled)
-	{
-		LOG_LIMIT(100, __FUNCTION__ << " Warning: mixing color keying with alpha blending is not implemented: " << rsSrcBlend << " " << rsDestBlend);
-	}
-
-	// Check for color key
-	if (rsColorKeyEnabled && !(rsAlphaBlendEnabled && (rsSrcBlend == D3DBLEND_ONE || rsSrcBlend == D3DBLEND_SRCALPHA)) &&
-		CurrentTextureSurfaceX && CurrentTextureSurfaceX->GetColorKeyForShader(DrawStates.lowColorKey, DrawStates.highColorKey))
-	{
-		dwFlags |= D3DDP_DXW_COLORKEYENABLE;
-	}
-}
-
-inline void m_IDirect3DDeviceX::SetDrawStates(DWORD dwVertexTypeDesc, DWORD dwFlags, DWORD DirectXVersion)
+inline void m_IDirect3DDeviceX::SetDrawStates(DWORD dwVertexTypeDesc, DWORD& dwFlags, DWORD DirectXVersion)
 {
 	if (DirectXVersion < 7)
 	{
@@ -3751,6 +3724,21 @@ inline void m_IDirect3DDeviceX::SetDrawStates(DWORD dwVertexTypeDesc, DWORD dwFl
 		{
 			GetRenderState(D3DRENDERSTATE_EXTENTS, &DrawStates.rsExtents);
 			SetRenderState(D3DRENDERSTATE_EXTENTS, FALSE);
+		}
+	}
+	if (dwFlags & D3DDP_DXW_CHECKCOLORKEY)
+	{
+		// You can use D3DRENDERSTATE_COLORKEYENABLE render state with D3DRENDERSTATE_ALPHABLENDENABLE to implement fine blending control. 
+		if (rsColorKeyEnabled && rsAlphaBlendEnabled)
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Warning: mixing color keying with alpha blending is not implemented: " << rsSrcBlend << " " << rsDestBlend);
+		}
+
+		// Check for color key
+		if (rsColorKeyEnabled && !(rsAlphaBlendEnabled && (rsSrcBlend == D3DBLEND_ONE || rsSrcBlend == D3DBLEND_SRCALPHA)) &&
+			CurrentTextureSurfaceX && CurrentTextureSurfaceX->GetColorKeyForShader(DrawStates.lowColorKey, DrawStates.highColorKey))
+		{
+			dwFlags |= D3DDP_DXW_COLORKEYENABLE;
 		}
 	}
 	if (dwFlags & D3DDP_DXW_COLORKEYENABLE)
