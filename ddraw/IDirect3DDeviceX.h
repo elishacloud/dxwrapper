@@ -16,6 +16,12 @@ private:
 	ULONG RefCount7 = 0;
 	REFCLSID ClassID;
 
+	// Store d3d device version wrappers
+	m_IDirect3DDevice* WrapperInterface;
+	m_IDirect3DDevice2* WrapperInterface2;
+	m_IDirect3DDevice3* WrapperInterface3;
+	m_IDirect3DDevice7* WrapperInterface7;
+
 	// Convert Device
 	m_IDirectDrawX *ddrawParent = nullptr;
 	m_IDirectDrawSurfaceX* DeviceSurface = nullptr;
@@ -36,31 +42,28 @@ private:
 		float highColorKey[4] = {};
 	} DrawStates;
 
-	struct {
-		bool isChanged = false;
-		BOOL Warp_U = FALSE;
-		BOOL Warp_V = FALSE;
-	} TextureWrappingState;
+	bool bSetDefaults = true;
 
-	D3DMATERIAL currentMaterial = defaultMaterial;
-
-	// Store d3d device version wrappers
-	m_IDirect3DDevice *WrapperInterface;
-	m_IDirect3DDevice2 *WrapperInterface2;
-	m_IDirect3DDevice3 *WrapperInterface3;
-	m_IDirect3DDevice7 *WrapperInterface7;
+	// Material
+	D3DMATERIAL currentMaterial;
 
 	// Last clip status
-	D3DCLIPSTATUS D3DClipStatus = {};
+	D3DCLIPSTATUS D3DClipStatus;
 
 	// Render states
-	DWORD rsTextureHandle = NULL;
-	DWORD rsTextureMin = D3DFILTER_NEAREST;
-	DWORD rsTextureMapBlend = D3DTBLEND_MODULATE;
-	DWORD rsAlphaBlendEnabled = FALSE;
-	DWORD rsSrcBlend = 0;
-	DWORD rsDestBlend = 0;
-	DWORD rsColorKeyEnabled = FALSE;
+	bool rsAntiAliasChanged;
+	DWORD rsAntiAlias;
+	DWORD rsEdgeAntiAlias;
+	bool rsTextureWrappingChanged;
+	DWORD rsTextureWrappingU;
+	DWORD rsTextureWrappingV;
+	DWORD rsTextureHandle;
+	DWORD rsTextureMin;
+	DWORD rsTextureMapBlend;
+	DWORD rsAlphaBlendEnabled;
+	DWORD rsSrcBlend;
+	DWORD rsDestBlend;
+	DWORD rsColorKeyEnabled;
 
 	// SetTexture array
 	LPDIRECTDRAWSURFACE7 CurrentRenderTarget = nullptr;
@@ -136,6 +139,7 @@ private:
 	HRESULT CheckInterface(char *FunctionName, bool CheckD3DDevice);
 
 	// Helper functions
+	void SetDefaults();
 	void SetDrawStates(DWORD dwVertexTypeDesc, DWORD& dwFlags, DWORD DirectXVersion);
 	void RestoreDrawStates(DWORD dwVertexTypeDesc, DWORD dwFlags, DWORD DirectXVersion);
 	void ScaleVertices(DWORD dwVertexTypeDesc, LPVOID& lpVertices, DWORD dwVertexCount);
