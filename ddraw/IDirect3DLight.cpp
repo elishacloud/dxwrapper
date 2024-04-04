@@ -122,11 +122,7 @@ HRESULT m_IDirect3DLight::SetLight(LPD3DLIGHT lpLight)
 			return DDERR_GENERIC;
 		}
 
-		D3DLIGHT7 Light7;
-
-		ConvertLight(Light7, *lpLight);
-
-		HRESULT hr = (*D3DDeviceInterface)->SetLight(0, &Light7);
+		HRESULT hr = (*D3DDeviceInterface)->SetLight(this, lpLight);
 
 		if (FAILED(hr))
 		{
@@ -136,18 +132,14 @@ HRESULT m_IDirect3DLight::SetLight(LPD3DLIGHT lpLight)
 		LightSet = true;
 
 		// D3DLIGHT
-		if (lpLight->dwSize != sizeof(D3DLIGHT))
+		if (lpLight->dwSize == sizeof(D3DLIGHT))
 		{
-			*lpLight = *(LPD3DLIGHT)&Light;
+			*(LPD3DLIGHT)&Light = *lpLight;
 		}
 		// D3DLIGHT2
 		else
 		{
-			*(LPD3DLIGHT2)lpLight = Light;
-			if (Light.dwFlags)
-			{
-				LOG_LIMIT(100, __FUNCTION__ << " Warning: light flags not Implemented: " << Logging::hex(Light.dwFlags));
-			}
+			Light = *(LPD3DLIGHT2)lpLight;
 		}
 
 		return D3D_OK;
@@ -171,23 +163,50 @@ HRESULT m_IDirect3DLight::GetLight(LPD3DLIGHT lpLight)
 			return DDERR_INVALIDPARAMS;
 		}
 
+		if (!D3DDeviceInterface || !*D3DDeviceInterface)
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: no D3DirectDevice interface!");
+			return DDERR_GENERIC;
+		}
+
 		if (!LightSet)
 		{
+			LOG_LIMIT(100, __FUNCTION__ << " Warning: light has not yet been set.");
 			return DDERR_GENERIC;
 		}
 
 		// D3DLIGHT
-		if (lpLight->dwSize != sizeof(D3DLIGHT))
+		if (lpLight->dwSize == sizeof(D3DLIGHT))
 		{
 			*lpLight = *(LPD3DLIGHT)&Light;
+			lpLight->dwSize = sizeof(D3DLIGHT);
 		}
 		// D3DLIGHT2
 		else
 		{
 			*(LPD3DLIGHT2)lpLight = Light;
-			if (Light.dwSize != sizeof(D3DLIGHT2))
+			lpLight->dwSize = sizeof(D3DLIGHT2);
+
+			// Reset flags if Light struct does not have them because it is using the old structure
+			if (Light.dwSize == sizeof(D3DLIGHT))
 			{
-				LOG_LIMIT(100, __FUNCTION__ << " Warning: dwSize mismatch: " << sizeof(D3DLIGHT2) << "->" << lpLight->dwSize);
+				((LPD3DLIGHT2)lpLight)->dwFlags = NULL;
+			}
+
+			// Check for active
+			BOOL Enable = FALSE;
+			if (FAILED((*D3DDeviceInterface)->GetLightEnable(this, &Enable)))
+			{
+				LOG_LIMIT(100, __FUNCTION__ << " Warning: failed to get Light Enable.");
+			}
+
+			if (Enable)
+			{
+				((LPD3DLIGHT2)lpLight)->dwFlags |= D3DLIGHT_ACTIVE;
+			}
+			else
+			{
+				((LPD3DLIGHT2)lpLight)->dwFlags &= ~D3DLIGHT_ACTIVE;
 			}
 		}
 
@@ -208,5 +227,8 @@ void m_IDirect3DLight::InitLight()
 
 void m_IDirect3DLight::ReleaseLight()
 {
-	// To add later
+	if (D3DDeviceInterface && *D3DDeviceInterface)
+	{
+		(*D3DDeviceInterface)->ReleaseLightInterface(this);
+	}
 }

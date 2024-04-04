@@ -2070,6 +2070,95 @@ HRESULT m_IDirect3DDeviceX::SetLightState(D3DLIGHTSTATETYPE dwLightStateType, DW
 	}
 }
 
+void m_IDirect3DDeviceX::ReleaseLightInterface(m_IDirect3DLight* lpLight)
+{
+	// Find handle associated with Light
+	auto it = LightIndexMap.begin();
+	while (it != LightIndexMap.end())
+	{
+		if (it->second == lpLight)
+		{
+			// Remove entry from map
+			it = LightIndexMap.erase(it);
+		}
+		else
+		{
+			++it;
+		}
+	}
+}
+
+HRESULT m_IDirect3DDeviceX::SetLight(m_IDirect3DLight* lpLightInterface, LPD3DLIGHT lpLight)
+{
+	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
+
+	if (!lpLightInterface || !lpLight || (lpLight->dwSize != sizeof(D3DLIGHT) && lpLight->dwSize != sizeof(D3DLIGHT2)))
+	{
+		return DDERR_INVALIDPARAMS;
+	}
+
+	D3DLIGHT7 Light7;
+
+	ConvertLight(Light7, *lpLight);
+
+	DWORD dwLightIndex = 0;
+
+	// Check if Light exists in the map
+	for (auto& entry : LightIndexMap)
+	{
+		if (entry.second == lpLightInterface)
+		{
+			dwLightIndex = entry.first;
+			break;
+		}
+	}
+
+	// Create index and add light to the map
+	if (dwLightIndex == 0)
+	{
+		BYTE Start = (BYTE)((DWORD)lpLightInterface & 0xff);
+		for (BYTE x = Start; x != Start - 1; x++)
+		{
+			bool Flag = true;
+			for (auto& entry : LightIndexMap)
+			{
+				if (entry.first == x)
+				{
+					Flag = false;
+					break;
+				}
+			}
+			if (x != 0 && Flag)
+			{
+				dwLightIndex = x;
+				break;
+			}
+		}
+	}
+
+	if (dwLightIndex == 0)
+	{
+		LOG_LIMIT(100, __FUNCTION__ << " Error: Failed to find an available Light Index");
+		return DDERR_GENERIC;
+	}
+
+	HRESULT hr = SetLight(dwLightIndex, &Light7);
+
+	if (SUCCEEDED(hr))
+	{
+		if (((LPD3DLIGHT2)lpLight)->dwSize == sizeof(D3DLIGHT2) && (((LPD3DLIGHT2)lpLight)->dwFlags & D3DLIGHT_ACTIVE) == NULL)
+		{
+			LightEnable(dwLightIndex, FALSE);
+		}
+		else
+		{
+			LightEnable(dwLightIndex, TRUE);
+		}
+	}
+
+	return hr;
+}
+
 HRESULT m_IDirect3DDeviceX::SetLight(DWORD dwLightIndex, LPD3DLIGHT7 lpLight)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
@@ -2078,6 +2167,7 @@ HRESULT m_IDirect3DDeviceX::SetLight(DWORD dwLightIndex, LPD3DLIGHT7 lpLight)
 	{
 		if (!lpLight)
 		{
+			LOG_LIMIT(100, __FUNCTION__ << " Warning: called with nullptr: " << lpLight);
 			return DDERR_INVALIDPARAMS;
 		}
 
@@ -2168,6 +2258,34 @@ HRESULT m_IDirect3DDeviceX::LightEnable(DWORD dwLightIndex, BOOL bEnable)
 	}
 
 	return GetProxyInterfaceV7()->LightEnable(dwLightIndex, bEnable);
+}
+
+HRESULT m_IDirect3DDeviceX::GetLightEnable(m_IDirect3DLight* lpLightInterface, BOOL* pbEnable)
+{
+	if (!lpLightInterface || !pbEnable)
+	{
+		return DDERR_INVALIDPARAMS;
+	}
+
+	DWORD dwLightIndex = 0;
+
+	// Check if Light exists in the map
+	for (auto& entry : LightIndexMap)
+	{
+		if (entry.second == lpLightInterface)
+		{
+			dwLightIndex = entry.first;
+			break;
+		}
+	}
+
+	if (dwLightIndex == 0)
+	{
+		LOG_LIMIT(100, __FUNCTION__ << " Error: Failed to find an available Light Index");
+		return DDERR_GENERIC;
+	}
+
+	return GetLightEnable(dwLightIndex, pbEnable);
 }
 
 HRESULT m_IDirect3DDeviceX::GetLightEnable(DWORD dwLightIndex, BOOL* pbEnable)

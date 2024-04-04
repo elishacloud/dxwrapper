@@ -76,6 +76,9 @@ private:
 	// Material handle map
 	std::unordered_map<D3DMATERIALHANDLE, m_IDirect3DMaterialX*> MaterialHandleMap;
 
+	// Light index map
+	std::unordered_map<DWORD, m_IDirect3DLight*> LightIndexMap;
+
 	// Vector temporary buffer cache
 	std::vector<BYTE> VertexCache;
 
@@ -231,9 +234,11 @@ public:
 	STDMETHOD(GetDirect3D)(THIS_ LPDIRECT3D7*, DWORD);
 	STDMETHOD(GetLightState)(THIS_ D3DLIGHTSTATETYPE, LPDWORD);
 	STDMETHOD(SetLightState)(THIS_ D3DLIGHTSTATETYPE, DWORD);
+	STDMETHOD(SetLight)(THIS_ m_IDirect3DLight*, LPD3DLIGHT);
 	STDMETHOD(SetLight)(THIS_ DWORD, LPD3DLIGHT7);
 	STDMETHOD(GetLight)(THIS_ DWORD, LPD3DLIGHT7);
 	STDMETHOD(LightEnable)(THIS_ DWORD, BOOL);
+	STDMETHOD(GetLightEnable)(THIS_ m_IDirect3DLight*, BOOL*);
 	STDMETHOD(GetLightEnable)(THIS_ DWORD, BOOL*);
 	STDMETHOD(SetMaterial)(THIS_ LPD3DMATERIAL);
 	STDMETHOD(SetMaterial)(THIS_ LPD3DMATERIAL7);
@@ -273,6 +278,9 @@ public:
 	// Material handle function
 	void ReleaseMaterialHandle(m_IDirect3DMaterialX* lpMaterial);
 	HRESULT SetMaterialHandle(D3DMATERIALHANDLE mHandle, m_IDirect3DMaterialX* lpMaterial);
+
+	// Light index function
+	void ReleaseLightInterface(m_IDirect3DLight* lpLight);
 
 	// Functions handling the ddraw parent interface
 	void SetDdrawParent(m_IDirectDrawX *ddraw)

@@ -28,26 +28,6 @@ D3DMATERIAL defaultMaterial = {
 	0							// Ramp size
 };
 
-void ConvertLight(D3DLIGHT& Light, D3DLIGHT7& Light7)
-{
-	if (Light.dwSize != sizeof(D3DLIGHT) && Light.dwSize != sizeof(D3DLIGHT2))
-	{
-		LOG_LIMIT(100, __FUNCTION__ << " Error: Incorrect dwSize: " << Light.dwSize);
-		return;
-	}
-	Light.dltType = Light7.dltType;
-	Light.dcvColor = Light7.dcvDiffuse;
-	Light.dvPosition = Light7.dvPosition;
-	Light.dvDirection = Light7.dvDirection;
-	Light.dvRange = Light7.dvRange;
-	Light.dvFalloff = Light7.dvFalloff;
-	Light.dvAttenuation0 = Light7.dvAttenuation0;
-	Light.dvAttenuation1 = Light7.dvAttenuation1;
-	Light.dvAttenuation2 = Light7.dvAttenuation2;
-	Light.dvTheta = Light7.dvTheta;
-	Light.dvPhi = Light7.dvPhi;
-}
-
 void ConvertLight(D3DLIGHT7& Light7, D3DLIGHT& Light)
 {
 	if (Light.dwSize != sizeof(D3DLIGHT) && Light.dwSize != sizeof(D3DLIGHT2))
@@ -68,23 +48,13 @@ void ConvertLight(D3DLIGHT7& Light7, D3DLIGHT& Light)
 	Light7.dvAttenuation2 = Light.dvAttenuation2;
 	Light7.dvTheta = Light.dvTheta;
 	Light7.dvPhi = Light.dvPhi;
-}
 
-void ConvertMaterial(D3DMATERIAL &Material, D3DMATERIAL7 &Material7)
-{
-	if (Material.dwSize != sizeof(D3DMATERIAL))
+	// Apply additional flags
+	if (Light.dwSize == sizeof(D3DLIGHT2) && !(((LPD3DLIGHT2)&Light)->dwFlags & D3DLIGHT_NO_SPECULAR))
 	{
-		LOG_LIMIT(100, __FUNCTION__ << " Error: Incorrect dwSize: " << Material.dwSize);
-		return;
+		// No specular reflection
+		Light7.dcvSpecular = { 0.0f, 0.0f, 0.0f, 1.0f };
 	}
-	Material.dcvDiffuse = Material7.dcvDiffuse;
-	Material.dcvAmbient = Material7.dcvAmbient;
-	Material.dcvSpecular = Material7.dcvSpecular;
-	Material.dcvEmissive = Material7.dcvEmissive;
-	Material.dvPower = Material7.dvPower;
-	// Extra parameters
-	Material.hTexture = 0;
-	Material.dwRampSize = 0;
 }
 
 void ConvertMaterial(D3DMATERIAL7 &Material7, D3DMATERIAL &Material)
