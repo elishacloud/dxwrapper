@@ -160,6 +160,7 @@ HRESULT m_IDirect3DTextureX::GetHandle(LPDIRECT3DDEVICE2 lpDirect3DDevice2, LPD3
 	{
 		if (!lpDirect3DDevice2 || !lpHandle)
 		{
+			LOG_LIMIT(100, __FUNCTION__ << " Warning: called with nullptr: " << lpDirect3DDevice2 << " " << lpHandle);
 			return DDERR_INVALIDPARAMS;
 		}
 

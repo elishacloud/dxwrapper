@@ -234,15 +234,38 @@ HRESULT m_IDirect3DMaterialX::GetHandle(LPDIRECT3DDEVICE3 lpDirect3DDevice, LPD3
 
 	if (!ProxyInterface)
 	{
-		if (!lpHandle)
+		if (!lpDirect3DDevice || !lpHandle)
 		{
+			LOG_LIMIT(100, __FUNCTION__ << " Warning: called with nullptr: " << lpDirect3DDevice << " " << lpHandle);
 			return DDERR_INVALIDPARAMS;
+		}
+
+		if (!D3DDeviceInterface || !*D3DDeviceInterface)
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: D3DDevice does not exist!");
+			return DDERR_GENERIC;
+		}
+
+		// ToDo: Validate Direct3D Device
+		m_IDirect3DDeviceX* pDirect3DDeviceX = nullptr;
+		lpDirect3DDevice->QueryInterface(IID_GetInterfaceX, (LPVOID*)&pDirect3DDeviceX);
+		if (!pDirect3DDeviceX)
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: could not get Direct3D Device wrapper!");
+			return DDERR_INVALIDPARAMS;
+		}
+
+		if (*D3DDeviceInterface != pDirect3DDeviceX)
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Warning: Direct3D Device wrapper does not match! " << *D3DDeviceInterface << "->" << pDirect3DDeviceX);
 		}
 
 		if (!mHandle)
 		{
 			mHandle = (DWORD)this + 32;
 		}
+
+		(*D3DDeviceInterface)->SetMaterialHandle(mHandle, this);
 
 		*lpHandle = mHandle;
 
@@ -316,4 +339,9 @@ void m_IDirect3DMaterialX::ReleaseMaterial()
 	WrapperInterface->DeleteMe();
 	WrapperInterface2->DeleteMe();
 	WrapperInterface3->DeleteMe();
+
+	if (mHandle && D3DDeviceInterface && *D3DDeviceInterface)
+	{
+		(*D3DDeviceInterface)->ReleaseMaterialHandle(this);
+	}
 }

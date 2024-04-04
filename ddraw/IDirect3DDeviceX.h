@@ -73,6 +73,9 @@ private:
 	// Texture handle map
 	std::unordered_map<DWORD, m_IDirect3DTextureX*> TextureHandleMap;
 
+	// Material handle map
+	std::unordered_map<D3DMATERIALHANDLE, m_IDirect3DMaterialX*> MaterialHandleMap;
+
 	// Vector temporary buffer cache
 	std::vector<BYTE> VertexCache;
 
@@ -266,6 +269,10 @@ public:
 	// Texture handle function
 	void ReleaseTextureHandle(m_IDirect3DTextureX* lpTexture);
 	HRESULT SetTextureHandle(DWORD tHandle, m_IDirect3DTextureX* lpTexture);
+
+	// Material handle function
+	void ReleaseMaterialHandle(m_IDirect3DMaterialX* lpMaterial);
+	HRESULT SetMaterialHandle(D3DMATERIALHANDLE mHandle, m_IDirect3DMaterialX* lpMaterial);
 
 	// Functions handling the ddraw parent interface
 	void SetDdrawParent(m_IDirectDrawX *ddraw)

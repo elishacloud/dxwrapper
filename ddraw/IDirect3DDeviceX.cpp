@@ -723,7 +723,7 @@ HRESULT m_IDirect3DDeviceX::GetTexture(DWORD dwStage, LPDIRECT3DTEXTURE2* lplpTe
 
 	if (ProxyDirectXVersion > 3)
 	{
-		if (!lplpTexture)
+		if (!lplpTexture || dwStage >= MaxTextureBlendStages)
 		{
 			return DDERR_INVALIDPARAMS;
 		}
@@ -858,6 +858,11 @@ HRESULT m_IDirect3DDeviceX::SetTexture(DWORD dwStage, LPDIRECT3DTEXTURE2 lpTextu
 
 	if (ProxyDirectXVersion > 3)
 	{
+		if (dwStage >= MaxTextureBlendStages)
+		{
+			return DDERR_INVALIDPARAMS;
+		}
+
 		if (!lpTexture)
 		{
 			return SetTexture(dwStage, (LPDIRECTDRAWSURFACE7)nullptr);
@@ -941,7 +946,7 @@ HRESULT m_IDirect3DDeviceX::SetTexture(DWORD dwStage, LPDIRECTDRAWSURFACE7 lpSur
 			hr = (*d3d9Device)->SetTexture(dwStage, pTexture9);
 		}
 
-		if (SUCCEEDED(hr) && dwStage < MaxTextureBlendStages)
+		if (SUCCEEDED(hr))
 		{
 			AttachedTexture[dwStage] = lpSurface;
 			if (dwStage == 0)
@@ -2231,6 +2236,37 @@ HRESULT m_IDirect3DDeviceX::MultiplyTransform(D3DTRANSFORMSTATETYPE dtstTransfor
 	case 7:
 		return GetProxyInterfaceV7()->MultiplyTransform(dtstTransformStateType, lpD3DMatrix);
 	}
+}
+
+void m_IDirect3DDeviceX::ReleaseMaterialHandle(m_IDirect3DMaterialX* lpMaterial)
+{
+	// Find handle associated with Material
+	auto it = MaterialHandleMap.begin();
+	while (it != MaterialHandleMap.end())
+	{
+		if (it->second == lpMaterial)
+		{
+			// Remove entry from map
+			it = MaterialHandleMap.erase(it);
+		}
+		else
+		{
+			++it;
+		}
+	}
+}
+
+HRESULT m_IDirect3DDeviceX::SetMaterialHandle(D3DMATERIALHANDLE mHandle, m_IDirect3DMaterialX* lpMaterial)
+{
+	if (!mHandle || !lpMaterial)
+	{
+		LOG_LIMIT(100, __FUNCTION__ << " Error: NULL pointer found! " << lpMaterial << " -> " << mHandle);
+		return DDERR_GENERIC;
+	}
+
+	MaterialHandleMap[mHandle] = lpMaterial;
+
+	return D3D_OK;
 }
 
 HRESULT m_IDirect3DDeviceX::SetMaterial(LPD3DMATERIAL lpMaterial)
