@@ -9,11 +9,6 @@ private:
 	ULONG RefCount2 = 0;
 	ULONG RefCount3 = 0;
 
-	// Viewport data
-	bool IsDataSet = false;
-	D3DVIEWPORT ViewportData = {};
-	D3DVIEWPORT2 ViewportData2 = {};
-
 	// Convert Viewport
 	m_IDirect3DDeviceX **D3DDeviceInterface = nullptr;
 

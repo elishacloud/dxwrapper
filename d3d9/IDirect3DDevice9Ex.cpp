@@ -103,6 +103,8 @@ HRESULT m_IDirect3DDevice9Ex::ResetT(T func, D3DPRESENT_PARAMETERS &d3dpp, D3DPR
 	DOverlay.Shutdown();
 #endif
 
+	ProxyInterface->EndScene();		// Required for some games when using WineD3D
+
 	HRESULT hr;
 
 	// Check fullscreen

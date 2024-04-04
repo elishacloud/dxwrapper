@@ -577,7 +577,7 @@ HRESULT m_IDirectDrawX::CreateSurface2(LPDDSURFACEDESC2 lpDDSurfaceDesc2, LPDIRE
 		}
 
 		// Check for unsupported ddsCaps
-		DWORD UnsupportedDDSCaps = (DDSCAPS_LIVEVIDEO | DDSCAPS_HWCODEC | DDSCAPS_ALLOCONLOAD | DDSCAPS_VIDEOPORT);
+		DWORD UnsupportedDDSCaps = (DDSCAPS_LIVEVIDEO | DDSCAPS_HWCODEC | DDSCAPS_VIDEOPORT);
 		DWORD UnsupportedDDSCaps2 = (DDSCAPS2_HINTDYNAMIC | DDSCAPS2_HINTSTATIC | DDSCAPS2_OPAQUE | DDSCAPS2_NOTUSERLOCKABLE);
 		if ((lpDDSurfaceDesc2->ddsCaps.dwCaps & UnsupportedDDSCaps) || (lpDDSurfaceDesc2->ddsCaps.dwCaps2 & UnsupportedDDSCaps2))
 		{
@@ -612,9 +612,10 @@ HRESULT m_IDirectDrawX::CreateSurface2(LPDDSURFACEDESC2 lpDDSurfaceDesc2, LPDIRE
 			const D3DFORMAT Format = GetDisplayFormat(Desc2.ddpfPixelFormat);
 			const D3DFORMAT TestFormat = ConvertSurfaceFormat(Format);
 
-			if (FAILED(d3d9Object->CheckDeviceFormat(D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, D9DisplayFormat, Usage, Resource, TestFormat)))
+			if (FAILED(d3d9Object->CheckDeviceFormat(D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, D9DisplayFormat, Usage, Resource, TestFormat)) &&
+				FAILED(d3d9Object->CheckDeviceFormat(D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, D9DisplayFormat, Usage, Resource, GetFailoverFormat(TestFormat))))
 			{
-				LOG_LIMIT(100, __FUNCTION__ << " Error: non-supported pixel format! " << Usage << " " << Format << " " << Desc2.ddpfPixelFormat);
+				LOG_LIMIT(100, __FUNCTION__ << " Error: non-supported pixel format! " << Usage << " " << Format << "->" << TestFormat << " " << Desc2.ddpfPixelFormat);
 				return DDERR_INVALIDPIXELFORMAT;
 			}
 
@@ -1590,13 +1591,13 @@ HRESULT m_IDirectDrawX::SetCooperativeLevel(HWND hWnd, DWORD dwFlags, DWORD Dire
 	{
 		// Check for valid parameters
 		// Note: real DirectDraw will allow both DDSCL_NORMAL and DDSCL_FULLSCREEN in some cases
-		if (!(dwFlags & (DDSCL_EXCLUSIVE | DDSCL_NORMAL)) ||																			// An application must set either the DDSCL_EXCLUSIVE or the DDSCL_NORMAL flag
+		if (!(dwFlags & (DDSCL_NORMAL | DDSCL_EXCLUSIVE | DDSCL_SETDEVICEWINDOW | DDSCL_SETFOCUSWINDOW)) ||								// An application must set either of these flags
 			((dwFlags & DDSCL_NORMAL) && (dwFlags & (DDSCL_ALLOWMODEX | DDSCL_EXCLUSIVE))) ||											// Normal flag cannot be used with Modex, Exclusive or Fullscreen flags
 			((dwFlags & DDSCL_EXCLUSIVE) && !(dwFlags & DDSCL_FULLSCREEN)) ||															// If Exclusive flag is set then Fullscreen flag must be set
 			((dwFlags & DDSCL_FULLSCREEN) && !(dwFlags & DDSCL_EXCLUSIVE)) ||															// If Fullscreen flag is set then Exclusive flag must be set
 			((dwFlags & DDSCL_ALLOWMODEX) && (!(dwFlags & DDSCL_EXCLUSIVE) || !(dwFlags & DDSCL_FULLSCREEN))) ||						// If AllowModeX is set then Exclusive and Fullscreen flags must be set
 			((dwFlags & DDSCL_SETDEVICEWINDOW) && (dwFlags & DDSCL_SETFOCUSWINDOW)) ||													// SetDeviceWindow flag cannot be used with SetFocusWindow flag
-			((dwFlags & DDSCL_EXCLUSIVE) && !IsWindow(hWnd)))																			// When using Exclusive mode the hwnd must be valid
+			(!(dwFlags & DDSCL_NORMAL) && !IsWindow(hWnd)))																				// When using Exclusive mode the hwnd must be valid
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Error: Invalid parameters. dwFlags: " << Logging::hex(dwFlags) << " " << hWnd);
 			return DDERR_INVALIDPARAMS;
@@ -1684,7 +1685,7 @@ HRESULT m_IDirectDrawX::SetCooperativeLevel(HWND hWnd, DWORD dwFlags, DWORD Dire
 			Device.NoWindowChanges = ((dwFlags & DDSCL_NOWINDOWCHANGES) != 0);
 
 			// Reset if mode was changed
-			if ((d3d9Device || LastUsedHWnd == DisplayMode.hWnd) &&
+			if ((dwFlags & (DDSCL_NORMAL | DDSCL_EXCLUSIVE)) && (d3d9Device || LastUsedHWnd == DisplayMode.hWnd) &&
 				(LastExclusiveMode != ExclusiveMode || LasthWnd != DisplayMode.hWnd || LastFPUPreserve != Device.FPUPreserve))
 			{
 				CreateD3D9Device();
@@ -2770,6 +2771,8 @@ void m_IDirectDrawX::SetD3DDevice(m_IDirect3DDeviceX* D3DDevice, m_IDirectDrawSu
 
 	Direct3DSurface = D3DSurface;
 
+	LOG_LIMIT(100, __FUNCTION__ " Setting 3D Device Surface: " << Direct3DSurface);
+
 	// Recreate Direct3D9 device
 	DWORD Width = 0, Height = 0;
 	if (d3d9Device && (!Device.Width || !Device.Height) && Direct3DSurface->GetSurfaceSetSize(Width, Height) &&
@@ -3348,29 +3351,21 @@ inline void m_IDirectDrawX::ReleaseAllD9Resources(bool BackupData)
 	SetCriticalSection();
 	SetPTCriticalSection();
 
-	ReleaseAllD9Buffers(BackupData);
-	ReleaseAllD9Surfaces(BackupData);
-	ReleaseAllD9Shaders();
-
-	ReleasePTCriticalSection();
-	ReleaseCriticalSection();
-}
-
-// Release all surfaces from all ddraw devices
-inline void m_IDirectDrawX::ReleaseAllD9Surfaces(bool BackupData)
-{
+	// Release all surfaces from all ddraw devices
 	for (m_IDirectDrawX*& pDDraw : DDrawVector)
 	{
 		for (m_IDirectDrawSurfaceX*& pSurface : pDDraw->SurfaceVector)
 		{
 			pSurface->ReleaseD9Surface(BackupData, IsDeviceLost);
 		}
+		for (m_IDirectDrawSurfaceX*& pSurface : pDDraw->ReleasedSurfaceVector)
+		{
+			pSurface->DeleteMe();
+		}
+		pDDraw->ReleasedSurfaceVector.clear();
 	}
-}
 
-// Release all buffers from all ddraw devices
-inline void m_IDirectDrawX::ReleaseAllD9Buffers(bool BackupData)
-{
+	// Release all buffers from all ddraw devices
 	for (m_IDirectDrawX*& pDDraw : DDrawVector)
 	{
 		for (m_IDirect3DVertexBufferX*& pBuffer : pDDraw->VertexBufferVector)
@@ -3390,11 +3385,7 @@ inline void m_IDirectDrawX::ReleaseAllD9Buffers(bool BackupData)
 		}
 		VertexBuffer = nullptr;
 	}
-}
 
-// Release all shaders
-inline void m_IDirectDrawX::ReleaseAllD9Shaders()
-{
 	// Release palette pixel shader
 	if (palettePixelShader)
 	{
@@ -3415,6 +3406,10 @@ inline void m_IDirectDrawX::ReleaseAllD9Shaders()
 	if (colorkeyPixelShader)
 	{
 		Logging::LogDebug() << __FUNCTION__ << " Releasing Direct3D9 color key pixel shader";
+		if (d3d9Device)
+		{
+			d3d9Device->SetPixelShader(nullptr);
+		}
 		ULONG ref = colorkeyPixelShader->Release();
 		if (ref)
 		{
@@ -3422,7 +3417,11 @@ inline void m_IDirectDrawX::ReleaseAllD9Shaders()
 		}
 		colorkeyPixelShader = nullptr;
 	}
+
+	ReleasePTCriticalSection();
+	ReleaseCriticalSection();
 }
+
 
 // Release d3d9 device
 void m_IDirectDrawX::ReleaseD3D9Device()
@@ -3485,19 +3484,30 @@ void m_IDirectDrawX::EvictManagedTextures()
 // Add surface wrapper to vector
 void m_IDirectDrawX::AddSurfaceToVector(m_IDirectDrawSurfaceX* lpSurfaceX)
 {
-	if (!lpSurfaceX || DoesSurfaceExist(lpSurfaceX))
-	{
-		return;
-	}
-
 	SetCriticalSection();
 
-	if (lpSurfaceX->IsPrimarySurface())
+	if (lpSurfaceX && !DoesSurfaceExist(lpSurfaceX))
 	{
-		PrimarySurface = lpSurfaceX;
+		if (lpSurfaceX->IsPrimarySurface())
+		{
+			PrimarySurface = lpSurfaceX;
+		}
+
+		SurfaceVector.push_back(lpSurfaceX);
 	}
 
-	SurfaceVector.push_back(lpSurfaceX);
+	ReleaseCriticalSection();
+}
+
+// Add released surface wrapper to vector
+void m_IDirectDrawX::AddReleasedSurfaceToVector(m_IDirectDrawSurfaceX* lpSurfaceX)
+{
+	SetCriticalSection();
+
+	if (lpSurfaceX && std::find(ReleasedSurfaceVector.begin(), ReleasedSurfaceVector.end(), lpSurfaceX) == std::end(ReleasedSurfaceVector))
+	{
+		ReleasedSurfaceVector.push_back(lpSurfaceX);
+	}
 
 	ReleaseCriticalSection();
 }
@@ -3512,27 +3522,27 @@ void m_IDirectDrawX::RemoveSurfaceFromVector(m_IDirectDrawSurfaceX* lpSurfaceX)
 
 	SetCriticalSection();
 
-	if (lpSurfaceX == PrimarySurface)
-	{
-		PrimarySurface = nullptr;
-		DisplayPixelFormat = {};
-	}
-	if (lpSurfaceX == Direct3DSurface)
-	{
-		Direct3DSurface = nullptr;
-	}
-
-	auto it = std::find(SurfaceVector.begin(), SurfaceVector.end(), lpSurfaceX);
-
-	if (it != std::end(SurfaceVector))
-	{
-		lpSurfaceX->ClearDdraw();
-		SurfaceVector.erase(it);
-	}
-
 	// Remove attached surface from map
 	for (m_IDirectDrawX*& pDDraw : DDrawVector)
 	{
+		if (lpSurfaceX == pDDraw->PrimarySurface)
+		{
+			pDDraw->PrimarySurface = nullptr;
+			DisplayPixelFormat = {};
+		}
+		if (lpSurfaceX == pDDraw->Direct3DSurface)
+		{
+			pDDraw->Direct3DSurface = nullptr;
+		}
+
+		auto it = std::find(pDDraw->SurfaceVector.begin(), pDDraw->SurfaceVector.end(), lpSurfaceX);
+
+		if (it != std::end(pDDraw->SurfaceVector))
+		{
+			lpSurfaceX->ClearDdraw();
+			pDDraw->SurfaceVector.erase(it);
+		}
+
 		for (m_IDirectDrawSurfaceX*& pSurface : pDDraw->SurfaceVector)
 		{
 			pSurface->RemoveAttachedSurfaceFromMap(lpSurfaceX);
@@ -3562,14 +3572,12 @@ bool m_IDirectDrawX::DoesSurfaceExist(m_IDirectDrawSurfaceX* lpSurfaceX)
 // Add clipper wrapper to vector
 void m_IDirectDrawX::AddClipperToVector(m_IDirectDrawClipper* lpClipper)
 {
-	if (!lpClipper || DoesClipperExist(lpClipper))
-	{
-		return;
-	}
-
 	SetCriticalSection();
 
-	ClipperVector.push_back(lpClipper);
+	if (lpClipper && !DoesClipperExist(lpClipper))
+	{
+		ClipperVector.push_back(lpClipper);
+	}
 
 	ReleaseCriticalSection();
 }
@@ -3587,18 +3595,18 @@ void m_IDirectDrawX::RemoveClipperFromVector(m_IDirectDrawClipper* lpClipper)
 
 	SetCriticalSection();
 
-	auto it = std::find(ClipperVector.begin(), ClipperVector.end(), lpClipper);
-
-	// Remove clipper from vector
-	if (it != std::end(ClipperVector))
-	{
-		lpClipper->ClearDdraw();
-		ClipperVector.erase(it);
-	}
-
 	// Remove clipper from attached surface
 	for (m_IDirectDrawX*& pDDraw : DDrawVector)
 	{
+		auto it = std::find(pDDraw->ClipperVector.begin(), pDDraw->ClipperVector.end(), lpClipper);
+
+		// Remove clipper from vector
+		if (it != std::end(pDDraw->ClipperVector))
+		{
+			lpClipper->ClearDdraw();
+			pDDraw->ClipperVector.erase(it);
+		}
+
 		for (m_IDirectDrawSurfaceX*& pSurface : pDDraw->SurfaceVector)
 		{
 			pSurface->RemoveClipper(lpClipper);
@@ -3634,14 +3642,12 @@ bool m_IDirectDrawX::DoesClipperExist(m_IDirectDrawClipper* lpClipper)
 // Add palette wrapper to vector
 void m_IDirectDrawX::AddPaletteToVector(m_IDirectDrawPalette* lpPalette)
 {
-	if (!lpPalette || DoesPaletteExist(lpPalette))
-	{
-		return;
-	}
-
 	SetCriticalSection();
 
-	PaletteVector.push_back(lpPalette);
+	if (lpPalette && !DoesPaletteExist(lpPalette))
+	{
+		PaletteVector.push_back(lpPalette);
+	}
 
 	ReleaseCriticalSection();
 }
@@ -3656,18 +3662,18 @@ void m_IDirectDrawX::RemovePaletteFromVector(m_IDirectDrawPalette* lpPalette)
 
 	SetCriticalSection();
 
-	auto it = std::find(PaletteVector.begin(), PaletteVector.end(), lpPalette);
-
-	// Remove palette from vector
-	if (it != std::end(PaletteVector))
-	{
-		lpPalette->ClearDdraw();
-		PaletteVector.erase(it);
-	}
-
 	// Remove palette from attached surface
 	for (m_IDirectDrawX*& pDDraw : DDrawVector)
 	{
+		auto it = std::find(pDDraw->PaletteVector.begin(), pDDraw->PaletteVector.end(), lpPalette);
+
+		// Remove palette from vector
+		if (it != std::end(pDDraw->PaletteVector))
+		{
+			lpPalette->ClearDdraw();
+			pDDraw->PaletteVector.erase(it);
+		}
+
 		for (m_IDirectDrawSurfaceX*& pSurface : pDDraw->SurfaceVector)
 		{
 			pSurface->RemovePalette(lpPalette);
@@ -3696,14 +3702,12 @@ bool m_IDirectDrawX::DoesPaletteExist(m_IDirectDrawPalette* lpPalette)
 
 void m_IDirectDrawX::AddVertexBufferToVector(m_IDirect3DVertexBufferX* lpVertexBuffer)
 {
-	if (!lpVertexBuffer || DoesVertexBufferExist(lpVertexBuffer))
-	{
-		return;
-	}
-
 	SetCriticalSection();
 
-	VertexBufferVector.push_back(lpVertexBuffer);
+	if (lpVertexBuffer && !DoesVertexBufferExist(lpVertexBuffer))
+	{
+		VertexBufferVector.push_back(lpVertexBuffer);
+	}
 
 	ReleaseCriticalSection();
 }
@@ -3717,13 +3721,17 @@ void m_IDirectDrawX::RemoveVertexBufferFromVector(m_IDirect3DVertexBufferX* lpVe
 
 	SetCriticalSection();
 
-	auto it = std::find(VertexBufferVector.begin(), VertexBufferVector.end(), lpVertexBuffer);
-
-	// Remove vertex buffer from vector
-	if (it != std::end(VertexBufferVector))
+	// Remove palette from attached surface
+	for (m_IDirectDrawX*& pDDraw : DDrawVector)
 	{
-		lpVertexBuffer->ClearDdraw();
-		VertexBufferVector.erase(it);
+		auto it = std::find(pDDraw->VertexBufferVector.begin(), pDDraw->VertexBufferVector.end(), lpVertexBuffer);
+
+		// Remove vertex buffer from vector
+		if (it != std::end(pDDraw->VertexBufferVector))
+		{
+			lpVertexBuffer->ClearDdraw();
+			pDDraw->VertexBufferVector.erase(it);
+		}
 	}
 
 	ReleaseCriticalSection();
@@ -3802,6 +3810,40 @@ void m_IDirectDrawX::SetVsync()
 	{
 		EnableWaitVsync = true;
 	}
+}
+
+HRESULT m_IDirectDrawX::GetD9Gamma(DWORD dwFlags, LPDDGAMMARAMP lpRampData)
+{
+	// Check for device interface
+	if (FAILED(CheckInterface(__FUNCTION__, true)))
+	{
+		return DDERR_GENERIC;
+	}
+
+	if (!presParams.Windowed)
+	{
+		d3d9Device->GetGammaRamp(dwFlags, (D3DGAMMARAMP*)lpRampData);
+		return DD_OK;
+	}
+
+	return D3DERR_INVALIDCALL;
+}
+
+HRESULT m_IDirectDrawX::SetD9Gamma(DWORD dwFlags, LPDDGAMMARAMP lpRampData)
+{
+	// Check for device interface
+	if (FAILED(CheckInterface(__FUNCTION__, true)))
+	{
+		return DDERR_GENERIC;
+	}
+
+	if (!presParams.Windowed)
+	{
+		d3d9Device->SetGammaRamp(0, dwFlags, (D3DGAMMARAMP*)lpRampData);
+		return DD_OK;
+	}
+
+	return D3DERR_INVALIDCALL;
 }
 
 HRESULT m_IDirectDrawX::Draw2DSurface(m_IDirectDrawSurfaceX* DrawSurface)

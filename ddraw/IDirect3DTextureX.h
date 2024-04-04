@@ -84,6 +84,9 @@ public:
 	ULONG AddRef(DWORD DirectXVersion);
 	ULONG Release(DWORD DirectXVersion);
 
+	// Handle functions
+	HRESULT m_IDirect3DTextureX::SetHandle(DWORD dwHandle);
+
 	// Surface functions
 	void ClearSurface() { DDrawSurface = nullptr; }
 	m_IDirectDrawSurfaceX *GetSurface() { return DDrawSurface; }

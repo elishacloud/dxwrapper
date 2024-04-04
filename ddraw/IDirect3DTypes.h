@@ -1,8 +1,9 @@
 #pragma once
 
 #define D3DDP_FORCE_DWORD        0x0000001Fl
-#define D3DDP_DXW_COLORKEYENABLE 0x00000020l
-#define D3DDP_DXW_DRAW2DSURFACE  0x00000040l
+#define D3DDP_DXW_CHECKCOLORKEY  0x00000020l
+#define D3DDP_DXW_COLORKEYENABLE 0x00000040l
+#define D3DDP_DXW_DRAW2DSURFACE  0x00000080l
 
 #define D3DDEVICEDESC1_SIZE 172
 #define D3DDEVICEDESC5_SIZE 204
@@ -32,9 +33,9 @@ typedef struct {
 	FLOAT    tu, tv;
 } D3DLVERTEX9, *LPD3DLVERTEX9;
 
-void ConvertLight(D3DLIGHT& Light, D3DLIGHT7& Light7);
+extern D3DMATERIAL defaultMaterial;
+
 void ConvertLight(D3DLIGHT7& Light7, D3DLIGHT& Light);
-void ConvertMaterial(D3DMATERIAL &Material, D3DMATERIAL7 &Material7);
 void ConvertMaterial(D3DMATERIAL7 &Material7, D3DMATERIAL &Material);
 void ConvertViewport(D3DVIEWPORT &ViewPort, D3DVIEWPORT2 &ViewPort2);
 void ConvertViewport(D3DVIEWPORT2 &ViewPort2, D3DVIEWPORT &ViewPort);
@@ -50,5 +51,6 @@ void ConvertVertices(D3DLVERTEX* lFVF, D3DLVERTEX9* lFVF9, DWORD NumVertices);
 void ConvertVertices(D3DLVERTEX9* lFVF9, D3DLVERTEX* lFVF, DWORD NumVertices);
 bool CheckTextureStageStateType(D3DTEXTURESTAGESTATETYPE dwState);
 bool CheckRenderStateType(D3DRENDERSTATETYPE dwRenderStateType);
+DWORD ConvertVertexTypeToFVF(D3DVERTEXTYPE d3dVertexType);
 UINT GetVertexStride(DWORD dwVertexTypeDesc);
 UINT GetNumberOfPrimitives(D3DPRIMITIVETYPE dptPrimitiveType, DWORD dwVertexCount);

@@ -28,12 +28,12 @@ HRESULT m_IDirect3DMaterialX::QueryInterface(REFIID riid, LPVOID FAR * ppvObj, D
 	if (riid == IID_GetRealInterface)
 	{
 		*ppvObj = ProxyInterface;
-		return DD_OK;
+		return D3D_OK;
 	}
 	if (riid == IID_GetInterfaceX)
 	{
 		*ppvObj = this;
-		return DD_OK;
+		return D3D_OK;
 	}
 
 	if (DirectXVersion != 1 && DirectXVersion != 2 && DirectXVersion != 3)
@@ -50,7 +50,7 @@ HRESULT m_IDirect3DMaterialX::QueryInterface(REFIID riid, LPVOID FAR * ppvObj, D
 
 		AddRef(DxVersion);
 
-		return DD_OK;
+		return D3D_OK;
 	}
 
 	return ProxyQueryInterface(ProxyInterface, riid, ppvObj, GetWrapperType(DxVersion));
@@ -174,31 +174,16 @@ HRESULT m_IDirect3DMaterialX::SetMaterial(LPD3DMATERIAL lpMat)
 			return DDERR_GENERIC;
 		}
 
-		if (lpMat->hTexture)
-		{
-			LOG_LIMIT(100, __FUNCTION__ << " Warning: D3DTEXTUREHANDLE Not Implemented: " << lpMat->hTexture);
-		}
-
-		if (lpMat->dwRampSize)
-		{
-			LOG_LIMIT(100, __FUNCTION__ << " Warning: RampSize Not Implemented: " << lpMat->dwRampSize);
-		}
-
-		D3DMATERIAL7 Material7;
-
-		ConvertMaterial(Material7, *lpMat);
-
-		HRESULT hr = (*D3DDeviceInterface)->SetMaterial(&Material7);
+		HRESULT hr = (*D3DDeviceInterface)->SetMaterial(lpMat);
 
 		if (FAILED(hr))
 		{
-			return D3DERR_MATERIAL_SETDATA_FAILED;
+			return hr;
 		}
 
-		MaterialSet = true;
 		Material = *lpMat;
 
-		return D3D_OK;;
+		return D3D_OK;
 	}
 
 	switch (ProxyDirectXVersion)
@@ -225,14 +210,9 @@ HRESULT m_IDirect3DMaterialX::GetMaterial(LPD3DMATERIAL lpMat)
 			return DDERR_INVALIDPARAMS;
 		}
 
-		if (MaterialSet)
-		{
-			*lpMat = Material;
+		*lpMat = Material;
 
-			return D3D_OK;
-		}
-
-		return D3DERR_MATERIAL_GETDATA_FAILED;
+		return D3D_OK;
 	}
 
 	switch (ProxyDirectXVersion)
@@ -254,10 +234,41 @@ HRESULT m_IDirect3DMaterialX::GetHandle(LPDIRECT3DDEVICE3 lpDirect3DDevice, LPD3
 
 	if (!ProxyInterface)
 	{
-		if (lpHandle)
+		if (!lpDirect3DDevice || !lpHandle)
 		{
-			*lpHandle = mHandle;
+			LOG_LIMIT(100, __FUNCTION__ << " Warning: called with nullptr: " << lpDirect3DDevice << " " << lpHandle);
+			return DDERR_INVALIDPARAMS;
 		}
+
+		if (!D3DDeviceInterface || !*D3DDeviceInterface)
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: D3DDevice does not exist!");
+			return DDERR_GENERIC;
+		}
+
+		// ToDo: Validate Direct3D Device
+		m_IDirect3DDeviceX* pDirect3DDeviceX = nullptr;
+		lpDirect3DDevice->QueryInterface(IID_GetInterfaceX, (LPVOID*)&pDirect3DDeviceX);
+		if (!pDirect3DDeviceX)
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: could not get Direct3D Device wrapper!");
+			return DDERR_INVALIDPARAMS;
+		}
+
+		if (*D3DDeviceInterface != pDirect3DDeviceX)
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Warning: Direct3D Device wrapper does not match! " << *D3DDeviceInterface << "->" << pDirect3DDeviceX);
+		}
+
+		if (!mHandle)
+		{
+			mHandle = (DWORD)this + 32;
+		}
+
+		(*D3DDeviceInterface)->SetMaterialHandle(mHandle, this);
+
+		*lpHandle = mHandle;
+
 		return D3D_OK;
 	}
 
@@ -286,7 +297,7 @@ HRESULT m_IDirect3DMaterialX::Reserve()
 	if (ProxyDirectXVersion != 1)
 	{
 		// Former stub method. This method was never implemented and is not supported in any interface.
-		return DD_OK;
+		return D3D_OK;
 	}
 
 	return GetProxyInterfaceV1()->Reserve();
@@ -299,7 +310,7 @@ HRESULT m_IDirect3DMaterialX::Unreserve()
 	if (ProxyDirectXVersion != 1)
 	{
 		// Former stub method. This method was never implemented and is not supported in any interface.
-		return DD_OK;
+		return D3D_OK;
 	}
 
 	return GetProxyInterfaceV1()->Unreserve();
@@ -321,8 +332,6 @@ void m_IDirect3DMaterialX::InitMaterial(DWORD DirectXVersion)
 	}
 
 	AddRef(DirectXVersion);
-
-	mHandle = (DWORD)this + 32;
 }
 
 void m_IDirect3DMaterialX::ReleaseMaterial()
@@ -330,4 +339,9 @@ void m_IDirect3DMaterialX::ReleaseMaterial()
 	WrapperInterface->DeleteMe();
 	WrapperInterface2->DeleteMe();
 	WrapperInterface3->DeleteMe();
+
+	if (mHandle && D3DDeviceInterface && *D3DDeviceInterface)
+	{
+		(*D3DDeviceInterface)->ReleaseMaterialHandle(this);
+	}
 }

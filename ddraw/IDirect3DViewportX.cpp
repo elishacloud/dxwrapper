@@ -28,12 +28,12 @@ HRESULT m_IDirect3DViewportX::QueryInterface(REFIID riid, LPVOID FAR * ppvObj, D
 	if (riid == IID_GetRealInterface)
 	{
 		*ppvObj = ProxyInterface;
-		return DD_OK;
+		return D3D_OK;
 	}
 	if (riid == IID_GetInterfaceX)
 	{
 		*ppvObj = this;
-		return DD_OK;
+		return D3D_OK;
 	}
 
 	if (DirectXVersion != 1 && DirectXVersion != 2 && DirectXVersion != 3)
@@ -50,7 +50,7 @@ HRESULT m_IDirect3DViewportX::QueryInterface(REFIID riid, LPVOID FAR * ppvObj, D
 
 		AddRef(DxVersion);
 
-		return DD_OK;
+		return D3D_OK;
 	}
 
 	return ProxyQueryInterface(ProxyInterface, riid, ppvObj, GetWrapperType(DxVersion));
@@ -168,14 +168,21 @@ HRESULT m_IDirect3DViewportX::GetViewport(LPD3DVIEWPORT lpData)
 			return DDERR_INVALIDPARAMS;
 		}
 
-		if (!IsDataSet)
+		if (!D3DDeviceInterface || !*D3DDeviceInterface)
 		{
-			LOG_LIMIT(100, __FUNCTION__ << " Warning: Viewport not set!");
+			LOG_LIMIT(100, __FUNCTION__ << " Error: no D3DirectDevice interface!");
+			return DDERR_GENERIC;
 		}
 
-		*lpData = ViewportData;
+		D3DVIEWPORT7 Viewport7 = {};
+		HRESULT hr = (*D3DDeviceInterface)->GetViewport(&Viewport7);
 
-		return D3D_OK;
+		if (SUCCEEDED(hr))
+		{
+			ConvertViewport(*lpData, Viewport7);
+		}
+
+		return hr;
 	}
 
 	return ProxyInterface->GetViewport(lpData);
@@ -193,17 +200,22 @@ HRESULT m_IDirect3DViewportX::SetViewport(LPD3DVIEWPORT lpData)
 			return DDERR_INVALIDPARAMS;
 		}
 
+		if (!D3DDeviceInterface || !*D3DDeviceInterface)
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: no D3DirectDevice interface!");
+			return DDERR_GENERIC;
+		}
+
 		if (lpData->dvScaleX != 0 || lpData->dvScaleY != 0 || lpData->dvMaxX != 0 || lpData->dvMaxY != 0)
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Warning: 'Scale homogeneous' Not Implemented: " <<
 				" ScaleX: " << lpData->dvScaleX << " ScaleY: " << lpData->dvScaleY << " MaxX: " << lpData->dvMaxX << " MaxY: " << lpData->dvMaxY);
 		}
 
-		IsDataSet = true;
-		ViewportData = *lpData;
-		ConvertViewport(ViewportData2, *lpData);
+		D3DVIEWPORT7 Viewport7 = {};
+		ConvertViewport(Viewport7, *lpData);
 
-		return D3D_OK;
+		return (*D3DDeviceInterface)->SetViewport(&Viewport7);
 	}
 
 	if (Config.DdrawUseNativeResolution && lpData)
@@ -355,7 +367,7 @@ HRESULT m_IDirect3DViewportX::DeleteLight(LPDIRECT3DLIGHT lpDirect3DLight)
 	return ProxyInterface->DeleteLight(lpDirect3DLight);
 }
 
-HRESULT m_IDirect3DViewportX::NextLight(LPDIRECT3DLIGHT lpDirect3DLight, LPDIRECT3DLIGHT * lplpDirect3DLight, DWORD dwFlags)
+HRESULT m_IDirect3DViewportX::NextLight(LPDIRECT3DLIGHT lpDirect3DLight, LPDIRECT3DLIGHT* lplpDirect3DLight, DWORD dwFlags)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
@@ -392,14 +404,21 @@ HRESULT m_IDirect3DViewportX::GetViewport2(LPD3DVIEWPORT2 lpData)
 			return DDERR_INVALIDPARAMS;
 		}
 
-		if (!IsDataSet)
+		if (!D3DDeviceInterface || !*D3DDeviceInterface)
 		{
-			LOG_LIMIT(100, __FUNCTION__ << " Warning: Viewport not set!");
+			LOG_LIMIT(100, __FUNCTION__ << " Error: no D3DirectDevice interface!");
+			return DDERR_GENERIC;
 		}
 
-		*lpData = ViewportData2;
+		D3DVIEWPORT7 Viewport7 = {};
+		HRESULT hr = (*D3DDeviceInterface)->GetViewport(&Viewport7);
 
-		return D3D_OK;
+		if (SUCCEEDED(hr))
+		{
+			ConvertViewport(*lpData, Viewport7);
+		}
+
+		return hr;
 	}
 
 	return ProxyInterface->GetViewport2(lpData);
@@ -417,17 +436,22 @@ HRESULT m_IDirect3DViewportX::SetViewport2(LPD3DVIEWPORT2 lpData)
 			return DDERR_INVALIDPARAMS;
 		}
 
+		if (!D3DDeviceInterface || !*D3DDeviceInterface)
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: no D3DirectDevice interface!");
+			return DDERR_GENERIC;
+		}
+
 		if (lpData->dvClipWidth != 0 || lpData->dvClipHeight != 0 || lpData->dvClipX != 0 || lpData->dvClipY != 0)
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Warning: 'clip volume' Not Implemented: " <<
 				lpData->dvClipWidth << "x" << lpData->dvClipHeight << " X: " << lpData->dvClipX << " Y: " << lpData->dvClipY);
 		}
 
-		IsDataSet = true;
-		ViewportData2 = *lpData;
-		ConvertViewport(ViewportData, *lpData);
+		D3DVIEWPORT7 Viewport7 = {};
+		ConvertViewport(Viewport7, *lpData);
 
-		return D3D_OK;
+		return (*D3DDeviceInterface)->SetViewport(&Viewport7);
 	}
 
 	if (Config.DdrawUseNativeResolution && lpData)
@@ -459,7 +483,7 @@ HRESULT m_IDirect3DViewportX::SetBackgroundDepth2(LPDIRECTDRAWSURFACE4 lpDDS)
 	return ProxyInterface->SetBackgroundDepth2(lpDDS);
 }
 
-HRESULT m_IDirect3DViewportX::GetBackgroundDepth2(LPDIRECTDRAWSURFACE4 * lplpDDS, LPBOOL lpValid)
+HRESULT m_IDirect3DViewportX::GetBackgroundDepth2(LPDIRECTDRAWSURFACE4* lplpDDS, LPBOOL lpValid)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
@@ -511,10 +535,6 @@ void m_IDirect3DViewportX::InitViewport(DWORD DirectXVersion)
 	{
 		return;
 	}
-
-	// ToDo: set default viewport data
-	ViewportData.dwSize = sizeof(D3DVIEWPORT);
-	ViewportData2.dwSize = sizeof(D3DVIEWPORT2);
 
 	AddRef(DirectXVersion);
 }

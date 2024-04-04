@@ -9,7 +9,6 @@ private:
 
 	// Convert to Direct3D9
 	m_IDirectDrawX *ddrawParent = nullptr;
-	DDGAMMARAMP RampData = {};
 
 	// Interface initialization functions
 	void InitGammaControl();

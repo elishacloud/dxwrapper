@@ -29,12 +29,12 @@ HRESULT m_IDirect3DDeviceX::QueryInterface(REFIID riid, LPVOID FAR * ppvObj, DWO
 	if (riid == IID_GetRealInterface)
 	{
 		*ppvObj = ProxyInterface;
-		return DD_OK;
+		return D3D_OK;
 	}
 	if (riid == IID_GetInterfaceX)
 	{
 		*ppvObj = this;
-		return DD_OK;
+		return D3D_OK;
 	}
 
 	if (DirectXVersion != 1 && DirectXVersion != 2 && DirectXVersion != 3 && DirectXVersion != 7)
@@ -51,7 +51,7 @@ HRESULT m_IDirect3DDeviceX::QueryInterface(REFIID riid, LPVOID FAR * ppvObj, DWO
 
 		AddRef(DxVersion);
 
-		return DD_OK;
+		return D3D_OK;
 	}
 
 	return ProxyQueryInterface(ProxyInterface, riid, ppvObj, GetWrapperType(DxVersion));
@@ -622,8 +622,49 @@ HRESULT m_IDirect3DDeviceX::SwapTextureHandles(LPDIRECT3DTEXTURE2 lpD3DTex1, LPD
 
 	if (ProxyDirectXVersion > 2)
 	{
-		LOG_LIMIT(100, __FUNCTION__ << " Error: Not Implemented");
-		return DDERR_UNSUPPORTED;
+
+		if (!lpD3DTex1 || !lpD3DTex2)
+		{
+			return DDERR_INVALIDPARAMS;
+		}
+
+		m_IDirect3DTextureX* pTextureX1 = nullptr;
+		lpD3DTex1->QueryInterface(IID_GetInterfaceX, (LPVOID*)&pTextureX1);
+
+		m_IDirect3DTextureX* pTextureX2 = nullptr;
+		lpD3DTex2->QueryInterface(IID_GetInterfaceX, (LPVOID*)&pTextureX2);
+
+		if (!pTextureX1 || !pTextureX2)
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: could not get texture wrapper!");
+			return DDERR_INVALIDPARAMS;
+		}
+
+		// Find handle associated with texture1
+		auto it1 = std::find_if(TextureHandleMap.begin(), TextureHandleMap.end(), [&](const auto& pair) {
+			return pair.second == pTextureX1;
+			});
+
+		// Find handle associated with texture2
+		auto it2 = std::find_if(TextureHandleMap.begin(), TextureHandleMap.end(), [&](const auto& pair) {
+			return pair.second == pTextureX2;
+			});
+
+		// Check if handles are found
+		if (it1 == TextureHandleMap.end() || it2 == TextureHandleMap.end())
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: could not find texture handles!");
+			return DDERR_INVALIDPARAMS;
+		}
+
+		// If handles are found, swap them
+		std::swap(it1->second, it2->second);
+
+		// Update handles associated with textures
+		pTextureX1->SetHandle(it1->first);
+		pTextureX2->SetHandle(it2->first);
+
+		return D3D_OK;
 	}
 
 	if (lpD3DTex1)
@@ -768,12 +809,12 @@ HRESULT m_IDirect3DDeviceX::EnumTextureFormats(LPD3DENUMPIXELFORMATSCALLBACK lpd
 				SetPixelDisplayFormat(format, ddpfPixelFormat);
 				if (lpd3dEnumPixelProc(&ddpfPixelFormat, lpArg) == DDENUMRET_CANCEL)
 				{
-					return DD_OK;
+					return D3D_OK;
 				}
 			}
 		}
 
-		return DD_OK;
+		return D3D_OK;
 	}
 
 	switch (ProxyDirectXVersion)
@@ -795,7 +836,7 @@ HRESULT m_IDirect3DDeviceX::GetTexture(DWORD dwStage, LPDIRECT3DTEXTURE2* lplpTe
 
 	if (ProxyDirectXVersion > 3)
 	{
-		if (!lplpTexture)
+		if (!lplpTexture || dwStage >= MaxTextureBlendStages)
 		{
 			return DDERR_INVALIDPARAMS;
 		}
@@ -817,11 +858,10 @@ HRESULT m_IDirect3DDeviceX::GetTexture(DWORD dwStage, LPDIRECT3DTEXTURE2* lplpTe
 		// Get surface wrapper
 		m_IDirectDrawSurfaceX* pSurfaceX = nullptr;
 		pSurface->QueryInterface(IID_GetInterfaceX, (LPVOID*)&pSurfaceX);
-
 		if (!pSurfaceX)
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Error: could not get surface wrapper!");
-			return DDERR_GENERIC;
+			return DDERR_INVALIDPARAMS;
 		}
 
 		// Get attached texture from surface
@@ -837,7 +877,7 @@ HRESULT m_IDirect3DDeviceX::GetTexture(DWORD dwStage, LPDIRECT3DTEXTURE2* lplpTe
 
 		*lplpTexture = (LPDIRECT3DTEXTURE2)pTextureX->GetWrapperInterfaceX(2);
 
-		return DD_OK;
+		return D3D_OK;
 	}
 
 	HRESULT hr = GetProxyInterfaceV3()->GetTexture(dwStage, lplpTexture);
@@ -873,7 +913,7 @@ HRESULT m_IDirect3DDeviceX::GetTexture(DWORD dwStage, LPDIRECTDRAWSURFACE7* lplp
 
 				*lplpTexture = AttachedTexture[dwStage];
 
-				hr = DD_OK;
+				hr = D3D_OK;
 			}
 			else
 			{
@@ -894,12 +934,48 @@ HRESULT m_IDirect3DDeviceX::GetTexture(DWORD dwStage, LPDIRECTDRAWSURFACE7* lplp
 	return hr;
 }
 
+void m_IDirect3DDeviceX::ReleaseTextureHandle(m_IDirect3DTextureX* lpTexture)
+{
+	// Find handle associated with texture
+	auto it = TextureHandleMap.begin();
+	while (it != TextureHandleMap.end())
+	{
+		if (it->second == lpTexture)
+		{
+			// Remove entry from map
+			it = TextureHandleMap.erase(it);
+		}
+		else
+		{
+			++it;
+		}
+	}
+}
+
+HRESULT m_IDirect3DDeviceX::SetTextureHandle(DWORD tHandle, m_IDirect3DTextureX* lpTexture)
+{
+	if (!tHandle || !lpTexture)
+	{
+		LOG_LIMIT(100, __FUNCTION__ << " Error: NULL pointer found! " << lpTexture << " -> " << tHandle);
+		return DDERR_GENERIC;
+	}
+
+	TextureHandleMap[tHandle] = lpTexture;
+
+	return D3D_OK;
+}
+
 HRESULT m_IDirect3DDeviceX::SetTexture(DWORD dwStage, LPDIRECT3DTEXTURE2 lpTexture)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
 	if (ProxyDirectXVersion > 3)
 	{
+		if (dwStage >= MaxTextureBlendStages)
+		{
+			return DDERR_INVALIDPARAMS;
+		}
+
 		if (!lpTexture)
 		{
 			return SetTexture(dwStage, (LPDIRECTDRAWSURFACE7)nullptr);
@@ -907,15 +983,13 @@ HRESULT m_IDirect3DDeviceX::SetTexture(DWORD dwStage, LPDIRECT3DTEXTURE2 lpTextu
 
 		m_IDirect3DTextureX *pTextureX = nullptr;
 		lpTexture->QueryInterface(IID_GetInterfaceX, (LPVOID*)&pTextureX);
-
 		if (!pTextureX)
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Error: could not get texture wrapper!");
-			return DDERR_GENERIC;
+			return DDERR_INVALIDPARAMS;
 		}
 
 		m_IDirectDrawSurfaceX *pSurfaceX = pTextureX->GetSurface();
-
 		if (!pSurfaceX)
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Error: could not get surface!");
@@ -962,16 +1036,20 @@ HRESULT m_IDirect3DDeviceX::SetTexture(DWORD dwStage, LPDIRECTDRAWSURFACE7 lpSur
 		{
 			lpDDSrcSurfaceX = nullptr;
 
-			lpSurface->QueryInterface(IID_GetInterfaceX, (LPVOID*)&lpDDSrcSurfaceX);
+			if (!CheckSurfaceExists(lpSurface))
+			{
+				LOG_LIMIT(100, __FUNCTION__ << " Error: could not find source surface! " << lpSurface);
+				return DDERR_INVALIDPARAMS;
+			}
 
+			lpSurface->QueryInterface(IID_GetInterfaceX, (LPVOID*)&lpDDSrcSurfaceX);
 			if (!lpDDSrcSurfaceX)
 			{
 				LOG_LIMIT(100, __FUNCTION__ << " Error: could not get surface wrapper!");
-				return DDERR_GENERIC;
+				return DDERR_INVALIDPARAMS;
 			}
 
 			IDirect3DTexture9* pTexture9 = lpDDSrcSurfaceX->Get3DTexture();
-
 			if (!pTexture9)
 			{
 				LOG_LIMIT(100, __FUNCTION__ << " Error: could not get texture!");
@@ -981,7 +1059,7 @@ HRESULT m_IDirect3DDeviceX::SetTexture(DWORD dwStage, LPDIRECTDRAWSURFACE7 lpSur
 			hr = (*d3d9Device)->SetTexture(dwStage, pTexture9);
 		}
 
-		if (SUCCEEDED(hr) && dwStage < MaxTextureBlendStages)
+		if (SUCCEEDED(hr))
 		{
 			AttachedTexture[dwStage] = lpSurface;
 			if (dwStage == 0)
@@ -1228,6 +1306,7 @@ HRESULT m_IDirect3DDeviceX::SetTextureStageState(DWORD dwStage, D3DTEXTURESTAGES
 		if (!CheckTextureStageStateType(dwState))
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Warning: Texture state type not implemented: " << dwState);
+			return D3D_OK;	// Just return OK for now!
 		}
 
 		return (*d3d9Device)->SetTextureStageState(dwStage, dwState, dwValue);
@@ -1826,15 +1905,25 @@ HRESULT m_IDirect3DDeviceX::EndScene()
 			return DDERR_GENERIC;
 		}
 
+		bool FlipSurface = false;
+
 		// Draw 2D DirectDraw surface
 		m_IDirectDrawSurfaceX* PrimarySurface = ddrawParent->GetPrimarySurface();
-		if (PrimarySurface && PrimarySurface->IsSurfaceDirty())
+		if (PrimarySurface)
 		{
-			SetDrawStates(0, D3DDP_DXW_DRAW2DSURFACE, 9);
+			FlipSurface = (PrimarySurface->isFlipSurface() && SUCCEEDED(PrimarySurface->GetFlipStatus(DDGFS_CANFLIP)));
 
-			ddrawParent->Draw2DSurface(PrimarySurface);
+			if (PrimarySurface->IsSurfaceDirty())
+			{
+				PrimarySurface->GetColorKeyForPrimaryShader(DrawStates.lowColorKey, DrawStates.highColorKey);
 
-			RestoreDrawStates(0, D3DDP_DXW_DRAW2DSURFACE, 9);
+				DWORD Flags = D3DDP_DXW_DRAW2DSURFACE | D3DDP_DXW_COLORKEYENABLE;
+				SetDrawStates(0, Flags, 9);
+
+				ddrawParent->Draw2DSurface(PrimarySurface);
+
+				RestoreDrawStates(0, Flags, 9);
+			}
 		}
 
 		// The IDirect3DDevice7::EndScene method ends a scene that was begun by calling the IDirect3DDevice7::BeginScene method.
@@ -1843,9 +1932,9 @@ HRESULT m_IDirect3DDeviceX::EndScene()
 		HRESULT hr = (*d3d9Device)->EndScene();
 
 		// Present surface after end scene
-		if (SUCCEEDED(hr))
+		if (SUCCEEDED(hr) && !FlipSurface)
 		{
-			hr = ddrawParent->Present(nullptr, nullptr);
+			ddrawParent->Present(nullptr, nullptr);
 		}
 
 		return hr;
@@ -2032,15 +2121,32 @@ HRESULT m_IDirect3DDeviceX::SetLightState(D3DLIGHTSTATETYPE dwLightStateType, DW
 
 	if (ProxyDirectXVersion > 3)
 	{
-		if (dwLightStateType == D3DLIGHTSTATE_MATERIAL || dwLightStateType == D3DLIGHTSTATE_COLORMODEL)
+		if (dwLightStateType == D3DLIGHTSTATE_COLORMODEL)
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Error: LightStateType: " << dwLightStateType << " Not Implemented");
-			return DDERR_UNSUPPORTED;
+			return D3D_OK;
 		}
 
 		DWORD RenderState = 0;
 		switch (dwLightStateType)
 		{
+		case D3DLIGHTSTATE_MATERIAL:
+		{
+			D3DMATERIAL* lpMaterial = dwLightState ? &currentMaterial : &defaultMaterial;
+
+			D3DMATERIAL7 Material7;
+
+			ConvertMaterial(Material7, *lpMaterial);
+
+			SetMaterial(&Material7);
+
+			if (lpMaterial->hTexture)
+			{
+				SetRenderState(D3DRENDERSTATE_TEXTUREHANDLE, lpMaterial->hTexture);
+			}
+
+			return D3D_OK;
+		}
 		case D3DLIGHTSTATE_AMBIENT:
 			RenderState = D3DRENDERSTATE_AMBIENT;
 			break;
@@ -2084,6 +2190,95 @@ HRESULT m_IDirect3DDeviceX::SetLightState(D3DLIGHTSTATETYPE dwLightStateType, DW
 	}
 }
 
+void m_IDirect3DDeviceX::ReleaseLightInterface(m_IDirect3DLight* lpLight)
+{
+	// Find handle associated with Light
+	auto it = LightIndexMap.begin();
+	while (it != LightIndexMap.end())
+	{
+		if (it->second == lpLight)
+		{
+			// Remove entry from map
+			it = LightIndexMap.erase(it);
+		}
+		else
+		{
+			++it;
+		}
+	}
+}
+
+HRESULT m_IDirect3DDeviceX::SetLight(m_IDirect3DLight* lpLightInterface, LPD3DLIGHT lpLight)
+{
+	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
+
+	if (!lpLightInterface || !lpLight || (lpLight->dwSize != sizeof(D3DLIGHT) && lpLight->dwSize != sizeof(D3DLIGHT2)))
+	{
+		return DDERR_INVALIDPARAMS;
+	}
+
+	D3DLIGHT7 Light7;
+
+	ConvertLight(Light7, *lpLight);
+
+	DWORD dwLightIndex = 0;
+
+	// Check if Light exists in the map
+	for (auto& entry : LightIndexMap)
+	{
+		if (entry.second == lpLightInterface)
+		{
+			dwLightIndex = entry.first;
+			break;
+		}
+	}
+
+	// Create index and add light to the map
+	if (dwLightIndex == 0)
+	{
+		BYTE Start = (BYTE)((DWORD)lpLightInterface & 0xff);
+		for (BYTE x = Start; x != Start - 1; x++)
+		{
+			bool Flag = true;
+			for (auto& entry : LightIndexMap)
+			{
+				if (entry.first == x)
+				{
+					Flag = false;
+					break;
+				}
+			}
+			if (x != 0 && Flag)
+			{
+				dwLightIndex = x;
+				break;
+			}
+		}
+	}
+
+	if (dwLightIndex == 0)
+	{
+		LOG_LIMIT(100, __FUNCTION__ << " Error: Failed to find an available Light Index");
+		return DDERR_GENERIC;
+	}
+
+	HRESULT hr = SetLight(dwLightIndex, &Light7);
+
+	if (SUCCEEDED(hr))
+	{
+		if (((LPD3DLIGHT2)lpLight)->dwSize == sizeof(D3DLIGHT2) && (((LPD3DLIGHT2)lpLight)->dwFlags & D3DLIGHT_ACTIVE) == NULL)
+		{
+			LightEnable(dwLightIndex, FALSE);
+		}
+		else
+		{
+			LightEnable(dwLightIndex, TRUE);
+		}
+	}
+
+	return hr;
+}
+
 HRESULT m_IDirect3DDeviceX::SetLight(DWORD dwLightIndex, LPD3DLIGHT7 lpLight)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
@@ -2092,6 +2287,7 @@ HRESULT m_IDirect3DDeviceX::SetLight(DWORD dwLightIndex, LPD3DLIGHT7 lpLight)
 	{
 		if (!lpLight)
 		{
+			LOG_LIMIT(100, __FUNCTION__ << " Warning: called with nullptr: " << lpLight);
 			return DDERR_INVALIDPARAMS;
 		}
 
@@ -2184,6 +2380,34 @@ HRESULT m_IDirect3DDeviceX::LightEnable(DWORD dwLightIndex, BOOL bEnable)
 	return GetProxyInterfaceV7()->LightEnable(dwLightIndex, bEnable);
 }
 
+HRESULT m_IDirect3DDeviceX::GetLightEnable(m_IDirect3DLight* lpLightInterface, BOOL* pbEnable)
+{
+	if (!lpLightInterface || !pbEnable)
+	{
+		return DDERR_INVALIDPARAMS;
+	}
+
+	DWORD dwLightIndex = 0;
+
+	// Check if Light exists in the map
+	for (auto& entry : LightIndexMap)
+	{
+		if (entry.second == lpLightInterface)
+		{
+			dwLightIndex = entry.first;
+			break;
+		}
+	}
+
+	if (dwLightIndex == 0)
+	{
+		LOG_LIMIT(100, __FUNCTION__ << " Error: Failed to find an available Light Index");
+		return DDERR_GENERIC;
+	}
+
+	return GetLightEnable(dwLightIndex, pbEnable);
+}
+
 HRESULT m_IDirect3DDeviceX::GetLightEnable(DWORD dwLightIndex, BOOL* pbEnable)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
@@ -2252,6 +2476,72 @@ HRESULT m_IDirect3DDeviceX::MultiplyTransform(D3DTRANSFORMSTATETYPE dtstTransfor
 	}
 }
 
+void m_IDirect3DDeviceX::ReleaseMaterialHandle(m_IDirect3DMaterialX* lpMaterial)
+{
+	// Find handle associated with Material
+	auto it = MaterialHandleMap.begin();
+	while (it != MaterialHandleMap.end())
+	{
+		if (it->second == lpMaterial)
+		{
+			// Remove entry from map
+			it = MaterialHandleMap.erase(it);
+		}
+		else
+		{
+			++it;
+		}
+	}
+}
+
+HRESULT m_IDirect3DDeviceX::SetMaterialHandle(D3DMATERIALHANDLE mHandle, m_IDirect3DMaterialX* lpMaterial)
+{
+	if (!mHandle || !lpMaterial)
+	{
+		LOG_LIMIT(100, __FUNCTION__ << " Error: NULL pointer found! " << lpMaterial << " -> " << mHandle);
+		return DDERR_GENERIC;
+	}
+
+	MaterialHandleMap[mHandle] = lpMaterial;
+
+	return D3D_OK;
+}
+
+HRESULT m_IDirect3DDeviceX::SetMaterial(LPD3DMATERIAL lpMaterial)
+{
+	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
+
+	if (!lpMaterial)
+	{
+		return DDERR_INVALIDPARAMS;
+	}
+
+	D3DMATERIAL7 Material7;
+
+	ConvertMaterial(Material7, *lpMaterial);
+
+	HRESULT hr = SetMaterial(&Material7);
+
+	if (FAILED(hr))
+	{
+		return D3DERR_MATERIAL_SETDATA_FAILED;
+	}
+
+	if (lpMaterial->dwRampSize)
+	{
+		LOG_LIMIT(100, __FUNCTION__ << " Warning: RampSize Not Implemented: " << lpMaterial->dwRampSize);
+	}
+
+	if (lpMaterial->hTexture)
+	{
+		SetRenderState(D3DRENDERSTATE_TEXTUREHANDLE, lpMaterial->hTexture);
+	}
+
+	currentMaterial = *lpMaterial;
+
+	return D3D_OK;
+}
+
 HRESULT m_IDirect3DDeviceX::SetMaterial(LPD3DMATERIAL7 lpMaterial)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
@@ -2300,7 +2590,7 @@ HRESULT m_IDirect3DDeviceX::GetMaterial(LPD3DMATERIAL7 lpMaterial)
 
 HRESULT m_IDirect3DDeviceX::SetRenderState(D3DRENDERSTATETYPE dwRenderStateType, DWORD dwRenderState)
 {
-	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
+	Logging::LogDebug() << __FUNCTION__ << " (" << this << ") " << dwRenderStateType << " " << dwRenderState;
 
 	if (Config.Dd7to9)
 	{
@@ -2312,67 +2602,378 @@ HRESULT m_IDirect3DDeviceX::SetRenderState(D3DRENDERSTATETYPE dwRenderStateType,
 
 		switch ((DWORD)dwRenderStateType)
 		{
-		case D3DRENDERSTATE_ANTIALIAS:
-			dwRenderStateType = D3DRS_MULTISAMPLEANTIALIAS;
-			dwRenderState = (((D3DANTIALIASMODE)dwRenderState == D3DANTIALIAS_SORTDEPENDENT) || ((D3DANTIALIASMODE)dwRenderState == D3DANTIALIAS_SORTINDEPENDENT));
+		case D3DRENDERSTATE_TEXTUREHANDLE:		// 1
+			if (dwRenderState == NULL)
+			{
+				rsTextureHandle = dwRenderState;
+				return SetTexture(0, (LPDIRECT3DTEXTURE2)nullptr);
+			}
+			else if (TextureHandleMap.find(dwRenderState) != TextureHandleMap.end())
+			{
+				// ToDo: Validate texture address
+				m_IDirect3DTextureX* pTextureX = TextureHandleMap[dwRenderState];
+				if (!pTextureX)
+				{
+					LOG_LIMIT(100, __FUNCTION__ << " Error: could not get texture wrapper!");
+					return DDERR_GENERIC;
+				}
+
+				IDirect3DTexture2* lpTexture = (IDirect3DTexture2*)pTextureX->GetWrapperInterfaceX(2);
+				if (!lpTexture)
+				{
+					LOG_LIMIT(100, __FUNCTION__ << " Error: could not get texture address!");
+					return DDERR_GENERIC;
+				}
+
+				rsTextureHandle = dwRenderState;
+				return SetTexture(0, lpTexture);
+			}
+			return D3D_OK;
+		case D3DRENDERSTATE_ANTIALIAS:			// 2
+			rsAntiAliasChanged = true;
+			rsAntiAlias = dwRenderStateType;
 			break;
-		case D3DRENDERSTATE_EDGEANTIALIAS:
-			dwRenderStateType = D3DRS_ANTIALIASEDLINEENABLE;
+		case D3DRENDERSTATE_TEXTUREADDRESS:		// 3
+			return SetTextureStageState(0, (D3DTEXTURESTAGESTATETYPE)D3DTSS_ADDRESS, dwRenderState);
+		case D3DRENDERSTATE_TEXTUREPERSPECTIVE:	// 4
+			// For the IDirect3DDevice3 interface, the default value is TRUE. For earlier interfaces, the default is FALSE.
+			return D3D_OK;
+		case D3DRENDERSTATE_WRAPU:				// 5
+			rsTextureWrappingChanged = true;
+			rsTextureWrappingU = dwRenderState;
+			return D3D_OK;
+		case D3DRENDERSTATE_WRAPV:				// 6
+			rsTextureWrappingChanged = true;
+			rsTextureWrappingV = dwRenderState;
+			return D3D_OK;
+		case D3DRENDERSTATE_LINEPATTERN:		// 10
+			if (dwRenderState != 0)
+			{
+				LOG_LIMIT(100, __FUNCTION__ << " Warning: 'D3DRENDERSTATE_LINEPATTERN' not implemented! " << dwRenderState);
+			}
+			return D3D_OK;
+		case D3DRENDERSTATE_MONOENABLE:			// 11
+			if (dwRenderState != FALSE)
+			{
+				LOG_LIMIT(100, __FUNCTION__ << " Warning: 'D3DRENDERSTATE_MONOENABLE' not implemented! " << dwRenderState);
+			}
+			return D3D_OK;
+		case D3DRENDERSTATE_ROP2:				// 12
+			if (dwRenderState != R2_COPYPEN)
+			{
+				LOG_LIMIT(100, __FUNCTION__ << " Warning: 'D3DRENDERSTATE_ROP2' not implemented! " << dwRenderState);
+			}
+			return D3D_OK;
+		case D3DRENDERSTATE_PLANEMASK:			// 13
+			if (dwRenderState != (DWORD)-1)
+			{
+				LOG_LIMIT(100, __FUNCTION__ << " Warning: 'D3DRENDERSTATE_PLANEMASK' not implemented! " << dwRenderState);
+			}
+			return D3D_OK;
+		case D3DRENDERSTATE_TEXTUREMAG:			// 17
+			// Only the first two (D3DFILTER_NEAREST and D3DFILTER_LINEAR) are valid with D3DRENDERSTATE_TEXTUREMAG.
+			switch (dwRenderState)
+			{
+			case D3DFILTER_NEAREST:
+			case D3DFILTER_LINEAR:
+				return (*d3d9Device)->SetSamplerState(0, D3DSAMP_MAGFILTER, dwRenderState);
+			default:
+				return DDERR_INVALIDPARAMS;
+			}
+		case D3DRENDERSTATE_TEXTUREMIN:			// 18
+			switch (dwRenderState)
+			{
+			case D3DFILTER_NEAREST:
+			case D3DFILTER_LINEAR:
+				rsTextureMin = dwRenderState;
+				(*d3d9Device)->SetSamplerState(0, D3DSAMP_MIPFILTER, D3DTEXF_NONE);
+				return (*d3d9Device)->SetSamplerState(0, D3DSAMP_MINFILTER, dwRenderState);
+			case D3DFILTER_MIPNEAREST:
+			case D3DFILTER_LINEARMIPNEAREST:
+				rsTextureMin = dwRenderState;
+				(*d3d9Device)->SetSamplerState(0, D3DSAMP_MINFILTER, D3DTEXF_POINT);
+				return (*d3d9Device)->SetSamplerState(0, D3DSAMP_MIPFILTER, D3DTEXF_POINT);
+			case D3DFILTER_MIPLINEAR:
+			case D3DFILTER_LINEARMIPLINEAR:
+				rsTextureMin = dwRenderState;
+				(*d3d9Device)->SetSamplerState(0, D3DSAMP_MINFILTER, D3DTEXF_LINEAR);
+				return (*d3d9Device)->SetSamplerState(0, D3DSAMP_MIPFILTER, D3DTEXF_LINEAR);
+			default:
+				return DDERR_INVALIDPARAMS;
+			}
+		case D3DRENDERSTATE_SRCBLEND:			// 19
+			rsSrcBlend = dwRenderState;
 			break;
-		case D3DRENDERSTATE_ZBIAS:
+		case D3DRENDERSTATE_DESTBLEND:			// 20
+			rsDestBlend = dwRenderState;
+			break;
+		case D3DRENDERSTATE_TEXTUREMAPBLEND:	// 21
+			switch (dwRenderState)
+			{
+			case D3DTBLEND_COPY:
+			case D3DTBLEND_DECAL:
+				// Reset states
+				(*d3d9Device)->SetTextureStageState(0, D3DTSS_ALPHAOP, D3DTOP_DISABLE);
+				(*d3d9Device)->SetRenderState(D3DRS_ALPHABLENDENABLE, FALSE);
+				(*d3d9Device)->SetRenderState(D3DRS_ALPHATESTENABLE, FALSE);
+				(*d3d9Device)->SetRenderState(D3DRS_SRCBLEND, D3DBLEND_ONE);
+				(*d3d9Device)->SetRenderState(D3DRS_DESTBLEND, D3DBLEND_ZERO);
+				(*d3d9Device)->SetRenderState(D3DRS_ALPHAREF, 0);
+				(*d3d9Device)->SetRenderState(D3DRS_ALPHAFUNC, D3DCMP_ALWAYS);
+
+				// Set texture stage states for texture blending
+				(*d3d9Device)->SetTextureStageState(0, D3DTSS_COLOROP, D3DTOP_SELECTARG1);
+
+				// Save state
+				rsTextureMapBlend = dwRenderState;
+				return D3D_OK;
+			case D3DTBLEND_DECALALPHA:
+				// Reset states
+				(*d3d9Device)->SetRenderState(D3DRS_ALPHATESTENABLE, FALSE);
+				(*d3d9Device)->SetRenderState(D3DRS_ALPHAREF, 0);
+				(*d3d9Device)->SetRenderState(D3DRS_ALPHAFUNC, D3DCMP_ALWAYS);
+
+				// Set texture stage states for texture blending
+				(*d3d9Device)->SetTextureStageState(0, D3DTSS_COLOROP, D3DTOP_SELECTARG1);
+				(*d3d9Device)->SetTextureStageState(0, D3DTSS_ALPHAOP, D3DTOP_SELECTARG1);
+
+				// Enable alpha blending
+				(*d3d9Device)->SetRenderState(D3DRS_ALPHABLENDENABLE, TRUE);
+				(*d3d9Device)->SetRenderState(D3DRS_SRCBLEND, D3DBLEND_SRCALPHA);
+				(*d3d9Device)->SetRenderState(D3DRS_DESTBLEND, D3DBLEND_INVSRCALPHA);
+
+				// Save state
+				rsTextureMapBlend = dwRenderState;
+				return D3D_OK;
+			case D3DTBLEND_DECALMASK:
+				// Reset states
+				(*d3d9Device)->SetTextureStageState(0, D3DTSS_ALPHAOP, D3DTOP_DISABLE);
+				(*d3d9Device)->SetRenderState(D3DRS_ALPHABLENDENABLE, FALSE);
+				(*d3d9Device)->SetRenderState(D3DRS_SRCBLEND, D3DBLEND_ONE);
+				(*d3d9Device)->SetRenderState(D3DRS_DESTBLEND, D3DBLEND_ZERO);
+
+				// Set texture stage states for texture blending
+				(*d3d9Device)->SetTextureStageState(0, D3DTSS_COLOROP, D3DTOP_MODULATE);
+
+				// Set texture stage states for alpha testing
+				(*d3d9Device)->SetRenderState(D3DRS_ALPHATESTENABLE, TRUE);
+				(*d3d9Device)->SetRenderState(D3DRS_ALPHAREF, 128); // Adjust as needed
+				(*d3d9Device)->SetRenderState(D3DRS_ALPHAFUNC, D3DCMP_GREATEREQUAL);
+
+				// Save state
+				rsTextureMapBlend = dwRenderState;
+				return D3D_OK;
+			case D3DTBLEND_MODULATE:
+				// Reset states
+				(*d3d9Device)->SetTextureStageState(0, D3DTSS_ALPHAOP, D3DTOP_DISABLE);
+				(*d3d9Device)->SetRenderState(D3DRS_ALPHABLENDENABLE, FALSE);
+				(*d3d9Device)->SetRenderState(D3DRS_ALPHATESTENABLE, FALSE);
+				(*d3d9Device)->SetRenderState(D3DRS_SRCBLEND, D3DBLEND_ONE);
+				(*d3d9Device)->SetRenderState(D3DRS_DESTBLEND, D3DBLEND_ZERO);
+				(*d3d9Device)->SetRenderState(D3DRS_ALPHAREF, 0);
+				(*d3d9Device)->SetRenderState(D3DRS_ALPHAFUNC, D3DCMP_ALWAYS);
+
+				// Set texture stage states for texture blending
+				(*d3d9Device)->SetTextureStageState(0, D3DTSS_COLOROP, D3DTOP_MODULATE);
+
+				// Save state
+				rsTextureMapBlend = dwRenderState;
+				return D3D_OK;
+			case D3DTBLEND_MODULATEALPHA:
+				// Reset states
+				(*d3d9Device)->SetRenderState(D3DRS_ALPHABLENDENABLE, FALSE);
+				(*d3d9Device)->SetRenderState(D3DRS_ALPHATESTENABLE, FALSE);
+				(*d3d9Device)->SetRenderState(D3DRS_SRCBLEND, D3DBLEND_ONE);
+				(*d3d9Device)->SetRenderState(D3DRS_DESTBLEND, D3DBLEND_ZERO);
+				(*d3d9Device)->SetRenderState(D3DRS_ALPHAREF, 0);
+				(*d3d9Device)->SetRenderState(D3DRS_ALPHAFUNC, D3DCMP_ALWAYS);
+
+				// Set texture stage states for texture blending
+				(*d3d9Device)->SetTextureStageState(0, D3DTSS_COLOROP, D3DTOP_MODULATE);
+
+				// Set texture stage states for texture alpha operation
+				(*d3d9Device)->SetTextureStageState(0, D3DTSS_ALPHAOP, D3DTOP_MODULATE);
+
+				// Save state
+				rsTextureMapBlend = dwRenderState;
+				return D3D_OK;
+			case D3DTBLEND_MODULATEMASK:
+				// Reset states
+				(*d3d9Device)->SetTextureStageState(0, D3DTSS_ALPHAOP, D3DTOP_DISABLE);
+				(*d3d9Device)->SetRenderState(D3DRS_ALPHABLENDENABLE, FALSE);
+				(*d3d9Device)->SetRenderState(D3DRS_SRCBLEND, D3DBLEND_ONE);
+				(*d3d9Device)->SetRenderState(D3DRS_DESTBLEND, D3DBLEND_ZERO);
+
+				// Set texture stage states for texture blending
+				(*d3d9Device)->SetTextureStageState(0, D3DTSS_COLOROP, D3DTOP_MODULATE);
+
+				// Set texture stage states for alpha testing
+				(*d3d9Device)->SetRenderState(D3DRS_ALPHATESTENABLE, TRUE);
+				(*d3d9Device)->SetRenderState(D3DRS_ALPHAREF, 128); // Adjust as needed
+				(*d3d9Device)->SetRenderState(D3DRS_ALPHAFUNC, D3DCMP_GREATEREQUAL);
+
+				// Save state
+				rsTextureMapBlend = dwRenderState;
+				return D3D_OK;
+			case D3DTBLEND_ADD:
+				// Reset states
+				(*d3d9Device)->SetTextureStageState(0, D3DTSS_ALPHAOP, D3DTOP_DISABLE);
+				(*d3d9Device)->SetRenderState(D3DRS_ALPHABLENDENABLE, FALSE);
+				(*d3d9Device)->SetRenderState(D3DRS_ALPHATESTENABLE, FALSE);
+				(*d3d9Device)->SetRenderState(D3DRS_SRCBLEND, D3DBLEND_ONE);
+				(*d3d9Device)->SetRenderState(D3DRS_DESTBLEND, D3DBLEND_ZERO);
+				(*d3d9Device)->SetRenderState(D3DRS_ALPHAREF, 0);
+				(*d3d9Device)->SetRenderState(D3DRS_ALPHAFUNC, D3DCMP_ALWAYS);
+
+				// Set texture stage states for texture blending
+				(*d3d9Device)->SetTextureStageState(0, D3DTSS_COLOROP, D3DTOP_ADD);
+
+				// Save state
+				rsTextureMapBlend = dwRenderState;
+				return D3D_OK;
+			default:
+				return DDERR_INVALIDPARAMS;
+			}
+		case D3DRENDERSTATE_ALPHABLENDENABLE:	// 27
+			rsAlphaBlendEnabled = dwRenderState;
+			break;
+		case D3DRENDERSTATE_ZVISIBLE:			// 30
+			// This render state is not supported.
+			return D3D_OK;
+		case D3DRENDERSTATE_SUBPIXEL:			// 31
+			if (dwRenderState != FALSE)
+			{
+				LOG_LIMIT(100, __FUNCTION__ << " Warning: 'D3DRENDERSTATE_SUBPIXEL' not implemented! " << dwRenderState);
+			}
+			return D3D_OK;
+		case D3DRENDERSTATE_SUBPIXELX:			// 32
+			if (dwRenderState != FALSE)
+			{
+				LOG_LIMIT(100, __FUNCTION__ << " Warning: 'D3DRENDERSTATE_SUBPIXELX' not implemented! " << dwRenderState);
+			}
+			return D3D_OK;
+		case D3DRENDERSTATE_STIPPLEDALPHA:		// 33
+			if (dwRenderState != FALSE)
+			{
+				LOG_LIMIT(100, __FUNCTION__ << " Warning: 'D3DRENDERSTATE_STIPPLEDALPHA' not implemented! " << dwRenderState);
+			}
+			return D3D_OK;
+		case D3DRENDERSTATE_STIPPLEENABLE:		// 39
+			if (dwRenderState != FALSE)
+			{
+				LOG_LIMIT(100, __FUNCTION__ << " Warning: 'D3DRENDERSTATE_STIPPLEENABLE' not implemented! " << dwRenderState);
+			}
+			return D3D_OK;
+		case D3DRENDERSTATE_EDGEANTIALIAS:		// 40
+			rsAntiAliasChanged = true;
+			rsEdgeAntiAlias = dwRenderStateType;
+			break;
+		case D3DRENDERSTATE_COLORKEYENABLE:		// 41
+			rsColorKeyEnabled = dwRenderState;
+			return D3D_OK;
+		case D3DRENDERSTATE_OLDALPHABLENDENABLE:// 42
+			if (dwRenderState != FALSE)
+			{
+				LOG_LIMIT(100, __FUNCTION__ << " Warning: 'D3DRENDERSTATE_OLDALPHABLENDENABLE' not implemented! " << dwRenderState);
+			}
+			return D3D_OK;
+		case D3DRENDERSTATE_BORDERCOLOR:		// 43
+			if (dwRenderState != 0x00000000)
+			{
+				LOG_LIMIT(100, __FUNCTION__ << " Warning: 'D3DRENDERSTATE_BORDERCOLOR' not implemented! " << dwRenderState);
+			}
+			return D3D_OK;
+		case D3DRENDERSTATE_TEXTUREADDRESSU:	// 44
+			return SetTextureStageState(0, (D3DTEXTURESTAGESTATETYPE)D3DTSS_ADDRESSU, dwRenderState);
+		case D3DRENDERSTATE_TEXTUREADDRESSV:	// 45
+			return SetTextureStageState(0, (D3DTEXTURESTAGESTATETYPE)D3DTSS_ADDRESSV, dwRenderState);
+		case D3DRENDERSTATE_MIPMAPLODBIAS:		// 46
+			if (dwRenderState != 0)	// 0.0
+			{
+				LOG_LIMIT(100, __FUNCTION__ << " Warning: 'D3DRENDERSTATE_MIPMAPLODBIAS' not implemented! " << dwRenderState);
+			}
+			return D3D_OK;
+		case D3DRENDERSTATE_ZBIAS:				// 47
 		{
 			FLOAT Biased = static_cast<FLOAT>(dwRenderState) * -0.000005f;
 			dwRenderState = *reinterpret_cast<const DWORD*>(&Biased);
 			dwRenderStateType = D3DRS_DEPTHBIAS;
 			break;
 		}
-		case D3DRS_LIGHTING:
+		case D3DRENDERSTATE_FLUSHBATCH:			// 50
+			if (dwRenderState != FALSE)
+			{
+				LOG_LIMIT(100, __FUNCTION__ << " Warning: 'D3DRENDERSTATE_FLUSHBATCH' not implemented! " << dwRenderState);
+			}
+			return D3D_OK;
+		case D3DRENDERSTATE_TRANSLUCENTSORTINDEPENDENT:	// 51
+			if (dwRenderState != FALSE)
+			{
+				LOG_LIMIT(100, __FUNCTION__ << " Warning: 'D3DRENDERSTATE_TRANSLUCENTSORTINDEPENDENT' not implemented! " << dwRenderState);
+			}
+			return D3D_OK;
+		case D3DRENDERSTATE_STIPPLEPATTERN00:	// 64
+		case D3DRENDERSTATE_STIPPLEPATTERN01:	// 65
+		case D3DRENDERSTATE_STIPPLEPATTERN02:	// 66
+		case D3DRENDERSTATE_STIPPLEPATTERN03:	// 67
+		case D3DRENDERSTATE_STIPPLEPATTERN04:	// 68
+		case D3DRENDERSTATE_STIPPLEPATTERN05:	// 69
+		case D3DRENDERSTATE_STIPPLEPATTERN06:	// 70
+		case D3DRENDERSTATE_STIPPLEPATTERN07:	// 71
+		case D3DRENDERSTATE_STIPPLEPATTERN08:	// 72
+		case D3DRENDERSTATE_STIPPLEPATTERN09:	// 73
+		case D3DRENDERSTATE_STIPPLEPATTERN10:	// 74
+		case D3DRENDERSTATE_STIPPLEPATTERN11:	// 75
+		case D3DRENDERSTATE_STIPPLEPATTERN12:	// 76
+		case D3DRENDERSTATE_STIPPLEPATTERN13:	// 77
+		case D3DRENDERSTATE_STIPPLEPATTERN14:	// 78
+		case D3DRENDERSTATE_STIPPLEPATTERN15:	// 79
+		case D3DRENDERSTATE_STIPPLEPATTERN16:	// 80
+		case D3DRENDERSTATE_STIPPLEPATTERN17:	// 81
+		case D3DRENDERSTATE_STIPPLEPATTERN18:	// 82
+		case D3DRENDERSTATE_STIPPLEPATTERN19:	// 83
+		case D3DRENDERSTATE_STIPPLEPATTERN20:	// 84
+		case D3DRENDERSTATE_STIPPLEPATTERN21:	// 85
+		case D3DRENDERSTATE_STIPPLEPATTERN22:	// 86
+		case D3DRENDERSTATE_STIPPLEPATTERN23:	// 87
+		case D3DRENDERSTATE_STIPPLEPATTERN24:	// 88
+		case D3DRENDERSTATE_STIPPLEPATTERN25:	// 89
+		case D3DRENDERSTATE_STIPPLEPATTERN26:	// 90
+		case D3DRENDERSTATE_STIPPLEPATTERN27:	// 91
+		case D3DRENDERSTATE_STIPPLEPATTERN28:	// 92
+		case D3DRENDERSTATE_STIPPLEPATTERN29:	// 93
+		case D3DRENDERSTATE_STIPPLEPATTERN30:	// 94
+		case D3DRENDERSTATE_STIPPLEPATTERN31:	// 95
+			if (dwRenderState != 0)
+			{
+				LOG_LIMIT(100, __FUNCTION__ << " Warning: 'D3DRENDERSTATE_STIPPLEPATTERN00' not implemented! " << dwRenderState);
+			}
+			return D3D_OK;
+		case D3DRENDERSTATE_LIGHTING:			// 137
 			if (Config.DdrawDisableLighting)
 			{
 				dwRenderState = FALSE;
 			}
 			break;
-		case D3DRENDERSTATE_TEXTUREPERSPECTIVE:
-			return D3D_OK;		// As long as the device's D3DPTEXTURECAPS_PERSPECTIVE is enabled, the correction will be applied automatically.
-		case D3DRENDERSTATE_COLORKEYENABLE:
-			rsColorKeyEnabled = dwRenderState;
-			return D3D_OK;
-		case D3DRENDERSTATE_COLORKEYBLENDENABLE:
-			if (dwRenderState)
-			{
-				LOG_LIMIT(100, __FUNCTION__ << " Warning: 'D3DRENDERSTATE_COLORKEYBLENDENABLE' not implemented!");
-			}
-			return D3D_OK;
-		case D3DRENDERSTATE_LINEPATTERN:
-			if (dwRenderState)
-			{
-				LOG_LIMIT(100, __FUNCTION__ << " Warning: 'D3DRENDERSTATE_LINEPATTERN' not implemented!");
-			}
-			return D3D_OK;
-		case D3DRENDERSTATE_ZVISIBLE:
-			if (dwRenderState)
-			{
-				LOG_LIMIT(100, __FUNCTION__ << " Warning: 'D3DRENDERSTATE_ZVISIBLE' not implemented!");
-			}
-			return D3D_OK;
-		case D3DRENDERSTATE_STIPPLEDALPHA:
-			if (dwRenderState)
-			{
-				LOG_LIMIT(100, __FUNCTION__ << " Warning: 'D3DRENDERSTATE_STIPPLEDALPHA' not implemented!");
-			}
-			return D3D_OK;
-		case D3DRENDERSTATE_EXTENTS:
+		case D3DRENDERSTATE_EXTENTS:			// 138
 			// ToDo: use this to enable/disable clip plane extents set by SetClipStatus()
-			if (dwRenderState)
+			if (dwRenderState != FALSE)
 			{
-				LOG_LIMIT(100, __FUNCTION__ << " Warning: 'D3DRENDERSTATE_EXTENTS' not implemented!");
+				LOG_LIMIT(100, __FUNCTION__ << " Warning: 'D3DRENDERSTATE_EXTENTS' not implemented! " << dwRenderState);
+			}
+			return D3D_OK;
+		case D3DRENDERSTATE_COLORKEYBLENDENABLE:// 144
+			if (dwRenderState != FALSE)
+			{
+				LOG_LIMIT(100, __FUNCTION__ << " Warning: 'D3DRENDERSTATE_COLORKEYBLENDENABLE' not implemented! " << dwRenderState);
 			}
 			return D3D_OK;
 		}
 
 		if (!CheckRenderStateType(dwRenderStateType))
 		{
-			LOG_LIMIT(100, __FUNCTION__ << " Warning: Render state type not implemented: " << dwRenderStateType);
+			LOG_LIMIT(100, __FUNCTION__ << " Warning: Render state type not implemented: " << dwRenderStateType << " " << dwRenderState);
+			return D3D_OK;	// Just return OK for now!
 		}
 
 		return (*d3d9Device)->SetRenderState(dwRenderStateType, dwRenderState);
@@ -2394,12 +2995,13 @@ HRESULT m_IDirect3DDeviceX::SetRenderState(D3DRENDERSTATETYPE dwRenderStateType,
 
 HRESULT m_IDirect3DDeviceX::GetRenderState(D3DRENDERSTATETYPE dwRenderStateType, LPDWORD lpdwRenderState)
 {
-	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
+	Logging::LogDebug() << __FUNCTION__ << " (" << this << ") " << dwRenderStateType;
 
 	if (Config.Dd7to9)
 	{
 		if (!lpdwRenderState)
 		{
+			LOG_LIMIT(100, __FUNCTION__ << " Warning: Render state type called with nullptr: " << dwRenderStateType);
 			return DDERR_INVALIDPARAMS;
 		}
 
@@ -2411,43 +3013,128 @@ HRESULT m_IDirect3DDeviceX::GetRenderState(D3DRENDERSTATETYPE dwRenderStateType,
 
 		switch ((DWORD)dwRenderStateType)
 		{
-		case D3DRENDERSTATE_ANTIALIAS:
-			dwRenderStateType = D3DRS_MULTISAMPLEANTIALIAS;
-			break;
-		case D3DRENDERSTATE_EDGEANTIALIAS:
-			dwRenderStateType = D3DRS_ANTIALIASEDLINEENABLE;
-			break;
-		case D3DRENDERSTATE_ZBIAS:
-		{
-			HRESULT hr = (*d3d9Device)->GetRenderState(D3DRS_DEPTHBIAS, lpdwRenderState);
-			*lpdwRenderState = static_cast<DWORD>(*reinterpret_cast<const FLOAT*>(lpdwRenderState) * -200000.0f);
-			return hr;
-		}
-		case D3DRENDERSTATE_TEXTUREPERSPECTIVE:
-			*lpdwRenderState = TRUE;	// As long as the device's D3DPTEXTURECAPS_PERSPECTIVE is enabled, the correction will be applied automatically.
+		case D3DRENDERSTATE_TEXTUREHANDLE:		// 1
+			*lpdwRenderState = rsTextureHandle;
 			return D3D_OK;
-		case D3DRENDERSTATE_COLORKEYENABLE:
-			*lpdwRenderState = rsColorKeyEnabled;
+		case D3DRENDERSTATE_ANTIALIAS:			// 2
+			*lpdwRenderState = rsAntiAlias;
 			return D3D_OK;
-		case D3DRENDERSTATE_COLORKEYBLENDENABLE:
-			//LOG_LIMIT(100, __FUNCTION__ << " Warning: 'D3DRENDERSTATE_COLORKEYBLENDENABLE' not implemented!");
-			*lpdwRenderState = FALSE;
+		case D3DRENDERSTATE_TEXTUREADDRESS:		// 3
+			return GetTextureStageState(0, (D3DTEXTURESTAGESTATETYPE)D3DTSS_ADDRESS, lpdwRenderState);
+		case D3DRENDERSTATE_TEXTUREPERSPECTIVE:	// 4
+			// For the IDirect3DDevice3 interface, the default value is TRUE. For earlier interfaces, the default is FALSE.
+			*lpdwRenderState = TRUE;
 			return D3D_OK;
-		case D3DRENDERSTATE_LINEPATTERN:
-			//LOG_LIMIT(100, __FUNCTION__ << " Warning: 'D3DRENDERSTATE_LINEPATTERN' not implemented!");
+		case D3DRENDERSTATE_WRAPU:				// 5
+			*lpdwRenderState = rsTextureWrappingU;
+			return D3D_OK;
+		case D3DRENDERSTATE_WRAPV:				// 6
+			*lpdwRenderState = rsTextureWrappingV;
+			return D3D_OK;
+		case D3DRENDERSTATE_LINEPATTERN:		// 10
 			*lpdwRenderState = 0;
 			return D3D_OK;
-		case D3DRENDERSTATE_ZVISIBLE:
-			//LOG_LIMIT(100, __FUNCTION__ << " Warning: 'D3DRENDERSTATE_ZVISIBLE' not implemented!");
+		case D3DRENDERSTATE_MONOENABLE:			// 11
 			*lpdwRenderState = FALSE;
 			return D3D_OK;
-		case D3DRENDERSTATE_STIPPLEDALPHA:
-			//LOG_LIMIT(100, __FUNCTION__ << " Warning: 'D3DRENDERSTATE_STIPPLEDALPHA' not implemented!");
+		case D3DRENDERSTATE_ROP2:				// 12
+			*lpdwRenderState = R2_COPYPEN;
+			return D3D_OK;
+		case D3DRENDERSTATE_PLANEMASK:			// 13
+			*lpdwRenderState = (DWORD)-1;
+			return D3D_OK;
+		case D3DRENDERSTATE_TEXTUREMAG:			// 17
+			return (*d3d9Device)->GetSamplerState(0, D3DSAMP_MAGFILTER, lpdwRenderState);
+		case D3DRENDERSTATE_TEXTUREMIN:			// 18
+			*lpdwRenderState = rsTextureMin;
+			return D3D_OK;
+		case D3DRENDERSTATE_TEXTUREMAPBLEND:	// 21
+			*lpdwRenderState = rsTextureMapBlend;
+			return D3D_OK;
+		case D3DRENDERSTATE_ZVISIBLE:			// 30
+			// This render state is not supported.
+			*lpdwRenderState = 0;
+			return D3D_OK;
+		case D3DRENDERSTATE_SUBPIXEL:			// 31
 			*lpdwRenderState = FALSE;
 			return D3D_OK;
-		case D3DRENDERSTATE_EXTENTS:
+		case D3DRENDERSTATE_SUBPIXELX:			// 32
+			*lpdwRenderState = FALSE;
+			return D3D_OK;
+		case D3DRENDERSTATE_STIPPLEDALPHA:		// 33
+			*lpdwRenderState = FALSE;
+			return D3D_OK;
+		case D3DRENDERSTATE_STIPPLEENABLE:		// 39
+			*lpdwRenderState = FALSE;
+			return D3D_OK;
+		case D3DRENDERSTATE_EDGEANTIALIAS:		// 40
+			*lpdwRenderState = rsEdgeAntiAlias;
+			return D3D_OK;
+		case D3DRENDERSTATE_COLORKEYENABLE:		// 41
+			*lpdwRenderState = rsColorKeyEnabled;
+			return D3D_OK;
+		case D3DRENDERSTATE_OLDALPHABLENDENABLE:// 42
+			*lpdwRenderState = FALSE;
+			return D3D_OK;
+		case D3DRENDERSTATE_BORDERCOLOR:		// 43
+			*lpdwRenderState = 0x00000000;
+			return D3D_OK;
+		case D3DRENDERSTATE_TEXTUREADDRESSU:	// 44
+			return GetTextureStageState(0, (D3DTEXTURESTAGESTATETYPE)D3DTSS_ADDRESSU, lpdwRenderState);
+		case D3DRENDERSTATE_TEXTUREADDRESSV:	// 45
+			return GetTextureStageState(0, (D3DTEXTURESTAGESTATETYPE)D3DTSS_ADDRESSV, lpdwRenderState);
+		case D3DRENDERSTATE_MIPMAPLODBIAS:		// 46
+			*lpdwRenderState = 0; // 0.0f
+			return D3D_OK;
+		case D3DRENDERSTATE_ZBIAS:				// 47
+			(*d3d9Device)->GetRenderState(D3DRS_DEPTHBIAS, lpdwRenderState);
+			*lpdwRenderState = static_cast<DWORD>(*reinterpret_cast<const FLOAT*>(lpdwRenderState) * -200000.0f);
+			return D3D_OK;
+		case D3DRENDERSTATE_FLUSHBATCH:			// 50
+			*lpdwRenderState = 0;
+			return D3D_OK;
+		case D3DRENDERSTATE_TRANSLUCENTSORTINDEPENDENT:	// 51
+			*lpdwRenderState = FALSE;
+			return D3D_OK;
+		case D3DRENDERSTATE_STIPPLEPATTERN00:	// 64
+		case D3DRENDERSTATE_STIPPLEPATTERN01:	// 65
+		case D3DRENDERSTATE_STIPPLEPATTERN02:	// 66
+		case D3DRENDERSTATE_STIPPLEPATTERN03:	// 67
+		case D3DRENDERSTATE_STIPPLEPATTERN04:	// 68
+		case D3DRENDERSTATE_STIPPLEPATTERN05:	// 69
+		case D3DRENDERSTATE_STIPPLEPATTERN06:	// 70
+		case D3DRENDERSTATE_STIPPLEPATTERN07:	// 71
+		case D3DRENDERSTATE_STIPPLEPATTERN08:	// 72
+		case D3DRENDERSTATE_STIPPLEPATTERN09:	// 73
+		case D3DRENDERSTATE_STIPPLEPATTERN10:	// 74
+		case D3DRENDERSTATE_STIPPLEPATTERN11:	// 75
+		case D3DRENDERSTATE_STIPPLEPATTERN12:	// 76
+		case D3DRENDERSTATE_STIPPLEPATTERN13:	// 77
+		case D3DRENDERSTATE_STIPPLEPATTERN14:	// 78
+		case D3DRENDERSTATE_STIPPLEPATTERN15:	// 79
+		case D3DRENDERSTATE_STIPPLEPATTERN16:	// 80
+		case D3DRENDERSTATE_STIPPLEPATTERN17:	// 81
+		case D3DRENDERSTATE_STIPPLEPATTERN18:	// 82
+		case D3DRENDERSTATE_STIPPLEPATTERN19:	// 83
+		case D3DRENDERSTATE_STIPPLEPATTERN20:	// 84
+		case D3DRENDERSTATE_STIPPLEPATTERN21:	// 85
+		case D3DRENDERSTATE_STIPPLEPATTERN22:	// 86
+		case D3DRENDERSTATE_STIPPLEPATTERN23:	// 87
+		case D3DRENDERSTATE_STIPPLEPATTERN24:	// 88
+		case D3DRENDERSTATE_STIPPLEPATTERN25:	// 89
+		case D3DRENDERSTATE_STIPPLEPATTERN26:	// 90
+		case D3DRENDERSTATE_STIPPLEPATTERN27:	// 91
+		case D3DRENDERSTATE_STIPPLEPATTERN28:	// 92
+		case D3DRENDERSTATE_STIPPLEPATTERN29:	// 93
+		case D3DRENDERSTATE_STIPPLEPATTERN30:	// 94
+		case D3DRENDERSTATE_STIPPLEPATTERN31:	// 95
+			*lpdwRenderState = 0;
+			return D3D_OK;
+		case D3DRENDERSTATE_EXTENTS:			// 138
 			// ToDo: use this to report on clip plane extents set by SetClipStatus()
-			//LOG_LIMIT(100, __FUNCTION__ << " Warning: 'D3DRENDERSTATE_EXTENTS' not implemented!");
+			*lpdwRenderState = FALSE;
+			return D3D_OK;
+		case D3DRENDERSTATE_COLORKEYBLENDENABLE:// 144
 			*lpdwRenderState = FALSE;
 			return D3D_OK;
 		}
@@ -2455,6 +3142,8 @@ HRESULT m_IDirect3DDeviceX::GetRenderState(D3DRENDERSTATETYPE dwRenderStateType,
 		if (!CheckRenderStateType(dwRenderStateType))
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Warning: Render state type not implemented: " << dwRenderStateType);
+			*lpdwRenderState = 0;
+			return D3D_OK;	// Just return OK for now!
 		}
 
 		return (*d3d9Device)->GetRenderState(dwRenderStateType, lpdwRenderState);
@@ -2520,7 +3209,15 @@ HRESULT m_IDirect3DDeviceX::DrawPrimitive(D3DPRIMITIVETYPE dptPrimitiveType, DWO
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	dwFlags &= D3DDP_FORCE_DWORD;
+	if (DirectXVersion == 2 && ProxyDirectXVersion > 2)
+	{
+		if (dwVertexTypeDesc != D3DVT_VERTEX && dwVertexTypeDesc != D3DVT_LVERTEX && dwVertexTypeDesc != D3DVT_TLVERTEX)
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: invalid Vertex type: " << dwVertexTypeDesc);
+			return D3DERR_INVALIDVERTEXTYPE;
+		}
+		dwVertexTypeDesc = ConvertVertexTypeToFVF((D3DVERTEXTYPE)dwVertexTypeDesc);
+	}
 
 	if (Config.Dd7to9)
 	{
@@ -2535,6 +3232,8 @@ HRESULT m_IDirect3DDeviceX::DrawPrimitive(D3DPRIMITIVETYPE dptPrimitiveType, DWO
 			return DDERR_GENERIC;
 		}
 
+		dwFlags = (dwFlags & D3DDP_FORCE_DWORD) | D3DDP_DXW_CHECKCOLORKEY;
+
 		// Update vertices for Direct3D9 (needs to be first)
 		UpdateVertices(dwVertexTypeDesc, lpVertices, dwVertexCount);
 
@@ -2542,11 +3241,8 @@ HRESULT m_IDirect3DDeviceX::DrawPrimitive(D3DPRIMITIVETYPE dptPrimitiveType, DWO
 		if (FAILED((*d3d9Device)->SetFVF(dwVertexTypeDesc)))
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Error: invalid FVF type: " << Logging::hex(dwVertexTypeDesc));
-			return D3DERR_INVALIDVERTEXTYPE;
+			return DDERR_INVALIDPARAMS;
 		}
-
-		// Check for color key
-		UpdateDrawFlags(dwFlags);
 
 		// Handle dwFlags
 		SetDrawStates(dwVertexTypeDesc, dwFlags, DirectXVersion);
@@ -2585,7 +3281,8 @@ HRESULT m_IDirect3DDeviceX::DrawPrimitive(D3DPRIMITIVETYPE dptPrimitiveType, DWO
 			// Handle dwFlags
 			SetDrawStates(dwVertexTypeDesc, dwFlags, DirectXVersion);
 
-			HRESULT hr = GetProxyInterfaceV7()->DrawPrimitive(dptPrimitiveType, dwVertexTypeDesc, lpVertices, dwVertexCount, dwFlags);
+			DWORD Flags = dwFlags & ~(D3DDP_DONOTCLIP | D3DDP_DONOTLIGHT | D3DDP_DONOTUPDATEEXTENTS);
+			HRESULT hr = GetProxyInterfaceV7()->DrawPrimitive(dptPrimitiveType, dwVertexTypeDesc, lpVertices, dwVertexCount, Flags);
 
 			// Handle dwFlags
 			RestoreDrawStates(dwVertexTypeDesc, dwFlags, DirectXVersion);
@@ -2602,8 +3299,6 @@ HRESULT m_IDirect3DDeviceX::DrawPrimitive(D3DPRIMITIVETYPE dptPrimitiveType, DWO
 HRESULT m_IDirect3DDeviceX::DrawPrimitiveStrided(D3DPRIMITIVETYPE dptPrimitiveType, DWORD dwVertexTypeDesc, LPD3DDRAWPRIMITIVESTRIDEDDATA lpVertexArray, DWORD dwVertexCount, DWORD dwFlags, DWORD DirectXVersion)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
-
-	dwFlags &= D3DDP_FORCE_DWORD;
 
 	if (Config.Dd7to9)
 	{
@@ -2625,7 +3320,8 @@ HRESULT m_IDirect3DDeviceX::DrawPrimitiveStrided(D3DPRIMITIVETYPE dptPrimitiveTy
 			// Handle dwFlags
 			SetDrawStates(dwVertexTypeDesc, dwFlags, DirectXVersion);
 
-			HRESULT hr = GetProxyInterfaceV7()->DrawPrimitiveStrided(dptPrimitiveType, dwVertexTypeDesc, lpVertexArray, dwVertexCount, dwFlags);
+			DWORD Flags = dwFlags & ~(D3DDP_DONOTCLIP | D3DDP_DONOTLIGHT | D3DDP_DONOTUPDATEEXTENTS);
+			HRESULT hr = GetProxyInterfaceV7()->DrawPrimitiveStrided(dptPrimitiveType, dwVertexTypeDesc, lpVertexArray, dwVertexCount, Flags);
 
 			// Handle dwFlags
 			RestoreDrawStates(dwVertexTypeDesc, dwFlags, DirectXVersion);
@@ -2643,8 +3339,6 @@ HRESULT m_IDirect3DDeviceX::DrawPrimitiveVB(D3DPRIMITIVETYPE dptPrimitiveType, L
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	dwFlags &= D3DDP_FORCE_DWORD;
-
 	if (Config.Dd7to9)
 	{
 		if (!lpd3dVertexBuffer)
@@ -2658,10 +3352,11 @@ HRESULT m_IDirect3DDeviceX::DrawPrimitiveVB(D3DPRIMITIVETYPE dptPrimitiveType, L
 			return DDERR_GENERIC;
 		}
 
+		dwFlags = (dwFlags & D3DDP_FORCE_DWORD) | D3DDP_DXW_CHECKCOLORKEY;
+
 		// ToDo: Validate vertex buffer
 		m_IDirect3DVertexBufferX* pVertexBufferX = nullptr;
 		lpd3dVertexBuffer->QueryInterface(IID_GetInterfaceX, (LPVOID*)&pVertexBufferX);
-
 		if (!pVertexBufferX)
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Error: could not get vertex buffer wrapper!");
@@ -2669,7 +3364,6 @@ HRESULT m_IDirect3DDeviceX::DrawPrimitiveVB(D3DPRIMITIVETYPE dptPrimitiveType, L
 		}
 
 		LPDIRECT3DVERTEXBUFFER9 d3d9VertexBuffer = pVertexBufferX->GetCurrentD9VertexBuffer();
-
 		if (!d3d9VertexBuffer)
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Error: could not get d3d9 vertex buffer!");
@@ -2682,14 +3376,11 @@ HRESULT m_IDirect3DDeviceX::DrawPrimitiveVB(D3DPRIMITIVETYPE dptPrimitiveType, L
 		if (FAILED((*d3d9Device)->SetFVF(FVF)))
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Error: invalid FVF type: " << Logging::hex(FVF));
-			return D3DERR_INVALIDVERTEXTYPE;
+			return DDERR_INVALIDPARAMS;
 		}
 
 		// Set stream source
 		(*d3d9Device)->SetStreamSource(0, d3d9VertexBuffer, 0, GetVertexStride(FVF));
-
-		// Check for color key
-		UpdateDrawFlags(dwFlags);
 
 		// Handle dwFlags
 		SetDrawStates(FVF, dwFlags, DirectXVersion);
@@ -2733,7 +3424,8 @@ HRESULT m_IDirect3DDeviceX::DrawPrimitiveVB(D3DPRIMITIVETYPE dptPrimitiveType, L
 			// Handle dwFlags
 			SetDrawStates(BufferDesc.dwFVF, dwFlags, DirectXVersion);
 
-			HRESULT hr = GetProxyInterfaceV7()->DrawPrimitiveVB(dptPrimitiveType, lpd3dVertexBuffer, dwStartVertex, dwNumVertices, dwFlags);
+			DWORD Flags = dwFlags & ~(D3DDP_DONOTCLIP | D3DDP_DONOTLIGHT | D3DDP_DONOTUPDATEEXTENTS);
+			HRESULT hr = GetProxyInterfaceV7()->DrawPrimitiveVB(dptPrimitiveType, lpd3dVertexBuffer, dwStartVertex, dwNumVertices, Flags);
 
 			// Handle dwFlags
 			RestoreDrawStates(BufferDesc.dwFVF, dwFlags, DirectXVersion);
@@ -2751,7 +3443,15 @@ HRESULT m_IDirect3DDeviceX::DrawIndexedPrimitive(D3DPRIMITIVETYPE dptPrimitiveTy
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	dwFlags &= D3DDP_FORCE_DWORD;
+	if (DirectXVersion == 2 && ProxyDirectXVersion > 2)
+	{
+		if (dwVertexTypeDesc != D3DVT_VERTEX && dwVertexTypeDesc != D3DVT_LVERTEX && dwVertexTypeDesc != D3DVT_TLVERTEX)
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: invalid Vertex type: " << dwVertexTypeDesc);
+			return D3DERR_INVALIDVERTEXTYPE;
+		}
+		dwVertexTypeDesc = ConvertVertexTypeToFVF((D3DVERTEXTYPE)dwVertexTypeDesc);
+	}
 
 	if (Config.Dd7to9)
 	{
@@ -2765,6 +3465,8 @@ HRESULT m_IDirect3DDeviceX::DrawIndexedPrimitive(D3DPRIMITIVETYPE dptPrimitiveTy
 		{
 			return DDERR_GENERIC;
 		}
+
+    dwFlags = (dwFlags & D3DDP_FORCE_DWORD) | D3DDP_DXW_CHECKCOLORKEY;
 
 		// Handle PositionT
 		if (Config.DdrawConvertHomogeneousW && (dwVertexTypeDesc & 0x0E) == D3DFVF_XYZRHW)
@@ -2844,9 +3546,6 @@ HRESULT m_IDirect3DDeviceX::DrawIndexedPrimitive(D3DPRIMITIVETYPE dptPrimitiveTy
 					return D3DERR_INVALIDVERTEXTYPE;
 				}
 
-				// Check for color key
-				UpdateDrawFlags(dwFlags);
-
 				// Handle dwFlags
 				SetDrawStates(newVertexTypeDesc, dwFlags, DirectXVersion);
 
@@ -2876,11 +3575,8 @@ HRESULT m_IDirect3DDeviceX::DrawIndexedPrimitive(D3DPRIMITIVETYPE dptPrimitiveTy
 		if (FAILED((*d3d9Device)->SetFVF(dwVertexTypeDesc)))
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Error: invalid FVF type: " << Logging::hex(dwVertexTypeDesc));
-			return D3DERR_INVALIDVERTEXTYPE;
+			return DDERR_INVALIDPARAMS;
 		}
-
-		// Check for color key
-		UpdateDrawFlags(dwFlags);
 
 		// Handle dwFlags
 		SetDrawStates(dwVertexTypeDesc, dwFlags, DirectXVersion);
@@ -2919,7 +3615,8 @@ HRESULT m_IDirect3DDeviceX::DrawIndexedPrimitive(D3DPRIMITIVETYPE dptPrimitiveTy
 			// Handle dwFlags
 			SetDrawStates(dwVertexTypeDesc, dwFlags, DirectXVersion);
 
-			HRESULT hr = GetProxyInterfaceV7()->DrawIndexedPrimitive(dptPrimitiveType, dwVertexTypeDesc, lpVertices, dwVertexCount, lpIndices, dwIndexCount, dwFlags);
+			DWORD Flags = dwFlags & ~(D3DDP_DONOTCLIP | D3DDP_DONOTLIGHT | D3DDP_DONOTUPDATEEXTENTS);
+			HRESULT hr = GetProxyInterfaceV7()->DrawIndexedPrimitive(dptPrimitiveType, dwVertexTypeDesc, lpVertices, dwVertexCount, lpIndices, dwIndexCount, Flags);
 
 			// Handle dwFlags
 			RestoreDrawStates(dwVertexTypeDesc, dwFlags, DirectXVersion);
@@ -2936,8 +3633,6 @@ HRESULT m_IDirect3DDeviceX::DrawIndexedPrimitive(D3DPRIMITIVETYPE dptPrimitiveTy
 HRESULT m_IDirect3DDeviceX::DrawIndexedPrimitiveStrided(D3DPRIMITIVETYPE dptPrimitiveType, DWORD dwVertexTypeDesc, LPD3DDRAWPRIMITIVESTRIDEDDATA lpVertexArray, DWORD dwVertexCount, LPWORD lpwIndices, DWORD dwIndexCount, DWORD dwFlags, DWORD DirectXVersion)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
-
-	dwFlags &= D3DDP_FORCE_DWORD;
 
 	if (Config.Dd7to9)
 	{
@@ -2959,7 +3654,8 @@ HRESULT m_IDirect3DDeviceX::DrawIndexedPrimitiveStrided(D3DPRIMITIVETYPE dptPrim
 			// Handle dwFlags
 			SetDrawStates(dwVertexTypeDesc, dwFlags, DirectXVersion);
 
-			HRESULT hr = GetProxyInterfaceV7()->DrawIndexedPrimitiveStrided(dptPrimitiveType, dwVertexTypeDesc, lpVertexArray, dwVertexCount, lpwIndices, dwIndexCount, dwFlags);
+			DWORD Flags = dwFlags & ~(D3DDP_DONOTCLIP | D3DDP_DONOTLIGHT | D3DDP_DONOTUPDATEEXTENTS);
+			HRESULT hr = GetProxyInterfaceV7()->DrawIndexedPrimitiveStrided(dptPrimitiveType, dwVertexTypeDesc, lpVertexArray, dwVertexCount, lpwIndices, dwIndexCount, Flags);
 
 			// Handle dwFlags
 			RestoreDrawStates(dwVertexTypeDesc, dwFlags, DirectXVersion);
@@ -2977,8 +3673,6 @@ HRESULT m_IDirect3DDeviceX::DrawIndexedPrimitiveVB(D3DPRIMITIVETYPE dptPrimitive
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	dwFlags &= D3DDP_FORCE_DWORD;
-
 	if (Config.Dd7to9)
 	{
 		if (!lpd3dVertexBuffer || !lpwIndices)
@@ -2992,18 +3686,18 @@ HRESULT m_IDirect3DDeviceX::DrawIndexedPrimitiveVB(D3DPRIMITIVETYPE dptPrimitive
 			return DDERR_GENERIC;
 		}
 
+		dwFlags = (dwFlags & D3DDP_FORCE_DWORD) | D3DDP_DXW_CHECKCOLORKEY;
+
 		// ToDo: Validate vertex buffer
 		m_IDirect3DVertexBufferX* pVertexBufferX = nullptr;
 		lpd3dVertexBuffer->QueryInterface(IID_GetInterfaceX, (LPVOID*)&pVertexBufferX);
-
 		if (!pVertexBufferX)
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Error: could not get vertex buffer wrapper!");
-			return DDERR_GENERIC;
+			return DDERR_INVALIDPARAMS;
 		}
 
 		LPDIRECT3DVERTEXBUFFER9 d3d9VertexBuffer = pVertexBufferX->GetCurrentD9VertexBuffer();
-
 		if (!d3d9VertexBuffer)
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Error: could not get d3d9 vertex buffer!");
@@ -3011,7 +3705,6 @@ HRESULT m_IDirect3DDeviceX::DrawIndexedPrimitiveVB(D3DPRIMITIVETYPE dptPrimitive
 		}
 
 		LPDIRECT3DINDEXBUFFER9 d3d9IndexBuffer = pVertexBufferX->SetupIndexBuffer(lpwIndices, dwIndexCount);
-
 		if (!d3d9IndexBuffer)
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Error: could not get d3d9 index buffer!");
@@ -3024,7 +3717,7 @@ HRESULT m_IDirect3DDeviceX::DrawIndexedPrimitiveVB(D3DPRIMITIVETYPE dptPrimitive
 		if (FAILED((*d3d9Device)->SetFVF(FVF)))
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Error: invalid FVF type: " << Logging::hex(FVF));
-			return D3DERR_INVALIDVERTEXTYPE;
+			return DDERR_INVALIDPARAMS;
 		}
 
 		// Set stream source
@@ -3032,9 +3725,6 @@ HRESULT m_IDirect3DDeviceX::DrawIndexedPrimitiveVB(D3DPRIMITIVETYPE dptPrimitive
 
 		// Set Index data
 		(*d3d9Device)->SetIndices(d3d9IndexBuffer);
-
-		// Check for color key
-		UpdateDrawFlags(dwFlags);
 
 		// Handle dwFlags
 		SetDrawStates(FVF, dwFlags, DirectXVersion);
@@ -3078,7 +3768,8 @@ HRESULT m_IDirect3DDeviceX::DrawIndexedPrimitiveVB(D3DPRIMITIVETYPE dptPrimitive
 			// Handle dwFlags
 			SetDrawStates(BufferDesc.dwFVF, dwFlags, DirectXVersion);
 
-			HRESULT hr = GetProxyInterfaceV7()->DrawIndexedPrimitiveVB(dptPrimitiveType, lpd3dVertexBuffer, dwStartVertex, dwNumVertices, lpwIndices, dwIndexCount, dwFlags);
+			DWORD Flags = dwFlags & ~(D3DDP_DONOTCLIP | D3DDP_DONOTLIGHT | D3DDP_DONOTUPDATEEXTENTS);
+			HRESULT hr = GetProxyInterfaceV7()->DrawIndexedPrimitiveVB(dptPrimitiveType, lpd3dVertexBuffer, dwStartVertex, dwNumVertices, lpwIndices, dwIndexCount, Flags);
 
 			// Handle dwFlags
 			RestoreDrawStates(BufferDesc.dwFVF, dwFlags, DirectXVersion);
@@ -3207,7 +3898,7 @@ HRESULT m_IDirect3DDeviceX::DeleteStateBlock(DWORD dwBlockHandle)
 		// ToDo: Validate BlockHandle
 		reinterpret_cast<IDirect3DStateBlock9*>(dwBlockHandle)->Release();
 
-		return DD_OK;
+		return D3D_OK;
 	}
 
 	return GetProxyInterfaceV7()->DeleteStateBlock(dwBlockHandle);
@@ -3357,7 +4048,7 @@ HRESULT m_IDirect3DDeviceX::SetClipStatus(LPD3DCLIPSTATUS lpD3DClipStatus)
 		// To enable a clipping plane, set the corresponding bit in the DWORD value applied to the D3DRS_CLIPPLANEENABLE render state.
 		(*d3d9Device)->SetRenderState(D3DRS_CLIPPLANEENABLE, D3DCLIPPLANE0 | D3DCLIPPLANE1 | D3DCLIPPLANE2 | D3DCLIPPLANE3 | D3DCLIPPLANE4 | D3DCLIPPLANE5);*/
 
-		return DD_OK;
+		return D3D_OK;
 	}
 
 	switch (ProxyDirectXVersion)
@@ -3546,49 +4237,67 @@ HRESULT m_IDirect3DDeviceX::CheckInterface(char *FunctionName, bool CheckD3DDevi
 			LOG_LIMIT(100, FunctionName << " Error: d3d9 device not setup!");
 			return DDERR_INVALIDOBJECT;
 		}
+		if (bSetDefaults)
+		{
+			SetDefaults();
+		}
 	}
 
-	return DD_OK;
+	return D3D_OK;
 }
 
 void m_IDirect3DDeviceX::ResetDevice()
 {
+	bSetDefaults = true;
+}
+
+void m_IDirect3DDeviceX::SetDefaults()
+{
 	// Reset flags
 	ConvertHomogeneous.IsTransformViewSet = false;
 
-	// Reset textures after device reset
-	for (UINT x = 0; x < MaxTextureBlendStages; x++)
-	{
-		if (AttachedTexture[x])
-		{
-			if (CheckSurfaceExists(AttachedTexture[x]))
-			{
-				SetTexture(x, AttachedTexture[x]);
-			}
-			else
-			{
-				AttachedTexture[x] = nullptr;
-			}
-		}
-	}
-	// Reset clip status
-	ZeroMemory(&D3DClipStatus, sizeof(D3DCLIPSTATUS));
+	// Material
+	currentMaterial = defaultMaterial;
+
+	// Clip status
+	D3DClipStatus = {};
+
+	// Render states
+	rsAntiAliasChanged = false;
+	rsAntiAlias = D3DANTIALIAS_NONE;
+	rsEdgeAntiAlias = FALSE;
+	rsTextureWrappingChanged = false;
+	rsTextureWrappingU = FALSE;
+	rsTextureWrappingV = FALSE;
+	rsTextureMin = D3DFILTER_NEAREST;
+	rsTextureMapBlend = D3DTBLEND_MODULATE;
+	rsAlphaBlendEnabled = FALSE;
+	rsSrcBlend = 0;
+	rsDestBlend = 0;
+	rsColorKeyEnabled = FALSE;
+
+	// Reset defaults flag
+	bSetDefaults = false;
 }
 
-inline void m_IDirect3DDeviceX::UpdateDrawFlags(DWORD& dwFlags)
-{
-	// Check for color key
-	if (rsColorKeyEnabled && CurrentTextureSurfaceX && CurrentTextureSurfaceX->GetColorKey(DrawStates.dwColorSpaceLowValue, DrawStates.dwColorSpaceHighValue))
-	{
-		dwFlags |= D3DDP_DXW_COLORKEYENABLE;
-	}
-}
-
-inline void m_IDirect3DDeviceX::SetDrawStates(DWORD dwVertexTypeDesc, DWORD dwFlags, DWORD DirectXVersion)
+inline void m_IDirect3DDeviceX::SetDrawStates(DWORD dwVertexTypeDesc, DWORD& dwFlags, DWORD DirectXVersion)
 {
 	if (DirectXVersion < 7)
 	{
 		// dwFlags (D3DDP_WAIT) can be ignored safely
+
+		// Handle antialiasing
+		if (rsAntiAliasChanged)
+		{
+			BOOL AntiAliasEnabled = (bool)(((rsAntiAlias == (DWORD)D3DANTIALIAS_SORTDEPENDENT) || (rsAntiAlias == (DWORD)D3DANTIALIAS_SORTINDEPENDENT)) || (rsEdgeAntiAlias != FALSE));
+			SetRenderState(D3DRS_MULTISAMPLEANTIALIAS, AntiAliasEnabled);
+		}
+		// Handle texture wrapping
+		if (rsTextureWrappingChanged)
+		{
+			DWORD RenderState = (rsTextureWrappingU ? D3DWRAP_U : 0) | (rsTextureWrappingV ? D3DWRAP_V : 0);
+			SetRenderState(D3DRENDERSTATE_WRAP0, RenderState);
+		}
 
 		// Handle dwFlags
 		if (dwFlags & D3DDP_DONOTCLIP)
@@ -3607,6 +4316,21 @@ inline void m_IDirect3DDeviceX::SetDrawStates(DWORD dwVertexTypeDesc, DWORD dwFl
 			SetRenderState(D3DRENDERSTATE_EXTENTS, FALSE);
 		}
 	}
+	if (dwFlags & D3DDP_DXW_CHECKCOLORKEY)
+	{
+		// You can use D3DRENDERSTATE_COLORKEYENABLE render state with D3DRENDERSTATE_ALPHABLENDENABLE to implement fine blending control. 
+		if (rsColorKeyEnabled && rsAlphaBlendEnabled)
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Warning: mixing color keying with alpha blending is not implemented: " << rsSrcBlend << " " << rsDestBlend);
+		}
+
+		// Check for color key
+		if (rsColorKeyEnabled && !(rsAlphaBlendEnabled && (rsSrcBlend == D3DBLEND_ONE || rsSrcBlend == D3DBLEND_SRCALPHA)) &&
+			CurrentTextureSurfaceX && CurrentTextureSurfaceX->GetColorKeyForShader(DrawStates.lowColorKey, DrawStates.highColorKey))
+		{
+			dwFlags |= D3DDP_DXW_COLORKEYENABLE;
+		}
+	}
 	if (dwFlags & D3DDP_DXW_COLORKEYENABLE)
 	{
 		if (!colorkeyPixelShader || !*colorkeyPixelShader)
@@ -3616,34 +4340,26 @@ inline void m_IDirect3DDeviceX::SetDrawStates(DWORD dwVertexTypeDesc, DWORD dwFl
 		if (colorkeyPixelShader && *colorkeyPixelShader)
 		{
 			(*d3d9Device)->SetPixelShader(*colorkeyPixelShader);
-
-			// Set the low color key
-			float lowRed = (float)D3DCOLOR_GETRED(DrawStates.dwColorSpaceLowValue),
-				lowGreen = (float)D3DCOLOR_GETGREEN(DrawStates.dwColorSpaceLowValue),
-				lowBlue = (float)D3DCOLOR_GETBLUE(DrawStates.dwColorSpaceLowValue);
-			float lowColorKey[4] = { lowRed, lowGreen, lowBlue, 0.0f };
-			(*d3d9Device)->SetPixelShaderConstantF(0, lowColorKey, 1);
-
-			// Set the high color key
-			float highRed = (float)D3DCOLOR_GETRED(DrawStates.dwColorSpaceHighValue),
-				highGreen = (float)D3DCOLOR_GETGREEN(DrawStates.dwColorSpaceHighValue),
-				highBlue = (float)D3DCOLOR_GETBLUE(DrawStates.dwColorSpaceHighValue);
-			float highColorKey[4] = { highRed, highGreen, highBlue, 0.0f };
-			(*d3d9Device)->SetPixelShaderConstantF(1, highColorKey, 1);
+			(*d3d9Device)->SetPixelShaderConstantF(0, DrawStates.lowColorKey, 1);
+			(*d3d9Device)->SetPixelShaderConstantF(1, DrawStates.highColorKey, 1);
 		}
 	}
 	if (dwFlags & D3DDP_DXW_DRAW2DSURFACE)
 	{
+		// Set by DirectDrawSurface
 		(*d3d9Device)->GetRenderState(D3DRS_LIGHTING, &DrawStates.rsLighting);
 		(*d3d9Device)->GetSamplerState(0, D3DSAMP_MAGFILTER, &DrawStates.ssMagFilter);
 
+		// Other states
+		(*d3d9Device)->GetTextureStageState(0, D3DTSS_COLOROP, &DrawStates.tsColorOP);
+		(*d3d9Device)->GetRenderState(D3DRS_ALPHATESTENABLE, &DrawStates.rsAlphaTestEnable);
 		(*d3d9Device)->GetRenderState(D3DRS_ALPHABLENDENABLE, &DrawStates.rsAlphaBlendEnable);
-		(*d3d9Device)->GetRenderState(D3DRS_SRCBLEND, &DrawStates.rsSrcBlend);
-		(*d3d9Device)->GetRenderState(D3DRS_DESTBLEND, &DrawStates.rsDestBlend);
+		(*d3d9Device)->GetRenderState(D3DRS_FOGENABLE, &DrawStates.rsFogEnable);
 
-		(*d3d9Device)->SetRenderState(D3DRS_ALPHABLENDENABLE, TRUE);
-		(*d3d9Device)->SetRenderState(D3DRS_SRCBLEND, D3DBLEND_ONE);
-		(*d3d9Device)->SetRenderState(D3DRS_DESTBLEND, D3DBLEND_ONE);
+		(*d3d9Device)->SetTextureStageState(0, D3DTSS_COLOROP, D3DTOP_MODULATE);
+		(*d3d9Device)->SetRenderState(D3DRS_ALPHATESTENABLE, FALSE);
+		(*d3d9Device)->SetRenderState(D3DRS_ALPHABLENDENABLE, FALSE);
+		(*d3d9Device)->SetRenderState(D3DRS_FOGENABLE, FALSE);
 	}
 }
 
@@ -3671,14 +4387,15 @@ inline void m_IDirect3DDeviceX::RestoreDrawStates(DWORD dwVertexTypeDesc, DWORD 
 	}
 	if (dwFlags & D3DDP_DXW_DRAW2DSURFACE)
 	{
+		// Other states
+		(*d3d9Device)->SetTextureStageState(0, D3DTSS_COLOROP, DrawStates.tsColorOP);
+		(*d3d9Device)->SetRenderState(D3DRS_ALPHATESTENABLE, DrawStates.rsAlphaTestEnable);
 		(*d3d9Device)->SetRenderState(D3DRS_ALPHABLENDENABLE, DrawStates.rsAlphaBlendEnable);
-		(*d3d9Device)->SetRenderState(D3DRS_SRCBLEND, DrawStates.rsSrcBlend);
-		(*d3d9Device)->SetRenderState(D3DRS_DESTBLEND, DrawStates.rsDestBlend);
+		(*d3d9Device)->SetRenderState(D3DRS_FOGENABLE, DrawStates.rsFogEnable);
 
+		// Set by DirectDrawSurface
 		(*d3d9Device)->SetRenderState(D3DRS_LIGHTING, DrawStates.rsLighting);
 		(*d3d9Device)->SetSamplerState(0, D3DSAMP_MAGFILTER, DrawStates.ssMagFilter);
-
-		(*d3d9Device)->SetPixelShader(nullptr);
 
 		SetTexture(0, AttachedTexture[0]);
 		SetTexture(1, AttachedTexture[1]);

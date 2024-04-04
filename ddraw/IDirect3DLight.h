@@ -9,7 +9,7 @@ private:
 
 	// Convert Light
 	m_IDirect3DDeviceX **D3DDeviceInterface = nullptr;
-	D3DLIGHT Light;
+	D3DLIGHT2 Light;
 	bool LightSet = false;
 
 	// Interface initialization functions

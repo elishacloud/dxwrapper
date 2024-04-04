@@ -33,6 +33,8 @@ typedef HRESULT(WINAPI* PFN_D3DAssemble)(const void* pSrcData, SIZE_T SrcDataSiz
 typedef HRESULT(WINAPI* PFN_D3DCompile)(LPCVOID pSrcData, SIZE_T SrcDataSize, LPCSTR pSourceName, const D3D_SHADER_MACRO* pDefines, ID3DInclude* pInclude, LPCSTR pEntrypoint, LPCSTR pTarget, UINT Flags1, UINT Flags2, ID3DBlob** ppCode, ID3DBlob** ppErrorMsgs);
 typedef HRESULT(WINAPI* PFN_D3DDisassemble)(LPCVOID pSrcData, SIZE_T SrcDataSize, UINT Flags, LPCSTR szComments, ID3DBlob** ppDisassembly);
 
+typedef HRESULT(WINAPI* PFN_D3DXFillTexture)(LPVOID pTexture, LPD3DXFILL3D pFunction, LPVOID pData);
+
 HMEMORYMODULE d3dx9Module = nullptr;
 HMEMORYMODULE d3dCompileModule = nullptr;
 
@@ -47,6 +49,8 @@ PFN_D3DXDisassembleShader p_D3DXDisassembleShader = nullptr;
 PFN_D3DAssemble p_D3DAssemble = nullptr;
 PFN_D3DCompile p_D3DCompile = nullptr;
 PFN_D3DDisassemble p_D3DDisassemble = nullptr;
+
+PFN_D3DXFillTexture p_D3DXFillTexture = nullptr;
 
 FARPROC f_D3DXAssembleShader = (FARPROC)*D3DXAssembleShader;
 FARPROC f_D3DXDisassembleShader = (FARPROC)*D3DXDisassembleShader;
@@ -77,6 +81,7 @@ void LoadD3dx9()
 		p_D3DXSaveTextureToFileInMemory = reinterpret_cast<PFN_D3DXSaveTextureToFileInMemory>(MemoryGetProcAddress(d3dx9Module, "D3DXSaveTextureToFileInMemory"));
 		p_D3DXAssembleShader = reinterpret_cast<PFN_D3DXAssembleShader>(MemoryGetProcAddress(d3dx9Module, "D3DXAssembleShader"));
 		p_D3DXDisassembleShader = reinterpret_cast<PFN_D3DXDisassembleShader>(MemoryGetProcAddress(d3dx9Module, "D3DXDisassembleShader"));
+		p_D3DXFillTexture = reinterpret_cast<PFN_D3DXFillTexture>(MemoryGetProcAddress(d3dx9Module, "D3DXFillTexture"));
 	}
 	if (d3dCompileModule)
 	{
@@ -352,6 +357,28 @@ HRESULT WINAPI D3DDisassemble(LPCVOID pSrcData, SIZE_T SrcDataSize, UINT Flags, 
 	if (FAILED(hr))
 	{
 		Logging::Log() << __FUNCTION__ << " Warning: Failed to Disassemble shader!";
+	}
+
+	return hr;
+}
+
+HRESULT WINAPI D3DXFillTexture(LPVOID pTexture, LPD3DXFILL3D pFunction, LPVOID pData)
+{
+	Logging::LogDebug() << __FUNCTION__;
+
+	LoadD3dx9();
+
+	if (!p_D3DXFillTexture)
+	{
+		LOG_ONCE(__FUNCTION__ << " Error: Could not find ProcAddress!");
+		return D3DERR_INVALIDCALL;
+	}
+
+	HRESULT hr = p_D3DXFillTexture(pTexture, pFunction, pData);
+
+	if (FAILED(hr))
+	{
+		Logging::Log() << __FUNCTION__ << " Warning: Failed to fill texture!";
 	}
 
 	return hr;

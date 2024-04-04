@@ -28,12 +28,12 @@ HRESULT m_IDirect3DLight::QueryInterface(REFIID riid, LPVOID FAR * ppvObj)
 	if (riid == IID_GetRealInterface)
 	{
 		*ppvObj = ProxyInterface;
-		return DD_OK;
+		return D3D_OK;
 	}
 	if (riid == IID_GetInterfaceX)
 	{
 		*ppvObj = this;
-		return DD_OK;
+		return D3D_OK;
 	}
 
 	if (riid == IID_IDirect3DLight || riid == IID_IUnknown)
@@ -107,7 +107,10 @@ HRESULT m_IDirect3DLight::SetLight(LPD3DLIGHT lpLight)
 
 	if (!ProxyInterface)
 	{
-		if (!lpLight || lpLight->dwSize != sizeof(D3DLIGHT))
+		// Although this method's declaration specifies the lpLight parameter as being the address of a D3DLIGHT structure, that structure is not normally used.
+		// Rather, the D3DLIGHT2 structure is recommended to achieve the best lighting effects.
+
+		if (!lpLight || (lpLight->dwSize != sizeof(D3DLIGHT) && lpLight->dwSize != sizeof(D3DLIGHT2)))
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Error: Incorrect dwSize: " << ((lpLight) ? lpLight->dwSize : -1));
 			return DDERR_INVALIDPARAMS;
@@ -119,11 +122,7 @@ HRESULT m_IDirect3DLight::SetLight(LPD3DLIGHT lpLight)
 			return DDERR_GENERIC;
 		}
 
-		D3DLIGHT7 Light7;
-
-		ConvertLight(Light7, *lpLight);
-
-		HRESULT hr = (*D3DDeviceInterface)->SetLight(0, &Light7);
+		HRESULT hr = (*D3DDeviceInterface)->SetLight(this, lpLight);
 
 		if (FAILED(hr))
 		{
@@ -131,7 +130,17 @@ HRESULT m_IDirect3DLight::SetLight(LPD3DLIGHT lpLight)
 		}
 
 		LightSet = true;
-		Light = *lpLight;
+
+		// D3DLIGHT
+		if (lpLight->dwSize == sizeof(D3DLIGHT))
+		{
+			*(LPD3DLIGHT)&Light = *lpLight;
+		}
+		// D3DLIGHT2
+		else
+		{
+			Light = *(LPD3DLIGHT2)lpLight;
+		}
 
 		return D3D_OK;
 	}
@@ -145,19 +154,63 @@ HRESULT m_IDirect3DLight::GetLight(LPD3DLIGHT lpLight)
 
 	if (!ProxyInterface)
 	{
-		if (!lpLight)
+		// Although this method's declaration specifies the lpLight parameter as being the address of a D3DLIGHT structure, that structure is not normally used.
+		// Rather, the D3DLIGHT2 structure is recommended to achieve the best lighting effects.
+
+		if (!lpLight || (lpLight->dwSize != sizeof(D3DLIGHT) && lpLight->dwSize != sizeof(D3DLIGHT2)))
 		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: Incorrect dwSize: " << ((lpLight) ? lpLight->dwSize : -1));
 			return DDERR_INVALIDPARAMS;
 		}
 
-		if (LightSet)
+		if (!D3DDeviceInterface || !*D3DDeviceInterface)
 		{
-			*lpLight = Light;
-
-			return D3D_OK;
+			LOG_LIMIT(100, __FUNCTION__ << " Error: no D3DirectDevice interface!");
+			return DDERR_GENERIC;
 		}
 
-		return DDERR_GENERIC;
+		if (!LightSet)
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Warning: light has not yet been set.");
+			return DDERR_GENERIC;
+		}
+
+		// D3DLIGHT
+		if (lpLight->dwSize == sizeof(D3DLIGHT))
+		{
+			*lpLight = *(LPD3DLIGHT)&Light;
+			lpLight->dwSize = sizeof(D3DLIGHT);
+		}
+		// D3DLIGHT2
+		else
+		{
+			*(LPD3DLIGHT2)lpLight = Light;
+			lpLight->dwSize = sizeof(D3DLIGHT2);
+
+			// Reset flags if Light struct does not have them because it is using the old structure
+			if (Light.dwSize == sizeof(D3DLIGHT))
+			{
+				((LPD3DLIGHT2)lpLight)->dwFlags = NULL;
+			}
+
+			// Check for active
+			BOOL Enable = FALSE;
+			if (FAILED((*D3DDeviceInterface)->GetLightEnable(this, &Enable)))
+			{
+				LOG_LIMIT(100, __FUNCTION__ << " Warning: failed to get Light Enable.");
+			}
+
+			if (Enable)
+			{
+				((LPD3DLIGHT2)lpLight)->dwFlags |= D3DLIGHT_ACTIVE;
+			}
+			else
+			{
+				((LPD3DLIGHT2)lpLight)->dwFlags &= ~D3DLIGHT_ACTIVE;
+			}
+		}
+
+		return D3D_OK;
 	}
 
 	return ProxyInterface->GetLight(lpLight);
@@ -174,5 +227,8 @@ void m_IDirect3DLight::InitLight()
 
 void m_IDirect3DLight::ReleaseLight()
 {
-	// To add later
+	if (D3DDeviceInterface && *D3DDeviceInterface)
+	{
+		(*D3DDeviceInterface)->ReleaseLightInterface(this);
+	}
 }

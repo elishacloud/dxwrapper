@@ -1,3 +1,9 @@
+### 🚀 Support the Project! 🌟
+
+Your support fuels development of the `dd7to9` functionality to enable older games to run smoothly on current platforms. Whether it's a one-time boost via PayPal or ongoing monthly support on Patreon, your contribution ensures continued improvements and commitment to the growth of the project. Please note, your support is invaluable, but it won't influence specific game prioritization. Join us on this journey!
+
+Support via [PayPal](https://paypal.me/elishacloud) | [Patreon](https://patreon.com/dxwrapper)
+
 # DxWrapper
 ### Introduction
 DxWrapper is a .dll file designed to wrap DirectX files to fix compatibility issues in older games.  This project is primarily targeted at fixing issues with running games on Windows 10, by simply dropping .dll and .ini files into the game folder.  Its secondary purpose is to offer a single tool combining several projects into one.
@@ -89,10 +95,6 @@ DxWrapper can wrap the following dlls:
  - winmmbase.dll
  - winspool.drv
  - wsock32.dll
-
-### Donations
-
-All my work here is free and can be freely used.  For more details on how you can use this module see the [license](#license) section below.  However, if you would like to donate then check out my [donations page](https://PayPal.me/elishacloud).  All donations are for work already completed!  Please don't donate for future work or to try and increase my development speed.  Thanks!
 
 ### License
 Copyright (C) 2023 Elisha Riedlinger

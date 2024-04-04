@@ -19,6 +19,7 @@ class m_IDirect3DDevice2;
 class m_IDirect3DDevice3;
 class m_IDirect3DDevice7;
 class m_IDirect3DDeviceX;
+class m_IDirect3DLight;
 class m_IDirect3DMaterial;
 class m_IDirect3DMaterial2;
 class m_IDirect3DMaterial3;

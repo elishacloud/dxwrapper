@@ -28,6 +28,8 @@
 	visit(DdrawCustomWidth) \
 	visit(DdrawCustomHeight) \
 	visit(DdrawDisableDirect3DCaps) \
+	visit(DdrawEmulateLock) \
+	visit(DdrawFlipFillColor) \
 	visit(DdrawRemoveScanlines) \
 	visit(DdrawRemoveInterlacing) \
 	visit(DdrawFixByteAlignment) \
@@ -217,6 +219,7 @@ struct CONFIG
 	bool DdrawRemoveScanlines = 0;				// Experimental feature to removing interlaced black lines in a single frame
 	bool DdrawRemoveInterlacing = 0;			// Experimental feature to removing interlacing between frames
 	bool DdrawEmulateSurface = false;			// Emulates the ddraw surface using device context for Dd7to9
+	bool DdrawEmulateLock = false;				// Emulates the lock to prevent crashes when an application tries to read data outside Lock/Unlock pair
 	bool DdrawReadFromGDI = false;				// Read from GDI bfore passing surface to program
 	bool DdrawWriteToGDI = false;				// Blt surface directly to GDI rather than Direct3D9
 	bool DdrawIntegerScalingClamp = false;		// Scales the screen by an integer value to help preserve video quality
@@ -241,6 +244,7 @@ struct CONFIG
 	DWORD DdrawOverrideHeight = 0;				// Force Direct3d9 to use this height when using Dd7to9
 	DWORD OverrideRefreshRate = 0;				// Force Direct3d9 to use this refresh rate, only works in exclusive fullscreen mode
 	DWORD DdrawOverrideStencilFormat = 0;		// Force Direct3d9 to use this AutoStencilFormat when using Dd7to9
+	DWORD DdrawFlipFillColor = 0;				// Color used to fill the primary surface before flipping
 	bool DdrawEnableMouseHook = false;			// Allow to hook into mouse to limit it to the chosen resolution
 	bool DdrawDisableLighting = false;			// Allow to disable lighting
 	DWORD DdrawHookSystem32 = 0;				// Hooks the ddraw.dll file in the Windows System32 folder

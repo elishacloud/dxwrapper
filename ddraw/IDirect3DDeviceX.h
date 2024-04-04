@@ -1,6 +1,7 @@
 #pragma once
 
 #include "IDirectDrawX.h"
+#include <unordered_map>
 #include "External\DirectXMath\Inc\DirectXMath.h"
 
 struct CONVERTHOMOGENEOUS
@@ -28,6 +29,12 @@ private:
 	ULONG RefCount7 = 0;
 	REFCLSID ClassID;
 
+	// Store d3d device version wrappers
+	m_IDirect3DDevice* WrapperInterface;
+	m_IDirect3DDevice2* WrapperInterface2;
+	m_IDirect3DDevice3* WrapperInterface3;
+	m_IDirect3DDevice7* WrapperInterface7;
+
 	// Convert Device
 	m_IDirectDrawX *ddrawParent = nullptr;
 	m_IDirectDrawSurfaceX* DeviceSurface = nullptr;
@@ -39,30 +46,51 @@ private:
 		DWORD rsClipping = 0;
 		DWORD rsLighting = 0;
 		DWORD rsExtents = 0;
+		DWORD tsColorOP = 0;
 		DWORD rsAlphaBlendEnable = 0;
-		DWORD rsSrcBlend = 0;
-		DWORD rsDestBlend = 0;
+		DWORD rsAlphaTestEnable = 0;
+		DWORD rsFogEnable = 0;
 		DWORD ssMagFilter = 0;
-		DWORD dwColorSpaceLowValue = 0;
-		DWORD dwColorSpaceHighValue = 0;
+		float lowColorKey[4] = {};
+		float highColorKey[4] = {};
 	} DrawStates;
 
-	// Store d3d device version wrappers
-	m_IDirect3DDevice *WrapperInterface;
-	m_IDirect3DDevice2 *WrapperInterface2;
-	m_IDirect3DDevice3 *WrapperInterface3;
-	m_IDirect3DDevice7 *WrapperInterface7;
+	bool bSetDefaults = true;
+
+	// Material
+	D3DMATERIAL currentMaterial;
 
 	// Last clip status
-	D3DCLIPSTATUS D3DClipStatus = {};
+	D3DCLIPSTATUS D3DClipStatus;
 
 	// Render states
-	DWORD rsColorKeyEnabled = FALSE;
+	bool rsAntiAliasChanged;
+	DWORD rsAntiAlias;
+	DWORD rsEdgeAntiAlias;
+	bool rsTextureWrappingChanged;
+	DWORD rsTextureWrappingU;
+	DWORD rsTextureWrappingV;
+	DWORD rsTextureHandle;
+	DWORD rsTextureMin;
+	DWORD rsTextureMapBlend;
+	DWORD rsAlphaBlendEnabled;
+	DWORD rsSrcBlend;
+	DWORD rsDestBlend;
+	DWORD rsColorKeyEnabled;
 
 	// SetTexture array
 	LPDIRECTDRAWSURFACE7 CurrentRenderTarget = nullptr;
 	m_IDirectDrawSurfaceX* CurrentTextureSurfaceX = nullptr;
 	LPDIRECTDRAWSURFACE7 AttachedTexture[MaxTextureBlendStages] = {};
+
+	// Texture handle map
+	std::unordered_map<DWORD, m_IDirect3DTextureX*> TextureHandleMap;
+
+	// Material handle map
+	std::unordered_map<D3DMATERIALHANDLE, m_IDirect3DMaterialX*> MaterialHandleMap;
+
+	// Light index map
+	std::unordered_map<DWORD, m_IDirect3DLight*> LightIndexMap;
 
 	// Vector temporary buffer cache
 	std::vector<BYTE> VertexCache;
@@ -133,8 +161,8 @@ private:
 	HRESULT CheckInterface(char *FunctionName, bool CheckD3DDevice);
 
 	// Helper functions
-	void m_IDirect3DDeviceX::UpdateDrawFlags(DWORD& dwFlags);
-	void SetDrawStates(DWORD dwVertexTypeDesc, DWORD dwFlags, DWORD DirectXVersion);
+	void SetDefaults();
+	void SetDrawStates(DWORD dwVertexTypeDesc, DWORD& dwFlags, DWORD DirectXVersion);
 	void RestoreDrawStates(DWORD dwVertexTypeDesc, DWORD dwFlags, DWORD DirectXVersion);
 	void ScaleVertices(DWORD dwVertexTypeDesc, LPVOID& lpVertices, DWORD dwVertexCount);
 	void UpdateVertices(DWORD& dwVertexTypeDesc, LPVOID& lpVertices, DWORD dwVertexCount);
@@ -222,10 +250,13 @@ public:
 	STDMETHOD(GetDirect3D)(THIS_ LPDIRECT3D7*, DWORD);
 	STDMETHOD(GetLightState)(THIS_ D3DLIGHTSTATETYPE, LPDWORD);
 	STDMETHOD(SetLightState)(THIS_ D3DLIGHTSTATETYPE, DWORD);
+	STDMETHOD(SetLight)(THIS_ m_IDirect3DLight*, LPD3DLIGHT);
 	STDMETHOD(SetLight)(THIS_ DWORD, LPD3DLIGHT7);
 	STDMETHOD(GetLight)(THIS_ DWORD, LPD3DLIGHT7);
 	STDMETHOD(LightEnable)(THIS_ DWORD, BOOL);
+	STDMETHOD(GetLightEnable)(THIS_ m_IDirect3DLight*, BOOL*);
 	STDMETHOD(GetLightEnable)(THIS_ DWORD, BOOL*);
+	STDMETHOD(SetMaterial)(THIS_ LPD3DMATERIAL);
 	STDMETHOD(SetMaterial)(THIS_ LPD3DMATERIAL7);
 	STDMETHOD(GetMaterial)(THIS_ LPD3DMATERIAL7);
 	STDMETHOD(SetRenderState)(THIS_ D3DRENDERSTATETYPE, DWORD);
@@ -255,6 +286,17 @@ public:
 	void *GetWrapperInterfaceX(DWORD DirectXVersion);
 	ULONG AddRef(DWORD DirectXVersion);
 	ULONG Release(DWORD DirectXVersion);
+
+	// Texture handle function
+	void ReleaseTextureHandle(m_IDirect3DTextureX* lpTexture);
+	HRESULT SetTextureHandle(DWORD tHandle, m_IDirect3DTextureX* lpTexture);
+
+	// Material handle function
+	void ReleaseMaterialHandle(m_IDirect3DMaterialX* lpMaterial);
+	HRESULT SetMaterialHandle(D3DMATERIALHANDLE mHandle, m_IDirect3DMaterialX* lpMaterial);
+
+	// Light index function
+	void ReleaseLightInterface(m_IDirect3DLight* lpLight);
 
 	// Functions handling the ddraw parent interface
 	void SetDdrawParent(m_IDirectDrawX *ddraw)
