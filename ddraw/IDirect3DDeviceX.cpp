@@ -2178,6 +2178,9 @@ HRESULT m_IDirect3DDeviceX::SetLight(m_IDirect3DLight* lpLightInterface, LPD3DLI
 		return DDERR_GENERIC;
 	}
 
+	// Add light to index map
+	LightIndexMap[dwLightIndex] = lpLightInterface;
+
 	HRESULT hr = SetLight(dwLightIndex, &Light7);
 
 	if (SUCCEEDED(hr))
