@@ -2111,6 +2111,9 @@ void m_IDirect3DDeviceX::ReleaseLightInterface(m_IDirect3DLight* lpLight)
 	{
 		if (it->second == lpLight)
 		{
+			// Disable light before removing
+			LightEnable(it->first, FALSE);
+
 			// Remove entry from map
 			it = LightIndexMap.erase(it);
 		}
