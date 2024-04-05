@@ -44,11 +44,11 @@ private:
 
 	bool bSetDefaults = true;
 
-	// Material
-	D3DMATERIAL currentMaterial;
-
 	// Last clip status
 	D3DCLIPSTATUS D3DClipStatus;
+
+	// Light states
+	DWORD lsMaterial;
 
 	// Render states
 	bool rsAntiAliasChanged;
