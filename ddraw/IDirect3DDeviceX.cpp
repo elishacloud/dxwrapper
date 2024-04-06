@@ -1110,7 +1110,25 @@ HRESULT m_IDirect3DDeviceX::GetTextureStageState(DWORD dwStage, D3DTEXTURESTAGES
 		case D3DTSS_BORDERCOLOR:
 			return (*d3d9Device)->GetSamplerState(dwStage, D3DSAMP_BORDERCOLOR, lpdwValue);
 		case D3DTSS_MAGFILTER:
-			return (*d3d9Device)->GetSamplerState(dwStage, D3DSAMP_MAGFILTER, lpdwValue);
+		{
+			HRESULT hr = (*d3d9Device)->GetSamplerState(dwStage, D3DSAMP_MAGFILTER, lpdwValue);
+			if (SUCCEEDED(hr))
+			{
+				if (*lpdwValue == D3DTEXF_ANISOTROPIC)
+				{
+					*lpdwValue = D3DTFG_ANISOTROPIC;
+				}
+				else if (*lpdwValue == D3DTEXF_PYRAMIDALQUAD)
+				{
+					*lpdwValue = D3DTFG_FLATCUBIC;
+				}
+				else if (*lpdwValue == D3DTEXF_GAUSSIANQUAD)
+				{
+					*lpdwValue = D3DTFG_GAUSSIANCUBIC;
+				}
+			}
+			return hr;
+		}
 		case D3DTSS_MINFILTER:
 			return (*d3d9Device)->GetSamplerState(dwStage, D3DSAMP_MINFILTER, lpdwValue);
 		case D3DTSS_MIPFILTER:
@@ -1177,6 +1195,18 @@ HRESULT m_IDirect3DDeviceX::SetTextureStageState(DWORD dwStage, D3DTEXTURESTAGES
 		case D3DTSS_BORDERCOLOR:
 			return (*d3d9Device)->SetSamplerState(dwStage, D3DSAMP_BORDERCOLOR, dwValue);
 		case D3DTSS_MAGFILTER:
+			if (dwValue == D3DTFG_ANISOTROPIC)
+			{
+				dwValue = D3DTEXF_ANISOTROPIC;
+			}
+			else if (dwValue == D3DTFG_FLATCUBIC)
+			{
+				dwValue = D3DTEXF_PYRAMIDALQUAD;
+			}
+			else if (dwValue == D3DTFG_GAUSSIANCUBIC)
+			{
+				dwValue = D3DTEXF_GAUSSIANQUAD;
+			}
 			return (*d3d9Device)->SetSamplerState(dwStage, D3DSAMP_MAGFILTER, dwValue);
 		case D3DTSS_MINFILTER:
 			return (*d3d9Device)->SetSamplerState(dwStage, D3DSAMP_MINFILTER, dwValue);
