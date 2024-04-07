@@ -174,11 +174,20 @@ HRESULT m_IDirect3DMaterialX::SetMaterial(LPD3DMATERIAL lpMat)
 			return DDERR_GENERIC;
 		}
 
-		HRESULT hr = (*D3DDeviceInterface)->SetMaterial(lpMat);
-
-		if (FAILED(hr))
+		// If material is in use then set new material
+		if (mHandle)
 		{
-			return hr;
+			D3DMATERIALHANDLE Handle = 0;
+			if (SUCCEEDED((*D3DDeviceInterface)->GetLightState(D3DLIGHTSTATE_MATERIAL, &Handle)))
+			{
+				if (mHandle == Handle)
+				{
+					if (FAILED((*D3DDeviceInterface)->SetMaterial(lpMat)))
+					{
+						return DDERR_GENERIC;
+					}
+				}
+			}
 		}
 
 		Material = *lpMat;
@@ -205,8 +214,9 @@ HRESULT m_IDirect3DMaterialX::GetMaterial(LPD3DMATERIAL lpMat)
 
 	if (!ProxyInterface)
 	{
-		if (!lpMat)
+		if (!lpMat || lpMat->dwSize != sizeof(D3DMATERIAL))
 		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: Incorrect dwSize: " << ((lpMat) ? lpMat->dwSize : -1));
 			return DDERR_INVALIDPARAMS;
 		}
 

@@ -233,7 +233,7 @@ HRESULT m_IDirect3DTextureX::PaletteChanged(DWORD dwStart, DWORD dwCount)
 	{
 		// This method informs the driver that the palette has changed on a texture surface.
 		// Only affects the legacy ramp device. For all other devices, this method takes no action and returns D3D_OK.
-		return DD_OK;
+		return D3D_OK;
 	}
 
 	switch (ProxyDirectXVersion)

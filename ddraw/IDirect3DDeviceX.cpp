@@ -1223,7 +1223,25 @@ HRESULT m_IDirect3DDeviceX::GetTextureStageState(DWORD dwStage, D3DTEXTURESTAGES
 		case D3DTSS_BORDERCOLOR:
 			return (*d3d9Device)->GetSamplerState(dwStage, D3DSAMP_BORDERCOLOR, lpdwValue);
 		case D3DTSS_MAGFILTER:
-			return (*d3d9Device)->GetSamplerState(dwStage, D3DSAMP_MAGFILTER, lpdwValue);
+		{
+			HRESULT hr = (*d3d9Device)->GetSamplerState(dwStage, D3DSAMP_MAGFILTER, lpdwValue);
+			if (SUCCEEDED(hr))
+			{
+				if (*lpdwValue == D3DTEXF_ANISOTROPIC)
+				{
+					*lpdwValue = D3DTFG_ANISOTROPIC;
+				}
+				else if (*lpdwValue == D3DTEXF_PYRAMIDALQUAD)
+				{
+					*lpdwValue = D3DTFG_FLATCUBIC;
+				}
+				else if (*lpdwValue == D3DTEXF_GAUSSIANQUAD)
+				{
+					*lpdwValue = D3DTFG_GAUSSIANCUBIC;
+				}
+			}
+			return hr;
+		}
 		case D3DTSS_MINFILTER:
 			return (*d3d9Device)->GetSamplerState(dwStage, D3DSAMP_MINFILTER, lpdwValue);
 		case D3DTSS_MIPFILTER:
@@ -1238,7 +1256,7 @@ HRESULT m_IDirect3DDeviceX::GetTextureStageState(DWORD dwStage, D3DTEXTURESTAGES
 
 		if (!CheckTextureStageStateType(dwState))
 		{
-			LOG_LIMIT(100, __FUNCTION__ << " Warning: Texture state type not implemented: " << dwState);
+			LOG_LIMIT(100, __FUNCTION__ << " Warning: Texture Stage state type not implemented: " << dwState);
 		}
 
 		return (*d3d9Device)->GetTextureStageState(dwStage, dwState, lpdwValue);
@@ -1290,6 +1308,18 @@ HRESULT m_IDirect3DDeviceX::SetTextureStageState(DWORD dwStage, D3DTEXTURESTAGES
 		case D3DTSS_BORDERCOLOR:
 			return (*d3d9Device)->SetSamplerState(dwStage, D3DSAMP_BORDERCOLOR, dwValue);
 		case D3DTSS_MAGFILTER:
+			if (dwValue == D3DTFG_ANISOTROPIC)
+			{
+				dwValue = D3DTEXF_ANISOTROPIC;
+			}
+			else if (dwValue == D3DTFG_FLATCUBIC)
+			{
+				dwValue = D3DTEXF_PYRAMIDALQUAD;
+			}
+			else if (dwValue == D3DTFG_GAUSSIANCUBIC)
+			{
+				dwValue = D3DTEXF_GAUSSIANQUAD;
+			}
 			return (*d3d9Device)->SetSamplerState(dwStage, D3DSAMP_MAGFILTER, dwValue);
 		case D3DTSS_MINFILTER:
 			return (*d3d9Device)->SetSamplerState(dwStage, D3DSAMP_MINFILTER, dwValue);
@@ -1305,7 +1335,7 @@ HRESULT m_IDirect3DDeviceX::SetTextureStageState(DWORD dwStage, D3DTEXTURESTAGES
 
 		if (!CheckTextureStageStateType(dwState))
 		{
-			LOG_LIMIT(100, __FUNCTION__ << " Warning: Texture state type not implemented: " << dwState);
+			LOG_LIMIT(100, __FUNCTION__ << " Warning: Texture Stage state type not implemented: " << dwState);
 			return D3D_OK;	// Just return OK for now!
 		}
 
@@ -2063,18 +2093,24 @@ HRESULT m_IDirect3DDeviceX::GetLightState(D3DLIGHTSTATETYPE dwLightStateType, LP
 
 	if (ProxyDirectXVersion > 3)
 	{
-		if (dwLightStateType == D3DLIGHTSTATE_MATERIAL || dwLightStateType == D3DLIGHTSTATE_COLORMODEL)
+		if (!lpdwLightState)
 		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error: LightStateType: " << dwLightStateType << " Not Implemented");
-			return DDERR_UNSUPPORTED;
+			LOG_LIMIT(100, __FUNCTION__ << " Warning: Light state called with nullptr: " << dwLightStateType);
+			return DDERR_INVALIDPARAMS;
 		}
 
 		DWORD RenderState = 0;
 		switch (dwLightStateType)
 		{
+		case D3DLIGHTSTATE_MATERIAL:
+			*lpdwLightState = lsMaterial;
+			return D3D_OK;
 		case D3DLIGHTSTATE_AMBIENT:
 			RenderState = D3DRENDERSTATE_AMBIENT;
 			break;
+		case D3DLIGHTSTATE_COLORMODEL:
+			*lpdwLightState = D3DCOLOR_RGB;
+			return D3D_OK;
 		case D3DLIGHTSTATE_FOGMODE:
 			RenderState = D3DRENDERSTATE_FOGVERTEXMODE;
 			break;
@@ -2121,35 +2157,62 @@ HRESULT m_IDirect3DDeviceX::SetLightState(D3DLIGHTSTATETYPE dwLightStateType, DW
 
 	if (ProxyDirectXVersion > 3)
 	{
-		if (dwLightStateType == D3DLIGHTSTATE_COLORMODEL)
-		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error: LightStateType: " << dwLightStateType << " Not Implemented");
-			return D3D_OK;
-		}
-
 		DWORD RenderState = 0;
 		switch (dwLightStateType)
 		{
 		case D3DLIGHTSTATE_MATERIAL:
 		{
-			D3DMATERIAL* lpMaterial = dwLightState ? &currentMaterial : &defaultMaterial;
+			D3DMATERIAL Material;
+
+			if (dwLightState == NULL)
+			{
+				Material = defaultMaterial;
+			}
+			else if (MaterialHandleMap.find(dwLightState) != MaterialHandleMap.end())
+			{
+				m_IDirect3DMaterialX* pMaterialX = MaterialHandleMap[dwLightState];
+				if (!pMaterialX)
+				{
+					LOG_LIMIT(100, __FUNCTION__ << " Error: could not get material wrapper!");
+					return DDERR_GENERIC;
+				}
+
+				Material.dwSize = sizeof(D3DMATERIAL);
+				if (FAILED(pMaterialX->GetMaterial(&Material)))
+				{
+					return DDERR_GENERIC;
+				}
+			}
+			else
+			{
+				LOG_LIMIT(100, __FUNCTION__ << " Error: could not get material handle!");
+				return D3D_OK;
+			}
 
 			D3DMATERIAL7 Material7;
 
-			ConvertMaterial(Material7, *lpMaterial);
+			ConvertMaterial(Material7, Material);
 
 			SetMaterial(&Material7);
 
-			if (lpMaterial->hTexture)
+			if (Material.hTexture)
 			{
-				SetRenderState(D3DRENDERSTATE_TEXTUREHANDLE, lpMaterial->hTexture);
+				SetRenderState(D3DRENDERSTATE_TEXTUREHANDLE, Material.hTexture);
 			}
+
+			lsMaterial = dwLightState;
 
 			return D3D_OK;
 		}
 		case D3DLIGHTSTATE_AMBIENT:
 			RenderState = D3DRENDERSTATE_AMBIENT;
 			break;
+		case D3DLIGHTSTATE_COLORMODEL:
+			if (dwLightState != D3DCOLOR_RGB)
+			{
+				LOG_LIMIT(100, __FUNCTION__ << " Warning: 'D3DLIGHTSTATE_COLORMODEL' not implemented! " << dwLightState);
+			}
+			return D3D_OK;
 		case D3DLIGHTSTATE_FOGMODE:
 			RenderState = D3DRENDERSTATE_FOGVERTEXMODE;
 			break;
@@ -2198,6 +2261,9 @@ void m_IDirect3DDeviceX::ReleaseLightInterface(m_IDirect3DLight* lpLight)
 	{
 		if (it->second == lpLight)
 		{
+			// Disable light before removing
+			LightEnable(it->first, FALSE);
+
 			// Remove entry from map
 			it = LightIndexMap.erase(it);
 		}
@@ -2261,6 +2327,9 @@ HRESULT m_IDirect3DDeviceX::SetLight(m_IDirect3DLight* lpLightInterface, LPD3DLI
 		LOG_LIMIT(100, __FUNCTION__ << " Error: Failed to find an available Light Index");
 		return DDERR_GENERIC;
 	}
+
+	// Add light to index map
+	LightIndexMap[dwLightIndex] = lpLightInterface;
 
 	HRESULT hr = SetLight(dwLightIndex, &Light7);
 
@@ -2537,8 +2606,6 @@ HRESULT m_IDirect3DDeviceX::SetMaterial(LPD3DMATERIAL lpMaterial)
 		SetRenderState(D3DRENDERSTATE_TEXTUREHANDLE, lpMaterial->hTexture);
 	}
 
-	currentMaterial = *lpMaterial;
-
 	return D3D_OK;
 }
 
@@ -2610,7 +2677,6 @@ HRESULT m_IDirect3DDeviceX::SetRenderState(D3DRENDERSTATETYPE dwRenderStateType,
 			}
 			else if (TextureHandleMap.find(dwRenderState) != TextureHandleMap.end())
 			{
-				// ToDo: Validate texture address
 				m_IDirect3DTextureX* pTextureX = TextureHandleMap[dwRenderState];
 				if (!pTextureX)
 				{
@@ -2628,11 +2694,15 @@ HRESULT m_IDirect3DDeviceX::SetRenderState(D3DRENDERSTATETYPE dwRenderStateType,
 				rsTextureHandle = dwRenderState;
 				return SetTexture(0, lpTexture);
 			}
+			else
+			{
+				LOG_LIMIT(100, __FUNCTION__ << " Error: could not get texture handle!");
+			}
 			return D3D_OK;
 		case D3DRENDERSTATE_ANTIALIAS:			// 2
 			rsAntiAliasChanged = true;
 			rsAntiAlias = dwRenderStateType;
-			break;
+			return D3D_OK;
 		case D3DRENDERSTATE_TEXTUREADDRESS:		// 3
 			return SetTextureStageState(0, (D3DTEXTURESTAGESTATETYPE)D3DTSS_ADDRESS, dwRenderState);
 		case D3DRENDERSTATE_TEXTUREPERSPECTIVE:	// 4
@@ -2867,7 +2937,7 @@ HRESULT m_IDirect3DDeviceX::SetRenderState(D3DRENDERSTATETYPE dwRenderStateType,
 		case D3DRENDERSTATE_EDGEANTIALIAS:		// 40
 			rsAntiAliasChanged = true;
 			rsEdgeAntiAlias = dwRenderStateType;
-			break;
+			return D3D_OK;
 		case D3DRENDERSTATE_COLORKEYENABLE:		// 41
 			rsColorKeyEnabled = dwRenderState;
 			return D3D_OK;
@@ -3001,7 +3071,7 @@ HRESULT m_IDirect3DDeviceX::GetRenderState(D3DRENDERSTATETYPE dwRenderStateType,
 	{
 		if (!lpdwRenderState)
 		{
-			LOG_LIMIT(100, __FUNCTION__ << " Warning: Render state type called with nullptr: " << dwRenderStateType);
+			LOG_LIMIT(100, __FUNCTION__ << " Warning: Render state called with nullptr: " << dwRenderStateType);
 			return DDERR_INVALIDPARAMS;
 		}
 
@@ -4256,11 +4326,11 @@ void m_IDirect3DDeviceX::SetDefaults()
 	// Reset flags
 	ConvertHomogeneous.IsTransformViewSet = false;
 
-	// Material
-	currentMaterial = defaultMaterial;
-
 	// Clip status
 	D3DClipStatus = {};
+
+	// Light states
+	lsMaterial = 0;
 
 	// Render states
 	rsAntiAliasChanged = false;
@@ -4289,7 +4359,7 @@ inline void m_IDirect3DDeviceX::SetDrawStates(DWORD dwVertexTypeDesc, DWORD& dwF
 		// Handle antialiasing
 		if (rsAntiAliasChanged)
 		{
-			BOOL AntiAliasEnabled = (bool)(((rsAntiAlias == (DWORD)D3DANTIALIAS_SORTDEPENDENT) || (rsAntiAlias == (DWORD)D3DANTIALIAS_SORTINDEPENDENT)) || (rsEdgeAntiAlias != FALSE));
+			BOOL AntiAliasEnabled = (bool)((((D3DANTIALIASMODE)rsAntiAlias == D3DANTIALIAS_SORTDEPENDENT) || ((D3DANTIALIASMODE)rsAntiAlias == D3DANTIALIAS_SORTINDEPENDENT)) || (rsEdgeAntiAlias != FALSE));
 			SetRenderState(D3DRS_MULTISAMPLEANTIALIAS, AntiAliasEnabled);
 		}
 		// Handle texture wrapping
@@ -4318,16 +4388,15 @@ inline void m_IDirect3DDeviceX::SetDrawStates(DWORD dwVertexTypeDesc, DWORD& dwF
 	}
 	if (dwFlags & D3DDP_DXW_CHECKCOLORKEY)
 	{
-		// You can use D3DRENDERSTATE_COLORKEYENABLE render state with D3DRENDERSTATE_ALPHABLENDENABLE to implement fine blending control. 
-		if (rsColorKeyEnabled && rsAlphaBlendEnabled)
-		{
-			LOG_LIMIT(100, __FUNCTION__ << " Warning: mixing color keying with alpha blending is not implemented: " << rsSrcBlend << " " << rsDestBlend);
-		}
-
 		// Check for color key
 		if (rsColorKeyEnabled && !(rsAlphaBlendEnabled && (rsSrcBlend == D3DBLEND_ONE || rsSrcBlend == D3DBLEND_SRCALPHA)) &&
 			CurrentTextureSurfaceX && CurrentTextureSurfaceX->GetColorKeyForShader(DrawStates.lowColorKey, DrawStates.highColorKey))
 		{
+			// You can use D3DRENDERSTATE_COLORKEYENABLE render state with D3DRENDERSTATE_ALPHABLENDENABLE to implement fine blending control. 
+			if (rsAlphaBlendEnabled)
+			{
+				LOG_LIMIT(100, __FUNCTION__ << " Warning: mixing color keying with alpha blending is not implemented: " << rsSrcBlend << " " << rsDestBlend);
+			}
 			dwFlags |= D3DDP_DXW_COLORKEYENABLE;
 		}
 	}
