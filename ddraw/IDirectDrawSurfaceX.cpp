@@ -3701,7 +3701,8 @@ HRESULT m_IDirectDrawSurfaceX::CreateD3d9Surface()
 	const D3DFORMAT TextureFormat = (surfaceFormat == D3DFMT_P8) ? D3DFMT_L8 : Format;
 
 	// Get texture memory pool
-	surface.TexturePool = (IsPrimaryOrBackBuffer() || (surfaceDesc2.ddsCaps.dwCaps & DDSCAPS_ALLOCONLOAD) || attached3DTexture) ? D3DPOOL_MANAGED :
+	surface.TexturePool = (IsPrimaryOrBackBuffer() && surface.IsUsingWindowedMode && !Using3D) ? D3DPOOL_SYSTEMMEM :
+		(IsPrimaryOrBackBuffer() || (surfaceDesc2.ddsCaps.dwCaps & DDSCAPS_ALLOCONLOAD) || attached3DTexture) ? D3DPOOL_MANAGED :
 		(surfaceDesc2.ddsCaps.dwCaps & DDSCAPS_SYSTEMMEMORY) ? D3DPOOL_SYSTEMMEM : D3DPOOL_MANAGED;
 
 	// Adjust Width to be byte-aligned

@@ -2640,8 +2640,7 @@ HDC m_IDirectDrawX::GetDC()
 
 DWORD m_IDirectDrawX::GetDisplayBPP(HWND hWnd)
 {
-	// Default to 16 bit if SetDisplayMode() has not been called
-	return (ExclusiveMode && Exclusive.BPP) ? Exclusive.BPP : (!DisplayMode.BPP) ? 16 : Utils::GetBitCount(hWnd);
+	return (ExclusiveMode && Exclusive.BPP) ? Exclusive.BPP : Utils::GetBitCount(hWnd);
 }
 
 void m_IDirectDrawX::ClearDepthStencilSurface()
@@ -4203,23 +4202,22 @@ HRESULT m_IDirectDrawX::Present(RECT* pSourceRect, RECT* pDestRect)
 
 DWORD GetDDrawBitsPixel(HWND hWnd)
 {
-	bool isMenu = false;
 	if (hWnd)
 	{
 		char name[256] = {};
 		GetClassNameA(hWnd, name, sizeof(name));
-		isMenu = ((DWORD)hWnd == 0x00010010 || strcmp(name, "#32769") == S_OK);
+		if ((DWORD)hWnd == 0x00010010 || strcmp(name, "#32769") == S_OK)	// Is menu
+		{
+			return 0;
+		}
 	}
-	if (!isMenu)
+	if (Config.DdrawOverrideBitMode)
 	{
-		if (Config.DdrawOverrideBitMode)
-		{
-			return Config.DdrawOverrideBitMode;
-		}
-		if (!DDrawVector.empty() && DisplayMode.hWnd)
-		{
-			return (Exclusive.BPP) ? Exclusive.BPP : (DisplayMode.BPP) ? DisplayMode.BPP : DDrawVector.data()[0]->GetDisplayBPP(hWnd);
-		}
+		return Config.DdrawOverrideBitMode;
+	}
+	if (!DDrawVector.empty() && DisplayMode.hWnd)
+	{
+		return (Exclusive.BPP) ? Exclusive.BPP : (DisplayMode.BPP) ? DisplayMode.BPP : DDrawVector.data()[0]->GetDisplayBPP(hWnd);
 	}
 	return 0;
 }
