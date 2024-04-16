@@ -1312,7 +1312,7 @@ HRESULT m_IDirectDrawX::GetDisplayMode2(LPDDSURFACEDESC2 lpDDSurfaceDesc2)
 		else
 		{
 			HWND hWnd = GetHwnd();
-			Utils::GetScreenSize(hWnd, lpDDSurfaceDesc2->dwWidth, lpDDSurfaceDesc2->dwHeight);
+			Utils::GetScreenSize(hWnd, (LONG&)lpDDSurfaceDesc2->dwWidth, (LONG&)lpDDSurfaceDesc2->dwHeight);
 			lpDDSurfaceDesc2->dwRefreshRate = Utils::GetRefreshRate(hWnd);
 			displayModeBits = GetDisplayBPP(hWnd);
 		}
@@ -1901,7 +1901,7 @@ HRESULT m_IDirectDrawX::SetDisplayMode(DWORD dwWidth, DWORD dwHeight, DWORD dwBP
 	{
 		ScaleDDLastWidth = dwWidth;
 		ScaleDDLastHeight = dwHeight;
-		Utils::GetScreenSize(nullptr, ScaleDDCurrentWidth, ScaleDDCurrentHeight);
+		Utils::GetScreenSize(nullptr, (LONG&)ScaleDDCurrentWidth, (LONG&)ScaleDDCurrentHeight);
 		dwWidth = ScaleDDCurrentWidth;
 		dwHeight = ScaleDDCurrentHeight;
 		ScaleDDWidthRatio = (float)ScaleDDCurrentWidth / (float)ScaleDDLastWidth;
@@ -2366,7 +2366,7 @@ void m_IDirectDrawX::InitDdraw(DWORD DirectXVersion)
 		hFocusWindow = nullptr;
 
 		// Display resolution
-		Utils::GetScreenSize(GetHwnd(), InitWidth, InitHeight);
+		Utils::GetScreenSize(GetHwnd(), (LONG&)InitWidth, (LONG&)InitHeight);
 		if (Config.DdrawUseNativeResolution)
 		{
 			Device.Width = InitWidth;
@@ -2866,7 +2866,7 @@ HRESULT m_IDirectDrawX::CreateD3D9Device()
 
 		// Get current resolution and rect
 		DWORD CurrentWidth, CurrentHeight;
-		Utils::GetScreenSize(hWnd, CurrentWidth, CurrentHeight);
+		Utils::GetScreenSize(hWnd, (LONG&)CurrentWidth, (LONG&)CurrentHeight);
 
 		// Get width and height
 		DWORD BackBufferWidth = 0;
@@ -3046,7 +3046,7 @@ HRESULT m_IDirectDrawX::CreateD3D9Device()
 		{
 			// Get new resolution
 			DWORD NewWidth = presParams.BackBufferWidth, NewHeight = presParams.BackBufferHeight;
-			Utils::GetScreenSize(hWnd, NewWidth, NewHeight);
+			Utils::GetScreenSize(hWnd, (LONG&)NewWidth, (LONG&)NewHeight);
 
 			// Send display change message
 			if ((SetResolution || NewWidth != CurrentWidth || NewHeight != CurrentHeight) && NewWidth && NewHeight)
@@ -3122,7 +3122,7 @@ HRESULT m_IDirectDrawX::CreateVertexBuffer(DWORD Width, DWORD Height)
 	DWORD BackBufferHeight = (displayflag) ? displayHeight : Height;
 	if (!BackBufferWidth || !BackBufferHeight)
 	{
-		Utils::GetScreenSize(GetHwnd(), BackBufferWidth, BackBufferHeight);
+		Utils::GetScreenSize(GetHwnd(), (LONG&)BackBufferWidth, (LONG&)BackBufferHeight);
 	}
 
 	// Calculate width and height with original aspect ratio

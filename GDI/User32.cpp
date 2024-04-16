@@ -50,24 +50,10 @@ HWND WINAPI user_CreateWindowExT(D CreateWindowExT, DWORD dwExStyle, T lpClassNa
 		return nullptr;
 	}
 
-	// Handle popup window type
-	if ((dwStyle & WS_POPUP) && (dwStyle & WS_VISIBLE) && !(dwStyle & WS_CLIPSIBLINGS) && !hWndParent)
+	// Handle popup window type (some games forget to initialize the nWidth and nHeight values)
+	if ((dwStyle & WS_POPUP) && !(nWidth & CW_USEDEFAULT) && (nWidth > 20000 || nHeight > 20000))
 	{
-		DWORD dwNewStyle = dwStyle;
-
-		// Remove popup style
-		dwNewStyle = dwStyle & ~WS_POPUP;
-
-		HWND hwnd = CreateWindowExT(dwExStyle, lpClassName, lpWindowName, dwNewStyle, X, Y, nWidth, nHeight, hWndParent, hMenu, hInstance, lpParam);
-
-		if (hwnd)
-		{
-			LOG_LIMIT(100, __FUNCTION__ << " Removed WS_POPUP window style! " << hwnd);
-
-			SetWindowLong(hwnd, GWL_STYLE, dwNewStyle);
-
-			return hwnd;
-		}
+		Utils::GetScreenSize(hWndParent, nWidth, nHeight);
 	}
 
 	return CreateWindowExT(dwExStyle, lpClassName, lpWindowName, dwStyle, X, Y, nWidth, nHeight, hWndParent, hMenu, hInstance, lpParam);

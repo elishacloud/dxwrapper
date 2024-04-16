@@ -48,7 +48,7 @@ namespace Utils
 	bool SetWndProcFilter(HWND hWnd);
 	bool RestoreWndProcFilter(HWND hWnd);
 	void GetScreenSize(HWND hwnd, LONG &screenWidth, LONG &screenHeight);
-	void GetScreenSize(HWND hwnd, DWORD &screenWidth, DWORD &screenHeight);
+	void GetScreenSize(HWND hwnd, int &screenWidth, int &screenHeight);
 	void GetDesktopRect(HWND hWnd, RECT& screenRect);
 	DWORD GetVideoRam(UINT AdapterNo);	// Adapters start numbering from '1', based on "Win32_VideoController" WMI class and "DeviceID" property.
 }

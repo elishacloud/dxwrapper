@@ -246,7 +246,7 @@ void Utils::GetScreenSize(HWND hwnd, LONG &screenWidth, LONG &screenHeight)
 	screenHeight = info.rcMonitor.bottom - info.rcMonitor.top;
 }
 
-void Utils::GetScreenSize(HWND hwnd, DWORD &screenWidth, DWORD &screenHeight)
+void Utils::GetScreenSize(HWND hwnd, int &screenWidth, int &screenHeight)
 {
 	LONG Width, Height;
 	GetScreenSize(hwnd, Width, Height);
