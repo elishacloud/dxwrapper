@@ -465,13 +465,6 @@ HRESULT m_IDirectDrawSurfaceX::Blt(LPRECT lpDestRect, LPDIRECTDRAWSURFACE7 lpDDS
 			return DDERR_INVALIDPARAMS;
 		}
 
-		// Check for depth fill flag
-		if (dwFlags & DDBLT_DEPTHFILL)
-		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error: Depth Fill Not Implemented");
-			return DDERR_NOZBUFFERHW;
-		}
-
 		// Check for rotation flags
 		// ToDo: add support for other rotation flags (90,180, 270).  Not sure if any game uses these other flags.
 		if ((dwFlags & DDBLT_ROTATIONANGLE) || ((dwFlags & DDBLT_DDFX) && (lpDDBltFx->dwDDFX & (DDBLTFX_ROTATE90 | DDBLTFX_ROTATE180 | DDBLTFX_ROTATE270))))
@@ -518,6 +511,18 @@ HRESULT m_IDirectDrawSurfaceX::Blt(LPRECT lpDestRect, LPDIRECTDRAWSURFACE7 lpDDS
 		if (FAILED(c_hr) || FAILED(s_hr))
 		{
 			return (c_hr == DDERR_SURFACELOST || s_hr == DDERR_SURFACELOST) ? DDERR_SURFACELOST : FAILED(c_hr) ? c_hr : s_hr;
+		}
+
+		// Clear the depth stencil surface
+		if (dwFlags & DDBLT_DEPTHFILL)
+		{
+			// ToDo: check surface is stencil is the currently used stencil
+			if (!(surfaceDesc2.ddpfPixelFormat.dwFlags & DDPF_ZBUFFER))
+			{
+				LOG_LIMIT(100, __FUNCTION__ << " Error: not Depth Stencil format: " << surfaceDesc2);
+				return DDERR_INVALIDPARAMS;
+			}
+			return (*d3d9Device)->Clear(0, NULL, D3DCLEAR_ZBUFFER, 0, ConvertDepthValue(lpDDBltFx->dwFillDepth, surfaceFormat), 0);
 		}
 
 		// Set critical section

@@ -217,7 +217,7 @@ void ConvertCaps(DDCAPS &Caps7, D3DCAPS9 &Caps9)
 		(DDCAPS_BLT | /*DDCAPS_BLTQUEUE |*/ DDCAPS_BLTFOURCC | DDCAPS_BLTSTRETCH | DDCAPS_GDI /*| DDCAPS_OVERLAYCANTCLIP | DDCAPS_OVERLAYFOURCC |
 			DDCAPS_OVERLAYSTRETCH*/ | DDCAPS_PALETTE | DDCAPS_PALETTEVSYNC | DDCAPS_VBI | DDCAPS_COLORKEY | /*DDCAPS_ALPHA | DDCAPS_COLORKEYHWASSIST |*/
 			DDCAPS_BLTCOLORFILL | DDCAPS_CANCLIP | DDCAPS_CANCLIPSTRETCHED | DDCAPS_CANBLTSYSMEM) |
-		(!Config.DdrawDisableDirect3DCaps ? DDCAPS_3D /*| DDCAPS_BLTDEPTHFILL | DDCAPS_ZBLTS | DDCAPS_ZOVERLAYS*/ : 0);
+		(!Config.DdrawDisableDirect3DCaps ? DDCAPS_3D | DDCAPS_BLTDEPTHFILL /*| DDCAPS_ZBLTS | DDCAPS_ZOVERLAYS*/ : 0);
 	Caps7.dwCaps2 = (Caps9.Caps2 & (D3DCAPS2_FULLSCREENGAMMA /*| D3DCAPS2_CANCALIBRATEGAMMA*/ | D3DCAPS2_CANMANAGERESOURCE | D3DCAPS2_DYNAMICTEXTURES /*| D3DCAPS2_CANAUTOGENMIPMAP | D3DCAPS2_CANSHARERESOURCE*/)) |
 		(/*DDCAPS2_CANBOBINTERLEAVED | DDCAPS2_CANBOBNONINTERLEAVED | DDCAPS2_NONLOCALVIDMEM |*/ DDCAPS2_WIDESURFACES | /*DDCAPS2_CANFLIPODDEVEN |*/ DDCAPS2_COPYFOURCC | DDCAPS2_NOPAGELOCKREQUIRED |
 			DDCAPS2_PRIMARYGAMMA | DDCAPS2_CANRENDERWINDOWED /*| DDCAPS2_FLIPINTERVAL*/ | DDCAPS2_FLIPNOVSYNC);
@@ -445,9 +445,47 @@ DWORD GetBitCount(D3DFORMAT Format)
 		return 8;
 
 	default:
-		LOG_LIMIT(100, __FUNCTION__ << " Display format not Implemented: " << Format);
+		LOG_LIMIT(100, __FUNCTION__ << " Error: Display format not Implemented: " << Format);
 		return 0;
 	};
+}
+
+float ConvertDepthValue(DWORD dwFillDepth, D3DFORMAT Format)
+{
+	switch ((DWORD)Format)
+	{
+	case D3DFMT_S1D15:
+		return static_cast<float>(dwFillDepth & 0x7FFF) / 0x7FFF; // 15-bit depth
+
+	case D3DFMT_D15S1:
+		// Shift the depth value to the right by 1 bits before extracting
+		return static_cast<float>((dwFillDepth >> 1) & 0x7FFF) / 0x7FFF; // 15-bit depth
+
+	case D3DFMT_D16:
+	case D3DFMT_D16_LOCKABLE:
+		return static_cast<float>(dwFillDepth & 0xFFFF) / 0xFFFF; // 16-bit depth
+
+	case D3DFMT_X8D24:
+	case D3DFMT_S8D24:
+	case D3DFMT_X4S4D24:
+		return static_cast<float>(dwFillDepth & 0xFFFFFF) / 0xFFFFFF; // 24-bit depth
+
+	case D3DFMT_D24X8:
+	case D3DFMT_D24S8:
+	case D3DFMT_D24FS8:
+	case D3DFMT_D24X4S4:
+		// Shift the depth value to the right by 8 bits before extracting
+		return static_cast<float>((dwFillDepth >> 8) & 0xFFFFFF) / 0xFFFFFF; // 24-bit depth
+
+	case D3DFMT_D32:
+	case D3DFMT_D32_LOCKABLE:
+	case D3DFMT_D32F_LOCKABLE:
+		return (float)(static_cast<double>(dwFillDepth & 0xFFFFFFFF) / 0xFFFFFFFF); // 32-bit depth
+
+	default:
+		LOG_LIMIT(100, __FUNCTION__ << " Error: Depth Stencil format not Implemented: " << Format);
+		return 0.0f;
+	}
 }
 
 DWORD GetSurfaceSize(D3DFORMAT Format, DWORD Width, DWORD Height, INT Pitch)
