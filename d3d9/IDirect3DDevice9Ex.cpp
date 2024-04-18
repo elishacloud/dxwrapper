@@ -93,6 +93,8 @@ void m_IDirect3DDevice9Ex::ClearVars(D3DPRESENT_PARAMETERS* pPresentationParamet
 template <typename T>
 HRESULT m_IDirect3DDevice9Ex::ResetT(T func, D3DPRESENT_PARAMETERS &d3dpp, D3DPRESENT_PARAMETERS* pPresentationParameters, D3DDISPLAYMODEEX* pFullscreenDisplayMode)
 {
+	__asm { fninit }	// Reset FPU before resetting
+
 	if (!pPresentationParameters)
 	{
 		return D3DERR_INVALIDCALL;
