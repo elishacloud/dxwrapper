@@ -35,6 +35,7 @@ namespace Utils
 	DWORD ReverseBits(DWORD v);
 	void DDrawResolutionHack(HMODULE hD3DIm);
 	void BusyWaitYield();
+	void ResetInvalidFPUState();
 	void CheckMessageQueue(HWND hwnd);
 	void GetScreenSettings();
 	void ResetScreenSettings();

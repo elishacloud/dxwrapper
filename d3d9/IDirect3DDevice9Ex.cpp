@@ -817,7 +817,7 @@ HRESULT m_IDirect3DDevice9Ex::SetPixelShader(THIS_ IDirect3DPixelShader9* pShade
 
 HRESULT m_IDirect3DDevice9Ex::Present(CONST RECT *pSourceRect, CONST RECT *pDestRect, HWND hDestWindowOverride, CONST RGNDATA *pDirtyRegion)
 {
-	__asm { fninit }	// Reset FPU before presenting
+	Utils::ResetInvalidFPUState();	// Check FPU state before presenting
 
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
@@ -2080,7 +2080,7 @@ HRESULT m_IDirect3DDevice9Ex::ComposeRects(THIS_ IDirect3DSurface9* pSrc, IDirec
 
 HRESULT m_IDirect3DDevice9Ex::PresentEx(THIS_ CONST RECT* pSourceRect, CONST RECT* pDestRect, HWND hDestWindowOverride, CONST RGNDATA* pDirtyRegion, DWORD dwFlags)
 {
-	__asm { fninit }	// Reset FPU before presenting
+	Utils::ResetInvalidFPUState();	// Check FPU state before presenting
 
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 

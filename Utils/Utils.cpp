@@ -674,6 +674,15 @@ void Utils::BusyWaitYield()
 #endif
 }
 
+// Reset FPU if the _SW_INVALID flag is set
+void Utils::ResetInvalidFPUState()
+{
+	if (_statusfp() & _SW_INVALID)
+	{
+		__asm { fninit }
+	}
+}
+
 void Utils::CheckMessageQueue(HWND hwnd)
 {
 	// Peek messages to help prevent a "Not Responding" window
