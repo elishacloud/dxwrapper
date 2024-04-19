@@ -2784,6 +2784,9 @@ HRESULT m_IDirect3DDeviceX::SetRenderState(D3DRENDERSTATETYPE dwRenderStateType,
 			default:
 				return DDERR_INVALIDPARAMS;
 			}
+		case D3DRENDERSTATE_ALPHAREF:			// 24
+			dwRenderState &= 0xFF;
+			break;
 		case D3DRENDERSTATE_ALPHABLENDENABLE:	// 27
 			rsAlphaBlendEnabled = dwRenderState;
 			break;
