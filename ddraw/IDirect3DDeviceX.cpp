@@ -2165,6 +2165,7 @@ HRESULT m_IDirect3DDeviceX::SetLight(m_IDirect3DLight* lpLightInterface, LPD3DLI
 
 	D3DLIGHT7 Light7;
 
+	// ToDo: the dvAttenuation members are interpreted differently in D3DLIGHT2 than they were for D3DLIGHT.
 	ConvertLight(Light7, *lpLight);
 
 	DWORD dwLightIndex = 0;
