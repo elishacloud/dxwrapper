@@ -3789,7 +3789,7 @@ HRESULT m_IDirect3DDeviceX::SetClipStatus(LPD3DCLIPSTATUS lpD3DClipStatus)
 		}
 
 		// D3DCLIPSTATUS_EXTENTS3 is Not currently implemented in DirectDraw.
-		if (!(lpD3DClipStatus->dwFlags & D3DCLIPSTATUS_STATUS))
+		if (lpD3DClipStatus->dwFlags & D3DCLIPSTATUS_EXTENTS3)
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Error: only clip status flag is supported. Using unsupported dwFlags combination: " << Logging::hex(lpD3DClipStatus->dwFlags));
 			return DDERR_UNSUPPORTED;
@@ -3797,6 +3797,7 @@ HRESULT m_IDirect3DDeviceX::SetClipStatus(LPD3DCLIPSTATUS lpD3DClipStatus)
 		else if (lpD3DClipStatus->dwFlags & D3DCLIPSTATUS_EXTENTS2)
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Warning: Extents 2D flag Not Implemented: " << *lpD3DClipStatus);
+			D3DClipStatus = *lpD3DClipStatus;
 		}
 
 		// For now just save clip status
@@ -3925,7 +3926,6 @@ HRESULT m_IDirect3DDeviceX::GetClipStatus(LPD3DCLIPSTATUS lpD3DClipStatus)
 		}
 
 		// ToDo: get clip status from Direct3D9
-
 		*lpD3DClipStatus = D3DClipStatus;
 
 		return D3D_OK;
