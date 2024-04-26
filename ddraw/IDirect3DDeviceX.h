@@ -2,6 +2,19 @@
 
 #include "IDirectDrawX.h"
 #include <unordered_map>
+#include "External\DirectXMath\Inc\DirectXMath.h"
+
+struct CONVERTHOMOGENEOUS
+{
+	bool IsTransformViewSet = false;					// Remembers if game sets the view matrix
+	D3DMATRIX ToWorld_ProjectionMatrix;					// Store the projection matrix used to transform the geometry on the gpu
+	D3DMATRIX ToWorld_ViewMatrix;						// Store the view matrix used to transform the geometry on the gpu
+	D3DMATRIX ToWorld_ViewMatrixOriginal;				// Store the original view matrix, so we can restore it
+	DirectX::XMMATRIX ToWorld_ViewMatrixInverse;		// Store the inverse view matrix to transform the geometry on the cpu
+	std::vector<uint8_t> ToWorld_IntermediateGeometry;	// Intermediate buffer for the geometry conversion
+	float ToWorld_GameCameraYaw = 0.0f;
+	float ToWorld_GameCameraPitch = 0.0f;
+};
 
 constexpr UINT MaxTextureBlendStages = 8;	// Devices can have up to eight set textures.
 
@@ -81,6 +94,9 @@ private:
 
 	// Vector temporary buffer cache
 	std::vector<BYTE> VertexCache;
+
+	// The data used for rendering Homogeneous
+	CONVERTHOMOGENEOUS ConvertHomogeneous;
 
 	// Viewport array
 	std::vector<LPDIRECT3DVIEWPORT3> AttachedViewports;
