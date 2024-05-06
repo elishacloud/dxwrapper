@@ -27,7 +27,6 @@
 bool dirtyFlag = false;
 bool SceneReady = false;
 bool IsPresentRunning = false;
-bool UseMipMapSupport = false;
 
 // Cached surface wrapper interface v1 list
 std::vector<m_IDirectDrawSurface*> SurfaceWrapperListV1;
@@ -5069,7 +5068,7 @@ inline void m_IDirectDrawSurfaceX::InitSurfaceDesc(DWORD DirectXVersion)
 	}
 
 	// Handle mipmaps
-	if (UseMipMapSupport && (surfaceDesc2.dwFlags & DDSD_MIPMAPCOUNT) && (surfaceDesc2.dwMipMapCount != 1) &&
+	if ((surfaceDesc2.dwFlags & DDSD_MIPMAPCOUNT) && (surfaceDesc2.dwMipMapCount != 1) &&
 		(surfaceDesc2.ddsCaps.dwCaps & (DDSCAPS_MIPMAP | DDSCAPS_COMPLEX | DDSCAPS_TEXTURE)) == (DDSCAPS_MIPMAP | DDSCAPS_COMPLEX | DDSCAPS_TEXTURE))
 	{
 		DWORD MipMapLevelCount = surfaceDesc2.dwMipMapCount ? min(surfaceDesc2.dwMipMapCount, GetMaxMipMapLevel(surfaceDesc2.dwWidth, surfaceDesc2.dwHeight)) :

@@ -2840,11 +2840,7 @@ HRESULT m_IDirect3DDeviceX::SetRenderState(D3DRENDERSTATETYPE dwRenderStateType,
 		case D3DRENDERSTATE_TEXTUREADDRESSV:	// 45
 			return SetTextureStageState(0, (D3DTEXTURESTAGESTATETYPE)D3DTSS_ADDRESSV, dwRenderState);
 		case D3DRENDERSTATE_MIPMAPLODBIAS:		// 46
-			if (dwRenderState != 0)	// 0.0
-			{
-				LOG_LIMIT(100, __FUNCTION__ << " Warning: 'D3DRENDERSTATE_MIPMAPLODBIAS' not implemented! " << dwRenderState);
-			}
-			return D3D_OK;
+			return SetTextureStageState(0, (D3DTEXTURESTAGESTATETYPE)D3DTSS_MIPMAPLODBIAS, dwRenderState);
 		case D3DRENDERSTATE_ZBIAS:				// 47
 		{
 			FLOAT Biased = static_cast<FLOAT>(dwRenderState) * -0.000005f;
@@ -3030,8 +3026,7 @@ HRESULT m_IDirect3DDeviceX::GetRenderState(D3DRENDERSTATETYPE dwRenderStateType,
 		case D3DRENDERSTATE_TEXTUREADDRESSV:	// 45
 			return GetTextureStageState(0, (D3DTEXTURESTAGESTATETYPE)D3DTSS_ADDRESSV, lpdwRenderState);
 		case D3DRENDERSTATE_MIPMAPLODBIAS:		// 46
-			*lpdwRenderState = 0; // 0.0f
-			return D3D_OK;
+			return GetTextureStageState(0, (D3DTEXTURESTAGESTATETYPE)D3DTSS_MIPMAPLODBIAS, lpdwRenderState);
 		case D3DRENDERSTATE_ZBIAS:				// 47
 			(*d3d9Device)->GetRenderState(D3DRS_DEPTHBIAS, lpdwRenderState);
 			*lpdwRenderState = static_cast<DWORD>(*reinterpret_cast<const FLOAT*>(lpdwRenderState) * -200000.0f);
@@ -4159,6 +4154,14 @@ inline void m_IDirect3DDeviceX::SetDrawStates(DWORD dwVertexTypeDesc, DWORD& dwF
 				LOG_LIMIT(100, __FUNCTION__ << " Warning: mixing color keying with alpha blending is not implemented: " << rsSrcBlend << " " << rsDestBlend);
 			}
 			dwFlags |= D3DDP_DXW_COLORKEYENABLE;
+		}
+	}
+	if (Config.Dd7to9)
+	{
+		// For now just disable mipmap filtering
+		for (int x = 0; x < 8; x++)
+		{
+			(*d3d9Device)->SetSamplerState(x, D3DSAMP_MIPFILTER, D3DTEXF_NONE);
 		}
 	}
 	if (dwFlags & D3DDP_DXW_COLORKEYENABLE)

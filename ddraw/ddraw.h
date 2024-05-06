@@ -126,7 +126,6 @@ extern DWORD ScaleDDCurrentWidth;
 extern DWORD ScaleDDCurrentHeight;
 extern DWORD ScaleDDPadX;
 extern DWORD ScaleDDPadY;
-extern bool UseMipMapSupport;
 
 using namespace DdrawWrapper;
 
