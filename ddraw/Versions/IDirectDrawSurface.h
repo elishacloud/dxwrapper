@@ -7,9 +7,14 @@ private:
 	IDirectDrawSurface *RealInterface;
 	REFIID WrapperID = IID_IDirectDrawSurface;
 	const DWORD DirectXVersion = 1;
+	const DWORD MipMapLevel;
 
 public:
-	m_IDirectDrawSurface(IDirectDrawSurface *aOriginal, m_IDirectDrawSurfaceX *Interface) : RealInterface(aOriginal), ProxyInterface(Interface)
+	m_IDirectDrawSurface(m_IDirectDrawSurfaceX* Interface, DWORD Level) : RealInterface(nullptr), ProxyInterface(Interface), MipMapLevel(Level)
+	{
+		ProxyAddressLookupTable.SaveAddress(this, this);
+	}
+	m_IDirectDrawSurface(IDirectDrawSurface *aOriginal, m_IDirectDrawSurfaceX *Interface) : RealInterface(aOriginal), ProxyInterface(Interface), MipMapLevel(0)
 	{
 		ProxyAddressLookupTable.SaveAddress(this, (RealInterface) ? RealInterface : (void*)ProxyInterface);
 	}

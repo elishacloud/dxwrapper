@@ -122,6 +122,7 @@ void ConvertCaps(DDSCAPS2 &Caps2, DDSCAPS &Caps);
 void ConvertCaps(DDCAPS &Caps, DDCAPS &Caps2);
 void ConvertCaps(DDCAPS &Caps7, D3DCAPS9 &Caps9);
 DWORD GetByteAlignedWidth(DWORD Width, DWORD BitCount);
+DWORD GetMaxMipMapLevel(DWORD Width, DWORD Height);
 DWORD GetBitCount(DDPIXELFORMAT ddpfPixelFormat);
 DWORD GetBitCount(D3DFORMAT Format);
 float ConvertDepthValue(DWORD dwFillDepth, D3DFORMAT Format);

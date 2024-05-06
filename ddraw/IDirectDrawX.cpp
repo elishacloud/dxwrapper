@@ -535,6 +535,16 @@ HRESULT m_IDirectDrawX::CreateSurface2(LPDDSURFACEDESC2 lpDDSurfaceDesc2, LPDIRE
 			return DDERR_INVALIDPIXELFORMAT;
 		}
 
+		// Check MipMap count
+		if ((lpDDSurfaceDesc2->dwFlags & DDSD_MIPMAPCOUNT) && (lpDDSurfaceDesc2->dwMipMapCount != 1) &&
+			(lpDDSurfaceDesc2->ddsCaps.dwCaps & (DDSCAPS_MIPMAP | DDSCAPS_COMPLEX | DDSCAPS_TEXTURE)) == (DDSCAPS_MIPMAP | DDSCAPS_COMPLEX | DDSCAPS_TEXTURE) &&
+			GetMaxMipMapLevel(lpDDSurfaceDesc2->dwWidth, lpDDSurfaceDesc2->dwHeight) < lpDDSurfaceDesc2->dwMipMapCount)
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: MipMap count too large. Count: " << lpDDSurfaceDesc2->dwMipMapCount <<
+				" " << lpDDSurfaceDesc2->dwWidth << "x" << lpDDSurfaceDesc2->dwHeight << " Max: " << GetMaxMipMapLevel(lpDDSurfaceDesc2->dwWidth, lpDDSurfaceDesc2->dwHeight));
+			return DDERR_INVALIDPARAMS;
+		}
+
 		// Check for Cube map
 		if (lpDDSurfaceDesc2->ddsCaps.dwCaps2 & (DDSCAPS2_CUBEMAP | DDSCAPS2_CUBEMAP_ALLFACES))
 		{
@@ -545,16 +555,6 @@ HRESULT m_IDirectDrawX::CreateSurface2(LPDDSURFACEDESC2 lpDDSurfaceDesc2, LPDIRE
 		if (lpDDSurfaceDesc2->ddsCaps.dwCaps2 & DDSCAPS2_VOLUME)
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Warning: Volume not Implemented.");
-		}
-
-		// Check for MipMap
-		// DDSCAPS_MIPMAP Indicates surface is one level of a mip-map. This surface will be attached to other DDSCAPS_MIPMAP surfaces to form the mip-map.
-		// This can be done explicitly, by creating a number of surfaces and attaching them with AddAttachedSurface or by implicitly by CreateSurface.
-		// If this bit is set then DDSCAPS_TEXTURE must also be set.
-		if (((lpDDSurfaceDesc2->dwFlags & DDSD_MIPMAPCOUNT) && (lpDDSurfaceDesc2->dwMipMapCount != 1)) &&
-			(lpDDSurfaceDesc2->ddsCaps.dwCaps & DDSCAPS_MIPMAP))
-		{
-			LOG_LIMIT(100, __FUNCTION__ << " Warning: MipMap not Implemented. Count: " << lpDDSurfaceDesc2->dwMipMapCount);
 		}
 
 		// Check for Overlay
@@ -578,7 +578,7 @@ HRESULT m_IDirectDrawX::CreateSurface2(LPDDSURFACEDESC2 lpDDSurfaceDesc2, LPDIRE
 
 		// Check for unsupported ddsCaps
 		DWORD UnsupportedDDSCaps = (DDSCAPS_LIVEVIDEO | DDSCAPS_HWCODEC | DDSCAPS_VIDEOPORT);
-		DWORD UnsupportedDDSCaps2 = (DDSCAPS2_HINTDYNAMIC | DDSCAPS2_HINTSTATIC | DDSCAPS2_OPAQUE | DDSCAPS2_NOTUSERLOCKABLE);
+		DWORD UnsupportedDDSCaps2 = (DDSCAPS2_OPAQUE);	// DDSCAPS2_HINTDYNAMIC | DDSCAPS2_HINTSTATIC | DDSCAPS2_NOTUSERLOCKABLE
 		if ((lpDDSurfaceDesc2->ddsCaps.dwCaps & UnsupportedDDSCaps) || (lpDDSurfaceDesc2->ddsCaps.dwCaps2 & UnsupportedDDSCaps2))
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Warning: non-supported ddsCaps: " << Logging::hex(lpDDSurfaceDesc2->ddsCaps.dwCaps & UnsupportedDDSCaps) << " " <<
@@ -775,7 +775,7 @@ HRESULT m_IDirectDrawX::DuplicateSurface(LPDIRECTDRAWSURFACE7 lpDDSurface, LPDIR
 
 		DDSURFACEDESC2 Desc2 = {};
 		Desc2.dwSize = sizeof(DDSURFACEDESC2);
-		lpDDSurfaceX->GetSurfaceDesc2(&Desc2);
+		lpDDSurfaceX->GetSurfaceDesc2(&Desc2, 0);
 		Desc2.ddsCaps.dwCaps &= ~DDSCAPS_PRIMARYSURFACE;		// Remove Primary surface flag
 
 		m_IDirectDrawSurfaceX *p_IDirectDrawSurfaceX = new m_IDirectDrawSurfaceX(this, DirectXVersion, &Desc2);
@@ -1106,7 +1106,7 @@ HRESULT m_IDirectDrawX::EnumSurfaces2(DWORD dwFlags, LPDDSURFACEDESC2 lpDDSurfac
 				{
 					DDSURFACEDESC2 Desc2 = {};
 					Desc2.dwSize = sizeof(DDSURFACEDESC2);
-					pSurfaceX->GetSurfaceDesc2(&Desc2);
+					pSurfaceX->GetSurfaceDesc2(&Desc2, 0);
 
 					// When using the DDENUMSURFACES_DOESEXIST flag, an enumerated surface's reference count is incremented
 					pSurface7->AddRef();

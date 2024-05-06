@@ -109,7 +109,7 @@ HMODULE LoadHookedDll(char *dllname, LoadProc Load, DWORD HookSystem32)
 HMODULE hModule_dll = nullptr;
 
 // Dll main function
-bool APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
+BOOL APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 {
 	UNREFERENCED_PARAMETER(lpReserved);
 

@@ -78,7 +78,7 @@ HRESULT m_IDirectDrawSurface2::Flip(LPDIRECTDRAWSURFACE2 a, DWORD b)
 
 HRESULT m_IDirectDrawSurface2::GetAttachedSurface(LPDDSCAPS a, LPDIRECTDRAWSURFACE2 FAR * b)
 {
-	return ProxyInterface->GetAttachedSurface(a, (LPDIRECTDRAWSURFACE7*)b, DirectXVersion);
+	return ProxyInterface->GetAttachedSurface(a, (LPDIRECTDRAWSURFACE7*)b, MipMapLevel, DirectXVersion);
 }
 
 HRESULT m_IDirectDrawSurface2::GetBltStatus(DWORD a)
@@ -128,7 +128,7 @@ HRESULT m_IDirectDrawSurface2::GetPixelFormat(LPDDPIXELFORMAT a)
 
 HRESULT m_IDirectDrawSurface2::GetSurfaceDesc(LPDDSURFACEDESC a)
 {
-	return ProxyInterface->GetSurfaceDesc(a);
+	return ProxyInterface->GetSurfaceDesc(a, MipMapLevel);
 }
 
 HRESULT m_IDirectDrawSurface2::Initialize(LPDIRECTDRAW a, LPDDSURFACEDESC b)
@@ -143,7 +143,7 @@ HRESULT m_IDirectDrawSurface2::IsLost()
 
 HRESULT m_IDirectDrawSurface2::Lock(LPRECT a, LPDDSURFACEDESC b, DWORD c, HANDLE d)
 {
-	return ProxyInterface->Lock(a, b, c, d, DirectXVersion);
+	return ProxyInterface->Lock(a, b, c, d, MipMapLevel, DirectXVersion);
 }
 
 HRESULT m_IDirectDrawSurface2::ReleaseDC(HDC a)
@@ -178,7 +178,7 @@ HRESULT m_IDirectDrawSurface2::SetPalette(LPDIRECTDRAWPALETTE a)
 
 HRESULT m_IDirectDrawSurface2::Unlock(LPVOID a)
 {
-	return ProxyInterface->Unlock((LPRECT)a);
+	return ProxyInterface->Unlock((LPRECT)a, MipMapLevel);
 }
 
 HRESULT m_IDirectDrawSurface2::UpdateOverlay(LPRECT a, LPDIRECTDRAWSURFACE2 b, LPRECT c, DWORD d, LPDDOVERLAYFX e)

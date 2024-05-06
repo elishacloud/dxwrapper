@@ -46,6 +46,19 @@ private:
 		D3DLOCKED_RECT LockedRect = {};
 	};
 
+	// Mipmap struct
+	struct MIPMAP
+	{
+		m_IDirectDrawSurface* Addr = nullptr;
+		m_IDirectDrawSurface2* Addr2 = nullptr;
+		m_IDirectDrawSurface3* Addr3 = nullptr;
+		m_IDirectDrawSurface4* Addr4 = nullptr;
+		m_IDirectDrawSurface7* Addr7 = nullptr;
+		DWORD dwWidth = 0;
+		DWORD dwHeight = 0;
+		LONG lPitch = 0;
+	};
+
 	// For aligning bits after a lock for games that hard code the pitch
 	struct DDRAWEMULATELOCK
 	{
@@ -110,10 +123,12 @@ private:
 	CRITICAL_SECTION ddscs = {};
 	CRITICAL_SECTION ddlcs = {};
 	m_IDirectDrawX *ddrawParent = nullptr;				// DirectDraw parent device
+	std::vector<MIPMAP> MipMaps;						// For MipMaps
+	DWORD MaxMipMapLevel = 1;							// For MipMaps
 	LPDIRECT3DTEXTURE9 PrimaryDisplayTexture = nullptr;	// Used for the texture surface for the primary surface
 	m_IDirectDrawPalette *attachedPalette = nullptr;	// Associated palette
 	m_IDirectDrawClipper *attachedClipper = nullptr;	// Associated clipper
-	m_IDirect3DTextureX *attached3DTexture = nullptr;		// Associated texture
+	m_IDirect3DTextureX *attached3DTexture = nullptr;	// Associated texture
 	DDSURFACEDESC2 surfaceDesc2 = {};					// Surface description for this surface
 	D3DFORMAT surfaceFormat = D3DFMT_UNKNOWN;			// Format for this surface
 	DWORD surfaceBitCount = 0;							// Bit count for this surface
@@ -122,7 +137,6 @@ private:
 	LONG overlayX = 0;
 	LONG overlayY = 0;
 	DWORD Priority = 0;
-	DWORD MaxLOD = 0;
 
 	bool Is3DRenderingTarget = false;					// Surface used for Direct3D rendering target, called from m_IDirect3DX::CreateDevice()
 	bool Using3D = false;								// Direct3D is being used on top of DirectDraw
@@ -215,11 +229,11 @@ private:
 	void UpdateSurfaceDesc();
 
 	// Direct3D9 interfaces
-	inline HRESULT LockD39Surface(D3DLOCKED_RECT* pLockedRect, RECT* pRect, DWORD Flags);
-	inline HRESULT UnlockD39Surface();
+	inline HRESULT LockD39Surface(D3DLOCKED_RECT* pLockedRect, RECT* pRect, DWORD Flags, DWORD MipMapLevel);
+	inline HRESULT UnlockD39Surface(DWORD MipMapLevel);
 
 	// Locking rect coordinates
-	bool CheckCoordinates(RECT& OutRect, LPRECT lpInRect);
+	bool CheckCoordinates(RECT& OutRect, LPRECT lpInRect, LPDDSURFACEDESC2 lpDDSurfaceDesc2);
 	HRESULT LockEmulatedSurface(D3DLOCKED_RECT* pLockedRect, LPRECT lpDestRect);
 	void SetDirtyFlag();
 	bool CheckRectforSkipScene(RECT& DestRect);
@@ -319,8 +333,8 @@ public:
 	HRESULT EnumOverlayZOrders(DWORD, LPVOID, LPDDENUMSURFACESCALLBACK, DWORD);
 	HRESULT EnumOverlayZOrders2(DWORD, LPVOID, LPDDENUMSURFACESCALLBACK7, DWORD);
 	STDMETHOD(Flip)(THIS_ LPDIRECTDRAWSURFACE7, DWORD, DWORD);
-	HRESULT GetAttachedSurface(LPDDSCAPS, LPDIRECTDRAWSURFACE7 FAR *, DWORD);
-	HRESULT GetAttachedSurface2(LPDDSCAPS2, LPDIRECTDRAWSURFACE7 FAR *, DWORD);
+	HRESULT GetAttachedSurface(LPDDSCAPS, LPDIRECTDRAWSURFACE7 FAR *, DWORD, DWORD);
+	HRESULT GetAttachedSurface2(LPDDSCAPS2, LPDIRECTDRAWSURFACE7 FAR *, DWORD, DWORD);
 	STDMETHOD(GetBltStatus)(THIS_ DWORD);
 	HRESULT m_IDirectDrawSurfaceX::GetCaps(LPDDSCAPS);
 	HRESULT m_IDirectDrawSurfaceX::GetCaps2(LPDDSCAPS2);
@@ -331,20 +345,20 @@ public:
 	STDMETHOD(GetOverlayPosition)(THIS_ LPLONG, LPLONG);
 	STDMETHOD(GetPalette)(THIS_ LPDIRECTDRAWPALETTE FAR*);
 	STDMETHOD(GetPixelFormat)(THIS_ LPDDPIXELFORMAT);
-	HRESULT GetSurfaceDesc(LPDDSURFACEDESC);
-	HRESULT GetSurfaceDesc2(LPDDSURFACEDESC2);
+	HRESULT GetSurfaceDesc(LPDDSURFACEDESC, DWORD);
+	HRESULT GetSurfaceDesc2(LPDDSURFACEDESC2, DWORD);
 	HRESULT Initialize(LPDIRECTDRAW, LPDDSURFACEDESC);
 	HRESULT Initialize2(LPDIRECTDRAW, LPDDSURFACEDESC2);
 	STDMETHOD(IsLost)(THIS);
-	HRESULT Lock(LPRECT, LPDDSURFACEDESC, DWORD, HANDLE, DWORD);
-	HRESULT Lock2(LPRECT, LPDDSURFACEDESC2, DWORD, HANDLE, DWORD);
+	HRESULT Lock(LPRECT, LPDDSURFACEDESC, DWORD, HANDLE, DWORD, DWORD);
+	HRESULT Lock2(LPRECT, LPDDSURFACEDESC2, DWORD, HANDLE, DWORD, DWORD);
 	STDMETHOD(ReleaseDC)(THIS_ HDC);
 	STDMETHOD(Restore)(THIS);
 	STDMETHOD(SetClipper)(THIS_ LPDIRECTDRAWCLIPPER);
 	STDMETHOD(SetColorKey)(THIS_ DWORD, LPDDCOLORKEY);
 	STDMETHOD(SetOverlayPosition)(THIS_ LONG, LONG);
 	STDMETHOD(SetPalette)(THIS_ LPDIRECTDRAWPALETTE);
-	STDMETHOD(Unlock)(THIS_ LPRECT);
+	STDMETHOD(Unlock)(THIS_ LPRECT, DWORD);
 	STDMETHOD(UpdateOverlay)(THIS_ LPRECT, LPDIRECTDRAWSURFACE7, LPRECT, DWORD, LPDDOVERLAYFX);
 	STDMETHOD(UpdateOverlayDisplay)(THIS_ DWORD);
 	STDMETHOD(UpdateOverlayZOrder)(THIS_ DWORD, LPDIRECTDRAWSURFACE7);
@@ -413,6 +427,7 @@ public:
 	inline bool IsEmulationDCReady() { return (IsUsingEmulation() && !surface.emu->UsingGameDC); }
 	inline bool IsSurface3DDevice() { return Is3DRenderingTarget; }
 	inline bool IsSurfaceDirty() { return surface.IsDirtyFlag; }
+	inline DWORD GetD39MipMapLevel(DWORD MipMapLevel) { return min(MipMapLevel, MaxMipMapLevel - 1); }
 	bool GetColorKeyForShader(float(&lowColorKey)[4], float(&highColorKey)[4]);
 	bool GetColorKeyForPrimaryShader(float(&lowColorKey)[4], float(&highColorKey)[4]);
 	inline bool GetSurfaceSetSize(DWORD& Width, DWORD& Height)
