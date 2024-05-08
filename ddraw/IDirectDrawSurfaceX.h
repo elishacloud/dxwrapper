@@ -150,6 +150,7 @@ private:
 	bool IsInBlt = false;
 	bool IsInBltBatch = false;
 	bool IsLocked = false;
+	bool WasBitAlignLocked = false;
 	DWORD LockedWithID = 0;								// Thread ID of the current lock
 	LASTLOCK LastLock;									// Remember the last lock info
 	std::vector<RECT> LockRectList;						// Rects used to lock the surface
@@ -430,6 +431,7 @@ public:
 	inline DWORD GetD39MipMapLevel(DWORD MipMapLevel) { return min(MipMapLevel, MaxMipMapLevel - 1); }
 	bool GetColorKeyForShader(float(&lowColorKey)[4], float(&highColorKey)[4]);
 	bool GetColorKeyForPrimaryShader(float(&lowColorKey)[4], float(&highColorKey)[4]);
+	bool GetWasBitAlignLocked() { return WasBitAlignLocked; }
 	inline bool GetSurfaceSetSize(DWORD& Width, DWORD& Height)
 	{
 		if ((surfaceDesc2.dwFlags & (DDSD_WIDTH | DDSD_HEIGHT)) == (DDSD_WIDTH | DDSD_HEIGHT) &&

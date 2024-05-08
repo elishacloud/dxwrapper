@@ -4194,6 +4194,14 @@ inline void m_IDirect3DDeviceX::SetDrawStates(DWORD dwVertexTypeDesc, DWORD& dwF
 		(*d3d9Device)->SetRenderState(D3DRS_ALPHABLENDENABLE, FALSE);
 		(*d3d9Device)->SetRenderState(D3DRS_FOGENABLE, FALSE);
 	}
+	else if (Config.Dd7to9 && Config.DdrawFixByteAlignment > 1 && CurrentTextureSurfaceX && CurrentTextureSurfaceX->GetWasBitAlignLocked())
+	{
+		(*d3d9Device)->GetSamplerState(0, D3DSAMP_MINFILTER, &DrawStates.ssMinFilter);
+		(*d3d9Device)->GetSamplerState(0, D3DSAMP_MAGFILTER, &DrawStates.ssMagFilter);
+
+		(*d3d9Device)->SetSamplerState(0, D3DSAMP_MINFILTER, Config.DdrawFixByteAlignment == 2 ? D3DTEXF_NONE : D3DTEXF_LINEAR);
+		(*d3d9Device)->SetSamplerState(0, D3DSAMP_MAGFILTER, Config.DdrawFixByteAlignment == 2 ? D3DTEXF_NONE : D3DTEXF_LINEAR);
+	}
 }
 
 inline void m_IDirect3DDeviceX::RestoreDrawStates(DWORD dwVertexTypeDesc, DWORD dwFlags, DWORD DirectXVersion)
@@ -4232,6 +4240,11 @@ inline void m_IDirect3DDeviceX::RestoreDrawStates(DWORD dwVertexTypeDesc, DWORD 
 
 		SetTexture(0, AttachedTexture[0]);
 		SetTexture(1, AttachedTexture[1]);
+	}
+	else if (Config.Dd7to9 && Config.DdrawFixByteAlignment > 1 && CurrentTextureSurfaceX && CurrentTextureSurfaceX->GetWasBitAlignLocked())
+	{
+		(*d3d9Device)->SetSamplerState(0, D3DSAMP_MINFILTER, DrawStates.ssMinFilter);
+		(*d3d9Device)->SetSamplerState(0, D3DSAMP_MAGFILTER, DrawStates.ssMagFilter);
 	}
 }
 

@@ -4753,6 +4753,9 @@ void m_IDirectDrawSurfaceX::LockEmuLock(LPRECT lpDestRect, LPDDSURFACEDESC2 lpDD
 				OutAddr += OutPitch;
 			}
 		}
+
+		// Mark as byte align locked
+		WasBitAlignLocked = LockByteAlign;
 	}
 }
 

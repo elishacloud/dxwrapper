@@ -37,6 +37,7 @@ private:
 		DWORD rsAlphaBlendEnable = 0;
 		DWORD rsAlphaTestEnable = 0;
 		DWORD rsFogEnable = 0;
+		DWORD ssMinFilter = 0;
 		DWORD ssMagFilter = 0;
 		float lowColorKey[4] = {};
 		float highColorKey[4] = {};
