@@ -534,6 +534,35 @@ inline void CountBits(DWORD value, DWORD& LeadingZeros, DWORD& TotalBits)
 	}
 }
 
+DWORD GetARGBColorKey(DWORD ColorKey, DDPIXELFORMAT& pixelFormat)
+{
+	if (!pixelFormat.dwRBitMask || !pixelFormat.dwGBitMask || !pixelFormat.dwBBitMask)
+	{
+		LOG_LIMIT(100, __FUNCTION__ << " Error: pixel format not Implemented: " << pixelFormat);
+		return 0;
+	}
+
+	DWORD dwRBitCount, dwGBitCount, dwBBitCount, rShift, gShift, bShift;
+
+	// Calculate bits for each color component
+	CountBits(pixelFormat.dwRBitMask, rShift, dwRBitCount);
+	CountBits(pixelFormat.dwGBitMask, gShift, dwGBitCount);
+	CountBits(pixelFormat.dwBBitMask, bShift, dwBBitCount);
+
+	// Calculate size of color space for bit depth
+	const float rColorRange = 255.0f / (pixelFormat.dwRBitMask >> rShift);
+	const float gColorRange = 255.0f / (pixelFormat.dwGBitMask >> gShift);
+	const float bColorRange = 255.0f / (pixelFormat.dwBBitMask >> bShift);
+
+	// Extract individual components according to pixel format for low color key
+	DWORD r = static_cast<DWORD>(((ColorKey & pixelFormat.dwRBitMask) >> rShift) * rColorRange);
+	DWORD g = static_cast<DWORD>(((ColorKey & pixelFormat.dwGBitMask) >> gShift) * gColorRange);
+	DWORD b = static_cast<DWORD>(((ColorKey & pixelFormat.dwBBitMask) >> bShift) * bColorRange);
+
+	// Return ARGB color key
+	return D3DCOLOR_ARGB(0xFF, r, g, b);
+}
+
 void GetColorKeyArray(float(&lowColorKey)[4], float(&highColorKey)[4], DWORD lowColorSpace, DWORD highColorSpace, DDPIXELFORMAT& pixelFormat)
 {
 	if (!pixelFormat.dwRBitMask || !pixelFormat.dwGBitMask || !pixelFormat.dwBBitMask)
@@ -555,9 +584,9 @@ void GetColorKeyArray(float(&lowColorKey)[4], float(&highColorKey)[4], DWORD low
 	const float bColorRange = 255.0f / (pixelFormat.dwBBitMask >> bShift);
 
 	// Allow some range for padding (half of a pixel's color range)
-	const float rPadding = (rColorRange / 255.0f) * 0.5f;
-	const float gPadding = (gColorRange / 255.0f) * 0.5f;
-	const float bPadding = (bColorRange / 255.0f) * 0.5f;
+	const float rPadding = (rColorRange / 255.0f) * 0.1f;
+	const float gPadding = (gColorRange / 255.0f) * 0.1f;
+	const float bPadding = (bColorRange / 255.0f) * 0.1f;
 
 	// Extract individual components according to pixel format for low color key
 	BYTE r = (BYTE)((lowColorSpace & pixelFormat.dwRBitMask) >> rShift);

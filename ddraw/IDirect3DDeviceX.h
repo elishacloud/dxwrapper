@@ -36,9 +36,11 @@ private:
 		DWORD tsColorOP = 0;
 		DWORD rsAlphaBlendEnable = 0;
 		DWORD rsAlphaTestEnable = 0;
+		DWORD rsAlphaFunc = 0;
+		DWORD rsAlphaRef = 0;
 		DWORD rsFogEnable = 0;
-		DWORD ssMinFilter = 0;
-		DWORD ssMagFilter = 0;
+		DWORD ssMinFilter[MaxTextureBlendStages] = {};
+		DWORD ssMagFilter[MaxTextureBlendStages] = {};
 		float lowColorKey[4] = {};
 		float highColorKey[4] = {};
 	} DrawStates;
@@ -65,10 +67,11 @@ private:
 	DWORD rsSrcBlend;
 	DWORD rsDestBlend;
 	DWORD rsColorKeyEnabled;
+	DWORD ssMipFilter[MaxTextureBlendStages] = {};
 
 	// SetTexture array
 	LPDIRECTDRAWSURFACE7 CurrentRenderTarget = nullptr;
-	m_IDirectDrawSurfaceX* CurrentTextureSurfaceX = nullptr;
+	m_IDirectDrawSurfaceX* CurrentTextureSurfaceX[MaxTextureBlendStages] = {};
 	LPDIRECTDRAWSURFACE7 AttachedTexture[MaxTextureBlendStages] = {};
 
 	// Texture handle map

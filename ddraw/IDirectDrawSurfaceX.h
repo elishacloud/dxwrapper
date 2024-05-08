@@ -86,6 +86,13 @@ private:
 		float highColorKey[4] = {};
 	};
 
+	struct TEXTURECREATE
+	{
+		DWORD Width = 0;
+		DWORD Height = 0;
+		D3DPOOL TexturePool = D3DPOOL_DEFAULT;
+	};
+
 	// Extra Direct3D9 devices used in the primary surface
 	struct D9PRIMARY
 	{
@@ -101,13 +108,15 @@ private:
 		bool IsSurfaceLost = false;
 		bool SurfaceHasData = false;
 		bool IsDirtyFlag = false;
+		bool IsDrawTextureDirty = false;
 		bool IsPaletteDirty = false;						// Used to detect if the palette surface needs to be updated
 		DWORD LastPaletteUSN = 0;							// The USN that was used last time the palette was updated
-		D3DPOOL TexturePool = D3DPOOL_DEFAULT;				// Memory pool used for textures
+		TEXTURECREATE Tex;									// Values used for creating textures
 		EMUSURFACE* emu = nullptr;							// Emulated surface using device context
 		LPPALETTEENTRY PaletteEntryArray = nullptr;			// Used to store palette data address
 		LPDIRECT3DSURFACE9 Surface = nullptr;				// Surface used for Direct3D
 		LPDIRECT3DTEXTURE9 Texture = nullptr;				// Main surface texture used for locks, Blts and Flips
+		LPDIRECT3DTEXTURE9 DrawTexture = nullptr;			// Main surface texture with SetTexture calls
 		LPDIRECT3DSURFACE9 Context = nullptr;				// Context of the main surface texture
 		LPDIRECT3DTEXTURE9 DisplayTexture = nullptr;		// Used to convert palette texture into a texture that can be displayed
 		LPDIRECT3DSURFACE9 DisplayContext = nullptr;		// Context for the palette display texture
@@ -272,6 +281,7 @@ private:
 	HRESULT SaveDXTDataToDDS(const void* data, size_t dataSize, const char* filename, int dxtVersion) const;
 	HRESULT SaveSurfaceToFile(const char* filename, D3DXIMAGE_FILEFORMAT format);
 	HRESULT CopySurface(m_IDirectDrawSurfaceX* pSourceSurface, RECT* pSourceRect, RECT* pDestRect, D3DTEXTUREFILTERTYPE Filter, D3DCOLOR ColorKey, DWORD dwFlags);
+	HRESULT CopyToDrawTexture(LPRECT lpDestRect);
 	HRESULT CopyFromEmulatedSurface(LPRECT lpDestRect);
 	HRESULT CopyToEmulatedSurface(LPRECT lpDestRect);
 	HRESULT CopyEmulatedPaletteSurface(LPRECT lpDestRect);
@@ -421,6 +431,7 @@ public:
 	inline bool isFlipSurface() { return ((surfaceDesc2.ddsCaps.dwCaps & (DDSCAPS_FLIP | DDSCAPS_FRONTBUFFER)) == (DDSCAPS_FLIP | DDSCAPS_FRONTBUFFER)); }
 	inline bool IsSurface3D() { return (surfaceDesc2.ddsCaps.dwCaps & DDSCAPS_3DDEVICE) != 0; }
 	inline bool IsTexture() { return (surfaceDesc2.ddsCaps.dwCaps & DDSCAPS_TEXTURE) != 0; }
+	inline bool IsColorKeyTexture() { return (IsTexture() && (surfaceDesc2.dwFlags & DDSD_CKSRCBLT)); }
 	inline bool IsPalette() { return (surfaceFormat == D3DFMT_P8); }
 	inline bool IsDepthBuffer() { return (surfaceDesc2.ddpfPixelFormat.dwFlags & (DDPF_ZBUFFER | DDPF_STENCILBUFFER)) != 0; }
 	inline bool IsSurfaceManaged() { return (surfaceDesc2.ddsCaps.dwCaps2 & (DDSCAPS2_TEXTUREMANAGE | DDSCAPS2_D3DTEXTUREMANAGE)) != 0; }
@@ -446,6 +457,7 @@ public:
 	}
 	inline void AttachD9BackBuffer() { Is3DRenderingTarget = true; }
 	inline void DetachD9BackBuffer() { Is3DRenderingTarget = false; }
+	LPDIRECT3DTEXTURE9 GetD3DrawTexture();
 	LPDIRECT3DSURFACE9 Get3DSurface();
 	LPDIRECT3DTEXTURE9 Get3DTexture();
 	LPDIRECT3DTEXTURE9 Get3DPaletteTexture() { return primary.PaletteTexture; }

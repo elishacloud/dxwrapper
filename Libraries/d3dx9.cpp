@@ -107,7 +107,7 @@ HRESULT WINAPI D3DXCreateTexture(LPDIRECT3DDEVICE9 pDevice, UINT Width, UINT Hei
 
 	if (FAILED(hr))
 	{
-		Logging::Log() << __FUNCTION__ << " Warning: Failed to Create texture!";
+		Logging::Log() << __FUNCTION__ << " Error: Failed to Create texture!";
 	}
 
 	return hr;
@@ -129,7 +129,7 @@ HRESULT WINAPI D3DXLoadSurfaceFromMemory(LPDIRECT3DSURFACE9 pDestSurface, const 
 
 	if (FAILED(hr))
 	{
-		Logging::Log() << __FUNCTION__ << " Warning: Failed to Copy surface from memory!";
+		Logging::Log() << __FUNCTION__ << " Error: Failed to Copy surface from memory!";
 		return hr;
 	}
 
@@ -159,7 +159,7 @@ HRESULT WINAPI D3DXLoadSurfaceFromSurface(LPDIRECT3DSURFACE9 pDestSurface, const
 
 	if (FAILED(hr))
 	{
-		Logging::Log() << __FUNCTION__ << " Warning: Failed to Copy surface!";
+		Logging::Log() << __FUNCTION__ << " Error: Failed to Copy surface!";
 		return hr;
 	}
 
@@ -189,7 +189,7 @@ HRESULT WINAPI D3DXSaveSurfaceToFileInMemory(LPD3DXBUFFER* ppDestBuf, D3DXIMAGE_
 
 	if (FAILED(hr))
 	{
-		Logging::Log() << __FUNCTION__ << " Warning: Failed to Save surface!";
+		Logging::Log() << __FUNCTION__ << " Error: Failed to Save surface!";
 	}
 
 	return hr;
@@ -211,7 +211,7 @@ HRESULT WINAPI D3DXSaveTextureToFileInMemory(LPD3DXBUFFER* ppDestBuf, D3DXIMAGE_
 
 	if (FAILED(hr))
 	{
-		Logging::Log() << __FUNCTION__ << " Warning: Failed to Save texture!";
+		Logging::Log() << __FUNCTION__ << " Error: Failed to Save texture!";
 	}
 
 	return hr;
@@ -300,11 +300,11 @@ HRESULT WINAPI D3DAssemble(const void* pSrcData, SIZE_T SrcDataSize, const char*
 	{
 		if (ppErrorMsgs && *ppErrorMsgs)
 		{
-			Logging::Log() << __FUNCTION__ << " Warning: Failed to Assemble shader! " << static_cast<const char*>((*ppErrorMsgs)->GetBufferPointer());
+			Logging::Log() << __FUNCTION__ << " Error: Failed to Assemble shader! " << static_cast<const char*>((*ppErrorMsgs)->GetBufferPointer());
 		}
 		else
 		{
-			Logging::Log() << __FUNCTION__ << " Warning: Failed to Assemble shader!";
+			Logging::Log() << __FUNCTION__ << " Error: Failed to Assemble shader!";
 		}
 	}
 
@@ -329,11 +329,11 @@ HRESULT WINAPI D3DCompile(LPCVOID pSrcData, SIZE_T SrcDataSize, LPCSTR pSourceNa
 	{
 		if (ppErrorMsgs && *ppErrorMsgs)
 		{
-			Logging::Log() << __FUNCTION__ << " Warning: Failed to Compile shader! " << static_cast<const char*>((*ppErrorMsgs)->GetBufferPointer());
+			Logging::Log() << __FUNCTION__ << " Error: Failed to Compile shader! " << static_cast<const char*>((*ppErrorMsgs)->GetBufferPointer());
 		}
 		else
 		{
-			Logging::Log() << __FUNCTION__ << " Warning: Failed to Compile shader!";
+			Logging::Log() << __FUNCTION__ << " Error: Failed to Compile shader!";
 		}
 	}
 
@@ -356,7 +356,7 @@ HRESULT WINAPI D3DDisassemble(LPCVOID pSrcData, SIZE_T SrcDataSize, UINT Flags, 
 
 	if (FAILED(hr))
 	{
-		Logging::Log() << __FUNCTION__ << " Warning: Failed to Disassemble shader!";
+		Logging::Log() << __FUNCTION__ << " Error: Failed to Disassemble shader!";
 	}
 
 	return hr;
@@ -378,7 +378,7 @@ HRESULT WINAPI D3DXFillTexture(LPVOID pTexture, LPD3DXFILL3D pFunction, LPVOID p
 
 	if (FAILED(hr))
 	{
-		Logging::Log() << __FUNCTION__ << " Warning: Failed to fill texture!";
+		Logging::Log() << __FUNCTION__ << " Error: Failed to fill texture!";
 	}
 
 	return hr;
