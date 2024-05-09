@@ -72,6 +72,11 @@ private:
 		DWORD Width = 0;
 	};
 
+	struct DDBACKUP
+	{
+		std::vector<byte> Bits;
+	};
+
 	// Store a list of attached surfaces
 	struct ATTACHEDMAP
 	{
@@ -165,7 +170,7 @@ private:
 	std::vector<RECT> LockRectList;						// Rects used to lock the surface
 	DDRAWEMULATELOCK EmuLock;							// For aligning bits after a lock for games that hard code the pitch
 	std::vector<byte> ByteArray;						// Memory used for coping from one surface to the same surface
-	std::vector<byte> Backup;							// Memory used for backing up the surfaceTexture
+	std::vector<DDBACKUP> LostDeviceBackup;				// Memory used for backing up the surfaceTexture
 	COLORKEY ShaderColorKey;							// Used to store color key array for shader
 	SURFACECREATE ShouldEmulate = SC_NOT_CREATED;		// Used to help determine if surface should be emulated
 
@@ -335,9 +340,9 @@ public:
 	/*** IDirectDrawSurface methods ***/
 	STDMETHOD(AddAttachedSurface)(THIS_ LPDIRECTDRAWSURFACE7);
 	STDMETHOD(AddOverlayDirtyRect)(THIS_ LPRECT);
-	HRESULT Blt(LPRECT, LPDIRECTDRAWSURFACE7, LPRECT, DWORD, LPDDBLTFX, bool DontPresentBlt = false);
-	STDMETHOD(BltBatch)(THIS_ LPDDBLTBATCH, DWORD, DWORD);
-	STDMETHOD(BltFast)(THIS_ DWORD, DWORD, LPDIRECTDRAWSURFACE7, LPRECT, DWORD);
+	HRESULT Blt(LPRECT, LPDIRECTDRAWSURFACE7, LPRECT, DWORD, LPDDBLTFX, DWORD, bool DontPresentBlt = false);
+	STDMETHOD(BltBatch)(THIS_ LPDDBLTBATCH, DWORD, DWORD, DWORD);
+	STDMETHOD(BltFast)(THIS_ DWORD, DWORD, LPDIRECTDRAWSURFACE7, LPRECT, DWORD, DWORD);
 	STDMETHOD(DeleteAttachedSurface)(THIS_ DWORD, LPDIRECTDRAWSURFACE7);
 	HRESULT EnumAttachedSurfaces(LPVOID, LPDDENUMSURFACESCALLBACK, DWORD);
 	HRESULT EnumAttachedSurfaces2(LPVOID, LPDDENUMSURFACESCALLBACK7, DWORD);

@@ -426,7 +426,7 @@ HRESULT m_IDirectDrawSurfaceX::AddOverlayDirtyRect(LPRECT lpRect)
 	return ProxyInterface->AddOverlayDirtyRect(lpRect);
 }
 
-HRESULT m_IDirectDrawSurfaceX::Blt(LPRECT lpDestRect, LPDIRECTDRAWSURFACE7 lpDDSrcSurface, LPRECT lpSrcRect, DWORD dwFlags, LPDDBLTFX lpDDBltFx, bool DontPresentBlt)
+HRESULT m_IDirectDrawSurfaceX::Blt(LPRECT lpDestRect, LPDIRECTDRAWSURFACE7 lpDDSrcSurface, LPRECT lpSrcRect, DWORD dwFlags, LPDDBLTFX lpDDBltFx, DWORD MipMapLevel, bool DontPresentBlt)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
@@ -485,6 +485,13 @@ HRESULT m_IDirectDrawSurfaceX::Blt(LPRECT lpDestRect, LPDIRECTDRAWSURFACE7 lpDDS
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Error: Raster operation Not Implemented " << Logging::hex(lpDDBltFx->dwROP));
 			return DDERR_NORASTEROPHW;
+		}
+
+		// MipMap level support
+		if (MipMapLevel)
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: Blt from MipMap level Not Implemented " << MipMapLevel);
+			return DDERR_GENERIC;
 		}
 
 		// Typically, Blt returns immediately with an error if the bitbltter is busy and the bitblt could not be set up. Specify the DDBLT_WAIT flag to request a synchronous bitblt.
@@ -749,7 +756,7 @@ HRESULT m_IDirectDrawSurfaceX::Blt(LPRECT lpDestRect, LPDIRECTDRAWSURFACE7 lpDDS
 	return hr;
 }
 
-HRESULT m_IDirectDrawSurfaceX::BltBatch(LPDDBLTBATCH lpDDBltBatch, DWORD dwCount, DWORD dwFlags)
+HRESULT m_IDirectDrawSurfaceX::BltBatch(LPDDBLTBATCH lpDDBltBatch, DWORD dwCount, DWORD dwFlags, DWORD MipMapLevel)
 {
 	UNREFERENCED_PARAMETER(dwFlags);
 
@@ -775,7 +782,7 @@ HRESULT m_IDirectDrawSurfaceX::BltBatch(LPDDBLTBATCH lpDDBltBatch, DWORD dwCount
 	{
 		IsSkipScene |= (lpDDBltBatch[x].lprDest) ? CheckRectforSkipScene(*lpDDBltBatch[x].lprDest) : false;
 
-		hr = Blt(lpDDBltBatch[x].lprDest, (LPDIRECTDRAWSURFACE7)lpDDBltBatch[x].lpDDSSrc, lpDDBltBatch[x].lprSrc, lpDDBltBatch[x].dwFlags, lpDDBltBatch[x].lpDDBltFx, true);
+		hr = Blt(lpDDBltBatch[x].lprDest, (LPDIRECTDRAWSURFACE7)lpDDBltBatch[x].lpDDSSrc, lpDDBltBatch[x].lprSrc, lpDDBltBatch[x].dwFlags, lpDDBltBatch[x].lpDDBltFx, MipMapLevel, true);
 		if (FAILED(hr))
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Warning: BltBatch failed before the end! " << x << " of " << dwCount << " " << (DDERR)hr);
@@ -800,7 +807,7 @@ HRESULT m_IDirectDrawSurfaceX::BltBatch(LPDDBLTBATCH lpDDBltBatch, DWORD dwCount
 	return hr;
 }
 
-HRESULT m_IDirectDrawSurfaceX::BltFast(DWORD dwX, DWORD dwY, LPDIRECTDRAWSURFACE7 lpDDSrcSurface, LPRECT lpSrcRect, DWORD dwFlags)
+HRESULT m_IDirectDrawSurfaceX::BltFast(DWORD dwX, DWORD dwY, LPDIRECTDRAWSURFACE7 lpDDSrcSurface, LPRECT lpSrcRect, DWORD dwFlags, DWORD MipMapLevel)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
@@ -866,7 +873,7 @@ HRESULT m_IDirectDrawSurfaceX::BltFast(DWORD dwX, DWORD dwY, LPDIRECTDRAWSURFACE
 		}
 
 		// Call Blt
-		return Blt(pDestRect, lpDDSrcSurface, lpSrcRect, Flags, nullptr);
+		return Blt(pDestRect, lpDDSrcSurface, lpSrcRect, Flags, nullptr, MipMapLevel);
 	}
 
 	if (lpDDSrcSurface)
@@ -4010,38 +4017,49 @@ HRESULT m_IDirectDrawSurfaceX::CreateD3d9Surface()
 			CopyFromEmulatedSurface(nullptr);
 			RestoreData = true;
 		}
-		else if (!Backup.empty())
+		else if (!LostDeviceBackup.empty())
 		{
-			if (Backup.size() == GetSurfaceSize(surfaceFormat, surfaceDesc2.dwWidth, surfaceDesc2.dwHeight, surfaceDesc2.lPitch))
+			if (LostDeviceBackup[0].Bits.size() == GetSurfaceSize(surfaceFormat, surfaceDesc2.dwWidth, surfaceDesc2.dwHeight, surfaceDesc2.lPitch))
 			{
-				IDirect3DSurface9* pDestSurfaceD9 = GetD3D9Surface();
-				if (pDestSurfaceD9)
+				for (UINT Level = 0; Level < LostDeviceBackup.size(); Level++)
 				{
-					// Get pitch
-					LONG Pitch = (Format == D3DFMT_DXT1 || Format == D3DFMT_YV12) ? surfaceDesc2.dwWidth * 2 :
-						(ISDXTEX(Format)) ? surfaceDesc2.dwWidth * 4 :
-						surfaceDesc2.lPitch;
-
-					// Copy backup data to surface
-					RECT Rect = { 0, 0, (LONG)surfaceDesc2.dwWidth, (LONG)surfaceDesc2.dwHeight };
-					if (SUCCEEDED(D3DXLoadSurfaceFromMemory(pDestSurfaceD9, nullptr, &Rect, Backup.data(), (surfaceFormat == D3DFMT_P8) ? D3DFMT_L8 : surfaceFormat, Pitch, nullptr, &Rect, D3DX_FILTER_NONE, 0)))
-					{
-						// Copy surface to emulated surface
-						if (IsUsingEmulation())
-						{
-							CopyToEmulatedSurface(&Rect);
-						}
-						RestoreData = true;
-					}
-					else
+					D3DLOCKED_RECT LockRect = {};
+					if (FAILED(LockD39Surface(&LockRect, nullptr, 0, Level)))
 					{
 						LOG_LIMIT(100, __FUNCTION__ << " Error: failed to restore surface data!");
+						break;
 					}
+
+					Logging::LogDebug() << __FUNCTION__ << " Restoring Direct3D9 texture surface data: " << surfaceFormat;
+
+					D3DSURFACE_DESC Desc = {};
+					if (FAILED(surface.Texture ? surface.Texture->GetLevelDesc(GetD39MipMapLevel(Level), &Desc) : surface.Surface->GetDesc(&Desc)))
+					{
+						LOG_LIMIT(100, __FUNCTION__ << " Error: failed to get surface desc!");
+						break;
+					}
+
+					size_t size = GetSurfaceSize(surfaceFormat, Desc.Width, Desc.Height, LockRect.Pitch);
+
+					if (size == LostDeviceBackup[Level].Bits.size())
+					{
+						memcpy(LockRect.pBits, LostDeviceBackup[Level].Bits.data(), size);
+					}
+
+					UnlockD39Surface(Level);
+
+					// Copy surface to emulated surface
+					if (IsUsingEmulation() && Level == 0)
+					{
+						CopyToEmulatedSurface(nullptr);
+					}
+
+					RestoreData = true;
 				}
 			}
 			else
 			{
-				LOG_LIMIT(100, __FUNCTION__ << " Warning: restore backup surface data size mismatch! Size: " << Backup.size() <<
+				LOG_LIMIT(100, __FUNCTION__ << " Warning: restore backup surface data size mismatch! Size: " << LostDeviceBackup[0].Bits.size() <<
 					" Surface pitch: " << surfaceDesc2.lPitch << " " << surfaceDesc2.dwWidth << "x" << surfaceDesc2.dwHeight);
 			}
 		}
@@ -4062,7 +4080,7 @@ HRESULT m_IDirectDrawSurfaceX::CreateD3d9Surface()
 		}
 
 		// Data is no longer needed
-		Backup.clear();
+		LostDeviceBackup.clear();
 	}
 
 	ReleaseLockCriticalSection();
@@ -4471,25 +4489,38 @@ void m_IDirectDrawSurfaceX::ReleaseD9Surface(bool BackupData, bool DeviceLost)
 			}
 			if (!IsUsingEmulation() && (surface.Texture || surface.Surface))
 			{
-				D3DLOCKED_RECT LockRect = {};
-				if (SUCCEEDED(LockD39Surface(&LockRect, nullptr, D3DLOCK_READONLY, 0)))
+				LostDeviceBackup.clear();
+
+				for (UINT Level = 0; Level < MaxMipMapLevel; Level++)
 				{
+					D3DLOCKED_RECT LockRect = {};
+					if (FAILED(LockD39Surface(&LockRect, nullptr, D3DLOCK_READONLY, Level)))
+					{
+						LOG_LIMIT(100, __FUNCTION__ << " Error: failed to backup surface data!");
+						break;
+					}
+
 					Logging::LogDebug() << __FUNCTION__ << " Storing Direct3D9 texture surface data: " << surfaceFormat;
 
-					size_t size = GetSurfaceSize(surfaceFormat, surfaceDesc2.dwWidth, surfaceDesc2.dwHeight, LockRect.Pitch);
+					D3DSURFACE_DESC Desc = {};
+					if (FAILED(surface.Texture ? surface.Texture->GetLevelDesc(GetD39MipMapLevel(Level), &Desc) : surface.Surface->GetDesc(&Desc)))
+					{
+						LOG_LIMIT(100, __FUNCTION__ << " Error: failed to get surface desc!");
+						break;
+					}
+
+					size_t size = GetSurfaceSize(surfaceFormat, Desc.Width, Desc.Height, LockRect.Pitch);
 
 					if (size)
 					{
-						Backup.resize(size);
+						DDBACKUP entry;
+						LostDeviceBackup.push_back(entry);
+						LostDeviceBackup[Level].Bits.resize(size);
 
-						memcpy(Backup.data(), LockRect.pBits, size);
+						memcpy(LostDeviceBackup[Level].Bits.data(), LockRect.pBits, size);
 					}
 
-					UnlockD39Surface(0);
-				}
-				else
-				{
-					LOG_LIMIT(100, __FUNCTION__ << " Error: failed to backup surface data!");
+					UnlockD39Surface(Level);
 				}
 			}
 		}

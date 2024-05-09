@@ -43,17 +43,17 @@ HRESULT m_IDirectDrawSurface4::AddOverlayDirtyRect(LPRECT a)
 
 HRESULT m_IDirectDrawSurface4::Blt(LPRECT a, LPDIRECTDRAWSURFACE4 b, LPRECT c, DWORD d, LPDDBLTFX e)
 {
-	return ProxyInterface->Blt(a, (LPDIRECTDRAWSURFACE7)b, c, d, e);
+	return ProxyInterface->Blt(a, (LPDIRECTDRAWSURFACE7)b, c, d, e, MipMapLevel);
 }
 
 HRESULT m_IDirectDrawSurface4::BltBatch(LPDDBLTBATCH a, DWORD b, DWORD c)
 {
-	return ProxyInterface->BltBatch(a, b, c);
+	return ProxyInterface->BltBatch(a, b, c, MipMapLevel);
 }
 
 HRESULT m_IDirectDrawSurface4::BltFast(DWORD a, DWORD b, LPDIRECTDRAWSURFACE4 c, LPRECT d, DWORD e)
 {
-	return ProxyInterface->BltFast(a, b, (LPDIRECTDRAWSURFACE7)c, d, e);
+	return ProxyInterface->BltFast(a, b, (LPDIRECTDRAWSURFACE7)c, d, e, MipMapLevel);
 }
 
 HRESULT m_IDirectDrawSurface4::DeleteAttachedSurface(DWORD a, LPDIRECTDRAWSURFACE4 b)
