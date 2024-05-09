@@ -4183,12 +4183,12 @@ inline void m_IDirect3DDeviceX::SetDrawStates(DWORD dwVertexTypeDesc, DWORD& dwF
 			// Check for color key texture
 			for (UINT x = 0; x < MaxTextureBlendStages; x++)
 			{
-				if (CurrentTextureSurfaceX[x] && CurrentTextureSurfaceX[x]->IsColorKeyTexture() && CurrentTextureSurfaceX[x]->GetD3DrawTexture())
+				if (CurrentTextureSurfaceX[x] && CurrentTextureSurfaceX[x]->IsColorKeyTexture() && CurrentTextureSurfaceX[x]->Get3DDrawTexture())
 				{
 					(*d3d9Device)->SetRenderState(D3DRS_ALPHATESTENABLE, TRUE);
 					(*d3d9Device)->SetRenderState(D3DRS_ALPHAFUNC, D3DCMP_GREATER);
 					(*d3d9Device)->SetRenderState(D3DRS_ALPHAREF, (DWORD)0x01);
-					(*d3d9Device)->SetTexture(x, CurrentTextureSurfaceX[x]->GetD3DrawTexture());
+					(*d3d9Device)->SetTexture(x, CurrentTextureSurfaceX[x]->Get3DDrawTexture());
 				}
 			}
 		}

@@ -3668,7 +3668,7 @@ void m_IDirectDrawSurfaceX::ReleaseSurface()
 	DeleteCriticalSection(&ddlcs);
 }
 
-LPDIRECT3DTEXTURE9 m_IDirectDrawSurfaceX::GetD3DrawTexture()
+LPDIRECT3DTEXTURE9 m_IDirectDrawSurfaceX::Get3DDrawTexture()
 {
 	// Check if texture already exists
 	if (surface.DrawTexture)

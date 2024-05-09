@@ -457,7 +457,7 @@ public:
 	}
 	inline void AttachD9BackBuffer() { Is3DRenderingTarget = true; }
 	inline void DetachD9BackBuffer() { Is3DRenderingTarget = false; }
-	LPDIRECT3DTEXTURE9 GetD3DrawTexture();
+	LPDIRECT3DTEXTURE9 Get3DDrawTexture();
 	LPDIRECT3DSURFACE9 Get3DSurface();
 	LPDIRECT3DTEXTURE9 Get3DTexture();
 	LPDIRECT3DTEXTURE9 Get3DPaletteTexture() { return primary.PaletteTexture; }
