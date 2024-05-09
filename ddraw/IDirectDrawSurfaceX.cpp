@@ -4814,18 +4814,12 @@ void m_IDirectDrawSurfaceX::LockEmuLock(LPRECT lpDestRect, LPDDSURFACEDESC2 lpDD
 		DWORD InPitch = EmuLock.Pitch;
 		BYTE* OutAddr = EmuLock.Mem.data();
 		DWORD OutPitch = EmuLock.NewPitch;
-		if (InPitch == OutPitch)
+		size_t MemWidth = (EmuLock.BBP / 8) * EmuLock.Width;
+		for (DWORD x = 0; x < EmuLock.Height; x++)
 		{
-			memcpy(OutAddr, InAddr, OutPitch * EmuLock.Height);
-		}
-		else
-		{
-			for (DWORD x = 0; x < EmuLock.Height; x++)
-			{
-				memcpy(OutAddr, InAddr, OutPitch);
-				InAddr += InPitch;
-				OutAddr += OutPitch;
-			}
+			memcpy(OutAddr, InAddr, MemWidth);
+			InAddr += InPitch;
+			OutAddr += OutPitch;
 		}
 
 		// Mark as byte align locked
@@ -4843,18 +4837,12 @@ void m_IDirectDrawSurfaceX::UnlockEmuLock()
 		DWORD InPitch = EmuLock.NewPitch;
 		BYTE* OutAddr = (BYTE*)EmuLock.Addr;
 		DWORD OutPitch = EmuLock.Pitch;
-		if (InPitch == OutPitch)
+		size_t MemWidth = (EmuLock.BBP / 8) * EmuLock.Width;
+		for (DWORD x = 0; x < EmuLock.Height; x++)
 		{
-			memcpy(OutAddr, InAddr, OutPitch * EmuLock.Height);
-		}
-		else
-		{
-			for (DWORD x = 0; x < EmuLock.Height; x++)
-			{
-				memcpy(OutAddr, InAddr, OutPitch);
-				InAddr += InPitch;
-				OutAddr += OutPitch;
-			}
+			memcpy(OutAddr, InAddr, MemWidth);
+			InAddr += InPitch;
+			OutAddr += OutPitch;
 		}
 
 		EmuLock.Locked = false;
