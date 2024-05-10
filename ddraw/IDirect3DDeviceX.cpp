@@ -3203,7 +3203,7 @@ HRESULT m_IDirect3DDeviceX::DrawPrimitive(D3DPRIMITIVETYPE dptPrimitiveType, DWO
 			return DDERR_GENERIC;
 		}
 
-		dwFlags = (dwFlags & D3DDP_FORCE_DWORD) | D3DDP_DXW_CHECKDRAWTEXTURE;
+		dwFlags = (dwFlags & D3DDP_FORCE_DWORD);
 
 		// Update vertices for Direct3D9 (needs to be first)
 		UpdateVertices(dwVertexTypeDesc, lpVertices, dwVertexCount);
@@ -3323,7 +3323,7 @@ HRESULT m_IDirect3DDeviceX::DrawPrimitiveVB(D3DPRIMITIVETYPE dptPrimitiveType, L
 			return DDERR_GENERIC;
 		}
 
-		dwFlags = (dwFlags & D3DDP_FORCE_DWORD) | D3DDP_DXW_CHECKDRAWTEXTURE;
+		dwFlags = (dwFlags & D3DDP_FORCE_DWORD);
 
 		// ToDo: Validate vertex buffer
 		m_IDirect3DVertexBufferX* pVertexBufferX = nullptr;
@@ -3437,7 +3437,7 @@ HRESULT m_IDirect3DDeviceX::DrawIndexedPrimitive(D3DPRIMITIVETYPE dptPrimitiveTy
 			return DDERR_GENERIC;
 		}
 
-		dwFlags = (dwFlags & D3DDP_FORCE_DWORD) | D3DDP_DXW_CHECKDRAWTEXTURE;
+		dwFlags = (dwFlags & D3DDP_FORCE_DWORD);
 
 		// Update vertices for Direct3D9 (needs to be first)
 		UpdateVertices(dwVertexTypeDesc, lpVertices, dwVertexCount);
@@ -3557,7 +3557,7 @@ HRESULT m_IDirect3DDeviceX::DrawIndexedPrimitiveVB(D3DPRIMITIVETYPE dptPrimitive
 			return DDERR_GENERIC;
 		}
 
-		dwFlags = (dwFlags & D3DDP_FORCE_DWORD) | D3DDP_DXW_CHECKDRAWTEXTURE;
+		dwFlags = (dwFlags & D3DDP_FORCE_DWORD);
 
 		// ToDo: Validate vertex buffer
 		m_IDirect3DVertexBufferX* pVertexBufferX = nullptr;
@@ -4172,8 +4172,39 @@ inline void m_IDirect3DDeviceX::SetDrawStates(DWORD dwVertexTypeDesc, DWORD& dwF
 			SetRenderState(D3DRENDERSTATE_EXTENTS, FALSE);
 		}
 	}
-	if (dwFlags & D3DDP_DXW_CHECKDRAWTEXTURE)
+	if (dwFlags & D3DDP_DXW_DRAW2DSURFACE)
 	{
+		// Set by DirectDrawSurface
+		(*d3d9Device)->GetRenderState(D3DRS_LIGHTING, &DrawStates.rsLighting);
+		(*d3d9Device)->GetSamplerState(0, D3DSAMP_MAGFILTER, &DrawStates.ssMagFilter[0]);
+
+		// Other states
+		(*d3d9Device)->GetTextureStageState(0, D3DTSS_COLOROP, &DrawStates.tsColorOP);
+		(*d3d9Device)->GetRenderState(D3DRS_ALPHATESTENABLE, &DrawStates.rsAlphaTestEnable);
+		(*d3d9Device)->GetRenderState(D3DRS_ALPHABLENDENABLE, &DrawStates.rsAlphaBlendEnable);
+		(*d3d9Device)->GetRenderState(D3DRS_FOGENABLE, &DrawStates.rsFogEnable);
+
+		(*d3d9Device)->SetTextureStageState(0, D3DTSS_COLOROP, D3DTOP_MODULATE);
+		(*d3d9Device)->SetRenderState(D3DRS_ALPHATESTENABLE, FALSE);
+		(*d3d9Device)->SetRenderState(D3DRS_ALPHABLENDENABLE, FALSE);
+		(*d3d9Device)->SetRenderState(D3DRS_FOGENABLE, FALSE);
+	}
+	else if (Config.Dd7to9)
+	{
+		if (Config.DdrawFixByteAlignment > 1)
+		{
+			for (UINT x = 0; x < MaxTextureBlendStages; x++)
+			{
+				if (CurrentTextureSurfaceX[x] && CurrentTextureSurfaceX[x]->GetWasBitAlignLocked())
+				{
+					(*d3d9Device)->GetSamplerState(x, D3DSAMP_MINFILTER, &DrawStates.ssMinFilter[x]);
+					(*d3d9Device)->GetSamplerState(x, D3DSAMP_MAGFILTER, &DrawStates.ssMagFilter[x]);
+
+					(*d3d9Device)->SetSamplerState(x, D3DSAMP_MINFILTER, Config.DdrawFixByteAlignment == 2 ? D3DTEXF_NONE : D3DTEXF_LINEAR);
+					(*d3d9Device)->SetSamplerState(x, D3DSAMP_MAGFILTER, Config.DdrawFixByteAlignment == 2 ? D3DTEXF_NONE : D3DTEXF_LINEAR);
+				}
+			}
+		}
 		if (rsColorKeyEnabled)
 		{
 			(*d3d9Device)->GetRenderState(D3DRS_ALPHATESTENABLE, &DrawStates.rsAlphaTestEnable);
@@ -4206,37 +4237,6 @@ inline void m_IDirect3DDeviceX::SetDrawStates(DWORD dwVertexTypeDesc, DWORD& dwF
 			(*d3d9Device)->SetPixelShaderConstantF(1, DrawStates.highColorKey, 1);
 		}
 	}
-	if (dwFlags & D3DDP_DXW_DRAW2DSURFACE)
-	{
-		// Set by DirectDrawSurface
-		(*d3d9Device)->GetRenderState(D3DRS_LIGHTING, &DrawStates.rsLighting);
-		(*d3d9Device)->GetSamplerState(0, D3DSAMP_MAGFILTER, &DrawStates.ssMagFilter[0]);
-
-		// Other states
-		(*d3d9Device)->GetTextureStageState(0, D3DTSS_COLOROP, &DrawStates.tsColorOP);
-		(*d3d9Device)->GetRenderState(D3DRS_ALPHATESTENABLE, &DrawStates.rsAlphaTestEnable);
-		(*d3d9Device)->GetRenderState(D3DRS_ALPHABLENDENABLE, &DrawStates.rsAlphaBlendEnable);
-		(*d3d9Device)->GetRenderState(D3DRS_FOGENABLE, &DrawStates.rsFogEnable);
-
-		(*d3d9Device)->SetTextureStageState(0, D3DTSS_COLOROP, D3DTOP_MODULATE);
-		(*d3d9Device)->SetRenderState(D3DRS_ALPHATESTENABLE, FALSE);
-		(*d3d9Device)->SetRenderState(D3DRS_ALPHABLENDENABLE, FALSE);
-		(*d3d9Device)->SetRenderState(D3DRS_FOGENABLE, FALSE);
-	}
-	else if (Config.Dd7to9 && Config.DdrawFixByteAlignment > 1)
-	{
-		for (UINT x = 0; x < MaxTextureBlendStages; x++)
-		{
-			if (CurrentTextureSurfaceX[x] && CurrentTextureSurfaceX[x]->GetWasBitAlignLocked())
-			{
-				(*d3d9Device)->GetSamplerState(x, D3DSAMP_MINFILTER, &DrawStates.ssMinFilter[x]);
-				(*d3d9Device)->GetSamplerState(x, D3DSAMP_MAGFILTER, &DrawStates.ssMagFilter[x]);
-
-				(*d3d9Device)->SetSamplerState(x, D3DSAMP_MINFILTER, Config.DdrawFixByteAlignment == 2 ? D3DTEXF_NONE : D3DTEXF_LINEAR);
-				(*d3d9Device)->SetSamplerState(x, D3DSAMP_MAGFILTER, Config.DdrawFixByteAlignment == 2 ? D3DTEXF_NONE : D3DTEXF_LINEAR);
-			}
-		}
-	}
 }
 
 inline void m_IDirect3DDeviceX::RestoreDrawStates(DWORD dwVertexTypeDesc, DWORD dwFlags, DWORD DirectXVersion)
@@ -4257,19 +4257,6 @@ inline void m_IDirect3DDeviceX::RestoreDrawStates(DWORD dwVertexTypeDesc, DWORD 
 			SetRenderState(D3DRENDERSTATE_EXTENTS, DrawStates.rsExtents);
 		}
 	}
-	if (dwFlags & D3DDP_DXW_CHECKDRAWTEXTURE)
-	{
-		if (rsColorKeyEnabled)
-		{
-			(*d3d9Device)->SetRenderState(D3DRS_ALPHATESTENABLE, DrawStates.rsAlphaTestEnable);
-			(*d3d9Device)->SetRenderState(D3DRS_ALPHAFUNC, DrawStates.rsAlphaFunc);
-			(*d3d9Device)->SetRenderState(D3DRS_ALPHAREF, DrawStates.rsAlphaRef);
-		}
-	}
-	if (dwFlags & D3DDP_DXW_COLORKEYENABLE)
-	{
-		(*d3d9Device)->SetPixelShader(nullptr);
-	}
 	if (dwFlags & D3DDP_DXW_DRAW2DSURFACE)
 	{
 		// Other states
@@ -4285,16 +4272,29 @@ inline void m_IDirect3DDeviceX::RestoreDrawStates(DWORD dwVertexTypeDesc, DWORD 
 		SetTexture(0, AttachedTexture[0]);
 		SetTexture(1, AttachedTexture[1]);
 	}
-	else if (Config.Dd7to9 && Config.DdrawFixByteAlignment > 1)
+	else if (Config.Dd7to9)
 	{
-		for (UINT x = 0; x < MaxTextureBlendStages; x++)
+		if (Config.DdrawFixByteAlignment > 1)
 		{
-			if (CurrentTextureSurfaceX[x] && CurrentTextureSurfaceX[x]->GetWasBitAlignLocked())
+			for (UINT x = 0; x < MaxTextureBlendStages; x++)
 			{
-				(*d3d9Device)->SetSamplerState(x, D3DSAMP_MINFILTER, DrawStates.ssMinFilter[x]);
-				(*d3d9Device)->SetSamplerState(x, D3DSAMP_MAGFILTER, DrawStates.ssMagFilter[x]);
+				if (CurrentTextureSurfaceX[x] && CurrentTextureSurfaceX[x]->GetWasBitAlignLocked())
+				{
+					(*d3d9Device)->SetSamplerState(x, D3DSAMP_MINFILTER, DrawStates.ssMinFilter[x]);
+					(*d3d9Device)->SetSamplerState(x, D3DSAMP_MAGFILTER, DrawStates.ssMagFilter[x]);
+				}
 			}
 		}
+		if (rsColorKeyEnabled)
+		{
+			(*d3d9Device)->SetRenderState(D3DRS_ALPHATESTENABLE, DrawStates.rsAlphaTestEnable);
+			(*d3d9Device)->SetRenderState(D3DRS_ALPHAFUNC, DrawStates.rsAlphaFunc);
+			(*d3d9Device)->SetRenderState(D3DRS_ALPHAREF, DrawStates.rsAlphaRef);
+		}
+	}
+	if (dwFlags & D3DDP_DXW_COLORKEYENABLE)
+	{
+		(*d3d9Device)->SetPixelShader(nullptr);
 	}
 }
 
