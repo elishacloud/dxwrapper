@@ -4193,18 +4193,6 @@ inline void m_IDirect3DDeviceX::SetDrawStates(DWORD dwVertexTypeDesc, DWORD& dwF
 			}
 		}
 	}
-	// For now just disable mipmap filtering
-	if (Config.Dd7to9)
-	{
-		for (UINT x = 0; x < MaxTextureBlendStages; x++)
-		{
-			if (ssMipFilter[x] != D3DTEXF_NONE)
-			{
-				ssMipFilter[x] = D3DTEXF_NONE;
-				(*d3d9Device)->SetSamplerState(x, D3DSAMP_MIPFILTER, D3DTEXF_NONE);
-			}
-		}
-	}
 	if (dwFlags & D3DDP_DXW_COLORKEYENABLE)
 	{
 		if (!colorkeyPixelShader || !*colorkeyPixelShader)
