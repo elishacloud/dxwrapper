@@ -59,7 +59,6 @@
 	visit(DisableHighDPIScaling) \
 	visit(DisableLogging) \
 	visit(DirectShowEmulation) \
-	visit(DxWnd) \
 	visit(CacheClipPlane) \
 	visit(ConvertToDirectDraw7) \
 	visit(ConvertToDirect3D7) \
@@ -244,7 +243,6 @@ struct CONFIG
 	bool DisableHighDPIScaling = false;			// Disables display scaling on high DPI settings
 	bool DisableLogging = false;				// Disables the logging file
 	DWORD SetSwapEffectShim = 0;				// Disables the call to d3d9.dll 'Direct3D9SetSwapEffectUpgradeShim' to switch present mode
-	bool DxWnd = false;							// Enables DxWnd https://sourceforge.net/projects/dxwnd/
 	DWORD CacheClipPlane = 0;					// Caches the ClipPlane for Direct3D9 to fix an issue in d3d9 on Windows 8 and newer
 	bool ConvertToDirectDraw7 = false;			// Converts DirectDraw 1-6 to DirectDraw 7
 	bool ConvertToDirect3D7 = false;			// Converts Direct3D 1-6 to Direct3D 7

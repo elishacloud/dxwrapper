@@ -2,11 +2,6 @@
 // Microsoft Visual C++ generated include file.
 // Used by dxwrapper.rc
 
-#ifdef DXWND
-#ifndef DXWND_H
-#include "DxWnd\v2_03_60_src\dxwnd.h"
-#endif
-#endif
 #include "Dllmain\BuildNo.rc"
 
 // Main resource file details
@@ -26,16 +21,6 @@
 #define _TO_STRING(x) _TO_STRING_(x)
 #define APP_VERSION _TO_STRING(APP_MAJOR) "." _TO_STRING(APP_MINOR) "." _TO_STRING(APP_BUILDNUMBER) "." _TO_STRING(APP_REVISION)
 #define VERSION_NUMBER APP_MAJOR, APP_MINOR, APP_BUILDNUMBER, APP_REVISION
-
-#ifdef DXWND
-//Verify defintions exist in dxwnd.h
-#ifndef APP_DXWNDNAME
-#include "Missing APP_DXWNDNAME definition in dxwnd.h file"
-#endif
-#ifndef APP_DXWNDVERSION
-#include "Missing APP_DXWNDVERSION definition in dxwnd.h file"
-#endif
-#endif
 
 // Next default values for new objects
 // 

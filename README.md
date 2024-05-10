@@ -13,7 +13,6 @@ DxWrapper has many features including:
 
  - Integration of [DDrawCompat](https://github.com/narzoul/DDrawCompat/)
  - Configuring DDrawCompat options to improve compatibility
- - Proxy for [DxWnd](https://sourceforge.net/projects/dxwnd/)
  - Conversion of DirectDraw 1-6 to DirectDraw 7
  - Conversion of Direct3D 1-6 to Direct3D 7
  - Conversion of DirectDraw 1-7 (ddraw.dll) to Direct3D 9 (d3d9.dll) using [Dd7to9](https://github.com/elishacloud/dxwrapper/wiki/DirectDraw-to-Direct3D9-Conversion)

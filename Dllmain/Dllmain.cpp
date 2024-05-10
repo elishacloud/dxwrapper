@@ -24,7 +24,6 @@
 #ifdef DDRAWCOMPAT
 #include "DDrawCompat\DDrawCompatExternal.h"
 #endif // DDRAWCOMPAT
-#include "DxWnd\DxWndExternal.h"
 #include "Utils\Utils.h"
 #include "Logging\Logging.h"
 // Wrappers last
@@ -521,23 +520,6 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 			VISIT_PROCS_D3D9(SHIM_WRAPPED_PROC);
 		}
 
-		// Start DxWnd module
-		if (Config.DxWnd)
-		{
-			// Check if dxwnd.dll exists then load it
-			HMODULE dxwnd_dll = LoadLibrary("dxwnd.dll");
-			if (dxwnd_dll)
-			{
-				Logging::Log() << "Loading DxWnd " << _TO_STRING(APP_DXWNDVERSION);
-				InitDxWnd(dxwnd_dll);
-			}
-			// If dxwnd.dll does not exist than disable dxwnd setting
-			else
-			{
-				Config.DxWnd = false;
-			}
-		}
-
 		// Load custom dlls
 		if (Config.LoadCustomDllPath.size() != 0)
 		{
@@ -615,13 +597,6 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 		// Stop threads
 		Fullscreen::StopThread();
 		WriteMemory::StopThread();
-
-		// Unload and Unhook DxWnd
-		if (Config.DxWnd)
-		{
-			Logging::Log() << "Unloading DxWnd";
-			DxWndEndHook();
-		}
 
 #ifdef DDRAWCOMPAT
 		// Unload and Unhook DDrawCompat
