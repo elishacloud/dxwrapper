@@ -897,6 +897,9 @@
     <None Include="Wrappers\wrapper.def">
       <Filter>Wrappers</Filter>
     </None>
+    <None Include="ddraw\Shaders\ColorKeyShader.hlsl">
+      <Filter>ddraw\Shaders</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="libraries\dwmapi.h">
@@ -1856,12 +1859,6 @@
     <ClInclude Include="D3DDDI\d3dddiExternal.h">
       <Filter>d3dddi</Filter>
     </ClInclude>
-    <ClInclude Include="ddraw\Shaders\PaletteShader.h">
-      <Filter>ddraw\Shaders</Filter>
-    </ClInclude>
-    <ClInclude Include="ddraw\Shaders\ColorKeyShader.h">
-      <Filter>ddraw\Shaders</Filter>
-    </ClInclude>
     <ClInclude Include="Wrappers\cryptbase.h">
       <Filter>Wrappers</Filter>
     </ClInclude>
@@ -1873,6 +1870,15 @@
     </ClInclude>
     <ClInclude Include="Libraries\VersionHelpers.h">
       <Filter>Libraries</Filter>
+    </ClInclude>
+    <ClInclude Include="ddraw\Shaders\PaletteShader.hlsl">
+      <Filter>ddraw\Shaders</Filter>
+    </ClInclude>
+    <ClInclude Include="ddraw\Shaders\ColorKeyShader.h">
+      <Filter>ddraw\Shaders</Filter>
+    </ClInclude>
+    <ClInclude Include="ddraw\Shaders\PaletteShader.h">
+      <Filter>ddraw\Shaders</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

@@ -79,7 +79,7 @@ void WINAPI DxWrapperSettings(DXWAPPERSETTINGS *DxSettings)
 
 typedef HMODULE(*LoadProc)(const char *ProxyDll, const char *MyDllName);
 
-HMODULE LoadHookedDll(char *dllname, LoadProc Load, DWORD HookSystem32)
+HMODULE LoadHookedDll(const char *dllname, LoadProc Load, DWORD HookSystem32)
 {
 	HMODULE dll = Load(nullptr, Config.WrapperName.c_str());
 	HMODULE currentdll = GetModuleHandle(dllname);
@@ -291,7 +291,7 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 			else
 			{
 				// Load dsound procs
-				char *dllname = dtypename[dtype.dsound];
+				const char *dllname = dtypename[dtype.dsound];
 				HMODULE dll = LoadHookedDll(dllname, Load, Config.DsoundHookSystem32);
 
 				// Hook dsound.dll -> DsoundWrapper
@@ -321,7 +321,7 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 			else
 			{
 				// Load dinput procs
-				char *dllname = dtypename[dtype.dinput];
+				const char *dllname = dtypename[dtype.dinput];
 				HMODULE dll = LoadHookedDll(dllname, Load, Config.DinputHookSystem32);
 
 				// Hook dinput.dll APIs
@@ -351,7 +351,7 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 			else
 			{
 				// Load dinput8 procs
-				char *dllname = dtypename[dtype.dinput8];
+				const char *dllname = dtypename[dtype.dinput8];
 				HMODULE dll = LoadHookedDll(dllname, Load, Config.Dinput8HookSystem32);
 
 				// Hook dinput8.dll APIs
@@ -394,7 +394,7 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 				using namespace DdrawWrapper;
 
 				// Load ddraw procs
-				char *dllname = dtypename[dtype.ddraw];
+				const char *dllname = dtypename[dtype.ddraw];
 				HMODULE dll = LoadHookedDll(dllname, Load, Config.DdrawHookSystem32);
 
 				// Hook ddraw.dll APIs
@@ -466,7 +466,7 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 			if (Config.RealWrapperMode != dtype.d3d8)
 			{
 				// Load d3d8 procs
-				char *dllname = dtypename[dtype.d3d8];
+				const char *dllname = dtypename[dtype.d3d8];
 				HMODULE dll = LoadHookedDll(dllname, Load, Config.D3d8HookSystem32);
 
 				// Hook d3d8.dll -> D3d8to9
@@ -490,7 +490,7 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 			if (Config.RealWrapperMode != dtype.d3d9)
 			{
 				// Load d3d9 procs
-				char *dllname = dtypename[dtype.d3d9];
+				const char *dllname = dtypename[dtype.d3d9];
 				HMODULE dll = LoadHookedDll(dllname, Load, Config.D3d9HookSystem32);
 
 				// Hook d3d9.dll -> D3d9Wrapper

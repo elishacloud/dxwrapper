@@ -158,7 +158,7 @@ struct DLLTYPE
 static const DLLTYPE dtype;
 
 // Designated Initializer does not work in VS 2015 so must pay attention to the order
-static constexpr char* dtypename[] = {
+static constexpr const char* dtypename[] = {
 	"dxwrapper.dll",// 0
 	"ddraw.dll",	// 1
 	"d3d8.dll",		// 2

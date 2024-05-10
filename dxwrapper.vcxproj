@@ -118,7 +118,9 @@ copy /Y "$(ProjectDir)Settings\AllSettings.ini" "$(TargetDir)Build\" &gt;nul
 copy /Y "$(ProjectDir)Settings\Settings.ini" "$(TargetDir)Build\dxwrapper.ini" &gt;nul</Command>
     </PostBuildEvent>
     <PreBuildEvent>
-      <Command>cmd /q /c "cd /D ""$(ProjectDir)Dllmain\"" &amp;&amp; if not exist BuildNo.rc echo #define BUILD_NUMBER 0 &gt;BuildNo.rc"
+      <Command>cmd /q /c "cd /D ""$(SolutionDir)ddraw\Shaders\"" &amp;&amp; ""..\..\bin\MakeShader\MakeShader.exe"" PaletteShader.hlsl PalettePixelShaderSrc"
+cmd /q /c "cd /D ""$(SolutionDir)ddraw\Shaders\"" &amp;&amp; ""..\..\bin\MakeShader\MakeShader.exe"" ColorKeyShader.hlsl ColorKeyPixelShaderSrc"
+cmd /q /c "cd /D ""$(ProjectDir)Dllmain\"" &amp;&amp; if not exist BuildNo.rc echo #define BUILD_NUMBER 0 &gt;BuildNo.rc"
 cmd /q /c "cd /D ""$(ProjectDir)Dllmain\"" &amp;&amp; FOR /F "tokens=3" %%i IN (BuildNo.rc) DO set /a var=%%i+1 &gt;Build.txt"
 cmd /q /c "cd /D ""$(ProjectDir)Dllmain\"" &amp;&amp; FOR /F %%i IN (Build.txt) DO echo #define BUILD_NUMBER %%i &gt;BuildNo.rc"
 cmd /q /c "cd /D ""$(ProjectDir)Dllmain\"" &amp;&amp; del Build.txt"
@@ -160,14 +162,8 @@ del "$(TargetDir)dxwrapper.lib" &gt;nul
 del "$(TargetDir)dxwrapper.pdb" &gt;nul</Command>
     </PostBuildEvent>
     <PreBuildEvent>
-      <Command>cmd /q /c "cd /D ""$(ProjectDir)d3d8\"" &amp;&amp; del BuildNo.rc &gt; nul 2&gt;&amp;1"
-cmd /q /c "cd /D ""$(ProjectDir)d3d8\"" &amp;&amp; echo echo^|set /p="#define " ^&gt; BuildNo.rc &gt; build.bat"
-cmd /q /c "cd /D ""$(ProjectDir)d3d8\"" &amp;&amp; echo type "$(ProjectDir)External\d3d8to9\res\d3d8to9.rc" ^| find "FILEVERSION" ^&gt;^&gt; BuildNo.rc &gt;&gt; build.bat"
-cmd /q /c "cd /D ""$(ProjectDir)d3d8\"" &amp;&amp; echo set /p build=^&lt;BuildNo.rc &gt;&gt; build.bat"
-cmd /q /c "cd /D ""$(ProjectDir)d3d8\"" &amp;&amp; echo set modified=%%build:,=.%% &gt;&gt; build.bat"
-cmd /q /c "cd /D ""$(ProjectDir)d3d8\"" &amp;&amp; echo echo %%modified%% ^&gt; BuildNo.rc &gt;&gt; build.bat"
-cmd /q /c "cd /D ""$(ProjectDir)d3d8\"" &amp;&amp; call build.bat"
-cmd /q /c "cd /D ""$(ProjectDir)d3d8\"" &amp;&amp; del build.bat"</Command>
+      <Command>cmd /q /c "cd /D ""$(SolutionDir)ddraw\Shaders\"" &amp;&amp; ""..\..\bin\MakeShader\MakeShader.exe"" PaletteShader.hlsl PalettePixelShaderSrc"
+cmd /q /c "cd /D ""$(SolutionDir)ddraw\Shaders\"" &amp;&amp; ""..\..\bin\MakeShader\MakeShader.exe"" ColorKeyShader.hlsl ColorKeyPixelShaderSrc"</Command>
     </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='dx8|Win32'">
@@ -197,14 +193,8 @@ del "$(TargetDir)dxwrapper.lib" &gt;nul
 del "$(TargetDir)dxwrapper.pdb" &gt;nul</Command>
     </PostBuildEvent>
     <PreBuildEvent>
-      <Command>cmd /q /c "cd /D ""$(ProjectDir)d3d8\"" &amp;&amp; del BuildNo.rc &gt; nul 2&gt;&amp;1"
-cmd /q /c "cd /D ""$(ProjectDir)d3d8\"" &amp;&amp; echo echo^|set /p="#define " ^&gt; BuildNo.rc &gt; build.bat"
-cmd /q /c "cd /D ""$(ProjectDir)d3d8\"" &amp;&amp; echo type "$(ProjectDir)External\d3d8to9\res\d3d8to9.rc" ^| find "FILEVERSION" ^&gt;^&gt; BuildNo.rc &gt;&gt; build.bat"
-cmd /q /c "cd /D ""$(ProjectDir)d3d8\"" &amp;&amp; echo set /p build=^&lt;BuildNo.rc &gt;&gt; build.bat"
-cmd /q /c "cd /D ""$(ProjectDir)d3d8\"" &amp;&amp; echo set modified=%%build:,=.%% &gt;&gt; build.bat"
-cmd /q /c "cd /D ""$(ProjectDir)d3d8\"" &amp;&amp; echo echo %%modified%% ^&gt; BuildNo.rc &gt;&gt; build.bat"
-cmd /q /c "cd /D ""$(ProjectDir)d3d8\"" &amp;&amp; call build.bat"
-cmd /q /c "cd /D ""$(ProjectDir)d3d8\"" &amp;&amp; del build.bat"</Command>
+      <Command>cmd /q /c "cd /D ""$(SolutionDir)ddraw\Shaders\"" &amp;&amp; ""..\..\bin\MakeShader\MakeShader.exe"" PaletteShader.hlsl PalettePixelShaderSrc"
+cmd /q /c "cd /D ""$(SolutionDir)ddraw\Shaders\"" &amp;&amp; ""..\..\bin\MakeShader\MakeShader.exe"" ColorKeyShader.hlsl ColorKeyPixelShaderSrc"</Command>
     </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">
@@ -235,6 +225,10 @@ copy /Y "$(ProjectDir)Settings\AllSettings.ini" "$(TargetDir)Build\" &gt;nul
 copy /Y "$(ProjectDir)Settings\Settings.ini" "$(TargetDir)Build\dxwrapper.ini" &gt;nul</Command>
     </PostBuildEvent>
     <PreBuildEvent />
+    <PreBuildEvent>
+      <Command>cmd /q /c "cd /D ""$(SolutionDir)ddraw\Shaders\"" &amp;&amp; ""..\..\bin\MakeShader\MakeShader.exe"" PaletteShader.hlsl PalettePixelShaderSrc"
+cmd /q /c "cd /D ""$(SolutionDir)ddraw\Shaders\"" &amp;&amp; ""..\..\bin\MakeShader\MakeShader.exe"" ColorKeyShader.hlsl ColorKeyPixelShaderSrc"</Command>
+    </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
@@ -263,6 +257,10 @@ copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\$(TargetName).asi" &g
 copy /Y "$(ProjectDir)Settings\AllSettings.ini" "$(TargetDir)Build\" &gt;nul
 copy /Y "$(ProjectDir)Settings\Settings.ini" "$(TargetDir)Build\dxwrapper.ini" &gt;nul</Command>
     </PostBuildEvent>
+    <PreBuildEvent>
+      <Command>cmd /q /c "cd /D ""$(SolutionDir)ddraw\Shaders\"" &amp;&amp; ""..\..\bin\MakeShader\MakeShader.exe"" PaletteShader.hlsl PalettePixelShaderSrc"
+cmd /q /c "cd /D ""$(SolutionDir)ddraw\Shaders\"" &amp;&amp; ""..\..\bin\MakeShader\MakeShader.exe"" ColorKeyShader.hlsl ColorKeyPixelShaderSrc"</Command>
+    </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="d3d8\d3d8.cpp" />
@@ -1400,6 +1398,14 @@ copy /Y "$(ProjectDir)Settings\Settings.ini" "$(TargetDir)Build\dxwrapper.ini" &
   <ItemGroup>
     <ResourceCompile Include="Dllmain\BuildNo.rc" />
     <ResourceCompile Include="Dllmain\dxwrapper.rc" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="ddraw\Shaders\ColorKeyShader.hlsl">
+      <FileType>Document</FileType>
+    </None>
+    <None Include="ddraw\Shaders\PaletteShader.hlsl">
+      <FileType>Document</FileType>
+    </None>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
