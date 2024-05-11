@@ -1,5 +1,5 @@
-uniform sampler2D SurfaceTex;
-uniform sampler2D PaletteTex;
+sampler2D SurfaceTex : register(s0);
+sampler2D PaletteTex : register(s1);
 
 float4 main(float2 texCoords : TEXCOORD) : COLOR
 {
