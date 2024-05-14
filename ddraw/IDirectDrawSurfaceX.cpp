@@ -3943,8 +3943,7 @@ HRESULT m_IDirectDrawSurfaceX::CreateD3d9Surface()
 			DWORD MipMapLevel = (SurfaceRequiresEmulation || MipMaps.empty()) ? 1 : MaxMipMapLevel;
 			HRESULT hr_t;
 			do {
-				surface.Tex.Usage = (MipMapLevel != 1 && (surfaceDesc2.ddsCaps.dwCaps & DDSCAPS_VIDEOMEMORY) &&
-					(surfaceDesc2.ddsCaps.dwCaps2 & DDSCAPS2_HINTDYNAMIC)) ? D3DUSAGE_AUTOGENMIPMAP : 0;
+				surface.Tex.Usage = (MipMapLevel != 1 && (surfaceDesc2.ddsCaps.dwCaps & DDSCAPS_VIDEOMEMORY) && CreatedVersion == 7) ? D3DUSAGE_AUTOGENMIPMAP : 0;
 				hr_t = (*d3d9Device)->CreateTexture(Width, Height, MipMapLevel, surface.Tex.Usage, TextureFormat, surface.Tex.Pool, &surface.Texture, nullptr);
 				// Try failover format
 				if (FAILED(hr_t))
