@@ -3,7 +3,7 @@
 #include "IDirectDrawX.h"
 #include <unordered_map>
 
-constexpr UINT MaxTextureBlendStages = 8;	// Devices can have up to eight set textures.
+constexpr UINT MaxTextureStages = 8;	// Devices can have up to eight set textures.
 
 class m_IDirect3DDeviceX : public IUnknown, public AddressLookupTableDdrawObject
 {
@@ -34,13 +34,19 @@ private:
 		DWORD rsLighting = 0;
 		DWORD rsExtents = 0;
 		DWORD tsColorOP = 0;
+		DWORD tsColorArg1 = 0;
+		DWORD tsColorArg2 = 0;
+		DWORD tsAlphaOP = 0;
 		DWORD rsAlphaBlendEnable = 0;
 		DWORD rsAlphaTestEnable = 0;
 		DWORD rsAlphaFunc = 0;
 		DWORD rsAlphaRef = 0;
 		DWORD rsFogEnable = 0;
-		DWORD ssMinFilter[MaxTextureBlendStages] = {};
-		DWORD ssMagFilter[MaxTextureBlendStages] = {};
+		DWORD rsZEnable = 0;
+		DWORD rsZWriteEnable = 0;
+		DWORD rsStencilEnable = 0;
+		DWORD ssMinFilter[MaxTextureStages] = {};
+		DWORD ssMagFilter[MaxTextureStages] = {};
 		float lowColorKey[4] = {};
 		float highColorKey[4] = {};
 	} DrawStates;
@@ -67,12 +73,12 @@ private:
 	DWORD rsSrcBlend;
 	DWORD rsDestBlend;
 	DWORD rsColorKeyEnabled;
-	DWORD ssMipFilter[MaxTextureBlendStages] = {};
+	DWORD ssMipFilter[MaxTextureStages] = {};
 
 	// SetTexture array
 	LPDIRECTDRAWSURFACE7 CurrentRenderTarget = nullptr;
-	m_IDirectDrawSurfaceX* CurrentTextureSurfaceX[MaxTextureBlendStages] = {};
-	LPDIRECTDRAWSURFACE7 AttachedTexture[MaxTextureBlendStages] = {};
+	m_IDirectDrawSurfaceX* CurrentTextureSurfaceX[MaxTextureStages] = {};
+	LPDIRECTDRAWSURFACE7 AttachedTexture[MaxTextureStages] = {};
 
 	// Texture handle map
 	std::unordered_map<DWORD, m_IDirect3DTextureX*> TextureHandleMap;

@@ -723,7 +723,7 @@ HRESULT m_IDirect3DDeviceX::GetTexture(DWORD dwStage, LPDIRECT3DTEXTURE2* lplpTe
 
 	if (ProxyDirectXVersion > 3)
 	{
-		if (!lplpTexture || dwStage >= MaxTextureBlendStages)
+		if (!lplpTexture || dwStage >= MaxTextureStages)
 		{
 			return DDERR_INVALIDPARAMS;
 		}
@@ -783,7 +783,7 @@ HRESULT m_IDirect3DDeviceX::GetTexture(DWORD dwStage, LPDIRECTDRAWSURFACE7* lplp
 
 	if (Config.Dd7to9)
 	{
-		if (!lplpTexture || dwStage >= MaxTextureBlendStages)
+		if (!lplpTexture || dwStage >= MaxTextureStages)
 		{
 			return DDERR_INVALIDPARAMS;
 		}
@@ -858,7 +858,7 @@ HRESULT m_IDirect3DDeviceX::SetTexture(DWORD dwStage, LPDIRECT3DTEXTURE2 lpTextu
 
 	if (ProxyDirectXVersion > 3)
 	{
-		if (dwStage >= MaxTextureBlendStages)
+		if (dwStage >= MaxTextureStages)
 		{
 			return DDERR_INVALIDPARAMS;
 		}
@@ -900,7 +900,7 @@ HRESULT m_IDirect3DDeviceX::SetTexture(DWORD dwStage, LPDIRECTDRAWSURFACE7 lpSur
 
 	if (Config.Dd7to9)
 	{
-		if (dwStage >= MaxTextureBlendStages)
+		if (dwStage >= MaxTextureStages)
 		{
 			return DDERR_INVALIDPARAMS;
 		}
@@ -1181,7 +1181,7 @@ HRESULT m_IDirect3DDeviceX::SetTextureStageState(DWORD dwStage, D3DTEXTURESTAGES
 
 	if (Config.Dd7to9)
 	{
-		if (dwStage >= MaxTextureBlendStages)
+		if (dwStage >= MaxTextureStages)
 		{
 			return DDERR_INVALIDPARAMS;
 		}
@@ -4174,26 +4174,52 @@ inline void m_IDirect3DDeviceX::SetDrawStates(DWORD dwVertexTypeDesc, DWORD& dwF
 	}
 	if (dwFlags & D3DDP_DXW_DRAW2DSURFACE)
 	{
-		// Set by DirectDrawSurface
+		// Get states set by DirectDrawSurface
 		(*d3d9Device)->GetRenderState(D3DRS_LIGHTING, &DrawStates.rsLighting);
 		(*d3d9Device)->GetSamplerState(0, D3DSAMP_MAGFILTER, &DrawStates.ssMagFilter[0]);
 
-		// Other states
+		// Get texture states
 		(*d3d9Device)->GetTextureStageState(0, D3DTSS_COLOROP, &DrawStates.tsColorOP);
+		(*d3d9Device)->GetTextureStageState(0, D3DTSS_COLORARG1, &DrawStates.tsColorArg1);
+		(*d3d9Device)->GetTextureStageState(0, D3DTSS_COLORARG2, &DrawStates.tsColorArg2);
+		(*d3d9Device)->GetTextureStageState(0, D3DTSS_ALPHAOP, &DrawStates.tsAlphaOP);
+
+		// Get render states
 		(*d3d9Device)->GetRenderState(D3DRS_ALPHATESTENABLE, &DrawStates.rsAlphaTestEnable);
 		(*d3d9Device)->GetRenderState(D3DRS_ALPHABLENDENABLE, &DrawStates.rsAlphaBlendEnable);
 		(*d3d9Device)->GetRenderState(D3DRS_FOGENABLE, &DrawStates.rsFogEnable);
+		(*d3d9Device)->GetRenderState(D3DRS_ZENABLE, &DrawStates.rsZEnable);
+		(*d3d9Device)->GetRenderState(D3DRS_ZWRITEENABLE, &DrawStates.rsZWriteEnable);
+		(*d3d9Device)->GetRenderState(D3DRS_STENCILENABLE, &DrawStates.rsStencilEnable);
 
+		// Set texture states
 		(*d3d9Device)->SetTextureStageState(0, D3DTSS_COLOROP, D3DTOP_MODULATE);
+		(*d3d9Device)->SetTextureStageState(0, D3DTSS_COLORARG1, D3DTA_TEXTURE);
+		(*d3d9Device)->SetTextureStageState(0, D3DTSS_COLORARG2, D3DTA_CURRENT);
+		(*d3d9Device)->SetTextureStageState(0, D3DTSS_ALPHAOP, D3DTOP_DISABLE);
+
+		// Set render states
 		(*d3d9Device)->SetRenderState(D3DRS_ALPHATESTENABLE, FALSE);
 		(*d3d9Device)->SetRenderState(D3DRS_ALPHABLENDENABLE, FALSE);
 		(*d3d9Device)->SetRenderState(D3DRS_FOGENABLE, FALSE);
+		(*d3d9Device)->SetRenderState(D3DRS_ZENABLE, FALSE);
+		(*d3d9Device)->SetRenderState(D3DRS_ZWRITEENABLE, FALSE);
+		(*d3d9Device)->SetRenderState(D3DRS_STENCILENABLE, FALSE);
+
+		// Set textures
+		for (int x = 1; x < MaxTextureStages; x++)
+		{
+			if (AttachedTexture[x])
+			{
+				(*d3d9Device)->SetTexture(x, nullptr);
+			}
+		}
 	}
 	else if (Config.Dd7to9)
 	{
 		if (Config.DdrawFixByteAlignment > 1)
 		{
-			for (UINT x = 0; x < MaxTextureBlendStages; x++)
+			for (UINT x = 0; x < MaxTextureStages; x++)
 			{
 				if (CurrentTextureSurfaceX[x] && CurrentTextureSurfaceX[x]->GetWasBitAlignLocked())
 				{
@@ -4211,16 +4237,21 @@ inline void m_IDirect3DDeviceX::SetDrawStates(DWORD dwVertexTypeDesc, DWORD& dwF
 			(*d3d9Device)->GetRenderState(D3DRS_ALPHAFUNC, &DrawStates.rsAlphaFunc);
 			(*d3d9Device)->GetRenderState(D3DRS_ALPHAREF, &DrawStates.rsAlphaRef);
 
-			// Check for color key texture
-			for (UINT x = 0; x < MaxTextureBlendStages; x++)
+			// Check for color key alpha texture
+			bool AlphaSurfaceSet = false;
+			for (UINT x = 0; x < MaxTextureStages; x++)
 			{
 				if (CurrentTextureSurfaceX[x] && CurrentTextureSurfaceX[x]->IsColorKeyTexture() && CurrentTextureSurfaceX[x]->Get3DDrawTexture())
 				{
-					(*d3d9Device)->SetRenderState(D3DRS_ALPHATESTENABLE, TRUE);
-					(*d3d9Device)->SetRenderState(D3DRS_ALPHAFUNC, D3DCMP_GREATER);
-					(*d3d9Device)->SetRenderState(D3DRS_ALPHAREF, (DWORD)0x01);
+					AlphaSurfaceSet = true;
 					(*d3d9Device)->SetTexture(x, CurrentTextureSurfaceX[x]->Get3DDrawTexture());
 				}
+			}
+			if (AlphaSurfaceSet)
+			{
+				(*d3d9Device)->SetRenderState(D3DRS_ALPHATESTENABLE, TRUE);
+				(*d3d9Device)->SetRenderState(D3DRS_ALPHAFUNC, D3DCMP_GREATER);
+				(*d3d9Device)->SetRenderState(D3DRS_ALPHAREF, (DWORD)0x01);
 			}
 		}
 	}
@@ -4259,24 +4290,40 @@ inline void m_IDirect3DDeviceX::RestoreDrawStates(DWORD dwVertexTypeDesc, DWORD 
 	}
 	if (dwFlags & D3DDP_DXW_DRAW2DSURFACE)
 	{
-		// Other states
-		(*d3d9Device)->SetTextureStageState(0, D3DTSS_COLOROP, DrawStates.tsColorOP);
-		(*d3d9Device)->SetRenderState(D3DRS_ALPHATESTENABLE, DrawStates.rsAlphaTestEnable);
-		(*d3d9Device)->SetRenderState(D3DRS_ALPHABLENDENABLE, DrawStates.rsAlphaBlendEnable);
-		(*d3d9Device)->SetRenderState(D3DRS_FOGENABLE, DrawStates.rsFogEnable);
-
-		// Set by DirectDrawSurface
+		// Restore states set by DirectDrawSurface
 		(*d3d9Device)->SetRenderState(D3DRS_LIGHTING, DrawStates.rsLighting);
 		(*d3d9Device)->SetSamplerState(0, D3DSAMP_MAGFILTER, DrawStates.ssMagFilter[0]);
 
+		// Restore texture states
+		(*d3d9Device)->SetTextureStageState(0, D3DTSS_COLOROP, DrawStates.tsColorOP);
+		(*d3d9Device)->SetTextureStageState(0, D3DTSS_COLORARG1, DrawStates.tsColorArg1);
+		(*d3d9Device)->SetTextureStageState(0, D3DTSS_COLORARG2, DrawStates.tsColorArg2);
+		(*d3d9Device)->SetTextureStageState(0, D3DTSS_ALPHAOP, DrawStates.tsAlphaOP);
+
+		// Restore render states
+		(*d3d9Device)->SetRenderState(D3DRS_ALPHATESTENABLE, DrawStates.rsAlphaTestEnable);
+		(*d3d9Device)->SetRenderState(D3DRS_ALPHABLENDENABLE, DrawStates.rsAlphaBlendEnable);
+		(*d3d9Device)->SetRenderState(D3DRS_FOGENABLE, DrawStates.rsFogEnable);
+		(*d3d9Device)->SetRenderState(D3DRS_ZENABLE, DrawStates.rsZEnable);
+		(*d3d9Device)->SetRenderState(D3DRS_ZWRITEENABLE, DrawStates.rsZWriteEnable);
+		(*d3d9Device)->SetRenderState(D3DRS_STENCILENABLE, DrawStates.rsStencilEnable);
+
+		// Restore textures
 		SetTexture(0, AttachedTexture[0]);
 		SetTexture(1, AttachedTexture[1]);
+		for (int x = 2; x < MaxTextureStages; x++)
+		{
+			if (AttachedTexture[x])
+			{
+				SetTexture(x, AttachedTexture[x]);
+			}
+		}
 	}
 	else if (Config.Dd7to9)
 	{
 		if (Config.DdrawFixByteAlignment > 1)
 		{
-			for (UINT x = 0; x < MaxTextureBlendStages; x++)
+			for (UINT x = 0; x < MaxTextureStages; x++)
 			{
 				if (CurrentTextureSurfaceX[x] && CurrentTextureSurfaceX[x]->GetWasBitAlignLocked())
 				{
