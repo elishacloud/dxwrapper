@@ -188,7 +188,7 @@ namespace
 
 			DWORD modeNum = 0;
 			DevMode dm = {};
-			dm.dmSize = sizeof(dm);
+			dm.dmSize = lpDevMode->dmSize;
 			while (origEnumDisplaySettingsEx(lpszDeviceName, modeNum, &dm, dwFlags))
 			{
 				if (32 == dm.dmBitsPerPel)
@@ -209,7 +209,7 @@ namespace
 			return FALSE;
 		}
 
-		*lpDevMode = devModes[iModeNum];
+		memcpy_s(lpDevMode, lpDevMode->dmSize, &devModes[iModeNum], lpDevMode->dmSize);
 		return TRUE;
 	}
 
