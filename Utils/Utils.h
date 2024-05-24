@@ -68,6 +68,7 @@ namespace Fullscreen
 	bool IsThreadRunning();
 	void StopThread();
 	void ResetScreen();
+	HWND FindMainWindow(DWORD process_id, bool AutoDetect, bool Debug = false);
 }
 
 bool stristr(LPCSTR strCheck, LPCSTR str, size_t size);

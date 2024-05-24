@@ -113,6 +113,9 @@ bool ExclusiveMode;
 DISPLAYSETTINGS Exclusive;
 HWND LastUsedHWnd = nullptr;
 
+// Clipper
+HWND ClipperHWnd = nullptr;
+
 // Display mode settings
 DISPLAYSETTINGS DisplayMode;
 
@@ -2630,7 +2633,7 @@ void m_IDirectDrawX::ReleaseDdraw()
 
 HWND m_IDirectDrawX::GetHwnd()
 {
-	return IsWindow(DisplayMode.hWnd) ? DisplayMode.hWnd : nullptr;
+	return IsWindow(DisplayMode.hWnd) ? DisplayMode.hWnd : ClipperHWnd;
 }
 
 HDC m_IDirectDrawX::GetDC()
@@ -3527,6 +3530,7 @@ void m_IDirectDrawX::RemoveSurfaceFromVector(m_IDirectDrawSurfaceX* lpSurfaceX)
 		if (lpSurfaceX == pDDraw->PrimarySurface)
 		{
 			pDDraw->PrimarySurface = nullptr;
+			ClipperHWnd = nullptr;
 			DisplayPixelFormat = {};
 		}
 		if (lpSurfaceX == pDDraw->Direct3DSurface)
@@ -3809,6 +3813,28 @@ void m_IDirectDrawX::SetVsync()
 	{
 		EnableWaitVsync = true;
 	}
+}
+
+HWND m_IDirectDrawX::GetClipperHWnd()
+{
+	return ClipperHWnd;
+}
+
+HRESULT m_IDirectDrawX::SetClipperHWnd(HWND hWnd)
+{
+	if (Device.IsWindowed)
+	{
+		HWND OldClipperHWnd = ClipperHWnd;
+		if (!hWnd || IsWindow(hWnd))
+		{
+			ClipperHWnd = hWnd;
+		}
+		if (!DisplayMode.hWnd && ClipperHWnd && ClipperHWnd != OldClipperHWnd)
+		{
+			return CreateD3D9Device();
+		}
+	}
+	return DD_OK;
 }
 
 HRESULT m_IDirectDrawX::GetD9Gamma(DWORD dwFlags, LPDDGAMMARAMP lpRampData)

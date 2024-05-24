@@ -144,6 +144,7 @@ private:
 	LPDIRECT3DTEXTURE9 PrimaryDisplayTexture = nullptr;	// Used for the texture surface for the primary surface
 	m_IDirectDrawPalette *attachedPalette = nullptr;	// Associated palette
 	m_IDirectDrawClipper *attachedClipper = nullptr;	// Associated clipper
+	HWND ClipperWindow = nullptr;						// Current clipper
 	m_IDirect3DTextureX *attached3DTexture = nullptr;	// Associated texture
 	DDSURFACEDESC2 surfaceDesc2 = {};					// Surface description for this surface
 	D3DFORMAT surfaceFormat = D3DFMT_UNKNOWN;			// Format for this surface

@@ -3802,6 +3802,23 @@ HRESULT m_IDirectDrawSurfaceX::CheckInterface(char *FunctionName, bool CheckD3DD
 			LOG_LIMIT(100, FunctionName << " Error: d3d9 device not setup!");
 			return DDERR_INVALIDOBJECT;
 		}
+		if (surface.IsUsingWindowedMode && IsPrimarySurface() && !Config.DdrawWriteToGDI && !Using3D)
+		{
+			HWND hWnd = ClipperWindow;
+			if (attachedClipper)
+			{
+				attachedClipper->GetHWnd(&hWnd);
+			}
+			if (!IsWindow(hWnd))
+			{
+				hWnd = Fullscreen::FindMainWindow(GetCurrentProcessId(), true);
+			}
+			if (hWnd != ddrawParent->GetClipperHWnd())
+			{
+				ddrawParent->SetClipperHWnd(hWnd);
+			}
+			ClipperWindow = hWnd;
+		}
 	}
 
 	// Check if device is lost

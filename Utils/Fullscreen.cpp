@@ -127,13 +127,11 @@ namespace Fullscreen
 	LONG GetBestResolution(screen_res&, LONG, LONG);
 	void SetScreenResolution(LONG, LONG);
 	void SetScreen(screen_res);
-	bool IsMainWindow(HWND);
 	bool IsWindowTooSmall(screen_res);
 	bool IsWindowFullScreen(screen_res, screen_res);
 	bool IsWindowNotFullScreen(screen_res, screen_res);
 	void GetWindowSize(HWND&, screen_res&, RECT&);
 	BOOL CALLBACK EnumWindowsCallback(HWND, LPARAM);
-	HWND FindMainWindow(DWORD, bool, bool = false);
 	BOOL CALLBACK EnumMenuWindowsCallback(HWND, LPARAM);
 	bool CheckForMenu(DWORD);
 	BOOL CALLBACK EnumChildWindowsProc(HWND, LPARAM);
@@ -347,11 +345,6 @@ void Fullscreen::ResetScreen()
 // Window functions below
 //*********************************************************************************
 
-bool Fullscreen::IsMainWindow(HWND hwnd)
-{
-	return GetWindow(hwnd, GW_OWNER) == (HWND)0 && IsWindowVisible(hwnd);
-}
-
 bool Fullscreen::IsWindowTooSmall(screen_res WindowSize)
 {
 	return WindowSize.Width < MinWindowWidth || WindowSize.Height < MinWindowHeight;
@@ -391,6 +384,27 @@ BOOL CALLBACK Fullscreen::EnumWindowsCallback(HWND hwnd, LPARAM lParam)
 		return true;
 	}
 
+	// Check if the window has a caption (to avoid tool windows and other non-main windows)
+	LONG style = GetWindowLong(hwnd, GWL_STYLE);
+	if ((style & WS_CAPTION) == 0)
+	{
+		return true;
+	}
+
+	// Check if the window is not a child window
+	if (GetWindowLong(hwnd, GWL_HWNDPARENT) != 0)
+	{
+		return true;
+	}
+
+	// Optionally, check if the window has a significant title
+	char title[256];
+	GetWindowText(hwnd, title, sizeof(title) / sizeof(TCHAR));
+	if (strlen(title) == 0)
+	{
+		return true;
+	}
+
 	// Skip compatibility class windows
 	char class_name[80] = { 0 };
 	GetClassName(hwnd, class_name, sizeof(class_name));
@@ -416,7 +430,7 @@ BOOL CALLBACK Fullscreen::EnumWindowsCallback(HWND hwnd, LPARAM lParam)
 		char buffer[7] = { 0 };
 		_itoa_s(data.LayerNumber, buffer, 10);
 		char* isMain = "";
-		if (IsMainWindow(hwnd))
+		if (IsWindowVisible(hwnd))
 		{
 			isMain = "*";
 		}
@@ -447,14 +461,17 @@ BOOL CALLBACK Fullscreen::EnumWindowsCallback(HWND hwnd, LPARAM lParam)
 		++data.LayerNumber;
 		data.Windows[data.LayerNumber].hwnd = hwnd;
 		data.Windows[data.LayerNumber].IsFullScreen = IsWindowFullScreen(WindowSize, ScreenSize);
-		data.Windows[data.LayerNumber].IsMain = IsMainWindow(hwnd);
+		data.Windows[data.LayerNumber].IsMain = (GetWindow(hwnd, GW_OWNER) == (HWND)0);
 
 		// Check if the window is the best window
 		if (data.Windows[data.LayerNumber].IsFullScreen && data.Windows[data.LayerNumber].IsMain)
 		{
 			// Match found returning value
 			data.best_handle = hwnd;
-			return false;
+			if (IsWindowVisible(hwnd))
+			{
+				return false;
+			}
 		}
 	}
 	// Manually search windows for a specific window

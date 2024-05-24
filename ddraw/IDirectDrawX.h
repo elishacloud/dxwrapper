@@ -237,6 +237,8 @@ public:
 
 	// Begin & end scene
 	void SetVsync();
+	HWND GetClipperHWnd();
+	HRESULT SetClipperHWnd(HWND hWnd);
 	HRESULT GetD9Gamma(DWORD dwFlags, LPDDGAMMARAMP lpRampData);
 	HRESULT SetD9Gamma(DWORD dwFlags, LPDDGAMMARAMP lpRampData);
 	HRESULT Draw2DSurface(m_IDirectDrawSurfaceX* DrawSurface);
