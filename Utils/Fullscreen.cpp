@@ -384,27 +384,6 @@ BOOL CALLBACK Fullscreen::EnumWindowsCallback(HWND hwnd, LPARAM lParam)
 		return true;
 	}
 
-	// Check if the window has a caption (to avoid tool windows and other non-main windows)
-	LONG style = GetWindowLong(hwnd, GWL_STYLE);
-	if ((style & WS_CAPTION) == 0)
-	{
-		return true;
-	}
-
-	// Check if the window is not a child window
-	if (GetWindowLong(hwnd, GWL_HWNDPARENT) != 0)
-	{
-		return true;
-	}
-
-	// Optionally, check if the window has a significant title
-	char title[256];
-	GetWindowText(hwnd, title, sizeof(title) / sizeof(TCHAR));
-	if (strlen(title) == 0)
-	{
-		return true;
-	}
-
 	// Skip compatibility class windows
 	char class_name[80] = { 0 };
 	GetClassName(hwnd, class_name, sizeof(class_name));
@@ -462,6 +441,36 @@ BOOL CALLBACK Fullscreen::EnumWindowsCallback(HWND hwnd, LPARAM lParam)
 		data.Windows[data.LayerNumber].hwnd = hwnd;
 		data.Windows[data.LayerNumber].IsFullScreen = IsWindowFullScreen(WindowSize, ScreenSize);
 		data.Windows[data.LayerNumber].IsMain = (GetWindow(hwnd, GW_OWNER) == (HWND)0);
+
+		// Check if the window has a caption (to avoid tool windows and other non-main windows)
+		if (data.Windows[data.LayerNumber].IsMain)
+		{
+			LONG style = GetWindowLong(hwnd, GWL_STYLE);
+			if ((style & WS_CAPTION) == 0)
+			{
+				data.Windows[data.LayerNumber].IsMain = false;
+			}
+		}
+
+		// Check if the window is not a child window
+		if (data.Windows[data.LayerNumber].IsMain)
+		{
+			if (GetWindowLong(hwnd, GWL_HWNDPARENT) != 0)
+			{
+				data.Windows[data.LayerNumber].IsMain = false;
+			}
+		}
+
+		// Check if the window has a significant title
+		if (data.Windows[data.LayerNumber].IsMain)
+		{
+			char title[256];
+			GetWindowText(hwnd, title, sizeof(title) / sizeof(TCHAR));
+			if (strlen(title) == 0)
+			{
+				data.Windows[data.LayerNumber].IsMain = false;
+			}
+		}
 
 		// Check if the window is the best window
 		if (data.Windows[data.LayerNumber].IsFullScreen && data.Windows[data.LayerNumber].IsMain)
