@@ -2687,7 +2687,11 @@ void m_IDirectDrawX::GetSurfaceDisplay(DWORD& Width, DWORD& Height, DWORD& BPP, 
 	}
 	else
 	{
-		if (d3d9Device)
+		if (!Config.DdrawWriteToGDI && !Using3D)
+		{
+			Utils::GetScreenSize(hWnd, (LONG&)Width, (LONG&)Height);
+		}
+		else if (d3d9Device)
 		{
 			Width = presParams.BackBufferWidth;
 			Height = presParams.BackBufferHeight;
