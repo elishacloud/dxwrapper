@@ -1107,20 +1107,9 @@ HRESULT m_IDirect3DDeviceX::GetTextureStageState(DWORD dwStage, D3DTEXTURESTAGES
 		case D3DTSS_MAGFILTER:
 		{
 			HRESULT hr = (*d3d9Device)->GetSamplerState(dwStage, D3DSAMP_MAGFILTER, lpdwValue);
-			if (SUCCEEDED(hr))
+			if (SUCCEEDED(hr) && *lpdwValue == D3DTEXF_ANISOTROPIC)
 			{
-				if (*lpdwValue == D3DTEXF_ANISOTROPIC)
-				{
-					*lpdwValue = D3DTFG_ANISOTROPIC;
-				}
-				else if (*lpdwValue == D3DTEXF_PYRAMIDALQUAD)
-				{
-					*lpdwValue = D3DTFG_FLATCUBIC;
-				}
-				else if (*lpdwValue == D3DTEXF_GAUSSIANQUAD)
-				{
-					*lpdwValue = D3DTFG_GAUSSIANCUBIC;
-				}
+				*lpdwValue = D3DTFG_ANISOTROPIC;
 			}
 			return hr;
 		}
@@ -1145,6 +1134,7 @@ HRESULT m_IDirect3DDeviceX::GetTextureStageState(DWORD dwStage, D3DTEXTURESTAGES
 					break;
 				}
 			}
+			return hr;
 		}
 		case D3DTSS_MIPMAPLODBIAS:
 			return (*d3d9Device)->GetSamplerState(dwStage, D3DSAMP_MIPMAPLODBIAS, lpdwValue);
@@ -1210,13 +1200,9 @@ HRESULT m_IDirect3DDeviceX::SetTextureStageState(DWORD dwStage, D3DTEXTURESTAGES
 			{
 				dwValue = D3DTEXF_ANISOTROPIC;
 			}
-			else if (dwValue == D3DTFG_FLATCUBIC)
+			else if (dwValue == D3DTFG_FLATCUBIC || dwValue == D3DTFG_GAUSSIANCUBIC)
 			{
-				dwValue = D3DTEXF_PYRAMIDALQUAD;
-			}
-			else if (dwValue == D3DTFG_GAUSSIANCUBIC)
-			{
-				dwValue = D3DTEXF_GAUSSIANQUAD;
+				dwValue = D3DTEXF_LINEAR;
 			}
 			return (*d3d9Device)->SetSamplerState(dwStage, D3DSAMP_MAGFILTER, dwValue);
 		case D3DTSS_MINFILTER:
