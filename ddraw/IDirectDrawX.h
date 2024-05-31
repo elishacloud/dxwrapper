@@ -190,6 +190,8 @@ public:
 	HRESULT CreateD3D9Device();
 	HRESULT CreateVertexBuffer(DWORD Width, DWORD Height);
 	HRESULT ReinitDevice();
+	HRESULT TestD3D9CooperativeLevel();
+	bool IsD3D9DeviceLost();
 
 	// Device information functions
 	HWND GetHwnd();

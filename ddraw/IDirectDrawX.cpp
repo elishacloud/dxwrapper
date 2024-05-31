@@ -2152,7 +2152,7 @@ HRESULT m_IDirectDrawX::RestoreAllSurfaces()
 		}
 
 		// Check device state
-		HRESULT hr = d3d9Device->TestCooperativeLevel();
+		HRESULT hr = TestD3D9CooperativeLevel();
 		if (hr == D3DERR_DEVICENOTRESET)
 		{
 			hr = ReinitDevice();
@@ -2186,13 +2186,7 @@ HRESULT m_IDirectDrawX::TestCooperativeLevel()
 
 	if (Config.Dd7to9)
 	{
-		if (!d3d9Device)
-		{
-			// Just return OK until device is setup
-			return DD_OK;
-		}
-
-		switch (d3d9Device->TestCooperativeLevel())
+		switch (TestD3D9CooperativeLevel())
 		{
 		case D3DERR_INVALIDCALL:
 		case D3DERR_DRIVERINTERNALERROR:
@@ -3270,7 +3264,7 @@ HRESULT m_IDirectDrawX::ReinitDevice()
 	}
 
 	// Check if device is ready to be restored
-	HRESULT hr = d3d9Device->TestCooperativeLevel();
+	HRESULT hr = TestD3D9CooperativeLevel();
 	if (SUCCEEDED(hr) || hr == DDERR_NOEXCLUSIVEMODE)
 	{
 		return hr;
@@ -3292,8 +3286,6 @@ HRESULT m_IDirectDrawX::ReinitDevice()
 		LOG_LIMIT(100, __FUNCTION__ << " Error: TestCooperativeLevel = " << (D3DERR)hr);
 		return DDERR_WRONGMODE;
 	}
-
-	IsDeviceLost = true;
 
 	SetCriticalSection();
 	SetPTCriticalSection();
@@ -3329,11 +3321,39 @@ HRESULT m_IDirectDrawX::ReinitDevice()
 
 	} while (false);
 
+	// Reset flags
+	if (SUCCEEDED(hr))
+	{
+		IsDeviceLost = false;
+	}
+
 	ReleasePTCriticalSection();
 	ReleaseCriticalSection();
 
 	// Return
 	return hr;
+}
+
+HRESULT m_IDirectDrawX::TestD3D9CooperativeLevel()
+{
+	if (d3d9Device)
+	{
+		HRESULT hr = d3d9Device->TestCooperativeLevel();
+
+		if (hr == D3DERR_DEVICENOTRESET || hr == D3DERR_DEVICELOST)
+		{
+			IsDeviceLost = true;
+		}
+
+		return hr;
+	}
+
+	return DD_OK;
+}
+
+bool m_IDirectDrawX::IsD3D9DeviceLost()
+{
+	return IsDeviceLost;
 }
 
 inline void m_IDirectDrawX::ResetAllSurfaceDisplay()
@@ -4206,7 +4226,7 @@ HRESULT m_IDirectDrawX::Present(RECT* pSourceRect, RECT* pDestRect)
 	}
 	else
 	{
-		hr = d3d9Device->TestCooperativeLevel();
+		hr = TestD3D9CooperativeLevel();
 		hr = (hr == DDERR_NOEXCLUSIVEMODE) ? DD_OK : hr;
 	}
 
