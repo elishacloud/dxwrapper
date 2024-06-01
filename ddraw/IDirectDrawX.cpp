@@ -500,6 +500,8 @@ HRESULT m_IDirectDrawX::CreateSurface2(LPDDSURFACEDESC2 lpDDSurfaceDesc2, LPDIRE
 
 	if (Config.Dd7to9)
 	{
+		*lplpDDSurface = nullptr;
+
 		if (lpDDSurfaceDesc2->dwSize != sizeof(DDSURFACEDESC2))
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Error: Invalid parameters. dwSize: " << lpDDSurfaceDesc2->dwSize);
@@ -573,7 +575,7 @@ HRESULT m_IDirectDrawX::CreateSurface2(LPDDSURFACEDESC2 lpDDSurfaceDesc2, LPDIRE
 		}
 
 		// Check for unsupported flags
-		DWORD UnsupportedDDSDFlags = (DDSD_ALPHABITDEPTH | DDSD_LPSURFACE | DDSD_LINEARSIZE | DDSD_FVF | DDSD_SRCVBHANDLE | DDSD_DEPTH);
+		DWORD UnsupportedDDSDFlags = (DDSD_ALPHABITDEPTH | DDSD_LINEARSIZE | DDSD_FVF | DDSD_SRCVBHANDLE | DDSD_DEPTH);
 		if (lpDDSurfaceDesc2->dwFlags & UnsupportedDDSDFlags)
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Warning: non-supported dwFlags! " << Logging::hex(lpDDSurfaceDesc2->dwFlags & UnsupportedDDSDFlags));

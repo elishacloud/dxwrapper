@@ -113,6 +113,7 @@ private:
 		bool IsUsingWindowedMode = false;
 		bool IsSurfaceLost = false;
 		bool SurfaceHasData = false;
+		bool UsingSurfaceMemory = false;
 		bool IsDirtyFlag = false;
 		bool IsDrawTextureDirty = false;
 		bool IsPaletteDirty = false;						// Used to detect if the palette surface needs to be updated

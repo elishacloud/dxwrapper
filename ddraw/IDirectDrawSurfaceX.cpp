@@ -1579,9 +1579,7 @@ HRESULT m_IDirectDrawSurfaceX::GetAttachedSurface2(LPDDSCAPS2 lpDDSCaps2, LPDIRE
 			return DDERR_NOTFOUND;
 		}
 
-		m_IDirectDrawSurfaceX *lpAttachedSurface = (m_IDirectDrawSurfaceX *)lpFoundSurface->GetWrapperInterfaceX(DirectXVersion);
-
-		*lplpDDAttachedSurface = (LPDIRECTDRAWSURFACE7)lpAttachedSurface;
+		*lplpDDAttachedSurface = (LPDIRECTDRAWSURFACE7)lpFoundSurface->GetWrapperInterfaceX(DirectXVersion);
 
 		(*lplpDDAttachedSurface)->AddRef();
 
@@ -2178,8 +2176,9 @@ HRESULT m_IDirectDrawSurfaceX::GetSurfaceDesc2(LPDDSURFACEDESC2 lpDDSurfaceDesc2
 		*lpDDSurfaceDesc2 = surfaceDesc2;
 
 		// Remove surface memory pointer
-		if (!(lpDDSurfaceDesc2->dwFlags & DDSD_LPSURFACE))
+		if (!surface.UsingSurfaceMemory)
 		{
+			lpDDSurfaceDesc2->dwFlags &= ~DDSD_LPSURFACE;
 			lpDDSurfaceDesc2->lpSurface = nullptr;
 		}
 
@@ -2355,8 +2354,9 @@ HRESULT m_IDirectDrawSurfaceX::Lock2(LPRECT lpDestRect, LPDDSURFACEDESC2 lpDDSur
 
 		// Prepare surfaceDesc
 		*lpDDSurfaceDesc2 = surfaceDesc2;
-		if (!(lpDDSurfaceDesc2->dwFlags & DDSD_LPSURFACE))
+		if (!surface.UsingSurfaceMemory)
 		{
+			lpDDSurfaceDesc2->dwFlags &= ~DDSD_LPSURFACE;
 			lpDDSurfaceDesc2->lpSurface = nullptr;
 		}
 		DWORD Level = 0;
@@ -2521,11 +2521,9 @@ HRESULT m_IDirectDrawSurfaceX::Lock2(LPRECT lpDestRect, LPDDSURFACEDESC2 lpDDSur
 			}
 
 			// Set surfaceDesc
-			if (!(lpDDSurfaceDesc2->dwFlags & DDSD_LPSURFACE))
-			{
-				lpDDSurfaceDesc2->lpSurface = LockedRect.pBits;
-				lpDDSurfaceDesc2->dwFlags |= DDSD_LPSURFACE;
-			}
+			lpDDSurfaceDesc2->lpSurface = LockedRect.pBits;
+			lpDDSurfaceDesc2->dwFlags |= DDSD_LPSURFACE;
+
 			// Pitch for DXT surfaces in DirectDraw is the full surface byte size
 			LockedRect.Pitch =
 				ISDXTEX(surfaceFormat) ? ((GetByteAlignedWidth(lpDDSurfaceDesc2->dwWidth, surfaceBitCount) + 3) / 4) * ((lpDDSurfaceDesc2->dwHeight + 3) / 4) * (surfaceFormat == D3DFMT_DXT1 ? 8 : 16) :
@@ -2587,8 +2585,14 @@ HRESULT m_IDirectDrawSurfaceX::Lock2(LPRECT lpDestRect, LPDDSURFACEDESC2 lpDDSur
 
 inline HRESULT m_IDirectDrawSurfaceX::LockD39Surface(D3DLOCKED_RECT* pLockedRect, RECT* pRect, DWORD Flags, DWORD MipMapLevel)
 {
+	if (surface.UsingSurfaceMemory)
+	{
+		pLockedRect->Pitch = surfaceDesc2.dwWidth * surfaceBitCount / 8;
+		pLockedRect->pBits = (pRect) ? (void*)((DWORD)surfaceDesc2.lpSurface + ((pRect->top * pLockedRect->Pitch) + (pRect->left * (surfaceBitCount / 8)))) : surfaceDesc2.lpSurface;
+		return DD_OK;
+	}
 	// Lock surface texture
-	if (surface.Texture)
+	else if (surface.Texture)
 	{
 		return surface.Texture->LockRect(GetD39MipMapLevel(MipMapLevel), pLockedRect, pRect, Flags);
 	}
@@ -3097,8 +3101,12 @@ HRESULT m_IDirectDrawSurfaceX::Unlock(LPRECT lpRect, DWORD MipMapLevel)
 
 inline HRESULT m_IDirectDrawSurfaceX::UnlockD39Surface(DWORD MipMapLevel)
 {
+	if (surface.UsingSurfaceMemory)
+	{
+		return DD_OK;
+	}
 	// Lock surface texture
-	if (surface.Texture)
+	else if (surface.Texture)
 	{
 		return surface.Texture->UnlockRect(GetD39MipMapLevel(MipMapLevel));
 	}
@@ -3299,6 +3307,10 @@ HRESULT m_IDirectDrawSurfaceX::SetSurfaceDesc2(LPDDSURFACEDESC2 lpDDSurfaceDesc2
 			SurfaceFlags &= ~DDSD_LPSURFACE;
 			surfaceDesc2.dwFlags |= DDSD_LPSURFACE;
 			surfaceDesc2.lpSurface = lpDDSurfaceDesc2->lpSurface;
+			if (surface.Texture || surface.Surface)
+			{
+				CreateD3d9Surface();
+			}
 		}
 		if (SurfaceFlags)
 		{
@@ -3920,11 +3932,12 @@ HRESULT m_IDirectDrawSurfaceX::CreateD3d9Surface()
 	UpdateSurfaceDesc();
 
 	// Get texture format
+	surface.UsingSurfaceMemory = ((surfaceDesc2.dwFlags & DDSD_LPSURFACE) && surfaceDesc2.lpSurface);
 	surfaceFormat = GetDisplayFormat(surfaceDesc2.ddpfPixelFormat);
 	surfaceBitCount = GetBitCount(surfaceFormat);
 	SurfaceRequiresEmulation = ((surfaceFormat == D3DFMT_A8B8G8R8 || surfaceFormat == D3DFMT_X8B8G8R8 || surfaceFormat == D3DFMT_B8G8R8 || surfaceFormat == D3DFMT_R8G8B8 ||
 		Config.DdrawEmulateSurface || (Config.DdrawRemoveScanlines && IsPrimaryOrBackBuffer()) || ShouldEmulate == SC_FORCE_EMULATED) &&
-			!IsDepthBuffer() && !(surfaceFormat & 0xFF000000 /*FOURCC or D3DFMT_DXTx*/));
+			!IsDepthBuffer() && !(surfaceFormat & 0xFF000000 /*FOURCC or D3DFMT_DXTx*/) && !surface.UsingSurfaceMemory);
 	const bool IsSurfaceEmulated = (SurfaceRequiresEmulation || (IsPrimaryOrBackBuffer() && (Config.DdrawWriteToGDI || Config.DdrawReadFromGDI) && !Using3D));
 	DCRequiresEmulation = (surfaceFormat != D3DFMT_R5G6B5 && surfaceFormat != D3DFMT_X1R5G5B5 && surfaceFormat != D3DFMT_R8G8B8 && surfaceFormat != D3DFMT_X8R8G8B8);
 	const D3DFORMAT Format = ConvertSurfaceFormat(surfaceFormat);
@@ -4405,7 +4418,7 @@ void m_IDirectDrawSurfaceX::UpdateSurfaceDesc()
 	{
 		surfaceDesc2.dwFlags |= DDSD_PITCH;
 		DWORD BitCount = GetBitCount(surfaceDesc2.ddpfPixelFormat);
-		surfaceDesc2.lPitch = ComputePitch(GetByteAlignedWidth(surfaceDesc2.dwWidth, BitCount), BitCount);
+		surfaceDesc2.lPitch = surface.UsingSurfaceMemory ? surfaceDesc2.dwWidth * BitCount : ComputePitch(GetByteAlignedWidth(surfaceDesc2.dwWidth, BitCount), BitCount);
 	}
 	// Set surface format
 	if (surfaceFormat == D3DFMT_UNKNOWN && (surfaceDesc2.dwFlags & DDSD_PIXELFORMAT))
@@ -5199,7 +5212,6 @@ inline void m_IDirectDrawSurfaceX::InitSurfaceDesc(DWORD DirectXVersion)
 	}
 	surfaceDesc2.ddsCaps.dwCaps4 = 0x00;
 	surfaceDesc2.dwReserved = 0;
-	surfaceDesc2.lPitch = 0;
 }
 
 // Add attached surface to map
@@ -5689,6 +5701,7 @@ HRESULT m_IDirectDrawSurfaceX::CopySurface(m_IDirectDrawSurfaceX* pSourceSurface
 
 		// Use D3DXLoadSurfaceFromSurface to copy the surface
 		if (!IsUsingEmulation() && !IsColorKey && !IsMirrorLeftRight && !IsMirrorUpDown &&
+			!surface.UsingSurfaceMemory && !pSourceSurface->surface.UsingSurfaceMemory &&
 			((!pSourceSurface->IsPalette() && !IsPalette()) || (pSourceSurface->IsPalette() && IsPalette())))
 		{
 			IDirect3DSurface9* pSourceSurfaceD9 = pSourceSurface->GetD3D9Surface();
