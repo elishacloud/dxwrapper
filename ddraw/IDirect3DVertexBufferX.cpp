@@ -426,7 +426,7 @@ void m_IDirect3DVertexBufferX::ReleaseVertexBuffer()
 	WrapperInterface->DeleteMe();
 	WrapperInterface7->DeleteMe();
 
-	ReleaseD9Buffers(false);
+	ReleaseD9Buffers(false, false);
 
 	if (ddrawParent && !Config.Exiting)
 	{
@@ -588,7 +588,7 @@ void m_IDirect3DVertexBufferX::ReleaseD3D9IndexBuffer()
 	}
 }
 
-void m_IDirect3DVertexBufferX::ReleaseD9Buffers(bool BackupData)
+void m_IDirect3DVertexBufferX::ReleaseD9Buffers(bool BackupData, bool ResetBuffer)
 {
 	if (BackupData && VBDesc.dwFVF != D3DFVF_LVERTEX)
 	{
@@ -596,6 +596,12 @@ void m_IDirect3DVertexBufferX::ReleaseD9Buffers(bool BackupData)
 		//VertexData.resize(d3d9VBDesc.Size);
 	}
 
-	ReleaseD3D9VertexBuffer();
-	ReleaseD3D9IndexBuffer();
+	if (!ResetBuffer || d3d9VBDesc.Pool == D3DPOOL_DEFAULT)
+	{
+		ReleaseD3D9VertexBuffer();
+	}
+	if (!ResetBuffer)
+	{
+		ReleaseD3D9IndexBuffer();
+	}
 }

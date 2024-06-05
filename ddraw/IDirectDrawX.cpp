@@ -2570,7 +2570,7 @@ void m_IDirectDrawX::ReleaseDdraw()
 	// Release vertex buffers
 	for (m_IDirect3DVertexBufferX*& pVertexBuffer : VertexBufferVector)
 	{
-		pVertexBuffer->ReleaseD9Buffers(false);
+		pVertexBuffer->ReleaseD9Buffers(false, false);
 		pVertexBuffer->ClearDdraw();
 	}
 	VertexBufferVector.clear();
@@ -3371,7 +3371,7 @@ inline void m_IDirectDrawX::ResetAllSurfaceDisplay()
 }
 
 // Release all dd9 resources
-inline void m_IDirectDrawX::ReleaseAllD9Resources(bool BackupData, bool ResetSurfaces)
+inline void m_IDirectDrawX::ReleaseAllD9Resources(bool BackupData, bool ResetInterface)
 {
 	SetCriticalSection();
 	SetPTCriticalSection();
@@ -3381,7 +3381,7 @@ inline void m_IDirectDrawX::ReleaseAllD9Resources(bool BackupData, bool ResetSur
 	{
 		for (m_IDirectDrawSurfaceX*& pSurface : pDDraw->SurfaceVector)
 		{
-			pSurface->ReleaseD9Surface(BackupData, ResetSurfaces);
+			pSurface->ReleaseD9Surface(BackupData, ResetInterface);
 		}
 		for (m_IDirectDrawSurfaceX*& pSurface : pDDraw->ReleasedSurfaceVector)
 		{
@@ -3395,7 +3395,7 @@ inline void m_IDirectDrawX::ReleaseAllD9Resources(bool BackupData, bool ResetSur
 	{
 		for (m_IDirect3DVertexBufferX*& pBuffer : pDDraw->VertexBufferVector)
 		{
-			pBuffer->ReleaseD9Buffers(BackupData);
+			pBuffer->ReleaseD9Buffers(BackupData, ResetInterface);
 		}
 	}
 

@@ -124,7 +124,7 @@ public:
 	// Direct3D9 interfaces
 	LPDIRECT3DVERTEXBUFFER9 GetCurrentD9VertexBuffer() { return d3d9VertexBuffer; };
 	LPDIRECT3DINDEXBUFFER9 SetupIndexBuffer(LPWORD lpwIndices, DWORD dwIndexCount);
-	void ReleaseD9Buffers(bool BackupData);
+	void ReleaseD9Buffers(bool BackupData, bool ResetBuffer);
 
 	DWORD GetFVF9() { return d3d9VBDesc.FVF; };
 };
