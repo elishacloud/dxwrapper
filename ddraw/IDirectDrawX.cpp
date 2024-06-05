@@ -107,6 +107,10 @@ struct PRESENTTHREAD
 // Store a list of ddraw devices
 std::vector<m_IDirectDrawX*> DDrawVector;
 
+// Default resolution
+DWORD DefaultWidth = 0;
+DWORD DefaultHeight = 0;
+
 // Exclusive mode settings
 bool SetResolution;
 bool ExclusiveMode;
@@ -1581,6 +1585,10 @@ HRESULT m_IDirectDrawX::RestoreDisplayMode()
 		Device.Height = (Config.DdrawUseNativeResolution || Config.DdrawOverrideHeight) ? Device.Height : 0;
 		Device.RefreshRate = 0;
 
+		// Release d3d9 device
+		ReleaseAllD9Resources(false, false);
+		ReleaseD3D9Device();
+
 		return DD_OK;
 	}
 
@@ -1878,6 +1886,12 @@ HRESULT m_IDirectDrawX::SetDisplayMode(DWORD dwWidth, DWORD dwHeight, DWORD dwBP
 			Exclusive.Height = dwHeight;
 			Exclusive.BPP = NewBPP;
 			Exclusive.RefreshRate = dwRefreshRate;
+		}
+
+		// Get screensize
+		if (!d3d9Device || presParams.Windowed)
+		{
+			Utils::GetScreenSize(DisplayMode.hWnd, (LONG&)DefaultWidth, (LONG&)DefaultHeight);
 		}
 
 		// Update the d3d9 device to use new display mode
@@ -2317,6 +2331,9 @@ void m_IDirectDrawX::InitDdraw(DWORD DirectXVersion)
 
 	if (DDrawVector.size() == 1)
 	{
+		// Get screensize
+		Utils::GetScreenSize(nullptr, (LONG&)DefaultWidth, (LONG&)DefaultHeight);
+
 		// Release DC
 		if (DisplayMode.hWnd && DisplayMode.DC)
 		{
@@ -2895,11 +2912,11 @@ HRESULT m_IDirectDrawX::CreateD3D9Device()
 					BackBufferWidth = Device.Width;
 					BackBufferHeight = Device.Height;
 				}
-				// Use current desktop resolution
+				// Use default desktop resolution
 				else
 				{
-					BackBufferWidth = CurrentWidth;
-					BackBufferHeight = CurrentHeight;
+					BackBufferWidth = DefaultWidth;
+					BackBufferHeight = DefaultHeight;
 				}
 			}
 			else
