@@ -3942,11 +3942,11 @@ HRESULT m_IDirectDrawSurfaceX::CreateD3d9Surface()
 		(IsPrimaryOrBackBuffer() || (surfaceDesc2.ddsCaps.dwCaps & DDSCAPS_TEXTURE) ||
 			(surfaceDesc2.ddsCaps.dwCaps2 & (DDSCAPS2_TEXTUREMANAGE | DDSCAPS2_D3DTEXTUREMANAGE))) ? D3DPOOL_MANAGED :
 		(surfaceDesc2.ddsCaps.dwCaps & DDSCAPS_SYSTEMMEMORY) ? D3DPOOL_SYSTEMMEM : D3DPOOL_MANAGED;
-	surface.SurfacePool = (surfaceDesc2.ddsCaps.dwCaps & DDSCAPS_SYSTEMMEMORY) || !(surfaceDesc2.ddsCaps.dwCaps & DDSCAPS_VIDEOMEMORY) ? D3DPOOL_SYSTEMMEM : D3DPOOL_DEFAULT;
+	surface.SurfacePool = (surfaceDesc2.ddsCaps.dwCaps & DDSCAPS_VIDEOMEMORY) ? D3DPOOL_DEFAULT : D3DPOOL_SYSTEMMEM;	// Default to system memory for Lock() speed
 
 	// Check if surface should be a texture
-	bool IsTexture = IsPrimaryOrBackBuffer() || surface.SurfacePool != D3DPOOL_SYSTEMMEM || (surfaceDesc2.ddsCaps.dwCaps & DDSCAPS_TEXTURE) ||
-		(surfaceDesc2.ddsCaps.dwCaps2 & (DDSCAPS2_TEXTUREMANAGE | DDSCAPS2_D3DTEXTUREMANAGE));
+	bool IsTexture = IsPrimaryOrBackBuffer() || IsPalette() || (surfaceDesc2.ddsCaps.dwCaps & DDSCAPS_VIDEOMEMORY) ||	// Use managed textures for video memory surfaces
+		(surfaceDesc2.ddsCaps.dwCaps & DDSCAPS_TEXTURE) || (surfaceDesc2.ddsCaps.dwCaps2 & (DDSCAPS2_TEXTUREMANAGE | DDSCAPS2_D3DTEXTUREMANAGE));
 
 	// Adjust Width to be byte-aligned
 	const DWORD Width = GetByteAlignedWidth(surfaceDesc2.dwWidth, surfaceBitCount);
