@@ -2995,7 +2995,7 @@ HRESULT m_IDirectDrawX::CreateD3D9Device()
 			if (LastHWnd == hWnd && LastBehaviorFlags == BehaviorFlags)
 			{
 				// Prepare for reset
-				ReleaseAllD9Resources(true, true);
+				ReleaseAllD9Resources(true, false);
 
 				// Reset device. When this method returns: BackBufferCount, BackBufferWidth, and BackBufferHeight are set to zero.
 				D3DPRESENT_PARAMETERS newParams = presParams;
@@ -3008,7 +3008,6 @@ HRESULT m_IDirectDrawX::CreateD3D9Device()
 						" Windowed: " << LastWindowedMode << "->" << presParams.Windowed <<
 						" BehaviorFlags: " << Logging::hex(LastBehaviorFlags) << "->" << Logging::hex(BehaviorFlags);
 
-					ReleaseAllD9Resources(true, false);
 					ReleaseD3D9Device();
 				}
 			}
@@ -4211,13 +4210,6 @@ HRESULT m_IDirectDrawX::Present(RECT* pSourceRect, RECT* pDestRect)
 	{
 		hr = TestD3D9CooperativeLevel();
 		hr = (hr == DDERR_NOEXCLUSIVEMODE) ? DD_OK : hr;
-	}
-
-	// Device lost
-	if (hr == D3DERR_DEVICENOTRESET)
-	{
-		// Attempt to reinit device
-		hr = ReinitDevice();
 	}
 
 	// Present failure
