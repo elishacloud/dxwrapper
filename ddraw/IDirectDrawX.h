@@ -85,7 +85,7 @@ private:
 	HRESULT CheckInterface(char *FunctionName, bool CheckD3DDevice);
 	HRESULT CreateD3D9Object();
 	void ResetAllSurfaceDisplay();
-	void ReleaseAllD9Resources(bool BackupData);
+	void ReleaseAllD9Resources(bool BackupData, bool ResetSurfaces);
 	void ReleaseD3D9Device();
 	void ReleaseD3D9Object();
 
@@ -191,7 +191,6 @@ public:
 	HRESULT CreateVertexBuffer(DWORD Width, DWORD Height);
 	HRESULT ReinitDevice();
 	HRESULT TestD3D9CooperativeLevel();
-	bool IsD3D9DeviceLost();
 
 	// Device information functions
 	HWND GetHwnd();

@@ -163,7 +163,6 @@ inline void ReleasePTCriticalSection()
 }
 
 // Direct3D9 flags
-bool IsDeviceLost;
 bool EnableWaitVsync;
 
 // Direct3D9 Objects
@@ -2350,7 +2349,6 @@ void m_IDirectDrawX::InitDdraw(DWORD DirectXVersion)
 		QueryPerformanceFrequency(&Counter.Frequency);
 
 		// Direct3D9 flags
-		IsDeviceLost = false;
 		EnableWaitVsync = false;
 
 		// Direct3D9 Objects
@@ -2590,7 +2588,7 @@ void m_IDirectDrawX::ReleaseDdraw()
 		}
 
 		// Release all resources
-		ReleaseAllD9Resources(false);
+		ReleaseAllD9Resources(false, false);
 
 		// Release d3d9device
 		if (d3d9Device)
@@ -2997,7 +2995,7 @@ HRESULT m_IDirectDrawX::CreateD3D9Device()
 			if (LastHWnd == hWnd && LastBehaviorFlags == BehaviorFlags)
 			{
 				// Prepare for reset
-				ReleaseAllD9Resources(true);
+				ReleaseAllD9Resources(true, true);
 
 				// Reset device. When this method returns: BackBufferCount, BackBufferWidth, and BackBufferHeight are set to zero.
 				D3DPRESENT_PARAMETERS newParams = presParams;
@@ -3010,6 +3008,7 @@ HRESULT m_IDirectDrawX::CreateD3D9Device()
 						" Windowed: " << LastWindowedMode << "->" << presParams.Windowed <<
 						" BehaviorFlags: " << Logging::hex(LastBehaviorFlags) << "->" << Logging::hex(BehaviorFlags);
 
+					ReleaseAllD9Resources(true, false);
 					ReleaseD3D9Device();
 				}
 			}
@@ -3020,7 +3019,7 @@ HRESULT m_IDirectDrawX::CreateD3D9Device()
 					" Windowed: " << LastWindowedMode << "->" << presParams.Windowed << " " <<
 					Logging::hex(LastBehaviorFlags) << "->" << Logging::hex(BehaviorFlags);
 
-				ReleaseAllD9Resources(true);
+				ReleaseAllD9Resources(true, false);
 				ReleaseD3D9Device();
 			}
 		}
@@ -3040,7 +3039,6 @@ HRESULT m_IDirectDrawX::CreateD3D9Device()
 
 		// Reset flags after creating device
 		LastUsedHWnd = hWnd;
-		IsDeviceLost = false;
 		EnableWaitVsync = false;
 		FourCCsList.clear();
 
@@ -3300,20 +3298,21 @@ HRESULT m_IDirectDrawX::ReinitDevice()
 		}
 
 		// Prepare for reset
-		ReleaseAllD9Resources(true);
+		ReleaseAllD9Resources(true, true);
 
 		// Reset device. When this method returns: BackBufferCount, BackBufferWidth, and BackBufferHeight are set to zero.
 		D3DPRESENT_PARAMETERS newParams = presParams;
 		hr = d3d9Device->Reset(&newParams);
 		if (hr == D3DERR_DEVICEREMOVED || hr == D3DERR_DRIVERINTERNALERROR)
 		{
+			ReleaseAllD9Resources(true, false);
 			ReleaseD3D9Device();
 			ReleaseD3D9Object();
 			CreateD3D9Object();
 			hr = CreateD3D9Device();
 		}
 
-		// Attempt to reset the device
+		// Check if reset device failed
 		if (FAILED(hr))
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Error: failed to reset Direct3D9 device: " << (D3DERR)hr);
@@ -3322,12 +3321,6 @@ HRESULT m_IDirectDrawX::ReinitDevice()
 		}
 
 	} while (false);
-
-	// Reset flags
-	if (SUCCEEDED(hr))
-	{
-		IsDeviceLost = false;
-	}
 
 	ReleasePTCriticalSection();
 	ReleaseCriticalSection();
@@ -3340,22 +3333,10 @@ HRESULT m_IDirectDrawX::TestD3D9CooperativeLevel()
 {
 	if (d3d9Device)
 	{
-		HRESULT hr = d3d9Device->TestCooperativeLevel();
-
-		if (hr == D3DERR_DEVICENOTRESET || hr == D3DERR_DEVICELOST)
-		{
-			IsDeviceLost = true;
-		}
-
-		return hr;
+		return d3d9Device->TestCooperativeLevel();
 	}
 
 	return DD_OK;
-}
-
-bool m_IDirectDrawX::IsD3D9DeviceLost()
-{
-	return IsDeviceLost;
 }
 
 inline void m_IDirectDrawX::ResetAllSurfaceDisplay()
@@ -3374,7 +3355,7 @@ inline void m_IDirectDrawX::ResetAllSurfaceDisplay()
 }
 
 // Release all dd9 resources
-inline void m_IDirectDrawX::ReleaseAllD9Resources(bool BackupData)
+inline void m_IDirectDrawX::ReleaseAllD9Resources(bool BackupData, bool ResetSurfaces)
 {
 	SetCriticalSection();
 	SetPTCriticalSection();
@@ -3384,7 +3365,7 @@ inline void m_IDirectDrawX::ReleaseAllD9Resources(bool BackupData)
 	{
 		for (m_IDirectDrawSurfaceX*& pSurface : pDDraw->SurfaceVector)
 		{
-			pSurface->ReleaseD9Surface(BackupData, IsDeviceLost);
+			pSurface->ReleaseD9Surface(BackupData, ResetSurfaces);
 		}
 		for (m_IDirectDrawSurfaceX*& pSurface : pDDraw->ReleasedSurfaceVector)
 		{

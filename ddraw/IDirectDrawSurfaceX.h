@@ -111,7 +111,6 @@ private:
 	struct D9SURFACE
 	{
 		bool IsUsingWindowedMode = false;
-		bool IsSurfaceLost = false;
 		bool SurfaceHasData = false;
 		bool UsingSurfaceMemory = false;
 		bool IsDirtyFlag = false;
@@ -119,6 +118,7 @@ private:
 		bool IsPaletteDirty = false;						// Used to detect if the palette surface needs to be updated
 		DWORD LastPaletteUSN = 0;							// The USN that was used last time the palette was updated
 		TEXTURECREATE Tex;									// Values used for creating textures
+		D3DPOOL SurfacePool = D3DPOOL_DEFAULT;				// Memory pool surface was created with
 		EMUSURFACE* emu = nullptr;							// Emulated surface using device context
 		LPPALETTEENTRY PaletteEntryArray = nullptr;			// Used to store palette data address
 		LPDIRECT3DSURFACE9 Surface = nullptr;				// Surface used for Direct3D
@@ -238,7 +238,7 @@ private:
 	HRESULT CheckBackBufferForFlip(m_IDirectDrawSurfaceX* lpTargetSurface);
 
 	// Direct3D9 interface functions
-	HRESULT CheckInterface(char* FunctionName, bool CheckD3DDevice, bool CheckD3DSurface, bool CheckLostSurface);
+	HRESULT CheckInterface(char* FunctionName, bool CheckD3DDevice, bool CheckD3DSurface);
 	HRESULT CreateD3d9Surface();
 	bool DoesDCMatch(EMUSURFACE* pEmuSurface);
 	void SetEmulationGameDC();
@@ -429,7 +429,7 @@ public:
 
 	// Direct3D9 interface functions
 	void ReleaseD9ContextSurface();
-	void ReleaseD9Surface(bool BackupData, bool DeviceLost);
+	void ReleaseD9Surface(bool BackupData, bool ResetSurface);
 	HRESULT PresentSurface(bool isSkipScene);
 	void ResetSurfaceDisplay();
 
