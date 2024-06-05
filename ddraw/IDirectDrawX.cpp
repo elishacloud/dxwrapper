@@ -4221,7 +4221,6 @@ HRESULT m_IDirectDrawX::Present(RECT* pSourceRect, RECT* pDestRect)
 	if (!IsUsingThreadPresent())
 	{
 		hr = d3d9Device->Present(pSourceRect, pDestRect, nullptr, nullptr);
-		hr = (hr == D3DERR_DEVICELOST) ? D3DERR_DEVICENOTRESET : hr;
 	}
 	else
 	{

@@ -238,7 +238,7 @@ private:
 	HRESULT CheckBackBufferForFlip(m_IDirectDrawSurfaceX* lpTargetSurface);
 
 	// Direct3D9 interface functions
-	HRESULT CheckInterface(char* FunctionName, bool CheckD3DDevice, bool CheckD3DSurface);
+	HRESULT CheckInterface(char* FunctionName, bool CheckD3DDevice, bool CheckD3DSurface, bool CheckLostSurface);
 	HRESULT CreateD3d9Surface();
 	bool DoesDCMatch(EMUSURFACE* pEmuSurface);
 	void SetEmulationGameDC();
