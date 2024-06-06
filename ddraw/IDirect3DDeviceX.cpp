@@ -4160,8 +4160,7 @@ inline void m_IDirect3DDeviceX::SetDrawStates(DWORD dwVertexTypeDesc, DWORD& dwF
 	}
 	if (dwFlags & D3DDP_DXW_DRAW2DSURFACE)
 	{
-		// Get states set by DirectDrawSurface
-		(*d3d9Device)->GetRenderState(D3DRS_LIGHTING, &DrawStates.rsLighting);
+		// Get sampler states
 		(*d3d9Device)->GetSamplerState(0, D3DSAMP_MAGFILTER, &DrawStates.ssMagFilter[0]);
 
 		// Get texture states
@@ -4171,26 +4170,13 @@ inline void m_IDirect3DDeviceX::SetDrawStates(DWORD dwVertexTypeDesc, DWORD& dwF
 		(*d3d9Device)->GetTextureStageState(0, D3DTSS_ALPHAOP, &DrawStates.tsAlphaOP);
 
 		// Get render states
+		(*d3d9Device)->GetRenderState(D3DRS_LIGHTING, &DrawStates.rsLighting);
 		(*d3d9Device)->GetRenderState(D3DRS_ALPHATESTENABLE, &DrawStates.rsAlphaTestEnable);
 		(*d3d9Device)->GetRenderState(D3DRS_ALPHABLENDENABLE, &DrawStates.rsAlphaBlendEnable);
 		(*d3d9Device)->GetRenderState(D3DRS_FOGENABLE, &DrawStates.rsFogEnable);
 		(*d3d9Device)->GetRenderState(D3DRS_ZENABLE, &DrawStates.rsZEnable);
 		(*d3d9Device)->GetRenderState(D3DRS_ZWRITEENABLE, &DrawStates.rsZWriteEnable);
 		(*d3d9Device)->GetRenderState(D3DRS_STENCILENABLE, &DrawStates.rsStencilEnable);
-
-		// Set texture states
-		(*d3d9Device)->SetTextureStageState(0, D3DTSS_COLOROP, D3DTOP_MODULATE);
-		(*d3d9Device)->SetTextureStageState(0, D3DTSS_COLORARG1, D3DTA_TEXTURE);
-		(*d3d9Device)->SetTextureStageState(0, D3DTSS_COLORARG2, D3DTA_CURRENT);
-		(*d3d9Device)->SetTextureStageState(0, D3DTSS_ALPHAOP, D3DTOP_DISABLE);
-
-		// Set render states
-		(*d3d9Device)->SetRenderState(D3DRS_ALPHATESTENABLE, FALSE);
-		(*d3d9Device)->SetRenderState(D3DRS_ALPHABLENDENABLE, FALSE);
-		(*d3d9Device)->SetRenderState(D3DRS_FOGENABLE, FALSE);
-		(*d3d9Device)->SetRenderState(D3DRS_ZENABLE, FALSE);
-		(*d3d9Device)->SetRenderState(D3DRS_ZWRITEENABLE, FALSE);
-		(*d3d9Device)->SetRenderState(D3DRS_STENCILENABLE, FALSE);
 
 		// Set textures
 		for (int x = 1; x < MaxTextureStages; x++)
@@ -4276,8 +4262,7 @@ inline void m_IDirect3DDeviceX::RestoreDrawStates(DWORD dwVertexTypeDesc, DWORD 
 	}
 	if (dwFlags & D3DDP_DXW_DRAW2DSURFACE)
 	{
-		// Restore states set by DirectDrawSurface
-		(*d3d9Device)->SetRenderState(D3DRS_LIGHTING, DrawStates.rsLighting);
+		// Restore sampler states
 		(*d3d9Device)->SetSamplerState(0, D3DSAMP_MAGFILTER, DrawStates.ssMagFilter[0]);
 
 		// Restore texture states
@@ -4287,6 +4272,7 @@ inline void m_IDirect3DDeviceX::RestoreDrawStates(DWORD dwVertexTypeDesc, DWORD 
 		(*d3d9Device)->SetTextureStageState(0, D3DTSS_ALPHAOP, DrawStates.tsAlphaOP);
 
 		// Restore render states
+		(*d3d9Device)->SetRenderState(D3DRS_LIGHTING, DrawStates.rsLighting);
 		(*d3d9Device)->SetRenderState(D3DRS_ALPHATESTENABLE, DrawStates.rsAlphaTestEnable);
 		(*d3d9Device)->SetRenderState(D3DRS_ALPHABLENDENABLE, DrawStates.rsAlphaBlendEnable);
 		(*d3d9Device)->SetRenderState(D3DRS_FOGENABLE, DrawStates.rsFogEnable);

@@ -3990,18 +3990,23 @@ HRESULT m_IDirectDrawX::Draw2DSurface(m_IDirectDrawSurfaceX* DrawSurface)
 			return DDERR_GENERIC;
 		}
 
-		// Set render states (no lighting)
-		if (FAILED(d3d9Device->SetRenderState(D3DRS_LIGHTING, FALSE)))
-		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error: failed to set device render state(no lighting)");
-			return DDERR_GENERIC;
-		}
+		// Get sampler states
+		d3d9Device->SetSamplerState(0, D3DSAMP_MAGFILTER, D3DTEXF_POINT);
 
-		// Set scale mode to point
-		if (FAILED(d3d9Device->SetSamplerState(0, D3DSAMP_MAGFILTER, D3DTEXF_POINT)))
-		{
-			LOG_LIMIT(100, __FUNCTION__ << " Warning: failed to set D3D device to POINT sampling");
-		}
+		// Set texture states
+		d3d9Device->SetTextureStageState(0, D3DTSS_COLOROP, D3DTOP_MODULATE);
+		d3d9Device->SetTextureStageState(0, D3DTSS_COLORARG1, D3DTA_TEXTURE);
+		d3d9Device->SetTextureStageState(0, D3DTSS_COLORARG2, D3DTA_CURRENT);
+		d3d9Device->SetTextureStageState(0, D3DTSS_ALPHAOP, D3DTOP_DISABLE);
+
+		// Set render states
+		d3d9Device->SetRenderState(D3DRS_LIGHTING, FALSE);
+		d3d9Device->SetRenderState(D3DRS_ALPHATESTENABLE, FALSE);
+		d3d9Device->SetRenderState(D3DRS_ALPHABLENDENABLE, FALSE);
+		d3d9Device->SetRenderState(D3DRS_FOGENABLE, FALSE);
+		d3d9Device->SetRenderState(D3DRS_ZENABLE, FALSE);
+		d3d9Device->SetRenderState(D3DRS_ZWRITEENABLE, FALSE);
+		d3d9Device->SetRenderState(D3DRS_STENCILENABLE, FALSE);
 	}
 
 	// Draw primitive
