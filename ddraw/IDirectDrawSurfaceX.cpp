@@ -2266,6 +2266,12 @@ HRESULT m_IDirectDrawSurfaceX::GetSurfaceDesc2(LPDDSURFACEDESC2 lpDDSurfaceDesc2
 			lpDDSurfaceDesc2->dwFlags |= DDSD_PITCH;
 		}
 
+		// Handle managed texture memory type
+		if ((lpDDSurfaceDesc2->ddsCaps.dwCaps & DDSCAPS_TEXTURE) && (lpDDSurfaceDesc2->ddsCaps.dwCaps2 & DDSCAPS2_TEXTUREMANAGE))
+		{
+			lpDDSurfaceDesc2->ddsCaps.dwCaps = (lpDDSurfaceDesc2->ddsCaps.dwCaps & ~(DDSCAPS_LOCALVIDMEM | DDSCAPS_VIDEOMEMORY)) | DDSCAPS_SYSTEMMEMORY;
+		}
+
 		// Return
 		return DD_OK;
 	}
