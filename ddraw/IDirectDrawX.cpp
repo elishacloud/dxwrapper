@@ -41,6 +41,22 @@ DWORD ScaleDDCurrentHeight = 0;
 DWORD ScaleDDPadX = 0;
 DWORD ScaleDDPadY = 0;
 
+struct DRAWSTATEBACKUP
+{
+	DWORD ssMagFilter = 0;
+	DWORD tsColorOP = 0;
+	DWORD tsColorArg1 = 0;
+	DWORD tsColorArg2 = 0;
+	DWORD tsAlphaOP = 0;
+	DWORD rsLighting = 0;
+	DWORD rsAlphaBlendEnable = 0;
+	DWORD rsAlphaTestEnable = 0;
+	DWORD rsFogEnable = 0;
+	DWORD rsZEnable = 0;
+	DWORD rsZWriteEnable = 0;
+	DWORD rsStencilEnable = 0;
+};
+
 // Mouse hook
 struct MOUSEHOOK
 {
@@ -673,6 +689,8 @@ HRESULT m_IDirectDrawX::CreateSurface2(LPDDSURFACEDESC2 lpDDSurfaceDesc2, LPDIRE
 			const bool IsDepthStencilSurface = (Desc2.ddpfPixelFormat.dwFlags & (DDPF_ZBUFFER | DDPF_STENCILBUFFER));
 
 			// ToDo: handle Config.DdrawOverrideStencilFormat
+
+			Logging::Log() << __FUNCTION__  << " Found Stencil surface: " << GetDisplayFormat(Desc2.ddpfPixelFormat);
 
 			if (IsDepthStencilSurface && DepthStencilSurface)
 			{
@@ -4004,37 +4022,73 @@ HRESULT m_IDirectDrawX::Draw2DSurface(m_IDirectDrawSurfaceX* DrawSurface)
 			LOG_LIMIT(100, __FUNCTION__ << " Error: failed to set vertex buffer stream source");
 			return DDERR_GENERIC;
 		}
-
-		// Get sampler states
-		d3d9Device->SetSamplerState(0, D3DSAMP_MAGFILTER, D3DTEXF_POINT);
-
-		// Set texture states
-		d3d9Device->SetTextureStageState(0, D3DTSS_COLOROP, D3DTOP_MODULATE);
-		d3d9Device->SetTextureStageState(0, D3DTSS_COLORARG1, D3DTA_TEXTURE);
-		d3d9Device->SetTextureStageState(0, D3DTSS_COLORARG2, D3DTA_CURRENT);
-		d3d9Device->SetTextureStageState(0, D3DTSS_ALPHAOP, D3DTOP_DISABLE);
-
-		// Set render states
-		d3d9Device->SetRenderState(D3DRS_LIGHTING, FALSE);
-		d3d9Device->SetRenderState(D3DRS_ALPHATESTENABLE, FALSE);
-		d3d9Device->SetRenderState(D3DRS_ALPHABLENDENABLE, FALSE);
-		d3d9Device->SetRenderState(D3DRS_FOGENABLE, FALSE);
-		d3d9Device->SetRenderState(D3DRS_ZENABLE, FALSE);
-		d3d9Device->SetRenderState(D3DRS_ZWRITEENABLE, FALSE);
-		d3d9Device->SetRenderState(D3DRS_STENCILENABLE, FALSE);
 	}
 
+	DRAWSTATEBACKUP DrawStates;
+
+	// Sampler states
+	d3d9Device->GetSamplerState(0, D3DSAMP_MAGFILTER, &DrawStates.ssMagFilter);
+	d3d9Device->SetSamplerState(0, D3DSAMP_MAGFILTER, D3DTEXF_POINT);
+
+	// Texture states
+	d3d9Device->GetTextureStageState(0, D3DTSS_COLOROP, &DrawStates.tsColorOP);
+	d3d9Device->GetTextureStageState(0, D3DTSS_COLORARG1, &DrawStates.tsColorArg1);
+	d3d9Device->GetTextureStageState(0, D3DTSS_COLORARG2, &DrawStates.tsColorArg2);
+	d3d9Device->GetTextureStageState(0, D3DTSS_ALPHAOP, &DrawStates.tsAlphaOP);
+	d3d9Device->SetTextureStageState(0, D3DTSS_COLOROP, D3DTOP_MODULATE);
+	d3d9Device->SetTextureStageState(0, D3DTSS_COLORARG1, D3DTA_TEXTURE);
+	d3d9Device->SetTextureStageState(0, D3DTSS_COLORARG2, D3DTA_CURRENT);
+	d3d9Device->SetTextureStageState(0, D3DTSS_ALPHAOP, D3DTOP_DISABLE);
+
+	// Render states
+	d3d9Device->GetRenderState(D3DRS_LIGHTING, &DrawStates.rsLighting);
+	d3d9Device->GetRenderState(D3DRS_ALPHATESTENABLE, &DrawStates.rsAlphaTestEnable);
+	d3d9Device->GetRenderState(D3DRS_ALPHABLENDENABLE, &DrawStates.rsAlphaBlendEnable);
+	d3d9Device->GetRenderState(D3DRS_FOGENABLE, &DrawStates.rsFogEnable);
+	d3d9Device->GetRenderState(D3DRS_ZENABLE, &DrawStates.rsZEnable);
+	d3d9Device->GetRenderState(D3DRS_ZWRITEENABLE, &DrawStates.rsZWriteEnable);
+	d3d9Device->GetRenderState(D3DRS_STENCILENABLE, &DrawStates.rsStencilEnable);
+	d3d9Device->SetRenderState(D3DRS_LIGHTING, FALSE);
+	d3d9Device->SetRenderState(D3DRS_ALPHATESTENABLE, FALSE);
+	d3d9Device->SetRenderState(D3DRS_ALPHABLENDENABLE, FALSE);
+	d3d9Device->SetRenderState(D3DRS_FOGENABLE, FALSE);
+	d3d9Device->SetRenderState(D3DRS_ZENABLE, FALSE);
+	d3d9Device->SetRenderState(D3DRS_ZWRITEENABLE, FALSE);
+	d3d9Device->SetRenderState(D3DRS_STENCILENABLE, FALSE);
+
 	// Draw primitive
+	HRESULT hr = DD_OK;
 	if (FAILED(d3d9Device->DrawPrimitive(D3DPT_TRIANGLEFAN, 0, 2)))
 	{
 		LOG_LIMIT(100, __FUNCTION__ << " Error: failed to draw primitive");
-		return DDERR_GENERIC;
+		hr = DDERR_GENERIC;
 	}
 
-	// Reset dirty flags
-	DrawSurface->ClearDirtyFlags();
+	// Restore sampler states
+	d3d9Device->SetSamplerState(0, D3DSAMP_MAGFILTER, DrawStates.ssMagFilter);
 
-	return DD_OK;
+	// Restore texture states
+	d3d9Device->SetTextureStageState(0, D3DTSS_COLOROP, DrawStates.tsColorOP);
+	d3d9Device->SetTextureStageState(0, D3DTSS_COLORARG1, DrawStates.tsColorArg1);
+	d3d9Device->SetTextureStageState(0, D3DTSS_COLORARG2, DrawStates.tsColorArg2);
+	d3d9Device->SetTextureStageState(0, D3DTSS_ALPHAOP, DrawStates.tsAlphaOP);
+
+	// Restore render states
+	d3d9Device->SetRenderState(D3DRS_LIGHTING, DrawStates.rsLighting);
+	d3d9Device->SetRenderState(D3DRS_ALPHATESTENABLE, DrawStates.rsAlphaTestEnable);
+	d3d9Device->SetRenderState(D3DRS_ALPHABLENDENABLE, DrawStates.rsAlphaBlendEnable);
+	d3d9Device->SetRenderState(D3DRS_FOGENABLE, DrawStates.rsFogEnable);
+	d3d9Device->SetRenderState(D3DRS_ZENABLE, DrawStates.rsZEnable);
+	d3d9Device->SetRenderState(D3DRS_ZWRITEENABLE, DrawStates.rsZWriteEnable);
+	d3d9Device->SetRenderState(D3DRS_STENCILENABLE, DrawStates.rsStencilEnable);
+
+	// Reset dirty flags
+	if (SUCCEEDED(hr))
+	{
+		DrawSurface->ClearDirtyFlags();
+	}
+
+	return hr;
 }
 
 HRESULT m_IDirectDrawX::Present2DScene(m_IDirectDrawSurfaceX* DrawSurface, RECT* pSourceRect, RECT* pDestRect)

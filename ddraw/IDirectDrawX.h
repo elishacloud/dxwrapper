@@ -210,6 +210,8 @@ public:
 	void RemoveSurfaceFromVector(m_IDirectDrawSurfaceX* lpSurfaceX);
 	bool DoesSurfaceExist(m_IDirectDrawSurfaceX* lpSurfaceX);
 	m_IDirectDrawSurfaceX *GetPrimarySurface() { return PrimarySurface; }
+	m_IDirectDrawSurfaceX *GetRenderTargetSurface() { return RenderTargetSurface; }
+	m_IDirectDrawSurfaceX *GetDepthStencilSurface() { return DepthStencilSurface; }
 	void EvictManagedTextures();
 
 	// Clipper vector functions
