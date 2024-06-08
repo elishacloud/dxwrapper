@@ -107,7 +107,7 @@ HRESULT m_IDirectDrawSurface::EnumAttachedSurfaces(LPVOID a, LPDDENUMSURFACESCAL
 	{
 		return DDERR_INVALIDOBJECT;
 	}
-	return ProxyInterface->EnumAttachedSurfaces(a, b, DirectXVersion);
+	return ProxyInterface->EnumAttachedSurfaces(a, b, MipMapLevel, DirectXVersion);
 }
 
 HRESULT m_IDirectDrawSurface::EnumOverlayZOrders(DWORD a, LPVOID b, LPDDENUMSURFACESCALLBACK c)

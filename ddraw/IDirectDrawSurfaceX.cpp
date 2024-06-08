@@ -1040,7 +1040,7 @@ HRESULT m_IDirectDrawSurfaceX::GetMipMapSubLevel(LPDIRECTDRAWSURFACE7 FAR* lplpD
 	return DDERR_NOTFOUND;
 }
 
-HRESULT m_IDirectDrawSurfaceX::EnumAttachedSurfaces(LPVOID lpContext, LPDDENUMSURFACESCALLBACK lpEnumSurfacesCallback, DWORD DirectXVersion)
+HRESULT m_IDirectDrawSurfaceX::EnumAttachedSurfaces(LPVOID lpContext, LPDDENUMSURFACESCALLBACK lpEnumSurfacesCallback, DWORD MipMapLevel, DWORD DirectXVersion)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
@@ -1051,7 +1051,7 @@ HRESULT m_IDirectDrawSurfaceX::EnumAttachedSurfaces(LPVOID lpContext, LPDDENUMSU
 
 	if (ProxyDirectXVersion > 3)
 	{
-		return EnumAttachedSurfaces2(lpContext, (LPDDENUMSURFACESCALLBACK7)lpEnumSurfacesCallback, DirectXVersion);
+		return EnumAttachedSurfaces2(lpContext, (LPDDENUMSURFACESCALLBACK7)lpEnumSurfacesCallback, MipMapLevel, DirectXVersion);
 	}
 
 	struct EnumSurface
@@ -1079,7 +1079,7 @@ HRESULT m_IDirectDrawSurfaceX::EnumAttachedSurfaces(LPVOID lpContext, LPDDENUMSU
 	return GetProxyInterfaceV3()->EnumAttachedSurfaces(&CallbackContext, EnumSurface::ConvertCallback);
 }
 
-HRESULT m_IDirectDrawSurfaceX::EnumAttachedSurfaces2(LPVOID lpContext, LPDDENUMSURFACESCALLBACK7 lpEnumSurfacesCallback7, DWORD DirectXVersion)
+HRESULT m_IDirectDrawSurfaceX::EnumAttachedSurfaces2(LPVOID lpContext, LPDDENUMSURFACESCALLBACK7 lpEnumSurfacesCallback7, DWORD MipMapLevel, DWORD DirectXVersion)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
@@ -1124,14 +1124,15 @@ HRESULT m_IDirectDrawSurfaceX::EnumAttachedSurfaces2(LPVOID lpContext, LPDDENUMS
 
 	if (Config.Dd7to9)
 	{
-		for (size_t x = 1; x < MipMaps.size(); x++)
+		// Handle mipmaps
+		if (!MipMaps.empty())
 		{
 			LPDIRECTDRAWSURFACE7 lpDDAttachedSurface = nullptr;
-			if (SUCCEEDED(GetMipMapSubLevel(&lpDDAttachedSurface, x, DirectXVersion)))
+			if (SUCCEEDED(GetMipMapSubLevel(&lpDDAttachedSurface, MipMapLevel, DirectXVersion)))
 			{
 				DDSURFACEDESC2 Desc2 = {};
 				Desc2.dwSize = sizeof(DDSURFACEDESC2);
-				lpDDAttachedSurface->GetSurfaceDesc(&Desc2);
+				GetSurfaceDesc2(&Desc2, MipMapLevel + 1, DirectXVersion);
 				if (EnumSurface::ConvertCallback(lpDDAttachedSurface, &Desc2, &CallbackContext) == DDENUMRET_CANCEL)
 				{
 					return DD_OK;
@@ -2234,25 +2235,35 @@ HRESULT m_IDirectDrawSurfaceX::GetSurfaceDesc2(LPDDSURFACEDESC2 lpDDSurfaceDesc2
 				MipMaps[Level].dwWidth = Desc.Width;
 				MipMaps[Level].dwHeight = Desc.Height;
 			}
-			// Get lPitch
-			if ((lpDDSurfaceDesc2->dwFlags & (DDSD_WIDTH | DDSD_HEIGHT | DDSD_PIXELFORMAT)) == (DDSD_WIDTH | DDSD_HEIGHT | DDSD_PIXELFORMAT) &&
-				(lpDDSurfaceDesc2->ddpfPixelFormat.dwFlags & DDPF_RGB) && !(lpDDSurfaceDesc2->dwFlags & DDSD_LINEARSIZE) && !MipMaps[Level].lPitch)
-			{
-				DWORD BitCount = GetBitCount(lpDDSurfaceDesc2->ddpfPixelFormat);
-				MipMaps[Level].lPitch = ComputePitch(GetByteAlignedWidth(lpDDSurfaceDesc2->dwWidth, BitCount), BitCount);
-			}
 			lpDDSurfaceDesc2->dwWidth = MipMaps[Level].dwWidth;
 			lpDDSurfaceDesc2->dwHeight = MipMaps[Level].dwHeight;
-			lpDDSurfaceDesc2->lPitch = MipMaps[Level].lPitch;
-			if (lpDDSurfaceDesc2->lPitch)
+			if (MipMaps[Level].lPitch)
 			{
-				lpDDSurfaceDesc2->dwFlags |= DDSD_PITCH;
+				lpDDSurfaceDesc2->lPitch = MipMaps[Level].lPitch;
+			}
+			else
+			{
+				DWORD BitCount = GetBitCount(lpDDSurfaceDesc2->ddpfPixelFormat);
+				lpDDSurfaceDesc2->lPitch = ComputePitch(lpDDSurfaceDesc2->dwHeight, BitCount);
 			}
 			if (Level != 0 && DirectXVersion == 7)
 			{
 				lpDDSurfaceDesc2->ddsCaps.dwCaps2 |= DDSCAPS2_MIPMAPSUBLEVEL;
 			}
 			lpDDSurfaceDesc2->dwMipMapCount = MaxMipMapLevel > MipMapLevel ? MaxMipMapLevel - MipMapLevel : 1;
+		}
+		// Get lPitch
+		else if ((lpDDSurfaceDesc2->dwFlags & (DDSD_WIDTH | DDSD_HEIGHT | DDSD_PIXELFORMAT)) == (DDSD_WIDTH | DDSD_HEIGHT | DDSD_PIXELFORMAT) &&
+			(lpDDSurfaceDesc2->ddpfPixelFormat.dwFlags & DDPF_RGB) && !(lpDDSurfaceDesc2->dwFlags & DDSD_LINEARSIZE))
+		{
+			DWORD BitCount = GetBitCount(lpDDSurfaceDesc2->ddpfPixelFormat);
+			lpDDSurfaceDesc2->lPitch = ComputePitch(GetByteAlignedWidth(lpDDSurfaceDesc2->dwWidth, BitCount), BitCount);
+		}
+
+		// Add pitch flag
+		if (lpDDSurfaceDesc2->lPitch)
+		{
+			lpDDSurfaceDesc2->dwFlags |= DDSD_PITCH;
 		}
 
 		// Return
@@ -2408,29 +2419,7 @@ HRESULT m_IDirectDrawSurfaceX::Lock2(LPRECT lpDestRect, LPDDSURFACEDESC2 lpDDSur
 		HRESULT c_hr = CheckInterface(__FUNCTION__, true, true, false);
 
 		// Prepare surfaceDesc
-		*lpDDSurfaceDesc2 = surfaceDesc2;
-		if (!surface.UsingSurfaceMemory)
-		{
-			lpDDSurfaceDesc2->dwFlags &= ~DDSD_LPSURFACE;
-			lpDDSurfaceDesc2->lpSurface = nullptr;
-		}
-		DWORD Level = 0;
-		if (MipMapLevel && MipMaps.size())
-		{
-			Level = min(MipMaps.size(), MipMapLevel) - 1;
-			if ((!MipMaps[Level].dwWidth || !MipMaps[Level].dwHeight) && surface.Texture)
-			{
-				D3DSURFACE_DESC Desc = {};
-				surface.Texture->GetLevelDesc(GetD39MipMapLevel(MipMapLevel), &Desc);
-				MipMaps[Level].dwWidth = Desc.Width;
-				MipMaps[Level].dwHeight = Desc.Height;
-			}
-			lpDDSurfaceDesc2->dwWidth = MipMaps[Level].dwWidth;
-			lpDDSurfaceDesc2->dwHeight = MipMaps[Level].dwHeight;
-			lpDDSurfaceDesc2->dwFlags &= ~DDSD_LPSURFACE;
-			lpDDSurfaceDesc2->lpSurface = nullptr;
-			lpDDSurfaceDesc2->dwMipMapCount = MaxMipMapLevel > MipMapLevel ? MaxMipMapLevel - MipMapLevel : 1;
-		}
+		GetSurfaceDesc2(lpDDSurfaceDesc2, MipMapLevel, DirectXVersion);
 
 		// Return error for CheckInterface after preparing surfaceDesc
 		if (FAILED(c_hr))
@@ -2583,6 +2572,7 @@ HRESULT m_IDirectDrawSurfaceX::Lock2(LPRECT lpDestRect, LPDDSURFACEDESC2 lpDDSur
 			// Set surface pitch
 			if (MipMapLevel && MipMaps.size())
 			{
+				DWORD Level = min(MipMaps.size(), MipMapLevel) - 1;
 				if (MipMaps[Level].lPitch && MipMaps[Level].lPitch != LockedRect.Pitch)
 				{
 					LOG_LIMIT(100, __FUNCTION__ << " Warning: surface pitch does not match locked pitch! Format: " << surfaceFormat <<

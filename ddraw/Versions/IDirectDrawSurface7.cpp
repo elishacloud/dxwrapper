@@ -63,7 +63,7 @@ HRESULT m_IDirectDrawSurface7::DeleteAttachedSurface(DWORD a, LPDIRECTDRAWSURFAC
 
 HRESULT m_IDirectDrawSurface7::EnumAttachedSurfaces(LPVOID a, LPDDENUMSURFACESCALLBACK7 b)
 {
-	return ProxyInterface->EnumAttachedSurfaces2(a, b, DirectXVersion);
+	return ProxyInterface->EnumAttachedSurfaces2(a, b, MipMapLevel, DirectXVersion);
 }
 
 HRESULT m_IDirectDrawSurface7::EnumOverlayZOrders(DWORD a, LPVOID b, LPDDENUMSURFACESCALLBACK7 c)
