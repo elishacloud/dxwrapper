@@ -128,7 +128,7 @@ HRESULT m_IDirectDrawSurface3::GetPixelFormat(LPDDPIXELFORMAT a)
 
 HRESULT m_IDirectDrawSurface3::GetSurfaceDesc(LPDDSURFACEDESC a)
 {
-	return ProxyInterface->GetSurfaceDesc(a, MipMapLevel);
+	return ProxyInterface->GetSurfaceDesc(a, MipMapLevel, DirectXVersion);
 }
 
 HRESULT m_IDirectDrawSurface3::Initialize(LPDIRECTDRAW a, LPDDSURFACEDESC b)

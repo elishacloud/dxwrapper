@@ -783,7 +783,7 @@ HRESULT m_IDirectDrawX::DuplicateSurface(LPDIRECTDRAWSURFACE7 lpDDSurface, LPDIR
 
 		DDSURFACEDESC2 Desc2 = {};
 		Desc2.dwSize = sizeof(DDSURFACEDESC2);
-		lpDDSurfaceX->GetSurfaceDesc2(&Desc2, 0);
+		lpDDSurfaceX->GetSurfaceDesc2(&Desc2, 0, DirectXVersion);
 		Desc2.ddsCaps.dwCaps &= ~DDSCAPS_PRIMARYSURFACE;		// Remove Primary surface flag
 
 		m_IDirectDrawSurfaceX *p_IDirectDrawSurfaceX = new m_IDirectDrawSurfaceX(this, DirectXVersion, &Desc2);
@@ -1114,7 +1114,7 @@ HRESULT m_IDirectDrawX::EnumSurfaces2(DWORD dwFlags, LPDDSURFACEDESC2 lpDDSurfac
 				{
 					DDSURFACEDESC2 Desc2 = {};
 					Desc2.dwSize = sizeof(DDSURFACEDESC2);
-					pSurfaceX->GetSurfaceDesc2(&Desc2, 0);
+					pSurfaceX->GetSurfaceDesc2(&Desc2, 0, DirectXVersion);
 
 					// When using the DDENUMSURFACES_DOESEXIST flag, an enumerated surface's reference count is incremented
 					pSurface7->AddRef();

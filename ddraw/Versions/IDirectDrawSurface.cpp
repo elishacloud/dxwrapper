@@ -240,7 +240,7 @@ HRESULT m_IDirectDrawSurface::GetSurfaceDesc(LPDDSURFACEDESC a)
 	{
 		return DDERR_INVALIDOBJECT;
 	}
-	return ProxyInterface->GetSurfaceDesc(a, MipMapLevel);
+	return ProxyInterface->GetSurfaceDesc(a, MipMapLevel, DirectXVersion);
 }
 
 HRESULT m_IDirectDrawSurface::Initialize(LPDIRECTDRAW a, LPDDSURFACEDESC b)
