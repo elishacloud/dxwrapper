@@ -690,11 +690,17 @@ HRESULT m_IDirectDrawX::CreateSurface2(LPDDSURFACEDESC2 lpDDSurfaceDesc2, LPDIRE
 
 			// ToDo: handle Config.DdrawOverrideStencilFormat
 
-			Logging::Log() << __FUNCTION__  << " Found Stencil surface: " << GetDisplayFormat(Desc2.ddpfPixelFormat);
+			Logging::Log() << __FUNCTION__ << " Found Stencil surface: " << GetDisplayFormat(Desc2.ddpfPixelFormat);
 
 			if (IsDepthStencilSurface && DepthStencilSurface)
 			{
 				Logging::Log() << __FUNCTION__ << " Warning: Creating a second depth stencil surface! " << Desc2;
+			}
+
+			if (d3d9Device && DisplayMode.Width && DisplayMode.Height && (DisplayMode.Width != Desc2.dwWidth || DisplayMode.Height != Desc2.dwHeight))
+			{
+				Desc2.dwWidth = DisplayMode.Width;
+				Desc2.dwHeight = DisplayMode.Height;
 			}
 		}
 

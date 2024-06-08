@@ -1590,7 +1590,7 @@ HRESULT m_IDirectDrawSurfaceX::GetAttachedSurface2(LPDDSCAPS2 lpDDSCaps2, LPDIRE
 		if (!lpFoundSurface)
 		{
 			// Handle mipmaps
-			if (MipMaps.size() && (DDSCAPS_MIPMAP & lpDDSCaps2->dwCaps) && (GetSurfaceCaps().dwCaps & lpDDSCaps2->dwCaps) == lpDDSCaps2->dwCaps)
+			if (MipMaps.size() && (lpDDSCaps2->dwCaps & DDSCAPS_MIPMAP) && (GetSurfaceCaps().dwCaps & lpDDSCaps2->dwCaps) == lpDDSCaps2->dwCaps)
 			{
 				if (SUCCEEDED(GetMipMapSubLevel(lplpDDAttachedSurface, MipMapLevel, DirectXVersion)))
 				{
@@ -1599,6 +1599,20 @@ HRESULT m_IDirectDrawSurfaceX::GetAttachedSurface2(LPDDSCAPS2 lpDDSCaps2, LPDIRE
 					return DD_OK;
 				}
 				return DDERR_NOTFOUND;
+			}
+
+			// Handle zbuffer
+			if ((lpDDSCaps2->dwCaps && DDSCAPS_ZBUFFER) && (IsRenderingTarget() || (GetSurfaceCaps().dwCaps & DDSCAPS_BACKBUFFER)))
+			{
+				m_IDirectDrawSurfaceX* m_SurfaceX = ddrawParent->GetDepthStencilSurface();
+				if (m_SurfaceX)
+				{
+					*lplpDDAttachedSurface = (LPDIRECTDRAWSURFACE7)m_SurfaceX->GetWrapperInterfaceX(DirectXVersion);
+
+					(*lplpDDAttachedSurface)->AddRef();
+
+					return DD_OK;
+				}
 			}
 
 			LOG_LIMIT(100, __FUNCTION__ << " Error: failed to find attached surface that matches the capabilities requested: " << *lpDDSCaps2 <<
