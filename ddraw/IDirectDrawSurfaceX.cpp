@@ -3665,12 +3665,6 @@ inline void m_IDirectDrawSurfaceX::ReleaseDirectDrawResources()
 	if (ddrawParent)
 	{
 		ddrawParent->RemoveSurfaceFromVector(this);
-
-		// ToDo: Clear stencil surface only when using the one created by the d3d9 device
-		if (IsDepthBuffer())
-		{
-			ddrawParent->ClearDepthStencilSurface();
-		}
 	}
 }
 
@@ -3982,7 +3976,6 @@ HRESULT m_IDirectDrawSurfaceX::CreateD3d9Surface()
 		// Create depth buffer
 		if (IsDepthBuffer())
 		{
-			// ToDo: Get existing stencil surface rather than creating a new one
 			surface.SurfacePool = D3DPOOL_DEFAULT;
 			if (FAILED((*d3d9Device)->CreateDepthStencilSurface(Width, Height, Format, ddrawParent->GetMultiSampleType(), ddrawParent->GetMultiSampleQuality(), FALSE, &surface.Surface, nullptr)))
 			{
@@ -4539,7 +4532,7 @@ void m_IDirectDrawSurfaceX::ReleaseD9Surface(bool BackupData, bool ResetSurface)
 	// Backup d3d9 surface texture
 	if (BackupData)
 	{
-		if (surface.SurfaceHasData && !IsUsingEmulation() && (surface.Texture || surface.Surface))
+		if (surface.SurfaceHasData && !IsDepthBuffer() && !IsUsingEmulation() && (surface.Texture || surface.Surface))
 		{
 			LostDeviceBackup.clear();
 
@@ -4588,6 +4581,10 @@ void m_IDirectDrawSurfaceX::ReleaseD9Surface(bool BackupData, bool ResetSurface)
 	if (surface.Surface && (!ResetSurface || surface.SurfacePool == D3DPOOL_DEFAULT))
 	{
 		Logging::LogDebug() << __FUNCTION__ << " Releasing Direct3D9 surface";
+		if (IsDepthBuffer() && d3d9Device && *d3d9Device)
+		{
+			(*d3d9Device)->SetDepthStencilSurface(nullptr);
+		}
 		ULONG ref = surface.Surface->Release();
 		if (ref)
 		{
@@ -4675,6 +4672,19 @@ inline void m_IDirectDrawSurfaceX::ReleaseDCSurface()
 			ReleaseCriticalSection();
 		}
 	}
+}
+
+bool m_IDirectDrawSurfaceX::SetDepthSencil()
+{
+	if (IsDepthBuffer() &&
+		SUCCEEDED(CheckInterface(__FUNCTION__, true, true, false)) &&
+		SUCCEEDED((*d3d9Device)->SetDepthStencilSurface(surface.Surface)))
+	{
+		return true;
+	}
+
+	LOG_LIMIT(100, __FUNCTION__ << " Error: failed to set depth buffer surface!");
+	return false;
 }
 
 // Present surface

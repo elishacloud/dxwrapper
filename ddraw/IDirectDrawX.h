@@ -29,7 +29,8 @@ private:
 
 	// Store primary surface
 	m_IDirectDrawSurfaceX *PrimarySurface = nullptr;
-	m_IDirectDrawSurfaceX *Direct3DSurface = nullptr;
+	m_IDirectDrawSurfaceX *RenderTargetSurface = nullptr;
+	m_IDirectDrawSurfaceX *DepthStencilSurface = nullptr;
 
 	// Store a list of surfaces
 	std::vector<m_IDirectDrawSurfaceX*> SurfaceVector;
@@ -177,7 +178,7 @@ public:
 	inline void ClearD3D() { D3DInterface = nullptr; }
 	void SetD3DDevice(m_IDirect3DDeviceX* D3DDevice, m_IDirectDrawSurfaceX* D3DSurface);
 	inline m_IDirect3DDeviceX** GetCurrentD3DDevice() { return &D3DDeviceInterface; }
-	inline void ClearD3DDevice() { D3DDeviceInterface = nullptr; Direct3DSurface = nullptr; Using3D = false; }
+	inline void ClearD3DDevice() { D3DDeviceInterface = nullptr; RenderTargetSurface = nullptr; Using3D = false; }
 	inline void Enable3D() { Using3D = true; }
 	inline bool IsUsing3D() { return Using3D; }
 
@@ -196,7 +197,6 @@ public:
 	HWND GetHwnd();
 	HDC GetDC();
 	DWORD GetDisplayBPP(HWND hWnd);
-	void ClearDepthStencilSurface();
 	D3DMULTISAMPLE_TYPE GetMultiSampleType();
 	DWORD GetMultiSampleQuality();
 	bool IsExclusiveMode();

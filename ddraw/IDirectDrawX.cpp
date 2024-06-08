@@ -74,7 +74,6 @@ struct DEVICESETTINGS
 {
 	bool IsWindowed;
 	bool AntiAliasing;
-	D3DFORMAT DepthStencilSurface;
 	bool AllowModeX;
 	bool MultiThreaded;
 	bool FPUPreserve;
@@ -671,18 +670,13 @@ HRESULT m_IDirectDrawX::CreateSurface2(LPDDSURFACEDESC2 lpDDSurfaceDesc2, LPDIRE
 		// Check for depth stencil surface
 		if (!Config.DdrawOverrideStencilFormat && (Desc2.dwFlags & DDSD_PIXELFORMAT) && (Desc2.ddpfPixelFormat.dwFlags & (DDPF_ZBUFFER | DDPF_STENCILBUFFER)))
 		{
-			D3DFORMAT NewDepthStencilSurface = GetDisplayFormat(Desc2.ddpfPixelFormat);
 			const bool IsDepthStencilSurface = (Desc2.ddpfPixelFormat.dwFlags & (DDPF_ZBUFFER | DDPF_STENCILBUFFER));
 
-			if (IsDepthStencilSurface && NewDepthStencilSurface != Device.DepthStencilSurface)
-			{
-				if (Device.DepthStencilSurface != D3DFMT_UNKNOWN)
-				{
-					LOG_LIMIT(100, __FUNCTION__ << " Warning: existing stencil surface already setup.");
-				}
-				Device.DepthStencilSurface = NewDepthStencilSurface;
+			// ToDo: handle Config.DdrawOverrideStencilFormat
 
-				ResetD3D9Device = true;
+			if (IsDepthStencilSurface && DepthStencilSurface)
+			{
+				Logging::Log() << __FUNCTION__ << " Warning: Creating a second depth stencil surface! " << Desc2;
 			}
 		}
 
@@ -723,6 +717,12 @@ HRESULT m_IDirectDrawX::CreateSurface2(LPDDSURFACEDESC2 lpDDSurfaceDesc2, LPDIRE
 		if (ResetD3D9Device && d3d9Device)
 		{
 			CreateD3D9Device();
+		}
+
+		// Set depth buffer
+		if (d3d9Device && p_IDirectDrawSurfaceX->IsDepthBuffer())
+		{
+			p_IDirectDrawSurfaceX->SetDepthSencil();
 		}
 
 		return DD_OK;
@@ -2657,11 +2657,6 @@ DWORD m_IDirectDrawX::GetDisplayBPP(HWND hWnd)
 	return (ExclusiveMode && Exclusive.BPP) ? Exclusive.BPP : Utils::GetBitCount(hWnd);
 }
 
-void m_IDirectDrawX::ClearDepthStencilSurface()
-{
-	Device.DepthStencilSurface = D3DFMT_UNKNOWN;
-}
-
 D3DMULTISAMPLE_TYPE m_IDirectDrawX::GetMultiSampleType()
 {
 	return presParams.MultiSampleType;
@@ -2786,13 +2781,13 @@ void m_IDirectDrawX::SetD3DDevice(m_IDirect3DDeviceX* D3DDevice, m_IDirectDrawSu
 		return;
 	}
 
-	Direct3DSurface = D3DSurface;
+	RenderTargetSurface = D3DSurface;
 
-	LOG_LIMIT(100, __FUNCTION__ " Setting 3D Device Surface: " << Direct3DSurface);
+	LOG_LIMIT(100, __FUNCTION__ " Setting 3D Device Surface: " << RenderTargetSurface);
 
 	// Recreate Direct3D9 device
 	DWORD Width = 0, Height = 0;
-	if (d3d9Device && (!Device.Width || !Device.Height) && Direct3DSurface->GetSurfaceSetSize(Width, Height) &&
+	if (d3d9Device && (!Device.Width || !Device.Height) && RenderTargetSurface->GetSurfaceSetSize(Width, Height) &&
 		(Width != presParams.BackBufferWidth || Height != presParams.BackBufferHeight))
 	{
 		CreateD3D9Device();
@@ -2894,7 +2889,7 @@ HRESULT m_IDirectDrawX::CreateD3D9Device()
 			BackBufferWidth = Device.Width;
 			BackBufferHeight = Device.Height;
 		}
-		else if (Direct3DSurface && Direct3DSurface->GetSurfaceSetSize(BackBufferWidth, BackBufferHeight))
+		else if (RenderTargetSurface && RenderTargetSurface->GetSurfaceSetSize(BackBufferWidth, BackBufferHeight))
 		{
 			// Width and Height set by 3D surface
 		}
@@ -2942,9 +2937,9 @@ HRESULT m_IDirectDrawX::CreateD3D9Device()
 		// Backbuffer
 		presParams.BackBufferCount = 1;
 		// Auto stencel format
-		presParams.AutoDepthStencilFormat = (Config.DdrawOverrideStencilFormat) ? (D3DFORMAT)Config.DdrawOverrideStencilFormat : Device.DepthStencilSurface;
+		presParams.AutoDepthStencilFormat = D3DFMT_UNKNOWN;
 		// Auto stencel
-		presParams.EnableAutoDepthStencil = (presParams.AutoDepthStencilFormat) ? TRUE : FALSE;
+		presParams.EnableAutoDepthStencil = FALSE;
 		// Interval level
 		presParams.PresentationInterval = D3DPRESENT_INTERVAL_IMMEDIATE;
 		// Anti-aliasing
@@ -3051,6 +3046,12 @@ HRESULT m_IDirectDrawX::CreateD3D9Device()
 				presParams.BackBufferWidth << "x" << presParams.BackBufferHeight << " refresh: " << presParams.FullScreen_RefreshRateInHz <<
 				" format: " << presParams.BackBufferFormat << " wnd: " << hWnd << " params: " << presParams << " flags: " << Logging::hex(BehaviorFlags));
 			break;
+		}
+
+		// Set depth buffer
+		if (DepthStencilSurface && DepthStencilSurface->IsDepthBuffer())
+		{
+			DepthStencilSurface->SetDepthSencil();
 		}
 
 		// Reset flags after creating device
@@ -3336,6 +3337,12 @@ HRESULT m_IDirectDrawX::ReinitDevice()
 			break;
 		}
 
+		// Set depth buffer
+		if (DepthStencilSurface && DepthStencilSurface->IsDepthBuffer())
+		{
+			DepthStencilSurface->SetDepthSencil();
+		}
+
 	} while (false);
 
 	ReleasePTCriticalSection();
@@ -3517,6 +3524,10 @@ void m_IDirectDrawX::AddSurfaceToVector(m_IDirectDrawSurfaceX* lpSurfaceX)
 		{
 			PrimarySurface = lpSurfaceX;
 		}
+		if (lpSurfaceX->IsDepthBuffer())
+		{
+			DepthStencilSurface = lpSurfaceX;
+		}
 
 		SurfaceVector.push_back(lpSurfaceX);
 	}
@@ -3556,9 +3567,13 @@ void m_IDirectDrawX::RemoveSurfaceFromVector(m_IDirectDrawSurfaceX* lpSurfaceX)
 			ClipperHWnd = nullptr;
 			DisplayPixelFormat = {};
 		}
-		if (lpSurfaceX == pDDraw->Direct3DSurface)
+		if (lpSurfaceX == pDDraw->RenderTargetSurface)
 		{
-			pDDraw->Direct3DSurface = nullptr;
+			pDDraw->RenderTargetSurface = nullptr;
+		}
+		if (lpSurfaceX == pDDraw->DepthStencilSurface)
+		{
+			pDDraw->DepthStencilSurface = nullptr;
 		}
 
 		auto it = std::find(pDDraw->SurfaceVector.begin(), pDDraw->SurfaceVector.end(), lpSurfaceX);
