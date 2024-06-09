@@ -3758,7 +3758,7 @@ LPDIRECT3DTEXTURE9 m_IDirectDrawSurfaceX::Get3DDrawTexture()
 	// Create texture
 	if (surface.Texture)
 	{
-		if (FAILED((*d3d9Device)->CreateTexture(surface.Tex.Width, surface.Tex.Height, MaxMipMapLevel, 0, D3DFMT_A8R8G8B8, surface.Tex.Pool, &surface.DrawTexture, nullptr)))
+		if (FAILED((*d3d9Device)->CreateTexture(surface.Tex.Width, surface.Tex.Height, MaxMipMapLevel, surface.Tex.Usage, D3DFMT_A8R8G8B8, surface.Tex.Pool, &surface.DrawTexture, nullptr)))
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Error: failed to create surface texture. Size: " << surface.Tex.Width << "x" << surface.Tex.Height << " Format: " << surfaceFormat << " dwCaps: " << Logging::hex(surfaceDesc2.ddsCaps.dwCaps));
 			return nullptr;
@@ -4026,11 +4026,12 @@ HRESULT m_IDirectDrawSurfaceX::CreateD3d9Surface()
 			DWORD MipMapLevel = (SurfaceRequiresEmulation || MipMaps.empty()) ? 1 : MaxMipMapLevel;
 			HRESULT hr_t;
 			do {
-				hr_t = (*d3d9Device)->CreateTexture(Width, Height, MipMapLevel, 0, TextureFormat, surface.Tex.Pool, &surface.Texture, nullptr);
+				surface.Tex.Usage = Config.DdrawForceMipMapAutoGen && MipMapLevel != 1 ? D3DUSAGE_AUTOGENMIPMAP : 0;
+				hr_t = (*d3d9Device)->CreateTexture(Width, Height, MipMapLevel, surface.Tex.Usage, TextureFormat, surface.Tex.Pool, &surface.Texture, nullptr);
 				// Try failover format
 				if (FAILED(hr_t))
 				{
-					hr_t = (*d3d9Device)->CreateTexture(Width, Height, MipMapLevel, 0, GetFailoverFormat(TextureFormat), surface.Tex.Pool, &surface.Texture, nullptr);
+					hr_t = (*d3d9Device)->CreateTexture(Width, Height, MipMapLevel, surface.Tex.Usage, GetFailoverFormat(TextureFormat), surface.Tex.Pool, &surface.Texture, nullptr);
 				}
 			} while (FAILED(hr_t) && ((!MipMapLevel && ++MipMapLevel) || --MipMapLevel > 0));
 			if (FAILED(hr_t))
@@ -5249,7 +5250,7 @@ inline void m_IDirectDrawSurfaceX::InitSurfaceDesc(DWORD DirectXVersion)
 	}
 
 	// Handle mipmaps
-	if ((surfaceDesc2.dwFlags & DDSD_MIPMAPCOUNT) && (surfaceDesc2.dwMipMapCount != 1) &&
+	if (!Config.DdrawForceMipMapAutoGen && (surfaceDesc2.dwFlags & DDSD_MIPMAPCOUNT) && (surfaceDesc2.dwMipMapCount != 1) &&
 		(surfaceDesc2.ddsCaps.dwCaps & (DDSCAPS_MIPMAP | DDSCAPS_COMPLEX | DDSCAPS_TEXTURE)) == (DDSCAPS_MIPMAP | DDSCAPS_COMPLEX | DDSCAPS_TEXTURE))
 	{
 		DWORD MipMapLevelCount = surfaceDesc2.dwMipMapCount ? min(surfaceDesc2.dwMipMapCount, GetMaxMipMapLevel(surfaceDesc2.dwWidth, surfaceDesc2.dwHeight)) :

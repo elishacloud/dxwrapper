@@ -96,6 +96,7 @@ private:
 		DWORD Width = 0;
 		DWORD Height = 0;
 		D3DPOOL Pool = D3DPOOL_DEFAULT;
+		DWORD Usage = 0;
 	};
 
 	// Extra Direct3D9 devices used in the primary surface

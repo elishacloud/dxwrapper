@@ -688,7 +688,10 @@ HRESULT m_IDirectDrawX::CreateSurface2(LPDDSURFACEDESC2 lpDDSurfaceDesc2, LPDIRE
 		{
 			const bool IsDepthStencilSurface = (Desc2.ddpfPixelFormat.dwFlags & (DDPF_ZBUFFER | DDPF_STENCILBUFFER));
 
-			// ToDo: handle Config.DdrawOverrideStencilFormat
+			if (Config.DdrawOverrideStencilFormat)
+			{
+				SetPixelDisplayFormat((D3DFORMAT)Config.DdrawOverrideStencilFormat, Desc2.ddpfPixelFormat);
+			}
 
 			Logging::Log() << __FUNCTION__ << " Found Stencil surface: " << GetDisplayFormat(Desc2.ddpfPixelFormat);
 
@@ -2961,9 +2964,9 @@ HRESULT m_IDirectDrawX::CreateD3D9Device()
 		// Backbuffer
 		presParams.BackBufferCount = 1;
 		// Auto stencel format
-		presParams.AutoDepthStencilFormat = D3DFMT_UNKNOWN;
+		presParams.AutoDepthStencilFormat = Config.DdrawOverrideStencilFormat ? (D3DFORMAT)Config.DdrawOverrideStencilFormat : D3DFMT_UNKNOWN;
 		// Auto stencel
-		presParams.EnableAutoDepthStencil = FALSE;
+		presParams.EnableAutoDepthStencil = Config.DdrawOverrideStencilFormat ? TRUE : FALSE;
 		// Interval level
 		presParams.PresentationInterval = D3DPRESENT_INTERVAL_IMMEDIATE;
 		// Anti-aliasing
