@@ -2271,7 +2271,7 @@ HRESULT m_IDirectDrawSurfaceX::GetSurfaceDesc2(LPDDSURFACEDESC2 lpDDSurfaceDesc2
 				DWORD BitCount = GetBitCount(lpDDSurfaceDesc2->ddpfPixelFormat);
 				lpDDSurfaceDesc2->lPitch = ComputePitch(lpDDSurfaceDesc2->dwHeight, BitCount);
 			}
-			if (Level != 0 && DirectXVersion == 7)
+			if (MipMapLevel != 0 && DirectXVersion == 7)
 			{
 				lpDDSurfaceDesc2->ddsCaps.dwCaps2 |= DDSCAPS2_MIPMAPSUBLEVEL;
 			}
