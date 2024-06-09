@@ -518,8 +518,6 @@ HRESULT m_IDirectDrawX::CreateSurface2(LPDDSURFACEDESC2 lpDDSurfaceDesc2, LPDIRE
 
 	if (Config.Dd7to9)
 	{
-		*lplpDDSurface = nullptr;
-
 		if (lpDDSurfaceDesc2->dwSize != sizeof(DDSURFACEDESC2))
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Error: Invalid parameters. dwSize: " << lpDDSurfaceDesc2->dwSize);
