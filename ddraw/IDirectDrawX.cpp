@@ -2233,10 +2233,20 @@ HRESULT m_IDirectDrawX::TestCooperativeLevel()
 		case D3DERR_INVALIDCALL:
 		case D3DERR_DRIVERINTERNALERROR:
 			return DDERR_WRONGMODE;
-		case DDERR_NOEXCLUSIVEMODE:
-			return DDERR_NOEXCLUSIVEMODE;
-		case D3DERR_DEVICENOTRESET:
 		case D3DERR_DEVICELOST:
+			// Full-screen applications receive the DDERR_NOEXCLUSIVEMODE return value if they lose exclusive device access
+			if (ExclusiveMode)
+			{
+				return DDERR_NOEXCLUSIVEMODE;
+			}
+			// Windowed applications(those that use the normal cooperative level) receive DDERR_EXCLUSIVEMODEALREADYSET if another application has taken exclusive device access
+			else
+			{
+				return DDERR_EXCLUSIVEMODEALREADYSET;
+			}
+			// The TestCooperativeLevel method succeeds, returning DD_OK, if your application can restore its surfaces 
+		case D3DERR_DEVICENOTRESET:
+		case DDERR_NOEXCLUSIVEMODE:
 		case D3D_OK:
 		default:
 			return DD_OK;
