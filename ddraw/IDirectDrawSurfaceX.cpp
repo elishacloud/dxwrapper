@@ -387,7 +387,7 @@ HRESULT m_IDirectDrawSurfaceX::AddAttachedSurface(LPDIRECTDRAWSURFACE7 lpDDSurfa
 			((AttachedSurfaceCaps & DDSCAPS_MIPMAP) && (surfaceDesc2.ddsCaps.dwCaps & DDSCAPS_MIPMAP)) ||
 			(AttachedSurfaceCaps & DDSCAPS_ZBUFFER)))
 		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error: cannot attach surface with this method. dwCaps: " << Logging::hex(lpAttachedSurface->GetSurfaceCaps().dwCaps));
+			LOG_LIMIT(100, __FUNCTION__ << " Error: cannot attach surface with this method. dwCaps: " << lpAttachedSurface->GetSurfaceCaps().dwCaps);
 			return DDERR_CANNOTATTACHSURFACE;
 		}
 
@@ -1916,6 +1916,17 @@ HRESULT m_IDirectDrawSurfaceX::GetDC(HDC FAR* lphDC)
 		}
 
 		*lphDC = nullptr;
+		if (LastDC && IsSurfaceInDC())
+		{
+			*lphDC = LastDC;
+		}
+		else if (IsUsingEmulation())
+		{
+			// Prepare GameDC
+			SetEmulationGameDC();
+
+			*lphDC = surface.emu->GameDC;
+		}
 
 		// Check for device interface
 		HRESULT c_hr = CheckInterface(__FUNCTION__, true, true, true);
@@ -2440,6 +2451,22 @@ HRESULT m_IDirectDrawSurfaceX::Lock2(LPRECT lpDestRect, LPDDSURFACEDESC2 lpDDSur
 
 		// Prepare surfaceDesc
 		GetSurfaceDesc2(lpDDSurfaceDesc2, MipMapLevel, DirectXVersion);
+		if (IsUsingEmulation())
+		{
+			D3DLOCKED_RECT LockedRect = {};
+			if (lpDestRect && SUCCEEDED(LockEmulatedSurface(&LockedRect, lpDestRect)))
+			{
+				lpDDSurfaceDesc2->dwFlags |= DDSD_LPSURFACE | DDSD_PITCH;
+				lpDDSurfaceDesc2->lpSurface = LockedRect.pBits;
+				lpDDSurfaceDesc2->lPitch = LockedRect.Pitch;
+			}
+			else
+			{
+				lpDDSurfaceDesc2->dwFlags |= DDSD_LPSURFACE | DDSD_PITCH;
+				lpDDSurfaceDesc2->lpSurface = surface.emu->pBits;
+				lpDDSurfaceDesc2->lPitch = surface.emu->Pitch;
+			}
+		}
 
 		// Return error for CheckInterface after preparing surfaceDesc
 		if (FAILED(c_hr))
@@ -2531,8 +2558,8 @@ HRESULT m_IDirectDrawSurfaceX::Lock2(LPRECT lpDestRect, LPDDSURFACEDESC2 lpDDSur
 					if (IsSurfaceLocked())
 					{
 						LOG_LIMIT(100, __FUNCTION__ << " Warning: attempting to lock surface twice!");
+						UnlockD39Surface(MipMapLevel);
 					}
-					UnlockD39Surface(MipMapLevel);
 					ret = LockD39Surface(&LockedRect, &DestRect, Flags, MipMapLevel);
 				}
 				if (FAILED(ret))
