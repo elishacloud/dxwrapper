@@ -6615,16 +6615,6 @@ HRESULT m_IDirectDrawSurfaceX::PresentSurfaceToWindow(RECT Rect)
 		return DDERR_GENERIC;
 	}
 
-	// Redraw window if it has moved from its last location
-	if (GetWindowRect(hWnd, &ClientRect))
-	{
-		if (ClientRect.left != LastWindowLocation.left || ClientRect.top != LastWindowLocation.top)
-		{
-			RedrawWindow(hWnd, NULL, NULL, RDW_ERASE | RDW_INVALIDATE | RDW_ALLCHILDREN);
-		}
-	}
-	LastWindowLocation = ClientRect;
-
 	return DD_OK;
 }
 

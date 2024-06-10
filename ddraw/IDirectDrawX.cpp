@@ -123,8 +123,9 @@ struct PRESENTTHREAD
 std::vector<m_IDirectDrawX*> DDrawVector;
 
 // Default resolution
-DWORD DefaultWidth = 0;
-DWORD DefaultHeight = 0;
+DWORD DefaultWidth;
+DWORD DefaultHeight;
+RECT LastWindowLocation;
 
 // Exclusive mode settings
 bool SetResolution;
@@ -729,7 +730,8 @@ HRESULT m_IDirectDrawX::CreateSurface2(LPDDSURFACEDESC2 lpDDSurfaceDesc2, LPDIRE
 				// Check if there is a change in the present parameters
 				if (Device.AntiAliasing != OldAntiAliasing)
 				{
-					ResetD3D9Device = true;
+					// Remark for now until fully supported
+					//ResetD3D9Device = true;
 				}
 			}
 		}
@@ -2367,7 +2369,10 @@ void m_IDirectDrawX::InitDdraw(DWORD DirectXVersion)
 	if (DDrawVector.size() == 1)
 	{
 		// Get screensize
+		DefaultWidth = 0;
+		DefaultHeight = 0;
 		Utils::GetScreenSize(nullptr, (LONG&)DefaultWidth, (LONG&)DefaultHeight);
+		LastWindowLocation = {};
 
 		// Release DC
 		if (DisplayMode.hWnd && DisplayMode.DC)
@@ -2916,6 +2921,12 @@ HRESULT m_IDirectDrawX::CreateD3D9Device()
 		DWORD CurrentWidth, CurrentHeight;
 		Utils::GetScreenSize(hWnd, (LONG&)CurrentWidth, (LONG&)CurrentHeight);
 
+		// Get current window size
+		if (hWnd)
+		{
+			GetWindowRect(hWnd, &LastWindowLocation);
+		}
+
 		// Get width and height
 		DWORD BackBufferWidth = 0;
 		DWORD BackBufferHeight = 0;
@@ -2960,6 +2971,9 @@ HRESULT m_IDirectDrawX::CreateD3D9Device()
 				BackBufferHeight = GetSystemMetrics(SM_CYVIRTUALSCREEN);
 			}
 		}
+
+		// Backup last present parameters
+		D3DPRESENT_PARAMETERS presParamsBackup = presParams;
 
 		// Set display window
 		presParams = {};
@@ -3038,6 +3052,18 @@ HRESULT m_IDirectDrawX::CreateD3D9Device()
 		// Check if existing device exists
 		if (d3d9Device)
 		{
+			// Check if there are any device changes
+			if (presParamsBackup.BackBufferWidth == presParams.BackBufferWidth &&
+				presParamsBackup.BackBufferHeight == presParams.BackBufferHeight &&
+				presParamsBackup.Windowed == presParams.Windowed &&
+				presParamsBackup.hDeviceWindow == presParams.hDeviceWindow &&
+				presParamsBackup.FullScreen_RefreshRateInHz == presParams.FullScreen_RefreshRateInHz &&
+				LastBehaviorFlags == BehaviorFlags)
+			{
+				hr = DD_OK;
+				break;
+			}
+
 			// Try to reset existing device
 			if (LastHWnd == hWnd && LastBehaviorFlags == BehaviorFlags)
 			{
@@ -3089,6 +3115,12 @@ HRESULT m_IDirectDrawX::CreateD3D9Device()
 			DepthStencilSurface->SetDepthSencil();
 		}
 
+		// Reset D3D device settings
+		if (D3DDeviceInterface)
+		{
+			D3DDeviceInterface->ResetDevice();
+		}
+
 		// Reset flags after creating device
 		LastUsedHWnd = hWnd;
 		EnableWaitVsync = false;
@@ -3108,18 +3140,44 @@ HRESULT m_IDirectDrawX::CreateD3D9Device()
 				SendMessage(hWnd, WM_DISPLAYCHANGE, GetDisplayBPP(hWnd), MAKELPARAM(NewWidth, NewHeight));
 			}
 
+			// Set focus and active
+			if (!presParams.Windowed)
+			{
+				SetForegroundWindow(hWnd);
+				SetFocus(hWnd);
+				SetActiveWindow(hWnd);
+			}
+
 			// Get window size
 			RECT NewRect = { 0, 0, (LONG)presParams.BackBufferWidth, (LONG)presParams.BackBufferHeight };
 			GetWindowRect(hWnd, &NewRect);
 
 			// Send messages about window changes
-			HWND WindowInsert = GetWindowLong(DisplayMode.hWnd, GWL_EXSTYLE) & WS_EX_TOPMOST ? HWND_TOPMOST : HWND_TOP;
-			static WINDOWPOS winpos;
-			winpos = { hWnd, WindowInsert, NewRect.left, NewRect.top, NewRect.right - NewRect.left, NewRect.bottom - NewRect.top, WM_NULL };
-			SendMessage(hWnd, WM_WINDOWPOSCHANGING, 0, (LPARAM)&winpos);
-			SendMessage(hWnd, WM_WINDOWPOSCHANGED, 0, (LPARAM)&winpos);
-			SendMessage(hWnd, WM_MOVE, 0, MAKELPARAM(NewRect.left, NewRect.top));
-			SendMessage(hWnd, WM_SIZE, SIZE_RESTORED, MAKELPARAM(NewRect.right - NewRect.left, NewRect.bottom - NewRect.top));
+			if ((NewRect.left != LastWindowLocation.left || NewRect.top != LastWindowLocation.top) &&
+				LastWindowLocation.right && LastWindowLocation.bottom)
+			{
+				// Window position change
+				HWND WindowInsert = GetWindowLong(DisplayMode.hWnd, GWL_EXSTYLE) & WS_EX_TOPMOST ? HWND_TOPMOST : HWND_TOP;
+				static WINDOWPOS winpos;
+				winpos = { hWnd, WindowInsert, NewRect.left, NewRect.top, NewRect.right - NewRect.left, NewRect.bottom - NewRect.top, WM_NULL };
+				SendMessage(hWnd, WM_WINDOWPOSCHANGING, 0, (LPARAM)&winpos);
+				SendMessage(hWnd, WM_WINDOWPOSCHANGED, 0, (LPARAM)&winpos);
+				// Window moved
+				SendMessage(hWnd, WM_ENTERSIZEMOVE, 0, 0);
+				SendMessage(hWnd, WM_MOVING, 0, (LPARAM)&NewRect);
+				SendMessage(hWnd, WM_EXITSIZEMOVE, 0, 0);
+				SendMessage(hWnd, WM_MOVE, 0, MAKELPARAM(NewRect.left, NewRect.top));
+			}
+			else if ((NewRect.right - NewRect.left != LastWindowLocation.right - LastWindowLocation.left ||
+				NewRect.bottom - NewRect.top != LastWindowLocation.bottom - LastWindowLocation.top) &&
+				LastWindowLocation.right && LastWindowLocation.bottom)
+			{
+				// Window sized
+				SendMessage(hWnd, WM_ENTERSIZEMOVE, 0, 0);
+				SendMessage(hWnd, WM_SIZING, WMSZ_BOTTOMRIGHT, (LPARAM)&NewRect);
+				SendMessage(hWnd, WM_EXITSIZEMOVE, 0, 0);
+				SendMessage(hWnd, WM_SIZE, SIZE_RESTORED, MAKELPARAM(NewRect.right - NewRect.left, NewRect.bottom - NewRect.top));
+			}
 		}
 
 		// Store display frequency
@@ -3127,12 +3185,6 @@ HRESULT m_IDirectDrawX::CreateD3D9Device()
 		Counter.PerFrameMS = 1000.0 / (RefreshRate ? RefreshRate : 60);
 
 	} while (false);
-
-	// Reset D3D device settings
-	if (D3DDeviceInterface)
-	{
-		D3DDeviceInterface->ResetDevice();
-	}
 
 	ReleasePTCriticalSection();
 	ReleaseCriticalSection();
@@ -4325,6 +4377,18 @@ HRESULT m_IDirectDrawX::Present(RECT* pSourceRect, RECT* pDestRect)
 		LOG_LIMIT(100, __FUNCTION__ << " Error: failed to present scene: " << (DDERR)hr);
 		return hr;
 	}
+
+	// Redraw window if it has moved from its last location
+	RECT ClientRect = {};
+	if (GetWindowRect(DisplayMode.hWnd, &ClientRect) && LastWindowLocation.right && LastWindowLocation.bottom)
+	{
+		if (ClientRect.left != LastWindowLocation.left || ClientRect.top != LastWindowLocation.top ||
+			ClientRect.right != LastWindowLocation.right || ClientRect.bottom != LastWindowLocation.bottom)
+		{
+			RedrawWindow(DisplayMode.hWnd, NULL, NULL, RDW_ERASE | RDW_INVALIDATE | RDW_ALLCHILDREN);
+		}
+	}
+	LastWindowLocation = ClientRect;
 
 	// Store new click time after frame draw is complete
 	QueryPerformanceCounter(&Counter.LastPresentTime);
