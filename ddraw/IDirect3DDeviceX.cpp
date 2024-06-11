@@ -4187,10 +4187,6 @@ inline void m_IDirect3DDeviceX::SetDrawStates(DWORD dwVertexTypeDesc, DWORD& dwF
 		}
 		if (rsColorKeyEnabled)
 		{
-			(*d3d9Device)->GetRenderState(D3DRS_ALPHATESTENABLE, &DrawStates.rsAlphaTestEnable);
-			(*d3d9Device)->GetRenderState(D3DRS_ALPHAFUNC, &DrawStates.rsAlphaFunc);
-			(*d3d9Device)->GetRenderState(D3DRS_ALPHAREF, &DrawStates.rsAlphaRef);
-
 			// Check for color key alpha texture
 			bool AlphaSurfaceSet = false;
 			for (UINT x = 0; x < MaxTextureStages; x++)
@@ -4203,6 +4199,11 @@ inline void m_IDirect3DDeviceX::SetDrawStates(DWORD dwVertexTypeDesc, DWORD& dwF
 			}
 			if (AlphaSurfaceSet)
 			{
+				dwFlags |= D3DDP_DXW_ALPHACOLORKEY;
+				(*d3d9Device)->GetRenderState(D3DRS_ALPHATESTENABLE, &DrawStates.rsAlphaTestEnable);
+				(*d3d9Device)->GetRenderState(D3DRS_ALPHAFUNC, &DrawStates.rsAlphaFunc);
+				(*d3d9Device)->GetRenderState(D3DRS_ALPHAREF, &DrawStates.rsAlphaRef);
+
 				(*d3d9Device)->SetRenderState(D3DRS_ALPHATESTENABLE, TRUE);
 				(*d3d9Device)->SetRenderState(D3DRS_ALPHAFUNC, D3DCMP_GREATER);
 				(*d3d9Device)->SetRenderState(D3DRS_ALPHAREF, (DWORD)0x01);
@@ -4268,7 +4269,7 @@ inline void m_IDirect3DDeviceX::RestoreDrawStates(DWORD dwVertexTypeDesc, DWORD 
 				}
 			}
 		}
-		if (rsColorKeyEnabled)
+		if (dwFlags & D3DDP_DXW_ALPHACOLORKEY)
 		{
 			(*d3d9Device)->SetRenderState(D3DRS_ALPHATESTENABLE, DrawStates.rsAlphaTestEnable);
 			(*d3d9Device)->SetRenderState(D3DRS_ALPHAFUNC, DrawStates.rsAlphaFunc);
