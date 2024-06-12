@@ -3430,6 +3430,12 @@ HRESULT m_IDirectDrawX::ReinitDevice()
 			DepthStencilSurface->SetDepthSencil();
 		}
 
+		// Reset D3D device settings
+		if (D3DDeviceInterface)
+		{
+			D3DDeviceInterface->ResetDevice();
+		}
+
 	} while (false);
 
 	ReleasePTCriticalSection();

@@ -4098,6 +4098,9 @@ void m_IDirect3DDeviceX::ResetDevice()
 
 void m_IDirect3DDeviceX::SetDefaults()
 {
+	// Reset defaults flag
+	bSetDefaults = false;
+
 	// Clip status
 	D3DClipStatus = {};
 
@@ -4118,8 +4121,13 @@ void m_IDirect3DDeviceX::SetDefaults()
 	rsDestBlend = 0;
 	rsColorKeyEnabled = FALSE;
 
-	// Reset defaults flag
-	bSetDefaults = false;
+	// Set DirectDraw defaults
+	SetTextureStageState(1, D3DTSS_TEXCOORDINDEX, 0);
+	SetTextureStageState(2, D3DTSS_TEXCOORDINDEX, 0);
+	SetTextureStageState(3, D3DTSS_TEXCOORDINDEX, 0);
+	SetTextureStageState(4, D3DTSS_TEXCOORDINDEX, 0);
+	SetTextureStageState(5, D3DTSS_TEXCOORDINDEX, 0);
+	SetTextureStageState(6, D3DTSS_TEXCOORDINDEX, 0);
 }
 
 inline void m_IDirect3DDeviceX::SetDrawStates(DWORD dwVertexTypeDesc, DWORD& dwFlags, DWORD DirectXVersion)

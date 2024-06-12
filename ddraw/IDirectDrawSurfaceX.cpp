@@ -4743,7 +4743,6 @@ bool m_IDirectDrawSurfaceX::SetDepthSencil()
 		SUCCEEDED(CheckInterface(__FUNCTION__, true, true, false)) &&
 		SUCCEEDED((*d3d9Device)->SetDepthStencilSurface(surface.Surface)))
 	{
-		(*d3d9Device)->SetRenderState(D3DRS_STENCILENABLE, TRUE);
 		(*d3d9Device)->SetRenderState(D3DRS_ZENABLE, TRUE);
 		return true;
 	}
