@@ -16,9 +16,12 @@
 
 #define INITGUID
 #define WIN32_LEAN_AND_MEAN
+#include <Windows.h>
 #include <iostream>
 #include <fstream>
-#include <Windows.h>
+#include <sstream>
+#include <string>
+#include <sys/stat.h>
 #include <d3d9.h>
 #include "d3dx9.h"
 #include "Settings\Settings.h"
@@ -56,6 +59,51 @@ bool CompileShader(const wchar_t* hlslFile, LPD3DXBUFFER* compiledShader)
     return true;
 }
 
+// Function to check if a file exists
+bool FileExists(const std::string& filePath)
+{
+    struct stat buffer;
+    return (stat(filePath.c_str(), &buffer) == 0);
+}
+
+// Function to read the contents of a file
+std::string ReadFile(const std::string& filePath)
+{
+    std::ifstream file(filePath);
+    if (!file)
+    {
+        return "";
+    }
+
+    std::stringstream buffer;
+    buffer << file.rdbuf();
+    return buffer.str();
+}
+
+// Function to generate the header content
+std::string GenerateHeaderContent(const char* byteArrayName, LPD3DXBUFFER compiledShader)
+{
+    std::stringstream headerContent;
+    headerContent << "// Automatically generated header file\n\n";
+    headerContent << "#pragma once\n\n";
+
+    headerContent << "const unsigned char " << byteArrayName << "[] = {\n";
+    const unsigned char* bytes = static_cast<const unsigned char*>(compiledShader->GetBufferPointer());
+    const size_t byteCount = compiledShader->GetBufferSize();
+
+    for (size_t i = 0; i < byteCount; ++i)
+    {
+        headerContent << "0x" << std::hex << static_cast<int>(bytes[i]);
+        if (i != byteCount - 1)
+            headerContent << ", ";
+        if ((i + 1) % 16 == 0)
+            headerContent << "\n";
+    }
+
+    headerContent << "\n};\n";
+    return headerContent.str();
+}
+
 // Function to generate header file with shader byte array
 bool GenerateHeaderFile(const char* hlslFileName, LPD3DXBUFFER compiledShader, const char* byteArrayName)
 {
@@ -63,6 +111,24 @@ bool GenerateHeaderFile(const char* hlslFileName, LPD3DXBUFFER compiledShader, c
     std::string hlslFilePath(hlslFileName);
     std::string headerFilePath = hlslFilePath.substr(0, hlslFilePath.find_last_of('.')) + ".h";
 
+    // Generate new header content
+    std::string newHeaderContent = GenerateHeaderContent(byteArrayName, compiledShader);
+
+    // Check if the file already exists
+    if (FileExists(headerFilePath))
+    {
+        // Read the existing content
+        std::string existingHeaderContent = ReadFile(headerFilePath);
+
+        // Compare the new content with the existing content
+        if (newHeaderContent == existingHeaderContent)
+        {
+            // Contents are the same, no need to overwrite
+            return true;
+        }
+    }
+
+    // Write the new content to the file
     std::ofstream headerFile(headerFilePath);
     if (!headerFile)
     {
@@ -70,24 +136,7 @@ bool GenerateHeaderFile(const char* hlslFileName, LPD3DXBUFFER compiledShader, c
         return false;
     }
 
-    headerFile << "// Automatically generated header file\n\n";
-    headerFile << "#pragma once\n\n";
-
-    headerFile << "const unsigned char " << byteArrayName << "[] = {\n";
-    const unsigned char* bytes = static_cast<const unsigned char*>(compiledShader->GetBufferPointer());
-    const size_t byteCount = compiledShader->GetBufferSize();
-
-    for (size_t i = 0; i < byteCount; ++i)
-    {
-        headerFile << "0x" << std::hex << static_cast<int>(bytes[i]);
-        if (i != byteCount - 1)
-            headerFile << ", ";
-        if ((i + 1) % 16 == 0)
-            headerFile << "\n";
-    }
-
-    headerFile << "\n};\n";
-
+    headerFile << newHeaderContent;
     headerFile.close();
     return true;
 }

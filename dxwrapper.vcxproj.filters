@@ -897,9 +897,6 @@
     <None Include="Wrappers\wrapper.def">
       <Filter>Wrappers</Filter>
     </None>
-    <None Include="ddraw\Shaders\ColorKeyShader.hlsl">
-      <Filter>ddraw\Shaders</Filter>
-    </None>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="libraries\dwmapi.h">
@@ -1871,9 +1868,6 @@
     <ClInclude Include="Libraries\VersionHelpers.h">
       <Filter>Libraries</Filter>
     </ClInclude>
-    <ClInclude Include="ddraw\Shaders\PaletteShader.hlsl">
-      <Filter>ddraw\Shaders</Filter>
-    </ClInclude>
     <ClInclude Include="ddraw\Shaders\ColorKeyShader.h">
       <Filter>ddraw\Shaders</Filter>
     </ClInclude>
@@ -1888,5 +1882,13 @@
     <ResourceCompile Include="Dllmain\dxwrapper.rc">
       <Filter>Dllmain</Filter>
     </ResourceCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <CustomBuild Include="ddraw\Shaders\ColorKeyShader.hlsl">
+      <Filter>ddraw\Shaders</Filter>
+    </CustomBuild>
+    <CustomBuild Include="ddraw\Shaders\PaletteShader.hlsl">
+      <Filter>ddraw\Shaders</Filter>
+    </CustomBuild>
   </ItemGroup>
 </Project>
