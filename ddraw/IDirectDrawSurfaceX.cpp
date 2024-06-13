@@ -825,7 +825,7 @@ HRESULT m_IDirectDrawSurfaceX::BltFast(DWORD dwX, DWORD dwY, LPDIRECTDRAWSURFACE
 	// Check if source Surface exists
 	if (lpDDSrcSurface && !CheckSurfaceExists(lpDDSrcSurface))
 	{
-		LOG_LIMIT(100, __FUNCTION__ << " Error: could not find source surface! " << Logging::hex(lpDDSrcSurface));
+		LOG_LIMIT(100, __FUNCTION__ << " Error: could not find source surface! " << lpDDSrcSurface);
 		return DDERR_INVALIDPARAMS;
 	}
 
@@ -3794,7 +3794,7 @@ LPDIRECT3DTEXTURE9 m_IDirectDrawSurfaceX::Get3DDrawTexture()
 	{
 		if (FAILED((*d3d9Device)->CreateTexture(surface.Tex.Width, surface.Tex.Height, MaxMipMapLevel, surface.Tex.Usage, D3DFMT_A8R8G8B8, surface.Tex.Pool, &surface.DrawTexture, nullptr)))
 		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error: failed to create surface texture. Size: " << surface.Tex.Width << "x" << surface.Tex.Height << " Format: " << surfaceFormat << " dwCaps: " << Logging::hex(surfaceDesc2.ddsCaps.dwCaps));
+			LOG_LIMIT(100, __FUNCTION__ << " Error: failed to create surface texture. Size: " << surface.Tex.Width << "x" << surface.Tex.Height << " Format: " << surfaceFormat << " dwCaps: " << surfaceDesc2.ddsCaps.dwCaps);
 			return nullptr;
 		}
 		if (FAILED(CopyToDrawTexture(nullptr)))
@@ -3831,7 +3831,7 @@ LPDIRECT3DTEXTURE9 m_IDirectDrawSurfaceX::Get3DTexture()
 	if (surface.Tex.Pool == D3DPOOL_SYSTEMMEM || surface.Tex.Pool == D3DPOOL_SCRATCH)
 	{
 		LOG_LIMIT(100, __FUNCTION__ << " Error: texture pool does not support Driect3D: " << surfaceFormat << " Pool: " << surface.Tex.Pool <<
-			" Caps: " << Logging::hex(surfaceDesc2.ddsCaps.dwCaps) << " Attached: " << attached3DTexture);
+			" Caps: " << surfaceDesc2.ddsCaps.dwCaps << " Attached: " << attached3DTexture);
 		return nullptr;
 	}
 
@@ -4038,7 +4038,8 @@ HRESULT m_IDirectDrawSurfaceX::CreateD3d9Surface()
 	ShouldEmulate = (ShouldEmulate == SC_NOT_CREATED) ? SC_DONT_FORCE : ShouldEmulate;
 
 	Logging::LogDebug() << __FUNCTION__ " (" << this << ") D3d9 Surface. Size: " << Width << "x" << Height << " Format: " << surfaceFormat <<
-		" Pool: " << surface.Tex.Pool << " dwCaps: " << Logging::hex(surfaceDesc2.ddsCaps.dwCaps);
+	Logging::Log() << __FUNCTION__ " (" << this << ") D3d9 Surface. Size: " << Width << "x" << Height << " Format: " << surfaceFormat <<
+		" Pool: " << surface.Tex.Pool << " dwCaps: " << surfaceDesc2.ddsCaps.dwCaps << " " << surfaceDesc2;
 
 	HRESULT hr = DD_OK;
 
@@ -4049,7 +4050,7 @@ HRESULT m_IDirectDrawSurfaceX::CreateD3d9Surface()
 			surface.SurfacePool = D3DPOOL_DEFAULT;
 			if (FAILED((*d3d9Device)->CreateDepthStencilSurface(Width, Height, Format, ddrawParent->GetMultiSampleType(), ddrawParent->GetMultiSampleQuality(), FALSE, &surface.Surface, nullptr)))
 			{
-				LOG_LIMIT(100, __FUNCTION__ << " Error: failed to create depth buffer surface. Size: " << Width << "x" << Height << " Format: " << surfaceFormat << " dwCaps: " << Logging::hex(surfaceDesc2.ddsCaps.dwCaps));
+				LOG_LIMIT(100, __FUNCTION__ << " Error: failed to create depth buffer surface. Size: " << Width << "x" << Height << " Format: " << surfaceFormat << " dwCaps: " << surfaceDesc2.ddsCaps.dwCaps);
 				hr = DDERR_GENERIC;
 				break;
 			}
@@ -4070,7 +4071,7 @@ HRESULT m_IDirectDrawSurfaceX::CreateD3d9Surface()
 			} while (FAILED(hr_t) && ((!MipMapLevel && ++MipMapLevel) || --MipMapLevel > 0));
 			if (FAILED(hr_t))
 			{
-				LOG_LIMIT(100, __FUNCTION__ << " Error: failed to create surface texture. Size: " << Width << "x" << Height << " Format: " << surfaceFormat << " dwCaps: " << Logging::hex(surfaceDesc2.ddsCaps.dwCaps));
+				LOG_LIMIT(100, __FUNCTION__ << " Error: failed to create surface texture. Size: " << Width << "x" << Height << " Format: " << surfaceFormat << " dwCaps: " << surfaceDesc2.ddsCaps.dwCaps);
 				hr = DDERR_GENERIC;
 				break;
 			}
@@ -4087,7 +4088,7 @@ HRESULT m_IDirectDrawSurfaceX::CreateD3d9Surface()
 			if (FAILED((*d3d9Device)->CreateOffscreenPlainSurface(Width, Height, Format, surface.SurfacePool, &surface.Surface, nullptr)) &&
 				FAILED((*d3d9Device)->CreateOffscreenPlainSurface(Width, Height, GetFailoverFormat(Format), surface.SurfacePool, &surface.Surface, nullptr)))
 			{
-				LOG_LIMIT(100, __FUNCTION__ << " Error: failed to create surface. Size: " << Width << "x" << Height << " Format: " << Format << " dwCaps: " << Logging::hex(surfaceDesc2.ddsCaps.dwCaps));
+				LOG_LIMIT(100, __FUNCTION__ << " Error: failed to create surface. Size: " << Width << "x" << Height << " Format: " << Format << " dwCaps: " << surfaceDesc2.ddsCaps.dwCaps);
 				hr = DDERR_GENERIC;
 				break;
 			}
@@ -4101,7 +4102,7 @@ HRESULT m_IDirectDrawSurfaceX::CreateD3d9Surface()
 				// Try failover format
 				if (FAILED((*d3d9Device)->CreateTexture(Width, Height, 1, 0, GetFailoverFormat(TextureFormat), D3DPOOL_DEFAULT, &PrimaryDisplayTexture, nullptr)))
 				{
-					LOG_LIMIT(100, __FUNCTION__ << " Error: failed to create primary surface texture. Size: " << Width << "x" << Height << " Format: " << surfaceFormat << " dwCaps: " << Logging::hex(surfaceDesc2.ddsCaps.dwCaps));
+					LOG_LIMIT(100, __FUNCTION__ << " Error: failed to create primary surface texture. Size: " << Width << "x" << Height << " Format: " << surfaceFormat << " dwCaps: " << surfaceDesc2.ddsCaps.dwCaps);
 					hr = DDERR_GENERIC;
 					break;
 				}
@@ -4368,7 +4369,7 @@ HRESULT m_IDirectDrawSurfaceX::CreateDCSurface()
 		}
 	}
 
-	Logging::LogDebug() << __FUNCTION__ " (" << this << ") creating emulated surface. Size: " << Width << "x" << Height << " Format: " << surfaceFormat << " dwCaps: " << Logging::hex(surfaceDesc2.ddsCaps.dwCaps);
+	Logging::LogDebug() << __FUNCTION__ " (" << this << ") creating emulated surface. Size: " << Width << "x" << Height << " Format: " << surfaceFormat << " dwCaps: " << surfaceDesc2.ddsCaps.dwCaps;
 
 	// Create new emulated surface structure
 	surface.emu = new EMUSURFACE;
@@ -6367,13 +6368,13 @@ inline HRESULT m_IDirectDrawSurfaceX::CopyEmulatedPaletteSurface(LPRECT lpDestRe
 				(surfaceDesc2.ddsCaps.dwCaps & DDSCAPS_SYSTEMMEMORY) ? D3DPOOL_SYSTEMMEM : D3DPOOL_MANAGED;
 			const DWORD Width = GetByteAlignedWidth(surfaceDesc2.dwWidth, surfaceBitCount);
 			const DWORD Height = surfaceDesc2.dwHeight;
-			LOG_LIMIT(3, __FUNCTION__ << " Creating palette display surface texture. Size: " << Width << "x" << Height << " dwCaps: " << Logging::hex(surfaceDesc2.ddsCaps.dwCaps));
+			LOG_LIMIT(3, __FUNCTION__ << " Creating palette display surface texture. Size: " << Width << "x" << Height << " dwCaps: " << surfaceDesc2.ddsCaps.dwCaps);
 			if (FAILED(((*d3d9Device)->CreateTexture(Width, Height, 1, 0, D3DFMT_X8R8G8B8, TexturePool, &surface.DisplayTexture, nullptr))))
 			{
 				// Try failover format
 				if (FAILED(((*d3d9Device)->CreateTexture(Width, Height, 1, 0, GetFailoverFormat(D3DFMT_X8R8G8B8), TexturePool, &surface.DisplayTexture, nullptr))))
 				{
-					LOG_LIMIT(100, __FUNCTION__ << " Error: failed to create palette display surface texture. Size: " << Width << "x" << Height << " Format: " << D3DFMT_X8R8G8B8 << " dwCaps: " << Logging::hex(surfaceDesc2.ddsCaps.dwCaps));
+					LOG_LIMIT(100, __FUNCTION__ << " Error: failed to create palette display surface texture. Size: " << Width << "x" << Height << " Format: " << D3DFMT_X8R8G8B8 << " dwCaps: " << surfaceDesc2.ddsCaps.dwCaps);
 					hr = DDERR_GENERIC;
 					break;
 				}
