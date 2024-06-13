@@ -577,7 +577,7 @@ HRESULT m_IDirectDrawSurfaceX::Blt(LPRECT lpDestRect, LPDIRECTDRAWSURFACE7 lpDDS
 			lpDDSrcSurfaceX->IsInBlt = true;
 
 			// Set locked ID
-			if (LockedWithID || lpDDSrcSurfaceX->LockedWithID)
+			if ((LockedWithID && LockedWithID != GetCurrentThreadId()) || (lpDDSrcSurfaceX->LockedWithID && lpDDSrcSurfaceX->LockedWithID != GetCurrentThreadId()))
 			{
 				LOG_LIMIT(100, __FUNCTION__ << " Warning: surface locked thread ID set! " << LockedWithID << " " << lpDDSrcSurfaceX->LockedWithID);
 			}
@@ -2591,7 +2591,7 @@ HRESULT m_IDirectDrawSurfaceX::Lock2(LPRECT lpDestRect, LPDDSURFACEDESC2 lpDDSur
 			IsLocked = true;
 
 			// Set thread ID
-			if (LockedWithID)
+			if (LockedWithID && LockedWithID != GetCurrentThreadId())
 			{
 				LOG_LIMIT(100, __FUNCTION__ << " Warning: surface locked thread ID set! " << LockedWithID);
 			}
