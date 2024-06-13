@@ -443,18 +443,21 @@ HRESULT m_IDirectDrawSurfaceX::Blt(LPRECT lpDestRect, LPDIRECTDRAWSURFACE7 lpDDS
 		if (dwFlags & (DDBLT_ALPHADEST | DDBLT_ALPHADESTCONSTOVERRIDE | DDBLT_ALPHADESTNEG | DDBLT_ALPHADESTSURFACEOVERRIDE | DDBLT_ALPHAEDGEBLEND |
 			DDBLT_ALPHASRC | DDBLT_ALPHASRCCONSTOVERRIDE | DDBLT_ALPHASRCNEG | DDBLT_ALPHASRCSURFACEOVERRIDE))
 		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: alpha values not implemented!");
 			return DDERR_NOALPHAHW;
 		}
 
 		// All DDBLT_ZBUFFER flag values: This method does not currently support z-aware bitblt operations. None of the flags beginning with "DDBLT_ZBUFFER" are supported in DirectDraw.
 		if (dwFlags & (DDBLT_ZBUFFER | DDBLT_ZBUFFERDESTCONSTOVERRIDE | DDBLT_ZBUFFERDESTOVERRIDE | DDBLT_ZBUFFERSRCCONSTOVERRIDE | DDBLT_ZBUFFERSRCOVERRIDE))
 		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: zbuffer values not implemented!");
 			return DDERR_NOZBUFFERHW;
 		}
 
 		// DDBLT_DDROPS - dwDDROP is ignored as "no such ROPs are currently defined" in DirectDraw
 		if (dwFlags & DDBLT_DDROPS)
 		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: DDROP values not implemented!");
 			return DDERR_NODDROPSHW;
 		}
 
