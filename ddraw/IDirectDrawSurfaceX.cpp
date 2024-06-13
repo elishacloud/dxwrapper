@@ -4017,7 +4017,6 @@ HRESULT m_IDirectDrawSurfaceX::CreateD3d9Surface()
 	const bool IsSurfaceEmulated = (SurfaceRequiresEmulation || (IsPrimaryOrBackBuffer() && (Config.DdrawWriteToGDI || Config.DdrawReadFromGDI) && !Using3D));
 	DCRequiresEmulation = (surfaceFormat != D3DFMT_R5G6B5 && surfaceFormat != D3DFMT_X1R5G5B5 && surfaceFormat != D3DFMT_R8G8B8 && surfaceFormat != D3DFMT_X8R8G8B8);
 	const D3DFORMAT Format = ConvertSurfaceFormat(surfaceFormat);
-	const D3DFORMAT TextureFormat = (surfaceFormat == D3DFMT_P8) ? D3DFMT_L8 : Format;
 
 	// Get memory pool
 	surface.Tex.Pool = (IsPrimaryOrBackBuffer() && surface.IsUsingWindowedMode && !Using3D) ? D3DPOOL_SYSTEMMEM :
@@ -4038,7 +4037,6 @@ HRESULT m_IDirectDrawSurfaceX::CreateD3d9Surface()
 	ShouldEmulate = (ShouldEmulate == SC_NOT_CREATED) ? SC_DONT_FORCE : ShouldEmulate;
 
 	Logging::LogDebug() << __FUNCTION__ " (" << this << ") D3d9 Surface. Size: " << Width << "x" << Height << " Format: " << surfaceFormat <<
-	Logging::Log() << __FUNCTION__ " (" << this << ") D3d9 Surface. Size: " << Width << "x" << Height << " Format: " << surfaceFormat <<
 		" Pool: " << surface.Tex.Pool << " dwCaps: " << surfaceDesc2.ddsCaps.dwCaps << " " << surfaceDesc2;
 
 	HRESULT hr = DD_OK;
@@ -4062,11 +4060,11 @@ HRESULT m_IDirectDrawSurfaceX::CreateD3d9Surface()
 			HRESULT hr_t;
 			do {
 				surface.Tex.Usage = Config.DdrawForceMipMapAutoGen && MipMapLevel != 1 ? D3DUSAGE_AUTOGENMIPMAP : 0;
-				hr_t = (*d3d9Device)->CreateTexture(Width, Height, MipMapLevel, surface.Tex.Usage, TextureFormat, surface.Tex.Pool, &surface.Texture, nullptr);
+				hr_t = (*d3d9Device)->CreateTexture(Width, Height, MipMapLevel, surface.Tex.Usage, Format, surface.Tex.Pool, &surface.Texture, nullptr);
 				// Try failover format
 				if (FAILED(hr_t))
 				{
-					hr_t = (*d3d9Device)->CreateTexture(Width, Height, MipMapLevel, surface.Tex.Usage, GetFailoverFormat(TextureFormat), surface.Tex.Pool, &surface.Texture, nullptr);
+					hr_t = (*d3d9Device)->CreateTexture(Width, Height, MipMapLevel, surface.Tex.Usage, GetFailoverFormat(Format), surface.Tex.Pool, &surface.Texture, nullptr);
 				}
 			} while (FAILED(hr_t) && ((!MipMapLevel && ++MipMapLevel) || --MipMapLevel > 0));
 			if (FAILED(hr_t))
@@ -4097,10 +4095,10 @@ HRESULT m_IDirectDrawSurfaceX::CreateD3d9Surface()
 		// Create primary surface texture
 		if (IsPrimarySurface() && surface.IsUsingWindowedMode && !Using3D)
 		{
-			if (FAILED((*d3d9Device)->CreateTexture(Width, Height, 1, 0, TextureFormat, D3DPOOL_DEFAULT, &PrimaryDisplayTexture, nullptr)))
+			if (FAILED((*d3d9Device)->CreateTexture(Width, Height, 1, 0, Format, D3DPOOL_DEFAULT, &PrimaryDisplayTexture, nullptr)))
 			{
 				// Try failover format
-				if (FAILED((*d3d9Device)->CreateTexture(Width, Height, 1, 0, GetFailoverFormat(TextureFormat), D3DPOOL_DEFAULT, &PrimaryDisplayTexture, nullptr)))
+				if (FAILED((*d3d9Device)->CreateTexture(Width, Height, 1, 0, GetFailoverFormat(Format), D3DPOOL_DEFAULT, &PrimaryDisplayTexture, nullptr)))
 				{
 					LOG_LIMIT(100, __FUNCTION__ << " Error: failed to create primary surface texture. Size: " << Width << "x" << Height << " Format: " << surfaceFormat << " dwCaps: " << surfaceDesc2.ddsCaps.dwCaps);
 					hr = DDERR_GENERIC;
