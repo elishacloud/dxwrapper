@@ -3140,39 +3140,32 @@ HRESULT m_IDirectDrawX::CreateD3D9Device()
 				SendMessage(hWnd, WM_DISPLAYCHANGE, GetDisplayBPP(hWnd), MAKELPARAM(NewWidth, NewHeight));
 			}
 
-			// Set focus and active
-			if (!presParams.Windowed)
-			{
-				SetForegroundWindow(hWnd);
-				SetFocus(hWnd);
-				SetActiveWindow(hWnd);
-			}
-
 			// Get window size
 			RECT NewRect = { 0, 0, (LONG)presParams.BackBufferWidth, (LONG)presParams.BackBufferHeight };
 			GetWindowRect(hWnd, &NewRect);
 
-			// Send messages about window changes
-			if ((NewRect.left != LastWindowLocation.left || NewRect.top != LastWindowLocation.top) &&
+			// Window position change
+			HWND WindowInsert = GetWindowLong(DisplayMode.hWnd, GWL_EXSTYLE) & WS_EX_TOPMOST ? HWND_TOPMOST : HWND_TOP;
+			static WINDOWPOS winpos;
+			winpos = { hWnd, WindowInsert, NewRect.left, NewRect.top, NewRect.right - NewRect.left, NewRect.bottom - NewRect.top, WM_NULL };
+			SendMessage(hWnd, WM_WINDOWPOSCHANGING, 0, (LPARAM)&winpos);
+			SendMessage(hWnd, WM_WINDOWPOSCHANGED, 0, (LPARAM)&winpos);
+
+			// Window moved
+			if ((NewRect.left != LastWindowLocation.left || NewRect.top != LastWindowLocation.top ||
+				NewRect.right != LastWindowLocation.right || NewRect.bottom != LastWindowLocation.bottom) &&
 				LastWindowLocation.right && LastWindowLocation.bottom)
 			{
-				// Window position change
-				HWND WindowInsert = GetWindowLong(DisplayMode.hWnd, GWL_EXSTYLE) & WS_EX_TOPMOST ? HWND_TOPMOST : HWND_TOP;
-				static WINDOWPOS winpos;
-				winpos = { hWnd, WindowInsert, NewRect.left, NewRect.top, NewRect.right - NewRect.left, NewRect.bottom - NewRect.top, WM_NULL };
-				SendMessage(hWnd, WM_WINDOWPOSCHANGING, 0, (LPARAM)&winpos);
-				SendMessage(hWnd, WM_WINDOWPOSCHANGED, 0, (LPARAM)&winpos);
-				// Window moved
 				SendMessage(hWnd, WM_ENTERSIZEMOVE, 0, 0);
 				SendMessage(hWnd, WM_MOVING, 0, (LPARAM)&NewRect);
 				SendMessage(hWnd, WM_EXITSIZEMOVE, 0, 0);
 				SendMessage(hWnd, WM_MOVE, 0, MAKELPARAM(NewRect.left, NewRect.top));
 			}
-			else if ((NewRect.right - NewRect.left != LastWindowLocation.right - LastWindowLocation.left ||
+			// Window sized
+			if ((NewRect.right - NewRect.left != LastWindowLocation.right - LastWindowLocation.left ||
 				NewRect.bottom - NewRect.top != LastWindowLocation.bottom - LastWindowLocation.top) &&
 				LastWindowLocation.right && LastWindowLocation.bottom)
 			{
-				// Window sized
 				SendMessage(hWnd, WM_ENTERSIZEMOVE, 0, 0);
 				SendMessage(hWnd, WM_SIZING, WMSZ_BOTTOMRIGHT, (LPARAM)&NewRect);
 				SendMessage(hWnd, WM_EXITSIZEMOVE, 0, 0);
@@ -4366,15 +4359,23 @@ HRESULT m_IDirectDrawX::Present(RECT* pSourceRect, RECT* pDestRect)
 	}
 
 	// Present everthing, skip Preset when using DdrawWriteToGDI
-	HRESULT hr;
+	HRESULT hr = D3DERR_DEVICELOST;
 	if (!IsUsingThreadPresent())
 	{
 		hr = d3d9Device->Present(pSourceRect, pDestRect, nullptr, nullptr);
 	}
-	else
+	
+	// Test cooperative level
+	if (hr == D3DERR_DEVICELOST)
 	{
 		hr = TestD3D9CooperativeLevel();
 		hr = (hr == DDERR_NOEXCLUSIVEMODE) ? DD_OK : hr;
+	}
+
+	// Reset device
+	if (hr == D3DERR_DEVICENOTRESET)
+	{
+		hr = ReinitDevice();
 	}
 
 	// Present failure
