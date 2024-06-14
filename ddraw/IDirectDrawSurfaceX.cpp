@@ -2012,7 +2012,7 @@ HRESULT m_IDirectDrawSurfaceX::GetDC(HDC FAR* lphDC)
 				if (FAILED(hr))
 				{
 					LOG_LIMIT(100, __FUNCTION__ << " Error: could not get device context!");
-					hr = (hr == D3DERR_DEVICELOST || IsLost()) ? DDERR_SURFACELOST :
+					hr = (hr == D3DERR_DEVICELOST || IsLost() == DDERR_SURFACELOST) ? DDERR_SURFACELOST :
 						(hr == DDERR_WASSTILLDRAWING || IsSurfaceBusy()) ? DDERR_SURFACEBUSY : DDERR_GENERIC;
 					break;
 				}
@@ -2574,7 +2574,7 @@ HRESULT m_IDirectDrawSurfaceX::Lock2(LPRECT lpDestRect, LPDDSURFACEDESC2 lpDDSur
 					LOG_LIMIT(100, __FUNCTION__ << " Error: failed to lock surface texture." << (surface.Surface ? " Is 3DSurface." : " Is Texture.") <<
 						" Size: " << lpDDSurfaceDesc2->dwWidth << "x" << lpDDSurfaceDesc2->dwHeight << " Format: " << surfaceFormat <<
 						" Flags: " << Logging::hex(Flags) << " Locked: " << IsSurfaceLocked() << " DC: " << IsSurfaceInDC() << " Blt: " << IsSurfaceBlitting() << " hr: " << (D3DERR)ret);
-					hr = (ret == D3DERR_DEVICELOST || IsLost()) ? DDERR_SURFACELOST :
+					hr = (ret == D3DERR_DEVICELOST || IsLost() == DDERR_SURFACELOST) ? DDERR_SURFACELOST :
 						(ret == DDERR_WASSTILLDRAWING || (!LockWait && IsSurfaceBusy())) ? DDERR_WASSTILLDRAWING : DDERR_GENERIC;
 					break;
 				}

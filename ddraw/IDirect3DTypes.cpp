@@ -377,21 +377,21 @@ void ConvertDeviceDesc(D3DDEVICEDESC7 &Desc7, D3DCAPS9 &Caps9)
 		Desc7.dpcTriCaps.dwStippleWidth = 4;
 		Desc7.dpcTriCaps.dwStippleHeight = 4;
 		Desc7.dwDeviceRenderBitDepth = DDBD_8 | DDBD_16 | DDBD_24 | DDBD_32;
-		Desc7.dwDeviceZBufferBitDepth = DDBD_16;
+		Desc7.dwDeviceZBufferBitDepth = DDBD_16 | DDBD_32;
 	}
 	else if (Caps9.DeviceType == D3DDEVTYPE_HAL)
 	{
 		Desc7.deviceGUID = IID_IDirect3DHALDevice;
 		Desc7.dwDevCaps = (Desc7.dwDevCaps | D3DDEVCAPS_HWRASTERIZATION) & ~(D3DDEVCAPS_HWTRANSFORMANDLIGHT);
 		Desc7.dwDeviceRenderBitDepth = DDBD_8 | DDBD_16 | DDBD_32;
-		Desc7.dwDeviceZBufferBitDepth = DDBD_16 | DDBD_24;
+		Desc7.dwDeviceZBufferBitDepth = DDBD_16 | DDBD_32;
 	}
 	else if (Caps9.DeviceType == D3DDEVTYPE_HAL + 0x10)
 	{
 		Desc7.deviceGUID = IID_IDirect3DTnLHalDevice;
 		Desc7.dwDevCaps |= Desc7.dwDevCaps | D3DDEVCAPS_HWRASTERIZATION;
 		Desc7.dwDeviceRenderBitDepth = DDBD_8 | DDBD_16 | DDBD_32;
-		Desc7.dwDeviceZBufferBitDepth = DDBD_16 | DDBD_24;
+		Desc7.dwDeviceZBufferBitDepth = DDBD_16 | DDBD_32;
 	}
 	// Reserved
 	Desc7.dwReserved1 = 0;
