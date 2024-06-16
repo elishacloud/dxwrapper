@@ -11,22 +11,22 @@ public:
 	bool enableGamepadSupport = false;
 
 	// Sequence number for keyboard actions
-	DWORD dwSequence;
+	DWORD dwSequence = 0;
 
 	// Has the game the keyboard acquired?
 	bool keyboardAcquired = false;
 
 	// Key-States received via WM_INPUT / Raw-Input
-	BYTE keyStates[256];
+	BYTE keyStates[256] = {};
 
 	// Key-States actually sent to the game
-	BYTE gameKeyStates[256];
+	BYTE gameKeyStates[256] = {};
 
 	// Mouse-State for GetDeviceData() / GetDeviceState()
 	DIMOUSESTATE* mouseStateDeviceData = new DIMOUSESTATE();
 	DIMOUSESTATE* mouseStateDeviceDataGame = new DIMOUSESTATE();
 
-	HANDLE mouseEventHandle = NULL;
+	HANDLE mouseEventHandle = nullptr;
 
 	DIJOYSTATE2* gamepadState = new DIJOYSTATE2();
 
@@ -49,7 +49,7 @@ public:
 
 		char tmp[4096];
 		StringCbPrintfA(tmp, 4096, "[dinput8][%s:%u] %s\r\n", filePtr, line, tmp2);
-		OutputDebugStringA(tmp);
+		Logging::Log() << tmp;
 	}
 
 	CDirectInput8Globals()

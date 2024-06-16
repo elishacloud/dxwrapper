@@ -12,7 +12,7 @@ public:
 		hThread = CreateThread(NULL, 0, ThreadProc, NULL, 0, &threadId);
 		if (hThread == NULL)
 		{
-			MessageBoxA(NULL, "CreateThread() failed", "dinput8.dll", MB_OK);
+			Logging::Log() << __FUNCTION__ << " Error: CreateThread() failed!";
 			return;
 		}
 	}
@@ -34,14 +34,14 @@ public:
 
 		if (!RegisterClassExA(&wcex))
 		{
-			MessageBoxA(NULL, "RegisterClassExA() failed", "dinput8.dll", MB_OK);
+			Logging::Log() << __FUNCTION__ << " Error: RegisterClassExA() failed!";
 			return 0;
 		}
 
 		HWND hWnd = CreateWindowExA(WS_EX_CLIENTEDGE, "CDirectInput8", "dinput8.dll", WS_OVERLAPPEDWINDOW, 1920, 10, 400, 400, NULL, NULL, hModule_dll, NULL);
 		if (hWnd == NULL)
 		{
-			MessageBoxA(NULL, "CreateWindowExA() failed", "dinput8.dll", MB_OK);
+			Logging::Log() << __FUNCTION__ << " Error: CreateWindowExA() failed!";
 			return 0;
 		}
 
@@ -118,7 +118,7 @@ public:
 
 			if (RegisterRawInputDevices(Rid, ridLength, sizeof(Rid[0])) == FALSE)
 			{
-				MessageBoxA(NULL, "RegisterRawInputDevices() failed!", "dinput8.dll", MB_OK | MB_ICONEXCLAMATION);
+				Logging::Log() << __FUNCTION__ << " Error: RegisterRawInputDevices() failed!";
 				//registration failed. Call GetLastError for the cause of the error
 			}
 		}
