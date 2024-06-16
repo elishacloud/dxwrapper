@@ -4,6 +4,10 @@
 
 #define DIRECTINPUT_VERSION 0x0800
 #include <dinput.h>
+#include <objbase.h>
+#include <strsafe.h>
+#include "dinput8.h"
+#include "hid.h"
 
 class m_IDirectInput8A;
 class m_IDirectInput8W;
@@ -14,6 +18,7 @@ class m_IDirectInputEffect8;
 #include "AddressLookupTable.h"
 #include "Settings\Settings.h"
 #include "Logging\Logging.h"
+#include "Dllmain\Dllmain.h"
 
 typedef HRESULT(WINAPI *DirectInput8CreateProc)(HINSTANCE, DWORD, REFIID, LPVOID*, LPUNKNOWN);
 typedef HRESULT(WINAPI *DllCanUnloadNowProc)();
@@ -31,8 +36,28 @@ extern AddressLookupTableDinput8<void> ProxyAddressLookupTableDinput8;
 
 using namespace Dinput8Wrapper;
 
+#include "dinput8type.h"
+
 #include "IDirectInput8A.h"
 #include "IDirectInput8W.h"
 #include "IDirectInputDevice8A.h"
 #include "IDirectInputDevice8W.h"
 #include "IDirectInputEffect.h"
+
+#include "CDirectInput8Globals.h"
+
+#include "CDirectInputDeviceMouse8.h"
+#include "CDirectInputDeviceMouse8A.h"
+#include "CDirectInputDeviceMouse8W.h"
+
+#include "CDirectInputDeviceKeyboard8.h"
+#include "CDirectInputDeviceKeyboard8A.h"
+#include "CDirectInputDeviceKeyboard8W.h"
+
+#include "CDirectInputDeviceGamepad8.h"
+#include "CDirectInputDeviceGamepad8A.h"
+#include "CDirectInputDeviceGamepad8W.h"
+
+#include "CDirectInput8.h"
+#include "CDirectInput8A.h"
+#include "CDirectInput8W.h"

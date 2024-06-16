@@ -22,6 +22,12 @@
 
 AddressLookupTableDinput8<void> ProxyAddressLookupTableDinput8 = AddressLookupTableDinput8<void>();
 
+bool hidDllLoaded = false;
+
+HIDP_GETCAPS_FUNC* HidP_GetCaps = nullptr;
+HIDP_GETBUTTONCAPS_FUNC* HidP_GetButtonCaps = nullptr;
+HIDP_GETUSAGES_FUNC* HidP_GetUsages = nullptr;
+
 namespace Dinput8Wrapper
 {
 	VISIT_PROCS_DINPUT8(INITIALIZE_OUT_WRAPPED_PROC);
@@ -29,6 +35,25 @@ namespace Dinput8Wrapper
 }
 
 using namespace Dinput8Wrapper;
+
+void LoadHidLibrary()
+{
+	if (hidDllLoaded)
+	{
+		return;
+	}
+
+	HMODULE hidModule = LoadLibrary(TEXT("hid.dll"));
+
+	if (hidModule)
+	{
+		HidP_GetCaps = (HIDP_GETCAPS_FUNC*)GetProcAddress(hidModule, TEXT("HidP_GetCaps"));
+		HidP_GetButtonCaps = (HIDP_GETBUTTONCAPS_FUNC*)GetProcAddress(hidModule, TEXT("HidP_GetButtonCaps"));
+		HidP_GetUsages = (HIDP_GETUSAGES_FUNC*)GetProcAddress(hidModule, TEXT("HidP_GetUsages"));
+
+		hidDllLoaded = true;
+	}
+}
 
 HRESULT WINAPI di8_DirectInput8Create(HINSTANCE hinst, DWORD dwVersion, REFIID riidltf, LPVOID * ppvOut, LPUNKNOWN punkOuter)
 {
