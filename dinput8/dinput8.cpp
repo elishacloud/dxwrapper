@@ -24,6 +24,8 @@ AddressLookupTableDinput8<void> ProxyAddressLookupTableDinput8 = AddressLookupTa
 
 bool hidDllLoaded = false;
 
+CDirectInput8Globals* diGlobalsInstance = nullptr;
+
 HIDP_GETCAPS_FUNC* HidP_GetCaps = nullptr;
 HIDP_GETBUTTONCAPS_FUNC* HidP_GetButtonCaps = nullptr;
 HIDP_GETUSAGES_FUNC* HidP_GetUsages = nullptr;
@@ -83,6 +85,17 @@ HRESULT WINAPI di8_DirectInput8Create(HINSTANCE hinst, DWORD dwVersion, REFIID r
 		else
 		{
 			genericQueryInterface(riidltf, ppvOut);
+		}
+		if (Config.UseRawInputForDInput8)
+		{
+			if (!hidDllLoaded)
+			{
+				LoadHidLibrary();
+			}
+			if (!diGlobalsInstance)
+			{
+				diGlobalsInstance = new CDirectInput8Globals();
+			}
 		}
 	}
 

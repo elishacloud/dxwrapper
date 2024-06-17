@@ -529,4 +529,4 @@ public:
 	}
 };
 
-static CDirectInput8Globals* diGlobalsInstance = new CDirectInput8Globals();
+extern CDirectInput8Globals* diGlobalsInstance;

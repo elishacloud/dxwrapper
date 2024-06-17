@@ -117,6 +117,7 @@
 	visit(SetNamedLayer) \
 	visit(SingleProcAffinity) \
 	visit(StoppedDriverWorkaround) \
+	visit(UseRawInputForDInput8) \
 	visit(WaitForProcess) \
 	visit(WaitForWindowChanges) \
 	visit(WindowSleepTime) \
@@ -272,6 +273,7 @@ struct CONFIG
 	bool ProcessExcluded = false;				// Set if this process is excluded from dxwrapper functions
 	bool ResetScreenRes = false;				// Reset the screen resolution on close
 	bool SendAltEnter = false;					// Sends an Alt+Enter message to the wind to tell it to go into fullscreen, requires FullScreen
+	bool UseRawInputForDInput8 = false;			// Enables Geeky's dinput8wrapper, which uses Raw Input instead of DirectInput
 	bool WaitForProcess = false;				// Waits for process to end before continuing, requires FullScreen
 	bool WaitForWindowChanges = false;			// Waits for window handle to stabilize before setting fullsreen, requires FullScreen
 	bool WindowModeBorder = false;				// Enables the window border when EnableWindowMode is set, requires EnableWindowMode
