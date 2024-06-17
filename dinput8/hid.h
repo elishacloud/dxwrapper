@@ -2,7 +2,7 @@
 
 // From hidusage.h
 ///////////////////////////////////////////////////////////////////////
-typedef USHORT USAGE, * PUSAGE;
+typedef USHORT USAGE, *PUSAGE;
 
 // From hidpi.h
 ///////////////////////////////////////////////////////////////////////
@@ -30,7 +30,7 @@ typedef struct _HIDP_CAPS
 	USHORT   NumberFeatureButtonCaps;
 	USHORT   NumberFeatureValueCaps;
 	USHORT   NumberFeatureDataIndices;
-} HIDP_CAPS, * PHIDP_CAPS;
+} HIDP_CAPS, *PHIDP_CAPS;
 
 typedef struct _HIDP_BUTTON_CAPS
 {
