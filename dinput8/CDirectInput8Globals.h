@@ -440,39 +440,17 @@ public:
 	{
 		if (Msg == WM_CREATE)
 		{
-			RAWINPUTDEVICE Rid[4] = { 0 };
-			int ridLength = 2;
+			RAWINPUTDEVICE Rid[1] = {};
 
-			//
 			Rid[0].usUsagePage = HID_USAGE_PAGE_GENERIC;
 			Rid[0].usUsage = HID_USAGE_GENERIC_MOUSE;
-			Rid[0].dwFlags = 0;
+			Rid[0].dwFlags = 0; // Can use RIDEV_NOLEGACY, etc. if needed
 			Rid[0].hwndTarget = hWnd;
 
-			Rid[1].usUsagePage = HID_USAGE_PAGE_GENERIC;
-			Rid[1].usUsage = HID_USAGE_GENERIC_KEYBOARD;
-			Rid[1].dwFlags = 0;
-			Rid[1].hwndTarget = hWnd;
-
-			if (diGlobalsInstance->enableGamepadSupport)
+			if (RegisterRawInputDevices(Rid, 1, sizeof(Rid[0])) == FALSE)
 			{
-				ridLength = 4;
-
-				Rid[2].usUsagePage = HID_USAGE_PAGE_GENERIC;
-				Rid[2].usUsage = HID_USAGE_GENERIC_JOYSTICK;
-				Rid[2].dwFlags = RIDEV_DEVNOTIFY;
-				Rid[2].hwndTarget = hWnd;
-
-				Rid[3].usUsagePage = HID_USAGE_PAGE_GENERIC;
-				Rid[3].usUsage = HID_USAGE_GENERIC_GAMEPAD;
-				Rid[3].dwFlags = RIDEV_DEVNOTIFY;
-				Rid[3].hwndTarget = hWnd;
-			}
-
-			if (RegisterRawInputDevices(Rid, ridLength, sizeof(Rid[0])) == FALSE)
-			{
-				//registration failed. Call GetLastError for the cause of the error
-				Logging::Log() << __FUNCTION__ << " Error: RegisterRawInputDevices() failed!";
+				DWORD error = GetLastError();
+				Logging::Log() << __FUNCTION__ << " Error: RegisterRawInputDevices() failed! Error: " << error << " " << hWnd;
 			}
 		}
 		else if (Msg == WM_INPUT)
