@@ -14,8 +14,8 @@ public:
 		mouseDeviceInfo->guidInstance = GUID_SysMouse;
 		mouseDeviceInfo->guidProduct = GUID_SysMouse;
 		mouseDeviceInfo->dwDevType = DI8DEVTYPE_MOUSE | (DI8DEVTYPEMOUSE_UNKNOWN << 8);
-		StringCbCopyW(mouseDeviceInfo->tszInstanceName, 260, L"Mouse");
-		StringCbCopyW(mouseDeviceInfo->tszProductName, 260, L"Mouse");
+		StringCbCopyW(mouseDeviceInfo->tszInstanceName, sizeof(mouseDeviceInfo->tszInstanceName), L"Mouse");
+		StringCbCopyW(mouseDeviceInfo->tszProductName, sizeof(mouseDeviceInfo->tszProductName), L"Mouse");
 
 		this->dwDevType = mouseDeviceInfo->dwDevType;
 	}
@@ -62,8 +62,12 @@ public:
 
 	HRESULT STDMETHODCALLTYPE GetDeviceInfo(LPDIDEVICEINSTANCEW pdidi)
 	{
-		//diGlobalsInstance->LogA("MouseDevice->GetDeviceInfo()", __FILE__, __LINE__);
-		memcpy(pdidi, mouseDeviceInfo, sizeof(DIDEVICEINSTANCEW));
+		if (!pdidi || (pdidi->dwSize != sizeof(DIDEVICEINSTANCE_DX3) && pdidi->dwSize != sizeof(DIDEVICEINSTANCEA)))
+		{
+			return DIERR_INVALIDPARAM;
+		}
+
+		memcpy(pdidi, mouseDeviceInfo, pdidi->dwSize);
 
 		return DI_OK;
 	}
