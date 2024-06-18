@@ -72,7 +72,7 @@ HRESULT m_IDirectInput8W::CreateDevice(REFGUID rguid, LPDIRECTINPUTDEVICE8W *lpl
 
 		*lplpDirectInputDevice = pAddressX;
 
-		if (Config.UseRawInputForDInput8)
+		if (Config.UseRawInputForMouse)
 		{
 			if (IsEqualIID(GUID_SysMouse, rguid))
 			{
