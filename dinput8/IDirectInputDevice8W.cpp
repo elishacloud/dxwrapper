@@ -155,7 +155,10 @@ HRESULT m_IDirectInputDevice8W::GetDeviceData(DWORD cbObjectData, LPDIDEVICEOBJE
 		return CDirectInputDeviceMouse8->GetDeviceData(cbObjectData, rgdod, pdwInOut, dwFlags);
 	}
 
-	return ProxyInterface->GetDeviceData(cbObjectData, rgdod, pdwInOut, dwFlags);
+	HRESULT hr = ProxyInterface->GetDeviceData(cbObjectData, rgdod, pdwInOut, dwFlags);
+
+	// Several games handle DI_BUFFEROVERFLOW as failure
+	return IsMouse && hr == DI_BUFFEROVERFLOW && rgdod && pdwInOut && *pdwInOut > 0 ? DI_OK : hr;
 }
 
 HRESULT m_IDirectInputDevice8W::SetDataFormat(LPCDIDATAFORMAT lpdf)

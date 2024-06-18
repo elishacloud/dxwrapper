@@ -6,6 +6,7 @@ private:
 	IDirectInputDevice8A *ProxyInterface;
 	CDirectInputDeviceMouse8A *CDirectInputDeviceMouse8 = nullptr;
 
+	bool IsMouse = false;
 	DWORD ProcessID;
 
 public:
@@ -68,4 +69,5 @@ public:
 	// Helper functions
 	IDirectInputDevice8A *GetProxyInterface() { return ProxyInterface; }
 	void SetMouseDevice(CDirectInputDeviceMouse8A* pAddress) { CDirectInputDeviceMouse8 = pAddress; }
+	void SetAsMouse() { IsMouse = true; }
 };
