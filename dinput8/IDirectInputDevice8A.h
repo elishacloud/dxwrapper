@@ -5,6 +5,7 @@ class m_IDirectInputDevice8A : public IDirectInputDevice8A, public AddressLookup
 private:
 	IDirectInputDevice8A *ProxyInterface;
 
+	bool IsMouse = false;
 	DWORD ProcessID;
 
 public:
@@ -61,4 +62,5 @@ public:
 
 	// Helper functions
 	IDirectInputDevice8A *GetProxyInterface() { return ProxyInterface; }
+	void SetAsMouse() { IsMouse = true; }
 };
