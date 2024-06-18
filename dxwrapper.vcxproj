@@ -1279,16 +1279,7 @@ copy /Y "$(ProjectDir)Settings\Settings.ini" "$(TargetDir)Build\dxwrapper.ini" &
     <ClInclude Include="ddraw\Versions\IDirectDrawSurface4.h" />
     <ClInclude Include="ddraw\Versions\IDirectDrawSurface7.h" />
     <ClInclude Include="dinput8\AddressLookupTable.h" />
-    <ClInclude Include="dinput8\CDirectInput8.h" />
-    <ClInclude Include="dinput8\CDirectInput8A.h" />
     <ClInclude Include="dinput8\CDirectInput8Globals.h" />
-    <ClInclude Include="dinput8\CDirectInput8W.h" />
-    <ClInclude Include="dinput8\CDirectInputDeviceGamepad8.h" />
-    <ClInclude Include="dinput8\CDirectInputDeviceGamepad8A.h" />
-    <ClInclude Include="dinput8\CDirectInputDeviceGamepad8W.h" />
-    <ClInclude Include="dinput8\CDirectInputDeviceKeyboard8.h" />
-    <ClInclude Include="dinput8\CDirectInputDeviceKeyboard8A.h" />
-    <ClInclude Include="dinput8\CDirectInputDeviceKeyboard8W.h" />
     <ClInclude Include="dinput8\CDirectInputDeviceMouse8.h" />
     <ClInclude Include="dinput8\CDirectInputDeviceMouse8A.h" />
     <ClInclude Include="dinput8\CDirectInputDeviceMouse8W.h" />

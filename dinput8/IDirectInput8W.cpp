@@ -68,7 +68,17 @@ HRESULT m_IDirectInput8W::CreateDevice(REFGUID rguid, LPDIRECTINPUTDEVICE8W *lpl
 
 	if (SUCCEEDED(hr) && lplpDirectInputDevice)
 	{
-		*lplpDirectInputDevice = new m_IDirectInputDevice8W(*lplpDirectInputDevice);
+		m_IDirectInputDevice8W* pAddressX = new m_IDirectInputDevice8W(*lplpDirectInputDevice);
+
+		*lplpDirectInputDevice = pAddressX;
+
+		if (Config.UseRawInputForDInput8)
+		{
+			if (IsEqualIID(GUID_SysMouse, rguid))
+			{
+				pAddressX->SetMouseDevice(new CDirectInputDeviceMouse8W);
+			}
+		}
 	}
 
 	return hr;

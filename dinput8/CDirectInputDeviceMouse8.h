@@ -11,11 +11,22 @@ private:
 public:
 	DWORD dwDevType = 0;
 
-	CDirectInputDeviceMouse8() {}
+	CDirectInputDeviceMouse8()
+	{
+		if (!hidDllLoaded)
+		{
+			LoadHidLibrary();
+		}
+		if (!diGlobalsInstance)
+		{
+			diGlobalsInstance = new CDirectInput8Globals();
+		}
+		Logging::Log() << __FUNCTION__ << " Using Raw mouse input for DirectInput8!";
+	}
 
 	HRESULT STDMETHODCALLTYPE Base_GetCapabilities(LPDIDEVCAPS lpDIDevCaps)
 	{
-		diGlobalsInstance->LogA("MouseDevice->GetCapabilities()", __FILE__, __LINE__);
+		//diGlobalsInstance->LogA("MouseDevice->GetCapabilities()", __FILE__, __LINE__);
 
 		lpDIDevCaps->dwFlags = DIDC_ATTACHED | DIDC_EMULATED;
 		lpDIDevCaps->dwDevType = this->dwDevType;
@@ -33,7 +44,7 @@ public:
 
 	HRESULT STDMETHODCALLTYPE Base_Acquire()
 	{
-		diGlobalsInstance->LogA("MouseDevice->Acquire()", __FILE__, __LINE__);
+		//diGlobalsInstance->LogA("MouseDevice->Acquire()", __FILE__, __LINE__);
 
 		this->hWndForegroundWindow = GetForegroundWindow();
 
@@ -66,7 +77,7 @@ public:
 
 	HRESULT STDMETHODCALLTYPE Base_Unacquire()
 	{
-		diGlobalsInstance->LogA("MouseDevice->Unacquire()", __FILE__, __LINE__);
+		//diGlobalsInstance->LogA("MouseDevice->Unacquire()", __FILE__, __LINE__);
 
 		ReleaseCapture();
 
@@ -84,11 +95,11 @@ public:
 	{
 		UNREFERENCED_PARAMETER(cbData);
 
-		diGlobalsInstance->LogA("MouseDevice->GetDeviceState()", __FILE__, __LINE__);
+		//diGlobalsInstance->LogA("MouseDevice->GetDeviceState()", __FILE__, __LINE__);
 
 		if (!this->isAquired)
 		{
-			diGlobalsInstance->LogA("MouseDevice->GetDeviceState(): DIERR_INPUTLOST", __FILE__, __LINE__);
+			//diGlobalsInstance->LogA("MouseDevice->GetDeviceState(): DIERR_INPUTLOST", __FILE__, __LINE__);
 			return DIERR_INPUTLOST;
 		}
 
@@ -116,7 +127,7 @@ public:
 
 		if (!this->isAquired)
 		{
-			diGlobalsInstance->LogA("MouseDevice->GetDeviceData(): DIERR_INPUTLOST", __FILE__, __LINE__);
+			//diGlobalsInstance->LogA("MouseDevice->GetDeviceData(): DIERR_INPUTLOST", __FILE__, __LINE__);
 			return DIERR_INPUTLOST;
 		}
 
@@ -124,15 +135,15 @@ public:
 
 		if (cbObjectData != sizeof(DIDEVICEOBJECTDATA))
 		{
-			diGlobalsInstance->LogA("MouseDevice->GetDeviceData(): Unexpected cbObjectData", __FILE__, __LINE__);
+			//diGlobalsInstance->LogA("MouseDevice->GetDeviceData(): Unexpected cbObjectData", __FILE__, __LINE__);
 			return DIERR_INVALIDPARAM;
 		}
 
 		if (dwFlags > 0)
 		{
-			char tmp[1024];
-			wsprintfA(tmp, "MouseDevice->GetDeviceData(): dwFlags=%x", dwFlags);
-			diGlobalsInstance->LogA(tmp, __FILE__, __LINE__);
+			//char tmp[1024];
+			//wsprintfA(tmp, "MouseDevice->GetDeviceData(): dwFlags=%x", dwFlags);
+			//diGlobalsInstance->LogA(tmp, __FILE__, __LINE__);
 		}
 
 		int dwOut = 0;
@@ -146,12 +157,12 @@ public:
 		{
 			if ((*pdwInOut == 0) && (rgdod == NULL))
 			{
-				diGlobalsInstance->LogA("MouseDevice->GetDeviceData() checking for overflow", __FILE__, __LINE__);
+				//diGlobalsInstance->LogA("MouseDevice->GetDeviceData() checking for overflow", __FILE__, __LINE__);
 			}
 			else if ((*pdwInOut == INFINITE) && (rgdod == NULL))
 			{
 				// Flush buffer:
-				diGlobalsInstance->LogA("MouseDevice->GetDeviceData() flushing buffer", __FILE__, __LINE__);
+				//diGlobalsInstance->LogA("MouseDevice->GetDeviceData() flushing buffer", __FILE__, __LINE__);
 
 				ZeroMemory(diGlobalsInstance->keyStates, sizeof(diGlobalsInstance->keyStates));
 				ZeroMemory(diGlobalsInstance->gameKeyStates, sizeof(diGlobalsInstance->gameKeyStates));
@@ -257,19 +268,19 @@ public:
 
 	HRESULT STDMETHODCALLTYPE Base_SetDataFormat(LPCDIDATAFORMAT lpdf)
 	{
-		diGlobalsInstance->LogA("MouseDevice->SetDataFormat()", __FILE__, __LINE__);
+		//diGlobalsInstance->LogA("MouseDevice->SetDataFormat()", __FILE__, __LINE__);
 		memcpy(&dataFormat, lpdf, sizeof(DIDATAFORMAT));
-		diGlobalsInstance->LogA("- dwFlags: %x", __FILE__, __LINE__, dataFormat.dwFlags);
-		diGlobalsInstance->LogA("- dwNumObjs: %i", __FILE__, __LINE__, dataFormat.dwNumObjs);
-		diGlobalsInstance->LogA("- dwSize: %i", __FILE__, __LINE__, dataFormat.dwSize);
-		diGlobalsInstance->LogA("- dwDataSize: %i", __FILE__, __LINE__, dataFormat.dwDataSize);
-		diGlobalsInstance->LogA("- dwObjSize: %i", __FILE__, __LINE__, dataFormat.dwObjSize);
+		//diGlobalsInstance->LogA("- dwFlags: %x", __FILE__, __LINE__, dataFormat.dwFlags);
+		//diGlobalsInstance->LogA("- dwNumObjs: %i", __FILE__, __LINE__, dataFormat.dwNumObjs);
+		//diGlobalsInstance->LogA("- dwSize: %i", __FILE__, __LINE__, dataFormat.dwSize);
+		//diGlobalsInstance->LogA("- dwDataSize: %i", __FILE__, __LINE__, dataFormat.dwDataSize);
+		//diGlobalsInstance->LogA("- dwObjSize: %i", __FILE__, __LINE__, dataFormat.dwObjSize);
 		return DI_OK;
 	}
 
 	HRESULT STDMETHODCALLTYPE Base_SetEventNotification(HANDLE hEvent)
 	{
-		diGlobalsInstance->LogA("MouseDevice->SetEventNotification(hEvent: %x)", __FILE__, __LINE__, hEvent);
+		//diGlobalsInstance->LogA("MouseDevice->SetEventNotification(hEvent: %x)", __FILE__, __LINE__, hEvent);
 		diGlobalsInstance->Lock();
 		{
 			diGlobalsInstance->mouseEventHandle = hEvent;
@@ -283,12 +294,12 @@ public:
 	{
 		UNREFERENCED_PARAMETER(hwnd);
 
-		diGlobalsInstance->LogA("MouseDevice->SetCooperativeLevel(dwFlags: %x)", __FILE__, __LINE__, dwFlags);
-		diGlobalsInstance->LogA("-> DISCL_EXCLUSIVE: %i", __FILE__, __LINE__, (dwFlags & DISCL_EXCLUSIVE) ? 1 : 0);
-		diGlobalsInstance->LogA("-> DISCL_BACKGROUND: %i", __FILE__, __LINE__, (dwFlags & DISCL_BACKGROUND) ? 1 : 0);
-		diGlobalsInstance->LogA("-> DISCL_FOREGROUND: %i", __FILE__, __LINE__, (dwFlags & DISCL_FOREGROUND) ? 1 : 0);
-		diGlobalsInstance->LogA("-> DISCL_NONEXCLUSIVE: %i", __FILE__, __LINE__, (dwFlags & DISCL_NONEXCLUSIVE) ? 1 : 0);
-		diGlobalsInstance->LogA("-> DISCL_NOWINKEY: %i", __FILE__, __LINE__, (dwFlags & DISCL_NOWINKEY) ? 1 : 0);
+		//diGlobalsInstance->LogA("MouseDevice->SetCooperativeLevel(dwFlags: %x)", __FILE__, __LINE__, dwFlags);
+		//diGlobalsInstance->LogA("-> DISCL_EXCLUSIVE: %i", __FILE__, __LINE__, (dwFlags & DISCL_EXCLUSIVE) ? 1 : 0);
+		//diGlobalsInstance->LogA("-> DISCL_BACKGROUND: %i", __FILE__, __LINE__, (dwFlags & DISCL_BACKGROUND) ? 1 : 0);
+		//diGlobalsInstance->LogA("-> DISCL_FOREGROUND: %i", __FILE__, __LINE__, (dwFlags & DISCL_FOREGROUND) ? 1 : 0);
+		//diGlobalsInstance->LogA("-> DISCL_NONEXCLUSIVE: %i", __FILE__, __LINE__, (dwFlags & DISCL_NONEXCLUSIVE) ? 1 : 0);
+		//diGlobalsInstance->LogA("-> DISCL_NOWINKEY: %i", __FILE__, __LINE__, (dwFlags & DISCL_NOWINKEY) ? 1 : 0);
 
 		this->exclusiveMode = ((dwFlags & DISCL_EXCLUSIVE) > 0);
 

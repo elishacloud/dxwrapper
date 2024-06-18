@@ -62,7 +62,7 @@ public:
 
 	HRESULT STDMETHODCALLTYPE GetDeviceInfo(LPDIDEVICEINSTANCEA pdidi)
 	{
-		diGlobalsInstance->LogA("MouseDevice->GetDeviceInfo()", __FILE__, __LINE__);
+		//diGlobalsInstance->LogA("MouseDevice->GetDeviceInfo()", __FILE__, __LINE__);
 		memcpy(pdidi, mouseDeviceInfo, sizeof(DIDEVICEINSTANCEA));
 
 		return DI_OK;

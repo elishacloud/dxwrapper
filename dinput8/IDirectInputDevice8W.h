@@ -4,6 +4,7 @@ class m_IDirectInputDevice8W : public IDirectInputDevice8W, public AddressLookup
 {
 private:
 	IDirectInputDevice8W *ProxyInterface;
+	CDirectInputDeviceMouse8W *CDirectInputDeviceMouse8 = nullptr;
 
 	DWORD ProcessID;
 
@@ -19,6 +20,11 @@ public:
 	~m_IDirectInputDevice8W()
 	{
 		LOG_LIMIT(3, __FUNCTION__ << " (" << this << ")" << " deleting interface!");
+
+		if (CDirectInputDeviceMouse8)
+		{
+			delete CDirectInputDeviceMouse8;
+		}
 
 		ProxyAddressLookupTableDinput8.DeleteAddress(this);
 	}
@@ -61,4 +67,5 @@ public:
 
 	// Helper functions
 	IDirectInputDevice8W *GetProxyInterface() { return ProxyInterface; }
+	void SetMouseDevice(CDirectInputDeviceMouse8W* pAddress) { CDirectInputDeviceMouse8 = pAddress; }
 };

@@ -1874,34 +1874,7 @@
     <ClInclude Include="ddraw\Shaders\PaletteShader.h">
       <Filter>ddraw\Shaders</Filter>
     </ClInclude>
-    <ClInclude Include="dinput8\CDirectInput8.h">
-      <Filter>dinput8</Filter>
-    </ClInclude>
-    <ClInclude Include="dinput8\CDirectInput8A.h">
-      <Filter>dinput8</Filter>
-    </ClInclude>
     <ClInclude Include="dinput8\CDirectInput8Globals.h">
-      <Filter>dinput8</Filter>
-    </ClInclude>
-    <ClInclude Include="dinput8\CDirectInput8W.h">
-      <Filter>dinput8</Filter>
-    </ClInclude>
-    <ClInclude Include="dinput8\CDirectInputDeviceGamepad8.h">
-      <Filter>dinput8</Filter>
-    </ClInclude>
-    <ClInclude Include="dinput8\CDirectInputDeviceGamepad8A.h">
-      <Filter>dinput8</Filter>
-    </ClInclude>
-    <ClInclude Include="dinput8\CDirectInputDeviceGamepad8W.h">
-      <Filter>dinput8</Filter>
-    </ClInclude>
-    <ClInclude Include="dinput8\CDirectInputDeviceKeyboard8.h">
-      <Filter>dinput8</Filter>
-    </ClInclude>
-    <ClInclude Include="dinput8\CDirectInputDeviceKeyboard8A.h">
-      <Filter>dinput8</Filter>
-    </ClInclude>
-    <ClInclude Include="dinput8\CDirectInputDeviceKeyboard8W.h">
       <Filter>dinput8</Filter>
     </ClInclude>
     <ClInclude Include="dinput8\CDirectInputDeviceMouse8.h">

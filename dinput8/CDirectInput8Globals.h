@@ -3,6 +3,8 @@
 class CDirectInput8Globals
 {
 private:
+	DWORD threadId = 0;
+	HANDLE hThread = 0;
 	DWORD dikMapping[256] = {};
 	const wchar_t* dikNames[256] = {};
 	CRITICAL_SECTION critSect = {};
@@ -12,9 +14,6 @@ public:
 
 	// Sequence number for keyboard actions
 	DWORD dwSequence = 0;
-
-	// Has the game the keyboard acquired?
-	bool keyboardAcquired = false;
 
 	// Key-States received via WM_INPUT / Raw-Input
 	BYTE keyStates[256] = {};
@@ -30,31 +29,16 @@ public:
 
 	DIJOYSTATE2* gamepadState = new DIJOYSTATE2();
 
-	void LogA(LPCSTR LogLine, LPCTSTR file, int line, ...)
-	{
-		int flen = strlen(file) - 1;
-
-		while ((file[flen] != '/') && (file[flen] != '\\'))
-		{
-			flen--;
-		}
-		flen++;
-		LPCTSTR filePtr = file + flen;
-
-		va_list args;
-		va_start(args, line);
-		char tmp2[4096];
-		wvsprintfA(tmp2, LogLine, args);
-		va_end(args);
-
-		char tmp[4096];
-		StringCbPrintfA(tmp, 4096, "[dinput8][%s:%u] %s\r\n", filePtr, line, tmp2);
-		Logging::Log() << tmp;
-	}
-
 	CDirectInput8Globals()
 	{
 		InitializeCriticalSection(&critSect);
+
+		hThread = CreateThread(NULL, 0, ThreadProc, NULL, 0, &threadId);
+		if (hThread == NULL)
+		{
+			Logging::Log() << __FUNCTION__ << " Error: CreateThread() failed!";
+			return;
+		}
 
 		ZeroMemory(keyStates, sizeof(keyStates));
 		ZeroMemory(gameKeyStates, sizeof(gameKeyStates));
@@ -340,7 +324,7 @@ public:
 			{
 				if ((raw->data.mouse.usFlags & MOUSE_MOVE_ABSOLUTE))
 				{
-					LogA("IsAbsoluteMouse - not handled yet", __FILE__, __LINE__);
+					//LogA("IsAbsoluteMouse - not handled yet", __FILE__, __LINE__);
 				}
 				else
 				{
@@ -393,13 +377,13 @@ public:
 				DWORD keyMapped = dikMapping[raw->data.keyboard.VKey];
 				if (keyMapped == 0x00)
 				{
-					LogA("VirtualKeyCode %x unhandled", __FILE__, __LINE__, raw->data.keyboard.VKey);
+					//LogA("VirtualKeyCode %x unhandled", __FILE__, __LINE__, raw->data.keyboard.VKey);
 				}
 				else if (keyMapped == 0xFF)
 				{
 					// 0xFF = Intentionally ignore this key
 
-					LogA("VirtualKeyCode % x ignored", __FILE__, __LINE__, raw->data.keyboard.VKey);
+					//LogA("VirtualKeyCode % x ignored", __FILE__, __LINE__, raw->data.keyboard.VKey);
 				}
 				else
 				{
@@ -412,7 +396,7 @@ public:
 				UINT preparsedDataBufferSize = 0;
 				if (GetRawInputDeviceInfo(raw->header.hDevice, RIDI_PREPARSEDDATA, NULL, &preparsedDataBufferSize) != 0)
 				{
-					LogA("GetRawInputDeviceInfo() with RIDI_PREPARSEDDATA failed!", __FILE__, __LINE__, raw->data.keyboard.VKey);
+					//LogA("GetRawInputDeviceInfo() with RIDI_PREPARSEDDATA failed!", __FILE__, __LINE__, raw->data.keyboard.VKey);
 				}
 
 				PHIDP_PREPARSED_DATA preparsedDataBuffer = (PHIDP_PREPARSED_DATA)malloc(preparsedDataBufferSize);
@@ -462,36 +446,36 @@ public:
 														}
 													}
 
-													LogA("Button pressed: %i (usagePage: %i)", __FILE__, __LINE__, usages[usageIndex], buttonCaps->UsagePage);
+													//LogA("Button pressed: %i (usagePage: %i)", __FILE__, __LINE__, usages[usageIndex], buttonCaps->UsagePage);
 												}
 											}
 											else if (guResult == HIDP_STATUS_INVALID_REPORT_LENGTH)
 											{
-												LogA("HidP_GetUsages() failed with HIDP_STATUS_INVALID_REPORT_LENGTH", __FILE__, __LINE__);
+												//LogA("HidP_GetUsages() failed with HIDP_STATUS_INVALID_REPORT_LENGTH", __FILE__, __LINE__);
 											}
 											else if (guResult == HIDP_STATUS_INVALID_REPORT_TYPE)
 											{
-												LogA("HidP_GetUsages() failed with HIDP_STATUS_INVALID_REPORT_TYPE", __FILE__, __LINE__);
+												//LogA("HidP_GetUsages() failed with HIDP_STATUS_INVALID_REPORT_TYPE", __FILE__, __LINE__);
 											}
 											else if (guResult == HIDP_STATUS_BUFFER_TOO_SMALL)
 											{
-												LogA("HidP_GetUsages() failed with HIDP_STATUS_BUFFER_TOO_SMALL", __FILE__, __LINE__);
+												//LogA("HidP_GetUsages() failed with HIDP_STATUS_BUFFER_TOO_SMALL", __FILE__, __LINE__);
 											}
 											else if (guResult == HIDP_STATUS_INCOMPATIBLE_REPORT_ID)
 											{
-												LogA("HidP_GetUsages() failed with HIDP_STATUS_INCOMPATIBLE_REPORT_ID", __FILE__, __LINE__);
+												//LogA("HidP_GetUsages() failed with HIDP_STATUS_INCOMPATIBLE_REPORT_ID", __FILE__, __LINE__);
 											}
 											else if (guResult == HIDP_STATUS_INVALID_PREPARSED_DATA)
 											{
-												LogA("HidP_GetUsages() failed with HIDP_STATUS_INVALID_PREPARSED_DATA", __FILE__, __LINE__);
+												//LogA("HidP_GetUsages() failed with HIDP_STATUS_INVALID_PREPARSED_DATA", __FILE__, __LINE__);
 											}
 											else if (guResult == HIDP_STATUS_USAGE_NOT_FOUND)
 											{
-												LogA("HidP_GetUsages() failed with HIDP_STATUS_USAGE_NOT_FOUND", __FILE__, __LINE__);
+												//LogA("HidP_GetUsages() failed with HIDP_STATUS_USAGE_NOT_FOUND", __FILE__, __LINE__);
 											}
 											else
 											{
-												LogA("HidP_GetUsages() failed with unknown return value: %x", __FILE__, __LINE__, guResult);
+												//LogA("HidP_GetUsages() failed with unknown return value: %x", __FILE__, __LINE__, guResult);
 											}
 
 											delete usages;
@@ -501,32 +485,147 @@ public:
 							}
 							else
 							{
-								LogA("HidP_GetButtonCaps() failed", __FILE__, __LINE__);
+								//LogA("HidP_GetButtonCaps() failed", __FILE__, __LINE__);
 
 							}
 						}
 					}
 					else if (rv == HIDP_STATUS_INVALID_PREPARSED_DATA)
 					{
-						LogA("HidP_GetButtonCaps() failed with HIDP_STATUS_INVALID_PREPARSED_DATA", __FILE__, __LINE__);
+						//LogA("HidP_GetButtonCaps() failed with HIDP_STATUS_INVALID_PREPARSED_DATA", __FILE__, __LINE__);
 					}
 					else
 					{
-						LogA("HidP_GetButtonCaps() failed with rv: %x", __FILE__, __LINE__, rv);
+						//LogA("HidP_GetButtonCaps() failed with rv: %x", __FILE__, __LINE__, rv);
 					}
 				}
 				else
 				{
-					LogA("GetRawInputDeviceInfo() failed", __FILE__, __LINE__);
+					//LogA("GetRawInputDeviceInfo() failed", __FILE__, __LINE__);
 				}
 			}
 			else
 			{
-				LogA("Unhandled raw->header.dwType: %x", __FILE__, __LINE__, raw->header.dwType);
+				//LogA("Unhandled raw->header.dwType: %x", __FILE__, __LINE__, raw->header.dwType);
 			}
 		}
 		Unlock();
 	}
-};
 
-extern CDirectInput8Globals* diGlobalsInstance;
+	static DWORD WINAPI ThreadProc(LPVOID lpParameter)
+	{
+		UNREFERENCED_PARAMETER(lpParameter);
+
+		WNDCLASSEXA wcex;
+		ZeroMemory(&wcex, sizeof(WNDCLASSEXA));
+		wcex.cbSize = sizeof(WNDCLASSEXA);
+		wcex.style = CS_HREDRAW | CS_VREDRAW;
+		wcex.lpfnWndProc = MainWndProc;
+		wcex.hInstance = hModule_dll;
+		wcex.hIcon = LoadIconA(NULL, IDI_APPLICATION);
+		wcex.hCursor = LoadCursorA(NULL, IDC_ARROW);
+		wcex.hbrBackground = (HBRUSH)GetStockObject(WHITE_BRUSH);
+		wcex.lpszClassName = "CDirectInput8";
+
+		if (!RegisterClassExA(&wcex))
+		{
+			Logging::Log() << __FUNCTION__ << " Error: RegisterClassExA() failed!";
+			return 0;
+		}
+
+		HWND hWnd = CreateWindowExA(WS_EX_CLIENTEDGE, "CDirectInput8", "dinput8.dll", WS_OVERLAPPEDWINDOW, 1920, 10, 400, 400, NULL, NULL, hModule_dll, NULL);
+		if (hWnd == NULL)
+		{
+			Logging::Log() << __FUNCTION__ << " Error: CreateWindowExA() failed!";
+			return 0;
+		}
+
+		ShowWindow(hWnd, SW_HIDE);
+		UpdateWindow(hWnd);
+
+		MSG msg;
+		while (GetMessage(&msg, NULL, 0, 0) > 0)
+		{
+			TranslateMessage(&msg);
+			DispatchMessage(&msg);
+		}
+
+		return msg.wParam;
+	}
+
+	static LRESULT HandleWMInput(LPARAM lParam)
+	{
+		UINT dwSize = 0;
+
+		GetRawInputData((HRAWINPUT)lParam, RID_INPUT, NULL, &dwSize, sizeof(RAWINPUTHEADER));
+		LPBYTE lpb = new BYTE[dwSize];
+		if (lpb == NULL)
+		{
+			return 0;
+		}
+
+		if (GetRawInputData((HRAWINPUT)lParam, RID_INPUT, lpb, &dwSize, sizeof(RAWINPUTHEADER)) != dwSize)
+		{
+			//diGlobalsInstance->LogA("GetRawInputData does not return correct size!", __FILE__, __LINE__);
+			return 0;
+		}
+
+		RAWINPUT* raw = (RAWINPUT*)lpb;
+
+		diGlobalsInstance->HandleRawInput(raw);
+
+		delete[] lpb;
+		return 0;
+	}
+
+	static LRESULT CALLBACK MainWndProc(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lParam)
+	{
+		if (Msg == WM_CREATE)
+		{
+			RAWINPUTDEVICE Rid[4] = { 0 };
+			int ridLength = 2;
+
+			//
+			Rid[0].usUsagePage = HID_USAGE_PAGE_GENERIC;
+			Rid[0].usUsage = HID_USAGE_GENERIC_MOUSE;
+			Rid[0].dwFlags = 0;
+			Rid[0].hwndTarget = hWnd;
+
+			Rid[1].usUsagePage = HID_USAGE_PAGE_GENERIC;
+			Rid[1].usUsage = HID_USAGE_GENERIC_KEYBOARD;
+			Rid[1].dwFlags = 0;
+			Rid[1].hwndTarget = hWnd;
+
+			if (diGlobalsInstance->enableGamepadSupport)
+			{
+				ridLength = 4;
+
+				Rid[2].usUsagePage = HID_USAGE_PAGE_GENERIC;
+				Rid[2].usUsage = HID_USAGE_GENERIC_JOYSTICK;
+				Rid[2].dwFlags = RIDEV_DEVNOTIFY;
+				Rid[2].hwndTarget = hWnd;
+
+				Rid[3].usUsagePage = HID_USAGE_PAGE_GENERIC;
+				Rid[3].usUsage = HID_USAGE_GENERIC_GAMEPAD;
+				Rid[3].dwFlags = RIDEV_DEVNOTIFY;
+				Rid[3].hwndTarget = hWnd;
+			}
+
+			if (RegisterRawInputDevices(Rid, ridLength, sizeof(Rid[0])) == FALSE)
+			{
+				Logging::Log() << __FUNCTION__ << " Error: RegisterRawInputDevices() failed!";
+				//registration failed. Call GetLastError for the cause of the error
+			}
+		}
+		else if (Msg == WM_INPUT)
+		{
+			return HandleWMInput(lParam);
+		}
+		else if (Msg == WM_INPUT_DEVICE_CHANGE)
+		{
+			diGlobalsInstance->CheckRawInputDevices();
+		}
+
+		return DefWindowProcA(hWnd, Msg, wParam, lParam);
+	}
+};

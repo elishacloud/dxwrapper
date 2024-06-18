@@ -14,6 +14,7 @@ class m_IDirectInput8W;
 class m_IDirectInputDevice8A;
 class m_IDirectInputDevice8W;
 class m_IDirectInputEffect8;
+class CDirectInput8Globals;
 
 #include "AddressLookupTable.h"
 #include "Settings\Settings.h"
@@ -33,31 +34,19 @@ namespace Dinput8Wrapper
 }
 
 extern AddressLookupTableDinput8<void> ProxyAddressLookupTableDinput8;
+extern CDirectInput8Globals* diGlobalsInstance;
 
 using namespace Dinput8Wrapper;
 
 #include "dinput8type.h"
+
+#include "CDirectInput8Globals.h"
+#include "CDirectInputDeviceMouse8.h"
+#include "CDirectInputDeviceMouse8A.h"
+#include "CDirectInputDeviceMouse8W.h"
 
 #include "IDirectInput8A.h"
 #include "IDirectInput8W.h"
 #include "IDirectInputDevice8A.h"
 #include "IDirectInputDevice8W.h"
 #include "IDirectInputEffect.h"
-
-#include "CDirectInput8Globals.h"
-
-#include "CDirectInputDeviceMouse8.h"
-#include "CDirectInputDeviceMouse8A.h"
-#include "CDirectInputDeviceMouse8W.h"
-
-#include "CDirectInputDeviceKeyboard8.h"
-#include "CDirectInputDeviceKeyboard8A.h"
-#include "CDirectInputDeviceKeyboard8W.h"
-
-#include "CDirectInputDeviceGamepad8.h"
-#include "CDirectInputDeviceGamepad8A.h"
-#include "CDirectInputDeviceGamepad8W.h"
-
-#include "CDirectInput8.h"
-#include "CDirectInput8A.h"
-#include "CDirectInput8W.h"

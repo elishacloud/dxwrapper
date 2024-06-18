@@ -86,17 +86,6 @@ HRESULT WINAPI di8_DirectInput8Create(HINSTANCE hinst, DWORD dwVersion, REFIID r
 		{
 			genericQueryInterface(riidltf, ppvOut);
 		}
-		if (Config.UseRawInputForDInput8)
-		{
-			if (!hidDllLoaded)
-			{
-				LoadHidLibrary();
-			}
-			if (!diGlobalsInstance)
-			{
-				diGlobalsInstance = new CDirectInput8Globals();
-			}
-		}
 	}
 
 	return hr;
