@@ -3,7 +3,7 @@
 #include <unordered_map>
 #include <algorithm>
 
-constexpr UINT MaxIndex = 6;
+constexpr UINT MaxIndex = 4;
 
 template <typename D>
 class AddressLookupTableDinput8
@@ -26,18 +26,14 @@ public:
 	template <typename T>
 	struct AddressCacheIndex { static constexpr UINT CacheIndex = 0; };
 	template <>
-	struct AddressCacheIndex<m_IDirectInput8A> { static constexpr UINT CacheIndex = 1; };
+	struct AddressCacheIndex<m_IDirectInput8> { static constexpr UINT CacheIndex = 1; };
 	template <>
-	struct AddressCacheIndex<m_IDirectInput8W> { static constexpr UINT CacheIndex = 2; };
+	struct AddressCacheIndex<m_IDirectInputDevice8> { static constexpr UINT CacheIndex = 2; };
 	template <>
-	struct AddressCacheIndex<m_IDirectInputDevice8A> { static constexpr UINT CacheIndex = 3; };
-	template <>
-	struct AddressCacheIndex<m_IDirectInputDevice8W> { static constexpr UINT CacheIndex = 4; };
-	template <>
-	struct AddressCacheIndex<m_IDirectInputEffect8> { static constexpr UINT CacheIndex = 5; };
+	struct AddressCacheIndex<m_IDirectInputEffect8> { static constexpr UINT CacheIndex = 3; };
 
 	template <typename T>
-	T *FindAddress(void *Proxy)
+	T *FindAddress(void *Proxy, REFIID riid)
 	{
 		if (!Proxy)
 		{
@@ -52,7 +48,7 @@ public:
 			return static_cast<T *>(it->second);
 		}
 
-		return new T(static_cast<T *>(Proxy));
+		return new T(static_cast<T *>(Proxy), riid);
 	}
 
 	template <typename T>

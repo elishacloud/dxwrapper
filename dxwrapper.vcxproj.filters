@@ -619,19 +619,13 @@
     <ClCompile Include="dinput8\dinput8.cpp">
       <Filter>dinput8</Filter>
     </ClCompile>
-    <ClCompile Include="dinput8\IDirectInput8A.cpp">
+    <ClCompile Include="dinput8\IDirectInput8.cpp">
       <Filter>dinput8</Filter>
     </ClCompile>
-    <ClCompile Include="dinput8\IDirectInput8W.cpp">
+    <ClCompile Include="dinput8\IDirectInputDevice8.cpp">
       <Filter>dinput8</Filter>
     </ClCompile>
-    <ClCompile Include="dinput8\IDirectInputDevice8A.cpp">
-      <Filter>dinput8</Filter>
-    </ClCompile>
-    <ClCompile Include="dinput8\IDirectInputDevice8W.cpp">
-      <Filter>dinput8</Filter>
-    </ClCompile>
-    <ClCompile Include="dinput8\IDirectInputEffect.cpp">
+    <ClCompile Include="dinput8\IDirectInputEffect8.cpp">
       <Filter>dinput8</Filter>
     </ClCompile>
     <ClCompile Include="dinput8\InterfaceQuery.cpp">
@@ -1502,19 +1496,13 @@
     <ClInclude Include="dinput8\dinput8.h">
       <Filter>dinput8</Filter>
     </ClInclude>
-    <ClInclude Include="dinput8\IDirectInput8A.h">
+    <ClInclude Include="dinput8\IDirectInput8.h">
       <Filter>dinput8</Filter>
     </ClInclude>
-    <ClInclude Include="dinput8\IDirectInput8W.h">
+    <ClInclude Include="dinput8\IDirectInputDevice8.h">
       <Filter>dinput8</Filter>
     </ClInclude>
-    <ClInclude Include="dinput8\IDirectInputDevice8A.h">
-      <Filter>dinput8</Filter>
-    </ClInclude>
-    <ClInclude Include="dinput8\IDirectInputDevice8W.h">
-      <Filter>dinput8</Filter>
-    </ClInclude>
-    <ClInclude Include="dinput8\IDirectInputEffect.h">
+    <ClInclude Include="dinput8\IDirectInputEffect8.h">
       <Filter>dinput8</Filter>
     </ClInclude>
     <ClInclude Include="IClassFactory\IClassFactory.h">

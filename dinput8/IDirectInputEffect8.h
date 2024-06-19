@@ -4,11 +4,17 @@ class m_IDirectInputEffect8 : public IDirectInputEffect, public AddressLookupTab
 {
 private:
 	IDirectInputEffect *ProxyInterface;
+	REFIID WrapperID;
 
 public:
-	m_IDirectInputEffect8(IDirectInputEffect *aOriginal) : ProxyInterface(aOriginal)
+	m_IDirectInputEffect8(IDirectInputEffect *aOriginal, REFIID riid) : ProxyInterface(aOriginal), WrapperID(riid)
 	{
 		LOG_LIMIT(3, "Creating interface " << __FUNCTION__ << " (" << this << ")");
+
+		if (IsEqualIID(riid, IID_IUnknown))
+		{
+			Logging::Log() << __FUNCTION__ << " Error: could not get riid when creating interface!";
+		}
 
 		ProxyAddressLookupTableDinput8.SaveAddress(this, ProxyInterface);
 	}
