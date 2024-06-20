@@ -9,10 +9,8 @@
 #include "dinput8.h"
 #include "hid.h"
 
-class m_IDirectInput8A;
-class m_IDirectInput8W;
-class m_IDirectInputDevice8A;
-class m_IDirectInputDevice8W;
+class m_IDirectInput8;
+class m_IDirectInputDevice8;
 class m_IDirectInputEffect8;
 class CDirectInput8Globals;
 
@@ -45,8 +43,6 @@ using namespace Dinput8Wrapper;
 #include "CDirectInputDeviceMouse8A.h"
 #include "CDirectInputDeviceMouse8W.h"
 
-#include "IDirectInput8A.h"
-#include "IDirectInput8W.h"
-#include "IDirectInputDevice8A.h"
-#include "IDirectInputDevice8W.h"
-#include "IDirectInputEffect.h"
+#include "IDirectInput8.h"
+#include "IDirectInputDevice8.h"
+#include "IDirectInputEffect8.h"
