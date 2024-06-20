@@ -116,7 +116,7 @@ HRESULT m_IDirectInputDevice8::GetDeviceData(DWORD cbObjectData, LPDIDEVICEOBJEC
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	if (Config.FilterNonActiveInput)
+	if (Config.FilterNonActiveInput && pdwInOut)
 	{
 		// Check foreground window's process and don't copy device data if process is not active
 		HWND hfgwnd = GetForegroundWindow();
@@ -133,10 +133,7 @@ HRESULT m_IDirectInputDevice8::GetDeviceData(DWORD cbObjectData, LPDIDEVICEOBJEC
 		}
 	}
 
-	HRESULT hr = ProxyInterface->GetDeviceData(cbObjectData, rgdod, pdwInOut, dwFlags);
-
-	// Several games handle DI_BUFFEROVERFLOW as failure
-	return IsMouse && hr == DI_BUFFEROVERFLOW && rgdod && pdwInOut && *pdwInOut > 0 ? DI_OK : hr;
+	return ProxyInterface->GetDeviceData(cbObjectData, rgdod, pdwInOut, dwFlags);
 }
 
 HRESULT m_IDirectInputDevice8::SetDataFormat(LPCDIDATAFORMAT lpdf)
