@@ -156,55 +156,12 @@ public:
 		// Checking for overflow
 		if (rgdod == nullptr && *pdwInOut == 0)
 		{
-			if (diGlobalsInstance->mouseStateDeviceData.lX != 0 ||
-				diGlobalsInstance->mouseStateDeviceData.lY != 0 ||
-				diGlobalsInstance->mouseStateDeviceData.lZ != 0 ||
-				diGlobalsInstance->mouseStateDeviceData.rgbButtons[0] != diGlobalsInstance->mouseStateDeviceDataGame.rgbButtons[0] ||
-				diGlobalsInstance->mouseStateDeviceData.rgbButtons[1] != diGlobalsInstance->mouseStateDeviceDataGame.rgbButtons[1] ||
-				diGlobalsInstance->mouseStateDeviceData.rgbButtons[2] != diGlobalsInstance->mouseStateDeviceDataGame.rgbButtons[2])
-			{
-				return DI_BUFFEROVERFLOW;
-			}
+			// Don't return overflow as just using mouse state
 		}
 		// Flush buffer
 		else if (rgdod == nullptr && !isPeek)
 		{
-			if (dwOut < *pdwInOut && diGlobalsInstance->mouseStateDeviceData.lX != 0)
-			{
-				diGlobalsInstance->dwSequence++;
-				diGlobalsInstance->mouseStateDeviceData.lX = 0;
-				dwOut++;
-			}
-			else if (dwOut < *pdwInOut && diGlobalsInstance->mouseStateDeviceData.lY != 0)
-			{
-				diGlobalsInstance->dwSequence++;
-				diGlobalsInstance->mouseStateDeviceData.lY = 0;
-				dwOut++;
-			}
-			else if (dwOut < *pdwInOut && diGlobalsInstance->mouseStateDeviceData.lZ != 0)
-			{
-				diGlobalsInstance->dwSequence++;
-				diGlobalsInstance->mouseStateDeviceData.lZ = 0;
-				dwOut++;
-			}
-			else if (dwOut < *pdwInOut && diGlobalsInstance->mouseStateDeviceData.rgbButtons[0] != diGlobalsInstance->mouseStateDeviceDataGame.rgbButtons[0])
-			{
-				diGlobalsInstance->dwSequence++;
-				diGlobalsInstance->mouseStateDeviceDataGame.rgbButtons[0] = diGlobalsInstance->mouseStateDeviceData.rgbButtons[0];
-				dwOut++;
-			}
-			else if (dwOut < *pdwInOut && diGlobalsInstance->mouseStateDeviceData.rgbButtons[1] != diGlobalsInstance->mouseStateDeviceDataGame.rgbButtons[1])
-			{
-				diGlobalsInstance->dwSequence++;
-				diGlobalsInstance->mouseStateDeviceDataGame.rgbButtons[1] = diGlobalsInstance->mouseStateDeviceData.rgbButtons[1];
-				dwOut++;
-			}
-			else if (dwOut < *pdwInOut && diGlobalsInstance->mouseStateDeviceData.rgbButtons[2] != diGlobalsInstance->mouseStateDeviceDataGame.rgbButtons[2])
-			{
-				diGlobalsInstance->dwSequence++;
-				diGlobalsInstance->mouseStateDeviceDataGame.rgbButtons[2] = diGlobalsInstance->mouseStateDeviceData.rgbButtons[2];
-				dwOut++;
-			}
+			// Don't flush buffer as just using mouse state
 		}
 		// Full device object data
 		else if (rgdod)
