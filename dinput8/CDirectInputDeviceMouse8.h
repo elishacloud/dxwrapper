@@ -33,8 +33,8 @@ public:
 		mouseDeviceInfoW.guidInstance = GUID_SysMouse;
 		mouseDeviceInfoW.guidProduct = GUID_SysMouse;
 		mouseDeviceInfoW.dwDevType = DI8DEVTYPE_MOUSE | (DI8DEVTYPEMOUSE_UNKNOWN << 8);
-		wcscpy_s(mouseDeviceInfoW.tszInstanceName, sizeof(mouseDeviceInfoW.tszInstanceName), L"Mouse");
-		wcscpy_s(mouseDeviceInfoW.tszProductName, sizeof(mouseDeviceInfoW.tszProductName), L"Mouse");
+		wcscpy_s(mouseDeviceInfoW.tszInstanceName, sizeof(mouseDeviceInfoW.tszInstanceName) / sizeof(WCHAR), L"Mouse");
+		wcscpy_s(mouseDeviceInfoW.tszProductName, sizeof(mouseDeviceInfoW.tszProductName) / sizeof(WCHAR), L"Mouse");
 
 		this->dwDevType = mouseDeviceInfoA.dwDevType;
 	}
@@ -128,13 +128,13 @@ public:
 		diGlobalsInstance->Lock();
 		{
 			// Copy current state to lpvData
-			memcpy(lpvData, diGlobalsInstance->mouseStateDeviceData, min(cbData, sizeof(DIMOUSESTATE)));
+			memcpy(lpvData, &diGlobalsInstance->mouseStateDeviceData, min(cbData, sizeof(DIMOUSESTATE)));
 
 			// Set axis movement to zero:
 			// (=Mark last movement data as fetched)
-			diGlobalsInstance->mouseStateDeviceData->lX = 0;
-			diGlobalsInstance->mouseStateDeviceData->lY = 0;
-			diGlobalsInstance->mouseStateDeviceData->lZ = 0;
+			diGlobalsInstance->mouseStateDeviceData.lX = 0;
+			diGlobalsInstance->mouseStateDeviceData.lY = 0;
+			diGlobalsInstance->mouseStateDeviceData.lZ = 0;
 		}
 		diGlobalsInstance->Unlock();
 
@@ -186,10 +186,10 @@ public:
 					LPDIDEVICEOBJECTDATA p_rgdod = rgdod;
 					for (DWORD i = 0; i < *pdwInOut; i++)
 					{
-						if (diGlobalsInstance->mouseStateDeviceData->lX != 0)
+						if (diGlobalsInstance->mouseStateDeviceData.lX != 0)
 						{
 							// Sending DIMOFS_X
-							p_rgdod->dwData = diGlobalsInstance->mouseStateDeviceData->lX;
+							p_rgdod->dwData = diGlobalsInstance->mouseStateDeviceData.lX;
 							p_rgdod->dwOfs = DIMOFS_X;
 							p_rgdod->dwSequence = diGlobalsInstance->dwSequence;
 							p_rgdod->dwTimeStamp = (DWORD)fTime;
@@ -199,13 +199,13 @@ public:
 							}
 
 							diGlobalsInstance->dwSequence++;
-							diGlobalsInstance->mouseStateDeviceData->lX = 0;
+							diGlobalsInstance->mouseStateDeviceData.lX = 0;
 							dwOut++;
 						}
-						else if (diGlobalsInstance->mouseStateDeviceData->lY != 0)
+						else if (diGlobalsInstance->mouseStateDeviceData.lY != 0)
 						{
 							// Sending DIMOFS_Y
-							p_rgdod->dwData = diGlobalsInstance->mouseStateDeviceData->lY;
+							p_rgdod->dwData = diGlobalsInstance->mouseStateDeviceData.lY;
 							p_rgdod->dwOfs = DIMOFS_Y;
 							p_rgdod->dwSequence = diGlobalsInstance->dwSequence;
 							p_rgdod->dwTimeStamp = (DWORD)fTime;
@@ -215,13 +215,13 @@ public:
 							}
 
 							diGlobalsInstance->dwSequence++;
-							diGlobalsInstance->mouseStateDeviceData->lY = 0;
+							diGlobalsInstance->mouseStateDeviceData.lY = 0;
 							dwOut++;
 						}
-						else if (diGlobalsInstance->mouseStateDeviceData->lZ != 0)
+						else if (diGlobalsInstance->mouseStateDeviceData.lZ != 0)
 						{
 							// Sending DIMOFS_Z
-							p_rgdod->dwData = diGlobalsInstance->mouseStateDeviceData->lZ;
+							p_rgdod->dwData = diGlobalsInstance->mouseStateDeviceData.lZ;
 							p_rgdod->dwOfs = DIMOFS_Z;
 							p_rgdod->dwSequence = diGlobalsInstance->dwSequence;
 							p_rgdod->dwTimeStamp = (DWORD)fTime;
@@ -231,13 +231,13 @@ public:
 							}
 
 							diGlobalsInstance->dwSequence++;
-							diGlobalsInstance->mouseStateDeviceData->lZ = 0;
+							diGlobalsInstance->mouseStateDeviceData.lZ = 0;
 							dwOut++;
 						}
-						else if (diGlobalsInstance->mouseStateDeviceData->rgbButtons[0] != diGlobalsInstance->mouseStateDeviceDataGame->rgbButtons[0])
+						else if (diGlobalsInstance->mouseStateDeviceData.rgbButtons[0] != diGlobalsInstance->mouseStateDeviceDataGame.rgbButtons[0])
 						{
 							// Sending DIMOFS_BUTTON0
-							p_rgdod->dwData = diGlobalsInstance->mouseStateDeviceData->rgbButtons[0];
+							p_rgdod->dwData = diGlobalsInstance->mouseStateDeviceData.rgbButtons[0];
 							p_rgdod->dwOfs = DIMOFS_BUTTON0;
 							p_rgdod->dwSequence = diGlobalsInstance->dwSequence;
 							p_rgdod->dwTimeStamp = (DWORD)fTime;
@@ -247,13 +247,13 @@ public:
 							}
 
 							diGlobalsInstance->dwSequence++;
-							diGlobalsInstance->mouseStateDeviceDataGame->rgbButtons[0] = diGlobalsInstance->mouseStateDeviceData->rgbButtons[0];
+							diGlobalsInstance->mouseStateDeviceDataGame.rgbButtons[0] = diGlobalsInstance->mouseStateDeviceData.rgbButtons[0];
 							dwOut++;
 						}
-						else if (diGlobalsInstance->mouseStateDeviceData->rgbButtons[1] != diGlobalsInstance->mouseStateDeviceDataGame->rgbButtons[1])
+						else if (diGlobalsInstance->mouseStateDeviceData.rgbButtons[1] != diGlobalsInstance->mouseStateDeviceDataGame.rgbButtons[1])
 						{
 							// Sending DIMOFS_BUTTON1
-							p_rgdod->dwData = diGlobalsInstance->mouseStateDeviceData->rgbButtons[1];
+							p_rgdod->dwData = diGlobalsInstance->mouseStateDeviceData.rgbButtons[1];
 							p_rgdod->dwOfs = DIMOFS_BUTTON1;
 							p_rgdod->dwSequence = diGlobalsInstance->dwSequence;
 							p_rgdod->dwTimeStamp = (DWORD)fTime;
@@ -263,13 +263,13 @@ public:
 							}
 
 							diGlobalsInstance->dwSequence++;
-							diGlobalsInstance->mouseStateDeviceDataGame->rgbButtons[1] = diGlobalsInstance->mouseStateDeviceData->rgbButtons[1];
+							diGlobalsInstance->mouseStateDeviceDataGame.rgbButtons[1] = diGlobalsInstance->mouseStateDeviceData.rgbButtons[1];
 							dwOut++;
 						}
-						else if (diGlobalsInstance->mouseStateDeviceData->rgbButtons[2] != diGlobalsInstance->mouseStateDeviceDataGame->rgbButtons[2])
+						else if (diGlobalsInstance->mouseStateDeviceData.rgbButtons[2] != diGlobalsInstance->mouseStateDeviceDataGame.rgbButtons[2])
 						{
 							// Sending DIMOFS_BUTTON2
-							p_rgdod->dwData = diGlobalsInstance->mouseStateDeviceData->rgbButtons[2];
+							p_rgdod->dwData = diGlobalsInstance->mouseStateDeviceData.rgbButtons[2];
 							p_rgdod->dwOfs = DIMOFS_BUTTON2;
 							p_rgdod->dwSequence = diGlobalsInstance->dwSequence;
 							p_rgdod->dwTimeStamp = (DWORD)fTime;
@@ -279,7 +279,7 @@ public:
 							}
 
 							diGlobalsInstance->dwSequence++;
-							diGlobalsInstance->mouseStateDeviceDataGame->rgbButtons[2] = diGlobalsInstance->mouseStateDeviceData->rgbButtons[2];
+							diGlobalsInstance->mouseStateDeviceDataGame.rgbButtons[2] = diGlobalsInstance->mouseStateDeviceData.rgbButtons[2];
 							dwOut++;
 						}
 						p_rgdod = (LPDIDEVICEOBJECTDATA)((DWORD)p_rgdod + cbObjectData);

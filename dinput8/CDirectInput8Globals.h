@@ -16,6 +16,7 @@ public:
 
 	// Mouse-State for GetDeviceData() / GetDeviceState()
 	DIMOUSESTATE mouseStateDeviceData = {};
+	DIMOUSESTATE mouseStateDeviceDataGame = {};
 
 	HANDLE mouseEventHandle = nullptr;
 
