@@ -64,6 +64,11 @@ HRESULT m_IDirectInputDevice8::GetCapabilities(LPDIDEVCAPS lpDIDevCaps)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
+	if (pCDirectInputDeviceMouse8)
+	{
+		return pCDirectInputDeviceMouse8->GetCapabilities(lpDIDevCaps);
+	}
+
 	return ProxyInterface->GetCapabilities(lpDIDevCaps);
 }
 
@@ -95,6 +100,11 @@ HRESULT m_IDirectInputDevice8::Acquire()
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
+	if (pCDirectInputDeviceMouse8)
+	{
+		return pCDirectInputDeviceMouse8->Acquire();
+	}
+
 	return ProxyInterface->Acquire();
 }
 
@@ -102,12 +112,22 @@ HRESULT m_IDirectInputDevice8::Unacquire()
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
+	if (pCDirectInputDeviceMouse8)
+	{
+		return pCDirectInputDeviceMouse8->Unacquire();
+	}
+
 	return ProxyInterface->Unacquire();
 }
 
 HRESULT m_IDirectInputDevice8::GetDeviceState(DWORD cbData, LPVOID lpvData)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
+
+	if (pCDirectInputDeviceMouse8)
+	{
+		return pCDirectInputDeviceMouse8->GetDeviceState(cbData, lpvData);
+	}
 
 	return ProxyInterface->GetDeviceState(cbData, lpvData);
 }
@@ -133,12 +153,22 @@ HRESULT m_IDirectInputDevice8::GetDeviceData(DWORD cbObjectData, LPDIDEVICEOBJEC
 		}
 	}
 
+	if (pCDirectInputDeviceMouse8)
+	{
+		return pCDirectInputDeviceMouse8->GetDeviceData(cbObjectData, rgdod, pdwInOut, dwFlags);
+	}
+
 	return ProxyInterface->GetDeviceData(cbObjectData, rgdod, pdwInOut, dwFlags);
 }
 
 HRESULT m_IDirectInputDevice8::SetDataFormat(LPCDIDATAFORMAT lpdf)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
+
+	if (pCDirectInputDeviceMouse8)
+	{
+		return pCDirectInputDeviceMouse8->SetDataFormat(lpdf);
+	}
 
 	return ProxyInterface->SetDataFormat(lpdf);
 }
@@ -147,12 +177,22 @@ HRESULT m_IDirectInputDevice8::SetEventNotification(HANDLE hEvent)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
+	if (pCDirectInputDeviceMouse8)
+	{
+		return pCDirectInputDeviceMouse8->SetEventNotification(hEvent);
+	}
+
 	return ProxyInterface->SetEventNotification(hEvent);
 }
 
 HRESULT m_IDirectInputDevice8::SetCooperativeLevel(HWND hwnd, DWORD dwFlags)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
+
+	if (pCDirectInputDeviceMouse8)
+	{
+		return pCDirectInputDeviceMouse8->SetCooperativeLevel(hwnd, dwFlags);
+	}
 
 	return ProxyInterface->SetCooperativeLevel(hwnd, dwFlags);
 }
@@ -173,6 +213,11 @@ template <class T, class V>
 HRESULT m_IDirectInputDevice8::GetDeviceInfoT(V pdidi)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
+
+	if (pCDirectInputDeviceMouse8)
+	{
+		return pCDirectInputDeviceMouse8->GetDeviceInfo(pdidi);
+	}
 
 	return GetProxyInterface<T>()->GetDeviceInfo(pdidi);
 }

@@ -5,6 +5,7 @@ class m_IDirectInputDevice8 : public IDirectInputDevice8A, public IDirectInputDe
 private:
 	IDirectInputDevice8W *ProxyInterface;
 	REFIID WrapperID;
+	CDirectInputDeviceMouse8* pCDirectInputDeviceMouse8 = nullptr;
 
 	bool IsMouse = false;
 	DWORD ProcessID;
@@ -59,6 +60,11 @@ public:
 	~m_IDirectInputDevice8()
 	{
 		LOG_LIMIT(3, __FUNCTION__ << " (" << this << ")" << " deleting interface!");
+
+		if (pCDirectInputDeviceMouse8)
+		{
+			delete pCDirectInputDeviceMouse8;
+		}
 
 		ProxyAddressLookupTableDinput8.DeleteAddress(this);
 	}
@@ -171,4 +177,5 @@ public:
 
 	// Helper functions
 	void SetAsMouse() { IsMouse = true; }
+	void SetCDirectInputDeviceMouse8(CDirectInputDeviceMouse8* pAddress) { pCDirectInputDeviceMouse8 = pAddress; }
 };

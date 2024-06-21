@@ -40,8 +40,6 @@ using namespace Dinput8Wrapper;
 
 #include "CDirectInput8Globals.h"
 #include "CDirectInputDeviceMouse8.h"
-#include "CDirectInputDeviceMouse8A.h"
-#include "CDirectInputDeviceMouse8W.h"
 
 #include "IDirectInput8.h"
 #include "IDirectInputDevice8.h"

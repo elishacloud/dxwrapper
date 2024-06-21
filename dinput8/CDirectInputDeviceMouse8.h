@@ -7,12 +7,16 @@ private:
 	bool exclusiveMode = false;
 	bool isAquired = false;
 	HWND hWndForegroundWindow = nullptr;
+	DIDEVICEINSTANCEA mouseDeviceInfoA = {};
+	DIDEVICEINSTANCEW mouseDeviceInfoW = {};
 
 public:
 	DWORD dwDevType = 0;
 
 	CDirectInputDeviceMouse8()
 	{
+		Logging::Log() << __FUNCTION__ << " Using Raw mouse input for DirectInput8!";
+
 		if (!hidDllLoaded)
 		{
 			LoadHidLibrary();
@@ -21,14 +25,29 @@ public:
 		{
 			diGlobalsInstance = new CDirectInput8Globals();
 		}
-		Logging::Log() << __FUNCTION__ << " Using Raw mouse input for DirectInput8!";
+
+		mouseDeviceInfoA.dwSize = sizeof(DIDEVICEINSTANCEA);
+		mouseDeviceInfoA.guidInstance = GUID_SysMouse;
+		mouseDeviceInfoA.guidProduct = GUID_SysMouse;
+		mouseDeviceInfoA.dwDevType = DI8DEVTYPE_MOUSE | (DI8DEVTYPEMOUSE_UNKNOWN << 8);
+		StringCbCopyA(mouseDeviceInfoA.tszInstanceName, sizeof(mouseDeviceInfoA.tszInstanceName), "Mouse");
+		StringCbCopyA(mouseDeviceInfoA.tszProductName, sizeof(mouseDeviceInfoA.tszProductName), "Mouse");
+
+		mouseDeviceInfoW.dwSize = sizeof(DIDEVICEINSTANCEW);
+		mouseDeviceInfoW.guidInstance = GUID_SysMouse;
+		mouseDeviceInfoW.guidProduct = GUID_SysMouse;
+		mouseDeviceInfoW.dwDevType = DI8DEVTYPE_MOUSE | (DI8DEVTYPEMOUSE_UNKNOWN << 8);
+		StringCbCopyW(mouseDeviceInfoW.tszInstanceName, sizeof(mouseDeviceInfoW.tszInstanceName), L"Mouse");
+		StringCbCopyW(mouseDeviceInfoW.tszProductName, sizeof(mouseDeviceInfoW.tszProductName), L"Mouse");
+
+		this->dwDevType = mouseDeviceInfoA.dwDevType;
 	}
 	~CDirectInputDeviceMouse8()
 	{
 		diGlobalsInstance->mouseEventHandle = nullptr;
 	}
 
-	HRESULT STDMETHODCALLTYPE Base_GetCapabilities(LPDIDEVCAPS lpDIDevCaps)
+	HRESULT STDMETHODCALLTYPE GetCapabilities(LPDIDEVCAPS lpDIDevCaps)
 	{
 		if (!lpDIDevCaps || (lpDIDevCaps->dwSize != sizeof(DIDEVCAPS_DX3) && lpDIDevCaps->dwSize != sizeof(DIDEVCAPS)))
 		{
@@ -52,19 +71,19 @@ public:
 		return DI_OK;
 	}
 
-	HRESULT STDMETHODCALLTYPE Base_Acquire()
+	HRESULT STDMETHODCALLTYPE Acquire()
 	{
 		bool isAlreadyAquired = this->isAquired;
 
 		this->hWndForegroundWindow = GetForegroundWindow();
 
-		this->Base_AcquireInternal();
+		this->AcquireInternal();
 		this->isAquired = true;
 
 		return isAlreadyAquired ? S_FALSE : DI_OK;
 	}
 
-	void Base_AcquireInternal()
+	void AcquireInternal()
 	{
 		if (!this->isAquired)
 		{
@@ -85,7 +104,7 @@ public:
 		}
 	}
 
-	HRESULT STDMETHODCALLTYPE Base_Unacquire()
+	HRESULT STDMETHODCALLTYPE Unacquire()
 	{
 		bool isAlreadyAquired = this->isAquired;
 
@@ -101,14 +120,14 @@ public:
 		return !isAlreadyAquired ? DI_NOEFFECT : DI_OK;
 	}
 
-	HRESULT STDMETHODCALLTYPE Base_GetDeviceState(DWORD cbData, LPVOID lpvData)
+	HRESULT STDMETHODCALLTYPE GetDeviceState(DWORD cbData, LPVOID lpvData)
 	{
 		if (!this->isAquired)
 		{
 			return DIERR_INPUTLOST;
 		}
 
-		this->Base_AcquireInternal();
+		this->AcquireInternal();
 
 		diGlobalsInstance->Lock();
 		{
@@ -126,7 +145,7 @@ public:
 		return DI_OK;
 	}
 
-	HRESULT STDMETHODCALLTYPE Base_GetDeviceData(DWORD cbObjectData, LPDIDEVICEOBJECTDATA rgdod, LPDWORD pdwInOut, DWORD dwFlags)
+	HRESULT STDMETHODCALLTYPE GetDeviceData(DWORD cbObjectData, LPDIDEVICEOBJECTDATA rgdod, LPDWORD pdwInOut, DWORD dwFlags)
 	{
 		if (!this->isAquired)
 		{
@@ -150,7 +169,7 @@ public:
 		GetSystemTimeAsFileTime((FILETIME*)&fTime);
 		fTime = fTime / 1000;
 
-		this->Base_AcquireInternal();
+		this->AcquireInternal();
 
 		diGlobalsInstance->Lock();
 		{
@@ -161,8 +180,6 @@ public:
 			else if ((*pdwInOut == INFINITE) && (rgdod == NULL))
 			{
 				// Flush buffer
-				ZeroMemory(diGlobalsInstance->keyStates, sizeof(diGlobalsInstance->keyStates));
-				ZeroMemory(diGlobalsInstance->gameKeyStates, sizeof(diGlobalsInstance->gameKeyStates));
 			}
 			else if (rgdod)
 			{
@@ -284,7 +301,7 @@ public:
 		return DI_OK;
 	}
 
-	HRESULT STDMETHODCALLTYPE Base_SetDataFormat(LPCDIDATAFORMAT lpdf)
+	HRESULT STDMETHODCALLTYPE SetDataFormat(LPCDIDATAFORMAT lpdf)
 	{
 		if (!lpdf || lpdf->dwSize != sizeof(DIDATAFORMAT))
 		{
@@ -301,7 +318,7 @@ public:
 		return DI_OK;
 	}
 
-	HRESULT STDMETHODCALLTYPE Base_SetEventNotification(HANDLE hEvent)
+	HRESULT STDMETHODCALLTYPE SetEventNotification(HANDLE hEvent)
 	{
 
 		diGlobalsInstance->Lock();
@@ -313,11 +330,35 @@ public:
 		return DI_OK;
 	}
 
-	HRESULT STDMETHODCALLTYPE Base_SetCooperativeLevel(HWND hwnd, DWORD dwFlags)
+	HRESULT STDMETHODCALLTYPE SetCooperativeLevel(HWND hwnd, DWORD dwFlags)
 	{
 		UNREFERENCED_PARAMETER(hwnd);
 
 		this->exclusiveMode = ((dwFlags & DISCL_EXCLUSIVE) > 0);
+
+		return DI_OK;
+	}
+
+	HRESULT STDMETHODCALLTYPE GetDeviceInfo(LPDIDEVICEINSTANCEA pdidi)
+	{
+		if (!pdidi || (pdidi->dwSize != sizeof(DIDEVICEINSTANCE_DX3A) && pdidi->dwSize != sizeof(DIDEVICEINSTANCEA)))
+		{
+			return DIERR_INVALIDPARAM;
+		}
+
+		memcpy(pdidi, &mouseDeviceInfoA, pdidi->dwSize);
+
+		return DI_OK;
+	}
+
+	HRESULT STDMETHODCALLTYPE GetDeviceInfo(LPDIDEVICEINSTANCEW pdidi)
+	{
+		if (!pdidi || (pdidi->dwSize != sizeof(DIDEVICEINSTANCE_DX3W) && pdidi->dwSize != sizeof(DIDEVICEINSTANCEW)))
+		{
+			return DIERR_INVALIDPARAM;
+		}
+
+		memcpy(pdidi, &mouseDeviceInfoW, pdidi->dwSize);
 
 		return DI_OK;
 	}

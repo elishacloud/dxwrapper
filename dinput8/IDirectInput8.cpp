@@ -78,6 +78,11 @@ HRESULT m_IDirectInput8::CreateDeviceT(REFGUID rguid, V lplpDirectInputDevice, L
 		if (IsEqualIID(GUID_SysMouse, rguid) || IsEqualIID(GUID_SysMouseEm, rguid) || IsEqualIID(GUID_SysMouseEm2, rguid))
 		{
 			pAddressX->SetAsMouse();
+
+			if (Config.UseRawInputForMouse)
+			{
+				pAddressX->SetCDirectInputDeviceMouse8(new CDirectInputDeviceMouse8);
+			}
 		}
 	}
 

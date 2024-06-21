@@ -1868,12 +1868,6 @@
     <ClInclude Include="dinput8\CDirectInputDeviceMouse8.h">
       <Filter>dinput8</Filter>
     </ClInclude>
-    <ClInclude Include="dinput8\CDirectInputDeviceMouse8A.h">
-      <Filter>dinput8</Filter>
-    </ClInclude>
-    <ClInclude Include="dinput8\CDirectInputDeviceMouse8W.h">
-      <Filter>dinput8</Filter>
-    </ClInclude>
     <ClInclude Include="dinput8\hid.h">
       <Filter>dinput8</Filter>
     </ClInclude>

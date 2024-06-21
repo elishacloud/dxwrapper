@@ -1279,8 +1279,6 @@ copy /Y "$(ProjectDir)Settings\Settings.ini" "$(TargetDir)Build\dxwrapper.ini" &
     <ClInclude Include="dinput8\AddressLookupTable.h" />
     <ClInclude Include="dinput8\CDirectInput8Globals.h" />
     <ClInclude Include="dinput8\CDirectInputDeviceMouse8.h" />
-    <ClInclude Include="dinput8\CDirectInputDeviceMouse8A.h" />
-    <ClInclude Include="dinput8\CDirectInputDeviceMouse8W.h" />
     <ClInclude Include="dinput8\dinput8.h" />
     <ClInclude Include="dinput8\dinput8type.h" />
     <ClInclude Include="dinput8\hid.h" />
