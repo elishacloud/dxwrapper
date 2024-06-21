@@ -17,10 +17,6 @@ public:
 	{
 		Logging::Log() << __FUNCTION__ << " Using Raw mouse input for DirectInput8!";
 
-		if (!hidDllLoaded)
-		{
-			LoadHidLibrary();
-		}
 		if (!diGlobalsInstance)
 		{
 			diGlobalsInstance = new CDirectInput8Globals();

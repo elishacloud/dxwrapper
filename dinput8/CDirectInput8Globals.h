@@ -15,14 +15,18 @@ public:
 	DWORD dwSequence = 0;
 
 	// Mouse-State for GetDeviceData() / GetDeviceState()
-	DIMOUSESTATE* mouseStateDeviceData = new DIMOUSESTATE();
-	DIMOUSESTATE* mouseStateDeviceDataGame = new DIMOUSESTATE();
+	DIMOUSESTATE mouseStateDeviceData = {};
 
 	HANDLE mouseEventHandle = nullptr;
 
 	CDirectInput8Globals()
 	{
 		InitializeCriticalSection(&critSect);
+
+		if (!hidDllLoaded)
+		{
+			LoadHidLibrary();
+		}
 
 		hThread = CreateThread(NULL, 0, ThreadProc, NULL, 0, &threadId);
 		if (hThread == NULL)
@@ -32,6 +36,12 @@ public:
 		}
 
 		dwSequence = 1;
+	}
+	~CDirectInput8Globals()
+	{
+		DeleteCriticalSection(&critSect);
+
+		diGlobalsInstance = nullptr;
 	}
 
 	void Lock()
@@ -61,40 +71,40 @@ public:
 				}
 				else
 				{
-					mouseStateDeviceData->lX += raw->data.mouse.lLastX;
-					mouseStateDeviceData->lY += raw->data.mouse.lLastY;
+					mouseStateDeviceData.lX += raw->data.mouse.lLastX;
+					mouseStateDeviceData.lY += raw->data.mouse.lLastY;
 
 					if (raw->data.mouse.usButtonFlags & RI_MOUSE_WHEEL)
 					{
 						short mouseWheelDelta = (short)raw->data.mouse.usButtonData;
-						mouseStateDeviceData->lZ += mouseWheelDelta;
+						mouseStateDeviceData.lZ += mouseWheelDelta;
 					}
 
 					if (raw->data.mouse.usButtonFlags & RI_MOUSE_LEFT_BUTTON_DOWN)
 					{
-						mouseStateDeviceData->rgbButtons[0] = 0x80;
+						mouseStateDeviceData.rgbButtons[0] = 0x80;
 					}
 					if (raw->data.mouse.usButtonFlags & RI_MOUSE_LEFT_BUTTON_UP)
 					{
-						mouseStateDeviceData->rgbButtons[0] = 0x00;
+						mouseStateDeviceData.rgbButtons[0] = 0x00;
 					}
 
 					if (raw->data.mouse.usButtonFlags & RI_MOUSE_RIGHT_BUTTON_DOWN)
 					{
-						mouseStateDeviceData->rgbButtons[1] = 0x80;
+						mouseStateDeviceData.rgbButtons[1] = 0x80;
 					}
 					if (raw->data.mouse.usButtonFlags & RI_MOUSE_RIGHT_BUTTON_UP)
 					{
-						mouseStateDeviceData->rgbButtons[1] = 0x00;
+						mouseStateDeviceData.rgbButtons[1] = 0x00;
 					}
 
 					if (raw->data.mouse.usButtonFlags & RI_MOUSE_MIDDLE_BUTTON_DOWN)
 					{
-						mouseStateDeviceData->rgbButtons[2] = 0x80;
+						mouseStateDeviceData.rgbButtons[2] = 0x80;
 					}
 					if (raw->data.mouse.usButtonFlags & RI_MOUSE_MIDDLE_BUTTON_UP)
 					{
-						mouseStateDeviceData->rgbButtons[2] = 0x00;
+						mouseStateDeviceData.rgbButtons[2] = 0x00;
 					}
 				}
 
@@ -167,6 +177,7 @@ public:
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Error: GetRawInputData does not return correct size!");
 
+			delete[] lpb;
 			return 0;
 		}
 
