@@ -106,12 +106,8 @@ typedef enum _HIDP_REPORT_TYPE
 #define HIDP_STATUS_REPORT_DOES_NOT_EXIST    (HIDP_ERROR_CODES(0xC,0x10))
 #define HIDP_STATUS_NOT_IMPLEMENTED          (HIDP_ERROR_CODES(0xC,0x20))
 
-
-
 // hid.dll
 /////////////////////////////////////////////////////////////////////
-extern bool hidDllLoaded;
-
 typedef long NTSTATUS;
 
 typedef NTSTATUS __stdcall HIDP_GETCAPS_FUNC(PHIDP_PREPARSED_DATA PreparsedData, PHIDP_CAPS Capabilities);
@@ -122,5 +118,3 @@ extern HIDP_GETBUTTONCAPS_FUNC* HidP_GetButtonCaps;
 
 typedef NTSTATUS __stdcall HIDP_GETUSAGES_FUNC(HIDP_REPORT_TYPE ReportType, USAGE UsagePage, USHORT LinkCollection, PUSAGE UsageList, PULONG UsageLength, PHIDP_PREPARSED_DATA PreparsedData, PCHAR Report, ULONG ReportLength);
 extern HIDP_GETUSAGES_FUNC* HidP_GetUsages;
-
-void LoadHidLibrary();
