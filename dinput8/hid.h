@@ -4,6 +4,12 @@
 ///////////////////////////////////////////////////////////////////////
 typedef USHORT USAGE, *PUSAGE;
 
+#define HID_USAGE_PAGE_GENERIC 0x01
+#define HID_USAGE_GENERIC_MOUSE 0x02
+#define HID_USAGE_GENERIC_JOYSTICK 0x04
+#define HID_USAGE_GENERIC_GAMEPAD 0x05
+#define HID_USAGE_GENERIC_KEYBOARD 0x06
+
 // From hidpi.h
 ///////////////////////////////////////////////////////////////////////
 typedef struct _HIDP_PREPARSED_DATA* PHIDP_PREPARSED_DATA;

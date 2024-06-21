@@ -37,8 +37,6 @@ extern CDirectInput8Globals* diGlobalsInstance;
 
 using namespace Dinput8Wrapper;
 
-#include "dinput8type.h"
-
 #include "CDirectInput8Globals.h"
 #include "CDirectInputDeviceMouse8.h"
 

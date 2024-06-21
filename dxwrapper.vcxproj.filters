@@ -1871,9 +1871,6 @@
     <ClInclude Include="dinput8\hid.h">
       <Filter>dinput8</Filter>
     </ClInclude>
-    <ClInclude Include="dinput8\dinput8type.h">
-      <Filter>dinput8</Filter>
-    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="Dllmain\BuildNo.rc">
