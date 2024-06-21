@@ -84,14 +84,71 @@ HRESULT m_IDirectInput8::CreateDeviceT(REFGUID rguid, V lplpDirectInputDevice, L
 	return hr;
 }
 
-template HRESULT m_IDirectInput8::EnumDevicesT<IDirectInput8A, LPDIENUMDEVICESCALLBACKA>(DWORD, LPDIENUMDEVICESCALLBACKA, LPVOID, DWORD);
-template HRESULT m_IDirectInput8::EnumDevicesT<IDirectInput8W, LPDIENUMDEVICESCALLBACKW>(DWORD, LPDIENUMDEVICESCALLBACKW, LPVOID, DWORD);
-template <class T, class V>
+template HRESULT m_IDirectInput8::EnumDevicesT<IDirectInput8A, LPDIENUMDEVICESCALLBACKA, DIDEVICEINSTANCEA>(DWORD, LPDIENUMDEVICESCALLBACKA, LPVOID, DWORD);
+template HRESULT m_IDirectInput8::EnumDevicesT<IDirectInput8W, LPDIENUMDEVICESCALLBACKW, DIDEVICEINSTANCEW>(DWORD, LPDIENUMDEVICESCALLBACKW, LPVOID, DWORD);
+template <class T, class V, class D>
 HRESULT m_IDirectInput8::EnumDevicesT(DWORD dwDevType, V lpCallback, LPVOID pvRef, DWORD dwFlags)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	return GetProxyInterface<T>()->EnumDevices(dwDevType, lpCallback, pvRef, dwFlags);
+	auto now = std::chrono::steady_clock::now();
+	auto& cachedData = GetEnumCache(GetProxyInterface<T>());
+
+	// Check if cached data is valid
+	if (dwDevType == cachedData.dwDevType && dwFlags == cachedData.dwFlags && (now - cachedData.lastUpdate) < cacheDuration && lpCallback)
+	{
+		// Use cached data
+		for (const auto& entry : cachedData.devices)
+		{
+			if (lpCallback(&entry, pvRef) == DIENUM_STOP)
+			{
+				break;
+			}
+		}
+		return DI_OK;
+	}
+
+	struct EnumDevices
+	{
+		std::vector<D> CacheDevices;
+
+		static BOOL DIEnumDevicesCallback(const D* lpddi, LPVOID pvRef)
+		{
+			EnumDevices* self = (EnumDevices*)pvRef;
+
+			if (lpddi)
+			{
+				D ddi = {};
+				ddi.dwSize = sizeof(ddi);
+				memcpy(&ddi, lpddi, min(lpddi->dwSize, sizeof(ddi)));
+				self->CacheDevices.push_back(ddi);
+			}
+
+			return DIENUM_CONTINUE;
+		}
+	} CallbackContext;
+
+	HRESULT hr = GetProxyInterface<T>()->EnumDevices(dwDevType, (V)EnumDevices::DIEnumDevicesCallback, &CallbackContext, dwFlags);
+
+	if (SUCCEEDED(hr) && lpCallback)
+	{
+		// Update the cache
+		cachedData.lastUpdate = now;
+		cachedData.dwDevType = dwDevType;
+		cachedData.dwFlags = dwFlags;
+		cachedData.devices = std::move(CallbackContext.CacheDevices);
+
+		// Use the new data
+		for (const auto& entry : cachedData.devices)
+		{
+			if (lpCallback(&entry, pvRef) == DIENUM_STOP)
+			{
+				break;
+			}
+		}
+	}
+
+	return hr;
 }
 
 HRESULT m_IDirectInput8::GetDeviceStatus(REFGUID rguidInstance)

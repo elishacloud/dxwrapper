@@ -250,8 +250,8 @@ HRESULT m_IDirectInputDevice8::EnumCreatedEffectObjects(LPDIENUMCREATEDEFFECTOBJ
 
 	struct EnumEffect
 	{
-		LPVOID pvRef;
-		LPDIENUMCREATEDEFFECTOBJECTSCALLBACK lpCallback;
+		LPVOID pvRef = nullptr;
+		LPDIENUMCREATEDEFFECTOBJECTSCALLBACK lpCallback = nullptr;
 
 		static BOOL CALLBACK EnumEffectCallback(LPDIRECTINPUTEFFECT a, LPVOID pvRef)
 		{
