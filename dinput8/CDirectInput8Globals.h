@@ -9,10 +9,11 @@ private:
 	DWORD threadId = 0;
 	HANDLE hThread = 0;
 	CRITICAL_SECTION critSect = {};
+	bool terminateThread = false;
 
 public:
-	// Sequence number for keyboard actions
-	DWORD dwSequence = 0;
+	// Sequence number for actions
+	DWORD dwSequence = 1;
 
 	// Mouse-State for GetDeviceData() / GetDeviceState()
 	DIMOUSESTATE mouseStateDeviceData = {};
@@ -29,19 +30,37 @@ public:
 			LoadHidLibrary();
 		}
 
-		hThread = CreateThread(NULL, 0, ThreadProc, NULL, 0, &threadId);
+		hThread = CreateThread(NULL, 0, ThreadProc, this, 0, &threadId);
 		if (hThread == NULL)
 		{
 			Logging::Log() << __FUNCTION__ << " Error: CreateThread() failed!";
 			return;
 		}
-
-		dwSequence = 1;
 	}
 	~CDirectInput8Globals()
 	{
+		// Signal the thread to terminate
+		terminateThread = true;
+
+		// Wait for the thread to terminate
+		if (hThread != NULL)
+		{
+			WaitForSingleObject(hThread, INFINITE);
+			CloseHandle(hThread);
+			hThread = NULL;
+		}
+
+		// Close any other handles
+		if (mouseEventHandle != nullptr)
+		{
+			CloseHandle(mouseEventHandle);
+			mouseEventHandle = nullptr;
+		}
+
+		// Clean up critical section
 		DeleteCriticalSection(&critSect);
 
+		// Clear global instance
 		diGlobalsInstance = nullptr;
 	}
 
@@ -120,7 +139,7 @@ public:
 
 	static DWORD WINAPI ThreadProc(LPVOID lpParameter)
 	{
-		UNREFERENCED_PARAMETER(lpParameter);
+		CDirectInput8Globals* pThis = reinterpret_cast<CDirectInput8Globals*>(lpParameter);
 
 		WNDCLASSEXA wcex;
 		ZeroMemory(&wcex, sizeof(WNDCLASSEXA));
@@ -154,11 +173,21 @@ public:
 		{
 			TranslateMessage(&msg);
 			DispatchMessage(&msg);
+
+			// Check for termination signal
+			if (pThis->terminateThread)
+			{
+				break;
+			}
+
 			if (diGlobalsInstance->mouseEventHandle)
 			{
 				SetEvent(diGlobalsInstance->mouseEventHandle);
 			}
 		}
+
+		DestroyWindow(hWnd);
+		UnregisterClassA("CDirectInput8", hModule_dll);
 
 		return msg.wParam;
 	}
