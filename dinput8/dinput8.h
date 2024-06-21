@@ -13,6 +13,7 @@ class m_IDirectInput8;
 class m_IDirectInputDevice8;
 class m_IDirectInputEffect8;
 class CDirectInput8Globals;
+class CDirectInputDeviceMouse8;
 
 #include "AddressLookupTable.h"
 #include "Settings\Settings.h"
