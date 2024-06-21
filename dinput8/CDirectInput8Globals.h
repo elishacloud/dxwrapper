@@ -1,5 +1,8 @@
 #pragma once
 
+#include "hid.h"
+#include "Dllmain\Dllmain.h"
+
 class CDirectInput8Globals
 {
 private:

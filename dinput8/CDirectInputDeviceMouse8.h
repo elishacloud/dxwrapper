@@ -30,15 +30,15 @@ public:
 		mouseDeviceInfoA.guidInstance = GUID_SysMouse;
 		mouseDeviceInfoA.guidProduct = GUID_SysMouse;
 		mouseDeviceInfoA.dwDevType = DI8DEVTYPE_MOUSE | (DI8DEVTYPEMOUSE_UNKNOWN << 8);
-		StringCbCopyA(mouseDeviceInfoA.tszInstanceName, sizeof(mouseDeviceInfoA.tszInstanceName), "Mouse");
-		StringCbCopyA(mouseDeviceInfoA.tszProductName, sizeof(mouseDeviceInfoA.tszProductName), "Mouse");
+		strcpy_s(mouseDeviceInfoA.tszInstanceName, sizeof(mouseDeviceInfoA.tszInstanceName), "Mouse");
+		strcpy_s(mouseDeviceInfoA.tszProductName, sizeof(mouseDeviceInfoA.tszProductName), "Mouse");
 
 		mouseDeviceInfoW.dwSize = sizeof(DIDEVICEINSTANCEW);
 		mouseDeviceInfoW.guidInstance = GUID_SysMouse;
 		mouseDeviceInfoW.guidProduct = GUID_SysMouse;
 		mouseDeviceInfoW.dwDevType = DI8DEVTYPE_MOUSE | (DI8DEVTYPEMOUSE_UNKNOWN << 8);
-		StringCbCopyW(mouseDeviceInfoW.tszInstanceName, sizeof(mouseDeviceInfoW.tszInstanceName), L"Mouse");
-		StringCbCopyW(mouseDeviceInfoW.tszProductName, sizeof(mouseDeviceInfoW.tszProductName), L"Mouse");
+		wcscpy_s(mouseDeviceInfoW.tszInstanceName, sizeof(mouseDeviceInfoW.tszInstanceName), L"Mouse");
+		wcscpy_s(mouseDeviceInfoW.tszProductName, sizeof(mouseDeviceInfoW.tszProductName), L"Mouse");
 
 		this->dwDevType = mouseDeviceInfoA.dwDevType;
 	}

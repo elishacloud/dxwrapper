@@ -4,10 +4,6 @@
 
 #define DIRECTINPUT_VERSION 0x0800
 #include <dinput.h>
-#include <objbase.h>
-#include <strsafe.h>
-#include "dinput8.h"
-#include "hid.h"
 
 class m_IDirectInput8;
 class m_IDirectInputDevice8;
@@ -18,7 +14,6 @@ class CDirectInputDeviceMouse8;
 #include "AddressLookupTable.h"
 #include "Settings\Settings.h"
 #include "Logging\Logging.h"
-#include "Dllmain\Dllmain.h"
 
 typedef HRESULT(WINAPI *DirectInput8CreateProc)(HINSTANCE, DWORD, REFIID, LPVOID*, LPUNKNOWN);
 typedef HRESULT(WINAPI *DllCanUnloadNowProc)();
