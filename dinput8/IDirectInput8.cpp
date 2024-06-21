@@ -81,7 +81,14 @@ HRESULT m_IDirectInput8::CreateDeviceT(REFGUID rguid, V lplpDirectInputDevice, L
 
 			if (Config.UseRawInputForMouse)
 			{
-				pAddressX->SetCDirectInputDeviceMouse8(new CDirectInputDeviceMouse8);
+				CDirectInputDeviceMouse8* pMouseInterface = new CDirectInputDeviceMouse8();
+				if (pMouseInterface && !pMouseInterface->CheckInterface())
+				{
+					delete pMouseInterface;
+					pMouseInterface = nullptr;
+				}
+
+				pAddressX->SetCDirectInputDeviceMouse8(pMouseInterface);
 			}
 		}
 	}

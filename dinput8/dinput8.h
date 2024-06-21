@@ -30,10 +30,6 @@ namespace Dinput8Wrapper
 extern AddressLookupTableDinput8<void> ProxyAddressLookupTableDinput8;
 extern CDirectInput8Globals* diGlobalsInstance;
 
-extern bool hidDllLoaded;
-
-void LoadHidLibrary();
-
 using namespace Dinput8Wrapper;
 
 #include "CDirectInput8Globals.h"

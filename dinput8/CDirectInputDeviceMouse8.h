@@ -7,64 +7,35 @@ private:
 	bool exclusiveMode = false;
 	bool isAquired = false;
 	HWND hWndForegroundWindow = nullptr;
-	DIDEVICEINSTANCEA mouseDeviceInfoA = {};
-	DIDEVICEINSTANCEW mouseDeviceInfoW = {};
 
 public:
-	DWORD dwDevType = 0;
-
 	CDirectInputDeviceMouse8()
 	{
-		Logging::Log() << __FUNCTION__ << " Using Raw mouse input for DirectInput8!";
+		LOG_LIMIT(3, "Creating interface " << __FUNCTION__ << " (" << this << ") for raw mouse input!");
 
 		if (!diGlobalsInstance)
 		{
 			diGlobalsInstance = new CDirectInput8Globals();
 		}
 
-		mouseDeviceInfoA.dwSize = sizeof(DIDEVICEINSTANCEA);
-		mouseDeviceInfoA.guidInstance = GUID_SysMouse;
-		mouseDeviceInfoA.guidProduct = GUID_SysMouse;
-		mouseDeviceInfoA.dwDevType = DI8DEVTYPE_MOUSE | (DI8DEVTYPEMOUSE_UNKNOWN << 8);
-		strcpy_s(mouseDeviceInfoA.tszInstanceName, sizeof(mouseDeviceInfoA.tszInstanceName), "Mouse");
-		strcpy_s(mouseDeviceInfoA.tszProductName, sizeof(mouseDeviceInfoA.tszProductName), "Mouse");
-
-		mouseDeviceInfoW.dwSize = sizeof(DIDEVICEINSTANCEW);
-		mouseDeviceInfoW.guidInstance = GUID_SysMouse;
-		mouseDeviceInfoW.guidProduct = GUID_SysMouse;
-		mouseDeviceInfoW.dwDevType = DI8DEVTYPE_MOUSE | (DI8DEVTYPEMOUSE_UNKNOWN << 8);
-		wcscpy_s(mouseDeviceInfoW.tszInstanceName, sizeof(mouseDeviceInfoW.tszInstanceName) / sizeof(WCHAR), L"Mouse");
-		wcscpy_s(mouseDeviceInfoW.tszProductName, sizeof(mouseDeviceInfoW.tszProductName) / sizeof(WCHAR), L"Mouse");
-
-		this->dwDevType = mouseDeviceInfoA.dwDevType;
+		if (diGlobalsInstance)
+		{
+			diGlobalsInstance->AddRef();
+		}
 	}
 	~CDirectInputDeviceMouse8()
 	{
-		diGlobalsInstance->mouseEventHandle = nullptr;
+		LOG_LIMIT(3, __FUNCTION__ << " (" << this << ")" << " deleting interface!");
+
+		if (diGlobalsInstance)
+		{
+			diGlobalsInstance->Release();
+		}
 	}
 
-	HRESULT STDMETHODCALLTYPE GetCapabilities(LPDIDEVCAPS lpDIDevCaps)
+	bool CheckInterface()
 	{
-		if (!lpDIDevCaps || (lpDIDevCaps->dwSize != sizeof(DIDEVCAPS_DX3) && lpDIDevCaps->dwSize != sizeof(DIDEVCAPS)))
-		{
-			return DIERR_INVALIDPARAM;
-		}
-
-		lpDIDevCaps->dwFlags = DIDC_ATTACHED | DIDC_EMULATED;
-		lpDIDevCaps->dwDevType = this->dwDevType;
-		lpDIDevCaps->dwAxes = 3;
-		lpDIDevCaps->dwButtons = 3;
-		lpDIDevCaps->dwPOVs = 0;
-		if (lpDIDevCaps->dwSize == sizeof(DIDEVCAPS))
-		{
-			lpDIDevCaps->dwFFSamplePeriod = 0;
-			lpDIDevCaps->dwFFMinTimeResolution = 0;
-			lpDIDevCaps->dwFirmwareRevision = 0;
-			lpDIDevCaps->dwHardwareRevision = 0;
-			lpDIDevCaps->dwFFDriverVersion = 0;
-		}
-
-		return DI_OK;
+		return (diGlobalsInstance && diGlobalsInstance->CheckInterface());
 	}
 
 	void AcquireInternal()
@@ -118,6 +89,11 @@ public:
 
 	HRESULT STDMETHODCALLTYPE GetDeviceState(DWORD cbData, LPVOID lpvData)
 	{
+		if (!diGlobalsInstance)
+		{
+			return DIERR_GENERIC;
+		}
+
 		if (!this->isAquired)
 		{
 			return DIERR_INPUTLOST;
@@ -143,6 +119,11 @@ public:
 
 	HRESULT STDMETHODCALLTYPE GetDeviceData(DWORD cbObjectData, LPDIDEVICEOBJECTDATA rgdod, LPDWORD pdwInOut, DWORD dwFlags)
 	{
+		if (!diGlobalsInstance)
+		{
+			return DIERR_GENERIC;
+		}
+
 		if (!this->isAquired)
 		{
 			return DIERR_INPUTLOST;
@@ -365,6 +346,10 @@ public:
 
 	HRESULT STDMETHODCALLTYPE SetEventNotification(HANDLE hEvent)
 	{
+		if (!diGlobalsInstance)
+		{
+			return DIERR_GENERIC;
+		}
 
 		diGlobalsInstance->Lock();
 
@@ -380,30 +365,6 @@ public:
 		UNREFERENCED_PARAMETER(hwnd);
 
 		this->exclusiveMode = ((dwFlags & DISCL_EXCLUSIVE) > 0);
-
-		return DI_OK;
-	}
-
-	HRESULT STDMETHODCALLTYPE GetDeviceInfo(LPDIDEVICEINSTANCEA pdidi)
-	{
-		if (!pdidi || (pdidi->dwSize != sizeof(DIDEVICEINSTANCE_DX3A) && pdidi->dwSize != sizeof(DIDEVICEINSTANCEA)))
-		{
-			return DIERR_INVALIDPARAM;
-		}
-
-		memcpy(pdidi, &mouseDeviceInfoA, pdidi->dwSize);
-
-		return DI_OK;
-	}
-
-	HRESULT STDMETHODCALLTYPE GetDeviceInfo(LPDIDEVICEINSTANCEW pdidi)
-	{
-		if (!pdidi || (pdidi->dwSize != sizeof(DIDEVICEINSTANCE_DX3W) && pdidi->dwSize != sizeof(DIDEVICEINSTANCEW)))
-		{
-			return DIERR_INVALIDPARAM;
-		}
-
-		memcpy(pdidi, &mouseDeviceInfoW, pdidi->dwSize);
 
 		return DI_OK;
 	}

@@ -64,11 +64,6 @@ HRESULT m_IDirectInputDevice8::GetCapabilities(LPDIDEVCAPS lpDIDevCaps)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	if (pCDirectInputDeviceMouse8)
-	{
-		return pCDirectInputDeviceMouse8->GetCapabilities(lpDIDevCaps);
-	}
-
 	return ProxyInterface->GetCapabilities(lpDIDevCaps);
 }
 
@@ -167,7 +162,7 @@ HRESULT m_IDirectInputDevice8::SetDataFormat(LPCDIDATAFORMAT lpdf)
 
 	if (pCDirectInputDeviceMouse8)
 	{
-		return pCDirectInputDeviceMouse8->SetDataFormat(lpdf);
+		pCDirectInputDeviceMouse8->SetDataFormat(lpdf);	// Don't return
 	}
 
 	return ProxyInterface->SetDataFormat(lpdf);
@@ -191,7 +186,7 @@ HRESULT m_IDirectInputDevice8::SetCooperativeLevel(HWND hwnd, DWORD dwFlags)
 
 	if (pCDirectInputDeviceMouse8)
 	{
-		return pCDirectInputDeviceMouse8->SetCooperativeLevel(hwnd, dwFlags);
+		pCDirectInputDeviceMouse8->SetCooperativeLevel(hwnd, dwFlags);	// Don't return
 	}
 
 	return ProxyInterface->SetCooperativeLevel(hwnd, dwFlags);
@@ -213,11 +208,6 @@ template <class T, class V>
 HRESULT m_IDirectInputDevice8::GetDeviceInfoT(V pdidi)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
-
-	if (pCDirectInputDeviceMouse8)
-	{
-		return pCDirectInputDeviceMouse8->GetDeviceInfo(pdidi);
-	}
 
 	return GetProxyInterface<T>()->GetDeviceInfo(pdidi);
 }

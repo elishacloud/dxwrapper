@@ -1,14 +1,20 @@
 #pragma once
 
-#include "hid.h"
 #include "Dllmain\Dllmain.h"
+
+#define HID_USAGE_PAGE_GENERIC 0x01
+#define HID_USAGE_GENERIC_MOUSE 0x02
+#define HID_USAGE_GENERIC_JOYSTICK 0x04
+#define HID_USAGE_GENERIC_GAMEPAD 0x05
+#define HID_USAGE_GENERIC_KEYBOARD 0x06
 
 class CDirectInput8Globals
 {
 private:
-	DWORD threadId = 0;
+	UINT RefNum = 0;
 	HANDLE hThread = 0;
 	CRITICAL_SECTION critSect = {};
+	bool hWndRegistered = false;
 	bool terminateThread = false;
 
 public:
@@ -25,16 +31,20 @@ public:
 	{
 		InitializeCriticalSection(&critSect);
 
-		if (!hidDllLoaded)
-		{
-			LoadHidLibrary();
-		}
-
+		Lock();
+		DWORD threadId;
 		hThread = CreateThread(nullptr, 0, ThreadProc, this, 0, &threadId);
+		Unlock();
+
 		if (hThread == nullptr)
 		{
 			Logging::Log() << __FUNCTION__ << " Error: CreateThread() failed!";
 			return;
+		}
+
+		while (hThread && !hWndRegistered)
+		{
+			Sleep(0);
 		}
 	}
 	~CDirectInput8Globals()
@@ -45,9 +55,8 @@ public:
 		// Wait for the thread to terminate
 		if (hThread != nullptr)
 		{
+			PostThreadMessageA(GetThreadId(hThread), WM_USER, 0, 0);
 			WaitForSingleObject(hThread, INFINITE);
-			CloseHandle(hThread);
-			hThread = nullptr;
 		}
 
 		// Close any other handles
@@ -62,6 +71,28 @@ public:
 
 		// Clear global instance
 		diGlobalsInstance = nullptr;
+	}
+
+	UINT AddRef()
+	{
+		return InterlockedIncrement(&RefNum);
+	}
+
+	UINT Release()
+	{
+		UINT newRefNum = InterlockedDecrement(&RefNum);
+
+		if (newRefNum == 0)
+		{
+			delete this;
+		}
+
+		return newRefNum;
+	}
+
+	bool CheckInterface()
+	{
+		return (hThread && hWndRegistered);
 	}
 
 	void Lock()
@@ -136,6 +167,10 @@ public:
 	{
 		CDirectInput8Globals* pThis = reinterpret_cast<CDirectInput8Globals*>(lpParameter);
 
+		pThis->Lock();
+		HANDLE hThread = pThis->hThread;
+		pThis->Unlock();
+
 		WNDCLASSEXA wcex = {};
 		wcex.cbSize = sizeof(WNDCLASSEXA);
 		wcex.lpfnWndProc = MainWndProc;
@@ -144,37 +179,64 @@ public:
 
 		if (!RegisterClassExA(&wcex))
 		{
-			Logging::Log() << __FUNCTION__ << " Error: RegisterClassExA() failed!";
+			DWORD error = GetLastError();
+			Logging::Log() << __FUNCTION__ << " RegisterClassExA() failed! Error: " << error;
+
 			pThis->hThread = 0;
+			CloseHandle(hThread);
 			return 0;
 		}
 
 		HWND hWnd = CreateWindowExA(0, "CDirectInput8", "dxwrapper", 0, 0, 0, 0, 0, HWND_MESSAGE, nullptr, hModule_dll, nullptr);
 		if (hWnd == nullptr)
 		{
-			Logging::Log() << __FUNCTION__ << " Error: CreateWindowExA() failed!";
+			DWORD error = GetLastError();
+			Logging::Log() << __FUNCTION__ << " CreateWindowExA() failed! Error: " << error;
+
+			UnregisterClassA("CDirectInput8", hModule_dll);
 			pThis->hThread = 0;
+			CloseHandle(hThread);
+			return 0;
+		}
+		SetWindowLongPtr(hWnd, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(pThis));
+
+		RAWINPUTDEVICE Rid = {};
+		Rid.usUsagePage = HID_USAGE_PAGE_GENERIC;
+		Rid.usUsage = HID_USAGE_GENERIC_MOUSE;
+		Rid.dwFlags = RIDEV_INPUTSINK | RIDEV_NOLEGACY;
+		Rid.hwndTarget = hWnd;
+
+		if (!RegisterRawInputDevices(&Rid, 1, sizeof(Rid)))
+		{
+			DWORD error = GetLastError();
+			Logging::Log() << __FUNCTION__ << " RegisterRawInputDevices() failed! Error: " << error << " " << hWnd;
+
+			DestroyWindow(hWnd);
+			UnregisterClassA("CDirectInput8", hModule_dll);
+			pThis->hThread = 0;
+			CloseHandle(hThread);
 			return 0;
 		}
 
 		// Log the window handle
 		Logging::Log() << "Created window handle: " << hWnd;
+		pThis->hWndRegistered = true;
 
 		MSG msg = {};
 		while (GetMessage(&msg, nullptr, 0, 0) > 0)
 		{
-			TranslateMessage(&msg);
-			DispatchMessage(&msg);
-
 			// Check for termination signal
 			if (pThis->terminateThread)
 			{
 				break;
 			}
 
-			if (diGlobalsInstance->mouseEventHandle)
+			TranslateMessage(&msg);
+			DispatchMessage(&msg);
+
+			if (pThis->mouseEventHandle)
 			{
-				SetEvent(diGlobalsInstance->mouseEventHandle);
+				SetEvent(pThis->mouseEventHandle);
 			}
 		}
 
@@ -182,56 +244,41 @@ public:
 		UnregisterClassA("CDirectInput8", hModule_dll);
 
 		pThis->hThread = 0;
-		return msg.wParam;
-	}
-
-	static LRESULT HandleWMInput(LPARAM lParam)
-	{
-		UINT dwSize = 0;
-
-		GetRawInputData((HRAWINPUT)lParam, RID_INPUT, nullptr, &dwSize, sizeof(RAWINPUTHEADER));
-		LPBYTE lpb = new BYTE[dwSize];
-		if (lpb == nullptr)
-		{
-			return 0;
-		}
-
-		if (GetRawInputData((HRAWINPUT)lParam, RID_INPUT, lpb, &dwSize, sizeof(RAWINPUTHEADER)) != dwSize)
-		{
-			Logging::Log() << __FUNCTION__ << " Error: GetRawInputData does not return correct size!";
-
-			delete[] lpb;
-			return 0;
-		}
-
-		RAWINPUT* raw = (RAWINPUT*)lpb;
-
-		diGlobalsInstance->HandleRawInput(raw);
-
-		delete[] lpb;
+		CloseHandle(hThread);
 		return 0;
 	}
 
 	static LRESULT CALLBACK MainWndProc(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lParam)
 	{
-		if (Msg == WM_CREATE)
+		if (Msg == WM_INPUT)
 		{
-			RAWINPUTDEVICE Rid = {};
-
-			Rid.usUsagePage = HID_USAGE_PAGE_GENERIC;
-			Rid.usUsage = HID_USAGE_GENERIC_MOUSE;
-			Rid.dwFlags = RIDEV_INPUTSINK | RIDEV_NOLEGACY;
-			Rid.hwndTarget = hWnd;
-
-			if (RegisterRawInputDevices(&Rid, 1, sizeof(Rid)) == FALSE)
+			CDirectInput8Globals* pThis = reinterpret_cast<CDirectInput8Globals*>(GetWindowLongPtr(hWnd, GWLP_USERDATA));
+			if (pThis)
 			{
-				DWORD error = GetLastError();
-				Logging::Log() << __FUNCTION__ << " RegisterRawInputDevices() failed! Error: " << error << " " << hWnd;
+				UINT dwSize = 0;
+
+				GetRawInputData((HRAWINPUT)lParam, RID_INPUT, nullptr, &dwSize, sizeof(RAWINPUTHEADER));
+				LPBYTE lpb = new BYTE[dwSize];
+				if (lpb == nullptr)
+				{
+					return 0;
+				}
+
+				if (GetRawInputData((HRAWINPUT)lParam, RID_INPUT, lpb, &dwSize, sizeof(RAWINPUTHEADER)) != dwSize)
+				{
+					Logging::Log() << __FUNCTION__ << " Error: GetRawInputData does not return correct size!";
+
+					delete[] lpb;
+					return 0;
+				}
+
+				RAWINPUT* raw = (RAWINPUT*)lpb;
+
+				pThis->HandleRawInput(raw);
+
+				delete[] lpb;
+				return 0;
 			}
-		}
-		else if (Msg == WM_INPUT)
-		{
-			return HandleWMInput(lParam);
 		}
 
 		return DefWindowProcA(hWnd, Msg, wParam, lParam);
