@@ -1,5 +1,8 @@
 #pragma once
 
+#include <chrono>
+#include <vector>
+
 class m_IDirectInput8 : public IDirectInput8A, public IDirectInput8W, public AddressLookupTableDinput8Object
 {
 private:
@@ -7,13 +10,33 @@ private:
 	REFIID WrapperID;
 	REFIID WrapperDeviceID;
 
+	const std::chrono::seconds cacheDuration = std::chrono::seconds(5); // Cache duration in seconds
+
+	// Define a template structure to hold cached device data
+	template <class T, class V>
+	struct CachedDeviceDataT
+	{
+		std::chrono::steady_clock::time_point lastUpdate;
+		DWORD dwDevType = 0;
+		DWORD dwFlags = 0;
+		std::vector<T> devices;
+	};
+	std::vector<int> devices;
+	
+	// Global or class member variable to store the cache for each template instantiation
+	CachedDeviceDataT<DIDEVICEINSTANCEA, LPDIENUMDEVICESCALLBACKA> cachedDataA;
+	CachedDeviceDataT<DIDEVICEINSTANCEW, LPDIENUMDEVICESCALLBACKW> cachedDataW;
+
+	auto& GetEnumCache(IDirectInput8A*) { return cachedDataA; }
+	auto& GetEnumCache(IDirectInput8W*) { return cachedDataW; }
+
 	template <class T>
 	inline auto* GetProxyInterface() { return (T*)ProxyInterface; }
 
 	template <class T, class V>
 	inline HRESULT CreateDeviceT(REFGUID rguid, V lplpDirectInputDevice, LPUNKNOWN pUnkOuter);
 
-	template <class T, class V>
+	template <class T, class V, class D>
 	inline HRESULT EnumDevicesT(DWORD dwDevType, V lpCallback, LPVOID pvRef, DWORD dwFlags);
 
 	template <class T, class V>
@@ -61,11 +84,11 @@ public:
 	}
 	STDMETHOD(EnumDevices)(THIS_ DWORD dwDevType, LPDIENUMDEVICESCALLBACKA lpCallback, LPVOID pvRef, DWORD dwFlags)
 	{
-		return EnumDevicesT<IDirectInput8A, LPDIENUMDEVICESCALLBACKA>(dwDevType, lpCallback, pvRef, dwFlags);
+		return EnumDevicesT<IDirectInput8A, LPDIENUMDEVICESCALLBACKA, DIDEVICEINSTANCEA>(dwDevType, lpCallback, pvRef, dwFlags);
 	}
 	STDMETHOD(EnumDevices)(THIS_ DWORD dwDevType, LPDIENUMDEVICESCALLBACKW lpCallback, LPVOID pvRef, DWORD dwFlags)
 	{
-		return EnumDevicesT<IDirectInput8W, LPDIENUMDEVICESCALLBACKW>(dwDevType, lpCallback, pvRef, dwFlags);
+		return EnumDevicesT<IDirectInput8W, LPDIENUMDEVICESCALLBACKW, DIDEVICEINSTANCEW>(dwDevType, lpCallback, pvRef, dwFlags);
 	}
 	STDMETHOD(GetDeviceStatus)(THIS_ REFGUID);
 	STDMETHOD(RunControlPanel)(THIS_ HWND, DWORD);

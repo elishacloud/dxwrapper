@@ -8,7 +8,16 @@ private:
 	CDirectInputDeviceMouse8* pCDirectInputDeviceMouse8 = nullptr;
 
 	bool IsMouse = false;
+	DWORD dwSequence = 1;
 	DWORD ProcessID;
+
+	CRITICAL_SECTION critSect = {};
+
+	DIMOUSESTATE mouseStateDeviceData = {};
+	DIMOUSESTATE mouseStateDeviceDataGame = {};
+
+	void Lock() { EnterCriticalSection(&critSect); }
+	void Unlock() { LeaveCriticalSection(&critSect); }
 
 	template <class T>
 	inline auto* GetProxyInterface() { return (T*)ProxyInterface; }
@@ -55,6 +64,8 @@ public:
 
 		ProcessID = GetCurrentProcessId();
 
+		InitializeCriticalSection(&critSect);
+
 		ProxyAddressLookupTableDinput8.SaveAddress(this, ProxyInterface);
 	}
 	~m_IDirectInputDevice8()
@@ -65,6 +76,8 @@ public:
 		{
 			delete pCDirectInputDeviceMouse8;
 		}
+
+		DeleteCriticalSection(&critSect);
 
 		ProxyAddressLookupTableDinput8.DeleteAddress(this);
 	}
@@ -89,6 +102,7 @@ public:
 	STDMETHOD(Acquire)(THIS);
 	STDMETHOD(Unacquire)(THIS);
 	STDMETHOD(GetDeviceState)(THIS_ DWORD, LPVOID);
+	STDMETHOD(FakeGetDeviceData)(THIS_ DWORD, LPDIDEVICEOBJECTDATA, LPDWORD, DWORD);
 	STDMETHOD(GetDeviceData)(THIS_ DWORD, LPDIDEVICEOBJECTDATA, LPDWORD, DWORD);
 	STDMETHOD(SetDataFormat)(THIS_ LPCDIDATAFORMAT);
 	STDMETHOD(SetEventNotification)(THIS_ HANDLE);

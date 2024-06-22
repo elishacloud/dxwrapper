@@ -127,6 +127,209 @@ HRESULT m_IDirectInputDevice8::GetDeviceState(DWORD cbData, LPVOID lpvData)
 	return ProxyInterface->GetDeviceState(cbData, lpvData);
 }
 
+HRESULT m_IDirectInputDevice8::FakeGetDeviceData(DWORD cbObjectData, LPDIDEVICEOBJECTDATA rgdod, LPDWORD pdwInOut, DWORD dwFlags)
+{
+	DWORD dwItems = INFINITE;
+	HRESULT hr = ProxyInterface->GetDeviceData(sizeof(DIDEVICEOBJECTDATA), nullptr, &dwItems, DIGDD_PEEK);
+	if (FAILED(hr))
+	{
+		if (pdwInOut)
+		{
+			*pdwInOut = 0;
+		}
+		return hr;
+	}
+
+	if (!pdwInOut || (rgdod && cbObjectData != sizeof(DIDEVICEOBJECTDATA) && cbObjectData != sizeof(DIDEVICEOBJECTDATA_DX3)))
+	{
+		return DIERR_INVALIDPARAM;
+	}
+
+	bool isPeek = ((dwFlags & DIGDD_PEEK) > 0);
+
+	if (rgdod == nullptr && isPeek)
+	{
+		*pdwInOut = min(6, *pdwInOut);	// Just hard code to 6 as the current number of possible buffered events
+		return DI_OK;
+	}
+
+	// Get latest ouse state from the DirectInput8 buffer
+	{
+		std::vector<DIDEVICEOBJECTDATA> dod;
+		dod.resize(dwItems);
+		hr = ProxyInterface->GetDeviceData(sizeof(DIDEVICEOBJECTDATA), dod.data(), &dwItems, 0);
+		if (SUCCEEDED(hr))
+		{
+			for (UINT x = 0; x < dwItems; x++)
+			{
+				if (dod[x].dwOfs == DIMOFS_X)
+				{
+					mouseStateDeviceData.lX += dod[x].dwData;
+				}
+				if (dod[x].dwOfs == DIMOFS_Y)
+				{
+					mouseStateDeviceData.lY += dod[x].dwData;
+				}
+				if (dod[x].dwOfs == DIMOFS_Z)
+				{
+					mouseStateDeviceData.lZ += dod[x].dwData;
+				}
+				if (dod[x].dwOfs == DIMOFS_BUTTON0)
+				{
+					mouseStateDeviceData.rgbButtons[0] = (BYTE)dod[x].dwData;
+				}
+				if (dod[x].dwOfs == DIMOFS_BUTTON1)
+				{
+					mouseStateDeviceData.rgbButtons[1] = (BYTE)dod[x].dwData;
+				}
+				if (dod[x].dwOfs == DIMOFS_BUTTON2)
+				{
+					mouseStateDeviceData.rgbButtons[2] = (BYTE)dod[x].dwData;
+				}
+			}
+		}
+	}
+
+	DWORD dwOut = 0;
+
+	// Determine timestamp:
+	__int64 fTime = 0;
+	GetSystemTimeAsFileTime((FILETIME*)&fTime);
+	fTime = fTime / 1000;
+
+	Lock();
+
+	// Checking for overflow
+	if (rgdod == nullptr && *pdwInOut == 0)
+	{
+		// Don't return overflow as just using mouse state
+	}
+	// Flush buffer
+	else if (rgdod == nullptr && !isPeek)
+	{
+		// Don't flush buffer as just using mouse state
+	}
+	// Full device object data
+	else if (rgdod)
+	{
+		memset(rgdod, 0, *pdwInOut * cbObjectData);
+
+		LPDIDEVICEOBJECTDATA p_rgdod = rgdod;
+		for (DWORD i = 0; i < *pdwInOut; i++)
+		{
+			// Sending DIMOFS_X
+			if (mouseStateDeviceData.lX != 0)
+			{
+				p_rgdod->dwData = mouseStateDeviceData.lX;
+				p_rgdod->dwOfs = DIMOFS_X;
+				p_rgdod->dwSequence = dwSequence;
+				p_rgdod->dwTimeStamp = (DWORD)fTime;
+				if (cbObjectData == sizeof(DIDEVICEOBJECTDATA))
+				{
+					p_rgdod->uAppData = NULL;
+				}
+
+				dwSequence++;
+				mouseStateDeviceData.lX = 0;
+				dwOut++;
+			}
+			// Sending DIMOFS_Y
+			else if (mouseStateDeviceData.lY != 0)
+			{
+				p_rgdod->dwData = mouseStateDeviceData.lY;
+				p_rgdod->dwOfs = DIMOFS_Y;
+				p_rgdod->dwSequence = dwSequence;
+				p_rgdod->dwTimeStamp = (DWORD)fTime;
+				if (cbObjectData == sizeof(DIDEVICEOBJECTDATA))
+				{
+					p_rgdod->uAppData = NULL;
+				}
+
+				dwSequence++;
+				mouseStateDeviceData.lY = 0;
+				dwOut++;
+			}
+			// Sending DIMOFS_Z
+			else if (mouseStateDeviceData.lZ != 0)
+			{
+				p_rgdod->dwData = mouseStateDeviceData.lZ;
+				p_rgdod->dwOfs = DIMOFS_Z;
+				p_rgdod->dwSequence = dwSequence;
+				p_rgdod->dwTimeStamp = (DWORD)fTime;
+				if (cbObjectData == sizeof(DIDEVICEOBJECTDATA))
+				{
+					p_rgdod->uAppData = NULL;
+				}
+
+				dwSequence++;
+				mouseStateDeviceData.lZ = 0;
+				dwOut++;
+			}
+			// Sending DIMOFS_BUTTON0
+			else if (mouseStateDeviceData.rgbButtons[0] != mouseStateDeviceDataGame.rgbButtons[0])
+			{
+				p_rgdod->dwData = mouseStateDeviceData.rgbButtons[0];
+				p_rgdod->dwOfs = DIMOFS_BUTTON0;
+				p_rgdod->dwSequence = dwSequence;
+				p_rgdod->dwTimeStamp = (DWORD)fTime;
+				if (cbObjectData == sizeof(DIDEVICEOBJECTDATA))
+				{
+					p_rgdod->uAppData = NULL;
+				}
+
+				dwSequence++;
+				mouseStateDeviceDataGame.rgbButtons[0] = mouseStateDeviceData.rgbButtons[0];
+				dwOut++;
+			}
+			// Sending DIMOFS_BUTTON1
+			else if (mouseStateDeviceData.rgbButtons[1] != mouseStateDeviceDataGame.rgbButtons[1])
+			{
+				p_rgdod->dwData = mouseStateDeviceData.rgbButtons[1];
+				p_rgdod->dwOfs = DIMOFS_BUTTON1;
+				p_rgdod->dwSequence = dwSequence;
+				p_rgdod->dwTimeStamp = (DWORD)fTime;
+				if (cbObjectData == sizeof(DIDEVICEOBJECTDATA))
+				{
+					p_rgdod->uAppData = NULL;
+				}
+
+				dwSequence++;
+				mouseStateDeviceDataGame.rgbButtons[1] = mouseStateDeviceData.rgbButtons[1];
+				dwOut++;
+			}
+			// Sending DIMOFS_BUTTON2
+			else if (mouseStateDeviceData.rgbButtons[2] != mouseStateDeviceDataGame.rgbButtons[2])
+			{
+				p_rgdod->dwData = mouseStateDeviceData.rgbButtons[2];
+				p_rgdod->dwOfs = DIMOFS_BUTTON2;
+				p_rgdod->dwSequence = dwSequence;
+				p_rgdod->dwTimeStamp = (DWORD)fTime;
+				if (cbObjectData == sizeof(DIDEVICEOBJECTDATA))
+				{
+					p_rgdod->uAppData = NULL;
+				}
+
+				dwSequence++;
+				mouseStateDeviceDataGame.rgbButtons[2] = mouseStateDeviceData.rgbButtons[2];
+				dwOut++;
+			}
+			// No more data to sent
+			else
+			{
+				break;
+			}
+
+			p_rgdod = (LPDIDEVICEOBJECTDATA)((DWORD)p_rgdod + cbObjectData);
+		}
+	}
+
+	Unlock();
+
+	*pdwInOut = dwOut;
+
+	return DI_OK;	// Always just return OK
+}
+
 HRESULT m_IDirectInputDevice8::GetDeviceData(DWORD cbObjectData, LPDIDEVICEOBJECTDATA rgdod, LPDWORD pdwInOut, DWORD dwFlags)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
@@ -151,6 +354,11 @@ HRESULT m_IDirectInputDevice8::GetDeviceData(DWORD cbObjectData, LPDIDEVICEOBJEC
 	if (pCDirectInputDeviceMouse8)
 	{
 		return pCDirectInputDeviceMouse8->GetDeviceData(cbObjectData, rgdod, pdwInOut, dwFlags);
+	}
+
+	if (Config.FixHighFrequencyMouse && IsMouse)
+	{
+		return FakeGetDeviceData(cbObjectData, rgdod, pdwInOut, dwFlags);
 	}
 
 	return ProxyInterface->GetDeviceData(cbObjectData, rgdod, pdwInOut, dwFlags);
@@ -285,8 +493,8 @@ HRESULT m_IDirectInputDevice8::EnumCreatedEffectObjects(LPDIENUMCREATEDEFFECTOBJ
 
 	struct EnumEffect
 	{
-		LPVOID pvRef;
-		LPDIENUMCREATEDEFFECTOBJECTSCALLBACK lpCallback;
+		LPVOID pvRef = nullptr;
+		LPDIENUMCREATEDEFFECTOBJECTSCALLBACK lpCallback = nullptr;
 
 		static BOOL CALLBACK EnumEffectCallback(LPDIRECTINPUTEFFECT a, LPVOID pvRef)
 		{
