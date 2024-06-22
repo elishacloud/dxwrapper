@@ -138,6 +138,8 @@ HRESULT m_IDirectInputDevice8::FakeGetDeviceData(DWORD cbObjectData, LPDIDEVICEO
 		return DI_OK;
 	}
 
+	Lock();
+
 	// Get latest ouse state from the DirectInput8 buffer
 	{
 		std::vector<DIDEVICEOBJECTDATA> dod;
@@ -181,8 +183,6 @@ HRESULT m_IDirectInputDevice8::FakeGetDeviceData(DWORD cbObjectData, LPDIDEVICEO
 	__int64 fTime = 0;
 	GetSystemTimeAsFileTime((FILETIME*)&fTime);
 	fTime = fTime / 1000;
-
-	Lock();
 
 	// Checking for overflow
 	if (rgdod == nullptr && *pdwInOut == 0)
