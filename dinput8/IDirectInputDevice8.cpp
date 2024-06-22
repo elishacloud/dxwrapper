@@ -130,17 +130,14 @@ HRESULT m_IDirectInputDevice8::FakeGetDeviceData(DWORD cbObjectData, LPDIDEVICEO
 		return DIERR_INVALIDPARAM;
 	}
 
-	bool isPeek = ((dwFlags & DIGDD_PEEK) > 0);
-
-	if (rgdod == nullptr && isPeek)
-	{
-		*pdwInOut = min(6, *pdwInOut);	// Just hard code to 6 as the current number of possible buffered events
-		return DI_OK;
-	}
+	bool isPeek = (dwFlags == DIGDD_PEEK);
 
 	Lock();
 
-	// Get latest ouse state from the DirectInput8 buffer
+	// Move cached data to new vector
+	std::vector<MOUSEBUTTONDATA> mouseButtonDataGame = std::move(mouseButtonData);
+
+	// Get latest mouse state from the DirectInput8 buffer
 	{
 		std::vector<DIDEVICEOBJECTDATA> dod;
 		dod.resize(dwItems);
@@ -151,61 +148,68 @@ HRESULT m_IDirectInputDevice8::FakeGetDeviceData(DWORD cbObjectData, LPDIDEVICEO
 			{
 				if (dod[x].dwOfs == DIMOFS_X)
 				{
-					mouseStateDeviceData.lX += dod[x].dwData;
+					mouseMovementData.X += dod[x].dwData;
 				}
-				if (dod[x].dwOfs == DIMOFS_Y)
+				else if (dod[x].dwOfs == DIMOFS_Y)
 				{
-					mouseStateDeviceData.lY += dod[x].dwData;
+					mouseMovementData.Y += dod[x].dwData;
 				}
-				if (dod[x].dwOfs == DIMOFS_Z)
+				else if (dod[x].dwOfs == DIMOFS_Z)
 				{
-					mouseStateDeviceData.lZ += dod[x].dwData;
+					mouseMovementData.Z += dod[x].dwData;
 				}
-				if (dod[x].dwOfs == DIMOFS_BUTTON0)
+				else
 				{
-					mouseStateDeviceData.rgbButtons[0] = (BYTE)dod[x].dwData;
-				}
-				if (dod[x].dwOfs == DIMOFS_BUTTON1)
-				{
-					mouseStateDeviceData.rgbButtons[1] = (BYTE)dod[x].dwData;
-				}
-				if (dod[x].dwOfs == DIMOFS_BUTTON2)
-				{
-					mouseStateDeviceData.rgbButtons[2] = (BYTE)dod[x].dwData;
+					MOUSEBUTTONDATA item = { dod[x].dwOfs, dod[x].dwData };
+					mouseButtonDataGame.push_back(item);
 				}
 			}
 		}
 	}
-
-	DWORD dwOut = 0;
 
 	// Determine timestamp:
 	__int64 fTime = 0;
 	GetSystemTimeAsFileTime((FILETIME*)&fTime);
 	fTime = fTime / 1000;
 
+	DWORD dwOut = 0;
+	DWORD dwVectorLoc = 0;
+
 	// Checking for overflow
 	if (rgdod == nullptr && *pdwInOut == 0)
 	{
-		// Don't return overflow as just using mouse state
+		// Never return overflow
 	}
 	// Flush buffer
-	else if (rgdod == nullptr && !isPeek)
+	else if (rgdod == nullptr && *pdwInOut == INFINITE && !isPeek)
 	{
-		// Don't flush buffer as just using mouse state
+		// Flush mouse movement data
+		mouseMovementData = {};
+	}
+	// Number of records in the buffer
+	else if (rgdod == nullptr && *pdwInOut == INFINITE && isPeek)
+	{
+		size_t Counter = 0;
+		if (mouseMovementData.X != 0) Counter++;
+		if (mouseMovementData.Y != 0) Counter++;
+		if (mouseMovementData.Z != 0) Counter++;
+		Counter += mouseButtonDataGame.size();
+
+		*pdwInOut = Counter;
 	}
 	// Full device object data
 	else if (rgdod)
 	{
 		memset(rgdod, 0, *pdwInOut * cbObjectData);
+		MOUSEMOVEMENTDATA mouseMovementDataGame = mouseMovementData;
 
 		LPDIDEVICEOBJECTDATA p_rgdod = rgdod;
 		for (DWORD i = 0; i < *pdwInOut; i++)
 		{
 			// Sending DIMOFS_X
-			if (mouseStateDeviceData.lX != 0)
+			if (mouseMovementDataGame.X != 0)
 			{
-				p_rgdod->dwData = mouseStateDeviceData.lX;
+				p_rgdod->dwData = mouseMovementDataGame.X;
 				p_rgdod->dwOfs = DIMOFS_X;
 				p_rgdod->dwSequence = dwSequence;
 				p_rgdod->dwTimeStamp = (DWORD)fTime;
@@ -214,14 +218,15 @@ HRESULT m_IDirectInputDevice8::FakeGetDeviceData(DWORD cbObjectData, LPDIDEVICEO
 					p_rgdod->uAppData = NULL;
 				}
 
-				dwSequence++;
-				mouseStateDeviceData.lX = 0;
 				dwOut++;
+				dwSequence++;
+				mouseMovementDataGame.X = 0;
+				if (!isPeek) mouseMovementData.X = 0;
 			}
 			// Sending DIMOFS_Y
-			else if (mouseStateDeviceData.lY != 0)
+			else if (mouseMovementDataGame.Y != 0)
 			{
-				p_rgdod->dwData = mouseStateDeviceData.lY;
+				p_rgdod->dwData = mouseMovementDataGame.Y;
 				p_rgdod->dwOfs = DIMOFS_Y;
 				p_rgdod->dwSequence = dwSequence;
 				p_rgdod->dwTimeStamp = (DWORD)fTime;
@@ -230,14 +235,15 @@ HRESULT m_IDirectInputDevice8::FakeGetDeviceData(DWORD cbObjectData, LPDIDEVICEO
 					p_rgdod->uAppData = NULL;
 				}
 
-				dwSequence++;
-				mouseStateDeviceData.lY = 0;
 				dwOut++;
+				dwSequence++;
+				mouseMovementDataGame.Y = 0;
+				if (!isPeek) mouseMovementData.Y = 0;
 			}
 			// Sending DIMOFS_Z
-			else if (mouseStateDeviceData.lZ != 0)
+			else if (mouseMovementDataGame.Z != 0)
 			{
-				p_rgdod->dwData = mouseStateDeviceData.lZ;
+				p_rgdod->dwData = mouseMovementDataGame.Z;
 				p_rgdod->dwOfs = DIMOFS_Z;
 				p_rgdod->dwSequence = dwSequence;
 				p_rgdod->dwTimeStamp = (DWORD)fTime;
@@ -246,15 +252,16 @@ HRESULT m_IDirectInputDevice8::FakeGetDeviceData(DWORD cbObjectData, LPDIDEVICEO
 					p_rgdod->uAppData = NULL;
 				}
 
-				dwSequence++;
-				mouseStateDeviceData.lZ = 0;
 				dwOut++;
+				dwSequence++;
+				mouseMovementDataGame.Z = 0;
+				if (!isPeek) mouseMovementData.Z = 0;
 			}
-			// Sending DIMOFS_BUTTON0
-			else if (mouseStateDeviceData.rgbButtons[0] != mouseStateDeviceDataGame.rgbButtons[0])
+			// Sending DIMOFS_BUTTON data
+			else if (dwVectorLoc < mouseButtonDataGame.size())
 			{
-				p_rgdod->dwData = mouseStateDeviceData.rgbButtons[0];
-				p_rgdod->dwOfs = DIMOFS_BUTTON0;
+				p_rgdod->dwData = mouseButtonDataGame[dwVectorLoc].dwData;
+				p_rgdod->dwOfs = mouseButtonDataGame[dwVectorLoc].dwOfs;
 				p_rgdod->dwSequence = dwSequence;
 				p_rgdod->dwTimeStamp = (DWORD)fTime;
 				if (cbObjectData == sizeof(DIDEVICEOBJECTDATA))
@@ -262,41 +269,9 @@ HRESULT m_IDirectInputDevice8::FakeGetDeviceData(DWORD cbObjectData, LPDIDEVICEO
 					p_rgdod->uAppData = NULL;
 				}
 
-				dwSequence++;
-				mouseStateDeviceDataGame.rgbButtons[0] = mouseStateDeviceData.rgbButtons[0];
 				dwOut++;
-			}
-			// Sending DIMOFS_BUTTON1
-			else if (mouseStateDeviceData.rgbButtons[1] != mouseStateDeviceDataGame.rgbButtons[1])
-			{
-				p_rgdod->dwData = mouseStateDeviceData.rgbButtons[1];
-				p_rgdod->dwOfs = DIMOFS_BUTTON1;
-				p_rgdod->dwSequence = dwSequence;
-				p_rgdod->dwTimeStamp = (DWORD)fTime;
-				if (cbObjectData == sizeof(DIDEVICEOBJECTDATA))
-				{
-					p_rgdod->uAppData = NULL;
-				}
-
 				dwSequence++;
-				mouseStateDeviceDataGame.rgbButtons[1] = mouseStateDeviceData.rgbButtons[1];
-				dwOut++;
-			}
-			// Sending DIMOFS_BUTTON2
-			else if (mouseStateDeviceData.rgbButtons[2] != mouseStateDeviceDataGame.rgbButtons[2])
-			{
-				p_rgdod->dwData = mouseStateDeviceData.rgbButtons[2];
-				p_rgdod->dwOfs = DIMOFS_BUTTON2;
-				p_rgdod->dwSequence = dwSequence;
-				p_rgdod->dwTimeStamp = (DWORD)fTime;
-				if (cbObjectData == sizeof(DIDEVICEOBJECTDATA))
-				{
-					p_rgdod->uAppData = NULL;
-				}
-
-				dwSequence++;
-				mouseStateDeviceDataGame.rgbButtons[2] = mouseStateDeviceData.rgbButtons[2];
-				dwOut++;
+				dwVectorLoc++;
 			}
 			// No more data to sent
 			else
@@ -306,6 +281,13 @@ HRESULT m_IDirectInputDevice8::FakeGetDeviceData(DWORD cbObjectData, LPDIDEVICEO
 
 			p_rgdod = (LPDIDEVICEOBJECTDATA)((DWORD)p_rgdod + cbObjectData);
 		}
+	}
+
+	// Save unsent mouse button data
+	for (size_t x = dwVectorLoc; x < mouseButtonDataGame.size(); x++)
+	{
+		MOUSEBUTTONDATA item = { mouseButtonDataGame[x].dwOfs, mouseButtonDataGame[x].dwData };
+		mouseButtonData.push_back(item);
 	}
 
 	Unlock();

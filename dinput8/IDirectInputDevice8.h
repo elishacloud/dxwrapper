@@ -12,8 +12,16 @@ private:
 
 	CRITICAL_SECTION critSect = {};
 
-	DIMOUSESTATE mouseStateDeviceData = {};
-	DIMOUSESTATE mouseStateDeviceDataGame = {};
+	struct MOUSEBUTTONDATA {
+		DWORD       dwOfs;
+		DWORD       dwData;
+	};
+	std::vector<MOUSEBUTTONDATA> mouseButtonData;
+	struct MOUSEMOVEMENTDATA {
+		DWORD       X;
+		DWORD       Y;
+		DWORD       Z;
+	} mouseMovementData = {};
 
 	void Lock() { EnterCriticalSection(&critSect); }
 	void Unlock() { LeaveCriticalSection(&critSect); }

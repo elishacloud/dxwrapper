@@ -56,6 +56,7 @@
 	visit(Dinput8HookSystem32) \
 	visit(DsoundHookSystem32) \
 	visit(SetSwapEffectShim) \
+	visit(DeviceLookupCacheTime) \
 	visit(DisableGameUX) \
 	visit(DisableHighDPIScaling) \
 	visit(DisableLogging) \
@@ -241,6 +242,7 @@ struct CONFIG
 	DWORD DinputHookSystem32 = 0;				// Hooks the dinput.dll file in the Windows System32 folder
 	DWORD Dinput8HookSystem32 = 0;				// Hooks the dinput8.dll file in the Windows System32 folder
 	DWORD DsoundHookSystem32 = 0;				// Hooks the dsound.dll file in the Windows System32 folder
+	DWORD DeviceLookupCacheTime = 0;			// Number of seconds to cache the DeviceEnum callback data
 	bool DirectShowEmulation = false;			// Emulates DirectShow APIs
 	bool DisableGameUX = false;					// Disables the Microsoft Game Explorer which can sometimes cause high CPU in rundll32.exe and hang the game process
 	bool DisableHighDPIScaling = false;			// Disables display scaling on high DPI settings
