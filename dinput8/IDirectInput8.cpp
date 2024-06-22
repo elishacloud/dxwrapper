@@ -124,7 +124,7 @@ HRESULT m_IDirectInput8::EnumDevicesT(DWORD dwDevType, V lpCallback, LPVOID pvRe
 	{
 		std::vector<D> CacheDevices;
 
-		static BOOL DIEnumDevicesCallback(const D* lpddi, LPVOID pvRef)
+		static BOOL CALLBACK DIEnumDevicesCallback(const D* lpddi, LPVOID pvRef)
 		{
 			EnumDevices* self = (EnumDevices*)pvRef;
 
