@@ -128,7 +128,7 @@ HRESULT m_IDirectInput8::EnumDevicesT(DWORD dwDevType, V lpCallback, LPVOID pvRe
 		}
 	} CallbackContext;
 
-	HRESULT hr = GetProxyInterface<T>()->EnumDevices(dwDevType, (V)EnumDevices::DIEnumDevicesCallback, &CallbackContext, dwFlags);
+	HRESULT hr = GetProxyInterface<T>()->EnumDevices(dwDevType, EnumDevices::DIEnumDevicesCallback, &CallbackContext, dwFlags);
 
 	if (SUCCEEDED(hr) && lpCallback)
 	{
