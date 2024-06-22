@@ -75,6 +75,7 @@
 	visit(ForceMixedVertexProcessing) \
 	visit(ForceSystemMemVertexCache) \
 	visit(FilterNonActiveInput) \
+	visit(FixHighFrequencyMouse) \
 	visit(FixSpeakerConfigType) \
 	visit(ForceExclusiveMode) \
 	visit(ForceHardwareMixing) \
@@ -254,6 +255,7 @@ struct CONFIG
 	bool EnableDsoundWrapper = false;			// Enables the dsound wrapper
 	bool EnableWindowMode = false;				// Enables WndMode for d3d9 wrapper
 	bool EnableVSync = false;					// Enables VSync for d3d9 wrapper
+	bool FixHighFrequencyMouse = false;			// Gets the latest mouse status by merging the DirectInput buffer data
 	bool ForceDirect3D9On12 = false;			// Forces Direct3D9 to use CreateDirect3D9On12
 	bool ForceExclusiveFullscreen = false;		// Forces exclusive fullscreen mode in d3d9
 	bool ForceMixedVertexProcessing = false;	// Forces Mixed mode for vertex processing in d3d9
