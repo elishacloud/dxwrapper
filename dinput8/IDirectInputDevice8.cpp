@@ -209,7 +209,8 @@ HRESULT m_IDirectInputDevice8::FakeGetDeviceData(DWORD cbObjectData, LPDIDEVICEO
 			// Sending DIMOFS_X
 			if (mouseMovementDataGame.X != 0)
 			{
-				p_rgdod->dwData = mouseMovementDataGame.X;
+				LONG Sign = (LONG)mouseMovementData.X < 0 ? -1 : 1;
+				p_rgdod->dwData = (LONG)round((LONG)mouseMovementData.X * abs(Config.MouseMovementFactor)) + (Sign * Config.MouseMovementPadding);
 				p_rgdod->dwOfs = DIMOFS_X;
 				p_rgdod->dwSequence = dwSequence;
 				p_rgdod->dwTimeStamp = (DWORD)fTime;
@@ -226,7 +227,8 @@ HRESULT m_IDirectInputDevice8::FakeGetDeviceData(DWORD cbObjectData, LPDIDEVICEO
 			// Sending DIMOFS_Y
 			else if (mouseMovementDataGame.Y != 0)
 			{
-				p_rgdod->dwData = mouseMovementDataGame.Y;
+				LONG Sign = (LONG)mouseMovementData.Y < 0 ? -1 : 1;
+				p_rgdod->dwData = (LONG)round((LONG)mouseMovementData.Y * Config.MouseMovementFactor) + (Sign * Config.MouseMovementPadding);
 				p_rgdod->dwOfs = DIMOFS_Y;
 				p_rgdod->dwSequence = dwSequence;
 				p_rgdod->dwTimeStamp = (DWORD)fTime;

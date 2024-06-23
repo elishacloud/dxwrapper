@@ -103,6 +103,8 @@
 	visit(LoadPlugins) \
 	visit(LockColorkey) \
 	visit(LoopSleepTime) \
+	visit(MouseMovementFactor) \
+	visit(MouseMovementPadding) \
 	visit(Num2DBuffers) \
 	visit(Num3DBuffers) \
 	visit(OverrideRefreshRate) \
@@ -258,6 +260,8 @@ struct CONFIG
 	bool EnableWindowMode = false;				// Enables WndMode for d3d9 wrapper
 	bool EnableVSync = false;					// Enables VSync for d3d9 wrapper
 	bool FixHighFrequencyMouse = false;			// Gets the latest mouse status by merging the DirectInput buffer data
+	float MouseMovementFactor = 1.0f;			// Sets the mouse speed scrolling factor, requires enabling FixHighFrequencyMouse
+	DWORD MouseMovementPadding = 0;				// Adds some static extra movement to the mouse to overcome issues with to much deadzone
 	bool ForceDirect3D9On12 = false;			// Forces Direct3D9 to use CreateDirect3D9On12
 	bool ForceExclusiveFullscreen = false;		// Forces exclusive fullscreen mode in d3d9
 	bool ForceMixedVertexProcessing = false;	// Forces Mixed mode for vertex processing in d3d9
