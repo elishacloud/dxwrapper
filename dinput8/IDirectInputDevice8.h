@@ -22,14 +22,20 @@ private:
 		LONG lZ;
 	};
 	struct MOUSEDATA {
-		bool UseLocks = false;
-		bool EnableLocks = false;
-		DWORD LastLockedThreadID = 0;
+		DWORD BufferSize = 0;
 		MOUSEMOVEMENTDATA Movement = {};
 		std::vector<MOUSEBUTTONDATA> Button;
 		std::vector<DIDEVICEOBJECTDATA_DX3> dod_dx3;
 		std::vector<DIDEVICEOBJECTDATA> dod_dx8;
 	} MouseData;
+
+	template <class T>
+	inline LPDIDEVICEOBJECTDATA GetObjectDataBuffer(T& dod, DWORD dwBufferSize, DWORD& dwItems)
+	{
+		if (dod.size() < dwBufferSize) dod.resize(dwBufferSize);
+		dwItems = dod.size();
+		return (LPDIDEVICEOBJECTDATA)dod.data();
+	}
 
 	template <class T>
 	inline auto* GetProxyInterface() { return (T*)ProxyInterface; }

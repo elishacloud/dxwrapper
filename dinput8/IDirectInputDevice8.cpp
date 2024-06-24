@@ -88,6 +88,29 @@ HRESULT m_IDirectInputDevice8::SetProperty(REFGUID rguidProp, LPCDIPROPHEADER pd
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
+	// Handle mouse input
+	if (Config.FixHighFrequencyMouse && IsMouse)
+	{
+		const DWORD dwMinBufferSize = 267;	// Based on a 8000Hz mouse and data retrieval at 30 FPS
+
+		// Verify buffer is large enough
+		if ((DWORD)&rguidProp == (DWORD)&DIPROP_BUFFERSIZE)
+		{
+			DIPROPDWORD dipdw = (pdiph && pdiph->dwSize == sizeof(DIPROPDWORD)) ? *(LPDIPROPDWORD)pdiph :
+				DIPROPDWORD{ sizeof(DIPROPDWORD), sizeof(DIPROPHEADER), 0, DIPH_DEVICE, 0 };
+			dipdw.dwData = max(dipdw.dwData, dwMinBufferSize);
+			MouseData.BufferSize = dipdw.dwData;
+
+			return ProxyInterface->SetProperty(rguidProp, &dipdw.diph);
+		}
+
+		// Override deadzone for mice
+		if ((DWORD)&rguidProp == (DWORD)&DIPROP_DEADZONE)
+		{
+			return DI_OK;
+		}
+	}
+
 	return ProxyInterface->SetProperty(rguidProp, pdiph);
 }
 
@@ -129,6 +152,10 @@ HRESULT m_IDirectInputDevice8::FakeGetDeviceData(DWORD cbObjectData, LPDIDEVICEO
 	// Check arguments
 	if (!pdwInOut || (rgdod && cbObjectData != sizeof(DIDEVICEOBJECTDATA) && cbObjectData != sizeof(DIDEVICEOBJECTDATA_DX3)))
 	{
+		if (pdwInOut)
+		{
+			*pdwInOut = 0;
+		}
 		return DIERR_INVALIDPARAM;
 	}
 	bool isPeek = (dwFlags == DIGDD_PEEK);
@@ -141,17 +168,10 @@ HRESULT m_IDirectInputDevice8::FakeGetDeviceData(DWORD cbObjectData, LPDIDEVICEO
 
 	// Get latest mouse data from the DirectInput8 buffer
 	{
-		LPDIDEVICEOBJECTDATA dod = nullptr;
-		if (cbObjectData == sizeof(DIDEVICEOBJECTDATA_DX3))
-		{
-			if (MouseData.dod_dx3.size() < dwItems) MouseData.dod_dx3.resize((dwItems / 100 + 1) * 100);	// Increase buffer by factors of 100
-			dod = (LPDIDEVICEOBJECTDATA)MouseData.dod_dx3.data();
-		}
-		else
-		{
-			if (MouseData.dod_dx8.size() < dwItems) MouseData.dod_dx8.resize((dwItems / 100 + 1) * 100);	// Increase buffer by factors of 100
-			dod = (LPDIDEVICEOBJECTDATA)MouseData.dod_dx8.data();
-		}
+		LPDIDEVICEOBJECTDATA dod = (cbObjectData == sizeof(DIDEVICEOBJECTDATA_DX3)) ?
+			GetObjectDataBuffer(MouseData.dod_dx3, MouseData.BufferSize, dwItems) :
+			GetObjectDataBuffer(MouseData.dod_dx8, MouseData.BufferSize, dwItems);
+
 		hr = ProxyInterface->GetDeviceData(cbObjectData, dod, &dwItems, 0);
 		if (SUCCEEDED(hr))
 		{
@@ -207,7 +227,7 @@ HRESULT m_IDirectInputDevice8::FakeGetDeviceData(DWORD cbObjectData, LPDIDEVICEO
 		if (MouseData.Movement.lZ != 0) DataCount++;
 		DataCount += mouseButtonDataGame.size();
 
-		*pdwInOut = DataCount;
+		dwOut = DataCount;
 	}
 	// Fill device object data
 	else if (rgdod && SUCCEEDED(hr))
