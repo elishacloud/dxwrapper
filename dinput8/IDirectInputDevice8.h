@@ -10,21 +10,26 @@ private:
 	DWORD dwSequence = 1;
 	DWORD ProcessID;
 
-	CRITICAL_SECTION critSect = {};
+	CRITICAL_SECTION dics = {};
 
 	struct MOUSEBUTTONDATA {
-		DWORD       dwOfs;
-		DWORD       dwData;
+		DWORD dwOfs;
+		DWORD dwData;
 	};
-	std::vector<MOUSEBUTTONDATA> mouseButtonData;
 	struct MOUSEMOVEMENTDATA {
-		DWORD       X;
-		DWORD       Y;
-		DWORD       Z;
-	} mouseMovementData = {};
-
-	void Lock() { EnterCriticalSection(&critSect); }
-	void Unlock() { LeaveCriticalSection(&critSect); }
+		LONG lX;
+		LONG lY;
+		LONG lZ;
+	};
+	struct MOUSEDATA {
+		bool UseLocks = false;
+		bool EnableLocks = false;
+		DWORD LastLockedThreadID = 0;
+		MOUSEMOVEMENTDATA Movement = {};
+		std::vector<MOUSEBUTTONDATA> Button;
+		std::vector<DIDEVICEOBJECTDATA_DX3> dod_dx3;
+		std::vector<DIDEVICEOBJECTDATA> dod_dx8;
+	} MouseData;
 
 	template <class T>
 	inline auto* GetProxyInterface() { return (T*)ProxyInterface; }
@@ -71,7 +76,7 @@ public:
 
 		ProcessID = GetCurrentProcessId();
 
-		InitializeCriticalSection(&critSect);
+		InitializeCriticalSection(&dics);
 
 		ProxyAddressLookupTableDinput8.SaveAddress(this, ProxyInterface);
 	}
@@ -79,7 +84,7 @@ public:
 	{
 		LOG_LIMIT(3, __FUNCTION__ << " (" << this << ")" << " deleting interface!");
 
-		DeleteCriticalSection(&critSect);
+		DeleteCriticalSection(&dics);
 
 		ProxyAddressLookupTableDinput8.DeleteAddress(this);
 	}
