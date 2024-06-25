@@ -174,7 +174,8 @@ public:
 				// Sending DIMOFS_X
 				if (diGlobalsInstance->mouseStateDeviceData.lX != 0)
 				{
-					p_rgdod->dwData = diGlobalsInstance->mouseStateDeviceData.lX;
+					LONG Sign = (LONG)diGlobalsInstance->mouseStateDeviceData.lX < 0 ? -1 : 1;
+					p_rgdod->dwData = (LONG)round((LONG)diGlobalsInstance->mouseStateDeviceData.lX * Config.MouseMovementFactor) + (Sign * Config.MouseMovementPadding);
 					p_rgdod->dwOfs = DIMOFS_X;
 					p_rgdod->dwSequence = diGlobalsInstance->dwSequence;
 					p_rgdod->dwTimeStamp = (DWORD)fTime;
@@ -190,7 +191,8 @@ public:
 				// Sending DIMOFS_Y
 				else if (diGlobalsInstance->mouseStateDeviceData.lY != 0)
 				{
-					p_rgdod->dwData = diGlobalsInstance->mouseStateDeviceData.lY;
+					LONG Sign = (LONG)diGlobalsInstance->mouseStateDeviceData.lY < 0 ? -1 : 1;
+					p_rgdod->dwData = (LONG)round((LONG)diGlobalsInstance->mouseStateDeviceData.lY * abs(Config.MouseMovementFactor)) + (Sign * Config.MouseMovementPadding);
 					p_rgdod->dwOfs = DIMOFS_Y;
 					p_rgdod->dwSequence = diGlobalsInstance->dwSequence;
 					p_rgdod->dwTimeStamp = (DWORD)fTime;
