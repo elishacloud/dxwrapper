@@ -728,6 +728,12 @@ void CONFIG::SetConfig()
 		DDrawCompatNoProcAffinity = true;
 	}
 
+	// Set mouse scroll factor
+	if (abs(MouseMovementFactor) < 0.01f)
+	{
+		MouseMovementFactor = 1.0f;
+	}
+
 	// Set unset options
 	DdrawResolutionHack = (DdrawResolutionHack != 0);
 	CacheClipPlane = (CacheClipPlane != 0);

@@ -10,13 +10,13 @@ private:
 	REFIID WrapperID;
 	REFIID WrapperDeviceID;
 
-	const std::chrono::seconds cacheDuration = std::chrono::seconds(5); // Cache duration in seconds
+	const std::chrono::seconds cacheDuration = std::chrono::seconds(Config.DeviceLookupCacheTime); // Cache duration in seconds
 
 	// Define a template structure to hold cached device data
 	template <class T, class V>
 	struct CachedDeviceDataT
 	{
-		std::chrono::steady_clock::time_point lastUpdate;
+		std::chrono::steady_clock::time_point lastUpdate = std::chrono::steady_clock::now();
 		DWORD dwDevType = 0;
 		DWORD dwFlags = 0;
 		std::vector<T> devices;

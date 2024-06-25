@@ -56,6 +56,7 @@
 	visit(Dinput8HookSystem32) \
 	visit(DsoundHookSystem32) \
 	visit(SetSwapEffectShim) \
+	visit(DeviceLookupCacheTime) \
 	visit(DisableGameUX) \
 	visit(DisableHighDPIScaling) \
 	visit(DisableLogging) \
@@ -102,6 +103,8 @@
 	visit(LoadPlugins) \
 	visit(LockColorkey) \
 	visit(LoopSleepTime) \
+	visit(MouseMovementFactor) \
+	visit(MouseMovementPadding) \
 	visit(Num2DBuffers) \
 	visit(Num3DBuffers) \
 	visit(OverrideRefreshRate) \
@@ -242,6 +245,7 @@ struct CONFIG
 	DWORD DinputHookSystem32 = 0;				// Hooks the dinput.dll file in the Windows System32 folder
 	DWORD Dinput8HookSystem32 = 0;				// Hooks the dinput8.dll file in the Windows System32 folder
 	DWORD DsoundHookSystem32 = 0;				// Hooks the dsound.dll file in the Windows System32 folder
+	DWORD DeviceLookupCacheTime = 0;			// Number of seconds to cache the DeviceEnum callback data
 	bool DirectShowEmulation = false;			// Emulates DirectShow APIs
 	bool DisableGameUX = false;					// Disables the Microsoft Game Explorer which can sometimes cause high CPU in rundll32.exe and hang the game process
 	bool DisableHighDPIScaling = false;			// Disables display scaling on high DPI settings
@@ -257,6 +261,8 @@ struct CONFIG
 	bool EnableWindowMode = false;				// Enables WndMode for d3d9 wrapper
 	bool EnableVSync = false;					// Enables VSync for d3d9 wrapper
 	bool FixHighFrequencyMouse = false;			// Gets the latest mouse status by merging the DirectInput buffer data
+	float MouseMovementFactor = 1.0f;			// Sets the mouse movement speed factor, requires enabling FixHighFrequencyMouse
+	DWORD MouseMovementPadding = 0;				// Adds extra mouse movement to overcome issues with input deadzone in some games, requires enabling FixHighFrequencyMouse
 	bool ForceDirect3D9On12 = false;			// Forces Direct3D9 to use CreateDirect3D9On12
 	bool ForceExclusiveFullscreen = false;		// Forces exclusive fullscreen mode in d3d9
 	bool ForceMixedVertexProcessing = false;	// Forces Mixed mode for vertex processing in d3d9

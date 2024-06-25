@@ -7,17 +7,31 @@ private:
 	REFIID WrapperID;
 	CDirectInputDeviceMouse8* pCDirectInputDeviceMouse8 = nullptr;
 
-	bool IsMouse = false;
-	DWORD dwSequence = 1;
+	CRITICAL_SECTION dics = {};
+
 	DWORD ProcessID;
 
-	CRITICAL_SECTION critSect = {};
+	struct MOUSECACHEDATA {
+		LONG lData;
+		DWORD dwOfs;
+		DWORD dwTimeStamp;
+		DWORD dwSequence;
+		UINT_PTR uAppData;
+	};
 
-	DIMOUSESTATE mouseStateDeviceData = {};
-	DIMOUSESTATE mouseStateDeviceDataGame = {};
+	bool IsMouse = false;
+	DWORD MouseBufferSize = 0;
+	std::vector<MOUSECACHEDATA> dod;
+	std::vector<DIDEVICEOBJECTDATA_DX3> dod_dx3;
+	std::vector<DIDEVICEOBJECTDATA> dod_dx8;
 
-	void Lock() { EnterCriticalSection(&critSect); }
-	void Unlock() { LeaveCriticalSection(&critSect); }
+	template <class T>
+	inline LPDIDEVICEOBJECTDATA GetObjectDataBuffer(T& dod, DWORD dwBufferSize, DWORD& dwItems)
+	{
+		if (dod.size() < dwBufferSize) dod.resize(dwBufferSize);
+		dwItems = dod.size();
+		return (LPDIDEVICEOBJECTDATA)dod.data();
+	}
 
 	template <class T>
 	inline auto* GetProxyInterface() { return (T*)ProxyInterface; }
@@ -64,7 +78,7 @@ public:
 
 		ProcessID = GetCurrentProcessId();
 
-		InitializeCriticalSection(&critSect);
+		InitializeCriticalSection(&dics);
 
 		ProxyAddressLookupTableDinput8.SaveAddress(this, ProxyInterface);
 	}
@@ -77,7 +91,7 @@ public:
 			delete pCDirectInputDeviceMouse8;
 		}
 
-		DeleteCriticalSection(&critSect);
+		DeleteCriticalSection(&dics);
 
 		ProxyAddressLookupTableDinput8.DeleteAddress(this);
 	}
