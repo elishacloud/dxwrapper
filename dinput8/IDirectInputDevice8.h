@@ -6,28 +6,23 @@ private:
 	IDirectInputDevice8W *ProxyInterface;
 	REFIID WrapperID;
 
-	bool IsMouse = false;
-	DWORD dwSequence = 1;
-	DWORD ProcessID;
-
 	CRITICAL_SECTION dics = {};
 
-	struct MOUSEBUTTONDATA {
+	DWORD ProcessID;
+
+	struct MOUSECACHEDATA {
+		LONG lData;
 		DWORD dwOfs;
-		DWORD dwData;
+		DWORD dwTimeStamp;
+		DWORD dwSequence;
+		UINT_PTR uAppData;
 	};
-	struct MOUSEMOVEMENTDATA {
-		LONG lX;
-		LONG lY;
-		LONG lZ;
-	};
-	struct MOUSEDATA {
-		DWORD BufferSize = 0;
-		MOUSEMOVEMENTDATA Movement = {};
-		std::vector<MOUSEBUTTONDATA> Button;
-		std::vector<DIDEVICEOBJECTDATA_DX3> dod_dx3;
-		std::vector<DIDEVICEOBJECTDATA> dod_dx8;
-	} MouseData;
+
+	bool IsMouse = false;
+	DWORD MouseBufferSize = 0;
+	std::vector<MOUSECACHEDATA> dod;
+	std::vector<DIDEVICEOBJECTDATA_DX3> dod_dx3;
+	std::vector<DIDEVICEOBJECTDATA> dod_dx8;
 
 	template <class T>
 	inline LPDIDEVICEOBJECTDATA GetObjectDataBuffer(T& dod, DWORD dwBufferSize, DWORD& dwItems)
