@@ -43,6 +43,20 @@ HRESULT m_IDirect3DX::QueryInterface(REFIID riid, LPVOID FAR * ppvObj, DWORD Dir
 		return D3D_OK;
 	}
 
+	if (riid == IID_IDirectDraw || riid == IID_IDirectDraw2 || riid == IID_IDirectDraw3 || riid == IID_IDirectDraw4 || riid == IID_IDirectDraw7)
+	{
+		DWORD DxVersion = GetGUIDVersion(riid);
+
+		if (ddrawParent)
+		{
+			*ppvObj = ddrawParent->GetWrapperInterfaceX(DxVersion);
+
+			ddrawParent->AddRef(DxVersion);
+
+			return DD_OK;
+		}
+	}
+
 	if (DirectXVersion != 1 && DirectXVersion != 2 && DirectXVersion != 3 && DirectXVersion != 7)
 	{
 		LOG_LIMIT(100, __FUNCTION__ << " Error: wrapper interface version not found: " << DirectXVersion);

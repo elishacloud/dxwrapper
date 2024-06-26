@@ -1949,6 +1949,8 @@ HRESULT m_IDirect3DDeviceX::GetDirect3D(LPDIRECT3D7* lplpD3D, DWORD DirectXVersi
 			return DDERR_GENERIC;
 		}
 
+		(*lplpD3D)->AddRef();
+
 		return D3D_OK;
 	}
 
