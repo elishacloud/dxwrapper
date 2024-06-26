@@ -89,7 +89,7 @@ HRESULT m_IDirectInputDevice8::SetProperty(REFGUID rguidProp, LPCDIPROPHEADER pd
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
 	// Handle mouse input
-	if (Config.FixHighFrequencyMouse && IsMouse)
+	if (IsMouse && Config.FixHighFrequencyMouse)
 	{
 		const DWORD dwMinBufferSize = 128;
 
@@ -135,7 +135,7 @@ HRESULT m_IDirectInputDevice8::GetDeviceState(DWORD cbData, LPVOID lpvData)
 	return ProxyInterface->GetDeviceState(cbData, lpvData);
 }
 
-HRESULT m_IDirectInputDevice8::FakeGetDeviceData(DWORD cbObjectData, LPDIDEVICEOBJECTDATA rgdod, LPDWORD pdwInOut, DWORD dwFlags)
+HRESULT m_IDirectInputDevice8::GetMouseDeviceData(DWORD cbObjectData, LPDIDEVICEOBJECTDATA rgdod, LPDWORD pdwInOut, DWORD dwFlags)
 {
 	// Check arguments
 	if (!pdwInOut || (rgdod && cbObjectData != sizeof(DIDEVICEOBJECTDATA) && cbObjectData != sizeof(DIDEVICEOBJECTDATA_DX3)))
@@ -316,9 +316,9 @@ HRESULT m_IDirectInputDevice8::GetDeviceData(DWORD cbObjectData, LPDIDEVICEOBJEC
 		}
 	}
 
-	if (Config.FixHighFrequencyMouse && IsMouse)
+	if (IsMouse && Config.FixHighFrequencyMouse)
 	{
-		return FakeGetDeviceData(cbObjectData, rgdod, pdwInOut, dwFlags);
+		return GetMouseDeviceData(cbObjectData, rgdod, pdwInOut, dwFlags);
 	}
 
 	return ProxyInterface->GetDeviceData(cbObjectData, rgdod, pdwInOut, dwFlags);
