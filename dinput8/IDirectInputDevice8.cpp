@@ -16,6 +16,8 @@
 
 #include "dinput8.h"
 
+constexpr DWORD SignBit = 0x80000000;
+
 HRESULT m_IDirectInputDevice8::QueryInterface(REFIID riid, LPVOID* ppvObj)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
@@ -183,7 +185,7 @@ HRESULT m_IDirectInputDevice8::GetMouseDeviceData(DWORD cbObjectData, LPDIDEVICE
 					lpdod->dwOfs == DIMOFS_Z ? 2 : 0;
 
 				// Check if record should be merged, if there is an existing record and the movement direction has not changed
-				if (isSet[v] && !((dod[Loc[v]].lData < 0 && (LONG)lpdod->dwData > 0) || (dod[Loc[v]].lData > 0 && (LONG)lpdod->dwData < 0)))
+				if (isSet[v] && (dod[Loc[v]].lData & SignBit) == (lpdod->dwData & SignBit))
 				{
 					// Updating movement data (merging records)
 					dod[Loc[v]].lData += (LONG)lpdod->dwData;
