@@ -182,11 +182,19 @@ HRESULT m_IDirectInputDevice8::GetMouseDeviceData(DWORD cbObjectData, LPDIDEVICE
 					lpdod->dwOfs == DIMOFS_Y ? 1 :
 					lpdod->dwOfs == DIMOFS_Z ? 2 : 0;
 
-				// Check for existing data and that direction has not changed
+				// Check if record should be merged, if there is an existing record and the movement direction has not changed
 				if (isSet[v] && !((dod[Loc[v]].lData < 0 && (LONG)lpdod->dwData > 0) || (dod[Loc[v]].lData > 0 && (LONG)lpdod->dwData < 0)))
 				{
+					// Updating movement data (merging records)
 					dod[Loc[v]].lData += (LONG)lpdod->dwData;
+					dod[Loc[v]].dwTimeStamp = lpdod->dwTimeStamp;
+					dod[Loc[v]].dwSequence = lpdod->dwSequence;
+					if (cbObjectData == sizeof(DIDEVICEOBJECTDATA))
+					{
+						dod[Loc[v]].uAppData = lpdod->uAppData;
+					}
 				}
+				// Storing new movement data
 				else
 				{
 					dod.push_back({ (LONG)lpdod->dwData, lpdod->dwOfs, lpdod->dwTimeStamp, lpdod->dwSequence, (cbObjectData == sizeof(DIDEVICEOBJECTDATA)) ? lpdod->uAppData : NULL });
