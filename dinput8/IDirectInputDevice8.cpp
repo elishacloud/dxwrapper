@@ -173,21 +173,21 @@ HRESULT m_IDirectInputDevice8::GetMouseDeviceData(DWORD cbObjectData, LPDIDEVICE
 		}
 
 		// Loop through buffer and merge like data
-		bool isSet[3] = {};
-		DWORD Loc[3] = {};
+		bool isSet[2] = { false };
+		DWORD Loc[2] = { 0 };
 		for (UINT x = 0; x < dwItems; x++)
 		{
 			// Storing movement data
-			if (lpdod->dwOfs == DIMOFS_X || lpdod->dwOfs == DIMOFS_Y || lpdod->dwOfs == DIMOFS_Z)
+			if (lpdod->dwOfs == DIMOFS_X || lpdod->dwOfs == DIMOFS_Y)
 			{
-				int v = lpdod->dwOfs == DIMOFS_X ? 0 :
-					lpdod->dwOfs == DIMOFS_Y ? 1 :
-					lpdod->dwOfs == DIMOFS_Z ? 2 : 0;
+				int v = lpdod->dwOfs == DIMOFS_X ? 0 : 1;
 
-				// Check if record should be merged, if there is an existing record and the movement direction has not changed
-				if (isSet[v] && (dod[Loc[v]].lData & SignBit) == (lpdod->dwData & SignBit))
+				// Merge sequential records
+				if (isSet[v] &&															// Check if there is an existing record
+					(dod[Loc[v]].lData & SignBit) == (lpdod->dwData & SignBit) &&		// Check if the mouse direction is the same
+					((isSet[0] && dod[Loc[0]].dwSequence + 1 == lpdod->dwSequence) ||
+						(isSet[1] && dod[Loc[1]].dwSequence + 1 == lpdod->dwSequence)))	// Check if it is the next entry in the sequence
 				{
-					// Updating movement data (merging records)
 					dod[Loc[v]].lData += (LONG)lpdod->dwData;
 					dod[Loc[v]].dwTimeStamp = lpdod->dwTimeStamp;
 					dod[Loc[v]].dwSequence = lpdod->dwSequence;
@@ -208,11 +208,6 @@ HRESULT m_IDirectInputDevice8::GetMouseDeviceData(DWORD cbObjectData, LPDIDEVICE
 			else
 			{
 				dod.push_back({ (LONG)lpdod->dwData, lpdod->dwOfs, lpdod->dwTimeStamp, lpdod->dwSequence, (cbObjectData == sizeof(DIDEVICEOBJECTDATA)) ? lpdod->uAppData : NULL });
-
-				// Reset movement data
-				isSet[0] = false;
-				isSet[1] = false;
-				isSet[2] = false;
 			}
 			lpdod = (LPDIDEVICEOBJECTDATA)((DWORD)lpdod + cbObjectData);
 		}
