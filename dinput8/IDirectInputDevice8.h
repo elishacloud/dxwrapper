@@ -16,6 +16,7 @@ private:
 		DWORD dwTimeStamp;
 		DWORD dwSequence;
 		UINT_PTR uAppData;
+		bool wasPeeked;
 	};
 
 	bool IsMouse = false;

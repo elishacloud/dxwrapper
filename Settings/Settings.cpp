@@ -729,9 +729,19 @@ void CONFIG::SetConfig()
 	}
 
 	// Set mouse scroll factor
-	if (abs(MouseMovementFactor) < 0.01f)
+	if (abs(MouseMovementFactor) < 0.01f || abs(MouseMovementFactor - 1.0f) < 0.01f)
 	{
 		MouseMovementFactor = 1.0f;
+	}
+	else
+	{
+		FixHighFrequencyMouse = true;
+	}
+
+	// Mouse movement padding
+	if (MouseMovementPadding)
+	{
+		FixHighFrequencyMouse = true;
 	}
 
 	// Set unset options

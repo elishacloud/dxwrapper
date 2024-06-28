@@ -172,9 +172,33 @@ HRESULT m_IDirectInputDevice8::GetMouseDeviceData(DWORD cbObjectData, LPDIDEVICE
 			return hr;
 		}
 
-		// Loop through buffer and merge like data
 		bool isSet[3] = { false };
 		DWORD Loc[3] = { 0 };
+
+		// Check for existing records to merge
+		for (UINT x = 0; x < dod.size(); x++)
+		{
+			// Movement record exists
+			if (dod[x].dwOfs == DIMOFS_X || dod[x].dwOfs == DIMOFS_Y || dod[x].dwOfs == DIMOFS_Z)
+			{
+				int v = dod[x].dwOfs == DIMOFS_X ? 0 : dod[x].dwOfs == DIMOFS_Y ? 1 : 2;
+
+				if (!dod[x].wasPeeked)
+				{
+					isSet[v] = true;
+					Loc[v] = x;
+				}
+			}
+			// Button press found, reset records
+			else
+			{
+				isSet[0] = false;
+				isSet[1] = false;
+				isSet[2] = false;
+			}
+		}
+
+		// Loop through buffer and merge like data
 		for (UINT x = 0; x < dwItems; x++)
 		{
 			// Storing movement data
@@ -197,7 +221,7 @@ HRESULT m_IDirectInputDevice8::GetMouseDeviceData(DWORD cbObjectData, LPDIDEVICE
 				// Storing new movement data
 				else
 				{
-					dod.push_back({ (LONG)lpdod->dwData, lpdod->dwOfs, lpdod->dwTimeStamp, lpdod->dwSequence, (cbObjectData == sizeof(DIDEVICEOBJECTDATA)) ? lpdod->uAppData : NULL });
+					dod.push_back({ (LONG)lpdod->dwData, lpdod->dwOfs, lpdod->dwTimeStamp, lpdod->dwSequence, (cbObjectData == sizeof(DIDEVICEOBJECTDATA)) ? lpdod->uAppData : NULL, isPeek });
 					isSet[v] = true;
 					Loc[v] = dod.size() - 1;
 				}
@@ -205,7 +229,7 @@ HRESULT m_IDirectInputDevice8::GetMouseDeviceData(DWORD cbObjectData, LPDIDEVICE
 			// Storing button data
 			else
 			{
-				dod.push_back({ (LONG)lpdod->dwData, lpdod->dwOfs, lpdod->dwTimeStamp, lpdod->dwSequence, (cbObjectData == sizeof(DIDEVICEOBJECTDATA)) ? lpdod->uAppData : NULL });
+				dod.push_back({ (LONG)lpdod->dwData, lpdod->dwOfs, lpdod->dwTimeStamp, lpdod->dwSequence, (cbObjectData == sizeof(DIDEVICEOBJECTDATA)) ? lpdod->uAppData : NULL, isPeek });
 
 				// Reset records
 				isSet[0] = false;
