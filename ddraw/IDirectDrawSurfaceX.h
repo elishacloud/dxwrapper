@@ -161,6 +161,7 @@ private:
 	bool DCRequiresEmulation = false;
 	bool SurfaceRequiresEmulation = false;
 	bool ComplexRoot = false;
+	bool IsSurfaceLost = false;
 	bool IsInFlip = false;
 	bool PresentOnUnlock = false;
 	bool IsInDC = false;
@@ -264,6 +265,8 @@ private:
 	inline bool IsSurfaceBlitting() { return (IsInBlt || IsInBltBatch); }
 	inline bool IsSurfaceInDC() { return IsInDC; }
 	inline bool IsSurfaceBusy() { return (IsSurfaceBlitting() || IsSurfaceLocked() || IsSurfaceInDC()); }
+	inline bool IsD9UsingVideoMemory() { return ((surface.Texture && surface.Tex.Pool == D3DPOOL_DEFAULT) ||
+		(surface.Surface && surface.SurfacePool == D3DPOOL_DEFAULT)); }
 	inline bool IsLockedFromOtherThread() { return (IsSurfaceBlitting() || IsSurfaceLocked()) && LockedWithID && LockedWithID != GetCurrentThreadId(); }
 	inline DWORD GetWidth() { return surfaceDesc2.dwWidth; }
 	inline DWORD GetHeight() { return surfaceDesc2.dwHeight; }

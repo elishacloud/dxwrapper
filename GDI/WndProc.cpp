@@ -17,6 +17,7 @@
 #define WIN32_LEAN_AND_MEAN
 #include <Windows.h>
 #include <algorithm>
+#include <atomic>
 #include "d3d9\d3d9External.h"
 #include "GDI.h"
 #include "Settings\Settings.h"
@@ -24,6 +25,11 @@
 
 namespace WndProc
 {
+	struct DATASTRUCT {
+		std::atomic<bool> IsMinimized;
+		std::atomic<bool> IsWindowDisabled;
+	};
+
 	struct WNDPROCSTRUCT;
 
 	LRESULT CALLBACK Handler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam, WNDPROCSTRUCT* AppWndProcInstance);
@@ -60,9 +66,11 @@ namespace WndProc
 		HWND hWnd = nullptr;
 		WNDPROC MyWndProc = 0;
 		WNDPROC AppWndProc = 0;
+		DATASTRUCT DataStruct = {};
+		bool IsDirectDrawHwnd = false;
 		bool Exiting = false;
 	public:
-		WNDPROCSTRUCT(HWND p_hWnd, WNDPROC p_AppWndProc) : hWnd(p_hWnd), AppWndProc(p_AppWndProc)
+		WNDPROCSTRUCT(HWND p_hWnd, WNDPROC p_AppWndProc, bool IsDirectDraw) : hWnd(p_hWnd), AppWndProc(p_AppWndProc), IsDirectDrawHwnd(IsDirectDraw)
 		{
 			// Set memory protection to make it executable
 			if (VirtualProtect(FunctCode, sizeof(FunctCode), PAGE_EXECUTE_READWRITE, &oldProtect))
@@ -95,6 +103,8 @@ namespace WndProc
 		HWND GetHWnd() { return hWnd; }
 		WNDPROC GetMyWndProc() { return MyWndProc; }
 		WNDPROC GetAppWndProc() { return AppWndProc; }
+		DATASTRUCT* GetDataStruct() { return &DataStruct; }
+		bool IsDirectDraw() { return IsDirectDrawHwnd; }
 		bool IsExiting() { return Exiting; }
 	};
 
@@ -138,7 +148,7 @@ LRESULT WndProc::CallWndProc(WNDPROC lpPrevWndFunc, HWND hWnd, UINT Msg, WPARAM 
 			DefWindowProcA(hWnd, Msg, wParam, lParam)));
 }
 
-bool WndProc::AddWndProc(HWND hWnd)
+bool WndProc::AddWndProc(HWND hWnd, bool IsDirectDraw)
 {
 	// Validate window handle
 	if (!IsWindow(hWnd))
@@ -164,7 +174,7 @@ bool WndProc::AddWndProc(HWND hWnd)
 	}
 
 	// Create new struct
-	auto NewEntry = std::make_shared<WNDPROCSTRUCT>(hWnd, NewAppWndProc);
+	auto NewEntry = std::make_shared<WNDPROCSTRUCT>(hWnd, NewAppWndProc, IsDirectDraw);
 
 	// Get new WndProc
 	WNDPROC NewWndProc = NewEntry->GetMyWndProc();
@@ -195,14 +205,34 @@ void WndProc::RemoveWndProc(HWND hWnd)
 
 LRESULT CALLBACK WndProc::Handler(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lParam, WNDPROCSTRUCT* AppWndProcInstance)
 {
-	const WNDPROC pWndProc = (AppWndProcInstance) ? AppWndProcInstance->GetAppWndProc() : nullptr;
-	const HWND hWndInstance = (AppWndProcInstance) ? AppWndProcInstance->GetHWnd() : nullptr;
-
 	Logging::LogDebug() << __FUNCTION__ << " " << hWnd << " " << Logging::hex(Msg);
 
-	if (!AppWndProcInstance)
+	if (!AppWndProcInstance || !hWnd)
 	{
 		LOG_LIMIT(100, __FUNCTION__ << " Error: invalid pointer!");
+		return NULL;
+	}
+
+	const WNDPROC pWndProc = AppWndProcInstance->GetAppWndProc();
+	const HWND hWndInstance = AppWndProcInstance->GetHWnd();
+	DATASTRUCT* pDataStruct = AppWndProcInstance->GetDataStruct();
+
+	// Handle when window is minimzed
+	if (AppWndProcInstance->IsDirectDraw())
+	{
+		if (IsIconic(hWnd) && !pDataStruct->IsMinimized)
+		{
+			pDataStruct->IsMinimized = true;
+			//CallWndProc(pWndProc, hWnd, WM_KILLFOCUS, WM_NULL, WM_NULL);
+		}
+		else if (!IsIconic(hWnd) && pDataStruct->IsMinimized)
+		{
+			pDataStruct->IsMinimized = false;
+		}
+		if (Msg == WM_ACTIVATE)
+		{
+			pDataStruct->IsWindowDisabled = (wParam == TRUE) ? false : (wParam == FALSE) ? true : pDataStruct->IsWindowDisabled;
+		}
 	}
 
 	// Handle debug overlay

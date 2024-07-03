@@ -2365,9 +2365,7 @@ HRESULT m_IDirectDrawSurfaceX::IsLost()
 	if (Config.Dd7to9)
 	{
 		// Check device interface
-		if ((surfaceDesc2.ddsCaps.dwCaps & DDSCAPS_VIDEOMEMORY) ||
-			(surface.Texture && surface.Tex.Pool == D3DPOOL_DEFAULT) ||
-			(surface.Surface && surface.SurfacePool == D3DPOOL_DEFAULT))
+		if ((surfaceDesc2.ddsCaps.dwCaps & DDSCAPS_VIDEOMEMORY) || IsD9UsingVideoMemory())
 		{
 			// Check for device interface
 			HRESULT c_hr = CheckInterface(__FUNCTION__, false, false, false);
@@ -2379,10 +2377,17 @@ HRESULT m_IDirectDrawSurfaceX::IsLost()
 			switch (ddrawParent->TestD3D9CooperativeLevel())
 			{
 			case D3DERR_DEVICELOST:
+				IsSurfaceLost = true;
+				return DD_OK;		// Native DriectDraw returns ok here, until surface is ready to be reset
 			case D3DERR_DEVICENOTRESET:
+				IsSurfaceLost = true;
 				return DDERR_SURFACELOST;
 			case D3D_OK:
 			case DDERR_NOEXCLUSIVEMODE:
+				if (IsSurfaceLost && (ComplexRoot || !(surfaceDesc2.ddsCaps.dwCaps & DDSCAPS_COMPLEX)))
+				{
+					return DDERR_SURFACELOST;
+				}
 				return DD_OK;
 			default:
 				return DDERR_WRONGMODE;
@@ -2826,6 +2831,7 @@ HRESULT m_IDirectDrawSurfaceX::Restore()
 			{
 				return DDERR_WRONGMODE;
 			}
+			IsSurfaceLost = false;
 			return DD_OK;
 		case D3DERR_DEVICELOST:
 		default:
@@ -4056,7 +4062,7 @@ HRESULT m_IDirectDrawSurfaceX::CreateD3d9Surface()
 		// Create texture
 		else if (IsTexture)
 		{
-			DWORD MipMapLevel = (SurfaceRequiresEmulation || MipMaps.empty()) ? 1 : MaxMipMapLevel;
+			DWORD MipMapLevel = SurfaceRequiresEmulation ? 1 : MaxMipMapLevel;
 			HRESULT hr_t;
 			do {
 				surface.Tex.Usage = Config.DdrawForceMipMapAutoGen && MipMapLevel != 1 ? D3DUSAGE_AUTOGENMIPMAP : 0;
@@ -4601,40 +4607,44 @@ void m_IDirectDrawSurfaceX::ReleaseD9Surface(bool BackupData, bool ResetSurface)
 	// Backup d3d9 surface texture
 	if (BackupData)
 	{
-		if (surface.SurfaceHasData && !IsDepthBuffer() && !IsUsingEmulation() && (surface.Texture || surface.Surface))
+		if (surface.SurfaceHasData && (surface.Texture || surface.Surface) && !IsDepthBuffer() && (!ResetSurface || IsD9UsingVideoMemory()))
 		{
+			IsSurfaceLost = true;
 			LostDeviceBackup.clear();
 
-			for (UINT Level = 0; Level < MaxMipMapLevel; Level++)
+			if (!IsUsingEmulation())
 			{
-				D3DLOCKED_RECT LockRect = {};
-				if (FAILED(LockD39Surface(&LockRect, nullptr, D3DLOCK_READONLY, Level)))
+				for (UINT Level = 0; Level < (Config.DdrawForceMipMapAutoGen ? 1 : MaxMipMapLevel); Level++)
 				{
-					LOG_LIMIT(100, __FUNCTION__ << " Error: failed to backup surface data!");
-					break;
+					D3DLOCKED_RECT LockRect = {};
+					if (FAILED(LockD39Surface(&LockRect, nullptr, D3DLOCK_READONLY, Level)))
+					{
+						LOG_LIMIT(100, __FUNCTION__ << " Error: failed to backup surface data!");
+						break;
+					}
+
+					Logging::LogDebug() << __FUNCTION__ << " Storing Direct3D9 texture surface data: " << surfaceFormat;
+
+					D3DSURFACE_DESC Desc = {};
+					if (FAILED(surface.Texture ? surface.Texture->GetLevelDesc(GetD39MipMapLevel(Level), &Desc) : surface.Surface->GetDesc(&Desc)))
+					{
+						LOG_LIMIT(100, __FUNCTION__ << " Error: failed to get surface desc!");
+						break;
+					}
+
+					size_t size = GetSurfaceSize(surfaceFormat, Desc.Width, Desc.Height, LockRect.Pitch);
+
+					if (size)
+					{
+						DDBACKUP entry;
+						LostDeviceBackup.push_back(entry);
+						LostDeviceBackup[Level].Bits.resize(size);
+
+						memcpy(LostDeviceBackup[Level].Bits.data(), LockRect.pBits, size);
+					}
+
+					UnlockD39Surface(Level);
 				}
-
-				Logging::LogDebug() << __FUNCTION__ << " Storing Direct3D9 texture surface data: " << surfaceFormat;
-
-				D3DSURFACE_DESC Desc = {};
-				if (FAILED(surface.Texture ? surface.Texture->GetLevelDesc(GetD39MipMapLevel(Level), &Desc) : surface.Surface->GetDesc(&Desc)))
-				{
-					LOG_LIMIT(100, __FUNCTION__ << " Error: failed to get surface desc!");
-					break;
-				}
-
-				size_t size = GetSurfaceSize(surfaceFormat, Desc.Width, Desc.Height, LockRect.Pitch);
-
-				if (size)
-				{
-					DDBACKUP entry;
-					LostDeviceBackup.push_back(entry);
-					LostDeviceBackup[Level].Bits.resize(size);
-
-					memcpy(LostDeviceBackup[Level].Bits.data(), LockRect.pBits, size);
-				}
-
-				UnlockD39Surface(Level);
 			}
 		}
 	}
@@ -4647,7 +4657,7 @@ void m_IDirectDrawSurfaceX::ReleaseD9Surface(bool BackupData, bool ResetSurface)
 	ReleaseD9ContextSurface();
 
 	// Release d3d9 3D surface
-	if (surface.Surface && (!ResetSurface || surface.SurfacePool == D3DPOOL_DEFAULT))
+	if (surface.Surface && (!ResetSurface || IsD9UsingVideoMemory()))
 	{
 		Logging::LogDebug() << __FUNCTION__ << " Releasing Direct3D9 surface";
 		if (IsDepthBuffer() && d3d9Device && *d3d9Device)
@@ -4663,7 +4673,7 @@ void m_IDirectDrawSurfaceX::ReleaseD9Surface(bool BackupData, bool ResetSurface)
 	}
 
 	// Release d3d9 surface texture
-	if (surface.Texture && (!ResetSurface || surface.Tex.Pool == D3DPOOL_DEFAULT))
+	if (surface.Texture && (!ResetSurface || IsD9UsingVideoMemory()))
 	{
 		Logging::LogDebug() << __FUNCTION__ << " Releasing Direct3D9 texture surface";
 		ULONG ref = surface.Texture->Release();
@@ -4675,7 +4685,7 @@ void m_IDirectDrawSurfaceX::ReleaseD9Surface(bool BackupData, bool ResetSurface)
 	}
 
 	// Release d3d9 color keyed surface texture
-	if (surface.DrawTexture && (!ResetSurface || surface.Tex.Pool == D3DPOOL_DEFAULT))
+	if (surface.DrawTexture && (!ResetSurface || IsD9UsingVideoMemory()))
 	{
 		Logging::LogDebug() << __FUNCTION__ << " Releasing Direct3D9 DrawTexture surface";
 		ULONG ref = surface.DrawTexture->Release();
@@ -5282,15 +5292,18 @@ inline void m_IDirectDrawSurfaceX::InitSurfaceDesc(DWORD DirectXVersion)
 	}
 
 	// Handle mipmaps
-	if (!Config.DdrawForceMipMapAutoGen && (surfaceDesc2.dwFlags & DDSD_MIPMAPCOUNT) && (surfaceDesc2.dwMipMapCount != 1) &&
+	if ((surfaceDesc2.dwFlags & DDSD_MIPMAPCOUNT) && (surfaceDesc2.dwMipMapCount != 1) &&
 		(surfaceDesc2.ddsCaps.dwCaps & (DDSCAPS_MIPMAP | DDSCAPS_COMPLEX | DDSCAPS_TEXTURE)) == (DDSCAPS_MIPMAP | DDSCAPS_COMPLEX | DDSCAPS_TEXTURE))
 	{
 		DWORD MipMapLevelCount = surfaceDesc2.dwMipMapCount ? min(surfaceDesc2.dwMipMapCount, GetMaxMipMapLevel(surfaceDesc2.dwWidth, surfaceDesc2.dwHeight)) :
 			GetMaxMipMapLevel(surfaceDesc2.dwWidth, surfaceDesc2.dwHeight);
-		MIPMAP MipMap;
-		for (UINT x = 0; x < MipMapLevelCount - 1; x++)
+		if (!Config.DdrawForceMipMapAutoGen)
 		{
-			MipMaps.push_back(MipMap);
+			MIPMAP MipMap;
+			for (UINT x = 0; x < MipMapLevelCount - 1; x++)
+			{
+				MipMaps.push_back(MipMap);
+			}
 		}
 		MaxMipMapLevel = MipMapLevelCount;
 	}

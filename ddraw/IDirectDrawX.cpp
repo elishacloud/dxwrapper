@@ -19,6 +19,7 @@
 #include "ddraw.h"
 #include "ddrawExternal.h"
 #include "Utils\Utils.h"
+#include "GDI\GDI.h"
 #include "Dllmain\DllMain.h"
 #include "d3d9\d3d9External.h"
 #include "d3dddi\d3dddiExternal.h"
@@ -1705,6 +1706,9 @@ HRESULT m_IDirectDrawX::SetCooperativeLevel(HWND hWnd, DWORD dwFlags, DWORD Dire
 		// Check if handle is valid
 		if (IsWindow(DisplayMode.hWnd) && DisplayMode.hWnd == hWnd)
 		{
+			// Hook WndProc before creating device
+			WndProc::AddWndProc(hWnd, true);
+
 			// Set exclusive mode resolution
 			if (ExclusiveMode && DisplayMode.Width && DisplayMode.Height && DisplayMode.BPP)
 			{
@@ -2244,8 +2248,8 @@ HRESULT m_IDirectDrawX::TestCooperativeLevel()
 			{
 				return DDERR_EXCLUSIVEMODEALREADYSET;
 			}
-			// The TestCooperativeLevel method succeeds, returning DD_OK, if your application can restore its surfaces 
 		case D3DERR_DEVICENOTRESET:
+			//The TestCooperativeLevel method succeeds, returning DD_OK, if your application can restore its surfaces
 		case DDERR_NOEXCLUSIVEMODE:
 		case D3D_OK:
 		default:
