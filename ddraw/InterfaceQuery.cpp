@@ -180,7 +180,18 @@ void WINAPI DdrawWrapper::genericQueryInterface(REFIID riid, LPVOID *ppvObj)
 			riid == IID_IDirectDraw4 ||
 			riid == IID_IDirectDraw7))
 		{
-			dd_DirectDrawCreateEx(nullptr, ppvObj, riid, nullptr);
+			if (DDrawVector.empty())
+			{
+				dd_DirectDrawCreateEx(nullptr, ppvObj, riid, nullptr);
+			}
+			else
+			{
+				LPDIRECTDRAW7 pDirectDraw = (LPDIRECTDRAW7)DDrawVector[0]->GetWrapperInterfaceX(GetGUIDVersion(riid));
+
+				pDirectDraw->AddRef();
+
+				*ppvObj = pDirectDraw;
+			}
 		}
 
 		if (*ppvObj && !Config.Dd7to9)

@@ -174,9 +174,10 @@ public:
 	ULONG Release(DWORD DirectXVersion);
 
 	// Direct3D interfaces
+	void SetD3D(m_IDirect3DX* D3D);
 	inline m_IDirect3DX** GetCurrentD3D() { return &D3DInterface; }
 	inline void ClearD3D() { D3DInterface = nullptr; }
-	void SetD3DDevice(m_IDirect3DDeviceX* D3DDevice, m_IDirectDrawSurfaceX* D3DSurface);
+	void SetD3DDevice(m_IDirect3DDeviceX* D3DDevice);
 	inline m_IDirect3DDeviceX** GetCurrentD3DDevice() { return &D3DDeviceInterface; }
 	inline void ClearD3DDevice() { D3DDeviceInterface = nullptr; RenderTargetSurface = nullptr; Using3D = false; }
 	inline void Enable3D() { Using3D = true; }
@@ -211,7 +212,9 @@ public:
 	bool DoesSurfaceExist(m_IDirectDrawSurfaceX* lpSurfaceX);
 	m_IDirectDrawSurfaceX *GetPrimarySurface() { return PrimarySurface; }
 	m_IDirectDrawSurfaceX *GetRenderTargetSurface() { return RenderTargetSurface; }
+	void SetRenderTargetSurface(m_IDirectDrawSurfaceX* lpSurface);
 	m_IDirectDrawSurfaceX *GetDepthStencilSurface() { return DepthStencilSurface; }
+	void SetDepthStencilSurface(m_IDirectDrawSurfaceX* lpSurface);
 	void EvictManagedTextures();
 
 	// Clipper vector functions

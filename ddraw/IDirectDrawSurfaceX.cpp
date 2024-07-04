@@ -186,7 +186,7 @@ HRESULT m_IDirectDrawSurfaceX::QueryInterface(REFIID riid, LPVOID FAR* ppvObj, D
 				lpD3DDeviceX->SetDdrawParent(ddrawParent);
 
 				SetCriticalSection();
-				ddrawParent->SetD3DDevice(lpD3DDeviceX, this);
+				ddrawParent->SetD3DDevice(lpD3DDeviceX);
 				ReleaseCriticalSection();
 			}
 		}
@@ -359,35 +359,41 @@ HRESULT m_IDirectDrawSurfaceX::AddAttachedSurface(LPDIRECTDRAWSURFACE7 lpDDSurfa
 			return c_hr;
 		}
 
-		m_IDirectDrawSurfaceX *lpAttachedSurface = nullptr;
+		m_IDirectDrawSurfaceX *lpAttachedSurfaceX = nullptr;
 
-		lpDDSurface->QueryInterface(IID_GetInterfaceX, (LPVOID*)&lpAttachedSurface);
+		lpDDSurface->QueryInterface(IID_GetInterfaceX, (LPVOID*)&lpAttachedSurfaceX);
 
-		if (lpAttachedSurface == this)
+		if (lpAttachedSurfaceX == this)
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Error: cannot attach self");
 			return DDERR_CANNOTATTACHSURFACE;
 		}
 
-		if (!ddrawParent->DoesSurfaceExist(lpAttachedSurface))
+		if (!ddrawParent->DoesSurfaceExist(lpAttachedSurfaceX))
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Error: invalid surface!");
 			return DDERR_INVALIDPARAMS;
 		}
 
-		if (DoesAttachedSurfaceExist(lpAttachedSurface))
+		if (DoesAttachedSurfaceExist(lpAttachedSurfaceX))
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Error: attached surface already exists");
 			return DDERR_SURFACEALREADYATTACHED;
 		}
 
-		DWORD AttachedSurfaceCaps = lpAttachedSurface->GetSurfaceCaps().dwCaps;
+		if (lpAttachedSurfaceX->IsDepthBuffer() && GetAttachedZBuffer())
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: zbuffer surface already exists");
+			return DDERR_CANNOTATTACHSURFACE;
+		}
+
+		DWORD AttachedSurfaceCaps = lpAttachedSurfaceX->GetSurfaceCaps().dwCaps;
 		if (!(((AttachedSurfaceCaps & DDSCAPS_BACKBUFFER) && (surfaceDesc2.ddsCaps.dwCaps & DDSCAPS_FRONTBUFFER)) ||
 			((AttachedSurfaceCaps & DDSCAPS_FRONTBUFFER) && (surfaceDesc2.ddsCaps.dwCaps & DDSCAPS_BACKBUFFER)) ||
 			((AttachedSurfaceCaps & DDSCAPS_MIPMAP) && (surfaceDesc2.ddsCaps.dwCaps & DDSCAPS_MIPMAP)) ||
 			(AttachedSurfaceCaps & DDSCAPS_ZBUFFER)))
 		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error: cannot attach surface with this method. dwCaps: " << lpAttachedSurface->GetSurfaceCaps().dwCaps);
+			LOG_LIMIT(100, __FUNCTION__ << " Error: cannot attach surface with this method. dwCaps: " << lpAttachedSurfaceX->GetSurfaceCaps());
 			return DDERR_CANNOTATTACHSURFACE;
 		}
 
@@ -398,7 +404,25 @@ HRESULT m_IDirectDrawSurfaceX::AddAttachedSurface(LPDIRECTDRAWSURFACE7 lpDDSurfa
 			return DDERR_CANNOTATTACHSURFACE;
 		}
 
-		AddAttachedSurfaceToMap(lpAttachedSurface, true);
+		// Set depth buffer
+		if (lpAttachedSurfaceX->IsDepthBuffer())
+		{
+			// Verify depth buffer's with and height
+			if ((surfaceDesc2.dwFlags & (DDSD_WIDTH | DDSD_HEIGHT)) == (DDSD_WIDTH | DDSD_HEIGHT) &&
+				(surfaceDesc2.dwWidth != lpAttachedSurfaceX->surfaceDesc2.dwWidth || surfaceDesc2.dwHeight != lpAttachedSurfaceX->surfaceDesc2.dwHeight))
+			{
+				lpAttachedSurfaceX->ReleaseD9Surface(false, false);
+				lpAttachedSurfaceX->surfaceDesc2.dwWidth = surfaceDesc2.dwWidth;
+				lpAttachedSurfaceX->surfaceDesc2.dwHeight = surfaceDesc2.dwHeight;
+			}
+			// Set depth stencil
+			if (ddrawParent->GetRenderTargetSurface() == this)
+			{
+				ddrawParent->SetDepthStencilSurface(lpAttachedSurfaceX);
+			}
+		}
+
+		AddAttachedSurfaceToMap(lpAttachedSurfaceX, true);
 
 		lpDDSurface->AddRef();
 
@@ -962,23 +986,30 @@ HRESULT m_IDirectDrawSurfaceX::DeleteAttachedSurface(DWORD dwFlags, LPDIRECTDRAW
 			return DDERR_INVALIDPARAMS;
 		}
 
-		m_IDirectDrawSurfaceX *lpAttachedSurface = nullptr;
+		m_IDirectDrawSurfaceX *lpAttachedSurfaceX = nullptr;
 
-		lpDDSAttachedSurface->QueryInterface(IID_GetInterfaceX, (LPVOID*)&lpAttachedSurface);
+		lpDDSAttachedSurface->QueryInterface(IID_GetInterfaceX, (LPVOID*)&lpAttachedSurfaceX);
 
-		if (!DoesAttachedSurfaceExist(lpAttachedSurface))
+		if (!DoesAttachedSurfaceExist(lpAttachedSurfaceX))
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Error: could not find attached surface");
 			return DDERR_SURFACENOTATTACHED;
 		}
 
-		if (!WasAttachedSurfaceAdded(lpAttachedSurface))
+		if (!WasAttachedSurfaceAdded(lpAttachedSurfaceX))
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Error: only surfaces added with AddAttachedSurface can be deleted with this method");
 			return DDERR_CANNOTDETACHSURFACE;
 		}
 
-		RemoveAttachedSurfaceFromMap(lpAttachedSurface);
+		// clear zbuffer
+		if (lpAttachedSurfaceX->IsDepthBuffer() &&
+			(ddrawParent->GetDepthStencilSurface() == lpAttachedSurfaceX || ddrawParent->GetRenderTargetSurface() == this))
+		{
+			ddrawParent->SetDepthStencilSurface(nullptr);
+		}
+
+		RemoveAttachedSurfaceFromMap(lpAttachedSurfaceX);
 
 		lpDDSAttachedSurface->Release();
 
@@ -991,6 +1022,18 @@ HRESULT m_IDirectDrawSurfaceX::DeleteAttachedSurface(DWORD dwFlags, LPDIRECTDRAW
 	}
 
 	return ProxyInterface->DeleteAttachedSurface(dwFlags, lpDDSAttachedSurface);
+}
+
+m_IDirectDrawSurfaceX* m_IDirectDrawSurfaceX::GetAttachedZBuffer()
+{
+	for (auto& it : AttachedSurfaceMap)
+	{
+		if (it.second.pSurface->IsDepthBuffer())
+		{
+			return it.second.pSurface;
+		}
+	}
+	return nullptr;
 }
 
 HRESULT m_IDirectDrawSurfaceX::GetMipMapSubLevel(LPDIRECTDRAWSURFACE7 FAR* lplpDDAttachedSurface, DWORD MipMapLevel, DWORD DirectXVersion)
@@ -1606,20 +1649,6 @@ HRESULT m_IDirectDrawSurfaceX::GetAttachedSurface2(LPDDSCAPS2 lpDDSCaps2, LPDIRE
 					return DD_OK;
 				}
 				return DDERR_NOTFOUND;
-			}
-
-			// Handle zbuffer
-			if ((lpDDSCaps2->dwCaps && DDSCAPS_ZBUFFER) && (IsRenderingTarget() || (GetSurfaceCaps().dwCaps & DDSCAPS_BACKBUFFER)))
-			{
-				m_IDirectDrawSurfaceX* m_SurfaceX = ddrawParent->GetDepthStencilSurface();
-				if (m_SurfaceX)
-				{
-					*lplpDDAttachedSurface = (LPDIRECTDRAWSURFACE7)m_SurfaceX->GetWrapperInterfaceX(DirectXVersion);
-
-					(*lplpDDAttachedSurface)->AddRef();
-
-					return DD_OK;
-				}
 			}
 
 			LOG_LIMIT(100, __FUNCTION__ << " Error: failed to find attached surface that matches the capabilities requested: " << *lpDDSCaps2 <<
@@ -4447,16 +4476,16 @@ HRESULT m_IDirectDrawSurfaceX::CreateDCSurface()
 // Update surface description
 void m_IDirectDrawSurfaceX::UpdateSurfaceDesc()
 {
+	// Check for device interface
+	if (FAILED(CheckInterface(__FUNCTION__, false, false, false)))
+	{
+		return;
+	}
+
+	bool IsChanged = false;
 	if ((surfaceDesc2.dwFlags & (DDSD_WIDTH | DDSD_HEIGHT | DDSD_PIXELFORMAT)) != (DDSD_WIDTH | DDSD_HEIGHT | DDSD_PIXELFORMAT))
 	{
-		// Check for device interface
-		if (FAILED(CheckInterface(__FUNCTION__, false, false, false)))
-		{
-			return;
-		}
-
 		// Get resolution
-		bool IsChanged = false;
 		DWORD Width, Height, RefreshRate, BPP;
 		ddrawParent->GetSurfaceDisplay(Width, Height, BPP, RefreshRate);
 
@@ -4516,6 +4545,21 @@ void m_IDirectDrawSurfaceX::UpdateSurfaceDesc()
 	if (surfaceFormat == D3DFMT_UNKNOWN && (surfaceDesc2.dwFlags & DDSD_PIXELFORMAT))
 	{
 		surfaceFormat = GetDisplayFormat(surfaceDesc2.ddpfPixelFormat);
+	}
+	// Set attached stencil surface size
+	if (IsChanged && (surfaceDesc2.dwFlags & (DDSD_WIDTH | DDSD_HEIGHT)) == (DDSD_WIDTH | DDSD_HEIGHT))
+	{
+		m_IDirectDrawSurfaceX* lpAttachedSurfaceX = GetAttachedZBuffer();
+		if (lpAttachedSurfaceX && (surfaceDesc2.dwWidth != lpAttachedSurfaceX->surfaceDesc2.dwWidth || surfaceDesc2.dwHeight != lpAttachedSurfaceX->surfaceDesc2.dwHeight))
+		{
+			lpAttachedSurfaceX->ReleaseD9Surface(false, false);
+			lpAttachedSurfaceX->surfaceDesc2.dwWidth = surfaceDesc2.dwWidth;
+			lpAttachedSurfaceX->surfaceDesc2.dwHeight = surfaceDesc2.dwHeight;
+			if (ddrawParent->GetRenderTargetSurface() == this)
+			{
+				ddrawParent->SetDepthStencilSurface(lpAttachedSurfaceX);
+			}
+		}
 	}
 }
 
@@ -4657,11 +4701,12 @@ void m_IDirectDrawSurfaceX::ReleaseD9Surface(bool BackupData, bool ResetSurface)
 	ReleaseD9ContextSurface();
 
 	// Release d3d9 3D surface
-	if (surface.Surface && (!ResetSurface || IsD9UsingVideoMemory()))
+	if (surface.Surface && (!ResetSurface || IsD9UsingVideoMemory() || IsDepthBuffer()))
 	{
 		Logging::LogDebug() << __FUNCTION__ << " Releasing Direct3D9 surface";
-		if (IsDepthBuffer() && d3d9Device && *d3d9Device)
+		if (IsDepthBuffer() && d3d9Device && *d3d9Device && ddrawParent && ddrawParent->GetDepthStencilSurface() == this)
 		{
+			(*d3d9Device)->SetRenderState(D3DRS_ZENABLE, FALSE);
 			(*d3d9Device)->SetDepthStencilSurface(nullptr);
 		}
 		ULONG ref = surface.Surface->Release();
@@ -4751,20 +4796,6 @@ inline void m_IDirectDrawSurfaceX::ReleaseDCSurface()
 			ReleaseCriticalSection();
 		}
 	}
-}
-
-bool m_IDirectDrawSurfaceX::SetDepthSencil()
-{
-	if (IsDepthBuffer() &&
-		SUCCEEDED(CheckInterface(__FUNCTION__, true, true, false)) &&
-		SUCCEEDED((*d3d9Device)->SetDepthStencilSurface(surface.Surface)))
-	{
-		(*d3d9Device)->SetRenderState(D3DRS_ZENABLE, TRUE);
-		return true;
-	}
-
-	LOG_LIMIT(100, __FUNCTION__ << " Error: failed to set depth buffer surface!");
-	return false;
 }
 
 // Present surface
@@ -5867,7 +5898,7 @@ HRESULT m_IDirectDrawSurfaceX::CopySurface(m_IDirectDrawSurfaceX* pSourceSurface
 		UnlockSrc = true;
 
 		// Check if source and destination memory addresses are overlapping
-		if (this == pSourceSurface)
+		if (pSourceSurface == this)
 		{
 			size_t size = SrcRectWidth * ByteCount * SrcRectHeight;
 			if (size > ByteArray.size())

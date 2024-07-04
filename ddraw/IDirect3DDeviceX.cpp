@@ -4031,16 +4031,17 @@ void m_IDirect3DDeviceX::InitDevice(DWORD DirectXVersion)
 	if (ddrawParent)
 	{
 		d3d9Device = ddrawParent->GetDirect3D9Device();
-	}
-
-	// Get device surface interface
-	if (CurrentRenderTarget)
-	{
-		CurrentRenderTarget->QueryInterface(IID_GetInterfaceX, (LPVOID*)&DeviceSurface);
-
-		if (DeviceSurface)
+		ddrawParent->SetD3DDevice(this);
+		if (CurrentRenderTarget)
 		{
-			DeviceSurface->AttachD9BackBuffer();
+			m_IDirectDrawSurfaceX* lpDDSrcSurfaceX = nullptr;
+
+			CurrentRenderTarget->QueryInterface(IID_GetInterfaceX, (LPVOID*)&lpDDSrcSurfaceX);
+			if (lpDDSrcSurfaceX)
+			{
+				lpCurrentRenderTargetX = lpDDSrcSurfaceX;
+				ddrawParent->SetRenderTargetSurface(lpCurrentRenderTargetX);
+			}
 		}
 	}
 
@@ -4058,12 +4059,6 @@ void m_IDirect3DDeviceX::ReleaseDevice()
 	if (ddrawParent && !Config.Exiting)
 	{
 		ddrawParent->ClearD3DDevice();
-
-		// Clear device surface interface
-		if (DeviceSurface && ddrawParent->DoesSurfaceExist(DeviceSurface))
-		{
-			DeviceSurface->DetachD9BackBuffer();
-		}
 	}
 }
 

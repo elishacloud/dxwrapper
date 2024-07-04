@@ -24,7 +24,7 @@ private:
 
 	// Convert Device
 	m_IDirectDrawX *ddrawParent = nullptr;
-	m_IDirectDrawSurfaceX* DeviceSurface = nullptr;
+	m_IDirectDrawSurfaceX* lpCurrentRenderTargetX = nullptr;
 	LPDIRECT3DDEVICE9 *d3d9Device = nullptr;
 	LPDIRECT3DPIXELSHADER9* colorkeyPixelShader = nullptr;
 	LPDIRECT3DVIEWPORT3 lpCurrentViewport = nullptr;
@@ -289,9 +289,13 @@ public:
 		ddrawParent = ddraw;
 
 		// Store D3DDevice
-		if (ddrawParent && DeviceSurface)
+		if (ddrawParent)
 		{
-			ddrawParent->SetD3DDevice(this, DeviceSurface);
+			ddrawParent->SetD3DDevice(this);
+			if (lpCurrentRenderTargetX)
+			{
+				ddrawParent->SetRenderTargetSurface(lpCurrentRenderTargetX);
+			}
 		}
 	}
 	void ClearDdraw() { ddrawParent = nullptr; colorkeyPixelShader = nullptr; }

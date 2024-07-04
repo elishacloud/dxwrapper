@@ -624,13 +624,6 @@ HRESULT m_IDirect3DX::CreateDevice(REFCLSID rclsid, LPDIRECTDRAWSURFACE7 lpDDS, 
 
 		*lplpD3DDevice = (LPDIRECT3DDEVICE7)p_IDirect3DDeviceX->GetWrapperInterfaceX(DirectXVersion);
 
-		SetCriticalSection();
-		if (ddrawParent)
-		{
-			ddrawParent->SetD3DDevice(p_IDirect3DDeviceX, DdrawSurface3D);
-		}
-		ReleaseCriticalSection();
-
 		return D3D_OK;
 	}
 
@@ -880,6 +873,11 @@ void m_IDirect3DX::InitDirect3D(DWORD DirectXVersion)
 		ResolutionHack();
 
 		return;
+	}
+
+	if (ddrawParent)
+	{
+		ddrawParent->SetD3D(this);
 	}
 
 	// Get Cap9 cache

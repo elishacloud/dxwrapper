@@ -156,7 +156,6 @@ private:
 	LONG overlayY = 0;
 	DWORD Priority = 0;
 
-	bool Is3DRenderingTarget = false;					// Surface used for Direct3D rendering target, called from m_IDirect3DX::CreateDevice()
 	bool Using3D = false;								// Direct3D is being used on top of DirectDraw
 	bool DCRequiresEmulation = false;
 	bool SurfaceRequiresEmulation = false;
@@ -434,7 +433,6 @@ public:
 	// Direct3D9 interface functions
 	void ReleaseD9ContextSurface();
 	void ReleaseD9Surface(bool BackupData, bool ResetSurface);
-	bool SetDepthSencil();
 	HRESULT PresentSurface(bool isSkipScene);
 	void ResetSurfaceDisplay();
 
@@ -451,7 +449,6 @@ public:
 	inline bool IsSurfaceManaged() { return (surfaceDesc2.ddsCaps.dwCaps2 & (DDSCAPS2_TEXTUREMANAGE | DDSCAPS2_D3DTEXTUREMANAGE)) != 0; }
 	inline bool IsUsingEmulation() { return (surface.emu && surface.emu->DC && surface.emu->GameDC && surface.emu->pBits); }
 	inline bool IsEmulationDCReady() { return (IsUsingEmulation() && !surface.emu->UsingGameDC); }
-	inline bool IsRenderingTarget() { return Is3DRenderingTarget; }
 	inline bool IsSurfaceDirty() { return surface.IsDirtyFlag; }
 	inline DWORD GetD39MipMapLevel(DWORD MipMapLevel) { return min(MipMapLevel, MaxMipMapLevel - 1); }
 	bool GetColorKeyForShader(float(&lowColorKey)[4], float(&highColorKey)[4]);
@@ -469,8 +466,7 @@ public:
 		}
 		return false;
 	}
-	inline void AttachD9BackBuffer() { Is3DRenderingTarget = true; }
-	inline void DetachD9BackBuffer() { Is3DRenderingTarget = false; }
+	m_IDirectDrawSurfaceX* GetAttachedZBuffer();
 	LPDIRECT3DTEXTURE9 Get3DDrawTexture();
 	LPDIRECT3DSURFACE9 Get3DSurface();
 	LPDIRECT3DTEXTURE9 Get3DTexture();
