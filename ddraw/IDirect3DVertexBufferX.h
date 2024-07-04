@@ -119,7 +119,7 @@ public:
 
 	// Functions handling the ddraw parent interface
 	void SetDdrawParent(m_IDirectDrawX* ddraw) { ddrawParent = ddraw; }
-	void ClearDdraw() { ddrawParent = nullptr; }
+	void ClearDdraw() { ddrawParent = nullptr; d3d9Device = nullptr; }
 
 	// Direct3D9 interfaces
 	LPDIRECT3DVERTEXBUFFER9 GetCurrentD9VertexBuffer() { return d3d9VertexBuffer; };

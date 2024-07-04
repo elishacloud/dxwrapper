@@ -298,6 +298,6 @@ public:
 			}
 		}
 	}
-	void ClearDdraw() { ddrawParent = nullptr; colorkeyPixelShader = nullptr; }
+	void ClearDdraw() { ddrawParent = nullptr; colorkeyPixelShader = nullptr; d3d9Device = nullptr; }
 	void ResetDevice();
 };

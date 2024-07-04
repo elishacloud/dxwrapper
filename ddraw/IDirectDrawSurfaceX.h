@@ -428,7 +428,7 @@ public:
 
 	// Functions handling the ddraw parent interface
 	inline void SetDdrawParent(m_IDirectDrawX *ddraw) { ddrawParent = ddraw; }
-	inline void ClearDdraw() { ddrawParent = nullptr; }
+	inline void ClearDdraw() { ddrawParent = nullptr; d3d9Device = nullptr; }
 
 	// Direct3D9 interface functions
 	void ReleaseD9ContextSurface();
