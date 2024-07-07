@@ -967,7 +967,7 @@ HRESULT m_IDirect3DDeviceX::SetRenderTarget(LPDIRECTDRAWSURFACE7 lpNewRenderTarg
 
 	if (Config.Dd7to9)
 	{
-		if (!lpNewRenderTarget)
+		if (!lpNewRenderTarget || !CheckSurfaceExists(lpNewRenderTarget))
 		{
 			return DDERR_INVALIDPARAMS;
 		}
@@ -983,14 +983,31 @@ HRESULT m_IDirect3DDeviceX::SetRenderTarget(LPDIRECTDRAWSURFACE7 lpNewRenderTarg
 		// ToDo: if DirectXVersion < 7 then invalidate the current material and viewport:
 		// Unlike this method's implementation in previous interfaces, IDirect3DDevice7::SetRenderTarget does not invalidate the current material or viewport for the device.
 
-		// ToDo: check depth buffer and update it as needed:
-		// Do not use this method to set a new render target surface with a depth buffer if the current render target does not have a depth buffer. Likewise, you cannot use
-		// this method to switch from a nondepth-buffered render target to a depth-buffered render target. Attempts to do this fail in debug builds and can exhibit
-		// unreliable behavior in retail builds. Since both the new and the old render targets use depth buffers, the depth buffer attached to the new render target replaces
-		// the previous depth buffer for the context.
+		// Check for device interface
+		if (FAILED(CheckInterface(__FUNCTION__, true)))
+		{
+			return DDERR_GENERIC;
+		}
 
-		LOG_LIMIT(100, __FUNCTION__ << " Error: Not Implemented");
-		return DDERR_UNSUPPORTED;
+		m_IDirectDrawSurfaceX* lpDDSrcSurfaceX = nullptr;
+		lpNewRenderTarget->QueryInterface(IID_GetInterfaceX, (LPVOID*)&lpDDSrcSurfaceX);
+
+		if (!lpDDSrcSurfaceX)
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: could not get surface wrapper!");
+			return DDERR_INVALIDPARAMS;
+		}
+
+		HRESULT hr = ddrawParent->SetRenderTargetSurface(lpDDSrcSurfaceX);
+
+		if (SUCCEEDED(hr))
+		{
+			lpNewRenderTarget = CurrentRenderTarget;
+
+			lpCurrentRenderTargetX = lpDDSrcSurfaceX;
+		}
+
+		return D3D_OK;
 	}
 
 	if (lpNewRenderTarget)
@@ -1826,36 +1843,15 @@ HRESULT m_IDirect3DDeviceX::EndScene()
 			return DDERR_GENERIC;
 		}
 
-		bool FlipSurface = false;
-
-		// Draw 2D DirectDraw surface
-		m_IDirectDrawSurfaceX* PrimarySurface = ddrawParent->GetPrimarySurface();
-		if (PrimarySurface)
-		{
-			FlipSurface = (PrimarySurface->isFlipSurface() && SUCCEEDED(PrimarySurface->GetFlipStatus(DDGFS_CANFLIP)));
-
-			if (PrimarySurface->IsSurfaceDirty())
-			{
-				PrimarySurface->GetColorKeyForPrimaryShader(DrawStates.lowColorKey, DrawStates.highColorKey);
-
-				DWORD Flags = D3DDP_DXW_DRAW2DSURFACE | D3DDP_DXW_COLORKEYENABLE;
-				SetDrawStates(0, Flags, 9);
-
-				ddrawParent->Draw2DSurface(PrimarySurface);
-
-				RestoreDrawStates(0, Flags, 9);
-			}
-		}
-
 		// The IDirect3DDevice7::EndScene method ends a scene that was begun by calling the IDirect3DDevice7::BeginScene method.
 		// When this method succeeds, the scene has been rendered, and the device surface holds the rendered scene.
 
 		HRESULT hr = (*d3d9Device)->EndScene();
 
 		// Present surface after end scene
-		if (SUCCEEDED(hr) && !FlipSurface)
+		if (SUCCEEDED(hr) && !ddrawParent->IsPrimaryFlipSurface())
 		{
-			ddrawParent->Present(nullptr, nullptr);
+			ddrawParent->Present(nullptr, nullptr, false);
 		}
 
 		return hr;
@@ -4163,18 +4159,7 @@ inline void m_IDirect3DDeviceX::SetDrawStates(DWORD dwVertexTypeDesc, DWORD& dwF
 			SetRenderState(D3DRENDERSTATE_EXTENTS, FALSE);
 		}
 	}
-	if (dwFlags & D3DDP_DXW_DRAW2DSURFACE)
-	{
-		// Set textures
-		for (int x = 1; x < MaxTextureStages; x++)
-		{
-			if (AttachedTexture[x])
-			{
-				(*d3d9Device)->SetTexture(x, nullptr);
-			}
-		}
-	}
-	else if (Config.Dd7to9)
+	if (Config.Dd7to9)
 	{
 		if (Config.DdrawFixByteAlignment > 1)
 		{
@@ -4214,18 +4199,18 @@ inline void m_IDirect3DDeviceX::SetDrawStates(DWORD dwVertexTypeDesc, DWORD& dwF
 				(*d3d9Device)->SetRenderState(D3DRS_ALPHAREF, (DWORD)0x01);
 			}
 		}
-	}
-	if (dwFlags & D3DDP_DXW_COLORKEYENABLE)
-	{
-		if (!colorkeyPixelShader || !*colorkeyPixelShader)
+		if (dwFlags & D3DDP_DXW_COLORKEYENABLE)
 		{
-			colorkeyPixelShader = ddrawParent->GetColorKeyShader();
-		}
-		if (colorkeyPixelShader && *colorkeyPixelShader)
-		{
-			(*d3d9Device)->SetPixelShader(*colorkeyPixelShader);
-			(*d3d9Device)->SetPixelShaderConstantF(0, DrawStates.lowColorKey, 1);
-			(*d3d9Device)->SetPixelShaderConstantF(1, DrawStates.highColorKey, 1);
+			if (!colorkeyPixelShader || !*colorkeyPixelShader)
+			{
+				colorkeyPixelShader = ddrawParent->GetColorKeyShader();
+			}
+			if (colorkeyPixelShader && *colorkeyPixelShader)
+			{
+				(*d3d9Device)->SetPixelShader(*colorkeyPixelShader);
+				(*d3d9Device)->SetPixelShaderConstantF(0, DrawStates.lowColorKey, 1);
+				(*d3d9Device)->SetPixelShaderConstantF(1, DrawStates.highColorKey, 1);
+			}
 		}
 	}
 }
@@ -4248,20 +4233,7 @@ inline void m_IDirect3DDeviceX::RestoreDrawStates(DWORD dwVertexTypeDesc, DWORD 
 			SetRenderState(D3DRENDERSTATE_EXTENTS, DrawStates.rsExtents);
 		}
 	}
-	if (dwFlags & D3DDP_DXW_DRAW2DSURFACE)
-	{
-		// Restore textures
-		SetTexture(0, AttachedTexture[0]);
-		SetTexture(1, AttachedTexture[1]);
-		for (int x = 2; x < MaxTextureStages; x++)
-		{
-			if (AttachedTexture[x])
-			{
-				SetTexture(x, AttachedTexture[x]);
-			}
-		}
-	}
-	else if (Config.Dd7to9)
+	if (Config.Dd7to9)
 	{
 		if (Config.DdrawFixByteAlignment > 1)
 		{
@@ -4280,10 +4252,10 @@ inline void m_IDirect3DDeviceX::RestoreDrawStates(DWORD dwVertexTypeDesc, DWORD 
 			(*d3d9Device)->SetRenderState(D3DRS_ALPHAFUNC, DrawStates.rsAlphaFunc);
 			(*d3d9Device)->SetRenderState(D3DRS_ALPHAREF, DrawStates.rsAlphaRef);
 		}
-	}
-	if (dwFlags & D3DDP_DXW_COLORKEYENABLE)
-	{
-		(*d3d9Device)->SetPixelShader(nullptr);
+		if (dwFlags & D3DDP_DXW_COLORKEYENABLE)
+		{
+			(*d3d9Device)->SetPixelShader(nullptr);
+		}
 	}
 }
 

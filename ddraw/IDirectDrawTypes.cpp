@@ -633,6 +633,7 @@ D3DFORMAT GetFailoverFormat(D3DFORMAT Format)
 		{D3DFMT_X4R4G4B4, D3DFMT_A4R4G4B4},
 		{D3DFMT_X8R8G8B8, D3DFMT_A8R8G8B8},
 		{D3DFMT_X8B8G8R8, D3DFMT_A8B8G8R8},
+		{D3DFMT_D16_LOCKABLE,D3DFMT_D16}
 	};
 
 	for (const auto& FormatPair : FormatVector)
@@ -841,7 +842,7 @@ D3DFORMAT GetDisplayFormat(DDPIXELFORMAT ddpfPixelFormat)
 			}
 			if (ddpfPixelFormat.dwZBitMask == 0xFFFF)
 			{
-				return D3DFMT_D16;
+				return D3DFMT_D16_LOCKABLE;
 			}
 			break;
 		case 24:
@@ -1049,6 +1050,7 @@ void SetPixelDisplayFormat(D3DFORMAT Format, DDPIXELFORMAT &ddpfPixelFormat)
 
 	// zBuffer formats
 	case D3DFMT_D16:
+	case D3DFMT_D16_LOCKABLE:
 		ddpfPixelFormat.dwFlags = DDPF_ZBUFFER;
 		ddpfPixelFormat.dwZBufferBitDepth = 16;
 		ddpfPixelFormat.dwZBitMask = 0xFFFF;

@@ -1,6 +1,6 @@
 #pragma once
 
-class m_IDirectDrawSurfaceX;
+#include "IDirectDrawSurfaceX.h"
 
 class m_IDirectDrawX : public IUnknown, public AddressLookupTableDdrawObject
 {
@@ -182,6 +182,8 @@ public:
 	inline void ClearD3DDevice() { D3DDeviceInterface = nullptr; RenderTargetSurface = nullptr; Using3D = false; }
 	inline void Enable3D() { Using3D = true; }
 	inline bool IsUsing3D() { return Using3D; }
+	inline bool IsPrimaryRenderTarget() { return PrimarySurface ? RenderTargetSurface->IsRenderTarget() : false; }
+	inline bool IsPrimaryFlipSurface() { return PrimarySurface ? PrimarySurface->IsFlipSurface() : false; }
 
 	// Direct3D9 interfaces
 	bool CheckD3D9Device();
@@ -198,8 +200,6 @@ public:
 	HWND GetHwnd();
 	HDC GetDC();
 	DWORD GetDisplayBPP(HWND hWnd);
-	D3DMULTISAMPLE_TYPE GetMultiSampleType();
-	DWORD GetMultiSampleQuality();
 	bool IsExclusiveMode();
 	void GetSurfaceDisplay(DWORD& Width, DWORD& Height, DWORD& BPP, DWORD& RefreshRate);
 	void GetDisplayPixelFormat(DDPIXELFORMAT& ddpfPixelFormat, DWORD BPP);
@@ -212,9 +212,9 @@ public:
 	bool DoesSurfaceExist(m_IDirectDrawSurfaceX* lpSurfaceX);
 	m_IDirectDrawSurfaceX *GetPrimarySurface() { return PrimarySurface; }
 	m_IDirectDrawSurfaceX *GetRenderTargetSurface() { return RenderTargetSurface; }
-	void SetRenderTargetSurface(m_IDirectDrawSurfaceX* lpSurface);
+	HRESULT SetRenderTargetSurface(m_IDirectDrawSurfaceX* lpSurface);
 	m_IDirectDrawSurfaceX *GetDepthStencilSurface() { return DepthStencilSurface; }
-	void SetDepthStencilSurface(m_IDirectDrawSurfaceX* lpSurface);
+	HRESULT SetDepthStencilSurface(m_IDirectDrawSurfaceX* lpSurface);
 	void EvictManagedTextures();
 
 	// Clipper vector functions
@@ -247,8 +247,9 @@ public:
 	HRESULT SetClipperHWnd(HWND hWnd);
 	HRESULT GetD9Gamma(DWORD dwFlags, LPDDGAMMARAMP lpRampData);
 	HRESULT SetD9Gamma(DWORD dwFlags, LPDDGAMMARAMP lpRampData);
+	HRESULT CopyRenderTargetToBackbuffer(m_IDirectDrawSurfaceX* RenderSurface);
 	HRESULT Draw2DSurface(m_IDirectDrawSurfaceX* DrawSurface);
 	bool IsUsingThreadPresent();
 	HRESULT Present2DScene(m_IDirectDrawSurfaceX* DrawSurface, RECT* pSourceRect, RECT* pDestRect);
-	HRESULT Present(RECT* pSourceRect, RECT* pDestRect);
+	HRESULT Present(RECT* pSourceRect, RECT* pDestRect, bool PresentOnFlip);
 };

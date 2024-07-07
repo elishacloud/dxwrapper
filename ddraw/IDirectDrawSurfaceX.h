@@ -110,6 +110,9 @@ private:
 	// Real surface and surface data using Direct3D9 devices
 	struct D9SURFACE
 	{
+		D3DMULTISAMPLE_TYPE MultiSampleType = D3DMULTISAMPLE_NONE;
+		DWORD MultiSampleQuality = 0;
+		bool CanBeRenderTarget = false;
 		bool IsUsingWindowedMode = false;
 		bool SurfaceHasData = false;
 		bool UsingSurfaceMemory = false;
@@ -431,6 +434,7 @@ public:
 	inline void ClearDdraw() { ddrawParent = nullptr; d3d9Device = nullptr; }
 
 	// Direct3D9 interface functions
+	void SetAsRenderTarget();
 	void ReleaseD9ContextSurface();
 	void ReleaseD9Surface(bool BackupData, bool ResetSurface);
 	HRESULT PresentSurface(bool isSkipScene);
@@ -440,7 +444,8 @@ public:
 	inline bool IsPrimarySurface() { return (surfaceDesc2.ddsCaps.dwCaps & DDSCAPS_PRIMARYSURFACE) != 0; }
 	inline bool IsBackBuffer() { return (surfaceDesc2.ddsCaps.dwCaps & DDSCAPS_BACKBUFFER) != 0; }
 	inline bool IsPrimaryOrBackBuffer() { return (IsPrimarySurface() || IsBackBuffer()); }
-	inline bool isFlipSurface() { return ((surfaceDesc2.ddsCaps.dwCaps & (DDSCAPS_FLIP | DDSCAPS_FRONTBUFFER)) == (DDSCAPS_FLIP | DDSCAPS_FRONTBUFFER)); }
+	inline bool IsRenderTarget() { return surface.CanBeRenderTarget; }
+	inline bool IsFlipSurface() { return ((surfaceDesc2.ddsCaps.dwCaps & (DDSCAPS_FLIP | DDSCAPS_FRONTBUFFER)) == (DDSCAPS_FLIP | DDSCAPS_FRONTBUFFER)); }
 	inline bool IsSurface3D() { return (surfaceDesc2.ddsCaps.dwCaps & DDSCAPS_3DDEVICE) != 0; }
 	inline bool IsTexture() { return (surfaceDesc2.ddsCaps.dwCaps & DDSCAPS_TEXTURE) != 0; }
 	inline bool IsColorKeyTexture() { return (IsTexture() && (surfaceDesc2.dwFlags & DDSD_CKSRCBLT)); }
