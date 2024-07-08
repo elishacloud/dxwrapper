@@ -6677,14 +6677,10 @@ HRESULT m_IDirectDrawSurfaceX::PresentSurfaceToWindow(RECT Rect)
 	}
 
 	// Copy surface
-	HRESULT hr = DD_OK;
-	if (IsRenderTarget())
+	HRESULT hr = (*d3d9Device)->UpdateSurface(pSourceSurfaceD9, &Rect, pDestSurfaceD9, (LPPOINT)&MapClient);
+	if (FAILED(hr))
 	{
-		hr = (*d3d9Device)->StretchRect(pSourceSurfaceD9, &Rect, pDestSurfaceD9, &MapClient, D3DTEXF_POINT);
-	}
-	else
-	{
-		hr = (*d3d9Device)->UpdateSurface(pSourceSurfaceD9, &Rect, pDestSurfaceD9, (LPPOINT)&MapClient);
+		hr = D3DXLoadSurfaceFromSurface(pDestSurfaceD9, nullptr, &MapClient, pSourceSurfaceD9, nullptr, &Rect, D3DX_FILTER_NONE, 0);
 	}
 	pDestSurfaceD9->Release();
 	if (FAILED(hr))
