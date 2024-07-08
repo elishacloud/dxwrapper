@@ -3823,9 +3823,9 @@ LPDIRECT3DTEXTURE9 m_IDirectDrawSurfaceX::Get3DDrawTexture()
 	// Create texture
 	if (surface.Texture)
 	{
-		if (FAILED((*d3d9Device)->CreateTexture(surface.Tex.Width, surface.Tex.Height, MaxMipMapLevel, surface.Tex.Usage, D3DFMT_A8R8G8B8, surface.Tex.Pool, &surface.DrawTexture, nullptr)))
+		if (FAILED((*d3d9Device)->CreateTexture(surface.Width, surface.Height, MaxMipMapLevel, surface.TextureUsage, D3DFMT_A8R8G8B8, surface.TexturePool, &surface.DrawTexture, nullptr)))
 		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error: failed to create surface texture. Size: " << surface.Tex.Width << "x" << surface.Tex.Height << " Format: " << surfaceFormat << " dwCaps: " << surfaceDesc2.ddsCaps.dwCaps);
+			LOG_LIMIT(100, __FUNCTION__ << " Error: failed to create surface texture. Size: " << surface.Width << "x" << surface.Height << " Format: " << surfaceFormat << " dwCaps: " << surfaceDesc2.ddsCaps.dwCaps);
 			return nullptr;
 		}
 		if (FAILED(CopyToDrawTexture(nullptr)))
@@ -3859,9 +3859,9 @@ LPDIRECT3DTEXTURE9 m_IDirectDrawSurfaceX::Get3DTexture()
 	}
 
 	// Check texture pool
-	if (surface.Tex.Pool == D3DPOOL_SYSTEMMEM || surface.Tex.Pool == D3DPOOL_SCRATCH)
+	if (surface.TexturePool == D3DPOOL_SYSTEMMEM || surface.TexturePool == D3DPOOL_SCRATCH)
 	{
-		LOG_LIMIT(100, __FUNCTION__ << " Error: texture pool does not support Driect3D: " << surfaceFormat << " Pool: " << surface.Tex.Pool <<
+		LOG_LIMIT(100, __FUNCTION__ << " Error: texture pool does not support Driect3D: " << surfaceFormat << " Pool: " << surface.TexturePool <<
 			" Caps: " << surfaceDesc2.ddsCaps.dwCaps << " Attached: " << attached3DTexture);
 		return nullptr;
 	}
@@ -3993,7 +3993,7 @@ HRESULT m_IDirectDrawSurfaceX::CheckInterface(char *FunctionName, bool CheckD3DD
 		}
 
 		// Check if texture pool is wrong
-		if (attached3DTexture && surface.Tex.Pool != D3DPOOL_MANAGED)
+		if (attached3DTexture && surface.TexturePool != D3DPOOL_MANAGED)
 		{
 			ReleaseD9Surface(true, false);
 		}
@@ -4050,7 +4050,7 @@ HRESULT m_IDirectDrawSurfaceX::CreateD3d9Surface()
 	const D3DFORMAT Format = ConvertSurfaceFormat(surfaceFormat);
 
 	// Get memory pool
-	surface.Tex.Pool = (IsPrimaryOrBackBuffer() && surface.IsUsingWindowedMode && !Using3D) ? D3DPOOL_SYSTEMMEM :
+	surface.TexturePool = (IsPrimaryOrBackBuffer() && surface.IsUsingWindowedMode && !Using3D) ? D3DPOOL_SYSTEMMEM :
 		(IsPrimaryOrBackBuffer() || (surfaceDesc2.ddsCaps.dwCaps & DDSCAPS_TEXTURE) ||
 			(surfaceDesc2.ddsCaps.dwCaps2 & (DDSCAPS2_TEXTUREMANAGE | DDSCAPS2_D3DTEXTUREMANAGE))) ? D3DPOOL_MANAGED :
 		(surfaceDesc2.ddsCaps.dwCaps & DDSCAPS_SYSTEMMEMORY) ? D3DPOOL_SYSTEMMEM : D3DPOOL_MANAGED;
@@ -4078,7 +4078,7 @@ HRESULT m_IDirectDrawSurfaceX::CreateD3d9Surface()
 	ShouldEmulate = (ShouldEmulate == SC_NOT_CREATED) ? SC_DONT_FORCE : ShouldEmulate;
 
 	Logging::LogDebug() << __FUNCTION__ " (" << this << ") D3d9 Surface. Size: " << Width << "x" << Height << " Format: " << surfaceFormat <<
-		" Pool: " << surface.Tex.Pool << " dwCaps: " << surfaceDesc2.ddsCaps.dwCaps << " " << surfaceDesc2;
+		" Pool: " << surface.TexturePool << " dwCaps: " << surfaceDesc2.ddsCaps.dwCaps << " " << surfaceDesc2;
 
 	HRESULT hr = DD_OK;
 
@@ -4113,12 +4113,12 @@ HRESULT m_IDirectDrawSurfaceX::CreateD3d9Surface()
 			DWORD MipMapLevel = SurfaceRequiresEmulation ? 1 : MaxMipMapLevel;
 			HRESULT hr_t;
 			do {
-				surface.Tex.Usage = Config.DdrawForceMipMapAutoGen && MipMapLevel != 1 ? D3DUSAGE_AUTOGENMIPMAP : 0;
-				hr_t = (*d3d9Device)->CreateTexture(Width, Height, MipMapLevel, surface.Tex.Usage, Format, surface.Tex.Pool, &surface.Texture, nullptr);
+				surface.TextureUsage = Config.DdrawForceMipMapAutoGen && MipMapLevel != 1 ? D3DUSAGE_AUTOGENMIPMAP : 0;
+				hr_t = (*d3d9Device)->CreateTexture(Width, Height, MipMapLevel, surface.TextureUsage, Format, surface.TexturePool, &surface.Texture, nullptr);
 				// Try failover format
 				if (FAILED(hr_t))
 				{
-					hr_t = (*d3d9Device)->CreateTexture(Width, Height, MipMapLevel, surface.Tex.Usage, GetFailoverFormat(Format), surface.Tex.Pool, &surface.Texture, nullptr);
+					hr_t = (*d3d9Device)->CreateTexture(Width, Height, MipMapLevel, surface.TextureUsage, GetFailoverFormat(Format), surface.TexturePool, &surface.Texture, nullptr);
 				}
 			} while (FAILED(hr_t) && ((!MipMapLevel && ++MipMapLevel) || --MipMapLevel > 0));
 			if (FAILED(hr_t))
@@ -4132,8 +4132,6 @@ HRESULT m_IDirectDrawSurfaceX::CreateD3d9Surface()
 				MaxMipMapLevel = MipMapLevel ? MipMapLevel : surface.Texture->GetLevelCount();
 				surfaceDesc2.dwMipMapCount = MaxMipMapLevel;
 			}
-			surface.Tex.Width = Width;
-			surface.Tex.Height = Height;
 		}
 		else
 		{
@@ -4173,6 +4171,8 @@ HRESULT m_IDirectDrawSurfaceX::CreateD3d9Surface()
 			}
 		}
 
+		surface.Width = Width;
+		surface.Height = Height;
 		surface.IsPaletteDirty = IsPalette();
 
 	} while (false);

@@ -91,14 +91,6 @@ private:
 		float highColorKey[4] = {};
 	};
 
-	struct TEXTURECREATE
-	{
-		DWORD Width = 0;
-		DWORD Height = 0;
-		D3DPOOL Pool = D3DPOOL_DEFAULT;
-		DWORD Usage = 0;
-	};
-
 	// Extra Direct3D9 devices used in the primary surface
 	struct D9PRIMARY
 	{
@@ -110,8 +102,6 @@ private:
 	// Real surface and surface data using Direct3D9 devices
 	struct D9SURFACE
 	{
-		D3DMULTISAMPLE_TYPE MultiSampleType = D3DMULTISAMPLE_NONE;
-		DWORD MultiSampleQuality = 0;
 		bool CanBeRenderTarget = false;
 		bool IsUsingWindowedMode = false;
 		bool SurfaceHasData = false;
@@ -119,11 +109,16 @@ private:
 		bool IsDirtyFlag = false;
 		bool IsDrawTextureDirty = false;
 		bool IsPaletteDirty = false;						// Used to detect if the palette surface needs to be updated
-		DWORD LastPaletteUSN = 0;							// The USN that was used last time the palette was updated
-		TEXTURECREATE Tex;									// Values used for creating textures
+		DWORD Width = 0;									// Width surface/texture was created with
+		DWORD Height = 0;									// Height surface/texture was created with
+		DWORD TextureUsage = 0;								// Usage surface was created with
+		D3DPOOL TexturePool = D3DPOOL_DEFAULT;				// Memory pool texture was created with
 		D3DPOOL SurfacePool = D3DPOOL_DEFAULT;				// Memory pool surface was created with
-		EMUSURFACE* emu = nullptr;							// Emulated surface using device context
+		D3DMULTISAMPLE_TYPE MultiSampleType = D3DMULTISAMPLE_NONE;
+		DWORD MultiSampleQuality = 0;
+		DWORD LastPaletteUSN = 0;							// The USN that was used last time the palette was updated
 		LPPALETTEENTRY PaletteEntryArray = nullptr;			// Used to store palette data address
+		EMUSURFACE* emu = nullptr;							// Emulated surface using device context
 		LPDIRECT3DSURFACE9 Surface = nullptr;				// Surface used for Direct3D
 		LPDIRECT3DTEXTURE9 Texture = nullptr;				// Main surface texture used for locks, Blts and Flips
 		LPDIRECT3DTEXTURE9 DrawTexture = nullptr;			// Main surface texture with SetTexture calls
@@ -267,7 +262,7 @@ private:
 	inline bool IsSurfaceBlitting() { return (IsInBlt || IsInBltBatch); }
 	inline bool IsSurfaceInDC() { return IsInDC; }
 	inline bool IsSurfaceBusy() { return (IsSurfaceBlitting() || IsSurfaceLocked() || IsSurfaceInDC()); }
-	inline bool IsD9UsingVideoMemory() { return ((surface.Texture && surface.Tex.Pool == D3DPOOL_DEFAULT) ||
+	inline bool IsD9UsingVideoMemory() { return ((surface.Texture && surface.TexturePool == D3DPOOL_DEFAULT) ||
 		(surface.Surface && surface.SurfacePool == D3DPOOL_DEFAULT)); }
 	inline bool IsLockedFromOtherThread() { return (IsSurfaceBlitting() || IsSurfaceLocked()) && LockedWithID && LockedWithID != GetCurrentThreadId(); }
 	inline DWORD GetWidth() { return surfaceDesc2.dwWidth; }
