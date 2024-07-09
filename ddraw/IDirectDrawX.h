@@ -179,7 +179,7 @@ public:
 	inline void ClearD3D() { D3DInterface = nullptr; }
 	void SetD3DDevice(m_IDirect3DDeviceX* D3DDevice);
 	inline m_IDirect3DDeviceX** GetCurrentD3DDevice() { return &D3DDeviceInterface; }
-	inline void ClearD3DDevice() { D3DDeviceInterface = nullptr; RenderTargetSurface = nullptr; Using3D = false; }
+	inline void ClearD3DDevice() { Using3D = false; D3DDeviceInterface = nullptr; SetRenderTargetSurface(nullptr); }
 	inline void Enable3D() { Using3D = true; }
 	inline bool IsUsing3D() { return Using3D; }
 	inline bool IsPrimaryRenderTarget() { return PrimarySurface ? RenderTargetSurface->IsRenderTarget() : false; }

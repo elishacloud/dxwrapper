@@ -3050,11 +3050,7 @@ HRESULT m_IDirectDrawX::CreateD3D9Device()
 		d3d9RenderTarget = nullptr;
 		if (RenderTargetSurface)
 		{
-			if (SUCCEEDED(d3d9Device->GetRenderTarget(0, &d3d9RenderTarget)))
-			{
-				d3d9RenderTarget->Release();
-			}
-			hr = SetRenderTargetSurface(RenderTargetSurface);
+			SetRenderTargetSurface(RenderTargetSurface);
 		}
 
 		// Reset D3D device settings
@@ -3397,10 +3393,22 @@ HRESULT m_IDirectDrawX::TestD3D9CooperativeLevel()
 
 HRESULT m_IDirectDrawX::SetRenderTargetSurface(m_IDirectDrawSurfaceX* lpSurface)
 {
+	// Remove render target
 	if (!lpSurface)
 	{
-		LOG_LIMIT(100, __FUNCTION__ << " Error: Direct3D surface does not exist!");
-		return DDERR_INVALIDPARAMS;
+		RenderTargetSurface = lpSurface;
+
+		SetDepthStencilSurface(nullptr);
+
+		if (d3d9Device && d3d9RenderTarget)
+		{
+			if (SUCCEEDED(d3d9Device->SetRenderTarget(0, d3d9RenderTarget)))
+			{
+				d3d9RenderTarget = nullptr;
+			}
+		}
+
+		return D3D_OK;
 	}
 
 	// Check for Direct3D surface
@@ -3410,9 +3418,20 @@ HRESULT m_IDirectDrawX::SetRenderTargetSurface(m_IDirectDrawSurfaceX* lpSurface)
 		return DDERR_INVALIDPARAMS;
 	}
 
+	// Backup original render target
+	if (d3d9Device && !d3d9RenderTarget)
+	{
+		if (SUCCEEDED(d3d9Device->GetRenderTarget(0, &d3d9RenderTarget)))
+		{
+			d3d9RenderTarget->Release();
+		}
+	}
+
 	// Set surface as render target
 	RenderTargetSurface = lpSurface;
 	RenderTargetSurface->SetAsRenderTarget();
+
+	Logging::LogDebug() << __FUNCTION__ << " Setting 3D Device Surface: " << RenderTargetSurface;
 
 	HRESULT hr = D3D_OK;
 	if (d3d9Device)
@@ -3426,8 +3445,6 @@ HRESULT m_IDirectDrawX::SetRenderTargetSurface(m_IDirectDrawSurfaceX* lpSurface)
 		LOG_LIMIT(100, __FUNCTION__ << " Error: failed to set render target: " << (D3DERR)hr);
 		return hr;
 	}
-
-	Logging::LogDebug() << __FUNCTION__ << " Setting 3D Device Surface: " << RenderTargetSurface;
 
 	m_IDirectDrawSurfaceX* pSurfaceZBuffer = RenderTargetSurface->GetAttachedZBuffer();
 	hr = SetDepthStencilSurface(pSurfaceZBuffer);
@@ -3445,7 +3462,11 @@ HRESULT m_IDirectDrawX::SetDepthStencilSurface(m_IDirectDrawSurfaceX* lpSurface)
 {
 	HRESULT hr = D3D_OK;
 
-	if (!lpSurface)
+	if (lpSurface == DepthStencilSurface)
+	{
+		return hr;
+	}
+	else if (!lpSurface)
 	{
 		DepthStencilSurface = nullptr;
 
