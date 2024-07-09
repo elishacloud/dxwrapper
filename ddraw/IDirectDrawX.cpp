@@ -3462,11 +3462,7 @@ HRESULT m_IDirectDrawX::SetDepthStencilSurface(m_IDirectDrawSurfaceX* lpSurface)
 {
 	HRESULT hr = D3D_OK;
 
-	if (lpSurface == DepthStencilSurface)
-	{
-		return hr;
-	}
-	else if (!lpSurface)
+	if (!lpSurface)
 	{
 		DepthStencilSurface = nullptr;
 
