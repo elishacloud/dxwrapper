@@ -1808,10 +1808,14 @@ HRESULT m_IDirect3DDeviceX::BeginScene()
 			return DDERR_GENERIC;
 		}
 
-		// Set 3D Enabled
-		ddrawParent->Enable3D();
+		HRESULT hr = (*d3d9Device)->BeginScene();
 
-		return (*d3d9Device)->BeginScene();
+		if (SUCCEEDED(hr))
+		{
+			IsInScene = true;
+		}
+
+		return hr;
 	}
 
 	switch (ProxyDirectXVersion)
@@ -1847,11 +1851,17 @@ HRESULT m_IDirect3DDeviceX::EndScene()
 		// When this method succeeds, the scene has been rendered, and the device surface holds the rendered scene.
 
 		HRESULT hr = (*d3d9Device)->EndScene();
-
-		// Present surface after end scene
-		if (SUCCEEDED(hr) && !ddrawParent->IsPrimaryFlipSurface())
+		
+		if (SUCCEEDED(hr))
 		{
-			ddrawParent->Present(nullptr, nullptr, false);
+			IsInScene = false;
+
+			// If NOT using Flip then present now, otherwise present on Flip
+			m_IDirectDrawSurfaceX* PrimarySurface = ddrawParent->GetPrimarySurface();
+			if (PrimarySurface == lpCurrentRenderTargetX || !ddrawParent->IsPrimaryFlipSurface())
+			{
+				ddrawParent->Present(nullptr, nullptr, false);
+			}
 		}
 
 		return hr;
@@ -1885,23 +1895,22 @@ HRESULT m_IDirect3DDeviceX::Clear(DWORD dwCount, LPD3DRECT lpRects, DWORD dwFlag
 		}
 
 		// Clear primary surface
-		/*if (dwFlags & D3DCLEAR_TARGET)
+		/*if (!Config.DdrawEnableRenderTarget && lpCurrentRenderTargetX && (dwFlags & D3DCLEAR_TARGET))
 		{
-			m_IDirectDrawSurfaceX* PrimarySurface = ddrawParent->GetPrimarySurface();
-			if (PrimarySurface)
+			// Clear each specified rectangle
+			if (dwCount && lpRects)
 			{
-				if (dwCount && lpRects)
+				for (UINT x = 0; x < dwCount; x++)
 				{
-					for (UINT x = 0; x < dwCount; x++)
-					{
-						PrimarySurface->ColorFill((RECT*)&lpRects[x], dwColor);
-					}
-				}
-				else
-				{
-					PrimarySurface->ColorFill(nullptr, dwColor);
+					lpCurrentRenderTargetX->ColorFill((RECT*)&lpRects[x], (!Config.DdrawEnableRenderTarget && Config.DdrawFlipFillColor) ? Config.DdrawFlipFillColor : dwColor);
 				}
 			}
+			// Clear the entire surface if no rectangles are specified
+			else
+			{
+				lpCurrentRenderTargetX->ColorFill(nullptr, (!Config.DdrawEnableRenderTarget && Config.DdrawFlipFillColor) ? Config.DdrawFlipFillColor : dwColor);
+			}
+			lpCurrentRenderTargetX->ClearDirtyFlags();
 		}*/
 
 		return (*d3d9Device)->Clear(dwCount, lpRects, dwFlags, dwColor, dvZ, dwStencil);
@@ -4026,8 +4035,12 @@ void m_IDirect3DDeviceX::InitDevice(DWORD DirectXVersion)
 
 	if (ddrawParent)
 	{
+		// Set 3D Enabled
+		ddrawParent->Enable3D();
+
 		d3d9Device = ddrawParent->GetDirect3D9Device();
 		ddrawParent->SetD3DDevice(this);
+
 		if (CurrentRenderTarget)
 		{
 			m_IDirectDrawSurfaceX* lpDDSrcSurfaceX = nullptr;
@@ -4093,6 +4106,9 @@ void m_IDirect3DDeviceX::SetDefaults()
 {
 	// Reset defaults flag
 	bSetDefaults = false;
+
+	// Reset in scene flag
+	IsInScene = false;
 
 	// Clip status
 	D3DClipStatus = {};

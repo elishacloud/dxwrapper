@@ -44,6 +44,8 @@ private:
 
 	bool bSetDefaults = true;
 
+	bool IsInScene = false;
+
 	// Last clip status
 	D3DCLIPSTATUS D3DClipStatus;
 
@@ -271,6 +273,7 @@ public:
 	void *GetWrapperInterfaceX(DWORD DirectXVersion);
 	ULONG AddRef(DWORD DirectXVersion);
 	ULONG Release(DWORD DirectXVersion);
+	bool IsDeviceInScene() { return IsInScene; }
 
 	// Texture handle function
 	void ReleaseTextureHandle(m_IDirect3DTextureX* lpTexture);

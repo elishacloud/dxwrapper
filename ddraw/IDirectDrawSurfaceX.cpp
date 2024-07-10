@@ -1498,13 +1498,14 @@ HRESULT m_IDirectDrawSurfaceX::Flip(LPDIRECTDRAWSURFACE7 lpDDSurfaceTargetOverri
 			// Set flip flag
 			IsInFlip = true;
 
-			// Clear dirty surface before flip if system memory or 3D device
-			if (!Using3D && !IsRenderTarget() && (surfaceDesc2.ddsCaps.dwCaps & DDSCAPS_SYSTEMMEMORY))
+			// Clear surface before flip if system memory
+			if (surfaceDesc2.ddsCaps.dwCaps & DDSCAPS_SYSTEMMEMORY)
 			{
 				if (FAILED(ColorFill(nullptr, Config.DdrawFlipFillColor)))
 				{
 					LOG_LIMIT(100, __FUNCTION__ << " Error: could not color fill surface.");
 				}
+				ClearDirtyFlags();
 			}
 
 			// Execute flip
@@ -4145,7 +4146,7 @@ HRESULT m_IDirectDrawSurfaceX::CreateD3d9Surface()
 		}
 
 		// Create primary surface texture
-		if (IsPrimarySurface() && surface.IsUsingWindowedMode && !Using3D && !IsRenderTarget())
+		if (IsPrimarySurface() && surface.IsUsingWindowedMode && !Using3D)
 		{
 			if (FAILED((*d3d9Device)->CreateTexture(Width, Height, 1, 0, Format, D3DPOOL_DEFAULT, &PrimaryDisplayTexture, nullptr)) &&
 				FAILED((*d3d9Device)->CreateTexture(Width, Height, 1, 0, GetFailoverFormat(Format), D3DPOOL_DEFAULT, &PrimaryDisplayTexture, nullptr)))
@@ -5265,7 +5266,7 @@ inline bool m_IDirectDrawSurfaceX::CheckRectforSkipScene(RECT& DestRect)
 inline void m_IDirectDrawSurfaceX::BeginWritePresent(bool IsSkipScene)
 {
 	// Check if data needs to be presented before write
-	if (dirtyFlag)
+	if (dirtyFlag && !Using3D)
 	{
 		if (FAILED(PresentSurface(IsSkipScene)))
 		{

@@ -3338,6 +3338,18 @@ HRESULT m_IDirectDrawX::ReinitDevice()
 		// Reset device. When this method returns: BackBufferCount, BackBufferWidth, and BackBufferHeight are set to zero.
 		D3DPRESENT_PARAMETERS newParams = presParams;
 		hr = d3d9Device->Reset(&newParams);
+
+		// Reset render target
+		if (SUCCEEDED(hr))
+		{
+			d3d9RenderTarget = nullptr;
+			if (RenderTargetSurface)
+			{
+				SetRenderTargetSurface(RenderTargetSurface);
+			}
+		}
+
+		// If Reset() fails
 		if (hr == D3DERR_DEVICEREMOVED || hr == D3DERR_DRIVERINTERNALERROR)
 		{
 			ReleaseAllD9Resources(true, false);
@@ -3353,17 +3365,6 @@ HRESULT m_IDirectDrawX::ReinitDevice()
 			LOG_LIMIT(100, __FUNCTION__ << " Error: failed to reset Direct3D9 device: " << (D3DERR)hr);
 			hr = DDERR_WRONGMODE;
 			break;
-		}
-
-		// Set render target
-		d3d9RenderTarget = nullptr;
-		if (RenderTargetSurface)
-		{
-			if (SUCCEEDED(d3d9Device->GetRenderTarget(0, &d3d9RenderTarget)))
-			{
-				d3d9RenderTarget->Release();
-			}
-			SetRenderTargetSurface(RenderTargetSurface);
 		}
 
 		// Reset D3D device settings
@@ -3418,15 +3419,6 @@ HRESULT m_IDirectDrawX::SetRenderTargetSurface(m_IDirectDrawSurfaceX* lpSurface)
 		return DDERR_INVALIDPARAMS;
 	}
 
-	// Backup original render target
-	if (d3d9Device && !d3d9RenderTarget)
-	{
-		if (SUCCEEDED(d3d9Device->GetRenderTarget(0, &d3d9RenderTarget)))
-		{
-			d3d9RenderTarget->Release();
-		}
-	}
-
 	// Set surface as render target
 	RenderTargetSurface = lpSurface;
 	RenderTargetSurface->SetAsRenderTarget();
@@ -3436,8 +3428,21 @@ HRESULT m_IDirectDrawX::SetRenderTargetSurface(m_IDirectDrawSurfaceX* lpSurface)
 	HRESULT hr = D3D_OK;
 	if (d3d9Device)
 	{
+		// Backup original render target
+		if (!d3d9RenderTarget)
+		{
+			if (SUCCEEDED(d3d9Device->GetRenderTarget(0, &d3d9RenderTarget)))
+			{
+				d3d9RenderTarget->Release();
+			}
+		}
+
+		// Set new render target
 		LPDIRECT3DSURFACE9 pSurfaceD9 = RenderTargetSurface->Get3DSurface();
-		hr = d3d9Device->SetRenderTarget(0, pSurfaceD9);
+		if (pSurfaceD9)
+		{
+			hr = d3d9Device->SetRenderTarget(0, pSurfaceD9);
+		}
 	}
 
 	if (FAILED(hr))
@@ -3481,8 +3486,11 @@ HRESULT m_IDirectDrawX::SetDepthStencilSurface(m_IDirectDrawSurfaceX* lpSurface)
 		if (d3d9Device)
 		{
 			LPDIRECT3DSURFACE9 pSurfaceD9 = DepthStencilSurface->Get3DSurface();
-			d3d9Device->SetRenderState(D3DRS_ZENABLE, TRUE);
-			hr = d3d9Device->SetDepthStencilSurface(pSurfaceD9);
+			if (pSurfaceD9)
+			{
+				d3d9Device->SetRenderState(D3DRS_ZENABLE, TRUE);
+				hr = d3d9Device->SetDepthStencilSurface(pSurfaceD9);
+			}
 		}
 	}
 
@@ -4263,6 +4271,13 @@ HRESULT m_IDirectDrawX::Draw2DSurface(m_IDirectDrawSurfaceX* DrawSurface)
 	d3d9Device->SetRenderState(D3DRS_ZWRITEENABLE, DrawStates.rsZWriteEnable);
 	d3d9Device->SetRenderState(D3DRS_STENCILENABLE, DrawStates.rsStencilEnable);
 
+	// Reset textures
+	d3d9Device->SetTexture(0, nullptr);
+	d3d9Device->SetTexture(1, nullptr);
+
+	// Reset pixel shader
+	d3d9Device->SetPixelShader(nullptr);
+
 	// Reset dirty flags
 	if (SUCCEEDED(hr))
 	{
@@ -4453,12 +4468,16 @@ HRESULT m_IDirectDrawX::Present(RECT* pSourceRect, RECT* pDestRect, bool Present
 	HRESULT hr = D3DERR_DEVICELOST;
 	if (!IsUsingThreadPresent())
 	{
-		if (RenderTargetSurface && (IsPrimaryRenderTarget() || IsPrimaryFlipSurface()))
+		if (Using3D)
 		{
-			CopyRenderTargetToBackbuffer(PrimarySurface);
+			if (D3DDeviceInterface && !D3DDeviceInterface->IsDeviceInScene())
+			{
+				d3d9Device->BeginScene();
+				CopyRenderTargetToBackbuffer(PrimarySurface);
+				d3d9Device->EndScene();
 
-			hr = d3d9Device->Present(nullptr, nullptr, nullptr, nullptr);
-
+				hr = d3d9Device->Present(nullptr, nullptr, nullptr, nullptr);
+			}
 			if (PresentOnFlip && IsPrimaryFlipSurface())
 			{
 				SetRenderTargetSurface(RenderTargetSurface);
