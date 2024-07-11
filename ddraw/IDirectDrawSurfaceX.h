@@ -236,6 +236,8 @@ private:
 	HRESULT CheckBackBufferForFlip(m_IDirectDrawSurfaceX* lpTargetSurface);
 
 	// Direct3D9 interface functions
+	LPDIRECT3DSURFACE9 Get3DSurface();
+	LPDIRECT3DTEXTURE9 Get3DTexture();
 	HRESULT CheckInterface(char* FunctionName, bool CheckD3DDevice, bool CheckD3DSurface, bool CheckLostSurface);
 	HRESULT CreateD3d9Surface();
 	bool DoesDCMatch(EMUSURFACE* pEmuSurface);
@@ -246,8 +248,8 @@ private:
 	void UpdateSurfaceDesc();
 
 	// Direct3D9 interfaces
-	inline HRESULT LockD39Surface(D3DLOCKED_RECT* pLockedRect, RECT* pRect, DWORD Flags, DWORD MipMapLevel);
-	inline HRESULT UnlockD39Surface(DWORD MipMapLevel);
+	inline HRESULT LockD3d9Surface(D3DLOCKED_RECT* pLockedRect, RECT* pRect, DWORD Flags, DWORD MipMapLevel);
+	inline HRESULT UnLockD3d9Surface(DWORD MipMapLevel);
 
 	// Locking rect coordinates
 	bool CheckCoordinates(RECT& OutRect, LPRECT lpInRect, LPDDSURFACEDESC2 lpDDSurfaceDesc2);
@@ -265,6 +267,7 @@ private:
 	inline bool IsD9UsingVideoMemory() { return ((surface.Texture && surface.TexturePool == D3DPOOL_DEFAULT) ||
 		(surface.Surface && surface.SurfacePool == D3DPOOL_DEFAULT)); }
 	inline bool IsLockedFromOtherThread() { return (IsSurfaceBlitting() || IsSurfaceLocked()) && LockedWithID && LockedWithID != GetCurrentThreadId(); }
+	inline DWORD GetD3d9MipMapLevel(DWORD MipMapLevel) { return min(MipMapLevel, MaxMipMapLevel - 1); }
 	inline DWORD GetWidth() { return surfaceDesc2.dwWidth; }
 	inline DWORD GetHeight() { return surfaceDesc2.dwHeight; }
 	inline RECT GetSurfaceRect() { return { 0, 0, (LONG)surfaceDesc2.dwWidth, (LONG)surfaceDesc2.dwHeight }; }
@@ -450,7 +453,6 @@ public:
 	inline bool IsUsingEmulation() { return (surface.emu && surface.emu->DC && surface.emu->GameDC && surface.emu->pBits); }
 	inline bool IsEmulationDCReady() { return (IsUsingEmulation() && !surface.emu->UsingGameDC); }
 	inline bool IsSurfaceDirty() { return surface.IsDirtyFlag; }
-	inline DWORD GetD39MipMapLevel(DWORD MipMapLevel) { return min(MipMapLevel, MaxMipMapLevel - 1); }
 	bool GetColorKeyForShader(float(&lowColorKey)[4], float(&highColorKey)[4]);
 	bool GetColorKeyForPrimaryShader(float(&lowColorKey)[4], float(&highColorKey)[4]);
 	bool GetWasBitAlignLocked() { return WasBitAlignLocked; }
@@ -467,12 +469,13 @@ public:
 		return false;
 	}
 	m_IDirectDrawSurfaceX* GetAttachedZBuffer();
-	LPDIRECT3DTEXTURE9 Get3DDrawTexture();
-	LPDIRECT3DSURFACE9 Get3DSurface();
-	LPDIRECT3DTEXTURE9 Get3DTexture();
-	LPDIRECT3DTEXTURE9 Get3DPaletteTexture() { return primary.PaletteTexture; }
-	LPDIRECT3DSURFACE9 GetD3D9Surface();
-	LPDIRECT3DTEXTURE9 GetD3D9Texture();
+	inline DWORD GetD3d9Width() { return surface.Width; }
+	inline DWORD GetD3d9Height() { return surface.Height; }
+	inline D3DFORMAT GetD3d9Format() { return surfaceFormat; }
+	LPDIRECT3DTEXTURE9 GetD3d9DrawTexture();
+	LPDIRECT3DSURFACE9 GetD3d9Surface();
+	LPDIRECT3DTEXTURE9 GetD3d9Texture();
+	inline LPDIRECT3DTEXTURE9 GetD3d9PaletteTexture() { return primary.PaletteTexture; }
 	inline m_IDirect3DTextureX* GetAttachedTexture() { return attached3DTexture; }
 	inline void ClearAttachedTexture() { attached3DTexture = nullptr; }
 	void ClearDirtyFlags();

@@ -3438,7 +3438,7 @@ HRESULT m_IDirectDrawX::SetRenderTargetSurface(m_IDirectDrawSurfaceX* lpSurface)
 		}
 
 		// Set new render target
-		LPDIRECT3DSURFACE9 pSurfaceD9 = RenderTargetSurface->Get3DSurface();
+		LPDIRECT3DSURFACE9 pSurfaceD9 = RenderTargetSurface->GetD3d9Surface();
 		if (pSurfaceD9)
 		{
 			hr = d3d9Device->SetRenderTarget(0, pSurfaceD9);
@@ -3485,7 +3485,7 @@ HRESULT m_IDirectDrawX::SetDepthStencilSurface(m_IDirectDrawSurfaceX* lpSurface)
 
 		if (d3d9Device)
 		{
-			LPDIRECT3DSURFACE9 pSurfaceD9 = DepthStencilSurface->Get3DSurface();
+			LPDIRECT3DSURFACE9 pSurfaceD9 = DepthStencilSurface->GetD3d9Surface();
 			if (pSurfaceD9)
 			{
 				d3d9Device->SetRenderState(D3DRS_ZENABLE, TRUE);
@@ -4059,38 +4059,32 @@ HRESULT m_IDirectDrawX::CopyRenderTargetToBackbuffer(m_IDirectDrawSurfaceX* Rend
 	HRESULT hr = DDERR_GENERIC;
 
 	// Copy render target to backbuffer
-	IDirect3DSurface9* pRenderTarget = RenderSurface->Get3DSurface();
+	IDirect3DSurface9* pRenderTarget = RenderSurface->GetD3d9Surface();
 	if (pRenderTarget)
 	{
 		IDirect3DSurface9* pBackBuffer = nullptr;
 		if (SUCCEEDED(d3d9Device->GetBackBuffer(0, 0, D3DBACKBUFFER_TYPE_MONO, &pBackBuffer)))
 		{
 			RECT* pSourceRect = nullptr;
-			RECT SrcRect = {};
+			RECT SrcRect = { 0, 0, (LONG)RenderSurface->GetD3d9Width(), (LONG)RenderSurface->GetD3d9Height() };
 			HWND hWnd = GetHwnd();
 
 			// Get windlow location and rect
 			if (!ExclusiveMode && IsWindow(hWnd))
 			{
-				D3DSURFACE_DESC Desc = {};
-				if (SUCCEEDED(pRenderTarget->GetDesc(&Desc)))
+				// Clip rect
+				RECT ClientRect = {};
+				if (GetClientRect(hWnd, &ClientRect) && MapWindowPoints(hWnd, HWND_DESKTOP, (LPPOINT)&ClientRect, 2))
 				{
-					SrcRect = { 0, 0, (LONG)Desc.Width, (LONG)Desc.Height };
+					SrcRect.left = max(SrcRect.left, ClientRect.left);
+					SrcRect.top = max(SrcRect.top, ClientRect.top);
+					SrcRect.right = min(SrcRect.right, ClientRect.right);
+					SrcRect.bottom = min(SrcRect.bottom, ClientRect.bottom);
 
-					// Clip rect
-					RECT ClientRect = {};
-					if (GetClientRect(hWnd, &ClientRect) && MapWindowPoints(hWnd, HWND_DESKTOP, (LPPOINT)&ClientRect, 2))
+					// Validate rect
+					if (SrcRect.left < SrcRect.right && SrcRect.top < SrcRect.bottom)
 					{
-						SrcRect.left = max(SrcRect.left, ClientRect.left);
-						SrcRect.top = max(SrcRect.top, ClientRect.top);
-						SrcRect.right = min(SrcRect.right, ClientRect.right);
-						SrcRect.bottom = min(SrcRect.bottom, ClientRect.bottom);
-
-						// Validate rect
-						if (SrcRect.left < SrcRect.right && SrcRect.top < SrcRect.bottom)
-						{
-							pSourceRect = &SrcRect;
-						}
+						pSourceRect = &SrcRect;
 					}
 				}
 			}
@@ -4128,7 +4122,7 @@ HRESULT m_IDirectDrawX::Draw2DSurface(m_IDirectDrawSurfaceX* DrawSurface)
 	}
 
 	// Get surface texture
-	LPDIRECT3DTEXTURE9 displayTexture = DrawSurface->GetD3D9Texture();
+	LPDIRECT3DTEXTURE9 displayTexture = DrawSurface->GetD3d9Texture();
 	if (!displayTexture)
 	{
 		LOG_LIMIT(100, __FUNCTION__ << " Error: failed to get surface texture!");
@@ -4158,7 +4152,7 @@ HRESULT m_IDirectDrawX::Draw2DSurface(m_IDirectDrawSurfaceX* DrawSurface)
 	if (DrawSurface->IsPalette())
 	{
 		// Get palette texture
-		LPDIRECT3DTEXTURE9 PaletteTexture = DrawSurface->Get3DPaletteTexture();
+		LPDIRECT3DTEXTURE9 PaletteTexture = DrawSurface->GetD3d9PaletteTexture();
 		if (!PaletteTexture)
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Error: failed to get palette texture!");
@@ -4380,7 +4374,7 @@ DWORD WINAPI PresentThreadFunction(LPVOID)
 					break;
 				}
 			}
-			if (pDDraw && pDDraw->IsUsingThreadPresent() && pPrimarySurface && pPrimarySurface->GetD3D9Texture())
+			if (pDDraw && pDDraw->IsUsingThreadPresent() && pPrimarySurface && pPrimarySurface->GetD3d9Texture())
 			{
 				pPrimarySurface->SetLockCriticalSection();
 				pPrimarySurface->SetSurfaceCriticalSection();

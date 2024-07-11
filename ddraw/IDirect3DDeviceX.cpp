@@ -934,7 +934,7 @@ HRESULT m_IDirect3DDeviceX::SetTexture(DWORD dwStage, LPDIRECTDRAWSURFACE7 lpSur
 				return DDERR_INVALIDPARAMS;
 			}
 
-			IDirect3DTexture9* pTexture9 = lpDDSrcSurfaceX->Get3DTexture();
+			IDirect3DTexture9* pTexture9 = lpDDSrcSurfaceX->GetD3d9Texture();
 			if (!pTexture9)
 			{
 				LOG_LIMIT(100, __FUNCTION__ << " Error: could not get texture!");
@@ -4197,10 +4197,10 @@ inline void m_IDirect3DDeviceX::SetDrawStates(DWORD dwVertexTypeDesc, DWORD& dwF
 			bool AlphaSurfaceSet = false;
 			for (UINT x = 0; x < MaxTextureStages; x++)
 			{
-				if (CurrentTextureSurfaceX[x] && CurrentTextureSurfaceX[x]->IsColorKeyTexture() && CurrentTextureSurfaceX[x]->Get3DDrawTexture())
+				if (CurrentTextureSurfaceX[x] && CurrentTextureSurfaceX[x]->IsColorKeyTexture() && CurrentTextureSurfaceX[x]->GetD3d9DrawTexture())
 				{
 					AlphaSurfaceSet = true;
-					(*d3d9Device)->SetTexture(x, CurrentTextureSurfaceX[x]->Get3DDrawTexture());
+					(*d3d9Device)->SetTexture(x, CurrentTextureSurfaceX[x]->GetD3d9DrawTexture());
 				}
 			}
 			if (AlphaSurfaceSet)
