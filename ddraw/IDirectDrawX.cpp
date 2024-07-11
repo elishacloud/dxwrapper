@@ -4462,7 +4462,7 @@ HRESULT m_IDirectDrawX::Present(RECT* pSourceRect, RECT* pDestRect, bool Present
 	HRESULT hr = D3DERR_DEVICELOST;
 	if (!IsUsingThreadPresent())
 	{
-		if (Using3D)
+		if (RenderTargetSurface && (IsPrimaryRenderTarget() || IsPrimaryFlipSurface()))
 		{
 			if (D3DDeviceInterface && !D3DDeviceInterface->IsDeviceInScene())
 			{
