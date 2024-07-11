@@ -1808,6 +1808,9 @@ HRESULT m_IDirect3DDeviceX::BeginScene()
 			return DDERR_GENERIC;
 		}
 
+		// Set 3D Enabled
+		ddrawParent->Enable3D();
+
 		HRESULT hr = (*d3d9Device)->BeginScene();
 
 		if (SUCCEEDED(hr))
@@ -4035,9 +4038,6 @@ void m_IDirect3DDeviceX::InitDevice(DWORD DirectXVersion)
 
 	if (ddrawParent)
 	{
-		// Set 3D Enabled
-		ddrawParent->Enable3D();
-
 		d3d9Device = ddrawParent->GetDirect3D9Device();
 		ddrawParent->SetD3DDevice(this);
 
@@ -4059,7 +4059,6 @@ void m_IDirect3DDeviceX::InitDevice(DWORD DirectXVersion)
 
 void m_IDirect3DDeviceX::ReleaseDevice()
 {
-
 	WrapperInterface->DeleteMe();
 	WrapperInterface2->DeleteMe();
 	WrapperInterface3->DeleteMe();

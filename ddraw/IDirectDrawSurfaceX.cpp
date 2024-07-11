@@ -3993,8 +3993,18 @@ HRESULT m_IDirectDrawSurfaceX::CheckInterface(char *FunctionName, bool CheckD3DD
 			ReleaseDCSurface();
 		}
 
+		// Check if surface is no longer render target
+		bool NoLongerRenderTarget = (IsRenderTarget() && LastUsing3D && !Using3D);
+		if (NoLongerRenderTarget)
+		{
+			surface.CanBeRenderTarget = false;
+		}
+
 		// Check if texture pool is wrong
-		if (attached3DTexture && surface.TexturePool != D3DPOOL_MANAGED)
+		bool TextureUsingWrongPool = (attached3DTexture && surface.TexturePool != D3DPOOL_MANAGED);
+
+		// Release d3d9 surface
+		if (NoLongerRenderTarget || TextureUsingWrongPool)
 		{
 			ReleaseD9Surface(true, false);
 		}
