@@ -4091,7 +4091,7 @@ HRESULT m_IDirectDrawX::CopyRenderTargetToBackbuffer(m_IDirectDrawSurfaceX* Rend
 	HRESULT hr = DDERR_GENERIC;
 
 	// Copy render target to backbuffer
-	IDirect3DSurface9* pRenderTarget = RenderSurface->GetD3d9Surface();
+	IDirect3DSurface9* pRenderTarget = RenderSurface->Get3DSurface();
 	if (pRenderTarget)
 	{
 		IDirect3DSurface9* pBackBuffer = nullptr;
@@ -4499,9 +4499,7 @@ HRESULT m_IDirectDrawX::Present(RECT* pSourceRect, RECT* pDestRect, bool Present
 			hr = D3D_OK;
 			if (D3DDeviceInterface && !D3DDeviceInterface->IsDeviceInScene())
 			{
-				d3d9Device->BeginScene();
 				CopyRenderTargetToBackbuffer(PrimarySurface);
-				d3d9Device->EndScene();
 
 				hr = d3d9Device->Present(nullptr, nullptr, nullptr, nullptr);
 

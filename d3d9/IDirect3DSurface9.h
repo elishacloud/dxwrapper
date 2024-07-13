@@ -67,6 +67,7 @@ public:
 			{
 				return pSurface->GetProxyInterface();
 			}
+			LOG_LIMIT(100, __FUNCTION__ << " Error: getting non-multi-sampled surface!");
 		}
 		return ProxyInterface;
 	}

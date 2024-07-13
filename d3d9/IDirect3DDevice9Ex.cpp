@@ -1962,12 +1962,9 @@ HRESULT m_IDirect3DDevice9Ex::GetRenderTargetData(THIS_ IDirect3DSurface9* pRend
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	m_IDirect3DSurface9* m_pRenderTarget = static_cast<m_IDirect3DSurface9*>(pRenderTarget);
-	IDirect3DSurface9* pRenderMultiSample = nullptr;
-	if (m_pRenderTarget)
+	if (pRenderTarget)
 	{
-		pRenderTarget = m_pRenderTarget->GetProxyInterface();
-		pRenderMultiSample = m_pRenderTarget->GetNonMultiSampledSurface(nullptr, 0);
+		pRenderTarget = static_cast<m_IDirect3DSurface9*>(pDestSurface)->GetNonMultiSampledSurface(nullptr, 0);
 	}
 
 	if (pDestSurface)
@@ -1975,19 +1972,7 @@ HRESULT m_IDirect3DDevice9Ex::GetRenderTargetData(THIS_ IDirect3DSurface9* pRend
 		pDestSurface = static_cast<m_IDirect3DSurface9 *>(pDestSurface)->GetProxyInterface();
 	}
 
-	if (pRenderTarget == pRenderMultiSample)
-	{
-		return ProxyInterface->GetRenderTargetData(pRenderTarget, pDestSurface);
-	}
-
-	HRESULT hr = ProxyInterface->GetRenderTargetData(pRenderMultiSample, pDestSurface);
-
-	if (SUCCEEDED(hr))
-	{
-		m_pRenderTarget->RestoreMultiSampleData();
-	}
-
-	return hr;
+	return ProxyInterface->GetRenderTargetData(pRenderTarget, pDestSurface);
 }
 
 HRESULT m_IDirect3DDevice9Ex::UpdateSurface(THIS_ IDirect3DSurface9* pSourceSurface, CONST RECT* pSourceRect, IDirect3DSurface9* pDestinationSurface, CONST POINT* pDestPoint)
@@ -2004,7 +1989,7 @@ HRESULT m_IDirect3DDevice9Ex::UpdateSurface(THIS_ IDirect3DSurface9* pSourceSurf
 	if (m_pDestinationSurface)
 	{
 		pDestinationSurface = m_pDestinationSurface->GetProxyInterface();
-		pDestinationMultiSample = m_pDestinationSurface->GetNonMultiSampledSurface(nullptr, D3DLOCK_DISCARD);
+		pDestinationMultiSample = m_pDestinationSurface->GetNonMultiSampledSurface(nullptr, 0);
 	}
 
 	if (pDestinationSurface == pDestinationMultiSample)

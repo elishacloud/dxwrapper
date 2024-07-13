@@ -152,7 +152,8 @@ m_IDirect3DSurface9* m_IDirect3DSurface9::m_GetNonMultiSampledSurface(const RECT
 {
 	if (!Emu.pSurface)
 	{
-		if (SUCCEEDED(pDeviceEx->CreateRenderTarget(Desc.Width, Desc.Height, Desc.Format, D3DMULTISAMPLE_NONE, 0, TRUE, (LPDIRECT3DSURFACE9*)&Emu.pSurface, nullptr)))
+		if (SUCCEEDED((Desc.Usage & D3DUSAGE_RENDERTARGET) ? pDeviceEx->CreateRenderTarget(Desc.Width, Desc.Height, Desc.Format, D3DMULTISAMPLE_NONE, 0, TRUE, (LPDIRECT3DSURFACE9*)&Emu.pSurface, nullptr) :
+			pDeviceEx->CreateOffscreenPlainSurface(Desc.Width, Desc.Height, Desc.Format, D3DPOOL_SYSTEMMEM, (LPDIRECT3DSURFACE9*)&Emu.pSurface, nullptr)))
 		{
 			Emu.pSurface = new m_IDirect3DSurface9(Emu.pSurface, m_pDeviceEx);
 		}
@@ -163,12 +164,9 @@ m_IDirect3DSurface9* m_IDirect3DSurface9::m_GetNonMultiSampledSurface(const RECT
 		Emu.Rect = (pRect) ? *pRect : Emu.Rect;
 		Emu.pRect = (pRect) ? &Emu.Rect : nullptr;
 
-		if (!(Flags & D3DLOCK_DISCARD))
+		if (FAILED(m_pDeviceEx->CopyRects(this, pRect, 1, Emu.pSurface, (LPPOINT)pRect)))
 		{
-			if (FAILED(m_pDeviceEx->CopyRects(this, pRect, 1, Emu.pSurface, (LPPOINT)pRect)))
-			{
-				LOG_LIMIT(100, __FUNCTION__ << " Error: copying surface!");
-			}
+			LOG_LIMIT(100, __FUNCTION__ << " Error: copying surface!");
 		}
 	}
 	else
