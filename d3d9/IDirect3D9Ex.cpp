@@ -212,18 +212,17 @@ HRESULT m_IDirect3D9Ex::CreateDeviceT(D3DPRESENT_PARAMETERS& d3dpp, bool& MultiS
 	{
 		DWORD QualityLevels = 0;
 
-		// Check AntiAliasing quality
-		for (int x = min(16, Config.AntiAliasing); x > 0; x--)
+		// Check AntiAliasing quality, limit to 8 samples some games have issues with more samples
+		for (int x = min(D3DMULTISAMPLE_8_SAMPLES, Config.AntiAliasing); x > 0; x--)
 		{
-			if (SUCCEEDED(ProxyInterface->CheckDeviceMultiSampleType(Adapter,
-				DeviceType, (d3dpp.BackBufferFormat) ? d3dpp.BackBufferFormat : D3DFMT_A8R8G8B8, d3dpp.Windowed,
-				(D3DMULTISAMPLE_TYPE)x, &QualityLevels)) ||
-				SUCCEEDED(ProxyInterface->CheckDeviceMultiSampleType(Adapter,
-					DeviceType, d3dpp.AutoDepthStencilFormat, d3dpp.Windowed,
-					(D3DMULTISAMPLE_TYPE)x, &QualityLevels)))
+			D3DMULTISAMPLE_TYPE Samples = (D3DMULTISAMPLE_TYPE)x;
+			D3DFORMAT BufferFormat = (d3dpp.BackBufferFormat) ? d3dpp.BackBufferFormat : D3DFMT_X8R8G8B8;
+
+			if (SUCCEEDED(ProxyInterface->CheckDeviceMultiSampleType(Adapter, DeviceType, BufferFormat, d3dpp.Windowed, Samples, &QualityLevels)) ||
+				SUCCEEDED(ProxyInterface->CheckDeviceMultiSampleType(Adapter, DeviceType, d3dpp.AutoDepthStencilFormat, d3dpp.Windowed, Samples, &QualityLevels)))
 			{
 				// Update Present Parameter for Multisample
-				UpdatePresentParameterForMultisample(&d3dpp, (D3DMULTISAMPLE_TYPE)x, (QualityLevels > 0) ? QualityLevels - 1 : 0);
+				UpdatePresentParameterForMultisample(&d3dpp, Samples, (QualityLevels > 0) ? QualityLevels - 1 : 0);
 
 				// Create Device
 				hr = CreateDeviceT(Adapter, DeviceType, hFocusWindow, BehaviorFlags, &d3dpp, (d3dpp.Windowed) ? nullptr : pFullscreenDisplayMode, ppReturnedDeviceInterface);

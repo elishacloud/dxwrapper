@@ -4116,7 +4116,7 @@ void m_IDirect3DDeviceX::SetDefaults()
 	lsMaterial = 0;
 
 	// Render states
-	rsAntiAliasChanged = false;
+	rsAntiAliasChanged = true;
 	rsAntiAlias = D3DANTIALIAS_NONE;
 	rsEdgeAntiAlias = FALSE;
 	rsTextureWrappingChanged = false;
@@ -4144,12 +4144,6 @@ inline void m_IDirect3DDeviceX::SetDrawStates(DWORD dwVertexTypeDesc, DWORD& dwF
 	{
 		// dwFlags (D3DDP_WAIT) can be ignored safely
 
-		// Handle antialiasing
-		if (rsAntiAliasChanged)
-		{
-			BOOL AntiAliasEnabled = (bool)((((D3DANTIALIASMODE)rsAntiAlias == D3DANTIALIAS_SORTDEPENDENT) || ((D3DANTIALIASMODE)rsAntiAlias == D3DANTIALIAS_SORTINDEPENDENT)) || (rsEdgeAntiAlias != FALSE));
-			SetRenderState(D3DRS_MULTISAMPLEANTIALIAS, AntiAliasEnabled);
-		}
 		// Handle texture wrapping
 		if (rsTextureWrappingChanged)
 		{
@@ -4173,6 +4167,13 @@ inline void m_IDirect3DDeviceX::SetDrawStates(DWORD dwVertexTypeDesc, DWORD& dwF
 			GetRenderState(D3DRENDERSTATE_EXTENTS, &DrawStates.rsExtents);
 			SetRenderState(D3DRENDERSTATE_EXTENTS, FALSE);
 		}
+	}
+	// Handle antialiasing
+	if (rsAntiAliasChanged)
+	{
+		BOOL AntiAliasEnabled = (bool)((D3DANTIALIASMODE)rsAntiAlias == D3DANTIALIAS_SORTDEPENDENT || (D3DANTIALIASMODE)rsAntiAlias == D3DANTIALIAS_SORTINDEPENDENT);
+		SetRenderState(D3DRS_MULTISAMPLEANTIALIAS, AntiAliasEnabled);
+		rsAntiAliasChanged = false;
 	}
 	if (Config.Dd7to9)
 	{

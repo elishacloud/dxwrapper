@@ -2818,6 +2818,27 @@ LPDIRECT3DPIXELSHADER9* m_IDirectDrawX::GetColorKeyShader()
 	return &colorkeyPixelShader;
 }
 
+// Get AntiAliasing type and quality
+D3DMULTISAMPLE_TYPE m_IDirectDrawX::GetMultiSampleTypeQuality(D3DFORMAT Format, DWORD MaxSampleType, DWORD& QualityLevels)
+{
+	if (d3d9Object)
+	{
+		for (int x = MaxSampleType; x > 0; x--)
+		{
+			D3DMULTISAMPLE_TYPE Samples = (D3DMULTISAMPLE_TYPE)x;
+
+			if (SUCCEEDED(d3d9Object->CheckDeviceMultiSampleType(D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, Format, presParams.Windowed, Samples, &QualityLevels)))
+			{
+				QualityLevels = (QualityLevels > 0) ? QualityLevels - 1 : 0;
+				return Samples;
+			}
+		}
+	}
+
+	QualityLevels = 0;
+	return D3DMULTISAMPLE_NONE;
+}
+
 // Creates or resets the d3d9 device
 HRESULT m_IDirectDrawX::CreateD3D9Device()
 {
@@ -4475,6 +4496,7 @@ HRESULT m_IDirectDrawX::Present(RECT* pSourceRect, RECT* pDestRect, bool Present
 	{
 		if (RenderTargetSurface && (IsPrimaryRenderTarget() || IsPrimaryFlipSurface()))
 		{
+			hr = D3D_OK;
 			if (D3DDeviceInterface && !D3DDeviceInterface->IsDeviceInScene())
 			{
 				d3d9Device->BeginScene();
@@ -4482,10 +4504,11 @@ HRESULT m_IDirectDrawX::Present(RECT* pSourceRect, RECT* pDestRect, bool Present
 				d3d9Device->EndScene();
 
 				hr = d3d9Device->Present(nullptr, nullptr, nullptr, nullptr);
-			}
-			if (PresentOnFlip && IsPrimaryFlipSurface())
-			{
-				SetRenderTargetSurface(RenderTargetSurface);
+
+				if (PresentOnFlip && IsPrimaryFlipSurface())
+				{
+					SetRenderTargetSurface(RenderTargetSurface);
+				}
 			}
 		}
 		else
