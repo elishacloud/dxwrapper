@@ -6205,7 +6205,7 @@ HRESULT m_IDirectDrawSurfaceX::CopyToDrawTexture(LPRECT lpDestRect)
 		}
 	}
 
-	if (FAILED(D3DXLoadSurfaceFromSurface(DestSurface, nullptr, lpDestRect, SrcSurface, surface.PaletteEntryArray, lpDestRect, D3DX_FILTER_POINT, ColorKey)))
+	if (FAILED(D3DXLoadSurfaceFromSurface(DestSurface, nullptr, lpDestRect, SrcSurface, surface.PaletteEntryArray, lpDestRect, D3DX_FILTER_NONE, ColorKey)))
 	{
 		Logging::Log() << __FUNCTION__ " " << surfaceFormat << " " << (void*)ColorKey << " " << lpDestRect;
 

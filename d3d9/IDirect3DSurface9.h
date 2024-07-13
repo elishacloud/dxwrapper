@@ -4,18 +4,29 @@ class m_IDirect3DSurface9 : public IDirect3DSurface9, public AddressLookupTableD
 {
 private:
 	LPDIRECT3DSURFACE9 ProxyInterface;
+	LPDIRECT3DDEVICE9 pDeviceEx;
 	m_IDirect3DDevice9Ex* m_pDeviceEx;
 
 	// For fake emulated locking
-	bool IsLocked = false;
-	bool EmuReadOnly = false;
-	RECT EmuRect = {};
-	IDirect3DSurface9* pEmuSurface = nullptr;
+	D3DSURFACE_DESC Desc = {};
+	struct {
+		bool ReadOnly = false;
+		RECT* pRect = nullptr;
+		RECT Rect = {};
+		m_IDirect3DSurface9* pSurface = nullptr;
+	} Emu;
+
+	m_IDirect3DSurface9* m_GetNonMultiSampledSurface(const RECT* pSurfaceRect, DWORD Flags);
 
 public:
-	m_IDirect3DSurface9(LPDIRECT3DSURFACE9 pSurface9, m_IDirect3DDevice9Ex* pDevice) : ProxyInterface(pSurface9), m_pDeviceEx(pDevice)
+	m_IDirect3DSurface9(LPDIRECT3DSURFACE9 pSurface9, m_IDirect3DDevice9Ex* pDevice) : ProxyInterface(pSurface9), m_pDeviceEx(pDevice), pDeviceEx(pDevice->GetProxyInterface())
 	{
 		LOG_LIMIT(3, "Creating interface " << __FUNCTION__ << " (" << this << ")");
+
+		if (FAILED(GetDesc(&Desc)))
+		{
+			LOG_LIMIT(3, __FUNCTION__ << " Failed to GetDesc()!" << this << ")");
+		}
 
 		pDevice->ProxyAddressLookupTable->SaveAddress(this, ProxyInterface);
 	}
@@ -47,4 +58,17 @@ public:
 
 	// Helper functions
 	LPDIRECT3DSURFACE9 GetProxyInterface() { return ProxyInterface; }
+	LPDIRECT3DSURFACE9 GetNonMultiSampledSurface(const RECT* pSurfaceRect, DWORD Flags)
+	{
+		if (Desc.MultiSampleType)
+		{
+			m_IDirect3DSurface9* pSurface = m_GetNonMultiSampledSurface(pSurfaceRect, Flags);
+			if (pSurface)
+			{
+				return pSurface->GetProxyInterface();
+			}
+		}
+		return ProxyInterface;
+	}
+	HRESULT RestoreMultiSampleData();
 };

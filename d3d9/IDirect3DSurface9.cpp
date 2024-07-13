@@ -52,12 +52,12 @@ ULONG m_IDirect3DSurface9::Release(THIS)
 
 	ULONG ref = ProxyInterface->Release();
 
-	if (ref == 0 && pEmuSurface)
+	if (ref == 0 && Emu.pSurface)
 	{
-		pEmuSurface->UnlockRect();
-		pEmuSurface->Release();
-		pEmuSurface = nullptr;
-	}
+        Emu.pSurface->UnlockRect();
+        Emu.pSurface->Release();
+        Emu.pSurface = nullptr;
+    }
 
 	return ref;
 }
@@ -148,6 +148,50 @@ HRESULT m_IDirect3DSurface9::GetDesc(THIS_ D3DSURFACE_DESC *pDesc)
 	return ProxyInterface->GetDesc(pDesc);
 }
 
+m_IDirect3DSurface9* m_IDirect3DSurface9::m_GetNonMultiSampledSurface(const RECT* pRect, DWORD Flags)
+{
+	if (!Emu.pSurface)
+	{
+		if (SUCCEEDED(pDeviceEx->CreateRenderTarget(Desc.Width, Desc.Height, Desc.Format, D3DMULTISAMPLE_NONE, 0, TRUE, (LPDIRECT3DSURFACE9*)&Emu.pSurface, nullptr)))
+		{
+			Emu.pSurface = new m_IDirect3DSurface9(Emu.pSurface, m_pDeviceEx);
+		}
+	}
+	if (Emu.pSurface)
+	{
+		Emu.ReadOnly = (Flags & D3DLOCK_READONLY);
+		Emu.Rect = (pRect) ? *pRect : Emu.Rect;
+		Emu.pRect = (pRect) ? &Emu.Rect : nullptr;
+
+		if (!(Flags & D3DLOCK_DISCARD))
+		{
+			if (FAILED(m_pDeviceEx->CopyRects(this, pRect, 1, Emu.pSurface, (LPPOINT)pRect)))
+			{
+				LOG_LIMIT(100, __FUNCTION__ << " Error: copying surface!");
+			}
+		}
+	}
+	else
+	{
+		LOG_LIMIT(100, __FUNCTION__ << " Error: creating emulated surface!");
+	}
+
+	return Emu.pSurface;
+}
+
+HRESULT m_IDirect3DSurface9::RestoreMultiSampleData()
+{
+	if (Emu.pSurface && !Emu.ReadOnly)
+	{
+		if (FAILED(m_pDeviceEx->CopyRects(Emu.pSurface, Emu.pRect, 1, this, (LPPOINT)Emu.pRect)))
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: copying emulated surface!");
+			return D3DERR_INVALIDCALL;
+		}
+	}
+	return D3D_OK;
+}
+
 HRESULT m_IDirect3DSurface9::LockRect(THIS_ D3DLOCKED_RECT* pLockedRect, CONST RECT* pRect, DWORD Flags)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
@@ -157,60 +201,7 @@ HRESULT m_IDirect3DSurface9::LockRect(THIS_ D3DLOCKED_RECT* pLockedRect, CONST R
 		return D3DERR_INVALIDCALL;
 	}
 
-	HRESULT hr = ProxyInterface->LockRect(pLockedRect, pRect, Flags);
-
-	if (hr == D3DERR_INVALIDCALL && !IsLocked && pLockedRect && !pEmuSurface &&
-		m_pDeviceEx && m_pDeviceEx->GetMultiSampleType() != D3DMULTISAMPLE_NONE)
-	{
-		D3DSURFACE_DESC Desc;
-		if (SUCCEEDED(GetDesc(&Desc)))
-		{
-			// Create new surface for lock
-			if (SUCCEEDED(m_pDeviceEx->CreateOffscreenPlainSurface(Desc.Width, Desc.Height, Desc.Format, D3DPOOL_SCRATCH, &pEmuSurface, nullptr)))
-			{
-				EmuReadOnly = (Flags & D3DLOCK_READONLY);
-				EmuRect.left = 0;
-				EmuRect.top = 0;
-				EmuRect.right = (LONG)Desc.Width;
-				EmuRect.bottom = (LONG)Desc.Height;
-				if (pRect) { memcpy(&EmuRect, pRect, sizeof(RECT)); }
-				POINT Point = { EmuRect.left, EmuRect.top };
-
-				// Copy surface data
-				if (FAILED(m_pDeviceEx->CopyRects(this, &EmuRect, 1, pEmuSurface, &Point)))
-				{
-					LOG_LIMIT(100, __FUNCTION__ << " Error: copying surface!");
-				}
-				D3DLOCKED_RECT LockedRect = {};
-				if (SUCCEEDED(pEmuSurface->LockRect(&LockedRect, &EmuRect, Flags)))
-				{
-					pLockedRect->pBits = LockedRect.pBits;
-					pLockedRect->Pitch = LockedRect.Pitch;
-					return D3D_OK;
-				}
-				else
-				{
-					LOG_LIMIT(100, __FUNCTION__ << " Error: locking emulated surface!");
-				}
-				pEmuSurface->Release();
-				pEmuSurface = nullptr;
-			}
-			else
-			{
-				LOG_LIMIT(100, __FUNCTION__ << " Error: creating emulated surface!");
-			}
-
-			LOG_LIMIT(100, __FUNCTION__ << " Error: Surface Lock error: " << (D3DERR)hr);
-
-			return hr;
-		}
-	}
-	else if (SUCCEEDED(hr))
-	{
-		IsLocked = true;
-	}
-
-	return hr;
+	return GetNonMultiSampledSurface(pRect, Flags)->LockRect(pLockedRect, pRect, Flags);
 }
 
 HRESULT m_IDirect3DSurface9::UnlockRect(THIS)
@@ -220,44 +211,48 @@ HRESULT m_IDirect3DSurface9::UnlockRect(THIS)
 	HRESULT hr = D3DERR_INVALIDCALL;
 
 	// Copy data back from emulated surface
-	if (pEmuSurface)
+	if (Emu.pSurface)
 	{
-		hr = pEmuSurface->UnlockRect();
-		POINT Point = { EmuRect.left, EmuRect.top };
-		if (!EmuReadOnly)
-		{
-			// Copy emulated surface data
-			if (FAILED(m_pDeviceEx->CopyRects(pEmuSurface, &EmuRect, 1, this, &Point)))
-			{
-				LOG_LIMIT(100, __FUNCTION__ << " Error: copying emulated surface!");
-			}
-		}
-		pEmuSurface->Release();
-		pEmuSurface = nullptr;
-	}
-	else
-	{
-		hr = ProxyInterface->UnlockRect();
+		hr = Emu.pSurface->UnlockRect();
 
+		// Copy emulated data to surface
 		if (SUCCEEDED(hr))
 		{
-			IsLocked = false;
+			RestoreMultiSampleData();
 		}
+
+		return hr;
 	}
 
-	return hr;
+	return ProxyInterface->UnlockRect();
 }
 
 HRESULT m_IDirect3DSurface9::GetDC(THIS_ HDC *phdc)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	return ProxyInterface->GetDC(phdc);
+	return GetNonMultiSampledSurface(nullptr, 0)->GetDC(phdc);
 }
 
 HRESULT m_IDirect3DSurface9::ReleaseDC(THIS_ HDC hdc)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
+
+	HRESULT hr = D3DERR_INVALIDCALL;
+
+	// Copy data back from emulated surface
+	if (Emu.pSurface)
+	{
+		hr = Emu.pSurface->ReleaseDC(hdc);
+
+		// Copy emulated data to surface
+		if (SUCCEEDED(hr))
+		{
+			RestoreMultiSampleData();
+		}
+
+		return hr;
+	}
 
 	return ProxyInterface->ReleaseDC(hdc);
 }

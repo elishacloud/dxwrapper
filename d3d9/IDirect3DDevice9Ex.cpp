@@ -261,7 +261,7 @@ HRESULT m_IDirect3DDevice9Ex::CreateAdditionalSwapChain(D3DPRESENT_PARAMETERS *p
 
 		if (SUCCEEDED(hr) && DeviceDetails.DeviceMultiSampleFlag)
 		{
-			LOG_LIMIT(3, __FUNCTION__ <<" Disabling AntiAliasing for SwapChain...");
+			LOG_LIMIT(3, __FUNCTION__ <<" Disabling AntiAliasing for Swap Chain...");
 		}
 	}
 
@@ -307,7 +307,23 @@ HRESULT m_IDirect3DDevice9Ex::CreateDepthStencilSurface(THIS_ UINT Width, UINT H
 		return D3DERR_INVALIDCALL;
 	}
 
-	HRESULT hr = ProxyInterface->CreateDepthStencilSurface(Width, Height, Format, MultiSample, MultisampleQuality, Discard, ppSurface, pSharedHandle);
+	HRESULT hr = D3DERR_INVALIDCALL;
+
+	// Test for Multisample
+	if (DeviceDetails.DeviceMultiSampleFlag)
+	{
+		hr = ProxyInterface->CreateDepthStencilSurface(Width, Height, Format, DeviceDetails.DeviceMultiSampleType, DeviceDetails.DeviceMultiSampleQuality, TRUE, ppSurface, pSharedHandle);
+	}
+
+	if (FAILED(hr))
+	{
+		hr = ProxyInterface->CreateDepthStencilSurface(Width, Height, Format, MultiSample, MultisampleQuality, Discard, ppSurface, pSharedHandle);
+
+		if (SUCCEEDED(hr) && DeviceDetails.DeviceMultiSampleFlag)
+		{
+			LOG_LIMIT(3, __FUNCTION__ << " Disabling AntiAliasing for Depth Stencil...");
+		}
+	}
 
 	if (SUCCEEDED(hr))
 	{
@@ -349,7 +365,23 @@ HRESULT m_IDirect3DDevice9Ex::CreateRenderTarget(THIS_ UINT Width, UINT Height, 
 		return D3DERR_INVALIDCALL;
 	}
 
-	HRESULT hr = ProxyInterface->CreateRenderTarget(Width, Height, Format, MultiSample, MultisampleQuality, Lockable, ppSurface, pSharedHandle);
+	HRESULT hr = D3DERR_INVALIDCALL;
+
+	// Test for Multisample
+	if (DeviceDetails.DeviceMultiSampleFlag)
+	{
+		hr = ProxyInterface->CreateRenderTarget(Width, Height, Format, DeviceDetails.DeviceMultiSampleType, DeviceDetails.DeviceMultiSampleQuality, FALSE, ppSurface, pSharedHandle);
+	}
+
+	if (FAILED(hr))
+	{
+		hr = ProxyInterface->CreateRenderTarget(Width, Height, Format, MultiSample, MultisampleQuality, Lockable, ppSurface, pSharedHandle);
+
+		if (SUCCEEDED(hr) && DeviceDetails.DeviceMultiSampleFlag)
+		{
+			LOG_LIMIT(3, __FUNCTION__ << " Disabling AntiAliasing for Render Target...");
+		}
+	}
 
 	if (SUCCEEDED(hr))
 	{
@@ -1654,11 +1686,9 @@ HRESULT m_IDirect3DDevice9Ex::CopyRects(THIS_ IDirect3DSurface9 *pSourceSurface,
 	pSourceSurface = static_cast<m_IDirect3DSurface9*>(pSourceSurface)->GetProxyInterface();
 	pDestinationSurface = static_cast<m_IDirect3DSurface9*>(pDestinationSurface)->GetProxyInterface();
 
-	D3DSURFACE_DESC SourceDesc, DestinationDesc;
-	pSourceSurface->GetDesc(&SourceDesc);
-	pDestinationSurface->GetDesc(&DestinationDesc);
+	D3DSURFACE_DESC SrcDesc = {}, DestDesc = {};
 
-	if (SourceDesc.Format != DestinationDesc.Format)
+	if (SUCCEEDED(pSourceSurface->GetDesc(&SrcDesc)) && SUCCEEDED(pDestinationSurface->GetDesc(&DestDesc)) && SrcDesc.Format != DestDesc.Format)
 	{
 		return D3DERR_INVALIDCALL;
 	}
@@ -1672,55 +1702,29 @@ HRESULT m_IDirect3DDevice9Ex::CopyRects(THIS_ IDirect3DSurface9 *pSourceSurface,
 
 	for (UINT i = 0; i < cRects; i++)
 	{
-		RECT SourceRect = {}, DestinationRect = {};
+		RECT SourceRect = (pSourceRectsArray) ? pSourceRectsArray[i] : RECT { 0, 0, (LONG)SrcDesc.Width, (LONG)SrcDesc.Height };
 
-		if (pSourceRectsArray != nullptr)
-		{
-			SourceRect = pSourceRectsArray[i];
-		}
-		else
-		{
-			SourceRect.left = 0;
-			SourceRect.right = SourceDesc.Width;
-			SourceRect.top = 0;
-			SourceRect.bottom = SourceDesc.Height;
-		}
+		RECT DestinationRect = (pDestPointsArray) ? RECT {
+			pDestPointsArray[i].x,
+			pDestPointsArray[i].y,
+			pDestPointsArray[i].x + (SourceRect.right - SourceRect.left),
+			pDestPointsArray[i].y + (SourceRect.bottom - SourceRect.top)
+		} : SourceRect;
 
-		if (pDestPointsArray != nullptr)
-		{
-			DestinationRect.left = pDestPointsArray[i].x;
-			DestinationRect.right = DestinationRect.left + (SourceRect.right - SourceRect.left);
-			DestinationRect.top = pDestPointsArray[i].y;
-			DestinationRect.bottom = DestinationRect.top + (SourceRect.bottom - SourceRect.top);
-		}
-		else
-		{
-			DestinationRect = SourceRect;
-		}
+		hr = D3DERR_INVALIDCALL;
 
-		if (SourceDesc.Pool == D3DPOOL_DEFAULT)
+		if (SrcDesc.Pool == D3DPOOL_DEFAULT && DestDesc.Pool == D3DPOOL_DEFAULT)
 		{
 			hr = ProxyInterface->StretchRect(pSourceSurface, &SourceRect, pDestinationSurface, &DestinationRect, D3DTEXF_NONE);
 		}
-		else if (SourceDesc.Pool == D3DPOOL_SYSTEMMEM)
+		else if (SrcDesc.Pool == D3DPOOL_SYSTEMMEM && DestDesc.Pool == D3DPOOL_DEFAULT && !DestDesc.MultiSampleType)
 		{
-			const POINT pt = { DestinationRect.left, DestinationRect.top };
-
-			hr = ProxyInterface->UpdateSurface(pSourceSurface, &SourceRect, pDestinationSurface, &pt);
+			hr = ProxyInterface->UpdateSurface(pSourceSurface, &SourceRect, pDestinationSurface, (LPPOINT)&DestinationRect);
 		}
 		if (FAILED(hr))
 		{
-			hr = D3DERR_INVALIDCALL;
 			if (SUCCEEDED(D3DXLoadSurfaceFromSurface(pDestinationSurface, nullptr, &DestinationRect, pSourceSurface, nullptr, &SourceRect, D3DX_FILTER_NONE, 0)))
 			{
-				// Explicitly call AddDirtyRect on the surface
-				void *pContainer = nullptr;
-				if (SUCCEEDED(pDestinationSurface->GetContainer(IID_IDirect3DTexture9, &pContainer)) && pContainer)
-				{
-					IDirect3DTexture9 *pTexture = (IDirect3DTexture9*)pContainer;
-					pTexture->AddDirtyRect(&DestinationRect);
-					pTexture->Release();
-				}
 				hr = D3D_OK;
 			}
 		}
@@ -1958,9 +1962,12 @@ HRESULT m_IDirect3DDevice9Ex::GetRenderTargetData(THIS_ IDirect3DSurface9* pRend
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	if (pRenderTarget)
+	m_IDirect3DSurface9* m_pRenderTarget = static_cast<m_IDirect3DSurface9*>(pRenderTarget);
+	IDirect3DSurface9* pRenderMultiSample = nullptr;
+	if (m_pRenderTarget)
 	{
-		pRenderTarget = static_cast<m_IDirect3DSurface9 *>(pRenderTarget)->GetProxyInterface();
+		pRenderTarget = m_pRenderTarget->GetProxyInterface();
+		pRenderMultiSample = m_pRenderTarget->GetNonMultiSampledSurface(nullptr, 0);
 	}
 
 	if (pDestSurface)
@@ -1968,7 +1975,19 @@ HRESULT m_IDirect3DDevice9Ex::GetRenderTargetData(THIS_ IDirect3DSurface9* pRend
 		pDestSurface = static_cast<m_IDirect3DSurface9 *>(pDestSurface)->GetProxyInterface();
 	}
 
-	return ProxyInterface->GetRenderTargetData(pRenderTarget, pDestSurface);
+	if (pRenderTarget == pRenderMultiSample)
+	{
+		return ProxyInterface->GetRenderTargetData(pRenderTarget, pDestSurface);
+	}
+
+	HRESULT hr = ProxyInterface->GetRenderTargetData(pRenderMultiSample, pDestSurface);
+
+	if (SUCCEEDED(hr))
+	{
+		m_pRenderTarget->RestoreMultiSampleData();
+	}
+
+	return hr;
 }
 
 HRESULT m_IDirect3DDevice9Ex::UpdateSurface(THIS_ IDirect3DSurface9* pSourceSurface, CONST RECT* pSourceRect, IDirect3DSurface9* pDestinationSurface, CONST POINT* pDestPoint)
@@ -1980,12 +1999,27 @@ HRESULT m_IDirect3DDevice9Ex::UpdateSurface(THIS_ IDirect3DSurface9* pSourceSurf
 		pSourceSurface = static_cast<m_IDirect3DSurface9 *>(pSourceSurface)->GetProxyInterface();
 	}
 
-	if (pDestinationSurface)
+	m_IDirect3DSurface9* m_pDestinationSurface = static_cast<m_IDirect3DSurface9*>(pDestinationSurface);
+	IDirect3DSurface9* pDestinationMultiSample = nullptr;
+	if (m_pDestinationSurface)
 	{
-		pDestinationSurface = static_cast<m_IDirect3DSurface9 *>(pDestinationSurface)->GetProxyInterface();
+		pDestinationSurface = m_pDestinationSurface->GetProxyInterface();
+		pDestinationMultiSample = m_pDestinationSurface->GetNonMultiSampledSurface(nullptr, D3DLOCK_DISCARD);
 	}
 
-	return ProxyInterface->UpdateSurface(pSourceSurface, pSourceRect, pDestinationSurface, pDestPoint);
+	if (pDestinationSurface == pDestinationMultiSample)
+	{
+		return ProxyInterface->UpdateSurface(pSourceSurface, pSourceRect, pDestinationSurface, pDestPoint);
+	}
+
+	HRESULT hr = ProxyInterface->UpdateSurface(pSourceSurface, pSourceRect, pDestinationMultiSample, pDestPoint);
+
+	if (SUCCEEDED(hr))
+	{
+		m_pDestinationSurface->RestoreMultiSampleData();
+	}
+
+	return hr;
 }
 
 HRESULT m_IDirect3DDevice9Ex::SetDialogBoxMode(THIS_ BOOL bEnableDialogs)
@@ -2242,7 +2276,23 @@ HRESULT m_IDirect3DDevice9Ex::CreateRenderTargetEx(THIS_ UINT Width, UINT Height
 		return D3DERR_INVALIDCALL;
 	}
 
-	HRESULT hr = ProxyInterfaceEx->CreateRenderTargetEx(Width, Height, Format, MultiSample, MultisampleQuality, Lockable, ppSurface, pSharedHandle, Usage);
+	HRESULT hr = D3DERR_INVALIDCALL;
+
+	// Test for Multisample
+	if (DeviceDetails.DeviceMultiSampleFlag)
+	{
+		hr = ProxyInterfaceEx->CreateRenderTargetEx(Width, Height, Format, DeviceDetails.DeviceMultiSampleType, DeviceDetails.DeviceMultiSampleQuality, FALSE, ppSurface, pSharedHandle, Usage);
+	}
+
+	if (FAILED(hr))
+	{
+		hr = ProxyInterfaceEx->CreateRenderTargetEx(Width, Height, Format, MultiSample, MultisampleQuality, Lockable, ppSurface, pSharedHandle, Usage);
+
+		if (SUCCEEDED(hr) && DeviceDetails.DeviceMultiSampleFlag)
+		{
+			LOG_LIMIT(3, __FUNCTION__ << " Disabling AntiAliasing for Render Target...");
+		}
+	}
 
 	if (SUCCEEDED(hr))
 	{
@@ -2296,7 +2346,23 @@ HRESULT m_IDirect3DDevice9Ex::CreateDepthStencilSurfaceEx(THIS_ UINT Width, UINT
 		return D3DERR_INVALIDCALL;
 	}
 
-	HRESULT hr = ProxyInterfaceEx->CreateDepthStencilSurfaceEx(Width, Height, Format, MultiSample, MultisampleQuality, Discard, ppSurface, pSharedHandle, Usage);
+	HRESULT hr = D3DERR_INVALIDCALL;
+
+	// Test for Multisample
+	if (DeviceDetails.DeviceMultiSampleFlag)
+	{
+		hr = ProxyInterfaceEx->CreateDepthStencilSurfaceEx(Width, Height, Format, DeviceDetails.DeviceMultiSampleType, DeviceDetails.DeviceMultiSampleQuality, TRUE, ppSurface, pSharedHandle, Usage);
+	}
+
+	if (FAILED(hr))
+	{
+		hr = ProxyInterfaceEx->CreateDepthStencilSurfaceEx(Width, Height, Format, MultiSample, MultisampleQuality, Discard, ppSurface, pSharedHandle, Usage);
+
+		if (SUCCEEDED(hr) && DeviceDetails.DeviceMultiSampleFlag)
+		{
+			LOG_LIMIT(3, __FUNCTION__ << " Disabling AntiAliasing for Depth Stencil...");
+		}
+	}
 
 	if (SUCCEEDED(hr))
 	{
