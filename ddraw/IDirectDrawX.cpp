@@ -4154,7 +4154,7 @@ HRESULT m_IDirectDrawX::Draw2DSurface(m_IDirectDrawSurfaceX* DrawSurface)
 	}
 
 	// Get surface texture
-	LPDIRECT3DTEXTURE9 displayTexture = DrawSurface->GetD3d9Texture();
+	LPDIRECT3DTEXTURE9 displayTexture = DrawSurface->Get3DTexture();
 	if (!displayTexture)
 	{
 		LOG_LIMIT(100, __FUNCTION__ << " Error: failed to get surface texture!");

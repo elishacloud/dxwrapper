@@ -236,8 +236,6 @@ private:
 	HRESULT CheckBackBufferForFlip(m_IDirectDrawSurfaceX* lpTargetSurface);
 
 	// Direct3D9 interface functions
-	LPDIRECT3DSURFACE9 Get3DSurface();
-	LPDIRECT3DTEXTURE9 Get3DTexture();
 	HRESULT CheckInterface(char* FunctionName, bool CheckD3DDevice, bool CheckD3DSurface, bool CheckLostSurface);
 	HRESULT CreateD3d9Surface();
 	bool DoesDCMatch(EMUSURFACE* pEmuSurface);
@@ -469,12 +467,14 @@ public:
 		return false;
 	}
 	m_IDirectDrawSurfaceX* GetAttachedZBuffer();
+	LPDIRECT3DSURFACE9 Get3DSurface();
+	LPDIRECT3DSURFACE9 GetD3d9Surface();
+	LPDIRECT3DTEXTURE9 GetD3d9DrawTexture();
+	LPDIRECT3DTEXTURE9 Get3DTexture();
+	LPDIRECT3DTEXTURE9 GetD3d9Texture();
 	inline DWORD GetD3d9Width() { return surface.Width; }
 	inline DWORD GetD3d9Height() { return surface.Height; }
 	inline D3DFORMAT GetD3d9Format() { return surfaceFormat; }
-	LPDIRECT3DTEXTURE9 GetD3d9DrawTexture();
-	LPDIRECT3DSURFACE9 GetD3d9Surface();
-	LPDIRECT3DTEXTURE9 GetD3d9Texture();
 	inline LPDIRECT3DTEXTURE9 GetD3d9PaletteTexture() { return primary.PaletteTexture; }
 	inline m_IDirect3DTextureX* GetAttachedTexture() { return attached3DTexture; }
 	inline void ClearAttachedTexture() { attached3DTexture = nullptr; }

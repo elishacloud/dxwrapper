@@ -3819,6 +3819,34 @@ void m_IDirectDrawSurfaceX::ReleaseSurface()
 	DeleteCriticalSection(&ddlcs);
 }
 
+LPDIRECT3DSURFACE9 m_IDirectDrawSurfaceX::GetD3d9Surface()
+{
+	// Check for device interface
+	if (FAILED(CheckInterface(__FUNCTION__, true, true, true)))
+	{
+		LOG_LIMIT(100, __FUNCTION__ << " Error: surface not setup!");
+		return nullptr;
+	}
+
+	return Get3DSurface();
+}
+
+inline LPDIRECT3DSURFACE9 m_IDirectDrawSurfaceX::Get3DSurface()
+{
+	if (surface.Surface)
+	{
+		return surface.Surface;
+	}
+	else if (surface.Texture)
+	{
+		if (surface.Context || (!surface.Context && SUCCEEDED(surface.Texture->GetSurfaceLevel(0, &surface.Context))))
+		{
+			return surface.Context;
+		}
+	}
+	return nullptr;
+}
+
 LPDIRECT3DTEXTURE9 m_IDirectDrawSurfaceX::GetD3d9DrawTexture()
 {
 	// Check if texture already exists
@@ -3846,18 +3874,6 @@ LPDIRECT3DTEXTURE9 m_IDirectDrawSurfaceX::GetD3d9DrawTexture()
 		return surface.DrawTexture;
 	}
 	return nullptr;
-}
-
-LPDIRECT3DSURFACE9 m_IDirectDrawSurfaceX::GetD3d9Surface()
-{
-	// Check for device interface
-	if (FAILED(CheckInterface(__FUNCTION__, true, true, true)))
-	{
-		LOG_LIMIT(100, __FUNCTION__ << " Error: surface not setup!");
-		return nullptr;
-	}
-
-	return Get3DSurface();
 }
 
 LPDIRECT3DTEXTURE9 m_IDirectDrawSurfaceX::GetD3d9Texture()
@@ -3906,22 +3922,6 @@ inline LPDIRECT3DTEXTURE9 m_IDirectDrawSurfaceX::Get3DTexture()
 
 	// Return surface texture
 	return surface.Texture;
-}
-
-inline LPDIRECT3DSURFACE9 m_IDirectDrawSurfaceX::Get3DSurface()
-{
-	if (surface.Surface)
-	{
-		return surface.Surface;
-	}
-	else if (surface.Texture)
-	{
-		if (surface.Context || (!surface.Context && SUCCEEDED(surface.Texture->GetSurfaceLevel(0, &surface.Context))))
-		{
-			return surface.Context;
-		}
-	}
-	return nullptr;
 }
 
 HRESULT m_IDirectDrawSurfaceX::CheckInterface(char *FunctionName, bool CheckD3DDevice, bool CheckD3DSurface, bool CheckLostSurface)
