@@ -3394,71 +3394,82 @@ HRESULT m_IDirectDrawX::TestD3D9CooperativeLevel()
 
 HRESULT m_IDirectDrawX::SetRenderTargetSurface(m_IDirectDrawSurfaceX* lpSurface)
 {
-	// Remove render target
-	if (!lpSurface)
-	{
-		RenderTargetSurface = lpSurface;
-
-		SetDepthStencilSurface(nullptr);
-
-		if (d3d9Device && d3d9RenderTarget)
-		{
-			if (SUCCEEDED(d3d9Device->SetRenderTarget(0, d3d9RenderTarget)))
-			{
-				d3d9RenderTarget = nullptr;
-			}
-		}
-
-		return D3D_OK;
-	}
-
-	// Check for Direct3D surface
-	if (!lpSurface->IsSurface3D())
-	{
-		LOG_LIMIT(100, __FUNCTION__ << " Error: surface is not a Direct3D surface!");
-		return DDERR_INVALIDPARAMS;
-	}
-
-	// Set surface as render target
-	RenderTargetSurface = lpSurface;
-	RenderTargetSurface->SetAsRenderTarget();
-
-	Logging::LogDebug() << __FUNCTION__ << " Setting 3D Device Surface: " << RenderTargetSurface;
+	SetCriticalSection();
+	SetPTCriticalSection();
 
 	HRESULT hr = D3D_OK;
-	if (d3d9Device)
-	{
-		// Backup original render target
-		if (!d3d9RenderTarget)
+
+	do {
+		// Remove render target
+		if (!lpSurface)
 		{
-			if (SUCCEEDED(d3d9Device->GetRenderTarget(0, &d3d9RenderTarget)))
+			RenderTargetSurface = lpSurface;
+
+			SetDepthStencilSurface(nullptr);
+
+			if (d3d9Device && d3d9RenderTarget)
 			{
-				d3d9RenderTarget->Release();
+				if (SUCCEEDED(d3d9Device->SetRenderTarget(0, d3d9RenderTarget)))
+				{
+					d3d9RenderTarget = nullptr;
+				}
+			}
+
+			hr = D3D_OK;
+			break;
+		}
+
+		// Check for Direct3D surface
+		if (!lpSurface->IsSurface3D())
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: surface is not a Direct3D surface!");
+			hr = DDERR_INVALIDPARAMS;
+			break;
+		}
+
+		// Set surface as render target
+		RenderTargetSurface = lpSurface;
+		RenderTargetSurface->SetAsRenderTarget();
+
+		Logging::LogDebug() << __FUNCTION__ << " Setting 3D Device Surface: " << RenderTargetSurface;
+
+		if (d3d9Device)
+		{
+			// Backup original render target
+			if (!d3d9RenderTarget)
+			{
+				if (SUCCEEDED(d3d9Device->GetRenderTarget(0, &d3d9RenderTarget)))
+				{
+					d3d9RenderTarget->Release();
+				}
+			}
+
+			// Set new render target
+			LPDIRECT3DSURFACE9 pSurfaceD9 = RenderTargetSurface->GetD3d9Surface();
+			if (pSurfaceD9)
+			{
+				hr = d3d9Device->SetRenderTarget(0, pSurfaceD9);
 			}
 		}
 
-		// Set new render target
-		LPDIRECT3DSURFACE9 pSurfaceD9 = RenderTargetSurface->GetD3d9Surface();
-		if (pSurfaceD9)
+		if (FAILED(hr))
 		{
-			hr = d3d9Device->SetRenderTarget(0, pSurfaceD9);
+			LOG_LIMIT(100, __FUNCTION__ << " Error: failed to set render target: " << (D3DERR)hr);
+			break;
 		}
-	}
 
-	if (FAILED(hr))
-	{
-		LOG_LIMIT(100, __FUNCTION__ << " Error: failed to set render target: " << (D3DERR)hr);
-		return hr;
-	}
+		m_IDirectDrawSurfaceX* pSurfaceZBuffer = RenderTargetSurface->GetAttachedZBuffer();
+		hr = SetDepthStencilSurface(pSurfaceZBuffer);
 
-	m_IDirectDrawSurfaceX* pSurfaceZBuffer = RenderTargetSurface->GetAttachedZBuffer();
-	hr = SetDepthStencilSurface(pSurfaceZBuffer);
+		if (FAILED(hr))
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: failed to set depth stencil surface: " << (D3DERR)hr);
+			break;
+		}
+	} while (false);
 
-	if (FAILED(hr))
-	{
-		LOG_LIMIT(100, __FUNCTION__ << " Error: failed to set depth stencil surface: " << (D3DERR)hr);
-		return hr;
-	}
+	ReleasePTCriticalSection();
+	ReleaseCriticalSection();
 
 	return hr;
 }
@@ -4333,7 +4344,7 @@ HRESULT m_IDirectDrawX::Present2DScene(m_IDirectDrawSurfaceX* DrawSurface, RECT*
 
 bool m_IDirectDrawX::IsUsingThreadPresent()
 {
-	return (PresentThread.IsInitialized && ExclusiveMode && !IsUsing3D());
+	return (PresentThread.IsInitialized && ExclusiveMode && !RenderTargetSurface && !IsUsing3D());
 }
 
 // Present Thread: Wait for the event
