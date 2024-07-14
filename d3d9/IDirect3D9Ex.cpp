@@ -217,9 +217,10 @@ HRESULT m_IDirect3D9Ex::CreateDeviceT(D3DPRESENT_PARAMETERS& d3dpp, bool& MultiS
 		{
 			D3DMULTISAMPLE_TYPE Samples = (D3DMULTISAMPLE_TYPE)x;
 			D3DFORMAT BufferFormat = (d3dpp.BackBufferFormat) ? d3dpp.BackBufferFormat : D3DFMT_X8R8G8B8;
+			D3DFORMAT StencilFormat = (d3dpp.AutoDepthStencilFormat) ? d3dpp.AutoDepthStencilFormat : D3DFMT_X8R8G8B8;
 
 			if (SUCCEEDED(ProxyInterface->CheckDeviceMultiSampleType(Adapter, DeviceType, BufferFormat, d3dpp.Windowed, Samples, &QualityLevels)) &&
-				SUCCEEDED(ProxyInterface->CheckDeviceMultiSampleType(Adapter, DeviceType, d3dpp.AutoDepthStencilFormat, d3dpp.Windowed, Samples, &QualityLevels)))
+				SUCCEEDED(ProxyInterface->CheckDeviceMultiSampleType(Adapter, DeviceType, StencilFormat, d3dpp.Windowed, Samples, &QualityLevels)))
 			{
 				// Update Present Parameter for Multisample
 				UpdatePresentParameterForMultisample(&d3dpp, Samples, (QualityLevels > 0) ? QualityLevels - 1 : 0);
