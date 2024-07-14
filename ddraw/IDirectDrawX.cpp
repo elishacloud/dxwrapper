@@ -2823,7 +2823,7 @@ D3DMULTISAMPLE_TYPE m_IDirectDrawX::GetMultiSampleTypeQuality(D3DFORMAT Format, 
 {
 	if (d3d9Object)
 	{
-		for (int x = MaxSampleType; x > 0; x--)
+		for (int x = min(D3DMULTISAMPLE_16_SAMPLES, MaxSampleType); x > 0; x--)
 		{
 			D3DMULTISAMPLE_TYPE Samples = (D3DMULTISAMPLE_TYPE)x;
 

@@ -243,6 +243,7 @@ private:
 	void UnsetEmulationGameDC();
 	HRESULT CreateDCSurface();
 	void ReleaseDCSurface();
+	void UpdateAttachedZBuffer(m_IDirectDrawSurfaceX* lpAttachedSurfaceX);
 	void UpdateSurfaceDesc();
 
 	// Direct3D9 interfaces

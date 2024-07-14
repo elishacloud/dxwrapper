@@ -212,13 +212,13 @@ HRESULT m_IDirect3D9Ex::CreateDeviceT(D3DPRESENT_PARAMETERS& d3dpp, bool& MultiS
 	{
 		DWORD QualityLevels = 0;
 
-		// Check AntiAliasing quality, limit to 8 samples some games have issues with more samples
-		for (int x = min(D3DMULTISAMPLE_8_SAMPLES, Config.AntiAliasing); x > 0; x--)
+		// Check AntiAliasing quality
+		for (int x = min(D3DMULTISAMPLE_16_SAMPLES, Config.AntiAliasing); x > 0; x--)
 		{
 			D3DMULTISAMPLE_TYPE Samples = (D3DMULTISAMPLE_TYPE)x;
 			D3DFORMAT BufferFormat = (d3dpp.BackBufferFormat) ? d3dpp.BackBufferFormat : D3DFMT_X8R8G8B8;
 
-			if (SUCCEEDED(ProxyInterface->CheckDeviceMultiSampleType(Adapter, DeviceType, BufferFormat, d3dpp.Windowed, Samples, &QualityLevels)) ||
+			if (SUCCEEDED(ProxyInterface->CheckDeviceMultiSampleType(Adapter, DeviceType, BufferFormat, d3dpp.Windowed, Samples, &QualityLevels)) &&
 				SUCCEEDED(ProxyInterface->CheckDeviceMultiSampleType(Adapter, DeviceType, d3dpp.AutoDepthStencilFormat, d3dpp.Windowed, Samples, &QualityLevels)))
 			{
 				// Update Present Parameter for Multisample

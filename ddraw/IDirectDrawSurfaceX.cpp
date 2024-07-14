@@ -404,22 +404,10 @@ HRESULT m_IDirectDrawSurfaceX::AddAttachedSurface(LPDIRECTDRAWSURFACE7 lpDDSurfa
 			return DDERR_CANNOTATTACHSURFACE;
 		}
 
-		// Set depth buffer
+		// Update attached stencil surface
 		if (lpAttachedSurfaceX->IsDepthBuffer())
 		{
-			// Verify depth buffer's with and height
-			if ((surfaceDesc2.dwFlags & (DDSD_WIDTH | DDSD_HEIGHT)) == (DDSD_WIDTH | DDSD_HEIGHT) &&
-				(surfaceDesc2.dwWidth != lpAttachedSurfaceX->surfaceDesc2.dwWidth || surfaceDesc2.dwHeight != lpAttachedSurfaceX->surfaceDesc2.dwHeight))
-			{
-				lpAttachedSurfaceX->ReleaseD9Surface(false, false);
-				lpAttachedSurfaceX->surfaceDesc2.dwWidth = surfaceDesc2.dwWidth;
-				lpAttachedSurfaceX->surfaceDesc2.dwHeight = surfaceDesc2.dwHeight;
-			}
-			// Set depth stencil
-			if (ddrawParent->GetRenderTargetSurface() == this)
-			{
-				ddrawParent->SetDepthStencilSurface(lpAttachedSurfaceX);
-			}
+			UpdateAttachedZBuffer(lpAttachedSurfaceX);
 		}
 
 		AddAttachedSurfaceToMap(lpAttachedSurfaceX, true);
@@ -4075,14 +4063,15 @@ HRESULT m_IDirectDrawSurfaceX::CreateD3d9Surface()
 	const DWORD Width = GetByteAlignedWidth(surfaceDesc2.dwWidth, surfaceBitCount);
 	const DWORD Height = surfaceDesc2.dwHeight;
 
-	// Anti-aliasing, limit to 8 samples some games have issues with more samples
+	// Anti-aliasing
 	if (IsRenderTarget())
 	{
 		bool AntiAliasing = (surfaceDesc2.ddsCaps.dwCaps2 & DDSCAPS2_HINTANTIALIASING);
 		if (AntiAliasing && !surface.MultiSampleType)
 		{
+			// Default to 8 samples as some games have issues with more samples
 			DWORD MaxSamples = (surfaceDesc2.ddsCaps.dwCaps3 & DDSCAPS3_MULTISAMPLE_MASK) ? (surfaceDesc2.ddsCaps.dwCaps3 & DDSCAPS3_MULTISAMPLE_MASK) : D3DMULTISAMPLE_8_SAMPLES;
-			surface.MultiSampleType = ddrawParent->GetMultiSampleTypeQuality(Format, min(MaxSamples, D3DMULTISAMPLE_8_SAMPLES), surface.MultiSampleQuality);
+			surface.MultiSampleType = ddrawParent->GetMultiSampleTypeQuality(Format, MaxSamples, surface.MultiSampleQuality);
 		}
 	}
 
@@ -4119,17 +4108,11 @@ HRESULT m_IDirectDrawSurfaceX::CreateD3d9Surface()
 				hr = DDERR_GENERIC;
 				break;
 			}
-			// Set attached stencil surface multisampling
+			// Update attached stencil surface
 			m_IDirectDrawSurfaceX* lpAttachedSurfaceX = GetAttachedZBuffer();
-			if (lpAttachedSurfaceX && (surface.MultiSampleType != lpAttachedSurfaceX->surface.MultiSampleType || surface.MultiSampleQuality != lpAttachedSurfaceX->surface.MultiSampleQuality))
+			if (lpAttachedSurfaceX)
 			{
-				lpAttachedSurfaceX->ReleaseD9Surface(false, false);
-				lpAttachedSurfaceX->surface.MultiSampleType = surface.MultiSampleType;
-				lpAttachedSurfaceX->surface.MultiSampleQuality = surface.MultiSampleQuality;
-				if (ddrawParent->GetRenderTargetSurface() == this)
-				{
-					ddrawParent->SetDepthStencilSurface(lpAttachedSurfaceX);
-				}
+				UpdateAttachedZBuffer(lpAttachedSurfaceX);
 			}
 		}
 		// Create texture
@@ -4512,6 +4495,36 @@ HRESULT m_IDirectDrawSurfaceX::CreateDCSurface()
 	surface.emu->Size = Height * surface.emu->Pitch;
 
 	return DD_OK;
+}
+
+void m_IDirectDrawSurfaceX::UpdateAttachedZBuffer(m_IDirectDrawSurfaceX* lpAttachedSurfaceX)
+{
+	bool HasChanged = false;
+	// Verify depth buffer's with and height
+	if ((surfaceDesc2.dwFlags & (DDSD_WIDTH | DDSD_HEIGHT)) == (DDSD_WIDTH | DDSD_HEIGHT) &&
+		(surfaceDesc2.dwWidth != lpAttachedSurfaceX->surfaceDesc2.dwWidth || surfaceDesc2.dwHeight != lpAttachedSurfaceX->surfaceDesc2.dwHeight))
+	{
+		HasChanged = true;
+		lpAttachedSurfaceX->surfaceDesc2.dwWidth = surfaceDesc2.dwWidth;
+		lpAttachedSurfaceX->surfaceDesc2.dwHeight = surfaceDesc2.dwHeight;
+	}
+	// Set depth buffer multisampling
+	if (lpAttachedSurfaceX && (surface.MultiSampleType != lpAttachedSurfaceX->surface.MultiSampleType || surface.MultiSampleQuality != lpAttachedSurfaceX->surface.MultiSampleQuality))
+	{
+		HasChanged = true;
+		lpAttachedSurfaceX->surface.MultiSampleType = surface.MultiSampleType;
+		lpAttachedSurfaceX->surface.MultiSampleQuality = surface.MultiSampleQuality;
+	}
+	// If depth buffer changed
+	if (HasChanged)
+	{
+		lpAttachedSurfaceX->ReleaseD9Surface(false, false);
+	}
+	// Set depth stencil
+	if (ddrawParent->GetRenderTargetSurface() == this)
+	{
+		ddrawParent->SetDepthStencilSurface(lpAttachedSurfaceX);
+	}
 }
 
 // Update surface description
