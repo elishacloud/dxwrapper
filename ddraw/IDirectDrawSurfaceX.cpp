@@ -3874,7 +3874,7 @@ LPDIRECT3DTEXTURE9 m_IDirectDrawSurfaceX::GetD3d9Texture()
 	}
 
 	// Check texture pool
-	if (surface.TexturePool == D3DPOOL_SYSTEMMEM || surface.TexturePool == D3DPOOL_SCRATCH)
+	if ((surface.TexturePool == D3DPOOL_SYSTEMMEM || surface.TexturePool == D3DPOOL_SCRATCH) && IsTexture())
 	{
 		LOG_LIMIT(100, __FUNCTION__ << " Error: texture pool does not support Driect3D: " << surfaceFormat << " Pool: " << surface.TexturePool <<
 			" Caps: " << surfaceDesc2.ddsCaps << " Attached: " << attached3DTexture);
@@ -6744,10 +6744,14 @@ HRESULT m_IDirectDrawSurfaceX::PresentSurfaceToWindow(RECT Rect)
 	}
 
 	// Copy surface
-	HRESULT hr = (*d3d9Device)->UpdateSurface(pSourceSurfaceD9, &Rect, pDestSurfaceD9, (LPPOINT)&MapClient);
-	if (FAILED(hr))
+	HRESULT hr = DDERR_GENERIC;
+	if (IsD9UsingVideoMemory())
 	{
-		hr = D3DXLoadSurfaceFromSurface(pDestSurfaceD9, nullptr, &MapClient, pSourceSurfaceD9, nullptr, &Rect, D3DX_FILTER_NONE, 0);
+		hr = (*d3d9Device)->StretchRect(pSourceSurfaceD9, &Rect, pDestSurfaceD9, &MapClient, D3DTEXF_NONE);
+	}
+	else
+	{
+		hr = (*d3d9Device)->UpdateSurface(pSourceSurfaceD9, &Rect, pDestSurfaceD9, (LPPOINT)&MapClient);
 	}
 	pDestSurfaceD9->Release();
 	if (FAILED(hr))

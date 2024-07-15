@@ -236,6 +236,8 @@ private:
 	HRESULT CheckBackBufferForFlip(m_IDirectDrawSurfaceX* lpTargetSurface);
 
 	// Direct3D9 interface functions
+	LPDIRECT3DSURFACE9 Get3DSurface();
+	LPDIRECT3DTEXTURE9 Get3DTexture();
 	HRESULT CheckInterface(char* FunctionName, bool CheckD3DDevice, bool CheckD3DSurface, bool CheckLostSurface);
 	HRESULT CreateD3d9Surface();
 	bool DoesDCMatch(EMUSURFACE* pEmuSurface);
@@ -263,8 +265,8 @@ private:
 	inline bool IsSurfaceBlitting() { return (IsInBlt || IsInBltBatch); }
 	inline bool IsSurfaceInDC() { return IsInDC; }
 	inline bool IsSurfaceBusy() { return (IsSurfaceBlitting() || IsSurfaceLocked() || IsSurfaceInDC()); }
-	inline bool IsD9UsingVideoMemory() { return ((surface.Texture && surface.TexturePool == D3DPOOL_DEFAULT) ||
-		(surface.Surface && surface.SurfacePool == D3DPOOL_DEFAULT)); }
+	inline bool IsD9UsingVideoMemory() { return ((surface.Surface && surface.SurfacePool == D3DPOOL_DEFAULT) || 
+		(surface.Texture && surface.TexturePool == D3DPOOL_DEFAULT)); }
 	inline bool IsLockedFromOtherThread() { return (IsSurfaceBlitting() || IsSurfaceLocked()) && LockedWithID && LockedWithID != GetCurrentThreadId(); }
 	inline DWORD GetD3d9MipMapLevel(DWORD MipMapLevel) { return min(MipMapLevel, MaxMipMapLevel - 1); }
 	inline DWORD GetWidth() { return surfaceDesc2.dwWidth; }
@@ -468,10 +470,8 @@ public:
 		return false;
 	}
 	m_IDirectDrawSurfaceX* GetAttachedZBuffer();
-	LPDIRECT3DSURFACE9 Get3DSurface();
 	LPDIRECT3DSURFACE9 GetD3d9Surface();
 	LPDIRECT3DTEXTURE9 GetD3d9DrawTexture();
-	LPDIRECT3DTEXTURE9 Get3DTexture();
 	LPDIRECT3DTEXTURE9 GetD3d9Texture();
 	inline DWORD GetD3d9Width() { return surface.Width; }
 	inline DWORD GetD3d9Height() { return surface.Height; }

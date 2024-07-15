@@ -4106,7 +4106,7 @@ HRESULT m_IDirectDrawX::CopyRenderTargetToBackbuffer(m_IDirectDrawSurfaceX* Rend
 	HRESULT hr = DDERR_GENERIC;
 
 	// Copy render target to backbuffer
-	IDirect3DSurface9* pRenderTarget = RenderSurface->Get3DSurface();
+	IDirect3DSurface9* pRenderTarget = RenderSurface->GetD3d9Surface();
 	if (pRenderTarget)
 	{
 		IDirect3DSurface9* pBackBuffer = nullptr;
@@ -4169,7 +4169,7 @@ HRESULT m_IDirectDrawX::Draw2DSurface(m_IDirectDrawSurfaceX* DrawSurface)
 	}
 
 	// Get surface texture
-	LPDIRECT3DTEXTURE9 displayTexture = DrawSurface->Get3DTexture();
+	LPDIRECT3DTEXTURE9 displayTexture = DrawSurface->GetD3d9Texture();
 	if (!displayTexture)
 	{
 		LOG_LIMIT(100, __FUNCTION__ << " Error: failed to get surface texture!");
