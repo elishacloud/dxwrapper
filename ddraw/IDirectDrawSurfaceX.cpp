@@ -4746,7 +4746,7 @@ void m_IDirectDrawSurfaceX::ReleaseD9Surface(bool BackupData, bool ResetSurface)
 	// Backup d3d9 surface texture
 	if (BackupData)
 	{
-		if (surface.SurfaceHasData && (surface.Surface || surface.Texture) && !IsDepthBuffer() && (!ResetSurface || IsD9UsingVideoMemory()))
+		if (surface.SurfaceHasData && (surface.Surface || surface.Texture) && !IsRenderTarget() && !IsDepthBuffer() && (!ResetSurface || IsD9UsingVideoMemory()))
 		{
 			IsSurfaceLost = true;
 			LostDeviceBackup.clear();
