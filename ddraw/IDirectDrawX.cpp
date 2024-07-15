@@ -4159,7 +4159,7 @@ HRESULT m_IDirectDrawX::CopyRenderTargetToBackbuffer(m_IDirectDrawSurfaceX* Rend
 
 HRESULT m_IDirectDrawX::Draw2DSurface(m_IDirectDrawSurfaceX* DrawSurface)
 {
-	Logging::LogDebug() << __FUNCTION__ << " (" << this << ") ";
+	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
 	// Check draw surface
 	if (!DrawSurface)

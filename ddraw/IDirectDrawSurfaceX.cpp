@@ -5984,7 +5984,7 @@ HRESULT m_IDirectDrawSurfaceX::CopySurface(m_IDirectDrawSurfaceX* pSourceSurface
 		// Check if source surface is not locked then lock it
 		D3DLOCKED_RECT SrcLockRect = {};
 		if (FAILED(pSourceSurface->IsUsingEmulation() ? pSourceSurface->LockEmulatedSurface(&SrcLockRect, &SrcRect) :
-			pSourceSurface->LockD3d9Surface(&SrcLockRect, &SrcRect, D3DLOCK_READONLY, 0)))
+			pSourceSurface->LockD3d9Surface(&SrcLockRect, &SrcRect, D3DLOCK_READONLY, 0)) || !SrcLockRect.pBits)
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Error: could not lock source surface " << SrcRect);
 			hr = (pSourceSurface->IsSurfaceBusy()) ? DDERR_SURFACEBUSY : DDERR_GENERIC;
@@ -6020,7 +6020,7 @@ HRESULT m_IDirectDrawSurfaceX::CopySurface(m_IDirectDrawSurfaceX* pSourceSurface
 
 		// Check if destination surface is not locked then lock it
 		if (FAILED(IsUsingEmulation() ? LockEmulatedSurface(&DestLockRect, &DestRect) :
-			LockD3d9Surface(&DestLockRect, &DestRect, 0, 0)))
+			LockD3d9Surface(&DestLockRect, &DestRect, 0, 0)) || !DestLockRect.pBits)
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Error: could not lock destination surface " << DestRect);
 			hr = (IsSurfaceLocked()) ? DDERR_SURFACEBUSY : DDERR_GENERIC;
