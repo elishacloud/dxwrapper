@@ -3983,13 +3983,12 @@ HRESULT m_IDirectDrawSurfaceX::CheckInterface(char *FunctionName, bool CheckD3DD
 		bool LastWindowedMode = surface.IsUsingWindowedMode;
 		surface.IsUsingWindowedMode = !ddrawParent->IsExclusiveMode();
 
-		// Check if using Direct3D and remove emulated surface if not needed
-		bool LastUsing3D = Using3D;
-		Using3D = ddrawParent->IsUsing3D();
-		if (Using3D && !LastUsing3D && IsUsingEmulation() && !Config.DdrawEmulateSurface && !SurfaceRequiresEmulation && !IsSurfaceBusy())
+		// Check if using 3D
+		if (Using3D && !ddrawParent->IsUsing3D())
 		{
-			ReleaseDCSurface();
+			ClearUsing3DFlag();
 		}
+		Using3D = ddrawParent->IsUsing3D();
 
 		// Release d3d9 surface
 		if (attached3DTexture && surface.TexturePool != D3DPOOL_MANAGED)
@@ -4153,7 +4152,7 @@ HRESULT m_IDirectDrawSurfaceX::CreateD3d9Surface()
 		}
 
 		// Create primary surface texture
-		if (IsPrimarySurface() && surface.IsUsingWindowedMode && !Using3D)
+		if (IsPrimarySurface() && surface.IsUsingWindowedMode && !IsRenderTarget())
 		{
 			if (FAILED((*d3d9Device)->CreateTexture(Width, Height, 1, 0, Format, D3DPOOL_DEFAULT, &PrimaryDisplayTexture, nullptr)) &&
 				FAILED((*d3d9Device)->CreateTexture(Width, Height, 1, 0, GetFailoverFormat(Format), D3DPOOL_DEFAULT, &PrimaryDisplayTexture, nullptr)))
@@ -4165,7 +4164,7 @@ HRESULT m_IDirectDrawSurfaceX::CreateD3d9Surface()
 		}
 
 		// Create palette surface
-		if (IsPrimarySurface() && surfaceFormat == D3DFMT_P8)
+		if (IsPrimarySurface() && surfaceFormat == D3DFMT_P8 && !IsRenderTarget())
 		{
 			if (FAILED((*d3d9Device)->CreateTexture(MaxPaletteSize, MaxPaletteSize, 1, 0, D3DFMT_X8R8G8B8, D3DPOOL_MANAGED, &primary.PaletteTexture, nullptr)))
 			{
@@ -4626,7 +4625,27 @@ void m_IDirectDrawSurfaceX::SetAsRenderTarget()
 		{
 			CreateD3d9Surface();
 		}
+		if (!AttachedSurfaceMap.empty())
+		{
+			for (auto& entry : AttachedSurfaceMap)
+			{
+				if (entry.second.pSurface->IsPrimaryOrBackBuffer() && entry.second.pSurface->IsSurface3D() && !entry.second.pSurface->IsRenderTarget())
+				{
+					entry.second.pSurface->SetAsRenderTarget();
+				}
+			}
+		}
 	}
+}
+
+void m_IDirectDrawSurfaceX::ClearUsing3DFlag()
+{
+	// Check if using Direct3D and remove emulated surface if not needed
+	if (Using3D && IsUsingEmulation() && !Config.DdrawEmulateSurface && !SurfaceRequiresEmulation && !IsSurfaceBusy())
+	{
+		ReleaseDCSurface();
+	}
+	Using3D = false;
 }
 
 // Release surface and vertext buffer

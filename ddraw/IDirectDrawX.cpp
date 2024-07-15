@@ -3529,6 +3529,21 @@ HRESULT m_IDirectDrawX::SetDepthStencilSurface(m_IDirectDrawSurfaceX* lpSurface)
 	return hr;
 }
 
+void m_IDirectDrawX::Release3DForAllSurfaces()
+{
+	SetCriticalSection();
+
+	for (m_IDirectDrawX*& pDDraw : DDrawVector)
+	{
+		for (m_IDirectDrawSurfaceX*& pSurface : pDDraw->SurfaceVector)
+		{
+			pSurface->ClearUsing3DFlag();
+		}
+	}
+
+	ReleaseCriticalSection();
+}
+
 inline void m_IDirectDrawX::ResetAllSurfaceDisplay()
 {
 	SetCriticalSection();

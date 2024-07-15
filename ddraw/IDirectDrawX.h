@@ -85,6 +85,7 @@ private:
 	// Direct3D9 interface functions
 	HRESULT CheckInterface(char *FunctionName, bool CheckD3DDevice);
 	HRESULT CreateD3D9Object();
+	void Release3DForAllSurfaces();
 	void ResetAllSurfaceDisplay();
 	void ReleaseAllD9Resources(bool BackupData, bool ResetInterface);
 	void ReleaseD3D9Device();
@@ -179,7 +180,7 @@ public:
 	inline void ClearD3D() { D3DInterface = nullptr; }
 	void SetD3DDevice(m_IDirect3DDeviceX* D3DDevice);
 	inline m_IDirect3DDeviceX** GetCurrentD3DDevice() { return &D3DDeviceInterface; }
-	inline void ClearD3DDevice() { D3DDeviceInterface = nullptr; SetRenderTargetSurface(nullptr); Using3D = false; }
+	inline void ClearD3DDevice() { Using3D = false; D3DDeviceInterface = nullptr; SetRenderTargetSurface(nullptr); Release3DForAllSurfaces(); }
 	inline void Enable3D() { Using3D = true; }
 	inline bool IsUsing3D() { return Using3D; }
 	inline bool IsPrimaryRenderTarget() { return PrimarySurface ? RenderTargetSurface->IsRenderTarget() : false; }

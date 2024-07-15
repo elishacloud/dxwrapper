@@ -480,6 +480,7 @@ public:
 	inline m_IDirect3DTextureX* GetAttachedTexture() { return attached3DTexture; }
 	inline void ClearAttachedTexture() { attached3DTexture = nullptr; }
 	void ClearDirtyFlags();
+	void ClearUsing3DFlag();
 
 	// Draw 2D DirectDraw surface
 	HRESULT ColorFill(RECT* pRect, D3DCOLOR dwFillColor);
