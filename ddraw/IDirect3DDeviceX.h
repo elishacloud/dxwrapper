@@ -1,6 +1,5 @@
 #pragma once
 
-#include "IDirectDrawX.h"
 #include <unordered_map>
 
 constexpr UINT MaxTextureStages = 8;	// Devices can have up to eight set textures.

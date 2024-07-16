@@ -1,7 +1,5 @@
 #pragma once
 
-#include "IDirectDrawSurfaceX.h"
-
 class m_IDirectDrawX : public IUnknown, public AddressLookupTableDdrawObject
 {
 private:
