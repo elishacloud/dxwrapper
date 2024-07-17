@@ -181,7 +181,7 @@ public:
 	inline void ClearD3DDevice() { Using3D = false; D3DDeviceInterface = nullptr; SetRenderTargetSurface(nullptr); Release3DForAllSurfaces(); }
 	inline void Enable3D() { Using3D = true; }
 	inline bool IsUsing3D() { return Using3D; }
-	inline bool IsPrimaryRenderTarget() { return PrimarySurface ? RenderTargetSurface->IsRenderTarget() : false; }
+	inline bool IsPrimaryRenderTarget() { return RenderTargetSurface ? RenderTargetSurface->IsRenderTarget() : false; }
 	inline bool IsPrimaryFlipSurface() { return PrimarySurface ? PrimarySurface->IsFlipSurface() : false; }
 
 	// Direct3D9 interfaces

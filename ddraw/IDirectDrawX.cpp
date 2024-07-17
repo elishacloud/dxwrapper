@@ -1958,7 +1958,7 @@ HRESULT m_IDirectDrawX::WaitForVerticalBlank(DWORD dwFlags, HANDLE hEvent)
 			return DDERR_GENERIC;
 		}
 
-		if (Config.ForceVsyncMode || IsUsing3D())
+		if (Config.ForceVsyncMode || IsPrimaryRenderTarget())
 		{
 			return DD_OK;
 		}
@@ -2696,7 +2696,7 @@ void m_IDirectDrawX::GetSurfaceDisplay(DWORD& Width, DWORD& Height, DWORD& BPP, 
 	}
 	else
 	{
-		if (!Config.DdrawWriteToGDI && !Using3D)
+		if (!Config.DdrawWriteToGDI && !IsPrimaryRenderTarget())
 		{
 			Utils::GetScreenSize(hWnd, (LONG&)Width, (LONG&)Height);
 		}
@@ -3565,18 +3565,12 @@ inline void m_IDirectDrawX::ReleaseAllD9Resources(bool BackupData, bool ResetInt
 	SetCriticalSection();
 	SetPTCriticalSection();
 
-	// Remove depth buffer surface
-	if (d3d9Device && DepthStencilSurface)
+	// Remove render target and depth buffer surfaces
+	if (d3d9Device && (RenderTargetSurface || DepthStencilSurface))
 	{
-		d3d9Device->SetRenderState(D3DRS_ZENABLE, FALSE);
-		d3d9Device->SetDepthStencilSurface(nullptr);
+		SetRenderTargetSurface(nullptr);
 	}
-
-	// Remove render target
-	if (d3d9Device && d3d9RenderTarget)
-	{
-		d3d9Device->SetRenderTarget(0, d3d9RenderTarget);
-	}
+	d3d9RenderTarget = nullptr;
 
 	// Release all surfaces from all ddraw devices
 	for (m_IDirectDrawX*& pDDraw : DDrawVector)
@@ -3759,7 +3753,7 @@ void m_IDirectDrawX::RemoveSurfaceFromVector(m_IDirectDrawSurfaceX* lpSurfaceX)
 		}
 		if (lpSurfaceX == pDDraw->RenderTargetSurface)
 		{
-			pDDraw->RenderTargetSurface = nullptr;
+			pDDraw->SetRenderTargetSurface(nullptr);
 		}
 		if (lpSurfaceX == pDDraw->DepthStencilSurface)
 		{
@@ -4103,6 +4097,11 @@ HRESULT m_IDirectDrawX::CopyRenderTargetToBackbuffer(m_IDirectDrawSurfaceX* Rend
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
+	if (!RenderSurface)
+	{
+		return DDERR_GENERIC;
+	}
+
 	HRESULT hr = DDERR_GENERIC;
 
 	// Copy render target to backbuffer
@@ -4380,7 +4379,15 @@ HRESULT m_IDirectDrawX::Present2DScene(m_IDirectDrawSurfaceX* DrawSurface, RECT*
 
 bool m_IDirectDrawX::IsUsingThreadPresent()
 {
-	return (PresentThread.IsInitialized && ExclusiveMode && !RenderTargetSurface && !IsUsing3D());
+	bool UsingThreadPresent = PresentThread.IsInitialized;
+	if (UsingThreadPresent)
+	{
+		SetPTCriticalSection();
+		UsingThreadPresent = (PresentThread.IsInitialized && ExclusiveMode && !RenderTargetSurface && !IsPrimaryRenderTarget());
+		ReleasePTCriticalSection();
+	}
+
+	return UsingThreadPresent;
 }
 
 // Present Thread: Wait for the event
@@ -4509,10 +4516,11 @@ HRESULT m_IDirectDrawX::Present(RECT* pSourceRect, RECT* pDestRect, bool Present
 	HRESULT hr = D3DERR_DEVICELOST;
 	if (!IsUsingThreadPresent())
 	{
-		if (RenderTargetSurface && (IsPrimaryRenderTarget() || IsPrimaryFlipSurface()))
+		if (IsPrimaryRenderTarget())
 		{
 			hr = D3D_OK;
-			if (D3DDeviceInterface && !D3DDeviceInterface->IsDeviceInScene())
+
+			if (!D3DDeviceInterface || !D3DDeviceInterface->IsDeviceInScene())
 			{
 				CopyRenderTargetToBackbuffer(PrimarySurface);
 

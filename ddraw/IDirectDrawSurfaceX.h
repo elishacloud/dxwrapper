@@ -143,7 +143,6 @@ private:
 	LPDIRECT3DTEXTURE9 PrimaryDisplayTexture = nullptr;	// Used for the texture surface for the primary surface
 	m_IDirectDrawPalette *attachedPalette = nullptr;	// Associated palette
 	m_IDirectDrawClipper *attachedClipper = nullptr;	// Associated clipper
-	HWND ClipperWindow = nullptr;						// Current clipper
 	m_IDirect3DTextureX *attached3DTexture = nullptr;	// Associated texture
 	DDSURFACEDESC2 surfaceDesc2 = {};					// Surface description for this surface
 	D3DFORMAT surfaceFormat = D3DFMT_UNKNOWN;			// Format for this surface
@@ -282,6 +281,11 @@ private:
 		ProxyAddressLookupTable.IsValidWrapperAddress((m_IDirectDrawSurface4*)lpDDSrcSurface) ||
 		ProxyAddressLookupTable.IsValidWrapperAddress((m_IDirectDrawSurface7*)lpDDSrcSurface));
 	}
+
+	// For Present checking
+	inline bool ShouldReadFromGDI() { return (Config.DdrawReadFromGDI && IsPrimarySurface() && IsUsingEmulation() && !IsRenderTarget()); }
+	inline bool ShouldWriteToGDI() { return (Config.DdrawWriteToGDI && IsPrimarySurface() && IsUsingEmulation() && !IsRenderTarget()); }
+	inline bool ShouldPresentToWindow() { return (surface.IsUsingWindowedMode && IsPrimarySurface() && !Config.DdrawWriteToGDI && !IsRenderTarget()); }
 
 	// Attached surfaces
 	void InitSurfaceDesc(DWORD DirectXVersion);

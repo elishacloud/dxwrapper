@@ -790,6 +790,13 @@ HRESULT m_IDirectDrawSurfaceX::BltBatch(LPDDBLTBATCH lpDDBltBatch, DWORD dwCount
 		return DDERR_INVALIDPARAMS;
 	}
 
+	// Check for device interface before doing batch
+	HRESULT c_hr = CheckInterface(__FUNCTION__, true, true, true);
+	if (FAILED(c_hr))
+	{
+		return c_hr;
+	}
+
 	HRESULT hr = DD_OK;
 
 	bool IsSkipScene = false;
@@ -1521,28 +1528,26 @@ HRESULT m_IDirectDrawSurfaceX::Flip(LPDIRECTDRAWSURFACE7 lpDDSurfaceTargetOverri
 				ddrawParent->SetVsync();
 			}
 
-			// Preset surface for 3D
-			if (Using3D)
+			// Blt surface directly to GDI
+			if (ShouldWriteToGDI())
+			{
+				RECT Rect = { 0, 0, (LONG)surfaceDesc2.dwWidth, (LONG)surfaceDesc2.dwHeight };
+				CopyEmulatedSurfaceToGDI(Rect);
+			}
+			// Present surface to window
+			else if (ShouldPresentToWindow())
+			{
+				RECT Rect = { 0, 0, (LONG)surfaceDesc2.dwWidth, (LONG)surfaceDesc2.dwHeight };
+				PresentSurfaceToWindow(Rect);
+			}
+			// Present surface for 3D
+			else if (IsRenderTarget())
 			{
 				ddrawParent->Present(nullptr, nullptr, true);
 			}
-			// Preset surface for 2D
+			// Present surface for 2D
 			else
 			{
-				RECT Rect = { 0, 0, (LONG)surfaceDesc2.dwWidth, (LONG)surfaceDesc2.dwHeight };
-
-				// Blt surface directly to GDI
-				if (Config.DdrawWriteToGDI)
-				{
-					CopyEmulatedSurfaceToGDI(Rect);
-				}
-				// Handle windowed mode
-				else if (surface.IsUsingWindowedMode)
-				{
-					PresentSurfaceToWindow(Rect);
-				}
-
-				// Present surface
 				EndWritePresent(false);
 			}
 
@@ -2009,7 +2014,7 @@ HRESULT m_IDirectDrawSurfaceX::GetDC(HDC FAR* lphDC)
 				UpdatePaletteData();
 
 				// Read surface from GDI
-				if (Config.DdrawReadFromGDI && IsPrimaryOrBackBuffer() && !Using3D)
+				if (ShouldReadFromGDI())
 				{
 					RECT Rect = { 0, 0, (LONG)surfaceDesc2.dwWidth, (LONG)surfaceDesc2.dwHeight };
 					CopyEmulatedSurfaceFromGDI(Rect);
@@ -2579,7 +2584,7 @@ HRESULT m_IDirectDrawSurfaceX::Lock2(LPRECT lpDestRect, LPDDSURFACEDESC2 lpDDSur
 				}
 
 				// Read surface from GDI
-				if (Config.DdrawReadFromGDI && IsPrimaryOrBackBuffer() && !Using3D)
+				if (ShouldReadFromGDI())
 				{
 					CopyEmulatedSurfaceFromGDI(DestRect);
 				}
@@ -2764,13 +2769,6 @@ HRESULT m_IDirectDrawSurfaceX::ReleaseDC(HDC hDC)
 
 				// Copy emulated surface to real texture
 				CopyFromEmulatedSurface(nullptr);
-
-				// Blt surface directly to GDI
-				if (Config.DdrawWriteToGDI && IsPrimarySurface() && !Using3D)
-				{
-					RECT Rect = { 0, 0, (LONG)surfaceDesc2.dwWidth, (LONG)surfaceDesc2.dwHeight };
-					CopyEmulatedSurfaceToGDI(Rect);
-				}
 			}
 			else
 			{
@@ -2801,8 +2799,14 @@ HRESULT m_IDirectDrawSurfaceX::ReleaseDC(HDC hDC)
 			// Set dirty flag
 			SetDirtyFlag();
 
-			// Preset surface to window
-			if (surface.IsUsingWindowedMode && IsPrimarySurface() && !Config.DdrawWriteToGDI && !Using3D)
+			// Blt surface directly to GDI
+			if (ShouldWriteToGDI())
+			{
+				RECT Rect = { 0, 0, (LONG)surfaceDesc2.dwWidth, (LONG)surfaceDesc2.dwHeight };
+				CopyEmulatedSurfaceToGDI(Rect);
+			}
+			// Present surface to window
+			else if (ShouldPresentToWindow())
 			{
 				RECT Rect = { 0, 0, (LONG)surfaceDesc2.dwWidth, (LONG)surfaceDesc2.dwHeight };
 				PresentSurfaceToWindow(Rect);
@@ -3154,12 +3158,6 @@ HRESULT m_IDirectDrawSurfaceX::Unlock(LPRECT lpRect, DWORD MipMapLevel)
 				{
 					// Copy emulated surface to real texture
 					CopyFromEmulatedSurface(&LastLock.Rect);
-
-					// Blt surface directly to GDI
-					if (Config.DdrawWriteToGDI && IsPrimarySurface() && !Using3D)
-					{
-						CopyEmulatedSurfaceToGDI(LastLock.Rect);
-					}
 				}
 			}
 			// Lock surface
@@ -3202,14 +3200,22 @@ HRESULT m_IDirectDrawSurfaceX::Unlock(LPRECT lpRect, DWORD MipMapLevel)
 				SetDirtyFlag();
 			}
 
-			// Preset surface to window
-			if (surface.IsUsingWindowedMode && IsPrimarySurface() && !Config.DdrawWriteToGDI && !Using3D)
+			if (!LastLock.ReadOnly)
 			{
-				PresentSurfaceToWindow(LastLock.Rect);
-			}
+				// Blt surface directly to GDI
+				if (ShouldWriteToGDI())
+				{
+					CopyEmulatedSurfaceToGDI(LastLock.Rect);
+				}
+				// Present surface to window
+				else if (ShouldPresentToWindow())
+				{
+					PresentSurfaceToWindow(LastLock.Rect);
+				}
 
-			// Present surface
-			EndWritePresent(LastLock.IsSkipScene);
+				// Present surface
+				EndWritePresent(LastLock.IsSkipScene);
+			}
 
 		} while (false);
 
@@ -3934,9 +3940,9 @@ HRESULT m_IDirectDrawSurfaceX::CheckInterface(char *FunctionName, bool CheckD3DD
 			LOG_LIMIT(100, FunctionName << " Error: d3d9 device not setup!");
 			return DDERR_INVALIDOBJECT;
 		}
-		if (surface.IsUsingWindowedMode && IsPrimarySurface() && !Config.DdrawWriteToGDI && !Using3D)
+		if (ShouldPresentToWindow())
 		{
-			HWND hWnd = ClipperWindow;
+			HWND hWnd = nullptr;
 			if (attachedClipper)
 			{
 				attachedClipper->GetHWnd(&hWnd);
@@ -3949,7 +3955,6 @@ HRESULT m_IDirectDrawSurfaceX::CheckInterface(char *FunctionName, bool CheckD3DD
 			{
 				ddrawParent->SetClipperHWnd(hWnd);
 			}
-			ClipperWindow = hWnd;
 		}
 	}
 
@@ -4008,7 +4013,7 @@ HRESULT m_IDirectDrawSurfaceX::CheckInterface(char *FunctionName, bool CheckD3DD
 		// Make sure surface exists, if not then create it
 		if ((!surface.Surface && !surface.Texture) ||
 			(IsPrimaryOrBackBuffer() && LastWindowedMode != surface.IsUsingWindowedMode) ||
-			(Using3D && PrimaryDisplayTexture))
+			(PrimaryDisplayTexture && !ShouldPresentToWindow()))
 		{
 			if (FAILED(CreateD3d9Surface()))
 			{
@@ -4027,7 +4032,7 @@ HRESULT m_IDirectDrawSurfaceX::CreateD3d9Surface()
 	// Don't recreate surface while it is locked
 	if ((surface.Surface || surface.Texture) && IsSurfaceBusy())
 	{
-		LOG_LIMIT(100, __FUNCTION__ << " Error: surface is busy! Locked: " << IsSurfaceLocked() << " DC: " << IsSurfaceInDC() << " Blt: " << IsSurfaceBlitting());
+		LOG_LIMIT(100, __FUNCTION__ << " Error: surface is busy! Locked: " << IsSurfaceLocked() << " DC: " << IsSurfaceInDC() << " Blt: " << IsSurfaceBlitting() << " ThreadID " << LockedWithID);
 		return DDERR_GENERIC;
 	}
 
@@ -4052,12 +4057,12 @@ HRESULT m_IDirectDrawSurfaceX::CreateD3d9Surface()
 	SurfaceRequiresEmulation = ((surfaceFormat == D3DFMT_A8B8G8R8 || surfaceFormat == D3DFMT_X8B8G8R8 || surfaceFormat == D3DFMT_B8G8R8 || surfaceFormat == D3DFMT_R8G8B8 ||
 		Config.DdrawEmulateSurface || (Config.DdrawRemoveScanlines && IsPrimaryOrBackBuffer()) || ShouldEmulate == SC_FORCE_EMULATED) &&
 			!IsDepthBuffer() && !(surfaceFormat & 0xFF000000 /*FOURCC or D3DFMT_DXTx*/) && !surface.UsingSurfaceMemory);
-	const bool IsSurfaceEmulated = (SurfaceRequiresEmulation || (IsPrimaryOrBackBuffer() && (Config.DdrawWriteToGDI || Config.DdrawReadFromGDI) && !Using3D));
+	const bool IsSurfaceEmulated = (SurfaceRequiresEmulation || (IsPrimaryOrBackBuffer() && (Config.DdrawWriteToGDI || Config.DdrawReadFromGDI) && !IsRenderTarget()));
 	DCRequiresEmulation = (surfaceFormat != D3DFMT_R5G6B5 && surfaceFormat != D3DFMT_X1R5G5B5 && surfaceFormat != D3DFMT_R8G8B8 && surfaceFormat != D3DFMT_X8R8G8B8);
 	const D3DFORMAT Format = ((surfaceDesc2.ddsCaps.dwCaps2 & DDSCAPS2_NOTUSERLOCKABLE) && surfaceFormat == D3DFMT_D16_LOCKABLE) ? D3DFMT_D16 : ConvertSurfaceFormat(surfaceFormat);
 
 	// Get memory pool
-	surface.TexturePool = (IsPrimaryOrBackBuffer() && surface.IsUsingWindowedMode && !Using3D) ? D3DPOOL_SYSTEMMEM :
+	surface.TexturePool = (IsPrimaryOrBackBuffer() && surface.IsUsingWindowedMode && !IsRenderTarget()) ? D3DPOOL_SYSTEMMEM :
 		(IsPrimaryOrBackBuffer() || (surfaceDesc2.ddsCaps.dwCaps & DDSCAPS_TEXTURE) ||
 			(surfaceDesc2.ddsCaps.dwCaps2 & (DDSCAPS2_TEXTUREMANAGE | DDSCAPS2_D3DTEXTUREMANAGE))) ? D3DPOOL_MANAGED :
 		(surfaceDesc2.ddsCaps.dwCaps & DDSCAPS_SYSTEMMEMORY) ? D3DPOOL_SYSTEMMEM : D3DPOOL_MANAGED;
@@ -4161,7 +4166,7 @@ HRESULT m_IDirectDrawSurfaceX::CreateD3d9Surface()
 		}
 
 		// Create primary surface texture
-		if (IsPrimarySurface() && surface.IsUsingWindowedMode && !Using3D)
+		if (ShouldPresentToWindow())
 		{
 			if (FAILED((*d3d9Device)->CreateTexture(Width, Height, 1, 0, Format, D3DPOOL_DEFAULT, &PrimaryDisplayTexture, nullptr)) &&
 				FAILED((*d3d9Device)->CreateTexture(Width, Height, 1, 0, GetFailoverFormat(Format), D3DPOOL_DEFAULT, &PrimaryDisplayTexture, nullptr)))
@@ -4173,7 +4178,7 @@ HRESULT m_IDirectDrawSurfaceX::CreateD3d9Surface()
 		}
 
 		// Create palette surface
-		if (IsPrimarySurface() && surfaceFormat == D3DFMT_P8 && !Using3D)
+		if (IsPrimarySurface() && surfaceFormat == D3DFMT_P8 && !IsRenderTarget())
 		{
 			if (FAILED((*d3d9Device)->CreateTexture(MaxPaletteSize, MaxPaletteSize, 1, 0, D3DFMT_X8R8G8B8, D3DPOOL_MANAGED, &primary.PaletteTexture, nullptr)))
 			{
@@ -4651,10 +4656,23 @@ void m_IDirectDrawSurfaceX::ClearUsing3DFlag()
 {
 	Using3D = false;
 
-	if (IsRenderTarget())
+	if (surface.CanBeRenderTarget)
 	{
 		surface.CanBeRenderTarget = false;
-		ReleaseD9Surface(true, false);
+		if (surface.Surface || surface.Texture)
+		{
+			CreateD3d9Surface();
+		}
+		if (!AttachedSurfaceMap.empty())
+		{
+			for (auto& entry : AttachedSurfaceMap)
+			{
+				if (entry.second.pSurface->IsPrimaryOrBackBuffer() && entry.second.pSurface->IsRenderTarget())
+				{
+					entry.second.pSurface->ClearUsing3DFlag();
+				}
+			}
+		}
 	}
 }
 
@@ -4799,11 +4817,6 @@ void m_IDirectDrawSurfaceX::ReleaseD9Surface(bool BackupData, bool ResetSurface)
 	if (surface.Surface && (!ResetSurface || IsD9UsingVideoMemory() || IsDepthBuffer()))
 	{
 		Logging::LogDebug() << __FUNCTION__ << " Releasing Direct3D9 surface";
-		if (IsDepthBuffer() && d3d9Device && *d3d9Device && ddrawParent && ddrawParent->GetDepthStencilSurface() == this)
-		{
-			(*d3d9Device)->SetRenderState(D3DRS_ZENABLE, FALSE);
-			(*d3d9Device)->SetDepthStencilSurface(nullptr);
-		}
 		ULONG ref = surface.Surface->Release();
 		if (ref)
 		{
@@ -4840,11 +4853,6 @@ void m_IDirectDrawSurfaceX::ReleaseD9Surface(bool BackupData, bool ResetSurface)
 	if (primary.PaletteTexture && !ResetSurface)
 	{
 		Logging::LogDebug() << __FUNCTION__ << " Releasing Direct3D9 palette texture surface";
-		if (d3d9Device && *d3d9Device)
-		{
-			(*d3d9Device)->SetTexture(1, nullptr);
-			(*d3d9Device)->SetPixelShader(nullptr);
-		}
 		ULONG ref = primary.PaletteTexture->Release();
 		if (ref)
 		{
@@ -4904,7 +4912,7 @@ HRESULT m_IDirectDrawSurfaceX::PresentSurface(bool IsSkipScene)
 	}
 
 	// Check if is not primary surface or if scene should be skipped
-	if (Config.DdrawWriteToGDI || surface.IsUsingWindowedMode || (Using3D && !IsPrimarySurface()))
+	if (ShouldWriteToGDI() || ShouldPresentToWindow())
 	{
 		// Never present when using Direct3D or when writing to GDI
 		return DD_OK;
@@ -4960,7 +4968,7 @@ HRESULT m_IDirectDrawSurfaceX::PresentSurface(bool IsSkipScene)
 
 	// Present to d3d9
 	HRESULT hr = DD_OK;
-	if (FAILED(Using3D ? ddrawParent->Present(nullptr, nullptr, false) : ddrawParent->Present2DScene(this, nullptr, nullptr)))
+	if (FAILED(IsRenderTarget() ? ddrawParent->Present(nullptr, nullptr, false) : ddrawParent->Present2DScene(this, nullptr, nullptr)))
 	{
 		LOG_LIMIT(100, __FUNCTION__ << " Error: failed to present 2D scene!");
 		hr = DDERR_GENERIC;
@@ -5332,7 +5340,7 @@ inline bool m_IDirectDrawSurfaceX::CheckRectforSkipScene(RECT& DestRect)
 inline void m_IDirectDrawSurfaceX::BeginWritePresent(bool IsSkipScene)
 {
 	// Check if data needs to be presented before write
-	if (dirtyFlag && !Using3D)
+	if (dirtyFlag)
 	{
 		if (FAILED(PresentSurface(IsSkipScene)))
 		{
@@ -5652,28 +5660,27 @@ HRESULT m_IDirectDrawSurfaceX::ColorFill(RECT* pRect, D3DCOLOR dwFillColor)
 	else
 	{
 		LOG_LIMIT(100, __FUNCTION__ << " Error: invalid bit count: " << surfaceBitCount << " Width: " << FillWidth);
+		return DDERR_GENERIC;
 	}
 
-	// Unlock surface
+	// Copy emulated surface to real texture
 	if (IsUsingEmulation())
 	{
-		// Copy emulated surface to real texture
 		CopyFromEmulatedSurface(&DestRect);
-
-		// Blt surface directly to GDI
-		if (Config.DdrawWriteToGDI && IsPrimarySurface() && !Using3D)
-		{
-			CopyEmulatedSurfaceToGDI(DestRect);
-		}
 	}
+	// Unlock surface
 	else
 	{
 		UnLockD3d9Surface(0);
-
 	}
 
-	// Preset surface to window
-	if (surface.IsUsingWindowedMode && IsPrimarySurface() && !Config.DdrawWriteToGDI && !Using3D)
+	// Blt surface directly to GDI
+	if (ShouldWriteToGDI())
+	{
+		CopyEmulatedSurfaceToGDI(DestRect);
+	}
+	// Present surface to window
+	else if (ShouldPresentToWindow())
 	{
 		PresentSurfaceToWindow(DestRect);
 	}
@@ -5840,7 +5847,7 @@ HRESULT m_IDirectDrawSurfaceX::CopySurface(m_IDirectDrawSurfaceX* pSourceSurface
 	}
 
 	// Read surface from GDI
-	if (Config.DdrawReadFromGDI && IsPrimaryOrBackBuffer() && !Using3D)
+	if (ShouldReadFromGDI())
 	{
 		CopyEmulatedSurfaceFromGDI(DestRect);
 	}
@@ -6217,23 +6224,21 @@ HRESULT m_IDirectDrawSurfaceX::CopySurface(m_IDirectDrawSurfaceX* pSourceSurface
 		IsUsingEmulation() ? DD_OK : UnLockD3d9Surface(0);
 	}
 
-	// Update for emulated surface
 	if (SUCCEEDED(hr))
 	{
+		// Copy emulated surface to real texture
 		if (IsUsingEmulation())
 		{
-			// Copy emulated surface to real texture
 			CopyFromEmulatedSurface(&DestRect);
-
-			// Blt surface directly to GDI
-			if (Config.DdrawWriteToGDI && IsPrimarySurface() && !Using3D)
-			{
-				CopyEmulatedSurfaceToGDI(DestRect);
-			}
 		}
 
-		// Preset surface to window
-		if (surface.IsUsingWindowedMode && IsPrimarySurface() && !Config.DdrawWriteToGDI && !Using3D)
+		// Blt surface directly to GDI
+		if (ShouldWriteToGDI())
+		{
+			CopyEmulatedSurfaceToGDI(DestRect);
+		}
+		// Present surface to window
+		else if (ShouldPresentToWindow())
 		{
 			PresentSurfaceToWindow(DestRect);
 		}
