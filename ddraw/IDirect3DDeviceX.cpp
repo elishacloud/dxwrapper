@@ -1858,13 +1858,6 @@ HRESULT m_IDirect3DDeviceX::EndScene()
 		if (SUCCEEDED(hr))
 		{
 			IsInScene = false;
-
-			// If NOT using Flip then present now, otherwise present on Flip
-			m_IDirectDrawSurfaceX* PrimarySurface = ddrawParent->GetPrimarySurface();
-			if (PrimarySurface == lpCurrentRenderTargetX || !ddrawParent->IsPrimaryFlipSurface())
-			{
-				ddrawParent->Present(nullptr, nullptr, false);
-			}
 		}
 
 		return hr;
@@ -4251,6 +4244,10 @@ inline void m_IDirect3DDeviceX::RestoreDrawStates(DWORD dwVertexTypeDesc, DWORD 
 	}
 	if (Config.Dd7to9)
 	{
+		if (lpCurrentRenderTargetX)
+		{
+			lpCurrentRenderTargetX->SetDirtyFlag();
+		}
 		if (Config.DdrawFixByteAlignment > 1)
 		{
 			for (UINT x = 0; x < MaxTextureStages; x++)

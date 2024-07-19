@@ -181,8 +181,8 @@ public:
 	inline void ClearD3DDevice() { Using3D = false; D3DDeviceInterface = nullptr; SetRenderTargetSurface(nullptr); Release3DForAllSurfaces(); }
 	inline void Enable3D() { Using3D = true; }
 	inline bool IsUsing3D() { return Using3D; }
-	inline bool IsPrimaryRenderTarget() { return RenderTargetSurface ? RenderTargetSurface->IsRenderTarget() : false; }
-	inline bool IsPrimaryFlipSurface() { return PrimarySurface ? PrimarySurface->IsFlipSurface() : false; }
+	inline bool IsPrimaryRenderTarget() { return PrimarySurface ? PrimarySurface->IsRenderTarget() : false; }
+	bool IsInscene();
 
 	// Direct3D9 interfaces
 	bool CheckD3D9Device();
@@ -213,6 +213,7 @@ public:
 	m_IDirectDrawSurfaceX *GetPrimarySurface() { return PrimarySurface; }
 	m_IDirectDrawSurfaceX *GetRenderTargetSurface() { return RenderTargetSurface; }
 	HRESULT SetRenderTargetSurface(m_IDirectDrawSurfaceX* lpSurface);
+	void ReSetRenderTarget() { if (RenderTargetSurface) { SetRenderTargetSurface(RenderTargetSurface); } }
 	m_IDirectDrawSurfaceX *GetDepthStencilSurface() { return DepthStencilSurface; }
 	HRESULT SetDepthStencilSurface(m_IDirectDrawSurfaceX* lpSurface);
 	void EvictManagedTextures();
@@ -247,9 +248,9 @@ public:
 	HRESULT SetClipperHWnd(HWND hWnd);
 	HRESULT GetD9Gamma(DWORD dwFlags, LPDDGAMMARAMP lpRampData);
 	HRESULT SetD9Gamma(DWORD dwFlags, LPDDGAMMARAMP lpRampData);
-	HRESULT CopyRenderTargetToBackbuffer(m_IDirectDrawSurfaceX* RenderSurface);
-	HRESULT Draw2DSurface(m_IDirectDrawSurfaceX* DrawSurface);
+	HRESULT CopyPrimarySurfaceToBackbuffer();
+	HRESULT DrawPrimarySurface();
 	bool IsUsingThreadPresent();
-	HRESULT Present2DScene(m_IDirectDrawSurfaceX* DrawSurface, RECT* pSourceRect, RECT* pDestRect);
-	HRESULT Present(RECT* pSourceRect, RECT* pDestRect, bool PresentOnFlip);
+	HRESULT PresentScene(RECT* pSourceRect, RECT* pDestRect);
+	HRESULT Present(RECT* pSourceRect, RECT* pDestRect);
 };

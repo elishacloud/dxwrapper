@@ -1540,15 +1540,12 @@ HRESULT m_IDirectDrawSurfaceX::Flip(LPDIRECTDRAWSURFACE7 lpDDSurfaceTargetOverri
 				RECT Rect = { 0, 0, (LONG)surfaceDesc2.dwWidth, (LONG)surfaceDesc2.dwHeight };
 				PresentSurfaceToWindow(Rect);
 			}
-			// Present surface for 3D
-			else if (IsRenderTarget())
+
+			EndWritePresent(false);
+
+			if (IsRenderTarget())
 			{
-				ddrawParent->Present(nullptr, nullptr, true);
-			}
-			// Present surface for 2D
-			else
-			{
-				EndWritePresent(false);
+				ddrawParent->ReSetRenderTarget();
 			}
 
 		} while (false);
@@ -4057,12 +4054,12 @@ HRESULT m_IDirectDrawSurfaceX::CreateD3d9Surface()
 	SurfaceRequiresEmulation = ((surfaceFormat == D3DFMT_A8B8G8R8 || surfaceFormat == D3DFMT_X8B8G8R8 || surfaceFormat == D3DFMT_B8G8R8 || surfaceFormat == D3DFMT_R8G8B8 ||
 		Config.DdrawEmulateSurface || (Config.DdrawRemoveScanlines && IsPrimaryOrBackBuffer()) || ShouldEmulate == SC_FORCE_EMULATED) &&
 			!IsDepthBuffer() && !(surfaceFormat & 0xFF000000 /*FOURCC or D3DFMT_DXTx*/) && !surface.UsingSurfaceMemory);
-	const bool IsSurfaceEmulated = (SurfaceRequiresEmulation || (IsPrimaryOrBackBuffer() && (Config.DdrawWriteToGDI || Config.DdrawReadFromGDI) && !IsRenderTarget()));
+	const bool IsSurfaceEmulated = (SurfaceRequiresEmulation || (IsPrimaryOrBackBuffer() && (Config.DdrawWriteToGDI || Config.DdrawReadFromGDI) && !Using3D));
 	DCRequiresEmulation = (surfaceFormat != D3DFMT_R5G6B5 && surfaceFormat != D3DFMT_X1R5G5B5 && surfaceFormat != D3DFMT_R8G8B8 && surfaceFormat != D3DFMT_X8R8G8B8);
 	const D3DFORMAT Format = ((surfaceDesc2.ddsCaps.dwCaps2 & DDSCAPS2_NOTUSERLOCKABLE) && surfaceFormat == D3DFMT_D16_LOCKABLE) ? D3DFMT_D16 : ConvertSurfaceFormat(surfaceFormat);
 
 	// Get memory pool
-	surface.TexturePool = (IsPrimaryOrBackBuffer() && surface.IsUsingWindowedMode && !IsRenderTarget()) ? D3DPOOL_SYSTEMMEM :
+	surface.TexturePool = (IsPrimaryOrBackBuffer() && surface.IsUsingWindowedMode) ? D3DPOOL_SYSTEMMEM :
 		(IsPrimaryOrBackBuffer() || (surfaceDesc2.ddsCaps.dwCaps & DDSCAPS_TEXTURE) ||
 			(surfaceDesc2.ddsCaps.dwCaps2 & (DDSCAPS2_TEXTUREMANAGE | DDSCAPS2_D3DTEXTUREMANAGE))) ? D3DPOOL_MANAGED :
 		(surfaceDesc2.ddsCaps.dwCaps & DDSCAPS_SYSTEMMEMORY) ? D3DPOOL_SYSTEMMEM : D3DPOOL_MANAGED;
@@ -4938,6 +4935,12 @@ HRESULT m_IDirectDrawSurfaceX::PresentSurface(bool IsSkipScene)
 	// Set scene ready
 	SceneReady = true;
 
+	// Check if device is already inscene
+	if (ddrawParent->IsInscene())
+	{
+		return DD_OK;
+	}
+
 	// Check if surface is locked or has an open DC
 	if (IsSurfaceBusy())
 	{
@@ -4968,7 +4971,7 @@ HRESULT m_IDirectDrawSurfaceX::PresentSurface(bool IsSkipScene)
 
 	// Present to d3d9
 	HRESULT hr = DD_OK;
-	if (FAILED(IsRenderTarget() ? ddrawParent->Present(nullptr, nullptr, false) : ddrawParent->Present2DScene(this, nullptr, nullptr)))
+	if (FAILED(ddrawParent->PresentScene(nullptr, nullptr)))
 	{
 		LOG_LIMIT(100, __FUNCTION__ << " Error: failed to present 2D scene!");
 		hr = DDERR_GENERIC;
@@ -5305,7 +5308,7 @@ inline HRESULT m_IDirectDrawSurfaceX::LockEmulatedSurface(D3DLOCKED_RECT* pLocke
 }
 
 // Set dirty flag
-inline void m_IDirectDrawSurfaceX::SetDirtyFlag()
+void m_IDirectDrawSurfaceX::SetDirtyFlag()
 {
 	if (IsPrimarySurface())
 	{
@@ -6766,7 +6769,7 @@ HRESULT m_IDirectDrawSurfaceX::PresentSurfaceToWindow(RECT Rect)
 	}
 
 	// Present to d3d9
-	if (FAILED(ddrawParent->Present2DScene(this, &MapClient, &MapClient)))
+	if (FAILED(ddrawParent->PresentScene(&MapClient, &MapClient)))
 	{
 		LOG_LIMIT(100, __FUNCTION__ << " Error: failed to present 2D scene!");
 		return DDERR_GENERIC;

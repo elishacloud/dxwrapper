@@ -254,7 +254,6 @@ private:
 	// Locking rect coordinates
 	bool CheckCoordinates(RECT& OutRect, LPRECT lpInRect, LPDDSURFACEDESC2 lpDDSurfaceDesc2);
 	HRESULT LockEmulatedSurface(D3DLOCKED_RECT* pLockedRect, LPRECT lpDestRect);
-	void SetDirtyFlag();
 	bool CheckRectforSkipScene(RECT& DestRect);
 	void BeginWritePresent(bool isSkipScene);
 	void EndWritePresent(bool isSkipScene);
@@ -283,8 +282,8 @@ private:
 	}
 
 	// For Present checking
-	inline bool ShouldReadFromGDI() { return (Config.DdrawReadFromGDI && IsPrimarySurface() && IsUsingEmulation() && !IsRenderTarget()); }
-	inline bool ShouldWriteToGDI() { return (Config.DdrawWriteToGDI && IsPrimarySurface() && IsUsingEmulation() && !IsRenderTarget()); }
+	inline bool ShouldReadFromGDI() { return (Config.DdrawReadFromGDI && IsPrimarySurface() && IsUsingEmulation() && !Using3D); }
+	inline bool ShouldWriteToGDI() { return (Config.DdrawWriteToGDI && IsPrimarySurface() && IsUsingEmulation() && !Using3D); }
 	inline bool ShouldPresentToWindow() { return (surface.IsUsingWindowedMode && IsPrimarySurface() && !Config.DdrawWriteToGDI && !IsRenderTarget()); }
 
 	// Attached surfaces
@@ -458,6 +457,8 @@ public:
 	inline bool IsUsingEmulation() { return (surface.emu && surface.emu->DC && surface.emu->GameDC && surface.emu->pBits); }
 	inline bool IsEmulationDCReady() { return (IsUsingEmulation() && !surface.emu->UsingGameDC); }
 	inline bool IsSurfaceDirty() { return surface.IsDirtyFlag; }
+	void SetDirtyFlag();
+	void ClearDirtyFlags();
 	bool GetColorKeyForShader(float(&lowColorKey)[4], float(&highColorKey)[4]);
 	bool GetColorKeyForPrimaryShader(float(&lowColorKey)[4], float(&highColorKey)[4]);
 	bool GetWasBitAlignLocked() { return WasBitAlignLocked; }
@@ -483,7 +484,6 @@ public:
 	inline LPDIRECT3DTEXTURE9 GetD3d9PaletteTexture() { return primary.PaletteTexture; }
 	inline m_IDirect3DTextureX* GetAttachedTexture() { return attached3DTexture; }
 	inline void ClearAttachedTexture() { attached3DTexture = nullptr; }
-	void ClearDirtyFlags();
 	void ClearUsing3DFlag();
 
 	// Draw 2D DirectDraw surface

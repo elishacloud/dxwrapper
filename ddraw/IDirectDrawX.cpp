@@ -2779,6 +2779,11 @@ void m_IDirectDrawX::SetD3DDevice(m_IDirect3DDeviceX* D3DDevice)
 	D3DDeviceInterface = D3DDevice;
 }
 
+bool m_IDirectDrawX::IsInscene()
+{
+	return (D3DDeviceInterface && D3DDeviceInterface->IsDeviceInScene());
+}
+
 bool m_IDirectDrawX::CheckD3D9Device()
 {
 	if (!d3d9Device && FAILED(CreateD3D9Device()))
@@ -3069,10 +3074,7 @@ HRESULT m_IDirectDrawX::CreateD3D9Device()
 
 		// Set render target
 		d3d9RenderTarget = nullptr;
-		if (RenderTargetSurface)
-		{
-			SetRenderTargetSurface(RenderTargetSurface);
-		}
+		ReSetRenderTarget();
 
 		// Reset D3D device settings
 		if (D3DDeviceInterface)
@@ -3364,10 +3366,7 @@ HRESULT m_IDirectDrawX::ReinitDevice()
 		if (SUCCEEDED(hr))
 		{
 			d3d9RenderTarget = nullptr;
-			if (RenderTargetSurface)
-			{
-				SetRenderTargetSurface(RenderTargetSurface);
-			}
+			ReSetRenderTarget();
 		}
 
 		// If Reset() fails
@@ -4093,26 +4092,27 @@ HRESULT m_IDirectDrawX::SetD9Gamma(DWORD dwFlags, LPDDGAMMARAMP lpRampData)
 	return D3DERR_INVALIDCALL;
 }
 
-HRESULT m_IDirectDrawX::CopyRenderTargetToBackbuffer(m_IDirectDrawSurfaceX* RenderSurface)
+HRESULT m_IDirectDrawX::CopyPrimarySurfaceToBackbuffer()
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	if (!RenderSurface)
+	if (!PrimarySurface)
 	{
+		LOG_LIMIT(100, __FUNCTION__ << " Error: no primary surface!");
 		return DDERR_GENERIC;
 	}
 
 	HRESULT hr = DDERR_GENERIC;
 
 	// Copy render target to backbuffer
-	IDirect3DSurface9* pRenderTarget = RenderSurface->GetD3d9Surface();
+	IDirect3DSurface9* pRenderTarget = PrimarySurface->GetD3d9Surface();
 	if (pRenderTarget)
 	{
 		IDirect3DSurface9* pBackBuffer = nullptr;
 		if (SUCCEEDED(d3d9Device->GetBackBuffer(0, 0, D3DBACKBUFFER_TYPE_MONO, &pBackBuffer)))
 		{
 			RECT* pSourceRect = nullptr;
-			RECT SrcRect = { 0, 0, (LONG)RenderSurface->GetD3d9Width(), (LONG)RenderSurface->GetD3d9Height() };
+			RECT SrcRect = { 0, 0, (LONG)PrimarySurface->GetD3d9Width(), (LONG)PrimarySurface->GetD3d9Height() };
 			HWND hWnd = GetHwnd();
 
 			// Get windlow location and rect
@@ -4138,11 +4138,7 @@ HRESULT m_IDirectDrawX::CopyRenderTargetToBackbuffer(m_IDirectDrawSurfaceX* Rend
 			hr = d3d9Device->StretchRect(pRenderTarget, pSourceRect, pBackBuffer, nullptr, D3DTEXF_POINT);
 			if (FAILED(hr))
 			{
-				hr = D3DXLoadSurfaceFromSurface(pBackBuffer, nullptr, nullptr, pRenderTarget, nullptr, pSourceRect, D3DX_FILTER_POINT, 0);
-				if (FAILED(hr))
-				{
-					LOG_LIMIT(100, __FUNCTION__ << " Error: failed to copy render target to backbuffer!");
-				}
+				LOG_LIMIT(100, __FUNCTION__ << " Error: failed to copy render target to backbuffer!");
 			}
 			pBackBuffer->Release();
 		}
@@ -4150,25 +4146,24 @@ HRESULT m_IDirectDrawX::CopyRenderTargetToBackbuffer(m_IDirectDrawSurfaceX* Rend
 
 	if (SUCCEEDED(hr))
 	{
-		RenderSurface->ClearDirtyFlags();
+		PrimarySurface->ClearDirtyFlags();
 	}
 
 	return hr;
 }
 
-HRESULT m_IDirectDrawX::Draw2DSurface(m_IDirectDrawSurfaceX* DrawSurface)
+HRESULT m_IDirectDrawX::DrawPrimarySurface()
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	// Check draw surface
-	if (!DrawSurface)
+	if (!PrimarySurface)
 	{
-		LOG_LIMIT(100, __FUNCTION__ << " Error: bad draw surface!");
+		LOG_LIMIT(100, __FUNCTION__ << " Error: no primary surface!");
 		return DDERR_GENERIC;
 	}
 
 	// Get surface texture
-	LPDIRECT3DTEXTURE9 displayTexture = DrawSurface->GetD3d9Texture();
+	LPDIRECT3DTEXTURE9 displayTexture = PrimarySurface->GetD3d9Texture();
 	if (!displayTexture)
 	{
 		LOG_LIMIT(100, __FUNCTION__ << " Error: failed to get surface texture!");
@@ -4195,10 +4190,10 @@ HRESULT m_IDirectDrawX::Draw2DSurface(m_IDirectDrawSurfaceX* DrawSurface)
 	}
 
 	// Handle palette surfaces
-	if (DrawSurface->IsPalette())
+	if (PrimarySurface->IsPalette())
 	{
 		// Get palette texture
-		LPDIRECT3DTEXTURE9 PaletteTexture = DrawSurface->GetD3d9PaletteTexture();
+		LPDIRECT3DTEXTURE9 PaletteTexture = PrimarySurface->GetD3d9PaletteTexture();
 		if (!PaletteTexture)
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Error: failed to get palette texture!");
@@ -4213,7 +4208,7 @@ HRESULT m_IDirectDrawX::Draw2DSurface(m_IDirectDrawSurfaceX* DrawSurface)
 		}
 
 		// Set palette texture
-		DrawSurface->UpdatePaletteData();
+		PrimarySurface->UpdatePaletteData();
 		if (FAILED(d3d9Device->SetTexture(1, PaletteTexture)))
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Error: failed to lock palette texture!");
@@ -4321,19 +4316,25 @@ HRESULT m_IDirectDrawX::Draw2DSurface(m_IDirectDrawSurfaceX* DrawSurface)
 	// Reset dirty flags
 	if (SUCCEEDED(hr))
 	{
-		DrawSurface->ClearDirtyFlags();
+		PrimarySurface->ClearDirtyFlags();
 	}
 
 	return hr;
 }
 
-HRESULT m_IDirectDrawX::Present2DScene(m_IDirectDrawSurfaceX* DrawSurface, RECT* pSourceRect, RECT* pDestRect)
+HRESULT m_IDirectDrawX::PresentScene(RECT* pSourceRect, RECT* pDestRect)
 {
 	HRESULT hr = DD_OK;
 
 	if (IsUsingThreadPresent())
 	{
 		return hr;
+	}
+
+	if (!PrimarySurface)
+	{
+		LOG_LIMIT(100, __FUNCTION__ << " Error: no primary surface!");
+		return DDERR_GENERIC;
 	}
 
 	do {
@@ -4345,11 +4346,31 @@ HRESULT m_IDirectDrawX::Present2DScene(m_IDirectDrawSurfaceX* DrawSurface, RECT*
 			break;
 		}
 
-		// Draw 2D surface before presenting
-		HRESULT DrawRet = Draw2DSurface(DrawSurface);
+		// Copy or draw primary surface before presenting
+		HRESULT DrawRet = DDERR_GENERIC;
+		if (IsPrimaryRenderTarget())
+		{
+			DrawRet = CopyPrimarySurfaceToBackbuffer();
+		}
+		else if (RenderTargetSurface)
+		{
+			IDirect3DSurface9* pBackBuffer = nullptr;
+			hr = d3d9Device->GetBackBuffer(0, 0, D3DBACKBUFFER_TYPE_MONO, &pBackBuffer);
+			if (SUCCEEDED(hr))
+			{
+				d3d9Device->SetRenderTarget(0, pBackBuffer);
+				DrawRet = DrawPrimarySurface();
+				ReSetRenderTarget();
+				pBackBuffer->Release();
+			}
+		}
+		else
+		{
+			DrawRet = DrawPrimarySurface();
+		}
 		if (FAILED(DrawRet))
 		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error: failed to draw 2D surface!");
+			LOG_LIMIT(100, __FUNCTION__ << " Error: failed to draw primary surface!");
 			hr = DrawRet;
 		}
 
@@ -4364,9 +4385,9 @@ HRESULT m_IDirectDrawX::Present2DScene(m_IDirectDrawSurfaceX* DrawSurface, RECT*
 		// Present to d3d9
 		if (SUCCEEDED(DrawRet))
 		{
-			if (FAILED(Present(pSourceRect, pDestRect, false)))
+			if (FAILED(Present(pSourceRect, pDestRect)))
 			{
-				LOG_LIMIT(100, __FUNCTION__ << " Error: failed to present 2D scene!");
+				LOG_LIMIT(100, __FUNCTION__ << " Error: failed to present scene!");
 				hr = DDERR_GENERIC;
 				break;
 			}
@@ -4436,8 +4457,8 @@ DWORD WINAPI PresentThreadFunction(LPVOID)
 				// Begin scene
 				d3d9Device->BeginScene();
 
-				// Draw 2D surface before presenting
-				pDDraw->Draw2DSurface(pPrimarySurface);
+				// Draw surface before presenting
+				pDDraw->DrawPrimarySurface();
 
 				// End scene
 				d3d9Device->EndScene();
@@ -4462,7 +4483,7 @@ DWORD WINAPI PresentThreadFunction(LPVOID)
 }
 
 // Do d3d9 Present
-HRESULT m_IDirectDrawX::Present(RECT* pSourceRect, RECT* pDestRect, bool PresentOnFlip)
+HRESULT m_IDirectDrawX::Present(RECT* pSourceRect, RECT* pDestRect)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
@@ -4516,26 +4537,7 @@ HRESULT m_IDirectDrawX::Present(RECT* pSourceRect, RECT* pDestRect, bool Present
 	HRESULT hr = D3DERR_DEVICELOST;
 	if (!IsUsingThreadPresent())
 	{
-		if (IsPrimaryRenderTarget())
-		{
-			hr = D3D_OK;
-
-			if (!D3DDeviceInterface || !D3DDeviceInterface->IsDeviceInScene())
-			{
-				CopyRenderTargetToBackbuffer(PrimarySurface);
-
-				hr = d3d9Device->Present(nullptr, nullptr, nullptr, nullptr);
-
-				if (PresentOnFlip && IsPrimaryFlipSurface())
-				{
-					SetRenderTargetSurface(RenderTargetSurface);
-				}
-			}
-		}
-		else
-		{
-			hr = d3d9Device->Present(pSourceRect, pDestRect, nullptr, nullptr);
-		}
+		hr = d3d9Device->Present(pSourceRect, pDestRect, nullptr, nullptr);
 	}
 	
 	// Test cooperative level
