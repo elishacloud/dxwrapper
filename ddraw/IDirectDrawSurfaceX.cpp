@@ -1522,6 +1522,24 @@ HRESULT m_IDirectDrawSurfaceX::Flip(LPDIRECTDRAWSURFACE7 lpDDSurfaceTargetOverri
 			// Reset flip flag
 			IsInFlip = false;
 
+			// If texture is not dirty then mark it as dirty in case the game wrote to the memory directly (Nox does this)
+			if (!surface.IsDirtyFlag)
+			{
+				if (IsUsingEmulation())
+				{
+					CopyFromEmulatedSurface(nullptr);
+				}
+				else
+				{
+					LPDIRECT3DTEXTURE9 displayTexture = Get3DTexture();
+					if (displayTexture)
+					{
+						displayTexture->AddDirtyRect(nullptr);
+					}
+				}
+				SetDirtyFlag();
+			}
+
 			// Set vertical sync wait timer
 			if ((dwFlags & DDFLIP_NOVSYNC) == 0)
 			{
@@ -4932,6 +4950,12 @@ HRESULT m_IDirectDrawSurfaceX::PresentSurface(bool IsSkipScene)
 		return DDERR_GENERIC;
 	}
 
+	// Check if the surface has anything to present
+	if (!surface.IsDirtyFlag)
+	{
+		return DD_OK;
+	}
+
 	// Set scene ready
 	SceneReady = true;
 
@@ -4950,24 +4974,6 @@ HRESULT m_IDirectDrawSurfaceX::PresentSurface(bool IsSkipScene)
 
 	// Set present flag
 	IsPresentRunning = true;
-
-	// If texture is not dirty then mark it as dirty in case the game wrote to the memory directly (Nox does this)
-	if (!surface.IsDirtyFlag)
-	{
-		if (IsUsingEmulation())
-		{
-			CopyFromEmulatedSurface(nullptr);
-		}
-		else
-		{
-			LPDIRECT3DTEXTURE9 displayTexture = Get3DTexture();
-			if (displayTexture)
-			{
-				displayTexture->AddDirtyRect(nullptr);
-			}
-		}
-		SetDirtyFlag();
-	}
 
 	// Present to d3d9
 	HRESULT hr = DD_OK;
