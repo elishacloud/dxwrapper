@@ -1958,7 +1958,7 @@ HRESULT m_IDirectDrawX::WaitForVerticalBlank(DWORD dwFlags, HANDLE hEvent)
 			return DDERR_GENERIC;
 		}
 
-		if (Config.ForceVsyncMode || IsPrimaryRenderTarget())
+		if (Config.ForceVsyncMode || IsUsing3D())
 		{
 			return DD_OK;
 		}
@@ -2698,7 +2698,15 @@ void m_IDirectDrawX::GetSurfaceDisplay(DWORD& Width, DWORD& Height, DWORD& BPP, 
 	{
 		if (!Config.DdrawWriteToGDI && !IsPrimaryRenderTarget())
 		{
-			Utils::GetScreenSize(hWnd, (LONG&)Width, (LONG&)Height);
+			if (Device.Width && Device.Height)
+			{
+				Utils::GetScreenSize(hWnd, (LONG&)Width, (LONG&)Height);
+			}
+			else
+			{
+				Width = GetSystemMetrics(SM_CXVIRTUALSCREEN);
+				Height = GetSystemMetrics(SM_CYVIRTUALSCREEN);
+			}
 		}
 		else if (d3d9Device)
 		{
@@ -2902,20 +2910,11 @@ HRESULT m_IDirectDrawX::CreateD3D9Device()
 		}
 		else
 		{
+			// Use default desktop resolution
 			if (ExclusiveMode || Config.FullscreenWindowMode || Config.ForceExclusiveFullscreen)
 			{
-				// Use resolution set by game 
-				if (Device.Width && Device.Height)
-				{
-					BackBufferWidth = Device.Width;
-					BackBufferHeight = Device.Height;
-				}
-				// Use default desktop resolution
-				else
-				{
-					BackBufferWidth = DefaultWidth;
-					BackBufferHeight = DefaultHeight;
-				}
+				BackBufferWidth = DefaultWidth;
+				BackBufferHeight = DefaultHeight;
 			}
 			else
 			{
@@ -3169,7 +3168,15 @@ HRESULT m_IDirectDrawX::CreateVertexBuffer(DWORD Width, DWORD Height)
 
 	// Get width and height
 	DWORD displayWidth = 0, displayHeight = 0;
-	Utils::GetScreenSize(GetHwnd(), (LONG&)displayWidth, (LONG&)displayHeight);
+	if (Device.Width && Device.Height)
+	{
+		Utils::GetScreenSize(GetHwnd(), (LONG&)displayWidth, (LONG&)displayHeight);
+	}
+	else
+	{
+		displayWidth = GetSystemMetrics(SM_CXVIRTUALSCREEN);
+		displayHeight = GetSystemMetrics(SM_CYVIRTUALSCREEN);
+	}
 	bool displayflag = Width && Height && (Width < displayWidth) && (Height < displayHeight);
 	DWORD BackBufferWidth = (displayflag) ? displayWidth : Width;
 	DWORD BackBufferHeight = (displayflag) ? displayHeight : Height;
@@ -4312,7 +4319,7 @@ HRESULT m_IDirectDrawX::DrawPrimarySurface()
 	return hr;
 }
 
-HRESULT m_IDirectDrawX::PresentScene(RECT* pSourceRect, RECT* pDestRect)
+HRESULT m_IDirectDrawX::PresentScene(RECT* pRect)
 {
 	HRESULT hr = DD_OK;
 
@@ -4325,6 +4332,16 @@ HRESULT m_IDirectDrawX::PresentScene(RECT* pSourceRect, RECT* pDestRect)
 	{
 		LOG_LIMIT(100, __FUNCTION__ << " Error: no primary surface!");
 		return DDERR_GENERIC;
+	}
+
+	LPRECT pDestRect = nullptr;
+	RECT DestRect = {};
+	if (PrimarySurface->ShouldPresentToWindow())
+	{
+		if (SUCCEEDED(PrimarySurface->GetPresentWindowRect(pRect, DestRect)))
+		{
+			pDestRect = &DestRect;
+		}
 	}
 
 	do {
@@ -4375,7 +4392,7 @@ HRESULT m_IDirectDrawX::PresentScene(RECT* pSourceRect, RECT* pDestRect)
 		// Present to d3d9
 		if (SUCCEEDED(DrawRet))
 		{
-			if (FAILED(Present(pSourceRect, pDestRect)))
+			if (FAILED(Present(pDestRect, pDestRect)))
 			{
 				LOG_LIMIT(100, __FUNCTION__ << " Error: failed to present scene!");
 				hr = DDERR_GENERIC;

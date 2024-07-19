@@ -1858,6 +1858,11 @@ HRESULT m_IDirect3DDeviceX::EndScene()
 		if (SUCCEEDED(hr))
 		{
 			IsInScene = false;
+
+			if (!ddrawParent->IsPrimaryFlipSurface())
+			{
+				ddrawParent->PresentScene(nullptr);
+			}
 		}
 
 		return hr;

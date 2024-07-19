@@ -182,6 +182,7 @@ public:
 	inline void Enable3D() { Using3D = true; }
 	inline bool IsUsing3D() { return Using3D; }
 	inline bool IsPrimaryRenderTarget() { return PrimarySurface ? PrimarySurface->IsRenderTarget() : false; }
+	inline bool IsPrimaryFlipSurface() { return PrimarySurface ? PrimarySurface->IsFlipSurface() : false; }
 	bool IsInscene();
 
 	// Direct3D9 interfaces
@@ -250,6 +251,6 @@ public:
 	HRESULT CopyPrimarySurfaceToBackbuffer();
 	HRESULT DrawPrimarySurface();
 	bool IsUsingThreadPresent();
-	HRESULT PresentScene(RECT* pSourceRect, RECT* pDestRect);
+	HRESULT PresentScene(RECT* pRect);
 	HRESULT Present(RECT* pSourceRect, RECT* pDestRect);
 };

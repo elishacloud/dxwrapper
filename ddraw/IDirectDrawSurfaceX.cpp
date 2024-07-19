@@ -1555,8 +1555,7 @@ HRESULT m_IDirectDrawSurfaceX::Flip(LPDIRECTDRAWSURFACE7 lpDDSurfaceTargetOverri
 			// Present surface to window
 			else if (ShouldPresentToWindow())
 			{
-				RECT Rect = { 0, 0, (LONG)surfaceDesc2.dwWidth, (LONG)surfaceDesc2.dwHeight };
-				PresentSurfaceToWindow(Rect);
+				ddrawParent->PresentScene(nullptr);
 			}
 
 			EndWritePresent(false);
@@ -2823,8 +2822,7 @@ HRESULT m_IDirectDrawSurfaceX::ReleaseDC(HDC hDC)
 			// Present surface to window
 			else if (ShouldPresentToWindow())
 			{
-				RECT Rect = { 0, 0, (LONG)surfaceDesc2.dwWidth, (LONG)surfaceDesc2.dwHeight };
-				PresentSurfaceToWindow(Rect);
+				ddrawParent->PresentScene(nullptr);
 			}
 
 			// Present surface
@@ -3225,7 +3223,7 @@ HRESULT m_IDirectDrawSurfaceX::Unlock(LPRECT lpRect, DWORD MipMapLevel)
 				// Present surface to window
 				else if (ShouldPresentToWindow())
 				{
-					PresentSurfaceToWindow(LastLock.Rect);
+					ddrawParent->PresentScene(&LastLock.Rect);
 				}
 
 				// Present surface
@@ -4977,7 +4975,7 @@ HRESULT m_IDirectDrawSurfaceX::PresentSurface(bool IsSkipScene)
 
 	// Present to d3d9
 	HRESULT hr = DD_OK;
-	if (FAILED(ddrawParent->PresentScene(nullptr, nullptr)))
+	if (FAILED(ddrawParent->PresentScene(nullptr)))
 	{
 		LOG_LIMIT(100, __FUNCTION__ << " Error: failed to present 2D scene!");
 		hr = DDERR_GENERIC;
@@ -5691,7 +5689,7 @@ HRESULT m_IDirectDrawSurfaceX::ColorFill(RECT* pRect, D3DCOLOR dwFillColor)
 	// Present surface to window
 	else if (ShouldPresentToWindow())
 	{
-		PresentSurfaceToWindow(DestRect);
+		ddrawParent->PresentScene(&DestRect);
 	}
 
 	return DD_OK;
@@ -6249,7 +6247,7 @@ HRESULT m_IDirectDrawSurfaceX::CopySurface(m_IDirectDrawSurfaceX* pSourceSurface
 		// Present surface to window
 		else if (ShouldPresentToWindow())
 		{
-			PresentSurfaceToWindow(DestRect);
+			ddrawParent->PresentScene(&DestRect);
 		}
 	}
 
@@ -6700,7 +6698,7 @@ HRESULT m_IDirectDrawSurfaceX::CopyEmulatedSurfaceToGDI(RECT Rect)
 	return DD_OK;
 }
 
-HRESULT m_IDirectDrawSurfaceX::PresentSurfaceToWindow(RECT Rect)
+HRESULT m_IDirectDrawSurfaceX::GetPresentWindowRect(LPRECT pRect, RECT& DestRect)
 {
 	if (!PrimaryDisplayTexture)
 	{
@@ -6717,6 +6715,7 @@ HRESULT m_IDirectDrawSurfaceX::PresentSurfaceToWindow(RECT Rect)
 	}
 
 	// Clip rect
+	RECT Rect = pRect ? *pRect : RECT{ 0, 0, (LONG)surfaceDesc2.dwWidth, (LONG)surfaceDesc2.dwHeight };
 	RECT ClientRect = {};
 	if (GetClientRect(hWnd, &ClientRect) && MapWindowPoints(hWnd, HWND_DESKTOP, (LPPOINT)&ClientRect, 2))
 	{
@@ -6774,12 +6773,7 @@ HRESULT m_IDirectDrawSurfaceX::PresentSurfaceToWindow(RECT Rect)
 		return DDERR_GENERIC;
 	}
 
-	// Present to d3d9
-	if (FAILED(ddrawParent->PresentScene(&MapClient, &MapClient)))
-	{
-		LOG_LIMIT(100, __FUNCTION__ << " Error: failed to present 2D scene!");
-		return DDERR_GENERIC;
-	}
+	DestRect = MapClient;
 
 	return DD_OK;
 }
