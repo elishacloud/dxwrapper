@@ -2736,12 +2736,6 @@ void m_IDirectDrawX::GetDisplayPixelFormat(DDPIXELFORMAT &ddpfPixelFormat, DWORD
 	}
 }
 
-void m_IDirectDrawX::GetDisplay(DWORD &Width, DWORD &Height)
-{
-	Width = presParams.BackBufferWidth;
-	Height = presParams.BackBufferHeight;
-}
-
 HRESULT m_IDirectDrawX::CheckInterface(char *FunctionName, bool CheckD3DDevice)
 {
 	// Check for object, if not then create it
@@ -3174,15 +3168,11 @@ HRESULT m_IDirectDrawX::CreateVertexBuffer(DWORD Width, DWORD Height)
 	}
 
 	// Get width and height
-	DWORD displayWidth, displayHeight;
-	GetDisplay(displayWidth, displayHeight);
-	bool displayflag = (Width < displayWidth) && (Height < displayHeight);
+	DWORD displayWidth = 0, displayHeight = 0;
+	Utils::GetScreenSize(GetHwnd(), (LONG&)displayWidth, (LONG&)displayHeight);
+	bool displayflag = Width && Height && (Width < displayWidth) && (Height < displayHeight);
 	DWORD BackBufferWidth = (displayflag) ? displayWidth : Width;
 	DWORD BackBufferHeight = (displayflag) ? displayHeight : Height;
-	if (!BackBufferWidth || !BackBufferHeight)
-	{
-		Utils::GetScreenSize(GetHwnd(), (LONG&)BackBufferWidth, (LONG&)BackBufferHeight);
-	}
 
 	// Calculate width and height with original aspect ratio
 	int xpad = 0, ypad = 0;
