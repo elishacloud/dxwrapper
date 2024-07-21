@@ -183,7 +183,7 @@ public:
 	inline bool IsUsing3D() { return Using3D; }
 	inline bool IsPrimaryRenderTarget() { return PrimarySurface ? PrimarySurface->IsRenderTarget() : false; }
 	inline bool IsPrimaryFlipSurface() { return PrimarySurface ? PrimarySurface->IsFlipSurface() : false; }
-	bool IsInscene();
+	bool IsInScene();
 
 	// Direct3D9 interfaces
 	bool CheckD3D9Device();

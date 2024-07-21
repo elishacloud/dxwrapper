@@ -2781,7 +2781,7 @@ void m_IDirectDrawX::SetD3DDevice(m_IDirect3DDeviceX* D3DDevice)
 	D3DDeviceInterface = D3DDevice;
 }
 
-bool m_IDirectDrawX::IsInscene()
+bool m_IDirectDrawX::IsInScene()
 {
 	return (D3DDeviceInterface && D3DDeviceInterface->IsDeviceInScene());
 }
@@ -4336,12 +4336,14 @@ HRESULT m_IDirectDrawX::PresentScene(RECT* pRect)
 
 	LPRECT pDestRect = nullptr;
 	RECT DestRect = {};
-	if (PrimarySurface->ShouldPresentToWindow())
+	if (PrimarySurface->ShouldPresentToWindow(true))
 	{
-		if (SUCCEEDED(PrimarySurface->GetPresentWindowRect(pRect, DestRect)))
+		if (FAILED(PrimarySurface->GetPresentWindowRect(pRect, DestRect)))
 		{
-			pDestRect = &DestRect;
+			LOG_LIMIT(100, __FUNCTION__ << " Error: failed to get present rect!");
+			return DDERR_GENERIC;
 		}
+		pDestRect = &DestRect;
 	}
 
 	do {
@@ -4365,9 +4367,18 @@ HRESULT m_IDirectDrawX::PresentScene(RECT* pRect)
 			hr = d3d9Device->GetBackBuffer(0, 0, D3DBACKBUFFER_TYPE_MONO, &pBackBuffer);
 			if (SUCCEEDED(hr))
 			{
+				// Set back buffer to render target
+				d3d9Device->SetRenderState(D3DRS_ZENABLE, FALSE);
+				d3d9Device->SetDepthStencilSurface(nullptr);
 				d3d9Device->SetRenderTarget(0, pBackBuffer);
+
+				// Draw surface
 				DrawRet = DrawPrimarySurface();
+
+				// Re-set the old render target
 				ReSetRenderTarget();
+
+				// Release back buffer
 				pBackBuffer->Release();
 			}
 		}
