@@ -74,6 +74,10 @@ private:
 
 	struct DDBACKUP
 	{
+		D3DFORMAT Format = D3DFMT_UNKNOWN;
+		DWORD Width = 0;
+		DWORD Height = 0;
+		DWORD Pitch = 0;
 		std::vector<byte> Bits;
 	};
 

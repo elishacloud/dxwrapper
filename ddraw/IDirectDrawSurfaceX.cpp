@@ -4240,10 +4240,11 @@ HRESULT m_IDirectDrawSurfaceX::CreateD3d9Surface()
 			// Copy surface to emulated surface
 			CopyFromEmulatedSurface(nullptr);
 			RestoreData = true;
+			surface.SurfaceHasData = true;
 		}
 		else if (!LostDeviceBackup.empty())
 		{
-			if (LostDeviceBackup[0].Bits.size() == GetSurfaceSize(surface.Format, surfaceDesc2.dwWidth, surfaceDesc2.dwHeight, surfaceDesc2.lPitch))
+			if (LostDeviceBackup[0].Format == surface.Format && LostDeviceBackup[0].Width == surface.Width && LostDeviceBackup[0].Height == surface.Height)
 			{
 				for (UINT Level = 0; Level < LostDeviceBackup.size(); Level++)
 				{
@@ -4268,24 +4269,31 @@ HRESULT m_IDirectDrawSurfaceX::CreateD3d9Surface()
 					if (size == LostDeviceBackup[Level].Bits.size())
 					{
 						memcpy(LockRect.pBits, LostDeviceBackup[Level].Bits.data(), size);
+
+						RestoreData = true;
+						surface.SurfaceHasData = true;
+					}
+					else
+					{
+						LOG_LIMIT(100, __FUNCTION__ << " Warning: restore backup surface data mismatch! For Level: " << Level << " " <<
+							LostDeviceBackup[Level].Format << " -> " << surface.Format << " " << LostDeviceBackup[Level].Width << "x" << LostDeviceBackup[Level].Height << " -> " <<
+							surface.Width << "x" << surface.Height);
 					}
 
 					UnLockD3d9Surface(Level);
 
 					// Copy surface to emulated surface
-					if (IsUsingEmulation() && Level == 0)
+					if (IsUsingEmulation() && Level == 0 && surface.SurfaceHasData)
 					{
 						CopyToEmulatedSurface(nullptr);
 					}
-
-					RestoreData = true;
-					surface.SurfaceHasData = true;
 				}
 			}
 			else
 			{
-				LOG_LIMIT(100, __FUNCTION__ << " Warning: restore backup surface data size mismatch! Size: " << LostDeviceBackup[0].Bits.size() <<
-					" Surface pitch: " << surfaceDesc2.lPitch << " " << surfaceDesc2.dwWidth << "x" << surfaceDesc2.dwHeight);
+				LOG_LIMIT(100, __FUNCTION__ << " Warning: restore backup surface data mismatch!: " <<
+					LostDeviceBackup[0].Format << " -> " << surface.Format << " " << LostDeviceBackup[0].Width << "x" << LostDeviceBackup[0].Height << " -> " <<
+					surface.Width << "x" << surface.Height);
 			}
 		}
 
@@ -4786,7 +4794,7 @@ void m_IDirectDrawSurfaceX::ReleaseD9Surface(bool BackupData, bool ResetSurface)
 	// Backup d3d9 surface texture
 	if (BackupData)
 	{
-		if (surface.SurfaceHasData && (surface.Surface || surface.Texture) && !IsRenderTarget() && !IsDepthBuffer() && (!ResetSurface || IsD9UsingVideoMemory()))
+		if (surface.SurfaceHasData && (surface.Surface || surface.Texture) && !IsDepthBuffer() && (!ResetSurface || IsD9UsingVideoMemory()))
 		{
 			IsSurfaceLost = true;
 			LostDeviceBackup.clear();
@@ -4817,6 +4825,10 @@ void m_IDirectDrawSurfaceX::ReleaseD9Surface(bool BackupData, bool ResetSurface)
 					{
 						DDBACKUP entry;
 						LostDeviceBackup.push_back(entry);
+						LostDeviceBackup[Level].Format = surface.Format;
+						LostDeviceBackup[Level].Width = Desc.Width;
+						LostDeviceBackup[Level].Height = Desc.Height;
+						LostDeviceBackup[Level].Pitch = LockRect.Pitch;
 						LostDeviceBackup[Level].Bits.resize(size);
 
 						memcpy(LostDeviceBackup[Level].Bits.data(), LockRect.pBits, size);
