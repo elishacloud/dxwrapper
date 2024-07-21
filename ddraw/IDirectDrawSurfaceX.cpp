@@ -4969,12 +4969,6 @@ HRESULT m_IDirectDrawSurfaceX::PresentSurface(bool IsSkipScene)
 		return DDERR_GENERIC;
 	}
 
-	// Check if the surface has anything to present
-	if (!surface.IsDirtyFlag)
-	{
-		return DD_OK;
-	}
-
 	// Set scene ready
 	SceneReady = true;
 
