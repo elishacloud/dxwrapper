@@ -1,9 +1,12 @@
 #pragma once
 
+#ifndef DX3DTYPE_H
+#define DX3DTYPE_H
+#endif
+
 #define D3DDP_FORCE_DWORD               0x0000001Fl
 #define D3DDP_DXW_COLORKEYENABLE        0x00000020l
 #define D3DDP_DXW_ALPHACOLORKEY         0x00000040l
-#define D3DDP_DXW_DRAW2DSURFACE         0x00000080l
 
 #define D3DDEVICEDESC1_SIZE 172
 #define D3DDEVICEDESC5_SIZE 204
@@ -32,6 +35,14 @@ typedef struct {
 	D3DCOLOR diffuse, specular;
 	FLOAT    tu, tv;
 } D3DLVERTEX9, *LPD3DLVERTEX9;
+
+typedef enum _D3DSURFACETYPE {
+    D3DTYPE_NONE = 0,
+    D3DTYPE_OFFPLAINSURFACE = 1,
+    D3DTYPE_TEXTURE = 2,
+    D3DTYPE_RENDERTARGET = 3,
+    D3DTYPE_DEPTHBUFFER = 4
+} D3DSURFACETYPE;
 
 extern D3DMATERIAL defaultMaterial;
 

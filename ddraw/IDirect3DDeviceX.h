@@ -1,6 +1,5 @@
 #pragma once
 
-#include "IDirectDrawX.h"
 #include <unordered_map>
 
 constexpr UINT MaxTextureStages = 8;	// Devices can have up to eight set textures.
@@ -43,6 +42,8 @@ private:
 	} DrawStates;
 
 	bool bSetDefaults = true;
+
+	bool IsInScene = false;
 
 	// Last clip status
 	D3DCLIPSTATUS D3DClipStatus;
@@ -271,6 +272,7 @@ public:
 	void *GetWrapperInterfaceX(DWORD DirectXVersion);
 	ULONG AddRef(DWORD DirectXVersion);
 	ULONG Release(DWORD DirectXVersion);
+	bool IsDeviceInScene() { return IsInScene; }
 
 	// Texture handle function
 	void ReleaseTextureHandle(m_IDirect3DTextureX* lpTexture);

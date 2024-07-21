@@ -617,7 +617,7 @@ HRESULT m_IDirect3DX::CreateDevice(REFCLSID rclsid, LPDIRECTDRAWSURFACE7 lpDDS, 
 		if (!DdrawSurface3D || !DdrawSurface3D->IsSurface3D())
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Error: surface is not a Direct3D surface!");
-			return DDERR_GENERIC;
+			return DDERR_INVALIDPARAMS;
 		}
 
 		m_IDirect3DDeviceX *p_IDirect3DDeviceX = new m_IDirect3DDeviceX(ddrawParent, lpDDS, riid, DirectXVersion);

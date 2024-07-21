@@ -102,3 +102,6 @@ std::ostream& operator<<(std::ostream& os, const TITLEBARINFOEX& tbi);
 std::ostream& operator<<(std::ostream& os, const GESTURENOTIFYSTRUCT& gns);
 std::ostream& operator<<(std::ostream& os, const TOUCH_HIT_TESTING_INPUT& thti);
 #endif // DDRAWCOMPAT
+#ifdef DX3DTYPE_H
+std::ostream& operator<<(std::ostream& os, const D3DSURFACETYPE& ddType);
+#endif // DX3DTYPE_H

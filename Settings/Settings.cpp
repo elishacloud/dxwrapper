@@ -651,8 +651,8 @@ void CONFIG::SetConfig()
 		}
 	}
 
-	// Check anti-aliasing value
-	AntiAliasing = (AntiAliasing == 1) ? 16 : AntiAliasing;
+	// Default to 8 samples as some games have issues with more samples
+	AntiAliasing = (AntiAliasing == 1 || AntiAliasing > 16) ? 8 : AntiAliasing;
 
 	// Enable refresh rate
 	OverrideRefreshRate = (DdrawOverrideRefreshRate && !OverrideRefreshRate) ? DdrawOverrideRefreshRate : OverrideRefreshRate;

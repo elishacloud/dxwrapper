@@ -94,7 +94,7 @@ namespace WndProc
 				VirtualProtect(FunctCode, sizeof(FunctCode), oldProtect, &tmpProtect);
 			}
 			// Restore WndProc
-			if (hWnd && AppWndProc)
+			if (IsWindow(hWnd) && AppWndProc)
 			{
 				LOG_LIMIT(100, __FUNCTION__ << " Deleting WndProc instance! " << hWnd);
 				SetWndProc(hWnd, AppWndProc);
@@ -240,11 +240,13 @@ LRESULT CALLBACK WndProc::Handler(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lPa
 	ImGuiWndProc(hWnd, Msg, wParam, lParam);
 #endif
 
+	LRESULT lr = CallWndProc(pWndProc, hWnd, Msg, wParam, lParam);
+
 	// Clean up instance when window closes
-	if ((Msg == WM_CLOSE || Msg == WM_DESTROY || Msg == WM_NCDESTROY || (Msg == WM_SYSCOMMAND && wParam == SC_CLOSE)) && hWnd == hWndInstance)
+	if (Msg == WM_NCDESTROY && hWnd == hWndInstance)
 	{
 		RemoveWndProc(hWnd);
 	}
 
-	return CallWndProc(pWndProc, hWnd, Msg, wParam, lParam);
+	return lr;
 }
