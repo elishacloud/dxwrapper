@@ -1775,7 +1775,7 @@ HRESULT m_IDirectDrawX::SetCooperativeLevel(HWND hWnd, DWORD dwFlags, DWORD Dire
 
 			// Removing WS_CAPTION
 			SetWindowLong(hWnd, GWL_STYLE, lStyle & ~WS_CAPTION);
-			SetWindowPos(hWnd, HWND_TOP, 0, 0, 0, 0, SWP_FRAMECHANGED | SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER);
+			SetWindowPos(hWnd, ((GetWindowLong(hWnd, GWL_EXSTYLE) & WS_EX_TOPMOST) ? HWND_TOPMOST : HWND_TOP), 0, 0, 0, 0, SWP_FRAMECHANGED | SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER);
 		}
 	}
 
@@ -2875,19 +2875,6 @@ HRESULT m_IDirectDrawX::CreateD3D9Device()
 		if (IsWindow(hWnd) && GetWindowThreadProcessId(hWnd, nullptr) != GetCurrentThreadId())
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Warning: trying to create Direct3D9 device from a different thread than the hwnd was created from!");
-		}
-
-		// Remove tool window
-		if (hWnd && hWnd != LastHWnd)
-		{
-			LONG ExStyle = GetWindowLong(hWnd, GWL_EXSTYLE);
-
-			if (ExStyle & WS_EX_TOOLWINDOW)
-			{
-				LOG_LIMIT(3, __FUNCTION__ << " Removing window WS_EX_TOOLWINDOW!");
-
-				SetWindowLong(hWnd, GWL_EXSTYLE, ExStyle & ~WS_EX_TOOLWINDOW);
-			}
 		}
 
 		// Get current resolution and rect

@@ -492,6 +492,20 @@ void UpdatePresentParameter(D3DPRESENT_PARAMETERS* pPresentationParameters, HWND
 			Utils::CheckMessageQueue(DeviceDetails.DeviceWindow);
 		}
 
+		// Remove tool window
+		if (DeviceDetails.DeviceWindow != LastDeviceWindow)
+		{
+			LONG lExStyle = GetWindowLong(DeviceDetails.DeviceWindow, GWL_EXSTYLE);
+
+			if (lExStyle & WS_EX_TOOLWINDOW)
+			{
+				LOG_LIMIT(3, __FUNCTION__ << " Removing window WS_EX_TOOLWINDOW!");
+
+				SetWindowLong(DeviceDetails.DeviceWindow, GWL_EXSTYLE, lExStyle & ~WS_EX_TOOLWINDOW);
+				SetWindowPos(DeviceDetails.DeviceWindow, ((lExStyle & WS_EX_TOPMOST) ? HWND_TOPMOST : HWND_TOP), 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_FRAMECHANGED);
+			}
+		}
+
 		// Get window width and height
 		if (!DeviceDetails.BufferWidth || !DeviceDetails.BufferHeight)
 		{
@@ -620,7 +634,7 @@ void AdjustWindow(HWND MainhWnd, LONG displayWidth, LONG displayHeight)
 	{
 		lStyle = (Config.EnableWindowMode) ? lStyle : (lOriginalStyle | WS_VISIBLE);
 		SetWindowLong(MainhWnd, GWL_STYLE, lStyle);
-		SetWindowPos(MainhWnd, HWND_TOP, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_FRAMECHANGED);
+		SetWindowPos(MainhWnd, ((lExStyle & WS_EX_TOPMOST) ? HWND_TOPMOST : HWND_TOP), 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_FRAMECHANGED);
 	}
 
 	// Get new window rect
@@ -659,7 +673,7 @@ void AdjustWindow(HWND MainhWnd, LONG displayWidth, LONG displayHeight)
 		// Use SetWindowPos to center and adjust size
 		else
 		{
-			SetWindowPos(MainhWnd, HWND_TOP, xLoc, yLoc, Rect.right, Rect.bottom, SWP_SHOWWINDOW | SWP_NOZORDER);
+			SetWindowPos(MainhWnd, ((lExStyle & WS_EX_TOPMOST) ? HWND_TOPMOST : HWND_TOP), xLoc, yLoc, Rect.right, Rect.bottom, SWP_SHOWWINDOW | SWP_NOZORDER);
 		}
 	}
 }
