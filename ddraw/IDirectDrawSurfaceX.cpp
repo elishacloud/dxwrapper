@@ -2291,7 +2291,7 @@ HRESULT m_IDirectDrawSurfaceX::GetSurfaceDesc2(LPDDSURFACEDESC2 lpDDSurfaceDesc2
 			lpDDSurfaceDesc2->lpSurface = nullptr;
 		}
 
-		// Handle MipMap level
+		// Handle MipMap sub-level
 		if (MipMapLevel && MipMaps.size())
 		{
 			// Check for device interface to ensure correct max MipMap level
@@ -2315,11 +2315,13 @@ HRESULT m_IDirectDrawSurfaceX::GetSurfaceDesc2(LPDDSURFACEDESC2 lpDDSurfaceDesc2
 			if (MipMaps[Level].lPitch)
 			{
 				lpDDSurfaceDesc2->lPitch = MipMaps[Level].lPitch;
+				lpDDSurfaceDesc2->dwFlags |= DDSD_PITCH;
 			}
 			else
 			{
 				DWORD BitCount = GetBitCount(lpDDSurfaceDesc2->ddpfPixelFormat);
 				lpDDSurfaceDesc2->lPitch = ComputePitch(lpDDSurfaceDesc2->dwHeight, BitCount);
+				lpDDSurfaceDesc2->dwFlags |= DDSD_PITCH;
 			}
 			if (MipMapLevel != 0 && DirectXVersion == 7)
 			{
@@ -2327,18 +2329,17 @@ HRESULT m_IDirectDrawSurfaceX::GetSurfaceDesc2(LPDDSURFACEDESC2 lpDDSurfaceDesc2
 			}
 			lpDDSurfaceDesc2->dwMipMapCount = MaxMipMapLevel > MipMapLevel ? MaxMipMapLevel - MipMapLevel : 1;
 		}
-		// Get lPitch
-		else if ((lpDDSurfaceDesc2->dwFlags & (DDSD_WIDTH | DDSD_HEIGHT | DDSD_PIXELFORMAT)) == (DDSD_WIDTH | DDSD_HEIGHT | DDSD_PIXELFORMAT) &&
-			(lpDDSurfaceDesc2->ddpfPixelFormat.dwFlags & DDPF_RGB) && !(lpDDSurfaceDesc2->dwFlags & DDSD_LINEARSIZE))
+		// Root mipmap or no mipmaps
+		else
 		{
-			DWORD BitCount = GetBitCount(lpDDSurfaceDesc2->ddpfPixelFormat);
-			lpDDSurfaceDesc2->lPitch = ComputePitch(GetByteAlignedWidth(lpDDSurfaceDesc2->dwWidth, BitCount), BitCount);
-		}
-
-		// Add pitch flag
-		if (lpDDSurfaceDesc2->lPitch)
-		{
-			lpDDSurfaceDesc2->dwFlags |= DDSD_PITCH;
+			// Get lPitch if not set
+			if ((lpDDSurfaceDesc2->dwFlags & (DDSD_WIDTH | DDSD_HEIGHT | DDSD_PIXELFORMAT)) == (DDSD_WIDTH | DDSD_HEIGHT | DDSD_PIXELFORMAT) &&
+				(lpDDSurfaceDesc2->ddpfPixelFormat.dwFlags & DDPF_RGB) && !(lpDDSurfaceDesc2->dwFlags & (DDSD_PITCH | DDSD_LINEARSIZE)))
+			{
+				DWORD BitCount = GetBitCount(lpDDSurfaceDesc2->ddpfPixelFormat);
+				lpDDSurfaceDesc2->lPitch = ComputePitch(GetByteAlignedWidth(lpDDSurfaceDesc2->dwWidth, BitCount), BitCount);
+				lpDDSurfaceDesc2->dwFlags |= DDSD_PITCH;
+			}
 		}
 
 		// Handle managed texture memory type
@@ -3869,7 +3870,7 @@ LPDIRECT3DTEXTURE9 m_IDirectDrawSurfaceX::GetD3d9DrawTexture()
 	// Create texture
 	if (surface.Texture)
 	{
-		if (FAILED((*d3d9Device)->CreateTexture(surface.Width, surface.Height, MaxMipMapLevel, surface.Usage, D3DFMT_A8R8G8B8, surface.Pool, &surface.DrawTexture, nullptr)))
+		if (FAILED((*d3d9Device)->CreateTexture(surface.Width, surface.Height, MaxMipMapLevel ? MaxMipMapLevel : 1, surface.Usage, D3DFMT_A8R8G8B8, surface.Pool, &surface.DrawTexture, nullptr)))
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Error: failed to create surface texture. Size: " << surface.Width << "x" << surface.Height <<
 				" Format: " << surface.Format << " dwCaps: " << surfaceDesc2.ddsCaps);
@@ -4152,7 +4153,7 @@ HRESULT m_IDirectDrawSurfaceX::CreateD3d9Surface()
 		else if (IsTexture)
 		{
 			surface.Type = D3DTYPE_TEXTURE;
-			DWORD MipMapLevel = SurfaceRequiresEmulation ? 1 : MaxMipMapLevel;
+			DWORD MipMapLevel = (SurfaceRequiresEmulation || !MaxMipMapLevel) ? 1 : MaxMipMapLevel;
 			HRESULT hr_t;
 			do {
 				surface.Usage = Config.DdrawForceMipMapAutoGen && MipMapLevel != 1 ? D3DUSAGE_AUTOGENMIPMAP : 0;
@@ -4169,7 +4170,7 @@ HRESULT m_IDirectDrawSurfaceX::CreateD3d9Surface()
 				hr = DDERR_GENERIC;
 				break;
 			}
-			if (MipMapLevel != 1)
+			if ((surfaceDesc2.dwFlags & DDSD_MIPMAPCOUNT) && (surfaceDesc2.dwMipMapCount != MipMapLevel || MaxMipMapLevel != MipMapLevel))
 			{
 				MaxMipMapLevel = MipMapLevel ? MipMapLevel : surface.Texture->GetLevelCount();
 				surfaceDesc2.dwMipMapCount = MaxMipMapLevel;
@@ -4801,7 +4802,7 @@ void m_IDirectDrawSurfaceX::ReleaseD9Surface(bool BackupData, bool ResetSurface)
 
 			if (!IsUsingEmulation())
 			{
-				for (UINT Level = 0; Level < (Config.DdrawForceMipMapAutoGen ? 1 : MaxMipMapLevel); Level++)
+				for (UINT Level = 0; Level < ((Config.DdrawForceMipMapAutoGen || !MaxMipMapLevel) ? 1 : MaxMipMapLevel); Level++)
 				{
 					D3DLOCKED_RECT LockRect = {};
 					if (FAILED(LockD3d9Surface(&LockRect, nullptr, D3DLOCK_READONLY, Level)))
@@ -5462,12 +5463,25 @@ inline void m_IDirectDrawSurfaceX::InitSurfaceDesc(DWORD DirectXVersion)
 			}
 		}
 		MaxMipMapLevel = MipMapLevelCount;
-	}
-
-	// Set mipmap count
-	if (surfaceDesc2.dwFlags & DDSD_MIPMAPCOUNT)
-	{
 		surfaceDesc2.dwMipMapCount = MaxMipMapLevel;
+	}
+	// Mipmap textures
+	else if (surfaceDesc2.ddsCaps.dwCaps & DDSCAPS_MIPMAP)
+	{
+		MaxMipMapLevel = 1;
+		surfaceDesc2.dwMipMapCount = 1;
+		surfaceDesc2.dwFlags |= DDSD_MIPMAPCOUNT;
+	}
+	// No mipmaps
+	else
+	{
+		MaxMipMapLevel = 0;
+		if (surfaceDesc2.dwFlags & DDSD_MIPMAPCOUNT)
+		{
+			surfaceDesc2.dwMipMapCount = 0;
+		}
+		surfaceDesc2.dwFlags &= ~DDSD_MIPMAPCOUNT;
+		surfaceDesc2.ddsCaps.dwCaps &= ~DDSCAPS_MIPMAP;
 	}
 
 	// Clear flags used in creating a surface structure

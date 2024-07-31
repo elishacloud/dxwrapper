@@ -557,6 +557,22 @@ HRESULT m_IDirectDrawX::CreateSurface2(LPDDSURFACEDESC2 lpDDSurfaceDesc2, LPDIRE
 			return DDERR_INVALIDPIXELFORMAT;
 		}
 
+		// Check texture surface flags
+		if ((lpDDSurfaceDesc2->ddsCaps.dwCaps & DDSCAPS_TEXTURE) &&
+			((lpDDSurfaceDesc2->ddsCaps.dwCaps & (DDSCAPS_PRIMARYSURFACE | DDSCAPS_3DDEVICE)) || (lpDDSurfaceDesc2->dwFlags & DDSD_REFRESHRATE)))
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: invalid flags used with a texture!");
+			return DDERR_INVALIDPARAMS;
+		}
+
+		// Check for flags only valid with textures
+		if ((lpDDSurfaceDesc2->ddsCaps.dwCaps & DDSCAPS_TEXTURE) == NULL &&
+			((lpDDSurfaceDesc2->ddsCaps.dwCaps & DDSCAPS_MIPMAP) || (lpDDSurfaceDesc2->ddsCaps.dwCaps2 & (DDSCAPS2_HINTDYNAMIC | DDSCAPS2_HINTSTATIC | DDSCAPS2_TEXTUREMANAGE | DDSCAPS2_D3DTEXTUREMANAGE))))
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: missing texture flag: " << lpDDSurfaceDesc2->ddsCaps);
+			return DDERR_INVALIDPARAMS;
+		}
+
 		// Check MipMap count
 		if ((lpDDSurfaceDesc2->dwFlags & DDSD_MIPMAPCOUNT) && (lpDDSurfaceDesc2->dwMipMapCount != 1) &&
 			(lpDDSurfaceDesc2->ddsCaps.dwCaps & (DDSCAPS_MIPMAP | DDSCAPS_COMPLEX | DDSCAPS_TEXTURE)) == (DDSCAPS_MIPMAP | DDSCAPS_COMPLEX | DDSCAPS_TEXTURE) &&
@@ -604,7 +620,7 @@ HRESULT m_IDirectDrawX::CreateSurface2(LPDDSURFACEDESC2 lpDDSurfaceDesc2, LPDIRE
 		if ((lpDDSurfaceDesc2->ddsCaps.dwCaps & UnsupportedDDSCaps) || (lpDDSurfaceDesc2->ddsCaps.dwCaps2 & UnsupportedDDSCaps2))
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Warning: non-supported ddsCaps: " << Logging::hex(lpDDSurfaceDesc2->ddsCaps.dwCaps & UnsupportedDDSCaps) << " " <<
-				Logging::hex(lpDDSurfaceDesc2->ddsCaps.dwCaps2 & UnsupportedDDSCaps2));
+				Logging::hex(lpDDSurfaceDesc2->ddsCaps.dwCaps2 & UnsupportedDDSCaps2) << " " << lpDDSurfaceDesc2->ddsCaps);
 		}
 
 		// Check for device interface
@@ -612,8 +628,6 @@ HRESULT m_IDirectDrawX::CreateSurface2(LPDDSURFACEDESC2 lpDDSurfaceDesc2, LPDIRE
 		{
 			return DDERR_GENERIC;
 		}
-
-		bool ResetD3D9Device = false;
 
 		DDSURFACEDESC2 Desc2 = *lpDDSurfaceDesc2;
 
@@ -693,14 +707,6 @@ HRESULT m_IDirectDrawX::CreateSurface2(LPDDSURFACEDESC2 lpDDSurfaceDesc2, LPDIRE
 			Logging::Log() << __FUNCTION__ << " Found Stencil surface: " << GetDisplayFormat(Desc2.ddpfPixelFormat);
 		}
 
-		// Check if there is a change in the present parameters
-		if ((Desc2.ddsCaps.dwCaps & DDSCAPS_PRIMARYSURFACE) && !Device.Width && !Device.Height &&
-			(Desc2.dwFlags & (DDSD_WIDTH | DDSD_HEIGHT)) == (DDSD_WIDTH | DDSD_HEIGHT) &&
-			(Desc2.dwWidth != presParams.BackBufferWidth || Desc2.dwHeight != presParams.BackBufferHeight))
-		{
-			ResetD3D9Device = true;
-		}
-
 		// Get present parameters
 		if (Desc2.ddsCaps.dwCaps & DDSCAPS_PRIMARYSURFACE)
 		{
@@ -713,8 +719,8 @@ HRESULT m_IDirectDrawX::CreateSurface2(LPDDSURFACEDESC2 lpDDSurfaceDesc2, LPDIRE
 		m_IDirectDrawSurfaceX *p_IDirectDrawSurfaceX = new m_IDirectDrawSurfaceX(this, DirectXVersion, &Desc2);
 		*lplpDDSurface = (LPDIRECTDRAWSURFACE7)p_IDirectDrawSurfaceX->GetWrapperInterfaceX(DirectXVersion);
 
-		// Reset d3d9 device after creating interface if needed
-		if (ResetD3D9Device && d3d9Device)
+		// If d3d9 device is not created then create it after creating the primary surface
+		if ((Desc2.ddsCaps.dwCaps & DDSCAPS_PRIMARYSURFACE) && !d3d9Device)
 		{
 			CreateD3D9Device();
 		}
