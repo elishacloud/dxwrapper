@@ -9,6 +9,16 @@ private:
 	ULONG RefCount2 = 0;
 	ULONG RefCount3 = 0;
 
+	bool IsViewPortSet = false;
+	D3DVIEWPORT vData = {};
+	bool IsViewPort2Set = false;
+	D3DVIEWPORT2 vData2 = {};
+
+	struct MATERIALBACKGROUND {
+		BOOL IsSet = FALSE;
+		D3DMATERIALHANDLE hMat = NULL;
+	} MaterialBackground;
+
 	// Convert Viewport
 	m_IDirect3DDeviceX **D3DDeviceInterface = nullptr;
 

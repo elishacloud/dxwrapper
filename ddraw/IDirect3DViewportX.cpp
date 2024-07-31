@@ -174,11 +174,22 @@ HRESULT m_IDirect3DViewportX::GetViewport(LPD3DVIEWPORT lpData)
 			return DDERR_GENERIC;
 		}
 
-		D3DVIEWPORT7 Viewport7 = {};
-		HRESULT hr = (*D3DDeviceInterface)->GetViewport(&Viewport7);
+		HRESULT hr = D3D_OK;
 
-		if (SUCCEEDED(hr))
+		if (IsViewPortSet)
 		{
+			*lpData = vData;
+		}
+		else if (IsViewPort2Set)
+		{
+			ConvertViewport(*lpData, vData2);
+		}
+		else
+		{
+			D3DVIEWPORT7 Viewport7 = {};
+
+			(*D3DDeviceInterface)->GetDefaultViewport(*(D3DVIEWPORT9*)&Viewport7);
+
 			ConvertViewport(*lpData, Viewport7);
 		}
 
@@ -212,10 +223,22 @@ HRESULT m_IDirect3DViewportX::SetViewport(LPD3DVIEWPORT lpData)
 				" ScaleX: " << lpData->dvScaleX << " ScaleY: " << lpData->dvScaleY << " MaxX: " << lpData->dvMaxX << " MaxY: " << lpData->dvMaxY);
 		}
 
-		D3DVIEWPORT7 Viewport7 = {};
-		ConvertViewport(Viewport7, *lpData);
+		// If current viewport is set then use new viewport
+		if ((*D3DDeviceInterface)->CheckIfViewportSet(this))
+		{
+			D3DVIEWPORT7 Viewport7 = {};
+			ConvertViewport(Viewport7, *lpData);
+			if (FAILED((*D3DDeviceInterface)->SetViewport(&Viewport7)))
+			{
+				return DDERR_GENERIC;
+			}
+		}
 
-		return (*D3DDeviceInterface)->SetViewport(&Viewport7);
+		IsViewPortSet = true;
+
+		vData = *lpData;
+
+		return D3D_OK;
 	}
 
 	if (Config.DdrawUseNativeResolution && lpData)
@@ -261,8 +284,20 @@ HRESULT m_IDirect3DViewportX::SetBackground(D3DMATERIALHANDLE hMat)
 
 	if (!ProxyInterface)
 	{
-		LOG_LIMIT(100, __FUNCTION__ << " Error: Not Implemented");
-		return DDERR_UNSUPPORTED;
+		// ToDo: validate handle
+		MaterialBackground.IsSet = TRUE;
+		MaterialBackground.hMat = hMat;
+
+		// If current viewport is set then use new viewport
+		if ((*D3DDeviceInterface)->CheckIfViewportSet(this))
+		{
+			if (FAILED((*D3DDeviceInterface)->SetLightState(D3DLIGHTSTATE_MATERIAL, hMat)))
+			{
+				return DDERR_GENERIC;
+			}
+		}
+
+		return D3D_OK;
 	}
 
 	return ProxyInterface->SetBackground(hMat);
@@ -274,8 +309,15 @@ HRESULT m_IDirect3DViewportX::GetBackground(LPD3DMATERIALHANDLE lphMat, LPBOOL l
 
 	if (!ProxyInterface)
 	{
-		LOG_LIMIT(100, __FUNCTION__ << " Error: Not Implemented");
-		return DDERR_UNSUPPORTED;
+		if (!lphMat || !lpValid)
+		{
+			return DDERR_INVALIDPARAMS;
+		}
+
+		*lphMat = MaterialBackground.IsSet;
+		*lpValid = MaterialBackground.hMat;
+
+		return D3D_OK;
 	}
 
 	return ProxyInterface->GetBackground(lphMat, lpValid);
@@ -404,17 +446,28 @@ HRESULT m_IDirect3DViewportX::GetViewport2(LPD3DVIEWPORT2 lpData)
 			return DDERR_INVALIDPARAMS;
 		}
 
-		if (!D3DDeviceInterface || !*D3DDeviceInterface)
+		HRESULT hr = D3D_OK;
+
+		if (IsViewPort2Set)
 		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error: no D3DirectDevice interface!");
-			return DDERR_GENERIC;
+			*lpData = vData2;
 		}
-
-		D3DVIEWPORT7 Viewport7 = {};
-		HRESULT hr = (*D3DDeviceInterface)->GetViewport(&Viewport7);
-
-		if (SUCCEEDED(hr))
+		else if (IsViewPortSet)
 		{
+			ConvertViewport(*lpData, vData);
+		}
+		else
+		{
+			if (!D3DDeviceInterface || !*D3DDeviceInterface)
+			{
+				LOG_LIMIT(100, __FUNCTION__ << " Error: no D3DirectDevice interface!");
+				return DDERR_GENERIC;
+			}
+
+			D3DVIEWPORT7 Viewport7 = {};
+
+			(*D3DDeviceInterface)->GetDefaultViewport(*(D3DVIEWPORT9*)&Viewport7);
+
 			ConvertViewport(*lpData, Viewport7);
 		}
 
@@ -448,10 +501,21 @@ HRESULT m_IDirect3DViewportX::SetViewport2(LPD3DVIEWPORT2 lpData)
 				lpData->dvClipWidth << "x" << lpData->dvClipHeight << " X: " << lpData->dvClipX << " Y: " << lpData->dvClipY);
 		}
 
-		D3DVIEWPORT7 Viewport7 = {};
-		ConvertViewport(Viewport7, *lpData);
+		// If current viewport is set then use new viewport
+		if ((*D3DDeviceInterface)->CheckIfViewportSet(this))
+		{
+			D3DVIEWPORT7 Viewport7 = {};
+			ConvertViewport(Viewport7, *lpData);
+			if (FAILED((*D3DDeviceInterface)->SetViewport(&Viewport7)))
+			{
+				return DDERR_GENERIC;
+			}
+		}
+		IsViewPort2Set = true;
 
-		return (*D3DDeviceInterface)->SetViewport(&Viewport7);
+		vData2 = *lpData;
+
+		return D3D_OK;
 	}
 
 	if (Config.DdrawUseNativeResolution && lpData)

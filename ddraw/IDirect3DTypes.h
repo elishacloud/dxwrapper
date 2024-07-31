@@ -44,9 +44,8 @@ typedef enum _D3DSURFACETYPE {
     D3DTYPE_DEPTHBUFFER = 4
 } D3DSURFACETYPE;
 
-extern D3DMATERIAL defaultMaterial;
-
 void ConvertLight(D3DLIGHT7& Light7, D3DLIGHT& Light);
+void ConvertMaterial(D3DMATERIAL& Material, D3DMATERIAL7& Material7);
 void ConvertMaterial(D3DMATERIAL7 &Material7, D3DMATERIAL &Material);
 void ConvertViewport(D3DVIEWPORT &ViewPort, D3DVIEWPORT2 &ViewPort2);
 void ConvertViewport(D3DVIEWPORT2 &ViewPort2, D3DVIEWPORT &ViewPort);

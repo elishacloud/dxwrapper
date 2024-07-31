@@ -174,21 +174,16 @@ HRESULT m_IDirect3DMaterialX::SetMaterial(LPD3DMATERIAL lpMat)
 			return DDERR_GENERIC;
 		}
 
-		// If material is in use then set new material
-		if (mHandle)
+		// If current material is set then use new material
+		if (mHandle && (*D3DDeviceInterface)->CheckIfMaterialSet(mHandle))
 		{
-			D3DMATERIALHANDLE Handle = 0;
-			if (SUCCEEDED((*D3DDeviceInterface)->GetLightState(D3DLIGHTSTATE_MATERIAL, &Handle)))
+			if (FAILED((*D3DDeviceInterface)->SetMaterial(lpMat)))
 			{
-				if (mHandle == Handle)
-				{
-					if (FAILED((*D3DDeviceInterface)->SetMaterial(lpMat)))
-					{
-						return DDERR_GENERIC;
-					}
-				}
+				return DDERR_GENERIC;
 			}
 		}
+
+		IsMaterialSet = true;
 
 		Material = *lpMat;
 
@@ -220,7 +215,24 @@ HRESULT m_IDirect3DMaterialX::GetMaterial(LPD3DMATERIAL lpMat)
 			return DDERR_INVALIDPARAMS;
 		}
 
-		*lpMat = Material;
+		if (IsMaterialSet)
+		{
+			*lpMat = Material;
+		}
+		else
+		{
+			if (!D3DDeviceInterface || !*D3DDeviceInterface)
+			{
+				LOG_LIMIT(100, __FUNCTION__ << " Error: no D3DirectDevice interface!");
+				return DDERR_GENERIC;
+			}
+
+			D3DMATERIAL7 Material7 = {};
+
+			(*D3DDeviceInterface)->GetDefaultMaterial(*(D3DMATERIAL9*)&Material7);
+
+			ConvertMaterial(*lpMat, Material7);
+		}
 
 		return D3D_OK;
 	}

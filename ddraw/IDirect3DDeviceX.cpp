@@ -545,11 +545,19 @@ HRESULT m_IDirect3DDeviceX::SwapTextureHandles(LPDIRECT3DTEXTURE2 lpD3DTex1, LPD
 		}
 
 		// If handles are found, swap them
-		std::swap(it1->second, it2->second);
+		DWORD Handle1 = it1->first, Handle2 = it2->first;
+		SetTextureHandle(Handle1, pTextureX2);
+		SetTextureHandle(Handle2, pTextureX1);
 
 		// Update handles associated with textures
-		pTextureX1->SetHandle(it1->first);
-		pTextureX2->SetHandle(it2->first);
+		pTextureX1->SetHandle(Handle2);
+		pTextureX2->SetHandle(Handle1);
+
+		// If texture handle is set then use new texture
+		if (rsTextureHandle == Handle1 || rsTextureHandle == Handle2)
+		{
+			SetRenderState(D3DRENDERSTATE_TEXTUREHANDLE, rsTextureHandle);
+		}
 
 		return D3D_OK;
 	}
@@ -1561,7 +1569,16 @@ HRESULT m_IDirect3DDeviceX::SetCurrentViewport(LPDIRECT3DVIEWPORT3 lpd3dViewport
 			{
 				lpCurrentViewport = lpd3dViewport;
 
+				lpCurrentViewport->QueryInterface(IID_GetInterfaceX, (LPVOID*)&lpCurrentViewportX);
+
 				lpCurrentViewport->AddRef();
+			}
+
+			BOOL Valid = FALSE;
+			D3DMATERIALHANDLE hMat = NULL;
+			if (SUCCEEDED(lpd3dViewport->GetBackground(&hMat, &Valid)) && Valid)
+			{
+				SetLightState(D3DLIGHTSTATE_MATERIAL, hMat);
 			}
 		}
 
@@ -2002,7 +2019,7 @@ HRESULT m_IDirect3DDeviceX::GetLightState(D3DLIGHTSTATETYPE dwLightStateType, LP
 		switch (dwLightStateType)
 		{
 		case D3DLIGHTSTATE_MATERIAL:
-			*lpdwLightState = lsMaterial;
+			*lpdwLightState = lsMaterialHandle;
 			return D3D_OK;
 		case D3DLIGHTSTATE_AMBIENT:
 			RenderState = D3DRENDERSTATE_AMBIENT;
@@ -2065,7 +2082,7 @@ HRESULT m_IDirect3DDeviceX::SetLightState(D3DLIGHTSTATETYPE dwLightStateType, DW
 
 			if (dwLightState == NULL)
 			{
-				Material = defaultMaterial;
+				ConvertMaterial(Material, *(D3DMATERIAL7*)&DefaultMaterial);
 			}
 			else if (MaterialHandleMap.find(dwLightState) != MaterialHandleMap.end())
 			{
@@ -2099,7 +2116,7 @@ HRESULT m_IDirect3DDeviceX::SetLightState(D3DLIGHTSTATETYPE dwLightStateType, DW
 				SetRenderState(D3DRENDERSTATE_TEXTUREHANDLE, Material.hTexture);
 			}
 
-			lsMaterial = dwLightState;
+			lsMaterialHandle = dwLightState;
 
 			return D3D_OK;
 		}
@@ -4111,7 +4128,7 @@ void m_IDirect3DDeviceX::SetDefaults()
 	D3DClipStatus = {};
 
 	// Light states
-	lsMaterial = 0;
+	lsMaterialHandle = NULL;
 
 	// Render states
 	rsAntiAliasChanged = true;
@@ -4134,6 +4151,10 @@ void m_IDirect3DDeviceX::SetDefaults()
 	SetTextureStageState(4, D3DTSS_TEXCOORDINDEX, 0);
 	SetTextureStageState(5, D3DTSS_TEXCOORDINDEX, 0);
 	SetTextureStageState(6, D3DTSS_TEXCOORDINDEX, 0);
+
+	// Get default structures
+	(*d3d9Device)->GetMaterial(&DefaultMaterial);
+	(*d3d9Device)->GetViewport(&DefaultViewport);
 }
 
 inline void m_IDirect3DDeviceX::SetDrawStates(DWORD dwVertexTypeDesc, DWORD& dwFlags, DWORD DirectXVersion)

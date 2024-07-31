@@ -16,18 +16,6 @@
 
 #include "ddraw.h"
 
-// Define a default material with neutral properties
-D3DMATERIAL defaultMaterial = {
-	sizeof(D3DMATERIAL),
-	{ 0.0f, 0.0f, 0.0f, 1.0f },	// Diffuse color (black)
-	{ 0.0f, 0.0f, 0.0f, 1.0f },	// Ambient color (black)
-	{ 0.0f, 0.0f, 0.0f, 1.0f },	// Specular color (black)
-	{ 0.0f, 0.0f, 0.0f, 1.0f },	// Emissive color (black)
-	0.0f,						// Power (shininess)
-	0,							// Texture handle
-	0							// Ramp size
-};
-
 void ConvertLight(D3DLIGHT7& Light7, D3DLIGHT& Light)
 {
 	if (Light.dwSize != sizeof(D3DLIGHT) && Light.dwSize != sizeof(D3DLIGHT2))
@@ -58,6 +46,22 @@ void ConvertLight(D3DLIGHT7& Light7, D3DLIGHT& Light)
 		// No specular reflection
 		Light7.dcvSpecular = { 0.0f, 0.0f, 0.0f, 1.0f };
 	}
+}
+
+void ConvertMaterial(D3DMATERIAL& Material, D3DMATERIAL7& Material7)
+{
+	if (Material.dwSize != sizeof(D3DMATERIAL))
+	{
+		LOG_LIMIT(100, __FUNCTION__ << " Error: Incorrect dwSize: " << Material.dwSize);
+		return;
+	}
+	Material.dcvDiffuse = Material7.dcvDiffuse;
+	Material.dcvAmbient = Material7.dcvAmbient;
+	Material.dcvSpecular = Material7.dcvSpecular;
+	Material.dcvEmissive = Material7.dcvEmissive;
+	Material.dvPower = Material7.dvPower;
+	Material.hTexture = NULL;
+	Material.dwRampSize = 0;
 }
 
 void ConvertMaterial(D3DMATERIAL7 &Material7, D3DMATERIAL &Material)

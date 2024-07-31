@@ -27,6 +27,7 @@ private:
 	LPDIRECT3DDEVICE9 *d3d9Device = nullptr;
 	LPDIRECT3DPIXELSHADER9* colorkeyPixelShader = nullptr;
 	LPDIRECT3DVIEWPORT3 lpCurrentViewport = nullptr;
+	m_IDirect3DViewportX* lpCurrentViewportX = nullptr;
 
 	struct {
 		DWORD rsClipping = 0;
@@ -49,7 +50,7 @@ private:
 	D3DCLIPSTATUS D3DClipStatus;
 
 	// Light states
-	DWORD lsMaterial;
+	DWORD lsMaterialHandle;
 
 	// Render states
 	bool rsAntiAliasChanged;
@@ -66,6 +67,10 @@ private:
 	DWORD rsDestBlend;
 	DWORD rsColorKeyEnabled;
 	DWORD ssMipFilter[MaxTextureStages] = {};
+
+	// Default settings
+	D3DMATERIAL9 DefaultMaterial = {};
+	D3DVIEWPORT9 DefaultViewport = {};
 
 	// SetTexture array
 	LPDIRECTDRAWSURFACE7 CurrentRenderTarget = nullptr;
@@ -274,13 +279,19 @@ public:
 	ULONG Release(DWORD DirectXVersion);
 	bool IsDeviceInScene() { return IsInScene; }
 
+	// Viewport functions
+	inline void GetDefaultViewport(D3DVIEWPORT9& Viewport) { Viewport = DefaultViewport; }
+	inline bool CheckIfViewportSet(m_IDirect3DViewportX* pViewport) { return (pViewport == lpCurrentViewportX); }
+
 	// Texture handle function
 	void ReleaseTextureHandle(m_IDirect3DTextureX* lpTexture);
 	HRESULT SetTextureHandle(DWORD tHandle, m_IDirect3DTextureX* lpTexture);
 
 	// Material handle function
+	inline void GetDefaultMaterial(D3DMATERIAL9& Material) { Material = DefaultMaterial; }
 	void ReleaseMaterialHandle(m_IDirect3DMaterialX* lpMaterial);
 	HRESULT SetMaterialHandle(D3DMATERIALHANDLE mHandle, m_IDirect3DMaterialX* lpMaterial);
+	inline bool CheckIfMaterialSet(D3DMATERIALHANDLE mHandle) { return (mHandle == lsMaterialHandle); }
 
 	// Light index function
 	void ReleaseLightInterface(m_IDirect3DLight* lpLight);
