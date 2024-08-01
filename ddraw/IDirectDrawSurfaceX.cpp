@@ -2683,6 +2683,19 @@ HRESULT m_IDirectDrawSurfaceX::Lock2(LPRECT lpDestRect, LPDDSURFACEDESC2 lpDDSur
 						<< " MipMapLevel: " << MipMapLevel);
 				}
 				MipMaps[Level].lPitch = LockedRect.Pitch;
+				MipMaps[Level].HasData = true;
+				if (!IsMipMapReadyToUse)
+				{
+					IsMipMapReadyToUse = true;
+					for (UINT x = 0; x < min(MaxMipMapLevel, MipMaps.size()); x++)
+					{
+						if (!MipMaps[x].HasData)
+						{
+							IsMipMapReadyToUse = false;
+							break;
+						}
+					}
+				}
 			}
 			else
 			{

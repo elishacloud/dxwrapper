@@ -57,6 +57,7 @@ private:
 		DWORD dwWidth = 0;
 		DWORD dwHeight = 0;
 		LONG lPitch = 0;
+		bool HasData = false;
 	};
 
 	// For aligning bits after a lock for games that hard code the pitch
@@ -146,6 +147,7 @@ private:
 	m_IDirectDrawX *ddrawParent = nullptr;				// DirectDraw parent device
 	std::vector<MIPMAP> MipMaps;						// For MipMaps
 	DWORD MaxMipMapLevel = 1;							// For MipMaps
+	bool IsMipMapReadyToUse = false;					// For MipMaps
 	LPDIRECT3DTEXTURE9 PrimaryDisplayTexture = nullptr;	// Used for the texture surface for the primary surface
 	m_IDirectDrawPalette *attachedPalette = nullptr;	// Associated palette
 	m_IDirectDrawClipper *attachedClipper = nullptr;	// Associated clipper
@@ -453,6 +455,7 @@ public:
 	inline bool IsUsingEmulation() { return (surface.emu && surface.emu->DC && surface.emu->GameDC && surface.emu->pBits); }
 	inline bool IsEmulationDCReady() { return (IsUsingEmulation() && !surface.emu->UsingGameDC); }
 	inline bool IsSurfaceDirty() { return surface.IsDirtyFlag; }
+	inline bool IsMipMapReady() { return IsMipMapReadyToUse; }
 	void SetDirtyFlag();
 	void ClearDirtyFlags();
 	bool GetColorKeyForShader(float(&lowColorKey)[4], float(&highColorKey)[4]);
