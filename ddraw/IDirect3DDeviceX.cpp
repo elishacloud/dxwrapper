@@ -4210,14 +4210,11 @@ inline void m_IDirect3DDeviceX::SetDrawStates(DWORD dwVertexTypeDesc, DWORD& dwF
 				}
 			}
 		}
-		if (!Config.DdrawForceMipMapAutoGen)
+		for (UINT x = 0; x < MaxTextureStages; x++)
 		{
-			for (UINT x = 0; x < MaxTextureStages; x++)
+			if (ssMipFilter[x] != D3DTEXF_NONE && CurrentTextureSurfaceX[x] && !CurrentTextureSurfaceX[x]->IsMipMapGenerated())
 			{
-				if (ssMipFilter[x] != D3DTEXF_NONE && CurrentTextureSurfaceX[x] && !CurrentTextureSurfaceX[x]->IsMipMapReady())
-				{
-					(*d3d9Device)->SetSamplerState(x, D3DSAMP_MIPFILTER, D3DTEXF_NONE);
-				}
+				CurrentTextureSurfaceX[x]->GenerateMipMapLevels();
 			}
 		}
 		if (rsColorKeyEnabled)
@@ -4283,16 +4280,6 @@ inline void m_IDirect3DDeviceX::RestoreDrawStates(DWORD dwVertexTypeDesc, DWORD 
 		if (lpCurrentRenderTargetX)
 		{
 			lpCurrentRenderTargetX->SetDirtyFlag();
-		}
-		if (!Config.DdrawForceMipMapAutoGen)
-		{
-			for (UINT x = 0; x < MaxTextureStages; x++)
-			{
-				if (ssMipFilter[x] != D3DTEXF_NONE && CurrentTextureSurfaceX[x] && !CurrentTextureSurfaceX[x]->IsMipMapReady())
-				{
-					(*d3d9Device)->SetSamplerState(x, D3DSAMP_MIPFILTER, ssMipFilter[x]);
-				}
-			}
 		}
 		if (Config.DdrawFixByteAlignment > 1)
 		{

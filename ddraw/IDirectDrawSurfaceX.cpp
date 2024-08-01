@@ -2684,18 +2684,7 @@ HRESULT m_IDirectDrawSurfaceX::Lock2(LPRECT lpDestRect, LPDDSURFACEDESC2 lpDDSur
 				}
 				MipMaps[Level].lPitch = LockedRect.Pitch;
 				MipMaps[Level].HasData = true;
-				if (!IsMipMapReadyToUse)
-				{
-					IsMipMapReadyToUse = true;
-					for (UINT x = 0; x < min(MaxMipMapLevel, MipMaps.size()); x++)
-					{
-						if (!MipMaps[x].HasData)
-						{
-							IsMipMapReadyToUse = false;
-							break;
-						}
-					}
-				}
+				CheckMipMapLevelGen();
 			}
 			else
 			{
@@ -3946,6 +3935,56 @@ inline LPDIRECT3DTEXTURE9 m_IDirectDrawSurfaceX::Get3DTexture()
 	return surface.Texture;
 }
 
+void m_IDirectDrawSurfaceX::CheckMipMapLevelGen()
+{
+	if (!IsMipMapReadyToUse)
+	{
+		for (UINT x = 0; x < min(MaxMipMapLevel, MipMaps.size()); x++)
+		{
+			if (!MipMaps[x].HasData)
+			{
+				return;
+			}
+		}
+		IsMipMapReadyToUse = true;
+	}
+}
+
+HRESULT m_IDirectDrawSurfaceX::GenerateMipMapLevels()
+{
+	IDirect3DSurface9* pSourceSurfaceD9 = Get3DSurface();
+	if (!pSourceSurfaceD9)
+	{
+		LOG_LIMIT(100, __FUNCTION__ << " Error: could not get surface level!");
+		return DDERR_GENERIC;
+	}
+
+	for (UINT x = 0; x < min(MaxMipMapLevel, MipMaps.size()); x++)
+	{
+		if (!MipMaps[x].HasData)
+		{
+			IDirect3DSurface9* pDestSurfaceD9 = nullptr;
+			if (SUCCEEDED(surface.Texture->GetSurfaceLevel(x + 1, &pDestSurfaceD9)))
+			{
+				LOG_LIMIT(100, __FUNCTION__ << " (" << this << ") Warning: attempting to add missing data to MipMap surface level: " << (x + 1));
+				if (SUCCEEDED(D3DXLoadSurfaceFromSurface(pDestSurfaceD9, nullptr, nullptr, pSourceSurfaceD9, nullptr, nullptr, D3DX_FILTER_LINEAR, 0x00000000)))
+				{
+					MipMaps[x].HasData = true;
+				}
+				else
+				{
+					LOG_LIMIT(100, __FUNCTION__ << " Error: could not copy MipMap surface level!");
+				}
+				pDestSurfaceD9->Release();
+			}
+		}
+	}
+
+	CheckMipMapLevelGen();
+
+	return DD_OK;
+}
+
 HRESULT m_IDirectDrawSurfaceX::CheckInterface(char *FunctionName, bool CheckD3DDevice, bool CheckD3DSurface, bool CheckLostSurface)
 {
 	// Check ddrawParent device
@@ -4185,8 +4224,13 @@ HRESULT m_IDirectDrawSurfaceX::CreateD3d9Surface()
 			}
 			if ((surfaceDesc2.dwFlags & DDSD_MIPMAPCOUNT) && (surfaceDesc2.dwMipMapCount != MipMapLevel || MaxMipMapLevel != MipMapLevel))
 			{
-				MaxMipMapLevel = MipMapLevel ? MipMapLevel : surface.Texture->GetLevelCount();
+				DWORD LevelCount = surface.Texture->GetLevelCount();
+				MaxMipMapLevel = MipMapLevel ? MipMapLevel : LevelCount;
 				surfaceDesc2.dwMipMapCount = MaxMipMapLevel;
+				if (!IsMipMapAutogen() && LevelCount != 1 && (MipMaps.size() != LevelCount || MaxMipMapLevel != LevelCount))
+				{
+					LOG_LIMIT(100, __FUNCTION__ << " Warning: MipMap level mismatch. " << MipMaps.size() << " -> " << MaxMipMapLevel << " -> " << LevelCount);
+				}
 			}
 		}
 		else
@@ -4815,7 +4859,7 @@ void m_IDirectDrawSurfaceX::ReleaseD9Surface(bool BackupData, bool ResetSurface)
 
 			if (!IsUsingEmulation())
 			{
-				for (UINT Level = 0; Level < ((Config.DdrawForceMipMapAutoGen || !MaxMipMapLevel) ? 1 : MaxMipMapLevel); Level++)
+				for (UINT Level = 0; Level < ((IsMipMapAutogen() || !MaxMipMapLevel) ? 1 : MaxMipMapLevel); Level++)
 				{
 					D3DLOCKED_RECT LockRect = {};
 					if (FAILED(LockD3d9Surface(&LockRect, nullptr, D3DLOCK_READONLY, Level)))
