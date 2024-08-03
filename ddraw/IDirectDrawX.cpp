@@ -641,14 +641,14 @@ HRESULT m_IDirectDrawX::CreateSurface2(LPDDSURFACEDESC2 lpDDSurfaceDesc2, LPDIRE
 			Desc2.ddpfPixelFormat.dwSize = sizeof(DDPIXELFORMAT);
 			const DWORD Usage = (Desc2.ddsCaps.dwCaps & DDSCAPS_PRIMARYSURFACE) ? D3DUSAGE_RENDERTARGET :
 				(Desc2.ddpfPixelFormat.dwFlags & (DDPF_ZBUFFER | DDPF_STENCILBUFFER)) ? D3DUSAGE_DEPTHSTENCIL : 0;
-			const D3DRESOURCETYPE Resource = ((lpDDSurfaceDesc2->ddsCaps.dwCaps & DDSCAPS_TEXTURE)) ? D3DRTYPE_TEXTURE : D3DRTYPE_SURFACE;
+			const D3DRESOURCETYPE Resource = ((lpDDSurfaceDesc2->ddsCaps.dwCaps & DDSCAPS_TEXTURE) && Usage != D3DUSAGE_DEPTHSTENCIL) ? D3DRTYPE_TEXTURE : D3DRTYPE_SURFACE;
 			const D3DFORMAT Format = GetDisplayFormat(Desc2.ddpfPixelFormat);
 			const D3DFORMAT TestFormat = ConvertSurfaceFormat(Format);
 
 			if (FAILED(d3d9Object->CheckDeviceFormat(D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, D9DisplayFormat, Usage, Resource, TestFormat)) &&
 				FAILED(d3d9Object->CheckDeviceFormat(D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, D9DisplayFormat, Usage, Resource, GetFailoverFormat(TestFormat))))
 			{
-				LOG_LIMIT(100, __FUNCTION__ << " Error: non-supported pixel format! " << Usage << " " << Format << "->" << TestFormat << " " << Desc2.ddpfPixelFormat);
+				LOG_LIMIT(100, __FUNCTION__ << " Error: non-supported pixel format! " << Usage << " " << Resource << " " << Format << "->" << TestFormat << " " << Desc2.ddpfPixelFormat);
 				return DDERR_INVALIDPIXELFORMAT;
 			}
 
@@ -697,11 +697,12 @@ HRESULT m_IDirectDrawX::CreateSurface2(LPDDSURFACEDESC2 lpDDSurfaceDesc2, LPDIRE
 		{
 			Desc2.dwRefreshRate = 0;
 		}
-		if ((Desc2.ddsCaps.dwCaps & DDSCAPS_PRIMARYSURFACE) && (Desc2.ddsCaps.dwCaps & DDSCAPS_TEXTURE))
+		if (((Desc2.ddsCaps.dwCaps & DDSCAPS_PRIMARYSURFACE) && (Desc2.ddsCaps.dwCaps & DDSCAPS_TEXTURE)) || (Desc2.ddpfPixelFormat.dwFlags & (DDPF_ZBUFFER | DDPF_STENCILBUFFER)))
 		{
+			Desc2.dwFlags &= ~DDSD_MIPMAPCOUNT;
 			Desc2.ddsCaps.dwCaps &= ~(DDSCAPS_TEXTURE | DDSCAPS_MIPMAP);
 			Desc2.ddsCaps.dwCaps2 &= ~(DDSCAPS2_HINTDYNAMIC | DDSCAPS2_HINTSTATIC | DDSCAPS2_TEXTUREMANAGE | DDSCAPS2_D3DTEXTUREMANAGE);
-			LOG_LIMIT(100, __FUNCTION__ << " Warning: removing texture flag from primary surface!");
+			LOG_LIMIT(100, __FUNCTION__ << " Warning: removing texture flag from primary or stencil buffer surface!");
 		}
 
 		// Check for depth stencil surface
