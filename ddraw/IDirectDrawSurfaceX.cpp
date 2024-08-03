@@ -1666,7 +1666,7 @@ HRESULT m_IDirectDrawSurfaceX::GetAttachedSurface2(LPDDSCAPS2 lpDDSCaps2, LPDIRE
 			}
 
 			LOG_LIMIT(100, __FUNCTION__ << " Error: failed to find attached surface that matches the capabilities requested: " << *lpDDSCaps2 <<
-				" Attached number of surfaces: " << AttachedSurfaceMap.size() << " MaxMipMapLevel: " << MaxMipMapLevel);
+				" Attached number of surfaces: " << AttachedSurfaceMap.size() << " MaxMipMapLevel: " << MaxMipMapLevel << " Caps: " << surfaceDesc2.ddsCaps);
 			return DDERR_NOTFOUND;
 		}
 
@@ -4638,7 +4638,8 @@ void m_IDirectDrawSurfaceX::UpdateSurfaceDesc()
 	}
 
 	bool IsChanged = false;
-	if ((surfaceDesc2.dwFlags & (DDSD_WIDTH | DDSD_HEIGHT | DDSD_PIXELFORMAT)) != (DDSD_WIDTH | DDSD_HEIGHT | DDSD_PIXELFORMAT))
+	if ((surfaceDesc2.dwFlags & (DDSD_WIDTH | DDSD_HEIGHT | DDSD_PIXELFORMAT)) != (DDSD_WIDTH | DDSD_HEIGHT | DDSD_PIXELFORMAT) ||
+		((surfaceDesc2.dwFlags & DDSD_REFRESHRATE) && !surfaceDesc2.dwRefreshRate))
 	{
 		// Get resolution
 		DWORD Width, Height, RefreshRate, BPP;
@@ -4969,6 +4970,10 @@ void m_IDirectDrawSurfaceX::ReleaseD9Surface(bool BackupData, bool ResetSurface)
 	if (ResetDisplayFlags && !ResetSurface)
 	{
 		surfaceDesc2.dwFlags &= ~ResetDisplayFlags;
+	}
+	if (surfaceDesc2.dwFlags & DDSD_REFRESHRATE)
+	{
+		surfaceDesc2.dwRefreshRate = 0;
 	}
 
 	ReleaseLockCriticalSection();

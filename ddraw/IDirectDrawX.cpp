@@ -557,14 +557,6 @@ HRESULT m_IDirectDrawX::CreateSurface2(LPDDSURFACEDESC2 lpDDSurfaceDesc2, LPDIRE
 			return DDERR_INVALIDPIXELFORMAT;
 		}
 
-		// Check texture surface flags
-		if ((lpDDSurfaceDesc2->ddsCaps.dwCaps & DDSCAPS_TEXTURE) &&
-			((lpDDSurfaceDesc2->ddsCaps.dwCaps & (DDSCAPS_PRIMARYSURFACE | DDSCAPS_3DDEVICE)) || (lpDDSurfaceDesc2->dwFlags & DDSD_REFRESHRATE)))
-		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error: invalid flags used with a texture!");
-			return DDERR_INVALIDPARAMS;
-		}
-
 		// Check for flags only valid with textures
 		if ((lpDDSurfaceDesc2->ddsCaps.dwCaps & DDSCAPS_TEXTURE) == NULL &&
 			((lpDDSurfaceDesc2->ddsCaps.dwCaps & DDSCAPS_MIPMAP) || (lpDDSurfaceDesc2->ddsCaps.dwCaps2 & (DDSCAPS2_HINTDYNAMIC | DDSCAPS2_HINTSTATIC | DDSCAPS2_TEXTUREMANAGE | DDSCAPS2_D3DTEXTUREMANAGE))))
@@ -607,6 +599,12 @@ HRESULT m_IDirectDrawX::CreateSurface2(LPDDSURFACEDESC2 lpDDSurfaceDesc2, LPDIRE
 			LOG_LIMIT(100, __FUNCTION__ << " Warning: DDSCAPS_OWNDC not Implemented.");
 		}
 
+		// Check texture surface flags
+		if ((lpDDSurfaceDesc2->ddsCaps.dwCaps & DDSCAPS_TEXTURE) && (lpDDSurfaceDesc2->ddsCaps.dwCaps & DDSCAPS_3DDEVICE))
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Warning: 3D surface used with a texture flag: " << lpDDSurfaceDesc2->ddsCaps);
+		}
+
 		// Check for unsupported flags
 		DWORD UnsupportedDDSDFlags = (DDSD_ALPHABITDEPTH | DDSD_LINEARSIZE | DDSD_FVF | DDSD_SRCVBHANDLE | DDSD_DEPTH);
 		if (lpDDSurfaceDesc2->dwFlags & UnsupportedDDSDFlags)
@@ -642,7 +640,6 @@ HRESULT m_IDirectDrawX::CreateSurface2(LPDDSURFACEDESC2 lpDDSurfaceDesc2, LPDIRE
 		{
 			Desc2.ddpfPixelFormat.dwSize = sizeof(DDPIXELFORMAT);
 			const DWORD Usage = (Desc2.ddsCaps.dwCaps & DDSCAPS_PRIMARYSURFACE) ? D3DUSAGE_RENDERTARGET :
-				((Desc2.dwFlags & DDSD_MIPMAPCOUNT) || (Desc2.ddsCaps.dwCaps & DDSCAPS_MIPMAP)) ? D3DUSAGE_AUTOGENMIPMAP :
 				(Desc2.ddpfPixelFormat.dwFlags & (DDPF_ZBUFFER | DDPF_STENCILBUFFER)) ? D3DUSAGE_DEPTHSTENCIL : 0;
 			const D3DRESOURCETYPE Resource = ((lpDDSurfaceDesc2->ddsCaps.dwCaps & DDSCAPS_TEXTURE)) ? D3DRTYPE_TEXTURE : D3DRTYPE_SURFACE;
 			const D3DFORMAT Format = GetDisplayFormat(Desc2.ddpfPixelFormat);
@@ -684,16 +681,27 @@ HRESULT m_IDirectDrawX::CreateSurface2(LPDDSURFACEDESC2 lpDDSurfaceDesc2, LPDIRE
 			Desc2.dwBackBufferCount = 0;
 		}
 
-		// Remove unused flags
+		// Remove unused or conflicting flags
 		if (!Desc2.dwWidth || !Desc2.dwHeight || !(Desc2.dwFlags & DDSD_WIDTH) || !(Desc2.dwFlags & DDSD_HEIGHT))
 		{
 			Desc2.dwFlags &= ~(DDSD_WIDTH | DDSD_HEIGHT | DDSD_PITCH);
 			Desc2.dwWidth = 0;
 			Desc2.dwHeight = 0;
 		}
-		if (!Desc2.dwRefreshRate)
+		if ((Desc2.ddsCaps.dwCaps & DDSCAPS_TEXTURE) && (Desc2.dwFlags & DDSD_REFRESHRATE))
 		{
 			Desc2.dwFlags &= ~DDSD_REFRESHRATE;
+			LOG_LIMIT(100, __FUNCTION__ << " Warning: removing refresh flag from surface!");
+		}
+		if (Desc2.dwFlags & DDSD_REFRESHRATE)
+		{
+			Desc2.dwRefreshRate = 0;
+		}
+		if ((Desc2.ddsCaps.dwCaps & DDSCAPS_PRIMARYSURFACE) && (Desc2.ddsCaps.dwCaps & DDSCAPS_TEXTURE))
+		{
+			Desc2.ddsCaps.dwCaps &= ~(DDSCAPS_TEXTURE | DDSCAPS_MIPMAP);
+			Desc2.ddsCaps.dwCaps2 &= ~(DDSCAPS2_HINTDYNAMIC | DDSCAPS2_HINTSTATIC | DDSCAPS2_TEXTUREMANAGE | DDSCAPS2_D3DTEXTUREMANAGE);
+			LOG_LIMIT(100, __FUNCTION__ << " Warning: removing texture flag from primary surface!");
 		}
 
 		// Check for depth stencil surface
