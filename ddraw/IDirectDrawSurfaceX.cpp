@@ -2317,10 +2317,9 @@ HRESULT m_IDirectDrawSurfaceX::GetSurfaceDesc2(LPDDSURFACEDESC2 lpDDSurfaceDesc2
 				lpDDSurfaceDesc2->lPitch = MipMaps[Level].lPitch;
 				lpDDSurfaceDesc2->dwFlags |= DDSD_PITCH;
 			}
-			else
+			else if (surface.BitCount)
 			{
-				DWORD BitCount = GetBitCount(lpDDSurfaceDesc2->ddpfPixelFormat);
-				lpDDSurfaceDesc2->lPitch = ComputePitch(lpDDSurfaceDesc2->dwHeight, BitCount);
+				lpDDSurfaceDesc2->lPitch = ComputePitch(lpDDSurfaceDesc2->dwHeight, surface.BitCount);
 				lpDDSurfaceDesc2->dwFlags |= DDSD_PITCH;
 			}
 			if (MipMapLevel != 0 && DirectXVersion == 7)
@@ -2334,10 +2333,10 @@ HRESULT m_IDirectDrawSurfaceX::GetSurfaceDesc2(LPDDSURFACEDESC2 lpDDSurfaceDesc2
 		{
 			// Get lPitch if not set
 			if ((lpDDSurfaceDesc2->dwFlags & (DDSD_WIDTH | DDSD_HEIGHT | DDSD_PIXELFORMAT)) == (DDSD_WIDTH | DDSD_HEIGHT | DDSD_PIXELFORMAT) &&
-				(lpDDSurfaceDesc2->ddpfPixelFormat.dwFlags & DDPF_RGB) && !(lpDDSurfaceDesc2->dwFlags & (DDSD_PITCH | DDSD_LINEARSIZE)))
+				(lpDDSurfaceDesc2->ddpfPixelFormat.dwFlags & DDPF_RGB) && !(lpDDSurfaceDesc2->dwFlags & (DDSD_PITCH | DDSD_LINEARSIZE))
+				&& surface.BitCount && surface.Width)
 			{
-				DWORD BitCount = GetBitCount(lpDDSurfaceDesc2->ddpfPixelFormat);
-				lpDDSurfaceDesc2->lPitch = ComputePitch(GetByteAlignedWidth(lpDDSurfaceDesc2->dwWidth, BitCount), BitCount);
+				lpDDSurfaceDesc2->lPitch = ComputePitch(surface.Width, surface.BitCount);
 				lpDDSurfaceDesc2->dwFlags |= DDSD_PITCH;
 			}
 		}
@@ -2691,7 +2690,8 @@ HRESULT m_IDirectDrawSurfaceX::Lock2(LPRECT lpDestRect, LPDDSURFACEDESC2 lpDDSur
 				if ((surfaceDesc2.dwFlags & DDSD_PITCH) && surfaceDesc2.lPitch != LockedRect.Pitch)
 				{
 					LOG_LIMIT(100, __FUNCTION__ << " Warning: surface pitch does not match locked pitch! Format: " << surface.Format <<
-						" Width: " << surfaceDesc2.dwWidth << " Pitch: " << surfaceDesc2.lPitch << "->" << LockedRect.Pitch);
+						" Width: " << surfaceDesc2.dwWidth << " Pitch: " << surfaceDesc2.lPitch << "->" << LockedRect.Pitch <<
+						" Default: " << ComputePitch(surface.Width, surface.BitCount) << " BitCount: " << surface.BitCount);
 				}
 				surfaceDesc2.lPitch = LockedRect.Pitch;
 				surfaceDesc2.dwFlags |= DDSD_PITCH;
@@ -4691,11 +4691,11 @@ void m_IDirectDrawSurfaceX::UpdateSurfaceDesc()
 	}
 	// Set lPitch
 	if ((surfaceDesc2.dwFlags & (DDSD_WIDTH | DDSD_HEIGHT | DDSD_PIXELFORMAT)) == (DDSD_WIDTH | DDSD_HEIGHT | DDSD_PIXELFORMAT) &&
-		(surfaceDesc2.ddpfPixelFormat.dwFlags & DDPF_RGB) && !(surfaceDesc2.dwFlags & DDSD_LINEARSIZE) && !(surfaceDesc2.dwFlags & DDSD_PITCH))
+		(surfaceDesc2.ddpfPixelFormat.dwFlags & DDPF_RGB) && !(surfaceDesc2.dwFlags & DDSD_LINEARSIZE) && !(surfaceDesc2.dwFlags & DDSD_PITCH)
+		&& surface.BitCount && surface.Width)
 	{
 		surfaceDesc2.dwFlags |= DDSD_PITCH;
-		DWORD BitCount = GetBitCount(surfaceDesc2.ddpfPixelFormat);
-		surfaceDesc2.lPitch = surface.UsingSurfaceMemory ? surfaceDesc2.dwWidth * BitCount : ComputePitch(GetByteAlignedWidth(surfaceDesc2.dwWidth, BitCount), BitCount);
+		surfaceDesc2.lPitch = surface.UsingSurfaceMemory ? surfaceDesc2.dwWidth * surface.BitCount : ComputePitch(surface.Width, surface.BitCount);
 	}
 	// Set surface format
 	if (surface.Format == D3DFMT_UNKNOWN && (surfaceDesc2.dwFlags & DDSD_PIXELFORMAT))
@@ -5156,7 +5156,7 @@ void m_IDirectDrawSurfaceX::LockEmuLock(LPRECT lpDestRect, LPDDSURFACEDESC2 lpDD
 		return;
 	}
 
-	DWORD BBP = GetBitCount(lpDDSurfaceDesc->ddpfPixelFormat);
+	DWORD BBP = surface.BitCount;
 	LONG NewPitch = (BBP / 8) * lpDDSurfaceDesc->dwWidth;
 
 	bool LockOffPlain = (Config.DdrawEmulateLock && (lpDDSurfaceDesc->ddsCaps.dwCaps & DDSCAPS_OFFSCREENPLAIN));
@@ -6313,7 +6313,7 @@ HRESULT m_IDirectDrawSurfaceX::CopySurface(m_IDirectDrawSurfaceX* pSourceSurface
 		float HeightRatio = (float)SrcRectHeight / (float)DestRectHeight;
 
 		// Source byte count
-		DWORD SrcByteCount = (FormatMismatch) ? GetBitCount(SrcFormat) / 8 : ByteCount;
+		DWORD SrcByteCount = FormatMismatch ? pSourceSurface->surface.BitCount / 8 : ByteCount;
 
 		// Copy memory (complex)
 		for (LONG y = 0; y < DestRectHeight; y++)
