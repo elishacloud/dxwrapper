@@ -8,6 +8,9 @@
 
 #define ISDXTEX(tex) (tex == D3DFMT_DXT1 || tex == D3DFMT_DXT2 || tex == D3DFMT_DXT3 || tex == D3DFMT_DXT4 || tex == D3DFMT_DXT5)
 
+// Dummy mipmap needs to have only high bits set
+#define DXW_IS_MIPMAP_DUMMY		0xFFFF0000
+
 #define D3DCOLOR_GETALPHA(c)      (((c) >> 24) & 0xFF)
 #define D3DCOLOR_GETRED(c)        (((c) >> 16) & 0xFF)
 #define D3DCOLOR_GETGREEN(c)      (((c) >> 8) & 0xFF)

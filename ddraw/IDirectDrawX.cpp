@@ -158,6 +158,9 @@ DWORD InitHeight;
 // Cached FourCC list
 std::vector<D3DFORMAT> FourCCsList;
 
+// Used for dummy mipmaps
+extern std::vector<BYTE> dummySurface;
+
 // Mouse hook
 MOUSEHOOK MouseHook;
 
@@ -2665,6 +2668,9 @@ void m_IDirectDrawX::ReleaseDdraw()
 		{
 			DeleteCriticalSection(&PresentThread.ddpt);
 		}
+
+		// Clean up dummy memory
+		dummySurface.clear();
 	}
 
 	ReleaseCriticalSection();
@@ -3066,6 +3072,9 @@ HRESULT m_IDirectDrawX::CreateD3D9Device()
 				" format: " << presParams.BackBufferFormat << " wnd: " << hWnd << " params: " << presParams << " flags: " << Logging::hex(BehaviorFlags));
 			break;
 		}
+
+		// Create dummy memory (2x larger)
+		dummySurface.resize(presParams.BackBufferWidth * presParams.BackBufferHeight * 4 * 2);
 
 		// Set render target
 		d3d9RenderTarget = nullptr;
