@@ -731,12 +731,6 @@ HRESULT m_IDirectDrawX::CreateSurface2(LPDDSURFACEDESC2 lpDDSurfaceDesc2, LPDIRE
 		m_IDirectDrawSurfaceX *p_IDirectDrawSurfaceX = new m_IDirectDrawSurfaceX(this, DirectXVersion, &Desc2);
 		*lplpDDSurface = (LPDIRECTDRAWSURFACE7)p_IDirectDrawSurfaceX->GetWrapperInterfaceX(DirectXVersion);
 
-		// If d3d9 device is not created then create it after creating the primary surface
-		if ((Desc2.ddsCaps.dwCaps & DDSCAPS_PRIMARYSURFACE) && !d3d9Device)
-		{
-			CreateD3D9Device();
-		}
-
 		return DD_OK;
 	}
 
