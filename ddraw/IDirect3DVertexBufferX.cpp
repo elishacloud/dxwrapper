@@ -247,7 +247,7 @@ HRESULT m_IDirect3DVertexBufferX::ProcessVertices(DWORD dwVertexOp, DWORD dwDest
 	if (Config.Dd7to9)
 	{
 		// Always include the D3DVOP_TRANSFORM flag in the dwVertexOp parameter. If you do not, the method fails, returning DDERR_INVALIDPARAMS.
-		if (!lpSrcBuffer || !lpD3DDevice || !(dwFlags & D3DVOP_TRANSFORM))
+		if (!lpSrcBuffer || !(dwVertexOp & D3DVOP_TRANSFORM))
 		{
 			return DDERR_INVALIDPARAMS;
 		}
@@ -255,6 +255,14 @@ HRESULT m_IDirect3DVertexBufferX::ProcessVertices(DWORD dwVertexOp, DWORD dwDest
 		// Check for device interface
 		if (FAILED(CheckInterface(__FUNCTION__, true, true)))
 		{
+			return DDERR_GENERIC;
+		}
+
+		// Get Direct3DDevice
+		m_IDirect3DDeviceX** lplpD3DDevice = ddrawParent->GetCurrentD3DDevice();
+		if (!lplpD3DDevice || !*lplpD3DDevice)
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: could not get Direct3DDevice!");
 			return DDERR_GENERIC;
 		}
 
@@ -269,7 +277,6 @@ HRESULT m_IDirect3DVertexBufferX::ProcessVertices(DWORD dwVertexOp, DWORD dwDest
 		}
 
 		LPDIRECT3DVERTEXBUFFER9 d3d9SrcVertexBuffer = pSrcVertexBufferX->GetCurrentD9VertexBuffer();
-
 		if (!d3d9SrcVertexBuffer)
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Error: could not get d3d9 source vertex buffer!");
@@ -277,11 +284,17 @@ HRESULT m_IDirect3DVertexBufferX::ProcessVertices(DWORD dwVertexOp, DWORD dwDest
 		}
 
 		DWORD FVF = pSrcVertexBufferX->GetFVF9();
-
-		// Set fixed function vertex type
-		if (FAILED((*d3d9Device)->SetFVF(FVF)))
+		D3DVERTEXELEMENT9 decl[MAX_FVF_DECL_SIZE] = {};
+		if (FAILED(D3DXDeclaratorFromFVF(FVF, decl)))
 		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error: invalid FVF type: " << Logging::hex(FVF));
+			LOG_LIMIT(100, __FUNCTION__ << " Error: could not create vertex declaration!");
+			return D3DERR_INVALIDVERTEXTYPE;
+		}
+
+		IDirect3DVertexDeclaration9* pVertexDecl = nullptr;
+		if (FAILED((*d3d9Device)->CreateVertexDeclaration(decl, &pVertexDecl)))
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: could not create vertex declaration!");
 			return D3DERR_INVALIDVERTEXTYPE;
 		}
 
@@ -290,20 +303,22 @@ HRESULT m_IDirect3DVertexBufferX::ProcessVertices(DWORD dwVertexOp, DWORD dwDest
 
 		// Handle dwFlags
 		DWORD rsClipping = 0, rsLighting = 0, rsExtents = 0;
-		(*d3d9Device)->GetRenderState(D3DRENDERSTATE_CLIPPING, &rsClipping);
-		(*d3d9Device)->GetRenderState(D3DRENDERSTATE_LIGHTING, &rsLighting);
-		(*d3d9Device)->GetRenderState(D3DRENDERSTATE_EXTENTS, &rsExtents);
-		(*d3d9Device)->SetRenderState(D3DRENDERSTATE_CLIPPING, (dwVertexOp & D3DVOP_CLIP));
-		(*d3d9Device)->SetRenderState(D3DRENDERSTATE_LIGHTING, (dwVertexOp & D3DVOP_LIGHT));
-		(*d3d9Device)->SetRenderState(D3DRENDERSTATE_EXTENTS, (dwVertexOp & D3DVOP_EXTENTS));
+		(*lplpD3DDevice)->GetRenderState(D3DRENDERSTATE_CLIPPING, &rsClipping);
+		(*lplpD3DDevice)->GetRenderState(D3DRENDERSTATE_LIGHTING, &rsLighting);
+		(*lplpD3DDevice)->GetRenderState(D3DRENDERSTATE_EXTENTS, &rsExtents);
+		(*lplpD3DDevice)->SetRenderState(D3DRENDERSTATE_CLIPPING, (dwVertexOp & D3DVOP_CLIP));
+		(*lplpD3DDevice)->SetRenderState(D3DRENDERSTATE_LIGHTING, (dwVertexOp & D3DVOP_LIGHT));
+		(*lplpD3DDevice)->SetRenderState(D3DRENDERSTATE_EXTENTS, (dwVertexOp & D3DVOP_EXTENTS));
 
 		// Process vertices
-		HRESULT hr = (*d3d9Device)->ProcessVertices(dwSrcIndex, dwDestIndex, dwCount, d3d9VertexBuffer, nullptr, dwFlags);
+		HRESULT hr = (*d3d9Device)->ProcessVertices(dwSrcIndex, dwDestIndex, dwCount, d3d9VertexBuffer, pVertexDecl, dwFlags);
 
 		// Reset render state
-		(*d3d9Device)->SetRenderState(D3DRENDERSTATE_CLIPPING, rsClipping);
-		(*d3d9Device)->SetRenderState(D3DRENDERSTATE_LIGHTING, rsLighting);
-		(*d3d9Device)->SetRenderState(D3DRENDERSTATE_EXTENTS, rsExtents);
+		(*lplpD3DDevice)->SetRenderState(D3DRENDERSTATE_CLIPPING, rsClipping);
+		(*lplpD3DDevice)->SetRenderState(D3DRENDERSTATE_LIGHTING, rsLighting);
+		(*lplpD3DDevice)->SetRenderState(D3DRENDERSTATE_EXTENTS, rsExtents);
+
+		pVertexDecl->Release();
 
 		if (FAILED(hr))
 		{
