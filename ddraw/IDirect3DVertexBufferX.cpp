@@ -258,12 +258,19 @@ HRESULT m_IDirect3DVertexBufferX::ProcessVertices(DWORD dwVertexOp, DWORD dwDest
 			return DDERR_GENERIC;
 		}
 
-		// Get Direct3DDevice
-		m_IDirect3DDeviceX** lplpD3DDevice = ddrawParent->GetCurrentD3DDevice();
-		if (!lplpD3DDevice || !*lplpD3DDevice)
+		// Handle dwFlags
+		// D3DVOP_TRANSFORM is inherently handled by ProcessVertices() as it performs vertex transformations based on the current world, view, and projection matrices.
+		if (dwVertexOp & D3DVOP_CLIP)
 		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error: could not get Direct3DDevice!");
-			return DDERR_GENERIC;
+			LOG_LIMIT(100, __FUNCTION__ << " Warning: 'D3DVOP_CLIP' not handled!");
+		}
+		if (dwVertexOp & D3DVOP_LIGHT)
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Warning: 'D3DVOP_LIGHT' not handled!");
+		}
+		if (dwVertexOp & D3DVOP_EXTENTS)
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Warning: 'D3DVOP_EXTENTS' not handled!");
 		}
 
 		// ToDo: Validate vertex buffer
@@ -301,22 +308,8 @@ HRESULT m_IDirect3DVertexBufferX::ProcessVertices(DWORD dwVertexOp, DWORD dwDest
 		// Set stream source
 		(*d3d9Device)->SetStreamSource(0, d3d9SrcVertexBuffer, 0, GetVertexStride(FVF));
 
-		// Handle dwFlags
-		DWORD rsClipping = 0, rsLighting = 0, rsExtents = 0;
-		(*lplpD3DDevice)->GetRenderState(D3DRENDERSTATE_CLIPPING, &rsClipping);
-		(*lplpD3DDevice)->GetRenderState(D3DRENDERSTATE_LIGHTING, &rsLighting);
-		(*lplpD3DDevice)->GetRenderState(D3DRENDERSTATE_EXTENTS, &rsExtents);
-		(*lplpD3DDevice)->SetRenderState(D3DRENDERSTATE_CLIPPING, (dwVertexOp & D3DVOP_CLIP));
-		(*lplpD3DDevice)->SetRenderState(D3DRENDERSTATE_LIGHTING, (dwVertexOp & D3DVOP_LIGHT));
-		(*lplpD3DDevice)->SetRenderState(D3DRENDERSTATE_EXTENTS, (dwVertexOp & D3DVOP_EXTENTS));
-
 		// Process vertices
 		HRESULT hr = (*d3d9Device)->ProcessVertices(dwSrcIndex, dwDestIndex, dwCount, d3d9VertexBuffer, pVertexDecl, dwFlags);
-
-		// Reset render state
-		(*lplpD3DDevice)->SetRenderState(D3DRENDERSTATE_CLIPPING, rsClipping);
-		(*lplpD3DDevice)->SetRenderState(D3DRENDERSTATE_LIGHTING, rsLighting);
-		(*lplpD3DDevice)->SetRenderState(D3DRENDERSTATE_EXTENTS, rsExtents);
 
 		pVertexDecl->Release();
 
