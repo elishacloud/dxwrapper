@@ -132,7 +132,7 @@ RECT LastWindowLocation;
 bool SetResolution;
 bool ExclusiveMode;
 DISPLAYSETTINGS Exclusive;
-HWND LastUsedHWnd;
+HWND LastUsedHWnd = nullptr;	// Only initialize this here
 
 // Clipper
 HWND ClipperHWnd;
@@ -2362,7 +2362,6 @@ void m_IDirectDrawX::InitDdraw(DWORD DirectXVersion)
 			ReleaseDC(DisplayMode.hWnd, DisplayMode.DC);
 			DisplayMode.DC = nullptr;
 		}
-		LastUsedHWnd = nullptr;
 		ClipperHWnd = nullptr;
 
 		// Display mode
