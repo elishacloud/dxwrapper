@@ -26,6 +26,11 @@ HRESULT m_IDirectDrawSurface::QueryInterface(REFIID riid, LPVOID FAR * ppvObj)
 		}
 		return E_NOINTERFACE;
 	}
+	if (ppvObj && riid == IID_GetMipMapLevel)
+	{
+		*ppvObj = (void*)MipMapLevel;
+		return DD_OK;
+	}
 	return ProxyInterface->QueryInterface(ReplaceIIDUnknown(riid, WrapperID), ppvObj, DirectXVersion);
 }
 

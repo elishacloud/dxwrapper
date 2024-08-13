@@ -62,6 +62,11 @@ HRESULT m_IDirectDrawSurfaceX::QueryInterface(REFIID riid, LPVOID FAR* ppvObj, D
 		*ppvObj = this;
 		return DD_OK;
 	}
+	if (riid == IID_GetMipMapLevel)
+	{
+		*ppvObj = 0;
+		return DD_OK;
+	}
 
 	if (DirectXVersion != 1 && DirectXVersion != 2 && DirectXVersion != 3 && DirectXVersion != 4 && DirectXVersion != 7)
 	{
@@ -505,11 +510,18 @@ HRESULT m_IDirectDrawSurfaceX::Blt(LPRECT lpDestRect, LPDIRECTDRAWSURFACE7 lpDDS
 			return DDERR_NORASTEROPHW;
 		}
 
-		// MipMap level support
-		if (MipMapLevel)
+		// Get source mipmap level
+		DWORD SrcMipMapLevel = 0;
+		if (lpDDSrcSurface)
 		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error: Blt from MipMap level Not Implemented " << MipMapLevel);
-			return DDERR_GENERIC;
+			lpDDSrcSurface->QueryInterface(IID_GetMipMapLevel, (LPVOID*)&SrcMipMapLevel);
+		}
+
+		// MipMap level support
+		if (MipMapLevel || (SrcMipMapLevel && lpSrcRect))
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Warning: Blt to MipMap level Not Implemented: " << MipMapLevel << " " << SrcMipMapLevel);
+			return DD_OK;
 		}
 
 		// Typically, Blt returns immediately with an error if the bitbltter is busy and the bitblt could not be set up. Specify the DDBLT_WAIT flag to request a synchronous bitblt.

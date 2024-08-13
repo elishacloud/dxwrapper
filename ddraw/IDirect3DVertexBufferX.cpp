@@ -367,8 +367,8 @@ HRESULT m_IDirect3DVertexBufferX::Optimize(LPDIRECT3DDEVICE7 lpD3DDevice, DWORD 
 
 	if (Config.Dd7to9)
 	{
-		LOG_LIMIT(100, __FUNCTION__ << " Error: Not Implemented");
-		return DDERR_UNSUPPORTED;
+		LOG_LIMIT(100, __FUNCTION__ << " Warning: Not Implemented");
+		return D3D_OK;
 	}
 
 	if (lpD3DDevice)
