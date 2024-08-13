@@ -315,10 +315,12 @@ HRESULT m_IDirect3DVertexBufferX::ProcessVertices(DWORD dwVertexOp, DWORD dwDest
 
 		if (FAILED(hr))
 		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error: 'ProcessVertices' call failed: " << (D3DERR)hr);
+			LOG_LIMIT(100, __FUNCTION__ << " Warning: 'ProcessVertices' call failed: " << (D3DERR)hr);
 		}
 
-		return hr;
+		// ToDo: Fix this
+		// Just return OK for now
+		return D3D_OK; // hr;
 	}
 
 	if (lpSrcBuffer)
