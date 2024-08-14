@@ -3992,6 +3992,12 @@ LPDIRECT3DTEXTURE9 m_IDirectDrawSurfaceX::GetD3d9Texture()
 		return nullptr;
 	}
 
+	// Check if surface is render target
+	if (IsRenderTarget())
+	{
+		LOG_LIMIT(100, __FUNCTION__ << " Error: Render Target textures not implemented!");
+	}
+
 	return Get3DTexture();
 }
 
@@ -4270,8 +4276,9 @@ HRESULT m_IDirectDrawSurfaceX::CreateD3d9Surface()
 			}
 		}
 		// Create render target
-		else if (IsRenderTarget() || (UseVideoMemory && IsSurface3D()))
+		else if (IsRenderTarget())
 		{
+			// ToDo: if render surface is a texture then create as a texture (MipMaps can be supported on render target textures)
 			surface.Type = D3DTYPE_RENDERTARGET;
 			surface.Pool = D3DPOOL_DEFAULT;
 			BOOL IsLockable = (surface.MultiSampleType || (surfaceDesc2.ddsCaps.dwCaps2 & DDSCAPS2_NOTUSERLOCKABLE)) ? FALSE : TRUE;
@@ -5605,6 +5612,15 @@ inline void m_IDirectDrawSurfaceX::InitSurfaceDesc(DWORD DirectXVersion)
 	if ((!(surfaceDesc2.dwFlags & DDSD_MIPMAPCOUNT) || ((surfaceDesc2.dwFlags & DDSD_MIPMAPCOUNT) && surfaceDesc2.dwMipMapCount != 1)) &&
 		(surfaceDesc2.ddsCaps.dwCaps & (DDSCAPS_MIPMAP | DDSCAPS_COMPLEX | DDSCAPS_TEXTURE)) == (DDSCAPS_MIPMAP | DDSCAPS_COMPLEX | DDSCAPS_TEXTURE))
 	{
+		// Compute width and height
+		if ((!(surfaceDesc2.dwFlags & (DDSD_WIDTH | DDSD_HEIGHT)) || (!surfaceDesc2.dwWidth && !surfaceDesc2.dwHeight)) &&
+			(surfaceDesc2.dwFlags & DDSD_MIPMAPCOUNT) && surfaceDesc2.dwMipMapCount > 0)
+		{
+			surfaceDesc2.dwFlags |= DDSD_WIDTH | DDSD_HEIGHT;
+			surfaceDesc2.dwWidth = pow(2, surfaceDesc2.dwMipMapCount - 1);
+			surfaceDesc2.dwHeight = surfaceDesc2.dwWidth;
+		}
+		// Compute mipcount
 		DWORD MipMapLevelCount = ((surfaceDesc2.dwFlags & DDSD_MIPMAPCOUNT) && surfaceDesc2.dwMipMapCount) ? surfaceDesc2.dwMipMapCount :
 			GetMaxMipMapLevel(surfaceDesc2.dwWidth, surfaceDesc2.dwHeight);
 		MaxMipMapLevel = MipMapLevelCount;

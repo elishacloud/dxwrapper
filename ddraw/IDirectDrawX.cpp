@@ -569,11 +569,14 @@ HRESULT m_IDirectDrawX::CreateSurface2(LPDDSURFACEDESC2 lpDDSurfaceDesc2, LPDIRE
 		}
 
 		// Check MipMap count
-		if ((lpDDSurfaceDesc2->dwFlags & DDSD_MIPMAPCOUNT) && (lpDDSurfaceDesc2->dwMipMapCount != 1) &&
-			(lpDDSurfaceDesc2->ddsCaps.dwCaps & (DDSCAPS_MIPMAP | DDSCAPS_COMPLEX | DDSCAPS_TEXTURE)) == (DDSCAPS_MIPMAP | DDSCAPS_COMPLEX | DDSCAPS_TEXTURE) &&
-			GetMaxMipMapLevel(lpDDSurfaceDesc2->dwWidth, lpDDSurfaceDesc2->dwHeight) < lpDDSurfaceDesc2->dwMipMapCount)
+		if ((lpDDSurfaceDesc2->ddsCaps.dwCaps & (DDSCAPS_MIPMAP | DDSCAPS_COMPLEX | DDSCAPS_TEXTURE)) == (DDSCAPS_MIPMAP | DDSCAPS_COMPLEX | DDSCAPS_TEXTURE) &&
+			(((lpDDSurfaceDesc2->dwFlags & DDSD_MIPMAPCOUNT) && (lpDDSurfaceDesc2->dwMipMapCount != 1) &&
+				((lpDDSurfaceDesc2->dwFlags & (DDSD_WIDTH | DDSD_HEIGHT)) == (DDSD_WIDTH | DDSD_HEIGHT) && lpDDSurfaceDesc2->dwWidth && lpDDSurfaceDesc2->dwHeight) &&
+				GetMaxMipMapLevel(lpDDSurfaceDesc2->dwWidth, lpDDSurfaceDesc2->dwHeight) < lpDDSurfaceDesc2->dwMipMapCount) ||
+				((!(lpDDSurfaceDesc2->dwFlags & DDSD_WIDTH) || !(lpDDSurfaceDesc2->dwFlags & DDSD_HEIGHT) || !lpDDSurfaceDesc2->dwWidth || !lpDDSurfaceDesc2->dwHeight) &&
+					(!(lpDDSurfaceDesc2->dwFlags & DDSD_MIPMAPCOUNT) || ((lpDDSurfaceDesc2->dwFlags & DDSD_MIPMAPCOUNT) && (lpDDSurfaceDesc2->dwMipMapCount == 0))))))
 		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error: MipMap count too large. Count: " << lpDDSurfaceDesc2->dwMipMapCount <<
+			LOG_LIMIT(100, __FUNCTION__ << " Error: invalid MipMap count. Count: " << lpDDSurfaceDesc2->dwMipMapCount <<
 				" " << lpDDSurfaceDesc2->dwWidth << "x" << lpDDSurfaceDesc2->dwHeight << " Max: " << GetMaxMipMapLevel(lpDDSurfaceDesc2->dwWidth, lpDDSurfaceDesc2->dwHeight));
 			return DDERR_INVALIDPARAMS;
 		}
@@ -700,12 +703,12 @@ HRESULT m_IDirectDrawX::CreateSurface2(LPDDSURFACEDESC2 lpDDSurfaceDesc2, LPDIRE
 		{
 			Desc2.dwRefreshRate = 0;
 		}
-		if (((Desc2.ddsCaps.dwCaps & DDSCAPS_PRIMARYSURFACE) && (Desc2.ddsCaps.dwCaps & DDSCAPS_TEXTURE)) || (Desc2.ddpfPixelFormat.dwFlags & (DDPF_ZBUFFER | DDPF_STENCILBUFFER)))
+		// Removing texture flags from primary and stencil buffer surfaces
+		if ((Desc2.ddsCaps.dwCaps & DDSCAPS_PRIMARYSURFACE) || (Desc2.ddpfPixelFormat.dwFlags & (DDPF_ZBUFFER | DDPF_STENCILBUFFER)))
 		{
 			Desc2.dwFlags &= ~DDSD_MIPMAPCOUNT;
 			Desc2.ddsCaps.dwCaps &= ~(DDSCAPS_TEXTURE | DDSCAPS_MIPMAP);
 			Desc2.ddsCaps.dwCaps2 &= ~(DDSCAPS2_HINTDYNAMIC | DDSCAPS2_HINTSTATIC | DDSCAPS2_TEXTUREMANAGE | DDSCAPS2_D3DTEXTUREMANAGE);
-			LOG_LIMIT(100, __FUNCTION__ << " Warning: removing texture flag from primary or stencil buffer surface!");
 		}
 
 		// Check for depth stencil surface
