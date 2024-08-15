@@ -679,7 +679,8 @@ void Utils::ResetInvalidFPUState()
 {
 	if (_statusfp() & _SW_INVALID)
 	{
-		__asm { fninit }
+		_clearfp();		// Clear invalid operation flag
+		_statusfp();	// Re-read status after clearing
 	}
 }
 
