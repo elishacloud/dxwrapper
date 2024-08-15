@@ -152,7 +152,7 @@ HRESULT m_IDirect3DDeviceX::Initialize(LPDIRECT3D lpd3d, LPGUID lpGUID, LPD3DDEV
 
 	if (ProxyDirectXVersion != 1)
 	{
-		// The IDirect3DDevice::Initialize method is not implemented in Windows.
+		// Returns D3D_OK if successful, otherwise it returns an error.
 		return D3D_OK;
 	}
 

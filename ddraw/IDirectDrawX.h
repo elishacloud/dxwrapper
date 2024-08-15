@@ -11,7 +11,6 @@ private:
 	ULONG RefCount4 = 0;
 	ULONG RefCount7 = 0;
 
-	bool IsInitialize = false;
 	bool Using3D = false;
 
 	// Fix exclusive mode issue

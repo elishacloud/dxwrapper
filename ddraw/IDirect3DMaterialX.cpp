@@ -144,8 +144,8 @@ HRESULT m_IDirect3DMaterialX::Initialize(LPDIRECT3D lplpD3D)
 
 	if (ProxyDirectXVersion != 1)
 	{
-		// Former stub method. This method was never implemented and is not supported in any interface.
-		return D3D_OK;
+		// The method returns DDERR_ALREADYINITIALIZED because the IDirect3DMaterial object is initialized when it is created.
+		return DDERR_ALREADYINITIALIZED;
 	}
 
 	if (lplpD3D)

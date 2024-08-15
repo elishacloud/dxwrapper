@@ -5617,7 +5617,7 @@ inline void m_IDirectDrawSurfaceX::InitSurfaceDesc(DWORD DirectXVersion)
 			(surfaceDesc2.dwFlags & DDSD_MIPMAPCOUNT) && surfaceDesc2.dwMipMapCount > 0)
 		{
 			surfaceDesc2.dwFlags |= DDSD_WIDTH | DDSD_HEIGHT;
-			surfaceDesc2.dwWidth = pow(2, surfaceDesc2.dwMipMapCount - 1);
+			surfaceDesc2.dwWidth = (DWORD)pow(2, surfaceDesc2.dwMipMapCount - 1);
 			surfaceDesc2.dwHeight = surfaceDesc2.dwWidth;
 		}
 		// Compute mipcount

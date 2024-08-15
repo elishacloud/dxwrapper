@@ -1545,31 +1545,13 @@ HRESULT m_IDirectDrawX::Initialize(GUID FAR * lpGUID)
 
 	if (Config.Dd7to9)
 	{
-		// ToDo: If you already used the DirectDrawCreate function to create a DirectDraw object, this method returns DDERR_ALREADYINITIALIZED.
-		// If you do not call IDirectDraw7::Initialize when you use CoCreateInstance to create a DirectDraw object, any method that you
-		// call afterward returns DDERR_NOTINITIALIZED.
-		if (IsInitialize)
-		{
-			return DDERR_ALREADYINITIALIZED;
-		}
-		else
-		{
-			IsInitialize = true;
-			return DD_OK;
-		}
+		// Returns D3D_OK if successful, otherwise it returns an error.
+		return D3D_OK;
 	}
 
 	HRESULT hr = ProxyInterface->Initialize(lpGUID);
 
-	if (IsInitialize)
-	{
-		return hr;
-	}
-	else
-	{
-		IsInitialize = true;
-		return (hr == DDERR_ALREADYINITIALIZED) ? DD_OK : hr;
-	}
+	return (hr == DDERR_ALREADYINITIALIZED) ? DD_OK : hr;
 }
 
 // Resets the mode of the display device hardware for the primary surface to what it was before the IDirectDraw7::SetDisplayMode method was called.

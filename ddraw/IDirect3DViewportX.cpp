@@ -144,8 +144,8 @@ HRESULT m_IDirect3DViewportX::Initialize(LPDIRECT3D lpDirect3D)
 
 	if (!ProxyInterface)
 	{
-		// The IDirect3DViewport3::Initialize method is not implemented in Windows.
-		return D3D_OK;
+		// The method returns DDERR_ALREADYINITIALIZED because the IDirect3DViewport object is initialized when it is created.
+		return DDERR_ALREADYINITIALIZED;
 	}
 
 	if (lpDirect3D)

@@ -172,8 +172,8 @@ HRESULT m_IDirect3DX::Initialize(REFCLSID rclsid)
 
 	if (ProxyDirectXVersion != 1)
 	{
-		// Former stub method. This method was never implemented and is not supported in any interface.
-		return D3D_OK;
+		// The method returns DDERR_ALREADYINITIALIZED because the IDirect3D object is initialized when it is created.
+		return DDERR_ALREADYINITIALIZED;
 	}
 
 	return GetProxyInterfaceV1()->Initialize(rclsid);
