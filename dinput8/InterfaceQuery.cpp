@@ -16,6 +16,9 @@
 
 #include "dinput8.h"
 
+REFIID IID_IDirectInputEffect8A = IID_IDirectInputEffect;
+REFIID IID_IDirectInputEffect8W = IID_IDirectInputEffect;
+
 void WINAPI Dinput8Wrapper::genericQueryInterface(REFIID riid, LPVOID * ppvObj)
 {
 	if (!ppvObj || !*ppvObj)
@@ -24,17 +27,16 @@ void WINAPI Dinput8Wrapper::genericQueryInterface(REFIID riid, LPVOID * ppvObj)
 	}
 
 #define QUERYINTERFACE(x) \
-	if (riid == IID_ ## x) \
+	if (riid == IID_ ## x ## A) \
 		{ \
-			*ppvObj = ProxyAddressLookupTableDinput8.FindAddress<m_ ## x>(*ppvObj); \
+			*ppvObj = ProxyAddressLookupTableDinput8.FindAddress<m_ ## x>(*ppvObj, riid); \
+		} \
+	if (riid == IID_ ## x ## W) \
+		{ \
+			*ppvObj = ProxyAddressLookupTableDinput8.FindAddress<m_ ## x>(*ppvObj, riid); \
 		}
 
-	QUERYINTERFACE(IDirectInput8A);
-	QUERYINTERFACE(IDirectInput8W);
-	QUERYINTERFACE(IDirectInputDevice8A);
-	QUERYINTERFACE(IDirectInputDevice8W);
-	if (riid == IID_IDirectInputEffect)
-	{
-		*ppvObj = ProxyAddressLookupTableDinput8.FindAddress<m_IDirectInputEffect8>(*ppvObj);
-	}
+	QUERYINTERFACE(IDirectInput8);
+	QUERYINTERFACE(IDirectInputDevice8);
+	QUERYINTERFACE(IDirectInputEffect8);
 }

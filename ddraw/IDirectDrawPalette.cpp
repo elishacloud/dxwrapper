@@ -191,7 +191,7 @@ HRESULT m_IDirectDrawPalette::SetEntries(DWORD dwFlags, DWORD dwStartingEntry, D
 		// Translate new raw pallete entries to RGB
 		for (UINT i = Start; i < End; i++, x++)
 		{
-			BYTE alpha = (paletteCaps & DDPCAPS_ALPHA) ? lpEntries[x].peFlags : 0x00;
+			BYTE alpha = (paletteCaps & DDPCAPS_ALPHA) ? lpEntries[x].peFlags : 0xFF;
 			// Palette entry
 			rawPalette[i].peFlags = alpha;
 			rawPalette[i].peRed = lpEntries[x].peRed;

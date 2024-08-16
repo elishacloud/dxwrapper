@@ -27,7 +27,11 @@
 	visit(DdrawClippedHeight) \
 	visit(DdrawCustomWidth) \
 	visit(DdrawCustomHeight) \
+	visit(DdrawDisableByteAlignment) \
 	visit(DdrawDisableDirect3DCaps) \
+	visit(DdrawEmulateLock) \
+	visit(DdrawForceMipMapAutoGen) \
+	visit(DdrawFlipFillColor) \
 	visit(DdrawRemoveScanlines) \
 	visit(DdrawRemoveInterlacing) \
 	visit(DdrawFixByteAlignment) \
@@ -52,11 +56,11 @@
 	visit(Dinput8HookSystem32) \
 	visit(DsoundHookSystem32) \
 	visit(SetSwapEffectShim) \
+	visit(DeviceLookupCacheTime) \
 	visit(DisableGameUX) \
 	visit(DisableHighDPIScaling) \
 	visit(DisableLogging) \
 	visit(DirectShowEmulation) \
-	visit(DxWnd) \
 	visit(CacheClipPlane) \
 	visit(ConvertToDirectDraw7) \
 	visit(ConvertToDirect3D7) \
@@ -72,6 +76,7 @@
 	visit(ForceMixedVertexProcessing) \
 	visit(ForceSystemMemVertexCache) \
 	visit(FilterNonActiveInput) \
+	visit(FixHighFrequencyMouse) \
 	visit(FixSpeakerConfigType) \
 	visit(ForceExclusiveMode) \
 	visit(ForceHardwareMixing) \
@@ -98,6 +103,8 @@
 	visit(LoadPlugins) \
 	visit(LockColorkey) \
 	visit(LoopSleepTime) \
+	visit(MouseMovementFactor) \
+	visit(MouseMovementPadding) \
 	visit(Num2DBuffers) \
 	visit(Num3DBuffers) \
 	visit(OverrideRefreshRate) \
@@ -156,7 +163,7 @@ struct DLLTYPE
 static const DLLTYPE dtype;
 
 // Designated Initializer does not work in VS 2015 so must pay attention to the order
-static constexpr char* dtypename[] = {
+static constexpr const char* dtypename[] = {
 	"dxwrapper.dll",// 0
 	"ddraw.dll",	// 1
 	"d3d8.dll",		// 2
@@ -204,11 +211,13 @@ struct CONFIG
 	bool DDrawCompatDisableGDIHook = false;		// Disables DDrawCompat GDI hooks
 	bool DDrawCompatNoProcAffinity = false;		// Disables DDrawCompat single processor affinity
 	bool DdrawAutoFrameSkip = false;			// Automatically skips frames to reduce input lag
-	bool DdrawFixByteAlignment = false;			// Fixes lock with surfaces that have unaligned byte sizes
+	DWORD DdrawFixByteAlignment = false;		// Fixes lock with surfaces that have unaligned byte sizes, 1) just byte align, 2) byte align + D3DTEXF_NONE, 3) byte align + D3DTEXF_LINEAR
+	bool DdrawDisableByteAlignment = false;		// Disables 32bit / 64bit byte alignment
 	DWORD DdrawResolutionHack = 0;				// Removes the artificial resolution limit from Direct3D7 and below https://github.com/UCyborg/LegacyD3DResolutionHack
 	bool DdrawRemoveScanlines = 0;				// Experimental feature to removing interlaced black lines in a single frame
 	bool DdrawRemoveInterlacing = 0;			// Experimental feature to removing interlacing between frames
 	bool DdrawEmulateSurface = false;			// Emulates the ddraw surface using device context for Dd7to9
+	bool DdrawEmulateLock = false;				// Emulates the lock to prevent crashes when an application tries to read data outside Lock/Unlock pair
 	bool DdrawReadFromGDI = false;				// Read from GDI bfore passing surface to program
 	bool DdrawWriteToGDI = false;				// Blt surface directly to GDI rather than Direct3D9
 	bool DdrawIntegerScalingClamp = false;		// Scales the screen by an integer value to help preserve video quality
@@ -226,6 +235,8 @@ struct CONFIG
 	DWORD DdrawOverrideHeight = 0;				// Force Direct3d9 to use this height when using Dd7to9
 	DWORD OverrideRefreshRate = 0;				// Force Direct3d9 to use this refresh rate, only works in exclusive fullscreen mode
 	DWORD DdrawOverrideStencilFormat = 0;		// Force Direct3d9 to use this AutoStencilFormat when using Dd7to9
+	DWORD DdrawFlipFillColor = 0;				// Color used to fill the primary surface before flipping
+	bool DdrawForceMipMapAutoGen = false;		// Force Direct3d9 to use this AutoStencilFormat when using Dd7to9
 	bool DdrawEnableMouseHook = false;			// Allow to hook into mouse to limit it to the chosen resolution
 	DWORD DdrawHookSystem32 = 0;				// Hooks the ddraw.dll file in the Windows System32 folder
 	DWORD D3d8HookSystem32 = 0;					// Hooks the d3d8.dll file in the Windows System32 folder
@@ -233,12 +244,12 @@ struct CONFIG
 	DWORD DinputHookSystem32 = 0;				// Hooks the dinput.dll file in the Windows System32 folder
 	DWORD Dinput8HookSystem32 = 0;				// Hooks the dinput8.dll file in the Windows System32 folder
 	DWORD DsoundHookSystem32 = 0;				// Hooks the dsound.dll file in the Windows System32 folder
+	DWORD DeviceLookupCacheTime = 0;			// Number of seconds to cache the DeviceEnum callback data
 	bool DirectShowEmulation = false;			// Emulates DirectShow APIs
 	bool DisableGameUX = false;					// Disables the Microsoft Game Explorer which can sometimes cause high CPU in rundll32.exe and hang the game process
 	bool DisableHighDPIScaling = false;			// Disables display scaling on high DPI settings
 	bool DisableLogging = false;				// Disables the logging file
 	DWORD SetSwapEffectShim = 0;				// Disables the call to d3d9.dll 'Direct3D9SetSwapEffectUpgradeShim' to switch present mode
-	bool DxWnd = false;							// Enables DxWnd https://sourceforge.net/projects/dxwnd/
 	DWORD CacheClipPlane = 0;					// Caches the ClipPlane for Direct3D9 to fix an issue in d3d9 on Windows 8 and newer
 	bool ConvertToDirectDraw7 = false;			// Converts DirectDraw 1-6 to DirectDraw 7
 	bool ConvertToDirect3D7 = false;			// Converts Direct3D 1-6 to Direct3D 7
@@ -248,6 +259,9 @@ struct CONFIG
 	bool EnableDsoundWrapper = false;			// Enables the dsound wrapper
 	bool EnableWindowMode = false;				// Enables WndMode for d3d9 wrapper
 	bool EnableVSync = false;					// Enables VSync for d3d9 wrapper
+	bool FixHighFrequencyMouse = false;			// Gets the latest mouse status by merging the DirectInput buffer data
+	float MouseMovementFactor = 1.0f;			// Sets the mouse movement speed factor, requires enabling FixHighFrequencyMouse
+	DWORD MouseMovementPadding = 0;				// Adds extra mouse movement to overcome issues with input deadzone in some games, requires enabling FixHighFrequencyMouse
 	bool ForceDirect3D9On12 = false;			// Forces Direct3D9 to use CreateDirect3D9On12
 	bool ForceExclusiveFullscreen = false;		// Forces exclusive fullscreen mode in d3d9
 	bool ForceMixedVertexProcessing = false;	// Forces Mixed mode for vertex processing in d3d9

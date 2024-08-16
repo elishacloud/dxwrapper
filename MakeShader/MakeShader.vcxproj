@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Release|Win32">
+      <Configuration>Release</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <VCProjectVersion>17.0</VCProjectVersion>
+    <Keyword>Win32Proj</Keyword>
+    <ProjectGuid>{7ec68cf5-9436-4f80-9708-508dfc7d17b8}</ProjectGuid>
+    <RootNamespace>MakeShader</RootNamespace>
+    <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <PlatformToolset>v143</PlatformToolset>
+    <CharacterSet>MultiByte</CharacterSet>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Label="Shared">
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <OutDir>$(SolutionDir)bin\$(ProjectName)\</OutDir>
+    <IntDir>$(SolutionDir)bin\Intermediate\$(Configuration)\$(ProjectName)\</IntDir>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <ConformanceMode>true</ConformanceMode>
+      <AdditionalIncludeDirectories>$(ProjectDir);$(SolutionDir);$(SolutionDir)\Libraries;$(SolutionDir)\Libraries\DirectX81SDK\include</AdditionalIncludeDirectories>
+      <BufferSecurityCheck>false</BufferSecurityCheck>
+      <ObjectFileName>$(SolutionDir)bin\Intermediate\$(Configuration)\Object\%(RelativeDir)</ObjectFileName>
+    </ClCompile>
+    <Link>
+      <SubSystem>Console</SubSystem>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <AdditionalDependencies>Ole32.lib;Wbemuuid.lib;$(CoreLibraryDependencies);%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
+    <PostBuildEvent>
+      <Command>
+      </Command>
+    </PostBuildEvent>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ClCompile Include="..\External\Hooking\Hook.cpp" />
+    <ClCompile Include="..\External\Hooking\HotPatch.cpp" />
+    <ClCompile Include="..\External\MemoryModule\MemoryModule.c" />
+    <ClCompile Include="..\Libraries\d3dx9.cpp" />
+    <ClCompile Include="..\Utils\MyStrings.cpp" />
+    <ClCompile Include="..\Utils\Utils.cpp" />
+    <ClCompile Include="MakeShader.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\External\Hooking\Hook.h" />
+    <ClInclude Include="..\External\MemoryModule\MemoryModule.h" />
+    <ClInclude Include="..\Libraries\d3dx9.h" />
+    <ClInclude Include="..\Utils\Utils.h" />
+    <ClInclude Include="Logging\Logging.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\ddraw\Shaders\ColorKeyShader.hlsl">
+      <FileType>Document</FileType>
+    </None>
+    <None Include="..\ddraw\Shaders\PaletteShader.hlsl">
+      <FileType>Document</FileType>
+    </None>
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>

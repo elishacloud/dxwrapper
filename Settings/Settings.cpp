@@ -651,8 +651,8 @@ void CONFIG::SetConfig()
 		}
 	}
 
-	// Check anti-aliasing value
-	AntiAliasing = (AntiAliasing == 1) ? 16 : AntiAliasing;
+	// Default to 8 samples as some games have issues with more samples
+	AntiAliasing = (AntiAliasing == 1 || AntiAliasing > 16) ? 8 : AntiAliasing;
 
 	// Enable refresh rate
 	OverrideRefreshRate = (DdrawOverrideRefreshRate && !OverrideRefreshRate) ? DdrawOverrideRefreshRate : OverrideRefreshRate;
@@ -726,6 +726,22 @@ void CONFIG::SetConfig()
 	if (SingleProcAffinity)
 	{
 		DDrawCompatNoProcAffinity = true;
+	}
+
+	// Set mouse scroll factor
+	if (abs(MouseMovementFactor) < 0.01f || abs(MouseMovementFactor - 1.0f) < 0.01f)
+	{
+		MouseMovementFactor = 1.0f;
+	}
+	else
+	{
+		FixHighFrequencyMouse = true;
+	}
+
+	// Mouse movement padding
+	if (MouseMovementPadding)
+	{
+		FixHighFrequencyMouse = true;
 	}
 
 	// Set unset options

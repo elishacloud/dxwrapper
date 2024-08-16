@@ -6,14 +6,13 @@ Support via [PayPal](https://paypal.me/elishacloud) | [Patreon](https://patreon.
 
 # DxWrapper
 ### Introduction
-DxWrapper is a .dll file designed to wrap DirectX files to fix compatibility issues in older games.  This project is primarily targeted at fixing issues with running games on Windows 10, by simply dropping .dll and .ini files into the game folder.  Its secondary purpose is to offer a single tool combining several projects into one.
+DxWrapper is a .dll file designed to wrap DirectX files to fix compatibility issues in older games.  This project is primarily targeted at fixing issues with running games on Windows 10/11, by simply dropping .dll and .ini files into the game folder.  Its secondary purpose is to offer a single tool combining several projects into one.
 
 ### Features
 DxWrapper has many features including:
 
  - Integration of [DDrawCompat](https://github.com/narzoul/DDrawCompat/)
  - Configuring DDrawCompat options to improve compatibility
- - Proxy for [DxWnd](https://sourceforge.net/projects/dxwnd/)
  - Conversion of DirectDraw 1-6 to DirectDraw 7
  - Conversion of Direct3D 1-6 to Direct3D 7
  - Conversion of DirectDraw 1-7 (ddraw.dll) to Direct3D 9 (d3d9.dll) using [Dd7to9](https://github.com/elishacloud/dxwrapper/wiki/DirectDraw-to-Direct3D9-Conversion)
@@ -44,8 +43,8 @@ DxWrapper has many features including:
  - Load custom .dll files into games
  - Run custom processes at game start-up
 
-### Compatibility List for Games on Windows 10
-So far I have tested this with hundreds of games (many of which  don't otherwise work correctly) to get them running on Windows 10.  Most games will work, but some still have issues.  Check out the [Compatible Games wiki](https://github.com/elishacloud/dxwrapper/wiki/Compatible-Games) and the [Dd7to9 Supported Games wiki](https://github.com/elishacloud/dxwrapper/wiki/DirectDraw-to-Direct3D9-Conversion#supported-2d-games-directdraw) for a list.
+### Compatibility List for Games on Windows 10/11
+So far I have tested this with hundreds of games (many of which  don't otherwise work correctly) to get them running on Windows 10/11.  Most games will work, but some still have issues.  Check out the [Compatible Games wiki](https://github.com/elishacloud/dxwrapper/wiki/Compatible-Games) and the [Dd7to9 Supported Games wiki](https://github.com/elishacloud/dxwrapper/wiki/DirectDraw-to-Direct3D9-Conversion#supported-2d-games-directdraw) for a list.
 
 ### Installation
 
@@ -97,7 +96,7 @@ DxWrapper can wrap the following dlls:
  - wsock32.dll
 
 ### License
-Copyright (C) 2023 Elisha Riedlinger
+Copyright (C) 2024 Elisha Riedlinger
 
 This software is provided 'as-is', without any express or implied warranty. In no event will the author(s) be held liable for any damages arising from the use of this software. Permission is granted to anyone to use this software for any purpose, including commercial applications, and to alter it and redistribute it freely, subject to the following restrictions:
 

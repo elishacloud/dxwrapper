@@ -47,13 +47,9 @@ HRESULT WINAPI di8_DirectInput8Create(HINSTANCE hinst, DWORD dwVersion, REFIID r
 
 	if (SUCCEEDED(hr) && ppvOut)
 	{
-		if (riidltf == IID_IDirectInput8A)
+		if (riidltf == IID_IDirectInput8A || riidltf == IID_IDirectInput8W)
 		{
-			*ppvOut = new m_IDirectInput8A((IDirectInput8A*)*ppvOut);
-		}
-		else if (riidltf == IID_IDirectInput8W)
-		{
-			*ppvOut = new m_IDirectInput8W((IDirectInput8W*)*ppvOut);
+			*ppvOut = new m_IDirectInput8((IDirectInput8W*)*ppvOut, riidltf);
 		}
 		else
 		{

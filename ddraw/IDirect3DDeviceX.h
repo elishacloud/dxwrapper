@@ -1,8 +1,8 @@
 #pragma once
 
-#include "IDirectDrawX.h"
+#include <unordered_map>
 
-constexpr UINT MaxTextureBlendStages = 8;	// Devices can have up to eight set textures.
+constexpr UINT MaxTextureStages = 8;	// Devices can have up to eight set textures.
 
 class m_IDirect3DDeviceX : public IUnknown, public AddressLookupTableDdrawObject
 {
@@ -15,42 +15,76 @@ private:
 	ULONG RefCount7 = 0;
 	REFCLSID ClassID;
 
+	// Store d3d device version wrappers
+	m_IDirect3DDevice* WrapperInterface;
+	m_IDirect3DDevice2* WrapperInterface2;
+	m_IDirect3DDevice3* WrapperInterface3;
+	m_IDirect3DDevice7* WrapperInterface7;
+
 	// Convert Device
 	m_IDirectDrawX *ddrawParent = nullptr;
-	m_IDirectDrawSurfaceX* DeviceSurface = nullptr;
+	m_IDirectDrawSurfaceX* lpCurrentRenderTargetX = nullptr;
 	LPDIRECT3DDEVICE9 *d3d9Device = nullptr;
 	LPDIRECT3DPIXELSHADER9* colorkeyPixelShader = nullptr;
 	LPDIRECT3DVIEWPORT3 lpCurrentViewport = nullptr;
+	m_IDirect3DViewportX* lpCurrentViewportX = nullptr;
 
 	struct {
 		DWORD rsClipping = 0;
 		DWORD rsLighting = 0;
 		DWORD rsExtents = 0;
-		DWORD tsColorOP = 0;
-		DWORD rsAlphaBlendEnable = 0;
 		DWORD rsAlphaTestEnable = 0;
-		DWORD rsFogEnable = 0;
-		DWORD ssMagFilter = 0;
-		DWORD dwColorSpaceLowValue = 0;
-		DWORD dwColorSpaceHighValue = 0;
+		DWORD rsAlphaFunc = 0;
+		DWORD rsAlphaRef = 0;
+		DWORD ssMinFilter[MaxTextureStages] = {};
+		DWORD ssMagFilter[MaxTextureStages] = {};
+		float lowColorKey[4] = {};
+		float highColorKey[4] = {};
 	} DrawStates;
 
-	// Store d3d device version wrappers
-	m_IDirect3DDevice *WrapperInterface;
-	m_IDirect3DDevice2 *WrapperInterface2;
-	m_IDirect3DDevice3 *WrapperInterface3;
-	m_IDirect3DDevice7 *WrapperInterface7;
+	bool bSetDefaults = true;
+
+	bool IsInScene = false;
 
 	// Last clip status
-	D3DCLIPSTATUS D3DClipStatus = {};
+	D3DCLIPSTATUS D3DClipStatus;
+
+	// Light states
+	DWORD lsMaterialHandle;
 
 	// Render states
-	DWORD rsColorKeyEnabled = FALSE;
+	bool rsAntiAliasChanged;
+	DWORD rsAntiAlias;
+	DWORD rsEdgeAntiAlias;
+	bool rsTextureWrappingChanged;
+	DWORD rsTextureWrappingU;
+	DWORD rsTextureWrappingV;
+	DWORD rsTextureHandle;
+	DWORD rsTextureMin;
+	DWORD rsTextureMapBlend;
+	DWORD rsAlphaBlendEnabled;
+	DWORD rsSrcBlend;
+	DWORD rsDestBlend;
+	DWORD rsColorKeyEnabled;
+	DWORD ssMipFilter[MaxTextureStages] = {};
+
+	// Default settings
+	D3DMATERIAL9 DefaultMaterial = {};
+	D3DVIEWPORT9 DefaultViewport = {};
 
 	// SetTexture array
 	LPDIRECTDRAWSURFACE7 CurrentRenderTarget = nullptr;
-	m_IDirectDrawSurfaceX* CurrentTextureSurfaceX = nullptr;
-	LPDIRECTDRAWSURFACE7 AttachedTexture[MaxTextureBlendStages] = {};
+	m_IDirectDrawSurfaceX* CurrentTextureSurfaceX[MaxTextureStages] = {};
+	LPDIRECTDRAWSURFACE7 AttachedTexture[MaxTextureStages] = {};
+
+	// Texture handle map
+	std::unordered_map<DWORD, m_IDirect3DTextureX*> TextureHandleMap;
+
+	// Material handle map
+	std::unordered_map<D3DMATERIALHANDLE, m_IDirect3DMaterialX*> MaterialHandleMap;
+
+	// Light index map
+	std::unordered_map<DWORD, m_IDirect3DLight*> LightIndexMap;
 
 	// Vector temporary buffer cache
 	std::vector<BYTE> VertexCache;
@@ -118,8 +152,8 @@ private:
 	HRESULT CheckInterface(char *FunctionName, bool CheckD3DDevice);
 
 	// Helper functions
-	void m_IDirect3DDeviceX::UpdateDrawFlags(DWORD& dwFlags);
-	void SetDrawStates(DWORD dwVertexTypeDesc, DWORD dwFlags, DWORD DirectXVersion);
+	void SetDefaults();
+	void SetDrawStates(DWORD dwVertexTypeDesc, DWORD& dwFlags, DWORD DirectXVersion);
 	void RestoreDrawStates(DWORD dwVertexTypeDesc, DWORD dwFlags, DWORD DirectXVersion);
 	void ScaleVertices(DWORD dwVertexTypeDesc, LPVOID& lpVertices, DWORD dwVertexCount);
 	void UpdateVertices(DWORD& dwVertexTypeDesc, LPVOID& lpVertices, DWORD dwVertexCount);
@@ -207,10 +241,13 @@ public:
 	STDMETHOD(GetDirect3D)(THIS_ LPDIRECT3D7*, DWORD);
 	STDMETHOD(GetLightState)(THIS_ D3DLIGHTSTATETYPE, LPDWORD);
 	STDMETHOD(SetLightState)(THIS_ D3DLIGHTSTATETYPE, DWORD);
+	STDMETHOD(SetLight)(THIS_ m_IDirect3DLight*, LPD3DLIGHT);
 	STDMETHOD(SetLight)(THIS_ DWORD, LPD3DLIGHT7);
 	STDMETHOD(GetLight)(THIS_ DWORD, LPD3DLIGHT7);
 	STDMETHOD(LightEnable)(THIS_ DWORD, BOOL);
+	STDMETHOD(GetLightEnable)(THIS_ m_IDirect3DLight*, BOOL*);
 	STDMETHOD(GetLightEnable)(THIS_ DWORD, BOOL*);
+	STDMETHOD(SetMaterial)(THIS_ LPD3DMATERIAL);
 	STDMETHOD(SetMaterial)(THIS_ LPD3DMATERIAL7);
 	STDMETHOD(GetMaterial)(THIS_ LPD3DMATERIAL7);
 	STDMETHOD(SetRenderState)(THIS_ D3DRENDERSTATETYPE, DWORD);
@@ -240,6 +277,24 @@ public:
 	void *GetWrapperInterfaceX(DWORD DirectXVersion);
 	ULONG AddRef(DWORD DirectXVersion);
 	ULONG Release(DWORD DirectXVersion);
+	bool IsDeviceInScene() { return IsInScene; }
+
+	// Viewport functions
+	inline void GetDefaultViewport(D3DVIEWPORT9& Viewport) { Viewport = DefaultViewport; }
+	inline bool CheckIfViewportSet(m_IDirect3DViewportX* pViewport) { return (pViewport == lpCurrentViewportX); }
+
+	// Texture handle function
+	void ReleaseTextureHandle(m_IDirect3DTextureX* lpTexture);
+	HRESULT SetTextureHandle(DWORD tHandle, m_IDirect3DTextureX* lpTexture);
+
+	// Material handle function
+	inline void GetDefaultMaterial(D3DMATERIAL9& Material) { Material = DefaultMaterial; }
+	void ReleaseMaterialHandle(m_IDirect3DMaterialX* lpMaterial);
+	HRESULT SetMaterialHandle(D3DMATERIALHANDLE mHandle, m_IDirect3DMaterialX* lpMaterial);
+	inline bool CheckIfMaterialSet(D3DMATERIALHANDLE mHandle) { return (mHandle == lsMaterialHandle); }
+
+	// Light index function
+	void ReleaseLightInterface(m_IDirect3DLight* lpLight);
 
 	// Functions handling the ddraw parent interface
 	void SetDdrawParent(m_IDirectDrawX *ddraw)
@@ -247,11 +302,15 @@ public:
 		ddrawParent = ddraw;
 
 		// Store D3DDevice
-		if (ddrawParent && DeviceSurface)
+		if (ddrawParent)
 		{
-			ddrawParent->SetD3DDevice(this, DeviceSurface);
+			ddrawParent->SetD3DDevice(this);
+			if (lpCurrentRenderTargetX)
+			{
+				ddrawParent->SetRenderTargetSurface(lpCurrentRenderTargetX);
+			}
 		}
 	}
-	void ClearDdraw() { ddrawParent = nullptr; colorkeyPixelShader = nullptr; }
+	void ClearDdraw() { ddrawParent = nullptr; colorkeyPixelShader = nullptr; d3d9Device = nullptr; }
 	void ResetDevice();
 };

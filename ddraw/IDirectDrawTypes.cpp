@@ -213,28 +213,29 @@ void ConvertCaps(DDCAPS &Caps7, D3DCAPS9 &Caps9)
 	Caps7.dwSize = sizeof(DDCAPS);
 
 	// Caps
-	Caps7.dwCaps = (Caps9.Caps & (/*D3DCAPS_OVERLAY |*/ D3DCAPS_READ_SCANLINE)) |
+	Caps7.dwCaps = (Caps9.Caps & (/*DDSCAPS_OVERLAY |*/ DDCAPS_READSCANLINE)) |
 		(DDCAPS_BLT | /*DDCAPS_BLTQUEUE |*/ DDCAPS_BLTFOURCC | DDCAPS_BLTSTRETCH | DDCAPS_GDI /*| DDCAPS_OVERLAYCANTCLIP | DDCAPS_OVERLAYFOURCC |
-			DDCAPS_OVERLAYSTRETCH*/ | DDCAPS_PALETTE | DDCAPS_PALETTEVSYNC | DDCAPS_VBI | DDCAPS_COLORKEY | /*DDCAPS_ALPHA | DDCAPS_COLORKEYHWASSIST |*/
+			DDCAPS_OVERLAYSTRETCH*/ | DDCAPS_PALETTE | DDCAPS_PALETTEVSYNC | DDCAPS_VBI | DDCAPS_COLORKEY | DDCAPS_ALPHA | /*DDCAPS_COLORKEYHWASSIST |*/
 			DDCAPS_BLTCOLORFILL | DDCAPS_CANCLIP | DDCAPS_CANCLIPSTRETCHED | DDCAPS_CANBLTSYSMEM) |
-		(!Config.DdrawDisableDirect3DCaps ? DDCAPS_3D /*| DDCAPS_BLTDEPTHFILL | DDCAPS_ZBLTS | DDCAPS_ZOVERLAYS*/ : 0);
-	Caps7.dwCaps2 = (Caps9.Caps2 & (D3DCAPS2_FULLSCREENGAMMA /*| D3DCAPS2_CANCALIBRATEGAMMA*/ | D3DCAPS2_CANMANAGERESOURCE | D3DCAPS2_DYNAMICTEXTURES /*| D3DCAPS2_CANAUTOGENMIPMAP | D3DCAPS2_CANSHARERESOURCE*/)) |
-		(/*DDCAPS2_CANBOBINTERLEAVED | DDCAPS2_CANBOBNONINTERLEAVED | DDCAPS2_NONLOCALVIDMEM |*/ DDCAPS2_WIDESURFACES | /*DDCAPS2_CANFLIPODDEVEN |*/ DDCAPS2_COPYFOURCC | DDCAPS2_NOPAGELOCKREQUIRED |
-			DDCAPS2_PRIMARYGAMMA | DDCAPS2_CANRENDERWINDOWED /*| DDCAPS2_FLIPINTERVAL*/ | DDCAPS2_FLIPNOVSYNC);
-	Caps7.dwCKeyCaps = (DDCKEYCAPS_DESTBLT | DDCKEYCAPS_DESTBLTCLRSPACE | /*DDCKEYCAPS_DESTOVERLAY | DDCKEYCAPS_DESTOVERLAYCLRSPACE |*/ DDCKEYCAPS_SRCBLT | DDCKEYCAPS_SRCBLTCLRSPACE
-		/*| DDCKEYCAPS_SRCOVERLAY | DDCKEYCAPS_SRCOVERLAYCLRSPACE*/);
+		(Config.DdrawDisableDirect3DCaps ? 0 : DDCAPS_3D | DDCAPS_BLTDEPTHFILL /*| DDCAPS_ZBLTS | DDCAPS_ZOVERLAYS*/);
+	Caps7.dwCaps2 = (Caps9.Caps2 & (DDCAPS2_PRIMARYGAMMA /*| DDCAPS2_CANCALIBRATEGAMMA*/ | DDCAPS2_CANMANAGERESOURCE | DDCAPS2_DYNAMICTEXTURES)) |
+		(/*DDCAPS2_CANBOBINTERLEAVED | DDCAPS2_CANBOBNONINTERLEAVED | DDCAPS2_NONLOCALVIDMEM |*/ DDCAPS2_WIDESURFACES | /*DDCAPS2_CANFLIPODDEVEN |*/ DDCAPS2_COPYFOURCC |
+			DDCAPS2_NOPAGELOCKREQUIRED | DDCAPS2_PRIMARYGAMMA | DDCAPS2_CANRENDERWINDOWED /*| DDCAPS2_FLIPINTERVAL*/ | DDCAPS2_FLIPNOVSYNC);
+	Caps7.dwCKeyCaps = (DDCKEYCAPS_DESTBLT | /*DDCKEYCAPS_DESTBLTCLRSPACE | DDCKEYCAPS_DESTOVERLAY | DDCKEYCAPS_DESTOVERLAYCLRSPACE |*/ DDCKEYCAPS_SRCBLT /*| DDCKEYCAPS_SRCBLTCLRSPACE |
+		DDCKEYCAPS_SRCOVERLAY | DDCKEYCAPS_SRCOVERLAYCLRSPACE*/);
 	Caps7.dwFXCaps = (DDFXCAPS_BLTARITHSTRETCHY | DDFXCAPS_BLTMIRRORLEFTRIGHT | DDFXCAPS_BLTMIRRORUPDOWN | DDFXCAPS_BLTSHRINKX | DDFXCAPS_BLTSHRINKY | DDFXCAPS_BLTSTRETCHX |
 		DDFXCAPS_BLTSTRETCHY /*| DDFXCAPS_OVERLAYARITHSTRETCHY | DDFXCAPS_OVERLAYSHRINKX | DDFXCAPS_OVERLAYSHRINKY | DDFXCAPS_OVERLAYSTRETCHX | DDFXCAPS_OVERLAYSTRETCHY |
 		DDFXCAPS_OVERLAYMIRRORLEFTRIGHT | DDFXCAPS_OVERLAYMIRRORUPDOWN | DDFXCAPS_OVERLAYDEINTERLACE*/);
-	Caps7.dwFXAlphaCaps = 0 /*| DDFXALPHACAPS_BLTALPHAEDGEBLEND | DDFXALPHACAPS_BLTALPHAPIXELS | DDFXALPHACAPS_BLTALPHAPIXELSNEG | DDFXALPHACAPS_BLTALPHASURFACES | DDFXALPHACAPS_BLTALPHASURFACESNEG |
-		DDFXALPHACAPS_OVERLAYALPHAEDGEBLEND | DDFXALPHACAPS_OVERLAYALPHAPIXELS | DDFXALPHACAPS_OVERLAYALPHAPIXELSNEG | DDFXALPHACAPS_OVERLAYALPHASURFACES | DDFXALPHACAPS_OVERLAYALPHASURFACESNEG*/;
+	Caps7.dwFXAlphaCaps = 0 /*| DDFXALPHACAPS_BLTALPHAEDGEBLEND | DDFXALPHACAPS_BLTALPHAPIXELS | DDFXALPHACAPS_BLTALPHAPIXELSNEG | DDFXALPHACAPS_BLTALPHASURFACES |
+		DDFXALPHACAPS_BLTALPHASURFACESNEG | DDFXALPHACAPS_OVERLAYALPHAEDGEBLEND | DDFXALPHACAPS_OVERLAYALPHAPIXELS | DDFXALPHACAPS_OVERLAYALPHAPIXELSNEG |
+		DDFXALPHACAPS_OVERLAYALPHASURFACES | DDFXALPHACAPS_OVERLAYALPHASURFACESNEG*/;
 	Caps7.dwPalCaps = DDPCAPS_8BIT | DDPCAPS_ALLOW256 | DDPCAPS_PRIMARYSURFACE | DDPCAPS_PRIMARYSURFACELEFT | DDPCAPS_VSYNC /*| DDPCAPS_ALPHA*/;
 	Caps7.dwSVCaps = 0 /*DDSVCAPS_STEREOSEQUENTIAL*/;
 
 	// ddsCaps
 	Caps7.ddsCaps.dwCaps = (DDSCAPS_BACKBUFFER | DDSCAPS_COMPLEX | DDSCAPS_FLIP | DDSCAPS_FRONTBUFFER | DDSCAPS_LOCALVIDMEM | /*DDSCAPS_NONLOCALVIDMEM |*/
 		DDSCAPS_OFFSCREENPLAIN | /*DDSCAPS_OVERLAY | DDSCAPS_OWNDC |*/ DDSCAPS_PRIMARYSURFACE | DDSCAPS_VIDEOMEMORY) |
-		(!Config.DdrawDisableDirect3DCaps ? DDSCAPS_3DDEVICE | DDSCAPS_TEXTURE | DDSCAPS_ZBUFFER /*| DDSCAPS_MIPMAP*/ : 0);
+		(Config.DdrawDisableDirect3DCaps ? 0 : DDSCAPS_3DDEVICE | DDSCAPS_TEXTURE | DDSCAPS_ZBUFFER | DDSCAPS_MIPMAP);
 	Caps7.ddsCaps.dwCaps2 = (!Config.DdrawDisableDirect3DCaps ? /*DDSCAPS2_CUBEMAP*/ 0 : 0);	// Additional surface capabilities
 	Caps7.ddsCaps.dwCaps3 = 0;								// Not used
 	Caps7.ddsCaps.dwCaps4 = 0;								// Not used
@@ -306,11 +307,19 @@ void ConvertCaps(DDCAPS &Caps7, D3DCAPS9 &Caps9)
 
 DWORD GetByteAlignedWidth(DWORD Width, DWORD BitCount)
 {
-	while ((Width * BitCount) % 64)
+	if (!Config.DdrawDisableByteAlignment)
 	{
-		Width++;
+		while ((Width * BitCount) % 64)
+		{
+			Width++;
+		}
 	}
 	return Width;
+}
+
+DWORD GetMaxMipMapLevel(DWORD Width, DWORD Height)
+{
+	return 1 + static_cast<int>(std::floor(std::log2(min(Width, Height))));
 }
 
 DWORD GetBitCount(DDPIXELFORMAT ddpfPixelFormat)
@@ -445,9 +454,168 @@ DWORD GetBitCount(D3DFORMAT Format)
 		return 8;
 
 	default:
-		LOG_LIMIT(100, __FUNCTION__ << " Display format not Implemented: " << Format);
+		LOG_LIMIT(100, __FUNCTION__ << " Error: Display format not Implemented: " << Format);
 		return 0;
 	};
+}
+
+float ConvertDepthValue(DWORD dwFillDepth, D3DFORMAT Format)
+{
+	switch ((DWORD)Format)
+	{
+	case D3DFMT_S1D15:
+		return static_cast<float>(dwFillDepth & 0x7FFF) / 0x7FFF; // 15-bit depth
+
+	case D3DFMT_D15S1:
+		// Shift the depth value to the right by 1 bits before extracting
+		return static_cast<float>((dwFillDepth >> 1) & 0x7FFF) / 0x7FFF; // 15-bit depth
+
+	case D3DFMT_D16:
+	case D3DFMT_D16_LOCKABLE:
+		return static_cast<float>(dwFillDepth & 0xFFFF) / 0xFFFF; // 16-bit depth
+
+	case D3DFMT_X8D24:
+	case D3DFMT_S8D24:
+	case D3DFMT_X4S4D24:
+		return static_cast<float>(dwFillDepth & 0xFFFFFF) / 0xFFFFFF; // 24-bit depth
+
+	case D3DFMT_D24X8:
+	case D3DFMT_D24S8:
+	case D3DFMT_D24FS8:
+	case D3DFMT_D24X4S4:
+		// Shift the depth value to the right by 8 bits before extracting
+		return static_cast<float>((dwFillDepth >> 8) & 0xFFFFFF) / 0xFFFFFF; // 24-bit depth
+
+	case D3DFMT_D32:
+	case D3DFMT_D32_LOCKABLE:
+	case D3DFMT_D32F_LOCKABLE:
+		return (float)(static_cast<double>(dwFillDepth & 0xFFFFFFFF) / 0xFFFFFFFF); // 32-bit depth
+
+	default:
+		LOG_LIMIT(100, __FUNCTION__ << " Error: Depth Stencil format not Implemented: " << Format);
+		return 0.0f;
+	}
+}
+
+DWORD GetSurfaceSize(D3DFORMAT Format, DWORD Width, DWORD Height, INT Pitch)
+{
+	if (ISDXTEX(Format))
+	{
+		return ((GetByteAlignedWidth(Width, GetBitCount(Format)) + 3) / 4) * ((Height + 3) / 4) * (Format == D3DFMT_DXT1 ? 8 : 16);
+	}
+	else if (Format == D3DFMT_YV12)
+	{
+		return GetByteAlignedWidth(Width, GetBitCount(Format)) * Height;
+	}
+	else if (Format & 0xFF000000)
+	{
+		LOG_LIMIT(100, __FUNCTION__ << " Error: Surface size for surface format not Implemented: " << Format);
+		return 0;
+	}
+	else
+	{
+		return Pitch * Height;
+	}
+}
+
+// Count leading zeros and total number of bits
+inline void CountBits(DWORD value, DWORD& LeadingZeros, DWORD& TotalBits)
+{
+	LeadingZeros = 0;
+	while (value && !(value & 1))
+	{
+		LeadingZeros++;
+		value >>= 1;
+	}
+	TotalBits = 0;
+	while (value)
+	{
+		TotalBits += value & 1;
+		value >>= 1;
+	}
+}
+
+DWORD GetARGBColorKey(DWORD ColorKey, DDPIXELFORMAT& pixelFormat)
+{
+	if (!pixelFormat.dwRBitMask || !pixelFormat.dwGBitMask || !pixelFormat.dwBBitMask)
+	{
+		LOG_LIMIT(100, __FUNCTION__ << " Error: pixel format not Implemented: " << pixelFormat);
+		return 0;
+	}
+
+	DWORD dwRBitCount, dwGBitCount, dwBBitCount, rShift, gShift, bShift;
+
+	// Calculate bits for each color component
+	CountBits(pixelFormat.dwRBitMask, rShift, dwRBitCount);
+	CountBits(pixelFormat.dwGBitMask, gShift, dwGBitCount);
+	CountBits(pixelFormat.dwBBitMask, bShift, dwBBitCount);
+
+	// Calculate size of color space for bit depth
+	const float rColorRange = 255.0f / (pixelFormat.dwRBitMask >> rShift);
+	const float gColorRange = 255.0f / (pixelFormat.dwGBitMask >> gShift);
+	const float bColorRange = 255.0f / (pixelFormat.dwBBitMask >> bShift);
+
+	// Extract individual components according to pixel format for low color key
+	DWORD r = static_cast<DWORD>(((ColorKey & pixelFormat.dwRBitMask) >> rShift) * rColorRange);
+	DWORD g = static_cast<DWORD>(((ColorKey & pixelFormat.dwGBitMask) >> gShift) * gColorRange);
+	DWORD b = static_cast<DWORD>(((ColorKey & pixelFormat.dwBBitMask) >> bShift) * bColorRange);
+
+	// Return ARGB color key
+	return D3DCOLOR_ARGB(0xFF, r, g, b);
+}
+
+void GetColorKeyArray(float(&lowColorKey)[4], float(&highColorKey)[4], DWORD lowColorSpace, DWORD highColorSpace, DDPIXELFORMAT& pixelFormat)
+{
+	if (!pixelFormat.dwRBitMask || !pixelFormat.dwGBitMask || !pixelFormat.dwBBitMask)
+	{
+		LOG_LIMIT(100, __FUNCTION__ << " Error: pixel format not Implemented: " << pixelFormat);
+		return;
+	}
+
+	DWORD dwRBitCount, dwGBitCount, dwBBitCount, rShift, gShift, bShift;
+
+	// Calculate bits for each color component
+	CountBits(pixelFormat.dwRBitMask, rShift, dwRBitCount);
+	CountBits(pixelFormat.dwGBitMask, gShift, dwGBitCount);
+	CountBits(pixelFormat.dwBBitMask, bShift, dwBBitCount);
+
+	// Calculate size of color space for bit depth
+	const float rColorRange = 255.0f / (pixelFormat.dwRBitMask >> rShift);
+	const float gColorRange = 255.0f / (pixelFormat.dwGBitMask >> gShift);
+	const float bColorRange = 255.0f / (pixelFormat.dwBBitMask >> bShift);
+
+	// Allow some range for padding (half of a pixel's color range)
+	const float rPadding = (rColorRange / 255.0f) * 0.1f;
+	const float gPadding = (gColorRange / 255.0f) * 0.1f;
+	const float bPadding = (bColorRange / 255.0f) * 0.1f;
+
+	// Extract individual components according to pixel format for low color key
+	BYTE r = (BYTE)((lowColorSpace & pixelFormat.dwRBitMask) >> rShift);
+	BYTE g = (BYTE)((lowColorSpace & pixelFormat.dwGBitMask) >> gShift);
+	BYTE b = (BYTE)((lowColorSpace & pixelFormat.dwBBitMask) >> bShift);
+
+	// Convert to float and normalize to range [0, 1] for low color key
+	lowColorKey[0] = (r * rColorRange / 255.0f) - rPadding;
+	lowColorKey[0] = lowColorKey[0] < 0.0f ? 0.0f : lowColorKey[0];
+	lowColorKey[1] = (g * gColorRange / 255.0f) - gPadding;
+	lowColorKey[1] = lowColorKey[1] < 0.0f ? 0.0f : lowColorKey[1];
+	lowColorKey[2] = (b * bColorRange / 255.0f) - bPadding;
+	lowColorKey[2] = lowColorKey[2] < 0.0f ? 0.0f : lowColorKey[2];
+	lowColorKey[3] = 0.0f;
+
+	// Extract individual components according to pixel format for high color key
+	r = (BYTE)((highColorSpace & pixelFormat.dwRBitMask) >> rShift);
+	g = (BYTE)((highColorSpace & pixelFormat.dwGBitMask) >> gShift);
+	b = (BYTE)((highColorSpace & pixelFormat.dwBBitMask) >> bShift);
+
+	// Convert to float and normalize to range [0, 1] for high color key
+	highColorKey[0] = (r * rColorRange / 255.0f) + rPadding;
+	highColorKey[0] = highColorKey[0] > 1.0f ? 1.0f : highColorKey[0];
+	highColorKey[1] = (g * gColorRange / 255.0f) + gPadding;
+	highColorKey[1] = highColorKey[1] > 1.0f ? 1.0f : highColorKey[1];
+	highColorKey[2] = (b * bColorRange / 255.0f) + bPadding;
+	highColorKey[2] = highColorKey[2] > 1.0f ? 1.0f : highColorKey[2];
+	highColorKey[3] = 0.0f;
 }
 
 D3DFORMAT ConvertSurfaceFormat(D3DFORMAT Format)
@@ -460,10 +628,12 @@ D3DFORMAT GetFailoverFormat(D3DFORMAT Format)
 {
 	std::vector<std::pair<D3DFORMAT, D3DFORMAT>> FormatVector =
 	{
-		{D3DFMT_X1R5G5B5, D3DFMT_A1R5G5B5},
-		{D3DFMT_X4R4G4B4, D3DFMT_A4R4G4B4},
-		{D3DFMT_X8R8G8B8, D3DFMT_A8R8G8B8},
-		{D3DFMT_X8B8G8R8, D3DFMT_A8B8G8R8},
+		{ D3DFMT_P8, D3DFMT_L8 },
+		{ D3DFMT_X1R5G5B5, D3DFMT_A1R5G5B5 },
+		{ D3DFMT_X4R4G4B4, D3DFMT_A4R4G4B4 },
+		{ D3DFMT_X8R8G8B8, D3DFMT_A8R8G8B8 },
+		{ D3DFMT_X8B8G8R8, D3DFMT_A8B8G8R8 },
+		{ D3DFMT_D16_LOCKABLE, D3DFMT_D16 }
 	};
 
 	for (const auto& FormatPair : FormatVector)
@@ -672,7 +842,7 @@ D3DFORMAT GetDisplayFormat(DDPIXELFORMAT ddpfPixelFormat)
 			}
 			if (ddpfPixelFormat.dwZBitMask == 0xFFFF)
 			{
-				return D3DFMT_D16;
+				return D3DFMT_D16_LOCKABLE;
 			}
 			break;
 		case 24:
@@ -880,6 +1050,7 @@ void SetPixelDisplayFormat(D3DFORMAT Format, DDPIXELFORMAT &ddpfPixelFormat)
 
 	// zBuffer formats
 	case D3DFMT_D16:
+	case D3DFMT_D16_LOCKABLE:
 		ddpfPixelFormat.dwFlags = DDPF_ZBUFFER;
 		ddpfPixelFormat.dwZBufferBitDepth = 16;
 		ddpfPixelFormat.dwZBitMask = 0xFFFF;

@@ -1,7 +1,5 @@
 #pragma once
 
-class m_IDirectDrawSurfaceX;
-
 class m_IDirectDrawX : public IUnknown, public AddressLookupTableDdrawObject
 {
 private:
@@ -13,7 +11,6 @@ private:
 	ULONG RefCount4 = 0;
 	ULONG RefCount7 = 0;
 
-	bool IsInitialize = false;
 	bool Using3D = false;
 
 	// Fix exclusive mode issue
@@ -29,7 +26,8 @@ private:
 
 	// Store primary surface
 	m_IDirectDrawSurfaceX *PrimarySurface = nullptr;
-	m_IDirectDrawSurfaceX *Direct3DSurface = nullptr;
+	m_IDirectDrawSurfaceX *RenderTargetSurface = nullptr;
+	m_IDirectDrawSurfaceX *DepthStencilSurface = nullptr;
 
 	// Store a list of surfaces
 	std::vector<m_IDirectDrawSurfaceX*> SurfaceVector;
@@ -84,8 +82,9 @@ private:
 	// Direct3D9 interface functions
 	HRESULT CheckInterface(char *FunctionName, bool CheckD3DDevice);
 	HRESULT CreateD3D9Object();
+	void Release3DForAllSurfaces();
 	void ResetAllSurfaceDisplay();
-	void ReleaseAllD9Resources(bool BackupData);
+	void ReleaseAllD9Resources(bool BackupData, bool ResetInterface);
 	void ReleaseD3D9Device();
 	void ReleaseD3D9Object();
 
@@ -173,13 +172,17 @@ public:
 	ULONG Release(DWORD DirectXVersion);
 
 	// Direct3D interfaces
+	void SetD3D(m_IDirect3DX* D3D);
 	inline m_IDirect3DX** GetCurrentD3D() { return &D3DInterface; }
 	inline void ClearD3D() { D3DInterface = nullptr; }
-	void SetD3DDevice(m_IDirect3DDeviceX* D3DDevice, m_IDirectDrawSurfaceX* D3DSurface);
+	void SetD3DDevice(m_IDirect3DDeviceX* D3DDevice);
 	inline m_IDirect3DDeviceX** GetCurrentD3DDevice() { return &D3DDeviceInterface; }
-	inline void ClearD3DDevice() { D3DDeviceInterface = nullptr; Direct3DSurface = nullptr; Using3D = false; }
+	inline void ClearD3DDevice() { Using3D = false; D3DDeviceInterface = nullptr; SetRenderTargetSurface(nullptr); Release3DForAllSurfaces(); }
 	inline void Enable3D() { Using3D = true; }
 	inline bool IsUsing3D() { return Using3D; }
+	inline bool IsPrimaryRenderTarget() { return PrimarySurface ? PrimarySurface->IsRenderTarget() : false; }
+	inline bool IsPrimaryFlipSurface() { return PrimarySurface ? PrimarySurface->IsFlipSurface() : false; }
+	bool IsInScene();
 
 	// Direct3D9 interfaces
 	bool CheckD3D9Device();
@@ -187,21 +190,19 @@ public:
 	LPDIRECT3DDEVICE9 *GetDirect3D9Device();
 	bool CreatePaletteShader();
 	LPDIRECT3DPIXELSHADER9* GetColorKeyShader();
+	D3DMULTISAMPLE_TYPE GetMultiSampleTypeQuality(D3DFORMAT Format, DWORD MaxSampleType, DWORD& QualityLevels);
 	HRESULT CreateD3D9Device();
 	HRESULT CreateVertexBuffer(DWORD Width, DWORD Height);
 	HRESULT ReinitDevice();
+	HRESULT TestD3D9CooperativeLevel();
 
 	// Device information functions
 	HWND GetHwnd();
 	HDC GetDC();
 	DWORD GetDisplayBPP(HWND hWnd);
-	void ClearDepthStencilSurface();
-	D3DMULTISAMPLE_TYPE GetMultiSampleType();
-	DWORD GetMultiSampleQuality();
 	bool IsExclusiveMode();
 	void GetSurfaceDisplay(DWORD& Width, DWORD& Height, DWORD& BPP, DWORD& RefreshRate);
 	void GetDisplayPixelFormat(DDPIXELFORMAT& ddpfPixelFormat, DWORD BPP);
-	void GetDisplay(DWORD &Width, DWORD &Height);
 
 	// Surface vector functions
 	void AddSurfaceToVector(m_IDirectDrawSurfaceX* lpSurfaceX);
@@ -209,6 +210,11 @@ public:
 	void RemoveSurfaceFromVector(m_IDirectDrawSurfaceX* lpSurfaceX);
 	bool DoesSurfaceExist(m_IDirectDrawSurfaceX* lpSurfaceX);
 	m_IDirectDrawSurfaceX *GetPrimarySurface() { return PrimarySurface; }
+	m_IDirectDrawSurfaceX *GetRenderTargetSurface() { return RenderTargetSurface; }
+	HRESULT SetRenderTargetSurface(m_IDirectDrawSurfaceX* lpSurface);
+	void ReSetRenderTarget() { if (RenderTargetSurface) { SetRenderTargetSurface(RenderTargetSurface); } }
+	m_IDirectDrawSurfaceX *GetDepthStencilSurface() { return DepthStencilSurface; }
+	HRESULT SetDepthStencilSurface(m_IDirectDrawSurfaceX* lpSurface);
 	void EvictManagedTextures();
 
 	// Clipper vector functions
@@ -237,8 +243,13 @@ public:
 
 	// Begin & end scene
 	void SetVsync();
-	HRESULT Draw2DSurface(m_IDirectDrawSurfaceX* DrawSurface);
+	HWND GetClipperHWnd();
+	HRESULT SetClipperHWnd(HWND hWnd);
+	HRESULT GetD9Gamma(DWORD dwFlags, LPDDGAMMARAMP lpRampData);
+	HRESULT SetD9Gamma(DWORD dwFlags, LPDDGAMMARAMP lpRampData);
+	HRESULT CopyPrimarySurfaceToBackbuffer();
+	HRESULT DrawPrimarySurface();
 	bool IsUsingThreadPresent();
-	HRESULT Present2DScene(m_IDirectDrawSurfaceX* DrawSurface, RECT* pSourceRect, RECT* pDestRect);
+	HRESULT PresentScene(RECT* pRect);
 	HRESULT Present(RECT* pSourceRect, RECT* pDestRect);
 };

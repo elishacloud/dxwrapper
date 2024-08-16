@@ -6,7 +6,6 @@ private:
 	IDirectDrawClipper *ProxyInterface = nullptr;
 	REFIID WrapperID = IID_IDirectDrawClipper;
 	ULONG RefCount = 1;
-	bool IsInitialize = false;
 	DWORD clipperCaps = 0;						// Clipper flags
 	HWND cliphWnd = nullptr;
 	std::vector<BYTE> ClipList;

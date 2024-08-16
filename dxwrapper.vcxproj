@@ -5,6 +5,14 @@
       <Configuration>Debug</Configuration>
       <Platform>Win32</Platform>
     </ProjectConfiguration>
+    <ProjectConfiguration Include="dx7|Win32">
+      <Configuration>dx7</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="dx8|Win32">
+      <Configuration>dx8</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
     <ProjectConfiguration Include="Release|Win32">
       <Configuration>Release</Configuration>
       <Platform>Win32</Platform>
@@ -20,6 +28,16 @@
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
+    <PlatformToolset>v143</PlatformToolset>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='dx7|Win32'" Label="Configuration">
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
+    <PlatformToolset>v143</PlatformToolset>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='dx8|Win32'" Label="Configuration">
     <ConfigurationType>DynamicLibrary</ConfigurationType>
     <PlatformToolset>v143</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
@@ -40,6 +58,12 @@
   <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="PropertySheets">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
   </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='dx7|Win32'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='dx8|Win32'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
   <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'" Label="PropertySheets">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
   </ImportGroup>
@@ -55,6 +79,14 @@
     <IntDir>$(SolutionDir)bin\Intermediate\$(Configuration)\$(ProjectName)\</IntDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <OutDir>$(SolutionDir)bin\$(Configuration)\</OutDir>
+    <IntDir>$(SolutionDir)bin\Intermediate\$(Configuration)\$(ProjectName)\</IntDir>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='dx7|Win32'">
+    <OutDir>$(SolutionDir)bin\$(Configuration)\</OutDir>
+    <IntDir>$(SolutionDir)bin\Intermediate\$(Configuration)\$(ProjectName)\</IntDir>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='dx8|Win32'">
     <OutDir>$(SolutionDir)bin\$(Configuration)\</OutDir>
     <IntDir>$(SolutionDir)bin\Intermediate\$(Configuration)\$(ProjectName)\</IntDir>
   </PropertyGroup>
@@ -83,9 +115,7 @@
 copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\" &gt;nul
 copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\$(TargetName).asi" &gt;nul
 copy /Y "$(ProjectDir)Settings\AllSettings.ini" "$(TargetDir)Build\" &gt;nul
-copy /Y "$(ProjectDir)Settings\Settings.ini" "$(TargetDir)Build\dxwrapper.ini" &gt;nul
-copy /Y "$(ProjectDir)Resources\dxwnd.dll" "$(TargetDir)Build\" &gt;nul
-copy /Y "$(ProjectDir)Resources\dxwnd.exe" "$(TargetDir)Build\" &gt;nul</Command>
+copy /Y "$(ProjectDir)Settings\Settings.ini" "$(TargetDir)Build\dxwrapper.ini" &gt;nul</Command>
     </PostBuildEvent>
     <PreBuildEvent>
       <Command>cmd /q /c "cd /D ""$(ProjectDir)Dllmain\"" &amp;&amp; if not exist BuildNo.rc echo #define BUILD_NUMBER 0 &gt;BuildNo.rc"
@@ -103,6 +133,60 @@ cmd /q /c "cd /D ""$(ProjectDir)d3d8\"" &amp;&amp; call build.bat"
 cmd /q /c "cd /D ""$(ProjectDir)d3d8\"" &amp;&amp; del build.bat"</Command>
     </PreBuildEvent>
   </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='dx7|Win32'">
+    <ClCompile>
+      <PreprocessorDefinitions>WIN32;NDEBUG;_WINDOWS;_USRDLL;DISABLE_COMMON_LOGGING;_NO_DDRAWINT_NO_COM;DDRAW;DINPUT;DINPUT8;DDRAWCOMPAT;DDRAWCOMPAT_EXPORTS;DXWND;D3D8TO9NOLOG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
+      <ObjectFileName>$(SolutionDir)bin\Intermediate\$(Configuration)\Object\%(RelativeDir)</ObjectFileName>
+      <WarningLevel>Level4</WarningLevel>
+      <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
+      <AdditionalIncludeDirectories>$(ProjectDir);Libraries;Libraries\DirectX81SDK\include;External\imgui</AdditionalIncludeDirectories>
+      <LanguageStandard>stdcpp17</LanguageStandard>
+      <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
+    </ClCompile>
+    <Link>
+      <SubSystem>Windows</SubSystem>
+      <AdditionalDependencies>detours.lib;msimg32.lib;oleacc.lib;wbemuuid.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <ModuleDefinitionFile>Wrappers\wrapper.def</ModuleDefinitionFile>
+      <AdditionalLibraryDirectories>Libraries\detours\lib</AdditionalLibraryDirectories>
+      <OptimizeReferences>true</OptimizeReferences>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <ImageHasSafeExceptionHandlers>false</ImageHasSafeExceptionHandlers>
+    </Link>
+    <PostBuildEvent>
+      <Command>call "$(ProjectDir)Resources\dx7-script.cmd" "$(ProjectDir)Settings\Settings.ini" "$(TargetDir)dxwrapper.ini"
+del "$(TargetDir)dxwrapper.exp" &gt;nul
+del "$(TargetDir)dxwrapper.lib" &gt;nul
+del "$(TargetDir)dxwrapper.pdb" &gt;nul</Command>
+    </PostBuildEvent>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='dx8|Win32'">
+    <ClCompile>
+      <PreprocessorDefinitions>WIN32;NDEBUG;_WINDOWS;_USRDLL;DISABLE_COMMON_LOGGING;_NO_DDRAWINT_NO_COM;DDRAW;DINPUT;DINPUT8;DDRAWCOMPAT;DDRAWCOMPAT_EXPORTS;DXWND;D3D8TO9NOLOG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
+      <ObjectFileName>$(SolutionDir)bin\Intermediate\$(Configuration)\Object\%(RelativeDir)</ObjectFileName>
+      <WarningLevel>Level4</WarningLevel>
+      <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
+      <AdditionalIncludeDirectories>$(ProjectDir);Libraries;Libraries\DirectX81SDK\include;External\imgui</AdditionalIncludeDirectories>
+      <LanguageStandard>stdcpp17</LanguageStandard>
+      <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
+    </ClCompile>
+    <Link>
+      <SubSystem>Windows</SubSystem>
+      <AdditionalDependencies>detours.lib;msimg32.lib;oleacc.lib;wbemuuid.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <ModuleDefinitionFile>Wrappers\wrapper.def</ModuleDefinitionFile>
+      <AdditionalLibraryDirectories>Libraries\detours\lib</AdditionalLibraryDirectories>
+      <OptimizeReferences>true</OptimizeReferences>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <ImageHasSafeExceptionHandlers>false</ImageHasSafeExceptionHandlers>
+    </Link>
+    <PostBuildEvent>
+      <Command>call "$(ProjectDir)Resources\dx8-script.cmd" "$(ProjectDir)Settings\Settings.ini" "$(TargetDir)dxwrapper.ini"
+del "$(TargetDir)dxwrapper.exp" &gt;nul
+del "$(TargetDir)dxwrapper.lib" &gt;nul
+del "$(TargetDir)dxwrapper.pdb" &gt;nul</Command>
+    </PostBuildEvent>
+  </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">
     <ClCompile>
       <PreprocessorDefinitions>WIN32;NDEBUG;_WINDOWS;_WIN32_WINNT=0x0501;_USRDLL;_USING_V110_SDK71_;DISABLE_COMMON_LOGGING;_NO_DDRAWINT_NO_COM;DDRAW;DINPUT;DINPUT8;DXWND;D3D8TO9NOLOG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
@@ -110,7 +194,7 @@ cmd /q /c "cd /D ""$(ProjectDir)d3d8\"" &amp;&amp; del build.bat"</Command>
       <ObjectFileName>$(SolutionDir)bin\Intermediate\$(Configuration)\Object\%(RelativeDir)</ObjectFileName>
       <WarningLevel>Level4</WarningLevel>
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
-      <AdditionalIncludeDirectories>$(ProjectDir);Libraries;Libraries\DirectX81SDK\include;External\imgui</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir);Libraries;Libraries\DirectX81SDK\include;External\dinputto8\Include;External\dinputto8\Include\winsdk-10;External\imgui</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp17</LanguageStandard>
       <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
     </ClCompile>
@@ -128,11 +212,8 @@ cmd /q /c "cd /D ""$(ProjectDir)d3d8\"" &amp;&amp; del build.bat"</Command>
 copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\" &gt;nul
 copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\$(TargetName).asi" &gt;nul
 copy /Y "$(ProjectDir)Settings\AllSettings.ini" "$(TargetDir)Build\" &gt;nul
-copy /Y "$(ProjectDir)Settings\Settings.ini" "$(TargetDir)Build\dxwrapper.ini" &gt;nul
-copy /Y "$(ProjectDir)Resources\dxwnd.dll" "$(TargetDir)Build\" &gt;nul
-copy /Y "$(ProjectDir)Resources\dxwnd.exe" "$(TargetDir)Build\" &gt;nul</Command>
+copy /Y "$(ProjectDir)Settings\Settings.ini" "$(TargetDir)Build\dxwrapper.ini" &gt;nul</Command>
     </PostBuildEvent>
-    <PreBuildEvent />
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
@@ -159,9 +240,7 @@ copy /Y "$(ProjectDir)Resources\dxwnd.exe" "$(TargetDir)Build\" &gt;nul</Command
 copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\" &gt;nul
 copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\$(TargetName).asi" &gt;nul
 copy /Y "$(ProjectDir)Settings\AllSettings.ini" "$(TargetDir)Build\" &gt;nul
-copy /Y "$(ProjectDir)Settings\Settings.ini" "$(TargetDir)Build\dxwrapper.ini" &gt;nul
-copy /Y "$(ProjectDir)Resources\dxwnd.dll" "$(TargetDir)Build\" &gt;nul
-copy /Y "$(ProjectDir)Resources\dxwnd.exe" "$(TargetDir)Build\" &gt;nul</Command>
+copy /Y "$(ProjectDir)Settings\Settings.ini" "$(TargetDir)Build\dxwrapper.ini" &gt;nul</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
@@ -567,11 +646,9 @@ copy /Y "$(ProjectDir)Resources\dxwnd.exe" "$(TargetDir)Build\" &gt;nul</Command
     <ClCompile Include="ddraw\Versions\IDirectDrawSurface7.cpp" />
     <ClCompile Include="dinput8\dinput8.cpp" />
     <ClCompile Include="dinput8\dinput8External.h" />
-    <ClCompile Include="dinput8\IDirectInput8A.cpp" />
-    <ClCompile Include="dinput8\IDirectInput8W.cpp" />
-    <ClCompile Include="dinput8\IDirectInputDevice8A.cpp" />
-    <ClCompile Include="dinput8\IDirectInputDevice8W.cpp" />
-    <ClCompile Include="dinput8\IDirectInputEffect.cpp" />
+    <ClCompile Include="dinput8\IDirectInput8.cpp" />
+    <ClCompile Include="dinput8\IDirectInputDevice8.cpp" />
+    <ClCompile Include="dinput8\IDirectInputEffect8.cpp" />
     <ClCompile Include="dinput8\InterfaceQuery.cpp" />
     <ClCompile Include="dinput\dinput.cpp" />
     <ClCompile Include="DirectShow\IAMMediaStream.cpp" />
@@ -600,7 +677,6 @@ copy /Y "$(ProjectDir)Resources\dxwnd.exe" "$(TargetDir)Build\" &gt;nul</Command
     <ClCompile Include="dsound\IDirectSoundNotify8.cpp" />
     <ClCompile Include="dsound\IKsPropertySet.cpp" />
     <ClCompile Include="dsound\InterfaceQuery.cpp" />
-    <ClCompile Include="DxWnd\v2_03_60_src\init.cpp" />
     <ClCompile Include="External\d3d8to9\source\d3d8to9_base.cpp" />
     <ClCompile Include="External\d3d8to9\source\d3d8to9_device.cpp" />
     <ClCompile Include="External\d3d8to9\source\d3d8to9_index_buffer.cpp" />
@@ -1202,11 +1278,9 @@ copy /Y "$(ProjectDir)Resources\dxwnd.exe" "$(TargetDir)Build\" &gt;nul</Command
     <ClInclude Include="ddraw\Versions\IDirectDrawSurface7.h" />
     <ClInclude Include="dinput8\AddressLookupTable.h" />
     <ClInclude Include="dinput8\dinput8.h" />
-    <ClInclude Include="dinput8\IDirectInput8A.h" />
-    <ClInclude Include="dinput8\IDirectInput8W.h" />
-    <ClInclude Include="dinput8\IDirectInputDevice8A.h" />
-    <ClInclude Include="dinput8\IDirectInputDevice8W.h" />
-    <ClInclude Include="dinput8\IDirectInputEffect.h" />
+    <ClInclude Include="dinput8\IDirectInput8.h" />
+    <ClInclude Include="dinput8\IDirectInputDevice8.h" />
+    <ClInclude Include="dinput8\IDirectInputEffect8.h" />
     <ClInclude Include="dinput\dinputExternal.h" />
     <ClInclude Include="DirectShow\IAMMediaStream.h" />
     <ClInclude Include="Disasm\disasm.h" />
@@ -1235,8 +1309,6 @@ copy /Y "$(ProjectDir)Resources\dxwnd.exe" "$(TargetDir)Build\" &gt;nul</Command
     <ClInclude Include="dsound\IDirectSoundFXWavesReverb8.h" />
     <ClInclude Include="dsound\IDirectSoundNotify8.h" />
     <ClInclude Include="dsound\IKsPropertySet.h" />
-    <ClInclude Include="DxWnd\DxWndExternal.h" />
-    <ClInclude Include="DxWnd\v2_03_60_src\dxwnd.h" />
     <ClInclude Include="External\d3d8to9\source\d3d8to9.hpp" />
     <ClInclude Include="External\d3d8to9\source\d3d8types.hpp" />
     <ClInclude Include="External\d3d8to9\source\d3dx9.hpp" />
@@ -1303,6 +1375,21 @@ copy /Y "$(ProjectDir)Resources\dxwnd.exe" "$(TargetDir)Build\" &gt;nul</Command
   <ItemGroup>
     <ResourceCompile Include="Dllmain\BuildNo.rc" />
     <ResourceCompile Include="Dllmain\dxwrapper.rc" />
+  </ItemGroup>
+  <ItemGroup>
+    <CustomBuild Include="ddraw\Shaders\ColorKeyShader.hlsl">
+      <FileType>Document</FileType>
+      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</DeploymentContent>
+      <OutputItemType Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">ClInclude</OutputItemType>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">cmd /q /c "cd /D ""$(SolutionDir)ddraw\Shaders\"" &amp;&amp; ""..\..\bin\MakeShader\MakeShader.exe"" ColorKeyShader.hlsl ColorKeyPixelShaderSrc"</Command>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">ddraw\Shaders\ColorKeyShader.h</Outputs>
+    </CustomBuild>
+    <CustomBuild Include="ddraw\Shaders\PaletteShader.hlsl">
+      <FileType>Document</FileType>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">cmd /q /c "cd /D ""$(SolutionDir)ddraw\Shaders\"" &amp;&amp; ""..\..\bin\MakeShader\MakeShader.exe"" PaletteShader.hlsl PalettePixelShaderSrc"</Command>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">ddraw\Shaders\PaletteShader.h</Outputs>
+      <OutputItemType Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">ClInclude</OutputItemType>
+    </CustomBuild>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

@@ -16,37 +16,20 @@
 
 #include "ddraw.h"
 
-void ConvertLight(D3DLIGHT& Light, D3DLIGHT7& Light7)
-{
-	if (Light.dwSize != sizeof(D3DLIGHT))
-	{
-		LOG_LIMIT(100, __FUNCTION__ << " Error: Incorrect dwSize: " << Light.dwSize);
-		return;
-	}
-	Light.dltType = Light7.dltType;
-	Light.dcvColor = Light7.dcvDiffuse;
-	Light.dvPosition = Light7.dvPosition;
-	Light.dvDirection = Light7.dvDirection;
-	Light.dvRange = Light7.dvRange;
-	Light.dvFalloff = Light7.dvFalloff;
-	Light.dvAttenuation0 = Light7.dvAttenuation0;
-	Light.dvAttenuation1 = Light7.dvAttenuation1;
-	Light.dvAttenuation2 = Light7.dvAttenuation2;
-	Light.dvTheta = Light7.dvTheta;
-	Light.dvPhi = Light7.dvPhi;
-}
-
 void ConvertLight(D3DLIGHT7& Light7, D3DLIGHT& Light)
 {
-	if (Light.dwSize != sizeof(D3DLIGHT))
+	if (Light.dwSize != sizeof(D3DLIGHT) && Light.dwSize != sizeof(D3DLIGHT2))
 	{
 		LOG_LIMIT(100, __FUNCTION__ << " Error: Incorrect dwSize: " << Light.dwSize);
 		return;
 	}
+	const float DiffuseFactor = 1.0f;
+	const float SpecularFactor = 0.1f;
+	const float AmbientFactor = 0.3f;
 	Light7.dltType = Light.dltType;
-	Light7.dcvDiffuse = Light.dcvColor;
-	Light7.dcvSpecular = Light.dcvColor;
-	Light7.dcvAmbient = Light.dcvColor;
+	Light7.dcvDiffuse = { Light.dcvColor.r * DiffuseFactor, Light.dcvColor.g * DiffuseFactor, Light.dcvColor.b * DiffuseFactor, Light.dcvColor.a };
+	Light7.dcvSpecular = { Light.dcvColor.r * SpecularFactor, Light.dcvColor.g * SpecularFactor, Light.dcvColor.b * SpecularFactor, Light.dcvColor.a };
+	Light7.dcvAmbient = { Light.dcvColor.r * AmbientFactor, Light.dcvColor.g * AmbientFactor, Light.dcvColor.b * AmbientFactor, Light.dcvColor.a };
 	Light7.dvPosition = Light.dvPosition;
 	Light7.dvDirection = Light.dvDirection;
 	Light7.dvRange = Light.dvRange;
@@ -56,9 +39,16 @@ void ConvertLight(D3DLIGHT7& Light7, D3DLIGHT& Light)
 	Light7.dvAttenuation2 = Light.dvAttenuation2;
 	Light7.dvTheta = Light.dvTheta;
 	Light7.dvPhi = Light.dvPhi;
+
+	// Apply additional flags
+	if (Light.dwSize == sizeof(D3DLIGHT2) && (((LPD3DLIGHT2)&Light)->dwFlags & D3DLIGHT_NO_SPECULAR))
+	{
+		// No specular reflection
+		Light7.dcvSpecular = { 0.0f, 0.0f, 0.0f, 1.0f };
+	}
 }
 
-void ConvertMaterial(D3DMATERIAL &Material, D3DMATERIAL7 &Material7)
+void ConvertMaterial(D3DMATERIAL& Material, D3DMATERIAL7& Material7)
 {
 	if (Material.dwSize != sizeof(D3DMATERIAL))
 	{
@@ -70,8 +60,7 @@ void ConvertMaterial(D3DMATERIAL &Material, D3DMATERIAL7 &Material7)
 	Material.dcvSpecular = Material7.dcvSpecular;
 	Material.dcvEmissive = Material7.dcvEmissive;
 	Material.dvPower = Material7.dvPower;
-	// Extra parameters
-	Material.hTexture = 0;
+	Material.hTexture = NULL;
 	Material.dwRampSize = 0;
 }
 
@@ -392,21 +381,21 @@ void ConvertDeviceDesc(D3DDEVICEDESC7 &Desc7, D3DCAPS9 &Caps9)
 		Desc7.dpcTriCaps.dwStippleWidth = 4;
 		Desc7.dpcTriCaps.dwStippleHeight = 4;
 		Desc7.dwDeviceRenderBitDepth = DDBD_8 | DDBD_16 | DDBD_24 | DDBD_32;
-		Desc7.dwDeviceZBufferBitDepth = DDBD_16;
+		Desc7.dwDeviceZBufferBitDepth = DDBD_16 | DDBD_32;
 	}
 	else if (Caps9.DeviceType == D3DDEVTYPE_HAL)
 	{
 		Desc7.deviceGUID = IID_IDirect3DHALDevice;
 		Desc7.dwDevCaps = (Desc7.dwDevCaps | D3DDEVCAPS_HWRASTERIZATION) & ~(D3DDEVCAPS_HWTRANSFORMANDLIGHT);
 		Desc7.dwDeviceRenderBitDepth = DDBD_8 | DDBD_16 | DDBD_32;
-		Desc7.dwDeviceZBufferBitDepth = DDBD_16 | DDBD_24;
+		Desc7.dwDeviceZBufferBitDepth = DDBD_16 | DDBD_32;
 	}
 	else if (Caps9.DeviceType == D3DDEVTYPE_HAL + 0x10)
 	{
 		Desc7.deviceGUID = IID_IDirect3DTnLHalDevice;
 		Desc7.dwDevCaps |= Desc7.dwDevCaps | D3DDEVCAPS_HWRASTERIZATION;
 		Desc7.dwDeviceRenderBitDepth = DDBD_8 | DDBD_16 | DDBD_32;
-		Desc7.dwDeviceZBufferBitDepth = DDBD_16 | DDBD_24;
+		Desc7.dwDeviceZBufferBitDepth = DDBD_16 | DDBD_32;
 	}
 	// Reserved
 	Desc7.dwReserved1 = 0;
@@ -582,6 +571,195 @@ bool CheckRenderStateType(D3DRENDERSTATETYPE dwRenderStateType)
 	default:
 		return false;
 	}
+}
+
+void ConvertVertex(BYTE* pDestVertex, DWORD DestFVF, const BYTE* pSrcVertex, DWORD SrcFVF)
+{
+	DWORD SrcOffset = 0;
+	DWORD DestOffset = 0;
+
+	// Copy Position XYZ
+	*(D3DXVECTOR3*)pDestVertex = *(D3DXVECTOR3*)pSrcVertex;
+	DestOffset += 3 * sizeof(float);
+
+	// Update source offset for Position
+	SrcOffset += 3 * sizeof(float);
+
+	// Copy Position data (XYZW, XYZRHW, etc.)
+	switch (DestFVF & D3DFVF_POSITION_MASK_9)
+	{
+	case D3DFVF_XYZW:
+	case D3DFVF_XYZRHW:
+		if ((DestFVF & D3DFVF_POSITION_MASK_9) == (SrcFVF & D3DFVF_POSITION_MASK_9))
+		{
+			*(float*)(pDestVertex + DestOffset) = *(float*)(pSrcVertex + SrcOffset);
+		}
+		DestOffset += sizeof(float);
+		break;
+	case D3DFVF_XYZB1:
+	case D3DFVF_XYZB2:
+	case D3DFVF_XYZB3:
+	case D3DFVF_XYZB4:
+	case D3DFVF_XYZB5:
+	{
+		// Get number of blending weights
+		DWORD SrcNumBlending =
+			(SrcFVF & D3DFVF_POSITION_MASK_9) == D3DFVF_XYZB1 ? 1 :
+			(SrcFVF & D3DFVF_POSITION_MASK_9) == D3DFVF_XYZB2 ? 2 :
+			(SrcFVF & D3DFVF_POSITION_MASK_9) == D3DFVF_XYZB3 ? 3 :
+			(SrcFVF & D3DFVF_POSITION_MASK_9) == D3DFVF_XYZB4 ? 4 :
+			(SrcFVF & D3DFVF_POSITION_MASK_9) == D3DFVF_XYZB5 ? 5 : 0;
+		DWORD DestNumBlending =
+			(DestFVF & D3DFVF_POSITION_MASK_9) == D3DFVF_XYZB1 ? 1 :
+			(DestFVF & D3DFVF_POSITION_MASK_9) == D3DFVF_XYZB2 ? 2 :
+			(DestFVF & D3DFVF_POSITION_MASK_9) == D3DFVF_XYZB3 ? 3 :
+			(DestFVF & D3DFVF_POSITION_MASK_9) == D3DFVF_XYZB4 ? 4 :
+			(DestFVF & D3DFVF_POSITION_MASK_9) == D3DFVF_XYZB5 ? 5 : 0;
+		// Copy matching blending weights
+		for (UINT x = 0; x < min(SrcNumBlending, DestNumBlending); x++)
+		{
+			*(float*)(pDestVertex + DestOffset + x * sizeof(float)) = *(float*)(pSrcVertex + SrcOffset + x * sizeof(float));
+		}
+		DestOffset += DestNumBlending * sizeof(float);
+		break;
+	}
+	}
+
+	// Update source offset for Position data
+	switch (SrcFVF & D3DFVF_POSITION_MASK_9)
+	{
+	case D3DFVF_XYZW:
+	case D3DFVF_XYZRHW:
+	case D3DFVF_XYZB1:
+		SrcOffset += sizeof(float);
+		break;
+	case D3DFVF_XYZB2:
+		SrcOffset += 2 * sizeof(float);
+		break;
+	case D3DFVF_XYZB3:
+		SrcOffset += 3 * sizeof(float);
+		break;
+	case D3DFVF_XYZB4:
+		SrcOffset += 4 * sizeof(float);
+		break;
+	case D3DFVF_XYZB5:
+		SrcOffset += 5 * sizeof(float);
+		break;
+	}
+
+	// Normal
+	if (DestFVF & D3DFVF_NORMAL)
+	{
+		if (SrcFVF & D3DFVF_NORMAL)
+		{
+			*(D3DXVECTOR3*)(pDestVertex + DestOffset) = *(D3DXVECTOR3*)(pSrcVertex + SrcOffset);
+			SrcOffset += 3 * sizeof(float);
+		}
+		DestOffset += 3 * sizeof(float);
+	}
+	else if (SrcFVF & D3DFVF_NORMAL)
+	{
+		SrcOffset += 3 * sizeof(float);
+	}
+
+	// Point Size
+	if (DestFVF & D3DFVF_PSIZE)
+	{
+		if (SrcFVF & D3DFVF_PSIZE)
+		{
+			*(float*)(pDestVertex + DestOffset) = *(float*)(pSrcVertex + SrcOffset);
+			SrcOffset += sizeof(float);
+		}
+		DestOffset += sizeof(float);
+	}
+	else if (SrcFVF & D3DFVF_PSIZE)
+	{
+		SrcOffset += sizeof(float);
+	}
+
+	// Diffuse color
+	if (DestFVF & D3DFVF_DIFFUSE)
+	{
+		if (SrcFVF & D3DFVF_DIFFUSE)
+		{
+			*(DWORD*)(pDestVertex + DestOffset) = *(DWORD*)(pSrcVertex + SrcOffset);
+			SrcOffset += sizeof(DWORD);
+		}
+		DestOffset += sizeof(DWORD);
+	}
+	else if (SrcFVF & D3DFVF_DIFFUSE)
+	{
+		SrcOffset += sizeof(DWORD);
+	}
+
+	// Specular color
+	if (DestFVF & D3DFVF_SPECULAR)
+	{
+		if (SrcFVF & D3DFVF_SPECULAR)
+		{
+			*(DWORD*)(pDestVertex + DestOffset) = *(DWORD*)(pSrcVertex + SrcOffset);
+			SrcOffset += sizeof(DWORD);
+		}
+		DestOffset += sizeof(DWORD);
+	}
+	else if (SrcFVF & D3DFVF_SPECULAR)
+	{
+		SrcOffset += sizeof(DWORD);
+	}
+
+	// Texture coordinates
+	int SrcNumTexCoords = (SrcFVF & D3DFVF_TEXCOUNT_MASK) >> D3DFVF_TEXCOUNT_SHIFT;
+	int DestNumTexCoords = (DestFVF & D3DFVF_TEXCOUNT_MASK) >> D3DFVF_TEXCOUNT_SHIFT;
+	int y = 0;
+	for (int x = 0; x < DestNumTexCoords; x++)
+	{
+		// Get number of destination texture coordinates
+		int DestCord = (DestFVF & (D3DFVF_TEXCOORDSIZE1(x) | D3DFVF_TEXCOORDSIZE2(x) | D3DFVF_TEXCOORDSIZE3(x) | D3DFVF_TEXCOORDSIZE4(x)));
+		int DestSize =
+			DestCord == D3DFVF_TEXCOORDSIZE1(x) ? 1 :
+			DestCord == D3DFVF_TEXCOORDSIZE2(x) ? 2 :
+			DestCord == D3DFVF_TEXCOORDSIZE3(x) ? 3 :
+			DestCord == D3DFVF_TEXCOORDSIZE4(x) ? 4 : 0;
+		// Find matching source texture coordinates
+		while (y < SrcNumTexCoords)
+		{
+			int SrcCord = (SrcFVF & (D3DFVF_TEXCOORDSIZE1(y) | D3DFVF_TEXCOORDSIZE2(y) | D3DFVF_TEXCOORDSIZE3(y) | D3DFVF_TEXCOORDSIZE4(y)));
+			int SrcSize =
+				SrcCord == D3DFVF_TEXCOORDSIZE1(y) ? 1 :
+				SrcCord == D3DFVF_TEXCOORDSIZE2(y) ? 2 :
+				SrcCord == D3DFVF_TEXCOORDSIZE3(y) ? 3 :
+				SrcCord == D3DFVF_TEXCOORDSIZE4(y) ? 4 : 0;
+			// Copy matching texture coordinates
+			if (SrcSize && DestSize == SrcSize)
+			{
+				for (int i = 0; i < SrcSize; i++)
+				{
+					*(float*)(pDestVertex + DestOffset + i * sizeof(float)) = *(float*)(pSrcVertex + SrcOffset + i * sizeof(float));
+				}
+				SrcOffset += SrcSize * sizeof(float);
+				y++;
+				break;
+			}
+			SrcOffset += SrcSize * sizeof(float);
+			y++;
+		}
+		// Increase destination offset
+		DestOffset += DestSize * sizeof(float);
+	}
+}
+
+DWORD ConvertVertexTypeToFVF(D3DVERTEXTYPE d3dVertexType)
+{
+	switch (d3dVertexType)
+	{
+	case D3DVT_VERTEX:
+		return D3DFVF_VERTEX;
+	case D3DVT_LVERTEX:
+		return D3DFVF_LVERTEX;
+	case D3DVT_TLVERTEX:
+		return D3DFVF_TLVERTEX;
+	}
+	return 0;
 }
 
 UINT GetVertexStride(DWORD dwVertexTypeDesc)

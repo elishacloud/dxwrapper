@@ -28,12 +28,12 @@ HRESULT m_IDirect3DTextureX::QueryInterface(REFIID riid, LPVOID FAR * ppvObj, DW
 	if (riid == IID_GetRealInterface)
 	{
 		*ppvObj = ProxyInterface;
-		return DD_OK;
+		return D3D_OK;
 	}
 	if (riid == IID_GetInterfaceX)
 	{
 		*ppvObj = this;
-		return DD_OK;
+		return D3D_OK;
 	}
 
 	if (DirectXVersion != 1 && DirectXVersion != 2)
@@ -50,7 +50,7 @@ HRESULT m_IDirect3DTextureX::QueryInterface(REFIID riid, LPVOID FAR * ppvObj, DW
 
 		AddRef(DxVersion);
 
-		return DD_OK;
+		return D3D_OK;
 	}
 
 	return ProxyQueryInterface(ProxyInterface, riid, ppvObj, GetWrapperType(DxVersion));
@@ -136,8 +136,8 @@ HRESULT m_IDirect3DTextureX::Initialize(LPDIRECT3DDEVICE lpDirect3DDevice, LPDIR
 
 	if (ProxyDirectXVersion != 1)
 	{
-		// Former stub method. This method was never implemented and is not supported in any interface.
-		return D3D_OK;
+		// The method returns DDERR_ALREADYINITIALIZED because the IDirect3DTexture object is initialized when it is created.
+		return DDERR_ALREADYINITIALIZED;
 	}
 
 	if (lpDirect3DDevice)
@@ -158,10 +158,41 @@ HRESULT m_IDirect3DTextureX::GetHandle(LPDIRECT3DDEVICE2 lpDirect3DDevice2, LPD3
 
 	if (!ProxyInterface)
 	{
-		if (lpHandle)
+		if (!lpDirect3DDevice2 || !lpHandle)
 		{
-			*lpHandle = tHandle;
+			LOG_LIMIT(100, __FUNCTION__ << " Warning: called with nullptr: " << lpDirect3DDevice2 << " " << lpHandle);
+			return DDERR_INVALIDPARAMS;
 		}
+
+		if (!D3DDeviceInterface || !*D3DDeviceInterface)
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: D3DDevice does not exist!");
+			return DDERR_GENERIC;
+		}
+
+		// ToDo: Validate Direct3D Device
+		m_IDirect3DDeviceX* pDirect3DDeviceX = nullptr;
+		lpDirect3DDevice2->QueryInterface(IID_GetInterfaceX, (LPVOID*)&pDirect3DDeviceX);
+		if (!pDirect3DDeviceX)
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: could not get Direct3D Device wrapper!");
+			return DDERR_INVALIDPARAMS;
+		}
+
+		if (*D3DDeviceInterface != pDirect3DDeviceX)
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Warning: Direct3D Device wrapper does not match! " << *D3DDeviceInterface << "->" << pDirect3DDeviceX);
+		}
+
+		if (!tHandle)
+		{
+			tHandle = (DWORD)this + 32;
+		}
+
+		(*D3DDeviceInterface)->SetTextureHandle(tHandle, this);
+
+		*lpHandle = tHandle;
+
 		return D3D_OK;
 	}
 
@@ -181,14 +212,28 @@ HRESULT m_IDirect3DTextureX::GetHandle(LPDIRECT3DDEVICE2 lpDirect3DDevice2, LPD3
 	}
 }
 
+HRESULT m_IDirect3DTextureX::SetHandle(DWORD dwHandle)
+{
+	if (!dwHandle)
+	{
+		LOG_LIMIT(100, __FUNCTION__ << " Error: NULL pointer found!");
+		return DDERR_GENERIC;
+	}
+
+	tHandle = dwHandle;
+
+	return D3D_OK;
+}
+
 HRESULT m_IDirect3DTextureX::PaletteChanged(DWORD dwStart, DWORD dwCount)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
 	if (!ProxyInterface)
 	{
-		LOG_LIMIT(100, __FUNCTION__ << " Error: Not Implemented");
-		return DDERR_UNSUPPORTED;
+		// This method informs the driver that the palette has changed on a texture surface.
+		// Only affects the legacy ramp device. For all other devices, this method takes no action and returns D3D_OK.
+		return D3D_OK;
 	}
 
 	switch (ProxyDirectXVersion)
@@ -213,7 +258,7 @@ HRESULT m_IDirect3DTextureX::Load(LPDIRECT3DTEXTURE2 lpD3DTexture2)
 			return DDERR_INVALIDPARAMS;
 		}
 
-		if (!D3DDeviceInterface)
+		if (!D3DDeviceInterface || !*D3DDeviceInterface)
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Error: D3DDevice does not exist!");
 			return DDERR_GENERIC;
@@ -234,11 +279,21 @@ HRESULT m_IDirect3DTextureX::Load(LPDIRECT3DTEXTURE2 lpD3DTexture2)
 			return DDERR_GENERIC;
 		}
 
+		if (pSrcTextureX == this)
+		{
+			return D3D_OK;
+		}
+
 		m_IDirectDrawSurfaceX* pSrcSurfaceX = pSrcTextureX->GetSurface();
 		if (!pSrcSurfaceX)
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Error: could not get surface!");
 			return DDERR_GENERIC;
+		}
+
+		if (pSrcSurfaceX == DDrawSurface)
+		{
+			return D3D_OK;
 		}
 
 		IDirectDrawSurface7* pSrcSurface7 = (IDirectDrawSurface7*)pSrcSurfaceX->GetWrapperInterfaceX(7);
@@ -277,7 +332,7 @@ HRESULT m_IDirect3DTextureX::Unload()
 	if (ProxyDirectXVersion != 1)
 	{
 		// Former stub method. This method was never implemented and is not supported in any interface.
-		return DD_OK;
+		return D3D_OK;
 	}
 
 	return GetProxyInterfaceV1()->Unload();
@@ -298,14 +353,17 @@ void m_IDirect3DTextureX::InitTexture(DWORD DirectXVersion)
 	}
 
 	AddRef(DirectXVersion);
-
-	tHandle = (DWORD)this + 32;
 }
 
 void m_IDirect3DTextureX::ReleaseTexture()
 {
 	WrapperInterface->DeleteMe();
 	WrapperInterface2->DeleteMe();
+
+	if (tHandle && D3DDeviceInterface && *D3DDeviceInterface)
+	{
+		(*D3DDeviceInterface)->ReleaseTextureHandle(this);
+	}
 
 	if (DDrawSurface)
 	{

@@ -89,19 +89,17 @@ HRESULT m_IDirectDrawGammaControl::GetGammaRamp(DWORD dwFlags, LPDDGAMMARAMP lpR
 
 	if (!ProxyInterface)
 	{
-		if (!lpRampData)
+		if (!(dwFlags == D3DSGR_NO_CALIBRATION || dwFlags == DDSGR_CALIBRATE) || !lpRampData)
 		{
 			return DDERR_INVALIDPARAMS;
 		}
 
-		if (dwFlags & DDSGR_CALIBRATE)
+		if (!ddrawParent)
 		{
-			LOG_LIMIT(100, __FUNCTION__ << " Warning: Calibrating gamma ramps is not Implemented");
+			return DDERR_INVALIDOBJECT;
 		}
 
-		*lpRampData = RampData;
-
-		return DD_OK;
+		return ddrawParent->GetD9Gamma(dwFlags, lpRampData);
 	}
 
 	return ProxyInterface->GetGammaRamp(dwFlags, lpRampData);
@@ -113,30 +111,17 @@ HRESULT m_IDirectDrawGammaControl::SetGammaRamp(DWORD dwFlags, LPDDGAMMARAMP lpR
 
 	if (!ProxyInterface)
 	{
-		if (!(dwFlags || dwFlags == DDSGR_CALIBRATE) || !lpRampData)
+		if (!(dwFlags == D3DSGR_NO_CALIBRATION || dwFlags == DDSGR_CALIBRATE) || !lpRampData)
 		{
 			return DDERR_INVALIDPARAMS;
 		}
 
-		RampData = *lpRampData;
-
-		// Present new gamma setting
-		if (ddrawParent)
+		if (!ddrawParent)
 		{
-			ddrawParent->SetVsync();
-
-			SetCriticalSection();
-
-			m_IDirectDrawSurfaceX *lpDDSrcSurfaceX = ddrawParent->GetPrimarySurface();
-			if (lpDDSrcSurfaceX)
-			{
-				lpDDSrcSurfaceX->PresentSurface(false);
-			}
-
-			ReleaseCriticalSection();
+			return DDERR_INVALIDOBJECT;
 		}
 
-		return DD_OK;
+		return ddrawParent->SetD9Gamma(dwFlags, lpRampData);
 	}
 
 	return ProxyInterface->SetGammaRamp(dwFlags, lpRampData);
@@ -149,12 +134,6 @@ HRESULT m_IDirectDrawGammaControl::SetGammaRamp(DWORD dwFlags, LPDDGAMMARAMP lpR
 void m_IDirectDrawGammaControl::InitGammaControl()
 {
 	// Initialize gamma control
-	for (int x = 0; x < 256; x++)
-	{
-		RampData.red[x] = 255;
-		RampData.green[x] = 255;
-		RampData.blue[x] = 255;
-	}
 }
 
 void m_IDirectDrawGammaControl::ReleaseGammaControl()

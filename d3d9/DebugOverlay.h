@@ -1,5 +1,7 @@
 #pragma once
 
+#ifdef ENABLE_DEBUGOVERLAY
+
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 #include <vector>
@@ -64,3 +66,5 @@ public:
 	void SetLight(DWORD dwLightIndex, LPD3DLIGHT7 lpLight);
 	void LightEnable(DWORD dwLightIndex, BOOL bEnable);
 };
+
+#endif

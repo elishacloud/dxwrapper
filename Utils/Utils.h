@@ -35,6 +35,7 @@ namespace Utils
 	DWORD ReverseBits(DWORD v);
 	void DDrawResolutionHack(HMODULE hD3DIm);
 	void BusyWaitYield();
+	void ResetInvalidFPUState();
 	void CheckMessageQueue(HWND hwnd);
 	void GetScreenSettings();
 	void ResetScreenSettings();
@@ -48,7 +49,7 @@ namespace Utils
 	bool SetWndProcFilter(HWND hWnd);
 	bool RestoreWndProcFilter(HWND hWnd);
 	void GetScreenSize(HWND hwnd, LONG &screenWidth, LONG &screenHeight);
-	void GetScreenSize(HWND hwnd, DWORD &screenWidth, DWORD &screenHeight);
+	void GetScreenSize(HWND hwnd, int &screenWidth, int &screenHeight);
 	void GetDesktopRect(HWND hWnd, RECT& screenRect);
 	DWORD GetVideoRam(UINT AdapterNo);	// Adapters start numbering from '1', based on "Win32_VideoController" WMI class and "DeviceID" property.
 }
@@ -67,6 +68,7 @@ namespace Fullscreen
 	bool IsThreadRunning();
 	void StopThread();
 	void ResetScreen();
+	HWND FindMainWindow(DWORD process_id, bool AutoDetect, bool Debug = false);
 }
 
 bool stristr(LPCSTR strCheck, LPCSTR str, size_t size);

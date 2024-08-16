@@ -18,6 +18,11 @@
 
 HRESULT m_IDirectDrawSurface7::QueryInterface(REFIID riid, LPVOID FAR * ppvObj)
 {
+	if (ppvObj && riid == IID_GetMipMapLevel)
+	{
+		*ppvObj = (void*)MipMapLevel;
+		return DD_OK;
+	}
 	return ProxyInterface->QueryInterface(ReplaceIIDUnknown(riid, WrapperID), ppvObj, DirectXVersion);
 }
 
@@ -43,17 +48,17 @@ HRESULT m_IDirectDrawSurface7::AddOverlayDirtyRect(LPRECT a)
 
 HRESULT m_IDirectDrawSurface7::Blt(LPRECT a, LPDIRECTDRAWSURFACE7 b, LPRECT c, DWORD d, LPDDBLTFX e)
 {
-	return ProxyInterface->Blt(a, b, c, d, e);
+	return ProxyInterface->Blt(a, b, c, d, e, MipMapLevel);
 }
 
 HRESULT m_IDirectDrawSurface7::BltBatch(LPDDBLTBATCH a, DWORD b, DWORD c)
 {
-	return ProxyInterface->BltBatch(a, b, c);
+	return ProxyInterface->BltBatch(a, b, c, MipMapLevel);
 }
 
 HRESULT m_IDirectDrawSurface7::BltFast(DWORD a, DWORD b, LPDIRECTDRAWSURFACE7 c, LPRECT d, DWORD e)
 {
-	return ProxyInterface->BltFast(a, b, c, d, e);
+	return ProxyInterface->BltFast(a, b, c, d, e, MipMapLevel);
 }
 
 HRESULT m_IDirectDrawSurface7::DeleteAttachedSurface(DWORD a, LPDIRECTDRAWSURFACE7 b)
@@ -63,7 +68,7 @@ HRESULT m_IDirectDrawSurface7::DeleteAttachedSurface(DWORD a, LPDIRECTDRAWSURFAC
 
 HRESULT m_IDirectDrawSurface7::EnumAttachedSurfaces(LPVOID a, LPDDENUMSURFACESCALLBACK7 b)
 {
-	return ProxyInterface->EnumAttachedSurfaces2(a, b, DirectXVersion);
+	return ProxyInterface->EnumAttachedSurfaces2(a, b, MipMapLevel, DirectXVersion);
 }
 
 HRESULT m_IDirectDrawSurface7::EnumOverlayZOrders(DWORD a, LPVOID b, LPDDENUMSURFACESCALLBACK7 c)
@@ -78,7 +83,7 @@ HRESULT m_IDirectDrawSurface7::Flip(LPDIRECTDRAWSURFACE7 a, DWORD b)
 
 HRESULT m_IDirectDrawSurface7::GetAttachedSurface(LPDDSCAPS2 a, LPDIRECTDRAWSURFACE7 FAR * b)
 {
-	return ProxyInterface->GetAttachedSurface2(a, b, DirectXVersion);
+	return ProxyInterface->GetAttachedSurface2(a, b, MipMapLevel, DirectXVersion);
 }
 
 HRESULT m_IDirectDrawSurface7::GetBltStatus(DWORD a)
@@ -128,7 +133,7 @@ HRESULT m_IDirectDrawSurface7::GetPixelFormat(LPDDPIXELFORMAT a)
 
 HRESULT m_IDirectDrawSurface7::GetSurfaceDesc(LPDDSURFACEDESC2 a)
 {
-	return ProxyInterface->GetSurfaceDesc2(a);
+	return ProxyInterface->GetSurfaceDesc2(a, MipMapLevel, DirectXVersion);
 }
 
 HRESULT m_IDirectDrawSurface7::Initialize(LPDIRECTDRAW a, LPDDSURFACEDESC2 b)
@@ -143,7 +148,7 @@ HRESULT m_IDirectDrawSurface7::IsLost()
 
 HRESULT m_IDirectDrawSurface7::Lock(LPRECT a, LPDDSURFACEDESC2 b, DWORD c, HANDLE d)
 {
-	return ProxyInterface->Lock2(a, b, c, d, DirectXVersion);
+	return ProxyInterface->Lock2(a, b, c, d, MipMapLevel, DirectXVersion);
 }
 
 HRESULT m_IDirectDrawSurface7::ReleaseDC(HDC a)
@@ -178,7 +183,7 @@ HRESULT m_IDirectDrawSurface7::SetPalette(LPDIRECTDRAWPALETTE a)
 
 HRESULT m_IDirectDrawSurface7::Unlock(LPRECT a)
 {
-	return ProxyInterface->Unlock(a);
+	return ProxyInterface->Unlock(a, MipMapLevel);
 }
 
 HRESULT m_IDirectDrawSurface7::UpdateOverlay(LPRECT a, LPDIRECTDRAWSURFACE7 b, LPRECT c, DWORD d, LPDDOVERLAYFX e)

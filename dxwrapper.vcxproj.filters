@@ -4,9 +4,6 @@
     <Filter Include="DDrawCompat">
       <UniqueIdentifier>{bf6f3d22-aab2-413e-af84-ee52035f125f}</UniqueIdentifier>
     </Filter>
-    <Filter Include="DxWnd">
-      <UniqueIdentifier>{e266cd78-1c44-4ae4-83ae-9a0b7b6a3d53}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Disasm">
       <UniqueIdentifier>{2768b966-6a71-4031-9b49-a1b7dec51afb}</UniqueIdentifier>
     </Filter>
@@ -40,9 +37,6 @@
     </Filter>
     <Filter Include="DDrawCompat\v0.2.0b">
       <UniqueIdentifier>{bc571ee9-1289-4d58-986c-d0206ec8997a}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="DxWnd\v2_03_60_src">
-      <UniqueIdentifier>{8e05201f-e493-4a94-b533-2b60fb0aba68}</UniqueIdentifier>
     </Filter>
     <Filter Include="ddraw\Versions">
       <UniqueIdentifier>{f484f6f8-618e-41ab-9fe4-6034ff843072}</UniqueIdentifier>
@@ -219,9 +213,6 @@
     </ClCompile>
     <ClCompile Include="d3d9\InterfaceQuery.cpp">
       <Filter>d3d9</Filter>
-    </ClCompile>
-    <ClCompile Include="DxWnd\v2_03_60_src\init.cpp">
-      <Filter>DxWnd\v2_03_60_src</Filter>
     </ClCompile>
     <ClCompile Include="DDrawCompat\DDrawCompatExternal.cpp">
       <Filter>DDrawCompat</Filter>
@@ -628,19 +619,13 @@
     <ClCompile Include="dinput8\dinput8.cpp">
       <Filter>dinput8</Filter>
     </ClCompile>
-    <ClCompile Include="dinput8\IDirectInput8A.cpp">
+    <ClCompile Include="dinput8\IDirectInput8.cpp">
       <Filter>dinput8</Filter>
     </ClCompile>
-    <ClCompile Include="dinput8\IDirectInput8W.cpp">
+    <ClCompile Include="dinput8\IDirectInputDevice8.cpp">
       <Filter>dinput8</Filter>
     </ClCompile>
-    <ClCompile Include="dinput8\IDirectInputDevice8A.cpp">
-      <Filter>dinput8</Filter>
-    </ClCompile>
-    <ClCompile Include="dinput8\IDirectInputDevice8W.cpp">
-      <Filter>dinput8</Filter>
-    </ClCompile>
-    <ClCompile Include="dinput8\IDirectInputEffect.cpp">
+    <ClCompile Include="dinput8\IDirectInputEffect8.cpp">
       <Filter>dinput8</Filter>
     </ClCompile>
     <ClCompile Include="dinput8\InterfaceQuery.cpp">
@@ -1064,17 +1049,11 @@
     <ClInclude Include="Wrappers\winmm.h">
       <Filter>Wrappers</Filter>
     </ClInclude>
-    <ClInclude Include="DxWnd\DxWndExternal.h">
-      <Filter>DxWnd</Filter>
-    </ClInclude>
     <ClInclude Include="DDrawCompat\DDrawCompatExternal.h">
       <Filter>DDrawCompat</Filter>
     </ClInclude>
     <ClInclude Include="DDrawCompat\DDrawLog.h">
       <Filter>DDrawCompat</Filter>
-    </ClInclude>
-    <ClInclude Include="DxWnd\v2_03_60_src\dxwnd.h">
-      <Filter>DxWnd\v2_03_60_src</Filter>
     </ClInclude>
     <ClInclude Include="DDrawCompat\v0.2.1\CompatActivateAppHandler.h">
       <Filter>DDrawCompat\v0.2.1</Filter>
@@ -1517,19 +1496,13 @@
     <ClInclude Include="dinput8\dinput8.h">
       <Filter>dinput8</Filter>
     </ClInclude>
-    <ClInclude Include="dinput8\IDirectInput8A.h">
+    <ClInclude Include="dinput8\IDirectInput8.h">
       <Filter>dinput8</Filter>
     </ClInclude>
-    <ClInclude Include="dinput8\IDirectInput8W.h">
+    <ClInclude Include="dinput8\IDirectInputDevice8.h">
       <Filter>dinput8</Filter>
     </ClInclude>
-    <ClInclude Include="dinput8\IDirectInputDevice8A.h">
-      <Filter>dinput8</Filter>
-    </ClInclude>
-    <ClInclude Include="dinput8\IDirectInputDevice8W.h">
-      <Filter>dinput8</Filter>
-    </ClInclude>
-    <ClInclude Include="dinput8\IDirectInputEffect.h">
+    <ClInclude Include="dinput8\IDirectInputEffect8.h">
       <Filter>dinput8</Filter>
     </ClInclude>
     <ClInclude Include="IClassFactory\IClassFactory.h">
@@ -1871,12 +1844,6 @@
     <ClInclude Include="D3DDDI\d3dddiExternal.h">
       <Filter>d3dddi</Filter>
     </ClInclude>
-    <ClInclude Include="ddraw\Shaders\PaletteShader.h">
-      <Filter>ddraw\Shaders</Filter>
-    </ClInclude>
-    <ClInclude Include="ddraw\Shaders\ColorKeyShader.h">
-      <Filter>ddraw\Shaders</Filter>
-    </ClInclude>
     <ClInclude Include="Wrappers\cryptbase.h">
       <Filter>Wrappers</Filter>
     </ClInclude>
@@ -1889,6 +1856,12 @@
     <ClInclude Include="Libraries\VersionHelpers.h">
       <Filter>Libraries</Filter>
     </ClInclude>
+    <ClInclude Include="ddraw\Shaders\ColorKeyShader.h">
+      <Filter>ddraw\Shaders</Filter>
+    </ClInclude>
+    <ClInclude Include="ddraw\Shaders\PaletteShader.h">
+      <Filter>ddraw\Shaders</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="Dllmain\BuildNo.rc">
@@ -1897,5 +1870,13 @@
     <ResourceCompile Include="Dllmain\dxwrapper.rc">
       <Filter>Dllmain</Filter>
     </ResourceCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <CustomBuild Include="ddraw\Shaders\ColorKeyShader.hlsl">
+      <Filter>ddraw\Shaders</Filter>
+    </CustomBuild>
+    <CustomBuild Include="ddraw\Shaders\PaletteShader.hlsl">
+      <Filter>ddraw\Shaders</Filter>
+    </CustomBuild>
   </ItemGroup>
 </Project>

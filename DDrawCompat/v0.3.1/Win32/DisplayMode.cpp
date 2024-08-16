@@ -159,7 +159,7 @@ namespace
 	BOOL enumDisplaySettingsEx(EnumDisplaySettingsExFunc origEnumDisplaySettingsEx,
 		const Char* lpszDeviceName, DWORD iModeNum, DevMode* lpDevMode, DWORD dwFlags)
 	{
-		if (ENUM_REGISTRY_SETTINGS == iModeNum || !lpDevMode)
+		if (ENUM_REGISTRY_SETTINGS == iModeNum || !lpDevMode || !lpDevMode->dmSize)
 		{
 			BOOL result = origEnumDisplaySettingsEx(lpszDeviceName, iModeNum, lpDevMode, dwFlags);
 			return result;
@@ -188,7 +188,7 @@ namespace
 
 			DWORD modeNum = 0;
 			DevMode dm = {};
-			dm.dmSize = sizeof(dm);
+			dm.dmSize = min(lpDevMode->dmSize, sizeof(dm));
 			while (origEnumDisplaySettingsEx(lpszDeviceName, modeNum, &dm, dwFlags))
 			{
 				if (32 == dm.dmBitsPerPel)
@@ -209,7 +209,7 @@ namespace
 			return FALSE;
 		}
 
-		*lpDevMode = devModes[iModeNum];
+		memcpy_s(lpDevMode, lpDevMode->dmSize, &devModes[iModeNum], min(lpDevMode->dmSize, sizeof(DevMode)));
 		return TRUE;
 	}
 
