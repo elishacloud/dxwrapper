@@ -289,38 +289,157 @@ HRESULT m_IDirect3DVertexBufferX::ProcessVertices(DWORD dwVertexOp, DWORD dwDest
 			LOG_LIMIT(100, __FUNCTION__ << " Error: could not get d3d9 source vertex buffer!");
 			return DDERR_GENERIC;
 		}
+		LPDIRECT3DVERTEXBUFFER9 d3d9DestVertexBuffer = d3d9VertexBuffer;
 
-		DWORD FVF = pSrcVertexBufferX->GetFVF9();
-		D3DVERTEXELEMENT9 decl[MAX_FVF_DECL_SIZE] = {};
-		if (FAILED(D3DXDeclaratorFromFVF(FVF, decl)))
+		// Get and verify FVF
+		DWORD SrcFVF = pSrcVertexBufferX->GetFVF9();
+		DWORD DestFVF = GetFVF9();
+		if (FAILED((*d3d9Device)->SetFVF(SrcFVF)) || FAILED((*d3d9Device)->SetFVF(DestFVF)))
 		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error: could not create vertex declaration!");
+			LOG_LIMIT(100, __FUNCTION__ << " Error: could not set vertex declaration: " << Logging::hex(SrcFVF) << " -> " << Logging::hex(DestFVF));
 			return D3DERR_INVALIDVERTEXTYPE;
 		}
+		UINT SrcStride = GetVertexStride(SrcFVF);
+		UINT DestStride = GetVertexStride(DestFVF);
 
-		IDirect3DVertexDeclaration9* pVertexDecl = nullptr;
-		if (FAILED((*d3d9Device)->CreateVertexDeclaration(decl, &pVertexDecl)))
+		// Check the dwDestIndex, dwSrcIndex and dwCount to make sure they won't cause an overload
+		DWORD SrcNumVertices = pSrcVertexBufferX->VBDesc.dwNumVertices;
+		DWORD DestNumVertices = VBDesc.dwNumVertices;
+		if (dwSrcIndex > SrcNumVertices || dwDestIndex > DestNumVertices)
 		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error: could not create vertex declaration!");
+			LOG_LIMIT(100, __FUNCTION__ << " Error: vertex index is too large: " <<
+				SrcNumVertices << " -> " << dwSrcIndex << " " <<
+				DestNumVertices << " -> " << dwDestIndex);
 			return D3DERR_INVALIDVERTEXTYPE;
 		}
+		dwCount = min(dwCount, SrcNumVertices - dwSrcIndex);
+		dwCount = min(dwCount, DestNumVertices - dwDestIndex);
 
-		// Set stream source
-		(*d3d9Device)->SetStreamSource(0, d3d9SrcVertexBuffer, 0, GetVertexStride(FVF));
-
-		// Process vertices
-		HRESULT hr = (*d3d9Device)->ProcessVertices(dwSrcIndex, dwDestIndex, dwCount, d3d9VertexBuffer, pVertexDecl, dwFlags);
-
-		pVertexDecl->Release();
-
-		if (FAILED(hr))
+		D3DMATRIX matWorldViewProj = {};
 		{
-			LOG_LIMIT(100, __FUNCTION__ << " Warning: 'ProcessVertices' call failed: " << (D3DERR)hr);
+			D3DMATRIX matWorld, matView, matProj, matWorldView = {};
+			if (FAILED((*d3d9Device)->GetTransform(D3DTS_WORLD, &matWorld)) ||
+				FAILED((*d3d9Device)->GetTransform(D3DTS_VIEW, &matView)) ||
+				FAILED((*d3d9Device)->GetTransform(D3DTS_PROJECTION, &matProj)))
+			{
+				LOG_LIMIT(100, __FUNCTION__ << " Error: failed to get world, view or projection matrix!");
+				return DDERR_GENERIC;
+			}
+
+			// Multiply the world, view and projection matrices
+			D3DXMatrixMultiply(&matWorldViewProj, D3DXMatrixMultiply(&matWorldView, &matWorld, &matView), &matProj);
 		}
 
-		// ToDo: Fix this
-		// Just return OK for now
-		return D3D_OK; // hr;
+		void* pSrcVertices = nullptr;
+		void* pDestVertices = nullptr;
+
+		HRESULT hr = D3D_OK;
+
+		do {
+			// Lock the source vertex buffer
+			if (FAILED(d3d9SrcVertexBuffer->Lock(0, 0, &pSrcVertices, D3DLOCK_READONLY)))
+			{
+				LOG_LIMIT(100, __FUNCTION__ << " Error: failed to lock source vertex");
+				hr = DDERR_GENERIC;
+				break;
+			}
+
+			// Lock the destination vertex buffer
+			if (FAILED(d3d9DestVertexBuffer->Lock(0, 0, &pDestVertices, 0)))
+			{
+				LOG_LIMIT(100, __FUNCTION__ << " Error: failed to lock destination vertex");
+				hr = DDERR_GENERIC;
+				break;
+			}
+
+			bool CopyRHW = (((SrcFVF & D3DFVF_POSITION_MASK_9) == D3DFVF_XYZRHW && (DestFVF & D3DFVF_POSITION_MASK_9) == D3DFVF_XYZRHW) ||
+				((SrcFVF & D3DFVF_POSITION_MASK_9) == D3DFVF_XYZW && (DestFVF & D3DFVF_POSITION_MASK_9) == D3DFVF_XYZW));
+
+			BYTE* pSrcVertex = (BYTE*)pSrcVertices + (dwSrcIndex * SrcStride);
+			BYTE* pDestVertex = (BYTE*)pDestVertices + (dwDestIndex * DestStride);
+
+			// Copy only position data
+			if ((dwFlags & D3DPV_DONOTCOPYDATA) && !CopyRHW)
+			{
+				for (UINT i = 0; i < dwCount; ++i)
+				{
+					// Apply the transformation to the position
+					D3DXVec3TransformCoord(reinterpret_cast<D3DXVECTOR3*>(pDestVertex), reinterpret_cast<D3DXVECTOR3*>(pSrcVertex), &matWorldViewProj);
+
+					// Move to the next vertex
+					pSrcVertex = pSrcVertex + SrcStride;
+					pDestVertex = pDestVertex + DestStride;
+				}
+			}
+			// Copy position and RHW/W data
+			else if (dwFlags & D3DPV_DONOTCOPYDATA)
+			{
+				for (UINT i = 0; i < dwCount; ++i)
+				{
+					// Apply the transformation to the position
+					D3DXVec3TransformCoord(reinterpret_cast<D3DXVECTOR3*>(pDestVertex), reinterpret_cast<D3DXVECTOR3*>(pSrcVertex), &matWorldViewProj);
+
+					// Copy RHW/W data
+					*(float*)(pDestVertex + 3 * sizeof(float)) = *(float*)(pSrcVertex + 3 * sizeof(float));
+
+					// Move to the next vertex
+					pSrcVertex = pSrcVertex + SrcStride;
+					pDestVertex = pDestVertex + DestStride;
+				}
+			}
+			// Copy all data
+			else if (SrcFVF == DestFVF)
+			{
+				memcpy(pDestVertex, pSrcVertex, DestStride * dwCount);
+
+				for (UINT i = 0; i < dwCount; ++i)
+				{
+					// Apply the transformation to the position
+					D3DXVec3TransformCoord(reinterpret_cast<D3DXVECTOR3*>(pDestVertex), reinterpret_cast<D3DXVECTOR3*>(pSrcVertex), &matWorldViewProj);
+
+					// Move to the next vertex
+					pSrcVertex = pSrcVertex + SrcStride;
+					pDestVertex = pDestVertex + DestStride;
+				}
+			}
+			// Copy all data converting vertices
+			else
+			{
+				for (UINT i = 0; i < dwCount; ++i)
+				{
+					// Convert and copy all vertex data
+					ConvertVertex(pDestVertex, DestFVF, pSrcVertex, SrcFVF);
+
+					// Apply the transformation to the position
+					D3DXVec3TransformCoord(reinterpret_cast<D3DXVECTOR3*>(pDestVertex), reinterpret_cast<D3DXVECTOR3*>(pSrcVertex), &matWorldViewProj);
+
+					// Move to the next vertex
+					pSrcVertex = pSrcVertex + SrcStride;
+					pDestVertex = pDestVertex + DestStride;
+				}
+			}
+
+			// Handle D3DFVF_LVERTEX
+			if (VBDesc.dwFVF == D3DFVF_LVERTEX)
+			{
+				BYTE* pDestData = VertexData.data() + (dwDestIndex * LVERTEX_SIZE);
+				BYTE* pSrcData = (BYTE*)pDestVertices + (dwDestIndex * DestStride);		// Destination vertex is the source for this copy
+
+				ConvertVertices((D3DLVERTEX*)pDestData, (D3DLVERTEX9*)pSrcData, dwCount);
+			}
+
+		} while (false);
+
+		if (pSrcVertices)
+		{
+			d3d9SrcVertexBuffer->Unlock();
+		}
+		if (pDestVertices)
+		{
+			d3d9DestVertexBuffer->Unlock();
+		}
+
+		return hr;
 	}
 
 	if (lpSrcBuffer)
