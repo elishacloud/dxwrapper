@@ -198,7 +198,7 @@ void ConvertCaps(DDCAPS &Caps, DDCAPS &Caps2)
 	ZeroMemory(&Caps, Caps.dwSize);
 	Caps.dwSize = Size;
 	CopyMemory(&Caps, &Caps2, min(Caps.dwSize, Caps2.dwSize));
-	m_IDirectDrawX::AdjustVidMemory(&Caps.dwVidMemTotal, &Caps.dwVidMemFree);
+	AdjustVidMemory(&Caps.dwVidMemTotal, &Caps.dwVidMemFree, Config.Dd7to9);
 }
 
 void ConvertCaps(DDCAPS &Caps7, D3DCAPS9 &Caps9)
@@ -303,6 +303,22 @@ void ConvertCaps(DDCAPS &Caps7, D3DCAPS9 &Caps9)
 	// Live video ports
 	Caps7.dwMaxVideoPorts = 0;
 	Caps7.dwCurrVideoPorts = 0;
+}
+
+void AdjustVidMemory(LPDWORD lpdwTotal, LPDWORD lpdwFree, bool SetZeroValueVariables)
+{
+	DWORD TotalVidMem = (lpdwTotal && *lpdwTotal) ? *lpdwTotal : (lpdwFree && *lpdwFree) ? *lpdwFree + MinUsedVidMemory : MaxVidMemory;
+	DWORD AvailVidMem = (lpdwFree && *lpdwFree) ? *lpdwFree : TotalVidMem - MinUsedVidMemory;
+	TotalVidMem = min(TotalVidMem, MaxVidMemory);
+	AvailVidMem = min(AvailVidMem, TotalVidMem - MinUsedVidMemory);
+	if (lpdwTotal && (SetZeroValueVariables || (!SetZeroValueVariables && *lpdwTotal)))
+	{
+		*lpdwTotal = TotalVidMem;
+	}
+	if (lpdwFree && (SetZeroValueVariables || (!SetZeroValueVariables && *lpdwFree)))
+	{
+		*lpdwFree = AvailVidMem;
+	}
 }
 
 DWORD GetByteAlignedWidth(DWORD Width, DWORD BitCount)

@@ -238,9 +238,6 @@ public:
 	inline void ClearColorInterface() { ColorControlInterface = nullptr;  };
 	inline void ClearGammaInterface() { GammaControlInterface = nullptr; };
 
-	// Video memory size
-	static void AdjustVidMemory(LPDWORD lpdwTotal, LPDWORD lpdwFree);
-
 	// Begin & end scene
 	void SetVsync();
 	HWND GetClipperHWnd();

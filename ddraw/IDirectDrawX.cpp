@@ -26,9 +26,6 @@
 #include "Shaders\PaletteShader.h"
 #include "Shaders\ColorKeyShader.h"
 
-constexpr DWORD MaxVidMemory		= 0x20000000;	// 512 MBs
-constexpr DWORD MinUsedVidMemory	= 0x00100000;	// 1 MB
-
 const D3DFORMAT D9DisplayFormat = D3DFMT_X8R8G8B8;
 
 DWORD WINAPI PresentThreadFunction(LPVOID);
@@ -2028,7 +2025,7 @@ HRESULT m_IDirectDrawX::GetAvailableVidMem(LPDDSCAPS lpDDSCaps, LPDWORD lpdwTota
 	HRESULT hr = GetProxyInterfaceV3()->GetAvailableVidMem(lpDDSCaps, lpdwTotal, lpdwFree);
 
 	// Set available memory
-	AdjustVidMemory(lpdwTotal, lpdwFree);
+	AdjustVidMemory(lpdwTotal, lpdwFree, false);
 
 	return hr;
 }
@@ -2062,14 +2059,9 @@ HRESULT m_IDirectDrawX::GetAvailableVidMem2(LPDDSCAPS2 lpDDSCaps2, LPDWORD lpdwT
 		else if (lpDDSCaps2 && (lpDDSCaps2->dwCaps & (DDSCAPS_VIDEOMEMORY | DDSCAPS_LOCALVIDMEM | DDSCAPS_3DDEVICE)))
 		{
 			// Open the first adapter in the system
-			if (OpenD3DDDI(GetDC()) && D3DDDIGetVideoMemory(TotalMemory, AvailableMemory))
+			if (OpenD3DDDI(GetDC()))
 			{
-				// Memory acquired using D3DDDI
-			}
-			else
-			{
-				// ToDo: figure out how to get the correct adapter number. For now just return the first video adapter
-				TotalMemory = Utils::GetVideoRam(1);
+				D3DDDIGetVideoMemory(TotalMemory, AvailableMemory);
 			}
 		}
 		// Get non-local video memory
@@ -2092,18 +2084,7 @@ HRESULT m_IDirectDrawX::GetAvailableVidMem2(LPDDSCAPS2 lpDDSCaps2, LPDWORD lpdwT
 			return DDERR_INVALIDPARAMS;
 		}
 
-		// If memory cannot be found just return default memory
-		if (!TotalMemory)
-		{
-			TotalMemory = (AvailableMemory) ? AvailableMemory + MinUsedVidMemory : MaxVidMemory;
-		}
-
-		// If memory cannot be found just return default memory
-		if (!AvailableMemory)
-		{
-			AvailableMemory = TotalMemory - MinUsedVidMemory;
-		}
-
+		// Set memory values
 		if (lpdwTotal)
 		{
 			*lpdwTotal = TotalMemory;
@@ -2119,7 +2100,7 @@ HRESULT m_IDirectDrawX::GetAvailableVidMem2(LPDDSCAPS2 lpDDSCaps2, LPDWORD lpdwT
 	}
 
 	// Ajdust available memory
-	AdjustVidMemory(lpdwTotal, lpdwFree);
+	AdjustVidMemory(lpdwTotal, lpdwFree, Config.Dd7to9);
 
 	return hr;
 }
@@ -3995,23 +3976,6 @@ HRESULT m_IDirectDrawX::CreateGammaInterface(LPVOID *ppvObj)
 	*ppvObj = GammaControlInterface;
 
 	return DD_OK;
-}
-
-// Adjusts available memory, some games have issues if this is set to high
-void m_IDirectDrawX::AdjustVidMemory(LPDWORD lpdwTotal, LPDWORD lpdwFree)
-{
-	DWORD TotalVidMem = (lpdwTotal && *lpdwTotal) ? *lpdwTotal : (lpdwFree && *lpdwFree) ? *lpdwFree + MinUsedVidMemory : MaxVidMemory;
-	TotalVidMem = min(TotalVidMem, MaxVidMemory);
-	DWORD AvailVidMem = (lpdwFree && *lpdwFree) ? *lpdwFree : TotalVidMem - MinUsedVidMemory;
-	AvailVidMem = min(AvailVidMem, TotalVidMem - MinUsedVidMemory);
-	if (lpdwTotal && *lpdwTotal)
-	{
-		*lpdwTotal = TotalVidMem;
-	}
-	if (lpdwFree && *lpdwFree)
-	{
-		*lpdwFree = AvailVidMem;
-	}
 }
 
 void m_IDirectDrawX::SetVsync()

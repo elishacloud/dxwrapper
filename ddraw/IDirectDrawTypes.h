@@ -2,6 +2,9 @@
 
 #include <ddraw.h>
 
+constexpr DWORD MaxVidMemory     = 0x20000000;	// 512 MBs
+constexpr DWORD MinUsedVidMemory = 0x00800000;	// 8 MB
+
 #define BLT_MIRRORLEFTRIGHT		0x00000002l
 #define BLT_MIRRORUPDOWN		0x00000004l
 #define BLT_COLORKEY			0x00002000l
@@ -124,6 +127,7 @@ void ConvertCaps(DDSCAPS &Caps, DDSCAPS2 &Caps2);
 void ConvertCaps(DDSCAPS2 &Caps2, DDSCAPS &Caps);
 void ConvertCaps(DDCAPS &Caps, DDCAPS &Caps2);
 void ConvertCaps(DDCAPS &Caps7, D3DCAPS9 &Caps9);
+void AdjustVidMemory(LPDWORD lpdwTotal, LPDWORD lpdwFree, bool SetZeroValueVariables);
 DWORD GetByteAlignedWidth(DWORD Width, DWORD BitCount);
 DWORD GetMaxMipMapLevel(DWORD Width, DWORD Height);
 DWORD GetBitCount(DDPIXELFORMAT ddpfPixelFormat);
