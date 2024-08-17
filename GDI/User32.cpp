@@ -50,6 +50,16 @@ HWND WINAPI user_CreateWindowExT(D CreateWindowExT, DWORD dwExStyle, T lpClassNa
 		return nullptr;
 	}
 
+	// Check if border is missing from pop-up window (DXVK has issues with borderless windows)
+	if (dwStyle == (WS_POPUPWINDOW & dwStyle) && (dwStyle && WS_POPUP) && !(dwStyle & WS_BORDER))
+	{
+		HMODULE hModule = nullptr;
+		if (GetModuleHandleExA(GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT, "vulkan-1.dll", &hModule) && hModule)
+		{
+			dwStyle |= WS_BORDER;
+		}
+	}
+
 	// Handle popup window type (some games forget to initialize the nWidth and nHeight values)
 	if ((dwStyle & WS_POPUP) && !(nWidth & CW_USEDEFAULT) && (nWidth > 20000 || nHeight > 20000))
 	{
