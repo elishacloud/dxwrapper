@@ -4,6 +4,8 @@
 #define DX3DTYPE_H
 #endif
 
+constexpr UINT MaxTextureStages = 8;	// Devices can have up to eight set textures.
+
 #define D3DDP_FORCE_DWORD               0x0000001Fl
 #define D3DDP_DXW_COLORKEYENABLE        0x00000020l
 #define D3DDP_DXW_ALPHACOLORKEY         0x00000040l
@@ -55,7 +57,6 @@ void ConvertViewport(D3DVIEWPORT7 &ViewPort7, D3DVIEWPORT &ViewPort);
 void ConvertViewport(D3DVIEWPORT7 &ViewPort7, D3DVIEWPORT2 &ViewPort2);
 void ConvertViewport(D3DVIEWPORT7 &ViewPort, D3DVIEWPORT7 &ViewPort7);
 void ConvertDeviceDesc(D3DDEVICEDESC &Desc, D3DDEVICEDESC7 &Desc7);
-void ConvertDeviceDescSoft(D3DDEVICEDESC &Desc);
 void ConvertDeviceDesc(D3DDEVICEDESC7 &Desc7, D3DCAPS9 &Caps9);
 void ConvertVertices(D3DLVERTEX* lFVF, D3DLVERTEX9* lFVF9, DWORD NumVertices);
 void ConvertVertices(D3DLVERTEX9* lFVF9, D3DLVERTEX* lFVF, DWORD NumVertices);

@@ -2,8 +2,6 @@
 
 #include <unordered_map>
 
-constexpr UINT MaxTextureStages = 8;	// Devices can have up to eight set textures.
-
 class m_IDirect3DDeviceX : public IUnknown, public AddressLookupTableDdrawObject
 {
 private:

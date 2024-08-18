@@ -1931,6 +1931,11 @@ HRESULT m_IDirect3DDeviceX::Clear(DWORD dwCount, LPD3DRECT lpRects, DWORD dwFlag
 			lpCurrentRenderTargetX->ClearDirtyFlags();
 		}*/
 
+		if ((dwFlags & D3DCLEAR_TARGET) && lpCurrentRenderTargetX)
+		{
+			lpCurrentRenderTargetX->SetDirtyFlag();
+		}
+
 		return (*d3d9Device)->Clear(dwCount, lpRects, dwFlags, dwColor, dvZ, dwStencil);
 	}
 

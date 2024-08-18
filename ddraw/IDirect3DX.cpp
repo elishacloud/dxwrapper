@@ -576,7 +576,7 @@ HRESULT m_IDirect3DX::FindDevice(LPD3DFINDDEVICESEARCH lpD3DFDS, LPD3DFINDDEVICE
 			lpD3DFDR->ddHwDesc.dwSize = (lpD3DFDR->dwSize - sizeof(DWORD) - sizeof(GUID)) / 2;
 			ConvertDeviceDesc(lpD3DFDR->ddHwDesc, CallbackContext.DeviceDesc7);
 			lpD3DFDR->ddSwDesc.dwSize = (lpD3DFDR->dwSize - sizeof(DWORD) - sizeof(GUID)) / 2;
-			ConvertDeviceDescSoft(lpD3DFDR->ddSwDesc);
+			ConvertDeviceDesc(lpD3DFDR->ddSwDesc, CallbackContext.DeviceDesc7);
 
 			return D3D_OK;
 		}

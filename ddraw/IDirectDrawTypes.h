@@ -2,8 +2,8 @@
 
 #include <ddraw.h>
 
-constexpr DWORD MaxVidMemory     = 0x20000000;	// 512 MBs
-constexpr DWORD MinUsedVidMemory = 0x00800000;	// 8 MB
+constexpr DWORD MaxVidMemory     = 512 * 1024 * 1024;	// 512 MBs
+constexpr DWORD MinUsedVidMemory = 8 * 1024 * 1024;		// 8 MBs
 
 #define BLT_MIRRORLEFTRIGHT		0x00000002l
 #define BLT_MIRRORUPDOWN		0x00000004l
