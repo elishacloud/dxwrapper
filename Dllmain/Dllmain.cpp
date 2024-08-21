@@ -410,10 +410,9 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 				}
 			}
 
-			// Start Dd7to9
+			// Add Dd7to9 to the chain
 			if (Config.Dd7to9)
 			{
-				InitDDraw();
 				using namespace ddraw;
 				using namespace DdrawWrapper;
 				VISIT_PROCS_DDRAW(SET_WRAPPED_PROC);
@@ -424,7 +423,7 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 
 #ifdef DDRAWCOMPAT
 			// Add DDrawCompat to the chain
-			if (Config.DDrawCompat)
+			else if (Config.DDrawCompat)
 			{
 				Logging::Log() << "Enabling DDrawCompat";
 				using namespace ddraw;
@@ -532,19 +531,30 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 			Utils::LoadPlugins();
 		}
 
+		bool DDrawCompatEnabed = false;
+#ifdef DDRAWCOMPAT
+		DDrawCompatEnabed = DDrawCompat::IsEnabled();
+#endif // DDRAWCOMPAT
+
 		// Set timer
-		if (!Config.DDrawCompat)
+		if (!DDrawCompatEnabed)
 		{
 			timeBeginPeriod(1);
 		}
 
 #ifdef DDRAWCOMPAT
 		// Extra compatibility hooks from DDrawCompat
-		if (!DDrawCompat::IsEnabled() && (Config.Dd7to9 || Config.D3d8to9))
+		if (!DDrawCompatEnabed && (Config.Dd7to9 || Config.D3d8to9))
 		{
 			DDrawCompat::InstallDd7to9Hooks();
 		}
 #endif // DDRAWCOMPAT
+
+		// Start Dd7to9
+		if (Config.Dd7to9)
+		{
+			InitDDraw();
+		}
 
 		// Start fullscreen thread
 		if (Config.FullScreen || Config.ForceTermination)
@@ -600,7 +610,7 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 
 #ifdef DDRAWCOMPAT
 		// Unload and Unhook DDrawCompat
-		if (DDrawCompat::IsEnabled())
+		if (DDrawCompat::IsEnabled() || Config.Dd7to9)
 		{
 			DDrawCompat::Start(nullptr, DLL_PROCESS_DETACH);
 		}

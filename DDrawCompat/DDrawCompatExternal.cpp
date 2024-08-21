@@ -88,7 +88,8 @@ namespace DDrawCompat
 
 	void Start(HINSTANCE hinstDLL, DWORD fdwReason)
 	{
-		IsDDrawEnabled = RunStart(hinstDLL, fdwReason);
+		bool ret = RunStart(hinstDLL, fdwReason);
+		IsDDrawEnabled = Config.Dd7to9 ? false : ret;
 	}
 
 	bool IsEnabled()

@@ -203,6 +203,7 @@ namespace Compat32
 		static bool RunOnce = true;
 		if (RunOnce && !DDrawCompat::IsEnabled())
 		{
+			RunOnce = false;
 			Time::init();
 			Compat32::Log() << "Installing memory management hooks";
 			Win32::MemoryManagement::installHooks();
@@ -210,12 +211,21 @@ namespace Compat32
 			Win32::MsgHooks::installHooks();
 			Compat32::Log() << "Installing display mode hooks";
 			Win32::DisplayMode::installHooks();
+			if (Config.DDrawCompat)
+			{
+				Compat32::Log() << "Installing Direct3D driver hooks";
+				D3dDdi::installHooks();
+			}
 			Compat32::Log() << "Installing registry hooks";
 			Win32::Registry::installHooks();
 			Compat32::Log() << "Installing Win32 hooks";
 			Win32::WaitFunctions::installHooks();
+			if (Config.DDrawCompat && !Config.DDrawCompatDisableGDIHook)
+			{
+				Compat32::Log() << "Installing GDI hooks";
+				Gdi::installHooks();
+			}
 			Compat32::closeDbgEng();
-			RunOnce = false;
 		}
 	}
 	//********** End Edit ***************
@@ -307,10 +317,13 @@ namespace Compat32
 			timeBeginPeriod(1);
 			setDpiAwareness();
 			SetThemeAppProperties(0);
-			Win32::MemoryManagement::installHooks();
-			Win32::MsgHooks::installHooks();
-			Time::init();
-			Compat32::closeDbgEng();
+			if (!Config.Dd7to9)
+			{
+				Win32::MemoryManagement::installHooks();
+				Win32::MsgHooks::installHooks();
+				Time::init();
+				Compat32::closeDbgEng();
+			}
 
 			//********** Begin Edit *************
 			if (Config.DisableMaxWindowedModeNotSet)
