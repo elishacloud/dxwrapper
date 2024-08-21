@@ -2025,7 +2025,7 @@ HRESULT m_IDirectDrawX::GetAvailableVidMem(LPDDSCAPS lpDDSCaps, LPDWORD lpdwTota
 	HRESULT hr = GetProxyInterfaceV3()->GetAvailableVidMem(lpDDSCaps, lpdwTotal, lpdwFree);
 
 	// Set available memory
-	AdjustVidMemory(lpdwTotal, lpdwFree, false);
+	AdjustVidMemory(lpdwTotal, lpdwFree);
 
 	return hr;
 }
@@ -2050,18 +2050,20 @@ HRESULT m_IDirectDrawX::GetAvailableVidMem2(LPDDSCAPS2 lpDDSCaps2, LPDWORD lpdwT
 		// Get texture/surface memory
 		if (lpDDSCaps2 && (lpDDSCaps2->dwCaps & (DDSCAPS_TEXTURE | DDSCAPS_OFFSCREENPLAIN | DDSCAPS_ZBUFFER)))
 		{
-			if (d3d9Device)
-			{
-				AvailableMemory = d3d9Device->GetAvailableTextureMem();
-			}
+			GetTextureMemory(AvailableMemory);
 		}
 		// Get video memory
 		else if (lpDDSCaps2 && (lpDDSCaps2->dwCaps & (DDSCAPS_VIDEOMEMORY | DDSCAPS_LOCALVIDMEM | DDSCAPS_3DDEVICE)))
 		{
 			// Open the first adapter in the system
-			if (OpenD3DDDI(GetDC()))
+			if (OpenD3DDDI(GetDC()) && D3DDDIGetVideoMemory(TotalMemory, AvailableMemory))
 			{
-				D3DDDIGetVideoMemory(TotalMemory, AvailableMemory);
+				// Memory acquired using D3DDDI
+			}
+			// Failover to texture memory if DDI does not work
+			else if (d3d9Device)
+			{
+				GetTextureMemory(AvailableMemory);
 			}
 		}
 		// Get non-local video memory
@@ -2084,6 +2086,18 @@ HRESULT m_IDirectDrawX::GetAvailableVidMem2(LPDDSCAPS2 lpDDSCaps2, LPDWORD lpdwT
 			return DDERR_INVALIDPARAMS;
 		}
 
+		// If memory cannot be found just return default memory
+		if (!TotalMemory)
+		{
+			TotalMemory = (AvailableMemory) ? AvailableMemory + MinUsedVidMemory : MaxVidMemory;
+		}
+
+		// If memory cannot be found just return default memory
+		if (!AvailableMemory)
+		{
+			AvailableMemory = TotalMemory - MinUsedVidMemory;
+		}
+
 		// Set memory values
 		if (lpdwTotal)
 		{
@@ -2100,9 +2114,73 @@ HRESULT m_IDirectDrawX::GetAvailableVidMem2(LPDDSCAPS2 lpDDSCaps2, LPDWORD lpdwT
 	}
 
 	// Ajdust available memory
-	AdjustVidMemory(lpdwTotal, lpdwFree, Config.Dd7to9);
+	AdjustVidMemory(lpdwTotal, lpdwFree);
 
 	return hr;
+}
+
+void m_IDirectDrawX::GetTextureMemory(DWORD& AvailableMemory)
+{
+	if (d3d9Device)
+	{
+		AvailableMemory = d3d9Device->GetAvailableTextureMem();
+		return;
+	}
+
+	// Check for device interface
+	if (FAILED(CheckInterface(__FUNCTION__, false)))
+	{
+		AvailableMemory = 0;
+		return;
+	}
+
+	LOG_LIMIT(100, __FUNCTION__ << " Creating temporary Direct3D9 device");
+
+	// Try to get the main window's HWND
+	HWND hWnd = Fullscreen::FindMainWindow(GetCurrentProcessId(), true);
+
+	// If no main window exists, create a temporary one
+	bool createdTemporaryWindow = false;
+	if (!hWnd)
+	{
+		LOG_LIMIT(100, __FUNCTION__ << " Creating temporary window");
+
+		WNDCLASS wc = {};
+		wc.lpfnWndProc = DefWindowProc;
+		wc.hInstance = GetModuleHandle(NULL);
+		wc.lpszClassName = TEXT("TempD3DWindow");
+
+		RegisterClass(&wc);
+
+		hWnd = CreateWindow(wc.lpszClassName, TEXT("DxWrapper Temporary Window"), WS_POPUPWINDOW,
+			CW_USEDEFAULT, CW_USEDEFAULT, 100, 100, NULL, NULL, wc.hInstance, NULL);
+		createdTemporaryWindow = true;
+	}
+
+	// Set up the Direct3D device parameters
+	D3DPRESENT_PARAMETERS d3dpp = {};
+	d3dpp.Windowed = TRUE;
+	d3dpp.SwapEffect = D3DSWAPEFFECT_DISCARD;
+
+	// Create the Direct3D device
+	LPDIRECT3DDEVICE9 tmpD9Device = nullptr;
+	HRESULT hr = d3d9Object->CreateDevice(D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, hWnd, D3DCREATE_SOFTWARE_VERTEXPROCESSING | D3DCREATE_NOWINDOWCHANGES, &d3dpp, &tmpD9Device);
+	if (FAILED(hr))
+	{
+		AvailableMemory = 0;
+		LOG_LIMIT(100, __FUNCTION__ << " Error: failed to create temporary Direct3D9 device: " << (D3DERR)hr);
+	}
+	else
+	{
+		AvailableMemory = tmpD9Device->GetAvailableTextureMem();
+		tmpD9Device->Release();
+	}
+
+	// Clean up the temporary window if we created one
+	if (createdTemporaryWindow)
+	{
+		DestroyWindow(hWnd);
+	}
 }
 
 /*********************************/

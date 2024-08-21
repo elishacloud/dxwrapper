@@ -198,7 +198,7 @@ void ConvertCaps(DDCAPS &Caps, DDCAPS &Caps2)
 	ZeroMemory(&Caps, Caps.dwSize);
 	Caps.dwSize = Size;
 	CopyMemory(&Caps, &Caps2, min(Caps.dwSize, Caps2.dwSize));
-	AdjustVidMemory(&Caps.dwVidMemTotal, &Caps.dwVidMemFree, Config.Dd7to9);
+	AdjustVidMemory(&Caps.dwVidMemTotal, &Caps.dwVidMemFree);
 }
 
 void ConvertCaps(DDCAPS &Caps7, D3DCAPS9 &Caps9)
@@ -393,17 +393,17 @@ void ConvertCaps(DDCAPS &Caps7, D3DCAPS9 &Caps9)
 	Caps7.dwReserved3 = 0;
 }
 
-void AdjustVidMemory(LPDWORD lpdwTotal, LPDWORD lpdwFree, bool SetZeroValueVariables)
+void AdjustVidMemory(LPDWORD lpdwTotal, LPDWORD lpdwFree)
 {
 	DWORD TotalVidMem = (lpdwTotal && *lpdwTotal) ? *lpdwTotal : (lpdwFree && *lpdwFree) ? *lpdwFree + MinUsedVidMemory : MaxVidMemory;
-	DWORD AvailVidMem = (lpdwFree && *lpdwFree) ? *lpdwFree : TotalVidMem - MinUsedVidMemory;
 	TotalVidMem = min(TotalVidMem, MaxVidMemory);
+	DWORD AvailVidMem = (lpdwFree && *lpdwFree) ? *lpdwFree : TotalVidMem - MinUsedVidMemory;
 	AvailVidMem = min(AvailVidMem, TotalVidMem - MinUsedVidMemory);
-	if (lpdwTotal && (SetZeroValueVariables || (!SetZeroValueVariables && *lpdwTotal)))
+	if (lpdwTotal && *lpdwTotal)
 	{
 		*lpdwTotal = TotalVidMem;
 	}
-	if (lpdwFree && (SetZeroValueVariables || (!SetZeroValueVariables && *lpdwFree)))
+	if (lpdwFree && *lpdwFree)
 	{
 		*lpdwFree = AvailVidMem;
 	}

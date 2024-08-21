@@ -79,6 +79,9 @@ private:
 	void InitDdraw(DWORD DirectXVersion);
 	void ReleaseDdraw();
 
+	// Get texture memory
+	void GetTextureMemory(DWORD &AvailableMemory);
+
 	// Direct3D9 interface functions
 	HRESULT CheckInterface(char *FunctionName, bool CheckD3DDevice);
 	HRESULT CreateD3D9Object();
