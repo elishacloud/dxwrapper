@@ -68,6 +68,7 @@ namespace WndProc
 		WNDPROC AppWndProc = 0;
 		DATASTRUCT DataStruct = {};
 		bool IsDirectDrawHwnd = false;
+		bool Active = true;
 		bool Exiting = false;
 	public:
 		WNDPROCSTRUCT(HWND p_hWnd, WNDPROC p_AppWndProc, bool IsDirectDraw) : hWnd(p_hWnd), AppWndProc(p_AppWndProc), IsDirectDrawHwnd(IsDirectDraw)
@@ -83,6 +84,12 @@ namespace WndProc
 		~WNDPROCSTRUCT()
 		{
 			Exiting = true;
+			// Restore WndProc
+			if (IsWindow(hWnd) && AppWndProc)
+			{
+				LOG_LIMIT(100, __FUNCTION__ << " Deleting WndProc instance! " << hWnd);
+				SetWndProc(hWnd, AppWndProc);
+			}
 			if (Config.Exiting)
 			{
 				return;
@@ -93,18 +100,14 @@ namespace WndProc
 				DWORD tmpProtect = 0;
 				VirtualProtect(FunctCode, sizeof(FunctCode), oldProtect, &tmpProtect);
 			}
-			// Restore WndProc
-			if (IsWindow(hWnd) && AppWndProc)
-			{
-				LOG_LIMIT(100, __FUNCTION__ << " Deleting WndProc instance! " << hWnd);
-				SetWndProc(hWnd, AppWndProc);
-			}
 		}
 		HWND GetHWnd() { return hWnd; }
 		WNDPROC GetMyWndProc() { return MyWndProc; }
 		WNDPROC GetAppWndProc() { return AppWndProc; }
 		DATASTRUCT* GetDataStruct() { return &DataStruct; }
 		bool IsDirectDraw() { return IsDirectDrawHwnd; }
+		bool IsActive() { return Active; }
+		void SetInactive() { Active = false; }
 		bool IsExiting() { return Exiting; }
 	};
 
@@ -156,10 +159,18 @@ bool WndProc::AddWndProc(HWND hWnd, bool IsDirectDraw)
 		return false;
 	}
 
+	// Remove inactive elements
+	WndProcList.erase(
+		std::remove_if(WndProcList.begin(), WndProcList.end(),
+			[](const std::shared_ptr<WNDPROCSTRUCT>& wndProc) {
+				return !wndProc->IsActive() && !IsWindow(wndProc->GetHWnd());
+			}),
+		WndProcList.end());
+
 	// Check if window is already hooked
 	for (auto& entry : WndProcList)
 	{
-		if (entry->GetHWnd() == hWnd)
+		if (entry->IsActive() && entry->GetHWnd() == hWnd)
 		{
 			return true;
 		}
@@ -242,10 +253,10 @@ LRESULT CALLBACK WndProc::Handler(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lPa
 
 	LRESULT lr = CallWndProc(pWndProc, hWnd, Msg, wParam, lParam);
 
-	// Clean up instance when window closes
-	if (Msg == WM_NCDESTROY && hWnd == hWndInstance)
+	// Set instance as inactive when window closes
+	if ((Msg == WM_CLOSE || Msg == WM_DESTROY || Msg == WM_NCDESTROY || (Msg == WM_SYSCOMMAND && wParam == SC_CLOSE)) && hWnd == hWndInstance)
 	{
-		RemoveWndProc(hWnd);
+		AppWndProcInstance->SetInactive();
 	}
 
 	return lr;
