@@ -20,7 +20,7 @@
 // WndProc hook
 bool EnableWndProcHook = false;
 
-void AdjustWindow(HWND MainhWnd, LONG displayWidth, LONG displayHeight);
+void AdjustWindow(HWND MainhWnd, LONG displayWidth, LONG displayHeight, bool isWindowed);
 
 HRESULT m_IDirect3D9Ex::QueryInterface(REFIID riid, void** ppvObj)
 {
@@ -533,7 +533,7 @@ void UpdatePresentParameter(D3DPRESENT_PARAMETERS* pPresentationParameters, HWND
 		GetClientRect(DeviceDetails.DeviceWindow, &Rect);
 		if (AnyChange || Rect.right - Rect.left != DeviceDetails.BufferWidth || Rect.bottom - Rect.top != DeviceDetails.BufferHeight)
 		{
-			AdjustWindow(DeviceDetails.DeviceWindow, DeviceDetails.BufferWidth, DeviceDetails.BufferHeight);
+			AdjustWindow(DeviceDetails.DeviceWindow, DeviceDetails.BufferWidth, DeviceDetails.BufferHeight, pPresentationParameters->Windowed);
 		}
 
 		// Set fullscreen resolution
@@ -591,7 +591,7 @@ void UpdatePresentParameterForMultisample(D3DPRESENT_PARAMETERS* pPresentationPa
 }
 
 // Adjusting the window position for WindowMode
-void AdjustWindow(HWND MainhWnd, LONG displayWidth, LONG displayHeight)
+void AdjustWindow(HWND MainhWnd, LONG displayWidth, LONG displayHeight, bool isWindowed)
 {
 	if (!IsWindow(MainhWnd) || !displayWidth || !displayHeight)
 	{
@@ -600,11 +600,32 @@ void AdjustWindow(HWND MainhWnd, LONG displayWidth, LONG displayHeight)
 	}
 
 	// Set window active and focus
-	if (Config.EnableWindowMode)
+	if (Config.EnableWindowMode || isWindowed)
 	{
+		DWORD currentThreadId = GetCurrentThreadId();
+		DWORD foregroundThreadId = GetWindowThreadProcessId(GetForegroundWindow(), NULL);
+
+		// Attach the input of the foreground window and current window
+		AttachThreadInput(currentThreadId, foregroundThreadId, TRUE);
+
+		// Set the window as the foreground window and active
 		SetForegroundWindow(MainhWnd);
 		SetFocus(MainhWnd);
 		SetActiveWindow(MainhWnd);
+		BringWindowToTop(MainhWnd);
+
+		// Detach the input from the foreground window
+		AttachThreadInput(currentThreadId, foregroundThreadId, FALSE);
+
+		// Move window to top if not already topmost
+		LONG lExStyle = GetWindowLong(MainhWnd, GWL_EXSTYLE);
+		if (!(lExStyle & WS_EX_TOPMOST))
+		{
+			SetWindowLong(MainhWnd, GWL_EXSTYLE, lExStyle | WS_EX_TOPMOST);
+			SetWindowPos(MainhWnd, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_FRAMECHANGED);
+			SetWindowLong(MainhWnd, GWL_EXSTYLE, lExStyle & ~WS_EX_TOPMOST);
+			SetWindowPos(MainhWnd, HWND_NOTOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_FRAMECHANGED);
+		}
 	}
 
 	// Get screen width and height
