@@ -20,7 +20,7 @@ HRESULT m_IDirectInputEffect8::QueryInterface(REFIID riid, LPVOID * ppvObj)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	if ((riid == IID_IDirectInputEffect || riid == IID_IUnknown) && ppvObj)
+	if ((riid == WrapperID || riid == IID_IUnknown) && ppvObj)
 	{
 		AddRef();
 

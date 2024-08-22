@@ -163,6 +163,14 @@ using namespace DdrawWrapper;
 #include "IDirect3DTypes.h"
 // DirectDraw Helpers
 #include "IDirectDrawTypes.h"
+// DirectDraw Interfaces
+#include "IDirectDrawClipper.h"
+#include "IDirectDrawColorControl.h"
+#include "IDirectDrawFactory.h"
+#include "IDirectDrawGammaControl.h"
+#include "IDirectDrawPalette.h"
+#include "IDirectDrawSurfaceX.h"
+#include "IDirectDrawX.h"
 // Direct3D Interfaces
 #include "IDirect3DX.h"
 #include "IDirect3DDeviceX.h"
@@ -172,11 +180,3 @@ using namespace DdrawWrapper;
 #include "IDirect3DTextureX.h"
 #include "IDirect3DVertexBufferX.h"
 #include "IDirect3DViewportX.h"
-// DirectDraw Interfaces
-#include "IDirectDrawX.h"
-#include "IDirectDrawClipper.h"
-#include "IDirectDrawColorControl.h"
-#include "IDirectDrawFactory.h"
-#include "IDirectDrawGammaControl.h"
-#include "IDirectDrawPalette.h"
-#include "IDirectDrawSurfaceX.h"

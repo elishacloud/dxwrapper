@@ -24,7 +24,6 @@
 #ifdef DDRAWCOMPAT
 #include "DDrawCompat\DDrawCompatExternal.h"
 #endif // DDRAWCOMPAT
-#include "DxWnd\DxWndExternal.h"
 #include "Utils\Utils.h"
 #include "Logging\Logging.h"
 // Wrappers last
@@ -80,7 +79,7 @@ void WINAPI DxWrapperSettings(DXWAPPERSETTINGS *DxSettings)
 
 typedef HMODULE(*LoadProc)(const char *ProxyDll, const char *MyDllName);
 
-HMODULE LoadHookedDll(char *dllname, LoadProc Load, DWORD HookSystem32)
+HMODULE LoadHookedDll(const char *dllname, LoadProc Load, DWORD HookSystem32)
 {
 	HMODULE dll = Load(nullptr, Config.WrapperName.c_str());
 	HMODULE currentdll = GetModuleHandle(dllname);
@@ -109,7 +108,7 @@ HMODULE LoadHookedDll(char *dllname, LoadProc Load, DWORD HookSystem32)
 HMODULE hModule_dll = nullptr;
 
 // Dll main function
-bool APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
+BOOL APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 {
 	UNREFERENCED_PARAMETER(lpReserved);
 
@@ -292,7 +291,7 @@ bool APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 			else
 			{
 				// Load dsound procs
-				char *dllname = dtypename[dtype.dsound];
+				const char *dllname = dtypename[dtype.dsound];
 				HMODULE dll = LoadHookedDll(dllname, Load, Config.DsoundHookSystem32);
 
 				// Hook dsound.dll -> DsoundWrapper
@@ -322,7 +321,7 @@ bool APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 			else
 			{
 				// Load dinput procs
-				char *dllname = dtypename[dtype.dinput];
+				const char *dllname = dtypename[dtype.dinput];
 				HMODULE dll = LoadHookedDll(dllname, Load, Config.DinputHookSystem32);
 
 				// Hook dinput.dll APIs
@@ -352,7 +351,7 @@ bool APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 			else
 			{
 				// Load dinput8 procs
-				char *dllname = dtypename[dtype.dinput8];
+				const char *dllname = dtypename[dtype.dinput8];
 				HMODULE dll = LoadHookedDll(dllname, Load, Config.Dinput8HookSystem32);
 
 				// Hook dinput8.dll APIs
@@ -395,7 +394,7 @@ bool APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 				using namespace DdrawWrapper;
 
 				// Load ddraw procs
-				char *dllname = dtypename[dtype.ddraw];
+				const char *dllname = dtypename[dtype.ddraw];
 				HMODULE dll = LoadHookedDll(dllname, Load, Config.DdrawHookSystem32);
 
 				// Hook ddraw.dll APIs
@@ -411,10 +410,9 @@ bool APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 				}
 			}
 
-			// Start Dd7to9
+			// Add Dd7to9 to the chain
 			if (Config.Dd7to9)
 			{
-				InitDDraw();
 				using namespace ddraw;
 				using namespace DdrawWrapper;
 				VISIT_PROCS_DDRAW(SET_WRAPPED_PROC);
@@ -425,7 +423,7 @@ bool APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 
 #ifdef DDRAWCOMPAT
 			// Add DDrawCompat to the chain
-			if (Config.DDrawCompat)
+			else if (Config.DDrawCompat)
 			{
 				Logging::Log() << "Enabling DDrawCompat";
 				using namespace ddraw;
@@ -467,7 +465,7 @@ bool APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 			if (Config.RealWrapperMode != dtype.d3d8)
 			{
 				// Load d3d8 procs
-				char *dllname = dtypename[dtype.d3d8];
+				const char *dllname = dtypename[dtype.d3d8];
 				HMODULE dll = LoadHookedDll(dllname, Load, Config.D3d8HookSystem32);
 
 				// Hook d3d8.dll -> D3d8to9
@@ -491,7 +489,7 @@ bool APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 			if (Config.RealWrapperMode != dtype.d3d9)
 			{
 				// Load d3d9 procs
-				char *dllname = dtypename[dtype.d3d9];
+				const char *dllname = dtypename[dtype.d3d9];
 				HMODULE dll = LoadHookedDll(dllname, Load, Config.D3d9HookSystem32);
 
 				// Hook d3d9.dll -> D3d9Wrapper
@@ -521,23 +519,6 @@ bool APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 			VISIT_PROCS_D3D9(SHIM_WRAPPED_PROC);
 		}
 
-		// Start DxWnd module
-		if (Config.DxWnd)
-		{
-			// Check if dxwnd.dll exists then load it
-			HMODULE dxwnd_dll = LoadLibrary("dxwnd.dll");
-			if (dxwnd_dll)
-			{
-				Logging::Log() << "Loading DxWnd " << _TO_STRING(APP_DXWNDVERSION);
-				InitDxWnd(dxwnd_dll);
-			}
-			// If dxwnd.dll does not exist than disable dxwnd setting
-			else
-			{
-				Config.DxWnd = false;
-			}
-		}
-
 		// Load custom dlls
 		if (Config.LoadCustomDllPath.size() != 0)
 		{
@@ -550,19 +531,30 @@ bool APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 			Utils::LoadPlugins();
 		}
 
+		bool DDrawCompatEnabed = false;
+#ifdef DDRAWCOMPAT
+		DDrawCompatEnabed = DDrawCompat::IsEnabled();
+#endif // DDRAWCOMPAT
+
 		// Set timer
-		if (!Config.DDrawCompat)
+		if (!DDrawCompatEnabed)
 		{
 			timeBeginPeriod(1);
 		}
 
 #ifdef DDRAWCOMPAT
 		// Extra compatibility hooks from DDrawCompat
-		if (!DDrawCompat::IsEnabled() && (Config.Dd7to9 || Config.D3d8to9))
+		if (!DDrawCompatEnabed && (Config.Dd7to9 || Config.D3d8to9))
 		{
 			DDrawCompat::InstallDd7to9Hooks();
 		}
 #endif // DDRAWCOMPAT
+
+		// Start Dd7to9
+		if (Config.Dd7to9)
+		{
+			InitDDraw();
+		}
 
 		// Start fullscreen thread
 		if (Config.FullScreen || Config.ForceTermination)
@@ -616,16 +608,9 @@ bool APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 		Fullscreen::StopThread();
 		WriteMemory::StopThread();
 
-		// Unload and Unhook DxWnd
-		if (Config.DxWnd)
-		{
-			Logging::Log() << "Unloading DxWnd";
-			DxWndEndHook();
-		}
-
 #ifdef DDRAWCOMPAT
 		// Unload and Unhook DDrawCompat
-		if (DDrawCompat::IsEnabled())
+		if (DDrawCompat::IsEnabled() || Config.Dd7to9)
 		{
 			DDrawCompat::Start(nullptr, DLL_PROCESS_DETACH);
 		}

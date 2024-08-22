@@ -2,11 +2,17 @@
 
 #include <ddraw.h>
 
+constexpr DWORD MaxVidMemory     = 512 * 1024 * 1024;	// 512 MBs
+constexpr DWORD MinUsedVidMemory = 8 * 1024;			// 8 KBs
+
 #define BLT_MIRRORLEFTRIGHT		0x00000002l
 #define BLT_MIRRORUPDOWN		0x00000004l
 #define BLT_COLORKEY			0x00002000l
 
 #define ISDXTEX(tex) (tex == D3DFMT_DXT1 || tex == D3DFMT_DXT2 || tex == D3DFMT_DXT3 || tex == D3DFMT_DXT4 || tex == D3DFMT_DXT5)
+
+// Dummy mipmap needs to have only high bits set
+#define DXW_IS_MIPMAP_DUMMY		0xFFFF0000
 
 #define D3DCOLOR_GETALPHA(c)      (((c) >> 24) & 0xFF)
 #define D3DCOLOR_GETRED(c)        (((c) >> 16) & 0xFF)
@@ -121,10 +127,14 @@ void ConvertCaps(DDSCAPS &Caps, DDSCAPS2 &Caps2);
 void ConvertCaps(DDSCAPS2 &Caps2, DDSCAPS &Caps);
 void ConvertCaps(DDCAPS &Caps, DDCAPS &Caps2);
 void ConvertCaps(DDCAPS &Caps7, D3DCAPS9 &Caps9);
+void AdjustVidMemory(LPDWORD lpdwTotal, LPDWORD lpdwFree);
 DWORD GetByteAlignedWidth(DWORD Width, DWORD BitCount);
+DWORD GetMaxMipMapLevel(DWORD Width, DWORD Height);
 DWORD GetBitCount(DDPIXELFORMAT ddpfPixelFormat);
 DWORD GetBitCount(D3DFORMAT Format);
+float ConvertDepthValue(DWORD dwFillDepth, D3DFORMAT Format);
 DWORD GetSurfaceSize(D3DFORMAT Format, DWORD Width, DWORD Height, INT Pitch);
+DWORD GetARGBColorKey(DWORD ColorKey, DDPIXELFORMAT& pixelFormat);
 void GetColorKeyArray(float(&lowColorKey)[4], float(&highColorKey)[4], DWORD lowColorSpace, DWORD highColorSpace, DDPIXELFORMAT& pixelFormat);
 D3DFORMAT ConvertSurfaceFormat(D3DFORMAT Format);
 D3DFORMAT GetFailoverFormat(D3DFORMAT Format);

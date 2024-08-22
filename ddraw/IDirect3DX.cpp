@@ -43,6 +43,20 @@ HRESULT m_IDirect3DX::QueryInterface(REFIID riid, LPVOID FAR * ppvObj, DWORD Dir
 		return D3D_OK;
 	}
 
+	if (riid == IID_IDirectDraw || riid == IID_IDirectDraw2 || riid == IID_IDirectDraw3 || riid == IID_IDirectDraw4 || riid == IID_IDirectDraw7)
+	{
+		DWORD DxVersion = GetGUIDVersion(riid);
+
+		if (ddrawParent)
+		{
+			*ppvObj = ddrawParent->GetWrapperInterfaceX(DxVersion);
+
+			ddrawParent->AddRef(DxVersion);
+
+			return DD_OK;
+		}
+	}
+
 	if (DirectXVersion != 1 && DirectXVersion != 2 && DirectXVersion != 3 && DirectXVersion != 7)
 	{
 		LOG_LIMIT(100, __FUNCTION__ << " Error: wrapper interface version not found: " << DirectXVersion);
@@ -158,8 +172,8 @@ HRESULT m_IDirect3DX::Initialize(REFCLSID rclsid)
 
 	if (ProxyDirectXVersion != 1)
 	{
-		// Former stub method. This method was never implemented and is not supported in any interface.
-		return D3D_OK;
+		// The method returns DDERR_ALREADYINITIALIZED because the IDirect3D object is initialized when it is created.
+		return DDERR_ALREADYINITIALIZED;
 	}
 
 	return GetProxyInterfaceV1()->Initialize(rclsid);
@@ -562,7 +576,7 @@ HRESULT m_IDirect3DX::FindDevice(LPD3DFINDDEVICESEARCH lpD3DFDS, LPD3DFINDDEVICE
 			lpD3DFDR->ddHwDesc.dwSize = (lpD3DFDR->dwSize - sizeof(DWORD) - sizeof(GUID)) / 2;
 			ConvertDeviceDesc(lpD3DFDR->ddHwDesc, CallbackContext.DeviceDesc7);
 			lpD3DFDR->ddSwDesc.dwSize = (lpD3DFDR->dwSize - sizeof(DWORD) - sizeof(GUID)) / 2;
-			ConvertDeviceDescSoft(lpD3DFDR->ddSwDesc);
+			ConvertDeviceDesc(lpD3DFDR->ddSwDesc, CallbackContext.DeviceDesc7);
 
 			return D3D_OK;
 		}
@@ -603,19 +617,12 @@ HRESULT m_IDirect3DX::CreateDevice(REFCLSID rclsid, LPDIRECTDRAWSURFACE7 lpDDS, 
 		if (!DdrawSurface3D || !DdrawSurface3D->IsSurface3D())
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Error: surface is not a Direct3D surface!");
-			return DDERR_GENERIC;
+			return DDERR_INVALIDPARAMS;
 		}
 
 		m_IDirect3DDeviceX *p_IDirect3DDeviceX = new m_IDirect3DDeviceX(ddrawParent, lpDDS, riid, DirectXVersion);
 
 		*lplpD3DDevice = (LPDIRECT3DDEVICE7)p_IDirect3DDeviceX->GetWrapperInterfaceX(DirectXVersion);
-
-		SetCriticalSection();
-		if (ddrawParent)
-		{
-			ddrawParent->SetD3DDevice(p_IDirect3DDeviceX, DdrawSurface3D);
-		}
-		ReleaseCriticalSection();
 
 		return D3D_OK;
 	}
@@ -772,24 +779,7 @@ HRESULT m_IDirect3DX::EnumZBufferFormats(REFCLSID riidDevice, LPD3DENUMPIXELFORM
 			// Handle 16bit zBuffer
 			if (Desc7.dwDeviceZBufferBitDepth & DDBD_16)
 			{
-				for (D3DFORMAT Format : { D3DFMT_D16 })
-				{
-					if (SUCCEEDED(d3d9Object->CheckDeviceFormat(D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, D9DisplayFormat, D3DUSAGE_DEPTHSTENCIL, D3DRTYPE_SURFACE, Format)))
-					{
-						SetPixelDisplayFormat(Format, PixelFormat);
-
-						if (PixelFormat.dwFlags && lpEnumCallback(&PixelFormat, lpContext) == DDENUMRET_CANCEL)
-						{
-							return D3D_OK;
-						}
-					}
-				}
-			}
-
-			// Handle 24bit zBuffer
-			if (Desc7.dwDeviceZBufferBitDepth & DDBD_24)
-			{
-				for (D3DFORMAT Format : { D3DFMT_D24S8, D3DFMT_D24X8, D3DFMT_D24X4S4 })
+				for (D3DFORMAT Format : { D3DFMT_D16, D3DFMT_D15S1 })
 				{
 					if (SUCCEEDED(d3d9Object->CheckDeviceFormat(D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, D9DisplayFormat, D3DUSAGE_DEPTHSTENCIL, D3DRTYPE_SURFACE, Format)))
 					{
@@ -806,7 +796,7 @@ HRESULT m_IDirect3DX::EnumZBufferFormats(REFCLSID riidDevice, LPD3DENUMPIXELFORM
 			// Handle 32bit zBuffer
 			if (Desc7.dwDeviceZBufferBitDepth & DDBD_32)
 			{
-				for (D3DFORMAT Format : { D3DFMT_D32 })
+				for (D3DFORMAT Format : { D3DFMT_D32, D3DFMT_D24S8, D3DFMT_D24X8, D3DFMT_D24X4S4 })
 				{
 					if (SUCCEEDED(d3d9Object->CheckDeviceFormat(D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, D9DisplayFormat, D3DUSAGE_DEPTHSTENCIL, D3DRTYPE_SURFACE, Format)))
 					{
@@ -883,6 +873,11 @@ void m_IDirect3DX::InitDirect3D(DWORD DirectXVersion)
 		ResolutionHack();
 
 		return;
+	}
+
+	if (ddrawParent)
+	{
+		ddrawParent->SetD3D(this);
 	}
 
 	// Get Cap9 cache

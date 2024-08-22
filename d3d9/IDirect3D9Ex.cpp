@@ -204,7 +204,7 @@ HRESULT m_IDirect3D9Ex::CreateDeviceT(D3DPRESENT_PARAMETERS& d3dpp, bool& MultiS
 	// Add WndProc before creating d3d9 device
 	if (EnableWndProcHook)
 	{
-		WndProc::AddWndProc(DeviceDetails.DeviceWindow);
+		WndProc::AddWndProc(DeviceDetails.DeviceWindow, false);
 	}
 
 	// Check for AntiAliasing
@@ -213,17 +213,17 @@ HRESULT m_IDirect3D9Ex::CreateDeviceT(D3DPRESENT_PARAMETERS& d3dpp, bool& MultiS
 		DWORD QualityLevels = 0;
 
 		// Check AntiAliasing quality
-		for (int x = min(16, Config.AntiAliasing); x > 0; x--)
+		for (int x = min(D3DMULTISAMPLE_16_SAMPLES, Config.AntiAliasing); x > 0; x--)
 		{
-			if (SUCCEEDED(ProxyInterface->CheckDeviceMultiSampleType(Adapter,
-				DeviceType, (d3dpp.BackBufferFormat) ? d3dpp.BackBufferFormat : D3DFMT_A8R8G8B8, d3dpp.Windowed,
-				(D3DMULTISAMPLE_TYPE)x, &QualityLevels)) ||
-				SUCCEEDED(ProxyInterface->CheckDeviceMultiSampleType(Adapter,
-					DeviceType, d3dpp.AutoDepthStencilFormat, d3dpp.Windowed,
-					(D3DMULTISAMPLE_TYPE)x, &QualityLevels)))
+			D3DMULTISAMPLE_TYPE Samples = (D3DMULTISAMPLE_TYPE)x;
+			D3DFORMAT BufferFormat = (d3dpp.BackBufferFormat) ? d3dpp.BackBufferFormat : D3DFMT_X8R8G8B8;
+			D3DFORMAT StencilFormat = (d3dpp.AutoDepthStencilFormat) ? d3dpp.AutoDepthStencilFormat : D3DFMT_X8R8G8B8;
+
+			if (SUCCEEDED(ProxyInterface->CheckDeviceMultiSampleType(Adapter, DeviceType, BufferFormat, d3dpp.Windowed, Samples, &QualityLevels)) &&
+				SUCCEEDED(ProxyInterface->CheckDeviceMultiSampleType(Adapter, DeviceType, StencilFormat, d3dpp.Windowed, Samples, &QualityLevels)))
 			{
 				// Update Present Parameter for Multisample
-				UpdatePresentParameterForMultisample(&d3dpp, (D3DMULTISAMPLE_TYPE)x, (QualityLevels > 0) ? QualityLevels - 1 : 0);
+				UpdatePresentParameterForMultisample(&d3dpp, Samples, (QualityLevels > 0) ? QualityLevels - 1 : 0);
 
 				// Create Device
 				hr = CreateDeviceT(Adapter, DeviceType, hFocusWindow, BehaviorFlags, &d3dpp, (d3dpp.Windowed) ? nullptr : pFullscreenDisplayMode, ppReturnedDeviceInterface);
@@ -492,6 +492,21 @@ void UpdatePresentParameter(D3DPRESENT_PARAMETERS* pPresentationParameters, HWND
 			Utils::CheckMessageQueue(DeviceDetails.DeviceWindow);
 		}
 
+		// Remove tool and topmost window
+		if (DeviceDetails.DeviceWindow != LastDeviceWindow)
+		{
+			LONG lExStyle = GetWindowLong(DeviceDetails.DeviceWindow, GWL_EXSTYLE);
+
+			if (lExStyle & (WS_EX_TOOLWINDOW | WS_EX_TOPMOST))
+			{
+				LOG_LIMIT(3, __FUNCTION__ << " Removing window" << ((lExStyle & WS_EX_TOOLWINDOW) ? " WS_EX_TOOLWINDOW" : "") << ((lExStyle & WS_EX_TOPMOST) ? " WS_EX_TOPMOST" : ""));
+
+				SetWindowLong(DeviceDetails.DeviceWindow, GWL_EXSTYLE, lExStyle & ~(WS_EX_TOOLWINDOW | WS_EX_TOPMOST));
+				SetWindowPos(DeviceDetails.DeviceWindow, ((lExStyle & WS_EX_TOPMOST) ? HWND_NOTOPMOST : HWND_TOP),
+					0, 0, 0, 0, ((lExStyle & WS_EX_TOPMOST) ? NULL : SWP_NOZORDER) | SWP_NOMOVE | SWP_NOSIZE | SWP_FRAMECHANGED);
+			}
+		}
+
 		// Get window width and height
 		if (!DeviceDetails.BufferWidth || !DeviceDetails.BufferHeight)
 		{
@@ -612,7 +627,7 @@ void AdjustWindow(HWND MainhWnd, LONG displayWidth, LONG displayHeight)
 	}
 	else if (Config.FullscreenWindowMode)
 	{
-		lStyle &= ~WS_OVERLAPPEDWINDOW | WS_SYSMENU;	// Don't remove the menu
+		lStyle &= ~WS_OVERLAPPEDWINDOW;
 	}
 
 	// Set window style
@@ -620,12 +635,13 @@ void AdjustWindow(HWND MainhWnd, LONG displayWidth, LONG displayHeight)
 	{
 		lStyle = (Config.EnableWindowMode) ? lStyle : (lOriginalStyle | WS_VISIBLE);
 		SetWindowLong(MainhWnd, GWL_STYLE, lStyle);
-		SetWindowPos(MainhWnd, HWND_TOP, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_FRAMECHANGED);
+		SetWindowPos(MainhWnd, ((lExStyle & WS_EX_TOPMOST) ? HWND_TOPMOST : HWND_TOP), 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_FRAMECHANGED);
 	}
 
 	// Get new window rect
 	Rect = { 0, 0, displayWidth, displayHeight };
 	AdjustWindowRectEx(&Rect, GetWindowLong(MainhWnd, GWL_STYLE), GetMenu(MainhWnd) != NULL, lExStyle);
+	Rect = { 0, 0, Rect.right - Rect.left, Rect.bottom - Rect.top };
 
 	// Get upper left window position
 	bool SetWindowPositionFlag = Config.FullscreenWindowMode;
@@ -659,7 +675,7 @@ void AdjustWindow(HWND MainhWnd, LONG displayWidth, LONG displayHeight)
 		// Use SetWindowPos to center and adjust size
 		else
 		{
-			SetWindowPos(MainhWnd, HWND_TOP, xLoc, yLoc, Rect.right, Rect.bottom, SWP_SHOWWINDOW | SWP_NOZORDER);
+			SetWindowPos(MainhWnd, ((lExStyle & WS_EX_TOPMOST) ? HWND_TOPMOST : HWND_TOP), xLoc, yLoc, Rect.right, Rect.bottom, SWP_SHOWWINDOW | SWP_NOZORDER);
 		}
 	}
 }

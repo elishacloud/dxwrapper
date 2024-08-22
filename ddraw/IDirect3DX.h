@@ -1,7 +1,5 @@
 #pragma once
 
-#include "IDirectDrawX.h"
-
 class m_IDirect3DX : public IUnknown, public AddressLookupTableDdrawObject
 {
 private:
@@ -110,6 +108,6 @@ public:
 	ULONG Release(DWORD DirectXVersion);
 
 	// Functions handling the ddraw parent interface
-	void SetDdrawParent(m_IDirectDrawX *ddraw) { ddrawParent = ddraw; GetCap9Cache(); }
+	void SetDdrawParent(m_IDirectDrawX* ddraw) { ddrawParent = ddraw; GetCap9Cache(); ddrawParent->SetD3D(this); }
 	void ClearDdraw() { ddrawParent = nullptr; }
 };

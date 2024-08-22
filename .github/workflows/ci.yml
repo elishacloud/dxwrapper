@@ -29,7 +29,7 @@ jobs:
     - uses: Trass3r/setup-cpp@master
     - name: Build
       run: msbuild /m /p:Configuration=${{ matrix.config }} /p:Platform=${{ matrix.platform }} dxwrapper.sln
-    - uses: actions/upload-artifact@v3
+    - uses: actions/upload-artifact@v4
       with:
         name: ${{ matrix.config }} binaries
         path: |

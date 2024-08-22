@@ -136,8 +136,8 @@ HRESULT m_IDirect3DTextureX::Initialize(LPDIRECT3DDEVICE lpDirect3DDevice, LPDIR
 
 	if (ProxyDirectXVersion != 1)
 	{
-		// Former stub method. This method was never implemented and is not supported in any interface.
-		return D3D_OK;
+		// The method returns DDERR_ALREADYINITIALIZED because the IDirect3DTexture object is initialized when it is created.
+		return DDERR_ALREADYINITIALIZED;
 	}
 
 	if (lpDirect3DDevice)
@@ -279,11 +279,21 @@ HRESULT m_IDirect3DTextureX::Load(LPDIRECT3DTEXTURE2 lpD3DTexture2)
 			return DDERR_GENERIC;
 		}
 
+		if (pSrcTextureX == this)
+		{
+			return D3D_OK;
+		}
+
 		m_IDirectDrawSurfaceX* pSrcSurfaceX = pSrcTextureX->GetSurface();
 		if (!pSrcSurfaceX)
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Error: could not get surface!");
 			return DDERR_GENERIC;
+		}
+
+		if (pSrcSurfaceX == DDrawSurface)
+		{
+			return D3D_OK;
 		}
 
 		IDirectDrawSurface7* pSrcSurface7 = (IDirectDrawSurface7*)pSrcSurfaceX->GetWrapperInterfaceX(7);

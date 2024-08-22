@@ -24,6 +24,7 @@
 #include <d3d.h>
 #include <d3dhal.h>
 #include "ddraw\IDirectDrawTypes.h"
+#include "ddraw\IDirect3DTypes.h"
 #include <dinput.h>
 #include <dsound.h>
 #include <MMSystem.h>
@@ -398,6 +399,15 @@ std::ostream& operator<<(std::ostream& os, const DDSCAPS2& caps)
 		<< Logging::hex(caps.dwCaps2)
 		<< Logging::hex(caps.dwCaps3)
 		<< Logging::hex(caps.dwCaps4);
+}
+
+std::ostream& operator<<(std::ostream& os, const D3DSURFACETYPE& ddType)
+{
+	return os << (ddType == D3DTYPE_NONE ? "D3DTYPE_NONE" :
+		ddType == D3DTYPE_OFFPLAINSURFACE ? "D3DTYPE_OFFPLAINSURFACE" :
+		ddType == D3DTYPE_TEXTURE ? "D3DTYPE_TEXTURE" :
+		ddType == D3DTYPE_RENDERTARGET ? "D3DTYPE_RENDERTARGET" :
+		ddType == D3DTYPE_DEPTHBUFFER ? "D3DTYPE_DEPTHBUFFER" : "D3DTYPE_UNKNOWN");
 }
 
 std::ostream& operator<<(std::ostream& os, const DDFOURCC& dwFourCC)

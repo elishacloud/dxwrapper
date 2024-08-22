@@ -1,9 +1,14 @@
 #pragma once
 
-#define D3DDP_FORCE_DWORD        0x0000001Fl
-#define D3DDP_DXW_CHECKCOLORKEY  0x00000020l
-#define D3DDP_DXW_COLORKEYENABLE 0x00000040l
-#define D3DDP_DXW_DRAW2DSURFACE  0x00000080l
+#ifndef DX3DTYPE_H
+#define DX3DTYPE_H
+#endif
+
+constexpr UINT MaxTextureStages = 8;	// Devices can have up to eight set textures.
+
+#define D3DDP_FORCE_DWORD               0x0000001Fl
+#define D3DDP_DXW_COLORKEYENABLE        0x00000020l
+#define D3DDP_DXW_ALPHACOLORKEY         0x00000040l
 
 #define D3DDEVICEDESC1_SIZE 172
 #define D3DDEVICEDESC5_SIZE 204
@@ -33,9 +38,16 @@ typedef struct {
 	FLOAT    tu, tv;
 } D3DLVERTEX9, *LPD3DLVERTEX9;
 
-extern D3DMATERIAL defaultMaterial;
+typedef enum _D3DSURFACETYPE {
+    D3DTYPE_NONE = 0,
+    D3DTYPE_OFFPLAINSURFACE = 1,
+    D3DTYPE_TEXTURE = 2,
+    D3DTYPE_RENDERTARGET = 3,
+    D3DTYPE_DEPTHBUFFER = 4
+} D3DSURFACETYPE;
 
 void ConvertLight(D3DLIGHT7& Light7, D3DLIGHT& Light);
+void ConvertMaterial(D3DMATERIAL& Material, D3DMATERIAL7& Material7);
 void ConvertMaterial(D3DMATERIAL7 &Material7, D3DMATERIAL &Material);
 void ConvertViewport(D3DVIEWPORT &ViewPort, D3DVIEWPORT2 &ViewPort2);
 void ConvertViewport(D3DVIEWPORT2 &ViewPort2, D3DVIEWPORT &ViewPort);
@@ -45,12 +57,12 @@ void ConvertViewport(D3DVIEWPORT7 &ViewPort7, D3DVIEWPORT &ViewPort);
 void ConvertViewport(D3DVIEWPORT7 &ViewPort7, D3DVIEWPORT2 &ViewPort2);
 void ConvertViewport(D3DVIEWPORT7 &ViewPort, D3DVIEWPORT7 &ViewPort7);
 void ConvertDeviceDesc(D3DDEVICEDESC &Desc, D3DDEVICEDESC7 &Desc7);
-void ConvertDeviceDescSoft(D3DDEVICEDESC &Desc);
 void ConvertDeviceDesc(D3DDEVICEDESC7 &Desc7, D3DCAPS9 &Caps9);
 void ConvertVertices(D3DLVERTEX* lFVF, D3DLVERTEX9* lFVF9, DWORD NumVertices);
 void ConvertVertices(D3DLVERTEX9* lFVF9, D3DLVERTEX* lFVF, DWORD NumVertices);
 bool CheckTextureStageStateType(D3DTEXTURESTAGESTATETYPE dwState);
 bool CheckRenderStateType(D3DRENDERSTATETYPE dwRenderStateType);
+void ConvertVertex(BYTE* pDestVertex, DWORD DestFVF, const BYTE* pSrcVertex, DWORD SrcFVF);
 DWORD ConvertVertexTypeToFVF(D3DVERTEXTYPE d3dVertexType);
 UINT GetVertexStride(DWORD dwVertexTypeDesc);
 UINT GetNumberOfPrimitives(D3DPRIMITIVETYPE dptPrimitiveType, DWORD dwVertexCount);

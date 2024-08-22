@@ -16,18 +16,6 @@
 
 #include "ddraw.h"
 
-// Define a default material with neutral properties
-D3DMATERIAL defaultMaterial = {
-	sizeof(D3DMATERIAL),
-	{ 0.0f, 0.0f, 0.0f, 1.0f },	// Diffuse color (black)
-	{ 0.0f, 0.0f, 0.0f, 1.0f },	// Ambient color (black)
-	{ 0.0f, 0.0f, 0.0f, 1.0f },	// Specular color (black)
-	{ 0.0f, 0.0f, 0.0f, 1.0f },	// Emissive color (black)
-	0.0f,						// Power (shininess)
-	0,							// Texture handle
-	0							// Ramp size
-};
-
 void ConvertLight(D3DLIGHT7& Light7, D3DLIGHT& Light)
 {
 	if (Light.dwSize != sizeof(D3DLIGHT) && Light.dwSize != sizeof(D3DLIGHT2))
@@ -35,10 +23,13 @@ void ConvertLight(D3DLIGHT7& Light7, D3DLIGHT& Light)
 		LOG_LIMIT(100, __FUNCTION__ << " Error: Incorrect dwSize: " << Light.dwSize);
 		return;
 	}
+	const float DiffuseFactor = 1.0f;
+	const float SpecularFactor = 0.1f;
+	const float AmbientFactor = 0.3f;
 	Light7.dltType = Light.dltType;
-	Light7.dcvDiffuse = Light.dcvColor;
-	Light7.dcvSpecular = Light.dcvColor;
-	Light7.dcvAmbient = Light.dcvColor;
+	Light7.dcvDiffuse = { Light.dcvColor.r * DiffuseFactor, Light.dcvColor.g * DiffuseFactor, Light.dcvColor.b * DiffuseFactor, Light.dcvColor.a };
+	Light7.dcvSpecular = { Light.dcvColor.r * SpecularFactor, Light.dcvColor.g * SpecularFactor, Light.dcvColor.b * SpecularFactor, Light.dcvColor.a };
+	Light7.dcvAmbient = { Light.dcvColor.r * AmbientFactor, Light.dcvColor.g * AmbientFactor, Light.dcvColor.b * AmbientFactor, Light.dcvColor.a };
 	Light7.dvPosition = Light.dvPosition;
 	Light7.dvDirection = Light.dvDirection;
 	Light7.dvRange = Light.dvRange;
@@ -50,11 +41,27 @@ void ConvertLight(D3DLIGHT7& Light7, D3DLIGHT& Light)
 	Light7.dvPhi = Light.dvPhi;
 
 	// Apply additional flags
-	if (Light.dwSize == sizeof(D3DLIGHT2) && !(((LPD3DLIGHT2)&Light)->dwFlags & D3DLIGHT_NO_SPECULAR))
+	if (Light.dwSize == sizeof(D3DLIGHT2) && (((LPD3DLIGHT2)&Light)->dwFlags & D3DLIGHT_NO_SPECULAR))
 	{
 		// No specular reflection
 		Light7.dcvSpecular = { 0.0f, 0.0f, 0.0f, 1.0f };
 	}
+}
+
+void ConvertMaterial(D3DMATERIAL& Material, D3DMATERIAL7& Material7)
+{
+	if (Material.dwSize != sizeof(D3DMATERIAL))
+	{
+		LOG_LIMIT(100, __FUNCTION__ << " Error: Incorrect dwSize: " << Material.dwSize);
+		return;
+	}
+	Material.dcvDiffuse = Material7.dcvDiffuse;
+	Material.dcvAmbient = Material7.dcvAmbient;
+	Material.dcvSpecular = Material7.dcvSpecular;
+	Material.dcvEmissive = Material7.dcvEmissive;
+	Material.dvPower = Material7.dvPower;
+	Material.hTexture = NULL;
+	Material.dwRampSize = 0;
 }
 
 void ConvertMaterial(D3DMATERIAL7 &Material7, D3DMATERIAL &Material)
@@ -204,117 +211,316 @@ void ConvertDeviceDesc(D3DDEVICEDESC &Desc, D3DDEVICEDESC7 &Desc7)
 		LOG_LIMIT(100, __FUNCTION__ << " Error: Incorrect dwSize: " << Desc.dwSize);
 		return;
 	}
-	// Convert variables
-	Desc.dwFlags = D3DDD_COLORMODEL | D3DDD_DEVCAPS | D3DDD_LINECAPS | D3DDD_TRICAPS | D3DDD_DEVICERENDERBITDEPTH | D3DDD_DEVICEZBUFFERBITDEPTH;
+
+	// Initialize the output structure
+	DWORD Size = Desc.dwSize;
+	ZeroMemory(&Desc, Size);
+	Desc.dwSize = Size;
+
+	// Convert relevant fields
+	Desc.dwFlags = D3DDD_COLORMODEL |
+		D3DDD_DEVCAPS |
+		D3DDD_TRANSFORMCAPS |
+		D3DDD_LIGHTINGCAPS |
+		D3DDD_BCLIPPING |
+		D3DDD_LINECAPS |
+		D3DDD_TRICAPS |
+		D3DDD_DEVICERENDERBITDEPTH |
+		D3DDD_DEVICEZBUFFERBITDEPTH |
+		D3DDD_MAXBUFFERSIZE |
+		D3DDD_MAXVERTEXCOUNT;
 	Desc.dcmColorModel = 2;
-	Desc.dwDevCaps = Desc7.dwDevCaps | D3DDEVCAPS_HWTRANSFORMANDLIGHT;
+	Desc.dwDevCaps = Desc7.dwDevCaps;
 	Desc.dtcTransformCaps.dwSize = sizeof(D3DTRANSFORMCAPS);
 	Desc.dtcTransformCaps.dwCaps = D3DTRANSFORMCAPS_CLIP;
 	Desc.bClipping = TRUE;
 	Desc.dlcLightingCaps.dwSize = sizeof(D3DLIGHTINGCAPS);
-	Desc.dlcLightingCaps.dwCaps = D3DLIGHTCAPS_POINT | D3DLIGHTCAPS_SPOT | D3DLIGHTCAPS_DIRECTIONAL;
+	Desc.dlcLightingCaps.dwCaps = D3DLIGHTCAPS_POINT | D3DLIGHTCAPS_SPOT | D3DLIGHTCAPS_DIRECTIONAL | D3DLIGHTCAPS_PARALLELPOINT | D3DLIGHTCAPS_GLSPOT;
 	Desc.dlcLightingCaps.dwLightingModel = 1;
-	Desc.dlcLightingCaps.dwNumLights = 8;
+	Desc.dlcLightingCaps.dwNumLights = Desc7.dwMaxActiveLights;
 	Desc.dpcLineCaps = Desc7.dpcLineCaps;
 	Desc.dpcTriCaps = Desc7.dpcTriCaps;
 	Desc.dwDeviceRenderBitDepth = Desc7.dwDeviceRenderBitDepth;
 	Desc.dwDeviceZBufferBitDepth = Desc7.dwDeviceZBufferBitDepth;
-	Desc.dwMaxBufferSize = 0;
+	Desc.dwMaxBufferSize = 256 * 1024 * 1024; // 256 MB
 	Desc.dwMaxVertexCount = 65534;
-	/* DIRECT3D_VERSION >= 0x0500 */
-	if (Desc.dwSize < D3DDEVICEDESC5_SIZE)
-	{
-		return;
-	}
-	Desc.dwMinTextureWidth = Desc7.dwMinTextureWidth;
-	Desc.dwMinTextureHeight = Desc7.dwMinTextureHeight;
-	Desc.dwMaxTextureWidth = Desc7.dwMaxTextureWidth;
-	Desc.dwMaxTextureHeight = Desc7.dwMaxTextureHeight;
-	Desc.dwMinStippleWidth = (Desc7.dpcLineCaps.dwStippleWidth) ? 1 : 0;
-	Desc.dwMaxStippleWidth = Desc7.dpcLineCaps.dwStippleWidth;
-	Desc.dwMinStippleHeight = (Desc7.dpcLineCaps.dwStippleHeight) ? 1 : 0;
-	Desc.dwMaxStippleHeight = Desc7.dpcLineCaps.dwStippleHeight;
-	/* DIRECT3D_VERSION >= 0x0600 */
-	if (Desc.dwSize < D3DDEVICEDESC6_SIZE)
-	{
-		return;
-	}
-	Desc.dwMaxTextureRepeat = Desc7.dwMaxTextureRepeat;
-	Desc.dwMaxTextureAspectRatio = Desc7.dwMaxTextureAspectRatio;
-	Desc.dwMaxAnisotropy = Desc7.dwMaxAnisotropy;
-	Desc.dvGuardBandLeft = Desc7.dvGuardBandLeft;
-	Desc.dvGuardBandTop = Desc7.dvGuardBandTop;
-	Desc.dvGuardBandRight = Desc7.dvGuardBandRight;
-	Desc.dvGuardBandBottom = Desc7.dvGuardBandBottom;
-	Desc.dvExtentsAdjust = Desc7.dvExtentsAdjust;
-	Desc.dwStencilCaps = Desc7.dwStencilCaps;
-	Desc.dwFVFCaps = Desc7.dwFVFCaps;
-	Desc.dwTextureOpCaps = Desc7.dwTextureOpCaps;
-	Desc.wMaxTextureBlendStages = Desc7.wMaxTextureBlendStages;
-	Desc.wMaxSimultaneousTextures = Desc7.wMaxSimultaneousTextures;
-}
 
-void ConvertDeviceDescSoft(D3DDEVICEDESC &Desc)
-{
-	if (Desc.dwSize != D3DDEVICEDESC1_SIZE && Desc.dwSize != D3DDEVICEDESC5_SIZE && Desc.dwSize != D3DDEVICEDESC6_SIZE)
+	// Handle additional fields depending on the structure size
+	if (Desc.dwSize >= D3DDEVICEDESC5_SIZE)
 	{
-		LOG_LIMIT(100, __FUNCTION__ << " Error: Incorrect dwSize: " << Desc.dwSize);
-		return;
+		Desc.dwMinTextureWidth = Desc7.dwMinTextureWidth;
+		Desc.dwMinTextureHeight = Desc7.dwMinTextureHeight;
+		Desc.dwMaxTextureWidth = Desc7.dwMaxTextureWidth;
+		Desc.dwMaxTextureHeight = Desc7.dwMaxTextureHeight;
+
+		// Initialize fields specific to D3DDEVICEDESC6
+		if (Desc.dwSize >= D3DDEVICEDESC6_SIZE)
+		{
+			Desc.dwMaxTextureRepeat = Desc7.dwMaxTextureRepeat;
+			Desc.dwMaxTextureAspectRatio = Desc7.dwMaxTextureAspectRatio;
+			Desc.dwMaxAnisotropy = Desc7.dwMaxAnisotropy;
+			Desc.dvGuardBandLeft = Desc7.dvGuardBandLeft;
+			Desc.dvGuardBandTop = Desc7.dvGuardBandTop;
+			Desc.dvGuardBandRight = Desc7.dvGuardBandRight;
+			Desc.dvGuardBandBottom = Desc7.dvGuardBandBottom;
+			Desc.dvExtentsAdjust = Desc7.dvExtentsAdjust;
+			Desc.dwStencilCaps = Desc7.dwStencilCaps;
+			Desc.dwFVFCaps = Desc7.dwFVFCaps;
+			Desc.dwTextureOpCaps = Desc7.dwTextureOpCaps;
+			Desc.wMaxTextureBlendStages = Desc7.wMaxTextureBlendStages;
+			Desc.wMaxSimultaneousTextures = Desc7.wMaxSimultaneousTextures;
+		}
 	}
-	// Convert variables
-	Desc.dwFlags = D3DDD_COLORMODEL | D3DDD_DEVCAPS | D3DDD_TRANSFORMCAPS | D3DDD_LIGHTINGCAPS | D3DDD_BCLIPPING;
-	Desc.dcmColorModel = 0;
-	Desc.dwDevCaps = D3DDEVCAPS_FLOATTLVERTEX;
-	Desc.dtcTransformCaps.dwSize = sizeof(D3DTRANSFORMCAPS);
-	Desc.dtcTransformCaps.dwCaps = D3DTRANSFORMCAPS_CLIP;
-	Desc.bClipping = TRUE;
-	Desc.dlcLightingCaps.dwSize = sizeof(D3DLIGHTINGCAPS);
-	Desc.dlcLightingCaps.dwCaps = D3DLIGHTCAPS_POINT | D3DLIGHTCAPS_SPOT | D3DLIGHTCAPS_DIRECTIONAL | D3DLIGHTCAPS_PARALLELPOINT;
-	Desc.dlcLightingCaps.dwLightingModel = 1;
-	Desc.dlcLightingCaps.dwNumLights = 0;
-	ZeroMemory(&Desc.dpcLineCaps, sizeof(D3DPRIMCAPS));
-	Desc.dpcLineCaps.dwSize = sizeof(D3DPRIMCAPS);
-	ZeroMemory(&Desc.dpcTriCaps, sizeof(D3DPRIMCAPS));
-	Desc.dpcTriCaps.dwSize = sizeof(D3DPRIMCAPS);
-	Desc.dwDeviceRenderBitDepth = 0;
-	Desc.dwDeviceZBufferBitDepth = 0;
-	Desc.dwMaxBufferSize = 0;
-	Desc.dwMaxVertexCount = 65534;
-	/* DIRECT3D_VERSION >= 0x0500 */
-	if (Desc.dwSize < D3DDEVICEDESC5_SIZE)
-	{
-		return;
-	}
-	Desc.dwMinTextureWidth = 0;
-	Desc.dwMinTextureHeight = 0;
-	Desc.dwMaxTextureWidth = 0;
-	Desc.dwMaxTextureHeight = 0;
-	Desc.dwMinStippleWidth = 0;
-	Desc.dwMaxStippleWidth = 0;
-	Desc.dwMinStippleHeight = 0;
-	Desc.dwMaxStippleHeight = 0;
-	/* DIRECT3D_VERSION >= 0x0600 */
-	if (Desc.dwSize < D3DDEVICEDESC6_SIZE)
-	{
-		return;
-	}
-	Desc.dwMaxTextureRepeat = 0;
-	Desc.dwMaxTextureAspectRatio = 0;
-	Desc.dwMaxAnisotropy = 0;
-	Desc.dvGuardBandLeft = 0;
-	Desc.dvGuardBandTop = 0;
-	Desc.dvGuardBandRight = 0;
-	Desc.dvGuardBandBottom = 0;
-	Desc.dvExtentsAdjust = 0;
-	Desc.dwStencilCaps = 0;
-	Desc.dwFVFCaps = 0;
-	Desc.dwTextureOpCaps = 0;
-	Desc.wMaxTextureBlendStages = 0;
-	Desc.wMaxSimultaneousTextures = 0;
+
+	// Ignore fields specific to D3DDEVICEDESC7 that are not in D3DDEVICEDESC
+	// Desc.dvMaxVertexW = Desc7.dvMaxVertexW;
+	// Desc.wMaxUserClipPlanes = Desc7.wMaxUserClipPlanes;
+	// Desc.wMaxVertexBlendMatrices = Desc7.wMaxVertexBlendMatrices;
+	// Desc.dwVertexProcessingCaps = Desc7.dwVertexProcessingCaps;
 }
 
 void ConvertDeviceDesc(D3DDEVICEDESC7 &Desc7, D3DCAPS9 &Caps9)
 {
+	// Initialize the output structure
+	ZeroMemory(&Desc7, sizeof(D3DDEVICEDESC7));
+
+	// Device capabilities
+	Desc7.dwDevCaps =
+		D3DDEVCAPS_FLOATTLVERTEX |
+		D3DDEVCAPS_SEPARATETEXTUREMEMORIES |
+		(Caps9.DevCaps &
+			(D3DDEVCAPS_EXECUTESYSTEMMEMORY |
+			D3DDEVCAPS_EXECUTEVIDEOMEMORY |
+			D3DDEVCAPS_TLVERTEXSYSTEMMEMORY |
+			D3DDEVCAPS_TLVERTEXVIDEOMEMORY |
+			D3DDEVCAPS_TEXTURESYSTEMMEMORY |
+			D3DDEVCAPS_TEXTUREVIDEOMEMORY |
+			D3DDEVCAPS_DRAWPRIMTLVERTEX |
+			D3DDEVCAPS_CANRENDERAFTERFLIP |
+			D3DDEVCAPS_TEXTURENONLOCALVIDMEM |
+			D3DDEVCAPS_DRAWPRIMITIVES2 |
+			D3DDEVCAPS_DRAWPRIMITIVES2EX |
+			D3DDEVCAPS_HWTRANSFORMANDLIGHT |
+			D3DDEVCAPS_CANBLTSYSTONONLOCAL |
+			D3DDEVCAPS_HWRASTERIZATION));
+
+	// Stencil capabilities
+	Desc7.dwStencilCaps =
+		(Caps9.StencilCaps &
+			(D3DSTENCILCAPS_KEEP |
+			D3DSTENCILCAPS_ZERO |
+			D3DSTENCILCAPS_REPLACE |
+			D3DSTENCILCAPS_INCRSAT |
+			D3DSTENCILCAPS_DECRSAT |
+			D3DSTENCILCAPS_INVERT |
+			D3DSTENCILCAPS_INCR |
+			D3DSTENCILCAPS_DECR));
+
+	// FVF capabilities
+	Desc7.dwFVFCaps = (Caps9.FVFCaps & (D3DFVFCAPS_DONOTSTRIPELEMENTS));
+
+	// Texture operation capabilities
+	Desc7.dwTextureOpCaps =
+		(Caps9.TextureOpCaps &
+			(D3DTEXOPCAPS_DISABLE |
+			D3DTEXOPCAPS_SELECTARG1 |
+			D3DTEXOPCAPS_SELECTARG2 |
+			D3DTEXOPCAPS_MODULATE |
+			D3DTEXOPCAPS_MODULATE2X |
+			D3DTEXOPCAPS_MODULATE4X |
+			D3DTEXOPCAPS_ADD |
+			D3DTEXOPCAPS_ADDSIGNED |
+			D3DTEXOPCAPS_ADDSIGNED2X |
+			D3DTEXOPCAPS_SUBTRACT |
+			D3DTEXOPCAPS_ADDSMOOTH |
+			D3DTEXOPCAPS_BLENDDIFFUSEALPHA |
+			D3DTEXOPCAPS_BLENDTEXTUREALPHA |
+			D3DTEXOPCAPS_BLENDFACTORALPHA |
+			D3DTEXOPCAPS_BLENDTEXTUREALPHAPM |
+			D3DTEXOPCAPS_BLENDCURRENTALPHA |
+			D3DTEXOPCAPS_PREMODULATE |
+			D3DTEXOPCAPS_MODULATEALPHA_ADDCOLOR |
+			D3DTEXOPCAPS_MODULATECOLOR_ADDALPHA |
+			D3DTEXOPCAPS_MODULATEINVALPHA_ADDCOLOR |
+			D3DTEXOPCAPS_MODULATEINVCOLOR_ADDALPHA |
+			D3DTEXOPCAPS_BUMPENVMAP |
+			D3DTEXOPCAPS_BUMPENVMAPLUMINANCE |
+			D3DTEXOPCAPS_DOTPRODUCT3 |
+			D3DTEXOPCAPS_MULTIPLYADD |
+			D3DTEXOPCAPS_LERP));
+
+	// Vertex processing capabilities
+	Desc7.dwVertexProcessingCaps =
+		D3DVTXPCAPS_VERTEXFOG |
+		(Caps9.VertexProcessingCaps &
+			(D3DVTXPCAPS_TEXGEN |
+			D3DVTXPCAPS_MATERIALSOURCE7 |
+			D3DVTXPCAPS_DIRECTIONALLIGHTS |
+			D3DVTXPCAPS_POSITIONALLIGHTS |
+			D3DVTXPCAPS_LOCALVIEWER));
+
+	// Line capabilities
+	Desc7.dpcLineCaps.dwSize = sizeof(D3DPRIMCAPS);
+	Desc7.dpcLineCaps.dwMiscCaps =
+		(Caps9.PrimitiveMiscCaps &
+			(D3DPMISCCAPS_MASKPLANES |
+			D3DPMISCCAPS_MASKZ |
+			D3DPMISCCAPS_LINEPATTERNREP |
+			D3DPMISCCAPS_CONFORMANT |
+			D3DPMISCCAPS_CULLNONE |
+			D3DPMISCCAPS_CULLCW |
+			D3DPMISCCAPS_CULLCCW));
+	Desc7.dpcLineCaps.dwRasterCaps =
+		D3DPRASTERCAPS_ROP2 |
+		D3DPRASTERCAPS_XOR |
+		D3DPRASTERCAPS_PAT |
+		D3DPRASTERCAPS_SUBPIXEL |
+		D3DPRASTERCAPS_SUBPIXELX |
+		D3DPRASTERCAPS_STIPPLE |
+		D3DPRASTERCAPS_ANTIALIASSORTDEPENDENT |
+		D3DPRASTERCAPS_ANTIALIASSORTINDEPENDENT |
+		D3DPRASTERCAPS_ANTIALIASEDGES |
+		D3DPRASTERCAPS_ZBIAS |
+		D3DPRASTERCAPS_TRANSLUCENTSORTINDEPENDENT |
+		(Caps9.RasterCaps &
+			(D3DPRASTERCAPS_DITHER |
+			D3DPRASTERCAPS_ZTEST |
+			D3DPRASTERCAPS_FOGVERTEX |
+			D3DPRASTERCAPS_FOGTABLE |
+			D3DPRASTERCAPS_MIPMAPLODBIAS |
+			D3DPRASTERCAPS_ZBUFFERLESSHSR |
+			D3DPRASTERCAPS_FOGRANGE |
+			D3DPRASTERCAPS_ANISOTROPY |
+			D3DPRASTERCAPS_WBUFFER |
+			D3DPRASTERCAPS_WFOG |
+			D3DPRASTERCAPS_ZFOG));
+	Desc7.dpcLineCaps.dwZCmpCaps =
+		(Caps9.ZCmpCaps &
+			(D3DPCMPCAPS_NEVER |
+			D3DPCMPCAPS_LESS |
+			D3DPCMPCAPS_EQUAL |
+			D3DPCMPCAPS_LESSEQUAL |
+			D3DPCMPCAPS_GREATER |
+			D3DPCMPCAPS_NOTEQUAL |
+			D3DPCMPCAPS_GREATEREQUAL |
+			D3DPCMPCAPS_ALWAYS));
+	Desc7.dpcLineCaps.dwAlphaCmpCaps =
+		(Caps9.AlphaCmpCaps &
+			(D3DPCMPCAPS_NEVER |
+			D3DPCMPCAPS_LESS |
+			D3DPCMPCAPS_EQUAL |
+			D3DPCMPCAPS_LESSEQUAL |
+			D3DPCMPCAPS_GREATER |
+			D3DPCMPCAPS_NOTEQUAL |
+			D3DPCMPCAPS_GREATEREQUAL |
+			D3DPCMPCAPS_ALWAYS));
+	Desc7.dpcLineCaps.dwSrcBlendCaps =
+		(Caps9.SrcBlendCaps &
+			(D3DPBLENDCAPS_ZERO |
+			D3DPBLENDCAPS_ONE |
+			D3DPBLENDCAPS_SRCCOLOR |
+			D3DPBLENDCAPS_INVSRCCOLOR |
+			D3DPBLENDCAPS_SRCALPHA |
+			D3DPBLENDCAPS_INVSRCALPHA |
+			D3DPBLENDCAPS_DESTALPHA |
+			D3DPBLENDCAPS_INVDESTALPHA |
+			D3DPBLENDCAPS_DESTCOLOR |
+			D3DPBLENDCAPS_INVDESTCOLOR |
+			D3DPBLENDCAPS_SRCALPHASAT |
+			D3DPBLENDCAPS_BOTHSRCALPHA |
+			D3DPBLENDCAPS_BOTHINVSRCALPHA));
+	Desc7.dpcLineCaps.dwDestBlendCaps =
+		(Caps9.DestBlendCaps &
+			(D3DPBLENDCAPS_ZERO |
+			D3DPBLENDCAPS_ONE |
+			D3DPBLENDCAPS_SRCCOLOR |
+			D3DPBLENDCAPS_INVSRCCOLOR |
+			D3DPBLENDCAPS_SRCALPHA |
+			D3DPBLENDCAPS_INVSRCALPHA |
+			D3DPBLENDCAPS_DESTALPHA |
+			D3DPBLENDCAPS_INVDESTALPHA |
+			D3DPBLENDCAPS_DESTCOLOR |
+			D3DPBLENDCAPS_INVDESTCOLOR |
+			D3DPBLENDCAPS_SRCALPHASAT |
+			D3DPBLENDCAPS_BOTHSRCALPHA |
+			D3DPBLENDCAPS_BOTHINVSRCALPHA));
+	Desc7.dpcLineCaps.dwShadeCaps =
+		D3DPSHADECAPS_COLORFLATMONO |
+		D3DPSHADECAPS_COLORFLATRGB |
+		D3DPSHADECAPS_COLORGOURAUDMONO |
+		D3DPSHADECAPS_COLORPHONGMONO |
+		D3DPSHADECAPS_COLORPHONGRGB |
+		D3DPSHADECAPS_SPECULARFLATMONO |
+		D3DPSHADECAPS_SPECULARFLATRGB |
+		D3DPSHADECAPS_SPECULARGOURAUDMONO |
+		D3DPSHADECAPS_SPECULARPHONGMONO |
+		D3DPSHADECAPS_SPECULARPHONGRGB |
+		D3DPSHADECAPS_ALPHAFLATBLEND |
+		D3DPSHADECAPS_ALPHAFLATSTIPPLED |
+		D3DPSHADECAPS_ALPHAGOURAUDSTIPPLED |
+		D3DPSHADECAPS_ALPHAPHONGBLEND |
+		D3DPSHADECAPS_ALPHAPHONGSTIPPLED |
+		D3DPSHADECAPS_FOGFLAT |
+		D3DPSHADECAPS_FOGPHONG |
+		(Caps9.ShadeCaps &
+			(D3DPSHADECAPS_COLORGOURAUDRGB |
+			D3DPSHADECAPS_SPECULARGOURAUDRGB |
+			D3DPSHADECAPS_ALPHAGOURAUDBLEND |
+			D3DPSHADECAPS_FOGGOURAUD));
+	Desc7.dpcLineCaps.dwTextureCaps =
+		D3DPTEXTURECAPS_TRANSPARENCY |
+		D3DPTEXTURECAPS_BORDER |
+		D3DPTEXTURECAPS_COLORKEYBLEND |
+		(Caps9.TextureCaps &
+			(D3DPTEXTURECAPS_PERSPECTIVE |
+			D3DPTEXTURECAPS_POW2 |
+			D3DPTEXTURECAPS_ALPHA |
+			D3DPTEXTURECAPS_SQUAREONLY |
+			D3DPTEXTURECAPS_TEXREPEATNOTSCALEDBYSIZE |
+			D3DPTEXTURECAPS_ALPHAPALETTE |
+			D3DPTEXTURECAPS_NONPOW2CONDITIONAL |
+			D3DPTEXTURECAPS_PROJECTED |
+			D3DPTEXTURECAPS_CUBEMAP));
+	Desc7.dpcLineCaps.dwTextureFilterCaps =
+		D3DPTFILTERCAPS_NEAREST |
+		D3DPTFILTERCAPS_LINEAR |
+		D3DPTFILTERCAPS_MIPNEAREST |
+		D3DPTFILTERCAPS_MIPLINEAR |
+		D3DPTFILTERCAPS_LINEARMIPNEAREST |
+		D3DPTFILTERCAPS_LINEARMIPLINEAR |
+		(Caps9.TextureFilterCaps &
+			(D3DPTFILTERCAPS_MINFPOINT |
+			D3DPTFILTERCAPS_MINFLINEAR |
+			D3DPTFILTERCAPS_MINFANISOTROPIC |
+			D3DPTFILTERCAPS_MIPFPOINT |
+			D3DPTFILTERCAPS_MIPFLINEAR |
+			D3DPTFILTERCAPS_MAGFPOINT |
+			D3DPTFILTERCAPS_MAGFLINEAR |
+			D3DPTFILTERCAPS_MAGFANISOTROPIC |
+			D3DPTFILTERCAPS_MAGFAFLATCUBIC |
+			D3DPTFILTERCAPS_MAGFGAUSSIANCUBIC));
+	Desc7.dpcLineCaps.dwTextureBlendCaps =
+		D3DPTBLENDCAPS_DECAL |
+		D3DPTBLENDCAPS_MODULATE |
+		D3DPTBLENDCAPS_DECALALPHA |
+		D3DPTBLENDCAPS_MODULATEALPHA |
+		D3DPTBLENDCAPS_DECALMASK |
+		D3DPTBLENDCAPS_MODULATEMASK |
+		D3DPTBLENDCAPS_COPY |
+		D3DPTBLENDCAPS_ADD;
+	Desc7.dpcLineCaps.dwTextureAddressCaps =
+		(Caps9.TextureAddressCaps &
+			(D3DPTADDRESSCAPS_WRAP |
+			D3DPTADDRESSCAPS_MIRROR |
+			D3DPTADDRESSCAPS_CLAMP |
+			D3DPTADDRESSCAPS_BORDER |
+			D3DPTADDRESSCAPS_INDEPENDENTUV));
+	Desc7.dpcLineCaps.dwStippleWidth = 8;
+	Desc7.dpcLineCaps.dwStippleHeight = 8;
+
+	// Triangle capabilities (same as line caps)
+	Desc7.dpcTriCaps = Desc7.dpcLineCaps;
+
 	// General settings
 	Desc7.dwMinTextureWidth = (Caps9.MaxTextureWidth) ? 1 : 0;
 	Desc7.dwMinTextureHeight = (Caps9.MaxTextureHeight) ? 1 : 0;
@@ -334,63 +540,31 @@ void ConvertDeviceDesc(D3DDEVICEDESC7 &Desc7, D3DCAPS9 &Caps9)
 	Desc7.dvMaxVertexW = Caps9.MaxVertexW;
 	Desc7.wMaxUserClipPlanes = (WORD)min(Caps9.MaxUserClipPlanes, USHRT_MAX);
 	Desc7.wMaxVertexBlendMatrices = (WORD)min(Caps9.MaxVertexBlendMatrices, USHRT_MAX);
-	// Caps
-	Desc7.dwDevCaps = (Caps9.DevCaps & ~(D3DDEVCAPS_PUREDEVICE | D3DDEVCAPS_QUINTICRTPATCHES | D3DDEVCAPS_RTPATCHES | D3DDEVCAPS_RTPATCHHANDLEZERO | D3DDEVCAPS_NPATCHES)) |
-		D3DDEVCAPS_FLOATTLVERTEX;
-	Desc7.dwStencilCaps = Caps9.StencilCaps;
-	Desc7.dwFVFCaps = Caps9.FVFCaps & ~(D3DFVFCAPS_PSIZE);
-	Desc7.dwTextureOpCaps = Caps9.TextureOpCaps & ~(D3DTEXOPCAPS_MULTIPLYADD | D3DTEXOPCAPS_LERP);
-	Desc7.dwVertexProcessingCaps = (Caps9.VertexProcessingCaps & (D3DVTXPCAPS_TEXGEN | D3DVTXPCAPS_MATERIALSOURCE7 | D3DVTXPCAPS_DIRECTIONALLIGHTS | D3DVTXPCAPS_POSITIONALLIGHTS | D3DVTXPCAPS_LOCALVIEWER)) |
-		D3DVTXPCAPS_VERTEXFOG;
-	// Line Caps
-	Desc7.dpcLineCaps.dwSize = sizeof(D3DPRIMCAPS);
-	Desc7.dpcLineCaps.dwMiscCaps = Caps9.PrimitiveMiscCaps & (D3DPMISCCAPS_MASKZ | D3DPMISCCAPS_CULLNONE | D3DPMISCCAPS_CULLCW | D3DPMISCCAPS_CULLCCW);
-	Desc7.dpcLineCaps.dwRasterCaps = (Caps9.RasterCaps & ~(D3DPRASTERCAPS_COLORPERSPECTIVE | D3DPRASTERCAPS_SCISSORTEST | D3DPRASTERCAPS_SLOPESCALEDEPTHBIAS | D3DPRASTERCAPS_DEPTHBIAS | D3DPRASTERCAPS_MULTISAMPLE_TOGGLE)) |
-		D3DPRASTERCAPS_SUBPIXEL | D3DPRASTERCAPS_ANTIALIASSORTINDEPENDENT | D3DPRASTERCAPS_ANTIALIASEDGES | D3DPRASTERCAPS_ZBIAS;
-	Desc7.dpcLineCaps.dwZCmpCaps = Caps9.ZCmpCaps;
-	Desc7.dpcLineCaps.dwAlphaCmpCaps = Caps9.AlphaCmpCaps;
-	Desc7.dpcLineCaps.dwSrcBlendCaps = Caps9.SrcBlendCaps & ~(D3DPBLENDCAPS_BLENDFACTOR);
-	Desc7.dpcLineCaps.dwDestBlendCaps = Caps9.DestBlendCaps & ~(D3DPBLENDCAPS_BLENDFACTOR);
-	Desc7.dpcLineCaps.dwShadeCaps = Caps9.ShadeCaps |
-		D3DPSHADECAPS_COLORFLATMONO | D3DPSHADECAPS_COLORFLATRGB | D3DPSHADECAPS_COLORGOURAUDMONO | D3DPSHADECAPS_SPECULARFLATRGB | D3DPSHADECAPS_ALPHAFLATBLEND | D3DPSHADECAPS_FOGFLAT;
-	Desc7.dpcLineCaps.dwTextureCaps = (Caps9.TextureCaps & (D3DPTEXTURECAPS_PERSPECTIVE | D3DPTEXTURECAPS_POW2 | D3DPTEXTURECAPS_ALPHA | D3DPTEXTURECAPS_SQUAREONLY | D3DPTEXTURECAPS_TEXREPEATNOTSCALEDBYSIZE |
-		D3DPTEXTURECAPS_ALPHAPALETTE | D3DPTEXTURECAPS_NONPOW2CONDITIONAL | D3DPTEXTURECAPS_PROJECTED | D3DPTEXTURECAPS_CUBEMAP)) |
-		D3DPTEXTURECAPS_TRANSPARENCY;
-	Desc7.dpcLineCaps.dwTextureFilterCaps = (Caps9.TextureFilterCaps & ~(D3DPTFILTERCAPS_MINFPYRAMIDALQUAD | D3DPTFILTERCAPS_MINFGAUSSIANQUAD | D3DPTFILTERCAPS_CONVOLUTIONMONO)) |
-		D3DPTFILTERCAPS_NEAREST | D3DPTFILTERCAPS_LINEAR | D3DPTFILTERCAPS_MIPNEAREST | D3DPTFILTERCAPS_MIPLINEAR | D3DPTFILTERCAPS_LINEARMIPNEAREST | D3DPTFILTERCAPS_LINEARMIPLINEAR;
-	Desc7.dpcLineCaps.dwTextureBlendCaps = D3DPTBLENDCAPS_DECAL | D3DPTBLENDCAPS_MODULATE | D3DPTBLENDCAPS_DECALALPHA | D3DPTBLENDCAPS_MODULATEALPHA | D3DPTBLENDCAPS_COPY | D3DPTBLENDCAPS_ADD;
-	Desc7.dpcLineCaps.dwTextureAddressCaps = Caps9.TextureAddressCaps & ~(D3DPTADDRESSCAPS_MIRRORONCE);
-	Desc7.dpcLineCaps.dwStippleWidth = 0;
-	Desc7.dpcLineCaps.dwStippleHeight = 0;
-	// Tri Caps same as Line Caps
-	Desc7.dpcTriCaps = Desc7.dpcLineCaps;
+
 	// Specific settings
 	if (Caps9.DeviceType == D3DDEVTYPE_REF)
 	{
 		Desc7.deviceGUID = IID_IDirect3DRGBDevice;
-		Desc7.dwDevCaps &= ~(D3DDEVCAPS_HWTRANSFORMANDLIGHT);
-		Desc7.dpcLineCaps.dwStippleWidth = 4;
-		Desc7.dpcLineCaps.dwStippleHeight = 4;
-		Desc7.dpcTriCaps.dwStippleWidth = 4;
-		Desc7.dpcTriCaps.dwStippleHeight = 4;
+		Desc7.dwDevCaps &= ~(D3DDEVCAPS_HWTRANSFORMANDLIGHT | D3DDEVCAPS_HWRASTERIZATION);
 		Desc7.dwDeviceRenderBitDepth = DDBD_8 | DDBD_16 | DDBD_24 | DDBD_32;
-		Desc7.dwDeviceZBufferBitDepth = DDBD_16;
+		Desc7.dwDeviceZBufferBitDepth = DDBD_16 | DDBD_32;
 	}
 	else if (Caps9.DeviceType == D3DDEVTYPE_HAL)
 	{
 		Desc7.deviceGUID = IID_IDirect3DHALDevice;
-		Desc7.dwDevCaps = (Desc7.dwDevCaps | D3DDEVCAPS_HWRASTERIZATION) & ~(D3DDEVCAPS_HWTRANSFORMANDLIGHT);
+		Desc7.dwDevCaps = (Desc7.dwDevCaps & ~(D3DDEVCAPS_HWTRANSFORMANDLIGHT)) | D3DDEVCAPS_HWRASTERIZATION;
 		Desc7.dwDeviceRenderBitDepth = DDBD_8 | DDBD_16 | DDBD_32;
-		Desc7.dwDeviceZBufferBitDepth = DDBD_16 | DDBD_24;
+		Desc7.dwDeviceZBufferBitDepth = DDBD_16 | DDBD_32;
 	}
 	else if (Caps9.DeviceType == D3DDEVTYPE_HAL + 0x10)
 	{
 		Desc7.deviceGUID = IID_IDirect3DTnLHalDevice;
-		Desc7.dwDevCaps |= Desc7.dwDevCaps | D3DDEVCAPS_HWRASTERIZATION;
+		Desc7.dwDevCaps |= D3DDEVCAPS_HWTRANSFORMANDLIGHT | D3DDEVCAPS_HWRASTERIZATION;
 		Desc7.dwDeviceRenderBitDepth = DDBD_8 | DDBD_16 | DDBD_32;
-		Desc7.dwDeviceZBufferBitDepth = DDBD_16 | DDBD_24;
+		Desc7.dwDeviceZBufferBitDepth = DDBD_16 | DDBD_32;
 	}
-	// Reserved
+
+	// Reserved fields (should be zero)
 	Desc7.dwReserved1 = 0;
 	Desc7.dwReserved2 = 0;
 	Desc7.dwReserved3 = 0;
@@ -563,6 +737,181 @@ bool CheckRenderStateType(D3DRENDERSTATETYPE dwRenderStateType)
 		return true;
 	default:
 		return false;
+	}
+}
+
+void ConvertVertex(BYTE* pDestVertex, DWORD DestFVF, const BYTE* pSrcVertex, DWORD SrcFVF)
+{
+	DWORD SrcOffset = 0;
+	DWORD DestOffset = 0;
+
+	// Copy Position XYZ
+	*(D3DXVECTOR3*)pDestVertex = *(D3DXVECTOR3*)pSrcVertex;
+	DestOffset += 3 * sizeof(float);
+
+	// Update source offset for Position
+	SrcOffset += 3 * sizeof(float);
+
+	// Copy Position data (XYZW, XYZRHW, etc.)
+	switch (DestFVF & D3DFVF_POSITION_MASK_9)
+	{
+	case D3DFVF_XYZW:
+	case D3DFVF_XYZRHW:
+		if ((DestFVF & D3DFVF_POSITION_MASK_9) == (SrcFVF & D3DFVF_POSITION_MASK_9))
+		{
+			*(float*)(pDestVertex + DestOffset) = *(float*)(pSrcVertex + SrcOffset);
+		}
+		DestOffset += sizeof(float);
+		break;
+	case D3DFVF_XYZB1:
+	case D3DFVF_XYZB2:
+	case D3DFVF_XYZB3:
+	case D3DFVF_XYZB4:
+	case D3DFVF_XYZB5:
+	{
+		// Get number of blending weights
+		DWORD SrcNumBlending =
+			(SrcFVF & D3DFVF_POSITION_MASK_9) == D3DFVF_XYZB1 ? 1 :
+			(SrcFVF & D3DFVF_POSITION_MASK_9) == D3DFVF_XYZB2 ? 2 :
+			(SrcFVF & D3DFVF_POSITION_MASK_9) == D3DFVF_XYZB3 ? 3 :
+			(SrcFVF & D3DFVF_POSITION_MASK_9) == D3DFVF_XYZB4 ? 4 :
+			(SrcFVF & D3DFVF_POSITION_MASK_9) == D3DFVF_XYZB5 ? 5 : 0;
+		DWORD DestNumBlending =
+			(DestFVF & D3DFVF_POSITION_MASK_9) == D3DFVF_XYZB1 ? 1 :
+			(DestFVF & D3DFVF_POSITION_MASK_9) == D3DFVF_XYZB2 ? 2 :
+			(DestFVF & D3DFVF_POSITION_MASK_9) == D3DFVF_XYZB3 ? 3 :
+			(DestFVF & D3DFVF_POSITION_MASK_9) == D3DFVF_XYZB4 ? 4 :
+			(DestFVF & D3DFVF_POSITION_MASK_9) == D3DFVF_XYZB5 ? 5 : 0;
+		// Copy matching blending weights
+		for (UINT x = 0; x < min(SrcNumBlending, DestNumBlending); x++)
+		{
+			*(float*)(pDestVertex + DestOffset + x * sizeof(float)) = *(float*)(pSrcVertex + SrcOffset + x * sizeof(float));
+		}
+		DestOffset += DestNumBlending * sizeof(float);
+		break;
+	}
+	}
+
+	// Update source offset for Position data
+	switch (SrcFVF & D3DFVF_POSITION_MASK_9)
+	{
+	case D3DFVF_XYZW:
+	case D3DFVF_XYZRHW:
+	case D3DFVF_XYZB1:
+		SrcOffset += sizeof(float);
+		break;
+	case D3DFVF_XYZB2:
+		SrcOffset += 2 * sizeof(float);
+		break;
+	case D3DFVF_XYZB3:
+		SrcOffset += 3 * sizeof(float);
+		break;
+	case D3DFVF_XYZB4:
+		SrcOffset += 4 * sizeof(float);
+		break;
+	case D3DFVF_XYZB5:
+		SrcOffset += 5 * sizeof(float);
+		break;
+	}
+
+	// Normal
+	if (DestFVF & D3DFVF_NORMAL)
+	{
+		if (SrcFVF & D3DFVF_NORMAL)
+		{
+			*(D3DXVECTOR3*)(pDestVertex + DestOffset) = *(D3DXVECTOR3*)(pSrcVertex + SrcOffset);
+			SrcOffset += 3 * sizeof(float);
+		}
+		DestOffset += 3 * sizeof(float);
+	}
+	else if (SrcFVF & D3DFVF_NORMAL)
+	{
+		SrcOffset += 3 * sizeof(float);
+	}
+
+	// Point Size
+	if (DestFVF & D3DFVF_PSIZE)
+	{
+		if (SrcFVF & D3DFVF_PSIZE)
+		{
+			*(float*)(pDestVertex + DestOffset) = *(float*)(pSrcVertex + SrcOffset);
+			SrcOffset += sizeof(float);
+		}
+		DestOffset += sizeof(float);
+	}
+	else if (SrcFVF & D3DFVF_PSIZE)
+	{
+		SrcOffset += sizeof(float);
+	}
+
+	// Diffuse color
+	if (DestFVF & D3DFVF_DIFFUSE)
+	{
+		if (SrcFVF & D3DFVF_DIFFUSE)
+		{
+			*(DWORD*)(pDestVertex + DestOffset) = *(DWORD*)(pSrcVertex + SrcOffset);
+			SrcOffset += sizeof(DWORD);
+		}
+		DestOffset += sizeof(DWORD);
+	}
+	else if (SrcFVF & D3DFVF_DIFFUSE)
+	{
+		SrcOffset += sizeof(DWORD);
+	}
+
+	// Specular color
+	if (DestFVF & D3DFVF_SPECULAR)
+	{
+		if (SrcFVF & D3DFVF_SPECULAR)
+		{
+			*(DWORD*)(pDestVertex + DestOffset) = *(DWORD*)(pSrcVertex + SrcOffset);
+			SrcOffset += sizeof(DWORD);
+		}
+		DestOffset += sizeof(DWORD);
+	}
+	else if (SrcFVF & D3DFVF_SPECULAR)
+	{
+		SrcOffset += sizeof(DWORD);
+	}
+
+	// Texture coordinates
+	int SrcNumTexCoords = (SrcFVF & D3DFVF_TEXCOUNT_MASK) >> D3DFVF_TEXCOUNT_SHIFT;
+	int DestNumTexCoords = (DestFVF & D3DFVF_TEXCOUNT_MASK) >> D3DFVF_TEXCOUNT_SHIFT;
+	int y = 0;
+	for (int x = 0; x < DestNumTexCoords; x++)
+	{
+		// Get number of destination texture coordinates
+		int DestCord = (DestFVF & (D3DFVF_TEXCOORDSIZE1(x) | D3DFVF_TEXCOORDSIZE2(x) | D3DFVF_TEXCOORDSIZE3(x) | D3DFVF_TEXCOORDSIZE4(x)));
+		int DestSize =
+			DestCord == D3DFVF_TEXCOORDSIZE1(x) ? 1 :
+			DestCord == D3DFVF_TEXCOORDSIZE2(x) ? 2 :
+			DestCord == D3DFVF_TEXCOORDSIZE3(x) ? 3 :
+			DestCord == D3DFVF_TEXCOORDSIZE4(x) ? 4 : 0;
+		// Find matching source texture coordinates
+		while (y < SrcNumTexCoords)
+		{
+			int SrcCord = (SrcFVF & (D3DFVF_TEXCOORDSIZE1(y) | D3DFVF_TEXCOORDSIZE2(y) | D3DFVF_TEXCOORDSIZE3(y) | D3DFVF_TEXCOORDSIZE4(y)));
+			int SrcSize =
+				SrcCord == D3DFVF_TEXCOORDSIZE1(y) ? 1 :
+				SrcCord == D3DFVF_TEXCOORDSIZE2(y) ? 2 :
+				SrcCord == D3DFVF_TEXCOORDSIZE3(y) ? 3 :
+				SrcCord == D3DFVF_TEXCOORDSIZE4(y) ? 4 : 0;
+			// Copy matching texture coordinates
+			if (SrcSize && DestSize == SrcSize)
+			{
+				for (int i = 0; i < SrcSize; i++)
+				{
+					*(float*)(pDestVertex + DestOffset + i * sizeof(float)) = *(float*)(pSrcVertex + SrcOffset + i * sizeof(float));
+				}
+				SrcOffset += SrcSize * sizeof(float);
+				y++;
+				break;
+			}
+			SrcOffset += SrcSize * sizeof(float);
+			y++;
+		}
+		// Increase destination offset
+		DestOffset += DestSize * sizeof(float);
 	}
 }
 

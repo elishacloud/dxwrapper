@@ -198,119 +198,232 @@ void ConvertCaps(DDCAPS &Caps, DDCAPS &Caps2)
 	ZeroMemory(&Caps, Caps.dwSize);
 	Caps.dwSize = Size;
 	CopyMemory(&Caps, &Caps2, min(Caps.dwSize, Caps2.dwSize));
-	m_IDirectDrawX::AdjustVidMemory(&Caps.dwVidMemTotal, &Caps.dwVidMemFree);
+	AdjustVidMemory(&Caps.dwVidMemTotal, &Caps.dwVidMemFree);
 }
 
 void ConvertCaps(DDCAPS &Caps7, D3DCAPS9 &Caps9)
 {
-	// Note: dwVidMemTotal and dwVidMemFree are not part of D3DCAPS9 and need to be set separately
+	// Note: dwVidMemTotal, dwVidMemFree and dwNumFourCCCodes are not part of D3DCAPS9 and need to be set separately
 	if (Caps7.dwSize != sizeof(DDCAPS))
 	{
 		LOG_LIMIT(100, __FUNCTION__ << " Error: Incorrect dwSize: " << Caps7.dwSize);
 		return;
 	}
+
+	// Initialize the output structure
 	ZeroMemory(&Caps7, sizeof(DDCAPS));
 	Caps7.dwSize = sizeof(DDCAPS);
 
-	// Caps
-	Caps7.dwCaps = (Caps9.Caps & (/*D3DCAPS_OVERLAY |*/ D3DCAPS_READ_SCANLINE)) |
-		(DDCAPS_BLT | /*DDCAPS_BLTQUEUE |*/ DDCAPS_BLTFOURCC | DDCAPS_BLTSTRETCH | DDCAPS_GDI /*| DDCAPS_OVERLAYCANTCLIP | DDCAPS_OVERLAYFOURCC |
-			DDCAPS_OVERLAYSTRETCH*/ | DDCAPS_PALETTE | DDCAPS_PALETTEVSYNC | DDCAPS_VBI | DDCAPS_COLORKEY | /*DDCAPS_ALPHA | DDCAPS_COLORKEYHWASSIST |*/
-			DDCAPS_BLTCOLORFILL | DDCAPS_CANCLIP | DDCAPS_CANCLIPSTRETCHED | DDCAPS_CANBLTSYSMEM) |
-		(!Config.DdrawDisableDirect3DCaps ? DDCAPS_3D /*| DDCAPS_BLTDEPTHFILL | DDCAPS_ZBLTS | DDCAPS_ZOVERLAYS*/ : 0);
-	Caps7.dwCaps2 = (Caps9.Caps2 & (D3DCAPS2_FULLSCREENGAMMA /*| D3DCAPS2_CANCALIBRATEGAMMA*/ | D3DCAPS2_CANMANAGERESOURCE | D3DCAPS2_DYNAMICTEXTURES /*| D3DCAPS2_CANAUTOGENMIPMAP | D3DCAPS2_CANSHARERESOURCE*/)) |
-		(/*DDCAPS2_CANBOBINTERLEAVED | DDCAPS2_CANBOBNONINTERLEAVED | DDCAPS2_NONLOCALVIDMEM |*/ DDCAPS2_WIDESURFACES | /*DDCAPS2_CANFLIPODDEVEN |*/ DDCAPS2_COPYFOURCC | DDCAPS2_NOPAGELOCKREQUIRED |
-			DDCAPS2_PRIMARYGAMMA | DDCAPS2_CANRENDERWINDOWED /*| DDCAPS2_FLIPINTERVAL*/ | DDCAPS2_FLIPNOVSYNC);
-	Caps7.dwCKeyCaps = (DDCKEYCAPS_DESTBLT | /*DDCKEYCAPS_DESTBLTCLRSPACE | DDCKEYCAPS_DESTOVERLAY | DDCKEYCAPS_DESTOVERLAYCLRSPACE |*/ DDCKEYCAPS_SRCBLT /*| DDCKEYCAPS_SRCBLTCLRSPACE
-		| DDCKEYCAPS_SRCOVERLAY | DDCKEYCAPS_SRCOVERLAYCLRSPACE*/);
-	Caps7.dwFXCaps = (DDFXCAPS_BLTARITHSTRETCHY | DDFXCAPS_BLTMIRRORLEFTRIGHT | DDFXCAPS_BLTMIRRORUPDOWN | DDFXCAPS_BLTSHRINKX | DDFXCAPS_BLTSHRINKY | DDFXCAPS_BLTSTRETCHX |
-		DDFXCAPS_BLTSTRETCHY /*| DDFXCAPS_OVERLAYARITHSTRETCHY | DDFXCAPS_OVERLAYSHRINKX | DDFXCAPS_OVERLAYSHRINKY | DDFXCAPS_OVERLAYSTRETCHX | DDFXCAPS_OVERLAYSTRETCHY |
-		DDFXCAPS_OVERLAYMIRRORLEFTRIGHT | DDFXCAPS_OVERLAYMIRRORUPDOWN | DDFXCAPS_OVERLAYDEINTERLACE*/);
-	Caps7.dwFXAlphaCaps = 0 /*| DDFXALPHACAPS_BLTALPHAEDGEBLEND | DDFXALPHACAPS_BLTALPHAPIXELS | DDFXALPHACAPS_BLTALPHAPIXELSNEG | DDFXALPHACAPS_BLTALPHASURFACES | DDFXALPHACAPS_BLTALPHASURFACESNEG |
-		DDFXALPHACAPS_OVERLAYALPHAEDGEBLEND | DDFXALPHACAPS_OVERLAYALPHAPIXELS | DDFXALPHACAPS_OVERLAYALPHAPIXELSNEG | DDFXALPHACAPS_OVERLAYALPHASURFACES | DDFXALPHACAPS_OVERLAYALPHASURFACESNEG*/;
-	Caps7.dwPalCaps = DDPCAPS_8BIT | DDPCAPS_ALLOW256 | DDPCAPS_PRIMARYSURFACE | DDPCAPS_PRIMARYSURFACELEFT | DDPCAPS_VSYNC /*| DDPCAPS_ALPHA*/;
-	Caps7.dwSVCaps = 0 /*DDSVCAPS_STEREOSEQUENTIAL*/;
+	// Set the primary capabilities flags to indicate support for everything
+	Caps7.dwCaps = (Caps9.Caps & DDCAPS_READSCANLINE) |
+		(DDCAPS_BLT | DDCAPS_BLTFOURCC | DDCAPS_BLTSTRETCH | DDCAPS_BLTCOLORFILL | DDCAPS_CANBLTSYSMEM | /*DDCAPS_BLTQUEUE |*/
+			/*DDCAPS_OVERLAY | DDCAPS_OVERLAYCANTCLIP | DDCAPS_OVERLAYFOURCC |	DDCAPS_OVERLAYSTRETCH |*/
+			DDCAPS_PALETTE | DDCAPS_PALETTEVSYNC | DDCAPS_COLORKEY | /*DDCAPS_COLORKEYHWASSIST |*/
+			DDCAPS_ALPHA | DDCAPS_GDI | DDCAPS_VBI | DDCAPS_CANCLIP | DDCAPS_CANCLIPSTRETCHED) |
+		(Config.DdrawDisableDirect3DCaps ? 0 : DDCAPS_3D | DDCAPS_BLTDEPTHFILL /*| DDCAPS_ZBLTS | DDCAPS_ZOVERLAYS*/);
 
-	// ddsCaps
-	Caps7.ddsCaps.dwCaps = (DDSCAPS_BACKBUFFER | DDSCAPS_COMPLEX | DDSCAPS_FLIP | DDSCAPS_FRONTBUFFER | DDSCAPS_LOCALVIDMEM | /*DDSCAPS_NONLOCALVIDMEM |*/
-		DDSCAPS_OFFSCREENPLAIN | /*DDSCAPS_OVERLAY | DDSCAPS_OWNDC |*/ DDSCAPS_PRIMARYSURFACE | DDSCAPS_VIDEOMEMORY) |
-		(!Config.DdrawDisableDirect3DCaps ? DDSCAPS_3DDEVICE | DDSCAPS_TEXTURE | DDSCAPS_ZBUFFER /*| DDSCAPS_MIPMAP*/ : 0);
-	Caps7.ddsCaps.dwCaps2 = (!Config.DdrawDisableDirect3DCaps ? /*DDSCAPS2_CUBEMAP*/ 0 : 0);	// Additional surface capabilities
+	// Additional capabilities (Caps2)
+	Caps7.dwCaps2 = (Caps9.Caps2 & (DDCAPS2_PRIMARYGAMMA /*| DDCAPS2_CANCALIBRATEGAMMA*/)) |
+		(DDCAPS2_CERTIFIED | DDCAPS2_NOPAGELOCKREQUIRED |
+			DDCAPS2_COLORCONTROLPRIMARY | DDCAPS2_CANDROPZ16BIT |
+			DDCAPS2_FLIPNOVSYNC | /*DDCAPS2_FLIPINTERVAL | DDCAPS2_CANFLIPODDEVEN | DDCAPS2_STEREO |*/
+			/*DDCAPS2_CANBOBINTERLEAVED | DDCAPS2_CANBOBNONINTERLEAVED | DDCAPS2_CANBOBHARDWARE |*/
+			/*DDCAPS2_NONLOCALVIDMEM | DDCAPS2_VIDEOPORT | DDCAPS2_AUTOFLIPOVERLAY | DDCAPS2_COLORCONTROLOVERLAY |*/
+			DDCAPS2_WIDESURFACES | DDCAPS2_COPYFOURCC | DDCAPS2_CANRENDERWINDOWED) |
+		(Config.DdrawDisableDirect3DCaps ? 0 : DDCAPS2_DYNAMICTEXTURES | DDCAPS2_CANMANAGETEXTURE /*| DDCAPS2_CANMANAGERESOURCE*/);
+
+	// Color key capabilities
+	Caps7.dwCKeyCaps = (DDCKEYCAPS_DESTBLT | DDCKEYCAPS_SRCBLT /*|
+		DDCKEYCAPS_DESTBLTCLRSPACE | DDCKEYCAPS_SRCBLTCLRSPACE |
+		DDCKEYCAPS_DESTBLTYUV | DDCKEYCAPS_SRCBLTYUV |
+		DDCKEYCAPS_DESTOVERLAYYUV | DDCKEYCAPS_SRCOVERLAYYUV |
+		DDCKEYCAPS_DESTBLTCLRSPACEYUV | DDCKEYCAPS_SRCBLTCLRSPACEYUV |
+		DDCKEYCAPS_DESTOVERLAYCLRSPACEYUV | DDCKEYCAPS_SRCOVERLAYCLRSPACEYUV |
+		DDCKEYCAPS_DESTOVERLAY | DDCKEYCAPS_SRCOVERLAY |
+		DDCKEYCAPS_DESTOVERLAYCLRSPACE | DDCKEYCAPS_SRCOVERLAYCLRSPACE |
+		DDCKEYCAPS_NOCOSTOVERLAY*/);
+
+	// Effects capabilities
+	Caps7.dwFXCaps = (DDFXCAPS_BLTARITHSTRETCHY | DDFXCAPS_BLTSTRETCHX | DDFXCAPS_BLTSTRETCHY |
+		DDFXCAPS_BLTSHRINKX | DDFXCAPS_BLTSHRINKY |
+		DDFXCAPS_BLTMIRRORLEFTRIGHT | DDFXCAPS_BLTMIRRORUPDOWN /*|
+		DDFXCAPS_BLTROTATION | DDFXCAPS_BLTROTATION90 |
+		DDFXCAPS_BLTALPHA | DDFXCAPS_OVERLAYALPHA |
+		DDFXCAPS_OVERLAYARITHSTRETCHY | DDFXCAPS_OVERLAYSTRETCHX | DDFXCAPS_OVERLAYSTRETCHY |
+		DDFXCAPS_OVERLAYSHRINKX | DDFXCAPS_OVERLAYSHRINKY |
+		DDFXCAPS_OVERLAYMIRRORLEFTRIGHT | DDFXCAPS_OVERLAYMIRRORUPDOWN |
+		DDFXCAPS_OVERLAYDEINTERLACE*/);
+
+	// Alpha capabilities
+	Caps7.dwFXAlphaCaps = 0 /*| DDFXALPHACAPS_BLTALPHAEDGEBLEND | DDFXALPHACAPS_BLTALPHAPIXELS | DDFXALPHACAPS_BLTALPHAPIXELSNEG | DDFXALPHACAPS_BLTALPHASURFACES |
+		DDFXALPHACAPS_BLTALPHASURFACESNEG | DDFXALPHACAPS_OVERLAYALPHAEDGEBLEND | DDFXALPHACAPS_OVERLAYALPHAPIXELS | DDFXALPHACAPS_OVERLAYALPHAPIXELSNEG |
+		DDFXALPHACAPS_OVERLAYALPHASURFACES | DDFXALPHACAPS_OVERLAYALPHASURFACESNEG*/;
+
+	// Palette capabilities
+	Caps7.dwPalCaps = DDPCAPS_8BIT | DDPCAPS_ALLOW256 | DDPCAPS_PRIMARYSURFACE | DDPCAPS_PRIMARYSURFACELEFT | DDPCAPS_VSYNC /*| DDPCAPS_ALPHA*/;
+
+	// Surface capabilities
+	Caps7.ddsCaps.dwCaps = DDSCAPS_PRIMARYSURFACE | DDSCAPS_FRONTBUFFER | DDSCAPS_BACKBUFFER | DDSCAPS_COMPLEX | DDSCAPS_FLIP |
+		DDSCAPS_LOCALVIDMEM | DDSCAPS_VIDEOMEMORY | ((Caps7.dwCaps2 & DDCAPS2_NONLOCALVIDMEM) ? DDSCAPS_NONLOCALVIDMEM : 0) |
+		DDSCAPS_OFFSCREENPLAIN | ((Caps7.dwCaps & DDCAPS_OVERLAY) ? DDSCAPS_OVERLAY : 0) | /*DDSCAPS_OWNDC |*/
+		(Config.DdrawDisableDirect3DCaps ? 0 : DDSCAPS_3DDEVICE | DDSCAPS_TEXTURE | DDSCAPS_ZBUFFER | DDSCAPS_MIPMAP);
+	Caps7.ddsCaps.dwCaps2 = (Config.DdrawDisableDirect3DCaps ? 0 : 0 /*| DDSCAPS2_CUBEMAP | DDSCAPS2_VOLUME*/);
 	Caps7.ddsCaps.dwCaps3 = 0;								// Not used
 	Caps7.ddsCaps.dwCaps4 = 0;								// Not used
 	Caps7.ddsCaps.dwVolumeDepth = 0;						// Not used
 	Caps7.ddsOldCaps.dwCaps = Caps7.ddsCaps.dwCaps;
 
-	// Overlay
+	// Stereo Vision capabilities
+	Caps7.dwSVCaps = 0 /*| DDSVCAPS_STEREOSEQUENTIAL*/; // Obsolite: DDSVCAPS_ENIGMA | DDSVCAPS_FLICKER | DDSVCAPS_REDBLUE | DDSVCAPS_SPLIT | DDSVCAPS_ZOOM;
+
+	// Alpha bit depths
+	if (Caps7.dwFXAlphaCaps & (DDFXALPHACAPS_BLTALPHAPIXELS | DDFXALPHACAPS_BLTALPHAPIXELSNEG))
+	{
+		Caps7.dwAlphaBltPixelBitDepths = DDBD_1 | DDBD_2 | DDBD_4 | DDBD_8;
+	}
+	if (Caps7.dwFXAlphaCaps & (DDFXALPHACAPS_BLTALPHASURFACES | DDFXALPHACAPS_BLTALPHASURFACESNEG))
+	{
+		Caps7.dwAlphaBltConstBitDepths = DDBD_2 | DDBD_4 | DDBD_8;
+		Caps7.dwAlphaBltSurfaceBitDepths = DDBD_1 | DDBD_2 | DDBD_4 | DDBD_8;
+	}
+	if (Caps7.dwFXAlphaCaps & (DDFXALPHACAPS_OVERLAYALPHAPIXELS | DDFXALPHACAPS_OVERLAYALPHAPIXELSNEG))
+	{
+		Caps7.dwAlphaOverlayPixelBitDepths = DDBD_1 | DDBD_2 | DDBD_4 | DDBD_8;
+	}
+	if (Caps7.dwFXAlphaCaps & (DDFXALPHACAPS_OVERLAYALPHASURFACES | DDFXALPHACAPS_OVERLAYALPHASURFACESNEG))
+	{
+		Caps7.dwAlphaOverlayConstBitDepths = DDBD_2 | DDBD_4 | DDBD_8;
+		Caps7.dwAlphaOverlaySurfaceBitDepths = DDBD_1 | DDBD_2 | DDBD_4 | DDBD_8;
+	}
+
+	// Z-buffer bit depths
+	if (Caps7.dwCaps & DDCAPS_ZBLTS)
+	{
+		Caps7.dwZBufferBitDepths = DDBD_8 | DDBD_16 | DDBD_24 | DDBD_32;
+	}
+
+	// Overlay settings
 	if (Caps7.dwCaps & DDCAPS_OVERLAY)
 	{
-		Caps7.dwMaxVisibleOverlays = 1;
+		Caps7.dwCurrVisibleOverlays = 0;
+		Caps7.dwMaxVisibleOverlays = 32;
 		Caps7.dwMinOverlayStretch = 1;
 		Caps7.dwMaxOverlayStretch = 20000;
 	}
+
+	// Bit Blt Caps
+	DWORD BitBltCaps = Caps7.dwCaps & (DDCAPS_BLT | DDCAPS_COLORKEY | DDCAPS_OVERLAY | DDCAPS_ALPHA | DDCAPS_BLTFOURCC | DDCAPS_BLTSTRETCH | DDCAPS_ZBLTS | DDCAPS_BLTCOLORFILL | DDCAPS_BLTDEPTHFILL | DDCAPS_CANBLTSYSMEM);
+	DWORD BitBltCaps2 = Caps7.dwCaps2 & (DDCAPS2_COPYFOURCC);
+	DWORD BitBltCKeyCaps = Caps7.dwCKeyCaps & (DDCKEYCAPS_DESTBLT | DDCKEYCAPS_DESTBLTCLRSPACE | DDCKEYCAPS_DESTBLTCLRSPACEYUV | DDCKEYCAPS_DESTBLTYUV | DDCKEYCAPS_SRCBLT | DDCKEYCAPS_SRCBLTCLRSPACE
+		| DDCKEYCAPS_SRCBLTCLRSPACEYUV | DDCKEYCAPS_SRCBLTYUV);
+	DWORD BitBltFXCaps = Caps7.dwFXCaps & (DDFXCAPS_BLTARITHSTRETCHY | DDFXCAPS_BLTARITHSTRETCHYN | DDFXCAPS_BLTMIRRORLEFTRIGHT | DDFXCAPS_BLTMIRRORUPDOWN | DDFXCAPS_BLTROTATION | DDFXCAPS_BLTROTATION90 |
+		DDFXCAPS_BLTSHRINKX | DDFXCAPS_BLTSHRINKXN | DDFXCAPS_BLTSHRINKY | DDFXCAPS_BLTSHRINKYN | DDFXCAPS_BLTSTRETCHX | DDFXCAPS_BLTSTRETCHXN | DDFXCAPS_BLTSTRETCHY |
+		DDFXCAPS_BLTSTRETCHYN | DDFXCAPS_BLTALPHA);
 
 	// Raster Operations
 	for (DWORD rop : { SRCCOPY, /*SRCPAINT, SRCAND, SRCINVERT, SRCERASE, NOTSRCCOPY, NOTSRCERASE, MERGECOPY, MERGEPAINT, PATCOPY, PATPAINT, PATINVERT, DSTINVERT,*/ BLACKNESS, WHITENESS })
 	{
 		const DWORD x = ((rop >> 16) & 0xFF) / 32;
 		Caps7.dwRops[x] |= static_cast<DWORD>(1 << ((rop >> 16) & 0xFF) % 32);
-		Caps7.dwSSBRops[x] = Caps7.dwRops[x];
-		Caps7.dwVSBRops[x] = Caps7.dwRops[x];
-		Caps7.dwSVBRops[x] = Caps7.dwRops[x];
-		if (Caps7.dwCaps2 & DDCAPS2_NONLOCALVIDMEM)
+	}
+
+	// System -> Video memory blts
+	Caps7.dwSVBCaps = BitBltCaps;
+	Caps7.dwSVBCaps2 = BitBltCaps2;
+	Caps7.dwSVBCKeyCaps = BitBltCKeyCaps;
+	Caps7.dwSVBFXCaps = BitBltFXCaps;
+	for (int i = 0; i < DD_ROP_SPACE; i++)
+	{
+		Caps7.dwSVBRops[i] = Caps7.dwRops[i];
+	}
+
+	// Video -> System memory blts
+	Caps7.dwVSBCaps = BitBltCaps;
+	Caps7.dwVSBCKeyCaps = BitBltCKeyCaps;
+	Caps7.dwVSBFXCaps = BitBltFXCaps;
+	for (int i = 0; i < DD_ROP_SPACE; i++)
+	{
+		Caps7.dwVSBRops[i] = Caps7.dwRops[i];
+	}
+
+	// System memory to system memory blts
+	Caps7.dwSSBCaps = BitBltCaps;
+	Caps7.dwSSBCKeyCaps = BitBltCKeyCaps;
+	Caps7.dwSSBFXCaps = BitBltFXCaps;
+	for (int i = 0; i < DD_ROP_SPACE; i++)
+	{
+		Caps7.dwSSBRops[i] = Caps7.dwRops[i];
+	}
+
+	// Non-local -> system memory blts
+	if (Caps7.dwCaps2 & DDCAPS2_NONLOCALVIDMEM)
+	{
+		Caps7.dwNLVBCaps = BitBltCaps;
+		Caps7.dwNLVBCaps2 = BitBltCaps2;
+		Caps7.dwNLVBCKeyCaps = BitBltCKeyCaps;
+		Caps7.dwNLVBFXCaps = BitBltFXCaps;
+		for (int i = 0; i < DD_ROP_SPACE; i++)
 		{
-			Caps7.dwNLVBRops[x] = Caps7.dwRops[x];
+			Caps7.dwNLVBRops[i] = Caps7.dwRops[i];
 		}
-	}
-
-	// Bit Blt Caps
-	DWORD BitBltCaps = DDCAPS_BLT | DDCAPS_BLTQUEUE | DDCAPS_BLTFOURCC | DDCAPS_BLTSTRETCH | DDCAPS_ZBLTS | DDCAPS_BLTCOLORFILL | DDCAPS_BLTDEPTHFILL | DDCAPS_CANBLTSYSMEM;
-	DWORD BitBltCaps2 = DDCAPS2_COPYFOURCC;
-	Caps7.dwSSBCaps = Caps7.dwCaps & BitBltCaps;
-	Caps7.dwVSBCaps = Caps7.dwCaps & BitBltCaps;
-	Caps7.dwSVBCaps = Caps7.dwCaps & BitBltCaps;
-	Caps7.dwSVBCaps2 = Caps7.dwCaps2 & BitBltCaps2;
-	if (Caps7.dwCaps2 & DDCAPS2_NONLOCALVIDMEM)
-	{
-		Caps7.dwNLVBCaps = Caps7.dwCaps & BitBltCaps;
-		Caps7.dwNLVBCaps2 = Caps7.dwCaps2 & BitBltCaps2;
-	}
-
-	// Color Key Caps
-	DWORD BitBltCK = DDCKEYCAPS_DESTBLT | DDCKEYCAPS_DESTBLTCLRSPACE | DDCKEYCAPS_DESTBLTCLRSPACEYUV | DDCKEYCAPS_DESTBLTYUV | DDCKEYCAPS_SRCBLT | DDCKEYCAPS_SRCBLTCLRSPACE
-		| DDCKEYCAPS_SRCBLTCLRSPACEYUV | DDCKEYCAPS_SRCBLTYUV;
-	Caps7.dwSSBCKeyCaps = Caps7.dwCKeyCaps & BitBltCK;
-	Caps7.dwVSBCKeyCaps = Caps7.dwCKeyCaps & BitBltCK;
-	Caps7.dwSVBCKeyCaps = Caps7.dwCKeyCaps & BitBltCK;
-	if (Caps7.dwCaps2 & DDCAPS2_NONLOCALVIDMEM)
-	{
-		Caps7.dwNLVBCKeyCaps = Caps7.dwCKeyCaps & BitBltCK;
-	}
-
-	// FX Caps
-	DWORD BitBltFX = DDFXCAPS_BLTARITHSTRETCHY | DDFXCAPS_BLTARITHSTRETCHYN | DDFXCAPS_BLTMIRRORLEFTRIGHT | DDFXCAPS_BLTMIRRORUPDOWN | DDFXCAPS_BLTROTATION | DDFXCAPS_BLTROTATION90 |
-		DDFXCAPS_BLTSHRINKX | DDFXCAPS_BLTSHRINKXN | DDFXCAPS_BLTSHRINKY | DDFXCAPS_BLTSHRINKYN | DDFXCAPS_BLTSTRETCHX | DDFXCAPS_BLTSTRETCHXN | DDFXCAPS_BLTSTRETCHY |
-		DDFXCAPS_BLTSTRETCHYN | DDFXCAPS_BLTALPHA;
-	Caps7.dwSSBFXCaps = Caps7.dwFXCaps & BitBltFX;
-	Caps7.dwVSBFXCaps = Caps7.dwFXCaps & BitBltFX;
-	Caps7.dwSVBFXCaps = Caps7.dwFXCaps & BitBltFX;
-	if (Caps7.dwCaps2 & DDCAPS2_NONLOCALVIDMEM)
-	{
-		Caps7.dwNLVBFXCaps = Caps7.dwFXCaps & BitBltFX;
 	}
 
 	// Live video ports
 	Caps7.dwMaxVideoPorts = 0;
 	Caps7.dwCurrVideoPorts = 0;
+
+	// Min/Max Live Video Stretch Factors
+	Caps7.dwMinLiveVideoStretch = 0;
+	Caps7.dwMaxLiveVideoStretch = 0;
+
+	// Min/Max HW Codec Stretch Factors
+	Caps7.dwMinHwCodecStretch = 0;
+	Caps7.dwMaxHwCodecStretch = 0;
+
+	// FourCC codes
+	Caps7.dwNumFourCCCodes = sizeof(FourCCTypes) / sizeof(D3DFORMAT);
+
+	// Video memory
+	Caps7.dwVidMemTotal = MaxVidMemory;
+	Caps7.dwVidMemFree = MaxVidMemory - MinUsedVidMemory;
+
+	// Reserved fields
+	Caps7.dwReserved1 = 0;
+	Caps7.dwReserved2 = 0;
+	Caps7.dwReserved3 = 0;
+}
+
+void AdjustVidMemory(LPDWORD lpdwTotal, LPDWORD lpdwFree)
+{
+	DWORD TotalVidMem = (lpdwTotal && *lpdwTotal) ? *lpdwTotal : (lpdwFree && *lpdwFree) ? *lpdwFree + MinUsedVidMemory : MaxVidMemory;
+	TotalVidMem = min(TotalVidMem, MaxVidMemory);
+	DWORD AvailVidMem = (lpdwFree && *lpdwFree) ? *lpdwFree : TotalVidMem - MinUsedVidMemory;
+	AvailVidMem = min(AvailVidMem, TotalVidMem - MinUsedVidMemory);
+	if (lpdwTotal && *lpdwTotal)
+	{
+		*lpdwTotal = TotalVidMem;
+	}
+	if (lpdwFree && *lpdwFree)
+	{
+		*lpdwFree = AvailVidMem;
+	}
 }
 
 DWORD GetByteAlignedWidth(DWORD Width, DWORD BitCount)
 {
-	while ((Width * BitCount) % 64)
+	if (!Config.DdrawDisableByteAlignment)
 	{
-		Width++;
+		while ((Width * BitCount) % 64)
+		{
+			Width++;
+		}
 	}
 	return Width;
+}
+
+DWORD GetMaxMipMapLevel(DWORD Width, DWORD Height)
+{
+	return 1 + static_cast<int>(std::floor(std::log2(min(Width, Height))));
 }
 
 DWORD GetBitCount(DDPIXELFORMAT ddpfPixelFormat)
@@ -445,9 +558,47 @@ DWORD GetBitCount(D3DFORMAT Format)
 		return 8;
 
 	default:
-		LOG_LIMIT(100, __FUNCTION__ << " Display format not Implemented: " << Format);
+		LOG_LIMIT(100, __FUNCTION__ << " Error: Display format not Implemented: " << Format);
 		return 0;
 	};
+}
+
+float ConvertDepthValue(DWORD dwFillDepth, D3DFORMAT Format)
+{
+	switch ((DWORD)Format)
+	{
+	case D3DFMT_S1D15:
+		return static_cast<float>(dwFillDepth & 0x7FFF) / 0x7FFF; // 15-bit depth
+
+	case D3DFMT_D15S1:
+		// Shift the depth value to the right by 1 bits before extracting
+		return static_cast<float>((dwFillDepth >> 1) & 0x7FFF) / 0x7FFF; // 15-bit depth
+
+	case D3DFMT_D16:
+	case D3DFMT_D16_LOCKABLE:
+		return static_cast<float>(dwFillDepth & 0xFFFF) / 0xFFFF; // 16-bit depth
+
+	case D3DFMT_X8D24:
+	case D3DFMT_S8D24:
+	case D3DFMT_X4S4D24:
+		return static_cast<float>(dwFillDepth & 0xFFFFFF) / 0xFFFFFF; // 24-bit depth
+
+	case D3DFMT_D24X8:
+	case D3DFMT_D24S8:
+	case D3DFMT_D24FS8:
+	case D3DFMT_D24X4S4:
+		// Shift the depth value to the right by 8 bits before extracting
+		return static_cast<float>((dwFillDepth >> 8) & 0xFFFFFF) / 0xFFFFFF; // 24-bit depth
+
+	case D3DFMT_D32:
+	case D3DFMT_D32_LOCKABLE:
+	case D3DFMT_D32F_LOCKABLE:
+		return (float)(static_cast<double>(dwFillDepth & 0xFFFFFFFF) / 0xFFFFFFFF); // 32-bit depth
+
+	default:
+		LOG_LIMIT(100, __FUNCTION__ << " Error: Depth Stencil format not Implemented: " << Format);
+		return 0.0f;
+	}
 }
 
 DWORD GetSurfaceSize(D3DFORMAT Format, DWORD Width, DWORD Height, INT Pitch)
@@ -488,6 +639,35 @@ inline void CountBits(DWORD value, DWORD& LeadingZeros, DWORD& TotalBits)
 	}
 }
 
+DWORD GetARGBColorKey(DWORD ColorKey, DDPIXELFORMAT& pixelFormat)
+{
+	if (!pixelFormat.dwRBitMask || !pixelFormat.dwGBitMask || !pixelFormat.dwBBitMask)
+	{
+		LOG_LIMIT(100, __FUNCTION__ << " Error: pixel format not Implemented: " << pixelFormat);
+		return 0;
+	}
+
+	DWORD dwRBitCount, dwGBitCount, dwBBitCount, rShift, gShift, bShift;
+
+	// Calculate bits for each color component
+	CountBits(pixelFormat.dwRBitMask, rShift, dwRBitCount);
+	CountBits(pixelFormat.dwGBitMask, gShift, dwGBitCount);
+	CountBits(pixelFormat.dwBBitMask, bShift, dwBBitCount);
+
+	// Calculate size of color space for bit depth
+	const float rColorRange = 255.0f / (pixelFormat.dwRBitMask >> rShift);
+	const float gColorRange = 255.0f / (pixelFormat.dwGBitMask >> gShift);
+	const float bColorRange = 255.0f / (pixelFormat.dwBBitMask >> bShift);
+
+	// Extract individual components according to pixel format for low color key
+	DWORD r = static_cast<DWORD>(((ColorKey & pixelFormat.dwRBitMask) >> rShift) * rColorRange);
+	DWORD g = static_cast<DWORD>(((ColorKey & pixelFormat.dwGBitMask) >> gShift) * gColorRange);
+	DWORD b = static_cast<DWORD>(((ColorKey & pixelFormat.dwBBitMask) >> bShift) * bColorRange);
+
+	// Return ARGB color key
+	return D3DCOLOR_ARGB(0xFF, r, g, b);
+}
+
 void GetColorKeyArray(float(&lowColorKey)[4], float(&highColorKey)[4], DWORD lowColorSpace, DWORD highColorSpace, DDPIXELFORMAT& pixelFormat)
 {
 	if (!pixelFormat.dwRBitMask || !pixelFormat.dwGBitMask || !pixelFormat.dwBBitMask)
@@ -509,9 +689,9 @@ void GetColorKeyArray(float(&lowColorKey)[4], float(&highColorKey)[4], DWORD low
 	const float bColorRange = 255.0f / (pixelFormat.dwBBitMask >> bShift);
 
 	// Allow some range for padding (half of a pixel's color range)
-	const float rPadding = (rColorRange / 255.0f) * 0.5f;
-	const float gPadding = (gColorRange / 255.0f) * 0.5f;
-	const float bPadding = (bColorRange / 255.0f) * 0.5f;
+	const float rPadding = (rColorRange / 255.0f) * 0.1f;
+	const float gPadding = (gColorRange / 255.0f) * 0.1f;
+	const float bPadding = (bColorRange / 255.0f) * 0.1f;
 
 	// Extract individual components according to pixel format for low color key
 	BYTE r = (BYTE)((lowColorSpace & pixelFormat.dwRBitMask) >> rShift);
@@ -552,10 +732,12 @@ D3DFORMAT GetFailoverFormat(D3DFORMAT Format)
 {
 	std::vector<std::pair<D3DFORMAT, D3DFORMAT>> FormatVector =
 	{
-		{D3DFMT_X1R5G5B5, D3DFMT_A1R5G5B5},
-		{D3DFMT_X4R4G4B4, D3DFMT_A4R4G4B4},
-		{D3DFMT_X8R8G8B8, D3DFMT_A8R8G8B8},
-		{D3DFMT_X8B8G8R8, D3DFMT_A8B8G8R8},
+		{ D3DFMT_P8, D3DFMT_L8 },
+		{ D3DFMT_X1R5G5B5, D3DFMT_A1R5G5B5 },
+		{ D3DFMT_X4R4G4B4, D3DFMT_A4R4G4B4 },
+		{ D3DFMT_X8R8G8B8, D3DFMT_A8R8G8B8 },
+		{ D3DFMT_X8B8G8R8, D3DFMT_A8B8G8R8 },
+		{ D3DFMT_D16_LOCKABLE, D3DFMT_D16 }
 	};
 
 	for (const auto& FormatPair : FormatVector)
@@ -764,7 +946,7 @@ D3DFORMAT GetDisplayFormat(DDPIXELFORMAT ddpfPixelFormat)
 			}
 			if (ddpfPixelFormat.dwZBitMask == 0xFFFF)
 			{
-				return D3DFMT_D16;
+				return D3DFMT_D16_LOCKABLE;
 			}
 			break;
 		case 24:
@@ -972,6 +1154,7 @@ void SetPixelDisplayFormat(D3DFORMAT Format, DDPIXELFORMAT &ddpfPixelFormat)
 
 	// zBuffer formats
 	case D3DFMT_D16:
+	case D3DFMT_D16_LOCKABLE:
 		ddpfPixelFormat.dwFlags = DDPF_ZBUFFER;
 		ddpfPixelFormat.dwZBufferBitDepth = 16;
 		ddpfPixelFormat.dwZBitMask = 0xFFFF;

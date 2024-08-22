@@ -215,17 +215,8 @@ HRESULT m_IDirectDrawClipper::Initialize(LPDIRECTDRAW lpDD, DWORD dwFlags)
 
 	if (!ProxyInterface)
 	{
-		// ToDo: If you used the DirectDrawCreateClipper function or the IDirectDraw7::CreateClipper method to create the DirectDrawClipper object,
-		// the IDirectDrawClipper::Initialize method returns DDERR_ALREADYINITIALIZED.
-		if (IsInitialize)
-		{
-			return DDERR_ALREADYINITIALIZED;
-		}
-		else
-		{
-			IsInitialize = true;
-			return DD_OK;
-		}
+		// Returns D3D_OK if successful, otherwise it returns an error.
+		return D3D_OK;
 	}
 
 	if (lpDD)

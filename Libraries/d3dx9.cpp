@@ -17,6 +17,9 @@
 #define WIN32_LEAN_AND_MEAN
 #include "d3dx9.h"
 #include "d3dx9_data.h"
+#include <fstream>
+#include <iostream>
+#include <ostream>
 #include "External\MemoryModule\MemoryModule.h"
 #include "Utils\Utils.h"
 #include "Logging\Logging.h"
@@ -26,6 +29,13 @@ typedef HRESULT(WINAPI* PFN_D3DXLoadSurfaceFromMemory)(LPDIRECT3DSURFACE9 pDestS
 typedef HRESULT(WINAPI* PFN_D3DXLoadSurfaceFromSurface)(LPDIRECT3DSURFACE9 pDestSurface, const PALETTEENTRY* pDestPalette, const RECT* pDestRect, LPDIRECT3DSURFACE9 pSrcSurface, const PALETTEENTRY* pSrcPalette, const RECT* pSrcRect, DWORD Filter, D3DCOLOR ColorKey);
 typedef HRESULT(WINAPI* PFN_D3DXSaveSurfaceToFileInMemory)(LPD3DXBUFFER* ppDestBuf, D3DXIMAGE_FILEFORMAT DestFormat, LPDIRECT3DSURFACE9 pSrcSurface, const PALETTEENTRY* pSrcPalette, const RECT* SrcRect);
 typedef HRESULT(WINAPI* PFN_D3DXSaveTextureToFileInMemory)(LPD3DXBUFFER* ppDestBuf, D3DXIMAGE_FILEFORMAT DestFormat, LPDIRECT3DBASETEXTURE9 pSrcTexture, const PALETTEENTRY* pSrcPalette);
+
+typedef HRESULT(WINAPI* PFN_D3DXDeclaratorFromFVF)(DWORD FVF, D3DVERTEXELEMENT9 pDeclarator[MAX_FVF_DECL_SIZE]);
+typedef D3DXMATRIX*(WINAPI* PFN_D3DXMatrixMultiply)(_Inout_ D3DXMATRIX* pOut, _In_ const D3DXMATRIX* pM1, _In_ const D3DXMATRIX* pM2);
+typedef D3DXVECTOR3*(WINAPI* PFN_D3DXVec3TransformCoord)(_Inout_ D3DXVECTOR3* pOut, _In_ const D3DXVECTOR3* pV, _In_ const D3DXMATRIX* pM);
+
+typedef HRESULT(WINAPI* PFN_D3DXCompileShaderFromFileA)(LPCSTR pSrcFile, const D3DXMACRO* pDefines, LPD3DXINCLUDE pInclude, LPCSTR pFunctionName, LPCSTR pProfile, DWORD Flags, LPD3DXBUFFER* ppShader, LPD3DXBUFFER* ppErrorMsgs, LPD3DXCONSTANTTABLE* ppConstantTable);
+typedef HRESULT(WINAPI* PFN_D3DXCompileShaderFromFileW)(LPCWSTR pSrcFile, const D3DXMACRO* pDefines, LPD3DXINCLUDE pInclude, LPCSTR pFunctionName, LPCSTR pProfile, DWORD Flags, LPD3DXBUFFER* ppShader, LPD3DXBUFFER* ppErrorMsgs, LPD3DXCONSTANTTABLE* ppConstantTable);
 typedef HRESULT(WINAPI* PFN_D3DXAssembleShader)(LPCSTR pSrcData, UINT SrcDataLen, const D3DXMACRO* pDefines, LPD3DXINCLUDE pInclude, DWORD Flags, LPD3DXBUFFER* ppShader, LPD3DXBUFFER* ppErrorMsgs);
 typedef HRESULT(WINAPI* PFN_D3DXDisassembleShader)(const DWORD* pShader, BOOL EnableColorCode, LPCSTR pComments, LPD3DXBUFFER* ppDisassembly);
 
@@ -43,6 +53,11 @@ PFN_D3DXLoadSurfaceFromMemory p_D3DXLoadSurfaceFromMemory = nullptr;
 PFN_D3DXLoadSurfaceFromSurface p_D3DXLoadSurfaceFromSurface = nullptr;
 PFN_D3DXSaveSurfaceToFileInMemory p_D3DXSaveSurfaceToFileInMemory = nullptr;
 PFN_D3DXSaveTextureToFileInMemory p_D3DXSaveTextureToFileInMemory = nullptr;
+PFN_D3DXDeclaratorFromFVF p_D3DXDeclaratorFromFVF = nullptr;
+PFN_D3DXMatrixMultiply p_D3DXMatrixMultiply = nullptr;
+PFN_D3DXVec3TransformCoord p_D3DXVec3TransformCoord = nullptr;
+PFN_D3DXCompileShaderFromFileA p_D3DXCompileShaderFromFileA = nullptr;
+PFN_D3DXCompileShaderFromFileW p_D3DXCompileShaderFromFileW = nullptr;
 PFN_D3DXAssembleShader p_D3DXAssembleShader = nullptr;
 PFN_D3DXDisassembleShader p_D3DXDisassembleShader = nullptr;
 
@@ -79,6 +94,11 @@ void LoadD3dx9()
 		p_D3DXLoadSurfaceFromSurface = reinterpret_cast<PFN_D3DXLoadSurfaceFromSurface>(MemoryGetProcAddress(d3dx9Module, "D3DXLoadSurfaceFromSurface"));
 		p_D3DXSaveSurfaceToFileInMemory = reinterpret_cast<PFN_D3DXSaveSurfaceToFileInMemory>(MemoryGetProcAddress(d3dx9Module, "D3DXSaveSurfaceToFileInMemory"));
 		p_D3DXSaveTextureToFileInMemory = reinterpret_cast<PFN_D3DXSaveTextureToFileInMemory>(MemoryGetProcAddress(d3dx9Module, "D3DXSaveTextureToFileInMemory"));
+		p_D3DXDeclaratorFromFVF = reinterpret_cast<PFN_D3DXDeclaratorFromFVF>(MemoryGetProcAddress(d3dx9Module, "D3DXDeclaratorFromFVF"));
+		p_D3DXMatrixMultiply = reinterpret_cast<PFN_D3DXMatrixMultiply>(MemoryGetProcAddress(d3dx9Module, "D3DXMatrixMultiply"));
+		p_D3DXVec3TransformCoord = reinterpret_cast<PFN_D3DXVec3TransformCoord>(MemoryGetProcAddress(d3dx9Module, "D3DXVec3TransformCoord"));
+		p_D3DXCompileShaderFromFileA = reinterpret_cast<PFN_D3DXCompileShaderFromFileA>(MemoryGetProcAddress(d3dx9Module, "D3DXCompileShaderFromFileA"));
+		p_D3DXCompileShaderFromFileW = reinterpret_cast<PFN_D3DXCompileShaderFromFileW>(MemoryGetProcAddress(d3dx9Module, "D3DXCompileShaderFromFileW"));
 		p_D3DXAssembleShader = reinterpret_cast<PFN_D3DXAssembleShader>(MemoryGetProcAddress(d3dx9Module, "D3DXAssembleShader"));
 		p_D3DXDisassembleShader = reinterpret_cast<PFN_D3DXDisassembleShader>(MemoryGetProcAddress(d3dx9Module, "D3DXDisassembleShader"));
 		p_D3DXFillTexture = reinterpret_cast<PFN_D3DXFillTexture>(MemoryGetProcAddress(d3dx9Module, "D3DXFillTexture"));
@@ -107,7 +127,7 @@ HRESULT WINAPI D3DXCreateTexture(LPDIRECT3DDEVICE9 pDevice, UINT Width, UINT Hei
 
 	if (FAILED(hr))
 	{
-		Logging::Log() << __FUNCTION__ << " Warning: Failed to Create texture!";
+		Logging::Log() << __FUNCTION__ << " Error: Failed to Create texture!";
 	}
 
 	return hr;
@@ -129,7 +149,7 @@ HRESULT WINAPI D3DXLoadSurfaceFromMemory(LPDIRECT3DSURFACE9 pDestSurface, const 
 
 	if (FAILED(hr))
 	{
-		Logging::Log() << __FUNCTION__ << " Warning: Failed to Copy surface from memory!";
+		Logging::Log() << __FUNCTION__ << " Error: Failed to Copy surface from memory!";
 		return hr;
 	}
 
@@ -159,7 +179,7 @@ HRESULT WINAPI D3DXLoadSurfaceFromSurface(LPDIRECT3DSURFACE9 pDestSurface, const
 
 	if (FAILED(hr))
 	{
-		Logging::Log() << __FUNCTION__ << " Warning: Failed to Copy surface!";
+		Logging::Log() << __FUNCTION__ << " Error: Failed to Copy surface!";
 		return hr;
 	}
 
@@ -189,7 +209,7 @@ HRESULT WINAPI D3DXSaveSurfaceToFileInMemory(LPD3DXBUFFER* ppDestBuf, D3DXIMAGE_
 
 	if (FAILED(hr))
 	{
-		Logging::Log() << __FUNCTION__ << " Warning: Failed to Save surface!";
+		Logging::Log() << __FUNCTION__ << " Error: Failed to Save surface!";
 	}
 
 	return hr;
@@ -211,7 +231,103 @@ HRESULT WINAPI D3DXSaveTextureToFileInMemory(LPD3DXBUFFER* ppDestBuf, D3DXIMAGE_
 
 	if (FAILED(hr))
 	{
-		Logging::Log() << __FUNCTION__ << " Warning: Failed to Save texture!";
+		Logging::Log() << __FUNCTION__ << " Error: Failed to Save texture!";
+	}
+
+	return hr;
+}
+
+HRESULT WINAPI D3DXDeclaratorFromFVF(DWORD FVF, D3DVERTEXELEMENT9 pDeclarator[MAX_FVF_DECL_SIZE])
+{
+	Logging::LogDebug() << __FUNCTION__;
+
+	LoadD3dx9();
+
+	if (!p_D3DXDeclaratorFromFVF)
+	{
+		LOG_ONCE(__FUNCTION__ << " Error: Could not find ProcAddress!");
+		return D3DERR_INVALIDCALL;
+	}
+
+	HRESULT hr = p_D3DXDeclaratorFromFVF(FVF, pDeclarator);
+
+	if (FAILED(hr))
+	{
+		Logging::Log() << __FUNCTION__ << " Error: Failed to convert FVF!";
+	}
+
+	return hr;
+}
+
+D3DXMATRIX* WINAPI D3DXMatrixMultiply(_Inout_ D3DXMATRIX* pOut, _In_ const D3DXMATRIX* pM1, _In_ const D3DXMATRIX* pM2)
+{
+	Logging::LogDebug() << __FUNCTION__;
+
+	LoadD3dx9();
+
+	if (!p_D3DXMatrixMultiply)
+	{
+		LOG_ONCE(__FUNCTION__ << " Error: Could not find ProcAddress!");
+		return nullptr;
+	}
+
+	return p_D3DXMatrixMultiply(pOut, pM1, pM2);
+}
+
+D3DXVECTOR3* WINAPI D3DXVec3TransformCoord(_Inout_ D3DXVECTOR3* pOut, _In_ const D3DXVECTOR3* pV, _In_ const D3DXMATRIX* pM)
+{
+	Logging::LogDebug() << __FUNCTION__;
+
+	LoadD3dx9();
+
+	if (!p_D3DXVec3TransformCoord)
+	{
+		LOG_ONCE(__FUNCTION__ << " Error: Could not find ProcAddress!");
+		return nullptr;
+	}
+
+	return p_D3DXVec3TransformCoord(pOut, pV, pM);
+}
+
+HRESULT WINAPI D3DXCompileShaderFromFileA(LPCSTR pSrcFile, const D3DXMACRO* pDefines, LPD3DXINCLUDE pInclude, LPCSTR pFunctionName, LPCSTR pProfile, DWORD Flags, LPD3DXBUFFER* ppShader, LPD3DXBUFFER* ppErrorMsgs, LPD3DXCONSTANTTABLE* ppConstantTable)
+{
+	Logging::LogDebug() << __FUNCTION__;
+
+	LoadD3dx9();
+
+	if (!p_D3DXCompileShaderFromFileA)
+	{
+		LOG_ONCE(__FUNCTION__ << " Error: Could not find ProcAddress!");
+		return D3DERR_INVALIDCALL;
+	}
+
+	HRESULT hr = p_D3DXCompileShaderFromFileA(pSrcFile, pDefines, pInclude, pFunctionName, pProfile, Flags, ppShader, ppErrorMsgs, ppConstantTable);
+
+	if (FAILED(hr))
+	{
+		Logging::Log() << __FUNCTION__ << " Error: Failed to Save texture!";
+	}
+
+	return hr;
+}
+
+HRESULT WINAPI D3DXCompileShaderFromFileW(LPCWSTR pSrcFile, const D3DXMACRO* pDefines, LPD3DXINCLUDE pInclude, LPCSTR pFunctionName, LPCSTR pProfile, DWORD Flags, LPD3DXBUFFER* ppShader, LPD3DXBUFFER* ppErrorMsgs, LPD3DXCONSTANTTABLE* ppConstantTable)
+{
+	Logging::LogDebug() << __FUNCTION__;
+
+	LoadD3dx9();
+
+	if (!p_D3DXCompileShaderFromFileW)
+	{
+		LOG_ONCE(__FUNCTION__ << " Error: Could not find ProcAddress!");
+		return D3DERR_INVALIDCALL;
+	}
+
+	HRESULT hr = p_D3DXCompileShaderFromFileW(pSrcFile, pDefines, pInclude, pFunctionName, pProfile, Flags, ppShader, ppErrorMsgs, ppConstantTable);
+
+	if (FAILED(hr))
+	{
+		Logging::Log() << __FUNCTION__ << " Error: Failed to Save texture!";
 	}
 
 	return hr;
@@ -300,11 +416,11 @@ HRESULT WINAPI D3DAssemble(const void* pSrcData, SIZE_T SrcDataSize, const char*
 	{
 		if (ppErrorMsgs && *ppErrorMsgs)
 		{
-			Logging::Log() << __FUNCTION__ << " Warning: Failed to Assemble shader! " << static_cast<const char*>((*ppErrorMsgs)->GetBufferPointer());
+			Logging::Log() << __FUNCTION__ << " Error: Failed to Assemble shader! " << static_cast<const char*>((*ppErrorMsgs)->GetBufferPointer());
 		}
 		else
 		{
-			Logging::Log() << __FUNCTION__ << " Warning: Failed to Assemble shader!";
+			Logging::Log() << __FUNCTION__ << " Error: Failed to Assemble shader!";
 		}
 	}
 
@@ -329,11 +445,11 @@ HRESULT WINAPI D3DCompile(LPCVOID pSrcData, SIZE_T SrcDataSize, LPCSTR pSourceNa
 	{
 		if (ppErrorMsgs && *ppErrorMsgs)
 		{
-			Logging::Log() << __FUNCTION__ << " Warning: Failed to Compile shader! " << static_cast<const char*>((*ppErrorMsgs)->GetBufferPointer());
+			Logging::Log() << __FUNCTION__ << " Error: Failed to Compile shader! " << static_cast<const char*>((*ppErrorMsgs)->GetBufferPointer());
 		}
 		else
 		{
-			Logging::Log() << __FUNCTION__ << " Warning: Failed to Compile shader!";
+			Logging::Log() << __FUNCTION__ << " Error: Failed to Compile shader!";
 		}
 	}
 
@@ -356,7 +472,7 @@ HRESULT WINAPI D3DDisassemble(LPCVOID pSrcData, SIZE_T SrcDataSize, UINT Flags, 
 
 	if (FAILED(hr))
 	{
-		Logging::Log() << __FUNCTION__ << " Warning: Failed to Disassemble shader!";
+		Logging::Log() << __FUNCTION__ << " Error: Failed to Disassemble shader!";
 	}
 
 	return hr;
@@ -378,7 +494,7 @@ HRESULT WINAPI D3DXFillTexture(LPVOID pTexture, LPD3DXFILL3D pFunction, LPVOID p
 
 	if (FAILED(hr))
 	{
-		Logging::Log() << __FUNCTION__ << " Warning: Failed to fill texture!";
+		Logging::Log() << __FUNCTION__ << " Error: Failed to fill texture!";
 	}
 
 	return hr;

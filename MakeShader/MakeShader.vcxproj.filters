@@ -1,0 +1,69 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClCompile Include="MakeShader.cpp" />
+    <ClCompile Include="..\Libraries\d3dx9.cpp">
+      <Filter>Libraries</Filter>
+    </ClCompile>
+    <ClCompile Include="..\External\MemoryModule\MemoryModule.c">
+      <Filter>MemoryModule</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Utils\Utils.cpp">
+      <Filter>Utils</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Utils\MyStrings.cpp">
+      <Filter>Utils</Filter>
+    </ClCompile>
+    <ClCompile Include="..\External\Hooking\Hook.cpp">
+      <Filter>Hooking</Filter>
+    </ClCompile>
+    <ClCompile Include="..\External\Hooking\HotPatch.cpp">
+      <Filter>Hooking</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="Libraries">
+      <UniqueIdentifier>{b13863e3-2d1b-47dd-acd8-139ba63572b5}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="MemoryModule">
+      <UniqueIdentifier>{2787f2bc-1af2-4fb2-8bc4-2d3a792a216f}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Logging">
+      <UniqueIdentifier>{47bee6dd-c2e4-4346-b95e-e66149db59d3}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Utils">
+      <UniqueIdentifier>{aea2f9cf-c44d-4000-9b7a-a36c40e15d4e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Hooking">
+      <UniqueIdentifier>{70123d29-ba0d-4f7a-956a-84fe8fe8f31c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="hlsl">
+      <UniqueIdentifier>{c7cba396-0a10-4dbc-aa32-1d0fbacfd63e}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\Libraries\d3dx9.h">
+      <Filter>Libraries</Filter>
+    </ClInclude>
+    <ClInclude Include="..\External\MemoryModule\MemoryModule.h">
+      <Filter>MemoryModule</Filter>
+    </ClInclude>
+    <ClInclude Include="Logging\Logging.h">
+      <Filter>Logging</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Utils\Utils.h">
+      <Filter>Utils</Filter>
+    </ClInclude>
+    <ClInclude Include="..\External\Hooking\Hook.h">
+      <Filter>Hooking</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\ddraw\Shaders\ColorKeyShader.hlsl">
+      <Filter>hlsl</Filter>
+    </None>
+    <None Include="..\ddraw\Shaders\PaletteShader.hlsl">
+      <Filter>hlsl</Filter>
+    </None>
+  </ItemGroup>
+</Project>

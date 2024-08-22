@@ -1,6 +1,5 @@
 #pragma once
 
-#include "IDirectDrawX.h"
 #include <unordered_map>
 #include "External\DirectXMath\Inc\DirectXMath.h"
 
@@ -15,8 +14,6 @@ struct CONVERTHOMOGENEOUS
 	float ToWorld_GameCameraYaw = 0.0f;
 	float ToWorld_GameCameraPitch = 0.0f;
 };
-
-constexpr UINT MaxTextureBlendStages = 8;	// Devices can have up to eight set textures.
 
 class m_IDirect3DDeviceX : public IUnknown, public AddressLookupTableDdrawObject
 {
@@ -37,31 +34,34 @@ private:
 
 	// Convert Device
 	m_IDirectDrawX *ddrawParent = nullptr;
-	m_IDirectDrawSurfaceX* DeviceSurface = nullptr;
+	m_IDirectDrawSurfaceX* lpCurrentRenderTargetX = nullptr;
 	LPDIRECT3DDEVICE9 *d3d9Device = nullptr;
 	LPDIRECT3DPIXELSHADER9* colorkeyPixelShader = nullptr;
 	LPDIRECT3DVIEWPORT3 lpCurrentViewport = nullptr;
+	m_IDirect3DViewportX* lpCurrentViewportX = nullptr;
 
 	struct {
 		DWORD rsClipping = 0;
 		DWORD rsLighting = 0;
 		DWORD rsExtents = 0;
-		DWORD tsColorOP = 0;
-		DWORD rsAlphaBlendEnable = 0;
 		DWORD rsAlphaTestEnable = 0;
-		DWORD rsFogEnable = 0;
-		DWORD ssMagFilter = 0;
+		DWORD rsAlphaFunc = 0;
+		DWORD rsAlphaRef = 0;
+		DWORD ssMinFilter[MaxTextureStages] = {};
+		DWORD ssMagFilter[MaxTextureStages] = {};
 		float lowColorKey[4] = {};
 		float highColorKey[4] = {};
 	} DrawStates;
 
 	bool bSetDefaults = true;
 
+	bool IsInScene = false;
+
 	// Last clip status
 	D3DCLIPSTATUS D3DClipStatus;
 
 	// Light states
-	DWORD lsMaterial;
+	DWORD lsMaterialHandle;
 
 	// Render states
 	bool rsAntiAliasChanged;
@@ -77,11 +77,16 @@ private:
 	DWORD rsSrcBlend;
 	DWORD rsDestBlend;
 	DWORD rsColorKeyEnabled;
+	DWORD ssMipFilter[MaxTextureStages] = {};
+
+	// Default settings
+	D3DMATERIAL9 DefaultMaterial = {};
+	D3DVIEWPORT9 DefaultViewport = {};
 
 	// SetTexture array
 	LPDIRECTDRAWSURFACE7 CurrentRenderTarget = nullptr;
-	m_IDirectDrawSurfaceX* CurrentTextureSurfaceX = nullptr;
-	LPDIRECTDRAWSURFACE7 AttachedTexture[MaxTextureBlendStages] = {};
+	m_IDirectDrawSurfaceX* CurrentTextureSurfaceX[MaxTextureStages] = {};
+	LPDIRECTDRAWSURFACE7 AttachedTexture[MaxTextureStages] = {};
 
 	// Texture handle map
 	std::unordered_map<DWORD, m_IDirect3DTextureX*> TextureHandleMap;
@@ -286,14 +291,21 @@ public:
 	void *GetWrapperInterfaceX(DWORD DirectXVersion);
 	ULONG AddRef(DWORD DirectXVersion);
 	ULONG Release(DWORD DirectXVersion);
+	bool IsDeviceInScene() { return IsInScene; }
+
+	// Viewport functions
+	inline void GetDefaultViewport(D3DVIEWPORT9& Viewport) { Viewport = DefaultViewport; }
+	inline bool CheckIfViewportSet(m_IDirect3DViewportX* pViewport) { return (pViewport == lpCurrentViewportX); }
 
 	// Texture handle function
 	void ReleaseTextureHandle(m_IDirect3DTextureX* lpTexture);
 	HRESULT SetTextureHandle(DWORD tHandle, m_IDirect3DTextureX* lpTexture);
 
 	// Material handle function
+	inline void GetDefaultMaterial(D3DMATERIAL9& Material) { Material = DefaultMaterial; }
 	void ReleaseMaterialHandle(m_IDirect3DMaterialX* lpMaterial);
 	HRESULT SetMaterialHandle(D3DMATERIALHANDLE mHandle, m_IDirect3DMaterialX* lpMaterial);
+	inline bool CheckIfMaterialSet(D3DMATERIALHANDLE mHandle) { return (mHandle == lsMaterialHandle); }
 
 	// Light index function
 	void ReleaseLightInterface(m_IDirect3DLight* lpLight);
@@ -304,11 +316,15 @@ public:
 		ddrawParent = ddraw;
 
 		// Store D3DDevice
-		if (ddrawParent && DeviceSurface)
+		if (ddrawParent)
 		{
-			ddrawParent->SetD3DDevice(this, DeviceSurface);
+			ddrawParent->SetD3DDevice(this);
+			if (lpCurrentRenderTargetX)
+			{
+				ddrawParent->SetRenderTargetSurface(lpCurrentRenderTargetX);
+			}
 		}
 	}
-	void ClearDdraw() { ddrawParent = nullptr; colorkeyPixelShader = nullptr; }
+	void ClearDdraw() { ddrawParent = nullptr; colorkeyPixelShader = nullptr; d3d9Device = nullptr; }
 	void ResetDevice();
 };

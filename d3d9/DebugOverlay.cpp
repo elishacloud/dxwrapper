@@ -14,6 +14,8 @@
 *   3. This notice may not be removed or altered from any source distribution.
 */
 
+#ifdef ENABLE_DEBUGOVERLAY
+
 #include "DebugOverlay.h"
 #include <sstream>
 #include "d3d9\d3d9External.h"
@@ -285,3 +287,5 @@ void DebugOverlay::LightEnable(DWORD dwLightIndex, BOOL bEnable)
 		}
 	}
 }
+
+#endif
