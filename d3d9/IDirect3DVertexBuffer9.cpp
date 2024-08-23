@@ -18,7 +18,7 @@
 
 HRESULT m_IDirect3DVertexBuffer9::QueryInterface(THIS_ REFIID riid, void** ppvObj)
 {
-	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
+	Logging::LogDebug() << __FUNCTION__ << " (" << this << ") " << riid;
 
 	if ((riid == IID_IDirect3DVertexBuffer9 || riid == IID_IUnknown || riid == IID_IDirect3DResource9) && ppvObj)
 	{

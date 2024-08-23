@@ -24,7 +24,7 @@ void AdjustWindow(HWND MainhWnd, LONG displayWidth, LONG displayHeight, bool isW
 
 HRESULT m_IDirect3D9Ex::QueryInterface(REFIID riid, void** ppvObj)
 {
-	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
+	Logging::LogDebug() << __FUNCTION__ << " (" << this << ") " << riid;
 
 	if ((riid == IID_IUnknown || riid == WrapperID) && ppvObj)
 	{
@@ -35,7 +35,22 @@ HRESULT m_IDirect3D9Ex::QueryInterface(REFIID riid, void** ppvObj)
 		return D3D_OK;
 	}
 
-	return ProxyInterface->QueryInterface(riid, ppvObj);
+	HRESULT hr = ProxyInterface->QueryInterface(riid, ppvObj);
+
+	if (SUCCEEDED(hr) && ppvObj)
+	{
+		if (riid == IID_IDirect3D9 || riid == IID_IDirect3D9Ex)
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Warning: creating a second wrapper interface: " << riid);
+			*ppvObj = ProxyAddressLookupTableDevice9.FindAddress<m_IDirect3D9Ex, void>(*ppvObj, nullptr, riid);
+		}
+		else
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Warning: not wrapping interface: " << riid);
+		}
+	}
+
+	return hr;
 }
 
 ULONG m_IDirect3D9Ex::AddRef()
@@ -280,7 +295,8 @@ HRESULT m_IDirect3D9Ex::CreateDevice(UINT Adapter, D3DDEVTYPE DeviceType, HWND h
 		DeviceDetails.DeviceMultiSampleType = pPresentationParameters->MultiSampleType;
 		DeviceDetails.DeviceMultiSampleQuality = pPresentationParameters->MultiSampleQuality;
 
-		*ppReturnedDeviceInterface = new m_IDirect3DDevice9Ex((LPDIRECT3DDEVICE9EX)*ppReturnedDeviceInterface, this, IID_IDirect3DDevice9, DeviceDetails);
+		*ppReturnedDeviceInterface = new m_IDirect3DDevice9Ex((LPDIRECT3DDEVICE9EX)*ppReturnedDeviceInterface, this, IID_IDirect3DDevice9);
+		((m_IDirect3DDevice9Ex*)(*ppReturnedDeviceInterface))->SetDeviceDetails(DeviceDetails);
 
 		return D3D_OK;
 	}
@@ -350,7 +366,8 @@ HRESULT m_IDirect3D9Ex::CreateDeviceEx(THIS_ UINT Adapter, D3DDEVTYPE DeviceType
 		DeviceDetails.DeviceMultiSampleType = pPresentationParameters->MultiSampleType;
 		DeviceDetails.DeviceMultiSampleQuality = pPresentationParameters->MultiSampleQuality;
 
-		*ppReturnedDeviceInterface = new m_IDirect3DDevice9Ex(*ppReturnedDeviceInterface, this, IID_IDirect3DDevice9Ex, DeviceDetails);
+		*ppReturnedDeviceInterface = new m_IDirect3DDevice9Ex(*ppReturnedDeviceInterface, this, IID_IDirect3DDevice9Ex);
+		((m_IDirect3DDevice9Ex*)(*ppReturnedDeviceInterface))->SetDeviceDetails(DeviceDetails);
 
 		return D3D_OK;
 	}

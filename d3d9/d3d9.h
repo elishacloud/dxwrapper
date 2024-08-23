@@ -46,6 +46,8 @@ struct DEVICEDETAILS
 	DWORD DeviceMultiSampleQuality = 0;
 };
 
+extern AddressLookupTableD3d9<m_IDirect3DDevice9Ex> ProxyAddressLookupTableDevice9;
+
 DWORD UpdateBehaviorFlags(DWORD BehaviorFlags);
 void UpdatePresentParameter(D3DPRESENT_PARAMETERS* pPresentationParameters, HWND hFocusWindow, DEVICEDETAILS& DeviceDetails, bool ForceExclusiveFullscreen, bool SetWindow);
 void UpdatePresentParameterForMultisample(D3DPRESENT_PARAMETERS* pPresentationParameters, D3DMULTISAMPLE_TYPE MultiSampleType, DWORD MultiSampleQuality);

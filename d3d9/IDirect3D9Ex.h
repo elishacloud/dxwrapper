@@ -1,6 +1,6 @@
 #pragma once
 
-class m_IDirect3D9Ex : public IDirect3D9Ex
+class m_IDirect3D9Ex : public IDirect3D9Ex, public AddressLookupTableD3d9Object
 {
 private:
 	LPDIRECT3D9 ProxyInterface;
@@ -30,11 +30,15 @@ public:
 			ProxyInterfaceEx = pDirect3D;
 		}
 
+		ProxyAddressLookupTableDevice9.SaveAddress(this, ProxyInterface);
+
 		LogAdapterNames();
 	}
 	~m_IDirect3D9Ex()
 	{
 		LOG_LIMIT(3, __FUNCTION__ << " (" << this << ")" << " deleting interface!");
+
+		ProxyAddressLookupTableDevice9.DeleteAddress(this);
 	}
 
 	/*** IUnknown methods ***/

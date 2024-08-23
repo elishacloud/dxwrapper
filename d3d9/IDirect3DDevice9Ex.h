@@ -2,7 +2,7 @@
 
 #include "GDI\GDI.h"
 
-class m_IDirect3DDevice9Ex : public IDirect3DDevice9Ex
+class m_IDirect3DDevice9Ex : public IDirect3DDevice9Ex, public AddressLookupTableD3d9Object
 {
 private:
 	LPDIRECT3DDEVICE9 ProxyInterface;
@@ -51,27 +51,7 @@ private:
 	{ return (ProxyInterfaceEx) ? ProxyInterfaceEx->ResetEx(pPresentationParameters, pFullscreenDisplayMode) : D3DERR_INVALIDCALL; }
 
 public:
-	m_IDirect3DDevice9Ex(LPDIRECT3DDEVICE9EX pDevice, m_IDirect3D9Ex* pD3D, REFIID DeviceID = IID_IUnknown) : ProxyInterface(pDevice), m_pD3DEx(pD3D), WrapperID(DeviceID)
-	{
-		if (WrapperID == IID_IUnknown)
-		{
-			Logging::Log() << "Warning: Creating interface " << __FUNCTION__ << " (" << this << ") with unknown IID";
-		}
-		InitDirect3DDevice(pDevice);
-	}
-	m_IDirect3DDevice9Ex(LPDIRECT3DDEVICE9EX pDevice, m_IDirect3D9Ex* pD3D, REFIID DeviceID, DEVICEDETAILS NewDeviceDetails) :
-		ProxyInterface(pDevice), m_pD3DEx(pD3D), WrapperID(DeviceID), DeviceDetails(NewDeviceDetails)
-	{
-		InitDirect3DDevice(pDevice);
-
-		// Check for SSAA
-		if (DeviceDetails.DeviceMultiSampleType && m_pD3DEx &&
-			m_pD3DEx->CheckDeviceFormat(D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, D3DFMT_X8R8G8B8, 0, D3DRTYPE_SURFACE, (D3DFORMAT)MAKEFOURCC('S', 'S', 'A', 'A')) == S_OK)
-		{
-			SetSSAA = true;
-		}
-	}
-	void InitDirect3DDevice(LPDIRECT3DDEVICE9EX pDevice)
+	m_IDirect3DDevice9Ex(LPDIRECT3DDEVICE9EX pDevice, m_IDirect3D9Ex* pD3D, REFIID DeviceID) : ProxyInterface(pDevice), m_pD3DEx(pD3D), WrapperID(DeviceID)
 	{
 		LOG_LIMIT(3, "Creating interface " << __FUNCTION__ << " (" << this << ")");
 
@@ -83,6 +63,8 @@ public:
 		ReInitDevice();
 
 		ProxyAddressLookupTable = new AddressLookupTableD3d9<m_IDirect3DDevice9Ex>(this);
+
+		ProxyAddressLookupTableDevice9.SaveAddress(this, ProxyInterface);
 	}
 	~m_IDirect3DDevice9Ex()
 	{
@@ -95,9 +77,22 @@ public:
 		}
 
 		delete ProxyAddressLookupTable;
+
+		ProxyAddressLookupTableDevice9.DeleteAddress(this);
+	}
+	void SetDeviceDetails(DEVICEDETAILS& NewDeviceDetails)
+	{
+		DeviceDetails = NewDeviceDetails;
+
+		// Check for SSAA
+		if (DeviceDetails.DeviceMultiSampleType && m_pD3DEx &&
+			m_pD3DEx->CheckDeviceFormat(D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, D3DFMT_X8R8G8B8, 0, D3DRTYPE_SURFACE, (D3DFORMAT)MAKEFOURCC('S', 'S', 'A', 'A')) == S_OK)
+		{
+			SetSSAA = true;
+		}
 	}
 
-	AddressLookupTableD3d9<m_IDirect3DDevice9Ex> *ProxyAddressLookupTable;
+	AddressLookupTableD3d9<m_IDirect3DDevice9Ex> *ProxyAddressLookupTable = nullptr;
 
 	/*** IUnknown methods ***/
 	STDMETHOD(QueryInterface)(THIS_ REFIID riid, void** ppvObj);
