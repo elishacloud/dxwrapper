@@ -33,7 +33,7 @@ HRESULT m_IDirect3DSwapChain9Ex::QueryInterface(THIS_ REFIID riid, void** ppvObj
 
 	if (SUCCEEDED(hr))
 	{
-		D3d9Wrapper::genericQueryInterface(riid, ppvObj, m_pDeviceEx);
+		D3d9Wrapper::genericQueryInterface(riid, ppvObj, m_pDeviceEx, ProxyAddressLookupTable);
 	}
 
 	return hr;
@@ -80,7 +80,7 @@ HRESULT m_IDirect3DSwapChain9Ex::GetBackBuffer(THIS_ UINT BackBuffer, D3DBACKBUF
 
 	if (SUCCEEDED(hr) && ppBackBuffer)
 	{
-		*ppBackBuffer = ProxyAddressLookupTable9.FindAddress<m_IDirect3DSurface9, m_IDirect3DDevice9Ex>(*ppBackBuffer, m_pDeviceEx, IID_IDirect3DSurface9);
+		*ppBackBuffer = ProxyAddressLookupTable->FindAddress<m_IDirect3DSurface9, m_IDirect3DDevice9Ex>(*ppBackBuffer, m_pDeviceEx, IID_IDirect3DSurface9);
 	}
 
 	return hr;

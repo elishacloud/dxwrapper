@@ -6,12 +6,15 @@ private:
 	LPDIRECT3DVERTEXDECLARATION9 ProxyInterface;
 	m_IDirect3DDevice9Ex* m_pDeviceEx;
 
+	AddressLookupTableD3d9<m_IDirect3DDevice9Ex>* ProxyAddressLookupTable;
+
 public:
-	m_IDirect3DVertexDeclaration9(LPDIRECT3DVERTEXDECLARATION9 pDeclaration9, m_IDirect3DDevice9Ex* pDevice) : ProxyInterface(pDeclaration9), m_pDeviceEx(pDevice)
+	m_IDirect3DVertexDeclaration9(LPDIRECT3DVERTEXDECLARATION9 pDeclaration9, m_IDirect3DDevice9Ex* pDevice) :
+		ProxyInterface(pDeclaration9), m_pDeviceEx(pDevice), ProxyAddressLookupTable(pDevice->ProxyAddressLookupTable)
 	{
 		LOG_LIMIT(3, "Creating interface " << __FUNCTION__ << " (" << this << ")");
 
-		ProxyAddressLookupTable9.SaveAddress(this, ProxyInterface);
+		ProxyAddressLookupTable->SaveAddress(this, ProxyInterface);
 	}
 	~m_IDirect3DVertexDeclaration9()
 	{

@@ -46,8 +46,8 @@ struct DEVICEDETAILS
 	DWORD DeviceMultiSampleQuality = 0;
 };
 
-extern AddressLookupTableD3d9<m_IDirect3DDevice9Ex> ProxyAddressLookupTable9;
-extern AddressLookupTableD3d9<m_IDirect3DDevice9Ex> ProxyAddressLookupTableDevice9;
+void AddToAddressDeviceMap(m_IDirect3DDevice9Ex* Device, AddressLookupTableD3d9<m_IDirect3DDevice9Ex>* ProxyAddressLookupTable);
+void RemoveFromAddressDeviceMap(m_IDirect3DDevice9Ex* Device, AddressLookupTableD3d9<m_IDirect3DDevice9Ex>* ProxyAddressLookupTable);
 
 DWORD UpdateBehaviorFlags(DWORD BehaviorFlags);
 void UpdatePresentParameter(D3DPRESENT_PARAMETERS* pPresentationParameters, HWND hFocusWindow, DEVICEDETAILS& DeviceDetails, bool ForceExclusiveFullscreen, bool SetWindow);
@@ -55,7 +55,7 @@ void UpdatePresentParameterForMultisample(D3DPRESENT_PARAMETERS* pPresentationPa
 
 namespace D3d9Wrapper
 {
-	void WINAPI genericQueryInterface(REFIID riid, LPVOID* ppvObj, m_IDirect3DDevice9Ex* m_pDeviceEx);
+	void WINAPI genericQueryInterface(REFIID riid, LPVOID* ppvObj, m_IDirect3DDevice9Ex* m_pDeviceEx, AddressLookupTableD3d9<m_IDirect3DDevice9Ex>* ProxyAddressLookupTable);
 }
 
 #include "IDirect3D9Ex.h"

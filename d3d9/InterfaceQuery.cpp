@@ -16,9 +16,9 @@
 
 #include "d3d9.h"
 
-void WINAPI D3d9Wrapper::genericQueryInterface(REFIID riid, LPVOID *ppvObj, m_IDirect3DDevice9Ex* m_pDeviceEx)
+void WINAPI D3d9Wrapper::genericQueryInterface(REFIID riid, LPVOID *ppvObj, m_IDirect3DDevice9Ex* m_pDeviceEx, AddressLookupTableD3d9<m_IDirect3DDevice9Ex>* ProxyAddressLookupTable)
 {
-	if (!ppvObj || !*ppvObj || !m_pDeviceEx)
+	if (!ppvObj || !*ppvObj || !m_pDeviceEx || !ProxyAddressLookupTable)
 	{
 		LOG_LIMIT(100, __FUNCTION__ << " Warning: not wrapping interface because of nullptr: " << riid);
 		return;
@@ -58,14 +58,14 @@ void WINAPI D3d9Wrapper::genericQueryInterface(REFIID riid, LPVOID *ppvObj, m_ID
 
 	if (riid == IID_IDirect3DSwapChain9 || riid == IID_IDirect3DSwapChain9Ex)
 	{
-		*ppvObj = ProxyAddressLookupTable9.FindAddress<m_IDirect3DSwapChain9Ex, m_IDirect3DDevice9Ex>(*ppvObj, m_pDeviceEx, riid);
+		*ppvObj = ProxyAddressLookupTable->FindAddress<m_IDirect3DSwapChain9Ex, m_IDirect3DDevice9Ex>(*ppvObj, m_pDeviceEx, riid);
 		return;
 	}
 
 #define QUERYINTERFACE(x) \
 	if (riid == IID_ ## x) \
 		{ \
-			*ppvObj = ProxyAddressLookupTable9.FindAddress<m_ ## x,m_IDirect3DDevice9Ex>(*ppvObj, m_pDeviceEx, riid); \
+			*ppvObj = ProxyAddressLookupTable->FindAddress<m_ ## x,m_IDirect3DDevice9Ex>(*ppvObj, m_pDeviceEx, riid); \
 			return; \
 		}
 

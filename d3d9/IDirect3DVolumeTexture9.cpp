@@ -33,7 +33,7 @@ HRESULT m_IDirect3DVolumeTexture9::QueryInterface(THIS_ REFIID riid, void** ppvO
 
 	if (SUCCEEDED(hr))
 	{
-		D3d9Wrapper::genericQueryInterface(riid, ppvObj, m_pDeviceEx);
+		D3d9Wrapper::genericQueryInterface(riid, ppvObj, m_pDeviceEx, ProxyAddressLookupTable);
 	}
 
 	return hr;
@@ -175,7 +175,7 @@ HRESULT m_IDirect3DVolumeTexture9::GetVolumeLevel(THIS_ UINT Level, IDirect3DVol
 
 	if (SUCCEEDED(hr) && ppVolumeLevel)
 	{
-		*ppVolumeLevel = ProxyAddressLookupTable9.FindAddress<m_IDirect3DVolume9, m_IDirect3DDevice9Ex>(*ppVolumeLevel, m_pDeviceEx, IID_IDirect3DVolume9);
+		*ppVolumeLevel = ProxyAddressLookupTable->FindAddress<m_IDirect3DVolume9, m_IDirect3DDevice9Ex>(*ppVolumeLevel, m_pDeviceEx, IID_IDirect3DVolume9);
 	}
 
 	return hr;

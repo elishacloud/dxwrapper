@@ -33,7 +33,7 @@ HRESULT m_IDirect3DCubeTexture9::QueryInterface(THIS_ REFIID riid, void** ppvObj
 
 	if (SUCCEEDED(hr))
 	{
-		D3d9Wrapper::genericQueryInterface(riid, ppvObj, m_pDeviceEx);
+		D3d9Wrapper::genericQueryInterface(riid, ppvObj, m_pDeviceEx, ProxyAddressLookupTable);
 	}
 
 	return hr;
@@ -175,7 +175,7 @@ HRESULT m_IDirect3DCubeTexture9::GetCubeMapSurface(THIS_ D3DCUBEMAP_FACES FaceTy
 
 	if (SUCCEEDED(hr) && ppCubeMapSurface)
 	{
-		*ppCubeMapSurface = ProxyAddressLookupTable9.FindAddress<m_IDirect3DSurface9, m_IDirect3DDevice9Ex>(*ppCubeMapSurface, m_pDeviceEx, IID_IDirect3DTexture9);
+		*ppCubeMapSurface = ProxyAddressLookupTable->FindAddress<m_IDirect3DSurface9, m_IDirect3DDevice9Ex>(*ppCubeMapSurface, m_pDeviceEx, IID_IDirect3DTexture9);
 	}
 
 	return hr;

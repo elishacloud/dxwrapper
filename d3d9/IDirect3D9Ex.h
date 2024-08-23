@@ -19,6 +19,8 @@ private:
 
 	// Other helper functions
 	void LogAdapterNames();
+	void InitInterface();
+	void ReleaseInterface();
 
 public:
 	m_IDirect3D9Ex(LPDIRECT3D9EX pDirect3D, REFIID DeviceID) : ProxyInterface(pDirect3D), WrapperID(DeviceID)
@@ -30,15 +32,15 @@ public:
 			ProxyInterfaceEx = pDirect3D;
 		}
 
-		ProxyAddressLookupTableDevice9.SaveAddress(this, ProxyInterface);
-
 		LogAdapterNames();
+
+		InitInterface();
 	}
 	~m_IDirect3D9Ex()
 	{
 		LOG_LIMIT(3, __FUNCTION__ << " (" << this << ")" << " deleting interface!");
 
-		ProxyAddressLookupTableDevice9.DeleteAddress(this);
+		ReleaseInterface();
 	}
 
 	/*** IUnknown methods ***/
