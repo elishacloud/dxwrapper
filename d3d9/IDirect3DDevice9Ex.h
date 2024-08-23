@@ -71,6 +71,13 @@ public:
 		{
 			WndProc::RemoveWndProc(DeviceDetails.DeviceWindow);
 		}
+
+		ProxyAddressLookupTable->DeleteAddress(this);
+
+		if (ProxyAddressLookupTable->GetDeviceCount() == 0)
+		{
+			m_pD3DEx->ClearAddressTable(ProxyAddressLookupTable);
+		}
 	}
 	void SetProxyLookupTable(AddressLookupTableD3d9<m_IDirect3DDevice9Ex>* LookupTable)
 	{
@@ -79,8 +86,6 @@ public:
 			ProxyAddressLookupTable = LookupTable;
 
 			ProxyAddressLookupTable->SaveAddress(this, ProxyInterface);
-
-			AddToAddressDeviceMap(this, ProxyAddressLookupTable);
 		}
 	}
 	void SetDeviceDetails(DEVICEDETAILS& NewDeviceDetails)

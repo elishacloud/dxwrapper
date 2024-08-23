@@ -164,6 +164,15 @@ public:
 		}
 	}
 
+	UINT GetDeviceCount()
+	{
+		if (ConstructorFlag)
+		{
+			return TRUE;
+		}
+		return g_map[AddressCacheIndex<m_IDirect3DDevice9Ex>::CacheIndex].size();
+	}
+
 private:
 	bool ConstructorFlag = false;
 	std::unordered_map<void*, class AddressLookupTableD3d9Object*> g_map[MaxIndex];

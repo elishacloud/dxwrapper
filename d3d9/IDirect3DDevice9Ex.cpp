@@ -24,43 +24,6 @@
 DebugOverlay DOverlay;
 #endif
 
-struct TABLEMAP {
-	m_IDirect3DDevice9Ex* Device = nullptr;
-	AddressLookupTableD3d9<m_IDirect3DDevice9Ex>* ProxyAddressLookupTable = nullptr;
-};
-
-std::vector<TABLEMAP> AddressDeviceMap;
-
-// Add device to map
-void AddToAddressDeviceMap(m_IDirect3DDevice9Ex* Device, AddressLookupTableD3d9<m_IDirect3DDevice9Ex>* ProxyAddressLookupTable)
-{
-	AddressDeviceMap.push_back({ Device, ProxyAddressLookupTable });
-}
-
-// Remove device from the map
-void RemoveFromAddressDeviceMap(m_IDirect3DDevice9Ex* Device, AddressLookupTableD3d9<m_IDirect3DDevice9Ex>* ProxyAddressLookupTable)
-{
-	// Remove device from the map
-	for (auto it = AddressDeviceMap.begin(); it != AddressDeviceMap.end(); ++it)
-	{
-		if (it->Device == Device)
-		{
-			AddressDeviceMap.erase(it);
-			break;
-		}
-	}
-	// Check if another device is using this lookup table
-	for (auto& entry : AddressDeviceMap)
-	{
-		if (entry.ProxyAddressLookupTable == ProxyAddressLookupTable)
-		{
-			return;
-		}
-	}
-	// Delete lookup table if no other device is using it
-	delete ProxyAddressLookupTable;
-}
-
 HRESULT m_IDirect3DDevice9Ex::QueryInterface(REFIID riid, void** ppvObj)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ") " << riid;
@@ -118,7 +81,7 @@ ULONG m_IDirect3DDevice9Ex::Release()
 
 	if (ref == 0)
 	{
-		RemoveFromAddressDeviceMap(this, ProxyAddressLookupTable);
+		delete this;
 	}
 
 	return ref;

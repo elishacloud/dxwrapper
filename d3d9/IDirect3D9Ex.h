@@ -17,6 +17,14 @@ private:
 	HRESULT CreateDeviceT(UINT Adapter, D3DDEVTYPE DeviceType, HWND hFocusWindow, DWORD BehaviorFlags, D3DPRESENT_PARAMETERS* pPresentationParameters, D3DDISPLAYMODEEX* pFullscreenDisplayMode, IDirect3DDevice9Ex** ppReturnedDeviceInterface)
 	{ return (ProxyInterfaceEx) ? ProxyInterfaceEx->CreateDeviceEx(Adapter, DeviceType, hFocusWindow, BehaviorFlags, pPresentationParameters, pFullscreenDisplayMode, ppReturnedDeviceInterface) : D3DERR_INVALIDCALL; }
 
+	// AddressTable Structure
+	struct ADDRESSTABLE {
+		AddressLookupTableD3d9<m_IDirect3DDevice9Ex>* ProxyAddressLookupTable = nullptr;
+	};
+
+	// AddressDeviceMap as a vector of ADDRESSTABLE
+	std::vector<ADDRESSTABLE> AddressDeviceMap;
+
 	// Other helper functions
 	void LogAdapterNames();
 	void InitInterface();
@@ -40,7 +48,25 @@ public:
 	{
 		LOG_LIMIT(3, __FUNCTION__ << " (" << this << ")" << " deleting interface!");
 
+		for (auto& entry : AddressDeviceMap)
+		{
+			delete entry.ProxyAddressLookupTable;
+		}
+
 		ReleaseInterface();
+	}
+	void ClearAddressTable(AddressLookupTableD3d9<m_IDirect3DDevice9Ex>* ProxyAddressLookupTable)
+	{
+		// Remove device from the map
+		for (auto it = AddressDeviceMap.begin(); it != AddressDeviceMap.end(); ++it)
+		{
+			if (it->ProxyAddressLookupTable == ProxyAddressLookupTable)
+			{
+				AddressDeviceMap.erase(it);
+				delete ProxyAddressLookupTable;
+				break;
+			}
+		}
 	}
 
 	/*** IUnknown methods ***/

@@ -307,7 +307,13 @@ HRESULT m_IDirect3D9Ex::CreateDevice(UINT Adapter, D3DDEVTYPE DeviceType, HWND h
 
 		*ppReturnedDeviceInterface = new m_IDirect3DDevice9Ex((LPDIRECT3DDEVICE9EX)*ppReturnedDeviceInterface, this, IID_IDirect3DDevice9);
 
-		((m_IDirect3DDevice9Ex*)(*ppReturnedDeviceInterface))->SetProxyLookupTable(new AddressLookupTableD3d9<m_IDirect3DDevice9Ex>(nullptr));
+		// Create the object and add it to the vector
+		ADDRESSTABLE newAddressTable = { new AddressLookupTableD3d9<m_IDirect3DDevice9Ex>(nullptr) };
+
+		// Add the newTable to the AddressDeviceMap vector
+		AddressDeviceMap.push_back(newAddressTable);
+
+		((m_IDirect3DDevice9Ex*)(*ppReturnedDeviceInterface))->SetProxyLookupTable(newAddressTable.ProxyAddressLookupTable);
 		((m_IDirect3DDevice9Ex*)(*ppReturnedDeviceInterface))->SetDeviceDetails(DeviceDetails);
 
 		return D3D_OK;
@@ -380,7 +386,13 @@ HRESULT m_IDirect3D9Ex::CreateDeviceEx(THIS_ UINT Adapter, D3DDEVTYPE DeviceType
 
 		*ppReturnedDeviceInterface = new m_IDirect3DDevice9Ex(*ppReturnedDeviceInterface, this, IID_IDirect3DDevice9Ex);
 
-		((m_IDirect3DDevice9Ex*)(*ppReturnedDeviceInterface))->SetProxyLookupTable(new AddressLookupTableD3d9<m_IDirect3DDevice9Ex>(nullptr));
+		// Create the object and add it to the vector
+		ADDRESSTABLE newAddressTable = { new AddressLookupTableD3d9<m_IDirect3DDevice9Ex>(nullptr) };
+
+		// Add the newTable to the AddressDeviceMap vector
+		AddressDeviceMap.push_back(newAddressTable);
+
+		((m_IDirect3DDevice9Ex*)(*ppReturnedDeviceInterface))->SetProxyLookupTable(newAddressTable.ProxyAddressLookupTable);
 		((m_IDirect3DDevice9Ex*)(*ppReturnedDeviceInterface))->SetDeviceDetails(DeviceDetails);
 
 		return D3D_OK;
