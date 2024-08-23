@@ -31,20 +31,13 @@ struct TABLEMAP {
 
 std::vector<TABLEMAP> AddressDeviceMap;
 
+// Add device to map
 void AddToAddressDeviceMap(m_IDirect3DDevice9Ex* Device, AddressLookupTableD3d9<m_IDirect3DDevice9Ex>* ProxyAddressLookupTable)
 {
-	// Check if device already exists in the map
-	for (auto &entry : AddressDeviceMap)
-	{
-		if (entry.Device == Device)
-		{
-			return;
-		}
-	}
-	// Add device to map if not already in the map
 	AddressDeviceMap.push_back({ Device, ProxyAddressLookupTable });
 }
 
+// Remove device from the map
 void RemoveFromAddressDeviceMap(m_IDirect3DDevice9Ex* Device, AddressLookupTableD3d9<m_IDirect3DDevice9Ex>* ProxyAddressLookupTable)
 {
 	// Remove device from the map
@@ -2455,7 +2448,10 @@ HRESULT m_IDirect3DDevice9Ex::GetDisplayModeEx(THIS_ UINT iSwapChain, D3DDISPLAY
 void m_IDirect3DDevice9Ex::ReInitDevice()
 {
 #ifdef ENABLE_DEBUGOVERLAY
-	DOverlay.Setup(DeviceDetails.DeviceWindow, ProxyInterface);
+	if (IsWindow(DeviceDetails.DeviceWindow))
+	{
+		DOverlay.Setup(DeviceDetails.DeviceWindow, ProxyInterface);
+	}
 #endif
 
 	// Get screen size

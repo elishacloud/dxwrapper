@@ -14,7 +14,7 @@ public:
 	m_IDirect3DSwapChain9Ex(LPDIRECT3DSWAPCHAIN9EX pSwapChain9, m_IDirect3DDevice9Ex* pDevice, REFIID DeviceID) :
 		ProxyInterface(pSwapChain9), m_pDeviceEx(pDevice), WrapperID(DeviceID), ProxyAddressLookupTable(pDevice->ProxyAddressLookupTable)
 	{
-		LOG_LIMIT(3, "Creating interface " << __FUNCTION__ << " (" << this << ")");
+		LOG_LIMIT(3, "Creating interface " << __FUNCTION__ << " (" << this << ") " << WrapperID);
 
 		if (WrapperID == IID_IDirect3DSwapChain9Ex)
 		{

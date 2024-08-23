@@ -53,7 +53,7 @@ private:
 public:
 	m_IDirect3DDevice9Ex(LPDIRECT3DDEVICE9EX pDevice, m_IDirect3D9Ex* pD3D, REFIID DeviceID) : ProxyInterface(pDevice), m_pD3DEx(pD3D), WrapperID(DeviceID)
 	{
-		LOG_LIMIT(3, "Creating interface " << __FUNCTION__ << " (" << this << ")");
+		LOG_LIMIT(3, "Creating interface " << __FUNCTION__ << " (" << this << ") " << WrapperID);
 
 		if (WrapperID == IID_IDirect3DDevice9Ex)
 		{
@@ -74,14 +74,19 @@ public:
 	}
 	void SetProxyLookupTable(AddressLookupTableD3d9<m_IDirect3DDevice9Ex>* LookupTable)
 	{
-		ProxyAddressLookupTable = LookupTable;
+		if (!ProxyAddressLookupTable)
+		{
+			ProxyAddressLookupTable = LookupTable;
 
-		ProxyAddressLookupTable->SaveAddress(this, ProxyInterface);
+			ProxyAddressLookupTable->SaveAddress(this, ProxyInterface);
 
-		AddToAddressDeviceMap(this, ProxyAddressLookupTable);
+			AddToAddressDeviceMap(this, ProxyAddressLookupTable);
+		}
 	}
 	void SetDeviceDetails(DEVICEDETAILS& NewDeviceDetails)
 	{
+		HWND LastDeviceWindow = DeviceDetails.DeviceWindow;
+
 		DeviceDetails = NewDeviceDetails;
 
 		// Check for SSAA
@@ -89,6 +94,11 @@ public:
 			m_pD3DEx->CheckDeviceFormat(D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, D3DFMT_X8R8G8B8, 0, D3DRTYPE_SURFACE, (D3DFORMAT)MAKEFOURCC('S', 'S', 'A', 'A')) == S_OK)
 		{
 			SetSSAA = true;
+		}
+
+		if (DeviceDetails.DeviceWindow != LastDeviceWindow)
+		{
+			ReInitDevice();
 		}
 	}
 
