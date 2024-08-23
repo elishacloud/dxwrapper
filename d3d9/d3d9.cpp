@@ -27,6 +27,7 @@ namespace D3d9Wrapper
 
 using namespace D3d9Wrapper;
 
+AddressLookupTableD3d9<m_IDirect3DDevice9Ex> ProxyAddressLookupTable9(nullptr);
 AddressLookupTableD3d9<m_IDirect3DDevice9Ex> ProxyAddressLookupTableDevice9(nullptr);
 
 HMODULE GetSystemD3d9()

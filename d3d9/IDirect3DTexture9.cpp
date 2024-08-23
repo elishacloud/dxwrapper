@@ -175,7 +175,7 @@ HRESULT m_IDirect3DTexture9::GetSurfaceLevel(THIS_ UINT Level, IDirect3DSurface9
 
 	if (SUCCEEDED(hr) && ppSurfaceLevel)
 	{
-		*ppSurfaceLevel = m_pDeviceEx->ProxyAddressLookupTable->FindAddress<m_IDirect3DSurface9, m_IDirect3DDevice9Ex>(*ppSurfaceLevel, m_pDeviceEx, IID_IDirect3DSurface9);
+		*ppSurfaceLevel = ProxyAddressLookupTable9.FindAddress<m_IDirect3DSurface9, m_IDirect3DDevice9Ex>(*ppSurfaceLevel, m_pDeviceEx, IID_IDirect3DSurface9);
 	}
 
 	return hr;

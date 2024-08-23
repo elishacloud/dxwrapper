@@ -507,7 +507,7 @@ HRESULT m_IDirect3DDevice9Ex::EndStateBlock(THIS_ IDirect3DStateBlock9** ppSB)
 
 	if (SUCCEEDED(hr) && ppSB)
 	{
-		*ppSB = ProxyAddressLookupTable->FindAddress<m_IDirect3DStateBlock9, m_IDirect3DDevice9Ex>(*ppSB, this, IID_IDirect3DStateBlock9);
+		*ppSB = ProxyAddressLookupTable9.FindAddress<m_IDirect3DStateBlock9, m_IDirect3DDevice9Ex>(*ppSB, this, IID_IDirect3DStateBlock9);
 	}
 
 	return hr;
@@ -542,7 +542,7 @@ HRESULT m_IDirect3DDevice9Ex::GetRenderTarget(THIS_ DWORD RenderTargetIndex, IDi
 
 	if (SUCCEEDED(hr) && ppRenderTarget)
 	{
-		*ppRenderTarget = ProxyAddressLookupTable->FindAddress<m_IDirect3DSurface9, m_IDirect3DDevice9Ex>(*ppRenderTarget, this, IID_IDirect3DSurface9);
+		*ppRenderTarget = ProxyAddressLookupTable9.FindAddress<m_IDirect3DSurface9, m_IDirect3DDevice9Ex>(*ppRenderTarget, this, IID_IDirect3DSurface9);
 	}
 
 	return hr;
@@ -645,7 +645,7 @@ HRESULT m_IDirect3DDevice9Ex::GetIndices(THIS_ IDirect3DIndexBuffer9** ppIndexDa
 
 	if (SUCCEEDED(hr) && ppIndexData)
 	{
-		*ppIndexData = ProxyAddressLookupTable->FindAddress<m_IDirect3DIndexBuffer9, m_IDirect3DDevice9Ex>(*ppIndexData, this, IID_IDirect3DIndexBuffer9);
+		*ppIndexData = ProxyAddressLookupTable9.FindAddress<m_IDirect3DIndexBuffer9, m_IDirect3DDevice9Ex>(*ppIndexData, this, IID_IDirect3DIndexBuffer9);
 	}
 
 	return hr;
@@ -838,7 +838,7 @@ HRESULT m_IDirect3DDevice9Ex::GetPixelShader(THIS_ IDirect3DPixelShader9** ppSha
 
 	if (SUCCEEDED(hr) && ppShader)
 	{
-		*ppShader = ProxyAddressLookupTable->FindAddress<m_IDirect3DPixelShader9, m_IDirect3DDevice9Ex>(*ppShader, this, IID_IDirect3DPixelShader9);
+		*ppShader = ProxyAddressLookupTable9.FindAddress<m_IDirect3DPixelShader9, m_IDirect3DDevice9Ex>(*ppShader, this, IID_IDirect3DPixelShader9);
 	}
 
 	return hr;
@@ -994,7 +994,7 @@ HRESULT m_IDirect3DDevice9Ex::GetStreamSource(THIS_ UINT StreamNumber, IDirect3D
 
 	if (SUCCEEDED(hr) && ppStreamData)
 	{
-		*ppStreamData = ProxyAddressLookupTable->FindAddress<m_IDirect3DVertexBuffer9, m_IDirect3DDevice9Ex>(*ppStreamData, this, IID_IDirect3DVertexBuffer9);
+		*ppStreamData = ProxyAddressLookupTable9.FindAddress<m_IDirect3DVertexBuffer9, m_IDirect3DDevice9Ex>(*ppStreamData, this, IID_IDirect3DVertexBuffer9);
 	}
 
 	return hr;
@@ -1020,7 +1020,7 @@ HRESULT m_IDirect3DDevice9Ex::GetBackBuffer(THIS_ UINT iSwapChain, UINT iBackBuf
 
 	if (SUCCEEDED(hr) && ppBackBuffer)
 	{
-		*ppBackBuffer = ProxyAddressLookupTable->FindAddress<m_IDirect3DSurface9, m_IDirect3DDevice9Ex>(*ppBackBuffer, this, IID_IDirect3DSurface9);
+		*ppBackBuffer = ProxyAddressLookupTable9.FindAddress<m_IDirect3DSurface9, m_IDirect3DDevice9Ex>(*ppBackBuffer, this, IID_IDirect3DSurface9);
 	}
 
 	return hr;
@@ -1034,7 +1034,7 @@ HRESULT m_IDirect3DDevice9Ex::GetDepthStencilSurface(IDirect3DSurface9 **ppZSten
 
 	if (SUCCEEDED(hr) && ppZStencilSurface)
 	{
-		*ppZStencilSurface = ProxyAddressLookupTable->FindAddress<m_IDirect3DSurface9, m_IDirect3DDevice9Ex>(*ppZStencilSurface, this, IID_IDirect3DSurface9);
+		*ppZStencilSurface = ProxyAddressLookupTable9.FindAddress<m_IDirect3DSurface9, m_IDirect3DDevice9Ex>(*ppZStencilSurface, this, IID_IDirect3DSurface9);
 	}
 
 	return hr;
@@ -1051,13 +1051,13 @@ HRESULT m_IDirect3DDevice9Ex::GetTexture(DWORD Stage, IDirect3DBaseTexture9 **pp
 		switch ((*ppTexture)->GetType())
 		{
 		case D3DRTYPE_TEXTURE:
-			*ppTexture = ProxyAddressLookupTable->FindAddress<m_IDirect3DTexture9, m_IDirect3DDevice9Ex>(*ppTexture, this, IID_IDirect3DTexture9);
+			*ppTexture = ProxyAddressLookupTable9.FindAddress<m_IDirect3DTexture9, m_IDirect3DDevice9Ex>(*ppTexture, this, IID_IDirect3DTexture9);
 			break;
 		case D3DRTYPE_VOLUMETEXTURE:
-			*ppTexture = ProxyAddressLookupTable->FindAddress<m_IDirect3DVolumeTexture9, m_IDirect3DDevice9Ex>(*ppTexture, this, IID_IDirect3DVolumeTexture9);
+			*ppTexture = ProxyAddressLookupTable9.FindAddress<m_IDirect3DVolumeTexture9, m_IDirect3DDevice9Ex>(*ppTexture, this, IID_IDirect3DVolumeTexture9);
 			break;
 		case D3DRTYPE_CUBETEXTURE:
-			*ppTexture = ProxyAddressLookupTable->FindAddress<m_IDirect3DCubeTexture9, m_IDirect3DDevice9Ex>(*ppTexture, this, IID_IDirect3DCubeTexture9);
+			*ppTexture = ProxyAddressLookupTable9.FindAddress<m_IDirect3DCubeTexture9, m_IDirect3DDevice9Ex>(*ppTexture, this, IID_IDirect3DCubeTexture9);
 			break;
 		default:
 			return D3DERR_INVALIDCALL;
@@ -1281,7 +1281,7 @@ HRESULT m_IDirect3DDevice9Ex::GetVertexShader(THIS_ IDirect3DVertexShader9** ppS
 
 	if (SUCCEEDED(hr) && ppShader)
 	{
-		*ppShader = ProxyAddressLookupTable->FindAddress<m_IDirect3DVertexShader9, m_IDirect3DDevice9Ex>(*ppShader, this, IID_IDirect3DVertexShader9);
+		*ppShader = ProxyAddressLookupTable9.FindAddress<m_IDirect3DVertexShader9, m_IDirect3DDevice9Ex>(*ppShader, this, IID_IDirect3DVertexShader9);
 	}
 
 	return hr;
@@ -1473,7 +1473,7 @@ HRESULT m_IDirect3DDevice9Ex::GetVertexDeclaration(THIS_ IDirect3DVertexDeclarat
 
 	if (SUCCEEDED(hr) && ppDecl)
 	{
-		*ppDecl = ProxyAddressLookupTable->FindAddress<m_IDirect3DVertexDeclaration9, m_IDirect3DDevice9Ex>(*ppDecl, this, IID_IDirect3DVertexDeclaration9);
+		*ppDecl = ProxyAddressLookupTable9.FindAddress<m_IDirect3DVertexDeclaration9, m_IDirect3DDevice9Ex>(*ppDecl, this, IID_IDirect3DVertexDeclaration9);
 	}
 
 	return hr;
@@ -2054,7 +2054,7 @@ HRESULT m_IDirect3DDevice9Ex::GetSwapChain(THIS_ UINT iSwapChain, IDirect3DSwapC
 
 	if (SUCCEEDED(hr))
 	{
-		*ppSwapChain = ProxyAddressLookupTable->FindAddress<m_IDirect3DSwapChain9Ex, m_IDirect3DDevice9Ex>(*ppSwapChain, this, IID_IDirect3DSwapChain9);
+		*ppSwapChain = ProxyAddressLookupTable9.FindAddress<m_IDirect3DSwapChain9Ex, m_IDirect3DDevice9Ex>(*ppSwapChain, this, IID_IDirect3DSwapChain9);
 	}
 
 	return hr;

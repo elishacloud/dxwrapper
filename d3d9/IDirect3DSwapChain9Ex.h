@@ -18,7 +18,7 @@ public:
 			ProxyInterfaceEx = pSwapChain9;
 		}
 
-		pDevice->ProxyAddressLookupTable->SaveAddress(this, ProxyInterface);
+		ProxyAddressLookupTable9.SaveAddress(this, ProxyInterface);
 	}
 	~m_IDirect3DSwapChain9Ex()
 	{

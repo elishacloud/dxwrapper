@@ -46,6 +46,7 @@ struct DEVICEDETAILS
 	DWORD DeviceMultiSampleQuality = 0;
 };
 
+extern AddressLookupTableD3d9<m_IDirect3DDevice9Ex> ProxyAddressLookupTable9;
 extern AddressLookupTableD3d9<m_IDirect3DDevice9Ex> ProxyAddressLookupTableDevice9;
 
 DWORD UpdateBehaviorFlags(DWORD BehaviorFlags);

@@ -28,7 +28,7 @@ public:
 			LOG_LIMIT(3, __FUNCTION__ << " Failed to GetDesc()!" << this << ")");
 		}
 
-		pDevice->ProxyAddressLookupTable->SaveAddress(this, ProxyInterface);
+		ProxyAddressLookupTable9.SaveAddress(this, ProxyInterface);
 	}
 	~m_IDirect3DSurface9()
 	{
