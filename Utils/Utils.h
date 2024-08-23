@@ -13,6 +13,8 @@ namespace Utils
 	EXPORT_OUT_WRAPPED_PROC(GetModuleFileNameA, unused);
 	EXPORT_OUT_WRAPPED_PROC(GetModuleFileNameW, unused);
 	EXPORT_OUT_WRAPPED_PROC(GetDiskFreeSpaceA, unused);
+	EXPORT_OUT_WRAPPED_PROC(CreateThread, unused);
+	EXPORT_OUT_WRAPPED_PROC(VirtualAlloc, unused);
 
 	void Shell(const char*);
 	void DisableHighDPIScaling();
@@ -23,6 +25,8 @@ namespace Utils
 	DWORD WINAPI GetModuleFileNameAHandler(HMODULE hModule, LPSTR lpFilename, DWORD nSize);
 	DWORD WINAPI GetModuleFileNameWHandler(HMODULE hModule, LPWSTR lpFilename, DWORD nSize);
 	BOOL WINAPI kernel_GetDiskFreeSpaceA(LPCSTR lpRootPathName, LPDWORD lpSectorsPerCluster, LPDWORD lpBytesPerSector, LPDWORD lpNumberOfFreeClusters, LPDWORD lpTotalNumberOfClusters);
+	HANDLE WINAPI kernel_CreateThread(LPSECURITY_ATTRIBUTES lpThreadAttributes, SIZE_T dwStackSize, LPTHREAD_START_ROUTINE lpStartAddress, LPVOID lpParameter, DWORD dwCreationFlags, LPDWORD lpThreadId);
+	LPVOID WINAPI kernel_VirtualAlloc(LPVOID lpAddress, SIZE_T dwSize, DWORD flAllocationType, DWORD flProtect);
 	void HookExceptionHandler();
 	void UnHookExceptionHandler();
 	void AddHandleToVector(HMODULE dll, const char *name);

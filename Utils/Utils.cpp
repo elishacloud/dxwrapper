@@ -62,6 +62,8 @@ typedef DWORD(WINAPI *GetModuleFileNameWProc)(HMODULE, LPWSTR, DWORD);
 typedef BOOL(WINAPI* GetDiskFreeSpaceAProc)(LPCSTR lpRootPathName, LPDWORD lpSectorsPerCluster, LPDWORD lpBytesPerSector, LPDWORD lpNumberOfFreeClusters, LPDWORD lpTotalNumberOfClusters);
 typedef BOOL(WINAPI *CreateProcessAFunc)(LPCSTR lpApplicationName, LPSTR lpCommandLine, LPSECURITY_ATTRIBUTES lpProcessAttributes, LPSECURITY_ATTRIBUTES lpThreadAttributes, BOOL bInheritHandles, DWORD dwCreationFlags,
 	LPVOID lpEnvironment, LPCSTR lpCurrentDirectory, LPSTARTUPINFOA lpStartupInfo, LPPROCESS_INFORMATION lpProcessInformation);
+typedef HANDLE(WINAPI* CreateThreadProc)(LPSECURITY_ATTRIBUTES lpThreadAttributes, SIZE_T dwStackSize, LPTHREAD_START_ROUTINE lpStartAddress, LPVOID lpParameter, DWORD dwCreationFlags, LPDWORD lpThreadId);
+typedef LPVOID(WINAPI* VirtualAllocProc)(LPVOID lpAddress, SIZE_T dwSize, DWORD flAllocationType, DWORD flProtect);
 typedef BOOL(WINAPI *CreateProcessWFunc)(LPCWSTR lpApplicationName, LPWSTR lpCommandLine, LPSECURITY_ATTRIBUTES lpProcessAttributes, LPSECURITY_ATTRIBUTES lpThreadAttributes, BOOL bInheritHandles, DWORD dwCreationFlags,
 	LPVOID lpEnvironment, LPCWSTR lpCurrentDirectory, LPSTARTUPINFOW lpStartupInfo, LPPROCESS_INFORMATION lpProcessInformation);
 
@@ -94,6 +96,8 @@ namespace Utils
 	INITIALIZE_OUT_WRAPPED_PROC(GetModuleFileNameA, unused);
 	INITIALIZE_OUT_WRAPPED_PROC(GetModuleFileNameW, unused);
 	INITIALIZE_OUT_WRAPPED_PROC(GetDiskFreeSpaceA, unused);
+	INITIALIZE_OUT_WRAPPED_PROC(CreateThread, unused);
+	INITIALIZE_OUT_WRAPPED_PROC(VirtualAlloc, unused);
 
 	FARPROC p_CreateProcessA = nullptr;
 	FARPROC p_CreateProcessW = nullptr;
@@ -368,6 +372,52 @@ BOOL WINAPI Utils::kernel_GetDiskFreeSpaceA(LPCSTR lpRootPathName, LPDWORD lpSec
 	}
 
 	return result;
+}
+
+HANDLE WINAPI Utils::kernel_CreateThread(LPSECURITY_ATTRIBUTES lpThreadAttributes, SIZE_T dwStackSize, LPTHREAD_START_ROUTINE lpStartAddress, LPVOID lpParameter, DWORD dwCreationFlags, LPDWORD lpThreadId)
+{
+	Logging::LogDebug() << __FUNCTION__;
+
+	DEFINE_STATIC_PROC_ADDRESS(CreateThreadProc, CreateThread, CreateThread_out);
+
+	if (!CreateThread)
+	{
+		return FALSE;
+	}
+
+	// Check the current stack size, and if it's too small, increase it
+	if (dwStackSize < 1024 * 64)  // Minimum 64 KB stack size
+	{
+		dwStackSize = 1024 * 64;
+	}
+
+	// Call the original CreateThread with modified parameters
+	return CreateThread(lpThreadAttributes, dwStackSize, lpStartAddress, lpParameter, dwCreationFlags, lpThreadId);
+}
+
+LPVOID WINAPI Utils::kernel_VirtualAlloc(LPVOID lpAddress, SIZE_T dwSize, DWORD flAllocationType, DWORD flProtect)
+{
+	Logging::LogDebug() << __FUNCTION__;
+
+	DEFINE_STATIC_PROC_ADDRESS(VirtualAllocProc, VirtualAlloc, VirtualAlloc_out);
+
+	if (!VirtualAlloc)
+	{
+		return FALSE;
+	}
+
+	// If this is a stack allocation (MEM_RESERVE | MEM_COMMIT)
+	if ((flAllocationType & MEM_RESERVE) && (flAllocationType & MEM_COMMIT))
+	{
+		// Ensure the reserve size is at least 1MB
+		if (dwSize < 1024 * 1024)  // 1MB minimum reserve
+		{
+			dwSize = 1024 * 1024;
+		}
+	}
+
+	// Call the original VirtualAlloc function
+	return VirtualAlloc(lpAddress, dwSize, flAllocationType, flProtect);
 }
 
 // Add HMODULE to vector
