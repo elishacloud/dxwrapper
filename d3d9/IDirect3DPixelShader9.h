@@ -6,15 +6,12 @@ private:
 	LPDIRECT3DPIXELSHADER9 ProxyInterface;
 	m_IDirect3DDevice9Ex* m_pDeviceEx;
 
-	AddressLookupTableD3d9<m_IDirect3DDevice9Ex>* ProxyAddressLookupTable;
-
 public:
-	m_IDirect3DPixelShader9(LPDIRECT3DPIXELSHADER9 pShader9, m_IDirect3DDevice9Ex* pDevice) :
-		ProxyInterface(pShader9), m_pDeviceEx(pDevice), ProxyAddressLookupTable(pDevice->ProxyAddressLookupTable)
+	m_IDirect3DPixelShader9(LPDIRECT3DPIXELSHADER9 pShader9, m_IDirect3DDevice9Ex* pDevice) : ProxyInterface(pShader9), m_pDeviceEx(pDevice)
 	{
 		LOG_LIMIT(3, "Creating interface " << __FUNCTION__ << " (" << this << ")");
 
-		ProxyAddressLookupTable->SaveAddress(this, ProxyInterface);
+		ProxyAddressLookupTable9.SaveAddress(this, ProxyInterface);
 	}
 	~m_IDirect3DPixelShader9()
 	{

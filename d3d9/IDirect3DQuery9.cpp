@@ -33,7 +33,7 @@ HRESULT m_IDirect3DQuery9::QueryInterface(THIS_ REFIID riid, void** ppvObj)
 
 	if (SUCCEEDED(hr))
 	{
-		D3d9Wrapper::genericQueryInterface(riid, ppvObj, m_pDeviceEx, ProxyAddressLookupTable);
+		D3d9Wrapper::genericQueryInterface(riid, ppvObj, m_pDeviceEx);
 	}
 
 	return hr;

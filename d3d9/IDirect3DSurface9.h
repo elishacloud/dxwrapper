@@ -18,11 +18,8 @@ private:
 
 	m_IDirect3DSurface9* m_GetNonMultiSampledSurface(const RECT* pSurfaceRect, DWORD Flags);
 
-	AddressLookupTableD3d9<m_IDirect3DDevice9Ex>* ProxyAddressLookupTable;
-
 public:
-	m_IDirect3DSurface9(LPDIRECT3DSURFACE9 pSurface9, m_IDirect3DDevice9Ex* pDevice) :
-		ProxyInterface(pSurface9), m_pDeviceEx(pDevice), pDeviceEx(pDevice->GetProxyInterface()), ProxyAddressLookupTable(pDevice->ProxyAddressLookupTable)
+	m_IDirect3DSurface9(LPDIRECT3DSURFACE9 pSurface9, m_IDirect3DDevice9Ex* pDevice) : ProxyInterface(pSurface9), m_pDeviceEx(pDevice), pDeviceEx(pDevice->GetProxyInterface())
 	{
 		LOG_LIMIT(3, "Creating interface " << __FUNCTION__ << " (" << this << ")");
 
@@ -31,7 +28,7 @@ public:
 			LOG_LIMIT(3, __FUNCTION__ << " Failed to GetDesc()!" << this << ")");
 		}
 
-		ProxyAddressLookupTable->SaveAddress(this, ProxyInterface);
+		ProxyAddressLookupTable9.SaveAddress(this, ProxyInterface);
 	}
 	~m_IDirect3DSurface9()
 	{

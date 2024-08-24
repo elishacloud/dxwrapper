@@ -6,15 +6,12 @@ private:
 	LPDIRECT3DVOLUMETEXTURE9 ProxyInterface;
 	m_IDirect3DDevice9Ex* m_pDeviceEx;
 
-	AddressLookupTableD3d9<m_IDirect3DDevice9Ex>* ProxyAddressLookupTable;
-
 public:
-	m_IDirect3DVolumeTexture9(LPDIRECT3DVOLUMETEXTURE9 pTexture8, m_IDirect3DDevice9Ex* pDevice) :
-		ProxyInterface(pTexture8), m_pDeviceEx(pDevice), ProxyAddressLookupTable(pDevice->ProxyAddressLookupTable)
+	m_IDirect3DVolumeTexture9(LPDIRECT3DVOLUMETEXTURE9 pTexture8, m_IDirect3DDevice9Ex* pDevice) : ProxyInterface(pTexture8), m_pDeviceEx(pDevice)
 	{
 		LOG_LIMIT(3, "Creating interface " << __FUNCTION__ << " (" << this << ")");
 
-		ProxyAddressLookupTable->SaveAddress(this, ProxyInterface);
+		ProxyAddressLookupTable9.SaveAddress(this, ProxyInterface);
 	}
 	~m_IDirect3DVolumeTexture9()
 	{

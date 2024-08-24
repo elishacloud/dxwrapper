@@ -60,6 +60,8 @@ public:
 			ProxyInterfaceEx = pDevice;
 		}
 
+		ProxyAddressLookupTable9.SaveAddress(this, ProxyInterface);
+
 		ReInitDevice();
 	}
 	~m_IDirect3DDevice9Ex()
@@ -72,20 +74,11 @@ public:
 			WndProc::RemoveWndProc(DeviceDetails.DeviceWindow);
 		}
 
-		ProxyAddressLookupTable->DeleteAddress(this);
+		ProxyAddressLookupTable9.DeleteAddress(this);
 
-		if (ProxyAddressLookupTable->GetDeviceCount() == 0)
+		if (ProxyAddressLookupTable9.GetDeviceCount() == 0)
 		{
-			m_pD3DEx->ClearAddressTable(ProxyAddressLookupTable);
-		}
-	}
-	void SetProxyLookupTable(AddressLookupTableD3d9<m_IDirect3DDevice9Ex>* LookupTable)
-	{
-		if (!ProxyAddressLookupTable)
-		{
-			ProxyAddressLookupTable = LookupTable;
-
-			ProxyAddressLookupTable->SaveAddress(this, ProxyInterface);
+			ProxyAddressLookupTable9.ClearInterfaces();
 		}
 	}
 	void SetDeviceDetails(DEVICEDETAILS& NewDeviceDetails)
@@ -106,8 +99,6 @@ public:
 			ReInitDevice();
 		}
 	}
-
-	AddressLookupTableD3d9<m_IDirect3DDevice9Ex>* ProxyAddressLookupTable = nullptr;
 
 	/*** IUnknown methods ***/
 	STDMETHOD(QueryInterface)(THIS_ REFIID riid, void** ppvObj);

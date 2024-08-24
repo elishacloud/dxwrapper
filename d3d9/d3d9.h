@@ -46,13 +46,15 @@ struct DEVICEDETAILS
 	DWORD DeviceMultiSampleQuality = 0;
 };
 
+extern AddressLookupTableD3d9<m_IDirect3DDevice9Ex> ProxyAddressLookupTable9;
+
 DWORD UpdateBehaviorFlags(DWORD BehaviorFlags);
 void UpdatePresentParameter(D3DPRESENT_PARAMETERS* pPresentationParameters, HWND hFocusWindow, DEVICEDETAILS& DeviceDetails, bool ForceExclusiveFullscreen, bool SetWindow);
 void UpdatePresentParameterForMultisample(D3DPRESENT_PARAMETERS* pPresentationParameters, D3DMULTISAMPLE_TYPE MultiSampleType, DWORD MultiSampleQuality);
 
 namespace D3d9Wrapper
 {
-	void WINAPI genericQueryInterface(REFIID riid, LPVOID* ppvObj, m_IDirect3DDevice9Ex* m_pDeviceEx, AddressLookupTableD3d9<m_IDirect3DDevice9Ex>* ProxyAddressLookupTable);
+	void WINAPI genericQueryInterface(REFIID riid, LPVOID* ppvObj, m_IDirect3DDevice9Ex* m_pDeviceEx);
 }
 
 #include "IDirect3D9Ex.h"

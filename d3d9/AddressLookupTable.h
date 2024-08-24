@@ -139,6 +139,10 @@ public:
 	template <typename T>
 	void SaveAddress(T *Wrapper, void *Proxy)
 	{
+		while (ClearFlag)
+		{
+			Sleep(0);
+		}
 		constexpr UINT CacheIndex = AddressCacheIndex<T>::CacheIndex;
 		if (Wrapper && Proxy)
 		{
@@ -149,7 +153,7 @@ public:
 	template <typename T>
 	void DeleteAddress(T *Wrapper)
 	{
-		if (!Wrapper || ConstructorFlag)
+		if (!Wrapper || ConstructorFlag || ClearFlag)
 		{
 			return;
 		}
@@ -173,8 +177,26 @@ public:
 		return g_map[AddressCacheIndex<m_IDirect3DDevice9Ex>::CacheIndex].size();
 	}
 
+	void ClearInterfaces()
+	{
+		ClearFlag = true;
+		for (UINT x = 0; x < MaxIndex; x++)
+		{
+			if (x != AddressCacheIndex<m_IDirect3D9Ex>::CacheIndex)
+			{
+				for (const auto& entry : g_map[x])
+				{
+					entry.second->DeleteMe();
+				}
+				g_map[x].clear();
+			}
+		}
+		ClearFlag = false;
+	}
+
 private:
 	bool ConstructorFlag = false;
+	bool ClearFlag = false;
 	std::unordered_map<void*, class AddressLookupTableD3d9Object*> g_map[MaxIndex];
 };
 

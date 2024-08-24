@@ -8,11 +8,8 @@ private:
 	m_IDirect3DDevice9Ex* m_pDeviceEx;
 	REFIID WrapperID;
 
-	AddressLookupTableD3d9<m_IDirect3DDevice9Ex>* ProxyAddressLookupTable;
-
 public:
-	m_IDirect3DSwapChain9Ex(LPDIRECT3DSWAPCHAIN9EX pSwapChain9, m_IDirect3DDevice9Ex* pDevice, REFIID DeviceID) :
-		ProxyInterface(pSwapChain9), m_pDeviceEx(pDevice), WrapperID(DeviceID), ProxyAddressLookupTable(pDevice->ProxyAddressLookupTable)
+	m_IDirect3DSwapChain9Ex(LPDIRECT3DSWAPCHAIN9EX pSwapChain9, m_IDirect3DDevice9Ex* pDevice, REFIID DeviceID) : ProxyInterface(pSwapChain9), m_pDeviceEx(pDevice), WrapperID(DeviceID)
 	{
 		LOG_LIMIT(3, "Creating interface " << __FUNCTION__ << " (" << this << ") " << WrapperID);
 
@@ -21,7 +18,7 @@ public:
 			ProxyInterfaceEx = pSwapChain9;
 		}
 
-		ProxyAddressLookupTable->SaveAddress(this, ProxyInterface);
+		ProxyAddressLookupTable9.SaveAddress(this, ProxyInterface);
 	}
 	~m_IDirect3DSwapChain9Ex()
 	{

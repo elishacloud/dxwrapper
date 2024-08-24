@@ -33,7 +33,7 @@ HRESULT m_IDirect3DVolume9::QueryInterface(THIS_ REFIID riid, void** ppvObj)
 
 	if (SUCCEEDED(hr))
 	{
-		D3d9Wrapper::genericQueryInterface(riid, ppvObj, m_pDeviceEx, ProxyAddressLookupTable);
+		D3d9Wrapper::genericQueryInterface(riid, ppvObj, m_pDeviceEx);
 	}
 
 	return hr;
@@ -98,7 +98,7 @@ HRESULT m_IDirect3DVolume9::GetContainer(THIS_ REFIID riid, void** ppContainer)
 
 	if (SUCCEEDED(hr))
 	{
-		D3d9Wrapper::genericQueryInterface(riid, ppContainer, m_pDeviceEx, ProxyAddressLookupTable);
+		D3d9Wrapper::genericQueryInterface(riid, ppContainer, m_pDeviceEx);
 	}
 
 	return hr;
