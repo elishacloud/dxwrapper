@@ -41,6 +41,9 @@ namespace Utils
 	void BusyWaitYield();
 	void ResetInvalidFPUState();
 	void CheckMessageQueue(HWND hwnd);
+	bool IsWindowsVistaOrNewer();
+	bool IsWindows7OrNewer();
+	bool IsWindows8OrNewer();
 	void GetScreenSettings();
 	void ResetScreenSettings();
 	bool IsWindowRectEqualOrLarger(HWND srchWnd, HWND desthWnd);

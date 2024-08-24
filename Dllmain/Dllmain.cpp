@@ -163,6 +163,10 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 		Logging::LogProcessNameAndPID();
 		Logging::LogGameType();
 		Logging::LogCompatLayer();
+		Logging::Log() << "Windows is newer than," <<
+			" Windows Vista: " << Utils::IsWindowsVistaOrNewer() <<
+			" Windows 7: " << Utils::IsWindows7OrNewer() <<
+			" Windows 8: " << Utils::IsWindows8OrNewer();
 
 		// Create Mutex to ensure only one copy of DxWrapper is running
 		char MutexName[MAX_PATH] = { 0 };

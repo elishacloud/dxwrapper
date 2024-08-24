@@ -741,6 +741,62 @@ void Utils::CheckMessageQueue(HWND hwnd)
 	if (PeekMessage(&msg, hwnd, 0, 0, PM_NOREMOVE)) { BusyWaitYield(); };
 }
 
+bool Utils::IsWindowsVistaOrNewer()
+{
+	HMODULE hKernel32 = GetModuleHandleA("kernel32.dll");
+
+	if (hKernel32)
+	{
+		// Check if any Windows Vista+ APIs exist
+		if (GetProcAddress(hKernel32, "GetTickCount64") &&
+			GetProcAddress(hKernel32, "InitializeCriticalSectionEx") &&
+			GetProcAddress(hKernel32, "CancelSynchronousIo") &&
+			GetProcAddress(hKernel32, "FlushProcessWriteBuffers"))
+		{
+			return true; // Windows Vista or newer
+		}
+	}
+
+	return false; // Older than Windows Vista
+}
+
+bool Utils::IsWindows7OrNewer()
+{
+	HMODULE hKernel32 = GetModuleHandleA("kernel32.dll");
+
+	if (hKernel32)
+	{
+		// Check if any Windows 7+ APIs exist
+		if (GetProcAddress(hKernel32, "TryAcquireSRWLockExclusive") &&
+			GetProcAddress(hKernel32, "SetThreadGroupAffinity") &&
+			GetProcAddress(hKernel32, "SetSearchPathMode") &&
+			GetProcAddress(hKernel32, "GetLogicalProcessorInformationEx"))
+		{
+			return true; // Windows 7 or newer
+		}
+	}
+
+	return false; // Older than Windows 7
+}
+
+bool Utils::IsWindows8OrNewer()
+{
+	HMODULE hKernel32 = GetModuleHandleA("kernel32.dll");
+
+	if (hKernel32)
+	{
+		// Check for several Windows 8+ APIs
+		if (GetProcAddress(hKernel32, "GetSystemTimePreciseAsFileTime") &&
+			GetProcAddress(hKernel32, "GetNumaNodeProcessorMaskEx") &&
+			GetProcAddress(hKernel32, "GetNumaProximityNodeEx"))
+		{
+			return true; // Windows 8 or newer
+		}
+	}
+
+	return false; // Older than Windows 8
+}
+
 void Utils::GetScreenSettings()
 {
 	// Store screen settings
