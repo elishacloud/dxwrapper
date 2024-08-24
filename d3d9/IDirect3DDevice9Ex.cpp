@@ -24,6 +24,10 @@
 DebugOverlay DOverlay;
 #endif
 
+#define SHARED DeviceDetailsMap[DDKey]
+
+std::unordered_map<UINT, DEVICEDETAILS> DeviceDetailsMap;
+
 HRESULT m_IDirect3DDevice9Ex::QueryInterface(REFIID riid, void** ppvObj)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ") " << riid;
@@ -35,9 +39,25 @@ HRESULT m_IDirect3DDevice9Ex::QueryInterface(REFIID riid, void** ppvObj)
 		if (SUCCEEDED(hr))
 		{
 			*ppvObj = this;
+
+			SHARED.DeviceMap[this] = TRUE;
 		}
 
 		return hr;
+	}
+
+	// Check for unsupported IIDs
+	if (riid == IID{ 0x126D0349, 0x4787, 0x4AA6, {0x8E, 0x1B, 0x40, 0xC1, 0x77, 0xC6, 0x0A, 0x01} } ||
+		riid == IID{ 0x694036AC, 0x542A, 0x4A3A, {0x9A, 0x32, 0x53, 0xBC, 0x20, 0x00, 0x2C, 0x1B} })
+	{
+		LOG_LIMIT(100, __FUNCTION__ << " Warning: disabling unsupported interface: " << riid);
+
+		if (ppvObj)
+		{
+			*ppvObj = nullptr;
+		}
+
+		return E_NOINTERFACE;
 	}
 
 	HRESULT hr = ProxyInterface->QueryInterface(riid, ppvObj);
@@ -46,7 +66,7 @@ HRESULT m_IDirect3DDevice9Ex::QueryInterface(REFIID riid, void** ppvObj)
 	{
 		if (riid == IID_IDirect3DDevice9 || riid == IID_IDirect3DDevice9Ex)
 		{
-			*ppvObj = ProxyAddressLookupTable9.FindAddress<m_IDirect3DDevice9Ex>(*ppvObj, m_pD3DEx, riid, DDKey);
+			*ppvObj = SHARED.ProxyAddressLookupTable9.FindAddress<m_IDirect3DDevice9Ex>(*ppvObj, m_pD3DEx, riid, DDKey);
 		}
 		else
 		{
@@ -74,14 +94,39 @@ ULONG m_IDirect3DDevice9Ex::Release()
 #ifdef ENABLE_DEBUGOVERLAY
 	if (Config.EnableImgui && DOverlay.IsSetup() && ref == 1)
 	{
+		ProxyInterface->AddRef();
 		DOverlay.Shutdown();
-		ref = 0;
+		ref = ProxyInterface->Release();
 	}
 #endif
 
 	if (ref == 0)
 	{
-		delete this;
+		SHARED.DeviceMap[this] = FALSE;
+
+		// Check if any other interfaces are sharing this device details
+		BOOL MoreInstances = FALSE;
+		for (auto it = SHARED.DeviceMap.begin(); it != SHARED.DeviceMap.end(); ++it)
+		{
+			if (it->second == TRUE)
+			{
+				MoreInstances = TRUE;
+				break;
+			}
+		}
+
+		// Remove device details if no devices are using it
+		if (!MoreInstances)
+		{
+			for (auto it = DeviceDetailsMap.begin(); it != DeviceDetailsMap.end(); ++it)
+			{
+				if (it->first == DDKey)
+				{
+					DeviceDetailsMap.erase(it);
+					break;
+				}
+			}
+		}
 	}
 
 	return ref;
@@ -92,12 +137,12 @@ void m_IDirect3DDevice9Ex::ClearVars(D3DPRESENT_PARAMETERS* pPresentationParamet
 	UNREFERENCED_PARAMETER(pPresentationParameters);
 
 	// Clear variables
-	ZeroMemory(&Caps, sizeof(D3DCAPS9));
-	MaxAnisotropy = 0;
-	isAnisotropySet = false;
-	AnisotropyDisabledFlag = false;
-	isClipPlaneSet = false;
-	m_clipPlaneRenderState = 0;
+	ZeroMemory(&SHARED.Caps, sizeof(D3DCAPS9));
+	SHARED.MaxAnisotropy = 0;
+	SHARED.isAnisotropySet = false;
+	SHARED.AnisotropyDisabledFlag = false;
+	SHARED.isClipPlaneSet = false;
+	SHARED.m_clipPlaneRenderState = 0;
 }
 
 template <typename T>
@@ -129,13 +174,13 @@ HRESULT m_IDirect3DDevice9Ex::ResetT(T func, D3DPRESENT_PARAMETERS &d3dpp, D3DPR
 
 	// Setup presentation parameters
 	CopyMemory(&d3dpp, pPresentationParameters, sizeof(D3DPRESENT_PARAMETERS));
-	UpdatePresentParameter(&d3dpp, DeviceDetailsMap[DDKey].DeviceWindow, DeviceDetailsMap[DDKey], ForceFullscreen, true);
+	UpdatePresentParameter(&d3dpp, SHARED.DeviceWindow, SHARED, ForceFullscreen, true);
 
 	// Test for Multisample
-	if (DeviceDetailsMap[DDKey].DeviceMultiSampleFlag)
+	if (SHARED.DeviceMultiSampleFlag)
 	{
 		// Update Present Parameter for Multisample
-		UpdatePresentParameterForMultisample(&d3dpp, DeviceDetailsMap[DDKey].DeviceMultiSampleType, DeviceDetailsMap[DDKey].DeviceMultiSampleQuality);
+		UpdatePresentParameterForMultisample(&d3dpp, SHARED.DeviceMultiSampleType, SHARED.DeviceMultiSampleQuality);
 
 		// Reset device
 		hr = ResetT(func, &d3dpp, pFullscreenDisplayMode);
@@ -148,7 +193,7 @@ HRESULT m_IDirect3DDevice9Ex::ResetT(T func, D3DPRESENT_PARAMETERS &d3dpp, D3DPR
 
 		// Reset presentation parameters
 		CopyMemory(&d3dpp, pPresentationParameters, sizeof(D3DPRESENT_PARAMETERS));
-		UpdatePresentParameter(&d3dpp, DeviceDetailsMap[DDKey].DeviceWindow, DeviceDetailsMap[DDKey], ForceFullscreen, false);
+		UpdatePresentParameter(&d3dpp, SHARED.DeviceWindow, SHARED, ForceFullscreen, false);
 
 		// Reset device
 		hr = ResetT(func, &d3dpp, pFullscreenDisplayMode);
@@ -156,10 +201,10 @@ HRESULT m_IDirect3DDevice9Ex::ResetT(T func, D3DPRESENT_PARAMETERS &d3dpp, D3DPR
 		if (SUCCEEDED(hr))
 		{
 			LOG_LIMIT(3, __FUNCTION__ << " Disabling AntiAliasing...");
-			DeviceDetailsMap[DDKey].DeviceMultiSampleFlag = false;
-			DeviceDetailsMap[DDKey].DeviceMultiSampleType = D3DMULTISAMPLE_NONE;
-			DeviceDetailsMap[DDKey].DeviceMultiSampleQuality = 0;
-			SetSSAA = false;
+			SHARED.DeviceMultiSampleFlag = false;
+			SHARED.DeviceMultiSampleType = D3DMULTISAMPLE_NONE;
+			SHARED.DeviceMultiSampleQuality = 0;
+			SHARED.SetSSAA = false;
 		}
 
 		return hr;
@@ -255,13 +300,13 @@ HRESULT m_IDirect3DDevice9Ex::CreateAdditionalSwapChain(D3DPRESENT_PARAMETERS *p
 	// Setup presentation parameters
 	D3DPRESENT_PARAMETERS d3dpp;
 	CopyMemory(&d3dpp, pPresentationParameters, sizeof(D3DPRESENT_PARAMETERS));
-	UpdatePresentParameter(&d3dpp, DeviceDetailsMap[DDKey].DeviceWindow, DeviceDetailsMap[DDKey], ForceFullscreen, false);
+	UpdatePresentParameter(&d3dpp, SHARED.DeviceWindow, SHARED, ForceFullscreen, false);
 
 	// Test for Multisample
-	if (DeviceDetailsMap[DDKey].DeviceMultiSampleFlag)
+	if (SHARED.DeviceMultiSampleFlag)
 	{
 		// Update Present Parameter for Multisample
-		UpdatePresentParameterForMultisample(&d3dpp, DeviceDetailsMap[DDKey].DeviceMultiSampleType, DeviceDetailsMap[DDKey].DeviceMultiSampleQuality);
+		UpdatePresentParameterForMultisample(&d3dpp, SHARED.DeviceMultiSampleType, SHARED.DeviceMultiSampleQuality);
 
 		// Create CwapChain
 		hr = ProxyInterface->CreateAdditionalSwapChain(&d3dpp, ppSwapChain);
@@ -270,12 +315,12 @@ HRESULT m_IDirect3DDevice9Ex::CreateAdditionalSwapChain(D3DPRESENT_PARAMETERS *p
 	if (FAILED(hr))
 	{
 		CopyMemory(&d3dpp, pPresentationParameters, sizeof(D3DPRESENT_PARAMETERS));
-		UpdatePresentParameter(&d3dpp, DeviceDetailsMap[DDKey].DeviceWindow, DeviceDetailsMap[DDKey], ForceFullscreen, false);
+		UpdatePresentParameter(&d3dpp, SHARED.DeviceWindow, SHARED, ForceFullscreen, false);
 
 		// Create CwapChain
 		hr = ProxyInterface->CreateAdditionalSwapChain(&d3dpp, ppSwapChain);
 
-		if (SUCCEEDED(hr) && DeviceDetailsMap[DDKey].DeviceMultiSampleFlag)
+		if (SUCCEEDED(hr) && SHARED.DeviceMultiSampleFlag)
 		{
 			LOG_LIMIT(3, __FUNCTION__ <<" Disabling AntiAliasing for Swap Chain...");
 		}
@@ -285,7 +330,7 @@ HRESULT m_IDirect3DDevice9Ex::CreateAdditionalSwapChain(D3DPRESENT_PARAMETERS *p
 	{
 		CopyMemory(pPresentationParameters, &d3dpp, sizeof(D3DPRESENT_PARAMETERS));
 
-		*ppSwapChain = new m_IDirect3DSwapChain9Ex((IDirect3DSwapChain9Ex*)*ppSwapChain, this, IID_IDirect3DSwapChain9);
+		*ppSwapChain = new m_IDirect3DSwapChain9Ex((IDirect3DSwapChain9Ex*)*ppSwapChain, this, WrapperID == IID_IDirect3DDevice9Ex ? IID_IDirect3DSwapChain9Ex : IID_IDirect3DSwapChain9);
 		return D3D_OK;
 	}
 
@@ -326,16 +371,16 @@ HRESULT m_IDirect3DDevice9Ex::CreateDepthStencilSurface(THIS_ UINT Width, UINT H
 	HRESULT hr = D3DERR_INVALIDCALL;
 
 	// Test for Multisample
-	if (DeviceDetailsMap[DDKey].DeviceMultiSampleFlag)
+	if (SHARED.DeviceMultiSampleFlag)
 	{
-		hr = ProxyInterface->CreateDepthStencilSurface(Width, Height, Format, DeviceDetailsMap[DDKey].DeviceMultiSampleType, DeviceDetailsMap[DDKey].DeviceMultiSampleQuality, TRUE, ppSurface, pSharedHandle);
+		hr = ProxyInterface->CreateDepthStencilSurface(Width, Height, Format, SHARED.DeviceMultiSampleType, SHARED.DeviceMultiSampleQuality, TRUE, ppSurface, pSharedHandle);
 	}
 
 	if (FAILED(hr))
 	{
 		hr = ProxyInterface->CreateDepthStencilSurface(Width, Height, Format, MultiSample, MultisampleQuality, Discard, ppSurface, pSharedHandle);
 
-		if (SUCCEEDED(hr) && DeviceDetailsMap[DDKey].DeviceMultiSampleFlag)
+		if (SUCCEEDED(hr) && SHARED.DeviceMultiSampleFlag)
 		{
 			LOG_LIMIT(3, __FUNCTION__ << " Disabling AntiAliasing for Depth Stencil...");
 		}
@@ -384,16 +429,16 @@ HRESULT m_IDirect3DDevice9Ex::CreateRenderTarget(THIS_ UINT Width, UINT Height, 
 	HRESULT hr = D3DERR_INVALIDCALL;
 
 	// Test for Multisample
-	if (DeviceDetailsMap[DDKey].DeviceMultiSampleFlag)
+	if (SHARED.DeviceMultiSampleFlag)
 	{
-		hr = ProxyInterface->CreateRenderTarget(Width, Height, Format, DeviceDetailsMap[DDKey].DeviceMultiSampleType, DeviceDetailsMap[DDKey].DeviceMultiSampleQuality, FALSE, ppSurface, pSharedHandle);
+		hr = ProxyInterface->CreateRenderTarget(Width, Height, Format, SHARED.DeviceMultiSampleType, SHARED.DeviceMultiSampleQuality, FALSE, ppSurface, pSharedHandle);
 	}
 
 	if (FAILED(hr))
 	{
 		hr = ProxyInterface->CreateRenderTarget(Width, Height, Format, MultiSample, MultisampleQuality, Lockable, ppSurface, pSharedHandle);
 
-		if (SUCCEEDED(hr) && DeviceDetailsMap[DDKey].DeviceMultiSampleFlag)
+		if (SUCCEEDED(hr) && SHARED.DeviceMultiSampleFlag)
 		{
 			LOG_LIMIT(3, __FUNCTION__ << " Disabling AntiAliasing for Render Target...");
 		}
@@ -514,7 +559,7 @@ HRESULT m_IDirect3DDevice9Ex::EndStateBlock(THIS_ IDirect3DStateBlock9** ppSB)
 
 	if (SUCCEEDED(hr) && ppSB)
 	{
-		*ppSB = ProxyAddressLookupTable9.FindAddress<m_IDirect3DStateBlock9, m_IDirect3DDevice9Ex>(*ppSB, this, IID_IDirect3DStateBlock9, nullptr);
+		*ppSB = SHARED.ProxyAddressLookupTable9.FindAddress<m_IDirect3DStateBlock9, m_IDirect3DDevice9Ex, LPVOID>(*ppSB, this, IID_IDirect3DStateBlock9, nullptr);
 	}
 
 	return hr;
@@ -549,7 +594,7 @@ HRESULT m_IDirect3DDevice9Ex::GetRenderTarget(THIS_ DWORD RenderTargetIndex, IDi
 
 	if (SUCCEEDED(hr) && ppRenderTarget)
 	{
-		*ppRenderTarget = ProxyAddressLookupTable9.FindAddress<m_IDirect3DSurface9, m_IDirect3DDevice9Ex>(*ppRenderTarget, this, IID_IDirect3DSurface9, nullptr);
+		*ppRenderTarget = SHARED.ProxyAddressLookupTable9.FindAddress<m_IDirect3DSurface9, m_IDirect3DDevice9Ex, LPVOID>(*ppRenderTarget, this, IID_IDirect3DSurface9, nullptr);
 	}
 
 	return hr;
@@ -574,7 +619,7 @@ HRESULT m_IDirect3DDevice9Ex::SetRenderState(D3DRENDERSTATETYPE State, DWORD Val
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
 	// Set for Multisample
-	if (DeviceDetailsMap[DDKey].DeviceMultiSampleFlag && State == D3DRS_MULTISAMPLEANTIALIAS)
+	if (SHARED.DeviceMultiSampleFlag && State == D3DRS_MULTISAMPLEANTIALIAS)
 	{
 		Value = TRUE;
 	}
@@ -584,7 +629,7 @@ HRESULT m_IDirect3DDevice9Ex::SetRenderState(D3DRENDERSTATETYPE State, DWORD Val
 	// CacheClipPlane
 	if (SUCCEEDED(hr) && State == D3DRS_CLIPPLANEENABLE)
 	{
-		m_clipPlaneRenderState = Value;
+		SHARED.m_clipPlaneRenderState = Value;
 	}
 
 	return hr;
@@ -652,7 +697,7 @@ HRESULT m_IDirect3DDevice9Ex::GetIndices(THIS_ IDirect3DIndexBuffer9** ppIndexDa
 
 	if (SUCCEEDED(hr) && ppIndexData)
 	{
-		*ppIndexData = ProxyAddressLookupTable9.FindAddress<m_IDirect3DIndexBuffer9, m_IDirect3DDevice9Ex>(*ppIndexData, this, IID_IDirect3DIndexBuffer9, nullptr);
+		*ppIndexData = SHARED.ProxyAddressLookupTable9.FindAddress<m_IDirect3DIndexBuffer9, m_IDirect3DDevice9Ex, LPVOID>(*ppIndexData, this, IID_IDirect3DIndexBuffer9, nullptr);
 	}
 
 	return hr;
@@ -841,7 +886,7 @@ HRESULT m_IDirect3DDevice9Ex::GetPixelShader(THIS_ IDirect3DPixelShader9** ppSha
 
 	if (SUCCEEDED(hr) && ppShader)
 	{
-		*ppShader = ProxyAddressLookupTable9.FindAddress<m_IDirect3DPixelShader9, m_IDirect3DDevice9Ex>(*ppShader, this, IID_IDirect3DPixelShader9, nullptr);
+		*ppShader = SHARED.ProxyAddressLookupTable9.FindAddress<m_IDirect3DPixelShader9, m_IDirect3DDevice9Ex, LPVOID>(*ppShader, this, IID_IDirect3DPixelShader9, nullptr);
 	}
 
 	return hr;
@@ -880,13 +925,13 @@ HRESULT m_IDirect3DDevice9Ex::DrawIndexedPrimitive(THIS_ D3DPRIMITIVETYPE Type, 
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
 	// CacheClipPlane
-	if (Config.CacheClipPlane && isClipPlaneSet)
+	if (Config.CacheClipPlane && SHARED.isClipPlaneSet)
 	{
 		ApplyClipPlanes();
 	}
 
 	// Reenable Anisotropic Filtering
-	if (MaxAnisotropy)
+	if (SHARED.MaxAnisotropy)
 	{
 		ReeableAnisotropicSamplerState();
 	}
@@ -899,13 +944,13 @@ HRESULT m_IDirect3DDevice9Ex::DrawIndexedPrimitiveUP(D3DPRIMITIVETYPE PrimitiveT
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
 	// CacheClipPlane
-	if (Config.CacheClipPlane && isClipPlaneSet)
+	if (Config.CacheClipPlane && SHARED.isClipPlaneSet)
 	{
 		ApplyClipPlanes();
 	}
 
 	// Reenable Anisotropic Filtering
-	if (MaxAnisotropy)
+	if (SHARED.MaxAnisotropy)
 	{
 		ReeableAnisotropicSamplerState();
 	}
@@ -918,13 +963,13 @@ HRESULT m_IDirect3DDevice9Ex::DrawPrimitive(D3DPRIMITIVETYPE PrimitiveType, UINT
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
 	// CacheClipPlane
-	if (Config.CacheClipPlane && isClipPlaneSet)
+	if (Config.CacheClipPlane && SHARED.isClipPlaneSet)
 	{
 		ApplyClipPlanes();
 	}
 
 	// Reenable Anisotropic Filtering
-	if (MaxAnisotropy)
+	if (SHARED.MaxAnisotropy)
 	{
 		ReeableAnisotropicSamplerState();
 	}
@@ -937,13 +982,13 @@ HRESULT m_IDirect3DDevice9Ex::DrawPrimitiveUP(D3DPRIMITIVETYPE PrimitiveType, UI
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
 	// CacheClipPlane
-	if (Config.CacheClipPlane && isClipPlaneSet)
+	if (Config.CacheClipPlane && SHARED.isClipPlaneSet)
 	{
 		ApplyClipPlanes();
 	}
 
 	// Reenable Anisotropic Filtering
-	if (MaxAnisotropy)
+	if (SHARED.MaxAnisotropy)
 	{
 		ReeableAnisotropicSamplerState();
 	}
@@ -965,25 +1010,25 @@ HRESULT m_IDirect3DDevice9Ex::BeginScene()
 #endif
 
 	// Get DeviceCaps
-	if (Caps.DeviceType == NULL)
+	if (SHARED.Caps.DeviceType == NULL)
 	{
-		if (SUCCEEDED(ProxyInterface->GetDeviceCaps(&Caps)))
+		if (SUCCEEDED(ProxyInterface->GetDeviceCaps(&SHARED.Caps)))
 		{
 			// Set for Anisotropic Filtering
-			MaxAnisotropy = (Config.AnisotropicFiltering == 1) ? Caps.MaxAnisotropy : min((DWORD)Config.AnisotropicFiltering, Caps.MaxAnisotropy);
+			SHARED.MaxAnisotropy = (Config.AnisotropicFiltering == 1) ? SHARED.Caps.MaxAnisotropy : min((DWORD)Config.AnisotropicFiltering, SHARED.Caps.MaxAnisotropy);
 		}
 		else
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Error: Falied to get DeviceCaps (" << this << ")");
-			ZeroMemory(&Caps, sizeof(D3DCAPS9));
+			ZeroMemory(&SHARED.Caps, sizeof(D3DCAPS9));
 		}
 	}
 
 	// Set for Multisample
-	if (DeviceDetailsMap[DDKey].DeviceMultiSampleFlag)
+	if (SHARED.DeviceMultiSampleFlag)
 	{
 		ProxyInterface->SetRenderState(D3DRS_MULTISAMPLEANTIALIAS, TRUE);
-		if (SetSSAA)
+		if (SHARED.SetSSAA)
 		{
 			ProxyInterface->SetRenderState(D3DRS_ADAPTIVETESS_Y, MAKEFOURCC('S', 'S', 'A', 'A'));
 		}
@@ -1000,7 +1045,7 @@ HRESULT m_IDirect3DDevice9Ex::GetStreamSource(THIS_ UINT StreamNumber, IDirect3D
 
 	if (SUCCEEDED(hr) && ppStreamData)
 	{
-		*ppStreamData = ProxyAddressLookupTable9.FindAddress<m_IDirect3DVertexBuffer9, m_IDirect3DDevice9Ex>(*ppStreamData, this, IID_IDirect3DVertexBuffer9, nullptr);
+		*ppStreamData = SHARED.ProxyAddressLookupTable9.FindAddress<m_IDirect3DVertexBuffer9, m_IDirect3DDevice9Ex, LPVOID>(*ppStreamData, this, IID_IDirect3DVertexBuffer9, nullptr);
 	}
 
 	return hr;
@@ -1026,7 +1071,7 @@ HRESULT m_IDirect3DDevice9Ex::GetBackBuffer(THIS_ UINT iSwapChain, UINT iBackBuf
 
 	if (SUCCEEDED(hr) && ppBackBuffer)
 	{
-		*ppBackBuffer = ProxyAddressLookupTable9.FindAddress<m_IDirect3DSurface9, m_IDirect3DDevice9Ex>(*ppBackBuffer, this, IID_IDirect3DSurface9, nullptr);
+		*ppBackBuffer = SHARED.ProxyAddressLookupTable9.FindAddress<m_IDirect3DSurface9, m_IDirect3DDevice9Ex, LPVOID>(*ppBackBuffer, this, IID_IDirect3DSurface9, nullptr);
 	}
 
 	return hr;
@@ -1040,7 +1085,7 @@ HRESULT m_IDirect3DDevice9Ex::GetDepthStencilSurface(IDirect3DSurface9 **ppZSten
 
 	if (SUCCEEDED(hr) && ppZStencilSurface)
 	{
-		*ppZStencilSurface = ProxyAddressLookupTable9.FindAddress<m_IDirect3DSurface9, m_IDirect3DDevice9Ex>(*ppZStencilSurface, this, IID_IDirect3DSurface9, nullptr);
+		*ppZStencilSurface = SHARED.ProxyAddressLookupTable9.FindAddress<m_IDirect3DSurface9, m_IDirect3DDevice9Ex, LPVOID>(*ppZStencilSurface, this, IID_IDirect3DSurface9, nullptr);
 	}
 
 	return hr;
@@ -1057,13 +1102,13 @@ HRESULT m_IDirect3DDevice9Ex::GetTexture(DWORD Stage, IDirect3DBaseTexture9 **pp
 		switch ((*ppTexture)->GetType())
 		{
 		case D3DRTYPE_TEXTURE:
-			*ppTexture = ProxyAddressLookupTable9.FindAddress<m_IDirect3DTexture9, m_IDirect3DDevice9Ex>(*ppTexture, this, IID_IDirect3DTexture9, nullptr);
+			*ppTexture = SHARED.ProxyAddressLookupTable9.FindAddress<m_IDirect3DTexture9, m_IDirect3DDevice9Ex, LPVOID>(*ppTexture, this, IID_IDirect3DTexture9, nullptr);
 			break;
 		case D3DRTYPE_VOLUMETEXTURE:
-			*ppTexture = ProxyAddressLookupTable9.FindAddress<m_IDirect3DVolumeTexture9, m_IDirect3DDevice9Ex>(*ppTexture, this, IID_IDirect3DVolumeTexture9, nullptr);
+			*ppTexture = SHARED.ProxyAddressLookupTable9.FindAddress<m_IDirect3DVolumeTexture9, m_IDirect3DDevice9Ex, LPVOID>(*ppTexture, this, IID_IDirect3DVolumeTexture9, nullptr);
 			break;
 		case D3DRTYPE_CUBETEXTURE:
-			*ppTexture = ProxyAddressLookupTable9.FindAddress<m_IDirect3DCubeTexture9, m_IDirect3DDevice9Ex>(*ppTexture, this, IID_IDirect3DCubeTexture9, nullptr);
+			*ppTexture = SHARED.ProxyAddressLookupTable9.FindAddress<m_IDirect3DCubeTexture9, m_IDirect3DDevice9Ex, LPVOID>(*ppTexture, this, IID_IDirect3DCubeTexture9, nullptr);
 			break;
 		default:
 			return D3DERR_INVALIDCALL;
@@ -1090,23 +1135,23 @@ HRESULT m_IDirect3DDevice9Ex::SetTexture(DWORD Stage, IDirect3DBaseTexture9 *pTe
 		{
 		case D3DRTYPE_TEXTURE:
 			pTexture = static_cast<m_IDirect3DTexture9 *>(pTexture)->GetProxyInterface();
-			if (MaxAnisotropy && Stage > 0)
+			if (SHARED.MaxAnisotropy && Stage > 0)
 			{
-				DisableAnisotropicSamplerState((Caps.TextureFilterCaps & D3DPTFILTERCAPS_MINFANISOTROPIC), (Caps.TextureFilterCaps & D3DPTFILTERCAPS_MAGFANISOTROPIC));
+				DisableAnisotropicSamplerState((SHARED.Caps.TextureFilterCaps & D3DPTFILTERCAPS_MINFANISOTROPIC), (SHARED.Caps.TextureFilterCaps & D3DPTFILTERCAPS_MAGFANISOTROPIC));
 			}
 			break;
 		case D3DRTYPE_VOLUMETEXTURE:
 			pTexture = static_cast<m_IDirect3DVolumeTexture9 *>(pTexture)->GetProxyInterface();
-			if (MaxAnisotropy && Stage > 0)
+			if (SHARED.MaxAnisotropy && Stage > 0)
 			{
-				DisableAnisotropicSamplerState((Caps.VolumeTextureFilterCaps & D3DPTFILTERCAPS_MINFANISOTROPIC), (Caps.VolumeTextureFilterCaps & D3DPTFILTERCAPS_MAGFANISOTROPIC));
+				DisableAnisotropicSamplerState((SHARED.Caps.VolumeTextureFilterCaps & D3DPTFILTERCAPS_MINFANISOTROPIC), (SHARED.Caps.VolumeTextureFilterCaps & D3DPTFILTERCAPS_MAGFANISOTROPIC));
 			}
 			break;
 		case D3DRTYPE_CUBETEXTURE:
 			pTexture = static_cast<m_IDirect3DCubeTexture9 *>(pTexture)->GetProxyInterface();
-			if (MaxAnisotropy && Stage > 0)
+			if (SHARED.MaxAnisotropy && Stage > 0)
 			{
-				DisableAnisotropicSamplerState((Caps.CubeTextureFilterCaps & D3DPTFILTERCAPS_MINFANISOTROPIC), (Caps.CubeTextureFilterCaps & D3DPTFILTERCAPS_MAGFANISOTROPIC));
+				DisableAnisotropicSamplerState((SHARED.Caps.CubeTextureFilterCaps & D3DPTFILTERCAPS_MINFANISOTROPIC), (SHARED.Caps.CubeTextureFilterCaps & D3DPTFILTERCAPS_MAGFANISOTROPIC));
 			}
 			break;
 		default:
@@ -1185,7 +1230,7 @@ HRESULT m_IDirect3DDevice9Ex::GetClipPlane(DWORD Index, float *pPlane)
 			return D3DERR_INVALIDCALL;
 		}
 
-		memcpy(pPlane, m_storedClipPlanes[Index], sizeof(m_storedClipPlanes[0]));
+		memcpy(pPlane, SHARED.m_storedClipPlanes[Index], sizeof(SHARED.m_storedClipPlanes[0]));
 
 		return D3D_OK;
 	}
@@ -1205,9 +1250,9 @@ HRESULT m_IDirect3DDevice9Ex::SetClipPlane(DWORD Index, CONST float *pPlane)
 			return D3DERR_INVALIDCALL;
 		}
 
-		isClipPlaneSet = true;
+		SHARED.isClipPlaneSet = true;
 
-		memcpy(m_storedClipPlanes[Index], pPlane, sizeof(m_storedClipPlanes[0]));
+		memcpy(SHARED.m_storedClipPlanes[Index], pPlane, sizeof(SHARED.m_storedClipPlanes[0]));
 
 		return D3D_OK;
 	}
@@ -1221,9 +1266,9 @@ void m_IDirect3DDevice9Ex::ApplyClipPlanes()
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
 	DWORD index = 0;
-	for (const auto clipPlane : m_storedClipPlanes)
+	for (const auto clipPlane : SHARED.m_storedClipPlanes)
 	{
-		if ((m_clipPlaneRenderState & (1 << index)) != 0)
+		if ((SHARED.m_clipPlaneRenderState & (1 << index)) != 0)
 		{
 			ProxyInterface->SetClipPlane(index, clipPlane);
 		}
@@ -1235,10 +1280,10 @@ HRESULT m_IDirect3DDevice9Ex::Clear(DWORD Count, CONST D3DRECT *pRects, DWORD Fl
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	if (Config.FullscreenWindowMode && IsWindow(DeviceDetailsMap[DDKey].DeviceWindow))
+	if (Config.FullscreenWindowMode && IsWindow(SHARED.DeviceWindow))
 	{
 		// Peek messages to help prevent a "Not Responding" window
-		Utils::CheckMessageQueue(DeviceDetailsMap[DDKey].DeviceWindow);
+		Utils::CheckMessageQueue(SHARED.DeviceWindow);
 	}
 
 	return ProxyInterface->Clear(Count, pRects, Flags, Color, Z, Stencil);
@@ -1287,7 +1332,7 @@ HRESULT m_IDirect3DDevice9Ex::GetVertexShader(THIS_ IDirect3DVertexShader9** ppS
 
 	if (SUCCEEDED(hr) && ppShader)
 	{
-		*ppShader = ProxyAddressLookupTable9.FindAddress<m_IDirect3DVertexShader9, m_IDirect3DDevice9Ex>(*ppShader, this, IID_IDirect3DVertexShader9, nullptr);
+		*ppShader = SHARED.ProxyAddressLookupTable9.FindAddress<m_IDirect3DVertexShader9, m_IDirect3DDevice9Ex, LPVOID>(*ppShader, this, IID_IDirect3DVertexShader9, nullptr);
 	}
 
 	return hr;
@@ -1479,7 +1524,7 @@ HRESULT m_IDirect3DDevice9Ex::GetVertexDeclaration(THIS_ IDirect3DVertexDeclarat
 
 	if (SUCCEEDED(hr) && ppDecl)
 	{
-		*ppDecl = ProxyAddressLookupTable9.FindAddress<m_IDirect3DVertexDeclaration9, m_IDirect3DDevice9Ex>(*ppDecl, this, IID_IDirect3DVertexDeclaration9, nullptr);
+		*ppDecl = SHARED.ProxyAddressLookupTable9.FindAddress<m_IDirect3DVertexDeclaration9, m_IDirect3DDevice9Ex, LPVOID>(*ppDecl, this, IID_IDirect3DVertexDeclaration9, nullptr);
 	}
 
 	return hr;
@@ -1569,24 +1614,24 @@ HRESULT m_IDirect3DDevice9Ex::SetSamplerState(THIS_ DWORD Sampler, D3DSAMPLERSTA
 	}
 
 	// Enable Anisotropic Filtering
-	if (MaxAnisotropy)
+	if (SHARED.MaxAnisotropy)
 	{
 		if (Type == D3DSAMP_MAXANISOTROPY)
 		{
-			if (SUCCEEDED(ProxyInterface->SetSamplerState(Sampler, D3DSAMP_MAXANISOTROPY, MaxAnisotropy)))
+			if (SUCCEEDED(ProxyInterface->SetSamplerState(Sampler, D3DSAMP_MAXANISOTROPY, SHARED.MaxAnisotropy)))
 			{
 				return D3D_OK;
 			}
 		}
 		else if ((Value == D3DTEXF_LINEAR || Value == D3DTEXF_ANISOTROPIC) && (Type == D3DSAMP_MINFILTER || Type == D3DSAMP_MAGFILTER))
 		{
-			if (SUCCEEDED(ProxyInterface->SetSamplerState(Sampler, D3DSAMP_MAXANISOTROPY, MaxAnisotropy)) &&
+			if (SUCCEEDED(ProxyInterface->SetSamplerState(Sampler, D3DSAMP_MAXANISOTROPY, SHARED.MaxAnisotropy)) &&
 				SUCCEEDED(ProxyInterface->SetSamplerState(Sampler, Type, D3DTEXF_ANISOTROPIC)))
 			{
-				if (!isAnisotropySet)
+				if (!SHARED.isAnisotropySet)
 				{
-					isAnisotropySet = true;
-					Logging::Log() << "Setting Anisotropic Filtering at " << MaxAnisotropy << "x";
+					SHARED.isAnisotropySet = true;
+					Logging::Log() << "Setting Anisotropic Filtering at " << SHARED.MaxAnisotropy << "x";
 				}
 				return D3D_OK;
 			}
@@ -1606,7 +1651,7 @@ void m_IDirect3DDevice9Ex::DisableAnisotropicSamplerState(bool AnisotropyMin, bo
 			if (SUCCEEDED(ProxyInterface->GetSamplerState(x, D3DSAMP_MINFILTER, &Value)) && Value == D3DTEXF_ANISOTROPIC &&
 				SUCCEEDED(ProxyInterface->SetSamplerState(x, D3DSAMP_MINFILTER, D3DTEXF_LINEAR)))
 			{
-				AnisotropyDisabledFlag = true;
+				SHARED.AnisotropyDisabledFlag = true;
 			}
 		}
 		if (!AnisotropyMag)	// Anisotropic Mag Filter is not supported for multi-stage textures
@@ -1614,7 +1659,7 @@ void m_IDirect3DDevice9Ex::DisableAnisotropicSamplerState(bool AnisotropyMin, bo
 			if (SUCCEEDED(ProxyInterface->GetSamplerState(x, D3DSAMP_MAGFILTER, &Value)) && Value == D3DTEXF_ANISOTROPIC &&
 				SUCCEEDED(ProxyInterface->SetSamplerState(x, D3DSAMP_MAGFILTER, D3DTEXF_LINEAR)))
 			{
-				AnisotropyDisabledFlag = true;
+				SHARED.AnisotropyDisabledFlag = true;
 			}
 		}
 	}
@@ -1622,7 +1667,7 @@ void m_IDirect3DDevice9Ex::DisableAnisotropicSamplerState(bool AnisotropyMin, bo
 
 void m_IDirect3DDevice9Ex::ReeableAnisotropicSamplerState()
 {
-	if (AnisotropyDisabledFlag)
+	if (SHARED.AnisotropyDisabledFlag)
 	{
 		bool Flag = false;
 		DWORD Value = 0;
@@ -1639,7 +1684,7 @@ void m_IDirect3DDevice9Ex::ReeableAnisotropicSamplerState()
 				Flag = true;	// Unable to re-eanble Anisotropic filtering
 			}
 		}
-		AnisotropyDisabledFlag = Flag;
+		SHARED.AnisotropyDisabledFlag = Flag;
 	}
 }
 
@@ -1886,7 +1931,7 @@ HRESULT m_IDirect3DDevice9Ex::GetFrontBufferData(THIS_ UINT iSwapChain, IDirect3
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	if (Config.EnableWindowMode && (DeviceDetailsMap[DDKey].BufferWidth != DeviceDetailsMap[DDKey].screenWidth || DeviceDetailsMap[DDKey].BufferHeight != DeviceDetailsMap[DDKey].screenHeight))
+	if (Config.EnableWindowMode && (SHARED.BufferWidth != SHARED.screenWidth || SHARED.BufferHeight != SHARED.screenHeight))
 	{
 		return FakeGetFrontBufferData(iSwapChain, pDestSurface);
 	}
@@ -1916,9 +1961,9 @@ HRESULT m_IDirect3DDevice9Ex::FakeGetFrontBufferData(THIS_ UINT iSwapChain, IDir
 	}
 
 	// Get location of client window
-	RECT RectSrc = { 0, 0, DeviceDetailsMap[DDKey].BufferWidth , DeviceDetailsMap[DDKey].BufferHeight };
-	RECT rcClient = { 0, 0, DeviceDetailsMap[DDKey].BufferWidth , DeviceDetailsMap[DDKey].BufferHeight };
-	if (Config.EnableWindowMode && DeviceDetailsMap[DDKey].DeviceWindow && (!GetWindowRect(DeviceDetailsMap[DDKey].DeviceWindow, &RectSrc) || !GetClientRect(DeviceDetailsMap[DDKey].DeviceWindow, &rcClient)))
+	RECT RectSrc = { 0, 0, SHARED.BufferWidth , SHARED.BufferHeight };
+	RECT rcClient = { 0, 0, SHARED.BufferWidth , SHARED.BufferHeight };
+	if (Config.EnableWindowMode && SHARED.DeviceWindow && (!GetWindowRect(SHARED.DeviceWindow, &RectSrc) || !GetClientRect(SHARED.DeviceWindow, &rcClient)))
 	{
 		return D3DERR_INVALIDCALL;
 	}
@@ -1931,7 +1976,7 @@ HRESULT m_IDirect3DDevice9Ex::FakeGetFrontBufferData(THIS_ UINT iSwapChain, IDir
 
 	// Create new surface to hold data
 	IDirect3DSurface9 *pSrcSurface = nullptr;
-	if (FAILED(ProxyInterface->CreateOffscreenPlainSurface(max(DeviceDetailsMap[DDKey].screenWidth, RectSrc.right), max(DeviceDetailsMap[DDKey].screenHeight, RectSrc.bottom), Desc.Format, Desc.Pool, &pSrcSurface, nullptr)))
+	if (FAILED(ProxyInterface->CreateOffscreenPlainSurface(max(SHARED.screenWidth, RectSrc.right), max(SHARED.screenHeight, RectSrc.bottom), Desc.Format, Desc.Pool, &pSrcSurface, nullptr)))
 	{
 		return D3DERR_INVALIDCALL;
 	}
@@ -2060,7 +2105,7 @@ HRESULT m_IDirect3DDevice9Ex::GetSwapChain(THIS_ UINT iSwapChain, IDirect3DSwapC
 
 	if (SUCCEEDED(hr))
 	{
-		*ppSwapChain = ProxyAddressLookupTable9.FindAddress<m_IDirect3DSwapChain9Ex, m_IDirect3DDevice9Ex>(*ppSwapChain, this, IID_IDirect3DSwapChain9, nullptr);
+		*ppSwapChain = SHARED.ProxyAddressLookupTable9.FindAddress<m_IDirect3DSwapChain9Ex, m_IDirect3DDevice9Ex, LPVOID>(*ppSwapChain, this, WrapperID == IID_IDirect3DDevice9Ex ? IID_IDirect3DSwapChain9Ex : IID_IDirect3DSwapChain9, nullptr);
 	}
 
 	return hr;
@@ -2279,16 +2324,16 @@ HRESULT m_IDirect3DDevice9Ex::CreateRenderTargetEx(THIS_ UINT Width, UINT Height
 	HRESULT hr = D3DERR_INVALIDCALL;
 
 	// Test for Multisample
-	if (DeviceDetailsMap[DDKey].DeviceMultiSampleFlag)
+	if (SHARED.DeviceMultiSampleFlag)
 	{
-		hr = ProxyInterfaceEx->CreateRenderTargetEx(Width, Height, Format, DeviceDetailsMap[DDKey].DeviceMultiSampleType, DeviceDetailsMap[DDKey].DeviceMultiSampleQuality, FALSE, ppSurface, pSharedHandle, Usage);
+		hr = ProxyInterfaceEx->CreateRenderTargetEx(Width, Height, Format, SHARED.DeviceMultiSampleType, SHARED.DeviceMultiSampleQuality, FALSE, ppSurface, pSharedHandle, Usage);
 	}
 
 	if (FAILED(hr))
 	{
 		hr = ProxyInterfaceEx->CreateRenderTargetEx(Width, Height, Format, MultiSample, MultisampleQuality, Lockable, ppSurface, pSharedHandle, Usage);
 
-		if (SUCCEEDED(hr) && DeviceDetailsMap[DDKey].DeviceMultiSampleFlag)
+		if (SUCCEEDED(hr) && SHARED.DeviceMultiSampleFlag)
 		{
 			LOG_LIMIT(3, __FUNCTION__ << " Disabling AntiAliasing for Render Target...");
 		}
@@ -2349,16 +2394,16 @@ HRESULT m_IDirect3DDevice9Ex::CreateDepthStencilSurfaceEx(THIS_ UINT Width, UINT
 	HRESULT hr = D3DERR_INVALIDCALL;
 
 	// Test for Multisample
-	if (DeviceDetailsMap[DDKey].DeviceMultiSampleFlag)
+	if (SHARED.DeviceMultiSampleFlag)
 	{
-		hr = ProxyInterfaceEx->CreateDepthStencilSurfaceEx(Width, Height, Format, DeviceDetailsMap[DDKey].DeviceMultiSampleType, DeviceDetailsMap[DDKey].DeviceMultiSampleQuality, TRUE, ppSurface, pSharedHandle, Usage);
+		hr = ProxyInterfaceEx->CreateDepthStencilSurfaceEx(Width, Height, Format, SHARED.DeviceMultiSampleType, SHARED.DeviceMultiSampleQuality, TRUE, ppSurface, pSharedHandle, Usage);
 	}
 
 	if (FAILED(hr))
 	{
 		hr = ProxyInterfaceEx->CreateDepthStencilSurfaceEx(Width, Height, Format, MultiSample, MultisampleQuality, Discard, ppSurface, pSharedHandle, Usage);
 
-		if (SUCCEEDED(hr) && DeviceDetailsMap[DDKey].DeviceMultiSampleFlag)
+		if (SUCCEEDED(hr) && SHARED.DeviceMultiSampleFlag)
 		{
 			LOG_LIMIT(3, __FUNCTION__ << " Disabling AntiAliasing for Depth Stencil...");
 		}
@@ -2416,24 +2461,24 @@ HRESULT m_IDirect3DDevice9Ex::GetDisplayModeEx(THIS_ UINT iSwapChain, D3DDISPLAY
 void m_IDirect3DDevice9Ex::ReInitDevice()
 {
 #ifdef ENABLE_DEBUGOVERLAY
-	if (Config.EnableImgui && IsWindow(DeviceDetailsMap[DDKey].DeviceWindow))
+	if (Config.EnableImgui && IsWindow(SHARED.DeviceWindow))
 	{
-		DOverlay.Setup(DeviceDetailsMap[DDKey].DeviceWindow, ProxyInterface);
+		DOverlay.Setup(SHARED.DeviceWindow, ProxyInterface);
 	}
 #endif
 
-	Utils::GetScreenSize(DeviceDetailsMap[DDKey].DeviceWindow, DeviceDetailsMap[DDKey].screenWidth, DeviceDetailsMap[DDKey].screenHeight);
+	Utils::GetScreenSize(SHARED.DeviceWindow, SHARED.screenWidth, SHARED.screenHeight);
 }
 
 void m_IDirect3DDevice9Ex::LimitFrameRate()
 {
 	// Count number of frames
-	Counter.FrameCounter++;
+	SHARED.Counter.FrameCounter++;
 
 	// Get performance frequancy
-	if (!Counter.Frequency.QuadPart)
+	if (!SHARED.Counter.Frequency.QuadPart)
 	{
-		QueryPerformanceFrequency(&Counter.Frequency);
+		QueryPerformanceFrequency(&SHARED.Counter.Frequency);
 	}
 
 	// Get milliseconds for each frame
@@ -2442,8 +2487,8 @@ void m_IDirect3DDevice9Ex::LimitFrameRate()
 	// Wait for time to expire
 	bool DoLoop;
 	do {
-		QueryPerformanceCounter(&Counter.ClickTime);
-		double DeltaPresentMS = ((Counter.ClickTime.QuadPart - Counter.LastPresentTime.QuadPart) * 1000.0) / Counter.Frequency.QuadPart;
+		QueryPerformanceCounter(&SHARED.Counter.ClickTime);
+		double DeltaPresentMS = ((SHARED.Counter.ClickTime.QuadPart - SHARED.Counter.LastPresentTime.QuadPart) * 1000.0) / SHARED.Counter.Frequency.QuadPart;
 
 		DoLoop = false;
 		if (DeltaPresentMS < DelayTimeMS && DeltaPresentMS > 0)
@@ -2455,5 +2500,5 @@ void m_IDirect3DDevice9Ex::LimitFrameRate()
 	} while (DoLoop);
 
 	// Get new counter time
-	QueryPerformanceCounter(&Counter.LastPresentTime);
+	QueryPerformanceCounter(&SHARED.Counter.LastPresentTime);
 }

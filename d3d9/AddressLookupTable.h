@@ -5,26 +5,23 @@
 
 constexpr UINT MaxIndex = 16;
 
-template <typename D>
+class AddressLookupTableD3d9Object
+{
+public:
+	virtual ~AddressLookupTableD3d9Object();
+	void DeleteMe();
+};
+
 class AddressLookupTableD3d9
 {
 public:
-	explicit AddressLookupTableD3d9(D*) {}
-	~AddressLookupTableD3d9()
-	{
-		ConstructorFlag = true;
-
-		for (const auto& cache : g_map)
-		{
-			for (const auto& entry : cache)
-			{
-				entry.second->DeleteMe();
-			}
-		}
-	}
+	explicit AddressLookupTableD3d9();
+	~AddressLookupTableD3d9();
 
 	template <typename T>
 	struct AddressCacheIndex { static constexpr UINT CacheIndex = 0; };
+
+	// Specializations for AddressCacheIndex
 	template <>
 	struct AddressCacheIndex<m_IDirect3D9Ex> { static constexpr UINT CacheIndex = 1; };
 	template <>
@@ -56,157 +53,20 @@ public:
 	template <>
 	struct AddressCacheIndex<m_IDirect3DVolumeTexture9> { static constexpr UINT CacheIndex = 15; };
 
-	m_IDirect3D9Ex* CreateInterface(m_IDirect3D9Ex* Proxy, void*, REFIID riid, void*)
-	{
-		return new m_IDirect3D9Ex(static_cast<m_IDirect3D9Ex*>(Proxy), riid);
-	}
-	m_IDirect3DDevice9Ex* CreateInterface(m_IDirect3DDevice9Ex* Proxy, m_IDirect3D9Ex* Device, REFIID riid, UINT Data)
-	{
-		return new m_IDirect3DDevice9Ex(static_cast<m_IDirect3DDevice9Ex*>(Proxy), Device, riid, Data);
-	}
-	m_IDirect3DCubeTexture9* CreateInterface(m_IDirect3DCubeTexture9* Proxy, m_IDirect3DDevice9Ex* Device, REFIID, void*)
-	{
-		return new m_IDirect3DCubeTexture9(static_cast<m_IDirect3DCubeTexture9*>(Proxy), Device);
-	}
-	m_IDirect3DIndexBuffer9* CreateInterface(m_IDirect3DIndexBuffer9* Proxy, m_IDirect3DDevice9Ex* Device, REFIID, void*)
-	{
-		return new m_IDirect3DIndexBuffer9(static_cast<m_IDirect3DIndexBuffer9*>(Proxy), Device);
-	}
-	m_IDirect3DPixelShader9* CreateInterface(m_IDirect3DPixelShader9* Proxy, m_IDirect3DDevice9Ex* Device, REFIID, void*)
-	{
-		return new m_IDirect3DPixelShader9(static_cast<m_IDirect3DPixelShader9*>(Proxy), Device);
-	}
-	m_IDirect3DQuery9* CreateInterface(m_IDirect3DQuery9* Proxy, m_IDirect3DDevice9Ex* Device, REFIID, void*)
-	{
-		return new m_IDirect3DQuery9(static_cast<m_IDirect3DQuery9*>(Proxy), Device);
-	}
-	m_IDirect3DStateBlock9* CreateInterface(m_IDirect3DStateBlock9* Proxy, m_IDirect3DDevice9Ex* Device, REFIID, void*)
-	{
-		return new m_IDirect3DStateBlock9(static_cast<m_IDirect3DStateBlock9*>(Proxy), Device);
-	}
-	m_IDirect3DSurface9* CreateInterface(m_IDirect3DSurface9* Proxy, m_IDirect3DDevice9Ex* Device, REFIID, void*)
-	{
-		return new m_IDirect3DSurface9(static_cast<m_IDirect3DSurface9*>(Proxy), Device);
-	}
-	m_IDirect3DSwapChain9Ex* CreateInterface(m_IDirect3DSwapChain9Ex* Proxy, m_IDirect3DDevice9Ex* Device, REFIID riid, void*)
-	{
-		return new m_IDirect3DSwapChain9Ex(static_cast<m_IDirect3DSwapChain9Ex*>(Proxy), Device, riid);
-	}
-	m_IDirect3DTexture9* CreateInterface(m_IDirect3DTexture9* Proxy, m_IDirect3DDevice9Ex* Device, REFIID, void*)
-	{
-		return new m_IDirect3DTexture9(static_cast<m_IDirect3DTexture9*>(Proxy), Device);
-	}
-	m_IDirect3DVertexBuffer9* CreateInterface(m_IDirect3DVertexBuffer9* Proxy, m_IDirect3DDevice9Ex* Device, REFIID, void*)
-	{
-		return new m_IDirect3DVertexBuffer9(static_cast<m_IDirect3DVertexBuffer9*>(Proxy), Device);
-	}
-	m_IDirect3DVertexDeclaration9* CreateInterface(m_IDirect3DVertexDeclaration9* Proxy, m_IDirect3DDevice9Ex* Device, REFIID, void*)
-	{
-		return new m_IDirect3DVertexDeclaration9(static_cast<m_IDirect3DVertexDeclaration9*>(Proxy), Device);
-	}
-	m_IDirect3DVertexShader9* CreateInterface(m_IDirect3DVertexShader9* Proxy, m_IDirect3DDevice9Ex* Device, REFIID, void*)
-	{
-		return new m_IDirect3DVertexShader9(static_cast<m_IDirect3DVertexShader9*>(Proxy), Device);
-	}
-	m_IDirect3DVolume9* CreateInterface(m_IDirect3DVolume9* Proxy, m_IDirect3DDevice9Ex* Device, REFIID, void*)
-	{
-		return new m_IDirect3DVolume9(static_cast<m_IDirect3DVolume9*>(Proxy), Device);
-	}
-	m_IDirect3DVolumeTexture9* CreateInterface(m_IDirect3DVolumeTexture9* Proxy, m_IDirect3DDevice9Ex* Device, REFIID, void*)
-	{
-		return new m_IDirect3DVolumeTexture9(static_cast<m_IDirect3DVolumeTexture9*>(Proxy), Device);
-	}
+	// General template function for CreateInterface
+	template <typename T, typename D, typename L>
+	T* CreateInterface(T* Proxy, D* Device, REFIID riid, L Data);
 
 	template <typename T, typename D, typename L>
-	T *FindAddress(void* Proxy, D* Device, REFIID riid, L Data)
-	{
-		if (!Proxy)
-		{
-			return nullptr;
-		}
-
-		constexpr UINT CacheIndex = AddressCacheIndex<T>::CacheIndex;
-		auto it = g_map[CacheIndex].find(Proxy);
-
-		if (it != std::end(g_map[CacheIndex]))
-		{
-			return static_cast<T *>(it->second);
-		}
-
-		return CreateInterface((T*)Proxy, Device, riid, Data);
-	}
+	T* FindAddress(void* Proxy, D* Device, REFIID riid, L Data);
 
 	template <typename T>
-	void SaveAddress(T *Wrapper, void *Proxy)
-	{
-		while (ClearFlag)
-		{
-			Sleep(0);
-		}
-		constexpr UINT CacheIndex = AddressCacheIndex<T>::CacheIndex;
-		if (Wrapper && Proxy)
-		{
-			g_map[CacheIndex][Proxy] = Wrapper;
-		}
-	}
+	void SaveAddress(T* Wrapper, void* Proxy);
 
 	template <typename T>
-	void DeleteAddress(T *Wrapper)
-	{
-		if (!Wrapper || ConstructorFlag || ClearFlag)
-		{
-			return;
-		}
-
-		constexpr UINT CacheIndex = AddressCacheIndex<T>::CacheIndex;
-		auto it = std::find_if(g_map[CacheIndex].begin(), g_map[CacheIndex].end(),
-			[=](auto Map) -> bool { return Map.second == Wrapper; });
-
-		if (it != std::end(g_map[CacheIndex]))
-		{
-			it = g_map[CacheIndex].erase(it);
-		}
-	}
-
-	UINT GetDeviceCount()
-	{
-		if (ConstructorFlag)
-		{
-			return TRUE;
-		}
-		return g_map[AddressCacheIndex<m_IDirect3DDevice9Ex>::CacheIndex].size();
-	}
-
-	void ClearInterfaces()
-	{
-		ClearFlag = true;
-		for (UINT x = 0; x < MaxIndex; x++)
-		{
-			if (x != AddressCacheIndex<m_IDirect3D9Ex>::CacheIndex)
-			{
-				for (const auto& entry : g_map[x])
-				{
-					entry.second->DeleteMe();
-				}
-				g_map[x].clear();
-			}
-		}
-		ClearFlag = false;
-	}
+	void DeleteAddress(T* Wrapper);
 
 private:
 	bool ConstructorFlag = false;
-	bool ClearFlag = false;
 	std::unordered_map<void*, class AddressLookupTableD3d9Object*> g_map[MaxIndex];
-};
-
-class AddressLookupTableD3d9Object
-{
-public:
-	virtual ~AddressLookupTableD3d9Object() {}
-
-	void DeleteMe()
-	{
-		delete this;
-	}
 };

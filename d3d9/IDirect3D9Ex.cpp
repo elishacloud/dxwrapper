@@ -20,7 +20,18 @@
 // WndProc hook
 bool EnableWndProcHook = false;
 
+AddressLookupTableD3d9 ProxyAddressLookupTable9;		// Just used for m_IDirect3D9Ex interfaces only
+
 void AdjustWindow(HWND MainhWnd, LONG displayWidth, LONG displayHeight, bool isWindowed);
+
+void m_IDirect3D9Ex::InitInterface()
+{
+	ProxyAddressLookupTable9.SaveAddress(this, ProxyInterface);
+}
+void m_IDirect3D9Ex::ReleaseInterface()
+{
+	ProxyAddressLookupTable9.DeleteAddress(this);
+}
 
 HRESULT m_IDirect3D9Ex::QueryInterface(REFIID riid, void** ppvObj)
 {
@@ -44,7 +55,7 @@ HRESULT m_IDirect3D9Ex::QueryInterface(REFIID riid, void** ppvObj)
 	{
 		if (riid == IID_IDirect3D9 || riid == IID_IDirect3D9Ex)
 		{
-			*ppvObj = ProxyAddressLookupTable9.FindAddress<m_IDirect3D9Ex, void>(*ppvObj, nullptr, riid, nullptr);
+			*ppvObj = ProxyAddressLookupTable9.FindAddress<m_IDirect3D9Ex, void, LPVOID>(*ppvObj, nullptr, riid, nullptr);
 		}
 		else
 		{
@@ -199,7 +210,7 @@ HRESULT m_IDirect3D9Ex::CheckDeviceFormatConversion(THIS_ UINT Adapter, D3DDEVTY
 }
 
 template <typename T>
-HRESULT m_IDirect3D9Ex::CreateDeviceT(D3DPRESENT_PARAMETERS& d3dpp, bool& MultiSampleFlag, UINT Adapter, D3DDEVTYPE DeviceType, HWND hFocusWindow, DWORD BehaviorFlags, D3DPRESENT_PARAMETERS* pPresentationParameters, D3DDISPLAYMODEEX* pFullscreenDisplayMode, T ppReturnedDeviceInterface)
+HRESULT m_IDirect3D9Ex::CreateDeviceT(D3DPRESENT_PARAMETERS& d3dpp, bool& MultiSampleFlag, UINT Adapter, D3DDEVTYPE DeviceType, HWND hFocusWindow, DWORD BehaviorFlags, D3DPRESENT_PARAMETERS* pPresentationParameters, DEVICEDETAILS& DeviceDetails, D3DDISPLAYMODEEX* pFullscreenDisplayMode, T ppReturnedDeviceInterface)
 {
 	if (!pPresentationParameters || !ppReturnedDeviceInterface)
 	{
@@ -284,10 +295,12 @@ HRESULT m_IDirect3D9Ex::CreateDevice(UINT Adapter, D3DDEVTYPE DeviceType, HWND h
 		return D3DERR_INVALIDCALL;
 	}
 
+	DEVICEDETAILS DeviceDetails;
+
 	bool MultiSampleFlag = false;
 	D3DPRESENT_PARAMETERS d3dpp;
 
-	HRESULT hr = CreateDeviceT(d3dpp, MultiSampleFlag, Adapter, DeviceType, hFocusWindow, BehaviorFlags, pPresentationParameters, nullptr, ppReturnedDeviceInterface);
+	HRESULT hr = CreateDeviceT(d3dpp, MultiSampleFlag, Adapter, DeviceType, hFocusWindow, BehaviorFlags, pPresentationParameters, DeviceDetails, nullptr, ppReturnedDeviceInterface);
 
 	if (SUCCEEDED(hr))
 	{
@@ -357,10 +370,12 @@ HRESULT m_IDirect3D9Ex::CreateDeviceEx(THIS_ UINT Adapter, D3DDEVTYPE DeviceType
 		return D3DERR_INVALIDCALL;
 	}
 
+	DEVICEDETAILS DeviceDetails;
+
 	bool MultiSampleFlag = false;
 	D3DPRESENT_PARAMETERS d3dpp;
 
-	HRESULT hr = CreateDeviceT(d3dpp, MultiSampleFlag, Adapter, DeviceType, hFocusWindow, BehaviorFlags, pPresentationParameters, pFullscreenDisplayMode, ppReturnedDeviceInterface);
+	HRESULT hr = CreateDeviceT(d3dpp, MultiSampleFlag, Adapter, DeviceType, hFocusWindow, BehaviorFlags, pPresentationParameters, DeviceDetails, pFullscreenDisplayMode, ppReturnedDeviceInterface);
 
 	if (SUCCEEDED(hr))
 	{

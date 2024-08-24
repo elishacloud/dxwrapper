@@ -12,7 +12,7 @@ public:
 	{
 		LOG_LIMIT(3, "Creating interface " << __FUNCTION__ << " (" << this << ")");
 
-		ProxyAddressLookupTable9.SaveAddress(this, ProxyInterface);
+		m_pDeviceEx->GetLookupTable()->SaveAddress(this, ProxyInterface);
 	}
 	~m_IDirect3DVertexDeclaration9()
 	{

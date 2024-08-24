@@ -880,6 +880,9 @@
     <ClCompile Include="GDI\WndProc.cpp">
       <Filter>GDI</Filter>
     </ClCompile>
+    <ClCompile Include="d3d9\AddressLookupTable.cpp">
+      <Filter>d3d9</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="Settings\AllSettings.ini">

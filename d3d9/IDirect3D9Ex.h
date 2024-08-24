@@ -1,5 +1,8 @@
 #pragma once
 
+void UpdatePresentParameter(D3DPRESENT_PARAMETERS* pPresentationParameters, HWND hFocusWindow, DEVICEDETAILS& DeviceDetails, bool ForceExclusiveFullscreen, bool SetWindow);
+void UpdatePresentParameterForMultisample(D3DPRESENT_PARAMETERS* pPresentationParameters, D3DMULTISAMPLE_TYPE MultiSampleType, DWORD MultiSampleQuality);
+
 class m_IDirect3D9Ex : public IDirect3D9Ex, public AddressLookupTableD3d9Object
 {
 private:
@@ -7,11 +10,9 @@ private:
 	LPDIRECT3D9EX ProxyInterfaceEx = nullptr;
 	REFIID WrapperID;
 
-	DEVICEDETAILS DeviceDetails;
-
 	// For Create & CreateEx
 	template <typename T>
-	HRESULT CreateDeviceT(D3DPRESENT_PARAMETERS& d3dpp, bool& MultiSampleFlag, UINT Adapter, D3DDEVTYPE DeviceType, HWND hFocusWindow, DWORD BehaviorFlags, D3DPRESENT_PARAMETERS* pPresentationParameters, D3DDISPLAYMODEEX* pFullscreenDisplayMode, T ppReturnedDeviceInterface);
+	HRESULT CreateDeviceT(D3DPRESENT_PARAMETERS& d3dpp, bool& MultiSampleFlag, UINT Adapter, D3DDEVTYPE DeviceType, HWND hFocusWindow, DWORD BehaviorFlags, D3DPRESENT_PARAMETERS* pPresentationParameters, DEVICEDETAILS& DeviceDetails, D3DDISPLAYMODEEX* pFullscreenDisplayMode, T ppReturnedDeviceInterface);
 	HRESULT CreateDeviceT(UINT Adapter, D3DDEVTYPE DeviceType, HWND hFocusWindow, DWORD BehaviorFlags, D3DPRESENT_PARAMETERS* pPresentationParameters, D3DDISPLAYMODEEX*, IDirect3DDevice9** ppReturnedDeviceInterface)
 	{ return ProxyInterface->CreateDevice(Adapter, DeviceType, hFocusWindow, BehaviorFlags, pPresentationParameters, ppReturnedDeviceInterface); }
 	HRESULT CreateDeviceT(UINT Adapter, D3DDEVTYPE DeviceType, HWND hFocusWindow, DWORD BehaviorFlags, D3DPRESENT_PARAMETERS* pPresentationParameters, D3DDISPLAYMODEEX* pFullscreenDisplayMode, IDirect3DDevice9Ex** ppReturnedDeviceInterface)
@@ -19,6 +20,8 @@ private:
 
 	// Other helper functions
 	void LogAdapterNames();
+	void InitInterface();
+	void ReleaseInterface();
 
 public:
 	m_IDirect3D9Ex(LPDIRECT3D9EX pDirect3D, REFIID DeviceID) : ProxyInterface(pDirect3D), WrapperID(DeviceID)
@@ -32,13 +35,13 @@ public:
 
 		LogAdapterNames();
 
-		ProxyAddressLookupTable9.SaveAddress(this, ProxyInterface);
+		InitInterface();
 	}
 	~m_IDirect3D9Ex()
 	{
 		LOG_LIMIT(3, __FUNCTION__ << " (" << this << ")" << " deleting interface!");
 
-		ProxyAddressLookupTable9.DeleteAddress(this);
+		ReleaseInterface();
 	}
 
 	/*** IUnknown methods ***/

@@ -1,6 +1,48 @@
 #pragma once
 
-#include "GDI\GDI.h"
+static constexpr size_t MAX_CLIP_PLANES = 6;
+
+struct DEVICEDETAILS
+{
+	// Window handle and size
+	HWND DeviceWindow = nullptr;
+	LONG BufferWidth = 0, BufferHeight = 0;
+	LONG screenWidth = 0, screenHeight = 0;
+
+	std::unordered_map<m_IDirect3DDevice9Ex*, BOOL> DeviceMap;
+
+	AddressLookupTableD3d9 ProxyAddressLookupTable9;
+
+	D3DCAPS9 Caps = {};
+
+	// Limit frame rate
+	struct {
+		DWORD FrameCounter = 0;
+		LARGE_INTEGER Frequency = {}, ClickTime = {}, LastPresentTime = {};
+	} Counter;
+
+	// For AntiAliasing
+	bool DeviceMultiSampleFlag = false;
+	bool SetSSAA = false;
+	D3DMULTISAMPLE_TYPE DeviceMultiSampleType = D3DMULTISAMPLE_NONE;
+	DWORD DeviceMultiSampleQuality = 0;
+
+	// Anisotropic Filtering
+	DWORD MaxAnisotropy = 0;
+	bool isAnisotropySet = false;
+	bool AnisotropyDisabledFlag = false;	// Tracks when Anisotropic Fintering was disabled becasue lack of multi-stage texture support
+
+	// For CacheClipPlane
+	bool isClipPlaneSet = false;
+	DWORD m_clipPlaneRenderState = 0;
+	float m_storedClipPlanes[MAX_CLIP_PLANES][4] = {};
+};
+
+extern std::unordered_map<UINT, DEVICEDETAILS> DeviceDetailsMap;
+
+#include "IDirect3D9Ex.h"
+
+#define SHARED DeviceDetailsMap[DDKey]
 
 class m_IDirect3DDevice9Ex : public IDirect3DDevice9Ex, public AddressLookupTableD3d9Object
 {
@@ -10,31 +52,14 @@ private:
 	m_IDirect3D9Ex* m_pD3DEx;
 	REFIID WrapperID;
 
-	D3DCAPS9 Caps = {};
-
 	UINT DDKey;
 
-	bool SetSSAA = false;
-
 	// Limit frame rate
-	struct {
-		DWORD FrameCounter = 0;
-		LARGE_INTEGER Frequency = {}, ClickTime = {}, LastPresentTime = {};
-	} Counter;
 	void LimitFrameRate();
 
 	// Anisotropic Filtering
-	DWORD MaxAnisotropy = 0;
-	bool isAnisotropySet = false;
-	bool AnisotropyDisabledFlag = false;	// Tracks when Anisotropic Fintering was disabled becasue lack of multi-stage texture support
 	void DisableAnisotropicSamplerState(bool AnisotropyMin, bool AnisotropyMag);
 	void ReeableAnisotropicSamplerState();
-
-	// For CacheClipPlane
-	bool isClipPlaneSet = false;
-	DWORD m_clipPlaneRenderState = 0;
-	static constexpr size_t MAX_CLIP_PLANES = 6;
-	float m_storedClipPlanes[MAX_CLIP_PLANES][4] = {};
 
 	// For Reset & ResetEx
 	void ReInitDevice();
@@ -59,15 +84,17 @@ public:
 		}
 
 		// Check for SSAA
-		if (DeviceDetailsMap[DDKey].DeviceMultiSampleType && m_pD3DEx &&
+		if (SHARED.DeviceMultiSampleType && m_pD3DEx &&
 			m_pD3DEx->CheckDeviceFormat(D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, D3DFMT_X8R8G8B8, 0, D3DRTYPE_SURFACE, (D3DFORMAT)MAKEFOURCC('S', 'S', 'A', 'A')) == S_OK)
 		{
-			SetSSAA = true;
+			SHARED.SetSSAA = true;
 		}
 
 		ReInitDevice();
 
-		ProxyAddressLookupTable9.SaveAddress(this, ProxyInterface);
+		SHARED.DeviceMap[this] = TRUE;
+
+		SHARED.ProxyAddressLookupTable9.SaveAddress(this, ProxyInterface);
 	}
 	~m_IDirect3DDevice9Ex()
 	{
@@ -76,15 +103,7 @@ public:
 		// Remove WndProc after releasing d3d9 device
 		if (EnableWndProcHook)
 		{
-			WndProc::RemoveWndProc(DeviceDetailsMap[DDKey].DeviceWindow);
-		}
-
-		ProxyAddressLookupTable9.DeleteAddress(this);
-
-		if (ProxyAddressLookupTable9.GetDeviceCount() == 0)
-		{
-			DeviceDetailsMap.clear();
-			ProxyAddressLookupTable9.ClearInterfaces();
+			WndProc::RemoveWndProc(SHARED.DeviceWindow);
 		}
 	}
 
@@ -234,6 +253,8 @@ public:
 
 	// Helper functions
 	inline LPDIRECT3DDEVICE9 GetProxyInterface() { return ProxyInterface; }
-	inline D3DMULTISAMPLE_TYPE GetMultiSampleType() { return DeviceDetailsMap[DDKey].DeviceMultiSampleType; }
+	inline AddressLookupTableD3d9* GetLookupTable() { return &SHARED.ProxyAddressLookupTable9; }
+	inline D3DMULTISAMPLE_TYPE GetMultiSampleType() { return SHARED.DeviceMultiSampleType; }
 	REFIID GetIID() { return WrapperID; }
 };
+#undef SHARED
