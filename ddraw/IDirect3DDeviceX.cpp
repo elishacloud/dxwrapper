@@ -331,7 +331,10 @@ HRESULT m_IDirect3DDeviceX::SetTransform(D3DTRANSFORMSTATETYPE dtstTransformStat
 		if (SUCCEEDED(hr))
 		{
 #ifdef ENABLE_DEBUGOVERLAY
-			DOverlay.SetTransform(dtstTransformStateType, lpD3DMatrix);
+			if (Config.EnableImgui)
+			{
+				DOverlay.SetTransform(dtstTransformStateType, lpD3DMatrix);
+			}
 #endif
 		}
 
@@ -2311,7 +2314,10 @@ HRESULT m_IDirect3DDeviceX::SetLight(DWORD dwLightIndex, LPD3DLIGHT7 lpLight)
 		if (SUCCEEDED(hr))
 		{
 #ifdef ENABLE_DEBUGOVERLAY
-			DOverlay.SetLight(dwLightIndex, lpLight);
+			if (Config.EnableImgui)
+			{
+				DOverlay.SetLight(dwLightIndex, lpLight);
+			}
 #endif
 		}
 
@@ -2361,7 +2367,10 @@ HRESULT m_IDirect3DDeviceX::LightEnable(DWORD dwLightIndex, BOOL bEnable)
 		if (SUCCEEDED(hr))
 		{
 #ifdef ENABLE_DEBUGOVERLAY
-			DOverlay.LightEnable(dwLightIndex, bEnable);
+			if (Config.EnableImgui)
+			{
+				DOverlay.LightEnable(dwLightIndex, bEnable);
+			}
 #endif
 		}
 

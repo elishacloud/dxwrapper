@@ -56,69 +56,69 @@ public:
 	template <>
 	struct AddressCacheIndex<m_IDirect3DVolumeTexture9> { static constexpr UINT CacheIndex = 15; };
 
-	m_IDirect3D9Ex* CreateInterface(m_IDirect3D9Ex* Proxy, void*, REFIID riid)
+	m_IDirect3D9Ex* CreateInterface(m_IDirect3D9Ex* Proxy, void*, REFIID riid, void*)
 	{
 		return new m_IDirect3D9Ex(static_cast<m_IDirect3D9Ex*>(Proxy), riid);
 	}
-	m_IDirect3DDevice9Ex* CreateInterface(m_IDirect3DDevice9Ex* Proxy, m_IDirect3D9Ex* Device, REFIID riid)
+	m_IDirect3DDevice9Ex* CreateInterface(m_IDirect3DDevice9Ex* Proxy, m_IDirect3D9Ex* Device, REFIID riid, UINT Data)
 	{
-		return new m_IDirect3DDevice9Ex(static_cast<m_IDirect3DDevice9Ex*>(Proxy), Device, riid);
+		return new m_IDirect3DDevice9Ex(static_cast<m_IDirect3DDevice9Ex*>(Proxy), Device, riid, Data);
 	}
-	m_IDirect3DCubeTexture9* CreateInterface(m_IDirect3DCubeTexture9* Proxy, m_IDirect3DDevice9Ex* Device, REFIID)
+	m_IDirect3DCubeTexture9* CreateInterface(m_IDirect3DCubeTexture9* Proxy, m_IDirect3DDevice9Ex* Device, REFIID, void*)
 	{
 		return new m_IDirect3DCubeTexture9(static_cast<m_IDirect3DCubeTexture9*>(Proxy), Device);
 	}
-	m_IDirect3DIndexBuffer9* CreateInterface(m_IDirect3DIndexBuffer9* Proxy, m_IDirect3DDevice9Ex* Device, REFIID)
+	m_IDirect3DIndexBuffer9* CreateInterface(m_IDirect3DIndexBuffer9* Proxy, m_IDirect3DDevice9Ex* Device, REFIID, void*)
 	{
 		return new m_IDirect3DIndexBuffer9(static_cast<m_IDirect3DIndexBuffer9*>(Proxy), Device);
 	}
-	m_IDirect3DPixelShader9* CreateInterface(m_IDirect3DPixelShader9* Proxy, m_IDirect3DDevice9Ex* Device, REFIID)
+	m_IDirect3DPixelShader9* CreateInterface(m_IDirect3DPixelShader9* Proxy, m_IDirect3DDevice9Ex* Device, REFIID, void*)
 	{
 		return new m_IDirect3DPixelShader9(static_cast<m_IDirect3DPixelShader9*>(Proxy), Device);
 	}
-	m_IDirect3DQuery9* CreateInterface(m_IDirect3DQuery9* Proxy, m_IDirect3DDevice9Ex* Device, REFIID)
+	m_IDirect3DQuery9* CreateInterface(m_IDirect3DQuery9* Proxy, m_IDirect3DDevice9Ex* Device, REFIID, void*)
 	{
 		return new m_IDirect3DQuery9(static_cast<m_IDirect3DQuery9*>(Proxy), Device);
 	}
-	m_IDirect3DStateBlock9* CreateInterface(m_IDirect3DStateBlock9* Proxy, m_IDirect3DDevice9Ex* Device, REFIID)
+	m_IDirect3DStateBlock9* CreateInterface(m_IDirect3DStateBlock9* Proxy, m_IDirect3DDevice9Ex* Device, REFIID, void*)
 	{
 		return new m_IDirect3DStateBlock9(static_cast<m_IDirect3DStateBlock9*>(Proxy), Device);
 	}
-	m_IDirect3DSurface9* CreateInterface(m_IDirect3DSurface9* Proxy, m_IDirect3DDevice9Ex* Device, REFIID)
+	m_IDirect3DSurface9* CreateInterface(m_IDirect3DSurface9* Proxy, m_IDirect3DDevice9Ex* Device, REFIID, void*)
 	{
 		return new m_IDirect3DSurface9(static_cast<m_IDirect3DSurface9*>(Proxy), Device);
 	}
-	m_IDirect3DSwapChain9Ex* CreateInterface(m_IDirect3DSwapChain9Ex* Proxy, m_IDirect3DDevice9Ex* Device, REFIID riid)
+	m_IDirect3DSwapChain9Ex* CreateInterface(m_IDirect3DSwapChain9Ex* Proxy, m_IDirect3DDevice9Ex* Device, REFIID riid, void*)
 	{
 		return new m_IDirect3DSwapChain9Ex(static_cast<m_IDirect3DSwapChain9Ex*>(Proxy), Device, riid);
 	}
-	m_IDirect3DTexture9* CreateInterface(m_IDirect3DTexture9* Proxy, m_IDirect3DDevice9Ex* Device, REFIID)
+	m_IDirect3DTexture9* CreateInterface(m_IDirect3DTexture9* Proxy, m_IDirect3DDevice9Ex* Device, REFIID, void*)
 	{
 		return new m_IDirect3DTexture9(static_cast<m_IDirect3DTexture9*>(Proxy), Device);
 	}
-	m_IDirect3DVertexBuffer9* CreateInterface(m_IDirect3DVertexBuffer9* Proxy, m_IDirect3DDevice9Ex* Device, REFIID)
+	m_IDirect3DVertexBuffer9* CreateInterface(m_IDirect3DVertexBuffer9* Proxy, m_IDirect3DDevice9Ex* Device, REFIID, void*)
 	{
 		return new m_IDirect3DVertexBuffer9(static_cast<m_IDirect3DVertexBuffer9*>(Proxy), Device);
 	}
-	m_IDirect3DVertexDeclaration9* CreateInterface(m_IDirect3DVertexDeclaration9* Proxy, m_IDirect3DDevice9Ex* Device, REFIID)
+	m_IDirect3DVertexDeclaration9* CreateInterface(m_IDirect3DVertexDeclaration9* Proxy, m_IDirect3DDevice9Ex* Device, REFIID, void*)
 	{
 		return new m_IDirect3DVertexDeclaration9(static_cast<m_IDirect3DVertexDeclaration9*>(Proxy), Device);
 	}
-	m_IDirect3DVertexShader9* CreateInterface(m_IDirect3DVertexShader9* Proxy, m_IDirect3DDevice9Ex* Device, REFIID)
+	m_IDirect3DVertexShader9* CreateInterface(m_IDirect3DVertexShader9* Proxy, m_IDirect3DDevice9Ex* Device, REFIID, void*)
 	{
 		return new m_IDirect3DVertexShader9(static_cast<m_IDirect3DVertexShader9*>(Proxy), Device);
 	}
-	m_IDirect3DVolume9* CreateInterface(m_IDirect3DVolume9* Proxy, m_IDirect3DDevice9Ex* Device, REFIID)
+	m_IDirect3DVolume9* CreateInterface(m_IDirect3DVolume9* Proxy, m_IDirect3DDevice9Ex* Device, REFIID, void*)
 	{
 		return new m_IDirect3DVolume9(static_cast<m_IDirect3DVolume9*>(Proxy), Device);
 	}
-	m_IDirect3DVolumeTexture9* CreateInterface(m_IDirect3DVolumeTexture9* Proxy, m_IDirect3DDevice9Ex* Device, REFIID)
+	m_IDirect3DVolumeTexture9* CreateInterface(m_IDirect3DVolumeTexture9* Proxy, m_IDirect3DDevice9Ex* Device, REFIID, void*)
 	{
 		return new m_IDirect3DVolumeTexture9(static_cast<m_IDirect3DVolumeTexture9*>(Proxy), Device);
 	}
 
-	template <typename T, typename D>
-	T *FindAddress(void* Proxy, D* Device, REFIID riid)
+	template <typename T, typename D, typename L>
+	T *FindAddress(void* Proxy, D* Device, REFIID riid, L Data)
 	{
 		if (!Proxy)
 		{
@@ -133,7 +133,7 @@ public:
 			return static_cast<T *>(it->second);
 		}
 
-		return CreateInterface((T*)Proxy, Device, riid);
+		return CreateInterface((T*)Proxy, Device, riid, Data);
 	}
 
 	template <typename T>

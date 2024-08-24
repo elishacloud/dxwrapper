@@ -248,7 +248,10 @@ LRESULT CALLBACK WndProc::Handler(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lPa
 
 	// Handle debug overlay
 #ifdef ENABLE_DEBUGOVERLAY
-	ImGuiWndProc(hWnd, Msg, wParam, lParam);
+	if (Config.EnableImgui)
+	{
+		ImGuiWndProc(hWnd, Msg, wParam, lParam);
+	}
 #endif
 
 	LRESULT lr = CallWndProc(pWndProc, hWnd, Msg, wParam, lParam);

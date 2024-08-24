@@ -39,12 +39,15 @@ struct DEVICEDETAILS
 	// Window handle and size
 	HWND DeviceWindow = nullptr;
 	LONG BufferWidth = 0, BufferHeight = 0;
+	LONG screenWidth = 0, screenHeight = 0;
 
 	// For AntiAliasing
 	bool DeviceMultiSampleFlag = false;
 	D3DMULTISAMPLE_TYPE DeviceMultiSampleType = D3DMULTISAMPLE_NONE;
 	DWORD DeviceMultiSampleQuality = 0;
 };
+
+extern std::unordered_map<UINT, DEVICEDETAILS> DeviceDetailsMap;
 
 extern AddressLookupTableD3d9<m_IDirect3DDevice9Ex> ProxyAddressLookupTable9;
 

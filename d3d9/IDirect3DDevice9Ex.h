@@ -12,9 +12,7 @@ private:
 
 	D3DCAPS9 Caps = {};
 
-	DEVICEDETAILS DeviceDetails;
-
-	LONG screenWidth, screenHeight;
+	UINT DDKey;
 
 	bool SetSSAA = false;
 
@@ -36,7 +34,7 @@ private:
 	bool isClipPlaneSet = false;
 	DWORD m_clipPlaneRenderState = 0;
 	static constexpr size_t MAX_CLIP_PLANES = 6;
-	float m_storedClipPlanes[MAX_CLIP_PLANES][4];
+	float m_storedClipPlanes[MAX_CLIP_PLANES][4] = {};
 
 	// For Reset & ResetEx
 	void ReInitDevice();
@@ -51,7 +49,7 @@ private:
 	{ return (ProxyInterfaceEx) ? ProxyInterfaceEx->ResetEx(pPresentationParameters, pFullscreenDisplayMode) : D3DERR_INVALIDCALL; }
 
 public:
-	m_IDirect3DDevice9Ex(LPDIRECT3DDEVICE9EX pDevice, m_IDirect3D9Ex* pD3D, REFIID DeviceID) : ProxyInterface(pDevice), m_pD3DEx(pD3D), WrapperID(DeviceID)
+	m_IDirect3DDevice9Ex(LPDIRECT3DDEVICE9EX pDevice, m_IDirect3D9Ex* pD3D, REFIID DeviceID, UINT Key) : ProxyInterface(pDevice), m_pD3DEx(pD3D), WrapperID(DeviceID), DDKey(Key)
 	{
 		LOG_LIMIT(3, "Creating interface " << __FUNCTION__ << " (" << this << ") " << WrapperID);
 
@@ -60,9 +58,16 @@ public:
 			ProxyInterfaceEx = pDevice;
 		}
 
-		ProxyAddressLookupTable9.SaveAddress(this, ProxyInterface);
+		// Check for SSAA
+		if (DeviceDetailsMap[DDKey].DeviceMultiSampleType && m_pD3DEx &&
+			m_pD3DEx->CheckDeviceFormat(D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, D3DFMT_X8R8G8B8, 0, D3DRTYPE_SURFACE, (D3DFORMAT)MAKEFOURCC('S', 'S', 'A', 'A')) == S_OK)
+		{
+			SetSSAA = true;
+		}
 
 		ReInitDevice();
+
+		ProxyAddressLookupTable9.SaveAddress(this, ProxyInterface);
 	}
 	~m_IDirect3DDevice9Ex()
 	{
@@ -71,32 +76,15 @@ public:
 		// Remove WndProc after releasing d3d9 device
 		if (EnableWndProcHook)
 		{
-			WndProc::RemoveWndProc(DeviceDetails.DeviceWindow);
+			WndProc::RemoveWndProc(DeviceDetailsMap[DDKey].DeviceWindow);
 		}
 
 		ProxyAddressLookupTable9.DeleteAddress(this);
 
 		if (ProxyAddressLookupTable9.GetDeviceCount() == 0)
 		{
+			DeviceDetailsMap.clear();
 			ProxyAddressLookupTable9.ClearInterfaces();
-		}
-	}
-	void SetDeviceDetails(DEVICEDETAILS& NewDeviceDetails)
-	{
-		HWND LastDeviceWindow = DeviceDetails.DeviceWindow;
-
-		DeviceDetails = NewDeviceDetails;
-
-		// Check for SSAA
-		if (DeviceDetails.DeviceMultiSampleType && m_pD3DEx &&
-			m_pD3DEx->CheckDeviceFormat(D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, D3DFMT_X8R8G8B8, 0, D3DRTYPE_SURFACE, (D3DFORMAT)MAKEFOURCC('S', 'S', 'A', 'A')) == S_OK)
-		{
-			SetSSAA = true;
-		}
-
-		if (DeviceDetails.DeviceWindow != LastDeviceWindow)
-		{
-			ReInitDevice();
 		}
 	}
 
@@ -246,5 +234,5 @@ public:
 
 	// Helper functions
 	inline LPDIRECT3DDEVICE9 GetProxyInterface() { return ProxyInterface; }
-	inline D3DMULTISAMPLE_TYPE GetMultiSampleType() { return DeviceDetails.DeviceMultiSampleType; }
+	inline D3DMULTISAMPLE_TYPE GetMultiSampleType() { return DeviceDetailsMap[DDKey].DeviceMultiSampleType; }
 };

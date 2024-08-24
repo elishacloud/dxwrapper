@@ -58,14 +58,14 @@ void WINAPI D3d9Wrapper::genericQueryInterface(REFIID riid, LPVOID *ppvObj, m_ID
 
 	if (riid == IID_IDirect3DSwapChain9 || riid == IID_IDirect3DSwapChain9Ex)
 	{
-		*ppvObj = ProxyAddressLookupTable9.FindAddress<m_IDirect3DSwapChain9Ex, m_IDirect3DDevice9Ex>(*ppvObj, m_pDeviceEx, riid);
+		*ppvObj = ProxyAddressLookupTable9.FindAddress<m_IDirect3DSwapChain9Ex, m_IDirect3DDevice9Ex>(*ppvObj, m_pDeviceEx, riid, nullptr);
 		return;
 	}
 
 #define QUERYINTERFACE(x) \
 	if (riid == IID_ ## x) \
 		{ \
-			*ppvObj = ProxyAddressLookupTable9.FindAddress<m_ ## x,m_IDirect3DDevice9Ex>(*ppvObj, m_pDeviceEx, riid); \
+			*ppvObj = ProxyAddressLookupTable9.FindAddress<m_ ## x,m_IDirect3DDevice9Ex>(*ppvObj, m_pDeviceEx, riid, nullptr); \
 			return; \
 		}
 

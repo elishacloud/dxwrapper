@@ -68,6 +68,7 @@
 	visit(EnableD3d9Wrapper) \
 	visit(EnableDinput8Wrapper) \
 	visit(EnableDsoundWrapper) \
+	visit(EnableImgui) \
 	visit(EnableVSync) \
 	visit(EnableWindowMode) \
 	visit(ExcludeProcess) \
@@ -257,6 +258,7 @@ struct CONFIG
 	DWORD EnableD3d9Wrapper = 0;				// Enables the d3d9 wrapper
 	bool EnableDinput8Wrapper = false;			// Enables the dinput8 wrapper
 	bool EnableDsoundWrapper = false;			// Enables the dsound wrapper
+	bool EnableImgui = false;					// Enables imgui for debugging
 	bool EnableWindowMode = false;				// Enables WndMode for d3d9 wrapper
 	bool EnableVSync = false;					// Enables VSync for d3d9 wrapper
 	bool FixHighFrequencyMouse = false;			// Gets the latest mouse status by merging the DirectInput buffer data

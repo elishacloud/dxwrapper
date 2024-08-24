@@ -41,7 +41,7 @@ HRESULT m_IDirect3D9Ex::QueryInterface(REFIID riid, void** ppvObj)
 	{
 		if (riid == IID_IDirect3D9 || riid == IID_IDirect3D9Ex)
 		{
-			*ppvObj = ProxyAddressLookupTable9.FindAddress<m_IDirect3D9Ex, void>(*ppvObj, nullptr, riid);
+			*ppvObj = ProxyAddressLookupTable9.FindAddress<m_IDirect3D9Ex, void>(*ppvObj, nullptr, riid, nullptr);
 		}
 		else
 		{
@@ -294,8 +294,10 @@ HRESULT m_IDirect3D9Ex::CreateDevice(UINT Adapter, D3DDEVTYPE DeviceType, HWND h
 		DeviceDetails.DeviceMultiSampleType = pPresentationParameters->MultiSampleType;
 		DeviceDetails.DeviceMultiSampleQuality = pPresentationParameters->MultiSampleQuality;
 
-		*ppReturnedDeviceInterface = new m_IDirect3DDevice9Ex((LPDIRECT3DDEVICE9EX)*ppReturnedDeviceInterface, this, IID_IDirect3DDevice9);
-		((m_IDirect3DDevice9Ex*)(*ppReturnedDeviceInterface))->SetDeviceDetails(DeviceDetails);
+		UINT DDKey = (UINT)ppReturnedDeviceInterface + (UINT)*ppReturnedDeviceInterface + (UINT)DeviceDetails.DeviceWindow;
+		DeviceDetailsMap[DDKey] = DeviceDetails;
+
+		*ppReturnedDeviceInterface = new m_IDirect3DDevice9Ex((LPDIRECT3DDEVICE9EX)*ppReturnedDeviceInterface, this, IID_IDirect3DDevice9, DDKey);
 
 		return D3D_OK;
 	}
@@ -365,8 +367,10 @@ HRESULT m_IDirect3D9Ex::CreateDeviceEx(THIS_ UINT Adapter, D3DDEVTYPE DeviceType
 		DeviceDetails.DeviceMultiSampleType = pPresentationParameters->MultiSampleType;
 		DeviceDetails.DeviceMultiSampleQuality = pPresentationParameters->MultiSampleQuality;
 
-		*ppReturnedDeviceInterface = new m_IDirect3DDevice9Ex(*ppReturnedDeviceInterface, this, IID_IDirect3DDevice9Ex);
-		((m_IDirect3DDevice9Ex*)(*ppReturnedDeviceInterface))->SetDeviceDetails(DeviceDetails);
+		UINT DDKey = (UINT)ppReturnedDeviceInterface + (UINT)*ppReturnedDeviceInterface + (UINT)DeviceDetails.DeviceWindow;
+		DeviceDetailsMap[DDKey] = DeviceDetails;
+
+		*ppReturnedDeviceInterface = new m_IDirect3DDevice9Ex(*ppReturnedDeviceInterface, this, IID_IDirect3DDevice9Ex, DDKey);
 
 		return D3D_OK;
 	}
