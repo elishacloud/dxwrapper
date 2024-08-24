@@ -510,15 +510,22 @@ void UpdatePresentParameter(D3DPRESENT_PARAMETERS* pPresentationParameters, HWND
 		if (IsIconic(DeviceDetails.DeviceWindow))
 		{
 			ShowWindow(DeviceDetails.DeviceWindow, SW_RESTORE);
-
-			// Peek messages to help prevent a "Not Responding" window
-			Utils::CheckMessageQueue(DeviceDetails.DeviceWindow);
 		}
 
 		// Remove tool and topmost window
 		if (DeviceDetails.DeviceWindow != LastDeviceWindow)
 		{
+			LONG lStyle = GetWindowLong(DeviceDetails.DeviceWindow, GWL_STYLE);
 			LONG lExStyle = GetWindowLong(DeviceDetails.DeviceWindow, GWL_EXSTYLE);
+
+			if (!(lStyle & WS_VISIBLE))
+			{
+				LOG_LIMIT(3, __FUNCTION__ << " Adding window WS_VISIBLE");
+
+				SetWindowLong(DeviceDetails.DeviceWindow, GWL_STYLE, lStyle | WS_VISIBLE);
+				SetWindowPos(DeviceDetails.DeviceWindow, ((lExStyle & WS_EX_TOPMOST) ? HWND_TOPMOST : HWND_TOP),
+					0, 0, 0, 0, SWP_NOZORDER | SWP_NOMOVE | SWP_NOSIZE | SWP_FRAMECHANGED);
+			}
 
 			if (lExStyle & (WS_EX_TOOLWINDOW | WS_EX_TOPMOST))
 			{
@@ -544,12 +551,6 @@ void UpdatePresentParameter(D3DPRESENT_PARAMETERS* pPresentationParameters, HWND
 	if (SetWindow && pPresentationParameters->Windowed && IsWindow(DeviceDetails.DeviceWindow))
 	{
 		bool AnyChange = (LastBufferWidth != DeviceDetails.BufferWidth || LastBufferHeight != DeviceDetails.BufferHeight || LastDeviceWindow != DeviceDetails.DeviceWindow);
-
-		// Overload WndProc
-		if (Config.EnableWindowMode)
-		{
-			Utils::SetWndProcFilter(DeviceDetails.DeviceWindow);
-		}
 
 		// Adjust window
 		RECT Rect;
@@ -577,15 +578,6 @@ void UpdatePresentParameter(D3DPRESENT_PARAMETERS* pPresentationParameters, HWND
 				newSettings.dmFields = DM_PELSWIDTH | DM_PELSHEIGHT;
 				ChangeDisplaySettingsEx(bRet ? infoex.szDevice : nullptr, &newSettings, nullptr, CDS_FULLSCREEN, nullptr);
 			}
-		}
-
-		if (Config.EnableWindowMode)
-		{
-			// Resetting WndProc
-			Utils::RestoreWndProcFilter(DeviceDetails.DeviceWindow);
-
-			// Peek messages to help prevent a "Not Responding" window
-			Utils::CheckMessageQueue(DeviceDetails.DeviceWindow);
 		}
 	}
 }
