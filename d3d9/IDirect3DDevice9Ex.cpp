@@ -28,18 +28,21 @@ HRESULT m_IDirect3DDevice9Ex::QueryInterface(REFIID riid, void** ppvObj)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ") " << riid;
 
-	if ((riid == IID_IUnknown || riid == WrapperID) && ppvObj)
+	if (riid == IID_IUnknown || riid == WrapperID)
 	{
-		AddRef();
+		HRESULT hr = ProxyInterface->QueryInterface(WrapperID, ppvObj);
 
-		*ppvObj = this;
+		if (SUCCEEDED(hr))
+		{
+			*ppvObj = this;
+		}
 
-		return D3D_OK;
+		return hr;
 	}
 
 	HRESULT hr = ProxyInterface->QueryInterface(riid, ppvObj);
 
-	if (SUCCEEDED(hr) && ppvObj)
+	if (SUCCEEDED(hr))
 	{
 		if (riid == IID_IDirect3DDevice9 || riid == IID_IDirect3DDevice9Ex)
 		{
@@ -697,11 +700,7 @@ HRESULT m_IDirect3DDevice9Ex::GetDirect3D(IDirect3D9 **ppD3D9)
 		return D3DERR_INVALIDCALL;
 	}
 
-	m_pD3DEx->AddRef();
-
-	*ppD3D9 = m_pD3DEx;
-
-	return D3D_OK;
+	return m_pD3DEx->QueryInterface(WrapperID == IID_IDirect3DDevice9Ex ? IID_IDirect3D9Ex : IID_IDirect3D9, (LPVOID*)ppD3D9);
 }
 
 HRESULT m_IDirect3DDevice9Ex::GetRasterStatus(THIS_ UINT iSwapChain, D3DRASTER_STATUS* pRasterStatus)

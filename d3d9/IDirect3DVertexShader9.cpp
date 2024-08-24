@@ -20,13 +20,16 @@ HRESULT m_IDirect3DVertexShader9::QueryInterface(THIS_ REFIID riid, void** ppvOb
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ") " << riid;
 
-	if ((riid == IID_IDirect3DVertexShader9 || riid == IID_IUnknown) && ppvObj)
+	if (riid == IID_IUnknown || riid == WrapperID)
 	{
-		AddRef();
+		HRESULT hr = ProxyInterface->QueryInterface(WrapperID, ppvObj);
 
-		*ppvObj = this;
+		if (SUCCEEDED(hr))
+		{
+			*ppvObj = this;
+		}
 
-		return D3D_OK;
+		return hr;
 	}
 
 	HRESULT hr = ProxyInterface->QueryInterface(riid, ppvObj);
@@ -62,11 +65,7 @@ HRESULT m_IDirect3DVertexShader9::GetDevice(THIS_ IDirect3DDevice9** ppDevice)
 		return D3DERR_INVALIDCALL;
 	}
 
-	m_pDeviceEx->AddRef();
-
-	*ppDevice = m_pDeviceEx;
-
-	return D3D_OK;
+	return m_pDeviceEx->QueryInterface(m_pDeviceEx->GetIID(), (LPVOID*)ppDevice);
 }
 
 HRESULT m_IDirect3DVertexShader9::GetFunction(THIS_ void* pData, UINT* pSizeOfData)

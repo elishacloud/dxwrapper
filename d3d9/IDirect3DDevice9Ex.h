@@ -235,4 +235,5 @@ public:
 	// Helper functions
 	inline LPDIRECT3DDEVICE9 GetProxyInterface() { return ProxyInterface; }
 	inline D3DMULTISAMPLE_TYPE GetMultiSampleType() { return DeviceDetailsMap[DDKey].DeviceMultiSampleType; }
+	REFIID GetIID() { return WrapperID; }
 };

@@ -4,8 +4,8 @@ class m_IDirect3DSurface9 : public IDirect3DSurface9, public AddressLookupTableD
 {
 private:
 	LPDIRECT3DSURFACE9 ProxyInterface;
-	LPDIRECT3DDEVICE9 pDeviceEx;
 	m_IDirect3DDevice9Ex* m_pDeviceEx;
+	REFIID WrapperID = IID_IDirect3DSurface9;
 
 	// For fake emulated locking
 	D3DSURFACE_DESC Desc = {};
@@ -19,7 +19,7 @@ private:
 	m_IDirect3DSurface9* m_GetNonMultiSampledSurface(const RECT* pSurfaceRect, DWORD Flags);
 
 public:
-	m_IDirect3DSurface9(LPDIRECT3DSURFACE9 pSurface9, m_IDirect3DDevice9Ex* pDevice) : ProxyInterface(pSurface9), m_pDeviceEx(pDevice), pDeviceEx(pDevice->GetProxyInterface())
+	m_IDirect3DSurface9(LPDIRECT3DSURFACE9 pSurface9, m_IDirect3DDevice9Ex* pDevice) : ProxyInterface(pSurface9), m_pDeviceEx(pDevice)
 	{
 		LOG_LIMIT(3, "Creating interface " << __FUNCTION__ << " (" << this << ")");
 

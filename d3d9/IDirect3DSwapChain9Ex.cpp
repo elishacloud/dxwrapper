@@ -20,13 +20,16 @@ HRESULT m_IDirect3DSwapChain9Ex::QueryInterface(THIS_ REFIID riid, void** ppvObj
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ") " << riid;
 
-	if ((riid == WrapperID || riid == IID_IUnknown) && ppvObj)
+	if (riid == IID_IUnknown || riid == WrapperID)
 	{
-		AddRef();
+		HRESULT hr = ProxyInterface->QueryInterface(WrapperID, ppvObj);
 
-		*ppvObj = this;
+		if (SUCCEEDED(hr))
+		{
+			*ppvObj = this;
+		}
 
-		return D3D_OK;
+		return hr;
 	}
 
 	HRESULT hr = ProxyInterface->QueryInterface(riid, ppvObj);
@@ -109,11 +112,7 @@ HRESULT m_IDirect3DSwapChain9Ex::GetDevice(THIS_ IDirect3DDevice9** ppDevice)
 		return D3DERR_INVALIDCALL;
 	}
 
-	m_pDeviceEx->AddRef();
-
-	*ppDevice = m_pDeviceEx;
-
-	return D3D_OK;
+	return m_pDeviceEx->QueryInterface(WrapperID == IID_IDirect3DSwapChain9Ex ? IID_IDirect3DDevice9Ex : m_pDeviceEx->GetIID(), (LPVOID*)ppDevice);
 }
 
 HRESULT m_IDirect3DSwapChain9Ex::GetPresentParameters(THIS_ D3DPRESENT_PARAMETERS* pPresentationParameters)

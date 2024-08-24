@@ -5,6 +5,7 @@ class m_IDirect3DTexture9 : public IDirect3DTexture9, public AddressLookupTableD
 private:
 	LPDIRECT3DTEXTURE9 ProxyInterface;
 	m_IDirect3DDevice9Ex* m_pDeviceEx;
+	REFIID WrapperID = IID_IDirect3DTexture9;
 
 public:
 	m_IDirect3DTexture9(LPDIRECT3DTEXTURE9 pTexture9, m_IDirect3DDevice9Ex* pDevice) : ProxyInterface(pTexture9), m_pDeviceEx(pDevice)
