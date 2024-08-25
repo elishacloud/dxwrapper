@@ -90,9 +90,9 @@ ULONG m_IDirect3DDevice9Ex::Release()
 
 	ULONG ref = ProxyInterface->Release();
 
-	// Teardown debug overlay before destroying device
 #ifdef ENABLE_DEBUGOVERLAY
-	if (Config.EnableImgui && DOverlay.IsSetup() && ref == 1)
+	// Teardown debug overlay before destroying device
+	if (Config.EnableImgui && ref == 1 && DOverlay.IsSetup() && DOverlay.Getd3d9Device() == ProxyInterface)
 	{
 		ProxyInterface->AddRef();
 		DOverlay.Shutdown();
@@ -153,8 +153,8 @@ HRESULT m_IDirect3DDevice9Ex::ResetT(T func, D3DPRESENT_PARAMETERS &d3dpp, D3DPR
 		return D3DERR_INVALIDCALL;
 	}
 
-	// Teardown debug overlay before reset
 #ifdef ENABLE_DEBUGOVERLAY
+	// Teardown debug overlay before reset
 	if (Config.EnableImgui)
 	{
 		DOverlay.Shutdown();
@@ -244,7 +244,7 @@ HRESULT m_IDirect3DDevice9Ex::EndScene()
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
 #ifdef ENABLE_DEBUGOVERLAY
-	if (Config.EnableImgui)
+	if (Config.EnableImgui && DOverlay.Getd3d9Device() == ProxyInterface)
 	{
 		DOverlay.EndScene();
 	}
@@ -330,7 +330,19 @@ HRESULT m_IDirect3DDevice9Ex::CreateAdditionalSwapChain(D3DPRESENT_PARAMETERS *p
 	{
 		CopyMemory(pPresentationParameters, &d3dpp, sizeof(D3DPRESENT_PARAMETERS));
 
-		*ppSwapChain = new m_IDirect3DSwapChain9Ex((IDirect3DSwapChain9Ex*)*ppSwapChain, this, WrapperID == IID_IDirect3DDevice9Ex ? IID_IDirect3DSwapChain9Ex : IID_IDirect3DSwapChain9);
+		IDirect3DSwapChain9* pSwapChainQuery = nullptr;
+
+		if (WrapperID == IID_IDirect3DDevice9Ex && SUCCEEDED((*ppSwapChain)->QueryInterface(IID_IDirect3DSwapChain9Ex, (LPVOID*)&pSwapChainQuery)))
+		{
+			(*ppSwapChain)->Release();
+
+			*ppSwapChain = new m_IDirect3DSwapChain9Ex((IDirect3DSwapChain9Ex*)pSwapChainQuery, this, IID_IDirect3DSwapChain9Ex);
+		}
+		else
+		{
+			*ppSwapChain = new m_IDirect3DSwapChain9Ex((IDirect3DSwapChain9Ex*)*ppSwapChain, this, IID_IDirect3DSwapChain9);
+		}
+
 		return D3D_OK;
 	}
 
@@ -999,6 +1011,14 @@ HRESULT m_IDirect3DDevice9Ex::DrawPrimitiveUP(D3DPRIMITIVETYPE PrimitiveType, UI
 HRESULT m_IDirect3DDevice9Ex::BeginScene()
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
+
+#ifdef ENABLE_DEBUGOVERLAY
+	// Setup overlay before BeginScene if not already setup on this device
+	if (Config.EnableImgui && IsWindow(SHARED.DeviceWindow) && (!DOverlay.IsSetup() || DOverlay.Getd3d9Device() != ProxyInterface))
+	{
+		DOverlay.Setup(SHARED.DeviceWindow, ProxyInterface);
+	}
+#endif
 
 	HRESULT hr = ProxyInterface->BeginScene();
 
@@ -2105,7 +2125,18 @@ HRESULT m_IDirect3DDevice9Ex::GetSwapChain(THIS_ UINT iSwapChain, IDirect3DSwapC
 
 	if (SUCCEEDED(hr))
 	{
-		*ppSwapChain = SHARED.ProxyAddressLookupTable9.FindAddress<m_IDirect3DSwapChain9Ex, m_IDirect3DDevice9Ex, LPVOID>(*ppSwapChain, this, WrapperID == IID_IDirect3DDevice9Ex ? IID_IDirect3DSwapChain9Ex : IID_IDirect3DSwapChain9, nullptr);
+		IDirect3DSwapChain9* pSwapChainQuery = nullptr;
+
+		if (WrapperID == IID_IDirect3DDevice9Ex && SUCCEEDED((*ppSwapChain)->QueryInterface(IID_IDirect3DSwapChain9Ex, (LPVOID*)&pSwapChainQuery)))
+		{
+			(*ppSwapChain)->Release();
+
+			*ppSwapChain = SHARED.ProxyAddressLookupTable9.FindAddress<m_IDirect3DSwapChain9Ex, m_IDirect3DDevice9Ex, LPVOID>(pSwapChainQuery, this, IID_IDirect3DSwapChain9Ex, nullptr);
+		}
+		else
+		{
+			*ppSwapChain = SHARED.ProxyAddressLookupTable9.FindAddress<m_IDirect3DSwapChain9Ex, m_IDirect3DDevice9Ex, LPVOID>(*ppSwapChain, this, IID_IDirect3DSwapChain9, nullptr);
+		}
 	}
 
 	return hr;
@@ -2460,13 +2491,6 @@ HRESULT m_IDirect3DDevice9Ex::GetDisplayModeEx(THIS_ UINT iSwapChain, D3DDISPLAY
 // Runs when device is created and on every successful Reset()
 void m_IDirect3DDevice9Ex::ReInitDevice()
 {
-#ifdef ENABLE_DEBUGOVERLAY
-	if (Config.EnableImgui && IsWindow(SHARED.DeviceWindow))
-	{
-		DOverlay.Setup(SHARED.DeviceWindow, ProxyInterface);
-	}
-#endif
-
 	Utils::GetScreenSize(SHARED.DeviceWindow, SHARED.screenWidth, SHARED.screenHeight);
 }
 

@@ -26,6 +26,8 @@ void AdjustWindow(HWND MainhWnd, LONG displayWidth, LONG displayHeight, bool isW
 
 void m_IDirect3D9Ex::InitInterface()
 {
+	EnableWndProcHook = (EnableWndProcHook || Config.EnableImgui);
+
 	ProxyAddressLookupTable9.SaveAddress(this, ProxyInterface);
 }
 void m_IDirect3D9Ex::ReleaseInterface()
