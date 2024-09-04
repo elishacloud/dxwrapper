@@ -113,7 +113,7 @@ private:
 		bool SurfaceHasData = false;
 		bool UsingSurfaceMemory = false;
 		bool IsDirtyFlag = false;
-		bool IsVideoSurfaceDirty = false;
+		bool IsRenderTargetDirty = false;
 		bool IsDrawTextureDirty = false;
 		bool IsPaletteDirty = false;						// Used to detect if the palette surface needs to be updated
 		DWORD BitCount = 0;									// Bit count for this surface
@@ -253,7 +253,7 @@ private:
 	void UnsetEmulationGameDC();
 	HRESULT CreateDCSurface();
 	void ReleaseDCSurface();
-	void UpdateAttachedZBuffer(m_IDirectDrawSurfaceX* lpAttachedSurfaceX);
+	void UpdateAttachedDepthStencil(m_IDirectDrawSurfaceX* lpAttachedSurfaceX);
 	void UpdateSurfaceDesc();
 
 	// Direct3D9 interfaces
@@ -457,14 +457,14 @@ public:
 	inline bool IsSurfaceTexture() { return (surfaceDesc2.ddsCaps.dwCaps & DDSCAPS_TEXTURE) != 0; }
 	inline bool IsColorKeyTexture() { return (IsSurfaceTexture() && (surfaceDesc2.dwFlags & DDSD_CKSRCBLT)); }
 	inline bool IsPalette() { return (surface.Format == D3DFMT_P8); }
-	inline bool IsDepthBuffer() { return (surfaceDesc2.ddpfPixelFormat.dwFlags & (DDPF_ZBUFFER | DDPF_STENCILBUFFER)) != 0; }
+	inline bool IsDepthStencil() { return (surfaceDesc2.ddpfPixelFormat.dwFlags & (DDPF_ZBUFFER | DDPF_STENCILBUFFER)) != 0; }
 	inline bool IsSurfaceManaged() { return (surfaceDesc2.ddsCaps.dwCaps2 & (DDSCAPS2_TEXTUREMANAGE | DDSCAPS2_D3DTEXTUREMANAGE)) != 0; }
 	inline bool IsUsingEmulation() { return (surface.emu && surface.emu->DC && surface.emu->GameDC && surface.emu->pBits); }
 	inline bool IsEmulationDCReady() { return (IsUsingEmulation() && !surface.emu->UsingGameDC); }
 	inline bool IsSurfaceDirty() { return surface.IsDirtyFlag; }
 	inline bool IsMipMapAutogen() { return surface.Texture && (surface.Usage & D3DUSAGE_AUTOGENMIPMAP); }
 	inline bool IsMipMapGenerated() { return IsMipMapReadyToUse || IsMipMapAutogen(); }
-	void DrawingToSurface();
+	void SetRenderTargetDirty();
 	void ClearDirtyFlags();
 	bool GetColorKeyForShader(float(&lowColorKey)[4], float(&highColorKey)[4]);
 	bool GetColorKeyForPrimaryShader(float(&lowColorKey)[4], float(&highColorKey)[4]);
@@ -481,7 +481,7 @@ public:
 		}
 		return false;
 	}
-	m_IDirectDrawSurfaceX* GetAttachedZBuffer();
+	m_IDirectDrawSurfaceX* GetAttachedDepthStencil();
 	LPDIRECT3DSURFACE9 GetD3d9Surface();
 	LPDIRECT3DTEXTURE9 GetD3d9DrawTexture();
 	LPDIRECT3DTEXTURE9 GetD3d9Texture();

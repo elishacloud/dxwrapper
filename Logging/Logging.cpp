@@ -407,7 +407,7 @@ std::ostream& operator<<(std::ostream& os, const D3DSURFACETYPE& ddType)
 		ddType == D3DTYPE_OFFPLAINSURFACE ? "D3DTYPE_OFFPLAINSURFACE" :
 		ddType == D3DTYPE_TEXTURE ? "D3DTYPE_TEXTURE" :
 		ddType == D3DTYPE_RENDERTARGET ? "D3DTYPE_RENDERTARGET" :
-		ddType == D3DTYPE_DEPTHBUFFER ? "D3DTYPE_DEPTHBUFFER" : "D3DTYPE_UNKNOWN");
+		ddType == D3DTYPE_DEPTHSTENCIL ? "D3DTYPE_DEPTHSTENCIL" : "D3DTYPE_UNKNOWN");
 }
 
 std::ostream& operator<<(std::ostream& os, const DDFOURCC& dwFourCC)

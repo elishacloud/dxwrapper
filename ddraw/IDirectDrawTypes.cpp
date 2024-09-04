@@ -57,7 +57,7 @@ void ConvertSurfaceDesc(DDSURFACEDESC &Desc, DDSURFACEDESC2 &Desc2)
 	}
 	ConvertCaps(Desc.ddsCaps, Desc2.ddsCaps);
 	// Check for dwFlags that did not get converted
-	if (Desc.dwFlags != Desc2.dwFlags && (Desc.dwFlags - Desc2.dwFlags) != (DDSD_ZBUFFERBITDEPTH - DDSD_PIXELFORMAT))
+	if (Desc.dwFlags != Desc2.dwFlags && (Desc.dwFlags - Desc2.dwFlags) != ((DWORD)DDSD_ZBUFFERBITDEPTH - (DWORD)DDSD_PIXELFORMAT))
 	{
 		LOG_LIMIT(100, __FUNCTION__ << " Warning: (Desc2->Desc) Removing unsupported flags: " << Logging::hex(Desc2.dwFlags & ~Desc.dwFlags));
 	}
@@ -115,7 +115,7 @@ void ConvertSurfaceDesc(DDSURFACEDESC2 &Desc2, DDSURFACEDESC &Desc)
 	// Extra parameters
 	Desc2.dwTextureStage = 0;			// Stage identifier that is used to bind a texture to a specific stage
 	// Check for dwFlags that did not get converted
-	if (Desc.dwFlags != Desc2.dwFlags && (Desc.dwFlags - Desc2.dwFlags) != (DDSD_ZBUFFERBITDEPTH - DDSD_PIXELFORMAT))
+	if (Desc.dwFlags != Desc2.dwFlags && (Desc.dwFlags - Desc2.dwFlags) != ((DWORD)DDSD_ZBUFFERBITDEPTH - (DWORD)DDSD_PIXELFORMAT))
 	{
 		LOG_LIMIT(100, __FUNCTION__ << " Warning: (Desc->Desc2) Removing unsupported flags: " << Logging::hex(Desc.dwFlags & ~Desc2.dwFlags));
 	}
@@ -434,7 +434,7 @@ DWORD GetBitCount(DDPIXELFORMAT ddpfPixelFormat)
 		return 0;
 	}
 	if (ddpfPixelFormat.dwRGBBitCount && (ddpfPixelFormat.dwFlags &
-		(DDPF_RGB | DDPF_YUV | DDPF_ALPHA | DDPF_ZBUFFER | DDPF_LUMINANCE | DDPF_BUMPDUDV)))
+		(DDPF_RGB | DDPF_YUV | DDPF_ALPHA | DDPF_ZBUFFER | DDPF_STENCILBUFFER | DDPF_LUMINANCE | DDPF_BUMPDUDV)))
 	{
 		return ddpfPixelFormat.dwRGBBitCount;
 	}
@@ -928,7 +928,7 @@ D3DFORMAT GetDisplayFormat(DDPIXELFORMAT ddpfPixelFormat)
 	}
 
 	// zBuffer formats
-	if (ddpfPixelFormat.dwFlags & DDPF_ZBUFFER)
+	if (ddpfPixelFormat.dwFlags & (DDPF_ZBUFFER | DDPF_STENCILBUFFER))
 	{
 		switch (ddpfPixelFormat.dwZBufferBitDepth)
 		{

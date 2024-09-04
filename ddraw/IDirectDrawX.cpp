@@ -3523,7 +3523,7 @@ HRESULT m_IDirectDrawX::SetRenderTargetSurface(m_IDirectDrawSurfaceX* lpSurface)
 			break;
 		}
 
-		m_IDirectDrawSurfaceX* pSurfaceZBuffer = RenderTargetSurface->GetAttachedZBuffer();
+		m_IDirectDrawSurfaceX* pSurfaceZBuffer = RenderTargetSurface->GetAttachedDepthStencil();
 		hr = SetDepthStencilSurface(pSurfaceZBuffer);
 
 		if (FAILED(hr))
@@ -3553,7 +3553,7 @@ HRESULT m_IDirectDrawX::SetDepthStencilSurface(m_IDirectDrawSurfaceX* lpSurface)
 			hr = d3d9Device->SetDepthStencilSurface(nullptr);
 		}
 	}
-	else if (lpSurface->IsDepthBuffer())
+	else if (lpSurface->IsDepthStencil())
 	{
 		DepthStencilSurface = lpSurface;
 
@@ -3609,7 +3609,7 @@ inline void m_IDirectDrawX::ReleaseAllD9Resources(bool BackupData, bool ResetInt
 	SetCriticalSection();
 	SetPTCriticalSection();
 
-	// Remove render target and depth buffer surfaces
+	// Remove render target and depth stencil surfaces
 	if (d3d9Device && (RenderTargetSurface || DepthStencilSurface))
 	{
 		SetRenderTargetSurface(nullptr);

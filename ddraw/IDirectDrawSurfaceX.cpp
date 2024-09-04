@@ -389,7 +389,7 @@ HRESULT m_IDirectDrawSurfaceX::AddAttachedSurface(LPDIRECTDRAWSURFACE7 lpDDSurfa
 			return DDERR_SURFACEALREADYATTACHED;
 		}
 
-		if (lpAttachedSurfaceX->IsDepthBuffer() && GetAttachedZBuffer())
+		if (lpAttachedSurfaceX->IsDepthStencil() && GetAttachedDepthStencil())
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Error: zbuffer surface already exists");
 			return DDERR_CANNOTATTACHSURFACE;
@@ -413,9 +413,9 @@ HRESULT m_IDirectDrawSurfaceX::AddAttachedSurface(LPDIRECTDRAWSURFACE7 lpDDSurfa
 		}
 
 		// Update attached stencil surface
-		if (lpAttachedSurfaceX->IsDepthBuffer())
+		if (lpAttachedSurfaceX->IsDepthStencil())
 		{
-			UpdateAttachedZBuffer(lpAttachedSurfaceX);
+			UpdateAttachedDepthStencil(lpAttachedSurfaceX);
 		}
 
 		AddAttachedSurfaceToMap(lpAttachedSurfaceX, true);
@@ -560,10 +560,10 @@ HRESULT m_IDirectDrawSurfaceX::Blt(LPRECT lpDestRect, LPDIRECTDRAWSURFACE7 lpDDS
 		// Clear the depth stencil surface
 		if (dwFlags & DDBLT_DEPTHFILL)
 		{
-			// ToDo: check surface is stencil is the currently used stencil
-			if (!(surfaceDesc2.ddpfPixelFormat.dwFlags & DDPF_ZBUFFER))
+			// Check if the surface or the attached surface is the current depth stencil
+			if (ddrawParent->GetDepthStencilSurface() != this && ddrawParent->GetDepthStencilSurface() != GetAttachedDepthStencil())
 			{
-				LOG_LIMIT(100, __FUNCTION__ << " Error: not Depth Stencil format: " << surfaceDesc2);
+				LOG_LIMIT(100, __FUNCTION__ << " Error: not current Depth Stencil format: " << surfaceDesc2);
 				return DDERR_INVALIDPARAMS;
 			}
 			return (*d3d9Device)->Clear(0, NULL, D3DCLEAR_ZBUFFER, 0, ConvertDepthValue(lpDDBltFx->dwFillDepth, surface.Format), 0);
@@ -1013,7 +1013,7 @@ HRESULT m_IDirectDrawSurfaceX::DeleteAttachedSurface(DWORD dwFlags, LPDIRECTDRAW
 		}
 
 		// clear zbuffer
-		if (lpAttachedSurfaceX->IsDepthBuffer() &&
+		if (lpAttachedSurfaceX->IsDepthStencil() &&
 			(ddrawParent->GetDepthStencilSurface() == lpAttachedSurfaceX || ddrawParent->GetRenderTargetSurface() == this))
 		{
 			ddrawParent->SetDepthStencilSurface(nullptr);
@@ -1034,11 +1034,11 @@ HRESULT m_IDirectDrawSurfaceX::DeleteAttachedSurface(DWORD dwFlags, LPDIRECTDRAW
 	return ProxyInterface->DeleteAttachedSurface(dwFlags, lpDDSAttachedSurface);
 }
 
-m_IDirectDrawSurfaceX* m_IDirectDrawSurfaceX::GetAttachedZBuffer()
+m_IDirectDrawSurfaceX* m_IDirectDrawSurfaceX::GetAttachedDepthStencil()
 {
 	for (auto& it : AttachedSurfaceMap)
 	{
-		if (it.second.pSurface->IsDepthBuffer())
+		if (it.second.pSurface->IsDepthStencil())
 		{
 			return it.second.pSurface;
 		}
@@ -4217,7 +4217,7 @@ HRESULT m_IDirectDrawSurfaceX::CreateD3d9Surface()
 	surface.BitCount = GetBitCount(surface.Format);
 	SurfaceRequiresEmulation = ((surface.Format == D3DFMT_A8B8G8R8 || surface.Format == D3DFMT_X8B8G8R8 || surface.Format == D3DFMT_B8G8R8 || surface.Format == D3DFMT_R8G8B8 ||
 		Config.DdrawEmulateSurface || (Config.DdrawRemoveScanlines && IsPrimaryOrBackBuffer()) || ShouldEmulate == SC_FORCE_EMULATED) &&
-			!IsDepthBuffer() && !(surface.Format & 0xFF000000 /*FOURCC or D3DFMT_DXTx*/) && !surface.UsingSurfaceMemory);
+			!IsDepthStencil() && !(surface.Format & 0xFF000000 /*FOURCC or D3DFMT_DXTx*/) && !surface.UsingSurfaceMemory);
 	const bool IsSurfaceEmulated = (SurfaceRequiresEmulation || (IsPrimaryOrBackBuffer() && (Config.DdrawWriteToGDI || Config.DdrawReadFromGDI) && !Using3D));
 	DCRequiresEmulation = (surface.Format != D3DFMT_R5G6B5 && surface.Format != D3DFMT_X1R5G5B5 && surface.Format != D3DFMT_R8G8B8 && surface.Format != D3DFMT_X8R8G8B8);
 	const D3DFORMAT Format = ((surfaceDesc2.ddsCaps.dwCaps2 & DDSCAPS2_NOTUSERLOCKABLE) && surface.Format == D3DFMT_D16_LOCKABLE) ? D3DFMT_D16 : ConvertSurfaceFormat(surface.Format);
@@ -4262,15 +4262,16 @@ HRESULT m_IDirectDrawSurfaceX::CreateD3d9Surface()
 	HRESULT hr = DD_OK;
 
 	do {
-		// Create depth buffer
-		if (IsDepthBuffer())
+		// Create depth stencil
+		if (IsDepthStencil())
 		{
-			surface.Type = D3DTYPE_DEPTHBUFFER;
+			surface.Type = D3DTYPE_DEPTHSTENCIL;
+			surface.Usage = D3DUSAGE_DEPTHSTENCIL;
 			surface.Pool = D3DPOOL_DEFAULT;
 			if (FAILED((*d3d9Device)->CreateDepthStencilSurface(Width, Height, Format, surface.MultiSampleType, surface.MultiSampleQuality, surface.MultiSampleType ? TRUE : FALSE, &surface.Surface, nullptr)) &&
 				FAILED((*d3d9Device)->CreateDepthStencilSurface(Width, Height, GetFailoverFormat(Format), surface.MultiSampleType, surface.MultiSampleQuality, surface.MultiSampleType ? TRUE : FALSE, &surface.Surface, nullptr)))
 			{
-				LOG_LIMIT(100, __FUNCTION__ << " Error: failed to create depth buffer surface. Size: " << Width << "x" << Height << " Format: " << surface.Format << " dwCaps: " << surfaceDesc2.ddsCaps);
+				LOG_LIMIT(100, __FUNCTION__ << " Error: failed to create depth stencil surface. Size: " << Width << "x" << Height << " Format: " << surface.Format << " dwCaps: " << surfaceDesc2.ddsCaps);
 				hr = DDERR_GENERIC;
 				break;
 			}
@@ -4280,6 +4281,7 @@ HRESULT m_IDirectDrawSurfaceX::CreateD3d9Surface()
 		{
 			// ToDo: if render surface is a texture then create as a texture (MipMaps can be supported on render target textures)
 			surface.Type = D3DTYPE_RENDERTARGET;
+			surface.Usage = D3DUSAGE_RENDERTARGET;
 			surface.Pool = D3DPOOL_DEFAULT;
 			BOOL IsLockable = (surface.MultiSampleType || (surfaceDesc2.ddsCaps.dwCaps2 & DDSCAPS2_NOTUSERLOCKABLE)) ? FALSE : TRUE;
 			if (FAILED((*d3d9Device)->CreateRenderTarget(Width, Height, Format, surface.MultiSampleType, surface.MultiSampleQuality, IsLockable, &surface.Surface, nullptr)) &&
@@ -4290,10 +4292,10 @@ HRESULT m_IDirectDrawSurfaceX::CreateD3d9Surface()
 				break;
 			}
 			// Update attached stencil surface
-			m_IDirectDrawSurfaceX* lpAttachedSurfaceX = GetAttachedZBuffer();
+			m_IDirectDrawSurfaceX* lpAttachedSurfaceX = GetAttachedDepthStencil();
 			if (lpAttachedSurfaceX)
 			{
-				UpdateAttachedZBuffer(lpAttachedSurfaceX);
+				UpdateAttachedDepthStencil(lpAttachedSurfaceX);
 			}
 		}
 		// Create texture
@@ -4695,10 +4697,10 @@ HRESULT m_IDirectDrawSurfaceX::CreateDCSurface()
 	return DD_OK;
 }
 
-void m_IDirectDrawSurfaceX::UpdateAttachedZBuffer(m_IDirectDrawSurfaceX* lpAttachedSurfaceX)
+void m_IDirectDrawSurfaceX::UpdateAttachedDepthStencil(m_IDirectDrawSurfaceX* lpAttachedSurfaceX)
 {
 	bool HasChanged = false;
-	// Verify depth buffer's with and height
+	// Verify depth stencil's with and height
 	if ((surfaceDesc2.dwFlags & (DDSD_WIDTH | DDSD_HEIGHT)) == (DDSD_WIDTH | DDSD_HEIGHT) &&
 		(surfaceDesc2.dwWidth != lpAttachedSurfaceX->surfaceDesc2.dwWidth || surfaceDesc2.dwHeight != lpAttachedSurfaceX->surfaceDesc2.dwHeight))
 	{
@@ -4706,14 +4708,14 @@ void m_IDirectDrawSurfaceX::UpdateAttachedZBuffer(m_IDirectDrawSurfaceX* lpAttac
 		lpAttachedSurfaceX->surfaceDesc2.dwWidth = surfaceDesc2.dwWidth;
 		lpAttachedSurfaceX->surfaceDesc2.dwHeight = surfaceDesc2.dwHeight;
 	}
-	// Set depth buffer multisampling
+	// Set depth stencil multisampling
 	if (lpAttachedSurfaceX && (surface.MultiSampleType != lpAttachedSurfaceX->surface.MultiSampleType || surface.MultiSampleQuality != lpAttachedSurfaceX->surface.MultiSampleQuality))
 	{
 		HasChanged = true;
 		lpAttachedSurfaceX->surface.MultiSampleType = surface.MultiSampleType;
 		lpAttachedSurfaceX->surface.MultiSampleQuality = surface.MultiSampleQuality;
 	}
-	// If depth buffer changed
+	// If depth stencil changed
 	if (HasChanged)
 	{
 		lpAttachedSurfaceX->ReleaseD9Surface(false, false);
@@ -4803,7 +4805,7 @@ void m_IDirectDrawSurfaceX::UpdateSurfaceDesc()
 	// Set attached stencil surface size
 	if (IsChanged && (surfaceDesc2.dwFlags & (DDSD_WIDTH | DDSD_HEIGHT)) == (DDSD_WIDTH | DDSD_HEIGHT))
 	{
-		m_IDirectDrawSurfaceX* lpAttachedSurfaceX = GetAttachedZBuffer();
+		m_IDirectDrawSurfaceX* lpAttachedSurfaceX = GetAttachedDepthStencil();
 		if (lpAttachedSurfaceX && (surfaceDesc2.dwWidth != lpAttachedSurfaceX->surfaceDesc2.dwWidth || surfaceDesc2.dwHeight != lpAttachedSurfaceX->surfaceDesc2.dwHeight))
 		{
 			lpAttachedSurfaceX->ReleaseD9Surface(false, false);
@@ -4951,7 +4953,7 @@ void m_IDirectDrawSurfaceX::ReleaseD9Surface(bool BackupData, bool ResetSurface)
 	// Backup d3d9 surface texture
 	if (BackupData)
 	{
-		if (surface.SurfaceHasData && (surface.Surface || surface.Texture) && !IsRenderTarget() && !IsDepthBuffer() && (!ResetSurface || IsD9UsingVideoMemory()))
+		if (surface.SurfaceHasData && (surface.Surface || surface.Texture) && !IsRenderTarget() && !IsDepthStencil() && (!ResetSurface || IsD9UsingVideoMemory()))
 		{
 			IsSurfaceLost = true;
 			LostDeviceBackup.clear();
@@ -5005,7 +5007,7 @@ void m_IDirectDrawSurfaceX::ReleaseD9Surface(bool BackupData, bool ResetSurface)
 	ReleaseD9ContextSurface();
 
 	// Release d3d9 3D surface
-	if (surface.Surface && (!ResetSurface || IsD9UsingVideoMemory() || IsDepthBuffer()))
+	if (surface.Surface && (!ResetSurface || IsD9UsingVideoMemory() || IsDepthStencil()))
 	{
 		Logging::LogDebug() << __FUNCTION__ << " Releasing Direct3D9 surface";
 		ULONG ref = surface.Surface->Release();
@@ -5487,6 +5489,12 @@ inline HRESULT m_IDirectDrawSurfaceX::LockEmulatedSurface(D3DLOCKED_RECT* pLocke
 	return DD_OK;
 }
 
+void m_IDirectDrawSurfaceX::SetRenderTargetDirty()
+{
+	surface.IsRenderTargetDirty = true;
+	SetDirtyFlag();
+}
+
 // Set dirty flag
 void m_IDirectDrawSurfaceX::SetDirtyFlag()
 {
@@ -5500,12 +5508,6 @@ void m_IDirectDrawSurfaceX::SetDirtyFlag()
 
 	// Update Uniqueness Value
 	ChangeUniquenessValue();
-}
-
-void m_IDirectDrawSurfaceX::DrawingToSurface()
-{
-	SetDirtyFlag();
-	surface.IsVideoSurfaceDirty = true;
 }
 
 void m_IDirectDrawSurfaceX::ClearDirtyFlags()
@@ -6067,7 +6069,7 @@ HRESULT m_IDirectDrawSurfaceX::CopySurface(m_IDirectDrawSurfaceX* pSourceSurface
 		if ((pSourceSurface->surface.Pool == D3DPOOL_DEFAULT && surface.Pool == D3DPOOL_DEFAULT) &&
 			(pSourceSurface->surface.Type == surface.Type || (pSourceSurface->surface.Type == D3DTYPE_OFFPLAINSURFACE && surface.Type == D3DTYPE_RENDERTARGET)) &&
 			(!IsStretchRect || (this != pSourceSurface && !ISDXTEX(SrcFormat) && !ISDXTEX(DestFormat) && surface.Type == D3DTYPE_RENDERTARGET)) &&
-			(surface.Type != D3DTYPE_DEPTHBUFFER || !ddrawParent->IsInScene()) &&
+			(surface.Type != D3DTYPE_DEPTHSTENCIL || !ddrawParent->IsInScene()) &&
 			(surface.Type != D3DTYPE_TEXTURE) &&
 			(!pSourceSurface->IsPalette() && !IsPalette()) &&
 			!IsColorKey)
@@ -6095,7 +6097,7 @@ HRESULT m_IDirectDrawSurfaceX::CopySurface(m_IDirectDrawSurfaceX* pSourceSurface
 
 		// Use UpdateSurface for copying system memory to video memory
 		if ((pSourceSurface->surface.Pool == D3DPOOL_SYSTEMMEM && surface.Pool == D3DPOOL_DEFAULT) &&
-			(pSourceSurface->surface.Type != D3DTYPE_DEPTHBUFFER && surface.Type != D3DTYPE_DEPTHBUFFER) &&
+			(pSourceSurface->surface.Type != D3DTYPE_DEPTHSTENCIL && surface.Type != D3DTYPE_DEPTHSTENCIL) &&
 			(pSourceSurface->surface.Format == surface.Format) &&
 			(!pSourceSurface->IsPalette() && !IsPalette()) &&
 			!IsStretchRect && !IsColorKey)
