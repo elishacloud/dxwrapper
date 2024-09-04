@@ -1936,7 +1936,7 @@ HRESULT m_IDirect3DDeviceX::Clear(DWORD dwCount, LPD3DRECT lpRects, DWORD dwFlag
 
 		if ((dwFlags & D3DCLEAR_TARGET) && lpCurrentRenderTargetX)
 		{
-			lpCurrentRenderTargetX->SetDirtyFlag();
+			lpCurrentRenderTargetX->DrawingToSurface();
 		}
 
 		return (*d3d9Device)->Clear(dwCount, lpRects, dwFlags, dwColor, dvZ, dwStencil);
@@ -4293,7 +4293,7 @@ inline void m_IDirect3DDeviceX::RestoreDrawStates(DWORD dwVertexTypeDesc, DWORD 
 	{
 		if (lpCurrentRenderTargetX)
 		{
-			lpCurrentRenderTargetX->SetDirtyFlag();
+			lpCurrentRenderTargetX->DrawingToSurface();
 		}
 		if (Config.DdrawFixByteAlignment > 1)
 		{

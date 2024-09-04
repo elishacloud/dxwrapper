@@ -113,6 +113,7 @@ private:
 		bool SurfaceHasData = false;
 		bool UsingSurfaceMemory = false;
 		bool IsDirtyFlag = false;
+		bool IsVideoSurfaceDirty = false;
 		bool IsDrawTextureDirty = false;
 		bool IsPaletteDirty = false;						// Used to detect if the palette surface needs to be updated
 		DWORD BitCount = 0;									// Bit count for this surface
@@ -289,6 +290,8 @@ private:
 		ProxyAddressLookupTable.IsValidWrapperAddress((m_IDirectDrawSurface7*)lpDDSrcSurface));
 	}
 
+	void SetDirtyFlag();
+
 	// Attached surfaces
 	void InitSurfaceDesc(DWORD DirectXVersion);
 	void AddAttachedSurfaceToMap(m_IDirectDrawSurfaceX* lpSurfaceX, bool MarkAttached = false);
@@ -304,8 +307,8 @@ private:
 	HRESULT CopyFromEmulatedSurface(LPRECT lpDestRect);
 	HRESULT CopyToEmulatedSurface(LPRECT lpDestRect);
 	HRESULT CopyEmulatedPaletteSurface(LPRECT lpDestRect);
-	HRESULT CopyEmulatedSurfaceFromGDI(RECT Rect);
-	HRESULT CopyEmulatedSurfaceToGDI(RECT Rect);
+	HRESULT CopyEmulatedSurfaceFromGDI(LPRECT lpDestRect);
+	HRESULT CopyEmulatedSurfaceToGDI(LPRECT lpDestRect);
 
 public:
 	m_IDirectDrawSurfaceX(IDirectDrawSurface7 *pOriginal, DWORD DirectXVersion) : ProxyInterface(pOriginal), CreatedVersion(DirectXVersion)
@@ -461,7 +464,7 @@ public:
 	inline bool IsSurfaceDirty() { return surface.IsDirtyFlag; }
 	inline bool IsMipMapAutogen() { return surface.Texture && (surface.Usage & D3DUSAGE_AUTOGENMIPMAP); }
 	inline bool IsMipMapGenerated() { return IsMipMapReadyToUse || IsMipMapAutogen(); }
-	void SetDirtyFlag();
+	void DrawingToSurface();
 	void ClearDirtyFlags();
 	bool GetColorKeyForShader(float(&lowColorKey)[4], float(&highColorKey)[4]);
 	bool GetColorKeyForPrimaryShader(float(&lowColorKey)[4], float(&highColorKey)[4]);

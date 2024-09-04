@@ -488,7 +488,7 @@ HRESULT m_IDirect3DVertexBufferX::Optimize(LPDIRECT3DDEVICE7 lpD3DDevice, DWORD 
 
 	if (Config.Dd7to9)
 	{
-		LOG_LIMIT(100, __FUNCTION__ << " Warning: Not Implemented");
+		// The Optimize function doesn't exist in Direct3D9 because it manages vertex buffer optimizations internally
 		return D3D_OK;
 	}
 
