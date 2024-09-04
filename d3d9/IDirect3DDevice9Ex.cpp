@@ -2044,7 +2044,7 @@ HRESULT m_IDirect3DDevice9Ex::GetRenderTargetData(THIS_ IDirect3DSurface9* pRend
 
 	if (pRenderTarget)
 	{
-		pRenderTarget = static_cast<m_IDirect3DSurface9*>(pDestSurface)->GetNonMultiSampledSurface(nullptr, 0);
+		pRenderTarget = static_cast<m_IDirect3DSurface9 *>(pRenderTarget)->GetNonMultiSampledSurface(nullptr, 0);
 	}
 
 	if (pDestSurface)
@@ -2064,20 +2064,15 @@ HRESULT m_IDirect3DDevice9Ex::UpdateSurface(THIS_ IDirect3DSurface9* pSourceSurf
 		pSourceSurface = static_cast<m_IDirect3DSurface9 *>(pSourceSurface)->GetProxyInterface();
 	}
 
-	m_IDirect3DSurface9* m_pDestinationSurface = static_cast<m_IDirect3DSurface9*>(pDestinationSurface);
-	IDirect3DSurface9* pDestinationMultiSample = nullptr;
-	if (m_pDestinationSurface)
+	m_IDirect3DSurface9* m_pDestinationSurface = static_cast<m_IDirect3DSurface9 *>(pDestinationSurface);
+	if (pDestinationSurface)
 	{
-		pDestinationSurface = m_pDestinationSurface->GetProxyInterface();
-		pDestinationMultiSample = m_pDestinationSurface->GetNonMultiSampledSurface(nullptr, 0);
+		RECT Rect = (pSourceRect && pDestPoint) ?
+			RECT{ pDestPoint->x, pDestPoint->y, pDestPoint->x + (pSourceRect->right - pSourceRect->left), pDestPoint->y + (pSourceRect->bottom - pSourceRect->top) } : RECT{};
+		pDestinationSurface = m_pDestinationSurface->GetNonMultiSampledSurface((pSourceRect && pDestPoint) ? &Rect : nullptr, 0);
 	}
 
-	if (pDestinationSurface == pDestinationMultiSample)
-	{
-		return ProxyInterface->UpdateSurface(pSourceSurface, pSourceRect, pDestinationSurface, pDestPoint);
-	}
-
-	HRESULT hr = ProxyInterface->UpdateSurface(pSourceSurface, pSourceRect, pDestinationMultiSample, pDestPoint);
+	HRESULT hr = ProxyInterface->UpdateSurface(pSourceSurface, pSourceRect, pDestinationSurface, pDestPoint);
 
 	if (SUCCEEDED(hr))
 	{
