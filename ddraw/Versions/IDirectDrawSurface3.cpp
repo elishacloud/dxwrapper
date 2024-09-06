@@ -108,7 +108,7 @@ HRESULT m_IDirectDrawSurface3::GetColorKey(DWORD a, LPDDCOLORKEY b)
 
 HRESULT m_IDirectDrawSurface3::GetDC(HDC FAR * a)
 {
-	return ProxyInterface->GetDC(a);
+	return ProxyInterface->GetDC(a, MipMapLevel);
 }
 
 HRESULT m_IDirectDrawSurface3::GetFlipStatus(DWORD a)

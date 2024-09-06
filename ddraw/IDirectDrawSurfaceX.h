@@ -244,6 +244,8 @@ private:
 
 	// Direct3D9 interface functions
 	LPDIRECT3DSURFACE9 Get3DSurface();
+	LPDIRECT3DSURFACE9 Get3DMipMapSurface(DWORD MipMapLevel);
+	void Release3DMipMapSurface(LPDIRECT3DSURFACE9 pSurfaceD9, DWORD MipMapLevel);
 	LPDIRECT3DTEXTURE9 Get3DTexture();
 	void CheckMipMapLevelGen();
 	HRESULT CheckInterface(char* FunctionName, bool CheckD3DDevice, bool CheckD3DSurface, bool CheckLostSurface);
@@ -278,7 +280,6 @@ private:
 	inline DWORD GetD3d9MipMapLevel(DWORD MipMapLevel) { return min(MipMapLevel, MaxMipMapLevel); }
 	inline DWORD GetWidth() { return surfaceDesc2.dwWidth; }
 	inline DWORD GetHeight() { return surfaceDesc2.dwHeight; }
-	inline RECT GetSurfaceRect() { return { 0, 0, (LONG)surfaceDesc2.dwWidth, (LONG)surfaceDesc2.dwHeight }; }
 	inline bool CanSurfaceBeDeleted() { return (ComplexRoot || (surfaceDesc2.ddsCaps.dwCaps & DDSCAPS_COMPLEX) == 0); }
 	inline DDSCAPS2 GetSurfaceCaps() { return surfaceDesc2.ddsCaps; }
 	inline D3DFORMAT GetSurfaceFormat() { return surface.Format; }
@@ -302,7 +303,7 @@ private:
 	// Copying surface textures
 	HRESULT SaveDXTDataToDDS(const void* data, size_t dataSize, const char* filename, int dxtVersion) const;
 	HRESULT SaveSurfaceToFile(const char* filename, D3DXIMAGE_FILEFORMAT format);
-	HRESULT CopySurface(m_IDirectDrawSurfaceX* pSourceSurface, RECT* pSourceRect, RECT* pDestRect, D3DTEXTUREFILTERTYPE Filter, D3DCOLOR ColorKey, DWORD dwFlags);
+	HRESULT CopySurface(m_IDirectDrawSurfaceX* pSourceSurface, RECT* pSourceRect, RECT* pDestRect, D3DTEXTUREFILTERTYPE Filter, D3DCOLOR ColorKey, DWORD dwFlags, DWORD SrcMipMapLevel, DWORD MipMapLevel);
 	HRESULT CopyToDrawTexture(LPRECT lpDestRect);
 	HRESULT CopyFromEmulatedSurface(LPRECT lpDestRect);
 	HRESULT CopyToEmulatedSurface(LPRECT lpDestRect);
@@ -373,7 +374,7 @@ public:
 	HRESULT GetCaps2(LPDDSCAPS2);
 	STDMETHOD(GetClipper)(THIS_ LPDIRECTDRAWCLIPPER FAR*);
 	STDMETHOD(GetColorKey)(THIS_ DWORD, LPDDCOLORKEY);
-	STDMETHOD(GetDC)(THIS_ HDC FAR *);
+	STDMETHOD(GetDC)(THIS_ HDC FAR *, DWORD MipMapLevel);
 	STDMETHOD(GetFlipStatus)(THIS_ DWORD);
 	STDMETHOD(GetOverlayPosition)(THIS_ LPLONG, LPLONG);
 	STDMETHOD(GetPalette)(THIS_ LPDIRECTDRAWPALETTE FAR*);
@@ -504,7 +505,7 @@ public:
 	}
 
 	// Draw 2D DirectDraw surface
-	HRESULT ColorFill(RECT* pRect, D3DCOLOR dwFillColor);
+	HRESULT ColorFill(RECT* pRect, D3DCOLOR dwFillColor, DWORD MipMapLevel);
 
 	// Attached surfaces
 	void RemoveAttachedSurfaceFromMap(m_IDirectDrawSurfaceX* lpSurfaceX);

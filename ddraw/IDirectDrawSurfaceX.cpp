@@ -517,13 +517,6 @@ HRESULT m_IDirectDrawSurfaceX::Blt(LPRECT lpDestRect, LPDIRECTDRAWSURFACE7 lpDDS
 			lpDDSrcSurface->QueryInterface(IID_GetMipMapLevel, (LPVOID*)&SrcMipMapLevel);
 		}
 
-		// MipMap level support
-		if (MipMapLevel || (SrcMipMapLevel && lpSrcRect))
-		{
-			LOG_LIMIT(100, __FUNCTION__ << " Warning: Blt to MipMap level Not Implemented: " << MipMapLevel << " " << SrcMipMapLevel);
-			return DD_OK;
-		}
-
 		// Typically, Blt returns immediately with an error if the bitbltter is busy and the bitblt could not be set up. Specify the DDBLT_WAIT flag to request a synchronous bitblt.
 		const bool BltWait = ((dwFlags & DDBLT_WAIT) && (dwFlags & DDBLT_DONOTWAIT) == 0);
 
@@ -618,7 +611,7 @@ HRESULT m_IDirectDrawSurfaceX::Blt(LPRECT lpDestRect, LPDIRECTDRAWSURFACE7 lpDDS
 				// Do color fill
 				if (dwFlags & DDBLT_COLORFILL)
 				{
-					hr = ColorFill(lpDestRect, lpDDBltFx->dwFillColor);
+					hr = ColorFill(lpDestRect, lpDDBltFx->dwFillColor, MipMapLevel);
 					break;
 				}
 
@@ -631,12 +624,12 @@ HRESULT m_IDirectDrawSurfaceX::Blt(LPRECT lpDestRect, LPDIRECTDRAWSURFACE7 lpDDS
 					}
 					else if (lpDDBltFx->dwROP == BLACKNESS)
 					{
-						hr = ColorFill(lpDestRect, 0x00000000);
+						hr = ColorFill(lpDestRect, 0x00000000, MipMapLevel);
 						break;
 					}
 					else if (lpDDBltFx->dwROP == WHITENESS)
 					{
-						hr = ColorFill(lpDestRect, 0xFFFFFFFF);
+						hr = ColorFill(lpDestRect, 0xFFFFFFFF, MipMapLevel);
 						break;
 					}
 					else
@@ -678,7 +671,7 @@ HRESULT m_IDirectDrawSurfaceX::Blt(LPRECT lpDestRect, LPDIRECTDRAWSURFACE7 lpDDS
 
 				D3DTEXTUREFILTERTYPE Filter = ((dwFlags & DDBLT_DDFX) && (lpDDBltFx->dwDDFX & DDBLTFX_ARITHSTRETCHY)) ? D3DTEXF_LINEAR : D3DTEXF_NONE;
 
-				hr = CopySurface(lpDDSrcSurfaceX, lpSrcRect, lpDestRect, Filter, ColorKey.dwColorSpaceLowValue, Flags);
+				hr = CopySurface(lpDDSrcSurfaceX, lpSrcRect, lpDestRect, Filter, ColorKey.dwColorSpaceLowValue, Flags, SrcMipMapLevel, MipMapLevel);
 
 			} while (false);
 
@@ -701,6 +694,14 @@ HRESULT m_IDirectDrawSurfaceX::Blt(LPRECT lpDestRect, LPDIRECTDRAWSURFACE7 lpDDS
 			{
 				// Set dirty flag
 				SetDirtyFlag();
+
+				// Mark mipmap data flag
+				if (MipMapLevel && MipMaps.size())
+				{
+					DWORD Level = min(MipMaps.size(), MipMapLevel) - 1;
+					MipMaps[Level].HasData = true;
+					CheckMipMapLevelGen();
+				}
 
 				// Set vertical sync wait timer
 				if (SUCCEEDED(c_hr) && (dwFlags & DDBLT_DDFX) && (lpDDBltFx->dwDDFX & DDBLTFX_NOTEARING))
@@ -1532,7 +1533,7 @@ HRESULT m_IDirectDrawSurfaceX::Flip(LPDIRECTDRAWSURFACE7 lpDDSurfaceTargetOverri
 			// Clear surface before flip if system memory
 			if (surfaceDesc2.ddsCaps.dwCaps & DDSCAPS_SYSTEMMEMORY)
 			{
-				if (FAILED(ColorFill(nullptr, Config.DdrawFlipFillColor)))
+				if (FAILED(ColorFill(nullptr, Config.DdrawFlipFillColor, 0)))
 				{
 					LOG_LIMIT(100, __FUNCTION__ << " Error: could not color fill surface.");
 				}
@@ -1999,7 +2000,7 @@ bool m_IDirectDrawSurfaceX::GetColorKeyForShader(float(&lowColorKey)[4], float(&
 	return true;
 }
 
-HRESULT m_IDirectDrawSurfaceX::GetDC(HDC FAR* lphDC)
+HRESULT m_IDirectDrawSurfaceX::GetDC(HDC FAR* lphDC, DWORD MipMapLevel)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
@@ -2009,8 +2010,15 @@ HRESULT m_IDirectDrawSurfaceX::GetDC(HDC FAR* lphDC)
 		{
 			return DDERR_INVALIDPARAMS;
 		}
-
 		*lphDC = nullptr;
+
+		// MipMap level support
+		if (MipMapLevel)
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: GetDC from MipMap level Not Implemented: " << MipMapLevel);
+			return DDERR_UNSUPPORTED;
+		}
+
 		if (LastDC && IsSurfaceInDC())
 		{
 			*lphDC = LastDC;
@@ -3944,6 +3952,29 @@ inline LPDIRECT3DSURFACE9 m_IDirectDrawSurfaceX::Get3DSurface()
 	return nullptr;
 }
 
+inline LPDIRECT3DSURFACE9 m_IDirectDrawSurfaceX::Get3DMipMapSurface(DWORD MipMapLevel)
+{
+	if (MipMapLevel == 0)
+	{
+		return Get3DSurface();
+	}
+	else if (surface.Texture)
+	{
+		LPDIRECT3DSURFACE9 pSurfaceD9 = nullptr;
+		surface.Texture->GetSurfaceLevel(GetD3d9MipMapLevel(MipMapLevel), &pSurfaceD9);
+		return pSurfaceD9;
+	}
+	return nullptr;
+}
+
+inline void m_IDirectDrawSurfaceX::Release3DMipMapSurface(LPDIRECT3DSURFACE9 pSurfaceD9, DWORD MipMapLevel)
+{
+	if (pSurfaceD9 && MipMapLevel != 0)
+	{
+		pSurfaceD9->Release();
+	}
+}
+
 LPDIRECT3DTEXTURE9 m_IDirectDrawSurfaceX::GetD3d9DrawTexture()
 {
 	// Check if texture already exists
@@ -5758,7 +5789,7 @@ bool m_IDirectDrawSurfaceX::DoesFlipBackBufferExist(m_IDirectDrawSurfaceX* lpSur
 	return lpTargetSurface->DoesFlipBackBufferExist(lpSurfaceX);
 }
 
-HRESULT m_IDirectDrawSurfaceX::ColorFill(RECT* pRect, D3DCOLOR dwFillColor)
+HRESULT m_IDirectDrawSurfaceX::ColorFill(RECT* pRect, D3DCOLOR dwFillColor, DWORD MipMapLevel)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
@@ -5769,9 +5800,14 @@ HRESULT m_IDirectDrawSurfaceX::ColorFill(RECT* pRect, D3DCOLOR dwFillColor)
 		return c_hr;
 	}
 
+	// Get surface desc for mipmap
+	DDSURFACEDESC2 Desc2 = {};
+	Desc2.dwSize = sizeof(DDSURFACEDESC2);
+	GetSurfaceDesc2(&Desc2, MipMapLevel, 7);
+
 	// Check and copy rect
 	RECT DestRect = {};
-	if (!CheckCoordinates(DestRect, pRect, nullptr))
+	if (!CheckCoordinates(DestRect, pRect, &Desc2))
 	{
 		LOG_LIMIT(100, __FUNCTION__ << " Error: invalid rect: " << pRect);
 		return DDERR_INVALIDRECT;
@@ -5791,7 +5827,7 @@ HRESULT m_IDirectDrawSurfaceX::ColorFill(RECT* pRect, D3DCOLOR dwFillColor)
 	// Check if surface is not locked then lock it
 	D3DLOCKED_RECT DestLockRect = {};
 	if (FAILED(IsUsingEmulation() ? LockEmulatedSurface(&DestLockRect, &DestRect) :
-		LockD3d9Surface(&DestLockRect, &DestRect, 0, 0)))
+		LockD3d9Surface(&DestLockRect, &DestRect, 0, MipMapLevel)))
 	{
 		LOG_LIMIT(100, __FUNCTION__ << " Error: could not lock destination surface " << DestRect);
 		return (IsSurfaceLocked()) ? DDERR_SURFACEBUSY : DDERR_GENERIC;
@@ -5877,7 +5913,7 @@ HRESULT m_IDirectDrawSurfaceX::ColorFill(RECT* pRect, D3DCOLOR dwFillColor)
 	// Unlock surface
 	else
 	{
-		UnLockD3d9Surface(0);
+		UnLockD3d9Surface(MipMapLevel);
 	}
 
 	// Blt surface directly to GDI
@@ -5977,7 +6013,7 @@ HRESULT m_IDirectDrawSurfaceX::SaveSurfaceToFile(const char *filename, D3DXIMAGE
 }
 
 // Copy surface
-HRESULT m_IDirectDrawSurfaceX::CopySurface(m_IDirectDrawSurfaceX* pSourceSurface, RECT* pSourceRect, RECT* pDestRect, D3DTEXTUREFILTERTYPE Filter, D3DCOLOR ColorKey, DWORD dwFlags)
+HRESULT m_IDirectDrawSurfaceX::CopySurface(m_IDirectDrawSurfaceX* pSourceSurface, RECT* pSourceRect, RECT* pDestRect, D3DTEXTUREFILTERTYPE Filter, D3DCOLOR ColorKey, DWORD dwFlags, DWORD SrcMipMapLevel, DWORD MipMapLevel)
 {
 	// Check parameters
 	if (!pSourceSurface)
@@ -5994,9 +6030,16 @@ HRESULT m_IDirectDrawSurfaceX::CopySurface(m_IDirectDrawSurfaceX* pSourceSurface
 		return (c_hr == DDERR_SURFACELOST || s_hr == DDERR_SURFACELOST) ? DDERR_SURFACELOST : FAILED(c_hr) ? c_hr : s_hr;
 	}
 
+	// Get surface desc for mipmap
+	DDSURFACEDESC2 SrcDesc2 = {}, DestDesc2 = {};
+	SrcDesc2.dwSize = sizeof(DDSURFACEDESC2);
+	DestDesc2.dwSize = sizeof(DDSURFACEDESC2);
+	pSourceSurface->GetSurfaceDesc2(&SrcDesc2, SrcMipMapLevel, 7);
+	GetSurfaceDesc2(&DestDesc2, MipMapLevel, 7);
+
 	// Copy rect and do clipping
-	RECT SrcRect = (pSourceRect) ? *pSourceRect : pSourceSurface->GetSurfaceRect();
-	RECT DestRect = (pDestRect) ? *pDestRect : GetSurfaceRect();
+	RECT SrcRect = (pSourceRect) ? *pSourceRect : RECT{ 0, 0, (LONG)SrcDesc2.dwWidth, (LONG)SrcDesc2.dwHeight };
+	RECT DestRect = (pDestRect) ? *pDestRect : RECT{ 0, 0, (LONG)DestDesc2.dwWidth, (LONG)DestDesc2.dwHeight };
 	LONG Left = min(SrcRect.left, DestRect.left);
 	if (Left < 0)
 	{
@@ -6028,7 +6071,7 @@ HRESULT m_IDirectDrawSurfaceX::CopySurface(m_IDirectDrawSurfaceX* pSourceSurface
 		D3DX_FILTER_NONE;
 
 	// Check rect and do clipping
-	if (!pSourceSurface->CheckCoordinates(SrcRect, &SrcRect, nullptr) || !CheckCoordinates(DestRect, &DestRect, nullptr))
+	if (!pSourceSurface->CheckCoordinates(SrcRect, &SrcRect, &SrcDesc2) || !CheckCoordinates(DestRect, &DestRect, &DestDesc2))
 	{
 		LOG_LIMIT(100, __FUNCTION__ << " Error: Invalid rect: " << pSourceRect << " -> " << pDestRect);
 		return DDERR_INVALIDRECT;
@@ -6060,7 +6103,7 @@ HRESULT m_IDirectDrawSurfaceX::CopySurface(m_IDirectDrawSurfaceX* pSourceSurface
 	}
 
 	// Variables
-	HRESULT hr = DD_OK;
+	HRESULT hr = DDERR_GENERIC;
 	bool UnlockSrc = false, UnlockDest = false;
 	D3DLOCKED_RECT DestLockRect = {};
 
@@ -6074,25 +6117,27 @@ HRESULT m_IDirectDrawSurfaceX::CopySurface(m_IDirectDrawSurfaceX* pSourceSurface
 			(!pSourceSurface->IsPalette() && !IsPalette()) &&
 			!IsColorKey)
 		{
-			IDirect3DSurface9* pSourceSurfaceD9 = pSourceSurface->Get3DSurface();
-			IDirect3DSurface9* pDestSurfaceD9 = Get3DSurface();
+			IDirect3DSurface9* pSourceSurfaceD9 = pSourceSurface->Get3DMipMapSurface(SrcMipMapLevel);
+			IDirect3DSurface9* pDestSurfaceD9 = Get3DMipMapSurface(MipMapLevel);
 
-			if (!pSourceSurfaceD9 || !pDestSurfaceD9)
+			if (pSourceSurfaceD9 && pDestSurfaceD9)
 			{
-				LOG_LIMIT(100, __FUNCTION__ << " Error: could not get texture surface. " << pSourceSurfaceD9 << "->" << pDestSurfaceD9);
-				hr = DDERR_GENERIC;
-				break;
+				hr = (*d3d9Device)->StretchRect(pSourceSurfaceD9, &SrcRect, pDestSurfaceD9, &DestRect, Filter);
+
+				if (FAILED(hr))
+				{
+					LOG_LIMIT(100, __FUNCTION__ << " Error: could not copy rect: " << SrcDesc2.ddsCaps << " -> " << DestDesc2.ddsCaps << " " <<
+						SrcFormat << " -> " << DestFormat << " " << SrcRect << " -> " << DestRect << " " << IsStretchRect << " " << (D3DERR)hr);
+				}
 			}
 
-			hr = (*d3d9Device)->StretchRect(pSourceSurfaceD9, &SrcRect, pDestSurfaceD9, &DestRect, Filter);
+			pSourceSurface->Release3DMipMapSurface(pSourceSurfaceD9, SrcMipMapLevel);
+			Release3DMipMapSurface(pDestSurfaceD9, MipMapLevel);
 
 			if (SUCCEEDED(hr))
 			{
 				break;
 			}
-
-			LOG_LIMIT(100, __FUNCTION__ << " Error: could not copy rect: " << pSourceSurface->surfaceDesc2.ddsCaps << " -> " << surfaceDesc2.ddsCaps << " " <<
-				SrcFormat << " -> " << DestFormat << " " << SrcRect << " -> " << DestRect << " " << IsStretchRect << " " << (D3DERR)hr);
 		}
 
 		// Use UpdateSurface for copying system memory to video memory
@@ -6102,25 +6147,27 @@ HRESULT m_IDirectDrawSurfaceX::CopySurface(m_IDirectDrawSurfaceX* pSourceSurface
 			(!pSourceSurface->IsPalette() && !IsPalette()) &&
 			!IsStretchRect && !IsColorKey)
 		{
-			IDirect3DSurface9* pSourceSurfaceD9 = pSourceSurface->Get3DSurface();
-			IDirect3DSurface9* pDestSurfaceD9 = Get3DSurface();
+			IDirect3DSurface9* pSourceSurfaceD9 = pSourceSurface->Get3DMipMapSurface(SrcMipMapLevel);
+			IDirect3DSurface9* pDestSurfaceD9 = Get3DMipMapSurface(MipMapLevel);
 
-			if (!pSourceSurfaceD9 || !pDestSurfaceD9)
+			if (pSourceSurfaceD9 && pDestSurfaceD9)
 			{
-				LOG_LIMIT(100, __FUNCTION__ << " Error: could not get texture surface. " << pSourceSurfaceD9 << "->" << pDestSurfaceD9);
-				hr = DDERR_GENERIC;
-				break;
+				hr = (*d3d9Device)->UpdateSurface(pSourceSurfaceD9, &SrcRect, pDestSurfaceD9, (LPPOINT)&DestRect);
+
+				if (FAILED(hr))
+				{
+					LOG_LIMIT(100, __FUNCTION__ << " Error: could not update surface: " << SrcDesc2.ddsCaps << " -> " << DestDesc2.ddsCaps << " " <<
+						SrcFormat << " -> " << DestFormat << " " << SrcRect << " -> " << DestRect << " " << IsStretchRect << " " << (D3DERR)hr);
+				}
 			}
 
-			hr = (*d3d9Device)->UpdateSurface(pSourceSurfaceD9, &SrcRect, pDestSurfaceD9, (LPPOINT)&DestRect);
+			pSourceSurface->Release3DMipMapSurface(pSourceSurfaceD9, SrcMipMapLevel);
+			Release3DMipMapSurface(pDestSurfaceD9, MipMapLevel);
 
 			if (SUCCEEDED(hr))
 			{
 				break;
 			}
-
-			LOG_LIMIT(100, __FUNCTION__ << " Error: could not update surface: " << pSourceSurface->surfaceDesc2.ddsCaps << " -> " << surfaceDesc2.ddsCaps << " " <<
-				SrcFormat << " -> " << DestFormat << " " << SrcRect << " -> " << DestRect << " " << IsStretchRect << " " << (D3DERR)hr);
 		}
 
 		// Decode DirectX texture
@@ -6143,23 +6190,29 @@ HRESULT m_IDirectDrawSurfaceX::CopySurface(m_IDirectDrawSurfaceX* pSourceSurface
 				break;
 			}
 
-			IDirect3DSurface9* pSourceSurfaceD9 = pSourceSurface->Get3DSurface();
-			IDirect3DSurface9* pDestSurfaceD9 = Get3DSurface();
+			IDirect3DSurface9* pSourceSurfaceD9 = pSourceSurface->Get3DMipMapSurface(SrcMipMapLevel);
+			IDirect3DSurface9* pDestSurfaceD9 = Get3DMipMapSurface(MipMapLevel);
 
-			if (!pSourceSurfaceD9 || !pDestSurfaceD9)
+			if (pSourceSurfaceD9 && pDestSurfaceD9)
 			{
-				LOG_LIMIT(100, __FUNCTION__ << " Error: could not get texture surface. " << pSourceSurfaceD9 << "->" << pDestSurfaceD9);
-				hr = DDERR_GENERIC;
+				hr = D3DXLoadSurfaceFromSurface(pDestSurfaceD9, nullptr, &DestRect, pSourceSurfaceD9, nullptr, &SrcRect, D3DXFilter, 0);
+
+				if (FAILED(hr))
+				{
+					LOG_LIMIT(100, __FUNCTION__ << " Error: could not decode source texture. " << (D3DERR)hr);
+					break;
+				}
+			}
+
+			pSourceSurface->Release3DMipMapSurface(pSourceSurfaceD9, SrcMipMapLevel);
+			Release3DMipMapSurface(pDestSurfaceD9, MipMapLevel);
+
+			if (SUCCEEDED(hr))
+			{
 				break;
 			}
 
-			hr = D3DXLoadSurfaceFromSurface(pDestSurfaceD9, nullptr, &DestRect, pSourceSurfaceD9, nullptr, &SrcRect, D3DXFilter, 0);
-
-			if (FAILED(hr))
-			{
-				LOG_LIMIT(100, __FUNCTION__ << " Error: could not decode source texture. " << (D3DERR)hr);
-			}
-
+			LOG_LIMIT(100, __FUNCTION__ << " Error: could not get source or destination surface level: " << pSourceSurfaceD9 << "->" << pDestSurfaceD9);
 			break;
 		}
 
@@ -6203,6 +6256,7 @@ HRESULT m_IDirectDrawSurfaceX::CopySurface(m_IDirectDrawSurfaceX* pSourceSurface
 				BitBlt(surface.emu->DC, DestRect.left, DestRect.top, DestRectWidth, DestRectHeight,
 					pSourceSurface->surface.emu->DC, SrcRect.left, SrcRect.top, SRCCOPY))
 			{
+				hr = DD_OK;
 				break;
 			}
 		}
@@ -6219,6 +6273,7 @@ HRESULT m_IDirectDrawSurfaceX::CopySurface(m_IDirectDrawSurfaceX* pSourceSurface
 			{
 				if (SUCCEEDED(D3DXLoadSurfaceFromSurface(pDestSurfaceD9, nullptr, &DestRect, pSourceSurfaceD9, nullptr, &SrcRect, D3DXFilter, 0)))
 				{
+					hr = DD_OK;
 					break;
 				}
 			}
@@ -6256,7 +6311,7 @@ HRESULT m_IDirectDrawSurfaceX::CopySurface(m_IDirectDrawSurfaceX* pSourceSurface
 		// Check if source surface is not locked then lock it
 		D3DLOCKED_RECT SrcLockRect = {};
 		if (FAILED(pSourceSurface->IsUsingEmulation() ? pSourceSurface->LockEmulatedSurface(&SrcLockRect, &SrcRect) :
-			pSourceSurface->LockD3d9Surface(&SrcLockRect, &SrcRect, D3DLOCK_READONLY, 0)) || !SrcLockRect.pBits)
+			pSourceSurface->LockD3d9Surface(&SrcLockRect, &SrcRect, D3DLOCK_READONLY, SrcMipMapLevel)) || !SrcLockRect.pBits)
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Error: could not lock source surface " << SrcRect);
 			hr = (pSourceSurface->IsSurfaceBusy()) ? DDERR_SURFACEBUSY : DDERR_GENERIC;
@@ -6265,7 +6320,7 @@ HRESULT m_IDirectDrawSurfaceX::CopySurface(m_IDirectDrawSurfaceX* pSourceSurface
 		UnlockSrc = true;
 
 		// Check if source and destination memory addresses are overlapping
-		if (pSourceSurface == this)
+		if (pSourceSurface == this && MipMapLevel == SrcMipMapLevel)
 		{
 			size_t size = SrcRectWidth * ByteCount * SrcRectHeight;
 			if (size > ByteArray.size())
@@ -6285,14 +6340,14 @@ HRESULT m_IDirectDrawSurfaceX::CopySurface(m_IDirectDrawSurfaceX* pSourceSurface
 			SrcLockRect.Pitch = DestPitch;
 			if (UnlockSrc)
 			{
-				pSourceSurface->IsUsingEmulation() ? DD_OK : pSourceSurface->UnLockD3d9Surface(0);
+				pSourceSurface->IsUsingEmulation() ? DD_OK : pSourceSurface->UnLockD3d9Surface(SrcMipMapLevel);
 				UnlockSrc = false;
 			}
 		}
 
 		// Check if destination surface is not locked then lock it
 		if (FAILED(IsUsingEmulation() ? LockEmulatedSurface(&DestLockRect, &DestRect) :
-			LockD3d9Surface(&DestLockRect, &DestRect, 0, 0)) || !DestLockRect.pBits)
+			LockD3d9Surface(&DestLockRect, &DestRect, 0, MipMapLevel)) || !DestLockRect.pBits)
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Error: could not lock destination surface " << DestRect);
 			hr = (IsSurfaceLocked()) ? DDERR_SURFACEBUSY : DDERR_GENERIC;
@@ -6315,7 +6370,7 @@ HRESULT m_IDirectDrawSurfaceX::CopySurface(m_IDirectDrawSurfaceX* pSourceSurface
 		// Simple memory copy (QuickCopy)
 		if (!IsStretchRect && !IsColorKey && !IsMirrorLeftRight && !FormatMismatch)
 		{
-			if (!IsMirrorUpDown && SrcLockRect.Pitch == DestLockRect.Pitch && (DWORD)DestRectWidth == surfaceDesc2.dwWidth)
+			if (!IsMirrorUpDown && SrcLockRect.Pitch == DestLockRect.Pitch && (DWORD)DestRectWidth == DestDesc2.dwWidth)
 			{
 				memcpy(DestBuffer, SrcBuffer, DestRectHeight * DestPitch);
 			}
@@ -6328,6 +6383,7 @@ HRESULT m_IDirectDrawSurfaceX::CopySurface(m_IDirectDrawSurfaceX* pSourceSurface
 					DestBuffer += DestPitch;
 				}
 			}
+			hr = DD_OK;
 			break;
 		}
 
@@ -6354,7 +6410,6 @@ HRESULT m_IDirectDrawSurfaceX::CopySurface(m_IDirectDrawSurfaceX* pSourceSurface
 					SrcBufferLoop += SrcLockRect.Pitch;
 					DestBufferLoop += DestPitch;
 				}
-				break;
 			}
 			else if (ByteCount == 2)
 			{
@@ -6373,7 +6428,6 @@ HRESULT m_IDirectDrawSurfaceX::CopySurface(m_IDirectDrawSurfaceX* pSourceSurface
 					SrcBufferLoop = (WORD*)((BYTE*)SrcBufferLoop + SrcLockRect.Pitch);
 					DestBufferLoop = (WORD*)((BYTE*)DestBufferLoop + DestPitch);
 				}
-				break;
 			}
 			else if (ByteCount == 3)
 			{
@@ -6393,7 +6447,6 @@ HRESULT m_IDirectDrawSurfaceX::CopySurface(m_IDirectDrawSurfaceX* pSourceSurface
 					SrcBufferLoop = (TRIBYTE*)((BYTE*)SrcBufferLoop + SrcLockRect.Pitch);
 					DestBufferLoop = (TRIBYTE*)((BYTE*)DestBufferLoop + DestPitch);
 				}
-				break;
 			}
 			else if (ByteCount == 4)
 			{
@@ -6412,8 +6465,9 @@ HRESULT m_IDirectDrawSurfaceX::CopySurface(m_IDirectDrawSurfaceX* pSourceSurface
 					SrcBufferLoop = (DWORD*)((BYTE*)SrcBufferLoop + SrcLockRect.Pitch);
 					DestBufferLoop = (DWORD*)((BYTE*)DestBufferLoop + DestPitch);
 				}
-				break;
 			}
+			hr = DD_OK;
+			break;
 		}
 
 		// Get ratio
@@ -6457,13 +6511,15 @@ HRESULT m_IDirectDrawSurfaceX::CopySurface(m_IDirectDrawSurfaceX* pSourceSurface
 			SrcBuffer = (IsStretchRect) ? (BYTE*)SrcLockRect.pBits + (DWORD)((float)y * HeightRatio) * SrcLockRect.Pitch : SrcBuffer + SrcLockRect.Pitch;
 			DestBuffer += DestPitch;
 		}
+		hr = DD_OK;
+		break;
 
 	} while (false);
 
 	// Unlock surfaces if needed
 	if (UnlockSrc)
 	{
-		pSourceSurface->IsUsingEmulation() ? DD_OK : pSourceSurface->UnLockD3d9Surface(0);
+		pSourceSurface->IsUsingEmulation() ? DD_OK : pSourceSurface->UnLockD3d9Surface(SrcMipMapLevel);
 	}
 	if (UnlockDest)
 	{
@@ -6486,7 +6542,7 @@ HRESULT m_IDirectDrawSurfaceX::CopySurface(m_IDirectDrawSurfaceX* pSourceSurface
 			RemoveScanlines(LLock);
 		}
 
-		IsUsingEmulation() ? DD_OK : UnLockD3d9Surface(0);
+		IsUsingEmulation() ? DD_OK : UnLockD3d9Surface(MipMapLevel);
 	}
 
 	if (SUCCEEDED(hr))
