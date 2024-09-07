@@ -27,7 +27,7 @@
 	visit(DdrawClippedHeight) \
 	visit(DdrawCustomWidth) \
 	visit(DdrawCustomHeight) \
-	visit(DdrawDisableByteAlignment) \
+	visit(DdrawEnableByteAlignment) \
 	visit(DdrawDisableDirect3DCaps) \
 	visit(DdrawEmulateLock) \
 	visit(DdrawForceMipMapAutoGen) \
@@ -213,7 +213,7 @@ struct CONFIG
 	bool DDrawCompatNoProcAffinity = false;		// Disables DDrawCompat single processor affinity
 	bool DdrawAutoFrameSkip = false;			// Automatically skips frames to reduce input lag
 	DWORD DdrawFixByteAlignment = false;		// Fixes lock with surfaces that have unaligned byte sizes, 1) just byte align, 2) byte align + D3DTEXF_NONE, 3) byte align + D3DTEXF_LINEAR
-	bool DdrawDisableByteAlignment = false;		// Disables 32bit / 64bit byte alignment
+	bool DdrawEnableByteAlignment = false;		// Disables 32bit / 64bit byte alignment
 	DWORD DdrawResolutionHack = 0;				// Removes the artificial resolution limit from Direct3D7 and below https://github.com/UCyborg/LegacyD3DResolutionHack
 	bool DdrawRemoveScanlines = 0;				// Experimental feature to removing interlaced black lines in a single frame
 	bool DdrawRemoveInterlacing = 0;			// Experimental feature to removing interlacing between frames

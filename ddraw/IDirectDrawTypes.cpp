@@ -411,7 +411,7 @@ void AdjustVidMemory(LPDWORD lpdwTotal, LPDWORD lpdwFree)
 
 DWORD GetByteAlignedWidth(DWORD Width, DWORD BitCount)
 {
-	if (!Config.DdrawDisableByteAlignment)
+	if (Config.DdrawEnableByteAlignment)
 	{
 		while ((Width * BitCount) % 64)
 		{
