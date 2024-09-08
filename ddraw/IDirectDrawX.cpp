@@ -1953,12 +1953,7 @@ HRESULT m_IDirectDrawX::WaitForVerticalBlank(DWORD dwFlags, HANDLE hEvent)
 			return DDERR_GENERIC;
 		}
 
-		if (Config.ForceVsyncMode || IsUsing3D())
-		{
-			return DD_OK;
-		}
-
-		D3DRASTER_STATUS RasterStatus;
+		D3DRASTER_STATUS RasterStatus = {};
 
 		// Check flags
 		switch (dwFlags)
@@ -4622,7 +4617,7 @@ HRESULT m_IDirectDrawX::Present(RECT* pSourceRect, RECT* pDestRect)
 	}
 
 	// Use WaitForVerticalBlank for wait timer
-	if (EnableWaitVsync && !Config.EnableVSync)
+	if (EnableWaitVsync && !Config.EnableVSync && !Config.ForceVsyncMode && !IsUsing3D())
 	{
 		// Check how long since the last successful present
 		LARGE_INTEGER ClickTime = {};
@@ -4634,8 +4629,8 @@ HRESULT m_IDirectDrawX::Present(RECT* pSourceRect, RECT* pDestRect)
 		{
 			WaitForVerticalBlank(DDWAITVB_BLOCKBEGIN, nullptr);
 		}
-		EnableWaitVsync = false;
 	}
+	EnableWaitVsync = false;
 
 	// Present everthing, skip Preset when using DdrawWriteToGDI
 	HRESULT hr = D3DERR_DEVICELOST;
