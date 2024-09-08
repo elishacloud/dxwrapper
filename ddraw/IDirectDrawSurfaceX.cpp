@@ -446,7 +446,7 @@ HRESULT m_IDirectDrawSurfaceX::AddOverlayDirtyRect(LPRECT lpRect)
 	return ProxyInterface->AddOverlayDirtyRect(lpRect);
 }
 
-HRESULT m_IDirectDrawSurfaceX::Blt(LPRECT lpDestRect, LPDIRECTDRAWSURFACE7 lpDDSrcSurface, LPRECT lpSrcRect, DWORD dwFlags, LPDDBLTFX lpDDBltFx, DWORD MipMapLevel, bool DontPresentBlt)
+HRESULT m_IDirectDrawSurfaceX::Blt(LPRECT lpDestRect, LPDIRECTDRAWSURFACE7 lpDDSrcSurface, LPRECT lpSrcRect, DWORD dwFlags, LPDDBLTFX lpDDBltFx, DWORD MipMapLevel, bool PresentBlt)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
@@ -567,7 +567,7 @@ HRESULT m_IDirectDrawSurfaceX::Blt(LPRECT lpDestRect, LPDIRECTDRAWSURFACE7 lpDDS
 		lpDDSrcSurfaceX->SetLockCriticalSection();
 
 		// Present before write if needed
-		if (!DontPresentBlt)
+		if (PresentBlt)
 		{
 			BeginWritePresent(IsSkipScene);
 		}
@@ -693,7 +693,10 @@ HRESULT m_IDirectDrawSurfaceX::Blt(LPRECT lpDestRect, LPDIRECTDRAWSURFACE7 lpDDS
 			if (SUCCEEDED(hr))
 			{
 				// Set dirty flag
-				SetDirtyFlag();
+				if (PresentBlt)
+				{
+					SetDirtyFlag();
+				}
 
 				// Mark mipmap data flag
 				if (MipMapLevel && MipMaps.size())
@@ -710,10 +713,7 @@ HRESULT m_IDirectDrawSurfaceX::Blt(LPRECT lpDestRect, LPDIRECTDRAWSURFACE7 lpDDS
 				}
 
 				// Present surface
-				if (!DontPresentBlt)
-				{
-					EndWritePresent(IsSkipScene);
-				}
+				EndWritePresent(lpDestRect, true, PresentBlt, IsSkipScene);
 			}
 
 		} while (false);
@@ -828,7 +828,7 @@ HRESULT m_IDirectDrawSurfaceX::BltBatch(LPDDBLTBATCH lpDDBltBatch, DWORD dwCount
 	{
 		IsSkipScene |= (lpDDBltBatch[x].lprDest) ? CheckRectforSkipScene(*lpDDBltBatch[x].lprDest) : false;
 
-		hr = Blt(lpDDBltBatch[x].lprDest, (LPDIRECTDRAWSURFACE7)lpDDBltBatch[x].lpDDSSrc, lpDDBltBatch[x].lprSrc, lpDDBltBatch[x].dwFlags, lpDDBltBatch[x].lpDDBltFx, MipMapLevel, true);
+		hr = Blt(lpDDBltBatch[x].lprDest, (LPDIRECTDRAWSURFACE7)lpDDBltBatch[x].lpDDSSrc, lpDDBltBatch[x].lprSrc, lpDDBltBatch[x].dwFlags, lpDDBltBatch[x].lpDDBltFx, MipMapLevel, false);
 		if (FAILED(hr))
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Warning: BltBatch failed before the end! " << x << " of " << dwCount << " " << (DDERR)hr);
@@ -845,7 +845,11 @@ HRESULT m_IDirectDrawSurfaceX::BltBatch(LPDDBLTBATCH lpDDBltBatch, DWORD dwCount
 
 	if (SUCCEEDED(hr))
 	{
-		EndWritePresent(IsSkipScene);
+		// Set dirty flag
+		SetDirtyFlag();
+
+		// Present surface
+		EndWritePresent(nullptr, false, true, IsSkipScene);
 	}
 
 	ReleaseLockCriticalSection();
@@ -1552,19 +1556,18 @@ HRESULT m_IDirectDrawSurfaceX::Flip(LPDIRECTDRAWSURFACE7 lpDDSurfaceTargetOverri
 			// If texture is not dirty then mark it as dirty in case the game wrote to the memory directly (Nox does this)
 			if (!surface.IsDirtyFlag)
 			{
-				if (IsUsingEmulation())
-				{
-					CopyFromEmulatedSurface(nullptr);
-				}
-				else
-				{
-					LPDIRECT3DTEXTURE9 displayTexture = Get3DTexture();
-					if (displayTexture)
-					{
-						displayTexture->AddDirtyRect(nullptr);
-					}
-				}
+				// Set dirty flag
 				SetDirtyFlag();
+
+				// Keep surface insync
+				EndWriteSyncSurfaces(nullptr);
+
+				// Add dirty rect
+				LPDIRECT3DTEXTURE9 displayTexture = Get3DTexture();
+				if (displayTexture)
+				{
+					displayTexture->AddDirtyRect(nullptr);
+				}
 			}
 
 			// Set vertical sync wait timer
@@ -1573,18 +1576,8 @@ HRESULT m_IDirectDrawSurfaceX::Flip(LPDIRECTDRAWSURFACE7 lpDDSurfaceTargetOverri
 				ddrawParent->SetVsync();
 			}
 
-			// Blt surface directly to GDI
-			if (ShouldWriteToGDI())
-			{
-				CopyEmulatedSurfaceToGDI(nullptr);
-			}
-			// Present surface to window
-			else if (ShouldPresentToWindow(true))
-			{
-				ddrawParent->PresentScene(nullptr);
-			}
-
-			EndWritePresent(false);
+			// Present surface
+			EndWritePresent(nullptr, true, true, false);
 
 			if (IsRenderTarget())
 			{
@@ -2899,25 +2892,11 @@ HRESULT m_IDirectDrawSurfaceX::ReleaseDC(HDC hDC)
 			// Set dirty flag
 			SetDirtyFlag();
 
-			// Copy emulated surface to real surface
-			if (IsUsingEmulation())
-			{
-				CopyFromEmulatedSurface(nullptr);
-			}
-
-			// Blt surface directly to GDI
-			if (ShouldWriteToGDI())
-			{
-				CopyEmulatedSurfaceToGDI(nullptr);
-			}
-			// Present surface to window
-			else if (ShouldPresentToWindow(true))
-			{
-				ddrawParent->PresentScene(nullptr);
-			}
+			// Keep surface insync
+			EndWriteSyncSurfaces(nullptr);
 
 			// Present surface
-			EndWritePresent(false);
+			EndWritePresent(nullptr, true, true, false);
 
 		} while (false);
 
@@ -3307,25 +3286,11 @@ HRESULT m_IDirectDrawSurfaceX::Unlock(LPRECT lpRect, DWORD MipMapLevel)
 				// Set dirty flag
 				SetDirtyFlag();
 
-				// Copy emulated surface to real surface
-				if (IsUsingEmulation())
-				{
-					CopyFromEmulatedSurface(&LastLock.Rect);
-				}
-
-				// Blt surface directly to GDI
-				if (ShouldWriteToGDI())
-				{
-					CopyEmulatedSurfaceToGDI(&LastLock.Rect);
-				}
-				// Present surface to window
-				else if (ShouldPresentToWindow(true))
-				{
-					ddrawParent->PresentScene(&LastLock.Rect);
-				}
+				// Keep surface insync
+				EndWriteSyncSurfaces(&LastLock.Rect);
 
 				// Present surface
-				EndWritePresent(LastLock.IsSkipScene);
+				EndWritePresent(&LastLock.Rect, true, true, LastLock.IsSkipScene);
 			}
 
 		} while (false);
@@ -5523,7 +5488,7 @@ void m_IDirectDrawSurfaceX::SetRenderTargetDirty()
 // Set dirty flag
 void m_IDirectDrawSurfaceX::SetDirtyFlag()
 {
-	if (IsPrimarySurface())
+	if (IsPrimarySurface() && ddrawParent && !ddrawParent->IsInScene())
 	{
 		dirtyFlag = true;
 	}
@@ -5565,16 +5530,45 @@ inline void m_IDirectDrawSurfaceX::BeginWritePresent(bool IsSkipScene)
 	}
 }
 
-inline void m_IDirectDrawSurfaceX::EndWritePresent(bool IsSkipScene)
+inline void m_IDirectDrawSurfaceX::EndWritePresent(LPRECT lpDestRect, bool WriteToWindow, bool FullPresent, bool IsSkipScene)
 {
+	// Blt surface directly to GDI
+	if (ShouldWriteToGDI())
+	{
+		if (WriteToWindow)
+		{
+			CopyEmulatedSurfaceToGDI(lpDestRect);
+		}
+	}
+	// Present surface to window
+	else if (ShouldPresentToWindow(true))
+	{
+		if (WriteToWindow && ddrawParent && !ddrawParent->IsInScene())
+		{
+			RECT DestRect = {};
+			if (CheckCoordinates(DestRect, lpDestRect, nullptr))
+			{
+				ddrawParent->PresentScene(&DestRect);
+			}
+		}
+	}
 	// Present surface after each draw unless removing interlacing
-	if (PresentOnUnlock || !Config.DdrawRemoveInterlacing)
+	else if (FullPresent && (PresentOnUnlock || !Config.DdrawRemoveInterlacing))
 	{
 		PresentSurface(IsSkipScene);
-	}
 
-	// Reset endscene lock
-	PresentOnUnlock = false;
+		// Reset endscene lock
+		PresentOnUnlock = false;
+	}
+}
+
+inline void m_IDirectDrawSurfaceX::EndWriteSyncSurfaces(LPRECT lpDestRect)
+{
+	// Copy emulated surface to real surface
+	if (IsUsingEmulation())
+	{
+		CopyFromEmulatedSurface(lpDestRect);
+	}
 }
 
 // Update surface description and create backbuffers
@@ -5899,27 +5893,14 @@ HRESULT m_IDirectDrawSurfaceX::ColorFill(RECT* pRect, D3DCOLOR dwFillColor, DWOR
 		return DDERR_GENERIC;
 	}
 
-	// Copy emulated surface to real surface
-	if (IsUsingEmulation())
-	{
-		CopyFromEmulatedSurface(&DestRect);
-	}
 	// Unlock surface
-	else
+	if (!IsUsingEmulation())
 	{
 		UnLockD3d9Surface(MipMapLevel);
 	}
 
-	// Blt surface directly to GDI
-	if (ShouldWriteToGDI())
-	{
-		CopyEmulatedSurfaceToGDI(&DestRect);
-	}
-	// Present surface to window
-	else if (ShouldPresentToWindow(true))
-	{
-		ddrawParent->PresentScene(&DestRect);
-	}
+	// Keep surface insync
+	EndWriteSyncSurfaces(&DestRect);
 
 	return DD_OK;
 }
@@ -6103,7 +6084,8 @@ HRESULT m_IDirectDrawSurfaceX::CopySurface(m_IDirectDrawSurfaceX* pSourceSurface
 
 	do {
 		// Use StretchRect for video memory to prevent copying out of video memory
-		if ((pSourceSurface->surface.Pool == D3DPOOL_DEFAULT && surface.Pool == D3DPOOL_DEFAULT) &&
+		if (!IsUsingEmulation() &&
+			(pSourceSurface->surface.Pool == D3DPOOL_DEFAULT && surface.Pool == D3DPOOL_DEFAULT) &&
 			(pSourceSurface->surface.Type == surface.Type || (pSourceSurface->surface.Type == D3DTYPE_OFFPLAINSURFACE && surface.Type == D3DTYPE_RENDERTARGET)) &&
 			(!IsStretchRect || (this != pSourceSurface && !ISDXTEX(SrcFormat) && !ISDXTEX(DestFormat) && surface.Type == D3DTYPE_RENDERTARGET)) &&
 			(surface.Type != D3DTYPE_DEPTHSTENCIL || !ddrawParent->IsInScene()) &&
@@ -6135,7 +6117,8 @@ HRESULT m_IDirectDrawSurfaceX::CopySurface(m_IDirectDrawSurfaceX* pSourceSurface
 		}
 
 		// Use UpdateSurface for copying system memory to video memory
-		if ((pSourceSurface->surface.Pool == D3DPOOL_SYSTEMMEM && surface.Pool == D3DPOOL_DEFAULT) &&
+		if (!IsUsingEmulation() &&
+			(pSourceSurface->surface.Pool == D3DPOOL_SYSTEMMEM && surface.Pool == D3DPOOL_DEFAULT) &&
 			(pSourceSurface->surface.Type != D3DTYPE_DEPTHSTENCIL && surface.Type != D3DTYPE_DEPTHSTENCIL) &&
 			(pSourceSurface->surface.Format == surface.Format) &&
 			(!pSourceSurface->IsPalette() && !IsPalette()) &&
@@ -6541,22 +6524,8 @@ HRESULT m_IDirectDrawSurfaceX::CopySurface(m_IDirectDrawSurfaceX* pSourceSurface
 
 	if (SUCCEEDED(hr))
 	{
-		// Copy emulated surface to real surface
-		if (IsUsingEmulation())
-		{
-			CopyFromEmulatedSurface(&DestRect);
-		}
-
-		// Blt surface directly to GDI
-		if (ShouldWriteToGDI())
-		{
-			CopyEmulatedSurfaceToGDI(&DestRect);
-		}
-		// Present surface to window
-		else if (ShouldPresentToWindow(true))
-		{
-			ddrawParent->PresentScene(&DestRect);
-		}
+		// Keep surface insync
+		EndWriteSyncSurfaces(&DestRect);
 	}
 
 	// Return

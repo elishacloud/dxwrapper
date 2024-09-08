@@ -4415,6 +4415,12 @@ HRESULT m_IDirectDrawX::PresentScene(RECT* pRect)
 		return DDERR_GENERIC;
 	}
 
+	if (IsInScene())
+	{
+		LOG_LIMIT(100, __FUNCTION__ << " Error: is in Direct3D scene already! PresentToWindow: " << PrimarySurface->ShouldPresentToWindow(true));
+		return DDERR_GENERIC;
+	}
+
 	LPRECT pDestRect = nullptr;
 	RECT DestRect = {};
 	if (PrimarySurface->ShouldPresentToWindow(true))
@@ -4427,72 +4433,54 @@ HRESULT m_IDirectDrawX::PresentScene(RECT* pRect)
 		pDestRect = &DestRect;
 	}
 
-	do {
-		// Begin scene
-		if (FAILED(d3d9Device->BeginScene()))
-		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error: failed to begin scene!");
-			hr = DDERR_GENERIC;
-			break;
-		}
+	// Begin scene
+	d3d9Device->BeginScene();
 
-		// Copy or draw primary surface before presenting
-		HRESULT DrawRet = DDERR_GENERIC;
-		if (IsPrimaryRenderTarget())
+	// Copy or draw primary surface before presenting
+	HRESULT DrawRet = DDERR_GENERIC;
+	if (IsPrimaryRenderTarget())
+	{
+		DrawRet = CopyPrimarySurfaceToBackbuffer();
+	}
+	else if (RenderTargetSurface)
+	{
+		IDirect3DSurface9* pBackBuffer = nullptr;
+		hr = d3d9Device->GetBackBuffer(0, 0, D3DBACKBUFFER_TYPE_MONO, &pBackBuffer);
+		if (SUCCEEDED(hr))
 		{
-			DrawRet = CopyPrimarySurfaceToBackbuffer();
-		}
-		else if (RenderTargetSurface)
-		{
-			IDirect3DSurface9* pBackBuffer = nullptr;
-			hr = d3d9Device->GetBackBuffer(0, 0, D3DBACKBUFFER_TYPE_MONO, &pBackBuffer);
-			if (SUCCEEDED(hr))
-			{
-				// Set back buffer to render target
-				d3d9Device->SetRenderState(D3DRS_ZENABLE, FALSE);
-				d3d9Device->SetDepthStencilSurface(nullptr);
-				d3d9Device->SetRenderTarget(0, pBackBuffer);
+			// Set back buffer to render target
+			d3d9Device->SetRenderState(D3DRS_ZENABLE, FALSE);
+			d3d9Device->SetDepthStencilSurface(nullptr);
+			d3d9Device->SetRenderTarget(0, pBackBuffer);
 
-				// Draw surface
-				DrawRet = DrawPrimarySurface();
-
-				// Re-set the old render target
-				ReSetRenderTarget();
-
-				// Release back buffer
-				pBackBuffer->Release();
-			}
-		}
-		else
-		{
+			// Draw surface
 			DrawRet = DrawPrimarySurface();
-		}
-		if (FAILED(DrawRet))
-		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error: failed to draw primary surface!");
-			hr = DrawRet;
-		}
 
-		// End scene
-		if (FAILED(d3d9Device->EndScene()))
-		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error: failed to end scene!");
-			hr = DDERR_GENERIC;
-			break;
-		}
+			// Re-set the old render target
+			ReSetRenderTarget();
 
-		// Present to d3d9
-		if (SUCCEEDED(DrawRet))
-		{
-			if (FAILED(Present(pDestRect, pDestRect)))
-			{
-				LOG_LIMIT(100, __FUNCTION__ << " Error: failed to present scene!");
-				hr = DDERR_GENERIC;
-				break;
-			}
+			// Release back buffer
+			pBackBuffer->Release();
 		}
+	}
+	else
+	{
+		DrawRet = DrawPrimarySurface();
+	}
+	if (FAILED(DrawRet))
+	{
+		LOG_LIMIT(100, __FUNCTION__ << " Error: failed to draw primary surface!");
+		hr = DrawRet;
+	}
 
-	} while (false);
+	// End scene
+	d3d9Device->EndScene();
+
+	// Present to d3d9
+	if (SUCCEEDED(DrawRet))
+	{
+		hr = Present(pDestRect, pDestRect);
+	}
 
 	return hr;
 }

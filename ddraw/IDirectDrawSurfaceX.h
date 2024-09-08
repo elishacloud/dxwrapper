@@ -266,8 +266,9 @@ private:
 	bool CheckCoordinates(RECT& OutRect, LPRECT lpInRect, LPDDSURFACEDESC2 lpDDSurfaceDesc2);
 	HRESULT LockEmulatedSurface(D3DLOCKED_RECT* pLockedRect, LPRECT lpDestRect);
 	bool CheckRectforSkipScene(RECT& DestRect);
-	void BeginWritePresent(bool isSkipScene);
-	void EndWritePresent(bool isSkipScene);
+	void BeginWritePresent(bool IsSkipScene);
+	void EndWritePresent(LPRECT lpDestRect, bool WriteToWindow, bool FullPresent, bool IsSkipScene);
+	void EndWriteSyncSurfaces(LPRECT lpDestRect);
 
 	// Surface information functions
 	inline bool IsSurfaceLocked() { return IsLocked; }
@@ -356,7 +357,7 @@ public:
 	/*** IDirectDrawSurface methods ***/
 	STDMETHOD(AddAttachedSurface)(THIS_ LPDIRECTDRAWSURFACE7);
 	STDMETHOD(AddOverlayDirtyRect)(THIS_ LPRECT);
-	HRESULT Blt(LPRECT, LPDIRECTDRAWSURFACE7, LPRECT, DWORD, LPDDBLTFX, DWORD, bool DontPresentBlt = false);
+	HRESULT Blt(LPRECT, LPDIRECTDRAWSURFACE7, LPRECT, DWORD, LPDDBLTFX, DWORD, bool PresentBlt = true);
 	STDMETHOD(BltBatch)(THIS_ LPDDBLTBATCH, DWORD, DWORD, DWORD);
 	STDMETHOD(BltFast)(THIS_ DWORD, DWORD, LPDIRECTDRAWSURFACE7, LPRECT, DWORD, DWORD);
 	STDMETHOD(DeleteAttachedSurface)(THIS_ DWORD, LPDIRECTDRAWSURFACE7);
@@ -445,7 +446,7 @@ public:
 	void SetAsRenderTarget();
 	void ReleaseD9ContextSurface();
 	void ReleaseD9Surface(bool BackupData, bool ResetSurface);
-	HRESULT PresentSurface(bool isSkipScene);
+	HRESULT PresentSurface(bool IsSkipScene);
 	void ResetSurfaceDisplay();
 
 	// Surface information functions
