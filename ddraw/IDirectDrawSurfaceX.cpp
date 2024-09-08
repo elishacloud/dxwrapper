@@ -5140,7 +5140,7 @@ HRESULT m_IDirectDrawSurfaceX::PresentSurface(bool IsSkipScene)
 	}
 
 	// Check if is not primary surface or if scene should be skipped
-	if (ShouldWriteToGDI() || ShouldPresentToWindow(true))
+	if (ShouldWriteToGDI() || ShouldPresentToWindow(true) || ddrawParent->IsInScene())
 	{
 		// Never present when using Direct3D or when writing to GDI
 		return DD_OK;
@@ -5165,12 +5165,6 @@ HRESULT m_IDirectDrawSurfaceX::PresentSurface(bool IsSkipScene)
 
 	// Set scene ready
 	SceneReady = true;
-
-	// Check if device is already inscene
-	if (ddrawParent->IsInScene())
-	{
-		return DD_OK;
-	}
 
 	// Check if surface is locked or has an open DC
 	if (IsSurfaceBusy())
