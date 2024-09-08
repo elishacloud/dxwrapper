@@ -194,6 +194,7 @@ D3DPRESENT_PARAMETERS presParams;
 LPDIRECT3DPIXELSHADER9 palettePixelShader;
 LPDIRECT3DPIXELSHADER9 colorkeyPixelShader;
 LPDIRECT3DVERTEXBUFFER9 VertexBuffer;
+LPDIRECT3DVERTEXBUFFER9 validateDeviceVertexBuffer;
 DWORD BehaviorFlags;
 HWND hFocusWindow;
 
@@ -2442,6 +2443,7 @@ void m_IDirectDrawX::InitDdraw(DWORD DirectXVersion)
 		palettePixelShader = nullptr;
 		colorkeyPixelShader = nullptr;
 		VertexBuffer = nullptr;
+		validateDeviceVertexBuffer = nullptr;
 
 		presParams = {};
 		BehaviorFlags = 0;
@@ -2881,6 +2883,47 @@ LPDIRECT3DPIXELSHADER9* m_IDirectDrawX::GetColorKeyShader()
 		d3d9Device->CreatePixelShader((DWORD*)ColorKeyPixelShaderSrc, &colorkeyPixelShader);
 	}
 	return &colorkeyPixelShader;
+}
+
+LPDIRECT3DVERTEXBUFFER9 m_IDirectDrawX::GetValidateDeviceVertexBuffer(DWORD& FVF, DWORD& Size)
+{
+	// Create a simple vertex buffer
+	struct SimpleVertex {
+		float x, y, z;
+		DWORD color;
+	};
+
+	SimpleVertex vertices[] = {
+		{ -1.0f,  1.0f, 0.0f, 0xFFFFFFFF },  // Top-left
+		{  1.0f,  1.0f, 0.0f, 0xFFFFFFFF },  // Top-right
+		{  0.0f, -1.0f, 0.0f, 0xFFFFFFFF }   // Bottom-center
+	};
+
+	if (!validateDeviceVertexBuffer)
+	{
+		HRESULT hr = d3d9Device->CreateVertexBuffer(sizeof(vertices), 0, D3DFVF_XYZ | D3DFVF_DIFFUSE, D3DPOOL_MANAGED, &validateDeviceVertexBuffer, NULL);
+		if (FAILED(hr))
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: Failed to create vertex buffer: " << (DDERR)hr);
+			return nullptr;
+		}
+
+		// Fill the vertex buffer with data
+		void* pVertices = nullptr;
+		hr = validateDeviceVertexBuffer->Lock(0, sizeof(vertices), &pVertices, 0);
+		if (FAILED(hr))
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: Failed to Lock vertex buffer: " << (DDERR)hr);
+			validateDeviceVertexBuffer->Release();
+			return nullptr;
+		}
+		memcpy(pVertices, vertices, sizeof(vertices));
+		validateDeviceVertexBuffer->Unlock();
+	}
+
+	Size = sizeof(SimpleVertex);
+	FVF = (D3DFVF_XYZ | D3DFVF_DIFFUSE);
+	return validateDeviceVertexBuffer;
 }
 
 // Get AntiAliasing type and quality
@@ -3549,7 +3592,7 @@ HRESULT m_IDirectDrawX::SetDepthStencilSurface(m_IDirectDrawSurfaceX* lpSurface)
 
 		if (d3d9Device)
 		{
-			d3d9Device->SetRenderState(D3DRS_ZENABLE, FALSE);
+			d3d9Device->SetRenderState(D3DRS_ZENABLE, D3DZB_FALSE);
 			hr = d3d9Device->SetDepthStencilSurface(nullptr);
 		}
 	}
@@ -3564,7 +3607,7 @@ HRESULT m_IDirectDrawX::SetDepthStencilSurface(m_IDirectDrawSurfaceX* lpSurface)
 			LPDIRECT3DSURFACE9 pSurfaceD9 = DepthStencilSurface->GetD3d9Surface();
 			if (pSurfaceD9)
 			{
-				d3d9Device->SetRenderState(D3DRS_ZENABLE, TRUE);
+				d3d9Device->SetRenderState(D3DRS_ZENABLE, D3DZB_TRUE);
 				hr = d3d9Device->SetDepthStencilSurface(pSurfaceD9);
 			}
 		}
@@ -3649,6 +3692,18 @@ inline void m_IDirectDrawX::ReleaseAllD9Resources(bool BackupData, bool ResetInt
 			Logging::Log() << __FUNCTION__ << " Error: there is still a reference to 'vertexBuffer' " << ref;
 		}
 		VertexBuffer = nullptr;
+	}
+
+	// Release validate device d3d9 vertex buffer
+	if (validateDeviceVertexBuffer)
+	{
+		Logging::LogDebug() << __FUNCTION__ << " Releasing Direct3D9 validate device vertext buffer";
+		ULONG ref = validateDeviceVertexBuffer->Release();
+		if (ref)
+		{
+			Logging::Log() << __FUNCTION__ << " Error: there is still a reference to 'validateDeviceVertexBuffer' " << ref;
+		}
+		validateDeviceVertexBuffer = nullptr;
 	}
 
 	// Release palette pixel shader
@@ -4304,7 +4359,7 @@ HRESULT m_IDirectDrawX::DrawPrimarySurface()
 	d3d9Device->SetRenderState(D3DRS_ALPHATESTENABLE, FALSE);
 	d3d9Device->SetRenderState(D3DRS_ALPHABLENDENABLE, FALSE);
 	d3d9Device->SetRenderState(D3DRS_FOGENABLE, FALSE);
-	d3d9Device->SetRenderState(D3DRS_ZENABLE, FALSE);
+	d3d9Device->SetRenderState(D3DRS_ZENABLE, D3DZB_FALSE);
 	d3d9Device->SetRenderState(D3DRS_ZWRITEENABLE, FALSE);
 	d3d9Device->SetRenderState(D3DRS_STENCILENABLE, FALSE);
 

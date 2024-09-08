@@ -193,6 +193,7 @@ public:
 	LPDIRECT3DDEVICE9 *GetDirect3D9Device();
 	bool CreatePaletteShader();
 	LPDIRECT3DPIXELSHADER9* GetColorKeyShader();
+	LPDIRECT3DVERTEXBUFFER9 GetValidateDeviceVertexBuffer(DWORD& FVF, DWORD& Size);
 	D3DMULTISAMPLE_TYPE GetMultiSampleTypeQuality(D3DFORMAT Format, DWORD MaxSampleType, DWORD& QualityLevels);
 	HRESULT CreateD3D9Device();
 	HRESULT CreateVertexBuffer(DWORD Width, DWORD Height);

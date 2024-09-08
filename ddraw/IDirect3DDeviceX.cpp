@@ -3726,13 +3726,41 @@ HRESULT m_IDirect3DDeviceX::ValidateDevice(LPDWORD lpdwPasses)
 
 	if (Config.Dd7to9)
 	{
+		if (!lpdwPasses)
+		{
+			return DDERR_INVALIDPARAMS;
+		}
+
 		// Check for device interface
 		if (FAILED(CheckInterface(__FUNCTION__, true)))
 		{
 			return DDERR_INVALIDOBJECT;
 		}
 
-		return (*d3d9Device)->ValidateDevice(lpdwPasses);
+		DWORD FVF, Size;
+		IDirect3DVertexBuffer9* vertexBuffer = ddrawParent->GetValidateDeviceVertexBuffer(FVF, Size);
+
+		if (!vertexBuffer)
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: Failed to get vertex buffer!");
+			return DDERR_GENERIC;
+		}
+
+		// Bind the vertex buffer to the device
+		(*d3d9Device)->SetStreamSource(0, vertexBuffer, 0, Size);
+
+		// Set a simple FVF (Flexible Vertex Format)
+		(*d3d9Device)->SetFVF(FVF);
+
+		// Call ValidateDevice
+		HRESULT hr = (*d3d9Device)->ValidateDevice(lpdwPasses);
+
+		if (FAILED(hr))
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: ValidateDevice() function failed: " << (DDERR)hr);
+		}
+
+		return hr;
 	}
 
 	switch (ProxyDirectXVersion)
