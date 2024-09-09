@@ -581,6 +581,7 @@ HRESULT m_IDirectDrawSurfaceX::Blt(LPRECT lpDestRect, LPDIRECTDRAWSURFACE7 lpDDS
 
 #ifdef ENABLE_PROFILING
 		auto startTime = std::chrono::high_resolution_clock::now();
+		bool CopySurfaceFlag = false;
 #endif
 
 		HRESULT hr = DD_OK;
@@ -683,6 +684,9 @@ HRESULT m_IDirectDrawSurfaceX::Blt(LPRECT lpDestRect, LPDIRECTDRAWSURFACE7 lpDDS
 				D3DTEXTUREFILTERTYPE Filter = ((dwFlags & DDBLT_DDFX) && (lpDDBltFx->dwDDFX & DDBLTFX_ARITHSTRETCHY)) ? D3DTEXF_LINEAR : D3DTEXF_NONE;
 
 				hr = CopySurface(lpDDSrcSurfaceX, lpSrcRect, lpDestRect, Filter, ColorKey.dwColorSpaceLowValue, Flags, SrcMipMapLevel, MipMapLevel);
+#ifdef ENABLE_PROFILING
+				CopySurfaceFlag = true;
+#endif
 
 			} while (false);
 
@@ -701,7 +705,11 @@ HRESULT m_IDirectDrawSurfaceX::Blt(LPRECT lpDestRect, LPDIRECTDRAWSURFACE7 lpDDS
 			}
 
 #ifdef ENABLE_PROFILING
-			Logging::Log() << __FUNCTION__ << " (" << this << ") hr = " << (D3DERR)hr << " Timing = " << Logging::GetTimeLapseInMS(startTime);
+			Logging::Log() << __FUNCTION__ << " (" << lpDDSrcSurfaceX << ") -> (" << this << ")" <<
+				(CopySurfaceFlag ? " CopySurface()" : " ColorFill()") <<
+				" Type = " << lpDDSrcSurfaceX->surface.Type << " " << lpDDSrcSurfaceX->surface.Pool << " -> " << surface.Type << " " << surface.Pool <<
+				" hr = " << (D3DERR)hr <<
+				" Timing = " << Logging::GetTimeLapseInMS(startTime);
 #endif
 
 			// If successful
@@ -2150,7 +2158,10 @@ HRESULT m_IDirectDrawSurfaceX::GetDC(HDC FAR* lphDC, DWORD MipMapLevel)
 		}
 
 #ifdef ENABLE_PROFILING
-		Logging::Log() << __FUNCTION__ << " (" << this << ") hr = " << (D3DERR)hr << " Timing = " << Logging::GetTimeLapseInMS(startTime);
+		Logging::Log() << __FUNCTION__ << " (" << this << ")" <<
+			" Type = " << surface.Type << " " << surface.Pool <<
+			" hr = " << (D3DERR)hr <<
+			" Timing = " << Logging::GetTimeLapseInMS(startTime);
 #endif
 
 		return hr;
@@ -2842,7 +2853,10 @@ HRESULT m_IDirectDrawSurfaceX::Lock2(LPRECT lpDestRect, LPDDSURFACEDESC2 lpDDSur
 		ReleaseLockCriticalSection();
 
 #ifdef ENABLE_PROFILING
-		Logging::Log() << __FUNCTION__ << " (" << this << ") hr = " << (D3DERR)hr << " Timing = " << Logging::GetTimeLapseInMS(startTime);
+		Logging::Log() << __FUNCTION__ << " (" << this << ")" <<
+			" Type = " << surface.Type << " " << surface.Pool <<
+			" hr = " << (D3DERR)hr <<
+			" Timing = " << Logging::GetTimeLapseInMS(startTime);
 #endif
 
 		return hr;
