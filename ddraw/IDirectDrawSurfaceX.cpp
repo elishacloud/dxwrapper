@@ -448,7 +448,14 @@ HRESULT m_IDirectDrawSurfaceX::AddOverlayDirtyRect(LPRECT lpRect)
 
 HRESULT m_IDirectDrawSurfaceX::Blt(LPRECT lpDestRect, LPDIRECTDRAWSURFACE7 lpDDSrcSurface, LPRECT lpSrcRect, DWORD dwFlags, LPDDBLTFX lpDDBltFx, DWORD MipMapLevel, bool PresentBlt)
 {
-	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
+	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")" <<
+		" DestRect = " << lpDestRect <<
+		" SrcSurface = " << lpDDSrcSurface <<
+		" SrcRect = " << lpSrcRect <<
+		" Flags = " << Logging::hex(dwFlags) <<
+		" BltFX = " << lpDDBltFx <<
+		" MipMapLevel = " << MipMapLevel <<
+		" PresentBlt = " << PresentBlt;
 
 	// Check if source Surface exists
 	if (lpDDSrcSurface && !CheckSurfaceExists(lpDDSrcSurface))
@@ -572,6 +579,10 @@ HRESULT m_IDirectDrawSurfaceX::Blt(LPRECT lpDestRect, LPDIRECTDRAWSURFACE7 lpDDS
 			BeginWritePresent(IsSkipScene);
 		}
 
+#ifdef ENABLE_PROFILING
+		auto startTime = std::chrono::high_resolution_clock::now();
+#endif
+
 		HRESULT hr = DD_OK;
 
 		do {
@@ -688,6 +699,10 @@ HRESULT m_IDirectDrawSurfaceX::Blt(LPRECT lpDestRect, LPDIRECTDRAWSURFACE7 lpDDS
 			{
 				lpDDSrcSurfaceX->LockedWithID = 0;
 			}
+
+#ifdef ENABLE_PROFILING
+			Logging::Log() << __FUNCTION__ << " (" << this << ") hr = " << (D3DERR)hr << " Timing = " << Logging::GetTimeLapseInMS(startTime);
+#endif
 
 			// If successful
 			if (SUCCEEDED(hr))
@@ -1368,7 +1383,10 @@ inline HRESULT m_IDirectDrawSurfaceX::CheckBackBufferForFlip(m_IDirectDrawSurfac
 
 HRESULT m_IDirectDrawSurfaceX::Flip(LPDIRECTDRAWSURFACE7 lpDDSurfaceTargetOverride, DWORD dwFlags, DWORD DirectXVersion)
 {
-	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
+	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")" <<
+		" SrcSurface = " << lpDDSurfaceTargetOverride <<
+		" Flags = " << Logging::hex(dwFlags) <<
+		" Version = " << DirectXVersion;
 
 	if (Config.Dd7to9)
 	{
@@ -1552,6 +1570,10 @@ HRESULT m_IDirectDrawSurfaceX::Flip(LPDIRECTDRAWSURFACE7 lpDDSurfaceTargetOverri
 
 			// Reset flip flag
 			IsInFlip = false;
+
+#ifdef ENABLE_PROFILING
+			Logging::Log() << __FUNCTION__ << " (" << this << ") hr = " << (D3DERR)hr;
+#endif
 
 			// If texture is not dirty then mark it as dirty in case the game wrote to the memory directly (Nox does this)
 			if (!surface.IsDirtyFlag)
@@ -1995,7 +2017,9 @@ bool m_IDirectDrawSurfaceX::GetColorKeyForShader(float(&lowColorKey)[4], float(&
 
 HRESULT m_IDirectDrawSurfaceX::GetDC(HDC FAR* lphDC, DWORD MipMapLevel)
 {
-	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
+	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")" <<
+		" lpDC = " << (void*)lphDC <<
+		" MipMapLevel = " << MipMapLevel;
 
 	if (Config.Dd7to9)
 	{
@@ -2052,6 +2076,10 @@ HRESULT m_IDirectDrawSurfaceX::GetDC(HDC FAR* lphDC, DWORD MipMapLevel)
 
 		// Present before write if needed
 		BeginWritePresent(false);
+
+#ifdef ENABLE_PROFILING
+		auto startTime = std::chrono::high_resolution_clock::now();
+#endif
 
 		HRESULT hr = DD_OK;
 
@@ -2120,6 +2148,10 @@ HRESULT m_IDirectDrawSurfaceX::GetDC(HDC FAR* lphDC, DWORD MipMapLevel)
 		{
 			hr = IsSurfaceBusy() ? DDERR_SURFACEBUSY : IsLost() == DDERR_SURFACELOST ? DDERR_SURFACELOST : DDERR_GENERIC;
 		}
+
+#ifdef ENABLE_PROFILING
+		Logging::Log() << __FUNCTION__ << " (" << this << ") hr = " << (D3DERR)hr << " Timing = " << Logging::GetTimeLapseInMS(startTime);
+#endif
 
 		return hr;
 	}
@@ -2541,7 +2573,13 @@ HRESULT m_IDirectDrawSurfaceX::Lock(LPRECT lpDestRect, LPDDSURFACEDESC lpDDSurfa
 
 HRESULT m_IDirectDrawSurfaceX::Lock2(LPRECT lpDestRect, LPDDSURFACEDESC2 lpDDSurfaceDesc2, DWORD dwFlags, HANDLE hEvent, DWORD MipMapLevel, DWORD DirectXVersion)
 {
-	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
+	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")" <<
+		" Rect = " << lpDestRect <<
+		" Desc = " << lpDDSurfaceDesc2 <<
+		" Flags = " << Logging::hex(dwFlags) <<
+		" Event = " << hEvent <<
+		" MipMapLevel = " << MipMapLevel <<
+		" Version = " << DirectXVersion;
 
 	if (Config.Dd7to9)
 	{
@@ -2640,6 +2678,10 @@ HRESULT m_IDirectDrawSurfaceX::Lock2(LPRECT lpDestRect, LPDDSURFACEDESC2 lpDDSur
 
 		// Present before write if needed
 		BeginWritePresent(IsSkipScene);
+
+#ifdef ENABLE_PROFILING
+		auto startTime = std::chrono::high_resolution_clock::now();
+#endif
 
 		HRESULT hr = DD_OK;
 
@@ -2799,6 +2841,10 @@ HRESULT m_IDirectDrawSurfaceX::Lock2(LPRECT lpDestRect, LPDDSURFACEDESC2 lpDDSur
 
 		ReleaseLockCriticalSection();
 
+#ifdef ENABLE_PROFILING
+		Logging::Log() << __FUNCTION__ << " (" << this << ") hr = " << (D3DERR)hr << " Timing = " << Logging::GetTimeLapseInMS(startTime);
+#endif
+
 		return hr;
 	}
 
@@ -2829,7 +2875,8 @@ inline HRESULT m_IDirectDrawSurfaceX::LockD3d9Surface(D3DLOCKED_RECT* pLockedRec
 
 HRESULT m_IDirectDrawSurfaceX::ReleaseDC(HDC hDC)
 {
-	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
+	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")" <<
+		" DC = " << hDC;
 
 	if (Config.Dd7to9)
 	{
@@ -2847,6 +2894,10 @@ HRESULT m_IDirectDrawSurfaceX::ReleaseDC(HDC hDC)
 		}
 
 		SetSurfaceCriticalSection();
+
+#ifdef ENABLE_PROFILING
+		auto startTime = std::chrono::high_resolution_clock::now();
+#endif
 
 		HRESULT hr = DD_OK;
 
@@ -2889,6 +2940,16 @@ HRESULT m_IDirectDrawSurfaceX::ReleaseDC(HDC hDC)
 			// Set LastDC
 			LastDC = nullptr;
 
+		} while (false);
+
+		ReleaseSurfaceCriticalSection();
+
+#ifdef ENABLE_PROFILING
+		Logging::Log() << __FUNCTION__ << " (" << this << ") hr = " << (D3DERR)hr << " Timing = " << Logging::GetTimeLapseInMS(startTime);
+#endif
+
+		if (SUCCEEDED(hr))
+		{
 			// Set dirty flag
 			SetDirtyFlag();
 
@@ -2897,10 +2958,7 @@ HRESULT m_IDirectDrawSurfaceX::ReleaseDC(HDC hDC)
 
 			// Present surface
 			EndWritePresent(nullptr, true, true, false);
-
-		} while (false);
-
-		ReleaseSurfaceCriticalSection();
+		}
 
 		if (FAILED(hr))
 		{
@@ -3171,7 +3229,9 @@ HRESULT m_IDirectDrawSurfaceX::SetPalette(LPDIRECTDRAWPALETTE lpDDPalette)
 
 HRESULT m_IDirectDrawSurfaceX::Unlock(LPRECT lpRect, DWORD MipMapLevel)
 {
-	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
+	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")" <<
+		" Rect = " << lpRect <<
+		" MipMapLevel = " << MipMapLevel;
 
 	if (Config.Dd7to9)
 	{
@@ -3183,6 +3243,10 @@ HRESULT m_IDirectDrawSurfaceX::Unlock(LPRECT lpRect, DWORD MipMapLevel)
 		}
 
 		SetSurfaceCriticalSection();
+
+#ifdef ENABLE_PROFILING
+		auto startTime = std::chrono::high_resolution_clock::now();
+#endif
 
 		HRESULT hr = DD_OK;
 
@@ -3280,20 +3344,24 @@ HRESULT m_IDirectDrawSurfaceX::Unlock(LPRECT lpRect, DWORD MipMapLevel)
 				LockedWithID = 0;
 			}
 
-			// If surface was changed
-			if (!LastLock.ReadOnly)
-			{
-				// Set dirty flag
-				SetDirtyFlag();
-
-				// Keep surface insync
-				EndWriteSyncSurfaces(&LastLock.Rect);
-
-				// Present surface
-				EndWritePresent(&LastLock.Rect, true, true, LastLock.IsSkipScene);
-			}
-
 		} while (false);
+
+#ifdef ENABLE_PROFILING
+		Logging::Log() << __FUNCTION__ << " (" << this << ") hr = " << (D3DERR)hr << " Timing = " << Logging::GetTimeLapseInMS(startTime);
+#endif
+
+		// If surface was changed
+		if (SUCCEEDED(hr) && !LastLock.ReadOnly)
+		{
+			// Set dirty flag
+			SetDirtyFlag();
+
+			// Keep surface insync
+			EndWriteSyncSurfaces(&LastLock.Rect);
+
+			// Present surface
+			EndWritePresent(&LastLock.Rect, true, true, LastLock.IsSkipScene);
+		}
 
 		ReleaseSurfaceCriticalSection();
 

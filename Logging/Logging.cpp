@@ -444,6 +444,18 @@ std::ostream& operator<<(std::ostream& os, const DDCOLORKEY& ck)
 		<< Logging::hex(ck.dwColorSpaceHighValue);
 }
 
+std::ostream& operator<<(std::ostream& os, const DDSURFACEDESC* lpDesc)
+{
+	if (lpDesc)
+	{
+		return os << *lpDesc;
+	}
+	else
+	{
+		return os << nullptr;
+	}
+}
+
 std::ostream& operator<<(std::ostream& os, const DDSURFACEDESC& sd)
 {
 	return Logging::LogStruct(os)
@@ -462,6 +474,18 @@ std::ostream& operator<<(std::ostream& os, const DDSURFACEDESC& sd)
 		<< sd.ddckCKSrcBlt
 		<< sd.ddpfPixelFormat
 		<< sd.ddsCaps;
+}
+
+std::ostream& operator<<(std::ostream& os, const DDSURFACEDESC2* lpDesc)
+{
+	if (lpDesc)
+	{
+		return os << *lpDesc;
+	}
+	else
+	{
+		return os << nullptr;
+	}
 }
 
 std::ostream& operator<<(std::ostream& os, const DDSURFACEDESC2& sd)
@@ -2362,6 +2386,18 @@ std::ostream& operator<<(std::ostream& os, const POINTS& p)
 	return Logging::LogStruct(os)
 		<< p.x
 		<< p.y;
+}
+
+std::ostream& operator<<(std::ostream& os, const RECT* lpRect)
+{
+	if (lpRect)
+	{
+		return os << *lpRect;
+	}
+	else
+	{
+		return os << nullptr;
+	}
 }
 
 std::ostream& operator<<(std::ostream& os, const RECT& rect)

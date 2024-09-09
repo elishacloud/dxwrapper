@@ -217,7 +217,7 @@ copy /Y "$(ProjectDir)Settings\Settings.ini" "$(TargetDir)Build\dxwrapper.ini" &
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
-      <PreprocessorDefinitions>WIN32;_DEBUG;_WINDOWS;_USRDLL;FULLSCREENLOG;WRAPPERLOGGING;DISABLE_COMMON_LOGGING;_NO_DDRAWINT_NO_COM;DDRAW;DINPUT;DINPUT8;DDRAWCOMPATLOG;DDRAWCOMPAT;DDRAWCOMPAT_EXPORTS;DXWND;ENABLE_DEBUGOVERLAY;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32;_DEBUG;_WINDOWS;_USRDLL;FULLSCREENLOG;WRAPPERLOGGING;DISABLE_COMMON_LOGGING;_NO_DDRAWINT_NO_COM;DDRAW;DINPUT;DINPUT8;DDRAWCOMPATLOG;DDRAWCOMPAT;DDRAWCOMPAT_EXPORTS;DXWND;ENABLE_DEBUGOVERLAY;ENABLE_PROFILING;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
       <ObjectFileName>$(SolutionDir)bin\Intermediate\$(Configuration)\Object\%(RelativeDir)</ObjectFileName>
       <WarningLevel>Level4</WarningLevel>

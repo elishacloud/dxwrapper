@@ -1836,6 +1836,11 @@ HRESULT m_IDirect3DDeviceX::BeginScene()
 		if (SUCCEEDED(hr))
 		{
 			IsInScene = true;
+
+#ifdef ENABLE_PROFILING
+			Logging::Log() << __FUNCTION__ << " (" << this << ") hr = " << (D3DERR)hr;
+			sceneTime = std::chrono::high_resolution_clock::now();
+#endif
 		}
 
 		return hr;
@@ -1878,6 +1883,10 @@ HRESULT m_IDirect3DDeviceX::EndScene()
 		if (SUCCEEDED(hr))
 		{
 			IsInScene = false;
+
+#ifdef ENABLE_PROFILING
+			Logging::Log() << __FUNCTION__ << " (" << this << ") hr = " << (D3DERR)hr << " Timing = " << Logging::GetTimeLapseInMS(sceneTime);
+#endif
 
 			if (!ddrawParent->IsPrimaryFlipSurface())
 			{
@@ -3207,7 +3216,13 @@ HRESULT m_IDirect3DDeviceX::EndStateBlock(LPDWORD lpdwBlockHandle)
 
 HRESULT m_IDirect3DDeviceX::DrawPrimitive(D3DPRIMITIVETYPE dptPrimitiveType, DWORD dwVertexTypeDesc, LPVOID lpVertices, DWORD dwVertexCount, DWORD dwFlags, DWORD DirectXVersion)
 {
-	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
+	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")" <<
+		" VertexType = " << Logging::hex(dptPrimitiveType) <<
+		" VertexDesc = " << Logging::hex(dwVertexTypeDesc) <<
+		" Vertices = " << lpVertices <<
+		" VertexCount = " << dwVertexCount <<
+		" Flags = " << Logging::hex(dwFlags) <<
+		" Version = " << DirectXVersion;
 
 	if (DirectXVersion == 2 && ProxyDirectXVersion > 2)
 	{
@@ -3231,6 +3246,10 @@ HRESULT m_IDirect3DDeviceX::DrawPrimitive(D3DPRIMITIVETYPE dptPrimitiveType, DWO
 		{
 			return DDERR_INVALIDOBJECT;
 		}
+
+#ifdef ENABLE_PROFILING
+		auto startTime = std::chrono::high_resolution_clock::now();
+#endif
 
 		dwFlags = (dwFlags & D3DDP_FORCE_DWORD);
 
@@ -3257,6 +3276,10 @@ HRESULT m_IDirect3DDeviceX::DrawPrimitive(D3DPRIMITIVETYPE dptPrimitiveType, DWO
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Error: 'DrawPrimitiveUP' call failed: " << (D3DERR)hr);
 		}
+
+#ifdef ENABLE_PROFILING
+		Logging::Log() << __FUNCTION__ << " (" << this << ") hr = " << (D3DERR)hr << " Timing = " << Logging::GetTimeLapseInMS(startTime);
+#endif
 
 		return hr;
 	}
@@ -3337,7 +3360,13 @@ HRESULT m_IDirect3DDeviceX::DrawPrimitiveStrided(D3DPRIMITIVETYPE dptPrimitiveTy
 
 HRESULT m_IDirect3DDeviceX::DrawPrimitiveVB(D3DPRIMITIVETYPE dptPrimitiveType, LPDIRECT3DVERTEXBUFFER7 lpd3dVertexBuffer, DWORD dwStartVertex, DWORD dwNumVertices, DWORD dwFlags, DWORD DirectXVersion)
 {
-	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
+	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")" <<
+		" VertexType = " << Logging::hex(dptPrimitiveType) <<
+		" VertexBuffer = " << lpd3dVertexBuffer <<
+		" StartVertex = " << dwStartVertex <<
+		" NumVertices = " << dwNumVertices <<
+		" Flags = " << Logging::hex(dwFlags) <<
+		" Version = " << DirectXVersion;
 
 	if (Config.Dd7to9)
 	{
@@ -3351,6 +3380,10 @@ HRESULT m_IDirect3DDeviceX::DrawPrimitiveVB(D3DPRIMITIVETYPE dptPrimitiveType, L
 		{
 			return DDERR_INVALIDOBJECT;
 		}
+
+#ifdef ENABLE_PROFILING
+		auto startTime = std::chrono::high_resolution_clock::now();
+#endif
 
 		dwFlags = (dwFlags & D3DDP_FORCE_DWORD);
 
@@ -3395,6 +3428,10 @@ HRESULT m_IDirect3DDeviceX::DrawPrimitiveVB(D3DPRIMITIVETYPE dptPrimitiveType, L
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Error: 'DrawPrimitive' call failed: " << (D3DERR)hr);
 		}
+
+#ifdef ENABLE_PROFILING
+		Logging::Log() << __FUNCTION__ << " (" << this << ") hr = " << (D3DERR)hr << " Timing = " << Logging::GetTimeLapseInMS(startTime);
+#endif
 
 		return hr;
 	}
@@ -3441,7 +3478,15 @@ HRESULT m_IDirect3DDeviceX::DrawPrimitiveVB(D3DPRIMITIVETYPE dptPrimitiveType, L
 
 HRESULT m_IDirect3DDeviceX::DrawIndexedPrimitive(D3DPRIMITIVETYPE dptPrimitiveType, DWORD dwVertexTypeDesc, LPVOID lpVertices, DWORD dwVertexCount, LPWORD lpIndices, DWORD dwIndexCount, DWORD dwFlags, DWORD DirectXVersion)
 {
-	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
+	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")" <<
+		" VertexType = " << Logging::hex(dptPrimitiveType) <<
+		" VertexDesc = " << Logging::hex(dwVertexTypeDesc) <<
+		" Vertices = " << lpVertices <<
+		" VertexCount = " << dwVertexCount <<
+		" Indices = " << lpIndices <<
+		" IndexCount = " << dwIndexCount <<
+		" Flags = " << Logging::hex(dwFlags) <<
+		" Version = " << DirectXVersion;
 
 	if (DirectXVersion == 2 && ProxyDirectXVersion > 2)
 	{
@@ -3465,6 +3510,10 @@ HRESULT m_IDirect3DDeviceX::DrawIndexedPrimitive(D3DPRIMITIVETYPE dptPrimitiveTy
 		{
 			return DDERR_INVALIDOBJECT;
 		}
+
+#ifdef ENABLE_PROFILING
+		auto startTime = std::chrono::high_resolution_clock::now();
+#endif
 
 		dwFlags = (dwFlags & D3DDP_FORCE_DWORD);
 
@@ -3491,6 +3540,10 @@ HRESULT m_IDirect3DDeviceX::DrawIndexedPrimitive(D3DPRIMITIVETYPE dptPrimitiveTy
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Error: 'DrawIndexedPrimitiveUP' call failed: " << (D3DERR)hr);
 		}
+
+#ifdef ENABLE_PROFILING
+		Logging::Log() << __FUNCTION__ << " (" << this << ") hr = " << (D3DERR)hr << " Timing = " << Logging::GetTimeLapseInMS(startTime);
+#endif
 
 		return hr;
 	}
@@ -3571,7 +3624,15 @@ HRESULT m_IDirect3DDeviceX::DrawIndexedPrimitiveStrided(D3DPRIMITIVETYPE dptPrim
 
 HRESULT m_IDirect3DDeviceX::DrawIndexedPrimitiveVB(D3DPRIMITIVETYPE dptPrimitiveType, LPDIRECT3DVERTEXBUFFER7 lpd3dVertexBuffer, DWORD dwStartVertex, DWORD dwNumVertices, LPWORD lpwIndices, DWORD dwIndexCount, DWORD dwFlags, DWORD DirectXVersion)
 {
-	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
+	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")" <<
+		" VertexType = " << Logging::hex(dptPrimitiveType) <<
+		" VertexBuffer = " << lpd3dVertexBuffer <<
+		" StartVertex = " << dwStartVertex <<
+		" NumVertices = " << dwNumVertices <<
+		" Indices = " << lpwIndices <<
+		" IndexCount = " << dwIndexCount <<
+		" Flags = " << Logging::hex(dwFlags) <<
+		" Version = " << DirectXVersion;
 
 	if (Config.Dd7to9)
 	{
@@ -3585,6 +3646,10 @@ HRESULT m_IDirect3DDeviceX::DrawIndexedPrimitiveVB(D3DPRIMITIVETYPE dptPrimitive
 		{
 			return DDERR_INVALIDOBJECT;
 		}
+
+#ifdef ENABLE_PROFILING
+		auto startTime = std::chrono::high_resolution_clock::now();
+#endif
 
 		dwFlags = (dwFlags & D3DDP_FORCE_DWORD);
 
@@ -3639,6 +3704,10 @@ HRESULT m_IDirect3DDeviceX::DrawIndexedPrimitiveVB(D3DPRIMITIVETYPE dptPrimitive
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Error: 'DrawIndexedPrimitive' call failed: " << (D3DERR)hr);
 		}
+
+#ifdef ENABLE_PROFILING
+		Logging::Log() << __FUNCTION__ << " (" << this << ") hr = " << (D3DERR)hr << " Timing = " << Logging::GetTimeLapseInMS(startTime);
+#endif
 
 		return hr;
 	}

@@ -164,6 +164,10 @@ MOUSEHOOK MouseHook;
 // High resolution counter used for auto frame skipping
 HIGHRESCOUNTER Counter;
 
+#ifdef ENABLE_PROFILING
+std::chrono::steady_clock::time_point presentTime;
+#endif
+
 // Preset from another thread
 PRESENTTHREAD PresentThread;
 
@@ -2428,6 +2432,9 @@ void m_IDirectDrawX::InitDdraw(DWORD DirectXVersion)
 		Counter = {};
 		QueryPerformanceFrequency(&Counter.Frequency);
 
+#ifdef ENABLE_PROFILING
+		presentTime = std::chrono::high_resolution_clock::now();
+#endif
 		// Direct3D9 flags
 		EnableWaitVsync = false;
 
@@ -4627,6 +4634,11 @@ HRESULT m_IDirectDrawX::Present(RECT* pSourceRect, RECT* pDestRect)
 		hr = d3d9Device->Present(pSourceRect, pDestRect, nullptr, nullptr);
 	}
 	
+#ifdef ENABLE_PROFILING
+	Logging::Log() << __FUNCTION__ << " (" << this << ") hr = " << (D3DERR)hr << " Timing = " << Logging::GetTimeLapseInMS(presentTime);
+	presentTime = std::chrono::high_resolution_clock::now();
+#endif
+
 	// Test cooperative level
 	if (hr == D3DERR_DEVICELOST)
 	{

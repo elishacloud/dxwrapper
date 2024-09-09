@@ -27,6 +27,10 @@ private:
 	LPDIRECT3DVIEWPORT3 lpCurrentViewport = nullptr;
 	m_IDirect3DViewportX* lpCurrentViewportX = nullptr;
 
+#ifdef ENABLE_PROFILING
+	std::chrono::steady_clock::time_point sceneTime;
+#endif
+
 	struct {
 		DWORD rsClipping = 0;
 		DWORD rsLighting = 0;
