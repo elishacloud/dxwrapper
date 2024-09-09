@@ -112,8 +112,8 @@ private:
 		bool IsUsingWindowedMode = false;
 		bool SurfaceHasData = false;
 		bool UsingSurfaceMemory = false;
+		bool UsingShadowSurface = false;
 		bool IsDirtyFlag = false;
-		bool IsRenderTargetDirty = false;
 		bool IsDrawTextureDirty = false;
 		bool IsPaletteDirty = false;						// Used to detect if the palette surface needs to be updated
 		DWORD BitCount = 0;									// Bit count for this surface
@@ -129,6 +129,7 @@ private:
 		LPPALETTEENTRY PaletteEntryArray = nullptr;			// Used to store palette data address
 		EMUSURFACE* emu = nullptr;							// Emulated surface using device context
 		LPDIRECT3DSURFACE9 Surface = nullptr;				// Surface used for Direct3D
+		LPDIRECT3DSURFACE9 Shadow = nullptr;				// Shadow surface for render target
 		LPDIRECT3DTEXTURE9 Texture = nullptr;				// Main surface texture used for locks, Blts and Flips
 		LPDIRECT3DTEXTURE9 DrawTexture = nullptr;			// Main surface texture with SetTexture calls
 		LPDIRECT3DSURFACE9 Context = nullptr;				// Context of the main surface texture
@@ -276,6 +277,7 @@ private:
 	inline bool IsSurfaceInDC() { return IsInDC; }
 	inline bool IsSurfaceBusy() { return (IsSurfaceBlitting() || IsSurfaceLocked() || IsSurfaceInDC()); }
 	inline bool IsD9UsingVideoMemory() { return ((surface.Surface || surface.Texture) ? surface.Pool == D3DPOOL_DEFAULT : false); }
+	inline bool IsUsingShadowSurface() { return (surface.UsingShadowSurface && surface.Shadow); }
 	inline bool IsLockedFromOtherThread() { return (IsSurfaceBlitting() || IsSurfaceLocked()) && LockedWithID && LockedWithID != GetCurrentThreadId(); }
 	inline bool IsDummyMipMap(DWORD MipMapLevel) { return (MipMapLevel > MaxMipMapLevel || ((MipMapLevel & ~DXW_IS_MIPMAP_DUMMY) - 1 < MipMaps.size() && MipMaps[(MipMapLevel & ~DXW_IS_MIPMAP_DUMMY) - 1].IsDummy)); }
 	inline DWORD GetD3d9MipMapLevel(DWORD MipMapLevel) { return min(MipMapLevel, MaxMipMapLevel); }
@@ -302,6 +304,7 @@ private:
 	bool DoesFlipBackBufferExist(m_IDirectDrawSurfaceX* lpSurfaceX);
 
 	// Copying surface textures
+	void SetRenderTargetShadow();
 	HRESULT SaveDXTDataToDDS(const void* data, size_t dataSize, const char* filename, int dxtVersion) const;
 	HRESULT SaveSurfaceToFile(const char* filename, D3DXIMAGE_FILEFORMAT format);
 	HRESULT CopySurface(m_IDirectDrawSurfaceX* pSourceSurface, RECT* pSourceRect, RECT* pDestRect, D3DTEXTUREFILTERTYPE Filter, D3DCOLOR ColorKey, DWORD dwFlags, DWORD SrcMipMapLevel, DWORD MipMapLevel);
@@ -466,7 +469,7 @@ public:
 	inline bool IsSurfaceDirty() { return surface.IsDirtyFlag; }
 	inline bool IsMipMapAutogen() { return surface.Texture && (surface.Usage & D3DUSAGE_AUTOGENMIPMAP); }
 	inline bool IsMipMapGenerated() { return IsMipMapReadyToUse || IsMipMapAutogen(); }
-	void SetRenderTargetDirty();
+	void PrepareRenderTarget();
 	void ClearDirtyFlags();
 	bool GetColorKeyForShader(float(&lowColorKey)[4], float(&highColorKey)[4]);
 	bool GetColorKeyForPrimaryShader(float(&lowColorKey)[4], float(&highColorKey)[4]);

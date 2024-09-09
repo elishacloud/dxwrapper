@@ -1924,6 +1924,11 @@ HRESULT m_IDirect3DDeviceX::Clear(DWORD dwCount, LPD3DRECT lpRects, DWORD dwFlag
 			return DDERR_INVALIDOBJECT;
 		}
 
+		if ((dwFlags & D3DCLEAR_TARGET) && lpCurrentRenderTargetX)
+		{
+			lpCurrentRenderTargetX->PrepareRenderTarget();
+		}
+
 		// Clear primary surface
 		/*if (!Config.DdrawEnableRenderTarget && lpCurrentRenderTargetX && (dwFlags & D3DCLEAR_TARGET))
 		{
@@ -1942,11 +1947,6 @@ HRESULT m_IDirect3DDeviceX::Clear(DWORD dwCount, LPD3DRECT lpRects, DWORD dwFlag
 			}
 			lpCurrentRenderTargetX->ClearDirtyFlags();
 		}*/
-
-		if ((dwFlags & D3DCLEAR_TARGET) && lpCurrentRenderTargetX)
-		{
-			lpCurrentRenderTargetX->SetRenderTargetDirty();
-		}
 
 		return (*d3d9Device)->Clear(dwCount, lpRects, dwFlags, dwColor, dvZ, dwStencil);
 	}
@@ -4311,6 +4311,10 @@ inline void m_IDirect3DDeviceX::SetDrawStates(DWORD dwVertexTypeDesc, DWORD& dwF
 	}
 	if (Config.Dd7to9)
 	{
+		if (lpCurrentRenderTargetX)
+		{
+			lpCurrentRenderTargetX->PrepareRenderTarget();
+		}
 		if (Config.DdrawFixByteAlignment > 1)
 		{
 			for (UINT x = 0; x < MaxTextureStages; x++)
@@ -4392,10 +4396,6 @@ inline void m_IDirect3DDeviceX::RestoreDrawStates(DWORD dwVertexTypeDesc, DWORD 
 	}
 	if (Config.Dd7to9)
 	{
-		if (lpCurrentRenderTargetX)
-		{
-			lpCurrentRenderTargetX->SetRenderTargetDirty();
-		}
 		if (Config.DdrawFixByteAlignment > 1)
 		{
 			for (UINT x = 0; x < MaxTextureStages; x++)

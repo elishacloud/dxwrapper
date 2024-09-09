@@ -4447,10 +4447,14 @@ HRESULT m_IDirectDrawX::PresentScene(RECT* pRect)
 	HRESULT DrawRet = DDERR_GENERIC;
 	if (IsPrimaryRenderTarget())
 	{
+		PrimarySurface->PrepareRenderTarget();
+
 		DrawRet = CopyPrimarySurfaceToBackbuffer();
 	}
 	else if (RenderTargetSurface)
 	{
+		RenderTargetSurface->PrepareRenderTarget();
+
 		IDirect3DSurface9* pBackBuffer = nullptr;
 		hr = d3d9Device->GetBackBuffer(0, 0, D3DBACKBUFFER_TYPE_MONO, &pBackBuffer);
 		if (SUCCEEDED(hr))
