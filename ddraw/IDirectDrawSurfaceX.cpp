@@ -6308,6 +6308,7 @@ HRESULT m_IDirectDrawSurfaceX::CopySurface(m_IDirectDrawSurfaceX* pSourceSurface
 
 		// Use D3DXLoadSurfaceFromSurface to copy the surface
 		if (!IsUsingEmulation() && !IsColorKey && !IsMirrorLeftRight && !IsMirrorUpDown &&
+			pSourceSurface->surface.Type == surface.Type &&	// D3DXLoadSurfaceFromSurface is very slow when copying from offplain to texture
 			!surface.UsingSurfaceMemory && !pSourceSurface->surface.UsingSurfaceMemory &&
 			(pSourceSurface->IsPalette() == IsPalette()))
 		{
