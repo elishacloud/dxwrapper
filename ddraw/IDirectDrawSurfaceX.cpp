@@ -3987,7 +3987,7 @@ inline LPDIRECT3DSURFACE9 m_IDirectDrawSurfaceX::Get3DSurface()
 
 inline LPDIRECT3DSURFACE9 m_IDirectDrawSurfaceX::Get3DMipMapSurface(DWORD MipMapLevel)
 {
-	if (MipMapLevel == 0)
+	if (MipMapLevel == 0 || surface.Type != D3DTYPE_TEXTURE)
 	{
 		return Get3DSurface();
 	}
@@ -4002,7 +4002,7 @@ inline LPDIRECT3DSURFACE9 m_IDirectDrawSurfaceX::Get3DMipMapSurface(DWORD MipMap
 
 inline void m_IDirectDrawSurfaceX::Release3DMipMapSurface(LPDIRECT3DSURFACE9 pSurfaceD9, DWORD MipMapLevel)
 {
-	if (pSurfaceD9 && MipMapLevel != 0)
+	if (pSurfaceD9 && MipMapLevel != 0 && surface.Type == D3DTYPE_TEXTURE)
 	{
 		pSurfaceD9->Release();
 	}
@@ -5869,102 +5869,123 @@ HRESULT m_IDirectDrawSurfaceX::ColorFill(RECT* pRect, D3DCOLOR dwFillColor, DWOR
 		return DDERR_INVALIDRECT;
 	}
 
-	// Get width and height of rect
-	LONG FillWidth = DestRect.right - DestRect.left;
-	LONG FillHeight = DestRect.bottom - DestRect.top;
+	HRESULT hr = DDERR_GENERIC;
 
-	// Check bit count
-	if (surface.BitCount != 8 && surface.BitCount != 12 && surface.BitCount != 16 && surface.BitCount != 24 && surface.BitCount != 32)
+	// Use GPU ColorFill
+	if (((surface.Usage & D3DUSAGE_RENDERTARGET) || surface.Type == D3DTYPE_OFFPLAINSURFACE) && surface.Pool == D3DPOOL_DEFAULT)
 	{
-		LOG_LIMIT(100, __FUNCTION__ << " Error: invalid bit count: " << surface.BitCount << " Width: " << FillWidth);
-		return DDERR_GENERIC;
-	}
-
-	// Check if surface is not locked then lock it
-	D3DLOCKED_RECT DestLockRect = {};
-	if (FAILED(IsUsingEmulation() ? LockEmulatedSurface(&DestLockRect, &DestRect) :
-		LockD3d9Surface(&DestLockRect, &DestRect, 0, MipMapLevel)))
-	{
-		LOG_LIMIT(100, __FUNCTION__ << " Error: could not lock destination surface " << DestRect);
-		return (IsSurfaceLocked()) ? DDERR_SURFACEBUSY : DDERR_GENERIC;
-	}
-
-	if (FillWidth == (LONG)surfaceDesc2.dwWidth && surface.BitCount == 8)
-	{
-		memset(DestLockRect.pBits, dwFillColor, DestLockRect.Pitch * FillHeight);
-	}
-	else if ((FillWidth * FillHeight < 640 * 480) && FillWidth == (LONG)surfaceDesc2.dwWidth && (surface.BitCount == 16 || surface.BitCount == 32) && (DestLockRect.Pitch * FillHeight) % 4 == 0)
-	{
-		const DWORD Color = (surface.BitCount == 16) ? ((dwFillColor & 0xFFFF) << 16) + (dwFillColor & 0xFFFF) : dwFillColor;
-		const DWORD Size = (DestLockRect.Pitch * FillHeight) / 4;
-
-		DWORD* DestBuffer = (DWORD*)DestLockRect.pBits;
-		for (UINT x = 0; x < Size; x++)
+		IDirect3DSurface9* pDestSurfaceD9 = Get3DMipMapSurface(MipMapLevel);
+		if (pDestSurfaceD9)
 		{
-			DestBuffer[x] = Color;
-		}
-	}
-	else if (surface.BitCount == 8 || (surface.BitCount == 12 && FillWidth % 2 == 0) || surface.BitCount == 16 || surface.BitCount == 24 || surface.BitCount == 32)
-	{
-		// Set memory address
-		BYTE* SrcBuffer = (BYTE*)&dwFillColor;
-		BYTE* DestBuffer = (BYTE*)DestLockRect.pBits;
+			hr = (*d3d9Device)->ColorFill(pDestSurfaceD9, &DestRect, dwFillColor);
 
-		// Get byte count
-		DWORD ByteCount = surface.BitCount / 8;
-
-		// Handle 12-bit surface
-		if (surface.BitCount == 12)
-		{
-			ByteCount = 3;
-			dwFillColor = (dwFillColor & 0xFFF) + ((dwFillColor & 0xFFF) << 12);
-			FillWidth /= 2;
-		}
-
-		// Fill first line memory
-		if ((surface.BitCount == 8 || surface.BitCount == 16 || surface.BitCount == 32) && (FillWidth % (4 / ByteCount) == 0))
-		{
-			DWORD Color = (surface.BitCount == 8) ? (dwFillColor & 0xFF) + ((dwFillColor & 0xFF) << 8) + ((dwFillColor & 0xFF) << 16) + ((dwFillColor & 0xFF) << 24) :
-				(surface.BitCount == 16) ? (dwFillColor & 0xFFFF) + ((dwFillColor & 0xFFFF) << 16) : dwFillColor;
-			LONG Iterations = FillWidth / (4 / ByteCount);
-			for (LONG x = 0; x < Iterations; x++)
+			if (FAILED(hr))
 			{
-				*(DWORD*)DestBuffer = Color;
-				DestBuffer += sizeof(DWORD);
+				LOG_LIMIT(100, __FUNCTION__ << " Error: could not color fill: " << (D3DERR)hr);
+			}
+		}
+	}
+	
+	// Lock surface and manually fill with color
+	if (FAILED(hr))
+	{
+		// Get width and height of rect
+		LONG FillWidth = DestRect.right - DestRect.left;
+		LONG FillHeight = DestRect.bottom - DestRect.top;
+
+		// Check bit count
+		if (surface.BitCount != 8 && surface.BitCount != 12 && surface.BitCount != 16 && surface.BitCount != 24 && surface.BitCount != 32)
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: invalid bit count: " << surface.BitCount << " Width: " << FillWidth);
+			return DDERR_GENERIC;
+		}
+
+		// Check if surface is not locked then lock it
+		D3DLOCKED_RECT DestLockRect = {};
+		if (FAILED(IsUsingEmulation() ? LockEmulatedSurface(&DestLockRect, &DestRect) :
+			LockD3d9Surface(&DestLockRect, &DestRect, 0, MipMapLevel)))
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: could not lock destination surface " << DestRect);
+			return (IsSurfaceLocked()) ? DDERR_SURFACEBUSY : DDERR_GENERIC;
+		}
+
+		if (FillWidth == (LONG)surfaceDesc2.dwWidth && surface.BitCount == 8)
+		{
+			memset(DestLockRect.pBits, dwFillColor, DestLockRect.Pitch * FillHeight);
+		}
+		else if ((FillWidth * FillHeight < 640 * 480) && FillWidth == (LONG)surfaceDesc2.dwWidth && (surface.BitCount == 16 || surface.BitCount == 32) && (DestLockRect.Pitch * FillHeight) % 4 == 0)
+		{
+			const DWORD Color = (surface.BitCount == 16) ? ((dwFillColor & 0xFFFF) << 16) + (dwFillColor & 0xFFFF) : dwFillColor;
+			const DWORD Size = (DestLockRect.Pitch * FillHeight) / 4;
+
+			DWORD* DestBuffer = (DWORD*)DestLockRect.pBits;
+			for (UINT x = 0; x < Size; x++)
+			{
+				DestBuffer[x] = Color;
+			}
+		}
+		else if (surface.BitCount == 8 || (surface.BitCount == 12 && FillWidth % 2 == 0) || surface.BitCount == 16 || surface.BitCount == 24 || surface.BitCount == 32)
+		{
+			// Set memory address
+			BYTE* SrcBuffer = (BYTE*)&dwFillColor;
+			BYTE* DestBuffer = (BYTE*)DestLockRect.pBits;
+
+			// Get byte count
+			DWORD ByteCount = surface.BitCount / 8;
+
+			// Handle 12-bit surface
+			if (surface.BitCount == 12)
+			{
+				ByteCount = 3;
+				dwFillColor = (dwFillColor & 0xFFF) + ((dwFillColor & 0xFFF) << 12);
+				FillWidth /= 2;
+			}
+
+			// Fill first line memory
+			if ((surface.BitCount == 8 || surface.BitCount == 16 || surface.BitCount == 32) && (FillWidth % (4 / ByteCount) == 0))
+			{
+				DWORD Color = (surface.BitCount == 8) ? (dwFillColor & 0xFF) + ((dwFillColor & 0xFF) << 8) + ((dwFillColor & 0xFF) << 16) + ((dwFillColor & 0xFF) << 24) :
+					(surface.BitCount == 16) ? (dwFillColor & 0xFFFF) + ((dwFillColor & 0xFFFF) << 16) : dwFillColor;
+				LONG Iterations = FillWidth / (4 / ByteCount);
+				for (LONG x = 0; x < Iterations; x++)
+				{
+					*(DWORD*)DestBuffer = Color;
+					DestBuffer += sizeof(DWORD);
+				}
+			}
+			else
+			{
+				for (LONG x = 0; x < FillWidth; x++)
+				{
+					for (DWORD y = 0; y < ByteCount; y++)
+					{
+						*DestBuffer = SrcBuffer[y];
+						DestBuffer++;
+					}
+				}
+			}
+
+			// Fill rest of surface rect using the first line as a template
+			SrcBuffer = (BYTE*)DestLockRect.pBits;
+			DestBuffer = (BYTE*)DestLockRect.pBits + DestLockRect.Pitch;
+			size_t Size = FillWidth * ByteCount;
+			for (LONG y = 1; y < FillHeight; y++)
+			{
+				memcpy(DestBuffer, SrcBuffer, Size);
+				DestBuffer += DestLockRect.Pitch;
 			}
 		}
 		else
 		{
-			for (LONG x = 0; x < FillWidth; x++)
-			{
-				for (DWORD y = 0; y < ByteCount; y++)
-				{
-					*DestBuffer = SrcBuffer[y];
-					DestBuffer++;
-				}
-			}
+			LOG_LIMIT(100, __FUNCTION__ << " Error: invalid bit count: " << surface.BitCount << " Width: " << FillWidth);
+			return DDERR_GENERIC;
 		}
 
-		// Fill rest of surface rect using the first line as a template
-		SrcBuffer = (BYTE*)DestLockRect.pBits;
-		DestBuffer = (BYTE*)DestLockRect.pBits + DestLockRect.Pitch;
-		size_t Size = FillWidth * ByteCount;
-		for (LONG y = 1; y < FillHeight; y++)
+		// Unlock surface
+		if (!IsUsingEmulation())
 		{
-			memcpy(DestBuffer, SrcBuffer, Size);
-			DestBuffer += DestLockRect.Pitch;
+			UnLockD3d9Surface(MipMapLevel);
 		}
-	}
-	else
-	{
-		LOG_LIMIT(100, __FUNCTION__ << " Error: invalid bit count: " << surface.BitCount << " Width: " << FillWidth);
-		return DDERR_GENERIC;
-	}
-
-	// Unlock surface
-	if (!IsUsingEmulation())
-	{
-		UnLockD3d9Surface(MipMapLevel);
 	}
 
 	// Keep surface insync
