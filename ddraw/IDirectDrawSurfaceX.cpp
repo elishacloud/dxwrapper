@@ -6374,7 +6374,7 @@ HRESULT m_IDirectDrawSurfaceX::CopySurface(m_IDirectDrawSurfaceX* pSourceSurface
 		}
 
 		// Decode DirectX texture
-		if (ISDXTEX(SrcFormat))
+		if (ISDXTEX(SrcFormat) || SrcFormat == D3DFMT_UYVY)
 		{
 			if (IsColorKey)
 			{
