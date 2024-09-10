@@ -2061,7 +2061,7 @@ HRESULT m_IDirectDrawX::GetAvailableVidMem2(LPDDSCAPS2 lpDDSCaps2, LPDWORD lpdwT
 				// Memory acquired using D3DDDI
 			}
 			// Failover to texture memory if DDI does not work
-			else if (d3d9Device)
+			else
 			{
 				GetTextureMemory(AvailableMemory);
 			}
@@ -2137,7 +2137,7 @@ void m_IDirectDrawX::GetTextureMemory(DWORD& AvailableMemory)
 	LOG_LIMIT(100, __FUNCTION__ << " Creating temporary Direct3D9 device");
 
 	// Try to get the main window's HWND
-	HWND hWnd = Fullscreen::FindMainWindow(GetCurrentProcessId(), true);
+	HWND hWnd = nullptr;
 
 	// If no main window exists, create a temporary one
 	bool createdTemporaryWindow = false;
