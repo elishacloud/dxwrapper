@@ -528,18 +528,7 @@ void UpdatePresentParameter(D3DPRESENT_PARAMETERS* pPresentationParameters, HWND
 		// Remove tool and topmost window
 		if (DeviceDetails.DeviceWindow != LastDeviceWindow)
 		{
-			LONG lStyle = GetWindowLong(DeviceDetails.DeviceWindow, GWL_STYLE);
 			LONG lExStyle = GetWindowLong(DeviceDetails.DeviceWindow, GWL_EXSTYLE);
-
-			if (!(lStyle & WS_VISIBLE))
-			{
-				LOG_LIMIT(3, __FUNCTION__ << " Adding window WS_VISIBLE");
-
-				SetWindowLong(DeviceDetails.DeviceWindow, GWL_STYLE, lStyle | WS_VISIBLE);
-				SetWindowPos(DeviceDetails.DeviceWindow, ((lExStyle & WS_EX_TOPMOST) ? HWND_TOPMOST : HWND_TOP),
-					0, 0, 0, 0, SWP_NOZORDER | SWP_NOMOVE | SWP_NOSIZE | SWP_FRAMECHANGED);
-			}
-
 			if (lExStyle & (WS_EX_TOOLWINDOW | WS_EX_TOPMOST))
 			{
 				LOG_LIMIT(3, __FUNCTION__ << " Removing window" << ((lExStyle & WS_EX_TOOLWINDOW) ? " WS_EX_TOOLWINDOW" : "") << ((lExStyle & WS_EX_TOPMOST) ? " WS_EX_TOPMOST" : ""));
@@ -663,8 +652,7 @@ void AdjustWindow(HWND MainhWnd, LONG displayWidth, LONG displayHeight, bool isW
 	Utils::GetDesktopRect(MainhWnd, screenRect);
 
 	// Get window style
-	LONG lOriginalStyle = GetWindowLong(MainhWnd, GWL_STYLE);
-	LONG lStyle = lOriginalStyle | WS_VISIBLE;
+	LONG lStyle = GetWindowLong(MainhWnd, GWL_STYLE);
 	LONG lExStyle = GetWindowLong(MainhWnd, GWL_EXSTYLE);
 
 	// Get new style
@@ -680,9 +668,8 @@ void AdjustWindow(HWND MainhWnd, LONG displayWidth, LONG displayHeight, bool isW
 	}
 
 	// Set window style
-	if (Config.EnableWindowMode || (lOriginalStyle & WS_VISIBLE) == NULL)
+	if (Config.EnableWindowMode)
 	{
-		lStyle = (Config.EnableWindowMode) ? lStyle : (lOriginalStyle | WS_VISIBLE);
 		SetWindowLong(MainhWnd, GWL_STYLE, lStyle);
 		SetWindowPos(MainhWnd, ((lExStyle & WS_EX_TOPMOST) ? HWND_TOPMOST : HWND_TOP), 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_FRAMECHANGED);
 	}
