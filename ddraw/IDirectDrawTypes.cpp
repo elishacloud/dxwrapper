@@ -546,6 +546,7 @@ DWORD GetBitCount(D3DFORMAT Format)
 		return 16;
 
 	case D3DFMT_YV12:
+	case D3DFMT_NV12:
 		return 12;
 
 	case D3DFMT_P8:
@@ -607,7 +608,7 @@ DWORD GetSurfaceSize(D3DFORMAT Format, DWORD Width, DWORD Height, INT Pitch)
 	{
 		return ((GetByteAlignedWidth(Width, GetBitCount(Format)) + 3) / 4) * ((Height + 3) / 4) * (Format == D3DFMT_DXT1 ? 8 : 16);
 	}
-	else if (Format == D3DFMT_YV12)
+	else if (Format == D3DFMT_YV12 || Format == D3DFMT_NV12)
 	{
 		return GetByteAlignedWidth(Width, GetBitCount(Format)) * Height;
 	}
@@ -776,6 +777,7 @@ D3DFORMAT GetDisplayFormat(DDPIXELFORMAT ddpfPixelFormat)
 		case D3DFMT_UYVY:
 		case D3DFMT_YUY2:
 		case D3DFMT_YV12:
+		case D3DFMT_NV12:
 		case D3DFMT_MULTI2_ARGB8:
 		case D3DFMT_G8R8_G8B8:
 		case D3DFMT_R8G8_B8G8:
@@ -1198,6 +1200,7 @@ void SetPixelDisplayFormat(D3DFORMAT Format, DDPIXELFORMAT &ddpfPixelFormat)
 	case D3DFMT_UYVY:
 	case D3DFMT_YUY2:
 	case D3DFMT_YV12:
+	case D3DFMT_NV12:
 		ddpfPixelFormat.dwFlags = DDPF_FOURCC;
 		ddpfPixelFormat.dwFourCC = Format;
 		break;
