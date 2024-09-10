@@ -84,15 +84,15 @@ namespace WndProc
 		~WNDPROCSTRUCT()
 		{
 			Exiting = true;
+			if (Config.Exiting)
+			{
+				return;
+			}
 			// Restore WndProc
 			if (IsWindow(hWnd) && AppWndProc)
 			{
 				LOG_LIMIT(100, __FUNCTION__ << " Deleting WndProc instance! " << hWnd);
 				SetWndProc(hWnd, AppWndProc);
-			}
-			if (Config.Exiting)
-			{
-				return;
 			}
 			// Restore the memory protection
 			if (MyWndProc)
