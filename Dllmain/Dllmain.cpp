@@ -123,10 +123,6 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 		// Get handle
 		hModule_dll = hModule;
 
-		// Pin current module
-		HMODULE dummy = nullptr;
-		GetModuleHandleExA(GET_MODULE_HANDLE_EX_FLAG_PIN | GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS, reinterpret_cast<LPCSTR>(DllMain), &dummy);
-
 		// Initialize config
 		Config.Init();
 
@@ -235,6 +231,10 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 			HMODULE dll = Wrapper::CreateWrapper((Config.RealDllPath.size()) ? Config.RealDllPath.c_str() : nullptr, (Config.WrapperMode.size()) ? Config.WrapperMode.c_str() : nullptr, Config.WrapperName.c_str());
 			if (dll)
 			{
+				// Pin real dll module
+				HMODULE dummy = nullptr;
+				GetModuleHandleExA(GET_MODULE_HANDLE_EX_FLAG_PIN | GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS, reinterpret_cast<LPCSTR>(dll), &dummy);
+
 				Utils::AddHandleToVector(dll, Config.WrapperName.c_str());
 
 				// Hook GetProcAddress to handle wrapped functions that are missing or not available in the OS
@@ -246,6 +246,10 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 				}
 			}
 		}
+
+		// Pin current module
+		HMODULE dummy = nullptr;
+		GetModuleHandleExA(GET_MODULE_HANDLE_EX_FLAG_PIN | GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS, reinterpret_cast<LPCSTR>(DllMain), &dummy);
 
 		// Launch processes
 		if (!Config.RunProcess.empty())
