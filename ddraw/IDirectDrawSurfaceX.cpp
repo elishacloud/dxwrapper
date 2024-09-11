@@ -6257,6 +6257,13 @@ HRESULT m_IDirectDrawSurfaceX::CopySurface(m_IDirectDrawSurfaceX* pSourceSurface
 	const D3DFORMAT SrcFormat = pSourceSurface->GetSurfaceFormat();
 	const D3DFORMAT DestFormat = GetSurfaceFormat();
 
+	// Check source and destination format
+	const bool FormatMismatch = !(SrcFormat == DestFormat || (ISDXTEX(SrcFormat) && ISDXTEX(DestFormat)) ||
+		((SrcFormat == D3DFMT_A1R5G5B5 || SrcFormat == D3DFMT_X1R5G5B5) && (DestFormat == D3DFMT_A1R5G5B5 || DestFormat == D3DFMT_X1R5G5B5)) ||
+		((SrcFormat == D3DFMT_A4R4G4B4 || SrcFormat == D3DFMT_X4R4G4B4) && (DestFormat == D3DFMT_A4R4G4B4 || DestFormat == D3DFMT_X4R4G4B4)) ||
+		((SrcFormat == D3DFMT_A8R8G8B8 || SrcFormat == D3DFMT_X8R8G8B8) && (DestFormat == D3DFMT_A8R8G8B8 || DestFormat == D3DFMT_X8R8G8B8)) ||
+		((SrcFormat == D3DFMT_A8B8G8R8 || SrcFormat == D3DFMT_X8B8G8R8) && (DestFormat == D3DFMT_A8B8G8R8 || DestFormat == D3DFMT_X8B8G8R8)));
+
 	// Get copy flags
 	const bool IsStretchRect =
 		abs((SrcRect.right - SrcRect.left) - (DestRect.right - DestRect.left)) > 1 ||		// Width size
@@ -6425,7 +6432,8 @@ HRESULT m_IDirectDrawSurfaceX::CopySurface(m_IDirectDrawSurfaceX* pSourceSurface
 		}
 
 		// Decode DirectX textures and FourCCs
-		if ((SrcFormat & 0xFF000000 /*FOURCC or D3DFMT_DXTx*/) ||
+		if ((FormatMismatch && !IsUsingEmulation() && !IsColorKey && !IsMirrorLeftRight && !IsMirrorUpDown) ||
+			(SrcFormat & 0xFF000000 /*FOURCC or D3DFMT_DXTx*/) ||
 			SrcFormat == D3DFMT_V8U8 ||
 			SrcFormat == D3DFMT_L6V5U5 ||
 			SrcFormat == D3DFMT_X8L8V8U8 ||
@@ -6550,23 +6558,17 @@ HRESULT m_IDirectDrawSurfaceX::CopySurface(m_IDirectDrawSurfaceX* pSourceSurface
 			}
 		}
 
-		// Check source and destination format
-		bool FormatMismatch = false;
 		const bool FormatR5G6B5toX8R8G8B8 = (SrcFormat == D3DFMT_R5G6B5 && (DestFormat == D3DFMT_A8R8G8B8 || DestFormat == D3DFMT_X8R8G8B8));
-		if (FormatR5G6B5toX8R8G8B8)
+		if (FormatMismatch)
 		{
-			FormatMismatch = true;
 			LOG_LIMIT(100, __FUNCTION__ << " Warning: source and destination formats don't match! " << SrcFormat << "-->" << DestFormat);
-		}
-		else if (!(SrcFormat == DestFormat || ISDXTEX(SrcFormat) && ISDXTEX(DestFormat) ||
-			((SrcFormat == D3DFMT_A1R5G5B5 || SrcFormat == D3DFMT_X1R5G5B5) && (DestFormat == D3DFMT_A1R5G5B5 || DestFormat == D3DFMT_X1R5G5B5)) ||
-			((SrcFormat == D3DFMT_A4R4G4B4 || SrcFormat == D3DFMT_X4R4G4B4) && (DestFormat == D3DFMT_A4R4G4B4 || DestFormat == D3DFMT_X4R4G4B4)) ||
-			((SrcFormat == D3DFMT_A8R8G8B8 || SrcFormat == D3DFMT_X8R8G8B8) && (DestFormat == D3DFMT_A8R8G8B8 || DestFormat == D3DFMT_X8R8G8B8)) ||
-			((SrcFormat == D3DFMT_A8B8G8R8 || SrcFormat == D3DFMT_X8B8G8R8) && (DestFormat == D3DFMT_A8B8G8R8 || DestFormat == D3DFMT_X8B8G8R8))))
-		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error: not supported for specified source and destination formats! " << SrcFormat << "-->" << DestFormat);
-			hr = DDERR_GENERIC;
-			break;
+
+			if (!FormatR5G6B5toX8R8G8B8)
+			{
+				LOG_LIMIT(100, __FUNCTION__ << " Error: not supported for specified source and destination formats! " << SrcFormat << "-->" << DestFormat);
+				hr = DDERR_GENERIC;
+				break;
+			}
 		}
 
 		// Get byte count
