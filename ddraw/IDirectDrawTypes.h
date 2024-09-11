@@ -104,6 +104,21 @@ struct TRIBYTE
 	BYTE first;
 	BYTE second;
 	BYTE third;
+
+	// Conversion operator from TRIBYTE to DWORD
+	operator DWORD() const {
+		return (DWORD(first) | (DWORD(second) << 8) | (DWORD(third) << 16));
+	}
+
+	// Equality operator
+	bool operator==(const TRIBYTE& other) const {
+		return first == other.first && second == other.second && third == other.third;
+	}
+
+	// Inequality operator
+	bool operator!=(const TRIBYTE& other) const {
+		return !(*this == other);
+	}
 };
 
 static constexpr DWORD DDS_MAGIC				= 0x20534444; // "DDS "

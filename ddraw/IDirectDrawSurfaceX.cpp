@@ -6161,6 +6161,57 @@ HRESULT m_IDirectDrawSurfaceX::SaveSurfaceToFile(const char *filename, D3DXIMAGE
 	return hr;
 }
 
+// Simple copy with ColorKey and Mirroring
+template <typename T>
+void SimpleColorKeyCopy(T ColorKey, BYTE* SrcBuffer, BYTE* DestBuffer, INT SrcPitch, INT DestPitch, LONG DestRectWidth, LONG DestRectHeight, bool IsColorKey, bool IsMirrorLeftRight)
+{
+	T* SrcBufferLoop = reinterpret_cast<T*>(SrcBuffer);
+	T* DestBufferLoop = reinterpret_cast<T*>(DestBuffer);
+	for (LONG y = 0; y < DestRectHeight; y++)
+	{
+		for (LONG x = 0; x < DestRectWidth; x++)
+		{
+			T PixelColor = SrcBufferLoop[IsMirrorLeftRight ? DestRectWidth - x - 1 : x];
+			if (!IsColorKey || PixelColor != ColorKey)
+			{
+				DestBufferLoop[x] = PixelColor;
+			}
+		}
+		SrcBufferLoop = reinterpret_cast<T*>((BYTE*)SrcBufferLoop + SrcPitch);
+		DestBufferLoop = reinterpret_cast<T*>((BYTE*)DestBufferLoop + DestPitch);
+	}
+}
+
+// Copy memory (complex)
+template <typename T>
+void ComplexCopy(T ColorKey, D3DLOCKED_RECT SrcLockRect, D3DLOCKED_RECT DestLockRect, LONG SrcRectWidth, LONG SrcRectHeight, LONG DestRectWidth, LONG DestRectHeight, bool IsColorKey, bool IsMirrorUpDown, bool IsMirrorLeftRight)
+{
+	float WidthRatio = ((float)SrcRectWidth / (float)DestRectWidth);
+	float HeightRatio = ((float)SrcRectHeight / (float)DestRectHeight);
+
+	T* SrcBufferLoop = reinterpret_cast<T*>(SrcLockRect.pBits);
+	T* DestBufferLoop = reinterpret_cast<T*>(DestLockRect.pBits);
+
+	DWORD sx;
+
+	for (LONG y = 0; y < DestRectHeight; y++)
+	{
+		for (LONG x = 0; x < DestRectWidth; x++)
+		{
+			sx = (DWORD)((float)x * WidthRatio + 0.5f);
+			T PixelColor = SrcBufferLoop[IsMirrorLeftRight ? SrcRectWidth - sx - 1 : sx];
+
+			if (!IsColorKey || PixelColor != ColorKey)
+			{
+				DestBufferLoop[x] = PixelColor;
+			}
+		}
+		sx = (DWORD)((float)(y + 1) * HeightRatio + 0.5f);
+		SrcBufferLoop = reinterpret_cast<T*>((BYTE*)SrcLockRect.pBits + SrcLockRect.Pitch * (IsMirrorUpDown ? SrcRectHeight - sx - 1 : sx));
+		DestBufferLoop = reinterpret_cast<T*>((BYTE*)DestBufferLoop + DestLockRect.Pitch);
+	}
+}
+
 // Copy surface
 HRESULT m_IDirectDrawSurfaceX::CopySurface(m_IDirectDrawSurfaceX* pSourceSurface, RECT* pSourceRect, RECT* pDestRect, D3DTEXTUREFILTERTYPE Filter, D3DCOLOR ColorKey, DWORD dwFlags, DWORD SrcMipMapLevel, DWORD MipMapLevel)
 {
@@ -6373,8 +6424,14 @@ HRESULT m_IDirectDrawSurfaceX::CopySurface(m_IDirectDrawSurfaceX* pSourceSurface
 			SetRenderTargetShadow();
 		}
 
-		// Decode DirectX texture
-		if (ISDXTEX(SrcFormat) || SrcFormat == D3DFMT_UYVY)
+		// Decode DirectX textures and FourCCs
+		if ((SrcFormat & 0xFF000000 /*FOURCC or D3DFMT_DXTx*/) ||
+			SrcFormat == D3DFMT_V8U8 ||
+			SrcFormat == D3DFMT_L6V5U5 ||
+			SrcFormat == D3DFMT_X8L8V8U8 ||
+			SrcFormat == D3DFMT_Q8W8V8U8 ||
+			SrcFormat == D3DFMT_V16U16 ||
+			SrcFormat == D3DFMT_A2W10V10U10)
 		{
 			if (IsColorKey)
 			{
@@ -6534,7 +6591,7 @@ HRESULT m_IDirectDrawSurfaceX::CopySurface(m_IDirectDrawSurfaceX* pSourceSurface
 		UnlockSrc = true;
 
 		// Check if source and destination memory addresses are overlapping
-		if (pSourceSurface == this && MipMapLevel == SrcMipMapLevel)
+		if ((pSourceSurface == this && MipMapLevel == SrcMipMapLevel) || FormatMismatch)
 		{
 			size_t size = SrcRectWidth * ByteCount * SrcRectHeight;
 			if (size > ByteArray.size())
@@ -6544,11 +6601,26 @@ HRESULT m_IDirectDrawSurfaceX::CopySurface(m_IDirectDrawSurfaceX* pSourceSurface
 			BYTE* SrcBuffer = (BYTE*)SrcLockRect.pBits;
 			BYTE* DestBuffer = (BYTE*)ByteArray.data();
 			INT DestPitch = SrcRectWidth * ByteCount;
-			for (LONG y = 0; y < SrcRectHeight; y++)
+			if (FormatR5G6B5toX8R8G8B8)
 			{
-				memcpy(DestBuffer, SrcBuffer, SrcRectWidth * ByteCount);
-				SrcBuffer += SrcLockRect.Pitch;
-				DestBuffer += DestPitch;
+				for (LONG y = 0; y < SrcRectHeight; y++)
+				{
+					for (LONG x = 0; x < SrcRectWidth; x++)
+					{
+						((DWORD*)DestBuffer)[x] = D3DFMT_R5G6B5_TO_X8R8G8B8(((WORD*)SrcBuffer)[x]);
+					}
+					SrcBuffer += SrcLockRect.Pitch;
+					DestBuffer += DestPitch;
+				}
+			}
+			else
+			{
+				for (LONG y = 0; y < SrcRectHeight; y++)
+				{
+					memcpy(DestBuffer, SrcBuffer, SrcRectWidth * ByteCount);
+					SrcBuffer += SrcLockRect.Pitch;
+					DestBuffer += DestPitch;
+				}
 			}
 			SrcLockRect.pBits = ByteArray.data();
 			SrcLockRect.Pitch = DestPitch;
@@ -6582,7 +6654,7 @@ HRESULT m_IDirectDrawSurfaceX::CopySurface(m_IDirectDrawSurfaceX* pSourceSurface
 		}
 
 		// Simple memory copy (QuickCopy)
-		if (!IsStretchRect && !IsColorKey && !IsMirrorLeftRight && !FormatMismatch)
+		if (!IsStretchRect && !IsColorKey && !IsMirrorLeftRight)
 		{
 			if (!IsMirrorUpDown && SrcLockRect.Pitch == DestLockRect.Pitch && (DWORD)DestRectWidth == DestDesc2.dwWidth)
 			{
@@ -6603,127 +6675,44 @@ HRESULT m_IDirectDrawSurfaceX::CopySurface(m_IDirectDrawSurfaceX* pSourceSurface
 
 		// Set color variables
 		DWORD ByteMask = (ByteCount == 1) ? 0x000000FF : (ByteCount == 2) ? 0x0000FFFF : (ByteCount == 3) ? 0x00FFFFFF : 0xFFFFFFFF;
+		DWORD dColorKey = (ColorKey & ByteMask);
 
 		// Simple copy with ColorKey and Mirroring
-		if (!IsStretchRect && !FormatMismatch)
+		if (!IsStretchRect)
 		{
-			if (ByteCount == 1)
+			switch (ByteCount)
 			{
-				BYTE* SrcBufferLoop = SrcBuffer;
-				BYTE* DestBufferLoop = DestBuffer;
-				for (LONG y = 0; y < DestRectHeight; y++)
-				{
-					for (LONG x = 0; x < DestRectWidth; x++)
-					{
-						BYTE PixelColor = SrcBufferLoop[IsMirrorLeftRight ? DestRectWidth - x - 1 : x];
-						if (!IsColorKey || PixelColor != ColorKey)
-						{
-							DestBufferLoop[x] = PixelColor;
-						}
-					}
-					SrcBufferLoop += SrcLockRect.Pitch;
-					DestBufferLoop += DestPitch;
-				}
-			}
-			else if (ByteCount == 2)
-			{
-				WORD* SrcBufferLoop = (WORD*)SrcBuffer;
-				WORD* DestBufferLoop = (WORD*)DestBuffer;
-				for (LONG y = 0; y < DestRectHeight; y++)
-				{
-					for (LONG x = 0; x < DestRectWidth; x++)
-					{
-						WORD PixelColor = SrcBufferLoop[IsMirrorLeftRight ? DestRectWidth - x - 1 : x];
-						if (!IsColorKey || PixelColor != ColorKey)
-						{
-							DestBufferLoop[x] = PixelColor;
-						}
-					}
-					SrcBufferLoop = (WORD*)((BYTE*)SrcBufferLoop + SrcLockRect.Pitch);
-					DestBufferLoop = (WORD*)((BYTE*)DestBufferLoop + DestPitch);
-				}
-			}
-			else if (ByteCount == 3)
-			{
-				TRIBYTE* SrcBufferLoop = (TRIBYTE*)SrcBuffer;
-				TRIBYTE* DestBufferLoop = (TRIBYTE*)DestBuffer;
-				for (LONG y = 0; y < DestRectHeight; y++)
-				{
-					for (LONG x = 0; x < DestRectWidth; x++)
-					{
-						LONG w = IsMirrorLeftRight ? DestRectWidth - x - 1 : x;
-						DWORD PixelColor = (*(DWORD*)(SrcBufferLoop + w)) & ByteMask;
-						if (!IsColorKey || PixelColor != ColorKey)
-						{
-							DestBufferLoop[x] = SrcBufferLoop[w];
-						}
-					}
-					SrcBufferLoop = (TRIBYTE*)((BYTE*)SrcBufferLoop + SrcLockRect.Pitch);
-					DestBufferLoop = (TRIBYTE*)((BYTE*)DestBufferLoop + DestPitch);
-				}
-			}
-			else if (ByteCount == 4)
-			{
-				DWORD* SrcBufferLoop = (DWORD*)SrcBuffer;
-				DWORD* DestBufferLoop = (DWORD*)DestBuffer;
-				for (LONG y = 0; y < DestRectHeight; y++)
-				{
-					for (LONG x = 0; x < DestRectWidth; x++)
-					{
-						DWORD PixelColor = SrcBufferLoop[IsMirrorLeftRight ? DestRectWidth - x - 1 : x];
-						if (!IsColorKey || PixelColor != ColorKey)
-						{
-							DestBufferLoop[x] = PixelColor;
-						}
-					}
-					SrcBufferLoop = (DWORD*)((BYTE*)SrcBufferLoop + SrcLockRect.Pitch);
-					DestBufferLoop = (DWORD*)((BYTE*)DestBufferLoop + DestPitch);
-				}
+			case 1:
+				SimpleColorKeyCopy<BYTE>((BYTE)(ColorKey & ByteMask), SrcBuffer, DestBuffer, SrcLockRect.Pitch, DestPitch, DestRectWidth, DestRectHeight, IsColorKey, IsMirrorLeftRight);
+				break;
+			case 2:
+				SimpleColorKeyCopy<WORD>((WORD)(ColorKey & ByteMask), SrcBuffer, DestBuffer, SrcLockRect.Pitch, DestPitch, DestRectWidth, DestRectHeight, IsColorKey, IsMirrorLeftRight);
+				break;
+			case 3:
+				SimpleColorKeyCopy<TRIBYTE>(*reinterpret_cast<TRIBYTE*>(&dColorKey), SrcBuffer, DestBuffer, SrcLockRect.Pitch, DestPitch, DestRectWidth, DestRectHeight, IsColorKey, IsMirrorLeftRight);
+				break;
+			case 4:
+				SimpleColorKeyCopy<DWORD>((DWORD)(ColorKey & ByteMask), SrcBuffer, DestBuffer, SrcLockRect.Pitch, DestPitch, DestRectWidth, DestRectHeight, IsColorKey, IsMirrorLeftRight);
+				break;
 			}
 			hr = DD_OK;
 			break;
 		}
 
-		// Get ratio
-		float WidthRatio = (float)SrcRectWidth / (float)DestRectWidth;
-		float HeightRatio = (float)SrcRectHeight / (float)DestRectHeight;
-
-		// Source byte count
-		DWORD SrcByteCount = FormatMismatch ? pSourceSurface->surface.BitCount / 8 : ByteCount;
-
 		// Copy memory (complex)
-		for (LONG y = 0; y < DestRectHeight; y++)
+		switch (ByteCount)
 		{
-			BYTE* LoopBuffer = DestBuffer;
-			for (LONG x = 0; x < DestRectWidth; x++)
-			{
-				DWORD r = (IsStretchRect) ? (DWORD)((float)x * WidthRatio) : x;
-				BYTE* NewPixel = (IsMirrorLeftRight) ? SrcBuffer + ((SrcRectWidth - r - 1) * SrcByteCount) : SrcBuffer + (r * SrcByteCount);
-				DWORD PixelColor = (*(DWORD*)NewPixel) & ByteMask;
-
-				if (!IsColorKey || PixelColor != ColorKey)
-				{
-					if (FormatR5G6B5toX8R8G8B8)
-					{
-						*(DWORD*)LoopBuffer = D3DFMT_R5G6B5_TO_X8R8G8B8(*(WORD*)NewPixel);
-						LoopBuffer += ByteCount;
-					}
-					else
-					{
-						for (DWORD i = 0; i < ByteCount; i++)
-						{
-							*LoopBuffer = NewPixel[i];
-							LoopBuffer++;
-						}
-					}
-				}
-				else
-				{
-					LoopBuffer += ByteCount;
-				}
-			}
-			SrcBuffer = (IsStretchRect) ? (BYTE*)SrcLockRect.pBits + (DWORD)((float)y * HeightRatio) * SrcLockRect.Pitch : SrcBuffer + SrcLockRect.Pitch;
-			DestBuffer += DestPitch;
+		case 1:
+			ComplexCopy<BYTE>((BYTE)ColorKey, SrcLockRect, DestLockRect, SrcRectWidth, SrcRectHeight, DestRectWidth, DestRectHeight, IsColorKey, IsMirrorUpDown, IsMirrorLeftRight);
+			break;
+		case 2:
+			ComplexCopy<WORD>((WORD)ColorKey, SrcLockRect, DestLockRect, SrcRectWidth, SrcRectHeight, DestRectWidth, DestRectHeight, IsColorKey, IsMirrorUpDown, IsMirrorLeftRight);
+			break;
+		case 3:
+			ComplexCopy<TRIBYTE>(*reinterpret_cast<TRIBYTE*>(&dColorKey), SrcLockRect, DestLockRect, SrcRectWidth, SrcRectHeight, DestRectWidth, DestRectHeight, IsColorKey, IsMirrorUpDown, IsMirrorLeftRight);
+			break;
+		case 4:
+			ComplexCopy<DWORD>((DWORD)ColorKey, SrcLockRect, DestLockRect, SrcRectWidth, SrcRectHeight, DestRectWidth, DestRectHeight, IsColorKey, IsMirrorUpDown, IsMirrorLeftRight);
 		}
 		hr = DD_OK;
 		break;
