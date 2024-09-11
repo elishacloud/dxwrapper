@@ -232,13 +232,6 @@ namespace Compat32
 
 	BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpvReserved)
 	{
-		static bool skipDllMain = false;
-		if (skipDllMain)
-		{
-			skipDllMain = true;
-			return TRUE;
-		}
-
 		if (fdwReason == DLL_PROCESS_ATTACH)
 		{
 			Dll::g_currentModule = hinstDLL;

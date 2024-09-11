@@ -452,7 +452,7 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 			// Start DDrawCompat
 			if (Config.DDrawCompat)
 			{
-				DDrawCompat::Start(hModule_dll, DLL_PROCESS_ATTACH);
+				DDrawCompat::Start(hModule_dll, fdwReason);
 			}
 #endif // DDRAWCOMPAT
 		}
@@ -571,6 +571,14 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 	}
 	break;
 	case DLL_THREAD_ATTACH:
+#ifdef DDRAWCOMPAT
+		// Unload and Unhook DDrawCompat
+		if (DDrawCompat::IsEnabled())
+		{
+			DDrawCompat::Start(nullptr, fdwReason);
+		}
+#endif // DDRAWCOMPAT
+
 		// Check if thread has started
 		if (Config.ForceTermination && Fullscreen::IsThreadRunning())
 		{
@@ -578,6 +586,14 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 		}
 		break;
 	case DLL_THREAD_DETACH:
+#ifdef DDRAWCOMPAT
+		// Unload and Unhook DDrawCompat
+		if (DDrawCompat::IsEnabled())
+		{
+			DDrawCompat::Start(nullptr, fdwReason);
+		}
+#endif // DDRAWCOMPAT
+
 		if (Config.ForceTermination)
 		{
 			// Check if thread has started
@@ -612,14 +628,6 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 		Fullscreen::StopThread();
 		WriteMemory::StopThread();
 
-#ifdef DDRAWCOMPAT
-		// Unload and Unhook DDrawCompat
-		if (DDrawCompat::IsEnabled() || Config.Dd7to9)
-		{
-			DDrawCompat::Start(nullptr, DLL_PROCESS_DETACH);
-		}
-#endif // DDRAWCOMPAT
-
 		// Unload DdrawWrapper
 		if (Config.Dd7to9)
 		{
@@ -628,6 +636,14 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 
 		// Unhook all APIs
 		Hook::UnhookAll();
+
+#ifdef DDRAWCOMPAT
+		// Unload and Unhook DDrawCompat
+		if (DDrawCompat::IsEnabled())
+		{
+			DDrawCompat::Start(nullptr, fdwReason);
+		}
+#endif // DDRAWCOMPAT
 
 		// Unload loaded dlls
 		Utils::UnloadAllDlls();

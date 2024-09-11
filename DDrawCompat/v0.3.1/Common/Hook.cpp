@@ -242,35 +242,60 @@ namespace
 		static bool RunOnce = true;
 		if (RunOnce)
 		{
-			// Get System32 path
-			char syspath[MAX_PATH];
-			GetSystemDirectory(syspath, MAX_PATH);
+			RunOnce = false;
 
-			// Load dbghelp.dll from System32
 			char path[MAX_PATH];
-			strcpy_s(path, MAX_PATH, syspath);
-			PathAppend(path, "dbghelp.dll");
-			HMODULE dll = LoadLibrary(path);
+			HMODULE help_dll = nullptr;
+			HMODULE eng_dll = nullptr;
 
-			// Try loading dbgeng.dll from System32
-			strcpy_s(path, MAX_PATH, syspath);
-			PathAppend(path, "dbgeng.dll");
-			dll = LoadLibrary(path);
+			// Check if modules are loaded
+			GetModuleHandleExA(0, "dbghelp.dll", &help_dll);
+			GetModuleHandleExA(0, "dbgeng.dll", &eng_dll);
+			bool LoadFromSystem32 = (!help_dll && !eng_dll);
+			if (help_dll)
+			{
+				Compat32::Log() << "Warning: DbgHelp: is already loaded!";
+			}
+			if (eng_dll)
+			{
+				Compat32::Log() << "Warning: DbgEng: is already loaded!";
+			}
+
+			if (LoadFromSystem32)
+			{
+				// Get System32 path
+				char syspath[MAX_PATH];
+				GetSystemDirectory(syspath, MAX_PATH);
+
+				// Load dbghelp.dll from System32
+				strcpy_s(path, MAX_PATH, syspath);
+				PathAppend(path, "dbghelp.dll");
+				help_dll = LoadLibrary(path);
+
+				// Try loading dbgeng.dll from System32
+				strcpy_s(path, MAX_PATH, syspath);
+				PathAppend(path, "dbgeng.dll");
+				eng_dll = LoadLibrary(path);
+			}
 
 			// Try loading dbgeng.dll from local path
-			if (!dll || !GetProcAddress(dll, "DebugCreate"))
+			if (!eng_dll || !GetProcAddress(eng_dll, "DebugCreate"))
 			{
-				dll = LoadLibrary("dbgeng.dll");
+				eng_dll = LoadLibrary("dbgeng.dll");
 			}
 
 			// Hook function and get process address
-			if (dll && GetProcAddress(dll, "DebugCreate"))
+			if (eng_dll && GetProcAddress(eng_dll, "DebugCreate"))
 			{
-				Compat32::hookIatFunction(dll, "GetProcAddress", dbgEngGetProcAddress);
+				if (DDrawCompat::IsEnabled())
+				{
+					Compat32::hookIatFunction(eng_dll, "GetProcAddress", dbgEngGetProcAddress);
+				}
 
-				pDebugCreate = (PFN_DebugCreate)GetProcAddress(dll, "DebugCreate");
+				pDebugCreate = (PFN_DebugCreate)GetProcAddress(eng_dll, "DebugCreate");
+
+				GetModuleHandleExA(GET_MODULE_HANDLE_EX_FLAG_PIN | GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS, (LPCSTR)pDebugCreate, &eng_dll);
 			}
-			RunOnce = false;
 		}
 		if (!pDebugCreate)
 		{
