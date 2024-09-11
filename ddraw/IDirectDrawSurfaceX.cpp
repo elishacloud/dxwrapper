@@ -6612,6 +6612,7 @@ HRESULT m_IDirectDrawSurfaceX::CopySurface(m_IDirectDrawSurfaceX* pSourceSurface
 					SrcBuffer += SrcLockRect.Pitch;
 					DestBuffer += DestPitch;
 				}
+				ColorKey = D3DFMT_R5G6B5_TO_X8R8G8B8(ColorKey);
 			}
 			else
 			{
