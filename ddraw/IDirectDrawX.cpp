@@ -2136,25 +2136,13 @@ void m_IDirectDrawX::GetTextureMemory(DWORD& AvailableMemory)
 
 	LOG_LIMIT(100, __FUNCTION__ << " Creating temporary Direct3D9 device");
 
-	// Try to get the main window's HWND
-	HWND hWnd = nullptr;
-
-	// If no main window exists, create a temporary one
-	bool createdTemporaryWindow = false;
+	// Create a temporary window
+	HWND hWnd = CreateWindow(TEXT("TempD3DWindow"), TEXT("DxWrapper Temporary Window"), WS_POPUPWINDOW,
+		CW_USEDEFAULT, CW_USEDEFAULT, 100, 100, NULL, NULL, NULL, NULL);
 	if (!hWnd)
 	{
-		LOG_LIMIT(100, __FUNCTION__ << " Creating temporary window");
-
-		WNDCLASS wc = {};
-		wc.lpfnWndProc = DefWindowProc;
-		wc.hInstance = GetModuleHandle(NULL);
-		wc.lpszClassName = TEXT("TempD3DWindow");
-
-		RegisterClass(&wc);
-
-		hWnd = CreateWindow(wc.lpszClassName, TEXT("DxWrapper Temporary Window"), WS_POPUPWINDOW,
-			CW_USEDEFAULT, CW_USEDEFAULT, 100, 100, NULL, NULL, wc.hInstance, NULL);
-		createdTemporaryWindow = true;
+		LOG_LIMIT(100, __FUNCTION__ << " Error: failed to create temporary window!");
+		return;
 	}
 
 	// Set up the Direct3D device parameters
@@ -2177,10 +2165,7 @@ void m_IDirectDrawX::GetTextureMemory(DWORD& AvailableMemory)
 	}
 
 	// Clean up the temporary window if we created one
-	if (createdTemporaryWindow)
-	{
-		DestroyWindow(hWnd);
-	}
+	DestroyWindow(hWnd);
 }
 
 /*********************************/
