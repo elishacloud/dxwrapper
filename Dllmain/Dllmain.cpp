@@ -123,6 +123,10 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 		// Get handle
 		hModule_dll = hModule;
 
+		// Pin current module
+		HMODULE dummy = nullptr;
+		GetModuleHandleExA(GET_MODULE_HANDLE_EX_FLAG_PIN | GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS, reinterpret_cast<LPCSTR>(DllMain), &dummy);
+
 		// Initialize config
 		Config.Init();
 
