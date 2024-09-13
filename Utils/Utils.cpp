@@ -1057,99 +1057,105 @@ inline UINT GetValueFromString(wchar_t* str)
 	return num;
 }
 
-DWORD Utils::GetVideoRam(UINT AdapterNo)
+HRESULT Utils::GetVideoRam(UINT AdapterNo, DWORD& TotalMemory)
 {
-	UNREFERENCED_PARAMETER(AdapterNo);
+	struct ADLIST {
+		DWORD DeviceID = 0;
+		DWORD AdapterRAM = 0;
+	};
+	static std::vector<ADLIST> AdapterList;
 
-	DWORD retSize = 0;
-
-#if (_WIN32_WINNT >= 0x0502)
-	// Initialize COM
-	HRESULT hr = CoInitialize(nullptr);
-	if (FAILED(hr))
+	if (AdapterList.size())
 	{
-		// Handle error
-		Logging::Log() << __FUNCTION__ << " Error: Failed to CoInitialize.";
-		return retSize;
+		for (auto& entry : AdapterList)
+		{
+			if (entry.DeviceID == AdapterNo)
+			{
+				TotalMemory = entry.AdapterRAM;
+				return S_OK;
+			}
+		}
+		return E_FAIL;
 	}
 
-	do {
-		// Create an instance of the IWbemLocator interface
-		CComPtr<IWbemLocator> spLoc = nullptr;
-		hr = CoCreateInstance(CLSID_WbemLocator, 0, CLSCTX_SERVER, IID_IWbemLocator, (LPVOID*)&spLoc);
-		if (FAILED(hr))
-		{
-			// Handle error
-			Logging::Log() << __FUNCTION__ << " Error: Failed to CoCreateInstance.";
-			break;
-		}
+	HRESULT hr = E_FAIL;
+	HRESULT t_hr = E_FAIL;
+	IWbemLocator* pLoc = NULL;
+	IWbemServices* pSvc = NULL;
+	IEnumWbemClassObject* pEnumerator = NULL;
+	IWbemClassObject* pclsObj = NULL;
+	ULONG uReturn = 0;
 
-		// Connect to the root\cimv2 namespace with the IWbemServices interface
-		CComPtr<IWbemServices> spServices = nullptr;
-		hr = spLoc->ConnectServer(CComBSTR(L"root\\cimv2"), nullptr, nullptr, nullptr, 0, nullptr, nullptr, &spServices);
-		if (FAILED(hr))
+	HRESULT c_hr = CoInitializeEx(0, COINIT_MULTITHREADED);
+	bool AlreadyInitialized = (c_hr == S_FALSE || c_hr == RPC_E_CHANGED_MODE);
+	if ((SUCCEEDED(c_hr) || AlreadyInitialized) &&
+		SUCCEEDED(t_hr = CoInitializeSecurity(NULL, -1, NULL, NULL, RPC_C_AUTHN_LEVEL_DEFAULT, RPC_C_IMP_LEVEL_IMPERSONATE, NULL, EOAC_NONE, NULL)) &&
+		SUCCEEDED(t_hr = CoCreateInstance(CLSID_WbemLocator, 0, CLSCTX_INPROC_SERVER, IID_IWbemLocator, (LPVOID*)&pLoc)))
+	{
+		if (SUCCEEDED(t_hr = pLoc->ConnectServer(_bstr_t(L"root\\cimv2"), NULL, NULL, 0, NULL, 0, 0, &pSvc)))
 		{
-			// Handle error
-			Logging::Log() << __FUNCTION__ << " Error: Failed to connect to the root\\cimv2 namespace.";
-			break;
-		}
-
-		// Set the security levels for the proxy
-		hr = CoSetProxyBlanket(spServices, RPC_C_AUTHN_WINNT, RPC_C_AUTHZ_NONE, nullptr, RPC_C_AUTHN_LEVEL_CALL, RPC_C_IMP_LEVEL_IMPERSONATE, nullptr, EOAC_NONE);
-		if (FAILED(hr))
-		{
-			// Handle error
-			Logging::Log() << __FUNCTION__ << " Error: Failed to set the security levels.";
-			break;
-		}
-
-		// Create an enumerator for Win32_VideoController instances
-		CComPtr<IEnumWbemClassObject> spEnumInst = nullptr;
-		hr = spServices->CreateInstanceEnum(CComBSTR(L"Win32_VideoController"), WBEM_FLAG_SHALLOW, nullptr, &spEnumInst);
-		if (FAILED(hr))
-		{
-			// Handle error
-			Logging::Log() << __FUNCTION__ << " Error: Failed to create an enumerator for Win32_VideoController instances.";
-			break;
-		}
-
-		// Loop through the instances and retrieve the video RAM
-		ULONG uNumOfInstances = 0;
-		do {
-			CComPtr<IWbemClassObject> spInstance = nullptr;
-			hr = spEnumInst->Next(WBEM_INFINITE, 1, &spInstance, &uNumOfInstances);
-			if (SUCCEEDED(hr) && uNumOfInstances)
+			if (SUCCEEDED(t_hr = CoSetProxyBlanket(pSvc, RPC_C_AUTHN_WINNT, RPC_C_AUTHZ_NONE, NULL, RPC_C_AUTHN_LEVEL_CALL, RPC_C_IMP_LEVEL_IMPERSONATE, NULL, EOAC_NONE)) &&
+				SUCCEEDED(t_hr = pSvc->ExecQuery(bstr_t("WQL"), bstr_t("SELECT * FROM Win32_VideoController"), WBEM_FLAG_FORWARD_ONLY | WBEM_FLAG_RETURN_IMMEDIATELY, NULL, &pEnumerator)))
 			{
-				// Get the DeviceID property from the instance
-				CComVariant varId;
-				hr = spInstance->Get(CComBSTR(L"DeviceID"), 0, &varId, nullptr, nullptr);
-				if (SUCCEEDED(hr))
+				while (pEnumerator)
 				{
-					UINT VideoAdapter = GetValueFromString(varId.bstrVal);
-
-					// Check adapter number
-					if (AdapterNo == VideoAdapter)
+					t_hr = pEnumerator->Next(WBEM_INFINITE, 1, &pclsObj, &uReturn);
+					if (FAILED(t_hr) || 0 == uReturn)
 					{
-						// Get the AdapterRAM property from the instance
-						CComVariant varSize;
-						if (SUCCEEDED(spInstance->Get(CComBSTR(L"AdapterRAM"), 0, &varSize, nullptr, nullptr)))
+						break;
+					}
+
+					VARIANT varId = {};
+
+					t_hr = pclsObj->Get(L"DeviceID", 0, &varId, 0, 0);
+					if (SUCCEEDED(t_hr))
+					{
+						UINT DeviceID = GetValueFromString(varId.bstrVal);
+						VariantClear(&varId);
+
+						VARIANT vtTotalMemory = {};
+
+						t_hr = pclsObj->Get(L"AdapterRAM", 0, &vtTotalMemory, 0, 0);
+						if (SUCCEEDED(t_hr))
 						{
-							Logging::LogDebug() << __FUNCTION__ << " Found AdapterRAM on adapter: " << VideoAdapter << " Size: " << varSize.intVal;
-							retSize = varSize.intVal;
-							break;
+							Logging::Log() << __FUNCTION__ << " Found AdapterRAM on adapter: " << vtTotalMemory.ulVal / (1024 * 1024) << "MBs on DeviceID: " << DeviceID;
+
+							ADLIST tmpItem = { DeviceID, vtTotalMemory.ulVal };
+							AdapterList.push_back(tmpItem);
+
+							// Check adapter number
+							if (AdapterNo == DeviceID)
+							{
+								TotalMemory = vtTotalMemory.ulVal;
+								hr = S_OK;
+							}
+							VariantClear(&vtTotalMemory);
 						}
 					}
+					pclsObj->Release();
 				}
+				pEnumerator->Release();
 			}
-		} while (SUCCEEDED(hr) && uNumOfInstances);
+			pSvc->Release();
+		}
+		pLoc->Release();
+	}
+	if (c_hr == S_OK)
+	{
+		CoUninitialize();
+	}
+	else if (AlreadyInitialized)
+	{
+		Logging::Log() << __FUNCTION__ << " Warning: CoInitializeEx() was already initialized: " << Logging::hex(hr);
+	}
+	else
+	{
+		Logging::Log() << __FUNCTION__ << " Error: CoInitializeEx() returned an error: " << Logging::hex(hr);
+	}
 
-	} while (false);
-
-	CoUninitialize();
-#endif // _WIN32_WINNT >= 0x0502
-
-	return retSize;
+	return hr;
 }
+
 bool Utils::SetWndProcFilter(HWND hWnd)
 {
 	// Check window handle
