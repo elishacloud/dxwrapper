@@ -44,6 +44,15 @@
 
 #undef LoadLibrary
 
+#include <initguid.h>
+
+// Define the GUIDs
+DEFINE_GUID(IID_IWbemLocator,
+	0xDC12A687, 0x737F, 0x11CF, 0x88, 0x4D, 0x00, 0xAA, 0x00, 0x4B, 0x2E, 0x24);
+
+DEFINE_GUID(CLSID_WbemLocator,
+	0x4590F811, 0x1D3A, 0x11D0, 0x89, 0x1F, 0x00, 0xAA, 0x00, 0x4B, 0x2E, 0x24);
+
 #ifdef _DPI_AWARENESS_CONTEXTS_
 typedef enum PROCESS_DPI_AWARENESS {
 	PROCESS_DPI_UNAWARE = 0,
@@ -1150,7 +1159,7 @@ HRESULT Utils::GetVideoRam(UINT AdapterNo, DWORD& TotalMemory)
 						t_hr = pclsObj->Get(L"AdapterRAM", 0, &vtTotalMemory, 0, 0);
 						if (SUCCEEDED(t_hr))
 						{
-							Logging::Log() << __FUNCTION__ << " Found AdapterRAM on adapter: " << vtTotalMemory.ulVal / (1024 * 1024) << "MBs on DeviceID: " << DeviceID;
+							Logging::Log() << __FUNCTION__ << " Found Video Memory on adapter: " << vtTotalMemory.ulVal / (1024 * 1024) << "MBs on DeviceID: " << DeviceID;
 
 							ADLIST tmpItem = { DeviceID, vtTotalMemory.ulVal };
 							AdapterList.push_back(tmpItem);
