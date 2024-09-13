@@ -2085,7 +2085,6 @@ HRESULT m_IDirectDrawX::GetAvailableVidMem2(LPDDSCAPS2 lpDDSCaps2, LPDWORD lpdwT
 				{
 					AvailableMemory = d3d9Device->GetAvailableTextureMem();
 				}
-				Utils::GetVideoRam(1, TotalMemory);	// Just get memory for the first adapter for now
 			}
 		}
 		// Get non-local video memory
