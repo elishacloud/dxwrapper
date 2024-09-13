@@ -174,7 +174,7 @@ HRESULT m_IDirect3DDevice9Ex::ResetT(T func, D3DPRESENT_PARAMETERS &d3dpp, D3DPR
 
 	// Setup presentation parameters
 	CopyMemory(&d3dpp, pPresentationParameters, sizeof(D3DPRESENT_PARAMETERS));
-	UpdatePresentParameter(&d3dpp, SHARED.DeviceWindow, SHARED, ForceFullscreen, true);
+	UpdatePresentParameter(&d3dpp, nullptr, SHARED, ForceFullscreen, true);
 
 	// Test for Multisample
 	if (SHARED.DeviceMultiSampleFlag)
@@ -193,7 +193,7 @@ HRESULT m_IDirect3DDevice9Ex::ResetT(T func, D3DPRESENT_PARAMETERS &d3dpp, D3DPR
 
 		// Reset presentation parameters
 		CopyMemory(&d3dpp, pPresentationParameters, sizeof(D3DPRESENT_PARAMETERS));
-		UpdatePresentParameter(&d3dpp, SHARED.DeviceWindow, SHARED, ForceFullscreen, false);
+		UpdatePresentParameter(&d3dpp, nullptr, SHARED, ForceFullscreen, false);
 
 		// Reset device
 		hr = ResetT(func, &d3dpp, pFullscreenDisplayMode);
@@ -211,7 +211,14 @@ HRESULT m_IDirect3DDevice9Ex::ResetT(T func, D3DPRESENT_PARAMETERS &d3dpp, D3DPR
 	}
 
 	// Reset device
-	return ResetT(func, &d3dpp, pFullscreenDisplayMode);
+	hr = ResetT(func, &d3dpp, pFullscreenDisplayMode);
+
+	if (SUCCEEDED(hr))
+	{
+		GetFinalPresentParameter(&d3dpp, SHARED);
+	}
+
+	return hr;
 }
 
 HRESULT m_IDirect3DDevice9Ex::Reset(D3DPRESENT_PARAMETERS *pPresentationParameters)
@@ -300,7 +307,7 @@ HRESULT m_IDirect3DDevice9Ex::CreateAdditionalSwapChain(D3DPRESENT_PARAMETERS *p
 	// Setup presentation parameters
 	D3DPRESENT_PARAMETERS d3dpp;
 	CopyMemory(&d3dpp, pPresentationParameters, sizeof(D3DPRESENT_PARAMETERS));
-	UpdatePresentParameter(&d3dpp, SHARED.DeviceWindow, SHARED, ForceFullscreen, false);
+	UpdatePresentParameter(&d3dpp, nullptr, SHARED, ForceFullscreen, false);
 
 	// Test for Multisample
 	if (SHARED.DeviceMultiSampleFlag)
@@ -315,7 +322,7 @@ HRESULT m_IDirect3DDevice9Ex::CreateAdditionalSwapChain(D3DPRESENT_PARAMETERS *p
 	if (FAILED(hr))
 	{
 		CopyMemory(&d3dpp, pPresentationParameters, sizeof(D3DPRESENT_PARAMETERS));
-		UpdatePresentParameter(&d3dpp, SHARED.DeviceWindow, SHARED, ForceFullscreen, false);
+		UpdatePresentParameter(&d3dpp, nullptr, SHARED, ForceFullscreen, false);
 
 		// Create CwapChain
 		hr = ProxyInterface->CreateAdditionalSwapChain(&d3dpp, ppSwapChain);

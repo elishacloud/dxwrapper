@@ -204,6 +204,7 @@ namespace Compat32
 		if (RunOnce && !DDrawCompat::IsEnabled())
 		{
 			RunOnce = false;
+			Dll::g_currentModule = hModule_dll;
 			Time::init();
 			Compat32::Log() << "Installing memory management hooks";
 			Win32::MemoryManagement::installHooks();

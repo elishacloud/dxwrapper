@@ -285,6 +285,11 @@ HRESULT m_IDirect3D9Ex::CreateDeviceT(D3DPRESENT_PARAMETERS& d3dpp, bool& MultiS
 		hr = CreateDeviceT(Adapter, DeviceType, hFocusWindow, BehaviorFlags, &d3dpp, (d3dpp.Windowed) ? nullptr : pFullscreenDisplayMode, ppReturnedDeviceInterface);
 	}
 
+	if (SUCCEEDED(hr))
+	{
+		GetFinalPresentParameter(&d3dpp, DeviceDetails);
+	}
+
 	return hr;
 }
 
@@ -519,6 +524,14 @@ void UpdatePresentParameter(D3DPRESENT_PARAMETERS* pPresentationParameters, HWND
 			(IsWindow(pPresentationParameters->hDeviceWindow)) ? pPresentationParameters->hDeviceWindow :
 			DeviceDetails.DeviceWindow;
 
+		// Make sure all windows messages are handled before creating or resetting the device
+		MSG msg;
+		if (PeekMessageA(&msg, DeviceDetails.DeviceWindow, 0, 0, PM_REMOVE))
+		{
+			TranslateMessage(&msg);
+			DispatchMessageA(&msg);
+		}
+
 		// Check if window is minimized
 		if (IsIconic(DeviceDetails.DeviceWindow))
 		{
@@ -547,40 +560,50 @@ void UpdatePresentParameter(D3DPRESENT_PARAMETERS* pPresentationParameters, HWND
 			DeviceDetails.BufferWidth = tempRect.right;
 			DeviceDetails.BufferHeight = tempRect.bottom;
 		}
-	}
 
-	// Set window size
-	if (SetWindow && pPresentationParameters->Windowed && IsWindow(DeviceDetails.DeviceWindow))
-	{
-		bool AnyChange = (LastBufferWidth != DeviceDetails.BufferWidth || LastBufferHeight != DeviceDetails.BufferHeight || LastDeviceWindow != DeviceDetails.DeviceWindow);
-
-		// Adjust window
-		RECT Rect;
-		GetClientRect(DeviceDetails.DeviceWindow, &Rect);
-		if (AnyChange || Rect.right - Rect.left != DeviceDetails.BufferWidth || Rect.bottom - Rect.top != DeviceDetails.BufferHeight)
+		// Set window size
+		if (SetWindow && pPresentationParameters->Windowed)
 		{
-			AdjustWindow(DeviceDetails.DeviceWindow, DeviceDetails.BufferWidth, DeviceDetails.BufferHeight, pPresentationParameters->Windowed);
-		}
+			bool AnyChange = (LastBufferWidth != DeviceDetails.BufferWidth || LastBufferHeight != DeviceDetails.BufferHeight || LastDeviceWindow != DeviceDetails.DeviceWindow);
 
-		// Set fullscreen resolution
-		if (AnyChange && Config.FullscreenWindowMode)
-		{
-			// Get monitor info
-			MONITORINFOEX infoex = {};
-			infoex.cbSize = sizeof(MONITORINFOEX);
-			BOOL bRet = GetMonitorInfo(Utils::GetMonitorHandle(DeviceDetails.DeviceWindow), &infoex);
-
-			// Get resolution list for specified monitor
-			DEVMODE newSettings = {};
-			newSettings.dmSize = sizeof(newSettings);
-			if (EnumDisplaySettings(bRet ? infoex.szDevice : nullptr, ENUM_CURRENT_SETTINGS, &newSettings) != 0)
+			// Adjust window
+			RECT Rect;
+			GetClientRect(DeviceDetails.DeviceWindow, &Rect);
+			if (AnyChange || Rect.right - Rect.left != DeviceDetails.BufferWidth || Rect.bottom - Rect.top != DeviceDetails.BufferHeight)
 			{
-				newSettings.dmPelsWidth = DeviceDetails.BufferWidth;
-				newSettings.dmPelsHeight = DeviceDetails.BufferHeight;
-				newSettings.dmFields = DM_PELSWIDTH | DM_PELSHEIGHT;
-				ChangeDisplaySettingsEx(bRet ? infoex.szDevice : nullptr, &newSettings, nullptr, CDS_FULLSCREEN, nullptr);
+				AdjustWindow(DeviceDetails.DeviceWindow, DeviceDetails.BufferWidth, DeviceDetails.BufferHeight, pPresentationParameters->Windowed);
+			}
+
+			// Set fullscreen resolution
+			if (AnyChange && Config.FullscreenWindowMode)
+			{
+				// Get monitor info
+				MONITORINFOEX infoex = {};
+				infoex.cbSize = sizeof(MONITORINFOEX);
+				BOOL bRet = GetMonitorInfo(Utils::GetMonitorHandle(DeviceDetails.DeviceWindow), &infoex);
+
+				// Get resolution list for specified monitor
+				DEVMODE newSettings = {};
+				newSettings.dmSize = sizeof(newSettings);
+				if (EnumDisplaySettings(bRet ? infoex.szDevice : nullptr, ENUM_CURRENT_SETTINGS, &newSettings) != 0)
+				{
+					newSettings.dmPelsWidth = DeviceDetails.BufferWidth;
+					newSettings.dmPelsHeight = DeviceDetails.BufferHeight;
+					newSettings.dmFields = DM_PELSWIDTH | DM_PELSHEIGHT;
+					ChangeDisplaySettingsEx(bRet ? infoex.szDevice : nullptr, &newSettings, nullptr, CDS_FULLSCREEN, nullptr);
+				}
 			}
 		}
+	}
+}
+
+void GetFinalPresentParameter(D3DPRESENT_PARAMETERS* pPresentationParameters, DEVICEDETAILS& DeviceDetails)
+{
+	if (IsWindow(pPresentationParameters->hDeviceWindow) || IsWindow(DeviceDetails.DeviceWindow))
+	{
+		DeviceDetails.BufferWidth = (pPresentationParameters->BackBufferWidth) ? pPresentationParameters->BackBufferWidth : DeviceDetails.BufferWidth;
+		DeviceDetails.BufferHeight = (pPresentationParameters->BackBufferHeight) ? pPresentationParameters->BackBufferHeight : DeviceDetails.BufferHeight;
+		DeviceDetails.DeviceWindow = (IsWindow(pPresentationParameters->hDeviceWindow)) ? pPresentationParameters->hDeviceWindow : DeviceDetails.DeviceWindow;
 	}
 }
 
