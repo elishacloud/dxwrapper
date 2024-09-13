@@ -922,6 +922,10 @@ HRESULT m_IDirect3DDeviceX::SetTexture(DWORD dwStage, LPDIRECTDRAWSURFACE7 lpSur
 			return DDERR_INVALIDOBJECT;
 		}
 
+#ifdef ENABLE_PROFILING
+		auto startTime = std::chrono::high_resolution_clock::now();
+#endif
+
 		m_IDirectDrawSurfaceX* lpDDSrcSurfaceX = nullptr;
 
 		HRESULT hr;
@@ -932,12 +936,6 @@ HRESULT m_IDirect3DDeviceX::SetTexture(DWORD dwStage, LPDIRECTDRAWSURFACE7 lpSur
 		}
 		else
 		{
-			if (!CheckSurfaceExists(lpSurface))
-			{
-				LOG_LIMIT(100, __FUNCTION__ << " Error: could not find source surface! " << lpSurface);
-				return DDERR_INVALIDPARAMS;
-			}
-
 			lpSurface->QueryInterface(IID_GetInterfaceX, (LPVOID*)&lpDDSrcSurfaceX);
 			if (!lpDDSrcSurfaceX)
 			{
@@ -961,6 +959,10 @@ HRESULT m_IDirect3DDeviceX::SetTexture(DWORD dwStage, LPDIRECTDRAWSURFACE7 lpSur
 			CurrentTextureSurfaceX[dwStage] = lpDDSrcSurfaceX;
 		}
 
+#ifdef ENABLE_PROFILING
+		Logging::Log() << __FUNCTION__ << " (" << this << ") hr = " << (D3DERR)hr << " Timing = " << Logging::GetTimeLapseInMS(startTime);
+#endif
+
 		return hr;
 	}
 
@@ -978,7 +980,7 @@ HRESULT m_IDirect3DDeviceX::SetRenderTarget(LPDIRECTDRAWSURFACE7 lpNewRenderTarg
 
 	if (Config.Dd7to9)
 	{
-		if (!lpNewRenderTarget || !CheckSurfaceExists(lpNewRenderTarget))
+		if (!lpNewRenderTarget)
 		{
 			return DDERR_INVALIDPARAMS;
 		}

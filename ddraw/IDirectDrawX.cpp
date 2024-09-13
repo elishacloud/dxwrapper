@@ -4541,7 +4541,7 @@ HRESULT m_IDirectDrawX::Present(RECT* pSourceRect, RECT* pDestRect)
 	}
 
 	// Use WaitForVerticalBlank for wait timer
-	if (EnableWaitVsync && !Config.EnableVSync && !Config.ForceVsyncMode && !IsUsing3D())
+	if (EnableWaitVsync && !Config.EnableVSync && !Config.ForceVsyncMode)
 	{
 		// Check how long since the last successful present
 		LARGE_INTEGER ClickTime = {};
