@@ -6245,7 +6245,7 @@ void ComplexCopy(T ColorKey, D3DLOCKED_RECT SrcLockRect, D3DLOCKED_RECT DestLock
 				DestBufferLoop[x] = PixelColor;
 			}
 		}
-		sx = (DWORD)((float)(y + 1) * HeightRatio + 0.5f);
+		sx = min((DWORD)((float)(y + 1) * HeightRatio + 0.5f), (DWORD)SrcRectHeight - 1);
 		SrcBufferLoop = reinterpret_cast<T*>((BYTE*)SrcLockRect.pBits + SrcLockRect.Pitch * (IsMirrorUpDown ? SrcRectHeight - sx - 1 : sx));
 		DestBufferLoop = reinterpret_cast<T*>((BYTE*)DestBufferLoop + DestLockRect.Pitch);
 	}
