@@ -46,6 +46,7 @@ namespace Utils
 	bool IsWindows8OrNewer();
 	void GetScreenSettings();
 	void ResetScreenSettings();
+	void ResetGamma();
 	bool IsWindowRectEqualOrLarger(HWND srchWnd, HWND desthWnd);
 	HWND GetTopLevelWindowOfCurrentProcess();
 	HMONITOR GetMonitorHandle(HWND hWnd);

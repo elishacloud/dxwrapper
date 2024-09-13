@@ -684,7 +684,38 @@ void m_IDirect3DDevice9Ex::SetGammaRamp(THIS_ UINT iSwapChain, DWORD Flags, CONS
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	return ProxyInterface->SetGammaRamp(iSwapChain, Flags, pRamp);
+	ProxyInterface->SetGammaRamp(iSwapChain, Flags, pRamp);
+
+	if (Config.EnableWindowMode && pRamp)
+	{
+		// Get the device context for the screen
+		HDC hdc = ::GetDC(SHARED.DeviceWindow);
+		if (!hdc)
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: Failed to get device context!");
+			return;
+		}
+
+		// Set up the gamma ramp array
+		WORD gammaRamp[3][256] = {};
+
+		for (int i = 0; i < 256; i++)
+		{
+			gammaRamp[0][i] = pRamp->red[i];   // Red channel
+			gammaRamp[1][i] = pRamp->green[i]; // Green channel
+			gammaRamp[2][i] = pRamp->blue[i];  // Blue channel
+		}
+
+		// Call the Windows API to set the gamma ramp
+		if (!::SetDeviceGammaRamp(hdc, gammaRamp))
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: Failed to set gamma ramp!");
+		}
+		WasGammaSet = true;
+
+		// Release the device context
+		::ReleaseDC(SHARED.DeviceWindow, hdc);
+	}
 }
 
 HRESULT m_IDirect3DDevice9Ex::DeletePatch(UINT Handle)

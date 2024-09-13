@@ -867,6 +867,38 @@ void Utils::ResetScreenSettings()
 	RedrawWindow(nullptr, nullptr, nullptr, RDW_INVALIDATE | RDW_ALLCHILDREN | RDW_UPDATENOW);
 }
 
+void Utils::ResetGamma()
+{
+	// Get the device context for the screen
+	HDC hdc = ::GetDC(NULL);
+
+	if (hdc)
+	{
+		// Create a default gamma ramp (linear ramp)
+		WORD defaultRamp[3][256] = {};
+		for (int i = 0; i < 256; i++)
+		{
+			WORD value = WORD(i * 257);  // Linear mapping (0 maps to 0, 255 maps to 65535)
+			defaultRamp[0][i] = value;  // Red
+			defaultRamp[1][i] = value;  // Green
+			defaultRamp[2][i] = value;  // Blue
+		}
+
+		// Set the default gamma ramp
+		if (!::SetDeviceGammaRamp(hdc, defaultRamp))
+		{
+			Logging::Log() << __FUNCTION__ << " Error: Failed to reset gamma ramp!";
+		}
+
+		// Release the device context
+		::ReleaseDC(NULL, hdc);
+	}
+	else
+	{
+		Logging::Log() << __FUNCTION__ << " Error: Failed to get device context!";
+	}
+}
+
 HWND Utils::GetTopLevelWindowOfCurrentProcess()
 {
 	HWND foregroundWindow = GetForegroundWindow();

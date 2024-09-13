@@ -4098,13 +4098,8 @@ HRESULT m_IDirectDrawX::SetD9Gamma(DWORD dwFlags, LPDDGAMMARAMP lpRampData)
 		return DDERR_GENERIC;
 	}
 
-	if (!presParams.Windowed)
-	{
-		d3d9Device->SetGammaRamp(0, dwFlags, (D3DGAMMARAMP*)lpRampData);
-		return DD_OK;
-	}
-
-	return D3DERR_INVALIDCALL;
+	d3d9Device->SetGammaRamp(0, dwFlags, (D3DGAMMARAMP*)lpRampData);
+	return DD_OK;
 }
 
 HRESULT m_IDirectDrawX::CopyPrimarySurfaceToBackbuffer()

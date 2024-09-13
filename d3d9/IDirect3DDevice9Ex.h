@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Utils\Utils.h"
+
 static constexpr size_t MAX_CLIP_PLANES = 6;
 
 struct DEVICEDETAILS
@@ -57,6 +59,9 @@ private:
 	// Limit frame rate
 	void LimitFrameRate();
 
+	// For gamma
+	bool WasGammaSet = false;
+
 	// Anisotropic Filtering
 	void DisableAnisotropicSamplerState(bool AnisotropyMin, bool AnisotropyMag);
 	void ReeableAnisotropicSamplerState();
@@ -99,6 +104,12 @@ public:
 	~m_IDirect3DDevice9Ex()
 	{
 		LOG_LIMIT(3, __FUNCTION__ << " (" << this << ")" << " deleting interface!");
+
+		// Reset gamma
+		if (WasGammaSet)
+		{
+			Utils::ResetGamma();
+		}
 
 		// Remove WndProc after releasing d3d9 device
 		if (EnableWndProcHook)
