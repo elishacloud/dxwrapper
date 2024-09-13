@@ -60,7 +60,7 @@ public:
 	LPDIRECT3DSURFACE9 GetProxyInterface() { return ProxyInterface; }
 	LPDIRECT3DSURFACE9 GetNonMultiSampledSurface(const RECT* pSurfaceRect, DWORD Flags)
 	{
-		if (Desc.MultiSampleType)
+		if (Desc.MultiSampleType && !(Desc.Usage & D3DUSAGE_DEPTHSTENCIL))
 		{
 			m_IDirect3DSurface9* pSurface = m_GetNonMultiSampledSurface(pSurfaceRect, Flags);
 			if (pSurface)
