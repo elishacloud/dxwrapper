@@ -199,7 +199,7 @@ void AddressLookupTableD3d9::DeleteAddress(T* Wrapper)
 
 	constexpr UINT CacheIndex = AddressCacheIndex<T>::CacheIndex;
 	auto it = std::find_if(g_map[CacheIndex].begin(), g_map[CacheIndex].end(),
-		[=](auto Map) -> bool { return Map.second == Wrapper; });
+		[=](auto& Map) -> bool { return Map.second == Wrapper; });
 
 	if (it != std::end(g_map[CacheIndex]))
 	{

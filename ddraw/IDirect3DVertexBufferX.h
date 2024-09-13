@@ -27,8 +27,8 @@ private:
 	LPDIRECT3DINDEXBUFFER9 d3d9IndexBuffer = nullptr;
 
 	// Store version wrappers
-	m_IDirect3DVertexBuffer *WrapperInterface;
-	m_IDirect3DVertexBuffer7 *WrapperInterface7;
+	m_IDirect3DVertexBuffer *WrapperInterface = nullptr;
+	m_IDirect3DVertexBuffer7 *WrapperInterface7 = nullptr;
 
 	// Wrapper interface functions
 	inline REFIID GetWrapperType(DWORD DirectXVersion)

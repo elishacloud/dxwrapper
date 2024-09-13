@@ -61,8 +61,16 @@ void *m_IDirect3DTextureX::GetWrapperInterfaceX(DWORD DirectXVersion)
 	switch (DirectXVersion)
 	{
 	case 1:
+		if (!WrapperInterface)
+		{
+			WrapperInterface = new m_IDirect3DTexture((LPDIRECT3DTEXTURE)ProxyInterface, this);
+		}
 		return WrapperInterface;
 	case 2:
+		if (!WrapperInterface2)
+		{
+			WrapperInterface2 = new m_IDirect3DTexture2((LPDIRECT3DTEXTURE2)ProxyInterface, this);
+		}
 		return WrapperInterface2;
 	default:
 		LOG_LIMIT(100, __FUNCTION__ << " Error: wrapper interface version not found: " << DirectXVersion);
@@ -344,9 +352,6 @@ HRESULT m_IDirect3DTextureX::Unload()
 
 void m_IDirect3DTextureX::InitTexture(DWORD DirectXVersion)
 {
-	WrapperInterface = new m_IDirect3DTexture((LPDIRECT3DTEXTURE)ProxyInterface, this);
-	WrapperInterface2 = new m_IDirect3DTexture2((LPDIRECT3DTEXTURE2)ProxyInterface, this);
-
 	if (ProxyInterface)
 	{
 		return;
@@ -357,8 +362,14 @@ void m_IDirect3DTextureX::InitTexture(DWORD DirectXVersion)
 
 void m_IDirect3DTextureX::ReleaseTexture()
 {
-	WrapperInterface->DeleteMe();
-	WrapperInterface2->DeleteMe();
+	if (WrapperInterface)
+	{
+		WrapperInterface->DeleteMe();
+	}
+	if (WrapperInterface2)
+	{
+		WrapperInterface2->DeleteMe();
+	}
 
 	if (tHandle && D3DDeviceInterface && *D3DDeviceInterface)
 	{

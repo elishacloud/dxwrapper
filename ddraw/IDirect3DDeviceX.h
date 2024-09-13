@@ -14,10 +14,10 @@ private:
 	REFCLSID ClassID;
 
 	// Store d3d device version wrappers
-	m_IDirect3DDevice* WrapperInterface;
-	m_IDirect3DDevice2* WrapperInterface2;
-	m_IDirect3DDevice3* WrapperInterface3;
-	m_IDirect3DDevice7* WrapperInterface7;
+	m_IDirect3DDevice* WrapperInterface = nullptr;
+	m_IDirect3DDevice2* WrapperInterface2 = nullptr;
+	m_IDirect3DDevice3* WrapperInterface3 = nullptr;
+	m_IDirect3DDevice7* WrapperInterface7 = nullptr;
 
 	// Convert Device
 	m_IDirectDrawX *ddrawParent = nullptr;
@@ -138,13 +138,6 @@ private:
 	inline IDirect3DDevice2 *GetProxyInterfaceV2() { return (IDirect3DDevice2 *)ProxyInterface; }
 	inline IDirect3DDevice3 *GetProxyInterfaceV3() { return (IDirect3DDevice3 *)ProxyInterface; }
 	inline IDirect3DDevice7 *GetProxyInterfaceV7() { return ProxyInterface; }
-	inline bool CheckSurfaceExists(LPDIRECTDRAWSURFACE7 lpDDSrcSurface) { return
-		(ProxyAddressLookupTable.IsValidWrapperAddress((m_IDirectDrawSurface*)lpDDSrcSurface) ||
-		ProxyAddressLookupTable.IsValidWrapperAddress((m_IDirectDrawSurface2*)lpDDSrcSurface) ||
-		ProxyAddressLookupTable.IsValidWrapperAddress((m_IDirectDrawSurface3*)lpDDSrcSurface) ||
-		ProxyAddressLookupTable.IsValidWrapperAddress((m_IDirectDrawSurface4*)lpDDSrcSurface) ||
-		ProxyAddressLookupTable.IsValidWrapperAddress((m_IDirectDrawSurface7*)lpDDSrcSurface));
-	}
 
 	// Interface initialization functions
 	void InitDevice(DWORD DirectXVersion);
@@ -299,6 +292,22 @@ public:
 	void ReleaseLightInterface(m_IDirect3DLight* lpLight);
 
 	// Functions handling the ddraw parent interface
+	void ClearSurface(m_IDirectDrawSurfaceX* lpSurfaceX)
+	{
+		if (lpCurrentRenderTargetX == lpSurfaceX)
+		{
+			lpCurrentRenderTargetX = nullptr;
+		}
+		for (UINT x = 1; x < MaxTextureStages; x++)
+		{			
+			if (CurrentTextureSurfaceX[x] == lpSurfaceX)
+			{
+				SetTexture(x, (LPDIRECTDRAWSURFACE7)nullptr);
+				AttachedTexture[x] = nullptr;
+				CurrentTextureSurfaceX[x] = nullptr;
+			}
+		}
+	}
 	void SetDdrawParent(m_IDirectDrawX *ddraw)
 	{
 		ddrawParent = ddraw;

@@ -18,11 +18,11 @@ private:
 	HWND chWnd = nullptr;
 
 	// Store ddraw version wrappers
-	m_IDirectDraw *WrapperInterface;
-	m_IDirectDraw2 *WrapperInterface2;
-	m_IDirectDraw3 *WrapperInterface3;
-	m_IDirectDraw4 *WrapperInterface4;
-	m_IDirectDraw7 *WrapperInterface7;
+	m_IDirectDraw *WrapperInterface = nullptr;
+	m_IDirectDraw2 *WrapperInterface2 = nullptr;
+	m_IDirectDraw3 *WrapperInterface3 = nullptr;
+	m_IDirectDraw4 *WrapperInterface4 = nullptr;
+	m_IDirectDraw7 *WrapperInterface7 = nullptr;
 
 	// Store primary surface
 	m_IDirectDrawSurfaceX *PrimarySurface = nullptr;

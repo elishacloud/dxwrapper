@@ -12,10 +12,10 @@ private:
 	m_IDirectDrawX *ddrawParent = nullptr;
 
 	// Store d3d version wrappers
-	m_IDirect3D *WrapperInterface;
-	m_IDirect3D2 *WrapperInterface2;
-	m_IDirect3D3 *WrapperInterface3;
-	m_IDirect3D7 *WrapperInterface7;
+	m_IDirect3D *WrapperInterface = nullptr;
+	m_IDirect3D2 *WrapperInterface2 = nullptr;
+	m_IDirect3D3 *WrapperInterface3 = nullptr;
+	m_IDirect3D7 *WrapperInterface7 = nullptr;
 
 	// Cache Cap9
 	struct DUALCAP9 {

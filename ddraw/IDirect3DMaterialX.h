@@ -16,9 +16,9 @@ private:
 	D3DMATERIALHANDLE mHandle = 0;
 
 	// Store d3d material version wrappers
-	m_IDirect3DMaterial *WrapperInterface;
-	m_IDirect3DMaterial2 *WrapperInterface2;
-	m_IDirect3DMaterial3 *WrapperInterface3;
+	m_IDirect3DMaterial *WrapperInterface = nullptr;
+	m_IDirect3DMaterial2 *WrapperInterface2 = nullptr;
+	m_IDirect3DMaterial3 *WrapperInterface3 = nullptr;
 
 	// Wrapper interface functions
 	inline REFIID GetWrapperType(DWORD DirectXVersion)

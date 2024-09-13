@@ -305,14 +305,34 @@ void *m_IDirectDrawX::GetWrapperInterfaceX(DWORD DirectXVersion)
 	switch (DirectXVersion)
 	{
 	case 1:
+		if (!WrapperInterface)
+		{
+			WrapperInterface = new m_IDirectDraw((LPDIRECTDRAW)ProxyInterface, this);
+		}
 		return WrapperInterface;
 	case 2:
+		if (!WrapperInterface2)
+		{
+			WrapperInterface2 = new m_IDirectDraw2((LPDIRECTDRAW2)ProxyInterface, this);
+		}
 		return WrapperInterface2;
 	case 3:
+		if (!WrapperInterface3)
+		{
+			WrapperInterface3 = new m_IDirectDraw3((LPDIRECTDRAW3)ProxyInterface, this);
+		}
 		return WrapperInterface3;
 	case 4:
+		if (!WrapperInterface4)
+		{
+			WrapperInterface4 = new m_IDirectDraw4((LPDIRECTDRAW4)ProxyInterface, this);
+		}
 		return WrapperInterface4;
 	case 7:
+		if (!WrapperInterface7)
+		{
+			WrapperInterface7 = new m_IDirectDraw7((LPDIRECTDRAW7)ProxyInterface, this);
+		}
 		return WrapperInterface7;
 	default:
 		LOG_LIMIT(100, __FUNCTION__ << " Error: wrapper interface version not found: " << DirectXVersion);
@@ -2305,12 +2325,6 @@ HRESULT m_IDirectDrawX::EvaluateMode(DWORD dwFlags, DWORD * pSecondsUntilTimeout
 
 void m_IDirectDrawX::InitDdraw(DWORD DirectXVersion)
 {
-	WrapperInterface = new m_IDirectDraw((LPDIRECTDRAW)ProxyInterface, this);
-	WrapperInterface2 = new m_IDirectDraw2((LPDIRECTDRAW2)ProxyInterface, this);
-	WrapperInterface3 = new m_IDirectDraw3((LPDIRECTDRAW3)ProxyInterface, this);
-	WrapperInterface4 = new m_IDirectDraw4((LPDIRECTDRAW4)ProxyInterface, this);
-	WrapperInterface7 = new m_IDirectDraw7((LPDIRECTDRAW7)ProxyInterface, this);
-
 	if (!Config.Dd7to9)
 	{
 		return;
@@ -2501,11 +2515,26 @@ void m_IDirectDrawX::InitDdraw(DWORD DirectXVersion)
 
 void m_IDirectDrawX::ReleaseDdraw()
 {
-	WrapperInterface->DeleteMe();
-	WrapperInterface2->DeleteMe();
-	WrapperInterface3->DeleteMe();
-	WrapperInterface4->DeleteMe();
-	WrapperInterface7->DeleteMe();
+	if (WrapperInterface)
+	{
+		WrapperInterface->DeleteMe();
+	}
+	if (WrapperInterface2)
+	{
+		WrapperInterface2->DeleteMe();
+	}
+	if (WrapperInterface3)
+	{
+		WrapperInterface3->DeleteMe();
+	}
+	if (WrapperInterface4)
+	{
+		WrapperInterface4->DeleteMe();
+	}
+	if (WrapperInterface7)
+	{
+		WrapperInterface7->DeleteMe();
+	}
 
 	if (g_hook)
 	{
@@ -3776,6 +3805,11 @@ void m_IDirectDrawX::RemoveSurfaceFromVector(m_IDirectDrawSurfaceX* lpSurfaceX)
 	// Remove attached surface from map
 	for (m_IDirectDrawX*& pDDraw : DDrawVector)
 	{
+		m_IDirect3DDeviceX* D3DDevice = pDDraw->D3DDeviceInterface;
+		if (D3DDevice)
+		{
+			D3DDevice->ClearSurface(lpSurfaceX);
+		}
 		if (lpSurfaceX == pDDraw->PrimarySurface)
 		{
 			pDDraw->PrimarySurface = nullptr;

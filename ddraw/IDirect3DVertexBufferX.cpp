@@ -61,8 +61,16 @@ void *m_IDirect3DVertexBufferX::GetWrapperInterfaceX(DWORD DirectXVersion)
 	switch (DirectXVersion)
 	{
 	case 1:
+		if (!WrapperInterface)
+		{
+			WrapperInterface = new m_IDirect3DVertexBuffer((LPDIRECT3DVERTEXBUFFER)ProxyInterface, this);
+		}
 		return WrapperInterface;
 	case 7:
+		if (!WrapperInterface7)
+		{
+			WrapperInterface7 = new m_IDirect3DVertexBuffer7((LPDIRECT3DVERTEXBUFFER7)ProxyInterface, this);
+		}
 		return WrapperInterface7;
 	default:
 		LOG_LIMIT(100, __FUNCTION__ << " Error: wrapper interface version not found: " << DirectXVersion);
@@ -532,9 +540,6 @@ HRESULT m_IDirect3DVertexBufferX::ProcessVerticesStrided(DWORD dwVertexOp, DWORD
 
 void m_IDirect3DVertexBufferX::InitVertexBuffer(DWORD DirectXVersion)
 {
-	WrapperInterface = new m_IDirect3DVertexBuffer((LPDIRECT3DVERTEXBUFFER)ProxyInterface, this);
-	WrapperInterface7 = new m_IDirect3DVertexBuffer7((LPDIRECT3DVERTEXBUFFER7)ProxyInterface, this);
-
 	if (!Config.Dd7to9)
 	{
 		return;
@@ -552,8 +557,14 @@ void m_IDirect3DVertexBufferX::InitVertexBuffer(DWORD DirectXVersion)
 
 void m_IDirect3DVertexBufferX::ReleaseVertexBuffer()
 {
-	WrapperInterface->DeleteMe();
-	WrapperInterface7->DeleteMe();
+	if (WrapperInterface)
+	{
+		WrapperInterface->DeleteMe();
+	}
+	if (WrapperInterface7)
+	{
+		WrapperInterface7->DeleteMe();
+	}
 
 	ReleaseD9Buffers(false, false);
 

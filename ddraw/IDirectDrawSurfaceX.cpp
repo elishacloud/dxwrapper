@@ -232,14 +232,34 @@ void *m_IDirectDrawSurfaceX::GetWrapperInterfaceX(DWORD DirectXVersion)
 	switch (DirectXVersion)
 	{
 	case 1:
+		if (!WrapperInterface)
+		{
+			WrapperInterface = new m_IDirectDrawSurface((LPDIRECTDRAWSURFACE)ProxyInterface, this);
+		}
 		return WrapperInterface;
 	case 2:
+		if (!WrapperInterface2)
+		{
+			WrapperInterface2 = new m_IDirectDrawSurface2((LPDIRECTDRAWSURFACE2)ProxyInterface, this);
+		}
 		return WrapperInterface2;
 	case 3:
+		if (!WrapperInterface3)
+		{
+			WrapperInterface3 = new m_IDirectDrawSurface3((LPDIRECTDRAWSURFACE3)ProxyInterface, this);
+		}
 		return WrapperInterface3;
 	case 4:
+		if (!WrapperInterface4)
+		{
+			WrapperInterface4 = new m_IDirectDrawSurface4((LPDIRECTDRAWSURFACE4)ProxyInterface, this);
+		}
 		return WrapperInterface4;
 	case 7:
+		if (!WrapperInterface7)
+		{
+			WrapperInterface7 = new m_IDirectDrawSurface7((LPDIRECTDRAWSURFACE7)ProxyInterface, this);
+		}
 		return WrapperInterface7;
 	default:
 		LOG_LIMIT(100, __FUNCTION__ << " Error: wrapper interface version not found: " << DirectXVersion);
@@ -458,7 +478,7 @@ HRESULT m_IDirectDrawSurfaceX::Blt(LPRECT lpDestRect, LPDIRECTDRAWSURFACE7 lpDDS
 		" PresentBlt = " << PresentBlt;
 
 	// Check if source Surface exists
-	if (lpDDSrcSurface && !CheckSurfaceExists(lpDDSrcSurface))
+	if (lpDDSrcSurface && !ProxyAddressLookupTable.CheckSurfaceExists(lpDDSrcSurface))
 	{
 		LOG_LIMIT(100, __FUNCTION__ << " Error: could not find source surface! " << lpDDSrcSurface);
 		return DDERR_INVALIDPARAMS;
@@ -885,7 +905,7 @@ HRESULT m_IDirectDrawSurfaceX::BltFast(DWORD dwX, DWORD dwY, LPDIRECTDRAWSURFACE
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
 	// Check if source Surface exists
-	if (lpDDSrcSurface && !CheckSurfaceExists(lpDDSrcSurface))
+	if (lpDDSrcSurface && !ProxyAddressLookupTable.CheckSurfaceExists(lpDDSrcSurface))
 	{
 		LOG_LIMIT(100, __FUNCTION__ << " Error: could not find source surface! " << lpDDSrcSurface);
 		return DDERR_INVALIDPARAMS;
@@ -3901,15 +3921,7 @@ void m_IDirectDrawSurfaceX::InitSurface(DWORD DirectXVersion)
 		SurfaceWrapperListV1.pop_back();
 		WrapperInterface->SetProxy(this);
 	}
-	else
-	{
-		WrapperInterface = new m_IDirectDrawSurface((LPDIRECTDRAWSURFACE)ProxyInterface, this);
-	}
 	ReleaseCriticalSection();
-	WrapperInterface2 = new m_IDirectDrawSurface2((LPDIRECTDRAWSURFACE2)ProxyInterface, this);
-	WrapperInterface3 = new m_IDirectDrawSurface3((LPDIRECTDRAWSURFACE3)ProxyInterface, this);
-	WrapperInterface4 = new m_IDirectDrawSurface4((LPDIRECTDRAWSURFACE4)ProxyInterface, this);
-	WrapperInterface7 = new m_IDirectDrawSurface7((LPDIRECTDRAWSURFACE7)ProxyInterface, this);
 
 	if (!Config.Dd7to9)
 	{
@@ -3962,14 +3974,29 @@ inline void m_IDirectDrawSurfaceX::ReleaseDirectDrawResources()
 void m_IDirectDrawSurfaceX::ReleaseSurface()
 {
 	// Don't delete surface wrapper v1 interface
-	SetCriticalSection();
-	WrapperInterface->SetProxy(nullptr);
-	SurfaceWrapperListV1.push_back(WrapperInterface);
-	ReleaseCriticalSection();
-	WrapperInterface2->DeleteMe();
-	WrapperInterface3->DeleteMe();
-	WrapperInterface4->DeleteMe();
-	WrapperInterface7->DeleteMe();
+	if (WrapperInterface)
+	{
+		SetCriticalSection();
+		WrapperInterface->SetProxy(nullptr);
+		SurfaceWrapperListV1.push_back(WrapperInterface);
+		ReleaseCriticalSection();
+	}
+	if (WrapperInterface2)
+	{
+		WrapperInterface2->DeleteMe();
+	}
+	if (WrapperInterface3)
+	{
+		WrapperInterface3->DeleteMe();
+	}
+	if (WrapperInterface4)
+	{
+		WrapperInterface4->DeleteMe();
+	}
+	if (WrapperInterface7)
+	{
+		WrapperInterface7->DeleteMe();
+	}
 
 	// Clean up mipmaps
 	if (!MipMaps.empty())

@@ -194,11 +194,11 @@ private:
 	LPDIRECT3DDEVICE9* d3d9Device = nullptr;
 
 	// Store ddraw surface version wrappers
-	m_IDirectDrawSurface *WrapperInterface;
-	m_IDirectDrawSurface2 *WrapperInterface2;
-	m_IDirectDrawSurface3 *WrapperInterface3;
-	m_IDirectDrawSurface4 *WrapperInterface4;
-	m_IDirectDrawSurface7 *WrapperInterface7;
+	m_IDirectDrawSurface *WrapperInterface = nullptr;
+	m_IDirectDrawSurface2 *WrapperInterface2 = nullptr;
+	m_IDirectDrawSurface3 *WrapperInterface3 = nullptr;
+	m_IDirectDrawSurface4 *WrapperInterface4 = nullptr;
+	m_IDirectDrawSurface7 *WrapperInterface7 = nullptr;
 
 	// Store a list of attached surfaces
 	std::unique_ptr<m_IDirectDrawSurfaceX> BackBufferInterface;
@@ -286,13 +286,6 @@ private:
 	inline bool CanSurfaceBeDeleted() { return (ComplexRoot || (surfaceDesc2.ddsCaps.dwCaps & DDSCAPS_COMPLEX) == 0); }
 	inline DDSCAPS2 GetSurfaceCaps() { return surfaceDesc2.ddsCaps; }
 	inline D3DFORMAT GetSurfaceFormat() { return surface.Format; }
-	inline bool CheckSurfaceExists(LPDIRECTDRAWSURFACE7 lpDDSrcSurface) { return
-		(ProxyAddressLookupTable.IsValidWrapperAddress((m_IDirectDrawSurface*)lpDDSrcSurface) ||
-		ProxyAddressLookupTable.IsValidWrapperAddress((m_IDirectDrawSurface2*)lpDDSrcSurface) ||
-		ProxyAddressLookupTable.IsValidWrapperAddress((m_IDirectDrawSurface3*)lpDDSrcSurface) ||
-		ProxyAddressLookupTable.IsValidWrapperAddress((m_IDirectDrawSurface4*)lpDDSrcSurface) ||
-		ProxyAddressLookupTable.IsValidWrapperAddress((m_IDirectDrawSurface7*)lpDDSrcSurface));
-	}
 
 	void SetDirtyFlag();
 

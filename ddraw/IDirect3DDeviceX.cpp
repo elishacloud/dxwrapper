@@ -62,12 +62,28 @@ void *m_IDirect3DDeviceX::GetWrapperInterfaceX(DWORD DirectXVersion)
 	switch (DirectXVersion)
 	{
 	case 1:
+		if (!WrapperInterface)
+		{
+			WrapperInterface = new m_IDirect3DDevice((LPDIRECT3DDEVICE)ProxyInterface, this);
+		}
 		return WrapperInterface;
 	case 2:
+		if (!WrapperInterface2)
+		{
+			WrapperInterface2 = new m_IDirect3DDevice2((LPDIRECT3DDEVICE2)ProxyInterface, this);
+		}
 		return WrapperInterface2;
 	case 3:
+		if (!WrapperInterface3)
+		{
+			WrapperInterface3 = new m_IDirect3DDevice3((LPDIRECT3DDEVICE3)ProxyInterface, this);
+		}
 		return WrapperInterface3;
 	case 7:
+		if (!WrapperInterface7)
+		{
+			WrapperInterface7 = new m_IDirect3DDevice7((LPDIRECT3DDEVICE7)ProxyInterface, this);
+		}
 		return WrapperInterface7;
 	default:
 		LOG_LIMIT(100, __FUNCTION__ << " Error: wrapper interface version not found: " << DirectXVersion);
@@ -805,18 +821,11 @@ HRESULT m_IDirect3DDeviceX::GetTexture(DWORD dwStage, LPDIRECTDRAWSURFACE7* lplp
 
 		if (AttachedTexture[dwStage])
 		{
-			if (CheckSurfaceExists(AttachedTexture[dwStage]))
-			{
-				AttachedTexture[dwStage]->AddRef();
+			AttachedTexture[dwStage]->AddRef();
 
-				*lplpTexture = AttachedTexture[dwStage];
+			*lplpTexture = AttachedTexture[dwStage];
 
-				hr = D3D_OK;
-			}
-			else
-			{
-				AttachedTexture[dwStage] = nullptr;
-			}
+			hr = D3D_OK;
 		}
 
 		return hr;
@@ -4158,11 +4167,6 @@ HRESULT m_IDirect3DDeviceX::GetInfo(DWORD dwDevInfoID, LPVOID pDevInfoStruct, DW
 
 void m_IDirect3DDeviceX::InitDevice(DWORD DirectXVersion)
 {
-	WrapperInterface = new m_IDirect3DDevice((LPDIRECT3DDEVICE)ProxyInterface, this);
-	WrapperInterface2 = new m_IDirect3DDevice2((LPDIRECT3DDEVICE2)ProxyInterface, this);
-	WrapperInterface3 = new m_IDirect3DDevice3((LPDIRECT3DDEVICE3)ProxyInterface, this);
-	WrapperInterface7 = new m_IDirect3DDevice7((LPDIRECT3DDEVICE7)ProxyInterface, this);
-
 	if (!Config.Dd7to9)
 	{
 		return;
@@ -4191,10 +4195,22 @@ void m_IDirect3DDeviceX::InitDevice(DWORD DirectXVersion)
 
 void m_IDirect3DDeviceX::ReleaseDevice()
 {
-	WrapperInterface->DeleteMe();
-	WrapperInterface2->DeleteMe();
-	WrapperInterface3->DeleteMe();
-	WrapperInterface7->DeleteMe();
+	if (WrapperInterface)
+	{
+		WrapperInterface->DeleteMe();
+	}
+	if (WrapperInterface2)
+	{
+		WrapperInterface2->DeleteMe();
+	}
+	if (WrapperInterface3)
+	{
+		WrapperInterface3->DeleteMe();
+	}
+	if (WrapperInterface7)
+	{
+		WrapperInterface7->DeleteMe();
+	}
 
 	if (ddrawParent && !Config.Exiting)
 	{
