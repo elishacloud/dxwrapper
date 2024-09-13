@@ -883,6 +883,9 @@
     <ClCompile Include="d3d9\AddressLookupTable.cpp">
       <Filter>d3d9</Filter>
     </ClCompile>
+    <ClCompile Include="DDrawCompat\v0.3.1\Common\Disasm.cpp">
+      <Filter>DDrawCompat\v0.3.1</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="Settings\AllSettings.ini">
@@ -1864,6 +1867,9 @@
     </ClInclude>
     <ClInclude Include="ddraw\Shaders\PaletteShader.h">
       <Filter>ddraw\Shaders</Filter>
+    </ClInclude>
+    <ClInclude Include="DDrawCompat\v0.3.1\Common\Disasm.h">
+      <Filter>DDrawCompat\v0.3.1</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

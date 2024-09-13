@@ -119,7 +119,7 @@ namespace Compat32
 				}
 				//********** End Edit ***************
 
-				Compat32::closeDbgEng();
+				//Compat32::closeDbgEng();
 				Gdi::PresentationWindow::startThread();
 				Compat32::Log() << "Finished installing hooks";
 				isAlreadyInstalled = true;
@@ -226,7 +226,7 @@ namespace Compat32
 				Compat32::Log() << "Installing GDI hooks";
 				Gdi::installHooks();
 			}
-			Compat32::closeDbgEng();
+			//Compat32::closeDbgEng();
 		}
 	}
 	//********** End Edit ***************
@@ -316,7 +316,7 @@ namespace Compat32
 				Win32::MemoryManagement::installHooks();
 				Win32::MsgHooks::installHooks();
 				Time::init();
-				Compat32::closeDbgEng();
+				//Compat32::closeDbgEng();
 			}
 
 			//********** Begin Edit *************
