@@ -2646,6 +2646,11 @@ HRESULT m_IDirectDrawSurfaceX::Lock2(LPRECT lpDestRect, LPDDSURFACEDESC2 lpDDSur
 				lpDDSurfaceDesc2->lPitch = surface.emu->Pitch;
 			}
 		}
+		else if (lpDDSurfaceDesc2->dwFlags & DDSD_LINEARSIZE)
+		{
+			surfaceDesc2.dwFlags &= ~(DDSD_PITCH | DDSD_LINEARSIZE);
+			surfaceDesc2.dwLinearSize = 0;
+		}
 
 		// Return error for CheckInterface after preparing surfaceDesc
 		if (FAILED(c_hr))
@@ -4899,10 +4904,10 @@ void m_IDirectDrawSurfaceX::UpdateSurfaceDesc()
 		}
 	}
 	// Unset lPitch
-	if ((surfaceDesc2.dwFlags & (DDSD_WIDTH | DDSD_HEIGHT | DDSD_PIXELFORMAT)) != (DDSD_WIDTH | DDSD_HEIGHT | DDSD_PIXELFORMAT) ||
-		!surfaceDesc2.lPitch || !(surfaceDesc2.dwFlags & DDSD_PITCH))
+	if ((((surfaceDesc2.dwFlags & (DDSD_WIDTH | DDSD_HEIGHT | DDSD_PIXELFORMAT)) != (DDSD_WIDTH | DDSD_HEIGHT | DDSD_PIXELFORMAT) ||
+		!(surfaceDesc2.dwFlags & DDSD_PITCH)) && !(surfaceDesc2.dwFlags & DDSD_LINEARSIZE)) || !surfaceDesc2.lPitch)
 	{
-		surfaceDesc2.dwFlags &= ~DDSD_PITCH;
+		surfaceDesc2.dwFlags &= ~(DDSD_PITCH | DDSD_LINEARSIZE);
 		surfaceDesc2.lPitch = 0;
 	}
 	// Set lPitch
@@ -5824,6 +5829,13 @@ inline void m_IDirectDrawSurfaceX::InitSurfaceDesc(DWORD DirectXVersion)
 		}
 		surfaceDesc2.dwFlags &= ~DDSD_MIPMAPCOUNT;
 		surfaceDesc2.ddsCaps.dwCaps &= ~DDSCAPS_MIPMAP;
+	}
+
+	// Clear pitch
+	if (!(surfaceDesc2.dwFlags & DDSD_LPSURFACE) && !(surfaceDesc2.dwFlags & DDSD_LINEARSIZE))
+	{
+		surfaceDesc2.dwFlags &= ~DDSD_PITCH;
+		surfaceDesc2.lPitch = 0;
 	}
 
 	// Clear flags used in creating a surface structure
