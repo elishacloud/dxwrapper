@@ -1197,6 +1197,33 @@ HRESULT Utils::GetVideoRam(UINT AdapterNo, DWORD& TotalMemory)
 	return hr;
 }
 
+// Wait for window actions
+void Utils::WaitForWindowActions(HWND hWnd, DWORD Loops)
+{
+	int x = 0;
+	while (true)
+	{
+		// Peek at the messages without removing them
+		MSG msg;
+		if (PeekMessage(&msg, hWnd, 0, 0, PM_NOREMOVE))
+		{
+			// A message is available, but we won't process it here
+			Sleep(0); // Allow other threads to run
+		}
+		else
+		{
+			// No messages in the queue, exit the loop
+			break;
+		}
+
+		// Only loop limited times
+		if (++x > Loops)
+		{
+			break;
+		}
+	}
+}
+
 bool Utils::SetWndProcFilter(HWND hWnd)
 {
 	// Check window handle

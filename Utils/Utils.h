@@ -54,6 +54,7 @@ namespace Utils
 	DWORD GetBitCount(HWND hWnd);
 	DWORD GetThreadIDByHandle(HANDLE hThread);
 	void DisableGameUX();
+	void WaitForWindowActions(HWND hWnd, DWORD Loops);
 	bool SetWndProcFilter(HWND hWnd);
 	bool RestoreWndProcFilter(HWND hWnd);
 	void GetScreenSize(HWND hwnd, LONG &screenWidth, LONG &screenHeight);

@@ -524,6 +524,9 @@ void UpdatePresentParameter(D3DPRESENT_PARAMETERS* pPresentationParameters, HWND
 			(IsWindow(pPresentationParameters->hDeviceWindow)) ? pPresentationParameters->hDeviceWindow :
 			DeviceDetails.DeviceWindow;
 
+		// Wait for window actions
+		Utils::WaitForWindowActions(DeviceDetails.DeviceWindow, 100);
+
 		// Check if window is minimized
 		if (IsIconic(DeviceDetails.DeviceWindow))
 		{
@@ -596,6 +599,12 @@ void GetFinalPresentParameter(D3DPRESENT_PARAMETERS* pPresentationParameters, DE
 		DeviceDetails.BufferWidth = (pPresentationParameters->BackBufferWidth) ? pPresentationParameters->BackBufferWidth : DeviceDetails.BufferWidth;
 		DeviceDetails.BufferHeight = (pPresentationParameters->BackBufferHeight) ? pPresentationParameters->BackBufferHeight : DeviceDetails.BufferHeight;
 		DeviceDetails.DeviceWindow = (IsWindow(pPresentationParameters->hDeviceWindow)) ? pPresentationParameters->hDeviceWindow : DeviceDetails.DeviceWindow;
+
+		// Wait for desktop actions
+		Utils::WaitForWindowActions(GetDesktopWindow(), 100);
+
+		// Wait for window actions
+		Utils::WaitForWindowActions(DeviceDetails.DeviceWindow, 100);
 	}
 }
 
