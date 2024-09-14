@@ -1200,7 +1200,7 @@ HRESULT Utils::GetVideoRam(UINT AdapterNo, DWORD& TotalMemory)
 // Wait for window actions
 void Utils::WaitForWindowActions(HWND hWnd, DWORD Loops)
 {
-	int x = 0;
+	UINT x = 0;
 	while (true)
 	{
 		// Peek at the messages without removing them

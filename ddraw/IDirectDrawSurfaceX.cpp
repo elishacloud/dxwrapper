@@ -4481,9 +4481,9 @@ HRESULT m_IDirectDrawSurfaceX::CreateD3d9Surface()
 		}
 
 		// Create shadow surface
+		surface.UsingShadowSurface = false;
 		if (surface.Type == D3DTYPE_RENDERTARGET && surface.Surface)
 		{
-			surface.UsingShadowSurface = false;
 			D3DSURFACE_DESC Desc;
 			if (FAILED(surface.Surface->GetDesc(&Desc)) || FAILED((*d3d9Device)->CreateOffscreenPlainSurface(Desc.Width, Desc.Height, Desc.Format, D3DPOOL_SYSTEMMEM, &surface.Shadow, nullptr)))
 			{
@@ -5167,8 +5167,8 @@ void m_IDirectDrawSurfaceX::ReleaseD9Surface(bool BackupData, bool ResetSurface)
 		surface.Surface = nullptr;
 	}
 
-	// Release d3d9 shadow surface
-	if (surface.Shadow && !ResetSurface)
+	// Release d3d9 shadow surface when surface is released
+	if (surface.Shadow && !surface.Surface)
 	{
 		Logging::LogDebug() << __FUNCTION__ << " Releasing Direct3D9 surface";
 		ULONG ref = surface.Shadow->Release();

@@ -193,7 +193,6 @@ bool EnableWaitVsync;
 // Direct3D9 Objects
 LPDIRECT3D9 d3d9Object;
 LPDIRECT3DDEVICE9 d3d9Device;
-LPDIRECT3DSURFACE9 d3d9RenderTarget;
 D3DPRESENT_PARAMETERS presParams;
 LPDIRECT3DPIXELSHADER9 palettePixelShader;
 LPDIRECT3DPIXELSHADER9 colorkeyPixelShader;
@@ -2384,7 +2383,6 @@ void m_IDirectDrawX::InitDdraw(DWORD DirectXVersion)
 		// Direct3D9 Objects
 		d3d9Object = nullptr;
 		d3d9Device = nullptr;
-		d3d9RenderTarget = nullptr;
 		palettePixelShader = nullptr;
 		colorkeyPixelShader = nullptr;
 		VertexBuffer = nullptr;
@@ -3117,7 +3115,6 @@ HRESULT m_IDirectDrawX::CreateD3D9Device()
 		dummySurface.resize(presParams.BackBufferWidth * presParams.BackBufferHeight * 4 * 2);
 
 		// Set render target
-		d3d9RenderTarget = nullptr;
 		ReSetRenderTarget();
 
 		// Reset D3D device settings
@@ -3413,7 +3410,6 @@ HRESULT m_IDirectDrawX::ReinitDevice()
 		// Reset render target
 		if (SUCCEEDED(hr))
 		{
-			d3d9RenderTarget = nullptr;
 			ReSetRenderTarget();
 		}
 
@@ -3475,11 +3471,17 @@ HRESULT m_IDirectDrawX::SetRenderTargetSurface(m_IDirectDrawSurfaceX* lpSurface)
 
 			SetDepthStencilSurface(nullptr);
 
-			if (d3d9Device && d3d9RenderTarget)
+			if (d3d9Device)
 			{
-				if (SUCCEEDED(d3d9Device->SetRenderTarget(0, d3d9RenderTarget)))
+				IDirect3DSurface9* pBackBuffer = nullptr;
+				hr = d3d9Device->GetBackBuffer(0, 0, D3DBACKBUFFER_TYPE_MONO, &pBackBuffer);
+				if (SUCCEEDED(hr))
 				{
-					d3d9RenderTarget = nullptr;
+					// Set back buffer to render target
+					d3d9Device->SetRenderTarget(0, pBackBuffer);
+
+					// Release back buffer
+					pBackBuffer->Release();
 				}
 			}
 
@@ -3501,18 +3503,9 @@ HRESULT m_IDirectDrawX::SetRenderTargetSurface(m_IDirectDrawSurfaceX* lpSurface)
 
 		Logging::LogDebug() << __FUNCTION__ << " Setting 3D Device Surface: " << RenderTargetSurface;
 
+		// Set new render target
 		if (d3d9Device)
 		{
-			// Backup original render target
-			if (!d3d9RenderTarget)
-			{
-				if (SUCCEEDED(d3d9Device->GetRenderTarget(0, &d3d9RenderTarget)))
-				{
-					d3d9RenderTarget->Release();
-				}
-			}
-
-			// Set new render target
 			LPDIRECT3DSURFACE9 pSurfaceD9 = RenderTargetSurface->GetD3d9Surface();
 			if (pSurfaceD9)
 			{
@@ -3617,7 +3610,6 @@ inline void m_IDirectDrawX::ReleaseAllD9Resources(bool BackupData, bool ResetInt
 	{
 		SetRenderTargetSurface(nullptr);
 	}
-	d3d9RenderTarget = nullptr;
 
 	// Release all surfaces from all ddraw devices
 	for (m_IDirectDrawX*& pDDraw : DDrawVector)
@@ -4145,6 +4137,8 @@ HRESULT m_IDirectDrawX::CopyPrimarySurfaceToBackbuffer()
 		return DDERR_GENERIC;
 	}
 
+	PrimarySurface->PrepareRenderTarget();
+
 	HRESULT hr = DDERR_GENERIC;
 
 	// Copy render target to backbuffer
@@ -4405,14 +4399,10 @@ HRESULT m_IDirectDrawX::PresentScene(RECT* pRect)
 	HRESULT DrawRet = DDERR_GENERIC;
 	if (IsPrimaryRenderTarget())
 	{
-		PrimarySurface->PrepareRenderTarget();
-
 		DrawRet = CopyPrimarySurfaceToBackbuffer();
 	}
 	else if (RenderTargetSurface)
 	{
-		RenderTargetSurface->PrepareRenderTarget();
-
 		IDirect3DSurface9* pBackBuffer = nullptr;
 		hr = d3d9Device->GetBackBuffer(0, 0, D3DBACKBUFFER_TYPE_MONO, &pBackBuffer);
 		if (SUCCEEDED(hr))
