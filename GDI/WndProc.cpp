@@ -84,8 +84,13 @@ namespace WndProc
 		~WNDPROCSTRUCT()
 		{
 			Exiting = true;
+			Active = false;
 			if (Config.Exiting)
 			{
+				AppWndProc = (IsWindowUnicode(hWnd) ? DefWindowProcW : DefWindowProcA);
+				(IsWindowUnicode(hWnd) ?
+					SetWindowLongW(hWnd, GWL_WNDPROC, (LONG)DefWindowProcW) :
+					SetWindowLongA(hWnd, GWL_WNDPROC, (LONG)DefWindowProcA));
 				return;
 			}
 			// Restore WndProc
