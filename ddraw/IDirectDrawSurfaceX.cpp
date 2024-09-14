@@ -2725,11 +2725,9 @@ HRESULT m_IDirectDrawSurfaceX::Lock2(LPRECT lpDestRect, LPDDSURFACEDESC2 lpDDSur
 		auto startTime = std::chrono::high_resolution_clock::now();
 #endif
 
-		// Check if render target should use shadow
-		if (surface.Type == D3DTYPE_RENDERTARGET && !IsUsingShadowSurface())
-		{
-			SetRenderTargetShadow();
-		}
+		// Don't use shadow for Lock()
+		// Some games write to surface without locking so we don't want to give them a shadow surface or it could make the shadow surface out of sync
+		PrepareRenderTarget();
 
 		HRESULT hr = DD_OK;
 
@@ -5646,7 +5644,7 @@ inline HRESULT m_IDirectDrawSurfaceX::LockEmulatedSurface(D3DLOCKED_RECT* pLocke
 
 void m_IDirectDrawSurfaceX::PrepareRenderTarget()
 {
-	if (IsUsingShadowSurface())
+	if (surface.UsingShadowSurface && surface.Shadow)
 	{
 		if (SUCCEEDED((*d3d9Device)->UpdateSurface(surface.Shadow, nullptr, surface.Surface, nullptr)))
 		{
@@ -5659,7 +5657,7 @@ void m_IDirectDrawSurfaceX::PrepareRenderTarget()
 
 void m_IDirectDrawSurfaceX::SetRenderTargetShadow()
 {
-	if (!IsUsingShadowSurface() && surface.Surface && surface.Shadow)
+	if (!surface.UsingShadowSurface && surface.Shadow)
 	{
 		if (SUCCEEDED((*d3d9Device)->GetRenderTargetData(surface.Surface, surface.Shadow)))
 		{

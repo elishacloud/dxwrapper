@@ -4137,8 +4137,6 @@ HRESULT m_IDirectDrawX::CopyPrimarySurfaceToBackbuffer()
 		return DDERR_GENERIC;
 	}
 
-	PrimarySurface->PrepareRenderTarget();
-
 	HRESULT hr = DDERR_GENERIC;
 
 	// Copy render target to backbuffer
@@ -4379,6 +4377,9 @@ HRESULT m_IDirectDrawX::PresentScene(RECT* pRect)
 		LOG_LIMIT(100, __FUNCTION__ << " Error: is in Direct3D scene already! PresentToWindow: " << PrimarySurface->ShouldPresentToWindow(true));
 		return DDERR_GENERIC;
 	}
+
+	// Prepare primary surface render target before presenting
+	PrimarySurface->PrepareRenderTarget();
 
 	LPRECT pDestRect = nullptr;
 	RECT DestRect = {};
