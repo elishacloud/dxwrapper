@@ -181,7 +181,6 @@ public:
 	inline void Enable3D() { Using3D = true; }
 	inline bool IsUsing3D() { return Using3D; }
 	inline bool IsPrimaryRenderTarget() { return PrimarySurface ? PrimarySurface->IsRenderTarget() : false; }
-	inline bool IsPrimaryFlipSurface() { return PrimarySurface ? PrimarySurface->GetFlipStatus(DDGFS_CANFLIP) : false; }
 	bool IsInScene();
 
 	// Direct3D9 interfaces

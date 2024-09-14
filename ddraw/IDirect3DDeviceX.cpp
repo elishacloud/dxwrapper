@@ -931,10 +931,6 @@ HRESULT m_IDirect3DDeviceX::SetTexture(DWORD dwStage, LPDIRECTDRAWSURFACE7 lpSur
 			return DDERR_INVALIDOBJECT;
 		}
 
-#ifdef ENABLE_PROFILING
-		auto startTime = std::chrono::high_resolution_clock::now();
-#endif
-
 		m_IDirectDrawSurfaceX* lpDDSrcSurfaceX = nullptr;
 
 		HRESULT hr;
@@ -967,10 +963,6 @@ HRESULT m_IDirect3DDeviceX::SetTexture(DWORD dwStage, LPDIRECTDRAWSURFACE7 lpSur
 			AttachedTexture[dwStage] = lpSurface;
 			CurrentTextureSurfaceX[dwStage] = lpDDSrcSurfaceX;
 		}
-
-#ifdef ENABLE_PROFILING
-		Logging::Log() << __FUNCTION__ << " (" << this << ") hr = " << (D3DERR)hr << " Timing = " << Logging::GetTimeLapseInMS(startTime);
-#endif
 
 		return hr;
 	}
@@ -1899,7 +1891,8 @@ HRESULT m_IDirect3DDeviceX::EndScene()
 			Logging::Log() << __FUNCTION__ << " (" << this << ") hr = " << (D3DERR)hr << " Timing = " << Logging::GetTimeLapseInMS(sceneTime);
 #endif
 
-			if (!ddrawParent->IsPrimaryFlipSurface())
+			m_IDirectDrawSurfaceX* PrimarySurface = ddrawParent->GetPrimarySurface();
+			if (!PrimarySurface || FAILED(PrimarySurface->GetFlipStatus(DDGFS_CANFLIP)) || PrimarySurface == ddrawParent->GetRenderTargetSurface() || !PrimarySurface->IsRenderTarget())
 			{
 				ddrawParent->PresentScene(nullptr);
 			}
