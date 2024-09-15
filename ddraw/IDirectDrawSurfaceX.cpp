@@ -3631,13 +3631,14 @@ HRESULT m_IDirectDrawSurfaceX::SetSurfaceDesc2(LPDDSURFACEDESC2 lpDDSurfaceDesc2
 
 		// Check flags
 		DWORD SurfaceFlags = lpDDSurfaceDesc2->dwFlags;
-		if (SurfaceFlags & DDSD_LPSURFACE)
+		if ((SurfaceFlags & DDSD_LPSURFACE) && lpDDSurfaceDesc2->lpSurface)
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Warning: lpSurface not fully Implemented.");
 
 			SurfaceFlags &= ~DDSD_LPSURFACE;
 			surfaceDesc2.dwFlags |= DDSD_LPSURFACE;
 			surfaceDesc2.lpSurface = lpDDSurfaceDesc2->lpSurface;
+			surface.UsingSurfaceMemory = true;
 			if (surface.Surface || surface.Texture)
 			{
 				CreateD3d9Surface();
@@ -4346,7 +4347,6 @@ HRESULT m_IDirectDrawSurfaceX::CreateD3d9Surface()
 	UpdateSurfaceDesc();
 
 	// Get texture format
-	surface.UsingSurfaceMemory = ((surfaceDesc2.dwFlags & DDSD_LPSURFACE) && surfaceDesc2.lpSurface);
 	surface.Format = GetDisplayFormat(surfaceDesc2.ddpfPixelFormat);
 	surface.BitCount = GetBitCount(surface.Format);
 	SurfaceRequiresEmulation = ((surface.Format == D3DFMT_A8B8G8R8 || surface.Format == D3DFMT_X8B8G8R8 || surface.Format == D3DFMT_B8G8R8 || surface.Format == D3DFMT_R8G8B8 ||
@@ -5862,6 +5862,7 @@ inline void m_IDirectDrawSurfaceX::InitSurfaceDesc(DWORD DirectXVersion)
 		surfaceDesc2.dwFlags &= ~DDSD_PITCH;
 		surfaceDesc2.lPitch = 0;
 	}
+	surface.UsingSurfaceMemory = ((surfaceDesc2.dwFlags & DDSD_LPSURFACE) && surfaceDesc2.lpSurface);
 
 	// Clear flags used in creating a surface structure
 	if (!(surfaceDesc2.ddsCaps.dwCaps & DDSCAPS_FRONTBUFFER))
