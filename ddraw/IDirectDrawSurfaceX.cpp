@@ -4704,7 +4704,7 @@ inline void m_IDirectDrawSurfaceX::UnsetEmulationGameDC()
 HRESULT m_IDirectDrawSurfaceX::CreateDCSurface()
 {
 	// Check if color masks are needed
-	bool ColorMaskReq = ((surface.BitCount == 16 || surface.BitCount == 24 || surface.BitCount == 32) &&										// Only valid when used with 16 bit, 24 bit and 32 bit surfaces
+	bool ColorMaskReq = ((surface.BitCount == 16 || surface.BitCount == 24 || surface.BitCount == 32) &&									// Only valid when used with 16 bit, 24 bit and 32 bit surfaces
 		(surfaceDesc2.ddpfPixelFormat.dwFlags & DDPF_RGB) &&																				// Check to make sure it is an RGB surface
 		(surfaceDesc2.ddpfPixelFormat.dwRBitMask && surfaceDesc2.ddpfPixelFormat.dwGBitMask && surfaceDesc2.ddpfPixelFormat.dwBBitMask));	// Check to make sure the masks actually exist
 

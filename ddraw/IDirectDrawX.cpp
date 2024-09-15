@@ -1690,6 +1690,12 @@ HRESULT m_IDirectDrawX::SetCooperativeLevel(HWND hWnd, DWORD dwFlags, DWORD Dire
 		// Check if handle is valid
 		if (IsWindow(DisplayMode.hWnd) && DisplayMode.hWnd == hWnd)
 		{
+			// Wait for window actions
+			if (LasthWnd != DisplayMode.hWnd)
+			{
+				Utils::WaitForWindowActions(DisplayMode.hWnd, 100);
+			}
+
 			// Hook WndProc before creating device
 			WndProc::AddWndProc(hWnd, true);
 
