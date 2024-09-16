@@ -6646,7 +6646,7 @@ HRESULT m_IDirectDrawSurfaceX::CopySurface(m_IDirectDrawSurfaceX* pSourceSurface
 		}
 		UnlockSrc = true;
 
-		// Check if source and destination memory addresses are overlapping
+		// Use seperate memory cache if source and destination formats mismatch or are on the same surface
 		if ((pSourceSurface == this && MipMapLevel == SrcMipMapLevel) || FormatMismatch)
 		{
 			size_t size = SrcRectWidth * ByteCount * SrcRectHeight;
