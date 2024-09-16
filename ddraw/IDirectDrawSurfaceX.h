@@ -44,6 +44,7 @@ private:
 		std::vector<BYTE> OddScanLine;
 		RECT Rect = {};
 		D3DLOCKED_RECT LockedRect = {};
+		DWORD MipMapLevel = 0;
 	};
 
 	// Mipmap struct
@@ -57,7 +58,7 @@ private:
 		DWORD dwWidth = 0;
 		DWORD dwHeight = 0;
 		LONG lPitch = 0;
-		bool HasData = false;
+		DWORD UniquenessValue = 0;
 		bool IsDummy = false;
 	};
 

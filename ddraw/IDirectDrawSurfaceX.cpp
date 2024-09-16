@@ -736,7 +736,7 @@ HRESULT m_IDirectDrawSurfaceX::Blt(LPRECT lpDestRect, LPDIRECTDRAWSURFACE7 lpDDS
 			if (SUCCEEDED(hr))
 			{
 				// Set dirty flag
-				if (PresentBlt)
+				if (PresentBlt && MipMapLevel == 0)
 				{
 					SetDirtyFlag();
 				}
@@ -745,7 +745,7 @@ HRESULT m_IDirectDrawSurfaceX::Blt(LPRECT lpDestRect, LPDIRECTDRAWSURFACE7 lpDDS
 				if (MipMapLevel && MipMaps.size())
 				{
 					DWORD Level = min(MipMaps.size(), MipMapLevel) - 1;
-					MipMaps[Level].HasData = true;
+					MipMaps[Level].UniquenessValue = UniquenessValue;
 					CheckMipMapLevelGen();
 				}
 
@@ -889,7 +889,18 @@ HRESULT m_IDirectDrawSurfaceX::BltBatch(LPDDBLTBATCH lpDDBltBatch, DWORD dwCount
 	if (SUCCEEDED(hr))
 	{
 		// Set dirty flag
-		SetDirtyFlag();
+		if (MipMapLevel == 0)
+		{
+			SetDirtyFlag();
+		}
+
+		// Mark mipmap data flag
+		if (MipMapLevel && MipMaps.size())
+		{
+			DWORD Level = min(MipMaps.size(), MipMapLevel) - 1;
+			MipMaps[Level].UniquenessValue = UniquenessValue;
+			CheckMipMapLevelGen();
+		}
 
 		// Present surface
 		EndWritePresent(nullptr, false, true, IsSkipScene);
@@ -2849,7 +2860,7 @@ HRESULT m_IDirectDrawSurfaceX::Lock2(LPRECT lpDestRect, LPDDSURFACEDESC2 lpDDSur
 						<< " MipMapLevel: " << MipMapLevel);
 				}
 				MipMaps[Level].lPitch = LockedRect.Pitch;
-				MipMaps[Level].HasData = true;
+				MipMaps[Level].UniquenessValue = UniquenessValue;
 				CheckMipMapLevelGen();
 			}
 			else
@@ -2876,6 +2887,7 @@ HRESULT m_IDirectDrawSurfaceX::Lock2(LPRECT lpDestRect, LPDDSURFACEDESC2 lpDDSur
 			LastLock.Rect = DestRect;
 			LastLock.LockedRect.pBits = LockedRect.pBits;
 			LastLock.LockedRect.Pitch = LockedRect.Pitch;
+			LastLock.MipMapLevel = MipMapLevel;
 
 			// Restore scanlines before returing surface memory
 			if (Config.DdrawRemoveScanlines && IsPrimaryOrBackBuffer() && !(Flags & D3DLOCK_READONLY))
@@ -3408,7 +3420,10 @@ HRESULT m_IDirectDrawSurfaceX::Unlock(LPRECT lpRect, DWORD MipMapLevel)
 		if (SUCCEEDED(hr) && !LastLock.ReadOnly)
 		{
 			// Set dirty flag
-			SetDirtyFlag();
+			if (LastLock.MipMapLevel == 0)
+			{
+				SetDirtyFlag();
+			}
 
 			// Keep surface insync
 			EndWriteSyncSurfaces(&LastLock.Rect);
@@ -4170,7 +4185,7 @@ void m_IDirectDrawSurfaceX::CheckMipMapLevelGen()
 	{
 		for (UINT x = 0; x < min(MaxMipMapLevel, MipMaps.size()); x++)
 		{
-			if (!MipMaps[x].HasData && !MipMaps[x].IsDummy)
+			if (!MipMaps[x].IsDummy && MipMaps[x].UniquenessValue < UniquenessValue)
 			{
 				return;
 			}
@@ -4190,7 +4205,7 @@ HRESULT m_IDirectDrawSurfaceX::GenerateMipMapLevels()
 
 	for (UINT x = 0; x < min(MaxMipMapLevel, MipMaps.size()); x++)
 	{
-		if (!MipMaps[x].HasData && !MipMaps[x].IsDummy)
+		if (!MipMaps[x].IsDummy && MipMaps[x].UniquenessValue < UniquenessValue)
 		{
 			IDirect3DSurface9* pDestSurfaceD9 = Get3DMipMapSurface(x + 1);
 			if (pDestSurfaceD9)
@@ -4198,7 +4213,7 @@ HRESULT m_IDirectDrawSurfaceX::GenerateMipMapLevels()
 				LOG_LIMIT(100, __FUNCTION__ << " (" << this << ") Warning: attempting to add missing data to MipMap surface level: " << (x + 1));
 				if (SUCCEEDED(D3DXLoadSurfaceFromSurface(pDestSurfaceD9, nullptr, nullptr, pSourceSurfaceD9, nullptr, nullptr, D3DX_FILTER_LINEAR, 0x00000000)))
 				{
-					MipMaps[x].HasData = true;
+					MipMaps[x].UniquenessValue = UniquenessValue;
 				}
 				else
 				{
@@ -5678,6 +5693,7 @@ void m_IDirectDrawSurfaceX::SetDirtyFlag()
 	surface.IsDirtyFlag = true;
 	surface.SurfaceHasData = true;
 	surface.IsDrawTextureDirty = true;
+	IsMipMapReadyToUse = false;
 
 	// Update Uniqueness Value
 	ChangeUniquenessValue();
