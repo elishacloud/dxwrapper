@@ -9,16 +9,16 @@ private:
 	REFIID WrapperID;
 
 public:
-	m_IDirect3DSwapChain9Ex(LPDIRECT3DSWAPCHAIN9EX pSwapChain9, m_IDirect3DDevice9Ex* pDevice, REFIID DeviceID = IID_IDirect3DSwapChain9) : ProxyInterface(pSwapChain9), m_pDeviceEx(pDevice), WrapperID(DeviceID)
+	m_IDirect3DSwapChain9Ex(LPDIRECT3DSWAPCHAIN9EX pSwapChain9, m_IDirect3DDevice9Ex* pDevice, REFIID DeviceID) : ProxyInterface(pSwapChain9), m_pDeviceEx(pDevice), WrapperID(DeviceID)
 	{
-		LOG_LIMIT(3, "Creating interface " << __FUNCTION__ << " (" << this << ")");
+		LOG_LIMIT(3, "Creating interface " << __FUNCTION__ << " (" << this << ") " << WrapperID);
 
 		if (WrapperID == IID_IDirect3DSwapChain9Ex)
 		{
 			ProxyInterfaceEx = pSwapChain9;
 		}
 
-		pDevice->ProxyAddressLookupTable->SaveAddress(this, ProxyInterface);
+		m_pDeviceEx->GetLookupTable()->SaveAddress(this, ProxyInterface);
 	}
 	~m_IDirect3DSwapChain9Ex()
 	{

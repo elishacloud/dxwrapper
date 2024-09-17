@@ -57,7 +57,7 @@ void ConvertSurfaceDesc(DDSURFACEDESC &Desc, DDSURFACEDESC2 &Desc2)
 	}
 	ConvertCaps(Desc.ddsCaps, Desc2.ddsCaps);
 	// Check for dwFlags that did not get converted
-	if (Desc.dwFlags != Desc2.dwFlags && (Desc.dwFlags - Desc2.dwFlags) != (DDSD_ZBUFFERBITDEPTH - DDSD_PIXELFORMAT))
+	if (Desc.dwFlags != Desc2.dwFlags && (Desc.dwFlags - Desc2.dwFlags) != ((DWORD)DDSD_ZBUFFERBITDEPTH - (DWORD)DDSD_PIXELFORMAT))
 	{
 		LOG_LIMIT(100, __FUNCTION__ << " Warning: (Desc2->Desc) Removing unsupported flags: " << Logging::hex(Desc2.dwFlags & ~Desc.dwFlags));
 	}
@@ -115,7 +115,7 @@ void ConvertSurfaceDesc(DDSURFACEDESC2 &Desc2, DDSURFACEDESC &Desc)
 	// Extra parameters
 	Desc2.dwTextureStage = 0;			// Stage identifier that is used to bind a texture to a specific stage
 	// Check for dwFlags that did not get converted
-	if (Desc.dwFlags != Desc2.dwFlags && (Desc.dwFlags - Desc2.dwFlags) != (DDSD_ZBUFFERBITDEPTH - DDSD_PIXELFORMAT))
+	if (Desc.dwFlags != Desc2.dwFlags && (Desc.dwFlags - Desc2.dwFlags) != ((DWORD)DDSD_ZBUFFERBITDEPTH - (DWORD)DDSD_PIXELFORMAT))
 	{
 		LOG_LIMIT(100, __FUNCTION__ << " Warning: (Desc->Desc2) Removing unsupported flags: " << Logging::hex(Desc.dwFlags & ~Desc2.dwFlags));
 	}
@@ -411,7 +411,7 @@ void AdjustVidMemory(LPDWORD lpdwTotal, LPDWORD lpdwFree)
 
 DWORD GetByteAlignedWidth(DWORD Width, DWORD BitCount)
 {
-	if (!Config.DdrawDisableByteAlignment)
+	if (Config.DdrawEnableByteAlignment)
 	{
 		while ((Width * BitCount) % 64)
 		{
@@ -434,7 +434,7 @@ DWORD GetBitCount(DDPIXELFORMAT ddpfPixelFormat)
 		return 0;
 	}
 	if (ddpfPixelFormat.dwRGBBitCount && (ddpfPixelFormat.dwFlags &
-		(DDPF_RGB | DDPF_YUV | DDPF_ALPHA | DDPF_ZBUFFER | DDPF_LUMINANCE | DDPF_BUMPDUDV)))
+		(DDPF_RGB | DDPF_YUV | DDPF_ALPHA | DDPF_ZBUFFER | DDPF_STENCILBUFFER | DDPF_LUMINANCE | DDPF_BUMPDUDV)))
 	{
 		return ddpfPixelFormat.dwRGBBitCount;
 	}
@@ -546,6 +546,7 @@ DWORD GetBitCount(D3DFORMAT Format)
 		return 16;
 
 	case D3DFMT_YV12:
+	case D3DFMT_NV12:
 		return 12;
 
 	case D3DFMT_P8:
@@ -607,7 +608,7 @@ DWORD GetSurfaceSize(D3DFORMAT Format, DWORD Width, DWORD Height, INT Pitch)
 	{
 		return ((GetByteAlignedWidth(Width, GetBitCount(Format)) + 3) / 4) * ((Height + 3) / 4) * (Format == D3DFMT_DXT1 ? 8 : 16);
 	}
-	else if (Format == D3DFMT_YV12)
+	else if (Format == D3DFMT_YV12 || Format == D3DFMT_NV12)
 	{
 		return GetByteAlignedWidth(Width, GetBitCount(Format)) * Height;
 	}
@@ -776,6 +777,7 @@ D3DFORMAT GetDisplayFormat(DDPIXELFORMAT ddpfPixelFormat)
 		case D3DFMT_UYVY:
 		case D3DFMT_YUY2:
 		case D3DFMT_YV12:
+		case D3DFMT_NV12:
 		case D3DFMT_MULTI2_ARGB8:
 		case D3DFMT_G8R8_G8B8:
 		case D3DFMT_R8G8_B8G8:
@@ -928,7 +930,7 @@ D3DFORMAT GetDisplayFormat(DDPIXELFORMAT ddpfPixelFormat)
 	}
 
 	// zBuffer formats
-	if (ddpfPixelFormat.dwFlags & DDPF_ZBUFFER)
+	if (ddpfPixelFormat.dwFlags & (DDPF_ZBUFFER | DDPF_STENCILBUFFER))
 	{
 		switch (ddpfPixelFormat.dwZBufferBitDepth)
 		{
@@ -1198,6 +1200,7 @@ void SetPixelDisplayFormat(D3DFORMAT Format, DDPIXELFORMAT &ddpfPixelFormat)
 	case D3DFMT_UYVY:
 	case D3DFMT_YUY2:
 	case D3DFMT_YV12:
+	case D3DFMT_NV12:
 		ddpfPixelFormat.dwFlags = DDPF_FOURCC;
 		ddpfPixelFormat.dwFourCC = Format;
 		break;

@@ -23,9 +23,9 @@ private:
 	m_IDirect3DDeviceX **D3DDeviceInterface = nullptr;
 
 	// Store version wrappers
-	m_IDirect3DViewport *WrapperInterface;
-	m_IDirect3DViewport2 *WrapperInterface2;
-	m_IDirect3DViewport3 *WrapperInterface3;
+	m_IDirect3DViewport *WrapperInterface = nullptr;
+	m_IDirect3DViewport2 *WrapperInterface2 = nullptr;
+	m_IDirect3DViewport3 *WrapperInterface3 = nullptr;
 
 	// Wrapper interface functions
 	inline REFIID GetWrapperType(DWORD DirectXVersion)

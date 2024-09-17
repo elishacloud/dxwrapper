@@ -20,44 +20,52 @@ void WINAPI D3d9Wrapper::genericQueryInterface(REFIID riid, LPVOID *ppvObj, m_ID
 {
 	if (!ppvObj || !*ppvObj || !m_pDeviceEx)
 	{
+		LOG_LIMIT(100, __FUNCTION__ << " Warning: not wrapping interface because of nullptr: " << riid);
 		return;
 	}
 
 	if (riid == IID_IDirect3D9 || riid == IID_IDirect3D9Ex)
 	{
 		IDirect3D9 *pD3D9 = nullptr;
-		if (SUCCEEDED(m_pDeviceEx->GetDirect3D(&pD3D9)) && pD3D9)
+		if (SUCCEEDED(m_pDeviceEx->GetDirect3D(&pD3D9)))
 		{
-			IDirect3D9 *pD3D9wrapper = nullptr;
-			if (SUCCEEDED(pD3D9->QueryInterface(riid, (LPVOID*)&pD3D9wrapper)) && pD3D9wrapper)
+			IDirect3D9* pD3D9Ex = nullptr;
+			if (SUCCEEDED(pD3D9->QueryInterface(riid, (LPVOID*)&pD3D9Ex)))
 			{
-				pD3D9wrapper->Release();
+				*ppvObj = pD3D9Ex;
+				pD3D9Ex->Release();
+				pD3D9->Release();
+				return;
 			}
 			pD3D9->Release();
-			return;
 		}
+		LOG_LIMIT(100, __FUNCTION__ << " Warning: not wrapping interface: " << riid);
+		return;
 	}
 
 	if (riid == IID_IDirect3DDevice9 || riid == IID_IDirect3DDevice9Ex)
 	{
 		IDirect3DDevice9 *pD3DDevice9 = nullptr;
-		if (SUCCEEDED(m_pDeviceEx->QueryInterface(riid, (LPVOID*)&pD3DDevice9)) && pD3DDevice9)
+		if (SUCCEEDED(m_pDeviceEx->QueryInterface(riid, (LPVOID*)&pD3DDevice9)))
 		{
+			*ppvObj = pD3DDevice9;
 			pD3DDevice9->Release();
+			return;
 		}
+		LOG_LIMIT(100, __FUNCTION__ << " Warning: not wrapping interface: " << riid);
 		return;
 	}
 
 	if (riid == IID_IDirect3DSwapChain9 || riid == IID_IDirect3DSwapChain9Ex)
 	{
-		*ppvObj = m_pDeviceEx->ProxyAddressLookupTable->FindAddress<m_IDirect3DSwapChain9Ex>(*ppvObj, riid);
+		*ppvObj = m_pDeviceEx->GetLookupTable()->FindAddress<m_IDirect3DSwapChain9Ex, m_IDirect3DDevice9Ex, LPVOID>(*ppvObj, m_pDeviceEx, riid, nullptr);
 		return;
 	}
 
 #define QUERYINTERFACE(x) \
 	if (riid == IID_ ## x) \
 		{ \
-			*ppvObj = m_pDeviceEx->ProxyAddressLookupTable->FindAddress<m_ ## x>(*ppvObj); \
+			*ppvObj = m_pDeviceEx->GetLookupTable()->FindAddress<m_ ## x, m_IDirect3DDevice9Ex, LPVOID>(*ppvObj, m_pDeviceEx, riid, nullptr); \
 			return; \
 		}
 
@@ -73,4 +81,6 @@ void WINAPI D3d9Wrapper::genericQueryInterface(REFIID riid, LPVOID *ppvObj, m_ID
 	QUERYINTERFACE(IDirect3DVertexShader9);
 	QUERYINTERFACE(IDirect3DVolume9);
 	QUERYINTERFACE(IDirect3DVolumeTexture9);
+
+	LOG_LIMIT(100, __FUNCTION__ << " Warning: not wrapping interface: " << riid);
 }

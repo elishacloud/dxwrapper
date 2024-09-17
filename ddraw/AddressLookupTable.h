@@ -11,6 +11,7 @@ class AddressLookupTableDdraw
 private:
 	bool ConstructorFlag = false;
 	std::unordered_map<void*, class AddressLookupTableDdrawObject*> g_map[MaxIndex];
+	std::unordered_map<class AddressLookupTableDdrawObject*, void*> reverse_map[MaxIndex];  // Reverse mapping
 
 	template <typename T>
 	struct AddressCacheIndex { static constexpr UINT CacheIndex = 0; };
@@ -309,10 +310,9 @@ public:
 		}
 
 		constexpr UINT CacheIndex = AddressCacheIndex<T>::CacheIndex;
-		auto it = std::find_if(g_map[CacheIndex].begin(), g_map[CacheIndex].end(),
-			[=](auto Map) -> bool { return Map.second == Wrapper; });
+		auto it = reverse_map[CacheIndex].find(Wrapper);
 
-		if (it != std::end(g_map[CacheIndex]))
+		if (it != reverse_map[CacheIndex].end())
 		{
 			return true;
 		}
@@ -339,6 +339,15 @@ public:
 		return false;
 	}
 
+	bool CheckSurfaceExists(LPDIRECTDRAWSURFACE7 lpDDSrcSurface) {
+		return
+			(IsValidWrapperAddress((m_IDirectDrawSurface*)lpDDSrcSurface) ||
+				IsValidWrapperAddress((m_IDirectDrawSurface2*)lpDDSrcSurface) ||
+				IsValidWrapperAddress((m_IDirectDrawSurface3*)lpDDSrcSurface) ||
+				IsValidWrapperAddress((m_IDirectDrawSurface4*)lpDDSrcSurface) ||
+				IsValidWrapperAddress((m_IDirectDrawSurface7*)lpDDSrcSurface));
+	}
+
 	template <typename T>
 	void SaveAddress(T *Wrapper, void *Proxy)
 	{
@@ -346,6 +355,7 @@ public:
 		if (Wrapper && Proxy)
 		{
 			g_map[CacheIndex][Proxy] = Wrapper;
+			reverse_map[CacheIndex][Wrapper] = Proxy;  // Update reverse map
 		}
 	}
 
@@ -358,13 +368,19 @@ public:
 		}
 
 		constexpr UINT CacheIndex = AddressCacheIndex<T>::CacheIndex;
-		auto it = std::find_if(g_map[CacheIndex].begin(), g_map[CacheIndex].end(),
-			[=](auto Map) -> bool { return Map.second == Wrapper; });
 
-		if (it != std::end(g_map[CacheIndex]))
+		// Remove from g_map
+		for (auto it = g_map[CacheIndex].begin(); it != g_map[CacheIndex].end(); ++it)
 		{
-			it = g_map[CacheIndex].erase(it);
+			if (it->second == Wrapper)
+			{
+				g_map[CacheIndex].erase(it);
+				break;
+			}
 		}
+
+		// Remove from reverse_map
+		reverse_map[CacheIndex].erase(Wrapper);
 
 #pragma warning (push)
 #pragma warning (disable : 4127)

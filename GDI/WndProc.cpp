@@ -84,15 +84,20 @@ namespace WndProc
 		~WNDPROCSTRUCT()
 		{
 			Exiting = true;
+			Active = false;
+			if (Config.Exiting)
+			{
+				AppWndProc = (IsWindowUnicode(hWnd) ? DefWindowProcW : DefWindowProcA);
+				(IsWindowUnicode(hWnd) ?
+					SetWindowLongW(hWnd, GWL_WNDPROC, (LONG)DefWindowProcW) :
+					SetWindowLongA(hWnd, GWL_WNDPROC, (LONG)DefWindowProcA));
+				return;
+			}
 			// Restore WndProc
 			if (IsWindow(hWnd) && AppWndProc)
 			{
 				LOG_LIMIT(100, __FUNCTION__ << " Deleting WndProc instance! " << hWnd);
 				SetWndProc(hWnd, AppWndProc);
-			}
-			if (Config.Exiting)
-			{
-				return;
 			}
 			// Restore the memory protection
 			if (MyWndProc)
@@ -248,7 +253,10 @@ LRESULT CALLBACK WndProc::Handler(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lPa
 
 	// Handle debug overlay
 #ifdef ENABLE_DEBUGOVERLAY
-	ImGuiWndProc(hWnd, Msg, wParam, lParam);
+	if (Config.EnableImgui)
+	{
+		ImGuiWndProc(hWnd, Msg, wParam, lParam);
+	}
 #endif
 
 	LRESULT lr = CallWndProc(pWndProc, hWnd, Msg, wParam, lParam);

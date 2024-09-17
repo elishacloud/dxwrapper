@@ -72,6 +72,8 @@ void InitDDraw()
 		DestroyWindow_out = (FARPROC)Hook::HotPatch(Hook::GetProcAddress(LoadLibrary("user32.dll"), "DestroyWindow"), "DestroyWindow", user_DestroyWindow);
 		GetSystemMetrics_out = (FARPROC)Hook::HotPatch(Hook::GetProcAddress(LoadLibrary("user32.dll"), "GetSystemMetrics"), "GetSystemMetrics", user_GetSystemMetrics);
 		Utils::GetDiskFreeSpaceA_out = (FARPROC)Hook::HotPatch(Hook::GetProcAddress(LoadLibrary("kernel32.dll"), "GetDiskFreeSpaceA"), "GetDiskFreeSpaceA", Utils::kernel_GetDiskFreeSpaceA);
+		Utils::CreateThread_out = (FARPROC)Hook::HotPatch(Hook::GetProcAddress(LoadLibrary("kernel32.dll"), "CreateThread"), "CreateThread", Utils::kernel_CreateThread);
+		Utils::VirtualAlloc_out = (FARPROC)Hook::HotPatch(Hook::GetProcAddress(LoadLibrary("kernel32.dll"), "VirtualAlloc"), "VirtualAlloc", Utils::kernel_VirtualAlloc);
 		if (EnableWndProcHook)
 		{
 			SetWindowLongA_out = (FARPROC)Hook::HotPatch(Hook::GetProcAddress(LoadLibrary("user32.dll"), "SetWindowLongA"), "SetWindowLongA", user_SetWindowLongA);

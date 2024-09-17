@@ -196,7 +196,7 @@ HRESULT m_IDirectDrawSurface::GetDC(HDC FAR * a)
 		}
 		return DDERR_INVALIDOBJECT;
 	}
-	return ProxyInterface->GetDC(a);
+	return ProxyInterface->GetDC(a, MipMapLevel);
 }
 
 HRESULT m_IDirectDrawSurface::GetFlipStatus(DWORD a)

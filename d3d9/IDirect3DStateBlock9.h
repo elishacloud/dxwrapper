@@ -5,13 +5,14 @@ class m_IDirect3DStateBlock9 : public IDirect3DStateBlock9, public AddressLookup
 private:
 	LPDIRECT3DSTATEBLOCK9 ProxyInterface;
 	m_IDirect3DDevice9Ex* m_pDeviceEx;
+	REFIID WrapperID = IID_IDirect3DStateBlock9;
 
 public:
 	m_IDirect3DStateBlock9(LPDIRECT3DSTATEBLOCK9 pBlock9, m_IDirect3DDevice9Ex* pDevice) : ProxyInterface(pBlock9), m_pDeviceEx(pDevice)
 	{
 		LOG_LIMIT(3, "Creating interface " << __FUNCTION__ << " (" << this << ")");
 
-		pDevice->ProxyAddressLookupTable->SaveAddress(this, ProxyInterface);
+		m_pDeviceEx->GetLookupTable()->SaveAddress(this, ProxyInterface);
 	}
 	~m_IDirect3DStateBlock9()
 	{

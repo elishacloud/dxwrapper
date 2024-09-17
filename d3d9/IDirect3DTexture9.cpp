@@ -18,15 +18,18 @@
 
 HRESULT m_IDirect3DTexture9::QueryInterface(THIS_ REFIID riid, void** ppvObj)
 {
-	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
+	Logging::LogDebug() << __FUNCTION__ << " (" << this << ") " << riid;
 
-	if ((riid == IID_IDirect3DTexture9 || riid == IID_IUnknown || riid == IID_IDirect3DResource9 || riid == IID_IDirect3DBaseTexture9) && ppvObj)
+	if (riid == IID_IUnknown || riid == WrapperID || riid == IID_IDirect3DBaseTexture9 || riid == IID_IDirect3DResource9)
 	{
-		AddRef();
+		HRESULT hr = ProxyInterface->QueryInterface(WrapperID, ppvObj);
 
-		*ppvObj = this;
+		if (SUCCEEDED(hr))
+		{
+			*ppvObj = this;
+		}
 
-		return D3D_OK;
+		return hr;
 	}
 
 	HRESULT hr = ProxyInterface->QueryInterface(riid, ppvObj);
@@ -62,11 +65,7 @@ HRESULT m_IDirect3DTexture9::GetDevice(THIS_ IDirect3DDevice9** ppDevice)
 		return D3DERR_INVALIDCALL;
 	}
 
-	m_pDeviceEx->AddRef();
-
-	*ppDevice = m_pDeviceEx;
-
-	return D3D_OK;
+	return m_pDeviceEx->QueryInterface(m_pDeviceEx->GetIID(), (LPVOID*)ppDevice);
 }
 
 HRESULT m_IDirect3DTexture9::SetPrivateData(THIS_ REFGUID refguid, CONST void* pData, DWORD SizeOfData, DWORD Flags)
@@ -175,7 +174,7 @@ HRESULT m_IDirect3DTexture9::GetSurfaceLevel(THIS_ UINT Level, IDirect3DSurface9
 
 	if (SUCCEEDED(hr) && ppSurfaceLevel)
 	{
-		*ppSurfaceLevel = m_pDeviceEx->ProxyAddressLookupTable->FindAddress<m_IDirect3DSurface9>(*ppSurfaceLevel);
+		*ppSurfaceLevel = m_pDeviceEx->GetLookupTable()->FindAddress<m_IDirect3DSurface9, m_IDirect3DDevice9Ex, LPVOID>(*ppSurfaceLevel, m_pDeviceEx, IID_IDirect3DSurface9, nullptr);
 	}
 
 	return hr;

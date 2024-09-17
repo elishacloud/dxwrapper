@@ -18,11 +18,11 @@ private:
 	HWND chWnd = nullptr;
 
 	// Store ddraw version wrappers
-	m_IDirectDraw *WrapperInterface;
-	m_IDirectDraw2 *WrapperInterface2;
-	m_IDirectDraw3 *WrapperInterface3;
-	m_IDirectDraw4 *WrapperInterface4;
-	m_IDirectDraw7 *WrapperInterface7;
+	m_IDirectDraw *WrapperInterface = nullptr;
+	m_IDirectDraw2 *WrapperInterface2 = nullptr;
+	m_IDirectDraw3 *WrapperInterface3 = nullptr;
+	m_IDirectDraw4 *WrapperInterface4 = nullptr;
+	m_IDirectDraw7 *WrapperInterface7 = nullptr;
 
 	// Store primary surface
 	m_IDirectDrawSurfaceX *PrimarySurface = nullptr;
@@ -78,9 +78,6 @@ private:
 	// Interface initialization functions
 	void InitDdraw(DWORD DirectXVersion);
 	void ReleaseDdraw();
-
-	// Get texture memory
-	void GetTextureMemory(DWORD &AvailableMemory);
 
 	// Direct3D9 interface functions
 	HRESULT CheckInterface(char *FunctionName, bool CheckD3DDevice);
@@ -184,7 +181,6 @@ public:
 	inline void Enable3D() { Using3D = true; }
 	inline bool IsUsing3D() { return Using3D; }
 	inline bool IsPrimaryRenderTarget() { return PrimarySurface ? PrimarySurface->IsRenderTarget() : false; }
-	inline bool IsPrimaryFlipSurface() { return PrimarySurface ? PrimarySurface->IsFlipSurface() : false; }
 	bool IsInScene();
 
 	// Direct3D9 interfaces
@@ -193,6 +189,7 @@ public:
 	LPDIRECT3DDEVICE9 *GetDirect3D9Device();
 	bool CreatePaletteShader();
 	LPDIRECT3DPIXELSHADER9* GetColorKeyShader();
+	LPDIRECT3DVERTEXBUFFER9 GetValidateDeviceVertexBuffer(DWORD& FVF, DWORD& Size);
 	D3DMULTISAMPLE_TYPE GetMultiSampleTypeQuality(D3DFORMAT Format, DWORD MaxSampleType, DWORD& QualityLevels);
 	HRESULT CreateD3D9Device();
 	HRESULT CreateVertexBuffer(DWORD Width, DWORD Height);

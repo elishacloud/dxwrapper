@@ -1,8 +1,52 @@
 #pragma once
 
-#include "GDI\GDI.h"
+#include "Utils\Utils.h"
 
-class m_IDirect3DDevice9Ex : public IDirect3DDevice9Ex
+static constexpr size_t MAX_CLIP_PLANES = 6;
+
+struct DEVICEDETAILS
+{
+	// Window handle and size
+	HWND DeviceWindow = nullptr;
+	LONG BufferWidth = 0, BufferHeight = 0;
+	LONG screenWidth = 0, screenHeight = 0;
+
+	std::unordered_map<m_IDirect3DDevice9Ex*, BOOL> DeviceMap;
+
+	AddressLookupTableD3d9 ProxyAddressLookupTable9;
+
+	D3DCAPS9 Caps = {};
+
+	// Limit frame rate
+	struct {
+		DWORD FrameCounter = 0;
+		LARGE_INTEGER Frequency = {}, ClickTime = {}, LastPresentTime = {};
+	} Counter;
+
+	// For AntiAliasing
+	bool DeviceMultiSampleFlag = false;
+	bool SetSSAA = false;
+	D3DMULTISAMPLE_TYPE DeviceMultiSampleType = D3DMULTISAMPLE_NONE;
+	DWORD DeviceMultiSampleQuality = 0;
+
+	// Anisotropic Filtering
+	DWORD MaxAnisotropy = 0;
+	bool isAnisotropySet = false;
+	bool AnisotropyDisabledFlag = false;	// Tracks when Anisotropic Fintering was disabled becasue lack of multi-stage texture support
+
+	// For CacheClipPlane
+	bool isClipPlaneSet = false;
+	DWORD m_clipPlaneRenderState = 0;
+	float m_storedClipPlanes[MAX_CLIP_PLANES][4] = {};
+};
+
+extern std::unordered_map<UINT, DEVICEDETAILS> DeviceDetailsMap;
+
+#include "IDirect3D9Ex.h"
+
+#define SHARED DeviceDetailsMap[DDKey]
+
+class m_IDirect3DDevice9Ex : public IDirect3DDevice9Ex, public AddressLookupTableD3d9Object
 {
 private:
 	LPDIRECT3DDEVICE9 ProxyInterface;
@@ -10,33 +54,17 @@ private:
 	m_IDirect3D9Ex* m_pD3DEx;
 	REFIID WrapperID;
 
-	D3DCAPS9 Caps = {};
-
-	DEVICEDETAILS DeviceDetails;
-
-	LONG screenWidth, screenHeight;
-
-	bool SetSSAA = false;
+	UINT DDKey;
 
 	// Limit frame rate
-	struct {
-		DWORD FrameCounter = 0;
-		LARGE_INTEGER Frequency = {}, ClickTime = {}, LastPresentTime = {};
-	} Counter;
 	void LimitFrameRate();
 
+	// For gamma
+	bool WasGammaSet = false;
+
 	// Anisotropic Filtering
-	DWORD MaxAnisotropy = 0;
-	bool isAnisotropySet = false;
-	bool AnisotropyDisabledFlag = false;	// Tracks when Anisotropic Fintering was disabled becasue lack of multi-stage texture support
 	void DisableAnisotropicSamplerState(bool AnisotropyMin, bool AnisotropyMag);
 	void ReeableAnisotropicSamplerState();
-
-	// For CacheClipPlane
-	bool isClipPlaneSet = false;
-	DWORD m_clipPlaneRenderState = 0;
-	static constexpr size_t MAX_CLIP_PLANES = 6;
-	float m_storedClipPlanes[MAX_CLIP_PLANES][4];
 
 	// For Reset & ResetEx
 	void ReInitDevice();
@@ -51,53 +79,44 @@ private:
 	{ return (ProxyInterfaceEx) ? ProxyInterfaceEx->ResetEx(pPresentationParameters, pFullscreenDisplayMode) : D3DERR_INVALIDCALL; }
 
 public:
-	m_IDirect3DDevice9Ex(LPDIRECT3DDEVICE9EX pDevice, m_IDirect3D9Ex* pD3D, REFIID DeviceID = IID_IUnknown) : ProxyInterface(pDevice), m_pD3DEx(pD3D), WrapperID(DeviceID)
+	m_IDirect3DDevice9Ex(LPDIRECT3DDEVICE9EX pDevice, m_IDirect3D9Ex* pD3D, REFIID DeviceID, UINT Key) : ProxyInterface(pDevice), m_pD3DEx(pD3D), WrapperID(DeviceID), DDKey(Key)
 	{
-		if (WrapperID == IID_IUnknown)
-		{
-			Logging::Log() << "Warning: Creating interface " << __FUNCTION__ << " (" << this << ") with unknown IID";
-		}
-		InitDirect3DDevice(pDevice);
-	}
-	m_IDirect3DDevice9Ex(LPDIRECT3DDEVICE9EX pDevice, m_IDirect3D9Ex* pD3D, REFIID DeviceID, DEVICEDETAILS NewDeviceDetails) :
-		ProxyInterface(pDevice), m_pD3DEx(pD3D), WrapperID(DeviceID), DeviceDetails(NewDeviceDetails)
-	{
-		InitDirect3DDevice(pDevice);
-
-		// Check for SSAA
-		if (DeviceDetails.DeviceMultiSampleType && m_pD3DEx &&
-			m_pD3DEx->CheckDeviceFormat(D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, D3DFMT_X8R8G8B8, 0, D3DRTYPE_SURFACE, (D3DFORMAT)MAKEFOURCC('S', 'S', 'A', 'A')) == S_OK)
-		{
-			SetSSAA = true;
-		}
-	}
-	void InitDirect3DDevice(LPDIRECT3DDEVICE9EX pDevice)
-	{
-		LOG_LIMIT(3, "Creating interface " << __FUNCTION__ << " (" << this << ")");
+		LOG_LIMIT(3, "Creating interface " << __FUNCTION__ << " (" << this << ") " << WrapperID);
 
 		if (WrapperID == IID_IDirect3DDevice9Ex)
 		{
 			ProxyInterfaceEx = pDevice;
 		}
 
+		// Check for SSAA
+		if (SHARED.DeviceMultiSampleType && m_pD3DEx &&
+			m_pD3DEx->CheckDeviceFormat(D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, D3DFMT_X8R8G8B8, 0, D3DRTYPE_SURFACE, (D3DFORMAT)MAKEFOURCC('S', 'S', 'A', 'A')) == S_OK)
+		{
+			SHARED.SetSSAA = true;
+		}
+
 		ReInitDevice();
 
-		ProxyAddressLookupTable = new AddressLookupTableD3d9<m_IDirect3DDevice9Ex>(this);
+		SHARED.DeviceMap[this] = TRUE;
+
+		SHARED.ProxyAddressLookupTable9.SaveAddress(this, ProxyInterface);
 	}
 	~m_IDirect3DDevice9Ex()
 	{
 		LOG_LIMIT(3, __FUNCTION__ << " (" << this << ")" << " deleting interface!");
 
+		// Reset gamma
+		if (WasGammaSet)
+		{
+			Utils::ResetGamma();
+		}
+
 		// Remove WndProc after releasing d3d9 device
 		if (EnableWndProcHook)
 		{
-			WndProc::RemoveWndProc(DeviceDetails.DeviceWindow);
+			WndProc::RemoveWndProc(SHARED.DeviceWindow);
 		}
-
-		delete ProxyAddressLookupTable;
 	}
-
-	AddressLookupTableD3d9<m_IDirect3DDevice9Ex> *ProxyAddressLookupTable;
 
 	/*** IUnknown methods ***/
 	STDMETHOD(QueryInterface)(THIS_ REFIID riid, void** ppvObj);
@@ -245,5 +264,8 @@ public:
 
 	// Helper functions
 	inline LPDIRECT3DDEVICE9 GetProxyInterface() { return ProxyInterface; }
-	inline D3DMULTISAMPLE_TYPE GetMultiSampleType() { return DeviceDetails.DeviceMultiSampleType; }
+	inline AddressLookupTableD3d9* GetLookupTable() { return &SHARED.ProxyAddressLookupTable9; }
+	inline D3DMULTISAMPLE_TYPE GetMultiSampleType() { return SHARED.DeviceMultiSampleType; }
+	REFIID GetIID() { return WrapperID; }
 };
+#undef SHARED

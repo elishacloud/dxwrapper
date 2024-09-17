@@ -119,7 +119,7 @@ namespace Compat32
 				}
 				//********** End Edit ***************
 
-				Compat32::closeDbgEng();
+				//Compat32::closeDbgEng();
 				Gdi::PresentationWindow::startThread();
 				Compat32::Log() << "Finished installing hooks";
 				isAlreadyInstalled = true;
@@ -204,6 +204,7 @@ namespace Compat32
 		if (RunOnce && !DDrawCompat::IsEnabled())
 		{
 			RunOnce = false;
+			Dll::g_currentModule = hModule_dll;
 			Time::init();
 			Compat32::Log() << "Installing memory management hooks";
 			Win32::MemoryManagement::installHooks();
@@ -225,20 +226,13 @@ namespace Compat32
 				Compat32::Log() << "Installing GDI hooks";
 				Gdi::installHooks();
 			}
-			Compat32::closeDbgEng();
+			//Compat32::closeDbgEng();
 		}
 	}
 	//********** End Edit ***************
 
 	BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpvReserved)
 	{
-		static bool skipDllMain = false;
-		if (skipDllMain)
-		{
-			skipDllMain = true;
-			return TRUE;
-		}
-
 		if (fdwReason == DLL_PROCESS_ATTACH)
 		{
 			Dll::g_currentModule = hinstDLL;
@@ -322,7 +316,7 @@ namespace Compat32
 				Win32::MemoryManagement::installHooks();
 				Win32::MsgHooks::installHooks();
 				Time::init();
-				Compat32::closeDbgEng();
+				//Compat32::closeDbgEng();
 			}
 
 			//********** Begin Edit *************

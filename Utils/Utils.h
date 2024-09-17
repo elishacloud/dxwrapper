@@ -13,6 +13,8 @@ namespace Utils
 	EXPORT_OUT_WRAPPED_PROC(GetModuleFileNameA, unused);
 	EXPORT_OUT_WRAPPED_PROC(GetModuleFileNameW, unused);
 	EXPORT_OUT_WRAPPED_PROC(GetDiskFreeSpaceA, unused);
+	EXPORT_OUT_WRAPPED_PROC(CreateThread, unused);
+	EXPORT_OUT_WRAPPED_PROC(VirtualAlloc, unused);
 
 	void Shell(const char*);
 	void DisableHighDPIScaling();
@@ -23,6 +25,8 @@ namespace Utils
 	DWORD WINAPI GetModuleFileNameAHandler(HMODULE hModule, LPSTR lpFilename, DWORD nSize);
 	DWORD WINAPI GetModuleFileNameWHandler(HMODULE hModule, LPWSTR lpFilename, DWORD nSize);
 	BOOL WINAPI kernel_GetDiskFreeSpaceA(LPCSTR lpRootPathName, LPDWORD lpSectorsPerCluster, LPDWORD lpBytesPerSector, LPDWORD lpNumberOfFreeClusters, LPDWORD lpTotalNumberOfClusters);
+	HANDLE WINAPI kernel_CreateThread(LPSECURITY_ATTRIBUTES lpThreadAttributes, SIZE_T dwStackSize, LPTHREAD_START_ROUTINE lpStartAddress, LPVOID lpParameter, DWORD dwCreationFlags, LPDWORD lpThreadId);
+	LPVOID WINAPI kernel_VirtualAlloc(LPVOID lpAddress, SIZE_T dwSize, DWORD flAllocationType, DWORD flProtect);
 	void HookExceptionHandler();
 	void UnHookExceptionHandler();
 	void AddHandleToVector(HMODULE dll, const char *name);
@@ -37,8 +41,12 @@ namespace Utils
 	void BusyWaitYield();
 	void ResetInvalidFPUState();
 	void CheckMessageQueue(HWND hwnd);
+	bool IsWindowsVistaOrNewer();
+	bool IsWindows7OrNewer();
+	bool IsWindows8OrNewer();
 	void GetScreenSettings();
 	void ResetScreenSettings();
+	void ResetGamma();
 	bool IsWindowRectEqualOrLarger(HWND srchWnd, HWND desthWnd);
 	HWND GetTopLevelWindowOfCurrentProcess();
 	HMONITOR GetMonitorHandle(HWND hWnd);
@@ -46,12 +54,13 @@ namespace Utils
 	DWORD GetBitCount(HWND hWnd);
 	DWORD GetThreadIDByHandle(HANDLE hThread);
 	void DisableGameUX();
+	void WaitForWindowActions(HWND hWnd, DWORD Loops);
 	bool SetWndProcFilter(HWND hWnd);
 	bool RestoreWndProcFilter(HWND hWnd);
 	void GetScreenSize(HWND hwnd, LONG &screenWidth, LONG &screenHeight);
 	void GetScreenSize(HWND hwnd, int &screenWidth, int &screenHeight);
 	void GetDesktopRect(HWND hWnd, RECT& screenRect);
-	DWORD GetVideoRam(UINT AdapterNo);	// Adapters start numbering from '1', based on "Win32_VideoController" WMI class and "DeviceID" property.
+	HRESULT GetVideoRam(UINT AdapterNo, DWORD& TotalMemory);	// Adapters start numbering from '1', based on "Win32_VideoController" WMI class and "DeviceID" property.
 }
 
 namespace WriteMemory

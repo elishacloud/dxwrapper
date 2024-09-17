@@ -1,6 +1,7 @@
 #pragma once
 
 #include "d3d9External.h"
+#include "GDI\GDI.h"
 
 class m_IDirect3D9Ex;
 class m_IDirect3DDevice9Ex;
@@ -34,28 +35,13 @@ typedef HRESULT(WINAPI* Direct3DCreate9ExProc)(UINT, IDirect3D9Ex**);
 typedef IDirect3D9* (WINAPI* Direct3DCreate9On12Proc)(UINT SDKVersion, D3D9ON12_ARGS* pOverrideList, UINT NumOverrideEntries);
 typedef HRESULT(WINAPI* Direct3DCreate9On12ExProc)(UINT SDKVersion, D3D9ON12_ARGS* pOverrideList, UINT NumOverrideEntries, IDirect3D9Ex** ppOutputInterface);
 
-struct DEVICEDETAILS
-{
-	// Window handle and size
-	HWND DeviceWindow = nullptr;
-	LONG BufferWidth = 0, BufferHeight = 0;
-
-	// For AntiAliasing
-	bool DeviceMultiSampleFlag = false;
-	D3DMULTISAMPLE_TYPE DeviceMultiSampleType = D3DMULTISAMPLE_NONE;
-	DWORD DeviceMultiSampleQuality = 0;
-};
-
 DWORD UpdateBehaviorFlags(DWORD BehaviorFlags);
-void UpdatePresentParameter(D3DPRESENT_PARAMETERS* pPresentationParameters, HWND hFocusWindow, DEVICEDETAILS& DeviceDetails, bool ForceExclusiveFullscreen, bool SetWindow);
-void UpdatePresentParameterForMultisample(D3DPRESENT_PARAMETERS* pPresentationParameters, D3DMULTISAMPLE_TYPE MultiSampleType, DWORD MultiSampleQuality);
 
 namespace D3d9Wrapper
 {
 	void WINAPI genericQueryInterface(REFIID riid, LPVOID* ppvObj, m_IDirect3DDevice9Ex* m_pDeviceEx);
 }
 
-#include "IDirect3D9Ex.h"
 #include "IDirect3DDevice9Ex.h"
 #include "IDirect3DCubeTexture9.h"
 #include "IDirect3DIndexBuffer9.h"

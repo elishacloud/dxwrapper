@@ -14,8 +14,8 @@ private:
 	DWORD tHandle = 0;
 
 	// Store d3d texture version wrappers
-	m_IDirect3DTexture *WrapperInterface;
-	m_IDirect3DTexture2 *WrapperInterface2;
+	m_IDirect3DTexture *WrapperInterface = nullptr;
+	m_IDirect3DTexture2 *WrapperInterface2 = nullptr;
 
 	// Wrapper interface functions
 	inline REFIID GetWrapperType(DWORD DirectXVersion)

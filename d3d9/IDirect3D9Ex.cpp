@@ -20,22 +20,52 @@
 // WndProc hook
 bool EnableWndProcHook = false;
 
-void AdjustWindow(HWND MainhWnd, LONG displayWidth, LONG displayHeight);
+AddressLookupTableD3d9 ProxyAddressLookupTable9;		// Just used for m_IDirect3D9Ex interfaces only
+
+void AdjustWindow(HWND MainhWnd, LONG displayWidth, LONG displayHeight, bool isWindowed);
+
+void m_IDirect3D9Ex::InitInterface()
+{
+	EnableWndProcHook = (EnableWndProcHook || Config.EnableImgui);
+
+	ProxyAddressLookupTable9.SaveAddress(this, ProxyInterface);
+}
+void m_IDirect3D9Ex::ReleaseInterface()
+{
+	ProxyAddressLookupTable9.DeleteAddress(this);
+}
 
 HRESULT m_IDirect3D9Ex::QueryInterface(REFIID riid, void** ppvObj)
 {
-	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
+	Logging::LogDebug() << __FUNCTION__ << " (" << this << ") " << riid;
 
-	if ((riid == IID_IUnknown || riid == WrapperID) && ppvObj)
+	if (riid == IID_IUnknown || riid == WrapperID)
 	{
-		AddRef();
+		HRESULT hr = ProxyInterface->QueryInterface(WrapperID, ppvObj);
 
-		*ppvObj = this;
+		if (SUCCEEDED(hr))
+		{
+			*ppvObj = this;
+		}
 
-		return D3D_OK;
+		return hr;
 	}
 
-	return ProxyInterface->QueryInterface(riid, ppvObj);
+	HRESULT hr = ProxyInterface->QueryInterface(riid, ppvObj);
+
+	if (SUCCEEDED(hr))
+	{
+		if (riid == IID_IDirect3D9 || riid == IID_IDirect3D9Ex)
+		{
+			*ppvObj = ProxyAddressLookupTable9.FindAddress<m_IDirect3D9Ex, void, LPVOID>(*ppvObj, nullptr, riid, nullptr);
+		}
+		else
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Warning: not wrapping interface: " << riid);
+		}
+	}
+
+	return hr;
 }
 
 ULONG m_IDirect3D9Ex::AddRef()
@@ -182,7 +212,7 @@ HRESULT m_IDirect3D9Ex::CheckDeviceFormatConversion(THIS_ UINT Adapter, D3DDEVTY
 }
 
 template <typename T>
-HRESULT m_IDirect3D9Ex::CreateDeviceT(D3DPRESENT_PARAMETERS& d3dpp, bool& MultiSampleFlag, UINT Adapter, D3DDEVTYPE DeviceType, HWND hFocusWindow, DWORD BehaviorFlags, D3DPRESENT_PARAMETERS* pPresentationParameters, D3DDISPLAYMODEEX* pFullscreenDisplayMode, T ppReturnedDeviceInterface)
+HRESULT m_IDirect3D9Ex::CreateDeviceT(D3DPRESENT_PARAMETERS& d3dpp, bool& MultiSampleFlag, UINT Adapter, D3DDEVTYPE DeviceType, HWND hFocusWindow, DWORD BehaviorFlags, D3DPRESENT_PARAMETERS* pPresentationParameters, DEVICEDETAILS& DeviceDetails, D3DDISPLAYMODEEX* pFullscreenDisplayMode, T ppReturnedDeviceInterface)
 {
 	if (!pPresentationParameters || !ppReturnedDeviceInterface)
 	{
@@ -255,6 +285,11 @@ HRESULT m_IDirect3D9Ex::CreateDeviceT(D3DPRESENT_PARAMETERS& d3dpp, bool& MultiS
 		hr = CreateDeviceT(Adapter, DeviceType, hFocusWindow, BehaviorFlags, &d3dpp, (d3dpp.Windowed) ? nullptr : pFullscreenDisplayMode, ppReturnedDeviceInterface);
 	}
 
+	if (SUCCEEDED(hr))
+	{
+		GetFinalPresentParameter(&d3dpp, DeviceDetails);
+	}
+
 	return hr;
 }
 
@@ -267,10 +302,12 @@ HRESULT m_IDirect3D9Ex::CreateDevice(UINT Adapter, D3DDEVTYPE DeviceType, HWND h
 		return D3DERR_INVALIDCALL;
 	}
 
+	DEVICEDETAILS DeviceDetails;
+
 	bool MultiSampleFlag = false;
 	D3DPRESENT_PARAMETERS d3dpp;
 
-	HRESULT hr = CreateDeviceT(d3dpp, MultiSampleFlag, Adapter, DeviceType, hFocusWindow, BehaviorFlags, pPresentationParameters, nullptr, ppReturnedDeviceInterface);
+	HRESULT hr = CreateDeviceT(d3dpp, MultiSampleFlag, Adapter, DeviceType, hFocusWindow, BehaviorFlags, pPresentationParameters, DeviceDetails, nullptr, ppReturnedDeviceInterface);
 
 	if (SUCCEEDED(hr))
 	{
@@ -280,7 +317,10 @@ HRESULT m_IDirect3D9Ex::CreateDevice(UINT Adapter, D3DDEVTYPE DeviceType, HWND h
 		DeviceDetails.DeviceMultiSampleType = pPresentationParameters->MultiSampleType;
 		DeviceDetails.DeviceMultiSampleQuality = pPresentationParameters->MultiSampleQuality;
 
-		*ppReturnedDeviceInterface = new m_IDirect3DDevice9Ex((LPDIRECT3DDEVICE9EX)*ppReturnedDeviceInterface, this, IID_IDirect3DDevice9, DeviceDetails);
+		UINT DDKey = (UINT)ppReturnedDeviceInterface + (UINT)*ppReturnedDeviceInterface + (UINT)DeviceDetails.DeviceWindow;
+		DeviceDetailsMap[DDKey] = DeviceDetails;
+
+		*ppReturnedDeviceInterface = new m_IDirect3DDevice9Ex((LPDIRECT3DDEVICE9EX)*ppReturnedDeviceInterface, this, IID_IDirect3DDevice9, DDKey);
 
 		return D3D_OK;
 	}
@@ -337,10 +377,12 @@ HRESULT m_IDirect3D9Ex::CreateDeviceEx(THIS_ UINT Adapter, D3DDEVTYPE DeviceType
 		return D3DERR_INVALIDCALL;
 	}
 
+	DEVICEDETAILS DeviceDetails;
+
 	bool MultiSampleFlag = false;
 	D3DPRESENT_PARAMETERS d3dpp;
 
-	HRESULT hr = CreateDeviceT(d3dpp, MultiSampleFlag, Adapter, DeviceType, hFocusWindow, BehaviorFlags, pPresentationParameters, pFullscreenDisplayMode, ppReturnedDeviceInterface);
+	HRESULT hr = CreateDeviceT(d3dpp, MultiSampleFlag, Adapter, DeviceType, hFocusWindow, BehaviorFlags, pPresentationParameters, DeviceDetails, pFullscreenDisplayMode, ppReturnedDeviceInterface);
 
 	if (SUCCEEDED(hr))
 	{
@@ -350,7 +392,10 @@ HRESULT m_IDirect3D9Ex::CreateDeviceEx(THIS_ UINT Adapter, D3DDEVTYPE DeviceType
 		DeviceDetails.DeviceMultiSampleType = pPresentationParameters->MultiSampleType;
 		DeviceDetails.DeviceMultiSampleQuality = pPresentationParameters->MultiSampleQuality;
 
-		*ppReturnedDeviceInterface = new m_IDirect3DDevice9Ex(*ppReturnedDeviceInterface, this, IID_IDirect3DDevice9Ex, DeviceDetails);
+		UINT DDKey = (UINT)ppReturnedDeviceInterface + (UINT)*ppReturnedDeviceInterface + (UINT)DeviceDetails.DeviceWindow;
+		DeviceDetailsMap[DDKey] = DeviceDetails;
+
+		*ppReturnedDeviceInterface = new m_IDirect3DDevice9Ex(*ppReturnedDeviceInterface, this, IID_IDirect3DDevice9Ex, DDKey);
 
 		return D3D_OK;
 	}
@@ -403,7 +448,8 @@ bool m_IDirect3D9Ex::TestResolution(UINT Adapter, DWORD BackBufferWidth, DWORD B
 
 DWORD UpdateBehaviorFlags(DWORD BehaviorFlags)
 {
-	if (Config.ForceMixedVertexProcessing)
+	if (Config.ForceMixedVertexProcessing || (BehaviorFlags & D3DCREATE_MIXED_VERTEXPROCESSING) ||
+		((BehaviorFlags & D3DCREATE_SOFTWARE_VERTEXPROCESSING) && (BehaviorFlags & D3DCREATE_HARDWARE_VERTEXPROCESSING)))
 	{
 		BehaviorFlags &= ~(D3DCREATE_PUREDEVICE | D3DCREATE_HARDWARE_VERTEXPROCESSING | D3DCREATE_SOFTWARE_VERTEXPROCESSING);
 		BehaviorFlags |= D3DCREATE_MIXED_VERTEXPROCESSING;
@@ -413,14 +459,9 @@ DWORD UpdateBehaviorFlags(DWORD BehaviorFlags)
 		BehaviorFlags &= ~(D3DCREATE_PUREDEVICE | D3DCREATE_HARDWARE_VERTEXPROCESSING | D3DCREATE_MIXED_VERTEXPROCESSING);
 		BehaviorFlags |= D3DCREATE_SOFTWARE_VERTEXPROCESSING;
 	}
-	else if (BehaviorFlags & D3DCREATE_MIXED_VERTEXPROCESSING)
+	else
 	{
-		BehaviorFlags &= ~(D3DCREATE_PUREDEVICE | D3DCREATE_HARDWARE_VERTEXPROCESSING | D3DCREATE_SOFTWARE_VERTEXPROCESSING);
-		BehaviorFlags |= D3DCREATE_MIXED_VERTEXPROCESSING;
-	}
-	else if (BehaviorFlags & D3DCREATE_HARDWARE_VERTEXPROCESSING)
-	{
-		BehaviorFlags &= ~(D3DCREATE_MIXED_VERTEXPROCESSING | D3DCREATE_SOFTWARE_VERTEXPROCESSING);
+		BehaviorFlags &= ~(D3DCREATE_PUREDEVICE | D3DCREATE_MIXED_VERTEXPROCESSING | D3DCREATE_SOFTWARE_VERTEXPROCESSING);
 		BehaviorFlags |= D3DCREATE_HARDWARE_VERTEXPROCESSING;
 	}
 	return BehaviorFlags;
@@ -487,16 +528,12 @@ void UpdatePresentParameter(D3DPRESENT_PARAMETERS* pPresentationParameters, HWND
 		if (IsIconic(DeviceDetails.DeviceWindow))
 		{
 			ShowWindow(DeviceDetails.DeviceWindow, SW_RESTORE);
-
-			// Peek messages to help prevent a "Not Responding" window
-			Utils::CheckMessageQueue(DeviceDetails.DeviceWindow);
 		}
 
 		// Remove tool and topmost window
 		if (DeviceDetails.DeviceWindow != LastDeviceWindow)
 		{
 			LONG lExStyle = GetWindowLong(DeviceDetails.DeviceWindow, GWL_EXSTYLE);
-
 			if (lExStyle & (WS_EX_TOOLWINDOW | WS_EX_TOPMOST))
 			{
 				LOG_LIMIT(3, __FUNCTION__ << " Removing window" << ((lExStyle & WS_EX_TOOLWINDOW) ? " WS_EX_TOOLWINDOW" : "") << ((lExStyle & WS_EX_TOPMOST) ? " WS_EX_TOPMOST" : ""));
@@ -515,55 +552,50 @@ void UpdatePresentParameter(D3DPRESENT_PARAMETERS* pPresentationParameters, HWND
 			DeviceDetails.BufferWidth = tempRect.right;
 			DeviceDetails.BufferHeight = tempRect.bottom;
 		}
-	}
 
-	// Set window size
-	if (SetWindow && pPresentationParameters->Windowed && IsWindow(DeviceDetails.DeviceWindow))
-	{
-		bool AnyChange = (LastBufferWidth != DeviceDetails.BufferWidth || LastBufferHeight != DeviceDetails.BufferHeight || LastDeviceWindow != DeviceDetails.DeviceWindow);
-
-		// Overload WndProc
-		if (Config.EnableWindowMode)
+		// Set window size
+		if (SetWindow && pPresentationParameters->Windowed)
 		{
-			Utils::SetWndProcFilter(DeviceDetails.DeviceWindow);
-		}
+			bool AnyChange = (LastBufferWidth != DeviceDetails.BufferWidth || LastBufferHeight != DeviceDetails.BufferHeight || LastDeviceWindow != DeviceDetails.DeviceWindow);
 
-		// Adjust window
-		RECT Rect;
-		GetClientRect(DeviceDetails.DeviceWindow, &Rect);
-		if (AnyChange || Rect.right - Rect.left != DeviceDetails.BufferWidth || Rect.bottom - Rect.top != DeviceDetails.BufferHeight)
-		{
-			AdjustWindow(DeviceDetails.DeviceWindow, DeviceDetails.BufferWidth, DeviceDetails.BufferHeight);
-		}
-
-		// Set fullscreen resolution
-		if (AnyChange && Config.FullscreenWindowMode)
-		{
-			// Get monitor info
-			MONITORINFOEX infoex = {};
-			infoex.cbSize = sizeof(MONITORINFOEX);
-			BOOL bRet = GetMonitorInfo(Utils::GetMonitorHandle(DeviceDetails.DeviceWindow), &infoex);
-
-			// Get resolution list for specified monitor
-			DEVMODE newSettings = {};
-			newSettings.dmSize = sizeof(newSettings);
-			if (EnumDisplaySettings(bRet ? infoex.szDevice : nullptr, ENUM_CURRENT_SETTINGS, &newSettings) != 0)
+			// Adjust window
+			RECT Rect;
+			GetClientRect(DeviceDetails.DeviceWindow, &Rect);
+			if (AnyChange || Rect.right - Rect.left != DeviceDetails.BufferWidth || Rect.bottom - Rect.top != DeviceDetails.BufferHeight)
 			{
-				newSettings.dmPelsWidth = DeviceDetails.BufferWidth;
-				newSettings.dmPelsHeight = DeviceDetails.BufferHeight;
-				newSettings.dmFields = DM_PELSWIDTH | DM_PELSHEIGHT;
-				ChangeDisplaySettingsEx(bRet ? infoex.szDevice : nullptr, &newSettings, nullptr, CDS_FULLSCREEN, nullptr);
+				AdjustWindow(DeviceDetails.DeviceWindow, DeviceDetails.BufferWidth, DeviceDetails.BufferHeight, pPresentationParameters->Windowed);
+			}
+
+			// Set fullscreen resolution
+			if (AnyChange && Config.FullscreenWindowMode)
+			{
+				// Get monitor info
+				MONITORINFOEX infoex = {};
+				infoex.cbSize = sizeof(MONITORINFOEX);
+				BOOL bRet = GetMonitorInfo(Utils::GetMonitorHandle(DeviceDetails.DeviceWindow), &infoex);
+
+				// Get resolution list for specified monitor
+				DEVMODE newSettings = {};
+				newSettings.dmSize = sizeof(newSettings);
+				if (EnumDisplaySettings(bRet ? infoex.szDevice : nullptr, ENUM_CURRENT_SETTINGS, &newSettings) != 0)
+				{
+					newSettings.dmPelsWidth = DeviceDetails.BufferWidth;
+					newSettings.dmPelsHeight = DeviceDetails.BufferHeight;
+					newSettings.dmFields = DM_PELSWIDTH | DM_PELSHEIGHT;
+					ChangeDisplaySettingsEx(bRet ? infoex.szDevice : nullptr, &newSettings, nullptr, CDS_FULLSCREEN, nullptr);
+				}
 			}
 		}
+	}
+}
 
-		if (Config.EnableWindowMode)
-		{
-			// Resetting WndProc
-			Utils::RestoreWndProcFilter(DeviceDetails.DeviceWindow);
-
-			// Peek messages to help prevent a "Not Responding" window
-			Utils::CheckMessageQueue(DeviceDetails.DeviceWindow);
-		}
+void GetFinalPresentParameter(D3DPRESENT_PARAMETERS* pPresentationParameters, DEVICEDETAILS& DeviceDetails)
+{
+	if (pPresentationParameters && (IsWindow(pPresentationParameters->hDeviceWindow) || IsWindow(DeviceDetails.DeviceWindow)))
+	{
+		DeviceDetails.BufferWidth = (pPresentationParameters->BackBufferWidth) ? pPresentationParameters->BackBufferWidth : DeviceDetails.BufferWidth;
+		DeviceDetails.BufferHeight = (pPresentationParameters->BackBufferHeight) ? pPresentationParameters->BackBufferHeight : DeviceDetails.BufferHeight;
+		DeviceDetails.DeviceWindow = (IsWindow(pPresentationParameters->hDeviceWindow)) ? pPresentationParameters->hDeviceWindow : DeviceDetails.DeviceWindow;
 	}
 }
 
@@ -591,7 +623,7 @@ void UpdatePresentParameterForMultisample(D3DPRESENT_PARAMETERS* pPresentationPa
 }
 
 // Adjusting the window position for WindowMode
-void AdjustWindow(HWND MainhWnd, LONG displayWidth, LONG displayHeight)
+void AdjustWindow(HWND MainhWnd, LONG displayWidth, LONG displayHeight, bool isWindowed)
 {
 	if (!IsWindow(MainhWnd) || !displayWidth || !displayHeight)
 	{
@@ -600,11 +632,43 @@ void AdjustWindow(HWND MainhWnd, LONG displayWidth, LONG displayHeight)
 	}
 
 	// Set window active and focus
-	if (Config.EnableWindowMode)
+	if (Config.EnableWindowMode || isWindowed)
 	{
-		SetForegroundWindow(MainhWnd);
-		SetFocus(MainhWnd);
-		SetActiveWindow(MainhWnd);
+		// Move window to top if not already topmost
+		LONG lExStyle = GetWindowLong(MainhWnd, GWL_EXSTYLE);
+		if (!(lExStyle & WS_EX_TOPMOST))
+		{
+			SetWindowLong(MainhWnd, GWL_EXSTYLE, lExStyle | WS_EX_TOPMOST);
+			SetWindowPos(MainhWnd, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_FRAMECHANGED);
+			SetWindowLong(MainhWnd, GWL_EXSTYLE, lExStyle & ~WS_EX_TOPMOST);
+			SetWindowPos(MainhWnd, HWND_NOTOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_FRAMECHANGED);
+		}
+
+		// Set active and foreground if needed
+		if (MainhWnd != GetForegroundWindow() || MainhWnd != GetFocus() || MainhWnd != GetActiveWindow())
+		{
+			DWORD currentThreadId = GetCurrentThreadId();
+			DWORD foregroundThreadId = GetWindowThreadProcessId(GetForegroundWindow(), NULL);
+
+			bool isForeground = (MainhWnd == GetForegroundWindow()) || (currentThreadId == foregroundThreadId);
+
+			// Attach the input of the foreground window and current window
+			if (!isForeground)
+			{
+				AttachThreadInput(currentThreadId, foregroundThreadId, TRUE);
+				SetForegroundWindow(MainhWnd);
+			}
+
+			SetFocus(MainhWnd);
+			SetActiveWindow(MainhWnd);
+			BringWindowToTop(MainhWnd);
+
+			// Detach the input from the foreground window
+			if (!isForeground)
+			{
+				AttachThreadInput(currentThreadId, foregroundThreadId, FALSE);
+			}
+		}
 	}
 
 	// Get screen width and height
@@ -614,8 +678,7 @@ void AdjustWindow(HWND MainhWnd, LONG displayWidth, LONG displayHeight)
 	Utils::GetDesktopRect(MainhWnd, screenRect);
 
 	// Get window style
-	LONG lOriginalStyle = GetWindowLong(MainhWnd, GWL_STYLE);
-	LONG lStyle = lOriginalStyle | WS_VISIBLE;
+	LONG lStyle = GetWindowLong(MainhWnd, GWL_STYLE);
 	LONG lExStyle = GetWindowLong(MainhWnd, GWL_EXSTYLE);
 
 	// Get new style
@@ -631,9 +694,8 @@ void AdjustWindow(HWND MainhWnd, LONG displayWidth, LONG displayHeight)
 	}
 
 	// Set window style
-	if (Config.EnableWindowMode || (lOriginalStyle & WS_VISIBLE) == NULL)
+	if (Config.EnableWindowMode)
 	{
-		lStyle = (Config.EnableWindowMode) ? lStyle : (lOriginalStyle | WS_VISIBLE);
 		SetWindowLong(MainhWnd, GWL_STYLE, lStyle);
 		SetWindowPos(MainhWnd, ((lExStyle & WS_EX_TOPMOST) ? HWND_TOPMOST : HWND_TOP), 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_FRAMECHANGED);
 	}

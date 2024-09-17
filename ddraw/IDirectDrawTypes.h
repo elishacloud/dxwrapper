@@ -20,8 +20,9 @@ constexpr DWORD MinUsedVidMemory = 8 * 1024;			// 8 KBs
 #define D3DCOLOR_GETBLUE(c)       ((c) & 0xFF)
 
 #define D3DFMT_B8G8R8 (D3DFORMAT)19
-#define D3DFMT_YV12   (D3DFORMAT)MAKEFOURCC('Y','V','1','2')
 #define D3DFMT_AYUV   (D3DFORMAT)MAKEFOURCC('A', 'Y', 'U', 'V')
+#define D3DFMT_YV12   (D3DFORMAT)MAKEFOURCC('Y', 'V', '1', '2')
+#define D3DFMT_NV12   (D3DFORMAT)MAKEFOURCC('N', 'V', '1', '2')
 
 #define D3DFMT_R5G6B5_TO_X8R8G8B8(w) \
 	((((DWORD)((w>>11)&0x1f)*8)<<16)+(((DWORD)((w>>5)&0x3f)*4)<<8)+((DWORD)(w&0x1f)*8))
@@ -103,6 +104,21 @@ struct TRIBYTE
 	BYTE first;
 	BYTE second;
 	BYTE third;
+
+	// Conversion operator from TRIBYTE to DWORD
+	operator DWORD() const {
+		return (DWORD(first) | (DWORD(second) << 8) | (DWORD(third) << 16));
+	}
+
+	// Equality operator
+	bool operator==(const TRIBYTE& other) const {
+		return first == other.first && second == other.second && third == other.third;
+	}
+
+	// Inequality operator
+	bool operator!=(const TRIBYTE& other) const {
+		return !(*this == other);
+	}
 };
 
 static constexpr DWORD DDS_MAGIC				= 0x20534444; // "DDS "

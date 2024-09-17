@@ -5,13 +5,14 @@ class m_IDirect3DPixelShader9 : public IDirect3DPixelShader9, public AddressLook
 private:
 	LPDIRECT3DPIXELSHADER9 ProxyInterface;
 	m_IDirect3DDevice9Ex* m_pDeviceEx;
+	REFIID WrapperID = IID_IDirect3DPixelShader9;
 
 public:
 	m_IDirect3DPixelShader9(LPDIRECT3DPIXELSHADER9 pShader9, m_IDirect3DDevice9Ex* pDevice) : ProxyInterface(pShader9), m_pDeviceEx(pDevice)
 	{
 		LOG_LIMIT(3, "Creating interface " << __FUNCTION__ << " (" << this << ")");
 
-		pDevice->ProxyAddressLookupTable->SaveAddress(this, ProxyInterface);
+		m_pDeviceEx->GetLookupTable()->SaveAddress(this, ProxyInterface);
 	}
 	~m_IDirect3DPixelShader9()
 	{

@@ -149,6 +149,8 @@ std::ostream& operator<<(std::ostream& os, const D3DFORMAT& format)
 		return os << "D3DFMT_YUY2";
 	case MAKEFOURCC('Y', 'V', '1', '2'):
 		return os << "D3DFMT_YV12";
+	case MAKEFOURCC('N', 'V', '1', '2'):
+		return os << "D3DFMT_NV12";
 	case MAKEFOURCC('A', 'Y', 'U', 'V'):
 		return os << "D3DFMT_AYUV";
 	case MAKEFOURCC('G', 'R', 'G', 'B'):
@@ -407,7 +409,7 @@ std::ostream& operator<<(std::ostream& os, const D3DSURFACETYPE& ddType)
 		ddType == D3DTYPE_OFFPLAINSURFACE ? "D3DTYPE_OFFPLAINSURFACE" :
 		ddType == D3DTYPE_TEXTURE ? "D3DTYPE_TEXTURE" :
 		ddType == D3DTYPE_RENDERTARGET ? "D3DTYPE_RENDERTARGET" :
-		ddType == D3DTYPE_DEPTHBUFFER ? "D3DTYPE_DEPTHBUFFER" : "D3DTYPE_UNKNOWN");
+		ddType == D3DTYPE_DEPTHSTENCIL ? "D3DTYPE_DEPTHSTENCIL" : "D3DTYPE_UNKNOWN");
 }
 
 std::ostream& operator<<(std::ostream& os, const DDFOURCC& dwFourCC)
@@ -444,6 +446,18 @@ std::ostream& operator<<(std::ostream& os, const DDCOLORKEY& ck)
 		<< Logging::hex(ck.dwColorSpaceHighValue);
 }
 
+std::ostream& operator<<(std::ostream& os, const DDSURFACEDESC* lpDesc)
+{
+	if (lpDesc)
+	{
+		return os << *lpDesc;
+	}
+	else
+	{
+		return os << nullptr;
+	}
+}
+
 std::ostream& operator<<(std::ostream& os, const DDSURFACEDESC& sd)
 {
 	return Logging::LogStruct(os)
@@ -462,6 +476,18 @@ std::ostream& operator<<(std::ostream& os, const DDSURFACEDESC& sd)
 		<< sd.ddckCKSrcBlt
 		<< sd.ddpfPixelFormat
 		<< sd.ddsCaps;
+}
+
+std::ostream& operator<<(std::ostream& os, const DDSURFACEDESC2* lpDesc)
+{
+	if (lpDesc)
+	{
+		return os << *lpDesc;
+	}
+	else
+	{
+		return os << nullptr;
+	}
 }
 
 std::ostream& operator<<(std::ostream& os, const DDSURFACEDESC2& sd)
@@ -2362,6 +2388,18 @@ std::ostream& operator<<(std::ostream& os, const POINTS& p)
 	return Logging::LogStruct(os)
 		<< p.x
 		<< p.y;
+}
+
+std::ostream& operator<<(std::ostream& os, const RECT* lpRect)
+{
+	if (lpRect)
+	{
+		return os << *lpRect;
+	}
+	else
+	{
+		return os << nullptr;
+	}
 }
 
 std::ostream& operator<<(std::ostream& os, const RECT& rect)

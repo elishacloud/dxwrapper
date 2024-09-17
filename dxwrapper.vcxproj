@@ -217,7 +217,7 @@ copy /Y "$(ProjectDir)Settings\Settings.ini" "$(TargetDir)Build\dxwrapper.ini" &
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
-      <PreprocessorDefinitions>WIN32;_DEBUG;_WINDOWS;_USRDLL;FULLSCREENLOG;WRAPPERLOGGING;DISABLE_COMMON_LOGGING;_NO_DDRAWINT_NO_COM;DDRAW;DINPUT;DINPUT8;DDRAWCOMPATLOG;DDRAWCOMPAT;DDRAWCOMPAT_EXPORTS;DXWND;ENABLE_DEBUGOVERLAY;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32;_DEBUG;_WINDOWS;_USRDLL;FULLSCREENLOG;WRAPPERLOGGING;DISABLE_COMMON_LOGGING;_NO_DDRAWINT_NO_COM;DDRAW;DINPUT;DINPUT8;DDRAWCOMPATLOG;DDRAWCOMPAT;DDRAWCOMPAT_EXPORTS;DXWND;ENABLE_DEBUGOVERLAY;ENABLE_PROFILING;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
       <ObjectFileName>$(SolutionDir)bin\Intermediate\$(Configuration)\Object\%(RelativeDir)</ObjectFileName>
       <WarningLevel>Level4</WarningLevel>
@@ -245,6 +245,7 @@ copy /Y "$(ProjectDir)Settings\Settings.ini" "$(TargetDir)Build\dxwrapper.ini" &
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="d3d8\d3d8.cpp" />
+    <ClCompile Include="d3d9\AddressLookupTable.cpp" />
     <ClCompile Include="d3d9\d3d9.cpp" />
     <ClCompile Include="d3d9\DebugOverlay.cpp" />
     <ClCompile Include="d3d9\IDirect3D9Ex.cpp" />
@@ -388,6 +389,9 @@ copy /Y "$(ProjectDir)Settings\Settings.ini" "$(TargetDir)Build\dxwrapper.ini" &
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">true</ExcludedFromBuild>
     </ClCompile>
     <ClCompile Include="DDrawCompat\v0.2.1\UnmodifiedDDrawProcs.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="DDrawCompat\v0.3.1\Common\Disasm.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">true</ExcludedFromBuild>
     </ClCompile>
     <ClCompile Include="DDrawCompat\v0.3.1\Common\Hook.cpp">
@@ -939,6 +943,9 @@ copy /Y "$(ProjectDir)Settings\Settings.ini" "$(TargetDir)Build\dxwrapper.ini" &
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">true</ExcludedFromBuild>
     </ClInclude>
     <ClInclude Include="DDrawCompat\v0.3.1\Common\CompatWeakPtr.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">true</ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="DDrawCompat\v0.3.1\Common\Disasm.h">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">true</ExcludedFromBuild>
     </ClInclude>
     <ClInclude Include="DDrawCompat\v0.3.1\Common\Hook.h">

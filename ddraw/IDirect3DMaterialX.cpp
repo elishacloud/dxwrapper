@@ -61,10 +61,22 @@ void *m_IDirect3DMaterialX::GetWrapperInterfaceX(DWORD DirectXVersion)
 	switch (DirectXVersion)
 	{
 	case 1:
+		if (!WrapperInterface)
+		{
+			WrapperInterface = new m_IDirect3DMaterial((LPDIRECT3DMATERIAL)ProxyInterface, this);
+		}
 		return WrapperInterface;
 	case 2:
+		if (!WrapperInterface2)
+		{
+			WrapperInterface2 = new m_IDirect3DMaterial2((LPDIRECT3DMATERIAL2)ProxyInterface, this);
+		}
 		return WrapperInterface2;
 	case 3:
+		if (!WrapperInterface3)
+		{
+			WrapperInterface3 = new m_IDirect3DMaterial3((LPDIRECT3DMATERIAL3)ProxyInterface, this);
+		}
 		return WrapperInterface3;
 	default:
 		LOG_LIMIT(100, __FUNCTION__ << " Error: wrapper interface version not found: " << DirectXVersion);
@@ -344,10 +356,6 @@ HRESULT m_IDirect3DMaterialX::Unreserve()
 
 void m_IDirect3DMaterialX::InitMaterial(DWORD DirectXVersion)
 {
-	WrapperInterface = new m_IDirect3DMaterial((LPDIRECT3DMATERIAL)ProxyInterface, this);
-	WrapperInterface2 = new m_IDirect3DMaterial2((LPDIRECT3DMATERIAL2)ProxyInterface, this);
-	WrapperInterface3 = new m_IDirect3DMaterial3((LPDIRECT3DMATERIAL3)ProxyInterface, this);
-
 	if (ProxyInterface)
 	{
 		return;
@@ -358,9 +366,18 @@ void m_IDirect3DMaterialX::InitMaterial(DWORD DirectXVersion)
 
 void m_IDirect3DMaterialX::ReleaseMaterial()
 {
-	WrapperInterface->DeleteMe();
-	WrapperInterface2->DeleteMe();
-	WrapperInterface3->DeleteMe();
+	if (WrapperInterface)
+	{
+		WrapperInterface->DeleteMe();
+	}
+	if (WrapperInterface2)
+	{
+		WrapperInterface2->DeleteMe();
+	}
+	if (WrapperInterface3)
+	{
+		WrapperInterface3->DeleteMe();
+	}
 
 	if (mHandle && D3DDeviceInterface && *D3DDeviceInterface)
 	{
