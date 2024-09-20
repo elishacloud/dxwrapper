@@ -8,6 +8,10 @@
 #define LOG_LIMIT(num, msg) \
 	{}
 
+#define LOG_DEBUG if (false) Logging::Log()
+#define LOG_FUNC(...)
+#define LOG_RESULT(...) __VA_ARGS__
+
 class Logging
 {
 public:
