@@ -23,9 +23,6 @@
     <ClCompile Include="..\External\Hooking\IATPatch.cpp">
       <Filter>External\Hooking</Filter>
     </ClCompile>
-    <ClCompile Include="Logging\Logging.cpp">
-      <Filter>Logging</Filter>
-    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="stub.h" />

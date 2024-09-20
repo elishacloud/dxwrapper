@@ -391,9 +391,6 @@ copy /Y "$(ProjectDir)Settings\Settings.ini" "$(TargetDir)Build\dxwrapper.ini" &
     <ClCompile Include="DDrawCompat\v0.2.1\UnmodifiedDDrawProcs.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">true</ExcludedFromBuild>
     </ClCompile>
-    <ClCompile Include="DDrawCompat\v0.3.1\Common\Disasm.cpp">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">true</ExcludedFromBuild>
-    </ClCompile>
     <ClCompile Include="DDrawCompat\v0.3.1\Common\Hook.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">true</ExcludedFromBuild>
     </ClCompile>
@@ -943,9 +940,6 @@ copy /Y "$(ProjectDir)Settings\Settings.ini" "$(TargetDir)Build\dxwrapper.ini" &
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">true</ExcludedFromBuild>
     </ClInclude>
     <ClInclude Include="DDrawCompat\v0.3.1\Common\CompatWeakPtr.h">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">true</ExcludedFromBuild>
-    </ClInclude>
-    <ClInclude Include="DDrawCompat\v0.3.1\Common\Disasm.h">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">true</ExcludedFromBuild>
     </ClInclude>
     <ClInclude Include="DDrawCompat\v0.3.1\Common\Hook.h">

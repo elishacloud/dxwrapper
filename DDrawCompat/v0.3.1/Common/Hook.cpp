@@ -6,7 +6,7 @@
 
 #include <Windows.h>
 
-#include <DDrawCompat/v0.3.1/Common/Disasm.h>
+#include <External/Hooking/Disasm.h>
 #include <DDrawCompat/v0.3.1/Common/Hook.h>
 #include <DDrawCompat/DDrawLog.h>
 #include <DDrawCompat/v0.3.1/Common/Path.h>
@@ -137,7 +137,7 @@ namespace
 		BYTE* dst = trampoline;
 		while (src - targetFunc < 5)
 		{
-			unsigned instructionSize = Compat32::getInstructionLength(src);
+			unsigned instructionSize = Disasm::getInstructionLength(src);
 			if (0 == instructionSize)
 			{
 				return;

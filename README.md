@@ -112,7 +112,7 @@ DxWrapper uses code from several other projects. So to give credit where credit 
  - [cnc-ddraw](https://github.com/CnCNet/cnc-ddraw): Includes code to create emulated surface device context.
  - [d3d8to9](https://github.com/crosire/d3d8to9): Includes the full Direct3D 8 to Direct3D 9 code.
  - [D3DParseUnknownCommand](https://doxygen.reactos.org/d3/d02/dll_2directx_2ddraw_2main_8c.html#af9a1eb1ced046770ad6f79838cc8517d): Includes code for DirectDraw D3DParseUnknownCommand from source code found in ReactOS.
- - [DDrawCompat](https://github.com/narzoul/DDrawCompat/): Includes the full DDrawCompat v0.2.0b, v0.2.1 and Experimental version.
+ - [DDrawCompat](https://github.com/narzoul/DDrawCompat/): Includes the full DDrawCompat v0.2.0b, v0.2.1 and v0.3.2 and for API hooking.
  - [doom3.gpl](https://github.com/TTimo/doom3.gpl): Includes code to get video memory.
  - [diablo-ddrawwrapper](https://github.com/strangebytes/diablo-ddrawwrapper): Includes some code for converting ddraw to Direct3D.
  - [DSoundCtrl](https://github.com/nRaecheR/DirectSoundControl): Includes the full DirectSoundControl code.

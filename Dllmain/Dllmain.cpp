@@ -60,7 +60,7 @@
 #define HOOK_FORCE_WRAPPED_PROC(procName, unused) \
 	if (GetProcAddress(dll, #procName)) \
 	{ \
-		FARPROC prodAddr = (FARPROC)Hook::HotPatch(Hook::GetProcAddress(dll, #procName), #procName, procName ## _funct, true); \
+		FARPROC prodAddr = (FARPROC)Hook::HotPatch(Hook::GetProcAddress(dll, #procName), #procName, procName ## _funct); \
 		Logging::LogDebug() << __FUNCTION__ << " " << #procName << " addr: " << prodAddr; \
 	}
 
