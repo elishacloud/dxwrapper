@@ -49,7 +49,7 @@
 #define HOOK_WRAPPED_PROC(procName, unused) \
 	if (GetProcAddress(dll, #procName)) \
 	{ \
-		FARPROC prodAddr = (FARPROC)Hook::HookAPI(dll, dllname, Hook::GetProcAddress(dll, #procName), #procName, procName ## _funct); \
+		FARPROC prodAddr = (FARPROC)Hook::HotPatch(Hook::GetProcAddress(dll, #procName), #procName, procName ## _funct); \
 		if (prodAddr) \
 		{ \
 			procName ## _var = prodAddr; \
@@ -220,8 +220,8 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 				if (dll)
 				{
 					Logging::Log() << "Hooking 'GetModuleFileName' API...";
-					InterlockedExchangePointer((PVOID*)&Utils::GetModuleFileNameA_out, Hook::HookAPI(dll, "kernel32.dll", Hook::GetProcAddress(dll, "GetModuleFileNameA"), "GetModuleFileNameA", Utils::GetModuleFileNameAHandler));
-					InterlockedExchangePointer((PVOID*)&Utils::GetModuleFileNameW_out, Hook::HookAPI(dll, "kernel32.dll", Hook::GetProcAddress(dll, "GetModuleFileNameW"), "GetModuleFileNameW", Utils::GetModuleFileNameWHandler));
+					InterlockedExchangePointer((PVOID*)&Utils::GetModuleFileNameA_out, Hook::HotPatch(Hook::GetProcAddress(dll, "GetModuleFileNameA"), "GetModuleFileNameA", Utils::GetModuleFileNameAHandler));
+					InterlockedExchangePointer((PVOID*)&Utils::GetModuleFileNameW_out, Hook::HotPatch(Hook::GetProcAddress(dll, "GetModuleFileNameW"), "GetModuleFileNameW", Utils::GetModuleFileNameWHandler));
 				}
 			}
 		}
@@ -242,7 +242,7 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 				if (dll)
 				{
 					Logging::Log() << "Hooking 'GetProcAddress' API...";
-					InterlockedExchangePointer((PVOID*)&Utils::GetProcAddress_out, Hook::HookAPI(dll, "kernel32.dll", Hook::GetProcAddress(dll, "GetProcAddress"), "GetProcAddress", Utils::GetProcAddressHandler));
+					InterlockedExchangePointer((PVOID*)&Utils::GetProcAddress_out, Hook::HotPatch(Hook::GetProcAddress(dll, "GetProcAddress"), "GetProcAddress", Utils::GetProcAddressHandler));
 				}
 			}
 		}
@@ -641,9 +641,6 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 		{
 			ExitDDraw();
 		}
-
-		// Unhook all APIs
-		Hook::UnhookAll();
 
 #ifdef DDRAWCOMPAT
 		// Unload and Unhook DDrawCompat

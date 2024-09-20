@@ -34,12 +34,6 @@ CONFIG Config;
 
 bool Wrapper::ValidProcAddress(FARPROC) { return false; }
 
-void* Hook::IATPatch(HMODULE, DWORD, const char*, void*, const char*, void*) { return nullptr; }
-
-bool Hook::UnhookIATPatch(HMODULE, DWORD, const char*, void*, const char*, void*) { return false; }
-
-bool Hook::UnIATPatchAll() { return false; }
-
 // Function to compile HLSL file
 bool CompileShader(const wchar_t* hlslFile, LPD3DXBUFFER* compiledShader)
 {
