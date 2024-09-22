@@ -724,8 +724,14 @@ HRESULT m_IDirectDrawX::CreateSurface2(LPDDSURFACEDESC2 lpDDSurfaceDesc2, LPDIRE
 		{
 			Desc2.dwRefreshRate = 0;
 		}
-		// Removing texture flags from primary and stencil buffer surfaces
-		if ((Desc2.ddsCaps.dwCaps & DDSCAPS_PRIMARYSURFACE) || (Desc2.ddpfPixelFormat.dwFlags & (DDPF_ZBUFFER | DDPF_STENCILBUFFER)))
+		// Removing mipmap flags from primary and Direct3D surface
+		if (Desc2.ddsCaps.dwCaps & (DDSCAPS_PRIMARYSURFACE | DDSCAPS_3DDEVICE))
+		{
+			Desc2.dwFlags &= ~DDSD_MIPMAPCOUNT;
+			Desc2.ddsCaps.dwCaps &= ~DDSCAPS_MIPMAP;
+		}
+		// Removing texture and mipmap flags from stencil buffer surfaces
+		if (Desc2.ddpfPixelFormat.dwFlags & (DDPF_ZBUFFER | DDPF_STENCILBUFFER))
 		{
 			Desc2.dwFlags &= ~DDSD_MIPMAPCOUNT;
 			Desc2.ddsCaps.dwCaps &= ~(DDSCAPS_TEXTURE | DDSCAPS_MIPMAP);

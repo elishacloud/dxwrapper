@@ -4429,16 +4429,30 @@ HRESULT m_IDirectDrawSurfaceX::CreateD3d9Surface()
 		else if (IsRenderTarget())
 		{
 			// ToDo: if render surface is a texture then create as a texture (MipMaps can be supported on render target textures)
-			surface.Type = D3DTYPE_RENDERTARGET;
 			surface.Usage = D3DUSAGE_RENDERTARGET;
 			surface.Pool = D3DPOOL_DEFAULT;
-			BOOL IsLockable = (surface.MultiSampleType || (surfaceDesc2.ddsCaps.dwCaps2 & DDSCAPS2_NOTUSERLOCKABLE)) ? FALSE : TRUE;
-			if (FAILED((*d3d9Device)->CreateRenderTarget(Width, Height, Format, surface.MultiSampleType, surface.MultiSampleQuality, IsLockable, &surface.Surface, nullptr)) &&
-				FAILED((*d3d9Device)->CreateRenderTarget(Width, Height, GetFailoverFormat(Format), surface.MultiSampleType, surface.MultiSampleQuality, IsLockable, &surface.Surface, nullptr)))
+			if (IsSurfaceTexture())
 			{
-				LOG_LIMIT(100, __FUNCTION__ << " Error: failed to create render target surface. Size: " << Width << "x" << Height << " Format: " << surface.Format << " dwCaps: " << surfaceDesc2.ddsCaps);
-				hr = DDERR_GENERIC;
-				break;
+				surface.Type = D3DTYPE_TEXTURE;
+				if (FAILED((*d3d9Device)->CreateTexture(Width, Height, 1, surface.Usage, Format, surface.Pool, &surface.Texture, nullptr)) &&
+					FAILED((*d3d9Device)->CreateTexture(Width, Height, 1, surface.Usage, GetFailoverFormat(Format), surface.Pool, &surface.Texture, nullptr)))
+				{
+					LOG_LIMIT(100, __FUNCTION__ << " Error: failed to create render target texture. Size: " << Width << "x" << Height << " Format: " << surface.Format << " dwCaps: " << surfaceDesc2.ddsCaps);
+					hr = DDERR_GENERIC;
+					break;
+				}
+			}
+			else
+			{
+				surface.Type = D3DTYPE_RENDERTARGET;
+				BOOL IsLockable = (surface.MultiSampleType || (surfaceDesc2.ddsCaps.dwCaps2 & DDSCAPS2_NOTUSERLOCKABLE)) ? FALSE : TRUE;
+				if (FAILED((*d3d9Device)->CreateRenderTarget(Width, Height, Format, surface.MultiSampleType, surface.MultiSampleQuality, IsLockable, &surface.Surface, nullptr)) &&
+					FAILED((*d3d9Device)->CreateRenderTarget(Width, Height, GetFailoverFormat(Format), surface.MultiSampleType, surface.MultiSampleQuality, IsLockable, &surface.Surface, nullptr)))
+				{
+					LOG_LIMIT(100, __FUNCTION__ << " Error: failed to create render target surface. Size: " << Width << "x" << Height << " Format: " << surface.Format << " dwCaps: " << surfaceDesc2.ddsCaps);
+					hr = DDERR_GENERIC;
+					break;
+				}
 			}
 			// Update attached stencil surface
 			m_IDirectDrawSurfaceX* lpAttachedSurfaceX = GetAttachedDepthStencil();
@@ -4495,10 +4509,11 @@ HRESULT m_IDirectDrawSurfaceX::CreateD3d9Surface()
 
 		// Create shadow surface
 		surface.UsingShadowSurface = false;
-		if (surface.Type == D3DTYPE_RENDERTARGET && surface.Surface)
+		if (surface.Usage == D3DUSAGE_RENDERTARGET)
 		{
 			D3DSURFACE_DESC Desc;
-			if (FAILED(surface.Surface->GetDesc(&Desc)) || FAILED((*d3d9Device)->CreateOffscreenPlainSurface(Desc.Width, Desc.Height, Desc.Format, D3DPOOL_SYSTEMMEM, &surface.Shadow, nullptr)))
+			if (FAILED(surface.Surface ? surface.Surface->GetDesc(&Desc) : surface.Texture->GetLevelDesc(0, &Desc)) ||
+				FAILED((*d3d9Device)->CreateOffscreenPlainSurface(Desc.Width, Desc.Height, Desc.Format, D3DPOOL_SYSTEMMEM, &surface.Shadow, nullptr)))
 			{
 				LOG_LIMIT(100, __FUNCTION__ << " Error: failed to create shadow surface. Size: " << Width << "x" << Height << " Format: " << Format << " dwCaps: " << surfaceDesc2.ddsCaps);
 				hr = DDERR_GENERIC;
@@ -4548,7 +4563,7 @@ HRESULT m_IDirectDrawSurfaceX::CreateD3d9Surface()
 	}
 
 	// Reset flags
-	surface.SurfaceHasData = false;
+	surface.HasData = false;
 
 	// Restore d3d9 surface texture data
 	if (surface.Surface || surface.Texture)
@@ -4559,7 +4574,7 @@ HRESULT m_IDirectDrawSurfaceX::CreateD3d9Surface()
 			// Copy surface to emulated surface
 			CopyFromEmulatedSurface(nullptr);
 			RestoreData = true;
-			surface.SurfaceHasData = true;
+			surface.HasData = true;
 		}
 		else if (!LostDeviceBackup.empty())
 		{
@@ -4590,7 +4605,7 @@ HRESULT m_IDirectDrawSurfaceX::CreateD3d9Surface()
 						memcpy(LockRect.pBits, LostDeviceBackup[Level].Bits.data(), size);
 
 						RestoreData = true;
-						surface.SurfaceHasData = true;
+						surface.HasData = true;
 					}
 					else
 					{
@@ -4602,7 +4617,7 @@ HRESULT m_IDirectDrawSurfaceX::CreateD3d9Surface()
 					UnLockD3d9Surface(Level);
 
 					// Copy surface to emulated surface
-					if (IsUsingEmulation() && Level == 0 && surface.SurfaceHasData)
+					if (IsUsingEmulation() && Level == 0 && surface.HasData)
 					{
 						CopyToEmulatedSurface(nullptr);
 					}
@@ -5115,7 +5130,7 @@ void m_IDirectDrawSurfaceX::ReleaseD9Surface(bool BackupData, bool ResetSurface)
 	// Backup d3d9 surface texture
 	if (BackupData)
 	{
-		if (surface.SurfaceHasData && (surface.Surface || surface.Texture) && !IsRenderTarget() && !IsDepthStencil() && (!ResetSurface || IsD9UsingVideoMemory()))
+		if (surface.HasData && (surface.Surface || surface.Texture) && !IsRenderTarget() && !IsDepthStencil() && (!ResetSurface || IsD9UsingVideoMemory()))
 		{
 			IsSurfaceLost = true;
 			LostDeviceBackup.clear();
@@ -5661,7 +5676,7 @@ void m_IDirectDrawSurfaceX::PrepareRenderTarget()
 {
 	if (surface.UsingShadowSurface && surface.Shadow)
 	{
-		if (SUCCEEDED((*d3d9Device)->UpdateSurface(surface.Shadow, nullptr, surface.Surface, nullptr)))
+		if (SUCCEEDED((*d3d9Device)->UpdateSurface(surface.Shadow, nullptr, Get3DSurface(), nullptr)))
 		{
 			surface.UsingShadowSurface = false;
 			return;
@@ -5674,7 +5689,7 @@ void m_IDirectDrawSurfaceX::SetRenderTargetShadow()
 {
 	if (!surface.UsingShadowSurface && surface.Shadow)
 	{
-		if (SUCCEEDED((*d3d9Device)->GetRenderTargetData(surface.Surface, surface.Shadow)))
+		if (SUCCEEDED((*d3d9Device)->GetRenderTargetData(Get3DSurface(), surface.Shadow)))
 		{
 			surface.UsingShadowSurface = true;
 			return;
@@ -5691,7 +5706,7 @@ void m_IDirectDrawSurfaceX::SetDirtyFlag()
 		dirtyFlag = true;
 	}
 	surface.IsDirtyFlag = true;
-	surface.SurfaceHasData = true;
+	surface.HasData = true;
 	surface.IsDrawTextureDirty = true;
 	IsMipMapReadyToUse = false;
 

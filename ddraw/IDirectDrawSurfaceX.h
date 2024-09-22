@@ -111,7 +111,7 @@ private:
 	{
 		bool CanBeRenderTarget = false;
 		bool IsUsingWindowedMode = false;
-		bool SurfaceHasData = false;
+		bool HasData = false;
 		bool UsingSurfaceMemory = false;
 		bool UsingShadowSurface = false;
 		bool IsDirtyFlag = false;
