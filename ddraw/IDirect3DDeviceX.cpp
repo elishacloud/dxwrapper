@@ -4145,6 +4145,60 @@ HRESULT m_IDirect3DDeviceX::GetInfo(DWORD dwDevInfoID, LPVOID pDevInfoStruct, DW
 
 	if (Config.Dd7to9)
 	{
+		if (!pDevInfoStruct || dwSize == 0)
+		{
+			return D3DERR_INVALIDCALL;
+		}
+
+#ifdef _DEBUG
+		// Fill device info structures
+		switch (dwDevInfoID)
+		{
+		case D3DDEVINFOID_TEXTUREMANAGER:
+		case D3DDEVINFOID_D3DTEXTUREMANAGER:
+			if (dwSize == sizeof(D3DDEVINFO_TEXTUREMANAGER))
+			{
+				// Simulate a default texture manager structure for a good video card
+				D3DDEVINFO_TEXTUREMANAGER* pTexManagerInfo = (D3DDEVINFO_TEXTUREMANAGER*)pDevInfoStruct;
+				pTexManagerInfo->bThrashing = FALSE;
+				pTexManagerInfo->dwNumEvicts = 0;
+				pTexManagerInfo->dwNumVidCreates = 0;
+				pTexManagerInfo->dwNumTexturesUsed = 0;
+				pTexManagerInfo->dwNumUsedTexInVid = 0;
+				pTexManagerInfo->dwWorkingSet = 0;
+				pTexManagerInfo->dwWorkingSetBytes = 0;
+				pTexManagerInfo->dwTotalManaged = 0;
+				pTexManagerInfo->dwTotalBytes = 0;
+				pTexManagerInfo->dwLastPri = 0;
+				break;
+			}
+			return D3DERR_INVALIDCALL;
+
+		case D3DDEVINFOID_TEXTURING:
+			if (dwSize == sizeof(D3DDEVINFO_TEXTURING))
+			{
+				// Simulate a default texturing activity structure for a good video card
+				D3DDEVINFO_TEXTURING* pTexturingInfo = (D3DDEVINFO_TEXTURING*)pDevInfoStruct;
+				pTexturingInfo->dwNumLoads = 0;
+				pTexturingInfo->dwApproxBytesLoaded = 0;
+				pTexturingInfo->dwNumPreLoads = 0;
+				pTexturingInfo->dwNumSet = 0;
+				pTexturingInfo->dwNumCreates = 0;
+				pTexturingInfo->dwNumDestroys = 0;
+				pTexturingInfo->dwNumSetPriorities = 0;
+				pTexturingInfo->dwNumSetLODs = 0;
+				pTexturingInfo->dwNumLocks = 0;
+				pTexturingInfo->dwNumGetDCs = 0;
+				break;
+			}
+			return D3DERR_INVALIDCALL;
+
+		default:
+			Logging::LogDebug() << __FUNCTION__ << " Error: Unknown DevInfoID: " << dwDevInfoID;
+			return D3DERR_INVALIDCALL;
+		}
+#endif
+
 		// This method is intended to be used for performance tracking and debugging during product development (on the debug version of DirectX). 
 		// The method can succeed, returning S_FALSE, without retrieving device data.
 		// This occurs when the retail version of the DirectX runtime is installed on the host system.

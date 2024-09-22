@@ -21,6 +21,42 @@ constexpr UINT MaxTextureStages = 8;	// Devices can have up to eight set texture
 #define D3DTSS_ADDRESS 12
 #endif
 
+#ifndef D3DDEVINFOID_TEXTUREMANAGER
+#define D3DDEVINFOID_TEXTUREMANAGER    1
+#endif
+#ifndef D3DDEVINFOID_D3DTEXTUREMANAGER
+#define D3DDEVINFOID_D3DTEXTUREMANAGER 2
+#endif
+#ifndef D3DDEVINFOID_TEXTURING
+#define D3DDEVINFOID_TEXTURING         3
+#endif
+
+typedef struct _D3DDEVINFO_TEXTUREMANAGER {
+    BOOL    bThrashing;             // Thrashing status. TRUE if thrashing occurred during the last frame, or FALSE otherwise.
+    DWORD   dwNumEvicts;            // Number of textures that were removed during the last frame.
+    DWORD   dwNumVidCreates;        // Number of textures that were created in video memory during the last frame.
+    DWORD   dwNumTexturesUsed;      // Total number of textures used during the last frame.
+    DWORD   dwNumUsedTexInVid;      // Number of video memory textures that were used during the last frame.
+    DWORD   dwWorkingSet;           // Number of textures currently resident in video memory.
+    DWORD   dwWorkingSetBytes;      // Number of bytes currently allocated by textures resident in video memory.
+    DWORD   dwTotalManaged;         // Total number of managed textures.
+    DWORD   dwTotalBytes;           // Total number of bytes allocated for managed textures.
+    DWORD   dwLastPri;              // Priority of last evicted texture.
+} D3DDEVINFO_TEXTUREMANAGER, * LPD3DDEVINFO_TEXTUREMANAGER;
+
+typedef struct _D3DDEVINFO_TEXTURING {
+    DWORD   dwNumLoads;             // Number of times a texture has been loaded by calling the IDirect3DDevice7::Load method.
+    DWORD   dwApproxBytesLoaded;    // Approximate number of bytes loaded by calls to the IDirect3DDevice7::Load method.
+    DWORD   dwNumPreLoads;          // Number of times managed textures have been explicitly loaded by calling the IDirect3DDevice7::PreLoad method.
+    DWORD   dwNumSet;               // Number of times textures have been set to texture-blending stages by calling the IDirect3DDevice7::SetTexture method.
+    DWORD   dwNumCreates;           // Number of texture surfaces created by the application.
+    DWORD   dwNumDestroys;          // Number of textures destroyed (released) by the application.
+    DWORD   dwNumSetPriorities;     // Number of times texture-management priority has been set by calling the IDirectDrawSurface7::SetPriority method.
+    DWORD   dwNumSetLODs;           // Number of times the maximum mipmap level of detail has been set by calling the IDirectDrawSurface7::SetLOD method.
+    DWORD   dwNumLocks;             // Number of times a texture surface has been locked by calling the IDirectDrawSurface7::Lock method.
+    DWORD   dwNumGetDCs;            // Number of times a device context for a texture surface has been retrieved by calling the IDirectDrawSurface7::GetDC method.
+} D3DDEVINFO_TEXTURING, * LPD3DDEVINFO_TEXTURING;
+
 #define LVERTEX_SIZE 32
 
 #undef D3DFVF_RESERVED2
