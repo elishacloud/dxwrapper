@@ -24,6 +24,7 @@ HRESULT m_IDirect3DTextureX::QueryInterface(REFIID riid, LPVOID FAR * ppvObj, DW
 	{
 		return E_POINTER;
 	}
+	*ppvObj = nullptr;
 
 	if (riid == IID_GetRealInterface)
 	{

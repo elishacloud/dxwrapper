@@ -24,6 +24,7 @@ HRESULT m_IDirect3DViewportX::QueryInterface(REFIID riid, LPVOID FAR * ppvObj, D
 	{
 		return E_POINTER;
 	}
+	*ppvObj = nullptr;
 
 	if (riid == IID_GetRealInterface)
 	{

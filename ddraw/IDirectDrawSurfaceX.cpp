@@ -2309,11 +2309,11 @@ HRESULT m_IDirectDrawSurfaceX::GetPalette(LPDIRECTDRAWPALETTE FAR * lplpDDPalett
 		{
 			return DDERR_INVALIDPARAMS;
 		}
+		*lplpDDPalette = nullptr;
 
 		// No palette attached
 		if (!attachedPalette)
 		{
-			*lplpDDPalette = nullptr;
 			return DDERR_NOPALETTEATTACHED;
 		}
 

@@ -24,6 +24,7 @@ HRESULT m_IDirectDrawGammaControl::QueryInterface(REFIID riid, LPVOID FAR * ppvO
 	{
 		return E_POINTER;
 	}
+	*ppvObj = nullptr;
 
 	if (riid == IID_GetRealInterface)
 	{

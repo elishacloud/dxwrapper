@@ -82,6 +82,7 @@ HRESULT m_IClassFactory::QueryInterface(REFIID riid, LPVOID FAR * ppvObj)
 	{
 		return E_POINTER;
 	}
+	*ppvObj = nullptr;
 
 	if (riid == IID_IClassFactory || riid == IID_IUnknown)
 	{

@@ -100,11 +100,10 @@ HRESULT DdrawWrapper::ProxyQueryInterface(LPVOID ProxyInterface, REFIID riid, LP
 	{
 		return E_POINTER;
 	}
+	*ppvObj = nullptr;
 
 	if (Config.Dd7to9 || !ProxyInterface)
 	{
-		*ppvObj = nullptr;
-
 		genericQueryInterface(riid, ppvObj);
 
 		if (*ppvObj)
@@ -125,8 +124,6 @@ HRESULT DdrawWrapper::ProxyQueryInterface(LPVOID ProxyInterface, REFIID riid, LP
 	}
 	else
 	{
-		*ppvObj = nullptr;
-
 		genericQueryInterface(riid, ppvObj);
 
 		if (*ppvObj)

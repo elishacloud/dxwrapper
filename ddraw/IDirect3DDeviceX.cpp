@@ -25,6 +25,7 @@ HRESULT m_IDirect3DDeviceX::QueryInterface(REFIID riid, LPVOID FAR * ppvObj, DWO
 	{
 		return E_POINTER;
 	}
+	*ppvObj = nullptr;
 
 	if (riid == IID_GetRealInterface)
 	{
@@ -754,7 +755,6 @@ HRESULT m_IDirect3DDeviceX::GetTexture(DWORD dwStage, LPDIRECT3DTEXTURE2* lplpTe
 		{
 			return DDERR_INVALIDPARAMS;
 		}
-
 		*lplpTexture = nullptr;
 
 		// Get surface stage
@@ -814,10 +814,9 @@ HRESULT m_IDirect3DDeviceX::GetTexture(DWORD dwStage, LPDIRECTDRAWSURFACE7* lplp
 		{
 			return DDERR_INVALIDPARAMS;
 		}
+		*lplpTexture = nullptr;
 
 		HRESULT hr = DDERR_GENERIC;
-
-		*lplpTexture = nullptr;
 
 		if (AttachedTexture[dwStage])
 		{
@@ -1968,7 +1967,6 @@ HRESULT m_IDirect3DDeviceX::GetDirect3D(LPDIRECT3D7* lplpD3D, DWORD DirectXVersi
 		{
 			return DDERR_INVALIDPARAMS;
 		}
-
 		*lplpD3D = nullptr;
 
 		// Check for device interface

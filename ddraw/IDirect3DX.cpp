@@ -31,6 +31,7 @@ HRESULT m_IDirect3DX::QueryInterface(REFIID riid, LPVOID FAR * ppvObj, DWORD Dir
 	{
 		return E_POINTER;
 	}
+	*ppvObj = nullptr;
 
 	if (riid == IID_GetRealInterface)
 	{
@@ -411,6 +412,7 @@ HRESULT m_IDirect3DX::CreateLight(LPDIRECT3DLIGHT * lplpDirect3DLight, LPUNKNOWN
 		{
 			return DDERR_INVALIDPARAMS;
 		}
+		*lplpDirect3DLight = nullptr;
 
 		// Check for device
 		if (!ddrawParent)
@@ -461,6 +463,7 @@ HRESULT m_IDirect3DX::CreateMaterial(LPDIRECT3DMATERIAL3 * lplpDirect3DMaterial,
 		{
 			return DDERR_INVALIDPARAMS;
 		}
+		*lplpDirect3DMaterial = nullptr;
 
 		// Check for device
 		if (!ddrawParent)
@@ -515,6 +518,7 @@ HRESULT m_IDirect3DX::CreateViewport(LPDIRECT3DVIEWPORT3 * lplpD3DViewport, LPUN
 		{
 			return DDERR_INVALIDPARAMS;
 		}
+		*lplpD3DViewport = nullptr;
 
 		// Check for device
 		if (!ddrawParent)
@@ -617,6 +621,7 @@ HRESULT m_IDirect3DX::CreateDevice(REFCLSID rclsid, LPDIRECTDRAWSURFACE7 lpDDS, 
 		{
 			return DDERR_INVALIDPARAMS;
 		}
+		*lplpD3DDevice = nullptr;
 
 		// Check for device
 		if (!ddrawParent)
@@ -707,6 +712,7 @@ HRESULT m_IDirect3DX::CreateVertexBuffer(LPD3DVERTEXBUFFERDESC lpVBDesc, LPDIREC
 		{
 			return DDERR_INVALIDPARAMS;
 		}
+		*lplpD3DVertexBuffer = nullptr;
 
 		if (!lpVBDesc->dwNumVertices)
 		{

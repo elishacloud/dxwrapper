@@ -215,6 +215,7 @@ HRESULT m_IDirectDrawX::QueryInterface(REFIID riid, LPVOID FAR * ppvObj, DWORD D
 	{
 		return E_POINTER;
 	}
+	*ppvObj = nullptr;
 
 	if (riid == IID_GetRealInterface)
 	{
@@ -540,6 +541,7 @@ HRESULT m_IDirectDrawX::CreateSurface2(LPDDSURFACEDESC2 lpDDSurfaceDesc2, LPDIRE
 	{
 		return DDERR_INVALIDPARAMS;
 	}
+	*lplpDDSurface = nullptr;
 
 	if (Config.Dd7to9)
 	{
