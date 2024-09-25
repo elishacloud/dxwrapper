@@ -111,6 +111,7 @@ private:
 	{
 		bool CanBeRenderTarget = false;
 		bool IsUsingWindowedMode = false;
+		bool RecreateAuxiliarySurfaces = false;
 		bool HasData = false;
 		bool UsingSurfaceMemory = false;
 		bool UsingShadowSurface = false;
@@ -152,6 +153,7 @@ private:
 	std::vector<MIPMAP> MipMaps;						// MipMaps structure with addresses
 	DWORD MaxMipMapLevel = 0;							// Total number of manually created MipMap levels
 	bool IsMipMapReadyToUse = false;					// Used for MipMap filtering
+	bool RecreateAuxiliarySurfaces = false;
 	LPDIRECT3DTEXTURE9 PrimaryDisplayTexture = nullptr;	// Used for the texture surface for the primary surface
 	m_IDirectDrawPalette *attachedPalette = nullptr;	// Associated palette
 	m_IDirectDrawClipper *attachedClipper = nullptr;	// Associated clipper
@@ -251,7 +253,8 @@ private:
 	LPDIRECT3DTEXTURE9 Get3DTexture();
 	void CheckMipMapLevelGen();
 	HRESULT CheckInterface(char* FunctionName, bool CheckD3DDevice, bool CheckD3DSurface, bool CheckLostSurface);
-	HRESULT CreateD3d9Surface();
+	HRESULT CreateD9AuxiliarySurfaces();
+	HRESULT CreateD9Surface();
 	bool DoesDCMatch(EMUSURFACE* pEmuSurface);
 	void SetEmulationGameDC();
 	void UnsetEmulationGameDC();
@@ -441,7 +444,7 @@ public:
 
 	// Direct3D9 interface functions
 	void SetAsRenderTarget();
-	void ReleaseD9ContextSurface();
+	void ReleaseD9AuxiliarySurfaces();
 	void ReleaseD9Surface(bool BackupData, bool ResetSurface);
 	HRESULT PresentSurface(bool IsSkipScene);
 	void ResetSurfaceDisplay();
