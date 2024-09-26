@@ -1,6 +1,7 @@
 #pragma once
 
 #include <unordered_map>
+#include <unordered_set>
 
 class m_IDirect3DDeviceX : public IUnknown, public AddressLookupTableDdrawObject
 {
@@ -69,6 +70,9 @@ private:
 	DWORD rsDestBlend;
 	DWORD rsColorKeyEnabled;
 	DWORD ssMipFilter[MaxTextureStages] = {};
+
+	// Handle state blocks
+	std::unordered_set<DWORD> StateBlockTokens;
 
 	// Default settings
 	D3DMATERIAL9 DefaultMaterial = {};
@@ -322,6 +326,7 @@ public:
 			}
 		}
 	}
-	void ClearDdraw() { ddrawParent = nullptr; colorkeyPixelShader = nullptr; d3d9Device = nullptr; }
+	void ClearDdraw();
 	void ResetDevice();
+	void ReleaseAllStateBlocks();
 };

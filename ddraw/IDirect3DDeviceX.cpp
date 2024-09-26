@@ -3209,8 +3209,14 @@ HRESULT m_IDirect3DDeviceX::EndStateBlock(LPDWORD lpdwBlockHandle)
 			return DDERR_INVALIDOBJECT;
 		}
 
-		// ToDo: Validate BlockHandle
-		return (*d3d9Device)->EndStateBlock(reinterpret_cast<IDirect3DStateBlock9**>(lpdwBlockHandle));
+		HRESULT hr = (*d3d9Device)->EndStateBlock(reinterpret_cast<IDirect3DStateBlock9**>(lpdwBlockHandle));
+
+		if (SUCCEEDED(hr))
+		{
+			StateBlockTokens.insert(*lpdwBlockHandle);
+		}
+
+		return hr;
 	}
 
 	return GetProxyInterfaceV7()->EndStateBlock(lpdwBlockHandle);
@@ -3853,12 +3859,11 @@ HRESULT m_IDirect3DDeviceX::ApplyStateBlock(DWORD dwBlockHandle)
 
 	if (Config.Dd7to9)
 	{
-		if (!dwBlockHandle)
+		if (!dwBlockHandle || StateBlockTokens.find(dwBlockHandle) == StateBlockTokens.end())
 		{
 			return DDERR_INVALIDPARAMS;
 		}
 
-		// ToDo: Validate BlockHandle
 		return reinterpret_cast<IDirect3DStateBlock9*>(dwBlockHandle)->Apply();
 	}
 
@@ -3871,12 +3876,11 @@ HRESULT m_IDirect3DDeviceX::CaptureStateBlock(DWORD dwBlockHandle)
 
 	if (Config.Dd7to9)
 	{
-		if (!dwBlockHandle)
+		if (!dwBlockHandle || StateBlockTokens.find(dwBlockHandle) == StateBlockTokens.end())
 		{
 			return DDERR_INVALIDPARAMS;
 		}
 
-		// ToDo: Validate BlockHandle
 		return reinterpret_cast<IDirect3DStateBlock9*>(dwBlockHandle)->Capture();
 	}
 
@@ -3889,13 +3893,14 @@ HRESULT m_IDirect3DDeviceX::DeleteStateBlock(DWORD dwBlockHandle)
 
 	if (Config.Dd7to9)
 	{
-		if (!dwBlockHandle)
+		if (!dwBlockHandle || StateBlockTokens.find(dwBlockHandle) == StateBlockTokens.end())
 		{
 			return DDERR_INVALIDPARAMS;
 		}
 
-		// ToDo: Validate BlockHandle
 		reinterpret_cast<IDirect3DStateBlock9*>(dwBlockHandle)->Release();
+
+		StateBlockTokens.erase(dwBlockHandle);
 
 		return D3D_OK;
 	}
@@ -3920,8 +3925,14 @@ HRESULT m_IDirect3DDeviceX::CreateStateBlock(D3DSTATEBLOCKTYPE d3dsbtype, LPDWOR
 			return DDERR_INVALIDOBJECT;
 		}
 
-		// ToDo: Validate BlockHandle
-		return (*d3d9Device)->CreateStateBlock(d3dsbtype, reinterpret_cast<IDirect3DStateBlock9**>(lpdwBlockHandle));
+		HRESULT hr = (*d3d9Device)->CreateStateBlock(d3dsbtype, reinterpret_cast<IDirect3DStateBlock9**>(lpdwBlockHandle));
+
+		if (SUCCEEDED(hr))
+		{
+			StateBlockTokens.insert(*lpdwBlockHandle);
+		}
+
+		return hr;
 	}
 
 	return GetProxyInterfaceV7()->CreateStateBlock(d3dsbtype, lpdwBlockHandle);
@@ -4259,6 +4270,7 @@ void m_IDirect3DDeviceX::ReleaseDevice()
 
 	if (ddrawParent && !Config.Exiting)
 	{
+		ReleaseAllStateBlocks();
 		ddrawParent->ClearD3DDevice();
 	}
 }
@@ -4292,6 +4304,27 @@ HRESULT m_IDirect3DDeviceX::CheckInterface(char *FunctionName, bool CheckD3DDevi
 void m_IDirect3DDeviceX::ResetDevice()
 {
 	bSetDefaults = true;
+}
+
+void m_IDirect3DDeviceX::ClearDdraw()
+{
+	ReleaseAllStateBlocks();
+	ddrawParent = nullptr;
+	colorkeyPixelShader = nullptr;
+	d3d9Device = nullptr;
+}
+
+void m_IDirect3DDeviceX::ReleaseAllStateBlocks()
+{
+	while (!StateBlockTokens.empty())
+	{
+		DWORD Token = *StateBlockTokens.begin();
+		if (FAILED(DeleteStateBlock(Token)))
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: failed to delete all StateBlocks");
+			break;
+		}
+	}
 }
 
 void m_IDirect3DDeviceX::SetDefaults()

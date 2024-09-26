@@ -3643,6 +3643,19 @@ inline void m_IDirectDrawX::ReleaseAllD9Resources(bool BackupData, bool ResetInt
 		pDDraw->ReleasedSurfaceVector.clear();
 	}
 
+	// Release all surfaces from all direct3d device
+	if (!ResetInterface)
+	{
+		for (m_IDirectDrawX*& pDDraw : DDrawVector)
+		{
+			m_IDirect3DDeviceX* Interface = pDDraw->D3DDeviceInterface;
+			if (Interface)
+			{
+				Interface->ReleaseAllStateBlocks();
+			}
+		}
+	}
+
 	// Release all buffers from all ddraw devices
 	for (m_IDirectDrawX*& pDDraw : DDrawVector)
 	{
