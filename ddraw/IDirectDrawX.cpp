@@ -1606,8 +1606,11 @@ HRESULT m_IDirectDrawX::RestoreDisplayMode()
 		Device.RefreshRate = 0;
 
 		// Release d3d9 device
-		ReleaseAllD9Resources(false, false);
-		ReleaseD3D9Device();
+		if (d3d9Device)
+		{
+			ReleaseAllD9Resources(true, false);
+			ReleaseD3D9Device();
+		}
 
 		return DD_OK;
 	}
@@ -2665,7 +2668,7 @@ void m_IDirectDrawX::ReleaseDdraw()
 		CloseD3DDDI();
 
 		// Release DC
-		if (DisplayMode.hWnd && DisplayMode.DC)
+		if (IsWindow(DisplayMode.hWnd) && DisplayMode.DC)
 		{
 			ReleaseDC(DisplayMode.hWnd, DisplayMode.DC);
 			DisplayMode.DC = nullptr;
@@ -3084,7 +3087,7 @@ HRESULT m_IDirectDrawX::CreateD3D9Device()
 			if (LastHWnd == hWnd && LastBehaviorFlags == BehaviorFlags)
 			{
 				// Prepare for reset
-				ReleaseAllD9Resources(true, false);
+				ReleaseAllD9Resources(true, true);
 
 				// Reset device. When this method returns: BackBufferCount, BackBufferWidth, and BackBufferHeight are set to zero.
 				D3DPRESENT_PARAMETERS newParams = presParams;
@@ -3097,6 +3100,7 @@ HRESULT m_IDirectDrawX::CreateD3D9Device()
 						" Windowed: " << LastWindowedMode << "->" << presParams.Windowed <<
 						" BehaviorFlags: " << Logging::hex(LastBehaviorFlags) << "->" << Logging::hex(BehaviorFlags);
 
+					ReleaseAllD9Resources(true, false);
 					ReleaseD3D9Device();
 				}
 			}

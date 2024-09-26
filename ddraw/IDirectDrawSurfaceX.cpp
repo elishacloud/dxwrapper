@@ -4142,12 +4142,6 @@ LPDIRECT3DTEXTURE9 m_IDirectDrawSurfaceX::GetD3d9Texture()
 		return nullptr;
 	}
 
-	// Check if surface is render target
-	if (IsRenderTarget())
-	{
-		LOG_LIMIT(100, __FUNCTION__ << " Error: Render Target textures not implemented!");
-	}
-
 	return Get3DTexture();
 }
 
@@ -5190,9 +5184,8 @@ void m_IDirectDrawSurfaceX::ReleaseD9Surface(bool BackupData, bool ResetSurface)
 		if (surface.HasData && (surface.Surface || surface.Texture) && !IsRenderTarget() && !IsDepthStencil() && (!ResetSurface || IsD9UsingVideoMemory()))
 		{
 			IsSurfaceLost = true;
-			LostDeviceBackup.clear();
 
-			if (!IsUsingEmulation())
+			if (!IsUsingEmulation() && LostDeviceBackup.empty())
 			{
 				for (UINT Level = 0; Level < ((IsMipMapAutogen() || !MaxMipMapLevel) ? 1 : MaxMipMapLevel); Level++)
 				{
@@ -5730,6 +5723,8 @@ void m_IDirectDrawSurfaceX::SetDirtyFlag()
 	surface.HasData = true;
 	surface.IsDrawTextureDirty = true;
 	IsMipMapReadyToUse = false;
+
+	LostDeviceBackup.clear();
 
 	// Update Uniqueness Value
 	ChangeUniquenessValue();
