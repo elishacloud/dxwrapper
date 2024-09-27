@@ -5,6 +5,7 @@
 #endif
 
 constexpr UINT MaxTextureStages = 8;	// Devices can have up to eight set textures.
+constexpr UINT MAX_LIGHTS = 8;          // Devices can have up to eight lights.
 
 #define D3DDP_FORCE_DWORD               0x0000001Fl
 #define D3DDP_DXW_COLORKEYENABLE        0x00000020l

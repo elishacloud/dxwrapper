@@ -33,6 +33,17 @@ private:
 #endif
 
 	struct {
+		DWORD RenderState[255] = {};
+		DWORD TextureState[MaxTextureStages][255] = {};
+		DWORD SamplerState[MaxTextureStages][14] = {};
+		D3DLIGHT9 lights[MAX_LIGHTS] = {};
+		BOOL lightEnabled[MAX_LIGHTS] = {};
+		D3DVIEWPORT9 viewport = {};
+		D3DMATERIAL9 material = {};
+		D3DMATRIX worldMatrix = {}, viewMatrix = {}, projectionMatrix = {};
+	} backup;
+
+	struct {
 		DWORD rsClipping = 0;
 		DWORD rsLighting = 0;
 		DWORD rsExtents = 0;
@@ -151,6 +162,8 @@ private:
 	HRESULT CheckInterface(char *FunctionName, bool CheckD3DDevice);
 
 	// Helper functions
+	HRESULT BackupStates();
+	HRESULT RestoreStates();
 	void SetDefaults();
 	void SetDrawStates(DWORD dwVertexTypeDesc, DWORD& dwFlags, DWORD DirectXVersion);
 	void RestoreDrawStates(DWORD dwVertexTypeDesc, DWORD dwFlags, DWORD DirectXVersion);

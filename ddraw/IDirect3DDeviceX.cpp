@@ -4301,6 +4301,112 @@ HRESULT m_IDirect3DDeviceX::CheckInterface(char *FunctionName, bool CheckD3DDevi
 	return D3D_OK;
 }
 
+HRESULT m_IDirect3DDeviceX::BackupStates()
+{
+	if (!d3d9Device || !*d3d9Device)
+	{
+		Logging::Log() << __FUNCTION__ " Error: Failed to get the device state!";
+		return DDERR_GENERIC;
+	}
+
+	// Backup render states
+	for (UINT x = 0; x < 255; x++)
+	{
+		(*d3d9Device)->GetRenderState((D3DRENDERSTATETYPE)x, &backup.RenderState[x]);
+	}
+
+	// Backup texture states
+	for (UINT y = 0; y < MaxTextureStages; y++)
+	{
+		for (UINT x = 0; x < 255; x++)
+		{
+			(*d3d9Device)->GetTextureStageState(y, (D3DTEXTURESTAGESTATETYPE)x, &backup.TextureState[y][x]);
+		}
+	}
+
+	// Backup sampler states
+	for (UINT y = 0; y < MaxTextureStages; y++)
+	{
+		for (UINT x = 0; x < 14; x++)
+		{
+			(*d3d9Device)->GetSamplerState(y, (D3DSAMPLERSTATETYPE)x, &backup.SamplerState[y][x]);
+		}
+	}
+
+	// Backup lights
+	for (int i = 0; i < MAX_LIGHTS; ++i)
+	{
+		(*d3d9Device)->GetLight(i, &backup.lights[i]);
+		(*d3d9Device)->GetLightEnable(i, &backup.lightEnabled[i]);
+	}
+
+	// Backup material
+	(*d3d9Device)->GetMaterial(&backup.material);
+
+	// Backup transform
+	(*d3d9Device)->GetTransform(D3DTS_WORLD, &backup.worldMatrix);
+	(*d3d9Device)->GetTransform(D3DTS_VIEW, &backup.viewMatrix);
+	(*d3d9Device)->GetTransform(D3DTS_PROJECTION, &backup.projectionMatrix);
+
+	// Backup viewport
+	(*d3d9Device)->GetViewport(&backup.viewport);
+
+	return D3D_OK;
+}
+
+HRESULT m_IDirect3DDeviceX::RestoreStates()
+{
+	if (!d3d9Device || !*d3d9Device)
+	{
+		Logging::Log() << __FUNCTION__ " Error: Failed to restore the device state!";
+		return DDERR_GENERIC;
+	}
+
+	// Restore render states
+	for (UINT x = 0; x < 255; x++)
+	{
+		(*d3d9Device)->SetRenderState((D3DRENDERSTATETYPE)x, backup.RenderState[x]);
+	}
+
+	// Restore texture states
+	for (UINT y = 0; y < MaxTextureStages; y++)
+	{
+		for (UINT x = 0; x < 255; x++)
+		{
+			(*d3d9Device)->SetTextureStageState(y, (D3DTEXTURESTAGESTATETYPE)x, backup.TextureState[y][x]);
+		}
+	}
+
+	// Restore lights
+	for (int i = 0; i < MAX_LIGHTS; ++i)
+	{
+		(*d3d9Device)->SetLight(i, &backup.lights[i]);
+		(*d3d9Device)->LightEnable(i, backup.lightEnabled[i]);
+	}
+
+	// Restore material
+	(*d3d9Device)->SetMaterial(&backup.material);
+
+	// Restore transform
+	(*d3d9Device)->SetTransform(D3DTS_WORLD, &backup.worldMatrix);
+	(*d3d9Device)->SetTransform(D3DTS_VIEW, &backup.viewMatrix);
+	(*d3d9Device)->SetTransform(D3DTS_PROJECTION, &backup.projectionMatrix);
+
+	// Restore sampler states
+	for (UINT y = 0; y < MaxTextureStages; y++)
+	{
+		for (UINT x = 0; x < 14; x++)
+		{
+			(*d3d9Device)->SetSamplerState(y, (D3DSAMPLERSTATETYPE)x, backup.SamplerState[y][x]);
+		}
+	}
+
+	// Restore viewport
+	(*d3d9Device)->SetViewport(&backup.viewport);
+
+	return D3D_OK;
+}
+
 void m_IDirect3DDeviceX::ResetDevice()
 {
 	bSetDefaults = true;
