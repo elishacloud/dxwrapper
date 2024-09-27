@@ -3425,10 +3425,16 @@ HRESULT m_IDirectDrawX::ReinitDevice()
 		D3DPRESENT_PARAMETERS newParams = presParams;
 		hr = d3d9Device->Reset(&newParams);
 
-		// Reset render target
 		if (SUCCEEDED(hr))
 		{
+			// Reset render target
 			ReSetRenderTarget();
+
+			// Reset D3D device settings
+			if (D3DDeviceInterface)
+			{
+				D3DDeviceInterface->ResetDevice();
+			}
 		}
 
 		// If Reset() fails
@@ -3447,12 +3453,6 @@ HRESULT m_IDirectDrawX::ReinitDevice()
 			LOG_LIMIT(100, __FUNCTION__ << " Error: failed to reset Direct3D9 device: " << (D3DERR)hr);
 			hr = DDERR_WRONGMODE;
 			break;
-		}
-
-		// Reset D3D device settings
-		if (D3DDeviceInterface)
-		{
-			D3DDeviceInterface->ResetDevice();
 		}
 
 	} while (false);
