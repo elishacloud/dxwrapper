@@ -106,8 +106,10 @@ void ConvertSurfaceDesc(DDSURFACEDESC2 &Desc2, DDSURFACEDESC &Desc)
 		Desc2.dwFlags |= DDSD_PIXELFORMAT;
 		Desc2.ddpfPixelFormat.dwSize = sizeof(DDPIXELFORMAT);
 		Desc2.ddpfPixelFormat.dwFlags = DDPF_ZBUFFER;
-		Desc2.ddpfPixelFormat.dwZBufferBitDepth = Desc.dwZBufferBitDepth;		
-		Desc2.ddpfPixelFormat.dwZBitMask = (Desc2.ddpfPixelFormat.dwZBufferBitDepth == 32) ? 0xFFFFFFFF :
+		Desc2.ddpfPixelFormat.dwZBufferBitDepth = Desc.dwZBufferBitDepth;
+		Desc2.ddpfPixelFormat.dwZBitMask =
+			(Desc2.ddpfPixelFormat.dwZBufferBitDepth == 32) ? 0xFFFFFFFF :
+			(Desc2.ddpfPixelFormat.dwZBufferBitDepth == 24) ? 0xFFFFFF00 :
 			(Desc2.ddpfPixelFormat.dwZBufferBitDepth == 16) ? 0xFFFF : 0;
 		Desc2.dwRefreshRate = 0;	// Union with dwZBufferBitDepth
 	}
@@ -299,7 +301,7 @@ void ConvertCaps(DDCAPS &Caps7, D3DCAPS9 &Caps9)
 	// Z-buffer bit depths
 	if (Caps7.dwCaps & DDCAPS_ZBLTS)
 	{
-		Caps7.dwZBufferBitDepths = DDBD_8 | DDBD_16 | DDBD_24 | DDBD_32;
+		Caps7.dwZBufferBitDepths = DDBD_16 | DDBD_24 | DDBD_32;
 	}
 
 	// Overlay settings
@@ -738,6 +740,7 @@ D3DFORMAT GetFailoverFormat(D3DFORMAT Format)
 		{ D3DFMT_X4R4G4B4, D3DFMT_A4R4G4B4 },
 		{ D3DFMT_X8R8G8B8, D3DFMT_A8R8G8B8 },
 		{ D3DFMT_X8B8G8R8, D3DFMT_A8B8G8R8 },
+		{ D3DFMT_D32, D3DFMT_D24S8 },
 		{ D3DFMT_D16_LOCKABLE, D3DFMT_D16 }
 	};
 
