@@ -380,7 +380,7 @@ HRESULT m_IDirect3DViewportX::Clear(DWORD dwCount, LPD3DRECT lpRects, DWORD dwFl
 
 	if (!ProxyInterface)
 	{
-		return Clear2(dwCount, lpRects, dwFlags, 0, 0.0f, 0);
+		return Clear2(dwCount, lpRects, dwFlags, 0x00000000, 1.0f, 0);
 	}
 
 	return ProxyInterface->Clear(dwCount, lpRects, dwFlags);
