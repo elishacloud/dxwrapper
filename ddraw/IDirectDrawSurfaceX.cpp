@@ -3952,7 +3952,7 @@ void m_IDirectDrawSurfaceX::InitSurface(DWORD DirectXVersion)
 	{
 		ddrawParent->AddSurfaceToVector(this);
 
-		d3d9Device = ddrawParent->GetDirect3D9Device();
+		d3d9Device = ddrawParent->GetDirectD9Device();
 	}
 
 	// Set Uniqueness Value
@@ -4240,7 +4240,7 @@ HRESULT m_IDirectDrawSurfaceX::CheckInterface(char *FunctionName, bool CheckD3DD
 	// Check d3d9 device
 	if (CheckD3DDevice)
 	{
-		if (!ddrawParent->CheckD3D9Device() || !d3d9Device || !*d3d9Device)
+		if (!ddrawParent->CheckD9Device() || !d3d9Device || !*d3d9Device)
 		{
 			LOG_LIMIT(100, FunctionName << " Error: d3d9 device not setup!");
 			return DDERR_INVALIDOBJECT;

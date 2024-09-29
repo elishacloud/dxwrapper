@@ -251,7 +251,7 @@ void m_IDirect3DX::GetCap9Cache()
 	if (ddrawParent)
 	{
 		// Get d3d9Object
-		IDirect3D9* d3d9Object = ddrawParent->GetDirect3D9Object();
+		IDirect3D9* d3d9Object = ddrawParent->GetDirectD9Object();
 		if (d3d9Object)
 		{
 			UINT AdapterCount = d3d9Object->GetAdapterCount();
@@ -786,7 +786,7 @@ HRESULT m_IDirect3DX::EnumZBufferFormats(REFCLSID riidDevice, LPD3DENUMPIXELFORM
 		}
 
 		// Get d3d9Object
-		IDirect3D9 *d3d9Object = ddrawParent->GetDirect3D9Object();
+		IDirect3D9 *d3d9Object = ddrawParent->GetDirectD9Object();
 
 		if (riidDevice == IID_IDirect3DRGBDevice || riidDevice == IID_IDirect3DMMXDevice || riidDevice == IID_IDirect3DRefDevice ||
 			riidDevice == IID_IDirect3DHALDevice || riidDevice == IID_IDirect3DTnLHalDevice)

@@ -672,7 +672,7 @@ HRESULT m_IDirect3DDeviceX::EnumTextureFormats(LPD3DENUMPIXELFORMATSCALLBACK lpd
 			return DDERR_INVALIDOBJECT;
 		}
 
-		LPDIRECT3D9 d3d9Object = ddrawParent->GetDirect3D9Object();
+		LPDIRECT3D9 d3d9Object = ddrawParent->GetDirectD9Object();
 
 		if (!d3d9Object)
 		{
@@ -4218,7 +4218,7 @@ void m_IDirect3DDeviceX::InitDevice(DWORD DirectXVersion)
 
 	if (ddrawParent)
 	{
-		d3d9Device = ddrawParent->GetDirect3D9Device();
+		d3d9Device = ddrawParent->GetDirectD9Device();
 		ddrawParent->SetD3DDevice(this);
 
 		if (CurrentRenderTarget)
@@ -4275,7 +4275,7 @@ HRESULT m_IDirect3DDeviceX::CheckInterface(char *FunctionName, bool CheckD3DDevi
 	// Check d3d9 device
 	if (CheckD3DDevice)
 	{
-		if (!ddrawParent->CheckD3D9Device() || !d3d9Device || !*d3d9Device)
+		if (!ddrawParent->CheckD9Device() || !d3d9Device || !*d3d9Device)
 		{
 			LOG_LIMIT(100, FunctionName << " Error: d3d9 device not setup!");
 			return DDERR_INVALIDOBJECT;

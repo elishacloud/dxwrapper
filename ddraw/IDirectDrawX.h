@@ -81,12 +81,12 @@ private:
 
 	// Direct3D9 interface functions
 	HRESULT CheckInterface(char *FunctionName, bool CheckD3DDevice);
-	HRESULT CreateD3D9Object();
-	void Release3DForAllSurfaces();
+	HRESULT CreateD9Object();
+	void Clear3DFlagForAllSurfaces();
 	void ResetAllSurfaceDisplay();
 	void ReleaseAllD9Resources(bool BackupData, bool ResetInterface);
-	void ReleaseD3D9Device();
-	void ReleaseD3D9Object();
+	void ReleaseD9Device();
+	void ReleaseD9Object();
 
 public:
 	m_IDirectDrawX(IDirectDraw7 *aOriginal, DWORD DirectXVersion) : ProxyInterface(aOriginal)
@@ -177,21 +177,21 @@ public:
 	inline void ClearD3D() { D3DInterface = nullptr; }
 	void SetD3DDevice(m_IDirect3DDeviceX* D3DDevice);
 	inline m_IDirect3DDeviceX** GetCurrentD3DDevice() { return &D3DDeviceInterface; }
-	inline void ClearD3DDevice() { Using3D = false; D3DDeviceInterface = nullptr; SetRenderTargetSurface(nullptr); Release3DForAllSurfaces(); }
+	inline void ClearD3DDevice() { Using3D = false; D3DDeviceInterface = nullptr; SetRenderTargetSurface(nullptr); Clear3DFlagForAllSurfaces(); }
 	inline void Enable3D() { Using3D = true; }
 	inline bool IsUsing3D() { return Using3D; }
 	inline bool IsPrimaryRenderTarget() { return PrimarySurface ? PrimarySurface->IsRenderTarget() : false; }
 	bool IsInScene();
 
 	// Direct3D9 interfaces
-	bool CheckD3D9Device();
-	LPDIRECT3D9 GetDirect3D9Object();
-	LPDIRECT3DDEVICE9 *GetDirect3D9Device();
+	bool CheckD9Device();
+	LPDIRECT3D9 GetDirectD9Object();
+	LPDIRECT3DDEVICE9 *GetDirectD9Device();
 	bool CreatePaletteShader();
 	LPDIRECT3DPIXELSHADER9* GetColorKeyShader();
 	LPDIRECT3DVERTEXBUFFER9 GetValidateDeviceVertexBuffer(DWORD& FVF, DWORD& Size);
 	D3DMULTISAMPLE_TYPE GetMultiSampleTypeQuality(D3DFORMAT Format, DWORD MaxSampleType, DWORD& QualityLevels);
-	HRESULT CreateD3D9Device();
+	HRESULT CreateD9Device();
 	HRESULT CreateVertexBuffer(DWORD Width, DWORD Height);
 	HRESULT ReinitDevice();
 	HRESULT TestD3D9CooperativeLevel();

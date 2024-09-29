@@ -1610,7 +1610,7 @@ HRESULT m_IDirectDrawX::RestoreDisplayMode()
 		if (d3d9Device)
 		{
 			ReleaseAllD9Resources(true, false);
-			ReleaseD3D9Device();
+			ReleaseD9Device();
 		}
 
 		return DD_OK;
@@ -1733,7 +1733,7 @@ HRESULT m_IDirectDrawX::SetCooperativeLevel(HWND hWnd, DWORD dwFlags, DWORD Dire
 			if ((dwFlags & (DDSCL_NORMAL | DDSCL_EXCLUSIVE)) && (d3d9Device || LastUsedHWnd == DisplayMode.hWnd) &&
 				(LastExclusiveMode != ExclusiveMode || LasthWnd != DisplayMode.hWnd || LastFPUPreserve != Device.FPUPreserve))
 			{
-				CreateD3D9Device();
+				CreateD9Device();
 			}
 		}
 
@@ -1934,7 +1934,7 @@ HRESULT m_IDirectDrawX::SetDisplayMode(DWORD dwWidth, DWORD dwHeight, DWORD dwBP
 			SetResolution = ExclusiveMode;
 
 			// Reset d3d9 device
-			CreateD3D9Device();
+			CreateD9Device();
 		}
 		else if (LastBPP != DisplayMode.BPP)
 		{
@@ -2656,13 +2656,13 @@ void m_IDirectDrawX::ReleaseDdraw()
 		// Release d3d9device
 		if (d3d9Device)
 		{
-			ReleaseD3D9Device();
+			ReleaseD9Device();
 		}
 
 		// Release d3d9object
 		if (d3d9Object)
 		{
-			ReleaseD3D9Object();
+			ReleaseD9Object();
 		}
 
 		// Close DDI
@@ -2786,7 +2786,7 @@ HRESULT m_IDirectDrawX::CheckInterface(char *FunctionName, bool CheckD3DDevice)
 	if (!d3d9Object)
 	{
 		// Create d3d9 object
-		if (FAILED(CreateD3D9Object()))
+		if (FAILED(CreateD9Object()))
 		{
 			LOG_LIMIT(100, FunctionName << " Error: d3d9 object not setup!");
 			return DDERR_GENERIC;
@@ -2797,7 +2797,7 @@ HRESULT m_IDirectDrawX::CheckInterface(char *FunctionName, bool CheckD3DDevice)
 	if (CheckD3DDevice && !d3d9Device)
 	{
 		// Create d3d9 device
-		if (FAILED(CreateD3D9Device()))
+		if (FAILED(CreateD9Device()))
 		{
 			LOG_LIMIT(100, FunctionName << " Error: d3d9 device not setup!");
 			return DDERR_GENERIC;
@@ -2822,21 +2822,21 @@ bool m_IDirectDrawX::IsInScene()
 	return (D3DDeviceInterface && D3DDeviceInterface->IsDeviceInScene());
 }
 
-bool m_IDirectDrawX::CheckD3D9Device()
+bool m_IDirectDrawX::CheckD9Device()
 {
-	if (!d3d9Device && FAILED(CreateD3D9Device()))
+	if (!d3d9Device && FAILED(CreateD9Device()))
 	{
 		return false;
 	}
 	return true;
 }
 
-LPDIRECT3D9 m_IDirectDrawX::GetDirect3D9Object()
+LPDIRECT3D9 m_IDirectDrawX::GetDirectD9Object()
 {
 	return d3d9Object;
 }
 
-LPDIRECT3DDEVICE9* m_IDirectDrawX::GetDirect3D9Device()
+LPDIRECT3DDEVICE9* m_IDirectDrawX::GetDirectD9Device()
 {
 	return &d3d9Device;
 }
@@ -2924,7 +2924,7 @@ D3DMULTISAMPLE_TYPE m_IDirectDrawX::GetMultiSampleTypeQuality(D3DFORMAT Format, 
 }
 
 // Creates or resets the d3d9 device
-HRESULT m_IDirectDrawX::CreateD3D9Device()
+HRESULT m_IDirectDrawX::CreateD9Device()
 {
 	// Check for device interface
 	if (FAILED(CheckInterface(__FUNCTION__, false)))
@@ -3102,7 +3102,7 @@ HRESULT m_IDirectDrawX::CreateD3D9Device()
 						" BehaviorFlags: " << Logging::hex(LastBehaviorFlags) << "->" << Logging::hex(BehaviorFlags);
 
 					ReleaseAllD9Resources(false, false);	// Cannot backup surface after a failed reset
-					ReleaseD3D9Device();
+					ReleaseD9Device();
 				}
 			}
 			// Release existing device
@@ -3113,7 +3113,7 @@ HRESULT m_IDirectDrawX::CreateD3D9Device()
 					Logging::hex(LastBehaviorFlags) << "->" << Logging::hex(BehaviorFlags);
 
 				ReleaseAllD9Resources(true, false);
-				ReleaseD3D9Device();
+				ReleaseD9Device();
 			}
 		}
 
@@ -3375,7 +3375,7 @@ HRESULT m_IDirectDrawX::CreateVertexBuffer(DWORD Width, DWORD Height)
 }
 
 // Creates d3d9 object
-HRESULT m_IDirectDrawX::CreateD3D9Object()
+HRESULT m_IDirectDrawX::CreateD9Object()
 {
 	// Create d3d9 object
 	if (!d3d9Object)
@@ -3468,15 +3468,15 @@ HRESULT m_IDirectDrawX::ReinitDevice()
 			{
 				LOG_LIMIT(100, __FUNCTION__ << " Error: Reset failed! " << (D3DERR)hr);
 				ReleaseAllD9Resources(false, false);	// Cannot backup surface after a failed reset
-				ReleaseD3D9Device();
-				hr = CreateD3D9Device();
+				ReleaseD9Device();
+				hr = CreateD9Device();
 			}
 		}
 		else
 		{
 			ReleaseAllD9Resources(true, false);
-			ReleaseD3D9Device();
-			hr = CreateD3D9Device();
+			ReleaseD9Device();
+			hr = CreateD9Device();
 		}
 
 		// Check if reset device failed
@@ -3619,7 +3619,7 @@ HRESULT m_IDirectDrawX::SetDepthStencilSurface(m_IDirectDrawSurfaceX* lpSurface)
 	return hr;
 }
 
-void m_IDirectDrawX::Release3DForAllSurfaces()
+void m_IDirectDrawX::Clear3DFlagForAllSurfaces()
 {
 	SetCriticalSection();
 
@@ -3656,7 +3656,7 @@ inline void m_IDirectDrawX::ReleaseAllD9Resources(bool BackupData, bool ResetInt
 	SetPTCriticalSection();
 
 	// Remove render target and depth stencil surfaces
-	if (d3d9Device && BackupData && (RenderTargetSurface || DepthStencilSurface))
+	if (d3d9Device && ResetInterface && (RenderTargetSurface || DepthStencilSurface))
 	{
 		SetRenderTargetSurface(nullptr);
 	}
@@ -3725,7 +3725,7 @@ inline void m_IDirectDrawX::ReleaseAllD9Resources(bool BackupData, bool ResetInt
 	if (palettePixelShader)
 	{
 		Logging::LogDebug() << __FUNCTION__ << " Releasing Direct3D9 palette pixel shader";
-		if (d3d9Device && BackupData)
+		if (d3d9Device && ResetInterface)
 		{
 			d3d9Device->SetPixelShader(nullptr);
 		}
@@ -3741,7 +3741,7 @@ inline void m_IDirectDrawX::ReleaseAllD9Resources(bool BackupData, bool ResetInt
 	if (colorkeyPixelShader)
 	{
 		Logging::LogDebug() << __FUNCTION__ << " Releasing Direct3D9 color key pixel shader";
-		if (d3d9Device && BackupData)
+		if (d3d9Device && ResetInterface)
 		{
 			d3d9Device->SetPixelShader(nullptr);
 		}
@@ -3758,7 +3758,7 @@ inline void m_IDirectDrawX::ReleaseAllD9Resources(bool BackupData, bool ResetInt
 }
 
 // Release d3d9 device
-void m_IDirectDrawX::ReleaseD3D9Device()
+void m_IDirectDrawX::ReleaseD9Device()
 {
 	SetCriticalSection();
 	SetPTCriticalSection();
@@ -3785,7 +3785,7 @@ void m_IDirectDrawX::ReleaseD3D9Device()
 }
 
 // Release d3d9 object
-void m_IDirectDrawX::ReleaseD3D9Object()
+void m_IDirectDrawX::ReleaseD9Object()
 {
 	if (d3d9Object)
 	{
@@ -4155,7 +4155,7 @@ HRESULT m_IDirectDrawX::SetClipperHWnd(HWND hWnd)
 		}
 		if (!DisplayMode.hWnd && ClipperHWnd && ClipperHWnd != OldClipperHWnd)
 		{
-			return CreateD3D9Device();
+			return CreateD9Device();
 		}
 	}
 	return DD_OK;
