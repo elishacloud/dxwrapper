@@ -1645,12 +1645,6 @@ HRESULT m_IDirectDrawX::SetCooperativeLevel(HWND hWnd, DWORD dwFlags, DWORD Dire
 			LOG_LIMIT(100, __FUNCTION__ << " Warning: Flags not supported. dwFlags: " << Logging::hex(dwFlags) << " " << hWnd);
 		}
 
-		// Check window handle thread
-		if ((((dwFlags & DDSCL_EXCLUSIVE) || ExclusiveMode) && GetWindowThreadProcessId((hWnd) ? hWnd : DisplayMode.hWnd, nullptr) != GetCurrentThreadId()))
-		{
-			LOG_LIMIT(100, __FUNCTION__ << " Warning: attempt to set exclusive mode from a different thread than the hwnd was created from! dwFlags: " << Logging::hex(dwFlags) << " " << hWnd);
-		}
-
 		HWND LasthWnd = DisplayMode.hWnd;
 		bool LastFPUPreserve = Device.FPUPreserve;
 		bool LastExclusiveMode = ExclusiveMode;
@@ -1733,7 +1727,7 @@ HRESULT m_IDirectDrawX::SetCooperativeLevel(HWND hWnd, DWORD dwFlags, DWORD Dire
 			if ((dwFlags & (DDSCL_NORMAL | DDSCL_EXCLUSIVE)) && (d3d9Device || LastUsedHWnd == DisplayMode.hWnd) &&
 				(LastExclusiveMode != ExclusiveMode || LasthWnd != DisplayMode.hWnd || LastFPUPreserve != Device.FPUPreserve))
 			{
-				CreateD9Device();
+				CreateD9Device(__FUNCTION__);
 			}
 		}
 
@@ -1828,12 +1822,6 @@ HRESULT m_IDirectDrawX::SetDisplayMode(DWORD dwWidth, DWORD dwHeight, DWORD dwBP
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Error: Invalid parameters: " << dwWidth << "x" << dwHeight << " " << dwBPP);
 			return DDERR_INVALIDPARAMS;
-		}
-
-		// Check window handle thread
-		if (ExclusiveMode && IsWindow(DisplayMode.hWnd) && GetWindowThreadProcessId(DisplayMode.hWnd, nullptr) != GetCurrentThreadId())
-		{
-			LOG_LIMIT(100, __FUNCTION__ << " Warning: set exclusive display from a different thread than the hwnd was created from! " << dwWidth << "x" << dwHeight << " " << dwBPP);
 		}
 
 		DWORD LastWidth = Device.Width;
@@ -1934,7 +1922,7 @@ HRESULT m_IDirectDrawX::SetDisplayMode(DWORD dwWidth, DWORD dwHeight, DWORD dwBP
 			SetResolution = ExclusiveMode;
 
 			// Reset d3d9 device
-			CreateD9Device();
+			CreateD9Device(__FUNCTION__);
 		}
 		else if (LastBPP != DisplayMode.BPP)
 		{
@@ -2797,7 +2785,7 @@ HRESULT m_IDirectDrawX::CheckInterface(char *FunctionName, bool CheckD3DDevice)
 	if (CheckD3DDevice && !d3d9Device)
 	{
 		// Create d3d9 device
-		if (FAILED(CreateD9Device()))
+		if (FAILED(CreateD9Device(FunctionName)))
 		{
 			LOG_LIMIT(100, FunctionName << " Error: d3d9 device not setup!");
 			return DDERR_GENERIC;
@@ -2822,9 +2810,9 @@ bool m_IDirectDrawX::IsInScene()
 	return (D3DDeviceInterface && D3DDeviceInterface->IsDeviceInScene());
 }
 
-bool m_IDirectDrawX::CheckD9Device()
+bool m_IDirectDrawX::CheckD9Device(char* FunctionName)
 {
-	if (!d3d9Device && FAILED(CreateD9Device()))
+	if (!d3d9Device && FAILED(CreateD9Device(FunctionName)))
 	{
 		return false;
 	}
@@ -2923,8 +2911,26 @@ D3DMULTISAMPLE_TYPE m_IDirectDrawX::GetMultiSampleTypeQuality(D3DFORMAT Format, 
 	return D3DMULTISAMPLE_NONE;
 }
 
+// Resets the d3d9 device
+HRESULT m_IDirectDrawX::ResetD9Device()
+{
+	// Reset device. When this method returns: BackBufferCount, BackBufferWidth, and BackBufferHeight are set to zero.
+	D3DPRESENT_PARAMETERS newParams = presParams;
+	HRESULT hr = d3d9Device->Reset(&newParams);
+
+	// If Reset fails then release the device and all resources
+	if (FAILED(hr))
+	{
+		LOG_LIMIT(100, __FUNCTION__ << " Error: Reset failed " << (D3DERR)hr);
+		ReleaseAllD9Resources(false, false);	// Cannot backup surface after a failed Reset
+		ReleaseD9Device();
+	}
+
+	return hr;
+}
+
 // Creates or resets the d3d9 device
-HRESULT m_IDirectDrawX::CreateD9Device()
+HRESULT m_IDirectDrawX::CreateD9Device(char* FunctionName)
 {
 	// Check for device interface
 	if (FAILED(CheckInterface(__FUNCTION__, false)))
@@ -3085,25 +3091,12 @@ HRESULT m_IDirectDrawX::CreateD9Device()
 			}
 
 			// Try to reset existing device
-			if (LastHWnd == hWnd && LastBehaviorFlags == BehaviorFlags && GetWindowThreadProcessId(hWnd, nullptr) == GetCurrentThreadId())
+			hr = TestD3D9CooperativeLevel();
+			if (LastHWnd == hWnd && LastBehaviorFlags == BehaviorFlags &&								// Device arguments are not changed
+				(SUCCEEDED(hr) || hr == DDERR_NOEXCLUSIVEMODE || hr == D3DERR_DEVICENOTRESET) &&		// Device is ready to be reset
+				(IsWindow(hWnd) && GetWindowThreadProcessId(hWnd, nullptr) != GetCurrentThreadId()))	// Calling thread matches current thread
 			{
-				// Prepare for reset
-				ReleaseAllD9Resources(true, true);
-
-				// Reset device. When this method returns: BackBufferCount, BackBufferWidth, and BackBufferHeight are set to zero.
-				D3DPRESENT_PARAMETERS newParams = presParams;
-				hr = d3d9Device->Reset(&newParams);
-
-				// Resetting the device failed
-				if (FAILED(hr))
-				{
-					Logging::Log() << __FUNCTION__ << " Failed to reset device! " << (D3DERR)hr << " Last create: " << LastHWnd << "->" << hWnd << " " <<
-						" Windowed: " << LastWindowedMode << "->" << presParams.Windowed <<
-						" BehaviorFlags: " << Logging::hex(LastBehaviorFlags) << "->" << Logging::hex(BehaviorFlags);
-
-					ReleaseAllD9Resources(false, false);	// Cannot backup surface after a failed reset
-					ReleaseD9Device();
-				}
+				hr = ResetD9Device();
 			}
 			// Release existing device
 			else
@@ -3123,26 +3116,31 @@ HRESULT m_IDirectDrawX::CreateD9Device()
 			// Check window handle thread
 			if (IsWindow(hWnd) && GetWindowThreadProcessId(hWnd, nullptr) != GetCurrentThreadId())
 			{
-				LOG_LIMIT(100, __FUNCTION__ << " Warning: trying to create Direct3D9 device from a different thread than the hwnd was created from!");
+				LOG_LIMIT(100, __FUNCTION__ << " " << FunctionName << " Warning: trying to create Direct3D9 device from a different thread than the hwnd was created from!");
 
-				D9_DEVICE_CREATION* pDeviceStruct = new D9_DEVICE_CREATION;
-				HANDLE hEvent = CreateEvent(NULL, FALSE, FALSE, NULL);
+				HANDLE hEvent = CreateEventA(NULL, FALSE, FALSE, NULL);
 
-				pDeviceStruct->hWnd = hWnd;
-				pDeviceStruct->BehaviorFlags = BehaviorFlags;
-				pDeviceStruct->d3d9Object = d3d9Object;
-				pDeviceStruct->d3d9Device = &d3d9Device;
-				pDeviceStruct->presParams = &presParams;
-				pDeviceStruct->hEvent = hEvent;
+				if (!hEvent)
+				{
+					LOG_LIMIT(100, __FUNCTION__ << " Error: failed to create event handle!");
+					hr = DDERR_GENERIC;
+					break;
+				}
 
-				PostMessageA(hWnd, WM_USER_CREATE_D3D9_DEVICE, (WPARAM)0, (LPARAM)pDeviceStruct);
+				D9_DEVICE_CREATION DeviceStruct;
+				DeviceStruct.hWnd = hWnd;
+				DeviceStruct.BehaviorFlags = BehaviorFlags;
+				DeviceStruct.d3d9Object = d3d9Object;
+				DeviceStruct.d3d9Device = &d3d9Device;
+				DeviceStruct.presParams = &presParams;
+				DeviceStruct.hEvent = hEvent;
+
+				PostMessageA(hWnd, WM_USER_CREATE_D3D9_DEVICE, (WPARAM)this, (LPARAM)&DeviceStruct);
 				WaitForSingleObject(hEvent, INFINITE);
 
-				hr = pDeviceStruct->hr;
+				hr = DeviceStruct.hr;
 
 				CloseHandle(hEvent);
-
-				delete pDeviceStruct;
 			}
 			else
 			{
@@ -3440,54 +3438,35 @@ HRESULT m_IDirectDrawX::ReinitDevice()
 	SetCriticalSection();
 	SetPTCriticalSection();
 
-	do {
-		// Check window handle thread
-		if (IsWindow(presParams.hDeviceWindow) && GetWindowThreadProcessId(presParams.hDeviceWindow, nullptr) == GetCurrentThreadId())
+	// Reset device if current thread matches creation thread
+	if (IsWindow(hFocusWindow) && GetWindowThreadProcessId(hFocusWindow, nullptr) == GetCurrentThreadId())
+	{
+		hr = ResetD9Device();
+
+		if (SUCCEEDED(hr))
 		{
-			// Prepare for reset
-			ReleaseAllD9Resources(true, true);
+			// Reset render target
+			ReSetRenderTarget();
 
-			// Reset device. When this method returns: BackBufferCount, BackBufferWidth, and BackBufferHeight are set to zero.
-			D3DPRESENT_PARAMETERS newParams = presParams;
-			hr = d3d9Device->Reset(&newParams);
-
-			if (SUCCEEDED(hr))
+			// Reset D3D device settings
+			if (D3DDeviceInterface)
 			{
-				// Reset render target
-				ReSetRenderTarget();
-
-				// Reset D3D device settings
-				if (D3DDeviceInterface)
-				{
-					D3DDeviceInterface->ResetDevice();
-				}
-			}
-
-			// If Reset() fails
-			if (FAILED(hr))
-			{
-				LOG_LIMIT(100, __FUNCTION__ << " Error: Reset failed! " << (D3DERR)hr);
-				ReleaseAllD9Resources(false, false);	// Cannot backup surface after a failed reset
-				ReleaseD9Device();
-				hr = CreateD9Device();
+				D3DDeviceInterface->ResetDevice();
 			}
 		}
+		// Try to recreate the device
 		else
 		{
-			ReleaseAllD9Resources(true, false);
-			ReleaseD9Device();
-			hr = CreateD9Device();
+			hr = CreateD9Device(__FUNCTION__);
 		}
-
-		// Check if reset device failed
-		if (FAILED(hr))
-		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error: failed to reset Direct3D9 device: " << (D3DERR)hr);
-			hr = DDERR_WRONGMODE;
-			break;
-		}
-
-	} while (false);
+	}
+	// Release and recreate device
+	else
+	{
+		ReleaseAllD9Resources(true, false);
+		ReleaseD9Device();
+		hr = CreateD9Device(__FUNCTION__);
+	}
 
 	ReleasePTCriticalSection();
 	ReleaseCriticalSection();
@@ -3765,12 +3744,6 @@ void m_IDirectDrawX::ReleaseD9Device()
 
 	if (d3d9Device)
 	{
-		// Check window handle thread
-		if (IsWindow(presParams.hDeviceWindow) && GetWindowThreadProcessId(presParams.hDeviceWindow, nullptr) != GetCurrentThreadId())
-		{
-			LOG_LIMIT(100, __FUNCTION__ << " Warning: trying to release Direct3D9 device from a different thread than the hwnd was created from!");
-		}
-
 		ULONG ref = d3d9Device->Release();
 		if (ref)
 		{
@@ -4155,7 +4128,7 @@ HRESULT m_IDirectDrawX::SetClipperHWnd(HWND hWnd)
 		}
 		if (!DisplayMode.hWnd && ClipperHWnd && ClipperHWnd != OldClipperHWnd)
 		{
-			return CreateD9Device();
+			return CreateD9Device(__FUNCTION__);
 		}
 	}
 	return DD_OK;
@@ -4697,6 +4670,18 @@ HRESULT m_IDirectDrawX::Present(RECT* pSourceRect, RECT* pDestRect)
 	QueryPerformanceCounter(&Counter.LastPresentTime);
 
 	return DD_OK;
+}
+
+bool CheckDirectDrawXInterface(void* pInterface)
+{
+	for (auto& entry : DDrawVector)
+	{
+		if (entry == pInterface)
+		{
+			return true;
+		}
+	}
+	return false;
 }
 
 DWORD GetDDrawBitsPixel(HWND hWnd)

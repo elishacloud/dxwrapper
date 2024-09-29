@@ -184,14 +184,15 @@ public:
 	bool IsInScene();
 
 	// Direct3D9 interfaces
-	bool CheckD9Device();
+	bool CheckD9Device(char* FunctionName);
 	LPDIRECT3D9 GetDirectD9Object();
 	LPDIRECT3DDEVICE9 *GetDirectD9Device();
 	bool CreatePaletteShader();
 	LPDIRECT3DPIXELSHADER9* GetColorKeyShader();
 	LPDIRECT3DVERTEXBUFFER9 GetValidateDeviceVertexBuffer(DWORD& FVF, DWORD& Size);
 	D3DMULTISAMPLE_TYPE GetMultiSampleTypeQuality(D3DFORMAT Format, DWORD MaxSampleType, DWORD& QualityLevels);
-	HRESULT CreateD9Device();
+	HRESULT ResetD9Device();
+	HRESULT CreateD9Device(char* FunctionName);
 	HRESULT CreateVertexBuffer(DWORD Width, DWORD Height);
 	HRESULT ReinitDevice();
 	HRESULT TestD3D9CooperativeLevel();

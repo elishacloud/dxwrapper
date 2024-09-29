@@ -2,7 +2,9 @@
 
 #include "d3d9\d3d9External.h"
 
-#define WM_USER_CREATE_D3D9_DEVICE WM_APP+0x123
+#define WM_USER_CREATE_D3D9_DEVICE (WM_APP + 0x1234)
+
+bool CheckDirectDrawXInterface(void* pInterface);
 
 struct D9_DEVICE_CREATION {
 	HWND hWnd = nullptr;
