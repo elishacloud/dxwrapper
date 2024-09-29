@@ -1865,6 +1865,9 @@
     <ClInclude Include="ddraw\Shaders\PaletteShader.h">
       <Filter>ddraw\Shaders</Filter>
     </ClInclude>
+    <ClInclude Include="GDI\WndProc.h">
+      <Filter>GDI</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="Dllmain\BuildNo.rc">

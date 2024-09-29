@@ -20,6 +20,7 @@
 #include "ddrawExternal.h"
 #include "Utils\Utils.h"
 #include "GDI\GDI.h"
+#include "GDI\WndProc.h"
 #include "Dllmain\DllMain.h"
 #include "d3d9\d3d9External.h"
 #include "d3dddi\d3dddiExternal.h"
@@ -2931,6 +2932,12 @@ HRESULT m_IDirectDrawX::CreateD3D9Device()
 		return DDERR_GENERIC;
 	}
 
+	// Check device lost
+	if (d3d9Device && d3d9Device->TestCooperativeLevel() == D3DERR_DEVICELOST)
+	{
+		return D3DERR_DEVICELOST;
+	}
+
 	SetCriticalSection();
 	SetPTCriticalSection();
 
@@ -2946,12 +2953,6 @@ HRESULT m_IDirectDrawX::CreateD3D9Device()
 
 		// Store new focus window
 		hFocusWindow = hWnd;
-
-		// Check window handle thread
-		if (IsWindow(hWnd) && GetWindowThreadProcessId(hWnd, nullptr) != GetCurrentThreadId())
-		{
-			LOG_LIMIT(100, __FUNCTION__ << " Warning: trying to create Direct3D9 device from a different thread than the hwnd was created from!");
-		}
 
 		// Get current resolution and rect
 		DWORD CurrentWidth, CurrentHeight;
@@ -3084,7 +3085,7 @@ HRESULT m_IDirectDrawX::CreateD3D9Device()
 			}
 
 			// Try to reset existing device
-			if (LastHWnd == hWnd && LastBehaviorFlags == BehaviorFlags)
+			if (LastHWnd == hWnd && LastBehaviorFlags == BehaviorFlags && GetWindowThreadProcessId(hWnd, nullptr) == GetCurrentThreadId())
 			{
 				// Prepare for reset
 				ReleaseAllD9Resources(true, true);
@@ -3100,7 +3101,7 @@ HRESULT m_IDirectDrawX::CreateD3D9Device()
 						" Windowed: " << LastWindowedMode << "->" << presParams.Windowed <<
 						" BehaviorFlags: " << Logging::hex(LastBehaviorFlags) << "->" << Logging::hex(BehaviorFlags);
 
-					ReleaseAllD9Resources(true, false);
+					ReleaseAllD9Resources(false, false);	// Cannot backup surface after a failed reset
 					ReleaseD3D9Device();
 				}
 			}
@@ -3119,8 +3120,36 @@ HRESULT m_IDirectDrawX::CreateD3D9Device()
 		// Create d3d9 Device
 		if (!d3d9Device)
 		{
-			hr = d3d9Object->CreateDevice(D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, hWnd, BehaviorFlags, &presParams, &d3d9Device);
+			// Check window handle thread
+			if (IsWindow(hWnd) && GetWindowThreadProcessId(hWnd, nullptr) != GetCurrentThreadId())
+			{
+				LOG_LIMIT(100, __FUNCTION__ << " Warning: trying to create Direct3D9 device from a different thread than the hwnd was created from!");
+
+				D9_DEVICE_CREATION* pDeviceStruct = new D9_DEVICE_CREATION;
+				HANDLE hEvent = CreateEvent(NULL, FALSE, FALSE, NULL);
+
+				pDeviceStruct->hWnd = hWnd;
+				pDeviceStruct->BehaviorFlags = BehaviorFlags;
+				pDeviceStruct->d3d9Object = d3d9Object;
+				pDeviceStruct->d3d9Device = &d3d9Device;
+				pDeviceStruct->presParams = &presParams;
+				pDeviceStruct->hEvent = hEvent;
+
+				PostMessageA(hWnd, WM_USER_CREATE_D3D9_DEVICE, (WPARAM)0, (LPARAM)pDeviceStruct);
+				WaitForSingleObject(hEvent, INFINITE);
+
+				hr = pDeviceStruct->hr;
+
+				CloseHandle(hEvent);
+
+				delete pDeviceStruct;
+			}
+			else
+			{
+				hr = d3d9Object->CreateDevice(D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, hWnd, BehaviorFlags, &presParams, &d3d9Device);
+			}
 		}
+
 		if (FAILED(hr))
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Error: failed to create Direct3D9 device! " << (DDERR)hr << " " <<
@@ -3413,37 +3442,40 @@ HRESULT m_IDirectDrawX::ReinitDevice()
 
 	do {
 		// Check window handle thread
-		if (IsWindow(presParams.hDeviceWindow) && GetWindowThreadProcessId(presParams.hDeviceWindow, nullptr) != GetCurrentThreadId())
+		if (IsWindow(presParams.hDeviceWindow) && GetWindowThreadProcessId(presParams.hDeviceWindow, nullptr) == GetCurrentThreadId())
 		{
-			LOG_LIMIT(100, __FUNCTION__ << " Warning: trying to reset Direct3D9 device from a different thread than the hwnd was created from!");
-		}
+			// Prepare for reset
+			ReleaseAllD9Resources(true, true);
 
-		// Prepare for reset
-		ReleaseAllD9Resources(true, true);
+			// Reset device. When this method returns: BackBufferCount, BackBufferWidth, and BackBufferHeight are set to zero.
+			D3DPRESENT_PARAMETERS newParams = presParams;
+			hr = d3d9Device->Reset(&newParams);
 
-		// Reset device. When this method returns: BackBufferCount, BackBufferWidth, and BackBufferHeight are set to zero.
-		D3DPRESENT_PARAMETERS newParams = presParams;
-		hr = d3d9Device->Reset(&newParams);
-
-		if (SUCCEEDED(hr))
-		{
-			// Reset render target
-			ReSetRenderTarget();
-
-			// Reset D3D device settings
-			if (D3DDeviceInterface)
+			if (SUCCEEDED(hr))
 			{
-				D3DDeviceInterface->ResetDevice();
+				// Reset render target
+				ReSetRenderTarget();
+
+				// Reset D3D device settings
+				if (D3DDeviceInterface)
+				{
+					D3DDeviceInterface->ResetDevice();
+				}
+			}
+
+			// If Reset() fails
+			if (FAILED(hr))
+			{
+				LOG_LIMIT(100, __FUNCTION__ << " Error: Reset failed! " << (D3DERR)hr);
+				ReleaseAllD9Resources(false, false);	// Cannot backup surface after a failed reset
+				ReleaseD3D9Device();
+				hr = CreateD3D9Device();
 			}
 		}
-
-		// If Reset() fails
-		if (hr == D3DERR_DEVICEREMOVED || hr == D3DERR_DRIVERINTERNALERROR)
+		else
 		{
 			ReleaseAllD9Resources(true, false);
 			ReleaseD3D9Device();
-			ReleaseD3D9Object();
-			CreateD3D9Object();
 			hr = CreateD3D9Device();
 		}
 
@@ -3624,7 +3656,7 @@ inline void m_IDirectDrawX::ReleaseAllD9Resources(bool BackupData, bool ResetInt
 	SetPTCriticalSection();
 
 	// Remove render target and depth stencil surfaces
-	if (d3d9Device && (RenderTargetSurface || DepthStencilSurface))
+	if (d3d9Device && BackupData && (RenderTargetSurface || DepthStencilSurface))
 	{
 		SetRenderTargetSurface(nullptr);
 	}
@@ -3693,7 +3725,7 @@ inline void m_IDirectDrawX::ReleaseAllD9Resources(bool BackupData, bool ResetInt
 	if (palettePixelShader)
 	{
 		Logging::LogDebug() << __FUNCTION__ << " Releasing Direct3D9 palette pixel shader";
-		if (d3d9Device)
+		if (d3d9Device && BackupData)
 		{
 			d3d9Device->SetPixelShader(nullptr);
 		}
@@ -3709,7 +3741,7 @@ inline void m_IDirectDrawX::ReleaseAllD9Resources(bool BackupData, bool ResetInt
 	if (colorkeyPixelShader)
 	{
 		Logging::LogDebug() << __FUNCTION__ << " Releasing Direct3D9 color key pixel shader";
-		if (d3d9Device)
+		if (d3d9Device && BackupData)
 		{
 			d3d9Device->SetPixelShader(nullptr);
 		}

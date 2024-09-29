@@ -18,7 +18,7 @@
 #include <Windows.h>
 #include <algorithm>
 #include <atomic>
-#include "d3d9\d3d9External.h"
+#include "WndProc.h"
 #include "GDI.h"
 #include "Settings\Settings.h"
 #include "Logging\Logging.h"
@@ -232,6 +232,18 @@ LRESULT CALLBACK WndProc::Handler(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lPa
 	const WNDPROC pWndProc = AppWndProcInstance->GetAppWndProc();
 	const HWND hWndInstance = AppWndProcInstance->GetHWnd();
 	DATASTRUCT* pDataStruct = AppWndProcInstance->GetDataStruct();
+
+	// Handle Direct3D9 device creation
+	if (Msg == WM_USER_CREATE_D3D9_DEVICE)
+	{
+		D9_DEVICE_CREATION* pDeviceStruct = (D9_DEVICE_CREATION*)lParam;
+
+		pDeviceStruct->hr = pDeviceStruct->d3d9Object->CreateDevice(D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, pDeviceStruct->hWnd, pDeviceStruct->BehaviorFlags, pDeviceStruct->presParams, pDeviceStruct->d3d9Device);
+
+		SetEvent(pDeviceStruct->hEvent);
+
+		return NULL;
+	}
 
 	// Handle when window is minimzed
 	if (AppWndProcInstance->IsDirectDraw())
