@@ -684,9 +684,43 @@ void m_IDirect3DDevice9Ex::SetGammaRamp(THIS_ UINT iSwapChain, DWORD Flags, CONS
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	ProxyInterface->SetGammaRamp(iSwapChain, Flags, pRamp);
+	if (!pRamp)
+	{
+		return;
+	}
 
-	if (Config.EnableWindowMode && pRamp)
+	bool FormatsMatch = false;
+	do {
+		IDirect3DSurface9* pRenderTarget = nullptr;
+		if (FAILED(ProxyInterface->GetRenderTarget(0, &pRenderTarget)))
+		{
+			break;
+		}
+
+		IDirect3DSurface9* pBackBuffer = nullptr;
+		if (FAILED(ProxyInterface->GetBackBuffer(0, 0, D3DBACKBUFFER_TYPE_MONO, &pBackBuffer)))
+		{
+			pRenderTarget->Release();
+			break;
+		}
+
+		D3DSURFACE_DESC renderTargetDesc, backBufferDesc;
+		pRenderTarget->GetDesc(&renderTargetDesc);
+		pBackBuffer->GetDesc(&backBufferDesc);
+
+		FormatsMatch = (renderTargetDesc.Format == backBufferDesc.Format);
+
+		pRenderTarget->Release();
+		pBackBuffer->Release();
+
+	} while (false);
+
+	if (FormatsMatch)
+	{
+		ProxyInterface->SetGammaRamp(iSwapChain, Flags, pRamp);
+	}
+
+	if (!FormatsMatch || (Config.EnableWindowMode && Flags == D3DSGR_NO_CALIBRATION))
 	{
 		// Get the device context for the screen
 		HDC hdc = ::GetDC(SHARED.DeviceWindow);

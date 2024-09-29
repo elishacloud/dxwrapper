@@ -4137,13 +4137,13 @@ HRESULT m_IDirectDrawX::GetD9Gamma(DWORD dwFlags, LPDDGAMMARAMP lpRampData)
 		return DDERR_GENERIC;
 	}
 
-	if (!presParams.Windowed)
+	if (!lpRampData)
 	{
-		d3d9Device->GetGammaRamp(dwFlags, (D3DGAMMARAMP*)lpRampData);
-		return DD_OK;
+		return DDERR_INVALIDPARAMS;
 	}
 
-	return D3DERR_INVALIDCALL;
+	d3d9Device->GetGammaRamp(dwFlags, (D3DGAMMARAMP*)lpRampData);
+	return DD_OK;
 }
 
 HRESULT m_IDirectDrawX::SetD9Gamma(DWORD dwFlags, LPDDGAMMARAMP lpRampData)
@@ -4152,6 +4152,11 @@ HRESULT m_IDirectDrawX::SetD9Gamma(DWORD dwFlags, LPDDGAMMARAMP lpRampData)
 	if (FAILED(CheckInterface(__FUNCTION__, true)))
 	{
 		return DDERR_GENERIC;
+	}
+
+	if (!lpRampData)
+	{
+		return DDERR_INVALIDPARAMS;
 	}
 
 	d3d9Device->SetGammaRamp(0, dwFlags, (D3DGAMMARAMP*)lpRampData);
