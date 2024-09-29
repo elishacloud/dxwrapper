@@ -2731,127 +2731,115 @@ HRESULT m_IDirect3DDeviceX::SetRenderState(D3DRENDERSTATETYPE dwRenderStateType,
 			case D3DTBLEND_COPY:
 			case D3DTBLEND_DECAL:
 				// Reset states
-				(*d3d9Device)->SetTextureStageState(0, D3DTSS_ALPHAOP, D3DTOP_DISABLE);
-				(*d3d9Device)->SetRenderState(D3DRS_ALPHABLENDENABLE, FALSE);
-				(*d3d9Device)->SetRenderState(D3DRS_ALPHATESTENABLE, FALSE);
-				(*d3d9Device)->SetRenderState(D3DRS_SRCBLEND, D3DBLEND_ONE);
-				(*d3d9Device)->SetRenderState(D3DRS_DESTBLEND, D3DBLEND_ZERO);
-				(*d3d9Device)->SetRenderState(D3DRS_ALPHAREF, 0);
-				(*d3d9Device)->SetRenderState(D3DRS_ALPHAFUNC, D3DCMP_ALWAYS);
+				(*d3d9Device)->SetTextureStageState(0, D3DTSS_COLORARG1, D3DTA_TEXTURE);
+				(*d3d9Device)->SetTextureStageState(0, D3DTSS_COLORARG2, D3DTA_CURRENT);
+				(*d3d9Device)->SetTextureStageState(0, D3DTSS_ALPHAARG1, D3DTA_TEXTURE);
+				(*d3d9Device)->SetTextureStageState(0, D3DTSS_ALPHAARG2, D3DTA_CURRENT);
 
-				// Set texture stage states for texture blending
+				// Decal texture-blending mode is supported. In this mode, the RGB and alpha values of the texture replace the colors that would have been used with no texturing.
+				(*d3d9Device)->SetRenderState(D3DRS_ALPHABLENDENABLE, TRUE);
+				(*d3d9Device)->SetRenderState(D3DRS_SRCBLEND, D3DBLEND_SRCALPHA);
+				(*d3d9Device)->SetRenderState(D3DRS_DESTBLEND, D3DBLEND_INVSRCALPHA);
 				(*d3d9Device)->SetTextureStageState(0, D3DTSS_COLOROP, D3DTOP_SELECTARG1);
+				(*d3d9Device)->SetTextureStageState(0, D3DTSS_ALPHAOP, D3DTOP_SELECTARG1);
 
 				// Save state
 				rsTextureMapBlend = dwRenderState;
 				return D3D_OK;
 			case D3DTBLEND_DECALALPHA:
 				// Reset states
-				(*d3d9Device)->SetRenderState(D3DRS_ALPHATESTENABLE, FALSE);
-				(*d3d9Device)->SetRenderState(D3DRS_ALPHAREF, 0);
-				(*d3d9Device)->SetRenderState(D3DRS_ALPHAFUNC, D3DCMP_ALWAYS);
+				(*d3d9Device)->SetTextureStageState(0, D3DTSS_COLORARG1, D3DTA_TEXTURE);
+				(*d3d9Device)->SetTextureStageState(0, D3DTSS_ALPHAARG1, D3DTA_TEXTURE);
 
-				// Set texture stage states for texture blending
-				(*d3d9Device)->SetTextureStageState(0, D3DTSS_COLOROP, D3DTOP_SELECTARG1);
-				(*d3d9Device)->SetTextureStageState(0, D3DTSS_ALPHAOP, D3DTOP_SELECTARG1);
-
-				// Enable alpha blending
+				// Decal-alpha texture-blending mode is supported. In this mode, the RGB and alpha values of the texture are 
+				// blended with the colors that would have been used with no texturing.
 				(*d3d9Device)->SetRenderState(D3DRS_ALPHABLENDENABLE, TRUE);
 				(*d3d9Device)->SetRenderState(D3DRS_SRCBLEND, D3DBLEND_SRCALPHA);
 				(*d3d9Device)->SetRenderState(D3DRS_DESTBLEND, D3DBLEND_INVSRCALPHA);
+				(*d3d9Device)->SetTextureStageState(0, D3DTSS_COLOROP, D3DTOP_BLENDTEXTUREALPHA);
+				(*d3d9Device)->SetTextureStageState(0, D3DTSS_COLORARG2, D3DTA_DIFFUSE);
+				(*d3d9Device)->SetTextureStageState(0, D3DTSS_ALPHAOP, D3DTOP_SELECTARG2);
+				(*d3d9Device)->SetTextureStageState(0, D3DTSS_ALPHAARG2, D3DTA_DIFFUSE);
 
 				// Save state
 				rsTextureMapBlend = dwRenderState;
 				return D3D_OK;
 			case D3DTBLEND_DECALMASK:
-				// Reset states
-				(*d3d9Device)->SetTextureStageState(0, D3DTSS_ALPHAOP, D3DTOP_DISABLE);
-				(*d3d9Device)->SetRenderState(D3DRS_ALPHABLENDENABLE, FALSE);
-				(*d3d9Device)->SetRenderState(D3DRS_SRCBLEND, D3DBLEND_ONE);
-				(*d3d9Device)->SetRenderState(D3DRS_DESTBLEND, D3DBLEND_ZERO);
-
-				// Set texture stage states for texture blending
-				(*d3d9Device)->SetTextureStageState(0, D3DTSS_COLOROP, D3DTOP_MODULATE);
-
-				// Set texture stage states for alpha testing
-				(*d3d9Device)->SetRenderState(D3DRS_ALPHATESTENABLE, TRUE);
-				(*d3d9Device)->SetRenderState(D3DRS_ALPHAREF, 128); // Adjust as needed
-				(*d3d9Device)->SetRenderState(D3DRS_ALPHAFUNC, D3DCMP_GREATEREQUAL);
+				// This blending mode is not supported. When the least-significant bit of the texture's alpha component is zero, 
+				// the effect is as if texturing were disabled.
+				LOG_LIMIT(100, __FUNCTION__ << " Warning: unsupported 'D3DTBLEND_DECALMASK' state: " << dwRenderState);
 
 				// Save state
-				rsTextureMapBlend = dwRenderState;
+				//rsTextureMapBlend = dwRenderState;
 				return D3D_OK;
 			case D3DTBLEND_MODULATE:
 				// Reset states
-				(*d3d9Device)->SetTextureStageState(0, D3DTSS_ALPHAOP, D3DTOP_DISABLE);
-				(*d3d9Device)->SetRenderState(D3DRS_ALPHABLENDENABLE, FALSE);
-				(*d3d9Device)->SetRenderState(D3DRS_ALPHATESTENABLE, FALSE);
-				(*d3d9Device)->SetRenderState(D3DRS_SRCBLEND, D3DBLEND_ONE);
-				(*d3d9Device)->SetRenderState(D3DRS_DESTBLEND, D3DBLEND_ZERO);
-				(*d3d9Device)->SetRenderState(D3DRS_ALPHAREF, 0);
-				(*d3d9Device)->SetRenderState(D3DRS_ALPHAFUNC, D3DCMP_ALWAYS);
+				(*d3d9Device)->SetTextureStageState(0, D3DTSS_COLORARG1, D3DTA_TEXTURE);
+				(*d3d9Device)->SetTextureStageState(0, D3DTSS_ALPHAARG1, D3DTA_TEXTURE);
 
-				// Set texture stage states for texture blending
+				// Modulate texture-blending mode is supported. In this mode, the RGB values of the texture are multiplied 
+				// with the RGB values that would have been used with no texturing. Any alpha values in the texture replace 
+				// the alpha values in the colors that would have been used with no texturing; if the texture does not contain 
+				// an alpha component, alpha values at the vertices in the source are interpolated between vertices.
+				(*d3d9Device)->SetRenderState(D3DRS_ALPHABLENDENABLE, TRUE);
+				(*d3d9Device)->SetRenderState(D3DRS_SRCBLEND, D3DBLEND_SRCALPHA);
+				(*d3d9Device)->SetRenderState(D3DRS_DESTBLEND, D3DBLEND_INVSRCALPHA);
 				(*d3d9Device)->SetTextureStageState(0, D3DTSS_COLOROP, D3DTOP_MODULATE);
+				(*d3d9Device)->SetTextureStageState(0, D3DTSS_COLORARG2, D3DTA_DIFFUSE);
+				(*d3d9Device)->SetTextureStageState(0, D3DTSS_ALPHAOP, D3DTOP_SELECTARG1);
+				(*d3d9Device)->SetTextureStageState(0, D3DTSS_ALPHAARG2, D3DTA_DIFFUSE);
 
 				// Save state
 				rsTextureMapBlend = dwRenderState;
 				return D3D_OK;
 			case D3DTBLEND_MODULATEALPHA:
 				// Reset states
-				(*d3d9Device)->SetRenderState(D3DRS_ALPHABLENDENABLE, FALSE);
-				(*d3d9Device)->SetRenderState(D3DRS_ALPHATESTENABLE, FALSE);
-				(*d3d9Device)->SetRenderState(D3DRS_SRCBLEND, D3DBLEND_ONE);
-				(*d3d9Device)->SetRenderState(D3DRS_DESTBLEND, D3DBLEND_ZERO);
-				(*d3d9Device)->SetRenderState(D3DRS_ALPHAREF, 0);
-				(*d3d9Device)->SetRenderState(D3DRS_ALPHAFUNC, D3DCMP_ALWAYS);
+				(*d3d9Device)->SetTextureStageState(0, D3DTSS_COLORARG1, D3DTA_TEXTURE);
+				(*d3d9Device)->SetTextureStageState(0, D3DTSS_ALPHAARG1, D3DTA_TEXTURE);
 
-				// Set texture stage states for texture blending
+				// Modulate-alpha texture-blending mode is supported. In this mode, the RGB values of the texture are multiplied 
+				// with the RGB values that would have been used with no texturing, and the alpha values of the texture are multiplied 
+				// with the alpha values that would have been used with no texturing.
+				(*d3d9Device)->SetRenderState(D3DRS_ALPHABLENDENABLE, TRUE);
+				(*d3d9Device)->SetRenderState(D3DRS_SRCBLEND, D3DBLEND_SRCALPHA);
+				(*d3d9Device)->SetRenderState(D3DRS_DESTBLEND, D3DBLEND_INVSRCALPHA);
 				(*d3d9Device)->SetTextureStageState(0, D3DTSS_COLOROP, D3DTOP_MODULATE);
-
-				// Set texture stage states for texture alpha operation
+				(*d3d9Device)->SetTextureStageState(0, D3DTSS_COLORARG2, D3DTA_DIFFUSE);
 				(*d3d9Device)->SetTextureStageState(0, D3DTSS_ALPHAOP, D3DTOP_MODULATE);
+				(*d3d9Device)->SetTextureStageState(0, D3DTSS_ALPHAARG2, D3DTA_DIFFUSE);
 
 				// Save state
 				rsTextureMapBlend = dwRenderState;
 				return D3D_OK;
 			case D3DTBLEND_MODULATEMASK:
-				// Reset states
-				(*d3d9Device)->SetTextureStageState(0, D3DTSS_ALPHAOP, D3DTOP_DISABLE);
-				(*d3d9Device)->SetRenderState(D3DRS_ALPHABLENDENABLE, FALSE);
-				(*d3d9Device)->SetRenderState(D3DRS_SRCBLEND, D3DBLEND_ONE);
-				(*d3d9Device)->SetRenderState(D3DRS_DESTBLEND, D3DBLEND_ZERO);
-
-				// Set texture stage states for texture blending
-				(*d3d9Device)->SetTextureStageState(0, D3DTSS_COLOROP, D3DTOP_MODULATE);
-
-				// Set texture stage states for alpha testing
-				(*d3d9Device)->SetRenderState(D3DRS_ALPHATESTENABLE, TRUE);
-				(*d3d9Device)->SetRenderState(D3DRS_ALPHAREF, 128); // Adjust as needed
-				(*d3d9Device)->SetRenderState(D3DRS_ALPHAFUNC, D3DCMP_GREATEREQUAL);
+				// This blending mode is not supported. When the least-significant bit of the texture's alpha component is zero, 
+				// the effect is as if texturing were disabled.
+				LOG_LIMIT(100, __FUNCTION__ << " Warning: unsupported 'D3DTBLEND_MODULATEMASK' state: " << dwRenderState);
 
 				// Save state
-				rsTextureMapBlend = dwRenderState;
+				//rsTextureMapBlend = dwRenderState;
 				return D3D_OK;
 			case D3DTBLEND_ADD:
 				// Reset states
-				(*d3d9Device)->SetTextureStageState(0, D3DTSS_ALPHAOP, D3DTOP_DISABLE);
-				(*d3d9Device)->SetRenderState(D3DRS_ALPHABLENDENABLE, FALSE);
-				(*d3d9Device)->SetRenderState(D3DRS_ALPHATESTENABLE, FALSE);
-				(*d3d9Device)->SetRenderState(D3DRS_SRCBLEND, D3DBLEND_ONE);
-				(*d3d9Device)->SetRenderState(D3DRS_DESTBLEND, D3DBLEND_ZERO);
-				(*d3d9Device)->SetRenderState(D3DRS_ALPHAREF, 0);
-				(*d3d9Device)->SetRenderState(D3DRS_ALPHAFUNC, D3DCMP_ALWAYS);
+				(*d3d9Device)->SetTextureStageState(0, D3DTSS_COLORARG1, D3DTA_TEXTURE);
+				(*d3d9Device)->SetTextureStageState(0, D3DTSS_ALPHAARG1, D3DTA_TEXTURE);
 
-				// Set texture stage states for texture blending
+				// Add the Gouraud interpolants to the texture lookup with saturation semantics
+				// (that is, if the color value overflows it is set to the maximum possible value).
+				(*d3d9Device)->SetRenderState(D3DRS_ALPHABLENDENABLE, TRUE);
+				(*d3d9Device)->SetRenderState(D3DRS_SRCBLEND, D3DBLEND_SRCALPHA);
+				(*d3d9Device)->SetRenderState(D3DRS_DESTBLEND, D3DBLEND_ONE);
 				(*d3d9Device)->SetTextureStageState(0, D3DTSS_COLOROP, D3DTOP_ADD);
+				(*d3d9Device)->SetTextureStageState(0, D3DTSS_COLORARG2, D3DTA_DIFFUSE);
+				(*d3d9Device)->SetTextureStageState(0, D3DTSS_ALPHAOP, D3DTOP_SELECTARG2);
+				(*d3d9Device)->SetTextureStageState(0, D3DTSS_ALPHAARG2, D3DTA_DIFFUSE);
 
 				// Save state
 				rsTextureMapBlend = dwRenderState;
 				return D3D_OK;
 			default:
 				LOG_LIMIT(100, __FUNCTION__ << " Warning: unsupported 'D3DRENDERSTATE_TEXTUREMAPBLEND' state: " << dwRenderState);
-				return DDERR_INVALIDPARAMS;
+				return D3D_OK;
 			}
 		case D3DRENDERSTATE_ALPHAREF:			// 24
 			dwRenderState &= 0xFF;
