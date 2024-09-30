@@ -2932,6 +2932,8 @@ HRESULT m_IDirectDrawX::ResetD9Device()
 // Creates or resets the d3d9 device
 HRESULT m_IDirectDrawX::CreateD9Device(char* FunctionName)
 {
+	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
+
 	// Check for device interface
 	if (FAILED(CheckInterface(__FUNCTION__, false)))
 	{

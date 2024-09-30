@@ -26,8 +26,7 @@
 namespace WndProc
 {
 	struct DATASTRUCT {
-		std::atomic<bool> IsMinimized;
-		std::atomic<bool> IsWindowDisabled;
+		std::atomic<bool> IsWindowDisabled = false;
 	};
 
 	struct WNDPROCSTRUCT;
@@ -221,7 +220,10 @@ void WndProc::RemoveWndProc(HWND hWnd)
 
 LRESULT CALLBACK WndProc::Handler(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lParam, WNDPROCSTRUCT* AppWndProcInstance)
 {
-	Logging::LogDebug() << __FUNCTION__ << " " << hWnd << " " << Logging::hex(Msg);
+	if (Msg != WM_PAINT)
+	{
+		Logging::LogDebug() << __FUNCTION__ << " " << hWnd << " " << Logging::hex(Msg) << " " << wParam << " " << lParam;
+	}
 
 	if (!AppWndProcInstance || !hWnd)
 	{
@@ -232,6 +234,12 @@ LRESULT CALLBACK WndProc::Handler(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lPa
 	const WNDPROC pWndProc = AppWndProcInstance->GetAppWndProc();
 	const HWND hWndInstance = AppWndProcInstance->GetHWnd();
 	DATASTRUCT* pDataStruct = AppWndProcInstance->GetDataStruct();
+
+	// Set instance as inactive when window closes
+	if ((Msg == WM_CLOSE || Msg == WM_DESTROY || Msg == WM_NCDESTROY || (Msg == WM_SYSCOMMAND && wParam == SC_CLOSE)) && hWnd == hWndInstance)
+	{
+		AppWndProcInstance->SetInactive();
+	}
 
 	// Handle Direct3D9 device creation
 	if (Msg == WM_USER_CREATE_D3D9_DEVICE)
@@ -252,21 +260,28 @@ LRESULT CALLBACK WndProc::Handler(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lPa
 		return NULL;
 	}
 
-	// Handle when window is minimzed
+	// Special handling for DirectDraw games
 	if (AppWndProcInstance->IsDirectDraw())
 	{
-		if (IsIconic(hWnd) && !pDataStruct->IsMinimized)
-		{
-			pDataStruct->IsMinimized = true;
-			//CallWndProc(pWndProc, hWnd, WM_KILLFOCUS, WM_NULL, WM_NULL);
-		}
-		else if (!IsIconic(hWnd) && pDataStruct->IsMinimized)
-		{
-			pDataStruct->IsMinimized = false;
-		}
 		if (Msg == WM_ACTIVATE)
 		{
-			pDataStruct->IsWindowDisabled = (wParam == TRUE) ? false : (wParam == FALSE) ? true : pDataStruct->IsWindowDisabled;
+			bool IsActive = (hWnd == GetActiveWindow());
+			bool Minimized = HIWORD(wParam) != 0;
+			WORD lwParam = LOWORD(wParam);
+
+			pDataStruct->IsWindowDisabled = (lwParam == WA_ACTIVE || lwParam == WA_CLICKACTIVE) ? false : (lwParam == WA_INACTIVE) ? true : pDataStruct->IsWindowDisabled;
+			bool SettingToDisabled = pDataStruct->IsWindowDisabled;
+
+			// Filter inalid WM_ACTIVATE calls, some games don't handle invalid calls properly
+			if (lParam == NULL || (Minimized && SettingToDisabled) || (!Minimized && (IsIconic(hWnd) || IsActive == SettingToDisabled)))
+			{
+				return NULL;
+			}
+		}
+		// Some games hang when attempting to paint while iconic
+		if ((Msg == WM_PAINT || Msg == WM_SYNCPAINT) && IsIconic(hWnd))
+		{
+			return NULL;
 		}
 	}
 
@@ -278,13 +293,5 @@ LRESULT CALLBACK WndProc::Handler(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lPa
 	}
 #endif
 
-	LRESULT lr = CallWndProc(pWndProc, hWnd, Msg, wParam, lParam);
-
-	// Set instance as inactive when window closes
-	if ((Msg == WM_CLOSE || Msg == WM_DESTROY || Msg == WM_NCDESTROY || (Msg == WM_SYSCOMMAND && wParam == SC_CLOSE)) && hWnd == hWndInstance)
-	{
-		AppWndProcInstance->SetInactive();
-	}
-
-	return lr;
+	return CallWndProc(pWndProc, hWnd, Msg, wParam, lParam);
 }
