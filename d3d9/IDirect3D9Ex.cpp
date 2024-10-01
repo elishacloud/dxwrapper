@@ -569,21 +569,7 @@ void UpdatePresentParameter(D3DPRESENT_PARAMETERS* pPresentationParameters, HWND
 			// Set fullscreen resolution
 			if (AnyChange && Config.FullscreenWindowMode)
 			{
-				// Get monitor info
-				MONITORINFOEX infoex = {};
-				infoex.cbSize = sizeof(MONITORINFOEX);
-				BOOL bRet = GetMonitorInfo(Utils::GetMonitorHandle(DeviceDetails.DeviceWindow), &infoex);
-
-				// Get resolution list for specified monitor
-				DEVMODE newSettings = {};
-				newSettings.dmSize = sizeof(newSettings);
-				if (EnumDisplaySettings(bRet ? infoex.szDevice : nullptr, ENUM_CURRENT_SETTINGS, &newSettings) != 0)
-				{
-					newSettings.dmPelsWidth = DeviceDetails.BufferWidth;
-					newSettings.dmPelsHeight = DeviceDetails.BufferHeight;
-					newSettings.dmFields = DM_PELSWIDTH | DM_PELSHEIGHT;
-					ChangeDisplaySettingsEx(bRet ? infoex.szDevice : nullptr, &newSettings, nullptr, CDS_FULLSCREEN, nullptr);
-				}
+				Utils::SetDisplaySettings(DeviceDetails.DeviceWindow, DeviceDetails.BufferWidth, DeviceDetails.BufferHeight);
 			}
 		}
 	}

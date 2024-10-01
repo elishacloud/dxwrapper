@@ -153,6 +153,25 @@ HMONITOR Utils::GetMonitorHandle(HWND hWnd)
 	return MonitorFromWindow(IsWindow(hWnd) ? hWnd : GetDesktopWindow(), MONITOR_DEFAULTTONEAREST);
 }
 
+void Utils::SetDisplaySettings(HWND hWnd, DWORD Width, DWORD Height)
+{
+	// Get monitor info
+	MONITORINFOEX infoex = {};
+	infoex.cbSize = sizeof(MONITORINFOEX);
+	BOOL bRet = GetMonitorInfo(Utils::GetMonitorHandle(hWnd), &infoex);
+
+	// Get resolution list for specified monitor
+	DEVMODE newSettings = {};
+	newSettings.dmSize = sizeof(newSettings);
+	if (EnumDisplaySettings(bRet ? infoex.szDevice : nullptr, ENUM_CURRENT_SETTINGS, &newSettings) != 0)
+	{
+		newSettings.dmPelsWidth = Width;
+		newSettings.dmPelsHeight = Height;
+		newSettings.dmFields = DM_PELSWIDTH | DM_PELSHEIGHT;
+		ChangeDisplaySettingsEx(bRet ? infoex.szDevice : nullptr, &newSettings, nullptr, CDS_FULLSCREEN, nullptr);
+	}
+}
+
 DWORD Utils::GetRefreshRate(HWND hWnd)
 {
 	if (IsWindow(hWnd))

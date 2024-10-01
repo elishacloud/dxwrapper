@@ -50,6 +50,7 @@ namespace Utils
 	bool IsWindowRectEqualOrLarger(HWND srchWnd, HWND desthWnd);
 	HWND GetTopLevelWindowOfCurrentProcess();
 	HMONITOR GetMonitorHandle(HWND hWnd);
+	void SetDisplaySettings(HWND hWnd, DWORD Width, DWORD Height);
 	DWORD GetRefreshRate(HWND hWnd);
 	DWORD GetBitCount(HWND hWnd);
 	DWORD GetThreadIDByHandle(HANDLE hThread);
