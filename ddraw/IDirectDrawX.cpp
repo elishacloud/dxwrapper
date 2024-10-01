@@ -2914,6 +2914,9 @@ D3DMULTISAMPLE_TYPE m_IDirectDrawX::GetMultiSampleTypeQuality(D3DFORMAT Format, 
 // Resets the d3d9 device
 HRESULT m_IDirectDrawX::ResetD9Device()
 {
+	// Prepare for reset
+	ReleaseAllD9Resources(true, true);
+
 	// Reset device. When this method returns: BackBufferCount, BackBufferWidth, and BackBufferHeight are set to zero.
 	D3DPRESENT_PARAMETERS newParams = presParams;
 	HRESULT hr = d3d9Device->Reset(&newParams);
