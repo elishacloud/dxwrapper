@@ -3124,8 +3124,8 @@ HRESULT m_IDirectDrawX::CreateD9Device(char* FunctionName)
 				ReleaseAllD9Resources(true, false);
 				ReleaseD9Device();
 
-				// Reset display mode after release
-				if (presParams.Windowed && DisplayMode.Width == CurrentWidth && DisplayMode.Height == CurrentHeight)
+				// Reset display mode after release when display mode is already setup and there is a primary surface
+				if (presParams.Windowed && PrimarySurface && DisplayMode.Width == CurrentWidth && DisplayMode.Height == CurrentHeight)
 				{
 					Utils::SetDisplaySettings(hWnd, DisplayMode.Width, DisplayMode.Height);
 				}
