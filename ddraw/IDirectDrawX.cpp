@@ -2923,6 +2923,8 @@ D3DMULTISAMPLE_TYPE m_IDirectDrawX::GetMultiSampleTypeQuality(D3DFORMAT Format, 
 // Resets the d3d9 device
 HRESULT m_IDirectDrawX::ResetD9Device()
 {
+	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
+
 	// Prepare for reset
 	ReleaseAllD9Resources(true, true);
 
@@ -2975,7 +2977,7 @@ HRESULT m_IDirectDrawX::CreateD9Device(char* FunctionName)
 		hFocusWindow = hWnd;
 
 		// Get current resolution and rect
-		DWORD CurrentWidth, CurrentHeight;
+		DWORD CurrentWidth = 0, CurrentHeight = 0;
 		Utils::GetScreenSize(hWnd, (LONG&)CurrentWidth, (LONG&)CurrentHeight);
 
 		// Get current window size
@@ -3123,7 +3125,7 @@ HRESULT m_IDirectDrawX::CreateD9Device(char* FunctionName)
 				ReleaseD9Device();
 
 				// Reset display mode after release
-				if (DisplayMode.Width == CurrentWidth && DisplayMode.Height == CurrentHeight && IsWindow(DisplayMode.hWnd))
+				if (presParams.Windowed && DisplayMode.Width == CurrentWidth && DisplayMode.Height == CurrentHeight && IsWindow(DisplayMode.hWnd))
 				{
 					Utils::SetDisplaySettings(DisplayMode.hWnd, DisplayMode.Width, DisplayMode.Height);
 				}
@@ -3133,6 +3135,13 @@ HRESULT m_IDirectDrawX::CreateD9Device(char* FunctionName)
 		// Create d3d9 Device
 		if (!d3d9Device)
 		{
+			// Prepare window size
+			if (!presParams.Windowed)
+			{
+				SetWindowPos(hWnd, ((GetWindowLong(hWnd, GWL_EXSTYLE) & WS_EX_TOPMOST) ? HWND_TOPMOST : HWND_TOP),
+					0, 0, presParams.BackBufferWidth, presParams.BackBufferHeight, SWP_SHOWWINDOW | SWP_NOMOVE | SWP_NOZORDER);
+			}
+
 			// Check window handle thread
 			if (IsWindow(hWnd) && GetWindowThreadProcessId(hWnd, nullptr) != GetCurrentThreadId())
 			{
@@ -3759,6 +3768,8 @@ inline void m_IDirectDrawX::ReleaseAllD9Resources(bool BackupData, bool ResetInt
 // Release d3d9 device
 void m_IDirectDrawX::ReleaseD9Device()
 {
+	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
+
 	SetCriticalSection();
 	SetPTCriticalSection();
 
