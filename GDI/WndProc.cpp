@@ -17,7 +17,6 @@
 #define WIN32_LEAN_AND_MEAN
 #include <Windows.h>
 #include <algorithm>
-#include <atomic>
 #include "WndProc.h"
 #include "GDI.h"
 #include "Settings\Settings.h"
@@ -25,10 +24,6 @@
 
 namespace WndProc
 {
-	struct DATASTRUCT {
-		std::atomic<bool> IsWindowDisabled = false;
-	};
-
 	struct WNDPROCSTRUCT;
 
 	LRESULT CALLBACK Handler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam, WNDPROCSTRUCT* AppWndProcInstance);
@@ -218,6 +213,17 @@ void WndProc::RemoveWndProc(HWND hWnd)
 	WndProcList.erase(newEnd, WndProcList.end());
 }
 
+WndProc::DATASTRUCT* WndProc::GetWndProctStruct(HWND hWnd)
+{
+	for (auto& entry : WndProcList)
+	{
+		if (entry->IsActive() && entry->GetHWnd() == hWnd)
+		{
+			return entry->GetDataStruct();
+		}
+	}
+}
+
 LRESULT CALLBACK WndProc::Handler(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lParam, WNDPROCSTRUCT* AppWndProcInstance)
 {
 	if (Msg != WM_PAINT)
@@ -265,15 +271,13 @@ LRESULT CALLBACK WndProc::Handler(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lPa
 	{
 		if (Msg == WM_ACTIVATE)
 		{
-			bool IsActive = (hWnd == GetActiveWindow());
-			bool Minimized = HIWORD(wParam) != 0;
-			WORD lwParam = LOWORD(wParam);
+			//WORD lwParam = LOWORD(wParam);
 
-			pDataStruct->IsWindowDisabled = (lwParam == WA_ACTIVE || lwParam == WA_CLICKACTIVE) ? false : (lwParam == WA_INACTIVE) ? true : pDataStruct->IsWindowDisabled;
-			bool SettingToDisabled = pDataStruct->IsWindowDisabled;
+			//bool LastActived = pDataStruct->IsWindowActivated;
+			//pDataStruct->IsWindowActivated = (lwParam == WA_ACTIVE || lwParam == WA_CLICKACTIVE) ? true : (lwParam == WA_INACTIVE) ? false : LastActived;
 
-			// Filter inalid WM_ACTIVATE calls, some games don't handle invalid calls properly
-			if (lParam == NULL || (Minimized && SettingToDisabled) || (!Minimized && (IsIconic(hWnd) || IsActive == SettingToDisabled)))
+			// Filter some WM_ACTIVATE calls, some games don't handle invalid calls well
+			if (pDataStruct->IsCreatingD3d9)
 			{
 				return NULL;
 			}

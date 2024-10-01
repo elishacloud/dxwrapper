@@ -1,10 +1,21 @@
 #pragma once
 
 #include "d3d9\d3d9External.h"
+#include <atomic>
 
 #define WM_USER_CREATE_D3D9_DEVICE (WM_APP + 0x1234)
 
 bool CheckDirectDrawXInterface(void* pInterface);
+
+namespace WndProc
+{
+	struct DATASTRUCT {
+		std::atomic<bool> IsWindowActivated = false;
+		std::atomic<bool> IsCreatingD3d9 = false;
+	};
+
+	DATASTRUCT* GetWndProctStruct(HWND hWnd);
+}
 
 struct D9_DEVICE_CREATION {
 	HWND hWnd = nullptr;
