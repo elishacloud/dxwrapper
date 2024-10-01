@@ -222,6 +222,7 @@ WndProc::DATASTRUCT* WndProc::GetWndProctStruct(HWND hWnd)
 			return entry->GetDataStruct();
 		}
 	}
+	return nullptr;
 }
 
 LRESULT CALLBACK WndProc::Handler(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lParam, WNDPROCSTRUCT* AppWndProcInstance)

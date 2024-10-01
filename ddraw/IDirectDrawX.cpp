@@ -1701,9 +1701,6 @@ HRESULT m_IDirectDrawX::SetCooperativeLevel(HWND hWnd, DWORD dwFlags, DWORD Dire
 				Utils::WaitForWindowActions(DisplayMode.hWnd, 100);
 			}
 
-			// Hook WndProc before creating device
-			WndProc::AddWndProc(hWnd, true);
-
 			// Set exclusive mode resolution
 			if (ExclusiveMode && DisplayMode.Width && DisplayMode.Height && DisplayMode.BPP)
 			{
@@ -2972,6 +2969,9 @@ HRESULT m_IDirectDrawX::CreateD9Device(char* FunctionName)
 
 		// Store new focus window
 		hFocusWindow = hWnd;
+
+		// Hook WndProc before creating device
+		WndProc::AddWndProc(hWnd, true);
 
 		// Get current resolution and rect
 		bool SetResolution = true;
