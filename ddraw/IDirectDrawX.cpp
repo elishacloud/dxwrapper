@@ -3125,9 +3125,9 @@ HRESULT m_IDirectDrawX::CreateD9Device(char* FunctionName)
 				ReleaseD9Device();
 
 				// Reset display mode after release
-				if (presParams.Windowed && DisplayMode.Width == CurrentWidth && DisplayMode.Height == CurrentHeight && IsWindow(DisplayMode.hWnd))
+				if (presParams.Windowed && DisplayMode.Width == CurrentWidth && DisplayMode.Height == CurrentHeight)
 				{
-					Utils::SetDisplaySettings(DisplayMode.hWnd, DisplayMode.Width, DisplayMode.Height);
+					Utils::SetDisplaySettings(hWnd, DisplayMode.Width, DisplayMode.Height);
 				}
 			}
 		}
@@ -3135,11 +3135,19 @@ HRESULT m_IDirectDrawX::CreateD9Device(char* FunctionName)
 		// Create d3d9 Device
 		if (!d3d9Device)
 		{
-			// Prepare window size
-			if (!presParams.Windowed)
+			// Prepare window and display size
+			if (!presParams.Windowed && !Config.EnableWindowMode)
 			{
+				DWORD DisplayWidth = 0, DisplayHeight = 0;
+				Utils::GetScreenSize(hWnd, (LONG&)DisplayWidth, (LONG&)DisplayHeight);
+
+				if (presParams.BackBufferWidth > DisplayWidth || presParams.BackBufferHeight > DisplayHeight)
+				{
+					Utils::SetDisplaySettings(hWnd, presParams.BackBufferWidth, presParams.BackBufferHeight);
+				}
+
 				SetWindowPos(hWnd, ((GetWindowLong(hWnd, GWL_EXSTYLE) & WS_EX_TOPMOST) ? HWND_TOPMOST : HWND_TOP),
-					0, 0, presParams.BackBufferWidth, presParams.BackBufferHeight, SWP_SHOWWINDOW | SWP_NOMOVE | SWP_NOZORDER);
+					0, 0, presParams.BackBufferWidth, presParams.BackBufferHeight, SWP_NOACTIVATE | SWP_NOZORDER | SWP_NOOWNERZORDER | SWP_NOREPOSITION | SWP_NOMOVE | SWP_NOREDRAW);
 			}
 
 			// Check window handle thread
