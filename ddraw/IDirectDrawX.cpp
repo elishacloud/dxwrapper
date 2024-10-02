@@ -3277,9 +3277,9 @@ HRESULT m_IDirectDrawX::CreateD9Device(char* FunctionName)
 
 			// Windows position
 			PostMessage(hWnd, WM_WINDOWPOSCHANGING, 0, (LPARAM)&winpos);
-			PostMessage(DisplayMode.hWnd, WM_NCCALCSIZE, TRUE, (LPARAM)&NCCalc);
-			PostMessage(DisplayMode.hWnd, WM_NCPAINT, TRUE, NULL);
-			PostMessage(DisplayMode.hWnd, WM_ERASEBKGND, TRUE, NULL);
+			PostMessage(hWnd, WM_NCCALCSIZE, TRUE, (LPARAM)&NCCalc);
+			PostMessage(hWnd, WM_NCPAINT, TRUE, NULL);
+			PostMessage(hWnd, WM_ERASEBKGND, TRUE, NULL);
 			PostMessage(hWnd, WM_WINDOWPOSCHANGED, 0, (LPARAM)&winpos);
 
 			// Window move and size
@@ -3287,11 +3287,11 @@ HRESULT m_IDirectDrawX::CreateD9Device(char* FunctionName)
 			PostMessage(hWnd, WM_SIZE, SIZE_RESTORED, MAKELPARAM(NewRect.right - NewRect.left, NewRect.bottom - NewRect.top));
 
 			// Window focus and activate app
-			PostMessage(DisplayMode.hWnd, WM_IME_SETCONTEXT, TRUE, ISC_SHOWUIALL);
-			PostMessage(DisplayMode.hWnd, WM_SETFOCUS, NULL, NULL);
-			PostMessage(DisplayMode.hWnd, WM_SYNCPAINT, (WPARAM)32, NULL);
-			PostMessage(DisplayMode.hWnd, WM_ACTIVATEAPP, TRUE, (LPARAM)GetWindowThreadProcessId(hWnd, nullptr));
-			PostMessage(DisplayMode.hWnd, WM_DWMNCRENDERINGCHANGED, NULL, NULL);
+			PostMessage(hWnd, WM_IME_SETCONTEXT, TRUE, ISC_SHOWUIALL);
+			PostMessage(hWnd, WM_SETFOCUS, NULL, NULL);
+			PostMessage(hWnd, WM_SYNCPAINT, (WPARAM)32, NULL);
+			PostMessage(hWnd, WM_ACTIVATEAPP, TRUE, (LPARAM)GetWindowThreadProcessId(hWnd, nullptr));
+			PostMessage(hWnd, WM_DWMNCRENDERINGCHANGED, NULL, NULL);
 		}
 
 		// Store display frequency
