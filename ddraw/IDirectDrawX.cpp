@@ -2955,7 +2955,9 @@ HRESULT m_IDirectDrawX::CreateD9Device(char* FunctionName)
 	SetCriticalSection();
 	SetPTCriticalSection();
 
+#ifdef _DEBUG
 	WndProc::DATASTRUCT* WndDataStruct = nullptr;
+#endif
 
 	HRESULT hr = DD_OK;
 	do {
@@ -2974,12 +2976,10 @@ HRESULT m_IDirectDrawX::CreateD9Device(char* FunctionName)
 		WndProc::AddWndProc(hWnd, true);
 
 		// Get current resolution and rect
-		bool SetResolution = true;
 		DWORD CurrentWidth = 0, CurrentHeight = 0;
 		Utils::GetScreenSize(hWnd, (LONG&)CurrentWidth, (LONG&)CurrentHeight);
 
 		// Get current window size
-		bool SetPlacement = true;
 		if (hWnd)
 		{
 			GetWindowRect(hWnd, &LastWindowLocation);
@@ -3111,7 +3111,6 @@ HRESULT m_IDirectDrawX::CreateD9Device(char* FunctionName)
 				(SUCCEEDED(hr) || hr == DDERR_NOEXCLUSIVEMODE || hr == D3DERR_DEVICENOTRESET) &&		// Device is ready to be reset
 				(IsWindow(hWnd) && GetWindowThreadProcessId(hWnd, nullptr) != GetCurrentThreadId()))	// Calling thread matches current thread
 			{
-				SetResolution = true;
 				hr = ResetD9Device();
 			}
 			// Release existing device
@@ -3138,20 +3137,20 @@ HRESULT m_IDirectDrawX::CreateD9Device(char* FunctionName)
 			// Prepare window and display size
 			if (!presParams.Windowed && !Config.EnableWindowMode)
 			{
-				SetResolution = false;
 				Utils::SetDisplaySettings(hWnd, presParams.BackBufferWidth, presParams.BackBufferHeight);
 
-				SetPlacement = false;
 				SetWindowPos(hWnd, ((GetWindowLong(hWnd, GWL_EXSTYLE) & WS_EX_TOPMOST) ? HWND_TOPMOST : HWND_TOP),
 					0, 0, presParams.BackBufferWidth, presParams.BackBufferHeight, SWP_NOACTIVATE | SWP_NOZORDER | SWP_NOOWNERZORDER | SWP_NOREPOSITION | SWP_NOMOVE | SWP_NOREDRAW);
 			}
 
+#ifdef _DEBUG
 			// Get wndproc structure
 			WndDataStruct = WndProc::GetWndProctStruct(hWnd);
 			if (WndDataStruct)
 			{
 				WndDataStruct->IsCreatingD3d9 = true;
 			}
+#endif
 
 			// Check window handle thread
 			if (IsWindow(hWnd) && GetWindowThreadProcessId(hWnd, nullptr) != GetCurrentThreadId())
@@ -3187,11 +3186,13 @@ HRESULT m_IDirectDrawX::CreateD9Device(char* FunctionName)
 				hr = d3d9Object->CreateDevice(D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, hWnd, BehaviorFlags, &presParams, &d3d9Device);
 			}
 
+#ifdef _DEBUG
 			// Unset flag
 			if (WndDataStruct)
 			{
 				WndDataStruct->IsCreatingD3d9 = false;
 			}
+#endif
 		}
 
 		if (FAILED(hr))
@@ -3220,56 +3221,39 @@ HRESULT m_IDirectDrawX::CreateD9Device(char* FunctionName)
 		FourCCsList.clear();
 
 		// Send window and display change messages
-		if (hWnd)
+		if (!presParams.Windowed && !Config.EnableWindowMode)
 		{
-			if (SetResolution)
-			{
-				// Get new resolution
-				DWORD NewWidth = presParams.BackBufferWidth, NewHeight = presParams.BackBufferHeight;
-				Utils::GetScreenSize(hWnd, (LONG&)NewWidth, (LONG&)NewHeight);
+			// Get window size
+			RECT NewRect = { 0, 0, (LONG)presParams.BackBufferWidth, (LONG)presParams.BackBufferHeight };
+			GetWindowRect(hWnd, &NewRect);
 
-				// Send display change message
-				if ((NewWidth != CurrentWidth || NewHeight != CurrentHeight) && NewWidth && NewHeight && CurrentWidth && CurrentHeight)
-				{
-					SetResolution = false;
-					SendMessage(hWnd, WM_DISPLAYCHANGE, GetDisplayBPP(hWnd), MAKELPARAM(NewWidth, NewHeight));
-				}
-			}
+			// Window position variables
+			HWND WindowInsert = GetWindowLong(hWnd, GWL_EXSTYLE) & WS_EX_TOPMOST ? HWND_TOPMOST : HWND_TOP;
+			static WINDOWPOS winpos = {};
+			winpos = { hWnd, WindowInsert, NewRect.left, NewRect.top, NewRect.right - NewRect.left, NewRect.bottom - NewRect.top, WM_NULL };
+			static NCCALCSIZE_PARAMS NCCalc = {};
+			NCCalc.lppos = &winpos;
+			NCCalc.rgrc[0] = NewRect;
+			NCCalc.rgrc[1] = LastWindowLocation;
+			NCCalc.rgrc[2] = LastWindowLocation;
 
-			if (SetPlacement && !Config.FullscreenWindowMode)
-			{
-				// Get window size
-				RECT NewRect = { 0, 0, (LONG)presParams.BackBufferWidth, (LONG)presParams.BackBufferHeight };
-				GetWindowRect(hWnd, &NewRect);
+			// Windows position
+			PostMessage(hWnd, WM_WINDOWPOSCHANGING, 0, (LPARAM)&winpos);
+			PostMessage(DisplayMode.hWnd, WM_NCCALCSIZE, TRUE, (LPARAM)&NCCalc);
+			PostMessage(DisplayMode.hWnd, WM_NCPAINT, TRUE, NULL);
+			PostMessage(DisplayMode.hWnd, WM_ERASEBKGND, TRUE, NULL);
+			PostMessage(hWnd, WM_WINDOWPOSCHANGED, 0, (LPARAM)&winpos);
 
-				// Window position change
-				HWND WindowInsert = GetWindowLong(hWnd, GWL_EXSTYLE) & WS_EX_TOPMOST ? HWND_TOPMOST : HWND_TOP;
-				static WINDOWPOS winpos;
-				winpos = { hWnd, WindowInsert, NewRect.left, NewRect.top, NewRect.right - NewRect.left, NewRect.bottom - NewRect.top, WM_NULL };
-				SendMessage(hWnd, WM_WINDOWPOSCHANGING, 0, (LPARAM)&winpos);
-				SendMessage(hWnd, WM_WINDOWPOSCHANGED, 0, (LPARAM)&winpos);
+			// Window move and size
+			PostMessage(hWnd, WM_MOVE, 0, MAKELPARAM(NewRect.left, NewRect.top));
+			PostMessage(hWnd, WM_SIZE, SIZE_RESTORED, MAKELPARAM(NewRect.right - NewRect.left, NewRect.bottom - NewRect.top));
 
-				// Window moved
-				if ((NewRect.left != LastWindowLocation.left || NewRect.top != LastWindowLocation.top ||
-					NewRect.right != LastWindowLocation.right || NewRect.bottom != LastWindowLocation.bottom) &&
-					LastWindowLocation.right && LastWindowLocation.bottom)
-				{
-					SendMessage(hWnd, WM_ENTERSIZEMOVE, 0, 0);
-					SendMessage(hWnd, WM_MOVING, 0, (LPARAM)&NewRect);
-					SendMessage(hWnd, WM_EXITSIZEMOVE, 0, 0);
-					SendMessage(hWnd, WM_MOVE, 0, MAKELPARAM(NewRect.left, NewRect.top));
-				}
-				// Window sized
-				if ((NewRect.right - NewRect.left != LastWindowLocation.right - LastWindowLocation.left ||
-					NewRect.bottom - NewRect.top != LastWindowLocation.bottom - LastWindowLocation.top) &&
-					LastWindowLocation.right && LastWindowLocation.bottom)
-				{
-					SendMessage(hWnd, WM_ENTERSIZEMOVE, 0, 0);
-					SendMessage(hWnd, WM_SIZING, WMSZ_BOTTOMRIGHT, (LPARAM)&NewRect);
-					SendMessage(hWnd, WM_EXITSIZEMOVE, 0, 0);
-					SendMessage(hWnd, WM_SIZE, SIZE_RESTORED, MAKELPARAM(NewRect.right - NewRect.left, NewRect.bottom - NewRect.top));
-				}
-			}
+			// Window focus and activate app
+			PostMessage(DisplayMode.hWnd, WM_IME_SETCONTEXT, TRUE, ISC_SHOWUIALL);
+			PostMessage(DisplayMode.hWnd, WM_SETFOCUS, NULL, NULL);
+			PostMessage(DisplayMode.hWnd, WM_SYNCPAINT, (WPARAM)32, NULL);
+			PostMessage(DisplayMode.hWnd, WM_ACTIVATEAPP, TRUE, (LPARAM)GetWindowThreadProcessId(hWnd, nullptr));
+			PostMessage(DisplayMode.hWnd, WM_DWMNCRENDERINGCHANGED, NULL, NULL);
 		}
 
 		// Store display frequency
@@ -3278,11 +3262,13 @@ HRESULT m_IDirectDrawX::CreateD9Device(char* FunctionName)
 
 	} while (false);
 
+#ifdef _DEBUG
 	// Unset flag
 	if (WndDataStruct)
 	{
 		WndDataStruct->IsCreatingD3d9 = false;
 	}
+#endif
 
 	ReleasePTCriticalSection();
 	ReleaseCriticalSection();

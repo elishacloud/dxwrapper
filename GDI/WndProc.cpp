@@ -240,7 +240,9 @@ LRESULT CALLBACK WndProc::Handler(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lPa
 
 	const WNDPROC pWndProc = AppWndProcInstance->GetAppWndProc();
 	const HWND hWndInstance = AppWndProcInstance->GetHWnd();
+#ifdef _DEBUG
 	DATASTRUCT* pDataStruct = AppWndProcInstance->GetDataStruct();
+#endif
 
 	// Set instance as inactive when window closes
 	if ((Msg == WM_CLOSE || Msg == WM_DESTROY || Msg == WM_NCDESTROY || (Msg == WM_SYSCOMMAND && wParam == SC_CLOSE)) && hWnd == hWndInstance)
@@ -270,19 +272,21 @@ LRESULT CALLBACK WndProc::Handler(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lPa
 	// Special handling for DirectDraw games
 	if (AppWndProcInstance->IsDirectDraw())
 	{
+#ifdef _DEBUG
 		if (Msg == WM_ACTIVATE)
 		{
-			//WORD lwParam = LOWORD(wParam);
+			WORD lwParam = LOWORD(wParam);
 
-			//bool LastActived = pDataStruct->IsWindowActivated;
-			//pDataStruct->IsWindowActivated = (lwParam == WA_ACTIVE || lwParam == WA_CLICKACTIVE) ? true : (lwParam == WA_INACTIVE) ? false : LastActived;
+			bool LastActived = pDataStruct->IsWindowActivated;
+			pDataStruct->IsWindowActivated = (lwParam == WA_ACTIVE || lwParam == WA_CLICKACTIVE) ? true : (lwParam == WA_INACTIVE) ? false : LastActived;
 
 			// Filter some WM_ACTIVATE calls, some games don't handle invalid calls well
 			if (pDataStruct->IsCreatingD3d9)
 			{
-				return NULL;
+				//return NULL;
 			}
 		}
+#endif
 		// Some games hang when attempting to paint while iconic
 		if ((Msg == WM_PAINT || Msg == WM_SYNCPAINT) && IsIconic(hWnd))
 		{
