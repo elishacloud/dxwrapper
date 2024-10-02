@@ -194,7 +194,6 @@ public:
 	HRESULT ResetD9Device();
 	HRESULT CreateD9Device(char* FunctionName);
 	HRESULT CreateVertexBuffer(DWORD Width, DWORD Height);
-	HRESULT ReinitDevice();
 	HRESULT TestD3D9CooperativeLevel();
 
 	// Device information functions

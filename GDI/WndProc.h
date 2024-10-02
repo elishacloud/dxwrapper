@@ -10,7 +10,6 @@ bool CheckDirectDrawXInterface(void* pInterface);
 namespace WndProc
 {
 	struct DATASTRUCT {
-		std::atomic<bool> IsWindowActivated = false;
 		std::atomic<bool> IsCreatingD3d9 = false;
 	};
 

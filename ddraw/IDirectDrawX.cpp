@@ -2179,7 +2179,7 @@ HRESULT m_IDirectDrawX::RestoreAllSurfaces()
 		HRESULT hr = TestD3D9CooperativeLevel();
 		if (hr == D3DERR_DEVICENOTRESET)
 		{
-			hr = ReinitDevice();
+			hr = ResetD9Device();
 		}
 
 		// Check device status
@@ -2917,21 +2917,81 @@ HRESULT m_IDirectDrawX::ResetD9Device()
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	// Prepare for reset
-	ReleaseAllD9Resources(true, true);
-
-	// Reset device. When this method returns: BackBufferCount, BackBufferWidth, and BackBufferHeight are set to zero.
-	D3DPRESENT_PARAMETERS newParams = presParams;
-	HRESULT hr = d3d9Device->Reset(&newParams);
-
-	// If Reset fails then release the device and all resources
-	if (FAILED(hr))
+	// Check for device interface
+	if (FAILED(CheckInterface(__FUNCTION__, true)))
 	{
-		LOG_LIMIT(100, __FUNCTION__ << " Error: Reset failed " << (D3DERR)hr);
-		ReleaseAllD9Resources(false, false);	// Cannot backup surface after a failed Reset
-		ReleaseD9Device();
+		return DDERR_WRONGMODE;
 	}
 
+	// Check if device is ready to be restored
+	HRESULT hr = TestD3D9CooperativeLevel();
+	if (SUCCEEDED(hr) || hr == DDERR_NOEXCLUSIVEMODE)
+	{
+		return hr;
+	}
+	else if (hr == D3DERR_DEVICELOST)
+	{
+		HWND hWnd = GetHwnd();
+		if (!IsIconic(hWnd) && hWnd == GetForegroundWindow())
+		{
+			return DDERR_WRONGMODE;
+		}
+		else
+		{
+			return DDERR_SURFACELOST;
+		}
+	}
+	else if (hr != D3DERR_DEVICENOTRESET)
+	{
+		LOG_LIMIT(100, __FUNCTION__ << " Error: TestCooperativeLevel = " << (D3DERR)hr);
+		return DDERR_WRONGMODE;
+	}
+
+	SetCriticalSection();
+	SetPTCriticalSection();
+
+	// Reset device if current thread matches creation thread
+	if (IsWindow(hFocusWindow) && GetWindowThreadProcessId(hFocusWindow, nullptr) == GetCurrentThreadId())
+	{
+		// Prepare for reset
+		ReleaseAllD9Resources(true, true);
+
+		// Reset device. When this method returns: BackBufferCount, BackBufferWidth, and BackBufferHeight are set to zero.
+		D3DPRESENT_PARAMETERS newParams = presParams;
+		hr = d3d9Device->Reset(&newParams);
+
+		// If Reset fails then release the device and all resources
+		if (FAILED(hr))
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: Reset failed: " << (D3DERR)hr);
+			ReleaseAllD9Resources(false, false);	// Cannot backup surface after a failed Reset
+			ReleaseD9Device();
+			hr = CreateD9Device(__FUNCTION__);
+		}
+		else
+		{
+			// Reset render target
+			ReSetRenderTarget();
+
+			// Reset D3D device settings
+			if (D3DDeviceInterface)
+			{
+				D3DDeviceInterface->ResetDevice();
+			}
+		}
+	}
+	// Release and recreate device
+	else
+	{
+		ReleaseAllD9Resources(true, false);
+		ReleaseD9Device();
+		hr = CreateD9Device(__FUNCTION__);
+	}
+
+	ReleasePTCriticalSection();
+	ReleaseCriticalSection();
+
+	// Return
 	return hr;
 }
 
@@ -2955,9 +3015,7 @@ HRESULT m_IDirectDrawX::CreateD9Device(char* FunctionName)
 	SetCriticalSection();
 	SetPTCriticalSection();
 
-#ifdef _DEBUG
 	WndProc::DATASTRUCT* WndDataStruct = nullptr;
-#endif
 
 	HRESULT hr = DD_OK;
 	do {
@@ -2973,7 +3031,10 @@ HRESULT m_IDirectDrawX::CreateD9Device(char* FunctionName)
 		hFocusWindow = hWnd;
 
 		// Hook WndProc before creating device
-		WndProc::AddWndProc(hWnd, true);
+		bool WndProcAdded = WndProc::AddWndProc(hWnd, true);
+
+		// Get wndproc structure
+		WndDataStruct = WndProc::GetWndProctStruct(hWnd);
 
 		// Get current resolution and rect
 		DWORD CurrentWidth = 0, CurrentHeight = 0;
@@ -3105,29 +3166,19 @@ HRESULT m_IDirectDrawX::CreateD9Device(char* FunctionName)
 				break;
 			}
 
-			// Try to reset existing device
-			hr = TestD3D9CooperativeLevel();
-			if (LastHWnd == hWnd && LastBehaviorFlags == BehaviorFlags &&								// Device arguments are not changed
-				(SUCCEEDED(hr) || hr == DDERR_NOEXCLUSIVEMODE || hr == D3DERR_DEVICENOTRESET) &&		// Device is ready to be reset
-				(IsWindow(hWnd) && GetWindowThreadProcessId(hWnd, nullptr) != GetCurrentThreadId()))	// Calling thread matches current thread
-			{
-				hr = ResetD9Device();
-			}
-			// Release existing device
-			else
-			{
-				Logging::Log() << __FUNCTION__ << " Recreate device! Last create: " << LastHWnd << "->" << hWnd << " " <<
-					" Windowed: " << LastWindowedMode << "->" << presParams.Windowed << " " <<
-					Logging::hex(LastBehaviorFlags) << "->" << Logging::hex(BehaviorFlags);
+			Logging::Log() << __FUNCTION__ << " Recreate device! Last create: " << LastHWnd << "->" << hWnd << " " <<
+				" Windowed: " << LastWindowedMode << "->" << presParams.Windowed << " " <<
+				presParamsBackup.BackBufferWidth << "x" << presParamsBackup.BackBufferHeight << "->" <<
+				presParams.BackBufferWidth << "x" << presParams.BackBufferHeight << " " <<
+				Logging::hex(LastBehaviorFlags) << "->" << Logging::hex(BehaviorFlags);
 
-				ReleaseAllD9Resources(true, false);
-				ReleaseD9Device();
+			ReleaseAllD9Resources(true, false);
+			ReleaseD9Device();
 
-				// Reset display mode after release when display mode is already setup and there is a primary surface
-				if (presParams.Windowed && PrimarySurface && DisplayMode.Width == CurrentWidth && DisplayMode.Height == CurrentHeight)
-				{
-					Utils::SetDisplaySettings(hWnd, DisplayMode.Width, DisplayMode.Height);
-				}
+			// Reset display mode after release when display mode is already setup and there is a primary surface
+			if (presParams.Windowed && PrimarySurface && DisplayMode.Width == CurrentWidth && DisplayMode.Height == CurrentHeight)
+			{
+				Utils::SetDisplaySettings(hWnd, DisplayMode.Width, DisplayMode.Height);
 			}
 		}
 
@@ -3140,20 +3191,13 @@ HRESULT m_IDirectDrawX::CreateD9Device(char* FunctionName)
 				Utils::SetDisplaySettings(hWnd, presParams.BackBufferWidth, presParams.BackBufferHeight);
 
 				SetWindowPos(hWnd, ((GetWindowLong(hWnd, GWL_EXSTYLE) & WS_EX_TOPMOST) ? HWND_TOPMOST : HWND_TOP),
-					0, 0, presParams.BackBufferWidth, presParams.BackBufferHeight, SWP_NOACTIVATE | SWP_NOZORDER | SWP_NOOWNERZORDER | SWP_NOREPOSITION | SWP_NOMOVE | SWP_NOREDRAW);
+					0, 0, presParams.BackBufferWidth, presParams.BackBufferHeight, SWP_NOZORDER | SWP_NOMOVE);
 			}
 
-#ifdef _DEBUG
-			// Get wndproc structure
-			WndDataStruct = WndProc::GetWndProctStruct(hWnd);
-			if (WndDataStruct)
-			{
-				WndDataStruct->IsCreatingD3d9 = true;
-			}
-#endif
+			if (WndDataStruct) WndDataStruct->IsCreatingD3d9 = true;
 
 			// Check window handle thread
-			if (IsWindow(hWnd) && GetWindowThreadProcessId(hWnd, nullptr) != GetCurrentThreadId())
+			if (WndProcAdded && GetWindowThreadProcessId(hWnd, nullptr) != GetCurrentThreadId())
 			{
 				LOG_LIMIT(100, __FUNCTION__ << " " << FunctionName << " Warning: trying to create Direct3D9 device from a different thread than the hwnd was created from!");
 
@@ -3174,7 +3218,7 @@ HRESULT m_IDirectDrawX::CreateD9Device(char* FunctionName)
 				DeviceStruct.presParams = &presParams;
 				DeviceStruct.hEvent = hEvent;
 
-				PostMessageA(hWnd, WM_USER_CREATE_D3D9_DEVICE, (WPARAM)this, (LPARAM)&DeviceStruct);
+				PostMessage(hWnd, WM_USER_CREATE_D3D9_DEVICE, (WPARAM)this, (LPARAM)&DeviceStruct);
 				WaitForSingleObject(hEvent, INFINITE);
 
 				hr = DeviceStruct.hr;
@@ -3186,13 +3230,7 @@ HRESULT m_IDirectDrawX::CreateD9Device(char* FunctionName)
 				hr = d3d9Object->CreateDevice(D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, hWnd, BehaviorFlags, &presParams, &d3d9Device);
 			}
 
-#ifdef _DEBUG
-			// Unset flag
-			if (WndDataStruct)
-			{
-				WndDataStruct->IsCreatingD3d9 = false;
-			}
-#endif
+			if (WndDataStruct) WndDataStruct->IsCreatingD3d9 = false;
 		}
 
 		if (FAILED(hr))
@@ -3262,13 +3300,7 @@ HRESULT m_IDirectDrawX::CreateD9Device(char* FunctionName)
 
 	} while (false);
 
-#ifdef _DEBUG
-	// Unset flag
-	if (WndDataStruct)
-	{
-		WndDataStruct->IsCreatingD3d9 = false;
-	}
-#endif
+	if (WndDataStruct) WndDataStruct->IsCreatingD3d9 = false;
 
 	ReleasePTCriticalSection();
 	ReleaseCriticalSection();
@@ -3442,81 +3474,6 @@ HRESULT m_IDirectDrawX::CreateD9Object()
 	}
 
 	return D3D_OK;
-}
-
-// Reinitialize d3d9 device
-HRESULT m_IDirectDrawX::ReinitDevice()
-{
-	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
-
-	// Check for device interface
-	if (FAILED(CheckInterface(__FUNCTION__, true)))
-	{
-		return DDERR_WRONGMODE;
-	}
-
-	// Check if device is ready to be restored
-	HRESULT hr = TestD3D9CooperativeLevel();
-	if (SUCCEEDED(hr) || hr == DDERR_NOEXCLUSIVEMODE)
-	{
-		return hr;
-	}
-	else if (hr == D3DERR_DEVICELOST)
-	{
-		HWND hWnd = GetHwnd();
-		if (!IsIconic(hWnd) && hWnd == GetForegroundWindow())
-		{
-			return DDERR_WRONGMODE;
-		}
-		else
-		{
-			return DDERR_SURFACELOST;
-		}
-	}
-	else if (hr != D3DERR_DEVICENOTRESET)
-	{
-		LOG_LIMIT(100, __FUNCTION__ << " Error: TestCooperativeLevel = " << (D3DERR)hr);
-		return DDERR_WRONGMODE;
-	}
-
-	SetCriticalSection();
-	SetPTCriticalSection();
-
-	// Reset device if current thread matches creation thread
-	if (IsWindow(hFocusWindow) && GetWindowThreadProcessId(hFocusWindow, nullptr) == GetCurrentThreadId())
-	{
-		hr = ResetD9Device();
-
-		if (SUCCEEDED(hr))
-		{
-			// Reset render target
-			ReSetRenderTarget();
-
-			// Reset D3D device settings
-			if (D3DDeviceInterface)
-			{
-				D3DDeviceInterface->ResetDevice();
-			}
-		}
-		// Try to recreate the device
-		else
-		{
-			hr = CreateD9Device(__FUNCTION__);
-		}
-	}
-	// Release and recreate device
-	else
-	{
-		ReleaseAllD9Resources(true, false);
-		ReleaseD9Device();
-		hr = CreateD9Device(__FUNCTION__);
-	}
-
-	ReleasePTCriticalSection();
-	ReleaseCriticalSection();
-
-	// Return
-	return hr;
 }
 
 HRESULT m_IDirectDrawX::TestD3D9CooperativeLevel()
@@ -4689,7 +4646,7 @@ HRESULT m_IDirectDrawX::Present(RECT* pSourceRect, RECT* pDestRect)
 	// Reset device
 	if (hr == D3DERR_DEVICENOTRESET)
 	{
-		hr = ReinitDevice();
+		hr = ResetD9Device();
 	}
 
 	// Present failure

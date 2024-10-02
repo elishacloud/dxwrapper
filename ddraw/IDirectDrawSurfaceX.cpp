@@ -3055,7 +3055,7 @@ HRESULT m_IDirectDrawSurfaceX::Restore()
 		switch (ddrawParent->TestD3D9CooperativeLevel())
 		{
 		case D3DERR_DEVICENOTRESET:
-			if (FAILED(ddrawParent->ReinitDevice()))
+			if (FAILED(ddrawParent->ResetD9Device()))
 			{
 				return DDERR_WRONGMODE;
 			}
@@ -4273,7 +4273,7 @@ HRESULT m_IDirectDrawSurfaceX::CheckInterface(char *FunctionName, bool CheckD3DD
 		case DDERR_NOEXCLUSIVEMODE:
 			break;
 		case D3DERR_DEVICENOTRESET:
-			if (SUCCEEDED(ddrawParent->ReinitDevice()))
+			if (SUCCEEDED(ddrawParent->ResetD9Device()))
 			{
 				break;
 			}
