@@ -1695,12 +1695,6 @@ HRESULT m_IDirectDrawX::SetCooperativeLevel(HWND hWnd, DWORD dwFlags, DWORD Dire
 		// Check if handle is valid
 		if (IsWindow(DisplayMode.hWnd) && DisplayMode.hWnd == hWnd)
 		{
-			// Wait for window actions
-			if (LasthWnd != DisplayMode.hWnd)
-			{
-				Utils::WaitForWindowActions(DisplayMode.hWnd, 100);
-			}
-
 			// Set exclusive mode resolution
 			if (ExclusiveMode && DisplayMode.Width && DisplayMode.Height && DisplayMode.BPP)
 			{
@@ -1728,7 +1722,8 @@ HRESULT m_IDirectDrawX::SetCooperativeLevel(HWND hWnd, DWORD dwFlags, DWORD Dire
 				Device.NoWindowChanges = ((dwFlags & DDSCL_NOWINDOWCHANGES) != 0);
 
 				// Reset if mode was changed
-				if ((dwFlags & (DDSCL_NORMAL | DDSCL_EXCLUSIVE)) && //(d3d9Device || LastUsedHWnd == DisplayMode.hWnd) &&
+				if ((dwFlags & (DDSCL_NORMAL | DDSCL_EXCLUSIVE)) &&
+					(d3d9Device || !ExclusiveMode || (DisplayMode.Width && DisplayMode.Height)) &&	// Delay device creation when exclusive and no DisplayMode
 					(LastExclusiveMode != ExclusiveMode || LasthWnd != DisplayMode.hWnd || LastFPUPreserve != Device.FPUPreserve))
 				{
 					CreateD9Device(__FUNCTION__);
@@ -3291,7 +3286,7 @@ HRESULT m_IDirectDrawX::CreateD9Device(char* FunctionName)
 			PostMessage(hWnd, WM_SETFOCUS, NULL, NULL);
 			PostMessage(hWnd, WM_SYNCPAINT, (WPARAM)32, NULL);
 			PostMessage(hWnd, WM_ACTIVATEAPP, TRUE, (LPARAM)GetWindowThreadProcessId(hWnd, nullptr));
-			PostMessage(hWnd, WM_DWMNCRENDERINGCHANGED, NULL, NULL);
+			PostMessage(hWnd, WM_DWMNCRENDERINGCHANGED, FALSE, NULL);
 		}
 
 		// Store display frequency
