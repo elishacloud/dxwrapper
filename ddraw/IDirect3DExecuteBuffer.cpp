@@ -173,8 +173,8 @@ HRESULT m_IDirect3DExecuteBuffer::Optimize(DWORD dwDummy)
 
 	if (!ProxyInterface)
 	{
-		LOG_LIMIT(100, __FUNCTION__ << " Error: Not Implemented");
-		return DDERR_UNSUPPORTED;
+		// The Optimize function doesn't exist in Direct3D9 because it manages vertex buffer optimizations internally
+		return D3D_OK;
 	}
 
 	return ProxyInterface->Optimize(dwDummy);

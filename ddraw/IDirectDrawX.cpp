@@ -668,8 +668,8 @@ HRESULT m_IDirectDrawX::CreateSurface2(LPDDSURFACEDESC2 lpDDSurfaceDesc2, LPDIRE
 		if (Desc2.dwFlags & DDSD_PIXELFORMAT)
 		{
 			Desc2.ddpfPixelFormat.dwSize = sizeof(DDPIXELFORMAT);
-			const DWORD Usage = (Desc2.ddsCaps.dwCaps & DDSCAPS_PRIMARYSURFACE) ? D3DUSAGE_RENDERTARGET :
-				(Desc2.ddpfPixelFormat.dwFlags & (DDPF_ZBUFFER | DDPF_STENCILBUFFER)) ? D3DUSAGE_DEPTHSTENCIL : 0;
+			const DWORD Usage = (Desc2.ddpfPixelFormat.dwFlags & (DDPF_ZBUFFER | DDPF_STENCILBUFFER)) ? D3DUSAGE_DEPTHSTENCIL :
+				(Desc2.ddsCaps.dwCaps & (DDSCAPS_PRIMARYSURFACE | DDSCAPS_3DDEVICE)) ? D3DUSAGE_RENDERTARGET : 0;
 			const D3DRESOURCETYPE Resource = ((lpDDSurfaceDesc2->ddsCaps.dwCaps & DDSCAPS_TEXTURE) && Usage != D3DUSAGE_DEPTHSTENCIL) ? D3DRTYPE_TEXTURE : D3DRTYPE_SURFACE;
 			const D3DFORMAT Format = GetDisplayFormat(Desc2.ddpfPixelFormat);
 			const D3DFORMAT TestFormat = ConvertSurfaceFormat(Format);
@@ -751,7 +751,13 @@ HRESULT m_IDirectDrawX::CreateSurface2(LPDDSURFACEDESC2 lpDDSurfaceDesc2, LPDIRE
 			Logging::Log() << __FUNCTION__ << " Found depth stencil surface: " << GetDisplayFormat(Desc2.ddpfPixelFormat);
 		}
 
-		// Get present parameters
+		// Add flag for 3D device
+		if (DirectXVersion == 1 && (Desc2.ddsCaps.dwCaps & DDSCAPS_PRIMARYSURFACE))
+		{
+			Desc2.ddsCaps.dwCaps |= DDSCAPS_3DDEVICE;
+		}
+
+		// Log primary surface
 		if (Desc2.ddsCaps.dwCaps & DDSCAPS_PRIMARYSURFACE)
 		{
 			Logging::Log() << __FUNCTION__ << " Primary surface " << Desc2.dwWidth << "x" << Desc2.dwHeight <<
