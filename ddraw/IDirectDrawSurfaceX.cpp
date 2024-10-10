@@ -4609,11 +4609,28 @@ HRESULT m_IDirectDrawSurfaceX::CreateD9Surface()
 						break;
 					}
 
-					size_t size = GetSurfaceSize(Desc.Format, Desc.Width, Desc.Height, LockRect.Pitch);
-
-					if (size == LostDeviceBackup[Level].Bits.size())
+					if (LostDeviceBackup[Level].Format == Format && LostDeviceBackup[Level].Width == surface.Width && LostDeviceBackup[Level].Height == surface.Height)
 					{
-						memcpy(LockRect.pBits, LostDeviceBackup[Level].Bits.data(), size);
+						size_t size = GetSurfaceSize(Desc.Format, Desc.Width, Desc.Height, LockRect.Pitch);
+
+						if (size == LostDeviceBackup[Level].Bits.size())
+						{
+							memcpy(LockRect.pBits, LostDeviceBackup[Level].Bits.data(), size);
+						}
+						else
+						{
+							BYTE* pSrcSurface = LostDeviceBackup[Level].Bits.data();
+							BYTE* pDestSurface = (BYTE*)LockRect.pBits;
+							DWORD MinPitchSize = min((UINT)LockRect.Pitch, LostDeviceBackup[Level].Pitch);
+
+							for (UINT x = 0; x < surface.Height; x++)
+							{
+								memcpy(pDestSurface, pSrcSurface, MinPitchSize);
+
+								pSrcSurface += LostDeviceBackup[Level].Pitch;
+								pDestSurface += LockRect.Pitch;
+							}
+						}
 
 						RestoreData = true;
 						surface.HasData = true;
@@ -4622,7 +4639,7 @@ HRESULT m_IDirectDrawSurfaceX::CreateD9Surface()
 					{
 						LOG_LIMIT(100, __FUNCTION__ << " Warning: restore backup surface data mismatch! For Level: " << Level << " " <<
 							LostDeviceBackup[Level].Format << " -> " << Format << " " << LostDeviceBackup[Level].Width << "x" << LostDeviceBackup[Level].Height << " -> " <<
-							surface.Width << "x" << surface.Height);
+							surface.Width << "x" << surface.Height << " " << LostDeviceBackup[Level].Pitch << " - > " << LockRect.Pitch);
 					}
 
 					UnLockD3d9Surface(Level);
