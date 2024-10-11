@@ -23,6 +23,8 @@
 #include "d3dx9.h"
 #include "Utils\Utils.h"
 
+constexpr DWORD ExtraDataBufferSize = 200;
+
 // Used to allow presenting non-primary surfaces in case the primary surface present fails
 bool dirtyFlag = false;
 bool SceneReady = false;
@@ -4840,7 +4842,7 @@ HRESULT m_IDirectDrawSurfaceX::CreateDCSurface()
 	ZeroMemory(surface.emu->bmiMemory, sizeof(surface.emu->bmiMemory));
 	surface.emu->bmi->bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
 	surface.emu->bmi->bmiHeader.biWidth = Width;
-	surface.emu->bmi->bmiHeader.biHeight = -((LONG)Height + 200);
+	surface.emu->bmi->bmiHeader.biHeight = -((LONG)Height + ExtraDataBufferSize);
 	surface.emu->bmi->bmiHeader.biPlanes = 1;
 	surface.emu->bmi->bmiHeader.biBitCount = (WORD)surface.BitCount;
 	surface.emu->bmi->bmiHeader.biCompression =
@@ -5492,7 +5494,7 @@ void m_IDirectDrawSurfaceX::LockEmuLock(LPRECT lpDestRect, LPDDSURFACEDESC2 lpDD
 		EmuLock.Height = lpDDSurfaceDesc->dwHeight;
 
 		// Update surface memory and pitch
-		size_t Size = NewPitch * lpDDSurfaceDesc->dwHeight;
+		size_t Size = NewPitch * (lpDDSurfaceDesc->dwHeight + ExtraDataBufferSize);
 		if (EmuLock.Mem.size() < Size)
 		{
 			EmuLock.Mem.resize(Size);

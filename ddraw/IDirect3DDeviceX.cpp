@@ -3665,13 +3665,6 @@ HRESULT m_IDirect3DDeviceX::DrawIndexedPrimitiveVB(D3DPRIMITIVETYPE dptPrimitive
 			return DDERR_GENERIC;
 		}
 
-		LPDIRECT3DINDEXBUFFER9 d3d9IndexBuffer = pVertexBufferX->SetupIndexBuffer(lpwIndices, dwIndexCount);
-		if (!d3d9IndexBuffer)
-		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error: could not get d3d9 index buffer!");
-			return DDERR_GENERIC;
-		}
-
 		DWORD FVF = pVertexBufferX->GetFVF9();
 
 		// Set fixed function vertex type
@@ -3679,6 +3672,19 @@ HRESULT m_IDirect3DDeviceX::DrawIndexedPrimitiveVB(D3DPRIMITIVETYPE dptPrimitive
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Error: invalid FVF type: " << Logging::hex(FVF));
 			return DDERR_INVALIDPARAMS;
+		}
+
+		// No operation to performed
+		if (dwIndexCount == 0)
+		{
+			return D3D_OK;
+		}
+
+		LPDIRECT3DINDEXBUFFER9 d3d9IndexBuffer = pVertexBufferX->SetupIndexBuffer(lpwIndices, dwIndexCount);
+		if (!d3d9IndexBuffer)
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: could not get d3d9 index buffer!");
+			return DDERR_GENERIC;
 		}
 
 		// Set stream source

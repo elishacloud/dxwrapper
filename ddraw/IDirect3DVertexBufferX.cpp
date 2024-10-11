@@ -690,7 +690,7 @@ LPDIRECT3DINDEXBUFFER9 m_IDirect3DVertexBufferX::SetupIndexBuffer(LPWORD lpwIndi
 
 	if (FAILED(hr))
 	{
-		LOG_LIMIT(100, __FUNCTION__ << " Error: failed to create index buffer: " << (D3DERR)hr);
+		LOG_LIMIT(100, __FUNCTION__ << " Error: failed to create index buffer: " << (D3DERR)hr << " Size: " << NewIndexSize);
 		return nullptr;
 	}
 
@@ -726,6 +726,7 @@ void m_IDirect3DVertexBufferX::ReleaseD3D9IndexBuffer()
 			Logging::Log() << __FUNCTION__ << " (" << this << ")" << " Error: there is still a reference to 'd3d9IndexBuffer' " << ref;
 		}
 		d3d9IndexBuffer = nullptr;
+		IndexBufferSize = 0;
 	}
 }
 
