@@ -4581,6 +4581,103 @@ HRESULT m_IDirectDrawSurfaceX::CreateD9Surface()
 	// Restore d3d9 surface texture data
 	if (surface.Surface || surface.Texture)
 	{
+		// Fill surface with color
+		if (Config.DdrawFillSurfaceColor)
+		{
+			static DWORD Count = 0;
+			struct COLORS {
+				DWORD a;
+				DWORD r;
+				DWORD g;
+				DWORD b;
+			};
+			COLORS Colors[] = {
+				{ 0xFFFFFFFF, 0xFFFFFFFF, 0x00000000, 0x00000000 },
+				{ 0xFFFFFFFF, 0x00000000, 0xFFFFFFFF, 0x00000000 },
+				{ 0xFFFFFFFF, 0x00000000, 0x00000000, 0xFFFFFFFF },
+
+				{ 0xFFFFFFFF, 0xFFFFFFFF, 0x55555555, 0x00000000 },
+				{ 0xFFFFFFFF, 0x00000000, 0xFFFFFFFF, 0x55555555 },
+				{ 0xFFFFFFFF, 0x55555555, 0x00000000, 0xFFFFFFFF },
+
+				{ 0xFFFFFFFF, 0xFFFFFFFF, 0x00000000, 0x55555555 },
+				{ 0xFFFFFFFF, 0x55555555, 0xFFFFFFFF, 0x00000000 },
+				{ 0xFFFFFFFF, 0x00000000, 0x55555555, 0xFFFFFFFF },
+
+				{ 0xFFFFFFFF, 0xFFFFFFFF, 0x55555555, 0x55555555 },
+				{ 0xFFFFFFFF, 0x55555555, 0xFFFFFFFF, 0x55555555 },
+				{ 0xFFFFFFFF, 0x55555555, 0x55555555, 0xFFFFFFFF },
+
+				{ 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0x00000000 },
+				{ 0xFFFFFFFF, 0x00000000, 0xFFFFFFFF, 0xFFFFFFFF },
+				{ 0xFFFFFFFF, 0xFFFFFFFF, 0x00000000, 0xFFFFFFFF },
+
+				{ 0xFFFFFFFF, 0xFFFFFFFF, 0x00000000, 0xFFFFFFFF },
+				{ 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0x00000000 },
+				{ 0xFFFFFFFF, 0x00000000, 0xFFFFFFFF, 0xFFFFFFFF },
+
+				{ 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0x55555555 },
+				{ 0xFFFFFFFF, 0x55555555, 0xFFFFFFFF, 0xFFFFFFFF },
+				{ 0xFFFFFFFF, 0xFFFFFFFF, 0x55555555, 0xFFFFFFFF },
+
+				{ 0xFFFFFFFF, 0xFFFFFFFF, 0x55555555, 0xFFFFFFFF },
+				{ 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0x55555555 },
+				{ 0xFFFFFFFF, 0x55555555, 0xFFFFFFFF, 0xFFFFFFFF },
+			};
+
+			if (Format == D3DFMT_P8)
+			{
+				ColorFill(nullptr, 10 * (Count + 1), 0);
+			}
+			else if (!(surface.Format & 0xFF000000))
+			{
+				ColorFill(nullptr,
+					(Colors[Count].a & surfaceDesc2.ddpfPixelFormat.dwRGBAlphaBitMask) +
+					(Colors[Count].r & surfaceDesc2.ddpfPixelFormat.dwRBitMask) +
+					(Colors[Count].g & surfaceDesc2.ddpfPixelFormat.dwGBitMask) +
+					(Colors[Count].b & surfaceDesc2.ddpfPixelFormat.dwBBitMask), 0);
+			}
+			else
+			{
+				LPDIRECT3DSURFACE9 SrcSurface = nullptr;
+				DWORD t_Width = 128, t_Height = 128;
+				if (SUCCEEDED((*d3d9Device)->CreateOffscreenPlainSurface(t_Width, t_Height, D3DFMT_A8R8G8B8, D3DPOOL_SYSTEMMEM, &SrcSurface, nullptr)))
+				{
+					D3DCOLOR NewColor =
+						(Colors[Count].a & 0xFF000000) +
+						(Colors[Count].r & 0x00FF0000) +
+						(Colors[Count].g & 0x0000FF00) +
+						(Colors[Count].b & 0x000000FF);
+					D3DLOCKED_RECT LockedRect = {};
+					if (SUCCEEDED(SrcSurface->LockRect(&LockedRect, nullptr, 0)))
+					{
+						BYTE* pBuffer = (BYTE*)LockedRect.pBits;
+						for (UINT x = 0; x < t_Width; x++)
+						{
+							for (UINT y = 0; y < LockedRect.Pitch / sizeof(D3DCOLOR); y++)
+							{
+								((DWORD*)pBuffer)[y] = NewColor;
+							}
+							pBuffer += LockedRect.Pitch;
+						}
+						SrcSurface->UnlockRect();
+
+						LPDIRECT3DSURFACE9 DstSurface = Get3DSurface();
+						if (DstSurface)
+						{
+							D3DXLoadSurfaceFromSurface(DstSurface, nullptr,nullptr,SrcSurface, nullptr,nullptr, D3DX_FILTER_POINT, 0);
+						}
+					}
+					SrcSurface->Release();
+				}
+			}
+			if (++Count >= 24)
+			{
+				Count = 0;
+			}
+		}
+
+		// Restore surface texture data
 		bool RestoreData = false;
 		if (IsUsingEmulation() && !EmuSurfaceCreated)
 		{
@@ -4842,7 +4939,7 @@ HRESULT m_IDirectDrawSurfaceX::CreateDCSurface()
 	ZeroMemory(surface.emu->bmiMemory, sizeof(surface.emu->bmiMemory));
 	surface.emu->bmi->bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
 	surface.emu->bmi->bmiHeader.biWidth = Width;
-	surface.emu->bmi->bmiHeader.biHeight = -((LONG)Height + ExtraDataBufferSize);
+	surface.emu->bmi->bmiHeader.biHeight = -((LONG)Height + (LONG)ExtraDataBufferSize);
 	surface.emu->bmi->bmiHeader.biPlanes = 1;
 	surface.emu->bmi->bmiHeader.biBitCount = (WORD)surface.BitCount;
 	surface.emu->bmi->bmiHeader.biCompression =

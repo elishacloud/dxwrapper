@@ -30,6 +30,7 @@
 	visit(DdrawEnableByteAlignment) \
 	visit(DdrawDisableDirect3DCaps) \
 	visit(DdrawEmulateLock) \
+	visit(DdrawFillSurfaceColor) \
 	visit(DdrawForceMipMapAutoGen) \
 	visit(DdrawFlipFillColor) \
 	visit(DdrawRemoveScanlines) \
@@ -215,8 +216,9 @@ struct CONFIG
 	DWORD DdrawFixByteAlignment = false;		// Fixes lock with surfaces that have unaligned byte sizes, 1) just byte align, 2) byte align + D3DTEXF_NONE, 3) byte align + D3DTEXF_LINEAR
 	bool DdrawEnableByteAlignment = false;		// Disables 32bit / 64bit byte alignment
 	DWORD DdrawResolutionHack = 0;				// Removes the artificial resolution limit from Direct3D7 and below https://github.com/UCyborg/LegacyD3DResolutionHack
-	bool DdrawRemoveScanlines = 0;				// Experimental feature to removing interlaced black lines in a single frame
-	bool DdrawRemoveInterlacing = 0;			// Experimental feature to removing interlacing between frames
+	bool DdrawRemoveScanlines = false;			// Experimental feature to removing interlaced black lines in a single frame
+	bool DdrawRemoveInterlacing = false;		// Experimental feature to removing interlacing between frames
+	bool DdrawFillSurfaceColor = false;			// After creating surface fill with random color for testing black screen or objects
 	bool DdrawEmulateSurface = false;			// Emulates the ddraw surface using device context for Dd7to9
 	bool DdrawEmulateLock = false;				// Emulates the lock to prevent crashes when an application tries to read data outside Lock/Unlock pair
 	bool DdrawReadFromGDI = false;				// Read from GDI bfore passing surface to program
