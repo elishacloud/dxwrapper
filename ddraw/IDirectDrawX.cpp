@@ -198,6 +198,8 @@ LPDIRECT3DPIXELSHADER9 palettePixelShader;
 LPDIRECT3DPIXELSHADER9 colorkeyPixelShader;
 LPDIRECT3DVERTEXBUFFER9 VertexBuffer;
 LPDIRECT3DVERTEXBUFFER9 validateDeviceVertexBuffer;
+LPDIRECT3DINDEXBUFFER9 d3d9IndexBuffer = nullptr;
+DWORD IndexBufferSize = 0;
 DWORD BehaviorFlags;
 HWND hFocusWindow;
 
@@ -2616,7 +2618,7 @@ void m_IDirectDrawX::ReleaseDdraw()
 	// Release vertex buffers
 	for (m_IDirect3DVertexBufferX*& pVertexBuffer : VertexBufferVector)
 	{
-		pVertexBuffer->ReleaseD9Buffers(false, false);
+		pVertexBuffer->ReleaseD9Buffer(false, false);
 		pVertexBuffer->ClearDdraw();
 	}
 	VertexBufferVector.clear();
@@ -2900,6 +2902,56 @@ LPDIRECT3DVERTEXBUFFER9 m_IDirectDrawX::GetValidateDeviceVertexBuffer(DWORD& FVF
 	Size = sizeof(SimpleVertex);
 	FVF = (D3DFVF_XYZ | D3DFVF_DIFFUSE);
 	return validateDeviceVertexBuffer;
+}
+
+LPDIRECT3DINDEXBUFFER9 m_IDirectDrawX::GetIndexBuffer(LPWORD lpwIndices, DWORD dwIndexCount)
+{
+	if (!lpwIndices)
+	{
+		LOG_LIMIT(100, __FUNCTION__ << " Error: nullptr Indices!");
+		return nullptr;
+	}
+
+	// Check for device interface
+	if (FAILED(CheckInterface(__FUNCTION__, true)))
+	{
+		return nullptr;
+	}
+
+	DWORD NewIndexSize = dwIndexCount * sizeof(WORD);
+
+	HRESULT hr = D3D_OK;
+	if (!d3d9IndexBuffer || NewIndexSize > IndexBufferSize)
+	{
+		ReleaseD3D9IndexBuffer();
+		hr = d3d9Device->CreateIndexBuffer(NewIndexSize, D3DUSAGE_DYNAMIC, D3DFMT_INDEX16, D3DPOOL_SYSTEMMEM, &d3d9IndexBuffer, nullptr);
+	}
+
+	if (FAILED(hr))
+	{
+		LOG_LIMIT(100, __FUNCTION__ << " Error: failed to create index buffer: " << (D3DERR)hr << " Size: " << NewIndexSize);
+		return nullptr;
+	}
+
+	if (NewIndexSize > IndexBufferSize)
+	{
+		IndexBufferSize = NewIndexSize;
+	}
+
+	void* pData = nullptr;
+	hr = d3d9IndexBuffer->Lock(0, NewIndexSize, &pData, 0);
+
+	if (FAILED(hr))
+	{
+		LOG_LIMIT(100, __FUNCTION__ << " Error: failed to lock index buffer: " << (D3DERR)hr);
+		return nullptr;
+	}
+
+	memcpy(pData, lpwIndices, NewIndexSize);
+
+	d3d9IndexBuffer->Unlock();
+
+	return d3d9IndexBuffer;
 }
 
 // Get AntiAliasing type and quality
@@ -3640,6 +3692,21 @@ inline void m_IDirectDrawX::ResetAllSurfaceDisplay()
 	ReleaseCriticalSection();
 }
 
+inline void m_IDirectDrawX::ReleaseD3D9IndexBuffer()
+{
+	// Release index buffer
+	if (d3d9IndexBuffer)
+	{
+		ULONG ref = d3d9IndexBuffer->Release();
+		if (ref)
+		{
+			Logging::Log() << __FUNCTION__ << " (" << this << ")" << " Error: there is still a reference to 'd3d9IndexBuffer' " << ref;
+		}
+		d3d9IndexBuffer = nullptr;
+		IndexBufferSize = 0;
+	}
+}
+
 // Release all dd9 resources
 inline void m_IDirectDrawX::ReleaseAllD9Resources(bool BackupData, bool ResetInterface)
 {
@@ -3666,7 +3733,7 @@ inline void m_IDirectDrawX::ReleaseAllD9Resources(bool BackupData, bool ResetInt
 		pDDraw->ReleasedSurfaceVector.clear();
 	}
 
-	// Release all surfaces from all direct3d device
+	// Release all state blocks from all ddraw devices
 	if (!ResetInterface)
 	{
 		for (m_IDirectDrawX*& pDDraw : DDrawVector)
@@ -3679,12 +3746,12 @@ inline void m_IDirectDrawX::ReleaseAllD9Resources(bool BackupData, bool ResetInt
 		}
 	}
 
-	// Release all buffers from all ddraw devices
+	// Release all vertex buffers from all ddraw devices
 	for (m_IDirectDrawX*& pDDraw : DDrawVector)
 	{
 		for (m_IDirect3DVertexBufferX*& pBuffer : pDDraw->VertexBufferVector)
 		{
-			pBuffer->ReleaseD9Buffers(BackupData, ResetInterface);
+			pBuffer->ReleaseD9Buffer(BackupData, ResetInterface);
 		}
 	}
 
@@ -3710,6 +3777,12 @@ inline void m_IDirectDrawX::ReleaseAllD9Resources(bool BackupData, bool ResetInt
 			Logging::Log() << __FUNCTION__ << " Error: there is still a reference to 'validateDeviceVertexBuffer' " << ref;
 		}
 		validateDeviceVertexBuffer = nullptr;
+	}
+
+	// Release index buffer
+	if (!ResetInterface)
+	{
+		ReleaseD3D9IndexBuffer();
 	}
 
 	// Release palette pixel shader

@@ -567,7 +567,7 @@ void m_IDirect3DVertexBufferX::ReleaseVertexBuffer()
 		WrapperInterface7->DeleteMe();
 	}
 
-	ReleaseD9Buffers(false, false);
+	ReleaseD9Buffer(false, false);
 
 	if (ddrawParent && !Config.Exiting)
 	{
@@ -665,72 +665,7 @@ void m_IDirect3DVertexBufferX::ReleaseD3D9VertexBuffer()
 	}
 }
 
-LPDIRECT3DINDEXBUFFER9 m_IDirect3DVertexBufferX::SetupIndexBuffer(LPWORD lpwIndices, DWORD dwIndexCount)
-{
-	if (!lpwIndices)
-	{
-		LOG_LIMIT(100, __FUNCTION__ << " Error: nullptr Indices!");
-		return nullptr;
-	}
-
-	// Check for device interface
-	if (FAILED(CheckInterface(__FUNCTION__, true, false)))
-	{
-		return nullptr;
-	}
-
-	DWORD NewIndexSize = dwIndexCount * sizeof(WORD);
-
-	HRESULT hr = D3D_OK;
-	if (!d3d9IndexBuffer || NewIndexSize > IndexBufferSize)
-	{
-		ReleaseD3D9IndexBuffer();
-		hr = (*d3d9Device)->CreateIndexBuffer(NewIndexSize, ((VBDesc.dwCaps & D3DVBCAPS_DONOTCLIP) ? D3DUSAGE_DONOTCLIP : 0), D3DFMT_INDEX16, D3DPOOL_SYSTEMMEM, &d3d9IndexBuffer, nullptr);
-	}
-
-	if (FAILED(hr))
-	{
-		LOG_LIMIT(100, __FUNCTION__ << " Error: failed to create index buffer: " << (D3DERR)hr << " Size: " << NewIndexSize);
-		return nullptr;
-	}
-
-	if (NewIndexSize > IndexBufferSize)
-	{
-		IndexBufferSize = NewIndexSize;
-	}
-
-	void* pData = nullptr;
-	hr = d3d9IndexBuffer->Lock(0, NewIndexSize, &pData, 0);
-
-	if (FAILED(hr))
-	{
-		LOG_LIMIT(100, __FUNCTION__ << " Error: failed to lock index buffer: " << (D3DERR)hr);
-		return nullptr;
-	}
-
-	memcpy(pData, lpwIndices, NewIndexSize);
-
-	d3d9IndexBuffer->Unlock();
-
-	return d3d9IndexBuffer;
-}
-
-void m_IDirect3DVertexBufferX::ReleaseD3D9IndexBuffer()
-{
-	// Release index buffer
-	if (d3d9IndexBuffer)
-	{
-		ULONG ref = d3d9IndexBuffer->Release();
-		if (ref)
-		{
-			Logging::Log() << __FUNCTION__ << " (" << this << ")" << " Error: there is still a reference to 'd3d9IndexBuffer' " << ref;
-		}
-		d3d9IndexBuffer = nullptr;
-		IndexBufferSize = 0;
-	}
-}
-
-void m_IDirect3DVertexBufferX::ReleaseD9Buffers(bool BackupData, bool ResetBuffer)
+void m_IDirect3DVertexBufferX::ReleaseD9Buffer(bool BackupData, bool ResetBuffer)
 {
 	if (BackupData && VBDesc.dwFVF != D3DFVF_LVERTEX)
 	{
@@ -741,9 +676,5 @@ void m_IDirect3DVertexBufferX::ReleaseD9Buffers(bool BackupData, bool ResetBuffe
 	if (!ResetBuffer || d3d9VBDesc.Pool == D3DPOOL_DEFAULT)
 	{
 		ReleaseD3D9VertexBuffer();
-	}
-	if (!ResetBuffer)
-	{
-		ReleaseD3D9IndexBuffer();
 	}
 }

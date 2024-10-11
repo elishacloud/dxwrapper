@@ -3680,7 +3680,7 @@ HRESULT m_IDirect3DDeviceX::DrawIndexedPrimitiveVB(D3DPRIMITIVETYPE dptPrimitive
 			return D3D_OK;
 		}
 
-		LPDIRECT3DINDEXBUFFER9 d3d9IndexBuffer = pVertexBufferX->SetupIndexBuffer(lpwIndices, dwIndexCount);
+		LPDIRECT3DINDEXBUFFER9 d3d9IndexBuffer = ddrawParent->GetIndexBuffer(lpwIndices, dwIndexCount);
 		if (!d3d9IndexBuffer)
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Error: could not get d3d9 index buffer!");

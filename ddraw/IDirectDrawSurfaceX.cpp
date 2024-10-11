@@ -4708,7 +4708,7 @@ HRESULT m_IDirectDrawSurfaceX::CreateD9Surface()
 						break;
 					}
 
-					if (LostDeviceBackup[Level].Format == Format && LostDeviceBackup[Level].Width == surface.Width && LostDeviceBackup[Level].Height == surface.Height)
+					if (LostDeviceBackup[Level].Format == Desc.Format && LostDeviceBackup[Level].Width == Desc.Width && LostDeviceBackup[Level].Height == Desc.Height)
 					{
 						size_t size = GetSurfaceSize(Desc.Format, Desc.Width, Desc.Height, LockRect.Pitch);
 

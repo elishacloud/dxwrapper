@@ -19,12 +19,8 @@ private:
 	void* LastLockAddr = nullptr;
 	DWORD LastLockFlags = 0;
 
-	// Index buffer data
-	DWORD IndexBufferSize = 0;
-
 	// Store d3d interface
 	LPDIRECT3DVERTEXBUFFER9 d3d9VertexBuffer = nullptr;
-	LPDIRECT3DINDEXBUFFER9 d3d9IndexBuffer = nullptr;
 
 	// Store version wrappers
 	m_IDirect3DVertexBuffer *WrapperInterface = nullptr;
@@ -54,7 +50,6 @@ private:
 	// Direct3D9 interface functions
 	HRESULT CreateD3D9VertexBuffer();
 	void ReleaseD3D9VertexBuffer();
-	void ReleaseD3D9IndexBuffer();
 
 public:
 	m_IDirect3DVertexBufferX(IDirect3DVertexBuffer7 *aOriginal, DWORD DirectXVersion) : ProxyInterface(aOriginal)
@@ -123,8 +118,7 @@ public:
 
 	// Direct3D9 interfaces
 	LPDIRECT3DVERTEXBUFFER9 GetCurrentD9VertexBuffer() { return d3d9VertexBuffer; };
-	LPDIRECT3DINDEXBUFFER9 SetupIndexBuffer(LPWORD lpwIndices, DWORD dwIndexCount);
-	void ReleaseD9Buffers(bool BackupData, bool ResetBuffer);
+	void ReleaseD9Buffer(bool BackupData, bool ResetBuffer);
 
 	DWORD GetFVF9() { return d3d9VBDesc.FVF; };
 };

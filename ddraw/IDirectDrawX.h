@@ -84,6 +84,7 @@ private:
 	HRESULT CreateD9Object();
 	void Clear3DFlagForAllSurfaces();
 	void ResetAllSurfaceDisplay();
+	void ReleaseD3D9IndexBuffer();
 	void ReleaseAllD9Resources(bool BackupData, bool ResetInterface);
 	void ReleaseD9Device();
 	void ReleaseD9Object();
@@ -190,6 +191,7 @@ public:
 	bool CreatePaletteShader();
 	LPDIRECT3DPIXELSHADER9* GetColorKeyShader();
 	LPDIRECT3DVERTEXBUFFER9 GetValidateDeviceVertexBuffer(DWORD& FVF, DWORD& Size);
+	LPDIRECT3DINDEXBUFFER9 GetIndexBuffer(LPWORD lpwIndices, DWORD dwIndexCount);
 	D3DMULTISAMPLE_TYPE GetMultiSampleTypeQuality(D3DFORMAT Format, DWORD MaxSampleType, DWORD& QualityLevels);
 	HRESULT ResetD9Device();
 	HRESULT CreateD9Device(char* FunctionName);
