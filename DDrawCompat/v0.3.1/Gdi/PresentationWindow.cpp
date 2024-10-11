@@ -132,8 +132,6 @@ namespace
 			EnumWindows(initTopLevelWindow, 0);
 		}
 
-		//Compat32::closeDbgEng();
-
 		MSG msg = {};
 		while (GetMessage(&msg, nullptr, 0, 0))
 		{
