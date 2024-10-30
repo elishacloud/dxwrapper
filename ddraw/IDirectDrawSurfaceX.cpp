@@ -7297,6 +7297,13 @@ HRESULT m_IDirectDrawSurfaceX::CopyEmulatedSurfaceFromGDI(LPRECT lpDestRect)
 		return DDERR_GENERIC;
 	}
 
+	// Check for iconic window
+	if (IsIconic(hWnd) || IsIconic(DDraw_hWnd))
+	{
+		LOG_LIMIT(100, __FUNCTION__ << " Error: Window is iconic!");
+		return DDERR_GENERIC;
+	}
+
 	// Update rect
 	RECT DestRect = {};
 	if (!CheckCoordinates(DestRect, lpDestRect, nullptr))
@@ -7370,6 +7377,13 @@ HRESULT m_IDirectDrawSurfaceX::CopyEmulatedSurfaceToGDI(LPRECT lpDestRect)
 		return DDERR_GENERIC;
 	}
 
+	// Check for iconic window
+	if (IsIconic(hWnd) || IsIconic(DDraw_hWnd))
+	{
+		LOG_LIMIT(100, __FUNCTION__ << " Error: Window is iconic!");
+		return DDERR_GENERIC;
+	}
+
 	// Update rect
 	RECT DestRect = {};
 	if (!CheckCoordinates(DestRect, lpDestRect, nullptr))
@@ -7435,6 +7449,13 @@ HRESULT m_IDirectDrawSurfaceX::GetPresentWindowRect(LPRECT pRect, RECT& DestRect
 	if (!hWnd)
 	{
 		LOG_LIMIT(100, __FUNCTION__ << " Error: Cannot get window handle!");
+		return DDERR_GENERIC;
+	}
+
+	// Check for iconic window
+	if (IsIconic(hWnd))
+	{
+		LOG_LIMIT(100, __FUNCTION__ << " Error: Window is iconic!");
 		return DDERR_GENERIC;
 	}
 
