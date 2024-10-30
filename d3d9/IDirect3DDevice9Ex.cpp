@@ -1835,8 +1835,15 @@ HRESULT m_IDirect3DDevice9Ex::CopyRects(THIS_ IDirect3DSurface9 *pSourceSurface,
 		return D3DERR_INVALIDCALL;
 	}
 
-	pSourceSurface = static_cast<m_IDirect3DSurface9*>(pSourceSurface)->GetProxyInterface();
-	pDestinationSurface = static_cast<m_IDirect3DSurface9*>(pDestinationSurface)->GetProxyInterface();
+	void* pVoid = nullptr;
+	if (SUCCEEDED(pSourceSurface->QueryInterface(IID_GetInterfaceX, &pVoid)))
+	{
+		pSourceSurface = static_cast<m_IDirect3DSurface9*>(pSourceSurface)->GetProxyInterface();
+	}
+	if (SUCCEEDED(pDestinationSurface->QueryInterface(IID_GetInterfaceX, &pVoid)))
+	{
+		pDestinationSurface = static_cast<m_IDirect3DSurface9*>(pDestinationSurface)->GetProxyInterface();
+	}
 
 	D3DSURFACE_DESC SrcDesc = {}, DestDesc = {};
 
@@ -2040,16 +2047,17 @@ HRESULT m_IDirect3DDevice9Ex::GetFrontBufferData(THIS_ UINT iSwapChain, IDirect3
 
 HRESULT m_IDirect3DDevice9Ex::FakeGetFrontBufferData(THIS_ UINT iSwapChain, IDirect3DSurface9* pDestSurface)
 {
-	if (pDestSurface)
-	{
-		pDestSurface = static_cast<m_IDirect3DSurface9 *>(pDestSurface)->GetProxyInterface();
-	}
-
 	// Get surface desc
 	D3DSURFACE_DESC Desc;
 	if (!pDestSurface || FAILED(pDestSurface->GetDesc(&Desc)))
 	{
 		return D3DERR_INVALIDCALL;
+	}
+
+	void* pVoid = nullptr;
+	if (SUCCEEDED(pDestSurface->QueryInterface(IID_GetInterfaceX, &pVoid)))
+	{
+		pDestSurface = static_cast<m_IDirect3DSurface9 *>(pDestSurface)->GetProxyInterface();
 	}
 
 	// Get location of client window
@@ -2095,7 +2103,7 @@ HRESULT m_IDirect3DDevice9Ex::FakeGetFrontBufferData(THIS_ UINT iSwapChain, IDir
 		IDirect3DSurface9 *pTmpSurface = nullptr;
 		if (SUCCEEDED(ProxyInterface->CreateOffscreenPlainSurface(Desc.Width, Desc.Height, Desc.Format, Desc.Pool, &pTmpSurface, nullptr)))
 		{
-			if (SUCCEEDED(StretchRect(pSrcSurface, &RectSrc, pTmpSurface, nullptr, D3DTEXF_NONE)))
+			if (SUCCEEDED(ProxyInterface->StretchRect(pSrcSurface, &RectSrc, pTmpSurface, nullptr, D3DTEXF_NONE)))
 			{
 				POINT PointDest = { 0, 0 };
 				RECT Rect = { 0, 0, (LONG)Desc.Width, (LONG)Desc.Height };
