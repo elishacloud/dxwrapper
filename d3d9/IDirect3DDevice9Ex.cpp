@@ -1951,7 +1951,7 @@ HRESULT m_IDirect3DDevice9Ex::FakeGetFrontBufferData(THIS_ UINT iSwapChain, IDir
 	// Get location of client window
 	RECT RectSrc = { 0, 0, SHARED.BufferWidth , SHARED.BufferHeight };
 	RECT rcClient = { 0, 0, SHARED.BufferWidth , SHARED.BufferHeight };
-	if (Config.EnableWindowMode && SHARED.DeviceWindow && (!GetWindowRect(SHARED.DeviceWindow, &RectSrc) || !GetClientRect(SHARED.DeviceWindow, &rcClient)))
+	if (Config.EnableWindowMode && IsWindow(SHARED.DeviceWindow) && (IsIconic(SHARED.DeviceWindow) || !GetWindowRect(SHARED.DeviceWindow, &RectSrc) || !GetClientRect(SHARED.DeviceWindow, &rcClient)))
 	{
 		return D3DERR_INVALIDCALL;
 	}
