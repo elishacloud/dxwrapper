@@ -4279,7 +4279,7 @@ HRESULT m_IDirectDrawX::CopyPrimarySurfaceToBackbuffer()
 			HWND hWnd = GetHwnd();
 
 			// Get windlow location and rect
-			if (!ExclusiveMode && IsWindow(hWnd))
+			if (!ExclusiveMode && IsWindow(hWnd) && !IsIconic(hWnd))
 			{
 				// Clip rect
 				RECT ClientRect = {};
