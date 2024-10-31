@@ -2738,7 +2738,8 @@ void m_IDirectDrawX::GetSurfaceDisplay(DWORD& Width, DWORD& Height, DWORD& BPP, 
 		{
 			if (Device.Width && Device.Height)
 			{
-				Utils::GetScreenSize(hWnd, (LONG&)Width, (LONG&)Height);
+				Width = Device.Width;
+				Height = Device.Height;
 			}
 			else
 			{
@@ -3402,7 +3403,8 @@ HRESULT m_IDirectDrawX::CreateVertexBuffer(DWORD Width, DWORD Height)
 	DWORD displayWidth = 0, displayHeight = 0;
 	if (Device.Width && Device.Height)
 	{
-		Utils::GetScreenSize(GetHwnd(), (LONG&)displayWidth, (LONG&)displayHeight);
+		displayWidth = Device.Width;
+		displayHeight = Device.Height;
 	}
 	else
 	{
