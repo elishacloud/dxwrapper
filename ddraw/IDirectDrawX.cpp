@@ -3040,7 +3040,7 @@ HRESULT m_IDirectDrawX::ResetD9Device()
 			// Reset D3D device settings
 			if (D3DDeviceInterface)
 			{
-				D3DDeviceInterface->ResetDevice();
+				D3DDeviceInterface->AfterResetDevice();
 			}
 		}
 	}
@@ -3314,7 +3314,7 @@ HRESULT m_IDirectDrawX::CreateD9Device(char* FunctionName)
 		// Reset D3D device settings
 		if (D3DDeviceInterface)
 		{
-			D3DDeviceInterface->ResetDevice();
+			D3DDeviceInterface->AfterResetDevice();
 		}
 
 		// Reset flags after creating device
@@ -3736,12 +3736,13 @@ inline void m_IDirectDrawX::ReleaseAllD9Resources(bool BackupData, bool ResetInt
 	}
 
 	// Release all state blocks from all ddraw devices
-	if (!ResetInterface)
+	for (m_IDirectDrawX*& pDDraw : DDrawVector)
 	{
-		for (m_IDirectDrawX*& pDDraw : DDrawVector)
+		m_IDirect3DDeviceX* Interface = pDDraw->D3DDeviceInterface;
+		if (Interface)
 		{
-			m_IDirect3DDeviceX* Interface = pDDraw->D3DDeviceInterface;
-			if (Interface)
+			Interface->BeforeResetDevice();
+			if (!ResetInterface)
 			{
 				Interface->ReleaseAllStateBlocks();
 			}

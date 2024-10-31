@@ -3174,7 +3174,19 @@ HRESULT m_IDirect3DDeviceX::BeginStateBlock()
 			return DDERR_INVALIDOBJECT;
 		}
 
-		return (*d3d9Device)->BeginStateBlock();
+		if (IsRecordingState)
+		{
+			return DDERR_GENERIC;
+		}
+
+		HRESULT hr = (*d3d9Device)->BeginStateBlock();
+
+		if (SUCCEEDED(hr))
+		{
+			IsRecordingState = true;
+		}
+
+		return hr;
 	}
 
 	return GetProxyInterfaceV7()->BeginStateBlock();
@@ -3190,6 +3202,12 @@ HRESULT m_IDirect3DDeviceX::EndStateBlock(LPDWORD lpdwBlockHandle)
 		{
 			return DDERR_INVALIDPARAMS;
 		}
+		*lpdwBlockHandle = NULL;
+
+		if (!IsRecordingState)
+		{
+			return DDERR_GENERIC;
+		}
 
 		// Check for device interface
 		if (FAILED(CheckInterface(__FUNCTION__, true)))
@@ -3201,6 +3219,7 @@ HRESULT m_IDirect3DDeviceX::EndStateBlock(LPDWORD lpdwBlockHandle)
 
 		if (SUCCEEDED(hr))
 		{
+			IsRecordingState = false;
 			StateBlockTokens.insert(*lpdwBlockHandle);
 		}
 
@@ -3858,6 +3877,11 @@ HRESULT m_IDirect3DDeviceX::ApplyStateBlock(DWORD dwBlockHandle)
 			return DDERR_INVALIDPARAMS;
 		}
 
+		if (IsRecordingState)
+		{
+			return DDERR_GENERIC;
+		}
+
 		return reinterpret_cast<IDirect3DStateBlock9*>(dwBlockHandle)->Apply();
 	}
 
@@ -3875,6 +3899,11 @@ HRESULT m_IDirect3DDeviceX::CaptureStateBlock(DWORD dwBlockHandle)
 			return DDERR_INVALIDPARAMS;
 		}
 
+		if (IsRecordingState)
+		{
+			return DDERR_GENERIC;
+		}
+
 		return reinterpret_cast<IDirect3DStateBlock9*>(dwBlockHandle)->Capture();
 	}
 
@@ -3890,6 +3919,11 @@ HRESULT m_IDirect3DDeviceX::DeleteStateBlock(DWORD dwBlockHandle)
 		if (!dwBlockHandle || StateBlockTokens.find(dwBlockHandle) == StateBlockTokens.end())
 		{
 			return DDERR_INVALIDPARAMS;
+		}
+
+		if (IsRecordingState)
+		{
+			return DDERR_GENERIC;
 		}
 
 		reinterpret_cast<IDirect3DStateBlock9*>(dwBlockHandle)->Release();
@@ -3911,6 +3945,12 @@ HRESULT m_IDirect3DDeviceX::CreateStateBlock(D3DSTATEBLOCKTYPE d3dsbtype, LPDWOR
 		if (!lpdwBlockHandle)
 		{
 			return DDERR_INVALIDPARAMS;
+		}
+		*lpdwBlockHandle = NULL;
+
+		if (IsRecordingState)
+		{
+			return DDERR_GENERIC;
 		}
 
 		// Check for device interface
@@ -4150,7 +4190,7 @@ HRESULT m_IDirect3DDeviceX::GetInfo(DWORD dwDevInfoID, LPVOID pDevInfoStruct, DW
 	{
 		if (!pDevInfoStruct || dwSize == 0)
 		{
-			return D3DERR_INVALIDCALL;
+			return DDERR_GENERIC;
 		}
 
 #ifdef _DEBUG
@@ -4175,7 +4215,7 @@ HRESULT m_IDirect3DDeviceX::GetInfo(DWORD dwDevInfoID, LPVOID pDevInfoStruct, DW
 				pTexManagerInfo->dwLastPri = 0;
 				break;
 			}
-			return D3DERR_INVALIDCALL;
+			return DDERR_GENERIC;
 
 		case D3DDEVINFOID_TEXTURING:
 			if (dwSize == sizeof(D3DDEVINFO_TEXTURING))
@@ -4194,11 +4234,11 @@ HRESULT m_IDirect3DDeviceX::GetInfo(DWORD dwDevInfoID, LPVOID pDevInfoStruct, DW
 				pTexturingInfo->dwNumGetDCs = 0;
 				break;
 			}
-			return D3DERR_INVALIDCALL;
+			return DDERR_GENERIC;
 
 		default:
 			Logging::LogDebug() << __FUNCTION__ << " Error: Unknown DevInfoID: " << dwDevInfoID;
-			return D3DERR_INVALIDCALL;
+			return DDERR_GENERIC;
 		}
 #endif
 
@@ -4401,7 +4441,19 @@ HRESULT m_IDirect3DDeviceX::RestoreStates()
 	return D3D_OK;
 }
 
-void m_IDirect3DDeviceX::ResetDevice()
+void m_IDirect3DDeviceX::BeforeResetDevice()
+{
+	if (IsRecordingState)
+	{
+		DWORD dwBlockHandle = NULL;
+		if (SUCCEEDED(EndStateBlock(&dwBlockHandle)))
+		{
+			DeleteStateBlock(dwBlockHandle);
+		}
+	}
+}
+
+void m_IDirect3DDeviceX::AfterResetDevice()
 {
 	bSetDefaults = true;
 }
@@ -4434,6 +4486,9 @@ void m_IDirect3DDeviceX::SetDefaults()
 
 	// Reset in scene flag
 	IsInScene = false;
+
+	// Reset state block
+	IsRecordingState = false;
 
 	// Clip status
 	D3DClipStatus = {};

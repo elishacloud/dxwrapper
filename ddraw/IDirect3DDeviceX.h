@@ -83,6 +83,7 @@ private:
 	DWORD ssMipFilter[MaxTextureStages] = {};
 
 	// Handle state blocks
+	bool IsRecordingState = false;
 	std::unordered_set<DWORD> StateBlockTokens;
 
 	// Default settings
@@ -340,6 +341,7 @@ public:
 		}
 	}
 	void ClearDdraw();
-	void ResetDevice();
+	void BeforeResetDevice();
+	void AfterResetDevice();
 	void ReleaseAllStateBlocks();
 };
