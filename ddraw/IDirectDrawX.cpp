@@ -2738,8 +2738,7 @@ void m_IDirectDrawX::GetSurfaceDisplay(DWORD& Width, DWORD& Height, DWORD& BPP, 
 		{
 			if (Device.Width && Device.Height)
 			{
-				Width = Device.Width;
-				Height = Device.Height;
+				Utils::GetScreenSize(hWnd, (LONG&)Width, (LONG&)Height);
 			}
 			else
 			{
@@ -3329,26 +3328,31 @@ HRESULT m_IDirectDrawX::CreateD9Device(char* FunctionName)
 			RECT NewRect = { 0, 0, (LONG)presParams.BackBufferWidth, (LONG)presParams.BackBufferHeight };
 			GetWindowRect(hWnd, &NewRect);
 
-			// Window position variables
-			HWND WindowInsert = GetWindowLong(hWnd, GWL_EXSTYLE) & WS_EX_TOPMOST ? HWND_TOPMOST : HWND_TOP;
-			static WINDOWPOS winpos = {};
-			winpos = { hWnd, WindowInsert, NewRect.left, NewRect.top, NewRect.right - NewRect.left, NewRect.bottom - NewRect.top, WM_NULL };
-			static NCCALCSIZE_PARAMS NCCalc = {};
-			NCCalc.lppos = &winpos;
-			NCCalc.rgrc[0] = NewRect;
-			NCCalc.rgrc[1] = LastWindowLocation;
-			NCCalc.rgrc[2] = LastWindowLocation;
+			// Check for window position change
+			if (LastWindowLocation.left != NewRect.left || LastWindowLocation.top != NewRect.top ||
+				LastWindowLocation.right != NewRect.right || LastWindowLocation.bottom != NewRect.bottom)
+			{
+				// Window position variables
+				HWND WindowInsert = GetWindowLong(hWnd, GWL_EXSTYLE) & WS_EX_TOPMOST ? HWND_TOPMOST : HWND_TOP;
+				static WINDOWPOS winpos = {};
+				winpos = { hWnd, WindowInsert, NewRect.left, NewRect.top, NewRect.right - NewRect.left, NewRect.bottom - NewRect.top, WM_NULL };
+				static NCCALCSIZE_PARAMS NCCalc = {};
+				NCCalc.lppos = &winpos;
+				NCCalc.rgrc[0] = NewRect;
+				NCCalc.rgrc[1] = LastWindowLocation;
+				NCCalc.rgrc[2] = LastWindowLocation;
 
-			// Windows position
-			PostMessage(hWnd, WM_WINDOWPOSCHANGING, 0, (LPARAM)&winpos);
-			PostMessage(hWnd, WM_NCCALCSIZE, TRUE, (LPARAM)&NCCalc);
-			PostMessage(hWnd, WM_NCPAINT, TRUE, NULL);
-			PostMessage(hWnd, WM_ERASEBKGND, TRUE, NULL);
-			PostMessage(hWnd, WM_WINDOWPOSCHANGED, 0, (LPARAM)&winpos);
+				// Windows position
+				PostMessage(hWnd, WM_WINDOWPOSCHANGING, 0, (LPARAM)&winpos);
+				PostMessage(hWnd, WM_NCCALCSIZE, TRUE, (LPARAM)&NCCalc);
+				PostMessage(hWnd, WM_NCPAINT, TRUE, NULL);
+				PostMessage(hWnd, WM_ERASEBKGND, TRUE, NULL);
+				PostMessage(hWnd, WM_WINDOWPOSCHANGED, 0, (LPARAM)&winpos);
 
-			// Window move and size
-			PostMessage(hWnd, WM_MOVE, 0, MAKELPARAM(NewRect.left, NewRect.top));
-			PostMessage(hWnd, WM_SIZE, SIZE_RESTORED, MAKELPARAM(NewRect.right - NewRect.left, NewRect.bottom - NewRect.top));
+				// Window move and size
+				PostMessage(hWnd, WM_MOVE, 0, MAKELPARAM(NewRect.left, NewRect.top));
+				PostMessage(hWnd, WM_SIZE, ExclusiveMode ? SIZE_MAXIMIZED : SIZE_RESTORED, MAKELPARAM(NewRect.right - NewRect.left, NewRect.bottom - NewRect.top));
+			}
 
 			// Window focus and activate app
 			PostMessage(hWnd, WM_IME_SETCONTEXT, TRUE, ISC_SHOWUIALL);
