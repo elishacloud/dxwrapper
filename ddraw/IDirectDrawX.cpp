@@ -4763,7 +4763,7 @@ HRESULT m_IDirectDrawX::Present(RECT* pSourceRect, RECT* pDestRect)
 	// Redraw window if it has moved from its last location
 	HWND hWnd = GetHwnd();
 	RECT ClientRect = {};
-	if ((presParams.Windowed || Config.EnableWindowMode) && !IsIconic(hWnd) && GetWindowRect(hWnd, &ClientRect) && LastWindowLocation.right > 0 && LastWindowLocation.bottom > 0)
+	if (presParams.Windowed && !ExclusiveMode && !IsIconic(hWnd) && GetWindowRect(hWnd, &ClientRect) && LastWindowLocation.right > 0 && LastWindowLocation.bottom > 0)
 	{
 		if (ClientRect.left != LastWindowLocation.left || ClientRect.top != LastWindowLocation.top ||
 			ClientRect.right != LastWindowLocation.right || ClientRect.bottom != LastWindowLocation.bottom)
