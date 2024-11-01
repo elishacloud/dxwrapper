@@ -3341,6 +3341,19 @@ HRESULT m_IDirectDrawX::CreateD9Device(char* FunctionName)
 				NCCalc.rgrc[0] = NewRect;
 				NCCalc.rgrc[1] = LastWindowLocation;
 				NCCalc.rgrc[2] = LastWindowLocation;
+				WINDOWPLACEMENT wp = {};
+				wp.length = sizeof(WINDOWPLACEMENT);
+				GetWindowPlacement(hWnd, &wp);
+				UINT SizeFlag = SIZE_RESTORED;
+				switch (wp.showCmd)
+				{
+				case SW_SHOWMAXIMIZED:
+					SizeFlag = SIZE_MAXIMIZED;
+					break;
+				case SW_SHOWMINIMIZED:
+					SizeFlag = SIZE_MINIMIZED;
+					break;
+				}
 
 				// Windows position
 				PostMessage(hWnd, WM_WINDOWPOSCHANGING, 0, (LPARAM)&winpos);
@@ -3351,7 +3364,7 @@ HRESULT m_IDirectDrawX::CreateD9Device(char* FunctionName)
 
 				// Window move and size
 				PostMessage(hWnd, WM_MOVE, 0, MAKELPARAM(NewRect.left, NewRect.top));
-				PostMessage(hWnd, WM_SIZE, ExclusiveMode ? SIZE_MAXIMIZED : SIZE_RESTORED, MAKELPARAM(NewRect.right - NewRect.left, NewRect.bottom - NewRect.top));
+				PostMessage(hWnd, WM_SIZE, SizeFlag, MAKELPARAM(NewRect.right - NewRect.left, NewRect.bottom - NewRect.top));
 			}
 
 			// Window focus and activate app
