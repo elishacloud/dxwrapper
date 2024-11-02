@@ -101,7 +101,7 @@ void Utils::HookExceptionHandler(void)
 	void* tmp;
 
 	Logging::Log() << "Set exception handler";
-	HMODULE dll = LoadLibrary("kernel32.dll");
+	HMODULE dll = GetModuleHandleA("kernel32.dll");
 	if (!dll)
 	{
 		Logging::Log() << "Failed to load kernel32.dll!";

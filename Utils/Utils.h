@@ -29,6 +29,7 @@ namespace Utils
 	LPVOID WINAPI kernel_VirtualAlloc(LPVOID lpAddress, SIZE_T dwSize, DWORD flAllocationType, DWORD flProtect);
 	void HookExceptionHandler();
 	void UnHookExceptionHandler();
+	LONG WINAPI Vectored_Exception_Handler(EXCEPTION_POINTERS* exception);
 	void AddHandleToVector(HMODULE dll, const char *name);
 	HMODULE LoadLibrary(const char *dllname, bool EnableLogging = false);
 	void LoadCustomDll();

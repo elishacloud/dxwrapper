@@ -66,18 +66,20 @@ void InitDDraw()
 	{
 		Logging::Log() << "Installing GDI & User32 hooks";
 		using namespace GdiWrapper;
-		GetDeviceCaps_out = (FARPROC)Hook::HotPatch(Hook::GetProcAddress(LoadLibrary("gdi32.dll"), "GetDeviceCaps"), "GetDeviceCaps", gdi_GetDeviceCaps);
-		CreateWindowExA_out = (FARPROC)Hook::HotPatch(Hook::GetProcAddress(LoadLibrary("user32.dll"), "CreateWindowExA"), "CreateWindowExA", user_CreateWindowExA);
-		CreateWindowExW_out = (FARPROC)Hook::HotPatch(Hook::GetProcAddress(LoadLibrary("user32.dll"), "CreateWindowExW"), "CreateWindowExW", user_CreateWindowExW);
-		DestroyWindow_out = (FARPROC)Hook::HotPatch(Hook::GetProcAddress(LoadLibrary("user32.dll"), "DestroyWindow"), "DestroyWindow", user_DestroyWindow);
-		GetSystemMetrics_out = (FARPROC)Hook::HotPatch(Hook::GetProcAddress(LoadLibrary("user32.dll"), "GetSystemMetrics"), "GetSystemMetrics", user_GetSystemMetrics);
-		Utils::GetDiskFreeSpaceA_out = (FARPROC)Hook::HotPatch(Hook::GetProcAddress(LoadLibrary("kernel32.dll"), "GetDiskFreeSpaceA"), "GetDiskFreeSpaceA", Utils::kernel_GetDiskFreeSpaceA);
-		Utils::CreateThread_out = (FARPROC)Hook::HotPatch(Hook::GetProcAddress(LoadLibrary("kernel32.dll"), "CreateThread"), "CreateThread", Utils::kernel_CreateThread);
-		Utils::VirtualAlloc_out = (FARPROC)Hook::HotPatch(Hook::GetProcAddress(LoadLibrary("kernel32.dll"), "VirtualAlloc"), "VirtualAlloc", Utils::kernel_VirtualAlloc);
+		if (!GetModuleHandleA("gdi32.dll")) LoadLibrary("gdi32.dll");
+		if (!GetModuleHandleA("user32.dll")) LoadLibrary("user32.dll");
+		GetDeviceCaps_out = (FARPROC)Hook::HotPatch(Hook::GetProcAddress(GetModuleHandleA("gdi32.dll"), "GetDeviceCaps"), "GetDeviceCaps", gdi_GetDeviceCaps);
+		CreateWindowExA_out = (FARPROC)Hook::HotPatch(Hook::GetProcAddress(GetModuleHandleA("user32.dll"), "CreateWindowExA"), "CreateWindowExA", user_CreateWindowExA);
+		CreateWindowExW_out = (FARPROC)Hook::HotPatch(Hook::GetProcAddress(GetModuleHandleA("user32.dll"), "CreateWindowExW"), "CreateWindowExW", user_CreateWindowExW);
+		DestroyWindow_out = (FARPROC)Hook::HotPatch(Hook::GetProcAddress(GetModuleHandleA("user32.dll"), "DestroyWindow"), "DestroyWindow", user_DestroyWindow);
+		GetSystemMetrics_out = (FARPROC)Hook::HotPatch(Hook::GetProcAddress(GetModuleHandleA("user32.dll"), "GetSystemMetrics"), "GetSystemMetrics", user_GetSystemMetrics);
+		Utils::GetDiskFreeSpaceA_out = (FARPROC)Hook::HotPatch(Hook::GetProcAddress(GetModuleHandleA("kernel32.dll"), "GetDiskFreeSpaceA"), "GetDiskFreeSpaceA", Utils::kernel_GetDiskFreeSpaceA);
+		Utils::CreateThread_out = (FARPROC)Hook::HotPatch(Hook::GetProcAddress(GetModuleHandleA("kernel32.dll"), "CreateThread"), "CreateThread", Utils::kernel_CreateThread);
+		Utils::VirtualAlloc_out = (FARPROC)Hook::HotPatch(Hook::GetProcAddress(GetModuleHandleA("kernel32.dll"), "VirtualAlloc"), "VirtualAlloc", Utils::kernel_VirtualAlloc);
 		if (EnableWndProcHook)
 		{
-			SetWindowLongA_out = (FARPROC)Hook::HotPatch(Hook::GetProcAddress(LoadLibrary("user32.dll"), "SetWindowLongA"), "SetWindowLongA", user_SetWindowLongA);
-			SetWindowLongW_out = (FARPROC)Hook::HotPatch(Hook::GetProcAddress(LoadLibrary("user32.dll"), "SetWindowLongW"), "SetWindowLongW", user_SetWindowLongW);
+			SetWindowLongA_out = (FARPROC)Hook::HotPatch(Hook::GetProcAddress(GetModuleHandleA("user32.dll"), "SetWindowLongA"), "SetWindowLongA", user_SetWindowLongA);
+			SetWindowLongW_out = (FARPROC)Hook::HotPatch(Hook::GetProcAddress(GetModuleHandleA("user32.dll"), "SetWindowLongW"), "SetWindowLongW", user_SetWindowLongW);
 		}
 		RunOnce = false;
 	}

@@ -40,6 +40,7 @@
 #include "d3d8\d3d8External.h"
 #include "d3d9\d3d9External.h"
 #include "External\Hooking\Hook.h"
+#include "External\Hooking\Disasm.h"
 #include "Logging\Logging.h"
 
 #undef LoadLibrary
@@ -427,6 +428,27 @@ LPVOID WINAPI Utils::kernel_VirtualAlloc(LPVOID lpAddress, SIZE_T dwSize, DWORD 
 
 	// Call the original VirtualAlloc function
 	return VirtualAlloc(lpAddress, dwSize, flAllocationType, flProtect);
+}
+
+// Your existing exception handler function
+LONG WINAPI Utils::Vectored_Exception_Handler(EXCEPTION_POINTERS* exception)
+{
+	if (exception &&
+		exception->ContextRecord &&
+		exception->ExceptionRecord &&
+		exception->ExceptionRecord->ExceptionAddress &&
+		exception->ExceptionRecord->ExceptionCode == STATUS_PRIVILEGED_INSTRUCTION)
+	{
+		size_t size = Disasm::getInstructionLength(exception->ExceptionRecord->ExceptionAddress);
+
+		if (size)
+		{
+			exception->ContextRecord->Eip += size;
+			return EXCEPTION_CONTINUE_EXECUTION;
+		}
+	}
+
+	return EXCEPTION_CONTINUE_SEARCH;
 }
 
 // Add HMODULE to vector
@@ -1027,7 +1049,7 @@ BOOL WINAPI CreateProcessWHandler(LPCWSTR lpApplicationName, LPWSTR lpCommandLin
 
 DWORD Utils::GetThreadIDByHandle(HANDLE hThread)
 {
-	GetThreadIdProc pGetThreadId = (GetThreadIdProc)GetProcAddress(LoadLibrary("kernel32.dll"), "GetThreadId");
+	GetThreadIdProc pGetThreadId = (GetThreadIdProc)GetProcAddress(GetModuleHandleA("kernel32.dll"), "GetThreadId");
 
 	if (pGetThreadId)
 	{

@@ -38,6 +38,15 @@
 #include "dsound\dsoundExternal.h"
 #include "dxwrapper.h"
 
+#include <excpt.h>
+
+typedef PVOID(WINAPI* AddHandlerFunc)(ULONG, PVECTORED_EXCEPTION_HANDLER);
+typedef ULONG(WINAPI* RemoveHandlerFunc)(PVOID);
+
+static PVOID g_exception_handle = nullptr;
+static AddHandlerFunc add_handler = nullptr;
+static RemoveHandlerFunc remove_handler = nullptr;
+
 #define SHIM_WRAPPED_PROC(procName, unused) \
 	Wrapper::ShimProc(procName ## _var, procName ## _in, procName ## _out);
 
@@ -212,17 +221,17 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 		}
 
 		// Attach real dll
+		HMODULE kernel32 = GetModuleHandleA("Kernel32.dll");
 		if (Config.RealWrapperMode == dtype.dxwrapper)
 		{
 			// Hook GetModuleFileName to fix module name in modules loaded from memory
 			if (IsRunningFromMemory)
 			{
-				HMODULE dll = LoadLibrary("kernel32.dll");
-				if (dll)
+				if (kernel32)
 				{
 					Logging::Log() << "Hooking 'GetModuleFileName' API...";
-					InterlockedExchangePointer((PVOID*)&Utils::GetModuleFileNameA_out, Hook::HotPatch(Hook::GetProcAddress(dll, "GetModuleFileNameA"), "GetModuleFileNameA", Utils::GetModuleFileNameAHandler));
-					InterlockedExchangePointer((PVOID*)&Utils::GetModuleFileNameW_out, Hook::HotPatch(Hook::GetProcAddress(dll, "GetModuleFileNameW"), "GetModuleFileNameW", Utils::GetModuleFileNameWHandler));
+					InterlockedExchangePointer((PVOID*)&Utils::GetModuleFileNameA_out, Hook::HotPatch(Hook::GetProcAddress(kernel32, "GetModuleFileNameA"), "GetModuleFileNameA", Utils::GetModuleFileNameAHandler));
+					InterlockedExchangePointer((PVOID*)&Utils::GetModuleFileNameW_out, Hook::HotPatch(Hook::GetProcAddress(kernel32, "GetModuleFileNameW"), "GetModuleFileNameW", Utils::GetModuleFileNameWHandler));
 				}
 			}
 		}
@@ -239,12 +248,24 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 				Utils::AddHandleToVector(dll, Config.WrapperName.c_str());
 
 				// Hook GetProcAddress to handle wrapped functions that are missing or not available in the OS
-				dll = LoadLibrary("kernel32.dll");
-				if (dll)
+				if (kernel32)
 				{
 					Logging::Log() << "Hooking 'GetProcAddress' API...";
-					InterlockedExchangePointer((PVOID*)&Utils::GetProcAddress_out, Hook::HotPatch(Hook::GetProcAddress(dll, "GetProcAddress"), "GetProcAddress", Utils::GetProcAddressHandler));
+					InterlockedExchangePointer((PVOID*)&Utils::GetProcAddress_out, Hook::HotPatch(Hook::GetProcAddress(kernel32, "GetProcAddress"), "GetProcAddress", Utils::GetProcAddressHandler));
 				}
+			}
+		}
+
+		// Dynamically load AddVectoredExceptionHandler and RemoveVectoredExceptionHandler
+		if (kernel32)
+		{
+			add_handler = (AddHandlerFunc)GetProcAddress(kernel32, "AddVectoredExceptionHandler");
+			remove_handler = (RemoveHandlerFunc)GetProcAddress(kernel32, "RemoveVectoredExceptionHandler");
+
+			// Add the exception handler to the end of the chain if available
+			if (add_handler)
+			{
+				g_exception_handle = add_handler(0, Utils::Vectored_Exception_Handler);  // Set to 0 for end of chain
 			}
 		}
 
@@ -659,6 +680,13 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 		if (Config.HandleExceptions)
 		{
 			Utils::UnHookExceptionHandler();
+		}
+
+		// Remove the exception handler if it was added
+		if (remove_handler && g_exception_handle)
+		{
+			remove_handler(g_exception_handle);
+			g_exception_handle = nullptr;
 		}
 
 		// Reset screen back to original Windows settings to fix some display errors on exit
