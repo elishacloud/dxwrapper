@@ -595,6 +595,9 @@ copy /Y "$(ProjectDir)Settings\Settings.ini" "$(TargetDir)Build\dxwrapper.ini" &
     <ClCompile Include="DDrawCompat\v0.3.2\Win32\Registry.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">true</ExcludedFromBuild>
     </ClCompile>
+    <ClCompile Include="DDrawCompat\v0.3.2\Win32\Version.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
     <ClCompile Include="DDrawCompat\v0.3.2\Win32\WaitFunctions.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">true</ExcludedFromBuild>
     </ClCompile>
@@ -1222,6 +1225,9 @@ copy /Y "$(ProjectDir)Settings\Settings.ini" "$(TargetDir)Build\dxwrapper.ini" &
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">true</ExcludedFromBuild>
     </ClInclude>
     <ClInclude Include="DDrawCompat\v0.3.2\Win32\Registry.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">true</ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="DDrawCompat\v0.3.2\Win32\Version.h">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">true</ExcludedFromBuild>
     </ClInclude>
     <ClInclude Include="DDrawCompat\v0.3.2\Win32\WaitFunctions.h">

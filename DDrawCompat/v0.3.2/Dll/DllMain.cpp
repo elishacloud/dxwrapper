@@ -34,6 +34,7 @@
 #include <DDrawCompat/v0.3.2/Win32/DisplayMode.h>
 #include <DDrawCompat/v0.3.2/Win32/MemoryManagement.h>
 #include <DDrawCompat/v0.3.2/Win32/MsgHooks.h>
+#include <DDrawCompat/v0.3.2/Win32/Version.h>
 #include <DDrawCompat/v0.3.2/Win32/Registry.h>
 #include <DDrawCompat/v0.3.2/Win32/WaitFunctions.h>
 //********** Begin Edit *************
@@ -202,11 +203,21 @@ void Compat32::InstallDd7to9Hooks(HMODULE hModule)
 	{
 		RunOnce = false;
 		Dll::g_currentModule = hModule;
+		auto systemPath(Compat32::getSystemPath());
+		Dll::g_origDDrawModule = LoadLibraryW((systemPath / "ddraw.dll").c_str());
+		auto currentDllPath(Compat32::getModulePath(hModule));
+		Dll::g_localDDModule = LoadLibraryW((currentDllPath.parent_path() / "ddraw.dll").c_str());
+		if (!Dll::g_localDDModule)
+		{
+			Dll::g_localDDModule = Dll::g_origDDrawModule;
+		}
 		Time::init();
 		Compat32::Log() << "Installing memory management hooks";
 		Win32::MemoryManagement::installHooks();
 		Compat32::Log() << "Installing messaging hooks";
 		Win32::MsgHooks::installHooks();
+		Compat32::Log() << "Installing version hooks";
+		Win32::Version::installHooks();
 		Compat32::Log() << "Installing display mode hooks";
 		Win32::DisplayMode::installHooks();
 		if (Config.DDrawCompat)
@@ -271,6 +282,11 @@ BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpvReserved)
 			return FALSE;
 		}
 
+		Dll::g_localDDModule = LoadLibraryW((currentDllPath.parent_path() / "ddraw.dll").c_str());
+		if (!Dll::g_localDDModule)
+		{
+			Dll::g_localDDModule = Dll::g_origDDrawModule;
+		}
 		Dll::g_origDDrawModule = LoadLibraryW((systemPath / "ddraw.dll").c_str());
 		if (!Dll::g_origDDrawModule)
 		{
@@ -315,6 +331,7 @@ BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpvReserved)
 		{
 			Win32::MemoryManagement::installHooks();
 			Win32::MsgHooks::installHooks();
+			Win32::Version::installHooks();
 			Time::init();
 		}
 

@@ -23,6 +23,7 @@
 #include "External\Hooking\Hook.h"
 #ifdef DDRAWCOMPAT
 #include "DDrawCompat\DDrawCompatExternal.h"
+#include "DDrawCompat\v0.3.2\Win32\Version.h"
 #endif // DDRAWCOMPAT
 #include "Utils\Utils.h"
 #include "Logging\Logging.h"
@@ -560,6 +561,7 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 		{
 			DDrawCompat::InstallDd7to9Hooks(hModule);
 		}
+		Win32::Version::installWinLieHooks();
 #endif // DDRAWCOMPAT
 
 		// Start Dd7to9

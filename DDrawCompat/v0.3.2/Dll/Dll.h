@@ -81,6 +81,7 @@ namespace Dll
 	void pinModule(LPCWSTR moduleName);
 
 	extern HMODULE g_currentModule;
+	extern HMODULE g_localDDModule;
 	extern HMODULE g_origDDrawModule;
 	extern HMODULE g_origDciman32Module;
 	extern Procs g_origProcs;

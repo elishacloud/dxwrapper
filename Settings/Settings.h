@@ -127,6 +127,8 @@
 	visit(WaitForWindowChanges) \
 	visit(WindowSleepTime) \
 	visit(WindowModeBorder) \
+	visit(WinVersionLie) \
+	visit(WinVersionLieSP) \
 	visit(WrapperMode)
 
 #define VISIT_APPCOMPATDATA_SETTINGS(visit) \
@@ -297,6 +299,8 @@ struct CONFIG
 	DWORD AntiAliasing = 0;						// Enable AntiAliasing for d3d9 CreateDevice
 	DWORD RealWrapperMode = 0;					// Internal wrapper mode
 	MEMORYINFO VerifyMemoryInfo;				// Memory used for verification before hot patching
+	std::string WinVersionLie = "";				// Using DDrawCompat WinVersionLie to tell the OS a different OS
+	DWORD WinVersionLieSP = 0;					// Using DDrawCompat WinVersionLie to tell the OS a different OS
 	std::vector<MEMORYINFO> MemoryInfo;			// Addresses and memory used in hot patching
 	std::string RealDllPath;					// Manually set Dll to wrap
 	std::string RunProcess;						// Process to run on load

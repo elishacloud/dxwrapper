@@ -8,6 +8,7 @@
 namespace Dll
 {
 	HMODULE g_currentModule = nullptr;
+	HMODULE g_localDDModule = nullptr;
 	HMODULE g_origDDrawModule = nullptr;
 	HMODULE g_origDciman32Module = nullptr;
 	Procs g_origProcs = {};

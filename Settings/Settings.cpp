@@ -744,6 +744,9 @@ void CONFIG::SetConfig()
 		FixHighFrequencyMouse = true;
 	}
 
+	// Windows Lie
+	WinVersionLieSP = (WinVersionLieSP > 0 && WinVersionLieSP <= 5) ? WinVersionLieSP : 0;
+
 	// Set unset options
 	DdrawResolutionHack = (DdrawResolutionHack != 0);
 	CacheClipPlane = (CacheClipPlane != 0);

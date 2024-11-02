@@ -883,6 +883,9 @@
     <ClCompile Include="d3d9\AddressLookupTable.cpp">
       <Filter>d3d9</Filter>
     </ClCompile>
+    <ClCompile Include="DDrawCompat\v0.3.2\Win32\Version.cpp">
+      <Filter>DDrawCompat\v0.3.2</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="Settings\AllSettings.ini">
@@ -1867,6 +1870,9 @@
     </ClInclude>
     <ClInclude Include="GDI\WndProc.h">
       <Filter>GDI</Filter>
+    </ClInclude>
+    <ClInclude Include="DDrawCompat\v0.3.2\Win32\Version.h">
+      <Filter>DDrawCompat\v0.3.2</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
