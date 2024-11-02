@@ -3372,7 +3372,9 @@ HRESULT m_IDirectDrawX::CreateD9Device(char* FunctionName)
 			PostMessage(hWnd, WM_SETFOCUS, NULL, NULL);
 			PostMessage(hWnd, WM_SYNCPAINT, (WPARAM)32, NULL);
 			PostMessage(hWnd, WM_ACTIVATEAPP, TRUE, (LPARAM)GetWindowThreadProcessId(hWnd, nullptr));
+#ifdef WM_DWMNCRENDERINGCHANGED
 			PostMessage(hWnd, WM_DWMNCRENDERINGCHANGED, FALSE, NULL);
+#endif
 		}
 
 		// Store display frequency
