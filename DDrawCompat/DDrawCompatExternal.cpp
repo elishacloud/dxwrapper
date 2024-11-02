@@ -4,7 +4,7 @@
 // DDrawCompat versions
 #include "v0.2.0b\DllMain.h"
 #include "v0.2.1\DllMain.h"
-#include "v0.3.1\Dll\DllMain.h"
+#include "v0.3.2\Dll\DllMain.h"
 
 #define DDrawCompatDefault Compat32
 #define DDrawCompatForDd7to9 Compat32

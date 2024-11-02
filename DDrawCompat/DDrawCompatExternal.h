@@ -3,7 +3,7 @@
 #include "Settings\Settings.h"
 #include "Wrappers\Wrapper.h"
 #ifdef DDRAWCOMPAT
-#include"v0.3.1/Win32/DisplayMode.h"
+#include"v0.3.2/Win32/DisplayMode.h"
 #endif
 
 namespace DDrawCompat

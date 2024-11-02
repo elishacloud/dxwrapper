@@ -207,9 +207,7 @@ struct CONFIG
 	bool DDrawCompat = false;					// Enables the default DDrawCompat functions https://github.com/narzoul/DDrawCompat/
 	bool DDrawCompat20 = false;					// Enables DDrawCompat v0.2.0b
 	bool DDrawCompat21 = false;					// Enables DDrawCompat v0.2.1
-	bool DDrawCompatExperimental = false;		// Legacy setting replaced by DDrawCompat32
-	bool DDrawCompat30 = false;					// Legacy setting replaced by DDrawCompat32
-	bool DDrawCompat32 = false;					// Enables DDrawCompat v0.3.1
+	bool DDrawCompat32 = false;					// Enables DDrawCompat v0.3.2
 	bool DDrawCompatDisableGDIHook = false;		// Disables DDrawCompat GDI hooks
 	bool DDrawCompatNoProcAffinity = false;		// Disables DDrawCompat single processor affinity
 	bool DdrawAutoFrameSkip = false;			// Automatically skips frames to reduce input lag
