@@ -7,7 +7,7 @@
 #undef DDrawCompatDefault
 #define DDrawCompatDefault Compat32
 
-#define DDRAWCOMPAT_31
+#define DDRAWCOMPAT_32
 
 #define VISIT_PUBLIC_DDRAW_PROCS(visit) \
 	visit(DirectDrawCreate) \

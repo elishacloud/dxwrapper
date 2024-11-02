@@ -44,7 +44,7 @@ namespace Dll
 }
 
 #define CREATE_PROC_STUB(procName) \
-	extern "C" __declspec(dllexport, naked) void DC31_ ## procName() \
+	extern "C" __declspec(dllexport, naked) void DC32_ ## procName() \
 	{ \
 		__asm jmp Dll::g_jmpTargetProcs.procName \
 	}

@@ -1,6 +1,6 @@
 #pragma once
 
-namespace Config30
+namespace Config32
 {
 	const unsigned delayedFlipModeTimeout = 200;
 	const unsigned evictionTimeout = 200;

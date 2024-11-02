@@ -36,8 +36,8 @@ namespace DDrawCompat
 
 	void Prepare()
 	{
-		// DDrawCompat v0.3.1
-#ifdef DDRAWCOMPAT_31
+		// DDrawCompat v0.3.2
+#ifdef DDRAWCOMPAT_32
 		PREPARE_DDRAWCOMPAT(Compat32);
 #endif
 
@@ -65,8 +65,8 @@ namespace DDrawCompat
 			return (DDrawCompatForDd7to9::DllMain_DDrawCompat(hinstDLL, fdwReason, nullptr) == TRUE);
 		}
 
-		// DDrawCompat v0.3.1
-#ifdef DDRAWCOMPAT_31
+		// DDrawCompat v0.3.2
+#ifdef DDRAWCOMPAT_32
 		START_DDRAWCOMPAT(Compat32);
 #endif
 
@@ -98,9 +98,9 @@ namespace DDrawCompat
 	}
 
 	// Used for hooking with dd7to9
-	void InstallDd7to9Hooks()
+	void InstallDd7to9Hooks(HMODULE hModule)
 	{
 		// Dd7to9 DDrawCompat version
-		return DDrawCompatForDd7to9::InstallDd7to9Hooks();
+		return DDrawCompatForDd7to9::InstallDd7to9Hooks(hModule);
 	}
 }

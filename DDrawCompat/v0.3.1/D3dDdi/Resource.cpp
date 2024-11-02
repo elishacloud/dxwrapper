@@ -446,7 +446,7 @@ namespace D3dDdi
 		{
 			m_lockResource.reset(data.hResource);
 			m_lockData.resize(surfaceInfo.size());
-			auto qpcLastForcedLock = Time::queryPerformanceCounter() - Time::msToQpc(Config30::evictionTimeout);
+			auto qpcLastForcedLock = Time::queryPerformanceCounter() - Time::msToQpc(Config32::evictionTimeout);
 			for (std::size_t i = 0; i < surfaceInfo.size(); ++i)
 			{
 				m_lockData[i].data = const_cast<void*>(surfaceInfo[i].pSysMem);
@@ -671,7 +671,7 @@ namespace D3dDdi
 				else
 				{
 					isSysMemBltPreferred = dstLockData.isSysMemUpToDate &&
-						Time::qpcToMs(now - dstLockData.qpcLastForcedLock) <= Config30::evictionTimeout;
+						Time::qpcToMs(now - dstLockData.qpcLastForcedLock) <= Config32::evictionTimeout;
 				}
 			}
 

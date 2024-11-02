@@ -144,7 +144,7 @@ namespace
 		g_surfaceDesc = desc;
 		g_isFullScreen = isFlippable;
 		g_isUpdatePending = false;
-		g_qpcLastUpdate = Time::queryPerformanceCounter() - Time::msToQpc(Config30::delayedFlipModeTimeout);
+		g_qpcLastUpdate = Time::queryPerformanceCounter() - Time::msToQpc(Config32::delayedFlipModeTimeout);
 
 		if (isFlippable)
 		{
@@ -209,7 +209,7 @@ namespace
 		if (!g_waitingForPrimaryUnlock)
 		{
 			const auto msSinceLastUpdate = Time::qpcToMs(Time::queryPerformanceCounter() - g_qpcLastUpdate);
-			updateNow(primary, msSinceLastUpdate > Config30::delayedFlipModeTimeout ? 0 : 1);
+			updateNow(primary, msSinceLastUpdate > Config32::delayedFlipModeTimeout ? 0 : 1);
 		}
 	}
 
@@ -301,7 +301,7 @@ namespace DDraw
 		}
 
 		const auto msSinceLastUpdate = Time::qpcToMs(Time::queryPerformanceCounter() - g_qpcLastUpdate);
-		const bool isFlipDelayed = msSinceLastUpdate >= 0 && msSinceLastUpdate <= Config30::delayedFlipModeTimeout;
+		const bool isFlipDelayed = msSinceLastUpdate >= 0 && msSinceLastUpdate <= Config32::delayedFlipModeTimeout;
 		if (isFlipDelayed)
 		{
 			if (!isPresentPending())

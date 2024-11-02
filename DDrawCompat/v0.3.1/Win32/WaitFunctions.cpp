@@ -15,7 +15,7 @@ namespace
 	{
 		thread_local ULONG64 ctLastThreadSwitch = Time::queryThreadCycleTime();
 		ULONG64 ctNow = Time::queryThreadCycleTime();
-		if (ctNow - ctLastThreadSwitch >= Config30::threadSwitchCycleTime)
+		if (ctNow - ctLastThreadSwitch >= Config32::threadSwitchCycleTime)
 		{
 			Sleep(0);
 			ctLastThreadSwitch = ctNow;

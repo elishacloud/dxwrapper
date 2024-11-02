@@ -558,7 +558,7 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 		// Extra compatibility hooks from DDrawCompat
 		if (!DDrawCompatEnabed && (Config.Dd7to9 || Config.D3d8to9))
 		{
-			DDrawCompat::InstallDd7to9Hooks();
+			DDrawCompat::InstallDd7to9Hooks(hModule);
 		}
 #endif // DDRAWCOMPAT
 

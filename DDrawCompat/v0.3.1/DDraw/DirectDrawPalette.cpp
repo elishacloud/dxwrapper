@@ -52,7 +52,7 @@ namespace DDraw
 				updatesInLastMs.pop_front();
 			}
 
-			if (updatesInLastMs.size() >= Config30::maxPaletteUpdatesPerMs)
+			if (updatesInLastMs.size() >= Config32::maxPaletteUpdatesPerMs)
 			{
 				Sleep(1);
 				updatesInLastMs.clear();
