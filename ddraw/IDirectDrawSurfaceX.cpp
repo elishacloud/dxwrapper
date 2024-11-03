@@ -6368,6 +6368,7 @@ void SimpleColorKeyCopy(T ColorKey, BYTE* SrcBuffer, BYTE* DestBuffer, INT SrcPi
 {
 	T* SrcBufferLoop = reinterpret_cast<T*>(SrcBuffer);
 	T* DestBufferLoop = reinterpret_cast<T*>(DestBuffer);
+
 	for (LONG y = 0; y < DestRectHeight; y++)
 	{
 		for (LONG x = 0; x < DestRectWidth; x++)
@@ -6393,13 +6394,11 @@ void ComplexCopy(T ColorKey, D3DLOCKED_RECT SrcLockRect, D3DLOCKED_RECT DestLock
 	T* SrcBufferLoop = reinterpret_cast<T*>(SrcLockRect.pBits);
 	T* DestBufferLoop = reinterpret_cast<T*>(DestLockRect.pBits);
 
-	DWORD sx;
-
 	for (LONG y = 0; y < DestRectHeight; y++)
 	{
 		for (LONG x = 0; x < DestRectWidth; x++)
 		{
-			sx = (DWORD)((float)x * WidthRatio + 0.5f);
+			DWORD sx = (DWORD)((float)x * WidthRatio);
 			T PixelColor = SrcBufferLoop[IsMirrorLeftRight ? SrcRectWidth - sx - 1 : sx];
 
 			if (!IsColorKey || PixelColor != ColorKey)
@@ -6407,7 +6406,7 @@ void ComplexCopy(T ColorKey, D3DLOCKED_RECT SrcLockRect, D3DLOCKED_RECT DestLock
 				DestBufferLoop[x] = PixelColor;
 			}
 		}
-		sx = min((DWORD)((float)(y + 1) * HeightRatio + 0.5f), (DWORD)SrcRectHeight - 1);
+		DWORD sx = (DWORD)((float)(y + 1) * HeightRatio);
 		SrcBufferLoop = reinterpret_cast<T*>((BYTE*)SrcLockRect.pBits + SrcLockRect.Pitch * (IsMirrorUpDown ? SrcRectHeight - sx - 1 : sx));
 		DestBufferLoop = reinterpret_cast<T*>((BYTE*)DestBufferLoop + DestLockRect.Pitch);
 	}
