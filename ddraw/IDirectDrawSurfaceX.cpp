@@ -4688,7 +4688,8 @@ HRESULT m_IDirectDrawSurfaceX::CreateD9Surface()
 		}
 		else if (!LostDeviceBackup.empty())
 		{
-			if (LostDeviceBackup[0].Format == Format && LostDeviceBackup[0].Width == surface.Width && LostDeviceBackup[0].Height == surface.Height)
+			if ((LostDeviceBackup[0].Format == Format || GetFailoverFormat(LostDeviceBackup[0].Format) == Format || LostDeviceBackup[0].Format == GetFailoverFormat(Format)) &&
+				LostDeviceBackup[0].Width == surface.Width && LostDeviceBackup[0].Height == surface.Height)
 			{
 				for (UINT Level = 0; Level < LostDeviceBackup.size(); Level++)
 				{
