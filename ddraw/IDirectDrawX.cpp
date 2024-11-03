@@ -1731,6 +1731,12 @@ HRESULT m_IDirectDrawX::SetCooperativeLevel(HWND hWnd, DWORD dwFlags, DWORD Dire
 			// Don't change flags or device if just marking as non-exclusive
 			if (!MarkingUnexclusive)
 			{
+				// Wait for some windows
+				if (ExclusiveMode && LasthWnd != DisplayMode.hWnd)
+				{
+					Utils::CheckMessageQueue(hWnd);
+				}
+
 				// Set device flags
 				Device.AllowModeX = ((dwFlags & DDSCL_ALLOWMODEX) != 0);
 				Device.MultiThreaded = ((dwFlags & DDSCL_MULTITHREADED) != 0);
