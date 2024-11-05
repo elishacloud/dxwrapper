@@ -15,6 +15,8 @@ namespace Compat21
 
 		static void setCompatVtable(Vtable<TDirectDraw>& vtable);
 
+		static HRESULT STDMETHODCALLTYPE Initialize(TDirectDraw* This, GUID* unnamedParam1);
+
 		static HRESULT STDMETHODCALLTYPE CreateSurface(
 			TDirectDraw* This,
 			TSurfaceDesc* lpDDSurfaceDesc,

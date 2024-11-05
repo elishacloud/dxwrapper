@@ -156,7 +156,23 @@ namespace Compat21
 		}
 	}
 
-	//********** Begin Edit *************
+//********** Begin Edit *************
+#define INITIALIZE_ALL_WRAPPED_PROC(procName) \
+	FARPROC Compat21::procName ## _proc = nullptr;
+
+	VISIT_ALL_DDRAW_PROCS(INITIALIZE_ALL_WRAPPED_PROC);
+
+#define SET_ALL_WRAPPED_PROC(procName) \
+	procName ## _proc = ddraw::procName ## _var;
+
+	void Compat21::Prepair_DDrawCompat()
+	{
+		VISIT_ALL_DDRAW_PROCS(SET_ALL_WRAPPED_PROC);
+		DirectDrawCreate_proc = (FARPROC)DC21_DirectDrawCreate;
+		DirectDrawCreateEx_proc = (FARPROC)DC21_DirectDrawCreateEx;
+		DllGetClassObject_proc = (FARPROC)DC21_DllGetClassObject;
+	}
+
 #define	LOAD_ORIGINAL_DDRAW_PROC(procName) \
 	Compat::origProcs.procName = DDrawCompat::procName ## _out;
 //********** End Edit ***************

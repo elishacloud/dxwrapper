@@ -306,7 +306,7 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 		}
 
 		// Hook CoCreateInstance
-		if (Config.EnableDdrawWrapper || Config.Dd7to9 || Config.EnableDinput8Wrapper || Config.Dinputto8)
+		if (Config.EnableDdrawWrapper || Config.DDrawCompat || Config.Dd7to9 || Config.EnableDinput8Wrapper || Config.Dinputto8)
 		{
 			InterlockedExchangePointer((PVOID*)&CoCreateInstance_out, Hook::HotPatch(GetProcAddress(LoadLibraryA("ole32.dll"), "CoCreateInstance"), "CoCreateInstance", *CoCreateInstanceHandle));
 		}
@@ -454,37 +454,32 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 				HMODULE d3d9_dll = LoadLibrary("d3d9.dll");
 				DdrawWrapper::Direct3DCreate9_out = GetProcAddress(d3d9_dll, "Direct3DCreate9");
 			}
-
-#ifdef DDRAWCOMPAT
-			// Add DDrawCompat to the chain
-			else if (Config.DDrawCompat)
+			else
 			{
-				Logging::Log() << "Enabling DDrawCompat";
-				using namespace ddraw;
-				using namespace DDrawCompat;
-				DDrawCompat::Prepare();
-				VISIT_PROCS_DDRAW(SHIM_WRAPPED_PROC);
-				VISIT_PROCS_DDRAW_SHARED(SHIM_WRAPPED_PROC);
-			}
+#ifdef DDRAWCOMPAT
+				// Add DDrawCompat to the chain
+				if (Config.DDrawCompat)
+				{
+					Logging::Log() << "Enabling DDrawCompat";
+					using namespace ddraw;
+					using namespace DDrawCompat;
+					DDrawCompat::Prepare();
+					VISIT_PROCS_DDRAW(SHIM_WRAPPED_PROC);
+					VISIT_PROCS_DDRAW_SHARED(SHIM_WRAPPED_PROC);
+					DDrawCompat::Start(hModule_dll, fdwReason);
+				}
 #endif // DDRAWCOMPAT
 
-			// Add DdrawWrapper to the chain
-			if (Config.EnableDdrawWrapper)
-			{
-				Logging::Log() << "Enabling ddraw wrapper";
-				using namespace ddraw;
-				using namespace DdrawWrapper;
-				VISIT_PROCS_DDRAW(SHIM_WRAPPED_PROC);
-				VISIT_PROCS_DDRAW_SHARED(SHIM_WRAPPED_PROC);
+				// Add DdrawWrapper to the chain
+				if (Config.EnableDdrawWrapper)
+				{
+					Logging::Log() << "Enabling ddraw wrapper";
+					using namespace ddraw;
+					using namespace DdrawWrapper;
+					VISIT_PROCS_DDRAW(SHIM_WRAPPED_PROC);
+					VISIT_PROCS_DDRAW_SHARED(SHIM_WRAPPED_PROC);
+				}
 			}
-
-#ifdef DDRAWCOMPAT
-			// Start DDrawCompat
-			if (Config.DDrawCompat)
-			{
-				DDrawCompat::Start(hModule_dll, fdwReason);
-			}
-#endif // DDRAWCOMPAT
 		}
 
 		// Start d3d8.dll module

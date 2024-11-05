@@ -14,14 +14,19 @@
 	volatile FARPROC procName ## _out = nullptr;
 
 #define ASSIGN_WRAPPED_PROC(procName) \
-	procName ## _in = procName ## _proc;
+	procName ## _in = procName ## _proc; \
+	procName ## _out = ddraw::procName ## _var;
+
+#define RUN_PREPARE_DDRAWCOMPAT(CompatVersion) \
+	using namespace CompatVersion; \
+	CompatVersion::Prepair_DDrawCompat(); \
+	VISIT_ALL_DDRAW_PROCS(ASSIGN_WRAPPED_PROC); \
+	return; \
 
 #define PREPARE_DDRAWCOMPAT(CompatVersion) \
 	if (Config.DDraw ## CompatVersion) \
 	{ \
-		using namespace CompatVersion; \
-		VISIT_ALL_DDRAW_PROCS(ASSIGN_WRAPPED_PROC); \
-		return; \
+		RUN_PREPARE_DDRAWCOMPAT(CompatVersion) \
 	}
 
 #define START_DDRAWCOMPAT(CompatVersion) \
@@ -52,9 +57,7 @@ namespace DDrawCompat
 #endif
 
 		// Default DDrawCompat version
-		using namespace DDrawCompatDefault;
-		VISIT_ALL_DDRAW_PROCS(ASSIGN_WRAPPED_PROC);
-		return;
+		RUN_PREPARE_DDRAWCOMPAT(DDrawCompatDefault);
 	}
 
 	bool RunStart(HINSTANCE hinstDLL, DWORD fdwReason)

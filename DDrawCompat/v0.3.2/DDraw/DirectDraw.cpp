@@ -68,7 +68,8 @@ namespace
 	{
 		logComInstantiation();
 		DDraw::DirectDraw::suppressEmulatedDirectDraw(lpGUID);
-		return getOrigVtable(This).Initialize(This, lpGUID);
+		HRESULT result = getOrigVtable(This).Initialize(This, lpGUID);
+		return result == DDERR_ALREADYINITIALIZED ? DD_OK : result;
 	}
 
 	template <typename TDirectDraw>

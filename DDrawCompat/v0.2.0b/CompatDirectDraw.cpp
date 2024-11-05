@@ -22,9 +22,17 @@ namespace Compat20
 	template <typename TDirectDraw>
 	void CompatDirectDraw<TDirectDraw>::setCompatVtable(Vtable<TDirectDraw>& vtable)
 	{
+		vtable.Initialize = &Initialize;
 		vtable.CreateSurface = &CreateSurface;
 		vtable.RestoreDisplayMode = &RestoreDisplayMode;
 		vtable.SetDisplayMode = &SetDisplayMode;
+	}
+
+	template <typename TDirectDraw>
+	HRESULT STDMETHODCALLTYPE CompatDirectDraw<TDirectDraw>::Initialize(TDirectDraw* This, GUID* unnamedParam1)
+	{
+		HRESULT result = s_origVtable.Initialize(This, unnamedParam1);
+		return result == DDERR_ALREADYINITIALIZED ? DD_OK : result;
 	}
 
 	template <typename TDirectDraw>

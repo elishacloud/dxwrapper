@@ -171,29 +171,34 @@ namespace
 	}
 }
 
-#define	LOAD_ORIG_PROC(proc) \
-	Dll::g_origProcs.proc = Compat32::getProcAddress(origModule, #proc);
+#define	LOAD_ORIG_PROC(procName) \
+	Dll::g_origProcs.procName = Compat32::getProcAddress(origModule, #procName);
 
-#define HOOK_DDRAW_PROC(proc) \
+#define HOOK_DDRAW_PROC(procName) \
 	Compat32::hookFunction( \
-		reinterpret_cast<void*&>(Dll::g_origProcs.proc), \
-		static_cast<decltype(&proc)>(&directDrawFunc<&Dll::Procs::proc, decltype(&proc)>), \
-		#proc);
+		reinterpret_cast<void*&>(Dll::g_origProcs.procName), \
+		static_cast<decltype(&procName)>(&directDrawFunc<&Dll::Procs::procName, decltype(&procName)>), \
+		#procName);
 
 //********** Begin Edit *************
-#define INITIALIZE_PUBLIC_WRAPPED_PROC(proc) \
-	FARPROC proc ## _proc = (FARPROC)static_cast<decltype(&proc)>(&directDrawFunc<&Dll::Procs::proc, decltype(&proc)>);
+#define INITIALIZE_ALL_WRAPPED_PROC(procName) \
+	FARPROC Compat32::procName ## _proc = nullptr;
 
-#define INITIALIZE_PRIVATE_WRAPPED_PROC(proc) \
-	FARPROC proc ## _proc = (FARPROC)*DC32_ ## proc;
+VISIT_ALL_DDRAW_PROCS(INITIALIZE_ALL_WRAPPED_PROC);
 
-namespace Compat32
+#define SET_ALL_WRAPPED_PROC(procName) \
+	procName ## _proc = ddraw::procName ## _var;
+
+#define SET_PUBLIC_WRAPPED_PROC(procName) \
+	procName ## _proc = (FARPROC)static_cast<decltype(&procName)>(&directDrawFunc<&Dll::Procs::procName, decltype(&procName)>);
+
+void Compat32::Prepair_DDrawCompat()
 {
-	VISIT_PUBLIC_DDRAW_PROCS(INITIALIZE_PUBLIC_WRAPPED_PROC);
-	VISIT_PRIVATE_DDRAW_PROCS(INITIALIZE_PRIVATE_WRAPPED_PROC);
+	VISIT_ALL_DDRAW_PROCS(SET_ALL_WRAPPED_PROC);
+	VISIT_PUBLIC_DDRAW_PROCS(SET_PUBLIC_WRAPPED_PROC);
 }
 
-#define	LOAD_NEW_PROC(procName) \
+#define	LOAD_WRAPPED_PROC(procName) \
 	Dll::g_origProcs.procName = DDrawCompat::procName ## _out;
 
 void Compat32::InstallDd7to9Hooks(HMODULE hModule)
@@ -299,7 +304,7 @@ BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpvReserved)
 
 		HMODULE origModule = Dll::g_origDDrawModule;
 		//********** Begin Edit *************
-		VISIT_DDRAW_PROCS(LOAD_NEW_PROC);
+		VISIT_ALL_DDRAW_PROCS(LOAD_WRAPPED_PROC);
 		//********** End Edit ***************
 
 		Dll::g_origDciman32Module = LoadLibraryW((systemPath / "dciman32.dll").c_str());
