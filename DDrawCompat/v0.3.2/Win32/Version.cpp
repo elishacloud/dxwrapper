@@ -187,21 +187,21 @@ namespace Win32
 
 				Compat32::Log() << "Installing WinVersionLie hooks - os: " << it->first << " sp: " << sp;
 
-				TRY_HOOK_VERSION_INFO_FUNCTION(GetFileVersionInfoA);
-				TRY_HOOK_VERSION_INFO_FUNCTION(GetFileVersionInfoW);
-				TRY_HOOK_VERSION_INFO_FUNCTION(GetFileVersionInfoExA);
-				TRY_HOOK_VERSION_INFO_FUNCTION(GetFileVersionInfoExW);
-				TRY_HOOK_VERSION_INFO_FUNCTION(GetFileVersionInfoSizeA);
-				TRY_HOOK_VERSION_INFO_FUNCTION(GetFileVersionInfoSizeW);
-				TRY_HOOK_VERSION_INFO_FUNCTION(GetFileVersionInfoSizeExA);
-				TRY_HOOK_VERSION_INFO_FUNCTION(GetFileVersionInfoSizeExW);
+				HOOK_FUNCTION(kernel32, GetVersion, getVersion);
+				HOOK_FUNCTION(kernel32, GetVersionExA, getVersionExA);
+				HOOK_FUNCTION(kernel32, GetVersionExW, getVersionExW);
 			}
 		}
 		void installHooks()
 		{
-			HOOK_FUNCTION(kernel32, GetVersion, getVersion);
-			HOOK_FUNCTION(kernel32, GetVersionExA, getVersionExA);
-			HOOK_FUNCTION(kernel32, GetVersionExW, getVersionExW);
+			TRY_HOOK_VERSION_INFO_FUNCTION(GetFileVersionInfoA);
+			TRY_HOOK_VERSION_INFO_FUNCTION(GetFileVersionInfoW);
+			TRY_HOOK_VERSION_INFO_FUNCTION(GetFileVersionInfoExA);
+			TRY_HOOK_VERSION_INFO_FUNCTION(GetFileVersionInfoExW);
+			TRY_HOOK_VERSION_INFO_FUNCTION(GetFileVersionInfoSizeA);
+			TRY_HOOK_VERSION_INFO_FUNCTION(GetFileVersionInfoSizeW);
+			TRY_HOOK_VERSION_INFO_FUNCTION(GetFileVersionInfoSizeExA);
+			TRY_HOOK_VERSION_INFO_FUNCTION(GetFileVersionInfoSizeExW);
 		}
 	}
 }
