@@ -9,6 +9,9 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "dxwrapper", "dxwrapper.vcxp
 	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "stub", "Stub\stub.vcxproj", "{E204DCB3-D122-4F2E-88A8-89AC22CE3274}"
+	ProjectSection(ProjectDependencies) = postProject
+		{579E7FE7-2745-4100-A802-23511711FCDE} = {579E7FE7-2745-4100-A802-23511711FCDE}
+	EndProjectSection
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "depot", "depot", "{6F83E1F5-98B8-4834-913B-52E129EB4822}"
 EndProject

@@ -2,14 +2,10 @@
 // Microsoft Visual C++ generated include file.
 // Used by dxwrapper.rc
 
-#include "Dllmain\BuildNo.rc"
+#include "..\Dllmain\Resource.h"
 
 // Main resource file details
 #define APP_NAME				"DirectX Dynamic Link Library"
-#define APP_MAJOR				1
-#define APP_MINOR				2
-#define APP_BUILDNUMBER			BUILD_NUMBER
-#define APP_REVISION			25
 #define APP_COMPANYNAME			"Sadrate Presents"
 #define APP_DESCRPTION			"Wraps or hooks DirectX files to fix compatibility issues in older games. Also allows code to be executed from inside the application."
 #define APP_COPYRIGHT			"Copyright (C) 2024 Elisha Riedlinger"

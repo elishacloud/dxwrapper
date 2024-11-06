@@ -1293,6 +1293,7 @@ copy /Y "$(ProjectDir)Settings\Settings.ini" "$(TargetDir)Build\dxwrapper.ini" &
     <ClInclude Include="Disasm\disasm.h" />
     <ClInclude Include="Dllmain\Dllmain.h" />
     <ClInclude Include="Dllmain\dxwrapper.h" />
+    <ClInclude Include="Dllmain\Resource.h" />
     <ClInclude Include="dsound\AddressLookupTable.h" />
     <ClInclude Include="dsound\dsound.h" />
     <ClInclude Include="dsound\dsoundExternal.h" />

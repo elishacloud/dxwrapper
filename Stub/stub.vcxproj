@@ -147,13 +147,6 @@ copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\Stub\wsock32.dll" &gt
       <OptimizeReferences>true</OptimizeReferences>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
     </Link>
-    <PreBuildEvent>
-      <Command>cmd /c "@echo off &amp;&amp; cd /D ""$(ProjectDir)"" &amp;&amp; if not exist BuildNo.rc echo #define BUILD_NUMBER 0 &gt;BuildNo.rc"
-cmd /c "@echo off &amp;&amp; cd /D ""$(ProjectDir)"" &amp;&amp; FOR /F "tokens=3" %%i IN (BuildNo.rc) DO set /a var=%%i+1 &gt;Build.txt"
-cmd /c "@echo off &amp;&amp; cd /D ""$(ProjectDir)"" &amp;&amp; FOR /F %%i IN (Build.txt) DO echo #define BUILD_NUMBER %%i &gt;BuildNo.rc"
-cmd /c "@echo off &amp;&amp; cd /D ""$(ProjectDir)"" &amp;&amp; del Build.txt"
-cmd /c "@echo off &amp;&amp; cd /D ""$(ProjectDir)"" &amp;&amp; type BuildNo.rc"</Command>
-    </PreBuildEvent>
     <PostBuildEvent>
       <Command>IF NOT EXIST "$(TargetDir)Build" mkdir "$(TargetDir)Build" &gt;nul
 IF NOT EXIST "$(TargetDir)Build\Stub" mkdir "$(TargetDir)Build\Stub" &gt;nul
@@ -297,7 +290,6 @@ copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\Stub\wsock32.dll" &gt
     <None Include="..\Wrappers\wrapper.def" />
   </ItemGroup>
   <ItemGroup>
-    <ResourceCompile Include="BuildNo.rc" />
     <ResourceCompile Include="stub.rc" />
   </ItemGroup>
   <ItemGroup>

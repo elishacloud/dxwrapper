@@ -103,7 +103,6 @@
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <ResourceCompile Include="BuildNo.rc" />
     <ResourceCompile Include="stub.rc" />
   </ItemGroup>
   <ItemGroup>

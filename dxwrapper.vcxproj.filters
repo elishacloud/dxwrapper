@@ -1874,6 +1874,9 @@
     <ClInclude Include="DDrawCompat\v0.3.2\Win32\Version.h">
       <Filter>DDrawCompat\v0.3.2</Filter>
     </ClInclude>
+    <ClInclude Include="Dllmain\Resource.h">
+      <Filter>Dllmain</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="Dllmain\BuildNo.rc">
