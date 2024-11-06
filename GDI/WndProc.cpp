@@ -19,6 +19,7 @@
 #include <algorithm>
 #include "WndProc.h"
 #include "GDI.h"
+#include "ddraw\ddrawExternal.h"
 #include "Settings\Settings.h"
 #include "Logging\Logging.h"
 
@@ -260,7 +261,7 @@ LRESULT CALLBACK WndProc::Handler(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lPa
 
 		D9_DEVICE_CREATION* pDeviceStruct = (D9_DEVICE_CREATION*)lParam;
 
-		pDeviceStruct->hr = pDeviceStruct->d3d9Object->CreateDevice(D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, pDeviceStruct->hWnd, pDeviceStruct->BehaviorFlags, pDeviceStruct->presParams, pDeviceStruct->d3d9Device);
+		pDeviceStruct->hr = CreateDeviceV9(pDeviceStruct->d3d9Object, D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, pDeviceStruct->hWnd, pDeviceStruct->BehaviorFlags, pDeviceStruct->presParams, pDeviceStruct->d3d9Device);
 
 		SetEvent(pDeviceStruct->hEvent);
 

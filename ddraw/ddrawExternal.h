@@ -3,6 +3,15 @@
 #include <ddraw.h>
 #include "Wrappers\wrapper.h"
 
+#ifndef _d3d9TYPES_H_
+enum D3DDEVTYPE;
+struct D3DPRESENT_PARAMETERS;
+#endif
+#ifndef _D3D9_H_
+struct IDirect3D9;
+struct IDirect3DDevice9;
+#endif
+
 typedef HRESULT(WINAPI* DirectDrawCreateProc)(GUID FAR* lpGUID, LPDIRECTDRAW FAR* lplpDD, IUnknown FAR* pUnkOuter);
 typedef HRESULT(WINAPI* DirectDrawCreateExProc)(GUID FAR* lpGUID, LPVOID* lplpDD, REFIID riid, IUnknown FAR* pUnkOuter);
 typedef HRESULT(WINAPI* DirectDrawCreateClipperProc)(DWORD dwFlags, LPDIRECTDRAWCLIPPER* lplpDDClipper, LPUNKNOWN pUnkOuter);
@@ -29,6 +38,10 @@ HRESULT WINAPI dd_GetSurfaceFromDC(HDC hdc, LPDIRECTDRAWSURFACE7 *lpDDS, DWORD a
 HRESULT WINAPI dd_RegisterSpecialCase(DWORD arg1, DWORD arg2, DWORD arg3, DWORD arg4);
 HRESULT WINAPI dd_ReleaseDDThreadLock();
 HRESULT WINAPI dd_SetAppCompatData(DWORD Type, DWORD Value);
+
+HRESULT CreateDeviceV9(IDirect3D9* Object, UINT Adapter, D3DDEVTYPE DeviceType, HWND FocusWindow, DWORD Flags, D3DPRESENT_PARAMETERS* pPresentationParameters, IDirect3DDevice9** ppReturnedDeviceInterface);
+
+bool CheckDirectDrawXInterface(void* pInterface);
 
 class m_IDirectDrawClipper;
 

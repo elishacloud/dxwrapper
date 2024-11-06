@@ -3064,6 +3064,17 @@ HRESULT m_IDirectDrawX::ResetD9Device()
 	return hr;
 }
 
+HRESULT CreateDeviceV9(IDirect3D9* Object, UINT Adapter, D3DDEVTYPE DeviceType, HWND FocusWindow, DWORD Flags, D3DPRESENT_PARAMETERS* pPresentationParameters, IDirect3DDevice9** ppReturnedDeviceInterface)
+{
+	HRESULT hr = Object->CreateDevice(Adapter, DeviceType, FocusWindow, Flags, pPresentationParameters, ppReturnedDeviceInterface);
+	if (FAILED(hr) && pPresentationParameters && pPresentationParameters->FullScreen_RefreshRateInHz)
+	{
+		pPresentationParameters->FullScreen_RefreshRateInHz = 0;
+		hr = Object->CreateDevice(Adapter, DeviceType, FocusWindow, Flags, pPresentationParameters, ppReturnedDeviceInterface);
+	}
+	return hr;
+}
+
 // Creates or resets the d3d9 device
 HRESULT m_IDirectDrawX::CreateD9Device(char* FunctionName)
 {
@@ -3296,7 +3307,7 @@ HRESULT m_IDirectDrawX::CreateD9Device(char* FunctionName)
 			}
 			else
 			{
-				hr = d3d9Object->CreateDevice(D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, hWnd, BehaviorFlags, &presParams, &d3d9Device);
+				hr = CreateDeviceV9(d3d9Object, D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, hWnd, BehaviorFlags, &presParams, &d3d9Device);
 			}
 
 			if (WndDataStruct) WndDataStruct->IsCreatingD3d9 = false;

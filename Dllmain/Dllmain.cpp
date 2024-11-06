@@ -30,11 +30,11 @@
 // Wrappers last
 #include "IClassFactory\IClassFactory.h"
 #include "GDI\GDI.h"
+#include "d3d9\d3d9External.h"
 #include "ddraw\ddrawExternal.h"
 #include "dinput\dinputExternal.h"
 #include "dinput8\dinput8External.h"
 #include "d3d8\d3d8External.h"
-#include "d3d9\d3d9External.h"
 #include "dsound\dsoundExternal.h"
 #include "dxwrapper.h"
 

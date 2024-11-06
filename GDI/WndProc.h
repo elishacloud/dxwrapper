@@ -5,8 +5,6 @@
 
 #define WM_USER_CREATE_D3D9_DEVICE (WM_APP + 0x1234)
 
-bool CheckDirectDrawXInterface(void* pInterface);
-
 namespace WndProc
 {
 	struct DATASTRUCT {
