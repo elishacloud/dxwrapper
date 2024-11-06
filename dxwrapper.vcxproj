@@ -86,15 +86,12 @@ copy /Y "$(ProjectDir)Settings\AllSettings.ini" "$(TargetDir)Build\" &gt;nul
 copy /Y "$(ProjectDir)Settings\Settings.ini" "$(TargetDir)Build\dxwrapper.ini" &gt;nul
 IF NOT EXIST "$(TargetDir)dx7" mkdir "$(TargetDir)dx7" &gt;nul
 copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)dx7\" &gt;nul
-copy /Y "$(TargetDir)stub.dll" "$(TargetDir)dx7\ddraw.dll" &gt;nul
 call "$(ProjectDir)Resources\dx7-script.cmd" "$(ProjectDir)Settings\Settings.ini" "$(TargetDir)dx7\dxwrapper.ini"
 IF NOT EXIST "$(TargetDir)dx8" mkdir "$(TargetDir)dx8" &gt;nul
 copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)dx8\" &gt;nul
-copy /Y "$(TargetDir)stub.dll" "$(TargetDir)dx8\d3d8.dll" &gt;nul
 call "$(ProjectDir)Resources\dx8-script.cmd" "$(ProjectDir)Settings\Settings.ini" "$(TargetDir)dx8\dxwrapper.ini"
 IF NOT EXIST "$(TargetDir)dx9" mkdir "$(TargetDir)dx9" &gt;nul
 copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)dx9\" &gt;nul
-copy /Y "$(TargetDir)stub.dll" "$(TargetDir)dx9\d3d9.dll" &gt;nul
 call "$(ProjectDir)Resources\dx9-script.cmd" "$(ProjectDir)Settings\Settings.ini" "$(TargetDir)dx9\dxwrapper.ini"</Command>
     </PostBuildEvent>
     <PreBuildEvent>

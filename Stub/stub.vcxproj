@@ -139,7 +139,13 @@ copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\Stub\wininet.dll" &gt
 copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\Stub\winmm.dll" &gt;nul
 copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\Stub\winmmbase.dll" &gt;nul
 copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\Stub\winspool.drv" &gt;nul
-copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\Stub\wsock32.dll" &gt;nul</Command>
+copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\Stub\wsock32.dll" &gt;nul
+IF NOT EXIST "$(TargetDir)dx7" mkdir "$(TargetDir)dx7" &gt;nul
+copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)dx7\ddraw.dll" &gt;nul
+IF NOT EXIST "$(TargetDir)dx8" mkdir "$(TargetDir)dx8" &gt;nul
+copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)dx8\d3d8.dll" &gt;nul
+IF NOT EXIST "$(TargetDir)dx9" mkdir "$(TargetDir)dx9" &gt;nul
+copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)dx9\d3d9.dll" &gt;nul</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">
