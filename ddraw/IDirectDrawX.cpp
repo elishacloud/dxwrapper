@@ -4614,15 +4614,7 @@ HRESULT m_IDirectDrawX::PresentScene(RECT* pRect)
 
 bool m_IDirectDrawX::IsUsingThreadPresent()
 {
-	bool UsingThreadPresent = PresentThread.IsInitialized;
-	if (UsingThreadPresent)
-	{
-		SetPTCriticalSection();
-		UsingThreadPresent = (PresentThread.IsInitialized && ExclusiveMode && !RenderTargetSurface && !IsPrimaryRenderTarget());
-		ReleasePTCriticalSection();
-	}
-
-	return UsingThreadPresent;
+	return (PresentThread.IsInitialized && ExclusiveMode && !RenderTargetSurface && !IsPrimaryRenderTarget());
 }
 
 // Present Thread: Wait for the event
