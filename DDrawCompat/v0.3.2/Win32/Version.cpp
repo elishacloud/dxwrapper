@@ -12,6 +12,15 @@
 
 namespace
 {
+	BOOL WINAPI Empty_GetFileVersionInfoA(LPCSTR, DWORD, DWORD, LPVOID) { return FALSE; }
+	BOOL WINAPI Empty_GetFileVersionInfoW(LPCWSTR, DWORD, DWORD, LPVOID) { return FALSE; }
+	BOOL WINAPI Empty_GetFileVersionInfoExA(DWORD, LPCSTR, DWORD, DWORD, LPVOID) { return FALSE; }
+	BOOL WINAPI Empty_GetFileVersionInfoExW(DWORD, LPCWSTR, DWORD, DWORD, LPVOID) { return FALSE; }
+	DWORD WINAPI Empty_GetFileVersionInfoSizeA(LPCSTR, LPDWORD) { return 0; }
+	DWORD WINAPI Empty_GetFileVersionInfoSizeW(LPCWSTR, LPDWORD) { return 0; }
+	DWORD WINAPI Empty_GetFileVersionInfoSizeExA(DWORD, LPCSTR, LPDWORD) { return 0; }
+	DWORD WINAPI Empty_GetFileVersionInfoSizeExW(DWORD, LPCWSTR, LPDWORD) { return 0; }
+
 	struct VersionInfo
 	{
 		DWORD version;
@@ -134,25 +143,26 @@ namespace
 		return getVersionInfo<OSVERSIONINFOEXW>(lpVersionInformation, CALL_ORIG_FUNC(GetVersionExW), "GetVersionExW");
 	}
 
-	template <typename FuncType>
-	bool hookVersionInfoFunc(const char* moduleName, const char* funcName, FuncType& funcPtr)
+	template <auto origFunc>
+	bool hookVersionInfoFunc(const char* moduleName, const char* funcName)
 	{
 		HMODULE mod = GetModuleHandleA(moduleName);
 		if (mod)
 		{
-			funcPtr = reinterpret_cast<FuncType>(GetProcAddress(mod, funcName));
-			return funcPtr != nullptr;
+			FARPROC func = Compat32::getProcAddress(mod, funcName);
+			if (func)
+			{
+				Compat32::hookFunction<origFunc>(moduleName, funcName, getFileVersionInfoFunc<origFunc>);
+				return true;
+			}
 		}
 		return false;
 	}
 
-	template <typename FuncType>
-	void tryHookVersionInfoFunction(const char* funcName, FuncType& funcPtr)
+	template <auto origFunc>
+	void hookVersionInfoFunc(const char* funcName)
 	{
-		if (!hookVersionInfoFunc("kernelbase", funcName, funcPtr))
-		{
-			hookVersionInfoFunc("version", funcName, funcPtr);
-		}
+		hookVersionInfoFunc<origFunc>("kernelbase", funcName) || hookVersionInfoFunc<origFunc>("version", funcName);
 	}
 }
 
@@ -168,7 +178,7 @@ namespace Compat32
 	template<> decltype(&GetFileVersionInfoSizeExW) g_origFuncPtr<GetFileVersionInfoSizeExW> = nullptr;
 }
 
-#define TRY_HOOK_VERSION_INFO_FUNCTION(func) tryHookVersionInfoFunction(#func, Compat32::g_origFuncPtr<func>)
+#define HOOK_VERSION_INFO_FUNCTION(func) hookVersionInfoFunc<Empty_ ## func>(#func)
 
 namespace Win32
 {
@@ -194,14 +204,14 @@ namespace Win32
 		}
 		void installHooks()
 		{
-			TRY_HOOK_VERSION_INFO_FUNCTION(GetFileVersionInfoA);
-			TRY_HOOK_VERSION_INFO_FUNCTION(GetFileVersionInfoW);
-			TRY_HOOK_VERSION_INFO_FUNCTION(GetFileVersionInfoExA);
-			TRY_HOOK_VERSION_INFO_FUNCTION(GetFileVersionInfoExW);
-			TRY_HOOK_VERSION_INFO_FUNCTION(GetFileVersionInfoSizeA);
-			TRY_HOOK_VERSION_INFO_FUNCTION(GetFileVersionInfoSizeW);
-			TRY_HOOK_VERSION_INFO_FUNCTION(GetFileVersionInfoSizeExA);
-			TRY_HOOK_VERSION_INFO_FUNCTION(GetFileVersionInfoSizeExW);
+			HOOK_VERSION_INFO_FUNCTION(GetFileVersionInfoA);
+			HOOK_VERSION_INFO_FUNCTION(GetFileVersionInfoW);
+			HOOK_VERSION_INFO_FUNCTION(GetFileVersionInfoExA);
+			HOOK_VERSION_INFO_FUNCTION(GetFileVersionInfoExW);
+			HOOK_VERSION_INFO_FUNCTION(GetFileVersionInfoSizeA);
+			HOOK_VERSION_INFO_FUNCTION(GetFileVersionInfoSizeW);
+			HOOK_VERSION_INFO_FUNCTION(GetFileVersionInfoSizeExA);
+			HOOK_VERSION_INFO_FUNCTION(GetFileVersionInfoSizeExW);
 		}
 	}
 }
