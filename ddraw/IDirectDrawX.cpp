@@ -3110,6 +3110,9 @@ HRESULT m_IDirectDrawX::CreateD9Device(char* FunctionName)
 		// Store new focus window
 		hFocusWindow = hWnd;
 
+		// Check active
+		bool WndLastActive = (hWnd == GetForegroundWindow() && hWnd == GetFocus() && hWnd == GetActiveWindow());
+
 		// Hook WndProc before creating device
 		bool WndProcAdded = WndProc::AddWndProc(hWnd, true);
 
@@ -3389,13 +3392,16 @@ HRESULT m_IDirectDrawX::CreateD9Device(char* FunctionName)
 			}
 
 			// Window focus and activate app
-			PostMessage(hWnd, WM_IME_SETCONTEXT, TRUE, ISC_SHOWUIALL);
-			PostMessage(hWnd, WM_SETFOCUS, NULL, NULL);
-			PostMessage(hWnd, WM_SYNCPAINT, (WPARAM)32, NULL);
-			PostMessage(hWnd, WM_ACTIVATEAPP, TRUE, (LPARAM)GetWindowThreadProcessId(hWnd, nullptr));
+			if (!WndLastActive || LastHWnd != hFocusWindow)
+			{
+				PostMessage(hWnd, WM_IME_SETCONTEXT, TRUE, ISC_SHOWUIALL);
+				PostMessage(hWnd, WM_SETFOCUS, NULL, NULL);
+				PostMessage(hWnd, WM_SYNCPAINT, (WPARAM)32, NULL);
+				PostMessage(hWnd, WM_ACTIVATEAPP, TRUE, (LPARAM)GetWindowThreadProcessId(hWnd, nullptr));
 #ifdef WM_DWMNCRENDERINGCHANGED
-			PostMessage(hWnd, WM_DWMNCRENDERINGCHANGED, FALSE, NULL);
+				PostMessage(hWnd, WM_DWMNCRENDERINGCHANGED, FALSE, NULL);
 #endif
+			}
 		}
 
 		// Store display frequency
