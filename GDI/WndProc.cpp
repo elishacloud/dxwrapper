@@ -225,6 +225,22 @@ WndProc::DATASTRUCT* WndProc::GetWndProctStruct(HWND hWnd)
 	return nullptr;
 }
 
+DWORD WndProc::MakeKey(DWORD Val1, DWORD Val2)
+{
+	DWORD Result = 0;
+	for (DWORD Val : { Val1, Val2 } )
+	{
+		for (int x = 1; x < 8; x++)
+		{
+			Val = Val ^ (Val << 20);
+			Val = Val ^ (Val >> 12);
+			Val = (Val << 15) + (Val >> 17);
+		}
+		Result += Val;
+	}
+	return Result % 8 ? Result ^ 0xAAAAAAAA : Result ^ 0x55555555;
+}
+
 LRESULT CALLBACK WndProc::Handler(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lParam, WNDPROCSTRUCT* AppWndProcInstance)
 {
 	if (Msg != WM_PAINT)
@@ -249,9 +265,12 @@ LRESULT CALLBACK WndProc::Handler(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lPa
 	}
 
 	// Handle Direct3D9 device creation
-	if (Msg == WM_USER_CREATE_D3D9_DEVICE && CheckDirectDrawXInterface((void*)wParam))
+	if (Msg == WM_APP_CREATE_D3D9_DEVICE && WM_MAKE_KEY(hWnd, wParam) == lParam)
 	{
-		((m_IDirectDrawX*)wParam)->CreateD9Device(__FUNCTION__);
+		if (CheckDirectDrawXInterface((void*)wParam))
+		{
+			((m_IDirectDrawX*)wParam)->CreateD9Device(__FUNCTION__);
+		}
 
 		return NULL;
 	}

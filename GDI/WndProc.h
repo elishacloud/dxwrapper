@@ -2,7 +2,9 @@
 
 #include <atomic>
 
-#define WM_USER_CREATE_D3D9_DEVICE (WM_APP + 0x1234)
+#define WM_APP_CREATE_D3D9_DEVICE (WM_APP + 0xFFF - 0x123)
+#define WM_MAKE_KEY(Val1, Val2) \
+	(LPARAM)WndProc::MakeKey((DWORD)Val1, (DWORD)Val2)
 
 namespace WndProc
 {
@@ -13,8 +15,9 @@ namespace WndProc
 		std::atomic<bool> IsExclusiveMode = false;
 	};
 
-	WNDPROC CheckWndProc(HWND hWnd, LONG dwNewLong);
 	DATASTRUCT* AddWndProc(HWND hWnd);
 	void RemoveWndProc(HWND hWnd);
 	DATASTRUCT* GetWndProctStruct(HWND hWnd);
+	DWORD MakeKey(DWORD Val1, DWORD Val2);
+	WNDPROC CheckWndProc(HWND hWnd, LONG dwNewLong);
 }

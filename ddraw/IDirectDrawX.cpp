@@ -3093,9 +3093,15 @@ HRESULT m_IDirectDrawX::CreateD9Device(char* FunctionName)
 	{
 		LOG_LIMIT(100, __FUNCTION__ << " " << FunctionName << " Warning: trying to create Direct3D9 device from a different thread than the hwnd was created from!");
 
-		SendMessage(hWnd, WM_USER_CREATE_D3D9_DEVICE, (WPARAM)this, WM_NULL);
+		SendMessage(hWnd, WM_APP_CREATE_D3D9_DEVICE, (WPARAM)this, WM_MAKE_KEY(hWnd, this));
 
 		return d3d9Device ? DD_OK : DDERR_GENERIC;
+	}
+
+	// Check status of device
+	if (d3d9Device && d3d9Device->TestCooperativeLevel() == D3DERR_DEVICELOST)
+	{
+		return DD_OK;	// Just return ok because device does exist
 	}
 
 	SetCriticalSection();
