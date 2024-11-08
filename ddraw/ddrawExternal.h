@@ -39,8 +39,6 @@ HRESULT WINAPI dd_RegisterSpecialCase(DWORD arg1, DWORD arg2, DWORD arg3, DWORD 
 HRESULT WINAPI dd_ReleaseDDThreadLock();
 HRESULT WINAPI dd_SetAppCompatData(DWORD Type, DWORD Value);
 
-HRESULT CreateDeviceV9(IDirect3D9* Object, UINT Adapter, D3DDEVTYPE DeviceType, HWND FocusWindow, DWORD Flags, D3DPRESENT_PARAMETERS* pPresentationParameters, IDirect3DDevice9** ppReturnedDeviceInterface);
-
 bool CheckDirectDrawXInterface(void* pInterface);
 
 class m_IDirectDrawClipper;

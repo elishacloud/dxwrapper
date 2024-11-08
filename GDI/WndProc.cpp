@@ -19,6 +19,7 @@
 #include <algorithm>
 #include "WndProc.h"
 #include "GDI.h"
+#include "ddraw\ddraw.h"
 #include "ddraw\ddrawExternal.h"
 #include "Settings\Settings.h"
 #include "Logging\Logging.h"
@@ -248,20 +249,9 @@ LRESULT CALLBACK WndProc::Handler(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lPa
 	}
 
 	// Handle Direct3D9 device creation
-	if (Msg == WM_USER_CREATE_D3D9_DEVICE)
+	if (Msg == WM_USER_CREATE_D3D9_DEVICE && CheckDirectDrawXInterface((void*)wParam))
 	{
-		// Verify call is coming from m_IDirectDrawX interface
-		if (!CheckDirectDrawXInterface((void*)wParam))
-		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error: invalid m_IDirectDrawX interface!");
-			return NULL;
-		}
-
-		D9_DEVICE_CREATION* pDeviceStruct = (D9_DEVICE_CREATION*)lParam;
-
-		pDeviceStruct->hr = CreateDeviceV9(pDeviceStruct->d3d9Object, D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, pDeviceStruct->hWnd, pDeviceStruct->BehaviorFlags, pDeviceStruct->presParams, pDeviceStruct->d3d9Device);
-
-		SetEvent(pDeviceStruct->hEvent);
+		((m_IDirectDrawX*)wParam)->CreateD9Device(__FUNCTION__);
 
 		return NULL;
 	}
