@@ -21,6 +21,7 @@
 #include "GDI.h"
 #include "ddraw\ddraw.h"
 #include "ddraw\ddrawExternal.h"
+#include "d3d9\d3d9External.h"
 #include "Settings\Settings.h"
 #include "Logging\Logging.h"
 

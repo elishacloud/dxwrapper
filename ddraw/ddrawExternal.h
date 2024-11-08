@@ -3,15 +3,6 @@
 #include <ddraw.h>
 #include "Wrappers\wrapper.h"
 
-#ifndef _d3d9TYPES_H_
-enum D3DDEVTYPE;
-struct D3DPRESENT_PARAMETERS;
-#endif
-#ifndef _D3D9_H_
-struct IDirect3D9;
-struct IDirect3DDevice9;
-#endif
-
 typedef HRESULT(WINAPI* DirectDrawCreateProc)(GUID FAR* lpGUID, LPDIRECTDRAW FAR* lplpDD, IUnknown FAR* pUnkOuter);
 typedef HRESULT(WINAPI* DirectDrawCreateExProc)(GUID FAR* lpGUID, LPVOID* lplpDD, REFIID riid, IUnknown FAR* pUnkOuter);
 typedef HRESULT(WINAPI* DirectDrawCreateClipperProc)(DWORD dwFlags, LPDIRECTDRAWCLIPPER* lplpDDClipper, LPUNKNOWN pUnkOuter);
