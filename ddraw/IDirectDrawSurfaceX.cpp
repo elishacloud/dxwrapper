@@ -348,10 +348,6 @@ ULONG m_IDirectDrawSurfaceX::Release(DWORD DirectXVersion)
 					delete this;
 				}
 			}
-			else
-			{
-				ref = 1;
-			}
 		}
 	}
 	else
@@ -3480,7 +3476,7 @@ HRESULT m_IDirectDrawSurfaceX::UpdateOverlay(LPRECT lpSrcRect, LPDIRECTDRAWSURFA
 		}
 
 		LOG_LIMIT(100, __FUNCTION__ << " Error: Not Implemented");
-		return DDERR_UNSUPPORTED;
+		return DD_OK;	// Just return OK for now
 	}
 
 	if (lpDDDestSurface)

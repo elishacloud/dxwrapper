@@ -3310,7 +3310,11 @@ HRESULT m_IDirectDrawX::CreateD9Device(char* FunctionName)
 				hr = CreateDeviceV9(d3d9Object, D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, hWnd, BehaviorFlags, &presParams, &d3d9Device);
 			}
 
-			if (WndDataStruct) WndDataStruct->IsCreatingD3d9 = false;
+			if (WndDataStruct)
+			{
+				WndDataStruct->IsCreatingD3d9 = false;
+				WndDataStruct->IsExclusiveMode = ExclusiveMode;
+			}
 		}
 
 		if (FAILED(hr))

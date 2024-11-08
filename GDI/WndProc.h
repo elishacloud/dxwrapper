@@ -9,6 +9,7 @@ namespace WndProc
 {
 	struct DATASTRUCT {
 		std::atomic<bool> IsCreatingD3d9 = false;
+		std::atomic<bool> IsExclusiveMode = false;
 	};
 
 	DATASTRUCT* GetWndProctStruct(HWND hWnd);

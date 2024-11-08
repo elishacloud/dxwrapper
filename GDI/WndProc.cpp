@@ -282,6 +282,18 @@ LRESULT CALLBACK WndProc::Handler(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lPa
 				return NULL;
 			}
 		}
+		// Filter some messages while forcing windowed mode
+		if (Config.EnableWindowMode && pDataStruct->IsExclusiveMode)
+		{
+			switch (Msg)
+			{
+			case WM_NCACTIVATE:
+				return TRUE;
+			case WM_ACTIVATE:
+			case WM_ACTIVATEAPP:
+				return NULL;
+			}
+		}
 		// Some games hang when attempting to paint while iconic
 		if ((Msg == WM_PAINT || Msg == WM_SYNCPAINT) && IsIconic(hWnd))
 		{
