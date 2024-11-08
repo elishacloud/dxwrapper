@@ -6525,6 +6525,8 @@ HRESULT m_IDirectDrawSurfaceX::CopySurface(m_IDirectDrawSurfaceX* pSourceSurface
 			(pSourceSurface->surface.Type == surface.Type || (pSourceSurface->surface.Type == D3DTYPE_OFFPLAINSURFACE && surface.Type == D3DTYPE_RENDERTARGET)) &&
 			(!IsStretchRect || (this != pSourceSurface && !ISDXTEX(SrcFormat) && !ISDXTEX(DestFormat) && surface.Type == D3DTYPE_RENDERTARGET)) &&
 			(surface.Type != D3DTYPE_DEPTHSTENCIL || !ddrawParent->IsInScene()) &&
+			(surface.Type != D3DTYPE_DEPTHSTENCIL || (surface.Type == D3DTYPE_DEPTHSTENCIL &&
+				!SrcRect.left && SrcRect.left == SrcRect.top && SrcRect.top == DestRect.left && DestRect.left == DestRect.top && DestRect.top)) &&
 			(surface.Type != D3DTYPE_TEXTURE) &&
 			(!pSourceSurface->IsPalette() && !IsPalette()) &&
 			!IsMirrorLeftRight && !IsMirrorUpDown && !IsColorKey)
@@ -6534,7 +6536,14 @@ HRESULT m_IDirectDrawSurfaceX::CopySurface(m_IDirectDrawSurfaceX* pSourceSurface
 
 			if (pSourceSurfaceD9 && pDestSurfaceD9)
 			{
-				hr = (*d3d9Device)->StretchRect(pSourceSurfaceD9, &SrcRect, pDestSurfaceD9, &DestRect, Filter);
+				if (surface.Type == D3DTYPE_DEPTHSTENCIL)
+				{
+					hr = (*d3d9Device)->StretchRect(pSourceSurfaceD9, nullptr, pDestSurfaceD9, nullptr, D3DTEXF_NONE);
+				}
+				else
+				{
+					hr = (*d3d9Device)->StretchRect(pSourceSurfaceD9, &SrcRect, pDestSurfaceD9, &DestRect, Filter);
+				}
 
 				if (FAILED(hr))
 				{
