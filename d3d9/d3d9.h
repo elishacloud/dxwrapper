@@ -21,6 +21,7 @@ class m_IDirect3DVolumeTexture9;
 
 #include "AddressLookupTable.h"
 #include "IClassFactory\IClassFactory.h"
+#include "Utils\Utils.h"
 #include "Settings\Settings.h"
 #include "Logging\Logging.h"
 

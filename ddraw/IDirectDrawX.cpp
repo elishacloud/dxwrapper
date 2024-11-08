@@ -3114,10 +3114,8 @@ HRESULT m_IDirectDrawX::CreateD9Device(char* FunctionName)
 		bool WndLastActive = (hWnd == GetForegroundWindow() && hWnd == GetFocus() && hWnd == GetActiveWindow());
 
 		// Hook WndProc before creating device
-		bool WndProcAdded = WndProc::AddWndProc(hWnd, true);
-
-		// Get wndproc structure
-		WndDataStruct = WndProc::GetWndProctStruct(hWnd);
+		WndDataStruct = WndProc::AddWndProc(hWnd);
+		if (WndDataStruct) WndDataStruct->IsDirectDraw = true;
 
 		// Get current resolution and rect
 		DWORD CurrentWidth = 0, CurrentHeight = 0;
@@ -3280,7 +3278,7 @@ HRESULT m_IDirectDrawX::CreateD9Device(char* FunctionName)
 			if (WndDataStruct) WndDataStruct->IsCreatingD3d9 = true;
 
 			// Check window handle thread
-			if (WndProcAdded && GetWindowThreadProcessId(hWnd, nullptr) != GetCurrentThreadId())
+			if (WndDataStruct && GetWindowThreadProcessId(hWnd, nullptr) != GetCurrentThreadId())
 			{
 				LOG_LIMIT(100, __FUNCTION__ << " " << FunctionName << " Warning: trying to create Direct3D9 device from a different thread than the hwnd was created from!");
 
@@ -3313,11 +3311,7 @@ HRESULT m_IDirectDrawX::CreateD9Device(char* FunctionName)
 				hr = CreateDeviceV9(d3d9Object, D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, hWnd, BehaviorFlags, &presParams, &d3d9Device);
 			}
 
-			if (WndDataStruct)
-			{
-				WndDataStruct->IsCreatingD3d9 = false;
-				WndDataStruct->IsExclusiveMode = ExclusiveMode;
-			}
+			if (WndDataStruct) WndDataStruct->IsCreatingD3d9 = false;
 		}
 
 		if (FAILED(hr))

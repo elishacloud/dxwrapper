@@ -1,7 +1,5 @@
 #pragma once
 
-#include "Utils\Utils.h"
-
 static constexpr size_t MAX_CLIP_PLANES = 6;
 
 struct DEVICEDETAILS
@@ -109,12 +107,6 @@ public:
 		if (WasGammaSet)
 		{
 			Utils::ResetGamma();
-		}
-
-		// Remove WndProc after releasing d3d9 device
-		if (EnableWndProcHook)
-		{
-			WndProc::RemoveWndProc(SHARED.DeviceWindow);
 		}
 	}
 

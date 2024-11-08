@@ -15,7 +15,7 @@
 */
 
 #include "d3d9.h"
-#include "Utils\Utils.h"
+#include "GDI\WndProc.h"
 
 // WndProc hook
 bool EnableWndProcHook = false;
@@ -230,12 +230,6 @@ HRESULT m_IDirect3D9Ex::CreateDeviceT(D3DPRESENT_PARAMETERS& d3dpp, bool& MultiS
 	// Setup presentation parameters
 	CopyMemory(&d3dpp, pPresentationParameters, sizeof(D3DPRESENT_PARAMETERS));
 	UpdatePresentParameter(&d3dpp, hFocusWindow, DeviceDetails, ForceFullscreen, true);
-
-	// Add WndProc before creating d3d9 device
-	if (EnableWndProcHook)
-	{
-		WndProc::AddWndProc(DeviceDetails.DeviceWindow, false);
-	}
 
 	// Check for AntiAliasing
 	if (Config.AntiAliasing != 0)
@@ -473,6 +467,14 @@ void UpdatePresentParameter(D3DPRESENT_PARAMETERS* pPresentationParameters, HWND
 	if (!pPresentationParameters)
 	{
 		return;
+	}
+
+	// Hook WndProc before creating device
+	WndProc::DATASTRUCT* WndDataStruct = WndProc::AddWndProc(hFocusWindow ? hFocusWindow : pPresentationParameters->hDeviceWindow);
+	if (WndDataStruct)
+	{
+		WndDataStruct->IsDirect3D9 = true;
+		WndDataStruct->IsExclusiveMode = !pPresentationParameters->Windowed;
 	}
 
 	// Set vsync

@@ -16,9 +16,10 @@
 
 #define WIN32_LEAN_AND_MEAN
 #include <Windows.h>
-#include "ddraw\ddrawExternal.h"
 #include "GDI.h"
+#include "GDI\WndProc.h"
 #include "Utils\Utils.h"
+#include "ddraw\ddrawExternal.h"
 #include "Settings\Settings.h"
 #include "Logging\Logging.h"
 
