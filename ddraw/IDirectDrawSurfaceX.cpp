@@ -4409,11 +4409,10 @@ HRESULT m_IDirectDrawSurfaceX::CreateD9Surface()
 	// Get texture format
 	surface.Format = GetDisplayFormat(surfaceDesc2.ddpfPixelFormat);
 	surface.BitCount = GetBitCount(surface.Format);
-	SurfaceRequiresEmulation = ((surface.Format == D3DFMT_A8B8G8R8 || surface.Format == D3DFMT_X8B8G8R8 || surface.Format == D3DFMT_B8G8R8 || surface.Format == D3DFMT_R8G8B8 ||
-		Config.DdrawEmulateSurface || (Config.DdrawRemoveScanlines && IsPrimaryOrBackBuffer()) || ShouldEmulate == SC_FORCE_EMULATED) &&
-			!IsDepthStencil() && !(surface.Format & 0xFF000000 /*FOURCC or D3DFMT_DXTx*/) && !surface.UsingSurfaceMemory);
-	const bool IsSurfaceEmulated = (SurfaceRequiresEmulation || (IsPrimaryOrBackBuffer() && (Config.DdrawWriteToGDI || Config.DdrawReadFromGDI) && !Using3D));
-	DCRequiresEmulation = (surface.Format != D3DFMT_R5G6B5 && surface.Format != D3DFMT_X1R5G5B5 && surface.Format != D3DFMT_R8G8B8 && surface.Format != D3DFMT_X8R8G8B8);
+	SurfaceRequiresEmulation = (CanUseEmulation() && (Config.DdrawEmulateSurface || ShouldEmulate == SC_FORCE_EMULATED ||
+		surface.Format == D3DFMT_A8B8G8R8 || surface.Format == D3DFMT_X8B8G8R8 || surface.Format == D3DFMT_B8G8R8 || surface.Format == D3DFMT_R8G8B8 ||		
+		(IsPrimaryOrBackBuffer() && !Using3D && (Config.DdrawWriteToGDI || Config.DdrawReadFromGDI || Config.DdrawRemoveScanlines))));
+	DCRequiresEmulation = (CanUseEmulation() && surface.Format != D3DFMT_R5G6B5 && surface.Format != D3DFMT_X1R5G5B5 && surface.Format != D3DFMT_R8G8B8 && surface.Format != D3DFMT_X8R8G8B8);
 	const D3DFORMAT Format = ((surfaceDesc2.ddsCaps.dwCaps2 & DDSCAPS2_NOTUSERLOCKABLE) && surface.Format == D3DFMT_D16_LOCKABLE) ? D3DFMT_D16 : ConvertSurfaceFormat(surface.Format);
 
 	// Check if surface should be a texture
@@ -4564,7 +4563,7 @@ HRESULT m_IDirectDrawSurfaceX::CreateD9Surface()
 
 	// Create emulated surface using device context for creation
 	bool EmuSurfaceCreated = false;
-	if ((IsSurfaceEmulated || IsUsingEmulation()) && !DoesDCMatch(surface.emu))
+	if ((SurfaceRequiresEmulation || IsUsingEmulation()) && !DoesDCMatch(surface.emu))
 	{
 		EmuSurfaceCreated = true;
 		CreateDCSurface();
@@ -4775,7 +4774,7 @@ HRESULT m_IDirectDrawSurfaceX::CreateD9Surface()
 	}
 
 	// Delete emulatd surface if not needed
-	if (!IsSurfaceEmulated && IsUsingEmulation())
+	if (!SurfaceRequiresEmulation && IsUsingEmulation())
 	{
 		ReleaseDCSurface();
 	}
@@ -4963,7 +4962,7 @@ HRESULT m_IDirectDrawSurfaceX::CreateDCSurface()
 	}
 	else
 	{
-		LOG_LIMIT(100, __FUNCTION__ << " Error: failed to set bmi colors! " << surface.BitCount);
+		LOG_LIMIT(100, __FUNCTION__ << " Error: failed to set bmi colors! " << surface.Format << " " << surface.BitCount);
 		DeleteEmulatedMemory(&surface.emu);
 		return DDERR_GENERIC;
 	}
