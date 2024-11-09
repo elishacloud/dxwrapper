@@ -278,10 +278,10 @@ private:
 	void EndWriteSyncSurfaces(LPRECT lpDestRect);
 
 	// Surface information functions
-	inline bool IsSurfaceLocked() { return (IsLocked || IsLocking); }
+	inline bool IsSurfaceLocked(bool CheckLocking = true) { return (IsLocked || (CheckLocking && IsLocking)); }
 	inline bool IsSurfaceBlitting() { return (IsInBlt || IsInBltBatch); }
-	inline bool IsSurfaceInDC() { return (IsInDC || IsPreparingDC); }
-	inline bool IsSurfaceBusy() { return (IsSurfaceBlitting() || IsSurfaceLocked() || IsSurfaceInDC()); }
+	inline bool IsSurfaceInDC(bool CheckGettingDC = true) { return (IsInDC || (CheckGettingDC && IsPreparingDC)); }
+	inline bool IsSurfaceBusy(bool CheckLocking = true, bool CheckGettingDC = true) { return (IsSurfaceBlitting() || IsSurfaceLocked(CheckLocking) || IsSurfaceInDC(CheckGettingDC)); }
 	inline bool IsD9UsingVideoMemory() { return ((surface.Surface || surface.Texture) ? surface.Pool == D3DPOOL_DEFAULT : false); }
 	inline bool IsUsingShadowSurface() { return (surface.UsingShadowSurface && surface.Shadow); }
 	inline bool IsLockedFromOtherThread() { return (IsSurfaceBlitting() || IsSurfaceLocked()) && LockedWithID && LockedWithID != GetCurrentThreadId(); }
