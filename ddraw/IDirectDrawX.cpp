@@ -1708,7 +1708,7 @@ HRESULT m_IDirectDrawX::SetCooperativeLevel(HWND hWnd, DWORD dwFlags, DWORD Dire
 		}
 
 		// Check if handle is valid
-		if (IsWindow(DisplayMode.hWnd) && (DisplayMode.hWnd == hWnd || (!hWnd && (dwFlags & DDSCL_FPUPRESERVE))))
+		if (IsWindow(DisplayMode.hWnd) && DisplayMode.hWnd == hWnd)
 		{
 			// Set exclusive mode resolution
 			if (ExclusiveMode && DisplayMode.Width && DisplayMode.Height && DisplayMode.BPP)

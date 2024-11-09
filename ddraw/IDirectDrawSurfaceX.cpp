@@ -2375,7 +2375,7 @@ HRESULT m_IDirectDrawSurfaceX::GetSurfaceDesc(LPDDSURFACEDESC lpDDSurfaceDesc, D
 		DDSURFACEDESC2 Desc2 = {};
 		Desc2.dwSize = sizeof(DDSURFACEDESC2);
 
-		HRESULT hr = hr = GetSurfaceDesc2(&Desc2, MipMapLevel, DirectXVersion);
+		HRESULT hr = GetSurfaceDesc2(&Desc2, MipMapLevel, DirectXVersion);
 
 		// Convert back to LPDDSURFACEDESC
 		if (SUCCEEDED(hr))
@@ -2659,6 +2659,10 @@ HRESULT m_IDirectDrawSurfaceX::Lock2(LPRECT lpDestRect, LPDDSURFACEDESC2 lpDDSur
 
 		// Prepare surfaceDesc
 		GetSurfaceDesc2(lpDDSurfaceDesc2, MipMapLevel, DirectXVersion);
+		if (!surface.UsingSurfaceMemory && !IsUsingEmulation())
+		{
+			lpDDSurfaceDesc2->lpSurface = dummySurface.data();
+		}
 		if (IsUsingEmulation())
 		{
 			D3DLOCKED_RECT LockedRect = {};
@@ -2718,7 +2722,7 @@ HRESULT m_IDirectDrawSurfaceX::Lock2(LPRECT lpDestRect, LPDDSURFACEDESC2 lpDDSur
 		const bool LockWait = (((dwFlags & DDLOCK_WAIT) || DirectXVersion == 7) && (dwFlags & DDLOCK_DONOTWAIT) == 0);
 
 		// Convert flags to d3d9
-		DWORD Flags = (dwFlags & (D3DLOCK_READONLY | D3DLOCK_NOOVERWRITE | (!IsPrimarySurface() ? D3DLOCK_NOSYSLOCK : 0))) |
+		DWORD Flags = (dwFlags & (D3DLOCK_READONLY | D3DLOCK_NOOVERWRITE | (!IsRenderTarget() ? D3DLOCK_NOSYSLOCK : 0))) |
 			(!LockWait ? D3DLOCK_DONOTWAIT : 0) |
 			((dwFlags & DDLOCK_NODIRTYUPDATE) ? D3DLOCK_NO_DIRTY_UPDATE : 0);
 
@@ -2733,6 +2737,8 @@ HRESULT m_IDirectDrawSurfaceX::Lock2(LPRECT lpDestRect, LPDDSURFACEDESC2 lpDDSur
 #ifdef ENABLE_PROFILING
 		auto startTime = std::chrono::high_resolution_clock::now();
 #endif
+
+		IsLocking = true;
 
 		// Don't use shadow for Lock()
 		// Some games write to surface without locking so we don't want to give them a shadow surface or it could make the shadow surface out of sync
@@ -2894,6 +2900,8 @@ HRESULT m_IDirectDrawSurfaceX::Lock2(LPRECT lpDestRect, LPDDSURFACEDESC2 lpDDSur
 			}
 
 		} while (false);
+
+		IsLocking = false;
 
 		ReleaseLockCriticalSection();
 
@@ -4410,8 +4418,9 @@ HRESULT m_IDirectDrawSurfaceX::CreateD9Surface()
 	surface.Format = GetDisplayFormat(surfaceDesc2.ddpfPixelFormat);
 	surface.BitCount = GetBitCount(surface.Format);
 	SurfaceRequiresEmulation = (CanUseEmulation() && (Config.DdrawEmulateSurface || ShouldEmulate == SC_FORCE_EMULATED ||
-		surface.Format == D3DFMT_A8B8G8R8 || surface.Format == D3DFMT_X8B8G8R8 || surface.Format == D3DFMT_B8G8R8 || surface.Format == D3DFMT_R8G8B8 ||		
-		(IsPrimaryOrBackBuffer() && !Using3D && (Config.DdrawWriteToGDI || Config.DdrawReadFromGDI || Config.DdrawRemoveScanlines))));
+		surface.Format == D3DFMT_A8B8G8R8 || surface.Format == D3DFMT_X8B8G8R8 || surface.Format == D3DFMT_B8G8R8 || surface.Format == D3DFMT_R8G8B8));
+	const bool CreateSurfaceEmulated = (CanUseEmulation() && (SurfaceRequiresEmulation ||
+		(IsPrimaryOrBackBuffer() && (Config.DdrawWriteToGDI || Config.DdrawReadFromGDI || Config.DdrawRemoveScanlines))));
 	DCRequiresEmulation = (CanUseEmulation() && surface.Format != D3DFMT_R5G6B5 && surface.Format != D3DFMT_X1R5G5B5 && surface.Format != D3DFMT_R8G8B8 && surface.Format != D3DFMT_X8R8G8B8);
 	const D3DFORMAT Format = ((surfaceDesc2.ddsCaps.dwCaps2 & DDSCAPS2_NOTUSERLOCKABLE) && surface.Format == D3DFMT_D16_LOCKABLE) ? D3DFMT_D16 : ConvertSurfaceFormat(surface.Format);
 
@@ -4510,7 +4519,7 @@ HRESULT m_IDirectDrawSurfaceX::CreateD9Surface()
 		{
 			surface.Type = D3DTYPE_TEXTURE;
 			DWORD MipMapCount = (surfaceDesc2.dwFlags & DDSD_MIPMAPCOUNT) ? surfaceDesc2.dwMipMapCount : 1;
-			DWORD MipMapLevel = (SurfaceRequiresEmulation || !MipMapCount) ? 1 : MipMapCount;
+			DWORD MipMapLevel = (CreateSurfaceEmulated || !MipMapCount) ? 1 : MipMapCount;
 			HRESULT hr_t;
 			do {
 				surface.Usage = Config.DdrawForceMipMapAutoGen && MipMapLevel > 1 ? D3DUSAGE_AUTOGENMIPMAP : 0;
@@ -4563,7 +4572,7 @@ HRESULT m_IDirectDrawSurfaceX::CreateD9Surface()
 
 	// Create emulated surface using device context for creation
 	bool EmuSurfaceCreated = false;
-	if ((SurfaceRequiresEmulation || IsUsingEmulation()) && !DoesDCMatch(surface.emu))
+	if ((CreateSurfaceEmulated || IsUsingEmulation()) && !DoesDCMatch(surface.emu))
 	{
 		EmuSurfaceCreated = true;
 		CreateDCSurface();
@@ -4660,7 +4669,7 @@ HRESULT m_IDirectDrawSurfaceX::CreateD9Surface()
 						LPDIRECT3DSURFACE9 DstSurface = Get3DSurface();
 						if (DstSurface)
 						{
-							D3DXLoadSurfaceFromSurface(DstSurface, nullptr,nullptr,SrcSurface, nullptr,nullptr, D3DX_FILTER_POINT, 0);
+							D3DXLoadSurfaceFromSurface(DstSurface, nullptr, nullptr, SrcSurface, nullptr, nullptr, D3DX_FILTER_POINT, 0);
 						}
 					}
 					SrcSurface->Release();
@@ -4774,7 +4783,7 @@ HRESULT m_IDirectDrawSurfaceX::CreateD9Surface()
 	}
 
 	// Delete emulatd surface if not needed
-	if (!SurfaceRequiresEmulation && IsUsingEmulation())
+	if (!CreateSurfaceEmulated && IsUsingEmulation())
 	{
 		ReleaseDCSurface();
 	}

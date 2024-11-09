@@ -177,6 +177,7 @@ private:
 	bool IsInBlt = false;
 	bool IsInBltBatch = false;
 	bool IsLocked = false;
+	bool IsLocking = false;
 	bool WasBitAlignLocked = false;
 	DWORD LockedWithID = 0;								// Thread ID of the current lock
 	LASTLOCK LastLock;									// Remember the last lock info
@@ -276,7 +277,7 @@ private:
 	void EndWriteSyncSurfaces(LPRECT lpDestRect);
 
 	// Surface information functions
-	inline bool IsSurfaceLocked() { return IsLocked; }
+	inline bool IsSurfaceLocked() { return (IsLocked || IsLocking); }
 	inline bool IsSurfaceBlitting() { return (IsInBlt || IsInBltBatch); }
 	inline bool IsSurfaceInDC() { return IsInDC; }
 	inline bool IsSurfaceBusy() { return (IsSurfaceBlitting() || IsSurfaceLocked() || IsSurfaceInDC()); }
