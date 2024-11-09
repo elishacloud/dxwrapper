@@ -173,6 +173,7 @@ private:
 	bool IsInFlip = false;
 	bool PresentOnUnlock = false;
 	bool IsInDC = false;
+	bool IsPreparingDC = false;
 	HDC LastDC = nullptr;
 	bool IsInBlt = false;
 	bool IsInBltBatch = false;
@@ -279,7 +280,7 @@ private:
 	// Surface information functions
 	inline bool IsSurfaceLocked() { return (IsLocked || IsLocking); }
 	inline bool IsSurfaceBlitting() { return (IsInBlt || IsInBltBatch); }
-	inline bool IsSurfaceInDC() { return IsInDC; }
+	inline bool IsSurfaceInDC() { return (IsInDC || IsPreparingDC); }
 	inline bool IsSurfaceBusy() { return (IsSurfaceBlitting() || IsSurfaceLocked() || IsSurfaceInDC()); }
 	inline bool IsD9UsingVideoMemory() { return ((surface.Surface || surface.Texture) ? surface.Pool == D3DPOOL_DEFAULT : false); }
 	inline bool IsUsingShadowSurface() { return (surface.UsingShadowSurface && surface.Shadow); }

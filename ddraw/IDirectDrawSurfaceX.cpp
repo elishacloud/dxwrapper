@@ -2118,6 +2118,8 @@ HRESULT m_IDirectDrawSurfaceX::GetDC(HDC FAR* lphDC, DWORD MipMapLevel)
 		auto startTime = std::chrono::high_resolution_clock::now();
 #endif
 
+		IsPreparingDC = true;
+
 		// Check if render target should use shadow
 		if (surface.Type == D3DTYPE_RENDERTARGET && !IsUsingShadowSurface())
 		{
@@ -2184,6 +2186,8 @@ HRESULT m_IDirectDrawSurfaceX::GetDC(HDC FAR* lphDC, DWORD MipMapLevel)
 			LastDC = *lphDC;
 
 		} while (false);
+
+		IsPreparingDC = false;
 
 		ReleaseLockCriticalSection();
 
@@ -2722,7 +2726,8 @@ HRESULT m_IDirectDrawSurfaceX::Lock2(LPRECT lpDestRect, LPDDSURFACEDESC2 lpDDSur
 		const bool LockWait = (((dwFlags & DDLOCK_WAIT) || DirectXVersion == 7) && (dwFlags & DDLOCK_DONOTWAIT) == 0);
 
 		// Convert flags to d3d9
-		DWORD Flags = (dwFlags & (D3DLOCK_READONLY | D3DLOCK_NOOVERWRITE | (!IsRenderTarget() ? D3DLOCK_NOSYSLOCK : 0))) |
+		DWORD Flags = (dwFlags & (D3DLOCK_READONLY | D3DLOCK_NOOVERWRITE)) |
+			((dwFlags & D3DLOCK_NOSYSLOCK) || Config.SingleProcAffinity || ddrawParent->GetHwndThreadID() == GetCurrentThreadId() ? D3DLOCK_NOSYSLOCK : 0) |
 			(!LockWait ? D3DLOCK_DONOTWAIT : 0) |
 			((dwFlags & DDLOCK_NODIRTYUPDATE) ? D3DLOCK_NO_DIRTY_UPDATE : 0);
 
@@ -2929,17 +2934,32 @@ inline HRESULT m_IDirectDrawSurfaceX::LockD3d9Surface(D3DLOCKED_RECT* pLockedRec
 	// Lock shadow surface
 	else if (IsUsingShadowSurface())
 	{
-		return surface.Shadow->LockRect(pLockedRect, pRect, Flags);
+		HRESULT hr = surface.Shadow->LockRect(pLockedRect, pRect, Flags);
+		if (FAILED(hr) && (Flags & D3DLOCK_NOSYSLOCK))
+		{
+			hr = surface.Shadow->LockRect(pLockedRect, pRect, Flags & ~D3DLOCK_NOSYSLOCK);
+		}
+		return hr;
 	}
 	// Lock 3D surface
 	else if (surface.Surface)
 	{
-		return surface.Surface->LockRect(pLockedRect, pRect, Flags);
+		HRESULT hr = surface.Surface->LockRect(pLockedRect, pRect, Flags);
+		if (FAILED(hr) && (Flags & D3DLOCK_NOSYSLOCK))
+		{
+			hr = surface.Surface->LockRect(pLockedRect, pRect, Flags & ~D3DLOCK_NOSYSLOCK);
+		}
+		return hr;
 	}
 	// Lock surface texture
 	else if (surface.Texture)
 	{
-		return surface.Texture->LockRect(GetD3d9MipMapLevel(MipMapLevel), pLockedRect, pRect, Flags);
+		HRESULT hr = surface.Texture->LockRect(GetD3d9MipMapLevel(MipMapLevel), pLockedRect, pRect, Flags);
+		if (FAILED(hr) && (Flags & D3DLOCK_NOSYSLOCK))
+		{
+			hr = surface.Texture->LockRect(GetD3d9MipMapLevel(MipMapLevel), pLockedRect, pRect, Flags & ~D3DLOCK_NOSYSLOCK);
+		}
+		return hr;
 	}
 
 	return DDERR_GENERIC;
@@ -5287,6 +5307,7 @@ void m_IDirectDrawSurfaceX::ReleaseD9Surface(bool BackupData, bool ResetSurface)
 		}
 		IsInDC = false;
 	}
+	IsPreparingDC = false;
 
 	// Restore DC
 	UnsetEmulationGameDC();
@@ -5297,7 +5318,10 @@ void m_IDirectDrawSurfaceX::ReleaseD9Surface(bool BackupData, bool ResetSurface)
 		UnLockD3d9Surface(0);
 		IsLocked = false;
 	}
+	IsLocking = false;
 	LockedWithID = 0;
+	IsInBlt = false;
+	IsInBltBatch = false;
 
 	// Backup d3d9 surface texture
 	if (BackupData)
@@ -5311,7 +5335,7 @@ void m_IDirectDrawSurfaceX::ReleaseD9Surface(bool BackupData, bool ResetSurface)
 				for (UINT Level = 0; Level < ((IsMipMapAutogen() || !MaxMipMapLevel) ? 1 : MaxMipMapLevel); Level++)
 				{
 					D3DLOCKED_RECT LockRect = {};
-					if (FAILED(LockD3d9Surface(&LockRect, nullptr, D3DLOCK_READONLY, Level)))
+					if (FAILED(LockD3d9Surface(&LockRect, nullptr, D3DLOCK_READONLY | D3DLOCK_NOSYSLOCK, Level)))
 					{
 						LOG_LIMIT(100, __FUNCTION__ << " Error: failed to backup surface data!");
 						break;
@@ -6194,7 +6218,7 @@ HRESULT m_IDirectDrawSurfaceX::ColorFill(RECT* pRect, D3DCOLOR dwFillColor, DWOR
 		// Check if surface is not locked then lock it
 		D3DLOCKED_RECT DestLockRect = {};
 		if (FAILED(IsUsingEmulation() ? LockEmulatedSurface(&DestLockRect, &DestRect) :
-			LockD3d9Surface(&DestLockRect, &DestRect, 0, MipMapLevel)))
+			LockD3d9Surface(&DestLockRect, &DestRect, D3DLOCK_NOSYSLOCK, MipMapLevel)))
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Error: could not lock destination surface " << DestRect);
 			return (IsSurfaceLocked()) ? DDERR_SURFACEBUSY : DDERR_GENERIC;
@@ -6592,13 +6616,15 @@ HRESULT m_IDirectDrawSurfaceX::CopySurface(m_IDirectDrawSurfaceX* pSourceSurface
 				{
 					do {
 						D3DLOCKED_RECT SrcLockedRect = {};
-						if (FAILED(pSourceSurfaceD9->LockRect(&SrcLockedRect, &SrcRect, D3DLOCK_READONLY)))
+						if (FAILED(pSourceSurfaceD9->LockRect(&SrcLockedRect, &SrcRect, D3DLOCK_READONLY | D3DLOCK_NOSYSLOCK)) &&
+							FAILED(pSourceSurfaceD9->LockRect(&SrcLockedRect, &SrcRect, D3DLOCK_READONLY)))
 						{
 							LOG_LIMIT(100, __FUNCTION__ << " Error: failed to lock source surface for update!");
 							break;
 						}
 						D3DLOCKED_RECT DestLockedRect = {};
-						if (FAILED(surface.Shadow->LockRect(&DestLockedRect, &DestRect, 0)))
+						if (FAILED(surface.Shadow->LockRect(&DestLockedRect, &DestRect, D3DLOCK_NOSYSLOCK)) &&
+							FAILED(surface.Shadow->LockRect(&DestLockedRect, &DestRect, 0)))
 						{
 							LOG_LIMIT(100, __FUNCTION__ << " Error: failed to lock shadow surface for update!");
 							pSourceSurfaceD9->UnlockRect();
@@ -6799,7 +6825,7 @@ HRESULT m_IDirectDrawSurfaceX::CopySurface(m_IDirectDrawSurfaceX* pSourceSurface
 		// Check if source surface is not locked then lock it
 		D3DLOCKED_RECT SrcLockRect = {};
 		if (FAILED(pSourceSurface->IsUsingEmulation() ? pSourceSurface->LockEmulatedSurface(&SrcLockRect, &SrcRect) :
-			pSourceSurface->LockD3d9Surface(&SrcLockRect, &SrcRect, D3DLOCK_READONLY, SrcMipMapLevel)) || !SrcLockRect.pBits)
+			pSourceSurface->LockD3d9Surface(&SrcLockRect, &SrcRect, D3DLOCK_READONLY | D3DLOCK_NOSYSLOCK, SrcMipMapLevel)) || !SrcLockRect.pBits)
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Error: could not lock source surface " << SrcRect);
 			hr = (pSourceSurface->IsSurfaceBusy()) ? DDERR_SURFACEBUSY : DDERR_GENERIC;
@@ -6851,7 +6877,7 @@ HRESULT m_IDirectDrawSurfaceX::CopySurface(m_IDirectDrawSurfaceX* pSourceSurface
 
 		// Check if destination surface is not locked then lock it
 		if (FAILED(IsUsingEmulation() ? LockEmulatedSurface(&DestLockRect, &DestRect) :
-			LockD3d9Surface(&DestLockRect, &DestRect, 0, MipMapLevel)) || !DestLockRect.pBits)
+			LockD3d9Surface(&DestLockRect, &DestRect, D3DLOCK_NOSYSLOCK, MipMapLevel)) || !DestLockRect.pBits)
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Error: could not lock destination surface " << DestRect);
 			hr = (IsSurfaceLocked()) ? DDERR_SURFACEBUSY : DDERR_GENERIC;
@@ -7088,7 +7114,7 @@ HRESULT m_IDirectDrawSurfaceX::CopyToEmulatedSurface(LPRECT lpDestRect)
 
 	// Get lock for real surface
 	D3DLOCKED_RECT SrcLockRect = {};
-	if (FAILED(LockD3d9Surface(&SrcLockRect, &DestRect, D3DLOCK_READONLY, 0)))
+	if (FAILED(LockD3d9Surface(&SrcLockRect, &DestRect, D3DLOCK_READONLY | D3DLOCK_NOSYSLOCK, 0)))
 	{
 		LOG_LIMIT(100, __FUNCTION__ << " Error: could not lock destination surface " << DestRect);
 		return (IsSurfaceLocked()) ? DDERR_SURFACEBUSY : DDERR_GENERIC;

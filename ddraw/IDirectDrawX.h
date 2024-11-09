@@ -200,6 +200,7 @@ public:
 
 	// Device information functions
 	HWND GetHwnd();
+	DWORD GetHwndThreadID();
 	HDC GetDC();
 	DWORD GetDisplayBPP(HWND hWnd);
 	bool IsExclusiveMode();
