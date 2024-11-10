@@ -2121,7 +2121,7 @@ HRESULT m_IDirectDrawSurfaceX::GetDC(HDC FAR* lphDC, DWORD MipMapLevel)
 		IsPreparingDC = true;
 
 		// Check if render target should use shadow
-		if (surface.Type == D3DTYPE_RENDERTARGET && !IsUsingShadowSurface())
+		if (surface.Usage == D3DUSAGE_RENDERTARGET && !IsUsingShadowSurface())
 		{
 			SetRenderTargetShadow();
 		}
@@ -2727,7 +2727,7 @@ HRESULT m_IDirectDrawSurfaceX::Lock2(LPRECT lpDestRect, LPDDSURFACEDESC2 lpDDSur
 
 		// Convert flags to d3d9
 		DWORD Flags = (dwFlags & (D3DLOCK_READONLY | D3DLOCK_NOOVERWRITE)) |
-			((dwFlags & D3DLOCK_NOSYSLOCK) || Config.SingleProcAffinity || ddrawParent->GetHwndThreadID() == GetCurrentThreadId() ? D3DLOCK_NOSYSLOCK : 0) |
+			(((dwFlags & D3DLOCK_NOSYSLOCK) || Config.SingleProcAffinity || ddrawParent->GetHwndThreadID() == GetCurrentThreadId()) ? D3DLOCK_NOSYSLOCK : 0) |
 			(!LockWait ? D3DLOCK_DONOTWAIT : 0) |
 			((dwFlags & DDLOCK_NODIRTYUPDATE) ? D3DLOCK_NO_DIRTY_UPDATE : 0);
 
@@ -2745,9 +2745,20 @@ HRESULT m_IDirectDrawSurfaceX::Lock2(LPRECT lpDestRect, LPDDSURFACEDESC2 lpDDSur
 
 		IsLocking = true;
 
-		// Don't use shadow for Lock()
-		// Some games write to surface without locking so we don't want to give them a shadow surface or it could make the shadow surface out of sync
-		PrepareRenderTarget();
+		// Check if render target should use shadow
+		if (surface.Usage == D3DUSAGE_RENDERTARGET)
+		{
+			if (surface.Type == D3DTYPE_RENDERTARGET)
+			{
+				// Don't use shadow for Lock()
+				// Some games write to surface without locking so we don't want to give them a shadow surface or it could make the shadow surface out of sync
+				PrepareRenderTarget();
+			}
+			else if (!IsUsingShadowSurface())
+			{
+				SetRenderTargetShadow();
+			}
+		}
 
 		HRESULT hr = DD_OK;
 
@@ -2807,8 +2818,8 @@ HRESULT m_IDirectDrawSurfaceX::Lock2(LPRECT lpDestRect, LPDDSURFACEDESC2 lpDDSur
 				if (FAILED(ret))
 				{
 					LOG_LIMIT(100, __FUNCTION__ << " Error: failed to lock surface." << (surface.Surface ? " Is Surface." : " Is Texture.") <<
-						" Size: " << lpDDSurfaceDesc2->dwWidth << "x" << lpDDSurfaceDesc2->dwHeight << " Format: " << surface.Format <<
-						" Flags: " << Logging::hex(Flags) << " Locked: " << IsSurfaceLocked(false) << " DC: " << IsSurfaceInDC() << " Blt: " << IsSurfaceBlitting() << " hr: " << (D3DERR)ret);
+						" Size: " << lpDDSurfaceDesc2->dwWidth << "x" << lpDDSurfaceDesc2->dwHeight << " Format: " << surface.Format << " Flags: " << Logging::hex(Flags) <<
+						" HasData: " << surface.HasData << " Locked: " << IsSurfaceLocked(false) << " DC: " << IsSurfaceInDC() << " Blt: " << IsSurfaceBlitting() << " hr: " << (D3DERR)ret);
 					hr = (ret == D3DERR_DEVICELOST || IsLost() == DDERR_SURFACELOST) ? DDERR_SURFACELOST :
 						(IsSurfaceBusy(false, true)) ? DDERR_SURFACEBUSY :
 						(ret == DDERR_WASSTILLDRAWING || (!LockWait && IsPresentRunning)) ? DDERR_WASSTILLDRAWING : DDERR_GENERIC;
@@ -4415,7 +4426,7 @@ HRESULT m_IDirectDrawSurfaceX::CreateD9AuxiliarySurfaces()
 HRESULT m_IDirectDrawSurfaceX::CreateD9Surface()
 {
 	// Don't recreate surface while it is locked
-	if ((surface.Surface || surface.Texture) && IsSurfaceBusy())
+	if ((surface.Surface || surface.Texture) && IsSurfaceBusy(false, false))
 	{
 		LOG_LIMIT(100, __FUNCTION__ << " Error: surface is busy! Locked: " << IsSurfaceLocked() << " DC: " << IsSurfaceInDC() << " Blt: " << IsSurfaceBlitting() << " ThreadID " << LockedWithID);
 		return DDERR_GENERIC;
@@ -4438,11 +4449,12 @@ HRESULT m_IDirectDrawSurfaceX::CreateD9Surface()
 	// Get texture format
 	surface.Format = GetDisplayFormat(surfaceDesc2.ddpfPixelFormat);
 	surface.BitCount = GetBitCount(surface.Format);
-	SurfaceRequiresEmulation = (CanUseEmulation() && (Config.DdrawEmulateSurface || ShouldEmulate == SC_FORCE_EMULATED ||
+	const bool CanUseEmulation = (!IsDepthStencil() && !(surface.Format & 0xFF000000 /*FOURCC or D3DFMT_DXTx*/) && !surface.UsingSurfaceMemory);
+	SurfaceRequiresEmulation = (CanUseEmulation && (Config.DdrawEmulateSurface || ShouldEmulate == SC_FORCE_EMULATED ||
 		surface.Format == D3DFMT_A8B8G8R8 || surface.Format == D3DFMT_X8B8G8R8 || surface.Format == D3DFMT_B8G8R8 || surface.Format == D3DFMT_R8G8B8));
-	const bool CreateSurfaceEmulated = (CanUseEmulation() && (SurfaceRequiresEmulation ||
+	const bool CreateSurfaceEmulated = (CanUseEmulation && (SurfaceRequiresEmulation ||
 		(IsPrimaryOrBackBuffer() && (Config.DdrawWriteToGDI || Config.DdrawReadFromGDI || Config.DdrawRemoveScanlines))));
-	DCRequiresEmulation = (CanUseEmulation() && surface.Format != D3DFMT_R5G6B5 && surface.Format != D3DFMT_X1R5G5B5 && surface.Format != D3DFMT_R8G8B8 && surface.Format != D3DFMT_X8R8G8B8);
+	DCRequiresEmulation = (CanUseEmulation && surface.Format != D3DFMT_R5G6B5 && surface.Format != D3DFMT_X1R5G5B5 && surface.Format != D3DFMT_R8G8B8 && surface.Format != D3DFMT_X8R8G8B8);
 	const D3DFORMAT Format = ((surfaceDesc2.ddsCaps.dwCaps2 & DDSCAPS2_NOTUSERLOCKABLE) && surface.Format == D3DFMT_D16_LOCKABLE) ? D3DFMT_D16 : ConvertSurfaceFormat(surface.Format);
 
 	// Check if surface should be a texture
@@ -6556,8 +6568,8 @@ HRESULT m_IDirectDrawSurfaceX::CopySurface(m_IDirectDrawSurfaceX* pSourceSurface
 		// Use StretchRect for video memory to prevent copying out of video memory
 		if (!IsUsingEmulation() && !IsUsingShadowSurface() && !pSourceSurface->IsUsingShadowSurface() &&
 			(pSourceSurface->surface.Pool == D3DPOOL_DEFAULT && surface.Pool == D3DPOOL_DEFAULT) &&
-			(pSourceSurface->surface.Type == surface.Type || (pSourceSurface->surface.Type == D3DTYPE_OFFPLAINSURFACE && surface.Type == D3DTYPE_RENDERTARGET)) &&
-			(!IsStretchRect || (this != pSourceSurface && !ISDXTEX(SrcFormat) && !ISDXTEX(DestFormat) && surface.Type == D3DTYPE_RENDERTARGET)) &&
+			(pSourceSurface->surface.Type == surface.Type || (pSourceSurface->surface.Type == D3DTYPE_OFFPLAINSURFACE && surface.Usage == D3DUSAGE_RENDERTARGET)) &&
+			(!IsStretchRect || (this != pSourceSurface && !ISDXTEX(SrcFormat) && !ISDXTEX(DestFormat) && surface.Usage == D3DUSAGE_RENDERTARGET)) &&
 			(surface.Type != D3DTYPE_DEPTHSTENCIL || !ddrawParent->IsInScene()) &&
 			(surface.Type != D3DTYPE_DEPTHSTENCIL || (surface.Type == D3DTYPE_DEPTHSTENCIL &&
 				!SrcRect.left && SrcRect.left == SrcRect.top && SrcRect.top == DestRect.left && DestRect.left == DestRect.top && DestRect.top)) &&
@@ -6667,7 +6679,7 @@ HRESULT m_IDirectDrawSurfaceX::CopySurface(m_IDirectDrawSurfaceX* pSourceSurface
 		}
 
 		// Check if render target should use shadow
-		if (surface.Type == D3DTYPE_RENDERTARGET && !IsUsingShadowSurface())
+		if (surface.Usage == D3DUSAGE_RENDERTARGET && !IsUsingShadowSurface())
 		{
 			SetRenderTargetShadow();
 		}
