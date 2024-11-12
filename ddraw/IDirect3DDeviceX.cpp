@@ -486,6 +486,7 @@ HRESULT m_IDirect3DDeviceX::Load(LPDIRECTDRAWSURFACE7 lpDestTex, LPPOINT lpDestP
 
 				if ((Desc2.dwFlags & (DDSD_WIDTH | DDSD_HEIGHT)) != (DDSD_WIDTH | DDSD_HEIGHT))
 				{
+					LOG_LIMIT(100, __FUNCTION__ << " Error: rect size doesn't match!");
 					return DDERR_GENERIC;
 				}
 

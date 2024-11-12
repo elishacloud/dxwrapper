@@ -262,7 +262,7 @@ HRESULT m_IDirect3DTextureX::Load(LPDIRECT3DTEXTURE2 lpD3DTexture2)
 
 	if (!ProxyInterface)
 	{
-		if (lpD3DTexture2)
+		if (!lpD3DTexture2)
 		{
 			return DDERR_INVALIDPARAMS;
 		}
@@ -290,6 +290,7 @@ HRESULT m_IDirect3DTextureX::Load(LPDIRECT3DTEXTURE2 lpD3DTexture2)
 
 		if (pSrcTextureX == this)
 		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: source texture is the same!");
 			return D3D_OK;
 		}
 
@@ -302,6 +303,7 @@ HRESULT m_IDirect3DTextureX::Load(LPDIRECT3DTEXTURE2 lpD3DTexture2)
 
 		if (pSrcSurfaceX == DDrawSurface)
 		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: source surface is the same!");
 			return D3D_OK;
 		}
 
