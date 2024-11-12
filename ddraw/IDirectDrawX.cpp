@@ -4494,7 +4494,47 @@ HRESULT m_IDirectDrawX::DrawPrimarySurface()
 		d3d9Device->GetViewport(&DrawStates.ViewPort);
 		D3DSURFACE_DESC Desc = {};
 		displayTexture->GetLevelDesc(0, &Desc);
-		D3DVIEWPORT9 ViewPort = { 0, 0, Desc.Width, Desc.Height, 0.0f, 1.0f };
+		D3DVIEWPORT9 ViewPort = { 0, 0, presParams.BackBufferWidth, presParams.BackBufferHeight, 0.0f, 1.0f };
+
+		// Calculate width and height with original aspect ratio
+		DWORD DisplayBufferWidth = presParams.BackBufferWidth;
+		DWORD DisplayBufferHeight = presParams.BackBufferHeight;
+		DWORD TexWidth = Desc.Width;
+		DWORD TexHeight = Desc.Height;
+		if (Config.DdrawIntegerScalingClamp)
+		{
+			DWORD xScaleRatio = DisplayBufferWidth / TexWidth;
+			DWORD yScaleRatio = DisplayBufferHeight / TexHeight;
+
+			if (Config.DdrawMaintainAspectRatio)
+			{
+				xScaleRatio = min(xScaleRatio, yScaleRatio);
+				yScaleRatio = min(xScaleRatio, yScaleRatio);
+			}
+
+			ViewPort.Width = xScaleRatio * TexWidth;
+			ViewPort.Height = yScaleRatio * TexHeight;
+
+			ViewPort.X = (DisplayBufferWidth - ViewPort.Width) / 2;
+			ViewPort.Y = (DisplayBufferHeight - ViewPort.Height) / 2;
+		}
+		else if (Config.DdrawMaintainAspectRatio)
+		{
+			if (TexWidth * DisplayBufferHeight < TexHeight * DisplayBufferWidth)
+			{
+				// 4:3 displayed on 16:9
+				ViewPort.Width = DisplayBufferHeight * TexWidth / TexHeight;
+			}
+			else
+			{
+				// 16:9 displayed on 4:3
+				ViewPort.Height = DisplayBufferWidth * TexHeight / TexWidth;
+			}
+			ViewPort.X = (DisplayBufferWidth - ViewPort.Width) / 2;
+			ViewPort.Y = (DisplayBufferHeight - ViewPort.Height) / 2;
+		}
+
+		// Set the viewport with the calculated values
 		d3d9Device->SetViewport(&ViewPort);
 
 		// Trasform
