@@ -2845,7 +2845,7 @@ HRESULT m_IDirectDrawSurfaceX::Lock2(LPRECT lpDestRect, LPDDSURFACEDESC2 lpDDSur
 
 			// Pitch for DXT surfaces in DirectDraw is the full surface byte size
 			LockedRect.Pitch =
-				ISDXTEX(surface.Format) ? ((surface.Width + 3) / 4) * ((lpDDSurfaceDesc2->dwHeight + 3) / 4) * (surface.Format == D3DFMT_DXT1 ? 8 : 16) :
+				ISDXTEX(surface.Format) ? GetSurfaceSize(surface.Format, lpDDSurfaceDesc2->dwWidth, lpDDSurfaceDesc2->dwHeight, 0) :
 				(surface.Format == D3DFMT_YV12 || surface.Format == D3DFMT_NV12) ? surface.Width :
 				LockedRect.Pitch;
 			lpDDSurfaceDesc2->lPitch = LockedRect.Pitch;

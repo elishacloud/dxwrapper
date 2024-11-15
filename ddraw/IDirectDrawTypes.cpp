@@ -608,7 +608,7 @@ DWORD GetSurfaceSize(D3DFORMAT Format, DWORD Width, DWORD Height, INT Pitch)
 {
 	if (ISDXTEX(Format))
 	{
-		return ((GetByteAlignedWidth(Width, GetBitCount(Format)) + 3) / 4) * ((Height + 3) / 4) * (Format == D3DFMT_DXT1 ? 8 : 16);
+		return max(1, (GetByteAlignedWidth(Width, GetBitCount(Format)) + 3) / 4) * max(1, (Height + 3) / 4) * (Format == D3DFMT_DXT1 ? 8 : 16);
 	}
 	else if (Format == D3DFMT_YV12 || Format == D3DFMT_NV12)
 	{
