@@ -1035,11 +1035,11 @@ HRESULT m_IDirectDrawX::EnumDisplayModes2(DWORD dwFlags, LPDDSURFACEDESC2 lpDDSu
 					// Set adapter pixel format
 					Desc2.dwFlags |= DDSD_PIXELFORMAT;
 					Desc2.ddpfPixelFormat.dwSize = sizeof(DDPIXELFORMAT);
-					SetDisplayFormat(Desc2.ddpfPixelFormat, DisplayBitCount);
+					D3DFORMAT Format = SetDisplayFormat(Desc2.ddpfPixelFormat, DisplayBitCount);
 
 					// Set pitch
 					Desc2.dwFlags |= DDSD_PITCH;
-					Desc2.lPitch = ComputePitch(GetByteAlignedWidth(d3ddispmode.Width, DisplayBitCount), DisplayBitCount);
+					Desc2.lPitch = ComputePitch(Format, GetByteAlignedWidth(d3ddispmode.Width, DisplayBitCount), DisplayBitCount);
 
 					if (lpEnumModesCallback2(&Desc2, lpContext) == DDENUMRET_CANCEL)
 					{
@@ -1395,7 +1395,7 @@ HRESULT m_IDirectDrawX::GetDisplayMode2(LPDDSURFACEDESC2 lpDDSurfaceDesc2)
 		{
 			lpDDSurfaceDesc2->ddpfPixelFormat = DisplayPixelFormat;
 		}
-		else if (FAILED(SetDisplayFormat(lpDDSurfaceDesc2->ddpfPixelFormat, displayModeBits)))
+		else if (SetDisplayFormat(lpDDSurfaceDesc2->ddpfPixelFormat, displayModeBits))
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Error: Not implemented bit count " << displayModeBits);
 			return DDERR_UNSUPPORTED;

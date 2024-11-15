@@ -2392,85 +2392,78 @@ HRESULT m_IDirectDrawSurfaceX::GetSurfaceDesc2(LPDDSURFACEDESC2 lpDDSurfaceDesc2
 		// Copy surfacedesc to lpDDSurfaceDesc2
 		*lpDDSurfaceDesc2 = surfaceDesc2;
 
-		// Remove surface memory pointer
-		if (!surface.UsingSurfaceMemory)
+		// Handle mipmaps
+		if (MipMapLevel && MipMaps.size())
 		{
-			lpDDSurfaceDesc2->dwFlags &= ~DDSD_LPSURFACE;
+			// Remove a couple of flags
+			lpDDSurfaceDesc2->dwFlags &= ~(DDSD_LPSURFACE | DDSD_PITCH | DDSD_LINEARSIZE);
 			lpDDSurfaceDesc2->lpSurface = nullptr;
-		}
+			lpDDSurfaceDesc2->lPitch = 0;
 
-		// Handle dummy mipmaps
-		if (IsDummyMipMap(MipMapLevel))
-		{
-			DWORD Level = (MipMapLevel & ~DXW_IS_MIPMAP_DUMMY);
-			lpDDSurfaceDesc2->dwFlags &= ~DDSD_LPSURFACE;
-			lpDDSurfaceDesc2->dwFlags |= DDSD_PITCH;
-			DWORD BitCount = surface.BitCount ? surface.BitCount : GetBitCount(lpDDSurfaceDesc2->ddpfPixelFormat);
-			DWORD Width = surface.Width ? surface.Width : GetByteAlignedWidth(lpDDSurfaceDesc2->dwWidth, BitCount);
-			DWORD Height = surface.Height ? surface.Height : GetByteAlignedWidth(lpDDSurfaceDesc2->dwHeight, BitCount);
-			lpDDSurfaceDesc2->dwWidth = max(1, Width >> Level);
-			lpDDSurfaceDesc2->dwHeight = max(1, Height >> Level);
-			lpDDSurfaceDesc2->lpSurface = nullptr;
-			lpDDSurfaceDesc2->lPitch = ComputePitch(lpDDSurfaceDesc2->dwWidth, BitCount);
+			// Handle new v7 flag
 			if (DirectXVersion == 7)
 			{
 				lpDDSurfaceDesc2->ddsCaps.dwCaps2 |= DDSCAPS2_MIPMAPSUBLEVEL;
 			}
-			if (lpDDSurfaceDesc2->dwFlags & DDSD_MIPMAPCOUNT)
-			{
-				lpDDSurfaceDesc2->dwMipMapCount = 1;
-			}
-		}
-		// Handle MipMap sub-level
-		else if (MipMapLevel && MipMaps.size())
-		{
-			// Check for device interface to ensure correct max MipMap level
-			CheckInterface(__FUNCTION__, true, true, false);
 
-			// Remove a couple of flags
-			lpDDSurfaceDesc2->dwFlags &= ~(DDSD_LPSURFACE | DDSD_PITCH);
-			lpDDSurfaceDesc2->lpSurface = nullptr;
+			// Handle dummy mipmaps
+			if (IsDummyMipMap(MipMapLevel))
+			{
+				DWORD Level = (MipMapLevel & ~DXW_IS_MIPMAP_DUMMY);
 
-			// Get surface level desc
-			DWORD Level = min(MipMaps.size(), MipMapLevel) - 1;
-			if ((!MipMaps[Level].dwWidth || !MipMaps[Level].dwHeight) && surface.Texture)
-			{
-				D3DSURFACE_DESC Desc = {};
-				surface.Texture->GetLevelDesc(GetD3d9MipMapLevel(MipMapLevel), &Desc);
-				MipMaps[Level].dwWidth = Desc.Width;
-				MipMaps[Level].dwHeight = Desc.Height;
-			}
-			lpDDSurfaceDesc2->dwWidth = MipMaps[Level].dwWidth;
-			lpDDSurfaceDesc2->dwHeight = MipMaps[Level].dwHeight;
-			if (MipMaps[Level].lPitch)
-			{
-				lpDDSurfaceDesc2->lPitch = MipMaps[Level].lPitch;
-				lpDDSurfaceDesc2->dwFlags |= DDSD_PITCH;
-			}
-			else
-			{
-				DWORD BitCount = surface.BitCount ? surface.BitCount : GetBitCount(lpDDSurfaceDesc2->ddpfPixelFormat);
-				lpDDSurfaceDesc2->lPitch = ComputePitch(lpDDSurfaceDesc2->dwWidth, BitCount);
-				lpDDSurfaceDesc2->dwFlags |= DDSD_PITCH;
-			}
-			if (MipMapLevel != 0 && DirectXVersion == 7)
-			{
-				lpDDSurfaceDesc2->ddsCaps.dwCaps2 |= DDSCAPS2_MIPMAPSUBLEVEL;
-			}
-			lpDDSurfaceDesc2->dwMipMapCount = MaxMipMapLevel + 1 > MipMapLevel ? MaxMipMapLevel + 1 - MipMapLevel : 1;
-		}
-		// Root mipmap or no mipmaps
-		else
-		{
-			// Get lPitch if not set
-			if ((lpDDSurfaceDesc2->dwFlags & (DDSD_WIDTH | DDSD_HEIGHT | DDSD_PIXELFORMAT)) == (DDSD_WIDTH | DDSD_HEIGHT | DDSD_PIXELFORMAT) &&
-				(lpDDSurfaceDesc2->ddpfPixelFormat.dwFlags & DDPF_RGB) && !(lpDDSurfaceDesc2->dwFlags & (DDSD_PITCH | DDSD_LINEARSIZE)))
-			{
+				// Get width and height
 				DWORD BitCount = surface.BitCount ? surface.BitCount : GetBitCount(lpDDSurfaceDesc2->ddpfPixelFormat);
 				DWORD Width = surface.Width ? surface.Width : GetByteAlignedWidth(lpDDSurfaceDesc2->dwWidth, BitCount);
-				lpDDSurfaceDesc2->lPitch = ComputePitch(Width, BitCount);
-				lpDDSurfaceDesc2->dwFlags |= DDSD_PITCH;
+				DWORD Height = surface.Height ? surface.Height : GetByteAlignedWidth(lpDDSurfaceDesc2->dwHeight, BitCount);
+				lpDDSurfaceDesc2->dwWidth = max(1, Width >> Level);
+				lpDDSurfaceDesc2->dwHeight = max(1, Height >> Level);
+
+				// Mipmap count
+				lpDDSurfaceDesc2->dwMipMapCount = 1;
 			}
+			// Handle normal mipmaps
+			else
+			{
+				// Check for device interface to ensure correct max MipMap level
+				CheckInterface(__FUNCTION__, true, true, false);
+
+				// Get width and height
+				DWORD Level = min(MipMaps.size(), MipMapLevel) - 1;
+				if ((!MipMaps[Level].dwWidth || !MipMaps[Level].dwHeight) && surface.Texture)
+				{
+					D3DSURFACE_DESC Desc = {};
+					surface.Texture->GetLevelDesc(GetD3d9MipMapLevel(MipMapLevel), &Desc);
+					MipMaps[Level].dwWidth = Desc.Width;
+					MipMaps[Level].dwHeight = Desc.Height;
+				}
+				lpDDSurfaceDesc2->dwWidth = MipMaps[Level].dwWidth;
+				lpDDSurfaceDesc2->dwHeight = MipMaps[Level].dwHeight;
+
+				// Set pitch
+				if (MipMaps[Level].lPitch)
+				{
+					lpDDSurfaceDesc2->dwFlags |= DDSD_PITCH;
+					lpDDSurfaceDesc2->lPitch = MipMaps[Level].lPitch;
+				}
+
+				// Mipmap count
+				lpDDSurfaceDesc2->dwMipMapCount = MaxMipMapLevel + 1 > MipMapLevel ? MaxMipMapLevel + 1 - MipMapLevel : 1;
+			}
+
+			// Set pitch
+			if (!(lpDDSurfaceDesc2->dwFlags & DDSD_PITCH))
+			{
+				DWORD Pitch = ComputePitch(GetDisplayFormat(lpDDSurfaceDesc2->ddpfPixelFormat), lpDDSurfaceDesc2->dwWidth, lpDDSurfaceDesc2->dwHeight);
+				if (Pitch)
+				{
+					lpDDSurfaceDesc2->dwFlags |= DDSD_PITCH;
+					lpDDSurfaceDesc2->lPitch = Pitch;
+				}
+			}
+		}
+		else if (MipMapLevel)
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Warning: MipMap found with no MipMap list!");
 		}
 
 		// Handle managed texture memory type
@@ -2696,10 +2689,14 @@ HRESULT m_IDirectDrawSurfaceX::Lock2(LPRECT lpDestRect, LPDDSURFACEDESC2 lpDDSur
 		// Handle dummy mipmaps
 		if (IsDummyMipMap(MipMapLevel))
 		{
-			lpDDSurfaceDesc2->dwFlags |= DDSD_LPSURFACE | DDSD_PITCH;
-			lpDDSurfaceDesc2->lPitch = ComputePitch(lpDDSurfaceDesc2->dwWidth, surface.BitCount);
+			lpDDSurfaceDesc2->dwFlags |= DDSD_LPSURFACE;
 			// Add surface size to dummy data address to ensure that each mipmap gets a unique address
 			lpDDSurfaceDesc2->lpSurface = dummySurface.data() + (lpDDSurfaceDesc2->dwWidth * lpDDSurfaceDesc2->dwHeight * surface.BitCount);
+			if (!(lpDDSurfaceDesc2->dwFlags & DDSD_PITCH))
+			{
+				LOG_LIMIT(100, __FUNCTION__ << " Error: no pitch found!");
+				return DDERR_GENERIC;
+			}
 			return DD_OK;
 		}
 
@@ -2845,8 +2842,8 @@ HRESULT m_IDirectDrawSurfaceX::Lock2(LPRECT lpDestRect, LPDDSURFACEDESC2 lpDDSur
 
 			// Pitch for DXT surfaces in DirectDraw is the full surface byte size
 			LockedRect.Pitch =
-				ISDXTEX(surface.Format) ? GetSurfaceSize(surface.Format, lpDDSurfaceDesc2->dwWidth, lpDDSurfaceDesc2->dwHeight, 0) :
-				(surface.Format == D3DFMT_YV12 || surface.Format == D3DFMT_NV12) ? surface.Width :
+				(ISDXTEX(surface.Format) || surface.Format == D3DFMT_YV12 || surface.Format == D3DFMT_NV12) ?
+				ComputePitch(surface.Format, lpDDSurfaceDesc2->dwWidth, lpDDSurfaceDesc2->dwHeight) :
 				LockedRect.Pitch;
 			lpDDSurfaceDesc2->lPitch = LockedRect.Pitch;
 			lpDDSurfaceDesc2->dwFlags |= DDSD_PITCH;
@@ -2869,7 +2866,7 @@ HRESULT m_IDirectDrawSurfaceX::Lock2(LPRECT lpDestRect, LPDDSURFACEDESC2 lpDDSur
 				{
 					LOG_LIMIT(100, __FUNCTION__ << " (" << this << ")" << " Warning: surface pitch does not match locked pitch! Format: " << surface.Format <<
 						" Width: " << surfaceDesc2.dwWidth << " Pitch: " << surfaceDesc2.lPitch << "->" << LockedRect.Pitch <<
-						" Default: " << ComputePitch(surface.Width, surface.BitCount) << " BitCount: " << surface.BitCount);
+						" Default: " << ComputePitch(surface.Format, surface.Width, surface.BitCount) << " BitCount: " << surface.BitCount);
 				}
 				surfaceDesc2.lPitch = LockedRect.Pitch;
 				surfaceDesc2.dwFlags |= DDSD_PITCH;
@@ -4812,7 +4809,7 @@ inline bool m_IDirectDrawSurfaceX::DoesDCMatch(EMUSURFACE* pEmuSurface)
 	// Adjust Width to be byte-aligned
 	DWORD Width = GetByteAlignedWidth(surfaceDesc2.dwWidth, surface.BitCount);
 	DWORD Height = surfaceDesc2.dwHeight;
-	DWORD Pitch = ComputePitch(Width, surface.BitCount);
+	DWORD Pitch = ComputePitch(surface.Format, Width, surface.BitCount);
 
 	if (pEmuSurface->bmi->bmiHeader.biWidth == (LONG)Width &&
 		pEmuSurface->bmi->bmiHeader.biHeight == -(LONG)Height &&
@@ -5009,7 +5006,7 @@ HRESULT m_IDirectDrawSurfaceX::CreateDCSurface()
 	}
 	surface.emu->bmi->bmiHeader.biHeight = -(LONG)Height;
 	surface.emu->Format = surface.Format;
-	surface.emu->Pitch = ComputePitch(surface.emu->bmi->bmiHeader.biWidth, surface.emu->bmi->bmiHeader.biBitCount);
+	surface.emu->Pitch = ComputePitch(surface.Format, surface.emu->bmi->bmiHeader.biWidth, surface.emu->bmi->bmiHeader.biBitCount);
 	surface.emu->Size = Height * surface.emu->Pitch;
 
 	return DD_OK;
@@ -5048,15 +5045,10 @@ void m_IDirectDrawSurfaceX::UpdateAttachedDepthStencil(m_IDirectDrawSurfaceX* lp
 // Update surface description
 void m_IDirectDrawSurfaceX::UpdateSurfaceDesc()
 {
-	// Check for device interface
-	if (FAILED(CheckInterface(__FUNCTION__, false, false, false)))
-	{
-		return;
-	}
-
 	bool IsChanged = false;
-	if ((surfaceDesc2.dwFlags & (DDSD_WIDTH | DDSD_HEIGHT | DDSD_PIXELFORMAT)) != (DDSD_WIDTH | DDSD_HEIGHT | DDSD_PIXELFORMAT) ||
-		((surfaceDesc2.dwFlags & DDSD_REFRESHRATE) && !surfaceDesc2.dwRefreshRate))
+	if (SUCCEEDED(CheckInterface(__FUNCTION__, false, false, false)) &&
+		((surfaceDesc2.dwFlags & (DDSD_WIDTH | DDSD_HEIGHT | DDSD_PIXELFORMAT)) != (DDSD_WIDTH | DDSD_HEIGHT | DDSD_PIXELFORMAT) ||
+		((surfaceDesc2.dwFlags & DDSD_REFRESHRATE) && !surfaceDesc2.dwRefreshRate)))
 	{
 		// Get resolution
 		DWORD Width, Height, RefreshRate, BPP;
@@ -5099,6 +5091,12 @@ void m_IDirectDrawSurfaceX::UpdateSurfaceDesc()
 			}
 		}
 	}
+	// Remove surface memory pointer
+	if (!surface.UsingSurfaceMemory)
+	{
+		surfaceDesc2.dwFlags &= ~DDSD_LPSURFACE;
+		surfaceDesc2.lpSurface = nullptr;
+	}
 	// Unset lPitch
 	if ((((surfaceDesc2.dwFlags & (DDSD_WIDTH | DDSD_HEIGHT | DDSD_PIXELFORMAT)) != (DDSD_WIDTH | DDSD_HEIGHT | DDSD_PIXELFORMAT) ||
 		!(surfaceDesc2.dwFlags & DDSD_PITCH)) && !(surfaceDesc2.dwFlags & DDSD_LINEARSIZE)) || !surfaceDesc2.lPitch)
@@ -5108,12 +5106,14 @@ void m_IDirectDrawSurfaceX::UpdateSurfaceDesc()
 	}
 	// Set lPitch
 	if ((surfaceDesc2.dwFlags & (DDSD_WIDTH | DDSD_HEIGHT | DDSD_PIXELFORMAT)) == (DDSD_WIDTH | DDSD_HEIGHT | DDSD_PIXELFORMAT) &&
-		(surfaceDesc2.ddpfPixelFormat.dwFlags & DDPF_RGB) && !(surfaceDesc2.dwFlags & DDSD_LINEARSIZE) && !(surfaceDesc2.dwFlags & DDSD_PITCH))
+		!(surfaceDesc2.dwFlags & DDSD_LINEARSIZE) && !(surfaceDesc2.dwFlags & DDSD_PITCH))
 	{
-		surfaceDesc2.dwFlags |= DDSD_PITCH;
-		DWORD BitCount = surface.BitCount ? surface.BitCount : GetBitCount(surfaceDesc2.ddpfPixelFormat);
-		DWORD Width = surface.Width ? surface.Width : GetByteAlignedWidth(surfaceDesc2.dwWidth, BitCount);
-		surfaceDesc2.lPitch = surface.UsingSurfaceMemory ? surfaceDesc2.dwWidth * BitCount : ComputePitch(Width, BitCount);
+		DWORD Pitch = ComputePitch(GetDisplayFormat(surfaceDesc2.ddpfPixelFormat), surfaceDesc2.dwWidth, surfaceDesc2.dwHeight);
+		if (Pitch)
+		{
+			surfaceDesc2.dwFlags |= DDSD_PITCH;
+			surfaceDesc2.lPitch = Pitch;
+		}
 	}
 	// Set surface format
 	if (surface.Format == D3DFMT_UNKNOWN && (surfaceDesc2.dwFlags & DDSD_PIXELFORMAT))
@@ -6050,7 +6050,7 @@ inline void m_IDirectDrawSurfaceX::InitSurfaceDesc(DWORD DirectXVersion)
 	}
 
 	// Clear pitch
-	if (!(surfaceDesc2.dwFlags & DDSD_LPSURFACE) && !(surfaceDesc2.dwFlags & DDSD_LINEARSIZE))
+	if (!(surfaceDesc2.dwFlags & DDSD_LPSURFACE))
 	{
 		surfaceDesc2.dwFlags &= ~DDSD_PITCH;
 		surfaceDesc2.lPitch = 0;
@@ -6065,6 +6065,9 @@ inline void m_IDirectDrawSurfaceX::InitSurfaceDesc(DWORD DirectXVersion)
 	}
 	surfaceDesc2.ddsCaps.dwCaps4 = 0x00;
 	surfaceDesc2.dwReserved = 0;
+
+	// Clear unused values
+	ClearUnusedValues(surfaceDesc2);
 }
 
 // Add attached surface to map

@@ -128,13 +128,9 @@ static constexpr DWORD DDS_HEADER_FLAGS_PITCH	= 0x00000008;
 
 static constexpr DWORD MaxPaletteSize = 256;
 
-inline DWORD ComputePitch(DWORD Width, DWORD BitCount)
-{
-	return ((((Width * BitCount) + 31) & ~31) >> 3);	// Use Surface Stride for pitch
-}
-
 void ConvertSurfaceDesc(DDSURFACEDESC &Desc, DDSURFACEDESC2 &Desc2);
 void ConvertSurfaceDesc(DDSURFACEDESC2 &Desc2, DDSURFACEDESC &Desc);
+void ClearUnusedValues(DDSURFACEDESC2& Desc2);
 void ConvertPixelFormat(DDPIXELFORMAT& Format, DDS_PIXELFORMAT &Format2);
 void ConvertDeviceIdentifier(DDDEVICEIDENTIFIER &DeviceID, DDDEVICEIDENTIFIER2 &DeviceID2);
 void ConvertDeviceIdentifier(DDDEVICEIDENTIFIER2 &DeviceID2, DDDEVICEIDENTIFIER &DeviceID);
@@ -149,6 +145,7 @@ DWORD GetMaxMipMapLevel(DWORD Width, DWORD Height);
 DWORD GetBitCount(DDPIXELFORMAT ddpfPixelFormat);
 DWORD GetBitCount(D3DFORMAT Format);
 float ConvertDepthValue(DWORD dwFillDepth, D3DFORMAT Format);
+DWORD ComputePitch(D3DFORMAT Format, DWORD Width, DWORD Height);
 DWORD GetSurfaceSize(D3DFORMAT Format, DWORD Width, DWORD Height, INT Pitch);
 DWORD GetARGBColorKey(DWORD ColorKey, DDPIXELFORMAT& pixelFormat);
 void GetColorKeyArray(float(&lowColorKey)[4], float(&highColorKey)[4], DWORD lowColorSpace, DWORD highColorSpace, DDPIXELFORMAT& pixelFormat);
@@ -156,4 +153,4 @@ D3DFORMAT ConvertSurfaceFormat(D3DFORMAT Format);
 D3DFORMAT GetFailoverFormat(D3DFORMAT Format);
 D3DFORMAT GetDisplayFormat(DDPIXELFORMAT ddpfPixelFormat);
 void SetPixelDisplayFormat(D3DFORMAT Format, DDPIXELFORMAT &lpPixelFormat);
-HRESULT SetDisplayFormat(DDPIXELFORMAT &ddpfPixelFormat, DWORD BPP);
+D3DFORMAT SetDisplayFormat(DDPIXELFORMAT &ddpfPixelFormat, DWORD BPP);

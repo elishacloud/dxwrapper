@@ -123,6 +123,78 @@ void ConvertSurfaceDesc(DDSURFACEDESC2 &Desc2, DDSURFACEDESC &Desc)
 	}
 }
 
+void ClearUnusedValues(DDSURFACEDESC2& Desc2)
+{
+	// Check for supported dwSize
+	if (Desc2.dwSize != sizeof(DDSURFACEDESC2))
+	{
+		LOG_LIMIT(100, __FUNCTION__ << " Error: Incorrect dwSize: " << Desc2.dwSize);
+		return;
+	}
+
+	if (!(Desc2.dwFlags & DDSD_HEIGHT)) Desc2.dwHeight = 0;
+	if (!(Desc2.dwFlags & DDSD_WIDTH)) Desc2.dwWidth = 0;
+	if (!(Desc2.dwFlags & (DDSD_PITCH | DDSD_LINEARSIZE))) Desc2.lPitch = 0;
+	if (!(Desc2.dwFlags & (DDSD_BACKBUFFERCOUNT | DDSD_DEPTH))) Desc2.dwBackBufferCount = 0;
+	if (!(Desc2.dwFlags & (DDSD_MIPMAPCOUNT | DDSD_REFRESHRATE | DDSD_SRCVBHANDLE))) Desc2.dwMipMapCount = 0;
+	if (!(Desc2.dwFlags & DDSD_ALPHABITDEPTH)) Desc2.dwAlphaBitDepth = 0;
+
+	Desc2.dwReserved = 0;
+
+	if (!(Desc2.dwFlags & DDSD_LPSURFACE)) Desc2.lpSurface = nullptr;
+
+	if (!(Desc2.dwFlags & DDSD_CKDESTOVERLAY))
+	{
+		Desc2.ddckCKDestOverlay.dwColorSpaceLowValue = 0;
+		Desc2.ddckCKDestOverlay.dwColorSpaceHighValue = 0;
+	}
+
+	if (!(Desc2.dwFlags & DDSD_CKDESTBLT))
+	{
+		Desc2.ddckCKDestBlt.dwColorSpaceLowValue = 0;
+		Desc2.ddckCKDestBlt.dwColorSpaceHighValue = 0;
+	}
+
+	if (!(Desc2.dwFlags & DDSD_CKSRCOVERLAY))
+	{
+		Desc2.ddckCKSrcOverlay.dwColorSpaceLowValue = 0;
+		Desc2.ddckCKSrcOverlay.dwColorSpaceHighValue = 0;
+	}
+
+	if (!(Desc2.dwFlags & DDSD_CKSRCBLT))
+	{
+		Desc2.ddckCKSrcBlt.dwColorSpaceLowValue = 0;
+		Desc2.ddckCKSrcBlt.dwColorSpaceHighValue = 0;
+	}
+
+	if (!(Desc2.dwFlags & DDSD_PIXELFORMAT))
+	{
+		if (Desc2.dwFlags & DDSD_FVF)
+		{
+			// Preserve the dwFVF value and clear ddpfPixelFormat
+			DWORD dwFVF = Desc2.dwFVF;
+			Desc2.ddpfPixelFormat = {}; // Clears the pixel format
+			Desc2.dwFVF = dwFVF;        // Restore dwFVF
+		}
+		else
+		{
+			Desc2.ddpfPixelFormat = {};
+		}
+	}
+	else
+	{
+		Desc2.ddpfPixelFormat.dwSize = sizeof(DDPIXELFORMAT);
+	}
+
+	if (!(Desc2.dwFlags & DDSD_CAPS))
+	{
+		LOG_LIMIT(100, __FUNCTION__ << " Warning: Surface desc has no caps!");
+		Desc2.ddsCaps = {};
+	}
+
+	if (!(Desc2.dwFlags & DDSD_TEXTURESTAGE)) Desc2.dwTextureStage = 0;
+}
+
 void ConvertPixelFormat(DDPIXELFORMAT& Format, DDS_PIXELFORMAT& Format2)
 {
 	if (Format.dwSize != sizeof(DDPIXELFORMAT) || Format2.dwSize != sizeof(DDS_PIXELFORMAT))
@@ -604,7 +676,7 @@ float ConvertDepthValue(DWORD dwFillDepth, D3DFORMAT Format)
 	}
 }
 
-DWORD GetSurfaceSize(D3DFORMAT Format, DWORD Width, DWORD Height, INT Pitch)
+DWORD ComputePitch(D3DFORMAT Format, DWORD Width, DWORD Height)
 {
 	if (ISDXTEX(Format))
 	{
@@ -612,17 +684,46 @@ DWORD GetSurfaceSize(D3DFORMAT Format, DWORD Width, DWORD Height, INT Pitch)
 	}
 	else if (Format == D3DFMT_YV12 || Format == D3DFMT_NV12)
 	{
-		return GetByteAlignedWidth(Width, GetBitCount(Format)) * Height;
+		return GetByteAlignedWidth(Width, GetBitCount(Format));
 	}
-	else if (Format & 0xFF000000)
+	else if (Format & 0xFF000000)	// Other FourCC types
 	{
-		LOG_LIMIT(100, __FUNCTION__ << " Error: Surface size for surface format not Implemented: " << Format);
 		return 0;
+	}
+	else
+	{
+		return ((((Width * GetBitCount(Format)) + 31) & ~31) >> 3);	// Use Surface Stride for pitch
+	}
+}
+
+DWORD GetSurfaceSize(D3DFORMAT Format, DWORD Width, DWORD Height, INT Pitch)
+{
+	if (Format & 0xFF000000)	// All FourCC types
+	{
+		if (ISDXTEX(Format))
+		{
+			return ComputePitch(Format, Width, Height);	// Picth for DXT surfaces is the full surface size
+		}
+		else
+		{
+			DWORD Size = ComputePitch(Format, Width, Height);
+			if (Size)
+			{
+				return Size * Height;
+			}
+			else if (Pitch)
+			{
+				return Pitch * Height;
+			}
+		}
 	}
 	else
 	{
 		return Pitch * Height;
 	}
+
+	LOG_LIMIT(100, __FUNCTION__ << " Error: Surface size for surface format not Implemented: " << Format);
+	return 0;
 }
 
 // Count leading zeros and total number of bits
@@ -1226,21 +1327,22 @@ void SetPixelDisplayFormat(D3DFORMAT Format, DDPIXELFORMAT &ddpfPixelFormat)
 	}
 }
 
-HRESULT SetDisplayFormat(DDPIXELFORMAT &ddpfPixelFormat, DWORD BPP)
+D3DFORMAT SetDisplayFormat(DDPIXELFORMAT &ddpfPixelFormat, DWORD BPP)
 {
+	D3DFORMAT Format = D3DFMT_UNKNOWN;
 	switch (BPP)
 	{
 	case 8:
-		SetPixelDisplayFormat(D3DFMT_P8, ddpfPixelFormat);
+		Format = D3DFMT_P8;
 		break;
 	case 16:
-		SetPixelDisplayFormat(D3DFMT_R5G6B5, ddpfPixelFormat);
+		Format = D3DFMT_R5G6B5;
 		break;
 	case 24:
-		SetPixelDisplayFormat(D3DFMT_R8G8B8, ddpfPixelFormat);
+		Format = D3DFMT_R8G8B8;
 		break;
 	case 32:
-		SetPixelDisplayFormat(D3DFMT_X8R8G8B8, ddpfPixelFormat);
+		Format = D3DFMT_X8R8G8B8;
 		break;
 	default:
 		LOG_LIMIT(100, __FUNCTION__ << " Error: Bit mode not supported: " << BPP);
@@ -1251,7 +1353,8 @@ HRESULT SetDisplayFormat(DDPIXELFORMAT &ddpfPixelFormat, DWORD BPP)
 		ddpfPixelFormat.dwGBitMask = 0x0;
 		ddpfPixelFormat.dwBBitMask = 0x0;
 		ddpfPixelFormat.dwRGBAlphaBitMask = 0x0;
-		return DDERR_UNSUPPORTED;
+		return Format;
 	}
-	return DD_OK;
+	SetPixelDisplayFormat(Format, ddpfPixelFormat);
+	return Format;
 }
