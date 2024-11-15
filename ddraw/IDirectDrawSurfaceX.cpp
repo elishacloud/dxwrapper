@@ -1724,7 +1724,7 @@ HRESULT m_IDirectDrawSurfaceX::GetAttachedSurface2(LPDDSCAPS2 lpDDSCaps2, LPDIRE
 				}
 				// Use dummy mipmap surface to prevent some games from crashing
 				DWORD Level = (MipMapLevel & ~DXW_IS_MIPMAP_DUMMY);
-				if (Level < GetMaxMipMapLevel(surfaceDesc2.dwWidth, surfaceDesc2.dwHeight) + 1)
+				if (Level < GetMaxMipMapLevel(surfaceDesc2.dwWidth, surfaceDesc2.dwHeight) - 1)
 				{
 					while (MipMaps.size() < Level + 1)
 					{
@@ -2418,7 +2418,7 @@ HRESULT m_IDirectDrawSurfaceX::GetSurfaceDesc2(LPDDSURFACEDESC2 lpDDSurfaceDesc2
 			}
 			if (lpDDSurfaceDesc2->dwFlags & DDSD_MIPMAPCOUNT)
 			{
-				lpDDSurfaceDesc2->dwMipMapCount = surfaceDesc2.dwMipMapCount > Level ? surfaceDesc2.dwMipMapCount - Level : 1;
+				lpDDSurfaceDesc2->dwMipMapCount = 1;
 			}
 		}
 		// Handle MipMap sub-level
@@ -6026,8 +6026,8 @@ inline void m_IDirectDrawSurfaceX::InitSurfaceDesc(DWORD DirectXVersion)
 		// Compute mipcount
 		DWORD MipMapLevelCount = ((surfaceDesc2.dwFlags & DDSD_MIPMAPCOUNT) && surfaceDesc2.dwMipMapCount) ? surfaceDesc2.dwMipMapCount :
 			GetMaxMipMapLevel(surfaceDesc2.dwWidth, surfaceDesc2.dwHeight);
-		MaxMipMapLevel = MipMapLevelCount;
-		surfaceDesc2.dwMipMapCount = MaxMipMapLevel;
+		MaxMipMapLevel = MipMapLevelCount - 1;
+		surfaceDesc2.dwMipMapCount = MaxMipMapLevel + 1;
 		surfaceDesc2.dwFlags |= DDSD_MIPMAPCOUNT;
 	}
 	// Mipmap textures
