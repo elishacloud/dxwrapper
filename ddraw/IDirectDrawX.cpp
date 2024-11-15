@@ -1395,7 +1395,7 @@ HRESULT m_IDirectDrawX::GetDisplayMode2(LPDDSURFACEDESC2 lpDDSurfaceDesc2)
 		{
 			lpDDSurfaceDesc2->ddpfPixelFormat = DisplayPixelFormat;
 		}
-		else if (SetDisplayFormat(lpDDSurfaceDesc2->ddpfPixelFormat, displayModeBits))
+		else if (!SetDisplayFormat(lpDDSurfaceDesc2->ddpfPixelFormat, displayModeBits))
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Error: Not implemented bit count " << displayModeBits);
 			return DDERR_UNSUPPORTED;
