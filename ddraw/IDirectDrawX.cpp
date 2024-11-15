@@ -1668,7 +1668,6 @@ HRESULT m_IDirectDrawX::SetCooperativeLevel(HWND hWnd, DWORD dwFlags, DWORD Dire
 
 		HWND LasthWnd = DisplayMode.hWnd;
 		bool LastFPUPreserve = Device.FPUPreserve;
-		bool LastMultiThreaded = Device.MultiThreaded;
 		bool LastExclusiveMode = ExclusiveMode;
 
 		// Set windowed mode
@@ -1744,7 +1743,7 @@ HRESULT m_IDirectDrawX::SetCooperativeLevel(HWND hWnd, DWORD dwFlags, DWORD Dire
 
 				// Set device flags
 				Device.AllowModeX = ((dwFlags & DDSCL_ALLOWMODEX) != 0);
-				Device.MultiThreaded = ((dwFlags & DDSCL_MULTITHREADED) != 0 && !Config.SingleProcAffinity);
+				Device.MultiThreaded = ((dwFlags & DDSCL_MULTITHREADED) != 0);
 				// The flag (DDSCL_FPUPRESERVE) is assumed by default in DirectX 6 and earlier.
 				Device.FPUPreserve = (((dwFlags & DDSCL_FPUPRESERVE) || DirectXVersion <= 6) && (dwFlags & DDSCL_FPUSETUP) == 0);
 				// The flag (DDSCL_NOWINDOWCHANGES) means DirectDraw is not allowed to minimize or restore the application window on activation.
@@ -1753,7 +1752,7 @@ HRESULT m_IDirectDrawX::SetCooperativeLevel(HWND hWnd, DWORD dwFlags, DWORD Dire
 				// Reset if mode was changed
 				if ((dwFlags & (DDSCL_NORMAL | DDSCL_EXCLUSIVE)) &&
 					(d3d9Device || !ExclusiveMode || (DisplayMode.Width && DisplayMode.Height)) &&	// Delay device creation when exclusive and no DisplayMode
-					(LastExclusiveMode != ExclusiveMode || LasthWnd != DisplayMode.hWnd || LastFPUPreserve != Device.FPUPreserve || LastMultiThreaded != Device.MultiThreaded))
+					(LastExclusiveMode != ExclusiveMode || LasthWnd != DisplayMode.hWnd || LastFPUPreserve != Device.FPUPreserve))
 				{
 					CreateD9Device(__FUNCTION__);
 				}
@@ -3244,7 +3243,7 @@ HRESULT m_IDirectDrawX::CreateD9Device(char* FunctionName)
 
 		// Set behavior flags
 		BehaviorFlags = (d3dcaps.VertexProcessingCaps ? D3DCREATE_HARDWARE_VERTEXPROCESSING : D3DCREATE_SOFTWARE_VERTEXPROCESSING) |
-			(Device.MultiThreaded ? D3DCREATE_MULTITHREADED : 0) |
+			(Config.SingleProcAffinity ? D3DCREATE_MULTITHREADED : 0) |
 			(Device.FPUPreserve ? D3DCREATE_FPU_PRESERVE : 0);
 
 		Logging::Log() << __FUNCTION__ << " Direct3D9 device! " <<
