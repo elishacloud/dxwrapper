@@ -733,28 +733,20 @@ HRESULT m_IDirectDrawSurfaceX::Blt(LPRECT lpDestRect, LPDIRECTDRAWSURFACE7 lpDDS
 			// If successful
 			if (SUCCEEDED(hr))
 			{
-				// Set dirty flag
-				if (PresentBlt && MipMapLevel == 0)
-				{
-					SetDirtyFlag();
-				}
-
-				// Mark mipmap data flag
-				if (MipMapLevel && MipMaps.size())
-				{
-					DWORD Level = min(MipMaps.size(), MipMapLevel) - 1;
-					MipMaps[Level].UniquenessValue = UniquenessValue;
-					CheckMipMapLevelGen();
-				}
-
 				// Set vertical sync wait timer
 				if (SUCCEEDED(c_hr) && (dwFlags & DDBLT_DDFX) && (lpDDBltFx->dwDDFX & DDBLTFX_NOTEARING))
 				{
 					ddrawParent->SetVsync();
 				}
 
-				// Present surface
-				EndWritePresent(lpDestRect, true, PresentBlt, IsSkipScene);
+				if (PresentBlt)
+				{
+					// Set dirty flag
+					SetDirtyFlag(MipMapLevel);
+
+					// Present surface
+					EndWritePresent(lpDestRect, true, PresentBlt, IsSkipScene);
+				}
 			}
 
 		} while (false);
@@ -887,18 +879,7 @@ HRESULT m_IDirectDrawSurfaceX::BltBatch(LPDDBLTBATCH lpDDBltBatch, DWORD dwCount
 	if (SUCCEEDED(hr))
 	{
 		// Set dirty flag
-		if (MipMapLevel == 0)
-		{
-			SetDirtyFlag();
-		}
-
-		// Mark mipmap data flag
-		if (MipMapLevel && MipMaps.size())
-		{
-			DWORD Level = min(MipMaps.size(), MipMapLevel) - 1;
-			MipMaps[Level].UniquenessValue = UniquenessValue;
-			CheckMipMapLevelGen();
-		}
+		SetDirtyFlag(MipMapLevel);
 
 		// Present surface
 		EndWritePresent(nullptr, false, true, IsSkipScene);
@@ -1616,7 +1597,7 @@ HRESULT m_IDirectDrawSurfaceX::Flip(LPDIRECTDRAWSURFACE7 lpDDSurfaceTargetOverri
 			if (!surface.IsDirtyFlag)
 			{
 				// Set dirty flag
-				SetDirtyFlag();
+				SetDirtyFlag(0);
 
 				// Keep surface insync
 				EndWriteSyncSurfaces(nullptr);
@@ -2121,7 +2102,7 @@ HRESULT m_IDirectDrawSurfaceX::GetDC(HDC FAR* lphDC, DWORD MipMapLevel)
 		IsPreparingDC = true;
 
 		// Check if render target should use shadow
-		if (surface.Usage == D3DUSAGE_RENDERTARGET && !IsUsingShadowSurface())
+		if ((surface.Usage & D3DUSAGE_RENDERTARGET) && !IsUsingShadowSurface())
 		{
 			SetRenderTargetShadow();
 		}
@@ -2746,7 +2727,7 @@ HRESULT m_IDirectDrawSurfaceX::Lock2(LPRECT lpDestRect, LPDDSURFACEDESC2 lpDDSur
 		IsLocking = true;
 
 		// Check if render target should use shadow
-		if (surface.Usage == D3DUSAGE_RENDERTARGET)
+		if (surface.Usage & D3DUSAGE_RENDERTARGET)
 		{
 			if (surface.Type == D3DTYPE_RENDERTARGET)
 			{
@@ -2881,8 +2862,6 @@ HRESULT m_IDirectDrawSurfaceX::Lock2(LPRECT lpDestRect, LPDDSURFACEDESC2 lpDDSur
 						<< " MipMapLevel: " << MipMapLevel);
 				}
 				MipMaps[Level].lPitch = LockedRect.Pitch;
-				MipMaps[Level].UniquenessValue = UniquenessValue;
-				CheckMipMapLevelGen();
 			}
 			else
 			{
@@ -3055,7 +3034,7 @@ HRESULT m_IDirectDrawSurfaceX::ReleaseDC(HDC hDC)
 		if (SUCCEEDED(hr))
 		{
 			// Set dirty flag
-			SetDirtyFlag();
+			SetDirtyFlag(0);
 
 			// Keep surface insync
 			EndWriteSyncSurfaces(nullptr);
@@ -3458,10 +3437,7 @@ HRESULT m_IDirectDrawSurfaceX::Unlock(LPRECT lpRect, DWORD MipMapLevel)
 		if (SUCCEEDED(hr) && !LastLock.ReadOnly)
 		{
 			// Set dirty flag
-			if (LastLock.MipMapLevel == 0)
-			{
-				SetDirtyFlag();
-			}
+			SetDirtyFlag(LastLock.MipMapLevel);
 
 			// Keep surface insync
 			EndWriteSyncSurfaces(&LastLock.Rect);
@@ -4378,7 +4354,7 @@ HRESULT m_IDirectDrawSurfaceX::CheckInterface(char *FunctionName, bool CheckD3DD
 HRESULT m_IDirectDrawSurfaceX::CreateD9AuxiliarySurfaces()
 {
 	// Create shadow surface
-	if (!surface.Shadow && surface.Usage == D3DUSAGE_RENDERTARGET)
+	if (!surface.Shadow && (surface.Usage & D3DUSAGE_RENDERTARGET))
 	{
 		D3DSURFACE_DESC Desc;
 		if (FAILED(surface.Surface ? surface.Surface->GetDesc(&Desc) : surface.Texture->GetLevelDesc(0, &Desc)) ||
@@ -4555,8 +4531,8 @@ HRESULT m_IDirectDrawSurfaceX::CreateD9Surface()
 			DWORD MipMapLevel = (CreateSurfaceEmulated || !MipMapCount) ? 1 : MipMapCount;
 			HRESULT hr_t;
 			do {
-				surface.Usage = Config.DdrawForceMipMapAutoGen && MipMapLevel > 1 ? D3DUSAGE_AUTOGENMIPMAP : 0;
-				DWORD Level = surface.Usage == D3DUSAGE_AUTOGENMIPMAP && MipMapLevel == MipMapCount ? 0 : MipMapLevel;
+				surface.Usage = (Config.DdrawForceMipMapAutoGen && MipMapLevel > 1) ? D3DUSAGE_AUTOGENMIPMAP : 0;
+				DWORD Level = ((surface.Usage & D3DUSAGE_AUTOGENMIPMAP) && MipMapLevel == MipMapCount) ? 0 : MipMapLevel;
 				// Create texture
 				hr_t = (*d3d9Device)->CreateTexture(surface.Width, surface.Height, Level, surface.Usage, Format, surface.Pool, &surface.Texture, nullptr);
 				if (FAILED(hr_t))
@@ -4570,7 +4546,7 @@ HRESULT m_IDirectDrawSurfaceX::CreateD9Surface()
 				hr = DDERR_GENERIC;
 				break;
 			}
-			MaxMipMapLevel = MipMapLevel > 1 && !IsMipMapAutogen() ? MipMapLevel - 1 : 0;
+			MaxMipMapLevel = (MipMapLevel > 1 && !IsMipMapAutogen()) ? MipMapLevel - 1 : 0;
 			while (MipMaps.size() < MaxMipMapLevel)
 			{
 				MIPMAP MipMap;
@@ -5871,21 +5847,33 @@ void m_IDirectDrawSurfaceX::SetRenderTargetShadow()
 }
 
 // Set dirty flag
-void m_IDirectDrawSurfaceX::SetDirtyFlag()
+void m_IDirectDrawSurfaceX::SetDirtyFlag(DWORD MipMapLevel)
 {
-	if (IsPrimarySurface() && ddrawParent && !ddrawParent->IsInScene())
+	if (MipMapLevel == 0)
 	{
-		dirtyFlag = true;
+		if (IsPrimarySurface() && ddrawParent && !ddrawParent->IsInScene())
+		{
+			dirtyFlag = true;
+		}
+		surface.IsDirtyFlag = true;
+		surface.HasData = true;
+		surface.IsDrawTextureDirty = true;
+		IsMipMapReadyToUse = (IsMipMapAutogen() || MipMaps.empty());
+
+		LostDeviceBackup.clear();
+
+		// Update Uniqueness Value
+		ChangeUniquenessValue();
 	}
-	surface.IsDirtyFlag = true;
-	surface.HasData = true;
-	surface.IsDrawTextureDirty = true;
-	IsMipMapReadyToUse = false;
-
-	LostDeviceBackup.clear();
-
-	// Update Uniqueness Value
-	ChangeUniquenessValue();
+	// Mark mipmap data flag
+	if (MipMaps.size())
+	{
+		if (MipMapLevel && MipMapLevel <= MipMaps.size())
+		{
+			MipMaps[MipMapLevel - 1].UniquenessValue = UniquenessValue;
+		}
+		CheckMipMapLevelGen();
+	}
 }
 
 void m_IDirectDrawSurfaceX::ClearDirtyFlags()
@@ -6568,8 +6556,8 @@ HRESULT m_IDirectDrawSurfaceX::CopySurface(m_IDirectDrawSurfaceX* pSourceSurface
 		// Use StretchRect for video memory to prevent copying out of video memory
 		if (!IsUsingEmulation() && !IsUsingShadowSurface() && !pSourceSurface->IsUsingShadowSurface() &&
 			(pSourceSurface->surface.Pool == D3DPOOL_DEFAULT && surface.Pool == D3DPOOL_DEFAULT) &&
-			(pSourceSurface->surface.Type == surface.Type || (pSourceSurface->surface.Type == D3DTYPE_OFFPLAINSURFACE && surface.Usage == D3DUSAGE_RENDERTARGET)) &&
-			(!IsStretchRect || (this != pSourceSurface && !ISDXTEX(SrcFormat) && !ISDXTEX(DestFormat) && surface.Usage == D3DUSAGE_RENDERTARGET)) &&
+			(pSourceSurface->surface.Type == surface.Type || (pSourceSurface->surface.Type == D3DTYPE_OFFPLAINSURFACE && (surface.Usage & D3DUSAGE_RENDERTARGET))) &&
+			(!IsStretchRect || (this != pSourceSurface && !ISDXTEX(SrcFormat) && !ISDXTEX(DestFormat) && (surface.Usage & D3DUSAGE_RENDERTARGET))) &&
 			(surface.Type != D3DTYPE_DEPTHSTENCIL || !ddrawParent->IsInScene()) &&
 			(surface.Type != D3DTYPE_DEPTHSTENCIL || (surface.Type == D3DTYPE_DEPTHSTENCIL &&
 				!SrcRect.left && SrcRect.left == SrcRect.top && SrcRect.top == DestRect.left && DestRect.left == DestRect.top && DestRect.top)) &&
@@ -6679,7 +6667,7 @@ HRESULT m_IDirectDrawSurfaceX::CopySurface(m_IDirectDrawSurfaceX* pSourceSurface
 		}
 
 		// Check if render target should use shadow
-		if (surface.Usage == D3DUSAGE_RENDERTARGET && !IsUsingShadowSurface())
+		if ((surface.Usage & D3DUSAGE_RENDERTARGET) && !IsUsingShadowSurface())
 		{
 			SetRenderTargetShadow();
 		}

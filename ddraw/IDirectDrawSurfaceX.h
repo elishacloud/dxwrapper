@@ -293,7 +293,7 @@ private:
 	inline DDSCAPS2 GetSurfaceCaps() { return surfaceDesc2.ddsCaps; }
 	inline D3DFORMAT GetSurfaceFormat() { return surface.Format; }
 
-	void SetDirtyFlag();
+	void SetDirtyFlag(DWORD MipMapLevel);
 
 	// Attached surfaces
 	void InitSurfaceDesc(DWORD DirectXVersion);
