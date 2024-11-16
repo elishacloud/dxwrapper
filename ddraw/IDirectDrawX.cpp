@@ -3331,20 +3331,23 @@ HRESULT m_IDirectDrawX::CreateD9Device(char* FunctionName)
 		if (!presParams.Windowed && !Config.EnableWindowMode)
 		{
 			// Get window size
-			RECT NewRect = { 0, 0, (LONG)presParams.BackBufferWidth, (LONG)presParams.BackBufferHeight };
-			GetWindowRect(hWnd, &NewRect);
+			RECT NewWindowRect = {};
+			GetWindowRect(hWnd, &NewWindowRect);
+			RECT NewClientRect = {};
+			GetWindowRect(hWnd, &NewClientRect);
 
 			// Check for window position change
-			if (LastWindowLocation.left != NewRect.left || LastWindowLocation.top != NewRect.top ||
-				LastWindowLocation.right != NewRect.right || LastWindowLocation.bottom != NewRect.bottom)
+			if ((LONG)presParams.BackBufferWidth != NewClientRect.right || (LONG)presParams.BackBufferHeight != NewClientRect.bottom ||
+				LastWindowLocation.left != NewWindowRect.left || LastWindowLocation.top != NewWindowRect.top ||
+				LastWindowLocation.right != NewWindowRect.right || LastWindowLocation.bottom != NewWindowRect.bottom)
 			{
 				// Window position variables
 				HWND WindowInsert = GetWindowLong(hWnd, GWL_EXSTYLE) & WS_EX_TOPMOST ? HWND_TOPMOST : HWND_TOP;
 				static WINDOWPOS winpos = {};
-				winpos = { hWnd, WindowInsert, NewRect.left, NewRect.top, NewRect.right - NewRect.left, NewRect.bottom - NewRect.top, WM_NULL };
+				winpos = { hWnd, WindowInsert, NewWindowRect.left, NewWindowRect.top, NewWindowRect.right - NewWindowRect.left, NewWindowRect.bottom - NewWindowRect.top, WM_NULL };
 				static NCCALCSIZE_PARAMS NCCalc = {};
 				NCCalc.lppos = &winpos;
-				NCCalc.rgrc[0] = NewRect;
+				NCCalc.rgrc[0] = NewClientRect;
 				NCCalc.rgrc[1] = LastWindowLocation;
 				NCCalc.rgrc[2] = LastWindowLocation;
 				WINDOWPLACEMENT wp = {};
@@ -3369,8 +3372,8 @@ HRESULT m_IDirectDrawX::CreateD9Device(char* FunctionName)
 				PostMessage(hWnd, WM_WINDOWPOSCHANGED, 0, (LPARAM)&winpos);
 
 				// Window move and size
-				PostMessage(hWnd, WM_MOVE, 0, MAKELPARAM(NewRect.left, NewRect.top));
-				PostMessage(hWnd, WM_SIZE, SizeFlag, MAKELPARAM(NewRect.right - NewRect.left, NewRect.bottom - NewRect.top));
+				PostMessage(hWnd, WM_MOVE, 0, MAKELPARAM(NewWindowRect.left, NewWindowRect.top));
+				PostMessage(hWnd, WM_SIZE, SizeFlag, MAKELPARAM(NewWindowRect.right - NewWindowRect.left, NewWindowRect.bottom - NewWindowRect.top));
 			}
 
 			// Window focus and activate app
