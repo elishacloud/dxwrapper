@@ -2385,6 +2385,18 @@ HRESULT m_IDirectDrawSurfaceX::GetSurfaceDesc(LPDDSURFACEDESC lpDDSurfaceDesc, D
 	return GetProxyInterfaceV3()->GetSurfaceDesc(lpDDSurfaceDesc);
 }
 
+void m_IDirectDrawSurfaceX::FixTextureFlags(LPDDSURFACEDESC2 lpDDSurfaceDesc2)
+{
+	if (lpDDSurfaceDesc2)
+	{
+		if (lpDDSurfaceDesc2->dwFlags & DDSD_PITCH)
+		{
+			lpDDSurfaceDesc2->dwFlags |= DDSD_LINEARSIZE;
+		}
+		lpDDSurfaceDesc2->dwFlags &= ~(DDSD_PITCH | DDSD_LPSURFACE);
+	}
+}
+
 HRESULT m_IDirectDrawSurfaceX::GetSurfaceDesc2(LPDDSURFACEDESC2 lpDDSurfaceDesc2, DWORD MipMapLevel, DWORD DirectXVersion)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
@@ -2475,6 +2487,12 @@ HRESULT m_IDirectDrawSurfaceX::GetSurfaceDesc2(LPDDSURFACEDESC2 lpDDSurfaceDesc2
 		else if (MipMapLevel)
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Warning: MipMap found with no MipMap list!");
+		}
+
+		// Set correct flags for textures
+		if (ISDXTEX(surface.Format))
+		{
+			FixTextureFlags(lpDDSurfaceDesc2);
 		}
 
 		// Handle managed texture memory type
@@ -2881,6 +2899,12 @@ HRESULT m_IDirectDrawSurfaceX::Lock2(LPRECT lpDestRect, LPDDSURFACEDESC2 lpDDSur
 				}
 				surfaceDesc2.lPitch = LockedRect.Pitch;
 				surfaceDesc2.dwFlags |= DDSD_PITCH;
+			}
+
+			// Set correct flags for textures
+			if (ISDXTEX(surface.Format))
+			{
+				FixTextureFlags(lpDDSurfaceDesc2);
 			}
 
 			// Emulate lock
