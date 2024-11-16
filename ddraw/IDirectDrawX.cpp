@@ -3240,7 +3240,7 @@ HRESULT m_IDirectDrawX::CreateD9Device(char* FunctionName)
 
 		// Set behavior flags
 		BehaviorFlags = (d3dcaps.VertexProcessingCaps ? D3DCREATE_HARDWARE_VERTEXPROCESSING : D3DCREATE_SOFTWARE_VERTEXPROCESSING) |
-			(Config.SingleProcAffinity ? D3DCREATE_MULTITHREADED : 0) |
+			(!Config.SingleProcAffinity ? D3DCREATE_MULTITHREADED : 0) |
 			(Device.FPUPreserve ? D3DCREATE_FPU_PRESERVE : 0);
 
 		Logging::Log() << __FUNCTION__ << " Direct3D9 device! " <<
