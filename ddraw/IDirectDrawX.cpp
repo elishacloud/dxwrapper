@@ -3132,9 +3132,6 @@ HRESULT m_IDirectDrawX::CreateD9Device(char* FunctionName)
 		// Store new focus window
 		hFocusWindow = hWnd;
 
-		// Check active
-		bool WndLastActive = (hWnd == GetForegroundWindow() && hWnd == GetFocus() && hWnd == GetActiveWindow());
-
 		// Get current resolution and rect
 		DWORD CurrentWidth = 0, CurrentHeight = 0;
 		Utils::GetScreenSize(hWnd, (LONG&)CurrentWidth, (LONG&)CurrentHeight);
@@ -3377,15 +3374,11 @@ HRESULT m_IDirectDrawX::CreateD9Device(char* FunctionName)
 			}
 
 			// Window focus and activate app
-			if (!WndLastActive || LastHWnd != hFocusWindow)
+			if (LastHWnd != hFocusWindow)
 			{
 				PostMessage(hWnd, WM_IME_SETCONTEXT, TRUE, ISC_SHOWUIALL);
 				PostMessage(hWnd, WM_SETFOCUS, NULL, NULL);
 				PostMessage(hWnd, WM_SYNCPAINT, (WPARAM)32, NULL);
-				PostMessage(hWnd, WM_ACTIVATEAPP, TRUE, (LPARAM)FocusWindowThreadID);
-#ifdef WM_DWMNCRENDERINGCHANGED
-				PostMessage(hWnd, WM_DWMNCRENDERINGCHANGED, FALSE, NULL);
-#endif
 			}
 		}
 
