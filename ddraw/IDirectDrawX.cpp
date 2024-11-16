@@ -149,6 +149,10 @@ DEVICESETTINGS Device;
 // Display pixel format
 DDPIXELFORMAT DisplayPixelFormat;
 
+// Gamma data
+bool IsGammaSet;
+D3DGAMMARAMP RampData;
+
 // Last used surface resolution
 DWORD LastSetWidth;
 DWORD LastSetHeight;
@@ -2400,6 +2404,16 @@ void m_IDirectDrawX::InitDdraw(DWORD DirectXVersion)
 		Device = {};
 		Device.IsWindowed = true;
 
+		// Default gamma
+		IsGammaSet = false;
+		for (int i = 0; i < 256; ++i)
+		{
+			WORD value = static_cast<WORD>(i * 65535 / 255); // Linear interpolation from 0 to 65535
+			RampData.red[i] = value;
+			RampData.green[i] = value;
+			RampData.blue[i] = value;
+		}
+
 		// High resolution counter
 		Counter = {};
 		QueryPerformanceFrequency(&Counter.Frequency);
@@ -4262,7 +4276,13 @@ HRESULT m_IDirectDrawX::GetD9Gamma(DWORD dwFlags, LPDDGAMMARAMP lpRampData)
 		return DDERR_INVALIDPARAMS;
 	}
 
-	d3d9Device->GetGammaRamp(dwFlags, (D3DGAMMARAMP*)lpRampData);
+	if (dwFlags)
+	{
+		LOG_LIMIT(100, __FUNCTION__ << " Warning: gamma flags not supported! " << Logging::hex(dwFlags));
+	}
+
+	memcpy(lpRampData, &RampData, sizeof(D3DGAMMARAMP));
+
 	return DD_OK;
 }
 
@@ -4279,7 +4299,14 @@ HRESULT m_IDirectDrawX::SetD9Gamma(DWORD dwFlags, LPDDGAMMARAMP lpRampData)
 		return DDERR_INVALIDPARAMS;
 	}
 
-	d3d9Device->SetGammaRamp(0, dwFlags, (D3DGAMMARAMP*)lpRampData);
+	if (dwFlags)
+	{
+		LOG_LIMIT(100, __FUNCTION__ << " Warning: gamma flags not supported! " << Logging::hex(dwFlags));
+	}
+
+	IsGammaSet = true;
+	memcpy(&RampData, lpRampData, sizeof(D3DGAMMARAMP));
+
 	return DD_OK;
 }
 
@@ -4641,6 +4668,12 @@ HRESULT m_IDirectDrawX::PresentScene(RECT* pRect)
 	HRESULT DrawRet = DDERR_GENERIC;
 	if (IsPrimaryRenderTarget())
 	{
+		if (IsGammaSet)
+		{
+			IsGammaSet = false;
+			d3d9Device->SetGammaRamp(0, 0, (D3DGAMMARAMP*)&RampData);
+		}
+
 		DrawRet = CopyPrimarySurfaceToBackbuffer();
 	}
 	else if (RenderTargetSurface)
@@ -4654,6 +4687,12 @@ HRESULT m_IDirectDrawX::PresentScene(RECT* pRect)
 			d3d9Device->SetDepthStencilSurface(nullptr);
 			d3d9Device->SetRenderTarget(0, pBackBuffer);
 
+			if (IsGammaSet)
+			{
+				IsGammaSet = false;
+				d3d9Device->SetGammaRamp(0, 0, (D3DGAMMARAMP*)&RampData);
+			}
+
 			// Draw surface
 			DrawRet = DrawPrimarySurface();
 
@@ -4666,6 +4705,12 @@ HRESULT m_IDirectDrawX::PresentScene(RECT* pRect)
 	}
 	else
 	{
+		if (IsGammaSet)
+		{
+			IsGammaSet = false;
+			d3d9Device->SetGammaRamp(0, 0, (D3DGAMMARAMP*)&RampData);
+		}
+
 		DrawRet = DrawPrimarySurface();
 	}
 	if (FAILED(DrawRet))
