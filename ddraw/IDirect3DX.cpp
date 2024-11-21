@@ -593,10 +593,14 @@ HRESULT m_IDirect3DX::FindDevice(LPD3DFINDDEVICESEARCH lpD3DFDS, LPD3DFINDDEVICE
 		if (CallbackContext.Found)
 		{
 			lpD3DFDR->guid = CallbackContext.DeviceDesc7.deviceGUID;
-			lpD3DFDR->ddHwDesc.dwSize = (lpD3DFDR->dwSize - sizeof(DWORD) - sizeof(GUID)) / 2;
-			ConvertDeviceDesc(lpD3DFDR->ddHwDesc, CallbackContext.DeviceDesc7);
-			lpD3DFDR->ddSwDesc.dwSize = (lpD3DFDR->dwSize - sizeof(DWORD) - sizeof(GUID)) / 2;
-			ConvertDeviceDesc(lpD3DFDR->ddSwDesc, CallbackContext.DeviceDesc7);
+			if (lpD3DFDR->ddHwDesc.dwSize)
+			{
+				ConvertDeviceDesc(lpD3DFDR->ddHwDesc, CallbackContext.DeviceDesc7);
+			}
+			if (lpD3DFDR->ddSwDesc.dwSize)
+			{
+				ConvertDeviceDesc(lpD3DFDR->ddSwDesc, CallbackContext.DeviceDesc7);
+			}
 
 			return D3D_OK;
 		}
