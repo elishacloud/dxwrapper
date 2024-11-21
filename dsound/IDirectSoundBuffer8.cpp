@@ -396,7 +396,7 @@ void m_IDirectSoundBuffer8::StopThread()
 	bool flag = false;
 	do {
 
-		Utils::BusyWaitYield();
+		Utils::BusyWaitYield((DWORD)-1);
 
 		EnterCriticalSection(&AudioClip.dics);
 

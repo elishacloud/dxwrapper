@@ -2394,33 +2394,42 @@ void m_IDirect3DDevice9Ex::ReInitDevice()
 
 void m_IDirect3DDevice9Ex::LimitFrameRate()
 {
-	// Count number of frames
+	// Count the number of frames
 	SHARED.Counter.FrameCounter++;
 
-	// Get performance frequancy
+	// Get performance frequency if not already cached
 	if (!SHARED.Counter.Frequency.QuadPart)
 	{
 		QueryPerformanceFrequency(&SHARED.Counter.Frequency);
 	}
+	LONGLONG TicksPerMS = SHARED.Counter.Frequency.QuadPart / 1000;
 
-	// Get milliseconds for each frame
+	// Calculate the delay time in ticks (integer-based, no floating-point)
+	// DelayTimeMS is the time to wait per frame in milliseconds
 	double DelayTimeMS = 1000.0 / Config.LimitPerFrameFPS;
+	LONGLONG DelayTimeTicks = static_cast<LONGLONG>((DelayTimeMS * SHARED.Counter.Frequency.QuadPart) / 1000.0);
+	LONGLONG TargetEndTicks = DelayTimeTicks + SHARED.Counter.LastPresentTime.QuadPart;
 
 	// Wait for time to expire
 	bool DoLoop;
 	do {
 		QueryPerformanceCounter(&SHARED.Counter.ClickTime);
-		double DeltaPresentMS = ((SHARED.Counter.ClickTime.QuadPart - SHARED.Counter.LastPresentTime.QuadPart) * 1000.0) / SHARED.Counter.Frequency.QuadPart;
+		LONGLONG RemainingTicks = TargetEndTicks - SHARED.Counter.ClickTime.QuadPart;
 
-		DoLoop = false;
-		if (DeltaPresentMS < DelayTimeMS && DeltaPresentMS > 0)
+		// Check if we still need to wait
+		DoLoop = RemainingTicks > 0;
+
+		if (DoLoop)
 		{
-			DoLoop = true;
-			Utils::BusyWaitYield();
+			// Busy wait until we reach the target time
+			Utils::BusyWaitYield(static_cast<DWORD>(RemainingTicks / TicksPerMS));
 		}
-
 	} while (DoLoop);
 
-	// Get new counter time
+	// Update the last present time
 	QueryPerformanceCounter(&SHARED.Counter.LastPresentTime);
+	if (SHARED.Counter.LastPresentTime.QuadPart - TargetEndTicks < DelayTimeTicks / 2)
+	{
+		SHARED.Counter.LastPresentTime.QuadPart = TargetEndTicks;
+	}
 }

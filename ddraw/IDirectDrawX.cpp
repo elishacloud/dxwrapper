@@ -2017,42 +2017,54 @@ HRESULT m_IDirectDrawX::WaitForVerticalBlank(DWORD dwFlags, HANDLE hEvent)
 		switch (dwFlags)
 		{
 		case DDWAITVB_BLOCKBEGIN:
-			// Check if already in vertical blank
-			if (SUCCEEDED(d3d9Device->GetRasterStatus(0, &RasterStatus)) && RasterStatus.InVBlank)
-			{
-				return DD_OK;
-			}
-			[[fallthrough]];
-		case DDWAITVB_BLOCKEND:
 			// Use D3DKMTWaitForVerticalBlankEvent for vertical blank begin
 			if (OpenD3DDDI(GetDC()) && D3DDDIWaitForVsync())
 			{
 				// Success using D3DKMTWaitForVerticalBlankEvent
-			}
-			// Use raster status for vertical blank begin (uses high CPU)
-			else while (SUCCEEDED(d3d9Device->GetRasterStatus(0, &RasterStatus)) && !RasterStatus.InVBlank)
-			{
-				Utils::BusyWaitYield();
-			}
-			// Exit if just waiting for vertical blank begin
-			if (dwFlags == DDWAITVB_BLOCKBEGIN)
-			{
 				return DD_OK;
 			}
-			// Use raster status for vertical blank end (uses high CPU)
-			while (SUCCEEDED(d3d9Device->GetRasterStatus(0, &RasterStatus)) && RasterStatus.InVBlank)
+
+			// Fallback: Wait for vertical blank begin using raster status
+			while (SUCCEEDED(d3d9Device->GetRasterStatus(0, &RasterStatus)) && !RasterStatus.InVBlank)
 			{
-				Utils::BusyWaitYield();
+				Utils::BusyWaitYield((DWORD)-1);
 			}
 			return DD_OK;
+
+		case DDWAITVB_BLOCKEND:
+			// First, wait for the vertical blank to begin
+			if (OpenD3DDDI(GetDC()) && D3DDDIWaitForVsync())
+			{
+				// Success using D3DKMTWaitForVerticalBlankEvent
+			}
+			// Fallback: Wait for vertical blank to end using raster status
+			else
+			{
+				while (SUCCEEDED(d3d9Device->GetRasterStatus(0, &RasterStatus)) && !RasterStatus.InVBlank)
+				{
+					Utils::BusyWaitYield((DWORD)-1);
+				}
+			}
+
+			// Then, wait for the vertical blank to end
+			while (SUCCEEDED(d3d9Device->GetRasterStatus(0, &RasterStatus)) && RasterStatus.InVBlank)
+			{
+				Utils::BusyWaitYield((DWORD)-1);
+			}
+			return DD_OK;
+
 		case DDWAITVB_BLOCKBEGINEVENT:
-			// Triggers an event when the vertical blank begins. This value is not supported.
+			// This value is unsupported
+			Logging::Log() << __FUNCTION__ << " Error: DDWAITVB_BLOCKBEGINEVENT is not supported!";
 			return DDERR_UNSUPPORTED;
+
 		default:
+			// Invalid parameter
 			return DDERR_INVALIDPARAMS;
 		}
 	}
 
+	// Call the original interface if not using D3D9
 	return ProxyInterface->WaitForVerticalBlank(dwFlags, hEvent);
 }
 
