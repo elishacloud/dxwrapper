@@ -790,7 +790,7 @@ HRESULT m_IDirect3DDeviceX::GetTexture(DWORD dwStage, LPDIRECT3DTEXTURE2* lplpTe
 		// Add ref to texture
 		pTextureX->AddRef();
 
-		*lplpTexture = (LPDIRECT3DTEXTURE2)pTextureX->GetWrapperInterfaceX(2);
+		*lplpTexture = (LPDIRECT3DTEXTURE2)pTextureX->GetWrapperInterfaceX(0);
 
 		return D3D_OK;
 	}
@@ -2628,7 +2628,7 @@ HRESULT m_IDirect3DDeviceX::SetRenderState(D3DRENDERSTATETYPE dwRenderStateType,
 					return DDERR_INVALIDPARAMS;
 				}
 
-				IDirect3DTexture2* lpTexture = (IDirect3DTexture2*)pTextureX->GetWrapperInterfaceX(2);
+				IDirect3DTexture2* lpTexture = (IDirect3DTexture2*)pTextureX->GetWrapperInterfaceX(0);
 				if (!lpTexture)
 				{
 					LOG_LIMIT(100, __FUNCTION__ << " Error: could not get texture address!");

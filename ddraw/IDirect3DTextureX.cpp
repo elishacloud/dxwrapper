@@ -61,6 +61,10 @@ void *m_IDirect3DTextureX::GetWrapperInterfaceX(DWORD DirectXVersion)
 {
 	switch (DirectXVersion)
 	{
+	case 0:
+		if (WrapperInterface2) return WrapperInterface2;
+		if (WrapperInterface) return WrapperInterface;
+		break;
 	case 1:
 		if (!WrapperInterface)
 		{
