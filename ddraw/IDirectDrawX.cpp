@@ -3360,46 +3360,72 @@ HRESULT m_IDirectDrawX::CreateD9Device(char* FunctionName)
 			RECT NewWindowRect = {};
 			GetWindowRect(hWnd, &NewWindowRect);
 			RECT NewClientRect = {};
-			GetWindowRect(hWnd, &NewClientRect);
+			GetClientRect(hWnd, &NewClientRect);
 
 			// Check for window position change
-			if ((LONG)presParams.BackBufferWidth != NewClientRect.right || (LONG)presParams.BackBufferHeight != NewClientRect.bottom ||
-				LastWindowLocation.left != NewWindowRect.left || LastWindowLocation.top != NewWindowRect.top ||
-				LastWindowLocation.right != NewWindowRect.right || LastWindowLocation.bottom != NewWindowRect.bottom)
+			bool bWindowMove =
+				LastWindowLocation.left != NewWindowRect.left ||
+				LastWindowLocation.top != NewWindowRect.top;
+			bool bWindowSize =
+				(LONG)presParams.BackBufferWidth != NewClientRect.right ||
+				(LONG)presParams.BackBufferHeight != NewClientRect.bottom ||
+				abs(LastWindowLocation.right - NewWindowRect.right) > GetSystemMetrics(SM_CXBORDER) ||
+				abs(LastWindowLocation.bottom - NewWindowRect.bottom) > GetSystemMetrics(SM_CYCAPTION) + GetSystemMetrics(SM_CYBORDER);
+
+			// Post window messages
+			if (bWindowMove || bWindowSize)
 			{
 				// Window position variables
 				HWND WindowInsert = GetWindowLong(hWnd, GWL_EXSTYLE) & WS_EX_TOPMOST ? HWND_TOPMOST : HWND_TOP;
-				static WINDOWPOS winpos = {};
+				static WINDOWPOS winpos;
 				winpos = { hWnd, WindowInsert, NewWindowRect.left, NewWindowRect.top, NewWindowRect.right - NewWindowRect.left, NewWindowRect.bottom - NewWindowRect.top, WM_NULL };
-				static NCCALCSIZE_PARAMS NCCalc = {};
-				NCCalc.lppos = &winpos;
-				NCCalc.rgrc[0] = NewClientRect;
-				NCCalc.rgrc[1] = LastWindowLocation;
-				NCCalc.rgrc[2] = LastWindowLocation;
+				static NCCALCSIZE_PARAMS NCCalc;
+				NCCalc = { { NewWindowRect, LastWindowLocation, LastWindowLocation }, &winpos };
+				
+				// Window placement
 				WINDOWPLACEMENT wp = {};
 				wp.length = sizeof(WINDOWPLACEMENT);
 				GetWindowPlacement(hWnd, &wp);
-				UINT SizeFlag = SIZE_RESTORED;
-				switch (wp.showCmd)
+				UINT SizeFlag = wp.showCmd == SW_SHOWMAXIMIZED ? SIZE_MAXIMIZED : wp.showCmd == SW_SHOWMINIMIZED ? SIZE_MINIMIZED : SIZE_RESTORED;
+
+				// Pre-populate MINMAXINFO
+				static MINMAXINFO minmaxInfo;
+				minmaxInfo = {};
+				minmaxInfo.ptMinTrackSize.x = 200; // Minimum width
+				minmaxInfo.ptMinTrackSize.y = 320; // Minimum height
+				minmaxInfo.ptMaxTrackSize.x = GetSystemMetrics(SM_CXMAXTRACK); // Maximum width
+				minmaxInfo.ptMaxTrackSize.y = GetSystemMetrics(SM_CYMAXTRACK); // Maximum height
+
+				// Send window position-related messages
+				PostMessage(hWnd, WM_ENTERSIZEMOVE, 0, 0);
+				PostMessage(hWnd, WM_GETMINMAXINFO, 0, (LPARAM)&minmaxInfo);
+				PostMessage(hWnd, WM_WINDOWPOSCHANGING, 0, (LPARAM)&winpos);
+
+				// Check and notify position change
+				if (bWindowMove)
 				{
-				case SW_SHOWMAXIMIZED:
-					SizeFlag = SIZE_MAXIMIZED;
-					break;
-				case SW_SHOWMINIMIZED:
-					SizeFlag = SIZE_MINIMIZED;
-					break;
+					POINT ClientPoint = { NewClientRect.left, NewClientRect.top };
+					MapWindowPoints(hWnd, GetParent(hWnd), (LPPOINT)&ClientPoint, 1);
+					PostMessage(hWnd, WM_MOVE, 0, MAKELPARAM(ClientPoint.x, ClientPoint.y));
 				}
 
-				// Windows position
-				PostMessage(hWnd, WM_WINDOWPOSCHANGING, 0, (LPARAM)&winpos);
+				// Notify size change
+				if (bWindowSize)
+				{
+					PostMessage(hWnd, WM_SIZE, SizeFlag, MAKELPARAM(NewClientRect.right, NewClientRect.bottom));
+				}
+
+				// Adjust client area and finalize position change
 				PostMessage(hWnd, WM_NCCALCSIZE, TRUE, (LPARAM)&NCCalc);
-				PostMessage(hWnd, WM_NCPAINT, TRUE, NULL);
-				PostMessage(hWnd, WM_ERASEBKGND, TRUE, NULL);
 				PostMessage(hWnd, WM_WINDOWPOSCHANGED, 0, (LPARAM)&winpos);
 
-				// Window move and size
-				PostMessage(hWnd, WM_MOVE, 0, MAKELPARAM(NewWindowRect.left, NewWindowRect.top));
-				PostMessage(hWnd, WM_SIZE, SizeFlag, MAKELPARAM(NewWindowRect.right - NewWindowRect.left, NewWindowRect.bottom - NewWindowRect.top));
+				// Repaint non-client and client areas
+				PostMessage(hWnd, WM_NCPAINT, TRUE, NULL);
+				PostMessage(hWnd, WM_ERASEBKGND, TRUE, NULL);
+				PostMessage(hWnd, WM_PAINT, 0, 0);
+
+				// End move/size operation
+				PostMessage(hWnd, WM_EXITSIZEMOVE, 0, 0);
 			}
 
 			// Window focus and activate app
@@ -3407,7 +3433,7 @@ HRESULT m_IDirectDrawX::CreateD9Device(char* FunctionName)
 			{
 				PostMessage(hWnd, WM_IME_SETCONTEXT, TRUE, ISC_SHOWUIALL);
 				PostMessage(hWnd, WM_SETFOCUS, NULL, NULL);
-				PostMessage(hWnd, WM_SYNCPAINT, (WPARAM)32, NULL);
+				PostMessage(hWnd, WM_SYNCPAINT, NULL, NULL);
 			}
 		}
 
