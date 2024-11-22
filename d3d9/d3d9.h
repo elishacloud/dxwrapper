@@ -1,6 +1,7 @@
 #pragma once
 
 #include "d3d9External.h"
+#include <deque>
 #include "GDI\GDI.h"
 
 class m_IDirect3D9Ex;

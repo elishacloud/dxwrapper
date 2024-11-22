@@ -138,6 +138,12 @@ void DebugOverlay::EndScene()
 
 	if (ShowDebugUI)
 	{
+		std::stringstream stats;
+		stats << "FPS: " << (DWORD)(AverageFPS * 100) / 100.0f << '\n';
+		ImGui::Begin("Stats");
+		ImGui::Text(stats.str().c_str());
+		ImGui::End();
+
 		std::stringstream matrices;
 		matrices << "WORLD\n" <<
 			worldMatrix._11 << " / " << worldMatrix._12 << " / " << worldMatrix._13 << " / " << worldMatrix._14 << '\n' <<
@@ -246,6 +252,11 @@ void DebugOverlay::SetTransform(D3DTRANSFORMSTATETYPE dtstTransformStateType, LP
 	default:
 		break;
 	}
+}
+
+void DebugOverlay::SetFPSCount(double FPS)
+{
+	AverageFPS = FPS;
 }
 
 void DebugOverlay::SetLight(DWORD dwLightIndex, LPD3DLIGHT7 lpLight)

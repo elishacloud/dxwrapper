@@ -931,9 +931,20 @@ HRESULT m_IDirect3DDevice9Ex::Present(CONST RECT *pSourceRect, CONST RECT *pDest
 
 	HRESULT hr = ProxyInterface->Present(pSourceRect, pDestRect, hDestWindowOverride, pDirtyRegion);
 
-	if (Config.LimitPerFrameFPS && SUCCEEDED(hr))
+	if (SUCCEEDED(hr))
 	{
-		LimitFrameRate();
+#ifdef ENABLE_DEBUGOVERLAY
+		if (Config.EnableImgui)
+		{
+			CalculateFPS();
+			DOverlay.SetFPSCount(SHARED.AverageFPSCounter);
+		}
+#endif
+
+		if (Config.LimitPerFrameFPS)
+		{
+			LimitFrameRate();
+		}
 	}
 
 	return hr;
@@ -2100,9 +2111,20 @@ HRESULT m_IDirect3DDevice9Ex::PresentEx(THIS_ CONST RECT* pSourceRect, CONST REC
 
 	HRESULT hr = ProxyInterfaceEx->PresentEx(pSourceRect, pDestRect, hDestWindowOverride, pDirtyRegion, dwFlags);
 
-	if (Config.LimitPerFrameFPS && SUCCEEDED(hr))
+	if (SUCCEEDED(hr))
 	{
-		LimitFrameRate();
+#ifdef ENABLE_DEBUGOVERLAY
+		if (Config.EnableImgui)
+		{
+			CalculateFPS();
+			DOverlay.SetFPSCount(SHARED.AverageFPSCounter);
+		}
+#endif
+
+		if (Config.LimitPerFrameFPS)
+		{
+			LimitFrameRate();
+		}
 	}
 
 	return hr;
@@ -2432,4 +2454,46 @@ void m_IDirect3DDevice9Ex::LimitFrameRate()
 	{
 		SHARED.Counter.LastPresentTime.QuadPart = TargetEndTicks;
 	}
+}
+
+void m_IDirect3DDevice9Ex::CalculateFPS()
+{
+	// Calculate frame time
+	auto endTime = std::chrono::steady_clock::now();
+	auto newstart = std::chrono::steady_clock::now();
+	std::chrono::duration<double> frameTime = endTime - SHARED.startTime;
+	SHARED.startTime = newstart;
+
+	// Store the frame time along with the time it occurred
+	SHARED.frameTimes.emplace_back(endTime, frameTime);
+
+	// Remove frame times older than FPS_CALCULATION_WINDOW
+	while (!SHARED.frameTimes.empty() && (endTime - SHARED.frameTimes.front().first) > FPS_CALCULATION_WINDOW)
+	{
+		SHARED.frameTimes.pop_front();
+	}
+
+	if (SHARED.frameTimes.empty())
+	{
+		// No frame times available
+		return;
+	}
+
+	double totalTime = 0.0;
+	for (const auto& entry : SHARED.frameTimes)
+	{
+		totalTime += entry.second.count();
+	}
+
+	// Calculate average frame time
+	double averageFrameTime = totalTime / SHARED.frameTimes.size();
+
+	// Calculate FPS
+	if (averageFrameTime > 0.0)
+	{
+		SHARED.AverageFPSCounter = 1.0 / averageFrameTime;
+	}
+
+	// Output FPS
+	Logging::LogDebug() << "Frames: " << SHARED.frameTimes.size() << " Average time: " << averageFrameTime << " FPS: " << SHARED.AverageFPSCounter;
 }

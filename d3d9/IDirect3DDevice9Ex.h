@@ -1,6 +1,7 @@
 #pragma once
 
 static constexpr size_t MAX_CLIP_PLANES = 6;
+const std::chrono::seconds FPS_CALCULATION_WINDOW(1);	// Define a constant for the desired duration of FPS calculation
 
 struct DEVICEDETAILS
 {
@@ -20,6 +21,11 @@ struct DEVICEDETAILS
 		DWORD FrameCounter = 0;
 		LARGE_INTEGER Frequency = {}, ClickTime = {}, LastPresentTime = {};
 	} Counter;
+
+	// Frame counter
+	double AverageFPSCounter = 0.0;
+	std::deque<std::pair<std::chrono::steady_clock::time_point, std::chrono::duration<double>>> frameTimes;	// Store frame times in a deque
+	std::chrono::steady_clock::time_point startTime = std::chrono::steady_clock::now();// Store start time for PFS counter
 
 	// For AntiAliasing
 	bool DeviceMultiSampleFlag = false;
@@ -56,6 +62,9 @@ private:
 
 	// Limit frame rate
 	void LimitFrameRate();
+
+	// Frame counter
+	void CalculateFPS();
 
 	// Anisotropic Filtering
 	void DisableAnisotropicSamplerState(bool AnisotropyMin, bool AnisotropyMag);
